@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -51,12 +51,12 @@ Aug 18, 2004. M. Spiekermann added ~Setflag\_NOSYNC~ to speed up closing files
 at the end of a query. Since queries does not modify the data synchronisation is
 not necessary.
 
-Sept 15, 2004. M. Spiekermann. Declaration of SmiError moved to ErrorCodes.h. 
+Sept 15, 2004. M. Spiekermann. Declaration of SmiError moved to ErrorCodes.h.
 
 Nov 2004. M. Spiekermann. Some functions were implemented as inline functions.
 
 Feb. 2006. M. Spiekermann Some new functions were declared which allow to set up
-only a temporary BDB-Environment needed for the implementation of persistent 
+only a temporary BDB-Environment needed for the implementation of persistent
 nested lists.
 
 
@@ -243,6 +243,7 @@ using namespace std;
 #include <string>
 #include <vector>
 #include <map>
+#include <utility>
 
 #include <db_cxx.h>
 
@@ -314,6 +315,12 @@ Is the type for record sizes or offsets.
 
 class PrefetchingIterator;
 /* Forward declaration */
+
+typedef vector<pair<string,string> > SmiStatResultType;
+/* Used by SmiFile::GetFileStatistics(...) */
+
+enum SMI_STATS_MODE {SMI_STATS_EAGER, SMI_STATS_LAZY};
+/* Used by SmiFile::GetFileStatistics(...) */
 
 
 /**************************************************************************
@@ -512,7 +519,7 @@ handles before dropping a ~SmiFile~.
 /*
 Empties an ~SmiFile~. It is necessary to close any record iterators or record
 handles before truncating it. This method is only used to free disk data for
-tuple buffers since the Remove() operation does not work for them (bug?). 
+tuple buffers since the Remove() operation does not work for them (bug?).
 Without this compromise solution the data would only be deleted when secondo shuts down.
 
 */
@@ -553,6 +560,23 @@ records of the ~SmiFile~.
 */
   ostream& Print(ostream& os) const;
 
+  SmiStatResultType GetFileStatistics(const SMI_STATS_MODE mode);
+
+/*
+Returns a SmiStatResultType, which is a vector of key-value pairs. Both, keys
+and values are strings. Each ~key~ describes a statistic on the file and the
+~value~ the according value.
+
+~mode~ is of type SMI\_STATS\_MODE: either SMI\_STATS\_EAGER, SMI\_STATS\_LAZY.
+~SMI\_STATS\_EAGER~ will force the active collection of statistics to ensure
+that current and complete data is returned (that migth take a while, for data
+may needed to be analyzed), while ~SMI\_STATS\_LAZY~ will only read out (possibly
+old) statistics and/or return incomplete data.
+
+Different SmiFile types may return different sets of keys as results.
+
+*/
+
  protected:
   SmiFile( const bool isTemporary = false);
   SmiFile( SmiFile &smiFile );
@@ -577,6 +601,7 @@ Checks whether the given name ~name~ is valid.
 
   class Implementation;
   Implementation* impl;
+
  private:
   bool trace;
 
@@ -665,7 +690,7 @@ Returns a pointer to the "Secondo"[3] Storage Management Environment
 
   static bool SetHomeDir(const string& parmFile);
 
-  static int CreateTmpEnvironment(ostream& err);  
+  static int CreateTmpEnvironment(ostream& err);
   static int DeleteTmpEnvironment();
 
   static bool StartUp( const RunMode mode,
@@ -745,7 +770,7 @@ In a future extension it may be used for user management and access control.
 /*
 Indicates that the cache in memory and the files on disk need no syncronisation.
 In the Berkeley-DB Implementation this is used to speed up the DB-close() API call
-at the end of a query which does no modifications to the stored data. 
+at the end of a query which does no modifications to the stored data.
 
 */
 
@@ -772,14 +797,14 @@ error code while the other functions reset the internal error code.
 Optionally the accompanying error message is returned.
 
 */
-  static void SetSmiError( const SmiError smiErr, 
-                           const string& file, int pos ); 
-  static void SetSmiError( const SmiError smiErr, 
-                           const int sysErr, const string& file, int pos ); 
+  static void SetSmiError( const SmiError smiErr,
+                           const string& file, int pos );
+  static void SetSmiError( const SmiError smiErr,
+                           const int sysErr, const string& file, int pos );
   static void ResetSmiErrors();
 
-#define SetError(code) SetSmiError(code, __FILE__, __LINE__)  
-#define SetError2(code, msg) SetSmiError(code, msg, __FILE__, __LINE__)  
+#define SetError(code) SetSmiError(code, __FILE__, __LINE__)
+#define SetError2(code, msg) SetSmiError(code, msg, __FILE__, __LINE__)
 #define SetBDBError(code) SetSmiError(E_SMI_BDB, code, __FILE__, __LINE__)
 
 /*
@@ -860,7 +885,7 @@ The function returns "true"[4], if the lock could be released successfully
 or if the application runs in single user mode.
 
 */
-  static void SetSmiError( const SmiError smiErr, 
+  static void SetSmiError( const SmiError smiErr,
                            const string& errMsg, const string& file, int pos );
 
   static const string Err2Msg( SmiError code );
@@ -868,7 +893,7 @@ or if the application runs in single user mode.
 Translate an SMI error code into a message!
 
 */
-  
+
   static SmiEnvironment instance;    // Instance of environment
   static SmiError       lastError;   // Last error code
   static string         lastMessage; // Last error message
@@ -876,7 +901,7 @@ Translate an SMI error code into a message!
   static bool           smiStarted;  // Flag SMI initialized
   static bool           singleUserMode;
   static bool           useTransactions;
- 
+
   // the next member is used in the Berkeley-DB Implementation
   static bool           dontSyncDiskCache;
 
@@ -1060,6 +1085,24 @@ the new record.
 Deletes the record identified by record number ~recno~ from the file.
 
 */
+
+  SmiStatResultType GetFileStatistics(const SMI_STATS_MODE mode);
+
+/*
+Returns a SmiStatResultType, which is a vector of key-value pairs. Both, keys
+and values are strings. Each ~key~ describes a statistic on the file and the
+~value~ the according value.
+
+~mode~ is of type SMI\_STATS\_MODE: either SMI\_STATS\_EAGER, SMI\_STATS\_LAZY.
+~SMI\_STATS\_EAGER~ will force the active collection of statistics to ensure
+that current and complete data is returned (that migth take a while, for data
+may needed to be analyzed), while ~SMI\_STATS\_LAZY~ will only read out (possibly
+old) statistics and/or return incomplete data.
+
+Different SmiFile types may return different sets of keys as results.
+
+*/
+
  protected:
  private:
 };
@@ -1138,8 +1181,8 @@ An ~SmiRecord~ handle is initialized on return to write the record.
 The function returns "true"[4] when the record was created successfully.
 
 */
-  bool DeleteRecord( const SmiKey& key, 
-                     const bool all = true, 
+  bool DeleteRecord( const SmiKey& key,
+                     const bool all = true,
                      const SmiRecordId = 0 );
 /*
 Deletes all records having the given key.
@@ -1153,7 +1196,7 @@ The function returns "true"[4] when the records were successfully deleted.
 1.3 Class "SmiHashFile"[1]
 
 The class ~SmiHashFile~ uses hashing as access method for the ~SmiKeyedFile~.
-It does not provide any method, since all its functionality is 
+It does not provide any method, since all its functionality is
 implemented in the parent class.
 
 */
@@ -1165,9 +1208,9 @@ class SMI_EXPORT SmiHashFile : public SmiKeyedFile
                 const bool hasUniqueKeys = true,
                 const bool isTemporary = false );
 /*
-Creates a ~SmiFile~ handle for keyed access using hashing as access method. 
-The keys have to be of the specified type ~keyType~. If ~hasUniqueKeys~ is 
-true, then for each key only one record can be stored. Otherwise duplicate 
+Creates a ~SmiFile~ handle for keyed access using hashing as access method.
+The keys have to be of the specified type ~keyType~. If ~hasUniqueKeys~ is
+true, then for each key only one record can be stored. Otherwise duplicate
 records are allowed.
 
 */
@@ -1176,13 +1219,19 @@ records are allowed.
 Destroys a file handle.
 
 */
+
+SmiStatResultType GetFileStatistics(const SMI_STATS_MODE mode);
+/*
+Get file statistics
+
+*/
 };
 
 /**************************************************************************
 1.3 Class "SmiBtreeFile"[1]
 
-The class ~SmiBtreeFile~ uses B-Tree as access method for the 
-~SmiKeyedFile~. Additionally to the selection methods provided by 
+The class ~SmiBtreeFile~ uses B-Tree as access method for the
+~SmiKeyedFile~. Additionally to the selection methods provided by
 the parent class, it provides several range selection methods.
 
 */
@@ -1295,6 +1344,23 @@ By default an iterator for read only access without reporting duplicates is init
 but update access and reporting of duplicates may be specified.
 
 The function returns "true"[4] when the iterator was initialized successfully.
+
+*/
+
+  SmiStatResultType GetFileStatistics(const SMI_STATS_MODE mode);
+
+/*
+Returns a SmiStatResultType, which is a vector of key-value pairs. Both, keys
+and values are strings. Each ~key~ describes a statistic on the file and the
+~value~ the according value.
+
+~mode~ is of type SMI\_STATS\_MODE: either SMI\_STATS\_EAGER, SMI\_STATS\_LAZY.
+~SMI\_STATS\_EAGER~ will force the active collection of statistics to ensure
+that current and complete data is returned (that migth take a while, for data
+may needed to be analyzed), while ~SMI\_STATS\_LAZY~ will only read out (possibly
+old) statistics and/or return incomplete data.
+
+Different SmiFile types may return different sets of keys as results.
 
 */
 
@@ -1467,7 +1533,7 @@ function, otherwise unmapping of the key does not take place. That is ~key~ shou
 be created as "SmiKey key( keyMappingFunction );"[4].
 
 */
- 
+
  protected:
  private:
   SmiKey firstKey;       // Start of selected key range

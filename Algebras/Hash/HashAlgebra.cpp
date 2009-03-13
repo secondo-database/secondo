@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[TOC] [\tableofcontents]
 
 December 2005, Victor Almeida deleted the deprecated algebra levels
-(~executable~, ~descriptive~, and ~hybrid~). Only the executable 
+(~executable~, ~descriptive~, and ~hybrid~). Only the executable
 level remains. Models are also removed from type constructors.
 
 [1] Implementation of Hash Algebra
@@ -50,6 +50,7 @@ using namespace std;
 #include "TupleIdentifier.h"
 #include "Progress.h"
 #include "../BTree/BTreeAlgebra.h"
+#include "FTextAlgebra.h"
 
 #include <iostream>
 #include <string>
@@ -108,7 +109,7 @@ SmiRecordId HashIterator::GetId() const
 
 4 Class ~Hash~
 
-The key attribute of a hash can be an ~int~, a ~string~, ~real~, or a 
+The key attribute of a hash can be an ~int~, a ~string~, ~real~, or a
 composite one.
 
 */
@@ -138,14 +139,14 @@ opened( false )
   SmiFileId fileId;
   if( record.Read( &fileId, sizeof(SmiFileId), offset ) != sizeof(SmiFileId) )
     return;
-    
+
   this->file = new SmiHashFile( keyType, false, false );
   if( file->Open( fileId ) )
   {
     opened = true;
     offset += sizeof(SmiFileId);
   }
-  else 
+  else
   {
     delete file; file = 0;
   }
@@ -165,7 +166,7 @@ opened( false )
     {
       delete file; file = 0;
     }
-  }  
+  }
 }
 
 Hash::~Hash()
@@ -262,6 +263,20 @@ HashIterator* Hash::ExactMatch( StandardAttribute* key )
     return 0;
   }
   return new HashIterator( iter );
+}
+
+bool Hash::getFileStats( SmiStatResultType &result )
+{
+  if ( (file == 0) || !opened ){
+    return false;
+  }
+  result = file->GetFileStatistics(SMI_STATS_EAGER);
+  std::stringstream fileid;
+  fileid << file->GetFileId();
+  result.push_back(pair<string,string>("FilePurpose",
+            "SecondaryHashIndexFile"));
+  result.push_back(pair<string,string>("FileId",fileid.str()));
+  return true;
 }
 
 /*
@@ -433,10 +448,10 @@ OpenHash( SmiRecord& valueRecord,
 {
   value = SetWord( Hash::Open( valueRecord, offset, typeInfo ) );
   bool rc  = value.addr != 0;
-  return rc;  
+  return rc;
 }
 
-Hash *Hash::Open( SmiRecord& valueRecord, size_t& offset, 
+Hash *Hash::Open( SmiRecord& valueRecord, size_t& offset,
                     const ListExpr typeInfo )
 {
   return new Hash( ExtractKeyTypeFromTypeInfo( typeInfo ), valueRecord,
@@ -449,7 +464,7 @@ Hash *Hash::Open( SmiRecord& valueRecord, size_t& offset,
 */
 bool
 SaveHash( SmiRecord& valueRecord,
-           size_t& offset, 
+           size_t& offset,
            const ListExpr typeInfo,
            Word& value )
 {
@@ -476,7 +491,7 @@ bool Hash::Save(SmiRecord& record, size_t& offset, const ListExpr typeInfo)
 5.11 Type Constructor object for type constructor ~hash~
 
 */
-TypeConstructor 
+TypeConstructor
 cpphash( "hash",         HashProp,
           OutHash,        InHash,
           SaveToListHash, RestoreFromListHash,
@@ -499,34 +514,34 @@ ListExpr CreateHashTypeMap(ListExpr args)
 {
   string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 2, 
+  CHECK_COND(nl->ListLength(args) == 2,
              "Operator createhash expects a list of length two");
 
   ListExpr first = nl->First(args);
 
   nl->WriteToString(argstr, first);
   CHECK_COND( (   (!nl->IsAtom(first) &&
-             nl->IsEqual(nl->First(first), "rel") && 
+             nl->IsEqual(nl->First(first), "rel") &&
              IsRelDescription(first)
-                  ) 
+                  )
                 ||
       (!nl->IsAtom(first) &&
              nl->IsEqual(nl->First(first), "stream") &&
-             (nl->ListLength(first) == 2) && 
+             (nl->ListLength(first) == 2) &&
                    !nl->IsAtom(nl->Second(first)) &&
        (nl->ListLength(nl->Second(first)) == 2) &&
        nl->IsEqual(nl->First(nl->Second(first)), "tuple") &&
              IsTupleDescription(nl->Second(nl->Second(first)))
-                  ) 
+                  )
               ),
     "Operator createhash expects as first argument a list with structure\n"
     "rel(tuple ((a1 t1)...(an tn))) or stream (tuple ((a1 t1)...(an tn)))\n"
-    "Operator createhash gets a list with structure '" + argstr + "'."); 
+    "Operator createhash gets a list with structure '" + argstr + "'.");
 
   ListExpr second = nl->Second(args);
   nl->WriteToString(argstr, second);
-  
-  CHECK_COND(nl->IsAtom(second) && nl->AtomType(second) == SymbolType, 
+
+  CHECK_COND(nl->IsAtom(second) && nl->AtomType(second) == SymbolType,
     "Operator createhash expects as second argument an attribute name\n"
     "bug gets '" + argstr + "'.");
 
@@ -537,7 +552,7 @@ ListExpr CreateHashTypeMap(ListExpr args)
   nl->WriteToString(argstr, attrList);
   int attrIndex;
   ListExpr attrType;
-  CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType)) > 0, 
+  CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType)) > 0,
     "Operator createhash expects as a second argument an attribute name\n"
     "Attribute name '" + attrName + "' is not known.\n"
     "Known Attribute(s): " + argstr);
@@ -547,7 +562,7 @@ ListExpr CreateHashTypeMap(ListExpr args)
   CHECK_COND(nl->SymbolValue(attrType) == "string" ||
              nl->SymbolValue(attrType) == "int" ||
              nl->SymbolValue(attrType) == "real" ||
-             am->CheckKind("INDEXABLE", attrType, errorInfo), 
+             am->CheckKind("INDEXABLE", attrType, errorInfo),
     "Operator createhash expects as a second argument an attribute of types\n"
     "int, real, string, or any attribute that implements the kind INDEXABLE\n"
     "but gets '" + argstr + "'.");
@@ -629,7 +644,7 @@ int CreateHashSelect( ListExpr args )
   if( nl->IsEqual(nl->First(nl->First(args)), "rel") )
     return 0;
   if( nl->IsEqual(nl->First(nl->First(args)), "stream") )
-    return 1; 
+    return 1;
   return -1;
 }
 
@@ -638,7 +653,7 @@ int CreateHashSelect( ListExpr args )
 
 */
 int
-CreateHashValueMapping_Rel(Word* args, Word& result, int message, 
+CreateHashValueMapping_Rel(Word* args, Word& result, int message,
                             Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
@@ -662,7 +677,7 @@ CreateHashValueMapping_Rel(Word* args, Word& result, int message,
 
     if( (StandardAttribute *)tuple->GetAttribute(attrIndex)->IsDefined() )
     {
-      AttrToKey( (StandardAttribute *)tuple->GetAttribute(attrIndex), 
+      AttrToKey( (StandardAttribute *)tuple->GetAttribute(attrIndex),
                  key, hash->GetKeyType() );
       hash->Append( key, iter->GetTupleId() );
     }
@@ -674,7 +689,7 @@ CreateHashValueMapping_Rel(Word* args, Word& result, int message,
 }
 
 int
-CreateHashValueMapping_Stream(Word* args, Word& result, int message, 
+CreateHashValueMapping_Stream(Word* args, Word& result, int message,
                                Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
@@ -697,14 +712,14 @@ CreateHashValueMapping_Stream(Word* args, Word& result, int message,
     if( (StandardAttribute *)tuple->GetAttribute(attrIndex)->IsDefined() &&
         (StandardAttribute *)tuple->GetAttribute(tidIndex)->IsDefined() )
     {
-      AttrToKey( (StandardAttribute *)tuple->GetAttribute(attrIndex), 
+      AttrToKey( (StandardAttribute *)tuple->GetAttribute(attrIndex),
                  key, hash->GetKeyType() );
-      hash->Append( key, 
+      hash->Append( key,
                  ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->GetTid());
     }
     tuple->DeleteIfAllowed();
-   
-    qp->Request(args[0].addr, wTuple); 
+
+    qp->Request(args[0].addr, wTuple);
   }
   qp->Close(args[0].addr);
 
@@ -716,7 +731,7 @@ CreateHashValueMapping_Stream(Word* args, Word& result, int message,
 6.1.4 Specification of operator ~createhash~
 
 */
-const string CreateHashSpec  = 
+const string CreateHashSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>(((rel (tuple (x1 t1)...(xn tn)))) xi)"
     " -> (hash (tuple ((x1 t1)...(xn tn))) ti)\n"
@@ -739,7 +754,7 @@ const string CreateHashSpec  =
 6.1.5 Definition of operator ~createhash~
 
 */
-ValueMapping createhashmap[] = { CreateHashValueMapping_Rel, 
+ValueMapping createhashmap[] = { CreateHashValueMapping_Rel,
                                   CreateHashValueMapping_Stream };
 
 Operator createhash (
@@ -1044,7 +1059,7 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
           ili->defaultValue = 50;
           ili->Size = 0;
           ili->SizeExt = 0;
-          ili->noAttrs = 
+          ili->noAttrs =
             nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
           ili->attrSize = new double[ili->noAttrs];
           ili->attrSizeExt = new double[ili->noAttrs];
@@ -1064,9 +1079,9 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
 
         if ( ili->completeCalls > 0 )     //called in a loopjoin
         {
-          pRes->Card = 
+          pRes->Card =
             (double) ili->completeReturned / (double) ili->completeCalls;
-          
+
         }
         else      //single or first call
         {
@@ -1074,13 +1089,13 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
             pRes->Card = (double) ili->defaultValue;
           else                                              // annotated
             pRes->Card = ili->total * qp->GetSelectivity(s);
- 
+
         if ( (double) ili->returned > pRes->Card )   // there are more tuples
             pRes->Card = (double) ili->returned * 1.1;   // than expected
 
         if ( !ili->iter )  // hash has been finished
-            pRes->Card = (double) ili->returned; 
- 
+            pRes->Card = (double) ili->returned;
+
         if ( pRes->Card > (double) ili->total ) // more than all cannot be
             pRes->Card = (double) ili->total;
 
@@ -1089,7 +1104,7 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
 
         pRes->Time = uHashExactMatch + pRes->Card * vHashExactMatch;
 
-        pRes->Progress = 
+        pRes->Progress =
           (uHashExactMatch + (double) ili->returned * vHashExactMatch)
           / pRes->Time;
 
@@ -1109,7 +1124,7 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
 6.2.3 Specification of operator ~exactmatch~
 
 */
-const string HashExactMatchSpec  =   
+const string HashExactMatchSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>((hash (tuple ((x1 t1)...(xn tn)))"
   " ti)(rel (tuple ((x1 t1)...(xn tn)))) ti) ->"
@@ -1192,7 +1207,7 @@ ListExpr HashExactMatchSTypeMap(ListExpr args)
   return nl->TwoElemList(
           nl->SymbolAtom("stream"),
           nl->TwoElemList(
-            nl->SymbolAtom("tuple"), 
+            nl->SymbolAtom("tuple"),
             nl->OneElemList(
               nl->TwoElemList(
                 nl->SymbolAtom("id"),
@@ -1238,7 +1253,7 @@ HashExactMatchS(Word* args, Word& result, int message, Word& local, Supplier s)
         return -1;
       }
 
-      localInfo->resultTupleType = 
+      localInfo->resultTupleType =
              new TupleType(nl->Second(GetTupleResultType(s)));
 
       local = SetWord(localInfo);
@@ -1276,7 +1291,7 @@ HashExactMatchS(Word* args, Word& result, int message, Word& local, Supplier s)
 6.3.3 Specification of operator ~exactmatchS~
 
 */
-const string HashExactMatchSSpec  =         
+const string HashExactMatchSSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(hash( (tuple(X))) ti) ti->)"
   "(stream((id tid)))</text--->"
@@ -1304,20 +1319,20 @@ Operator hashexactmatchs (
 );
 
 /*
-6.4 Operator ~inserthash~ 
+6.4 Operator ~inserthash~
 
-For each tuple of the inputstream inserts an entry into the hash. The entry 
-is built from the attribute 
-of the tuple over which the tree is built and the tuple-identifier of the 
+For each tuple of the inputstream inserts an entry into the hash. The entry
+is built from the attribute
+of the tuple over which the tree is built and the tuple-identifier of the
 inserted tuple which is extracted
 as the last attribute of the tuple of the inputstream.
 
 
-6.4.0 General Type mapping function of operators ~inserthash~, ~deletehash~ 
+6.4.0 General Type mapping function of operators ~inserthash~, ~deletehash~
 and ~updatehash~
 
 
-Type mapping ~inserthash~ and ~deletehash~ 
+Type mapping ~inserthash~ and ~deletehash~
 
 ----     (stream (tuple ((a1 x1) ... (an xn) (TID tid)))) (hash X ti)) ai
 
@@ -1328,11 +1343,11 @@ Type mapping ~inserthash~ and ~deletehash~
 
 Type mapping ~updatehash~
 
-----     
-     (stream (tuple ((a1 x1) ... (an xn) 
+----
+     (stream (tuple ((a1 x1) ... (an xn)
                      (a1_old x1) ... (an_old xn) (TID tid)))) (hash X ti)) ai
 
-  -> (stream (tuple ((a1 x1) ... (an xn) 
+  -> (stream (tuple ((a1 x1) ... (an xn)
                      (a1_old x1) ... (an_old xn) (TID tid))))
 
         where X = (tuple ((a1 x1) ... (an xn)))
@@ -1345,7 +1360,7 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
 {
   ListExpr rest,next,listn,lastlistn,restHashAttrs,oldAttribute,outList;
   string argstr, argstr2, oldName;
-  
+
 
   /* Split argument in three parts */
   ListExpr streamDescription = nl->First(args);
@@ -1361,11 +1376,11 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
           &&
           (nl->ListLength(nl->Second(streamDescription)) == 2) &&
           (IsTupleDescription(nl->Second(nl->Second(streamDescription)))),
-          "Operator " + opName + 
+          "Operator " + opName +
           " expects as first argument a list with structure "
           "(stream (tuple ((a1 t1)...(an tn)(TID tid)))\n "
           "Operator " + opName + " gets as first argument '" + argstr + "'.");
-    
+
   // Proceed to last attribute of stream-tuples
   rest = nl->Second(nl->Second(streamDescription));
   while (!(nl->IsEmpty(rest)))
@@ -1373,24 +1388,24 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
     next = nl->First(rest);
     rest = nl->Rest(rest);
   }
-  
+
   CHECK_COND(!(nl->IsAtom(next)) &&
              (nl->IsAtom(nl->Second(next)))&&
              (nl->AtomType(nl->Second(next)) == SymbolType) &&
               (nl->SymbolValue(nl->Second(next)) == "tid") ,
-      "Operator " + opName + 
+      "Operator " + opName +
           ": Type of last attribute of tuples of the inputstream must be tid");
   // Test hash
 
   /* handle hash part of argument */
-  CHECK_COND(!nl->IsEmpty(hashDescription), 
-          "Operator " + opName + 
+  CHECK_COND(!nl->IsEmpty(hashDescription),
+          "Operator " + opName +
           ": Description for the hash may not be empty");
-  CHECK_COND(!nl->IsAtom(hashDescription), 
-          "Operator " + opName + 
+  CHECK_COND(!nl->IsAtom(hashDescription),
+          "Operator " + opName +
           ": Description for the hash may not be an atom");
-  CHECK_COND(nl->ListLength(hashDescription) == 3, 
-          "Operator " + opName + 
+  CHECK_COND(nl->ListLength(hashDescription) == 3,
+          "Operator " + opName +
           ": Description for the hash must consist of three parts");
 
   ListExpr hashSymbol = nl->First(hashDescription);
@@ -1398,24 +1413,24 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
   ListExpr hashKeyType = nl->Third(hashDescription);
 
   /* handle hash type constructor */
-  CHECK_COND(nl->IsAtom(hashSymbol), 
-          "Operator " + opName + 
+  CHECK_COND(nl->IsAtom(hashSymbol),
+          "Operator " + opName +
           ": First part of the hash-description has to be 'hash'");
-  CHECK_COND(nl->AtomType(hashSymbol) == SymbolType, 
-          "Operator " + opName + 
+  CHECK_COND(nl->AtomType(hashSymbol) == SymbolType,
+          "Operator " + opName +
           ": First part of the hash-description has to be 'bree' ");
   CHECK_COND(nl->SymbolValue(hashSymbol) == "hash",
-          "Operator " + opName + 
+          "Operator " + opName +
           ": First part of the hash-description has to be 'bree' ");
 
   /* handle hash tuple description */
-  CHECK_COND(!nl->IsEmpty(hashTupleDescription), 
+  CHECK_COND(!nl->IsEmpty(hashTupleDescription),
           "Operator " + opName + ": Second part of the "
           "hash-description has to be a tuple-description ");
-  CHECK_COND(!nl->IsAtom(hashTupleDescription), 
+  CHECK_COND(!nl->IsAtom(hashTupleDescription),
           "Operator " + opName + ": Second part of the "
           "hash-description has to be a tuple-description ");
-  CHECK_COND(nl->ListLength(hashTupleDescription) == 2, 
+  CHECK_COND(nl->ListLength(hashTupleDescription) == 2,
           "Operator " + opName + ": Second part of the "
           "hash-description has to be a tuple-description ");
   ListExpr hashTupleSymbol = nl->First(hashTupleDescription);;
@@ -1424,40 +1439,40 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
   CHECK_COND(nl->IsAtom(hashTupleSymbol),
           "Operator " + opName + ": Second part of the "
           "hash-description has to be a tuple-description ");
-  CHECK_COND(nl->AtomType(hashTupleSymbol) == SymbolType, 
+  CHECK_COND(nl->AtomType(hashTupleSymbol) == SymbolType,
           "Operator " + opName + ": Second part of the "
           "hash-description has to be a tuple-description ");
-  CHECK_COND(nl->SymbolValue(hashTupleSymbol) == "tuple", 
+  CHECK_COND(nl->SymbolValue(hashTupleSymbol) == "tuple",
            "Operator " + opName + ": Second part of the "
            "hash-description has to be a tuple-description ");
-  CHECK_COND(IsTupleDescription(hashAttrList), 
+  CHECK_COND(IsTupleDescription(hashAttrList),
            "Operator " + opName + ": Second part of the "
            "hash-description has to be a tuple-description ");
-  
+
   /* Handle key-part of hashdescription */
-  CHECK_COND(nl->IsAtom(hashKeyType), 
+  CHECK_COND(nl->IsAtom(hashKeyType),
            "Operator " + opName + ": Key of the hash has to be an atom");
   CHECK_COND(nl->AtomType(hashKeyType) == SymbolType,
            "Operator " + opName + ": Key of the hash has to be an atom");
-  
-  // Handle third argument which shall be the name of the attribute of 
+
+  // Handle third argument which shall be the name of the attribute of
   // the streamtuples that serves as the key for the hash
-  // Later on it is checked if this name is an attributename of the 
+  // Later on it is checked if this name is an attributename of the
   // inputtuples
-  CHECK_COND(nl->IsAtom(nameOfKeyAttribute), 
+  CHECK_COND(nl->IsAtom(nameOfKeyAttribute),
            "Operator " + opName + ": Name of the "
            "key-attribute of the streamtuples has to be an atom");
-  CHECK_COND(nl->AtomType(nameOfKeyAttribute) == SymbolType, 
+  CHECK_COND(nl->AtomType(nameOfKeyAttribute) == SymbolType,
            "Operator " + opName + ": Name of the key-attribute "
            "of the streamtuples has to be an atom");
 
   //Test if stream-tupledescription fits to hash-tupledescription
   rest = nl->Second(nl->Second(streamDescription));
-  CHECK_COND(nl->ListLength(rest) > 1 , 
+  CHECK_COND(nl->ListLength(rest) > 1 ,
            "Operator " + opName + ": There must be at least two "
            "attributes in the tuples of the tuple-stream");
-  // For updates the inputtuples need to carry the old attributevalues 
-  // after the new values but their names with an additional _old at 
+  // For updates the inputtuples need to carry the old attributevalues
+  // after the new values but their names with an additional _old at
   // the end
   if (opName == "updatehash")
   {
@@ -1470,7 +1485,7 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    CHECK_COND(nl->Equal(listn,hashAttrList), 
+    CHECK_COND(nl->Equal(listn,hashAttrList),
                   "Operator " + opName + ":  First part of the "
                   "tupledescription of the stream has to be the same as the "
                   "tupledescription of the hash");
@@ -1478,12 +1493,12 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
     restHashAttrs = hashAttrList;
     while (nl->ListLength(rest) >  1)
     {
-      nl->WriteToString(oldName, 
+      nl->WriteToString(oldName,
                         nl->First(nl->First(restHashAttrs)));
       oldName += "_old";
       oldAttribute = nl->TwoElemList(nl->SymbolAtom(oldName),
                                      nl->Second(nl->First(restHashAttrs)));
-      CHECK_COND(nl->Equal(oldAttribute,nl->First(rest)), 
+      CHECK_COND(nl->Equal(oldAttribute,nl->First(rest)),
         "Operator " + opName + ":  Second part of the "
         "tupledescription of the stream without the last "
         "attribute has to be the same as the tuple"
@@ -1494,8 +1509,8 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
     }
   }
   // For insert and delete check whether tupledescription of the stream
-  // without the last attribute is the same as the tupledescription 
-  // of the hash 
+  // without the last attribute is the same as the tupledescription
+  // of the hash
   else
   {
     listn = nl->OneElemList(nl->First(rest));
@@ -1506,30 +1521,30 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    CHECK_COND(nl->Equal(listn,hashAttrList), 
+    CHECK_COND(nl->Equal(listn,hashAttrList),
                   "Operator " + opName + ": tupledescription of the stream "
                   "without the last attribute has to be the same as the "
                   "tupledescription of the hash");
   }
-  
-  
-  // Test if attributename of the third argument exists as a name in the 
+
+
+  // Test if attributename of the third argument exists as a name in the
   // attributlist of the streamtuples
   string attrname = nl->SymbolValue(nameOfKeyAttribute);
   ListExpr attrtype;
   int j = FindAttribute(listn,attrname,attrtype);
-  CHECK_COND(j != 0, "Operator " + opName + 
+  CHECK_COND(j != 0, "Operator " + opName +
           ": Name of the attribute that shall contain the keyvalue for the"
           "hash was not found as a name of the attributes of the tuples of "
-          "the inputstream"); 
-  //Test if type of the attriubte which shall be taken as a key is the 
+          "the inputstream");
+  //Test if type of the attriubte which shall be taken as a key is the
   //same as the keytype of the hash
-  CHECK_COND(nl->Equal(attrtype,hashKeyType), "Operator " + opName + 
+  CHECK_COND(nl->Equal(attrtype,hashKeyType), "Operator " + opName +
           ": Type of the attribute that shall contain the keyvalue for the"
           "hash is not the same as the keytype of the hash");
-  //Append the index of the attribute over which the hash is built to 
-  //the resultlist. 
-  outList = nl->ThreeElemList(nl->SymbolAtom("APPEND"), 
+  //Append the index of the attribute over which the hash is built to
+  //the resultlist.
+  outList = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                           nl->OneElemList(nl->IntAtom(j)),streamDescription);
   return outList;
 }
@@ -1550,7 +1565,7 @@ ListExpr insertHashTypeMap(ListExpr args)
 
 */
 
-int insertHashValueMap(Word* args, Word& result, int message, 
+int insertHashValueMap(Word* args, Word& result, int message,
                         Word& local, Supplier s)
 {
   Word t;
@@ -1562,8 +1577,8 @@ int insertHashValueMap(Word* args, Word& result, int message,
   Attribute* tidAttr;
   TupleId oldTid;
   SmiKey key;
-  
-  
+
+
 
   switch (message)
   {
@@ -1575,9 +1590,9 @@ int insertHashValueMap(Word* args, Word& result, int message,
 
     case REQUEST :
       index = ((CcInt*) local.addr)->GetIntval();
-      hash = (Hash*)(args[1].addr);    
+      hash = (Hash*)(args[1].addr);
       assert(hash != 0);
-      qp->Request(args[0].addr,t);     
+      qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
@@ -1594,7 +1609,7 @@ int insertHashValueMap(Word* args, Word& result, int message,
 
     case CLOSE :
       qp->Close(args[0].addr);
-      qp->SetModified(qp->GetSon(s,1));  
+      qp->SetModified(qp->GetSon(s,1));
       return 0;
   }
   return 0;
@@ -1604,7 +1619,7 @@ int insertHashValueMap(Word* args, Word& result, int message,
 6.4.3 Specification of operator ~inserthash~
 
 */
-const string insertHashSpec  = 
+const string insertHashSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>stream(tuple(x@[TID tid])) x (hash(tuple(x) ti) xi)"
   " -> stream(tuple(x@[TID tid]))] "
@@ -1631,10 +1646,10 @@ Operator inserthash (
 
 
 /*
-6.5 Operator ~deletehash~ 
+6.5 Operator ~deletehash~
 
-For each tuple of the inputstream deletes the corresponding entry from the 
-hash. The entry is built from the attribute of the tuple over which the tree 
+For each tuple of the inputstream deletes the corresponding entry from the
+hash. The entry is built from the attribute of the tuple over which the tree
 is built and the tuple-identifier of the deleted tuple which is extracted
 as the last attribute of the tuple of the inputstream.
 
@@ -1653,7 +1668,7 @@ ListExpr deleteHashTypeMap(ListExpr args)
 
 */
 
-int deleteHashValueMap(Word* args, Word& result, int message, 
+int deleteHashValueMap(Word* args, Word& result, int message,
                         Word& local, Supplier s)
 {
   Word t;
@@ -1665,7 +1680,7 @@ int deleteHashValueMap(Word* args, Word& result, int message,
   Attribute* tidAttr;
   TupleId oldTid;
   SmiKey key;
-  
+
 
   switch (message)
   {
@@ -1677,9 +1692,9 @@ int deleteHashValueMap(Word* args, Word& result, int message,
 
     case REQUEST :
       index = ((CcInt*) local.addr)->GetIntval();
-      hash = (Hash*)(args[1].addr);    
+      hash = (Hash*)(args[1].addr);
       assert(hash != 0);
-      qp->Request(args[0].addr,t);    
+      qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
       {
         tup = (Tuple*)t.addr;
@@ -1706,7 +1721,7 @@ int deleteHashValueMap(Word* args, Word& result, int message,
 6.5.3 Specification of operator ~deletehash~
 
 */
-const string deleteHashSpec  = 
+const string deleteHashSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>stream(tuple(x@[TID tid])) x (hash(tuple(x) ti) xi)"
   " -> stream(tuple(x@[TID tid]))] "
@@ -1733,11 +1748,11 @@ Operator deletehash (
 
 
 /*
-6.6 Operator ~updatehash~ 
+6.6 Operator ~updatehash~
 
-For each tuple of the inputstream updates the entry in the hash. The entry is 
-built from the attribute of the tuple over which the tree is built and the 
-tuple-identifier of the updated tuple which is extracted as the last attribute 
+For each tuple of the inputstream updates the entry in the hash. The entry is
+built from the attribute of the tuple over which the tree is built and the
+tuple-identifier of the updated tuple which is extracted as the last attribute
 of the tuple of the inputstream.
 
 6.6.1 TypeMapping of operator ~updatehash~
@@ -1755,7 +1770,7 @@ ListExpr updateHashTypeMap(ListExpr args)
 
 */
 
-int updateHashValueMap(Word* args, Word& result, int message, 
+int updateHashValueMap(Word* args, Word& result, int message,
                         Word& local, Supplier s)
 {
   Word t;
@@ -1768,7 +1783,7 @@ int updateHashValueMap(Word* args, Word& result, int message,
   Attribute* tidAttr;
   TupleId oldTid;
   SmiKey key, oldKey;
-  
+
 
   switch (message)
   {
@@ -1780,7 +1795,7 @@ int updateHashValueMap(Word* args, Word& result, int message,
 
     case REQUEST :
       index = ((CcInt*) local.addr)->GetIntval();
-      hash = (Hash*)(args[1].addr);    
+      hash = (Hash*)(args[1].addr);
       assert(hash != 0);
       qp->Request(args[0].addr,t);
       if (qp->Received(args[0].addr))
@@ -1816,7 +1831,7 @@ int updateHashValueMap(Word* args, Word& result, int message,
 6.6.3 Specification of operator ~updatehash~
 
 */
-const string updateHashSpec  = 
+const string updateHashSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)])) x "
   "(hash(tuple(x) ti) xi)"
@@ -1843,6 +1858,103 @@ Operator updatehash (
          updateHashTypeMap          // type mapping
 );
 
+/*
+6.6 Operator ~getFileInfo~
+
+Returns a text object with statistical information on all files used by the
+hash table.
+
+The result has format ~file\_stat\_result~:
+
+----
+file_stat_result --> (file_stat_list)
+file_stat_list   -->   epsilon
+                     | file_statistics file_stat_list
+file_statistics  -->   epsilon
+                     | file_stat_field file_statistics
+file_stat_field  --> ((keyname) (value))
+keyname          --> string
+value            --> string
+----
+
+6.6.1 TypeMapping of operator ~getFileInfo~
+
+*/
+
+ListExpr getFileInfoHashTypeMap(ListExpr args)
+{
+  ListExpr btreeDescription = nl->First(args);
+
+  if(    (nl->ListLength(args) != 1)
+      || nl->IsAtom(btreeDescription)
+      || (nl->ListLength(btreeDescription) != 3)
+    ) {
+    return NList::typeError("1st argument is not a hash table.");
+  }
+  ListExpr hashSymbol = nl->First(btreeDescription);;
+  if(    !nl->IsAtom(hashSymbol)
+      || (nl->AtomType(hashSymbol) != SymbolType)
+      || (nl->SymbolValue(hashSymbol) != "hash")
+    ){
+    return NList::typeError("1st argument is not a hash table.");
+  }
+  return NList(symbols::TEXT).listExpr();
+}
+
+/*
+
+6.6.2 ValueMapping of operator ~getFileInfo~
+
+*/
+
+int getFileInfoHashValueMap(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  FText* restext = (FText*)(result.addr);
+  Hash* hash   = (Hash*)(args[0].addr);
+  SmiStatResultType resVector(0);
+
+  if ( (hash != 0) && hash->getFileStats(resVector) ){
+    string resString = "((\n";
+    for(SmiStatResultType::iterator i = resVector.begin();
+        i != resVector.end();
+        i++){
+      resString += "((" + i->first + ")(" + i->second + "))\n";
+    }
+    resString += "))";
+    restext->Set(true,resString);
+  } else {
+    restext->Set(false,"");
+  }
+  return 0;
+}
+
+/*
+6.7.3 Specification of operator ~getFileInfo~
+
+*/
+const string getFileInfoHashSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(hash(tuple(x) ti) xi -> text)</text--->"
+  "<text>getFileInfo( _ )</text--->"
+  "<text>Retrieve statistical infomation on the file(s) used by the hash table "
+  "instance.</text--->"
+  "<text>query getFileInfo(plz_PLZ_hash)</text--->"
+  ") )";
+
+
+/*
+6.7.4 Definition of operator ~getFileInfo~
+
+*/
+Operator getfileinfohash (
+         "getFileInfo",              // name
+         getFileInfoHashSpec,        // specification
+         getFileInfoHashValueMap,    // value mapping
+         Operator::SimpleSelect,     // trivial selection function
+         getFileInfoHashTypeMap      // type mapping
+);
 
 
 /*
@@ -1865,16 +1977,18 @@ class HashAlgebra : public Algebra
     AddOperator(&inserthash);
     AddOperator(&deletehash);
     AddOperator(&updatehash);
+    AddOperator(&getfileinfohash);
 
 #else
 
     AddOperator(&createhash);
-    AddOperator(&hashexactmatch);   
+    AddOperator(&hashexactmatch);
     hashexactmatch.EnableProgress();
     AddOperator(&hashexactmatchs);
     AddOperator(&inserthash);
     AddOperator(&deletehash);
     AddOperator(&updatehash);
+    AddOperator(&getfileinfohash);
 
 #endif
   }
@@ -1883,7 +1997,7 @@ class HashAlgebra : public Algebra
 
 extern "C"
 Algebra*
-InitializeHashAlgebra( NestedList* nlRef, 
+InitializeHashAlgebra( NestedList* nlRef,
                         QueryProcessor* qpRef,
                         AlgebraManager* amRef )
 {

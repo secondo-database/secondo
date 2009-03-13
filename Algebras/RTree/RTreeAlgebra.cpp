@@ -79,6 +79,7 @@ using namespace std;
 #include "TupleIdentifier.h"
 #include "Messages.h"
 #include "Progress.h"
+#include "FTextAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -3315,6 +3316,43 @@ ListExpr RTree2IntTypeMap(ListExpr args)
   return nl->SymbolAtom("int");
 }
 
+/*
+5.9.1 Type Mapping Functions for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+
+*/
+ListExpr RTree2TextTypeMap(ListExpr args)
+{
+  string rtreeDescriptionStr, argstr;
+  nl->WriteToString (argstr, args);
+  string errmsg = "Incorrect input '" + argstr +
+                  "' for rtree inquiry operator.";
+
+  CHECK_COND(!nl->IsEmpty(args), errmsg);
+  CHECK_COND(!nl->IsAtom(args), errmsg);
+  CHECK_COND(nl->ListLength(args) == 1, errmsg);
+
+  ListExpr rtreeDescription = nl->First(args);
+  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
+
+  CHECK_COND(!nl->IsEmpty(rtreeDescription), errmsg); // X
+  CHECK_COND(!nl->IsAtom(rtreeDescription), errmsg);  // X
+  ListExpr rtreeSymbol = nl->First(rtreeDescription);
+
+  /* handle rtree type constructor */
+  CHECK_COND(
+      nl->IsAtom(rtreeSymbol) &&
+      nl->AtomType(rtreeSymbol) == SymbolType &&
+      (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
+      nl->SymbolValue(rtreeSymbol) == "rtree3" ||
+      nl->SymbolValue(rtreeSymbol) == "rtree4" ||
+      nl->SymbolValue(rtreeSymbol) == "rtree8") ,
+  "Rtree inquiry operator expects a R-Tree \n"
+      "of type rtree, rtree3, rtree4 or rtree8.");
+
+  return nl->SymbolAtom("text");
+}
+
+
 ListExpr RTree2RectTypeMap(ListExpr args)
 {
   string rtreeDescriptionStr, argstr;
@@ -3992,7 +4030,7 @@ int RTreeEntriesSelect (ListExpr args)
 
 ListExpr RTreeEntriesTypeMap(ListExpr args)
 {
-   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
   char* errmsg = "Incorrect input for operator entries.";
@@ -4104,6 +4142,103 @@ Operator rtreeentries(
          RTreeEntriesTypeMap    // type mapping
         );
 
+
+/*
+5.12 Operator ~getFileInfo~
+
+Returns a text object with statistical information on all files used by the
+rtree.
+
+The result has format ~file\_stat\_result~:
+
+----
+file_stat_result --> (file_stat_list)
+file_stat_list   -->   epsilon
+                     | file_statistics file_stat_list
+file_statistics  -->   epsilon
+                     | file_stat_field file_statistics
+file_stat_field  --> ((keyname) (value))
+keyname          --> string
+value            --> string
+----
+
+5.12.1 TypeMapping of operator ~getFileInfo~
+
+Uses ~RTree2TextTypeMap~.
+
+
+5.12.2 ValueMapping of operator ~getFileInfo~
+
+*/
+
+template<unsigned dim,class LeafInfo>
+int getFileInfoRtreeValueMap(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  FText* restext = (FText*)(result.addr);
+  R_Tree<dim, LeafInfo> *rtree = (R_Tree<dim, LeafInfo> *)(args[0].addr);
+  SmiStatResultType resVector(0);
+
+  if ( (rtree != 0) && rtree->getFileStats(resVector) ){
+    string resString = "((\n";
+    for(SmiStatResultType::iterator i = resVector.begin();
+        i != resVector.end();
+        i++){
+      resString += "((" + i->first + ")(" + i->second + "))\n";
+    }
+    resString += "))";
+    restext->Set(true,resString);
+  } else {
+    restext->Set(false,"");
+  }
+  return 0;
+};
+
+ValueMapping getFileInfoRtreeValueMapArray[] =
+{ getFileInfoRtreeValueMap<2, TupleId>,  // 0
+  getFileInfoRtreeValueMap<3, TupleId>,  // 1
+  getFileInfoRtreeValueMap<4, TupleId>,  // 2
+  getFileInfoRtreeValueMap<8, TupleId>,  // 3
+  getFileInfoRtreeValueMap<2, TwoLayerLeafInfo>,  // 4
+  getFileInfoRtreeValueMap<3, TwoLayerLeafInfo>,  // 5
+  getFileInfoRtreeValueMap<4, TwoLayerLeafInfo>,  // 6
+  getFileInfoRtreeValueMap<8, TwoLayerLeafInfo>   // 7
+};
+
+/*
+5.12.3 Selection Function for operator ~getFileInfo~
+
+Uses ~RTreeInquirySelect~.
+
+
+5.12.4 Specification of operator ~getFileInfo~
+
+*/
+const string getFileInfoRtreeSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(btree(tuple(x) ti) xi -> text)</text--->"
+  "<text>getFileInfo( _ )</text--->"
+  "<text>Retrieve statistical infomation on the file(s) used by the rtree "
+  "instance.</text--->"
+  "<text>query getFileInfo(Trains_Trip_rtree)</text--->"
+  ") )";
+
+
+/*
+5.12.5 Definition of operator ~getFileInfo~
+
+*/
+Operator getfileinfortree(
+         "getFileInfo",                 // name
+         getFileInfoRtreeSpec,          // specification
+         8,                             // number of value mapping functions
+         getFileInfoRtreeValueMapArray, // value mapping
+         RTreeInquirySelect,            // selection function
+         RTree2TextTypeMap              // type mapping
+        );
+
+
 /*
 6 Definition and initialization of RTree Algebra
 
@@ -4132,7 +4267,9 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreenoofnodes );
     AddOperator( &rtreenoofentries );
     AddOperator( &rtreebbox );
-  AddOperator( &rtreeentries);
+    AddOperator( &rtreeentries);
+    AddOperator( &getfileinfortree);
+
 #else
 
     AddOperator( &creatertree );
@@ -4148,8 +4285,8 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreenoofnodes );
     AddOperator( &rtreenoofentries );
     AddOperator( &rtreebbox );
-  AddOperator( &rtreeentries);
-
+    AddOperator( &rtreeentries);
+    AddOperator(&getfileinfortree);
 #endif
 
 

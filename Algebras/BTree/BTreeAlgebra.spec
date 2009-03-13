@@ -1,6 +1,6 @@
-#This file is part of SECONDO. 
+#This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -29,3 +29,4 @@ operator exactmatchS alias EXACTMATCHS pattern _ op [ _ ]
 operator leftrangeS alias LEFTRANGES pattern _ op [ _ ]
 operator rightrangeS alias RIGHTRANGES pattern _ op [ _ ]
 operator rangeS alias RANGES pattern _ op [ _, _ ]
+operator getFileInfo alias GETFILEINFO pattern op ( _ )

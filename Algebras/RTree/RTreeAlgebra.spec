@@ -1,6 +1,6 @@
-#This file is part of SECONDO. 
+#This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -30,3 +30,4 @@ operator treeheight alias TREEHEIGHT pattern op ( _ )
 operator no_nodes alias NO_NODES pattern op ( _ )
 operator no_entries alias NO_ENTRIES pattern op ( _ )
 operator bbox alias BBOX pattern op ( _ )
+operator getFileInfo alias GETFILEINFO pattern op ( _ )

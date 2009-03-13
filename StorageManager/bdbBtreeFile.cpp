@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-1 Implementation of SmiBtreeFile using the Berkeley-DB 
+1 Implementation of SmiBtreeFile using the Berkeley-DB
 
 April 2002 Ulrich Telle
 
@@ -28,9 +28,9 @@ September 2002 Ulrich Telle, fixed flag (DB\_DIRTY\_READ) in Berkeley DB calls f
 
 April 2003 Ulrich Telle, implemented temporary SmiFiles
 
-May 2008, Victor Almeida created the two sons of the ~SmiKeyedFile~ class, namely ~SmiBtreeFile~ and 
+May 2008, Victor Almeida created the two sons of the ~SmiKeyedFile~ class, namely ~SmiBtreeFile~ and
 ~SmiHashFile~, for B-Tree and hash access methods, respectively.
-  
+
 */
 
 using namespace std;
@@ -50,6 +50,8 @@ using namespace std;
 #include "SmiCodes.h"
 #include "Profiles.h"
 
+extern string lu_2_s(uint32_t value); // defined in bdbFile.cpp
+
 /* --- Implementation of class SmiBtreeFile --- */
 
 SmiBtreeFile::SmiBtreeFile( const SmiKey::KeyDataType keyType,
@@ -59,14 +61,14 @@ SmiBtreeFile::SmiBtreeFile( const SmiKey::KeyDataType keyType,
 {
   useTxn = SmiEnvironment::useTransactions;
 }
-  
+
 SmiBtreeFile::~SmiBtreeFile()
 {
 }
 
 bool
-SmiBtreeFile::SelectRange( const SmiKey& fromKey, 
-                           const SmiKey& toKey, 
+SmiBtreeFile::SelectRange( const SmiKey& fromKey,
+                           const SmiKey& toKey,
                            SmiKeyedFileIterator& iterator,
                            const SmiFile::AccessType accessType
                              /* = SmiFile::ReadOnly */,
@@ -74,7 +76,7 @@ SmiBtreeFile::SelectRange( const SmiKey& fromKey,
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
+  DbTxn* tid = !impl->isTemporaryFile ?
 	                SmiEnvironment::instance.impl->usrTxn : 0;
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
@@ -105,20 +107,20 @@ SmiBtreeFile::SelectRange( const SmiKey& fromKey,
   return (rc == 0);
 }
 
-PrefetchingIterator* 
+PrefetchingIterator*
 SmiBtreeFile::SelectRangePrefetched(const SmiKey& fromKey, const SmiKey& toKey)
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
+  DbTxn* tid = !impl->isTemporaryFile ?
 	                SmiEnvironment::instance.impl->usrTxn : 0;
 
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
   {
-    return new PrefetchingIteratorImpl(dbc, keyDataType, 
-      (const char*)fromKey.GetAddr(), fromKey.keyLength, 
-      (const char*)toKey.GetAddr(), toKey.keyLength, 
+    return new PrefetchingIteratorImpl(dbc, keyDataType,
+      (const char*)fromKey.GetAddr(), fromKey.keyLength,
+      (const char*)toKey.GetAddr(), toKey.keyLength,
       PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH);
   }
   else
@@ -129,7 +131,7 @@ SmiBtreeFile::SelectRangePrefetched(const SmiKey& fromKey, const SmiKey& toKey)
 }
 
 bool
-SmiBtreeFile::SelectLeftRange( const SmiKey& toKey, 
+SmiBtreeFile::SelectLeftRange( const SmiKey& toKey,
                                SmiKeyedFileIterator& iterator,
                                const SmiFile::AccessType accessType
                                  /* = SmiFile::ReadOnly */,
@@ -137,7 +139,7 @@ SmiBtreeFile::SelectLeftRange( const SmiKey& toKey,
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
+  DbTxn* tid = !impl->isTemporaryFile ?
 	                SmiEnvironment::instance.impl->usrTxn : 0;
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
@@ -168,18 +170,18 @@ SmiBtreeFile::SelectLeftRange( const SmiKey& toKey,
   return (rc == 0);
 }
 
-PrefetchingIterator* 
+PrefetchingIterator*
 SmiBtreeFile::SelectLeftRangePrefetched(const SmiKey& toKey)
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
+  DbTxn* tid = !impl->isTemporaryFile ?
 	                SmiEnvironment::instance.impl->usrTxn : 0;
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
   {
-    return new PrefetchingIteratorImpl(dbc, keyDataType, 
-      0, 0, (const char*)toKey.GetAddr(), toKey.keyLength, 
+    return new PrefetchingIteratorImpl(dbc, keyDataType,
+      0, 0, (const char*)toKey.GetAddr(), toKey.keyLength,
       PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH);
   }
   else
@@ -191,7 +193,7 @@ SmiBtreeFile::SelectLeftRangePrefetched(const SmiKey& toKey)
 
 
 bool
-SmiBtreeFile::SelectRightRange( const SmiKey& fromKey, 
+SmiBtreeFile::SelectRightRange( const SmiKey& fromKey,
                                 SmiKeyedFileIterator& iterator,
                                 const SmiFile::AccessType accessType
                                   /* = SmiFile::ReadOnly */,
@@ -199,7 +201,7 @@ SmiBtreeFile::SelectRightRange( const SmiKey& fromKey,
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
+  DbTxn* tid = !impl->isTemporaryFile ?
 	                SmiEnvironment::instance.impl->usrTxn : 0;
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
@@ -230,19 +232,19 @@ SmiBtreeFile::SelectRightRange( const SmiKey& fromKey,
   return (rc == 0);
 }
 
-PrefetchingIterator* 
+PrefetchingIterator*
 SmiBtreeFile::SelectRightRangePrefetched(const SmiKey& fromKey)
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
+  DbTxn* tid = !impl->isTemporaryFile ?
 	                SmiEnvironment::instance.impl->usrTxn : 0;
 
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
   {
-    return new PrefetchingIteratorImpl(dbc, keyDataType, 
-      (const char*)fromKey.GetAddr(), fromKey.keyLength, 0, 0, 
+    return new PrefetchingIteratorImpl(dbc, keyDataType,
+      (const char*)fromKey.GetAddr(), fromKey.keyLength, 0, 0,
       PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH);
   }
   else
@@ -263,9 +265,9 @@ SmiBtreeFile::SelectAll( SmiKeyedFileIterator& iterator,
   int rc = 0;
   Dbc* dbc = 0;
 
-  DbTxn* tid = !impl->isTemporaryFile ? 
+  DbTxn* tid = !impl->isTemporaryFile ?
 	                SmiEnvironment::instance.impl->usrTxn : 0;
-  
+
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
   {
     rc = impl->bdbFile->cursor( tid, &dbc, 0 );
@@ -284,7 +286,7 @@ SmiBtreeFile::SelectAll( SmiKeyedFileIterator& iterator,
     iterator.solelyDuplicates = false;
     iterator.ignoreDuplicates = !reportDuplicates;
     iterator.rangeSearch      = false;
-    
+
     SmiKey dummy;
     iterator.firstKey         = dummy;
     iterator.lastKey          = dummy;
@@ -300,17 +302,88 @@ SmiBtreeFile::SelectAll( SmiKeyedFileIterator& iterator,
   return (rc == 0);
 }
 
+SmiStatResultType
+  SmiBtreeFile::GetFileStatistics(const SMI_STATS_MODE mode)
+{
+  int getStatReturnValue = 0;
+  u_int32_t flags = 0;
+  DB_BTREE_STAT *sRS = 0;
+  SmiStatResultType result;
+  // set flags according to ~mode~
+  switch(mode){
+    case SMI_STATS_LAZY: {
+        flags = DB_FAST_STAT;
+        break;
+      }
+    case SMI_STATS_EAGER: {
+        flags = 0;
+        break;
+      }
+    default: {
+        cout << "Error in SmiBtreeFile::GetFileStatistics: Unknown "
+             << "SMI_STATS_MODE" << mode << endl;
+//         assert( false );
+        return result;
+      }
+  }
+  // call bdb stats method
+  getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
+  // check for errors
+  if(getStatReturnValue != 0){
+    cout << "Error in SmiBtreeFile::GetFileStatistics: stat(...) returned != 0"
+         << getStatReturnValue << endl;
+    string error;
+    SmiEnvironment::GetLastErrorCode( error );
+    cout << error << endl;
+//     assert( false );
+    return result;
+  }
+  // translate result structure to vector<pair<string,string> >
+  result.push_back(pair<string,string>("FileName",fileName));
+  result.push_back(pair<string,string>("FileType","BtreeFile"));
+  result.push_back(pair<string,string>("StatisticsMode",
+            (mode == SMI_STATS_LAZY) ? "Lazy" : "Eager" ));
+  result.push_back(pair<string,string>("FileTypeVersion",
+            lu_2_s(sRS->bt_version)));
+  result.push_back(pair<string,string>("NoUniqueKeys",lu_2_s(sRS->bt_nkeys)));
+  result.push_back(pair<string,string>("NoEntries",lu_2_s(sRS->bt_ndata)));
+  result.push_back(pair<string,string>("PageSize",lu_2_s(sRS->bt_pagesize)));
+  result.push_back(pair<string,string>("MinKeyPerPage",lu_2_s(sRS->bt_minkey)));
+  result.push_back(pair<string,string>("RecordLength",lu_2_s(sRS->bt_re_len)));
+  result.push_back(pair<string,string>("PaddingByte",lu_2_s(sRS->bt_re_pad)));
+  result.push_back(pair<string,string>("NoLevels",lu_2_s(sRS->bt_levels)));
+  result.push_back(pair<string,string>("NoInternalPages",
+            lu_2_s(sRS->bt_int_pg)));
+  result.push_back(pair<string,string>("NoLeafPages",lu_2_s(sRS->bt_leaf_pg)));
+  result.push_back(pair<string,string>("NoDuplicatePages",
+            lu_2_s(sRS->bt_dup_pg)));
+  result.push_back(pair<string,string>("NoOverflowPages",
+            lu_2_s(sRS->bt_over_pg)));
+  result.push_back(pair<string,string>("NoFreeListPages",lu_2_s(sRS->bt_free)));
+  result.push_back(pair<string,string>("NoBytesFreeInternalPages",
+            lu_2_s(sRS->bt_int_pgfree)));
+  result.push_back(pair<string,string>("NoBytesFreeLeafPages",
+            lu_2_s(sRS->bt_leaf_pgfree)));
+  result.push_back(pair<string,string>("NoBytesFreeDuplicatePages",
+            lu_2_s(sRS->bt_dup_pgfree)));
+  result.push_back(pair<string,string>("NoBytesFreeOverflowPages",
+            lu_2_s(sRS->bt_over_pgfree)));
+
+  free(sRS); // free result structure
+  return result;
+}
+
 PrefetchingIterator* SmiBtreeFile::SelectAllPrefetched()
 {
   int rc = 0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
+  DbTxn* tid = !impl->isTemporaryFile ?
 	                 SmiEnvironment::instance.impl->usrTxn : 0;
 
   rc = impl->bdbFile->cursor(tid, &dbc, 0);
   if(rc == 0)
   {
-    return new PrefetchingIteratorImpl(dbc, keyDataType, 
+    return new PrefetchingIteratorImpl(dbc, keyDataType,
       PrefetchingIteratorImpl::DEFAULT_BUFFER_LENGTH, true);
   }
   else
@@ -319,6 +392,5 @@ PrefetchingIterator* SmiBtreeFile::SelectAllPrefetched()
     return 0;
   }
 }
-
 /* --- bdbBtreeFile.cpp --- */
 

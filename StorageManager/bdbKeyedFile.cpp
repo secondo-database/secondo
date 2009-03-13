@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-1 Implementation of SmiKeyedFile using the Berkeley-DB 
+1 Implementation of SmiKeyedFile using the Berkeley-DB
 
 April 2002 Ulrich Telle
 
@@ -28,7 +28,7 @@ September 2002 Ulrich Telle, fixed flag (DB\_DIRTY\_READ) in Berkeley DB calls f
 
 April 2003 Ulrich Telle, implemented temporary SmiFiles
 
-May 2008, Victor Almeida created the two sons of the ~SmiKeyedFile~ class, namely ~SmiBtreeFile~ and  
+May 2008, Victor Almeida created the two sons of the ~SmiKeyedFile~ class, namely ~SmiBtreeFile~ and
 ~SmiHashFile~, for B-Tree and hash access methods, respectively.
 
 */
@@ -62,17 +62,17 @@ SmiKeyedFile::SmiKeyedFile( const SmiFile::FileType fileType,
   keyDataType = keyType;
   uniqueKeys  = hasUniqueKeys;
 }
-  
+
 SmiKeyedFile::~SmiKeyedFile()
 {
 }
 
-SmiKey::KeyDataType 
+SmiKey::KeyDataType
 SmiKeyedFile::GetKeyType() const
 {
   return keyDataType;
 }
-  
+
 bool
 SmiKeyedFile::SelectRecord( const SmiKey& key,
                             SmiKeyedFileIterator& iterator,
@@ -81,7 +81,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
 {
   int rc=0;
   Dbc* dbc = 0;
-  DbTxn* tid = !impl->isTemporaryFile ? 
+  DbTxn* tid = !impl->isTemporaryFile ?
                SmiEnvironment::instance.impl->usrTxn : 0;
 
   if ( accessType == SmiFile::Update || !impl->isSystemCatalogFile )
@@ -105,7 +105,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
     iterator.searchKey        = &iterator.firstKey;
   }
 
-  if (rc != DB_NOTFOUND)  
+  if (rc != DB_NOTFOUND)
     SmiEnvironment::SetBDBError(rc);
   return (rc == 0);
 }
@@ -123,7 +123,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   Dbt data;
   data.set_ulen( 0 );
   data.set_flags( DB_DBT_USERMEM );
-  DbTxn* tid = !impl->isTemporaryFile ? 
+  DbTxn* tid = !impl->isTemporaryFile ?
                SmiEnvironment::instance.impl->usrTxn : 0;
 
   if ( uniqueKeys && accessType == SmiFile::Update )
@@ -144,7 +144,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
 // VTA - 15.11.2005 - to compile with the new version of Berkeley DB
 #if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 3)
   if ( rc == DB_BUFFER_SMALL )
-#else  
+#else
   if ( rc == ENOMEM )
 #endif
   {
@@ -164,7 +164,7 @@ SmiKeyedFile::SelectRecord( const SmiKey& key,
   }
   else
   {
-    if (rc != DB_NOTFOUND)  
+    if (rc != DB_NOTFOUND)
       SmiEnvironment::SetBDBError(rc);
     record.initialized     = false;
   }
@@ -178,11 +178,11 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
   int rc = 0;
   char buffer = 0;
   Dbc* dbc = 0;
-  
+
   Dbt bdbKey( (void*) key.GetAddr(), key.keyLength );
   Dbt data( &buffer, 0 );
   data.set_dlen( 0 );
-  DbTxn* tid = !impl->isTemporaryFile ? 
+  DbTxn* tid = !impl->isTemporaryFile ?
                SmiEnvironment::instance.impl->usrTxn : 0;
 
   if ( uniqueKeys )
@@ -239,7 +239,7 @@ SmiKeyedFile::InsertRecord( const SmiKey& key, SmiRecord& record )
 }
 
 bool
-SmiKeyedFile::DeleteRecord( const SmiKey& key, 
+SmiKeyedFile::DeleteRecord( const SmiKey& key,
                             const bool all, const SmiRecordId recordId )
 {
   if( all )
@@ -247,7 +247,7 @@ SmiKeyedFile::DeleteRecord( const SmiKey& key,
     int rc = 0;
 
     Dbt bdbKey( (void *) key.GetAddr(), key.keyLength );
-    DbTxn* tid = !impl->isTemporaryFile ? 
+    DbTxn* tid = !impl->isTemporaryFile ?
                  SmiEnvironment::instance.impl->usrTxn : 0;
 
     rc = impl->bdbFile->del( tid, &bdbKey, 0 );
@@ -257,7 +257,7 @@ SmiKeyedFile::DeleteRecord( const SmiKey& key,
   else
   {
     SmiKeyedFileIterator iter;
-    if( SelectRecord( key, iter, SmiFile::Update ) ) 
+    if( SelectRecord( key, iter, SmiFile::Update ) )
     {
       SmiRecord record;
       while( iter.Next( record ) )

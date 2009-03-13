@@ -87,7 +87,7 @@ Creates a Hash.
 Opens a Hash given the information in the root record ~record~.
 
 */
-    Hash( SmiKey::KeyDataType keyType, SmiFileId fileId );  
+    Hash( SmiKey::KeyDataType keyType, SmiFileId fileId );
 /*
 Opens a Hash given the key type and a file id.
 
@@ -98,7 +98,7 @@ The destructor.
 
 */
 
-    static Hash *Open( SmiRecord& valueRecord, 
+    static Hash *Open( SmiRecord& valueRecord,
                        size_t& offset, const ListExpr typeInfo );
 /*
 Opens a Hash. This function corresponds to the ~open~-function of the type constructor.
@@ -163,6 +163,12 @@ Returns the key data type.
     HashIterator* ExactMatch( StandardAttribute* key );
 /*
 Performs the exact match query returning an iterator.
+
+*/
+
+    bool getFileStats( SmiStatResultType &result );
+/*
+Retrieves statsitics on the used file from the storage manager
 
 */
 

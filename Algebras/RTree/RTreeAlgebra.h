@@ -155,7 +155,7 @@ If set, Krigel et al's axis split algorithm is performed.
 
 #define BULKLOAD_LEAF_SKIPPING true
 /*
-If set to 'true', ~leaf shipping~ is activated within the bulk
+If set to 'true', ~leaf skipping~ is activated within the bulk
 loading mechanism. Otherwise, set to 'false'.
 
 Leaf skipping will result in more nodes, but with smaller bounding boxes,
@@ -852,20 +852,20 @@ R_TreeNode<dim, LeafInfo>& R_TreeNode<dim, LeafInfo>::operator=
      delete entries[i];
      entries[i] = 0;
   }
-  
+
   leaf = node.leaf;
   count = node.count;
   modified = true;
 
   // if there are a change in size, resize the entries array
-  if(maxEntries!=node.maxEntries){ 
+  if(maxEntries!=node.maxEntries){
      delete[] entries;
-     entries = new R_TreeEntry<dim>*[node.maxEntries +1]; 
+     entries = new R_TreeEntry<dim>*[node.maxEntries +1];
      for(int i=node.count; i<=node.maxEntries; i++){
         entries[i] = 0;
      }
   }
-  
+
 
   for( int i = 0; i < node.count; i++ ) {
     if( leaf ){
@@ -1782,9 +1782,11 @@ Implemented by NearestNeighborAlgebra.
    R_TreeNode<dim, LeafInfo> *GetMyNode(SmiRecordId& address,
                                         const bool leaf,
                                         const int min, const int max )
-{
+  {
     return GetNode(address,leaf,min,max);
-}
+  }
+
+  bool getFileStats( SmiStatResultType &result );
 
   private:
     SmiRecordFile file;
@@ -3060,7 +3062,7 @@ void R_Tree<dim, LeafInfo>::GetNeighborNode(const R_TreeLeafEntry<dim, LeafInfo>
 
 */
 template <unsigned dim, class LeafInfo>
-R_TreeLeafEntry<dim,LeafInfo>* 
+R_TreeLeafEntry<dim,LeafInfo>*
     R_TreeNode<dim,LeafInfo>::GetLeafEntry(const int index) const
 {
   assert(index >= 0 && index <= maxEntries);
@@ -3068,7 +3070,7 @@ R_TreeLeafEntry<dim,LeafInfo>*
 }
 
 template <unsigned dim, class LeafInfo>
-R_TreeInternalEntry<dim>* 
+R_TreeInternalEntry<dim>*
      R_TreeNode<dim,LeafInfo>::GetInternalEntry(const int index) const
 {
   assert(index >= 0 && index < count);
@@ -3327,6 +3329,19 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
 
   return true;
 };
+
+
+template <unsigned dim, class LeafInfo>
+bool R_Tree<dim, LeafInfo>::getFileStats( SmiStatResultType &result )
+{
+  result = file.GetFileStatistics(SMI_STATS_EAGER);
+  std::stringstream fileid;
+  fileid << file.GetFileId();
+  result.push_back(pair<string,string>("FilePurpose",
+            "SecondaryRtreeIndexFile"));
+  result.push_back(pair<string,string>("FileId",fileid.str()));
+  return true;
+}
 
 
 /*

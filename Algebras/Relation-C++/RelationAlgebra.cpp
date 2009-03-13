@@ -72,6 +72,7 @@ RelationAlgebra.h header file.
 #include "Algebra.h"
 #include "StandardTypes.h"
 #include "Progress.h"
+#include "FTextAlgebra.h"
 
 #include "LogMsg.h"
 #include "NList.h"
@@ -550,7 +551,7 @@ instance of ~rel~.
 Word
 CreateRel(const ListExpr typeInfo)
 {
-  //cerr << "CreateRel: " << nl->ToString(typeInfo) << endl;	
+  //cerr << "CreateRel: " << nl->ToString(typeInfo) << endl;
   Relation* rel = new Relation( typeInfo );
   return (SetWord(rel));
 }
@@ -1157,7 +1158,7 @@ Feed(Word* args, Word& result, int message, Word& local, Supplier s)
 
           fli->Size =  0;
           fli->SizeExt =  0;
- 
+
           for ( int i = 0;  i < fli->noAttrs; i++)
           {
             fli->attrSize[i] = rr->GetTotalSize(i) / (fli->total + 0.001);
@@ -1281,7 +1282,7 @@ ListExpr feedproject_tm(ListExpr args)
 
     if (newIndex > 0)
     {
-      indices.append( NList(newIndex) );   
+      indices.append( NList(newIndex) );
       newAttrs.append( oldAttrs.elem(newIndex) );
     }
     else
@@ -1295,7 +1296,7 @@ ListExpr feedproject_tm(ListExpr args)
   }
 
   NList outlist = NList( NList(symbols::APPEND),
-                         NList( NList( noAtoms ), indices ), 
+                         NList( NList( noAtoms ), indices ),
 			 NList().tupleStreamOf( newAttrs ) );
 
   return outlist.listExpr();
@@ -1307,16 +1308,16 @@ class FeedProjLocalInfo : public FeedLocalInfo
 {
   public:
     double argTupleSize;
-	
-    FeedProjLocalInfo(TupleType* ptr) : tt(ptr) 
-    { 
-       returned = 0; 
+
+    FeedProjLocalInfo(TupleType* ptr) : tt(ptr)
+    {
+       returned = 0;
     }
     ~FeedProjLocalInfo() { delete tt; tt = 0; }
 
   private:
     const TupleType* tt;
-};	
+};
 
 
 int
@@ -1349,7 +1350,7 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
     case REQUEST :{
       fli = (FeedProjLocalInfo*) local.addr;
       Tuple *t;
-      
+
         noOfAttrs = ((CcInt*)args[2].addr)->GetIntval();
         list<int> usedAttrs;
 
@@ -1430,7 +1431,7 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
           fli->attrSizeExt = new double[fli->noAttrs];
 
 
-	  fli->argTupleSize = rr->GetTotalExtSize() 
+	  fli->argTupleSize = rr->GetTotalExtSize()
 		/ (fli->total + 0.001);
 
           for( int i = 0; i < fli->noAttrs; i++)
@@ -1438,9 +1439,9 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             son = qp->GetSupplier(args[3].addr, i);
             qp->Request(son, elem);
             index = ((CcInt*)elem.addr)->GetIntval();
-            fli->attrSize[i] = rr->GetTotalSize(index-1) 
+            fli->attrSize[i] = rr->GetTotalSize(index-1)
 		/ (fli->total + 0.001);
-            fli->attrSizeExt[i] = rr->GetTotalExtSize(index-1) 
+            fli->attrSizeExt[i] = rr->GetTotalExtSize(index-1)
 		/ (fli->total + 0.001);
 
             fli->Size += fli->attrSize[i];
@@ -1460,15 +1461,15 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
           pRes->Card = (double) fli->total;
           pRes->CopySizes(fli);  //copy all sizes
 
-          pRes->Time = (fli->total + 1) * 
-		(uFeedProject 
-		+ fli->argTupleSize * vFeedProject 
+          pRes->Time = (fli->total + 1) *
+		(uFeedProject
+		+ fli->argTupleSize * vFeedProject
 		+ fli->noAttrs * wFeedProject);
 
           //any time value created must be > 0; so we add 1
 
-          pRes->Progress = fli->returned * (uFeedProject 
-		+ fli->argTupleSize * vFeedProject 
+          pRes->Progress = fli->returned * (uFeedProject
+		+ fli->argTupleSize * vFeedProject
 		+ fli->noAttrs * wFeedProject)
             / pRes->Time;
 
@@ -1487,14 +1488,14 @@ feedproject_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
           pRes->CopySizes(p1);
 
-          pRes->Time = p1.Time + p1.Card * (uFeedProject 
-		+ fli->argTupleSize * vFeedProject 
+          pRes->Time = p1.Time + p1.Card * (uFeedProject
+		+ fli->argTupleSize * vFeedProject
 		+ fli->noAttrs * wFeedProject);
 
           pRes->Progress =
              ((p1.Progress * p1.Time) +
-              (fli ? fli->returned : 0) * (uFeedProject 
-		+ fli->argTupleSize * vFeedProject 
+              (fli ? fli->returned : 0) * (uFeedProject
+		+ fli->argTupleSize * vFeedProject
 		+ fli->noAttrs * wFeedProject))
               / pRes->Time;
 
@@ -2133,7 +2134,7 @@ Filter(Word* args, Word& result, int message,
                         pRes->CopyBlocking(p1);
                         return YIELD;
                   }
-                
+
           if ( fli->returned >= enoughSuccessesSelection )
             //stable state assumed now
           {
@@ -5369,8 +5370,8 @@ ListExpr BufferTypeMap(ListExpr args)
   }
   ListExpr arg = nl->First(args);
 
-  // tuple stream 
-  if(IsStreamDescription(arg) ){ 
+  // tuple stream
+  if(IsStreamDescription(arg) ){
     return arg;
   }
   // DATA stream
@@ -5397,11 +5398,11 @@ ListExpr BufferTypeMap2(ListExpr args)
   // DATA
   ListExpr errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
   if(am->CheckKind("DATA",arg,errorInfo)){
-     return arg;    
-  } 
+     return arg;
+  }
   ErrorReporter::ReportError("DATA expected");
   return nl->TypeError();
-} 
+}
 
 /*
 
@@ -5557,7 +5558,7 @@ int Buffer2(Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    StandardAttribute* arg = static_cast<StandardAttribute*>(args[0].addr);
    StandardAttribute* res = static_cast<StandardAttribute*>(result.addr);
-   res->CopyFrom(arg); 
+   res->CopyFrom(arg);
    return 0;
 }
 
@@ -5575,7 +5576,7 @@ ValueMapping BufferVM[] = {Buffer<Tuple>,Buffer<Attribute>};
 int BufferSelect(ListExpr args){
   ListExpr arg = nl->First(args);
   ListExpr type = nl->Second(arg);
-  if(nl->AtomType(type)==NoAtom && 
+  if(nl->AtomType(type)==NoAtom &&
      nl->IsEqual(nl->First(type),symbols::TUPLE)){
      return 1;
   } else {
@@ -5623,7 +5624,7 @@ const string BufferSpec2  =
 Operator relalgbuffer (
          "!",                 // name
          BufferSpec,             // specification
-         2, 
+         2,
          BufferVM,                 // value mapping
          BufferSelect,     // trivial selection function
          BufferTypeMap           // type mapping
@@ -5636,6 +5637,122 @@ Operator relalgbuffer2 (
          Buffer2,                 // value mapping
          Operator::SimpleSelect,     // trivial selection function
          BufferTypeMap2           // type mapping
+);
+
+
+
+
+
+
+
+
+
+/*
+5.13 Operator ~getFileInfo~
+
+Returns a text object with statistical information on all files used by the
+relation.
+
+The result has format ~file\_stat\_result~:
+
+----
+file_stat_result --> (file_stat_list)
+file_stat_list   -->   epsilon
+                     | file_statistics file_stat_list
+file_statistics  -->   epsilon
+                     | file_stat_field file_statistics
+file_stat_field  --> ((keyname) (value))
+keyname          --> string
+value            --> string
+----
+
+5.13.1 TypeMapping of operator ~getFileInfo~
+
+*/
+
+ListExpr getFileInfoRelTypeMap(ListExpr args)
+{
+  if(     nl->ListLength(args)!=1                         // only 1 argument
+      || (    !IsRelDescription( nl->First(args), true  )      // is trel
+           && !IsRelDescription( nl->First(args), false ) ) ){ // is rel
+    return NList::typeError(
+          "Expected 1 single argument of type 'rel' or 'trel'.");
+  }
+  return NList(symbols::TEXT).listExpr();
+}
+
+/*
+
+5.13.2 ValueMapping of operator ~getFileInfo~
+
+*/
+
+int getFileInfoRelValueMap(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  FText* restext = (FText*)(result.addr);
+  GenericRelation* rel = (GenericRelation*)(args[0].addr);
+  SmiStatResultType resVector(0);
+
+  if ( rel != 0 ){
+
+    // start list
+    string resString = "(\n";
+    // TupleCoreFile
+    rel->GetTupleFileStats(resVector);
+    resString += "(\n";
+    for(SmiStatResultType::iterator i = resVector.begin();
+        i != resVector.end();
+        i++){
+      resString += "((" + i->first + ")(" + i->second + "))\n";
+    }
+    resString += ")\n";
+    resVector.clear();
+    // TupleLOBFile
+    rel->GetLOBFileStats(resVector);
+    resString += "(\n";
+    for(SmiStatResultType::iterator i = resVector.begin();
+        i != resVector.end();
+        i++){
+      resString += "((" + i->first + ")(" + i->second + "))\n";
+    }
+    resString += ")\n";
+
+    // end of list
+    resString += ")\n";
+    restext->Set(true,resString);
+
+  } else {
+    restext->Set(false,"");
+  }
+  return 0;
+}
+
+/*
+5.13.3 Specification of operator ~getFileInfo~
+
+*/
+const string getFileInfoRelSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>(rel(tuple(x)) | trel(tuple(X)) -> text)</text--->"
+  "<text>getFileInfo( _ )</text--->"
+  "<text>Retrieve statistical infomation on the file(s) used by the relation "
+  "instance.</text--->"
+  "<text>query getFileInfo(plz)</text--->"
+  ") )";
+
+
+/*
+5.13.4 Definition of operator ~getFileInfo~
+
+*/
+Operator relalggetfileinfo (
+         "getFileInfo",            // name
+         getFileInfoRelSpec,       // specification
+         getFileInfoRelValueMap,   // value mapping
+         Operator::SimpleSelect,   // trivial selection function
+         getFileInfoRelTypeMap     // type mapping
 );
 
 
@@ -5698,6 +5815,7 @@ class RelationAlgebra : public Algebra
     AddOperator(&relalgrename);
     AddOperator(&relalgbuffer);
     AddOperator(&relalgbuffer2);
+    AddOperator(&relalggetfileinfo);
 
     // More recent programming interface for registering operators
     AddOperator( SizeCountersInfo(), sizecounters_vm, sizecounters_tm );

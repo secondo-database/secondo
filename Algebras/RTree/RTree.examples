@@ -109,3 +109,9 @@ Number   : 1
 Signature: rtree<D> (tuple ((x1 t1)...(xn tn))) ti false) -> stream(tuple((nodeId int) (MBR rect<D>) (Tid tupleid)))
 Example  : query entries(strassen_geoData_rtree) filter[.Nodeid = 2] tconsume count;
 Result   : 3212
+
+Operator : getFileInfo
+Number   : 1
+Signature: rtree<D> (tuple ((x1 t1)...(xn tn))) ti bool) -> text
+Example  : query isdefined(getFileInfo(strassen_geoData_rtree))
+Result   : TRUE

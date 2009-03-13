@@ -101,7 +101,7 @@ Creates a B-Tree.
 Opens a B-Tree given the information in the root record ~record~.
 
 */
-    BTree( SmiKey::KeyDataType keyType, SmiFileId fileId );  
+    BTree( SmiKey::KeyDataType keyType, SmiFileId fileId );
 /*
 Opens a B-Tree given the key type and a file id.
 
@@ -112,7 +112,7 @@ The destructor.
 
 */
 
-    static BTree *Open( SmiRecord& valueRecord, 
+    static BTree *Open( SmiRecord& valueRecord,
 		        size_t& offset, const ListExpr typeInfo );
 /*
 Opens a B-Tree. This function corresponds to the ~open~-function of the type constructor.
@@ -204,6 +204,12 @@ Performs a complete scan returning an iterator.
 
 */
 
+    bool getFileStats( SmiStatResultType &result );
+/*
+Retrieves statsitics on the used file from the storage manager
+
+*/
+
   private:
 
     bool temporary;
@@ -218,9 +224,9 @@ Funcion headers
 bool ReadRecordId(SmiRecord& record, SmiRecordId& id);
 bool WriteRecordId(SmiRecord& record, SmiRecordId id);
 SmiKey::KeyDataType ExtractKeyTypeFromTypeInfo( ListExpr typeInfo );
-void KeyToAttr( StandardAttribute* attr, SmiKey& key, 
+void KeyToAttr( StandardAttribute* attr, SmiKey& key,
                 SmiKey::KeyDataType keyType);
-void AttrToKey( StandardAttribute* attr, SmiKey& key, 
+void AttrToKey( StandardAttribute* attr, SmiKey& key,
                 SmiKey::KeyDataType keyType);
 
 

@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -62,7 +62,7 @@ detection, logging, recovery) the decision was taken to use only one "Berkeley
 DB"[3] environment for managing an arbitrary number of "Secondo"[3] databases.
 
 Named ~SmiFiles~ within each "Secondo"[3] database are managed in a simple
-file catalog. 
+file catalog.
 
 1.1.1  "Secondo"[3] databases
 
@@ -206,7 +206,7 @@ named ~SmiFile~.
 struct SmiDropFilesEntry
 {
   SmiFileId fileId;
-  bool      dropOnCommit;   
+  bool      dropOnCommit;
 };
 /*
 Defines the structure of the elements in the queue for file drop requests.
@@ -288,7 +288,7 @@ collected during the transaction. The flag ~onCommit~ tells the function
 whether the transaction is committed ("true"[4]) or aborted ("false"[4]).
 
 */
-  static string ConstructFileName( SmiFileId fileId, 
+  static string ConstructFileName( SmiFileId fileId,
                                    const bool isTemporary = false );
 /*
 Constructs a valid file name using the file identifier ~fileId~.
@@ -324,7 +324,7 @@ catalog. The function returns "true"[4] if the deletion was successful.
 
   string    bdbHome;         // Home directory
   string    tmpHome;         // Temporary environment subdirectory
-  u_int32_t minutes;         // Time between checkpoints 
+  u_int32_t minutes;         // Time between checkpoints
   DbEnv*    bdbEnv;          // Berkeley DB environment handle
   DbEnv*    tmpEnv;          // Temporary environment handle
   SmiFileId tmpId;           // Temporary file ID
@@ -341,7 +341,7 @@ catalog. The function returns "true"[4] if the deletion was successful.
   Dbc*      listCursor;
 
   // Influences the initialitation of Berkeley-DB
-  static u_int32_t AutoCommitFlag; 
+  static u_int32_t AutoCommitFlag;
 
 /*
 
@@ -352,8 +352,8 @@ Are needed to support listing the names of all existing "Secondo"[3] databases.
   queue<SmiDropFilesEntry>         bdbFilesToDrop;
   map<string,SmiCatalogFilesEntry> bdbFilesToCatalog;
 
-  
-  
+
+
   vector<SmiDbHandleEntry>         dbHandles;
   DbHandleIndex                    firstFreeDbHandle;
 
@@ -415,7 +415,7 @@ class SmiFile::Implementation
     bool          noHandle;
 /*
 Flags an ~SmiFile~ as a system catalog file. This distinction is needed,
-since transactional read operations on system catalog files could lead 
+since transactional read operations on system catalog files could lead
 easily to deadlock situations by the way the transaction and locking
 mechanism of the "Berkeley DB"[3] works. Therefore read operation on system
 catalog files should not be protected by transactions.
@@ -425,6 +425,7 @@ catalog files should not be protected by transactions.
   friend class SmiFileIterator;
   friend class SmiRecordFile;
   friend class SmiKeyedFile;
+  friend class SmiHashFile;
   friend class SmiBtreeFile;
   friend class SmiRecord;
 };
@@ -485,8 +486,8 @@ class SmiRecord::Implementation
 /**************************************************************************
 1.3 Class "PrefetchingIteratorImpl"[1]
 
-This class handles all implementation specific aspects of a 
-~PrefetchingIterator~ hiding the implementation details 
+This class handles all implementation specific aspects of a
+~PrefetchingIterator~ hiding the implementation details
 from the user of the ~PrefetchingIterator~ class.
 
 */
@@ -494,8 +495,8 @@ class PrefetchingIteratorImpl : public PrefetchingIterator
 {
 private:
   enum SearchT {RANGE, LEFTRANGE, RIGHTRANGE, ALL};
-  enum StateT {INITIAL, PARTIAL_RETRIEVAL, BULK_RETRIEVAL, BROKEN}; 
-  
+  enum StateT {INITIAL, PARTIAL_RETRIEVAL, BULK_RETRIEVAL, BROKEN};
+
   SearchT searchType;
   StateT state;
   bool isBTreeIterator;
@@ -518,16 +519,16 @@ support this state maintenance.
   Dbt keyDbt;
   Dbt buffer;
   db_recno_t recordNumber;
-  
+
   void* retKey;
   void* retData;
   size_t retKeyLength;
   size_t retDataLength;
 
   void* p; /* needed and managed by Berkeley DB */
-    
+
   bool NewPrefetch();
-  SmiSize BulkCopy(void* data, size_t dataLength, 
+  SmiSize BulkCopy(void* data, size_t dataLength,
   void* userBuffer, SmiSize nBytes, SmiSize offset);
   bool RightBoundaryExceeded();
   void Init(Dbc* dbc, const size_t bufferLength,
@@ -535,10 +536,10 @@ support this state maintenance.
 
 protected:
   virtual void GetKeyAddressAndLength(void** addr, SmiSize& length);
-  
+
 public:
 
-  PrefetchingIteratorImpl(Dbc* dbc, SmiKey::KeyDataType keyType, 
+  PrefetchingIteratorImpl(Dbc* dbc, SmiKey::KeyDataType keyType,
     const size_t bufferLength = DEFAULT_BUFFER_LENGTH,
     bool isBTreeIterator = true);
 
@@ -553,7 +554,7 @@ public:
   SmiSize ReadCurrentData(void* userBuffer, SmiSize nBytes, SmiSize offset = 0);
   SmiSize ReadCurrentKey(void* userBuffer, SmiSize nBytes, SmiSize offset = 0);
   void ReadCurrentRecordNumber(SmiRecordId& recordNumber);
-  int Delete(); 
+  int Delete();
   int ErrorCode();
 
   static const size_t DEFAULT_BUFFER_LENGTH = 64 * 1024;

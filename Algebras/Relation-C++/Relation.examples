@@ -175,3 +175,8 @@ Signature: (stream(tuple(x)) (stream(tuple(y)) -> int
 Example  : query plz feed Orte feed countboth
 Result   : 41773
 
+Operator : getFileInfo
+Number   : 1
+Signature: rel(tuple(X)) | trel(tuple(X)) -> text
+Example  : query isdefined(getFileInfo(Trains))
+Result   : TRUE

@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Implementation File of Module FLOB Cache
 
-Victor Almeida, 08/12/2005. 
+Victor Almeida, 08/12/2005.
 
 1 Includes
 
@@ -42,7 +42,7 @@ using namespace std;
 // #define __NEW_FLOB__
 
 /*
-2 Implementation of class LRUTable 
+2 Implementation of class LRUTable
 
 */
 LRUTable::~LRUTable()
@@ -70,7 +70,7 @@ void LRUTable::Promote( FLOBCacheElement *e, bool inc )
 {
   Remove( e );
   e->next = e->prev = NULL;
-  if( inc ) 
+  if( inc )
     e->refs++;
   Insert( e );
 }
@@ -100,7 +100,7 @@ bool LRUTable::RemoveLast( FLOBKey& key )
 
   if( e == NULL )
     return false;
-  
+
   key = e->key;
   Remove( e );
 
@@ -115,11 +115,11 @@ void LRUTable::Clear()
     FLOBCacheElement *aux = e;
     e = e->next;
     if( aux->refs > 0 )
-      cout << "FLOBCache ERROR: Key (" 
-           << aux->key.fileId << ", " 
-           << aux->key.recordId << ", "  
-           << aux->key.pageno << ") still has " 
-           << aux->refs << " references while cleaning the cache." 
+      cout << "FLOBCache ERROR: Key ("
+           << aux->key.fileId << ", "
+           << aux->key.recordId << ", "
+           << aux->key.pageno << ") still has "
+           << aux->refs << " references while cleaning the cache."
            << endl;
     assert( aux->refs == 0 );
     free( aux->flob );
@@ -141,12 +141,12 @@ char *FLOBCache::Lookup( const FLOBKey key, bool inc )
 {
 //  cout << "Lookup" << endl;
 
-  map< FLOBKey, FLOBCacheElement* >::iterator iter = 
+  map< FLOBKey, FLOBCacheElement* >::iterator iter =
     mapTable.find( key );
 
   if( iter == mapTable.end() )
   {
-//    cout << "Entry (" << key.fileId << ", " 
+//    cout << "Entry (" << key.fileId << ", "
 //         << key.recordId << ", " << key.pageno << ") not found" << endl;
     return NULL;
   }
@@ -155,7 +155,7 @@ char *FLOBCache::Lookup( const FLOBKey key, bool inc )
   lruTable.Promote( e, inc );
 
 //  cout << "Entry (" << key.fileId << ", "
-//       << key.recordId << ", " << key.pageno << ") found, now with " 
+//       << key.recordId << ", " << key.pageno << ") found, now with "
 //       << e->refs << " references" << endl;
 
   return e->flob;
@@ -169,7 +169,7 @@ bool FLOBCache::Insert( const FLOBKey key, char *flob )
   assert( mapTable.find( key ) == mapTable.end() );
 
   FLOBKey key2;
-  while( sizeLeft < key.size && mapTable.size() > 0 && 
+  while( sizeLeft < key.size && mapTable.size() > 0 &&
          RemoveLast( key2 ) )
     sizeLeft += key2.size;
 
@@ -180,7 +180,7 @@ bool FLOBCache::Insert( const FLOBKey key, char *flob )
     mapTable[key] = e;
     lruTable.Insert( e );
 
-//    cout << "Entry inserted into the cache with " 
+//    cout << "Entry inserted into the cache with "
 //         << e->refs << " references" << endl;
 
     return true;
@@ -195,7 +195,7 @@ bool FLOBCache::Insert( const FLOBKey key, char *flob )
 
 void FLOBCache::Remove( const FLOBKey key )
 {
-  map< FLOBKey, FLOBCacheElement* >::iterator iter = 
+  map< FLOBKey, FLOBCacheElement* >::iterator iter =
     mapTable.find( key );
 
   if( iter != mapTable.end() )
@@ -212,7 +212,7 @@ bool FLOBCache::RemoveLast( FLOBKey& key )
 {
   if( lruTable.RemoveLast( key ) )
   {
-    map< FLOBKey, FLOBCacheElement* >::iterator iter = 
+    map< FLOBKey, FLOBCacheElement* >::iterator iter =
       mapTable.find( key );
 
     free( iter->second->flob );
@@ -220,11 +220,11 @@ bool FLOBCache::RemoveLast( FLOBKey& key )
     mapTable.erase( iter );
     return true;
   }
-  return false; 
+  return false;
 }
 
-bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId, 
-                         long pageno, size_t size, bool isTempFile, 
+bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
+                         long pageno, size_t size, bool isTempFile,
                          const char *&flob )
 {
   assert( fileId != 0 && lobId != 0 );
@@ -236,7 +236,7 @@ bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
     char *buf = (char*) malloc( key.size );
     flob = buf;
 
-    map< SmiFileId, SmiRecordFile* >::iterator iter = 
+    map< SmiFileId, SmiRecordFile* >::iterator iter =
       files.find( key.fileId );
 
     SmiRecordFile *file;
@@ -276,8 +276,8 @@ bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
   return true;
 }
 
-void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId, 
-                         long pageno, size_t size, bool isTempFile, 
+void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
+                         long pageno, size_t size, bool isTempFile,
                          const char *flob )
 {
 
@@ -299,7 +299,7 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
   }
   else
   {
-    map< SmiFileId, SmiRecordFile* >::iterator iter = 
+    map< SmiFileId, SmiRecordFile* >::iterator iter =
       files.find( fileId );
 
     if( iter == files.end() )
@@ -380,7 +380,7 @@ void FLOBCache::Release( SmiFileId fileId, SmiRecordId lobId, long pageno )
 void FLOBCache::Destroy( SmiFileId fileId, SmiRecordId lobId )
 {
   FLOBKey key( fileId, lobId, -1, 0 );
-  map< FLOBKey, FLOBCacheElement* >::iterator iter = 
+  map< FLOBKey, FLOBCacheElement* >::iterator iter =
     mapTable.find( key );
 
   if( iter != mapTable.end() )
@@ -400,7 +400,7 @@ void FLOBCache::Truncate( SmiFileId fileId, bool isTemp, bool paged )
   if( fileId != 0 )
   {
     SmiRecordFile *file;
-    map< SmiFileId, SmiRecordFile* >::iterator iter = 
+    map< SmiFileId, SmiRecordFile* >::iterator iter =
       files.find( fileId );
 
     if( iter == files.end() )
@@ -419,7 +419,7 @@ void FLOBCache::Drop( SmiFileId fileId, bool isTemp, bool paged )
   if( fileId != 0 )
   {
     SmiRecordFile *file;
-    map< SmiFileId, SmiRecordFile* >::iterator iter = 
+    map< SmiFileId, SmiRecordFile* >::iterator iter =
       files.find( fileId );
 
     if( iter == files.end() )
@@ -437,14 +437,14 @@ void FLOBCache::Drop( SmiFileId fileId, bool isTemp, bool paged )
     file->Close();
     file->Drop();
     delete file;
-  } 
+  }
 
 
 }
 
 void FLOBCache::DecReference( const FLOBKey key )
 {
-  map< FLOBKey, FLOBCacheElement* >::iterator iter = 
+  map< FLOBKey, FLOBCacheElement* >::iterator iter =
     mapTable.find( key );
 
   assert( iter != mapTable.end() );
@@ -452,7 +452,7 @@ void FLOBCache::DecReference( const FLOBKey key )
   iter->second->refs--;
 
 //  cout << "Reference decreased (" << key.fileId << ", "
-//       << key.recordId << ", " << key.pageno << ") to " 
+//       << key.recordId << ", " << key.pageno << ") to "
 //       << iter->second->refs << endl;
 }
 

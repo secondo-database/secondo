@@ -4,7 +4,7 @@ Restore : YES
 Operator : createbtree
 Number   : 1
 Signature: (((rel (tuple (x1 t1)...(xn tn)))) xi) -> (btree (tuple ((x1 t1)...(xn tn))) ti)
-Example  : query Staedte createbtree[SName] 
+Example  : query Staedte createbtree[SName]
 Result   : file
 
 
@@ -24,9 +24,9 @@ Result   : 1
 
 Operator : deletebtree
 Number   : 1
-Signature: stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[TID tid]))] 
+Signature: stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[TID tid]))]
 Example  : query Staedte feed filter[.Bev < 200000] Staedte deletedirect staedte_SName deletebtree[SName] staedte_Bev deletebtree[Bev] consume
-Result   : file 
+Result   : file
 
 
 Operator : exactmatch
@@ -45,9 +45,9 @@ Result   : file
 
 Operator : insertbtree
 Number   : 1
-Signature: stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[TID tid]))] 
-Example  : query Kleinstaedte feed Staedte insert staedte_SName insertbtree[SName] staedte_Bev insertbtree[Bev] consume 
-Result   : file 
+Signature: stream(tuple(x@[TID tid])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[TID tid]))]
+Example  : query Kleinstaedte feed Staedte insert staedte_SName insertbtree[SName] staedte_Bev insertbtree[Bev] consume
+Result   : file
 
 
 Operator : leftrange
@@ -74,7 +74,7 @@ Result   : 7
 Operator : rangeS
 Number   : 1
 Signature: ((btree (tuple (X)) ti) ti ti) -> (stream (tuple ((ti tid))))
-Example  : query staedte_Bev rangeS[500000, 600000] head[5] consume 
+Example  : query staedte_Bev rangeS[500000, 600000] head[5] consume
 Result   : ((rel (tuple ((id tid)))) ( (22)(12)(7) (11) (54)))
 
 
@@ -94,8 +94,13 @@ Result   : file
 
 Operator : updatebtree
 Number   : 1
-Signature: stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)]))] 
-Example  : query Staedte feed filter [.SName = "Saarbruecken"] Staedte updatedirect [SName: "Saarbrücken"] staedte_Bev updatebtree[Bev] staedte_SName updatebtree[SName] count
+Signature: stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)])) x (btree(tuple(x) ti) xi) -> stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)]))]
+Example  : query Staedte feed filter [.SName = "Saarbruecken"] Staedte updatedirect [SName: "Saarbrï¿½cken"] staedte_Bev updatebtree[Bev] staedte_SName updatebtree[SName] count
 Result   : 1
 
 
+Operator : getFileInfo
+Number   : 1
+Signature: (btree(tuple(x) ti) xi) -> text
+Example  : query isdefined(getFileInfo(staedte_SName))
+Result   : TRUE

@@ -4,7 +4,7 @@ Restore : YES
 Operator : createhash
 Number   : 1
 Signature: (((rel (tuple (x1 t1)...(xn tn)))) xi) -> (hash (tuple ((x1 t1)...(xn tn))) ti)
-Example  : query Staedte createhash[SName] 
+Example  : query Staedte createhash[SName]
 Result   : file
 
 
@@ -45,15 +45,20 @@ Result   : file
 
 Operator : inserthash
 Number   : 1
-Signature: stream(tuple(x@[TID tid])) x (hash(tuple(x) ti) xi) -> stream(tuple(x@[TID tid]))] 
-Example  : query Kleinstaedte feed Staedte insert staedte_SName_h inserthash[SName] staedte_Bev_h inserthash[Bev] consume 
-Result   : file 
+Signature: stream(tuple(x@[TID tid])) x (hash(tuple(x) ti) xi) -> stream(tuple(x@[TID tid]))]
+Example  : query Kleinstaedte feed Staedte insert staedte_SName_h inserthash[SName] staedte_Bev_h inserthash[Bev] consume
+Result   : file
 
 
 Operator : updatehash
 Number   : 1
-Signature: stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)])) x (hash(tuple(x) ti) xi) -> stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)]))] 
-Example  : query Staedte feed filter [.SName = "Saarbruecken"] Staedte updatedirect [SName: "Saarbrücken"] staedte_Bev_h updatehash[Bev] staedte_SName_h updatehash[SName] count
+Signature: stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)])) x (hash(tuple(x) ti) xi) -> stream(tuple(x@[(a1_old x1)...(an_old xn)(TID tid)]))]
+Example  : query Staedte feed filter [.SName = "Saarbruecken"] Staedte updatedirect [SName: "Saarbrï¿½cken"] staedte_Bev_h updatehash[Bev] staedte_SName_h updatehash[SName] count
 Result   : 1
 
+Operator : getFileInfo
+Number   : 1
+Signature: (hash(tuple(x) ti) xi) -> text
+Example  : query isdefined(getFileInfo(staedte_Bev_h))
+Result   : TRUE
 

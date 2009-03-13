@@ -185,10 +185,10 @@ struct AttributeType
 This constructor should not be used.
 
 */
-  AttributeType( int in_algId, 
+  AttributeType( int in_algId,
                  int in_typeId,
-		 int in_numOfFlobs, 
-		 int in_size, 
+		 int in_numOfFlobs,
+		 int in_size,
 		 int in_coreSize,
 		 bool in_extStorage,
 		 size_t in_offset = 0 ):
@@ -198,7 +198,7 @@ This constructor should not be used.
     size( in_size ),
     coreSize( in_coreSize ),
     extStorage( in_extStorage ),
-    offset( in_offset )	
+    offset( in_offset )
     {}
 /*
 The constructor.
@@ -343,7 +343,7 @@ A reference counter.
 
 */
 
-    int coreSize;   
+    int coreSize;
 };
 
 ostream& operator<<(ostream& o, const TupleType& tt);
@@ -388,7 +388,7 @@ struct RelationDescriptor
         attrSize[i] = 0.0;
       }
     }
-   
+
 /*
 The simple constructors.
 
@@ -474,7 +474,7 @@ The destructor.
     totalSize = in_totalSize;
     tupleFileId = in_tupleFileId;
     lobFileId = in_lobFileId;
-  }	  
+  }
 
 
 /*
@@ -805,7 +805,7 @@ part, i.e. the small FLOBs.
         if( !tmpFLOB->IsLob() )
           attrExtSize += tmpFLOB->Size();
       }
-      
+
       if (tupleType->GetAttributeType(i).extStorage) {
         attrExtSize += attributes[i]->SerializedSize();
       }
@@ -1012,11 +1012,11 @@ current record of ~iter~.
              PrefetchingIterator *iter );
 
   bool OpenPartial( TupleType* newtype, const list<int>& attrList,
-		    SmiRecordFile *tuplefile, 
+		    SmiRecordFile *tuplefile,
 		    SmiFileId lobfileId,
                     PrefetchingIterator *iter );
 
-  
+
   private:
 
     static long tuplesCreated;
@@ -1061,17 +1061,17 @@ Initializes the attributes array with zeros.
       tuplesInMemory++;
       if( tuplesInMemory > maximumTuples ) {
         maximumTuples = tuplesInMemory;
-      }	
+      }
     }
 /*
 Initializes a tuple.
 
 */
     void ChangeTupleType(TupleType* newtype, const list<int>& attrIds) {
-  
+
 	tupleType->DeleteIfAllowed();
         newtype->IncReference();
-        tupleType = newtype;	
+        tupleType = newtype;
 
         recomputeExtSize = true;
         recomputeSize = true;
@@ -1080,7 +1080,7 @@ Initializes a tuple.
         Attribute** tmp_attributes = new Attribute*[noAttributes];
         for (int i = 0; i<noAttributes; i++) {
            tmp_attributes[i] = attributes[i];
-        }		
+        }
 
 	// free old attribute array if necessary
         if (noAttributes > MAX_NUM_OF_ATTR){
@@ -1088,7 +1088,7 @@ Initializes a tuple.
         }
 
         // allocate new attribute array if necessary
-        noAttributes = newtype->GetNoAttributes();	    
+        noAttributes = newtype->GetNoAttributes();
         if ( noAttributes > MAX_NUM_OF_ATTR ) {
           attributes = new Attribute*[noAttributes];
         } else {
@@ -1106,7 +1106,7 @@ Initializes a tuple.
         }
 
         delete [] tmp_attributes;
-    }	    
+    }
 
 
     uint32_t refs;
@@ -1165,12 +1165,12 @@ to ~defAttributes~, otherwise it is dinamically constructed.
   static const size_t MAX_TUPLESIZE = 65535;
   static char tupleData[MAX_TUPLESIZE];
 
-  char* WriteToBlock( size_t attrSizes, 
+  char* WriteToBlock( size_t attrSizes,
 		      size_t extensionSize );
 
 
-  size_t CalculateBlockSize( size_t& attrSizes, 
-		             double& extSize, 
+  size_t CalculateBlockSize( size_t& attrSizes,
+		             double& extSize,
 			     double& size,
                              vector<double>& attrExtSize,
                              vector<double>& attrSize,
@@ -1181,7 +1181,7 @@ to ~defAttributes~, otherwise it is dinamically constructed.
   char* GetSMIBufferData(PrefetchingIterator* iter, uint16_t& rootSize);
 
   void InitializeAttributes(char* src, uint16_t rootSize);
-  void InitializeSomeAttributes( const list<int>& attrList, 
+  void InitializeSomeAttributes( const list<int>& attrList,
 		                 char* src, uint16_t rootSize );
 
 
@@ -1595,6 +1595,16 @@ by ~intervals~. This function is used in Double Indexing
 The function to initialize a scan returning the iterator.
 
 */
+    virtual bool GetTupleFileStats( SmiStatResultType &result ) = 0;
+    virtual bool GetLOBFileStats( SmiStatResultType &result ) = 0;
+/*
+This two functions return statistics on the files used to store the core
+tuple data, resp. LOB data of the relation.
+
+Return value will be false, if an error occured.
+
+*/
+
 };
 
 /*
@@ -1703,6 +1713,9 @@ The destructor. Deletes (if allowed) all tuples.
     virtual double GetTotalSize() const;
     virtual double GetTotalSize( int i ) const;
     virtual void   AppendTuple( Tuple *t );
+    virtual bool GetTupleFileStats( SmiStatResultType &result ) ;
+    virtual bool GetLOBFileStats( SmiStatResultType &result ) ;
+
 
     virtual GenericRelationIterator *MakeScan() const;
 
@@ -1743,6 +1756,7 @@ Returns the number of Free Bytes
 Checks if the tuple buffer is empty or not.
 
 */
+
     friend class TupleBufferIterator;
 
   private:
@@ -1903,7 +1917,7 @@ Stores the identification of the current tuple.
   optional output tuple type. This will be used for a scan which
   already applies a projection
 
-*/  
+*/
 
 };
 
@@ -2104,6 +2118,8 @@ Returns the tuple type of the tuples of the relation.
 
     virtual GenericRelationIterator *MakeScan() const;
     virtual GenericRelationIterator *MakeScan(TupleType* tt) const;
+    virtual bool GetTupleFileStats( SmiStatResultType &result ) ;
+    virtual bool GetLOBFileStats( SmiStatResultType &result ) ;
 
 /*
 Inherited ~virtual~ functions

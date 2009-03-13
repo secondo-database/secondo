@@ -1,6 +1,6 @@
-#This file is part of SECONDO. 
+#This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -23,3 +23,4 @@ operator deletehash alias DELETEHASH pattern _ _ op [ _ ]
 operator updatehash alias UPDATEHASH pattern _ _ op [ _ ]
 operator exactmatch alias EXACTMATCH pattern _ _ op [ _ ]
 operator exactmatchS alias EXACTMATCHS pattern _ op [ _ ]
+operator getFileInfo alias GETFILEINFO pattern op ( _ )
