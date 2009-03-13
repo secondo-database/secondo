@@ -46,7 +46,7 @@ Result   : crashes
 Operator : knearest
 Number   : 4
 Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query (units(train5) transformstream ) (units(train6) transformstream ) concat (units(train7) transformstream ) concat sortby[elem] knearest [elem train1, 2] consume
+Example  : query (units(train5) transformstream ) (units(train6) transformstream ) concat (units(train7) transformstream ) concat sortby[elem] knearest [elem, train1, 2] consume
 Result   : file_platform
 
 Operator : knearestvector
@@ -64,7 +64,7 @@ Result   : file_platform
 Operator : oldknearestfilter
 Number   : 7
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UTO_tree UTOrdered oldknearestfilter[train1, 5]  knearest[UTrip train1, 5] count
+Example  : query UTO_tree UTOrdered oldknearestfilter[train1, 5]  knearest[UTrip, train1, 5] count
 Result   : file_platform
 
 
