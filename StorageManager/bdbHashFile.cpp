@@ -88,7 +88,13 @@ SmiStatResultType
       }
   }
   // call bdb stats method
-  getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
+#if DB_VERSION_MAJOR >= 4
+#if DB_VERSION_MINOR >= 3
+  getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
+#endif
+#else
+  getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
+#endif
   // check for errors
   if(getStatReturnValue != 0){
     cout << "Error in SmiHashFile::GetFileStatistics: stat(...) returned != 0"
