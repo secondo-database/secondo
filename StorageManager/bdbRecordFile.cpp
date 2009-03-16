@@ -269,7 +269,7 @@ SmiStatResultType
   getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
 #endif
 #else
-  getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
+  getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
 #endif
   // check for errors
   if(getStatReturnValue != 0){
