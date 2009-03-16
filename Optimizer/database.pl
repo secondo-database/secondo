@@ -3282,7 +3282,11 @@ inquireIndexStatistics(DB,DCindexName,DCrel,DCattr,LogicalTypeExpr) :-
 assertFileStats(_,_,_,[]) :- !.
 assertFileStats(DB,DCindexName,DCrel,[[[Key],[Value]]|MoreElems]) :-
   downcase_atom(Key,KeyDC),
-  assert(storedIndexStat(DB,DCindexName,DCrel,KeyDC,Value)), !,
+  ( (KeyDC = filename ; KeyDC = filepurpose)
+    -> ( string_to_atom(ValueStr,Value) , string_to_list(ValueStr,ValueDC) )
+    ; downcase_atom(Value,ValueDC)
+  ),
+  assert(storedIndexStat(DB,DCindexName,DCrel,KeyDC,ValueDC)), !,
   assertFileStats(DB,DCindexName,DCrel,MoreElems).
 
 
