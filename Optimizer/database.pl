@@ -3187,7 +3187,7 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
   !,
   ( memberchk([PhysIndexType,Dimension],
                 [[rtree,2],[rtree3,3],[rtree4,4],[rtree8,8]])
-    -> ( % some rtree index
+    *-> ( % some rtree index
           concat_atom(['query ',ExtIndexName],'',Query),
           secondo(Query,ResList),
           ( ResList = [[PhysIndexType, [tuple, _], KeyType, Double],
@@ -3200,8 +3200,24 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
                  assert(storedIndexStat(DB,DCindexName,DCrel,type,KeyType)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,double,Double)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,dim,Dimension)),
-                 write_list(['INFO:\tSuccessfully inquired statistics on ',
-                             'index \'',ExtIndexName,'\'.']),nl
+                 ( ( concat_atom(['query getFileInfo(',ExtIndexName,')'],'',
+                                 Query2),
+                     secondo(Query2,[text,ValueAtom]),
+                     term_to_atom([ValueList],ValueAtom),
+                     % analyze the result term
+                     assertFileStats(DB,DCindexName,DCrel,ValueList)
+                   )
+                   -> true
+                   ;  (  % List error
+                        dm(dbhandling,['Wrong result list format: ',ResList,
+                                       '\n']),
+                        concat_atom(['Wrong result list'],'',ErrMsg),
+                        throw(error_Internal(inquireIndexStatistics(DCindexName)
+                                   :unspecifiedError#ErrMsg))
+                      )
+                ),
+                write_list(['INFO:\tSuccessfully inquired statistics on ',
+                            'index \'',ExtIndexName,'\'.']),nl
                )
             ;  (  % List error
                   dm(dbhandling,['Wrong result list format: ',ResList,'\n']),
@@ -3210,34 +3226,65 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
                                    :unspecifiedError#ErrMsg))
                )
           )
-    )
+    ) ; true
   ),!,
   ( PhysIndexType = btree
-    -> ( % btree index
-         true % no statistics available/ not yet implemented
-       )
+    *-> ( % btree index
+          ( concat_atom(['query getFileInfo(',ExtIndexName,')'],'',Query),
+            secondo(Query,[text,ValueAtom]),
+            term_to_atom([ValueList],ValueAtom),
+            % analyze the result term
+            assertFileStats(DB,DCindexName,DCrel,ValueList)
+          ) -> true
+            ;  (  % List error
+                  dm(dbhandling,['Wrong result list format: ',ResList,'\n']),
+                  concat_atom(['Wrong result list'],'',ErrMsg),
+                  throw(error_Internal(inquireIndexStatistics(DCindexName)
+                                   :unspecifiedError#ErrMsg))
+               )
+       ) ; true
   ),!,
   ( PhysIndexType = hash
-    -> ( % hashtable index
-         true % no statistics available/ not yet implemented
-       )
+    *-> ( % hashtable index
+          ( concat_atom(['query getFileInfo(',ExtIndexName,')'],'',Query),
+            secondo(Query,[text,ValueAtom]),
+            term_to_atom([ValueList],ValueAtom),
+            % analyze the result term
+            assertFileStats(DB,DCindexName,DCrel,ValueList)
+          ) -> true
+            ;  (  % List error
+                  dm(dbhandling,['Wrong result list format: ',ResList,'\n']),
+                  concat_atom(['Wrong result list'],'',ErrMsg),
+                  throw(error_Internal(inquireIndexStatistics(DCindexName)
+                                   :unspecifiedError#ErrMsg))
+               )
+       ) ; true
   ),!,
   ( PhysIndexType = mtree
-    -> ( % mtree index
+    *-> ( % mtree index
          true % no statistics available/ not yet implemented
-       )
+       ) ; true
   ),!,
   ( PhysIndexType = xtree
-    -> ( % xtree index
+    *-> ( % xtree index
          true % no statistics available/ not yet implemented
-       )
+       ) ; true
   ),
   !.
 
 inquireIndexStatistics(DB,DCindexName,DCrel,DCattr,LogicalTypeExpr) :-
-  concat_atom(['Cannot collect index statistics,'],'',ErrMsg),
+  concat_atom(['Cannot collect index statistics.'],'',ErrMsg),
   throw(error_Internal(inquireIndexStatistics(DB,DCindexName,DCrel,DCattr,
                                   LogicalTypeExpr):unspecifiedError#ErrMsg)).
+
+%% assert the (key,value) pairs as storedIndexStats/5 facts
+%% assertFileStats(+DB,+DCindexName,+DCrel,+PairList)
+assertFileStats(_,_,_,[]) :- !.
+assertFileStats(DB,DCindexName,DCrel,[[[Key],[Value]]|MoreElems]) :-
+  downcase_atom(Key,KeyDC),
+  assert(storedIndexStat(DB,DCindexName,DCrel,KeyDC,Value)), !,
+  assertFileStats(DB,DCindexName,DCrel,MoreElems).
+
 
 /*
 9 Update Indexes And Relations
