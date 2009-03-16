@@ -4624,6 +4624,99 @@ inline double ApplyFactor( const double d )
   return FACTOR;
 }
 
+/*
+4 Some classes realizing different projections
+
+
+*/
+class UTM{
+public:
+  UTM(){
+     init();
+  }
+
+  ~UTM(){}
+
+  bool operator()(const Point& src, Point& res){
+     double bw(src.GetX());
+     double lw(src.GetY());
+     if(bw<-180 || bw>180 || lw<-90 || lw>90){
+        res.SetDefined(false);
+        return false;
+     }
+     // zone number??
+     // long lzn =(int)((lw+180)/6) + 1;
+     long lzn = 39;
+  
+     //long bd = (int)(1+(bw+80)/8);
+     double br = bw*PI/180;
+     double tan1 = tan(br);
+     double tan2 = tan1*tan1;
+     double tan4 = tan2*tan2;
+     double cos1 = cos(br);
+     double cos2 = cos1*cos1;
+     double cos4 = cos2*cos2;
+     double cos3 = cos2*cos1;
+     double cos5 = cos4*cos1;
+     double etasq = ex2*cos2;
+     // Querkruemmungshalbmesser nd
+     double nd = c/sqrt(1+etasq);
+     double g = e0*bw + e2*sin(2*br) + e4*sin(4*br) + e6*sin(6*br);
+     long lh = (lzn - 30)*6 - 3;
+     double dl = (lw - lh)*PI/180;
+     double dl2 = dl*dl;
+     double dl4 = dl2*dl2;
+     double dl3 = dl2*dl;
+     double dl5 = dl4*dl;
+     double x;
+     if(bw<0){
+        x = 10e6 + 0.9996*(g + nd*cos2*tan1*dl2/2 + 
+                           nd*cos4*tan1*(5-tan2+9*etasq)*dl4/24);
+     }else{
+        x = 0.9996*(g + nd*cos2*tan1*dl2/2 + 
+                    nd*cos4*tan1*(5-tan2+9*etasq)*dl4/24) ;
+     }
+     double y = 0.9996*(nd*cos1*dl + 
+                        nd*cos3*(1-tan2+etasq)*dl3/6 +
+                        nd*cos5*(5-18*tan2+tan4)*dl5/120) + 500000;
+     res.Set(x,y);
+     return true;
+  }
+private:
+   double a;
+   double f;
+   double c; 
+   double ex2; 
+   double ex4;
+   double ex6;
+   double ex8;
+   double e0;
+   double e2;
+   double e4;
+   double e6;
+
+  void init(){
+    a = 6378137.000;
+    f = 3.35281068e-3;
+    c = a/(1-f); // Polkrümmungshalbmesser in german
+    ex2 = (2*f-f*f)/((1-f)*(1-f));
+    ex4 = ex2*ex2;
+    ex6 = ex4*ex2;
+    ex8 = ex4*ex4;
+    e0 = c*(PI/180)*(1 - 3*ex2/4 +
+               45*ex4/64  - 175*ex6/256  + 11025*ex8/16384);
+    e2 = c*(  - 3*ex2/8 + 15*ex4/32  - 525*ex6/1024 +  2205*ex8/4096);
+    e4 = c*(15*ex4/256 - 105*ex6/1024 +  2205*ex8/16384);
+    e6 = c*( -  35*ex6/3072 +   315*ex8/12288);
+  }
+
+};
+
+
+
+
+
+
 
 /*
 5 Auxiliary structures for plane sweep algorithms
@@ -5266,5 +5359,59 @@ avlseg::ownertype selectNext( Line const* const line,
                       Point& resPoint);
 
 void Realminize2(const Line& src, Line& result);
+
+
+struct P3D;
+
+class WGSGK{
+
+public:
+  WGSGK(){ init(); }
+  bool project(const Point& src, Point& result) const;
+  bool getOrig(const Point& src, Point& result) const;
+  void enableWGS(const bool enabled);
+  void setMeridian(const int m);
+
+private:
+  void HelmertTransformation(const double x, 
+                             const double y, 
+                             const double z, 
+                             P3D& p) const;
+  void BesselBLToGaussKrueger(const double b,
+                              const double ll, 
+                              Point& result) const;
+  void BLRauenberg (const double x, const double y, 
+                    const double z, P3D& result) const;
+  double newF(const double f, const double x, 
+              const double y, const double p) const;
+
+  bool  gk2geo(const double GKRight, const double GKHeight, 
+               Point&  result) const;
+  bool  bessel2WGS(const double geoDezRight, const double geoDezHeight, 
+                   Point& result) const;
+
+  void init();
+
+  double Pi;
+  double awgs;         // WGS84 Semi-Major Axis = Equatorial Radius in meters
+  double bwgs;      // WGS84 Semi-Minor Axis = Polar Radius in meters
+  double abes;       // Bessel Semi-Major Axis = Equatorial Radius in meters
+  double bbes;       // Bessel Semi-Minor Axis = Polar Radius in meters
+  double cbes;       // Bessel latitude to Gauss-Krueger meters
+  double dx;                // Translation Parameter 1
+  double dy;                  // Translation Parameter 2
+  double dz;                // Translation Parameter 3
+  double rotx;   // Rotation Parameter 1
+  double roty;   // Rotation Parameter 2
+  double rotz;  // Rotation Parameter 3
+  double sc;           // Scaling Factor
+  double h1;
+  double eqwgs;
+  double eqbes;
+  double MDC;  // standard in Hagen
+  bool useWGS; // usw coordinates in wgs ellipsoid
+  double rho;
+}; 
+
 
 #endif // __SPATIAL_ALGEBRA_H__

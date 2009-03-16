@@ -12224,6 +12224,273 @@ static vector< vector <Point> > getCycles(const Region& reg){
      }
   }
 
+/*
+Implementation of the Gauss Krueger Projection
+
+*/
+
+struct P3D{
+  double x;
+  double y;
+  double z;
+};
+
+bool WGSGK::project(const Point& src, Point& result) const{
+  if(!src.IsDefined()){
+    result.SetDefined(false);
+    return false;
+  }
+  
+  double x = src.GetX();
+  double y = src.GetY();
+  if(x<-180 || x>180 || y<-90 || y>90){
+    result.SetDefined(false);
+    return false;
+  }
+
+  double a = x*Pi/180;
+  double b = y*Pi/180;
+  if(!useWGS){
+      BesselBLToGaussKrueger(b, a, result);
+      return true;    
+  }
+	double l1 = a;
+	double b1 = b;
+  a=awgs;
+	b=bwgs;
+	double eq=eqwgs;
+	double N=a/sqrt(1-eq*sin(b1)*sin(b1));
+	double Xq=(N+h1)*cos(b1)*cos(l1);
+	double Yq=(N+h1)*cos(b1)*sin(l1);
+	double Zq=((1-eq)*N+h1)*sin(b1);
+
+  P3D p;
+	HelmertTransformation(Xq, Yq, Zq, p);
+  double X = p.x;
+  double Y = p.y;
+  double Z = p.z;
+
+  a=abes;
+  b=bbes;
+  eq = eqbes;
+
+  BLRauenberg(X, Y, Z, p);
+  double b2 = p.x;
+  double l2 = p.y;
+  BesselBLToGaussKrueger(b2, l2, result);
+  return true;
+}
+
+
+bool WGSGK::getOrig(const Point& src, Point& result) const{
+  if(!src.IsDefined()){
+    result.SetDefined(false);
+    return false;
+  }
+  return  gk2geo(src.GetX(), src.GetY(), result);
+}
+
+void WGSGK::enableWGS(const bool enabled){
+  useWGS = enabled;
+}
+
+void WGSGK::setMeridian(const int m){
+  MDC = m;
+}
+
+void WGSGK::init(){
+  Pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164;
+  rho = 180/Pi;
+  awgs = 6378137.0; 
+  bwgs = 6356752.314; 
+  abes = 6377397.155;  // Bessel Semi-Major Axis = Equatorial Radius in meters
+  bbes = 6356078.962;    // Bessel Semi-Minor Axis = Polar Radius in meters
+  cbes = 111120.6196;    // Bessel latitude to Gauss-Krueger meters
+  dx   = -585.7;         // Translation Parameter 1
+  dy   = -87.0;          // Translation Parameter 2
+  dz   = -409.2;         // Translation Parameter 3
+  rotx = 2.540423689E-6; // Rotation Parameter 1
+  roty = 7.514612057E-7; // Rotation Parameter 2
+  rotz = -1.368144208E-5; // Rotation Parameter 3
+  sc = 0.99999122;       // Scaling Factor
+  h1 = 0;
+  eqwgs = (awgs*awgs-bwgs*bwgs)/(awgs*awgs);
+  eqbes = (abes*abes-bbes*bbes)/(abes*abes);
+  MDC = 2.0;  // standard in Hagena
+  useWGS = true; // usw coordinates in wgs ellipsoid
+}
+
+void WGSGK::HelmertTransformation(const double x, const double y, 
+                                  const double z, P3D& p) const{
+  p.x = dx + (sc*(1*x+rotz*y-roty*z));
+  p.y = dy + (sc*(-rotz*x+1*y+rotx*z));
+  p.z = dz + (sc*(roty*x-rotx*y+1*z));
+}
+
+
+void WGSGK::BesselBLToGaussKrueger(const double b,
+                                   const double ll, 
+                                   Point& result) const{
+  //double bg=180*b/Pi;
+  //double lng=180*ll/Pi;
+  double l0 = 3*MDC;
+  l0=Pi*l0/180;
+  double l=ll-l0;
+  double k=cos(b);
+  double t=sin(b)/k;
+  double eq=eqbes;
+  double Vq=1+eq*k*k;
+  double v=sqrt(Vq);
+  double Ng=abes*abes/(bbes*v);
+  double nk=(abes-bbes)/(abes+bbes);
+  double X=((Ng*t*k*k*l*l)/2)+((Ng*t*(9*Vq-t*t-4)*k*k*k*k*l*l*l*l)/24);
+  double gg=b+(((-3*nk/2)+(9*nk*nk*nk/16)) *
+               sin(2*b)+15*nk*nk*sin(4*b)/16-35*nk*nk*nk*sin(6*b)/48);
+  double SS=gg*180*cbes/Pi;
+  double Ho=(SS+X);
+  double Y=Ng*k*l+Ng*(Vq-t*t)*k*k*k*l*l*l/6+Ng*
+            (5-18*t*t+t*t*t*t)*k*k*k*k*k*l*l*l*l*l/120;
+  double kk=500000;
+  //double Pii=Pi;
+  double RVV = MDC; 
+  double Re=RVV*1000000+kk+Y;
+  result.Set(Re, Ho);
+}
+
+
+void WGSGK::BLRauenberg (const double x, const double y, 
+                         const double z, P3D& result) const{
+
+  double f=Pi*50/180;
+  double p=z/sqrt(x*x+y*y);
+  double f1,f2,ft;
+  do
+  {
+    f1=newF(f,x,y,p);
+    f2=f;
+    f=f1;
+    ft=180*f1/Pi;
+  }
+  while(!(abs(f2-f1)<10E-10));
+
+  result.x=f;
+  result.y=atan(y/x);
+  result.z=sqrt(x*x+y*y)/cos(f1)-abes/sqrt(1-eqbes*sin(f1)*sin(f1));
+}
+
+
+double WGSGK::newF(const double f, const double x, 
+                   const double y, const double p) const{
+  double zw;
+  double nnq;
+  zw=abes/sqrt(1-eqbes*sin(f)*sin(f));
+  nnq=1-eqbes*zw/(sqrt(x*x+y*y)/cos(f));
+  return(atan(p/nnq));
+}
+
+bool  WGSGK::gk2geo(const double GKRight,
+                    const double GKHeight, 
+                    Point&  result) const{
+   if(GKRight<1000000 || GKHeight<1000000){
+      result.SetDefined(false);
+       return false;
+   }
+   double e2 = 0.0067192188;
+   double c = 6398786.849;
+
+   double bI = GKHeight/10000855.7646;
+   double bII = bI*bI;
+   double bf = 325632.08677 * bI * ((((((0.00000562025 * bII + 0.00022976983) 
+                                  * bII - 0.00113566119) 
+                                  * bII + 0.00424914906) 
+                                  * bII - 0.00831729565) 
+                                  * bII + 1));
+   bf /= 3600*rho;
+   double co = cos(bf);
+   double g2 = e2 *(co*co);
+   double g1 = c/sqrt(1+g2);
+   double t = tan(bf);
+   double fa = (GKRight - floor(GKRight/1000000)*1000000-500000)/g1;
+   double GeoDezRight = ((bf - fa * fa * t * (1 + g2) / 2 + 
+                          fa * fa * fa * fa * t * 
+                         (5 + 3 * t * t + 6 * g2 - 6 * g2 * t * t) / 24) * 
+                         rho);
+   double dl = fa - fa * fa * fa * (1 + 2 * t * t + g2) / 6 + 
+               fa * fa * fa * fa * fa * 
+               (1 + 28 * t * t + 24 * t * t * t * t) / 120;
+   
+   double Mer = floor(GKRight/1000000);
+   double GeoDezHeight = dl*rho/co+Mer*3;
+   if(useWGS){
+      return bessel2WGS(GeoDezRight,GeoDezHeight,result);
+   }else{
+      result.Set(GeoDezHeight,GeoDezRight);
+      return true;
+   }
+}
+
+bool  WGSGK::bessel2WGS(const double geoDezRight1, 
+                        const double geoDezHeight1, Point& result) const{
+    double aBessel = abes;
+    double eeBessel = 0.0066743722296294277832;
+    double ScaleFactor = 0.00000982;
+    double RotXRad = -7.16069806998785E-06;
+    double RotYRad = 3.56822869296619E-07;
+    double RotZRad = 7.06858347057704E-06;
+    double ShiftXMeters = 591.28;
+    double ShiftYMeters = 81.35;
+    double ShiftZMeters = 396.39;
+    double aWGS84 = awgs;
+    double eeWGS84 = 0.0066943799;
+    double geoDezRight = (geoDezRight1/180)*Pi;
+    double geoDezHeight = (geoDezHeight1/180)*Pi;
+    double sinRight = sin(geoDezRight);
+    double sinRight2 = sinRight*sinRight;
+    double n = eeBessel*sinRight2;
+    n = 1-n;
+    n = sqrt(n);
+    n = aBessel/n;
+    double cosRight=cos(geoDezRight);
+    double cosHeight=cos(geoDezHeight);
+    double sinHeight = sin(geoDezHeight);
+    double CartesianXMeters = n*cosRight*cosHeight;
+    double CartesianYMeters = n*cosRight*sinHeight;
+    double CartesianZMeters = n*(1-eeBessel)*sinRight;
+
+    double CartOutputXMeters = (1 + ScaleFactor) * 
+                               CartesianXMeters + RotZRad * 
+                               CartesianYMeters - 
+                               RotYRad * CartesianZMeters + ShiftXMeters; 
+    double CartOutputYMeters = -RotZRad * CartesianXMeters + 
+                               (1 + ScaleFactor) * CartesianYMeters + 
+                               RotXRad * CartesianZMeters + ShiftYMeters;
+    double CartOutputZMeters = RotYRad * CartesianXMeters - 
+                               RotXRad * CartesianYMeters + 
+                               (1 + ScaleFactor) * CartesianZMeters + 
+                               ShiftZMeters;
+    
+     geoDezHeight = atan(CartOutputYMeters/CartOutputXMeters);
+     double Latitude = (CartOutputXMeters*CartOutputXMeters)+
+                       (CartOutputYMeters*CartOutputYMeters);
+     Latitude = sqrt(Latitude);
+     double InitLat = Latitude;
+     Latitude = CartOutputZMeters/Latitude;
+     Latitude = atan(Latitude);
+     double LatitudeIt = 99999999;
+     do{
+        LatitudeIt = Latitude;
+        double sinLat = sin(Latitude);
+        n = 1-eeWGS84*sinLat*sinLat;
+        n = sqrt(n);
+        n = aWGS84/n;
+        Latitude = InitLat; // sqrt(CartoutputXMeters^2+CartOutputYMeters^2)
+        Latitude = (CartOutputZMeters+eeWGS84*n*sin(LatitudeIt))/Latitude;
+        Latitude = atan(Latitude);
+     } while(abs(Latitude-LatitudeIt)>=0.000000000000001);
+
+     result.Set((geoDezHeight/Pi)*180,  (Latitude/Pi)*180);
+     return true;    
+}
 
 
 
@@ -14554,6 +14821,54 @@ ListExpr isCycleTypeMap(ListExpr args){
 
 
 /*
+Type Mapping for ~utm~
+
+*/
+ListExpr utmTypeMap(ListExpr args){
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("one argument expected");
+    return nl->TypeError();
+  }
+  ListExpr arg = nl->First(args);
+  string err = "spatial type expected";
+  if(nl->AtomType(arg)!=SymbolType){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  string t = nl->SymbolValue(arg);
+  if(t=="point" || t=="points" ){ // line and region not implemented yet
+    return nl->SymbolAtom(t);
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+}
+
+/*
+Type Mapping for ~gk~
+
+*/
+ListExpr gkTypeMap(ListExpr args){
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("one argument expected");
+    return nl->TypeError();
+  }
+  ListExpr arg = nl->First(args);
+  string err = "spatial type expected";
+  if(nl->AtomType(arg)!=SymbolType){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  string t = nl->SymbolValue(arg);
+  if(t=="point" || t=="points" ){ // line and region not implemented yet
+    return nl->SymbolAtom(t);
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+}
+
+
+
+/*
 10.3 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -15321,6 +15636,24 @@ static int SpatialSelectCrossings(ListExpr args){
    }
    return -1;
 }
+
+
+static int utmSelect(ListExpr args){
+  string t = nl->SymbolValue(nl->First(args));
+  if(t=="point") return 0;
+  if(t=="points") return 1;
+  return -1;
+}
+static int gkSelect(ListExpr args){
+  string t = nl->SymbolValue(nl->First(args));
+  if(t=="point") return 0;
+  if(t=="points") return 1;
+  return -1;
+}
+
+
+
+
 
 
 /*
@@ -17958,6 +18291,77 @@ int isCycleVM(Word* args, Word& result, int message,
 }
 
 
+int utmVM_p(Word* args, Word& result, int message,
+          Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   Point* p = static_cast<Point*>(args[0].addr);
+   Point* res = static_cast<Point*>(result.addr); 
+   UTM utm;
+   utm(*p,*res);
+   return 0;
+}
+
+int utmVM_ps(Word* args, Word& result, int message,
+          Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   Points* p = static_cast<Points*>(args[0].addr);
+   Points* res = static_cast<Points*>(result.addr); 
+   UTM utm;
+   res->Clear();
+   res->Resize(p->Size());
+   res->StartBulkLoad();
+   const Point* p1;
+   for(int i=0;i<p->Size();i++){
+      p->Get(i,p1);
+      Point p2; 
+      if(! utm(*p1,p2)){
+        res->EndBulkLoad();
+        res->Clear();
+        res->SetDefined(false);
+        return 0;
+      }
+      (*res) += (p2);
+   }
+   res->EndBulkLoad();
+   return 0;
+}
+
+int gkVM_p(Word* args, Word& result, int message,
+          Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   Point* p = static_cast<Point*>(args[0].addr);
+   Point* res = static_cast<Point*>(result.addr); 
+   WGSGK gk;
+   gk.project(*p,*res);
+   return 0;
+}
+
+int gkVM_ps(Word* args, Word& result, int message,
+          Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   Points* p = static_cast<Points*>(args[0].addr);
+   Points* res = static_cast<Points*>(result.addr); 
+   WGSGK gk;
+   res->Clear();
+   res->Resize(p->Size());
+   res->StartBulkLoad();
+   const Point* p1;
+   for(int i=0;i<p->Size();i++){
+      p->Get(i,p1);
+      Point p2; 
+      if(! gk.project(*p1,p2)){
+        res->EndBulkLoad();
+        res->Clear();
+        res->SetDefined(false);
+        return 0;
+      }
+      (*res) += (p2);
+   }
+   res->EndBulkLoad();
+   return 0;
+}
+
+
 /*
 10.5 Definition of operators
 
@@ -18193,6 +18597,16 @@ ValueMapping SpatialCrossingsMap[] = {
           SpatialCrossings<SimpleLine>
       };
 
+
+ValueMapping utmVM[] = {
+          utmVM_p,
+          utmVM_ps
+      };
+
+ValueMapping gkVM[] = {
+          gkVM_p,
+          gkVM_ps
+      };
 
 /*
 10.5.2 Definition of specification strings
@@ -18671,6 +19085,21 @@ const string SpatialSpecIsCycle  =
      "<text>query iscycle(fromline(trajectory(train7))</text--->"
      ") )";
 
+const string utmSpec  =
+     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+     "( <text>t -> t, t in {point, points} </text--->"
+     "<text> utm(_)  </text--->"
+     "<text>projects the arghuments using the utm projection</text--->"
+     "<text>query utm([const point value ( 0 0)])</text--->"
+     ") )";
+
+const string gkSpec  =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text>t -> t, t in {point, points} </text--->"
+   "<text> gk(_)  </text--->"
+   "<text>projects the arguments using the Gauss Krueger projection</text--->"
+   "<text>query gk([const point value ( 0 0)])</text--->"
+   ") )";
 
 /*
 10.5.3 Definition of the operators
@@ -19103,6 +19532,24 @@ Operator spatialiscycle (
   Operator::SimpleSelect,
   isCycleTypeMap );
 
+
+
+Operator utmOp (
+  "utm",
+   utmSpec,
+   2,
+   utmVM,
+   utmSelect,
+   utmTypeMap );
+
+Operator gkOp (
+  "gk",
+   gkSpec,
+   2,
+   gkVM,
+   gkSelect,
+   gkTypeMap );
+
 /*
 11 Creating the Algebra
 
@@ -19193,6 +19640,8 @@ class SpatialAlgebra : public Algebra
     AddOperator(&spatialtoline);
     AddOperator(&spatialfromline);
     AddOperator(&spatialiscycle);
+    AddOperator(&utmOp);
+    AddOperator(&gkOp);
   }
   ~SpatialAlgebra() {};
 };
