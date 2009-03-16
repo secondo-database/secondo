@@ -88,10 +88,8 @@ SmiStatResultType
       }
   }
   // call bdb stats method
-#if DB_VERSION_MAJOR >= 4
-#if DB_VERSION_MINOR >= 3
+#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
   getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
-#endif
 #else
   getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
 #endif
