@@ -373,6 +373,15 @@ void PBBox::Equalize(const PBBox* B2){
    state = B2->state;
 }
 
+void PBBox::Equalize(const PBBox& B2){
+    __TRACE__
+   minX = B2.minX;
+   maxX = B2.maxX;
+   minY = B2.minY;
+   maxY = B2.maxY;
+   state = B2.state;
+}
+
 /*
 ~Intersection~
 

@@ -162,6 +162,7 @@ class PBBox: public StandardAttribute {
     bool Contains(const PBBox* B2)const;
     PBBox* Clone() const;
     void Equalize(const PBBox* B2);
+    void Equalize(const PBBox& B2);
     void Intersection(const PBBox* B2);
     void Intersection(const PBBox* b2, PBBox& res) const;
     bool Intersects(const PBBox* B2)const;
@@ -1054,6 +1055,7 @@ halfsegment.
    bool IsDefined()const; 
    bool IsStatic()const;
    void SetUndefined();
+   PBBox BoundingBox()const;
    bool CanBeExtendedBy(const LinearPointMove* P2)const;
    bool ExtendWith(const LinearPointMove* P2);
    void Equalize(const LinearPointMove* P2);
@@ -1091,7 +1093,6 @@ halfsegment.
  
  private:
    RelInterval interval;
-   PBBox bbox;
    double startX;
    double startY;
    double endX;
@@ -1635,6 +1636,13 @@ class PMPoint : public StandardAttribute {
                                  "...",
                                  "see the documentation");
       }
+
+     void TrimToSize(){
+       linearMoves.TrimToSize();
+       compositeMoves.TrimToSize();
+       compositeSubMoves.TrimToSize();
+       periodicMoves.TrimToSize();
+     }
   private:
      DBArray<LinearPointMove> linearMoves;
      DBArray<SpatialCompositeMove> compositeMoves;

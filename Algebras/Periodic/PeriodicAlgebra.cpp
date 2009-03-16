@@ -395,7 +395,7 @@ template<class A, class R>
 class CreateF{
   public:
   void operator()(A* a, R* res){
-      res->ReadFrom(*a);
+      res->ReadFrom(*a, false);
   }
 };
 

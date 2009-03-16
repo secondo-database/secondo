@@ -632,7 +632,7 @@ bool PMPoint::ReadFrom(const ListExpr value, const ListExpr typeInfo){
      const LinearPointMove* LM;
      linearMoves.Get(0,LM);
      interval.Equalize(&(LM->interval));
-     bbox.Equalize(&(LM->bbox));
+     bbox.Equalize((LM->BoundingBox()));
      CorrectDurationSums();
      return true;
   }
@@ -1130,7 +1130,8 @@ bool PMPoint::AddSpatialCompositeMove(const ListExpr value,int &LMIndex,
             }
          }
          // build the union of the bounding boxes of CM and LM
-         CM.bbox.Union(&(LM->bbox));
+         PBBox tmpbox(LM->BoundingBox());
+         CM.bbox.Union(&tmpbox);
          // put the submove in the array
          CSubMove SM;
          SM.arrayNumber = LINEAR;
@@ -1240,7 +1241,7 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
     PM.submove.arrayIndex = LMPos;
     const LinearPointMove* LM;
     linearMoves.Get(LMPos,LM);
-    PM.bbox.Equalize(&(LM->bbox));
+    PM.bbox.Equalize((LM->BoundingBox()));
     RelInterval SMI = LM->interval;
     PM.interval.Equalize(&SMI);
     PM.interval.Mul(rep);
@@ -1842,11 +1843,11 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
         theMove.startY = y1;
         theMove.endX = x2;
         theMove.endY = y2;
-        theMove.bbox = PBBox(x1,y1,x2,y2);
         theMove.interval.Set(&Length,lc,rc);
         theMove.interval.SetDefined(true);
         // Add the bounding to to the complete bb
-        bbox.Union(&(theMove.bbox));
+        PBBox tmpbox(theMove.BoundingBox());
+        bbox.Union(&tmpbox);
         if(i==0){
            startTime = start; // sets the starttime
            interval.SetDefined(true);
@@ -2023,6 +2024,7 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
    delete L; 
    L = NULL;
    CorrectDurationSums();
+   TrimToSize();
 }
 
 /*
@@ -2064,7 +2066,7 @@ bool PMPoint::FillFromRepTree(int& cp,int& csp, int& pp, RepTree TR){
       SPM.submove.arrayIndex=son->Content();
       SPM.interval.Equalize(&LPM->interval);
       SPM.interval.Mul(SPM.repeatations);
-      SPM.bbox = LPM->bbox;
+      SPM.bbox = LPM->BoundingBox();
     } else if(sontype==COMPOSITE){
       const SpatialCompositeMove* SCM;
       compositeMoves.Get(oldcp,SCM); 
@@ -2107,10 +2109,11 @@ bool PMPoint::FillFromRepTree(int& cp,int& csp, int& pp, RepTree TR){
           linearMoves.Get(CurrentSon->Content(),LPM);
           if(i==0){ // the first submove
              SCM.interval.Equalize(&LPM->interval);
-             SCM.bbox.Equalize(&LPM->bbox);
+             SCM.bbox.Equalize(LPM->BoundingBox());
           }else{
             SCM.interval.Plus(&(LPM->interval));
-            SCM.bbox.Union(&LPM->bbox);
+            PBBox tmpbox(LPM->BoundingBox());
+            SCM.bbox.Union(&tmpbox);
           }
        }else if(sontype==REPETITION){
           SM.arrayNumber=PERIOD;

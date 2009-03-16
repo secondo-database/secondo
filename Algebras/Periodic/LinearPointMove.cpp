@@ -54,6 +54,15 @@ bool LinearPointMove::IsStatic()const{
    return isStatic;
 }
 
+/*
+~BoundingBox~
+
+*/
+PBBox LinearPointMove::BoundingBox()const{
+  PBBox res(startX, startY, endX, endY);
+  return res;
+}
+
 
 /*
 ~HashValue~
@@ -61,7 +70,7 @@ bool LinearPointMove::IsStatic()const{
 */
 size_t LinearPointMove::HashValue()const{
  if(!defined) return 0;
- return bbox.HashValue() + interval.HashValue()+(size_t)startX;
+ return BoundingBox().HashValue() + interval.HashValue()+(size_t)startX;
 }
 /*
 ~Connected~
@@ -82,7 +91,6 @@ This constructor creates a new LinearPointMOve ignoring the argument.
 LinearPointMove::LinearPointMove(int dummy){
    __TRACE__
  interval=RelInterval(1);
-  bbox = PBBox(1);
   isStatic=true;
   defined=true;
 }
@@ -137,7 +145,6 @@ bool LinearPointMove::ReadFrom(const ListExpr value){
        if(L==2){ // potentially an undefined move
            if(::nl->IsEqual(::nl->Second(V),"undefined")){
                defined = false;
-               bbox.SetUndefined();
                isStatic = true;
                return true;
            }
@@ -175,9 +182,6 @@ bool LinearPointMove::ReadFrom(const ListExpr value){
          return false;
       }
       endY= dv;
-      bbox.SetUndefined();
-      bbox.Union(startX,startY);
-      bbox.Union(endX,endY);
       defined=true;
       isStatic= (startX==endX) && (startY==endY);
       return true;
@@ -256,7 +260,7 @@ are involved.
 */
 bool LinearPointMove::Intersects(const PBBox* window)const{
    __TRACE__
-    if(!bbox.Intersects(window))
+    if(!BoundingBox().Intersects(window))
         return false;
       // Now, the position of all vertices of window related to the
       // segment defined by this moving point is computed .
@@ -381,7 +385,6 @@ void LinearPointMove::SetUndefined(){
    __TRACE__
      defined = false;
       isStatic=true;
-      bbox.SetEmpty();
 }
 
 
@@ -467,7 +470,6 @@ function is called.
 void LinearPointMove::Equalize(const LinearPointMove* P2){
    __TRACE__
  interval.Equalize(&(P2->interval));
-  bbox.Equalize(&(P2->bbox));
   startX = P2->startX;
   startY = P2->startY;
   endX = P2->endX;
