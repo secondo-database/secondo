@@ -2844,6 +2844,16 @@ This operations stores the ends of the units into a ~points~ value.
    void Vertices(Points& result) const;
 
 
+/*
+3.10.5.5 Operation ~gk~
+
+This method performs a gauss krueger projection to that mpoint.
+If the coordinates are not in geo range (-180-180, -90-90), the result
+will be undefined
+
+*/
+   void gk(MPoint& result) const;
+
 
 /*
 3.10.5.6 Operation ~TranslateAppend~

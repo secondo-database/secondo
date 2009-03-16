@@ -5166,6 +5166,34 @@ double MPoint::Length() const{
      result.EndBulkLoad();
    }
 
+void MPoint::gk(MPoint& result) const{
+  result.Clear();
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+
+  result.StartBulkLoad();
+  const UPoint* unit;
+  WGSGK gk;
+
+  int size = units.Size();
+  for(int i=0;i<size;i++){
+     units.Get(i,unit);
+     UPoint u(*unit);
+     if(!gk.project(unit->p0, u.p0) ||
+        !gk.project(unit->p1, u.p1)){
+       // error detected
+       result.EndBulkLoad();
+       result.Clear();
+       result.SetDefined(false);
+       return;
+     } else {
+       result.MergeAdd(u);
+     }
+  }
+  result.EndBulkLoad();
+}
 
 
 /*
@@ -7254,6 +7282,23 @@ ListExpr MovingTypeMapBreakPoints(ListExpr args){
    return nl->SymbolAtom("typeerror");
 }
 
+/*
+16.1.12 Type mapping for the gk  operator
+
+*/
+
+ListExpr MovingTypeMapgk(ListExpr args){
+   if(nl->ListLength(args)!=1){
+       ErrorReporter::ReportError("one arguments expected");
+       return nl->TypeError();
+   }
+   ListExpr arg1 = nl->First(args);
+   if(nl->IsEqual(arg1,"mpoint")){
+       return nl->SymbolAtom("mpoint");
+   }
+   ErrorReporter::ReportError("mpoint  expected");
+   return nl->TypeError();
+}
 /*
 16.1.12 Type mapping for the ~vertices~  operator
 
@@ -9486,6 +9531,17 @@ int MPointBreakPoints(Word* args, Word& result,
 }
 
 /*
+16.3.29 Value mapping function for the operator ~gk~
+
+*/
+int gkVM(Word* args, Word& result,
+         int message, Word& local,
+         Supplier s){
+  result = qp->ResultStorage( s );
+  ((MPoint*)args[0].addr)->gk(*((MPoint*)result.addr));
+  return 0;
+}
+/*
 16.3.29 Value mapping function for the operator ~vertices~
 
 */
@@ -11253,6 +11309,15 @@ const string TemporalSpecBreakPoints =
   "<text>breakpoints( train7, [const duration value (0 1000)] )</text--->"
   ") )";
 
+const string TemporalSpecgk =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mpoint -> mpoint</text--->"
+  "<text>gk( _ ) </text--->"
+  "<text>performs a Gauss Krueger projectzion to the"
+  " argument</text--->"
+  "<text> gk( trip )</text--->"
+  ") )";
+
 const string TemporalSpecVertices =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint -> points</text--->"
@@ -11828,6 +11893,12 @@ Operator temporalbreakpoints( "breakpoints",
                            Operator::SimpleSelect,
                            MovingTypeMapBreakPoints );
 
+Operator temporalgk( "gk",
+                     TemporalSpecgk,
+                     gkVM,
+                     Operator::SimpleSelect,
+                     MovingTypeMapgk );
+
 Operator temporalvertices( "vertices",
                            TemporalSpecVertices,
                            Vertices,
@@ -12079,6 +12150,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalminimum );
     AddOperator( &temporalmaximum );
     AddOperator( &temporalbreakpoints );
+    AddOperator( &temporalgk );
     AddOperator( &temporalvertices );
     AddOperator( &temporaltranslate );
 
