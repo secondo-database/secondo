@@ -3599,8 +3599,8 @@ double maxDistance( const BBox<2> box1, const BBox<2> box2)
   double d2 = pow(bx2 - ax1,2) + pow(by1-ay2,2);
   double d3 = pow(bx1 - ax2,2) + pow(by2-ay1,2);
   double d4 = pow(bx1 - ax2,2) + pow(by1-ay2,2);
-  double d = MIN( (MIN( d1, d2)), (MIN( d3, d4)) );
-
+//  double d = MIN( (MIN( d1, d2)), (MIN( d3, d4)) );
+  double d = MAX( (MAX( d1, d2)), (MAX( d3, d4)));
   return sqrt(d);
 }
 
@@ -5224,7 +5224,6 @@ knearestFilterTypeMap( ListExpr args )
    "Operator knearestfilter: The tuple type of the R-tree\n"
    "differs from the tuple type of the relation.");
 
-
   return
     nl->TwoElemList(
       nl->SymbolAtom("stream"),
@@ -5258,6 +5257,125 @@ Operator knearestfilter (
          knearestFilterTypeMap    // type mapping
 );
 
+const string mqknearestSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>rtree(tuple ((x1 t1)...(xn tn))"
+      "ti) x rel1(tuple ((x1 t1)...(xn tn))) x rtree2(tuple((x1 t1)...(xn tn)))"
+      " x rel2(tuple ((x1 t1)...(xn tn))) x k ->"
+      " (stream (tuple ((x1 t1)...(xn tn))))"
+      "</text--->"
+      "<text>_ _ _ _ mqknearest[_]</text--->"
+      "<text>The operator results a stream of all input tuples "
+      "where for each point in Points1, returns its k nearest neighbor"
+      "in Points2 </text--->"
+      "<text>not finished yet;</text--->"
+      ") )";
+
+ListExpr mqknearestTypeMap(ListExpr args){
+  string err = "Points1 x R-Tree1 x Points2 x R-Tree2 x k expected";
+  if(nl->ListLength(args) != 5){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  ListExpr pointsrel1 = nl->First(args);
+  ListExpr pointsresl2 = nl->Third(args);
+  ListExpr rtree1 = nl->Second(args);
+  string rtreedescription1;
+  nl->WriteToString(rtreedescription1,rtree1);
+  ListExpr rtsymbol1 = nl->First(rtree1);
+
+  ListExpr rtree2 = nl->Fourth(args);
+  string rtreedescription2;
+  nl->WriteToString(rtreedescription2,rtree2);
+  ListExpr rtsymbol2 = nl->First(rtree1);
+
+  ListExpr k = nl->Fifth(args);
+
+
+  if(nl->IsAtom(rtsymbol1) &&
+    nl->AtomType(rtsymbol1) == SymbolType &&
+    nl->SymbolValue(rtsymbol1) == "rtree" &&
+    nl->IsAtom(rtsymbol2) &&
+    nl->AtomType(rtsymbol2) == SymbolType &&
+    nl->SymbolValue(rtsymbol2) == "rtree" &&
+    nl->IsEqual(k,"int")){
+    ListExpr reslist =  nl->TwoElemList(
+    nl->SymbolAtom("stream"),
+    nl->TwoElemList(
+      nl->SymbolAtom("tuple"),
+      nl->TwoElemList(
+      nl->TwoElemList(nl->SymbolAtom("query"),nl->SymbolAtom("point")),
+      nl->TwoElemList(nl->SymbolAtom("data"),nl->SymbolAtom("point")))
+    ));
+    return reslist;
+  }
+  return nl->TypeError();
+}
+struct MQKnearest{
+  Relation* querypoints;
+  Relation* datapoints;
+  R_Tree<2,TupleId>* rtree1;
+  R_Tree<2,TupleId>* rtree2;
+  int k;
+  TupleType* resulttype;
+  MQKnearest(){}
+};
+
+int mqknearestFun(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+  MQKnearest* mqk;
+  static int count = 0;
+  double min1[2]={1,1};
+  double max1[2]={2,2};
+  double min2[2]={3,3};
+  double max2[2]={5,5};
+
+  BBox<2> box1(true,min1,max1);
+  BBox<2> box2(true,min2,max2);
+  cout<<maxDistance(box1,box2)<<endl;
+  cout<<box1.Distance(box2)<<endl;
+
+  switch(message){
+     case OPEN: {
+     mqk = new MQKnearest();
+     mqk->querypoints = (Relation*)args[0].addr;
+     mqk->rtree1 = (R_Tree<2,TupleId>*)args[1].addr;
+     mqk->datapoints = (Relation*)args[2].addr;
+     mqk->rtree2 = (R_Tree<2,TupleId>*)args[3].addr;
+     mqk->k = (unsigned)((CcInt*)args[4].addr)->GetIntval();
+     local = SetWord(mqk);
+     return 0;
+   }
+   case REQUEST: {
+     if(count == 0){
+      TupleType* tupletype = new TupleType(nl->Second(GetTupleResultType(s)));
+      Tuple* tuple = new Tuple(tupletype);
+      tuple->PutAttribute(0,new Point(true,1,1));
+      tuple->PutAttribute(1,new Point(true,2,2));
+      result.setAddr(tuple);
+      count++;
+      tupletype->DeleteIfAllowed();
+      return YIELD;
+     }
+     return CANCEL;
+   }
+   case CLOSE : {
+      mqk = (MQKnearest*)local.addr;
+      delete mqk;
+      count = 0;
+      return 0;
+   }
+ }
+ return 0;
+
+}
+Operator mqknearest (
+         "mqknearest",        // name
+         mqknearestSpec,      // specification
+         mqknearestFun,       // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         mqknearestTypeMap    // type mapping
+);
 
 /*
 4 Implementation of the Algebra Class
@@ -5287,6 +5405,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &coverage2op );
     AddOperator( &knearestfilter);
     AddOperator( &distancescan4);
+    AddOperator( &mqknearest);//multiple query objects nearest neighbor
   }
   ~NearestNeighborAlgebra() {};
 };
