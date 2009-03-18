@@ -4,7 +4,7 @@ import java.util.*;
 
 /** little tool for extracting the speed information from a 
   * GPS Receiver. For Using this tool , the GPGGA as well as
-  * the GPVTG data set are required.
+  * the GPVTG data set or the GPRMC data set are required
   **/
 
 public class NMEA_SpeedExtractor{
@@ -15,7 +15,7 @@ private static final long DAYMILLIS=86400000;
 private static boolean oldStyle=false;
 
 
-private static void processData(String Time, String Speed){
+private static void processData(String Time, String Speed, double factor){
    Long T = NMEA2MReal.getTime(Time);
    if(T==null){
        System.err.println("Error in computing time from: "+ Time);
@@ -23,11 +23,12 @@ private static void processData(String Time, String Speed){
    }
    double speed=0;
    try{
-      speed = Double.parseDouble(Speed);
+      speed = Double.parseDouble(Speed)*factor;
    } catch(Exception e){
-     System.err.print("Error in computation of the height from "+Speed);
+     System.err.print("Error in computation of the speed from "+Speed);
      System.err.println(" in line " + line);
      System.err.println("Line: "+currentLine);
+     System.err.println("Cannot convert " + Speed+" into a double value");
      return;
    }
    double t = (T.doubleValue()+hours)/DAYMILLIS+days;
@@ -47,13 +48,13 @@ private static void processLine(String Line){
     line++;
     currentLine=Line;
     if(Line.startsWith("$GPGGA")){
-        MyStringTokenizer ST = new MyStringTokenizer(Line,',');
-        ST.nextToken();
-        LastTime = ST.nextToken();
-    } else if(Line.startsWith("$GPVTG")){
+         MyStringTokenizer ST = new MyStringTokenizer(Line,',');
+         ST.nextToken();
+         LastTime = ST.nextToken();
+     } if(Line.startsWith("$GPVTG")){
         if(LastTime==null) return;
         MyStringTokenizer ST = new MyStringTokenizer(Line,',');
-        ST.nextToken(); // gpgga
+        ST.nextToken(); // gpvgt
         ST.nextToken(); //
         ST.nextToken(); //
         ST.nextToken(); //
@@ -61,8 +62,21 @@ private static void processLine(String Line){
         ST.nextToken(); //
         ST.nextToken(); //
         String Speed = ST.nextToken();
-        processData(LastTime,Speed);
-        LastTime=null;
+        processData(LastTime,Speed, 1.0);
+        LastTime = null;
+    } else if(Line.startsWith("$GPRMC")){
+        MyStringTokenizer ST = new MyStringTokenizer(Line,',');
+        ST.nextToken(); // gprmc
+        String T = ST.nextToken(); //UTM
+        ST.nextToken(); // state
+        ST.nextToken(); // latitude
+        ST.nextToken(); //  N / S
+        ST.nextToken(); // longitude
+        ST.nextToken(); // E / W
+        String Speed = ST.nextToken();
+        if(Speed.length()>0){
+           processData(T,Speed, 1.852 ); // convert from knots into km/h
+        }
     }
 
 }
