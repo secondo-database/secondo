@@ -46,6 +46,17 @@ public String nextToken(){
 
 }
 
+public int countTokens(){
+  int res = 1;
+  int pos = 0;
+  while((pos = MyString.indexOf(delim,pos))>=0){
+    res++;
+    pos++;
+  }
+  return res;
+}
+
+
 private String MyString;
 private char delim;
 
