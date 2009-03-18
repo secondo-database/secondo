@@ -5698,31 +5698,37 @@ int getFileInfoRelValueMap(Word* args, Word& result, int message,
   if ( rel != 0 ){
 
     // start list
-    string resString = "(\n";
+    string resString = "[[\n";
     // TupleCoreFile
     rel->GetTupleFileStats(resVector);
-    resString += "(\n";
     for(SmiStatResultType::iterator i = resVector.begin();
-        i != resVector.end();
-        i++){
-      resString += "((" + i->first + ")(" + i->second + "))\n";
+        i != resVector.end(); ){
+      resString += "\t[['" + i->first + "'],['" + i->second + "']]";
+      if(++i != resVector.end()){
+        resString += ",\n";
+      } else {
+        resString += "\n";
+      }
     }
-    resString += ")\n";
+    resString += "],\n";
     resVector.clear();
     // TupleLOBFile
     rel->GetLOBFileStats(resVector);
-    resString += "(\n";
+    resString += "[\n";
     for(SmiStatResultType::iterator i = resVector.begin();
-        i != resVector.end();
-        i++){
-      resString += "((" + i->first + ")(" + i->second + "))\n";
+        i != resVector.end(); ){
+      resString += "\t[['" + i->first + "'],['" + i->second + "']]";
+      if(++i != resVector.end()){
+        resString += ",\n";
+      } else {
+        resString += "\n";
+      }
     }
-    resString += ")\n";
-
-    // end of list
-    resString += ")\n";
+    resString += "]\n";
     restext->Set(true,resString);
-
+    // end of list
+    resString += "]\n";
+    restext->Set(true,resString);
   } else {
     restext->Set(false,"");
   }

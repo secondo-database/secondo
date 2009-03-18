@@ -2612,13 +2612,17 @@ int getFileInfoBtreeValueMap(Word* args, Word& result, int message,
   SmiStatResultType resVector(0);
 
   if ( (btree != 0) && btree->getFileStats(resVector) ){
-    string resString = "((\n";
+    string resString = "[[\n";
     for(SmiStatResultType::iterator i = resVector.begin();
-        i != resVector.end();
-        i++){
-      resString += "((" + i->first + ")(" + i->second + "))\n";
+        i != resVector.end(); ){
+      resString += "\t[['" + i->first + "'],['" + i->second + "']]";
+      if(++i != resVector.end()){
+        resString += ",\n";
+      } else {
+        resString += "\n";
+      }
     }
-    resString += "))";
+    resString += "]]";
     restext->Set(true,resString);
   } else {
     restext->Set(false,"");
