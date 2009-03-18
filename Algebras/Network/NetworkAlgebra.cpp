@@ -1513,7 +1513,8 @@ string Network::sectionsInternalTypeInfo =
 string Network::sectionsBTreeTypeInfo =
       "(btree (tuple ((rid int) (meas1 real) (meas2 real) "
       "(dual bool) (curve sline)(curveStartsSmaller bool) (rrc int))) int)";
-
+string Network::distancestorageTypeInfo =
+      "(rel (tuple((j1 tid)(j2 tid)(sp gline))))";
 
 /*
 1.3.1.2 Constructors and destructors class ~Network~
@@ -1532,7 +1533,8 @@ m_pBTreeJunctionsByRoute1(0),
 m_pBTreeJunctionsByRoute2(0),
 m_xAdjacencyList(0),
 m_xSubAdjacencyList(0),
-m_pBTreeSectionsByRoute(0)
+m_pBTreeSectionsByRoute(0),
+alldistance(0)
 {
 }
 
@@ -1669,6 +1671,21 @@ m_xSubAdjacencyList(0)
     return;
   }
 
+  //Open distance storage
+  nl->ReadFromString(distancestorageTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  alldistance = Relation::Open(in_xValueRecord,inout_iOffset,xNumericType);
+
+  if(!alldistance){
+    m_pRoutes->Delete();
+    m_pJunctions->Delete();
+    m_pSections->Delete();
+    delete m_pBTreeRoutes;
+    delete m_pRTreeRoutes;
+    delete m_pBTreeJunctionsByRoute1;
+    delete m_pBTreeJunctionsByRoute2;
+    return;
+  }
 
   m_bDefined = true;
 }
@@ -1688,7 +1705,8 @@ m_pBTreeJunctionsByRoute1(0),
 m_pBTreeJunctionsByRoute2(0),
 m_xAdjacencyList(0),
 m_xSubAdjacencyList(0),
-m_pBTreeSectionsByRoute(0)
+m_pBTreeSectionsByRoute(0),
+alldistance(0)
 {
 
   // Check the list
@@ -1875,6 +1893,7 @@ Network::~Network()
 
   delete m_pBTreeSectionsByRoute;
 
+  delete alldistance;
 }
 
 /*
@@ -1915,6 +1934,8 @@ void Network::Destroy()
   delete m_pBTreeSectionsByRoute;
   m_pBTreeSectionsByRoute = 0;
 
+  assert(alldistance != 0);
+  delete alldistance;
 }
 
 /*
@@ -1931,6 +1952,7 @@ void Network::Load(int in_iId,
   FillJunctions(in_pJunctions);
   FillSections();
   FillAdjacencyLists();
+  FillDistanceStorage();//store distance
   m_bDefined = true;
 }
 
@@ -2642,6 +2664,412 @@ void Network::FillAdjacencyPair(Tuple* in_pFirstSection,
     }
 }
 
+bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
+{
+  GPoint* end = new GPoint(*to);//copy the gpoint
+  result->Clear();
+  if (start == 0 || end == 0 || !start->IsDefined() ||
+      !end->IsDefined()) {
+     sendMessage("Both gpoints must exist and be defined.");
+     result->SetDefined(false);
+     return false;
+  }
+  // Check wether both points belong to the same network
+  if(start->GetNetworkId() != end->GetNetworkId())
+  {
+    sendMessage("Both gpoints belong to different networks.");
+    result->SetDefined(false);
+    return false;
+  }
+  result->SetNetworkId(start->GetNetworkId());
+
+  // Get sections where the path should start or end
+  Tuple* startSection = GetSectionOnRoute(start);
+  if (startSection == 0) {
+    sendMessage("Starting GPoint not found in network.");
+    result->SetDefined(false);
+    return false;
+  }
+  Tuple* endSection = GetSectionOnRoute(end);
+  if (endSection == 0) {
+    sendMessage("End GPoint not found in network.");
+    startSection->DeleteIfAllowed();
+    result->SetDefined(false);
+    return false;
+  }
+////////////////////////////////////////////////////
+  bool junctionpoint = false;
+  Point* endp = new Point();
+  GetPointOnRoute(end,endp); //end point
+  vector<JunctionSortEntry> juns;
+  CcInt* routeid = new CcInt(true,end->GetRouteId());
+  GetJunctionsOnRoute(routeid,juns);
+  for(unsigned int i = 0;i < juns.size();i++){
+    Tuple* t = juns[i].m_pJunction;
+    if(((CcInt*)t->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval() ==
+        end->GetRouteId() &&
+      fabs(((CcReal*)t->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval()-
+      end->GetPosition()) < 0.1)
+      junctionpoint = true;
+    if(((CcInt*)t->GetAttribute(JUNCTION_ROUTE2_ID))->GetIntval() ==
+        end->GetRouteId() &&
+      fabs(((CcReal*)t->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval()-
+      end->GetPosition()) < 0.1)
+      junctionpoint = true;
+  }
+  vector<TupleId> secjunid;
+  if(junctionpoint){//it is a junction point
+    vector<DirectedSection> sectionlist;
+    if(fabs(end->GetPosition()-
+      ((CcReal*)endSection->GetAttribute(SECTION_MEAS1))->GetRealval())< 0.1)
+      GetAdjacentSections(endSection->GetTupleId(),false,sectionlist);
+    else
+      GetAdjacentSections(endSection->GetTupleId(),true,sectionlist);
+    for(unsigned int i = 0;i < sectionlist.size();i++){
+      if(sectionlist[i].GetSectionTid() != endSection->GetTupleId())
+        secjunid.push_back(sectionlist[i].GetSectionTid());
+    }
+  }
+  delete endp;
+  delete routeid;
+/////////////////////////////////////////////////////
+/*
+Calculate the shortest path using dijkstras algorithm.
+
+*/
+
+  int startSectTID = startSection->GetTupleId();
+  int lastSectTID = endSection->GetTupleId();
+
+  if (startSectTID == lastSectTID) {
+    result->AddRouteInterval(start->GetRouteId(), start->GetPosition(),
+                            end->GetPosition());
+  } else {
+/*
+Initialize PriorityQueue
+
+*/
+    PrioQueue *prioQ = new PrioQueue (0);
+    SectIDTree *visitedSect = 0;
+    double sectMeas1 =
+        ((CcReal*) startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+    double sectMeas2 =
+        ((CcReal*) startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+    double dist = 0.0;
+    vector<DirectedSection> adjSectionList;
+    adjSectionList.clear();
+    if (start->GetSide() == 0) {
+      dist = start->GetPosition() - sectMeas1;
+      GetAdjacentSections(startSectTID, false, adjSectionList);
+      SectIDTree *startTree = new SectIDTree(startSectTID,
+                                             numeric_limits<int>::max(), false,
+                                             numeric_limits<int>::max());
+      visitedSect = startTree;
+      for(size_t i = 0;  i < adjSectionList.size(); i++) {
+        DirectedSection actNextSect = adjSectionList[i];
+        if (actNextSect.GetSectionTid() != startSectTID) {
+          PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
+                               actNextSect.GetUpDownFlag(),
+                               startSectTID);
+          prioQ->Insert(*actEntry, visitedSect) ;
+          delete actEntry;
+        }
+      }
+      adjSectionList.clear();
+    } else {
+      if (start->GetSide() == 1) {
+        dist = sectMeas2 - start->GetPosition();
+        SectIDTree *startTree = new SectIDTree(startSectTID,
+                                             numeric_limits<int>::max(), true,
+                                             numeric_limits<int>::max());
+        visitedSect = startTree;
+        GetAdjacentSections(startSectTID, true, adjSectionList);
+        for(size_t i = 0;  i < adjSectionList.size(); i++) {
+          DirectedSection actNextSect = adjSectionList[i];
+          if (actNextSect.GetSectionTid() != startSectTID) {
+            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
+                                  actNextSect.GetUpDownFlag(),
+                                  startSectTID);
+            prioQ->Insert(*actEntry, visitedSect);
+            delete actEntry;
+          }
+        }
+        adjSectionList.clear();
+      } else {
+        dist = start->GetPosition() - sectMeas1;
+        GetAdjacentSections(startSectTID, false, adjSectionList);
+        bool first = true;
+        for(size_t i = 0;  i < adjSectionList.size(); i++) {
+          DirectedSection actNextSect = adjSectionList[i];
+          if (actNextSect.GetSectionTid() != startSectTID) {
+            if (first) {
+              first = false;
+              SectIDTree *startTree = new SectIDTree(startSectTID,
+                                             numeric_limits<int>::max(), false,
+                                             numeric_limits<int>::max());
+              visitedSect = startTree;
+            }
+            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
+                                 actNextSect.GetUpDownFlag(),
+                                 startSectTID);
+            prioQ->Insert(*actEntry, visitedSect);
+            delete actEntry;
+          }
+        }
+        adjSectionList.clear();
+        dist = sectMeas2 -start->GetPosition();
+        GetAdjacentSections(startSectTID, true, adjSectionList);
+        for(size_t i = 0;  i < adjSectionList.size(); i++) {
+          DirectedSection actNextSect = adjSectionList[i];
+          if (actNextSect.GetSectionTid() != startSectTID) {
+            if (first) {
+              first = false;
+              SectIDTree *startTree = new SectIDTree(startSectTID,
+                                             numeric_limits<int>::max(), true,
+                                             numeric_limits<int>::max());
+              visitedSect = startTree;
+            }
+            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
+                                        actNextSect.GetUpDownFlag(),
+                                        startSectTID);
+            prioQ->Insert(*actEntry, visitedSect);
+            delete actEntry;
+          }
+        }
+        adjSectionList.clear();
+      }
+    }
+/*
+Use priorityQueue to find shortestPath.
+
+*/
+
+    PQEntry *actPQEntry;
+    bool found = false;
+    while (!prioQ->IsEmpty() && !found){
+      actPQEntry = prioQ->GetAndDeleteMin(visitedSect);
+      Tuple *actSection = GetSection(actPQEntry->sectID);
+      sectMeas1 =
+        ((CcReal*) actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+      sectMeas2 =
+        ((CcReal*) actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+      dist = actPQEntry->distFromStart + fabs(sectMeas2 - sectMeas1);
+
+//////////////////////////////////////
+      if(junctionpoint){ //end point is a junction point
+        for(unsigned int i = 0;i < secjunid.size();i++){
+          if(secjunid[i] == actPQEntry->sectID){
+            lastSectTID = actPQEntry->sectID;
+            Tuple* sect = GetSection(lastSectTID);
+            double m1 =
+                  ((CcReal*)sect->GetAttribute(SECTION_MEAS1))->GetRealval();
+            double m2 =
+                  ((CcReal*)sect->GetAttribute(SECTION_MEAS2))->GetRealval();
+            if(actPQEntry->upDownFlag){
+              GPoint* temp = new GPoint(true,end->GetNetworkId(),
+                        end->GetRouteId(),m2,None);
+              *end = *temp;
+              delete temp;
+            }else{
+              GPoint* temp = new GPoint(true,end->GetNetworkId(),
+                        end->GetRouteId(),m1,None);
+              *end = *temp;
+              delete temp;
+            }
+            sect->DeleteIfAllowed();
+            break;
+          }
+        }
+      }
+////////////////////////////////////
+
+      if (actPQEntry->sectID != lastSectTID) {
+/*
+Search further in the network unitl reached last section.
+Get adjacent sections and insert into priority Queue.
+
+*/
+        adjSectionList.clear();
+        GetAdjacentSections(actPQEntry->sectID,
+                                      actPQEntry->upDownFlag,
+                                      adjSectionList);
+        for (size_t i = 0; i <adjSectionList.size();i++){
+          DirectedSection actNextSect = adjSectionList[i];
+          if (actNextSect.GetSectionTid() != actPQEntry->sectID) {
+            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(),
+                                        dist,
+                                        actNextSect.GetUpDownFlag(),
+                                        actPQEntry->sectID);
+            prioQ->Insert(*actEntry, visitedSect);
+            delete actEntry;
+          }
+        }
+        delete actPQEntry;
+        actSection->DeleteIfAllowed();
+      } else {
+/*
+Shortest Path found.
+
+Compute last route interval and resulting gline.
+
+*/
+
+        found = true;
+        double startRI, endRI;
+        int actRouteId =
+            ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+        if (actPQEntry->upDownFlag == true) {
+          startRI = sectMeas1;
+          endRI = end->GetPosition();
+        } else {
+          startRI = sectMeas2;
+          endRI = end->GetPosition();
+        }
+
+        actSection->DeleteIfAllowed();
+/*
+Get the sections used for shortest path and write them in right
+order (from start to end gpoint) in the resulting gline. Because dijkstra gives
+the sections from end to start we first have to put the result sections on a
+stack to turn in right order.
+
+*/
+        RIStack *riStack = new RIStack(actRouteId, startRI, endRI);
+        int lastSectId = actPQEntry->sectID;
+        SectIDTree *pElem = visitedSect->Find(actPQEntry->beforeSectID);
+        bool end = false;
+        bool upDown;
+     //   if (startRI >= endRI) upDown = false;
+        if(startRI > endRI || fabs(startRI-endRI) < 0.1) upDown = false;
+        else upDown = true;
+        while (!end) {
+          //GetSection
+          actSection = GetSection(pElem->sectID);
+          actRouteId =
+              ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+          sectMeas1 =
+            ((CcReal*) actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+          sectMeas2 =
+            ((CcReal*) actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+          upDown = pElem->upDownFlag;
+          if (pElem->sectID != startSectTID){
+            if (upDown)
+              riStack->Push(actRouteId, sectMeas1, sectMeas2, riStack);
+            else
+              riStack->Push(actRouteId, sectMeas2, sectMeas1, riStack);
+            lastSectId = pElem->sectID;
+            pElem = visitedSect->Find(pElem->beforeSectId);
+          } else {
+            end = true;
+            GetAdjacentSections(startSectTID, true, adjSectionList);
+            size_t i = 0;
+            bool stsectfound = false;
+            while (i < adjSectionList.size() && !stsectfound) {
+              DirectedSection adjSection = adjSectionList[i];
+              if (adjSection.GetSectionTid() == lastSectId){
+                  if(fabs(start->GetPosition()-sectMeas2)>0.1){
+                  stsectfound = true;
+                  riStack->Push(actRouteId, start->GetPosition(), sectMeas2,
+                              riStack);
+                  end = true;
+                  }
+              }
+              i++;
+            }
+            adjSectionList.clear();
+            if (!stsectfound) {
+              GetAdjacentSections(startSectTID, false,
+                                            adjSectionList);
+              i = 0;
+              while (i < adjSectionList.size() && !stsectfound) {
+                DirectedSection adjSection = adjSectionList[i];
+                if (adjSection.GetSectionTid() == lastSectId){
+                    if(fabs(start->GetPosition()-sectMeas1) > 0.1){
+                    stsectfound = true;
+                    riStack->Push(actRouteId, start->GetPosition(), sectMeas1,
+                                riStack);
+                    end = true;
+                    }
+                }
+                i++;
+              }
+              adjSectionList.clear();
+            }
+          }
+        }
+        // Cleanup and return result
+        riStack->StackToGLine(result);
+        riStack->RemoveStack();
+        delete actPQEntry;
+      }
+    }
+    visitedSect->Remove();
+    prioQ->Destroy();
+    delete prioQ;
+  }
+  startSection->DeleteIfAllowed();
+  endSection->DeleteIfAllowed();
+  result->SetSorted(false);
+  result->SetDefined(true);
+  delete end;
+  return true;
+};
+void Network::FindSP(TupleId j1,TupleId j2,GLine* res)
+{
+  for(int i = 1; i <= alldistance->GetNoTuples();i++){
+    Tuple* tuple = alldistance->GetTuple(i);
+    TupleId jun1 = ((CcInt*)tuple->GetAttribute(0))->GetIntval();
+    TupleId jun2 = ((CcInt*)tuple->GetAttribute(1))->GetIntval();
+    if(jun1 == j1 && jun2 == j2){
+      GLine* gl = (GLine*)tuple->GetAttribute(2);
+      *res = *gl;
+      tuple->DeleteIfAllowed();
+      break;
+    }
+    tuple->DeleteIfAllowed();
+  }
+}
+
+void Network::FillDistanceStorage()
+{
+  ListExpr xType;
+  nl->ReadFromString(distancestorageTypeInfo,xType);
+  ListExpr xNumType = SecondoSystem::GetCatalog()->NumericType(xType);
+  alldistance = new Relation(xNumType);
+/*store the distance between each two junction points*/
+  for(int i = 1;i <= m_pJunctions->GetNoTuples();i++){
+    for(int j = i+1; j <= m_pJunctions->GetNoTuples();j++){
+      Tuple* jun1 = m_pJunctions->GetTuple(i);
+      Tuple* jun2 = m_pJunctions->GetTuple(j);
+      int rid1 = ((CcInt*)jun1->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval();
+      int rid2 = ((CcInt*)jun2->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval();
+      float pos1 =
+              ((CcReal*)jun1->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval();
+      float pos2 =
+              ((CcReal*)jun2->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval();
+      Side side = None;
+      Point* p1 = (Point*)jun1->GetAttribute(JUNCTION_POS);
+      Point* p2 = (Point*)jun2->GetAttribute(JUNCTION_POS);
+      if(fabs(p1->GetX()-p2->GetX()) < 0.1 &&
+         fabs(p1->GetY()-p2->GetY()) < 0.1)
+        continue;
+      GPoint* gp1 = new GPoint(true,GetId(),rid1,pos1,side);
+      GPoint* gp2 = new GPoint(true,GetId(),rid2,pos2,side);
+      Tuple* tuple = new Tuple(nl->Second(xNumType));
+      tuple->PutAttribute(0,new TupleIdentifier(true,i));
+      tuple->PutAttribute(1,new TupleIdentifier(true,j));
+      GLine* gline = new GLine(0);
+      InShortestPath(gp1,gp2,gline);
+      tuple->PutAttribute(2,new GLine(gline));
+      delete gline;
+      alldistance->AppendTuple(tuple);
+      tuple->DeleteIfAllowed();
+      delete gp1;
+      delete gp2;
+    }
+  }
+
+}
 int Network::GetId()
 {
   return m_iId;
@@ -3598,6 +4026,18 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
   {
     return false;
   }
+
+  //save distance storage
+  nl->ReadFromString(distancestorageTypeInfo, xType);
+  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!alldistance->Save(in_xValueRecord,
+                                      inout_iOffset,
+                                      xNumericType))
+  {
+    return false;
+  }
+
+
   return true;
 }
 
@@ -4942,7 +5382,27 @@ double GPoint::Netdistance (GPoint* pToGPoint){
     return numeric_limits<double>::max();
   }
 }
+double GPoint::NewNetdistance(GPoint* pToGPoint,GLine* gline)
+{
+  GPoint* gp1 = new GPoint(true,GetNetworkId(),GetRouteId(),GetPosition());
+  GPoint* gp2 = new GPoint(true,pToGPoint->GetNetworkId(),
+                pToGPoint->GetRouteId(),pToGPoint->GetPosition());
 
+  double res;
+  if (gp1->ShortestPath(gp2, gline)) {
+    res = gline->GetLength();
+
+    delete gp1;
+    delete gp2;
+    return res;
+  } else {
+
+    delete gp1;
+    delete gp2;
+    return numeric_limits<double>::max();
+  }
+
+}
 
 /*
 Distance function computes the Euclidean Distance between two ~GPoint~s.
@@ -5011,9 +5471,10 @@ returned as gline value.
 
 */
 
-bool GPoint::ShortestPath(GPoint *end, GLine *result){
+bool GPoint::ShortestPath(GPoint *to, GLine *result){
 
   GPoint *start = this;
+  GPoint* end = new GPoint(*to);//copy the gpoint
   result->Clear();
   if (start == 0 || end == 0 || !start->IsDefined() ||
       !end->IsDefined()) {
@@ -5053,7 +5514,42 @@ bool GPoint::ShortestPath(GPoint *end, GLine *result){
     result->SetDefined(false);
     return false;
   }
-
+////////////////////////////////////////////////////
+  bool junctionpoint = false;
+  Point* endp = new Point();
+  pNetwork->GetPointOnRoute(end,endp); //end point
+  vector<JunctionSortEntry> juns;
+  CcInt* routeid = new CcInt(true,end->GetRouteId());
+  pNetwork->GetJunctionsOnRoute(routeid,juns);
+  for(unsigned int i = 0;i < juns.size();i++){
+    Tuple* t = juns[i].m_pJunction;
+    if(((CcInt*)t->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval() ==
+        end->GetRouteId() &&
+      fabs(((CcReal*)t->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval()-
+      end->GetPosition()) < 0.1)
+      junctionpoint = true;
+    if(((CcInt*)t->GetAttribute(JUNCTION_ROUTE2_ID))->GetIntval() ==
+        end->GetRouteId() &&
+      fabs(((CcReal*)t->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval()-
+      end->GetPosition()) < 0.1)
+      junctionpoint = true;
+  }
+  vector<TupleId> secjunid;
+  if(junctionpoint){//it is a junction point
+    vector<DirectedSection> sectionlist;
+    if(fabs(end->GetPosition()-
+      ((CcReal*)endSection->GetAttribute(SECTION_MEAS1))->GetRealval())< 0.1)
+      pNetwork->GetAdjacentSections(endSection->GetTupleId(),false,sectionlist);
+    else
+      pNetwork->GetAdjacentSections(endSection->GetTupleId(),true,sectionlist);
+    for(unsigned int i = 0;i < sectionlist.size();i++){
+      if(sectionlist[i].GetSectionTid() != endSection->GetTupleId())
+        secjunid.push_back(sectionlist[i].GetSectionTid());
+    }
+  }
+  delete endp;
+  delete routeid;
+/////////////////////////////////////////////////////
 /*
 Calculate the shortest path using dijkstras algorithm.
 
@@ -5176,6 +5672,34 @@ Use priorityQueue to find shortestPath.
         ((CcReal*) actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
       dist = actPQEntry->distFromStart + fabs(sectMeas2 - sectMeas1);
 
+//////////////////////////////////////
+      if(junctionpoint){ //end point is a junction point
+        for(unsigned int i = 0;i < secjunid.size();i++){
+          if(secjunid[i] == actPQEntry->sectID){
+            lastSectTID = actPQEntry->sectID;
+            Tuple* sect = pNetwork->GetSection(lastSectTID);
+            double m1 =
+                  ((CcReal*)sect->GetAttribute(SECTION_MEAS1))->GetRealval();
+            double m2 =
+                  ((CcReal*)sect->GetAttribute(SECTION_MEAS2))->GetRealval();
+            if(actPQEntry->upDownFlag){
+              GPoint* temp = new GPoint(true,end->GetNetworkId(),
+                        end->GetRouteId(),m2,None);
+              *end = *temp;
+              delete temp;
+            }else{
+              GPoint* temp = new GPoint(true,end->GetNetworkId(),
+                        end->GetRouteId(),m1,None);
+              *end = *temp;
+              delete temp;
+            }
+            sect->DeleteIfAllowed();
+            break;
+          }
+        }
+      }
+////////////////////////////////////
+
       if (actPQEntry->sectID != lastSectTID) {
 /*
 Search further in the network unitl reached last section.
@@ -5218,6 +5742,7 @@ Compute last route interval and resulting gline.
           startRI = sectMeas2;
           endRI = end->GetPosition();
         }
+
         actSection->DeleteIfAllowed();
 /*
 Get the sections used for shortest path and write them in right
@@ -5231,7 +5756,8 @@ stack to turn in right order.
         SectIDTree *pElem = visitedSect->Find(actPQEntry->beforeSectID);
         bool end = false;
         bool upDown;
-        if (startRI >= endRI) upDown = false;
+     //   if (startRI >= endRI) upDown = false;
+        if(startRI > endRI || fabs(startRI-endRI) < 0.1) upDown = false;
         else upDown = true;
         while (!end) {
           //GetSection
@@ -5258,10 +5784,12 @@ stack to turn in right order.
             while (i < adjSectionList.size() && !stsectfound) {
               DirectedSection adjSection = adjSectionList[i];
               if (adjSection.GetSectionTid() == lastSectId){
-                stsectfound = true;
-                riStack->Push(actRouteId, start->GetPosition(), sectMeas2,
+                  if(fabs(start->GetPosition()-sectMeas2) > 0.1){
+                    stsectfound = true;
+                    riStack->Push(actRouteId, start->GetPosition(), sectMeas2,
                               riStack);
-                end = true;
+                    end = true;
+                  }
               }
               i++;
             }
@@ -5272,11 +5800,13 @@ stack to turn in right order.
               i = 0;
               while (i < adjSectionList.size() && !stsectfound) {
                 DirectedSection adjSection = adjSectionList[i];
-                if (adjSection.GetSectionTid() == lastSectId){
-                  stsectfound = true;
-                  riStack->Push(actRouteId, start->GetPosition(), sectMeas1,
+                if (adjSection.GetSectionTid() == lastSectId ){
+                    if(fabs(start->GetPosition()-sectMeas1) > 0.1){
+                      stsectfound = true;
+                      riStack->Push(actRouteId, start->GetPosition(), sectMeas1,
                                 riStack);
-                  end = true;
+                      end = true;
+                    }
                 }
                 i++;
               }
@@ -5299,6 +5829,7 @@ stack to turn in right order.
   NetworkManager::CloseNetwork(pNetwork);
   result->SetSorted(false);
   result->SetDefined(true);
+  delete end;
   return true;
 };
 

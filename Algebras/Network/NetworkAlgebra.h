@@ -393,6 +393,7 @@ Returns the network distance between 2 ~gpoint~
 */
 
     double Netdistance (GPoint* toGPoint);
+    double NewNetdistance(GPoint* pToGPoint,GLine* res);//new
 
 /*
 Computes the euclidean distance of 2 glines.
@@ -1119,7 +1120,7 @@ The sectionsBTreeTypeInfo
 static string sectionsBTreeTypeInfo;
 
 
-
+  static string distancestorageTypeInfo;
 /*
 
 2.6.2 Constructors of the class ~network~
@@ -1464,7 +1465,7 @@ Returns the section with the given id.
 
 */
  Tuple* GetSection(int n);
-
+  void FindSP(TupleId j1,TupleId j2,GLine* res);
   private:
 
 
@@ -1512,6 +1513,7 @@ Given that all relations are set up, the adjacency lists are created.
                          ConnectivityCode in_xCc,
                          Transition in_xTransition,
                          vector<DirectedSectionPair> &inout_xPairs);
+  void FillDistanceStorage();
 
 /*
   Helpful functions for Find respectively FindInterval. Tests Network if there
@@ -1531,6 +1533,9 @@ Given that all relations are set up, the adjacency lists are created.
   bool ShorterConnection2(Tuple *route, double &start,
                    double &end, double &dpos, double &dpos2, int &rid,
                    int &ridt, Point p1, Point p2 );
+
+  bool InShortestPath(GPoint* start, GPoint* end, GLine *result);
+
 
 /*
 2.6.6 Private fields of Class ~Network~
@@ -1610,6 +1615,11 @@ The BTree of the sections route ids.
 */
 
   BTree* m_pBTreeSectionsByRoute;
+/*
+Store the distance between two junction points
+
+*/
+  Relation* alldistance;
 };
 
 
