@@ -106,7 +106,7 @@ private static void processLine(String line){
   if(!line.startsWith("$GPGGA")){
       return;
   }
-  StringTokenizer ST = new StringTokenizer(line,",");
+  MyStringTokenizer ST = new MyStringTokenizer(line,',');
   if(ST.countTokens()!=15){
      System.err.println("Error in processing line "+line);
   }
