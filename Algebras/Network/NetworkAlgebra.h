@@ -1465,7 +1465,7 @@ Returns the section with the given id.
 
 */
  Tuple* GetSection(int n);
-  void FindSP(TupleId j1,TupleId j2,GLine* res);
+  void FindSP(TupleId j1,TupleId j2,double& length,GLine* res);
   private:
 
 

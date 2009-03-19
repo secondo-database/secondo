@@ -1514,7 +1514,7 @@ string Network::sectionsBTreeTypeInfo =
       "(btree (tuple ((rid int) (meas1 real) (meas2 real) "
       "(dual bool) (curve sline)(curveStartsSmaller bool) (rrc int))) int)";
 string Network::distancestorageTypeInfo =
-      "(rel (tuple((j1 tid)(j2 tid)(sp gline))))";
+      "(rel (tuple((j1 tid)(j2 tid)(dist real)(sp gline))))";
 
 /*
 1.3.1.2 Constructors and destructors class ~Network~
@@ -2672,6 +2672,7 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
       !end->IsDefined()) {
      sendMessage("Both gpoints must exist and be defined.");
      result->SetDefined(false);
+
      return false;
   }
   // Check wether both points belong to the same network
@@ -2679,6 +2680,7 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
   {
     sendMessage("Both gpoints belong to different networks.");
     result->SetDefined(false);
+
     return false;
   }
   result->SetNetworkId(start->GetNetworkId());
@@ -2688,6 +2690,7 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
   if (startSection == 0) {
     sendMessage("Starting GPoint not found in network.");
     result->SetDefined(false);
+
     return false;
   }
   Tuple* endSection = GetSectionOnRoute(end);
@@ -2695,6 +2698,7 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
     sendMessage("End GPoint not found in network.");
     startSection->DeleteIfAllowed();
     result->SetDefined(false);
+
     return false;
   }
 ////////////////////////////////////////////////////
@@ -2967,11 +2971,11 @@ stack to turn in right order.
             while (i < adjSectionList.size() && !stsectfound) {
               DirectedSection adjSection = adjSectionList[i];
               if (adjSection.GetSectionTid() == lastSectId){
-                  if(fabs(start->GetPosition()-sectMeas2)>0.1){
-                  stsectfound = true;
-                  riStack->Push(actRouteId, start->GetPosition(), sectMeas2,
+                  if(fabs(start->GetPosition()-sectMeas2) > 0.1){
+                    stsectfound = true;
+                    riStack->Push(actRouteId, start->GetPosition(), sectMeas2,
                               riStack);
-                  end = true;
+                    end = true;
                   }
               }
               i++;
@@ -2984,11 +2988,11 @@ stack to turn in right order.
               while (i < adjSectionList.size() && !stsectfound) {
                 DirectedSection adjSection = adjSectionList[i];
                 if (adjSection.GetSectionTid() == lastSectId){
-                    if(fabs(start->GetPosition()-sectMeas1) > 0.1){
-                    stsectfound = true;
-                    riStack->Push(actRouteId, start->GetPosition(), sectMeas1,
+                    if(fabs(start->GetPosition() - sectMeas1) > 0.1){
+                      stsectfound = true;
+                      riStack->Push(actRouteId, start->GetPosition(), sectMeas1,
                                 riStack);
-                    end = true;
+                      end = true;
                     }
                 }
                 i++;
@@ -3014,15 +3018,16 @@ stack to turn in right order.
   delete end;
   return true;
 };
-void Network::FindSP(TupleId j1,TupleId j2,GLine* res)
+void Network::FindSP(TupleId j1,TupleId j2,double& length,GLine* res)
 {
   for(int i = 1; i <= alldistance->GetNoTuples();i++){
     Tuple* tuple = alldistance->GetTuple(i);
     TupleId jun1 = ((CcInt*)tuple->GetAttribute(0))->GetIntval();
     TupleId jun2 = ((CcInt*)tuple->GetAttribute(1))->GetIntval();
     if(jun1 == j1 && jun2 == j2){
-      GLine* gl = (GLine*)tuple->GetAttribute(2);
-      *res = *gl;
+      length = ((CcReal*)tuple->GetAttribute(2))->GetRealval();
+      GLine* gline = (GLine*)tuple->GetAttribute(3);
+      *res = *gline;
       tuple->DeleteIfAllowed();
       break;
     }
@@ -3037,6 +3042,7 @@ void Network::FillDistanceStorage()
   ListExpr xNumType = SecondoSystem::GetCatalog()->NumericType(xType);
   alldistance = new Relation(xNumType);
 /*store the distance between each two junction points*/
+
   for(int i = 1;i <= m_pJunctions->GetNoTuples();i++){
     for(int j = i+1; j <= m_pJunctions->GetNoTuples();j++){
       Tuple* jun1 = m_pJunctions->GetTuple(i);
@@ -3059,8 +3065,17 @@ void Network::FillDistanceStorage()
       tuple->PutAttribute(0,new TupleIdentifier(true,i));
       tuple->PutAttribute(1,new TupleIdentifier(true,j));
       GLine* gline = new GLine(0);
-      InShortestPath(gp1,gp2,gline);
-      tuple->PutAttribute(2,new GLine(gline));
+      assert(InShortestPath(gp1,gp2,gline));
+      tuple->PutAttribute(2,new CcReal(true,gline->GetLength()));
+      GLine* temp = new GLine(0);
+      temp->SetNetworkId(gline->GetNetworkId());
+      const RouteInterval* ri;
+      gline->Get(0,ri);
+      temp->AddRouteInterval(const_cast<RouteInterval*>(ri));//head
+      gline->Get(gline->Size()-1,ri);
+      temp->AddRouteInterval(const_cast<RouteInterval*>(ri));//tail
+      tuple->PutAttribute(3,new GLine(temp));
+      delete temp;
       delete gline;
       alldistance->AppendTuple(tuple);
       tuple->DeleteIfAllowed();
@@ -3068,7 +3083,6 @@ void Network::FillDistanceStorage()
       delete gp2;
     }
   }
-
 }
 int Network::GetId()
 {
@@ -3146,7 +3160,10 @@ New implementation using sectionsBTree
       ((CcReal*)actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
     double end =
       ((CcReal*) actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
-    if (in_xGPoint->GetPosition() >= start && in_xGPoint->GetPosition() <= end){
+
+    if ((in_xGPoint->GetPosition() >= start&&in_xGPoint->GetPosition() <= end)
+        || fabs(in_xGPoint->GetPosition()-start) < 0.1 ||
+        fabs(in_xGPoint->GetPosition()-end)<0.1){
       delete pSectionIter;
       return actSect;
     }
