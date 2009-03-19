@@ -213,10 +213,10 @@ Precondition: dbState = dbOpen.
       }
       int exprSize;
       if ( !typeRecord.Read( &exprSize, 
-	   sizeof( int ), CE_TYPES_EXPR_SIZE ) ) continue;
+           sizeof( int ), CE_TYPES_EXPR_SIZE ) ) continue;
       typeBuffer = new char[exprSize];
       if ( !typeRecord.Read( typeBuffer, 
-	                     exprSize, CE_TYPES_EXPR_START ) ) continue;
+                             exprSize, CE_TYPES_EXPR_START ) ) continue;
       typeExprString.assign( typeBuffer, exprSize );
       delete []typeBuffer;
       nl->ReadFromString( typeExprString, typeExpr );
@@ -376,11 +376,11 @@ Precondition: dbState = dbOpen.
         int exprSize;
         tEntry.state = EntryDelete;
         if ( tRec.Read( &tEntry.algebraId, 
-	     sizeof( int ), CE_TYPES_ALGEBRA_ID ) &&
+             sizeof( int ), CE_TYPES_ALGEBRA_ID ) &&
              tRec.Read( &tEntry.typeId, 
-	     sizeof( int ), CE_TYPES_TYPE_ID ) &&
+             sizeof( int ), CE_TYPES_TYPE_ID ) &&
              tRec.Read( &exprSize, 
-	     sizeof( int ), CE_TYPES_EXPR_SIZE ) )
+             sizeof( int ), CE_TYPES_EXPR_SIZE ) )
         {
           char* tBuffer = new char[exprSize];
           tRec.Read( tBuffer, exprSize, CE_TYPES_EXPR_START );
@@ -791,15 +791,15 @@ Precondition: dbState = dbOpen.
       }
       int nameSize, exprSize;
       if ( !oRec.Read( &nameSize, 
-	   sizeof( int ), CE_OBJS_TYPENAME_SIZE ) ) continue;
+           sizeof( int ), CE_OBJS_TYPENAME_SIZE ) ) continue;
       if ( !oRec.Read( &exprSize, 
-	   sizeof( int ), CE_OBJS_TYPEEXPR_SIZE ) ) continue;
+           sizeof( int ), CE_OBJS_TYPEEXPR_SIZE ) ) continue;
       int bufSize = (nameSize > exprSize) ? nameSize : exprSize;
       oBuffer = new char[bufSize];
       if ( nameSize > 0 )
       {
         if ( !oRec.Read( oBuffer, 
-	     nameSize, CE_OBJS_TYPEINFO_START ) ) continue;
+             nameSize, CE_OBJS_TYPEINFO_START ) ) continue;
         typeName.assign( oBuffer, nameSize );
       }
       else
@@ -807,7 +807,7 @@ Precondition: dbState = dbOpen.
         typeName = "";
       }
       if ( !oRec.Read( oBuffer, 
-	   exprSize, CE_OBJS_TYPEINFO_START+nameSize ) ) continue;
+           exprSize, CE_OBJS_TYPEINFO_START+nameSize ) ) continue;
       typeExprString.assign( oBuffer, exprSize );
       delete []oBuffer;
       nl->ReadFromString( typeExprString, typeExpr );
@@ -904,7 +904,7 @@ Precondition: dbState = dbOpen.
       if ( derivedObjs.isDerived(objectName) ) {
          cout <<  msgOmitted << endl;
          continue;
-      }	 
+      }  
       
 
       TRACE("ENTER GetObjectExpr")
@@ -923,7 +923,7 @@ Precondition: dbState = dbOpen.
       if ( objectsList == nl->TheEmptyList() )
       {
         objectsList = 
-	   nl->Cons( nl->FiveElemList(
+           nl->Cons( nl->FiveElemList(
                            nl->SymbolAtom( "OBJECT" ),
                            nl->SymbolAtom( objectName ),
                            nl->OneElemList( nl->SymbolAtom( typeName ) ),
@@ -957,7 +957,7 @@ Precondition: dbState = dbOpen.
       if ( derivedObjs.isDerived(oPos->first) ) {
          cout <<  msgOmitted << endl;
          continue;
-      }	 
+      }  
 
       nl->ReadFromString( oPos->second.typeExpr, typeExpr );
 //VTA - This line must be added
@@ -973,11 +973,11 @@ Precondition: dbState = dbOpen.
       if ( objectsList == nl->TheEmptyList() )
       {
         objectsList = 
-	   nl->Cons( nl->FiveElemList(
+           nl->Cons( nl->FiveElemList(
                        nl->SymbolAtom( "OBJECT" ),
                        nl->SymbolAtom( oPos->first ),
                        nl->OneElemList( 
-			     nl->SymbolAtom( oPos->second.typeName ) ),
+                             nl->SymbolAtom( oPos->second.typeName ) ),
                        typeExpr,
                        valueList ),
                      nl->TheEmptyList() );
@@ -986,12 +986,12 @@ Precondition: dbState = dbOpen.
       else
       {
         lastElem = 
-	   nl->Append( lastElem,
+           nl->Append( lastElem,
                        nl->FiveElemList(
                          nl->SymbolAtom( "OBJECT" ),
                          nl->SymbolAtom( oPos->first ),
                          nl->OneElemList( 
-			       nl->SymbolAtom( oPos->second.typeName ) ),
+                               nl->SymbolAtom( oPos->second.typeName ) ),
                          typeExpr,
                        valueList ) );
       }
@@ -1007,7 +1007,7 @@ bool
 SecondoCatalog::CreateObject( const string& objectName, 
                               const string& typeName,
                               const ListExpr typeExpr, 
-			      const int sizeOfComponents )
+                              const int sizeOfComponents )
 {
 /*
 Creates a new object with identifier ~objectName~ defined with type name ~typeName~ 
@@ -1518,7 +1518,7 @@ Precondition: ~IsObjectName(objectName)~ delivers TRUE.
 
   const SystemInfoRel* table = GetSystemTable(objectName);
 
-  SHOW(objectName)	
+  SHOW(objectName)      
   SHOW(table) 
   if (  table != 0 )
   { 
@@ -1743,7 +1743,7 @@ new value ~value~. Returns error 1 if object does not exist.
       if( oPos->second.valueDefined )
       {
         ObjectDeletion del = am->DeleteObj( oPos->second.algebraId, 
-	                                    oPos->second.typeId     );
+                                            oPos->second.typeId     );
         ListExpr typeExpr, typeInfo;
         nl->ReadFromString( oPos->second.typeExpr, typeExpr );
         typeInfo = NumericType( nl->First( typeExpr ) );
@@ -1765,7 +1765,7 @@ new value ~value~. Returns error 1 if object does not exist.
     {
       oRec.Read( &oEntry.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
       oRec.Read( &oEntry.valueRecordId, 
-	         sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+                 sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
       oRec.Read( &oEntry.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
       oRec.Read( &oEntry.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
       int nameSize, exprSize, bufSize;
@@ -1788,13 +1788,13 @@ new value ~value~. Returns error 1 if object does not exist.
           Word oldvalue;
           ListExpr typeExpr, typeInfo;
           ObjectDeletion del = am->DeleteObj( oEntry.algebraId, 
-	                                      oEntry.typeId     );
+                                              oEntry.typeId     );
 
           nl->ReadFromString( oEntry.typeExpr, typeExpr );
           typeInfo = NumericType( nl->First( typeExpr ) );
 
           if( am->OpenObj( oEntry.algebraId, 
-	                   oEntry.typeId, vRec, offset, typeInfo, oldvalue ) )
+                           oEntry.typeId, vRec, offset, typeInfo, oldvalue ) )
             del( typeInfo, oldvalue );
 
           nl->Destroy( typeInfo );
@@ -1848,9 +1848,9 @@ object is only modified, so that no deletion function is necessary.
     if ( found )
     {
       oRec.Read( &oEntry.valueDefined, 
-	         sizeof( bool ), CE_OBJS_VALUE_DEF );
+                 sizeof( bool ), CE_OBJS_VALUE_DEF );
       oRec.Read( &oEntry.valueRecordId, 
-	         sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+                 sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
       oRec.Read( &oEntry.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
       oRec.Read( &oEntry.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
       int nameSize, exprSize, bufSize;
@@ -1893,11 +1893,11 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
       if( oPos->second.valueDefined )
       {
         ObjectDeletion del = am->DeleteObj( oPos->second.algebraId, 
-	                                    oPos->second.typeId     );
+                                            oPos->second.typeId     );
         del( typeInfo, oPos->second.value );
       }
       oPos->second.value = (am->CloneObj( oPos->second.algebraId, 
-	                                  oPos->second.typeId     ))
+                                          oPos->second.typeId     ))
         ( typeInfo, value );
       oPos->second.valueDefined = true;
       found = true;
@@ -1914,7 +1914,7 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
     {
       oRec.Read( &oEntry.valueDefined, sizeof( bool ), CE_OBJS_VALUE_DEF );
       oRec.Read( &oEntry.valueRecordId, 
-	         sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+                 sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
       oRec.Read( &oEntry.algebraId, sizeof( int ), CE_OBJS_ALGEBRA_ID );
       oRec.Read( &oEntry.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
       int nameSize, exprSize, bufSize;
@@ -1941,10 +1941,10 @@ new value cloned from ~value~. Returns error 1 if object does not exist.
         {
           Word oldvalue;
           ObjectDeletion del = am->DeleteObj( oEntry.algebraId, 
-	                                      oEntry.typeId     );
+                                              oEntry.typeId     );
 
           if( am->OpenObj( oEntry.algebraId, 
-	                   oEntry.typeId, vRec, offset, typeInfo, oldvalue ) )
+                           oEntry.typeId, vRec, offset, typeInfo, oldvalue ) )
             del( typeInfo, oldvalue );
         }
       }
@@ -2032,11 +2032,13 @@ SecondoCatalog::Initialize(TypeInfoRel* r)
       t.remark = typeInfo.elem(5).str();
     r->append(&t, false);
 
-    t.numOfFlobs = -1;	    
+    t.numOfFlobs = -1;      
+    t.persistencyMode = "unspecified";
+
     if ( tc->MemberOf("DATA") ) {
 
       //cout << "** TC **  " << tc->Name() 
-      //     << " <-- " << t.typeListExample << endl;	    
+      //     << " <-- " << t.typeListExample << endl;       
       ListExpr type = nl->Empty();
       nl->ReadFromString(t.typeListExample, type);
 
@@ -2047,11 +2049,30 @@ SecondoCatalog::Initialize(TypeInfoRel* r)
       if (w.addr == 0) {
         cerr << "** TC Error ** Could not create an instance for " 
              << tc->Name() << " using type list " << NList(type) << endl;
-	t.numOfFlobs = -2;
-      }	
-      else {      
-        t.numOfFlobs = static_cast<Attribute*>(w.addr)->NumOfFLOBs();
-      }	
+        t.numOfFlobs = -2;
+      } 
+
+      Attribute* attr =  static_cast<Attribute*>(w.addr);
+      
+      if (attr != 0) {      
+        t.numOfFlobs = attr->NumOfFLOBs();
+        switch ( attr->GetStorageType() ) {
+          case Attribute::Default: {
+            t.persistencyMode = "Memoryblock-fix-core"; 
+            break;
+          }
+          case Attribute::Core: {
+            t.persistencyMode = "Serialize-fix-core"; 
+            break;
+          }
+          case Attribute::Extension: {
+            t.persistencyMode = "Serialize-variable-extension"; 
+            break;
+          }
+          default: {/*empty*/};
+        }         
+      } 
+
     }
 
     pos++;
@@ -2091,20 +2112,20 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
 
       if (!expectedFile.exists()) 
       {
-	 cerr << "  Missing file " << fileName << "!" << endl;
-	 fileExists = false; 
+         cerr << "  Missing file " << fileName << "!" << endl;
+         fileExists = false; 
       } 
       
       //static int ctr=0;
       examples = ExampleReader(fileName, algName);
       if (fileExists) {
-	parseOk = examples.parse();
-	if (!parseOk) {
-	   cerr << "  File is not correct! Please repair." << endl << endl;
-	}
-	//int n = atoi(getenv("MAX_PARSE"));
-	//ctr++;   
-	//assert(ctr <= n);
+        parseOk = examples.parse();
+        if (!parseOk) {
+           cerr << "  File is not correct! Please repair." << endl << endl;
+        }
+        //int n = atoi(getenv("MAX_PARSE"));
+        //ctr++;   
+        //assert(ctr <= n);
       } 
     }
    
@@ -2121,88 +2142,88 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
 
       if (!fileExists) 
       {
-	// copy to Example Info
-	ExampleInfo ex;
-	ex.opName = oi.name;
-	ex.number = 1; 
-	ex.signature = oi.signature;
-	ex.example = oi.example;
-	  
-	examples.add(oi.name, 1, ex);
+        // copy to Example Info
+        ExampleInfo ex;
+        ex.opName = oi.name;
+        ex.number = 1; 
+        ex.signature = oi.signature;
+        ex.example = oi.example;
+          
+        examples.add(oi.name, 1, ex);
       }
       else
       {
 
-	ExampleInfo ex2;
-	ExampleReader::ExampleList list;
-	ExampleReader::ExampleList::const_iterator it;
+        ExampleInfo ex2;
+        ExampleReader::ExampleList list;
+        ExampleReader::ExampleList::const_iterator it;
 
-	bool specFound = false;
-	if (parseOk) {
-	  specFound = examples.find(oi.name, ex2);
+        bool specFound = false;
+        if (parseOk) {
+          specFound = examples.find(oi.name, ex2);
 
-	if ( !specFound ) {
-	  cerr << "  Missing spec for operator " << oi.name << endl;
-	  // to do: punishment, e.g. removing the operator from the
-	  // algebra manager.
-	}
-	else {
+        if ( !specFound ) {
+          cerr << "  Missing spec for operator " << oi.name << endl;
+          // to do: punishment, e.g. removing the operator from the
+          // algebra manager.
+        }
+        else {
 
-	// examples for the current operator are available 
+        // examples for the current operator are available 
 
-	list = examples.find(oi.name);
+        list = examples.find(oi.name);
 
-	int i = 0;
-	for (it = list.begin(); it != list.end(); it++)
-	{
-	OperatorInfoTuple& t = *(new OperatorInfoTuple());
-	ex2 = **it;
-	
-	if (traceExpl)
-	  cout << ex2.example << endl;
+        int i = 0;
+        for (it = list.begin(); it != list.end(); it++)
+        {
+        OperatorInfoTuple& t = *(new OperatorInfoTuple());
+        ex2 = **it;
+        
+        if (traceExpl)
+          cout << ex2.example << endl;
        
-	bool secOk = false;
-	SecParser sp;            
-	string exList = ""; 
-	int rc = sp.Text2List( ex2.example, exList );
-	secOk = (rc == 0);       
-	if ( !secOk )      
-	{
-	  t.remark = "Return Secondo Parse Error!";
+        bool secOk = false;
+        SecParser sp;            
+        string exList = ""; 
+        int rc = sp.Text2List( ex2.example, exList );
+        secOk = (rc == 0);       
+        if ( !secOk )      
+        {
+          t.remark = "Return Secondo Parse Error!";
 
-	    cerr << "Operator: " << ex2.opName << endl
-		 << "Example : " << ex2.example << endl 
-		 << "In line : " << ex2.lineNo << endl << endl;
-	}
+            cerr << "Operator: " << ex2.opName << endl
+                 << "Example : " << ex2.example << endl 
+                 << "In line : " << ex2.lineNo << endl << endl;
+        }
     
-	t.name = oi.name;
-	t.algebra = algName;
-	t.signature = oi.signature;
-	t.syntax = oi.syntax;
-	t.meaning = oi.meaning;
-	t.result = ex2.result;
+        t.name = oi.name;
+        t.algebra = algName;
+        t.signature = oi.signature;
+        t.syntax = oi.syntax;
+        t.meaning = oi.meaning;
+        t.result = ex2.result;
 
-	if (ex2.remark != "")
-	  t.remark = ex2.remark;
-	else
-	  t.remark = oi.remark;
+        if (ex2.remark != "")
+          t.remark = ex2.remark;
+        else
+          t.remark = oi.remark;
 
 
-	// define example values
-	t.example = ex2.example;
+        // define example values
+        t.example = ex2.example;
 
-	if (i==0) {
-	// overrule operator spec of the .cpp file.
-	oi. example = ex2.example;
-	am->getOperator( algId, opId )->SetOpInfo(oi);
-	}
-	i++;
+        if (i==0) {
+        // overrule operator spec of the .cpp file.
+        oi. example = ex2.example;
+        am->getOperator( algId, opId )->SetOpInfo(oi);
+        }
+        i++;
 
-	r->append(&t, false);
+        r->append(&t, false);
 
-	} // end for 
-	} // end !specFound
-	} // end parseOk 
+        } // end for 
+        } // end !specFound
+        } // end parseOk 
 
       } // end file exists
       opId++;
@@ -2379,16 +2400,16 @@ Precondition: ~IsOperatorName( opName)~ delivers TRUE.
 
     opList = nl->OneElemList(
                nl->TwoElemList( 
-		 nl->IntAtom( operatorSetIterator->algebraId ), 
-		   nl->IntAtom( operatorSetIterator->entryId ) ) );
+                 nl->IntAtom( operatorSetIterator->algebraId ), 
+                   nl->IntAtom( operatorSetIterator->entryId ) ) );
     ListExpr last = opList;
 
     while ( ++operatorSetIterator != operatorSet->end() )
     {
       last = nl->Append( last,
                nl->TwoElemList( 
-		 nl->IntAtom( operatorSetIterator->algebraId ), 
-		    nl->IntAtom( operatorSetIterator->entryId ) ) );
+                 nl->IntAtom( operatorSetIterator->algebraId ), 
+                    nl->IntAtom( operatorSetIterator->entryId ) ) );
     }
     return opList;
   }
@@ -2564,7 +2585,7 @@ Defines a dictionary for algebra type constructors.
     {
       newEntry.entryId = j;
       constructors.insert( make_pair( 
-	                          am->Constrs( algebraId, j ), newEntry ) );
+                                  am->Constrs( algebraId, j ), newEntry ) );
     }
 /*
 Defines a dictionary for algebra operators.
@@ -2645,21 +2666,21 @@ SecondoCatalog::Close()
 bool
 SecondoCatalog::CleanUp( const bool revert )
 {
-  TRACE_ENTER	
+  TRACE_ENTER   
 
   SHOW(revert)
 
   bool ok = true;
   if ( !revert )
   {
-    TRACE("Case !revert:")	  
+    TRACE("Case !revert:")        
     SmiRecord tRec;
     for ( TypesCatalog::iterator tPos = types.begin();
           tPos != types.end(); 
-	  tPos++ )
+          tPos++ )
     {
-      ETRACE(tPos->second.print(cout);) 	    
-      TRACE("---------")	      
+      ETRACE(tPos->second.print(cout);)             
+      TRACE("---------")              
       switch (tPos->second.state)
       {
         case EntryInsert:
@@ -2667,13 +2688,13 @@ SecondoCatalog::CleanUp( const bool revert )
           if ( typeCatalogFile.InsertRecord( SmiKey( tPos->first ), tRec ) )
           {
             tRec.Write( &tPos->second.algebraId, 
-	                sizeof( int ), CE_TYPES_ALGEBRA_ID );
+                        sizeof( int ), CE_TYPES_ALGEBRA_ID );
             tRec.Write( &tPos->second.typeId, 
-	                sizeof( int ), CE_TYPES_TYPE_ID );
+                        sizeof( int ), CE_TYPES_TYPE_ID );
             int exprSize = tPos->second.typeExpr.length();
             tRec.Write( &exprSize, sizeof( int ), CE_TYPES_EXPR_SIZE );
             tRec.Write( tPos->second.typeExpr.data(), 
-	                exprSize, CE_TYPES_EXPR_START );
+                        exprSize, CE_TYPES_EXPR_START );
           }
           else
           {
@@ -2684,16 +2705,16 @@ SecondoCatalog::CleanUp( const bool revert )
         case EntryUpdate:
         {
           if ( typeCatalogFile.SelectRecord( SmiKey( tPos->first ), 
-	                                     tRec, SmiFile::Update ) )
+                                             tRec, SmiFile::Update ) )
           {
             tRec.Write( &tPos->second.algebraId, 
-	                sizeof( int ), CE_TYPES_ALGEBRA_ID );
+                        sizeof( int ), CE_TYPES_ALGEBRA_ID );
             tRec.Write( &tPos->second.typeId, 
-	                sizeof( int ), CE_TYPES_TYPE_ID );
+                        sizeof( int ), CE_TYPES_TYPE_ID );
             int exprSize = tPos->second.typeExpr.length();
             tRec.Write( &exprSize, sizeof( int ), CE_TYPES_EXPR_SIZE );
             tRec.Write( tPos->second.typeExpr.data(), 
-	                exprSize, CE_TYPES_EXPR_START );
+                        exprSize, CE_TYPES_EXPR_START );
           }
           else
           {
@@ -2721,13 +2742,13 @@ In this first iteration:
  * In the deletion, only the catalog part of the object is deleted.
 
 */
-  TRACE("First iteration:")	  
+  TRACE("First iteration:")       
   for ( ObjectsCatalog::iterator oPos = objects.begin(); 
         oPos != objects.end(); 
-	oPos++ )
+        oPos++ )
   {
     ETRACE(oPos->second.print(cout);)  
-    TRACE("---------")	      
+    TRACE("---------")        
     switch (oPos->second.state)
     {
       case EntryInsert:
@@ -2739,21 +2760,21 @@ In this first iteration:
           {
             bool f = false;
             oRec.Write( &oPos->second.value, 
-	                sizeof( Word ), CE_OBJS_VALUE );
+                        sizeof( Word ), CE_OBJS_VALUE );
             oRec.Write( &f, sizeof( bool ), 
-	                CE_OBJS_VALUE_DEF );
+                        CE_OBJS_VALUE_DEF );
             oRec.Write( &oPos->second.algebraId, 
-	                sizeof( int ), CE_OBJS_ALGEBRA_ID );
+                        sizeof( int ), CE_OBJS_ALGEBRA_ID );
             oRec.Write( &oPos->second.typeId, 
-	                sizeof( int ), CE_OBJS_TYPE_ID );
+                        sizeof( int ), CE_OBJS_TYPE_ID );
             int nameSize = oPos->second.typeName.length();
             int exprSize = oPos->second.typeExpr.length();
             oRec.Write( &nameSize, sizeof( int ), CE_OBJS_TYPENAME_SIZE );
             oRec.Write( &exprSize, sizeof( int ), CE_OBJS_TYPEEXPR_SIZE );
             oRec.Write( oPos->second.typeName.data(), 
-	                nameSize, CE_OBJS_TYPEINFO_START );
+                        nameSize, CE_OBJS_TYPEINFO_START );
             oRec.Write( oPos->second.typeExpr.data(), 
-	                exprSize, CE_OBJS_TYPEINFO_START + nameSize );
+                        exprSize, CE_OBJS_TYPEINFO_START + nameSize );
             oRec.Finish();
           }
           else
@@ -2769,22 +2790,22 @@ In this first iteration:
         {
           SmiRecord oRec;
           if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), 
-	                                    oRec, SmiFile::Update ) )
+                                            oRec, SmiFile::Update ) )
           {
             bool f = false;
             oRec.Write( &oPos->second.value, sizeof( int ), CE_OBJS_VALUE );
             oRec.Write( &f, sizeof( bool ), CE_OBJS_VALUE_DEF );
             oRec.Write( &oPos->second.algebraId, 
-	                sizeof( int ), CE_OBJS_ALGEBRA_ID );
+                        sizeof( int ), CE_OBJS_ALGEBRA_ID );
             oRec.Write( &oPos->second.typeId, sizeof( int ), CE_OBJS_TYPE_ID );
             int nameSize = oPos->second.typeName.length();
             int exprSize = oPos->second.typeExpr.length();
             oRec.Write( &nameSize, sizeof( int ), CE_OBJS_TYPENAME_SIZE );
             oRec.Write( &exprSize, sizeof( int ), CE_OBJS_TYPEEXPR_SIZE );
             oRec.Write( oPos->second.typeName.data(), 
-	                nameSize, CE_OBJS_TYPEINFO_START );
+                        nameSize, CE_OBJS_TYPEINFO_START );
             oRec.Write( oPos->second.typeExpr.data(), 
-	                exprSize, CE_OBJS_TYPEINFO_START + nameSize );
+                        exprSize, CE_OBJS_TYPEINFO_START + nameSize );
             oRec.Finish();
           }
           else
@@ -2832,13 +2853,13 @@ save process. Then, if it occurs, the database state will be
 preserved and the objects are created with undefined values.
 
 */
-  TRACE("Second iteration:")	  
+  TRACE("Second iteration:")      
   for ( ObjectsCatalog::iterator oPos = objects.begin();
         oPos != objects.end(); 
-	oPos++ )
+        oPos++ )
   {
     ETRACE(oPos->second.print(cout);)
-    TRACE("---------")	      
+    TRACE("---------")        
     switch (oPos->second.state)
     {
       case EntryInsert:
@@ -2847,20 +2868,20 @@ preserved and the objects are created with undefined values.
         {
           SmiRecord oRec;
           if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), 
-	                                    oRec, SmiFile::Update ) )
+                                            oRec, SmiFile::Update ) )
           {
             if ( oPos->second.valueDefined )
             {
               oRec.Write( &oPos->second.valueDefined, 
-		          sizeof( bool ), CE_OBJS_VALUE_DEF );
+                          sizeof( bool ), CE_OBJS_VALUE_DEF );
               SmiRecord vRec;
               size_t offset = 0;
               ok = objValueFile.AppendRecord( oPos->second.valueRecordId, 
-		                              vRec                        );
+                                              vRec                        );
               if ( ok )
               {
                 oRec.Write( &oPos->second.valueRecordId, 
-		            sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
+                            sizeof( SmiRecordId ), CE_OBJS_VALUE_RECID );
                 ListExpr typeExpr, typeInfo;
                 nl->ReadFromString( oPos->second.typeExpr, typeExpr );
                 typeInfo = NumericType( nl->First( typeExpr ) );
@@ -2887,10 +2908,10 @@ preserved and the objects are created with undefined values.
         {
           SmiRecord oRec;
           if ( objCatalogFile.SelectRecord( SmiKey( oPos->first ), 
-	                                    oRec, SmiFile::Update ) )
+                                            oRec, SmiFile::Update ) )
           {
             oRec.Write( &oPos->second.valueDefined, 
-	                sizeof( bool ), CE_OBJS_VALUE_DEF );
+                        sizeof( bool ), CE_OBJS_VALUE_DEF );
             bool ok2;
             if ( oPos->second.valueDefined )
             {
@@ -2899,14 +2920,14 @@ preserved and the objects are created with undefined values.
               if ( oPos->second.valueRecordId == 0 )
               {
                 ok2 = objValueFile.AppendRecord(
-		        oPos->second.valueRecordId, vRec );
+                        oPos->second.valueRecordId, vRec );
                 oRec.Write( &oPos->second.valueRecordId, 
-		            sizeof( int ), CE_OBJS_VALUE_RECID );
+                            sizeof( int ), CE_OBJS_VALUE_RECID );
               }
               else
               {
                 ok2 = objValueFile.SelectRecord( 
-		        oPos->second.valueRecordId, vRec, SmiFile::Update );
+                        oPos->second.valueRecordId, vRec, SmiFile::Update );
               }
               if ( ok2 )
               {
@@ -2956,7 +2977,7 @@ preserved and the objects are created with undefined values.
   types.clear();
   objects.clear();
 
-  TRACE_LEAVE	
+  TRACE_LEAVE   
   return (ok);
 }
 
