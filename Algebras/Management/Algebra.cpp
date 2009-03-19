@@ -442,8 +442,15 @@ TypeConstructor::RestoreFromList( const ListExpr typeInfo,
 Word
 TypeConstructor::Create( const ListExpr typeInfo )
 {
-  return ((*createFunc)( typeInfo ));
+  return (*createFunc)( typeInfo );
 }
+
+Word
+TypeConstructor::Create( const NList& typeInfo )
+{
+  return (*createFunc)( typeInfo.listExpr() );
+}
+
 
 void
 TypeConstructor::Delete( const ListExpr typeInfo, Word& w )
@@ -500,6 +507,21 @@ TypeConstructor::SizeOf()
 {
   return (*sizeofFunc)();
 }
+
+bool 
+TypeConstructor::MemberOf(const string& k) 
+{
+  vector<string>::iterator it = find( kinds.begin(), kinds.end(), k );
+  if (it != kinds.end()) {
+    return true;
+  } 
+  else {
+    return false;     
+  }
+}	  
+
+
+
 
 /* Member functions of Class Algebra: */
 Algebra::Algebra() : tcsNum(0), opsNum(0)
