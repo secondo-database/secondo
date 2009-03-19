@@ -1,0 +1,22 @@
+
+
+This tool is a little converter for gpx data. 
+Only the track and the name of the track are extracted in the 
+current version.
+
+Compiling:
+
+just type in "make"
+
+Using:
+
+java Gpx2Secondo *.gpx >Tracesobj
+
+will convert all gpx files into a single relation.
+If there are more than 1000 files to convert (the usual bach cannot handle more than 1000 arguments),
+just use a pipe to convert the files:
+
+find -iname "*.gpx" | java Gpx2Secondo > Tracesobj 
+
+
+
