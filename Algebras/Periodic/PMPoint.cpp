@@ -1298,6 +1298,7 @@ result will be an undefined Point instance.
 
 */
 void PMPoint::At(const DateTime* instant,Point& res)const{
+
     __TRACE__
     if(IsEmpty()){
        res.SetDefined(false);
@@ -1325,7 +1326,7 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
              int max = CM->maxIndex;
              bool found=false;
              const CSubMove* csm;
-            // perform binary search
+             // perform binary search
              while(min<max){
                  int mid = (min+max)/2;
                  const CSubMove* csm; 
@@ -1333,7 +1334,7 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
                  DateTime prev(csm->duration);
                  int cmp = duration->CompareTo(&prev);
                  if(cmp < 0){ // duration is before mid
-                    max = mid;
+                    max = mid-1;
                  }else if(cmp==0){
                     RelInterval ri;
                     GetInterval(*csm,ri);
@@ -1376,7 +1377,7 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
                              duration->SetToZero();
                           }
                       } else { // cmp2 > 0
-                           min = mid;
+                           min = mid+1;
                       }
                  }
              }              
@@ -1685,7 +1686,7 @@ void PMPoint::Expand(MPoint& res)const{
   DateTime* CurrentTime = startTime.Clone();
   res.StartBulkLoad();
   AppendUnits(res, CurrentTime,submove);
-  res.EndBulkLoad();
+  res.EndBulkLoad(false);
   delete CurrentTime;
 }
 
@@ -1707,13 +1708,33 @@ void PMPoint::AppendUnits(MPoint& P, DateTime* Time, const SubMove S)const{
         DateTime* StartTime = new DateTime((*Time));
         DateTime* length = LM->interval.GetLength();
         Time->Add(length);
+        assert(!length->LessThanZero());
         delete length;
         length = NULL;
         Interval<DateTime> I((*StartTime),(*Time),
                      LM->interval.IsLeftClosed(),
                      LM->interval.IsRightClosed());
-        UPoint up(I,LM->startX,LM->startY,LM->endX,LM->endY);
-        P.Add(up);
+        UPoint up(I,LM->startX, LM->startY, LM->endX, LM->endY);
+        int size = P.GetNoComponents();
+        if(size > 0){
+          const UPoint* last;
+          P.Get(size-1,last);
+          if(last->timeInterval.rc && I.lc && 
+             last->timeInterval.end ==  I.start){
+             if(last->timeInterval.start == last->timeInterval.start){
+                P.Put(size - 1, up);
+             } else if(I.start != I.end){
+                up.timeInterval.lc=false;
+                P.MergeAdd(up);
+             } else {
+                ; 
+             }            
+          } else {
+            P.MergeAdd(up);
+          }
+        } else {
+           P.MergeAdd(up);
+        }
         delete StartTime;
         StartTime = NULL;
         return;
