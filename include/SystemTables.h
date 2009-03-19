@@ -340,23 +340,27 @@ class TypeInfoTuple : public InfoTuple
 {
    public:
    string type;
-   int size;
+   int cppClassSize;
+   int numOfFlobs;
    string algebra;
    string signature;
    string typeListExample;
    string listRep;
    string valueListExample;
+   string persistencyMode;
    string remark;
 
    TypeInfoTuple() {
 
      type = "";
-     size = 0;
+     cppClassSize = 0;
+     numOfFlobs = 0;
      signature = "";
      algebra = "";
      typeListExample = "";
      listRep = "";
      valueListExample = "";
+     persistencyMode = "";
      remark = "";
    }
    virtual ~TypeInfoTuple() {}
@@ -370,15 +374,17 @@ class TypeInfoTuple : public InfoTuple
      list.append( NList().textAtom(typeListExample) );
      list.append( NList().textAtom(listRep) );
      list.append( NList().textAtom(valueListExample) );
+     list.append( NList().intAtom(cppClassSize) );
+     list.append( NList().intAtom(numOfFlobs) );
+     list.append( NList().stringAtom(persistencyMode) );
      list.append( NList().textAtom(remark) );
-     list.append( NList().intAtom(size) );
      return list;
    }
 
    virtual ostream& print(ostream& os) const
    {
       os << type << sep
-         << size << endl;
+         << cppClassSize << endl;
       return os;
    }
 };
@@ -399,8 +405,10 @@ class TypeInfoRel : public SystemInfoRel
      addAttribute("TypeListExample",  sym.TEXT()   );
      addAttribute("ListRep",          sym.TEXT()   );
      addAttribute("ValueListExample", sym.TEXT()   );
+     addAttribute("CppClassSize",     sym.INT()    );
+     addAttribute("NumOfFlobs",       sym.INT()    );
+     addAttribute("PersistencyMode",  sym.STRING() );
      addAttribute("Remark",           sym.TEXT()   );
-     addAttribute("Size",             sym.INT()    );
    }
 };
 
