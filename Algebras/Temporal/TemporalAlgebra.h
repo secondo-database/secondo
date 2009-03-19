@@ -2250,6 +2250,10 @@ Without defining the function ~equalValue~ for units
 
 */
 
+    inline void Put(int i, Unit& u){
+       units.Put(i,u);
+    }
+
 
     virtual void Clear();
 /*
@@ -3062,7 +3066,7 @@ template <class Alpha>
 bool Interval<Alpha>::R_Disjoint( const Interval<Alpha>& i ) const
 {
     bool res= ((end.Compare( &i.start ) < 0) ||
-               ( end.Compare( &i.start ) == 0 && !( rc && i.lc ) ));
+               ( (end.Compare( &i.start ) == 0) && !( rc && i.lc ) ));
     return( res );
 }
 
@@ -5213,18 +5217,26 @@ bool Mapping<Unit, Alpha>::IsValid() const
       result = false;
       cerr << "Mapping<Unit, Alpha>::IsValid(): "
               "unit is invalid: i=" << i << endl;
-      break;
+      return false;
     }
-    if( (!lastunit->Disjoint( *unit )) && (!lastunit->TU_Adjacent( *unit )) )
-    // CD: For what reason do we need the && (!lastunit->TU_Adjacent( *unit )) ?
-    // The !lastunit->Disjoint( *unit ) part should be sufficent!
+    if(lastunit->timeInterval.end > unit->timeInterval.start){
+       cerr << "Units are not ordered by time" << endl;
+       cerr << "lastUnit.timeInterval =  "; lastunit->timeInterval.Print(cerr); 
+       cerr << endl;
+       cerr << "unit.timeInterval =  "; unit->timeInterval.Print(cerr); 
+       cerr << endl;
+       return false;
+    } 
+
+
+    if( (!lastunit->timeInterval.Disjoint(unit->timeInterval)) )
     {
       result = false;
       cerr << "Mapping<Unit, Alpha>::IsValid(): "
               "unit and lastunit not disjoint: i=" << i << endl;
       cerr << "\n\tlastunit = "; lastunit->timeInterval.Print(cerr);
       cerr << "\n\tunit     = "; unit->timeInterval.Print(cerr); cerr << endl;
-      break;
+      return false;
     }
     lastunit = unit;
   }

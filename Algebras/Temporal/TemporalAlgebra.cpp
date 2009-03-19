@@ -3613,6 +3613,10 @@ void MPoint::MergeAdd(const UPoint& unit){
   }
   const UPoint* last;
   Get(size-1,last);
+
+  assert(last->timeInterval.end <= unit.timeInterval.start);
+
+
   if(last->timeInterval.end!=unit.timeInterval.start ||
      !( (last->timeInterval.rc )  ^ (unit.timeInterval.lc))){
      // intervals are not connected
