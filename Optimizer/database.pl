@@ -297,9 +297,7 @@ facts.
 
 Further more, it retrieves the ~types~ for all attributes and the according
 attribute sizes. This information is stored as facts
-~storedAttrSize(DB, DCRel, DCAttr, Type, CoreTupleSize, InFlobSize,
-ExtFlobSize)~. To determine ~InFlobSize~, a query should be send to
-Secondo, but that operator is still not implemented.
+~storedAttrSize(DB, DCRel, DCAttr, Type, MemSize, CoreSize, LOBSize)~.
 
 Operators to determine attribute sizes in Secondo:
 
@@ -1087,7 +1085,7 @@ retractAllStoredInfo(DCrel) :-
   databaseName(DB),
   retractSels(Rel),
   retractPETs(Rel),
-  retractall(storedTupleSize(DB, DCrel, _)),
+  retractall(storedTupleSize(DB, DCrel, _, _, _)),
   retractall(storedCard(DB, DCrel, _)),
   retractall(storedOrderings(DB, DCrel, _)),
   retractall(storedIndex(DB, DCrel, _, _, _)),
@@ -1703,9 +1701,7 @@ resizeSample(ExtSample, ExtRel, RequestedCard, ActualCard) :-
 relation(Rel, AttrList) :-
   dm(dbhandling,['\nTry: relation(',Rel,',',AttrList,').']),
   databaseName(DB),
-  storedRel(DB, Rel, AttrList)
-% ,!   %% XRIS
-  .
+  storedRel(DB, Rel, AttrList).
 
 readStoredRels :-
   retractall(storedRel(_, _, _)),
@@ -3397,7 +3393,7 @@ retractStoredInformation(DCrel) :-
   retractall(storedCard(DB, SampleJ, _)),
   retractall(storedCard(DB, Small, _)),
   retractall(storedAttrSize(DB, DCrel, _, _, _, _, _)),
-  retractall(storedTupleSize(DB, DCrel, _)),
+  retractall(storedTupleSize(DB, DCrel, _, _, _)),
   retractall(storedSpell(DB, DCrel, _)),
   retractall(storedSpell(DB, DCrel:_, _)),
   retractall(storedSpell(DB, SampleS, _)),
@@ -3447,7 +3443,7 @@ updateDB(DB1) :-
          retractall(storedOrderings(DB, _, _)),
          retractall(storedCard(DB, _, _)),
          retractall(storedAttrSize(DB, _, _, _, _, _, _)),
-         retractall(storedTupleSize(DB, _, _)),
+         retractall(storedTupleSize(DB, _, _, _, _)),
          retractall(storedSpell(DB, _, _)),
          retractall(storedRel(DB, _, _)),
          retractall(storedIndex(DB, _, _, _, _)),
@@ -3479,13 +3475,12 @@ detailed information on attribute sizes, the attribute types, the the spelling.
 For each attribute, the type and size information is stored in a asserted facts
 
 ----
-  storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize)
+  storedAttrSize(Database, Rel, Attr, Type, MemSize, CoreSize, LOBSize)
 ----
 
-~CoreSize~ is the attribute's fixed size within a tuple's root record,
-~InFlobSize~ is the attribute's average variable size of the part of it's FLOB
-data, that is kept within the tuple's root entry.
-~ExtFlobSize~ is the attribute's average variable size of the part of it's FLOB
+~MemSize~ is the attribute's minimum memory size.
+~CoreSize~ is the attribute's fixed size within a tuple's root record on disk,
+~LOBSize~ is the attribute's average variable LOB size of the part of it's FLOB
 data, that is kept within the relation's dedicated FLOB file.
 
 Information on cardinality is asserted in facts
@@ -3495,7 +3490,7 @@ Information on cardinality is asserted in facts
 
 Information on tuple size is stored in asserted facts
 
----- storedTupleSize(DB, DCrel, Size),
+---- storedTupleSize(DB, DCrel, MemSize, CoreSize, LOBSize),
 ----
 
 */
@@ -3529,7 +3524,7 @@ getTupleInfo(DCrel) :-
   % retract current information
   retractall(storedCard(DB,DCrel,_)),
   retractall(storedAttrSize(DB,DCrel,_,_,_,_,_)),
-  retractall(storedTupleSize(DB,DCrel,_)),
+  retractall(storedTupleSize(DB,DCrel,_,_,_)),
   retractall(storedRel(DB,DCrel,_)),
   retractall(storedSpell(DB,DCrel,_)),     % spelling of relation
   retractall(storedSpell(DB,_,IntRel)),    % spelling of relation
@@ -3588,11 +3583,9 @@ getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery):-
       'query 1 feed transformstream projectextend[; ',
       'cardi_nality: (',ExtRel,' count), ',
       'tuple_TotalSize: (',ExtRel,' tuplesize), ',
-      'tuple_RootSize: (',ExtRel,' roottuplesize), ',
-      'tuple_IntFlobSize: ((',ExtRel,' exttuplesize) - (',
-      ExtRel,' roottuplesize)), ',
-      'tupleExtFlobSize__: ((',ExtRel,' tuplesize) - (',ExtRel,
-      ' exttuplesize)), ',ExtensionList,' ] tconsume'], '', TupleInfoQuery),
+      'tuple_CoreSize: (',ExtRel,' exttuplesize), ',
+      'tuple_LOBSize: ((',ExtRel,' tuplesize) - (',ExtRel,' exttuplesize)), ',
+      ExtensionList,' ] tconsume'], '', TupleInfoQuery),
   !.
 
 % getTupleInfoQuery2(+ExtRel,+ExtAttrList,-DCattrList,-Extension)
@@ -3616,9 +3609,8 @@ getTupleInfoQuery3(R,AttrList,AttrDClist,AttrExtensionList):-
   getTupleInfoQuery3(R,MoreAttrs,MoreDCAttrs,MoreAttrExtensions),
   dcName2externalName(AttrDC,A),
   concat_atom([
-     AttrDC,'_c: (',R,' rootattrsize[',A,']), ',
-     AttrDC,'_i: ((',R,' extattrsize[',A,']) - (',R,' rootattrsize[',A,'])), ',
-     AttrDC,'_e: ((',R,' attrsize[',A,']) - (',R,' extattrsize[',A,']))'
+     AttrDC,'_c: (',R,' extattrsize[',A,']), ',
+     AttrDC,'_l: ((',R,' attrsize[',A,']) - (',R,' extattrsize[',A,']))'
     ],'',AttrExtension),
   AttrDClist        = [AttrDC|MoreDCAttrs],
   AttrExtensionList = [AttrExtension|MoreAttrExtensions],
@@ -3648,8 +3640,7 @@ analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
   ResList = [Card,
              TupleTotalSize,
              TupleSizeCore,
-             TupleSizeInt,
-             TupleSizeExt|MoreInfos],
+             TupleSizeLOB|MoreInfos],
   ( Card = undef % Undefined cardinality - may not happen!
     -> ( concat_atom(['Cardinality query for relation ',DCrel,
                      ' has strange result: ',Card,'.'],'',ErrMsg),
@@ -3659,8 +3650,7 @@ analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
                                 [Card,
                                  TupleTotalSize,
                                  TupleSizeCore,
-                                 TupleSizeInt,
-                                 TupleSizeExt|MoreInfos]))#ErrMsg),
+                                 TupleSizeLOB|MoreInfos]))#ErrMsg),
          fail
        )
     ;  true
@@ -3672,7 +3662,7 @@ analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
                      ' is undefined due to a cardinality of ', Card,
                      '\n--->\tTherefore, tuplesize is set to \'not a number\'',
                      '(nAn).']),nl,
-              StoreTupleSize = nAn
+              StoreCoreSize = nAn
             )
          ;  ( % Error! - should not happen!
               concat_atom(['Tuplesize query for relation ',DCrel,
@@ -3683,60 +3673,47 @@ analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
                                 [Card,
                                  TupleTotalSize,
                                  TupleSizeCore,
-                                 TupleSizeInt,
-                                 TupleSizeExt|MoreInfos]))#ErrMsg),
+                                 TupleSizeLOB|MoreInfos]))#ErrMsg),
               fail
             )
        )
-    ; StoreTupleSize = TupleTotalSize % OK - no problem occured
+    ; StoreCoreSize = TupleSizeCore % OK - no problem occured
   ),
-  analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,MoreInfos),
+  analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,MoreInfos,TupleMemSize),
   assert(storedCard(DB, DCrel, Card)),
-  assert(storedTupleSize(DB, DCrel, StoreTupleSize)),
+  assert(storedTupleSize(DB, DCrel, TupleMemSize, TupleSizeCore, TupleSizeLOB)),
   !.
 
 %   analyseTupleInfoQueryResultList2(+DB,+DCrel,+ExtAttrList,+InfoList)
-analyseTupleInfoQueryResultList2(_,_,[],[]):- !.
+analyseTupleInfoQueryResultList2(_,_,[],[],0):- !.
 
-analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,InfoList):-
+analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,InfoList,MemTotal):-
   dm(dbhandling,['\nTry: analyseTupleInfoQueryResultList2(',DB,',',DCrel,',',
                                   ExtAttrList,',',InfoList,').']),
   ExtAttrList = [[ExtAttr,ExtType]|MoreAttrs],
-  InfoList  = [SizeCore,SizeInt,SizeExt|MoreInfos],
+  InfoList  = [SizeCore,SizeExt|MoreInfos],
   % take first elem from ExtAttrList, retrieve three entries from
   % the InfoList and process the information.
   dcName2externalName(DCType,ExtType),
   dcName2externalName(DCAttr,ExtAttr),
   internalName2externalName(IntAttr,ExtAttr),
-  ( noFlobType(DCType)
-    *-> ( % type has fixed size. Use information from SEC2TYPEINFO.
-          secDatatype(DCType, TypeAttrSize),
-          CoreAttrSize is max(1,TypeAttrSize), % but a minimum of 1!
-          InFlobSize   is 0,
-          ExtFlobSize  is 0
-        )
-      ; ( % Use inquired average attribute sizes. Avoid problems with undefined
-          % sizes, which will occur for relations with cardinalit=0.
-          ( SizeCore = undef
-            -> ( secDatatype(DCType, TypeAttrSize),   % Fallback: use typesize
-                 CoreAttrSize is max(1,TypeAttrSize) % but 1 byte at least
-               )
-            ;  CoreAttrSize is max(0,SizeCore) % avoid rounding errors
-          ),
-          ( SizeInt = undef
-            -> InFlobSize is 0
-            ;  InFlobSize is max(0,SizeInt) % avoid rounding errors
-          ),
-          ( SizeInt = undef
-            -> ExtFlobSize is 0
-            ;  ExtFlobSize is max(0,SizeExt) % avoid rounding errors
-          )
-        )
+  % Use inquired average attribute sizes. Avoid problems with undefined
+  % sizes, which will occur for relations with cardinalit=0.
+  secDatatype(DCType, MemSize, _, _),
+  ( SizeCore = undef
+    -> ( % Fallback: use typesize, but 1 byte at least
+         CoreAttrSize is max(1,MemSize)
+       )
+    ;  CoreAttrSize is max(0,SizeCore) % avoid rounding errors
   ),
-  analyseTupleInfoQueryResultList2(DB,DCrel,MoreAttrs,MoreInfos),
+  ( SizeExt = undef
+    -> LOBSize is 0
+    ;  LOBSize is max(0,SizeExt) % avoid rounding errors
+  ),
+  analyseTupleInfoQueryResultList2(DB,DCrel,MoreAttrs,MoreInfos,MoreMemTotal),
+  MemTotal is MemSize + MoreMemTotal,
   assert(storedSpell(DB, DCrel:DCAttr, IntAttr)),
-  assert(storedAttrSize(DB, DCrel, DCAttr, DCType,
-                        CoreAttrSize, InFlobSize, ExtFlobSize)),
+  assert(storedAttrSize(DB,DCrel,DCAttr,DCType,MemSize,CoreAttrSize,LOBSize)),
   !.
 
 analyseTupleInfoQueryResultList2(DB,DCrel,X,Y):-
@@ -3756,8 +3733,7 @@ analyseTupleInfoQueryResultList2(DB,DCrel,X,Y):-
 
 ----
 
-The average size of a tuple in Bytes of relation ~Rel~
-is ~Size~.
+The average size of a tuple in Bytes of relation ~Rel~ on disk is ~Size~ bytes.
 
 10.1 Get The Tuple Size
 
@@ -3766,39 +3742,39 @@ predicate ~card/2~, see section about cardinalities of
 relations. The predicate returns the average total tuplesize, including Flobs.
 
 If the relation has cardinality = 0, Secondo will return a undefined tuplesize.
-Therefor, nAn (not a number) is stored in the internal information database,
+Therefore, nAn (not a number) is stored in the internal information database,
 but 1 is returned for the tuplesize to avoid problems, e.g. when calculating
 sample sizes.
 
 */
 
 % private auxiliary predicate:
-tupleSize2(DCrel, Size) :-
+tupleSize2(DCrel, sizeTerm(MemSize, CoreSize, LOBSize)) :-
   databaseName(DB),
-  ( storedTupleSize(DB, DCrel, Size)      % already known
+  ( storedTupleSize(DB, DCrel, MemSize, CoreSize, LOBSize) % already known
     -> true
-    ;  ( getTupleInfo(DCrel),             % inquire for it
-         storedTupleSize(DB, DCrel, Size) % now it should be there!
+    ;  ( getTupleInfo(DCrel),   % inquire for it, theen it should be known!
+         storedTupleSize(DB, DCrel, MemSize, CoreSize, LOBSize)
        )
   ),
   !.
 
-tuplesize(DCrel, TupleSize) :-
+tuplesize(DCrel, TupleSizeScalar) :-
   dm(dbhandling,['\nTry: tuplesize(',DCrel,',',Size,').']),
-  tupleSize2(DCrel, Size),
-  ( ( Size = nAn )
-    -> ( write_list(['\nWARNING:\tTuplesize is not a number (nAn). ', Size,
-                     '\n--->\tTherefore, tuplesize is set to 1.']),
+  tupleSize2(DCrel, sizeTerm(_, CoreSize, LOBSize)),
+  ( ( CoreSize = nAn )
+    -> ( write_list(['\nWARNING:\tCoreTupleSize is not a number (nAn). ', Size,
+                     '\n--->\tTherefore, CoreTupleSize is set to 1.']),
          nl,
-         TupleSize is 1
+         TupleSizeScalar is 1
        )
-    ;  ( Size =:= 0
+    ;  ( (CoreSize =:= 0, LOBSize =:= 0)
          -> ( write_list(['\nWARNING:\tTuplesize is 0. ', Size,
                      '\n--->\tTherefore, tuplesize is set to 1.']),
               nl,
-              TupleSize is 1
+              TupleSizeScalar is 1
             )
-         ;  TupleSize is Size
+         ;  TupleSizeScalar is CoreSize + LOBSize
        )
   ),
   !.
@@ -3810,6 +3786,7 @@ tuplesize(X, Y) :-
   throw(error_Internal(database_tuplesize(X, Y)#ErrMsg));
   !, fail.
 
+
 /*
 The following version of the predicate,
 
@@ -3817,32 +3794,86 @@ The following version of the predicate,
 ----
 
 returns the average tuplesize in a more detailed format, namely as term
-~sizeTerm(CoreSize, InFlobSize, ExtFlobSize)~.
+~sizeTerm(MemSize, CoreSize, LOBSize)~, where ~MemSize~ is the minimum amount
+of main memory in bytes, that is needed for a tuple (without FLOBs), ~CoreSize~
+is the average size of the tuples' core data in byte, and ~LOBSize~ is the average
+size of data stored in the relation's LOB file.
 
 */
 
-tupleSizeSplit(DCrel, Size) :-
+tupleSizeSplit(DCrel, sizeTerm(MemSize,CoreSize,FLOBSize)) :-
   databaseName(DB),
-  relation(DCrel, AttrList),
-  tupleSizeSplit2(DB, DCrel, AttrList, Size), !.
+  storedTupleSize(DB,DCrel,MemSize,CoreSize,FLOBSize),!.
 
 tupleSizeSplit(DCrel, X) :-
   concat_atom(['Unknown error.'],'',ErrMsg),
   throw(error_Internal(database_tupleSizeSplit(DCrel, X)#ErrMsg)),
   fail, !.
 
-tupleSizeSplit2(_, _, [], sizeTerm(0,0,0)) :- !.
-tupleSizeSplit2(DB, DCRel, [Attr|Rest], TupleSize) :-
-  storedAttrSize(DB, DCRel, Attr, _, Core, InFlob, ExtFlob),
-  tupleSizeSplit2(DB, DCRel, Rest, RTupleSize),
-  addSizeTerms([sizeTerm(Core,InFlob,ExtFlob),RTupleSize],TupleSize), !.
+
+/*
+
+---- getRelAttrList(+DCrel, -AttrList, sizeTerm(-Mem,-Core,-LOB))
+----
+
+For given relation ~DCrel~, return a list ~AttrList~ having format
+
+---- [[AttrName, AttrType, sizeTerm(MemSize,CoreSize,LOBSize)], [...]]
+----
+
+with a list for each of ~rel~'s attributes. Also return the total splitTupleSize.
+
+*/
+getRelAttrList(DCrel, ResAttrList, SizeTerm) :-
+  databaseName(DB),
+  relation(DCrel, AttrList),
+  getRelAttrList2(DB, DCrel, AttrList, ResAttrList, SizeTerm), !.
+
+getRelAttrList(DCrel, ResAttrList, SizeTerm) :-
+  concat_atom(['Unknown error.'],'',ErrMsg),
+  throw(error_Internal(database_getRelAttrList(DCrel, ResAttrList, SizeTerm)
+                                                    #ErrMsg)),
+  fail, !.
+
+getRelAttrList2(_, _, [], [], sizeTerm(0,0,0)) :- !.
+getRelAttrList2(DB,DCrel,[Attr|AttrList1],[ResAttr|ResAttrList1],TupleSize) :-
+  storedAttrSize(DB, DCrel, Attr, Type, MemSize, Core, LOB),
+  getRelAttrList2(DB, DCrel, AttrList1, ResAttrList1, TupleSize1),
+  AttrSizeTerm = sizeTerm(MemSize, Core, LOB),
+  ResAttr = [Attr, Type, AttrSizeTerm],
+  addSizeTerms([TupleSize1,AttrSizeTerm],TupleSize),
+  !.
+
+/*
+
+---- projectAttrList(+OrigAttrs, +ProjAttrs,
+                     -ResAttrList, -ProjTupleSize)
+----
+
+Restricts a given attribute list ~OrigAttrs~ to the attributes given in
+~ProjAttrs~ and also returns the according projected tuple size ~ProjTupleSize~.
+
+*/
+
+projectAttrList(_, [], [], sizeTerm(0,0,0)) :- !.
+projectAttrList([], _, [], sizeTerm(0,0,0)) :- !.
+projectAttrList([[Attr,Type,AttrSZ]|MoreAttrs],ProjAttrs,ResList,ResSZ) :-
+  ( memberchk(Attr,ProjAttrs)
+    -> ( % copy Attr to result list
+         delete(ProjAttrs,Attr,ProjAttrs1),
+         projectAttrList(MoreAttrs,ProjAttrs1,ResList1,ResSZ1),
+         ProjAttrs = [[Attr,Type,AttrSZ]|ResList1],
+         addSizeTerms([AttrSZ,ResSZ1],ResSZ)
+       )
+    ;  projectAttrList(MoreAttrs,ProjAttrs,ResList,ResSZ)
+  ), !.
 
 /*
 10.2 Storing And Loading Tuple Sizes
 
 */
 readStoredTupleSizes :-
-  retractall(storedTupleSize(_, _, _)),
+  retractall(storedTupleSize(_, _, _, _, _)),
   [storedTupleSizes].
 
 writeStoredTupleSizes :-
@@ -3852,8 +3883,8 @@ writeStoredTupleSizes :-
   close(FD).
 
 writeStoredTupleSize(Stream) :-
-  storedTupleSize(DB, X, Y),
-  write(Stream, storedTupleSize(DB, X, Y)),
+  storedTupleSize(DB, _, Mem, Core, LOB),
+  write(Stream, storedTupleSize(DB, Mem, Core, LOB)),
   write(Stream, '.\n').
 
 :-
@@ -3886,34 +3917,52 @@ a database is opened (see file ~auxiliary.pl~). The systemtable is a relation
 contaning (among others) two attributes ~Type~ (containing the name of a
 datatype) and ~Size~ (containing its size in byte).
 
+Type information is inquired from the database kernel and stored in facts
+
+---- secDatatype(TypeNameDC, TypeSize, NoFlobs, PersistencyModeDC)
+----
+
+where ~TypeNameDC~ is the type name, ~TypeSize~ is the in-memory size of the
+according fixed part if the data type in bytes (the minimum memory required
+excluding FLOB data, but inclusing other variable parts of the data)),
+~NoFlobs~ is the number of FLOBS the type maintains, and ~PersistencyModeDC~ is
+the type of storage mechanism used to save instances of this data type to disk.
+
 */
 
 :-assert(helpLine(showDatatypes,0,[],
         'List all registered Secondo data types.')).
 
-:-   dynamic(secDatatype/2).
+:-   dynamic(secDatatype/4).
 
 extractSecondoTypeSizes([]) :- !.
 
 extractSecondoTypeSizes([X|Rest]) :-
-  X = [TypeNameQuoted, TypeSize],
+  X = [TypeNameQuoted, TypeSize, NoFlobs, PersModeQuoted],
   sub_atom(TypeNameQuoted,1,_,1,TypeName),
+  sub_atom(PersModeQuoted,1,_,1,PersistencyMode),
   downcase_atom(TypeName, TypeNameDC),
-  assert(secDatatype(TypeNameDC, TypeSize)),
+  downcase_atom(PersistencyMode, PersistencyModeDC),
+  assert(secDatatype(TypeNameDC, TypeSize, NoFlobs, PersistencyModeDC)),
   extractSecondoTypeSizes(Rest).
 
 readSecondoTypeSizes :-
-  retractall(secDatatype(_, _)),
+  retractall(secDatatype(_, _, _, _)),
   isDatabaseOpen, !,
-  secondo('query SEC2TYPEINFO feed project[Type, Size] tconsume',SecList),
+  concat_atom(['query SEC2TYPEINFO feed project[Type, CppClassSize, ',
+               'NumOfFlobs, PersistencyMode] tconsume'],'',Query),
+  secondo(Query,SecList),
   SecList = [_,L],
   extractSecondoTypeSizes(L).
 
 showOneDatatype :-
-  secDatatype(X, Y),
-  write(X), write(': '), write(Y), write(' byte\n').
+  secDatatype(Type, Size, NoFlobs, Pers),
+  findall([NullType,NullVal], nullValue(Type,NullType,NullVal), NullValues),
+  format('~p~20|~p~30|~p~35|~p~45|~p~n',[Type,Size,NoFlobs,Pers,NullValues]).
 
 showDatatypes :-
+  format('~p~20|~p~30|~p~35|~p~45|~p~n',
+         ['Type','Size','NoFlobs','Pers','NullValues']),
   findall(_, showOneDatatype, _).
 
 
@@ -3921,9 +3970,10 @@ showDatatypes :-
 12 Showing, Loading, Storing and Looking-Up Attribute Sizes and Types
 
 Together with the attributes` type, this information is stored as facts
-~storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize)~ in memory. between sessions information is stored in file ~storedAttrSizes.pl~.
+~storedAttrSize(Database, Rel, Attr, Type, MemSize, CoreSize, LOBSize)~ in
+memory. Between sessions information is stored in file ~storedAttrSizes.pl~.
 
-Throughout the optimizer, attribute sizes are passed in terms ~sizeTerm(CoreSize, InFlobSize, ExtFlobSize)~.
+Throughout the optimizer, attribute sizes are passed in terms ~sizeTerm(MemSize, CoreSize, LOBSize)~.
 
 */
 
@@ -3931,9 +3981,9 @@ Throughout the optimizer, attribute sizes are passed in terms ~sizeTerm(CoreSize
         'List metadata on attribute sizes in current DB.')).
 
 
-attrSize(DCRel:DCAttr, sizeTerm(CoreSize, InFlobSize, ExtFlobSize)) :-
+attrSize(DCRel:DCAttr, sizeTerm(MemSize, CoreSize, LOBSize)) :-
   databaseName(DBName),
-  storedAttrSize(DBName, DCRel, DCAttr, _, CoreSize, InFlobSize, ExtFlobSize),
+  storedAttrSize(DBName, DCRel, DCAttr, _, MemSize, CoreSize, LOBSize),
   !.
 
 attrSize(X, Y) :-
@@ -3962,17 +4012,17 @@ writeStoredAttrSizes :-
   close(FD).
 
 writeStoredAttrSize(Stream) :-
-  storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize),
-  write(Stream, storedAttrSize(Database, Rel, Attr, Type, CoreSize,
-                               InFlobSize, ExtFlobSize)),
+  storedAttrSize(Database, Rel, Attr, Type, MemSize, CoreSize, LOBSize),
+  write(Stream, storedAttrSize(Database, Rel, Attr, Type, MemSize,
+                               CoreSize, LOBSize)),
   write(Stream, '.\n').
 
 showStoredAttrSize :-
-  storedAttrSize(Database, Rel, Attr, Type, CoreSize, InFlobSize, ExtFlobSize),
+  storedAttrSize(Database, Rel, Attr, Type, MemSize, CoreSize, LOBSize),
   write(Database), write('.'), write(Rel), write('.'),
   write(Attr), write(': \t'), write(Type),
-  write(' ('), write(CoreSize), write('/'),
-  write(InFlobSize), write('/'), write(ExtFlobSize), write(')\n').
+  write(' ('), write(MemSize), write('/'),
+  write(CoreSize), write('/'), write(LOBSize), write(')\n').
 
 showStoredAttrSizes :-
   write('Stored attribute sizes\nRel.Attr: Type '),
@@ -4377,7 +4427,7 @@ checkAttrTypeList(AttrTypeList) :-
 checkAttrTypeList2([],[]) :- !.
 checkAttrTypeList2([[ExtAttrName, Type] | MoreLists],
                   [DCattrName|MoreDCattrNames]) :-
-  ( secDatatype(Type, _)
+  ( secDatatype(Type, _, _, _)
     -> true
     ;  ( write_list(['\nERROR:\tUnknown data type \'', Type,'\'.']),nl,
          fail

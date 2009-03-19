@@ -3239,7 +3239,7 @@ deleteSizesNawra :-
 
 8.1 The Costs of Terms
 
-----    cost(+Term, +Sel, -Size, -Cost) :-
+----    cost(+Term, +Sel, -Size, -Cost)
 ----
 
 The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~
@@ -3249,6 +3249,28 @@ This is evaluated recursively descending into the term. When the operator
 realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
 used to determine the size of the result.
 It is assumed that only a single operator of this kind occurs within the term.
+
+NEW:
+
+---- cost(+Term, +Sel, +PETCalc, +PETExp,
+        -ResAttrList, -ResTupleSize, -ResCard, -Cost)
+----
+
+Calculates the expected ~Cost~ of an executable ~Term~ representing a predicate
+with selectivity ~Sel~, experimental/ calculated PET ~PETExp~/ ~PETCalc~.
+Also returns the list of available attributes ~ResAttrList~ with all available
+information on attribute names and sizes. ~ResAttrList~ has format
+
+----[[AttrName, AttrType, sizeTerm(CoreSize,IntFLOBSize,ExtFLOBSize)], [...]]
+----
+
+with one list for each attribute.
+
+This is evaluated recursively descending into the term. When the operator
+realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
+used to determine the size of the result.
+It is assumed that only a single operator of this kind occurs within the term.
+
 
 8.1.1 Arguments
 
@@ -6137,7 +6159,7 @@ If the exception has Format
 ----
 
 Only ~error-explanation~ will be returned as the message content.
-Otherwise, ''Exception during optimization´´ is returned as the message content.
+Otherwise, ``Exception during optimization'' is returned as the message content.
 
 */
 

@@ -59,7 +59,7 @@ spatialjoinTC(20.0, 0.7).
 
 % sorttidTC and rdupTC are estimated without experiment
 % They still need to be estimated
-sorttidTC(0.1).  % used for sorting tuple ids after a windowIntersectsS 
+sorttidTC(0.1).  % used for sorting tuple ids after a windowIntersectsS
 rdupTC(0.1).
 
 /*
@@ -269,32 +269,67 @@ to determine attribute sizes.
 
 */
 
-noFlobType(int).
-noFlobType(real).
-noFlobType(bool).
-noFlobType(string).
-noFlobType(xpoint).
-noFlobType(xrectangle).
-noFlobType(date).
-noFlobType(point).
-noFlobType(rect).
-noFlobType(rect3).
-noFlobType(rect4).
-noFlobType(rect8).
-noFlobType(rint).
-noFlobType(rreal).
-noFlobType(periods).
-noFlobType(ibool).
-noFlobType(iint).
-noFlobType(istring).
-noFlobType(ireal).
-noFlobType(ipoint).
-noFlobType(ubool).
-noFlobType(uint).
-noFlobType(ustring).
-noFlobType(ureal).
-noFlobType(upoint).
-noFlobType(instant).
-noFlobType(duration).
-noFlobType(tid).
+noFlobType(Type) :-
+  secDatatype(Type, _, 0, _), !.
 
+/*
+
+---- nullValue(Type, NullValueType, NullValueValue)
+----
+
+Declares NULL-values, that can be used to initialize Attributes, aggregation
+expressions, etc. for a given Secondo data type ~Type~.
+
+~NullValueType~ should be one of ~undefined~, ~null~, ~one~, ~empty~, ~error~,
+~default~.
+
+~NullValueValue~ ist the value part of a nested list expression representing the
+according NULL value, i.e.
+
+---- [const <Type> value <NullValueValue>]
+----
+
+*/
+
+nullValue(bool,undefined,'undef').
+nullValue(bool,null,'FALSE').
+nullValue(bool,one,'TRUE').
+nullValue(bool,error,'undef').
+nullValue(bool,default,'FALSE').
+
+nullValue(int,undefined,'undef').
+nullValue(int,null,'0').
+nullValue(int,one,'1').
+nullValue(int,error,'undef').
+nullValue(int,default,'0').
+
+nullValue(real,undefined,'undef').
+nullValue(real,null,'0.0').
+nullValue(real,one,'1.0').
+nullValue(real,error,'undef').
+nullValue(real,default,'0.0').
+
+nullValue(string,undefined,'undef').
+nullValue(string,empty,'""').
+nullValue(string,error,'undef').
+nullValue(string,default,'""').
+
+nullValue(text,undefined,'undef').
+nullValue(text,empty,'\'\'').
+nullValue(text,error,'undef').
+nullValue(text,default,'\'\'').
+
+nullValue(point,undefined,'()').
+nullValue(point,null,'(0.0 0.0)').
+nullValue(point,error,'()').
+nullValue(point,default,'(0.0 0.0)').
+
+nullValue(line,undefined,'undef').
+nullValue(line,empty,'()').
+nullValue(line,error,'undef').
+nullValue(line,default,'()').
+
+nullValue(region,undefined,'()').
+nullValue(region,empty,'()').
+nullValue(region,error,'()').
+nullValue(region,default,'()').

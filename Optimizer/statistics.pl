@@ -1038,8 +1038,8 @@ showSingleRelationCard(DB, Rel) :-
 showSingleRelationCard(_, _) :-
   write('\n\n\tCardinality:   *'), nl, !.
 
-showSingleRelationTuplesize(DB, Rel) :-
-  storedTupleSize(DB, Rel, Size),
+showSingleRelationTuplesize(_, Rel) :-
+  tuplesize(Rel, Size),
   tupleSizeSplit(Rel, Size2),
   write('\tAvg.TupleSize: '), write(Size), write(' = '),
     write(Size2), nl, !.
@@ -1093,14 +1093,14 @@ showRelation(Rel) :-
 
 showSingleAttribute(Rel,Attr) :-
   databaseName(DB),
-  storedAttrSize(DB, Rel, Attr, Type, CoreTupleSize, InFlobSize, ExtFlobSize),
+  storedAttrSize(DB, Rel, Attr, Type, MemSize, CoreSize, LobSize),
   dcName2externalName(Rel:Attr, AttrS),
   format('\t~p~35|~p~49|~p~60|~p~69|~p~n',
-  [AttrS, Type, CoreTupleSize, InFlobSize, ExtFlobSize]).
+  [AttrS, Type, MemSize, CoreSize, LobSize]).
 
 showAllAttributes(Rel) :-
   format('\t~p~35|~p~49|~p~60|~p~69|~p~n',
-  ['AttributeName','Type','CoreSz','IFlobSz','ExtFlobSz']),
+  ['AttributeName','Type','MemoryFix','DiskCore','DiskLOB']),
   findall(_, showSingleAttribute(Rel, _), _).
 
 showAllIndices(Rel) :-
