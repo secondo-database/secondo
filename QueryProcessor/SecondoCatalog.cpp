@@ -111,6 +111,7 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "SystemTables.h"
 #include "ExampleReader.h"
 #include "SecParser.h"
+#include "TypeConstructor.h"
 
 
 using namespace std;
@@ -2008,14 +2009,16 @@ SecondoCatalog::Initialize(TypeInfoRel* r)
     //cout << pos->first << endl;
     int algId = pos->second.algebraId;
     int typeId = pos->second.entryId;
-    NList typeInfo( am->Props( algId, typeId ));
+
+    TypeConstructor* tc = am->GetTC( algId, typeId );
+    NList typeInfo( tc->Property() );
     typeInfo = typeInfo.second();
-    int size = (*(am->SizeOfObj( algId, typeId )))();
+    int size = tc->SizeOf();
     //cout << "  " << typeInfo << " : " << size << endl;
     
     TypeInfoTuple& t = *(new TypeInfoTuple());
     t.type = pos->first;
-    t.size = size;
+    t.cppClassSize = size;
     t.algebra = am->GetAlgebraName(algId);
     if (typeInfo.length() >= 1)
     t.signature = typeInfo.elem(1).str();
@@ -2028,6 +2031,29 @@ SecondoCatalog::Initialize(TypeInfoRel* r)
     if (typeInfo.length() >= 5)
       t.remark = typeInfo.elem(5).str();
     r->append(&t, false);
+
+    t.numOfFlobs = -1;	    
+    if ( tc->MemberOf("DATA") ) {
+
+      //cout << "** TC **  " << tc->Name() 
+      //     << " <-- " << t.typeListExample << endl;	    
+      ListExpr type = nl->Empty();
+      nl->ReadFromString(t.typeListExample, type);
+
+      // to do: better error handling      
+      ListExpr numType = NumericType(type);
+      Word w = tc->Create( numType );
+      
+      if (w.addr == 0) {
+        cerr << "** TC Error ** Could not create an instance for " 
+             << tc->Name() << " using type list " << NList(type) << endl;
+	t.numOfFlobs = -2;
+      }	
+      else {      
+        t.numOfFlobs = static_cast<Attribute*>(w.addr)->NumOfFLOBs();
+      }	
+    }
+
     pos++;
   }
 } 
