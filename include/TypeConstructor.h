@@ -35,6 +35,7 @@ AlgebraClassDef.h and AlgebraInit.h
 #include "AlgebraTypes.h"
 #include "ConstructorTemplates.h"
 #include "NList.h"
+#include "Attribute.h"
 
 // a forward declaration
 class AlgebraManager;
@@ -105,6 +106,32 @@ struct ConstructorInfo {
     valueExample = _valueExample;
     remarks = _remarks;
   }  
+
+
+  ConstructorInfo( const NList& typeInfo) : 
+    name(""),  
+    signature(""),  
+    typeExample(""),
+    listRep(""),
+    valueExample(""),
+    remarks("")
+  {
+    // note there was only made some convention
+    // about the structure of a property list. Hence
+    // we will be careful here.
+  
+    int len = typeInfo.length();
+    if (len >= 1)  
+      signature = typeInfo.elem(1).str();
+    if (len >= 2)  
+      typeExample = typeInfo.elem(2).str();
+    if (len >= 3)  
+      listRep = typeInfo.elem(3).str();
+    if (len >= 4)  
+      valueExample = typeInfo.elem(4).str();
+    if (len >= 5)  
+      remarks = typeInfo.elem(5).str();
+  }    
 
     
   const ListExpr list() const { 
@@ -188,7 +215,8 @@ Associates the kind ~kindName~ with this type constructor.
   ListExpr Property();
   static ListExpr Property(const ConstructorInfo& ci);
 /*
-Returns the properties of the type constructor as a nested list.
+Returns the properties of the type constructor or converts a 
+ConstructorInfo into a nested list representation.
 
 */
   ListExpr Out( ListExpr type, Word value );
@@ -220,8 +248,14 @@ Returns the properties of the type constructor as a nested list.
                   Word& w );
   Word     Clone( const ListExpr typeInfo,
                   const Word& w );
-  int      SizeOf();
-  string&  Name() { return name; }
+  
+  int        SizeOf();
+  inline int SerializedFixSize() { return serializedFixSize; }
+
+  string&  Name()  { return name; }
+  int NumOfFLOBs() { return numOfFlobs; }
+  const ConstructorInfo& Info()  { return conInfo; }
+
 
 /*
 Are methods to manipulate objects according to the type constructor.
@@ -250,7 +284,7 @@ These methods use the ~RestoreFromList~ and ~SaveToList~ if provided, and
                           const Word& w );
   static int  DummySizeOf();
   
-  bool TypeCheck( ListExpr type, ListExpr& errorInfo )
+  inline bool TypeCheck( ListExpr type, ListExpr& errorInfo )
   {
     if (typeCheckFunc) {
       return (*typeCheckFunc)( type, errorInfo);
@@ -262,7 +296,12 @@ These methods use the ~RestoreFromList~ and ~SaveToList~ if provided, and
 
   const vector<string>& GetKinds() { return kinds; }
 
-  bool MemberOf(const string& k); 
+  bool   MemberOf(const string& k);
+
+  void   initKindDataProperties();
+
+  inline Attribute::StorageType   GetStorageType() { return storageType; }
+  string                          Storage2Str();
 
 /*
 Dummy methods used as placeholders for type constructor functions.
@@ -292,6 +331,10 @@ Dummy methods used as placeholders for type constructor functions.
   ObjectSizeof             sizeofFunc;
   TypeCheckFunction        typeCheckFunc;
   vector<string>           kinds;  // Kinds of type constr.
+  int                      numOfFlobs;
+
+  Attribute::StorageType storageType;
+  int serializedFixSize;
 
   friend class AlgebraManager;
 };

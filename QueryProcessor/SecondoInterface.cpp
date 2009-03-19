@@ -365,6 +365,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     nl = SecondoSystem::GetNestedList();
     nl->setMem(nodeMem, stringMem, textMem);
     nl->initializeListMemory();
+    NList::setNLRef(nl);
 
     cmsg.info() << "Kernels List Memory:" << endl
               << "  NodeMem = " << nodeMem

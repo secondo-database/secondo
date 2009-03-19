@@ -187,7 +187,7 @@ ExtractKeyTypeFromTypeInfo( ListExpr typeInfo )
   int algId = nl->IntValue( nl->First( nl->Third( typeInfo ) ) ),
       typeId = nl->IntValue( nl->Second( nl->Third( typeInfo ) ) );
 
-  string keyTypeString = am->Constrs( algId, typeId );
+  string keyTypeString = am->GetTC( algId, typeId )->Name();
   if( keyTypeString == "int" )
   {
     return SmiKey::Integer;

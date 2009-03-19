@@ -92,6 +92,16 @@ January 2006, M. Spiekermann. Some declarations were moved to Algebra.h
 
 April 2006, M. Spiekermann. Some declarations were moved to AlgebraInit.h
 
+March 2009, M. Spiekermann. Started to do some clean up. The interface seems to be
+overcrowded by functions getting algebra id and type id or operator id. In order to
+make the interface simpler to understand and use and easier to maintain 
+I started to push some functionality into the interfaces TypeConstructor.h 
+and Operator.h. The new functions ~GetTC~ and ~GetOP~ should be able to replace
+many of the other functions, since most of the other functions simply get pointers 
+of operators and type constructors and call spcific member functions. Moreover they 
+are not often used in other source files. To be continued ...
+
+
 1.1 Overview
 
 The "Secondo"[3] algebra manager is responsible for registering and initializing
@@ -291,17 +301,6 @@ to zero.
 Returns the number of operators of algebra ~algebraId~.
 
 */
-  string Ops( const int algebraId, const int operatorId );
-/*
-Returns the name of operator ~operatorId~ of algebra ~algebraId~.
-
-*/
-  ListExpr Specs( const int algebraId, const int operatorId );
-/*
-Returns the specification of operator ~operatorId~ of algebra ~algebraId~
-as a nested list expression.
-
-*/
   inline int Select( const int algebraId, 
                      const int operatorId, const ListExpr typeList )
   {
@@ -349,24 +348,15 @@ Returns the address of the type mapping function of operator
 Returns the number of constructors of algebra ~algebraId~.
 
 */
-  string Constrs( const int algebraId, const int typeId );
-/*
-Returns the name of type constructor ~typeId~ of algebra ~algebraId~.
-
-*/
   TypeConstructor* GetTC(int algId, int typeId); 
+  Operator*        GetOP(int algebraId, int opId);
 /*
-Returns the type constructor for givel algebra id and type id.
+Returns the type constructor (TC) or operator (OP) for a given algebra id and type 
+id (operator id). This pointer can be used to retrieve more detailed information of
+a TC or OP provided by its member functions. 
 
 */
 
-
-  ListExpr Props( const int algebraId, const int typeId );
-/*
-Returns the type properties  of type constructor ~typeId~ of algebra
-~algebraId~ as a nested list expression.
-
-*/
   InObject InObj( const int algebraId, const int typeId );
 /*
 Returns the address of the object input function of type constructor

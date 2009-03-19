@@ -356,7 +356,7 @@ TypeConstructor::TypeConstructor( const string& nm,
                                   ObjectClone clone,
                                   ObjectCast ca,
                                   ObjectSizeof sizeOf,
-                                  TypeCheckFunction tcf )
+                                  TypeCheckFunction tcf ) 
 {
   name                 = nm;
   propFunc             = prop;
@@ -519,6 +519,81 @@ TypeConstructor::MemberOf(const string& k)
     return false;     
   }
 }	  
+
+/*
+This function initializes some properties which are (currently) only
+of interst for types derived from class attribute. In a future design it
+would be nice to have base classes for types and operators as well. But
+for the moment only the import subcase of data types used in relations
+have it.
+
+As a work around it is convenient to add new feature by defining virtual 
+functions in the Attribute class with a default implementation. This avoids
+to introduce new functions for all types when only needed in some classes.
+
+*/
+
+void  
+TypeConstructor::initKindDataProperties()
+{
+   SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
+
+   if (propFunc) {
+     NList p = NList( (*propFunc)() );
+     //cerr << p << endl;  
+     conInfo = ConstructorInfo( p.second() );
+     conInfo.name = name;
+   }
+
+   serializedFixSize = -1;
+   numOfFlobs = -2;
+   storageType = Attribute::Unspecified;
+
+   if ( MemberOf("DATA") ) {
+
+      //cout << "** TC **  " << Name() 
+      //     << " <-- " << conInfo.typeExample << endl;       
+      ListExpr type = nl->Empty();
+      nl->ReadFromString(conInfo.typeExample, type);
+
+      // to do: better error handling      
+      ListExpr numType = ctlg.NumericType(type);
+      Word w = Create( numType );
+      
+      if (w.addr == 0) {
+        cerr << "** TC Error ** Could not create an instance for " 
+             << Name() << " using type list " << NList(type) << endl;
+        numOfFlobs = -2;
+      } 
+
+      Attribute* attr =  static_cast<Attribute*>(w.addr);
+      
+      if (attr != 0) {    
+        serializedFixSize = attr->SerializedSize();  
+        numOfFlobs = attr->NumOfFLOBs();
+        storageType =  attr->GetStorageType(); 
+      } 
+    }
+}
+
+string TypeConstructor::Storage2Str()
+{ 
+  switch ( storageType ) {
+    case Attribute::Default: {
+      return "Memoryblock-fix-core"; 
+      break;
+    }
+    case Attribute::Core: {
+      return "Serialize-fix-core"; 
+      break;
+    }
+    case Attribute::Extension: {
+      return "Serialize-variable-extension"; 
+      break;
+    }
+    default: { return "unspecified"; };
+  }         
+} 
 
 
 

@@ -1408,7 +1408,7 @@ cout << "GetCollType" << endl;
     }
     int algId = nl->IntValue(nl->First(collTypeInfo));
     int typeId = nl->IntValue(nl->Second(collTypeInfo));
-    string collType = am->Constrs(algId, typeId);
+    string collType = am->GetTC(algId, typeId)->Name();
     if(collType==VECTOR) {
       return vector;
     } else if(collType==SET) {

@@ -463,6 +463,8 @@ algebras in the following format:
 */
 
   ListExpr ListTypeConstructors(int algebraId);
+  void InitTypeConstructors();
+
   void Initialize(TypeInfoRel* r);
   void Initialize(OperatorInfoRel* r);
 /*

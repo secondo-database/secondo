@@ -245,6 +245,11 @@ Returns the name of the operator.
 */
   const ListExpr GetSpecList()   const { return spec.list(); }
   const string&  GetSpecString() const { return specString; }
+/*
+Returns the specification of operator ~operatorId~ of algebra ~algebraId~
+as a nested list expression or as a string.
+
+*/
 
   OperatorInfo  GetOpInfo() const 
   { 

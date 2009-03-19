@@ -1982,7 +1982,7 @@ Returns a list of type constructors ~typecons~ of the actually load algebras in 
 
   for ( pos = constructors.begin(); pos != constructors.end(); pos++ )
   {
-    list = am->Props( pos->second.algebraId, pos->second.entryId );
+    list = am->GetTC( pos->second.algebraId, pos->second.entryId )->Property();
     if ( tcList == nl->TheEmptyList() )
     {
       tcList = nl->Cons( nl->Cons( nl->SymbolAtom( pos->first ), list ),
@@ -1998,6 +1998,19 @@ Returns a list of type constructors ~typecons~ of the actually load algebras in 
   return (tcList);
 }
 
+void
+SecondoCatalog::InitTypeConstructors()
+{
+  LocalConstructorCatalog::iterator pos;
+  for ( pos = constructors.begin(); pos != constructors.end(); pos++ )
+  { 
+    TypeConstructor* tc = am->GetTC( pos->second.algebraId, 
+                                     pos->second.entryId    );
+    tc->initKindDataProperties();
+  }  
+}
+
+
 
 void
 SecondoCatalog::Initialize(TypeInfoRel* r)
@@ -2006,75 +2019,27 @@ SecondoCatalog::Initialize(TypeInfoRel* r)
   
   while ( pos != constructors.end() )
   {
-    //cout << pos->first << endl;
     int algId = pos->second.algebraId;
     int typeId = pos->second.entryId;
 
-    TypeConstructor* tc = am->GetTC( algId, typeId );
-    NList typeInfo( tc->Property() );
-    typeInfo = typeInfo.second();
-    int size = tc->SizeOf();
-    //cout << "  " << typeInfo << " : " << size << endl;
-    
     TypeInfoTuple& t = *(new TypeInfoTuple());
-    t.type = pos->first;
-    t.cppClassSize = size;
-    t.algebra = am->GetAlgebraName(algId);
-    if (typeInfo.length() >= 1)
-    t.signature = typeInfo.elem(1).str();
-    if (typeInfo.length() >= 2)
-    t.typeListExample = typeInfo.elem(2).str();
-    if (typeInfo.length() >= 3)
-    t.listRep = typeInfo.elem(3).str();
-    if (typeInfo.length() >= 4)
-    t.valueListExample = typeInfo.elem(4).str();
-    if (typeInfo.length() >= 5)
-      t.remark = typeInfo.elem(5).str();
+    TypeConstructor* tc = am->GetTC( algId, typeId );
+    const ConstructorInfo& ci = tc->Info();
+
+    t.algebra =          am->GetAlgebraName(algId);
+    t.type =             pos->first;
+
+    t.cppClassSize =     tc->SizeOf();
+    t.numOfFlobs =       tc->NumOfFLOBs();
+    t.persistencyMode =  tc->Storage2Str();
+
+    t.signature =        ci.signature;
+    t.typeListExample =  ci.typeExample;
+    t.listRep =          ci.listRep;
+    t.valueListExample = ci.valueExample;
+    t.remark =           ci.remarks;
+ 
     r->append(&t, false);
-
-    t.numOfFlobs = -1;      
-    t.persistencyMode = "unspecified";
-
-    if ( tc->MemberOf("DATA") ) {
-
-      //cout << "** TC **  " << tc->Name() 
-      //     << " <-- " << t.typeListExample << endl;       
-      ListExpr type = nl->Empty();
-      nl->ReadFromString(t.typeListExample, type);
-
-      // to do: better error handling      
-      ListExpr numType = NumericType(type);
-      Word w = tc->Create( numType );
-      
-      if (w.addr == 0) {
-        cerr << "** TC Error ** Could not create an instance for " 
-             << tc->Name() << " using type list " << NList(type) << endl;
-        t.numOfFlobs = -2;
-      } 
-
-      Attribute* attr =  static_cast<Attribute*>(w.addr);
-      
-      if (attr != 0) {      
-        t.numOfFlobs = attr->NumOfFLOBs();
-        switch ( attr->GetStorageType() ) {
-          case Attribute::Default: {
-            t.persistencyMode = "Memoryblock-fix-core"; 
-            break;
-          }
-          case Attribute::Core: {
-            t.persistencyMode = "Serialize-fix-core"; 
-            break;
-          }
-          case Attribute::Extension: {
-            t.persistencyMode = "Serialize-variable-extension"; 
-            break;
-          }
-          default: {/*empty*/};
-        }         
-      } 
-
-    }
-
     pos++;
   }
 } 
@@ -2248,8 +2213,8 @@ SecondoCatalog::ListTypeConstructors( int algebraId )
 
   for ( k = 0; k < am->ConstrNumber( algebraId ); k++ )
   {
-    tcname = am->Constrs( algebraId, k );
-    list = am->Props( algebraId, k );
+    tcname = am->GetTC( algebraId, k )->Name();
+    list = am->GetTC( algebraId, k )->Property();
     if ( tcList == nl->TheEmptyList() )
     {
       tcList = nl->Cons( nl->Cons( nl->SymbolAtom( tcname ), list ),
@@ -2351,7 +2316,7 @@ Looks up the ~typeName~ of a type constructor defined by the algebra identifier 
       exit( 0 );
     }
   }
-  return (am->Constrs( algebraId, typeId ));
+  return (am->GetTC( algebraId, typeId )->Name());
 }
 
 ListExpr
@@ -2362,7 +2327,7 @@ Looks up the properties ~props~ of a type constructor defined by the
 algebra identifier ~algebraId~ and the type identifier ~opId~.
 
 */
-  return (am->Props( algebraId, typeId ));
+  return am->GetTC( algebraId, typeId )->Property();
 }
 
 /************************************************************************
@@ -2438,7 +2403,7 @@ and the operator identifier ~opId~.
       exit( 0 );
     }
   }
-  return (am->Ops( algebraId, opId ));
+  return (am->GetOP( algebraId, opId )->GetName());
 }
 
 ListExpr
@@ -2469,7 +2434,7 @@ Returns the operator specification ~specs~ of an operator defined by the algebra
     }
   }
 
-  return (am->Specs( algebraId, opId ));
+  return (am->GetOP( algebraId, opId )->GetSpecList());
 }
 
 ListExpr
@@ -2513,7 +2478,7 @@ specifications from [BeG95b, Section3.1].
 
     for( i = entrySet->begin(); i != entrySet->end(); i++ )
     {
-      list = am->Specs( i->algebraId, i->entryId );
+      list = am->GetOP( i->algebraId, i->entryId )->GetSpecList();
       assert( nl->HasLength(list,2) );
       if ( opList == nl->TheEmptyList() )
       {
@@ -2541,8 +2506,8 @@ SecondoCatalog::ListOperators( int algebraId )
 
   for ( k = 0; k < am->OperatorNumber( algebraId ); k++ )
   {
-    opname = am->Ops( algebraId, k );
-    list = am->Specs( algebraId, k );
+    opname = am->GetOP( algebraId, k )->GetName();
+    list = am->GetOP( algebraId, k )->GetSpecList();
     if ( opList == nl->TheEmptyList() )
     {
       opList = nl->Cons( nl->Cons( nl->SymbolAtom( opname ), list ),
@@ -2584,9 +2549,11 @@ Defines a dictionary for algebra type constructors.
     for ( j = 0; j < am->ConstrNumber( algebraId ); j++ )
     {
       newEntry.entryId = j;
-      constructors.insert( make_pair( 
-                                  am->Constrs( algebraId, j ), newEntry ) );
+      constructors.insert( make_pair( am->GetTC( algebraId, j )->Name(), 
+                                      newEntry ) ); 
     }
+
+
 /*
 Defines a dictionary for algebra operators.
 
@@ -2595,7 +2562,7 @@ Defines a dictionary for algebra operators.
     {
       newEntry.entryId = j;
       LocalOperatorCatalog::iterator 
-        pos = operators.find( am->Ops( algebraId, j ) );
+        pos = operators.find( am->GetOP( algebraId, j )->GetName() );
       CatalogEntrySet* entrySet;
 
       if (  pos != operators.end() )
@@ -2607,7 +2574,8 @@ Defines a dictionary for algebra operators.
       {
         entrySet = new CatalogEntrySet();
         entrySet->push_back( newEntry );
-        operators.insert( make_pair( am->Ops( algebraId, j ), entrySet ) );
+        operators.insert( make_pair( am->GetOP( algebraId, j )->GetName(), 
+                                     entrySet ) );
       }
     }
   }

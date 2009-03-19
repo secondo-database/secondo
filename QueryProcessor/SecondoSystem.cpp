@@ -850,6 +850,7 @@ SecondoSystem::StartUp()
   {
     instance->algebraManager->LoadAlgebras();
     instance->catalog = new SecondoCatalog();
+    instance->catalog->InitTypeConstructors();
     instance->initialized = true;
   }
   return (instance->initialized);

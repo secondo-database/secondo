@@ -108,6 +108,7 @@ AlgebraManager::ListAlgebras()
   return (list);
 }
 
+
 int
 AlgebraManager::GetAlgebraId(const string& algName)
 {
@@ -196,6 +197,9 @@ AlgebraManager::LoadAlgebras()
       {
         tc = algebra[(*getAlgebraEntry)( j ).algebraId]
                                                    ->GetTypeConstructor( k );
+
+	NList::setNLRef(nl);
+	//tc ->initKindDataProperties(); 
         for ( vector<string>::size_type idx = 0; 
               idx < tc->kinds.size(); idx++      )
         {
@@ -273,20 +277,6 @@ AlgebraManager::OperatorNumber( int algebraId )
   return (algebra[algebraId]->GetNumOps());
 }
 
-string
-AlgebraManager::Ops( int algebraId, int operatorId )
-{
-  return (algebra[algebraId]->GetOperator( operatorId )->GetName());
-}
-
-ListExpr
-AlgebraManager::Specs( int algebraId, int operatorId )
-{
-  return algebra[algebraId]->GetOperator( operatorId )->GetSpecList();
-}
-
-
-
 void
 AlgebraManager::InitOpPtrField() {
 
@@ -310,23 +300,19 @@ AlgebraManager::ConstrNumber( int algebraId )
   return (algebra[algebraId]->GetNumTCs());
 }
 
-string
-AlgebraManager::Constrs( int algebraId, int typeId )
-{
-  return (algebra[algebraId]->GetTypeConstructor( typeId )->name);
-}
-
 TypeConstructor*
 AlgebraManager::GetTC( int algebraId, int typeId )
 {
   return (algebra[algebraId]->GetTypeConstructor( typeId ));
 }
 
-ListExpr
-AlgebraManager::Props( int algebraId, int typeId )
+
+Operator*
+AlgebraManager::GetOP( int algebraId, int opId )
 {
-  return (algebra[algebraId]->GetTypeConstructor( typeId )->Property());
+  return (algebra[algebraId]->GetOperator( opId ));
 }
+
 
 InObject
 AlgebraManager::InObj( int algebraId, int typeId )
@@ -461,7 +447,7 @@ AlgebraManager::UpdateOperatorUsage(SystemInfoRel* table) {
     for (int opId = 0; opId < N; opId++) {
       
       string name = GetAlgebraName(algId);
-      string algebra = Ops(algId, opId);
+      string algebra = GetOP(algId, opId)->GetName();
       Operator* op = opPtrField[algId][opId];
       if(op){
         for(int i=0;i<op->GetNumOfFun();i++){

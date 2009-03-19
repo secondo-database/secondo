@@ -538,7 +538,7 @@ Print the delete reference info to a string (for debugging)
        SetDefined(false);
    }
 
-  enum StorageType { Default, Core, Extension };
+  enum StorageType { Default, Core, Extension, Unspecified };
 
 
   inline virtual StorageType GetStorageType() const { return Default; }
