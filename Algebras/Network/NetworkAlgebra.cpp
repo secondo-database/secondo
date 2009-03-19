@@ -7679,7 +7679,7 @@ class NetworkAlgebra : public Algebra
 
     gpoint.AssociateKind( "DATA" );
     gline.AssociateKind( "DATA" );
-    network.AssociateKind( "DATA" );
+    network.AssociateKind( "NETWORK" );
     gpoints.AssociateKind("DATA");
 
 
