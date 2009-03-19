@@ -34,6 +34,7 @@ AlgebraClassDef.h and AlgebraInit.h
 #include "NestedList.h"
 #include "AlgebraTypes.h"
 #include "ConstructorTemplates.h"
+#include "NList.h"
 
 // a forward declaration
 class AlgebraManager;
@@ -203,6 +204,8 @@ Returns the properties of the type constructor as a nested list.
                             ListExpr& errorInfo,
                             bool& correct );
   Word     Create( const ListExpr typeInfo );
+  Word     Create( const NList& typeInfo );
+
   void     Delete( const ListExpr typeInfo,
                    Word& w );
   bool     Open( SmiRecord& valueRecord,
@@ -249,16 +252,17 @@ These methods use the ~RestoreFromList~ and ~SaveToList~ if provided, and
   
   bool TypeCheck( ListExpr type, ListExpr& errorInfo )
   {
-    if (typeCheckFunc)
+    if (typeCheckFunc) {
       return (*typeCheckFunc)( type, errorInfo);
-    else 
+    } 
+    else { 
       return SimpleCheck( type, errorInfo );
+    }  
   }
 
-  const vector<string>& GetKinds(){
-     return kinds;
-  }
+  const vector<string>& GetKinds() { return kinds; }
 
+  bool MemberOf(const string& k); 
 
 /*
 Dummy methods used as placeholders for type constructor functions.
