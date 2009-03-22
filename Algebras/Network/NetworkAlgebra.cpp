@@ -3024,7 +3024,8 @@ void Network::FindSP(TupleId j1,TupleId j2,double& length,GLine* res)
     Tuple* tuple = alldistance->GetTuple(i);
     TupleId jun1 = ((CcInt*)tuple->GetAttribute(0))->GetIntval();
     TupleId jun2 = ((CcInt*)tuple->GetAttribute(1))->GetIntval();
-    if(jun1 == j1 && jun2 == j2){
+    if((jun1 == j1 && jun2 == j2) ||
+       (jun1 ==j2 && jun2 == j1)){
       length = ((CcReal*)tuple->GetAttribute(2))->GetRealval();
       GLine* gline = (GLine*)tuple->GetAttribute(3);
       *res = *gline;
@@ -3057,7 +3058,7 @@ void Network::FillDistanceStorage()
       Point* p1 = (Point*)jun1->GetAttribute(JUNCTION_POS);
       Point* p2 = (Point*)jun2->GetAttribute(JUNCTION_POS);
       if(fabs(p1->GetX()-p2->GetX()) < 0.1 &&
-         fabs(p1->GetY()-p2->GetY()) < 0.1)
+         fabs(p1->GetY()-p2->GetY()) < 0.1) //different junction point
         continue;
       GPoint* gp1 = new GPoint(true,GetId(),rid1,pos1,side);
       GPoint* gp2 = new GPoint(true,GetId(),rid2,pos2,side);
@@ -5396,7 +5397,7 @@ double GPoint::Netdistance (GPoint* pToGPoint){
     return res;
   } else {
     delete pGLine;
-    return numeric_limits<double>::max();
+    return 0;
   }
 }
 double GPoint::NewNetdistance(GPoint* pToGPoint,GLine* gline)
@@ -5416,7 +5417,7 @@ double GPoint::NewNetdistance(GPoint* pToGPoint,GLine* gline)
 
     delete gp1;
     delete gp2;
-    return numeric_limits<double>::max();
+    return 0;
   }
 
 }
@@ -5453,11 +5454,18 @@ bool GPoint::Inside(GLine *gl){
     int i = 0;
     while (i < gl->NoOfComponents()) {
       gl->Get(i, pCurrRInter);
-      if ((pCurrRInter->m_iRouteId == GetRouteId()) &&
-         ((pCurrRInter->m_dStart <= GetPosition() &&
-         pCurrRInter->m_dEnd >= GetPosition()) ||
-         (pCurrRInter->m_dEnd <= GetPosition() &&
-         pCurrRInter->m_dStart >= GetPosition()))) return true;
+      if (pCurrRInter->m_iRouteId == GetRouteId()){
+        if(pCurrRInter->m_dStart < GetPosition() &&
+           GetPosition() < pCurrRInter->m_dEnd)
+          return true;
+        if(pCurrRInter->m_dStart > GetPosition() &&
+           GetPosition() > pCurrRInter->m_dEnd)
+          return true;
+        if(fabs(pCurrRInter->m_dStart - GetPosition()) < 0.1)
+          return true;
+        if(fabs(pCurrRInter->m_dEnd - GetPosition()) < 0.1)
+          return true;
+      }
       i++;
     }
     return false;
@@ -5493,6 +5501,7 @@ bool GPoint::ShortestPath(GPoint *to, GLine *result){
   GPoint *start = this;
   GPoint* end = new GPoint(*to);//copy the gpoint
   result->Clear();
+
   if (start == 0 || end == 0 || !start->IsDefined() ||
       !end->IsDefined()) {
      sendMessage("Both gpoints must exist and be defined.");
@@ -5535,6 +5544,15 @@ bool GPoint::ShortestPath(GPoint *to, GLine *result){
   bool junctionpoint = false;
   Point* endp = new Point();
   pNetwork->GetPointOnRoute(end,endp); //end point
+  Point* startp = new Point();
+  pNetwork->GetPointOnRoute(start,startp);
+  if(fabs(endp->GetX() - startp->GetX()) < 0.1 &&
+     fabs(endp->GetY() - startp->GetY()) < 0.1){
+    delete endp;
+    delete startp;
+    return false;
+  }
+
   vector<JunctionSortEntry> juns;
   CcInt* routeid = new CcInt(true,end->GetRouteId());
   pNetwork->GetJunctionsOnRoute(routeid,juns);
@@ -5575,7 +5593,8 @@ Calculate the shortest path using dijkstras algorithm.
   int startSectTID = startSection->GetTupleId();
   int lastSectTID = endSection->GetTupleId();
 
-  if (startSectTID == lastSectTID) {
+  if (startSectTID == lastSectTID  ||
+      GetRouteId() == to->GetRouteId()) {
     result->AddRouteInterval(start->GetRouteId(), start->GetPosition(),
                             end->GetPosition());
   } else {
@@ -5699,6 +5718,7 @@ Use priorityQueue to find shortestPath.
                   ((CcReal*)sect->GetAttribute(SECTION_MEAS1))->GetRealval();
             double m2 =
                   ((CcReal*)sect->GetAttribute(SECTION_MEAS2))->GetRealval();
+
             if(actPQEntry->upDownFlag){
               GPoint* temp = new GPoint(true,end->GetNetworkId(),
                         end->GetRouteId(),m2,None);
