@@ -23,8 +23,9 @@ operator distancescan3 alias DISTANCESCAN3 pattern _ _ op [_, _]
 operator distancescan4 alias DISTANCESCAN4 pattern _ _ op [_, _, _]
 operator knearest alias KNEAREST pattern _ op [_,_, _]
 operator knearestvector alias KNEARESTVECTOR pattern _ _ op [_, _]
-operator oldknearestfilter alias KNEARESTFILTER pattern _ _ op [_, _]
+operator oldknearestfilter alias OLDKNEARESTFILTER pattern _ _ op [_, _]
 operator bboxes alias bboxes pattern  _ op [_]
 operator coverage alias COVERAGE pattern op(_)
 operator coverage2 alias COVERAGE2 pattern op(_)
-operator knearestfilter alias NEWKNEARESTFILTER pattern _ _ _ _ op [_,_]
+operator knearestfilter alias KNEARESTFILTER pattern _ _ _ _ op [_,_]
+operator mqknearest alias mqknearest pattern _ _ _ _ op[_]
