@@ -1471,23 +1471,35 @@ plan_to_atom(rename(X, Y), Result) :-
 %by the optimizer by rewriting the pattern operator
 %Note that user filter conditions in the same form
 %'sometimes(Pred)' will not be removed
-
+plan_to_atom(predinfo(_, _, filter(Stream, Pred)) , Result) :-
+  removefilter(Pred),
+  retract(removefilter(Pred)),
+  plan_to_atom(Stream, Result),
+  !.
+/*
 plan_to_atom(predinfo(_, _, filter(Stream, sometimes(Pred))) , Result) :-
   removefilter(sometimes(Pred)),
   retract(removefilter(sometimes(Pred))),
   plan_to_atom(Stream, Result),
   !.
-
+*/
 %used for removing the temporarily filter conditions
 %in the form sometimes(Pred). These were generated
 %by the optimizer by rewriting the pattern operator
 %Note that user filter conditions in the same form
 %'sometimes(Pred)' will not be removed
+plan_to_atom(filter(Stream, Pred) , Result) :-
+  removefilter(Pred),
+  retract(removefilter(Pred)),
+  plan_to_atom(Stream, Result),
+  !.
+/*
 plan_to_atom(filter(Stream, sometimes(Pred)) , Result) :-
   removefilter(sometimes(Pred)),
   retract(removefilter(sometimes(Pred))),
   plan_to_atom(Stream, Result),
   !.
+*/
 
 plan_to_atom(predinfo(Sel, Cost, X), Result) :-
   plan_to_atom(X, XAtom),
@@ -3373,7 +3385,7 @@ cost(filter(gettuples(rdup(sort(
                     ', FilterPred=',FilterPred]),
   Cost is 0,
   card(RelName, RelCard),
-  Size is RelCard * Sel.
+  Size is RelCard * Sel,!.
 %   write('...Inside cost estimation '),nl,
 %   card(RelName, RelCard),
 %   write('...Inside cost estimation1 '),nl,
@@ -3404,10 +3416,10 @@ cost(filter(gettuples(rdup(sort(
 
 cost(filter(X, _), Sel, S, C) :- 	% 'normal' filter
   cost(X, 1, SizeX, CostX),
-  %filterTC(A),
+  filterTC(A),
   S is SizeX * Sel,
-  %C is CostX + A * SizeX.
-  C is CostX.
+  C is CostX + A * SizeX.
+  %C is CostX.
 
 cost(product(X, Y), _, S, C) :-
   cost(X, 1, SizeX, CostX),
@@ -4924,15 +4936,16 @@ lookupPreds(Pred, Pred2) :-
   not(is_list(Pred)),
   lookupPred(Pred, Pred2), !.
 
-lookupPred(sometimes(Pred), pr(Pred2, Rel)) :-
-%This predicate is added by the optimizer
-%For the sake of optimizeing the pattern
-%operator. The asserted predicate will be used
-%later to remove this predicate
-  removefilter(sometimes(Pred)),
+lookupPred(Pred, pr(Pred2, Rel)) :-
+%Checks for additional predicates that
+%were added by the optimizer during rewirting
+%and store them in a list.
+%The list will be used
+%later to remove these predicate
+  removefilter(Pred),
   nextCounter(selectionPred,_),
-  lookupPred1(sometimes(Pred), Pred2, [], [Rel]), !,
-  retract(removefilter(sometimes(Pred))),
+  lookupPred1(Pred, Pred2, [], [Rel]), !,
+  retract(removefilter(Pred)),
   assert(removefilter(Pred2)).
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
