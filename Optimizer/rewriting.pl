@@ -576,6 +576,11 @@ remove sometimes(P) from the query expression again.
 
 :- dynamic removefilter/1.
 inferPatternPredicates([], [] ).
+inferPatternPredicates([Pred|Preds], [passes(P1,bbox2d(P2))|Preds2] ):-
+  Pred=..[F,P1,P2],
+  isBBoxLiftedPred(F),!,
+  assert(removefilter(passes(P1,bbox2d(P2)))),
+  inferPatternPredicates(Preds,Preds2).
 inferPatternPredicates([Pred|Preds], [sometimes(Pred)|Preds2] ):-
   assert(removefilter(sometimes(Pred))),
   inferPatternPredicates(Preds,Preds2).
