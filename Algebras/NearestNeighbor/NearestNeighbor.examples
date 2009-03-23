@@ -40,8 +40,8 @@ Result   : (int 94)
 Operator : knearest
 Number   : 3
 Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UnitTrains feed head[20]  knearest [UTrip,train1, 2] consume
-Result   : crashes
+Example  : query UnitTrains feed head[20]  knearest [UTrip,train1, 2] count
+Result   : 20
 
 Operator : knearest
 Number   : 4
@@ -53,7 +53,7 @@ Operator : knearestvector
 Number   : 5
 Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UnitTrains feed head[20] UTrip knearestvector [train1, 2] consume
-Result   : crashes
+Result   : 20
 
 Operator : oldknearestfilter
 Number   : 6
