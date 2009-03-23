@@ -724,8 +724,8 @@ class SegEntry {
     virtual ~SegEntry()
     {}
 
-    friend bool operator!=(const SegEntry<timeType>& i, 
-                    const SegEntry<timeType>& j) 
+    friend bool operator!=(const SegEntry<timeType>& i,
+                    const SegEntry<timeType>& j)
     {
       return i.nodeid != j.nodeid || i.tpid != j.tpid;
     }
@@ -788,7 +788,7 @@ private:
                    double dist, SegNode<timeType> *node, bool &result);
   void checkErase( const timeType& t1, const timeType& t2, double distance,
                    SegNode<timeType> *node, int k );
-  void mapfill( map< SegEntry<timeType>, TupleId> &m, 
+  void mapfill( map< SegEntry<timeType>, TupleId> &m,
                 SegNode<timeType> *node);
   ITSE addEntry(NNTree<SegEntry<timeType> > &t, SegEntry<timeType>  &e);
   ITSE findEntry(NNTree<SegEntry<timeType> > &t, long rnodeid, double dist);
@@ -868,7 +868,7 @@ recursive private method calcCoverage
 */
 template<class timeType>
 int NNSegTree<timeType>::calcCoverage( const timeType& t1,
-                                       const timeType& t2, 
+                                       const timeType& t2,
                                        double distance )
 {
   return calcCoverage( t1, t2, distance, sroot, false );
@@ -929,7 +929,7 @@ it is necessary. Some childs may be created
 
 */
 template<class timeType>
-void NNSegTree<timeType>::insertNode( SegEntry<timeType> &s, 
+void NNSegTree<timeType>::insertNode( SegEntry<timeType> &s,
                                       SegNode<timeType> *node, int k)
 {
   if( s.start <= node->start && s.end >= node->end)
@@ -1031,8 +1031,8 @@ node of the segment tree
 
 */
 template<class timeType>
-typename NNSegTree<timeType>::ITSE 
-NNSegTree<timeType>::addEntry(NNTree<SegEntry<timeType> > &t, 
+typename NNSegTree<timeType>::ITSE
+NNSegTree<timeType>::addEntry(NNTree<SegEntry<timeType> > &t,
                               SegEntry<timeType> &e)
 {
   if( t.size() == 0)
@@ -1081,7 +1081,7 @@ node of the segment tree
 
 */
 template<class timeType>
-typename NNSegTree<timeType>::ITSE 
+typename NNSegTree<timeType>::ITSE
 NNSegTree<timeType>::findEntry(NNTree<SegEntry<timeType> > &t,
                                long rnodeid, double dist)
 {
@@ -1152,7 +1152,7 @@ higher than the given distance
 
 */
 template<class timeType>
-typename NNSegTree<timeType>::ITSE 
+typename NNSegTree<timeType>::ITSE
 NNSegTree<timeType>::findEntryMindistance(NNTree<SegEntry<timeType> > &t,
                                      double dist)
 {
@@ -1244,7 +1244,7 @@ until the given distance
 
 */
 template<class timeType>
-int NNSegTree<timeType>::calcCoverage(const timeType& t1, 
+int NNSegTree<timeType>::calcCoverage(const timeType& t1,
                                       const timeType& t2,
                                       double distance,
                                       SegNode<timeType> *node, bool hasEqual)
