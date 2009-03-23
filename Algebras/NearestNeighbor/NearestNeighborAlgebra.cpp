@@ -1812,6 +1812,10 @@ void GetDistance( const MPoint* mp, const UPoint* up,
   for (int ii=mpos; ii < noCo; ii++)
   {
     mp->Get( ii, upn);  // get the current Unit
+    if(time2 < upn->timeInterval.start ||
+      time1 > upn->timeInterval.end ||
+      (time2 == upn->timeInterval.start && up->timeInterval.rc == false))
+      continue;
 
     if( time1 < upn->timeInterval.end ||
         (time1 == upn->timeInterval.end && upn->timeInterval.rc))
@@ -1841,6 +1845,7 @@ void GetDistance( const MPoint* mp, const UPoint* up,
       }
 
       Interval<Instant> iv(start, end, lc, rc);
+
 
       Coord x1, y1, x2, y2;
       GetPosition( up, start, x1, y1);
@@ -5247,7 +5252,7 @@ const string knearestFilterSpec  =
       "third dimension is the time</text--->"
       "<text>query UTOrdered_RTree UTOrdered btreehats hats knearestfilter "
       "[train1, 5] count;</text--->"
-      ") )";
+      "))";
 Operator knearestfilter (
          "knearestfilter",        // name
          knearestFilterSpec,      // specification
@@ -5311,29 +5316,41 @@ ListExpr mqknearestTypeMap(ListExpr args){
   }
   return nl->TypeError();
 }
+
+struct PointNeighbor{
+  Point q; //query point
+  Point p; //data point
+  float dist;
+  PointNeighbor(){dist = 0.0;}
+  PointNeighbor(Point&a,Point& b):q(a),p(b){dist = q.Distance(p);}
+  PointNeighbor(const PointNeighbor& pn):q(pn.q),p(pn.p),dist(pn.dist){}
+};
+bool CmpPointNeighbor(const PointNeighbor& e1,const PointNeighbor& e2)
+{
+  return e1.q.Distance(e1.p) < e2.q.Distance(e2.p);
+}
 struct MQKnearest{
   Relation* querypoints;
   Relation* datapoints;
   R_Tree<2,TupleId>* rtree1;
   R_Tree<2,TupleId>* rtree2;
-  int k;
+  unsigned int k;
   TupleType* resulttype;
+  vector<PointNeighbor> results;
+  bool calculate;// true---calculate, false---show
+  vector<PointNeighbor>::iterator iter;
+  vector<PointNeighbor> distance;
   MQKnearest(){}
 };
+//for each point in querypoints, find its k closest point, put into vectors
+void Mqknearest(MQKnearest* mqk)
+{
 
+
+}
 int mqknearestFun(Word* args, Word& result, int message,
               Word& local, Supplier s){
   MQKnearest* mqk;
-  static int count = 0;
-  double min1[2]={1,1};
-  double max1[2]={2,2};
-  double min2[2]={3,3};
-  double max2[2]={5,5};
-
-  BBox<2> box1(true,min1,max1);
-  BBox<2> box2(true,min2,max2);
-  cout<<maxDistance(box1,box2)<<endl;
-  cout<<box1.Distance(box2)<<endl;
 
   switch(message){
      case OPEN: {
@@ -5343,26 +5360,31 @@ int mqknearestFun(Word* args, Word& result, int message,
      mqk->datapoints = (Relation*)args[2].addr;
      mqk->rtree2 = (R_Tree<2,TupleId>*)args[3].addr;
      mqk->k = (unsigned)((CcInt*)args[4].addr)->GetIntval();
+     mqk->resulttype = new TupleType(nl->Second(GetTupleResultType(s)));
+     mqk->calculate = true;
      local = SetWord(mqk);
      return 0;
    }
    case REQUEST: {
-     if(count == 0){
-      TupleType* tupletype = new TupleType(nl->Second(GetTupleResultType(s)));
-      Tuple* tuple = new Tuple(tupletype);
-      tuple->PutAttribute(0,new Point(true,1,1));
-      tuple->PutAttribute(1,new Point(true,2,2));
-      result.setAddr(tuple);
-      count++;
-      tupletype->DeleteIfAllowed();
-      return YIELD;
-     }
-     return CANCEL;
+      mqk = (MQKnearest*)local.addr;
+      if(mqk->calculate)
+        Mqknearest(mqk);
+      if(mqk->iter == mqk->results.end()){
+          mqk->calculate = true;
+      }else{
+              Tuple* tuple = new Tuple(mqk->resulttype);
+              tuple->PutAttribute(0,new Point(mqk->iter->q));
+              tuple->PutAttribute(1,new Point(mqk->iter->p));
+              result.setAddr(tuple);
+              mqk->iter++;
+              return YIELD;
+           }
+      return CANCEL;
    }
    case CLOSE : {
       mqk = (MQKnearest*)local.addr;
+      mqk->resulttype->DeleteIfAllowed();
       delete mqk;
-      count = 0;
       return 0;
    }
  }
@@ -5376,6 +5398,7 @@ Operator mqknearest (
          Operator::SimpleSelect,  // trivial selection function
          mqknearestTypeMap    // type mapping
 );
+
 
 /*
 4 Implementation of the Algebra Class
@@ -5405,6 +5428,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &coverage2op );
     AddOperator( &knearestfilter);
     AddOperator( &distancescan4);
+
     AddOperator( &mqknearest);//multiple query objects nearest neighbor
   }
   ~NearestNeighborAlgebra() {};
