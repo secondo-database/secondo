@@ -52,7 +52,7 @@ sortmergejoinTC(0.3, 0.73). % first also used for sort(), second for mergejoin()
 symmjoinTC(1.4, 0.7).
 extendTC(1.5).
 removeTC(0.6).
-projectTC(0.71).
+projectTC(0.1).
 renameTC(0.1).
 windowintersectsTC(0.1).
 spatialjoinTC(20.0, 0.7).
@@ -140,6 +140,9 @@ isBBoxPredicate(attached).
 isBBoxPredicate(overlaps).
 isBBoxPredicate(onborder).
 isBBoxPredicate(ininterior).
+
+% Lifted Predicates that use bboxes
+isBBoxLiftedPred(inside).
 
 % other operators using bboxes:
 isBBoxOperator(touchpoints).
