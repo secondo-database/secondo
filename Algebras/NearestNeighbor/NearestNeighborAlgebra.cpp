@@ -4870,6 +4870,17 @@ args[5] = int k, how many nearest are searched
 
 */
 template<class timeType>
+bool CmpFiledEntry(const FieldEntry<timeType>& fe1,
+const FieldEntry<timeType>& fe2)
+{
+  if(fe1.start != fe2.start)
+    return fe1.start < fe2.start;
+  if(fe1.end != fe2.start)
+    return fe1.end < fe2.end;
+  return fe1.nodeid < fe2.nodeid;
+
+}
+template<class timeType>
 int knearestFilterFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
@@ -4918,10 +4929,33 @@ int knearestFilterFun (Word* args, Word& result, int message,
         localInfo->timeTree.insert( se, localInfo->k );
       }
       delete tmp;
+///////////////////
+      vector<unsigned int> randnum;
+      srand(time(0));
+      unsigned int entrycount = localInfo->rtree->MaxEntries(0);
+      int count = 0;
+      for (unsigned int i = 0 ;i < entrycount;){
+        unsigned int num = rand() % entrycount;
+        srand(count);
+        count++;
+        i++;
+        unsigned int j = 0;
+        for(;j < randnum.size();j++){
+          if(randnum[j] == num){
+             i--;
+             break;
+          }
+        }
+        if(j == randnum.size())
+          randnum.push_back(num);
+      }
+///////////////////
+
       while( !localInfo->vectorA.empty() )
       {
         unsigned int vpos;
-
+        sort(localInfo->vectorA.begin(),localInfo->vectorA.end(),
+        CmpFiledEntry<timeType>); //order by time
         for( vpos = 0; vpos < localInfo->vectorA.size(); ++vpos)
         {
           FieldEntry<timeType> &f = localInfo->vectorA[ vpos ];
@@ -4936,7 +4970,12 @@ int knearestFilterFun (Word* args, Word& result, int message,
                      localInfo->rtree->MaxEntries( f.level ) );
 
             if(tmp->IsLeaf()){
-              for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
+//             for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
+                for(unsigned int index = 0; index < randnum.size();index++){
+                unsigned int ii = randnum[index];
+                if(ii >= tmp->EntryCount())
+                  continue;
+
                 R_TreeLeafEntry<dim, TupleId> e =
                   (R_TreeLeafEntry<dim, TupleId>&)(*tmp)[ii];
                 timeType t1((double)(e.box.MinD(2)));
@@ -4974,7 +5013,11 @@ int knearestFilterFun (Word* args, Word& result, int message,
                 delete id;
                 delete btreeiter;
 
-              for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
+//              for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
+                for(unsigned int index = 0; index < randnum.size();index++){
+                unsigned int ii = randnum[index];
+                if(ii >= tmp->EntryCount())
+                  continue;
                 R_TreeInternalEntry<dim> e =
                   (R_TreeInternalEntry<dim>&)(*tmp)[ii];
                 timeType t1(e.box.MinD(2));
@@ -4985,12 +5028,30 @@ int knearestFilterFun (Word* args, Word& result, int message,
                     const BBox<2> mBox(t->getBox(d));
                     if(interv.size() == 3){ //exit hat
                       int cov = 0;
+
+//                      for(unsigned int j = 0;j < interv.size();j++){
+//                        if(interv[j].Contains(t2)){
+//                          cov = covs[j];
+//                          break;
+//                        }
+//                      }
+
+
                       for(unsigned int j = 0;j < interv.size();j++){
-                        if(interv[j].Contains(t2)){
+                        if(interv[j].Contains(t2) && interv[j].Contains(t1)){
                           cov = covs[j];
                           break;
                         }
+                        if(interv[0].Contains(t1) && interv[1].Contains(t2)){
+                          cov = covs[0]<covs[1]?covs[0]:covs[1];
+                          break;
+                        }
+                        if(interv[1].Contains(t1) && interv[2].Contains(t2)){
+                          cov = covs[1]<covs[2]?covs[1]:covs[2];
+                          break;
+                        }
                       }
+
                       SegEntry<timeType> se(xyBox,t1, t2,
                           xyBox.Distance( mBox),
                           maxDistance( xyBox, mBox), cov,
@@ -5345,8 +5406,6 @@ struct MQKnearest{
 //for each point in querypoints, find its k closest point, put into vectors
 void Mqknearest(MQKnearest* mqk)
 {
-
-
 }
 int mqknearestFun(Word* args, Word& result, int message,
               Word& local, Supplier s){
