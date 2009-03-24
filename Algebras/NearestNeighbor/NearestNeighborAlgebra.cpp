@@ -5406,6 +5406,9 @@ struct MQKnearest{
 //for each point in querypoints, find its k closest point, put into vectors
 void Mqknearest(MQKnearest* mqk)
 {
+
+
+
 }
 int mqknearestFun(Word* args, Word& result, int message,
               Word& local, Supplier s){
