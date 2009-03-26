@@ -1102,7 +1102,7 @@ void refinementMovingGPoint (MGPoint *a, MGPoint *b,
                                              ub->p0.GetSide(),
                                              pos2.GetPosition(),
                                              ub->p1.GetPosition()));
-        if (ua->timeInterval.rc && ub->timeInterval.rc ||
+        if ((ua->timeInterval.rc && ub->timeInterval.rc) ||
             (!ua->timeInterval.rc && !ub->timeInterval.rc)) {
           i++;
           if (i < a->GetNoComponents()) a->Get(i, ua);
@@ -1191,7 +1191,7 @@ void refinementMovingGPoint (MGPoint *a, MGPoint *b,
                                              ub->p0.GetSide(),
                                              ub->p0.GetPosition(),
                                              ub->p1.GetPosition()));
-        if (ua->timeInterval.rc && ub->timeInterval.rc ||
+        if ((ua->timeInterval.rc && ub->timeInterval.rc) ||
             (!ua->timeInterval.rc && !ub->timeInterval.rc)) {
           i++;
           if (i < a->GetNoComponents()) a->Get(i, ua);
@@ -1287,7 +1287,7 @@ void refinementMovingGPoint (MGPoint *a, MGPoint *b,
                                              ub->p0.GetSide(),
                                              ub->p0.GetPosition(),
                                              ub->p1.GetPosition()));
-        if (ua->timeInterval.rc && ub->timeInterval.rc ||
+        if ((ua->timeInterval.rc && ub->timeInterval.rc) ||
             (!ua->timeInterval.rc && !ub->timeInterval.rc)) {
           i++;
           if (i < a->GetNoComponents()) a->Get(i, ua);
@@ -1352,7 +1352,7 @@ void refinementMovingGPoint (MGPoint *a, MGPoint *b,
           resA->Add(UGPoint(ub->timeInterval, ua->p1, ua->p1));
           resB->Add(UGPoint(ub->timeInterval, ub->p0, ub->p0));
         }
-        if (ua->timeInterval.rc && ub->timeInterval.rc ||
+        if ((ua->timeInterval.rc && ub->timeInterval.rc) ||
             (!ua->timeInterval.rc && !ub->timeInterval.rc)) {
           i++;
           if (i < a->GetNoComponents()) a->Get(i, ua);
@@ -1436,7 +1436,7 @@ void refinementMovingGPoint (MGPoint *a, MGPoint *b,
                                              ub->p1.GetPosition(),
                                              ub->p1.GetPosition()));
         }
-        if (ua->timeInterval.rc && ub->timeInterval.rc ||
+        if ((ua->timeInterval.rc && ub->timeInterval.rc) ||
             (!ua->timeInterval.rc && !ub->timeInterval.rc)) {
           i++;
           if (i < a->GetNoComponents()) a->Get(i, ua);
@@ -1473,7 +1473,7 @@ void refinementMovingGPoint (MGPoint *a, MGPoint *b,
                                               ub->p0.GetPosition(),
                                               ub->p0.GetPosition()));
         }
-        if (ua->timeInterval.rc && ub->timeInterval.rc ||
+        if ((ua->timeInterval.rc && ub->timeInterval.rc) ||
             (!ua->timeInterval.rc && !ub->timeInterval.rc)) {
           i++;
           if (i < a->GetNoComponents()) a->Get(i, ua);
@@ -2187,7 +2187,7 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
                       pCurrJunct.GetRouteMeas() <= pCurr1->p1.GetPosition()) ||
                       (pCurr1->p1.GetPosition() <= pCurrJunct.GetRouteMeas() &&
                       pCurrJunct.GetRouteMeas() <= pCurr1->p0.GetPosition()) &&
-                      pCurrJunct.GetOtherRouteId() == pCurr2->p0.GetRouteId()) {
+                    (pCurrJunct.GetOtherRouteId() == pCurr2->p0.GetRouteId())){
                     found = true;
                     interPosition = pCurrJunct.GetRouteMeas();
                     // interPosition = pCurrJunct.getOtherRouteMeas();
@@ -3747,6 +3747,8 @@ void MGPoint::Union(MGPoint *mp, MGPoint *res){
       }
     }
   }
+  res->SetTrajectoryDefined(false);
+  res->SetBoundingBoxDefined(false);
 }
 
 TypeConstructor movinggpoint(
@@ -4220,7 +4222,20 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
 }
 
   const Rectangle<3> UGPoint::BoundingBox()const {
-   if (IsDefined()) {
+    if (IsDefined()) {
+      RouteInterval *ri = new RouteInterval(p0.GetRouteId(), p0.GetPosition(),
+                                         p1.GetPosition());
+      Network *pNetwork = NetworkManager::GetNetwork(p0.GetNetworkId());
+      Rectangle<2> rect = ri->BoundingBox(pNetwork);
+      NetworkManager::CloseNetwork(pNetwork);
+      delete ri;
+      return Rectangle<3> (true,
+                          rect.MinD(0), rect.MaxD(0),
+                          rect.MinD(1), rect.MaxD(1),
+                          timeInterval.start.ToDouble(),
+                          timeInterval.end.ToDouble());
+    } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+   /*if (IsDefined()) {
       Point *pt0 = p0.ToPoint();
       Point *pt1 = p1.ToPoint();
       double x1 = min(pt0->GetX(), pt1->GetX());
@@ -4232,7 +4247,7 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
       return Rectangle<3>(true, x1 , x2, y1, y2,
                           timeInterval.start.ToDouble(),
                           timeInterval.end.ToDouble());
-    } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);*/
   }
 
  double UGPoint::Distance(const Rectangle<3>& rect) const{
@@ -4246,6 +4261,18 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
  }
 
   Rectangle<3> UGPoint::BoundingBox(Network*& pNetwork)const{
+    if(IsDefined()){
+    RouteInterval *ri = new RouteInterval(p0.GetRouteId(), p0.GetPosition(),
+                                         p1.GetPosition());
+    Rectangle<2> rect = ri->BoundingBox(pNetwork);
+    delete ri;
+    return Rectangle<3>  (true,
+                          rect.MinD(0), rect.MaxD(0),
+                          rect.MinD(1), rect.MaxD(1),
+                          timeInterval.start.ToDouble(),
+                          timeInterval.end.ToDouble());
+    }else return Rectangle<3>(false,0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    /*
   if (IsDefined()) {
       Point *pt0 = p0.ToPoint(pNetwork);
       Point *pt1 = p1.ToPoint(pNetwork);
@@ -4258,7 +4285,7 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
       return Rectangle<3>(true, x1 , x2, y1, y2,
                           timeInterval.start.ToDouble(),
                           timeInterval.end.ToDouble());
-    } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);*/
   }
 
 
@@ -6733,7 +6760,7 @@ Operator tempnetunitboundingbox("unitboundingbox",
                 OpUnitBoundingBoxTypeMap );
 
 /*
-1.3.26 Operator ~unitboundingbox~
+1.3.26 Operator ~mgpointboundingbox~
 
 Returns the spatialtemporal bounding box of the ~ugpoint~.
 
