@@ -2186,8 +2186,8 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
                   if ((pCurr1->p0.GetPosition() <= pCurrJunct.GetRouteMeas() &&
                       pCurrJunct.GetRouteMeas() <= pCurr1->p1.GetPosition()) ||
                       (pCurr1->p1.GetPosition() <= pCurrJunct.GetRouteMeas() &&
-                      pCurrJunct.GetRouteMeas() <= pCurr1->p0.GetPosition()) &&
-                    (pCurrJunct.GetOtherRouteId() == pCurr2->p0.GetRouteId())){
+                      pCurrJunct.GetRouteMeas() <= pCurr1->p0.GetPosition() &&
+                    pCurrJunct.GetOtherRouteId() == pCurr2->p0.GetRouteId())){
                     found = true;
                     interPosition = pCurrJunct.GetRouteMeas();
                     // interPosition = pCurrJunct.getOtherRouteMeas();
