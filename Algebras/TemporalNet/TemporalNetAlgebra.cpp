@@ -1857,6 +1857,1158 @@ void MGPoint::Distance(MGPoint *&mgp, MReal *&result){
   }
   result->EndBulkLoad();
 }
+void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
+
+  Network* pNetwork = NetworkManager::GetNetwork(mgp->GetNetworkId());
+  UReal uReal(true);
+  result->StartBulkLoad();
+  const UGPoint* ugp1;
+  const UGPoint* ugp2;
+  UGPoint* ug1 = new UGPoint(true);
+  UGPoint* ug2 = new UGPoint(true);
+  Instant start;
+  Instant end;
+  Get(0,ugp1);
+  Get(0,ugp2);
+  if(ugp1->timeInterval.start < ugp2->timeInterval.start)
+    start = ugp2->timeInterval.start;
+  else
+    start = ugp1->timeInterval.start;
+  Get(GetNoComponents() - 1,ugp1);
+  mgp->Get(mgp->GetNoComponents() -1 ,ugp2);
+  if(ugp1->timeInterval.end < ugp2->timeInterval.end)
+    end = ugp1->timeInterval.end;
+  else
+    end = ugp2->timeInterval.end;
+  int pos1 = 0,pos2 = 0;
+  uReal.timeInterval.start = start;
+  Get(pos1,ugp1);
+  mgp->Get(pos2,ugp2);
+  *ug1 = *ugp1;
+  *ug2 = *ugp2;
+
+  while(1){
+    assert(ug1->timeInterval.start >= uReal.timeInterval.start);
+    assert(ug2->timeInterval.start >= uReal.timeInterval.start);
+
+    if(ug2->timeInterval.end < ug1->timeInterval.start){
+      pos2++;
+      mgp->Get(pos2,ugp2);
+      *ug2 = *ugp2;
+      continue;
+    }
+    if(ug2->timeInterval.start > ug1->timeInterval.end){
+      pos1++;
+      Get(pos1,ugp1);
+      *ug1 = *ugp1;
+      continue;
+    }
+
+    //starttime
+    if(ug1->timeInterval.start < uReal.timeInterval.start){ //split
+      GPoint gp0;
+      ug1->TemporalFunction(uReal.timeInterval.start,gp0,true);
+      assert(gp0.IsDefined());
+      ug1->timeInterval.start = uReal.timeInterval.start;
+      ug1->p0 = gp0;
+    }
+    if(ug2->timeInterval.start < uReal.timeInterval.start){ //split
+      GPoint gp0;
+      ug2->TemporalFunction(uReal.timeInterval.start,gp0,true);
+      assert(gp0.IsDefined());
+      ug2->timeInterval.start = uReal.timeInterval.start;
+      ug2->p0 = gp0;
+    }
+    //endtime
+    if(ug1->timeInterval.end < ug2->timeInterval.end){
+      uReal.timeInterval.end = ug1->timeInterval.end;
+      GPoint gp1;
+      ug2->TemporalFunction(uReal.timeInterval.end,gp1,true);
+      assert(gp1.IsDefined());
+      ug2->timeInterval.end = uReal.timeInterval.end;
+      ug2->p1 = gp1;
+
+      Point* p1_0 = new Point();
+      p1_0->SetDefined(true);
+      pNetwork->GetPointOnRoute(&ug1->p0,p1_0);
+      Point* p1_1 = new Point();
+      p1_1->SetDefined(true);
+      pNetwork->GetPointOnRoute(&ug1->p1,p1_1);
+      Point* p2_0 = new Point();
+      p2_0->SetDefined(true);
+      pNetwork->GetPointOnRoute(&ug2->p0,p2_0);
+      Point* p2_1 = new Point();
+      p2_1->SetDefined(true);
+      pNetwork->GetPointOnRoute(&ug2->p0,p2_1);
+
+     double dt = (uReal.timeInterval.end-uReal.timeInterval.start).ToDouble();
+      if(AlmostEqual(dt,0)){
+        uReal.a = 0.0;
+        uReal.b = 0.0;
+        uReal.c =  pow(fabs(p1_0->GetX()-p2_0->GetX()),2) +
+                 pow(fabs(p1_0->GetY()-p2_0->GetY()),2);
+        uReal.r = false;
+//        result->MergeAdd(uReal);
+      }else{
+        double v1_x = (p1_1->GetX() - p1_0->GetX()) / dt;
+        double v1_y = (p1_1->GetY() - p1_0->GetY()) / dt;
+        double v2_x = (p2_1->GetX() - p2_0->GetX()) / dt;
+        double v2_y = (p2_1->GetY() - p2_0->GetY()) / dt;
+        double a = pow(fabs(v1_x-v2_x),2)+pow(fabs(v1_y-v2_y),2);
+        double b = 2*((p1_0->GetX()-p2_0->GetX())*(v1_x-v2_x) +
+                      (p1_0->GetY()-p2_0->GetY())*(v1_y-v2_y));
+        double c = pow(fabs(p1_0->GetX()-p2_0->GetX()),2) +
+                 pow(fabs(p1_0->GetY()-p2_0->GetY()),2);
+        uReal.a = a;
+        uReal.b = b;
+        uReal.c = c;
+        uReal.r = true;
+        result->MergeAdd(uReal);
+      }
+      uReal.r = false;
+      uReal.timeInterval.start = uReal.timeInterval.end;
+      pos1++;
+      if(pos1 == GetNoComponents()){
+        delete p1_0;
+        delete p1_1;
+        delete p2_0;
+        delete p2_1;
+        break;
+      }
+      Get(pos1,ugp1);
+      *ug1 = *ugp1;
+      mgp->Get(pos2,ugp2);
+      *ug2 = *ugp2;
+      GPoint gp0;
+      ug2->TemporalFunction(uReal.timeInterval.start,gp0,true);
+      assert(gp0.IsDefined());
+      ug2->timeInterval.start = uReal.timeInterval.start;
+      ug2->p0 = gp0;
+      delete p1_0;
+      delete p1_1;
+      delete p2_0;
+      delete p2_1;
+
+    }else{ //ugp1->end > ugp2->end
+      uReal.timeInterval.end = ug2->timeInterval.end;
+      GPoint gp1;
+      ug1->TemporalFunction(uReal.timeInterval.end,gp1,true);
+      assert(gp1.IsDefined());
+      ug1->timeInterval.end = uReal.timeInterval.end;
+      ug1->p1 = gp1;
+
+      Point* p1_0 = new Point();
+      p1_0->SetDefined(true);
+      pNetwork->GetPointOnRoute(&ug1->p0,p1_0);
+      Point* p1_1 = new Point();
+      p1_1->SetDefined(true);
+      pNetwork->GetPointOnRoute(&ug1->p1,p1_1);
+      Point* p2_0 = new Point();
+      p2_0->SetDefined(true);
+      pNetwork->GetPointOnRoute(&ug2->p0,p2_0);
+      Point* p2_1 = new Point();
+      p2_1->SetDefined(true);
+      pNetwork->GetPointOnRoute(&ug2->p0,p2_1);
+      double dt = (uReal.timeInterval.end-uReal.timeInterval.start).ToDouble();
+      if(AlmostEqual(dt,0)){
+        uReal.a = 0.0;
+        uReal.b = 0.0;
+        uReal.c =  pow(fabs(p1_0->GetX()-p2_0->GetX()),2) +
+                 pow(fabs(p1_0->GetY()-p2_0->GetY()),2);
+        uReal.r = false;
+//        result->MergeAdd(uReal);
+      }else{
+        double v1_x = (p1_1->GetX() - p1_0->GetX()) / dt;
+        double v1_y = (p1_1->GetY() - p1_0->GetY()) / dt;
+        double v2_x = (p2_1->GetX() - p2_0->GetX()) / dt;
+        double v2_y = (p2_1->GetY() - p2_0->GetY()) / dt;
+        double a = pow(fabs(v1_x-v2_x),2)+pow(fabs(v1_y-v2_y),2);
+        double b = 2*((p1_0->GetX()-p2_0->GetX())*(v1_x-v2_x) +
+                      (p1_0->GetY()-p2_0->GetY())*(v1_y-v2_y));
+        double c = pow(fabs(p1_0->GetX()-p2_0->GetX()),2) +
+                 pow(fabs(p1_0->GetY()-p2_0->GetY()),2);
+        uReal.a = a;
+        uReal.b = b;
+        uReal.c = c;
+        uReal.r = true;
+        result->MergeAdd(uReal);
+      }
+      uReal.r = false;
+      uReal.timeInterval.start = uReal.timeInterval.end;
+      pos2++;
+      if(pos2 == mgp->GetNoComponents()){
+        delete p1_0;
+        delete p1_1;
+        delete p2_0;
+        delete p2_1;
+        break;
+      }
+      mgp->Get(pos2,ugp2);
+      *ug2 = *ugp2;
+      Get(pos1,ugp1);
+      *ug1 = *ugp1;
+      GPoint gp0;
+      ug1->TemporalFunction(uReal.timeInterval.start,gp0,true);
+      assert(gp0.IsDefined());
+      ug1->timeInterval.start = uReal.timeInterval.start;
+      ug1->p0 = gp0;
+      delete p1_0;
+      delete p1_1;
+      delete p2_0;
+      delete p2_1;
+    }
+  }
+  delete ug1;
+  delete ug2;
+  NetworkManager::CloseNetwork(pNetwork);
+  result->EndBulkLoad();
+}
+
+void MGPoint::DistanceFunction(UGPoint* ug1,UGPoint* ug2,Network* pNetwork,
+vector<UReal>& dist)
+{
+  assert(ug1->timeInterval.start == ug2->timeInterval.start);
+  assert(ug1->timeInterval.end == ug2->timeInterval.end);
+  if(*ug1 == *ug2){
+    UReal* ureal = new UReal(true);
+    ureal->timeInterval = ug1->timeInterval;
+    ureal->a = 0.0;
+    ureal->b = 0.0;
+    ureal->c = 0.0;
+    ureal->r = true;
+    dist.push_back(*ureal);
+    delete ureal;
+    return;
+  }
+
+  GPoint* gp1 = new GPoint(true,GetNetworkId(),ug1->p0.GetRouteId(),
+          (ug1->p0.GetPosition()+ug1->p1.GetPosition())/2,ug1->p0.GetSide());
+  Tuple* sec1 = pNetwork->GetSectionOnRoute(gp1);
+  GPoint* gp2 = new GPoint(true,GetNetworkId(),ug2->p0.GetRouteId(),
+          (ug2->p0.GetPosition()+ug2->p1.GetPosition())/2,ug2->p0.GetSide());
+  Tuple* sec2 = pNetwork->GetSectionOnRoute(gp2);
+  delete gp1;
+  delete gp2;
+
+  double m1 = ((CcReal*)sec1->GetAttribute(SECTION_MEAS1))->GetRealval();
+  double m2 = ((CcReal*)sec1->GetAttribute(SECTION_MEAS2))->GetRealval();
+  int rid1 = ug1->p0.GetRouteId();
+  GPoint* ep1_0 = new GPoint(true,GetNetworkId(),rid1,m1,ug1->p0.GetSide());
+  GPoint* ep1_1 = new GPoint(true,GetNetworkId(),rid1,m2,ug1->p0.GetSide());
+
+  double meas1 = fabs(ug1->p0.GetPosition() - ep1_0->GetPosition());
+  double meas2 = fabs(ug1->p0.GetPosition() - ep1_1->GetPosition());
+
+  m1 = ((CcReal*)sec2->GetAttribute(SECTION_MEAS1))->GetRealval();
+  m2 = ((CcReal*)sec2->GetAttribute(SECTION_MEAS2))->GetRealval();
+  int rid2 = ug2->p0.GetRouteId();
+  GPoint* ep2_0 = new GPoint(true,GetNetworkId(),rid2,m1,ug2->p0.GetSide());
+  GPoint* ep2_1 = new GPoint(true,GetNetworkId(),rid2,m2,ug2->p0.GetSide());
+  double meas3 = fabs(ug2->p0.GetPosition() - ep2_0->GetPosition());
+  double meas4 = fabs(ug2->p0.GetPosition() - ep2_1->GetPosition());
+//get the junction id
+  vector<JunctionSortEntry> juns;
+  CcInt* routeid1 = new CcInt(true,rid1);
+  pNetwork->GetJunctionsOnRoute(routeid1,juns);
+  TupleId j1 = 0;
+  TupleId j2 = 0;
+
+  for(unsigned int i = 0;i < juns.size();i++){
+    Tuple* t_jun = juns[i].m_pJunction;
+    if(((CcInt*)t_jun->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval() == rid1){
+      if(fabs(((CcReal*)t_jun->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval()
+          -ep1_0->GetPosition()) < 0.1)
+        j1 = t_jun->GetTupleId();
+      if(fabs(((CcReal*)t_jun->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval()
+          -ep1_1->GetPosition()) < 0.1)
+        j2 = t_jun->GetTupleId();
+    }
+    if(((CcInt*)t_jun->GetAttribute(JUNCTION_ROUTE2_ID))->GetIntval() == rid1){
+      if(fabs(((CcReal*)t_jun->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval()
+          -ep1_0->GetPosition()) < 0.1)
+        j1 = t_jun->GetTupleId();
+      if(fabs(((CcReal*)t_jun->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval()
+          -ep1_1->GetPosition()) < 0.1)
+        j2 = t_jun->GetTupleId();
+    }
+  }
+  delete routeid1;
+  juns.clear();
+  CcInt* routeid2 = new CcInt(true,rid2);
+  pNetwork->GetJunctionsOnRoute(routeid2,juns);
+  TupleId j3 = 0;
+  TupleId j4 = 0;
+  for(unsigned int i = 0;i < juns.size();i++){
+    Tuple* t_jun = juns[i].m_pJunction;
+    if(((CcInt*)t_jun->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval() == rid2){
+      if(fabs(((CcReal*)t_jun->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval()
+          -ep2_0->GetPosition()) < 0.1)
+        j3 = t_jun->GetTupleId();
+      if(fabs(((CcReal*)t_jun->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval()
+          -ep2_1->GetPosition()) < 0.1)
+        j4 = t_jun->GetTupleId();
+    }
+    if(((CcInt*)t_jun->GetAttribute(JUNCTION_ROUTE2_ID))->GetIntval() == rid2){
+      if(fabs(((CcReal*)t_jun->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval()
+          -ep2_0->GetPosition()) < 0.1)
+        j3 = t_jun->GetTupleId();
+      if(fabs(((CcReal*)t_jun->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval()
+          -ep2_1->GetPosition()) < 0.1)
+        j4 = t_jun->GetTupleId();
+    }
+  }
+  delete routeid2;
+//  cout<<j1<<" "<<j2<<" "<<j3<<" "<<j4<<endl;
+//find network distance from storage
+  double l1,l2,l3,l4;
+  GLine* gline1 = new GLine(0);
+  GLine* gline2 = new GLine(0);
+  GLine* gline3 = new GLine(0);
+  GLine* gline4 = new GLine(0);
+  l1 = l2 = l3 = l4 = 0;
+  if(j1 == 0){  // not junction point, the start or end point of one route
+    assert(j2 != 0);
+    if(j3 == 0){
+      assert(j4 != 0);
+      pNetwork->FindSP(j2,j4,l4,gline4);
+      l3 = l4;
+      l3 += fabs(ep2_1->GetPosition()-ep2_0->GetPosition());
+      *gline3 = *gline4;
+      gline3->AddRouteInterval(rid2,ep2_1->GetPosition(),ep2_0->GetPosition());
+    }else{
+      pNetwork->FindSP(j2,j3,l3,gline3);
+      if(j4 == 0){
+        l4 = l3;
+        l4 += fabs(ep2_0->GetPosition()-ep2_1->GetPosition());
+        *gline4 = *gline3;
+       gline4->AddRouteInterval(rid2,ep2_0->GetPosition(),ep2_1->GetPosition());
+      }else
+        pNetwork->FindSP(j2,j4,l4,gline4);
+    }
+      l1 = l3;
+      l1 += fabs(ep1_0->GetPosition()-ep1_1->GetPosition());
+      *gline1 = *gline3;
+      gline1->AddRouteInterval(rid1,ep1_0->GetPosition(),ep1_1->GetPosition());
+
+    l2 = l4;
+      l2 += fabs(ep1_0->GetPosition()-ep1_1->GetPosition());
+      *gline2 = *gline4;
+      gline2->AddRouteInterval(rid1,ep1_0->GetPosition(),ep1_1->GetPosition());
+
+  }else{
+    if(j2 == 0){ //j2 not junction point
+      if(j3 == 0){
+        assert(j4 != 0);
+        pNetwork->FindSP(j1,j4,l2,gline2);
+        l1 = l2;
+        l1 += fabs(ep2_1->GetPosition()-ep2_0->GetPosition());
+        *gline1 = *gline2;
+      gline1->AddRouteInterval(rid2,ep2_1->GetPosition(),ep2_0->GetPosition());
+
+      }else{
+        pNetwork->FindSP(j1,j3,l1,gline1);
+        if(j4 == 0){
+          l2 = l1;
+          l2 += fabs(ep2_0->GetPosition()-ep2_1->GetPosition());
+          *gline2 = *gline1;
+       gline2->AddRouteInterval(rid2,ep2_0->GetPosition(),ep2_1->GetPosition());
+        }else //j3 !=0 j4 != 0
+          pNetwork->FindSP(j1,j4,l2,gline2);
+      }
+    l3 = l1;
+     l3 += fabs(ep1_1->GetPosition()-ep1_0->GetPosition());
+     *gline3 = *gline1;
+     gline3->AddRouteInterval(rid1,ep1_1->GetPosition(),ep1_0->GetPosition());
+
+      l4 = l2;
+      l4 += fabs(ep1_1->GetPosition()-ep1_0->GetPosition());
+      *gline4 = *gline2;
+      gline4->AddRouteInterval(rid1,ep1_1->GetPosition(),ep1_0->GetPosition());
+
+    }else{
+      if(j3 == 0){
+        assert(j4 != 0);
+        pNetwork->FindSP(j1,j4,l2,gline2);
+        pNetwork->FindSP(j2,j4,l4,gline4);
+        if(j1 == j3)
+          gline1->SetNetworkId(gline2->GetNetworkId());
+        else{
+          l1 = l2;
+          l1 += fabs(ep2_1->GetPosition()-ep2_0->GetPosition());
+          *gline1 = *gline2;
+      gline1->AddRouteInterval(rid2,ep2_1->GetPosition(),ep2_0->GetPosition());
+        }
+        l3 = l4;
+          l3 += fabs(ep2_1->GetPosition()-ep2_0->GetPosition());
+          *gline3 = *gline4;
+       gline3->AddRouteInterval(rid2,ep2_1->GetPosition(),ep2_0->GetPosition());
+
+      }else{
+        pNetwork->FindSP(j1,j3,l1,gline1);
+        pNetwork->FindSP(j2,j3,l3,gline3);
+        if(j4 == 0){
+          if(j1 == j4)
+            gline2->SetNetworkId(gline1->GetNetworkId());
+          else{
+          l2 = l1;
+          l2 += fabs(ep2_0->GetPosition()-ep2_1->GetPosition());
+          *gline2 = *gline1;
+       gline2->AddRouteInterval(rid2,ep2_0->GetPosition(),ep2_1->GetPosition());
+          }
+          l4 = l3;
+            l4 += fabs(ep2_0->GetPosition()-ep2_1->GetPosition());
+            *gline4 = *gline3;
+       gline4->AddRouteInterval(rid2,ep2_0->GetPosition(),ep2_1->GetPosition());
+
+        }else{
+          pNetwork->FindSP(j1,j4,l2,gline2);
+          pNetwork->FindSP(j2,j4,l4,gline4);
+        }
+      }
+    }
+  }
+//  cout<<l1<<" "<<l2<<" "<<l3<<" "<<l4<<endl;
+
+  GLine* gl1 = new GLine(0);
+  GLine* gl2 = new GLine(0);
+  GLine* gl3 = new GLine(0);
+  GLine* gl4 = new GLine(0);
+  double dist1 = ep1_0->NewNetdistance(ep2_0,gl1);//ignore side info
+  double dist2 = ep1_0->NewNetdistance(ep2_1,gl2);
+  double dist3 = ep1_1->NewNetdistance(ep2_0,gl3);
+  double dist4 = ep1_1->NewNetdistance(ep2_1,gl4);
+
+//  ep1_0->Print(cout);
+//  ep1_1->Print(cout);
+//  ep2_0->Print(cout);
+//  ep2_1->Print(cout);
+//  gl1->Print(cout);
+//  gl2->Print(cout);
+//  gl3->Print(cout);
+//  gl4->Print(cout);
+//  cout<<dist1<<" "<<dist2<<" "<<dist3<<" "<<dist4<<endl;
+
+  double v1 = ug1->p0.Netdistance(&ug1->p1)/
+        (ug1->timeInterval.end-ug1->timeInterval.start).ToDouble();
+  double v2 = ug2->p0.Netdistance(&ug2->p1)/
+        (ug2->timeInterval.end-ug2->timeInterval.start).ToDouble();
+
+  vector<double> c;
+  vector<double> b;
+  if(sec1->GetTupleId() == sec2->GetTupleId()){ // in the same section
+    double dist = fabs(ug1->p0.GetPosition()-ug2->p0.GetPosition());
+    c.push_back(dist);
+    if(ug1->p0.GetSide() == 0){
+      if(ug2->p0.GetSide() == 0){ //ug1 down ug2 down
+        if(ug1->p0.GetPosition() < ug2->p0.GetPosition())
+          b.push_back(v1-v2);
+        else
+          b.push_back(v2-v1);
+      }else{//ug1 down ug2 up
+        if(ug1->p0.GetPosition() < ug2->p0.GetPosition())
+          b.push_back(v1+v2);
+        else
+          b.push_back(-(v1+v2));
+      }
+    }else{
+       if(ug2->p0.GetSide() == 0){ //ug1 up ug2 down
+        if(ug1->p0.GetPosition() < ug2->p0.GetPosition())
+          b.push_back(-(v1+v2));
+        else
+          b.push_back(v1+v2);
+      }else{ //ug1 up ug2 up
+        if(ug1->p0.GetPosition() < ug2->p0.GetPosition())
+          b.push_back(v2-v1);
+        else
+          b.push_back(v1-v2);
+      }
+    }
+  }else{ //different section
+  if(ug1->p0.GetSide() == 0){ //ug1 Down
+    if(ug2->p0.GetSide() == 0){ //ug1 Down ug2 Down
+      assert(ep2_1->Inside(gl1) == ep2_1->Inside(gline1));
+      if(ep2_1->Inside(gl1)){ //gl1
+        if(ep1_1->Inside(gl1)){
+          c.push_back(dist1-meas1-meas3);
+          b.push_back(v1+v2);
+        }
+        else{
+          c.push_back(meas1+dist1-meas3);
+          b.push_back(v2-v1);
+        }
+        assert(ep2_0->Inside(gl2) == false);
+        assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+      }else{
+
+        assert(ep1_1->Inside(gl1) == ep1_1->Inside(gline1));
+        if(ep1_1->Inside(gl1)){
+
+          c.push_back(dist1-meas1+meas3);
+          b.push_back(v1-v2);
+        }
+        else{
+          c.push_back(meas1+dist1+meas3);
+          b.push_back(-(v2+v1));
+        }
+
+      }
+      assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+      if(ep2_0->Inside(gl2)){//gl2
+        if(ep1_1->Inside(gl1)){
+          c.push_back(dist2-meas1-meas4);
+          b.push_back(v1-v2);
+        }else{
+          c.push_back(dist2+meas1-meas4);
+          b.push_back(-(v2+v1));
+        }
+      }else{
+          if(ep1_1->Inside(gl1)){
+            c.push_back(dist2-meas1+meas4);
+            b.push_back(v1+v2);
+          }
+          else{
+            c.push_back(meas1+dist2+meas4);
+            b.push_back(v2-v1);
+          }
+        }
+      assert(ep2_1->Inside(gl3) == ep2_1->Inside(gline3));
+      if(ep2_1->Inside(gl3)){//gl3
+        if(ep1_0->Inside(gl3)){
+          c.push_back(dist3-meas2-meas3);
+          b.push_back(v2-v1);
+        }
+        else{
+          c.push_back(meas2+dist3-meas3);
+          b.push_back(v1+v2);
+        }
+      }else{
+        assert(ep1_0->Inside(gl3) == ep1_0->Inside(gline3));
+        if(ep1_0->Inside(gl3)){
+          c.push_back(dist3-meas2+meas3);
+          b.push_back(-(v1+v2));
+        }
+        else{
+          c.push_back(meas2+dist3+meas3);
+          b.push_back(v1-v2);
+        }
+      }
+      assert(ep2_0->Inside(gl4) == ep2_0->Inside(gline4));
+      if(ep2_0->Inside(gl4)){ //gl4
+        if(ep1_0->Inside(gl4)){
+          c.push_back(dist4-meas2-meas4);
+          b.push_back(-(v2+v1));
+        }else{
+          c.push_back(dist4+meas2-meas4);
+          b.push_back(v1-v2);
+        }
+      }else{
+        if(ep1_0->Inside(gl4)){
+            c.push_back(dist4-meas2+meas4);
+            b.push_back(v2-v1);
+        }
+        else{
+            c.push_back(meas2+dist4+meas4);
+            b.push_back(v1+v2);
+        }
+      }
+
+    }else{ //case2 ug1 down ug2 Up
+      assert(ep2_1->Inside(gl1) == ep2_1->Inside(gline1));
+      if(ep2_1->Inside(gl1)){ //gl1
+        if(ep1_1->Inside(gl1)){
+          c.push_back(dist1-meas1-meas3);
+          b.push_back(v1-v2);
+        }
+        else{
+          c.push_back(meas1+dist1-meas3);
+          b.push_back(-(v1+v2));
+        }
+        assert(ep2_0->Inside(gl2) == false);
+        assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+      }else{
+
+        assert(ep1_1->Inside(gl1) == ep1_1->Inside(gline1));
+        if(ep1_1->Inside(gl1)){
+
+          c.push_back(dist1-meas1+meas3);
+          b.push_back(v1+v2);
+        }
+        else{
+          c.push_back(meas1+dist1+meas3);
+          b.push_back(v2-v1);
+        }
+      }
+      assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+      if(ep2_0->Inside(gl2)){ //gl2
+        if(ep1_1->Inside(gl1)){
+          c.push_back(dist2-meas1-meas4);
+          b.push_back(v1+v2);
+        }else{
+          c.push_back(dist2+meas1-meas4);
+          b.push_back(v2-v1);
+        }
+      }else{
+          if(ep1_1->Inside(gl1)){
+            c.push_back(dist2-meas1+meas4);
+            b.push_back(v1-v2);
+          }
+          else{
+            c.push_back(meas1+dist2+meas4);
+            b.push_back(-(v1+v2));
+          }
+        }
+      assert(ep2_1->Inside(gl3) == ep2_1->Inside(gline3));
+      if(ep2_1->Inside(gl3)){ //gl3
+        if(ep1_0->Inside(gl3)){
+          c.push_back(dist3-meas2-meas3);
+          b.push_back(-(v1+v2));
+        }
+        else{
+          c.push_back(meas2+dist3-meas3);
+          b.push_back(v1-v2);
+        }
+      }else{
+        assert(ep1_0->Inside(gl3) == ep1_0->Inside(gline3));
+        if(ep1_0->Inside(gl3)){
+          c.push_back(dist3-meas2+meas3);
+          b.push_back(v1-v2);
+        }
+        else{
+
+          c.push_back(meas2+dist3+meas3);
+          b.push_back(v2+v1);
+        }
+      }
+      assert(ep2_0->Inside(gl4) == ep2_0->Inside(gline4));
+      if(ep2_0->Inside(gl4)){ //gl4
+        if(ep1_0->Inside(gl4)){
+          c.push_back(dist4-meas2-meas4);
+          b.push_back(v2-v1);
+        }else{
+
+          c.push_back(dist4+meas2-meas4);
+          b.push_back(v1+v2);
+        }
+      }else{
+        if(ep1_0->Inside(gl4)){
+            c.push_back(dist4-meas2+meas4);
+            b.push_back(-(v1+v2));
+        }
+        else{
+            c.push_back(meas2+dist4+meas4);
+            b.push_back(v1-v2);
+        }
+      }
+    }
+  }else{ //ug1 Up
+    if(ug2->p0.GetSide() == 0){ //case3 ug1 Up ug2 Down
+      assert(ep2_1->Inside(gl1) == ep2_1->Inside(gline1));
+      if(ep2_1->Inside(gl1)){ //gl1
+        if(ep1_1->Inside(gl1)){
+          c.push_back(dist1-meas1-meas3);
+          b.push_back(v2-v1);
+        }
+        else{
+          c.push_back(meas1+dist1-meas3);
+          b.push_back(v1+v2);
+        }
+        assert(ep2_0->Inside(gl2) == false);
+        assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+      }else{
+        assert(ep1_1->Inside(gl1) == ep1_1->Inside(gline1));
+        if(ep1_1->Inside(gl1)){
+          c.push_back(dist1-meas1+meas3);
+          b.push_back(-(v2+v1));
+        }
+        else{
+          c.push_back(meas1+dist1+meas3);
+          b.push_back(v1-v2);
+        }
+      }
+      assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+      if(ep2_0->Inside(gl2)){ //gl2
+        if(ep1_1->Inside(gl2)){
+          c.push_back(dist2-meas1-meas4);
+          b.push_back(-(v2+v1));
+        }else{
+          c.push_back(dist2+meas1-meas4);
+          b.push_back(v1-v2);
+        }
+      }else{
+          if(ep1_1->Inside(gl2)){
+            c.push_back(dist2-meas1+meas4);
+            b.push_back(v2-v1);
+          }
+          else{
+            c.push_back(meas1+dist2+meas4);
+            b.push_back(v2+v1);
+          }
+        }
+      assert(ep2_1->Inside(gl3) == ep2_1->Inside(gline3));
+      if(ep2_1->Inside(gl3)){ //gl3
+        if(ep1_0->Inside(gl3)){
+          c.push_back(dist3-meas2-meas3);
+          b.push_back(v1+v2);
+        }
+        else{
+          c.push_back(meas2+dist3-meas3);
+          b.push_back(v2-v1);
+
+        }
+      }else{
+        assert(ep1_0->Inside(gl3) == ep1_0->Inside(gline3));
+        if(ep1_0->Inside(gl3)){//gl3
+          c.push_back(dist3-meas2+meas3);
+          b.push_back(v1-v2);
+        }
+        else{
+          c.push_back(meas2+dist3+meas3);
+          b.push_back(-(v2+v1));
+        }
+      }
+      assert(ep2_0->Inside(gl4) == ep2_0->Inside(gline4));
+      if(ep2_0->Inside(gl4)){//gl4
+        if(ep1_0->Inside(gl4)){
+          c.push_back(dist4-meas2-meas4);
+          b.push_back(v1-v2);
+        }else{
+          c.push_back(dist4+meas2-meas4);
+          b.push_back(-(v2+v1));
+        }
+      }else{
+        if(ep1_0->Inside(gl4)){
+          c.push_back(dist4-meas2+meas4);
+          b.push_back(v1+v2);
+        }
+        else{
+          c.push_back(meas2+dist4+meas4);
+          b.push_back(v2-v1);
+        }
+      }
+    }else{//case4 ug1 Up ug2 Up
+      assert(ep2_1->Inside(gl1) == ep2_1->Inside(gline1));
+      if(ep2_1->Inside(gl1)){//gl1
+        if(ep1_1->Inside(gl1)){
+          c.push_back(dist1-meas1-meas3);
+          b.push_back(-(v1+v2));
+        }
+        else{
+          c.push_back(meas1+dist1-meas3);
+          b.push_back(v1-v2);
+        }
+        assert(ep2_0->Inside(gl2) == false);
+        assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+      }else{
+        assert(ep1_1->Inside(gl1) == ep1_1->Inside(gline1));
+        if(ep1_1->Inside(gl1)){
+          c.push_back(dist1-meas1+meas3);
+          b.push_back(v2-v1);
+        }
+        else{
+          c.push_back(meas1+dist1+meas3);
+          b.push_back(v1+v2);
+        }
+      }
+      assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
+      if(ep2_0->Inside(gl2)){ //gl2
+        if(ep1_1->Inside(gl2)){
+          c.push_back(dist2-meas1-meas4);
+          b.push_back(v2-v1);
+        }else{
+          c.push_back(dist2+meas1-meas4);
+          b.push_back(v1+v2);
+        }
+      }else{
+          if(ep1_1->Inside(gl2)){
+            c.push_back(dist2-meas1+meas4);
+            b.push_back(-(v1+v2));
+          }
+          else{
+            c.push_back(meas1+dist2+meas4);
+            b.push_back(v1-v2);
+          }
+        }
+      assert(ep2_1->Inside(gl3) == ep2_1->Inside(gline3));
+      if(ep2_1->Inside(gl3)){ //gl3
+        if(ep1_0->Inside(gl3)){
+          c.push_back(dist3-meas2-meas3);
+          b.push_back(v1-v2);
+        }
+        else{
+          c.push_back(meas2+dist3-meas3);
+          b.push_back(-(v1+v2));
+        }
+      }else{
+        assert(ep1_0->Inside(gl3) == ep1_0->Inside(gline3));
+        if(ep1_0->Inside(gl3)){//gl3
+          c.push_back(dist3-meas2+meas3);
+          b.push_back(v1+v2);
+        }
+        else{
+          c.push_back(meas2+dist3+meas3);
+          b.push_back(v2-v1);
+        }
+      }
+      assert(ep2_0->Inside(gl4) == ep2_0->Inside(gline4));
+      if(ep2_0->Inside(gl4)){//gl4
+        if(ep1_0->Inside(gl4)){
+          c.push_back(dist4-meas2-meas4);
+          b.push_back(v1+v2);
+        }else{
+          c.push_back(dist4+meas2-meas4);
+          b.push_back(v2-v1);
+        }
+      }else{
+        if(ep1_0->Inside(gl4)){
+          c.push_back(dist4-meas2+meas4);
+          b.push_back(v1-v2);
+        }
+        else{
+          c.push_back(meas2+dist4+meas4);
+          b.push_back(-(v1+v2));
+        }
+      }
+     }
+    }
+  }
+
+  //find the split points
+  vector<double> split_time;
+  for(unsigned int i = 0;i < c.size();i++){
+    for(unsigned int j = i + 1;j< c.size();j++){
+      double cc = c[j] - c[i];
+      double bb = b[i] - b[j];
+      if(!AlmostEqual(bb,0)){
+        if(!AlmostEqual(cc/bb,0) && cc/bb > 0.0){
+          Instant time(instanttype);
+          time.ReadFrom(cc/bb);
+          if(time > ug1->timeInterval.start && time < ug1->timeInterval.end )
+            split_time.push_back(cc/bb);
+        }
+      }
+    }
+  }
+  sort(split_time.begin(),split_time.end());
+  vector<double>::iterator end = unique(split_time.begin(),split_time.end());
+  vector<double>::iterator begin = split_time.begin();
+  Instant time(instanttype);
+
+  double d = c[0]; //store distance
+  vector<double> result_time;
+  vector<double> result_dist;
+  for(unsigned int i = 1;i < c.size();i ++){
+    if(c[i] < d)
+      d = c[i];
+  }
+  result_time.push_back(0); //start time;
+  result_dist.push_back(d); //start distance
+
+  for(;begin != end;begin++){
+    time.ReadFrom(*begin);
+    double dt = (time - ug1->timeInterval.start).ToDouble();
+    d = b[0]*dt+c[0];
+    for(unsigned int i = 1;i < c.size();i++){
+      if(b[i]*dt+c[i] < d)
+        d = b[i]*dt+c[i];
+    }
+    result_time.push_back(dt);
+    result_dist.push_back(d);
+  }
+
+  double dt = (ug1->timeInterval.end-ug1->timeInterval.start).ToDouble();
+  d = b[0]*dt+c[0];//dist
+  for(unsigned int i = 1;i < c.size();i ++){
+    if(b[i]*dt+c[i] < d)
+      d = b[i]*dt+c[i];
+  }
+  result_time.push_back((ug1->timeInterval.end-
+                        ug1->timeInterval.start).ToDouble());//end time;
+  result_dist.push_back(d);//end distance
+  for(unsigned int i = 0;i < result_time.size() - 1;i++){
+    UReal* ureal = new UReal(true);
+    time.ReadFrom(result_time[i]+ug1->timeInterval.start.ToDouble());
+    ureal->timeInterval.start = time;
+    time.ReadFrom(result_time[i+1]+ug1->timeInterval.start.ToDouble());
+    ureal->timeInterval.end = time;
+
+    double b = (result_dist[i+1]-result_dist[i])/
+                (result_time[i+1]-result_time[i]);
+
+    double c = result_dist[i]-b*result_time[i];
+    ureal->a = pow(b,2);
+    ureal->b = 2*b*c;
+    ureal->c = pow(c,2);
+    ureal->r = true;
+    dist.push_back(*ureal);
+
+    delete ureal;
+  }
+  delete gl1;
+  delete gl2;
+  delete gl3;
+  delete gl4;
+  delete ep1_0;
+  delete ep1_1;
+  delete ep2_0;
+  delete ep2_1;
+  delete gline1;
+  delete gline2;
+  delete gline3;
+  delete gline4;
+
+  sec1->DeleteIfAllowed();
+  sec2->DeleteIfAllowed();
+}
+/*
+let p0 and p1 of the UGPoint in the same section
+
+*/
+void MGPoint::DivideUGPoint(Network* pNetwork)
+{
+  MGPoint* mgp = new MGPoint(0);
+  mgp->StartBulkLoad();
+  const UGPoint* ug1;
+  UGPoint* ug;
+  for(unsigned int i = 0;i < GetNoComponents();i++){
+    Get(i,ug1);
+    ug = const_cast<UGPoint*>(ug1);
+    Tuple* tuple1 = pNetwork->GetSectionOnRoute(&ug->p0);
+    Tuple* tuple2 = pNetwork->GetSectionOnRoute(&ug->p1);
+    assert(tuple1 != NULL);
+    assert(tuple  != NULL);
+    if(tuple1->GetTupleId() == tuple2->GetTupleId()){
+      mgp->Add(*ug);
+      continue;
+    }
+    /*
+    assume that there is at most one junction point between p0 and p1
+    this is very important because more junction points make it much complex
+    to split the UGPoint
+    */
+    double dt = (ug->timeInterval.end-ug->timeInterval.start).ToDouble();
+
+    if(AlmostEqual(dt,0)){
+      continue;
+    }
+    double length = ug->p0.Netdistance(&ug->p1);
+    GPoint* endp1;
+    assert(ug->p0.GetSide() != None);  //None is not allowed
+    double pos1;
+    if(ug->p0.GetSide() == Down)
+      pos1 = ((CcReal*)tuple1->GetAttribute(SECTION_MEAS1))->GetRealval();
+    if(ug->p0.GetSide() == Up)
+      pos1 = ((CcReal*)tuple1->GetAttribute(SECTION_MEAS2))->GetRealval();
+    endp1 = new GPoint(true,GetNetworkId(),ug->p0.GetRouteId(),
+                      pos1,ug->p0.GetSide());
+
+
+    double dist1 = fabs(pos1-ug->p0.GetPosition());
+    UGPoint* u1 = new UGPoint(*ug1);
+    Instant middle(u1->timeInterval.start+
+                  (ug->timeInterval.end-ug->timeInterval.start)*dist1/length);
+    GPoint gp;
+    u1->TemporalFunction(middle,gp,true);
+    assert(gp.IsDefined());
+    u1->timeInterval.end = middle;
+    u1->timeInterval.rc = false;
+    u1->p1 = gp;
+    mgp->Add(*u1);
+    delete u1;
+
+    GPoint* endp2;
+    double pos2;
+    if(ug->p1.GetSide() == Down)
+      pos2 = ((CcReal*)tuple2->GetAttribute(SECTION_MEAS2))->GetRealval();
+    if(ug->p0.GetSide() == Up)
+      pos2 = ((CcReal*)tuple2->GetAttribute(SECTION_MEAS1))->GetRealval();
+    endp2 = new GPoint(true,GetNetworkId(),ug->p1.GetRouteId(),
+                       pos2,ug->p0.GetSide());
+
+    double dist2 = fabs(pos2-ug->p1.GetPosition());
+    UGPoint* u2 = new UGPoint(*ug1);
+    u2->TemporalFunction(middle,gp,true);
+    assert(gp.IsDefined());
+    u2->timeInterval.start = middle;
+    u2->p0 = gp;
+    mgp->Add(*u2);
+
+    delete u2;
+    delete endp1;
+    delete endp2;
+  }
+  mgp->EndBulkLoad(true);
+  *this = *mgp;
+
+}
+void MGPoint::DistanceN(MGPoint* mgp, MReal* result){
+
+  Network* pNetwork = NetworkManager::GetNetwork(mgp->GetNetworkId());
+  DivideUGPoint(pNetwork);  //partition ugpoints
+  mgp->DivideUGPoint(pNetwork);
+
+  UReal uReal(true);
+  result->StartBulkLoad();
+  const UGPoint* ugp1;
+  const UGPoint* ugp2;
+  UGPoint* ug1 = new UGPoint(true);
+  UGPoint* ug2 = new UGPoint(true);
+  Instant start;
+  Instant end;
+  Get(0,ugp1);
+  mgp->Get(0,ugp2);
+
+  if(ugp1->timeInterval.start < ugp2->timeInterval.start)
+    start = ugp2->timeInterval.start;
+  else
+    start = ugp1->timeInterval.start;
+  Get(GetNoComponents() - 1,ugp1);
+  mgp->Get(mgp->GetNoComponents() - 1 ,ugp2);
+  if(ugp1->timeInterval.end < ugp2->timeInterval.end)
+    end = ugp1->timeInterval.end;
+  else
+    end = ugp2->timeInterval.end;
+  int pos1 = 0,pos2 = 0;
+  uReal.timeInterval.start = start;
+  Get(pos1,ugp1);
+  mgp->Get(pos2,ugp2);
+  *ug1 = *ugp1;
+  *ug2 = *ugp2;
+
+  while(1){
+
+    if(ug2->timeInterval.end < ug1->timeInterval.start){
+      pos2++;
+      mgp->Get(pos2,ugp2);
+      *ug2 = *ugp2;
+      continue;
+    }
+    if(ug2->timeInterval.start > ug1->timeInterval.end){
+      pos1++;
+      Get(pos1,ugp1);
+      *ug1 = *ugp1;
+      continue;
+    }
+
+    //starttime
+    if(ug1->timeInterval.start < uReal.timeInterval.start){ //time split
+      GPoint gp0;
+      ug1->TemporalFunction(uReal.timeInterval.start,gp0,true);
+      assert(gp0.IsDefined());
+      ug1->timeInterval.start = uReal.timeInterval.start;
+      ug1->p0 = gp0;
+    }
+    if(ug2->timeInterval.start < uReal.timeInterval.start){ //time split
+      GPoint gp0;
+      ug2->TemporalFunction(uReal.timeInterval.start,gp0,true);
+      assert(gp0.IsDefined());
+      ug2->timeInterval.start = uReal.timeInterval.start;
+      ug2->p0 = gp0;
+    }
+    //endtime
+    if(ug1->timeInterval.end < ug2->timeInterval.end){ //ug1.end < ug2.end
+      uReal.timeInterval.end = ug1->timeInterval.end;
+      GPoint gp1;
+      ug2->TemporalFunction(uReal.timeInterval.end,gp1,true);
+      assert(gp1.IsDefined());
+      ug2->timeInterval.end = uReal.timeInterval.end;
+      ug2->p1 = gp1;
+
+      double dt = (uReal.timeInterval.end-uReal.timeInterval.start).ToDouble();
+      if(AlmostEqual(dt,0)){
+        uReal.a = 0.0;
+        uReal.b = 0.0;
+        uReal.c = 0;
+        uReal.r = false;
+//        result->MergeAdd(uReal);
+      }else{
+        vector<UReal> df;//distance function
+        DistanceFunction(ug1,ug2,pNetwork,df);
+        for(unsigned int i = 0;i < df.size();i++){
+          uReal.timeInterval = df[i].timeInterval;
+          if(uReal.timeInterval.end == end)
+            uReal.timeInterval.rc = true;
+          else
+            uReal.timeInterval.rc = false;
+          uReal.a = df[i].a;
+          uReal.b = df[i].b;
+          uReal.c = df[i].c;
+          uReal.r = true;
+
+          result->MergeAdd(uReal);
+        }
+      }
+      uReal.r = false;
+      uReal.timeInterval.start = uReal.timeInterval.end;
+      pos1++;
+      if(pos1 == GetNoComponents()){
+        break;
+      }
+      Get(pos1,ugp1);
+      *ug1 = *ugp1;
+      mgp->Get(pos2,ugp2);
+      *ug2 = *ugp2;
+      GPoint gp0;
+      ug2->TemporalFunction(uReal.timeInterval.start,gp0,true);
+      assert(gp0.IsDefined());
+      ug2->timeInterval.start = uReal.timeInterval.start;
+      ug2->p0 = gp0;
+
+    }else{ //ugp1->end > ugp2->end
+      uReal.timeInterval.end = ug2->timeInterval.end;
+      GPoint gp1;
+      ug1->TemporalFunction(uReal.timeInterval.end,gp1,true);
+      assert(gp1.IsDefined());
+      ug1->timeInterval.end = uReal.timeInterval.end;
+      ug1->p1 = gp1;
+
+      double dt = (uReal.timeInterval.end-uReal.timeInterval.start).ToDouble();
+      if(AlmostEqual(dt,0)){
+        uReal.a = 0.0;
+        uReal.b = 0.0;
+        uReal.c = 0.0;
+        uReal.r = false;
+//        result->MergeAdd(uReal);
+      }else{
+        double v1 = ug1->p0.Distance(&ug1->p1)/dt;
+        double v2 = ug2->p0.Distance(&ug2->p1)/dt;
+        vector<UReal> df;//distance function
+        DistanceFunction(ug1,ug2,pNetwork,df);
+        for(unsigned int i = 0;i < df.size();i++){
+          uReal.timeInterval = df[i].timeInterval;
+          if(uReal.timeInterval.end == end)
+            uReal.timeInterval.rc = true;
+          else
+            uReal.timeInterval.rc = false;
+
+          uReal.a = df[i].a;
+          uReal.b = df[i].b;
+          uReal.c = df[i].c;
+          uReal.r = true;
+          result->MergeAdd(uReal);
+        }
+      }
+      uReal.r = false;
+      uReal.timeInterval.start = uReal.timeInterval.end;
+      pos2++;
+      if(pos2 == mgp->GetNoComponents()){
+        break;
+      }
+      mgp->Get(pos2,ugp2);
+      *ug2 = *ugp2;
+      Get(pos1,ugp1);
+      *ug1 = *ugp1;
+      GPoint gp0;
+      ug1->TemporalFunction(uReal.timeInterval.start,gp0,true);
+      assert(gp0.IsDefined());
+      ug1->timeInterval.start = uReal.timeInterval.start;
+      ug1->p0 = gp0;
+    }
+  }
+  delete ug1;
+  delete ug2;
+  NetworkManager::CloseNetwork(pNetwork);
+  result->EndBulkLoad();
+}
 
 /*
 Translation from network ~mgpoint~ to spatial ~mpoint~
@@ -6929,7 +8081,9 @@ int OpDistanceValueMapping(Word* args,
     pResult->SetDefined(false);
     return 0;
   }
-  pMGPoint1->Distance(pMGPoint2, pResult);
+//    pMGPoint1->Distance(pMGPoint2, pResult);
+//    pMGPoint1->DistanceE(pMGPoint2, pResult);
+  pMGPoint1->DistanceN(pMGPoint2, pResult);
   return 0;
 }
 
