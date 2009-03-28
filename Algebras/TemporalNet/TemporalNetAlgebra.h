@@ -166,7 +166,13 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     TemporalUnit<GPoint>::defined = source.defined;
   }
 
-
+  ostream& Print( ostream &os ) const
+  {
+    timeInterval.Print(os);
+    p0.Print(os);
+    p1.Print(os);
+    return os;
+  }
 /*
 Operator redefinitions
 
@@ -390,7 +396,10 @@ distance function.
 */
 
     void Distance(MGPoint *&mgp, MReal *&result);
-
+    void DistanceE(MGPoint* mgp, MReal* result);
+    void DistanceN(MGPoint* mgp, MReal* result);
+    void DistanceFunction(UGPoint*,UGPoint*,Network*,vector<UReal>&);
+    void DivideUGPoint(Network*);
 /*
 Translates an mgpoint into an mpoint value.
 
