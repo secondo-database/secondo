@@ -5398,22 +5398,103 @@ struct MQKnearest{
   unsigned int k;
   TupleType* resulttype;
   vector<PointNeighbor> results;
-  bool calculate;// true---calculate, false---show
   vector<PointNeighbor>::iterator iter;
-  vector<PointNeighbor> distance;
+  vector<PointNeighbor> distance; //data points ordered
+  bool nextblock;
+  vector<Point> block; //split query objects into blocks
+  unsigned int index; //position in rel querypoints
   MQKnearest(){}
 };
+
 //for each point in querypoints, find its k closest point, put into vectors
 void Mqknearest(MQKnearest* mqk)
 {
+  double x = 0;
+  double y = 0;
+  //load query points into memory
+  const unsigned int blocksize = 1024;
+  unsigned int start = 0;
+  double min[2];
+  double max[2];
+  Tuple* tuple = mqk->querypoints->GetTuple(1);
+  Point* p = (Point*)tuple->GetAttribute(0);
+  min[0] = max[0] = p->GetX();
+  min[1] = max[1] = p->GetY();
+  tuple->DeleteIfAllowed();
+
+  for(;start < blocksize &&
+      (start+mqk->index) <= mqk->querypoints->GetNoTuples(); start++){
+    Tuple* tuple = mqk->querypoints->GetTuple(start+mqk->index);
+    Point* p = (Point*)tuple->GetAttribute(0);
+    x += p->GetX();
+    y += p->GetY();
+    if(x < min[0])
+      min[0] = x;
+    if(x > max[0])
+      max[0] = x;
+    if(y < min[1])
+      min[1] = y;
+    if(y > max[1])
+      max[1] = y;
+    mqk->block.push_back(*p);
+    tuple->DeleteIfAllowed();
+  }
+  if((start+mqk->index) > mqk->querypoints->GetNoTuples()){
+    mqk->nextblock = false;
+  }else{
+      mqk->index += start;
+  }
+  BBox<2> box(true,min,max);
+  box.Print(cout);
+
+  //process with R-tree rel on data points, return a set of leaf nodeid
+  vector<TupleId> datanode;
 
 
 
+
+  Point* seedp = new Point(true, // choose centroid point as seed point
+  x/mqk->querypoints->GetNoTuples(),y/mqk->querypoints->GetNoTuples());
+
+  vector<PointNeighbor> tempstore; //for each point
+  for(int j = 1;j <= mqk->datapoints->GetNoTuples();j++){
+      Tuple* tuple = mqk->datapoints->GetTuple(j);
+      Point* p2 = (Point*)tuple->GetAttribute(0);
+      PointNeighbor* pd = new PointNeighbor(*seedp,*p2);
+      mqk->distance.push_back(*pd);
+      delete pd;
+      tuple->DeleteIfAllowed();
+  }
+  sort(mqk->distance.begin(),mqk->distance.end(),CmpPointNeighbor);
+  double sum = 0;
+  for(int i = 0;i < mqk->block.size();i++){
+    Point* p1 = &mqk->block[i];
+    double threshold = 0;
+    for(unsigned int i = 0; i < mqk->k; i++)
+     if(p1->Distance(mqk->distance[i].p) > threshold)
+        threshold = p1->Distance(mqk->distance[i].p);
+    sum += threshold;
+    for(unsigned int j = 0;j < mqk->distance.size();j++){
+      double dist = mqk->distance[j].dist-p1->Distance(*seedp);
+      if(dist > threshold)
+        break;
+      PointNeighbor* pn = new PointNeighbor(*p1,mqk->distance[j].p);
+      tempstore.push_back(*pn);
+      delete pn;
+    }
+    sort(tempstore.begin(),tempstore.end(),CmpPointNeighbor);
+    for(unsigned int i = 0;i < mqk->k;i++)
+      mqk->results.push_back(tempstore[i]);
+    tempstore.clear();
+  }
+  mqk->distance.clear();
+  mqk->block.clear();
+  mqk->iter = mqk->results.begin();
+  delete seedp;
 }
 int mqknearestFun(Word* args, Word& result, int message,
               Word& local, Supplier s){
   MQKnearest* mqk;
-
   switch(message){
      case OPEN: {
      mqk = new MQKnearest();
@@ -5423,25 +5504,29 @@ int mqknearestFun(Word* args, Word& result, int message,
      mqk->rtree2 = (R_Tree<2,TupleId>*)args[3].addr;
      mqk->k = (unsigned)((CcInt*)args[4].addr)->GetIntval();
      mqk->resulttype = new TupleType(nl->Second(GetTupleResultType(s)));
-     mqk->calculate = true;
+     mqk->nextblock = true;  //deal with query objects by block
+     mqk->index = 1;  //start position in queryobjects rel
      local = SetWord(mqk);
      return 0;
    }
    case REQUEST: {
       mqk = (MQKnearest*)local.addr;
-      if(mqk->calculate)
-        Mqknearest(mqk);
+      if(mqk->nextblock && mqk->results.size() == 0){ //next query block
+          Mqknearest(mqk);
+      }
       if(mqk->iter == mqk->results.end()){
-          mqk->calculate = true;
-      }else{
-              Tuple* tuple = new Tuple(mqk->resulttype);
-              tuple->PutAttribute(0,new Point(mqk->iter->q));
-              tuple->PutAttribute(1,new Point(mqk->iter->p));
-              result.setAddr(tuple);
-              mqk->iter++;
-              return YIELD;
-           }
-      return CANCEL;
+        mqk->results.clear();
+        if(mqk->nextblock == false)
+          return CANCEL;
+        else
+          Mqknearest(mqk);
+      }
+      Tuple* tuple = new Tuple(mqk->resulttype);
+      tuple->PutAttribute(0,new Point(mqk->iter->q));
+      tuple->PutAttribute(1,new Point(mqk->iter->p));
+      result.setAddr(tuple);
+      mqk->iter++;
+      return YIELD;
    }
    case CLOSE : {
       mqk = (MQKnearest*)local.addr;
@@ -5451,7 +5536,6 @@ int mqknearestFun(Word* args, Word& result, int message,
    }
  }
  return 0;
-
 }
 Operator mqknearest (
          "mqknearest",        // name
@@ -5460,7 +5544,6 @@ Operator mqknearest (
          Operator::SimpleSelect,  // trivial selection function
          mqknearestTypeMap    // type mapping
 );
-
 
 /*
 4 Implementation of the Algebra Class
@@ -5490,8 +5573,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &coverage2op );
     AddOperator( &knearestfilter);
     AddOperator( &distancescan4);
-
-    AddOperator( &mqknearest);//multiple query objects nearest neighbor
+    AddOperator( &mqknearest);
   }
   ~NearestNeighborAlgebra() {};
 };
