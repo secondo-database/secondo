@@ -2769,13 +2769,13 @@ void MGPoint::DivideUGPoint(Network* pNetwork)
   mgp->StartBulkLoad();
   const UGPoint* ug1;
   UGPoint* ug;
-  for(unsigned int i = 0;i < GetNoComponents();i++){
+  for(int i = 0;i < GetNoComponents();i++){
     Get(i,ug1);
     ug = const_cast<UGPoint*>(ug1);
     Tuple* tuple1 = pNetwork->GetSectionOnRoute(&ug->p0);
     Tuple* tuple2 = pNetwork->GetSectionOnRoute(&ug->p1);
     assert(tuple1 != NULL);
-    assert(tuple  != NULL);
+    assert(tuple2 != NULL);
     if(tuple1->GetTupleId() == tuple2->GetTupleId()){
       mgp->Add(*ug);
       continue;
@@ -2804,8 +2804,8 @@ void MGPoint::DivideUGPoint(Network* pNetwork)
 
     double dist1 = fabs(pos1-ug->p0.GetPosition());
     UGPoint* u1 = new UGPoint(*ug1);
-    Instant middle(u1->timeInterval.start+
-                  (ug->timeInterval.end-ug->timeInterval.start)*dist1/length);
+    Instant middle(DateTime(u1->timeInterval.start.ToDouble()+
+    (ug->timeInterval.end-ug->timeInterval.start).ToDouble()*dist1/length));
     GPoint gp;
     u1->TemporalFunction(middle,gp,true);
     assert(gp.IsDefined());
@@ -2837,8 +2837,9 @@ void MGPoint::DivideUGPoint(Network* pNetwork)
     delete endp2;
   }
   mgp->EndBulkLoad(true);
-  *this = *mgp;
-
+//  *this = *mgp;
+  this->CopyFrom(mgp);
+  delete mgp;
 }
 void MGPoint::DistanceN(MGPoint* mgp, MReal* result){
 
