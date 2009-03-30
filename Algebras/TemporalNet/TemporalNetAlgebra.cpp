@@ -1737,39 +1737,41 @@ Euclidean Distance computing
 */
 
 void MGPoint::Distance(MGPoint *&mgp, MReal *&result){
-  if(IsDefined()&& mgp->IsDefined()){
+  if (IsDefined()&&mgp->IsDefined()){
     MPoint *p1 = new MPoint(0);
     MPoint *p2 = new MPoint(0);
     Mgpoint2mpoint(p1);
     mgp->Mgpoint2mpoint(p2);
-  UReal uReal(true);
+    UReal uReal(true);
 
-  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(*p1, *p2);
+    RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(*p1, *p2);
 
-  result->Clear();
-  result->Resize(rp.Size());
-  result->StartBulkLoad();
-  for( unsigned int i = 0; i < rp.Size(); i++ )
-  {
-    Interval<Instant>* iv;
-    int u1Pos, u2Pos;
-    const UPoint *u1;
-    const UPoint *u2;
+    result->Clear();
+    result->Resize(rp.Size());
+    result->StartBulkLoad();
+    for( unsigned int i = 0; i < rp.Size(); i++ )
+    {
+      Interval<Instant>* iv;
+      int u1Pos, u2Pos;
+      const UPoint *u1;
+      const UPoint *u2;
 
-    rp.Get(i, iv, u1Pos, u2Pos);
-    if (u1Pos == -1 || u2Pos == -1)
-      continue;
-    else {
-      p1->Get(u1Pos, u1);
-      p2->Get(u2Pos, u2);
+      rp.Get(i, iv, u1Pos, u2Pos);
+      if (u1Pos == -1 || u2Pos == -1)
+        continue;
+      else {
+        p1->Get(u1Pos, u1);
+        p2->Get(u2Pos, u2);
+      }
+      if(u1->IsDefined() && u2->IsDefined())
+      { // do not need to test for overlapping deftimes anymore...
+        u1->Distance( *u2, uReal );
+        result->MergeAdd( uReal );
+      }
     }
-    if(u1->IsDefined() && u2->IsDefined())
-    { // do not need to test for overlapping deftimes anymore...
-      u1->Distance( *u2, uReal );
-      result->MergeAdd( uReal );
-    }
-  }
-  result->EndBulkLoad();
+    result->EndBulkLoad();
+    delete p1;
+    delete p2;
   }
 }
 
