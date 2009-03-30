@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 struct SectTreeEntry{
   SectTreeEntry() {};
 
-  SectTreeEntry(int n, int r, double st, double e, bool stb, bool eb) {
+  SectTreeEntry(TupleId n, int r, double st, double e, bool stb, bool eb) {
     secttid = n;
     rid = r;
     start = st;
@@ -61,7 +61,8 @@ struct SectTreeEntry{
     return *this;
   };
 
-  int secttid, rid;
+  TupleId secttid;
+  int rid;
   double start, end;
   bool startbool, endbool;
 };
@@ -157,7 +158,7 @@ Constuructors:
 The simple constructor. Should not be used.
 
 */
-  RLoc( const TupleId rid,
+  RLoc( const int rid,
         const double d,
         const Side side ):
     rid( rid ), d( d ), side( side )
@@ -186,7 +187,7 @@ Route Id
 
 */
 
-  TupleId rid;
+  int rid;
 
 /*
 The distance from the 0.0 point of the route.
@@ -224,7 +225,7 @@ class GPoint : public StandardAttribute
 
     GPoint( bool in_bDefined,
             int in_iNetworkId = 0,
-            TupleId in_xRid = 0,
+            int in_xRid = 0,
             double in_dLocation = 0.0,
             Side in_xSide = None ):
     m_iNetworkId( in_iNetworkId ),
@@ -267,7 +268,7 @@ class GPoint : public StandardAttribute
       return m_iNetworkId;
     }
 
-    TupleId GetRouteId() const
+    int GetRouteId() const
     {
       return m_xRouteLocation.rid;
     }
@@ -444,11 +445,12 @@ Returns a point degenerated rectangle as network bounding box of the gpoint
 */
 
     inline const Rectangle<2> NetBoundingBox() const {
-      if (m_bDefined) return Rectangle<2>(true,
-                                          (double) m_xRouteLocation.rid,
-                                          (double) m_xRouteLocation.rid,
-                                          m_xRouteLocation.d - 0.000001,
-                                          m_xRouteLocation.d + 0.000001);
+      if (m_bDefined)
+        return Rectangle<2>(true,
+                            (double) m_xRouteLocation.rid,
+                            (double) m_xRouteLocation.rid,
+                            m_xRouteLocation.d - 0.000001,
+                            m_xRouteLocation.d + 0.000001);
                   //0.000001 correcture of rounding differences
       else return Rectangle<2> (false, 0.0, 0.0, 0.0, 0.0);
     };
@@ -585,7 +587,8 @@ struct GPointPointTree {
                                     SECTION_DUAL,
                                     SECTION_CURVE,
                                     SECTION_CURVE_STARTS_SMALLER,
-                                    SECTION_RRC };
+                                    SECTION_RRC,
+                                    SECTION_SID};
 
 
 /*
@@ -722,7 +725,7 @@ Constructor
 Constructor giving a section
 
 */
-  DirectedSection( int in_iSectionTid,
+  DirectedSection( TupleId in_iSectionTid,
                    bool in_bUpDown):
     m_iSectionTid( in_iSectionTid ),
     m_bUpDown( in_bUpDown )
@@ -756,7 +759,7 @@ Redefinition of the assignment operator.
     return m_bUpDown;
   }
 
-  int GetSectionTid()
+  TupleId GetSectionTid()
   {
     return m_iSectionTid;
   }
@@ -769,7 +772,7 @@ Field with section-pointer
 A pointer to the section.
 
 */
-  int m_iSectionTid;
+  TupleId m_iSectionTid;
 
 /*
 Field Direction-flag
@@ -803,9 +806,9 @@ Constructor
 Constructor giving a section
 
 */
-  DirectedSectionPair(int in_iFirstSectionTid,
+  DirectedSectionPair(TupleId in_iFirstSectionTid,
                       bool in_bFirstUpDown,
-                      int in_iSecondSectionTid,
+                      TupleId in_iSecondSectionTid,
                       bool in_bSecondUpDown):
     m_iFirstSectionTid( in_iFirstSectionTid ),
     m_bFirstUpDown( in_bFirstUpDown ),
@@ -849,7 +852,7 @@ Copy-Constructor
 Field with a pointer to the first section.
 
 */
-  int m_iFirstSectionTid;
+  TupleId m_iFirstSectionTid;
 
 /*
 
@@ -864,7 +867,7 @@ Indicating the first sections direction: ~true~ means up and ~false~ means down.
 Field with a pointer to the second section.
 
 */
-  int m_iSecondSectionTid;
+  TupleId m_iSecondSectionTid;
 
 /*
 Field Direction-flag
@@ -1013,36 +1016,36 @@ struct JunctionSortEntry
   }
 
 
-  int GetUpSectionId()
+  TupleId GetUpSectionId()
   {
-    TupleIdentifier* pTid;
+    TupleId pTid;
     if(m_bFirstRoute)
     {
-      pTid =
-      (TupleIdentifier*)m_pJunction->GetAttribute(JUNCTION_SECTION_AUP_RC);
+      pTid = ((TupleIdentifier*)
+          m_pJunction->GetAttribute(JUNCTION_SECTION_AUP_RC))->GetTid();
     }
     else
     {
-      pTid =
-      (TupleIdentifier*)m_pJunction->GetAttribute(JUNCTION_SECTION_BUP_RC);
+      pTid =((TupleIdentifier*)
+          m_pJunction->GetAttribute(JUNCTION_SECTION_BUP_RC))->GetTid();
     }
-    return pTid->GetTid();
+    return pTid;
   }
 
-  int GetDownSectionId()
+  TupleId GetDownSectionId()
   {
-    TupleIdentifier* pTid;
+    TupleId pTid;
     if(m_bFirstRoute)
     {
-      pTid =
-      (TupleIdentifier*)m_pJunction->GetAttribute(JUNCTION_SECTION_ADOWN_RC);
+      pTid = ((TupleIdentifier*)
+          m_pJunction->GetAttribute(JUNCTION_SECTION_ADOWN_RC))->GetTid();
     }
     else
     {
-      pTid =
-      (TupleIdentifier*)m_pJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC);
+      pTid =((TupleIdentifier*)
+          m_pJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC))->GetTid();
     }
-    return pTid->GetTid();
+    return pTid;
   }
 };
 
@@ -1293,7 +1296,7 @@ values for all start end points of the halfsegments inside the routeinverval.
 
 */
 
-  void GetGPointsOnInterval(TupleId iRouteId, double start, double end,
+  void GetGPointsOnInterval(int rid, double start, double end,
                             DBArray<GPointPoint> &gpp_list);
 
 /*
@@ -1328,7 +1331,7 @@ Method GetAdjacentSections
 
 */
 
-    void GetAdjacentSections(int in_iSectionId,
+    void GetAdjacentSections(TupleId in_iSectionId,
                              bool in_bUpDown,
                              vector<DirectedSection> &inout_xSections);
 
@@ -1464,7 +1467,8 @@ values of the junction on this routes.
 Returns the section with the given id.
 
 */
- Tuple* GetSection(int n);
+ Tuple* GetSection(TupleId n);
+
   void FindSP(TupleId j1,TupleId j2,double& length,GLine* res);
   private:
 
@@ -1615,11 +1619,12 @@ The BTree of the sections route ids.
 */
 
   BTree* m_pBTreeSectionsByRoute;
-/*
+    /*
 Store the distance between two junction points
 
-*/
-  Relation* alldistance;
+
+ Relation* alldistance;
+    */
 };
 
 
