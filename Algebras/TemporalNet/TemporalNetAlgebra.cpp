@@ -1573,11 +1573,13 @@ Functions for integration in SECONDO
 */
 void MGPoint::Clear()
 {
-  Mapping<UGPoint, GPoint>::Clear();
-  m_length = 0.0;
-  m_trajectory.Clear();
-  m_bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 );
-  m_traj_Defined = false;
+  //if (IsDefined()){
+    Mapping<UGPoint, GPoint>::Clear();
+    m_length = 0.0;
+    m_trajectory.Clear();
+    m_traj_Defined = false;
+    m_bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 );
+  //}
 }
 
 ListExpr MGPoint::Property()
@@ -1735,130 +1737,43 @@ Euclidean Distance computing
 */
 
 void MGPoint::Distance(MGPoint *&mgp, MReal *&result){
+  if(IsDefined()&& mgp->IsDefined()){
+    MPoint *p1 = new MPoint(0);
+    MPoint *p2 = new MPoint(0);
+    Mgpoint2mpoint(p1);
+    mgp->Mgpoint2mpoint(p2);
   UReal uReal(true);
-  RefinementPartition<MGPoint, MGPoint, UGPoint, UGPoint>
-      rp(*this, *mgp);
+
+  RefinementPartition<MPoint, MPoint, UPoint, UPoint> rp(*p1, *p2);
+
+  result->Clear();
+  result->Resize(rp.Size());
   result->StartBulkLoad();
   for( unsigned int i = 0; i < rp.Size(); i++ )
   {
     Interval<Instant>* iv;
     int u1Pos, u2Pos;
-    const UGPoint *u1;
-    const UGPoint *u2;
+    const UPoint *u1;
+    const UPoint *u2;
 
     rp.Get(i, iv, u1Pos, u2Pos);
     if (u1Pos == -1 || u2Pos == -1)
       continue;
     else {
-      Get(u1Pos, u1);
-      mgp->Get(u2Pos, u2);
+      p1->Get(u1Pos, u1);
+      p2->Get(u2Pos, u2);
     }
-    if(u1->IsDefined() && u2->IsDefined()) {
-       // do not need to test for overlapping deftimes anymore...
-      if (u1->p0.GetRouteId() == u2->p0.GetRouteId()) {
-          //there might be intersecting units.
-          GPoint u1gstart, u1gend, u2gstart, u2gend;
-          Interval<Instant> interv;
-          u1->timeInterval.Intersection(u2->timeInterval, interv);
-          u1->TemporalFunction(interv.start, u1gstart, true);
-          u1->TemporalFunction(interv.end, u1gend, true);
-          u2->TemporalFunction(interv.start, u2gstart, true);
-          u2->TemporalFunction(interv.end, u2gend, true);
-          if ((u1gstart.GetPosition() < u2gstart.GetPosition() &&
-              u1gend.GetPosition() > u2gstart.GetPosition()) ||
-              (u2gstart.GetPosition() < u1gstart.GetPosition() &&
-              u2gend.GetPosition() > u1gstart.GetPosition()) ||
-              (u2gstart.GetPosition() < u1gend.GetPosition() &&
-              u2gend.GetPosition() > u1gend.GetPosition()) ||
-              (u1gstart.GetPosition() < u2gend.GetPosition() &&
-              u1gend.GetPosition() > u2gend.GetPosition()) ||
-              (u1gstart.GetPosition() > u2gstart.GetPosition() &&
-              u1gend.GetPosition() < u2gstart.GetPosition()) ||
-              (u2gstart.GetPosition() > u1gstart.GetPosition() &&
-              u2gend.GetPosition() < u1gstart.GetPosition()) ||
-              (u2gstart.GetPosition() > u1gend.GetPosition() &&
-              u2gend.GetPosition() < u1gend.GetPosition()) ||
-              (u1gstart.GetPosition() > u2gend.GetPosition() &&
-              u1gend.GetPosition() < u2gend.GetPosition())){
-            //intersecting units. Intersectionpoint must be
-            //computed and units be devided up at the time of
-            //intersection.
-            Instant tinter = (interv.end - interv.start) *
-                  ((u2gstart.GetPosition() - u1gstart.GetPosition()) /
-                    (u1gend.GetPosition() - u1gstart.GetPosition() -
-                    u2gend.GetPosition() + u2gstart.GetPosition())) +
-                  interv.start;
-            if (interv.start <= tinter && tinter <= interv.end) {
-              double interPosition = u1gstart.GetPosition() +
-                      ((u1gend.GetPosition() - u1gstart.GetPosition()) *
-                      ((tinter.ToDouble() - interv.start.ToDouble())
-                      / (interv.end.ToDouble() - interv.start.ToDouble())));
-              if (((interPosition >= u1gstart.GetPosition() &&
-                  interPosition <= u1gend.GetPosition()) ||
-                  (interPosition >= u1gend.GetPosition() &&
-                   interPosition <= u1gend.GetPosition())) &&
-                  ((interPosition >= u2gstart.GetPosition() &&
-                  interPosition <= u2gend.GetPosition()) ||
-                  (interPosition >= u2gend.GetPosition() &&
-                   interPosition <= u2gend.GetPosition()))) {
-                UGPoint u1a = UGPoint(Interval<Instant> (interv.start,
-                                                      tinter,
-                                                      true, false),
-                                                  u1gstart.GetNetworkId(),
-                                                  u1gstart.GetRouteId(),
-                                                  u1gstart.GetSide(),
-                                                  u1gstart.GetPosition(),
-                                                  interPosition);
-                UGPoint u1b = UGPoint(Interval<Instant> (tinter,
-                                                  interv.end,
-                                                      true, false),
-                                                  u1gstart.GetNetworkId(),
-                                                  u1gstart.GetRouteId(),
-                                                  u1gstart.GetSide(),
-                                                  interPosition,
-                                                  u1gend.GetPosition());
-                UGPoint u2a = UGPoint(Interval<Instant> (interv.start,
-                                                      tinter,
-                                                      true, false),
-                                                  u2gstart.GetNetworkId(),
-                                                  u2gstart.GetRouteId(),
-                                                  u2gstart.GetSide(),
-                                                  u2gstart.GetPosition(),
-                                                  interPosition);
-                UGPoint u2b = UGPoint(Interval<Instant> (tinter,
-                                                       interv.end,
-                                                       true, false),
-                                                  u2gstart.GetNetworkId(),
-                                                  u2gstart.GetRouteId(),
-                                                  u2gstart.GetSide(),
-                                                  interPosition,
-                                                  u2gend.GetPosition());
-                u1a.Distance(u2a, uReal);
-                result->MergeAdd(uReal);
-                u1b.Distance(u2b, uReal);
-                result->MergeAdd(uReal);
-              } else {
-                u1->Distance( *u2, uReal );
-                result->MergeAdd( uReal );
-              }
-            } else {
-              u1->Distance( *u2, uReal );
-              result->MergeAdd( uReal );
-            }
-          } else {
-            u1->Distance( *u2, uReal );
-            result->MergeAdd( uReal );
-          }
-      } else {
-        u1->Distance( *u2, uReal );
-        result->MergeAdd( uReal );
-      }
+    if(u1->IsDefined() && u2->IsDefined())
+    { // do not need to test for overlapping deftimes anymore...
+      u1->Distance( *u2, uReal );
+      result->MergeAdd( uReal );
     }
   }
   result->EndBulkLoad();
+  }
 }
-void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
 
+void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
   Network* pNetwork = NetworkManager::GetNetwork(mgp->GetNetworkId());
   UReal uReal(true);
   result->StartBulkLoad();
@@ -1886,11 +1801,9 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
   mgp->Get(pos2,ugp2);
   *ug1 = *ugp1;
   *ug2 = *ugp2;
-
   while(1){
     assert(ug1->timeInterval.start >= uReal.timeInterval.start);
     assert(ug2->timeInterval.start >= uReal.timeInterval.start);
-
     if(ug2->timeInterval.end < ug1->timeInterval.start){
       pos2++;
       mgp->Get(pos2,ugp2);
@@ -1903,7 +1816,6 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
       *ug1 = *ugp1;
       continue;
     }
-
     //starttime
     if(ug1->timeInterval.start < uReal.timeInterval.start){ //split
       GPoint gp0;
@@ -1927,7 +1839,6 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
       assert(gp1.IsDefined());
       ug2->timeInterval.end = uReal.timeInterval.end;
       ug2->p1 = gp1;
-
       Point* p1_0 = new Point();
       p1_0->SetDefined(true);
       pNetwork->GetPointOnRoute(&ug1->p0,p1_0);
@@ -1940,7 +1851,6 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
       Point* p2_1 = new Point();
       p2_1->SetDefined(true);
       pNetwork->GetPointOnRoute(&ug2->p0,p2_1);
-
      double dt = (uReal.timeInterval.end-uReal.timeInterval.start).ToDouble();
       if(AlmostEqual(dt,0)){
         uReal.a = 0.0;
@@ -1948,7 +1858,7 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
         uReal.c =  pow(fabs(p1_0->GetX()-p2_0->GetX()),2) +
                  pow(fabs(p1_0->GetY()-p2_0->GetY()),2);
         uReal.r = false;
-//        result->MergeAdd(uReal);
+        result->MergeAdd(uReal);
       }else{
         double v1_x = (p1_1->GetX() - p1_0->GetX()) / dt;
         double v1_y = (p1_1->GetY() - p1_0->GetY()) / dt;
@@ -1988,7 +1898,6 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
       delete p1_1;
       delete p2_0;
       delete p2_1;
-
     }else{ //ugp1->end > ugp2->end
       uReal.timeInterval.end = ug2->timeInterval.end;
       GPoint gp1;
@@ -1996,7 +1905,6 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
       assert(gp1.IsDefined());
       ug1->timeInterval.end = uReal.timeInterval.end;
       ug1->p1 = gp1;
-
       Point* p1_0 = new Point();
       p1_0->SetDefined(true);
       pNetwork->GetPointOnRoute(&ug1->p0,p1_0);
@@ -2016,7 +1924,7 @@ void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
         uReal.c =  pow(fabs(p1_0->GetX()-p2_0->GetX()),2) +
                  pow(fabs(p1_0->GetY()-p2_0->GetY()),2);
         uReal.r = false;
-//        result->MergeAdd(uReal);
+       result->MergeAdd(uReal);
       }else{
         double v1_x = (p1_1->GetX() - p1_0->GetX()) / dt;
         double v1_y = (p1_1->GetY() - p1_0->GetY()) / dt;
@@ -2080,7 +1988,6 @@ vector<UReal>& dist)
     delete ureal;
     return;
   }
-
   GPoint* gp1 = new GPoint(true,GetNetworkId(),ug1->p0.GetRouteId(),
           (ug1->p0.GetPosition()+ug1->p1.GetPosition())/2,ug1->p0.GetSide());
   Tuple* sec1 = pNetwork->GetSectionOnRoute(gp1);
@@ -2089,16 +1996,13 @@ vector<UReal>& dist)
   Tuple* sec2 = pNetwork->GetSectionOnRoute(gp2);
   delete gp1;
   delete gp2;
-
   double m1 = ((CcReal*)sec1->GetAttribute(SECTION_MEAS1))->GetRealval();
   double m2 = ((CcReal*)sec1->GetAttribute(SECTION_MEAS2))->GetRealval();
   int rid1 = ug1->p0.GetRouteId();
   GPoint* ep1_0 = new GPoint(true,GetNetworkId(),rid1,m1,ug1->p0.GetSide());
   GPoint* ep1_1 = new GPoint(true,GetNetworkId(),rid1,m2,ug1->p0.GetSide());
-
   double meas1 = fabs(ug1->p0.GetPosition() - ep1_0->GetPosition());
   double meas2 = fabs(ug1->p0.GetPosition() - ep1_1->GetPosition());
-
   m1 = ((CcReal*)sec2->GetAttribute(SECTION_MEAS1))->GetRealval();
   m2 = ((CcReal*)sec2->GetAttribute(SECTION_MEAS2))->GetRealval();
   int rid2 = ug2->p0.GetRouteId();
@@ -2106,13 +2010,12 @@ vector<UReal>& dist)
   GPoint* ep2_1 = new GPoint(true,GetNetworkId(),rid2,m2,ug2->p0.GetSide());
   double meas3 = fabs(ug2->p0.GetPosition() - ep2_0->GetPosition());
   double meas4 = fabs(ug2->p0.GetPosition() - ep2_1->GetPosition());
-//get the junction id
+  //get the junction id
   vector<JunctionSortEntry> juns;
   CcInt* routeid1 = new CcInt(true,rid1);
   pNetwork->GetJunctionsOnRoute(routeid1,juns);
   TupleId j1 = 0;
   TupleId j2 = 0;
-
   for(unsigned int i = 0;i < juns.size();i++){
     Tuple* t_jun = juns[i].m_pJunction;
     if(((CcInt*)t_jun->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval() == rid1){
@@ -2158,8 +2061,8 @@ vector<UReal>& dist)
     }
   }
   delete routeid2;
-//  cout<<j1<<" "<<j2<<" "<<j3<<" "<<j4<<endl;
-//find network distance from storage
+  //cout<<j1<<" "<<j2<<" "<<j3<<" "<<j4<<endl;
+  //find network distance from storage
   double l1,l2,l3,l4;
   GLine* gline1 = new GLine(0);
   GLine* gline2 = new GLine(0);
@@ -2189,12 +2092,10 @@ vector<UReal>& dist)
       l1 += fabs(ep1_0->GetPosition()-ep1_1->GetPosition());
       *gline1 = *gline3;
       gline1->AddRouteInterval(rid1,ep1_0->GetPosition(),ep1_1->GetPosition());
-
     l2 = l4;
       l2 += fabs(ep1_0->GetPosition()-ep1_1->GetPosition());
       *gline2 = *gline4;
       gline2->AddRouteInterval(rid1,ep1_0->GetPosition(),ep1_1->GetPosition());
-
   }else{
     if(j2 == 0){ //j2 not junction point
       if(j3 == 0){
@@ -2204,7 +2105,6 @@ vector<UReal>& dist)
         l1 += fabs(ep2_1->GetPosition()-ep2_0->GetPosition());
         *gline1 = *gline2;
       gline1->AddRouteInterval(rid2,ep2_1->GetPosition(),ep2_0->GetPosition());
-
       }else{
         pNetwork->FindSP(j1,j3,l1,gline1);
         if(j4 == 0){
@@ -2219,12 +2119,10 @@ vector<UReal>& dist)
      l3 += fabs(ep1_1->GetPosition()-ep1_0->GetPosition());
      *gline3 = *gline1;
      gline3->AddRouteInterval(rid1,ep1_1->GetPosition(),ep1_0->GetPosition());
-
       l4 = l2;
       l4 += fabs(ep1_1->GetPosition()-ep1_0->GetPosition());
       *gline4 = *gline2;
       gline4->AddRouteInterval(rid1,ep1_1->GetPosition(),ep1_0->GetPosition());
-
     }else{
       if(j3 == 0){
         assert(j4 != 0);
@@ -2242,7 +2140,6 @@ vector<UReal>& dist)
           l3 += fabs(ep2_1->GetPosition()-ep2_0->GetPosition());
           *gline3 = *gline4;
        gline3->AddRouteInterval(rid2,ep2_1->GetPosition(),ep2_0->GetPosition());
-
       }else{
         pNetwork->FindSP(j1,j3,l1,gline1);
         pNetwork->FindSP(j2,j3,l3,gline3);
@@ -2259,7 +2156,6 @@ vector<UReal>& dist)
             l4 += fabs(ep2_0->GetPosition()-ep2_1->GetPosition());
             *gline4 = *gline3;
        gline4->AddRouteInterval(rid2,ep2_0->GetPosition(),ep2_1->GetPosition());
-
         }else{
           pNetwork->FindSP(j1,j4,l2,gline2);
           pNetwork->FindSP(j2,j4,l4,gline4);
@@ -2267,8 +2163,7 @@ vector<UReal>& dist)
       }
     }
   }
-//  cout<<l1<<" "<<l2<<" "<<l3<<" "<<l4<<endl;
-
+  cout<<l1<<" "<<l2<<" "<<l3<<" "<<l4<<endl;
   GLine* gl1 = new GLine(0);
   GLine* gl2 = new GLine(0);
   GLine* gl3 = new GLine(0);
@@ -2277,22 +2172,19 @@ vector<UReal>& dist)
   double dist2 = ep1_0->NewNetdistance(ep2_1,gl2);
   double dist3 = ep1_1->NewNetdistance(ep2_0,gl3);
   double dist4 = ep1_1->NewNetdistance(ep2_1,gl4);
-
-//  ep1_0->Print(cout);
-//  ep1_1->Print(cout);
-//  ep2_0->Print(cout);
-//  ep2_1->Print(cout);
-//  gl1->Print(cout);
-//  gl2->Print(cout);
-//  gl3->Print(cout);
-//  gl4->Print(cout);
-//  cout<<dist1<<" "<<dist2<<" "<<dist3<<" "<<dist4<<endl;
-
+  ep1_0->Print(cout);
+  ep1_1->Print(cout);
+  ep2_0->Print(cout);
+  ep2_1->Print(cout);
+  gl1->Print(cout);
+  gl2->Print(cout);
+  gl3->Print(cout);
+  gl4->Print(cout);
+  cout<<dist1<<" "<<dist2<<" "<<dist3<<" "<<dist4<<endl;
   double v1 = ug1->p0.Netdistance(&ug1->p1)/
         (ug1->timeInterval.end-ug1->timeInterval.start).ToDouble();
   double v2 = ug2->p0.Netdistance(&ug2->p1)/
         (ug2->timeInterval.end-ug2->timeInterval.start).ToDouble();
-
   vector<double> c;
   vector<double> b;
   if(sec1->GetTupleId() == sec2->GetTupleId()){ // in the same section
@@ -2339,10 +2231,8 @@ vector<UReal>& dist)
         assert(ep2_0->Inside(gl2) == false);
         assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
       }else{
-
         assert(ep1_1->Inside(gl1) == ep1_1->Inside(gline1));
         if(ep1_1->Inside(gl1)){
-
           c.push_back(dist1-meas1+meas3);
           b.push_back(v1-v2);
         }
@@ -2350,7 +2240,6 @@ vector<UReal>& dist)
           c.push_back(meas1+dist1+meas3);
           b.push_back(-(v2+v1));
         }
-
       }
       assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
       if(ep2_0->Inside(gl2)){//gl2
@@ -2411,7 +2300,6 @@ vector<UReal>& dist)
             b.push_back(v1+v2);
         }
       }
-
     }else{ //case2 ug1 down ug2 Up
       assert(ep2_1->Inside(gl1) == ep2_1->Inside(gline1));
       if(ep2_1->Inside(gl1)){ //gl1
@@ -2426,10 +2314,8 @@ vector<UReal>& dist)
         assert(ep2_0->Inside(gl2) == false);
         assert(ep2_0->Inside(gl2) == ep2_0->Inside(gline2));
       }else{
-
         assert(ep1_1->Inside(gl1) == ep1_1->Inside(gline1));
         if(ep1_1->Inside(gl1)){
-
           c.push_back(dist1-meas1+meas3);
           b.push_back(v1+v2);
         }
@@ -2474,7 +2360,6 @@ vector<UReal>& dist)
           b.push_back(v1-v2);
         }
         else{
-
           c.push_back(meas2+dist3+meas3);
           b.push_back(v2+v1);
         }
@@ -2485,7 +2370,6 @@ vector<UReal>& dist)
           c.push_back(dist4-meas2-meas4);
           b.push_back(v2-v1);
         }else{
-
           c.push_back(dist4+meas2-meas4);
           b.push_back(v1+v2);
         }
@@ -2553,7 +2437,6 @@ vector<UReal>& dist)
         else{
           c.push_back(meas2+dist3-meas3);
           b.push_back(v2-v1);
-
         }
       }else{
         assert(ep1_0->Inside(gl3) == ep1_0->Inside(gline3));
@@ -2671,7 +2554,6 @@ vector<UReal>& dist)
      }
     }
   }
-
   //find the split points
   vector<double> split_time;
   for(unsigned int i = 0;i < c.size();i++){
@@ -2714,7 +2596,6 @@ vector<UReal>& dist)
     result_time.push_back(dt);
     result_dist.push_back(d);
   }
-
   double dt = (ug1->timeInterval.end-ug1->timeInterval.start).ToDouble();
   d = b[0]*dt+c[0];//dist
   for(unsigned int i = 1;i < c.size();i ++){
@@ -2730,17 +2611,14 @@ vector<UReal>& dist)
     ureal->timeInterval.start = time;
     time.ReadFrom(result_time[i+1]+ug1->timeInterval.start.ToDouble());
     ureal->timeInterval.end = time;
-
     double b = (result_dist[i+1]-result_dist[i])/
                 (result_time[i+1]-result_time[i]);
-
     double c = result_dist[i]-b*result_time[i];
     ureal->a = pow(b,2);
     ureal->b = 2*b*c;
     ureal->c = pow(c,2);
     ureal->r = true;
     dist.push_back(*ureal);
-
     delete ureal;
   }
   delete gl1;
@@ -2755,11 +2633,13 @@ vector<UReal>& dist)
   delete gline2;
   delete gline3;
   delete gline4;
-
   sec1->DeleteIfAllowed();
   sec2->DeleteIfAllowed();
 }
+
+
 /*
+
 let p0 and p1 of the UGPoint in the same section
 
 */
@@ -2804,8 +2684,9 @@ void MGPoint::DivideUGPoint(Network* pNetwork)
 
     double dist1 = fabs(pos1-ug->p0.GetPosition());
     UGPoint* u1 = new UGPoint(*ug1);
-    Instant middle(DateTime(u1->timeInterval.start.ToDouble()+
-    (ug->timeInterval.end-ug->timeInterval.start).ToDouble()*dist1/length));
+    Instant middle( (u1->timeInterval.start.ToDouble() +
+                  (ug->timeInterval.end.ToDouble() -
+                  ug->timeInterval.start.ToDouble())*dist1/length));
     GPoint gp;
     u1->TemporalFunction(middle,gp,true);
     assert(gp.IsDefined());
@@ -2824,7 +2705,7 @@ void MGPoint::DivideUGPoint(Network* pNetwork)
     endp2 = new GPoint(true,GetNetworkId(),ug->p1.GetRouteId(),
                        pos2,ug->p0.GetSide());
 
-    double dist2 = fabs(pos2-ug->p1.GetPosition());
+    //double dist2 = fabs(pos2-ug->p1.GetPosition());
     UGPoint* u2 = new UGPoint(*ug1);
     u2->TemporalFunction(middle,gp,true);
     assert(gp.IsDefined());
@@ -2841,6 +2722,8 @@ void MGPoint::DivideUGPoint(Network* pNetwork)
   this->CopyFrom(mgp);
   delete mgp;
 }
+
+
 void MGPoint::DistanceN(MGPoint* mgp, MReal* result){
 
   Network* pNetwork = NetworkManager::GetNetwork(mgp->GetNetworkId());
@@ -2970,8 +2853,8 @@ void MGPoint::DistanceN(MGPoint* mgp, MReal* result){
         uReal.r = false;
 //        result->MergeAdd(uReal);
       }else{
-        double v1 = ug1->p0.Distance(&ug1->p1)/dt;
-        double v2 = ug2->p0.Distance(&ug2->p1)/dt;
+        //double v1 = ug1->p0.Distance(&ug1->p1)/dt;
+        //double v2 = ug2->p0.Distance(&ug2->p1)/dt;
         vector<UReal> df;//distance function
         DistanceFunction(ug1,ug2,pNetwork,df);
         for(unsigned int i = 0;i < df.size();i++){
@@ -5560,11 +5443,11 @@ Initialize return value
 
 */
   MGPoint *resultSt = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
-  /*MGPoint *res = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;*/
   MGPoint* res= new MGPoint(0);
+  /*MGPoint *res = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
+  res->Clear();*/
   res->SetDefined(true);
   result = SetWord(res);
-  /*qp->ChangeResultStorage(in_xSupplier, result);*/
   // Get and check input values.
   Network *pNetwork = (Network*)args[0].addr;
   if (pNetwork->isDefined() < 1) {
@@ -5595,13 +5478,13 @@ Initialize return value
   double dAdjSecCheckEndPos, dFirstAdjSecCheckDiff, dAdjAddCheckEndPos;
   double dAdjSecCheckDiff, dlastSecCheckEndPos, dlastSecDiff;
   double dlastAdjSecCheckEndPos, dlastAdjSecCheckDiff;
-  int iRouteId, iOldSectionTid, iCurrentSectionTid, iLastRouteId/*, iRouteTid*/;
-  int iCurrentSectionRid, iCurrentSectionRTid, iMGPointCurrRId;
+  int iRouteId, iLastRouteId,  iCurrentSectionRid, iMGPointCurrRId;
+  TupleId iCurrentSectionRTid,  iOldSectionTid, iCurrentSectionTid;
   int iSecCheckRouteId = 0;
-  int iAdjSecCheckRid = 0;
+  TupleId iAdjSecCheckRid = 0;
   int ilastSecEndCheckRouteId = 0;
-  int ilastAdjSecCheckRid = 0;
-  CcInt *pCurrentSectionRid, *pCurrentSectionRTid, *pRouteId;
+  TupleId ilastAdjSecCheckRid = 0;
+  CcInt *pRouteId;
   Tuple *pCurrentRoute, *pOldSectionTuple, *pCurrentSectionT, *pTestRoute;
   SimpleLine *pRouteCurve, *pLastRouteCurve, *pTestRouteCurve;
   Relation* pRoutes = pNetwork->GetRoutes();
@@ -5858,14 +5741,11 @@ the new Route is found compute the new values for the next mgpoint unit.
           DirectedSection pCurrentDirectedSection = pAdjacentSections[i];
           iCurrentSectionTid = pCurrentDirectedSection.GetSectionTid();
           pCurrentSectionT = pSections->GetTuple(iCurrentSectionTid);
-          pCurrentSectionRid =
-              (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RID);
-          iCurrentSectionRid = pCurrentSectionRid->GetIntval();
-          pCurrentSectionRTid =
-              (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RRC);
-          iCurrentSectionRTid = pCurrentSectionRTid->GetIntval();
+          iCurrentSectionRid = ((CcInt*)
+              pCurrentSectionT->GetAttribute(SECTION_RID))->GetIntval();
+          iCurrentSectionRTid = ((TupleIdentifier*)
+              pCurrentSectionT->GetAttribute(SECTION_RRC))->GetTid();
           pCurrentSectionT->DeleteIfAllowed();
-
           if (iCurrentSectionRid != iRouteId) {
             pCurrentRoute->DeleteIfAllowed();
             pCurrentRoute = pRoutes->GetTuple(iCurrentSectionRTid);
@@ -5948,12 +5828,10 @@ is found. This route has to be taken instead of the first computed route.
                     iCurrentSectionTid =
                         pCurrentDirectedSection.GetSectionTid();
                     pCurrentSectionT = pSections->GetTuple(iCurrentSectionTid);
-                    pCurrentSectionRid =
-                        (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RID);
-                    iCurrentSectionRid = pCurrentSectionRid->GetIntval();
-                    pCurrentSectionRTid =
-                        (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RRC);
-                    iCurrentSectionRTid = pCurrentSectionRTid->GetIntval();
+                    iCurrentSectionRid =  ((CcInt*)
+                     pCurrentSectionT->GetAttribute(SECTION_RID))->GetIntval();
+                    iCurrentSectionRTid = ((TupleIdentifier*)
+                     pCurrentSectionT->GetAttribute(SECTION_RRC))->GetTid();
                     pCurrentSectionT->DeleteIfAllowed();
                     if (iCurrentSectionRid != iMGPointCurrRId) {
                       pTestRoute->DeleteIfAllowed();
@@ -6141,12 +6019,10 @@ start time and the junction as startposition of the new current unit.
           DirectedSection pCurrentDirectedSection = pAdjacentSections[i];
           iCurrentSectionTid = pCurrentDirectedSection.GetSectionTid();
           pCurrentSectionT = pSections->GetTuple(iCurrentSectionTid);
-          pCurrentSectionRid =
-            (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RID);
-          iCurrentSectionRid = pCurrentSectionRid->GetIntval();
-          pCurrentSectionRTid =
-            (CcInt*) pCurrentSectionT->GetAttribute(SECTION_RRC);
-          iCurrentSectionRTid = pCurrentSectionRTid->GetIntval();
+          iCurrentSectionRid = ((CcInt*)
+           pCurrentSectionT->GetAttribute(SECTION_RID))->GetIntval();
+          iCurrentSectionRTid = ((TupleIdentifier*)
+           pCurrentSectionT->GetAttribute(SECTION_RRC))->GetTid();
           pCurrentSectionT->DeleteIfAllowed();
           if (iCurrentSectionRid != iRouteId) {
             pCurrentRoute->DeleteIfAllowed();
@@ -8082,9 +7958,9 @@ int OpDistanceValueMapping(Word* args,
     pResult->SetDefined(false);
     return 0;
   }
-//    pMGPoint1->Distance(pMGPoint2, pResult);
+    pMGPoint1->Distance(pMGPoint2, pResult);
 //    pMGPoint1->DistanceE(pMGPoint2, pResult);
-  pMGPoint1->DistanceN(pMGPoint2, pResult);
+//  pMGPoint1->DistanceN(pMGPoint2, pResult);
   return 0;
 }
 
