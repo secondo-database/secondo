@@ -4972,7 +4972,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
             if(tmp->IsLeaf()){
 //             for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
                 for(unsigned int index = 0; index < randnum.size();index++){
-                unsigned int ii = randnum[index];
+                int ii = randnum[index];
                 if(ii >= tmp->EntryCount())
                   continue;
 
@@ -5015,7 +5015,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
 
 //              for ( int ii = 0; ii < tmp->EntryCount(); ++ii ){
                 for(unsigned int index = 0; index < randnum.size();index++){
-                unsigned int ii = randnum[index];
+                int ii = randnum[index];
                 if(ii >= tmp->EntryCount())
                   continue;
                 R_TreeInternalEntry<dim> e =
@@ -5325,12 +5325,14 @@ Operator knearestfilter (
 
 const string mqknearestSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>rtree(tuple ((x1 t1)...(xn tn))"
-      "ti) x rel1(tuple ((x1 t1)...(xn tn))) x rtree2(tuple((x1 t1)...(xn tn)))"
-      " x rel2(tuple ((x1 t1)...(xn tn))) x k ->"
+      "( <text> datarel(tuple ((x1 t1)...(xn tn))) "
+      " x rtree(tuple((x1 t1)...(xn tn)))"
+      " x rel(tuple((x1 t1)...(xn tn)))"
+      " x btree(tuple ((x1 t1)...(xn tn)))"
+      " x queryrel(tuple ((x1 t1)...(xn tn))) x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))"
       "</text--->"
-      "<text>_ _ _ _ mqknearest[_]</text--->"
+      "<text>_ _ _ _ mqknearest[_ _]</text--->"
       "<text>The operator results a stream of all input tuples "
       "where for each point in Points1, returns its k nearest neighbor"
       "in Points2 </text--->"
@@ -5338,30 +5340,20 @@ const string mqknearestSpec  =
       ") )";
 
 ListExpr mqknearestTypeMap(ListExpr args){
-  string err = "Points1 x R-Tree1 x Points2 x R-Tree2 x k expected";
-  if(nl->ListLength(args) != 5){
+  string err = "Points2 x R-Tree x rel x btree x Points1 x  k expected";
+  if(nl->ListLength(args) != 6){
      ErrorReporter::ReportError(err);
      return nl->TypeError();
   }
-  ListExpr pointsrel1 = nl->First(args);
-  ListExpr pointsresl2 = nl->Third(args);
-  ListExpr rtree1 = nl->Second(args);
-  string rtreedescription1;
-  nl->WriteToString(rtreedescription1,rtree1);
-  ListExpr rtsymbol1 = nl->First(rtree1);
 
-  ListExpr rtree2 = nl->Fourth(args);
+  ListExpr rtree2 = nl->Second(args);
   string rtreedescription2;
   nl->WriteToString(rtreedescription2,rtree2);
-  ListExpr rtsymbol2 = nl->First(rtree1);
+  ListExpr rtsymbol2 = nl->First(rtree2);
 
-  ListExpr k = nl->Fifth(args);
+  ListExpr k = nl->Sixth(args);
 
-
-  if(nl->IsAtom(rtsymbol1) &&
-    nl->AtomType(rtsymbol1) == SymbolType &&
-    nl->SymbolValue(rtsymbol1) == "rtree" &&
-    nl->IsAtom(rtsymbol2) &&
+  if(nl->IsAtom(rtsymbol2) &&
     nl->AtomType(rtsymbol2) == SymbolType &&
     nl->SymbolValue(rtsymbol2) == "rtree" &&
     nl->IsEqual(k,"int")){
@@ -5393,18 +5385,130 @@ bool CmpPointNeighbor(const PointNeighbor& e1,const PointNeighbor& e2)
 struct MQKnearest{
   Relation* querypoints;
   Relation* datapoints;
-  R_Tree<2,TupleId>* rtree1;
-  R_Tree<2,TupleId>* rtree2;
+  R_Tree<2,TupleId>* rtree;
+  Relation* cov;
+  BTree* btreecov;
   unsigned int k;
   TupleType* resulttype;
   vector<PointNeighbor> results;
   vector<PointNeighbor>::iterator iter;
-  vector<PointNeighbor> distance; //data points ordered
   bool nextblock;
   vector<Point> block; //split query objects into blocks
-  unsigned int index; //position in rel querypoints
+  vector<Point> data; //the candidate for current block
+  int index; //position in rel querypoints
   MQKnearest(){}
 };
+template<class timeType>
+bool CmpFE(const FieldEntry<timeType>& fe1, const FieldEntry<timeType>& fe2)
+{
+  if(fe1.mindist < fe2.mindist)
+    return true;
+  if(fe1.maxdist < fe2.maxdist)
+    return true;
+  return false;
+}
+
+void Mqkfilter(MQKnearest* mqk,vector<TupleId>& datanode,BBox<2> query)
+{
+  int minentries = mqk->rtree->MinEntries(0);
+  int maxentries = mqk->rtree->MaxEntries(0);
+  SmiRecordId adr = mqk->rtree->RootRecordId();
+  vector<FieldEntry<double> > array1;
+  vector<FieldEntry<double> > array2;
+  vector<FieldEntry<double> > candidate;
+  FieldEntry<double> fe(adr,0,0,0);
+  array1.push_back(fe);
+  unsigned int pos;
+  while(array1.empty() == false){
+    array2.clear();
+    for(pos = 0;pos < array1.size();pos++){
+      fe = array1[pos];
+      adr = fe.nodeid;
+      R_TreeNode<2,TupleId>* node = mqk->rtree->GetMyNode(
+          adr,false,minentries,maxentries);
+      if(node->IsLeaf()){
+        candidate.push_back(fe);//leaf node (id)
+        continue;
+     }
+      for(int i = 0; i < node->EntryCount();i++){ //Internal node
+        R_TreeInternalEntry<2> e = (R_TreeInternalEntry<2>&)(*node)[i];
+        FieldEntry<double> fe(e.pointer,query.Distance(e.box),
+        maxDistance(query,e.box),fe.level+1);
+        array2.push_back(fe);
+      }
+    }
+    array1.clear();
+    sort(array2.begin(),array2.end(),CmpFE<double>);
+    double dist;
+    double num = 0;
+    for(unsigned int i = 0;i < array2.size();i++){
+      CcInt* id = new CcInt(true,array2[i].nodeid);
+      BTreeIterator* iter = mqk->btreecov->ExactMatch(id);
+      assert(iter->Next() != false);
+      Tuple* tuple = mqk->cov->GetTuple(iter->GetId());
+      int val = ((CcInt*)tuple->GetAttribute(1))->GetIntval();
+      delete id;
+      tuple->DeleteIfAllowed();
+      if(num + val > mqk->k){
+        dist = array2[i].maxdist;
+        break;
+      }
+      num += val;
+    }
+    for(unsigned int i = 0;i < array2.size();i++){
+      if(array2[i].mindist > dist)
+        break;
+      array1.push_back(array2[i]);
+    }
+  }
+  //process leaf node
+  sort(candidate.begin(),candidate.end(),CmpFE<double>);
+  double dist;
+  double num = 0;
+
+  for(unsigned int i = 0;i < candidate.size();i++){
+      CcInt* id = new CcInt(true,candidate[i].nodeid);
+      BTreeIterator* iter = mqk->btreecov->ExactMatch(id);
+      assert(iter->Next() != false);
+      Tuple* tuple = mqk->cov->GetTuple(iter->GetId());
+      int val = ((CcInt*)tuple->GetAttribute(1))->GetIntval();
+      delete id;
+      tuple->DeleteIfAllowed();
+      if(num + val > mqk->k){
+        dist = candidate[i].maxdist;
+        break;
+      }
+      num += val;
+  }
+  for(unsigned int i = 0;i < candidate.size();i++){
+    if(candidate[i].mindist > dist)
+      break;
+    datanode.push_back(candidate[i].nodeid);
+  }
+
+  //load data points into memory
+  for(unsigned int i = 0;i < datanode.size();i++){
+    adr = datanode[i];
+    R_TreeNode<2,TupleId>* node = mqk->rtree->GetMyNode(
+          adr,false,minentries,maxentries);
+    assert(node->IsLeaf());
+    for(int j = 0;j < node->EntryCount();j++){
+      R_TreeLeafEntry<2,TupleId> e =
+        (R_TreeLeafEntry<2,TupleId>&)(*node)[j];
+      Tuple* tuple = mqk->datapoints->GetTuple(e.info);
+      Point* p = (Point*)tuple->GetAttribute(0);
+      mqk->data.push_back(*p);
+      tuple->DeleteIfAllowed();
+    }
+  }
+  cout<<"data candidate size "<<mqk->data.size()<<endl;
+}
+void MqkPartition(MQKnearest* mqk, vector<TupleId>& datanode)
+{
+
+
+
+}
 
 //for each point in querypoints, find its k closest point, put into vectors
 void Mqknearest(MQKnearest* mqk)
@@ -5412,8 +5516,8 @@ void Mqknearest(MQKnearest* mqk)
   double x = 0;
   double y = 0;
   //load query points into memory
-  const unsigned int blocksize = 1024;
-  unsigned int start = 0;
+  const int blocksize = 1024;
+  int start = 0;
   double min[2];
   double max[2];
   Tuple* tuple = mqk->querypoints->GetTuple(1);
@@ -5421,21 +5525,22 @@ void Mqknearest(MQKnearest* mqk)
   min[0] = max[0] = p->GetX();
   min[1] = max[1] = p->GetY();
   tuple->DeleteIfAllowed();
-
   for(;start < blocksize &&
       (start+mqk->index) <= mqk->querypoints->GetNoTuples(); start++){
     Tuple* tuple = mqk->querypoints->GetTuple(start+mqk->index);
     Point* p = (Point*)tuple->GetAttribute(0);
-    x += p->GetX();
-    y += p->GetY();
-    if(x < min[0])
-      min[0] = x;
-    if(x > max[0])
-      max[0] = x;
-    if(y < min[1])
-      min[1] = y;
-    if(y > max[1])
-      max[1] = y;
+    double xx = p->GetX();
+    double yy = p->GetY();
+    x += xx;
+    y += yy;
+    if(xx < min[0])
+      min[0] = xx;
+    if(xx > max[0])
+      max[0] = xx;
+    if(yy < min[1])
+      min[1] = yy;
+    if(yy > max[1])
+      max[1] = yy;
     mqk->block.push_back(*p);
     tuple->DeleteIfAllowed();
   }
@@ -5445,40 +5550,68 @@ void Mqknearest(MQKnearest* mqk)
       mqk->index += start;
   }
   BBox<2> box(true,min,max);
-  box.Print(cout);
 
   //process with R-tree rel on data points, return a set of leaf nodeid
   vector<TupleId> datanode;
+  Mqkfilter(mqk,datanode,box);
+  MqkPartition(mqk,datanode);//partition method according to quadrant
 
+  //following does not partition
+  vector<PointNeighbor> distance; //data points ordered
+
+//  for(int i = 1;i <= mqk->querypoints->GetNoTuples();i++){
+//    Tuple* tuple1 = mqk->querypoints->GetTuple(i);
+//    Point* p1 = (Point*)tuple1->GetAttribute(0);
+//    for(int j = 1;j <= mqk->datapoints->GetNoTuples();j++){
+//      Tuple* tuple2 = mqk->datapoints->GetTuple(j);
+//      Point* p2 = (Point*)tuple2->GetAttribute(0);
+//     PointNeighbor* pd = new PointNeighbor(*p1,*p2);
+//      distance.push_back(*pd);
+//      delete pd;
+//    }
+//    sort(distance.begin(),distance.end(),CmpPointNeighbor);
+//    for(unsigned int i = 0;i < mqk->k;i++){
+//      mqk->results.push_back(mqk->distance[i]);
+//    }
+//    distance.clear();
+//  }
+//  mqk->iter = mqk->results.begin();
+
+
+//  srand(time(0));
+//  int seed = 1 + rand()%(mqk->querypoints->GetNoTuples()-1);
+//  tuple = mqk->datapoints->GetTuple(seed);
+//  Point* seedp = (Point*)tuple->GetAttribute(0);
+//  tuple->DeleteIfAllowed();
 
 
 
   Point* seedp = new Point(true, // choose centroid point as seed point
   x/mqk->querypoints->GetNoTuples(),y/mqk->querypoints->GetNoTuples());
 
-  vector<PointNeighbor> tempstore; //for each point
+  vector<PointNeighbor> tempstore;
   for(int j = 1;j <= mqk->datapoints->GetNoTuples();j++){
       Tuple* tuple = mqk->datapoints->GetTuple(j);
       Point* p2 = (Point*)tuple->GetAttribute(0);
       PointNeighbor* pd = new PointNeighbor(*seedp,*p2);
-      mqk->distance.push_back(*pd);
+      distance.push_back(*pd);
       delete pd;
       tuple->DeleteIfAllowed();
   }
-  sort(mqk->distance.begin(),mqk->distance.end(),CmpPointNeighbor);
+  sort(distance.begin(),distance.end(),CmpPointNeighbor);
   double sum = 0;
-  for(int i = 0;i < mqk->block.size();i++){
+  for(unsigned int i = 0;i < mqk->block.size();i++){
     Point* p1 = &mqk->block[i];
     double threshold = 0;
     for(unsigned int i = 0; i < mqk->k; i++)
-     if(p1->Distance(mqk->distance[i].p) > threshold)
-        threshold = p1->Distance(mqk->distance[i].p);
+     if(p1->Distance(distance[i].p) > threshold)
+        threshold = p1->Distance(distance[i].p);
     sum += threshold;
-    for(unsigned int j = 0;j < mqk->distance.size();j++){
-      double dist = mqk->distance[j].dist-p1->Distance(*seedp);
+    for(unsigned int j = 0;j < distance.size();j++){
+      double dist = distance[j].dist-p1->Distance(*seedp);
       if(dist > threshold)
         break;
-      PointNeighbor* pn = new PointNeighbor(*p1,mqk->distance[j].p);
+      PointNeighbor* pn = new PointNeighbor(*p1,distance[j].p);
       tempstore.push_back(*pn);
       delete pn;
     }
@@ -5487,7 +5620,7 @@ void Mqknearest(MQKnearest* mqk)
       mqk->results.push_back(tempstore[i]);
     tempstore.clear();
   }
-  mqk->distance.clear();
+  distance.clear();
   mqk->block.clear();
   mqk->iter = mqk->results.begin();
   delete seedp;
@@ -5498,11 +5631,12 @@ int mqknearestFun(Word* args, Word& result, int message,
   switch(message){
      case OPEN: {
      mqk = new MQKnearest();
-     mqk->querypoints = (Relation*)args[0].addr;
-     mqk->rtree1 = (R_Tree<2,TupleId>*)args[1].addr;
-     mqk->datapoints = (Relation*)args[2].addr;
-     mqk->rtree2 = (R_Tree<2,TupleId>*)args[3].addr;
-     mqk->k = (unsigned)((CcInt*)args[4].addr)->GetIntval();
+     mqk->datapoints = (Relation*)args[0].addr;
+     mqk->rtree = (R_Tree<2,TupleId>*)args[1].addr;
+     mqk->cov = (Relation*)args[2].addr;
+     mqk->btreecov = (BTree*)args[3].addr;
+     mqk->querypoints = (Relation*)args[4].addr;
+     mqk->k = (unsigned)((CcInt*)args[5].addr)->GetIntval();
      mqk->resulttype = new TupleType(nl->Second(GetTupleResultType(s)));
      mqk->nextblock = true;  //deal with query objects by block
      mqk->index = 1;  //start position in queryobjects rel

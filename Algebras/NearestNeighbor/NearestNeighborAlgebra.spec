@@ -28,4 +28,4 @@ operator bboxes alias bboxes pattern  _ op [_]
 operator coverage alias COVERAGE pattern op(_)
 operator coverage2 alias COVERAGE2 pattern op(_)
 operator knearestfilter alias KNEARESTFILTER pattern _ _ _ _ op [_,_]
-operator mqknearest alias mqknearest pattern _ _ _ _ op[_]
+operator mqknearest alias mqknearest pattern _ _ _ _ op[_, _]

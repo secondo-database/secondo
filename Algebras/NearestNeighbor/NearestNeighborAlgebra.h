@@ -684,7 +684,7 @@ struct FieldEntry
   double maxdist;
   timeType start, end;
   int level;
-
+  double mindist; //extension
   FieldEntry( long node, double maxd, const timeType &s, const timeType &e,
                   int l):
     nodeid(node),
@@ -693,6 +693,9 @@ struct FieldEntry
     end(e),
     level(l)
     {}
+  FieldEntry(long id,double mind,double maxd,int l):
+  nodeid(id),mindist(mind),maxdist(maxd),level(l)
+  {}
 };
 
 template<class timeType>
