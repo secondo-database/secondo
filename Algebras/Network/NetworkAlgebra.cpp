@@ -5817,9 +5817,9 @@ Compute last route interval and resulting gline.
 
         Tuple *act = pNetwork->GetSection(temp->sectID);
      //double m1 =
-        ((CcReal*) act->GetAttribute(SECTION_MEAS1))->GetRealval();
+      //  ((CcReal*) act->GetAttribute(SECTION_MEAS1))->GetRealval();
       //double m2 =
-        ((CcReal*) act->GetAttribute(SECTION_MEAS2))->GetRealval();
+      //  ((CcReal*) act->GetAttribute(SECTION_MEAS2))->GetRealval();
 
 
       act->DeleteIfAllowed();
