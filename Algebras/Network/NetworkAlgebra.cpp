@@ -2684,7 +2684,7 @@ void Network::FillAdjacencyPair(Tuple* in_pFirstSection,
                                                 in_bSecondUp));
     }
 }
-  /*
+
 bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
 {
   GPoint* end = new GPoint(*to);//copy the gpoint
@@ -3101,7 +3101,7 @@ void Network::FillDistanceStorage()
       delete gp2;
     }
   }
-}*/
+}
 
 int Network::GetId()
 {

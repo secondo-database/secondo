@@ -1619,12 +1619,14 @@ The BTree of the sections route ids.
 */
 
   BTree* m_pBTreeSectionsByRoute;
-    /*
+
+/*
 Store the distance between two junction points
 
+*/
 
- Relation* alldistance;
-    */
+  Relation* alldistance;
+
 };
 
 
