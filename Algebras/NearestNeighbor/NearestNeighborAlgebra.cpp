@@ -5559,6 +5559,7 @@ void Mqknearest(MQKnearest* mqk)
   //following does not partition
   vector<PointNeighbor> distance; //data points ordered
 
+//brute force algorithm
 //  for(int i = 1;i <= mqk->querypoints->GetNoTuples();i++){
 //    Tuple* tuple1 = mqk->querypoints->GetTuple(i);
 //    Point* p1 = (Point*)tuple1->GetAttribute(0);
@@ -5577,7 +5578,7 @@ void Mqknearest(MQKnearest* mqk)
 //  }
 //  mqk->iter = mqk->results.begin();
 
-
+//random seed point
 //  srand(time(0));
 //  int seed = 1 + rand()%(mqk->querypoints->GetNoTuples()-1);
 //  tuple = mqk->datapoints->GetTuple(seed);
@@ -5678,6 +5679,163 @@ Operator mqknearest (
          Operator::SimpleSelect,  // trivial selection function
          mqknearestTypeMap    // type mapping
 );
+const string covleafnodeSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text> datarel(tuple ((x1 t1)...(xn tn))) "
+      " x rtree(tuple((x1 t1)...(xn tn)))"
+      " x covrel(tuple((x1 t1)))->"
+      " (stream (tuple ((x1 t1)...(xn tn))))"
+      "</text--->"
+      "<text>covleafnode(_ ,_,_ )</text--->"
+      "<text>The operator returns a stream of tuples "
+      "recording the number of units in leafnode of R-tree"
+      "according to different quadrants"
+      "</text--->"
+      "<text>not finished yet;</text--->"
+      ") )";
+ListExpr covleafnodeTypeMap(ListExpr args){
+  if(nl->ListLength(args) != 3){
+      ErrorReporter::ReportError("3 parameters expected");
+      return nl->TypeError();
+  }
+  ListExpr rtree2 = nl->Second(args);
+  string rtreedescription2;
+  nl->WriteToString(rtreedescription2,rtree2);
+  ListExpr rtsymbol2 = nl->First(rtree2);
+
+  if(nl->IsAtom(rtsymbol2) &&
+    nl->AtomType(rtsymbol2) == SymbolType &&
+    nl->SymbolValue(rtsymbol2) == "rtree")
+
+  return
+        nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->FiveElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("NodeId"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Coverage"),//1 quadrant
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Coverage"),//2 quadrant
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Coverage"),//3 quadrant
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Coverage"),//4 quadrant
+                        nl->SymbolAtom("int")
+                    ))));
+  ErrorReporter::ReportError("rtree expected");
+  return nl->TypeError();
+
+}
+struct Covleafnode{
+  Relation* data;
+  R_Tree<2,TupleId>* rtree;
+  Relation* cov;
+  TupleType* resulttype;
+  int covtid;
+  Covleafnode(){}
+};
+int covleafnodeFun(Word* args, Word& result, int message,
+              Word& local, Supplier s){
+  Covleafnode* localInfo;
+  switch(message){
+     case OPEN: {
+     localInfo = new Covleafnode();
+     localInfo->data = (Relation*)args[0].addr;
+     localInfo->rtree = (R_Tree<2,TupleId>*)args[1].addr;
+     localInfo->cov = (Relation*)args[2].addr;
+     localInfo->resulttype = new TupleType(nl->Second(GetTupleResultType(s)));
+     localInfo->covtid = 1;
+     local = SetWord(localInfo);
+     return 0;
+   }
+   case REQUEST: {
+      localInfo = (Covleafnode*)local.addr;
+      R_TreeNode<2,TupleId>* node = NULL;
+      int nodeid;
+      while(localInfo->covtid <= localInfo->cov->GetNoTuples()){
+        Tuple* tuple = localInfo->cov->GetTuple(localInfo->covtid);
+        assert(tuple != NULL);
+        localInfo->covtid++;
+        nodeid = ((CcInt*)tuple->GetAttribute(0))->GetIntval();
+        tuple->DeleteIfAllowed();
+        SmiRecordId adr = nodeid;
+        node = localInfo->rtree->GetMyNode(
+         adr,false,
+        localInfo->rtree->MinEntries(0),localInfo->rtree->MaxEntries(0)
+        );
+        if(node->IsLeaf())
+          break;
+
+      }
+      if(localInfo->covtid > localInfo->cov->GetNoTuples())
+        return CANCEL;
+      assert(node != NULL);
+      BBox<2> box = node->BoundingBox();
+      double minx = box.MinD(0);
+      double miny = box.MinD(1);
+      double maxx = box.MaxD(0);
+      double maxy = box.MaxD(1);
+      int quad1,quad2,quad3,quad4;
+      quad1 = quad2 = quad3 = quad4 = 0;
+      for(int i = 0;i < node->EntryCount();i++){
+        R_TreeLeafEntry<2,TupleId> e = (R_TreeLeafEntry<2,TupleId>&)(*node)[i];
+        TupleId info = e.info;
+        Tuple* tuple = localInfo->data->GetTuple(info);
+        Point* p = (Point*)tuple->GetAttribute(0);
+        tuple->DeleteIfAllowed();
+        double x = p->GetX();
+        double y = p->GetY();
+        if(minx <= x && x< (minx+(maxx-minx)/2)){
+          if(miny <= y && y < (miny+(maxy-miny)/2))
+            quad3++;
+          else
+            quad2++;
+        }else{
+          if(miny <= y && y < (miny+(maxy-miny)/2))
+            quad4++;
+          else
+            quad1++;
+        }
+      }
+      assert(quad1+quad2+quad3+quad4 == node->EntryCount());
+      //coverage number for each quadrant
+      Tuple* tuple = new Tuple(localInfo->resulttype);
+      tuple->PutAttribute(0,new CcInt(true,nodeid));
+      tuple->PutAttribute(1,new CcInt(true,quad1));
+      tuple->PutAttribute(2,new CcInt(true,quad2));
+      tuple->PutAttribute(3,new CcInt(true,quad3));
+      tuple->PutAttribute(4,new CcInt(true,quad4));
+      result.setAddr(tuple);
+      return YIELD;
+
+   }
+   case CLOSE : {
+      localInfo = (Covleafnode*)local.addr;
+      localInfo->resulttype->DeleteIfAllowed();
+      delete localInfo;
+      return 0;
+   }
+ }
+ return 0;
+}
+Operator covleafnode (
+         "covleafnode",        // name
+         covleafnodeSpec,      // specification
+         covleafnodeFun,       // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         covleafnodeTypeMap    // type mapping
+);
 
 /*
 4 Implementation of the Algebra Class
@@ -5708,6 +5866,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &knearestfilter);
     AddOperator( &distancescan4);
     AddOperator( &mqknearest);
+    AddOperator( &covleafnode);
   }
   ~NearestNeighborAlgebra() {};
 };
