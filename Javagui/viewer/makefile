@@ -32,7 +32,6 @@ all: viewers MenuVector.class SecondoViewer.class
 
 # add below new Viewer classes or subdirectories to compile
 VIEWER_CLASSES := \
-    GrappaViewer.class \
 		FormattedViewer.class \
 		InquiryViewer.class \
 		QueryViewer.class \
@@ -47,6 +46,9 @@ VIEWER_CLASSES := \
                 TreeViewer.class \
                 PictureViewer.class\
                 UpdateViewer.class
+
+
+#    GrappaViewer.class \
 
 VIEWER_DIRS := fuzzy2d midi relsplit viewer3d hoese pictureviewer update
 
