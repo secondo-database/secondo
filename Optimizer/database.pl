@@ -331,13 +331,8 @@ Operators to determine attribute sizes in Secondo:
    Return the size of the attributes root part within a
    stream or a relation (without small FLOBs).
 
-Simple datatypes ~X~, that have no FLOBs and for which ~noFlobType(X)~
-in file ``operators.pl'' is defined, will be assumed to have no FLOBs.
-Instead of querying Secondo for the attribute sizes, the rootsizes stored
-in file ``storedTypeSizes.pl'' for each Secondo datatype are used.
-
 Prior to asserting the ~storedSpell/3~, ~storedAttrSize/7~,  ~storedTupleSize/3~,
-~storedCard/3~, ~storedOrderings/3~ facts, all such facts regarding the relation
+~storedCard/3~, ~storedOrderings/3~ facts, all facts regarding the relation
 and its attributes are retracted.
 
 PROBLEM: The Secondo QueryProcessor only supports a fixed amount of function
@@ -3883,8 +3878,8 @@ writeStoredTupleSizes :-
   close(FD).
 
 writeStoredTupleSize(Stream) :-
-  storedTupleSize(DB, _, Mem, Core, LOB),
-  write(Stream, storedTupleSize(DB, Mem, Core, LOB)),
+  storedTupleSize(DB, DCrel, Mem, Core, LOB),
+  write(Stream, storedTupleSize(DB, DCrel, Mem, Core, LOB)),
   write(Stream, '.\n').
 
 :-
@@ -4046,6 +4041,11 @@ addSizeTerms(X, Y) :-
   throw(error_Internal(database_addSizeTerms(X, Y)#ErrMsg)),
   fail, !.
 
+negateSizeTerm(sizeTerm(A,B,C),sizeTerm(A1,B1,C1)) :-
+  A1 is -1 * A,
+  B1 is -1 * B,
+  C1 is -1 * C,
+  !.
 
 
 /*

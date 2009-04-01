@@ -266,17 +266,6 @@ isBlockingOP(makemvalue).
 /*
 3 Properties Of Certain Datatypes
 
-~noFlobType(Type)~ indicates that Secondo datatype ~type~ does not have any
-flobs. For attributes of these datatypes, the average inline flob size is not queried
-to determine attribute sizes.
-
-*/
-
-noFlobType(Type) :-
-  secDatatype(Type, _, 0, _), !.
-
-/*
-
 ---- nullValue(Type, NullValueType, NullValueValue)
 ----
 
