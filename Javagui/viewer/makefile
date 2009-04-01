@@ -32,6 +32,7 @@ all: viewers MenuVector.class SecondoViewer.class
 
 # add below new Viewer classes or subdirectories to compile
 VIEWER_CLASSES := \
+    GrappaViewer.class \
 		FormattedViewer.class \
 		InquiryViewer.class \
 		QueryViewer.class \
@@ -79,5 +80,5 @@ clean:
 
 # default rule for creating java classes
 %.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH):$(MP3CLASSESPATH) $<
+	$(JAVAC) -classpath $(CLASSPATH):$(MP3CLASSESPATH):$(GRAPPA) $<
 
