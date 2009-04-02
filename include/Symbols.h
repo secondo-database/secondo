@@ -87,6 +87,8 @@ namespace symbols {
  // point rectangle types
 #undef XPOINT
 #undef XRECTANGLE
+#undef SIMPLE 
+#undef INSIDE 
 #undef SIMPLE
  Sym XPOINT("xpoint");
  Sym XRECTANGLE("xrectangle");
