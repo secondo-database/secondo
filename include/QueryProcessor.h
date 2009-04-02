@@ -500,7 +500,7 @@ Construct an operator tree from ~expr~. Allocate argument vectors for all
 functions and then call ~subtree~ to do the job.
 
 */
-  ListExpr ListOfTree( void* node, ostream& os );
+  ListExpr ListOfTree( void* node, ostream& os, ofstream& of );
 /*
 Represents an operator tree through a list expression. Used for testing.
 Additionally more detailed information will be printed into ~os~.

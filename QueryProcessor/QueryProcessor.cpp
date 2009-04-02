@@ -225,6 +225,7 @@ using namespace std;
 #include "ProgressView.h"
 #include "Progress.h"
 #include "Operator.h"
+#include "stdio.h"
 #include <stdexcept>
 
 
@@ -608,6 +609,37 @@ OpNode(OpNodeType type = Operator) :
   }
 }
 
+  string symbol() const {
+
+        if ( nl->AtomType(u.symbol) == SymbolType )
+        {
+          return nl->SymbolValue(u.symbol);
+        }
+	return "";
+  }
+
+  string stringId() const {
+
+  stringstream ss;	  
+  switch ( nodetype )
+  {
+    case Object : { 
+	if (u.dobj.isConstant) // todo list rep of value
+	  ss << id << ":Const "; 
+	else
+	  ss << id << ":Obj " << symbol(); 
+	break; 
+    }
+    case Pointer :        { ss << id << ":Ptr "; break; }
+    case IndirectObject : { ss << id << ":IndObj fun = " 
+			       << u.iobj.funNumber; break; }
+    case Operator :       { ss << id << ":Op " << symbol(); break; }
+    default :
+    { assert( false ); }
+  }
+  return ss.str();  
+  }
+
 };
 
 
@@ -873,12 +905,13 @@ ostream& operator<<(ostream& os, const OpNode& node) {
 
   */
 
+
   ListExpr
-  QueryProcessor::ListOfTree( void* node, ostream& os )
+  QueryProcessor::ListOfTree( void* node, ostream& os, ofstream& of )
   {
   /*
   Represents an operator tree through a list expression. Used for testing.
-  Additonally more detailed information is printed int ~os~
+  Additonally more detailed information is printed to ~os~
 
   */
     OpTree tree = static_cast<OpTree>( node );
@@ -935,13 +968,22 @@ ostream& operator<<(ostream& os, const OpNode& node) {
       {
         if ( tree->u.op.noSons > 0)
         {
+	  // create graphviz arcs	  
+          for ( i = 0; i < tree->u.op.noSons; i++ )
+          {
+            of << "\"" << tree->stringId() << "\"->" 
+	       << "\"" 
+	       << static_cast<OpNode*>( tree->u.op.sons[i].addr )->stringId()
+	       << "\";" << endl;
+          }
+
           list =
-            nl->OneElemList( ListOfTree( tree->u.op.sons[0].addr, os ) );
+            nl->OneElemList( ListOfTree( tree->u.op.sons[0].addr, os, of ) );
           last = list;
           for ( i = 1; i < tree->u.op.noSons; i++ )
           {
             last = nl->Append( last,
-            ListOfTree( tree->u.op.sons[i].addr, os ) );
+            ListOfTree( tree->u.op.sons[i].addr, os, of ) );
           }
         }
         else
@@ -2557,9 +2599,18 @@ QueryProcessor::SubtreeX( const ListExpr expr )
   if ( debugMode )
   {
     cout << endl << "*** SubtreeX Begin ***" << endl;
-    ListExpr treeList = ListOfTree( resultTree, cerr );
+    const char* cfp = "optree_cur.gv";
+    const char* ofp = "optree_old.gv";
+    // rename current to old;	    
+    rename(cfp, ofp);
+    ofstream of;
+    of.open(cfp, ios::trunc);
+    of << "digraph \"optree\" {" << endl; 
+    ListExpr treeList = ListOfTree( resultTree, cerr, of );
     nl->WriteListExpr( treeList, cout, 2 );
     nl->Destroy( treeList );
+    of << "}" << endl;
+    of.close();
     cout << endl << "*** SubtreeX End ***" << endl;
   }
   return (resultTree);
@@ -3424,9 +3475,12 @@ Then call the operator's value mapping function.
                         {
                         cerr << fn <<
                         "*** Abstraction application " << endl;
-                        nl->WriteListExpr( ListOfTree( tree, cerr ),
+			ofstream of;
+			of.open("abstraction.gv", ios::trunc);
+                        nl->WriteListExpr( ListOfTree( tree, cerr, of ),
                                 cout, 2 );
                         cerr << endl;
+			of.close();
                         }
 
           absArgs = Argument(tree->u.op.sons[0].addr );
