@@ -161,6 +161,14 @@ ALGEBRA_DEPS += jpeg
 ALGEBRA_DIRS += Graph
 ALGEBRAS     += GraphAlgebra
 
+# needs the grahpviz library: www.graphviz.org
+#ALGEBRA_DIRS += GraphViz
+#ALGEBRAS     += GraphVizAlgebra
+#ALGEBRA_DEPS += gvc
+#ALGEBRA_DEP_DIRS += /usr/lib/graphviz
+# The path above may be system dependent,
+# also add this direcory to LD_LIBRARY_PATH
+
 ALGEBRA_DIRS += GSL
 ALGEBRAS     += GSLAlgebra
 ALGEBRA_DEPS += gsl gslcblas
