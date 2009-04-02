@@ -65,6 +65,7 @@ New distdata-types must be registered in the "DistDataReg::initialize"[4] method
 #include "StandardTypes.h"
 #include "StandardAttribute.h"
 #include "Symbols.h"
+#include "TypeConstructor.h"
 
 extern SecondoInterface* si;
 using namespace std;
@@ -206,7 +207,7 @@ Returns the name of the assigned type constructor.
 
 */
     inline string typeName() const
-    { return am->Constrs(m_algebraId, m_typeId); }
+    { return am->GetTC(m_algebraId, m_typeId)->Name(); }
 
 /*
 Returns the id of the assigned algebra.
