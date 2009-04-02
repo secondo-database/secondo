@@ -146,13 +146,13 @@ Dot::In( const ListExpr typeInfo, const ListExpr instance,
   ss << "Expecting a list of type: text-atom!";
   
   if ( !list.isText() ) {
-    ss << "But got " << First; 	  
+    ss << "But got " << list; 	  
     cmsg.inFunError(ss.str());
     return result;
   }	  
 
   correct = true;
-  Dot* d = new Dot(First.str());
+  Dot* d = new Dot(list.str());
   result.addr = d;
   return result;
 }
