@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and Computer Science, 
+Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -22,7 +22,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 May 2007, M. Spiekermann. Initial version.
 
-This file should contain all symbols in nested lists which are 
+This file should contain all symbols in nested lists which are
 types or reserved words.
 
 Below we define some string constants which correspond to the symbols for type
@@ -48,18 +48,46 @@ namespace symbols {
 #undef REAL
 #undef BOOL
 #undef STRING
-#undef TEXT 
- Sym INT("int");	
+#undef TEXT
+ Sym INT("int");
  Sym REAL("real");
  Sym BOOL("bool");
  Sym STRING("string");
  Sym TEXT("text");
 
 
+ // ugrid types
+#undef MOBPOS
+#undef UGRIDAREA
+//#undef UPDATEUNIT
+//#undef CURRENTUNIT
+//#undef HISTORYUNIT
+#undef UGRIDCELL
+//#undef DIMSIZE
+#undef UGRID
+#undef DOUBLE
+ Sym MOBPOS("mobpos");
+ Sym UGRIDAREA("ugridarea");
+ Sym UGRIDCELL("ugridcell");
+ Sym UPDATEUNIT("updateunit");
+ Sym CURRENTUNIT("currentunit");
+ Sym HISTORYUNIT("historyunit");
+ Sym DIMSIZE("dimsize");
+ Sym DOUBLE ("double");
+ Sym UGRID("ugrid");
+ Sym CREATEUGRID("createugrid");
+ Sym INSERTUNIT("insertunit");
+ Sym INSERTMOB("insertmob");
+ Sym INSERTHU("inserthu");
+ Sym INERTSTREAM("insertstream");
+ Sym VERINT("verint");
+ Sym WINDOWINTERSECT("windowintersect");
+
+
  // point rectangle types
-#undef XPOINT 
+#undef XPOINT
 #undef XRECTANGLE
-#undef SIMPLE 
+#undef SIMPLE
  Sym XPOINT("xpoint");
  Sym XRECTANGLE("xrectangle");
  Sym INTERSECTS("intersects");
@@ -68,7 +96,7 @@ namespace symbols {
 
 
  // stream example types
-#undef INTSTREAM 
+#undef INTSTREAM
 #undef REALSTREAM
 #undef COUNT
  Sym INTSTREAM("intstream");
@@ -79,11 +107,11 @@ namespace symbols {
 
 
  // relation algebra
-#undef REL 
-#undef TUPLE 
+#undef REL
+#undef TUPLE
 #undef REL_TUPLE
-#undef PRINTREFS 
-#undef FEEDPROJECT 
+#undef PRINTREFS
+#undef FEEDPROJECT
  Sym REL("rel");
  Sym TUPLE("tuple");
  Sym REL_TUPLE("rel(tuple(...))");
@@ -94,8 +122,8 @@ namespace symbols {
  Sym FEEDPROJECT("feedproject");
 
  // chess algebra
-#undef MATERIAL 
-#undef POSITION 
+#undef MATERIAL
+#undef POSITION
  Sym MATERIAL("material");
  Sym POSITION("position");
 
@@ -112,7 +140,7 @@ namespace symbols {
  Sym LINE("line");
  Sym SLINE("sline");
  Sym POINTS("points");
- 
+
 
  // histogram types
 #undef HISTOGRAM1D
@@ -178,12 +206,12 @@ Sym CREATE_PREFIX("create_");
 
 
  // some reserved words of the query processor
-#undef MAP 
-#undef STREAM 
-#undef APPEND 
- Sym MAP("map"); 
- Sym STREAM("stream"); 
- Sym APPEND("APPEND"); 
+#undef MAP
+#undef STREAM
+#undef APPEND
+ Sym MAP("map");
+ Sym STREAM("stream");
+ Sym APPEND("APPEND");
 
  // symbols for runtime flags
  // and counters
@@ -191,7 +219,7 @@ Sym CREATE_PREFIX("create_");
  Sym CTR_DeletedTuples("RA:DeletedTuples");
  Sym CTR_MaxmemTuples("RA:MaxTuplesInMem");
  Sym CTR_MemTuples("RA:TuplesInMem");
- 
+
  Sym CTR_INT_Created("STD:INT_created");
  Sym CTR_INT_Deleted("STD:INT_deleted");
  Sym CTR_REAL_Created("STD:REAL_created");
@@ -215,6 +243,6 @@ Sym CREATE_PREFIX("create_");
  Sym CTR_TBUF_BYTES_R("RA:TupleBuf:Read:Bytes");
  Sym CTR_TBUF_PAGES_R("RA:TupleBuf:Read:Pages");
 
-} // end of namespace	
+} // end of namespace
 
 #endif
