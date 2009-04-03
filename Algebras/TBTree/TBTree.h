@@ -972,6 +972,7 @@ Stores a new entry.
                         (path[path.size()-1].node);
            if(!leaf->isFull()) {
               leaf->insert(e);
+              updateNode(path[path.size()-1].id, *leaf);
               Rectangle<3> b = leaf->getBox();
               updatePath(path, b);
            } else {
