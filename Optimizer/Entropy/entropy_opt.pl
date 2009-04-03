@@ -246,17 +246,17 @@ but with the suffix '\_small'
 
 */
 
-ensureSmallRelExists(DCrel) :-
+ensureSmallRelExists(Rel) :-
+  downcase_atom(Rel,DCrel),
   createSmallRelationObjectForRel(DCrel).
 
-ensureSmallRelExists(DCindex) :-
+ensureSmallIndexExists(Index) :-
+  downcase_atom(Index,DCindex),
   createSmallIndexForIndex(DCindex).
 
 small(rel(Rel, Var), rel(Rel2, Var)) :-
   atom_concat(Rel, '_small', Rel2),
   ensureSmallRelExists(Rel).
-
-
 
 newResSize(arg(N), Size) :-
   argument(N, R ),
@@ -288,7 +288,7 @@ query_small(IndexName, NameSmall) :-
   databaseName(DB),
   storedIndex(DB,_,_,_,DCindexName),
   atom_concat( IndexName, '_small', NameSmall ),
-  ensureSmallIndexExists(IndexName),
+  ensureSmallIndexExists(DCindexName),
   !.
 
 query_small(rel(Name, V), rel(NameSmall, V)) :-
