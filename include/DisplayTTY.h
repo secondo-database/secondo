@@ -202,6 +202,10 @@ Are display functions for tuples.
   static void DisplayPoint( ListExpr type,
                              ListExpr numType,
                              ListExpr value );
+  
+static void DisplayTBTree( ListExpr type,
+                             ListExpr numType,
+                             ListExpr value );
 
   static void DisplayRect( ListExpr type,
                            ListExpr numType,
