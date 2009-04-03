@@ -12282,6 +12282,21 @@ bool WGSGK::project(const Point& src, Point& result) const{
 }
 
 
+bool WGSGK::project(const HalfSegment& src, HalfSegment& result) const{
+   result = src;
+   Point p1,p2;
+   if(!project(src.GetLeftPoint(),p1)) return false;
+   if(!project(src.GetRightPoint(),p2)) return false;
+   if(p2<p1){
+     result.attr.insideAbove = ! src.attr.insideAbove;
+     result.Set(src.IsLeftDomPoint(), p2, p1);
+   } else {
+     result.Set(src.IsLeftDomPoint(), p1, p2);
+   }
+   return true;
+}
+
+
 bool WGSGK::getOrig(const Point& src, Point& result) const{
   if(!src.IsDefined()){
     result.SetDefined(false);
@@ -14859,7 +14874,7 @@ ListExpr gkTypeMap(ListExpr args){
     return nl->TypeError();
   }
   string t = nl->SymbolValue(arg);
-  if(t=="point" || t=="points" ){ // line and region not implemented yet
+  if(t=="point" || t=="points" || t=="line" || t=="region"){ 
     return nl->SymbolAtom(t);
   }
   ErrorReporter::ReportError(err);
@@ -15648,6 +15663,8 @@ static int gkSelect(ListExpr args){
   string t = nl->SymbolValue(nl->First(args));
   if(t=="point") return 0;
   if(t=="points") return 1;
+  if(t=="line") return 2;
+  if(t=="region") return 3;
   return -1;
 }
 
@@ -18361,6 +18378,31 @@ int gkVM_ps(Word* args, Word& result, int message,
    return 0;
 }
 
+template<class T>
+int gkVM_x(Word* args, Word& result, int message,
+          Word& local, Supplier s){
+   result = qp->ResultStorage(s);
+   T* a = static_cast<T*>(args[0].addr);
+   T* res = static_cast<T*>(result.addr); 
+   WGSGK gk;
+   res->Clear();
+   res->Resize(a->Size());
+   res->StartBulkLoad();
+   const HalfSegment* hs;
+   HalfSegment hs2;
+   for(int i=0;i<a->Size();i++){
+      a->Get(i,hs);
+      if(! gk.project(*hs,hs2)){
+        res->Clear();
+        res->EndBulkLoad();
+        res->SetDefined(false);
+        return 0;
+      }
+      (*res) += (hs2);
+   }
+   res->EndBulkLoad();
+   return 0;
+}
 
 /*
 10.5 Definition of operators
@@ -18605,7 +18647,9 @@ ValueMapping utmVM[] = {
 
 ValueMapping gkVM[] = {
           gkVM_p,
-          gkVM_ps
+          gkVM_ps,
+          gkVM_x<Line>,
+          gkVM_x<Region>
       };
 
 /*
@@ -19095,7 +19139,7 @@ const string utmSpec  =
 
 const string gkSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-   "( <text>t -> t, t in {point, points} </text--->"
+   "( <text>t -> t, t in {point, points, line, region} </text--->"
    "<text> gk(_)  </text--->"
    "<text>projects the arguments using the Gauss Krueger projection</text--->"
    "<text>query gk([const point value ( 0 0)])</text--->"
@@ -19545,7 +19589,7 @@ Operator utmOp (
 Operator gkOp (
   "gk",
    gkSpec,
-   2,
+   4,
    gkVM,
    gkSelect,
    gkTypeMap );

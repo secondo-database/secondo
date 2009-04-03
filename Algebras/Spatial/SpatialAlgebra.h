@@ -5368,6 +5368,7 @@ class WGSGK{
 public:
   WGSGK(){ init(); }
   bool project(const Point& src, Point& result) const;
+  bool project(const HalfSegment& src, HalfSegment& result) const;
   bool getOrig(const Point& src, Point& result) const;
   void enableWGS(const bool enabled);
   void setMeridian(const int m);
