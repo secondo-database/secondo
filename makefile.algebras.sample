@@ -90,6 +90,9 @@ ALGEBRAS     += DateAlgebra
 ALGEBRA_DIRS += RTree
 ALGEBRAS     += RTreeAlgebra
 
+ALGEBRA_DIRS += TBTree
+ALGEBRAS     += TBTreeAlgebra
+
 ALGEBRA_DIRS += Rectangle
 ALGEBRAS     += RectangleAlgebra
 
