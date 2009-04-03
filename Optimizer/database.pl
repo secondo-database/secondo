@@ -181,7 +181,8 @@ dcName2internalName(DC,Intern) :-
          write('secondoCatalogInfo/4 for 2nd argument?!')
        )
   ), !,
-  throw(error_Internal(database_dcName2internalName(DC,Intern):cannotTranslate)),
+  throw(error_Internal(database_dcName2internalName(DC,Intern)
+                    :cannotTranslate)),
   nl, fail, !.
 
 /*
@@ -225,7 +226,8 @@ dcName2externalName(DC,External) :-
     ;  write('--->\tProbably 2nd argument is not atomic?!')
   ), !,
   nl,
-  throw(error_Internal(database_dcName2externalName(DC,External):cannotTranslate)),
+  throw(error_Internal(database_dcName2externalName(DC,External)
+                      :cannotTranslate)),
   fail, !.
 
 /*
@@ -356,7 +358,8 @@ updateRelationSchema(DCrel) :-
     -> true
     ;  ( write_list(['\nERROR:\tCannot update relation schema for \'',DCrel,
                      '\': No database open.']), nl,
-         throw(error_Internal(database_updateRelationSchema(DCrel):noDatabaseOpen)),
+         throw(error_Internal(database_updateRelationSchema(DCrel)
+                              :noDatabaseOpen)),
          fail, !
        )
   ),
@@ -717,7 +720,8 @@ handleNewRelation(DCrel) :-
   ( databaseName(_)
     -> true
    ;  (  write('ERROR:\tNo database open. Cannot handle new relation!'),nl,
-         throw(error_Internal(database_handleNewRelation(DCrel):noDatabaseOpen)),
+         throw(error_Internal(database_handleNewRelation(DCrel)
+                              :noDatabaseOpen)),
          !, fail
       )
   ),
@@ -727,7 +731,8 @@ handleNewRelation(DCrel) :-
     -> true
     ;  (  write_list(['\nERROR:\tObject \'',DCrel,
                       '\' unknown or not a relation.']),nl,
-          throw(error_Internal(database_handleNewRelation(DCrel):typeError)), !, fail
+          throw(error_Internal(database_handleNewRelation(DCrel):typeError)),
+          !, fail
        )
   ),
   write_list(['\nINFO:\tRelation \'',ExtRel,
@@ -765,7 +770,8 @@ handleNewIndex(DCindex) :-
   ( databaseName(DB)
     -> true
     ;  (  write('ERROR:\tNo database open. Cannot handle new index!'),nl,
-          throw(error_Internal(database_handleNewIndex(DCindex):noDatabaseOpen)),
+          throw(error_Internal(database_handleNewIndex(DCindex)
+                              :noDatabaseOpen)),
           !, fail
        )
   ),
@@ -819,7 +825,8 @@ handleLostRelation(DCrel) :-
   ( databaseName(_)
     -> true
    ;  (  write('ERROR:\tNo database open. Cannot handle lost relation!'),nl,
-          throw(error_Internal(database_handleLostRelation(DCrel):noDatabaseOpen)),
+          throw(error_Internal(database_handleLostRelation(DCrel)
+                                :noDatabaseOpen)),
           !, fail
       )
   ),
@@ -904,7 +911,8 @@ handleLostIndex(DCindex) :-
   ( databaseName(DB)
     -> true
    ;  (  write('ERROR:\tNo database open. Cannot handle lost index!'),nl,
-          throw(error_Internal(database_handleLostIndex(DCindex):noDatabaseOpen)),
+          throw(error_Internal(database_handleLostIndex(DCindex)
+                       :noDatabaseOpen)),
           !, fail
       )
   ),
@@ -1162,7 +1170,7 @@ getSmallName(Name, NameSmall) :-
   dm(dbhandling,['\nTry: getSmallName(',Name,',',NameSmall,').']),
   ( atomic(Name)
     -> atom_concat(Name,'_small',NameSmall)
-    ; ( write('ERROR:\tName must be atomic!'), nl,
+    ; ( write_list(['ERROR:\tName must be atomic! But is: ',Name]), nl,
         throw(error_Internal(database_getSmallName(Name, NameSmall)
                        :wrongInstantiationPattern)),
         fail
@@ -1265,9 +1273,10 @@ createSmall(DCrel, Size)  :-
          fail
        )
   ),
-  getSmallName(ExtRel,ExtRelSmall),
   ( secondoCatalogInfo(DCrel,ExtRel,_,[[rel, [tuple, _]]])
-    -> buildSmallRelation(ExtRel, ExtRelSmall, Size, 0.000001)
+    -> ( getSmallName(ExtRel,ExtRelSmall),
+         buildSmallRelation(ExtRel, ExtRelSmall, Size, 0.000001)
+       )
     ;  ( write('ERROR:\tThat relation does not exist, or no database is open.'),
          nl,
          throw(error_Internal(database_createSmall(DCrel, Size):lostObject)),
@@ -1317,7 +1326,7 @@ getSampleSname(Name, SampleSname) :-
   dm(dbhandling,['\nTry: getSampleSname(',Name,',',SampleSname,').']),
   ( atomic(Name)
     -> atom_concat(Name,'_sample_s',SampleSname)
-    ; ( write('ERROR:\tName must be atomic!'), nl,
+    ; ( write_list(['ERROR:\tName must be atomic! But is: ',Name]), nl,
         throw(error_Internal(database_getSampleSname(Name, SampleSname)
                        :wrongInstantiationPattern)),
         fail
@@ -1328,7 +1337,7 @@ getSampleJname(Name, SampleJname) :-
   dm(dbhandling,['\nTry: getSampleJname(',Name,',',SampleJname,').']),
   ( atomic(Name)
     -> atom_concat(Name,'_sample_j',SampleJname)
-    ; ( write('ERROR:\tName must be atomic!'), nl,
+    ; ( write_list(['ERROR:\tName must be atomic! But is: ',Name]), nl,
         throw(error_Internal(database_getSampleSname(Name, SampleJname)
                        :wrongInstantiationPattern)),
         fail
@@ -1367,8 +1376,8 @@ getStandardSampleCard(DCRel, CardMin, CardMax, SF, MaxMem,
                  TupleSize]),
   ( TupleSize < 1
     -> ( write_list(['ERROR:\tTuplesize for relation ',DCRel,' < 1!']), nl,
-         throw(error_Internal(database_getStandardSampleCard(DCRel, CardMin, CardMax,
-                      SF, MaxMem,CardStd, MemStd, CardRec, MemRec)
+         throw(error_Internal(database_getStandardSampleCard(DCRel, CardMin,
+                      CardMax, SF, MaxMem,CardStd, MemStd, CardRec, MemRec)
                       :invalidTupleSize)),
          fail
        )
@@ -2637,10 +2646,11 @@ createIndex(LFRel, LFAttr, LogicalIndexType, CreateSmall, IndexName) :-
   write('CreationQuery = '),write(CreationQuery),nl,
   ( secondo_direct(CreationQuery)
     -> true
-    ;  ( concat_atom(['Secondo command failed: Tried to create an index.'],'',ErrMsg),
+    ;  ( concat_atom(['Secondo command failed: Tried to create an index.'],'',
+                      ErrMsg),
          write_list(['ERROR:\t',ErrMsg]),nl,!,
-         throw(error_Internal(database_createIndex(LFRel, LFAttr, LogicalIndexType,
-             CreateSmall, IndexName)#ErrMsg)),
+         throw(error_Internal(database_createIndex(LFRel, LFAttr,
+             LogicalIndexType, CreateSmall, IndexName)#ErrMsg)),
          fail
        )
   ),
@@ -2681,7 +2691,8 @@ Relation and attribute are passed in downcased spelling.
     [[+,'DCRel','The relation the index is for.'],
      [+,'DCAttr','The key attribute.'],
      [?,'LogicalIndexType','The logical index type.']],
-    'Create an index of a specified type over a given attribute for a relation.')).
+    'Create an index of a specified type over a given attribute for a relation.'
+    )).
 
 createIndex(DCrel,DCattr,LogicalIndexType) :-
   dm(dbhandling,['\nTry: createIndex(',DCrel,',',DCattr,',',LogicalIndexType,
@@ -2852,7 +2863,7 @@ createSmallIndex(DCindex) :-
   ),
   % Check whether DCindex exists and is registered
   ( ( secondoCatalogInfo(DCindex,ExtIndex,_,_),
-      storedIndex(DB,_,_,LogicalIndexType,DCindex)
+      storedIndex(DB,DCRel,DCAttr,LogicalIndexType,DCindex)
     )
     -> true
     ;  ( concat_atom(['Cannot build a \'_small\'- index for \'',
