@@ -1,0 +1,38 @@
+Database: berlintest
+Restore : No
+
+Operator : createtbtree
+Number   : 1
+Signature: stream(tuple( ... (id int) ... (up upoint) ...) x id  x up -> tbtree(...)
+Example  : query tbentries(UnitTrains createtbtree[Id, UTrip])  = (UnitTrains count) 
+Result   : TRUE 
+
+
+Operator : tbentries 
+Number   : 1
+Signature: tbtree -> int 
+Example  : query tbentries(UnitTrains createtbtree[Id, UTrip])  = (UnitTrains count) 
+Result   : TRUE 
+
+
+Operator : tbnodes 
+Number   : 1
+Signature: tbtree -> int 
+Example  : query tbnodes(UnitTrains createtbtree[Id, UTrip])  < (UnitTrains count) 
+Result   : TRUE 
+
+
+Operator : tbleafnodes 
+Number   : 1
+Signature: tbtree -> int 
+Example  : query tbleafnodes(UnitTrains createtbtree[Id, UTrip])  < (UnitTrains count) 
+Result   : TRUE 
+
+
+Operator : tblevel 
+Number   : 1
+Signature: tbtree -> int 
+Example  : query tblevel(UnitTrains createtbtree[Id, UTrip])  < (UnitTrains count) 
+Result   : TRUE 
+
+
