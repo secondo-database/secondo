@@ -196,7 +196,7 @@ prints out the pointer
 
 
 /* 
-Function copying a defined rectange into a buffer 
+Function copying a defined rectangle into a buffer 
 
 */
 template<int Dim>
@@ -390,6 +390,9 @@ class BasicNode{
    uint16_t getMax() const{
       return max;
    }
+
+   virtual BasicNode<Dim>* clone() const=0;
+
   protected:
     uint16_t min;
     uint16_t max;
@@ -760,6 +763,10 @@ class LeafNode : public Node<Dim, Info>{
      return Node<Dim, Info>::print(os) << next << endl;
   }
 
+  virtual BasicNode<Dim>* clone() const{
+     return new LeafNode<Dim, Info>(*this);
+  }
+
   private:
     SmiRecordId next; 
 };
@@ -813,12 +820,16 @@ class InnerNode : public Node<Dim, Info>{
                                        BasicNode<Dim>::max);
     }
 
+    virtual BasicNode<Dim>* clone() const{
+        return new InnerNode<Dim, Info>(*this);
+    }
+
 };
 
-
+template<int Dim>
 struct pathEntry{
  public:
-  pathEntry(const SmiRecordId id1, BasicNode<3>* node1, const int pos1):
+  pathEntry(const SmiRecordId id1, BasicNode<Dim>* node1, const int pos1):
     id(id1), node(node1), pos(pos1){}
   pathEntry(const pathEntry& pe):id(pe.id), node(pe.node), pos(pe.pos){}
   
@@ -838,7 +849,7 @@ struct pathEntry{
   ~pathEntry(){}
 
   SmiRecordId    id;   // the record id
-  BasicNode<3>*  node; // the node corresponding to that id
+  BasicNode<Dim>*  node; // the node corresponding to that id
   int            pos;  // position of the next entry
 
 }; 
@@ -909,8 +920,26 @@ Returns the fileId of the underlying file.
 Returns the record id of the record storing the header of the tree.
 
 */
-  inline SmiRecordId getHeaderId() {
+  inline SmiRecordId getHeaderId() const{
     return headerId;
+  }
+
+
+/*
+Returns the record id storing the root of the tree. If the tree is emty, the
+result will be 0.
+
+*/
+  inline SmiRecordId getRootId() const{
+     return rootId;
+  }
+
+/*
+Returns the node stored at the given id.
+
+*/
+  inline BasicNode<3>* getNode(const SmiRecordId id){
+     return readNode(id);
   }
 
 
@@ -934,7 +963,7 @@ Stores a new entry.
         return; 
      } else {
         box = box.Union(e.getBox());
-        vector<pathEntry > path;
+        vector<pathEntry<3> > path;
         LeafNode<3, TBLeafInfo>* newLeaf(0);
         SmiRecordId id(0);
         if(searchNode(rootId, path, e)) {
@@ -1261,7 +1290,7 @@ Stores a new entry.
 
 
 
-    bool searchNode(const SmiRecordId id, vector<pathEntry>& path, 
+    bool searchNode(const SmiRecordId id, vector<pathEntry<3> >& path, 
                     const Entry<3, TBLeafInfo>& li )  {
 
         BasicNode<3>*  bn = readNode(id);
@@ -1273,7 +1302,7 @@ Stores a new entry.
                        dynamic_cast<LeafNode<3, TBLeafInfo>*> (bn);
            if(leaf->getEntry(0)->getInfo().getTrjId()==li.getInfo().getTrjId()&&
               leaf->getNext()==0){
-                  path.push_back(pathEntry(id,leaf, -1));
+                  path.push_back(pathEntry<3>(id,leaf, -1));
                   return true;
            } else {
              delete leaf;
@@ -1288,7 +1317,7 @@ Stores a new entry.
  
               entry = node->getEntry(i);
               if(entry->getBox().Intersects(li.getBox())){
-                 path.push_back(pathEntry(id, node,i));
+                 path.push_back(pathEntry<3>(id, node,i));
                  if(searchNode(entry->getInfo().getPointer(), path, li)){
                     return true;
                  } else {
@@ -1303,7 +1332,7 @@ Stores a new entry.
 
 
 
-    void updatePath(const vector<pathEntry>& path, const Rectangle<3>& b ) {
+    void updatePath(const vector<pathEntry<3> >& path, const Rectangle<3>& b ) {
        // a new entry was inserted at the end of the path.
        // we have to update the bounding boxes of all nodes in a path 
        for(int i=path.size()-2; i>=0;i--){
@@ -1410,12 +1439,185 @@ This function embedds the leaf with given id and box into the tree structure.
 
 
 
+template<int Dim>
+class IteratorElement{
+  public:
+    IteratorElement(): ownId(0),parentId(0), node(0), level(0){}
+
+    IteratorElement(SmiRecordId ownId1,
+                    SmiRecordId parentId1,
+                    BasicNode<Dim>* node1,
+                    int level1): ownId(ownId1), parentId(parentId1),
+                                 node(node1), level(level1) {}
+
+    IteratorElement( const IteratorElement<Dim>& s):
+         ownId(s.ownId), parentId(s.parentId),
+         node(s.node), level(s.level) {}
+
+    IteratorElement<Dim>& operator=(const IteratorElement<Dim>& s){
+       ownId = s.ownId;
+       parentId = s.parentId;
+       node = s.node;
+       level = s.level;
+       return *this;
+    }
+  
+    ~IteratorElement(){}
+
+     void deleteNode(){
+        if(node){
+          delete node;
+          node = 0;
+        }
+     }
+
+     SmiRecordId getOwnId() const{ return ownId; }
+     SmiRecordId getParentId() const {return parentId;}
+     BasicNode<Dim>* getNode() const { return node; }
+     int getLevel() const { return level; }
+
+     ostream& print(ostream& os){
+        return os << "ownId = " << ownId << ", parentId = " 
+                  << parentId << ", level = " << level; 
+     }
+
+
+  private:
+     SmiRecordId ownId;
+     SmiRecordId parentId;
+     BasicNode<Dim>* node;
+     int  level;
+};
+
+template<int Dim>
+class PathElement: public IteratorElement<Dim>{
+  public:
+    PathElement(SmiRecordId ownId,
+                SmiRecordId parentId,
+                BasicNode<Dim>* node,
+                int level): IteratorElement<Dim>(ownId, parentId, node, level),
+                            pos(0), used(false) {}
+
+   PathElement(const PathElement<Dim>& p): IteratorElement<Dim>(p), 
+                                           pos(p.pos), used(p.used){}
+
+   PathElement<Dim>& operator=(const PathElement<Dim>& s){
+       IteratorElement<Dim>::operator=(s);
+       pos = s.pos;
+       used = s.used;
+       return *this;
+   }
+
+   ostream& print(ostream& os){
+     return IteratorElement<Dim>::print(os) << " , pos = " 
+                                            << pos << ", used = " << used;
+   }
+
+   int pos;
+   bool used;
+};
 
 
 
+
+template<class Tree, class InnerNode, int Dim, class Select> 
+class DepthSearch{
+  public:
+    DepthSearch(Tree* tree1, const Select& select1): 
+         tree(tree1), select(select1){
+     SmiRecordId rid = tree->getRootId();
+     if(rid){
+       init(rid);
+     }
+
+    }
+
+    bool next(IteratorElement<Dim>& result){
+      if(path.empty()){
+        return false;
+      } 
+      return  next1(result);
+    } 
+    
+    void finish(){
+       while(!path.empty()){
+          PathElement<Dim> p = path.top();
+          delete p.getNode();
+          path.pop();           
+       }
+    }
+ 
+  
+  private:
+    Tree* tree;
+    stack<PathElement<Dim> > path;
+    Select select;
+
+    /* puts the root of the tree to the path */
+    void init(SmiRecordId rid){
+       BasicNode<Dim>* root = tree->getNode(rid);
+       PathElement<Dim> p(rid, 0, root , 0);
+       path.push(p);
+    }
+
+    bool next1(IteratorElement<Dim>& result){
+      while(!path.empty()){
+
+       PathElement<Dim> top = path.top();   
+       if(!(top.used) ){
+          path.pop();
+          top.used = true;
+          path.push(top);
+          if(select(top.getNode())){
+             IteratorElement<Dim> r(top.getOwnId(), top.getParentId(), 
+                                top.getNode()->clone(),top.getLevel());
+             result = r;
+             return true;   
+          } 
+       }
+
+       if(top.getNode()->isLeaf()){ // path exhausted
+          path.pop();
+          delete top.getNode();
+          if(path.empty()){
+            return false;
+          } else {
+            top = path.top();
+            top.pos++;
+            path.pop();
+            path.push(top);
+          } 
+       }  
+       
+       // p contains an inner node
+       while(top.pos == top.getNode()->entryCount()){ // no more sons available
+          path.pop();
+          delete top.getNode();
+          if(path.empty()){
+             return false;
+          } else {
+             top = path.top();
+             top.pos++;
+             path.pop();
+             path.push(top);
+          } 
+       }
+
+       InnerNode* in = dynamic_cast<InnerNode*>(top.getNode());
+       SmiRecordId sonId = in->getEntry(top.pos)->getInfo().getPointer();
+       BasicNode<Dim>* son = tree->getNode(sonId);
+       PathElement<Dim> p(sonId, top.getOwnId(), son , top.getLevel()+1);
+       path.push(p);
+     }
+     return false;
+
+    }
+
+};
 
 
 } // end of namespace tbtree
+
 
 #endif
 

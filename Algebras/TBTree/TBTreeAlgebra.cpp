@@ -469,6 +469,146 @@ Operator tblevel (
         tblevelVM,           // value mapping
         Operator::SimpleSelect, // trivial selection function
         TBTree2Int);       
+
+/*
+2.4 getnodes
+
+*/
+template<unsigned  Dim>
+class AllSelector{
+  public:
+    bool operator()(tbtree::BasicNode<Dim> * n) const{
+       return true;
+    }
+};
+
+
+
+ListExpr getnodesTM(ListExpr args){
+   if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("invalid number of arguments");
+     return nl->TypeError();
+   }
+   ListExpr errorInfo = listutils::emptyErrorInfo();
+   if(CheckTBTree(nl->First(args), errorInfo)){
+      return nl->TwoElemList(
+                    nl->SymbolAtom("stream"),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("tuple"),
+                        nl->SixElemList(
+                            nl->TwoElemList(
+                                nl->SymbolAtom("Id"),
+                                nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                                nl->SymbolAtom("ParentId"),
+                                nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                                nl->SymbolAtom("Level"),
+                                nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                                nl->SymbolAtom("IsLeaf"),
+                                nl->SymbolAtom("bool")),
+                            nl->TwoElemList(
+                                nl->SymbolAtom("Entries"),
+                                nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                                nl->SymbolAtom("Box"),
+                                nl->SymbolAtom("rect3")))));
+   }
+   ErrorReporter::ReportError("TBTree expected");
+   return nl->TypeError();
+}
+
+
+const string getnodesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>tbtree(...) -> stream(tuple(...)) </text--->"
+    "<text> getnodes(_) </text--->"
+    "<text>returns the nodes contained in the tree </text--->"
+    "<text>query getnodes(UnitTrains createtbtree[Id, UTrip]) count</text--->"
+    "<text></text--->"
+    ") )";
+
+
+class GetnodesLocalInfo{
+ public:
+  GetnodesLocalInfo(tbtree::TBTree* t, 
+                    const ListExpr tupleType,
+                    const AllSelector<3>& s): ds(t,s){
+    tt = new TupleType(tupleType);
+  }
+  ~GetnodesLocalInfo(){
+     tt->DeleteIfAllowed();
+     ds.finish();
+  }
+
+  tbtree::DepthSearch<tbtree::TBTree, 
+                      tbtree::InnerNode<3, tbtree::InnerInfo>, 
+                      3, AllSelector<3> 
+                     > ds;
+  TupleType* tt;
+
+};
+
+
+int getnodesVM(Word* args, Word& result, int message,
+                   Word& local, Supplier s){
+
+   switch (message){
+      case OPEN:{
+        if(local.addr){
+          delete static_cast<GetnodesLocalInfo*>(local.addr);
+        }
+        AllSelector<3> as;
+         tbtree::TBTree* t = static_cast<tbtree::TBTree*>(args[0].addr);
+         local.addr = new GetnodesLocalInfo(t, 
+                          nl->Second(GetTupleResultType(s)), as);
+         return 0;   
+      }
+
+      case REQUEST: {
+         if(!local.addr){
+           return CANCEL;
+         }
+         GetnodesLocalInfo* li = static_cast<GetnodesLocalInfo*>(local.addr);
+         tbtree::IteratorElement<3> next;
+         if(!li->ds.next(next)){
+            return CANCEL;
+         }
+         Tuple* res = new Tuple(li->tt);
+         res->PutAttribute(0, new CcInt(true, next.getOwnId()));
+         res->PutAttribute(1, new CcInt(true, next.getParentId())); 
+         res->PutAttribute(2, new CcInt(true, next.getLevel()));
+         res->PutAttribute(3, new CcBool(true, next.getNode()->isLeaf()));
+         res->PutAttribute(4, new CcInt(true, next.getNode()->entryCount()));
+         res->PutAttribute(5, new Rectangle<3>(next.getNode()->getBox()));
+         next.deleteNode();
+         result.setAddr(res);
+         return YIELD;
+      }
+
+      case CLOSE: {
+        if(local.addr){
+          delete static_cast<GetnodesLocalInfo*>(local.addr);
+          local.setAddr(0);
+        }
+        return 0;
+      }
+      default: assert(false);
+               return 0;
+   }
+
+}
+
+
+Operator getnodes (
+       "getnodes",            // name
+        getnodesSpec,          // specification
+        getnodesVM,           // value mapping
+        Operator::SimpleSelect, // trivial selection function
+        getnodesTM);       
+
  
 /*
 3 Algebra Creation
@@ -485,6 +625,7 @@ class TBTreeAlgebra : public Algebra {
      AddOperator(&tbnodes);
      AddOperator(&tbleafnodes);
      AddOperator(&tblevel);
+     AddOperator(&getnodes);
 
    }
 };
