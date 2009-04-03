@@ -529,6 +529,15 @@ void
   }
 }
 
+void 
+  DisplayTTY::DisplayTBTree(ListExpr type, ListExpr numType, ListExpr value){
+     if(nl->AtomType(value)!=TextType){
+        cout << " invalid representation of a tbtree " << endl;
+     } else {
+       cout << nl->ToString(value);
+     }
+  }
+
 /*
 DisplayRect
 
@@ -2139,6 +2148,7 @@ void
   InsertDisplayFunction( "rect8",   &DisplayRect8);
   InsertDisplayFunction( "array",   &DisplayArray);
   InsertDisplayFunction( "point",   &DisplayPoint);
+  InsertDisplayFunction( "tbtree",   &DisplayTBTree);
   InsertDisplayFunction( "binfile", &DisplayBinfile);
   InsertDisplayFunction( "mp3",     &DisplayMP3);
   InsertDisplayFunction( "id3",     &DisplayID3);
