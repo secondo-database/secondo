@@ -3,37 +3,45 @@
 
 8.1 The Costs of Terms
 
-----    cost(+Term, +Sel, -Size, -Cost)
 ----
-
-The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~
-is ~Cost~ and the size of the result is ~Size~.
-
-This is evaluated recursively descending into the term. When the operator
-realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
-used to determine the size of the result.
-It is assumed that only a single operator of this kind occurs within the term.
-
-NEW:
-
----- cost(+Term, +Sel, +PETCalc, +PETExp,
+    cost(+Term, +Sel, +Pred,
         -ResAttrList, -ResTupleSize, -ResCard, -Cost)
 ----
 
-Calculates the expected ~Cost~ of an executable ~Term~ representing a predicate
-with selectivity ~Sel~, experimental/ calculated PET ~PETExp~/ ~PETCalc~.
-Also returns the list of available attributes ~ResAttrList~ with all available
+Calculates the expected ~Cost~ of an executable ~Term~ representing a
+predicate
+ ~Pred~ with selectivity ~Sel~.
+Also returns the list of available attributes ~ResAttrList~ with all
+available
 information on attribute names and sizes. ~ResAttrList~ has format
+----
+[[AttrName, AttrType, sizeTerm(CoreSize,IntFLOBSize,ExtFLOBSize)], [...]]
 
-----[[AttrName, AttrType, sizeTerm(CoreSize,IntFLOBSize,ExtFLOBSize)], [...]]
 ----
 
-with one list for each attribute.
+with one inner list for each attribute.
 
 This is evaluated recursively descending into the term. When the operator
-realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
+realizing the predicate (e.g. ~filter~) is encountered, the selectivity
+~Sel~ is
 used to determine the size of the result.
-It is assumed that only a single operator of this kind occurs within the term.
+
+If more than a single operator with a selectivity occurs within ~Term~, the
+topmost call receives the total selectivity as an argument.
+
+Information on attributes and tuple sizes for each node ~N~ of the POG
+can be
+retrieved by calling
+
+---- getNodeInfo(+N, -ResAttrList, -ResTupleSize).
+----
+
+Operator-related constants used within the cost functions should be
+stored in
+facts
+
+---- costConst(+OpName, +ConstName, -Value)
+----
 
 
 8.1.1 Arguments
@@ -41,22 +49,28 @@ It is assumed that only a single operator of this kind occurs within the term.
 */
 
 % the if-then-else-part  is just for error-detection --- FIXME!
-cost(rel(Rel, X1_), X2_, Size, 0) :-
+cost(rel(Rel, X1_), Sel, PETCalc, PETExp,
+        ResAttrList, ResTupleSize, ResCard, 0) :-
   dcName2internalName(RelDC,Rel),
   ( Rel = RelDC
     -> true
     ;  (
-         write('ERROR:\tcost/4 failed due to non-dc relation name.'), nl,
+         write('ERROR:\tcost/8 failed due to non-dc relation name.'), nl,
          write('---> THIS SHOULD BE CORRECTED!'), nl,
-         throw(error_Internal(optimizer_cost(rel(Rel, X1_, X2_, Size, 0)
+         throw(error_Internal(optimizer_cost(rel(Rel, X1_), Sel, PETCalc,
+            PETExp, ResAttrList, ResTupleSize, ResCard, 0)
               :malformedExpression))),
          fail
        )
   ),
-  card(Rel, Size).
+  tupleSizeSplit(RelDC,ResTupleSize),
+  getRelAttrList(RelDC, ResAttrList, ResTupleSize)
+  card(Rel, ResCard).
 
-cost(res(N), _, Size, 0) :-
-  resultSize(N, Size).
+
+cost(res(N), _, _, _, ResAttrList, ResTupleSize, ResCard, 0) :-
+  resultSize(N, ResCard),
+  getNodeInfo(N, ResAttrList, ResTupleSize).
 
 /*
 8.1.2 Operators
