@@ -37,6 +37,9 @@ for the implementation of operators to update relations.
 
 */
 
+#ifndef TUPLEIDENTIFIER_H
+#define TUPLEIDENTIFIER_H
+
 using namespace std;
 
 #include "Algebra.h"
@@ -122,3 +125,6 @@ This constructor should not be used.
   long tid;
   bool defined;
 };
+
+
+#endif
