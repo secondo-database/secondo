@@ -717,6 +717,198 @@ Operator getFileInfo (
         Operator::SimpleSelect, // trivial selection function
         TBTree2Text);       
  
+
+/*
+2.6 getEntries
+
+
+2.4.1 Auxiliary class
+
+*/
+template<unsigned  Dim>
+class LeafSelector{
+  public:
+    bool operator()(tbtree::BasicNode<Dim> * n) const{
+       return n->isLeaf();
+    }
+};
+
+
+/*
+2.6.2 Type Mapping
+
+*/
+
+ListExpr getentriesTM(ListExpr args){
+   if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("invalid number of arguments");
+     return nl->TypeError();
+   }
+   ListExpr errorInfo = listutils::emptyErrorInfo();
+   if(CheckTBTree(nl->First(args), errorInfo)){
+      return nl->TwoElemList(
+                    nl->SymbolAtom("stream"),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("tuple"),
+                        nl->ThreeElemList(
+                            nl->TwoElemList(
+                                nl->SymbolAtom("TupleId"),
+                                nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                                nl->SymbolAtom("TrjId"),
+                                nl->SymbolAtom("int")),
+                            nl->TwoElemList(
+                                nl->SymbolAtom("Box"),
+                                nl->SymbolAtom("rect3")))));
+   }
+   ErrorReporter::ReportError("TBTree expected");
+   return nl->TypeError();
+}
+
+/*
+2.6.2 Specification
+
+*/
+
+
+const string getentriesSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>tbtree(...) -> stream(tuple(...)) </text--->"
+    "<text> getentries(_) </text--->"
+    "<text>returns the entries contained in the tree </text--->"
+    "<text>query getentries(UnitTrains createtbtree[Id, UTrip]) count</text--->"
+    "<text></text--->"
+    ") )";
+
+
+/*
+2.6.3 Value Mapping
+
+2.6.3.1 LocalInfo
+
+*/
+
+class GetentriesLocalInfo{
+ public:
+  GetentriesLocalInfo(tbtree::TBTree* t, 
+                    const ListExpr tupleType,
+                    const LeafSelector<3>& s): ds(t,s), node(0), pos(0){
+    tt = new TupleType(tupleType);
+  }
+  ~GetentriesLocalInfo(){
+     tt->DeleteIfAllowed();
+     ds.finish();
+     if(node){
+         delete node;
+     }
+  }
+
+  Tuple* next(){
+     if(!node){
+        getNextNode();
+     } else if(pos==node->entryCount()){
+        getNextNode();
+     }
+     if(!node){
+        return 0;
+     } else {
+         const tbtree::Entry<3, tbtree::TBLeafInfo>* e = node->getEntry(pos);
+         pos++;
+         Tuple* res = new Tuple(tt);
+         res->PutAttribute(0, new CcInt(true, e->getInfo().getTupleId()));
+         res->PutAttribute(1, new CcInt(true, e->getInfo().getTrjId())); 
+         res->PutAttribute(2, new Rectangle<3>(e->getBox()));
+         return res; 
+     }
+  } 
+
+  private:
+    void getNextNode(){
+       if(node){
+           delete node;
+           node = 0;
+       }
+       pos = 0;
+       tbtree::IteratorElement<3> next;
+       if(ds.next(next)){
+          assert(next.getNode()->isLeaf());
+          node = dynamic_cast<tbtree::LeafNode<3, 
+                       tbtree::TBLeafInfo>*>(next.getNode());
+          pos = 0; 
+        }
+    }
+
+
+  tbtree::DepthSearch<tbtree::TBTree, 
+                      tbtree::InnerNode<3, tbtree::InnerInfo>, 
+                      3, LeafSelector<3> 
+                     > ds;
+  TupleType* tt;
+  tbtree::LeafNode<3, tbtree::TBLeafInfo>* node;
+  int pos;
+
+};
+
+/*
+2.6.3.1 Value Mapping function 
+
+*/
+
+int getentriesVM(Word* args, Word& result, int message,
+                   Word& local, Supplier s){
+
+   switch (message){
+      case OPEN:{
+        if(local.addr){
+          delete static_cast<GetentriesLocalInfo*>(local.addr);
+        }
+        LeafSelector<3> as;
+         tbtree::TBTree* t = static_cast<tbtree::TBTree*>(args[0].addr);
+         local.addr = new GetentriesLocalInfo(t, 
+                          nl->Second(GetTupleResultType(s)), as);
+         return 0;   
+      }
+
+      case REQUEST: {
+         if(!local.addr){
+           return CANCEL;
+         }
+         GetentriesLocalInfo* li = 
+               static_cast<GetentriesLocalInfo*>(local.addr);
+         Tuple* res = li->next();
+         result.addr = res;
+         return res?YIELD: CANCEL;
+      }
+
+      case CLOSE: {
+        if(local.addr){
+          delete static_cast<GetentriesLocalInfo*>(local.addr);
+          local.setAddr(0);
+        }
+        return 0;
+      }
+      default: assert(false);
+               return 0;
+   }
+
+}
+
+/*
+2.6.4 Operator Instance
+
+*/
+
+
+
+Operator getentries (
+       "getentries",            // name
+        getentriesSpec,          // specification
+        getentriesVM,           // value mapping
+        Operator::SimpleSelect, // trivial selection function
+        getentriesTM);       
+
+
 /*
 3 Algebra Creation
 
@@ -734,6 +926,7 @@ class TBTreeAlgebra : public Algebra {
      AddOperator(&tblevel);
      AddOperator(&getnodes);
      AddOperator(&getFileInfo);
+     AddOperator(&getentries);
 
    }
 };
