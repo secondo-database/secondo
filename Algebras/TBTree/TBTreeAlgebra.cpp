@@ -31,6 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
+#include "FTextAlgebra.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -473,6 +475,9 @@ Operator tblevel (
 /*
 2.4 getnodes
 
+
+2.4.1 Auxiliary class
+
 */
 template<unsigned  Dim>
 class AllSelector{
@@ -483,6 +488,10 @@ class AllSelector{
 };
 
 
+/*
+2.4.2 Type Mapping
+
+*/
 
 ListExpr getnodesTM(ListExpr args){
    if(nl->ListLength(args)!=1){
@@ -519,6 +528,11 @@ ListExpr getnodesTM(ListExpr args){
    return nl->TypeError();
 }
 
+/*
+2.4.2 Specification
+
+*/
+
 
 const string getnodesSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -530,6 +544,13 @@ const string getnodesSpec  =
     "<text></text--->"
     ") )";
 
+
+/*
+2.4.3 Value Mapping
+
+2.4.3.1 LocalInfo
+
+*/
 
 class GetnodesLocalInfo{
  public:
@@ -551,6 +572,10 @@ class GetnodesLocalInfo{
 
 };
 
+/*
+2.4.3.1 Value Mapping function 
+
+*/
 
 int getnodesVM(Word* args, Word& result, int message,
                    Word& local, Supplier s){
@@ -601,6 +626,12 @@ int getnodesVM(Word* args, Word& result, int message,
 
 }
 
+/*
+2.4.4 Operator Instance
+
+*/
+
+
 
 Operator getnodes (
        "getnodes",            // name
@@ -609,6 +640,82 @@ Operator getnodes (
         Operator::SimpleSelect, // trivial selection function
         getnodesTM);       
 
+
+/*
+2.5. Operator getFileInfo
+
+2.5.1 Type Mapping
+
+
+*/
+ListExpr TBTree2Text(ListExpr args){
+   if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("invalid number of arguments");
+     return nl->TypeError();
+   }
+   ListExpr errorInfo = listutils::emptyErrorInfo();
+   if(CheckTBTree(nl->First(args), errorInfo)){
+      return nl->SymbolAtom("text");
+   }
+   ErrorReporter::ReportError("TBTree expected");
+   return nl->TypeError();
+}
+
+/*
+2.5.2 Specification
+
+*/
+
+const string getFileInfoSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>tbtree(...) -> text </text--->"
+    "<text> getFileIndo(_) </text--->"
+    "<text> returns information about the underlying file </text--->"
+    "<text>query getFileInfo(UnitTrains createtbtree[Id, UTrip]) </text--->"
+    "<text></text--->"
+    ") )";
+
+/*
+2.5.2 Value Mapping
+
+*/
+int getFileInfoVM(Word* args, Word& result, int message,
+                        Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  FText* restext = static_cast<FText*>(result.addr);
+  tbtree::TBTree*  tree = (tbtree::TBTree*)(args[0].addr);
+  SmiStatResultType resVector(0);
+  if ( (tree != 0) && tree->getFileStats(resVector) ){
+    string resString = "[[\n";
+    for(SmiStatResultType::iterator i = resVector.begin();
+        i != resVector.end(); ){
+      resString += "\t[['" + i->first + "'],['" + i->second + "']]";
+      if(++i != resVector.end()){
+        resString += ",\n";
+      } else {
+        resString += "\n";
+      }
+    }
+    resString += "]]";
+    restext->Set(true, resString);
+  } else {
+    restext->Set(false,"");
+  }
+  return 0;
+};
+
+/*
+2.5.2 Operator Instance
+
+*/
+Operator getFileInfo (
+       "getFileInfo",            // name
+        getFileInfoSpec,          // specification
+        getFileInfoVM,           // value mapping
+        Operator::SimpleSelect, // trivial selection function
+        TBTree2Text);       
  
 /*
 3 Algebra Creation
@@ -626,6 +733,7 @@ class TBTreeAlgebra : public Algebra {
      AddOperator(&tbleafnodes);
      AddOperator(&tblevel);
      AddOperator(&getnodes);
+     AddOperator(&getFileInfo);
 
    }
 };

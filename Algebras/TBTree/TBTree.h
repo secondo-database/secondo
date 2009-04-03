@@ -1066,6 +1066,17 @@ Stores a new entry.
      return box;
   }
 
+  bool getFileStats( SmiStatResultType &result ) {
+      result = file.GetFileStatistics(SMI_STATS_EAGER);
+      std::stringstream fileid;
+      fileid << file.GetFileId();
+      result.push_back(pair<string,string>("FilePurpose",
+            "SecondaryTBTreetreeIndexFile"));
+      result.push_back(pair<string,string>("FileId",fileid.str()));
+      return true;
+  }
+
+
   private:
     SmiRecordFile file;
     SmiRecordId rootId; 
