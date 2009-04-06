@@ -1487,6 +1487,213 @@ Operator windowintersects (
 
 
 
+/*
+2.8 ~bulkloadtbtree~
+
+2.8.1 Type Mapping
+
+
+   stream(tuple(... (int id) ... (up upoint) ...(T tid) ...) x id x up x T -> tbtree(...)
+
+
+*/
+
+ListExpr bulkloadtbtreeTM(ListExpr args){
+  
+  if(nl->ListLength(args)!=4){
+    ErrorReporter::ReportError("wong number of arguments (3 required)");
+    return nl->TypeError();
+  }
+  ListExpr stream  = nl->First(args);
+  ListExpr id      = nl->Second(args);
+  ListExpr up      = nl->Third(args); 
+  ListExpr tid     = nl->Fourth(args);
+
+  if(!listutils::isTupleStream(stream)){
+    ErrorReporter::ReportError("first argument must be an tuple stream");
+    return nl->TypeError();
+  }
+
+  if(nl->AtomType(id)!=SymbolType || nl->AtomType(up)!=SymbolType ||
+     nl->AtomType(tid)!=SymbolType ){
+    ErrorReporter::ReportError("second,third, and fouth argument must be an "
+                               "attribute name ");
+    return nl->TypeError();
+  }
+
+  ListExpr type;
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  string ids = nl->SymbolValue(id);
+  int index1;
+  if(!(index1=listutils::findAttribute(attrList,ids, type))){
+    ErrorReporter::ReportError("attribute " +ids  +
+                               "not an attribute of the relation ");
+    return nl->TypeError();
+  }
+  if(!nl->IsEqual(type,"int")){
+    ErrorReporter::ReportError("attribute " +ids  +
+                               " has to be an int");
+    return nl->TypeError();
+  }
+  
+  string ups = nl->SymbolValue(up);
+  int index2;
+  if(!(index2=listutils::findAttribute(attrList,ups, type))){
+    ErrorReporter::ReportError("attribute " +ups  +
+                               "not an attribute of the relation ");
+    return nl->TypeError();
+  }
+  if(!nl->IsEqual(type,"upoint")){
+    ErrorReporter::ReportError("attribute " +ups  +
+                               " has to be a upoint");
+    return nl->TypeError();
+  }
+
+
+  string tids = nl->SymbolValue(tid);
+  int index3;
+  if(!(index3=listutils::findAttribute(attrList,tids, type))){
+    ErrorReporter::ReportError("attribute " + tids  +
+                               "not an attribute of the relation ");
+    return nl->TypeError();
+  }
+  if(!nl->IsEqual(type,"tid")){
+    ErrorReporter::ReportError("attribute " +tids  +
+                               " has to be a tid");
+    return nl->TypeError();
+  }
+
+
+
+  ListExpr tree =  nl->FourElemList( 
+                        nl->SymbolAtom("tbtree"),
+                        attrList,
+                        id,
+                        up);
+   return nl->ThreeElemList(
+                nl->SymbolAtom("APPEND"),
+                nl->ThreeElemList(
+                     nl->IntAtom(index1),
+                     nl->IntAtom(index2),
+                     nl->IntAtom(index3)),
+                tree);
+}
+
+
+/*
+2.8.2 Specification
+
+*/
+const string bulkloadtbtreeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>stream(tuple(...(id int)...(up upoint)...) x "
+    "id x up x tid -> tbtree(...)</text--->"
+    "<text> _ bulkloadtbtree[_ _ _]</text--->"
+    "<text>creates a tbtree from the elements in the stream</text--->"
+    "<text>query UnitTrains feed addid createtbtree[Id, UTrip, TID] </text--->"
+    "<text>The elements in the stream must be ordered by tid / time</text--->"
+    ") )";
+
+/*
+2.8.3 Value Mapping
+
+*/
+int bulkloadtbtreeVM(Word* args, Word& result, int message,
+                   Word& local, Supplier s){
+
+   result = qp->ResultStorage(s);
+   TBTree* tree = static_cast<TBTree*>(result.addr);
+   int index1 = (static_cast<CcInt*>(args[4].addr))->GetIntval() - 1; 
+   int index2 = (static_cast<CcInt*>(args[5].addr))->GetIntval() - 1;
+   int index3 = (static_cast<CcInt*>(args[6].addr))->GetIntval() -1;
+
+   Tuple* tuple;
+   Word wTuple(Address(0));
+   qp->Open(args[0].addr);
+   qp->Request(args[0].addr, wTuple);
+
+   CcInt lastId(false); // last trajectory id
+
+   TBLeafNode<3, TBLeafInfo>* currentLeaf(0);
+
+   while(qp->Received(args[0].addr)){
+     tuple = static_cast<Tuple*>(wTuple.addr);
+     // get required information 
+     CcInt* id  = static_cast<CcInt*>(tuple->GetAttribute(index1));
+     UPoint* up = static_cast<UPoint*>(tuple->GetAttribute(index2));
+     TupleIdentifier* tid = 
+          static_cast<TupleIdentifier*>(tuple->GetAttribute(index3));
+
+     if(id->IsDefined() && up->IsDefined() && tid->IsDefined()){
+       Entry<3, TBLeafInfo> e(up->BoundingBox(), tid->GetTid());
+       if(currentLeaf){
+          if(currentLeaf->getTrjId()!= id->GetIntval()){ 
+              // start next trajectory
+              int lid = 0;
+              if(lastId.IsDefined()){
+                 lid = lastId.GetIntval();
+              }
+              tree->insertLeaf(*currentLeaf, lid);
+              lastId.SetDefined(false);
+              currentLeaf->deleteEntries();
+              assert(currentLeaf->entryCount()==0);
+              currentLeaf->setNext(0);
+              currentLeaf->setTrjId(id->GetIntval());
+              currentLeaf->insert(e); 
+          } else { // same trajectory
+             if(currentLeaf->entryCount() < currentLeaf->getMax()){
+                currentLeaf->insert(e);
+             }  else { // same trajectory but full
+                int lid = 0;
+                if(lastId.IsDefined()){
+                    lid = lastId.GetIntval();
+                }
+                SmiRecordId pred = tree->insertLeaf(*currentLeaf, 
+                                                    (SmiRecordId)lid);
+                lastId.Set(true,pred);
+                currentLeaf->deleteEntries();
+                assert(currentLeaf->entryCount()==0);
+                currentLeaf->setNext(0);
+                currentLeaf->insert(e); 
+             }
+          } 
+       } else { // no current leaf available
+         currentLeaf = tree->getEmptyLeaf(tid->GetTid());
+         currentLeaf->insert(e);
+       } 
+     } else {
+        std::cerr << "undefined id, up or invalid tuple id" << endl;
+     }
+     tuple->DeleteIfAllowed(); 
+     qp->Request(args[0].addr, wTuple);
+   }
+   if(currentLeaf){
+     int lid = 0;
+     if(lastId.IsDefined()){
+        lid = lastId.GetIntval();
+     }
+     tree->insertLeaf(*currentLeaf, lid);
+     delete currentLeaf;
+   }
+
+   qp->Close(args[0].addr);
+
+   return 0;   
+}
+
+/*
+2.1.4 Operator instance
+
+*/
+Operator bulkloadtbtree (
+         "bulkloadtbtree",            // name
+          bulkloadtbtreeSpec,          // specification
+          bulkloadtbtreeVM,           // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          bulkloadtbtreeTM);        
+
+
 } // end of namespace tbtree
 /*
 3 Algebra Creation
@@ -1509,6 +1716,7 @@ class TBTreeAlgebra : public Algebra {
      AddOperator(&tbtree::windowintersectsS);
      AddOperator(&tbtree::getBox);
      AddOperator(&tbtree::windowintersects);
+     AddOperator(&tbtree::bulkloadtbtree);
 
    }
 };

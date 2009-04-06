@@ -3,7 +3,7 @@ Restore : No
 
 Operator : createtbtree
 Number   : 1
-Signature: stream(tuple( ... (id int) ... (up upoint) ...) x id  x up -> tbtree(...)
+Signature: rel(tuple( ... (id int) ... (up upoint) ...) x id  x up -> tbtree(...)
 Example  : query tbentries(UnitTrains createtbtree[Id, UTrip])  = (UnitTrains count) 
 Result   : TRUE 
 
@@ -84,6 +84,18 @@ Example   : query ( (UnitTrains_UTrip_tbtree UnitTrains windowintersects[getBox(
 Result    : (bool TRUE)
 
 
+Operator  : getentries
+Number    : 1
+Signature : tbtree -> stream(tuple(TupleId tid)(TrjId int)(Box rect3))
+Example   : query (getentries(UnitTrains_UTrip_tbtree) count) = (UnitTrains count)
+Result    : (bool TRUE)
+
+
+Operator  : bulkloadtbtree 
+Number    : 1
+Signature:  stream(tuple( ... (id int) ... (up upoint) ... (TID tid) .. ) x id  x up x TID -> tbtree(...)
+Example   : query (getentries(UnitTrains feed addid bulkloadtbtree[Id, UTrip, TID]) count) = (UnitTrains count)
+Result    : (bool TRUE)
 
 
 

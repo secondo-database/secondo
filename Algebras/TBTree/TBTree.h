@@ -403,7 +403,7 @@ class BasicNode{
       return min;
    }
 
-   inline uint16_t getMax() const{
+   inline virtual uint16_t getMax() const{
       return max;
    }
 
@@ -620,6 +620,9 @@ Appends a new entry. If there is an overflow, the result will be true.
 */
 
    inline bool insert(const Entry<Dim, Info>& e){
+     assert(BasicNode<Dim>::current <= BasicNode<Dim>::max); 
+
+
      entries[BasicNode<Dim>::current] = new Entry<Dim, Info>(e);
      BasicNode<Dim>::current++;
      return BasicNode<Dim>::current==BasicNode<Dim>::max+1;
@@ -906,6 +909,11 @@ Returns allways true.
    inline int bufferSize() const{
       return Node<Dim, Info>::bufferSize() + sizeof(SmiRecordId)+sizeof(int);
    }
+
+   inline uint16_t getMax(){
+      return BasicNode<3>::getMax();
+   }
+
   
 
 /*
@@ -1280,6 +1288,54 @@ Stores a new entry.
         }
      } 
   }
+
+/*
+~insertLeaf~
+
+Stores a new Leaf in the tree. To be used in bulk loading.
+Returns the id of the used record
+
+*/
+  SmiRecordId insertLeaf(const TBLeafNode<3, TBLeafInfo>& leaf, 
+                         const SmiRecordId predecessor = 0){
+     assert(leaf.entryCount() >0);
+     
+     noEntries += leaf.entryCount();
+     SmiRecordId id = saveNode(leaf); // save the leaf
+     if(!rootId){ // tree was empty
+       level++;
+       box = leaf.getBox();
+       rootId = id;
+       return id; 
+     }
+
+     // there is a predecessor
+     if(predecessor){
+        TBLeafNode<3, TBLeafInfo>* pred = 
+             dynamic_cast<TBLeafNode<3, TBLeafInfo>*>(readNode(predecessor));
+        pred->setNext(id);
+        updateNode(predecessor, * pred);
+        delete pred;
+     }
+     // update bounding box
+     box = box.Union(leaf.getBox()); 
+     // insert the new leaf into the structure
+     SmiRecordId newRootId = insertLeaf(id, leaf.getBox()); 
+     if(newRootId!=rootId){
+       level++;
+       rootId = newRootId;
+     }
+     return id; 
+  }
+
+/*
+Returns a new empty leaf node
+
+*/
+ TBLeafNode<3, TBLeafInfo>* getEmptyLeaf(const TupleId trjid){
+       return new TBLeafNode<3, TBLeafInfo>(leafMin, leafMax, trjid);
+ }
+
 
 /*
   Deletes the underlying file. After that operator, the TBTree is not longer

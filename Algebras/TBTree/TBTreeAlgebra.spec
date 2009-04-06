@@ -18,7 +18,18 @@
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 operator createtbtree alias CREATETBTREE pattern _ op [ _, _ ]
+operator bulkloadtbtree alias BULKLOADTBTREE pattern _ op [ _, _ , _]
 operator tbentries alias TBENTRIES pattern op(_)
 operator tbnodes alias TBNODES pattern op(_)
 operator tbleafnodes alias TBLEAFNODES pattern op(_)
 operator tblevel alias TBLEVEL pattern op(_)
+operator getnodes alias GETNODES pattern op(_)
+operator getFileInfo alias GETFILEINFO pattern op(_)
+operator getentries alias GETENTRIES pattern op(_)
+operator windowintersectsS alias WINDOWINTERSECTSS pattern _ op [_]
+operator getBox alias GETBOX pattern op(_)
+operator windowintersects alias WINDOWINTERSECTS pattern _ _ op[_]
+operator bulkloadtbtree alias BULKLOADTBTREE pattern _ op[_, _, _]
+
+
+
