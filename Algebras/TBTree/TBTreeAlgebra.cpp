@@ -69,7 +69,7 @@ ListExpr TBTreeProperty(){
 bool CheckTBTree(ListExpr type, ListExpr& ErrorInfo){
 
    if(nl->ListLength(type)!=4){
-      ErrorReporter::ReportError("invlaid list length");
+      ErrorReporter::ReportError("invalid list length");
       return false;
    }
    ListExpr tbtree = nl->First(type);
@@ -78,7 +78,7 @@ bool CheckTBTree(ListExpr type, ListExpr& ErrorInfo){
    ListExpr upName = nl->Fourth(type);
 
    if(!nl->IsEqual(tbtree,"tbtree")){
-      ErrorReporter::ReportError("tbtree not found");
+      ErrorReporter::ReportError("symbol tbtree not found");
       return false;
    }
    if(!listutils::isAttrList(attrList)){
@@ -985,8 +985,9 @@ class WindowintersectsSLocalInfo{
   WindowintersectsSLocalInfo(TBTree* t, 
                     const LeafSelector<3>& s,
                     const IntersectsPruner<3, InnerNode<3, InnerInfo> >& p,
-                    const ListExpr ttlist
-                    ) : ds(t,s,p), node(0), pos(0){
+                    const ListExpr ttlist,
+                    Relation* rel1 = 0) 
+                    : ds(t,s,p), node(0), pos(0), rel(rel1) {
     tt = new TupleType(ttlist);
     rect = p.getBox();
   }
@@ -1001,6 +1002,7 @@ class WindowintersectsSLocalInfo{
   }
 
   Tuple* next(){
+     assert(rel==0);
      if(!node){
         getNextNode();
      } 
@@ -1019,6 +1021,27 @@ class WindowintersectsSLocalInfo{
      }
      return 0; 
   } 
+
+  Tuple* nextTuple(){
+     assert(rel);
+     if(!node){
+        getNextNode();
+     } 
+     while(node){
+       while(pos<node->entryCount()){
+          const Entry<3, TBLeafInfo>* e = node->getEntry(pos);     
+          pos++;
+          if(rect.Intersects(e->getBox())){
+             Tuple* res = rel->GetTuple(e->getInfo().getTupleId());
+             return res;
+          }
+       } 
+       getNextNode();
+     }
+     return 0; 
+  } 
+
+
 
   private:
     void getNextNode(){
@@ -1043,6 +1066,7 @@ class WindowintersectsSLocalInfo{
                      > ds;
   TBLeafNode<3, TBLeafInfo>* node;
   int pos;
+  Relation* rel; 
   Rectangle<3> rect;
   TupleType* tt;
 
@@ -1182,8 +1206,6 @@ ValueMapping windowintersectsSVM[] = {
 
 */
 
-
-
 Operator windowintersectsS (
        "windowintersectsS",            // name
         windowintersectsSSpec,          // specification
@@ -1257,6 +1279,212 @@ Operator getBox (
           getBoxTM);        
 
 
+/*
+2.9 windowIntersects
+
+
+2.9.1 Type Mapping
+
+*/
+
+ListExpr windowintersectsTM(ListExpr args){
+   if(nl->ListLength(args)!=3){
+     ErrorReporter::ReportError("invalid number of arguments");
+     return nl->TypeError();
+   }
+   if(!nl->IsEqual(nl->Third(args), "rect") &&
+      !nl->IsEqual(nl->Third(args), "rect3")){
+     ErrorReporter::ReportError("second argument must be a rectangle");
+     return nl->TypeError(); 
+   }
+   ListExpr errorInfo = listutils::emptyErrorInfo();
+   if(CheckTBTree(nl->First(args), errorInfo) &&
+      listutils::isRelDescription(nl->Second(args))){
+
+      ListExpr tbal  = nl->Second(nl->First(args));
+      ListExpr relal = nl->Second(nl->Second(nl->Second(args)));
+      if(!nl->Equal(tbal, relal)){
+         ErrorReporter::ReportError("types of tbtree and relation differ");
+         return nl->TypeError();
+      }
+
+      return nl->TwoElemList(
+                    nl->SymbolAtom("stream"),
+                    nl->TwoElemList(
+                       nl->SymbolAtom("tuple"),
+                       relal));
+   }
+   ErrorReporter::ReportError("tbtree x rel x rect | rect3 expected");
+   return nl->TypeError();
+}
+
+/*
+2.9.2 Specification
+
+*/
+
+
+const string windowintersectsSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>tbtree(...) x rel x rect | rect3 -> stream(tuple((...))) </text--->"
+    "<text> _ _ windowintersects[_]</text--->"
+    "<text>returns the tuple indexed by the tree"
+           " intersecting the rectangle</text--->"
+    "<text>query  (UnitTrains createtbtree[Id, UTrip]) "
+          "UnitTrains windowintersect[b] count</text--->"
+    "<text></text--->"
+    ") )";
+
+
+/*
+2.9.3 Value Mapping functions 
+
+*/
+
+int windowintersects_3dVM(Word* args, Word& result, int message,
+                   Word& local, Supplier s){
+
+   switch (message){
+      case OPEN:{
+        if(local.addr){
+          delete static_cast<WindowintersectsSLocalInfo*>(local.addr);
+          local.addr=0;
+        }
+
+        Relation* rel = static_cast<Relation*>(args[1].addr);
+        Rectangle<3>* rect3 = static_cast<Rectangle<3>*>(args[2].addr);
+        if(!rect3->IsDefined()){
+           return 0;
+        }
+        LeafSelector<3> as;
+        TBTree* t = static_cast<TBTree*>(args[0].addr);
+        IntersectsPruner<3, InnerNode<3, InnerInfo> > p(*rect3);
+      
+        local.addr = new WindowintersectsSLocalInfo(t, as, p, 
+                         nl->Second(GetTupleResultType(s)), 
+                         rel);
+        return 0;   
+      }
+
+      case REQUEST: {
+         if(!local.addr){
+           return CANCEL;
+         }
+         WindowintersectsSLocalInfo* li = 
+               static_cast<WindowintersectsSLocalInfo*>(local.addr);
+         Tuple* res = li->nextTuple();
+         result.addr = res;
+         return res?YIELD: CANCEL;
+      }
+
+      case CLOSE: {
+        if(local.addr){
+          delete static_cast<WindowintersectsSLocalInfo*>(local.addr);
+          local.setAddr(0);
+        }
+        return 0;
+      }
+      default: assert(false);
+               return 0;
+   }
+}
+
+int windowintersects_2dVM(Word* args, Word& result, int message,
+                   Word& local, Supplier s){
+
+   switch (message){
+      case OPEN:{
+        if(local.addr){
+          delete static_cast<WindowintersectsSLocalInfo*>(local.addr);
+          local.addr=0;
+        }
+        Relation* rel = static_cast<Relation*>(args[1].addr);
+        Rectangle<2>* rect = static_cast<Rectangle<2>*>(args[2].addr);
+        if(!rect->IsDefined()){
+           return 0;
+        }
+        LeafSelector<3> as;
+        TBTree* t = static_cast<TBTree*>(args[0].addr);
+        Rectangle<3> box = t->getBox();
+        if(!box.IsDefined()){
+          return 0;
+        } 
+        double min[3];
+        double max[3];
+        min[0] = rect->MinD(0);
+        min[1] = rect->MinD(1);
+        min[2] = box.MinD(2);
+        max[0] = rect->MaxD(0);
+        max[1] = rect->MaxD(1);
+        max[2] = box.MaxD(2);
+        Rectangle<3> rect3(true, min, max); 
+
+        IntersectsPruner<3, InnerNode<3, InnerInfo> > p(rect3);
+        local.addr = new WindowintersectsSLocalInfo(t,  as, p, 
+                                      nl->Second(GetTupleResultType(s)),
+                                      rel);
+        return 0;   
+      }
+
+      case REQUEST: {
+         if(!local.addr){
+           return CANCEL;
+         }
+         WindowintersectsSLocalInfo* li = 
+               static_cast<WindowintersectsSLocalInfo*>(local.addr);
+         Tuple* res = li->nextTuple();
+         result.addr = res;
+         return res?YIELD: CANCEL;
+      }
+
+      case CLOSE: {
+        if(local.addr){
+          delete static_cast<WindowintersectsSLocalInfo*>(local.addr);
+          local.setAddr(0);
+        }
+        return 0;
+      }
+      default: assert(false);
+               return 0;
+   }
+}
+
+/*
+2.7.4 Selection Function
+
+*/
+
+int windowintersectsSelect(ListExpr args){
+  if(nl->IsEqual(nl->Third(args),"rect")){
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
+/*
+2.7.5 Value Mapping Array
+
+*/
+ValueMapping windowintersectsVM[] = {
+     windowintersects_2dVM,
+     windowintersects_3dVM};
+
+
+/*
+2.7.6 Operator Instance
+
+*/
+
+Operator windowintersects (
+       "windowintersects",            // name
+        windowintersectsSpec,          // specification
+        2,
+        windowintersectsVM,           // value mapping
+        windowintersectsSelect, 
+        windowintersectsTM);       
+
 
 
 } // end of namespace tbtree
@@ -1280,6 +1508,7 @@ class TBTreeAlgebra : public Algebra {
      AddOperator(&tbtree::getentries);
      AddOperator(&tbtree::windowintersectsS);
      AddOperator(&tbtree::getBox);
+     AddOperator(&tbtree::windowintersects);
 
    }
 };
