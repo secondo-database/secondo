@@ -32,10 +32,10 @@ class TBLeafInfo{
 ~Constructors~
 
 */
-     TBLeafInfo():tid(0),trjid(0) {}
+     TBLeafInfo():tid(0){}
 
-     TBLeafInfo(const TupleId& id, const int trjid1): tid(id),trjid(trjid1) {}
-     TBLeafInfo(const TBLeafInfo& li): tid(li.tid), trjid(li.trjid) {}
+     TBLeafInfo(const TupleId& id): tid(id) {}
+     TBLeafInfo(const TBLeafInfo& li): tid(li.tid) {}
 /*
 ~ Assignment operator~
 
@@ -43,12 +43,11 @@ class TBLeafInfo{
 
      TBLeafInfo& operator=(const TBLeafInfo& li){
        this->tid = li.tid;
-       this->trjid = li.trjid;
        return *this;
      }
 
      bool operator==(const TBLeafInfo& li) const{
-         return (this->tid == li.tid) && (this->trjid==li.trjid);
+         return (this->tid == li.tid);
      }
 
 
@@ -65,10 +64,6 @@ class TBLeafInfo{
      inline TupleId getTupleId() const{
        return tid;
      }
-     inline int getTrjId() const{
-        return trjid;
-     }
-
 /*
 Writing into a buffer.
 
@@ -76,8 +71,6 @@ Writing into a buffer.
      void writeTo(char* buffer,unsigned  int& offset) const{
         memcpy(buffer+offset, &tid, sizeof(TupleId));
         offset += sizeof(TupleId);
-        memcpy(buffer+offset, &trjid, sizeof(int));
-        offset += sizeof(int);
      }
      
 /*
@@ -88,15 +81,13 @@ Reading from a buffer.
      void readFrom(const char* buffer, unsigned int& offset) {
         memcpy(&tid, buffer+offset, sizeof(TupleId));
         offset += sizeof(TupleId);
-        memcpy(&trjid, buffer+offset, sizeof(int));
-        offset += sizeof(int);
      }
 /*
 Size required for a buffer.
 
 */
      static int bufferSize() {
-       return sizeof(TupleId) + sizeof(int);
+       return sizeof(TupleId);
      }
 
 /*
@@ -104,12 +95,11 @@ Size required for a buffer.
 
 */
  ostream& print(ostream& os){
-   return os << "(" << tid << ", "  << trjid << ")";
+   return os <<  tid ;
  }
 
   private:
      TupleId  tid;
-     int      trjid;
 };
 
 /*
@@ -520,6 +510,11 @@ class Node : public BasicNode<Dim>{
      return sizeof(uint16_t) + 
             BasicNode<Dim>::current*Entry<Dim, Info>::bufferSize();
    }
+   
+   static uint32_t getMax(const uint32_t buffersize){
+       uint32_t ls = buffersize - sizeof(uint16_t); // current 
+       return ls / Entry<Dim, Info>::bufferSize(); 
+   }
 
    inline bool isFull() const{
       return BasicNode<Dim>::current == BasicNode<Dim>::max -1;
@@ -696,33 +691,34 @@ class QNodeSplitter{
 
 
 /*
-5 class LeafNode
+5 class TBLeafNode
 
 */
 template<int Dim, class Info>
-class LeafNode : public Node<Dim, Info>{
+class TBLeafNode : public Node<Dim, Info>{
   public:
-    LeafNode() {}
-    LeafNode(int min, int max): Node<Dim, Info>(min,max){
-      next = 0; // there is no successor
-    }
+    TBLeafNode() {}
+    TBLeafNode(int min, int max, int trjid1): 
+              Node<Dim, Info>(min,max), next(0), trjid(trjid1){}
 
-    LeafNode(const LeafNode& src): Node<Dim, Info>(src){
-      this->next = src.next;
-    }
+    TBLeafNode(const TBLeafNode& src): Node<Dim, Info>(src), 
+                                   next(src.next), 
+                                   trjid(src.trjid){ }
 
-    LeafNode& operator=(const LeafNode<Dim,Info>& src){
+    TBLeafNode& operator=(const TBLeafNode<Dim,Info>& src){
        Node<Dim, Info>::operator=(src);
        this->next = src.next;
+       this.trjid = src.trjid;
        return *this;
     }
 
-    bool operator==(const LeafNode<Dim, Info>& ln)const{
+    bool operator==(const TBLeafNode<Dim, Info>& ln)const{
        return Node<Dim, Info>::operator==(ln) && 
-              this->next == ln.next; 
+              this->next == ln.next &&
+              this->trjid == ln.trjid; 
     }
 
-    virtual ~LeafNode(){
+    virtual ~TBLeafNode(){
        Node<Dim, Info>::deleteEntries();  
     }
 
@@ -734,29 +730,48 @@ class LeafNode : public Node<Dim, Info>{
       Node<Dim, Info>::writeTo(buffer, offset);
       memcpy(buffer + offset, &next, sizeof(SmiRecordId));
       offset += sizeof(SmiRecordId);
+      memcpy(buffer + offset, &trjid, sizeof(int));
+      offset += sizeof(int);
    }
 
    virtual void readFrom(const char* buffer,unsigned  int& offset){
       Node<Dim, Info>::readFrom(buffer, offset);
       memcpy(&next, buffer + offset, sizeof(SmiRecordId));
       offset += sizeof(SmiRecordId);
+      memcpy(&trjid, buffer + offset, sizeof(int));
+      offset += sizeof(int);
    }
    
    int bufferSize() const{
-      return Node<Dim, Info>::bufferSize() + sizeof(SmiRecordId);
+      return Node<Dim, Info>::bufferSize() + sizeof(SmiRecordId)+sizeof(int);
+   }
+  
+
+   static uint32_t getMax(const uint32_t buffersize){
+       uint32_t ls = buffersize - (sizeof(SmiRecordId) + sizeof(int));
+       return Node<Dim,Info>::getMax(ls); 
    }
 
    SmiRecordId getNext() const{
       return next;
    }
    
-   void setNext(SmiRecordId id){
+   void setNext(const SmiRecordId id){
      next = id;
    }
+
+   int getTrjId() const{
+     return trjid;
+   }
+
+   void setTrjId(const int trjid){
+     this->trjid = trjid;
+   }
+
     
    Node<Dim, Info>* getEmptyNode() const{
-       return new LeafNode<Dim, Info>(BasicNode<Dim>::min, 
-                                      BasicNode<Dim>::max);
+       return new TBLeafNode<Dim, Info>(BasicNode<Dim>::min, 
+                                      BasicNode<Dim>::max, 0);
    }
 
   virtual ostream& print(ostream& os){
@@ -764,11 +779,13 @@ class LeafNode : public Node<Dim, Info>{
   }
 
   virtual BasicNode<Dim>* clone() const{
-     return new LeafNode<Dim, Info>(*this);
+     return new TBLeafNode<Dim, Info>(*this);
   }
 
+
   private:
-    SmiRecordId next; 
+    SmiRecordId next;
+    int trjid;  
 };
 
 
@@ -824,6 +841,11 @@ class InnerNode : public Node<Dim, Info>{
         return new InnerNode<Dim, Info>(*this);
     }
 
+    static uint32_t getMax(uint32_t buffersize){
+       return Node<Dim,Info>::getMax(buffersize);
+    }
+
+
 };
 
 template<int Dim>
@@ -865,12 +887,12 @@ class TBTree{
 */
   TBTree(const int pageSize): file(false),rootId(0){ 
      file.Create();
-     int size = pageSize / 5; 
-     uint32_t ls = sizeof(LeafNode<3, TBLeafInfo>);
-     leafMax = size / ls;
+     int size = pageSize / 4; 
+     leafMax = TBLeafNode<3, TBLeafInfo>::getMax(size);
      leafMin = leafMax / 4;
-     uint32_t is = sizeof(InnerNode<3, InnerInfo>);
-     innerMax = size / is;
+
+     innerMax = InnerNode<3, InnerInfo>::getMax(size);
+     
      innerMin = innerMax / 4;
      noEntries = 0;
      noNodes = 0;
@@ -952,10 +974,10 @@ Stores a new entry.
         return;
      }
      noEntries++;
-     TBLeafInfo li(tid, trjid);
+     TBLeafInfo li(tid);
      Entry<3, TBLeafInfo> e(up.BoundingBox(), li);
      if(!rootId){ // the tree is empty
-        LeafNode<3, TBLeafInfo> node(leafMin, leafMax);
+        TBLeafNode<3, TBLeafInfo> node(leafMin, leafMax, trjid);
         node.insert(e);
         rootId = saveNode(node);
         level++;
@@ -964,11 +986,11 @@ Stores a new entry.
      } else {
         box = box.Union(e.getBox());
         vector<pathEntry<3> > path;
-        LeafNode<3, TBLeafInfo>* newLeaf(0);
+        TBLeafNode<3, TBLeafInfo>* newLeaf(0);
         SmiRecordId id(0);
-        if(searchNode(rootId, path, e)) {
-              LeafNode<3, TBLeafInfo>* leaf = 
-                   dynamic_cast<LeafNode<3, TBLeafInfo>* >
+        if(searchNode(rootId, path, e, trjid)) {
+              TBLeafNode<3, TBLeafInfo>* leaf = 
+                   dynamic_cast<TBLeafNode<3, TBLeafInfo>* >
                         (path[path.size()-1].node);
            if(!leaf->isFull()) {
               leaf->insert(e);
@@ -977,14 +999,14 @@ Stores a new entry.
               updatePath(path, b);
            } else {
               assert(! leaf->getNext());
-              newLeaf = new LeafNode<3, TBLeafInfo>(leafMin, leafMax);
+              newLeaf = new TBLeafNode<3, TBLeafInfo>(leafMin, leafMax, trjid);
               newLeaf->insert(e);
               id = saveNode(*newLeaf);
               leaf->setNext(id);
-              updateNode(path[path.size()-1].id, *leaf); // update id      
+              updateNode(path[path.size()-1].id, *leaf); // update next      
            }
         } else { // no predecessor was found -> create  a new leaf
-           newLeaf = new LeafNode<3, TBLeafInfo>(leafMin, leafMax);
+           newLeaf = new TBLeafNode<3, TBLeafInfo>(leafMin, leafMax,trjid);
            newLeaf->insert(e);
            id = saveNode(*newLeaf);
         }
@@ -1200,10 +1222,10 @@ Stores a new entry.
           return false;
        }
        if(n1->isLeaf()){
-          const LeafNode<3, TBLeafInfo>* ln1 = 
-                dynamic_cast<const LeafNode<3, TBLeafInfo>*>(n1);
-          const LeafNode<3, TBLeafInfo>* ln2 = 
-                dynamic_cast<const LeafNode<3, TBLeafInfo>*>(n2);
+          const TBLeafNode<3, TBLeafInfo>* ln1 = 
+                dynamic_cast<const TBLeafNode<3, TBLeafInfo>*>(n1);
+          const TBLeafNode<3, TBLeafInfo>* ln2 = 
+                dynamic_cast<const TBLeafNode<3, TBLeafInfo>*>(n2);
           return  *ln1 == *ln2;
        } else {
           const InnerNode<3, InnerInfo>* in1 = 
@@ -1284,10 +1306,10 @@ Stores a new entry.
        return res;
     }
 
-    LeafNode<3, TBLeafInfo>* createLeafNodeFrom(const char* buffer, 
+    TBLeafNode<3, TBLeafInfo>* createLeafNodeFrom(const char* buffer, 
                                                 unsigned int& offset){
-         LeafNode<3, TBLeafInfo>* res = 
-                     new LeafNode<3, TBLeafInfo>(leafMin, leafMax);
+         TBLeafNode<3, TBLeafInfo>* res = 
+                     new TBLeafNode<3, TBLeafInfo>(leafMin, leafMax, 0);
          res->readFrom(buffer, offset);
          return res;
     }
@@ -1303,17 +1325,16 @@ Stores a new entry.
 
 
     bool searchNode(const SmiRecordId id, vector<pathEntry<3> >& path, 
-                    const Entry<3, TBLeafInfo>& li )  {
+                    const Entry<3, TBLeafInfo>& li, const int trjid )  {
 
         BasicNode<3>*  bn = readNode(id);
         assert(bn->entryCount()>0);
 
 
         if(bn->isLeaf()){
-           LeafNode<3, TBLeafInfo>* leaf = 
-                       dynamic_cast<LeafNode<3, TBLeafInfo>*> (bn);
-           if(leaf->getEntry(0)->getInfo().getTrjId()==li.getInfo().getTrjId()&&
-              leaf->getNext()==0){
+           TBLeafNode<3, TBLeafInfo>* leaf = 
+                       dynamic_cast<TBLeafNode<3, TBLeafInfo>*> (bn);
+           if(leaf->getTrjId()==trjid && leaf->getNext()==0){
                   path.push_back(pathEntry<3>(id,leaf, -1));
                   return true;
            } else {
@@ -1330,7 +1351,7 @@ Stores a new entry.
               entry = node->getEntry(i);
               if(entry->getBox().Intersects(li.getBox())){
                  path.push_back(pathEntry<3>(id, node,i));
-                 if(searchNode(entry->getInfo().getPointer(), path, li)){
+                 if(searchNode(entry->getInfo().getPointer(), path, li, trjid)){
                     return true;
                  } else {
                    path.pop_back();

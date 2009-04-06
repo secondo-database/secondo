@@ -817,7 +817,7 @@ class GetentriesLocalInfo{
          pos++;
          Tuple* res = new Tuple(tt);
          res->PutAttribute(0, new CcInt(true, e->getInfo().getTupleId()));
-         res->PutAttribute(1, new CcInt(true, e->getInfo().getTrjId())); 
+         res->PutAttribute(1, new CcInt(true, node->getTrjId())); 
          res->PutAttribute(2, new Rectangle<3>(e->getBox()));
          return res; 
      }
@@ -833,7 +833,7 @@ class GetentriesLocalInfo{
        tbtree::IteratorElement<3> next;
        if(ds.next(next)){
           assert(next.getNode()->isLeaf());
-          node = dynamic_cast<tbtree::LeafNode<3, 
+          node = dynamic_cast<tbtree::TBLeafNode<3, 
                        tbtree::TBLeafInfo>*>(next.getNode());
           pos = 0; 
         }
@@ -845,7 +845,7 @@ class GetentriesLocalInfo{
                       3, LeafSelector<3> 
                      > ds;
   TupleType* tt;
-  tbtree::LeafNode<3, tbtree::TBLeafInfo>* node;
+  tbtree::TBLeafNode<3, tbtree::TBLeafInfo>* node;
   int pos;
 
 };
