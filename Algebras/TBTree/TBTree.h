@@ -336,14 +336,28 @@ Prints entry to stream;
     Info           info; 
 }; 
 
+/*
+class BasicNode
 
+This is the super class for all types of nodes.
+
+*/
 template<unsigned Dim>
 class BasicNode{
   public:
+
+/*
+1 Constructors
+
+*/
    BasicNode(uint16_t min1, uint16_t max1): 
       min(min1), max(max1), current(0) {}
    BasicNode(const BasicNode<Dim>& src): 
       min(src.min), max(src.max), current(src.current) {}
+/*
+2 Assignment operator
+
+*/
    BasicNode<Dim>& operator=(const BasicNode<Dim>& src){
        this->min = src.min;
        this->max = src.max;
@@ -351,12 +365,20 @@ class BasicNode{
        return *this;
    }
    
+/*
+3 Comparison
+
+*/
    inline bool operator==(const BasicNode<Dim>& bn) const{
        return this->min == bn.min &&
               this->max == bn.max &&
               this->current == bn.current;
    }
 
+/*
+4 some pure virtual functions.
+
+*/
    virtual ~BasicNode() {}
 
    virtual void writeTo(char* buffer, unsigned int& offset) const = 0;
@@ -364,10 +386,18 @@ class BasicNode{
    virtual Rectangle<Dim> getBox() const = 0;
    virtual const bool isLeaf()const = 0;
    virtual int bufferSize() const =0;
+   virtual ostream& print(ostream& os ) const=0;
+   virtual BasicNode<Dim>* clone() const=0;
+
+/*
+5   some Getter
+
+
+*/
+
    uint16_t entryCount() const{
      return current;
    }
-   virtual ostream& print(ostream& os ) const=0;
    
    inline uint16_t getMin() const{
       return min;
@@ -377,12 +407,11 @@ class BasicNode{
       return max;
    }
 
-   virtual BasicNode<Dim>* clone() const=0;
 
   protected:
-    uint16_t min;
-    uint16_t max;
-    uint16_t current; 
+    uint16_t min;      // minimum entrycount
+    uint16_t max;      // maximum entrycount
+    uint16_t current;  // current entrycount
 };
 
 /*
@@ -394,6 +423,11 @@ This is the super class of inner nodes and leaf nodes.
 template<unsigned Dim, class Info>
 class Node : public BasicNode<Dim>{
  public:
+/*
+4.1 Constructors
+
+*/
+
    Node(int min1, int max1): BasicNode<Dim>(min1,max1){
       entries = new Entry<Dim, Info>*[BasicNode<Dim>::max +1];
       for(int i=0;i<BasicNode<Dim>::max+1; i++){
@@ -411,7 +445,10 @@ class Node : public BasicNode<Dim>{
        } 
     }
    
+/*
+4.2 Assignment operator
 
+*/
     Node& operator=(const Node<Dim, Info>& src) {
        // first, delete all included entries
        for(int i=0; i< BasicNode<Dim>::current; i++){
@@ -429,6 +466,11 @@ class Node : public BasicNode<Dim>{
        }
     }
 
+/*
+4.3 Comparision
+
+*/
+
     bool operator==(const Node<Dim, Info>& n) const{
       if(! (BasicNode<Dim>::operator==(n))){
          return false;
@@ -443,6 +485,10 @@ class Node : public BasicNode<Dim>{
     }
     
 
+/*
+4.4 Destructor
+
+*/
    virtual ~Node(){
       for(int i=0;i<BasicNode<Dim>::current;i++){
        delete entries[i];
@@ -451,7 +497,12 @@ class Node : public BasicNode<Dim>{
       delete[] entries;
       entries = 0;
     }
+/*
+4.5 ~deleteEntries~
 
+Removes all entries from this  node.
+
+*/
    inline void deleteEntries() {
       for(int i=0;i<BasicNode<Dim>::current;i++){
        delete entries[i];
@@ -459,11 +510,23 @@ class Node : public BasicNode<Dim>{
       BasicNode<Dim>::current = 0;
     }
 
+/*
+4.6 ~getEntry~
+
+Returns the entry at the given position.
+
+*/
     inline const Entry<Dim, Info>* getEntry(int index) const{
        assert(index<BasicNode<Dim>::current);
        return entries[index];
     }
- 
+
+/*
+4.7 ~getBox~
+
+Returns the union of all boxes of all entries.
+
+*/ 
     inline virtual Rectangle<Dim> getBox() const{
        if(BasicNode<Dim>::current==0){
           Rectangle<Dim> r(false);
@@ -476,6 +539,13 @@ class Node : public BasicNode<Dim>{
          return res;
        }
     }
+
+/*
+4.8 ~writeTo~
+
+Writes this node to an existing buffer.
+
+*/
    
    inline virtual void writeTo(char* buffer, unsigned int& offset) const{
       uint16_t c = BasicNode<Dim>::current;
@@ -485,7 +555,13 @@ class Node : public BasicNode<Dim>{
          entries[i]->writeTo(buffer, offset);
       } 
    }
-   
+  
+/*
+4.9 ~readFrom~
+
+Reconstructs the node from a buffer. 
+
+*/
    inline virtual void readFrom(const char* buffer,unsigned  int& offset){
       // delete old entries
       for(int i=0;i<BasicNode<Dim>::current; i++){
@@ -502,21 +578,43 @@ class Node : public BasicNode<Dim>{
       } 
    }
 
+/*
+4.10 ~bufferSize~
+
+Returns the number of bytes required to store this node. 
+
+*/
    inline virtual int bufferSize() const{
      return sizeof(uint16_t) + 
             BasicNode<Dim>::current*Entry<Dim, Info>::bufferSize();
    }
-   
+
+/*
+4.11 ~getMax~
+
+Return the maximum count of nodes which can be placed in a buffer with
+given size.
+
+*/
    static uint32_t getMax(const uint32_t buffersize){
        uint32_t ls = buffersize - sizeof(uint16_t); // current 
        return ls / Entry<Dim, Info>::bufferSize(); 
    }
 
+
+/*
+4.12 ~isFull~
+
+Returns true if no more elements can be inserted into this node.
+
+*/
    inline bool isFull() const{
       return BasicNode<Dim>::current == BasicNode<Dim>::max -1;
    }
 
 /*
+4.12 ~insert~
+
 Appends a new entry. If there is an overflow, the result will be true.
 
 */
@@ -527,10 +625,24 @@ Appends a new entry. If there is an overflow, the result will be true.
      return BasicNode<Dim>::current==BasicNode<Dim>::max+1;
    }
 
+/*
+4.14 ~addBoxAt~
+
+Builds the uion of the given box and the box of element at position pos 
+and stores the result at posiotion pos.
+
+*/
+
    inline void addBoxAt(const int pos, const Rectangle<Dim>& r){
       entries[pos]->addBox(r);
    }
 
+/*
+4.15 ~remove~
+
+Removes the entrie at position pos from this node.
+
+*/
    inline void remove(const int index){
       assert(index < BasicNode<Dim>::current);
       delete entries[index];
@@ -542,17 +654,40 @@ Appends a new entry. If there is an overflow, the result will be true.
    }
 
 
+/*
+4.16 getEmptyNode()
+
+pure virtual.
+
+
+*/
    virtual Node* getEmptyNode()const = 0;
 
 
+/*
+~updateEntry~
+
+Replaces the entry at the given position by the new one.
+
+*/
    inline void updateEntry(int pos, Entry<Dim, Info> e){
      assert(pos < BasicNode<Dim>::current);
      *(entries[pos]) = e; 
    }
 
+/*
+~isLeaf~
+
+pure virtual.
+
+*/
    virtual const bool isLeaf() const = 0;
 
 
+/*
+~print~
+
+*/
    ostream& print(ostream& os) const{
        os << "(node - ";
        os << (isLeaf() ? "leaf" : "inner");
@@ -571,9 +706,13 @@ Appends a new entry. If there is an overflow, the result will be true.
 };
 
 
+/*
+Class ~QNodeSplitter~
 
+This class provides some functions to split a node into 2 new ones
+using quadratic split algorithm.
 
-
+*/
 template<int Dim, class Info>
 class QNodeSplitter{
   public:
@@ -693,6 +832,11 @@ class QNodeSplitter{
 template<int Dim, class Info>
 class TBLeafNode : public Node<Dim, Info>{
   public:
+/*
+5.1 Constructors
+
+*/
+
     TBLeafNode() {}
     TBLeafNode(int min, int max, int trjid1): 
               Node<Dim, Info>(min,max), next(0), trjid(trjid1){}
@@ -700,6 +844,10 @@ class TBLeafNode : public Node<Dim, Info>{
     TBLeafNode(const TBLeafNode& src): Node<Dim, Info>(src), 
                                    next(src.next), 
                                    trjid(src.trjid){ }
+/*
+5.2 Assignment Operator
+
+*/
 
     inline TBLeafNode& operator=(const TBLeafNode<Dim,Info>& src){
        Node<Dim, Info>::operator=(src);
@@ -708,20 +856,37 @@ class TBLeafNode : public Node<Dim, Info>{
        return *this;
     }
 
+/*
+5.3 Comparison
+
+*/
     inline bool operator==(const TBLeafNode<Dim, Info>& ln)const{
        return Node<Dim, Info>::operator==(ln) && 
               this->next == ln.next &&
               this->trjid == ln.trjid; 
     }
 
+/*
+5.4 Destructor
+
+*/
     virtual ~TBLeafNode(){
        Node<Dim, Info>::deleteEntries();  
     }
+/*
+5.5 isLeaf
 
+Returns allways true.
+
+*/
    inline virtual const bool isLeaf() const{
       return true;
    }
    
+/*
+5.6 Import/Export to a buffer
+
+*/
    inline virtual void writeTo(char* buffer, unsigned int& offset) const{
       Node<Dim, Info>::writeTo(buffer, offset);
       memcpy(buffer + offset, &next, sizeof(SmiRecordId));
@@ -743,11 +908,23 @@ class TBLeafNode : public Node<Dim, Info>{
    }
   
 
+/*
+~getMax~
+
+Returns the maximum number of nodes whiach can be placed into a buffer with
+given size.
+
+*/
    static uint32_t getMax(const uint32_t buffersize){
        uint32_t ls = buffersize - (sizeof(SmiRecordId) + sizeof(int));
        return Node<Dim,Info>::getMax(ls); 
    }
 
+
+/*
+Getter / Setter
+
+*/
    inline SmiRecordId getNext() const{
       return next;
    }
@@ -764,16 +941,28 @@ class TBLeafNode : public Node<Dim, Info>{
      this->trjid = trjid;
    }
 
-    
+/*
+Returns a node wiout any entries.
+
+*/    
    inline Node<Dim, Info>* getEmptyNode() const{
        return new TBLeafNode<Dim, Info>(BasicNode<Dim>::min, 
                                       BasicNode<Dim>::max, 0);
    }
 
+/*
+Prints out this node.
+
+*/
+
   virtual ostream& print(ostream& os){
      return Node<Dim, Info>::print(os) << next << endl;
   }
 
+/*
+Returns a clone of this node.
+
+*/
   inline virtual BasicNode<Dim>* clone() const{
      return new TBLeafNode<Dim, Info>(*this);
   }
@@ -792,26 +981,54 @@ class TBLeafNode : public Node<Dim, Info>{
 template<int Dim, class Info>
 class InnerNode : public Node<Dim, Info>{
   public:
+/*
+5.1 Constructors
+
+*/
     InnerNode(const int min1, const int max1): Node<Dim, Info>(min1, max1) {} 
     
     InnerNode(const InnerNode<Dim, Info>& src): Node<Dim, Info>(src) {}
 
+/*
+5.2 Assignment operator
+
+*/
     inline InnerNode& operator=(const InnerNode<Dim, Info>& src) {
       return Node<Dim, Info>::operator=(src);
     }
 
+/*
+5.3 Comparison 
+
+*/
     inline bool operator==(const InnerNode<Dim, Info>& in) const{
         return Node<Dim, Info>::operator==(in);
     }
 
+/*
+5.4 Destructor 
+
+*/
     virtual ~InnerNode(){
        Node<Dim, Info>::deleteEntries();
     }
 
+/*
+~isLeaf~
+
+returns allways false.
+
+*/
     inline virtual const bool isLeaf() const{
        return false;
     }
 
+/*
+~selectBestNode~
+
+for details see Gutmans paper about the r-tree.
+
+*/
     int selectBestNode(const Rectangle<Dim>& r) const{
       assert(  (Node<Dim, Info>::current)>0);
       int res = 0;
@@ -828,21 +1045,47 @@ class InnerNode : public Node<Dim, Info>{
       return res;
     }
 
+/*
+~getEmptyNode~
+
+Returns a node without any entries.
+
+*/
     inline Node<Dim, Info>* getEmptyNode() const{
        return new InnerNode<Dim, Info>(BasicNode<Dim>::min,
                                        BasicNode<Dim>::max);
     }
+/*
+~clone~
 
+Returns a clone of this node.
+
+*/
     inline virtual BasicNode<Dim>* clone() const{
         return new InnerNode<Dim, Info>(*this);
     }
 
+/*
+~getMax~
+
+Returns the maximum number of inner nodes which can be stored 
+into a buffer of given size.
+
+*/
     inline static uint32_t getMax(uint32_t buffersize){
        return Node<Dim,Info>::getMax(buffersize);
     }
 
 
 };
+
+
+/*
+5 Class PathEntry
+
+This class supports the searchNode function of a tbtree.
+
+*/
 
 template<int Dim>
 struct pathEntry{
@@ -872,7 +1115,16 @@ struct pathEntry{
 
 }; 
 
+/*
+7 class TBTree
 
+
+This is the implementation of a tbtree. In contrast to the 
+original paper, we don't store the direction in each leaf entry.
+Instead we store an trip id in each leaf node.
+
+
+*/
 
 class TBTree{
   public:
@@ -1030,7 +1282,7 @@ Stores a new entry.
   }
 
 /*
-  Deletes the unerying file. After that operator, the TBTree is not longer
+  Deletes the underlying file. After that operator, the TBTree is not longer
   usable.
 
 */
@@ -1065,7 +1317,10 @@ Stores a new entry.
        return os.str();    
 
     }
+/*
+Some Getter
 
+*/
   int entryCount() const{
     return noEntries;
   } 
@@ -1466,11 +1721,29 @@ This function embedds the leaf with given id and box into the tree structure.
 
 };
 
+/*
+
+9 classes for a tree traversal
+
+
+9.1 Iterator element
+
+
+Using an iterator implementation, instances of obkjects of this class
+will be returned as return values.
+
+*/
+
 
 
 template<int Dim>
 class IteratorElement{
   public:
+/*
+~Constructors~
+
+
+*/
     IteratorElement(): ownId(0),parentId(0), node(0), level(0){}
 
     IteratorElement(SmiRecordId ownId1,
@@ -1482,7 +1755,10 @@ class IteratorElement{
     IteratorElement( const IteratorElement<Dim>& s):
          ownId(s.ownId), parentId(s.parentId),
          node(s.node), level(s.level) {}
+/*
+Assignment operator
 
+*/
     IteratorElement<Dim>& operator=(const IteratorElement<Dim>& s){
        ownId = s.ownId;
        parentId = s.parentId;
@@ -1490,7 +1766,11 @@ class IteratorElement{
        level = s.level;
        return *this;
     }
-  
+ 
+/*
+~Destructor~
+
+*/ 
     ~IteratorElement(){}
 
      void deleteNode(){
@@ -1500,11 +1780,20 @@ class IteratorElement{
         }
      }
 
+/*
+
+~Getter~
+
+*/
      SmiRecordId getOwnId() const{ return ownId; }
      SmiRecordId getParentId() const {return parentId;}
      BasicNode<Dim>* getNode() const { return node; }
      int getLevel() const { return level; }
 
+/*
+~print~
+
+*/
      ostream& print(ostream& os){
         return os << "ownId = " << ownId << ", parentId = " 
                   << parentId << ", level = " << level; 
@@ -1512,12 +1801,21 @@ class IteratorElement{
 
 
   private:
-     SmiRecordId ownId;
-     SmiRecordId parentId;
-     BasicNode<Dim>* node;
-     int  level;
+     SmiRecordId ownId;    // id of the node
+     SmiRecordId parentId; // parent id, 0 if root
+     BasicNode<Dim>* node; // the node
+     int  level;           // level (0 = root)
 };
 
+
+
+/*
+
+Class PathElement
+
+For internal use within the DepthSearch class.
+
+*/
 template<int Dim>
 class PathElement: public IteratorElement<Dim>{
   public:
@@ -1547,6 +1845,13 @@ class PathElement: public IteratorElement<Dim>{
 };
 
 
+/*
+Class NoPruner
+
+Prunes no entry.
+
+*/
+
 template<class InnerNode>
 class NoPruner{
  public: 
@@ -1555,6 +1860,13 @@ class NoPruner{
    }
 };
 
+/*
+Class IntersectsPruner
+
+Prunes all entries whose bounding box does not intersect the 
+rectangle given in construction of this class.
+
+*/
 
 template<unsigned Dim, class InnerNode>
 class IntersectsPruner{
@@ -1575,11 +1887,24 @@ class IntersectsPruner{
 };
 
 
+/*
+Class DepthSearc
 
+
+This is an iterator class which performs a depth search on a tree.
+By setting Select and Prune classes this class can be used in a 
+flexible way.
+
+
+*/
 
 template<class Tree, class InnerNode, int Dim, class Select, class Pruner> 
 class DepthSearch{
   public:
+/*
+~Constructor~
+
+*/
     DepthSearch(Tree* tree1, const Select& select1, const Pruner pruner1): 
          tree(tree1), select(select1), pruner(pruner1){
      SmiRecordId rid = tree->getRootId();
@@ -1588,13 +1913,26 @@ class DepthSearch{
      }
     }
 
+/*
+~Next~
+
+Returns the next node.
+
+*/
     bool next(IteratorElement<Dim>& result){
       if(path.empty()){
         return false;
       } 
       return  next1(result);
     } 
-    
+   
+
+/*
+~finish~
+
+Destroys local variables.
+
+*/ 
     void finish(){
        while(!path.empty()){
           PathElement<Dim> p = path.top();
