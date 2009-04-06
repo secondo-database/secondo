@@ -1480,9 +1480,9 @@ int PrefetchingIteratorImpl::ErrorCode()
 
 string lu_2_s(uint32_t value)
 {
-  char buf[50];
-  sprintf(buf,"%lu",((u_long) value));
-  return string(buf);
+  ostringstream os;
+  os << value;
+  return os.str();
 }
 /*
 Converts a u\_int32\_t value to string (somehow, << does not work)
