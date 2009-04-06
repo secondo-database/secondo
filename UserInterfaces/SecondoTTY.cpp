@@ -851,7 +851,7 @@ int SecondoTTYMode(const TTYParameter& tp)
       query = "";
     } 
     hist_file.close();
-    out_history.open(HISTORY_FILE, ios::out | ios::in);
+    out_history.open(HISTORY_FILE, ios::out );
     out_history.seekg(0,ios::end);
   } else {
     out_history.open(HISTORY_FILE, ios::out);
@@ -872,6 +872,7 @@ int SecondoTTYMode(const TTYParameter& tp)
            out_history << he->line << endl << endl;
         }
      }
+     out_history.flush();
      out_history.close();
   } else {
     cerr << "Error: could not write the history file" << endl;
