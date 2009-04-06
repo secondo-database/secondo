@@ -38,6 +38,9 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 
+
+namespace tbtree {
+
 /*
 1 Type Contructor
 
@@ -105,7 +108,7 @@ bool CheckTBTree(ListExpr type, ListExpr& ErrorInfo){
 
 
 ListExpr OutTBTree(ListExpr typeInfo, Word value){
-   tbtree::TBTree* t = static_cast<tbtree::TBTree*>(value.addr);
+   TBTree* t = static_cast<TBTree*>(value.addr);
    return nl->TextAtom(t->toString());
 }
 
@@ -116,11 +119,11 @@ Word InTBTree( ListExpr typeInfo, ListExpr value,
 }
 
 Word CreateTBTree( const ListExpr typeInfo ){
-   return new tbtree::TBTree(4000);
+   return new TBTree(4000);
 }
 
 void DeleteTBTree( const ListExpr typeInfo, Word& w ){
-   tbtree::TBTree* tree = static_cast<tbtree::TBTree*>(w.addr);
+   TBTree* tree = static_cast<TBTree*>(w.addr);
    tree->deleteFile();
    delete tree;
 }
@@ -135,13 +138,13 @@ bool OpenTBTree( SmiRecord& valueRecord,
   SmiRecordId rid;
   valueRecord.Read( &rid, sizeof( SmiRecordId ), offset );
   offset += sizeof( SmiRecordId );
-  tbtree::TBTree* tree = new tbtree::TBTree(fileid, rid);
+  TBTree* tree = new TBTree(fileid, rid);
   value.setAddr(tree); 
   return true;
 }
 
 void CloseTBTree( const ListExpr typeInfo, Word& w ){
-   tbtree::TBTree* tree = static_cast<tbtree::TBTree*>(w.addr);
+   TBTree* tree = static_cast<TBTree*>(w.addr);
    delete tree;
    w.setAddr(0);
 }
@@ -150,7 +153,7 @@ bool SaveTBTree( SmiRecord& valueRecord,
                  size_t& offset,
                  const ListExpr typeInfo,
                  Word& value ){
-   tbtree::TBTree* tree = static_cast<tbtree::TBTree*>(value.addr);
+   TBTree* tree = static_cast<TBTree*>(value.addr);
    SmiFileId fileId = tree->getFileId();
    valueRecord.Write( &fileId, sizeof( SmiFileId ), offset );
    offset += sizeof( SmiFileId );
@@ -296,7 +299,7 @@ int createtbtreeVM(Word* args, Word& result, int message,
                    Word& local, Supplier s){
 
    result = qp->ResultStorage(s);
-   tbtree::TBTree* tree = static_cast<tbtree::TBTree*>(result.addr);
+   TBTree* tree = static_cast<TBTree*>(result.addr);
    Relation* rel = static_cast<Relation*>(args[0].addr);
    GenericRelationIterator* iter = rel->MakeScan();
    int index1 = (static_cast<CcInt*>(args[3].addr))->GetIntval() - 1; 
@@ -403,7 +406,7 @@ const string tblevelSpec  =
 
 int tbentriesVM(Word* args, Word& result, int message,
                    Word& local, Supplier s){
-  tbtree::TBTree* t = static_cast<tbtree::TBTree*>(args[0].addr);
+  TBTree* t = static_cast<TBTree*>(args[0].addr);
   result = qp->ResultStorage(s);
   CcInt* r = static_cast<CcInt*>(result.addr);
   r->Set(true, t->entryCount());
@@ -412,7 +415,7 @@ int tbentriesVM(Word* args, Word& result, int message,
 
 int tbnodesVM(Word* args, Word& result, int message,
                  Word& local, Supplier s){
-  tbtree::TBTree* t = static_cast<tbtree::TBTree*>(args[0].addr);
+  TBTree* t = static_cast<TBTree*>(args[0].addr);
   result = qp->ResultStorage(s);
   CcInt* r = static_cast<CcInt*>(result.addr);
   r->Set(true, t->nodeCount());
@@ -421,7 +424,7 @@ int tbnodesVM(Word* args, Word& result, int message,
 
 int tbleafnodesVM(Word* args, Word& result, int message,
                  Word& local, Supplier s){
-  tbtree::TBTree* t = static_cast<tbtree::TBTree*>(args[0].addr);
+  TBTree* t = static_cast<TBTree*>(args[0].addr);
   result = qp->ResultStorage(s);
   CcInt* r = static_cast<CcInt*>(result.addr);
   r->Set(true, t->leafnodeCount());
@@ -431,7 +434,7 @@ int tbleafnodesVM(Word* args, Word& result, int message,
 
 int tblevelVM(Word* args, Word& result, int message,
                  Word& local, Supplier s){
-  tbtree::TBTree* t = static_cast<tbtree::TBTree*>(args[0].addr);
+  TBTree* t = static_cast<TBTree*>(args[0].addr);
   result = qp->ResultStorage(s);
   CcInt* r = static_cast<CcInt*>(result.addr);
   r->Set(true, t->getHeight());
@@ -482,7 +485,7 @@ Operator tblevel (
 template<unsigned  Dim>
 class AllSelector{
   public:
-    bool operator()(tbtree::BasicNode<Dim> * n) const{
+    bool operator()(BasicNode<Dim> * n) const{
        return true;
     }
 };
@@ -554,9 +557,10 @@ const string getnodesSpec  =
 
 class GetnodesLocalInfo{
  public:
-  GetnodesLocalInfo(tbtree::TBTree* t, 
+  GetnodesLocalInfo(TBTree* t, 
                     const ListExpr tupleType,
-                    const AllSelector<3>& s): ds(t,s){
+                    const AllSelector<3>& s,
+                    const NoPruner<InnerNode<3, InnerInfo> >& p): ds(t,s,p){
     tt = new TupleType(tupleType);
   }
   ~GetnodesLocalInfo(){
@@ -564,9 +568,10 @@ class GetnodesLocalInfo{
      ds.finish();
   }
 
-  tbtree::DepthSearch<tbtree::TBTree, 
-                      tbtree::InnerNode<3, tbtree::InnerInfo>, 
-                      3, AllSelector<3> 
+  DepthSearch<TBTree, 
+                      InnerNode<3, InnerInfo>, 
+                      3, AllSelector<3> ,
+                      NoPruner<InnerNode<3, InnerInfo> >
                      > ds;
   TupleType* tt;
 
@@ -586,9 +591,10 @@ int getnodesVM(Word* args, Word& result, int message,
           delete static_cast<GetnodesLocalInfo*>(local.addr);
         }
         AllSelector<3> as;
-         tbtree::TBTree* t = static_cast<tbtree::TBTree*>(args[0].addr);
+         TBTree* t = static_cast<TBTree*>(args[0].addr);
+         NoPruner<InnerNode<3, InnerInfo> > p;
          local.addr = new GetnodesLocalInfo(t, 
-                          nl->Second(GetTupleResultType(s)), as);
+                          nl->Second(GetTupleResultType(s)), as,p );
          return 0;   
       }
 
@@ -597,7 +603,7 @@ int getnodesVM(Word* args, Word& result, int message,
            return CANCEL;
          }
          GetnodesLocalInfo* li = static_cast<GetnodesLocalInfo*>(local.addr);
-         tbtree::IteratorElement<3> next;
+         IteratorElement<3> next;
          if(!li->ds.next(next)){
             return CANCEL;
          }
@@ -685,7 +691,7 @@ int getFileInfoVM(Word* args, Word& result, int message,
 {
   result = qp->ResultStorage(s);
   FText* restext = static_cast<FText*>(result.addr);
-  tbtree::TBTree*  tree = (tbtree::TBTree*)(args[0].addr);
+  TBTree*  tree = (TBTree*)(args[0].addr);
   SmiStatResultType resVector(0);
   if ( (tree != 0) && tree->getFileStats(resVector) ){
     string resString = "[[\n";
@@ -728,7 +734,7 @@ Operator getFileInfo (
 template<unsigned  Dim>
 class LeafSelector{
   public:
-    bool operator()(tbtree::BasicNode<Dim> * n) const{
+    bool operator()(BasicNode<Dim> * n) const{
        return n->isLeaf();
     }
 };
@@ -791,9 +797,12 @@ const string getentriesSpec  =
 
 class GetentriesLocalInfo{
  public:
-  GetentriesLocalInfo(tbtree::TBTree* t, 
+  GetentriesLocalInfo(TBTree* t, 
                     const ListExpr tupleType,
-                    const LeafSelector<3>& s): ds(t,s), node(0), pos(0){
+                    const LeafSelector<3>& s,
+                    const NoPruner<InnerNode<3, InnerInfo> >& p): 
+    ds(t,s,p), node(0), pos(0){
+
     tt = new TupleType(tupleType);
   }
   ~GetentriesLocalInfo(){
@@ -813,7 +822,7 @@ class GetentriesLocalInfo{
      if(!node){
         return 0;
      } else {
-         const tbtree::Entry<3, tbtree::TBLeafInfo>* e = node->getEntry(pos);
+         const Entry<3, TBLeafInfo>* e = node->getEntry(pos);
          pos++;
          Tuple* res = new Tuple(tt);
          res->PutAttribute(0, new CcInt(true, e->getInfo().getTupleId()));
@@ -830,22 +839,23 @@ class GetentriesLocalInfo{
            node = 0;
        }
        pos = 0;
-       tbtree::IteratorElement<3> next;
+       IteratorElement<3> next;
        if(ds.next(next)){
           assert(next.getNode()->isLeaf());
-          node = dynamic_cast<tbtree::TBLeafNode<3, 
-                       tbtree::TBLeafInfo>*>(next.getNode());
+          node = dynamic_cast<TBLeafNode<3, 
+                       TBLeafInfo>*>(next.getNode());
           pos = 0; 
         }
     }
 
 
-  tbtree::DepthSearch<tbtree::TBTree, 
-                      tbtree::InnerNode<3, tbtree::InnerInfo>, 
-                      3, LeafSelector<3> 
+  DepthSearch<TBTree, 
+                      InnerNode<3, InnerInfo>, 
+                      3, LeafSelector<3>,
+                      NoPruner<InnerNode<3, InnerInfo> >
                      > ds;
   TupleType* tt;
-  tbtree::TBLeafNode<3, tbtree::TBLeafInfo>* node;
+  TBLeafNode<3, TBLeafInfo>* node;
   int pos;
 
 };
@@ -864,9 +874,10 @@ int getentriesVM(Word* args, Word& result, int message,
           delete static_cast<GetentriesLocalInfo*>(local.addr);
         }
         LeafSelector<3> as;
-         tbtree::TBTree* t = static_cast<tbtree::TBTree*>(args[0].addr);
+         TBTree* t = static_cast<TBTree*>(args[0].addr);
+         NoPruner<InnerNode<3, InnerInfo> > p;
          local.addr = new GetentriesLocalInfo(t, 
-                          nl->Second(GetTupleResultType(s)), as);
+                          nl->Second(GetTupleResultType(s)), as, p);
          return 0;   
       }
 
@@ -909,6 +920,346 @@ Operator getentries (
         getentriesTM);       
 
 
+
+/*
+2.7 windowIntersectsS
+
+
+2.7.1 Type Mapping
+
+*/
+
+ListExpr windowintersectsSTM(ListExpr args){
+   if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError("invalid number of arguments");
+     return nl->TypeError();
+   }
+   if(!nl->IsEqual(nl->Second(args), "rect") &&
+      !nl->IsEqual(nl->Second(args), "rect3")){
+     ErrorReporter::ReportError("second argument must be a rectangle");
+     return nl->TypeError(); 
+   }
+   ListExpr errorInfo = listutils::emptyErrorInfo();
+   if(CheckTBTree(nl->First(args), errorInfo)){
+      return nl->TwoElemList(
+                    nl->SymbolAtom("stream"),
+                    nl->TwoElemList(
+                       nl->SymbolAtom("tuple"),
+                       nl->OneElemList(
+                            nl->TwoElemList(
+                              nl->SymbolAtom("id"),
+                              nl->SymbolAtom("tid")))));
+
+   }
+   ErrorReporter::ReportError("TBTree expected as first arg");
+   return nl->TypeError();
+}
+
+/*
+2.6.2 Specification
+
+*/
+
+
+const string windowintersectsSSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>tbtree(...) x rect | rect3 -> stream(tuple((id tid))) </text--->"
+    "<text> _ windowintersectsS[_]</text--->"
+    "<text>Returns the ids of the entries intersecting w </text--->"
+    "<text>query (UnitTrains createtbtree[Id, UTrip]) "
+          "windowinterscetsS[b] count</text--->"
+    "<text></text--->"
+    ") )";
+
+
+/*
+2.7.3 Value Mapping
+
+2.7.3.1 LocalInfo
+
+*/
+
+class WindowintersectsSLocalInfo{
+ public:
+  WindowintersectsSLocalInfo(TBTree* t, 
+                    const LeafSelector<3>& s,
+                    const IntersectsPruner<3, InnerNode<3, InnerInfo> >& p,
+                    const ListExpr ttlist
+                    ) : ds(t,s,p), node(0), pos(0){
+    tt = new TupleType(ttlist);
+    rect = p.getBox();
+  }
+  ~WindowintersectsSLocalInfo(){
+     if(tt){
+       tt->DeleteIfAllowed();
+     }
+     ds.finish();
+     if(node){
+         delete node;
+     }
+  }
+
+  Tuple* next(){
+     if(!node){
+        getNextNode();
+     } 
+     while(node){
+       while(pos<node->entryCount()){
+          const Entry<3, TBLeafInfo>* e = node->getEntry(pos);     
+          pos++;
+          if(rect.Intersects(e->getBox())){
+             Tuple* res = new Tuple(tt);
+             res->PutAttribute(0, new TupleIdentifier(true,
+                                  e->getInfo().getTupleId()));
+             return res;
+          }
+       } 
+       getNextNode();
+     }
+     return 0; 
+  } 
+
+  private:
+    void getNextNode(){
+       if(node){
+           delete node;
+           node = 0;
+       }
+       pos = 0;
+       IteratorElement<3> next;
+       if(ds.next(next)){
+          assert(next.getNode()->isLeaf());
+          node = dynamic_cast<TBLeafNode<3, 
+                       TBLeafInfo>*>(next.getNode());
+        }
+    }
+
+
+  DepthSearch<TBTree, 
+                      InnerNode<3, InnerInfo>, 
+                      3, LeafSelector<3>,
+                      IntersectsPruner<3, InnerNode<3, InnerInfo> >
+                     > ds;
+  TBLeafNode<3, TBLeafInfo>* node;
+  int pos;
+  Rectangle<3> rect;
+  TupleType* tt;
+
+};
+
+/*
+2.7.3.2 Value Mapping function 
+
+*/
+
+int windowintersectsS_3dVM(Word* args, Word& result, int message,
+                   Word& local, Supplier s){
+
+   switch (message){
+      case OPEN:{
+        if(local.addr){
+          delete static_cast<WindowintersectsSLocalInfo*>(local.addr);
+          local.addr=0;
+        }
+        Rectangle<3>* rect3 = static_cast<Rectangle<3>*>(args[1].addr);
+        if(!rect3->IsDefined()){
+           return 0;
+        }
+        LeafSelector<3> as;
+        TBTree* t = static_cast<TBTree*>(args[0].addr);
+        IntersectsPruner<3, InnerNode<3, InnerInfo> > p(*rect3);
+        local.addr = new WindowintersectsSLocalInfo(t, as, p, 
+                         nl->Second(GetTupleResultType(s)));
+        return 0;   
+      }
+
+      case REQUEST: {
+         if(!local.addr){
+           return CANCEL;
+         }
+         WindowintersectsSLocalInfo* li = 
+               static_cast<WindowintersectsSLocalInfo*>(local.addr);
+         Tuple* res = li->next();
+         result.addr = res;
+         return res?YIELD: CANCEL;
+      }
+
+      case CLOSE: {
+        if(local.addr){
+          delete static_cast<WindowintersectsSLocalInfo*>(local.addr);
+          local.setAddr(0);
+        }
+        return 0;
+      }
+      default: assert(false);
+               return 0;
+   }
+}
+
+int windowintersectsS_2dVM(Word* args, Word& result, int message,
+                   Word& local, Supplier s){
+
+   switch (message){
+      case OPEN:{
+        if(local.addr){
+          delete static_cast<WindowintersectsSLocalInfo*>(local.addr);
+          local.addr=0;
+        }
+        Rectangle<2>* rect = static_cast<Rectangle<2>*>(args[1].addr);
+        if(!rect->IsDefined()){
+           return 0;
+        }
+        LeafSelector<3> as;
+        TBTree* t = static_cast<TBTree*>(args[0].addr);
+        Rectangle<3> box = t->getBox();
+        if(!box.IsDefined()){
+          return 0;
+        } 
+        double min[3];
+        double max[3];
+        min[0] = rect->MinD(0);
+        min[1] = rect->MinD(1);
+        min[2] = box.MinD(2);
+        max[0] = rect->MaxD(0);
+        max[1] = rect->MaxD(1);
+        max[2] = box.MaxD(2);
+        Rectangle<3> rect3(true, min, max); 
+
+        IntersectsPruner<3, InnerNode<3, InnerInfo> > p(rect3);
+        local.addr = new WindowintersectsSLocalInfo(t,  as, p, 
+                                      nl->Second(GetTupleResultType(s)));
+        return 0;   
+      }
+
+      case REQUEST: {
+         if(!local.addr){
+           return CANCEL;
+         }
+         WindowintersectsSLocalInfo* li = 
+               static_cast<WindowintersectsSLocalInfo*>(local.addr);
+         Tuple* res = li->next();
+         result.addr = res;
+         return res?YIELD: CANCEL;
+      }
+
+      case CLOSE: {
+        if(local.addr){
+          delete static_cast<WindowintersectsSLocalInfo*>(local.addr);
+          local.setAddr(0);
+        }
+        return 0;
+      }
+      default: assert(false);
+               return 0;
+   }
+}
+
+/*
+2.7.4 Selection Function
+
+*/
+
+int windowintersectsSSelect(ListExpr args){
+  if(nl->IsEqual(nl->Second(args),"rect")){
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
+/*
+2.7.5 Value Mapping Array
+
+*/
+ValueMapping windowintersectsSVM[] = {
+     windowintersectsS_2dVM,
+     windowintersectsS_3dVM};
+
+
+/*
+2.7.6 Operator Instance
+
+*/
+
+
+
+Operator windowintersectsS (
+       "windowintersectsS",            // name
+        windowintersectsSSpec,          // specification
+        2,
+        windowintersectsSVM,           // value mapping
+        windowintersectsSSelect, 
+        windowintersectsSTM);       
+
+
+
+/*
+2.8 Operator getBox
+
+
+2.8.1 Type mapping
+
+*/
+ListExpr getBoxTM(ListExpr args){
+
+   if(nl->ListLength(args)!=1){
+     ErrorReporter::ReportError("invalid number of arguments");
+     return nl->TypeError();
+   }
+   ListExpr errorInfo = listutils::emptyErrorInfo();
+   if(CheckTBTree(nl->First(args), errorInfo)){
+      return nl->SymbolAtom("rect3");
+   }
+   ErrorReporter::ReportError("TBTree expected");
+   return nl->TypeError();
+}
+
+/*
+2.8.2 Specification
+
+*/
+const string getBoxSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" \"Comment\" ) "
+    "(<text>tbtree(...) -> rect3 </text--->"
+    "<text> getBox(_) </text--->"
+    "<text>returns bounding box of the tree </text--->"
+    "<text>query getBox(UnitTrains createtbtree[Id, UTrip]) </text--->"
+    "<text></text--->"
+    ") )";
+
+/*
+2.8.3 Value Mapping
+
+*/
+
+int getBoxVM(Word* args, Word& result, int message,
+                   Word& local, Supplier s){
+  TBTree* t = static_cast<TBTree*>(args[0].addr);
+  result = qp->ResultStorage(s);
+  Rectangle<3>* r = static_cast<Rectangle<3>*>(result.addr);
+  *r = t->getBox();
+  return 0;
+}
+
+/*
+2.8.4 Operator definitions
+
+*/
+
+
+Operator getBox (
+         "getBox",            // name
+          getBoxSpec,          // specification
+          getBoxVM,           // value mapping
+          Operator::SimpleSelect, // trivial selection function
+          getBoxTM);        
+
+
+
+
+} // end of namespace tbtree
 /*
 3 Algebra Creation
 
@@ -917,16 +1268,18 @@ Operator getentries (
 class TBTreeAlgebra : public Algebra {
   public:
    TBTreeAlgebra() : Algebra() {
-     AddTypeConstructor( &tbtreetc );
+     AddTypeConstructor( &tbtree::tbtreetc );
 
-     AddOperator(&createtbtree);
-     AddOperator(&tbentries);
-     AddOperator(&tbnodes);
-     AddOperator(&tbleafnodes);
-     AddOperator(&tblevel);
-     AddOperator(&getnodes);
-     AddOperator(&getFileInfo);
-     AddOperator(&getentries);
+     AddOperator(&tbtree::createtbtree);
+     AddOperator(&tbtree::tbentries);
+     AddOperator(&tbtree::tbnodes);
+     AddOperator(&tbtree::tbleafnodes);
+     AddOperator(&tbtree::tblevel);
+     AddOperator(&tbtree::getnodes);
+     AddOperator(&tbtree::getFileInfo);
+     AddOperator(&tbtree::getentries);
+     AddOperator(&tbtree::windowintersectsS);
+     AddOperator(&tbtree::getBox);
 
    }
 };

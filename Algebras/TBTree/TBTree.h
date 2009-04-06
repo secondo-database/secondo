@@ -33,14 +33,12 @@ class TBLeafInfo{
 
 */
      TBLeafInfo():tid(0){}
-
      TBLeafInfo(const TupleId& id): tid(id) {}
      TBLeafInfo(const TBLeafInfo& li): tid(li.tid) {}
 /*
 ~ Assignment operator~
 
 */
-
      TBLeafInfo& operator=(const TBLeafInfo& li){
        this->tid = li.tid;
        return *this;
@@ -49,8 +47,6 @@ class TBLeafInfo{
      bool operator==(const TBLeafInfo& li) const{
          return (this->tid == li.tid);
      }
-
-
 /*
 ~ Destructor~
 
@@ -68,7 +64,7 @@ class TBLeafInfo{
 Writing into a buffer.
 
 */
-     void writeTo(char* buffer,unsigned  int& offset) const{
+     inline void writeTo(char* buffer,unsigned  int& offset) const{
         memcpy(buffer+offset, &tid, sizeof(TupleId));
         offset += sizeof(TupleId);
      }
@@ -78,7 +74,7 @@ Reading from a buffer.
 
 
 */
-     void readFrom(const char* buffer, unsigned int& offset) {
+     inline void readFrom(const char* buffer, unsigned int& offset) {
         memcpy(&tid, buffer+offset, sizeof(TupleId));
         offset += sizeof(TupleId);
      }
@@ -127,7 +123,7 @@ Assignment operator
         return *this;
      }
 
-     bool operator==(const InnerInfo& ii) const{
+     inline bool operator==(const InnerInfo& ii) const{
         return this->pointer == ii.pointer;
      }
 
@@ -141,7 +137,7 @@ Destructor
 Getter
 
 */
-     SmiRecordId getPointer() const{
+     inline SmiRecordId getPointer() const{
        return pointer;
      }
 
@@ -149,7 +145,7 @@ Getter
 Writing into a buffer.
 
 */
-     void writeTo(char* buffer, unsigned int& offset) const{
+     inline void writeTo(char* buffer, unsigned int& offset) const{
         memcpy(buffer + offset, &pointer, sizeof(SmiRecordId));
         offset += sizeof(SmiRecordId); 
      }
@@ -159,7 +155,7 @@ Writing into a buffer.
 Reading from a buffer.
 
 */
-     void readFrom(const char* buffer,unsigned  int& offset) {
+     inline void readFrom(const char* buffer,unsigned  int& offset) {
         memcpy(&pointer, buffer + offset, sizeof(SmiRecordId));
         offset += sizeof(SmiRecordId); 
      }
@@ -265,7 +261,7 @@ Assignment operator
        return *this;
     }
 
-    bool operator==(const Entry<Dim, Info>& e) const{
+    inline bool operator==(const Entry<Dim, Info>& e) const{
       return (this->box == e.box) && (this->info==e.info);
     }
 
@@ -280,11 +276,11 @@ Destructor
 Getter
 
 */
-    const Rectangle<Dim> getBox() const{
+    inline const Rectangle<Dim> getBox() const{
       return box;
     }
 
-    const Info& getInfo() const{
+    inline const Info& getInfo() const{
       return info;
     }
 
@@ -292,7 +288,7 @@ Getter
  Writing into a buffer
 
 */
-    void writeTo(char* buffer, unsigned int& offset) const{
+    inline void writeTo(char* buffer, unsigned int& offset) const{
       writeRectangle<Dim>(box, buffer, offset);    
       info.writeTo(buffer, offset); 
     }
@@ -301,7 +297,7 @@ Getter
  Reading from a buffer
 
 */   
-    void readFrom(const char* buffer,unsigned  int& offset) {
+    inline void readFrom(const char* buffer,unsigned  int& offset) {
       readRectangle<Dim>(box, buffer, offset);    
       info.readFrom(buffer, offset); 
     }
@@ -355,7 +351,7 @@ class BasicNode{
        return *this;
    }
    
-   bool operator==(const BasicNode<Dim>& bn) const{
+   inline bool operator==(const BasicNode<Dim>& bn) const{
        return this->min == bn.min &&
               this->max == bn.max &&
               this->current == bn.current;
@@ -373,11 +369,11 @@ class BasicNode{
    }
    virtual ostream& print(ostream& os ) const=0;
    
-   uint16_t getMin() const{
+   inline uint16_t getMin() const{
       return min;
    }
 
-   uint16_t getMax() const{
+   inline uint16_t getMax() const{
       return max;
    }
 
@@ -456,19 +452,19 @@ class Node : public BasicNode<Dim>{
       entries = 0;
     }
 
-   void deleteEntries() {
+   inline void deleteEntries() {
       for(int i=0;i<BasicNode<Dim>::current;i++){
        delete entries[i];
       }
       BasicNode<Dim>::current = 0;
     }
 
-    const Entry<Dim, Info>* getEntry(int index) const{
+    inline const Entry<Dim, Info>* getEntry(int index) const{
        assert(index<BasicNode<Dim>::current);
        return entries[index];
     }
  
-    virtual Rectangle<Dim> getBox() const{
+    inline virtual Rectangle<Dim> getBox() const{
        if(BasicNode<Dim>::current==0){
           Rectangle<Dim> r(false);
           return r;
@@ -481,7 +477,7 @@ class Node : public BasicNode<Dim>{
        }
     }
    
-   virtual void writeTo(char* buffer, unsigned int& offset) const{
+   inline virtual void writeTo(char* buffer, unsigned int& offset) const{
       uint16_t c = BasicNode<Dim>::current;
       memcpy(buffer+offset, &c, sizeof(uint16_t));
       offset += sizeof(uint16_t);
@@ -490,7 +486,7 @@ class Node : public BasicNode<Dim>{
       } 
    }
    
-   virtual void readFrom(const char* buffer,unsigned  int& offset){
+   inline virtual void readFrom(const char* buffer,unsigned  int& offset){
       // delete old entries
       for(int i=0;i<BasicNode<Dim>::current; i++){
         delete entries[i];
@@ -506,7 +502,7 @@ class Node : public BasicNode<Dim>{
       } 
    }
 
-   virtual int bufferSize() const{
+   inline virtual int bufferSize() const{
      return sizeof(uint16_t) + 
             BasicNode<Dim>::current*Entry<Dim, Info>::bufferSize();
    }
@@ -525,17 +521,17 @@ Appends a new entry. If there is an overflow, the result will be true.
 
 */
 
-   bool insert(const Entry<Dim, Info>& e){
+   inline bool insert(const Entry<Dim, Info>& e){
      entries[BasicNode<Dim>::current] = new Entry<Dim, Info>(e);
      BasicNode<Dim>::current++;
      return BasicNode<Dim>::current==BasicNode<Dim>::max+1;
    }
 
-   void addBoxAt(const int pos, const Rectangle<Dim>& r){
+   inline void addBoxAt(const int pos, const Rectangle<Dim>& r){
       entries[pos]->addBox(r);
    }
 
-   void remove(const int index){
+   inline void remove(const int index){
       assert(index < BasicNode<Dim>::current);
       delete entries[index];
       BasicNode<Dim>::current--;
@@ -549,7 +545,7 @@ Appends a new entry. If there is an overflow, the result will be true.
    virtual Node* getEmptyNode()const = 0;
 
 
-   void updateEntry(int pos, Entry<Dim, Info> e){
+   inline void updateEntry(int pos, Entry<Dim, Info> e){
      assert(pos < BasicNode<Dim>::current);
      *(entries[pos]) = e; 
    }
@@ -705,14 +701,14 @@ class TBLeafNode : public Node<Dim, Info>{
                                    next(src.next), 
                                    trjid(src.trjid){ }
 
-    TBLeafNode& operator=(const TBLeafNode<Dim,Info>& src){
+    inline TBLeafNode& operator=(const TBLeafNode<Dim,Info>& src){
        Node<Dim, Info>::operator=(src);
        this->next = src.next;
        this.trjid = src.trjid;
        return *this;
     }
 
-    bool operator==(const TBLeafNode<Dim, Info>& ln)const{
+    inline bool operator==(const TBLeafNode<Dim, Info>& ln)const{
        return Node<Dim, Info>::operator==(ln) && 
               this->next == ln.next &&
               this->trjid == ln.trjid; 
@@ -722,11 +718,11 @@ class TBLeafNode : public Node<Dim, Info>{
        Node<Dim, Info>::deleteEntries();  
     }
 
-   virtual const bool isLeaf() const{
+   inline virtual const bool isLeaf() const{
       return true;
    }
    
-   virtual void writeTo(char* buffer, unsigned int& offset) const{
+   inline virtual void writeTo(char* buffer, unsigned int& offset) const{
       Node<Dim, Info>::writeTo(buffer, offset);
       memcpy(buffer + offset, &next, sizeof(SmiRecordId));
       offset += sizeof(SmiRecordId);
@@ -734,7 +730,7 @@ class TBLeafNode : public Node<Dim, Info>{
       offset += sizeof(int);
    }
 
-   virtual void readFrom(const char* buffer,unsigned  int& offset){
+   inline virtual void readFrom(const char* buffer,unsigned  int& offset){
       Node<Dim, Info>::readFrom(buffer, offset);
       memcpy(&next, buffer + offset, sizeof(SmiRecordId));
       offset += sizeof(SmiRecordId);
@@ -742,7 +738,7 @@ class TBLeafNode : public Node<Dim, Info>{
       offset += sizeof(int);
    }
    
-   int bufferSize() const{
+   inline int bufferSize() const{
       return Node<Dim, Info>::bufferSize() + sizeof(SmiRecordId)+sizeof(int);
    }
   
@@ -752,24 +748,24 @@ class TBLeafNode : public Node<Dim, Info>{
        return Node<Dim,Info>::getMax(ls); 
    }
 
-   SmiRecordId getNext() const{
+   inline SmiRecordId getNext() const{
       return next;
    }
    
-   void setNext(const SmiRecordId id){
+   inline void setNext(const SmiRecordId id){
      next = id;
    }
 
-   int getTrjId() const{
+   inline int getTrjId() const{
      return trjid;
    }
 
-   void setTrjId(const int trjid){
+   inline void setTrjId(const int trjid){
      this->trjid = trjid;
    }
 
     
-   Node<Dim, Info>* getEmptyNode() const{
+   inline Node<Dim, Info>* getEmptyNode() const{
        return new TBLeafNode<Dim, Info>(BasicNode<Dim>::min, 
                                       BasicNode<Dim>::max, 0);
    }
@@ -778,7 +774,7 @@ class TBLeafNode : public Node<Dim, Info>{
      return Node<Dim, Info>::print(os) << next << endl;
   }
 
-  virtual BasicNode<Dim>* clone() const{
+  inline virtual BasicNode<Dim>* clone() const{
      return new TBLeafNode<Dim, Info>(*this);
   }
 
@@ -800,11 +796,11 @@ class InnerNode : public Node<Dim, Info>{
     
     InnerNode(const InnerNode<Dim, Info>& src): Node<Dim, Info>(src) {}
 
-    InnerNode& operator=(const InnerNode<Dim, Info>& src) {
+    inline InnerNode& operator=(const InnerNode<Dim, Info>& src) {
       return Node<Dim, Info>::operator=(src);
     }
 
-    bool operator==(const InnerNode<Dim, Info>& in) const{
+    inline bool operator==(const InnerNode<Dim, Info>& in) const{
         return Node<Dim, Info>::operator==(in);
     }
 
@@ -812,7 +808,7 @@ class InnerNode : public Node<Dim, Info>{
        Node<Dim, Info>::deleteEntries();
     }
 
-    virtual const bool isLeaf() const{
+    inline virtual const bool isLeaf() const{
        return false;
     }
 
@@ -832,16 +828,16 @@ class InnerNode : public Node<Dim, Info>{
       return res;
     }
 
-    Node<Dim, Info>* getEmptyNode() const{
+    inline Node<Dim, Info>* getEmptyNode() const{
        return new InnerNode<Dim, Info>(BasicNode<Dim>::min,
                                        BasicNode<Dim>::max);
     }
 
-    virtual BasicNode<Dim>* clone() const{
+    inline virtual BasicNode<Dim>* clone() const{
         return new InnerNode<Dim, Info>(*this);
     }
 
-    static uint32_t getMax(uint32_t buffersize){
+    inline static uint32_t getMax(uint32_t buffersize){
        return Node<Dim,Info>::getMax(buffersize);
     }
 
@@ -855,14 +851,14 @@ struct pathEntry{
     id(id1), node(node1), pos(pos1){}
   pathEntry(const pathEntry& pe):id(pe.id), node(pe.node), pos(pe.pos){}
   
-  pathEntry& operator=(const pathEntry& s){
+  inline pathEntry& operator=(const pathEntry& s){
      this->id = s.id;
      this->node = s.node;
      this->pos = s.pos;
      return *this;
   }
 
-  bool operator==(const pathEntry& s)const{
+  inline bool operator==(const pathEntry& s)const{
     return this->id == s.id &&
            this->node == s.node  &&
            this->pos == s.pos;
@@ -1551,18 +1547,45 @@ class PathElement: public IteratorElement<Dim>{
 };
 
 
+template<class InnerNode>
+class NoPruner{
+ public: 
+   inline bool  prune(const InnerNode& node, const int pos) const{
+       return false;
+   }
+};
 
 
-template<class Tree, class InnerNode, int Dim, class Select> 
+template<unsigned Dim, class InnerNode>
+class IntersectsPruner{
+  public:
+   IntersectsPruner(const Rectangle<Dim> rect1): rect(rect1){}
+
+   inline bool prune(const InnerNode& node, const int pos) const{
+      return !rect.Intersects(node.getEntry(pos)->getBox());     
+   }
+
+   Rectangle<Dim> getBox() const{
+     return rect;
+   }
+
+ private:
+    Rectangle<Dim> rect;
+
+};
+
+
+
+
+template<class Tree, class InnerNode, int Dim, class Select, class Pruner> 
 class DepthSearch{
   public:
-    DepthSearch(Tree* tree1, const Select& select1): 
-         tree(tree1), select(select1){
+    DepthSearch(Tree* tree1, const Select& select1, const Pruner pruner1): 
+         tree(tree1), select(select1), pruner(pruner1){
      SmiRecordId rid = tree->getRootId();
      if(rid){
        init(rid);
      }
-
     }
 
     bool next(IteratorElement<Dim>& result){
@@ -1585,6 +1608,7 @@ class DepthSearch{
     Tree* tree;
     stack<PathElement<Dim> > path;
     Select select;
+    Pruner pruner;
 
     /* puts the root of the tree to the path */
     void init(SmiRecordId rid){
@@ -1593,10 +1617,13 @@ class DepthSearch{
        path.push(p);
     }
 
+    /* gets the next objects */
     bool next1(IteratorElement<Dim>& result){
-      while(!path.empty()){
+
+    while(!path.empty()){
 
        PathElement<Dim> top = path.top();   
+
        if(!(top.used) ){
           path.pop();
           top.used = true;
@@ -1609,7 +1636,7 @@ class DepthSearch{
           } 
        }
 
-       if(top.getNode()->isLeaf()){ // path exhausted
+       if(top.getNode()->isLeaf()){ // used leaf found 
           path.pop();
           delete top.getNode();
           if(path.empty()){
@@ -1637,15 +1664,20 @@ class DepthSearch{
        }
 
        InnerNode* in = dynamic_cast<InnerNode*>(top.getNode());
-       SmiRecordId sonId = in->getEntry(top.pos)->getInfo().getPointer();
-       BasicNode<Dim>* son = tree->getNode(sonId);
-       PathElement<Dim> p(sonId, top.getOwnId(), son , top.getLevel()+1);
-       path.push(p);
+       if(!pruner.prune(*in, top.pos)){
+          SmiRecordId sonId = in->getEntry(top.pos)->getInfo().getPointer();
+          BasicNode<Dim>* son = tree->getNode(sonId);
+          PathElement<Dim> p(sonId, top.getOwnId(), son , top.getLevel()+1);
+          path.push(p);
+       } else {
+          path.pop();
+          top.pos++;
+          path.push(top);
+       }
      }
      return false;
 
     }
-
 };
 
 
