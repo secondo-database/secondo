@@ -42,7 +42,7 @@ public final static int AUTO_HISTORY_LENGTH=100;
 public final static int MIN_FONTSIZE = 6;
 public final static int MAX_FONTSIZE = 24;
 
-// shows additional informations if an error is occured
+// shows additional informations if an error occurs
 private boolean DEBUG_MODE = true;
 /*
 The version-line of the history 
@@ -1561,8 +1561,8 @@ private int executeSimpleFile(String FileName,boolean ignoreErrors){
   
   }
   catch(Exception e){
-    ComPanel.appendText("a IO error is occurred\n");
-    Reporter.debug("io error occured",e);
+    ComPanel.appendText("a IO error occurred\n");
+    Reporter.debug("io error occurred",e);
     errors++;
   }
   finally{
@@ -2173,7 +2173,7 @@ public void processResult(String command,ListExpr ResultList,IntByReference Erro
   
             } catch(Exception e){
                Reporter.debug(e);
-               Reporter.showError("an error is occurred (in current viewer)");
+               Reporter.showError("an error occurred (in current viewer)");
             }
          }
          ComPanel.appendText("see result in object list");
@@ -2246,7 +2246,7 @@ public void hideObject(Object Sender,SecondoObject SO){
           ((SecondoViewer)AllViewers.get(i)).removeObject(SO);
         }
         catch(Exception e){
-           Reporter.debug("an Exception is occured in removeObject-Method of a Viewer", e);
+           Reporter.debug("an Exception occurred in removeObject-Method of a Viewer", e);
         }
      }
 }

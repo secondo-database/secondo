@@ -77,7 +77,7 @@ public void removeViewerChangeListener(ViewerChangeListener VCL);
 /** Sends the command to the secondo server.
   * The resulting list  of this command is ignored. 
   * The return value is the secondo client error code, e.g.
-  * 0 if no error is occurred.
+  * 0 if no error occurred.
   **/
 public int execCommand(String cmd);
 

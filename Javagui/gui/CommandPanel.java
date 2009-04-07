@@ -949,7 +949,7 @@ public class CommandPanel extends JScrollPane {
 
     /** sends command to the SecondoServer the result is ignored
       * returns the resultList from SecondoServer,
-      * if an error is occurred null is returned
+      * if an error occurs, null is returned
     **/
   public ListExpr getCommandResult (String command) {
     command = optimize(command.trim());
