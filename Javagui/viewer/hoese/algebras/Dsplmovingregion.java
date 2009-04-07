@@ -249,15 +249,17 @@ public class Dsplmovingregion extends DisplayTimeGraph{
     for (int j = 0; j < Intervals.size(); j++) {
       Interval in = (Interval)Intervals.elementAt(j);
       Interval i = new Interval(in.getStart()+0.0001,in.getEnd()-0.0001,true, true);
-      Rectangle2D.Double r = (Rectangle2D.Double)getRenderObjectAtTime(i.getStart()).getBounds2D();
-      r = (Rectangle2D.Double)r.createUnion(getRenderObjectAtTime(i.getEnd()).getBounds2D());
-      if (bounds == null) {
-        bounds = r;
-        TimeBounds = in;
-      }
-      else {
-        bounds = (Rectangle2D.Double)bounds.createUnion(r);
-        TimeBounds = TimeBounds.union(in);
+      RegionMap rm = (RegionMap) RegionMaps.get(j);
+      
+      Rectangle2D.Double r = rm.getBox();
+      if(r!=null){
+         if (bounds == null) {
+           bounds = r;
+           TimeBounds = in;
+         } else {
+           bounds = (Rectangle2D.Double)bounds.createUnion(r);
+           TimeBounds = TimeBounds.union(in);
+         }
       }
     }
   }
@@ -276,13 +278,37 @@ public class Dsplmovingregion extends DisplayTimeGraph{
       int numberOfPoints;
       RegionMap(Vector V , int points){
           Cycles = V;
-	  numberOfPoints = points;
+	    numberOfPoints = points;
       }
+
+      Rectangle2D.Double getBox(){
+        Rectangle2D.Double res = null;
+        for(int i=0;i<Cycles.size();i++){
+           Vector cycle = (Vector) Cycles.get(i);
+           for(int j=0;j<cycle.size();j++){
+              EdgeMap em = (EdgeMap) cycle.get(j);
+              Rectangle2D.Double r= em.getBox();
+              if(r!=null){
+                 if(res==null){
+                    res = r;
+                 } else {
+                    res = (Rectangle2D.Double)res.createUnion(r);
+                 }
+              }
+           }
+        }
+        return res;
+      } 
    }
 
 
   class EdgeMap {
     double x1, y1, x2, y2;
+
+
+    Rectangle2D.Double getBox(){
+       return new Rectangle2D.Double(Math.min(x1,x2), Math.min(y1,y2), Math.abs(x2-x1), Math.abs(y2-y1));
+    }
 
     /**
      * Constructor
