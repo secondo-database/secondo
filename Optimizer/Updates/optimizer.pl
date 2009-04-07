@@ -6225,9 +6225,10 @@ fRdup(Stream, distinct, rdup(sort(Stream))).
 
 fSort(Stream, [], Stream) :- !.
 
-fSort(Stream, SortAttrs, sortby(Stream2, AttrNames)) :-
-  rewriteForDistanceSort(Stream, SortAttrs, Stream2, SortAttrs2),
-  attrnamesSort(SortAttrs2, AttrNames).
+fSort(Stream, SortAttrs, StreamOut) :-
+  rewriteForDistanceSort(Stream, SortAttrs, Stream2, SortAttrs2, NewAttrs),
+  attrnamesSort(SortAttrs2, AttrNames),
+  removeAttrs(sortby(Stream2, AttrNames), NewAttrs, StreamOut).
 
 
 
@@ -6289,31 +6290,63 @@ attrnameSort(Attr, attrname(Attr) asc).
 
 /*
 
----- rewriteForDistanceSort(+StreamIn, +AttrsIn, -StreamOut, -AttrsOut) :-
+---- rewriteForDistanceSort(+StreamIn, +AttrsIn, -StreamOut, -AttrsOut,
+     -NewAttrs) :-
 ----
 
 Transform the distance operator in the orderby-clause.
 
 */
 
-rewriteForDistanceSort(Stream, [], Stream, []).
+rewriteForDistanceSort(Stream, [], Stream, [], []).
 
-rewriteForDistanceSort(Stream, distance(X, Y), StreamOut, ExprAttr) :-
+rewriteForDistanceSort(Stream, distance(X, Y), StreamOut, ExprAttr, 
+		       attrname(ExprAttr)) :-
   !, newVariable(ExprAttrName),
   ExprAttr = attr(ExprAttrName, *, l),
   StreamOut = extend(Stream, [field(ExprAttr, distance(X, Y))]).
 
-rewriteForDistanceSort(Stream, [Attr | Attrs], StreamOut, [Attr2 | Attrs2]) :-
-  rewriteForDistanceSort(Stream, Attr, Stream2, Attr2),
-  rewriteForDistanceSort(Stream2, Attrs, StreamOut, Attrs2).
+rewriteForDistanceSort(Stream, [Attr | Attrs], StreamOut, [Attr2 | Attrs2],
+		      NewAttrsOut) :-
+  rewriteForDistanceSort(Stream, Attr, Stream2, Attr2, NewAttr),
+  rewriteForDistanceSort(Stream2, Attrs, StreamOut, Attrs2, NewAttrs),
+  concatNonEmpty(NewAttr, NewAttrs, NewAttrsOut).
 
-rewriteForDistanceSort(Stream, Attr asc, StreamOut, Attr2 asc) :-
-  rewriteForDistanceSort(Stream, Attr, StreamOut, Attr2).
+rewriteForDistanceSort(Stream, Attr asc, StreamOut, Attr2 asc, NewAttrs) :-
+  rewriteForDistanceSort(Stream, Attr, StreamOut, Attr2, NewAttrs).
 
-rewriteForDistanceSort(Stream, Attr desc, StreamOut, Attr2 desc) :-
-  rewriteForDistanceSort(Stream, Attr, StreamOut, Attr2).
+rewriteForDistanceSort(Stream, Attr desc, StreamOut, Attr2 desc, NewAttrs) :-
+  rewriteForDistanceSort(Stream, Attr, StreamOut, Attr2, NewAttrs).
 
-rewriteForDistanceSort(Stream, Attr, Stream, Attr)
+rewriteForDistanceSort(Stream, Attr, Stream, Attr, []).
+
+/*
+
+---- rewriteForDistanceSort(+Elem, +List, -ListOut) :-
+----
+
+Adds ~Elem~ to the front of ~List~ if ~Elem~ is not empty
+
+*/
+
+
+concatNonEmpty([], List, List).
+
+concatNonEmpty(Attr, List, [Attr | List]).
+
+/*
+
+---- removeAttrs(+StreamIn, +NewAttrs, -StreamOut).
+----
+
+Removes the Attributes ~NewAttrs~ from the query
+
+*/
+
+
+removeAttrs(StreamIn, [], StreamIn).
+
+removeAttrs(StreamIn, NewAttrs, remove(StreamIn, NewAttrs)).
 
 /*
 
