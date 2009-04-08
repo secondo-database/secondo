@@ -41,6 +41,7 @@ VIEWER_CLASSES := \
 		Fuzzy2D.class \
 		RelSplit.class \
 		HoeseViewer.class \
+		SvgViewer.class \
 		MP3V.class \
 		MidiViewer.class \
                 TreeViewer.class \
@@ -82,5 +83,5 @@ clean:
 
 # default rule for creating java classes
 %.class: %.java
-	$(JAVAC) -classpath $(CLASSPATH):$(MP3CLASSESPATH):$(GRAPPA) $<
+	$(JAVAC) -classpath $(CLASSPATH):$(MP3CLASSESPATH):$(GRAPPA):$(BATIK) $<
 
