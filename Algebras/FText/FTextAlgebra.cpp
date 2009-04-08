@@ -485,6 +485,32 @@ FTextProperty()
 }
 
 
+ListExpr
+SVGProperty()
+{
+  return
+  (
+  nl->TwoElemList
+    (
+      nl->FourElemList
+      (
+        nl->StringAtom("Signature"),
+        nl->StringAtom("Example Type List"),
+        nl->StringAtom("List Rep"),
+        nl->StringAtom("Example List")
+      ),
+      nl->FourElemList
+      (
+        nl->StringAtom("-> DATA"),
+        nl->StringAtom("svg"),
+        nl->StringAtom("<text>svg description</text--->"),
+        nl->StringAtom("<text><svg> ... </svg></text--->")
+      )
+    )
+  );
+}
+
+
 /*
 2.6 Kind Checking Function
 
@@ -509,11 +535,17 @@ CheckFText( ListExpr type, ListExpr& errorInfo )
 }
 
 
+bool
+CheckSVG( ListExpr type, ListExpr& errorInfo )
+{
+  return nl->IsEqual( type, "svg");
+}
+
 
 
 /*
 
-2.7 Creation of the type constructor instance
+2.7 Creation of the type constructor instances
 
 */
 
@@ -529,6 +561,17 @@ TypeConstructor ftext(
   SizeOfFText,                  //sizeof function
   CheckFText );                 //kind checking function
 
+TypeConstructor svg(
+  "svg",                     //name of the type
+  SVGProperty,                //property function describing signature
+  OutFText,    InFText,         //Out and In functions
+  0,           0,               //SaveToList and RestoreFromList functions
+  CreateFText, DeleteFText,     //object creation and deletion
+  OpenFText, SaveFText,
+  CloseFText, CloneFText,       //close, and clone
+  CastFText,                    //cast function
+  SizeOfFText,                  //sizeof function
+  CheckSVG );                 //kind checking function
 
 /*
 
@@ -1261,6 +1304,40 @@ ListExpr FTextTypeReceiveTextStreamUDP( ListExpr args )
 
 
 /*
+2.50.1 ~text2svgTM~
+
+*/
+ListExpr text2svgTM(ListExpr args){
+   if(nl->ListLength(args)!=1){
+      ErrorReporter::ReportError("One argument expected");
+      return nl->TypeError();
+   }
+   if(nl->IsEqual(nl->First(args),"text")){
+      return nl->SymbolAtom("svg");
+   }
+   ErrorReporter::ReportError("text expected");
+   return nl->TypeError();
+}
+
+
+/*
+2.50.2 ~svg2textTM~
+
+*/
+ListExpr svg2textTM(ListExpr args){
+   if(nl->ListLength(args)!=1){
+      ErrorReporter::ReportError("One argument expected");
+      return nl->TypeError();
+   }
+   if(nl->IsEqual(nl->First(args),"svg")){
+      return nl->SymbolAtom("text");
+   }
+   ErrorReporter::ReportError("svg expected");
+   return nl->TypeError();
+
+}
+
+/*
 3.3 Value Mapping Functions
 
 */
@@ -1962,6 +2039,19 @@ ValueMapping FText_VMMap_Find[] =
   FTextValMapFind<FText, FText>,       //  2
   FTextValMapFind<CcString, CcString>  //  3
 };
+
+
+int SVG2TEXTVM( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
+{
+   FText* arg = static_cast<FText*>(args[0].addr);
+   result = qp->ResultStorage(s);
+   FText* res = static_cast<FText*>(result.addr);
+   res->CopyFrom(arg);
+   return 0;
+}
+
+
 
 int FTextSelectFunFind( ListExpr args )
 {
@@ -3973,6 +4063,25 @@ const string FTextReceiveTextStreamUDPSpec  =
     "<text>query receivetextstreamUDP(\"\",'2626',1.0, 10.0) tconsume</text--->"
     ") )";
 
+
+
+const string svg2textSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>svg -> text</text--->"
+    "<text>svg2text( svg )</text--->"
+    "<text>Converts 'svg' to a text value.</text--->"
+    "<text>query svg2text(...)"
+    "</text--->"
+    ") )";
+
+const string text2svgSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>text -> svg</text--->"
+    "<text>text2svg( text )</text--->"
+    "<text>Converts 'text' to an svg  value.</text--->"
+    "<text>query text2svg(...)"
+    "</text--->"
+    ") )";
 /*
 The Definition of the operators of the type ~text~.
 
@@ -4280,6 +4389,24 @@ Operator ftreceivetextstreamUDP
     FTextTypeReceiveTextStreamUDP
     );
 
+Operator svg2text
+(
+  "svg2text",           //name
+  svg2textSpec,   //specification
+  SVG2TEXTVM, //value mapping
+  Operator::SimpleSelect,         //trivial selection function
+  svg2textTM //type mapping
+);
+
+Operator text2svg
+(
+  "text2svg",           //name
+  text2svgSpec,   //specification
+  SVG2TEXTVM, //value mapping
+  Operator::SimpleSelect,         //trivial selection function
+  text2svgTM //type mapping
+);
+
 /*
 5 Creating the algebra
 
@@ -4293,7 +4420,9 @@ public:
     if(traces)
       cout <<'\n'<<"Start FTextAlgebra() : Algebra()"<<'\n';
     AddTypeConstructor( &ftext );
+    AddTypeConstructor( &svg );
     ftext.AssociateKind("DATA");
+    svg.AssociateKind("DATA");
     ftext.AssociateKind("INDEXABLE");
     ftext.AssociateKind("CSVIMPORTABLE");
     AddOperator( &containsString );
@@ -4328,6 +4457,8 @@ public:
     AddOperator( &ftsendtextUDP );
     AddOperator( &ftreceivetextUDP );
     AddOperator( &ftreceivetextstreamUDP );
+    AddOperator( &svg2text );
+    AddOperator( &text2svg );
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
