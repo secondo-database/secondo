@@ -4,57 +4,57 @@ Restore : No
 Operator : createtbtree
 Number   : 1
 Signature: rel(tuple( ... (id int) ... (up upoint) ...) x id  x up -> tbtree(...)
-Example  : query tbentries(UnitTrains createtbtree[Id, UTrip])  = (UnitTrains count) 
-Result   : TRUE 
+Example  : query tbentries(UnitTrains createtbtree[Id, UTrip])  = (UnitTrains count)
+Result   : TRUE
 
 
-Operator : tbentries 
+Operator : tbentries
 Number   : 1
-Signature: tbtree -> int 
-Example  : query tbentries(UnitTrains_UTrip_tbtree)  = (UnitTrains count) 
-Result   : TRUE 
+Signature: tbtree -> int
+Example  : query tbentries(UnitTrains_UTrip_tbtree)  = (UnitTrains count)
+Result   : TRUE
 
 
-Operator : tbnodes 
+Operator : tbnodes
 Number   : 1
-Signature: tbtree -> int 
-Example  : query tbnodes(UnitTrains_UTrip_tbtree)  < (UnitTrains count) 
-Result   : TRUE 
+Signature: tbtree -> int
+Example  : query tbnodes(UnitTrains_UTrip_tbtree)  < (UnitTrains count)
+Result   : TRUE
 
 
-Operator : tbleafnodes 
+Operator : tbleafnodes
 Number   : 1
-Signature: tbtree -> int 
-Example  : query tbleafnodes(UnitTrains_UTrip_tbtree)  < (UnitTrains count) 
-Result   : TRUE 
+Signature: tbtree -> int
+Example  : query tbleafnodes(UnitTrains_UTrip_tbtree)  < (UnitTrains count)
+Result   : TRUE
 
 
-Operator : tblevel 
+Operator : tblevel
 Number   : 1
-Signature: tbtree -> int 
-Example  : query tblevel(UnitTrains_UTrip_tbtree)  < 20 
-Result   : TRUE 
+Signature: tbtree -> int
+Example  : query tblevel(UnitTrains_UTrip_tbtree)  < 20
+Result   : TRUE
 
 
-Operator : getnodes 
+Operator : getnodes
 Number   : 1
-Signature: tbtree -> stream(tuple(Id int)(ParentId int)(Level int)(IsLeaf bool)(Entries int)(Box rect3)) 
-Example  : query (getnodes(UnitTrains_UTrip_tbtree) count)  < (UnitTrains count) 
-Result   : TRUE 
+Signature: tbtree -> stream(tuple(Id int)(ParentId int)(Level int)(IsLeaf bool)(Entries int)(Box rect3))
+Example  : query (getnodes(UnitTrains_UTrip_tbtree) count)  < (UnitTrains count)
+Result   : TRUE
 
 
 Operator  : getFileInfo
 Number    : 1
 Signature : tbtree -> text
-Example   : query length(getFileInfo(UnitTrains_UTrip_tbtree)) > 1 
+Example   : query length(getFileInfo(UnitTrains_UTrip_tbtree)) > 1
 Result    : TRUE
 
 
-Operator : getBox 
+Operator : getBox
 Number   : 1
 Signature: tbtree -> rect3
 Example  : query getBox(UnitTrains_UTrip_tbtree)
-Result   : ( rect3 (-3560.0 25965.0 1252.0 21018.0 1417.25 1417.428472222222)) 
+Result   : ( rect3 (-3560.0 25965.0 1252.0 21018.0 1417.25 1417.428472222222))
 
 Operator  : windowintersectsS
 Number    : 1
@@ -91,7 +91,7 @@ Example   : query (getentries(UnitTrains_UTrip_tbtree) count) = (UnitTrains coun
 Result    : (bool TRUE)
 
 
-Operator  : bulkloadtbtree 
+Operator  : bulkloadtbtree
 Number    : 1
 Signature:  stream(tuple( ... (id int) ... (up upoint) ... (TID tid) .. ) x id  x up x TID -> tbtree(...)
 Example   : query (getentries(UnitTrains feed addid bulkloadtbtree[Id, UTrip, TID]) count) = (UnitTrains count)
@@ -99,5 +99,9 @@ Result    : (bool TRUE)
 
 
 
-
+Operator  : getallentries
+Number    : 1
+Signature : tbtree -> stream(tuple(TupleId tid)(TrjId int)(Box rect3))
+Example   : query getallentries(UnitTrains_UTrip_tbtree) count;
+Result    : (int 309264)
 

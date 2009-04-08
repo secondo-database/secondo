@@ -30,6 +30,5 @@ operator windowintersectsS alias WINDOWINTERSECTSS pattern _ op [_]
 operator getBox alias GETBOX pattern op(_)
 operator windowintersects alias WINDOWINTERSECTS pattern _ _ op[_]
 operator bulkloadtbtree alias BULKLOADTBTREE pattern _ op[_, _, _]
-
-
+operator getentries alias GETENTRIES pattern op(_)
 

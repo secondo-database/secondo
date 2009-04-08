@@ -68,7 +68,7 @@ Writing into a buffer.
         memcpy(buffer+offset, &tid, sizeof(TupleId));
         offset += sizeof(TupleId);
      }
-     
+
 /*
 Reading from a buffer.
 
@@ -147,9 +147,9 @@ Writing into a buffer.
 */
      inline void writeTo(char* buffer, unsigned int& offset) const{
         memcpy(buffer + offset, &pointer, sizeof(SmiRecordId));
-        offset += sizeof(SmiRecordId); 
+        offset += sizeof(SmiRecordId);
      }
-     
+
 
 /*
 Reading from a buffer.
@@ -157,7 +157,7 @@ Reading from a buffer.
 */
      inline void readFrom(const char* buffer,unsigned  int& offset) {
         memcpy(&pointer, buffer + offset, sizeof(SmiRecordId));
-        offset += sizeof(SmiRecordId); 
+        offset += sizeof(SmiRecordId);
      }
 /*
 Required buffersize to store it.
@@ -170,9 +170,9 @@ Required buffersize to store it.
 /*
 prints out the pointer
 
-*/     
+*/
   ostream& print(ostream& os){
-    return os << pointer; 
+    return os << pointer;
   }
 
   private:
@@ -181,12 +181,12 @@ prints out the pointer
 
 
 
-/* 
-Function copying a defined rectangle into a buffer 
+/*
+Function copying a defined rectangle into a buffer
 
 */
 template<int Dim>
-inline void writeRectangle(const Rectangle<Dim>& r, 
+inline void writeRectangle(const Rectangle<Dim>& r,
                            char* buffer,
                            unsigned int& offset){
    assert(r.IsDefined());
@@ -205,7 +205,7 @@ Function reading a rectangle from a buffer
 
 */
 template<int Dim>
-inline void readRectangle(Rectangle<Dim>& r, 
+inline void readRectangle(Rectangle<Dim>& r,
                           const char* buffer,
                           unsigned int& offset){
    double mi[Dim];
@@ -236,13 +236,13 @@ inline int rectBufferSize(){
 /*
 3 Class Entry
 
-This class realized an entry within the tree. It should be 
+This class realized an entry within the tree. It should be
 intantiated with InnerInfo or LeafInfo.
 
 */
 template<int Dim, class Info>
 class Entry{
-  public: 
+  public:
 /*
 Constructors
 
@@ -289,17 +289,17 @@ Getter
 
 */
     inline void writeTo(char* buffer, unsigned int& offset) const{
-      writeRectangle<Dim>(box, buffer, offset);    
-      info.writeTo(buffer, offset); 
+      writeRectangle<Dim>(box, buffer, offset);
+      info.writeTo(buffer, offset);
     }
- 
+
 /*
  Reading from a buffer
 
-*/   
+*/
     inline void readFrom(const char* buffer,unsigned  int& offset) {
-      readRectangle<Dim>(box, buffer, offset);    
-      info.readFrom(buffer, offset); 
+      readRectangle<Dim>(box, buffer, offset);
+      info.readFrom(buffer, offset);
     }
 
 /*
@@ -313,7 +313,7 @@ Required BufferSize
 /*
 Let the box be the union of the original box and b;
 
-*/ 
+*/
    inline void addBox(const Rectangle<Dim>& b){
       box = box.Union(b);
    }
@@ -333,8 +333,8 @@ Prints entry to stream;
 
   private:
     Rectangle<Dim> box;
-    Info           info; 
-}; 
+    Info           info;
+};
 
 /*
 class BasicNode
@@ -350,9 +350,9 @@ class BasicNode{
 1 Constructors
 
 */
-   BasicNode(uint16_t min1, uint16_t max1): 
+   BasicNode(uint16_t min1, uint16_t max1):
       min(min1), max(max1), current(0) {}
-   BasicNode(const BasicNode<Dim>& src): 
+   BasicNode(const BasicNode<Dim>& src):
       min(src.min), max(src.max), current(src.current) {}
 /*
 2 Assignment operator
@@ -364,7 +364,7 @@ class BasicNode{
        this->current = src.current;
        return *this;
    }
-   
+
 /*
 3 Comparison
 
@@ -398,7 +398,7 @@ class BasicNode{
    uint16_t entryCount() const{
      return current;
    }
-   
+
    inline uint16_t getMin() const{
       return min;
    }
@@ -436,15 +436,15 @@ class Node : public BasicNode<Dim>{
    }
 
    Node(const Node<Dim, Info>& src) : BasicNode<Dim>(src){
-       entries = new Entry<Dim,Info>*[BasicNode<Dim>::max +1]; 
+       entries = new Entry<Dim,Info>*[BasicNode<Dim>::max +1];
        for(int i=0;i< src.entryCount(); i++){
          this->entries[i] = new Entry<Dim, Info>(*(src.entries[i]));
        }
        for(int i=src.entryCount(); i<BasicNode<Dim>::max; i++){
          this->entries[i] = 0;
-       } 
+       }
     }
-   
+
 /*
 4.2 Assignment operator
 
@@ -483,7 +483,7 @@ class Node : public BasicNode<Dim>{
       }
       return true;
     }
-    
+
 
 /*
 4.4 Destructor
@@ -526,7 +526,7 @@ Returns the entry at the given position.
 
 Returns the union of all boxes of all entries.
 
-*/ 
+*/
     inline virtual Rectangle<Dim> getBox() const{
        if(BasicNode<Dim>::current==0){
           Rectangle<Dim> r(false);
@@ -546,20 +546,20 @@ Returns the union of all boxes of all entries.
 Writes this node to an existing buffer.
 
 */
-   
+
    inline virtual void writeTo(char* buffer, unsigned int& offset) const{
       uint16_t c = BasicNode<Dim>::current;
       memcpy(buffer+offset, &c, sizeof(uint16_t));
       offset += sizeof(uint16_t);
       for(int i=0; i< BasicNode<Dim>::current; i++){
          entries[i]->writeTo(buffer, offset);
-      } 
+      }
    }
-  
+
 /*
 4.9 ~readFrom~
 
-Reconstructs the node from a buffer. 
+Reconstructs the node from a buffer.
 
 */
    inline virtual void readFrom(const char* buffer,unsigned  int& offset){
@@ -575,17 +575,17 @@ Reconstructs the node from a buffer.
       for(int i=0; i< BasicNode<Dim>::current; i++){
          entries[i] = new Entry<Dim, Info>();
          entries[i]->readFrom(buffer, offset);
-      } 
+      }
    }
 
 /*
 4.10 ~bufferSize~
 
-Returns the number of bytes required to store this node. 
+Returns the number of bytes required to store this node.
 
 */
    inline virtual int bufferSize() const{
-     return sizeof(uint16_t) + 
+     return sizeof(uint16_t) +
             BasicNode<Dim>::current*Entry<Dim, Info>::bufferSize();
    }
 
@@ -597,8 +597,8 @@ given size.
 
 */
    static uint32_t getMax(const uint32_t buffersize){
-       uint32_t ls = buffersize - sizeof(uint16_t); // current 
-       return ls / Entry<Dim, Info>::bufferSize(); 
+       uint32_t ls = buffersize - sizeof(uint16_t); // current
+       return ls / Entry<Dim, Info>::bufferSize();
    }
 
 
@@ -620,7 +620,7 @@ Appends a new entry. If there is an overflow, the result will be true.
 */
 
    inline bool insert(const Entry<Dim, Info>& e){
-     assert(BasicNode<Dim>::current <= BasicNode<Dim>::max); 
+     assert(BasicNode<Dim>::current <= BasicNode<Dim>::max);
 
 
      entries[BasicNode<Dim>::current] = new Entry<Dim, Info>(e);
@@ -631,7 +631,7 @@ Appends a new entry. If there is an overflow, the result will be true.
 /*
 4.14 ~addBoxAt~
 
-Builds the uion of the given box and the box of element at position pos 
+Builds the uion of the given box and the box of element at position pos
 and stores the result at posiotion pos.
 
 */
@@ -675,7 +675,7 @@ Replaces the entry at the given position by the new one.
 */
    inline void updateEntry(int pos, Entry<Dim, Info> e){
      assert(pos < BasicNode<Dim>::current);
-     *(entries[pos]) = e; 
+     *(entries[pos]) = e;
    }
 
 /*
@@ -694,8 +694,8 @@ pure virtual.
    ostream& print(ostream& os) const{
        os << "(node - ";
        os << (isLeaf() ? "leaf" : "inner");
-       os << "[" << BasicNode<Dim>::min <<", " 
-          << BasicNode<Dim>::max << ", " 
+       os << "[" << BasicNode<Dim>::min <<", "
+          << BasicNode<Dim>::max << ", "
           << BasicNode<Dim>::current << "] ::{"  ;
        for(int i=0;i<BasicNode<Dim>::current;i++){
          entries[i]->print(os);
@@ -719,13 +719,13 @@ using quadratic split algorithm.
 template<int Dim, class Info>
 class QNodeSplitter{
   public:
-   pair<Node<Dim, Info>*, Node<Dim, Info>* > 
+   pair<Node<Dim, Info>*, Node<Dim, Info>* >
      splitNode(Node<Dim, Info>& node){
-       pair<int, int> seeds = pickSeeds(node);  
+       pair<int, int> seeds = pickSeeds(node);
        int index1 = seeds.first;
        int index2 = seeds.second;
        Node<Dim, Info>*  node1 = node.getEmptyNode();
-       Node<Dim, Info>*  node2 = node.getEmptyNode();  
+       Node<Dim, Info>*  node2 = node.getEmptyNode();
        node1->insert(*(node.getEntry(index1)));
        node2->insert(*(node.getEntry(index2)));
        node.remove(std::max(index1,index2));
@@ -733,7 +733,7 @@ class QNodeSplitter{
        int min = node.getMin();
 
        while(node.entryCount() > 0){
-         if(node.entryCount() + node1->entryCount() == min){ 
+         if(node.entryCount() + node1->entryCount() == min){
            for(int i=0;i<node.entryCount();i++){
               node1->insert(*node.getEntry(i));
            }
@@ -757,7 +757,7 @@ class QNodeSplitter{
      } // end of splitNode
 
   private:
-    
+
   pair<unsigned int,unsigned  int> pickSeeds(const Node<Dim, Info>& n) const{
      pair<int, int> res;
      double d = 0;
@@ -793,7 +793,7 @@ class QNodeSplitter{
     Rectangle<Dim> b2 = grp2->getBox();
     double a1 = b1.Area();
     double a2 = b2.Area();
-    
+
     for(int i=1;i<source->entryCount();i++){
         d1 = source->getEntry(i)->getBox().Union(b1).Area();
         d2 = source->getEntry(i)->getBox().Union(b2).Area();
@@ -841,11 +841,11 @@ class TBLeafNode : public Node<Dim, Info>{
 */
 
     TBLeafNode() {}
-    TBLeafNode(int min, int max, int trjid1): 
+    TBLeafNode(int min, int max, int trjid1):
               Node<Dim, Info>(min,max), next(0), trjid(trjid1){}
 
-    TBLeafNode(const TBLeafNode& src): Node<Dim, Info>(src), 
-                                   next(src.next), 
+    TBLeafNode(const TBLeafNode& src): Node<Dim, Info>(src),
+                                   next(src.next),
                                    trjid(src.trjid){ }
 /*
 5.2 Assignment Operator
@@ -864,9 +864,9 @@ class TBLeafNode : public Node<Dim, Info>{
 
 */
     inline bool operator==(const TBLeafNode<Dim, Info>& ln)const{
-       return Node<Dim, Info>::operator==(ln) && 
+       return Node<Dim, Info>::operator==(ln) &&
               this->next == ln.next &&
-              this->trjid == ln.trjid; 
+              this->trjid == ln.trjid;
     }
 
 /*
@@ -874,7 +874,7 @@ class TBLeafNode : public Node<Dim, Info>{
 
 */
     virtual ~TBLeafNode(){
-       Node<Dim, Info>::deleteEntries();  
+       Node<Dim, Info>::deleteEntries();
     }
 /*
 5.5 isLeaf
@@ -885,7 +885,7 @@ Returns allways true.
    inline virtual const bool isLeaf() const{
       return true;
    }
-   
+
 /*
 5.6 Import/Export to a buffer
 
@@ -905,7 +905,7 @@ Returns allways true.
       memcpy(&trjid, buffer + offset, sizeof(int));
       offset += sizeof(int);
    }
-   
+
    inline int bufferSize() const{
       return Node<Dim, Info>::bufferSize() + sizeof(SmiRecordId)+sizeof(int);
    }
@@ -914,7 +914,7 @@ Returns allways true.
       return BasicNode<3>::getMax();
    }
 
-  
+
 
 /*
 ~getMax~
@@ -925,7 +925,7 @@ given size.
 */
    static uint32_t getMax(const uint32_t buffersize){
        uint32_t ls = buffersize - (sizeof(SmiRecordId) + sizeof(int));
-       return Node<Dim,Info>::getMax(ls); 
+       return Node<Dim,Info>::getMax(ls);
    }
 
 
@@ -936,7 +936,7 @@ Getter / Setter
    inline SmiRecordId getNext() const{
       return next;
    }
-   
+
    inline void setNext(const SmiRecordId id){
      next = id;
    }
@@ -952,9 +952,9 @@ Getter / Setter
 /*
 Returns a node wiout any entries.
 
-*/    
+*/
    inline Node<Dim, Info>* getEmptyNode() const{
-       return new TBLeafNode<Dim, Info>(BasicNode<Dim>::min, 
+       return new TBLeafNode<Dim, Info>(BasicNode<Dim>::min,
                                       BasicNode<Dim>::max, 0);
    }
 
@@ -978,7 +978,7 @@ Returns a clone of this node.
 
   private:
     SmiRecordId next;
-    int trjid;  
+    int trjid;
 };
 
 
@@ -993,8 +993,8 @@ class InnerNode : public Node<Dim, Info>{
 5.1 Constructors
 
 */
-    InnerNode(const int min1, const int max1): Node<Dim, Info>(min1, max1) {} 
-    
+    InnerNode(const int min1, const int max1): Node<Dim, Info>(min1, max1) {}
+
     InnerNode(const InnerNode<Dim, Info>& src): Node<Dim, Info>(src) {}
 
 /*
@@ -1006,7 +1006,7 @@ class InnerNode : public Node<Dim, Info>{
     }
 
 /*
-5.3 Comparison 
+5.3 Comparison
 
 */
     inline bool operator==(const InnerNode<Dim, Info>& in) const{
@@ -1014,7 +1014,7 @@ class InnerNode : public Node<Dim, Info>{
     }
 
 /*
-5.4 Destructor 
+5.4 Destructor
 
 */
     virtual ~InnerNode(){
@@ -1076,7 +1076,7 @@ Returns a clone of this node.
 /*
 ~getMax~
 
-Returns the maximum number of inner nodes which can be stored 
+Returns the maximum number of inner nodes which can be stored
 into a buffer of given size.
 
 */
@@ -1101,7 +1101,7 @@ struct pathEntry{
   pathEntry(const SmiRecordId id1, BasicNode<Dim>* node1, const int pos1):
     id(id1), node(node1), pos(pos1){}
   pathEntry(const pathEntry& pe):id(pe.id), node(pe.node), pos(pe.pos){}
-  
+
   inline pathEntry& operator=(const pathEntry& s){
      this->id = s.id;
      this->node = s.node;
@@ -1114,20 +1114,20 @@ struct pathEntry{
            this->node == s.node  &&
            this->pos == s.pos;
   }
-  
+
   ~pathEntry(){}
 
   SmiRecordId    id;   // the record id
   BasicNode<Dim>*  node; // the node corresponding to that id
   int            pos;  // position of the next entry
 
-}; 
+};
 
 /*
 7 class TBTree
 
 
-This is the implementation of a tbtree. In contrast to the 
+This is the implementation of a tbtree. In contrast to the
 original paper, we don't store the direction in each leaf entry.
 Instead we store an trip id in each leaf node.
 
@@ -1141,14 +1141,14 @@ class TBTree{
  Creates an empty TBTree
 
 */
-  TBTree(const int pageSize): file(false),rootId(0){ 
+  TBTree(const int pageSize): file(false),rootId(0){
      file.Create();
-     int size = pageSize / 4; 
+     int size = pageSize / 4;
      leafMax = TBLeafNode<3, TBLeafInfo>::getMax(size);
      leafMin = leafMax / 4;
 
      innerMax = InnerNode<3, InnerInfo>::getMax(size);
-     
+
      innerMin = innerMax / 4;
      noEntries = 0;
      noNodes = 0;
@@ -1187,12 +1187,12 @@ Opens an existing TBTRee from file
 /*
 Returns the fileId of the underlying file.
 
-*/  
-  
+*/
+
   inline SmiFileId getFileId() {
     return file.GetFileId();
   }
- 
+
 
 /*
 Returns the record id of the record storing the header of the tree.
@@ -1238,14 +1238,14 @@ Stores a new entry.
         rootId = saveNode(node);
         level++;
         box = e.getBox();
-        return; 
+        return;
      } else {
         box = box.Union(e.getBox());
         vector<pathEntry<3> > path;
         TBLeafNode<3, TBLeafInfo>* newLeaf(0);
         SmiRecordId id(0);
         if(searchNode(rootId, path, e, trjid)) {
-              TBLeafNode<3, TBLeafInfo>* leaf = 
+              TBLeafNode<3, TBLeafInfo>* leaf =
                    dynamic_cast<TBLeafNode<3, TBLeafInfo>* >
                         (path[path.size()-1].node);
            if(!leaf->isFull()) {
@@ -1259,7 +1259,7 @@ Stores a new entry.
               newLeaf->insert(e);
               id = saveNode(*newLeaf);
               leaf->setNext(id);
-              updateNode(path[path.size()-1].id, *leaf); // update next      
+              updateNode(path[path.size()-1].id, *leaf); // update next
            }
         } else { // no predecessor was found -> create  a new leaf
            newLeaf = new TBLeafNode<3, TBLeafInfo>(leafMin, leafMax,trjid);
@@ -1277,7 +1277,7 @@ Stores a new entry.
         while(!path.empty()){
           path.pop_back();
         }
-        if(newLeaf){ // there is new leaf which has to 
+        if(newLeaf){ // there is new leaf which has to
                      // inserted into the tree structure
             SmiRecordId newRootId = insertLeaf(id, e.getBox());
             if(newRootId!=rootId){
@@ -1286,7 +1286,7 @@ Stores a new entry.
             rootId = newRootId;
             delete newLeaf;
         }
-     } 
+     }
   }
 
 /*
@@ -1296,36 +1296,36 @@ Stores a new Leaf in the tree. To be used in bulk loading.
 Returns the id of the used record
 
 */
-  SmiRecordId insertLeaf(const TBLeafNode<3, TBLeafInfo>& leaf, 
+  SmiRecordId insertLeaf(const TBLeafNode<3, TBLeafInfo>& leaf,
                          const SmiRecordId predecessor = 0){
      assert(leaf.entryCount() >0);
-     
+
      noEntries += leaf.entryCount();
      SmiRecordId id = saveNode(leaf); // save the leaf
      if(!rootId){ // tree was empty
        level++;
        box = leaf.getBox();
        rootId = id;
-       return id; 
+       return id;
      }
 
      // there is a predecessor
      if(predecessor){
-        TBLeafNode<3, TBLeafInfo>* pred = 
+        TBLeafNode<3, TBLeafInfo>* pred =
              dynamic_cast<TBLeafNode<3, TBLeafInfo>*>(readNode(predecessor));
         pred->setNext(id);
         updateNode(predecessor, * pred);
         delete pred;
      }
      // update bounding box
-     box = box.Union(leaf.getBox()); 
+     box = box.Union(leaf.getBox());
      // insert the new leaf into the structure
-     SmiRecordId newRootId = insertLeaf(id, leaf.getBox()); 
+     SmiRecordId newRootId = insertLeaf(id, leaf.getBox());
      if(newRootId!=rootId){
        level++;
        rootId = newRootId;
      }
-     return id; 
+     return id;
   }
 
 /*
@@ -1346,7 +1346,7 @@ Returns a new empty leaf node
   void deleteFile(){
      file.Close();
      file.Drop();
-  } 
+  }
 
     string toString(){
 
@@ -1370,7 +1370,7 @@ Returns a new empty leaf node
           os << box;
        }
        os << endl << "]";
-       return os.str();    
+       return os.str();
 
     }
 /*
@@ -1379,7 +1379,7 @@ Some Getter
 */
   int entryCount() const{
     return noEntries;
-  } 
+  }
   int nodeCount() const{
     return noNodes;
   }
@@ -1408,8 +1408,8 @@ Some Getter
 
   private:
     SmiRecordFile file;
-    SmiRecordId rootId; 
-    SmiRecordId headerId; 
+    SmiRecordId rootId;
+    SmiRecordId headerId;
     uint16_t leafMin;
     uint16_t leafMax;
     uint16_t innerMin;
@@ -1423,8 +1423,8 @@ Some Getter
 
     void saveHeader() {
 
-       unsigned int size = 4*sizeof(uint16_t) + sizeof(SmiRecordId) + 
-                           4*sizeof(uint32_t) + sizeof(char) + 
+       unsigned int size = 4*sizeof(uint16_t) + sizeof(SmiRecordId) +
+                           4*sizeof(uint32_t) + sizeof(char) +
                            rectBufferSize<3>();
        char buffer[size];
        unsigned int offset = 0;
@@ -1464,11 +1464,11 @@ Some Getter
              memcpy(buffer+offset,&d, sizeof(double));
              offset += sizeof(double);
           }
-       } 
+       }
 
        assert(offset==size);
 
-       // store the buffer       
+       // store the buffer
        SmiRecord record;
        if(headerId != 0){
            file.SelectRecord(headerId, record, SmiFile::Update);
@@ -1485,7 +1485,7 @@ Some Getter
 
     void readHeader(){
        // read buffer
-       unsigned int size = 4*sizeof(uint16_t) + sizeof(SmiRecordId) + 
+       unsigned int size = 4*sizeof(uint16_t) + sizeof(SmiRecordId) +
                            4*sizeof(uint32_t) + sizeof(char) +
                            rectBufferSize<3>() ;
        char buffer[size];
@@ -1529,15 +1529,15 @@ Some Getter
           return false;
        }
        if(n1->isLeaf()){
-          const TBLeafNode<3, TBLeafInfo>* ln1 = 
+          const TBLeafNode<3, TBLeafInfo>* ln1 =
                 dynamic_cast<const TBLeafNode<3, TBLeafInfo>*>(n1);
-          const TBLeafNode<3, TBLeafInfo>* ln2 = 
+          const TBLeafNode<3, TBLeafInfo>* ln2 =
                 dynamic_cast<const TBLeafNode<3, TBLeafInfo>*>(n2);
           return  *ln1 == *ln2;
        } else {
-          const InnerNode<3, InnerInfo>* in1 = 
+          const InnerNode<3, InnerInfo>* in1 =
                 dynamic_cast<const InnerNode<3, InnerInfo>*>(n1);
-          const InnerNode<3, InnerInfo>* in2 = 
+          const InnerNode<3, InnerInfo>* in2 =
                 dynamic_cast<const InnerNode<3, InnerInfo>*>(n2);
           return *in1 == *in2;
        }
@@ -1547,7 +1547,7 @@ Some Getter
        noNodes++;
        if(n.isLeaf()){
          noLeafNodes++;
-       } 
+       }
        assert(n.entryCount()>0); // never save an empty node
        unsigned size = n.bufferSize() + sizeof(char);
        char buffer[size];
@@ -1563,14 +1563,14 @@ Some Getter
        SmiSize rss = record.Write(buffer, size, os);
        assert(rss == size);
        record.Finish();
-       return id; 
+       return id;
     }
 
 
     void updateNode(const SmiRecordId id, const BasicNode<3>& n){
        assert(n.entryCount() > 0);
        SmiRecord record;
-       file.SelectRecord(id, record, SmiFile::Update);      
+       file.SelectRecord(id, record, SmiFile::Update);
        unsigned int size = n.bufferSize()+sizeof(char);
        char buffer[size];
        unsigned int offset = 0;
@@ -1585,14 +1585,14 @@ Some Getter
        assert(rss == size);
        if(record.Size()>size){
            record.Truncate(size);
-       } 
+       }
        record.Finish();
     }
-    
+
 
     BasicNode<3>* readNode(const SmiRecordId id) {
        SmiRecord record;
-       file.SelectRecord(id, record);      
+       file.SelectRecord(id, record);
        SmiSize size = record.Size();
        assert(size>1);
 
@@ -1613,17 +1613,17 @@ Some Getter
        return res;
     }
 
-    TBLeafNode<3, TBLeafInfo>* createLeafNodeFrom(const char* buffer, 
+    TBLeafNode<3, TBLeafInfo>* createLeafNodeFrom(const char* buffer,
                                                 unsigned int& offset){
-         TBLeafNode<3, TBLeafInfo>* res = 
+         TBLeafNode<3, TBLeafInfo>* res =
                      new TBLeafNode<3, TBLeafInfo>(leafMin, leafMax, 0);
          res->readFrom(buffer, offset);
          return res;
     }
 
-   InnerNode<3, InnerInfo>* createInnerNodeFrom(const char* buffer, 
+   InnerNode<3, InnerInfo>* createInnerNodeFrom(const char* buffer,
                                                 unsigned int& offset){
-       InnerNode<3, InnerInfo>* res = 
+       InnerNode<3, InnerInfo>* res =
                     new InnerNode<3, InnerInfo>(innerMin, innerMax);
        res->readFrom(buffer, offset);
        return res;
@@ -1631,7 +1631,7 @@ Some Getter
 
 
 
-    bool searchNode(const SmiRecordId id, vector<pathEntry<3> >& path, 
+    bool searchNode(const SmiRecordId id, vector<pathEntry<3> >& path,
                     const Entry<3, TBLeafInfo>& li, const int trjid )  {
 
         BasicNode<3>*  bn = readNode(id);
@@ -1639,7 +1639,7 @@ Some Getter
 
 
         if(bn->isLeaf()){
-           TBLeafNode<3, TBLeafInfo>* leaf = 
+           TBLeafNode<3, TBLeafInfo>* leaf =
                        dynamic_cast<TBLeafNode<3, TBLeafInfo>*> (bn);
            if(leaf->getTrjId()==trjid && leaf->getNext()==0){
                   path.push_back(pathEntry<3>(id,leaf, -1));
@@ -1649,12 +1649,12 @@ Some Getter
              return false;
            }
         } else {  // an inner node
-           InnerNode<3, InnerInfo>* node = 
+           InnerNode<3, InnerInfo>* node =
                         dynamic_cast<InnerNode<3, InnerInfo>* >(bn);
            const Entry<3, InnerInfo>* entry;
            uint16_t c = node->entryCount();
            for(uint16_t i=0; i < c; i++){
- 
+
               entry = node->getEntry(i);
               if(entry->getBox().Intersects(li.getBox())){
                  path.push_back(pathEntry<3>(id, node,i));
@@ -1664,19 +1664,19 @@ Some Getter
                    path.pop_back();
                  }
               }
-           } 
+           }
            delete node;
            return false;
-        }      
+        }
     }
 
 
 
     void updatePath(const vector<pathEntry<3> >& path, const Rectangle<3>& b ) {
        // a new entry was inserted at the end of the path.
-       // we have to update the bounding boxes of all nodes in a path 
+       // we have to update the bounding boxes of all nodes in a path
        for(int i=path.size()-2; i>=0;i--){
-          InnerNode<3, InnerInfo>* node = 
+          InnerNode<3, InnerInfo>* node =
                        dynamic_cast<InnerNode<3, InnerInfo>* >(path[i].node);
           int pos = path[i].pos;
           Rectangle<3> r = node->getEntry(pos)->getBox();
@@ -1686,7 +1686,7 @@ Some Getter
              node->addBoxAt(pos, b);
              updateNode(path[i].id, *node);
           }
-       } 
+       }
     }
 
 
@@ -1695,7 +1695,7 @@ Some Getter
 
 This function embedds the leaf with given id and box into the tree structure.
 
-*/    
+*/
     SmiRecordId insertLeaf(const SmiRecordId& id, const Rectangle<3>& rect){
        pair<SmiRecordId, SmiRecordId> res =  insertLeafRec(rootId, id, rect, 0);
        if(res.second==0){
@@ -1710,27 +1710,27 @@ This function embedds the leaf with given id and box into the tree structure.
           n.insert(e2);
           delete s1;
           delete s2;
-          return saveNode(n); 
+          return saveNode(n);
        }
     }
 
 
     pair<SmiRecordId, SmiRecordId>
-    insertLeafRec(const SmiRecordId rootId, 
-                  const SmiRecordId& id, 
+    insertLeafRec(const SmiRecordId rootId,
+                  const SmiRecordId& id,
                   const Rectangle<3>& rect,
                   const int level){
       BasicNode<3>* root = readNode(rootId);
-      if(root->isLeaf()){ 
+      if(root->isLeaf()){
          pair<SmiRecordId, SmiRecordId> res(rootId, id);
          delete root;
          return res;
       } else {
-         InnerNode<3, InnerInfo>* iroot = 
+         InnerNode<3, InnerInfo>* iroot =
                       dynamic_cast<InnerNode<3, InnerInfo>*>(root);
          int sonIndex = iroot->selectBestNode(rect);
          SmiRecordId sonId = iroot->getEntry(sonIndex)->getInfo().getPointer();
-         pair<SmiRecordId, SmiRecordId> sonRes = 
+         pair<SmiRecordId, SmiRecordId> sonRes =
                insertLeafRec(sonId, id, rect, level+1);
          if(sonRes.second == 0 ){ // no split required
             Rectangle<3>  b(root->getBox());
@@ -1738,8 +1738,8 @@ This function embedds the leaf with given id and box into the tree structure.
                b = b.Union(rect);
                Entry<3, InnerInfo> newSon(b, sonId);
                iroot->updateEntry(sonIndex, newSon);
-               updateNode(rootId, *iroot);  
-            } 
+               updateNode(rootId, *iroot);
+            }
             delete iroot;
             sonRes.first = rootId;
             return sonRes;
@@ -1752,15 +1752,15 @@ This function embedds the leaf with given id and box into the tree structure.
             delete firstSon;
             delete secondSon;
             iroot->updateEntry(sonIndex, newSon1);
-            if(!iroot->insert(newSon2)){ // root has space enough 
-              updateNode(rootId, *iroot); 
+            if(!iroot->insert(newSon2)){ // root has space enough
+              updateNode(rootId, *iroot);
               sonRes.first = rootId;
               sonRes.second = 0;
-              delete iroot; 
+              delete iroot;
               return sonRes;
             } else {
               QNodeSplitter<3, InnerInfo> ns;
-              pair<Node<3, InnerInfo>*, Node<3, InnerInfo>* > nodes = 
+              pair<Node<3, InnerInfo>*, Node<3, InnerInfo>* > nodes =
                     ns.splitNode(*iroot);
               delete iroot;
               updateNode(rootId, *(nodes.first));
@@ -1772,7 +1772,7 @@ This function embedds the leaf with given id and box into the tree structure.
             }
          }
       }
-        
+
     }
 
 };
@@ -1822,11 +1822,11 @@ Assignment operator
        level = s.level;
        return *this;
     }
- 
+
 /*
 ~Destructor~
 
-*/ 
+*/
     ~IteratorElement(){}
 
      void deleteNode(){
@@ -1851,8 +1851,8 @@ Assignment operator
 
 */
      ostream& print(ostream& os){
-        return os << "ownId = " << ownId << ", parentId = " 
-                  << parentId << ", level = " << level; 
+        return os << "ownId = " << ownId << ", parentId = "
+                  << parentId << ", level = " << level;
      }
 
 
@@ -1881,7 +1881,7 @@ class PathElement: public IteratorElement<Dim>{
                 int level): IteratorElement<Dim>(ownId, parentId, node, level),
                             pos(0), used(false) {}
 
-   PathElement(const PathElement<Dim>& p): IteratorElement<Dim>(p), 
+   PathElement(const PathElement<Dim>& p): IteratorElement<Dim>(p),
                                            pos(p.pos), used(p.used){}
 
    PathElement<Dim>& operator=(const PathElement<Dim>& s){
@@ -1892,7 +1892,7 @@ class PathElement: public IteratorElement<Dim>{
    }
 
    ostream& print(ostream& os){
-     return IteratorElement<Dim>::print(os) << " , pos = " 
+     return IteratorElement<Dim>::print(os) << " , pos = "
                                             << pos << ", used = " << used;
    }
 
@@ -1910,7 +1910,7 @@ Prunes no entry.
 
 template<class InnerNode>
 class NoPruner{
- public: 
+ public:
    inline bool  prune(const InnerNode& node, const int pos) const{
        return false;
    }
@@ -1919,7 +1919,7 @@ class NoPruner{
 /*
 Class IntersectsPruner
 
-Prunes all entries whose bounding box does not intersect the 
+Prunes all entries whose bounding box does not intersect the
 rectangle given in construction of this class.
 
 */
@@ -1930,7 +1930,7 @@ class IntersectsPruner{
    IntersectsPruner(const Rectangle<Dim> rect1): rect(rect1){}
 
    inline bool prune(const InnerNode& node, const int pos) const{
-      return !rect.Intersects(node.getEntry(pos)->getBox());     
+      return !rect.Intersects(node.getEntry(pos)->getBox());
    }
 
    Rectangle<Dim> getBox() const{
@@ -1948,20 +1948,20 @@ Class DepthSearc
 
 
 This is an iterator class which performs a depth search on a tree.
-By setting Select and Prune classes this class can be used in a 
+By setting Select and Prune classes this class can be used in a
 flexible way.
 
 
 */
 
-template<class Tree, class InnerNode, int Dim, class Select, class Pruner> 
+template<class Tree, class InnerNode, int Dim, class Select, class Pruner>
 class DepthSearch{
   public:
 /*
 ~Constructor~
 
 */
-    DepthSearch(Tree* tree1, const Select& select1, const Pruner pruner1): 
+    DepthSearch(Tree* tree1, const Select& select1, const Pruner pruner1):
          tree(tree1), select(select1), pruner(pruner1){
      SmiRecordId rid = tree->getRootId();
      if(rid){
@@ -1978,26 +1978,29 @@ Returns the next node.
     bool next(IteratorElement<Dim>& result){
       if(path.empty()){
         return false;
-      } 
+      }
       return  next1(result);
-    } 
-   
+    }
+
 
 /*
 ~finish~
 
 Destroys local variables.
 
-*/ 
+*/
     void finish(){
        while(!path.empty()){
           PathElement<Dim> p = path.top();
           delete p.getNode();
-          path.pop();           
+          path.pop();
        }
     }
- 
-  
+    stack<PathElement<Dim> > getPath()
+    {
+      return path;
+    }
+
   private:
     Tree* tree;
     stack<PathElement<Dim> > path;
@@ -2016,21 +2019,21 @@ Destroys local variables.
 
     while(!path.empty()){
 
-       PathElement<Dim> top = path.top();   
+       PathElement<Dim> top = path.top();
 
        if(!(top.used) ){
           path.pop();
           top.used = true;
           path.push(top);
           if(select(top.getNode())){
-             IteratorElement<Dim> r(top.getOwnId(), top.getParentId(), 
+             IteratorElement<Dim> r(top.getOwnId(), top.getParentId(),
                                 top.getNode()->clone(),top.getLevel());
              result = r;
-             return true;   
-          } 
+             return true;
+          }
        }
 
-       if(top.getNode()->isLeaf()){ // used leaf found 
+       if(top.getNode()->isLeaf()){ // used leaf found
           path.pop();
           delete top.getNode();
           if(path.empty()){
@@ -2040,9 +2043,9 @@ Destroys local variables.
             top.pos++;
             path.pop();
             path.push(top);
-          } 
-       }  
-       
+          }
+       }
+
        // p contains an inner node
        while(top.pos == top.getNode()->entryCount()){ // no more sons available
           path.pop();
@@ -2054,7 +2057,7 @@ Destroys local variables.
              top.pos++;
              path.pop();
              path.push(top);
-          } 
+          }
        }
 
        InnerNode* in = dynamic_cast<InnerNode*>(top.getNode());
