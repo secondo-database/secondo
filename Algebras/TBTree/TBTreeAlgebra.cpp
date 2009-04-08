@@ -881,7 +881,7 @@ class GetentriesLocalInfo{
      if(!node){
         return 0;
      } else {
-         static int index = 0;
+         static unsigned int index = 0;
          const Entry<3, TBLeafInfo>* e = node->getEntry(pos);
          int nodeid;
          nodeid = vpath[index].getOwnId();
