@@ -1141,9 +1141,10 @@ class TBTree{
  Creates an empty TBTree
 
 */
-  TBTree(const int pageSize): file(false),rootId(0){
+  TBTree(const int pageSize): file(true, pageSize-64),rootId(0){
      file.Create();
-     int size = pageSize / 4;
+     int size = file.GetRecordLength();
+     recordLength = size;
      leafMax = TBLeafNode<3, TBLeafInfo>::getMax(size);
      leafMin = leafMax / 4;
 
@@ -1166,7 +1167,7 @@ Opens an existing TBTRee from file
 
 */
 
-  TBTree(const SmiFileId id, SmiRecordId hid): file(false), headerId(hid){
+  TBTree(const SmiFileId id, SmiRecordId hid): file(true), headerId(hid){
      file.Open(id);
      readHeader();
   }
@@ -1352,18 +1353,19 @@ Returns a new empty leaf node
 
        ostringstream os;
        os << "[ -- tbtree -- " << endl
-          << "  fileId    : " << file.GetFileId() << endl
-          << "  rootId    : " << rootId << endl
-          << "  headerId  : " << headerId << endl
-          << "  leafMin   : " << leafMin << endl
-          << "  leafMax   : " << leafMax << endl
-          << "  innerMin  : " << innerMin << endl
-          << "  innerMax  : " << innerMax << endl
-          << "  entries   : " << noEntries << endl
-          << "  nodes     : " << noNodes  << endl
-          << "  leafNodes : " << noLeafNodes << endl
-          << "  level     : " << level << endl
-          << "  box       : ";
+          << "  fileId       : " << file.GetFileId() << endl
+          << "  rootId       : " << rootId << endl
+          << "  headerId     : " << headerId << endl
+          << "  leafMin      : " << leafMin << endl
+          << "  leafMax      : " << leafMax << endl
+          << "  innerMin     : " << innerMin << endl
+          << "  innerMax     : " << innerMax << endl
+          << "  entries      : " << noEntries << endl
+          << "  nodes        : " << noNodes  << endl
+          << "  leafNodes    : " << noLeafNodes << endl
+          << "  level        : " << level << endl
+          << "  recordLength : " << recordLength << endl
+          << "  box          : ";
        if(!box.IsDefined()){
           os << "undef";
        } else {
@@ -1465,13 +1467,16 @@ calculate number of different trajectories in this node
     uint32_t level;      // height of the tree
     uint32_t noLeafNodes;  // number of leaf nodes
     Rectangle<3> box;    // bounding boc of the whole tree
+    uint32_t recordLength;
 
     void saveHeader() {
 
-       unsigned int size = 4*sizeof(uint16_t) + sizeof(SmiRecordId) +
-                           4*sizeof(uint32_t) + sizeof(char) +
-                           rectBufferSize<3>();
+       //unsigned int size = 4*sizeof(uint16_t) + sizeof(SmiRecordId) +
+       //                    4*sizeof(uint32_t) + sizeof(char) +
+       //                    rectBufferSize<3>();
+       unsigned int size = recordLength;
        char buffer[size];
+       memset(buffer,0,size);
        unsigned int offset = 0;
        // rootid
        memcpy(buffer+offset, &rootId, sizeof(SmiRecordId));
@@ -1511,7 +1516,10 @@ calculate number of different trajectories in this node
           }
        }
 
-       assert(offset==size);
+       if(offset>size){
+           cout << "offset = " << offset << "  , size = " << size << endl;
+       }
+       assert(offset<=size);
 
        // store the buffer
        SmiRecord record;
@@ -1536,9 +1544,10 @@ calculate number of different trajectories in this node
        char buffer[size];
        SmiRecord record;
        file.SelectRecord(headerId, record);
+       recordLength = record.Size();
        SmiSize hs = record.Read(buffer,size,0);
-       assert(hs == size);
        unsigned int offset = 0;
+       assert(hs == size);
        memcpy(&rootId, buffer+offset, sizeof(SmiRecordId));
        offset += sizeof(SmiRecordId);
        memcpy(&leafMin, buffer+offset, sizeof(uint16_t));
@@ -1594,8 +1603,9 @@ calculate number of different trajectories in this node
          noLeafNodes++;
        }
        assert(n.entryCount()>0); // never save an empty node
-       unsigned size = n.bufferSize() + sizeof(char);
+       unsigned int size = recordLength;
        char buffer[size];
+       memset(buffer,0,size);
        char leaf = n.isLeaf()?1:0;
        unsigned int offset = 0;
        memcpy(buffer , &leaf, sizeof(char));
@@ -1616,8 +1626,10 @@ calculate number of different trajectories in this node
        assert(n.entryCount() > 0);
        SmiRecord record;
        file.SelectRecord(id, record, SmiFile::Update);
-       unsigned int size = n.bufferSize()+sizeof(char);
+       // unsigned int size = n.bufferSize()+sizeof(char);
+       unsigned int size = recordLength;
        char buffer[size];
+       memset(buffer,0,size);
        unsigned int offset = 0;
        char isLeaf = n.isLeaf()?1:0;
        memcpy(buffer,&isLeaf,sizeof(char));
