@@ -1404,7 +1404,52 @@ Some Getter
       result.push_back(pair<string,string>("FileId",fileid.str()));
       return true;
   }
+/*
+calculate number of different trajectories in this node
 
+*/
+  int getcoverage(BasicNode<3>* n){
+    if(n->isLeaf())
+      return 1;
+    InnerNode<3,InnerInfo>* innernode =
+                  dynamic_cast<InnerNode<3, InnerInfo>* >(n);
+    vector<int> trajid;
+    vector<Entry<3,InnerInfo> > list1;
+    vector<Entry<3,InnerInfo> > list2;
+    for(unsigned int i = 0;i < innernode->entryCount();i++){
+      list1.push_back(*(innernode->getEntry(i)));
+    }
+    SmiRecordId adr;
+    while(!list1.empty()){
+      for(unsigned int i = 0;i < list1.size();i++){
+        adr = list1[i].getInfo().getPointer();
+        BasicNode<3>* node = getNode(adr);
+        if(node->isLeaf()){ //get trajid
+          TBLeafNode<3,TBLeafInfo>* leafnode =
+                  dynamic_cast<TBLeafNode<3, TBLeafInfo>* >(node);
+          trajid.push_back(leafnode->getTrjId());
+        }
+        else{
+          innernode = dynamic_cast<InnerNode<3, InnerInfo>* >(node);
+          for(unsigned int j = 0;j < innernode->entryCount();j++)
+            list2.push_back(*(innernode->getEntry(j)));
+        }
+      }
+      list1.clear();
+      list1.swap(list2);
+      list2.clear();
+    }
+    stable_sort(trajid.begin(),trajid.end());
+    vector<int>::iterator end;
+    end = unique(trajid.begin(),trajid.end());
+    vector<int>::iterator begin = trajid.begin();
+    int count = 0;
+    while(begin != end){
+      begin++;
+      count++;
+    }
+    return count;
+  }
 
   private:
     SmiRecordFile file;

@@ -507,10 +507,11 @@ ListExpr getnodesTM(ListExpr args){
                     nl->SymbolAtom("stream"),
                     nl->TwoElemList(
                         nl->SymbolAtom("tuple"),
-                        nl->SixElemList(
+                        nl->Cons(
                             nl->TwoElemList(
                                 nl->SymbolAtom("Id"),
                                 nl->SymbolAtom("int")),
+                            nl->SixElemList(
                             nl->TwoElemList(
                                 nl->SymbolAtom("ParentId"),
                                 nl->SymbolAtom("int")),
@@ -525,7 +526,10 @@ ListExpr getnodesTM(ListExpr args){
                                 nl->SymbolAtom("int")),
                             nl->TwoElemList(
                                 nl->SymbolAtom("Box"),
-                                nl->SymbolAtom("rect3")))));
+                                nl->SymbolAtom("rect3")),
+                            nl->TwoElemList(
+                                nl->SymbolAtom("Cov"),
+                                nl->SymbolAtom("int"))))));
    }
    ErrorReporter::ReportError("TBTree expected");
    return nl->TypeError();
@@ -607,6 +611,7 @@ int getnodesVM(Word* args, Word& result, int message,
          if(!li->ds.next(next)){
             return CANCEL;
          }
+         TBTree* t = static_cast<TBTree*>(args[0].addr);
          Tuple* res = new Tuple(li->tt);
          res->PutAttribute(0, new CcInt(true, next.getOwnId()));
          res->PutAttribute(1, new CcInt(true, next.getParentId()));
@@ -614,11 +619,13 @@ int getnodesVM(Word* args, Word& result, int message,
          res->PutAttribute(3, new CcBool(true, next.getNode()->isLeaf()));
          res->PutAttribute(4, new CcInt(true, next.getNode()->entryCount()));
          res->PutAttribute(5, new Rectangle<3>(next.getNode()->getBox()));
+         BasicNode<3>* node = t->getNode(next.getOwnId());
+         res->PutAttribute(6, new CcInt(true,t->getcoverage(node)));
+         delete node;
          next.deleteNode();
          result.setAddr(res);
          return YIELD;
       }
-
       case CLOSE: {
         if(local.addr){
           delete static_cast<GetnodesLocalInfo*>(local.addr);
@@ -1037,7 +1044,7 @@ Operator getentries (
 
 Operator getallentries (
        "getallentries",            // name
-        getentriesSpec,          // specification
+        getallentriesSpec,          // specification
         getallentriesVM,           // value mapping
         Operator::SimpleSelect, // trivial selection function
         getallentriesTM);
