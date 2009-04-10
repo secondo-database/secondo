@@ -3358,6 +3358,30 @@ double HalfSegment::Distance(const Rectangle<2>& rect) const{
   return dist;
 }
 
+double HalfSegment::MaxDistance(const Rectangle<2>& rect) const{
+
+  // both endpoints are outside the rectangle
+  double x0(rect.MinD(0));
+  double y0(rect.MinD(1));
+  double x1(rect.MaxD(0));
+  double y1(rect.MaxD(1));
+  Point p0(true,x0,y0);
+  Point p1(true,x1,y0);
+  Point p2(true,x1,y1);
+  Point p3(true,x0,y1);
+  double d1 = lp.Distance(p0);
+  double d2 = lp.Distance(p1);
+  double d3 = lp.Distance(p2);
+  double d4 = lp.Distance(p3);
+  double dist1 = MAX(MAX(d1,d2),MAX(d3,d4));
+  d1 = rp.Distance(p0);
+  d2 = rp.Distance(p1);
+  d3 = rp.Distance(p2);
+  d4 = rp.Distance(p3);
+  double dist2 = MAX(MAX(d1,d2),MAX(d3,d4));
+  double dist = MAX(dist1,dist2);
+  return dist;
+}
 
 
 bool HalfSegment::RayAbove( const Point& p, double &abovey0 ) const
@@ -4057,7 +4081,25 @@ double Line::Distance( const Point& p ) const
   }
   return result;
 }
+double Line::MaxDistance( const Point& p ) const
+{
 
+  assert( IsOrdered() && !IsEmpty() && p.IsDefined() );
+
+  const HalfSegment *hs;
+  double result = 0;
+
+  for( int i = 0; i < Size(); i++ )
+  {
+    Get( i, hs );
+
+    if( hs->IsLeftDomPoint() )
+    {
+      result = MAX( result, hs->Distance( p ) );
+    }
+  }
+  return result;
+}
 double Line::Distance( const Points& ps ) const
 {
   assert( IsOrdered() && !IsEmpty() &&
@@ -4130,7 +4172,24 @@ double Line::Distance( const Rectangle<2>& r ) const {
   }
   return dist;
 }
-
+double Line::MaxDistance( const Rectangle<2>& r ) const
+{
+  if(!IsDefined() || IsEmpty() || !r.IsDefined()){
+    return -1;
+  }
+  const HalfSegment* hs;
+  double dist = 0;
+  for(int i=0; i < line.Size(); i++){
+     line.Get(i,hs);
+     if(hs->IsLeftDomPoint()){
+       double d = hs->MaxDistance(r);
+       if(d > dist){
+          dist = d;
+       }
+     }
+  }
+  return dist;
+}
 
 int Line::NoComponents() const
 {
@@ -12240,7 +12299,7 @@ bool WGSGK::project(const Point& src, Point& result) const{
     result.SetDefined(false);
     return false;
   }
-  
+
   double x = src.GetX();
   double y = src.GetY();
   if(x<-180 || x>180 || y<-90 || y>90){
@@ -12252,7 +12311,7 @@ bool WGSGK::project(const Point& src, Point& result) const{
   double b = y*Pi/180;
   if(!useWGS){
       BesselBLToGaussKrueger(b, a, result);
-      return true;    
+      return true;
   }
 	double l1 = a;
 	double b1 = b;
@@ -12316,8 +12375,8 @@ void WGSGK::setMeridian(const int m){
 void WGSGK::init(){
   Pi = 3.1415926535897932384626433832795028841971693993751058209749445923078164;
   rho = 180/Pi;
-  awgs = 6378137.0; 
-  bwgs = 6356752.314; 
+  awgs = 6378137.0;
+  bwgs = 6356752.314;
   abes = 6377397.155;  // Bessel Semi-Major Axis = Equatorial Radius in meters
   bbes = 6356078.962;    // Bessel Semi-Minor Axis = Polar Radius in meters
   cbes = 111120.6196;    // Bessel latitude to Gauss-Krueger meters
@@ -12335,7 +12394,7 @@ void WGSGK::init(){
   useWGS = true; // usw coordinates in wgs ellipsoid
 }
 
-void WGSGK::HelmertTransformation(const double x, const double y, 
+void WGSGK::HelmertTransformation(const double x, const double y,
                                   const double z, P3D& p) const{
   p.x = dx + (sc*(1*x+rotz*y-roty*z));
   p.y = dy + (sc*(-rotz*x+1*y+rotx*z));
@@ -12344,7 +12403,7 @@ void WGSGK::HelmertTransformation(const double x, const double y,
 
 
 void WGSGK::BesselBLToGaussKrueger(const double b,
-                                   const double ll, 
+                                   const double ll,
                                    Point& result) const{
   //double bg=180*b/Pi;
   //double lng=180*ll/Pi;
@@ -12367,13 +12426,13 @@ void WGSGK::BesselBLToGaussKrueger(const double b,
             (5-18*t*t+t*t*t*t)*k*k*k*k*k*l*l*l*l*l/120;
   double kk=500000;
   //double Pii=Pi;
-  double RVV = MDC; 
+  double RVV = MDC;
   double Re=RVV*1000000+kk+Y;
   result.Set(Re, Ho);
 }
 
 
-void WGSGK::BLRauenberg (const double x, const double y, 
+void WGSGK::BLRauenberg (const double x, const double y,
                          const double z, P3D& result) const{
 
   double f=Pi*50/180;
@@ -12394,7 +12453,7 @@ void WGSGK::BLRauenberg (const double x, const double y,
 }
 
 
-double WGSGK::newF(const double f, const double x, 
+double WGSGK::newF(const double f, const double x,
                    const double y, const double p) const{
   double zw;
   double nnq;
@@ -12404,7 +12463,7 @@ double WGSGK::newF(const double f, const double x,
 }
 
 bool  WGSGK::gk2geo(const double GKRight,
-                    const double GKHeight, 
+                    const double GKHeight,
                     Point&  result) const{
    if(GKRight<1000000 || GKHeight<1000000){
       result.SetDefined(false);
@@ -12415,10 +12474,10 @@ bool  WGSGK::gk2geo(const double GKRight,
 
    double bI = GKHeight/10000855.7646;
    double bII = bI*bI;
-   double bf = 325632.08677 * bI * ((((((0.00000562025 * bII + 0.00022976983) 
-                                  * bII - 0.00113566119) 
-                                  * bII + 0.00424914906) 
-                                  * bII - 0.00831729565) 
+   double bf = 325632.08677 * bI * ((((((0.00000562025 * bII + 0.00022976983)
+                                  * bII - 0.00113566119)
+                                  * bII + 0.00424914906)
+                                  * bII - 0.00831729565)
                                   * bII + 1));
    bf /= 3600*rho;
    double co = cos(bf);
@@ -12426,14 +12485,14 @@ bool  WGSGK::gk2geo(const double GKRight,
    double g1 = c/sqrt(1+g2);
    double t = tan(bf);
    double fa = (GKRight - floor(GKRight/1000000)*1000000-500000)/g1;
-   double GeoDezRight = ((bf - fa * fa * t * (1 + g2) / 2 + 
-                          fa * fa * fa * fa * t * 
-                         (5 + 3 * t * t + 6 * g2 - 6 * g2 * t * t) / 24) * 
+   double GeoDezRight = ((bf - fa * fa * t * (1 + g2) / 2 +
+                          fa * fa * fa * fa * t *
+                         (5 + 3 * t * t + 6 * g2 - 6 * g2 * t * t) / 24) *
                          rho);
-   double dl = fa - fa * fa * fa * (1 + 2 * t * t + g2) / 6 + 
-               fa * fa * fa * fa * fa * 
+   double dl = fa - fa * fa * fa * (1 + 2 * t * t + g2) / 6 +
+               fa * fa * fa * fa * fa *
                (1 + 28 * t * t + 24 * t * t * t * t) / 120;
-   
+
    double Mer = floor(GKRight/1000000);
    double GeoDezHeight = dl*rho/co+Mer*3;
    if(useWGS){
@@ -12444,7 +12503,7 @@ bool  WGSGK::gk2geo(const double GKRight,
    }
 }
 
-bool  WGSGK::bessel2WGS(const double geoDezRight1, 
+bool  WGSGK::bessel2WGS(const double geoDezRight1,
                         const double geoDezHeight1, Point& result) const{
     double aBessel = abes;
     double eeBessel = 0.0066743722296294277832;
@@ -12472,18 +12531,18 @@ bool  WGSGK::bessel2WGS(const double geoDezRight1,
     double CartesianYMeters = n*cosRight*sinHeight;
     double CartesianZMeters = n*(1-eeBessel)*sinRight;
 
-    double CartOutputXMeters = (1 + ScaleFactor) * 
-                               CartesianXMeters + RotZRad * 
-                               CartesianYMeters - 
-                               RotYRad * CartesianZMeters + ShiftXMeters; 
-    double CartOutputYMeters = -RotZRad * CartesianXMeters + 
-                               (1 + ScaleFactor) * CartesianYMeters + 
+    double CartOutputXMeters = (1 + ScaleFactor) *
+                               CartesianXMeters + RotZRad *
+                               CartesianYMeters -
+                               RotYRad * CartesianZMeters + ShiftXMeters;
+    double CartOutputYMeters = -RotZRad * CartesianXMeters +
+                               (1 + ScaleFactor) * CartesianYMeters +
                                RotXRad * CartesianZMeters + ShiftYMeters;
-    double CartOutputZMeters = RotYRad * CartesianXMeters - 
-                               RotXRad * CartesianYMeters + 
-                               (1 + ScaleFactor) * CartesianZMeters + 
+    double CartOutputZMeters = RotYRad * CartesianXMeters -
+                               RotXRad * CartesianYMeters +
+                               (1 + ScaleFactor) * CartesianZMeters +
                                ShiftZMeters;
-    
+
      geoDezHeight = atan(CartOutputYMeters/CartOutputXMeters);
      double Latitude = (CartOutputXMeters*CartOutputXMeters)+
                        (CartOutputYMeters*CartOutputYMeters);
@@ -12504,7 +12563,7 @@ bool  WGSGK::bessel2WGS(const double geoDezRight1,
      } while(abs(Latitude-LatitudeIt)>=0.000000000000001);
 
      result.Set((geoDezHeight/Pi)*180,  (Latitude/Pi)*180);
-     return true;    
+     return true;
 }
 
 
@@ -14874,7 +14933,7 @@ ListExpr gkTypeMap(ListExpr args){
     return nl->TypeError();
   }
   string t = nl->SymbolValue(arg);
-  if(t=="point" || t=="points" || t=="line" || t=="region"){ 
+  if(t=="point" || t=="points" || t=="line" || t=="region"){
     return nl->SymbolAtom(t);
   }
   ErrorReporter::ReportError(err);
@@ -18312,7 +18371,7 @@ int utmVM_p(Word* args, Word& result, int message,
           Word& local, Supplier s){
    result = qp->ResultStorage(s);
    Point* p = static_cast<Point*>(args[0].addr);
-   Point* res = static_cast<Point*>(result.addr); 
+   Point* res = static_cast<Point*>(result.addr);
    UTM utm;
    utm(*p,*res);
    return 0;
@@ -18322,7 +18381,7 @@ int utmVM_ps(Word* args, Word& result, int message,
           Word& local, Supplier s){
    result = qp->ResultStorage(s);
    Points* p = static_cast<Points*>(args[0].addr);
-   Points* res = static_cast<Points*>(result.addr); 
+   Points* res = static_cast<Points*>(result.addr);
    UTM utm;
    res->Clear();
    res->Resize(p->Size());
@@ -18330,7 +18389,7 @@ int utmVM_ps(Word* args, Word& result, int message,
    const Point* p1;
    for(int i=0;i<p->Size();i++){
       p->Get(i,p1);
-      Point p2; 
+      Point p2;
       if(! utm(*p1,p2)){
         res->EndBulkLoad();
         res->Clear();
@@ -18347,7 +18406,7 @@ int gkVM_p(Word* args, Word& result, int message,
           Word& local, Supplier s){
    result = qp->ResultStorage(s);
    Point* p = static_cast<Point*>(args[0].addr);
-   Point* res = static_cast<Point*>(result.addr); 
+   Point* res = static_cast<Point*>(result.addr);
    WGSGK gk;
    gk.project(*p,*res);
    return 0;
@@ -18357,7 +18416,7 @@ int gkVM_ps(Word* args, Word& result, int message,
           Word& local, Supplier s){
    result = qp->ResultStorage(s);
    Points* p = static_cast<Points*>(args[0].addr);
-   Points* res = static_cast<Points*>(result.addr); 
+   Points* res = static_cast<Points*>(result.addr);
    WGSGK gk;
    res->Clear();
    res->Resize(p->Size());
@@ -18365,7 +18424,7 @@ int gkVM_ps(Word* args, Word& result, int message,
    const Point* p1;
    for(int i=0;i<p->Size();i++){
       p->Get(i,p1);
-      Point p2; 
+      Point p2;
       if(! gk.project(*p1,p2)){
         res->EndBulkLoad();
         res->Clear();
@@ -18383,7 +18442,7 @@ int gkVM_x(Word* args, Word& result, int message,
           Word& local, Supplier s){
    result = qp->ResultStorage(s);
    T* a = static_cast<T*>(args[0].addr);
-   T* res = static_cast<T*>(result.addr); 
+   T* res = static_cast<T*>(result.addr);
    WGSGK gk;
    res->Clear();
    res->Resize(a->Size());

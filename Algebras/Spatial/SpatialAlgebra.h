@@ -1459,7 +1459,7 @@ Computes the minimum distance from two half segments.
 */
 
     double Distance(const Rectangle<2>& rect) const;
-
+    double MaxDistance(const Rectangle<2>& rect) const;
     int LogicCompare( const HalfSegment& hs ) const;
 /*
 Compares two half segments according to their attribute values (~attr~).
@@ -1827,6 +1827,7 @@ is the ~points~ result size.
 
 */
     double Distance( const Point& p ) const;
+    double MaxDistance(const Point& p) const;
 /*
 6.4.5 Operation ~distance~ (with ~points~)
 
@@ -1858,6 +1859,7 @@ is the ~points~ result size.
 */
     double Distance( const Rectangle<2>& r ) const;
 
+
 /*
 5.4.9 Operation ~distance~ (with ~points~)
 
@@ -1868,7 +1870,7 @@ is the ~points~ result size.
 *Complexity:* $O(m.n)$, where ~m~ is the size of ~U~ and ~n~ the size of ~V~
 
 */
-
+  double MaxDistance(const Rectangle<2>& r) const;
 /*
 6.4.5 Operation ~no\_components~
 
@@ -3942,8 +3944,8 @@ double VectorSize(const Point &p1, const Point &p2);
 inline Point::Point( const bool d, const Coord& x, const Coord& y ) :
   x( x ),
   y( y )
-{ 
-  SetDefined(d);	
+{
+  SetDefined(d);
   del.refs=1;
   del.isDelete=true;
 }
@@ -4647,7 +4649,7 @@ public:
      // zone number??
      // long lzn =(int)((lw+180)/6) + 1;
      long lzn = 39;
-  
+
      //long bd = (int)(1+(bw+80)/8);
      double br = bw*PI/180;
      double tan1 = tan(br);
@@ -4670,13 +4672,13 @@ public:
      double dl5 = dl4*dl;
      double x;
      if(bw<0){
-        x = 10e6 + 0.9996*(g + nd*cos2*tan1*dl2/2 + 
+        x = 10e6 + 0.9996*(g + nd*cos2*tan1*dl2/2 +
                            nd*cos4*tan1*(5-tan2+9*etasq)*dl4/24);
      }else{
-        x = 0.9996*(g + nd*cos2*tan1*dl2/2 + 
+        x = 0.9996*(g + nd*cos2*tan1*dl2/2 +
                     nd*cos4*tan1*(5-tan2+9*etasq)*dl4/24) ;
      }
-     double y = 0.9996*(nd*cos1*dl + 
+     double y = 0.9996*(nd*cos1*dl +
                         nd*cos3*(1-tan2+etasq)*dl3/6 +
                         nd*cos5*(5-18*tan2+tan4)*dl5/120) + 500000;
      res.Set(x,y);
@@ -4685,8 +4687,8 @@ public:
 private:
    double a;
    double f;
-   double c; 
-   double ex2; 
+   double c;
+   double ex2;
    double ex4;
    double ex6;
    double ex8;
@@ -5374,21 +5376,21 @@ public:
   void setMeridian(const int m);
 
 private:
-  void HelmertTransformation(const double x, 
-                             const double y, 
-                             const double z, 
+  void HelmertTransformation(const double x,
+                             const double y,
+                             const double z,
                              P3D& p) const;
   void BesselBLToGaussKrueger(const double b,
-                              const double ll, 
+                              const double ll,
                               Point& result) const;
-  void BLRauenberg (const double x, const double y, 
+  void BLRauenberg (const double x, const double y,
                     const double z, P3D& result) const;
-  double newF(const double f, const double x, 
+  double newF(const double f, const double x,
               const double y, const double p) const;
 
-  bool  gk2geo(const double GKRight, const double GKHeight, 
+  bool  gk2geo(const double GKRight, const double GKHeight,
                Point&  result) const;
-  bool  bessel2WGS(const double geoDezRight, const double geoDezHeight, 
+  bool  bessel2WGS(const double geoDezRight, const double geoDezHeight,
                    Point& result) const;
 
   void init();
@@ -5412,7 +5414,7 @@ private:
   double MDC;  // standard in Hagen
   bool useWGS; // usw coordinates in wgs ellipsoid
   double rho;
-}; 
+};
 
 
 #endif // __SPATIAL_ALGEBRA_H__
