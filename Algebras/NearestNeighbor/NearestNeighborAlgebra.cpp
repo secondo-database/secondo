@@ -5393,16 +5393,24 @@ bool CmpFE(const FieldEntry<timeType>& fe1, const FieldEntry<timeType>& fe2)
     return true;
   return false;
 }
-
+template<class timeType>
+bool CmpEFE(const EFieldEntry<timeType>& fe1, const EFieldEntry<timeType>& fe2)
+{
+  if(fe1.mindist < fe2.mindist)
+    return true;
+  if(fe1.maxdist < fe2.maxdist)
+    return true;
+  return false;
+}
 void Mqkfilter(MQKnearest* mqk,vector<TupleId>& datanode,BBox<2> query)
 {
   int minentries = mqk->rtree->MinEntries(0);
   int maxentries = mqk->rtree->MaxEntries(0);
   SmiRecordId adr = mqk->rtree->RootRecordId();
-  vector<FieldEntry<double> > array1;
-  vector<FieldEntry<double> > array2;
-  vector<FieldEntry<double> > candidate;
-  FieldEntry<double> fe(adr,0,0,0);
+  vector<EFieldEntry<double> > array1;
+  vector<EFieldEntry<double> > array2;
+  vector<EFieldEntry<double> > candidate;
+  EFieldEntry<double> fe(adr,0,0,0,0,0);
   array1.push_back(fe);
   unsigned int pos;
   while(array1.empty() == false){
@@ -5418,13 +5426,13 @@ void Mqkfilter(MQKnearest* mqk,vector<TupleId>& datanode,BBox<2> query)
      }
       for(int i = 0; i < node->EntryCount();i++){ //Internal node
         R_TreeInternalEntry<2> e = (R_TreeInternalEntry<2>&)(*node)[i];
-        FieldEntry<double> fe(e.pointer,query.Distance(e.box),
-        maxDistance(query,e.box),fe.level+1);
+        EFieldEntry<double> fe(e.pointer,query.Distance(e.box),
+        maxDistance(query,e.box),fe.level+1,0,0);
         array2.push_back(fe);
       }
     }
     array1.clear();
-    sort(array2.begin(),array2.end(),CmpFE<double>);
+    sort(array2.begin(),array2.end(),CmpEFE<double>);
     double dist;
     double num = 0;
     for(unsigned int i = 0;i < array2.size();i++){
@@ -5448,7 +5456,7 @@ void Mqkfilter(MQKnearest* mqk,vector<TupleId>& datanode,BBox<2> query)
     }
   }
   //process leaf node
-  sort(candidate.begin(),candidate.end(),CmpFE<double>);
+  sort(candidate.begin(),candidate.end(),CmpEFE<double>);
   double dist;
   double num = 0;
 
@@ -6172,7 +6180,7 @@ SegEntry<timeType>& se)
           SegEntry<timeType> se(entrybox,t1,t2,mindist,
                               maxdist,1,-1,
                               entry->getInfo().getTupleId());
-          int cov = localInfo->timeTree.calcCoverage(se.start,
+          unsigned int cov = localInfo->timeTree.calcCoverage(se.start,
                                       se.end,se.mindist);
          if(cov < localInfo->k){
             localInfo->timeTree.insert(se,localInfo->k);
@@ -6196,7 +6204,7 @@ SegEntry<timeType>& se)
         SegEntry<timeType> se(entrybox,t1,t2,mindist,
                               maxdist,1,-1,
                               entry->getInfo().getTupleId());
-        int cov = localInfo->timeTree.calcCoverage(se.start,
+        unsigned int cov = localInfo->timeTree.calcCoverage(se.start,
                                       se.end,se.mindist);
         if(cov < localInfo->k){
            localInfo->timeTree.insert(se,localInfo->k);
@@ -6208,7 +6216,7 @@ SegEntry<timeType>& se)
       tbtree::InnerNode<dim,InnerInfo>* innernode =
               dynamic_cast<InnerNode<dim, InnerInfo>* >(tbnode);
       SmiRecordId adr;
-      vector<FieldEntry<timeType> > candidate;
+      vector<EFieldEntry<timeType> > candidate;
       for(unsigned int j = 0;j < innernode->entryCount();j++){
           const Entry<dim,InnerInfo>* entry = innernode->getEntry(j);
           timeType t1(entry->getBox().MinD(2));
@@ -6236,7 +6244,7 @@ SegEntry<timeType>& se)
               mindist = mBox.Distance(entrybox);
               maxdist = maxDistance(entrybox,mBox);
               candidate.push_back(
-              FieldEntry<timeType>(adr,mindist,maxdist,level+1,t1,t2));
+              EFieldEntry<timeType>(adr,mindist,maxdist,level+1,t1,t2));
               continue;
             }
             if(AlmostEqual(entrybox.MinD(0), entrybox.MaxD(0)) ||
@@ -6253,10 +6261,10 @@ SegEntry<timeType>& se)
             delete traj;
 ///////////////////////////////////////
             candidate.push_back(
-            FieldEntry<timeType>(adr,mindist,maxdist,level+1,t1,t2));
+            EFieldEntry<timeType>(adr,mindist,maxdist,level+1,t1,t2));
           }
       }
-      sort(candidate.begin(),candidate.end(),CmpFE<timeType>);//sort by mindist
+      sort(candidate.begin(),candidate.end(),CmpEFE<timeType>);//sort by mindist
       for(unsigned int i = 0;i < candidate.size();i++){
         adr = candidate[i].nodeid;
         tbtree::BasicNode<dim>* node = localInfo->tbtree->getNode(adr);
@@ -6264,7 +6272,7 @@ SegEntry<timeType>& se)
         int cov = localInfo->tbtree->getcoverage(node);
         SegEntry<timeType> se(xybox,candidate[i].start,candidate[i].end,
                 candidate[i].mindist,candidate[i].maxdist,cov,adr,-1);
-        int covnode = localInfo->timeTree.calcCoverage(se.start,
+        unsigned int covnode = localInfo->timeTree.calcCoverage(se.start,
                                           se.end,se.mindist);
         if(covnode < localInfo->k){
           localInfo->timeTree.insert(se,localInfo->k);
@@ -6474,7 +6482,7 @@ int ctbknearestFilterFun (Word* args, Word& result, int message,
                 SegEntry<timeType> se(entrybox,t1,t2,mindist,
                               maxdist,1,-1,
                               entry->getInfo().getTupleId());
-                int cov = localInfo->timeTree.calcCoverage(se.start,
+                unsigned int cov = localInfo->timeTree.calcCoverage(se.start,
                                       se.end,se.mindist);
                 if(cov < localInfo->k){
                   localInfo->timeTree.insert(se,localInfo->k);
@@ -6498,7 +6506,7 @@ int ctbknearestFilterFun (Word* args, Word& result, int message,
 /////////////////////////////////////
               SegEntry<timeType> se(entrybox,t1,t2,mindist,
                                 maxdist,1,-1,entry->getInfo().getTupleId());
-              int cov = localInfo->timeTree.calcCoverage(se.start,
+              unsigned int cov = localInfo->timeTree.calcCoverage(se.start,
                                       se.end,se.mindist);
               if(cov < localInfo->k){
                localInfo->timeTree.insert(se,localInfo->k);
@@ -6510,7 +6518,6 @@ int ctbknearestFilterFun (Word* args, Word& result, int message,
             tbtree::InnerNode<dim,InnerInfo>* innernode =
               dynamic_cast<InnerNode<dim, InnerInfo>* >(tbnode);
             SmiRecordId adr;
-            vector<FieldEntry<timeType> > candidate;
             for(unsigned int j = 0;j < innernode->entryCount();j++){
               const Entry<dim,InnerInfo>* entry = innernode->getEntry(j);
               timeType t1(entry->getBox().MinD(2));
@@ -6536,10 +6543,6 @@ int ctbknearestFilterFun (Word* args, Word& result, int message,
               if(traj->Size() == 0){
                 delete submp;
                 delete traj;
-                mindist = mBox.Distance(entrybox);
-                maxdist = maxDistance(entrybox,mBox);
-                candidate.push_back(
-                FieldEntry<timeType>(adr,mindist,maxdist,0,t1,t2));
                 continue;
               }
               if(AlmostEqual(entrybox.MinD(0), entrybox.MaxD(0)) ||
@@ -6564,7 +6567,7 @@ int ctbknearestFilterFun (Word* args, Word& result, int message,
             delete btreeiter;
             delete id;
             SegEntry<timeType> se(entrybox,t1,t2,mindist,maxdist,cov,adr,-1);
-            int covnode = localInfo->timeTree.calcCoverage(se.start,
+            unsigned int covnode = localInfo->timeTree.calcCoverage(se.start,
                                           se.end,se.mindist);
             if(covnode < localInfo->k){
               localInfo->timeTree.insert(se,localInfo->k);

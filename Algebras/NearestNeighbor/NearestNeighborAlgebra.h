@@ -682,7 +682,6 @@ struct FieldEntry
 {
   long nodeid;
   double maxdist;
-  double mindist; //extension
   timeType start, end;
   int level;
   FieldEntry( long node, double maxd, const timeType &s, const timeType &e,
@@ -693,14 +692,19 @@ struct FieldEntry
     end(e),
     level(l)
     {}
-  FieldEntry(long id,double mind,double maxd,int l):
-  nodeid(id),mindist(mind),maxdist(maxd),level(l)
-  {}
-  FieldEntry(long id,double mind,double maxd,int l,const timeType &s,
-            const timeType &e):
-  nodeid(id),mindist(mind),maxdist(maxd),level(l),start(s),end(e)
-  {}
 
+};
+/*
+extend one more attribute: mindist
+
+*/
+template<class timeType>
+struct EFieldEntry:public FieldEntry<timeType>
+{
+  double mindist; //extension
+  EFieldEntry( long node, double mind,double maxd,int l,
+              const timeType &s, const timeType &e):
+            FieldEntry<timeType>(node,maxd,s,e,l),mindist(mind){}
 };
 
 template<class timeType>

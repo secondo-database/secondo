@@ -100,16 +100,12 @@ Result   : file_platform
 
 Operator : tbknearestfilter
 Number   : 1
-Signature: ((tbtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))
- mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
+Signature: ((tbtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UnitTrains_UTrip_tbtree UnitTrains tbknearestfilter [train1, 5] count
 Result   : (int 1525)
 
-Operator : tbknearestfilter
+Operator : ctbknearestfilter
 Number   : 1
-Signature: ((tbtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))
-rel(tuple ((x1 t1)...(xn tn))) x btree(tuple((x1 t1)...(xn tn)))
- mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UnitTrains_UTrip_tbtree UnitTrains btreeCov Cov ctbknearestfilter
-[train1, 5] count
+Signature: ((tbtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))rel(tuple ((x1 t1)...(xn tn))) x btree(tuple((x1 t1)...(xn tn)))mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query UnitTrains_UTrip_tbtree UnitTrains btreeCov Cov ctbknearestfilter[train1, 5] count
 Result   : (int 1535)
