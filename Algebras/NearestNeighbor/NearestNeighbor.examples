@@ -36,7 +36,6 @@ Result   : (int 94)
 
 
 
-
 Operator : knearest
 Number   : 3
 Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
@@ -64,7 +63,7 @@ Result   : file_platform
 Operator : oldknearestfilter
 Number   : 7
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UTO_tree UTOrdered oldknearestfilter[train1, 5]  knearest[UTrip, train1, 5] count
+Example  : query UTOrdered_RTree UTOrdered oldknearestfilter[train1, 5]  knearest[UTrip, train1, 5] count
 Result   : file_platform
 
 
@@ -99,3 +98,18 @@ Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn
 Example  : query UTOrdered_RTree UTOrdered btree numbers knearestfilter[train1, 10] count
 Result   : file_platform
 
+Operator : tbknearestfilter
+Number   : 1
+Signature: ((tbtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))
+ mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query UnitTrains_UTrip_tbtree UnitTrains tbknearestfilter [train1, 5] count
+Result   : (int 1525)
+
+Operator : tbknearestfilter
+Number   : 1
+Signature: ((tbtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))
+rel(tuple ((x1 t1)...(xn tn))) x btree(tuple((x1 t1)...(xn tn)))
+ mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query UnitTrains_UTrip_tbtree UnitTrains btreeCov Cov ctbknearestfilter
+[train1, 5] count
+Result   : (int 1535)
