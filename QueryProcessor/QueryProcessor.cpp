@@ -4120,6 +4120,18 @@ QueryProcessor::GetType( const Supplier s )
 }
 
 /*
+~GetType~ returns the type expression of the node ~s~ of the operator tree.
+
+*/
+ListExpr
+QueryProcessor::GetSupplierTypeExpr( const Supplier s )
+{
+  OpTree tree = (OpTree) s;
+  return tree->typeExpr;
+}
+
+
+/*
 ~SetModified~ sets a node ~s~ of the operator tree as modified. The node must be
 of type ~Object~.
 
