@@ -1367,6 +1367,33 @@ bool UPoint::Passes( const Region& r ) const
   return r.Intersects( hs );
 }
 
+
+bool UPoint::Passes( const Rectangle<2> &rect  ) const
+{
+	if( AlmostEqual( p0, p1 ) )
+		return p0.Inside(rect);
+	HalfSegment uHs( true, p0, p1 );
+	if( rect.Intersects( uHs.BoundingBox() ) )
+	{
+		if( p0.Inside(rect) || p1.Inside( rect) )
+			return true;
+		Point rP0(true, rect.MinD(0), rect.MinD(1));
+		Point rP1(true, rect.MaxD(0), rect.MinD(1));
+		Point rP2(true, rect.MaxD(0), rect.MaxD(1));
+		Point rP3(true, rect.MinD(0), rect.MaxD(1));
+		
+		HalfSegment hs(true, rP0, rP1);
+		if( hs.Intersects( uHs ) )	return true;
+		hs.Set(true, rP1, rP2);
+		if( hs.Intersects( uHs ) )	return true;
+		hs.Set(true, rP2, rP3);
+		if( hs.Intersects( uHs ) )	return true;
+		hs.Set(true, rP3, rP1);
+		if( hs.Intersects( uHs ) )	return true;
+	}
+	return false;
+}
+
 bool UPoint::At( const Point& p, TemporalUnit<Point>& result ) const
 {
 /*
@@ -7110,7 +7137,8 @@ MovingBaseTypeMapBool( ListExpr args )
         (nl->IsEqual( arg1, "mint" ) && nl->IsEqual( arg2, "int" )) ||
         (nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" )) ||
         (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" )) ||
-        (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "region" )) )
+        (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "region" )) ||
+        (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "rect" )) ) 
       return nl->SymbolAtom( "bool" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -8523,6 +8551,10 @@ MovingBaseSelect( ListExpr args )
       nl->SymbolValue( arg2 ) == "region" )
     return 4;
 
+  if( nl->SymbolValue( arg1 ) == "mpoint" &&
+      nl->SymbolValue( arg2 ) == "rect" )
+    return 5;
+  
   return -1; // This point should never be reached
 }
 
@@ -10919,7 +10951,8 @@ ValueMapping temporalpassesmap[] = { MappingPasses<MBool, CcBool, CcBool>,
                                      MappingPasses<MInt, CcInt, CcInt>,
                                      MappingPasses<MReal, CcReal, CcReal>,
                                      MappingPasses<MPoint, Point, Point>,
-                                     MappingPasses<MPoint, Point, Region> };
+                                     MappingPasses<MPoint, Point, Region>,
+    MappingPasses<MPoint, Point, Rectangle<2> > };
 
 ValueMapping temporalinitialmap[] = { MappingInitial<MBool, UBool, CcBool>,
                                       MappingInitial<MInt, UInt, CcInt>,
@@ -11203,7 +11236,8 @@ const string TemporalSpecPresent  =
 
 const string TemporalSpecPasses =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(mT T) -> bool</text--->"
+  "( <text>(mT T) -> bool; T in {Region, Rectangle2}"
+  "</text--->"
   "<text>_ passes _ </text--->"
   "<text>whether the moving object passes the given value.</text--->"
   "<text>mpoint1 passes point1</text--->"
@@ -11777,7 +11811,7 @@ Operator temporalpresent( "present",
 
 Operator temporalpasses( "passes",
                          TemporalSpecPasses,
-                         5,
+                         6,
                          temporalpassesmap,
                          MovingBaseSelect,
                          MovingBaseTypeMapBool);

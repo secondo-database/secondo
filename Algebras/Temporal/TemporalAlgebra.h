@@ -1966,6 +1966,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
                                  bool ignoreLimits = false ) const;
   virtual bool Passes( const Point& val ) const;
   bool Passes( const Region& val ) const;
+  bool Passes( const Rectangle<2>& rect ) const;
   virtual bool At( const Point& val, TemporalUnit<Point>& result ) const;
   virtual void AtInterval( const Interval<Instant>& i,
                            TemporalUnit<Point>& result ) const;
