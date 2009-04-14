@@ -511,6 +511,8 @@ Additionally more detailed information will be printed into ~os~.
 Translates a message ito its name.
    
 */
+ ListExpr
+ GetSupplierTypeExpr( const Supplier s );
   
   void SetDebugLevel( const int level );
 /*
