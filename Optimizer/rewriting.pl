@@ -534,11 +534,13 @@ inferPredicate(Premises, [bbox(X) intersects box3d(bbox(Z),Y)]) :-
   member(X passes Z,  Premises),
   X \= Y, X \= Z, Y \= Z.
 
+% Infering the predicates for spatiotemporal pattern queries
 inferPredicate(Premises, AdditionalConditions):-
   member( Pattern, Premises),
-  Pattern=.. [pattern|Preds],
+  Pattern=.. [pattern|Params],
+  parsePattern(Params, Aliases, Preds, Conns, BExpr),
   list_to_set(Preds, Preds2),
-  inferPatternPredicates(Preds2, AdditionalConditions).
+  inferPatternPredicates(Preds2, AdditionalConditions),!.
 
 /*
 The following rules are deprecated, since generic rules for operators ~OP~ with
@@ -574,6 +576,7 @@ sometimes(P). This flag is used in rewritePlan to
 remove sometimes(P) from the query expression again. 
 */
 
+
 :- dynamic removefilter/1.
 inferPatternPredicates([], [] ).
 inferPatternPredicates([Pred|Preds], [passes(P1,bbox2d(P2))|Preds2] ):-
@@ -584,6 +587,23 @@ inferPatternPredicates([Pred|Preds], [passes(P1,bbox2d(P2))|Preds2] ):-
 inferPatternPredicates([Pred|Preds], [sometimes(Pred)|Preds2] ):-
   assert(removefilter(sometimes(Pred))),
   inferPatternPredicates(Preds,Preds2).
+
+parseNPred(AP , P, A):- 
+	AP=..[as, P, A],!.
+parseNPred(P , P, null).
+
+parseNPredList( NPList , [A | ARest], [P | PRest], [Conn| ConnRest]):-
+	NPList=..[Conn, AP, APRest],
+	member(Conn, [then, later, meanwhile, follows, immediately]),!,
+  parseNPred(AP, P, A),
+	parseNPredList(APRest, ARest, PRest, ConnRest).
+parseNPredList( AP , [A] , [P], [] ):-
+  parseNPred(AP, P, A),!.
+
+parsePattern([NPredList , BExpr], Aliases , Preds, Conns, BExpr):-
+  !, parseNPredList(NPredList, Aliases, Preds, Conns).
+parsePattern([NPredList] , Aliases , Preds ,Conns, []):-
+  parseNPredList(NPredList, Aliases, Preds, Conns),!.
 
 /*
 

@@ -97,6 +97,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, intersects_new).
 :- op(800, xfx, p_intersects).
 
+% The following operators have precedence higher then the comma
+% The precedence of the comma is 1000
+:- op(1001, xfy, then).
+:- op(1001, xfy, later).
+:- op(1001, xfy, meanwhile).
+:- op(1001, xfy, immediately).
+:- op(1001, xfy, follows).
+
 
 /*
 
@@ -228,6 +236,7 @@ secondoOp( union_new,         prefix, 2).
 secondoOp( var,               postfixbrackets1, 2).
 secondoOp( windowintersects,  postfixbrackets2, 3).
 secondoOp( windowintersectsS, postfixbrackets1, 2).
-
+secondoOp( intervalstart,     prefix, 1).
+secondoOp( intervalend  ,     prefix, 1).
 
 

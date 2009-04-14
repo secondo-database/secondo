@@ -1195,9 +1195,16 @@ rel_to_atom(rel(DCname, _), ExtName) :-
   dcName2externalName(DCname,ExtName).
 
 plan_to_atom( Pattern , Result):-
-  Pattern =.. [pattern|Preds],
-  list_to_atom(Preds, Preds2),
-  concat_atom(['. stpattern[', Preds2, ']'], '', Result),
+  Pattern =..[pattern,[Preds, BExpr]],
+	namedPredList_to_atom([Preds], ExPreds),
+	plan_to_atom(BExpr, ExBExpr),
+  concat_atom(['. stpattern[', ExPreds, '; ', ExBExpr, ']'],'',  Result),
+  !.
+
+plan_to_atom( Pattern , Result):-
+	Pattern =..[pattern|Preds],
+	namedPredList_to_atom(Preds, ExPreds),
+  concat_atom(['. stpattern[', ExPreds, ']'], '', Result),
   !.
 
 plan_to_atom(A,A) :-
@@ -1880,6 +1887,33 @@ list_to_atom([X | Xs], Result) :-
   list_to_atom(Xs, XsAtom),
   concat_atom([XAtom, ', ', XsAtom], '', Result),
   !.
+
+namedPred_to_atom(AP,ExP):-
+	AP=..[as,P,[null]],
+	flatten([P],P1),
+	P1=[P2],
+	plan_to_atom(P2,ExP),!.
+
+namedPred_to_atom(AP,ExAP):-
+	AP=..[as,P,A],
+	flatten([A],A1),
+	flatten([P],P1),
+	A1=[A3], P1=[P2],
+	plan_to_atom(P2,P3),
+	concat_atom([A3, ' : ', P3],'', ExAP),!.
+
+namedPred_to_atom(P,ExP):-
+	plan_to_atom(P,ExP),!.
+
+namedPredList_to_atom([APList], ExAPList):-
+	APList=..[Conn, SubAPList, AP],
+	member(Conn, [then, later, meanwhile, follows, immediately]),
+	namedPredList_to_atom([SubAPList], ExSubAPList),
+	namedPred_to_atom(AP,ExAP),
+	concat_atom([ExSubAPList, Conn, ExAP], ' ', ExAPList),!.
+	%ExAPList=..[Conn,ExSubAPList,ExAP],!.
+namedPredList_to_atom([AP], ExAP):-
+	namedPred_to_atom(AP,ExAP),!.
 
 
 /*
@@ -5013,6 +5047,18 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
     ; assert(usedAttr(Rel2, attr(Attr2, X, Case)))
   ), !.
 
+%special predicate for the pattern operator because
+%it needs special handeling since the predictaes
+%inside the pattern may have aliases
+
+lookupPred1(pattern(Preds,BExpr), pattern(Res), RelsBefore, RelsAfter) :-
+  lookupPattern([Preds,BExpr], Res, RelsBefore, RelsAfter),
+  !.
+
+lookupPred1(pattern(Preds), pattern(Res), RelsBefore, RelsAfter) :-
+  lookupPattern([Preds], Res, RelsBefore, RelsAfter),
+	!.
+
 lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
   compound(Term),
   Term =.. [Op|Args],
@@ -5045,6 +5091,42 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
   lookupPred2(Others, Others2, RelsAfterMe, RelsAfter),
   !.
 
+composeNamedPredicate(P1, null, P1):-!.
+composeNamedPredicate(P1, A1, AP1):-
+	AP1=..[as,P1,A1],!.
+
+composeSubPattern([], [], [] , [], ExprBefore, ExprBefore ):-!.
+composeSubPattern([], [], [] , BExpr, ExprBefore, [ExprBefore, BExpr] ):-!.
+composeSubPattern([P1| PredsRest], [A1| AliasesRest], [C| ConnsRest] , BExpr, ExprBefore, ExprAfter ):-
+	composeNamedPredicate(P1, A1, AP1),
+	ExprAfterMe=..[C,ExprBefore,AP1],
+	composeSubPattern(PredsRest, AliasesRest, ConnsRest, BExpr, ExprAfterMe, ExprAfter ),!.
+
+composePattern(P1, A1, [] , [], AP1 ):-
+	composeNamedPredicate(P1, A1, AP1),!.
+composePattern(P1, A1, [] , BExpr, [AP1,BExpr] ):-
+	composeNamedPredicate(P1, A1, AP1),!.
+composePattern([P1, P2| PredsRest], [A1, A2| AliasesRest], [C| ConnsRest] , BExpr2, Res ):- 
+	composeNamedPredicate(P1, A1, AP1),
+	composeNamedPredicate(P2, A2, AP2),
+	SubExpr=..[C,AP1,AP2],
+	flatten([PredsRest], PredsRest1),
+	flatten([AliasesRest], AliasesRest1),
+	flatten([ConnsRest], ConnsRest1),
+	composeSubPattern(PredsRest1, AliasesRest1, ConnsRest1 , BExpr2, SubExpr, Res),!.
+	
+
+lookupPatternPreds(Pred, Pred2, RelsBefore, RelsAfterMe):-
+	lookupPred1(Pred, Pred2, RelsBefore, RelsAfterMe),!.
+lookupPatternPreds([Pred| PRest], [Pred2| PRest2], RelsBefore, RelsAfterPreds):-
+	lookupPred1(Pred, Pred2, RelsBefore, RelsAfterMe),
+	lookupPatternPreds(PRest, PRest2, RelsAfterMe, RelsAfterPreds).
+
+lookupPattern( PatternArgs , PatternArgs2, RelsBefore, RelsAfter) :-
+  parsePattern(PatternArgs, Aliases, Preds, Conns, BExpr),
+	lookupPatternPreds(Preds, Preds2, RelsBefore, RelsAfterPreds),
+	lookupPred1(BExpr, BExpr2, RelsAfterPreds, RelsAfter),
+	composePattern(Preds2, Aliases, Conns, BExpr2, PatternArgs2).
 
 %%%% Begin: for update and insert
 lookupTransformations([], []) :- !.
