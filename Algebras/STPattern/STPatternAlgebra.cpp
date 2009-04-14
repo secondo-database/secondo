@@ -16,441 +16,625 @@ namespace STP{
 
 
 /*
- 4	Operators
+1   Operators
 
 */
 
 /*
-4.1 Operator ~pattern~
+1.1 Operator ~pattern~
 
-4.1.1 Type mapping function of operator ~pattern~
+1.1.1 Type mapping functions of operator ~pattern~
 
 */
 
-#if defined(design_stream)
-
-ListExpr PatternTypeMap(ListExpr args)
+int FindConnector(string sym)
 {
-	bool debugme= false;
-	ListExpr errorInfo;
-	errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-	string argstr, argstr2;
+  int i=0;
+  while(connector[i]!= "0" && connector[i]!= sym) i++;
+  if (connector[i] == sym) return i;
+  return -1;
+}
+ListExpr PatternTypeMap2(ListExpr opargs)
+{
+  bool debugme= false;
+  ListExpr args= nl->First(opargs);
+  string argstr;
 
-	if(debugme)
-	{
-		cout<<endl<< nl->ToString(args)<<endl;
-		cout.flush();
-	}
-
-	CHECK_COND(nl->ListLength(args) == 2,
-			"Operator stpattern expects a list of length two.");
-
-	ListExpr first = nl->First(args),
-	second = nl->Second(args);
-
-	nl->WriteToString(argstr, first);
-	if(debugme)
-	{
-		cout<<endl<< argstr<<endl;
-		cout<< "nl->ListLength(first)" << nl->ListLength(first)<<endl;
-		cout<<"(TypeOfRelAlgSymbol(nl->First(first))" <<
-		TypeOfRelAlgSymbol(nl->First(first))<<endl;
-		cout<<"nl->ListLength(nl->Second(first)) "<<
-		nl->ListLength(nl->Second(first))<<endl;
-		cout<<"TypeOfRelAlgSymbol(nl->First(nl->Second(first))" <<
-		TypeOfRelAlgSymbol(nl->First(nl->Second(first)))<<endl;
-		cout<<"nl->ListLength(nl->Second(first))" <<
-		nl->ListLength(nl->Second(first))<<endl;
-		cout<<"IsTupleDescription(nl->Second(nl->Second(first))" <<
-		IsTupleDescription(nl->Second(nl->Second(first)))<<endl;
-		cout.flush();
-	}
-	CHECK_COND(nl->ListLength(first) == 2  &&
-		(TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-		(nl->ListLength(nl->Second(first)) == 2) &&
-		(TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-		(nl->ListLength(nl->Second(first)) == 2) &&
-		(IsTupleDescription(nl->Second(nl->Second(first)))),
-		"Operator stpattern expects as first argument a "
-		"list with structure (stream (tuple ((a1 t1)...(an tn))))\n"
-		"Operator pattern gets as first argument '" +
-		argstr + "'." );
-
-	nl->WriteToString(argstr, second);
-	CHECK_COND( ! nl->IsAtom(second) ,
-			"Operator  stpattern expects as second argument a "
-			"list of functions\n"
-			"Operator stpattern gets as second argument '" +
-			argstr + "'.\n" );
+  if(debugme)
+  {
+    cout<<endl<< nl->ToString(args)<<endl;
+    cout.flush();
+  }
 
 
+  ListExpr first = nl->First(args), //tuple(x)
+  second = nl->Second(args);		  //predicatelist
 
+  nl->WriteToString(argstr, first);
+  if(debugme)
+  {
+    cout<<endl<< argstr<<endl;
+    cout<< "nl->ListLength(first)" 
+    << nl->ListLength(first)<<endl;
+    cout<<"(TypeOfRelAlgSymbol(nl->First(first))" <<
+    TypeOfRelAlgSymbol(nl->First(first))<<endl;
+    cout.flush();
+  }
 
-	ListExpr secondRest = second;
-	ListExpr secondFirst, attrType, newAttrList, numberList;
-	secondFirst = attrType = newAttrList = numberList = nl->Empty();
-	ListExpr lastNewAttrList, lastNumberList;
-	lastNewAttrList = lastNumberList = nl->Empty();
+  //checking for the first parameter tuple(x)
+  CHECK_COND( (nl->ListLength(first) == 2) &&
+      (TypeOfRelAlgSymbol(nl->First(first)) == tuple),
+      "Operator stpattern expects as first argument "
+      "a list with structure "
+      "(tuple ((a1 t1)...(an tn)))\n"
+      "Operator stpattern gets a list with structure '" +
+      argstr + "'.");
 
-	string attrName = "";
-	while( !nl->IsEmpty(secondRest) )
-	{
-		secondFirst = nl->First(secondRest);
-		secondRest = nl->Rest(secondRest);
+  //checking ofr the second parameter predicatelist
+  nl->WriteToString(argstr, second);
+  CHECK_COND( ! nl->IsAtom(second) ,
+      "Operator  stpattern expects as second argument a "
+      "list of named predicates\n"
+      "Operator stpattern gets as second argument '" +
+      argstr + "'.\n" );
 
-		nl->WriteToString(argstr, secondFirst);
-		CHECK_COND(nl->ListLength(secondFirst) == 2 &&
-			nl->IsAtom(nl->First(secondFirst)),
-			"Operator stpattern expects that every function "
-			"in the function list has a valid identifier "
-			"Operator stpattern gets instead of this identifier "
-			"name a list with structure '" + argstr + "'.");
+  ListExpr secondRest = second;
+  ListExpr secondFirst;
+  secondFirst =  nl->Empty();
 
-		secondFirst= nl->Second(secondFirst);
-		nl->WriteToString(argstr, secondFirst);
-		if(debugme)
-		{
-			cout<< endl<<argstr<<endl;
-			cout<< "nl->ListLength(secondFirst)" <<
-			nl->ListLength(secondFirst)<<endl;
-			cout<< "TypeOfRelAlgSymbol(nl->First(secondFirst)) "<<
-			TypeOfRelAlgSymbol(nl->First(secondFirst))<<endl;
-			cout<< "nl->IsAtom(nl->Third(secondFirst)) " <<
-			nl->IsAtom(nl->Third(secondFirst))<<endl;
-			cout<< "nl->SymbolValue(nl->Third(secondFirst)) "<<
-			nl->SymbolValue(nl->Third(secondFirst))<<endl;
-			cout.flush();
-		}
-		CHECK_COND(nl->ListLength(secondFirst) == 3 &&
-			TypeOfRelAlgSymbol(nl->First(secondFirst)) == ccmap &&
-			nl->IsAtom(nl->Third(secondFirst)) &&
-			nl->SymbolValue(nl->Third(secondFirst)) == "mbool",
-			"Operator stpattern expects a list with structure "
-			"(map (tuple ((a1 t1)...(an tn))) mbool)\n"
-			"Operator stpattern gets a list with "
-			"structure '" + argstr + "'.");
+  bool isConnector=false;
+  while( !nl->IsEmpty(secondRest) )
+  {
+    secondFirst = nl->First(secondRest);
+    secondRest = nl->Rest(secondRest);
+    nl->WriteToString(argstr, secondFirst);
+    if(!isConnector)
+    {
+      if(debugme)
+      {
+        cout<< nl->ToString(secondFirst)<<endl;
+        cout.flush();
+      }
 
-		CHECK_COND((nl->Equal(nl->Second(first),
-					nl->Second(secondFirst))),
-			"Operator stpattern: Input tuple for mapping "
-			"(third argument) and the first argument\n"
-			"tuple must have the same description." );
-	}
-
-	if(debugme)
-	{
-		cout<<endl<<endl<<"Operator stpattern accepted the input";
-		cout.flush();
-	}
-	return nl->First(args);
+      CHECK_COND
+      ((nl->ListLength(secondFirst) == 1 &&
+          nl->IsAtom(nl->First(secondFirst))&&
+          nl->SymbolValue(nl->First(secondFirst))=="mbool")||
+          (nl->ListLength(secondFirst) == 2 &&
+              nl->IsAtom(nl->Second(secondFirst))&&
+              nl->SymbolValue(nl->Second(secondFirst))=="mbool" &&
+              nl->IsAtom(nl->First(secondFirst))), "Operator "
+              "stpattern expects a list of named predicates. "
+              "Operator stpattern gets '" + argstr + "'.");
+      isConnector= !isConnector;	
+    }
+    else
+    {
+      CHECK_COND(nl->IsAtom(secondFirst) &&
+          FindConnector(nl->SymbolValue(secondFirst)) != -1  ,
+          "Operator stpattern expects a temporal connector"
+          " but got." + argstr);
+      isConnector=!isConnector;
+    }
+  }
+  ListExpr result = nl->SymbolAtom("bool");
+  if(debugme)
+  {
+    cout<<endl<<endl<<"Operator stpattern accepted the input";
+    cout.flush();
+  }
+  return result;
 }
 
-#endif
-
-
-#if defined(design_tuple)
-ListExpr PatternTypeMap(ListExpr args)
+ListExpr PatternTypeMap3(ListExpr opargs)
 {
-	bool debugme= false;
-	ListExpr errorInfo;
-	errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-	string argstr, argstr2;
+  bool debugme= false;
+  ListExpr args= nl->First(opargs);
+  string argstr;
 
-	if(debugme)
-	{
-		cout<<endl<< nl->ToString(args)<<endl;
-		cout.flush();
-	}
+  if(debugme)
+  {
+    cout<<endl<< nl->ToString(args)<<endl;
+    cout.flush();
+  }
 
-	CHECK_COND(nl->ListLength(args) == 2,
-			"Operator stpattern expects a list of length two.");
+  ListExpr first = nl->First(args), //tuple(x)
+  second = nl->Second(args),		  //predicatelist
+  third= nl->Third(args);			  //bool
 
-	ListExpr first = nl->First(args),
-	second = nl->Second(args);
+  nl->WriteToString(argstr, first);
+  if(debugme)
+  {
+    cout<<endl<< argstr<<endl;
+    cout<< "nl->ListLength(first)" << nl->ListLength(first)<<endl;
+    cout<<"(TypeOfRelAlgSymbol(nl->First(first))" <<
+    TypeOfRelAlgSymbol(nl->First(first))<<endl;
+    cout.flush();
+  }
 
-	nl->WriteToString(argstr, first);
-	if(debugme)
-	{
-		cout<<endl<< argstr<<endl;
-		cout<< "nl->ListLength(first)" << nl->ListLength(first)<<endl;
-		cout<<"(TypeOfRelAlgSymbol(nl->First(first))" <<
-		TypeOfRelAlgSymbol(nl->First(first))<<endl;
-		cout.flush();
-	}
+  //checking for the first parameter tuple(x)
+  CHECK_COND( (nl->ListLength(first) == 2) &&
+      (TypeOfRelAlgSymbol(nl->First(first)) == tuple),
+      "Operator stpattern expects as first argument "
+      "a list with structure "
+      "(tuple ((a1 t1)...(an tn)))\n"
+      "Operator stpattern gets a list with structure '" +
+      argstr + "'.");
 
-	CHECK_COND( (nl->ListLength(first) == 2) &&
-		(TypeOfRelAlgSymbol(nl->First(first)) == tuple),
-		"Operator stpattern expects as first argument "
-		"a list with structure "
-		"(tuple ((a1 t1)...(an tn)))\n"
-		"Operator stpattern gets a list with structure '" +
-		argstr + "'.");
+  //checking ofr the second parameter predicatelist
+  nl->WriteToString(argstr, second);
+  CHECK_COND( ! nl->IsAtom(second) ,
+      "Operator  stpattern expects as second argument a "
+      "list of predicates\n"
+      "Operator stpattern gets as second argument '" +
+      argstr + "'.\n" );
 
-	nl->WriteToString(argstr, second);
-	CHECK_COND( ! nl->IsAtom(second) ,
-			"Operator  stpattern expects as second argument a "
-			"list of functions\n"
-			"Operator stpattern gets as second argument '" +
-			argstr + "'.\n" );
 
-	ListExpr secondRest = second;
-	ListExpr secondFirst, attrType, newAttrList, numberList;
-	secondFirst = attrType = newAttrList = numberList = nl->Empty();
-	ListExpr lastNewAttrList, lastNumberList;
-	lastNewAttrList = lastNumberList = nl->Empty();
+  ListExpr secondRest = second;
+  ListExpr secondFirst;
+  secondFirst =  nl->Empty();
 
-	string attrName = "";
-	while( !nl->IsEmpty(secondRest) )
-	{
-		secondFirst = nl->First(secondRest);
-		secondRest = nl->Rest(secondRest);
+  bool isConnector=false;
+  while( !nl->IsEmpty(secondRest) )
+  {
+    secondFirst = nl->First(secondRest);
+    secondRest = nl->Rest(secondRest);
+    nl->WriteToString(argstr, secondFirst);
+    if(!isConnector)
+    {
+      if(debugme)
+      {
+        cout<< nl->ToString(secondFirst)<<endl;
+        cout.flush();
+      }
 
-		if(debugme)
-		{
-			cout<< nl->ToString(secondFirst)<<endl;
-			cout.flush();
-		}
-		nl->WriteToString(argstr, secondFirst);
-		CHECK_COND(	nl->IsAtom(secondFirst) &&
-				nl->SymbolValue(secondFirst)=="mbool",
-			"Operator stpattern expects a list of mbool. "
-			"Operator stpattern gets '" + argstr + "'.");
-	}
+      CHECK_COND
+      ((nl->ListLength(secondFirst) == 1 &&
+          nl->IsAtom(nl->First(secondFirst))&&
+          nl->SymbolValue(nl->First(secondFirst))=="mbool")||
+          (nl->ListLength(secondFirst) == 2 &&
+              nl->IsAtom(nl->Second(secondFirst))&&
+              nl->SymbolValue(nl->Second(secondFirst))=="mbool" &&
+              nl->IsAtom(nl->First(secondFirst))),  "Operator "
+              "stpattern expects a list of named predicates. "
+              "Operator stpattern gets '" + argstr + "'.");
+      isConnector= !isConnector;
+    }
+  }
 
-	if(debugme)
-	{
-		cout<<endl<<endl<<"Operator stpattern accepted the input";
-		cout.flush();
-	}
+  //checking for the third parameter bool
+  nl->WriteToString(argstr, third);
+  CHECK_COND(nl->IsAtom(third) &&
+      nl->SymbolValue(third)== "bool",
+      "Operator stpattern expects the third parameter "
+      "to be a bool expression "
+      "but got '" + argstr + "'.");
 
-	return nl->SymbolAtom("bool");
+  ListExpr result = nl->SymbolAtom("bool");
+  if(debugme)
+  {
+    cout<<endl<<endl<<"Operator stpattern accepted the input";
+    cout.flush();
+  }
+  return result;
 }
-#endif
+
+ListExpr PatternTypeMap(ListExpr opargs)
+{
+  bool debugme= false;
+  string argstr;
+  ListExpr args= nl->First(opargs);
+
+  if(debugme)
+  {
+    cout<<endl<< nl->ToString(args)<<endl;
+    cout.flush();
+  }
+  nl->WriteToString(argstr, args);
+  CHECK_COND(nl->ListLength(args) == 3 ||nl->ListLength(args) == 2 ,
+      "Operator stpattern expects a list of length two or three "
+      "but got '" + argstr + "'.");
+  if(nl->ListLength(args) == 3)
+    return PatternTypeMap3(opargs);
+  else if(nl->ListLength(args) == 2)
+    return PatternTypeMap2(opargs);
+}
 
 /*
-4.1.2 Value mapping function of operator ~project~
+1.1.2 Value mapping function of operator ~stpattern~
 
 */
 
-bool Match(MBool* predRes, Instant& stime)
+
+int NextPosition( Periods* deftime, const Instant& t )
 {
-	int pos;
-	const UBool* cur;
-	Intime<CcBool> tinit;
-	if(!predRes->IsDefined())	return false;
-	pos= predRes->Position(stime);
-	predRes->Initial(tinit);
-	if(stime < tinit.instant)
-		pos=0;
-	if(pos== -1)
-		return false;
-	predRes->Get(pos++,cur );
-	while( !cur->constValue.GetBoolval() &&
-				pos < predRes->GetNoComponents())
-		predRes->Get(pos++, cur);
-	if(cur->constValue.GetBoolval())
-	{
-		stime = (cur->timeInterval.start > stime) ?
-					cur->timeInterval.start : stime;
-		return true;
-	}
-	return false;
+  assert( deftime->IsOrdered() && t.IsDefined() );
+
+  int last = deftime->GetNoComponents();
+  const Interval<Instant> *interval;
+  int i=0;
+
+  deftime->Get(i++,interval);
+  while(i<last && t > interval->start)
+    deftime->Get(i++, interval);
+    if(i<= last)
+      return i-1;
+    else
+      return -1;
 }
 
-#if defined(design_stream)
+bool GetNextMatchInterval(MBool* predRes,
+    Instant stime, Interval<Instant>& nextinterval)
+{
+  int pos;
+  const UBool* cur;
+  Periods dtime;
+  predRes->DefTime(dtime);
+  pos= predRes->Position(stime);
+
+  if(pos== -1 && (pos=NextPosition(&dtime, stime)) == -1)
+    return false;
+
+  predRes->Get(pos++,cur );
+  while( !cur->constValue.GetBoolval() &&
+      pos < predRes->GetNoComponents())
+    predRes->Get(pos++, cur);
+    if(cur->constValue.GetBoolval())
+    {
+      nextinterval.end = cur->timeInterval.end;
+      nextinterval.rc = cur->timeInterval.rc;
+      nextinterval.lc = true;
+      nextinterval.start = (cur->timeInterval.start > stime) ?
+          cur->timeInterval.start : stime;
+          return true;
+    }
+    return false;
+}
+
+bool Match(MBool* predRes, Interval<Instant>& sinterval,
+    Supplier connector)
+{
+  bool debugme=false;
+  string con;
+  Interval<Instant> nextinterval= sinterval;
+  bool match=false;
+  if(!predRes->IsDefined())	return false;
+
+  if(connector==0) con="then";
+  else	con= nl->ToString(qp->GetSupplierTypeExpr(connector));
+
+  match= GetNextMatchInterval(predRes, sinterval.start, nextinterval);
+  //looks for a true unit in predRes starting form sinterval.start
+  //and looking only forward. If it is found that predRes was true
+  //before, at and maybe after sinterval.star, nextinterval is populated
+  //with sinterval.start as the start instant.
+
+  if(!match) return false;
+
+  if(debugme)
+  {
+    cout<<"Applying connectore: "<< con<<endl; 
+    cout<<"Next interval: ";nextinterval.Print(cout);	cout<<endl;
+    cout<<"Curr interval: ";sinterval.Print(cout);		cout<<endl;
+    cout.flush();
+  }
+  if(con == "immediately") //now
+  {
+    if(nextinterval.start == sinterval.start)
+    {
+      sinterval= nextinterval;
+      return true;
+    }
+    else
+      return false;
+  }
+  else if (con == "follows") //at the end of the current interval
+  {
+    if(nextinterval.start == sinterval.end)
+    {
+      sinterval= nextinterval;
+      return true;
+    }
+    else
+      return false;
+  }
+  else if (con == "meanwhile") //during the current interval
+  {
+    if(nextinterval.start > sinterval.start &&
+        nextinterval.start < sinterval.end)
+    {
+      sinterval= nextinterval;
+      return true;
+    }
+    else
+      return false;
+  }
+  else if (con == "later") //sometime after the current interval
+  {
+
+    if(nextinterval.start > sinterval.end)
+    {
+      sinterval= nextinterval;
+      return true;
+    }
+    else
+      return false;
+  }
+  else if (con == "then") //any time starting from now
+  {
+    sinterval= nextinterval;
+    return true;
+  }
+  else
+    assert(0); //invalid connector symbol
+}
+
 int Pattern(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-	bool debugme=false;
-	Word t, value;
-	Tuple* tup;
-	Supplier supplier,*supplier2,*supplier3;
-	int nooffun;
-	ArgVectorPointer*funargs;
-	DateTime lastMatchTime(instanttype);
-	bool matchPred;
-	switch (message)
-	{
-	case OPEN :
+  bool debugme=false;
+  Supplier root, namedpredlist, namedpred,alias, pred,filter,connector=0;
+  Word value;
+  int noofpred, nosons;
+  bool matchPred;
+  bool isConnector=false;
 
-		qp->Open(args[0].addr);
-		return 0;
+  DateTime lastMatchTime(0,0,instanttype);
+  Interval<DateTime> 
+  lastMatchInterval(lastMatchTime, lastMatchTime,true,true);
 
-	case REQUEST :
-		supplier = args[1].addr;
-		nooffun = qp->GetNoSons(supplier);
-		assert(nooffun>0);
-		supplier2= new Supplier[nooffun];
-		supplier3= new Supplier[nooffun];
-		funargs=new ArgVectorPointer[nooffun];
+  result = qp->ResultStorage( s );
+  root = args[0].addr;
 
-		for (int i=0; i < nooffun;i++)
-		{
-			supplier2[i] = qp->GetSupplier(supplier, i);
-			supplier3[i] = qp->GetSupplier(supplier2[i], 1);
-			funargs[i] = qp->Argument(supplier3[i]);
-		}
+  if(debugme)
+  {
+    cout<<endl<<"Root "; //qp->ListOfTree(root,cout); 
+    // nl->ToString(qp->GetSupplierTypeExpr(root));
+    //cout<<endl<<"Labellist " <<nl->ToString(label)<<endl;
+    cout.flush();
+  }
 
-		qp->Request(args[0].addr,t);
-		while (qp->Received(args[0].addr))
-		{
-			tup = (Tuple*)t.addr;
-			lastMatchTime.ToMinimum();
-			if(debugme)
-				cout<<endl<< "Matching Tuple TID: "<<
-					(int)tup->GetTupleId();
-			for (int i=0; i < nooffun;i++)
-			{
-				((*funargs[i])[0]).setAddr(tup);
-				qp->Request(supplier3[i],value);
-				matchPred= Match((MBool*)value.addr,
-								lastMatchTime);
-				if(debugme)
-				{
-					if(matchPred)
-						cout<< " matched Pred "<< i <<
-						" at time "<<
-						lastMatchTime.ToDouble();
-					else
-						cout<< "didn't match Predicate "
-							<< i;
-					cout.flush();
-				}
-				if(!matchPred) break;
-			}
-			if(!matchPred)
-			{
-				tup->DeleteIfAllowed();
-				qp->Request(args[0].addr,t);
-			}
-			else
-			{
-				result.setAddr(tup);
-				delete[] supplier2;
-				delete[] supplier3;
-				delete[] funargs;
-				return YIELD;
-			}
-		}
-		return CANCEL;
+  namedpredlist = qp->GetSupplierSon(root, 1);
+  if(qp->GetNoSons(root) == 3)
+  {
+    filter = qp->GetSupplierSon(root, 2);
+    label.clear(); //labels hashtable
+  }
 
-	case CLOSE :
-		qp->Close(args[0].addr);
-		return 0;
-	}
-	return 0;
+  noofpred = qp->GetNoSons(namedpredlist);
+  assert(noofpred>0);
+
+  if(debugme)
+  {
+    cout<<endl<<"Predlist "<< 
+    nl->ToString(qp->GetSupplierTypeExpr(namedpredlist));
+    cout<<endl<<"Predlist count " << noofpred;
+    if(qp->GetNoSons(root) == 3)
+      cout<<endl<<"Filter " << 
+      nl->ToString(qp->GetSupplierTypeExpr(filter));
+      cout.flush();
+  }
+
+  for (int i=0; i < noofpred;i++)
+  {
+    if(!isConnector)
+    {
+      namedpred= qp->GetSupplierSon(namedpredlist,i);
+      nosons = qp->GetNoSons(namedpred);
+      assert(nosons==1 || nosons==2);
+      alias=0;
+      if(nosons == 1)
+        pred= qp->GetSupplierSon(namedpred,0);
+        else
+        {
+          alias= qp->GetSupplierSon(namedpred,0);
+          pred = qp->GetSupplierSon(namedpred,1);
+        }
+
+      qp->Request(pred,value);
+      matchPred= Match((MBool*)value.addr,
+          lastMatchInterval,connector);
+
+      if(alias !=0)	//populate the labels
+        label[nl->ToString(qp->GetSupplierTypeExpr(alias))]
+              = lastMatchInterval;
+
+      if(debugme)
+      {
+        if(matchPred)
+        {
+          cout<<endl<<"Matched Pred "<< i <<
+          " at interval ";
+          lastMatchInterval.Print(cout);
+        }
+        else
+          cout<< "didn't match Predicate "
+          << i;
+        cout.flush();
+      }
+      if(!matchPred) break;
+    }
+    else
+      connector= qp->GetSupplierSon(namedpredlist,i);
+      isConnector= ! isConnector;
+  }
+
+  if(matchPred && qp->GetNoSons(root) == 3)  //second part of stpattern
+  {
+    qp->Request(filter,value);
+    label.clear();
+    ((CcBool*)result.addr)->CopyFrom((CcBool*)value.addr);
+  }
+  else
+    ((CcBool*)result.addr)->Set(true,matchPred);
+    return 0;
 }
-#endif
 
-#if defined(design_tuple)
-int Pattern(Word* args, Word& result, int message, Word& local, Supplier s)
-{
-	bool debugme=false;
-	Supplier predlist, pred;
-	Word value;
-	int noofpred;
-	bool matchPred;
-
-	DateTime lastMatchTime(instanttype);
-
-	result = qp->ResultStorage( s );
-	predlist = args[1].addr;
-	noofpred = qp->GetNoSons(predlist);
-	assert(noofpred>0);
-
-	for (int i=0; i < noofpred;i++)
-	{
-		pred= qp->GetSon(predlist,i);
-		qp->Request(pred,value);
-		matchPred= Match((MBool*)value.addr,
-				lastMatchTime);
-		if(debugme)
-		{
-			if(matchPred)
-				cout<< " matched Pred "<< i <<
-				" at time "<<
-				lastMatchTime.ToDouble();
-			else
-				cout<< "didn't match Predicate "
-				<< i;
-			cout.flush();
-		}
-		if(!matchPred) break;
-	}
-	((CcBool*)result.addr)->Set(true,matchPred);
-	return 0;
-}
-#endif
 /*
-4.1.3 Specification of operator ~pattern~
+1.1.3 Specification of operator ~pattern~
 
 */
 
-#if defined(design_stream)
 OperatorInfo STPatternOperatorInfo( "stpattern",
-	"((stream x) ((map1 x mbool1)...(mapn x mbooln))) -> (stream x)",
-	"stpattern[p1: lifted predicate , f2: lifted predicate, ... ] ",
-	"Naive implementation for spatio temporal pattern queries."
-	" It works like filter. Only tuples, fulfilling the "
-	"specified pattern are passed on to the output.",
-	"query Trains feed stpattern[f1: .Trip inside "
-	"msnow, f2: distance(.Trip, mehringdamm) < 10.0 ]   count");
-#endif
+    "(tuple(x) namedPredicateList bool) -> bool",
+    ". stpattern[alias:lifted predicate connector "
+    "lifted predicate connector ... ; bool expression ] ",
+    "The implementation for spatio temporal pattern queries."
+    " Only tuples, fulfilling the specified pattern and the"
+    " bool expr are passed on to the output.",
+    "query Trains feed filter [. stpattern[a:.Trip inside msnow then"
+    " b:distance(.Trip, mehringdamm) < 10.0; intervalstart(\"a\")"
+" < intervalstart(\"b\") ] ] count");
 
-#if defined(design_tuple)
-OperatorInfo STPatternOperatorInfo( "stpattern",
-	"(tuple(x) (mbool1...mbooln)) -> bool",
-	"stpattern[lifted predicate , lifted predicate, ... ] ",
-	"Naive implementation for spatio temporal pattern queries."
-	" It works like filter. Only tuples, fulfilling the "
-	"specified pattern are passed on to the output.",
-	"query Trains feed filter [. stpattern[.Trip inside msnow,  "
-	"distance(.Trip, mehringdamm) < 10.0 ] ] count");
 
-#endif
 /*
 
-4.1.4 Definition of operator ~pattern~
+1.1.4 Definition of operator ~pattern~
 
 */
 
 Operator opdefpattern(  STPatternOperatorInfo,
-		Pattern,
-		PatternTypeMap );
-
+    Pattern,
+    PatternTypeMap );
 
 
 /*
-5 Implementation of the Algebra Class
+
+1.2 Definition of other operator used as helpers
+	 with stpattern operator
+
+*/
+
+/*
+
+1.2.1 Definition of operator ~intervalstart~
+
+*/
+ListExpr IntervalStartEndTypeMap(ListExpr args)
+{
+  bool debugme=false;
+  string argstr;
+  if(debugme)
+  {
+    cout<<endl<< nl->ToString(args) <<endl;
+    cout<< nl->ListLength(args)  << ".."<< nl->IsAtom(nl->First(args))<<
+    ".."<< nl->SymbolValue(nl->First(args));
+    cout.flush();
+  }
+  nl->WriteToString(argstr, args);
+  CHECK_COND(nl->ListLength(args) == 1 &&
+      nl->IsAtom(nl->First(args)) &&
+      nl->SymbolValue(nl->First(args))== "string",
+      "Operator intervalstart expects a string symbol "
+      "but got." + argstr);
+  return nl->SymbolAtom("instant");
+}
+
+template <bool leftbound>
+int IntervalBound
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  bool debugme= false;
+  Interval<Instant> interval;
+  Word input;
+  string lbl;
+
+  //qp->Request(args[0].addr, input);
+  lbl= ((CcString*)args[0].addr)->GetValue();
+  if(debugme)
+  {
+    cout<<endl<<"Accessing the value of label "<<lbl;
+    cout.flush();
+  }
+
+  map<string, Interval<Instant> >::iterator iter = 
+    label.find(lbl);
+  if( iter != label.end() )
+    interval = iter->second;
+    else
+      return 1;
+
+  if(debugme)
+  {
+    cout<<endl<<"Value is ";
+    interval.Print(cout);
+    cout.flush();
+  }
+  result = qp->ResultStorage( s );
+  if(leftbound)
+    ((Instant*)result.addr)->CopyFrom(&interval.start);
+    else
+      ((Instant*)result.addr)->CopyFrom(&interval.start);
+      return 0;
+}
+
+OperatorInfo IntervalSOperatorInfo( "intervalstart",
+    "string -> instant",
+    "intervalstart(\"label\")",
+    "Used within stpattern operator to read the start value"
+    "of a label.",
+    "query Trains feed filter[. stpattern[a: .Trip inside msnow,  "
+    "then b: distance(.Trip, mehringdamm) < 10.0 ; "
+"intervalstart(\"b\") > intervalstart(\"a\") ) ] count");
+
+Operator opdefintervals(  IntervalSOperatorInfo,
+    IntervalBound<true>,
+    IntervalStartEndTypeMap );
+
+
+/*
+
+1.2.2 Definition of operator ~intervalend~
+
+*/
+
+OperatorInfo IntervalEOperatorInfo( "intervalend",
+    "string -> instant",
+    "intervalend(\"label\")",
+    "Used within stpattern operator to read the end value"
+    "of a label.",
+    "query Trains feed filter[. stpattern[a: .Trip inside msnow,  "
+    "then b: distance(.Trip, mehringdamm) < 10.0 ; "
+"intervalend(\"b\") > intervalend(\"a\") ) ] count");
+
+
+Operator opdefintervale(  IntervalEOperatorInfo,
+    IntervalBound<false>,
+    IntervalStartEndTypeMap );
+
+/*
+2 Implementation of the Algebra Class
 
 */
 
 class STPatternAlgebra : public Algebra
 {
 public:
-	STPatternAlgebra() : Algebra()
-	{
+  STPatternAlgebra() : Algebra()
+  {
 
-		/*
+/*
 
-5.2 Registration of Types
-
-
-		*/
+2.1 Registration of Types
 
 
-		/*
-5.3 Registration of Operators
+*/
 
-		*/
-		opdefpattern.SetRequestsArguments();
-		AddOperator(&opdefpattern);
-	}
-	~STPatternAlgebra() {};
+
+/*
+2.2 Registration of Operators
+
+*/
+    opdefpattern.SetRequestsArguments();
+    AddOperator(&opdefpattern);
+    AddOperator(&opdefintervals);
+    AddOperator(&opdefintervale);
+  }
+  ~STPatternAlgebra() {};
 };
 
 
 /*
-6 Initialization
+3 Initialization
 
 Each algebra module needs an initialization function. The algebra manager
 has a reference to this function if this algebra is included in the list
@@ -477,14 +661,14 @@ file "Algebras/Management/AlgebraList.i.cfg".
 extern "C"
 Algebra*
 InitializeSTPatternAlgebra( NestedList* nlRef,
-		QueryProcessor* qpRef )
-		{
-	// The C++ scope-operator :: must be used to qualify the full name
-	return new STP::STPatternAlgebra;
-		}
+    QueryProcessor* qpRef )
+    {
+  // The C++ scope-operator :: must be used to qualify the full name
+  return new STP::STPatternAlgebra;
+    }
 
 /*
-7 Examples and Tests
+4 Examples and Tests
 
 The file "PointRectangle.examples" contains for every operator one example.
 This allows one to verify that the examples are running and to provide a coarse
