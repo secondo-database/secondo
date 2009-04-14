@@ -73,6 +73,7 @@ string         	\"([^\"]|\\\")*\"
 textstart       "<text>"
 textend         "</text--->"
 file	  	"<file>"[^<\n]+"</file--->"
+connector	"then"|"later"|"meanwhile"|"immediately"|"follows"
 
 %%
 
@@ -121,6 +122,8 @@ counters	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCOUNTERS;}
 ".."		{yylval = NestedText::Atom( yytext, yyleng ); return ZZDOUBLE;}
 value		{yylval = NestedText::Atom( yytext, yyleng ); return ZZVALUE;}
 "="		{yylval = NestedText::Atom( yytext, yyleng ); return ZZINFIXOP;}
+{connector}	{yylval = NestedText::Atom( yytext, yyleng ); return ZZCONNECTOR;}
+"stpattern"	{yylval = NestedText::Atom( yytext, yyleng ); return ZZSTPATTERN;}
 
 {textstart}	{if(text_sp)
                    delete text_sp;

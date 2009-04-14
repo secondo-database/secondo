@@ -116,7 +116,7 @@ basic    :  ZZTYPE ZZIDENTIFIER ZZINFIXOP typeexpr
     |    {paramno=0; emptystack();}
       ZZQUERY valueexpr
         {PRINTF("(query "); PRINT($3); 
-        PRINTF(")\n");}
+        PRINTF(")\n"); }
 
     |    {paramno=0; emptystack();}
       ZZLET ZZIDENTIFIER ZZINFIXOP  valueexpr
@@ -265,7 +265,32 @@ namedfunction  : naming function
         NestedText::Concat($1,
         NestedText::Concat(NestedText::AtomC(" "),
         NestedText::Concat($2,
-          NestedText::AtomC(")")  ))));}
+          NestedText::AtomC(")")))));}
+    ;
+
+namedpredicate  : naming valueexpr
+      {$$ = NestedText::Concat(NestedText::AtomC("("),
+        NestedText::Concat($1,
+        NestedText::Concat(NestedText::AtomC(" "),
+        NestedText::Concat($2,
+          NestedText::AtomC(")")))));}
+    | valueexpr
+      {$$ = NestedText::Concat(NestedText::AtomC("("),
+        NestedText::Concat($1, NestedText::AtomC(")")));}
+    ;
+
+namedpredicatelist: namedpreds 
+      {$$ = NestedText::Concat(NestedText::AtomC("("), 
+            NestedText::Concat($1,
+            NestedText::AtomC(")")));}
+    ;
+
+namedpreds: namedpredicate      {$$ = $1;}
+    | namedpreds ZZCONNECTOR namedpredicate  
+      {$$ = NestedText::Concat($1,
+            NestedText::Concat(NestedText::AtomC(" "), 
+	    NestedText::Concat($2, 
+	    NestedText::Concat(NestedText::AtomC(" "),$3))));}
     ;
 
 function  : ZZFUN '(' args ')' valueexpr
@@ -505,7 +530,22 @@ valueexpr  : ZZIDENTIFIER        {$$ = $1;}
         USE_AUTO_BUFFER?NestedText::AtomC("))")
                        :NestedText::AtomC(")")     ));
       }
-      
-
+    | valueexpr ZZSTPATTERN '[' namedpredicatelist ';' valueexpr ']'
+      {$$= NestedText::Concat(NestedText::AtomC("("),
+       NestedText::Concat($2, 
+       NestedText::Concat(NestedText::AtomC("("),
+       NestedText::Concat($1, 
+       NestedText::Concat(NestedText::AtomC(" "),
+       NestedText::Concat($4,
+       NestedText::Concat(NestedText::AtomC(" "),
+       NestedText::Concat($6, NestedText::AtomC("))")))))))));      
+      }
+    | valueexpr ZZSTPATTERN '[' namedpredicatelist ']'
+      {$$= NestedText::Concat(NestedText::AtomC("("),
+       NestedText::Concat($2, 
+       NestedText::Concat(NestedText::AtomC("("),
+       NestedText::Concat($1, 
+       NestedText::Concat(NestedText::AtomC(" "),
+       NestedText::Concat($4, NestedText::AtomC("))")))))));     
+      }
 /* algebra specific part */
-
