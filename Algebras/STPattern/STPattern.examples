@@ -5,7 +5,8 @@ Restore  : NO
 Operator : STPATTERN
 Number   : 1
 Signature: ((tuple x) (mbool1 ... mbooln) ) -> bool
-Example  : query Trains feed filter [. stpattern[.Trip inside msnow,  distance(.Trip, mehringdamm) < 10.0 ] ] count 
+Example  : query Trains feed filter[. stpattern[a: .Trip inside msnow 
+later b: distance(.Trip, mehringdamm) < 10.0 ; intervalend("a") < intervalstart("b")]] count 
 Result   : 14
 
 

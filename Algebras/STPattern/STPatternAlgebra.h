@@ -20,34 +20,17 @@ Author: m.attia
 #include "NList.h"
 #include "RelationAlgebra.h"
 #include "TemporalAlgebra.h"
-
+#include <map>
 using namespace datetime;
 typedef DateTime Instant;
 
 
-/*
+//the "0" in the end of the array is used for iterating over the array
+//if you want to add more connectors, add them in the begining or the
+//middle of the array
+string connector[]= {"then","later","meanwhile","immediately","follows","0"};
+map<string, Interval<Instant> > label;
 
-use the following to switch between different
-designs for the stpattern operator. make sure
-that only one of the following is uncommented
-
-design\_stream: the first design for stpattern
-the operator takes stream(tuple(x)) and filters it
-
-design\_tuple: a modified version of the operator.
-This is the version integrated with Secondo Optimizer.
-The operator takes tuple(x) and returns boolean.
-It can be invoked as a condition inside the filter
-operator.
-
-*/
-
-
-
-
-
-#define design_tuple
-// #define design_stream
 
 
 #endif /* STPATTERNALGEBRA_H_ */
