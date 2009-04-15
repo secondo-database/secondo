@@ -69,6 +69,7 @@ operator length alias LENGTH pattern op ( _ )
 operator equalizeU alias EQUALIZEU pattern _ op [_]
 operator vertices alias VERTICES pattern op( _ )
 operator hat alias HAT pattern op ( _ )
+operator speedup alias SPEEDUP pattern _ op [_]
 
 
 

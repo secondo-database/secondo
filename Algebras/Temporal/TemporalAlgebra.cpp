@@ -1381,7 +1381,7 @@ bool UPoint::Passes( const Rectangle<2> &rect  ) const
 		Point rP1(true, rect.MaxD(0), rect.MinD(1));
 		Point rP2(true, rect.MaxD(0), rect.MaxD(1));
 		Point rP3(true, rect.MinD(0), rect.MaxD(1));
-		
+
 		HalfSegment hs(true, rP0, rP1);
 		if( hs.Intersects( uHs ) )	return true;
 		hs.Set(true, rP1, rP2);
@@ -7138,7 +7138,7 @@ MovingBaseTypeMapBool( ListExpr args )
         (nl->IsEqual( arg1, "mreal" ) && nl->IsEqual( arg2, "real" )) ||
         (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "point" )) ||
         (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "region" )) ||
-        (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "rect" )) ) 
+        (nl->IsEqual( arg1, "mpoint" ) && nl->IsEqual( arg2, "rect" )) )
       return nl->SymbolAtom( "bool" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -8175,7 +8175,28 @@ ListExpr restrictTM(ListExpr args){
   return nl->SymbolAtom("mint");
 }
 
+/*
+~SpeedUpTypeMap~
 
+signatures:
+  mpoint x real -> mpoint
+
+*/
+ListExpr SpeedUpTypeMap(ListExpr args){
+  string err = "mpoint x real expected";
+  int len = nl->ListLength(args);
+  if(len!=2){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+
+  if(nl->IsEqual(nl->First(args),"mpoint") &&
+     nl->IsEqual(nl->Second(args),"real")){
+      return nl->SymbolAtom("mpoint");
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+}
 
 /*
 16.2 Selection function
@@ -8554,7 +8575,7 @@ MovingBaseSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "mpoint" &&
       nl->SymbolValue( arg2 ) == "rect" )
     return 5;
-  
+
   return -1; // This point should never be reached
 }
 
@@ -10784,7 +10805,48 @@ int restrictVM2( Word* args, Word& result, int message,
    return 0;
 }
 
+int SpeedUpVM( Word* args, Word& result, int message,
+                          Word& local, Supplier s ) {
+   result = qp->ResultStorage(s);
+   MPoint* res = static_cast<MPoint*>(result.addr);
+   MPoint* arg1 = static_cast<MPoint*>(args[0].addr);
+   CcReal* arg2 = static_cast<CcReal*>(args[1].addr);
+   if(!arg1->IsDefined()){
+     res->Clear();
+     res->SetDefined(false);
+     return 0;
+   }
+   if(AlmostEqual(arg2->GetRealval(),0.0)){
+      *res = *arg1;
+      return 0;
+   }
 
+   const UPoint* up;
+   UPoint last;
+   UPoint* cur;
+   res->StartBulkLoad();
+   double factor = 1/arg2->GetRealval();
+   for(int i = 0;i < arg1->GetNoComponents();i++){
+    arg1->Get(i,up);
+    if(i == 0){
+      last = *up;
+      last.timeInterval.end =
+            (last.timeInterval.end-last.timeInterval.start)*factor+
+            last.timeInterval.start;
+      res->Add(last);
+    }else{
+      cur = new UPoint(*up);
+      cur->timeInterval.start = last.timeInterval.end;
+      cur->timeInterval.end = cur->timeInterval.start +
+        (up->timeInterval.end-up->timeInterval.start)*factor;
+      res->Add(*cur);
+      last = *cur;
+      delete cur;
+    }
+   }
+   res->EndBulkLoad();
+   return 0;
+}
 
 /*
 16.4 Definition of operators
@@ -11635,6 +11697,14 @@ const string restrictSpec =
     "<text>query restrict(noAtCenter)</text--->"
     ") )";
 
+const string speedupSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint x real -> mpoint </text---> "
+    "<text> _ speedup [_] </text--->"
+    "<text> change the speed of the moving point by a given factor "
+    "<text>query train1 speedup[2.0]</text--->"
+    ") )";
+
 /*
 16.4.3 Operators
 
@@ -12081,11 +12151,16 @@ Operator restrict( "restrict",
                     restrictVM,
                     restrictSelect,
                     restrictTM );
+
+Operator speedup( "speedup",
+                    speedupSpec,
+                    SpeedUpVM,
+                    Operator::SimpleSelect,
+                    SpeedUpTypeMap);
 /*
 6 Creating the Algebra
 
 */
-
 class TemporalAlgebra : public Algebra
 {
  public:
@@ -12215,6 +12290,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&equalizeU);
     AddOperator(&hat);//hat
     AddOperator(&restrict);
+    AddOperator(&speedup);
   }
   ~TemporalAlgebra() {};
 };

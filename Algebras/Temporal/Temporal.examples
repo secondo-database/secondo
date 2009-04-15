@@ -471,4 +471,8 @@ Signature : mint x int -> mint
 Example   : query units(restrict(noAtCenter, 1) = noAtCenter) count
 Result    : (int 1)
 
-
+Operator  : speedup
+Number    : 2
+Signature : mpoint x real -> mpoint
+Example   : query deftime(train1 speedup[2.0])
+Result    :(periods (("2003-11-20-06:03" "2003-11-20-06:22:59.980" TRUE FALSE))))
