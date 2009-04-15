@@ -2885,7 +2885,16 @@ available.
 
 */
 
-assignSizes :- not(assignSizes1).
+assignSizes :- 
+  optimizerOption(correlations),
+  not(assignSizes1),
+  addCorrelationSizes,
+  !.
+
+assignSizes :- 
+  not(optimizerOption(correlations)),
+  not(assignSizes1).
+
 
 assignSizes1 :-
   edge(Source, Target, Term, Result, _, _),
