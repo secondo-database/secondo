@@ -11702,7 +11702,7 @@ const string speedupSpec =
     "( <text>mpoint x real -> mpoint </text---> "
     "<text> _ speedup [_] </text--->"
     "<text> change the speed of the moving point by a given factor "
-    "<text>query train1 speedup[2.0]</text--->"
+    "query train1 speedup[2.0]</text--->"
     ") )";
 
 /*
