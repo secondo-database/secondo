@@ -73,7 +73,7 @@ added. This helps to get an quick overview about the different estimation values
 
 Below there are some clauses which print the estimated sizes of the standard optimizer
 and compares them with the sizes calculated by the entropy approach. Moreover,
-it is possible to compute the ~real~ nod sizes and to store the queries and
+it is possible to compute the ~real~ node sizes and to store the queries and
 the estimations in SECONDO relation objects.
 
 
@@ -166,11 +166,14 @@ createSmallResultSize([ [Nc,Value] | T ]) :-
 createSmallResultSizes2 :-
   deleteSmallResultSize,
   secondo('list counters', C ), !,
+  %showValue('C',C),
   createSmallResultSize( C ).
 
 createSmallResultSizes :-
   deleteSmallResultSize, !,
   not(createSmallResultSizes2).
+  %findall([X,Y], smallResultSize(X,Y), R),
+  %showValue('R', R).
 
 deleteSmallResultSize :-
   retractall(smallResultSize(_,_)).
@@ -213,10 +216,15 @@ compute_sel(ResSize, ArgSize, Sel) :-
 
 
 
+ showSmallCondSels :-
+   findall([Src, Tgt, Res, Sel], small_cond_sel(Src,Tgt, Res, Sel), R),
+   showValue('all values of small_cond_sel/4', R).
+
 
 assignSmallSelectivity(Source, Target, Result, select(Arg, _), Value) :-
   newResSize(Arg, Card),
   compute_sel( Value, Card, Sel ),!,
+  %showValue('assignSmall', [Arg, Card, Value, Sel]),
   assert(small_cond_sel(Source, Target, Result, Sel)).
 
 assignSmallSelectivity(Source, Target, Result, join(Arg1, Arg2, _), Value) :-
@@ -234,6 +242,7 @@ createSmallSelectivity2 :-
   smallResultCounter(_, Source, Target, Result),
   smallResultSize(Result, Value),
   edge(Source,Target,Term,Result,_,_),
+  %showValue('assignSmallSel', [Source, Target]),
   assignSmallSelectivity(Source, Target, Result, Term, Value),
   fail.
 
@@ -260,7 +269,7 @@ small(rel(Rel, Var), rel(Rel2, Var)) :-
 
 newResSize(arg(N), Size) :-
   argument(N, R ),
-  R = (DCrel, _), createSmallRelationObjectForRel(DCrel),
+  R = rel(DCrel , _), createSmallRelationObjectForRel(DCrel),
   small( R, rel(SRel, _)),   card(SRel, Size), !.
 
 newResSize(res(N), Size) :-
@@ -342,6 +351,7 @@ traversePath2([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
   embedSubPlans(Term, Term2),
   possiblyCorrectSelfJoins(Source, Target, Term2, Term3),
   nextCounter(nodeCtr, Nc),
+  %showValue('Nc', Nc),
   assert(nodePlan(Result, counter(Term3,Nc))),
   assert(smallResultCounter(Nc, Source, Target, Result)),
   traversePath2(Path).
@@ -785,6 +795,13 @@ deleteSmallResults :-
 
 ----
    sql select count(*) from plz as p where [p:plz > 40000, p:plz < 50000].
+
+   Marginal Sel.: MP =[[1, 0.553], [2, 0.519]]
+   Conditional Sel.: JP =[[0, 2, 0.513815], [2, 3, 0.0763451]]
+
+   calling maximize_entropy with:
+   [[1, 0.553], [2, 0.513815]], [[3, 0.0763451]]
+
    sql select count(*) from plz as p where [(p:plz mod 20) = 0, (p:plz mod 30) = 0].
 ----
 
