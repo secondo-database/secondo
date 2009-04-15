@@ -2115,8 +2115,8 @@ Calculates the distance between 2 upoints as a real value.
 
   virtual double Distance(const Rectangle<3>& rect) const;
 /*
-  Computes the distance between the three dimensional line defined by 
-  that unit and the rectnagle. 
+  Computes the distance between the three dimensional line defined by
+  that unit and the rectnagle.
 
 */
 
@@ -2533,15 +2533,15 @@ Initializes the size of the array of units
 
 
 /*
-~MergeAddFillUp~ 
+~MergeAddFillUp~
 
 Append the unit to this MInt. If a gap in time between the last
-Unit and the new units exists, it is filled up using a unit having value 
+Unit and the new units exists, it is filled up using a unit having value
 as it's value.
 
 */
-  
-  void MergeAddFillUp(const UInt& unit, const int fillValue); 
+
+  void MergeAddFillUp(const UInt& unit, const int fillValue);
 
 
 /*
@@ -2551,7 +2551,7 @@ Fills gaps in the definition time eith the given value.
   void fillUp(int value, MInt& result) const;
 
   int maximum() const;
-  
+
   int minimum() const;
 
 
@@ -2583,11 +2583,11 @@ starts (ends) with endoftime (beginoftime). If __useValue__
 is set to true, the units are only removed if the stored value is equals to
 the given value.
 
-*/   
-   void Restrict(MInt& result, 
-                 const bool useValue = false, 
+*/
+   void Restrict(MInt& result,
+                 const bool useValue = false,
                  const int value = 0) const;
-   
+
 
    void  PlusExtend(const MInt* arg2, MInt& result) const;
 
@@ -3005,7 +3005,7 @@ void Interval<Alpha>::CopyFrom( const Interval<Alpha>& i )
 template <class Alpha>
 bool Interval<Alpha>::IsValid() const
 {
-  if( !start.IsDefined() || !end.IsDefined() ){ 
+  if( !start.IsDefined() || !end.IsDefined() ){
     return false;
   }
 
@@ -3126,7 +3126,7 @@ bool Interval<Alpha>::Contains( const Interval<Alpha>& i ) const
 {
   int cmp1 = start.CompareTo(&(i.start));
   int cmp2 = end.CompareTo(&(i.end));
-  if(cmp1>0) {    // i starts before this 
+  if(cmp1>0) {    // i starts before this
     return false;
   }
   if((cmp1==0) && !lc && i.lc){ // i starts before this
@@ -5222,12 +5222,12 @@ bool Mapping<Unit, Alpha>::IsValid() const
     }
     if(lastunit->timeInterval.end > unit->timeInterval.start){
        cerr << "Units are not ordered by time" << endl;
-       cerr << "lastUnit.timeInterval =  "; lastunit->timeInterval.Print(cerr); 
+       cerr << "lastUnit.timeInterval =  "; lastunit->timeInterval.Print(cerr);
        cerr << endl;
-       cerr << "unit.timeInterval =  "; unit->timeInterval.Print(cerr); 
+       cerr << "unit.timeInterval =  "; unit->timeInterval.Print(cerr);
        cerr << endl;
        return false;
-    } 
+    }
 
 
     if( (!lastunit->timeInterval.Disjoint(unit->timeInterval)) )
@@ -6765,7 +6765,7 @@ void RefinementPartition<Mapping1, Mapping2, Unit1,
     "RP::AddUnits()                ["<<start.ToString()<<" "
     <<end.ToString()<<" "<<lc<<" "<<rc<<"] "<<urPos<<" "<<upPos)
 
-  assert(urPos!=-1 || upPos!=-1); 
+  assert(urPos!=-1 || upPos!=-1);
 
 
   if( (start==end) && !(lc && rc)){ // invalid interval
@@ -6780,14 +6780,14 @@ void RefinementPartition<Mapping1, Mapping2, Unit1,
   // #### start debug
   /*   if(urPos>=0){
      const Unit1* u1;
-     map1.Get(urPos,u1);  
+     map1.Get(urPos,u1);
      if(!u1->timeInterval.Contains(*civ)){
         cout << "u1->timeInterval=" << u1->timeInterval << endl;
         cout << "*civ" << (*civ) << endl;
      }
      assert(u1->timeInterval.Contains(*civ));
    }
-   if(upPos>=0){  
+   if(upPos>=0){
      const Unit2* u2;
      map2.Get(upPos, u2);
      if(!u2->timeInterval.Contains(*civ)){
@@ -6814,7 +6814,7 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
    int no2 = m2.GetNoComponents();
    if(no1 + no2 == 0){ // both mappings are empty
       REF_DEBUG("empty mappings");
-      return; 
+      return;
    }
    if(no2==0){  // m2 is empty
      REF_DEBUG("m2 is empty");
@@ -6824,9 +6824,9 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
      const Unit1* u1;
      for(int i=0;i<no1;i++){
        m1.Get(i,u1);
-       AddUnits(i,-1,u1->timeInterval.start, u1->timeInterval.end, 
-                     u1->timeInterval.lc, u1->timeInterval.rc,m1, m2); 
-     } 
+       AddUnits(i,-1,u1->timeInterval.start, u1->timeInterval.end,
+                     u1->timeInterval.lc, u1->timeInterval.rc,m1, m2);
+     }
      return;
    }
    if(no1==0){   // m1 is empty
@@ -6837,9 +6837,9 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
      const Unit2* u2;
      for(int i=0;i<no2;i++){
        m2.Get(i,u2);
-       AddUnits(-1,i,u2->timeInterval.start, u2->timeInterval.end, 
-                     u2->timeInterval.lc, u2->timeInterval.rc,m1, m2); 
-     } 
+       AddUnits(-1,i,u2->timeInterval.start, u2->timeInterval.end,
+                     u2->timeInterval.lc, u2->timeInterval.rc,m1, m2);
+     }
      return;
    }
 
@@ -6864,7 +6864,7 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
    REF_DEBUG("no2 = " << no2 );
 
    while( (pos1<no1) && (pos2<no2) ){
-     REF_DEBUG("pos1 = " << pos1 );       
+     REF_DEBUG("pos1 = " << pos1 );
      REF_DEBUG("pos2 = " << pos2 );
      REF_DEBUG("t1 = " << t1);
      REF_DEBUG("t2 = " << t2);
@@ -6879,7 +6879,7 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
          pos1++;
          if(pos1 < no1){
            m1.Get(pos1, u1p);
-           t1 = u1p->timeInterval; 
+           t1 = u1p->timeInterval;
          }
        } else if(t1.end > t2.start){
          REF_DEBUG("case 1.2: t1 ends after t2 starts" );
@@ -6896,7 +6896,7 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
            pos1++;
            if(pos1 < no1){
              m1.Get(pos1,u1p);
-             t1 = u1p->timeInterval; 
+             t1 = u1p->timeInterval;
            }
          } else { // intervals have a common instant
            REF_DEBUG("case 1.3.2: t2 ends when t2 starts (common instant)");
@@ -6904,7 +6904,7 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
            t1.lc = true;
            t1.start = t2.start;
          }
-       }  
+       }
      } else if(t2.start < t1.start){
         REF_DEBUG("case 2: t2 starts before t1 starts" );
         // symmetric case , u2 starts before u1
@@ -6914,7 +6914,7 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
          pos2++;
          if(pos2 < no2){
            m2.Get(pos2,u2p);
-           t2 = u2p->timeInterval; 
+           t2 = u2p->timeInterval;
          }
        } else if(t2.end > t1.start){
          REF_DEBUG("case 2.2: t2 ends after t1 starts");
@@ -6931,7 +6931,7 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
            pos2++;
            if(pos2 < no2){
              m2.Get(pos2,u2p);
-             t2 = u2p->timeInterval; 
+             t2 = u2p->timeInterval;
            }
          } else { // intervals have a common instant
            REF_DEBUG("case 2.3.2: t2 ends when t1 starts (common instant)");
@@ -6939,10 +6939,10 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
            t2.lc = true;
            t2.start = t1.start;
          }
-       }  
+       }
      } else { // u1.timeInterval.start == u2.timeInterval.start
        REF_DEBUG("case 3: t1 and t2 start at the same instant" );
-       // both intervals start at the same instant 
+       // both intervals start at the same instant
        if(t1.lc != t2.lc){
          REF_DEBUG("case 3.1: membership of the instant differs");
          if(t1.lc){ // add a single instant interval
@@ -7029,8 +7029,8 @@ RefinementPartition<Mapping1, Mapping2, Unit1,
               }
             }
          }
-       }  
-     }  
+       }
+     }
    }
 
    REF_DEBUG("one of the arguments is finished");
