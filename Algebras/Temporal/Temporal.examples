@@ -476,3 +476,9 @@ Number    : 2
 Signature : mpoint x real -> mpoint
 Example   : query deftime(train1 speedup[2.0])
 Result    :(periods (("2003-11-20-06:03" "2003-11-20-06:22:59.980" TRUE FALSE))))
+
+Operator  : avespeed
+Number    : 2
+Signature : mpoint ->  real
+Example   : query avespeed(train1)
+Result    : (real 7.8796161609)

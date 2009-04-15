@@ -8199,6 +8199,28 @@ ListExpr SpeedUpTypeMap(ListExpr args){
 }
 
 /*
+~AveSpeedTypeMap~
+
+signatures:
+  mpoint -> real
+
+*/
+ListExpr AveSpeedTypeMap(ListExpr args){
+  string err = "mpoint expected";
+  int len = nl->ListLength(args);
+  if(len!=1){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+
+  if(nl->IsEqual(nl->First(args),"mpoint")){
+      return nl->SymbolAtom("real");
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+}
+
+/*
 16.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -10848,6 +10870,27 @@ int SpeedUpVM( Word* args, Word& result, int message,
    return 0;
 }
 
+int AveSpeedVM( Word* args, Word& result, int message,
+                          Word& local, Supplier s ) {
+   result = qp->ResultStorage(s);
+   CcReal* res = static_cast<CcReal*>(result.addr);
+   MPoint* arg1 = static_cast<MPoint*>(args[0].addr);
+   if(!arg1->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   double length = 0;
+   double time = 0;
+   const UPoint* up;
+   for(int i = 0;i < arg1->GetNoComponents();i++){
+    arg1->Get(i,up);
+    Instant inter = up->timeInterval.end-up->timeInterval.start;
+    time += inter.GetDay()*24*60*60+inter.GetAllMilliSeconds()/1000.0;
+    length += up->p0.Distance(up->p1);
+   }
+   res->Set(true,length/time);
+   return 0;
+}
 /*
 16.4 Definition of operators
 
@@ -11705,6 +11748,13 @@ const string speedupSpec =
     "query train1 speedup[2.0]</text--->"
     ") )";
 
+const string avespeedSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint -> real </text---> "
+    "<text> avespeed (_) </text--->"
+    "<text> query the average speed of a moving point,unit/s "
+    "query avespeed(train1)</text--->"
+    ") )";
 /*
 16.4.3 Operators
 
@@ -12157,6 +12207,12 @@ Operator speedup( "speedup",
                     SpeedUpVM,
                     Operator::SimpleSelect,
                     SpeedUpTypeMap);
+
+Operator avespeed( "avespeed",
+                    avespeedSpec,
+                    AveSpeedVM,
+                    Operator::SimpleSelect,
+                    AveSpeedTypeMap);
 /*
 6 Creating the Algebra
 
@@ -12291,6 +12347,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&hat);//hat
     AddOperator(&restrict);
     AddOperator(&speedup);
+    AddOperator(&avespeed);
   }
   ~TemporalAlgebra() {};
 };
