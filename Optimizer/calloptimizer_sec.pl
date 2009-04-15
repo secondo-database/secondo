@@ -1,6 +1,6 @@
 :- assert(
 optimizerOptionInfo(correlations, none, yes,
-                     'Try to take predicate interdependence into account.',
+                     'Derive joint probabilities for selection predicates before computing a best plan',
                      ( delOption(entropy),
                        delOption(intOrders(on)),
                        delOption(intOrders(quick)),
@@ -9,6 +9,14 @@ optimizerOptionInfo(correlations, none, yes,
                        loadFiles(correlations)
                      ),
                      true )).
+% Recompute selectivities and cardinalities in the POG using the principle of entropy maximization. In contrast to the entropy option don't run an initial query on the small database'
+
+
+:- assert(
+optimizerOptionInfo(joinCorrelations, correlations, no,
+                    'Additionally derive joint probabilities for join predicates',
+                    true, true)).
+
 
 :- assert(
 optimizerOptionInfo(adaptiveJoin, none, yes,
@@ -22,9 +30,11 @@ optimizerOptionInfo(adaptiveJoin, none, yes,
                      ),
                      true )).
 
+
+
 :- assert(
 optimizerOptionInfo(entropy, none, yes,
-                    'Use entropy to estimate selectivities.',
+   'Use entropy maximization together with an exploration query on a small sample database',
                     ( delOption(intOrders(on)),
                       delOption(intOrders(quick)),
                       delOption(intOrders(path)),
@@ -37,6 +47,11 @@ optimizerOptionInfo(entropy, none, yes,
                       )
                     ),
 	            true )).
+
+% Compute joint probabilities along the chosen path of the POG, maximize entropy to estimate selectivities again and compute a new best plan with the revised POG.'
+
+
+
 
 :- assert(
 optimizerOptionInfo(rewriteNonempty, rewriteInference,
