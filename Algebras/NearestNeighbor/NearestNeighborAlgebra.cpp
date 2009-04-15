@@ -6160,12 +6160,13 @@ SegEntry<timeType>& se)
         Interval<timeType> d(t1,t2,true,true);
         BBox<2> entrybox = makexyBox(entry->getBox());
         BBox<2> mBox(t->getBox(d));
-        Interval<Instant> interv(entry->getBox().MinD(2),
-                                entry->getBox().MaxD(2),true,true);
         double mindist,maxdist;
-//       mindist = mBox.Distance(entrybox);
-//       maxdist = maxDistance(mBox,entrybox);
-///////////////
+
+        mindist = mBox.Distance(entrybox);
+        maxdist = maxDistance(mBox,entrybox);
+/////////////////////////////
+/*        Interval<Instant> interv(entry->getBox().MinD(2),
+                                entry->getBox().MaxD(2),true,true);
         Periods p(1);
         p.Add(interv);
         MPoint* submp = new MPoint(0);
@@ -6199,8 +6200,10 @@ SegEntry<timeType>& se)
            maxdist = traj->MaxDistance(entrybox);
         }
         delete submp;
-        delete traj;
-/////////////////////////////////////
+        delete traj;*/
+///////////////////////////
+
+
         SegEntry<timeType> se(entrybox,t1,t2,mindist,
                               maxdist,1,-1,
                               entry->getInfo().getTupleId());
@@ -6226,12 +6229,12 @@ SegEntry<timeType>& se)
             BBox<2> entrybox = makexyBox(entry->getBox());
             Interval<timeType> d(t1,t2,true,true);
             BBox<2> mBox(t->getBox(d));
-            Interval<Instant> interv(entry->getBox().MinD(2),
-                                entry->getBox().MaxD(2),true,true);
             double mindist,maxdist;
-//            mindist = mBox.Distance(entrybox);
-//            maxdist = maxDistance(mBox,entrybox);
-////////////////////////////////////////////
+            mindist = mBox.Distance(entrybox);
+            maxdist = maxDistance(mBox,entrybox);
+
+/*Interval<Instant> interv(entry->getBox().MinD(2),
+                                entry->getBox().MaxD(2),true,true);
             Periods p(1);
             p.Add(interv);
             MPoint* submp = new MPoint(0);
@@ -6258,8 +6261,8 @@ SegEntry<timeType>& se)
               maxdist = traj->MaxDistance(entrybox);
             }
             delete submp;
-            delete traj;
-///////////////////////////////////////
+            delete traj;*/
+
             candidate.push_back(
             EFieldEntry<timeType>(adr,mindist,maxdist,level+1,t1,t2));
           }
@@ -6462,12 +6465,12 @@ int ctbknearestFilterFun (Word* args, Word& result, int message,
               Interval<timeType> d(t1,t2,true,true);
               BBox<2> entrybox = makexyBox(entry->getBox());
               BBox<2> mBox(t->getBox(d));
-              Interval<Instant> interv(entry->getBox().MinD(2),
-                                entry->getBox().MaxD(2),true,true);
               double mindist,maxdist;
-//       mindist = mBox.Distance(entrybox);
-//       maxdist = maxDistance(mBox,entrybox);
-///////////////
+              mindist = mBox.Distance(entrybox);
+              maxdist = maxDistance(mBox,entrybox);
+
+/*Interval<Instant> interv(entry->getBox().MinD(2),
+                                entry->getBox().MaxD(2),true,true);
               Periods p(1);
               p.Add(interv);
               MPoint* submp = new MPoint(0);
@@ -6502,8 +6505,8 @@ int ctbknearestFilterFun (Word* args, Word& result, int message,
                 maxdist = traj->MaxDistance(entrybox);
               }
               delete submp;
-              delete traj;
-/////////////////////////////////////
+              delete traj;*/
+
               SegEntry<timeType> se(entrybox,t1,t2,mindist,
                                 maxdist,1,-1,entry->getInfo().getTupleId());
               unsigned int cov = localInfo->timeTree.calcCoverage(se.start,
@@ -6528,12 +6531,13 @@ int ctbknearestFilterFun (Word* args, Word& result, int message,
                BBox<2> entrybox = makexyBox(entry->getBox());
                Interval<timeType> d(t1,t2,true,true);
                BBox<2> mBox(t->getBox(d));
-               Interval<Instant> interv(entry->getBox().MinD(2),
-                                entry->getBox().MaxD(2),true,true);
+
               double mindist,maxdist;
-//            mindist = mBox.Distance(entrybox);
-//            maxdist = maxDistance(mBox,entrybox);
-////////////////////////////////////////////
+              mindist = mBox.Distance(entrybox);
+              maxdist = maxDistance(mBox,entrybox);
+
+/*Interval<Instant> interv(entry->getBox().MinD(2),
+                                entry->getBox().MaxD(2),true,true);
               Periods p(1);
               p.Add(interv);
               MPoint* submp = new MPoint(0);
@@ -6556,8 +6560,9 @@ int ctbknearestFilterFun (Word* args, Word& result, int message,
                 maxdist = traj->MaxDistance(entrybox);
               }
               delete submp;
-              delete traj;
-///////////////////////////////////////
+              delete traj;*/
+
+
             CcInt* id = new CcInt(true,adr);
             BTreeIterator* btreeiter = localInfo->btreehats->ExactMatch(id);
             assert(btreeiter->Next());
