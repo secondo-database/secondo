@@ -4938,7 +4938,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
       while( !localInfo->vectorA.empty() )
       {
         unsigned int vpos;
-        sort(localInfo->vectorA.begin(),localInfo->vectorA.end(),
+        stable_sort(localInfo->vectorA.begin(),localInfo->vectorA.end(),
         CmpFiledEntry<timeType>); //order by time
         for( vpos = 0; vpos < localInfo->vectorA.size(); ++vpos)
         {
@@ -6267,7 +6267,8 @@ SegEntry<timeType>& se)
             EFieldEntry<timeType>(adr,mindist,maxdist,level+1,t1,t2));
           }
       }
-      sort(candidate.begin(),candidate.end(),CmpEFE<timeType>);//sort by mindist
+      //sort by mindist
+      stable_sort(candidate.begin(),candidate.end(),CmpEFE<timeType>);
       for(unsigned int i = 0;i < candidate.size();i++){
         adr = candidate[i].nodeid;
         tbtree::BasicNode<dim>* node = localInfo->tbtree->getNode(adr);
@@ -6561,7 +6562,6 @@ int ctbknearestFilterFun (Word* args, Word& result, int message,
               }
               delete submp;
               delete traj;*/
-
 
             CcInt* id = new CcInt(true,adr);
             BTreeIterator* btreeiter = localInfo->btreehats->ExactMatch(id);
