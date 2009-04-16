@@ -10919,7 +10919,8 @@ int SubMoveVM( Word* args, Word& result, int message,
    MPoint* res = static_cast<MPoint*>(result.addr);
    MPoint* arg1 = static_cast<MPoint*>(args[0].addr);
    CcReal* arg2 = static_cast<CcReal*>(args[1].addr);
-   if(!arg1->IsDefined() || arg2->GetRealval() <= 0.0){
+   if(!arg1->IsDefined() || arg2->GetRealval() <= 0.0 ||
+     arg1->GetNoComponents() == 0){
      res->Clear();
      res->SetDefined(false);
      return 0;
@@ -10937,7 +10938,7 @@ int SubMoveVM( Word* args, Word& result, int message,
    arg1->Get(arg1->GetNoComponents()-1,up2);
    Instant dt = (up2->timeInterval.end - up1->timeInterval.start)*factor;
    srand(time(0));
-   int pos = rand() % arg1->GetNoComponents() - 1;
+   int pos = rand() % arg1->GetNoComponents();
    assert(pos < arg1->GetNoComponents());
    arg1->Get(pos,up1);
    Instant enddt = up1->timeInterval.start + dt;
@@ -10969,7 +10970,6 @@ int SubMoveVM( Word* args, Word& result, int message,
       }
     }
   }
-  cout<<"ok"<<endl;
   delete cur;
    res->EndBulkLoad();
    return 0;
