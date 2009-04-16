@@ -8221,6 +8221,28 @@ ListExpr AveSpeedTypeMap(ListExpr args){
 }
 
 /*
+~SubMoveTypeMap~
+
+signatures:
+  mpoint -> real
+
+*/
+ListExpr SubMoveTypeMap(ListExpr args){
+  string err = "mpoint x real expected";
+  int len = nl->ListLength(args);
+  if(len!=2){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+
+ if(nl->IsEqual(nl->First(args),"mpoint") &&
+     nl->IsEqual(nl->Second(args),"real")){
+      return nl->SymbolAtom("mpoint");
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+}
+/*
 16.2 Selection function
 
 A selection function is quite similar to a type mapping function. The only
@@ -10891,6 +10913,68 @@ int AveSpeedVM( Word* args, Word& result, int message,
    res->Set(true,length/time);
    return 0;
 }
+int SubMoveVM( Word* args, Word& result, int message,
+                          Word& local, Supplier s ) {
+   result = qp->ResultStorage(s);
+   MPoint* res = static_cast<MPoint*>(result.addr);
+   MPoint* arg1 = static_cast<MPoint*>(args[0].addr);
+   CcReal* arg2 = static_cast<CcReal*>(args[1].addr);
+   if(!arg1->IsDefined() || arg2->GetRealval() <= 0.0){
+     res->Clear();
+     res->SetDefined(false);
+     return 0;
+   }
+   if(arg2->GetRealval() >= 1.0){
+      *res = *arg1;
+      return 0;
+   }
+   const UPoint* up1;
+   const UPoint* up2;
+   UPoint* cur;
+   res->StartBulkLoad();
+   double factor = arg2->GetRealval();
+   arg1->Get(0,up1);
+   arg1->Get(arg1->GetNoComponents()-1,up2);
+   Instant dt = (up2->timeInterval.end - up1->timeInterval.start)*factor;
+   srand(time(0));
+   int pos = rand() % arg1->GetNoComponents() - 1;
+   assert(pos < arg1->GetNoComponents());
+   arg1->Get(pos,up1);
+   Instant enddt = up1->timeInterval.start + dt;
+   cur = new UPoint(*up1);
+   if(enddt <= cur->timeInterval.end){
+    Point p1;
+    cur->TemporalFunction(enddt,p1,true);
+    assert(p1.IsDefined());
+    cur->timeInterval.end = cur->timeInterval.start+dt;
+    cur->p1 = p1;
+    res->Add(*cur);
+   }else{
+    res->Add(*cur);
+    UPoint* up;
+    for(pos++;pos < arg1->GetNoComponents();pos++){
+      arg1->Get(pos,up1);
+      if(up1->timeInterval.end < enddt){
+        res->Add(*up1);
+      }else{
+        up = new UPoint(*up1);
+        Point p1;
+        up->TemporalFunction(enddt,p1,true);
+        assert(p1.IsDefined());
+        up->timeInterval.end = enddt;
+        up->p1 = p1;
+        res->Add(*up);
+        delete up;
+        break;
+      }
+    }
+  }
+  cout<<"ok"<<endl;
+  delete cur;
+   res->EndBulkLoad();
+   return 0;
+}
+
 /*
 16.4 Definition of operators
 
@@ -11755,6 +11839,15 @@ const string avespeedSpec =
     "<text> query the average speed of a moving point,unit/s "
     "query avespeed(train1)</text--->"
     ") )";
+
+const string submoveSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint x real-> mpoint </text---> "
+    "<text> submove (_) </text--->"
+    "<text> get part of a moving point according to the given factor "
+    "query submove(train1)</text--->"
+    ") )";
+
 /*
 16.4.3 Operators
 
@@ -12213,6 +12306,12 @@ Operator avespeed( "avespeed",
                     AveSpeedVM,
                     Operator::SimpleSelect,
                     AveSpeedTypeMap);
+
+Operator submove( "submove",
+                    submoveSpec,
+                    SubMoveVM,
+                    Operator::SimpleSelect,
+                    SubMoveTypeMap);
 /*
 6 Creating the Algebra
 
@@ -12348,6 +12447,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&restrict);
     AddOperator(&speedup);
     AddOperator(&avespeed);
+    AddOperator(&submove);
   }
   ~TemporalAlgebra() {};
 };

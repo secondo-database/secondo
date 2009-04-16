@@ -482,3 +482,9 @@ Number    : 2
 Signature : mpoint ->  real
 Example   : query avespeed(train1)
 Result    : (real 7.8796161609)
+
+Operator  : submove
+Number    : 2
+Signature : mpoint x real ->  mpoint
+Example   : query train1 submove[0.5]
+Result    : no fixed value

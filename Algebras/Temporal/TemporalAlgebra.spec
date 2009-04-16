@@ -71,6 +71,7 @@ operator vertices alias VERTICES pattern op( _ )
 operator hat alias HAT pattern op ( _ )
 operator speedup alias SPEEDUP pattern _ op [_]
 operator avespeed alias AVESPEED pattern op(_)
+operator submove alias SUBMOVE pattern _ op[_]
 
 
 
