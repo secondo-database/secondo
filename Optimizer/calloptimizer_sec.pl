@@ -8,14 +8,19 @@ optimizerOptionInfo(correlations, none, yes,
                        delOption(intOrders(test)),
                        loadFiles(correlations)
                      ),
-                     true )).
+                     ( delOption(joinCorrelations), delOption(joinCorrelations2) ) )).
 % Recompute selectivities and cardinalities in the POG using the principle of entropy maximization. In contrast to the entropy option don't run an initial query on the small database'
 
 
 :- assert(
 optimizerOptionInfo(joinCorrelations, correlations, no,
-                    'Additionally derive joint probabilities for join predicates',
-                    true, true)).
+                    'Additionally derive joint probabilities for join predicates (nested-loop)',
+                    ( setOption(correlations), delOption(joinCorrelations2)), true)).
+
+:- assert(
+optimizerOptionInfo(joinCorrelations2, correlations, no,
+                    'The same behavior as joinCorrelations but use product-filter',
+                    ( setOption(correlations), delOption(joinCorrelations) ), true)).
 
 
 :- assert(
