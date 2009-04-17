@@ -32,21 +32,21 @@ all: viewers MenuVector.class SecondoViewer.class
 
 # add below new Viewer classes or subdirectories to compile
 VIEWER_CLASSES := StandardViewer.class
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  FormattedViewer.class
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  InquiryViewer.class
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  QueryViewer.class
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  RelViewer.class
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  Viewer3D.class 
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  Fuzzy2D.class 
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  RelSplit.class
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  HoeseViewer.class
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  MP3V.class
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  MidiViewer.class
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  TreeViewer.class
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  PictureViewer.class
-VIEWER_CLASSES :=  $(VIEWERCLASSES)  UpdateViewer.class 
-#VIEWER_CLASSES :=  $(VIEWERCLASSES)  GrappaViewer.class 
-#VIEWER_CLASSES :=  $(VIEWERCLASSES)  SvgViewer.class 
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  FormattedViewer.class
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  InquiryViewer.class
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  QueryViewer.class
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  RelViewer.class
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  Viewer3D.class 
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  Fuzzy2D.class 
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  RelSplit.class
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  HoeseViewer.class
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  MP3V.class
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  MidiViewer.class
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  TreeViewer.class
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  PictureViewer.class
+VIEWER_CLASSES +=  $(VIEWERCLASSES)  UpdateViewer.class 
+#VIEWER_CLASSES +=  $(VIEWERCLASSES)  GrappaViewer.class 
+#VIEWER_CLASSES +=  $(VIEWERCLASSES)  SvgViewer.class 
 
 VIEWER_DIRS := fuzzy2d midi relsplit viewer3d hoese pictureviewer update
 
