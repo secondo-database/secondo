@@ -142,7 +142,7 @@ COMMAND_STYLE GUI
 
 # Specify the encoding 
 # be carefully in using this option
-# ENCODING ISO-8859-1
+ENCODING ISO-8859-1
 
 
 # Here, the look and feel of the gui can be changed
