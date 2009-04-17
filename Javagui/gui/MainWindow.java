@@ -316,6 +316,14 @@ public MainWindow(String Title,String user,String passwd){
         LAF=LAF.trim();
      }
 
+     String Encoding = Config.getProperty("ENCODING");
+     if(Encoding!=null){
+        gui.Environment.ENCODING=Encoding.trim();
+        if(gui.Environment.ENCODING.length()==0){
+           gui.Environment.ENCODING=null;
+        }
+     }
+
      String OldObjectStyle = Config.getProperty("OLD_OBJECT_STYLE");
      Environment.OLD_OBJECT_STYLE=OldObjectStyle!=null && 
                                   OldObjectStyle.toLowerCase().trim().equals("true");

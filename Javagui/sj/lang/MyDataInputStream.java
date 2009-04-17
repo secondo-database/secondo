@@ -21,6 +21,7 @@ package sj.lang;
 
 
 import java.io.*;
+import java.util.Vector;
 
 
 public class MyDataInputStream extends InputStream{
@@ -81,18 +82,7 @@ public boolean readBool() throws IOException{
 
 /** reads a Line of text from the stream */
 public String readLine() throws IOException{
-  StringBuffer r = new StringBuffer();
-  char c;
-  int len = 0;
-  do{
-     int i=In.read();
-     if(i<0) throw new IOException();
-     c = (char) i;
-     len ++;
-     if(c!='\n')
-        r.append(c);;
-     } while(c!='\n');
-  return r.toString();
+   return readLine(null);
 }
 
 /* returns the positive value of b */
@@ -156,7 +146,11 @@ public byte readByte() throws IOException{
 public String readString(int size) throws IOException{
   byte[] TMP = new byte[size];
   readFullBuffer(TMP);
-  return new String(TMP);
+  if(gui.Environment.ENCODING!=null) {
+      return new String(TMP,gui.Environment.ENCODING);
+  } else {
+    return new String(TMP);
+  }
 }
 
 //*********************************************************************************************
@@ -176,21 +170,27 @@ public boolean readBool(OutputStream o) throws IOException{
 
 /** reads a Line of text from the stream */
 public String readLine(OutputStream o) throws IOException{
-  StringBuffer r = new StringBuffer();
-  char c;
   int len = 0;
+  Vector a = new Vector(1000);
+  int i;
   do{
-     int i=In.read();
+     i=In.read();
      if(i<0) throw new IOException();
-     c = (char) i;
      len ++;
-     if(c!='\n')
-        r.append(c);;
-     } while(c!='\n');
+     if(((char)i)!='\n')
+        a.add(new Byte((byte)i));
+     } while(((char)i)!='\n');
 
-  String res = r.toString();
-  o.write(res.getBytes());
-  return res;
+  byte[] b = new byte[a.size()];
+  for(int j=0;j<a.size();j++){
+    b[j]= ((Byte)a.get(j)).byteValue();
+  } 
+  if(o!=null) o.write(b);
+  if(gui.Environment.ENCODING!=null) {
+     return new String(b,gui.Environment.ENCODING);
+  } else {
+     return new String(b); 
+  }
 }
 
 
@@ -246,7 +246,11 @@ public String readString(int size,OutputStream o) throws IOException{
   byte[] TMP = new byte[size];
   readFullBuffer(TMP);
   o.write(TMP);
-  return new String(TMP);
+  if(gui.Environment.ENCODING !=null) {
+    return new String(TMP,gui.Environment.ENCODING);
+  } else {
+    return new String(TMP);
+  }
 }
 
 

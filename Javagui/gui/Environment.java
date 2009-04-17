@@ -51,7 +51,8 @@ public static int MAX_STRING_LENGTH = 48;
 /** Print out all stuff related to the Server communication **/
 public static boolean TRACE_SERVER_COMMANDS = false;
 
-
+/* encoding to use */
+public static String ENCODING = null;
 
 /*constants denoting various testmodes */
 public static final int NO_TESTMODE=0;
@@ -129,5 +130,7 @@ public static Vector getExtensions(String prefix){
 
 private static Runtime rt = Runtime.getRuntime();
 private static Trie extensions = new Trie();
+
+
 
 }

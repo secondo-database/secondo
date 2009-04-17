@@ -68,7 +68,12 @@ public void writeReal(float f) throws IOException{
 }
 
 public void writeString(String S) throws IOException{
-  byte[] bytes = S.getBytes();
+  byte[] bytes;
+  if(gui.Environment.ENCODING!=null) {
+    bytes = S.getBytes(gui.Environment.ENCODING);
+  } else {
+    bytes = S.getBytes();
+  }
   OS.write(bytes);
 }
 

@@ -665,11 +665,15 @@ public static ListExpr getListExprFromFile(String fileName){
     if(gui.Environment.MEASURE_MEMORY){
         usedMemory = gui.Environment.usedMemory();
     }
-    FileReader inputReader;
+    Reader inputReader;
     NLParser parser;
     Symbol result;
     try {
-      inputReader = new FileReader(fileName);
+      if(gui.Environment.ENCODING!=null){
+          inputReader = new InputStreamReader(new FileInputStream(fileName),gui.Environment.ENCODING);
+      } else {
+          inputReader = new InputStreamReader(new FileInputStream(fileName));
+      }
       storeDirectory((new File(fileName)).getAbsolutePath());
       parser = new NLParser(inputReader);
       result = parser.parse();
@@ -728,7 +732,12 @@ public int writeToFile (String fileName) {
 /** Writes the list to out */
 public boolean writeTo(OutputStream out,boolean OnlyRationals){
     try{
-       Writer W = new OutputStreamWriter(out);
+       Writer W;
+       if(gui.Environment.ENCODING!=null) { 
+          W = new OutputStreamWriter(out, gui.Environment.ENCODING);
+       } else {
+          W = new OutputStreamWriter(out);
+       }
        writeToRec(W,OnlyRationals,"");
        W.write("\n");
        W.flush();
@@ -1444,7 +1453,12 @@ public static ListExpr textAtom(String value){
 #else
   long v = getValue();
   try{
-      byte[] textData = value.getBytes("UTF-8");
+      byte [] textData;
+      if(gui.Environment.ENCODING!=null){
+          textData = value.getBytes(gui.Environment.ENCODING);
+      } else {
+          textData = value.getBytes();
+      }
       if(!dbarray.put(v,textData)){
          Reporter.debug("Error in putting text into dbarray");
       }
@@ -1486,7 +1500,12 @@ public void appendText(String text){
      setValue(NewText.length());
      update(); // update this (length)
      try{
-        byte[] theData = NewText.getBytes("UTF-8");
+        byte[] theData;
+        if(gui.Environment.ENCODING!=null) {
+            theData = NewText.getBytes(gui.Environment.ENCODING);
+        } else {
+            theData = NewText.getBytes();
+        }
         if (! dbarray.put(v,theData)){ // write new text into the dbarray
            Reporter.debug("Error in writing text to dbarray ");
         }
@@ -1997,7 +2016,17 @@ public byte[] textValueAsByteArray () {
    return getTextBytes(v);
 #else
     if(value==null || !(value instanceof File)){ // main memory based
-       return  ((String)this.value).getBytes();
+       if(gui.Environment.ENCODING!=null) {
+          try{
+             return  ((String)this.value).getBytes(gui.Environment.ENCODING);
+         } catch (Exception e){
+            System.err.println("Invalid encoding detected");
+            System.exit(0);
+            return null;
+         }
+       } else {
+           return  ((String)this.value).getBytes();
+       }
     }else{
        try{
          File F = (File) value;
@@ -2039,7 +2068,11 @@ public InputStream textValueAsInputStream() throws IOException{
   return new ByteArrayInputStream(b);
 #else
   if(!(value instanceof File)){
-    return new ByteArrayInputStream( ((String)value).getBytes());
+    if(gui.Environment.ENCODING!=null) {
+       return new ByteArrayInputStream( ((String)value).getBytes(gui.Environment.ENCODING));
+    } else {
+       return new ByteArrayInputStream( ((String)value).getBytes());
+    }
   }else{
     return new FileInputStream((File)value);
   }
@@ -2276,7 +2309,12 @@ private static ListExpr stringValuedAtom(String value,byte atomType){
  // first create a database entry containing the string
  long SKey = getNextKey();
  try{
-    byte[] StringBytes = value.getBytes("UTF-8");
+    byte[] StringBytes;
+    if(gui.Environment.ENCODING!=null){
+        StringBytes  = value.getBytes(gui.Environment.ENCODING);
+    } else {
+        StringBytes = value.getBytes();
+    }
     if(!dbarray.put(SKey,StringBytes)){
         Reporter.debug("Error in putting text into dbarray ");
          return null;
@@ -2327,7 +2365,11 @@ private static byte[] getTextBytes(long key){
 
 private static String getText(long key){
   try{
-     return new String(getTextBytes(key),"UTF-8");
+     if(gui.Environment.ENCODING!=null) {
+         return new String(getTextBytes(key),gui.Environment.ENCODING);
+     } else {
+         return new String(getTextBytes(key));
+    }
   } catch(Exception e){
     Reporter.debug(e);
     return null;
@@ -2425,6 +2467,7 @@ private static DBArray dbarray = null;
 private static int MINCACHESIZE = 100;
 private byte[] data=null;
 private long key=0;
+
 #endif
 
 

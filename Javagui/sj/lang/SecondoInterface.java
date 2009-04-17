@@ -844,9 +844,15 @@ private class MyBufferedOutputStream extends BufferedOutputStream{
             if(gui.Environment.TRACE_SERVER_COMMANDS){
                 Reporter.write("Send to Server: \""+s+"\"");
             }
-            int len = s.length();
-            for(int i=0;i<len;i++){
-               write((byte)s.charAt(i));
+            if(gui.Environment.ENCODING!=null) {
+                try{
+                  super.write(s.getBytes(gui.Environment.ENCODING));
+                } catch(Exception e){
+                   System.err.println("invalid encoding found, check gui.environment");
+                   System.exit(0);
+                }
+            } else { 
+                super.write(s.getBytes());
             }
             flush();
      }
