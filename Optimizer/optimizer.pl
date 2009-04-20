@@ -1863,7 +1863,7 @@ plan_to_atom(X, Result) :-
 
 /* Error case */
 plan_to_atom(X, _) :-
-  term_to:atom(X,XA),
+  term_to_atom(X,XA),
   concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(optimizer_plan_to_atom(X,undef):malformedExpression#ErrMsg)),
