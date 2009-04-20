@@ -77,30 +77,46 @@ cost(res(N), _, _, _, ResAttrList, ResTupleSize, ResCard, 0) :-
 
 */
 
-cost(feed(X), Sel, S, C) :-
-  cost(X, Sel, S, C1),
-  feedTC(A),
-  C is C1 + A * S.
-
-
-/*
-Here ~feedTC~ means ``feed tuple cost'', i.e., the cost per tuple, a constant to
-be determined in experiments. These constants are kept in file ``operators.pl''.
-
-*/
-
-
-cost(feedproject(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
-  feedTC(A),
-  C is C1 + A * S.
+cost(feed(X), Sel, PETCalc, PETExp, ResAttrList, ResTupleSize, ResCard, Cost) :-
+  cost(X, Sel, PETCalc, PETExp, ResAttrList, ResTupleSize, ResCard, Cost1),
+  costConst(feed, pertuple, U).
+  costConst(feed, perbyte, V).
+  ResTupleSize = sizeTerm(MemSize, Core, LOB),
+  Cost is   Cost1
+          + ResCard * U
+          + ResCard * Core * V.
 
 
 
-cost(consume(X), Sel, S, C) :-
-  cost(X, Sel, S, C1),
-  consumeTC(A),
-  C is C1 + A * S.
+cost(feedproject(X, ProjAttrFields), Sel, PETCalc, PETExp,
+                 ResAttrList, ResTupleSize, ResCard, Cost) :-
+  cost(X, Sel, PETCalc, PETExp, ResAttrList1, ResTupleSize1, ResCard, Cost1),
+  costConst(feedproject, msPerTuple, U),
+  costConst(feedproject, msPerByte, V),
+  costConst(feedproject, msPerAttr, W),
+  ﬁndall(AttrName,
+         memberchk(attr(AttrName,_,_),ProjAttrFields),
+         ProjAttrNames),
+  projectAttrList(ResAttrList1, ProjAttrNames, ResAttrList, ResTupleSize),
+  ResTupleSize = sizeTerm(MemSize, Core, LOB),
+  length(ProjAttrNames,NoAttrs),
+  Cost is   Cost1
+          + ResCard * (   U
+                        + Core * V,
+                        + NoAttrs * W).
+
+
+cost(consume(X),Sel, PETCalc, PETExp, ResAttrList,
+                ResTupleSize, ResCard, Cost) :-
+  cost(X, Sel, PETCalc, PETExp, ResAttrList, ResTupleSize, ResCard, Cost1),
+  costConst(consume, msPerTuple, U),
+  costConst(consume, msPerByteCore, V),
+  costConst(consume, msPerByteLOB, W),
+  ResTupleSize = sizeTerm(MemSize, Core, LOB),
+  Cost is   Cost1
+          + ResCard * (   U
+                        + V * msPerByteCore
+                        + W * msPerByteLOB).
 
 /*
 For ~filter~, there are several special cases to distinguish:
@@ -361,20 +377,41 @@ cost(extend(X, _), Sel, S, C) :-
   extendTC(A),
   C is C1 + A * S.
 
-cost(remove(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
-  removeTC(A),
-  C is C1 + A * S.
+cost(remove(X, DropListFields), Sel, PETCalc, PETExp,
+                          ResAttrList, ResTupleSize, ResCard, Cost) :-
+  cost(X, Sel, PETCalc, PETExp, ResAttrList1, ResTupleSize1, ResCard, Cost1),
+  costConst(project, msPerTuple, U),
+  costConst(project, msPerTupleAndAttr, V),
+  ﬁndall(AttrName,
+         ( member([AttrName, _, _],ResAttrList1),
+           not(memberchk(attr(AttrName,_,_),ProjAttrFields))
+         ),
+         ProjAttrNames),
+  projectAttrList(ResAttrList1, ProjAttrNames, ResAttrList, ResTupleSize),
+  Cost is   Cost1
+          + ResCard * (   U
+                        + Core * NoAttrs * V).
 
-cost(project(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
-  projectTC(A),
-  C is C1 + A * S.
+cost(project(X,ProjAttrFields), Sel, PETCalc, PETExp,
+                 ResAttrList, ResTupleSize, ResCard, Cost) :-
+  cost(X, Sel, PETCalc, PETExp, ResAttrList1, ResTupleSize1, ResCard, Cost1),
+  costConst(project, msPerTuple, U),
+  costConst(project, msPerTupleAndAttr, V),
+  ﬁndall(AttrName,
+         memberchk(attr(AttrName,_,_),ProjAttrFields),
+         ProjAttrNames),
+  projectAttrList(ResAttrList1, ProjAttrNames, ResAttrList, ResTupleSize),
+  ResTupleSize = sizeTerm(MemSize, Core, LOB),
+  length(ProjAttrNames,NoAttrs),
+  Cost is   Cost1
+          + ResCard * (   U
+                        + Core * NoAttrs * V).
 
-cost(rename(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
-  renameTC(A),
-  C is C1 + A * S.
+
+cost(rename(X, Suffix), Sel, PETCalc, PETExp,
+                        ResAttrList, ResTupleSize, ResCard, Cost) :-
+  cost(X, Sel, PETCalc, PETExp, ResAttrList1, ResTupleSize, ResCard, Cost),
+  renameAttrs(ResAttrList1, Suffix, ResAttrList).
 
 % Xris: Added, costfactors not verified
 cost(rdup(X), Sel, S, C) :-
@@ -418,6 +455,10 @@ isPrefilter(X) :-
 isPrefilter(X) :-
   X = loopjoin(_, _).
 
+renameAttrs([],_,[]).
+renameAttrs([[[Attr, T, S]]|More], Suffix, [[[AttrRenamed, T, S]]|MoreRes]) :-
+  concat_atom([Attr, Suffix],'_',AttrRenamed),
+  renameAttrs(More,MoreRes), !.
 
 
 
@@ -439,3 +480,15 @@ cost(simpleUserAggrNoGroupby(Stream, _, _, _),
 
 
 */
+
+costConst(feed, pertuple, 0.00194).
+costConst(feed, perbyte, 0.0000196).
+costConst(feedproject, msPerTuple, 0.002).
+costConst(feedproject, msPerByte, 0.000036).
+costConst(feedproject, msPerAttr, 0.0018).
+costConst(consume, msPerTuple, 0.024).
+costConst(consume, msPerByteCore, 0.0003).
+costConst(consume, msPerByteLOB, 0.001338).
+costConst(project, msPerTuple, 0.00073).
+costConst(project, msPerTupleAndAttr, 0.0004).
+
