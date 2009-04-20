@@ -3859,6 +3859,9 @@ getRelAttrList2(DB,DCrel,[Attr|AttrList1],[ResAttr|ResAttrList1],TupleSize) :-
 Restricts a given attribute list ~OrigAttrs~ to the attributes given in
 ~ProjAttrs~ and also returns the according projected tuple size ~ProjTupleSize~.
 
+Attribute names are the current name of the attribute, respecting renames that
+already have been applied to the attribute!
+
 */
 
 projectAttrList(_, [], [], sizeTerm(0,0,0)) :- !.
