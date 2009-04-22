@@ -29,7 +29,7 @@ public class RTreePortal2MPoint{
   * If problems in reading of the files occur, the result will be
   * null.
 **/
-private static Entry[] readDataSetFromFile(File F){
+private static Entry[] readDataSetFromFile(File F, boolean oldFormat){
 
  boolean sortRequired = false;
  // first we scan the file, count the entries and
@@ -49,7 +49,7 @@ private static Entry[] readDataSetFromFile(File F){
             lineno++;
             line = line.trim();
             if(line.length()>0){
-                if(!e2.readFrom(line)){
+                if(!e2.readFrom(line, oldFormat)){
                     System.err.println("Error in dataset at line "+lineno);
                     return null;
                 }
@@ -76,6 +76,8 @@ private static Entry[] readDataSetFromFile(File F){
     return null;
   }
 
+  System.err.println("File has" + count + "entries") ;
+
   Entry[] result = new Entry[count];
   for(int i=0;i<result.length;i++)
        result[i]=null;
@@ -89,7 +91,7 @@ private static Entry[] readDataSetFromFile(File F){
             lineno++;
             line = line.trim();
             if(line.length()>0){
-                if(!e1.readFrom(line)){
+                if(!e1.readFrom(line, oldFormat)){
                     System.err.println("Error in dataset at line "+lineno);
                     return null;
                 }
@@ -115,18 +117,45 @@ private static Entry[] readDataSetFromFile(File F){
 public static void main(String[] args){
    int start=0;
    boolean oldStyle=false;
-   if(args.length>0 && args[0].equals("--oldstyle")){
+   boolean splitDays = false;
+   boolean oldFormat = false;
+
+   while(start < args.length && args[start].startsWith("--")){
+
+     if(args[start].equals("--oldstyle")){
       oldStyle=true;
       start++;
+     } else if( args[start].equals("--splitdays")){
+       splitDays = true;
+       start++;
+     } else if(args[start].equals("--oldformat")){
+       oldFormat = true;
+       start++;
+     } else {
+        System.err.println("unknown option found " + args[start]);
+        System.exit(1);
+     }
    }
+
+   if(start>=args.length){
+      System.err.println("Missing input file name");
+      System.exit(1);
+   }
+
    File F = new File(args[start]);
-   Entry[] data = readDataSetFromFile(F);
-   long lastid = -1; // 
+
+   String name = F.getName();
+   name = name.replaceAll("\\.","_");
+   Entry[] data = readDataSetFromFile(F, oldFormat);
+   long lastobjid = -1; // 
+   long lasttrjid = -1;
+   long lastDate = -1; 
 
    /* write the type */
-   out.println(" ( OBJECT " + args[start+1] + "()");
+   out.println(" ( OBJECT " + name + "  ()");
    out.println("    ( rel ( tuple ( ");
-   out.println("                    (id int)");
+   out.println("                    (objid int)");
+   out.println("                    (trjid int)");
    out.println("                    (trip mpoint)");
    out.println("                  )))");
    out.println(" ("); // open value list
@@ -136,18 +165,23 @@ public static void main(String[] args){
    for(int i=0;i<data.length;i++){
       Entry E = data[i];
       if(i==0){ // the very first entry
-        out.println(" ( " + E.id + " (");  // open tuple , write id and open mpoint
-        lastid = E.id;
+        out.println(" ( " + E.objid + " " + E.trjid + " (");  // open tuple , write ids and open mpoint
+        lastobjid = E.objid;
+        lasttrjid = E.trjid;
+        lastDate = E.date;
         uw = new UnitWriter(); 
       }
-      if(lastid!=E.id){     // 
+      if( lastobjid!=E.objid || lasttrjid!=E.trjid ||
+          (splitDays && E.date != lastDate) ){     // 
          uw.write();  // write the last unit
          out.println(" ) )"); // close mpoint and tuple
          uw = new UnitWriter();
-         lastid = E.id;
-         out.println(" ( " + E.id + "("); // open the next tuple
+         lastobjid = E.objid;
+         lasttrjid = E.trjid;
+         lastDate = E.date;
+         out.println(" ( " + E.objid + " " + E.trjid+ "("); // open the next tuple
       }
-      uw.appendPoint(E.x,E.y,TimeUnit*E.time+DeltaTime);
+      uw.appendPoint(E.x,E.y,TimeUnit*E.time + E.date);
    }
    out.println(" ) ) "); // close clast mpoint and the last tuple
    if(oldStyle)
@@ -160,23 +194,26 @@ public static void main(String[] args){
 
 private static PrintStream out = System.out;
 private static double TimeUnit = 1.0/86400.0; // 1 second 
-private static double DeltaTime = 900; // deviation to the NULLDAY = 2000-01-03 in days
-
+private static long NULLDAY = 730003; 
 
 private static class Entry implements Comparable{
 
 /** Constructor taking the values for the entry 
   **/
-Entry(long id, long time, long x, long y, long unknown){
-   this.id = id;
+Entry(long objid, long trjid, long time, long x, long y, long unknown){
+   this.objid = objid;
+   this.trjid = trjid;
    this.time = time;
+   this.date = 0;
    this.x = x;
    this.y = y;
    this.unknown = unknown;
 }
 
 Entry(){
-   id = 0;
+   objid = 0;
+   trjid = 0;
+   date = 0;
    time = 0;
    x = 0;
    y = 0;
@@ -187,35 +224,76 @@ Entry(){
   * from it. If the format is not correct, the result will
   * be false, otherwise true.
   **/
-boolean readFrom(String content){
-   StringTokenizer ST = new StringTokenizer(content,",",false);
-   try{
-      String Id = ST.nextToken().trim();
-      String Time = ST.nextToken().trim();
-      String X = ST.nextToken().trim();
-      String Y = ST.nextToken().trim();
-      String Unknown = ST.nextToken().trim();
-      id = Integer.parseInt(Id);
-      time = Integer.parseInt(Time);
-      x = Integer.parseInt(X);
-      y = Integer.parseInt(Y);
-      unknown = Integer.parseInt(Unknown);
-      return true;
-   } catch(Exception e){
-       return false;
-   }
+boolean readFrom(String content, boolean oldstyle){
 
+   if(oldstyle){
+      StringTokenizer ST = new StringTokenizer(content,",",false);
+      try{
+         
+         String Id = ST.nextToken().trim();
+         String Time = ST.nextToken().trim();
+         String X = ST.nextToken().trim();
+         String Y = ST.nextToken().trim();
+         String Unknown = ST.nextToken().trim();
+         objid = 0;
+         date = 0;
+         trjid = Integer.parseInt(Id);
+         time = Integer.parseInt(Time);
+         x = Integer.parseInt(X);
+         y = Integer.parseInt(Y);
+         unknown = Integer.parseInt(Unknown);
+         return true;
+      } catch(Exception e){
+         return false;
+      }
+   } else { // newer format
+      StringTokenizer st = new StringTokenizer(content,";",false);
+      try{
+         String ObjId = st.nextToken().trim();
+         String TrjId = st.nextToken().trim();
+         String Date =  st.nextToken().trim();
+         String Time = st.nextToken().trim();
+         String Lat = st.nextToken().trim();
+         String Lon = st.nextToken().trim();
+         String X = st.nextToken().trim();
+         String Y = st.nextToken().trim();
+         objid = Integer.parseInt(ObjId);
+         trjid = Integer.parseInt(TrjId);
+         x = Double.parseDouble(X);
+         y = Double.parseDouble(Y);
+         StringTokenizer st2 = new StringTokenizer(Time,":",false);
+         String HH = st2.nextToken().trim();
+         String MM = st2.nextToken().trim();
+         String SS = st2.nextToken().trim();
+         int ss  = Integer.parseInt(SS);
+         int mm = Integer.parseInt(MM);
+         int hh = Integer.parseInt(HH);
+         time = (hh*60 + mm)*60 + ss;
+
+         StringTokenizer st3 = new StringTokenizer(Date,"/",false);
+         int d = (Integer.parseInt(st3.nextToken().trim()));
+         int m = (Integer.parseInt(st3.nextToken().trim()));
+         int y = (Integer.parseInt(st3.nextToken().trim()));
+         date = y* 365 + Month[m-1] + d - NULLDAY;
+         return true;
+      } catch (Exception e){
+           e.printStackTrace();
+           return false;
+      } 
+   }
 }
 
 public String toString(){
 
-  return "" + id + "-"+time+"-("+x+","+y+") - "+ unknown;
+  return "" + objid+ ", " + trjid + "-"+date+ ", "+time+"-("+x+","+y+") - "+ unknown;
 }
 
 /** reads the content from e**/
 void equalize(Entry e){
-   id = e.id;
+   objid = e.objid;
+   trjid = e.trjid;
    time = e.time;
+   date = e.date;
    x = e.x;
    y = e.y;
    unknown = e.unknown;
@@ -227,9 +305,17 @@ public int compareTo(Object o){
         return -1;
 
    Entry entry = (Entry)o;
-   if(id<entry.id)
+   if(objid<entry.objid)
       return -1;
-   if(id>entry.id)
+   if(objid>entry.objid)
+      return 1;
+   if(trjid<entry.trjid)
+      return -1;
+   if(trjid>entry.trjid)
+      return 1;
+   if(date<entry.date)
+       return -1;
+   if(date>entry.date)
       return 1;
    if(time<entry.time )
       return -1;
@@ -238,24 +324,40 @@ public int compareTo(Object o){
    // check for validity. 
    // if id and time are equal, all other values must also be equual
    if(x!=entry.x){
-       System.err.println("Error in dataset found");
+       System.err.println("Error in dataset found: " + this.toString() + " <-> " + entry.toString() );
+     
    }
    if(y!=entry.y){
-       System.err.println("Error in dataset found");
+       System.err.println("Error in dataset found" + this.toString() + " <-> " + entry.toString() );
    }
    if(unknown!=entry.unknown){
-      System.err.println("Error in dataset found");
+      System.err.println("Error in dataset found" + this.toString() + " <-> " + entry.toString() );
    }
    return 0;
 }
 
 
-
-long id;
+long objid;
+long trjid;
+long date;
 long time;
-long x;
-long y;
+double x;
+double y;
 long unknown;
+
+static int[] Month = {0 ,  //J
+                31,  // F
+                59,  // M
+                90,  // A
+                120,  // M
+                151,  // J
+                181 , // J
+                212,  // A
+                243,  // S
+                273,  // O
+                303,   // N
+                334   // D
+             };
 
 }
 
