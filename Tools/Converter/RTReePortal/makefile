@@ -24,7 +24,10 @@
 
 
 .PHONY:all
-all: RTreePortal2MPoint.class
+all: RTreePortal2MPoint.class Convert.class
+
+Convert.class: Convert.java
+	javac Convert.java
 
 RTreePortal2MPoint.class: RTreePortal2MPoint.java HeapSort.class
 	javac RTreePortal2MPoint.java
