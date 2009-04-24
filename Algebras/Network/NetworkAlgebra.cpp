@@ -2141,8 +2141,8 @@ void Network::FillSections()
   // Iterate over all Routes
   //
   Tuple* pRoute;
-  TupleId iSectionTid = 0;
-  int iSectionId = 0;
+  TupleId iSectionTid = 1;
+  int iSectionId = 1;
   while((pRoute = pRoutesIt->GetNextTuple()) != 0)
   {
     // Current position on route - starting at the beginning of the route
@@ -3180,11 +3180,30 @@ New implementation using sectionsBTree
     double end =
       ((CcReal*) actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
 
-    if ((in_xGPoint->GetPosition() >= start&&in_xGPoint->GetPosition() <= end)
-        || fabs(in_xGPoint->GetPosition()-start) < 0.1 ||
-        fabs(in_xGPoint->GetPosition()-end)<0.1){
+    if (in_xGPoint->GetPosition() >= start&&in_xGPoint->GetPosition() <= end)
+    {
       delete pSectionIter;
       return actSect;
+    }
+    else {
+      if (fabs(in_xGPoint->GetPosition() - start) <= 0.01) {
+        delete pSectionIter;
+        return actSect;
+      }
+      else {
+        if (fabs(in_xGPoint->GetPosition() - end) <= 0.01) {
+          Tuple *pRoute = GetRoute(((TupleIdentifier*)
+              actSect->GetAttribute(SECTION_RRC))->GetTid());
+          if (fabs(((CcReal*)
+              pRoute->GetAttribute(ROUTE_LENGTH))->GetRealval()
+              - end) <= 0.01){
+            pRoute->DeleteIfAllowed();
+            return actSect;
+          } else {
+            pRoute->DeleteIfAllowed();
+          }
+        }
+      }
     }
     actSect->DeleteIfAllowed();
   }
