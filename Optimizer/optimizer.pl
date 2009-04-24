@@ -2885,49 +2885,63 @@ available.
 
 */
 
-assignSizes :- not(assignSizes1).
+assignSizes :-
+  optimizerOption(correlations),
+  not(assignSizes1),
+  addCorrelationSizes,
+  !.
+
+assignSizes :-
+  not(optimizerOption(correlations)),
+  not(assignSizes1),
+  !.
+
 
 assignSizes1 :-
   edge(Source, Target, Term, Result, _, _),
   assignSize(Source, Target, Term, Result),
   fail.
 
-
-% Versions for A. Nawra's cost functions:
-
+% Versions for A. Nawra's and improved cost functions:
+% Annotates tuple sizes to nodes and predicates to edges
 assignSize(Source, Target, select(Arg, Pred), Result) :-
-  optimizerOption(nawracosts),
+  ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ),
   resSize(Arg, Card),
   resTupleSize(Arg, TupleSize),
-  selectivity(Pred, Sel, CalcPET, ExpPET),
+  selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET),
   Size is Card * Sel,
+  !,
   setNodeSize(Result, Size),
   setNodeTupleSize(Result, TupleSize),
   setPredNoPET(Source, Target, CalcPET, ExpPET),
   assert(edgeSelectivity(Source, Target, Sel)),
   assert(edgeInputCards(Source, Target, Arg, undefined)),
+  assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
   !.
 
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
-  optimizerOption(nawracosts),
+  ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ),
   resSize(Arg1, Card1),
   resSize(Arg2, Card2),
   resTupleSize(Arg1, TupleSize1),
   resTupleSize(Arg2, TupleSize2),
-  selectivity(Pred, Sel, CalcPET, ExpPET),
+  selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET),
   Size is Card1 * Card2 * Sel,
   addSizeTerms([TupleSize1,TupleSize2],TupleSize),
+  !,
   setNodeSize(Result, Size),
   setNodeTupleSize(Result, TupleSize),
   setPredNoPET(Source, Target, CalcPET, ExpPET),
   assert(edgeSelectivity(Source, Target, Sel)),
   assert(edgeInputCards(Source, Target, Arg1, Arg2)),
+  assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
   !.
 
 % Versions for standard cost functions:
 
 assignSize(Source, Target, select(Arg, Pred), Result) :-
-  not(optimizerOption(nawracosts)),
+  not( optimizerOption(nawracosts) ),
+  not( optimizerOption(improvedcosts) ), % standard cost functions
   resSize(Arg, Card),
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
   Size is Card * Sel,
@@ -2938,7 +2952,7 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   !.
 
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
-  not(optimizerOption(nawracosts)),
+  not(  ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ) ),
   resSize(Arg1, Card1),
   resSize(Arg2, Card2),
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
@@ -2982,7 +2996,7 @@ resSize(res(N), Size) :- resultSize(N, Size), !.
 
 /*
 Assign tuple sizes to a node. Tuple sizes are saved as facts of the form
-~nodeTupleSize(Node, sizeTerm(Core, InFlob, ExtFlob))~.
+~nodeTupleSize(Node, sizeTerm(MemSize, CoreSize, LobSize))~.
 
 */
 
@@ -3271,6 +3285,7 @@ deleteSizes :-
   retractall(edgeInputCards(_, _, _, _)),
   retractall(edgeInfoProgress(_, _, _, _)),
   retractall(nodeTupleSize(_, _)),
+  retractall(nodeAttributeList(_, _)),
   retractall(nodeSizeCounter(_, _, _, _)),
   retractall(nodeSizeCounter(_, _)),
   retractall(pathInfo(_, _, _, _, _, _, _, _, _, _)),
@@ -3716,6 +3731,27 @@ These are plan edges extended by a cost measure.
 
 */
 
+% for debugging only:
+createCostEdge(Source,Target,costEdge(Source, Target, Term, Result, Size, Cost))
+  :- % use improved cost functions
+  optimizerOption(improvedcosts),
+  planEdge(Source, Target, Term, Result),
+  edge(Source, Target, EdgeTerm, _, _, _),
+  ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred) ),
+  edgeSelectivity(Source, Target, Sel),
+  costterm(Term, Source, Target, Sel, Pred, Size, Cost),
+  assert(costEdge(Source, Target, Term, Result, Size, Cost)).
+
+
+createCostEdge :- % use improved cost functions
+  optimizerOption(improvedcosts),
+  planEdge(Source, Target, Term, Result),
+  edge(Source, Target, EdgeTerm, _, _, _),
+  ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred) ),
+  edgeSelectivity(Source, Target, Sel),
+  costterm(Term, Source, Target, Sel, Pred, Size, Cost),
+  assert(costEdge(Source, Target, Term, Result, Size, Cost)),
+  fail.
 
 createCostEdge :- % use Nawra's cost functions
   optimizerOption(nawracosts),
@@ -3727,11 +3763,13 @@ createCostEdge :- % use Nawra's cost functions
 
 createCostEdge :- % use standard cost functions
   not(optimizerOption(nawracosts)),
+  not(optimizerOption(improvedcosts)),
   planEdge(Source, Target, Term, Result),
   edgeSelectivity(Source, Target, Sel),
   cost(Term, Sel, Size, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
+
 
 createCostEdges :- not(createCostEdge).
 
@@ -3781,7 +3819,8 @@ bestPlan~ will unify a best plan according to the assigned costs.
 
 assignCosts :-
   deleteSizes,
-  (optimizerOption(nawracosts) -> deleteSizesNawra; true),
+  ( ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) )
+    -> deleteSizesNawra; true),
   deleteCostEdges,
   assignSizes,
   createCostEdges.
@@ -4068,6 +4107,13 @@ plan(Path, Plan) :-
   highestNode(Path, N),
   nodePlan(N, Plan).
 
+plan(Path, Plan) :-
+  concat_atom(['Cannot create plan.'],'',ErrMsg),
+  write(ErrMsg), nl,
+  throw(error_Internal(optimizer_plan(Path, Plan)
+                   :unspecifiedError#ErrMsg)),
+  !, fail.
+
 
 deleteNodePlans :-  retractall(nodePlan(_, _)).
 
@@ -4093,6 +4139,12 @@ traversePath([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
   assert(nodePlan(Result, Term3)),
   traversePath(Path).
 
+traversePath(Path) :-
+  concat_atom(['Cannot traverse Path.'],'',ErrMsg),
+  write(ErrMsg), nl,
+  throw(error_Internal(optimizer_traversePath(Path)
+                   :unspecifiedError#ErrMsg)),
+  !, fail.
 
 /*
 ----	markupProgress(Term+, Sel+, BBoxSel+, ExpPET+, Term2-) :-
@@ -4105,17 +4157,17 @@ Attach progress information to the right operators in a term.
 markupProgress(Term, _, _, _, Term) :- optimizerOption(noprogress).
 
 markupProgress(project(Stream, Attrs), Sel, BBoxSel, ExpPET,
-	project(Stream2, Attrs)) :-
+  project(Stream2, Attrs)) :-
   markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
   !.
 
 markupProgress(remove(Stream, Attrs), Sel, BBoxSel, ExpPET,
-	remove(Stream2, Attrs)) :-
+  remove(Stream2, Attrs)) :-
   markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
   !.
 
 markupProgress(rename(Stream, Var), Sel, BBoxSel, ExpPET,
-	rename(Stream2, Var)) :-
+  rename(Stream2, Var)) :-
   markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
   !.
 
@@ -4239,7 +4291,6 @@ bestPlan(Plan, Cost) :-
   assert(path(Path)),
   dc(bestPlan, writePath(Path)),
   plan(Path, Plan).
-
 
 
 
@@ -5106,7 +5157,7 @@ composePattern(P1, A1, [] , [], AP1 ):-
 	composeNamedPredicate(P1, A1, AP1),!.
 composePattern(P1, A1, [] , BExpr, [AP1,BExpr] ):-
 	composeNamedPredicate(P1, A1, AP1),!.
-composePattern([P1, P2| PredsRest], [A1, A2| AliasesRest], [C| ConnsRest] , BExpr2, Res ):- 
+composePattern([P1, P2| PredsRest], [A1, A2| AliasesRest], [C| ConnsRest] , BExpr2, Res ):-
 	composeNamedPredicate(P1, A1, AP1),
 	composeNamedPredicate(P2, A2, AP2),
 	SubExpr=..[C,AP1,AP2],
@@ -5114,7 +5165,7 @@ composePattern([P1, P2| PredsRest], [A1, A2| AliasesRest], [C| ConnsRest] , BExp
 	flatten([AliasesRest], AliasesRest1),
 	flatten([ConnsRest], ConnsRest1),
 	composeSubPattern(PredsRest1, AliasesRest1, ConnsRest1 , BExpr2, SubExpr, Res),!.
-	
+
 
 lookupPatternPreds(Pred, Pred2, RelsBefore, RelsAfterMe):-
 	lookupPred1(Pred, Pred2, RelsBefore, RelsAfterMe),!.
@@ -5333,9 +5384,10 @@ translate(update Rel set Transformations,
 
 translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
   not( optimizerOption(immediatePlan) ),
-  not( optimizerOption(intOrders(_))     ),  % standard behaviour
+  not( optimizerOption(intOrders(_))  ),  % standard behaviour
   getTime(( pog(Rels, Preds, _, _),
-            assignCosts,
+            assignCosts, !,
+            nl,write('*** Calling bestPlan/2 >>1<<'),nl,
             bestPlan(Stream, Cost),
             !
           ), Time),

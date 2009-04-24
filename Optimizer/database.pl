@@ -3687,7 +3687,8 @@ analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
   ),
   analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,MoreInfos,TupleMemSize),
   assert(storedCard(DB, DCrel, Card)),
-  assert(storedTupleSize(DB, DCrel, TupleMemSize, TupleSizeCore, TupleSizeLOB)),
+  StoreLOBsize is max(0,TupleSizeLOB), % avoid rounding errors
+  assert(storedTupleSize(DB, DCrel, TupleMemSize, StoreCoreSize, StoreLOBsize)),
   !.
 
 %   analyseTupleInfoQueryResultList2(+DB,+DCrel,+ExtAttrList,+InfoList)
@@ -3716,10 +3717,11 @@ analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,InfoList,MemTotal):-
     -> LOBSize is 0
     ;  LOBSize is max(0,SizeExt) % avoid rounding errors
   ),
+  LOBSize2 is max(0,LOBSize),    % avoid rounding errors
   analyseTupleInfoQueryResultList2(DB,DCrel,MoreAttrs,MoreInfos,MoreMemTotal),
   MemTotal is MemSize + MoreMemTotal,
   assert(storedSpell(DB, DCrel:DCAttr, IntAttr)),
-  assert(storedAttrSize(DB,DCrel,DCAttr,DCType,MemSize,CoreAttrSize,LOBSize)),
+  assert(storedAttrSize(DB,DCrel,DCAttr,DCType,MemSize,CoreAttrSize,LOBSize2)),
   !.
 
 analyseTupleInfoQueryResultList2(DB,DCrel,X,Y):-
@@ -3852,8 +3854,7 @@ getRelAttrList2(DB,DCrel,[Attr|AttrList1],[ResAttr|ResAttrList1],TupleSize) :-
 
 /*
 
----- projectAttrList(+OrigAttrs, +ProjAttrs,
-                     -ResAttrList, -ProjTupleSize)
+---- projectAttrList(+OrigAttrs, +ProjAttrs, -ResAttrList, -ProjTupleSize)
 ----
 
 Restricts a given attribute list ~OrigAttrs~ to the attributes given in
@@ -3871,11 +3872,51 @@ projectAttrList([[Attr,Type,AttrSZ]|MoreAttrs],ProjAttrs,ResList,ResSZ) :-
     -> ( % copy Attr to result list
          delete(ProjAttrs,Attr,ProjAttrs1),
          projectAttrList(MoreAttrs,ProjAttrs1,ResList1,ResSZ1),
-         ProjAttrs = [[Attr,Type,AttrSZ]|ResList1],
+         ResList = [[Attr,Type,AttrSZ]|ResList1],
          addSizeTerms([AttrSZ,ResSZ1],ResSZ)
        )
     ;  projectAttrList(MoreAttrs,ProjAttrs,ResList,ResSZ)
   ), !.
+projectAttrList(W,X,Y,Z) :-
+  concat_atom(['Unknown error.'],'',ErrMsg),
+  throw(error_Internal(database_projectAttrList(W,X,Y,Z)#ErrMsg)),
+  fail, !.
+
+/*
+
+---- createExtendAttrList( +ExtendFields, -ExtendAttrs, -ExtendAttrSize )
+----
+
+For a given list of extension fileds, return a list with attribute-descriptors
+and a sizeTerm with the according aggregated sizes.
+
+~ExtendFields~ has format list of field(attr(Name,Arg,Case),Expr)
+
+~ExtendAttrs~ has format
+
+*/
+
+createExtendAttrList([],[],sizeTerm(0,0,0)) :- !.
+createExtendAttrList([Field|MoreFields],
+                     [[AttrName,AttrType,AttrSize]|MoreAttrs],
+                     TotalAttrSize) :-
+  Field = field(attr(Name, _, _), _ /* Expr */),
+  ( Name = Attr:Suffix
+    -> ( concat_atom([Attr,Suffix],'_',Renamed),
+         downcase_atom(Renamed,AttrName)
+       )
+    ; downcase_atom(Name,AttrName)
+  ),
+  createExtendAttrList(MoreFields, MoreAttrs, MoreAttrsSize),
+  AttrType = int,   %% TODO: calculate result type of Expr instead of
+                    %%       using 'int' as standard extension type
+  secDatatype(AttrType, MemSize, _ /* NoFlobs */, _ /* PersistencyMode */),
+  AttrSize = sizeTerm(MemSize,MemSize /* Core */ , 0 /* Lob */),
+  addSizeTerms([AttrSize,MoreAttrsSize],TotalAttrSize), !.
+createExtendAttrList(X,Y,Z) :-
+  concat_atom(['Unknown error.'],'',ErrMsg),
+  throw(error_Internal(database_createExtendAttrList(X,Y,Z)#ErrMsg)),
+  fail, !.
 
 /*
 10.2 Storing And Loading Tuple Sizes
@@ -4060,6 +4101,16 @@ negateSizeTerm(sizeTerm(A,B,C),sizeTerm(A1,B1,C1)) :-
   B1 is -1 * B,
   C1 is -1 * C,
   !.
+
+% Get the total disk size from a sizeTerm or list of sizeTerms
+getTotalDiskSize(sizeTerm(_,Core,LOB),Total) :-
+  Total is Core + LOB.
+getTotalDiskSize([],0) :- !.
+getTotalDiskSize([X|More],Total) :-
+  getTotalDiskSize(X,Xtotal),
+  getTotalDiskSize(More,MoreTotal),
+  Total is Xtotal + MoreTotal, !.
+
 
 
 /*

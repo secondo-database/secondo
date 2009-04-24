@@ -282,6 +282,14 @@ optimizerOptionInfo(nawracosts, none, yes,
                     true
                    ).
 
+optimizerOptionInfo(improvedcosts, none, yes,
+                    'Use improved cost functions.',
+                    ( delOption(nawracosts),
+                      loadFiles(improvedcosts)
+                    ),
+                    true
+                   ).
+
 /*
 ----
 optimizerOptionInfo(uniformSpeed, none, yes,
@@ -686,6 +694,13 @@ loadFiles(adaptiveJoin) :-
   )
   ; true.
 
+% Optional files for usage of Xris' cost functions
+loadFiles(improvedcosts) :-
+  ( not(loadedModule(improvedcosts)),
+    [improvedcosts],
+    assert(loadedModule(improvedcosts))
+  )
+  ; true.
 
 /*
 4 Some Auxiliary predicates for Debugging
