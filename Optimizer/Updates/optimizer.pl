@@ -1195,9 +1195,16 @@ rel_to_atom(rel(DCname, _), ExtName) :-
   dcName2externalName(DCname,ExtName).
 
 plan_to_atom( Pattern , Result):-
-  Pattern =.. [pattern|Preds],
-  list_to_atom(Preds, Preds2),
-  concat_atom(['. stpattern[', Preds2, ']'], '', Result),
+  Pattern =..[pattern,[Preds, BExpr]],
+	namedPredList_to_atom([Preds], ExPreds),
+	plan_to_atom(BExpr, ExBExpr),
+  concat_atom(['. stpattern[', ExPreds, '; ', ExBExpr, ']'],'',  Result),
+  !.
+
+plan_to_atom( Pattern , Result):-
+	Pattern =..[pattern|Preds],
+	namedPredList_to_atom(Preds, ExPreds),
+  concat_atom(['. stpattern[', ExPreds, ']'], '', Result),
   !.
 
 plan_to_atom(A,A) :-
@@ -1780,6 +1787,12 @@ plan_to_atom(createIndex(Rel, Columns, LogIndexType), Result) :-
 			   Query), 
   concat_atom(['derive ', IndexName, ' = ', Query], Result), !.
 
+plan_to_atom(ksmallest(Stream, Count, Attr), Result) :-
+  plan_to_atom(Stream, Stream2),
+  plan_to_atom(Attr, Attr2),
+  concat_atom([Stream2, 'ksmallest[', Count, '; ', Attr2, ']'], Result), !.
+
+
 /*
 Translation of operators driven by predicate ~secondoOp~ in
 file ~opsyntax~. There are rules for
@@ -1889,7 +1902,7 @@ plan_to_atom(X, Result) :-
 
 /* Error case */
 plan_to_atom(X, _) :-
-  term_to:atom(X,XA),
+  term_to_atom(X,XA),
   concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(optimizer_plan_to_atom(X,undef):malformedExpression#ErrMsg)),
@@ -1914,7 +1927,34 @@ list_to_atom([X | Xs], Result) :-
   concat_atom([XAtom, ', ', XsAtom], '', Result),
   !.
 
-	
+namedPred_to_atom(AP,ExP):-
+	AP=..[as,P,[null]],
+	flatten([P],P1),
+	P1=[P2],
+	plan_to_atom(P2,ExP),!.
+
+namedPred_to_atom(AP,ExAP):-
+	AP=..[as,P,A],
+	flatten([A],A1),
+	flatten([P],P1),
+	A1=[A3], P1=[P2],
+	plan_to_atom(P2,P3),
+	concat_atom([A3, ' : ', P3],'', ExAP),!.
+
+namedPred_to_atom(P,ExP):-
+	plan_to_atom(P,ExP),!.
+
+namedPredList_to_atom([APList], ExAPList):-
+	APList=..[Conn, SubAPList, AP],
+	member(Conn, [then, later, meanwhile, follows, immediately]),
+	namedPredList_to_atom([SubAPList], ExSubAPList),
+	namedPred_to_atom(AP,ExAP),
+	concat_atom([ExSubAPList, Conn, ExAP], ' ', ExAPList),!.
+	%ExAPList=..[Conn,ExSubAPList,ExAP],!.
+namedPredList_to_atom([AP], ExAP):-
+	namedPred_to_atom(AP,ExAP),!.
+
+
 /*
 Hidden fields have an argument number 100 and can be removed from a projection list by activating the flag ``removeHidenAttributes''. See ~plan\_to\_atom~ for ~project~.
 
@@ -2884,49 +2924,63 @@ available.
 
 */
 
-assignSizes :- not(assignSizes1).
+assignSizes :-
+  optimizerOption(correlations),
+  not(assignSizes1),
+  addCorrelationSizes,
+  !.
+
+assignSizes :-
+  not(optimizerOption(correlations)),
+  not(assignSizes1),
+  !.
+
 
 assignSizes1 :-
   edge(Source, Target, Term, Result, _, _),
   assignSize(Source, Target, Term, Result),
   fail.
 
-
-% Versions for A. Nawra's cost functions:
-
+% Versions for A. Nawra's and improved cost functions:
+% Annotates tuple sizes to nodes and predicates to edges
 assignSize(Source, Target, select(Arg, Pred), Result) :-
-  optimizerOption(nawracosts),
+  ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ),
   resSize(Arg, Card),
   resTupleSize(Arg, TupleSize),
-  selectivity(Pred, Sel, CalcPET, ExpPET),
+  selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET),
   Size is Card * Sel,
+  !,
   setNodeSize(Result, Size),
   setNodeTupleSize(Result, TupleSize),
   setPredNoPET(Source, Target, CalcPET, ExpPET),
   assert(edgeSelectivity(Source, Target, Sel)),
   assert(edgeInputCards(Source, Target, Arg, undefined)),
+  assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
   !.
 
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
-  optimizerOption(nawracosts),
+  ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ),
   resSize(Arg1, Card1),
   resSize(Arg2, Card2),
   resTupleSize(Arg1, TupleSize1),
   resTupleSize(Arg2, TupleSize2),
-  selectivity(Pred, Sel, CalcPET, ExpPET),
+  selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET),
   Size is Card1 * Card2 * Sel,
   addSizeTerms([TupleSize1,TupleSize2],TupleSize),
+  !,
   setNodeSize(Result, Size),
   setNodeTupleSize(Result, TupleSize),
   setPredNoPET(Source, Target, CalcPET, ExpPET),
   assert(edgeSelectivity(Source, Target, Sel)),
   assert(edgeInputCards(Source, Target, Arg1, Arg2)),
+  assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
   !.
 
 % Versions for standard cost functions:
 
 assignSize(Source, Target, select(Arg, Pred), Result) :-
-  not(optimizerOption(nawracosts)),
+  not( optimizerOption(nawracosts) ),
+  not( optimizerOption(improvedcosts) ), % standard cost functions
   resSize(Arg, Card),
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
   Size is Card * Sel,
@@ -2937,7 +2991,7 @@ assignSize(Source, Target, select(Arg, Pred), Result) :-
   !.
 
 assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
-  not(optimizerOption(nawracosts)),
+  not(  ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ) ),
   resSize(Arg1, Card1),
   resSize(Arg2, Card2),
   selectivity(Pred, Sel, BBoxSel, _, ExpPET),
@@ -2981,7 +3035,7 @@ resSize(res(N), Size) :- resultSize(N, Size), !.
 
 /*
 Assign tuple sizes to a node. Tuple sizes are saved as facts of the form
-~nodeTupleSize(Node, sizeTerm(Core, InFlob, ExtFlob))~.
+~nodeTupleSize(Node, sizeTerm(MemSize, CoreSize, LobSize))~.
 
 */
 
@@ -3270,6 +3324,7 @@ deleteSizes :-
   retractall(edgeInputCards(_, _, _, _)),
   retractall(edgeInfoProgress(_, _, _, _)),
   retractall(nodeTupleSize(_, _)),
+  retractall(nodeAttributeList(_, _)),
   retractall(nodeSizeCounter(_, _, _, _)),
   retractall(nodeSizeCounter(_, _)),
   retractall(pathInfo(_, _, _, _, _, _, _, _, _, _)),
@@ -3715,6 +3770,27 @@ These are plan edges extended by a cost measure.
 
 */
 
+% for debugging only:
+createCostEdge(Source,Target,costEdge(Source, Target, Term, Result, Size, Cost))
+  :- % use improved cost functions
+  optimizerOption(improvedcosts),
+  planEdge(Source, Target, Term, Result),
+  edge(Source, Target, EdgeTerm, _, _, _),
+  ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred) ),
+  edgeSelectivity(Source, Target, Sel),
+  costterm(Term, Source, Target, Sel, Pred, Size, Cost),
+  assert(costEdge(Source, Target, Term, Result, Size, Cost)).
+
+
+createCostEdge :- % use improved cost functions
+  optimizerOption(improvedcosts),
+  planEdge(Source, Target, Term, Result),
+  edge(Source, Target, EdgeTerm, _, _, _),
+  ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred) ),
+  edgeSelectivity(Source, Target, Sel),
+  costterm(Term, Source, Target, Sel, Pred, Size, Cost),
+  assert(costEdge(Source, Target, Term, Result, Size, Cost)),
+  fail.
 
 createCostEdge :- % use Nawra's cost functions
   optimizerOption(nawracosts),
@@ -3726,11 +3802,13 @@ createCostEdge :- % use Nawra's cost functions
 
 createCostEdge :- % use standard cost functions
   not(optimizerOption(nawracosts)),
+  not(optimizerOption(improvedcosts)),
   planEdge(Source, Target, Term, Result),
   edgeSelectivity(Source, Target, Sel),
   cost(Term, Sel, Size, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
+
 
 createCostEdges :- not(createCostEdge).
 
@@ -3780,7 +3858,8 @@ bestPlan~ will unify a best plan according to the assigned costs.
 
 assignCosts :-
   deleteSizes,
-  (optimizerOption(nawracosts) -> deleteSizesNawra; true),
+  ( ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) )
+    -> deleteSizesNawra; true),
   deleteCostEdges,
   assignSizes,
   createCostEdges.
@@ -4067,6 +4146,13 @@ plan(Path, Plan) :-
   highestNode(Path, N),
   nodePlan(N, Plan).
 
+plan(Path, Plan) :-
+  concat_atom(['Cannot create plan.'],'',ErrMsg),
+  write(ErrMsg), nl,
+  throw(error_Internal(optimizer_plan(Path, Plan)
+                   :unspecifiedError#ErrMsg)),
+  !, fail.
+
 
 deleteNodePlans :-  retractall(nodePlan(_, _)).
 
@@ -4092,6 +4178,12 @@ traversePath([costEdge(Source, Target, Term, Result, _, _) | Path]) :-
   assert(nodePlan(Result, Term3)),
   traversePath(Path).
 
+traversePath(Path) :-
+  concat_atom(['Cannot traverse Path.'],'',ErrMsg),
+  write(ErrMsg), nl,
+  throw(error_Internal(optimizer_traversePath(Path)
+                   :unspecifiedError#ErrMsg)),
+  !, fail.
 
 /*
 ----	markupProgress(Term+, Sel+, BBoxSel+, ExpPET+, Term2-) :-
@@ -4104,17 +4196,17 @@ Attach progress information to the right operators in a term.
 markupProgress(Term, _, _, _, Term) :- optimizerOption(noprogress).
 
 markupProgress(project(Stream, Attrs), Sel, BBoxSel, ExpPET,
-	project(Stream2, Attrs)) :-
+  project(Stream2, Attrs)) :-
   markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
   !.
 
 markupProgress(remove(Stream, Attrs), Sel, BBoxSel, ExpPET,
-	remove(Stream2, Attrs)) :-
+  remove(Stream2, Attrs)) :-
   markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
   !.
 
 markupProgress(rename(Stream, Var), Sel, BBoxSel, ExpPET,
-	rename(Stream2, Var)) :-
+  rename(Stream2, Var)) :-
   markupProgress(Stream, Sel, BBoxSel, ExpPET, Stream2),
   !.
 
@@ -4238,7 +4330,6 @@ bestPlan(Plan, Cost) :-
   assert(path(Path)),
   dc(bestPlan, writePath(Path)),
   plan(Path, Plan).
-
 
 
 
@@ -5106,6 +5197,18 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
     ; assert(usedAttr(Rel2, attr(Attr2, X, Case)))
   ), !.
 
+%special predicate for the pattern operator because
+%it needs special handeling since the predictaes
+%inside the pattern may have aliases
+
+lookupPred1(pattern(Preds,BExpr), pattern(Res), RelsBefore, RelsAfter) :-
+  lookupPattern([Preds,BExpr], Res, RelsBefore, RelsAfter),
+  !.
+
+lookupPred1(pattern(Preds), pattern(Res), RelsBefore, RelsAfter) :-
+  lookupPattern([Preds], Res, RelsBefore, RelsAfter),
+	!.
+
 lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
   compound(Term),
   Term =.. [Op|Args],
@@ -5138,6 +5241,42 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
   lookupPred2(Others, Others2, RelsAfterMe, RelsAfter),
   !.
 
+composeNamedPredicate(P1, null, P1):-!.
+composeNamedPredicate(P1, A1, AP1):-
+	AP1=..[as,P1,A1],!.
+
+composeSubPattern([], [], [] , [], ExprBefore, ExprBefore ):-!.
+composeSubPattern([], [], [] , BExpr, ExprBefore, [ExprBefore, BExpr] ):-!.
+composeSubPattern([P1| PredsRest], [A1| AliasesRest], [C| ConnsRest] , BExpr, ExprBefore, ExprAfter ):-
+	composeNamedPredicate(P1, A1, AP1),
+	ExprAfterMe=..[C,ExprBefore,AP1],
+	composeSubPattern(PredsRest, AliasesRest, ConnsRest, BExpr, ExprAfterMe, ExprAfter ),!.
+
+composePattern(P1, A1, [] , [], AP1 ):-
+	composeNamedPredicate(P1, A1, AP1),!.
+composePattern(P1, A1, [] , BExpr, [AP1,BExpr] ):-
+	composeNamedPredicate(P1, A1, AP1),!.
+composePattern([P1, P2| PredsRest], [A1, A2| AliasesRest], [C| ConnsRest] , BExpr2, Res ):-
+	composeNamedPredicate(P1, A1, AP1),
+	composeNamedPredicate(P2, A2, AP2),
+	SubExpr=..[C,AP1,AP2],
+	flatten([PredsRest], PredsRest1),
+	flatten([AliasesRest], AliasesRest1),
+	flatten([ConnsRest], ConnsRest1),
+	composeSubPattern(PredsRest1, AliasesRest1, ConnsRest1 , BExpr2, SubExpr, Res),!.
+
+
+lookupPatternPreds(Pred, Pred2, RelsBefore, RelsAfterMe):-
+	lookupPred1(Pred, Pred2, RelsBefore, RelsAfterMe),!.
+lookupPatternPreds([Pred| PRest], [Pred2| PRest2], RelsBefore, RelsAfterPreds):-
+	lookupPred1(Pred, Pred2, RelsBefore, RelsAfterMe),
+	lookupPatternPreds(PRest, PRest2, RelsAfterMe, RelsAfterPreds).
+
+lookupPattern( PatternArgs , PatternArgs2, RelsBefore, RelsAfter) :-
+  parsePattern(PatternArgs, Aliases, Preds, Conns, BExpr),
+	lookupPatternPreds(Preds, Preds2, RelsBefore, RelsAfterPreds),
+	lookupPred1(BExpr, BExpr2, RelsAfterPreds, RelsAfter),
+	composePattern(Preds2, Aliases, Conns, BExpr2, PatternArgs2).
 
 %%%% Begin: for update and insert
 lookupTransformations([], []) :- !.
@@ -5344,9 +5483,10 @@ translate(update Rel set Transformations,
 
 translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
   not( optimizerOption(immediatePlan) ),
-  not( optimizerOption(intOrders(_))     ),  % standard behaviour
+  not( optimizerOption(intOrders(_))  ),  % standard behaviour
   getTime(( pog(Rels, Preds, _, _),
-            assignCosts,
+            assignCosts, !,
+            nl,write('*** Calling bestPlan/2 >>1<<'),nl,
             bestPlan(Stream, Cost),
             !
           ), Time),
@@ -6066,6 +6206,17 @@ updateQuery(Query last _)   :- updateQuery(Query).
 Same as ~queryToPlan~, but returns a stream plan, if possible.
 
 */
+
+queryToStream(Query orderby [distance(X, Y)] first N, 
+	      StreamOut, Cost) :-
+  !, queryToStream(Query, Stream, Cost),
+  newVariable(ExprAttrName),
+  ExprAttr = attr(ExprAttrName, *, l),
+  StreamOut = remove(ksmallest(extend(Stream, 
+				      [field(ExprAttr, distance(X, Y))]), N, 
+			       attrname(ExprAttr)), attrname(ExprAttr)).
+  
+
 
 queryToStream(Query first N, head(Stream, N), Cost) :-
   queryToStream(Query, Stream, Cost),
