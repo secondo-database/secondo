@@ -71,7 +71,7 @@ cost(rel(Rel, X1_), Sel, Pred, ResAttrList, ResTupleSize, ResCard, 0) :-
        )
   ),
   ( (ground(ResAttrList), ResAttrList = ignore)
-    -> true ; getRelAttrList(RelDC, ResAttrList, ResTupleSize)
+    -> true ; getRelAttrList(RelDC, ResAttrList, _/*ResTupleSize*/)
   ),
   tupleSizeSplit(RelDC,ResTupleSize),
   card(Rel, ResCard),!.
@@ -209,7 +209,7 @@ cost(filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))),
   ),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> true
-    ;  getRelAttrList(RelDC, ResAttrList, ResTupleSize)
+    ;  getRelAttrList(RelDC, ResAttrList, _/*ResTupleSize*/)
   ),
   tupleSizeSplit(RelDC,ResTupleSize),
   Cost is 0,
@@ -554,7 +554,7 @@ cost(extend(X, ExtendFields), Sel, Pred,
   costConst(extend, msPerTuple, U),
   costConst(extend, msPerTupleAndAttribute, V),
   createExtendAttrList(ExtendFields,ExtendAttrs,ExtendAttrSize), %% TODO: implement this predicate
-  addSizeTerm([ResTupleSize1, ExtendAttrSize],ResTupleSize),
+  addSizeTerms([ResTupleSize1, ExtendAttrSize],ResTupleSize),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> true
     ;  append(ResAttrList1,ExtendAttrs,ResAttrList)
@@ -622,7 +622,7 @@ cost(projectextend(X,ProjAttrFields,ExtendFields), Sel, Pred,
          ProjAttrNames),
   projectAttrList(ResAttrList1, ProjAttrNames, ResAttrList2, ResTupleSize2),
   createExtendAttrList(ExtendFields,ExtendAttrs,ExtendAttrSize),
-  addSizeTerm([ResTupleSize2, ExtendAttrSize],ResTupleSize),
+  addSizeTerms([ResTupleSize2, ExtendAttrSize],ResTupleSize),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> ResTupleSize = ResTupleSize1             %% ToDo: Fixme
     ;  append(ResAttrList2,ExtendAttrs,ResAttrList)
@@ -784,11 +784,11 @@ and therefore commented out:
 ----
 
 % Dummy-Costs for simple aggregation queries
-cost(simpleAggrNoGroupby(_, Stream, _), Sel, Size, Cost) :-
-  cost(Stream, Sel, Size, Cost).
+cost(simpleAggrNoGroupby(_, Stream, _), S, P, A, TS, RC, Cost) :-
+  cost(Stream, S, P, A, TS, RC, Cost).
 
-cost(simpleUserAggrNoGroupby(Stream, _, _, _),
-  Sel, Size, Cost) :- cost(Stream, Sel, Size, Cost).
+cost(simpleUserAggrNoGroupby(Stream, _, _, _), S, P, A, TS, RC, Cost) :-
+  cost(Stream, S, P, A, TS, RC, Cost).
 
 ----
 
@@ -837,6 +837,7 @@ Determine the assessed costs of an input term using rules ~cost/8~.
 
 */
 
+% costterm(+Term, +Source, +Target, +Sel, +Pred, -Card, -Cost)
 costterm(Term, Source, Target, Sel, Pred, Card, Cost) :-
   cost(Term, Sel, Pred, ResAttrList, TupleSize, Card, Cost),
   setNodeResAttrList(Target, ResAttrList),
@@ -845,6 +846,7 @@ costterm(Term, Source, Target, Sel, Pred, Card, Cost) :-
 
 :- dynamic(nodeAttributeList/2).
 
+% setNodeResAttrList(+Node, +AttrList)
 setNodeResAttrList(Node, _) :- nodeAttributeList(Node, _), !.
 setNodeResAttrList(Node, AttrList) :-
   ground(Node), ground(AttrList),
@@ -860,7 +862,9 @@ setNodeResAttrList(N, A) :-
 Retrieve tuple sizes and attributes at given nodes.
 
 */
+% getResAttrList(+Node, -AttrList)
 getResAttrList(0,[]).
 getResAttrList(Node,AttrList) :-  nodeAttributeList(Node, AttrList), !.
 
+% getResTupleSize(+Node, -TupleSize)
 getResTupleSize(Node, TupleSize) :- nodeTupleSize(Node, TupleSize), !.
