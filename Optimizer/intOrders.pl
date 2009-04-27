@@ -596,7 +596,7 @@ assertintOrderResNo(ResNo, noOrder, noOrder, _, _) :-
 	dm(intOrders, ['$$ It is not ordered, because the tuple-streams are ',
                        ' not ordered.\n\n']),
 	%!, skip(10),
-	tru.
+	true.
 
 assertintOrderResNo(ResNo, ArgAttributeX, ArgAttributeY, Pleft, Pright) :-
 	% if the join-predicates can be analysed
