@@ -1840,25 +1840,28 @@ getSecondoList(ObjList) :-
 /*
 6.2 Spelling of Attribute Names
 
----- spelling(Rel:Attr, Spelled) :-
+---- spelling(DCRel:DCAttr, IntAttr) :-
 ----
 
-Returns the internal spelling ~Spelled~ of dc-spelled attribute name ~Attr~.
+Returns the internal spelling ~IntAttr~ of dc-spelled attribute name ~DCAttr~.
 
-~Spelled~ is available via the dynamic predicate ~storedSpell/3~.
+~IntAttr~ is available via the dynamic predicate ~storedSpell/3~.
 Otherwise, the catalog info is searched and the spelling is stored for further
 use.
 
 */
 
 % return the internal spelling for a attribute name given in dc-spelling
-%
+% --- getIntSpellingFromDCattrList(+DCAttr, +ExtAttrList, -IntAttr)
 getIntSpellingFromDCattrList(_, [], _) :- !, fail.
-getIntSpellingFromDCattrList(DCattr,[[ExtAttr, _] | _], ExtAttr) :-
-  dcName2externalName(DCattr,ExtAttr), !.
-getIntSpellingFromDCattrList(DCattr,[[_, _] | Rest], ExtAttr) :-
-    getIntSpellingFromDCattrList(DCattr,Rest,ExtAttr),
-    !.
+
+getIntSpellingFromDCattrList(DCattr,[[ExtAttr, _] | _], IntAttr) :-
+  dcName2externalName(DCattr,ExtAttr),
+  internalName2externalName(IntAttr,ExtAttr), !.
+
+getIntSpellingFromDCattrList(DCattr,[[_, _] | Rest], IntAttr) :-
+  getIntSpellingFromDCattrList(DCattr,Rest,IntAttr),
+  !.
 
 spelling(Rel:Attr, Spelled) :-
   dm(dbhandling,['\nTry: spelling(',Rel,':',Attr,',',Spelled,').']),
@@ -3900,7 +3903,7 @@ createExtendAttrList([],[],sizeTerm(0,0,0)) :- !.
 createExtendAttrList([Field|MoreFields],
                      [[AttrName,AttrType,AttrSize]|MoreAttrs],
                      TotalAttrSize) :-
-  Field = field(attr(Name, _, _), _ /* Expr */),
+  Field = newattr(attrname(attr(Name, _, _)), _ /* Expr */),
   ( Name = Attr:Suffix
     -> ( concat_atom([Attr,Suffix],'_',Renamed),
          downcase_atom(Renamed,AttrName)
