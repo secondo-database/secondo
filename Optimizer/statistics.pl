@@ -73,16 +73,34 @@ in predicate ~storedSel~.
 The simple form of a term ~Term~ containing attributes of ~Rel1~ and/or ~Rel2~
 is ~Simple~.
 
+Commutative predicates are transformed to the minimum equivalent expression
+regarding lexicographical order on the argument, e.g.
+
+--- op(b,a)
+---
+
+is transformed into
+
+--- op(a,b)
+---
+
+
 */
 
-simple(attr(Var:Attr, 0, _), rel(Rel, Var), _, Rel:Attr) :- !.
-simple(attr(Attr, 0, _), rel(Rel, *), _, Rel:Attr) :- !.
+simple(attr(Var:Attr, 0, _), rel(Rel, Var), _, Rel2:Attr2) :-
+  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
+simple(attr(Attr, 0, _), rel(Rel, *), _, Rel2:Attr2) :-
+  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
 
-simple(attr(Var:Attr, 1, _), rel(Rel, Var), _, Rel:Attr) :- !.
-simple(attr(Attr, 1, _), rel(Rel, *), _, Rel:Attr) :- !.
+simple(attr(Var:Attr, 1, _), rel(Rel, Var), _, Rel2:Attr2) :-
+  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
+simple(attr(Attr, 1, _), rel(Rel, *), _, Rel2:Attr2) :-
+  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
 
-simple(attr(Var:Attr, 2, _), _, rel(Rel, Var),  Rel:Attr) :- !.
-simple(attr(Attr, 2, _), _, rel(Rel, *), Rel:Attr) :- !.
+simple(attr(Var:Attr, 2, _), _, rel(Rel, Var),  Rel2:Attr2) :-
+  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
+simple(attr(Attr, 2, _), _, rel(Rel, *), Rel2:Attr2) :-
+  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
 
 simple(dbobject(X),_,_,dbobject(X)) :- !.
 
@@ -91,6 +109,16 @@ simple([A|Rest], Rel1, Rel2, [Asimple|RestSimple]) :-
   simple(A,Rel1,Rel2,Asimple),
   simple(Rest,Rel1,Rel2,RestSimple),
   !.
+
+% Normalize simple predicates, if possible
+simple(Term,R1,R2,Simple) :-
+  compound(Term),
+  Term =.. [_,Arg1,Arg2],
+  compare(>,Arg1,Arg2),
+  commute(Term,Term2),
+  simple(Term2,R1,R2,Simple),
+  !.
+
 simple(Term, Rel1, Rel2, Simple) :-
   compound(Term),
   Term =.. [Op|Args],
@@ -158,30 +186,26 @@ possiblyRename(Rel, Renamed) :-
 dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, *),
   !,
-  % old: sampleSizeJoin(JoinSize),
-  thresholdCardMaxSampleJ(JoinSize),
+  secOptConstant(sampleJoinMaxCard, JoinSize),
   secOptConstant(sampleScalingFactor, SF),
   Renamed = sample(Rel, JoinSize, SF).
 
 dynamicPossiblyRenameJ(Rel, Renamed) :-
   Rel = rel(_, Name),
-  % old: sampleSizeJoin(JoinSize),
-  thresholdCardMaxSampleJ(JoinSize),
+  secOptConstant(sampleJoinMaxCard, JoinSize),
   secOptConstant(sampleScalingFactor, SF),
   Renamed = rename(sample(Rel, JoinSize, SF), Name).
 
 dynamicPossiblyRenameS(Rel, Renamed) :-
   Rel = rel(_, *),
   !,
-  % old: sampleSizeSelection(SelectionSize),
-  thresholdCardMaxSampleS(SelectionSize),
+  secOptConstant(sampleSelMaxCard, SelectionSize),
   secOptConstant(sampleScalingFactor, SF),
   Renamed = sample(Rel, SelectionSize, SF).
 
 dynamicPossiblyRenameS(Rel, Renamed) :-
   Rel = rel(_, Name),
-  % old: sampleSizeSelection(SelectionSize),
-  thresholdCardMaxSampleS(SelectionSize),
+  secOptConstant(sampleSelMaxCard, SelectionSize),
   secOptConstant(sampleScalingFactor, SF),
   Renamed = rename(sample(Rel, SelectionSize, SF), Name).
 
@@ -661,7 +685,9 @@ selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET) :-
   selectivity(Pred, Sel, CalcPET, ExpPET),
   simplePred(Pred, PSimple),
   databaseName(DB),
-  storedBBoxSel(DB, PSimple, BBoxSel),
+  (   storedBBoxSel(DB, PSimple, BBoxSel)
+    ; (commute(PSimple,PSimple2), storedBBoxSel(DB, PSimple2, BBoxSel) )
+  ),
   !.
 
 selectivity(Pred, Sel, noBBox, CalcPET, ExpPET) :-
@@ -732,7 +758,7 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   card(SampleName, SampleCard),
   selectivityQuerySelection(Pred, Rel, MSs, BBoxResCard, ResCard),
   nonzero(ResCard, NonzeroResCard),
-  Sel is NonzeroResCard / SampleCard,		% must not be 0
+  Sel is NonzeroResCard / SampleCard,   % must not be 0
   tupleSizeSplit(BaseName,TupleSize),
   calcExpPET(MSs, SampleCard, TupleSize, MSsRes), % correct PET
   simplePred(pr(Pred, Rel), PSimple),
@@ -765,16 +791,15 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   optimizerOption(dynamicSample),
   Rel1 = rel(BaseName1, _),
   card(BaseName1, Card1),
-  % old: sampleSizeJoin(JoinSize),
-  thresholdCardMaxSampleJ(JoinSize),
+  secOptConstant(sampleJoinMaxCard, JoinSize),
   secOptConstant(sampleScalingFactor, SF),
-  SampleCard1 is min(Card1, max(JoinSize, Card1 * SF)),
+  SampleCard1 is max(1,min(Card1, max(JoinSize, Card1 * SF))),
   Rel2 = rel(BaseName2, _),
   card(BaseName2, Card2),
-  SampleCard2 is min(Card2, max(JoinSize, Card2 * SF)),
+  SampleCard2 is max(1,min(Card2, max(JoinSize, Card2 * SF))),
   selectivityQueryJoin(Pred, Rel1, Rel2, MSs, BBoxResCard, ResCard),
   nonzero(ResCard, NonzeroResCard),
-  Sel is NonzeroResCard / (SampleCard1 * SampleCard2),	% must not be 0
+  Sel is NonzeroResCard / (SampleCard1 * SampleCard2),  % must not be 0
   tupleSizeSplit(BaseName1,TupleSize1),
   tupleSizeSplit(BaseName2,TupleSize2),
   calcExpPET(MSs, SampleCard1, TupleSize1,
@@ -787,6 +812,7 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
                   ') ms\nSelectivity     : ', Sel,'\n']),
 
   databaseName(DB),
+  assert(storedPET(DB, PSimple, CalcPET, ExpPET)),
   assert(storedSel(DB, PSimple, Sel)),
   ( ( BBoxResCard = noBBox ; storedBBoxSel(DB, PSimple, _) )
     -> true
@@ -810,9 +836,8 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   optimizerOption(dynamicSample),
   Rel = rel(BaseName, _),
   card(BaseName, Card),
-  % old: sampleSizeSelection(SelectionSize),
-  thresholdCardMaxSampleS(SelectionSize),
-  SampleCard is min(Card, max(SelectionSize, Card * 0.00001)),
+  secOptConstant(sampleSelMaxCard, SelectionSize),
+  SampleCard is max(1,min(Card, max(SelectionSize, Card * 0.00001))),
   selectivityQuerySelection(Pred, Rel, MSs, BBoxResCard, ResCard),
   nonzero(ResCard, NonzeroResCard),
   Sel is NonzeroResCard / SampleCard,		% must not be 0
@@ -824,6 +849,7 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   dm(selectivity,['Predicate Cost  : (', CalcPET, '/', ExpPET,
                   ') ms\nSelectivity     : ', Sel,'\n']),
   databaseName(DB),
+  assert(storedPET(DB, PSimple, CalcPET, ExpPET)),
   assert(storedSel(DB, PSimple, Sel)),
   ( ( BBoxResCard = noBBox ; storedBBoxSel(DB, PSimple, _) )
     -> true
@@ -858,7 +884,9 @@ selectivity(P, X, Y, Z) :-
 getPET(P, CalcPET, ExpPET) :-
   databaseName(DB),
   simplePred(P,PSimple),
-  storedPET(DB, PSimple, CalcPET, ExpPET), !.
+  (   storedPET(DB, PSimple, CalcPET, ExpPET)
+    ; ( commute(PSimple, PSimple2), storedPET(DB, PSimple2, CalcPET, ExpPET) )
+  ), !.
 
 getPET(P, X, Y) :-
   simplePred(P, PSimple),
