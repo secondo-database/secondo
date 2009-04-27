@@ -494,7 +494,7 @@ for the given relation (argument 1).
 
 build_query(Relation, [ PredIdentList , Query , RelPred ]):-
 	set_equal(Relation, RelPred),
-	writeln('build_query 1: for relation ', Relation),
+	writeln('build query for relation ', Relation),
 	% build sel and join lists
 	get_join_predicates(Relation, JoinPredicateIDs, JoinPredicates),
 	get_sel_predicates(Relation, SelPredicateIDs, _),
@@ -515,7 +515,7 @@ build_query(Relation, [ PredIdentList , Query , RelPred ]):-
 	% the identifiers of used join predicates are added to
 	% the list of predicate identifiers to support calculate_pog_ident/3
 	% (the idents of used join preds are enclosed by [])
-	append(PredIdentListTmp, UsedJoinPredicateIDsTmp, PredIdentList),
+	append(PredIdentListTmp, UsedJoinPredicateIDs, PredIdentList),
 	!,
 	% concatinate string
 	atom_concat('query ', RelationExpr, PredcountExpr,
@@ -2136,7 +2136,10 @@ corrFeasible(MP, JP, MP2, JP2):-
 	renormAllCummSels,
 	!,
 	loadMarginalSels(MP2),
-	findall([NodeID, NodeSel], corrCummSel(NodeID, NodeSel), JP2).
+	findall([NodeID, NodeSel], corrCummSel(NodeID, NodeSel), JP2),
+	!,
+	writeln('Corr MP2: ', MP2),
+	writeln('Corr JP2: ',JP2).
 
 renormAllCummSels:-
 	highNode(HN),
@@ -2158,7 +2161,7 @@ renormAllCummSel(BaseSel, NodeID):-
 	retract((corrCummSel(NodeID2, CummSel))),
 	CummSelNew is CummSel / BaseSel,
 	assert((corrCummSel(NodeID2, CummSelNew))),
-	writeln('renormAllCummSel: ',[NodeID2, CummSel, CummSelNew]).
+	debug_writeln('renormAllCummSel: ',[NodeID2, CummSel, CummSelNew]).
 
 loadMarginalSels(CorrectedMarginalPreds):-
 	findall(PredID, corrMarginalSel(PredID, _), MarginalPredIDs),
@@ -2167,10 +2170,15 @@ loadMarginalSels(CorrectedMarginalPreds):-
 loadMarginalSels2([], []).
 loadMarginalSels2([ PredID | PredIDs ], [ [ PredID, CummSel ] | MP ]):-
 	corrCummSel(PredID, CummSel),
+	!,
 	loadMarginalSels2(PredIDs, MP).
 loadMarginalSels2([ PredID | PredIDs ], [ [ PredID, MargSel ] | MP ]):-
 	corrMarginalSel(PredID, MargSel),
+	!,
 	loadMarginalSels2(PredIDs, MP).
+% unexpected call
+loadMarginalSels2(A, B):-
+	error_exit(loadMarginalSels2/2,'unexpected call',[A,B]).
 	
 storeMarginalSels(MP):-
 	retractall((corrMarginalSel(_, _))),
@@ -2199,6 +2207,8 @@ corrFeasible2(NodeID):-
 	correct0Selectivity(NodeID),
 	!,
 	% Kanten mit Selektivitaet 1 modifizieren
+	% falls Betrachtung indirekter Vorgaenger noetig wird,
+	% erfolgt dies durch indirekte Rekursion in correct1Selectivity/2
 	findall(PrevNodeID, edge(PrevNodeID, NodeID, _, _, _, _), PrevNodeIDs),
 	debug_writeln('corrFeasible2: check previous nodes ',[ NodeID, PrevNodeIDs]),
 	corrFeasible3(NodeID, PrevNodeIDs),
@@ -2214,27 +2224,31 @@ corrFeasible3(NodeID, [ PrevNodeID | Rest ]):-
 correct0Selectivity(NodeID):-
 	corrCummSel(NodeID, CummSel),
 	CummSel > 0,
-	writeln('correct0Selectivity(1): keep ', [NodeID, CummSel]).
+	debug_writeln('correct0Selectivity(1): keep ', [NodeID, CummSel]).
 correct0Selectivity(NodeID):-
-	writeln('correct0Selectivity(2): to increase ',NodeID),
+	corrCummSel(NodeID, CummSel),
+	debug_writeln('correct0Selectivity(2): to increase ',NodeID),
 	% jede VorgaengerNode hat kleinere ID!
 	increaseSelectivityRecursive(NodeID, NodeID).
+% dann ist nichts zu korrigieren
 correct0Selectivity(NodeID):-
-	writeln('Fehler: correct0Selectivity unexpected call ',[NodeID]).
+	not(corrCummSel(NodeID, CummSel)).
+correct0Selectivity(NodeID):-
+	error_exit(correct0Selectivity/1, 'unexpected call',[NodeID]).
 
 correct1Selectivity(PrevNodeID,NodeID):-
 	corrCummSel(NodeID, CummSel),
 	corrCummSel(PrevNodeID, PrevCummSel),
 	% dann ist die Selektivitaet der Kante kleiner als 1
 	CummSel < PrevCummSel,
-	writeln('correct1Selectivity(1): keep ', [PrevNodeID,NodeID,CummSel,PrevCummSel]).
+	debug_writeln('correct1Selectivity(1): keep ', [PrevNodeID,NodeID,CummSel,PrevCummSel]).
 correct1Selectivity(PrevNodeID,NodeID):-
 	corrCummSel(NodeID, CummSel),
 	corrCummSel(PrevNodeID, CummSel),
 	% 10^-19 = Delta is CummSel - PrevCummSel,
 	%writeln('correct1Selectivity(2): to increase check delta ',[CummSel,PrevCummSel,Delta]),
 	% Kante mit Selektivitaet 0 gefunden
-	writeln('correct1Selectivity(2): to increase ', [PrevNodeID,NodeID,CummSel]),
+	debug_writeln('correct1Selectivity(2): to increase ', [PrevNodeID,NodeID,CummSel]),
 	% alle Vorgaengerknoten erhoehen
 	increaseSelectivityRecursive(PrevNodeID,PrevNodeID).
 correct1Selectivity(PrevNodeID,NodeID):-
@@ -2253,13 +2267,33 @@ correct1Selectivity(PrevNodeID,NodeID):-
 	increaseSelectivityRecursive(PrevNodeID,PrevNodeID, Delta),
 	% Kante mit Selektivitaet 1 entfernen
 	increaseSelectivityRecursive(PrevNodeID,PrevNodeID).
+% wenn fuer den unmittelbaren Vorgaenger des Knotens keine Selektivitaet bekannt ist,
+% dann pruefen, ob sie fuer indirekte Vorgaegner bekannt sind
+% (Suche nur bis bekannten gefunden)
 correct1Selectivity(PrevNodeID,NodeID):-
-	writeln('Fehler: correct1Selectivity unexpected call ',[PrevNodeID,NodeID]).
+	corrCummSel(NodeID, CummSel),
+	not(corrCummSel(PrevNodeID, PrevCummSel)),
+	% unmittelbarer Vorgaenger nicht bekannt,
+	% dann fuer all dessen Vorgaenger pruefen
+	findall(NewPrevNodeID, edge(NewPrevNodeID, PrevNodeID, _, _, _, _), NewPrevNodeIDs),
+	debug_writeln('previous nodes (recursive search): ',[ NodeID, PrevNodeID, NewPrevNodeIDs]),
+	corrFeasible3(NodeID, NewPrevNodeIDs).
+% es werden alle N´Knoten geprueft,
+% falls ein Knoten nicht bekannt, dann ignorieren
+correct1Selectivity(_,NodeID):-
+	not(corrCummSel(NodeID, CummSel)).
+correct1Selectivity(PrevNodeID,NodeID):-
+	error_exit(correct1Selectivity/2,'unexpected call',[PrevNodeID,NodeID]).
 
-
+getEpsilon(Epsilon):-
+	retract(corrEpsilon(Epsilon)),
+	assert(corrEpsilon(Epsilon)),
+	!.
+getEpsilon(0.001):-
+	!.
 
 increaseSelectivityRecursive(NodeID, ChildNodeID):-
-	Epsilon = 0.001,
+	getEpsilon(Epsilon),
 	increaseSelectivityRecursive(NodeID, ChildNodeID, Epsilon).
 
 increaseSelectivityRecursive(NodeID, _, _):-
@@ -2280,7 +2314,7 @@ increaseSelectivity(NodeID, Epsilon):- % VJO int oder real
 	retract((corrCummSel(NodeID, CummSel))),
 	CummSelNew is CummSel + Epsilon,
 	assert((corrCummSel(NodeID, CummSelNew))),
-	writeln('increaseSelectivity: NodeID increased by Epsilon to value ',[NodeID,Epsilon,CummSelNew]).
+	debug_writeln('increaseSelectivity: NodeID increased by Epsilon to value ',[NodeID,Epsilon,CummSelNew]).
 
 storeEntropyEdgeSelectivities([]).
 storeEntropyEdgeSelectivities([ [ PrevNodeID, NodeID, CummEdgeSel ] | Rest]):-
@@ -2327,9 +2361,9 @@ get_relation_expression(Predicates, JoinExpression, UsedJoinPredicate):-
 		and( costEdge(0, PredID, Path, _, _, Cost) , contains(PredID, JoinPredicates) ), 
 		JoinEdges
 	),
-	writeln('all costEdges: ',JoinEdges),!,
+	debug_writeln('all costEdges: ',JoinEdges),!,
 	find_cheapest_Path(JoinEdges, CheapestEdge),!,
-	writeln('cheapest edge is: ',CheapestEdge),
+	debug_writeln('cheapest edge is: ',CheapestEdge),
 	CheapestEdge = [ UsedJoinPredicate, _, CheapestPath ],
 	plan_to_atom(CheapestPath, JoinExpression).
 
@@ -2376,11 +2410,11 @@ contains(E,[ _ | S ]):-
 correct_predlist([], _, []).
 correct_predlist([ [JoinPred] | PredIdentList ], UsedJoinPredicate, [ JoinPred | PredIdentListNew]):-
 	JoinPred =\= UsedJoinPredicate,
-	writeln('xxx2',[[JoinPred]]),
+	debug_writeln('xxx2',[[JoinPred]]),
 	!,
 	correct_predlist(PredIdentList, UsedJoinPredicate, PredIdentListNew).
 correct_predlist([ Pred | PredIdentList ], UsedJoinPredicate, [ Pred | PredIdentListNew]):-
-	writeln('xxx3',[Pred]),
+	debug_writeln('xxx3',[Pred]),
 	correct_predlist(PredIdentList, UsedJoinPredicate, PredIdentListNew).
 
 
@@ -2506,7 +2540,7 @@ warn_continue(Pred, Message,Args):-
 	write('WARN: '),
 	writeln(Pred, ': ', Message,' (arguments: ',Args, ')').
 error_exit(Pred, Message,Args):-
-	write('ERROR'),
+	write('ERROR: '),
 	writeln(Pred, ': ',Message,' (arguments: ',Args, ')'),
 	abort.
 
