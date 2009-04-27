@@ -1140,7 +1140,8 @@ within the structure of the list, otherwise, the function result is ~true~.
         break;
       case RealType:
         os << setprecision(16) << RealValue( list );
-        if ( os.str().find( '.' ) == string::npos )
+        if ( (os.str().find( '.' ) == string::npos )&&
+             (os.str().find('e') == string::npos))
         {
           os << ".0";
         }
