@@ -4799,7 +4799,7 @@ Translate and store a single relation definition.
 lookupRel(Rel as Var, Y) :-
   atomic(Rel),       %% changed code FIXME
   atomic(Var),       %% changed code FIXME
-  dcName2externalName(RelDC,Rel),
+  dcName2externalName(RelDC,Rel), % get downcase spelling
   relation(RelDC, _), !,          %% changed code FIXME
   ( variable(Var, _)
     -> ( concat_atom(['Doubly defined variable \'',Var,'\'.'],'',ErrMsg),
@@ -4897,7 +4897,8 @@ lookupAttr(Attr desc, Attr2 desc) :- !,
 
 lookupAttr(Attr, Attr2) :-
   atomic(Attr), %% changed code FIXME
-  isAttribute(Attr, Rel),!,
+  downcase_atom(Attr,AttrDC),
+  isAttribute(AttrDC, Rel),!,
   spelled(Rel:Attr, Attr2),
   queryRel(Rel, Rel2),
   (   usedAttr(Rel2, Attr2)
@@ -5023,7 +5024,7 @@ lookupPreds(Pred, Pred2) :-
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
 %Checks for additional predicates that
-%were added by the optimizer during rewirting
+%were added by the optimizer during rewriting
 %and store them in a list.
 %The list will be used
 %later to remove these predicate
@@ -5075,7 +5076,9 @@ The relation list is updated and returned in ~RelsAfter~.
 lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
   :-
   variable(Var, Rel2), !, Rel2 = rel(Rel, Var),
-  spelled(Rel:Attr, attr(Attr2, X, Case)),
+  downcase_atom(Rel,RelDC),
+  downcase_atom(Attr,AttrDC),
+  spelled(RelDC:AttrDC, attr(Attr2, X, Case)),
   ( member(Rel2, RelsBefore)
       -> RelsAfter = RelsBefore
        ; append(RelsBefore, [Rel2], RelsAfter)
@@ -5087,7 +5090,9 @@ lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
 
 lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
   isAttribute(Attr, Rel), !,
-  spelled(Rel:Attr, attr(Attr2, X, Case)),
+  downcase_atom(Rel,RelDC),
+  downcase_atom(Attr,AttrDC),
+  spelled(RelDC:AttrDC, attr(Attr2, X, Case)),
   queryRel(Rel, Rel2),
   ( member(Rel2, RelsBefore)
       -> RelsAfter = RelsBefore
@@ -5239,6 +5244,7 @@ spelled(Rel:Attr, attr(Attr2, 0, u)) :-
   downcase_atom(Rel, DCRel),
   downcase_atom(Attr, DCAttr),
   spelling(DCRel:DCAttr, Attr2),
+  not( Attr2 = lc(_) ),
   !.
 
 spelled(_:_, attr(_, 0, _)) :- !, fail. % no attr entry in spelling table
@@ -5253,7 +5259,9 @@ spelled(Rel, Rel2, l) :-
 spelled(Rel, Rel2, u) :-
   atomic(Rel),  %% changed code FIXME
   downcase_atom(Rel, DCRel),
-  spelling(DCRel, Rel2), !.
+  spelling(DCRel, Rel2),
+  not( Rel2 = lc(_) ),
+  !.
 
 spelled(_, _, _) :- !, fail.  % no rel entry in spelling table.
 
@@ -5387,7 +5395,6 @@ translate(Select from Rels where Preds, Stream, Select2, Update, Cost) :-
   not( optimizerOption(intOrders(_))  ),  % standard behaviour
   getTime(( pog(Rels, Preds, _, _),
             assignCosts, !,
-            nl,write('*** Calling bestPlan/2 >>1<<'),nl,
             bestPlan(Stream, Cost),
             !
           ), Time),
@@ -6309,8 +6316,6 @@ Only ~error-explanation~ will be returned as the message content.
 Otherwise, ``Exception during optimization'' is returned as the message content.
 
 */
-
-%%error_SQL(optimizer_lookupRel(twen, _G7):unknownRelation)
 
 sqlToPlan2(QueryText, Plan) :-
   string(QueryText),
