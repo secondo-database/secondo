@@ -512,7 +512,6 @@ assignEntropyCost :-
   nl, write('Marginal Sel.: MP ='), write( MP ),
   nl, write('Conditional Sel.: JP =') , write( JP ), nl, nl,
 
-  feasible(MP, JP, MP2, JP2), !,
    (
        optimizerOption(correlations)
        ->
