@@ -7511,7 +7511,8 @@ Copy the moving segments.
 
 */
     msegmentdata.Clear();
-    msegmentdata.Resize(mr->msegmentdata.Size());
+    if (mr->msegmentdata.Size() > 0) 
+      msegmentdata.Resize(mr->msegmentdata.Size());
     for (int i = 0; i < mr->msegmentdata.Size(); i++) {
         const MSegmentData* dms;
         mr->msegmentdata.Get(i, dms);
