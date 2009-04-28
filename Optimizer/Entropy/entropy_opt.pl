@@ -200,6 +200,15 @@ Observed selectivities are determined according to the following rules.
 
 */
 
+compute_sel(_, N, 1) :-
+  optimizerOption(correlations),
+  N =:= 0,
+  !.
+
+compute_sel(N, N, 1) :-
+  optimizerOption(correlations),
+  !.
+
 compute_sel(_, N, 0) :-
   N = 0,
   !.
@@ -503,7 +512,12 @@ assignEntropyCost :-
   nl, write('Marginal Sel.: MP ='), write( MP ),
   nl, write('Conditional Sel.: JP =') , write( JP ), nl, nl,
 
-  feasible(MP, JP, MP2, JP2), !,
+   (
+       optimizerOption(correlations)
+       ->
+       corrFeasible(MP, JP, MP2, JP2);
+       feasible(MP, JP, MP2, JP2)
+   ),!,
 
   % call the predicate implemented in C++ which computes the
   % remaining conditional probabilities.
