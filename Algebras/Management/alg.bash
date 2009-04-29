@@ -33,7 +33,7 @@ regexp="(,$1"
 shift
 while [ $# -ne 0 ];
 do
-   regexp=$regexp"|,$1"	
+   regexp=$regexp"\)|,$1"	
    shift
 done
 
