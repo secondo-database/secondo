@@ -502,7 +502,8 @@ SecondoServer::Execute()
       }
 
     cout << "Try to initialize the secondo system " << endl; 
-    if ( si->Initialize( user, pswd, "", "", parmFile, true ) )
+    string errorMsg("");
+    if ( si->Initialize( user, pswd, "", "", parmFile,errorMsg,  true ) )
     {
        cout << "initialization successful" << endl;
        iosock << "<SecondoIntro>" << endl
@@ -568,6 +569,7 @@ SecondoServer::Execute()
     } else {
        iosock << "<SecondoError>" << endl
               << "Initialization failed (username, password correct?)" << endl
+              << errorMsg  
               << "</SecondoError>" << endl;
       rc = -1;
     }

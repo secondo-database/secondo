@@ -1447,7 +1447,8 @@ TestRunner::Execute()
     ifstream fileInput;
     ofstream fileOutput;
     si = new SecondoInterface();
-    if ( si->Initialize( user, pswd, host, port, parmFile ) )
+    string errorMsg("");
+    if ( si->Initialize( user, pswd, host, port, parmFile, errorMsg ) )
     {
       if ( iFileName.length() > 0 )
       {
@@ -1508,6 +1509,9 @@ TestRunner::Execute()
           cout.rdbuf( oldOutputBuffer );
         }
       }
+    } else {
+       cout << "Error in initialization of secondo: " 
+            << errorMsg << endl;
     }
     ShowErrorSummary();
     

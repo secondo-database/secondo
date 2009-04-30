@@ -224,7 +224,9 @@ SecondoInterface::~SecondoInterface()
 bool
 SecondoInterface::Initialize( const string& user, const string& pswd,
                               const string& host, const string& port,
-                              string& parmFile, const bool multiUser )
+                              string& parmFile, string& errorMsg,
+                              const bool multiUser 
+                              )
 {
   bool ok = false;
   cout << endl << "Initializing the SECONDO Interface ..." << endl;
@@ -244,6 +246,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
                                  "SecondoHome", "", parmFile ) == "" )
   {
     cout << "Error: Secondo home directory not specified." << endl;
+    errorMsg += "Secondo home directory not specified\n";
   }
   else
   {
@@ -262,6 +265,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
      if(!pwd){
        cmsg.error() << "password file not found" << endl;
        cmsg.send();
+       errorMsg += "password file not found\n";
        ok = false;
      }
      string line;
@@ -280,6 +284,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
               cmsg.send();
             } else {
               cmsg.error() << "password for user " << u << " is wrong" << endl;
+              errorMsg += "wrong password for user " + u + "\n";
               cmsg.send();
               ok = false;
             }
@@ -289,6 +294,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
      if(!userok){
        cmsg.error() << "user " << user << " is not valid " << endl;
        cmsg.send();
+       errorMsg += "user " + user + " is not known\n";
        ok =  false;
      }
      pwd.close();
@@ -305,6 +311,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       cmsg.error() << "Could not create directory " << tempDir << endl;
       cmsg.send();
       ok = false;
+      errorMsg += "Could not create directory " + tempDir +"\n";
     }
   }
 
@@ -333,6 +340,8 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     {
       cerr << "Fatal Error: Could not start up SMI! "
            << "Check configuration parameters." << endl;
+      errorMsg += "Fatal Error: Could not start up SMI!,"
+                  " Check configuration parameters.\n" ;
       return false;
     }
   }
@@ -432,7 +441,10 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
     ctlg.Initialize(typeInfoRel);
     ctlg.Initialize(operatorInfoRel);
+  } else {
+    errorMsg += "Problem in SecondoSystem::StartUp()\n"; 
   }
+
   initialized = ok;
   return (ok);
 }

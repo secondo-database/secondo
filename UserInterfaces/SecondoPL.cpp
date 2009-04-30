@@ -684,8 +684,8 @@ StartSecondoC(TTYParameter& tp)
   //tp.Print(cout);  
 
   si = new SecondoInterface();
-
-  if(si->Initialize(tp.user, tp.pswd, tp.host, tp.port, tp.parmFile))
+  string errorMsg("");
+  if(si->Initialize(tp.user, tp.pswd, tp.host, tp.port, tp.parmFile, errorMsg))
   {
     plnl = si->GetNestedList();
     NList::setNLRef(plnl);
@@ -697,7 +697,8 @@ StartSecondoC(TTYParameter& tp)
     si = 0;
     cout
       << "Error while starting Secondo with config file "
-      << tp.parmFile << "." << endl;
+      << tp.parmFile << "." << endl
+      << errorMsg << endl;
     return false;
   }
 }

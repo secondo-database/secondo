@@ -175,6 +175,7 @@ Destroys a "Secondo"[3] interface.
   bool Initialize( const string& user, const string& pswd,
                    const string& host, const string& port,
                    string& profile,
+                   string& errorMsg,
                    const bool multiUser = false );
 /*
 Starts up the "Secondo"[3] interface. Depending on the implementation

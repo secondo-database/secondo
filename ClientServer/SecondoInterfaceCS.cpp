@@ -74,7 +74,8 @@ SecondoInterface::~SecondoInterface()
 bool
 SecondoInterface::Initialize( const string& user, const string& pswd,
                               const string& host, const string& port,
-                              string& parmFile, const bool multiUser )
+                              string& parmFile, string& errorMsg,
+                              const bool multiUser )
 {
   string secHost = host;
   string secPort = port;
@@ -98,6 +99,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
       string errMsg;
       SmiEnvironment::GetLastErrorCode( errMsg );
       cout << "Error: " << errMsg << endl;
+      errorMsg += errMsg +"\n";
       ok=false;
     }
 

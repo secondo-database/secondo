@@ -673,8 +673,8 @@ SecondoTTY::Execute()
   bool useOutputFile = oFileName.length() > 0;
 
   si = new SecondoInterface();
-    
-  if ( si->Initialize( user, pswd, host, port, parmFile ) )
+  string errorMsg("");  
+  if ( si->Initialize( user, pswd, host, port, parmFile, errorMsg  ) )
   {
 
     // initialize the pointer to the nested list instance
@@ -710,6 +710,9 @@ SecondoTTY::Execute()
 
     if ( useOutputFile )
       cout.rdbuf( oldOutputBuffer );
+  } else {
+    cerr << "Error in initializing the secondo system: " 
+         << errorMsg << endl; 
   }
 
   try {
