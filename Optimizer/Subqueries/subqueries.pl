@@ -71,7 +71,7 @@ Facts about comparison operators
 */
 
 isComparisonOp(=).
-isComparisonOp(=<).
+isComparisonOp(<=).
 isComparisonOp(>=).
 isComparisonOp(<).
 isComparisonOp(>).
@@ -195,10 +195,18 @@ anyToAggr(<=, max).
 anyToAggr(>, min).
 anyToAggr(>=, min).
 
-anyToAggr(<, min).
-anyToAggr(<=, min).
-anyToAggr(>, max).
-anyToAggr(>=, max).
+allToAggr(<, min).
+allToAggr(<=, min).
+allToAggr(>, max).
+allToAggr(>=, max).
+
+in2or(Attr, List, Pred1) :-
+  List =.. [(,), Elem, Rest],
+  in2or(Attr, Rest, Pred),
+  Pred1 =.. [or, Attr = Elem, Pred].
+  
+in2or(Attr, Elem, Attr = Elem) :-
+  (atomic(Elem) ; is_list(Elem)).
 
 /* 
 
@@ -274,13 +282,111 @@ Rewrites a query by transforming subqueries within ~QueryIn~ to their canonical 
 */
 
 rewriteQueryForSubqueryProcessing(QueryIn, QueryIn) :-
-  not(optimizerOption(subqueryUnnesting)), !.
+  not(optimizerOption(subqueries)), !.
+
+rewriteQueryForSubqueryProcessing(QueryIn, QueryOut) :-
+  not(optimizerOption(subqueryUnnesting)), 
+  preTransform(QueryIn, QueryOut), 
+  dm(subqueryUnnesting,['\nREWRITING: Subqueries\n\tIn:  ',QueryIn,'\n\tOut: ',
+                    QueryOut,'\n\n']),  
+  !.
   
 rewriteQueryForSubqueryProcessing(NestedQuery, CanonicalQuery) :-
     transform(NestedQuery, CanonicalQuery),
     dm(subqueryUnnesting,['\nREWRITING: Subqueries\n\tIn:  ',NestedQuery,'\n\tOut: ',
                     CanonicalQuery,'\n\n']). 
 					
+					
+/* 
+
+Apply Pre-Transformations, like replacing operators ~any~, ~all~ and ~exists~ with their generic transformation
+
+*/
+
+
+preTransform(Query orderby Order, Query2 orderby Order) :-
+  preTransform(Query, Query2).
+  
+preTransform(Query groupby Group, Query2 groupby Group) :-
+  preTransform(Query, Query2).
+
+preTransform(Query first N, Query2 first N) :-
+  preTransform(Query, Query2).
+
+preTransform(Query last N, Query2 last N) :-
+  preTransform(Query, Query2).  
+  
+preTransform(select Attrs from Rels where Preds, select CanonicalAttrs from CanonicalRels where CanonicalPreds) :-
+  preTransformNestedPredicates(Attrs, CanonicalAttrs, Rels, CanonicalRels, Preds, CanonicalPredList),
+  flatten(CanonicalPredList, CanonicalPreds).	
+
+preTransform(Query, Query).  
+
+preTransformNestedPredicates(Attrs, Attrs, Rels, Rels, [], []).  
+  
+preTransformNestedPredicates(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
+  not(is_list(Pred)),
+  preTransformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2).
+  
+preTransformNestedPredicates(Attrs, Attrs2, Rels, Rels3, [ Pred | Rest ], [ Pred2 | Rest2 ]) :-  
+  preTransformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2),
+  dc(subqueryUnnesting, ( not(Pred = Pred2)
+						  -> dm(subqueryUnnesting, ['\nPredicate: ', Pred, '\nTransformedPredicate: ', Pred2])
+						  ; true
+						 )),
+  preTransformNestedPredicates(Attrs, Attrs2, Rels2, Rels3, Rest, Rest2).
+  
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, Pred) :- 
+  not(isSubqueryPred(Pred)).
+  
+/* The SQL predicates EXISTS, NOT EXISTS, ALL and ANY are transformed to a canonical form, which can be further unnested */
+
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, exists(select SubAttr from RelsWhere), 0 < (select count(SubAttr) from RelsWhere)).
+/* :-
+  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, 0 < (select count(SubAttr) from RelsWhere first 1), TransformedQuery),
+  write_canonical(TransformedQuery). */
+  
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, not(exists(select SubAttr from RelsWhere)), 0 = (select count(SubAttr) from RelsWhere)).
+/* :-
+  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, 0 = (select count(SubAttr) from RelsWhere first 1), TransformedQuery),
+  write_canonical(TransformedQuery). */
+  
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, NewPred) :-
+  Pred =.. [Op, Attr, any(select SubAttr from RelsWhere)],
+  anyToAggr(Op, Aggr),
+  AggrExpression =.. [Aggr, SubAttr],
+  NewPred =.. [Op, Attr, select AggrExpression from RelsWhere].
+/*  
+  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, NewPred, TransformedQuery),
+  write_canonical(TransformedQuery).   */
+  
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, Attr = any(Query), Attr in(Query)).
+/* :-
+  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Attr in(Query), TransformedQuery),
+  write_canonical(TransformedQuery). */
+  
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, Attr <> any(Query), Attr not in(Query)).
+/* :-
+  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Attr not in(Query), TransformedQuery),
+  write_canonical(TransformedQuery).   */
+  
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, NewPred) :-
+  Pred =.. [Op, Attr, all(select SubAttr as Alias from RelsWhere)],
+  allToAggr(Op, Aggr),
+  AggrExpression =.. [Aggr, SubAttr],
+  NewPred =.. [Op, Attr, select AggrExpression as Alias from RelsWhere].
+/*  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, NewPred, TransformedQuery),
+  write_canonical(TransformedQuery).      */
+  
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, NewPred) :-
+  Pred =.. [Op, Attr, all(select SubAttr from RelsWhere)],
+  allToAggr(Op, Aggr),
+  AggrExpression =.. [Aggr, SubAttr],
+  NewPred =.. [Op, Attr, select AggrExpression from RelsWhere].
+/*  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, NewPred, TransformedQuery),
+  write_canonical(TransformedQuery).  */
+  
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, Pred). 
  
   
 /*
@@ -454,12 +560,20 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Attr <> any(Query), Transfo
   write_canonical(TransformedQuery).  
   
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, TransformedQuery) :-
+  Pred =.. [Op, Attr, all(select SubAttr as Alias from RelsWhere)],
+  allToAggr(Op, Aggr),
+  AggrExpression =.. [Aggr, SubAttr],
+  NewPred =.. [Op, Attr, select AggrExpression as Alias from RelsWhere],
+  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, NewPred, TransformedQuery),
+  write_canonical(TransformedQuery).     
+  
+transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, TransformedQuery) :-
   Pred =.. [Op, Attr, all(select SubAttr from RelsWhere)],
   allToAggr(Op, Aggr),
   AggrExpression =.. [Aggr, SubAttr],
   NewPred =.. [Op, Attr, select AggrExpression from RelsWhere],
   transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, NewPred, TransformedQuery),
-  write_canonical(TransformedQuery).    
+  write_canonical(TransformedQuery).      
 
   
 /*
@@ -543,13 +657,6 @@ the outer table int the join predicate instead of the inner table. The groupby c
 relation 
 (3) Join the outer relation with  the temporary relation, according to the transformed version of the original query
 
-  
-refactored version, not yet complete
-TODO: 
-translation of outerjoin in translation phase of optimizer
-extraction of group variable from tempRel3
-maybe replace temporary relations with streams
-
 */
 
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-  
@@ -566,26 +673,32 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   dm(subqueryDebug, ['\nCanonicalPreds: ', CanonicalPreds]),
   makeList(CanonicalRels, CRList),
   makeList(Rels, RList),
+% find Relations which do not appear in from clause of inner query  
   findall(R, (member(R, RList), not(member(R, CRList))), OuterRels),
   dm(subqueryDebug, ['\nOuterRels: ', OuterRels]),
+% partition Predicates into simple inner, simple outer and join preds, 
   joinPred(CanonicalRels, OuterRels, CanonicalPreds, JoinPreds, SimpleInnerPreds, SimpleOuterPreds, OuterJoinAttrs),
   dm(subqueryDebug, ['\nSimpleInnerPreds: ', SimpleInnerPreds]),
   dm(subqueryDebug, ['\nSimpleOuterPreds: ', SimpleOuterPreds]),  
   dm(subqueryDebug, ['\nJoinPreds: ', JoinPreds]),
   dm(subqueryDebug, ['\nOuterJoinAttrs: ', OuterJoinAttrs]),  
+% restrict and project outer relation 
   ( tempRel1(OuterJoinAttrs, SimpleOuterPreds, TempRel1) 
   ;   throw(error_SQL(subqueries_transformNestedPredicate:tempRel1Error))),  
+% restrict and project inner relation
   ( tempRel2(CanonicalRels, SimpleInnerPreds, TempRel2)
-    ;   throw(error_SQL(subqueries_transformNestedPredicate:tempRel2Error))),
+    ;   throw(error_SQL(subqueries_transformNestedPredicate:tempRel2Error))),	
+% join tempRel1 and tempRel2, applying aggregation	
   ( tempRel3(AggregatedAttr, OuterJoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, GroupVar, NewJoinAttr1, NewJoinAttr2) 
     ;   throw(error_SQL(subqueries_transformNestedPredicate:tempRel3Error))),
   dm(subqueryDebug, ['\nTempRels successful...']), 
+% rename attributes, as aliasing in SECONDO and SECONDO optimizer is not compatible (Attr_alias vs. alias:Attr)
   newTempRel(Var),
   alias(Var, GroupVar, AliasedAttr),
-  NewPred =.. [Op, AliasedAttr, Attr],
+  NewPred =.. [Op, Attr, AliasedAttr],
   dm(subqueryDebug, ['\nNewPred: ', NewPred]),
   aliasInternal(NewJoinAttr1, JoinAttr1),
-  NewJoinPred =.. [=, JoinAttr1, Var:NewJoinAttr2],  
+  NewJoinPred =.. [=, JoinAttr1, Var:NewJoinAttr2],    
   dm(subqueryDebug, ['\nNewJoinPred: ', NewJoinPred]),
   append([NewJoinPred], [NewPred], PredNext),
   dm(subqueryDebug, ['\nPredNext :', PredNext]),
@@ -813,7 +926,10 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, New
   dm(subqueryDebug, ['\nAggrOp: ', AggrOp]),
   dm(subqueryDebug, ['\nAttr: ', Attr]), 
   newVariable(NewColumn),  
-  makeList(AggregatedAttr as NewColumn, AggrList),
+  aliasExternal(Attr, Attr2),
+  dm(subqueryDebug, ['\nAttr2: ', Attr2]), 
+  AggregatedAttr2 =.. [AggrOp, Attr2],  
+  makeList(AggregatedAttr2 as NewColumn, AggrList),
   dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
   findall(JoinAttr2, 
     ( member(JoinAttr, JoinAttrs), 
@@ -831,7 +947,10 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, New
   ),  
   TempRelation3 =.. [groupby, from(select AttrList, where([TempRel1, TempRel2], JoinPreds2)), JoinAttrs2],
   dm(subqueryDebug, ['\nTemporaryRel3: ', TempRelation3]), 
-  optimize(TempRelation3, Plan, _),  
+%  optimize(TempRelation3, Plan, _), 
+  rewriteQuery(TempRelation3, RQuery),
+  callLookup(RQuery, Query2), !,
+  queryToPlan(Query2, Plan, _), !,  
   dm(subqueryDebug, ['\nPlan: ', Plan]),
   findJoinAttrs(Plan, JoinAttr1, JoinAttr2),
   dm(subqueryDebug, ['\nJoinAttr1: ', JoinAttr1, '\nJoinAttr2: ', JoinAttr2]), 
@@ -852,7 +971,10 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, New
   dm(subqueryDebug, ['\nAggrOp: ', AggrOp]),
   dm(subqueryDebug, ['\nAttr: ', Attr]), 
   newVariable(NewColumn),  
-  makeList(AggregatedAttr as NewColumn, AggrList),
+  aliasExternal(Attr, Attr2),
+  dm(subqueryDebug, ['\nAttr2: ', Attr2]), 
+  AggregatedAttr2 =.. [AggrOp, Attr2],
+  makeList(AggregatedAttr2 as NewColumn, AggrList),
   dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
   findall(JoinAttr2, 
     ( member(JoinAttr, JoinAttrs), 
@@ -870,7 +992,10 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, New
   ),  
   TemporaryRel3 =.. [groupby, from(select AttrList, where([TempRel1, TempRel2], JoinPreds2)), JoinAttrs2],
   dm(subqueryDebug, ['\nTemporaryRel3: ', TemporaryRel3]), 
-  optimize(TemporaryRel3, Plan, _),  
+%  optimize(TempRelation3, Plan, _), 
+  rewriteQuery(TemporaryRel3, RQuery),
+  callLookup(RQuery, Query2), !,
+  queryToPlan(Query2, Plan, _), !,  
   dm(subqueryDebug, ['\nPlan: ', Plan]),
   findJoinAttrs(Plan, JoinAttr1, JoinAttr2),
   dm(subqueryDebug, ['\nJoinAttr1: ', JoinAttr1, '\nJoinAttr2: ', JoinAttr2]), 
@@ -900,9 +1025,10 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, New
   dm(subqueryDebug, ['\nExtJoinAttr2: ', ExtJoinAttr2]),
   plan_to_atom(attrname(IntNewColumn), ExtNewColumn),
   dm(subqueryDebug, ['\nExtNewColumn: ', ExtNewColumn]),  
-  newTempRel(TempRel3),
-  dm(subqueryDebug, ['\nTempRel3: ', TempRel3]),
-  concat_atom([TempRel3, ' = ', 
+%  newTempRel(TempRel3),
+%  dm(subqueryDebug, ['\nTempRel3: ', TempRel3]),
+%  concat_atom([TempRel3, ' = ', 
+   concat_atom([
                ExtTempRel1, ' feed ', 
                ExtTempRel2, ' feed ',
                ' smouterjoin[',ExtJoinAttr1, ',', ExtJoinAttr2, ']',			   
@@ -912,9 +1038,12 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, New
                ' consume'], 
   '', TempRelation3),  
   dm(subqueryUnnesting, ['\nTempRelation3: ', TempRelation3]),
-  ( let(TempRelation3) 
+  ( newTempRel_direct(TempRelation3, TempRel3)
     -> true
-	; throw(error_SQL(subqueries_tempRel3:errorInQuery))). 
+	; throw(error_SQL(subqueries_tempRel3:errorInQuery))).
+/*  ( let(TempRelation3) 
+    -> true
+	; throw(error_SQL(subqueries_tempRel3:errorInQuery))). */
 	
 /* 
 
@@ -923,17 +1052,36 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, New
 	
 */
 	
-findJoinAttrs(Atom, JoinAttr1, JoinAttr2) :-
-  sub_atom(Atom, B, L, A, 'join['), 
-  B1 is B + L,
-  sub_atom(Atom, B1, A, 0, Sub),
-  sub_atom(Sub, B2, _, _, ']'),
-  sub_atom(Sub, 0, B2, _, Sub2),
-  concat_atom(['[', Sub2, ']'], Sub3),
-  term_to_atom(Term, Sub3),
-  Term = [Attr1 | [ Attr2 | _ ]],
+findJoinAttrs(Plan, JoinAttr1, JoinAttr2) :-
+  Plan =.. [symmjoin | Args], !,
+  nth1(3, Args, Pred),
+  dm(subqueryDebug, ['\nPred: ', Pred]), 
+  Pred =.. [_, attr(Attr1, _, _), attr(Attr2, _, _)],
   dcName2externalName(JoinAttr1, Attr1),
-  dcName2externalName(JoinAttr2, Attr2).	
+  dcName2externalName(JoinAttr2, Attr2).
+  
+  
+findJoinAttrs(Plan, JoinAttr1, JoinAttr2) :-
+  Plan =.. [Op | Args],
+  atom_concat(_, 'join', Op), !,
+  nth1(3, Args, attrname(attr(Attr1, _, _))),
+  nth1(4, Args, attrname(attr(Attr2, _, _))),
+  dcName2externalName(JoinAttr1, Attr1),
+  dcName2externalName(JoinAttr2, Attr2).	  
+  
+findJoinAttrs(Plan, JoinAttr1, JoinAttr2) :-
+  not(is_list(Plan)),
+  compound(Plan),
+  Plan =.. [_ | Args],
+  findJoinAttrs(Args, JoinAttr1, JoinAttr2). 
+  
+findJoinAttrs([ Arg ], JoinAttr1, JoinAttr2) :-
+  findJoinAttrs(Arg, JoinAttr1, JoinAttr2).
+  
+findJoinAttrs([ Arg | Rest ], JoinAttr1, JoinAttr2) :-
+  ( findJoinAttrs(Arg, JoinAttr1, JoinAttr2) ; 
+    ( not(Rest = []), 
+    findJoinAttrs(Rest, JoinAttr1, JoinAttr2) )).
  
 aliasExternal(Var:Attr, AliasedAttr) :-
   concat_atom([Attr, '_', Var], '', AliasedAttr).
@@ -953,58 +1101,7 @@ aliasExternal(Pred, AliasedPred) :-
   compound(Pred),
   Pred =.. [UnaryOp, Pred2],
   aliasExternal(Pred2, AliasedPred2),
-  AliasedPred =..[UnaryOp, AliasedPred2].  
-  
-/*
-
----- outerJoinExtend(+Rel, -ExtendAtom)
-----
-
-This predicate is true iff ExtendAtom unifies with an extend-Expression in SECONDO-Syntax which gives constant ~undefined~ for
-every attribute defined in relation Rel.
-
-*/
-  
-outerJoinExtend(Rel, ExtendAtom) :-
-  ground(Rel),
-%  dm(subqueryUnnesting, ['\nRel: ', Rel]),
-  restrict(*, Rel, _),
-%  dm(subqueryUnnesting, ['\nAttrList: ', AttrList]),
-  secondoCatalogInfo(Rel, _, _, Type),
-  Type = [[rel, [tuple, TypeList]]],
-%  dm(subqueryUnnesting, ['\nTypeList: ', TypeList]),
-  maplist(undefine, TypeList, ExtendAttrList),
-%  dm(subqueryUnnesting, ['\nExtendAttrList: ', ExtendAttrList]),
-  concat_atom(ExtendAttrList, ', ', CommaSeparatedAttrList),
-%  dm(subqueryUnnesting, ['\nCommaSeparatedAttrList: ', CommaSeparatedAttrList]),
-  concat_atom(['extend[', CommaSeparatedAttrList,']'], '', ExtendAtom).
-%  dm(subqueryUnnesting, ['\nExtendAtom: ', ExtendAtom]).
-  
-  
-
-/*
-
----- undefine(+[AttrName, type], -UndefinedAttr)
-----
-
-UndefinedAttr is a SECONDO-Attribute definition with constant value ~undefined~ for the corresponding SECONDO type ~type~
-
-*/
-
-undefine([AttrName, int], UndefinedAttr) :-
-  concat_atom([AttrName, ': real2int(1/0)'], '', UndefinedAttr).
-  
-undefine([AttrName, int], UndefinedAttr) :-
-  concat_atom([AttrName, ': 1/0'], '', UndefinedAttr).
-
-undefine([AttrName, string], UndefinedAttr) :-
-  concat_atom([AttrName, ': num2string(real2int(1/0))'], '', UndefinedAttr).  
-  
-undefine([AttrName, bool], UndefinedAttr) :-
-  concat_atom([AttrName, ': real2int(int2bool(1/0))'], '', UndefinedAttr).
-
-undefine([AttrName, point], UndefinedAttr) :-
-  concat_atom([AttrName, ': makepoint(real2int(1/0), 1)'], '', UndefinedAttr).  
+  AliasedPred =..[UnaryOp, AliasedPred2].    
 
 /* 
 
@@ -1095,11 +1192,15 @@ newTempRel(Query, TempRelName) :-
   ).
 
 newTempRel_direct(Plan, TempRelName) :-
-  newTempRel(TempRelName),
-  dm(subqueries, ['\nTempRelName: ', TempRelName,  '\n']),
-  concat_atom([TempRelName, ' = ', Plan], '', Query),
-  let(Query),
-  assert(temporaryRelation(TempRelName)).
+  dm(subqueries, ['\nTempRelName_direct: ', TempRelName, '\n']),
+  ( temporaryRelation(TempRelName, Plan)
+     ; (  newTempRel(TempRelName),
+	      concat_atom([TempRelName, ' = ', Plan], Query),
+		  dm(subqueryDebug, ['\nTempRelDirect Plan: ', Query]),
+		  let(Query),
+		  assert(temporaryRelation(TempRelName, Plan))
+		)
+  ).
    
 createTempRel(TempRelName) :-
   ground(TempRelName),
@@ -1200,108 +1301,252 @@ nestingType(Subquery, j) :-
 nestingType(_, unknown) :-
   throw(error_SQL(subqueries_nestingType:unknownNesting)). 
   
-/*:- multifile (=>)/2.
+/*
 
-join(arg(N), arg(M), pr(OuterJoinPred, _, _)) => smouterjoin(Arg1S, Arg2S, attrname(X), attrname(Y)) :-
-  write('\ntranslate: ', OuterJoinPred),
-  arg(N) => Arg1S,
-  write('\nargN: ', N),
-  arg(M) => Arg2S,
-  write('\nargM: ', M),
-  OuterJoinPred =.. [outerjoin, X, Y],
-  write('\nX: ', X),
-  write('\nY: ', Y). 
+[1] Lookup of subquery predicates
 
-:- multifile cost/4.
+*/
+
+lookupSubquery(all(Query), all(Query2)) :-
+  lookupSubquery(Query, Query2).
   
-cost(smouterjoin(_, _, _, _), Sel, 1, 0).*/
-
-%:- multifile lookup/2.
-
-lookup1(select Attrs from Rels where Preds,
-        select Attrs2 from Rels3List where Preds2List) :-   
-  lookupRels(Rels, Rels2),
+lookupSubquery(any(Query), any(Query2)) :-
+  lookupSubquery(Query, Query2).
+  
+lookupSubquery(select Attrs from Rels where Preds,
+        select Attrs2 from Rels2List where Preds2List) :-
+  lookupRelsNoDblCheck(Rels, Rels2),
   lookupAttrs(Attrs, Attrs2),
-  lookupSubquery(Preds, Preds2, SubqueryRels),
+  lookupPreds(Preds, Preds2),
   makeList(Rels2, Rels2List),
-  makeList(SubqueryRels, SubqueryRelsList),
-  union(Rels2List, SubqueryRelsList, Rels3List),
   makeList(Preds2, Preds2List),
+%  subquerySelectivity(Preds2List),  
   (optimizerOption(entropy)
     -> registerSelfJoins(Preds2List, 1); true).
 					% needed for entropy optimizer
-					
-lookupSubquery(Pred, Pred2, SubqueryRel) :-
-  not(is_list(Pred)),
-  isSubqueryPred1(Pred),
-  lookupSubqueryPred(Pred, Pred2, SubqueryRel).					
-					
-lookupSubquery([Pred | Rest], [Pred2 | RestList], [SubqueryRel | SubqueryRels2]) :-
-  isSubqueryPred1(Pred),
-  lookupSubqueryPred(Pred, Pred2, SubqueryRel),
-  lookupSubquery(Rest, RestList, SubqueryRels2).
+
+lookupSubquery(select Attrs from Rels,
+        select Attrs2 from Rels2) :-
+  lookupRelsNoDblCheck(Rels, Rels2), !,
+  lookupAttrs(Attrs, Attrs2).
   
+lookupSubquery(Query orderby Attrs, Query2 orderby Attrs3) :-
+  lookupSubquery(Query, Query2),
+  makeList(Attrs, Attrs2),
+  lookupAttrs(Attrs2, Attrs3).
+
+lookupSubquery(Query groupby Attrs, Query2 groupby Attrs3) :-
+  lookupSubquery(Query, Query2),
+  makeList(Attrs, Attrs2),
+  lookupAttrs(Attrs2, Attrs3).
+
+lookupSubquery(Query first N, Query2 first N) :-
+  lookupSubquery(Query, Query2).
+
+lookupSubquery(Query last N, Query2 last N) :-
+  lookupSubquery(Query, Query2).  
+  
+lookupRelsNoDblCheck([], []).
+
+lookupRelsNoDblCheck([R | Rs], [R2 | R2s]) :-
+  lookupRelNoDblCheck(R, R2),
+  lookupRelsNoDblCheck(Rs, R2s).
+
+lookupRelsNoDblCheck(Rel, Rel2) :-
+  not(is_list(Rel)),
+  lookupRelNoDblCheck(Rel, Rel2). 
+  
+:- multifile(lookupRelNoDblCheck/2).
+
+lookupRelNoDblCheck(Rel as Var, rel(RelDC, Var)) :-
+  atomic(Rel),       %% changed code FIXME
+  atomic(Var),       %% changed code FIXME
+  dcName2externalName(RelDC,Rel),
+  relation(RelDC, _), !,          %% changed code FIXME
+  ( variable(Var, _)
+    ;  assert(variable(Var, rel(RelDC, Var)))
+  ).
+  
+% unterscheiden zwischen join und selection prädikaten
+% einmal RelsAfter = [_,_]
+% sonst [_], 
+
+:- dynamic(currentAttrs/1).
+:- dynamic(selectivityQuery/1).
+
+subquerySelectivity(Pred, [Rel]) :-
+  subquerySelectivity(pr(Pred, Rel)).
+
+subquerySelectivity(Pred, [Rel1, Rel2]) :-
+  subquerySelectivity(pr(Pred, Rel1, Rel2)).
+    
+/* lookupSubqueryPred(Pred, Pred3, RelsBefore, RelsAfter) :-
+  isSubqueryPred1(Pred),
+  Pred =.. [not, Attr, in(Subquery)],
+  Pred1 =.. [in, Attr, Subquery],
+  lookupSubqueryPred(Pred1, Pred2, RelsBefore, RelsAfter),
+  Pred2 =.. [in, Attr1, Subquery1],
+  Pred3 =.. [not, Attr1, in(Subquery1)],
+  dm(subqueryDebug, ['\nPred3: ', Pred3]). */
+  
+lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
+%  length(RelsAfter, 2),
+  isSubqueryPred1(Pred),
+  dm(subqueryDebug, ['\nlookupSubqueryPred 1\nPred: ', Pred]),  
+  Pred =.. [not, Attr, in(Query)],
+  dm(subqueryDebug, ['\nAttr: ', Attr,
+					 '\nQuery: ', Query]),  
+  lookupPred1(Attr, Attr2, RelsBefore, AttrRelsAfter),
+  dm(subqueryDebug, ['\nAttr2: ', Attr2,
+					 '\nAttrRelsAfter: ', AttrRelsAfter]),
+  findall(A, queryAttr(A), QueryAttrs),
+  assert(currentAttrs(QueryAttrs)),
+  lookupSubquery(Query, Query2),
+  dm(subqueryDebug, ['\nQuery2: ', Query2]),  
+  Pred2 =.. [not, Attr2, in(Query2)],
+  correlationRels(Query2, Rels),
+  dm(subqueryDebug, ['\nRels: ', Rels]),
+  findall( Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L),
+  dm(subqueryDebug, ['\nL: ', L,
+                     '\nAttrRelsAfter: ', AttrRelsAfter]), !,
+  ( append(AttrRelsAfter, L, RelsAfter) 
+    ; ( L = [], AttrRelsAfter = RelsAfter ) ),
+  dm(subqueryDebug, ['\nRelsAfter: ', RelsAfter]),
+  retractall(currentAttrs(_)),
+  dm(subqueryDebug, ['\nPred2: ', Pred2]),
+  subquerySelectivity(Pred2, RelsAfter).  
+
+lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
+%  length(RelsAfter, 2),
+  isSubqueryPred1(Pred),
+  dm(subqueryDebug, ['\nlookupSubqueryPred 1\nPred: ', Pred]),  
+  Pred =.. [Op, Attr, Query],
+  dm(subqueryDebug, ['\nOp: ', Op,
+				     '\nAttr: ', Attr,
+					 '\nQuery: ', Query]),  
+  lookupPred1(Attr, Attr2, RelsBefore, AttrRelsAfter),
+  dm(subqueryDebug, ['\nAttr2: ', Attr2,
+					 '\nAttrRelsAfter: ', AttrRelsAfter]),
+  findall(A, queryAttr(A), QueryAttrs),
+  assert(currentAttrs(QueryAttrs)),
+  lookupSubquery(Query, Query2),
+  dm(subqueryDebug, ['\nQuery2: ', Query2]),  
+  Pred2 =.. [Op, Attr2, Query2],
+  correlationRels(Query2, Rels),
+  dm(subqueryDebug, ['\nRels: ', Rels]),
+  findall( Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L),
+  dm(subqueryDebug, ['\nL: ', L,
+                     '\nAttrRelsAfter: ', AttrRelsAfter]), !,
+  ( append(AttrRelsAfter, L, RelsAfter) 
+    ; ( L = [], AttrRelsAfter = RelsAfter ) ),
+  dm(subqueryDebug, ['\nRelsAfter: ', RelsAfter]),
+  retractall(currentAttrs(_)),
+  dm(subqueryDebug, ['\nPred2: ', Pred2]),
+  subquerySelectivity(Pred2, RelsAfter).
+  
+lookupSubqueryPred(_, _, _, _) :-
+  currentAttrs(QueryAttrs),
+  findall(A, (queryAttr(A), not(member(A, QueryAttrs)), retract(queryAttr(A))), _),
+  retractall(currentAttrs(_)),
+  fail.
+  
+lookupSubqueryPred(not(Pred), not(Pred2), RelsBefore, RelsAfter) :-
+  isSubqueryPred1(not(Pred)),
+  dm(subqueryDebug, ['\nlookupSubqueryPred 2\nPred: ', not(Pred)]), 
+  Pred =.. [Op, Query],
+  dm(subqueryDebug, ['\nOp: ', Op,
+					 '\nQuery: ', Query]),    
+  lookupSubquery(Query, Query2),
+  dm(subqueryDebug, ['\nQuery2: ', Query2]),
+  Pred2 =.. [Op, Query2],
+  correlationRels(Query2, Rels),
+  append(Rels, RelsBefore, RelsAfter),
+  dm(subqueryDebug, ['\nPred2: ', not(Pred2)]),
+  subquerySelectivity(not(Pred2), RelsAfter).
+
+lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
+  isSubqueryPred1(Pred),
+  dm(subqueryDebug, ['\nlookupSubqueryPred 2\nPred: ', Pred]), 
+  Pred =.. [Op, Query],
+  dm(subqueryDebug, ['\nOp: ', Op,
+					 '\nQuery: ', Query]),    
+  lookupSubquery(Query, Query2),
+  dm(subqueryDebug, ['\nQuery2: ', Query2]),
+  Pred2 =.. [Op, Query2],
+  correlationRels(Query2, Rels),
+  append(Rels, RelsBefore, RelsAfter),
+  dm(subqueryDebug, ['\nPred2: ', Pred2]),
+  subquerySelectivity(Pred2, RelsAfter).
+					 
   
 % quantified predicate 
-lookupSubqueryPred(SubqueryPred, pr(SubqueryPred2, RelsAfter, Rels2), Rels2) :-  
+/* lookupSubqueryPred(SubqueryPred, pr(SubqueryPred2, RelsAfter, Rels2), Rels2) :-  
   dm(subqueryDebug, ['\nQuantifiedPred']),
-  dm(subqueryDebug, ['SubqueryPred: ', SubqueryPred]),
+  dm(subqueryDebug, ['\nSubqueryPred: ', SubqueryPred]),
   SubqueryPred =.. [Op, Attrs, SubqueryTemp],
-  dm(subqueryDebug, ['Op: ', Op]),
-  dm(subqueryDebug, ['Attrs: ', Attrs]),
-  dm(subqueryDebug, ['SubqueryTemp: ', SubqueryTemp]),
+  dm(subqueryDebug, ['\nOp: ', Op]),
+  dm(subqueryDebug, ['\nAttrs: ', Attrs]),
+  dm(subqueryDebug, ['\nSubqueryTemp: ', SubqueryTemp]),
   SubqueryTemp =.. [Quantifier, Subquery],
-  dm(subqueryDebug, ['Quantifier: ', Quantifier]),
-  dm(subqueryDebug, ['Subquery: ', Subquery]),
+  dm(subqueryDebug, ['\nQuantifier: ', Quantifier]),
+  dm(subqueryDebug, ['\nSubquery: ', Subquery]),
   lookup(Subquery, Subquery2),
   Subquery2 =.. [from, _, Rels2],
-  dm(subqueryDebug, ['Rels2: ', Rels2]),
-  Rels2 =.. [rel, _, _, _],
+  dm(subqueryDebug, ['\nRels2: ', Rels2]),
   lookupPred1(Attrs, Attrs2, [], [RelsAfter]),
   Subquery3 =.. [Quantifier, Subquery2],
-  SubqueryPred2 =.. [Op, Attrs2, Subquery3].  
+  SubqueryPred2 =.. [Op, Attrs2, Subquery3].  */
 
-   
-lookupSubqueryPred(SubqueryPred, pr(SubqueryPred2, RelsAfter, Rels2), Rels2) :-
-  dm(subqueryDebug, ['SimplePred']),
-  dm(subqueryDebug, ['SubqueryPredA: ', SubqueryPred]),
+/*
+lookupSubqueryPred(SubqueryPred, SubqueryPred2, RelsAfter, Rels2) :-
+  dm(subqueryDebug, ['\nSubqueryPredB: ', SubqueryPred]),
   SubqueryPred =.. [Op, Attrs, Subquery],
-  dm(subqueryDebug, ['Op: ', Op]),
-  dm(subqueryDebug, ['Attrs: ', Attrs]),  
-  dm(subqueryDebug, ['Subquery: ', Subquery]),
+  dm(subqueryDebug, ['\nOp: ', Op]),
+  dm(subqueryDebug, ['\nAttrs: ', Attrs]),  
+  dm(subqueryDebug, ['\nSubquery: ', Subquery]),
   lookup(Subquery, Subquery2),
-  dm(subqueryDebug, ['Subquery2: ', Subquery2]),
+  dm(subqueryDebug, ['\nSubquery2: ', Subquery2]),
+  Subquery2 =.. [from, _, Where],
+  dm(subqueryDebug, ['\nWhere: ', Where]), 
+  Where =.. [where, Rels2, _],
+  dm(subqueryDebug, ['\nRels2: ', Rels2]),  
+  lookupPred1(Attrs, Attrs2, [], [RelsAfter]),
+  dm(subqueryDebug, ['\nAttrs2: ', Attrs2]),
+  SubqueryPred2 =.. [Op, Attrs2, Subquery2],
+  dm(subqueryDebug, ['\nSubqueryPred2: ', SubqueryPred2]).     
+   
+lookupSubqueryPred(SubqueryPred, SubqueryPred2, RelsAfter, Rels2) :-
+  dm(subqueryDebug, ['\nSimplePred']),
+  dm(subqueryDebug, ['\nSubqueryPredA: ', SubqueryPred]),
+  SubqueryPred =.. [Op, Attrs, Subquery],
+  dm(subqueryDebug, ['\nOp: ', Op]),
+  dm(subqueryDebug, ['\nAttrs: ', Attrs]),  
+  dm(subqueryDebug, ['\nSubquery: ', Subquery]),
+  lookup(Subquery, Subquery2),
+  dm(subqueryDebug, ['\nSubquery2: ', Subquery2]),
   Subquery2 =.. [from, _, Rels2],
-  dm(subqueryDebug, ['Rels2: ', Rels2]),
+  dm(subqueryDebug, ['\nRels2: ', Rels2]),
   Rels2 =.. [rel, _, _],
   lookupPred1(Attrs, Attrs2, [], [RelsAfter]),
   SubqueryPred2 =.. [Op, Attrs2, Subquery2].
-  
-lookupSubqueryPred(SubqueryPred, pr(SubqueryPred2, RelsAfter, Rels2), Rels2) :-
-  dm(subqueryDebug, ['SubqueryPredB: ', SubqueryPred]),
-  SubqueryPred =.. [Op, Attrs, Subquery],
-  dm(subqueryDebug, ['Op: ', Op]),
-  dm(subqueryDebug, ['Attrs: ', Attrs]),  
-  dm(subqueryDebug, ['Subquery: ', Subquery]),
-  lookup(Subquery, Subquery2),
-  dm(subqueryDebug, ['Subquery2: ', Subquery2]),
-  Subquery2 =.. [from, _, Where],
-  dm(subqueryDebug, ['Where: ', Where]), 
-  Where =.. [where, [Rels2], _],
-  dm(subqueryDebug, ['Rels2: ', Rels2]),
-  Rels2 =.. [rel, _, _, _],
-  lookupPred1(Attrs, Attrs2, [], [RelsAfter]),
-  dm(subqueryDebug, ['Attrs2: ', Attrs2]),
-  SubqueryPred2 =.. [Op, Attrs2, Subquery2].
-%  dm(subqueryDebug, ['SubqueryPred2: ', SubqueryPred2]).   
 
 % 
 lookupSubqueryPred(SubqueryPred, pr(SubqueryPred2, Rels), Rels) :-
   SubqueryPred =.. [Op, Subquery],
   lookup(Subquery, Subquery2),
   Subquery2 =.. [from, _, Rels],
-  SubqueryPred2 =.. [Op, Subquery2]. 
-  
+  SubqueryPred2 =.. [Op, Subquery2]. * /
+
+:- assert( copyPart(pr(P, R1, R2), PNo, Arps, [Arp2 | Arps2]) :-
+			  ( select(X, Arps, Arps2),
+				X = arp(Arg, Rels, Preds),
+				( member(R1, Rels) ;
+				member(R2, Rels) ), !,
+				nodeNo(Arg, No),
+				ResNo is No + PNo,
+				Arp2 = arp(res(ResNo), Rels, [P | Preds])
+			  )
+			).*/
   
 containsSubqueryPred(Pred) :-
   not(is_list(Pred)),
@@ -1310,11 +1555,19 @@ containsSubqueryPred(Pred) :-
 containsSubqueryPred([Pred | Rest]) :-
   isSubqueryPred1(Pred) ; 
   containsSubqueryPred(Rest).   
+  
+isSubqueryPred1(not(Pred)) :-
+  isSubqueryPred1(Pred).
 
 isSubqueryPred1(Pred) :- 
   compound(Pred),
   Pred =.. [Op, _, Subquery],
   isSubqueryOp(Op),
+  Subquery =.. [from, _, _].
+  
+isSubqueryPred1(Pred) :- 
+  compound(Pred),
+  Pred =.. [not, _, in(Subquery)],
   Subquery =.. [from, _, _].
   
 isSubqueryPred1(Pred) :- 
@@ -1331,60 +1584,694 @@ isSubqueryPred1(Pred) :-
   isQuantifier(Quantifier),
   Subquery =.. [from, _, _].
   
-/* isSubqueryOp(in).
-isSubqueryOp(exists).
-isSubqueryOp(Op) :-
-  isComparisonOp(Op). 
+isSubqeryPred1(exists(Subquery)) :-
+  Subquery =.. [from, _, _].
 
-isQuantifier(all).
-isQuantifier(any).
-isQuantifier(some). */
+correlationRels(Query, OuterRels) :-
+  removeCorrelatedPreds(Query, _, Preds),
+  usedRels(Preds, Rels),
+  Query =.. [from, _, Where],
+  Where =.. [where, InnerRels, _],
+  findall(Rel, ( member(Rel, Rels), not(member(Rel, InnerRels)) ), OuterRels),
+  dm(subqueryDebug, ['\ncorrelationRels_OuterRels: ', OuterRels]).
+  
+correlationRels(select _ from InnerRels, InnerRels).
 
-:- op(700, xfx, <>).
+correlationRels(all(Query), OuterRels) :-
+  correlationRels(Query, OuterRels).
 
-/* isComparisonOp(=).
-isComparisonOp(<=).
-isComparisonOp(=>).
-isComparisonOp(<).
-isComparisonOp(>).
-isComparisonOp(<>). */
+correlationRels(any(Query), OuterRels) :-
+  correlationRels(Query, OuterRels).
+  
+usedRels([], []).
+usedRels([ pr(_, Rel) | Rest ], [ Rel | RelRest]) :-
+  usedRels(Rest, RelRest).
+  
+usedRels([ pr(_, Rel1, Rel2) | Rest ], [ Rel1 | [ Rel2 | RelRest ]]) :-
+  usedRels(Rest, RelRest).
+  
+removeCorrelatedPreds(Query groupby Attrs, Query2 groupby Attrs, Pred) :-  
+  removeCorrelatedPreds(Query, Query2, Pred).
+  
+removeCorrelatedPreds(Query orderby Attrs, Query2 orderby Attrs, Pred) :-  
+  removeCorrelatedPreds(Query, Query2, Pred).
+  
+removeCorrelatedPreds(Query first N, Query2 first N, Pred) :-  
+  removeCorrelatedPreds(Query, Query2, Pred).
+  
+removeCorrelatedPreds(Query last N, Query2 last N, Pred) :-  
+  removeCorrelatedPreds(Query, Query2, Pred).
+  
+removeCorrelatedPreds(select Attrs from Rels where [], select Attrs from Rels, []) :-
+  ground(Attrs),
+  ground(Rels).
+  
+removeCorrelatedPreds(Select from Rels where [ Pred | Rest ], Query2, CorrelatedPreds) :-
+  removeCorrelatedPred(Rels, Pred, Pred2, CorrelatedPred),
+  removeCorrelatedPreds(Select from Rels where Rest, Query, CorrelatedRest),
+  CorrelatedPreds1 = [ CorrelatedPred | CorrelatedRest ],
+  flatten(CorrelatedPreds1, CorrelatedPreds),
+  appendPred(Query, Pred2, Query2).
+  
 
+appendPred(Query, [], Query).
+appendPred(Select from Rels where Preds, Pred, Select from Rels where Preds2) :-
+  makeList(Pred, PredList),
+  makeList(Preds, PredsList),
+  append(PredList, PredsList, Preds2).
+  
+appendPred(Select from Rels, Pred, Select from Rels where [Pred]).
 
-%:- multifile plan_to_atom/2.
+  
+removeCorrelatedPred(Rels, pr(P, Rel), pr(P, Rel), []) :-
+  member(Rel, Rels).
+  
+removeCorrelatedPred(Rels, pr(P, Rel1, Rel2), pr(P, Rel1, Rel2), []) :-
+  member(Rel1, Rels),
+  member(Rel2, Rels).
+  
+/* removeCorrelatedPred(Rels, pr(P, Rel), pr(P, Rel), []) :-
+  sampleSQ(Rel, RelSQ),
+  member(RelSQ, Rels).
+  
+removeCorrelatedPred(Rels, pr(P, Rel1, Rel2), pr(P, Rel1, Rel2), []) :-
+  sampleSQ(Rel1, Rel1SQ),
+  sampleSQ(Rel2, Rel2SQ),
+  member(Rel1, Rels),
+  member(Rel2, Rels). */
+  
+removeCorrelatedPred(_, Pred, [], Pred).
 
-subquery_to_atom(Pred, Result) :-
-   dm(subqueryDebug, ['subquery_to_atom']),
-   dm(subqueryDebug, ['Pred: ', Pred]),
+addCorrelatedPreds(Plan, Plan, []).
+  
+addCorrelatedPreds(Plan, PlanOut, [ Pred | Rest ]) :- 
+  addCorrelatedPred(Plan, Plan2, Pred),
+  addCorrelatedPreds(Plan2, PlanOut, Rest).
+  
+addCorrelatedPred(simpleAggrNoGroupby(Op, Plan, Attr), simpleAggrNoGroupby(Op, filter(Plan, P), Attr), pr(P, _, _)).
+addCorrelatedPred(consume(Plan), consume(filter(Plan, P)), pr(P, _, _)).
+addCorrelatedPred(count(Plan), count(filter(Plan, P)), pr(P, _, _)).
+addCorrelatedPred(Plan, filter(Plan, P), pr(P, _, _)).
+
+transformCorrelatedPreds(_, _, [], []).
+
+transformCorrelatedPreds(Rels, Param, [pr(P, Rel1, Rel2)], [Pred2]) :-
+  not(member(Rel1, Rels)),
+  sampleJ(Rel1, Rel1Sample),
+  secondRel(Rel1Sample),
+  Param \= txx1,
+  transformPred(pr(P, Rel1, Rel2), Param, 1, Pred2).
+  
+transformCorrelatedPreds(Rels, Param, [pr(P, Rel1, Rel2)], [Pred2]) :-
+  not(member(Rel2, Rels)),  
+  sampleJ(Rel2, Rel2Sample),
+  secondRel(Rel2Sample),
+  Param \= txx1,
+  transformPred(pr(P, Rel1, Rel2), Param, 1, Pred2).   
+
+transformCorrelatedPreds(Rels, Param, [pr(P, Rel1, Rel2)], [Pred2]) :-
+  not(member(Rel1, Rels)),
+  sampleJ(Rel1, Rel1Sample),
+  secondRel(Rel1Sample),
+  transformPred(pr(P, Rel1, Rel2), Param, 2, Pred2).
+  
+transformCorrelatedPreds(Rels, Param, [pr(P, Rel1, Rel2)], [Pred2]) :-
+  not(member(Rel2, Rels)),  
+  sampleJ(Rel2, Rel2Sample),
+  secondRel(Rel2Sample),
+  transformPred(pr(P, Rel1, Rel2), Param, 1, Pred2). 
+
+% Rels = InnerRels of Subquery
+transformCorrelatedPreds(Rels, Param, [pr(P, Rel1, Rel2)], [Pred2]) :- 
+  ( (member(Rel1, Rels), Arg is 2) 
+	  ; (member(Rel2, Rels), Arg is 1) ),
+   transformPred(pr(P, Rel1, Rel2), Param, Arg, Pred2).
+   
+/* transformCorrelatedPreds(Rels, Param, [pr(P, Rel1, Rel2)], [Pred2]) :- 
+  sampleSQ(Rel1, Rel1SQ),
+  sampleSQ(Rel2, Rel2SQ),
+  secondRel(FirstRel),
+  ( (member(RelSQ1, Rels), Arg is 2) 
+	  ; (member(RelSQ2, Rels), Arg is 1) ),
+   transformPred(pr(P, Rel1, Rel2), Param, Arg, Pred2). */
+   
+transformCorrelatedPreds(Rels, Param, [Pred | Rest], [Pred2 | Rest2]) :-
+  transformCorrelatedPreds(Rels, Param, [Pred], [Pred2]),
+  transformCorrelatedPreds(Rels, Param, Rest, Rest2).
+  
+
+subqueryTransformPred(Pred, Param, _, Pred2) :-
+  Pred =.. [Op, Attr, Query],
+  isSubqueryOp(Op),
+  Query =.. [from, Select, Where],
+  Where =.. [where, Rels, Preds],
+  removeCorrelatedPreds(Query, _, CorrelatedPreds),
+  transformCorrelatedPreds(Rels, Param, CorrelatedPreds, Preds2),
+  dm(subqueryDebug, ['\nsubqueryTransformPred\n\tCorrelatedPreds: ', CorrelatedPreds,
+                     '\n\tPreds2: ', Preds2]),
+  dm(subqueryDebug, ['\nPreds: ', Preds]),
+  append(CorrelatedPreds, SimplePreds, Preds),
+  dm(subqueryDebug, ['\nSimplePreds: ', SimplePreds]),
+  append(Preds2, SimplePreds, PredList),
+  dm(subqueryDebug, ['\nPredList: ', PredList]),
+  Where2 =.. [where, Rels, PredList],
+  Query2 =.. [from, Select, Where2],
+  Pred2 =.. [Op, Attr, Query2].
+  
+  
+subqueryTransformPred(attribute(Param, attrname(attr(Attr, Arg, Case))), _, Arg,
+                      attribute(Param, attrname(attr(Attr, Arg, Case)))) :- !.
+					  
+transformPreds([], _, _, []).
+transformPreds([Pred], Param, Arg, [Pred2]) :-
+  transformPred(Pred, Param, Arg, Pred2).
+transformPreds([ Pred | Rest ], Param, Arg, [ Pred2 | Rest2 ] ) :-
+  not(is_list(Pred)),
+  not(Pred = [[]]),
+  transformPred(Pred, Param, Arg, Pred2),
+  transformPreds(Rest, Param, Arg, Rest2).
+  
+simpleSubqueryPred(pr(P, A, B), Simple) :- 
+%  isSubqueryPred1(P),
+  simple1(P, A, B, Simple).
+
+simple1(attr(Var:Attr, 0, _), _, _, Rel:Attr) :- 
+  usedAttr(rel(Rel, Var), attr(Var:Attr, 0, _)), 
+  !.
+simple1(attr(Attr, 0, _), _, _, Rel:Attr) :- 
+  usedAttr(rel(Rel, *), attr(Attr, 0, _)),
+  !.
+
+simple1(attr(Var:Attr, 1, _), _, _, Rel:Attr) :- 
+  usedAttr(rel(Rel, Var), attr(Var:Attr, 1, _)),
+  !.
+  
+simple1(attr(Attr, 1, _), _, _, Rel:Attr) :- 
+  usedAttr(rel(Rel, *), attr(Attr, 1, _)),
+  !.
+
+simple1(attr(Var:Attr, 2, _), _, _,  Rel:Attr) :- 
+  usedAttr(rel(Rel, Var), attr(Var:Attr, 2, _)),
+  !.
+  
+simple1(attr(Attr, 2, _), _, _, Rel:Attr) :- 
+  usedAttr(rel(Rel, *), attr(Attr, 2, _)),
+  !.
+
+simple1(dbobject(X),_,_,dbobject(X)) :- !.
+
+simple1([], _, _, []) :- !.
+simple1([A|Rest], Rel1, Rel2, [Asimple|RestSimple]) :-
+  simple1(A,Rel1,Rel2,Asimple),
+  simple1(Rest,Rel1,Rel2,RestSimple),
+  !.
+simple1(Term, Rel1, Rel2, Simple) :-
+  compound(Term),
+  Term =.. [Op|Args],
+  simple1(Args, Rel1, Rel2, ArgsSimple),
+  Simple =..[Op|ArgsSimple],
+  !.
+
+simple1(Term, _, _, Term).
+
+:- dynamic(isJoinPred/1).
+:- dynamic(secondRel/1).
+
+sampleSQ([], []).
+
+sampleSQ(rel(Rel, Var), rel(Rel2, Var)) :-
+  not(sampleS(_, rel(Rel, Var))),
+  sampleS(rel(Rel, Var), rel(Rel2, Var)).
+  
+sampleSQ([ Rel | Rest ], [ Rel2 | Rest2 ]) :-
+  sampleSQ(Rel, Rel2),
+  sampleSQ(Rest, Rest2).
+  
+transformPlan(Plan, Plan) :-
+  not(selectivityQuery(_)).
+  
+transformPlan([], []).
+
+transformPlan(feed(Rel), head(feed(Rel2), 500)) :-
+  sampleSQ(Rel, Rel2).
+  
+transformPlan(feedproject(Rel, Attrs), head(feedproject(Rel2, Attrs), 500)) :-
+  sampleSQ(Rel, Rel2).  
+  
+transformPlan([ Plan | Rest ], [Plan2 | Rest2]) :-
+  transformPlan(Plan, Plan2),
+  transformPlan(Rest, Rest2).
+
+transformPlan(Plan, Plan2) :-
+  compound(Plan),
+  not(is_list(Plan)),
+  Plan =.. [Op | Args],
+  transformPlan(Args, Args2),
+  Plan2 =.. [Op | Args2]. 
+  
+transformPlan(Plan, Plan).  
+  
+/* 
+
+Subquery aus Prädikat extrahieren,
+korrelierte Prädikate aus Subquery entfernen und mit queryToPlan Plan ermitteln
+korrelierte Prädikate mit filter einfügen, Reihenfolge mit Hilfe der selectivity ermitteln?
+plan_to_atom liefert Übersetzung
+
+*/
+
+subquery_to_plan(Query, Plan3, T) :-
+  ground(Query),
+  Query =.. [from, _, Where],
+  Where =.. [where, Rels, _],
+  removeCorrelatedPreds(Query, Query2, Preds), !,
+  ground(Query2),
+  dm(subqueryDebug, ['\nQuery2: ', Query2,
+                     '\nCorrelatedPreds: ', Preds]),
+  queryToPlan(Query2, Plan, _), !, 
+  dm(subqueryDebug, ['\nPlan: ', Plan]),
+  transformCorrelatedPreds(Rels, T, Preds, Preds2),  
+  addCorrelatedPreds(Plan, Plan2, Preds2),  
+  dm(subqueryDebug, ['\nPlan2: ', Plan2]),
+  transformPlan(Plan2, Plan3),
+  dm(subqueryDebug, ['\nPlan3: ', Plan3]).
+  
+subquery_to_plan(Query, Plan2, _) :-
+  ground(Query),
+  queryToPlan(Query, Plan, _),
+  transformPlan(Plan, Plan2),
+  dm(subqueryDebug, ['\nPlan2: ', Plan2]).
+
+subquery_to_atom(Query, QueryAtom) :-
+  ground(Query),
+  subquery_to_plan(Query, Plan),
+  plan_to_atom(Plan, QueryAtom),
+  dm(subqueryDebug, ['\nQueryAtom: ', QueryAtom]).
+  
+subquery_expr_to_plan(Expr, _, Expr) :-
+  atomic(Expr).
+  
+subquery_expr_to_plan(attr(A, Arg, Case), T, attribute(T, attrname(attr(A, Arg, Case)))).
+
+subquery_expr_to_plan(A, B, C) :-
+  concat_atom(['Not Implemented'], Msg),
+  throw(error_Internal(subqueries_Expr(A, B, C):notImplemented#Msg)).
+  
+subquery_plan_to_atom(in(Attr, ValueList), Result) :-
+  in2or(Attr, ValueList, Pred),
+  plan_to_atom(Pred, Result).
+  
+subquery_plan_to_atom(Pred, Result) :-
+  ground(Pred),
+  Pred =.. [not, Attr, InExpr],
+  InExpr =.. [in, Query],
+  Pred2 =.. [in, Attr, Query],
+  Query =.. [from | _],
+  dm(subqueryDebug, ['\n\n\n\n', 
+					 '\nsubquery_plan_to_atom\n\n\t']),
+  dc(subqueryDebug, write_canonical(Pred2)),  
+  dm(subqueryDebug, ['\nAttr: ', Attr,
+					 '\nQuery: ', Query, '\n\n\n\n']),  
+  newTempRel(T),					 
+  subquery_to_plan(Query, consume(project(QueryPlan, QueryAttr)), T),
+  dm(subqueryDebug, ['\nQueryPlan: ', QueryPlan]),
+  ResultPlan =.. [in, attribute(T, attrname(Attr)), collect_set(projecttransformstream(QueryPlan, QueryAttr))],
+  plan_to_atom(fun([param(T, tuple)], not(ResultPlan)), Result). 
+  
+subquery_plan_to_atom(Pred, Result) :-
+  ground(Pred),
+  Pred =.. [in, Attr, Query],
+  Query =.. [from | _],
+  dm(subqueryDebug, ['\n\n\n\n', 
+					 '\nsubquery_plan_to_atom\n\n\t']),
+  dc(subqueryDebug, write_canonical(Pred)),  
+  dm(subqueryDebug, ['\nAttr: ', Attr,
+					 '\nQuery: ', Query, '\n\n\n\n']),  
+  newTempRel(T),					 
+  subquery_to_plan(Query, consume(project(QueryPlan, QueryAttr)), T),
+  dm(subqueryDebug, ['\nQueryPlan: ', QueryPlan]),
+  ResultPlan =.. [in, attribute(T, attrname(Attr)), collect_set(projecttransformstream(QueryPlan, QueryAttr))],
+  plan_to_atom(fun([param(T, tuple)], ResultPlan), Result). 
+  
+subquery_plan_to_atom(Pred, Result) :-
+  ground(Pred),
+  isJoinPred(Pred),
+  Pred =.. [Op, Attr, Query],
+  isSubqueryOp(Op),
+  Query =.. [from | _],
+  dm(subqueryDebug, ['\n',  
+					 '\nisJoinPred\n\n\t']),
+  dc(subqueryDebug, write_canonical(Pred)),  
+  dm(subqueryDebug, ['\nOp: ', Op, 
+					 '\nAttr: ', Attr,
+					 '\nQuery: ', Query]),  
+  newTempRel(T1),
+  newTempRel(T2),  
+  subquery_to_plan(Query, QueryPlan, T2),
+  ResultPlan =.. [Op, attribute(T1, attrname(Attr)), QueryPlan],
+  dm(subqueryDebug, ['\nQueryPlan: ', QueryPlan]),
+  plan_to_atom(fun([param(T1, tuple), param(T2, tuple2)], ResultPlan), Result).
+ 
+subquery_plan_to_atom(Pred, Result) :-
+  ground(Pred),
+  Pred =.. [Op, Attr, Query],
+  isSubqueryOp(Op),
+  Query =.. [from | _],
+  dm(subqueryDebug, ['\n', 
+					 '=================', 
+					 '=================', 
+					 '=================',
+					 '=================', 
+					 '\nsubquery_plan_to_atom\n\n\t']),
+  dc(subqueryDebug, write_canonical(Pred)),  
+  dm(subqueryDebug, ['\nOp: ', Op, 
+					 '\nAttr: ', Attr,
+					 '\nQuery: ', Query]),  
+  newTempRel(T),					 
+  subquery_to_plan(Query, QueryPlan, T),
+  subquery_expr_to_plan(Attr, T, Attr2),
+  ResultPlan =.. [Op, Attr2, QueryPlan],
+  plan_to_atom(fun([param(T, tuple)], ResultPlan), Result).
+  
+subquery_plan_to_atom(AttrExpr, Result) :-
+  ground(AttrExpr),
+  AttrExpr =.. [Op, Attr],
+  isAggregationOP(Op),
+  dm(subqueryDebug, ['\nAttr: ', Attr]),
+  Attr =.. [attribute, _, attrname(attr(Attr2, _, _))],
+  dm(subqueryDebug, ['\nAttr: ', Attr,
+				     '\nAttr2: ', Attr2]),
+  concat_atom([Op, '[', Attr2, ']'], Result).
+  
+subquery_plan_to_atom(Expr, Result) :-
+  ground(Expr),
+  Expr =.. [exists, Query],  
+  Query =.. [from, _, Where],
+  Where =.. [where | _],
+  removeCorrelatedPreds(Query, Query2, Preds), !,
+  ground(Query2),
+  dm(subqueryDebug, ['\nQuery2: ', Query2,
+                     '\nCorrelatedPreds: ', Preds]),
+  newTempRel(T),					 
+%  queryToPlan(Query2, Plan, _),  
+  subquery_to_plan(Query2, Plan, T),
+  dm(subqueryDebug, ['\nPlan: ', Plan]),  
+  transformPreds(Preds, T, 2, Preds2),  
+  dm(subqueryDebug, ['\nPreds2: ', Preds2]), !, 
+  addCorrelatedPreds(Plan, consume(Query3), Preds2),
+  dm(subqueryDebug, ['\nsubquery_plan_to_atom_Query2: ', Query3]),
+  plan_to_atom(fun([param(T, tuple)], =(count(head(Query3, 1)), 1)), Result),
+  dm(subqueryDebug, ['\nsubquery_plan_to_atom_QueryAtom: ', Result]). 
+ 
+subquery_plan_to_atom(not(Expr), Result) :-
+  ground(Expr),
+  Expr =.. [exists, Query],  
+  Query =.. [from, _, Where],
+  Where =.. [where | _],
+  removeCorrelatedPreds(Query, Query2, Preds), !,
+  ground(Query2),
+  dm(subqueryDebug, ['\nQuery2: ', Query2,
+                     '\nCorrelatedPreds: ', Preds]),
+  newTempRel(T),					 
+%  queryToPlan(Query2, Plan, _), 
+  subquery_to_plan(Query2, Plan, T), 
+  dm(subqueryDebug, ['\nPlan: ', Plan]),  
+  transformPreds(Preds, T, 2, Preds2),  
+  dm(subqueryDebug, ['\nPreds2: ', Preds2]), !, 
+  addCorrelatedPreds(Plan, consume(Query3), Preds2),
+  dm(subqueryDebug, ['\nsubquery_plan_to_atom_Query2: ', Query3]),
+  plan_to_atom(fun([param(T, tuple)], not(=(count(head(Query3, 1)), 1))), Result),
+  dm(subqueryDebug, ['\nsubquery_plan_to_atom_Result: ', Result]).
+  
+subquery_plan_to_atom(symmjoin(Arg1, Arg2, Pred), Result) :-
+  isSubqueryPred1(Pred),
+  dm(subqueryDebug, ['\nsymmjoin: ', Pred]),
+  not(isJoinPred(Pred)),
+  assert(isJoinPred(Pred)), 
+  plan_to_atom(symmjoin(Arg1, Arg2, Pred), Result),
+  retractall(isJoinPred(Pred)). 
+  
+subquery_plan_to_atom(rightrange(Arg1, Arg2, Query), Result) :-
+  Query =.. [from | _],
+  dm(subqueryDebug, ['\nrightrange: ', Query]),
+  subquery_to_plan(Query, Plan, _),
+  plan_to_atom(rightrange(Arg1, Arg2, Plan), Result).
+  
+subquery_plan_to_atom(leftrange(Arg1, Arg2, Query), Result) :-
+  Query =.. [from | _],
+  dm(subqueryDebug, ['\nleftrange: ', Query]),
+  subquery_to_plan(Query, Plan, _),
+  plan_to_atom(rightrange(Arg1, Arg2, Plan), Result).
+  
+subquery_plan_to_atom(fun([param(txx1, tuple)], filter(feed(Rel), Pred)), Result) :-
+  isSubqueryPred1(Pred),
+  not(secondRel(Rel)),
+  assert(secondRel(Rel)),
+  nl, nl, write('secondRel: '), write(Rel), nl, nl,
+  plan_to_atom(fun([param(txx1, tuple)], filter(feed(Rel), Pred)), Result),
+  retractall(secondRel(Rel)).
+  
+  
+subquerypred_to_atom(Pred, Result) :-
+  ground(Pred),
+  plan_to_atom(Pred, Result),
+  dm(subqueryDebug, ['\nNormalPred: ', Pred,
+                     '\nNormalResult: ', Result]).
+  
+subquerypred_to_atom([], []).
+
+subquerypred_to_atom(pr(P, _), Result) :- 
+  subquerypred_to_atom(P, Result).
+  
+subquerypred_to_atom(pr(P, _, _), Result) :-
+  subquerypred_to_atom(P, Result).
+
+subquerypred_to_atom([ Pred | Rest ], Atom) :-
+  ground(Pred),
+  ground(Rest),
+  dm(subqueryDebug, ['\nSubqueryPred: ', Pred]),
+  subquerypred_to_atom(Pred, PredAtom),
+  dm(subqueryDebug, ['\nPredAtom: ', PredAtom]),
+  subquerypred_to_atom(Rest, RestAtom),
+  dm(subqueryDebug, ['\nRestAtom: ', RestAtom]),
+  ( RestAtom = [], PredAtom = Atom )
+    ; concat_atom([PredAtom, RestAtom], Atom).
+  
+subquerypred_to_atom(Pred, PredAtom) :-
+  ground(Pred),
+  not(is_list(Pred)),
+  Pred =.. [ Op, Attr1, Attr2 ],
+  Pred2 =.. [Op, attribute(var1, attrname(Attr1)), Attr2],
+  plan_to_atom(Pred2, Pred2Atom),
+  concat_atom(['filter[', Pred2Atom, ']'], PredAtom). 
+  
+/* subquerypred_to_atom(Pred, Result) :-
+  ground(Pred),
+  plan_to_atom(Pred, Result),
+  dm(subqueryDebug, ['\nNormalPred: ', Pred,
+                     '\nNormalResult: ', Result]). */
+					 
+subquerySelectivity([]).
+
+subquerySelectivity(Pred) :-
+  not(is_list(Pred)),
+  selectivity(Pred, _).
+
+subquerySelectivity([ Pred | Rest ]) :-
+  subquerySelectivity(Pred),
+  subquerySelectivity(Rest).
+					 
+subquerySelectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
+  not(selectivityQuery(Pred)),
+  isSubqueryPred1(Pred),
+  assert(selectivityQuery(Pred)),
+  selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET),
+  retractall(selctivityQuery(_)). 
+  
+subquerySelectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
+  not(selectivityQuery(Pred)),
+  isSubqueryPred1(Pred),
+  assert(selectivityQuery(Pred)),
+  selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET),
+  retractall(selectivityQuery(_)).
+  
+/* transformSubqueryPreds([pr(P, Rel1, Rel2)], [pr(P, Rel1SQ, Rel2SQ)]) :-
+  sampleSQ(Rel1, Rel1SQ),
+  sampleSQ(Rel2, Rel2SQ).
+
+transformSubqueryPreds([pr(P, Rel)], [pr(P, RelSQ)]) :-
+  sampleSQ(Rel, RelSQ).
+
+transformSubqueryPreds([ Pred | Rest ], [ Pred2 | Rest2 ]) :-
+  transformSubqueryPreds([Pred], [Pred2]),
+  transformSubqueryPreds(Rest, Rest2).    
+  
+transformSubqueryRels(Query, Query2) :-
+  Query =.. [from, Select, Where],
+  Where =.. [where, Rels, Preds],
+  sampleSQ(Rels, Rels2),
+  Where2 =.. [where, Rels2, Preds],
+  Query2 =.. [from, Select, Where2].
+  
+transformSubqueryRels(Query, Query2) :-
+  Query =.. [from, Select, Rels],
+  sampleSQ(Rels, Rels2),
+  Query2 =.. [from, Select, Rels2].  
+  
+transformSubquery(not(Pred), not(Pred2)) :-
+  transformSubquery(Pred, Pred2).
+  
+transformSubquery(not(Expr, in(Query)), not(Expr, in(Query2))) :-
+  transformSubqueryRels(Query, Query2).
+  
+transformSubquery(Pred, Pred2) :-
+  Pred =.. [Op, Attr, Query],
+  transformSubqueryRels(Query, Query2),
+  Pred2 =.. [Op, Attr, Query2].
+
+transformSubquery(Pred, Pred2) :-
+  Pred =.. [Op, Query],
+  transformSubqueryRels(Query, Query2),
+  Pred2 =.. [Op, Query2].*/
+    
+  
+subqueryToStream(Query orderby OrderAttrs, Stream4, Cost) :-
+  subqueryToStream1(Query, OrderAttrs, Stream4, Cost).
+  
+subqueryToStream(Query, Stream4, Cost) :-
+  subqueryToStream1(Query, [], Stream4, Cost).
+
+subqueryToStream1(Select from (Subquery) as _, Attrs, Stream4, Cost) :-
+  translate1(Subquery, SubStream, SubSelect, Update, Cost),
+  dm(subqueryDebug, ['\nSubStream: ', SubStream,
+                     '\nSubSelect: ', SubSelect]),
+  selectClause(SubSelect, Extend, Project, Rdup),
+  dm(subqueryDebug, ['\nExtend: ', Extend,
+                     '\nProject: ', Project,
+					 '\nRdup: ', Rdup]),
+  finish2(SubStream, Extend, Project, Rdup, [], Stream2),
+  dm(subqueryDebug, ['\nStream2: ', Stream2]),
+  selectClause(Select, Extend2, Project2, Rdup2),
+  dm(subqueryDebug, ['\nExtend2: ', Extend2,
+                     '\nProject2: ', Project2,
+					 '\nRdup2: ', Rdup2]),  
+  finish2(Stream2, Extend2, Project2, Rdup2, Attrs, Stream3),
+  dm(subqueryDebug, ['\nStream3: ', Stream3]),  
+  finishUpdate(Update, Stream3, Stream4),
+  dm(subqueryDebug, ['\nStream4: ', Stream4]),  
+  !.      
+  
+subqueryToStream1(SelectClause from (Subquery) as _ groupby GroupAttrs, Attrs, 
+                  Stream5,
+				  Cost) :-
+  translate1(Subquery, SubStream, SubSelect, Update, Cost),
+  dm(subqueryDebug, ['\nSubStream: ', SubStream,
+                     '\nSubSelect: ', SubSelect]),
+  selectClause(SubSelect, Extend, Project, Rdup),
+  dm(subqueryDebug, ['\nExtend: ', Extend,
+                     '\nProject: ', Project,
+					 '\nRdup: ', Rdup]),
+  finish2(SubStream, Extend, Project, Rdup, [], Stream2),
+  dm(subqueryDebug, ['\nStream2: ', Stream2]),
+  makeList(GroupAttrs, Attrs2),
+  attrnames(Attrs2, AttrNamesGroup),
+  attrnamesSort(Attrs2, AttrNamesSort),  
+  SelectClause = (select Select),
+  makeList(Select, SelAttrs),
+  translateFields(SelAttrs, Attrs2, Fields, Select2), 
+  Stream3 = groupby(sortby(Stream2, AttrNamesSort), AttrNamesGroup, Fields),
+  selectClause(select Select2, Extend2, Project2, Rdup2),
+  dm(subqueryDebug, ['\nExtend2: ', Extend2,
+                     '\nProject2: ', Project2,
+					 '\nRdup2: ', Rdup2]),  
+  finish2(Stream3, Extend2, Project2, Rdup2, Attrs, Stream4),
+  dm(subqueryDebug, ['\nStream4: ', Stream4]),  
+  finishUpdate(Update, Stream4, Stream5),
+  dm(subqueryDebug, ['\nStream5: ', Stream5]),  
+  !.  
+  
+
+  
+/* :- multifile(translate/5).
+
+translate(Select from (Rel) as Var, Stream, Select2, Update, Cost) :-
+  dm(subqueryDebug, ['\n---------------------------',
+                     '\nRel: \n', Rel]),
+  translate(Rel, Stream1, Select1, Update1, Cost),
+  dm(subqueryDebug, ['\nStream1: ', Stream1,
+                     '\nSelect1: ', Select1,
+					 '\nUpdate1: ', Update1]),
+  throw(error_SQL(subqueries_translate:notImplemented)),
+  makeStream(Rel, Stream),
+  (optimizerOption(pathTiming)
+    -> write('\nTIMING for path creation: No optimization.\n') ; true
+  ), splitSelect(Select, Select2, Update), !. */
+					 
+/*   Pred =.. [ Op | Rest ],
+  dm(subqueryDebug, ['\n\tOp: ', Op,
+					 '\n\tRest: ', Rest]),
+  Rest = [ Op2 | Rest2 ],
+  dm(subqueryDebug, ['\n\tOp2: ', Op2,
+					 '\n\tRest2: ', Rest2]), 
+  fail.	* /				 
+
+/ * subquery_plan_to_atom(Query, Result) :-
+%  Query = where(from(select(AggrExpression), Rels), Preds),
+  write_canonical(Query), 
+  Query =.. [=, Preds, Rels],
+  dm(subqueryDebug, ['\n\tAggrExpression: ', AggrExpression, 
+					 '\n\tRels: ', Rels,
+					 '\n\tPreds: ', Preds]),
+  plan_to_atom(Attr, AttrAtom),
+  dm(subqueryDebug, ['\nAttrAtom: ', AttrAtom]),
+  plan_to_atom(AggrExpression, AggrAtom),
+  dm(subqueryDebug, ['\nAggrAtom: ', AggrAtom]),
+  subquery_plan_to_atom(Rels, RelsAtom), 
+  dm(subqueryDebug, ['\nRelsAtom: ', RelsAtom]),
+  subquery_plan_to_atom(Preds, PredsAtom),
+  dm(subqueryDebug, ['\nPredsAtom: ', PredsAtom]),
+  concat_atom(['fun (txx2: TUPLE) ', AttrAtom, ' = ', 
+  RelsAtom, ' feed filter[', PredsAtom, ']'], Result),
+  !. 
+  
+subquery_plan_to_atom(Query, Result) :-
+  isQuery(Query),
+  plan_to_atom(Query, Result),
+  !.
+
+subquery_plan_to_atom(Pred, Result) :-
+   dm(subqueryDebug, ['\nsubquery_plan_to_atom']),
+   dm(subqueryDebug, ['\nPred: ', Pred]),
    Pred =.. [in, Attrs, Subquery],
-    dm(subqueryDebug, ['Attrs: ', Attrs]), 
-    dm(subqueryDebug, ['Subquery: ', Subquery]),
+    dm(subqueryDebug, ['\nAttrs: ', Attrs]), 
+    dm(subqueryDebug, ['\nSubquery: ', Subquery]),
    Subquery =.. [from, Select, _],
-    dm(subqueryDebug, ['Select: ', Select]),
+    dm(subqueryDebug, ['\nSelect: ', Select]),
    Select =.. [select, Arg],
-    dm(subqueryDebug, ['Arg: ', Arg]),
+    dm(subqueryDebug, ['\nArg: ', Arg]),
    Expr =.. [=, Arg, Attrs],
-    dm(subqueryDebug, ['Expr: ', Expr]),
+    dm(subqueryDebug, ['\nExpr: ', Expr]),
    plan_to_atom(Expr, Result),
     write(Result),
    !.  
    
-subquery_to_atom(Pred, Result) :-
- %  dm(subqueryDebug, ['subquery_to_atom']),
+subquery_plan_to_atom(Pred, Result) :-
+ %  dm(subqueryDebug, ['\nsubquery_plan_to_atom']),
    Pred =.. [Op, Attrs, QuantifiedSubquery],
- %  dm(subqueryDebug, ['Attrs: ', Attrs]), 
+ %  dm(subqueryDebug, ['\nAttrs: ', Attrs]), 
    QuantifiedSubquery =.. [_, Subquery],
- %  dm(subqueryDebug, ['Subquery: ', Subquery]),
+ %  dm(subqueryDebug, ['\nSubquery: ', Subquery]),
    Subquery =.. [from, Select, _],
- %  dm(subqueryDebug, ['Select: ', Select]),
+ %  dm(subqueryDebug, ['\nSelect: ', Select]),
    Select =.. [select, Arg],
- %  dm(subqueryDebug, ['Arg: ', Arg]),
+ %  dm(subqueryDebug, ['\nArg: ', Arg]),
    Expr =.. [Op, Arg, Attrs],
- %  dm(subqueryDebug, ['Expr: ', Expr]),
+ %  dm(subqueryDebug, ['\nExpr: ', Expr]),
    plan_to_atom(Expr, Result),
  %  write(Result),
    !.     
    
-/*:- multifile newEdge/4.
+/ *:- multifile newEdge/4.
 
 newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
   isSubqueryPred1(P),
@@ -1402,14 +2289,14 @@ newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
 % simple in predicate
 subquery(Arg1, _, pr(Pred, _, _)) => remove(filter(product(Arg1S, feed(Rel)), Expr), AttrList2) :-
   isSubqueryPred1(Pred), 
-%  dm(subqueryDebug, ['translateA: ', Pred]),
+%  dm(subqueryDebug, ['\ntranslateA: ', Pred]),
   Arg1 => Arg1S,
-%  dm(subqueryDebug, ['Arg1: ', Arg1]),
+%  dm(subqueryDebug, ['\nArg1: ', Arg1]),
   Pred =.. [in, Attrs, Subquery],
-%  dm(subqueryDebug, ['Attrs: ', Attrs]),
+%  dm(subqueryDebug, ['\nAttrs: ', Attrs]),
   Subquery =.. [from, Select, Rel],
   not(is_list(Rel)),
-%  dm(subqueryDebug, ['Rel: ', Rel]),
+%  dm(subqueryDebug, ['\nRel: ', Rel]),
   Rel =.. [rel, Name, _, _],   
 %  write(Name),
 %  write(Var),
@@ -1423,14 +2310,14 @@ subquery(Arg1, _, pr(Pred, _, _)) => remove(filter(product(Arg1S, feed(Rel)), Ex
 % simple in predicate
 subquery(Arg1, _, pr(Pred, _, _)) => remove(filter(product(Arg1S, feed(Rel)), Expr), AttrList2) :-
   isSubqueryPred1(Pred), 
-%  dm(subqueryDebug, ['translateA: ', Pred]),
+%  dm(subqueryDebug, ['\ntranslateA: ', Pred]),
   Arg1 => Arg1S,
-%  dm(subqueryDebug, ['Arg1: ', Arg1]),
+%  dm(subqueryDebug, ['\nArg1: ', Arg1]),
   Pred =.. [in, Attrs, Subquery],
-%  dm(subqueryDebug, ['Attrs: ', Attrs]),
+%  dm(subqueryDebug, ['\nAttrs: ', Attrs]),
   Subquery =.. [from, Select, Rel],
   not(is_list(Rel)),
-%  dm(subqueryDebug, ['Rel: ', Rel]),
+%  dm(subqueryDebug, ['\nRel: ', Rel]),
   Rel =.. [rel, Name, Var, _],
 %  write(Name),
 %  write(Var),
@@ -1451,18 +2338,18 @@ myFun([Attr | Rest], AttrList2, Var) :-
 % in predicate with predicate
 subquery(Arg1, _, pr(Pred, _, _)) => filter(product(Arg1S, filter(feed(Rel), SubPred)), Expr) :-
   isSubqueryPred1(Pred), 
-%  dm(subqueryDebug, ['translateB: ', Pred]),
+%  dm(subqueryDebug, ['\ntranslateB: ', Pred]),
   Arg1 => Arg1S,
-%  dm(subqueryDebug, ['Arg1: ', Arg1]),
+%  dm(subqueryDebug, ['\nArg1: ', Arg1]),
   Pred =.. [in, Attrs, Subquery],
-%  dm(subqueryDebug, ['Attrs: ', Attrs]),
-%  dm(subqueryDebug, ['Subquery: ', Subquery]),
+%  dm(subqueryDebug, ['\nAttrs: ', Attrs]),
+%  dm(subqueryDebug, ['\nSubquery: ', Subquery]),
   Subquery =.. [from, Select, Where],
-%  dm(subqueryDebug, ['Select: ', Select]),
-%  dm(subqueryDebug, ['Where: ', Where]),
+%  dm(subqueryDebug, ['\nSelect: ', Select]),
+%  dm(subqueryDebug, ['\nWhere: ', Where]),
   Where =.. [where, [Rel], [pr(SubPred, _)]],
-%  dm(subqueryDebug, ['SubPred: ', SubPred]),
-%  dm(subqueryDebug, ['Rel: ', Rel]),
+%  dm(subqueryDebug, ['\nSubPred: ', SubPred]),
+%  dm(subqueryDebug, ['\nRel: ', Rel]),
 %  SubPred => SubPred2,
   Select =.. [select, Arg],
   Expr =.. [=, Arg, Attrs]. 
@@ -1470,126 +2357,24 @@ subquery(Arg1, _, pr(Pred, _, _)) => filter(product(Arg1S, filter(feed(Rel), Sub
   
 subquery(Arg1, _, pr(Pred, _, _)) => remove(filter(extend(product(Arg1S, feed(Rels)), [newattr(attrname(attr(subext, 1, l)), Expr)]), attr(subext, 1, l) = true), attrname(attr(subext, 1, l)))  :-
   isSubqueryPred1(Pred),
-%  dm(subqueryDebug, ['translateC: ', Pred]),  
+%  dm(subqueryDebug, ['\ntranslateC: ', Pred]),  
 %  write(Pred),
   Arg1 => Arg1S,
   Pred =.. [Op, Attrs, QuantifiedSubquery],
-%  dm(subqueryDebug, ['Op: ', Op]),
-%  dm(subqueryDebug, ['Attrs: ', Attrs]),
-%  dm(subqueryDebug, ['QuantifiedSubquery: ', QuantifiedSubquery]),
+%  dm(subqueryDebug, ['\nOp: ', Op]),
+%  dm(subqueryDebug, ['\nAttrs: ', Attrs]),
+%  dm(subqueryDebug, ['\nQuantifiedSubquery: ', QuantifiedSubquery]),
   QuantifiedSubquery =.. [_, Subquery],
-%  dm(subqueryDebug, ['Quantifier: ', Quantifier]),
-%  dm(subqueryDebug, ['Subquery: ', Subquery]),
+%  dm(subqueryDebug, ['\nQuantifier: ', Quantifier]),
+%  dm(subqueryDebug, ['\nSubquery: ', Subquery]),
   Subquery =.. [from, Select, Rels],
-%  dm(subqueryDebug, ['Select: ', Select]),
-%  dm(subqueryDebug, ['Rels: ', Rels]),
+%  dm(subqueryDebug, ['\nSelect: ', Select]),
+%  dm(subqueryDebug, ['\nRels: ', Rels]),
   Select =.. [select, Arg],
-%  dm(subqueryDebug, ['Arg: ', Arg]),
-%  dm(subqueryDebug, ['Op: ', Op]),
+%  dm(subqueryDebug, ['\nArg: ', Arg]),
+%  dm(subqueryDebug, ['\nOp: ', Op]),
   Expr =.. [Op, Arg, Attrs].
-%  dm(subqueryDebug, ['Expr: ', Expr]),  
-
-  
-/*  
-subquery(Arg1, _, pr(Pred, _, _)) => loopsel(feed(Rels), fun([param(T1, tuple)], filter(Arg1S, Expr))) :-
-  fail,
-  isSubqueryPred(Pred), !,
-  Arg1 => Arg1S,
-  Pred =.. [in, Attrs, Subquery],
-  Subquery =.. [from, Select, Rels],
-  Select =.. [select, Arg],
-  Expr =.. [=, attribute(T1, attrname(Arg)), Attrs],
-  newVariable(T1).    
-  
-subquery(Arg1, _, pr(Pred, _, _)) => loopsel(feed(Rels), fun([param(T1, tuple)], filter(Arg1S, Expr))) :-
-  isSubqueryPred(Pred), !,
-%  write(Pred),
-  Arg1 => Arg1S,
-  Pred =.. [Op, Attrs, QuantifiedSubquery],
-  Op => Op2,
-  QuantifiedSubquery =.. [Quantifier, Subquery],
-  Subquery =.. [from, Select, Rels],
-  Select =.. [select, Arg],
-  Expr =.. [Op2, attribute(T1, attrname(Arg)), Attrs],
-  newVariable(T1).
-*/  
-
-
-/*
-join(arg(N), arg(M), pr(OuterJoinPred, _, _)) => mergeunion(
-												mergeunion(
-													sort(product(
-															mergediff(
-																rdup(sort(remove(
-																	hashjoin(Arg1S, Arg2S, 
-																			 attrname(Attr1), attrname(Attr2), 99997),
-																	Arg1Attrs
-																))),
-																sort(Arg2S)
-															),
-															rename(feed(rel(Arg1UNDEF, Var1)), Var1)
-													)),
-													sort(product(
-															rename(feed(rel(Arg2UNDEF, Var2)), Var2),
-															mergediff(
-																rdup(sort(remove(
-																	hashjoin(Arg1S, Arg2S, 
-																			 attrname(Attr1), attrname(Attr2), 99997),
-																	Arg2Attrs
-																))),
-																sort(Arg1S)
-															)														
-													))
-												),
-												sort(hashjoin(Arg1S, Arg2S, Attr1, Attr2, 99997))) :-
-																
-																		
-  OuterJoinPred =.. [outerjoin, Pred],
-  write('\nPred: ', Pred),
-  Pred =.. [=, X, Y],
-  write('\nX: ', X),
-  write('\nY: ', Y),
-  arg(N) => Arg1S,
-  write('\nN: ', N),
-  arg(M) => Arg2S,
-  write('\nM: ', M),
-  isOfFirst(Attr1, X, Y),
-  write('\nAttr1: ', Attr1),
-  isOfSecond(Attr2, X, Y),
-  write('\nAttr2: ', Attr2),
-  argument(N, Rel1),
-  write('\nRel1: ', Rel1),
-  argument(M, Rel2),
-  write('\nRel2: ', Rel2),
-  Rel1 = rel(RelName1, Var1),
-  write('\nRelName1: ', RelName1),
-  write('\nVar1: ', Var1),
-  Rel2 = rel(RelName2, Var2),
-  write('\nRelName2: ', RelName2),
-  write('\nVar2: ', Var2),  
-  concat_atom([RelName1, 'undef'], '', Arg1UNDEF),
-  write('\nArg1UNDEF: ', Arg1UNDEF),  
-  concat_atom([RelName2, 'undef'], '', Arg2UNDEF),
-  write('\nArg2UNDEF: ', Arg2UNDEF),
-  usedAttrList(Rel1, Arg1Attrs), % todo Attributliste korrekt erzeugen auch bei Kostenfunktion berücksichtigen
-  write('\nArg1Atttrs: ', Arg1Attrs),
-  usedAttrList(Rel2, Arg2Attrs),
-  write('\nArg2Attrs: ', Arg2Attrs).
- 
-/ * 
-cost(mergeunion(Stream1, Stream2), 0, Size, Cost) :-
-  cost(Stream1, _, Size1, Cost1),
-  cost(Stream2, _, Size2, Cost2),
-  Size is Size1 + Size2,
-  Cost is Cost1 + Cost2.
-  
-cost(mergediff(Stream1, Stream2), 0, Size, Cost) :-
-  cost(Stream1, _, Size1, Cost1),
-  cost(Stream2, _, Size2, Cost2),
-  Size is Size1 + Size2,
-  Cost is Cost1 + Cost2.* /
-  
-cost(mergeunion(mergeunion(sort(product(mergediff(rdup(sort(remove(hashjoin(rename(feed(rel(Rel1, Var1)), Var1), rename(feed(rel(Rel2, Var2)), Var2), attrname(attr(Var1:Attr1,1, u)), attrname(attr(Var2:Attr2, 2, u)), 99997), [attrname(attr(ort, 0, u))]))),sort(rename(feed(rel(Rel2, Var2)), Var2))), rename(feed(rel(Rel1undef, Var1)), Var1))), sort(product(rename(feed(rel(Rel2undef, Var2)), Var2), mergediff(rdup(sort(remove(hashjoin(rename(feed(rel(Rel1, Var1)), Var1), rename(feed(rel(Rel2, Var2)), Var2), attrname(attr(Var1:Attr1,1,u)), attrname(attr(Var2:Attr2, 2,u)), 99997), [attrname(attr(ort, 0, u))]))), sort(rename(feed(rel(Rel1, Var1)),Var1)))))), sort(hashjoin(rename(feed(rel(Rel1, Var1)), Var1), rename(feed(rel(Rel2, Var2)), Var2), attr(Var1:Attr1,1, u), attr(Var2:Attr2, 2, u),99997))), 4e-06, Size, 0).  */
+%  dm(subqueryDebug, ['\nExpr: ', Expr]),  */
   
   
 /*
@@ -1612,14 +2397,3 @@ partition_([H|T], Pred, Incl, Excl) :-
 
 :- [subquerytest].
 :- [tpcdqueries].
-
-/*
-isNestedQuery(select[supp_nation, cust_nation, lyear, sum(volume)as revenue]
-from (
-select[n1:nname as supp_nation, n2:nname as cust_nation, year_of(lshipdate)as lyear, lextendedprice* (1-ldiscount)as volume]
-from[supplier, lineitem, orders, customer, nation as n1, nation as n2]
-where[ssuppkey=lsuppkey, oorderkey=lorderkey, ccustkey=ocustkey, snationkey=n1:nnationkey, cnationkey=n2:nnationkey, (n1:nname=[70, 82, 65, 78, 67, 69]and n2:nname=[71, 69, 82, 77, 65, 78, 89])or (n1:nname=[71, 69, 82, 77, 65, 78, 89]and n2:nname=[70, 82, 65, 78, 67, 69]), between(instant2real(lshipdate), instant2real(instant([49, 57, 57, 53, 45, 48, 49, 45, 48, 49])), instant2real(instant([49,57, 57, 54, 45, 49, 50, 45, 51, 49])))])
-as shipping groupby[supp_nation, cust_nation, lyear]orderby[supp_nation, cust_nation, lyear])
-
-transform(select[sum(lextendedprice/7.0)as avg_yearly]from[lineitem, part]where[ppartkey=lpartkey, pbrand=[66, 114, 97, 110, 100, 35, 50, 51], pcontainer=[77,69, 68, 32, 66, 79, 88], lquantity< (select[0.2*avg(lquantity)]from[lineitem]where[lpartkey=ppartkey])], A)
-*/

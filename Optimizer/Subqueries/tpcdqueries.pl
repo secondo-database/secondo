@@ -1,18 +1,91 @@
-tpc(d, No) :- tpcd(No, Query), setupQuery(No), sql(Query), teardownQuery(No).
+% tpc(d, No) :- tpcd(No, Query), setupQuery(d, No), sql(Query), teardownQuery(d, No).
+
+:- dynamic(queryValidation/0).
+
+:- assert(queryValidation).
+
+:- dynamic(skipQuery/2).
+
+:- assert(skipQuery(d, 1)),
+   assert(skipQuery(d, 3)),
+   assert(skipQuery(d, 5)),
+   assert(skipQuery(d, 6)),
+   assert(skipQuery(d, 8)),
+   assert(skipQuery(d, 10)),
+   assert(skipQuery(d, 11)),
+   assert(skipQuery(d, 12)),
+   assert(skipQuery(d, 13)),
+   assert(skipQuery(d, 14)),
+   assert(skipQuery(d, 15)),
+   assert(skipQuery(d, 18)),
+   assert(skipQuery(d, 19)).
+   
+tpc(Benchmark, No) :-
+  skipQuery(Benchmark, No),
+  upcase_atom(Benchmark, BMOut),  
+  concat_atom(['\nTPC-', BMOut, ' ', No, '\n\tSkipped'], Result),
+  concat_atom([Benchmark, No], Key),
+  ( retractall(benchmarkResult(Key, _)) ; true ),
+  assert(benchmarkResult(Key, Result)).  
+
+tpc(Benchmark, No) :- 
+  upcase_atom(Benchmark, BMOut),  
+  catch( (setupQuery(Benchmark, No)
+    -> SetupResult = '' % concat_atom(['Setup successful', '\n'], SetupResult)
+    ;  concat_atom(['\tSetup failed', '\n'], SetupResult)
+   ),
+   _, concat_atom(['\tSetup failed', '\n'], SetupResult)),
+  tpc(Benchmark, No, Query),    
+  catch( (ground(Query), (rewriteQuery(Query, RQuery))
+    -> RewriteResult = '' % concat_atom(['Rewrite successful', '\n'], RewriteResult)
+    ;  concat_atom(['\tRewrite failed', '\n'], RewriteResult)
+   ),
+   _, concat_atom(['\tRewrite failed', '\n'], RewriteResult)),  
+  catch( ((ground(RQuery), callLookup(RQuery, Query2))
+    -> LookupResult = '' % concat_atom(['Lookup successful', '\n'], LookupResult)
+    ;  concat_atom(['\tLookup failed', '\n'], LookupResult)
+   ),
+   _, concat_atom(['\tLookup failed', '\n'], LookupResult)),  
+  !,
+  catch( ((ground(Query2), queryToPlan(Query2, Plan, _))
+    -> QueryToPlanResult = '' % concat_atom(['QueryToPlan successful', '\n'], QueryToPlanResult)
+    ;  concat_atom(['\tQueryToPlan failed', '\n'], QueryToPlanResult)
+   ),
+   _, concat_atom(['\tQueryToPlan failed', '\n'], QueryToPlanResult)),  
+  !,
+  catch( ((ground(Plan), plan_to_atom(Plan, QueryOut))
+    -> PlanToAtomResult = '' % concat_atom(['PlanToAtom successful', '\n'], PlanToAtomResult)
+    ;  concat_atom(['\tPlanToAtom failed', '\n'], PlanToAtomResult)
+   ),
+   _, concat_atom(['\tPlanToAtom failed', '\n'], PlanToAtomResult)),  
+  (( ground(QueryOut), concat_atom(['query ', QueryOut], QueryText) ) ; true),
+  catch( ((ground(QueryOut), secondo(QueryText))
+    -> ExecuteResult = '' % concat_atom(['Execute successful', '\n'], ExecuteResult)
+    ;  concat_atom(['\tExecute failed', '\n'], ExecuteResult)
+   ),
+   _, concat_atom(['\tExecute failed', '\n'], ExecuteResult)),  
+  catch( (teardownQuery(Benchmark, No)
+    -> TeardownResult = '' % concat_atom(['Teardown successful', '\n'], TeardownResult)
+    ;  concat_atom(['\tTeardown failed', '\n'], TeardownResult)
+   ),
+   _, concat_atom(['\tTeardown failed', '\n'], TeardownResult)), 
+   concat_atom(['\nTPC-', BMOut, ' ', No, '\n',
+                SetupResult,
+                RewriteResult	,
+                LookupResult	,
+                QueryToPlanResult	,
+                PlanToAtomResult	,
+                ExecuteResult	,
+                TeardownResult],
+                Result),				
+   concat_atom([Benchmark, No], Key),
+   ( retractall(benchmarkResult(Key, _)) ; true ),
+   assert(benchmarkResult(Key, Result)).
 
 tpc(d, No, Query) :- tpcd(No, Query).
 
 executeQuery(Benchmark, No) :-
-  upcase_atom(Benchmark, BMOut),  
-  catch(
-  ( tpc(Benchmark, No)
-    -> concat_atom(['TPC-', BMOut, ' ', No, ' successful', '\n'], Result)
-	;  concat_atom(['TPC-', BMOut, ' ', No, ' failed', '\n'], Result)
-   ),
-   _, concat_atom(['TPC-', BMOut, ' ', No, ' failed', '\n'], Result)),
-   concat_atom([Benchmark, No], Key),
-   ( retract(benchmarkResult(Key, _)) ; true ),
-   assert(benchmarkResult(Key, Result)).
+  tpc(Benchmark, No).
    
 executeQueries(_, []).
 
@@ -20,20 +93,21 @@ executeQueries(Benchmark, [[No, _] | Rest]) :-
   executeQuery(Benchmark, No),
   dc(tpcd, (
   N is No + 1,
-  write_list(['Execute next Query (', N, ')? y/n']),
+  write_list(['\nExecute next Query (', N, ')? y/n']),
   get_single_char(Answer),
   Answer = 121 )),
   executeQueries(Benchmark, Rest).
   
 executeBenchmark(Benchmark) :- 
+    setupBenchmark(Benchmark),
     retractall(benchmarkResult(_, _)),
 	findall([No, Query], tpc(Benchmark, No, Query), Queries),
 	executeQueries(Benchmark, Queries),
-	findall(Result, benchmarkResult(_, Result), L),
+	findall(Result, benchmarkResult(_, Result), L),	
 	nl,
     write_list(L).
 	
-setupQuery(15) :-
+setupQuery(d, 15) :-
     let(revenue, select
 		[lsuppkey as supplier_no,
 		sum(lextendedprice * (1 - ldiscount)) as total_revenue]
@@ -45,16 +119,46 @@ setupQuery(15) :-
 		groupby
 		[lsuppkey]).
 		
-setupQuery(_).
+setupQuery(_,_).
 		
-teardownQuery(15) :-
+teardownQuery(d, 15) :-
   catch(drop_relation(revenue), _, true),
   closeDB,
   updateDB(tpcd),
   open database tpcd.
   
-teardownQuery(_).
+teardownQuery(_, _).
 
+setupBenchmark(d) :-
+  not(queryValidation),
+  retractall(region(_,_)),
+  assert(region(0, "AFRICA")),
+  assert(region(1, "AMERICA")),
+  assert(region(2, "ASIA")),
+  assert(region(3, "EUROPE")),
+  assert(region(4, "MIDDLE EAST")),
+  retractall(typeSyllable1(_,_)),
+  assert(typeSyllable1(0, "STANDARD")),
+  assert(typeSyllable1(1, "SMALL")),
+  assert(typeSyllable1(2, "MEDIUM")),
+  assert(typeSyllable1(3, "LARGE")),
+  assert(typeSyllable1(4, "ECONOMY")),  
+  assert(typeSyllable1(5, "PROMO")),  
+  retractall(typeSyllable2(_,_)),
+  assert(typeSyllable2(0, "ANODIZED")),
+  assert(typeSyllable2(1, "BURNISHED")),
+  assert(typeSyllable2(2, "PLATED")),
+  assert(typeSyllable2(3, "POLISHED")),
+  assert(typeSyllable2(4, "BRUSHED")), 
+  retractall(typeSyllable3(_,_)),  
+  assert(typeSyllable3(0, "TIN")),
+  assert(typeSyllable3(1, "NICKEL")),
+  assert(typeSyllable3(2, "BRASS")),
+  assert(typeSyllable3(3, "STEEL")),
+  assert(typeSyllable3(4, "COPPER")).
+  
+setupBenchmark(_).
+  
 tpcd(1, select
 			[lreturnflag,
 			llinestatus,
@@ -69,13 +173,19 @@ tpcd(1, select
 			from
 			lineitem
 			where
-			[lshipdate <= instant("1998-09-02")]
+% substitution parameter
+            [lshipdate <= create_instant(instant2real(instant("1998-12-01")) - Delta)]			
+%			[lshipdate <= instant("1998-09-02")]
 			groupby
 			[lreturnflag,
 			llinestatus]
 			orderby
 			[lreturnflag,
-			llinestatus]).
+			llinestatus]) :-
+% Delta is randomly selected within [60 - 120]
+  queryValidation
+  -> ( Delta is 90.0 )
+  ; ( Delta is random(60.0) + 60.0 ).
 			
 tpcd(2, select
 		[sacctbal,
@@ -96,14 +206,17 @@ tpcd(2, select
 		[ppartkey = pspartkey,
 		ssuppkey = pssuppkey,
 % substitution parameter		
-		 psize = 15,
+%		 psize = 15,
+         psize = Size,
 % substitution parameter 
 %        ptype like "%BRASS"
-		 ptype contains "BRASS",
+%		 ptype contains "BRASS",
+         ptype contains Type,
 		 snationkey = nnationkey,
 		 nregionkey = rregionkey,
 % substitution parameter		
-		 rname = "EUROPE",
+%		 rname = "EUROPE",
+         rname = Region,
 		 pssupplycost = (
 			select
 			min(pssupplycost)
@@ -116,14 +229,25 @@ tpcd(2, select
 			 snationkey = nnationkey,
 			 nregionkey = rregionkey,
 	% substitution parameter		
-			 rname = "EUROPE"]
+%			 rname = "EUROPE"]
+			 rname = Region]
 		)]
 
 		orderby[
 		sacctbal desc,
 		nname,
 		sname,
-		ppartkey] first 100).
+		ppartkey] first 100) :-
+  queryValidation 
+  -> ( Size is 15,
+       Type = "BRASS",
+	   Region = "EUROPE" )
+  ; ( Size is random(49) + 1,
+      T is random(5),
+      typeSyllable3(T, Type),
+      R is random(4),
+      region(R, Region)).
+  
 		
 tpcd(3, select
 		[lorderkey,

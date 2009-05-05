@@ -82,4 +82,125 @@ select[n1:nname as supp_nation, n2:nname as cust_nation, year_of(lshipdate)as ly
 
 
 
- 
+ /* 
+ trace(lookupPred, +all), trace(lookupPreds, +all), tpcd(2, Q), callLookup(Q, Q2).
+lookupPred(pssupplycost= (select min(pssupplycost)from[partsupp, supplier, nation, region]where[ppartkey=pspartkey, ssuppkey=pssuppkey, snationkey=nnationkey,nregionkey=rregionkey, rname=[69, 85, 82, 79, 80, 69]]), _G3590)
+
+lookupPred1(select min(pssupplycost)from[partsupp, supplier, nation, region]where[ppartkey=pspartkey, ssuppkey=pssuppkey, snationkey=nnationkey, nregionkey=rregionkey, rname=[69, 85, 82, 79, 80, 69]], _G2037, [rel(partsupp, *)], _L300)
+
+
+ getTime(
+	(
+		pog([rel(part, *), rel(supplier, *), rel(partsupp, *), rel(nation, *), rel(region, *)], 
+		   [
+			pr(attr(pPARTKEY, 1, l)=attr(psPARTKEY, 2, l), rel(part, *), rel(partsupp, *)), 
+		    pr(attr(sSUPPKEY, 1, l)=attr(psSUPPKEY, 2, l), rel(supplier, *), rel(partsupp, *)), 
+			pr(attr(pSIZE, 1, l)=15, rel(part, *)), 
+			pr(attr(pTYPE, 1, l)contains[66, 82, 65, 83, 83], rel(part, *)), 
+			pr(attr(sNATIONKEY, 1, l)=attr(nNATIONKEY, 2, l), rel(supplier, *), rel(nation, *)), 
+			pr(attr(nREGIONKEY, 1, l)=attr(rREGIONKEY, 2, l),rel(nation, *), rel(region, *)), 
+			pr(attr(rNAME, 1, l)=[69, 85, 82, 79, 80, 69], rel(region, *)), 
+			pr(attr(psSUPPLYCOST, 1, l)= ( 
+				select min(attr(psSUPPLYCOST, 0, l))
+					from[rel(partsupp, *), rel(supplier, *), rel(nation, *), rel(region, *)]
+					where[
+						  pr(attr(pPARTKEY, 1, l)=attr(psPARTKEY, 2, l), rel(part, *), rel(partsupp, *)), 
+					      pr(attr(sSUPPKEY, 1, l)=attr(psSUPPKEY, 2, l), rel(supplier, *), rel(partsupp, *)), 
+						  pr(attr(sNATIONKEY, 1, l)=attr(nNATIONKEY, 2, l), rel(supplier, *), rel(nation, *)), 
+						  pr(attr(nREGIONKEY, 1, l)=attr(rREGIONKEY, 2, l), rel(nation, *), rel(region, *)), 
+						  pr(attr(rNAME, 1, l)=[69, 85, 82, 79, 80, 69], rel(region, *))]), 
+			[rel(partsupp, *), rel(partsupp, *), rel(supplier, *), rel(nation, *), rel(region, *)])
+			], Nodes, Edges), 
+		assignCosts, 
+		bestPlan(Plan, Cost), 
+		!
+	), 
+	Result)
+	
+[debug] 16 ?- myDebug(pog([rel(supplier, *), rel(partsupp, *), rel(nation, *), rel(region, *)],
+   [
+pr(attr(psSUPPLYCOST, 1, l)= (
+select min(attr(psSUPPLYCOST, 0, l))
+from[rel(partsupp, *), rel(supplier, *), rel(nation, *), rel(region, *)]
+where[
+  pr(attr(pPARTKEY, 1, l)=attr(psPARTKEY, 2, l), rel(part, *), rel(partsupp, *)),
+      pr(attr(sSUPPKEY, 1, l)=attr(psSUPPKEY, 2, l), rel(supplier, *), rel(partsupp, *)),
+  pr(attr(sNATIONKEY, 1, l)=attr(nNATIONKEY, 2, l), rel(supplier, *), rel(nation, *)),
+  pr(attr(nREGIONKEY, 1, l)=attr(rREGIONKEY, 2, l), rel(nation, *), rel(region, *)),
+  pr(attr(rNAME, 1, l)=[69, 85, 82, 79, 80, 69], rel(region, *))]),
+[rel(partsupp, *), rel(partsupp, *), rel(supplier, *), rel(nation, *), rel(region, *)])
+], Nodes, Edges)).	
+
+query plz feed {p} Orte feed {o}
+symmjoin[fun(t1:TUPLE, t2:TUPLE2) attr(t1,PLZ_p) = 
+  plz feed filter[.Ort contains "x"] filter[.PLZ > 50000] 
+    filter[.Ort = attr(t2, Ort_o)]
+    max[PLZ]
+]
+count
+
+
+myDebug(sql select [pp:pos as pos, v1:licence as licence]
+from [datascar as v1, querypoints as pp]
+where [v1:trip passes pp:pos, v1:type = "passenger",
+  inst(initial(v1:trip at pp:pos)) <= (all 
+  (select inst(initial(v2:trip at pp:pos))
+   from [datascar as v2]
+   where [v2:trip passes pp:pos, v2:type = "passenger"]))
+])
+
+select[pp:pos as pos, v1:licence as licence] 
+from [datascar as v1, querypoints as pp, datascar as v2] 
+where [v1:trip passes pp:pos, 
+v1:type=[112, 97, 115, 115, 101, 110, 103, 101, 114], 
+inst(initial(v1:trip at pp:pos))<= (min(inst(initial(v2:trip at pp:pos)))), 
+v2:trip passes pp:pos, 
+v2:type=[112, 97, 115, 115, 101, 110, 103, 101, 114]]
+
+sql select [pp:pos as pos, v1:licence as licence]
+from [datascar as v1, querypoints as pp]
+where [v1:trip passes pp:pos, v1:type = "passenger",
+  inst(initial(v1:trip at pp:pos)) <= (all 
+  (select inst(initial(trip at pp:pos)) as firsttime
+   from [datascar]
+   where [trip passes pp:pos, type = "passenger"]))
+]
+select[pp:pos as pos, v1:licence as licence]
+from[datascar as v1, querypoints as pp, txxrel5 as txxrel6]
+where[v1:trip passes pp:pos, v1:type=[112, 97, 115, 115, 101, 110, 103, 101, 114], pp:pos=txxrel6:trip_v2, inst(initial(v1:trip at pp:pos))<=txxrel6:var2]
+
+
+selectivity(pr(attr(psSUPPLYCOST, 1, l)= (select min(attr(psSUPPLYCOST, 0, l))from[rel(partsupp, *), rel(supplier, *), rel(nation, *), rel(region, *)]where[pr(attr(pPARTKEY, 1, l)=attr(psPARTKEY, 2, l), rel(part, *), rel(partsupp, *)), pr(attr(sSUPPKEY, 1, l)=attr(psSUPPKEY, 2, l), rel(supplier, *), rel(partsupp, *)), pr(attr(sNATIONKEY, 1, l)=attr(nNATIONKEY, 2, l), rel(supplier, *), rel(nation, *)), pr(attr(nREGIONKEY, 1, l)=attr(rREGIONKEY, 2, l), rel(nation, *), rel(region, *)), pr(attr(rNAME,1, l)=[69, 85, 82, 79, 80, 69], rel(region, *))]), rel(supplier, *), [rel(nation, *), rel(region, *), rel(partsupp, *)]), _G4414, _L183, _L184)
+
+select[attr(oORDERPRIORITY, 0, l), count(*)as attr(ordercount, 0, u)] 
+from [rel(orders, *)] 
+where [
+ pr(attr(oORDERDATE, 1, l)>=instant([49, 57, 57, 51, 45, 48, 55, 45,48, 49]), rel(orders, *)), 
+ pr(attr(oORDERDATE, 1, l)<theInstant(year_of(instant([49, 57, 57, 51, 45, 48, 55, 45, 48, 49])), month_of(instant([49, 57, 57, 51, 45, 48, 55, 45, 48, 49]))+3, day_of(instant([49, 57, 57, 51, 45, 48, 55, 45, 48, 49]))), rel(orders, *)), 
+ pr(
+  exists(
+   select*
+   from[rel(lineitem, *)]
+   where[
+    pr(attr(lORDERKEY, 1, l)=attr(oORDERKEY, 2, l), rel(lineitem, *), rel(orders, *)), 
+	pr(attr(lCOMMITDATE, 1, l)<attr(lRECEIPTDATE, 1, l), rel(lineitem, *))
+   ]
+  ), 
+  rel(lineitem, *))
+] 
+groupby [attr(oORDERPRIORITY, 0, l)] 
+orderby [attr(oORDERPRIORITY, 0, l)]
+
+Q = select[oorderpriority, count(*)as ordercount] from orders where [oorderdate>=instant([49, 57, 57, 51, 45, 48, 55, 45, 48, 49]), oorderdate<theInstant(year_of(instant([4
+9, 57, 57, 51, 45, 48, 55, 45, 48, 49])), month_of(instant([49, 57, 57, 51, 45, 48, 55, 45, 48, 49]))+3, day_of(instant([49, 57, 57, 51, 45, 48, 55, 45, 48, 49]))), exists(
+select*from lineitem where[lorderkey=oorderkey, lcommitdate<lreceiptdate])] groupby [oorderpriority] orderby [oorderpriority],
+Q2 = select[attr(oORDERPRIORITY, 0, l), count(*)as attr(ordercount, 0, u)] from [rel(orders, *)] where [pr(attr(oORDERDATE, 1, l)>=instant([49, 57, 57, 51, 45, 48, 55, 45,
+48, 49]), rel(orders, *)), pr(attr(oORDERDATE, 1, l)<theInstant(year_of(instant([49, 57, 57, 51, 45, 48, 55, 45, 48, 49])), month_of(instant([49, 57, 57, 51, 45, 48, 55, 45
+, 48, 49]))+3, day_of(instant([49, 57, 57, 51, 45, 48, 55, 45, 48, 49]))), rel(orders, *)), pr(exists(select*from[rel(lineitem, *)]where[pr(attr(lORDERKEY, 1, l)=attr(oORDE
+RKEY, 2, l), rel(lineitem, *), rel(orders, *)), pr(attr(lCOMMITDATE, 1, l)<attr(lRECEIPTDATE, 1, l), rel(lineitem, *))]), rel(orders, *))] groupby [attr(oORDERPRIORITY, 0,
+l)] orderby [attr(oORDERPRIORITY, 0, l)],
+P = consume(sortby(project(groupby(sortby(predinfo(0.614885, 0.0665, filter(feed(rel(lineitem, *)), attr(lCOMMITDATE, 1, l)<attr(lRECEIPTDATE, 1, l))), [attrname(attr(oORDE
+RPRIORITY, 0, l))asc]), [attrname(attr(oORDERPRIORITY, 0, l))], [field(attr(ordercount, 0, u), count(feed(group)))]), [attrname(attr(oORDERPRIORITY, 0, l)), attrname(attr(o
+rdercount, 0, u))]), [attrname(attr(oORDERPRIORITY, 0, l))asc])),
+C = 24002.0
+*/
