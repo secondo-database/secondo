@@ -54,146 +54,13 @@ from a stream of tuples which contains string or text attributes.
 #include "GraphViz.h"
 #include "FLOB.h"
 #include "Symbols.h"
+#include "../FText/FTextAlgebra.h"
 #include <sstream>
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
 namespace GVZ {
-
-  const string DOT = "svg";
-
-  class Dot : public Attribute {
-
-    public:	  
-    Dot() {}
-
-    Dot(const string& s) : text(0) {
-
-      SetDefined(true);
-      assign(s);	    
-    }
-
-    Dot(const Dot& rhs) : text(0) {
-
-      SetDefined( rhs.IsDefined() );
-      assign( rhs.GetText() );	    
-    }
-
-    ~Dot() {}
-
-    void Set(bool b, const string& s) {
-       SetDefined(b);
-       assign(s);       
-    }	    
-
-    const char* GetText() const {
-      const char* s = 0;
-      text.Get(0, &s);
-      return s;
-    }
-
-    inline virtual int NumOfFLOBs() const { return 1; }
-
-    inline virtual FLOB* GetFLOB(const int n) { return &text; }
-
-    virtual size_t  Sizeof() const { return sizeof(Dot); }
-
-    virtual int Compare(const Attribute*)  const { return 0; }
-
-    virtual bool Adjacent(const Attribute*) const { return true; }
-
-    virtual Attribute*  Clone() const { return new Dot(*this); }
-
-
-    static Word In( const ListExpr typeInfo, const ListExpr instance,
-		    const int errorPos, ListExpr& errorInfo, bool& correct );
-
-    static ListExpr Out( ListExpr typeInfo, Word value );
-
-    static Word Create( const ListExpr typeInfo );
-
-    private:
-
-    inline void assign(const string& s) {      
-      text.Clean();	    
-      text.Put( 0, s.length() + 1, s.c_str());
-    }	    
-
-    FLOB text;
-  };	  
-
-  struct DotFunctions : ConstructorFunctions<Dot> {
-
-  DotFunctions()
-  {
-    //re-assign some function pointers
-    create = Dot::Create;
-    in = Dot::In;
-    out = Dot::Out;
-  }  
-};    
-
-Word
-Dot::In( const ListExpr typeInfo, const ListExpr instance,
-            const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  correct = false;
-  Word result = SetWord(Address(0));
-
-  NList list(instance);
-  stringstream ss;
-  ss << "Expecting a list of type: text-atom!";
-  
-  if ( !list.isText() ) {
-    ss << "But got " << list; 	  
-    cmsg.inFunError(ss.str());
-    return result;
-  }	  
-
-  correct = true;
-  Dot* d = new Dot(list.str());
-  result.addr = d;
-  return result;
-}
-
-
-ListExpr
-Dot::Out( ListExpr typeInfo, Word value )
-{
-  Dot* d = static_cast<Dot*>( value.addr );
-  return NList( NList().textAtom( d->GetText() )).listExpr();
-}
-
-Word
-Dot::Create( const ListExpr typeInfo )
-{
-  return (SetWord( new Dot("") ));
-}
-
-struct DotInfo : ConstructorInfo {
-
-  DotInfo() {
-
-    name         = DOT;
-    signature    = "-> svg";
-    typeExample  = name;
-    listRep      =  "( svg text-atom)";
-    valueExample = "( svg 'xml description ...')";
-    remarks      = "This list simply stores a graph represented by a "
-	           "svg graphic computed by the graphviz library. "
-		   "Note: this is a result of processing "
-		   "a node and edge description and may not be appropiate for "
-		   "further processing. It is simply used as wrapper to have " 
-		   "a special type used by JavaGUI";
-  }
-};
-
-
-DotInfo di;
-DotFunctions df;
-TypeConstructor dotTC( di, df );
-
 
 /*
 Operator ~lastoptree~
@@ -205,9 +72,9 @@ Operator ~lastoptree~
   lastOpTreeInfo()
   {
     name      = "lastoptree"; 
-    signature = " -> " + DOT;
+    signature = " -> svg";
     syntax    = name;
-    meaning   = "If debug 1 is activated, SECONDO stores the optree "
+    meaning   = "If debug mode 1 is activated, SECONDO stores the optree "
 	        "represented in SVG-language in a temporary file. "
 		"This operator simply converts the stored file into a "
 		"graphlayout object";
@@ -221,7 +88,7 @@ lastOpTree_tm( ListExpr args )
   if ( !nl->IsEmpty(args) ) {
     return NList::typeError("Expecting an empty list");
   }  
-  return NList(DOT).listExpr();
+  return NList("svg").listExpr();
 }
 
 int
@@ -229,7 +96,7 @@ lastOpTree_vm (Word* args, Word& result, int message,
                Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);  
-  Dot* d = static_cast<Dot*>( result.addr );
+  FText* d = static_cast<FText*>( result.addr );
 
   string str = "Error: no file lastoptree.gv!";
   FILE* f = fopen("optree_old.gv", "r");
@@ -249,9 +116,6 @@ class GVZAlgebra : public Algebra
   public:
     GVZAlgebra() : Algebra()
     {
-      AddTypeConstructor(&dotTC);
-      dotTC.AssociateKind("DATA");
-
       AddOperator( lastOpTreeInfo(), lastOpTree_vm, lastOpTree_tm );
     }
     ~GVZAlgebra() {}
