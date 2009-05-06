@@ -39,7 +39,7 @@ DEBUG = -ggdb
 #OPTIMIZE += -O2 -finline-functions -mcpu=athlon-xp  
 
 # Use even more optimization
-#OPTIMIZE += -O3 -march=native
+OPTIMIZE += -O3 -march=native
 #OPTIMIZE += -O3
 
 # Do not use assertions. 

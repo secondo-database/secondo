@@ -3091,25 +3091,33 @@ bool MGPoint::Present(Periods *&per) {
   return false;
 }
 
-bool MGPoint::Present(Instant *&per) {
-  int mid;
+int MGPoint::Position(Instant *&inst) {
+  Instant ins = *inst;
+  int mid = -1;
   int first = 0;
   int last = GetNoComponents() - 1;
   const UGPoint *pCurrUnit;
   Get(first, pCurrUnit);
-  if (pCurrUnit->timeInterval.start.CompareTo(per) >0) return false;
+  if (pCurrUnit->timeInterval.start > ins) return -1;
   Get(last, pCurrUnit);
-  if (pCurrUnit->timeInterval.end.CompareTo(per) < 0) return false;
+  if (pCurrUnit->timeInterval.end < ins) return -1;
   while (first <= last) {
     mid = (first+last)/2;
-    if (mid<0 || mid >= GetNoComponents()) return false;
+    if (mid<0 || mid >= GetNoComponents()) return -1;
     Get(mid, pCurrUnit);
-    if (pCurrUnit->timeInterval.end.CompareTo(per) < 0) first = mid + 1;
+    if (pCurrUnit->timeInterval.end < ins) first = mid + 1;
     else
-      if (pCurrUnit->timeInterval.start.CompareTo(per) > 0 ) last = mid - 1;
-      else return true;
+      if (pCurrUnit->timeInterval.start > ins ) last = mid - 1;
+    else return mid;
   }
-  return false;
+  return -1;
+}
+
+bool MGPoint::Present(Instant *&per) {
+  if (!IsDefined() || IsEmpty()) return false;
+  int pos = Position(per);
+  if (pos == -1) return false;
+  else return true;
 }
 
 /*
@@ -3723,59 +3731,39 @@ Restricts the ~mgpoint~ to the given ~periods~
 
 void MGPoint::Atinstant(Instant *&per, Intime<GPoint> *&res){
   if (IsDefined() && !IsEmpty()){
+    int pos = Position(per);
     const UGPoint *pCurrUnit;
-    Get(0,pCurrUnit);
-    if (per->ToDouble() < pCurrUnit->timeInterval.start.ToDouble())
-      res->SetDefined(false);
-    else{
-      Get( GetNoComponents()-1 ,pCurrUnit);
-      if (pCurrUnit->timeInterval.end.ToDouble() < per->ToDouble())
-        res->SetDefined(false);
-      else {
-        int low = 0;
-        int high = GetNoComponents()-1;
-        bool found = false;
-        while (low <= high && !found){
-          int mid = (high + low)/2;
-          Get(mid, pCurrUnit);
-          if(per->ToDouble() < pCurrUnit->timeInterval.start.ToDouble())
-            high = mid - 1;
-          else {
-            if (pCurrUnit->timeInterval.end.ToDouble() < per->ToDouble())
-              low = mid + 1;
-            else {
-              found = true;
-              if (AlmostEqual(per->ToDouble(),
-                             pCurrUnit->timeInterval.start.ToDouble())){
-                *res = (Intime<GPoint>(*per, pCurrUnit->p0));
-                res->SetDefined(true);
-              } else {
-                if(AlmostEqual(per->ToDouble(),
-                             pCurrUnit->timeInterval.end.ToDouble())) {
-                  *res = (Intime<GPoint>(*per,pCurrUnit->p1));
-                  res->SetDefined(true);
-                }  else {
-                  *res = (Intime<GPoint>(*per,
-                                  GPoint(true,
-                                        pCurrUnit->p0.GetNetworkId(),
-                                        pCurrUnit->p0.GetRouteId(),
-                                        ((pCurrUnit->p1.GetPosition() -
-                                            pCurrUnit->p0.GetPosition()) *
-                                          (per->ToDouble() -
-                                    pCurrUnit->timeInterval.start.ToDouble()) /
-                                    (pCurrUnit->timeInterval.end.ToDouble() -
-                                      pCurrUnit->timeInterval.start.ToDouble())
-                                          + pCurrUnit->p0.GetPosition()),
-                                        pCurrUnit->p0.GetSide())));
-                  res->SetDefined(true);
-                }
-              }
-            }
-          }
+    if (pos == -1) res->SetDefined(false);
+    else {
+      Get(pos,pCurrUnit);
+      if (AlmostEqual(per->ToDouble(),
+                      pCurrUnit->timeInterval.start.ToDouble())){
+        *res = (Intime<GPoint>(*per, pCurrUnit->p0));
+        res->SetDefined(true);
+      } else {
+        if(AlmostEqual(per->ToDouble(),
+                       pCurrUnit->timeInterval.end.ToDouble())) {
+          *res = (Intime<GPoint>(*per,pCurrUnit->p1));
+          res->SetDefined(true);
+        }  else {
+          *res = (Intime<GPoint>(*per,
+                        GPoint(true,
+                               pCurrUnit->p0.GetNetworkId(),
+                               pCurrUnit->p0.GetRouteId(),
+                              ((pCurrUnit->p1.GetPosition() -
+                                pCurrUnit->p0.GetPosition()) *
+                                (per->ToDouble() -
+                                pCurrUnit->timeInterval.start.ToDouble()) /
+                                (pCurrUnit->timeInterval.end.ToDouble() -
+                                 pCurrUnit->timeInterval.start.ToDouble())
+                               + pCurrUnit->p0.GetPosition()),
+                               pCurrUnit->p0.GetSide())));
+          res->SetDefined(true);
         }
       }
     }
-  }else{
+  }
+  else {
     res->SetDefined(false);
   }
 }

@@ -528,6 +528,8 @@ Returns the ~igpoint~ of the time instant.
 
   DBArray<RouteInterval> m_trajectory;
 
+  int Position(Instant *&inst);
+
   private:
 
   bool m_traj_Defined;
