@@ -169,6 +169,7 @@ such as "ArgVectorPointer"[4], "Supplier"[4], "Word"[4], "Address"[4], etc.
 #include "LogMsg.h"
 #include "StopWatch.h"
 #include "FLOBCache.h"
+#include "DotSpec.h"
 
 struct OpNode;
 typedef OpNode* OpTree;
@@ -500,7 +501,8 @@ Construct an operator tree from ~expr~. Allocate argument vectors for all
 functions and then call ~subtree~ to do the job.
 
 */
-  ListExpr ListOfTree( void* node, ostream& os, ofstream& of );
+  ListExpr ListOfTree( void* node, ostream& os );
+  void BuildDotDescr( void* node, DotSpec& dot );
 /*
 Represents an operator tree through a list expression. Used for testing.
 Additionally more detailed information will be printed into ~os~.

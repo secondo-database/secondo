@@ -227,6 +227,7 @@ using namespace std;
 #include "Operator.h"
 #include "stdio.h"
 #include <stdexcept>
+#include "DotSpec.h"
 
 
 /**************************************************************************
@@ -615,30 +616,51 @@ OpNode(OpNodeType type = Operator) :
         {
           return nl->SymbolValue(u.symbol);
         }
-	return "";
+	return nl->ToString(u.symbol);
   }
 
-  string stringId() const {
+  string nodeIdStr() const {
+    stringstream ss;
+    ss << id;
+    return ss.str();
+  }    
 
+  string nodeLabelStr() const {
   stringstream ss;	  
   switch ( nodetype )
   {
     case Object : { 
 	if (u.dobj.isConstant) // todo list rep of value
-	  ss << id << ":Const "; 
+	  ss << id << ": const"; 
 	else
-	  ss << id << ":Obj " << symbol(); 
+	  ss << id << ": " << symbol(); 
 	break; 
     }
-    case Pointer :        { ss << id << ":Ptr "; break; }
-    case IndirectObject : { ss << id << ":IndObj fun = " 
+    case Pointer :        { ss << id << ": pointer "; break; }
+    case IndirectObject : { ss << id << ": #fun = " 
 			       << u.iobj.funNumber; break; }
-    case Operator :       { ss << id << ":Op " << symbol(); break; }
+    case Operator :       { ss << id << ": " << symbol(); break; }
     default :
     { assert( false ); }
   }
   return ss.str();  
   }
+
+  string nodeTypeStr() const {
+
+  switch ( nodetype )
+  {
+    case Object :         { if (u.dobj.isConstant) return "const";
+			    return "obj"; } 
+    case Pointer :        { return "ptr"; }
+    case IndirectObject : { return "indObj"; } 
+    case Operator :       { return "op"; }
+    default :
+    { assert( false ); }
+  }
+  }
+
+
 
 };
 
@@ -905,9 +927,36 @@ ostream& operator<<(ostream& os, const OpNode& node) {
 
   */
 
+  void
+  QueryProcessor::BuildDotDescr( void* node, DotSpec& dot)
+  {
+    OpTree tree = static_cast<OpTree>( node );
+
+    if ( tree == 0 ) {
+      return;
+    }
+    
+    dot.addNode( tree->nodeTypeStr(), tree->nodeIdStr(), tree->nodeLabelStr() );
+   
+    if (tree->nodetype != Operator) {
+      return;
+    }  
+     
+    if ( tree->u.op.noSons > 0)
+    {
+      int i = 0;
+      for ( i = 0; i < tree->u.op.noSons; i++ )
+      {
+	dot.addEdge( tree->nodeIdStr(), 
+           static_cast<OpNode*>( tree->u.op.sons[i].addr )->nodeIdStr() );
+	BuildDotDescr( tree->u.op.sons[i].addr, dot );
+      }
+    }
+  }
+
 
   ListExpr
-  QueryProcessor::ListOfTree( void* node, ostream& os, ofstream& of )
+  QueryProcessor::ListOfTree( void* node, ostream& os )
   {
   /*
   Represents an operator tree through a list expression. Used for testing.
@@ -968,22 +1017,13 @@ ostream& operator<<(ostream& os, const OpNode& node) {
       {
         if ( tree->u.op.noSons > 0)
         {
-	  // create graphviz arcs	  
-          for ( i = 0; i < tree->u.op.noSons; i++ )
-          {
-            of << "\"" << tree->stringId() << "\"->" 
-	       << "\"" 
-	       << static_cast<OpNode*>( tree->u.op.sons[i].addr )->stringId()
-	       << "\";" << endl;
-          }
-
           list =
-            nl->OneElemList( ListOfTree( tree->u.op.sons[0].addr, os, of ) );
+            nl->OneElemList( ListOfTree( tree->u.op.sons[0].addr, os ) );
           last = list;
           for ( i = 1; i < tree->u.op.noSons; i++ )
           {
             last = nl->Append( last,
-            ListOfTree( tree->u.op.sons[i].addr, os, of ) );
+            ListOfTree( tree->u.op.sons[i].addr, os ) );
           }
         }
         else
@@ -2594,23 +2634,38 @@ QueryProcessor::SubtreeX( const ListExpr expr )
     }
   }
 
+ 
   bool first = true;
   OpTree resultTree = Subtree( expr, first );
-  if ( debugMode )
-  {
-    cout << endl << "*** SubtreeX Begin ***" << endl;
+
+  if ( RTFlag::isActive("QP:OpTree2SVG") ) {
+
     const char* cfp = "optree_cur.gv";
     const char* ofp = "optree_old.gv";
+
+    DotSpec dot("optree"); 
+    	  
+    dot.addNodeType("op",     "[ shape=\"circle\" ]");
+    dot.addNodeType("obj",    "[ shape=\"box\" ]");
+    dot.addNodeType("ptr",    "[ shape=\"triangle\" ]");
+    dot.addNodeType("indObj", "[ shape=\"polygon\" ]");
+    dot.addNodeType("const",  "[ shape=\"diamond\" ]");
+
     // rename current to old;	    
     rename(cfp, ofp);
     ofstream of;
     of.open(cfp, ios::trunc);
-    of << "digraph \"optree\" {" << endl; 
-    ListExpr treeList = ListOfTree( resultTree, cerr, of );
+    BuildDotDescr( resultTree, dot );
+    dot.buildGraph(of);
+    of.close();
+  }	  
+
+  if ( debugMode )
+  {
+    cout << endl << "*** SubtreeX Begin ***" << endl;
+    ListExpr treeList = ListOfTree( resultTree, cerr );
     nl->WriteListExpr( treeList, cout, 2 );
     nl->Destroy( treeList );
-    of << "}" << endl;
-    of.close();
     cout << endl << "*** SubtreeX End ***" << endl;
   }
   return (resultTree);
@@ -3475,12 +3530,9 @@ Then call the operator's value mapping function.
                         {
                         cerr << fn <<
                         "*** Abstraction application " << endl;
-			ofstream of;
-			of.open("abstraction.gv", ios::trunc);
-                        nl->WriteListExpr( ListOfTree( tree, cerr, of ),
+                        nl->WriteListExpr( ListOfTree( tree, cerr ),
                                 cout, 2 );
                         cerr << endl;
-			of.close();
                         }
 
           absArgs = Argument(tree->u.op.sons[0].addr );
