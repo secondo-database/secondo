@@ -58,6 +58,7 @@ public class SvgViewer extends SecondoViewer{
  private JSVGCanvas svgCanvas;
 
  private JButton loadBtn;
+ private JButton saveBtn;
  private JFileChooser fc;
  private SAXSVGDocumentFactory factory;
  private String lastUri;
@@ -83,11 +84,19 @@ public class SvgViewer extends SecondoViewer{
   svgCanvas = new JSVGCanvas(ua, true, true);
 
   loadBtn = new JButton("load");
+  saveBtn = new JButton("save");
   loadBtn.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
          loadGraphic();
       }
    }); 
+
+  saveBtn.addActionListener(new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        saveSvg();
+     }
+  });
+
 
    lastUri= "" + (new File(".")).toURI();;
 
@@ -103,7 +112,11 @@ public class SvgViewer extends SecondoViewer{
    };
    fc.setFileFilter(filter);
 
-   add(BorderLayout.SOUTH, loadBtn);
+
+   JPanel control = new JPanel();
+   control.add(loadBtn);
+   control.add(saveBtn);
+   add(BorderLayout.SOUTH, control);
 
 
   MI_Remove.addActionListener( new ActionListener(){
@@ -258,6 +271,30 @@ public class SvgViewer extends SecondoViewer{
        Reporter.showError("Error in loading svg graphic"); 
        Reporter.debug(e);
     }
+ }
+
+ private void saveSvg(){
+    int index = comboBox.getSelectedIndex();
+    if (index<0){
+       tools.Reporter.showError("no svg available"); 
+    } else {
+       int choice = fc.showSaveDialog(null);
+       if (choice != JFileChooser.APPROVE_OPTION) {
+          return;
+       }
+       SecondoObject obj = (SecondoObject) itemObjects.get(index);
+       try{
+          File f = fc.getSelectedFile();
+          String svg = obj.toListExpr().textValue();
+          BufferedWriter bf = new BufferedWriter(new FileWriter(f));
+          bf.write(svg,0,svg.length());
+          bf.close();
+      }catch(Exception e){
+        tools.Reporter.showError("problem in storing file");
+      }
+    }
+
+
  }
 
  private void showObject(){
