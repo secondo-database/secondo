@@ -283,13 +283,18 @@ public class SvgViewer extends SecondoViewer{
           return;
        }
        SecondoObject obj = (SecondoObject) itemObjects.get(index);
+       
        try{
           File f = fc.getSelectedFile();
-          String svg = obj.toListExpr().textValue();
+           
+          String svg = obj.toListExpr().second().textValue();
+          System.out.println(obj.toListExpr().second());
+          System.out.println(svg);
           BufferedWriter bf = new BufferedWriter(new FileWriter(f));
           bf.write(svg,0,svg.length());
           bf.close();
       }catch(Exception e){
+        tools.Reporter.debug(e);
         tools.Reporter.showError("problem in storing file");
       }
     }
