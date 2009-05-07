@@ -53,6 +53,7 @@ from a stream of tuples which contains string or text attributes.
 #include "QueryProcessor.h"
 #include "GraphViz.h"
 #include "FLOB.h"
+#include "LogMsg.h"
 #include "Symbols.h"
 #include "../FText/FTextAlgebra.h"
 #include <sstream>
@@ -98,15 +99,21 @@ lastOpTree_vm (Word* args, Word& result, int message,
   result = qp->ResultStorage(s);  
   FText* d = static_cast<FText*>( result.addr );
 
-  string str = "Error: no file lastoptree.gv!";
-  FILE* f = fopen("optree_old.gv", "r");
+  const string lf = "optree_old.gv";
+  string err = "no file " + lf + "!";
+  FILE* f = fopen(lf.c_str(), "r");
   if(f != 0) {
-    str = FILE2string(f);
+    string str = FILE2string(f);
+    GraphViz g(str);
+    string svg = g.render(GraphViz::svg, GraphViz::DOT);
+    d->Set(true, svg);
   }
-  GraphViz g(str);
-  string svg = g.render(GraphViz::svg, GraphViz::DOT);
-
-  d->Set(true, svg);
+  else
+  {
+    cmsg.error() << err << endl;
+    cmsg.send();    
+    d->Set(false, "");
+  }	  
   return 0;
 }
 
