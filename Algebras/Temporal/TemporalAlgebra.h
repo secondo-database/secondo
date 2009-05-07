@@ -6419,7 +6419,23 @@ int IntimeVal( Word* args, Word& result, int message, Word& local, Supplier s )
 
   return 0;
 }
+/*
+6.5 Value mapping functions of operator ~uval~
 
+*/
+template <class Alpha,class Beta>
+int UIntimeVal( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+
+  result = qp->ResultStorage( s );
+  Alpha* i = (Alpha*)args[0].addr;
+  if( i->IsDefined())
+    ((Beta*)result.addr)->Set(true,i->constValue.GetValue());
+  else
+    ((Beta*)result.addr)->SetDefined( false );
+
+  return 0;
+}
 /*
 6.6 Value mapping functions of operator ~no\_components~
 

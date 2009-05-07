@@ -6965,6 +6965,25 @@ IntimeTypeMapBase( ListExpr args )
 }
 
 /*
+16.1.6 Type mapping function ~UIntimeTypeMapBase~
+
+It is for the operator ~val~.
+
+*/
+ListExpr
+UIntimeTypeMapBase( ListExpr args )
+{
+  if ( nl->ListLength( args ) == 1 )
+  {
+    ListExpr arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "uint" ) )
+      return nl->SymbolAtom( "int" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
 16.1.6 Type mapping function ~IntimeTypeMapInstant~
 
 It is for the operator ~inst~.
@@ -8506,6 +8525,23 @@ IntimeSimpleSelect( ListExpr args )
 
   if( nl->SymbolValue( arg1 ) == "ipoint" )
     return 3;
+
+  return -1; // This point should never be reached
+}
+
+/*
+16.2.3 Selection function ~UIntimeSimpleSelect~
+
+Is used for the ~inst~ and ~val~ operations.
+
+*/
+int
+UIntimeSimpleSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if( nl->SymbolValue( arg1 ) == "uint" )
+    return 0;
 
   return -1; // This point should never be reached
 }
@@ -11112,6 +11148,8 @@ ValueMapping temporalvalmap[] = { IntimeVal<CcBool>,
                                   IntimeVal<CcReal>,
                                   IntimeVal<Point> };
 
+ValueMapping temporaluvalmap[] = { UIntimeVal<UInt,CcInt>};
+
 ValueMapping temporalatinstantmap[] = { MappingAtInstant<MBool, CcBool>,
                                         MappingAtInstant<MInt, CcInt>,
                                         MappingAtInstant<MReal, CcReal>,
@@ -11377,6 +11415,13 @@ const string TemporalSpecVal  =
   "<text>val ( _ )</text--->"
   "<text>Return an intime value's value.</text--->"
   "<text>val ( i1 )</text--->"
+  ") )";
+const string TemporalSpecUVal  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>iT x position -> x</text--->"
+  "<text>uval ( _ )</text--->"
+  "<text>Return an intime value's value.</text--->"
+  "<text>uval ( ui1 )</text--->"
   ") )";
 
 const string TemporalSpecAtInstant =
@@ -12312,6 +12357,14 @@ Operator submove( "submove",
                     SubMoveVM,
                     Operator::SimpleSelect,
                     SubMoveTypeMap);
+
+Operator temporaluval( "uval",
+                      TemporalSpecUVal,
+                      1,
+                      temporaluvalmap,
+                      UIntimeSimpleSelect,
+                      UIntimeTypeMapBase );
+
 /*
 6 Creating the Algebra
 
@@ -12448,6 +12501,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&speedup);
     AddOperator(&avespeed);
     AddOperator(&submove);
+    AddOperator(&temporaluval);
   }
   ~TemporalAlgebra() {};
 };
