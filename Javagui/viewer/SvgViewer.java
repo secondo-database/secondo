@@ -40,6 +40,8 @@ import org.apache.batik.swing.svg.GVTTreeBuilderAdapter;
 import org.apache.batik.swing.svg.GVTTreeBuilderEvent;
 import org.apache.batik.dom.svg.SAXSVGDocumentFactory;
 import org.apache.batik.util.XMLResourceDescriptor;
+import org.apache.fop.render.ps.*;
+import org.apache.batik.transcoder.*;
 import org.w3c.dom.Document;
 import java.net.URI;
 import org.apache.batik.swing.svg.SVGUserAgentAdapter;
@@ -59,6 +61,7 @@ public class SvgViewer extends SecondoViewer{
 
  private JButton loadBtn;
  private JButton saveBtn;
+ private JButton saveEPSBtn;
  private JFileChooser fc;
  private SAXSVGDocumentFactory factory;
  private String lastUri;
@@ -85,6 +88,7 @@ public class SvgViewer extends SecondoViewer{
 
   loadBtn = new JButton("load");
   saveBtn = new JButton("save");
+  saveEPSBtn = new JButton("save as eps");
   loadBtn.addActionListener(new ActionListener(){
       public void actionPerformed(ActionEvent evt){
          loadGraphic();
@@ -97,6 +101,11 @@ public class SvgViewer extends SecondoViewer{
      }
   });
 
+  saveEPSBtn.addActionListener(new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        saveEPS();
+     }
+  });
 
    lastUri= "" + (new File(".")).toURI();;
 
@@ -116,6 +125,7 @@ public class SvgViewer extends SecondoViewer{
    JPanel control = new JPanel();
    control.add(loadBtn);
    control.add(saveBtn);
+   control.add(saveEPSBtn);
    add(BorderLayout.SOUTH, control);
 
 
@@ -298,9 +308,39 @@ public class SvgViewer extends SecondoViewer{
         tools.Reporter.showError("problem in storing file");
       }
     }
-
-
  }
+
+ private void saveEPS(){
+    int index = comboBox.getSelectedIndex();
+    if (index<0){
+       tools.Reporter.showError("no svg available");
+       return;
+    }
+    try{
+      SecondoObject obj  = (SecondoObject) itemObjects.get(index);
+      String text = obj.toListExpr().second().textValue();
+      InputStream in = new ByteArrayInputStream(text.getBytes());
+      String fn = lastUri;
+      Document doc = factory.createSVGDocument(fn,in);
+
+      EPSTranscoder t = new EPSTranscoder();
+      int choice = fc.showSaveDialog(null);
+      if (choice != JFileChooser.APPROVE_OPTION) {
+          return;
+      }
+      TranscoderInput input = new TranscoderInput(doc);
+      OutputStream o = new FileOutputStream(fc.getSelectedFile());
+      TranscoderOutput output = new TranscoderOutput(o);
+      t.transcode(input, output);
+      o.flush();
+      o.close();
+   } catch(Exception e){
+      tools.Reporter.debug(e);
+      tools.Reporter.showError("problem in writing file");
+   }
+ }
+
+
 
  private void showObject(){
    // delete old stuff
