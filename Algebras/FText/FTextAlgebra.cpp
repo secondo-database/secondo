@@ -78,6 +78,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "StopWatch.h"
 #include "Symbols.h"
 #include "SecondoSMI.h"
+#include "Crypt.h"
 
 #include "SocketIO.h"
 #include <math.h>
@@ -1338,6 +1339,40 @@ ListExpr svg2textTM(ListExpr args){
 }
 
 /*
+2.51 ~crypt~
+
+   t1 [x t2] -> text , t1, t2 in {string, text}
+
+*/
+
+ListExpr cryptTM(ListExpr args){
+  int l = nl->ListLength(args);
+
+  string err = "t1 [x t2]  , t1, t2 in {string, text} expected";
+  if((l!=1) && (l!=2)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  while(!nl->IsEmpty(args)){
+    ListExpr first = nl->First(args);
+    args = nl->Rest(args);
+    if(nl->AtomType(first)!=SymbolType){
+       ErrorReporter::ReportError(err);
+       return nl->TypeError();
+    }
+    string v = nl->SymbolValue(first);
+    if( (v!="string") && (v!="text")){
+       ErrorReporter::ReportError(err);
+       return nl->TypeError();
+    }
+  }
+  return nl->SymbolAtom("text");
+}
+
+
+
+
+/*
 3.3 Value Mapping Functions
 
 */
@@ -1942,6 +1977,96 @@ int ValMapSubtext( Word* args, Word& result, int message,
   CRes->Set( true, myRes );
   return 0;
 }
+
+/*
+4.28 Operator ~crypt~
+
+*/
+template<class T>
+int cryptVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ) {
+
+  result = qp->ResultStorage(s);
+  FText* res = static_cast<FText*>(result.addr);
+  T* arg = static_cast<T*>(args[0].addr);
+  if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;  
+  }
+  string a = arg->GetValue();
+  srand( (unsigned) time(0) ) ;
+
+  char s1 = (rand() / ( RAND_MAX / 63 + 1 ))+46;
+  char s2 = (rand() / ( RAND_MAX / 63 + 1 ))+46;
+
+  cout << "s1, s2 " << (int)s1 << ", " << (int)s2 << endl;
+
+  if(s1>57){
+    s1 += 7;
+  }
+  if(s1>90){
+    s1 += 6;
+  }
+  if(s2>57){
+    s2 += 7;
+  }
+  if(s2>90){
+    s2 += 6;
+  }
+
+  cout << "s1, s2 " << (int)s1 << ", " << (int)s2 << endl;
+
+
+  char salt[] = {  s1, s2 };
+  string b = (Crypt::crypt(a.c_str(),salt));
+  res->Set(true,b);
+  return 0;
+}
+
+template<class T1, class T2>
+int cryptVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ) {
+
+  result = qp->ResultStorage(s);
+  FText* res = static_cast<FText*>(result.addr);
+  T1* arg1 = static_cast<T1*>(args[0].addr);
+  T2* arg2 = static_cast<T2*>(args[1].addr);
+  if(!arg1->IsDefined() || !arg2->IsDefined()){
+     res->SetDefined(false);
+     return 0;  
+  }
+  string a = arg1->GetValue();
+  string b = arg2->GetValue();
+  string c (Crypt::crypt(a.c_str(),b.c_str()));
+  res->Set(true,c);
+  return 0;
+}
+
+ // value mapping array
+
+ValueMapping cryptvm[] = {
+      cryptVM<CcString>, cryptVM<FText>,
+      cryptVM<CcString, CcString>, cryptVM<CcString, FText>,
+      cryptVM<FText, CcString>, cryptVM<FText, FText>
+  };
+
+ // Selection function
+ int cryptSelect(ListExpr args){
+   int l = nl->ListLength(args);
+   string s1 = nl->SymbolValue(nl->First(args));
+   if(l==1){
+     if(s1=="string") return 0;
+     if(s1=="text") return 1;
+   } else {
+     string s2 = nl->SymbolValue(nl->Second(args));
+     if(s1=="string" && s2=="string") return 2;
+     if(s1=="string" && s2=="text") return 3;
+     if(s1=="text" && s2=="string") return 4;
+     if(s1=="text" && s2=="text") return 5;
+   }
+   return -1; // type mapping and selection are not compatible 
+ } 
+
 
 /*
 4.29 Operator ~find~
@@ -4082,6 +4207,16 @@ const string text2svgSpec  =
     "<text>query text2svg(...)"
     "</text--->"
     ") )";
+
+
+const string cryptSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> t1 [x t2] -> text, t1,t2 in {string, text} </text--->"
+    "<text>crypt( word [, salt] )</text--->"
+    "<text>encrypt word using the DES crypt</text--->"
+    "<text>query crypt(\"TopSecret\",\"TS\")"
+    "</text--->"
+    ") )";
 /*
 The Definition of the operators of the type ~text~.
 
@@ -4407,6 +4542,16 @@ Operator text2svg
   text2svgTM //type mapping
 );
 
+Operator crypt
+    (
+    "crypt",
+    cryptSpec,
+    6,
+    cryptvm,
+    cryptSelect,
+    cryptTM
+    );
+
 /*
 5 Creating the algebra
 
@@ -4459,6 +4604,7 @@ public:
     AddOperator( &ftreceivetextstreamUDP );
     AddOperator( &svg2text );
     AddOperator( &text2svg );
+    AddOperator( &crypt);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
