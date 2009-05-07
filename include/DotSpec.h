@@ -10,6 +10,8 @@ specification used by graphviz (www.graphviz.org) for a directed graph.
 #include<string>
 #include<list>
 #include<map>
+#include<iostream>
+#include<assert.h>
 
 using namespace std;
 
@@ -21,14 +23,14 @@ class DotSpec {
   ~DotSpec() {}
 
 
-  void addNodeTypeSpec(const string& type, const string& spec) {
-    types[type] = spec;	  
+  void addNodeType(const string& type, const string& spec) {
+    types[type] = "node " + spec;	  
   }	  
 
   bool addNode(const string& type, const string& id, const string& label) {
     
    TTypeMap::const_iterator it = types.find(type);
-   if (it != types.end()) {
+   if (it == types.end()) {
      return false;	   
    }	   
    nodes[type].push_back( make_pair(id, label));
@@ -39,7 +41,12 @@ class DotSpec {
     edges.push_back( make_pair(n1, n2));	  
   }	  
 
-  void composeDotSpec(ostream& os) const {
+  void clearGraph() { 
+    edges.clear(); 
+    nodes.clear(); 
+  }
+
+  void buildGraph(ostream& os) const {
 
     os << "digraph \"" << gName << "\"{" << endl;
        	    
@@ -50,14 +57,17 @@ class DotSpec {
       os << it1->second << ";" << endl;	    
  
       // get the nodes list for the current type 
+      //cerr << it1->first << endl;
       TNodesMap::const_iterator it2 = nodes.find(it1->first);
-      assert(it2 != nodes.end());
+      
+      if (it2 != nodes.end()) {
       list<TPair>::const_iterator it3 = it2->second.begin();
 
       // write the nodes for this type
       while ( it3 != it2->second.end() ) {
-        os << it3->first << "[label=\"" << it3->second << "\"];" << endl;    
+        os << it3->first << " [label=\"" << it3->second << "\"];" << endl;    
         it3++;	    
+      }
       }
      it1++;	   
     }
@@ -66,7 +76,7 @@ class DotSpec {
     TEdgeList::const_iterator it = edges.begin();
     while (it != edges.end()) {
      os << it->first << "->" << it->second << ";" << endl ;	    
-     it1++;	    
+     it++;	    
     }	    
 
     os << "}" << endl; 
