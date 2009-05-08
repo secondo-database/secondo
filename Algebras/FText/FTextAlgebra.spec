@@ -52,3 +52,7 @@ operator > alias GT pattern _ infixop _
 operator <= alias LE pattern _ infixop _
 operator >= alias GE pattern _ infixop _
 operator tostring alias TOSTRING pattern op(_)
+
+operator md5 alias MD5 pattern op(_)
+operator crypt alias Crypt pattern op(_)
+
