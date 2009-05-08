@@ -51,7 +51,7 @@ using namespace std;
 
 
 /*
-The following are thresholds used in filter and join operators to determine when to switch into warm state (i.e., trust the selectivity observation). The denote the number of matching tuples that must have been found.
+The following are thresholds used in filter and join operators to determine when to switch into warm state (i.e., trust the selectivity observation). They denote the number of matching tuples that must have been found.
 
 
 */
