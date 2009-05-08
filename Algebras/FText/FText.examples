@@ -417,3 +417,59 @@ Signature: {string|text} x {string|text} x real x real -> stream(tuple((Ok bool)
 Example  : query receivetextstreamUDP("",'2626',0.08,5.0) count >= 50
 Result   : TRUE
 
+
+Operator : crypt 
+Number   : 1
+Signature: string -> text
+Example  : query length(crypt("Secondo"))
+Result   : 13
+Remark   : Salt is choosen randomly
+
+Operator : crypt 
+Number   : 2
+Signature: text -> text
+Example  : query length(crypt('Secondo'))
+Result   : 13
+Remark   : Salt is choosen randomly
+
+Operator : crypt 
+Number   : 3
+Signature: string x string -> text
+Example  : query crypt("Secondo","1A")
+Result   : (text '1AhU2966bcBQA') 
+
+
+Operator : crypt 
+Number   : 4
+Signature: string x text -> text
+Example  : query crypt("Secondo",'1A')
+Result   : (text '1AhU2966bcBQA') 
+
+
+Operator : crypt 
+Number   : 5
+Signature: text x string -> text
+Example  : query crypt('Secondo',"1A")
+Result   : (text '1AhU2966bcBQA') 
+
+
+Operator : crypt 
+Number   : 6
+Signature: text x text -> text
+Example  : query crypt('Secondo','1A')
+Result   : (text '1AhU2966bcBQA') 
+
+
+Operator : md5 
+Number   : 1
+Signature: text  -> string
+Example  : query md5('Secondo')
+Result   : (string "ee1fdc1f4c173cb97860902aa32e4") 
+
+Operator : md5 
+Number   : 2
+Signature: string  -> string
+Example  : query md5("Secondo")
+Result   : (string "ee1fdc1f4c173cb97860902aa32e4") 
+
+
