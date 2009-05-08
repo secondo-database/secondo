@@ -473,3 +473,31 @@ Example  : query md5("Secondo")
 Result   : (string "ee1fdc1f4c173cb97860902aa32e4") 
 
 
+Operator : checkpw 
+Number   : 1
+Signature: string x string -> bool
+Example  : query checkpw("Secondo", tostring(crypt("Secondo")))
+Result   : (bool TRUE)
+
+
+Operator : checkpw 
+Number   : 2
+Signature: string x text -> bool
+Example  : query checkpw("Secondo", crypt("Secondo"))
+Result   : (bool TRUE)
+
+ 
+Operator : checkpw 
+Number   : 3
+Signature: text x string -> bool
+Example  : query checkpw('Secondo', tostring(crypt("Secondo")))
+Result   : (bool TRUE)
+
+Operator : checkpw 
+Number   : 4
+Signature: text x text -> bool
+Example  : query checkpw('Secondo', crypt("Secondo"))
+Result   : (bool TRUE)
+
+
+

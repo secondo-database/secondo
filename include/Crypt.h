@@ -23,6 +23,7 @@ class Crypt{
 public: 
 
 static char * crypt(const char* pw, const char* salt);
+static bool validate(const char* pw, const char* epw);
 
 
 private:

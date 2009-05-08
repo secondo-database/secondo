@@ -15,6 +15,7 @@
  */
 
 #include "Crypt.h"
+#include <string.h>
 
 
  /*
@@ -178,6 +179,18 @@ char    Crypt::L[32], Crypt::R[32];
 char    Crypt::tempL[32];
 char    Crypt::f[32];
 char    Crypt::preS[48];
+
+
+bool Crypt::validate(const char* pw, const char* epw){
+  if(strlen(epw)!=13){ // not a valid encrypted pw
+    return  false;
+  }
+  char salt[2];
+  salt[0] = epw[0];
+  salt[1] = epw[1];
+  char* epw2 = crypt(pw, salt);
+  return (strcmp(epw, epw2)==0);
+}
 
 char * Crypt::crypt(const char* pw, const char* salt)
 {

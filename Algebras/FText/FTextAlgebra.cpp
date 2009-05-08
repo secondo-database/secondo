@@ -1371,6 +1371,33 @@ return nl->SymbolAtom("text");
 }
 
 /*
+checkpw
+
+*/
+ListExpr checkpwTM(ListExpr args){
+  string err = "{string, text} x {string, text} expected";
+  if(nl->ListLength(args)!=2){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  while(!nl->IsEmpty(args)){
+	  ListExpr first = nl->First(args);
+	  args = nl->Rest(args);
+	  if(nl->AtomType(first)!=SymbolType){
+		   ErrorReporter::ReportError(err);
+		   return nl->TypeError();
+  	}
+	  string v = nl->SymbolValue(first);
+	  if( (v!="string") && (v!="text")){
+	  	 ErrorReporter::ReportError(err);
+	  	 return nl->TypeError();
+	  }
+  }
+  return nl->SymbolAtom("bool");
+}
+
+
+/*
 2.52 md5
   
   {text, string} -> string
@@ -2084,6 +2111,48 @@ ValueMapping cryptvm[] = {
    }
    return -1; // type mapping and selection are not compatible 
  } 
+
+/*
+4.27 Operator checkpw
+
+*/
+template<class T1, class T2>
+int checkpwVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ) {
+
+  result = qp->ResultStorage(s);
+  CcBool* res = static_cast<CcBool*>(result.addr);
+  T1* arg1 = static_cast<T1*>(args[0].addr);
+  T2* arg2 = static_cast<T2*>(args[1].addr);
+  if(!arg1->IsDefined() || !arg2->IsDefined()){
+     res->SetDefined(false);
+     return 0;  
+  }
+  string a = arg1->GetValue();
+  string b = arg2->GetValue();
+  res->Set(true, Crypt::validate(a.c_str(),b.c_str()));
+  return 0;
+}
+
+ValueMapping checkpwvm[] = {
+   checkpwVM<CcString, CcString>,
+   checkpwVM<CcString, FText>,
+   checkpwVM<FText, CcString>,
+   checkpwVM<FText, FText>
+};
+
+
+int checkpwSelect(ListExpr args){
+  string s1 = nl->SymbolValue(nl->First(args));
+  string s2 = nl->SymbolValue(nl->Second(args));
+  if(s1=="string" && s2=="string") return 0;
+  if(s1=="string" && s2=="text") return 1;
+  if(s1=="text" && s2=="string") return 2;
+  if(s1=="text" && s2=="text") return 3;
+  return -1; // type mapping and selection are not compatible 
+ } 
+
+
 
 /*
 4.28 Operator ~md5~
@@ -4272,6 +4341,16 @@ const string cryptSpec  =
     "</text--->"
     ") )";
 
+const string checkpwSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> t1 x t2 -> bool, t1,t2 in {string, text} </text--->"
+    "<text>checkpw( plain, encrypted )</text--->"
+    "<text>checks whether encrypted is an enrypred version of "
+    " plain using the crypt function </text--->"
+    "<text>query checkpw(\"Secondo\",crypt(\"Secondo\"))"
+    "</text--->"
+    ") )";
+
 const string md5Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> {string, text}  -> string </text--->"
@@ -4615,6 +4694,16 @@ Operator crypt
     cryptTM
     );
 
+Operator checkpw
+    (
+    "checkpw",
+    checkpwSpec,
+    4,
+    checkpwvm,
+    checkpwSelect,
+    checkpwTM
+    );
+
 Operator md5
     (
     "md5",
@@ -4678,6 +4767,7 @@ public:
     AddOperator( &svg2text );
     AddOperator( &text2svg );
     AddOperator( &crypt);
+    AddOperator( &checkpw);
     AddOperator( &md5);
 
     LOGMSG( "FText:Trace",

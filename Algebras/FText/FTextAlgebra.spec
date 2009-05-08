@@ -54,5 +54,6 @@ operator >= alias GE pattern _ infixop _
 operator tostring alias TOSTRING pattern op(_)
 
 operator md5 alias MD5 pattern op(_)
+operator checkpw alias CHECKPW pattern op(_,_)
 operator crypt alias Crypt pattern op(_)
 
