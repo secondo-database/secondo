@@ -79,6 +79,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "Symbols.h"
 #include "SecondoSMI.h"
 #include "Crypt.h"
+#include "md5.h"
 
 #include "SocketIO.h"
 #include <math.h>
@@ -1341,35 +1342,54 @@ ListExpr svg2textTM(ListExpr args){
 /*
 2.51 ~crypt~
 
-   t1 [x t2] -> text , t1, t2 in {string, text}
+ t1 [x t2] -> text , t1, t2 in {string, text}
 
 */
 
 ListExpr cryptTM(ListExpr args){
-  int l = nl->ListLength(args);
+int l = nl->ListLength(args);
 
-  string err = "t1 [x t2]  , t1, t2 in {string, text} expected";
-  if((l!=1) && (l!=2)){
+string err = "t1 [x t2]  , t1, t2 in {string, text} expected";
+if((l!=1) && (l!=2)){
+	ErrorReporter::ReportError(err);
+	return nl->TypeError();
+}
+while(!nl->IsEmpty(args)){
+	ListExpr first = nl->First(args);
+	args = nl->Rest(args);
+	if(nl->AtomType(first)!=SymbolType){
+		 ErrorReporter::ReportError(err);
+		 return nl->TypeError();
+	}
+	string v = nl->SymbolValue(first);
+	if( (v!="string") && (v!="text")){
+		 ErrorReporter::ReportError(err);
+		 return nl->TypeError();
+	}
+}
+return nl->SymbolAtom("text");
+}
+
+/*
+2.52 md5
+  
+  {text, string} -> string
+
+*/
+ListExpr md5TM(ListExpr args){
+  int len = nl->ListLength(args);
+  string err = "string or text expected";
+  if(len!=1){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  while(!nl->IsEmpty(args)){
-    ListExpr first = nl->First(args);
-    args = nl->Rest(args);
-    if(nl->AtomType(first)!=SymbolType){
-       ErrorReporter::ReportError(err);
-       return nl->TypeError();
-    }
-    string v = nl->SymbolValue(first);
-    if( (v!="string") && (v!="text")){
-       ErrorReporter::ReportError(err);
-       return nl->TypeError();
-    }
+  ListExpr arg= nl->First(args);
+  if(nl->IsEqual(arg,"string") || nl->IsEqual(arg,"text")){
+    return nl->SymbolAtom("string");
   }
-  return nl->SymbolAtom("text");
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
 }
-
-
 
 
 /*
@@ -1999,8 +2019,6 @@ int cryptVM(Word* args, Word& result, int message,
   char s1 = (rand() / ( RAND_MAX / 63 + 1 ))+46;
   char s2 = (rand() / ( RAND_MAX / 63 + 1 ))+46;
 
-  cout << "s1, s2 " << (int)s1 << ", " << (int)s2 << endl;
-
   if(s1>57){
     s1 += 7;
   }
@@ -2013,10 +2031,6 @@ int cryptVM(Word* args, Word& result, int message,
   if(s2>90){
     s2 += 6;
   }
-
-  cout << "s1, s2 " << (int)s1 << ", " << (int)s2 << endl;
-
-
   char salt[] = {  s1, s2 };
   string b = (Crypt::crypt(a.c_str(),salt));
   res->Set(true,b);
@@ -2037,6 +2051,10 @@ int cryptVM(Word* args, Word& result, int message,
   }
   string a = arg1->GetValue();
   string b = arg2->GetValue();
+  while(b.length()<2){
+    b += "X";
+  }
+
   string c (Crypt::crypt(a.c_str(),b.c_str()));
   res->Set(true,c);
   return 0;
@@ -2066,6 +2084,42 @@ ValueMapping cryptvm[] = {
    }
    return -1; // type mapping and selection are not compatible 
  } 
+
+/*
+4.28 Operator ~md5~
+
+*/
+template<class T>
+int md5VM(Word* args, Word& result, int message,
+            Word& local, Supplier s ) {
+
+   result = qp->ResultStorage(s);
+   CcString* res = static_cast<CcString*>(result.addr);
+   T* arg = static_cast<T*>(args[0].addr);
+   if(!arg->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   string a = arg->GetValue();
+   unsigned char digest[16];
+   MD5::md5(a.c_str(),digest);
+   string r(MD5::toString(digest));
+   res->Set(true, r);
+   return 0;
+}
+
+ValueMapping md5vm[] = {
+    md5VM<CcString>, md5VM<FText>
+};
+
+int md5Select(ListExpr args){
+  if(nl->IsEqual(nl->First(args),"string")){
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
 
 
 /*
@@ -4217,6 +4271,15 @@ const string cryptSpec  =
     "<text>query crypt(\"TopSecret\",\"TS\")"
     "</text--->"
     ") )";
+
+const string md5Spec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {string, text}  -> string </text--->"
+    "<text>md5( word  )</text--->"
+    "<text>encrypt word using the md5 encryption</text--->"
+    "<text>query md5(\"TopSecret\")"
+    "</text--->"
+    ") )";
 /*
 The Definition of the operators of the type ~text~.
 
@@ -4552,6 +4615,16 @@ Operator crypt
     cryptTM
     );
 
+Operator md5
+    (
+    "md5",
+    md5Spec,
+    2,
+    md5vm,
+    md5Select,
+    md5TM
+    );
+
 /*
 5 Creating the algebra
 
@@ -4605,6 +4678,7 @@ public:
     AddOperator( &svg2text );
     AddOperator( &text2svg );
     AddOperator( &crypt);
+    AddOperator( &md5);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
