@@ -1719,7 +1719,7 @@ const string bulkloadtbtreeSpec  =
     "id x up x tid -> tbtree(...)</text--->"
     "<text> _ bulkloadtbtree[_ _ _]</text--->"
     "<text>creates a tbtree from the elements in the stream</text--->"
-    "<text>query UnitTrains feed addid createtbtree[Id, UTrip, TID] </text--->"
+    "<text>query UnitTrains feed addid bulkloadtbtree[Id, UTrip, TID]</text--->"
     "<text>The elements in the stream must be ordered by tid / time</text--->"
     ") )";
 
