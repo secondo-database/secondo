@@ -83,6 +83,9 @@ class MD5{
         std::string s1((char*)digest);
         oss << std::hex; 
         for(int i=0; i<16;i++){
+          if(digest[i] <16){
+            oss<<'0';
+          }
           oss << (short)digest[i];
         }
         return oss.str();
