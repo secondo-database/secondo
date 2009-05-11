@@ -43,6 +43,7 @@ LIB_SDBUTILS_BASENAMES:=\
 	Tools/Utilities/PolySolver \
 	Tools/Utilities/Environment \
   Tools/Utilities/Crypt \
+  Tools/Utilities/blowfish \
   Tools/Utilities/md5
 
 # The following libraries have interdependencies to Nested lists

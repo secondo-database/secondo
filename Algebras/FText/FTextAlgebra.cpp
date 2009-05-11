@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//[_] [\_]
+
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 
 [1] FText Algebra
@@ -80,6 +82,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "SecondoSMI.h"
 #include "Crypt.h"
 #include "md5.h"
+#include "blowfish.h"
 
 #include "SocketIO.h"
 #include <math.h>
@@ -1351,21 +1354,21 @@ int l = nl->ListLength(args);
 
 string err = "t1 [x t2]  , t1, t2 in {string, text} expected";
 if((l!=1) && (l!=2)){
-	ErrorReporter::ReportError(err);
-	return nl->TypeError();
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
 }
 while(!nl->IsEmpty(args)){
-	ListExpr first = nl->First(args);
-	args = nl->Rest(args);
-	if(nl->AtomType(first)!=SymbolType){
-		 ErrorReporter::ReportError(err);
-		 return nl->TypeError();
-	}
-	string v = nl->SymbolValue(first);
-	if( (v!="string") && (v!="text")){
-		 ErrorReporter::ReportError(err);
-		 return nl->TypeError();
-	}
+  ListExpr first = nl->First(args);
+  args = nl->Rest(args);
+  if(nl->AtomType(first)!=SymbolType){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  string v = nl->SymbolValue(first);
+  if( (v!="string") && (v!="text")){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
 }
 return nl->SymbolAtom("string");
 }
@@ -1381,17 +1384,17 @@ ListExpr checkpwTM(ListExpr args){
      return nl->TypeError();
   }
   while(!nl->IsEmpty(args)){
-	  ListExpr first = nl->First(args);
-	  args = nl->Rest(args);
-	  if(nl->AtomType(first)!=SymbolType){
-		   ErrorReporter::ReportError(err);
-		   return nl->TypeError();
-  	}
-	  string v = nl->SymbolValue(first);
-	  if( (v!="string") && (v!="text")){
-	  	 ErrorReporter::ReportError(err);
-	  	 return nl->TypeError();
-	  }
+    ListExpr first = nl->First(args);
+    args = nl->Rest(args);
+    if(nl->AtomType(first)!=SymbolType){
+       ErrorReporter::ReportError(err);
+       return nl->TypeError();
+    }
+    string v = nl->SymbolValue(first);
+    if( (v!="string") && (v!="text")){
+       ErrorReporter::ReportError(err);
+       return nl->TypeError();
+    }
   }
   return nl->SymbolAtom("bool");
 }
@@ -1408,24 +1411,61 @@ int l = nl->ListLength(args);
 
 string err = "t1 [x t2]  , t1, t2 in {string, text} expected";
 if((l!=1) && (l!=2)){
-	ErrorReporter::ReportError(err);
-	return nl->TypeError();
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
 }
 while(!nl->IsEmpty(args)){
-	ListExpr first = nl->First(args);
-	args = nl->Rest(args);
-	if(nl->AtomType(first)!=SymbolType){
-		 ErrorReporter::ReportError(err);
-		 return nl->TypeError();
-	}
-	string v = nl->SymbolValue(first);
-	if( (v!="string") && (v!="text")){
-		 ErrorReporter::ReportError(err);
-		 return nl->TypeError();
-	}
+  ListExpr first = nl->First(args);
+  args = nl->Rest(args);
+  if(nl->AtomType(first)!=SymbolType){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  string v = nl->SymbolValue(first);
+  if( (v!="string") && (v!="text")){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
 }
 return nl->SymbolAtom("string");
 }
+
+
+/*
+2.54 ~blowfish~
+
+ t1 [x t2] -> text , t1, t2 in {string, text}
+
+*/
+
+ListExpr blowfish_encodeTM(ListExpr args){
+int l = nl->ListLength(args);
+
+string err = "t1 [x t2]  , t1, t2 in {string, text} expected";
+if((l!=1) && (l!=2)){
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+}
+while(!nl->IsEmpty(args)){
+  ListExpr first = nl->First(args);
+  args = nl->Rest(args);
+  if(nl->AtomType(first)!=SymbolType){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+  string v = nl->SymbolValue(first);
+  if( (v!="string") && (v!="text")){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+}
+return nl->SymbolAtom("text");
+}
+
+ListExpr blowfish_decodeTM(ListExpr args){
+   return blowfish_encodeTM(args);
+}
+
 
 
 /*
@@ -2237,6 +2277,132 @@ ValueMapping md5vm[] = {
    return -1; // type mapping and selection are not compatible 
  } 
 
+template<class T1, class T2>
+int blowfish_encodeVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ) {
+
+  result = qp->ResultStorage(s);
+  FText* res = static_cast<FText*>(result.addr);
+  T1* arg1 = static_cast<T1*>(args[0].addr);
+  T2* arg2 = static_cast<T2*>(args[1].addr);
+  if(!arg1->IsDefined() || !arg2->IsDefined()){
+     res->SetDefined(false);
+     return 0;  
+  }
+  string a = arg1->GetValue();
+  string b = arg2->GetValue();
+
+  CBlowFish bf;
+  unsigned char* passwd = (unsigned char*)(a.c_str());
+  unsigned char* text = (unsigned char*)(b.c_str());
+ 
+  bf.Initialize(passwd, a.length()); 
+  int ol = bf.GetOutputLength(b.length());
+  unsigned char out[ol];
+  int l = bf.Encode(text, out, b.length());
+  ostringstream ss;
+  ss << std::hex;
+  for(int i=0;i<l;i++){
+    if(out[i]<16){
+      ss << '0';
+    }
+    ss << (short)out[i];
+  }
+  res->Set(true, ss.str());
+  return 0;
+}
+
+
+ // value mapping array
+
+ValueMapping blowfish_encodevm[] = {
+         blowfish_encodeVM<CcString, CcString>, 
+         blowfish_encodeVM<CcString, FText>,
+         blowfish_encodeVM<FText, CcString>, 
+         blowfish_encodeVM<FText, FText> 
+};
+
+ // Selection function
+ int blowfish_encodeSelect(ListExpr args){
+   string s1 = nl->SymbolValue(nl->First(args));
+   string s2 = nl->SymbolValue(nl->Second(args));
+   if(s1=="string" && s2=="string") return 0;
+   if(s1=="string" && s2=="text") return 1;
+   if(s1=="text" && s2=="string") return 2;
+   if(s1=="text" && s2=="text") return 3;
+   return -1; // type mapping and selection are not compatible 
+ } 
+
+/*
+
+blowfish[_]decode
+
+*/
+
+int fromHex(unsigned char s){
+  if(s>='0' && s<='9'){
+     return s - '0';
+  }
+  if(s>='a' && s<='f'){
+     return s -'a'+10;
+  }
+  if(s>='A' && s<='F'){
+     return s -'A'+10;
+  }
+  return -1;
+} 
+
+template<class T1, class T2>
+int blowfish_decodeVM(Word* args, Word& result, int message,
+            Word& local, Supplier s ) {
+
+  result = qp->ResultStorage(s);
+  FText* res = static_cast<FText*>(result.addr);
+  T1* arg1 = static_cast<T1*>(args[0].addr);
+  T2* arg2 = static_cast<T2*>(args[1].addr);
+  if(!arg1->IsDefined() || !arg2->IsDefined()){
+     res->SetDefined(false);
+     return 0;  
+  }
+  string a = arg1->GetValue();
+  string b = arg2->GetValue();
+
+  CBlowFish bf;
+  unsigned char* passwd = (unsigned char*)(a.c_str());
+  unsigned char* text = (unsigned char*)(b.c_str());
+ 
+  bf.Initialize(passwd, a.length()); 
+  unsigned char orig[b.length()/2+1];
+  // read the coded block from hex-text
+  for(unsigned int i=0;i<b.length()-1;i+=2){
+     int p1 = fromHex(text[i]);
+     int p2 = fromHex(text[i+1]);
+     if(p1<0 || p2<0){
+       res->SetDefined(false);
+       return 0;
+     }
+     orig[i/2] = (unsigned char)(p1*16+p2);
+  } 
+  orig[b.length()/2]=0;
+  bf.Decode(orig, orig, b.length()/2); 
+  res->Set(true,string((char*)orig));
+  return 0;
+}
+
+
+ // value mapping array
+
+ValueMapping blowfish_decodevm[] = {
+         blowfish_decodeVM<CcString, CcString>, 
+         blowfish_decodeVM<CcString, FText>,
+         blowfish_decodeVM<FText, CcString>, 
+         blowfish_decodeVM<FText, FText> 
+};
+
+ // Selection function
+ int blowfish_decodeSelect(ListExpr args){
+   return blowfish_encodeSelect(args);
+ } 
 
 /*
 4.29 Operator ~find~
@@ -4406,6 +4572,24 @@ const string md5Spec  =
     "<text>query md5(\"TopSecret\")"
     "</text--->"
     ") )";
+
+const string blowfish_encodeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {string, text} [x [string, text}]  -> text </text--->"
+    "<text>blowfish_encode( password, text )</text--->"
+    "<text>encrypt text using the blowfish encryption</text--->"
+    "<text>query blowfish_encode(\"TopSecret\",\"Secondo\")"
+    "</text--->"
+    ") )";
+
+const string blowfish_decodeSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text> {string, text} [x [string, text}]  -> text </text--->"
+    "<text>blowfish_decode( password, hex )</text--->"
+    "<text>decrypt hex using the blowfish decryption</text--->"
+    "<text>query blowfish_decode(\"TopSecret\",\"f27d7581d1aaaff\")"
+    "</text--->"
+    ") )";
 /*
 The Definition of the operators of the type ~text~.
 
@@ -4761,6 +4945,14 @@ Operator md5
     md5TM
     );
 
+Operator blowfish_encode ( "blowfish_encode", blowfish_encodeSpec,
+                           6, blowfish_encodevm, blowfish_encodeSelect,
+                           blowfish_encodeTM
+    );
+Operator blowfish_decode ( "blowfish_decode", blowfish_decodeSpec,
+                           6, blowfish_decodevm, blowfish_decodeSelect,
+                           blowfish_decodeTM
+    );
 /*
 5 Creating the algebra
 
@@ -4816,6 +5008,8 @@ public:
     AddOperator( &crypt);
     AddOperator( &checkpw);
     AddOperator( &md5);
+    AddOperator( &blowfish_encode);
+    AddOperator( &blowfish_decode);
 
     LOGMSG( "FText:Trace",
       cout <<"End FTextAlgebra() : Algebra()"<<'\n';
