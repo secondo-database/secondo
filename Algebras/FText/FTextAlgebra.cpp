@@ -1342,7 +1342,7 @@ ListExpr svg2textTM(ListExpr args){
 /*
 2.51 ~crypt~
 
- t1 [x t2] -> text , t1, t2 in {string, text}
+ t1 [x t2] -> string , t1, t2 in {string, text}
 
 */
 
@@ -1367,7 +1367,7 @@ while(!nl->IsEmpty(args)){
 		 return nl->TypeError();
 	}
 }
-return nl->SymbolAtom("text");
+return nl->SymbolAtom("string");
 }
 
 /*
@@ -1396,26 +1396,35 @@ ListExpr checkpwTM(ListExpr args){
   return nl->SymbolAtom("bool");
 }
 
-
 /*
-2.52 md5
-  
-  {text, string} -> string
+2.53 ~md5~
+
+ t1 [x t2] -> text , t1, t2 in {string, text}
 
 */
+
 ListExpr md5TM(ListExpr args){
-  int len = nl->ListLength(args);
-  string err = "string or text expected";
-  if(len!=1){
-    ErrorReporter::ReportError(err);
-    return nl->TypeError();
-  }
-  ListExpr arg= nl->First(args);
-  if(nl->IsEqual(arg,"string") || nl->IsEqual(arg,"text")){
-    return nl->SymbolAtom("string");
-  }
-  ErrorReporter::ReportError(err);
-  return nl->TypeError();
+int l = nl->ListLength(args);
+
+string err = "t1 [x t2]  , t1, t2 in {string, text} expected";
+if((l!=1) && (l!=2)){
+	ErrorReporter::ReportError(err);
+	return nl->TypeError();
+}
+while(!nl->IsEmpty(args)){
+	ListExpr first = nl->First(args);
+	args = nl->Rest(args);
+	if(nl->AtomType(first)!=SymbolType){
+		 ErrorReporter::ReportError(err);
+		 return nl->TypeError();
+	}
+	string v = nl->SymbolValue(first);
+	if( (v!="string") && (v!="text")){
+		 ErrorReporter::ReportError(err);
+		 return nl->TypeError();
+	}
+}
+return nl->SymbolAtom("string");
 }
 
 
@@ -2034,7 +2043,7 @@ int cryptVM(Word* args, Word& result, int message,
             Word& local, Supplier s ) {
 
   result = qp->ResultStorage(s);
-  FText* res = static_cast<FText*>(result.addr);
+  CcString* res = static_cast<CcString*>(result.addr);
   T* arg = static_cast<T*>(args[0].addr);
   if(!arg->IsDefined()){
      res->SetDefined(false);
@@ -2069,7 +2078,7 @@ int cryptVM(Word* args, Word& result, int message,
             Word& local, Supplier s ) {
 
   result = qp->ResultStorage(s);
-  FText* res = static_cast<FText*>(result.addr);
+  CcString* res = static_cast<CcString*>(result.addr);
   T1* arg1 = static_cast<T1*>(args[0].addr);
   T2* arg2 = static_cast<T2*>(args[1].addr);
   if(!arg1->IsDefined() || !arg2->IsDefined()){
@@ -2177,18 +2186,56 @@ int md5VM(Word* args, Word& result, int message,
    return 0;
 }
 
-ValueMapping md5vm[] = {
-    md5VM<CcString>, md5VM<FText>
-};
+template<class T1, class T2>
+int md5VM(Word* args, Word& result, int message,
+            Word& local, Supplier s ) {
 
-int md5Select(ListExpr args){
-  if(nl->IsEqual(nl->First(args),"string")){
-    return 0;
-  } else {
-    return 1;
+  result = qp->ResultStorage(s);
+  CcString* res = static_cast<CcString*>(result.addr);
+  T1* arg1 = static_cast<T1*>(args[0].addr);
+  T2* arg2 = static_cast<T2*>(args[1].addr);
+  if(!arg1->IsDefined() || !arg2->IsDefined()){
+     res->SetDefined(false);
+     return 0;  
   }
+  string a = arg1->GetValue();
+  string b = arg2->GetValue();
+  while(b.length()<2){
+    b += "X";
+  }
+
+  char*  c = (MD5::unix_encode(a.c_str(),b.c_str()));
+  
+  unsigned char *c1 = reinterpret_cast<unsigned char*>(c);
+
+  res->Set(true,MD5::toString(c1));
+  return 0;
 }
 
+ // value mapping array
+
+ValueMapping md5vm[] = {
+      md5VM<CcString>, md5VM<FText>,
+      md5VM<CcString, CcString>, md5VM<CcString, FText>,
+      md5VM<FText, CcString>, md5VM<FText, FText>
+  };
+
+ // Selection function
+ int md5Select(ListExpr args){
+   int l = nl->ListLength(args);
+   string s1 = nl->SymbolValue(nl->First(args));
+   if(l==1){
+     if(s1=="string") return 0;
+     if(s1=="text") return 1;
+   } else {
+     string s2 = nl->SymbolValue(nl->Second(args));
+     if(s1=="string" && s2=="string") return 2;
+     if(s1=="string" && s2=="text") return 3;
+     if(s1=="text" && s2=="string") return 4;
+     if(s1=="text" && s2=="text") return 5;
+   }
+   return -1; // type mapping and selection are not compatible 
+ } 
 
 
 /*
@@ -4334,7 +4381,7 @@ const string text2svgSpec  =
 
 const string cryptSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> t1 [x t2] -> text, t1,t2 in {string, text} </text--->"
+    "( <text> t1 [x t2] -> string, t1,t2 in {string, text} </text--->"
     "<text>crypt( word [, salt] )</text--->"
     "<text>encrypt word using the DES crypt</text--->"
     "<text>query crypt(\"TopSecret\",\"TS\")"
@@ -4353,8 +4400,8 @@ const string checkpwSpec  =
 
 const string md5Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> {string, text}  -> string </text--->"
-    "<text>md5( word  )</text--->"
+    "( <text> {string, text} [x [string, text}]  -> string </text--->"
+    "<text>md5( word [, salt]  )</text--->"
     "<text>encrypt word using the md5 encryption</text--->"
     "<text>query md5(\"TopSecret\")"
     "</text--->"
@@ -4708,7 +4755,7 @@ Operator md5
     (
     "md5",
     md5Spec,
-    2,
+    6,
     md5vm,
     md5Select,
     md5TM

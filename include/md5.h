@@ -86,7 +86,9 @@ class MD5{
           oss << (short)digest[i];
         }
         return oss.str();
-     }     
+     }    
+
+     static char * unix_encode(const char *pw, const char *salt); 
 
 
   private:
