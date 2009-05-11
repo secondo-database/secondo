@@ -302,7 +302,7 @@ class CcInt : public StandardAttribute
   }
 
   static const string BasicType(){
-    return symbols::INT;
+    return "int";
   }
 
  
@@ -516,7 +516,7 @@ class CcReal : public StandardAttribute
   }
   
   static const string BasicType(){
-    return symbols::REAL;
+    return "real";
   }
 
   inline virtual size_t SerializedSize() const 
@@ -683,7 +683,7 @@ class CcBool : public StandardAttribute
   }
 
   static const string BasicType(){
-     return symbols::BOOL;
+     return "bool";
   }
 
  private:
@@ -880,7 +880,7 @@ class CcString : public StandardAttribute
   }
 
   static const string BasicType(){
-    return symbols::STRING;
+    return "string";
   }
 
 #ifdef USE_SERIALIZATION
@@ -1087,7 +1087,7 @@ class CcString : public StandardAttribute
   }
 
   static const string BasicType(){
-    return symbols::STRING;
+    return "string";
   }
 
 #ifdef USE_SERIALIZATION
