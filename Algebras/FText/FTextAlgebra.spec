@@ -56,4 +56,6 @@ operator tostring alias TOSTRING pattern op(_)
 operator md5 alias MD5 pattern op(_,_)
 operator checkpw alias CHECKPW pattern op(_,_)
 operator crypt alias Crypt pattern op(_)
+operator blowfish_encode alias BLOWFISH_ENCODE pattern op(_,_)
+operator blowfish_decode alias BLOWFISH_DECODE pattern op(_,_)
 

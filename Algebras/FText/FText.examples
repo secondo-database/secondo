@@ -500,4 +500,54 @@ Example  : query checkpw('Secondo', totext(crypt("Secondo")))
 Result   : (bool TRUE)
 
 
+Operator : blowfish_encode
+Number   : 1
+Signature: string x string -> text
+Example  : query blowfish_encode("TopSecret","Secondo")
+Result   : (text '580f3f5dc4bb4e73')
+
+
+Operator : blowfish_encode
+Number   : 2
+Signature: string x text -> text
+Example  : query blowfish_encode("TopSecret",'Secondo')
+Result   : (text '580f3f5dc4bb4e73')
+
+Operator : blowfish_encode
+Number   : 3
+Signature: text x string  -> text
+Example  : query blowfish_encode('TopSecret',"Secondo")
+Result   : (text '580f3f5dc4bb4e73')
+
+
+Operator : blowfish_encode
+Number   : 4
+Signature: text x text  -> text
+Example  : query blowfish_encode('TopSecret','Secondo')
+Result   : (text '580f3f5dc4bb4e73')
+
+
+Operator : blowfish_decode
+Number   : 1
+Signature: string x string -> text
+Example  : query blowfish_decode("TopSecret","580f3f5dc4bb4e73")
+Result   : (text 'Secondo')
+
+Operator : blowfish_decode
+Number   : 2
+Signature: string x text -> text
+Example  : query blowfish_decode("TopSecret",'580f3f5dc4bb4e73')
+Result   : (text 'Secondo')
+
+Operator : blowfish_decode
+Number   : 3
+Signature: text x string -> text
+Example  : query blowfish_decode('TopSecret',"580f3f5dc4bb4e73")
+Result   : (text 'Secondo')
+
+Operator : blowfish_decode
+Number   : 4
+Signature: text x text -> text
+Example  : query blowfish_decode('TopSecret','580f3f5dc4bb4e73')
+Result   : (text 'Secondo')
 
