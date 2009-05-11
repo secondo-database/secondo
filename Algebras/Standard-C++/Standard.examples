@@ -468,3 +468,11 @@ Number   : 1
 Signature: T^n -> T, T in kind DATA, n >= 1
 Example  : query getMaxVal(45, -45, 12, 0, -75, 5)
 Result   : 45
+
+
+Operator : length 
+Number   : 1
+Signature: string -> int
+Example  : query length("Secondo")
+Result   : 7
+

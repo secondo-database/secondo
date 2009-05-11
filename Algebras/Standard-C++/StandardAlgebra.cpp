@@ -239,6 +239,7 @@ using namespace std;
 
 #include "NList.h"
 #include "RelationAlgebra.h"
+#include "GenOps.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -3162,6 +3163,25 @@ CcSqrt( Word* args, Word& result, int message, Word& local, Supplier s )
   return (0);
 }
 
+/*
+4.22 Value mapping function of operator ~length~ 
+
+*/
+
+int
+CcLengthvaluemap( Word* args, Word& result, int message, 
+                  Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcInt* res = static_cast<CcInt*>(result.addr);
+  CcString* a = static_cast<CcString*>(args[0].addr);
+  if(!a->IsDefined()){
+    res->SetDefined(false);
+  } else {
+    res->Set(true, a->GetValue().length());
+  }
+  return (0);
+}
 
 /*
 4.15 Computes the Levenshtein distance between two strings.
@@ -4307,6 +4327,13 @@ const string CCgetmaxvalSpec =
     "<text>query getMaxVal(45, -45, 12, 0, -75, 5)</text--->"
     ") )";
 
+const string CClengthSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text> string -> int </text--->"
+    "<text>length(_)</text--->"
+    "<text> Returns the length of the argument</text--->"
+    "<text>query length(\"Hello World\")</text--->"
+    ") )";
 
 /*
 Operator instance definitions
@@ -4475,6 +4502,9 @@ Operator ccgetminval( "getMinVal", CCgetminvalSpec, CCgetminmaxvaluemap<true>,
 Operator ccgetmaxval( "getMaxVal", CCgetmaxvalSpec, CCgetminmaxvaluemap<false>,
                       Operator::SimpleSelect, CcTypeMapTinDATAexpplus2TinDATA);
 
+Operator cclength( "length", CClengthSpec, CcLengthvaluemap,
+                   Operator::SimpleSelect, TypeMap1<CcString, CcInt>);
+
 /*
 6 Class ~CcAlgebra~
 
@@ -4580,6 +4610,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &cccompare );
     AddOperator( &ccgetminval );
     AddOperator( &ccgetmaxval );
+    AddOperator( &cclength );
 
     AddOperator( setoptionInfo(), setoption_vm, setoption_tm );
     AddOperator( absInfo(), abs_vms, abs_sf, abs_tm );
