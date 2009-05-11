@@ -124,7 +124,7 @@ static char itoa64[] =		/* 0 ... 63 => ascii - 64 */
 
 static
 void
-_crypt_to64(char *s, u_long v, int n)
+_crypt_to64(char *s, uint32_t v, int n)
 {
 	while (--n >= 0) {
 		*s++ = itoa64[v&0x3f];
@@ -388,8 +388,8 @@ char * MD5::unix_encode(const char *pw, const char *salt)
 	MD5_CTX	ctx,ctx1;
 	unsigned long l;
 	int sl, pl;
-	u_int i;
-	u_char final[MD5_SIZE];
+	uint32_t i;
+	uint8_t final[MD5_SIZE];
 	static const char *sp, *ep;
 	static char passwd[120], *p;
 	static const char *magic = "$1$";	/*
@@ -416,23 +416,23 @@ char * MD5::unix_encode(const char *pw, const char *salt)
 	MD5Init(&ctx);
 
 	/* The password first, since that is what is most unknown */
-	MD5Update(&ctx, (const u_char *)pw, strlen(pw));
+	MD5Update(&ctx, (const uint8_t *)pw, strlen(pw));
 
 	/* Then our magic string */
-	MD5Update(&ctx, (const u_char *)magic, strlen(magic));
+	MD5Update(&ctx, (const uint8_t *)magic, strlen(magic));
 
 	/* Then the raw salt */
-	MD5Update(&ctx, (const u_char *)sp, (u_int)sl);
+	MD5Update(&ctx, (const uint8_t *)sp, (uint32_t)sl);
 
 	/* Then just as many characters of the MD5(pw,salt,pw) */
 	MD5Init(&ctx1);
-	MD5Update(&ctx1, (const u_char *)pw, strlen(pw));
-	MD5Update(&ctx1, (const u_char *)sp, (u_int)sl);
-	MD5Update(&ctx1, (const u_char *)pw, strlen(pw));
+	MD5Update(&ctx1, (const uint8_t *)pw, strlen(pw));
+	MD5Update(&ctx1, (const uint8_t *)sp, (uint32_t)sl);
+	MD5Update(&ctx1, (const uint8_t *)pw, strlen(pw));
 	MD5Final(final, &ctx1);
 	for(pl = (int)strlen(pw); pl > 0; pl -= MD5_SIZE)
-		MD5Update(&ctx, (const u_char *)final,
-		    (u_int)(pl > MD5_SIZE ? MD5_SIZE : pl));
+		MD5Update(&ctx, (const uint8_t *)final,
+		    (uint32_t)(pl > MD5_SIZE ? MD5_SIZE : pl));
 
 	/* Don't leave anything around in vm they could use. */
 	memset(final, 0, sizeof(final));
@@ -440,13 +440,13 @@ char * MD5::unix_encode(const char *pw, const char *salt)
 	/* Then something really weird... */
 	for (i = strlen(pw); i; i >>= 1)
 		if(i & 1)
-		    MD5Update(&ctx, (const u_char *)final, 1);
+		    MD5Update(&ctx, (const uint8_t *)final, 1);
 		else
-		    MD5Update(&ctx, (const u_char *)pw, 1);
+		    MD5Update(&ctx, (const uint8_t *)pw, 1);
 
 	/* Now make the output string */
 	strcpy(passwd, magic);
-	strncat(passwd, sp, (u_int)sl);
+	strncat(passwd, sp, (uint32_t)sl);
 	strcat(passwd, "$");
 
 	MD5Final(final, &ctx);
@@ -459,20 +459,20 @@ char * MD5::unix_encode(const char *pw, const char *salt)
 	for(i = 0; i < 1000; i++) {
 		MD5Init(&ctx1);
 		if(i & 1)
-			MD5Update(&ctx1, (const u_char *)pw, strlen(pw));
+			MD5Update(&ctx1, (const uint8_t *)pw, strlen(pw));
 		else
-			MD5Update(&ctx1, (const u_char *)final, MD5_SIZE);
+			MD5Update(&ctx1, (const uint8_t *)final, MD5_SIZE);
 
 		if(i % 3)
-			MD5Update(&ctx1, (const u_char *)sp, (u_int)sl);
+			MD5Update(&ctx1, (const uint8_t *)sp, (uint32_t)sl);
 
 		if(i % 7)
-			MD5Update(&ctx1, (const u_char *)pw, strlen(pw));
+			MD5Update(&ctx1, (const uint8_t *)pw, strlen(pw));
 
 		if(i & 1)
-			MD5Update(&ctx1, (const u_char *)final, MD5_SIZE);
+			MD5Update(&ctx1, (const uint8_t *)final, MD5_SIZE);
 		else
-			MD5Update(&ctx1, (const u_char *)pw, strlen(pw));
+			MD5Update(&ctx1, (const uint8_t *)pw, strlen(pw));
 		MD5Final(final, &ctx1);
 	}
 
