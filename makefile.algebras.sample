@@ -119,7 +119,7 @@ ALGEBRA_DIRS += Network
 ALGEBRAS     += NetworkAlgebra
 
 ALGEBRA_DIRS += TemporalNet 
-ALGEBRAS     += TemporalNet 
+ALGEBRAS     += TemporalNetAlgebra
 
 ALGEBRA_DIRS += PlugJoin
 ALGEBRAS     += PlugJoinAlgebra
