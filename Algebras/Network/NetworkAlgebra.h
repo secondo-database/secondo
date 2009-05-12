@@ -1263,6 +1263,8 @@ Returns the section ~tuple~ of the network which includes the ~GPoint~
 
  Tuple*  GetSectionOnRoute(GPoint* in_xGPoint);
 
+ TupleId GetTupleIdSectionOnRoute(GPoint* in_xGPoint);
+
 /*
 GetPointOnRoute
 
@@ -1510,13 +1512,21 @@ Given that all relations are set up, the adjacency lists are created.
 */
   void FillAdjacencyLists();
 
-  void FillAdjacencyPair(Tuple* in_pFirstSection,
+  /*void FillAdjacencyPair(Tuple* in_pFirstSection,
                          bool in_bFirstUp,
                          Tuple* in_pSecondSection,
                          bool in_bSecondUp,
                          ConnectivityCode in_xCc,
                          Transition in_xTransition,
+                         vector<DirectedSectionPair> &inout_xPairs);*/
+  void FillAdjacencyPair(TupleId in_pFirstSection,
+                         bool in_bFirstUp,
+                         TupleId in_pSecondSection,
+                         bool in_bSecondUp,
+                         ConnectivityCode in_xCc,
+                         Transition in_xTransition,
                          vector<DirectedSectionPair> &inout_xPairs);
+  
   void FillDistanceStorage();
 
 /*
