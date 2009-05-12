@@ -16,13 +16,14 @@
 #ifndef BLOWFISH_H
 #define BLOWFISH_H
 
+#include <stdint.h>
 
 #define MAXKEYBYTES   56    // 448 bits max
 #define NPASS           16    // SBox passes
 
-#define DWORD      unsigned long
-#define WORD      unsigned short
-#define BYTE      unsigned char
+#define DWORD     uint32_t 
+#define WORD      uint16_t
+#define BYTE      uint8_t
 
 class CBlowFish
 {
