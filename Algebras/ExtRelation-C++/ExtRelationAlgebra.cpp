@@ -221,9 +221,15 @@ which have not been already drawn. Therefore, if ~subsetSize~ is more
 than half of ~subSet~, we simple draw a subset of size
 ~setSize~ - ~subsetSize~ and take the complement of that set as result set.
 
+If the optional parameter ~subsetSize~ is set to ~true~, the optional parameter
+~randSeed~ (defaults to 0) is used as the starting sequence offset for the random
+number generator. Otherwise, the offset is calculated from the current time and
+will differ for each call.
+
 */
 void
-MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
+MakeRandomSubset(vector<int>& result, int subsetSize, int setSize,
+     bool useSeed = false, unsigned int randSeed = 1)
 {
   set<int> drawnNumbers;
   set<int>::iterator iter;
@@ -238,10 +244,29 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize)
   // The variable below defines an offset into the
   // random number sequence. It will be incremented by
   // the number of rand() calls. Hence subsequent calls
-  // will avoid to return the same sequence of numbers.
+  // will avoid to return the same sequence of numbers,
+  // unless useSeed is true and both calls provide the
+  // same randSeed.
+  cerr << "useSeed = " << useSeed << " randSeed = " << randSeed << '\n';
   static unsigned int randCalls = (time(0) % 1000) * 1000;
+  // For some experiments, one would like to get "known" samples.
+  // To that end, useSeed can be set to true and an explicit random seed can be
+  // passed.
+  // To allow for "real" random sequences after such a seeding, we need to
+  // remember the fact whether the current randCalls is due to an explicit
+  // seed or not (otherwise the sample-result would be random)
+  static bool lastWasSeeded = useSeed;
+  if(useSeed){
+    randCalls = randSeed;
+    lastWasSeeded = true; // time-based seed overwritten!
+  } else {
+    if(lastWasSeeded){
+      randCalls = (time(0) % 1000) * 1000; // re-init seed
+    }
+    lastWasSeeded = false;
+  }
+  cerr << "randCalls = " << randCalls << '\n';
   srand(randCalls);
-
   if(((double)setSize) / ((double)subsetSize) <= 2)
   {
     doInvert = true;
@@ -336,7 +361,7 @@ the output type of the operator is returned.
 
 Result type of feed operation.
 
-----  ((rel x) int real)    -> (stream x)
+----  ((rel x) int real [int] )    -> (stream x)
 ----
 
 */
@@ -345,10 +370,13 @@ ListExpr SampleTypeMap(ListExpr args)
   ListExpr first ;
   ListExpr minSampleSizeLE;
   ListExpr minSampleRateLE;
-  string argstr1, argstr2, argstr3;
+  ListExpr randSeedLE;
+  string argstr1, argstr2, argstr3, argstr4;
 
-  CHECK_COND(nl->ListLength(args) == 3,
-    "Operator sample expects a list of length three.");
+  int noArgs = nl->ListLength(args);
+
+  CHECK_COND( (noArgs == 3)||(noArgs == 4),
+    "Operator sample expects a list of length three or four.");
 
   first = nl->First(args);
   nl->WriteToString(argstr1, first);
@@ -384,7 +412,33 @@ ListExpr SampleTypeMap(ListExpr args)
     "Operator sample expects a real as third argument."
     "Operator sample gets '" + argstr3 + "' as third argument. ");
 
-  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
+  ListExpr streamDescription =
+          nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
+
+  if( noArgs == 4 )
+  {
+    randSeedLE = nl->Fourth(args);
+    nl->WriteToString(argstr4, randSeedLE);
+    CHECK_COND(nl->IsAtom(randSeedLE),
+      "Operator sample expects a int as fourth argument."
+      "Operator sample gets '" + argstr4 + "' as fourth argument. ");
+    CHECK_COND(nl->AtomType(randSeedLE) == SymbolType,
+      "Operator sample expects a int as fourth argument."
+      "Operator sample gets '" + argstr4 + "' as fourth argument. ");
+    CHECK_COND(nl->SymbolValue(randSeedLE) == "int",
+      "Operator sample expects a int as fourth argument."
+      "Operator sample gets '" + argstr4 + "' as fourth argument. ");
+    // APPEND (true):
+    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                             nl->OneElemList(nl->BoolAtom(true)),
+                             streamDescription);
+  }
+
+  // else (noArgs == 3) APPEND (1  false):
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                           nl->TwoElemList(nl->IntAtom(0),
+                                           nl->BoolAtom(false)),
+                           streamDescription);
 }
 /*
 2.4.3 Value mapping function of operator ~sample~
@@ -396,6 +450,8 @@ struct SampleLocalInfo
   vector<int>::iterator iter;
   int lastIndex;
   RandomRelationIterator* relIter;
+  bool useSeed;
+  unsigned int randSeed;
 };
 
 int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
@@ -417,13 +473,14 @@ int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
       localInfo = new SampleLocalInfo();
       local.addr = localInfo;
 
+      localInfo->randSeed = (unsigned int)((CcInt*)(args[3].addr))->GetIntval();
+      localInfo->useSeed = ((CcBool*)(args[4].addr))->GetBoolval();
+
       rel = (Relation*)args[0].addr;
       relSize = rel->GetNoTuples();
       localInfo->relIter = rel->MakeRandomScan();
-
       sampleSize = StdTypes::GetInt(args[1]);
       sampleRate = StdTypes::GetReal(args[2]);
-
       if(sampleSize < 1)
       {
         sampleSize = 1;
@@ -450,7 +507,8 @@ int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
       }
       else
       {
-        MakeRandomSubset(localInfo->sampleIndices, sampleSize, relSize);
+        MakeRandomSubset(localInfo->sampleIndices, sampleSize, relSize,
+                         localInfo->useSeed, localInfo->randSeed);
       }
 
       localInfo->iter = localInfo->sampleIndices.begin();
@@ -494,14 +552,19 @@ int Sample(Word* args, Word& result, int message, Word& local, Supplier s)
 */
 const string SampleSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            "\"Example\" ) "
-                           "( <text>(rel x) int real -> (stream x)"
+                           "( <text>rel(X) int x real [x int ] "
+                           "-> (stream x)"
                            "</text--->"
-                           "<text>_ sample [ _  , _ ]</text--->"
+                           "<text>_ sample [ Size , Fraction , Seed ]</text--->"
                            "<text>Produces a random sample of a relation."
                            " The sample size is min(relSize, "
                            "max(s, t * relSize)), where relSize is the size"
-                           " of the argument relation, s is the second "
-                           "argument, and t the third.</text--->"
+                           " of the argument relation, s is Size "
+                           "argument, and t is Fraction. The optional fourth "
+                           "parameter selects a seed for the used random "
+                           "number generator."
+                           "The sample has the same ordering as the original "
+                           "relation. </text--->"
                           "<text>query cities sample[0, 0.45] count</text--->"
                            ") )";
 
@@ -2317,16 +2380,16 @@ ListExpr ksmallestTM(ListExpr args){
      return nl->TypeError();
   }
   AttrList = nl->First(AttrList);
- 
+
   if(!IsStreamDescription(Stream)){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
-  } 
+  }
   if(!nl->IsEqual(Int,symbols::INT)){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
- 
+
   ListExpr StreamList = nl->Second(nl->Second(Stream));
 
   int attrNo = 0;
@@ -2437,7 +2500,7 @@ available.
             elems[0] = last;
             elems[i] = top;
             sink(0,i);
-         } 
+         }
       }
       if(pos<elems.size()){
          Tuple* res = elems[pos];
@@ -2461,7 +2524,7 @@ available.
 /*
 ~insertTuple~
 
-Inserts a tuple into the local buffer. If the buffer would be 
+Inserts a tuple into the local buffer. If the buffer would be
 overflow (size [>] k) , the maximum element is removed from the buffer.
 
 */
@@ -2481,12 +2544,12 @@ overflow (size [>] k) , the maximum element is removed from the buffer.
             maxTuple->DeleteIfAllowed();
             elems[0] = tuple;
             sink(0,elems.size());
-         }  
-       } 
+         }
+       }
     }
 
     inline int compareTuples(Tuple* t1, Tuple* t2){
-      return smallest?compareTuplesSmaller(t1,t2): compareTuplesSmaller(t2,t1); 
+      return smallest?compareTuplesSmaller(t1,t2): compareTuplesSmaller(t2,t1);
     }
 
     int compareTuplesSmaller(Tuple* t1, Tuple* t2){
@@ -2497,7 +2560,7 @@ overflow (size [>] k) , the maximum element is removed from the buffer.
           if(cmp!=0){
             return cmp;
           }
-       } 
+       }
        return 0;
     }
 
@@ -2577,9 +2640,9 @@ int ksmallestVM(Word* args, Word& result,
            result.setAddr(tuple);
            return YIELD;
          }
-       } 
+       }
        return CANCEL;
-       
+
     }
     case CLOSE:{
        qp->Close(args[0].addr);
@@ -2594,12 +2657,12 @@ int ksmallestVM(Word* args, Word& result,
     default:{
        return  0;
     }
-  } 
-  
+  }
+
 }
 
 
-const string ksmallestSpec  = 
+const string ksmallestSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>stream(tuple([a1:d1, ... ,an:dn])))"
     " x int x a_k x  ... a_m -> "
@@ -2611,7 +2674,7 @@ const string ksmallestSpec  =
     "</text--->"
     ") )";
 
-const string kbiggestSpec  = 
+const string kbiggestSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>stream(tuple([a1:d1, ... ,an:dn])))"
     " x int x a_k x  ... a_m -> "
@@ -2624,19 +2687,19 @@ const string kbiggestSpec  =
     ") )";
 
 Operator ksmallest (
-         "ksmallest",   
+         "ksmallest",
          ksmallestSpec,
          ksmallestVM<true>,
          Operator::SimpleSelect,
-         ksmallestTM 
+         ksmallestTM
 );
 
 Operator kbiggest (
-         "kbiggest",   
+         "kbiggest",
          kbiggestSpec,
          ksmallestVM<false>,
          Operator::SimpleSelect,
-         ksmallestTM 
+         ksmallestTM
 );
 
 /*
@@ -3280,7 +3343,7 @@ private:
 /*
 ~NextATuple~
 
-Stores the next tuple from stream A into currentATuple which is 
+Stores the next tuple from stream A into currentATuple which is
 unequal to the currently store A tuple.
 
 */
@@ -3291,14 +3354,14 @@ unequal to the currently store A tuple.
     if(!currentATuple){ // first tuple
        if(qp->Received(streamA.addr)){
           currentATuple = static_cast<Tuple*>(tuple.addr);
-       } 
+       }
     } else { // currentAtuple already exists
        while(qp->Received(streamA.addr) &&
              TuplesEqual(currentATuple, static_cast<Tuple*>(tuple.addr))){
           (static_cast<Tuple*>(tuple.addr))->DeleteIfAllowed();
           qp->Request(streamA.addr,tuple);
        }
-       currentATuple->DeleteIfAllowed(); // remove from inputstream or buffer 
+       currentATuple->DeleteIfAllowed(); // remove from inputstream or buffer
        if(qp->Received(streamA.addr)){
          currentATuple = static_cast<Tuple*>(tuple.addr);
        } else {
@@ -3306,7 +3369,7 @@ unequal to the currently store A tuple.
        }
     }
   }
-  
+
   void NextBTuple()
   {
     Word tuple;
@@ -3314,7 +3377,7 @@ unequal to the currently store A tuple.
        qp->Request(streamB.addr,tuple);
        if(qp->Received(streamB.addr)){
           currentBTuple = static_cast<Tuple*>( tuple.addr);
-       } 
+       }
     } else { // currentAtuple already exists
        qp->Request(streamB.addr,tuple);
        while(qp->Received(streamB.addr) &&
@@ -3752,13 +3815,13 @@ outside of the implementation file.
 */
 
 template ListExpr
-JoinTypeMap<false, 0>(ListExpr args); 
+JoinTypeMap<false, 0>(ListExpr args);
 
 template ListExpr
-JoinTypeMap<false, 1>(ListExpr args); 
+JoinTypeMap<false, 1>(ListExpr args);
 
 template ListExpr
-JoinTypeMap<true, 2>(ListExpr args); 
+JoinTypeMap<true, 2>(ListExpr args);
 
 
 
@@ -3926,16 +3989,16 @@ ListExpr ExtendTypeMap( ListExpr args )
     ErrorReporter::ReportError("first argument is not a tuple stream");
     return nl->TypeError();
   }
- 
+
   ListExpr tuple = nl->Second(stream);
-  
+
   ListExpr functions = nl->Second(args);
   if(nl->ListLength(functions)<1){
     ErrorReporter::ReportError("at least one function expected");
     return nl->TypeError();
   }
- 
-  // copy attrlist to newattrlist 
+
+  // copy attrlist to newattrlist
   ListExpr attrList = nl->Second(nl->Second(stream));
   ListExpr newAttrList = nl->OneElemList(nl->First(attrList));
   ListExpr lastlistn = newAttrList;
@@ -3949,9 +4012,9 @@ ListExpr ExtendTypeMap( ListExpr args )
   // reset attrList
   attrList = nl->Second(nl->Second(stream));
   ListExpr typeList;
-  
 
-  // check functions 
+
+  // check functions
   set<string> usedNames;
 
   while (!(nl->IsEmpty(functions)))
@@ -3961,25 +4024,25 @@ ListExpr ExtendTypeMap( ListExpr args )
     if(nl->ListLength(function)!=2){
       ErrorReporter::ReportError("invalid extension found");
       return nl->TypeError();
-    }    
+    }
     ListExpr name = nl->First(function);
     ListExpr map  = nl->Second(function);
 
     if(nl->AtomType(name)!=SymbolType){
       ErrorReporter::ReportError("invalid attribute name");
-      return nl->TypeError();  
+      return nl->TypeError();
     }
 
     string namestr = nl->SymbolValue(name);
     int pos = FindAttribute(attrList,namestr,typeList);
     if(pos!=0){
-       ErrorReporter::ReportError("Attribute "+ namestr + 
+       ErrorReporter::ReportError("Attribute "+ namestr +
                                   " already member of the tuple");
        return nl->TypeError();
     }
 
     if(SecondoSystem::GetCatalog()->IsTypeName(namestr)){
-       ErrorReporter::ReportError("attribute name "+ namestr + 
+       ErrorReporter::ReportError("attribute name "+ namestr +
                                   " is known as a type");
        return nl->TypeError();
     }
@@ -3988,7 +4051,7 @@ ListExpr ExtendTypeMap( ListExpr args )
       ErrorReporter::ReportError("invalid function");
       return nl->TypeError();
     }
-  
+
     if(!nl->IsEqual(nl->First(map),"map")){
       ErrorReporter::ReportError("invalid function");
       return nl->TypeError();
@@ -4016,7 +4079,7 @@ ListExpr ExtendTypeMap( ListExpr args )
     // append attribute
     lastlistn = nl->Append(lastlistn, (nl->TwoElemList(name, funResType )));
   }
-  
+
   return nl->TwoElemList(nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),newAttrList));
 }
@@ -4235,7 +4298,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           eli->attrSizeExt = new double[eli->noAttrs];
         }
 
-        if ( !eli->sizesInitialized || p1.sizesChanged || 
+        if ( !eli->sizesInitialized || p1.sizesChanged ||
              ( eli->read >= eli->stableValue && !eli->sizesFinal ) )
         {
           eli->Size = 0.0;
@@ -5738,7 +5801,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
       ProgressInfo p1;
       ProgressInfo *pRes;
       const double uProjectExtend = 0.0012;    //millisecs per tuple
-      const double vProjectExtend = 0.00085;   //millisecs per tuple 
+      const double vProjectExtend = 0.00085;   //millisecs per tuple
 	                                           //and attribute
 
       pRes = (ProgressInfo*) result.addr;
@@ -5749,14 +5812,14 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
       {
         eli->sizesChanged = false;
 
-        if ( !eli->sizesInitialized )	
+        if ( !eli->sizesInitialized )
         {
           eli->noAttrs = eli->noOldAttrs + eli->noNewAttrs;
           eli->attrSize = new double[eli->noAttrs];
           eli->attrSizeExt = new double[eli->noAttrs];
         }
 
-        if ( !eli->sizesInitialized || p1.sizesChanged || 
+        if ( !eli->sizesInitialized || p1.sizesChanged ||
            ( eli->read >= eli->stableValue && !eli->sizesFinal ) )
         {
 	  eli->Size = 0.0;
@@ -5775,7 +5838,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
 
           if ( eli->read < eli->stableValue )		//new attrs
           {
-            for (int j = 0; j < eli->noNewAttrs; j++)	
+            for (int j = 0; j < eli->noNewAttrs; j++)
             {
               eli->attrSize[j + eli->noOldAttrs] = 12;   //size yet unknown
               eli->attrSizeExt[j + eli->noOldAttrs] = 12;
@@ -5785,7 +5848,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
           }
           else
           {
-            for (int j = 0; j < eli->noNewAttrs; j++)	
+            for (int j = 0; j < eli->noNewAttrs; j++)
             {
               eli->attrSize[j + eli->noOldAttrs] = eli->attrSizeTmp[j] /
                 eli->stableValue;
@@ -5804,7 +5867,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
 
         pRes->CopySizes(eli);
 
-        pRes->Time = p1.Time + 
+        pRes->Time = p1.Time +
           p1.Card * (uProjectExtend + eli->noAttrs * vProjectExtend);
 
 
@@ -6736,7 +6799,7 @@ int GroupByValueMapping
       tp = new TupleBuffer(gbli->MAX_MEMORY);
       tp->AppendTuple(gbli->t);
 
-    
+
       // get number of attributes
       numberatt = ((CcInt*)args[indexOfCountArgument].addr)->GetIntval();
 
@@ -7127,7 +7190,7 @@ int GroupByValueMapping
           gbli->attrSizeExt = new double[gbli->noAttrs];
         }
 
-        if ( !gbli->sizesInitialized || p1.sizesChanged || 
+        if ( !gbli->sizesInitialized || p1.sizesChanged ||
            ( gbli->returned >= gbli->stableValue && !gbli->sizesFinal ) )
         {
 
