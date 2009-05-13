@@ -551,3 +551,16 @@ Signature: text x text -> text
 Example  : query blowfish_decode('TopSecret','580f3f5dc4bb4e73')
 Result   : (text 'Secondo')
 
+
+Operator : svg2text 
+Number   : 1
+Signature: svg -> text
+Example  : query svg2text([const svg value ''))
+Result   : (text '')
+
+Operator : text2svg 
+Number   : 1
+Signature: text -> svg
+Example  : query text2svg([const text value ''))
+Result   : (svg'')
+
