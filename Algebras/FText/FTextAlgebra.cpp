@@ -1434,15 +1434,15 @@ return nl->SymbolAtom("string");
 /*
 2.54 ~blowfish~
 
- t1 [x t2] -> text , t1, t2 in {string, text}
+ t1 x t2 -> text , t1, t2 in {string, text}
 
 */
 
 ListExpr blowfish_encodeTM(ListExpr args){
 int l = nl->ListLength(args);
 
-string err = "t1 [x t2]  , t1, t2 in {string, text} expected";
-if((l!=1) && (l!=2)){
+string err = "t1 x t2, t1, t2 in {string, text} expected";
+if(l!=2){
   ErrorReporter::ReportError(err);
   return nl->TypeError();
 }
@@ -4558,7 +4558,7 @@ const string checkpwSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text> t1 x t2 -> bool, t1,t2 in {string, text} </text--->"
     "<text>checkpw( plain, encrypted )</text--->"
-    "<text>checks whether encrypted is an enrypred version of "
+    "<text>checks whether encrypted is an encrypted version of "
     " plain using the crypt function </text--->"
     "<text>query checkpw(\"Secondo\",crypt(\"Secondo\"))"
     "</text--->"
@@ -4566,7 +4566,7 @@ const string checkpwSpec  =
 
 const string md5Spec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> {string, text} [x [string, text}]  -> string </text--->"
+    "( <text> {string, text} [x {string, text}]  -> string </text--->"
     "<text>md5( word [, salt]  )</text--->"
     "<text>encrypt word using the md5 encryption</text--->"
     "<text>query md5(\"TopSecret\")"
@@ -4575,7 +4575,7 @@ const string md5Spec  =
 
 const string blowfish_encodeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> {string, text} [x [string, text}]  -> text </text--->"
+    "( <text> {string, text} x {string, text}  -> text </text--->"
     "<text>blowfish_encode( password, text )</text--->"
     "<text>encrypt text using the blowfish encryption</text--->"
     "<text>query blowfish_encode(\"TopSecret\",\"Secondo\")"
@@ -4584,7 +4584,7 @@ const string blowfish_encodeSpec  =
 
 const string blowfish_decodeSpec  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text> {string, text} [x [string, text}]  -> text </text--->"
+    "( <text> {string, text} x {string, text}  -> text </text--->"
     "<text>blowfish_decode( password, hex )</text--->"
     "<text>decrypt hex using the blowfish decryption</text--->"
     "<text>query blowfish_decode(\"TopSecret\",\"f27d7581d1aaaff\")"
