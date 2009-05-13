@@ -2455,8 +2455,9 @@ const string TransposeSpec =
       " \"Example 2\" )"
       " ( <text> int9m -> int9m  | cluster x string -> cluster </text--->"
       " \" transpose(_ [,_] ) \" "
-      " <text>returns the matrix (renamed cluster)  "
-      "symmetrical to the original one</text---> "
+      " <text>returns the transposed matrix, or "
+      "the renamed cluster where all contained matrices"
+      " was transposed</text---> "
       " \"query transpose(IM) ;\""
       " <text>let contains=transpose(inside,\"contains\");</text---> ))";
 
@@ -2485,11 +2486,11 @@ const string IntersectionSpec =
 
 const string MultiIntersectionSpec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      " ( <text>type_i x type_i x ... -> type_i ,"
-      " where type_i in {int9m,cluster} </text---> "
-      " \" trintersection (_,_,...) \" "
-      "  \" computes the intersection of all arguments \" "
-      "  \" query trintersection(c1,c2,c3) \" ))";
+      " ( <text>t x t x ... xt -> t,"
+      " where t in {int9m, cluster} </text---> "
+      " \" multiintersection (_,_,...) \" "
+      "  \" computes the subset which is included in all arguments \" "
+      "  \" query multiintersection(c1,c2,c3) \" ))";
 
 const string AddSpec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -2528,10 +2529,10 @@ const string NameOfSpec =
 
 const string RenameSpec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      " ( \"cluster x string -> int\""
+      " ( \"cluster x string -> cluster\""
       " \" _ renamecluster[ _ ] \" "
       "  \"changes the name of a cluster \" "
-      "  \" query c renamecluster[''inside''] \" ))";
+      "  \" query c renamecluster[\"inside\"] \" ))";
 
 const string ContainsSpec =
       "((\"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
