@@ -403,7 +403,7 @@ Result   : (mreal ( ( ("2000-03-01" "2000-03-10" TRUE TRUE) (0.0 -3.0 25.0 FALSE
 
 Operator : linearize2
 Number   : 1
-Signature: mreal -> mreal
+Signature: mreal -> mreal, ureal -> stream(ureal)
 Example  : query linearize2([const mreal value ( (("2000-03-01" "2000-03-10" TRUE TRUE) (3.0 -30.0 25.0 FALSE)))])
 Result   : (mreal ( ( ("2000-03-01" "2000-03-06" TRUE TRUE) (0.0 -15.0 25.0 FALSE)) ( ("2000-03-06" "2000-03-10" FALSE TRUE) (0.0 12.0 -50.0 FALSE))))
 
@@ -488,3 +488,23 @@ Number    : 2
 Signature : mpoint x real ->  mpoint
 Example   : query train1 submove[0.5]
 Result    : no fixed value
+
+
+Operator  : vertices
+Number    : 1
+Signature : mpoint -> points
+Example   : query no_components(vertices(train1))
+Result    : (int 91)
+
+Operator  : gk
+Number    : 1
+Signature : point -> point
+Example   : query gk([const point value(51.36667 7.48333)])
+Result    : (point (8090870.0 1152000.0))
+Tolerance : 5.0
+
+Operator  : equalizeU
+Number    : 1
+Signature : mpoint x real -> mpoint
+Example   : query (train7 equalizeU[0.0]) = train7
+Result    : (mbool ( ( ("2003-11-20-06:06" "2003-11-20-07:02" TRUE FALSE) TRUE))) 

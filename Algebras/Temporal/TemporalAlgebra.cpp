@@ -11530,7 +11530,7 @@ const string TemporalSpecIntegrate =
 
 const string TemporalSpecLinearize =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>{ureal , mreal} -> real</text--->"
+  "( <text> t  -> t, where t in {mreal, ureal}</text--->"
   "<text>linearize( _ ) </text--->"
   "<text>computes a linear approximation of the argument</text--->"
   "<text>linearize(distance(train7, train6))</text--->"
@@ -11548,8 +11548,8 @@ const string TemporalSpecApproximate =
 
 const string TemporalSpecLinearize2 =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text> mreal -> real\n"
-  " ureal -> (stream urela)</text--->"
+  "( <text> mreal -> mreal | \n"
+  "   ureal -> (stream ureal)</text--->"
   "<text>linearize2( _ ) </text--->"
   "<text>computes a linear approximation of the argument</text--->"
   "<text>linearize2(distance(train7, train6))</text--->"
@@ -11766,22 +11766,22 @@ const string TemporalTheRangeSpec =
 const string TranslateAppendSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x mpoint x duration -> mpoint</text--->"
-    "<text> _ translateappend [ _ _ ]<text--->"
+    "<text> mp1 translateappend [ mp2 dur ]</text--->"
     "<text>appends the second argument to the first one \n"
-    " waiting a a duration given by the third argument at the\n"
-    " last position </text--->"
+    " waiting for a duration given by the third argument at the\n"
+    " last position of the first argument</text--->"
     "<text>query mp1 translateappend[mp2 "
     "[const duration value(0 10000)]]</text--->"
     ") )";
 
 const string TranslateAppendSSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>stream(tuple((a1 t1)...(an tn))) x ai x durationi"
-    " -> mpoint</text--->"
-    "<text> _ translateappendS[ _ _ ]<text--->"
-    "<text>Builds a single moving point from all mpoint in the stream \n"
-    " tranlating the mpoints in such way that a connected movement\n"
-    " is created (except 'jumps' are in the sources </text--->"
+    "( <text>stream(tuple((a1 t1)...(an tn))) x ai x duration"
+    " -> mpoint, where ti = mpoint</text--->"
+    "<text> _ translateappendS[ _ _ ]</text--->"
+    "<text>Builds a single moving point from all mpoints in the stream \n"
+    " translating the mpoints in such way that a connected movement\n"
+    " is created (except 'jumps' are in the sources) </text--->"
     "<text>query Trains feed translateappendS[Trip [const"
     " duration value(0 10000)]]</text--->"
     ") )";
@@ -11789,8 +11789,8 @@ const string TranslateAppendSSpec =
 const string ReverseSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint -> mpoint</text--->"
-    "<text> reverse( _ )<text--->"
-    "<text>computes the reverse movment of the argument</text--->"
+    "<text> reverse( _ )</text--->"
+    "<text>computes the reverse movement of the argument</text--->"
     "<text>query reverse(Train6) </text--->"
     ") )";
 
@@ -11851,10 +11851,14 @@ const string EqualizeUSpec =
 const string MintHatSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mint -> mint </text---> "
-    "<text> mintsp[ _] </text--->"
-    "<text> separate a movingint into three pieces where during the first, the"
-    "int value is smaller than a threshold e, in the second piece all values"
-    "are larger than e, and in the last all values are smaller than e"
+    "<text> hat(_) </text--->"
+    "<text>"
+    " Summarizes a moving integer into another moving integer"
+    " consisting of at most 3 units." 
+    " Summarization is done in  such a way that the area"
+    " computed from the length of the time interval of the middle piece"
+    " and the minimum number reached within that interval is maximal."
+    "</text--->"
     "<text>query hat(noAtCenter)</text--->"
     ") )";
 
