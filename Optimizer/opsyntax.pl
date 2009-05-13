@@ -174,7 +174,7 @@ secondoOp( addcounter,        postfixbrackets1, 3).
 secondoOp( addid,             postfix, 1).
 secondoOp( addtupleid,        postfix, 1).
 %secondoOp( aggregate,        postfixbrackets1, 3). % special syntax
-%secondoOp( aggregateB,       postfixbrackets1, 3). % special syntax
+%secondoOp( aggregateB,       postfixbrackets1, 3). % TODO: special syntax
 %secondoOp( aggregateS,       postfixbrackets1, 3). % TODO: special syntax
 secondoOp( approximate,       postfixbrackets1, 3).
 secondoOp( attr,              prefix, 2).
@@ -242,8 +242,8 @@ secondoOp( exactmatch,        postfixbrackets2, 3).
 secondoOp( exactmatchS,       postfixbrackets1, 2).
 secondoOp( export,            postfix, 1).
 secondoOp( extattrsize,       postfixbrackets1, 2).
-%secondoOp( extend,            postfixbrackets1, 2). % special syntax
-%secondoOp( extendstream,      postfixbrackets1, 2). % special syntax
+secondoOp( extend,            postfixbrackets1, 2). % special syntax
+secondoOp( extendstream,      postfixbrackets1, 2). % special syntax
 secondoOp( extenddeftime,     prefix, 2).
 secondoOp( extract,           postfixbrackets1, 2).
 secondoOp( exttuplesize,      postfix, 1).
@@ -338,7 +338,7 @@ secondoOp( polylinesC,        prefix, 2). % also prefix 3 (optional argument)
 secondoOp( printstream,       postfix, 1).
 secondoOp( product,           postfix, 2).
 %secondoOp( project,            postfixbrackets1, 2). % special syntax
-%secondoOp( projectextendstream,postfixbrackets1, 3). % special syntax
+%secondoOp( projectextendstream,postfixbrackets1, 3). % TODO: special syntax
 secondoOp( projecttransformstream,postfixbrackets1, 2).
 secondoOp( pwdisjoint,        prefix, 2). % also prefix 3+
 secondoOp( puse,              postfixbrackets1, 2).
@@ -426,7 +426,7 @@ secondoOp( windowintersects,  postfixbrackets2, 3).
 secondoOp( windowintersectsS, postfixbrackets1, 2).
 secondoOp( within,            postfixbrackets1, 2).
 secondoOp( within2,           postfixbrackets2, 3).
-%secondoOp( whiledo,           postfixbrackets1, 4). % special syntax
+%secondoOp( whiledo,           postfixbrackets1, 4). % TODO: special syntax
 secondoOp( writeFile,         prefix, 2). % also prefix 3
 
 

@@ -303,7 +303,40 @@ type of expressions
 ----
 
 ~ArgTypeList~ is a PROLOG list of terms representing the valid Secondo type
-expressions for all arguments.
+expressions for all arguments. Simple types are noted by their DC-name.
+tuples are noted
+
+---- OLD: tuple([(A1,T1),(A2,T2),...,(An,Tn)])
+    NEW: [tuple, [[A1,T1],[A2,T2],...,[An,Tn]]]
+----
+
+where ~Ai~ is the DC-name of an attribute and ~Ti~ its DC-type.
+
+Streams are noted
+---- OLD: stream(T)
+     NEW: [stream,T]
+----
+
+where ~T~ is the stream's element type.
+
+Relations are noted
+---- OLD: rel(<tuple>)
+     NEW: [rel, <tuple>]
+----
+
+Mappings are noted
+---- OLD: map([T1, T2, ... , Tn],T)
+     NEW: [map, T1, T2, ..., Tn, T]
+----
+Where ~Ti~ is the DC-type of the mapping's i-th argument and ~T~ is the DC-type
+of the mapping's result.
+
+Functionlist are noted
+---- [(N1,M1),(N2,M2),...(Nm,Mn)]
+----
+
+where ~Ni~ is the name for the i-th component and ~Mi~ is the signature of the
+i-th mapping.
 
 ~Resulttype~ is a term representing a valid Secondo type expression.
 
@@ -550,6 +583,9 @@ opSignature(sendtextUDP, ftext, Args, text) :-
 %opSignature(receivetextstreamUDP, ftext, [text,string,real,real],stream(tuple((Ok bool)(Msg text)(ErrMsg string)(SenderIP string)(SenderPort string)(SenderIPversion string)))).
 %opSignature(receivetextstreamUDP, ftext, [text,text,real,real],stream(tuple((Ok bool)(Msg text)(ErrMsg string)(SenderIP string)(SenderPort string)(SenderIPversion string)))).
 
+opSignature(svg2text, ftext, [svg], text).
+opSignature(text2svg, ftext, [text], svg).
+
 opSignature(crypt, ftext, [string], text).
 opSignature(crypt, ftext, [string,string], text).
 opSignature(crypt, ftext, [string,text], text).
@@ -557,8 +593,24 @@ opSignature(crypt, ftext, [text], text).
 opSignature(crypt, ftext, [text,string], text).
 opSignature(crypt, ftext, [text,text], text).
 
+opSignature(checkpw, ftext, [text,text], bool).
+opSignature(checkpw, ftext, [text,string], bool).
+opSignature(checkpw, ftext, [string,text], bool).
+opSignature(checkpw, ftext, [string,string], bool).
+
 opSignature(md5, ftext, [string], string).
 opSignature(md5, ftext, [text], string).
+
+opSignature(blowfish_encode, ftext, [text,text], text).
+opSignature(blowfish_encode, ftext, [text,string], text).
+opSignature(blowfish_encode, ftext, [string,text], text).
+opSignature(blowfish_encode, ftext, [string,string], text).
+
+opSignature(blowfish_decode, ftext, [text,text], text).
+opSignature(blowfish_decode, ftext, [text,string], text).
+opSignature(blowfish_decode, ftext, [string,text], text).
+opSignature(blowfish_decode, ftext, [string,string], text).
+
 
 
 /*
@@ -1500,7 +1552,7 @@ CollectionAlgebra
 */
 opSignature(contains, collection, [vector(T),T],bool) :- isData(T), !.
 opSignature(contains, collection, [set(T),T],bool) :- isData(T), !.
-opSignature(contains, collection, [multiset(T),T],bool) :- isData(T), !.
+opSignature(contains, collection, [multiset(T),T],int) :- isData(T), !.
 opSignature(in, collection, [T,vector(T)],bool) :- isData(T), !.
 opSignature(in, collection, [T,set(T)],bool) :- isData(T), !.
 opSignature(in, collection, [T,multiset(T)],bool) :- isData(T), !.
