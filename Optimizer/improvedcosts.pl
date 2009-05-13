@@ -51,7 +51,30 @@ facts
 ---- costConst(+OpName, +ConstName, -Value)
 ----
 
+*/
 
+/*
+
+The term
+
+---- optimizerAnnotation(+Plan, +Note)
+----
+
+can be used, to annotate a plan ~Plan~ with internal information ~Note~, during
+plan creation and/or cost estimation.
+
+When found within special operators, it may encode additional information.
+So, it is used to pass down information into the evaluation of the sub plans.
+
+If encounteres alone, it is just ignored.
+
+*/
+
+cost(optimizerAnnotation(X,_), Sel, Pred, ResAttrList, ResTupleSize, ResCard, 0) :-
+  cost(X, Sel, Pred, ResAttrList, ResTupleSize, ResCard, 0),!.
+
+
+/*
 8.1.1 Arguments
 
 */
@@ -687,7 +710,7 @@ cost(windowintersectsS(dbobject(IndexName), _ /* QueryObj */), Sel, Pred,
   cost(Rel, Sel, Pred, ignore, _, ResCard1, Cost1),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> true
-    ;  ( secDatatype(tid, Mem, Core, Lob),
+    ;  ( secDatatype(tid, Mem, Core, Lob, _, _),
          ResAttrList = [id, tid, sizeTerm(Mem, Core, Lob)]
        )
   ),
@@ -711,7 +734,7 @@ cost(gettuples(X, Rel), Sel, Pred,
   cost(X, Sel, Pred, ResAttrList1, ResTupleSize1, ResCard, Cost1),
   cost(Rel, Sel, Pred, ResAttrList2, ResTupleSize2, _, _),
   ( (ground(ResAttrList), ResAttrList = ignore)
-    -> (  secDatatype(tid, Mem, Core, Lob),
+    -> (  secDatatype(tid, Mem, Core, Lob, _, _),
           negateSizeTerms(sizeTerm(Mem, Core, Lob),NegTidSize),
           addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
@@ -737,7 +760,7 @@ cost(gettuples2(X, Rel, attrname(TidAttr)), Sel, Pred,
   cost(X, Sel, Pred, ResAttrList1, ResTupleSize1, ResCard, Cost1),
   cost(Rel, Sel, Pred, ResAttrList2, ResTupleSize2, _, _),
   ( (ground(ResAttrList), ResAttrList = ignore)
-    -> ( secDatatype(tid, Mem, Core, Lob),
+    -> ( secDatatype(tid, Mem, Core, Lob, _, _),
          negateSizeTerms(sizeTerm(Mem, Core, Lob),NegTidSize),
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )

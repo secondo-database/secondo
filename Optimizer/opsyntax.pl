@@ -155,9 +155,13 @@ Quick Reference:
  _ # [ _, _ ]           |    postfixbrackets, _
  _ # [ _, _, ... ]      |    postfixbrackets, _
  _ _ #                  |    postfix, 2
- _ _ # [ _ ]            |    postfixbrackets, _
+ _ _ # [ _ ]            |    postfixbrackets2, _
  _ _ # [ _, _ ]         |    postfixbrackets2, _
  _ _ # [ _, _, ... ]    |    postfixbrackets2, _
+ _ _ _ #                |    postfix, 3
+ _ _ _ # [ _ ]          |    postfixbrackets3, _
+ _ _ _ # [ _, _ ]       |    postfixbrackets3, _
+ _ _ _ # [ _, _, ... ]  |    postfixbrackets3, _
 
 ----
 
@@ -165,78 +169,270 @@ Quick Reference:
 
 :- dynamic(secondoOp/3).
 
+secondoOp( ++,                postfix, 1).
+secondoOp( addcounter,        postfixbrackets1, 3).
+secondoOp( addid,             postfix, 1).
+secondoOp( addtupleid,        postfix, 1).
+%secondoOp( aggregate,        postfixbrackets1, 3). % special syntax
+%secondoOp( aggregateB,       postfixbrackets1, 3). % special syntax
+%secondoOp( aggregateS,       postfixbrackets1, 3). % TODO: special syntax
+secondoOp( approximate,       postfixbrackets1, 3).
+secondoOp( attr,              prefix, 2).
 secondoOp( attrsize,          postfixbrackets1, 2).
 secondoOp( avg,               postfixbrackets1, 2).
 secondoOp( bbox,              prefix, 1).
 secondoOp( between,           postfixbrackets1, 3).
 secondoOp( box3d,             prefix, 2).
+secondoOp( breakpoints,       prefix, 2).
+secondoOp( bulkloadtbtree,    postfixbrackets1, 4).
+secondoOp( bulkloadrtree,     postfixbrackets1, 2).
+secondoOp( cancel,            postfixbrackets1, 2).
+secondoOp( category,          postfix, 1).
+secondoOp( cluster_of,        prefix, 2).
+secondoOp( clustername_of,    prefix, 2).
+secondoOp( colordist,         postfixbrackets1, 2).
+secondoOp( compare,           prefix, 2).
+secondoOp( constgraph,        postfixbrackets1, 4).
+secondoOp( constgraphpoints,  postfixbrackets1, 4).
 secondoOp( consume,           postfix, 1).
+secondoOp( concat,            postfix, 2).
+secondoOp( concatS,           postfix, 1).
+secondoOp( concatS2,          postfixbrackets1, 2).
 secondoOp( count,             postfix, 1).
+secondoOp( countboth,         postfix, 2).
+secondoOp( create_duration,   prefix, 2). % also #(_)
+secondoOp( create_instant,    prefix, 2). % also #(_)
+secondoOp( createcluster,     prefix, 2).
+secondoOp( createbtree,       postfixbrackets1, 2).
+secondoOp( createdeleterel,   postfix, 1).
+secondoOp( createhash,        postfixbrackets1, 2).
+secondoOp( createinsertrel,   postfix, 1).
+secondoOp( createupdaterel,   postfix, 1).
+secondoOp( createpgroup,      prefix, 2). % also prefix 3+
+secondoOp( createprioritypgroup,prefix, 2). % also prefix 3+
+secondoOp( createtbtree,      postfixbrackets1, 3).
+secondoOp( creatertree,       postfixbrackets1, 2).
+secondoOp( createvalidpgroup, prefix, 2). % also prefix 3+
+secondoOp( csvexport,         postfixbrackets1, 3). % also 4+5
+secondoOp( csvimport,         postfixbrackets1, 4). % also 5
+secondoOp( cumulate,          postfixbrackets1, 2).
+secondoOp( cut,               postfixbrackets1, 5).
+secondoOp( db3export,         postfixbrackets1, 2).
+secondoOp( dbimport,          postfixbrackets1, 2).
+secondoOp( deletebtree,       postfixbrackets2, 3).
+secondoOp( deletedirect,      postfix, 2).
+secondoOp( deletedirectsave,  postfix, 3).
+secondoOp( deleteelem,        prefix, 2).
+secondoOp( deletehash,        postfixbrackets2, 3).
+secondoOp( deletesearch,      postfix, 2).
+secondoOp( deletesearchsave,  postfix, 3).
+secondoOp( difference,        prefix, 2).
+secondoOp( direction,         prefix, 2).
+secondoOp( display,           postfix, 1).
 secondoOp( distance,          prefix, 2).
+secondoOp( distribute,        postfixbrackets1, 2).
+secondoOp( dumpstream,        postfixbrackets1, 3).
+secondoOp( echo,              postfixbrackets1, 3).
 secondoOp( enlargeRect,       prefix, 2).
-secondoOp( equals,            postfixbarckets2, 4).
+secondoOp( ensure,            postfixbrackets1, 2).
+secondoOp( equals,            postfixbrackets2, 4).
+secondoOp( evaluate,          prefix, 2).
 secondoOp( everNearerThan,    prefix, 3).
 secondoOp( exactmatch,        postfixbrackets2, 3).
 secondoOp( exactmatchS,       postfixbrackets1, 2).
+secondoOp( export,            postfix, 1).
 secondoOp( extattrsize,       postfixbrackets1, 2).
-secondoOp( extend,            postfixbrackets1, 2).
+%secondoOp( extend,            postfixbrackets1, 2). % special syntax
+%secondoOp( extendstream,      postfixbrackets1, 2). % special syntax
+secondoOp( extenddeftime,     prefix, 2).
 secondoOp( extract,           postfixbrackets1, 2).
 secondoOp( exttuplesize,      postfix, 1).
 secondoOp( feed,              postfix, 1).
+secondoOp( filename,          postfix, 1).
+secondoOp( fileSize,          prefix, 2). % also prefix 1
 secondoOp( filter,            postfixbrackets1, 2).
+secondoOp( find,              prefix, 2).
+secondoOp( flipleft,          postfixbrackets1, 2).
+secondoOp( get,               prefix, 2).
+secondoOp( getDirectory,      prefix, 2). % also prefix 1
 secondoOp( gettuples,         postfix, 2).
 secondoOp( gettuples2,        postfixbrackets2, 3).
 secondoOp( gettuplesdbl,      postfixbrackets2, 3).
 secondoOp( getTypeNL,         postfix, 1).
 secondoOp( getValueNL,        postfix, 1).
-secondoOp( head,              postfixbrackets1, 2).
+secondoOp( gps,               prefix, 2).
+%secondoOp( groupby,           postfixbrackets1, 3). % special syntax
 secondoOp( hashjoin,          postfixbrackets2, 5).
+secondoOp( hashvalue,         prefix, 2).
+secondoOp( head,              postfixbrackets1, 2).
+secondoOp( height,            postfix, 1).
+secondoOp( insert,            postfix, 2).
+secondoOp( insertrtree,       postfixbrackets2, 3).
+secondoOp( inserttuple,       postfixbrackets1, 2). % also postfixbrackets1, 3+
+secondoOp( inserttuplesave,   postfixbrackets2, 3). % also postfixbrackets1, 4+
+secondoOp( insertsave,        postfix, 3).
 secondoOp( intersection_new,  prefix, 2).
 secondoOp( intersection,      prefix, 2).
+secondoOp( intervalend  ,     prefix, 1).
+secondoOp( intervalstart,     prefix, 1).
+secondoOp( insertbtree,       postfixbrackets2, 3).
+secondoOp( inserthash,        postfixbrackets2, 3).
+secondoOp( invert,            prefix, 2).
+secondoOp( isgrayscale,       postfix, 1).
+secondoOp( isportrait,        postfix, 1).
+secondoOp( kbiggest,          postfixbrackets1, 3).
+secondoOp( keywords,          postfix, 1).
+secondoOp( kinds,             postfix, 1).
+secondoOp( krdup,             postfixbrackets1, 2). % also more than 2 args
+secondoOp( ksmallest,         postfixbrackets1, 3).
+secondoOp( ldistance,         prefix, 2).
+secondoOp( leapyear,          postfix, 1).
 secondoOp( leftrange,         postfixbrackets2, 3).
 secondoOp( leftrangeS,        postfixbrackets1, 2).
 secondoOp( like,              postfixbrackets1, 5).
+secondoOp( line2region,       postfix, 1).
+secondoOp( loop,              postfixbrackets1, 2).
+secondoOp( loopa,             postfixbrackets2, 3).
+secondoOp( loopb,             postfixbrackets2, 3).
 secondoOp( loopjoin,          postfixbrackets1, 2).
 secondoOp( loopsel,           postfixbrackets1, 2).
+secondoOp( loopselect,        postfixbrackets1, 4).
+secondoOp( loopselecta,       postfixbrackets2, 5).
+secondoOp( loopselectb,       postfixbrackets2, 5).
+secondoOp( loopswitch,        postfixbrackets1, 2).
+secondoOp( loopswitcha,       postfixbrackets2, 3).
+secondoOp( loopswitchb,       postfixbrackets2, 3).
+secondoOp( makeline,          prefix, 2).
+secondoOp( makearray,         prefix, 2). % also prefix 1,...,n
+secondoOp( makemvalue,        postfixbrackets1, 2).
 secondoOp( max,               postfixbrackets1, 2).
+secondoOp( maxD,              prefix, 2).
+secondoOp( maxdegree,         prefix, 2).
 secondoOp( memshuffle,        postfix, 1).
+secondoOp( merge,             prefix, 2).
+secondoOp( mergediff,         postfix, 2).
 secondoOp( mergejoin,         postfixbrackets2, 4).
+secondoOp( mergesec,          postfix, 2).
+secondoOp( mergeunion,        postfix, 2).
 secondoOp( min,               postfixbrackets1, 2).
+secondoOp( minD,              prefix, 2).
+secondoOp( mindegree,         prefix, 2).
 secondoOp( minus_new,         prefix, 2).
+secondoOp( mirror,            postfixbrackets1, 2).
 secondoOp( move,              prefix, 2).
+secondoOp( multiintersection, prefix, 2). % also prefix 3+
+secondoOp( nanmedtransformstream,postfixbrackets1, 2).
 secondoOp( nnscan,            postfixbrackets2, 3).
 secondoOp( nnsearch,          postfixbrackets2, 4).
+secondoOp( partjoin,          postfixbrackets2, 3).
+secondoOp( partjoinselect,    postfixbrackets2, 5).
+secondoOp( partjoinswitch,    postfixbrackets2, 3).
 secondoOp( pcreate,           postfixbrackets1, 2).
 secondoOp( pdelete,           postfix, 1).
 secondoOp( pfeed,             postfixbrackets1, 2).
+secondoOp( picturedate,       postfix, 1).
 secondoOp( pjoin2,            postfixbrackets2, 4).
+secondoOp( polylines,         prefix, 2). % also prefix 3 (optional argument)
+secondoOp( polylinesC,        prefix, 2). % also prefix 3 (optional argument)
+%secondoOp( predcounts,        postfixbrackets1, 2). % special syntax
+secondoOp( printstream,       postfix, 1).
 secondoOp( product,           postfix, 2).
+%secondoOp( project,            postfixbrackets1, 2). % special syntax
+%secondoOp( projectextendstream,postfixbrackets1, 3). % special syntax
+secondoOp( projecttransformstream,postfixbrackets1, 2).
+secondoOp( pwdisjoint,        prefix, 2). % also prefix 3+
 secondoOp( puse,              postfixbrackets1, 2).
 secondoOp( range,             postfixbrackets2, 4).
 secondoOp( rangeS,            postfixbrackets1, 3).
 secondoOp( rangesearch,       postfixbrackets2, 4).
 secondoOp( rdup,              postfix, 1).
+secondoOp( realm,             prefix, 2).
+secondoOp( rect2region,       postfix, 1).
+secondoOp( reduce,            postfixbrackets1, 3).
+secondoOp( relax,             prefix, 2).
+secondoOp( relcount,          postfix, 1).
+secondoOp( relcount2,         postfix, 1).
 secondoOp( remove,            postfixbrackets1, 2).
+secondoOp( renamecluster,     postfixbrackets1, 2).
+secondoOp( restrict,          prefix, 2). % also prefix 1
 secondoOp( rightrange,        postfixbrackets2, 3).
 secondoOp( rightrangeS,       postfixbrackets1, 2).
+secondoOp( rng_binomial,      prefix, 2).
+secondoOp( rng_flat,          prefix, 2).
+secondoOp( rng_geometric,     prefix, 2).
+secondoOp( rng_init,          prefix, 2).
 secondoOp( rootattrsize,      postfixbrackets1, 2).
 secondoOp( roottuplesize,     postfix, 1).
+secondoOp( rotate,            postfixbrackets1, 4).
+secondoOp( round,             prefix, 2).
+secondoOp( sample,            postfixbrackets1, 3). % also postfixbrackets1, 4
+secondoOp( samplempoint,      prefix, 2). % also prefix3, prefix4
+secondoOp( saveObject,        postfixbrackets1, 3).
+secondoOp( scale,             postfixbrackets1, 2). % also postfixbrackets1 3
+secondoOp( sentences,         postfix, 1).
+secondoOp( setoption,         prefix, 2).
+secondoOp( shpexport,         postfixbrackets1, 2). % also 3+4
+secondoOp( shpimport,         postfixbrackets1, 2).
 secondoOp( shuffle3,          postfix, 1).
+secondoOp( sim_create_trip,   postfixbrackets1, 5).
+secondoOp( sim_create_trip,   postfixbrackets1, 6).
+secondoOp( sim_fillup_mpoint, postfixbrackets1, 6).
+secondoOp( sim_set_rng,       prefix, 2).
+secondoOp( sim_trips,         postfixbrackets1, 2).
+secondoOp( sim_trips,         postfixbrackets1, 3).
+secondoOp( simplify,          prefix, 2). % also prefix 3 (optional argument)
+secondoOp( sizecounters,      postfixbrackets1, 2).
 secondoOp( sort,              postfix, 1).
+secondoOp( sortarray,         postfixbrackets1, 2).
 secondoOp( sortby,            postfixbrackets1, 2).
 secondoOp( sortmergejoin,     postfixbrackets2, 4).
 secondoOp( sortmergejoin_r2,  postfixbrackets2, 4).
 secondoOp( spatialjoin,       postfixbrackets2, 4).
+secondoOp( speedup,           postfixbrackets1, 2).
+secondoOp( stats,             postfixbrackets1, 3).
 secondoOp( sum,               postfixbrackets1, 2).
+secondoOp( summarize,         prefix, 1).
+% secondoOp( symmjoin,          postfixbrackets2, 3). % special syntax
+% secondoOp( symmproductextend, postfixbrackets2, 3). % special syntax
 secondoOp( symmproduct,       postfix, 2).
 secondoOp( tail,              postfixbrackets1, 2).
+secondoOp( tconsume,          postfix, 1).
+secondoOp( the_mvalue,        postfix, 1).
+secondoOp( thevertex,         prefix, 2).
+secondoOp( themonth,          prefix, 2).
 secondoOp( theperiod,         prefix, 2).
+secondoOp( tie,               postfixbrackets1, 2).
+secondoOp( toprel,            prefix, 2).
+secondoOp( transformstream,   postfix, 1).
+secondoOp( translate,         postfixbrackets1, 3).
+secondoOp( translateappendS,  postfixbrackets1, 3).
+secondoOp( transpose,         prefix, 2). % also prefix 1
 secondoOp( tuplesize,         postfix, 1).
 secondoOp( union_new,         prefix, 2).
+secondoOp( updatebtree,       postfixbrackets2, 3).
+secondoOp( updatebyid,        postfixbrackets2, 3).
+secondoOp( updatehash,        postfixbrackets2, 3).
+secondoOp( updatertree,       postfixbrackets2, 3).
+secondoOp( updatesearch,      postfixbrackets2, 3).
+secondoOp( updatedirectsave,  postfixbrackets3, 4).
+secondoOp( updatesearchsave,  postfixbrackets3, 4).
+secondoOp( use,               postfixbrackets1, 2).
+secondoOp( use2,              postfixbrackets3, 3).
 secondoOp( var,               postfixbrackets1, 2).
+secondoOp( width,             postfix, 1).
+secondoOp( windowclippingin,  prefix, 2).
+secondoOp( windowclippingout, prefix, 2).
 secondoOp( windowintersects,  postfixbrackets2, 3).
 secondoOp( windowintersectsS, postfixbrackets1, 2).
-secondoOp( intervalstart,     prefix, 1).
-secondoOp( intervalend  ,     prefix, 1).
+secondoOp( within,            postfixbrackets1, 2).
+secondoOp( within2,           postfixbrackets2, 3).
+%secondoOp( whiledo,           postfixbrackets1, 4). % special syntax
+secondoOp( writeFile,         prefix, 2). % also prefix 3
+
+
+
+
+
+
 
 

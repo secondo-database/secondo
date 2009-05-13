@@ -44,6 +44,7 @@ commute(X <= Y, Y >= X).
 commute(X > Y, Y < X).
 commute(X >= Y, Y <= X).
 commute(X # Y, Y # X).
+commute(trcoveredby(X,Y), trcovers(Y,X)).
 commute(Pred1, Pred2) :-
   Pred1 =.. [OP, Arg1, Arg2],
   isCommutativeOP(OP),

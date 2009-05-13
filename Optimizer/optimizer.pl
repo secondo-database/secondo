@@ -1294,6 +1294,21 @@ Non-standard syntax can be declared in file ~opsyntax.pl~ using facts ~secondoOp
 
 */
 
+/*
+
+The term
+
+---- optimizerAnnotation(+Plan, +Note)
+----
+
+can be used, to annotate a plan ~Plan~ with internal information ~Note~, during
+plan creation and/or cost estimation.
+
+*/
+
+plan_to_atom(optimizerAnnotation(X,_), Result) :-
+  plan_to_atom(X, Result),
+  !.
 
 plan_to_atom(sample(Rel, S, T), Result) :-
   plan_to_atom(Rel, ResRel),
@@ -1758,7 +1773,7 @@ plan_to_atom(updatehash(UpdateQuery, IndexName, Column),Result) :-
 Translation of operators driven by predicate ~secondoOp~ in
 file ~opsyntax~. There are rules for
 
-  * postfix, 1 or 2 arguments
+  * postfix, 1, 2, or 3 arguments
 
   * postfix followed by arguments in square brackets
 
@@ -1787,6 +1802,18 @@ plan_to_atom(Term, Result) :-
   !.
 
 plan_to_atom(Term, Result) :-
+  functor(Term, Op, 3),
+  secondoOp(Op, postfix, 3),
+  arg(1, Term, Arg1),
+  plan_to_atom(Arg1, Res1),
+  arg(2, Term, Arg2),
+  plan_to_atom(Arg2, Res2),
+  arg(3, Term, Arg3),
+  plan_to_atom(Arg3, Res3),
+  concat_atom([Res1, ' ', Res2, ' ',  Res3, ' ', Op, ' '], '', Result),
+  !.
+
+plan_to_atom(Term, Result) :-
   compound(Term),
   Term =.. [Op, Arg1 | OtherArgs],
   secondoOp(Op, postfixbrackets1, _),
@@ -1807,6 +1834,21 @@ plan_to_atom(Term, Result) :-
   plan_to_atom_2(OtherArgs, ROtherArgs),
   concat_atom(ROtherArgs, ' , ', AOtherArgs),
   concat_atom([RArg1, ' ', RArg2, ' ', Op, '[', AOtherArgs, '] '], '', Result),
+  !.
+
+plan_to_atom(Term, Result) :-
+  compound(Term),
+  Term =.. [Op, Arg1, Arg2, Arg3 | OtherArgs],
+  secondoOp(Op, postfixbrackets3, _),
+  not(OtherArgs = []),                            % this would be (postfix, 3)
+  plan_to_atom(Arg1, RArg1),
+  plan_to_atom(Arg2, RArg2),
+  plan_to_atom(Arg3, RArg3),
+  plan_to_atom_2(OtherArgs, ROtherArgs),
+  concat_atom(ROtherArgs, ' , ', AOtherArgs),
+  concat_atom([RArg1, ' ', RArg2, ' ', RArg3, ' ', Op, '[', AOtherArgs, '] '],
+              '',
+              Result),
   !.
 
 plan_to_atom(Term, Result) :-

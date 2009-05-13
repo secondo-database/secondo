@@ -3709,7 +3709,7 @@ analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,InfoList,MemTotal):-
   internalName2externalName(IntAttr,ExtAttr),
   % Use inquired average attribute sizes. Avoid problems with undefined
   % sizes, which will occur for relations with cardinalit=0.
-  secDatatype(DCType, MemSize, _, _),
+  secDatatype(DCType, MemSize, _, _, _, _),
   ( SizeCore = undef
     -> ( % Fallback: use typesize, but 1 byte at least
          CoreAttrSize is max(1,MemSize)
@@ -3913,7 +3913,7 @@ createExtendAttrList([Field|MoreFields],
   createExtendAttrList(MoreFields, MoreAttrs, MoreAttrsSize),
   AttrType = int,   %% TODO: calculate result type of Expr instead of
                     %%       using 'int' as standard extension type
-  secDatatype(AttrType, MemSize, _ /* NoFlobs */, _ /* PersistencyMode */),
+  secDatatype(AttrType, MemSize, _ /* NoFlobs */, _ /* PersistencyMode */,_,_),
   AttrSize = sizeTerm(MemSize,MemSize /* Core */ , 0 /* Lob */),
   addSizeTerms([AttrSize,MoreAttrsSize],TotalAttrSize), !.
 createExtendAttrList(X,Y,Z) :-
@@ -3961,7 +3961,11 @@ tryDelete(_).
 
 
 /*
-11 Datatype Core Tuple Sizes
+11 Datatype Information
+
+For all available Secondo data types, the algebra providing the type,
+all kinds the types implement and the core tuple sizes are inquired from
+the database kernel.
 
 To calculate the proper sizes of attributes, the optimizer needs information
 on how much memory the representation of available Secondo datatypes need.
@@ -3972,50 +3976,100 @@ datatype) and ~Size~ (containing its size in byte).
 
 Type information is inquired from the database kernel and stored in facts
 
----- secDatatype(TypeNameDC, TypeSize, NoFlobs, PersistencyModeDC)
+---- secDatatype(TypeNameDC, TypeSize, NoFlobs, PersistencyModeDC,
+                                                          AlgebraDC, DCkinds)
 ----
 
 where ~TypeNameDC~ is the type name, ~TypeSize~ is the in-memory size of the
 according fixed part if the data type in bytes (the minimum memory required
 excluding FLOB data, but inclusing other variable parts of the data)),
-~NoFlobs~ is the number of FLOBS the type maintains, and ~PersistencyModeDC~ is
+~NoFlobs~ is the number of FLOBS the type maintains, ~PersistencyModeDC~ is
 the type of storage mechanism used to save instances of this data type to disk.
+There are 4 differnt mechanisms:
+
+  * (unspec) unspecified. This usually means, that the actual mechanism cannot
+    be determined since the type is not in kind DATA.
+
+  * (mbfc) memoryblock-fix-core. This type means, that the data type has a
+    constant in-memory-size (and possible some additional LOBs) and is stored
+    to disk by just copying its memory block into the tuple core file and its
+    LOBs to the LOB file. The type has constant memory, disk core and possibly
+    variable disk LOB sizes.
+
+  * (szfc) serialize-fix-core. This type means, that the data type has a
+    constant in-memory-size, but provides a serialization method to save itself
+    into a byte string of variable length to be stored to disk. The entire
+    string is saved thisin the tuple core.
+    The type has  constant memory and a constant (but usually smaller) disk
+    core size. LOBs are currently not supported.
+
+  * (szve) serialize-variable-extension. This type means, that the data type
+    has a constant in-memory-size, and provides a serialization method to save
+    itself into a byte string of variable length to be stored to disk. At
+    least a part of this string is stored with the tuple core, the remainder
+    may overflow into the tuple extension part.
+    The type has constant memory and a constant (but usually smaller) disk core
+    size. LOBs are currently not supported.
+
+~AlgebraDC~ is the name of the providing Algebra, and ~DCkinds~ is a list with
+all kinds, the data type belongs to.
+
 
 */
 
 :-assert(helpLine(showDatatypes,0,[],
         'List all registered Secondo data types.')).
 
-:-   dynamic(secDatatype/4).
+:-   dynamic(secDatatype/6).
 
 extractSecondoTypeSizes([]) :- !.
 
 extractSecondoTypeSizes([X|Rest]) :-
-  X = [TypeNameQuoted, TypeSize, NoFlobs, PersModeQuoted],
+  X = [TypeNameQuoted, AlgebraQuoted, TypeSize, NoFlobs, PersModeQuoted, Kinds],
   sub_atom(TypeNameQuoted,1,_,1,TypeName),
   sub_atom(PersModeQuoted,1,_,1,PersistencyMode),
+  sub_atom(AlgebraQuoted,1,_,1,AlgebraLong),
   downcase_atom(TypeName, TypeNameDC),
   downcase_atom(PersistencyMode, PersistencyModeDC),
-  assert(secDatatype(TypeNameDC, TypeSize, NoFlobs, PersistencyModeDC)),
+  (  member([PersistencyModeDC,PersCode],[['unspecified',na],
+                                         ['memoryblock-fix-core',mbfc],
+                                         ['serialize-fix-core',szfc],
+                                         ['serialize-variable-extension',szve]])
+   ; PersCode = err
+  ),
+  downcase_atom(AlgebraLong,AlgebraLongDC),
+  ( ( sub_atom(AlgebraLongDC, _, _, 0, 'algebra'),
+      sub_atom(AlgebraLongDC, 0, _, 7, Algebra)
+    )
+    ; Algebra = AlgebraLongDC
+  ),
+  assert(secDatatype(TypeNameDC, TypeSize, NoFlobs, PersCode,
+                     Algebra, Kinds)),!,
   extractSecondoTypeSizes(Rest).
 
 readSecondoTypeSizes :-
-  retractall(secDatatype(_, _, _, _)),
+  retractall(secDatatype(_, _, _, _, _, _)),
   isDatabaseOpen, !,
-  concat_atom(['query SEC2TYPEINFO feed project[Type, CppClassSize, ',
-               'NumOfFlobs, PersistencyMode] tconsume'],'',Query),
+  concat_atom(['query SEC2TYPEINFO feed projectextendstream[Type,Algebra, ',
+               'CppClassSize,NumOfFlobs,PersistencyMode;Kind: .Type kinds] ',
+               'sortby[Type,Algebra,CppClassSize,NumOfFlobs,PersistencyMode]',
+               'groupby[Type,Algebra,CppClassSize,NumOfFlobs,PersistencyMode; ',
+               'Kinds: \'[\' + (group feed projectextend[;Kind: ',
+               'tolower(totext(.Kind))] aggregateB[Kind;fun(K1:text, K2: text)',
+               ' K1 + \',\' + K2; \'\'] ) + \']\' ] tconsume'],'',Query),
   secondo(Query,SecList),
   SecList = [_,L],
   extractSecondoTypeSizes(L).
 
 showOneDatatype :-
-  secDatatype(Type, Size, NoFlobs, Pers),
+  secDatatype(Type, Size, NoFlobs, Pers, Algebra, Kinds),
   findall([NullType,NullVal], nullValue(Type,NullType,NullVal), NullValues),
-  format('~p~20|~p~30|~p~35|~p~45|~p~n',[Type,Size,NoFlobs,Pers,NullValues]).
+  format('~p~20|~p~30|~p~35|~p~40|~p~55|~p~70|~p~n',[Type,Size,NoFlobs,Pers,
+                                         Algebra,Kinds,NullValues]).
 
 showDatatypes :-
-  format('~p~20|~p~30|~p~35|~p~45|~p~n',
-         ['Type','Size','NoFlobs','Pers','NullValues']),
+  format('~p~20|~p~30|~p~35|~p~40|~p~55|~p~70|~p~n',
+         ['Type','Size','Flobs','Pers','Algebra','Kinds','NullValues']),
   findall(_, showOneDatatype, _).
 
 
