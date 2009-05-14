@@ -1640,6 +1640,23 @@ Once all argument types are known for a operator node, we check wheter the
 signature is already known. If so, we already know the operator result type.
 Otherwise, we need to query Secondo for it.
 
+Facts describing known operator signatures are defined in file ~operators.pl~.
+The all have format
+
+---- opSignature(+Operator, +Algebra, +ArgTypeList, -Resulttype).
+----
+
+~Operator~ is the name of the operator (Prolog infix-operators are inclosed in
+round parantheses)
+
+~Algera~ is the DC-nmae of the algebra defining the operator.
+
+~ArgTypeList~ is a PROLOG list of terms representing the valid Secondo type
+expressions for all arguments.
+
+~Resulttype~ is a term representing a valid Secondo type expression.
+
+
 ---- getOperatorSignature(+Term,+RelList,-Signature)
 ----
 
@@ -1685,4 +1702,49 @@ getSig(Term, Rel1, Rel2, ResultType) :-
 getSig(ArgTermList, Rel1, Rel2, ArgTypeList) :- !.
 
 ----
+*/
+
+/*
+---- getTypeOfExpression(+Expression, -Type)
+----
+Recursively determine the type of an expression.
+The allowed primitives are ~type expressions~, ~attribute descriptors~,
+~attribute-name-descriptors~, ~relation descriptors~ ans ~object descriptors~,
+which are connected by ~functors~ representing executable Secondo operators.
+
+*/
+/*
+
+----
+
+% Primitive: type-descriptor
+getTypeOfExpression(DCType,_,DCType) :-
+  secDatatype(DCType, _, _, _, _, _),!.
+
+% Primitive: attribute-name-descriptor
+getTypeOfExpression(attrname(attr(Name, _, _)),_,DCType) :-
+  dcName2externalName(DCType,Name),!.
+
+% Primitive: attribute-descriptor
+getTypeOfExpression(attr(Attr, Arg, Case),Rels,DCType) :-
+  dcName2externalName(DCAttr,Attr),
+  member((Arg,Rel),Rels),
+  databaseName(DB),
+  storedRel(DB,Rel,AttrList),
+  memberchk(DCAttr,AttrList),
+  storedAttrSize(DB,Rel,DCAttr,DCType,_,_,_),!.
+
+% Primitive: relation-descriptor
+getTypeOfExpression(rel(DCrelName, _),_,tuple(TupleList)) :-
+  getRelAttrList(DCrelName, AttrList, _),
+  findall((N,A),(member([N,A,_],AttrList)),TupleList),!.
+
+% Primitive: object-descriptor
+getTypeOfExpression(dbobject(NameDC),_,TypeDC) :-
+  secondoCatalogInfo(NameDC,_,_,TypeExprList),
+
+
+% Expression
+----
+
 */
