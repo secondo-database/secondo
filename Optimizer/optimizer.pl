@@ -1172,6 +1172,11 @@ consider_Arg2(Pred, Pred) :-
 
 consider_Arg2(attr(Name, 2, Case), attr2(Name, 2, Case)):- !.
 
+consider_Arg2(Term, Term) :-
+  optimizerOption(subqueries),
+  compound(Term),
+  Term =.. [from | _].
+
 consider_Arg2(Term,Term2) :-
   compound(Term),
   Term =.. [Op|Args],
@@ -1231,6 +1236,11 @@ plan_to_atom(Rel, Result) :-
 plan_to_atom(res(N), Result) :-
   atom_concat('res(', N, Res1),
   atom_concat(Res1, ') ', Result),
+  !.
+
+plan_to_atom(SubqueryPred, Result) :-
+  optimizerOption(subqueries),
+  subquery_plan_to_atom(SubqueryPred, Result),
   !.
 
 plan_to_atom(pr(P,_), Result) :-
@@ -4702,13 +4712,15 @@ newQuery :-
   clearQueryRelations,
   clearQueryAttributes,
   clearUsedAttributes,
-  clearIsStarQuery.
+  clearIsStarQuery,
+  clearSelectivityQuery.
 
-clearVariables       :- retractall(variable(_, _)).
-clearQueryRelations  :- retractall(queryRel(_, _)).
-clearQueryAttributes :- retractall(queryAttr(_)).
-clearUsedAttributes  :- retractall(usedAttr(_, _)).
-clearIsStarQuery     :- retractall(isStarQuery).
+clearVariables        :- retractall(variable(_, _)).
+clearQueryRelations   :- retractall(queryRel(_, _)).
+clearQueryAttributes  :- retractall(queryAttr(_)).
+clearUsedAttributes   :- retractall(usedAttr(_, _)).
+clearIsStarQuery      :- retractall(isStarQuery).
+clearSelectivityQuery :- retractall(selectivityQuery(_)).
 
 /*
 
@@ -4861,6 +4873,14 @@ lookupRel(Rel, rel(RelDC, *)) :-
   not(duplicateAttrs(RelDC)),
   assert(queryRel(RelDC, rel(RelDC, *))).
 
+lookupRel(Rel, Rel2) :-
+  optimizerOption(subqueries),
+  lookupSubquery(Rel, Rel2).
+
+lookupRel((Rel) as Var, (Rel2) as Var) :-
+  optimizerOption(subqueries),
+  lookupSubquery(Rel, Rel2).
+
 lookupRel(X,Y) :- !,
   term_to_atom(X,XA),
   concat_atom(['Unknown relation: \'',XA,'\'.'],'',ErrMsg),
@@ -5003,6 +5023,11 @@ lookupAttr(Name, attr(Name, 0, u)) :-
   queryAttr(attr(Name, 0, u)),
   !.
 
+lookupAttr(Term, Term) :-
+  is_list(Term),
+  catch(string_to_list(_, Term), _, fail),
+  !.
+
 lookupAttr(Term, Term2) :-
   compound(Term),
   Term =.. [Op|Args],
@@ -5022,11 +5047,6 @@ lookupAttr(Term, Term) :-
   write_list(['\nERROR:\t',ErrMsg]),
   throw(error_SQL(optimizer_lookupAttr(Term, Term):unknownIdentifier#ErrMsg)),
   fail.
-
-lookupAttr(Term, Term) :-
-  is_list(Term),
-  catch(string_to_list(_, Term), _, fail),
-  !.
 
 lookupAttr(Term, Term) :- !.
 
@@ -5115,6 +5135,10 @@ The relation list is updated and returned in ~RelsAfter~.
 
 */
 
+lookupPred1(Pred, Pred2, RelsBefore, RelsAfter) :-
+  optimizerOption(subqueries),
+  lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter), !.
+
 lookupPred1(Var:Attr, attr(Var:Attr2, Index, Case), RelsBefore, RelsAfter)
   :-
   variable(Var, Rel2), !, Rel2 = rel(Rel, Var),
@@ -5160,6 +5184,7 @@ lookupPred1(pattern(Preds), pattern(Res), RelsBefore, RelsAfter) :-
 lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
   compound(Term),
   Term =.. [Op|Args],
+  not(isSubqueryPred1(Term)),
   lookupPred2(Args, Args2, RelsBefore, RelsAfter),
   Term2 =.. [Op|Args2],
   !.
@@ -6115,6 +6140,11 @@ queryToStream(Query, Stream3, Cost) :-
   translate1(Query, Stream, Select, Update, Cost),
   finish(Stream, Select, [], Stream2),
   finishUpdate(Update, Stream2, Stream3),
+  !.
+
+queryToStream(Query, Stream, Cost) :-
+  optimizerOption(subqueries),
+  subqueryToStream(Query, Stream, Cost),
   !.
 
 /*

@@ -432,6 +432,11 @@ optimizerOptionInfo(noprogress, none, no,
 optimizerOptionInfo(subqueries, none, yes,
                    'Process subqueries.',
                    true,
+                   delOption(subqueryUnnesting)
+                  ).
+optimizerOptionInfo(subqueryUnnesting, subqueries, yes,
+                   'Apply unnesting algorithms to subqueries.',
+                   setOption(subqueries),
                    true
                   ).
 

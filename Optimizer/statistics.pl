@@ -137,6 +137,10 @@ The simple form of predicate ~Pred~ is ~Simple~.
 
 */
 
+simplePred(pr(P, A, B), Simple) :-
+  optimizerOption(subqueries),
+  simpleSubqueryPred(pr(P, A, B), Simple).
+
 simplePred(pr(P, A, B), Simple) :- simple(P, A, B, Simple), !.
 simplePred(pr(P, A), Simple) :- simple(P, A, A, Simple), !.
 simplePred(X, Y) :-
@@ -551,6 +555,11 @@ as ``attribute(Param, attrname(X))''
 
 */
 
+% handle subqueries
+transformPred(Pred, Param, Arg, Pred2) :-
+  optimizerOption(subqueries),
+  subqueryTransformPred(Pred, Param, Arg, Pred2).
+
 transformPred(attr(Attr, Arg, Case), Param, Arg,
   attribute(Param, attrname(attr(Attr, Arg, Case)))) :- !.
 
@@ -705,6 +714,11 @@ selectivity(pr(Pred, Rel, Rel), Sel, CalcPET, ExpPET) :-
 selectivity(P, Sel, CalcPET, ExpPET) :-
   simplePred(P, PSimple),
   sels(PSimple, Sel, CalcPET, ExpPET), !.
+
+% for selectivity of subqueries
+selectivity(Pred, Sel, CalcPET, ExpPET) :-
+  optimizerOption(subqueries),
+  subquerySelectivity(Pred, Sel, CalcPET, ExpPET).
 
 % query for join-selectivity (static samples case)
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-

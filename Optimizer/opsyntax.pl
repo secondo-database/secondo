@@ -191,6 +191,9 @@ secondoOp( category,          postfix, 1).
 secondoOp( cluster_of,        prefix, 2).
 secondoOp( clustername_of,    prefix, 2).
 secondoOp( colordist,         postfixbrackets1, 2).
+secondoOp( collect_set,       postfix, 1).
+secondoOp( collect_multiset,  postfix, 1).
+secondoOp( collect_vector,    postfix, 1).
 secondoOp( compare,           prefix, 2).
 secondoOp( constgraph,        postfixbrackets1, 4).
 secondoOp( constgraphpoints,  postfixbrackets1, 4).
