@@ -956,7 +956,7 @@ bool DateTime::ReadFrom(const ListExpr LE, const bool typeincluded){
       SetDefined(false);
       return true;
     }
-    if(nl->SymbolValue(ValueList)=="now"){
+    if(nl->SymbolValue(ValueList)=="currenttime"){
         if(type == (instanttype)){
            Now();
            return true;
@@ -1355,10 +1355,10 @@ double DateTime::operator/(const DateTime T2)const{
   uint64_t u1 = day;
   uint64_t u2 = MILLISECONDS;
   uint64_t u3 = milliseconds;
-  uint64_t sum = u1*u2+u3;  
+  uint64_t sum = u1*u2+u3;
 
   double myms = (double)(sum);
-   
+
   u1 = T2.day;
   u3 = T2.milliseconds;
 
