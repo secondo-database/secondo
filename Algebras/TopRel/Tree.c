@@ -28,6 +28,9 @@ operator trees
 */
 
 #include "Tree.h"
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 enum OPERATORS { OPAND, OPXOR, OPOR, OPNOT, OPCONDITIONAL,
                  OPBICONDITIONAL};
