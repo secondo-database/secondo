@@ -297,6 +297,7 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
   // answers how much they can use. However, currently we are
   // just defining a maximum per operator.
   maxMemPerOperator = 4 * 1024 * 1024;
+  allowProgress=false;
 }
 
 QueryProcessor::~QueryProcessor()
