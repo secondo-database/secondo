@@ -54,6 +54,7 @@ now be more compatible.
 using namespace std;
 
 #include <string>
+#include <string.h>
 #include <algorithm>
 #include <cctype>
 #include <vector>
@@ -1668,26 +1669,35 @@ SmiEnvironment::GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi)
   ci.page_in = gsp->st_page_in;
   ci.page_out = gsp->st_page_out;
   ci.pages = gsp->st_pages;
+  free(gsp);
 
   // copy the number of file statistics
+  DB_MPOOL_FSTAT** fsp2(fsp);;
   if (fsp != 0)
   {
      while (*fsp != 0)
      {
-       FileInfo* fstat = new FileInfo;
        DB_MPOOL_FSTAT& fs = **fsp;
 
-       fstat->file_name = fs.file_name;
-       fstat->pagesize = fs.st_pagesize;
-       fstat->cache_hit = fs.st_cache_hit;
-       fstat->cache_miss = fs.st_cache_miss;
-       fstat->page_create = fs.st_page_create;
-       fstat->page_in = fs.st_page_in;
-       fstat->page_out = fs.st_page_out;
+
+       char tmp1[strlen(fs.file_name)+1];
+       strcpy(tmp1,fs.file_name);
+
+       string ml(tmp1);
+
+       FileInfo* fstat = new FileInfo(0, 
+                                      ml, 
+                                      fs.st_pagesize,
+                                      fs.st_cache_hit, 
+                                      fs.st_cache_miss,
+                                      fs.st_page_create,
+                                      fs.st_page_in,
+                                      fs.st_page_out);
 
        fi.push_back( fstat );
        fsp++;
      }
+     free(fsp2);
   }
 
   return (rc == 0);

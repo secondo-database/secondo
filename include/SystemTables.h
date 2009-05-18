@@ -489,12 +489,7 @@ class OperatorUsageTuple : public InfoTuple
    int    vmid;
    int    calls;
 
-   OperatorUsageTuple() {
-     name = "";
-     algebra = "";
-     calls = 0;
-     vmid = 0;
-   }
+   OperatorUsageTuple():InfoTuple(),name(""),algebra(""),vmid(0),calls(0) { }
    virtual ~OperatorUsageTuple() {}
 
    virtual NList valueList() const

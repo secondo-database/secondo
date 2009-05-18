@@ -75,15 +75,18 @@ class InfoTuple
 {
    
    public:
-   const string sep;
+   static const string sep;
    
    virtual NList valueList() const = 0;
    virtual ostream& print(ostream&) const = 0; 
    
-   InfoTuple() : sep("|") {}
+   InfoTuple() {}
    virtual ~InfoTuple() {} 
   
 };
+
+
+
 
 ostream& operator<<(ostream&, const InfoTuple&); 
 

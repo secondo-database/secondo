@@ -116,6 +116,9 @@ The names of existing databases are stored in a list ~DBTable~.
 
 using namespace std;
 
+const string InfoTuple::sep("|");
+
+
 /**************************************************************************
 2.2 Types
 

@@ -206,8 +206,56 @@ class FileInfo {
   size_t page_out;
   //Pages written from the cache to the backing file. 
 
-  FileInfo() {}
-  ~FileInfo() {}
+  FileInfo(const int fstatNr_,
+           const string file_name_,
+           const size_t pagesize_,
+           const size_t cache_hit_,
+           const size_t cache_miss_,
+           const size_t page_create_,
+           const size_t page_in_,
+           const size_t page_out_):
+    fstatNr(fstatNr_),
+    file_name(file_name_),
+    pagesize(pagesize_),
+    cache_hit(cache_hit_),
+    cache_miss(cache_miss_),
+    page_create(page_create_),
+    page_in(page_in_),
+    page_out(page_out_){}
+
+  FileInfo(const FileInfo& f):
+    fstatNr(f.fstatNr),
+    file_name(f.file_name),
+    pagesize(f.pagesize),
+    cache_hit(f.cache_hit),
+    cache_miss(f.cache_miss),
+    page_create(f.page_create),
+    page_in(f.page_in),
+    page_out(f.page_out){}
+
+ FileInfo& operator=(const FileInfo& f){
+    fstatNr = f.fstatNr;
+    file_name = f.file_name;
+    pagesize = f.pagesize;
+    cache_hit = f.cache_hit;
+    cache_miss = f.cache_miss;
+    page_create = f.page_create;
+    page_in = f.page_in;
+    page_out = f.page_out;
+    return *this;
+  }
+
+  FileInfo():
+    fstatNr(0),
+    file_name(""),
+    pagesize(0),
+    cache_hit(0),
+    cache_miss(0),
+    page_create(0),
+    page_in(0),
+    page_out(0){}
+
+ virtual ~FileInfo() { }
 
   
 }; 

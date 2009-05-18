@@ -571,7 +571,8 @@ TypeConstructor::initKindDataProperties()
       if (attr != 0) {    
         serializedFixSize = attr->SerializedSize();  
         numOfFlobs = attr->NumOfFLOBs();
-        storageType =  attr->GetStorageType(); 
+        storageType =  attr->GetStorageType();
+        delete attr; 
       } 
     }
 }
