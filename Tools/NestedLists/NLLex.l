@@ -80,17 +80,10 @@ string scanNL_str;
 
 #include "NLScanner.h"        // The interface of the derived class
 
-/*
-The following yylex function is never called, but overruled by
-NLScanner::yylex()
-
-*/
-int yyFlexLexer::yylex()
-{
-    return 0;
-}
 
 %}
+%option yyclass="NLScanner"
+
 otherChar       [^\(\)\"\'A-Za-z0-9_ \a\b\f\n\r\t\v]
 letter          [a-zA-Z]
 digit           [0-9]

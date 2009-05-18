@@ -39,6 +39,13 @@ files for the input sequences.
 #include <FlexLexer.h>
 #endif
 
+#ifndef YY_CURRENT_BUFFER
+#define YY_CURRENT_BUFFER ( (yy_buffer_stack) \
+                          ? (yy_buffer_stack)[(yy_buffer_stack_top)] \
+                          : NULL)
+#endif
+
+
 class NLScanner: public yyFlexLexer
 {
  public:         
@@ -54,6 +61,21 @@ class NLScanner: public yyFlexLexer
              std::istream* yyin = 0, std::ostream* yyout = 0 );
 
   int yylex();  // overruling yyFlexLexer's yylex()
+
+  void DeleteCurrentBuffer(){
+    yy_delete_buffer(YY_CURRENT_BUFFER);
+  } 
+
+  void DeleteAllBuffers(){
+     while(YY_CURRENT_BUFFER){
+        yy_delete_buffer(YY_CURRENT_BUFFER);
+     }
+     if(yy_buffer_stack){
+       free(yy_buffer_stack);
+       yy_buffer_stack=0;
+     }
+  }
+
 
  private:
   // no Scanner copy-initialization

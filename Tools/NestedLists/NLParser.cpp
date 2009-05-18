@@ -66,8 +66,10 @@ static NLScanner* nlScanner = 0;
 
 int
 NLParser::parse() 
-{ 
-  nlScanner = new NLScanner( nl, isp, osp );
+{
+  if(!nlScanner){ 
+     nlScanner = new NLScanner( nl, isp, osp );
+  }
   if ( RTFlag::isActive("NLParser:Debug") ) {
     yydebug = 1;
   } else {
@@ -87,7 +89,7 @@ NLParser::parse()
   parseNL_list = nl->Empty();  
   int rc = yyparse();
   list = parseNL_list;
-  
+  nlScanner->DeleteAllBuffers(); 
   delete nlScanner;
   nlScanner = 0;
   return rc;
