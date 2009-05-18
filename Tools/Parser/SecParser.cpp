@@ -54,14 +54,31 @@ extern CMsg cmsg;
 
 static xxFlexLexer* lexPtr;
 
+#ifndef YY_CURRENT_BUFFER
+#define YY_CURRENT_BUFFER ( (yy_buffer_stack) \
+                          ? (yy_buffer_stack)[(yy_buffer_stack_top)] \
+                          : NULL)
+#endif
+
 class Text2ListScan : public xxFlexLexer {
 
 public:
   Text2ListScan( istream* is ) : xxFlexLexer( is ) {};
-  ~Text2ListScan(){};
+  ~Text2ListScan(){ deleteAllBuffers(); }
 
   int getLine() { return yylineno; }
   void SetDebug( const int value ) { yy_flex_debug = value; }
+
+void deleteAllBuffers(){
+   while(YY_CURRENT_BUFFER){
+     yy_delete_buffer(YY_CURRENT_BUFFER);
+   }
+   if(yy_buffer_stack){
+      free(yy_buffer_stack);
+      yy_buffer_stack=0;
+   }
+
+}
 
 };
 
