@@ -178,7 +178,9 @@ The page size for paged access.
     {
       type = rhs.type;
       size = rhs.size;
-      fd = new FLOB_Descriptor; 
+      if(!fd){
+         fd = new FLOB_Descriptor; 
+      }
       *fd = *rhs.fd; 
       FT("Assignment Operator, size =" << size); 
       //WinUnix::stacktrace("none");        

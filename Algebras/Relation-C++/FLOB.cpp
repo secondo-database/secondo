@@ -57,7 +57,7 @@ const size_t FLOB::PAGE_SIZE = 4050;
 FLOB::FLOB( size_t sz ) :
 type( InMemory )
 {
-  fd = new FLOB_Descriptor;
+  fd = new FLOB_Descriptor();
   size = sz;
   Malloc();
 
@@ -108,7 +108,9 @@ FLOB::~FLOB()
   }
 
   //cerr << (void*)fd << " freed" << endl;
-  delete fd;
+  if(fd){
+    delete fd; 
+  }
   fd = 0;
 }
 
