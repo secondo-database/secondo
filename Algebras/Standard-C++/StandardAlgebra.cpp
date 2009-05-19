@@ -2835,17 +2835,21 @@ RelcountFun( Word* args, Word& result, int message, Word& local, Supplier s )
       if ( evaluable )
       {
         // evaluate the operator tree
-        qpp->EvalS( tree, result, 1 );
+        Word tmpresult;
+        qpp->EvalS( tree, tmpresult, 1 );
 
         // create the result list ( type, value )
         valueList = SecondoSystem::GetCatalog()->
-          OutObject( resultType, result );
+          OutObject( resultType, tmpresult );
         resultList = nl->TwoElemList( resultType, valueList );
 
         // set the result value and destroy the operator tree
         ((CcInt *)result.addr)->Set ( true,
           nl->IntValue(nl->Second(resultList)) );
         qpp->Destroy( tree, false );
+        if(tmpresult.addr){
+            ((CcInt*)tmpresult.addr)->DeleteIfAllowed();
+        }
       }
       else cout << "Operator query not evaluable" << endl;
     }
@@ -2886,6 +2890,7 @@ RelcountFun2( Word* args, Word& result, int message, Word& local, Supplier s )
     {
       ((CcInt *)result.addr)->Set( true,
       ((CcInt*)resultword.addr)->GetIntval() );
+      ((CcInt*)resultword.addr)->DeleteIfAllowed();
     }
     else cout << "Error in executing operator query: "<< errorMessage << endl;
   }
