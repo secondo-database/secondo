@@ -5855,9 +5855,11 @@ Word InIntime( const ListExpr typeInfo, const ListExpr instance,
     if( correct  )
     {
       Intime<Alpha> *intime = new Intime<Alpha>( *instant, *value );
+      delete instant;
       delete value;
       return SetWord( intime );
     }
+    delete instant;
     delete value;
   }
   correct = false;

@@ -2914,8 +2914,8 @@ void MGPoint::Mgpoint2mpoint(MPoint *&mp) {
   Instant correcture(0,1,durationtype);
   bool bendcorrecture = false;
   Instant tStart, tEnd, tInter1, tInter2, tEndNew;
-  Point pStart = new Point(false);
-  Point pEnd = new Point(false);
+  Point pStart(false);
+  Point pEnd(false);
   const LRS *lrsAkt, *lrsNext;
   const HalfSegment *hs;
   mp->Clear();
@@ -3292,7 +3292,7 @@ void MGPoint::Inside(GLine *&gl, MBool *&res){
       res->SetDefined(false);
     } else {
       double mgStart, mgEnd, lStart, lEnd;
-      const RouteInterval *pCurrRInter = new RouteInterval (0, 0.0, 0.0);
+      const RouteInterval *pCurrRInter = 0;
       bool swapped, found, bInterStart, bInterEnd;
       Instant tInterStart, tInterEnd;
       UBool interbool(true);
@@ -4145,8 +4145,7 @@ Compresses the ~mgpoint~ by equalizing speed differences witch are smaller than
 
 */
 
-MGPoint* MGPoint::Simplify(double d){
-  MGPoint *res=new MGPoint(0);
+void  MGPoint::Simplify(double d, MGPoint* res){
   res->StartBulkLoad();
 
   int iNetworkId;
@@ -4284,7 +4283,6 @@ MGPoint* MGPoint::Simplify(double d){
     res->SetBoundingBox(BoundingBox());
     res->SetBoundingBoxDefined(true);
   }
-  return res;
 }
 
 bool MGPoint::Passes(GPoint *&gp){
@@ -5432,12 +5430,10 @@ int OpMPoint2MGPointValueMapping(Word* args,
 Initialize return value
 
 */
-  MGPoint *resultSt = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
-  MGPoint* res= new MGPoint(0);
-  /*MGPoint *res = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
-  res->Clear();*/
+  result = qp->ResultStorage(in_xSupplier);
+  MGPoint* res = static_cast<MGPoint*>(result.addr);
+  res->Clear();
   res->SetDefined(true);
-  result = SetWord(res);
   // Get and check input values.
   Network *pNetwork = (Network*)args[0].addr;
   if (pNetwork->isDefined() < 1) {
@@ -5701,7 +5697,6 @@ the new Route is found compute the new values for the next mgpoint unit.
             res->EndBulkLoad(true);
             tree->TreeToDBArray(&(res->m_trajectory));
             tree->RemoveTree();
-            result = SetWord(res);
             pCurrentRoute->DeleteIfAllowed();
             pTestRoute->DeleteIfAllowed();
             //delete pRoutes;
@@ -5727,7 +5722,6 @@ the new Route is found compute the new values for the next mgpoint unit.
             tree->TreeToDBArray(&(res->m_trajectory));
             tree->RemoveTree();
             res->SetTrajectoryDefined(true);
-            result = SetWord(res);
             pCurrentRoute->DeleteIfAllowed();
             pTestRoute->DeleteIfAllowed();
             //delete pRoutes;
@@ -6164,7 +6158,6 @@ start time and the junction as startposition of the new current unit.
         //should not happen
         sendMessages("MPoint is not longer found on network.");
         res->EndBulkLoad(true);
-        result = SetWord(res);
         pCurrentRoute->DeleteIfAllowed();
         pTestRoute->DeleteIfAllowed();
         //delete pRoutes;
@@ -6384,7 +6377,7 @@ int OpSimplifyValueMapping(Word* args,
     cerr << endl << strMessage << endl << endl;
     return 0;
   }
-  (*pMGPointSimplified) = *(pMGPoint->Simplify(dEpsilon));
+  pMGPoint->Simplify(dEpsilon, pMGPointSimplified);
   return 0;
 }
 

@@ -498,7 +498,7 @@ differences lower than d are compacted to be one unit.
 
 */
 
-   MGPoint* Simplify(double d);
+   void Simplify(double d, MGPoint* res);
 
 /*
 Returns true if the mgpoint passes at least once the gpoint resp. gline.
