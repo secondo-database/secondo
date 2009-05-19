@@ -577,7 +577,6 @@ The constructor creates a GPointList from a given gpoint.
 */
    GPointList(GPoint *gp, Network *pNetwork):
     aliasGP(0) {
-    GPoint *test;
     lastPos = 0;
     aliasGP.Clear();
     aliasGP.Append(*gp);
@@ -593,26 +592,29 @@ The constructor creates a GPointList from a given gpoint.
         pCurrJunction = xJunctions[i];
         if (fabs (pCurrJunction.GetRouteMeas() - gp->GetPosition()) < 0.01) {
           found = true;
-          test = new GPoint(true, gp->GetNetworkId(),
-                            pCurrJunction.GetOtherRouteId(),
-                            pCurrJunction.GetOtherRouteMeas(),
-                            None);
-          aliasGP.Append(*test);
+          GPoint test(true, gp->GetNetworkId(),
+                      pCurrJunction.GetOtherRouteId(),
+                      pCurrJunction.GetOtherRouteMeas(),
+                      None);
+          aliasGP.Append(test);
         }
         i++;
       }
       while (found && i < xJunctions.size()) {
         pCurrJunction = xJunctions[i];
         if (fabs(pCurrJunction.GetRouteMeas() - gp->GetPosition()) <0.01) {
-          test = new GPoint(true, gp->GetNetworkId(),
-                            pCurrJunction.GetOtherRouteId(),
-                            pCurrJunction.GetOtherRouteMeas(),
-                            None);
-          aliasGP.Append(*test);
+          GPoint test(true, gp->GetNetworkId(),
+                      pCurrJunction.GetOtherRouteId(),
+                      pCurrJunction.GetOtherRouteMeas(),
+                      None);
+          aliasGP.Append(test);
         } else {
           found = false;
         }
         i++;
+      }
+      for(unsigned int i=0;i<xJunctions.size();i++){
+        xJunctions[i].m_pJunction->DeleteIfAllowed();
       }
       xJunctions.clear();
     }
@@ -670,18 +672,17 @@ Creates a RectangleList from a given gline.
 
    RectangleList(GLine *gl):
     aliasRectangleList(0) {
-    Rectangle<2> *elem;
     const RouteInterval *ri;
     lastPos = 0;
     aliasRectangleList.Clear();
     for (int i = 0 ; i < gl->NoOfComponents(); i++) {
       gl->Get(i, ri);
-      elem = new Rectangle<2>(true,
+      Rectangle<2> elem(true,
                               (double) ri->m_iRouteId,
                               (double) ri->m_iRouteId,
                               min(ri->m_dStart,ri->m_dEnd),
                               max(ri->m_dStart, ri->m_dEnd));
-      aliasRectangleList.Append(*elem);
+      aliasRectangleList.Append(elem);
     }
   }
 
@@ -1810,6 +1811,10 @@ m_pBTreeSectionsByRoute(0)
 
     // Append new junction
     pRoutes->AppendTuple(pNewRoute);
+    if(pNewRoute){
+      pNewRoute->DeleteIfAllowed();
+      pNewRoute=0;
+    }
   }
 
    // Iterate over all junctions
@@ -1866,6 +1871,10 @@ m_pBTreeSectionsByRoute(0)
 
     // Append new junction
     pJunctions->AppendTuple(pNewJunction);
+    if(pNewJunction){
+      pNewJunction->DeleteIfAllowed();
+      pNewJunction=0;
+    }
   }
 
   Load(m_iId,
@@ -1900,6 +1909,10 @@ Network::~Network()
   delete m_pBTreeJunctionsByRoute2;
 
   delete m_pBTreeSectionsByRoute;
+  
+ 
+  m_xSubAdjacencyList.Clear();
+
 
 //  delete alldistance;
 }
@@ -2220,14 +2233,14 @@ void Network::FillSections()
         // Find out, if the orientation of the subline differs from the position
         // of the line. If so, the direction has to be changed.
         bool bLineStartsSmaller;
-        Point* pStartPoint = new Point(false);
-        pRouteCurve->AtPosition(dStartPos, bStartSmaller, *pStartPoint);
-        Point* pEndPoint = new Point(false);
-        pRouteCurve->AtPosition(dEndPos, bStartSmaller, *pEndPoint);
-        if(pStartPoint->GetX() < pEndPoint->GetX() ||
+        Point pStartPoint(false);
+        pRouteCurve->AtPosition(dStartPos, bStartSmaller, pStartPoint);
+        Point pEndPoint(false);
+        pRouteCurve->AtPosition(dEndPos, bStartSmaller, pEndPoint);
+        if(pStartPoint.GetX() < pEndPoint.GetX() ||
            (
-             pStartPoint->GetX() == pEndPoint->GetX() &&
-             pStartPoint->GetY() < pEndPoint->GetY()
+             pStartPoint.GetX() == pEndPoint.GetX() &&
+             pStartPoint.GetY() < pEndPoint.GetY()
            )
           )
         {
@@ -2298,6 +2311,9 @@ void Network::FillSections()
       }
 
     } // End junctions-loop
+
+
+
     /////////////////////////////////////////////////////////////////////
     //
     // The last section of the route is still missing, if the last
@@ -2325,14 +2341,14 @@ void Network::FillSections()
       // Find out, if the orientation of the subline differs from the position
       // of the sline. If so, the direction has to be changed.
       bool bLineStartsSmaller;
-      Point* pStartPoint = new Point(false);
-      pRouteCurve->AtPosition(dStartPos, bStartSmaller, *pStartPoint);
-      Point* pEndPoint = new Point(false);
-      pRouteCurve->AtPosition(dEndPos, bStartSmaller, *pEndPoint);
-      if(pStartPoint->GetX() < pEndPoint->GetX() ||
+      Point pStartPoint(false);
+      pRouteCurve->AtPosition(dStartPos, bStartSmaller, pStartPoint);
+      Point pEndPoint(false);
+      pRouteCurve->AtPosition(dEndPos, bStartSmaller, pEndPoint);
+      if(pStartPoint.GetX() < pEndPoint.GetX() ||
          (
-           pStartPoint->GetX() == pEndPoint->GetX() &&
-           pStartPoint->GetY() < pEndPoint->GetY()
+           pStartPoint.GetX() == pEndPoint.GetX() &&
+           pStartPoint.GetY() < pEndPoint.GetY()
          )
         )
       {
@@ -2484,8 +2500,28 @@ void Network::FillSections()
       }
     }
     pRoute->DeleteIfAllowed();
+  
+    // delete Tuples from xJunctions 
+    for(unsigned int i=0;i<xJunctions.size();i++){
+      if(xJunctions[i].m_pJunction){
+        xJunctions[i].m_pJunction->DeleteIfAllowed();
+      }
+    }
+    xJunctions.clear();
+    // delete Tuples from yJunctions 
+    for(unsigned int i=0;i<yJunctions.size();i++){
+      if(yJunctions[i].m_pJunction){
+        yJunctions[i].m_pJunction->DeleteIfAllowed();
+      }
+    }
+    yJunctions.clear();
+    
   } // End while Routes
   delete pRoutesIt;
+
+
+
+
   // Create B-Tree for the sections
   Word xResult;
   ostringstream xThisSectionsPtrStream;
@@ -5905,7 +5941,9 @@ Get adjacent sections and insert into priority Queue.
           }
         }
         delete actPQEntry;
+        actPQEntry=0;
         actSection->DeleteIfAllowed();
+        actSection = 0;
       } else {
 /*
 Shortest Path found.
@@ -6039,6 +6077,7 @@ Compute last route interval and resulting gline.
         }
 
         actSection->DeleteIfAllowed();
+        actSection = 0;
 /*
 Get the sections used for shortest path and write them in right
 order (from start to end gpoint) in the resulting gline. Because dijkstra gives
@@ -6108,12 +6147,23 @@ stack to turn in right order.
               adjSectionList.clear();
             }
           }
+          if(actSection){
+            actSection->DeleteIfAllowed();
+            actSection = 0;
+          } 
         }
         // Cleanup and return result
         riStack->StackToGLine(result);
         riStack->RemoveStack();
-//        delete actPQEntry;
       }
+      if(actPQEntry){
+        delete actPQEntry;
+        actPQEntry = 0;
+      }
+      if(actSection){
+        actSection->DeleteIfAllowed();
+        actSection = 0;
+      } 
     }
     if (visitedSect != 0) visitedSect->Remove();
     prioQ->Destroy();
@@ -6783,7 +6833,8 @@ int OpLine2GLineValueMapping(Word* args,
     cerr << strMessage << endl;
     sendMessage(strMessage);
     res->SetDefined(false);
-    result = SetWord(res);
+    pGLine->CopyFrom(res);
+    delete res;
     return 0;
   }
   res->SetNetworkId(pNetwork->GetId());
@@ -6793,7 +6844,8 @@ int OpLine2GLineValueMapping(Word* args,
     cerr << strMessage << endl;
     sendMessage(strMessage);
     res->SetDefined(false);
-    result = SetWord(res);
+    pGLine->CopyFrom(res);
+    delete res;
     return 0;
   }
   if (pLine->Size() <= 0) {
@@ -6801,7 +6853,8 @@ int OpLine2GLineValueMapping(Word* args,
     cerr <<strMessage << endl;
     sendMessage(strMessage);
     res->SetDefined(true);
-    result = SetWord(res);
+    pGLine->CopyFrom(res);
+    delete res;
     return 0;
   }
 
@@ -6811,20 +6864,25 @@ int OpLine2GLineValueMapping(Word* args,
       pNetwork->Find(hs->GetLeftPoint(), hs->GetRightPoint());
   if (ri!= 0) {
     RITree *riTree = new RITree(ri->m_iRouteId, ri->m_dStart, ri->m_dEnd);
+    delete ri;
     for (int i = 1; i < pLine->Size();i++) {
       pLine->Get(i,hs);
       ri = pNetwork->Find(hs->GetLeftPoint(), hs->GetRightPoint());
-      if (ri!=0)
+      if (ri!=0){
         riTree->Insert(ri->m_iRouteId, ri->m_dStart, ri->m_dEnd);
+        delete ri;
+      }
     }
     riTree->TreeToGLine(res);
     riTree->RemoveTree();
     res->SetDefined(true);
     res->SetSorted(true);
-    result = SetWord(res);
+    pGLine->CopyFrom(res);
+    delete res;
   } else {
     res->SetDefined(false);
-    result =SetWord(res);
+    pGLine->CopyFrom(res);
+    delete res;
   }
   return 0;
 } //end ValueMapping
@@ -7365,7 +7423,8 @@ int OpPoint2GPointValueMapping(Word* args,
     return 0;
   }
   GPoint *res = pNetwork->GetNetworkPosOfPoint(*pPoint);
-  result = SetWord(res);
+  pGPoint->CopyFrom(res);
+  delete res; 
   /*GPoint *res = pNetwork->GetNetworkPosOfPoint(*pPoint);
   qp->ChangeResultStorage(in_xSupplier, res);*/
   return 0;
@@ -7666,6 +7725,7 @@ int OpShortestPathValueMapping( Word* args,
   GPoint *pToGPoint = (GPoint*) args[1].addr;
   GLine* pGLine = (GLine*) qp->ResultStorage(in_xSupplier).addr;
   result = SetWord(pGLine);
+
   pGLine->SetSorted(false);
   pGLine->SetDefined(pFromGPoint->ShortestPath(pToGPoint, pGLine));
   return 0;
