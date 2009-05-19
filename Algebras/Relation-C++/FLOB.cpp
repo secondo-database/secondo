@@ -484,6 +484,10 @@ void FLOB::OpenFromRecord( SmiRecord& record,
                            size_t& offset, bool checkLob /*= true*/)
 {
   FT( "checkLob " << checkLob );
+  Clean();
+  if(fd){
+    delete fd;
+  }
 
   // restore the class byte block 
   size_t objSize1 = sizeof(*this);
@@ -495,7 +499,7 @@ void FLOB::OpenFromRecord( SmiRecord& record,
 
 
   // restore the FLOB Descriptor
-  fd = new FLOB_Descriptor;
+  fd = new FLOB_Descriptor();
 
   // if the array is not a LOB, read the data directly
   if( !checkLob || !IsLob() )
@@ -507,6 +511,9 @@ void FLOB::OpenFromRecord( SmiRecord& record,
      record.Read( data, extSize, offset );
      offset += extSize;
      ReadFrom(data);
+     if(data){
+        free(data);
+     }
   }
 
   char* meta = 0;       
