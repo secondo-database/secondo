@@ -533,6 +533,31 @@ Precondition: dbState = dbOpen.
   return (ok);
 }
 
+/*
+Deletes the object with type described in __type__ stored in 
+__obj__.
+
+*/
+bool SecondoCatalog::DeleteObj(const ListExpr type, Word& obj) {
+  if(!obj.addr){
+    return false;
+  }
+  int algId, typeId;
+  string typeName;
+  bool ok = LookUpTypeExpr(type,typeName,algId,typeId);
+  if(!ok){
+    return false;
+  }
+  SecondoSystem::GetAlgebraManager()->
+            DeleteObj(algId,typeId)(NumericType( type), obj);
+  obj.addr=0;
+  return true;
+}
+
+
+
+
+
 ListExpr
 SecondoCatalog::GetTypeExpr( const string& typeName )
 {

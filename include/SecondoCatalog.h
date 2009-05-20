@@ -215,6 +215,17 @@ string as ~typeName~ and value 0 for the identifiers, and the methods
 return value is set to "false"[4].
 
 */
+
+
+  bool DeleteObj(const ListExpr type, Word& obj);
+/*
+Deletes the object with type described in __type__ stored in
+__obj__.
+
+*/
+
+
+
   ListExpr GetTypeExpr( const string& typeName );
 /*                        
 Returns a type expression for a given type name ~typename~,
