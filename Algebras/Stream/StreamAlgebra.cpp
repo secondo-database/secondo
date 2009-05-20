@@ -1878,6 +1878,8 @@ ListExpr StreamaggregateTypeMap( ListExpr args )
 5.24.2 Value mapping for operator ~aggregate~
 
 */
+/*
+----
 
 struct AggregStruct
 {
@@ -2010,7 +2012,150 @@ int Streamaggregate( Word* args, Word& result, int message,
   return 0;
 }
 
+----
 
+*/
+
+//------------------------------------------------------------------------------
+
+/*
+5.24.2 Value mapping function of operator ~aggregateS~
+
+The ~aggregateS~ operator uses a stack to compute the aggregation
+balanced. This will have advantages in geometric aggregation.
+It may also help to reduce numeric errors in aggregation using
+double values.
+
+
+5.24.2.1 ~StackEntry~
+
+A stack entry consist of the level within the (simulated)
+balanced tree and the corresponding value.
+Note:
+  The attributes at level 0 come directly from the input stream.
+  We have to free them using the deleteIfAllowed function.
+  On all other levels, the attribute is computes using the
+  parameter function. Because this is outside of stream and
+  tuples, no reference counting is available and we have to delete
+  them using the usual delete function.
+
+*/
+struct AggrStackEntry
+{
+  inline AggrStackEntry(): level(-1),value(0)
+  { }
+
+  inline AggrStackEntry( long level, Attribute* value):
+  level( level )
+  { this->value = value;}
+
+  inline AggrStackEntry( const AggrStackEntry& a ):
+  level( a.level )
+  { this->value = a.value;}
+
+  inline AggrStackEntry& operator=( const AggrStackEntry& a )
+  { level = a.level; value = a.value; return *this; }
+
+  inline ~AggrStackEntry(){ } // use destroy !!
+
+
+  inline void destroy(){
+     if(level<0){
+        return;
+     }
+     if(level==0){ // original from tuple
+        value->DeleteIfAllowed();
+     } else {
+        delete value;
+     }
+     value = 0;
+     level = -1;
+  }
+
+  long level;
+  Attribute* value;
+};
+
+int Streamaggregate(Word* args, Word& result, int message,
+                    Word& local, Supplier s)
+{
+  // The argument vector contains the following values:
+  // args[0] = stream of tuples
+  // args[1] = mapping function
+  // args[2] = zero value
+
+  Word t1,resultWord;
+  ArgVectorPointer vector = qp->Argument(args[1].addr);
+
+  qp->Open(args[0].addr);
+  result = qp->ResultStorage(s);
+  // read the first tuple
+  qp->Request( args[0].addr, t1 );
+
+
+  if( !qp->Received( args[0].addr ) ){
+    // special case: stream is empty
+    // use the third argument as result
+    ((StandardAttribute*)result.addr)->
+      CopyFrom( (const StandardAttribute*)args[2].addr );
+
+  } else {
+    // nonempty stream, consume it
+    stack<AggrStackEntry> theStack;
+    while( qp->Received(args[0].addr)){
+       // get the attribute
+       Attribute* attr = (Attribute*)t1.addr;
+       // put the attribute on the stack merging with existing entries
+       // while possible
+       int level = 0;
+       while(!theStack.empty() && level==theStack.top().level){
+         // merging is possible
+         AggrStackEntry top = theStack.top();
+         theStack.pop();
+         // call the parameter function
+         ((*vector)[0]).setAddr(top.value);
+         ((*vector)[1]).setAddr(attr);
+         qp->Request(args[1].addr, resultWord);
+         qp->ReInitResultStorage(args[1].addr);
+         top.destroy();  // remove stack content
+         if(level==0){ // delete attr;
+            attr->DeleteIfAllowed();
+         } else {
+            delete attr;
+         }
+         attr = (Attribute*) resultWord.addr;
+         level++;
+       }
+       AggrStackEntry entry(level,attr);
+       theStack.push(entry);
+       qp->Request(args[0].addr,t1);
+   }
+   // stream ends, merge stack elements regardless of their level
+   assert(!theStack.empty()); // at least one element must be exist
+   AggrStackEntry tmpResult = theStack.top();
+   theStack.pop();
+   while(!theStack.empty()){
+     AggrStackEntry top = theStack.top();
+     theStack.pop();
+     ((*vector)[0]).setAddr(top.value);
+     ((*vector)[1]).setAddr(tmpResult.value);
+     qp->Request(args[1].addr, resultWord);
+     qp->ReInitResultStorage(args[1].addr);
+     tmpResult.destroy(); // destroy temporarly result
+     tmpResult.level = 1; // mark as computed
+     tmpResult.value = (Attribute*) resultWord.addr;
+     top.destroy();
+   }
+   ((StandardAttribute*)result.addr)->
+                          CopyFrom((StandardAttribute*)tmpResult.value);
+   tmpResult.destroy();
+  }
+  // close input stream
+  qp->Close(args[0].addr);
+  return 0;
+
+}
+//------------------------------------------------------------------------------
 /*
 5.24.3 Specification for operator ~aggregate~
 
