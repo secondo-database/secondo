@@ -219,7 +219,9 @@ bool UDPaddress::updateMemberVariables(const struct addrinfo *argAddrInfo)
   struct sockaddr_storage sa;
   struct sockaddr_storage *sas = &sa;
   memset(&sa, 0, sizeof sa);
-  memcpy(&sa, argAddrInfo->ai_addr, sizeof (struct sockaddr_storage));
+  unsigned int mini = min(sizeof(struct sockaddr_storage), 
+                         sizeof(struct sockaddr));
+  memcpy(&sa, argAddrInfo->ai_addr, mini);
 
   __UDP_MSG(" sa = " << sa);
 
@@ -609,6 +611,9 @@ UDPaddress::UDPaddress(const string ip,
       myCanonname = "";
     }
     updateMemberVariables(myAddrInfo);
+  }
+  if(myAddrInfo){
+     freeaddrinfo(myAddrInfo);
   }
   __UDP_EXIT__
 }
