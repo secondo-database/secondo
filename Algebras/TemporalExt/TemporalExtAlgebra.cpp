@@ -216,7 +216,7 @@ bool timeIntervalOfRealInUReal2(double value, const UReal* ur, double& t_value)
 {
   Periods times(2);
   const Interval<Instant>* invinst;
-  
+
   ur->PeriodsAtVal(value, times);
   if ( times.GetNoComponents() < 2 )
   {
@@ -229,7 +229,7 @@ bool timeIntervalOfRealInUReal2(double value, const UReal* ur, double& t_value)
   }
   return false;
 }
-  
+
 bool timeIntervalOfRealInUReal(
     double value,
     const UReal* ur,
@@ -736,7 +736,7 @@ bool checkunits( const UPoint& u1, const UPoint& u2 )
   bool res= ( (u1.timeInterval.end.Compare( &u2.timeInterval.start ) < 0) ||
                (u1.timeInterval.end.Compare( &u2.timeInterval.start ) == 0 &&
                 !( u1.timeInterval.rc && u2.timeInterval.lc )) ||
-                ((u1.timeInterval.end == u2.timeInterval.start) && 
+                ((u1.timeInterval.end == u2.timeInterval.start) &&
                 (u2.timeInterval.start < u2.timeInterval.end) &&
                  u1.timeInterval.rc && u2.timeInterval.lc) );
   return res;
@@ -824,7 +824,7 @@ For unit points which do not have any motion
                          << " ; " << ln_chs->GetRightPoint().GetX()
                          << ", " << ln_chs->GetRightPoint().GetY()
                          << "p0: " << unitin->p0 << " p1: " << unitin->p1
-                         << " unitstart: " 
+                         << " unitstart: "
                          << unitin->timeInterval.start.ToString()
                          << " unitend: " << unitin->timeInterval.end.ToString()
                          << " )" << endl;
@@ -847,11 +847,11 @@ For unit points which do not have any motion
                       lastunit = res;
                     }
                     else
-                    { 
+                    {
                       if ( checkunits(lastunit, res) )
                       {
-                        if ( (lastunit.timeInterval.end == 
-                              res.timeInterval.start) && 
+                        if ( (lastunit.timeInterval.end ==
+                              res.timeInterval.start) &&
                              (res.timeInterval.start < res.timeInterval.end) &&
                              lastunit.timeInterval.rc && res.timeInterval.lc )
                         {
@@ -908,16 +908,16 @@ For unit points which do not have any motion
                   }
                   UPoint trash1(true);
                   UPoint trash2(true);
-                  bool tmpunitlc = true; 
-                  if ( (AlmostEqual(ln_chs->GetLeftPoint(), unitin->p0) || 
+                  bool tmpunitlc = true;
+                  if ( (AlmostEqual(ln_chs->GetLeftPoint(), unitin->p0) ||
                         AlmostEqual(ln_chs->GetRightPoint(), unitin->p0))
                         && !unitin->timeInterval.lc )
                   {
                     tmpunitlc = false;
                     unitincopy.timeInterval.lc = true;
                   }
-                  bool tmpunitrc = true;    
-                  if ( (AlmostEqual(ln_chs->GetRightPoint(), unitin->p1) || 
+                  bool tmpunitrc = true;
+                  if ( (AlmostEqual(ln_chs->GetRightPoint(), unitin->p1) ||
                         AlmostEqual(ln_chs->GetLeftPoint(), unitin->p1))
                         && !unitin->timeInterval.rc )
                   {
@@ -927,14 +927,14 @@ For unit points which do not have any motion
                   unitincopy.At( inter_chs.GetLeftPoint(), trash1 );
                   unitincopy.At( inter_chs.GetRightPoint(), trash2 );
                   bool inv_def = true, ls = true, rs = true;
-                                                
+
                   if(!trash1.timeInterval.lc && !trash1.timeInterval.rc)
                     inv_def = false;
 
                   if(!trash2.timeInterval.rc && trash2.timeInterval.lc)
                     inv_def = false;
 
-                  if(inv_def && trash1.timeInterval.lc && 
+                  if(inv_def && trash1.timeInterval.lc &&
                      trash2.timeInterval.rc)
                   {
 
@@ -953,7 +953,7 @@ For unit points which do not have any motion
                       ? trash1.timeInterval.start
                       : trash2.timeInterval.start,
                       tmpunitlc, tmpunitrc);
-                                        
+
                     UPoint* res = new UPoint(
                       *ii,
                       unitin->p0 > unitin->p1
@@ -961,7 +961,7 @@ For unit points which do not have any motion
                       : inter_chs.GetLeftPoint(),
                       unitin->p0 > unitin->p1
                       ? inter_chs.GetLeftPoint()
-                      : inter_chs.GetRightPoint()       
+                      : inter_chs.GetRightPoint()
                     );
                     if(0)
                     {
@@ -974,7 +974,7 @@ For unit points which do not have any motion
                            << res->timeInterval.start.ToString()
                            << " "
                            << res->timeInterval.end.ToString()
-                           << " )" << res->timeInterval.lc << " " 
+                           << " )" << res->timeInterval.lc << " "
                                    << res->timeInterval.rc << endl;
                     }
                     if ( i == 0 )
@@ -983,13 +983,13 @@ For unit points which do not have any motion
                       lastunit = *res;
                     }
                     else
-                    { 
+                    {
                       if ( checkunits(lastunit, *res) )
                       {
-                        if ( (lastunit.timeInterval.end == 
-                              res->timeInterval.start) && 
+                        if ( (lastunit.timeInterval.end ==
+                              res->timeInterval.start) &&
                              (res->timeInterval.start < res->timeInterval.end)
-                              && lastunit.timeInterval.rc && 
+                              && lastunit.timeInterval.rc &&
                               res->timeInterval.lc )
                         {
                           res->timeInterval.lc = false;
@@ -1013,9 +1013,9 @@ Looks for intersections in a point
                       cout << "Intersection is a point!! " << inter_p << endl;
                     }
                     UPoint res(true);
-                    if ( (AlmostEqual(unitin->p0, inter_p) && 
+                    if ( (AlmostEqual(unitin->p0, inter_p) &&
                           unitin->timeInterval.lc) ||
-                         (AlmostEqual(unitin->p1, inter_p) && 
+                         (AlmostEqual(unitin->p1, inter_p) &&
                           unitin->timeInterval.rc) ||
                          ((inter_p > unitin->p0) && (inter_p < unitin->p1)) ||
                          ((inter_p < unitin->p0) && (inter_p > unitin->p1)) )
@@ -1027,14 +1027,14 @@ Looks for intersections in a point
                         lastunit = res;
                       }
                       else
-                      { 
+                      {
                         if ( checkunits(lastunit, res) )
                         {
-                          if ( (lastunit.timeInterval.end == 
+                          if ( (lastunit.timeInterval.end ==
                                 res.timeInterval.start) &&
-                                (res.timeInterval.start < 
+                                (res.timeInterval.start <
                                 res.timeInterval.end) &&
-                                lastunit.timeInterval.rc && 
+                                lastunit.timeInterval.rc &&
                                 res.timeInterval.lc )
                           {
                             res.timeInterval.lc = false;
@@ -1059,7 +1059,7 @@ Looks for intersections in a point
       time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
       if ( 0 )
       {
-        cout << "Average computing time per unit: " 
+        cout << "Average computing time per unit: "
              << time2 << " ms/unit" << endl;
         cout << "Total computing time : " << time1 << " ms" << endl;
       }
@@ -1716,8 +1716,8 @@ void MRealExt::At(RReal* inv, MReal &result ) const
     const UReal* utemp;
     UReal uresult(true);
     double unit_min, unit_max;
-    
-    vector<UReal> minintervals, maxintervals;   
+
+    vector<UReal> minintervals, maxintervals;
 
     result.Clear();
     result.StartBulkLoad();
@@ -1726,19 +1726,19 @@ void MRealExt::At(RReal* inv, MReal &result ) const
         Get( i, utemp );
         //mr->Get(i, utemp);
         //cout << "got ureal no " << i << endl;
-        
+
         //MinMaxValueFunction( utemp, unit_min, unit_max );
         //((URealExt*)utemp)->SetUnitMin( unit_min );
         //((URealExt*)utemp)->SetUnitMax( unit_max );
-        
+
         //utemp->AtMin(minintervals);
         //utemp->AtMax(maxintervals);
-        //cout << "\ta=" << utemp->a << " b=" << utemp->b << " c=" 
+        //cout << "\ta=" << utemp->a << " b=" << utemp->b << " c="
         //<< utemp->c << " r=" << utemp->r << endl;
         bool correct = true;
         unit_min = utemp->Min(correct);
         unit_max = utemp->Max(correct);
-        
+
         Interval<CcReal> minmax;
         minmax.start.Set( unit_min );
         minmax.end.Set( unit_max );
@@ -1765,7 +1765,7 @@ void MRealExt::At(RReal* inv, MReal &result ) const
                     cout << " = [ " << inv_result.start.GetValue()
                         << ", " << inv_result.end.GetValue() << " ] " << endl;
                 }
-                //cout << "\ta=" << utemp->a << " b=" << utemp->b << " c=" 
+                //cout << "\ta=" << utemp->a << " b=" << utemp->b << " c="
                 //<< utemp->c << " r=" << utemp->r << endl;
                 double t_value, t_value2;
                 uresult.a = utemp->a;
@@ -2910,7 +2910,7 @@ ConcatSTypeMap(ListExpr args){
                                   "stream(mpoint) x int required");
        return nl->TypeError();
     }
-  } 
+  }
   ListExpr stream = nl->First(args);
   if(  nl->ListLength(stream)!=2  ||
        !nl->IsEqual(nl->First(stream),"stream") ||
@@ -2928,8 +2928,8 @@ ConcatSTypeMap(ListExpr args){
 */
 
 
-const string mapsEverNearerThan[3][4] = 
-{ 
+const string mapsEverNearerThan[3][4] =
+{
   {MPOINT,    MPOINT,    REAL,   BOOL},
   {MPOINT,    POINT,     REAL,   BOOL},
   {POINT,     MPOINT,    REAL,   BOOL}
@@ -2938,7 +2938,7 @@ const string mapsEverNearerThan[3][4] =
 ListExpr
 EverNearerThan_tm( ListExpr args )
 {
-  return SimpleMaps<3,4>(mapsEverNearerThan, args);  
+  return SimpleMaps<3,4>(mapsEverNearerThan, args);
 }
 
 /*
@@ -4412,9 +4412,9 @@ int RangeRangevaluesRealExt(
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, utemp);
-        //MinMaxValueFunction(utemp, min, max); 
+        //MinMaxValueFunction(utemp, min, max);
         //yields wrong min and max values
-        
+
         size_t size = utemp->AtMin(resvector);
         assert(size>0);
         min = resvector[0].c;
@@ -4481,7 +4481,7 @@ int RangeRangevaluesRealExt(
         }
         --iter;
     }
-    if ( inter.IsValid() && (*iter).second.IsValid() ) 
+    if ( inter.IsValid() && (*iter).second.IsValid() )
     {
       if(inter.Intersects((*iter).second))
       {
@@ -4897,7 +4897,7 @@ static bool EverNearerThan(MPoint* arg0, Point* arg1, double dist){
 
 template<class S, class T>
 int
-EverNearerThan_vm( Word* args, Word& result, int message, 
+EverNearerThan_vm( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   // args[0] : S*
@@ -5094,9 +5094,9 @@ const string TemporalSpecPresentExt  =
 const string TemporalSpecAtExt =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>T in {real, string},\n"
-    "moving(T) x T -> moving(T);\n"
+    "mT x T -> mT;\n"
     "T in {int, bool, real, string},\n"
-    "moving(T) x range(T) -> moving(T);\n"
+    "mT x rT -> mT;\n"
     "T in {points, line},\n"
     "mpoint x T -> mpoint\n"
     "movingregion x point -> mpoint**\n"
@@ -5204,7 +5204,7 @@ const string BoolSpecAlwaysExt  =
 
 const string BoolSpecNeverExt  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "( <text>moving(bool) -> bool</text--->"
+    "( <text>mbool -> bool</text--->"
     "<text>never ( _ )</text--->"
     "<text>Returns 'true' iff the moving bool does not "
     "assume value 'TRUE' within its definition time.</text--->"
@@ -5258,7 +5258,7 @@ const string TemporalSpecAtminExt  =
     "( <text>T in {int, bool, real, string},\n"
     "mT -> mT</text--->"
     "<text>atmin ( _ )</text--->"
-    "<text>Get moving(T) restricted to the least value.</text--->"
+    "<text>Get mT restricted to the least value.</text--->"
     "<text>atmin ( mi1 )</text--->"
     ") )";
 
@@ -5573,7 +5573,7 @@ class TemporalExtAlgebra : public Algebra
         AddOperator( &temporalconcatS );
         AddOperator( &temporalconcatS2 );
 
-        AddOperator( EverNearerThanInfo(), EverNearerThan_vms, 
+        AddOperator( EverNearerThanInfo(), EverNearerThan_vms,
                      EverNearerThan_sf, EverNearerThan_tm );
 
     }
