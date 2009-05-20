@@ -1617,7 +1617,9 @@ The length of a string is three characters or more.
       textcursor = thetext->start;
       stringcursor = 0;
       state = 0;
-
+      if(thetext->start>=thetext->strlength){
+         return CANCEL;
+      }
       while (true) {
         switch ( state ) {
           case 0 : c = thetext->subw[textcursor];
@@ -2840,6 +2842,12 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
           { // yielded a result (no typerror)
             ListExpr valueList = SecondoSystem::GetCatalog()
                 ->OutObject(queryResType,queryresultword);
+
+            if(! SecondoSystem::GetCatalog()->
+                   DeleteObj(queryResType,queryresultword)){
+              cerr << "problem in deleting queryresultword" << endl;
+
+            } 
             nl->WriteToString(resultstring,valueList);
           }
           // else: typeerror or nonevaluable query
@@ -3208,6 +3216,7 @@ int FTextValueMapGetValueNL_tuplestream( Word* args, Word& result, int message,
   FText* Res      = 0;
   FText* myTypeFT = static_cast<FText*>(args[1].addr);
   FTextValueMapGetValueNL_streamLocalInfo *li;
+  li = static_cast<FTextValueMapGetValueNL_streamLocalInfo*>(local.addr);
   Tuple*          myTuple = 0;
   string valueStr = "";
   Word elem;
@@ -3215,6 +3224,9 @@ int FTextValueMapGetValueNL_tuplestream( Word* args, Word& result, int message,
   switch( message )
   {
     case OPEN:
+      if(li){
+        delete li;
+      }
       li = new FTextValueMapGetValueNL_streamLocalInfo;
       li->finished = true;
       if( myTypeFT->IsDefined() )
@@ -3261,7 +3273,9 @@ int FTextValueMapGetValueNL_tuplestream( Word* args, Word& result, int message,
       return CANCEL;
 
     case CLOSE:
-
+      if(li){
+         delete li;
+      }
       qp->Close(args[0].addr);
       return 0;
   }
@@ -3403,7 +3417,9 @@ int FTextValueMapToObject( Word* args, Word& result, int message,
 //     ((Attribute*)(myRes.addr))->Print(cout); cout << endl;
 //   }
   // Pass the Result
-  result = myRes;
+  qp->DeleteResultStorage(s);
+  qp->ChangeResultStorage(s,myRes); 
+  result = qp->ResultStorage(s);
   return 0;
 }
 
