@@ -4875,7 +4875,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
   {
     case OPEN :
     {
-      const MPoint *mp = (MPoint*)args[4].addr;//4 th parameter
+      const MPoint *mp = (MPoint*)args[5].addr;//5 th parameter
       const UPoint *up1, *up2;
       mp->Get( 0, up1);
       mp->Get( mp->GetNoComponents() - 1, up2);
@@ -4886,7 +4886,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
       localInfo->relation = (Relation*)args[1].addr;
       localInfo->btreehats = (BTree*)args[2].addr;
       localInfo->hats = (Relation*)args[3].addr;
-      localInfo->k = (unsigned)((CcInt*)args[5].addr)->GetIntval();//the last
+      localInfo->k = (unsigned)((CcInt*)args[6].addr)->GetIntval();//the last
       localInfo->scanFlag = true;
       local = SetWord(localInfo);
       if (mp->IsEmpty())
@@ -4980,7 +4980,6 @@ int knearestFilterFun (Word* args, Word& result, int message,
                 if(reachcov < localInfo->k)
                   localInfo->timeTree.insert(se,localInfo->k);
                 }
-
               }
             }else{ //Internal node
                 vector<Interval<Instant> > interv;
@@ -5019,8 +5018,6 @@ int knearestFilterFun (Word* args, Word& result, int message,
 //                          break;
 //                        }
 //                      }
-
-
                       for(unsigned int j = 0;j < interv.size();j++){
                         if(interv[j].Contains(t2) && interv[j].Contains(t1)){
                           cov = covs[j];
@@ -5096,11 +5093,12 @@ int knearestFilterFun (Word* args, Word& result, int message,
           TupleId tid = localInfo->mapit->second;
           Tuple *tuple = localInfo->relation->GetTuple(tid);
 //split units
-          const MPoint *mp = (MPoint*)args[4].addr;//4 th parameter
+          const MPoint *mp = (MPoint*)args[5].addr;//5 th parameter
           const UPoint *up1, *up2;
           mp->Get( 0, up1);
           mp->Get( mp->GetNoComponents() - 1, up2);
-          UPoint* up = (UPoint*)tuple->GetAttribute(3);
+          int attrpos = ((CcInt*)args[7].addr)->GetIntval() - 1;
+          UPoint* up = (UPoint*)tuple->GetAttribute(attrpos);
           Point p0;
           if(up->timeInterval.Contains(up1->timeInterval.start)){
             up->TemporalFunction(up1->timeInterval.start,p0,true);
@@ -5155,15 +5153,25 @@ knearestFilterTypeMap( ListExpr args )
   string rtreeDescriptionStr, relDescriptionStr;
   string argstr, argstr2;
 
-  CHECK_COND(nl->ListLength(args) == 6,
+  CHECK_COND(nl->ListLength(args) == 7,
     "Operator knearest expects a list of length four.");
 
   ListExpr rtreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
   //ListExpr btreeDescription = nl->Third(args);
   //ListExpr brelDescription = nl->Fourth(args);
-  ListExpr queryobject = nl->Fifth(args);
-  ListExpr quantity = nl->Sixth(args);
+  ListExpr attrName = nl->Fifth(args);
+  ListExpr queryobject = nl->Sixth(args);
+  ListExpr quantity = nl->Nth(7,args);
+
+  int j;
+  ListExpr attrType;
+  j = FindAttribute(nl->Second(nl->Second(relDescription)),
+      nl->SymbolValue(attrName),attrType);
+  CHECK_COND( (j>0) && (nl->IsEqual( attrType, "upoint" )),
+  "Operator knearestfilter expects as a fifth argument an attribute"
+  "name, where the attribute is of type upoint\n"
+  "operator knearestfilter gets '" + argstr + "'.");
 
   // check for third argument type == mpoint
   nl->WriteToString(argstr, queryobject);
@@ -5274,29 +5282,35 @@ knearestFilterTypeMap( ListExpr args )
    "Operator knearestfilter: The tuple type of the R-tree\n"
    "differs from the tuple type of the relation.");
 
-  return
-    nl->TwoElemList(
+
+
+  ListExpr res = nl->TwoElemList(
       nl->SymbolAtom("stream"),
       tupleDescription);
+
+  return  nl->ThreeElemList(
+             nl->SymbolAtom("APPEND"),
+             nl->OneElemList(nl->IntAtom(j)),
+            res);
 }
 const string knearestFilterSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>rtree(tuple ((x1 t1)...(xn tn))"
      " ti) x rel1(tuple ((x1 t1)...(xn tn))) x btree(tuple ((x1 t1)...(xn tn)))"
-      " x rel2(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
+      " x rel2(tuple ((x1 t1)...(xn tn))) x xi x mpoint x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))"
       "</text--->"
-      "<text>_ _ _ _ knearestfilter [ _, _ ]</text--->"
+      "<text>_ _ _ _ knearestfilter [_, _, _ ]</text--->"
       "<text>The operator results a stream of all input tuples "
       "which are the k-nearest tupels to the given mpoint. "
       "The operator do not separate tupels if necessary. The "
       "result may have more than the k-nearest tupels. It is a "
       "filter operator for the knearest operator, if there are a great "
       "many input tupels. "
-      "The operator expects a thee dimensional rtree where the "
+      "The operator expects a three dimensional rtree where the "
       "third dimension is the time</text--->"
       "<text>query UTOrdered_RTree UTOrdered btreehats hats knearestfilter "
-      "[train1, 5] count;</text--->"
+      "[UTrip,train1, 5] count;</text--->"
       "))";
 Operator knearestfilter (
          "knearestfilter",        // name
