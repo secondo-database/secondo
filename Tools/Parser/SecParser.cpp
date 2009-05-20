@@ -33,6 +33,7 @@ During implementation of ~xxerror~ this was confusing.
 
 using namespace std;
 
+#include <stdlib.h>
 #include <iostream>
 #include <sstream>
 #include <string>
