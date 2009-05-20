@@ -247,7 +247,6 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize,
   // will avoid to return the same sequence of numbers,
   // unless useSeed is true and both calls provide the
   // same randSeed.
-  cerr << "useSeed = " << useSeed << " randSeed = " << randSeed << '\n';
   static unsigned int randCalls = (time(0) % 1000) * 1000;
   // For some experiments, one would like to get "known" samples.
   // To that end, useSeed can be set to true and an explicit random seed can be
@@ -265,7 +264,6 @@ MakeRandomSubset(vector<int>& result, int subsetSize, int setSize,
     }
     lastWasSeeded = false;
   }
-  cerr << "randCalls = " << randCalls << '\n';
   srand(randCalls);
   if(((double)setSize) / ((double)subsetSize) <= 2)
   {
