@@ -1915,7 +1915,6 @@ struct AggrStackEntry
 
   inline ~AggrStackEntry(){ } // use destroy !!
 
-
   inline void destroy(){
      if(level<0){
         return;
@@ -1949,13 +1948,11 @@ int Streamaggregate(Word* args, Word& result, int message,
   // read the first tuple
   qp->Request( args[0].addr, t1 );
 
-
   if( !qp->Received( args[0].addr ) ){
     // special case: stream is empty
     // use the third argument as result
     ((StandardAttribute*)result.addr)->
       CopyFrom( (const StandardAttribute*)args[2].addr );
-
   } else {
     // nonempty stream, consume it
     stack<AggrStackEntry> theStack;
@@ -2010,7 +2007,6 @@ int Streamaggregate(Word* args, Word& result, int message,
   // close input stream
   qp->Close(args[0].addr);
   return 0;
-
 }
 
 /*
@@ -3849,9 +3845,10 @@ int StreamTailTupleTreamVM(Word* args, Word& result,
       Tuple *restuple = li->GetNextTuple();
       if(!restuple){
         DEBUGMESSAGE("End REQUEST: CANCEL3 "); return CANCEL;
-      } else {
-         restuple->IncReference();  // reference for the stream
       }
+//       else {
+//          restuple->IncReference();  // reference for the stream
+//       }
 
       result.setAddr( restuple );
       DEBUGMESSAGE("End REQUEST: YIELD");
@@ -3915,7 +3912,7 @@ class DataTailLocalInfo: public TailLocalInfo
       Tuple *tuple = GetNextTuple();
       if(tuple){
         Attribute *elem = (tuple->GetAttribute(0))->Copy();
-        //tuple->DeleteIfAllowed();
+        tuple->DeleteIfAllowed();
         return elem;
       } // else: No elem left!
       return static_cast<Attribute*>(0);
