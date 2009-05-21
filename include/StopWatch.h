@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -25,7 +25,7 @@ be computed according to a reference time defined by creation of the object or
 by the start method. Times can be returnd as a double value representing seconds
 or formatted as a string.
 
-July 2004, M. Spiekermann. The class was created as replacement for calss TimeTest. 
+July 2004, M. Spiekermann. The class was created as replacement for calss TimeTest.
 An instance could be used as a clock to measure time differences.
 
 */
@@ -35,22 +35,22 @@ An instance could be used as a clock to measure time differences.
 
 #include <string>
 #include <sys/time.h>
-
+#include <sys/times.h>
 #include "SecondoConfig.h"
 
 using namespace std;
 
 class StopWatch {
 
-     
-  public:	  
+
+  public:
     StopWatch();
     ~StopWatch() {};
-     
+
     // Reset the start time. Differences are computed with respect to this time
     void start();
-          
-    // return the real time difference (now-start) formatted as string 
+
+    // return the real time difference (now-start) formatted as string
     const string diffReal();
 
     // return used CPU time since start formatted as string
@@ -65,15 +65,15 @@ class StopWatch {
     // return times in seconds
     const double diffSecondsReal();
     const double diffSecondsCPU();
-    
+
     const string minutesAndSeconds(const double seconds);
-  
+
   private:
 
 /*
 On windows we have no timeval struct and no gettineofday function. But these could
 be later defined in Winunix.h and implemented via the ~QueryPerformanceCounter~ function
-declared in winbase.h. Code example from 
+declared in winbase.h. Code example from
 
 ----
 http://www.decompile.com/html/windows_timer_api.html
@@ -105,17 +105,20 @@ http://www.decompile.com/html/windows_timer_api.html
 
 */
 
-#ifdef SECONDO_WIN32 
+#ifdef SECONDO_WIN32
     time_t startReal;
     time_t stopReal;
 #else
     timeval startReal;
     timeval stopReal;
 #endif
-    
-    clock_t startCPU; 
-    clock_t stopCPU; 
-        
+
+ //   clock_t startCPU;
+ //   clock_t stopCPU;
+
+      struct tms startCPU;
+      struct tms stopCPU;
 };
 
 #endif
+
