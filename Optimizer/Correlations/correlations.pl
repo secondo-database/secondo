@@ -108,49 +108,46 @@ successfully otherwise it fails.
 
 */
 
-% the last element of list is reached and it unifies with arg1
-% (it means arg1 could be found in arg2) - predicate successful
-% 2tes Arg ist immer eine Liste, also ist diese PredDef falsch und fuehrte zu Fehlern
-% findRelation(SearchFor, Relation ):- % Relation found
-%	set_equal(SearchFor, Relation),
-%	debug_writeln('findRelation 0', [SearchFor, Relation]).
-
-% the list is empty (arg1 should not be found in list before) 
-% (it means arg1 could NOT be found in arg2) - predicate fails
+% just for debugging issues
 findRelation(Relation, [] ):- % Relation not found in list
-	debug_writeln('findRelation 1 - ', Relation, '#'),
+	debug_writeln(findRelation/2, 70, [ Relation, ' could not be found in list' ]),
+	!, % do not call unexpected call
 	fail. 
 
 % the element heading the list is be able to unify with argument one
 % (it means arg1 could be found in arg2) - predicate successful
 findRelation(SearchFor, [ Relation | _ ]):- % Relation found
 	set_equal(SearchFor, Relation),
-	debug_writeln('findRelation 3').
+	debug_writeln(findRelation/2, 71, [ 'found/equals ', SearchFor, ' in/and ', Relation ]).
 
 % the element heading the list couldn't be unified with argument 1, 
 % but the list is not empty
 % try again with the next top element of list
 findRelation(SearchFor, [ _ | Rest ]):-
-	debug_writeln('findRelation 2'),
+	debug_writeln(findRelation/2, 75, [ ' look for ', SearchFor, ' in the rest ', Rest ]),
+	!, % do not call unexpected call
 	findRelation(SearchFor, Rest).
 
-% just for debugging ???
-%findRelation(X,Y):-
-%	% write some details
-%	writeln('findRelation ? - unexpected call (internal error)'),
-%	writeln(X),
-%	writeln(Y),
-%	fail. % the call failed - of course
-
+% unexpected call
+findRelation(A, B):-
+	not(B=[]),
+	error_exit(findRelation/2, [ 'unexpected call with arguments: ', [A, B] ]).
 
 
 % VJO ??? - neu Doku
-set_equal(Set, Set).
-set_equal([Elem1,Elem2], [Elem2,Elem1]).
+set_equal(Set, Set):-
+	debug_writeln(set_equal/2, 81, [ 'lists ', Set, ' and ', Set, ' are equal']).
+% this definition is just for performance issues
+set_equal([Elem1,Elem2], [Elem2,Elem1]):-
+	debug_writeln(set_equal/2, 81, [ 'sets ', [Elem1,Elem2], ' and ', [Elem2,Elem1], ' are equal']).
 set_equal(Set1, Set2):-
 	subset(Set1,Set2),
-	subset(Set2,Set1).
-% VJO to extend, if  join preds with more than two relations are allowed
+	subset(Set2,Set1),
+	debug_writeln(set_equal/2, 81, [ 'sets ', Set1, ' and ', Set2, ' are equal']).
+% just for debugging issues
+set_equal(Set1, Set2):-
+	debug_writeln(set_equal/2, 80, [ 'sets ', Set1, ' and ', Set2, ' are not equal']),
+	fail.
 
 
 /*
@@ -168,21 +165,22 @@ in fact listOfRelations/1.
 % do not add the relation 
 add_relation(Relation):-
 	listOfRelations(ListRelations),
-	debug_writeln('add_relation 1 - ', 
-		Relation, ' // ', ListRelations),
 	%!, % if relation not in list - add_relation 1 have to fail
 	findRelation(Relation , ListRelations),
+	debug_writeln(add_relation/1, 62, [ Relation, ' is still a part of listOfRelations ', ListRelations, ' (do not apped)' ]),
 	!. % if Relation could be found - do not search again
 
 % append list of relations by the given relation
 add_relation(Relation):-
-	debug_writeln('add_relation 2'),
-	listOfRelations(OldList),
+%Q%	listOfRelations(OldList),
 	retract(listOfRelations(OldList)),
 	NewList = [ Relation | OldList ],
 	asserta(listOfRelations(NewList)),
-	debug_writeln('add_relation 2 - ', Relation, ' added'),
+	debug_writeln(add_relation/1, 61, [ ' append listOfRelations ', OldList, ' by ', Relation ]),
 	!.
+% unexpected call
+add_relation(A):-
+	error_exit(add_relation/1, [ 'unexpected call with argument: ', A ]).
 
 /*
 2.4.3 add\_predicate/1
@@ -194,12 +192,15 @@ is stored as argument of fact listOfPredicates/1.
 */
 
 add_predicate(Predicate):-
-	listOfPredicates(OldList),
+%Q%	listOfPredicates(OldList),
 	retract(listOfPredicates(OldList)),
 	NewList = [ Predicate | OldList ],
 	asserta(listOfPredicates(NewList)),
-	debug_writeln('add_predicate 1 - ', Predicate, ' added'),
+	debug_writeln(add_predicate/1, 61, [ ' append listOfPredicates ', OldList, ' by ', Predicate ]),
 	!.
+% unexpected call
+add_predicate(A):-
+	error_exit(add_predicate/1, [ 'unexpected call with argument: ', A ]).
 
 
 /*
@@ -214,38 +215,47 @@ listOfPredicates/1.
 
 */
 build_list_of_predicates:-
-	not(build_list_of_predicates2).
-
-build_list_of_predicates2:-
 	% clean up environment
 	retractall(listOfRelations(_)),
 	retractall(listOfPredicates(_)),
 	asserta(listOfPredicates([])),
 	asserta(listOfRelations([])),
-	!,
+%?%	!, kann dann "unexpected call" noch erreicht werden?
+	% get all Predicates
+	findall([PredIdent,Pr], edge(0,PredIdent,Pr,_,_,_), PredList),
+	debug_writeln(build_list_of_predicates/0, 31, [ 'all predicates added to list ', PredList]),
 	% build list of relations and list of predicates
-	% all edges starting at source of pog
-	edge(0,PredIdent,Pr,_,_,_),
-	build_list_of_predicates3(PredIdent,Pr),
-	fail. % loop for all edges matching edge(0,_,_,_,_,_)
+	build_list_of_predicates2(PredList).
 
-build_list_of_predicates3(PredIdent,Pr):-
-	debug_writeln('new new new'),
-	debug_writeln(
-		'build_list_of_predicates 1 - analyse edge ', Pr),
-	% only select supports selects only currently
-	%replaced by get_predicate_contents: Pr = select( _ , PredExpr ),
+% unexpected call
+build_list_of_predicates:-
+	error_exit(build_list_of_predicates/0, [ 'unexpected call' ]).
+
+build_list_of_predicates2([]):-
+	debug_writeln(build_list_of_predicates2/1, 42, [ 'all predicates evaluated']).
+
+build_list_of_predicates2([ [ PredIdent,Pr ] | Rest ]):-
 	get_predicate_contents(Pr, PredExpr, Relation),
-	% ??? hier wird ein Eingriff noetig, ist Relation wirklich
-	% eindeutig (auch bei SubSelects)? oder besser erstes Arg
-	% von select(...) nutzen
-	% replaced by get_predicate_contents: PredExpr = pr( _ , Relation ),
+	build_list_of_predicates3(PredIdent, PredExpr, Relation),
+	debug_writeln(build_list_of_predicates2/1, 41, [ 'predicate tuple ', [PredIdent,Pr], ' evaluated' ]),
+	build_list_of_predicates2(Rest).
+
+build_list_of_predicates2([ [ PredIdent,Pr ] | Rest ]):-
+	debug_writeln(build_list_of_predicates2/1, 40, [ 'predicate tuple ', [PredIdent,Pr], ' not supported - ignore it']),
+	build_list_of_predicates2(Rest).
+
+% unexpected call
+build_list_of_predicates2(A):-
+	error_exit(build_list_of_predicates2/1, [ 'unexpected call with argument ', A ]).
+
+build_list_of_predicates3(PredIdent, PredExpr, Relation):-
 	% memory structure to store a found predicate
 	PredIdent2 is round(PredIdent),
 	Predicate = [ PredIdent2 , Relation , PredExpr ],
 	% PredIdent is used to ident the predicate in pog
 	% Relation is used to group predicates of a relation
 	% PredExpr is the predicate itself used for predcounts query
+	debug_writeln(build_list_of_predicates3/3, 59, [ 'predicate id ', PredIdent, ' is transformed to ', PredIdent2]),
 	(
 		not(optimizerOption(joinCorrelations)),
 		not(optimizerOption(joinCorrelations2)),
@@ -253,15 +263,22 @@ build_list_of_predicates3(PredIdent,Pr):-
 		->
 		info_continue(
 			build_list_of_predicates3/2,
-			'join predicates not activated - ignore predicate ',
-			Predicate)
+			[ 'join predicates not activated - ignore predicate ',
+			Predicate ])
 		;
 		% add Relation to the listOfRelations
 		add_relation(Relation),
 		% add Predicate to the listOfPredicates
-		add_predicate(Predicate)
+		add_predicate(Predicate),
+		debug_writeln(build_list_of_predicates3/2, 51, [ 'relation ', Relation, ' and predicate ', Predicate, ' was added'])
 	),
 	!.
+
+% unexpected call
+build_list_of_predicates3(A, B):-
+	error_exit(build_list_of_predicates3/2, [ 'unexpected call with arguments ', [ A, B ] ]).
+
+
 
 /*
 2.4.5 get\_predicate\_contents/3
@@ -273,20 +290,22 @@ describing the predicate.
 
 % predicates using just one relation
 get_predicate_contents(Predicate, PredExpr, Relation):-
-  % only select supports selects only currently
-  Predicate = select( _ , PredExpr ),
-  PredExpr = pr( _ , Relation ).
+	% only select supports selects only currently
+	Predicate = select( _ , PredExpr ),
+	PredExpr = pr( _ , Relation ),
+	debug_writeln(get_predicate_contents/3, 61, [ 'select predicate evaluated ', Predicate, ' => ', [PredExpr, Relation]]).
 
 % join predicates
-get_predicate_contents(Predicate, PredExpr, [ Relation1, Relation2 ]):-
-  Predicate = join( _, _, PredExpr ),
-  PredExpr = pr( _ , Relation1, Relation2 ).
+get_predicate_contents(Predicate, PredExpr, Relation):-
+	Predicate = join( _, _, PredExpr ),
+	PredExpr = pr( _ , Relation1, Relation2 ),
+	Relation = [ Relation1, Relation2 ],
+	debug_writeln(get_predicate_contents/3, 62, [ 'join predicate evaluated ', Predicate, ' => ', [PredExpr, Relation]]).
 
 % other unsupported type of predicate
 get_predicate_contents(Predicate, _, _):-
-  writeln('Warning: ignore unsupported type of predicate: ',
-    Predicate),
-  fail.
+	info_continue(get_predicate_contents/3, [ 'unsupported type of predicate ', Predicate, ' - ignore it']),
+	fail.
 
 
 
@@ -386,11 +405,17 @@ build_queries(Queries4):-
 	listOfRelations(RelationList),
 	% build queries
 	build_queries(RelationList, Queries),
+	debug_writeln(build_queries/1, 39, [ 'first list of queries built (contain redundant evaluations)', Queries ]),
 	% remove obsolete queries
 	% joining relations by product is default and can also happen if Option joinCorrelation2 is activated
 	% (if no set of seful join predicates could be found)
 	remove_obsolete_queries(Queries, [], [], QueriesRev),
-	remove_obsolete_queries(QueriesRev, [], [], Queries4).
+	remove_obsolete_queries(QueriesRev, [], [], Queries4),
+	debug_writeln(build_queries/1, 31, [ 'final list of queries built (without redundant evaluations)', Queries4 ]).
+
+% unexpected call
+build_queries(A):-
+	error_exit(build_queries/1, [ 'unexpected call with argument ', A ]).
 
 /*
 3.4.2 remove\_obsolete\_queries/4
@@ -411,13 +436,16 @@ stored as fact listOfRelations/1.
 */
 
 % end of recursion
-remove_obsolete_queries([], _, QueryList, QueryList).
+remove_obsolete_queries([], _, QueryList, QueryList):-
+	debug_writeln(remove_obsolete_queries/4, 41, [ 'end of recursion ', [[], 'unknown', QueryList, QueryList] ]).
+
 % obsolete query -> remove query
 remove_obsolete_queries([ QueryDesc | RQuery ], Keep, RQueryRev, QueryList):-
 	QueryDesc = [ QueryPreds, _, _],
 	subset(QueryPreds, Keep),
-	debug_writeln('remove_obsolete_queries: remove ', QueryDesc),
+	debug_writeln(remove_obsolete_queries/4, 42, [ 'query ', QueryDesc, ' removed' ]),
 	remove_obsolete_queries(RQuery, Keep, RQueryRev, QueryList).
+
 % query still neseccary -> keep query
 remove_obsolete_queries([ QueryDesc | RQuery ], Keep, RQueryRev, QueryList):-
 	QueryDesc = [ QueryPreds, _, _],
@@ -427,11 +455,12 @@ remove_obsolete_queries([ QueryDesc | RQuery ], Keep, RQueryRev, QueryList):-
 		merge_set(QueryPreds, Keep, KeepNew) ;
 		KeepNew = Keep
 	),
-	debug_writeln('remove_obsolete_queries: keep ', [ QueryDesc ]),
+	debug_writeln(remove_obsolete_queries/4, 43, [ 'query ', QueryDesc, ' kept' ]),
 	remove_obsolete_queries(RQuery, KeepNew, [ QueryDesc | RQueryRev ], QueryList).
+
 % unexpected call
 remove_obsolete_queries(A, B, C, D):-
-	error_exit(remove_obsolete_queries/4, 'unexpected call',[A, B, C, D]).
+	error_exit(remove_obsolete_queries/4, ['unexpected call with arguments ',[A, B, C, D]]).
 
 /*
 3.4.3 is\_join\_list/1
@@ -444,10 +473,11 @@ identifiers of join predicates.
 */
 
 % join´predicate is found -> end of recursion
-is_join_list([ [ _ ] | _ ]):-
-	debug_writeln('is_join_list: join detected').
+is_join_list([ [ J ] | _ ]):-
+	debug_writeln(is_join_list/1, 51, [ 'join predicate id ', [J], 'detected' ]).
 % current element isn't a identifier of a join predicate -> continue with next one
-is_join_list([ _ | IdentList]):-
+is_join_list([ NJ | IdentList]):-
+	debug_writeln(is_join_list/1, 59, [ 'predicate id ', NJ, ' is no join']),
 	is_join_list(IdentList).
 	
 
@@ -460,29 +490,48 @@ as first argument.
 */
 
 % end of recursion
-build_queries([], []).
+build_queries([], []):-
+	debug_writeln(build_queries/2, 42, [ 'all queries built' ]).
+
 build_queries([ Relation | RRest], [ Query | QRest]):-
-	debug_writeln('build_queries 2: ', Relation),
+	debug_outln('build_queries 2: ', Relation),
 	% store all Predicates as facts corrPredicate/3
 	deleteCorrPredicates,
 	listOfPredicates(Predicates),
 	storeCorrPredicates(Predicates),
 	% build tupel for relation Relation
 	build_query(Relation, Query),
+	debug_writeln(build_queries/2, 41, [ 'query', Query, ' built for relation ', Relation ]),
 	% recursive call for other relations in list
 	build_queries(RRest, QRest),
 	% remove temporary facts corrPredicate/3
 	deleteCorrPredicates.
 
+% unexpected call
+build_queries(A, B):-
+	error_exit(build_queries/2, ['unexpected call with arguments ', [A, B]]).
+
 % delete temporary facts
 deleteCorrPredicates:-
-	retractall((corrPredicates(_, _, _))).
+	retractall((corrPredicates(_, _, _))),
+	debug_writeln(deleteCorrPredicates/0, 51, ['facts corrPredicate/3 removed']).
+
+% unexpected call
+deleteCorrPredicates:-
+	error_exit(deleteCorrPredicates/0, ['unexpected call']).
 
 % creates temporary facts
-storeCorrPredicates([]).
+storeCorrPredicates([]):-
+	debug_writeln(storeCorrPredicates/1, 52, [ 'all facts corrPredicates/3 stored' ]).
+
 storeCorrPredicates([ [ PredID, PredRel, PredExpr ] | ListOfPredicates ]):-
 	assert((corrPredicates(PredID, PredRel, PredExpr))),
+	debug_writeln(storeCorrPredicates/1, 51, [ 'fact ', corrPredicates(PredID, PredRel, PredExpr), 'stored']),
 	storeCorrPredicates(ListOfPredicates).
+
+% unexpected call
+storeCorrPredicates(A):-
+	error_exit(storeCorrPredicates/1, ['unexpected call with argument ', A]).
 
 /*
 3.4.3 build\_query/2
@@ -492,15 +541,18 @@ for the given relation (argument 1).
 
 */
 
-build_query(Relation, [ PredIdentList , Query , RelPred ]):-
-	set_equal(Relation, RelPred),
-	writeln('build query for relation ', Relation),
+build_query(Relation, [ PredIdentList , Query , Relation ]):-
+%?%build_query(Relation, [ PredIdentList , Query , RelPred ]):-
+%?%	set_equal(Relation, RelPred), unklar wieso - 
 	% build sel and join lists
 	get_join_predicates(Relation, JoinPredicateIDs, JoinPredicates),
+	debug_writeln(build_query/2, 59, [ 'got join predicates ', JoinPredicateIDs, ' for relation ', Relation]),
 	get_sel_predicates(Relation, SelPredicateIDs, _),
+	debug_writeln(build_query/2, 59, [ 'got select predicates ', SelPredicateIDs, ' for relation ', Relation]),
 	!,
 	% build relation expression
 	build_relation_expr(Relation, JoinPredicates, RelationExpr, UsedJoinPredicateIDs),
+	debug_writeln(build_query/2, 59, [ 'relation expression ', RelationExpr, ' built for relation ', Relation, ' using join predicates ', UsedJoinPredicateIDs]),
 	!,
 	% build list of predicate identifiers identifying the predicates
 	% evaluated by predcount operator
@@ -508,18 +560,28 @@ build_query(Relation, [ PredIdentList , Query , RelPred ]):-
 	flatten(JoinPredicateIDs, JoinPredicateIDsTmp),
 	subtract(JoinPredicateIDsTmp, UsedJoinPredicateIDsTmp, UnUsedJoinPredicateIDs),
 	append(SelPredicateIDs, UnUsedJoinPredicateIDs, PCPredicates),
-	debug_writeln('build_query: build predcount expr for predicate ',PCPredicates),
+	debug_writeln(build_query/2, 59, ['predcount expression to be built for predicates ', PCPredicates]),
 	!,
 	% build predcount expression
 	build_predcount_exprs(PCPredicates, PredcountExpr, PredIdentListTmp), 
+	debug_writeln(build_query/2, 59, ['predcount expression built ', PredcountExpr, ' with translation list ', PredIdentListTmp]),
 	% the identifiers of used join predicates are added to
 	% the list of predicate identifiers to support calculate_pog_ident/3
 	% (the idents of used join preds are enclosed by [])
 	append(PredIdentListTmp, UsedJoinPredicateIDs, PredIdentList),
+	debug_writeln(build_query/2, 59, ['final tanslation list is ', PredIdentList]),
 	!,
 	% concatinate string
 	atom_concat('query ', RelationExpr, PredcountExpr,
-		' consume;', '', Query).
+		' consume;', '', Query),
+%?%	debug_writeln(build_query/2, 51, [ 'query tuple ', [ PredIdentList , Query , RelPred ], ' built for relation ', Relation]).
+	debug_writeln(build_query/2, 51, [ 'query tuple ', [ PredIdentList , Query , Relation ], ' built for relation ', Relation]).
+
+
+% unexpected call
+build_query(A, B):-
+	error_exit(build_query/2, ['unexpected call with arguments ', [A,B] ]).
+
 
 
 /*
@@ -546,65 +608,82 @@ build_relation_expr(Relation, JoinPredicates, RelationExpr, SmallestJoinSet):-
         optimizerOption(joinCorrelations2), % nicht Option Kreuzprodukt
 	% if no join predicate exists use product by default
 	not(JoinPredicates=[]),
-	is_list(Relation),
-	debug_writeln('build_relation_expr new (tupel of 2) - ', [ [ Relation1 , Relation2 ] , JoinPredicates ]),
-	%!, no cut here - it is possible, that no join predicate joins two relations
-	% in that case get_all_join_sets/3 fails (that's correct) and a product will be used
-	get_all_join_sets(Relation, JoinPredicates, JoinSets),
-	not(JoinSets=[]),
+%?%	is_list(Relation), wie sollte ein join pred definiert werden ueber eine relationsinstanz
+	%!, no cut here - it is possible, that no set of join predicates joins all relations
+	% in that case get_all_join_sets/3 fails (that's correct) and a product of relations should be used
+	(
+		get_all_join_sets(Relation, JoinPredicates, JoinSets),
+		not(JoinSets=[])
+		->
+		debug_writeln(build_relation_expr/4, 69, [ 'set of possible sets of join predicates for relation ', Relation, ' is ', JoinSets]);
+		debug_writeln(build_relation_expr/4, 69, [ 'no set sufficient join predicates for relation ', Relation, ' found - use product']),
+		fail
+	),
 	!, 
 	get_smallest_join(JoinSets, SmallestJoinSet, _),
+	debug_writeln(build_relation_expr/4, 69, [ 'smallest set of join predicates for relation ', Relation, ' is ', SmallestJoinSet]),
 	!,
 	get_cheapest_path(SmallestJoinSet, CheapestJoinPath),
+	debug_writeln(build_relation_expr/4, 69, [ 'cheapest path of smallest join ', CheapestJoinPath]),
 	!,
 	plan(CheapestJoinPath, CheapestJoinPlan),
+	debug_writeln(build_relation_expr/4, 69, [ 'plan of cheapest path of smallest join ', CheapestJoinPlan]),
 	!,
 	plan_to_atom(CheapestJoinPlan, RelationExpr),
-	debug_writeln('build_relation_expr new: result = ',[RelationExpr]),
+	debug_writeln(build_relation_expr/4, 61, [ '(Option joinCorrelations2 set) relation expression ', RelationExpr, ' built for relation ', Relation, ' using set of join predicates ', SmallestJoinSet]),
 	!.
 
 % if Option correlationsProduct is set or
-% if Option correlationsJoin is set and no useable set of join predicates were found to build the derivated relation
+% if Option correlationsJoin is set and no sufficient set of join predicates were found to build the derivated relation
 %             - applicate operator predcount on a product of relations
 % end of recursion
 build_relation_expr([ LastRelation | [] ], _, RelationExpr, []):-
+	(
+		optimizerOption(joinCorrelations2);
+		optimizerOption(joinCorrelations)
+	),
 	LastRelation = rel(_, _),
-	debug_writeln('build_relation_expr (list) - ', LastRelation),
-	!,
+%?%	!, % keine Wirkung von unexpected call
 	plan_to_atom(LastRelation, RelName), % determine relation
 	% ??? add using of small relation / samples here
 	% build alias if necessary
 	build_alias_string(LastRelation, RelAliasString),
 	atom_concat(' ', RelName, ' feed ', RelAliasString,
-		' ', RelationExpr). % concatinate string
+		' ', RelationExpr), % concatinate string
+	debug_writeln(build_relation_expr/4, 62, [ '(Option joinCorrelations* set) last relation ', LastRelation, ' added as ', RelName, ' with alias ', RelAliasString, ' to product']).
+
 % recursion
-build_relation_expr([ Relation | OtherRelations ], _, RelationExpr, JoinPredicates2):-
+build_relation_expr([ Relation | OtherRelations ], JoinPredicates, RelationExpr, JoinPredicates2):-
+	(
+		optimizerOption(joinCorrelations2);
+		optimizerOption(joinCorrelations)
+	),
 	Relation = rel(_, _),
-	debug_writeln('build_relation_expr (list) - ', Relation),
-	!,
+%?%	!, % keine Wirkung von unexpected call
 	plan_to_atom(Relation, RelName), % determine relation
 	% ??? add using of small relation / samples here
 	% build alias if necessary
 	build_alias_string(Relation, RelAliasString),
 	build_relation_expr(OtherRelations, JoinPredicates, RelationExprTmp, JoinPredicates2),
 	atom_concat(RelationExprTmp, RelName, ' feed ', RelAliasString,
-		' product ', RelationExpr). % concatinate string
+		' product ', RelationExpr), % concatinate string
+	debug_writeln(build_relation_expr/4, 62, [ '(Option joinCorrelations* set) relation ', Relation, ' added as ', RelName, ' with alias ', RelAliasString, ' to product']).
 
 % for singleton relations
 build_relation_expr(Relation, [], RelationExpr, []):-
 	Relation = rel(_, _),
-	debug_writeln('build_relation_expr - ', Relation),
-	!,
+%?%	!, % keine Wirkung von unexpected call
 	plan_to_atom(Relation, RelName), % determine relation
 	% ??? add using of small relation / samples here
 	% build alias if necessary
 	build_alias_string(Relation, RelAliasString),
 	atom_concat(' ', RelName, ' feed ', RelAliasString, 
-		'', RelationExpr). % concatinate string
+		'', RelationExpr), % concatinate string
+	debug_writeln(build_relation_expr/4, 63, [ 'singleton relation ', Relation, ' used as ', RelName, ' with alias ', RelAliasString]).
 
 % unexpected call
 build_relation_expr(A, B, C, D):-
-	error_exit(build_relation_expr/4, 'unexpected call',[A, B, C, D]).
+	error_exit(build_relation_expr/4, ['unexpected call with arguments ',[A, B, C, D]]).
 
 
 
@@ -616,10 +695,20 @@ build_relation_expr(A, B, C, D):-
 
 */
 
-build_alias_string(rel(_,*), ''). % no alias necessary
+build_alias_string(rel(_,*), ''):-
+	Relation = rel(_,*),
+	debug_writeln(build_alias_string/2, 71, [ 'no alias given for relation ', Relation]). % no alias necessary
+
 build_alias_string(rel(_,RelAlias), AliasString):-
+	Relation = rel(_,RelAlias),
         % create alias expression
-	atom_concat(' {', RelAlias, '}', '', '', AliasString).
+	atom_concat(' {', RelAlias, '}', '', '', AliasString),
+	debug_writeln(build_alias_string/2, 72, [ ' alias given for relation ', Relation, ' is ', RelAlias]).
+
+% unexpected call
+build_alias_string(A, B):-
+	error_exit(build_alias_string/2, ['unexpected call with arguments ',[A, B]]).
+
 
 
 /*
@@ -631,7 +720,6 @@ build_alias_string(rel(_,RelAlias), AliasString):-
 */
 
 build_predcount_exprs(Predicates, PredcountString, PredIdentList):-
-	debug_writeln('build_predcount_exprs - ', Relation),
 	% get list of predicates created by part one
 	findall(
 		[PredID, Predicate], 
@@ -641,16 +729,18 @@ build_predcount_exprs(Predicates, PredcountString, PredIdentList):-
 		), 
 		ListOfPredicates
 	),
-	debug_writeln('build_predcount_exprs: for ',[ListOfPredicates]),
-	!,
+	debug_writeln(build_predcount_exprs/3, 69, [ 'list of predicates ', ListOfPredicates, ' for predcount expression ']),
+%?%	!, wegen unexpected call raus
 	% build list of predcounts expression elements and 
 	% predicate translation list
 	build_predcount_expr(ListOfPredicates, PredcountExpr, PredIdentList),
 	atom_concat(' predcounts [ ', PredcountExpr, ' ] ', '', '', 
-		PredcountString).
+		PredcountString),
+	debug_writeln(build_predcount_exprs/3, 61, [ 'predcount expression ', PredcountString, ' and translation list ', PredIdentList, ' for list of predicates ',ListOfPredicates]).
+
 % unexpected call
 build_predcount_exprs(A, B, C):-
-	error_exit(build_predcount_exprs/3, 'unexpected call',[A, B, C]).
+	error_exit(build_predcount_exprs/3, [ 'unexpected call with arguments ',[A, B, C]]).
 
 
 /*
@@ -665,27 +755,29 @@ of the sql predicate to the translation list (argument 4), too.
 */
 
 build_predcount_expr([], '', []):- % end of recursion
-	debug_writeln('build_predcount_expr 0').
+	debug_writeln(build_predcount_expr/3, 72, ['end of recursion']).
 build_predcount_expr([ Predicate | Rest ], PredcountExpr, 
 	PredIdentList):- % used if Predicate use Relation
 	Predicate = [ PredIdentNew, PredExprNew ],
-	% replaced by get_predicate_expression: PredExprNew = pr( PredExpr, _),
 	get_predicate_expression(PredIdentNew, PredExprNew, PredExpr, PredIdent),
-	debug_writeln('build_predcount_expr 1: ', Relation, 
-		' // ', Predicate),
-	!,
+%nur chaos	debug_writeln(build_predcount_expr/3, 79, [ 'using ', [PredIdent,PredExpr], ' for ', [PredIdentNew, PredExprNew]]),
+%?%	!, no longer necessary, because of using of get_predicate_expression/4
 	% recursive call for other predicates in list
 	build_predcount_expr(Rest, PERest, PIRest),
 	%!, % if Predicate does not use Relation add_predcount fails
 	build_predicate_expression(PredIdent, PredExpr, 
 		PredPredcountExpr), 
+	debug_writeln(build_predcount_expr/3, 79, [ 'predcount expression ', PredPredcountExpr, ' for predicate ', Predicate]),
 	build_comma_separated_string(PredPredcountExpr, PERest, 
 		PredcountExpr),
+	debug_writeln(build_predcount_expr/3, 71, [ 'new predcount list expression ', PredcountExpr]),
 	% add predicate identifier of POG to list 
-	PredIdentList = [ PredIdent | PIRest ].
+	PredIdentList = [ PredIdent | PIRest ],
+	debug_writeln(build_predcount_expr/3, 71, [ 'new translation list ', PredIdentList]).
+
 % unexpected call
 build_predcount_expr(A, B, C):-
-	error_exit(build_predcount_expr/3, 'unexpected call',[A, B, C]).
+	error_exit(build_predcount_expr/3, ['unexpected call',[A, B, C]]).
 
 
 /*
@@ -698,17 +790,19 @@ predicates expression.
 
 % predicates using one relation
 get_predicate_expression(Ident, Predicate, PredExpr, Ident):-
-	Predicate = pr( PredExpr, _).
+	Predicate = pr( PredExpr, _),
+	debug_writeln(get_predicate_expression/4, 81, [ 'expression for selection predicate ', PredExpr]).
 % predicates using two relations (join)
 get_predicate_expression(Ident, Predicate, PredExpr, Ident):-
-	Predicate = pr( PredExpr, _, _).
+	Predicate = pr( PredExpr, _, _),
+	debug_writeln(get_predicate_expression/4, 82, [ 'expression for join predicate ', PredExpr]).
 %X01get_predicate_expression(Ident, Predicate, '', [Ident]):-
 %X01	Predicate = pr( _, _, _).
 % unexpected call
 get_predicate_expression(A, B, C, D):-
 	error_exit(get_predicate_expression/4, 
-		'unexpected call (only predicates of form pr/2 and pr/3 supported)',
-		[A, B, C, D]).
+		['unexpected call (only predicates of form pr/2 and pr/3 supported)',
+		[A, B, C, D]]).
 
 /*
 3.4.8 build\_predicate\_expression/3
@@ -720,17 +814,17 @@ expression.
 
 % used for predicates which should not be evaluated by predcount operator
 %X01build_predicate_expression(_, '', ''):-
-%X01	debug_writeln('build_predicate_expression (no expression)').
+%X01	debug_outln('build_predicate_expression (no expression)').
 
 build_predicate_expression(PredIdent, Expression, PredcountExpr):-
 	plan_to_atom(Expression, PredExpr),
 	atom_concat('P', PredIdent, ': ', PredExpr,
 		'', PredcountExpr),
-	debug_writeln('build_predicate_expression/3: ', 
-		[PredIdent, Expression, PredcountExpr]).
+	debug_writeln(build_predicate_expression/3, 81, [ 'built predcount expression ', PredcountExpr, ' for predicate ', [PredIdent, Expression]]). 
+
 % unexpected call
 build_predicate_expression(A, B, C):-
-	error_exit(build_predicate_expression/4, 'unexpected call',[A, B, C]).
+	error_exit(build_predicate_expression/3, [ 'unexpected call with arguments ',[A, B, C]]).
 
 
 
@@ -741,10 +835,15 @@ build_predicate_expression(A, B, C):-
 
 */
 
-build_comma_separated_string('', AtEnd, AtEnd).
-build_comma_separated_string(AtBegin, '', AtBegin).
+build_comma_separated_string('', AtEnd, AtEnd):-
+	debug_writeln(build_comma_separated_string/3, 81, [ 'arguments ', ['', AtEnd], ' result ', AtEnd]).
+build_comma_separated_string(AtBegin, '', AtBegin):-
+	debug_writeln(build_comma_separated_string/3, 81, [ 'arguments ', [AtBegin, ''], ' result ', AtBegin]).
 build_comma_separated_string(AtBegin, AtEnd, NewString):-
-	atom_concat(AtBegin, ',', AtEnd, '', '', NewString).
+	atom_concat(AtBegin, ',', AtEnd, '', '', NewString),
+	debug_writeln(build_comma_separated_string/3, 81, [ 'arguments ', [AtBegin, AtEnd], ' result ', NewString]).
+build_comma_separated_string(A, B, C):-
+	error_exit(build_comma_separated_string/3, [ 'unexpected call with arguments ',[A, B, C]]).
 
 
 /*
@@ -785,19 +884,21 @@ translate\_ident\_bits.
 
 % end of recursion
 calculate_predcounts([], []):-
-	retractall(predcounts_result(_,_)).
+	retractall(predcounts_result(_,_)),
+	debug_writeln(calculate_predcounts/2, 32, [ 'all facts predcounts_result/2 removed' ]).
 calculate_predcounts([[PredIDs , Query , Relation ] | QRest],
 	[PredCount2 | PRest]):-
 	% rekursiv alle predcounts-Plaene betrachten
 	calculate_predcounts(QRest,PRest),
 	!,
 	% predcounts-Plan ausfuehren
-	writeln('calculate predcounts for relations ',Relation,' ... '),
 	secondo(Query, [_|[PredTupels]]),
+	debug_writeln(calculate_predcounts/2, 39, [ 'predcounts result for relations ', Relation, ' is ', PredTupels]),
 	!,
 	% Wert fuer atom in Ergebnistupel in den Wert 
 	% fuer POG uebersetzen
 	translate_ident_bits(PredTupels, PredIDs, PredCount),
+	debug_writeln(calculate_predcounts/2, 39, [ 'translated predcounts results ', PredCount ]),
 	% bei Nutzung von nested-loop statt product ist noch ein Tupel aufzunehmen
 	(
 		optimizerOption(joinCorrelations2), % nicht Kreuzprodukt
@@ -805,18 +906,22 @@ calculate_predcounts([[PredIDs , Query , Relation ] | QRest],
 		% Relation is a list of Relations
 		is_list(Relation)
 		->
-		debug_writeln('calculate_predcounts: add base card for ', Relation),
+		debug_writeln(calculate_predcounts/2, 39, [ 'add number of tuples of product of ', Relation, ', which do not meet the join predicate']),
 		get_card_product(Relation, CardProduct),
+		debug_writeln(calculate_predcounts/2, 39, [ 'cardinality of product of all relations ', Relation, ' is ', CardProduct]),
 		get_sum_tuples(PredCount, SumTuples),
-		PCProduct is CardProduct - SumTuples,
-		PredCount2 = [ [ 0 , PCProduct ] | PredCount ];
+		debug_writeln(calculate_predcounts/2, 39, [ 'sum of all predcount tupels ', PredCount, ' is ', SumTuples]),
+		PCJoin is CardProduct - SumTuples,
+		debug_writeln(calculate_predcounts/2, 39, [ 'number of tuples of product of ', Relation, ', which do not meet the join predicate is ', PCJoin]),
+		PredCount2 = [ [ 0 , PCJoin ] | PredCount ];
 		PredCount2 = PredCount
 	),
 	% speichere predcounts Ergebnisse als Fakt
-	assert(predcounts_result(Relation, PredCount2)).
+	assert(predcounts_result(Relation, PredCount2)),
+	debug_writeln(calculate_predcounts/2, 31, [ 'store relations ', Relation, ' predcounts result ', PredCount2, ' as fact']).
 % unexpected call
 calculate_predcounts(A, B):-
-	error_exit(calculate_predcounts/2, 'unexpected call',[A, B]).
+	error_exit(calculate_predcounts/2, ['unexpected call with arguments ',[A, B]]).
 
 /*
 4.4.2 Helper get_sum_tuples/2
@@ -826,13 +931,15 @@ calculate_predcounts(A, B):-
 */
 
 % end of recursion
-get_sum_tuples([], 0).
+get_sum_tuples([], 0):-
+	debug_writeln(get_sum_tuples/2, 42, ['end of recursion']).
 get_sum_tuples([ [ _ , Count] | Rest ], SumTuplesNew):-
 	get_sum_tuples(Rest, SumTuplesOld),
-	SumTuplesNew is SumTuplesOld + Count.
+	SumTuplesNew is SumTuplesOld + Count,
+	debug_writeln(get_sum_tuples/2, 41, [Count, ' added to ', SumTuplesOld, ' is ', SumTuplesNew]).
 % unexpected call
 get_sum_tuples(A, B):-
-	error_exit(get_sum_tuples/2, 'unexpected call',[A, B]).
+	error_exit(get_sum_tuples/2, ['unexpected call',[A, B]]).
 
 /*
 4.4.2 Helper get_card_product/2
@@ -841,24 +948,29 @@ get_sum_tuples(A, B):-
 
 */
 
-get_card_product([], 0).
+get_card_product([], 0):-
+	debug_writeln(get_card_product/2, 42, [ 'end of recursion']).
 get_card_product(RelationList, CP):-
-	get_card_product2(RelationList, CP).
+	get_card_product2(RelationList, CP),
+	debug_writeln(get_card_product/2, 41, ['product of cardinalities of ', RelationList, ' is ', CP]).
 get_card_product(Relation, Card):-
-	get_card_relation(Relation, Card).
+	get_card_relation(Relation, Card),
+	debug_writeln(get_card_product/2, 43, ['cardinality of ', Relation, ' is ', Card]).
 % unexpected call
 get_card_product(A, B):-
-	error_exit(get_card_product/2, 'unexpected call',[A, B]).	
+	error_exit(get_card_product/2, ['unexpected call',[A, B]]).	
 
 % end of recursion
-get_card_product2([], 1).
+get_card_product2([], 1):-
+	debug_writeln(get_card_product2/2, 52, [ 'end of recursion']).
 get_card_product2([ Relation | Rest ], CPNew):-
 	get_card_relation(Relation, Card),
 	get_card_product2(Rest, CPOld),
-	CPNew is CPOld * Card.
+	CPNew is CPOld * Card,
+	debug_writeln(get_card_product2/2, 51, ['multi old product of cardinalities ', CPOld, ' with ', Card, ' to ', CPNew]).
 % unexpected call
 get_card_product2(A, B):-
-	error_exit(get_card_product2/2, 'unexpected call',[A, B]).
+	error_exit(get_card_product2/2, ['unexpected call',[A, B]]).
 /*
 4.4.2 Helper get_card_relation/2
 
@@ -868,20 +980,24 @@ get_card_product2(A, B):-
 
 get_card_relation(Relation, Card):-
 	get_relationid(Relation, RelationID),
-	resSize(RelationID, Card).
+	resSize(RelationID, Card),
+	debug_writeln(get_card_relation/2, 61, ['cardinality of ', Relation, ' with id ', RelationID, ' is ', Card]).
 
 get_relationid(Relation, RelationID):-
 	node(0, _, RelationList),
-	get_relationid2(Relation, RelationList, RelationID).
+	get_relationid2(Relation, RelationList, RelationID),
+	debug_writeln(get_relationid/2, 71, ['relation id of relation ', Relation, ' is ', RelationID]).
 
 % end of recursion
 get_relationid2(Relation, [ RelDesc | _], RelationID):-
-	RelDesc = arp( RelationID, [ Relation ], _).
+	RelDesc = arp( RelationID, [ Relation ], _),
+	debug_writeln(get_relationid2/3, 82, ['relation id of relation ', Relation, ' is ', RelationID]).
 get_relationid2(Relation, [ _ | Rest], RelationID):-
+	debug_writeln(get_relationid2/3, 81, ['search again in list ', Rest]),
 	get_relationid2(Relation, Rest, RelationID).
 % unexpected call
 get_relationid2(A, B, C):-
-	error_exit(get_relationid2/2, 'unexpected call',[A, B, C]).
+	error_exit(get_relationid2/2, ['unexpected call',[A, B, C]]).
 
 /*
 4.4.2 translate\_ident\_bits/3
@@ -906,10 +1022,11 @@ translate_ident_bits([ InTupel | IRest], TranTab,
 	% Wert fuer Atom in korrespondierenden POG-Wert uebersetzen
 	calculate_pog_ident(InAtom, TranTab, OutAtom),
 	% Zieltupel zusammensetzen
-	OutTupel = [ OutAtom | Count].
+	OutTupel = [ OutAtom | Count],
+	debug_writeln(translate_ident_bits/3, 41, [ 'real id of ', InAtom, ' is ', OutAtom, ' using translation list ', TranTab]).
 % unexpected call
 translate_ident_bits(A, B, C):-
-	error_exit(translate_ident_bits/2, 'unexpected call',[A, B, C]).
+	error_exit(translate_ident_bits/2, ['unexpected call',[A, B, C]]).
 
 
 /*
@@ -921,46 +1038,30 @@ predcounts to the corresponding node identifier of POG.
 */
 
 % end of recursion
-calculate_pog_ident(0, [], 0). % Rekursionsabschluss
+calculate_pog_ident(0, [], 0):- % Rekursionsabschluss
+	debug_writeln(calculate_pog_ident/3, 52, ['end of recursion']).
 calculate_pog_ident(InAtom, [ [ JoinId ] | TRest ], OutAtom):-
-	debug_writeln('calculate_pog_ident: add join ID ', JoinId),
+	debug_outln('calculate_pog_ident: add join ID ', JoinId),
 	calculate_pog_ident(InAtom, TRest, OutAtom2),
-	OutAtom is OutAtom2 + JoinId.
+	OutAtom is OutAtom2 + JoinId,
+	debug_writeln(calculate_pog_ident/3, 53, ['add join id ', JoinId, ' to id => new id ', OutAtom]).
 calculate_pog_ident(InAtom, [ TranElem | TRest ], OutAtom):-
 	% mod = Ganzzahl; restliche Bits
 	IRest is InAtom // 2,
 	IBit is InAtom - ( 2 * IRest), 
 	calculate_pog_ident(IRest, TRest, ORest), 
 	OBit is IBit * TranElem,
-	OutAtom is ORest + OBit.
+	OutAtom is ORest + OBit,
+	debug_writeln(calculate_pog_ident/3, 51, ['???VJO???']).
 % unexpected call
 calculate_pog_ident(A, B, C):-
-	error_exit(calculate_pog_ident/2, 'unexpected call',[A, B, C]).
+	error_exit(calculate_pog_ident/2, ['unexpected call',[A, B, C]]).
 /*
 4 Implementation of interfaces for SecondoPL
 
 4.1 Overview
 
 */
-
-lowest_bitmask(Value, _):-
-	Value =:= 0,
-	writeln('Error: lowest_bitmask: Value can not be 0!').
-lowest_bitmask(Value, LowestMask):-
-	number(Value),
-	ValueInt is round(Value),
-	lowest_bitmask(1, ValueInt, LowestMask).
-lowest_bitmask(Mask, Value, _):-
-	Mask > Value,
-	writeln('Error: lowest_bitmask: Mask is greater than Value!',[Mask, Value]).
-lowest_bitmask(Mask, Value, LowestMask):-
-	X is Value /\ Mask,
-	X =:= Mask,
-	LowestMask = Mask.
-lowest_bitmask(Mask, Value, LowestMask):-
-	MaskNeu is Mask << 1,
-	lowest_bitmask(MaskNeu, Value, LowestMask).
-
 
 /*
 4.4.24 feasible/4
@@ -1754,7 +1855,7 @@ understanding of the main code.
 
 1.1 debug\_write
 
-----    debug_write(Message)
+----    debug_writeln(Message)
 ----
 
   The predicate debug\_write writes the given message to 
@@ -1764,7 +1865,7 @@ if the fact debug\_level(X) with X greater then 0 is set.
 
 */
 
-debug_write(_):- % if X=0 then no debugging messages  
+debug_out(_):- % if X=0 then no debugging messages  
    % if fact debug_level is not set retract fails
    retract((debug_level(X))),
    % reassert the fact
@@ -1773,7 +1874,7 @@ debug_write(_):- % if X=0 then no debugging messages
    X=0,
    !.
 % write debugging messages without concated newline
-debug_write(Message):-
+debug_out(Message):-
    % if fact debug_level is not set retract fails
    retract((debug_level(X))),
    % reassert the fact
@@ -1783,20 +1884,20 @@ debug_write(Message):-
    % write debug message
    write(Message),
    !.
-debug_write(_).       % in any other case ignore call of debug_write
+debug_out(_).       % in any other case ignore call of debug_write
 
 /*
-1.2 debug\_writeln
+1.2 debug\_outln
 
-----    debug_writeln(message)
-        debug_writeln(Msg1, Msg2)
-        debug_writeln(Msg1, Msg2, Msg3)
-        debug_writeln(Msg1, Msg2, Msg3, Msg4)
-        debug_writeln(Msg1, Msg2, Msg3, Msg4, Msg5)
-        debug_writeln(Msg1, Msg2, Msg3, Msg4, Msg5, Msg6)
+----    debug_outln(message)
+        debug_outln(Msg1, Msg2)
+        debug_outln(Msg1, Msg2, Msg3)
+        debug_outln(Msg1, Msg2, Msg3, Msg4)
+        debug_outln(Msg1, Msg2, Msg3, Msg4, Msg5)
+        debug_outln(Msg1, Msg2, Msg3, Msg4, Msg5, Msg6)
 ----
 
-  The predicates debug\_writeln write the given message(s) to the 
+  The predicates debug\_outln write the given message(s) to the 
 screen. The
 given message(s) are concatinated without any delimiter but a newline
 will be appended behind??? the last message. The message(s) are only 
@@ -1805,7 +1906,7 @@ written if the fact debug\_level(X) with X greater then 0 is set.
 */
 
 % if X=0 then no debugging messages
-debug_writeln(_):-
+debug_outln(_):-
    % if fact debug_level is not set retract fails
    retract((debug_level(X))),
    % reassert the fact
@@ -1814,14 +1915,78 @@ debug_writeln(_):-
    X=0,
    !.
 % write debugging messages concated newline
-debug_writeln(Message):-
+debug_outln(Message):-
    retract((debug_level(X))),
    assert((debug_level(X))),
    X > 0,
-   debug_write(Message),
+   debug_out(Message),
    writeln(''),
    !.
-debug_writeln(_).
+debug_outln(_).
+
+check_debug_level(LevelPred):-
+   % if fact debug_level is not set retract fails
+   retract((debug_level(LevelSet))),
+   % reassert the fact
+   assert((debug_level(LevelSet))),
+   % check level
+   LevelPred =< LevelSet,
+   !.
+
+check_debug_list(Pred):-
+   % if fact debug_level is not set retract fails
+   retract((debug_list(DebugPredList))),
+   % reassert the fact
+   assert((debug_list(DebugPredList))),
+   % check set predicates
+   (
+   	member(all, DebugPredList),
+	not(member(-Pred, DebugPredList));
+	member(+Pred, DebugPredList)
+   ),
+   !.
+
+debug_writeln(Pred, Level, MessageList):-
+	% check whether the message has to be written or not
+	(
+		check_debug_level(Level);
+		check_debug_list(Pred)
+	),
+	write_list(['DEBUG(', Level, '): ', Pred, ': ']),
+	write_list(MessageList),
+	nl,
+	!.
+
+debug_writeln(Pred, Level, _):-
+	not(
+		check_debug_level(Level);
+		check_debug_list(Pred)
+	).
+
+%debug_writeln(_, _, _).
+
+write_list([]).
+write_list([ nl | Rest ]):-
+	nl,
+	write_list(Rest).
+%write_list([ SubList | Rest ]):-
+%	SubList = [ _ | _ ],
+%	writeln('['),
+%	write_sub_list('   ', SubList),
+%	write(']'),
+%	write_list(Rest).
+write_list([ Atom | Rest ]):-
+	write(Atom),
+	write_list(Rest).
+write_list(Atom):-
+	write(Atom).
+	
+write_sub_list(Head, [ Atom | [] ]):-
+	writeln(Head, Atom).
+write_sub_list(Head, [ Atom | Rest ]):-
+	writeln(Head, Atom),
+	write_sub_list(Head, Rest).
+
 
 /* 
   The following three predicates write two up to four messages 
@@ -1830,39 +1995,39 @@ using the predicates debug\_write/1 and debug\_writeln/1
 */
 
 % write two messages
-debug_writeln(Msg1,Msg2):-
-   debug_write(Msg1),
-   debug_writeln(Msg2).
+debug_outln(Msg1,Msg2):-
+   debug_out(Msg1),
+   debug_outln(Msg2).
 
 %write three messages
-debug_writeln(Msg1,Msg2,Msg3):-
-   debug_write(Msg1),
-   debug_write(Msg2),
-   debug_writeln(Msg3).
+debug_outln(Msg1,Msg2,Msg3):-
+   debug_out(Msg1),
+   debug_out(Msg2),
+   debug_outln(Msg3).
 
 % write four messages
-debug_writeln(Msg1,Msg2,Msg3,Msg4):-
-   debug_write(Msg1),
-   debug_write(Msg2),
-   debug_write(Msg3),
-   debug_writeln(Msg4).
+debug_outln(Msg1,Msg2,Msg3,Msg4):-
+   debug_out(Msg1),
+   debug_out(Msg2),
+   debug_out(Msg3),
+   debug_outln(Msg4).
 
 % write five messages
-debug_writeln(Msg1,Msg2,Msg3,Msg4,Msg5):-
-   debug_write(Msg1),
-   debug_write(Msg2),
-   debug_write(Msg3),
-   debug_write(Msg4),
-   debug_writeln(Msg5).
+debug_outln(Msg1,Msg2,Msg3,Msg4,Msg5):-
+   debug_out(Msg1),
+   debug_out(Msg2),
+   debug_out(Msg3),
+   debug_out(Msg4),
+   debug_outln(Msg5).
 
 % write six messages
-debug_writeln(Msg1,Msg2,Msg3,Msg4,Msg5,Msg6):-
-   debug_write(Msg1),
-   debug_write(Msg2),
-   debug_write(Msg3),
-   debug_write(Msg4),
-   debug_write(Msg5),
-   debug_writeln(Msg6).
+debug_outln(Msg1,Msg2,Msg3,Msg4,Msg5,Msg6):-
+   debug_out(Msg1),
+   debug_out(Msg2),
+   debug_out(Msg3),
+   debug_out(Msg4),
+   debug_out(Msg5),
+   debug_outln(Msg6).
 
 /*
 1.3 atom\_concat/6
@@ -1937,8 +2102,11 @@ writeln(Msg1, Msg2, Msg3, Msg4, Msg5, Msg6):-
 
 % VJO new part
 addCorrelationSizes:-
-        writeln('build list of predicates...'),
 	build_list_of_predicates,
+	listOfRelations(ListOfRelations),
+        debug_writeln(addCorrelationSizes/0, 9, ['list of relations built ', ListOfRelations]),
+	listOfPredicates(ListOfPredicates),
+        debug_writeln(addCorrelationSizes/0, 9, ['list of predicates built ', ListOfPredicates]),
 	!,
 	% for testing purposes
 	%writeln('add relation set of 3 relations'),
@@ -1946,171 +2114,206 @@ addCorrelationSizes:-
 	%append(R,[[rel(ten, a), rel(ten, *), rel(ten, b)]],Rnew),
 	%assert((listOfRelations(Rnew))),
 	!,
-	writeln('build predcount queries...'),
 	build_queries(Queries),
+	debug_writeln(addCorrelationSizes/0, 9, ['predcount queries built ', Queries]),
 	!,
-	writeln('calculate predcount results...'),
 	calculate_predcounts(Queries, PCResults),
+	debug_writeln(addCorrelationSizes/0, 9, ['predcount results calculated ', PCResults]),
 	!,
-	writeln('correct node ids...'),
 	correct_nodeids(PCResults, PCResultsNew),
+	debug_writeln(addCorrelationSizes/0, 9, ['node ids corrected ', PCResultsNew]),
 	!,
 	retractall((corrCummSel(_, _))),
-	writeln(PCResultsNew),
-	writeln('create edge selectivities...'),
 	!,
 	createEdgeSelectivities(PCResultsNew),
+	debug_writeln(addCorrelationSizes/0, 9, ['edgeSelectivities/3 and resultSize/2 of POG updated']),
 	!.
 
 % dann kommt correlations feasible
 
 createEdgeSelectivities([]):-
-	removePCResults.
+	removePCResults,
+	debug_writeln(createEdgeSelectivities/1, 32, ['end of recursion']).
 createEdgeSelectivities([ TupleList | RList ]):-
-	debug_writeln('createEdgeSelectivities: use tuple list ', TupleList),
+	debug_writeln(createEdgeSelectivities/1, 39, ['evaluate predcounts results ', TupleList]),
 	% predcount Tupel in Fakten storedPCTuple/2 mit korrigierten Count-Werten umsetzen
 	removePCResults,
+	debug_writeln(createEdgeSelectivities/1, 39, ['predcount results facts removed']),
 	storePCResults(TupleList, TupleList),
+	debug_writeln(createEdgeSelectivities/1, 39, ['predcount results ', TupleList, ' stored as facts']),
 	!,
 	% aus PCResults fuer Option entropy die kummulierten Sels berrechnen und als corrCummSel/2 speichern
 	storeCummSel,
+	debug_writeln(createEdgeSelectivities/1, 39, ['edgeSelectivities based on predcounts results calculated']),
 	!,
 	% aus storedPCTuple/2 die Fakten edgeSelectivity/3 und resultSize/2 berechnen (?nur ohne Option entropy?)
 	storeCorrelationSizes(TupleList, TupleList), % resSize, edgeSel nur ohne entropy
+	debug_writeln(createEdgeSelectivities/1, 31, ['facts edgeSelectivity/3 and resultSize/2 of POG updated']),
 	!,
 	%createEdgeSelectivities2(TupleList, TupleList), % resSize, edgeSel nur ohne entropy
 	% Ergebnis der naechsten query verarbeiten
 	createEdgeSelectivities(RList).
 
-storeCorrelationSizes([], _).
+storeCorrelationSizes([], _):-
+	debug_writeln(storeCorrelationSizes/2, 42, ['end of recursion']).
 storeCorrelationSizes([ [ NodeID , _ ] | RList ], TupleList):-
 	% reale Kardinalitaet des ResultSets der Node ermitteln
 	storedPCTuple(NodeID, CorrectCard),
 	% resultSize/2 eintragen oder korrigieren
 	resetNodeSize(NodeID, CorrectCard),
+	debug_writeln(storeCorrelationSizes/2, 41, ['update cardinality of node ', NodeID, ' to ', CorrectCard]),
 	% edgeSelectivity/3 fuer Kanten zur Node NodeID speichern oder korrigieren
 	storeCorrEdgeSelectivity(NodeID),
+	debug_writeln(storeCorrelationSizes/2, 41, ['update edgeSelectivity/3 of edges to node ', NodeID]),
 	%createEdgeSelectivities3(NodeID, CorrectCard, NodeID),
 	storeCorrelationSizes(RList, TupleList).
+% unexpected call
 storeCorrelationSizes(A, B):-
-	writeln('Fehler: ', [A,B]).
+	error_exit(storeCorrelationSizes/2, ['unexpected call',[A, B]]).
 
 % zwei Fakten zum besseren Lesen
-storeCorrEdgeSelectivity(0). % nichts tun
-storeCorrEdgeSelectivity(0.0). % nichts tun
+storeCorrEdgeSelectivity(0):- % nichts tun
+	debug_writeln(storeCorrEdgeSelectivity/1, 52, ['do nothing for node 0']).
+storeCorrEdgeSelectivity(0.0):- % nichts tun
+	debug_writeln(storeCorrEdgeSelectivity/1, 52, ['do nothing for node 0.0']).
 storeCorrEdgeSelectivity(NodeID):-
 	findall(PrevNodeID, edge(PrevNodeID, NodeID, _, _, _, _), PrevNodeIDs),
-	storeCorrEdgeSelectivity2(NodeID, PrevNodeIDs).
+	debug_writeln(storeCorrEdgeSelectivity/1, 59, ['previous nodes of node ', NodeID, ' are ', PrevNodeIDs]),
+	storeCorrEdgeSelectivity2(NodeID, PrevNodeIDs),
+	debug_writeln(storeCorrEdgeSelectivity/1, 51, ['edgeSelectivity/3 of all edges updated/inserted to node ', NodeID, ' from ', PrevNodeIDs]).
 
-storeCorrEdgeSelectivity2(_, []).
+storeCorrEdgeSelectivity2(_, []):-
+	debug_writeln(storeCorrEdgeSelectivity2/2, 62, ['end of recursion']).
 storeCorrEdgeSelectivity2(NodeID, [ PrevNodeID | PrevNodeIDs ]):-
 	storedPCTuple(NodeID, NodeCard),
 	storeCorrEdgeSelectivity3(PrevNodeID, NodeID, NodeCard),
+	debug_writeln(storeCorrEdgeSelectivity2/2, 61, ['edgeSelectivity/3 of edge (', PrevNodeID,',',NodeID,') upserted']),
 	storeCorrEdgeSelectivity2(NodeID, PrevNodeIDs).
 
-resetNodeSize(0, _). % is still the correct size
-resetNodeSize(0.0, _). % is still the correct size
+resetNodeSize(0, _):- % is still the correct size
+	debug_writeln(resetNodeSize/2, 52, ['node size of node 0 is still correct']).
+resetNodeSize(0.0, _):- % is still the correct size
+	debug_writeln(resetNodeSize/2, 52, ['node size of node 0.0 is still correct']).
 resetNodeSize(NodeID, Size) :- 
 	resultSize(Node,_),
 	Node=:=NodeID, % wegen int und real-Mischung!
 	retract((resultSize(Node,_))),
-	setNodeSize(Node, Size).
+	setNodeSize(Node, Size),
+	debug_writeln(resetNodeSize/2, 51, ['size of node ', Node, ' updated to ', Size]).
 resetNodeSize(NodeID, Size) :- 
 	Node is NodeID + 0.0, % NodeID has to be real
-	setNodeSize(Node, Size).
+	setNodeSize(Node, Size),
+	debug_writeln(resetNodeSize/2, 53, ['size ', Size, ' of node ', Node, ' inserted']).
 
 storeCorrEdgeSelectivity3(PrevNodeID, NodeID, NodeCard):-
 	storedPCTuple(PrevNodeID, PrevNodeCard), % Card ist bereits korrigiert
-	storeCorrEdgeSelectivity4(PrevNodeID, NodeID, PrevNodeCard, NodeCard).
-storeCorrEdgeSelectivity3(_, _, _).
+	storeCorrEdgeSelectivity4(PrevNodeID, NodeID, PrevNodeCard, NodeCard),
+	debug_writeln(storeCorrEdgeSelectivity3/3, 71, ['edgeSelectivity/3 of edge (', [PrevNodeID,NodeID], ') using ', [PrevNodeCard, NodeCard]]).
+storeCorrEdgeSelectivity3(PrevNodeID, NodeID, _):-
+	debug_writeln(storeCorrEdgeSelectivity3/3, 72, ['ignore edge ',[PrevNodeID,NodeID]]).
 
 removeEdgeSelectivity(0, NodeID):-
 	NodeIDreal is NodeID + 0.0,
 	%retractall((corrEdgeSelectivity(0, NodeIDreal, _))),
-	retractall((edgeSelectivity(0, NodeIDreal, _))).
+	retractall((edgeSelectivity(0, NodeIDreal, _))),
+	debug_writeln(removeEdgeSelectivity/2, 91, ['edgeSelectivity/3 of edge (', [0, NodeIDreal], ') removed']).
 removeEdgeSelectivity(PrevNodeID, NodeID):-
 	% for real nodes
 	PrevNodeIDreal is PrevNodeID + 0.0,
 	NodeIDreal is NodeID + 0.0,
 	%retractall((corrEdgeSelectivity(PrevNodeIDreal, NodeIDreal, _))),
-	retractall((edgeSelectivity(PrevNodeIDreal, NodeIDreal, _))).
+	retractall((edgeSelectivity(PrevNodeIDreal, NodeIDreal, _))),
+	debug_writeln(removeEdgeSelectivity/2, 92, ['edgeSelectivity/3 of edge (', [PrevNodeIDreal, NodeIDreal], ') removed']).
 
 
 
 storeCorrEdgeSelectivity4(PrevNodeID, NodeID, 0, _):-
 	removeEdgeSelectivity(PrevNodeID, NodeID),
-	debug_writeln('storeCorrEdgeSelectivity4(1): store ',[PrevNodeID, NodeID]),
-	storeCorrEdgeSelectivity5(PrevNodeID, NodeID, 1).
+	storeCorrEdgeSelectivity5(PrevNodeID, NodeID, 1),
+	debug_writeln(storeCorrEdgeSelectivity4/4, 82, ['edgeSelectivity(', [PrevNodeID, NodeID, 1], ') stored']).
 
 storeCorrEdgeSelectivity4(PrevNodeID, NodeID, _, 0):-
 	removeEdgeSelectivity(PrevNodeID, NodeID),
-	debug_writeln('storeCorrEdgeSelectivity4(2): store ',[PrevNodeID, NodeID]),
-	storeCorrEdgeSelectivity5(PrevNodeID, NodeID, 0).
+	storeCorrEdgeSelectivity5(PrevNodeID, NodeID, 0),
+	debug_writeln(storeCorrEdgeSelectivity4/4, 83, ['edgeSelectivity(', [PrevNodeID, NodeID, 0], ') stored']).
 
 storeCorrEdgeSelectivity4(PrevNodeID, NodeID, PrevNodeCard, NodeCard):-
 	removeEdgeSelectivity(PrevNodeID, NodeID),
 	EdgeSel is NodeCard / PrevNodeCard,
-	debug_writeln('storeCorrEdgeSelectivity4(3): store ',[PrevNodeID, NodeID, EdgeSel]),
-	storeCorrEdgeSelectivity5(PrevNodeID, NodeID, EdgeSel).
+	storeCorrEdgeSelectivity5(PrevNodeID, NodeID, EdgeSel),
+	debug_writeln(storeCorrEdgeSelectivity4/4, 81, ['edgeSelectivity(', [PrevNodeID, NodeID, EdgeSel], ') stored']).
 
 storeCorrEdgeSelectivity5(0, NodeID, EdgeSel):-
 	% for real nodes
 	NodeIDreal is NodeID + 0.0,
-	assert((edgeSelectivity(0, NodeIDreal, EdgeSel))).
+	assert((edgeSelectivity(0, NodeIDreal, EdgeSel))),
+	debug_writeln(storeCorrEdgeSelectivity5/3, 92, ['edgeSelectivity(', [0, NodeIDreal, EdgeSel], ') asserted']).
 	
 storeCorrEdgeSelectivity5(PrevNodeID, NodeID, EdgeSel):-
 	% for real nodes
 	PrevNodeIDreal is PrevNodeID + 0.0,
 	NodeIDreal is NodeID + 0.0,
-	assert((edgeSelectivity(PrevNodeIDreal, NodeIDreal, EdgeSel))).
+	assert((edgeSelectivity(PrevNodeIDreal, NodeIDreal, EdgeSel))),
+	debug_writeln(storeCorrEdgeSelectivity5/3, 91, ['edgeSelectivity(', [PrevNodeIDreal, NodeIDreal, EdgeSel], ') asserted']).
 	
 storeCummSel:-
 	storedPCTuple(0, BaseCard),
 	% fuer alle Nodes die Kummulierte Sel speichern
 	findall([NodeID, NodeCard], storedPCTuple(NodeID, NodeCard), NodeCards),
-	storeCummSel2(BaseCard, NodeCards).
+	storeCummSel2(BaseCard, NodeCards),
+	debug_writeln(storeCummSel/0, 41, ['joint selectivity of all nodes tuples ', NodeCards, ' stored']).
 
-storeCummSel2(BaseCard, []).
+storeCummSel2(_, []):-
+	debug_writeln(storeCummSel2/2, 52, ['end of recursion']).
 storeCummSel2(BaseCard, [ [ NodeID, NodeCard ] | NodeCards ]):-
-	debug_writeln('storeCummSel2: ',[NodeID, NodeCard, BaseCard]),
 	storeCummSel3(NodeID, NodeCard, BaseCard),
+	debug_writeln(storeCummSel2/2, 51, ['joint selectivity of node ', NodeID, ' calculated using cardinalities ', [NodeCard, BaseCard]]),
 	storeCummSel2(BaseCard, NodeCards).
 
 storeCummSel3(NodeID, _, 0.0):-
-	storeCummSel3(NodeID, _, 0).
+	storeCummSel3(NodeID, _, 0),
+	debug_writeln(storeCummSel3/3, 52, ['use storeCummSel3(', [NodeID, unset, 0], ')']).
 storeCummSel3(NodeID, _, 0):-
 	retractall((corrCummSel(NodeID, _))),
-	assert((corrCummSel(NodeID, 1))).
+	assert((corrCummSel(NodeID, 1))),
+	debug_writeln(storeCummSel3/3, 53, ['cardinality of base node is 0 - corrCummSel(', [NodeID, 1],') asserted']).
 storeCummSel3(NodeID, NodeCard, BaseCard):-
 	CummSel is NodeCard / BaseCard,
-	storeCummSel(NodeID, CummSel).
+	storeCummSel(NodeID, CummSel),
+	debug_writeln(storeCummSel3/3, 52, ['corrCummSel(', [NodeID, 1], ') asserted']).
 
 storeCummSel(NodeID, CummSel):-
 	retractall((corrCummSel(NodeID, _))),
 	assert((corrCummSel(NodeID, CummSel))).
 
 removePCResults:-
-	retractall((storedPCTuple(_, _))).
+	retractall((storedPCTuple(_, _))),
+	debug_writeln(removePCResults/0, 41, ['facts storedPCTuple/2 removed']).
 
-storePCResults([], _).
+storePCResults([], _):-
+	debug_writeln(storePCResults/2, 42, ['end of recursion']).
 storePCResults([ [ NodeID, _ ] | RList ], PCList):-
 	correctNodeCard(NodeID, PCList, CorrectCard),
 	!,
-	debug_writeln('storePCResults: store ',[NodeID, CorrectCard]),
 	assert((storedPCTuple(NodeID, CorrectCard))),
+	debug_writeln(storePCResults/2, 41,['corrected node cardinality ', CorrectCard, ' asserted for node ', NodeID, ' as fact storedPCTuple/2']),
 	!,
 	storePCResults(RList, PCList).
 
-correctNodeCard(_, [], 0).
+correctNodeCard(_, [], 0):-
+	debug_writeln(correctNodeCard/3, 52, ['end of recursion']).
 correctNodeCard(NodeID, [ [ NID , NC ] | RList ], NewCard):-
 	correctNodeCard(NodeID, RList, OldCard),
 	getAdjustment(NodeID, NID, NC, Adjustment),
-	NewCard is OldCard + Adjustment.
+	NewCard is OldCard + Adjustment,
+	debug_writeln(correctNodeCard/3, 51, ['cardinality of node ', NodeID, ' adjusted by ', Adjustment]).
 
 getAdjustment(NodeID, NID, NC, Adjustment):-
 	equals_and(NodeID, NID, NodeID),
-	Adjustment = NC.
-getAdjustment(_, _, _, 0).
+	Adjustment = NC,
+	debug_writeln(getAdjustment/4, 61, ['adjustment ', Adjustment, ' of node ', NID, ' for node ', NodeID]).
+getAdjustment(NodeID, NID, _, 0):-
+	debug_writeln(getAdjustment/4, 61, ['no adjustment of node ', NID, ' for node ', NodeID]).
 
 	
 
@@ -2148,7 +2351,7 @@ renormAllCummSels:-
 	renormAllCummSels2(BaseSel, HN).
 
 renormAllCummSels2(1, _).
-renormAllCummSels2(BaseSel, NodeID):-
+renormAllCummSels2(_, NodeID):-
 	NodeID < 0.
 renormAllCummSels2(BaseSel, NodeID):-
 	renormAllCummSel(BaseSel, NodeID),
@@ -2161,7 +2364,7 @@ renormAllCummSel(BaseSel, NodeID):-
 	retract((corrCummSel(NodeID2, CummSel))),
 	CummSelNew is CummSel / BaseSel,
 	assert((corrCummSel(NodeID2, CummSelNew))),
-	debug_writeln('renormAllCummSel: ',[NodeID2, CummSel, CummSelNew]).
+	debug_outln('renormAllCummSel: ',[NodeID2, CummSel, CummSelNew]).
 
 loadMarginalSels(CorrectedMarginalPreds):-
 	findall(PredID, corrMarginalSel(PredID, _), MarginalPredIDs),
@@ -2210,7 +2413,7 @@ corrFeasible2(NodeID):-
 	% falls Betrachtung indirekter Vorgaenger noetig wird,
 	% erfolgt dies durch indirekte Rekursion in correct1Selectivity/2
 	findall(PrevNodeID, edge(PrevNodeID, NodeID, _, _, _, _), PrevNodeIDs),
-	debug_writeln('corrFeasible2: check previous nodes ',[ NodeID, PrevNodeIDs]),
+	debug_outln('corrFeasible2: check previous nodes ',[ NodeID, PrevNodeIDs]),
 	corrFeasible3(NodeID, PrevNodeIDs),
 	NextNodeID is NodeID - 1,
 	!,
@@ -2224,15 +2427,15 @@ corrFeasible3(NodeID, [ PrevNodeID | Rest ]):-
 correct0Selectivity(NodeID):-
 	corrCummSel(NodeID, CummSel),
 	CummSel > 0,
-	debug_writeln('correct0Selectivity(1): keep ', [NodeID, CummSel]).
+	debug_outln('correct0Selectivity(1): keep ', [NodeID, CummSel]).
 correct0Selectivity(NodeID):-
-	corrCummSel(NodeID, CummSel),
-	debug_writeln('correct0Selectivity(2): to increase ',NodeID),
+	corrCummSel(NodeID, _),
+	debug_outln('correct0Selectivity(2): to increase ',NodeID),
 	% jede VorgaengerNode hat kleinere ID!
 	increaseSelectivityRecursive(NodeID, NodeID).
 % dann ist nichts zu korrigieren
 correct0Selectivity(NodeID):-
-	not(corrCummSel(NodeID, CummSel)).
+	not(corrCummSel(NodeID, _)).
 correct0Selectivity(NodeID):-
 	error_exit(correct0Selectivity/1, 'unexpected call',[NodeID]).
 
@@ -2241,14 +2444,14 @@ correct1Selectivity(PrevNodeID,NodeID):-
 	corrCummSel(PrevNodeID, PrevCummSel),
 	% dann ist die Selektivitaet der Kante kleiner als 1
 	CummSel < PrevCummSel,
-	debug_writeln('correct1Selectivity(1): keep ', [PrevNodeID,NodeID,CummSel,PrevCummSel]).
+	debug_outln('correct1Selectivity(1): keep ', [PrevNodeID,NodeID,CummSel,PrevCummSel]).
 correct1Selectivity(PrevNodeID,NodeID):-
 	corrCummSel(NodeID, CummSel),
 	corrCummSel(PrevNodeID, CummSel),
 	% 10^-19 = Delta is CummSel - PrevCummSel,
 	%writeln('correct1Selectivity(2): to increase check delta ',[CummSel,PrevCummSel,Delta]),
 	% Kante mit Selektivitaet 0 gefunden
-	debug_writeln('correct1Selectivity(2): to increase ', [PrevNodeID,NodeID,CummSel]),
+	debug_outln('correct1Selectivity(2): to increase ', [PrevNodeID,NodeID,CummSel]),
 	% alle Vorgaengerknoten erhoehen
 	increaseSelectivityRecursive(PrevNodeID,PrevNodeID).
 correct1Selectivity(PrevNodeID,NodeID):-
@@ -2271,17 +2474,17 @@ correct1Selectivity(PrevNodeID,NodeID):-
 % dann pruefen, ob sie fuer indirekte Vorgaegner bekannt sind
 % (Suche nur bis bekannten gefunden)
 correct1Selectivity(PrevNodeID,NodeID):-
-	corrCummSel(NodeID, CummSel),
-	not(corrCummSel(PrevNodeID, PrevCummSel)),
+	corrCummSel(NodeID, _),
+	not(corrCummSel(PrevNodeID, _)),
 	% unmittelbarer Vorgaenger nicht bekannt,
 	% dann fuer all dessen Vorgaenger pruefen
 	findall(NewPrevNodeID, edge(NewPrevNodeID, PrevNodeID, _, _, _, _), NewPrevNodeIDs),
-	debug_writeln('previous nodes (recursive search): ',[ NodeID, PrevNodeID, NewPrevNodeIDs]),
+	debug_outln('previous nodes (recursive search): ',[ NodeID, PrevNodeID, NewPrevNodeIDs]),
 	corrFeasible3(NodeID, NewPrevNodeIDs).
 % es werden alle N´Knoten geprueft,
 % falls ein Knoten nicht bekannt, dann ignorieren
 correct1Selectivity(_,NodeID):-
-	not(corrCummSel(NodeID, CummSel)).
+	not(corrCummSel(NodeID, _)).
 correct1Selectivity(PrevNodeID,NodeID):-
 	error_exit(correct1Selectivity/2,'unexpected call',[PrevNodeID,NodeID]).
 
@@ -2314,10 +2517,10 @@ increaseSelectivity(NodeID, Epsilon):- % VJO int oder real
 	retract((corrCummSel(NodeID, CummSel))),
 	CummSelNew is CummSel + Epsilon,
 	assert((corrCummSel(NodeID, CummSelNew))),
-	debug_writeln('increaseSelectivity: NodeID increased by Epsilon to value ',[NodeID,Epsilon,CummSelNew]).
+	debug_outln('increaseSelectivity: NodeID increased by Epsilon to value ',[NodeID,Epsilon,CummSelNew]).
 
 storeEntropyEdgeSelectivities([]).
-storeEntropyEdgeSelectivities([ [ PrevNodeID, NodeID, CummEdgeSel ] | Rest]):-
+storeEntropyEdgeSelectivities([ [ _, NodeID, CummEdgeSel ] | Rest]):-
 	%storeCummEdgeSelectivity(PrevNodeID, NodeID, CummEdgeSel),
 	storeCummSel(NodeID, CummEdgeSel),
 	storeEntropyEdgeSelectivities(Rest).
@@ -2353,19 +2556,6 @@ get_real_nodeid(NodeID, NodeIDReal):-
 	NodeID =:= NodeIDReal,
 	!.
 
-
-get_relation_expression(Predicates, JoinExpression, UsedJoinPredicate):-
-	%%%get_join_predicates(Predicates, JoinPredicates),
-	findall(
-		[PredID, Cost, Path], 
-		and( costEdge(0, PredID, Path, _, _, Cost) , contains(PredID, JoinPredicates) ), 
-		JoinEdges
-	),
-	debug_writeln('all costEdges: ',JoinEdges),!,
-	find_cheapest_Path(JoinEdges, CheapestEdge),!,
-	debug_writeln('cheapest edge is: ',CheapestEdge),
-	CheapestEdge = [ UsedJoinPredicate, _, CheapestPath ],
-	plan_to_atom(CheapestPath, JoinExpression).
 
 find_cheapest_Path([], []).
 	%writeln('xxxxx1== ').
@@ -2410,11 +2600,11 @@ contains(E,[ _ | S ]):-
 correct_predlist([], _, []).
 correct_predlist([ [JoinPred] | PredIdentList ], UsedJoinPredicate, [ JoinPred | PredIdentListNew]):-
 	JoinPred =\= UsedJoinPredicate,
-	debug_writeln('xxx2',[[JoinPred]]),
+	debug_outln('xxx2',[[JoinPred]]),
 	!,
 	correct_predlist(PredIdentList, UsedJoinPredicate, PredIdentListNew).
 correct_predlist([ Pred | PredIdentList ], UsedJoinPredicate, [ Pred | PredIdentListNew]):-
-	debug_writeln('xxx3',[Pred]),
+	debug_outln('xxx3',[Pred]),
 	correct_predlist(PredIdentList, UsedJoinPredicate, PredIdentListNew).
 
 
@@ -2453,12 +2643,12 @@ get_sel_predicates2(Relation, [ _ | Predicates ], SelPredicateIDs, SelPredicates
 
 %alle Kombis von JoinPreds ermitteln, die reichen alle Relationen zu verbinden
 get_all_join_sets(Relation, JoinPredicates, JoinSets):-
-	debug_writeln('get_all_join_sets: ',[Relation, JoinPredicates, JoinSets]),
+	debug_outln('get_all_join_sets: ',[Relation, JoinPredicates, JoinSets]),
 	flatten([Relation], RelationList),
 	findall(JoinSet, get_join_set0(RelationList, JoinPredicates, [], JoinSet), JoinSets).
 
 get_join_set0(Relation, JoinPredicates, [], JoinSet):-
-	debug_writeln('get_join_set0: ',[Relation, JoinPredicates, [], JoinSet]),
+	debug_outln('get_join_set0: ',[Relation, JoinPredicates, [], JoinSet]),
 	get_join_set(Relation, JoinPredicates, [], JoinSet).
 
 get_join_set(Relations, _, JointRelations, []):-
@@ -2471,7 +2661,7 @@ get_join_set(Relations, [ JoinPredicate | JoinPredicates ], JointRelations, [ Jo
 	list_to_set(JointRelationsTmp, JointRelationsNew),
 	get_join_set(Relations, JoinPredicates, JointRelationsNew, JoinSet).
 get_join_set(Relations, [ JoinPredicate | JoinPredicates ], JointRelations, JoinSet):-
-	JoinPredicate = [ JoinPredicateID, PredRelations, _ ],
+	JoinPredicate = [ _, _, _ ],
 	%ist Alternativpfad fuer findall, deshalb nicht: subset(PredRelations, JointRelations),
 	get_join_set(Relations, JoinPredicates, JointRelations, JoinSet).
 	
@@ -2533,28 +2723,31 @@ sum_elements_of_list([ Elem | List ], SumNew):-
 	SumNew is SumOld + Elem.
 
 % VJO Nachrichten
-info_continue(Pred, Message,Args):-
-	write('INFO: '),
-	writeln(Pred, ': ', Message,' ',Args).
-warn_continue(Pred, Message,Args):-
-	write('WARN: '),
-	writeln(Pred, ': ', Message,' (arguments: ',Args, ')').
-error_exit(Pred, Message,Args):-
-	write('ERROR: '),
-	writeln(Pred, ': ',Message,' (arguments: ',Args, ')'),
+info_continue(Pred, MessageList):-
+	write_list([ 'INFO: ', Pred, ': ']),
+	write_list(MessageList),
+	nl.
+warn_continue(Pred, MessageList):-
+	write_list([ 'WARN: ', Pred, ': ']),
+	write_list(MessageList),
+	nl.
+error_exit(Pred, MessageList):-
+	write_list([ 'ERROR: ', Pred, ': ']),
+	write_list(MessageList),
+	nl,
 	abort.
 
 
 equals_or_contains(Relation, Relation2):-
 	set_equal(Relation, Relation2),
-	debug_writeln('equals_or_contains: Relation of Predicate equals Relation of query to build').
+	debug_outln('equals_or_contains: Relation of Predicate equals Relation of query to build').
 
 equals_or_contains([ Relation2 | _ ], Relation2):-
-	debug_writeln('equals_or_contains: Relation ',Relation2,
+	debug_outln('equals_or_contains: Relation ',Relation2,
 		' of Predicate in Relations of query to build').
 
 equals_or_contains([], Relation2):-
-	debug_writeln('equals_or_contains: Relation ',Relation2,
+	debug_outln('equals_or_contains: Relation ',Relation2,
 		' of Predicate not in Relations of query to build'),
 	fail.
 
@@ -2563,5 +2756,11 @@ equals_or_contains([ _ | Relations ], Relation2):-
 
 
 
+set_debug_list(List):-
+	retractall((debug_list(_))),
+	assert((debug_list(List))).
 
+set_debug_level(Level):-
+	retractall((debug_level(_))),
+	assert((debug_level(Level))).
 
