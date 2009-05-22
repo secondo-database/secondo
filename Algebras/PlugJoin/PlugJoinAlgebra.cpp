@@ -965,7 +965,6 @@ Building the queries.
 */
     while ( !nextResultTupleFound )
     {
-
       if ( hdr.nextTupleOuterRelation )
       {
         if ( (outerTuple = hdr.outerIter->GetNextTuple()) != 0)
@@ -980,9 +979,7 @@ Next tuple found in outer Relation.
           hdr.outerActualTupleId = hdr.outerIter->GetTupleId();
 
           hdr.outerEntry = R_TreeEntryPnJ<dim>(SBox, hdr.outerActualTupleId);
-          
-          outerTuple->DeleteIfAllowed();  
-
+//        outerTuple->DeleteIfAllowed(); //comment by jianqiu
         }
         else
         {
@@ -1007,7 +1004,6 @@ No further tuple in outer relation.
 
             delete hdr.outerRelInfo;
             hdr.outerRelInfo = 0;
-
             return 0;
             break;
           }
@@ -1041,15 +1037,12 @@ queries into stack.
             hdr.firstSearchForTuple = true;
             hdr.searchForTuple = true;
             hdr.lastPartition = false;
-
             return NextResultTupleFromStack();
 
           }
 
         }
       };
-
-
       if ( hdr.firstSearchForTuple )
       {
         if ( hdr.rtree->First (SBox, foundEntry, leavesOverflowed) )
@@ -1061,7 +1054,6 @@ First search for SBox in R-Tree finds an entry.
           hdr.firstSearchForTuple = false;
           hdr.nextTupleOuterRelation = false;
           nextResultTupleFound = true;
-
 /*
 Building S.Part of outerRelation.
 
@@ -1071,16 +1063,20 @@ Building S.Part of outerRelation.
 
           Tuple* innerTuple =
             ((TupleBuffer*)hdr.innerRelation)->GetTuple(foundEntry.pointer);
+
+
+
           Tuple* resultTuple = new Tuple( resultTupleType );
           Concat(outerTuple, innerTuple, resultTuple);
 
-          //outerTuple->DeleteIfAllowed();
-          outerTuple = 0;
-          //innerTuple->DeleteIfAllowed();
-          innerTuple = 0;
+//          outerTuple->DeleteIfAllowed();
+            outerTuple = 0;
+//          innerTuple->DeleteIfAllowed();
+            innerTuple = 0;
 
           return resultTuple;
           break;
+
         }
         else
         {
@@ -1698,7 +1694,7 @@ void SpatialJoinLocalInfo<dim>::ReadFirstEntries
   SmiRecord* record = new SmiRecord();
   bool t1 = hdr.file.SelectRecord (firstRecordId, *record);
   assert ( t1 );
-  t1 = record->Read(buffer, sizeOfRecord, 0); 
+  t1 = record->Read(buffer, sizeOfRecord, 0);
   assert ( t1 );
   delete record;
 
@@ -1750,7 +1746,7 @@ void SpatialJoinLocalInfo<dim>::ReadNextEntries ( SmiRecordId& nextRecordId,
   SmiRecord* record = new SmiRecord();
   bool t1 = hdr.file.SelectRecord (oldNextRecordId, *record);
   assert ( t1 );
-  t1 = record->Read(buffer, sizeOfRecord, 0); 
+  t1 = record->Read(buffer, sizeOfRecord, 0);
   assert ( t1 );
   delete record;
 
@@ -1932,7 +1928,6 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
   SpatialJoinLocalInfo<2> *localInfo;
-
   switch (message)
   {
     case OPEN:
