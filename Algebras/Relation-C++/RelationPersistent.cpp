@@ -1325,7 +1325,9 @@ Tuple *TupleBuffer::GetTuple( const TupleId& id ) const
 {
   if( inMemory )
   {
-    return GetTupleAtPos( id );
+    Tuple* res =  GetTupleAtPos( id );
+    res->IncReference();
+    return res;
   }
   else
   {
