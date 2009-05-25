@@ -1626,7 +1626,7 @@ void MGPoint::SetBoundingBox(Rectangle<3> mbr){
   m_bbox = mbr;
 }
 
-void MGPoint::SetTrajectory(DBArray<RouteInterval> tra){
+void MGPoint::SetTrajectory(const DBArray<RouteInterval>& tra){
   if (tra.Size() > 0){
     m_traj_Defined = true;
     m_trajectory.Resize(tra.Size());
@@ -4605,7 +4605,7 @@ bool OpenMGPoint(SmiRecord& valueRecord,
   return true;
 }
 
-DBArray<RouteInterval> MGPoint::GetTrajectory(){
+DBArray<RouteInterval>& MGPoint::GetTrajectory(){
   if (!m_traj_Defined) {
     GLine *help = new GLine(0);
     Trajectory(help);

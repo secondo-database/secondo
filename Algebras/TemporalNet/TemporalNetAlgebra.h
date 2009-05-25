@@ -415,7 +415,7 @@ Returns the trajectory of the mgpoint as sorted gline or as DBArray of
 
    void Trajectory(GLine* res);
 
-   DBArray<RouteInterval> GetTrajectory() ;
+   DBArray<RouteInterval>& GetTrajectory() ;
 
 /*
 Sets the Trajetory of the MGPoint from a GLine or a DBArray of ~RouteInterval~s
@@ -423,7 +423,7 @@ Sets the Trajetory of the MGPoint from a GLine or a DBArray of ~RouteInterval~s
 */
    void SetTrajectory(GLine src);
 
-   void SetTrajectory(DBArray<RouteInterval> tra);
+   void SetTrajectory(const DBArray<RouteInterval>& tra);
 
    void SetTrajectoryDefined(bool defined);
 
