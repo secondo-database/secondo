@@ -7181,6 +7181,8 @@ void Region::Components( vector<Region*>& components )
     *r += aux;
   }
 
+  delete copy;
+
   for( size_t i = 0; i < components.size(); i++ )
     components[i]->EndBulkLoad();
 }
