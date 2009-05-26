@@ -71,12 +71,24 @@ Checks for a valid rtree description.
 */
   bool isRTreeDescription(ListExpr rtree);
 
+/*
+Checks for a valid btree description.
+
+*/
+  bool isBTreeDescription(ListExpr btree);
 
 /*
 Checks for a valid tuple description
 
 */
   bool isTupleDescription(ListExpr tuple);
+
+
+/*
+Checks for kind DATA
+
+*/
+  bool isDATA(ListExpr type);
 
 
 /*

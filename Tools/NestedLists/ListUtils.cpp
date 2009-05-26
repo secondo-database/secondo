@@ -115,6 +115,20 @@ Checks for a valid description of an rtree.
 
 
 /*
+Checks for a BTreeDescription
+
+*/
+bool isBTreeDescription(ListExpr btree){
+  if(nl->ListLength(btree)!=3){
+    return false;
+  }
+  return nl->IsEqual(nl->First(btree),"btree") &&
+         isTupleDescription(nl->Second(btree)) &&
+         isDATA(nl->Third(btree));
+}
+
+
+/*
 Checks for valid description of a tuple.
 
 */ 
@@ -221,6 +235,18 @@ Checks for a tuple stream
     }
     return isTupleDescription(nl->Second(s));
   }
+
+/*
+Checks for Kind DATA
+
+*/
+bool isDATA(ListExpr type){
+ AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+ ListExpr errorInfo = emptyErrorInfo();
+ return algMgr->CheckKind("DATA", type, errorInfo);
+}
+
+
 
 /*
 Checks for a stream of kind DATA
