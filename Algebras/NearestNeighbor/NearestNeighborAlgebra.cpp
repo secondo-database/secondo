@@ -5158,11 +5158,36 @@ knearestFilterTypeMap( ListExpr args )
 
   ListExpr rtreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
-  //ListExpr btreeDescription = nl->Third(args);
-  //ListExpr brelDescription = nl->Fourth(args);
+  ListExpr btreeDescription = nl->Third(args);
+  ListExpr brelDescription = nl->Fourth(args);
   ListExpr attrName = nl->Fifth(args);
   ListExpr queryobject = nl->Sixth(args);
   ListExpr quantity = nl->Nth(7,args);
+
+  CHECK_COND(listutils::isRTreeDescription(rtreeDescription),
+             "first argument must be an rtree");
+
+  CHECK_COND (listutils::isRelDescription(relDescription),
+             "Second argument must be a relation");      
+  
+  CHECK_COND(listutils::isBTreeDescription(btreeDescription),
+             "third argument must be an btree");
+
+  CHECK_COND(listutils::isRelDescription(brelDescription),
+             "fourth argument must be a relation");
+
+  CHECK_COND(nl->AtomType(attrName)==SymbolType,
+             "fifth argument must be an attribute name");
+
+  CHECK_COND(nl->IsEqual(queryobject,"mpoint"),
+             "sixth argument must be of type mpoint");
+
+  CHECK_COND(nl->IsEqual(quantity,"int"),
+             "seventh argument must be of type int");
+
+ 
+ 
+
 
   int j;
   ListExpr attrType;
@@ -5172,31 +5197,6 @@ knearestFilterTypeMap( ListExpr args )
   "Operator knearestfilter expects as a fifth argument an attribute"
   "name, where the attribute is of type upoint\n"
   "operator knearestfilter gets '" + argstr + "'.");
-
-  // check for third argument type == mpoint
-  nl->WriteToString(argstr, queryobject);
-  CHECK_COND((nl->IsEqual( queryobject, "mpoint" )),
-  "Operator knearestfilter expects a third argument of type mpoint.\n"
-  "Operator knearestfilter gets '" + argstr + "'.");
-
-  // check for fourth argument type == int
-  nl->WriteToString(argstr, quantity);
-  CHECK_COND((nl->IsAtom(quantity))
-    && (nl->AtomType(quantity) == SymbolType)
-    && (nl->SymbolValue(quantity) == "int"),
-  "Operator expects a fourth arg. of type integer.\n"
-  "Operator knearestfilter gets '" + argstr + "'.");
-
-
-  /* handle rtree part of argument */
-  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
-  CHECK_COND(!nl->IsEmpty(rtreeDescription) &&
-    !nl->IsAtom(rtreeDescription) &&
-    nl->ListLength(rtreeDescription) == 4,
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
-    "bool)\nbut gets a R-Tree list with structure '"
-    +rtreeDescriptionStr+"'.");
 
   ListExpr rtreeSymbol = nl->First(rtreeDescription),
            rtreeTupleDescription = nl->Second(rtreeDescription),
