@@ -979,7 +979,7 @@ Next tuple found in outer Relation.
           hdr.outerActualTupleId = hdr.outerIter->GetTupleId();
 
           hdr.outerEntry = R_TreeEntryPnJ<dim>(SBox, hdr.outerActualTupleId);
-//        outerTuple->DeleteIfAllowed(); //comment by jianqiu
+       //   outerTuple->DeleteIfAllowed(); //comment by jianqiu
         }
         else
         {
@@ -1069,10 +1069,10 @@ Building S.Part of outerRelation.
           Tuple* resultTuple = new Tuple( resultTupleType );
           Concat(outerTuple, innerTuple, resultTuple);
 
-//          outerTuple->DeleteIfAllowed();
-            outerTuple = 0;
-//          innerTuple->DeleteIfAllowed();
-            innerTuple = 0;
+          outerTuple->DeleteIfAllowed();
+          outerTuple = 0;
+          innerTuple->DeleteIfAllowed();
+          innerTuple = 0;
 
           return resultTuple;
           break;
@@ -1088,7 +1088,7 @@ First search for SBox in R-Tree did not find an entry.
           hdr.nextTupleOuterRelation = true;
           nextResultTupleFound = false;
 
-          //outerTuple->DeleteIfAllowed();
+          outerTuple->DeleteIfAllowed();
           outerTuple = 0;
 
 /*
@@ -1127,9 +1127,9 @@ Building S.Part of outerRelation.
             ((TupleBuffer*)hdr.outerRelation)->GetTuple(hdr.outerActualTupleId);
           Concat(outerTuple, innerTuple, resultTuple);
 
-          //outerTuple->DeleteIfAllowed();
+          outerTuple->DeleteIfAllowed();
           outerTuple = 0;
-          //innerTuple->DeleteIfAllowed();
+          innerTuple->DeleteIfAllowed();
           innerTuple = 0;
 
           return resultTuple;
@@ -1354,6 +1354,7 @@ are inserted in the Tree.
           BufferInsert (hdr.innerRelPart, hdr.innerRelInfo,
                         nodeNoOverflow, *entry);
         }
+        delete entry;
       }
 
       FlushAllLeavesToBuffer (hdr.innerRelPart, hdr.innerRelInfo);
@@ -1894,8 +1895,8 @@ Tuple*  SpatialJoinLocalInfo<dim>::newResultTupleFromEntries (
   Tuple* resultTuple = new Tuple (resultTupleType);
   Concat (outerTuple, innerTuple, resultTuple);
 
-  //innerTuple->DeleteIfAllowed();
-  //outerTuple->DeleteIfAllowed();
+  innerTuple->DeleteIfAllowed();
+  outerTuple->DeleteIfAllowed();
 
   return resultTuple;
 }
