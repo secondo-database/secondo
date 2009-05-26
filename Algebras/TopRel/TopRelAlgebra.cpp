@@ -2489,7 +2489,7 @@ const string MultiIntersectionSpec =
       " ( <text>t x t x ... xt -> t,"
       " where t in {int9m, cluster} </text---> "
       " \" multiintersection (_,_,...) \" "
-      "  \" computes the subset which is included in all arguments \" "
+      "  \" computes the subset included in all arguments \" "
       "  \" query multiintersection(c1,c2,c3) \" ))";
 
 const string AddSpec =
