@@ -6714,6 +6714,8 @@ ListExpr ctbknearestFilterTypeMap( ListExpr args )
   }
   ListExpr tbtreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
+  ListExpr btreeDescription = nl->Third(args);
+  ListExpr rel2Description = nl->Fourth(args);
   ListExpr mpoint = nl->Fifth(args);
   ListExpr quantity = nl->Sixth(args);
 
@@ -6722,36 +6724,41 @@ ListExpr ctbknearestFilterTypeMap( ListExpr args )
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
-
-  // the third element has to be of type mpoint
   if(!nl->IsEqual(quantity,"int")){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
 
-  // an tbtree description must have length 4
-  if(nl->ListLength(tbtreeDescription)!=4){
+
+  ListExpr errorList = listutils::emptyErrorInfo();
+  if(!tbtree::CheckTBTree(tbtreeDescription,errorList)){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
 
-  ListExpr tbtreeSymbol = nl->First(tbtreeDescription);
-
-  if(!nl->IsEqual(tbtreeSymbol, "tbtree")){
+  if(!listutils::isRelDescription(relDescription)){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
 
-  if(!IsRelDescription(relDescription)){
+  if(!listutils::isBTreeDescription(btreeDescription)){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
+
+  if(!listutils::isRelDescription(rel2Description)){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
 
   return
     nl->TwoElemList(
       nl->SymbolAtom("stream"),
       nl->Second(nl->Second(args)));
 }
+
+
 Operator tbknearestfilter (
          "tbknearestfilter",        // name
          TBknearestfilterSpec,      // specification
