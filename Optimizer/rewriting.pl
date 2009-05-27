@@ -538,7 +538,7 @@ inferPredicate(Premises, [bbox(X) intersects box3d(bbox(Z),Y)]) :-
 inferPredicate(Premises, AdditionalConditions):-
   member( Pattern, Premises),
   Pattern=.. [pattern|Params],
-  parsePattern(Params, Aliases, Preds, Conns, BExpr),
+  parsePattern(Params, _/* Aliases*/ , Preds, _/*Conns*/, _/*BExpr*/),
   list_to_set(Preds, Preds2),
   inferPatternPredicates(Preds2, AdditionalConditions),!.
 
@@ -573,7 +573,7 @@ For every predicates P inside a pattern query,
 a condition sometimes(P) is add to the query. The
 dynamic predicate removefilter ise used to flag
 sometimes(P). This flag is used in rewritePlan to
-remove sometimes(P) from the query expression again. 
+remove sometimes(P) from the query expression again.
 */
 
 
@@ -588,7 +588,7 @@ inferPatternPredicates([Pred|Preds], [sometimes(Pred)|Preds2] ):-
   assert(removefilter(sometimes(Pred))),
   inferPatternPredicates(Preds,Preds2).
 
-parseNPred(AP , P, A):- 
+parseNPred(AP , P, A):-
 	AP=..[as, P, A],!.
 parseNPred(P , P, null).
 
