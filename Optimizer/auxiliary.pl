@@ -323,8 +323,8 @@ of the currently opened database.
 */
 :- assert(helpLine(secondo,1,
     [[+,'CommandString',
-        'Send a command to the DBMS kernel. Enclose in single quotes.']],
-    'Show help on a given user level predicate.')).
+        'Command to send as a string (enclose in single quotes).']],
+    'Send a command to the DBMS kernel.')).
 
 :- dynamic databaseName/1.
 
