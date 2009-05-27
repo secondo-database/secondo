@@ -1325,6 +1325,11 @@ plan_to_atom(sample(Rel, S, T), Result) :-
   concat_atom([ResRel, 'sample[', S, ', ', T, '] '], '', Result),
   !.
 
+plan_to_atom(sample(Rel, S, T, Seed), Result) :-
+  plan_to_atom(Rel, ResRel),
+  concat_atom([ResRel, 'sample[', S, ', ', T, ', ', Seed, '] '], '', Result),
+  !.
+
 plan_to_atom(symmjoin(X, Y, M), Result) :-
   plan_to_atom(X, XAtom),
   plan_to_atom(Y, YAtom),
@@ -1795,7 +1800,7 @@ Other syntax, if not default (see below) needs to be coded explicitly.
 
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 1),
-  secondoOp(Op, postfix, 1),
+  secondoOp(Op, postfix, 1), !,
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
   concat_atom([Res1, ' ', Op, ' '], '', Result),
@@ -1803,7 +1808,7 @@ plan_to_atom(Term, Result) :-
 
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 2),
-  secondoOp(Op, postfix, 2),
+  secondoOp(Op, postfix, 2), !,
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
   arg(2, Term, Arg2),
@@ -1813,7 +1818,7 @@ plan_to_atom(Term, Result) :-
 
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 3),
-  secondoOp(Op, postfix, 3),
+  secondoOp(Op, postfix, 3), !,
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
   arg(2, Term, Arg2),
@@ -1826,7 +1831,7 @@ plan_to_atom(Term, Result) :-
 plan_to_atom(Term, Result) :-
   compound(Term),
   Term =.. [Op, Arg1 | OtherArgs],
-  secondoOp(Op, postfixbrackets1, _),
+  secondoOp(Op, postfixbrackets1, _), !,
   not(OtherArgs = []),                            % this would be (postfix, 1)
   plan_to_atom(Arg1, RArg1),
   plan_to_atom_2(OtherArgs, ROtherArgs),
@@ -1837,7 +1842,7 @@ plan_to_atom(Term, Result) :-
 plan_to_atom(Term, Result) :-
   compound(Term),
   Term =.. [Op, Arg1, Arg2 | OtherArgs],
-  secondoOp(Op, postfixbrackets2, _),
+  secondoOp(Op, postfixbrackets2, _), !,
   not(OtherArgs = []),                            % this would be (postfix, 2)
   plan_to_atom(Arg1, RArg1),
   plan_to_atom(Arg2, RArg2),
@@ -1849,7 +1854,7 @@ plan_to_atom(Term, Result) :-
 plan_to_atom(Term, Result) :-
   compound(Term),
   Term =.. [Op, Arg1, Arg2, Arg3 | OtherArgs],
-  secondoOp(Op, postfixbrackets3, _),
+  secondoOp(Op, postfixbrackets3, _), !,
   not(OtherArgs = []),                            % this would be (postfix, 3)
   plan_to_atom(Arg1, RArg1),
   plan_to_atom(Arg2, RArg2),
@@ -1863,7 +1868,7 @@ plan_to_atom(Term, Result) :-
 
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 2),
-  secondoOp(Op, prefix, 2),
+  secondoOp(Op, prefix, 2), !,
   arg(1, Term, Arg1),
   plan_to_atom(Arg1, Res1),
   arg(2, Term, Arg2),

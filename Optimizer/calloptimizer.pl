@@ -76,7 +76,7 @@ will print the according (and hopefully helpful) information to the screen.
 
 helpMe(Pred, Arity) :-
   helpLine(Pred, Arity, Params, Meaning),
-  nl, write('Help on predicate \''), write(Pred), write('\''), write(Arity),
+  nl, write('Help on predicate \''), write(Pred), write('/'), write(Arity),
   write('\':  '), write(Meaning), nl,                                       %'
   write('  '), write(Pred),
   ( Arity > 0

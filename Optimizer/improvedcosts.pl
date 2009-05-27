@@ -411,7 +411,7 @@ cost(hashjoin(X, Y, _, _, _ /* NBuckets */), Sel, Pred,
   costConst(hashjoin, byteBufferSizeRatioY, R),
   ResTupleSizeY = sizeTerm(MemSizeY,_,_),
   MemorySecond is  MaxMem * R,
-  NoPasses = 1 + ceiling(ResCardY * MemSizeY) / MemorySecond,
+  NoPasses is 1 + ((ResCardY * MemSizeY) / MemorySecond),
   Cost is   CostX + CostY
           + ResCardY * V             % reading into hashtable
           + ResCardX * NoPasses * U  % probing
@@ -576,7 +576,11 @@ cost(extend(X, ExtendFields), Sel, Pred,
   cost(X, Sel, Pred, ResAttrList1, ResTupleSize1, ResCard, Cost1),
   costConst(extend, msPerTuple, U),
   costConst(extend, msPerTupleAndAttribute, V),
-  createExtendAttrList(ExtendFields,ExtendAttrs,ExtendAttrSize), %% TODO: implement this predicate
+  ( Pred = pr(_,RelArg1)
+    -> RelInfoList = [(1,RelArg1)]
+    ; (Pred = pr(_,RelArg1,RelArg2), RelInfoList = [(1,RelArg1),(2,RelArg2)])
+  ),
+  createExtendAttrList(ExtendFields,RelInfoList,ExtendAttrs,ExtendAttrSize),
   addSizeTerms([ResTupleSize1, ExtendAttrSize],ResTupleSize),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> true
@@ -584,7 +588,11 @@ cost(extend(X, ExtendFields), Sel, Pred,
   ),
   length(ExtendFields,NoNewAttrs),
   Cost is   Cost1
-          + ResCard * (U + NoNewAttrs * V),!.
+          + ResCard * (U + NoNewAttrs * V),
+  nl,write('***************************************************************'),nl,
+  write_list(['Extended Attributes: ',ExtendAttrs]),
+  nl,write('***************************************************************'),nl,
+  !.
 
 
 cost(remove(X, DropListFields), Sel, Pred,
@@ -644,7 +652,11 @@ cost(projectextend(X,ProjAttrFields,ExtendFields), Sel, Pred,
          memberchk(attr(AttrName,_,_),ProjAttrFields),
          ProjAttrNames),
   projectAttrList(ResAttrList1, ProjAttrNames, ResAttrList2, ResTupleSize2),
-  createExtendAttrList(ExtendFields,ExtendAttrs,ExtendAttrSize),
+  ( Pred = pr(_,RelArg1)
+    -> RelInfoList = [(1,RelArg1)]
+    ; (Pred = pr(_,RelArg1,RelArg2), RelInfoList = [(1,RelArg1),(2,RelArg2)])
+  ),
+  createExtendAttrList(ExtendFields,RelInfoList,ExtendAttrs,ExtendAttrSize),
   addSizeTerms([ResTupleSize2, ExtendAttrSize],ResTupleSize),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> ResTupleSize = ResTupleSize1             %% ToDo: Fixme
@@ -655,7 +667,11 @@ cost(projectextend(X,ProjAttrFields,ExtendFields), Sel, Pred,
   Cost is   Cost1
           + ResCard * (  U                    % per tuple
                        + NoEAttrs * VE        % extended attrs
-                       + NoPAttrs * VP ),!.   % projected attrs
+                       + NoPAttrs * VP ),     % projected attrs
+  nl,write('***************************************************************'),nl,
+  write_list(['Extended Attributes: ',ExtendAttrs]),
+  nl,write('***************************************************************'),nl,
+  !.
 
 
 %% Missing: extendstream
@@ -891,3 +907,12 @@ getResAttrList(Node,AttrList) :-  nodeAttributeList(Node, AttrList), !.
 
 % getResTupleSize(+Node, -TupleSize)
 getResTupleSize(Node, TupleSize) :- nodeTupleSize(Node, TupleSize), !.
+
+/*
+Retrieve the list of argument types and the result type of an expression
+
+*/
+getTopmostSignature((Op,Args,ResultType), Signature) :-
+  findall(T,(member((_,_,T),Args)),ArgTypeList),
+  Signature =.. [Op|ArgTypeList],
+  !.

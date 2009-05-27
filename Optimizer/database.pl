@@ -3887,7 +3887,7 @@ projectAttrList(W,X,Y,Z) :-
 
 /*
 
----- createExtendAttrList( +ExtendFields, -ExtendAttrs, -ExtendAttrSize )
+---- createExtendAttrList( +ExtendFields, +RelList, -ExtendAttrs, -ExtendAttrSize )
 ----
 
 For a given list of extension fileds, return a list with attribute-descriptors
@@ -3895,30 +3895,42 @@ and a sizeTerm with the according aggregated sizes.
 
 ~ExtendFields~ has format list of field(attr(Name,Arg,Case),Expr)
 
-~ExtendAttrs~ has format
+~RelList~ is a list of all relations occuring withinthe extendfields.
+Each entry has format: (ArgNo,rel(DCrelName,Var))
+
+~ExtendAttrs~ is a list of descriptors [Name, Type, SizeTerm] for each extended
+attribute.
+
+~ExtendAttrSize~ is a sizeterm for the combined size of extension attributes
 
 */
 
-createExtendAttrList([],[],sizeTerm(0,0,0)) :- !.
+createExtendAttrList([],_,[],sizeTerm(0,0,0)) :- !.
 createExtendAttrList([Field|MoreFields],
+                     RelInfoList,
                      [[AttrName,AttrType,AttrSize]|MoreAttrs],
                      TotalAttrSize) :-
-  Field = newattr(attrname(attr(Name, _, _)), _ /* Expr */),
+  Field = newattr(attrname(attr(Name, _, _)), Expr),
   ( Name = Attr:Suffix
     -> ( concat_atom([Attr,Suffix],'_',Renamed),
          downcase_atom(Renamed,AttrName)
        )
     ; downcase_atom(Name,AttrName)
   ),
-  createExtendAttrList(MoreFields, MoreAttrs, MoreAttrsSize),
-  AttrType = int,   %% TODO: calculate result type of Expr instead of
-                    %%       using 'int' as standard extension type
+  createExtendAttrList(MoreFields, RelInfoList, MoreAttrs, MoreAttrsSize),
+  ( getTypeTree(Expr,RelInfoList,(_,_,ExprType))
+    -> AttrType = ExprType  % use inferred type
+    ;  ( AttrType = int,
+         write_list(['WARNING:\t could not determine expression type for ',
+                     'extended attribute ',Name,': ',Expr,'!']),nl)
+        % using 'int' as a fallback
+  ),
   secDatatype(AttrType, MemSize, _ /* NoFlobs */, _ /* PersistencyMode */,_,_),
   AttrSize = sizeTerm(MemSize,MemSize /* Core */ , 0 /* Lob */),
   addSizeTerms([AttrSize,MoreAttrsSize],TotalAttrSize), !.
-createExtendAttrList(X,Y,Z) :-
+createExtendAttrList(W,X,Y,Z) :-
   concat_atom(['Unknown error.'],'',ErrMsg),
-  throw(error_Internal(database_createExtendAttrList(X,Y,Z)#ErrMsg)),
+  throw(error_Internal(database_createExtendAttrList(W,X,Y,Z)#ErrMsg)),
   fail, !.
 
 /*

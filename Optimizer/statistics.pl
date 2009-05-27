@@ -214,71 +214,6 @@ dynamicPossiblyRenameS(Rel, Renamed) :-
   secOptConstant(sampleScalingFactor, SF),
   Renamed = rename(sample(Rel, SelectionSize, SF), Name).
 
-/*
-
-----  determinePredicateArgumentTypes(+PredDescriptor, ?PredSignature)
-----
-
-This auxiliary predicates determine the types of all arguments to a given
-selection/join predicate by sending according ~getTypeNL~
-queries to Secondo.
-
-The result an expression =.. [OP, Arg1Type, ..., ArgnType]
-
-*/
-
-determinePredicateArgumentTypes2([], _ , []).
-determinePredicateArgumentTypes2([Arg|ArgRestL],
-                                          Rel,
-                                          [ArgType|TypeListRestL]) :-
-  possiblyRename(Rel, RelQuery),
-  newVariable(TempAttrName), !,
-  Fields = [newattr(attrname(attr(TempAttrName, 1, l)), Arg)],
-  Query = getTypeNL(extract(extend(RelQuery,Fields), TempAttrName)),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['\ngetTypeNL query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, [text, ArgType]),QueryTime),
-  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']),!,
-  determinePredicateArgumentTypes2(ArgRestL, Rel, TypeListRestL),
-  !.
-
-determinePredicateArgumentTypes2([], _ , _ , []).
-determinePredicateArgumentTypes2([Arg|ArgRestL],
-                                     Rel1, Rel2,
-                                     [ArgType|TypeListRestL]) :-
-  newVariable(TempAttrName), !,
-  Fields = [newattr(attrname(attr(TempAttrName, 1, l)), Arg)],
-  possiblyRename(Rel1, Rel1Query),
-  possiblyRename(Rel2, Rel2Query),
-  Query = getTypeNL(extract(extend(symmproduct(Rel1Query,Rel2Query),
-                                   Fields),TempAttrName)),
-  plan_to_atom(Query, QueryAtom1),
-  atom_concat('query ', QueryAtom1, QueryAtom),
-  dm(selectivity,['\ngetTypeNL query : ', QueryAtom, '\n']),
-  getTime(secondo(QueryAtom, [text, ArgType]),QueryTime),
-  dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !,
-  determinePredicateArgumentTypes2(ArgRestL, Rel1, Rel2, TypeListRestL),
-  !.
-
-% for selection predicates:
-determinePredicateArgumentTypes(pr(Pred, Rel), PredSignature) :-
-  Pred =.. [OP|Args],
-  determinePredicateArgumentTypes2(Args, Rel, ArgTypeList),
-  PredSignature =.. [OP|ArgTypeList],
-  dm(selectivity,['The predicate signature is: ', PredSignature]),
-  !.
-
-% for join predicates:
-determinePredicateArgumentTypes(pr(Pred, Rel1, Rel2), PredSignature) :-
-  Pred =.. [OP|Args],
-  determinePredicateArgumentTypes2(Args, Rel1, Rel2, ArgTypeList),
-  PredSignature =.. [OP|ArgTypeList],
-  dm(selectivity,['The predicate signature is: ', PredSignature]),
-  !.
-
-% Error case:
-determinePredicateArgumentTypes(_, error).
 
 /*
 ----  selectivityQuerySelection(+Pred, +Rel,
@@ -757,8 +692,12 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   ),
   ( optimizerOption(determinePredSig)
     -> (
-          determinePredicateArgumentTypes(pr(Pred, Rel1, Rel2), PredSignature),
-          assert(storedPredicateSignature(DB, PSimple, PredSignature))
+          getTypeTree(Pred, [(1,Rel1),(2,Rel2)], (Op,Args,ResultType)),
+          findall(T,(member((_,_,T),Args)),ArgTypeList),
+          Signature =.. [Op|ArgTypeList],
+          assert(storedPredicateSignature(DB, PSimple, (Op,Args,ResultType))),
+          dm(selectivity,['The topmost signature for ',Pred,' is:\t',
+                          Signature,' -> ',ResultType,'\n'])
        )
     ; true
   ),
@@ -794,8 +733,12 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   ),
   ( optimizerOption(determinePredSig)
       -> (
-           determinePredicateArgumentTypes(pr(Pred, Rel), PredSignature),
-           assert(storedPredicateSignature(DB, PSimple, PredSignature))
+           getTypeTree(Pred, [(1,Rel)], (Op,Args,ResultType)),
+           findall(T,(member((_,_,T),Args)),ArgTypeList),
+           Signature =.. [Op|ArgTypeList],
+           assert(storedPredicateSignature(DB, PSimple, (Op,Args,ResultType))),
+           dm(selectivity,['The topmost signature for ',Pred,' is:\t',
+                           Signature,' -> ',ResultType,'\n'])
          )
       ; true
   ),
@@ -839,8 +782,13 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   ),
   ( optimizerOption(determinePredSig)
       -> (
-           determinePredicateArgumentTypes(pr(Pred, Rel1, Rel2), PredSignature),
-           assert(storedPredicateSignature(DB, PSimple, PredSignature))
+           getTypeTree(Pred, [(1,Rel1),(2,Rel2)], (Op,Args,ResultType)),
+           findall(T,(member((_,_,T),Args)),ArgTypeList),
+           Signature =.. [Op|ArgTypeList],
+           assert(storedPredicateSignature(DB, PSimple, (Op,Args,ResultType))),
+           dm(selectivity,['The topmost signature for ',Pred,' is:\t',
+                           Signature,' -> ',ResultType,'\n'])
+
          )
       ; true
   ),
@@ -876,8 +824,12 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   ),
   ( optimizerOption(determinePredSig)
       -> (
-          determinePredicateArgumentTypes(pr(Pred, Rel), PredSignature),
-          assert(storedPredicateSignature(DB, PSimple, PredSignature))
+          getTypeTree(Pred, [(1,Rel)], (Op,Args,ResultType)),
+          findall(T,(member((_,_,T),Args)),ArgTypeList),
+          Signature =.. [Op|ArgTypeList],
+          assert(storedPredicateSignature(DB, PSimple, (Op,Args,ResultType))),
+          dm(selectivity,['The topmost signature for ',Pred,' is:\t',
+                          Signature,' -> ',ResultType,'\n'])
          )
       ; true
   ),
@@ -976,6 +928,12 @@ writeStoredSel(Stream) :-
   replaceCharList(X, XReplaced),
   write(Stream, storedBBoxSel(DB, XReplaced, Y)), write(Stream, '.\n').
 
+writeStoredSel(Stream) :-
+  storedPredicateSignature(DB, X, (Y1,Y2,Y3)),
+  replaceCharList(X, XReplaced),
+  write(Stream, storedPredicateSignature(DB, XReplaced, (Y1,Y2,Y3))),
+  write(Stream, '.\n').
+
 showSel :-
   storedSel(DB, X, Y),
   replaceCharList(X, XRepl),
@@ -998,6 +956,7 @@ showSels :-
 :-
   dynamic(storedSel/3),
   dynamic(storedBBoxSel/3),
+  dynamic(storedPredicateSignature/3),
   at_halt(writeStoredSels),
   readStoredSels.
 
@@ -1043,6 +1002,36 @@ writePET :-
   write('DB: '), write(DB),
   write(', Predicate: '), write(XReplaced),
   write(', Cost: '), write(Y), write('/'), write(Z), write(' ms\n').
+
+
+readStoredPredicateSignatures :-
+  retractall(storedPredicateSignature(_, _, _)),
+  [storedPredicateSignatures].
+
+writeStoredPredicateSignatures :-
+  open('storedPredicateSignatures.pl', write, FD),
+  write(FD,
+    '/* Automatically generated file, do not edit by hand. */\n'),
+  findall(_, writeStoredPredicateSignature(FD), _),
+  close(FD).
+
+writeStoredPredicateSignature(Stream) :-
+  storedPredicateSignature(DB, X, (Y1,Y2,Y3)),
+  replaceCharList(X, XReplaced),
+  write(Stream, storedPredicateSignature(DB, XReplaced, (Y1,Y2,Y3))),
+  write(Stream, '.\n').
+
+:-assert(helpLine(showStoredPredicateSignatures,0,[],
+                  'Display known predicate signatures.')).
+showStoredPredicateSignatures :-
+  write('\nStored predicate signatures:\n'),
+  format('  ~p~12|~p~36|~p~n',['Database','Predicate','Signature']),
+  findall(_, showStoredPredicateSignature, _).
+
+showStoredPredicateSignature :-
+  storedPredicateSignature(DB, P, S),
+  replaceCharList(P, PRepl),
+  format('  ~p~12|~p~36|~p~n',[DB, PRepl, S]).
 
 
 /*
@@ -1650,9 +1639,27 @@ The approach investigates a term bottom-up, i.e. it first tries to determine
 the type of the arguments on the leaves of the operator tree by inspecting the
 attribute table or by sending getTypeNL-Queries to Secondo.
 
-Once all argument types are known for a operator node, we check wheter the
+Once all argument types are known for a operator node, we check whether the
 signature is already known. If so, we already know the operator result type.
 Otherwise, we need to query Secondo for it.
+
+
+---- getTypeTree(+Expr,+RelList,-TypeTree)
+----
+Retrieves the complete type/operator tree ~Type~Tree~ from an expression ~Expr~
+for a given relation list ~RelList~.
+
+~TypeTree~ has format (~Op~, ~TypeTreeList~, ~ResType~), where
+~Op~ is the operator symbol,
+~TypeTreeList~ is a list of entries with format ~TypeTree~, and
+~ResType~ is the type of the complete expression (root node).
+
+Atomic leaves have special markers instead of an operator symbol:
+integer, real, text and string atoms have ~atom~, attributes have ~attr~,
+attribute names have ~attrname~, database object names have ~dbobject~,
+type names have ~typename~, relations have ~relation~. In all these cases,
+~TypeTreeList~ becomes the expression forming the according primitive.
+
 
 Facts describing known operator signatures are defined in file ~operators.pl~.
 The all have format
@@ -1663,7 +1670,7 @@ The all have format
 ~Operator~ is the name of the operator (Prolog infix-operators are inclosed in
 round parantheses)
 
-~Algera~ is the DC-nmae of the algebra defining the operator.
+~Algebra~ is the DC-nmae of the algebra defining the operator.
 
 ~ArgTypeList~ is a PROLOG list of terms representing the valid Secondo type
 expressions for all arguments.
@@ -1671,94 +1678,253 @@ expressions for all arguments.
 ~Resulttype~ is a term representing a valid Secondo type expression.
 
 
----- getOperatorSignature(+Term,+RelList,-Signature)
+If an operator/signature combination is unknown, the optimizer tries to create
+and execute a query to determine the according result type. If a result is
+achieved, it is temporarily stored to the optimizer's knowledge base using the
+dynamic predicate
+
+---- queriedOpSignature(Op,ArgTypes,TypeDC).
 ----
-
-Determine the signature for ~Term~ when using relations ~Rel1~ and ~Rel2~.
-The result ~Signature~ has format [Op,ArgumentTypeList,ResultType].
-
-~Rel1~ and ~Rel2~ must contain relation descriptors for all relations needed to
-obtain attributes occuring within ~Term~.
 
 */
 
-/*
-----
-getSig(attr(Attr,Arg,_), Rel1, Rel2, AttrType) :-
-    % translate Attr, find proper Relation in RelList
-    (Arg = 0
-      -> attrType(Rel1:Attr,AttrType)
-      ;  (Arg = 1
-          -> attrType(Rel1:Attr,AttrType)
-          ;  (Arg = 2
-              -> attrType(Rel2:Attr,AttrType)
-              ;  fail)
-         )
-    ),
-    !.
+:- dynamic(queriedOpSignature/3).
 
-getSig(attr(A,B,C), Rel1, Rel2, X) :-
-    throw(error_Internal(statistics_getSig(attr(A,B,C), Rel1, Rel2, X)
-                             :unspecifiedError:unspecifiedError)),
-    !,
+% fail, is option not selected:
+getTypeTree(_,_,_,_) :-
+  not(optimizerOption(determinePredSig)),!,
+  fail.
+
+  /*
+  ----
+  % write debug message...
+  getTypeTree(Expr,Rels,_) :-
+    dm(selectivity,['§§§ Calling getTypeTree for: ',Expr,', ',Rels]),nl,
     fail.
+  */
 
-getSig(Term, Rel1, Rel2, ResultType) :-
-    Term =.. [Op|ArgTermList],
-    getSig(ArgTermList, RelList, ArgTypeList),
-    (   storedSignature(Op, ArgTypeList, ResultType)
-        ; ( queryResultType(Term, RelList, ResultType),
-            assert(Op, ArgTypeList, ResultType)
-          )
-    ),
-    !.
+% Handle Lists of expressions
+getTypeTree(arglist([]),_,[]).
+getTypeTree(arglist([X|R]),Rels,[X1|R1]) :-
+  getTypeTree(X,Rels,X1),
+  getTypeTree(arglist(R),Rels,R1),
+%   dm(selectivity,['§§§ getTypeTree: []: []']),nl,
+  !.
 
-getSig(ArgTermList, Rel1, Rel2, ArgTypeList) :- !.
+% Primitive: int-atom
+getTypeTree(IntAtom,_,(atom,IntAtom,int)) :-
+  atomic(IntAtom), integer(IntAtom),
+%   dm(selectivity,['§§§ getTypeTree: ',IntAtom,': ',int]),nl,
+  !.
 
-----
-*/
+% Primitive: real-atom
+getTypeTree(RealAtom,_,(atom,RealAtom,real)) :-
+  atomic(RealAtom), float(RealAtom),
+%   dm(selectivity,['§§§ getTypeTree: ',RealAtom,': ',real]),nl,
+  !.
 
-/*
----- getTypeOfExpression(+Expression, -Type)
-----
-Recursively determine the type of an expression.
-The allowed primitives are ~type expressions~, ~attribute descriptors~,
-~attribute-name-descriptors~, ~relation descriptors~ ans ~object descriptors~,
-which are connected by ~functors~ representing executable Secondo operators.
+% Primitive: text-atom
+getTypeTree(TextAtom,_,(atom,TextAtom,text)) :-
+  atom(TextAtom),
+  not(is_list(TextAtom)),
+  not(opSignature(TextAtom,_,[],_)),
+%   dm(selectivity,['§§§ getTypeTree: ',TextAtom,': ',text]),nl,
+  !.
 
-*/
-/*
-
-----
-
-% Primitive: type-descriptor
-getTypeOfExpression(DCType,_,DCType) :-
-  secDatatype(DCType, _, _, _, _, _),!.
-
-% Primitive: attribute-name-descriptor
-getTypeOfExpression(attrname(attr(Name, _, _)),_,DCType) :-
-  dcName2externalName(DCType,Name),!.
-
-% Primitive: attribute-descriptor
-getTypeOfExpression(attr(Attr, Arg, Case),Rels,DCType) :-
-  dcName2externalName(DCAttr,Attr),
-  member((Arg,Rel),Rels),
-  databaseName(DB),
-  storedRel(DB,Rel,AttrList),
-  memberchk(DCAttr,AttrList),
-  storedAttrSize(DB,Rel,DCAttr,DCType,_,_,_),!.
+% Primitive: string-atom
+getTypeTree(TextAtom,_,(atom,TextAtom,string)) :-
+  is_list(TextAtom), TextAtom = [First | _], atomic(First), !,
+  string_to_list(_,TextAtom),
+%   dm(selectivity,['§§§ getTypeTree: ',TextAtom,': ',string]),nl,
+  !.
 
 % Primitive: relation-descriptor
-getTypeOfExpression(rel(DCrelName, _),_,tuple(TupleList)) :-
+getTypeTree(rel(DCrelName, X),_,(relation,rel(DCrelName, X),tuple(TupleList))):-
   getRelAttrList(DCrelName, AttrList, _),
-  findall((N,A),(member([N,A,_],AttrList)),TupleList),!.
+  findall((N,A),(member([N,A,_],AttrList)),TupleList),
+% dm(selectivity,['§§§ getTypeTree: ',rel(DCrelName, X),': ',tuple(TupleList)]),
+% nl,
+  !.
+
+% Primitive: type-descriptor
+getTypeTree(DCType,_,(typename,DCType,DCType)) :-
+  secDatatype(DCType, _, _, _, _, _),
+%   dm(selectivity,['§§§ getTypeTree: ',DCType,': ',DCType]),nl,
+  !.
 
 % Primitive: object-descriptor
-getTypeOfExpression(dbobject(NameDC),_,TypeDC) :-
+getTypeTree(dbobject(NameDC),_,(dbobject,dbobject(NameDC),TypeDC)) :-
   secondoCatalogInfo(NameDC,_,_,TypeExprList),
+  dcNList(TypeExprList,TypeDC),
+%   dm(selectivity,['§§§ getTypeTree: ',dbobject(NameDC),': ',TypeDC]),nl,
+  !.
 
+% Primitive: attribute-descriptor
+getTypeTree(attr(RenRelName:Attr, Arg, Z),RelList,
+        (attr,attr(RenRelName:Attr, Arg, Z),DCType)) :-
+  memberchk((Arg,Rel),RelList),
+  Rel = rel(DCrelName,RenRelName),
+  downcase_atom(Attr,DCAttr),
+  databaseName(DB),
+  storedRel(DB,DCrelName,AttrList),
+  memberchk(DCAttr,AttrList),
+  storedAttrSize(DB,DCrelName,DCAttr,DCType,_,_,_),
+%   dm(selectivity,['§§§ getTypeTree: ',attr(RenRelName:Attr, Arg, Z),
+%   ': ',DCType]),nl,
+  !.
+getTypeTree(attr(Attr, Arg, Y),Rels,(attr,attr(Attr, Arg, Y),DCType)) :-
+  downcase_atom(Attr,DCAttr),
+  memberchk((Arg,Rel),Rels),
+  Rel = rel(DCrelName, _),
+  databaseName(DB),
+  storedRel(DB,DCrelName,AttrList),
+  memberchk(DCAttr,AttrList),
+  storedAttrSize(DB,DCrelName,DCAttr,DCType,_,_,_),
+%   dm(selectivity,['§§§ getTypeTree: ',attr(Attr, Arg, Y),': ',DCType]),nl,
+  !.
 
-% Expression
+% Primitive: attribute-name-descriptor
+getTypeTree(attrname(attr(X:Name, Y, Z)),_,(attrname,
+        attrname(attr(X:Name, Y, Z)),DCType)) :-
+  downcase_atom(Name,DCType),
+%   dm(selectivity,['§§§ getTypeTree: ',attrname(attr(X:Name, Y, Z)),
+%   ': ',DCType]),nl,
+  !.
+getTypeTree(attrname(attr(Name, Y, Z)),_,(attrname,
+        attrname(attr(Name, Y, Z)),DCType)) :-
+  downcase_atom(Name,DCType),
+%   dm(selectivity,['§§§ getTypeTree: ',attrname(attr(Name, Y, Z)),
+%   ': ',DCType]),nl,
+  !.
+
+% Expression using defined operator signature
+getTypeTree(Expr,Rels,(Op,ArgTree,TypeDC)) :-
+  compound(Expr),
+  Expr =.. [Op|Args],
+  getTypeTree(arglist(Args),Rels,ArgTree),
+  findall(T,member((_,_,T),ArgTree),ArgTypes), % extract types from ArgTree
+  (   opSignature(Op,_,ArgTypes,TypeDC)
+    ; queriedOpSignature(Op,ArgTypes,TypeDC)
+  ),
+%   dm(selectivity,['§§§ getTypeTree: ',Expr,': ',TypeDC]),nl,
+  !.
+
+% Expression using unknown operator signature
+getTypeTree(Expr,Rels,(Op,ArgsTypes,TypeDC)) :-
+  compound(Expr),
+  Expr =.. [Op|Args],
+  getTypeTree(Args,Rels,ArgTree),
+     % extract types from ArgTree
+  findall(T,member((_,_,T),ArgTree),ArgTypes),
+     % create a valid expression using defined null values
+  createNullValues(ArgsTypes,NullArgs),
+     % send getTypeNL-query to Secondo to infer the signature
+  NullQueryExpr =.. [Op|NullArgs],
+  plan_to_atom(getTypeNL(NullQueryExpr),NullQueryAtom),
+  concat_atom(['query ',NullQueryAtom],'',Query),
+%   dm(selectivity,['getTypeNL-Query = ',Query]),nl,
+  secondo(Query,[text,TypeDC]),
+     % store signature in fact base
+  assert(queriedOpSignature(Op,ArgTypes,TypeDC)),
+%   dm(selectivity,['§§§ getTypeTree: ',Expr,': ',TypeDC]),nl,
+  !.
+
+getTypeTree(A,B,C) :-
+    concat_atom(['Cannot resolve typetree for expression \'',A,'\'.'],'',MSG),
+    throw(error_Internal(statistics_getTypeTree(A,B,C)
+                             :typeMapError#MSG)),
+    !, fail.
+
+%-----------------------------------------------------------------------------
+
+/*
+The following predicate changes a complete nested list to use DC-spelling
+only.
+
+---- dcNList(+NList,?DCNList)
 ----
 
 */
+dcNList(X1,X2) :-
+  atomic(X1),
+  downcase_atom(X1,X2),!.
+dcNList([],[]).
+dcNList([X1|R1],[X2|R2]) :-
+  dcNList(X1,X2),
+  dcNList(R1,R2),!.
+
+/*
+The next predicate creates a list of Null Values for a given type list.
+For stream and relation arguments, typed but empty instances are returned.
+For mappings, typed dummy mappings are created.
+
+---- createNullValues(+Type,-Null)
+----
+
+~Type~ is a single type or a list of types.
+
+~Null~ is the according Null Value, resp. a list of such NVs.
+
+*/
+% special case: indexes
+createNullValues([tuple,_],_) :- fail.
+createNullValues([rtree|_],_) :- fail.
+createNullValues([rtree3|_],_) :- fail.
+createNullValues([rtree3|_],_) :- fail.
+
+% special case: relation types
+createNullValues([RelType,[tuple,X]],NullRelString) :-
+  memberchk(RelType,[rel,trel]),
+  createConstAttrList(X,X1),
+  concat_atom(['[const ',RelType,'(tuple([',X1,'])) value ()]'],'',NullRelAtom),
+  string_to_atom(NullRelString,NullRelAtom),!.
+
+% special case: tuple streams
+createNullValues([stream,[tuple,X]],feed(NullRelString)) :-
+  createConstAttrList(X,X1),
+  concat_atom(['[const ',rel,'(tuple([',X1,'])) value ()]'],'',NullRelAtom),
+  string_to_atom(NullRelString,NullRelAtom),!.
+
+% special case: data streams
+createNullValues([stream,T],feed(TNV)) :-
+  isData(T),
+  createNullValues(T,TNV),!.
+
+% special case: parameter functions/ mappings
+createNullValues([map|Args],fun(Params, ResNV)) :-
+  append(ArgTypeList,[ResType],Args),
+  createNullValues(ResType,ResNV),
+  createFunArgs(ArgTypeList,Params),!.
+
+% handle lists
+createNullValues([],[]).
+createNullValues([X|R],[X1|R1]) :-
+  createNullValues(X,X1),
+  createNullValues(R,R1),!.
+
+% handle single values
+createNullValues(Type,NVstring) :-
+  (  nullValue(Type,standard,NV) % try 'standard' value first
+   ; nullValue(Type,empty,NV)    % 'empty' value comes second
+   ; nullValue(Type,_,NV)        % any other NullValue as last resort
+  ), !, % do not try again
+  concat_atom(['[const ',Type,' value ',NV,']'],'',NVatom),
+  string_to_atom(NVstring,NVatom),!.
+
+% create an atom describing an attribute list
+createConstAttrList([],'').
+createConstAttrList([[Name,Type]],Expr) :-
+  concat_atom([Name,Type],':',Expr),!.
+createConstAttrList([[Name,Type]|Rest],Expr) :-
+  Rest \= [],
+  concat_atom([Name,Type],':',Expr1),
+  createConstAttrList(Rest,Expr2),
+  concat_atom([Expr1,Expr2],',',Expr),!.
+
+% create an argument list for a dummy function with given signature
+% List format: [param(Var1, Type1), ..., param(VarN, TypeN)]
+createFunArgs([],[]).
+createFunArgs([ArgType|R],[param(Var, ArgType)|Args]) :-
+  newVariable(Var),
+  createFunArgs(R,Args),!.
+
