@@ -2135,6 +2135,8 @@ Destroys local variables.
 };
 
 
+bool CheckTBTree(ListExpr type, ListExpr& ErrorInfo);
+
 } // end of namespace tbtree
 
 
