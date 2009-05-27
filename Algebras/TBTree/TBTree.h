@@ -1436,6 +1436,7 @@ calculate number of different trajectories in this node
           for(unsigned int j = 0;j < innernode->entryCount();j++)
             list2.push_back(*(innernode->getEntry(j)));
         }
+        delete node;
       }
       list1.clear();
       list1.swap(list2);
