@@ -105,7 +105,8 @@ public:
 };
 
 
-class CSP  {
+class CSP  
+{
 public:
   vector< vector<Interval<Instant> > > SA;
   vector<Supplier> Agenda;
@@ -143,6 +144,23 @@ public:
     }
     ConstraintGraph[index1][index2]= handle;
     return 0;
+  }
+  
+  bool Solve()
+  {
+    int varIndex;
+    Word Value;
+    vector<Interval<Instant> > domain(0);
+    while( (varIndex= PickVariable()) != -1)
+    {
+      qp->Request(Agenda[varIndex], Value);
+      Agenda[varIndex]=0;
+      MBool2Vec((MBool*)Value.addr, domain);
+      if(domain.size()==0) return false;
+      if(Extend(varIndex, domain)!= 0) return false;
+      if(SA.size()==0) return false;
+    }
+    return true;
   }
   
   int MBool2Vec(const MBool* mb, vector<Interval<Instant> >& vec)
@@ -229,14 +247,25 @@ public:
     STVector* vec= (STVector*) Value.addr;
     return vec->ApplyVector(p1, p2);
   }
-    
+  
+  int PickVariable()
+  {
+    unsigned int i=0;
+    while(Agenda[i]==0 && i<Agenda.size()) i++;
+    if(i==Agenda.size()) return -1; else return i;
+  }
+  
+  int Clear()
+  {
+    SA.clear();
+    Agenda.clear();
+    ConstraintGraph.clear();
+    VarAliasMap.clear();
+    count=0;
+    return 0;
+  }
 }csp;
 
-class STPattern
-{
-  
-  
-};
 
 } // namespace STPattern
 
