@@ -42,6 +42,7 @@ inline int STVector::Count(int vec)
   if(vec & b_ba_a)  c++  ;
   return c;
 }
+
 inline int STVector::Str2Simple(string s)
 {
   if(s=="aabb") return  1 ;
@@ -79,6 +80,7 @@ inline int STVector::Str2Simple(string s)
   if(s=="b.ba.a")  return  33554432;
   return -1;
 }
+
 inline ListExpr STVector::Vector2List()
 {
   ListExpr list;
@@ -105,6 +107,7 @@ inline ListExpr STVector::Vector2List()
   }
   return list;
 }
+
 bool STVector::Add(string simple)
 {
   int vec= Str2Simple(simple);
@@ -121,6 +124,113 @@ bool STVector::Add(int simple)
     return true;
   }
   return false;
+}
+
+bool STVector::ApplyVector(Interval<Instant>& p1, Interval<Instant>& p2)
+{
+  int simple=1;
+  bool supported=false;
+  for(int i=0; i<26; i++)
+  {
+    if(v & simple)
+    {
+      supported = ApplySimple(p1, p2, simple);
+      if(supported) return true;
+    }
+    simple*=2;
+  }
+  return false;
+}
+
+bool STVector::ApplySimple(Interval<Instant>& p1, Interval<Instant>& p2, 
+    int simple)
+{
+  //can be optimized if we converted the Instant to int 
+  double  a=p1.start.ToDouble(),   A=p1.end.ToDouble(),
+          b=p2.start.ToDouble(),   B=p2.end.ToDouble();
+  switch(simple)
+  {
+  case   aabb:
+    return(a<A && a<b && a<B && A<b && A<B && b<B); 
+    break;
+  case   bbaa:
+    return(b<B && b<a && b<A && B<a && B<A && a<A);
+    break;
+  case   aa_bb:
+    return(a<A && a<b && a<B && A==b && A<B && b<B);
+    break;
+  case   bb_aa:
+    return(b<B && b<a && b<A && B==a && B<A && a<A);
+    break;
+  case   abab:
+    return(a<b && a<A && a<B && b<A && b<B && A<B);
+    break;
+  case   baba:
+    return(b<a && b<B && b<A && A<b && a<A && B<A);
+    break;
+  case   baab:
+    return(b<a && b<A && b<B && a<A && a<B && A<B);
+    break;
+  case   abba:
+    return(a<b && a<B && a<A && b<B && b<A && B<A);
+    break;
+  case   a_bab:
+    return(a==b && a<A && a<B && b<A && b<B && A<B);
+    break;
+  case   a_bba:
+    return(a==b && a<B && a<A && b<B && b<A && B<A);
+    break;
+  case   baa_b:
+    return(b<a && b<A && b<B && a<A && a<B && A==B);
+    break;
+  case   aba_b:
+    return(a<b && a<A && a<B && b<A && b<B && A==B);
+    break;
+  case   a_ba_b:
+    return(a==b && a<A && a<B && b<A && b<B && A==B);
+    break;
+  case   a_abb:
+    return(a==A && a<b && a<B && A<b && A<B && b<B); 
+    break;
+  case   a_a_bb:
+    return(a==A && a==b && a<B && A==b && A<B && b<B); 
+    break;
+  case   ba_ab:
+    return(b<a && b<A && b<B && a==A && a<B && A<B);
+    break;
+  case   bb_a_a:
+    return(b<B && b<a && b<A && B==a && B==A && a==A);
+    break;
+  case   bba_a:
+    return(b<B && b<a && b<A && B<a && B<A && a==A);
+    break;
+  case   b_baa:
+    return(b==B && b<a && b<A && B<a && B<A && a<A);
+    break;
+  case   b_b_aa:
+    return(b==B && b==a && b<A && B==a && B<A && a<A);
+    break;
+  case   ab_ba:
+    return(a<b && a<B && a<A && b==B && b<A && B<A);
+    break;
+  case   aa_b_b:
+    return(a<A && a<b && a<B && A==b && A==B && b==B); 
+    break;
+  case   aab_b:
+    return(a<A && a<b && a<B && A<b && A<B && b==B); 
+    break;
+  case   a_ab_b:
+    return(a==A && a<b && a<B && A<b && A<B && b==B); 
+    break;
+  case   a_a_b_b:
+    return(a==A && a==b && a==B && A==b && A==B && b==B); 
+    break;
+  case   b_ba_a:
+    return(b==B && b<a && b<A && B<a && B<A && a==A);
+    break;
+  default:
+    assert(0); //illegal simple temporal connector
+  }
 }
 
 Word STVector::In( const ListExpr typeInfo, const ListExpr instance,
@@ -146,20 +256,24 @@ Word STVector::In( const ListExpr typeInfo, const ListExpr instance,
   result.addr= res;
   return result;
 }
+
 ListExpr STVector::Out( ListExpr typeInfo, Word value )
 {
   STVector* vec = static_cast<STVector*>( value.addr );
   return vec->Vector2List();
 }
+
 Word STVector::Create( const ListExpr typeInfo )
 {
   return (SetWord( new STVector( 0)));
 }
+
 void STVector::Delete( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<STVector*>( w.addr );
   w.addr = 0;
 }
+
 bool STVector::Open( SmiRecord& valueRecord, size_t& offset, 
     const ListExpr typeInfo, Word& value ) 
 {
@@ -173,6 +287,7 @@ bool STVector::Open( SmiRecord& valueRecord, size_t& offset,
   value.addr = new STVector(vec); 
   return ok;
 }
+
 bool STVector::Save( SmiRecord& valueRecord, size_t& offset, 
     const ListExpr typeInfo, Word& value )
 {  
@@ -183,21 +298,25 @@ bool STVector::Save( SmiRecord& valueRecord, size_t& offset,
   ok = ok && valueRecord.Write( &vec->v, size, offset );
   offset += size;  
   return ok;
-}  
+} 
+
 void STVector::Close( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<STVector*>( w.addr );
   w.addr = 0;
 }
+
 Word STVector::Clone( const ListExpr typeInfo, const Word& w )
 {
   STVector* vec = static_cast<STVector*>( w.addr );
   return SetWord( new STVector(*vec) );
 }
+
 int STVector::SizeOfObj()
 {
   return sizeof(STVector);
 }
+
 ListExpr STVector::Property()
 {
   return (nl->TwoElemList(
@@ -212,6 +331,7 @@ ListExpr STVector::Property()
               nl->StringAtom("(1 128 32)"),
               nl->StringAtom(""))));
 }
+
 bool STVector::KindCheck( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, "stvector" ));
@@ -470,6 +590,7 @@ int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
 int STConstraintVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
+  assert(0); //this function should never be invoked.
   return 0;
 }
 

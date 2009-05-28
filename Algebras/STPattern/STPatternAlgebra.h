@@ -28,7 +28,7 @@ extern QueryProcessor* qp;
 
 
 namespace STP {
-enum SimpleConnectors {
+enum SimpleConnector {
   aabb=1,
   bbaa=2,
   aa_bb=4,
@@ -83,6 +83,10 @@ public:
   
   bool Add(int simple);
   
+  bool ApplyVector(Interval<Instant>& p1, Interval<Instant>& p2);
+  
+  bool ApplySimple(Interval<Instant>& p1, Interval<Instant>& p2, 
+      int simple);
   //Secondo framework support
   static Word In( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct );
@@ -102,6 +106,130 @@ public:
 
 
 class CSP  {
+public:
+  vector< vector<Interval<Instant> > > SA;
+  vector<Supplier> Agenda;
+  map<string, int> VarAliasMap;
+  vector< vector<Supplier> >ConstraintGraph;
+  int count;
+  Interval<Instant> nullInterval;
+  
+  CSP():count(0),
+  nullInterval(Instant(0,0,instanttype), Instant(0,0,instanttype),true,true){}
+  
+  int AddVariable(string alias, Supplier handle)
+  {
+    Agenda.push_back(handle);
+    VarAliasMap[alias]=count;
+    count++;
+    ConstraintGraph.resize(count);
+    for(int i=0; i<count; i++)
+      ConstraintGraph[i].resize(count);
+    return 0;
+  }
+  
+  int AddConstraint(string alias1, string alias2, Supplier handle)
+  {
+    int index1=-1, index2=-1;
+    try{
+      index1= VarAliasMap[alias1];
+      index2= VarAliasMap[alias2];
+      if(index1==index2)
+        throw;
+    }
+    catch(...)
+    {
+      return -1;
+    }
+    ConstraintGraph[index1][index2]= handle;
+    return 0;
+  }
+  
+  int MBool2Vec(const MBool* mb, vector<Interval<Instant> >& vec)
+  {
+    const UBool* unit;
+    vec.clear();
+    for(int i=0; i<mb->GetNoComponents(); i++)
+    {
+      mb->Get(i, unit);
+      if( ((CcBool)unit->constValue).GetValue())
+        vec.push_back(unit->timeInterval);
+    }
+    return 0;
+  }
+  
+  int Extend(int index, vector<Interval<Instant> >& domain )
+  {
+    vector<Interval<Instant> > sa(count);
+    for(int i=0; i<count; i++)
+      sa[i]= nullInterval;
+    if(SA.size() == 0)
+    {
+      for(unsigned int i=0; i<domain.size(); i++)
+      {
+        sa.clear();
+        sa[index]= domain[i];
+        SA.push_back(sa);
+      }
+      return 0;
+    }
+    
+    unsigned int SASize= SA.size();
+    for(unsigned int i=0; i<SASize; i++)
+    {
+      sa= SA[0];
+      for(unsigned int j=0; j< domain.size(); j++)
+      {
+        sa[index]= domain[i];
+        if(IsSupported(sa))
+          SA.push_back(sa);
+      }
+      SA.erase(SA.begin());
+    }
+    return 0;
+  }
+  
+  bool IsSupported(vector<Interval<Instant> > sa)
+  {
+    vector<int> assignedVars;
+    bool supported=false;
+    for(unsigned int i=0; i<sa.size(); i++)
+    {
+      if(sa[i] != nullInterval)
+        assignedVars.push_back(i);
+    }
+    
+    for(unsigned int i=0; i<assignedVars.size()-1; i++)
+    {
+      for(unsigned int j=0; j<assignedVars.size(); j++)
+      {
+        if(ConstraintGraph[assignedVars[i]][assignedVars[j]] != 0)
+        {
+          supported= CheckConstraint(sa[assignedVars[i]], sa[assignedVars[j]], 
+              ConstraintGraph[assignedVars[i]][assignedVars[j]]);
+          if(!supported) return false;
+        }
+        
+        if(ConstraintGraph[assignedVars[j]][assignedVars[i]] != 0)
+        {
+          supported= CheckConstraint(sa[assignedVars[j]], sa[assignedVars[i]], 
+              ConstraintGraph[assignedVars[j]][assignedVars[i]]);
+          if(!supported) return false;
+        }
+      }
+    }
+    return true;
+  }
+  
+  bool CheckConstraint(Interval<Instant>& p1, Interval<Instant>& p2, 
+      Supplier constraint)
+  {
+    Word Value;
+    qp->Request(constraint,Value);
+    STVector* vec= (STVector*) Value.addr;
+    return vec->ApplyVector(p1, p2);
+  }
+    
 }csp;
 
 class STPattern
