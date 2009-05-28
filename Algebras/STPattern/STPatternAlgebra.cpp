@@ -507,84 +507,26 @@ int CreateSTVectorVM
 
 int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  //  bool debugme=false;
-  //  Word t, value;
-  //  Tuple* tup;
-  //  Supplier supplier,*supplier2,*supplier3;
-  //  int nooffun;
-  //  ArgVectorPointer*funargs;
-  //  DateTime lastMatchTime(instanttype);
-  //  bool matchPred;
-  //  switch (message)
-  //  {
-  //  case OPEN :
-  //
-  //    qp->Open(args[0].addr);
-  //    return 0;
-  //
-  //  case REQUEST :
-  //    supplier = args[1].addr;
-  //    nooffun = qp->GetNoSons(supplier);
-  //    assert(nooffun>0);
-  //    supplier2= new Supplier[nooffun];
-  //    supplier3= new Supplier[nooffun];
-  //    funargs=new ArgVectorPointer[nooffun];
-  //
-  //    for (int i=0; i < nooffun;i++)
-  //    {
-  //      supplier2[i] = qp->GetSupplier(supplier, i);
-  //      supplier3[i] = qp->GetSupplier(supplier2[i], 1);
-  //      funargs[i] = qp->Argument(supplier3[i]);
-  //    }
-  //
-  //    qp->Request(args[0].addr,t);
-  //    while (qp->Received(args[0].addr))
-  //    {
-  //      tup = (Tuple*)t.addr;
-  //      lastMatchTime.ToMinimum();
-  //      if(debugme)
-  //        cout<<endl<< "Matching Tuple TID: "<<
-  //          (int)tup->GetTupleId();
-  //      for (int i=0; i < nooffun;i++)
-  //      {
-  //        ((*funargs[i])[0]).setAddr(tup);
-  //        qp->Request(supplier3[i],value);
-  //        matchPred= Match((MBool*)value.addr,
-  //                lastMatchTime);
-  //        if(debugme)
-  //        {
-  //          if(matchPred)
-  //            cout<< " matched Pred "<< i <<
-  //            " at time "<<
-  //            lastMatchTime.ToDouble();
-  //          else
-  //            cout<< "didn't match Predicate "
-  //              << i;
-  //          cout.flush();
-  //        }
-  //        if(!matchPred) break;
-  //      }
-  //      if(!matchPred)
-  //      {
-  //        tup->DeleteIfAllowed();
-  //        qp->Request(args[0].addr,t);
-  //      }
-  //      else
-  //      {
-  //        result.setAddr(tup);
-  //        delete[] supplier2;
-  //        delete[] supplier3;
-  //        delete[] funargs;
-  //        return YIELD;
-  //      }
-  //    }
-  //    return CANCEL;
-  //
-  //  case CLOSE :
-  //    qp->Close(args[0].addr);
-  //    return 0;
-  //  }
-  return 0;
+  bool debugme=true;
+  Supplier root, namedpredlist, namedpred,alias, pred, constraintlist,
+  constraint;
+  Word value;
+  int noofpred, nosons;
+  bool matchPred;
+  bool isConnector=false;
+
+  
+  result = qp->ResultStorage( s );
+  root = args[0].addr;
+
+  if(debugme)
+  {
+    cout<<endl<<"Root "; qp->ListOfTree(root,cout); 
+    // nl->ToString(qp->GetSupplierTypeExpr(root));
+    //cout<<endl<<"Labellist " <<nl->ToString(label)<<endl;
+    cout.flush();
+  }
+    return 0;
 }
 
 int STConstraintVM 
