@@ -9,4 +9,9 @@ Example  : query Trains feed filter[. stpattern[a: .Trip inside msnow
 later b: distance(.Trip, mehringdamm) < 10.0 ; intervalend("a") < intervalstart("b")]] count 
 Result   : 14
 
+Operator : CREATESTVECTOR
+Number   : 1
+Signature: (string string ... ) -> stvector
+Example  : let follows= v("aa.bb", "aa.b.b", "a.a.bb", "a.a.b.b")  
+Result   : 14
 

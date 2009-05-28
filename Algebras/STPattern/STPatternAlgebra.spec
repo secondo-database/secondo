@@ -19,5 +19,7 @@
 
 #operator stpattern alias STPATTERN pattern _ op [ funlist ] implicit parameter tuple type TUPLE
 #operator stpattern alias STPATTERN pattern _ op[list]
-operator intervalstart alias INTERVALSTART pattern op(_)
-operator intervalend alias INTERVALEND pattern op(_)
+#operator intervalstart alias INTERVALSTART pattern op(_)
+#operator intervalend alias INTERVALEND pattern op(_)
+operator v alias CREATESTVECTOR pattern op(_)
+operator stpattern alias STPATTERN pattern _ op[funlist;list]
