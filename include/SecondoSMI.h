@@ -1086,23 +1086,6 @@ Deletes the record identified by record number ~recno~ from the file.
 
 */
 
-  SmiStatResultType GetFileStatistics(const SMI_STATS_MODE mode);
-
-/*
-Returns a SmiStatResultType, which is a vector of key-value pairs. Both, keys
-and values are strings. Each ~key~ describes a statistic on the file and the
-~value~ the according value.
-
-~mode~ is of type SMI\_STATS\_MODE: either SMI\_STATS\_EAGER, SMI\_STATS\_LAZY.
-~SMI\_STATS\_EAGER~ will force the active collection of statistics to ensure
-that current and complete data is returned (that migth take a while, for data
-may needed to be analyzed), while ~SMI\_STATS\_LAZY~ will only read out (possibly
-old) statistics and/or return incomplete data.
-
-Different SmiFile types may return different sets of keys as results.
-
-*/
-
  protected:
  private:
 };
@@ -1220,11 +1203,6 @@ Destroys a file handle.
 
 */
 
-SmiStatResultType GetFileStatistics(const SMI_STATS_MODE mode);
-/*
-Get file statistics
-
-*/
 };
 
 /**************************************************************************
@@ -1344,23 +1322,6 @@ By default an iterator for read only access without reporting duplicates is init
 but update access and reporting of duplicates may be specified.
 
 The function returns "true"[4] when the iterator was initialized successfully.
-
-*/
-
-  SmiStatResultType GetFileStatistics(const SMI_STATS_MODE mode);
-
-/*
-Returns a SmiStatResultType, which is a vector of key-value pairs. Both, keys
-and values are strings. Each ~key~ describes a statistic on the file and the
-~value~ the according value.
-
-~mode~ is of type SMI\_STATS\_MODE: either SMI\_STATS\_EAGER, SMI\_STATS\_LAZY.
-~SMI\_STATS\_EAGER~ will force the active collection of statistics to ensure
-that current and complete data is returned (that migth take a while, for data
-may needed to be analyzed), while ~SMI\_STATS\_LAZY~ will only read out (possibly
-old) statistics and/or return incomplete data.
-
-Different SmiFile types may return different sets of keys as results.
 
 */
 

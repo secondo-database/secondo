@@ -73,6 +73,16 @@ static void BdbInitCatalogEntry( SmiCatalogEntry& entry );
 
 /* --- Implementation of class SmiFile --- */
 
+string lu_2_s(uint32_t value)
+{
+  ostringstream os;
+  os << value;
+  return os.str();
+}
+/*
+Converts a u\_int32\_t value to string (somehow, << does not work directly)
+
+*/
 
 ostream& operator<<(ostream& os, const SmiFile& f)
 {
@@ -731,6 +741,281 @@ bool
 SmiFile::IsOpen()
 {
   return (opened);
+}
+
+SmiStatResultType
+  SmiFile::GetFileStatistics(const SMI_STATS_MODE mode)
+{
+  int getTypeReturnValue = 0;
+  int getStatReturnValue = 0;
+  u_int32_t flags = 0;
+  DBTYPE dbtype;
+  SmiStatResultType result;
+  result.push_back(pair<string,string>("FileName",fileName));
+
+  switch(mode){
+    case SMI_STATS_LAZY: {
+        flags = DB_FAST_STAT;
+        break;
+      }
+    case SMI_STATS_EAGER: {
+        flags = 0;
+        break;
+      }
+    default: {
+        cout << "Error in SmiBtreeFile::GetFileStatistics: Unknown "
+             << "SMI_STATS_MODE" << mode << endl;
+        // assert( false );
+        result.push_back(pair<string,string>("ExitStatus","ERROR"));
+        return result;
+      }
+  }
+  result.push_back(pair<string,string>("StatisticsMode",
+                  (mode == SMI_STATS_LAZY) ? "Lazy" : "Eager" ));
+
+  getTypeReturnValue = impl->bdbFile->get_type(&dbtype);
+  if(getTypeReturnValue != 0){
+    cout << "Error in SmiFile::GetFileStatistics: get_type(...) returned != 0"
+         << getTypeReturnValue << endl;
+    string error;
+    SmiEnvironment::GetLastErrorCode( error );
+    cout << error << endl;
+    // assert( false );
+    result.push_back(pair<string,string>("ExitStatus","ERROR"));
+    return result;
+  }
+  switch(dbtype){
+    case DB_QUEUE:
+    {
+      DB_QUEUE_STAT *sRS = 0;
+      // set flags according to ~mode~
+      // call bdb stats method
+#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+      getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
+#else
+      getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
+#endif
+      // check for errors
+      if(getStatReturnValue != 0){
+        cout << "Error in SmiFile::GetFileStatistics: stat(...) returned != 0"
+            << getStatReturnValue << endl;
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+      //     assert( false );
+        result.push_back(pair<string,string>("ExitStatus","ERROR"));
+        return result;
+      }
+      // translate result structure to vector<pair<string,string> >
+      result.push_back(pair<string,string>("FileType","QueueFile"));
+      result.push_back(pair<string,string>("FileTypeVersion",
+                lu_2_s(sRS->qs_version)));
+      result.push_back(pair<string,string>("NoRecords",
+                lu_2_s(sRS->qs_nkeys)));
+      result.push_back(pair<string,string>("NoEntries",
+                lu_2_s(sRS->qs_ndata)));
+      result.push_back(pair<string,string>("PageSize",
+                lu_2_s(sRS->qs_pagesize)));
+      result.push_back(pair<string,string>("ExtentSize",
+                lu_2_s(sRS->qs_extentsize)));
+      result.push_back(pair<string,string>("NoPages",
+                lu_2_s(sRS->qs_pages)));
+      result.push_back(pair<string,string>("RecordLength",
+                lu_2_s(sRS->qs_re_len)));
+      result.push_back(pair<string,string>("PaddingByte",
+                lu_2_s(sRS->qs_re_pad)));
+      result.push_back(pair<string,string>("NoBytesFree",
+                lu_2_s(sRS->qs_pgfree)));
+      result.push_back(pair<string,string>("FirstUndeletedRecord",
+                lu_2_s(sRS->qs_first_recno)));
+      result.push_back(pair<string,string>("NextAvailRecordNo",
+                lu_2_s(sRS->qs_cur_recno)));
+      result.push_back(pair<string,string>("ExitStatus","OK"));
+      free(sRS); // free result structure
+      break;
+    }
+    case DB_RECNO:
+    {
+      DB_BTREE_STAT *sRS = 0;
+      // set flags according to ~mode~
+      // call bdb stats method
+#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+      getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
+#else
+      getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
+#endif
+      // check for errors
+      if(getStatReturnValue != 0){
+        cout << "Error in SmiFile::GetFileStatistics: stat(...) returned != 0"
+            << getStatReturnValue << endl;
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+      //     assert( false );
+        result.push_back(pair<string,string>("ExitStatus","ERROR"));
+        return result;
+      }
+      // translate result structure to vector<pair<string,string> >
+      result.push_back(pair<string,string>("FileType","RecNoFile"));
+      result.push_back(pair<string,string>("FileTypeVersion",
+                lu_2_s(sRS->bt_version)));
+      result.push_back(pair<string,string>("NoUniqueKeys",
+                lu_2_s(sRS->bt_nkeys)));
+      result.push_back(pair<string,string>("NoEntries",
+                lu_2_s(sRS->bt_ndata)));
+      result.push_back(pair<string,string>("PageSize",
+                lu_2_s(sRS->bt_pagesize)));
+      result.push_back(pair<string,string>("MinKeyPerPage",
+                lu_2_s(sRS->bt_minkey)));
+      result.push_back(pair<string,string>("RecordLength",
+                lu_2_s(sRS->bt_re_len)));
+      result.push_back(pair<string,string>("PaddingByte",
+                lu_2_s(sRS->bt_re_pad)));
+      result.push_back(pair<string,string>("NoLevels",
+                lu_2_s(sRS->bt_levels)));
+      result.push_back(pair<string,string>("NoInternalPages",
+                lu_2_s(sRS->bt_int_pg)));
+      result.push_back(pair<string,string>("NoLeafPages",
+                lu_2_s(sRS->bt_leaf_pg)));
+      result.push_back(pair<string,string>("NoDuplicatePages",
+                lu_2_s(sRS->bt_dup_pg)));
+      result.push_back(pair<string,string>("NoOverflowPages",
+                lu_2_s(sRS->bt_over_pg)));
+      result.push_back(pair<string,string>("NoFreeListPages",
+                lu_2_s(sRS->bt_free)));
+      result.push_back(pair<string,string>("NoBytesFreeInternalPages",
+                lu_2_s(sRS->bt_int_pgfree)));
+      result.push_back(pair<string,string>("NoBytesFreeLeafPages",
+                lu_2_s(sRS->bt_leaf_pgfree)));
+      result.push_back(pair<string,string>("NoBytesFreeDuplicatePages",
+                lu_2_s(sRS->bt_dup_pgfree)));
+      result.push_back(pair<string,string>("NoBytesFreeOverflowPages",
+                lu_2_s(sRS->bt_over_pgfree)));
+      result.push_back(pair<string,string>("ExitStatus","OK"));
+      free(sRS); // free result structure
+      break;
+    }
+    case DB_HASH:
+    {
+      DB_HASH_STAT *sRS = 0;
+      SmiStatResultType result;
+      // call bdb stats method
+#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+      getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
+#else
+      getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
+#endif
+      // check for errors
+      if(getStatReturnValue != 0){
+        cout << "Error in SmiFile::GetFileStatistics: stat(...) returned != 0"
+            << getStatReturnValue << endl;
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+      //  assert( false );
+        result.push_back(pair<string,string>("ExitStatus","ERROR"));
+        return result;
+      }
+      // translate result structure to vector<pair<string,string> >
+      result.push_back(pair<string,string>("FileType","HashFile"));
+      result.push_back(pair<string,string>("FileTypeVersion",
+          lu_2_s(sRS->hash_version)));
+      result.push_back(pair<string,string>("NoUniqueKeys",
+          lu_2_s(sRS->hash_nkeys)));
+      result.push_back(pair<string,string>("NoEntries",
+          lu_2_s(sRS->hash_ndata)));
+      result.push_back(pair<string,string>("PageSize",
+          lu_2_s(sRS->hash_pagesize)));
+      result.push_back(pair<string,string>("NoDesiredItemsPerBucket",
+          lu_2_s(sRS->hash_ffactor)));
+      result.push_back(pair<string,string>("NoBuckets",
+          lu_2_s(sRS->hash_buckets)));
+      result.push_back(pair<string,string>("NoFreeListPages",
+          lu_2_s(sRS->hash_free)));
+      result.push_back(pair<string,string>("NoBigItemPages",
+          lu_2_s(sRS->hash_bigpages)));
+      result.push_back(pair<string,string>("NoOverflowPages",
+          lu_2_s(sRS->hash_overflows)));
+      result.push_back(pair<string,string>("NoDuplicatePages",
+          lu_2_s(sRS->hash_dup)));
+      result.push_back(pair<string,string>("NoBytesFreeBucketPages",
+          lu_2_s(sRS->hash_bfree)));
+      result.push_back(pair<string,string>("NoBytesFreeBigItemPages",
+          lu_2_s(sRS->hash_big_bfree)));
+      result.push_back(pair<string,string>("NoBytesFreeOverflowPages",
+          lu_2_s(sRS->hash_ovfl_free)));
+      result.push_back(pair<string,string>("NoBytesFreeDuplicatePages",
+          lu_2_s(sRS->hash_dup_free)));
+      result.push_back(pair<string,string>("ExitStatus","OK"));
+      free(sRS); // free result structure
+      break;
+    }
+    case DB_BTREE: {
+      DB_BTREE_STAT *sRS = 0;
+      // set flags according to ~mode~
+      // call bdb stats method
+#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+      getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
+#else
+      getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
+#endif
+      // check for errors
+      if(getStatReturnValue != 0){
+        cout << "Error in SmiFile::GetFileStatistics: stat(...) returned != 0"
+            << getStatReturnValue << endl;
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cout << error << endl;
+    //     assert( false );
+        result.push_back(pair<string,string>("ExitStatus","ERROR"));
+        return result;
+      }
+      // translate result structure to vector<pair<string,string> >
+      result.push_back(pair<string,string>("FileType","BtreeFile"));
+      result.push_back(pair<string,string>("FileTypeVersion",
+                lu_2_s(sRS->bt_version)));
+      result.push_back(pair<string,string>("NoUniqueKeys",
+                lu_2_s(sRS->bt_nkeys)));
+      result.push_back(pair<string,string>("NoEntries",
+                lu_2_s(sRS->bt_ndata)));
+      result.push_back(pair<string,string>("PageSize",
+                lu_2_s(sRS->bt_pagesize)));
+      result.push_back(pair<string,string>("MinKeyPerPage",
+                lu_2_s(sRS->bt_minkey)));
+      result.push_back(pair<string,string>("RecordLength",
+                lu_2_s(sRS->bt_re_len)));
+      result.push_back(pair<string,string>("PaddingByte",
+                lu_2_s(sRS->bt_re_pad)));
+      result.push_back(pair<string,string>("NoLevels",
+                lu_2_s(sRS->bt_levels)));
+      result.push_back(pair<string,string>("NoInternalPages",
+                lu_2_s(sRS->bt_int_pg)));
+      result.push_back(pair<string,string>("NoLeafPages",
+                lu_2_s(sRS->bt_leaf_pg)));
+      result.push_back(pair<string,string>("NoDuplicatePages",
+                lu_2_s(sRS->bt_dup_pg)));
+      result.push_back(pair<string,string>("NoOverflowPages",
+                lu_2_s(sRS->bt_over_pg)));
+      result.push_back(pair<string,string>("NoFreeListPages",
+                lu_2_s(sRS->bt_free)));
+      result.push_back(pair<string,string>("NoBytesFreeInternalPages",
+                lu_2_s(sRS->bt_int_pgfree)));
+      result.push_back(pair<string,string>("NoBytesFreeLeafPages",
+                lu_2_s(sRS->bt_leaf_pgfree)));
+      result.push_back(pair<string,string>("NoBytesFreeDuplicatePages",
+                lu_2_s(sRS->bt_dup_pgfree)));
+      result.push_back(pair<string,string>("NoBytesFreeOverflowPages",
+                lu_2_s(sRS->bt_over_pgfree)));
+      result.push_back(pair<string,string>("ExitStatus","OK"));
+      free(sRS); // free result structure
+      break;
+    } // End FileType = btree
+    default: {
+      result.push_back(pair<string,string>("FileType","UNKNOWN"));
+      result.push_back(pair<string,string>("ExitStatus","OK"));
+    }
+  } // end switch(dbtype)
+  return result;
 }
 
 ostream&
@@ -1477,16 +1762,5 @@ int PrefetchingIteratorImpl::ErrorCode()
 {
   return errorCode;
 }
-
-string lu_2_s(uint32_t value)
-{
-  ostringstream os;
-  os << value;
-  return os.str();
-}
-/*
-Converts a u\_int32\_t value to string (somehow, << does not work)
-
-*/
 
 /* --- bdbFile.cpp --- */

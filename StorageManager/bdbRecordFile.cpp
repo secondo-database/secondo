@@ -48,8 +48,6 @@ using namespace std;
 #include "SmiBDB.h"
 #include "SmiCodes.h"
 
-extern string lu_2_s(uint32_t value); // defined in bdbFile.cpp
-
 /* --- Implementation of class SmiRecordFile --- */
 
 SmiRecordFile::SmiRecordFile( bool hasFixedLengthRecords,
@@ -239,81 +237,6 @@ bool SmiRecordFile::DeleteRecord( SmiRecordId recno )
   SmiEnvironment::SetBDBError( rc );
 
   return (rc == 0);
-}
-
-SmiStatResultType
-  SmiRecordFile::GetFileStatistics(const SMI_STATS_MODE mode)
-{ int getStatReturnValue = 0;
-  u_int32_t flags = 0;
-  DB_BTREE_STAT *sRS = 0;
-  SmiStatResultType result;
-  // set flags according to ~mode~
-  switch(mode){
-    case SMI_STATS_LAZY: {
-        flags = DB_FAST_STAT;
-        break;
-      }
-    case SMI_STATS_EAGER: {
-        flags = 0;
-        break;
-      }
-    default: {
-        cout << "Error in SmiRecordFile::GetFileStatistics: Unknown "
-             << "SMI_STATS_MODE" << mode << endl;
-//         assert( false );
-      }
-  }
-  // call bdb stats method
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
-  getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
-#else
-  getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
-#endif
-  // check for errors
-  if(getStatReturnValue != 0){
-    cout << "Error in SmiRecordFile::GetFileStatistics: stat(...) returned != 0"
-         << getStatReturnValue << endl;
-    string error;
-    SmiEnvironment::GetLastErrorCode( error );
-    cout << error << endl;
-//     assert( false );
-    return result;
-  }
-  // translate result structure to vector<pair<string,string> >
-  result.push_back(pair<string,string>("FileName",fileName));
-  result.push_back(pair<string,string>("FileType","RecnoFile"));
-  result.push_back(pair<string,string>("StatisticsMode",
-        (mode == SMI_STATS_LAZY) ? "Lazy" : "Eager" ));
-  result.push_back(pair<string,string>("FileTypeVersion",
-      lu_2_s(sRS->bt_version)));
-  result.push_back(pair<string,string>("NoRecords",lu_2_s(sRS->bt_nkeys)));
-  result.push_back(pair<string,string>("NoUndeletedRecords",
-      lu_2_s(sRS->bt_ndata)));
-  result.push_back(pair<string,string>("PageSize",lu_2_s(sRS->bt_pagesize)));
-  result.push_back(pair<string,string>("MinKeyPerPage",lu_2_s(sRS->bt_minkey)));
-  result.push_back(pair<string,string>("RecordLength",lu_2_s(sRS->bt_re_len)));
-  result.push_back(pair<string,string>("PaddingByte",lu_2_s(sRS->bt_re_pad)));
-  result.push_back(pair<string,string>("NoLevels",lu_2_s(sRS->bt_levels)));
-  result.push_back(pair<string,string>("NoInternalPages",
-      lu_2_s(sRS->bt_int_pg)));
-  result.push_back(pair<string,string>("NoLeafPages",lu_2_s(sRS->bt_leaf_pg)));
-  result.push_back(pair<string,string>("NoDuplicatePages",
-      lu_2_s(sRS->bt_dup_pg)));
-  result.push_back(pair<string,string>("NoOverflowPages",
-      lu_2_s(sRS->bt_over_pg)));
-  result.push_back(pair<string,string>("NoFreeListPages",lu_2_s(sRS->bt_free)));
-  result.push_back(pair<string,string>("NoBytesFreeInternalPages",
-      lu_2_s(sRS->bt_int_pgfree)));
-  result.push_back(pair<string,string>("NoBytesFreeLeafPages",
-      lu_2_s(sRS->bt_leaf_pgfree)));
-  result.push_back(pair<string,string>("NoBytesFreeDuplicatePages",
-      lu_2_s(sRS->bt_dup_pgfree)));
-  result.push_back(pair<string,string>("NoBytesFreeOverflowPages",
-      lu_2_s(sRS->bt_over_pgfree)));
-
-
-  free(sRS); // free result structure
-  return result;
 }
 
 /* --- Implementation of class SmiRecordFileIterator --- */
