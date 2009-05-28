@@ -5168,8 +5168,8 @@ knearestFilterTypeMap( ListExpr args )
              "first argument must be an rtree");
 
   CHECK_COND (listutils::isRelDescription(relDescription),
-             "Second argument must be a relation");      
-  
+             "Second argument must be a relation");
+
   CHECK_COND(listutils::isBTreeDescription(btreeDescription),
              "third argument must be an btree");
 
@@ -5184,10 +5184,6 @@ knearestFilterTypeMap( ListExpr args )
 
   CHECK_COND(nl->IsEqual(quantity,"int"),
              "seventh argument must be of type int");
-
- 
- 
-
 
   int j;
   ListExpr attrType;
