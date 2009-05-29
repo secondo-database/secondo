@@ -35,7 +35,12 @@ An instance could be used as a clock to measure time differences.
 
 #include <string>
 #include <sys/time.h>
+
+#ifdef SECONDO_WIN32
+#else
 #include <sys/times.h>
+#endif
+
 #include "SecondoConfig.h"
 
 using namespace std;
@@ -113,11 +118,13 @@ http://www.decompile.com/html/windows_timer_api.html
     timeval stopReal;
 #endif
 
- //   clock_t startCPU;
- //   clock_t stopCPU;
-
+#ifdef SECONDO_WIN32
+    clock_t cstartCPU;
+    clock_t cstopCPU;
+#else
       struct tms startCPU;
       struct tms stopCPU;
+#endif
 };
 
 #endif
