@@ -72,9 +72,15 @@ StopWatch::start() {
 #else
   time(&startReal);
 #endif
-//  startCPU=clock();
+
+#ifdef SECONDO_WIN32
+  cstartCPU=clock();
+  cstopCPU=cstartCPU;
+#else
   times(&startCPU);
   stopCPU=startCPU;
+#endif
+
 }
 
 
@@ -96,12 +102,15 @@ StopWatch::diffSecondsReal() {
 
 const double
 StopWatch::diffSecondsCPU() {
-//      stopCPU = clock();
-//      return ((double) (stopCPU - startCPU)) / CLOCKS_PER_SEC;
+#ifdef SECONDO_WIN32
+      cstopCPU = clock();
+      return ((double) (cstopCPU - cstartCPU)) / CLOCKS_PER_SEC;
+#else
      times(&stopCPU);
     double click = (double)sysconf(_SC_CLK_TCK);
     return (double)((stopCPU.tms_utime-startCPU.tms_utime)/click +
                     (stopCPU.tms_stime-startCPU.tms_stime)/click);
+#endif
 }
 
 
