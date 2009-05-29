@@ -56,9 +56,9 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 /*
-1.2 Helping structs, methods and classes
+1 Helping structs, methods and classes
 
-1.2.1 Sending a message via the message-center
+Sending a message via the message-center
 
 */
 void sendMessage(string in_strMessage)
@@ -70,6 +70,11 @@ void sendMessage(string in_strMessage)
   xMessage.append(NList().textAtom(in_strMessage));
   xMessageCenter->Send(xMessage);
 }
+
+/*
+Computes a spatial BoundingBox of a RouteInterval
+
+*/
 
 Rectangle<2> RouteInterval::BoundingBox(Network* pNetwork) const{
   if (AlmostEqual(m_dStart , m_dEnd)) {
@@ -106,9 +111,9 @@ Rectangle<2> RouteInterval::BoundingBox(Network* pNetwork) const{
 }
 
 /*
-1.2.2 ~searchRouteInterval~
+~searchRouteInterval~
 
-Method for binary search after a route interval in a sorted ~GLine~.
+Method for binary search after a route interval in a sorted ~GLine~. O(log n).
 Used for example by operator ~inside~.
 
 */
@@ -150,6 +155,11 @@ bool searchRouteInterval(GPoint *pGPoint, GLine *&pGLine, size_t low,
   return false;
 }
 
+/*
+Helper struct to store sections which have been visited before. Used in
+shortest path implementation of Dijkstras Algorithm.
+
+*/
 struct SectTree {
 
   SectTree(){};
@@ -162,6 +172,11 @@ struct SectTree {
 
   ~SectTree(){};
 
+  /*
+  Inserts a section into the tree. If the section is already in the insert is
+  ignored.
+
+  */
   void Insert(SectTreeEntry *nEntry){
     if (nEntry->secttid < value.secttid) {
       if (right != 0) right->Insert(nEntry);
@@ -174,7 +189,11 @@ struct SectTree {
     }
   };
 
-  void Find (int n, SectTree *result, bool &found){
+  /*
+  Returns a pointer to the node with the given id or 0 if not found.
+
+  */
+  void Find (TupleId n, SectTree *result, bool &found){
     if (n < value.secttid) {
       if (right != 0) right->Find(n, result, found);
       else {
@@ -245,8 +264,6 @@ struct SectTree {
 };
 
 /*
-1.2.6 ~chkPoint~
-
 Almost similar to operator ~checkPoint~ but additional returning a difference
 value if the point is not exactly on the ~sline~.
 
@@ -316,8 +333,6 @@ bool chkPoint (SimpleLine *&route, Point point, bool startSmaller, double &pos,
 }
 
 /*
-1.2.7 ~chkPoint~
-
 Almost similar to operator ~chkPoint~ but allowing a greater difference if the
 point is not exactly on the ~sline~.
 
@@ -447,8 +462,6 @@ bool lastchkPoint03 (SimpleLine *&route, Point point, bool startSmaller,
 }
 
 /*
-1.2.4 ~checkPoint~
-
 Returns true if a ~point~ is part of a ~sline~, false elsewhere. If the point
 is part of the sline his distance from the start is computed also. Used by
 operator ~line2gline~.
@@ -514,8 +527,6 @@ bool checkPoint (SimpleLine *&route, Point point, bool startSmaller,
 };
 
 /*
-1.2.5 ~searchUnit~
-
 Precondition: ~GLine~ is sorted.
 
 Returns true if there is a ~RouteInterval~ in the sorted ~GLine~ which
@@ -562,7 +573,7 @@ bool searchUnit(GLine *pGLine, size_t low, size_t high,
 
 
 /*
-1.2.8 class ~GPointList~
+class ~GPointList~
 
 Used by the operator ~polygpoint~. Computes and stores the resulting ~GPoints~
 for the resulting ~stream~ of ~GPoint~.
@@ -651,7 +662,7 @@ private:
 };
 
 /*
-1.2.9 class ~RectangleList~
+class ~RectangleList~
 
 Almost similar to ~GPointList~. But storing rectangles representing route
 intervals of a ~gline~. Used by operator ~routeintervals~ to create a ~stream~
@@ -720,6 +731,13 @@ private:
 ~struct RIStack~
 
 Used to build compressed shortestpath ~gline~ values.
+The ~RouteIntervals~ of the shortest path computation are pushed to a stack to
+first the end section. Last the first section of the path. So they can be
+returned in the sequence they are needed in the path.
+
+When the stack is returned to the resulting ~gline~ it is checked if the
+~RouteInterval~s on the stack can be connected to bigger parts. This is always
+possible if the shortest path follows the same route for more than one section.
 
 */
 
@@ -813,7 +831,7 @@ class PQEntry {
 /*
 struct sectIDTree stores the PQEntrys by section ID with identification flag
 for the PrioQueue-Array.
-An arrayIndex from max integer means not longer in PrioQ.
+An arrayIndex from max integer means not longer in PrioQ and already visited.
 
 */
 
@@ -924,6 +942,12 @@ struct PrioQueue {
 
   ~PrioQueue(){};
 
+  /*
+  If a point is reached second time and the distance of the second way is
+  smaller than on the path he has been found before. Its distance value and its
+  position in the  priority queue must be corrected.
+
+  */
   void CorrectPosition(int checkX, const PQEntry nElem, SectIDTree *pSection,
                        SectIDTree *sectTree){
     int act = checkX;
@@ -1056,441 +1080,13 @@ struct PrioQueue {
   int firstFree;
 
 };
-    /*
-Deprecated
-1.2.10 struct ~DijkstraStruct~
 
-Used for Dijkstras-Algorithm to compute the shortest path between two ~GPoint~.
-
-
-
-struct DijkstraStruct
-{
-  DijkstraStruct()
-  {
-  }
-
-  DijkstraStruct(int in_iSectionTid,
-                 bool in_bUpDownFlag,
-                 int in_iRouteId,
-                 double in_dMeas1,
-                 double in_dMeas2,
-                 double in_dD,
-                 double in_dHeuristicDistanceToEnd,
-                 int in_iPiSectionTid,
-                 bool in_bPiUpDownFlag)
-  {
-    m_iSectionTid = in_iSectionTid;
-    m_bUpDownFlag = in_bUpDownFlag;
-    m_iRouteId = in_iRouteId;
-    m_dMeas1 = in_dMeas1;
-    m_dMeas2 = in_dMeas2;
-    m_dD = in_dD;
-    m_dHeuristicDistanceToEnd = in_dHeuristicDistanceToEnd;
-    m_iPiSectionTid = in_iPiSectionTid;
-    m_bPiUpDownFlag = in_bPiUpDownFlag;
-  }
-
-  DijkstraStruct( const DijkstraStruct& in_xDikstraStruct):
-    m_iSectionTid(in_xDikstraStruct.m_iSectionTid),
-    m_bUpDownFlag(in_xDikstraStruct.m_bUpDownFlag),
-    m_iRouteId(in_xDikstraStruct.m_iRouteId),
-    m_dMeas1(in_xDikstraStruct.m_dMeas1),
-    m_dMeas2(in_xDikstraStruct.m_dMeas2),
-    m_dD(in_xDikstraStruct.m_dD),
-    m_dHeuristicDistanceToEnd(in_xDikstraStruct.m_dHeuristicDistanceToEnd),
-    m_iPiSectionTid(in_xDikstraStruct.m_iPiSectionTid),
-    m_bPiUpDownFlag(in_xDikstraStruct.m_bPiUpDownFlag)
-  {
-  }
-
-  int m_iSectionTid;
-
-  bool m_bUpDownFlag;
-
-  int m_iRouteId;
-
-  double m_dMeas1;
-
-  double m_dMeas2;
-
-  double m_dD;
-
-  double m_dHeuristicDistanceToEnd;
-
-  int m_iPiSectionTid;
-
-  bool m_bPiUpDownFlag;
-
-  double Length()
-  {
-    return m_dMeas2 - m_dMeas1;
-  }
-
-  double DistanceEstimation()
-  {
-    return m_dD + m_dHeuristicDistanceToEnd;
-  }
-
-
-  bool operator== (const DijkstraStruct& in_xOther)
-  {
-    bool bReturn = (m_iSectionTid == in_xOther.m_iSectionTid &&
-                    m_bUpDownFlag == in_xOther.m_bUpDownFlag);
-    return bReturn;
-  }
-};
-
-
-1.2.11 class ~PriorityQueue~
-
-Used for shortest path computing in Dijkstras Algorithm.
-
-
-
-class PriorityQueue
-{
-  public:
-
-  PriorityQueue()
-  {
-  }
-
-  void push(DijkstraStruct* in_pStruct)
-  {
-    m_xQueue.push_back(in_pStruct);
-    size_t iIndex = 2 * (in_pStruct->m_iSectionTid - 1);
-    if(in_pStruct->m_bUpDownFlag)
-    {
-      iIndex++;
-    }
-    if(m_xElements.size() < iIndex + 1)
-    {
-      m_xElements.resize(iIndex + 1);
-    }
-    m_xElements[iIndex] = in_pStruct;
-
-  }
-
-  DijkstraStruct* pop()
-  {
-
-    // ----------------------------------------------------------
-    // For testing only !
-    // This implementation needs O(n)
-    // To be replaced
-    // ----------------------------------------------------------
-    DijkstraStruct* pMinDijkstraStruct;
-
-    for(size_t i = 0; i < m_xQueue.size(); ++i)
-    {
-      DijkstraStruct* pCurrentStruct = m_xQueue[i];
-      if(i == 0 ||
-         pCurrentStruct->DistanceEstimation() <
-         pMinDijkstraStruct->DistanceEstimation())
-      {
-        pMinDijkstraStruct = pCurrentStruct;
-      }
-    }
-
-    std::vector<DijkstraStruct*>::iterator xIt = m_xQueue.begin();
-    while(xIt != m_xQueue.end())
-    {
-      DijkstraStruct* pCurrent = *xIt;
-      if(pCurrent->m_iSectionTid == pMinDijkstraStruct->m_iSectionTid &&
-         pCurrent->m_bUpDownFlag == pMinDijkstraStruct->m_bUpDownFlag)
-      {
-        m_xQueue.erase (xIt);
-        m_xS.push_back(pCurrent);
-
-        break;
-      }
-      xIt++;
-    }
-    return pMinDijkstraStruct;
-  }
-
-  bool isEmtpy()
-  {
-    return m_xQueue.empty();
-  }
-
-  DijkstraStruct* get(int in_iSectionTid,
-                      bool in_bUpDownFlag)
-  {
-    size_t iIndex = 2 * (in_iSectionTid - 1);
-    if(in_bUpDownFlag)
-    {
-      iIndex++;
-    }
-    return m_xElements[iIndex];
-  }
-
-  int getSSize()
-  {
-    return m_xS.size();
-  }
-
-  DijkstraStruct* getS(int in_iIndex)
-  {
-    return m_xS[in_iIndex];
-  }
-
-  private:
-
-  vector<DijkstraStruct*> m_xElements;
-
-  // TODO: Zweite Datenstruktur mit allen Elementen in sortiert
-  vector<DijkstraStruct*> m_xQueue;
-
-  vector<DijkstraStruct*> m_xS;
-
-};
-
-
-1.2.12 ~Dijkstra~
-
-Modified version of dikstras algorithm calculating shortest path in graphs.
-
-Whereas sedgewick's version of disktra operates on the nodes of the graph this
-version will process an array of edges. This change is necessary to take into
-account that not all transitions between connecting edges are possible. The
-preceding edge has to be known when looking for the next one.
-
-
-void Dijkstra(Network* in_pNetwork,
-                              int in_iStartSegmentId,
-                              GPoint* in_pFromGPoint,
-                              int in_iEndSegmentId,
-                              GPoint* in_pToGPoint,
-                              Point* in_pToPoint,
-                              GLine* in_pGLine)
-{
- // clock_t xEnterTime = clock();
-  // Specialized data structure with all edges of the graph. This
-  // structure will not only support the access to the remaining edges
-  // with the fewest weight but also to all edges by their index.
-  PriorityQueue xQ;
-
-  /////////////////////////////////////////
-  //
-  // InitializeSingleSource
-  //
-  // Get all Sections and fill them into Q. All weights but
-  // the one for the starting segment are set to infinity
-  Relation* pSections = in_pNetwork->GetSectionsInternal();
-  GenericRelationIterator* pSectionsIt = pSections->MakeScan();
-  Tuple* pSection;
-  while( (pSection = pSectionsIt->GetNextTuple()) != 0 )
-  {
-    // Get values
-    int iSegmentId = pSectionsIt->GetTupleId();
-    CcInt* xRouteId = (CcInt*)pSection->GetAttribute(SECTION_RID);
-    int iRouteId = xRouteId->GetIntval();
-    CcReal* xMeas1 = (CcReal*)pSection->GetAttribute(SECTION_MEAS1);
-    double dMeas1 = xMeas1->GetRealval();
-    CcReal* xMeas2 = (CcReal*)pSection->GetAttribute(SECTION_MEAS2);
-    double dMeas2 = xMeas2->GetRealval();
-    SimpleLine* pLine = (SimpleLine*)pSection->GetAttribute(SECTION_CURVE);
-    Point* pPoint = new Point(false);
-    pLine->AtPosition(0, true, *pPoint);
-
-    double dx = pPoint->GetX() - in_pToPoint->GetX();
-    double dy = pPoint->GetY() - in_pToPoint->GetY();
-    delete pPoint;
-    double dHeuristicDistanceToEnd = sqrt( pow( dx, 2 ) + pow( dy, 2 ) );
-
-//    // Use Dijkstra instead of A*
-//    fHeuristicDistanceToEnd = 0;
-
-    // Put one struct for each direction in the map (up and down)
-    bool bStartSegment = iSegmentId == in_iStartSegmentId &&
-                         (in_pFromGPoint->GetSide() == None ||
-                          in_pFromGPoint->GetSide() == Up);
-    xQ.push(new DijkstraStruct(iSegmentId,
-                               true,
-                               iRouteId,
-                               dMeas1,
-                               dMeas2,
-                               bStartSegment ? 0 : double(1e29),
-                               dHeuristicDistanceToEnd,
-                               -1,
-                               true));
-
-    bStartSegment = iSegmentId == in_iStartSegmentId &&
-                         (in_pFromGPoint->GetSide() == None ||
-                         in_pFromGPoint->GetSide() == Down);
-    xQ.push(new DijkstraStruct(iSegmentId,
-                               false,
-                               iRouteId,
-                               dMeas1,
-                               dMeas2,
-                               bStartSegment ? 0 : double(1e29),
-                               dHeuristicDistanceToEnd,
-                               -1,
-                               true));
-
-    pSection->DeleteIfAllowed();
-  }
-  delete pSectionsIt;
-//       << "InitializeSingleSource Time: "
-//       << (clock() - xEnterTime) << " / " << CLOCKS_PER_SEC << " Sekunden."
-//       << endl;
-  // End InitializeSingleSource
-
-  /////////////////////////////////
-  //
-  // Now dikstras algorithm will handle each node in
-  // the queue recalculating their weights.
-  //
-  while(! xQ.isEmtpy())
-  {
-    // Extract-Min
-    DijkstraStruct* pCurrent = xQ.pop();
-
-    // Abbruchbedingung pr�fen
-    if(pCurrent->m_iSectionTid == in_iEndSegmentId &&
-       (
-         in_pToGPoint->GetSide() == None ||
-         (
-           (
-             in_pToGPoint->GetSide() == Up &&
-             pCurrent->m_bUpDownFlag
-           ) ||
-           (
-             in_pToGPoint->GetSide() == Down &&
-             !pCurrent->m_bUpDownFlag
-           )
-         )
-       )
-      )
-    {
-      break;
-    }
-
-    // Get values
-    int iCurrentSectionTid = pCurrent->m_iSectionTid;
-    bool bCurrentUpDownFlag = pCurrent->m_bUpDownFlag;
-
-    // Get all adjacent sections
-    vector<DirectedSection> xAdjacentSections;
-    xAdjacentSections.clear();
-    in_pNetwork->GetAdjacentSections(iCurrentSectionTid,
-                                     bCurrentUpDownFlag,
-                                     xAdjacentSections);
-
-    // Iterate over adjacent sections
-    for(size_t i = 0;  i < xAdjacentSections.size(); i++)
-    {
-      // Load the structure belonging to the adjacent section
-      DirectedSection xAdjacentSection = xAdjacentSections[i];
-      int iAdjacentSectionTid = xAdjacentSection.GetSectionTid();
-      bool bAdjacentUpDownFlag = xAdjacentSection.GetUpDownFlag();
-      DijkstraStruct* pAdjacent = xQ.get(iAdjacentSectionTid,
-                                         bAdjacentUpDownFlag);
-
-      // Relax the weight if a shorter path has been found
-      if(pAdjacent->m_dD > pCurrent->m_dD + pCurrent->Length())
-      {
-        // Calculate new distance
-        pAdjacent->m_dD = pCurrent->m_dD + pCurrent->Length();
-        // Set current as predecessor of adjacent section
-        pAdjacent->m_iPiSectionTid = pCurrent->m_iSectionTid;
-        pAdjacent->m_bPiUpDownFlag = pCurrent->m_bUpDownFlag;
-      }
-    }
-  }
-  // Now all weights and all predecessors have been found.
-
-  // Find the route starting at the end looking at the pi-entries pointing
-  // at a predecessor.
-  DijkstraStruct* pStruct;
-  if(in_pToGPoint->GetSide() == Up)
-  {
-    pStruct = xQ.get(in_iEndSegmentId,
-                     true);
-  }
-  else if(in_pToGPoint->GetSide() == Down)
-  {
-    pStruct = xQ.get(in_iEndSegmentId,
-                     false);
-  }
-  else
-  {
-    // GPoint lies on an undirected section. We first get the distance
-    // for both sides
-    double dUpDistance = xQ.get(in_iEndSegmentId, true)->m_dD;
-    double dDownDistance = xQ.get(in_iEndSegmentId, false)->m_dD;
-    // Now we get the directed section for the shorter Distance
-    pStruct = xQ.get(in_iEndSegmentId,
-                     dUpDistance < dDownDistance);
-  }
-
-  if(pStruct->m_iPiSectionTid == -1)
-  {
-    // End not reachable from start. Either the graph consists of two
-    // parts or the ConnectivityCode prevents driving on all path from
-    // start to end.
-    // Return empty GLine
-    string strMessage = "Destination is not reachable from the start. Either "
-                        "the points are located in disjoint parts of the "
-                        "network or the ConnectityCode prevents reaching the "
-                        "destination.";
-    sendMessage(strMessage);
-    return;
-  }
-
-  // Add last interval of the route
-  double dPos1 = pStruct->m_dMeas1;
-  double dPos2 = pStruct->m_dMeas2;
-  if(pStruct->m_bUpDownFlag)
-  {
-    dPos2 = in_pToGPoint->GetPosition();
-  }
-  else
-  {
-    dPos1 = in_pToGPoint->GetPosition();
-  }
-  in_pGLine->AddRouteInterval(pStruct->m_iRouteId,
-                              dPos1,
-                              dPos2);
-  // Add all predecessors until the start is reached.
-  while(pStruct->m_iSectionTid != in_iStartSegmentId)
-  {
-    pStruct = xQ.get(pStruct->m_iPiSectionTid,
-                     pStruct->m_bPiUpDownFlag);
-    double dPos1 = pStruct->m_dMeas1;
-    double dPos2 = pStruct->m_dMeas2;
-
-    if(pStruct->m_iSectionTid == in_iStartSegmentId)
-    {
-      // First segment reached. We only need a part of this segment
-      if(pStruct->m_bUpDownFlag)
-      {
-        dPos1 = in_pFromGPoint->GetPosition();
-      }
-      else
-      {
-        dPos2 = in_pFromGPoint->GetPosition();
-      }
-    }
-
-    in_pGLine->AddRouteInterval(pStruct->m_iRouteId,
-                                dPos1,
-                                dPos2);
-  }
-
-//       << "DijkstraTime: "
-//       << (clock() - xEnterTime) << " / " << CLOCKS_PER_SEC << " Sekunden."
-//       << endl;
-}
-    */
 /*
-1.3 Class Definitions
+2 Class Definitions
 
-1.3.1 class ~Network~
+2.1 class ~Network~
 
-1.3.1.1 Network relations
+2.1.2 Network relations
 
 */
 string Network::routesTypeInfo =
@@ -1525,7 +1121,7 @@ string Network::distancestorageTypeInfo =
       "(rel (tuple((j1 tid)(j2 tid)(dist real)(sp gline))))";
 
 /*
-1.3.1.2 Constructors and destructors class ~Network~
+2.1.3 Constructors and destructors class ~Network~
 
 */
 
@@ -1542,7 +1138,7 @@ m_pBTreeJunctionsByRoute2(0),
 m_xAdjacencyList(0),
 m_xSubAdjacencyList(0),
 m_pBTreeSectionsByRoute(0)
-/*alldistance(0)*/
+/*alldistance(0)*/  //only for experimental use with network distances
 {
 }
 
@@ -1978,6 +1574,10 @@ void Network::Load(int in_iId,
   m_bDefined = true;
 }
 
+/*
+Fill routes relation of network
+
+*/
 void Network::FillRoutes(const Relation *routes)
 {
   ostringstream xRoutesPtrStream;
@@ -2012,6 +1612,10 @@ void Network::FillRoutes(const Relation *routes)
 }
 
 
+/*
+Fill junctions relation of network
+
+*/
 void Network::FillJunctions(const Relation *in_pJunctions)
 {
   /////////////////////////////////////////////////////////////////////
@@ -2139,6 +1743,10 @@ void Network::FillJunctions(const Relation *in_pJunctions)
   m_pBTreeJunctionsByRoute2 = (BTree*)xResult.addr;
 }
 
+/*
+Fill routes relation of network
+
+*/
 void Network::FillSections()
 {
   // The method will iterate over routes
@@ -2533,6 +2141,10 @@ void Network::FillSections()
   m_pBTreeSectionsByRoute = (BTree*)xResult.addr;
 }
 
+/*
+Fill adjacency list of network
+
+*/
 void Network::FillAdjacencyLists()
 {
   // Adjust the adjacenzy list to the correct size. From each
@@ -2729,13 +2341,22 @@ void Network::FillAdjacencyLists()
   }
 }
 
-/*void Network::FillAdjacencyPair(Tuple* in_pFirstSection,
+  /*
+  void Network::FillAdjacencyPair(Tuple* in_pFirstSection,
                                     bool in_bFirstUp,
                                     Tuple* in_pSecondSection,
                                     bool in_bSecondUp,
                                     ConnectivityCode in_xCc,
                                     Transition in_xTransition,
-                                    vector<DirectedSectionPair> &inout_xPairs)*/
+                                    vector<DirectedSectionPair> &inout_xPairs)
+
+  */
+
+/*
+Build vector of directed section pairs.
+
+*/
+
   void Network::FillAdjacencyPair(TupleId in_pFirstSection,
                                   bool in_bFirstUp,
                                   TupleId in_pSecondSection,
@@ -2755,6 +2376,10 @@ void Network::FillAdjacencyLists()
     }
 }
 
+/*
+.
+
+*/
 bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
 {
   GPoint* end = new GPoint(*to);//copy the gpoint
@@ -3104,6 +2729,10 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
   return true;
 };
 
+/*
+.
+
+*/
 void Network::FindSP(TupleId j1,TupleId j2,double& length,GLine* res)
 {
   res->SetNetworkId(GetId());
@@ -3122,6 +2751,11 @@ void Network::FindSP(TupleId j1,TupleId j2,double& length,GLine* res)
     tuple->DeleteIfAllowed();
   }
 }
+
+/*
+.
+
+*/
 
 void Network::FillDistanceStorage()
 {
@@ -3172,6 +2806,11 @@ void Network::FillDistanceStorage()
     }
   }
 }
+
+/*
+Returning network parameters.
+
+*/
 
 int Network::GetId()
 {
@@ -3230,6 +2869,7 @@ Tuple* Network::GetSection(TupleId n) {
   return m_pSections->GetTuple(n);
 }
 
+
 TupleId Network::GetTupleIdSectionOnRoute(GPoint* in_xGPoint) {
   CcInt *ciRouteId = new CcInt(true, in_xGPoint->GetRouteId());
   BTreeIterator* pSectionIter =
@@ -3279,15 +2919,16 @@ TupleId Network::GetTupleIdSectionOnRoute(GPoint* in_xGPoint) {
     }
   }
   delete pSectionIter;
-  return -1;
+  return 0;
 }
 
 Tuple* Network::GetSectionOnRoute(GPoint* in_xGPoint)
 {
- /*
+  return GetSection(GetTupleIdSectionOnRoute(in_xGPoint));
+  /*
 New implementation using sectionsBTree
 
-*/
+
 
   CcInt *ciRouteId = new CcInt(true, in_xGPoint->GetRouteId());
   BTreeIterator* pSectionIter =
@@ -3335,7 +2976,7 @@ New implementation using sectionsBTree
   return 0;
 
 
-  /*
+  
   vector<JunctionSortEntry> xJunctions;
   CcInt xRouteId(true, in_xGPoint->GetRouteId());
   GetJunctionsOnRoute(&xRouteId,
@@ -3369,8 +3010,13 @@ New implementation using sectionsBTree
 
   if(iSectionId == 0) return 0;
   else return m_pSections->GetTuple(iSectionId);
-    */
+  */
 }
+
+/*
+Returns the tuple from routes relation for the given route id.
+
+*/
 
 Tuple* Network::GetRoute(int in_RouteId){
   CcInt* pRouteId = new CcInt(true, in_RouteId);
@@ -3431,6 +3077,10 @@ void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
   delete pSectionIter;
 };
 
+/*
+Returns the spatial position of the gpoint.
+
+*/
 void Network::GetPointOnRoute(const GPoint* in_pGPoint, Point*& res){
   /*Point *res = new Point(false);*/
   CcInt* pRouteId = new CcInt(true, in_pGPoint->GetRouteId());
@@ -3446,51 +3096,6 @@ void Network::GetPointOnRoute(const GPoint* in_pGPoint, Point*& res){
   pRoute->DeleteIfAllowed();
   delete pRoutesIter;
   /*return res;*/
-}
-
-void Network::GetGPointsOnInterval(int iRouteId, double start, double end,
-                            DBArray<GPointPoint> &gpp_list){
-  const RouteInterval *ri = new RouteInterval(iRouteId, start, end);
-  SimpleLine *sline = new SimpleLine(0);
-  GetLineValueOfRouteInterval (ri, sline);
-  delete ri;
-  CcInt* pRouteId = new CcInt(true, iRouteId);
-  BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
-  delete pRouteId;
-  Tuple *pRoute = 0;
-  if (pRoutesIter->Next())
-    pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
-  assert(pRoute != 0);
-  SimpleLine* routeCurve = (SimpleLine*)pRoute->GetAttribute(ROUTE_CURVE);
-  assert(routeCurve != 0);
-  const HalfSegment *hs;
-  sline->Get(0,hs);
-  Point p1 = hs->GetLeftPoint();
-  Point p2 = hs->GetRightPoint();
-  double pos1, pos2;
-  bool ok = checkPoint(routeCurve, p1, true, pos1);
-  GPoint gp1 = GPoint(true, GetId(), iRouteId, pos1);
-  GPointPointTree *gpptree = new GPointPointTree(gp1, p1, 0,0);
-  ok = checkPoint(routeCurve,p2, true, pos2);
-  GPoint gp2 = GPoint(true, GetId(), iRouteId, pos2);
-  gpptree->Insert(gp2, p2);
-  for (int i=1; i < sline->Size() ; i++){
-    sline->Get(i,hs);
-    p1 = hs->GetLeftPoint();
-    p2 = hs->GetRightPoint();
-    ok = checkPoint(routeCurve, p1, true, pos1);
-    gp1 = GPoint(true, GetId(), iRouteId, pos1);
-    gpptree->Insert(gp1, p1);
-    ok = checkPoint(routeCurve,p2, true, pos2);
-    gp2 = GPoint(true, this->GetId(), iRouteId, pos2);
-    gpptree->Insert(gp2, p2);
-  }
-  gpptree->TreeToVector(&gpp_list);
-  gpptree->RemoveTree();
-  delete pRoute;
-  delete pRoutesIter;
-  delete sline;
-
 }
 
 Relation* Network::GetSectionsInternal()
@@ -3561,15 +3166,14 @@ bool Network::ShorterConnection(Tuple *route, double &start,
   if (AlmostEqual(p1.Distance(p2), fabs(end-start))) return false;
   double difference;
   GPoint *gp = new GPoint(true, GetId(), route->GetTupleId(), end - 0.01 );
-  Tuple *pSection1 = GetSectionOnRoute(gp);
+  TupleId pSection1 = GetTupleIdSectionOnRoute(gp);
   delete gp;
   vector<DirectedSection> pAdjSect1;
   vector<DirectedSection> pAdjSect2;
   pAdjSect1.clear();
   pAdjSect2.clear();
-  GetAdjacentSections(pSection1->GetTupleId(),true, pAdjSect1);
-  GetAdjacentSections(pSection1->GetTupleId(),false, pAdjSect2);
-  pSection1->DeleteIfAllowed();
+  GetAdjacentSections(pSection1,true, pAdjSect1);
+  GetAdjacentSections(pSection1,false, pAdjSect2);
   if (pAdjSect1.size() == 0 || pAdjSect2.size() == 0) {
     pAdjSect1.clear();
     pAdjSect2.clear();
@@ -3637,15 +3241,14 @@ bool Network::ShorterConnection2(Tuple *route, double &start,
       if (start > end) difference = end + 0.01;
       else difference = end; //start == end
   GPoint *gp = new GPoint(true, GetId(), route->GetTupleId(), difference);
-  Tuple *pSection1 = GetSectionOnRoute(gp);
+  TupleId pSection1 = GetTupleIdSectionOnRoute(gp);
   delete gp;
   vector<DirectedSection> pAdjSect1;
   vector<DirectedSection> pAdjSect2;
   pAdjSect1.clear();
   pAdjSect2.clear();
-  GetAdjacentSections(pSection1->GetTupleId(),true, pAdjSect1);
-  GetAdjacentSections(pSection1->GetTupleId(),false, pAdjSect2);
-  pSection1->DeleteIfAllowed();
+  GetAdjacentSections(pSection1,true, pAdjSect1);
+  GetAdjacentSections(pSection1,false, pAdjSect2);
   if (pAdjSect1.size() == 0 || pAdjSect2.size() == 0) {
     pAdjSect1.clear();
     pAdjSect2.clear();
@@ -3699,6 +3302,10 @@ bool Network::ShorterConnection2(Tuple *route, double &start,
   }
 }
 
+/*
+Searches the route interval between the two given point values.
+
+*/
 
 RouteInterval* Network::Find(Point p1, Point p2){
   GPoint *gpp1 = GetNetworkPosOfPoint(p1);
@@ -3767,14 +3374,13 @@ RouteInterval* Network::Find(Point p1, Point p2){
       }
     }
     pRoute->DeleteIfAllowed();
-    Tuple *pSection = GetSectionOnRoute(gpp1);
+    TupleId pSection = GetTupleIdSectionOnRoute(gpp1);
     vector<DirectedSection> pAdjSect1;
     vector<DirectedSection> pAdjSect2;
     pAdjSect1.clear();
     pAdjSect2.clear();
-    GetAdjacentSections(pSection->GetTupleId(),true, pAdjSect1);
-    GetAdjacentSections(pSection->GetTupleId(),false, pAdjSect2);
-    pSection->DeleteIfAllowed();
+    GetAdjacentSections(pSection,true, pAdjSect1);
+    GetAdjacentSections(pSection,false, pAdjSect2);
     size_t j = 0;
     Tuple *pCurrSect;
     while (j < pAdjSect1.size()) {
@@ -3917,14 +3523,13 @@ RouteInterval* Network::FindInterval(Point p1, Point p2){
       }
     }
     pRoute->DeleteIfAllowed();
-    Tuple *pSection = GetSectionOnRoute(gpp1);
+    TupleId pSection = GetTupleIdSectionOnRoute(gpp1);
     vector<DirectedSection> pAdjSect1;
     vector<DirectedSection> pAdjSect2;
     pAdjSect1.clear();
     pAdjSect2.clear();
-    GetAdjacentSections(pSection->GetTupleId(),true, pAdjSect1);
-    GetAdjacentSections(pSection->GetTupleId(),false, pAdjSect2);
-    pSection->DeleteIfAllowed();
+    GetAdjacentSections(pSection,true, pAdjSect1);
+    GetAdjacentSections(pSection,false, pAdjSect2);
     size_t j = 0;
     Tuple *pCurrSect;
     while (j < pAdjSect1.size()) {
@@ -4520,7 +4125,7 @@ void Network::GetLineValueOfRouteInterval (const RouteInterval *in_ri,
 }
 
 /*
-1.3.1.4 Secondo TypeConstructor for class ~Network~
+Secondo TypeConstructor for class ~Network~
 
 */
 
@@ -4535,12 +4140,9 @@ TypeConstructor network( "network",          Network::NetworkProp,
 
 
 /*
-1.3.2 class ~GLine~
+3 class ~GLine~
 
-*/
-
-/*
-1.3.2.1 Constructors
+3.1 Constructors
 
 The simple constructor. Should not be used.
 
@@ -4672,7 +4274,7 @@ The simple constructor. Should not be used.
 }
 
 /*
-1.3.2.2 Methods of class ~GLine~
+3.2 Methods of class ~GLine~
 
 */
 void GLine::SetNetworkId(int in_iNetworkId)
@@ -4715,6 +4317,10 @@ void GLine::SetSorted(bool in_bSorted) {
   m_bSorted = in_bSorted;
 }
 
+/*
+Secondo Integration
+
+*/
 Word GLine::In(const ListExpr typeInfo, const ListExpr instance,
                const int errorPos, ListExpr& errorInfo, bool& correct)
 {
@@ -5413,7 +5019,7 @@ bool GLine::Intersects(GLine *pgl){
 
 
 /*
-1.3.2.3 Secondo Type Constructor for class ~GLine~
+Secondo Type Constructor for class ~GLine~
 
 */
 TypeConstructor gline(
@@ -5431,13 +5037,13 @@ TypeConstructor gline(
 
 
 /*
-1.3.3 class ~GPoint~
+4 class ~GPoint~
 
-1.3.3.1 Constructors
+4.1 Constructors
 
 See ~network.h~ class definition of ~GPoint~
 
-1.3.3.2 Methods of class ~GPoint~
+4.2 Methods of class ~GPoint~
 
 */
 Word GPoint::InGPoint( const ListExpr typeInfo,
@@ -5599,6 +5205,10 @@ double GPoint::Distance (GPoint* pToGPoint){
   } else return numeric_limits<double>::max();
 }
 
+/*
+Returns true if the gpoint is inside the gline false elsewhere.
+
+*/
 bool GPoint::Inside(GLine *gl){
   if (!(gl->IsDefined()) || !IsDefined() ||
         gl->NoOfComponents() < 1) return false;
@@ -5647,8 +5257,8 @@ bool GPoint::operator!= (const GPoint& p) const{
 }
 
 /*
-Computes the shortest path between start and end in the network. The path is
-returned as gline value.
+Computes the shortest path between start and end in the network. Using
+Dijkstras Algorithm. The path is returned as gline value.
 
 */
 
@@ -6246,7 +5856,7 @@ GPoints* GLine::GetBGP (){
 };
 
 /*
-1.3.3.3 Secondo Type Constructor for class ~GPoint~
+Secondo Type Constructor for class ~GPoint~
 
 */
 
@@ -6264,7 +5874,7 @@ TypeConstructor gpoint(
         GPoint::CheckGPoint );                      //kind checking function
 
 /*
-Class GPoints implemented by Jianqiu Xu
+5 Class GPoints implemented by Jianqiu Xu
 
 */
 
@@ -6528,9 +6138,9 @@ TypeConstructor gpoints( "gpoints",
 
 
 /*
-1.4 Secondo Operators
+6 Secondo Operators
 
-1.4.1 Operator ~netdistance~
+6.1 Operator ~netdistance~
 
 Returns the network distance between two ~Gpoints~ or two ~GLines~. Using
 Dijkstras Algorithm for computation of the shortest paths.
@@ -6624,7 +6234,7 @@ Operator networknetdistance (
 );
 
 /*
-1.4.2 Operator ~gpoint2rect~
+6.2 Operator ~gpoint2rect~
 
 Returns a rectangle degenerated to a point with coordinates rid, rid, pos, pos.
 
@@ -6683,7 +6293,7 @@ Operator networkgpoint2rect (
 );
 
 /*
-1.4.3 Operator ~inside~
+6.3 Operator ~inside~
 
 Returns true if ths ~GPoint~ is inside the ~GLine~ false elsewhere.
 
@@ -6734,7 +6344,7 @@ Operator networkinside (
 );
 
 /*
-1.4.4 Operator ~length~
+6.4 Operator ~length~
 
 Returns the length of a ~GLine~.
 
@@ -6782,9 +6392,9 @@ Operator networklength (
 );
 
 /*
-1.4.5 Operator ~line2gline~
+6.5 Operator ~line2gline~
 
-Translates a spatial ~line~ value into a network ~GLine~ value.
+Translates a spatial ~line~ value into a network ~GLine~ value if possible.
 
 */
 
@@ -6906,9 +6516,10 @@ Operator sline2gline (
 
 
 /*
-1.4.6 Operator ~=~
+6.6 Operator ~=~
 
-Returns true if 2. ~GPoints~ are at the same position false elsewhere.
+Returns true if two ~GPoint~s respectively ~GLine~s are identical false
+elsewhere.
 
 */
 
@@ -6997,7 +6608,7 @@ Operator netgpequal (
 
 
 /*
-1.4.7 Operator ~intersects~
+6.7 Operator ~intersects~
 
 Returns true if two ~Gline~ intersect false elsewhere.
 
@@ -7070,7 +6681,7 @@ Operator networkintersects (
 
 
 /*
-1.4.8 Operator ~junctions~
+6.8 Operator ~junctions~
 
 Returns the junctions relation of the network.
 
@@ -7125,7 +6736,7 @@ Operator networkjunctions (
 
 
 /*
-1.4.9 Operator ~routes~
+6.9 Operator ~routes~
 
 Returns the routes relation of the network.
 
@@ -7179,7 +6790,7 @@ Operator networkroutes (
 );
 
 /*
-1.4.10 Operator ~sections~
+6.10 Operator ~sections~
 
 Returns the sections relation of the network.
 
@@ -7235,7 +6846,7 @@ Operator networksections (
 
 
 /*
-1.4.11 Operator ~thenetwork~
+6.11 Operator ~thenetwork~
 
 Creates a network with the given id, from the given routes and junctions
 relations.
@@ -7314,7 +6925,7 @@ Operator networkthenetwork (
 );
 
 /*
-1.4.12 Operator ~no\_components~
+6.12 Operator ~no\_components~
 
 Returns the number of ~RouteIntervals~ of the ~GLine~.
 
@@ -7364,9 +6975,9 @@ Operator networknocomponents (
 
 
 /*
-1.4.13 Operator ~point2gpoint~
+6.13 Operator ~point2gpoint~
 
-Translates a spatial ~Point~ value into a network ~GPoint~ value.
+Translates a spatial ~Point~ value into a network ~GPoint~ value if possible.
 
 */
 ListExpr OpPoint2GPointTypeMap(ListExpr in_xArgs)
@@ -7448,11 +7059,12 @@ Operator point2gpoint (
 );
 
 /*
-1.4.13 Operator ~gpoint2point~
+6.14 Operator ~gpoint2point~
 
-Translates a ~gpoint into a spatial ~Point~ value.
+Translates a ~gpoint~ into a spatial ~Point~ value.
 
 */
+
 ListExpr OpGPoint2PointTypeMap(ListExpr in_xArgs)
 {
   if( nl->ListLength(in_xArgs) != 1 ){
@@ -7512,7 +7124,7 @@ Operator gpoint2point (
 
 
 /*
-1.4.14 Operator ~polygpoint~
+6.15 Operator ~polygpoint~
 
 Returns a  stream of all ~GPoint~ values which are at the same network position
 as the given ~GPoint~. Including the given  ~GPoint~.
@@ -7600,7 +7212,7 @@ Operator polygpoints (
 
 
 /*
-1.4.15 Operator ~routeintervals~
+6.16 Operator ~routeintervals~
 
 Returns a stream of rectangles representing the ~RouteIntervals~ of the ~GLine~.
 
@@ -7676,12 +7288,10 @@ Operator networkrouteintervals (
 
 
 /*
-1.4.16 Operator ~shortest\_path~
+6.17 Operator ~shortest\_path~
 
 Returns the shortest path in the ~Network~ between two ~GPoint~. Using Dijkstra
 Algorithm to compute the shortest path.
-
-//TODO: Must be maintained to use a really priority Queue.
 
 */
 
@@ -7749,7 +7359,7 @@ Operator shortest_path (
 );
 
 /*
-1.4.17 Operator ~gline2line~
+6.18 Operator ~gline2line~
 
 Returns the ~line~ value of the given ~GLine~.
 
@@ -7809,7 +7419,7 @@ Operator networkgline2line (
 );
 
 /*
-1.4.18 Operator ~isempty~
+6.19 Operator ~isempty~
 
 Returns if the ~GLine~. is empty.
 
@@ -7858,7 +7468,7 @@ Operator networkisempty (
 );
 
 /*
-1.4.18 Operator ~union~
+6.20 Operator ~union~
 
 Builds the union of the two given glines as sorted gline.
 
@@ -7912,7 +7522,7 @@ Operator networkunion (
 );
 
 /*
-1.4.28 Operator ~distance~
+6.21 Operator ~distance~
 
 Returns the Euclidean Distance between two ~Gpoints~ or two ~GLines~.
 
@@ -8002,7 +7612,7 @@ Operator networkdistance (
 
 
 /*
-1.5 Creating the ~NetworkAlgebra~
+7 Creating the ~NetworkAlgebra~
 
 */
 

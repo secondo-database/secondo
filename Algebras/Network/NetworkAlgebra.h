@@ -37,6 +37,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SpatialAlgebra.h"
 #include "RTreeAlgebra.h"
 
+/*
+1.1.2 struct SectTreeEntry
+
+The struct ~SectTreeEntry~ is used for the shortest path computation. The
+sections already visited by the Dijkstra's algorithm for shortest path search
+will be stored sorted by their section tuple ids in a tree. ~secttid~ is the
+tuple id of the section in the sections relation of the network. ~rid~ is
+the route identifier of the route the section belongs to. ~start~ respectively
+~end~ gives the position on the route as distance from the start of the route
+for the start and the end point of the section. ~startbool~ and ~endbool~ tell
+us if the whole section is part described or only a part of the section.
+
+*/
+
 struct SectTreeEntry{
   SectTreeEntry() {};
 
@@ -72,12 +86,20 @@ class Network;
 class GLine;
 
 /*
-3 GLine
+2 GLine
 
-3.1 struct RouteInterval
+Every ~gline~ consists of a set of ~RouteInterval~s stored in a ~DBArray~.
+
+2.1 struct RouteInterval
+Each ~RouteInterval~ consists of a ~rid~, ~startpos~ and ~endpos~. Telling to
+which route of the network the route interval belongs to. And giving the start
+and end position of the ~RouteInterval~ of this route.
+
+Different from the definitions in the original paper the implemented
+~RouteInterval~ does not contain a side value. This should be changed to enable
+us for example to store traffic jams as possibly ~moving(gline)~ values.
 
 */
-
 
 class RouteInterval
 {
@@ -106,6 +128,13 @@ class RouteInterval
 
   ~RouteInterval() {};
 
+/*
+Computes the spatial Bounding Box of the given ~RouteInterval~ as 2 dimensional
+rectangle. Using the subline of the route curve defined by the given ~route-
+interval~.
+
+*/
+  
   Rectangle<2> BoundingBox(Network* pNetwork) const;
 
 /*
@@ -128,26 +157,29 @@ End position on route.
 */
 
   double m_dEnd;
-/*
-The distance interval in the route.
-
-*/
 };
 
 
 
 /*
-4 class GPoint
+3 class GPoint
 
-4.1 enumeration of side
+3.1 enumeration of side
+
+Attention in the original paper the enumeration of the side value is given by
+Up, Down, None!!!
 
 */
 enum Side { Down, Up, None };
 
 /*
-4.2 struct for route location (~rloc~)
+3.2 struct for route location (~rloc~)
+Every single position in the network is given by an route location. That means
+by a route id ~rid~, the distance of the position from the start of the route
+~d~, and the side ~side~ value. If the route is simple side is always ~None~.
 
 */
+
 struct RLoc
 {
   RLoc() {}
@@ -205,15 +237,21 @@ side value
 };
 
 /*
-4.3 class ~gpoint~
+3.4 class ~gpoint~
+
+Represents single positions in the network. Each ~GPoint~ consists of a network
+id the ~gpoint~ belongs to, a ~rloc~ and a boolean defined flag. Because
+~gpoint~ should be usable in relations the class ~gpoint~ derives from
+class StandardAttribute.
 
 */
+
 class GPoint : public StandardAttribute
 {
   public:
 
 /*
-4.3.1 Constructors
+3.4.1 Constructors and Destructor
 
 */
 
@@ -245,6 +283,13 @@ class GPoint : public StandardAttribute
       del.isDelete=true;
     }
 
+    ~GPoint(){};
+
+/*
+3.4.2 Methods of class ~gpoint~
+
+*/
+    
     GPoint& operator=( const GPoint& in_xOther )
     {
       m_bDefined = in_xOther.m_bDefined;
@@ -256,10 +301,8 @@ class GPoint : public StandardAttribute
       return *this;
     }
 
-    ~GPoint(){};
-
 /*
-4.3.2 Methods of class ~gpoint~
+Returns the ~network~ id of the ~network~ the gpoint belongs to.
 
 */
 
@@ -268,25 +311,49 @@ class GPoint : public StandardAttribute
       return m_iNetworkId;
     }
 
+/*
+Returns the ~routeid~ of the route the gpoint belongs to.
+
+*/
+
     int GetRouteId() const
     {
       return m_xRouteLocation.rid;
     }
 
+/*
+Returns the position of the ~gpoint~ on the route the gpoint belongs to.
+
+*/
+    
     double GetPosition() const
     {
       return m_xRouteLocation.d;
     }
 
+/*
+Returns the side value of the ~gpoint~s network location.
+
+*/
+    
     Side GetSide() const
     {
       return m_xRouteLocation.side;
     }
 
+/*
+Returns the defined flag of the ~gpoint~.
+
+*/
     bool IsDefined() const
     {
       return m_bDefined;
     }
+
+/*
+Returns the defined flag of the ~gpoint~.
+
+*/
 
     void SetDefined( bool in_bDefined )
     {
@@ -300,7 +367,9 @@ class GPoint : public StandardAttribute
 
     size_t HashValue() const
     {
-      return 0;
+      size_t hash = m_iNetworkId + m_xRouteLocation.rid +
+          (size_t) m_xRouteLocation.d;
+      return hash;
     }
 
     void CopyFrom( const StandardAttribute* right )
@@ -367,6 +436,10 @@ class GPoint : public StandardAttribute
       return os;
     }
 
+/*
+Functions for Secondo integration.
+
+*/
     static ListExpr OutGPoint( ListExpr typeInfo, Word value );
 
     static Word InGPoint( const ListExpr typeInfo, const ListExpr instance,
@@ -416,7 +489,17 @@ Returns true if two gpoint are identical.
 
     bool operator== (const GPoint& p) const;
 
+    /*
+    Returns false if two gpoint are identical.
+
+    */
+
     bool operator!= (const GPoint&p) const;
+
+    /*
+    Translates a ~gpoint~ into a ~point~ in the 2D plane.
+
+    */
 
     void ToPoint(Point *& res);
 
@@ -466,7 +549,7 @@ Returns a gline representing the shortest path between two GPoint.
 
 /*
 
-4.3.3 private Fields of class ~gpoint~
+3.4 private Fields of class ~gpoint~
 
 Network id
 
@@ -486,81 +569,11 @@ Defined flag.
 */
     bool m_bDefined;
 };
-struct GPointPoint{
-
-  GPointPoint(){};
-
-  GPointPoint(GPoint gp, Point p) {
-    m_gp = gp;
-    m_p = p;
-  };
-
-  GPoint m_gp;
-  Point m_p;
-};
-
-struct GPointPointTree {
-  GPointPointTree(){};
-
-  GPointPointTree( GPoint gp, Point p, GPointPointTree *left = 0,
-                   GPointPointTree *right = 0){
-    m_gp = gp;
-    m_p = p;
-    m_left = left;
-    m_right = right;
-  };
-
-  ~GPointPointTree(){};
-
-  void Insert (GPoint gp, Point p) {
-    if (gp == this->m_gp) {}
-    else {
-      if (gp.GetRouteId() < this->m_gp.GetRouteId()) {
-        if (this->m_left != 0) this->m_left->Insert(gp, p);
-        else this->m_left = new GPointPointTree(gp, p,0,0);
-      } else {
-        if (gp.GetRouteId() > this->m_gp.GetRouteId()) {
-          if (this->m_right != 0) this->m_right->Insert(gp, p);
-          else this->m_right = new GPointPointTree(gp, p, 0,0);
-        }else{
-          if(gp.GetRouteId() == this->m_gp.GetRouteId()) {
-            if (gp.GetPosition() < this->m_gp.GetPosition()) {
-              if (this->m_left != 0) this->m_left->Insert(gp, p);
-              else this->m_left = new GPointPointTree(gp , p,0,0);
-            } else {
-              if (gp.GetPosition() > this->m_gp.GetPosition()) {
-                if (this->m_right != 0) this->m_right->Insert(gp, p);
-                else this->m_right = new GPointPointTree(gp, p,0,0);
-              }
-            }
-          }
-        }   // endif rid=rid
-      }
-    }
-  };
-
-  void TreeToVector (DBArray<GPointPoint> *vgp) {
-    if (this->m_left != 0) this->m_left->TreeToVector (vgp);
-    vgp->Append(GPointPoint(m_gp, m_p));
-    if (this->m_right != 0) this->m_right->TreeToVector (vgp);
-  };
-
-  void RemoveTree(){
-    if (m_left != 0) m_left->RemoveTree();
-    if (m_right != 0) m_right->RemoveTree();
-    delete this;
-  };
-
-  GPoint m_gp;
-  Point m_p;
-  GPointPointTree *m_left, *m_right;
-};
-
 
 /*
-2.1 Network
+4. Network
 
-2.1.1 Enumerations of columns for relations
+4.1 Enumerations of columns for relations
 
 */
 
@@ -592,7 +605,7 @@ struct GPointPointTree {
 
 
 /*
-2.1.2 Class ConnectivityCode
+4.2 Class ConnectivityCode
 
 Enum defining binary coding for the possible transitions between to routes.
 
@@ -624,7 +637,7 @@ class ConnectivityCode
 
 
 /*
-2.1.2.2 Constructor.
+4.2.1 Constructor.
 
 Constructs the connectivity code given an integer value ~cc~.
 
@@ -635,7 +648,7 @@ Constructs the connectivity code given an integer value ~cc~.
   }
 
 /*
-2.1.2.3 Constructor for boolean values.
+4.2.2 Constructor for boolean values.
 
 Constructs the connectivity code given the Boolean values for
 all possibilities.
@@ -679,7 +692,7 @@ all possibilities.
 
 
 /*
-2.1.2.4 Method isPossible
+4.2.3 Method isPossible
 
 Checks if a transition is possible.
 
@@ -692,7 +705,7 @@ Checks if a transition is possible.
   private:
 
 /*
-2.1.2.5 private fields ConnectivtyCode
+4.2.4 private fields ConnectivtyCode
 
 The connectivity code
 
@@ -703,7 +716,7 @@ The connectivity code
 
 
 /*
-2.2 Class DirectedSection
+4.2.5 Class DirectedSection
 
 This class is needed for the list of sections used in each entry
 in the adjacency-list
@@ -784,7 +797,7 @@ A flag indicating the direction: ~true~ means up and ~false~ means down.
 };
 
 /*
-2.3 Class DirectedSectionPair
+4.2.7 Class DirectedSectionPair
 
 This class is needed for the list of sections used in each entry
 in the adjacency-list
@@ -880,7 +893,7 @@ Indicating the second section direction: ~true~ means up and ~false~ means down.
 
 
 /*
-2.4 Class AdjacencyListEntry
+4.2.8 Class AdjacencyListEntry
 
 Used for the adjacency-list of the network
 
@@ -928,7 +941,9 @@ The higher index in the adjacency lists sub-array.
 };
 
 /*
-2.5 Class JunctionSortEntry - A helper struct
+4.2.9 Class JunctionSortEntry
+
+A helper struct for junction lists.
 
 */
 struct JunctionSortEntry
@@ -1052,8 +1067,10 @@ struct JunctionSortEntry
 
 
 /*
-2.6 Class ~Network~
+4.2.9 Class ~Network~
 
+Central object of network concept. All other positions are given related to a
+network object.
 
 */
 class Network
@@ -1062,7 +1079,7 @@ class Network
 
 /*
 
-2.6.1 The public methods of the class ~network~
+4.2.9.1 The public methods of the class ~network~
 
 The internal and external (they are equal) ~routes~ relation type info
 as string.
@@ -1123,10 +1140,14 @@ The sectionsBTreeTypeInfo
 static string sectionsBTreeTypeInfo;
 
 
-  static string distancestorageTypeInfo;
+/*
+~distancestoreageTypeInfo~ only used for experimental netdistance precomputing.
+
+*/
+static string distancestorageTypeInfo;
 /*
 
-2.6.2 Constructors of the class ~network~
+4.2.9.2 Constructors of the class ~network~
 
 The simple constructor.
 
@@ -1162,7 +1183,7 @@ The destructor.
 
 /*
 
-2.6.3 Methods of the class ~network~
+4.2.9.3 Methods of the class ~network~
 
 Destroy-Method
 
@@ -1255,20 +1276,28 @@ Returns the junction from the start of the route to the end.
                              vector<JunctionSortEntry>& inout_xJunctions);
 
 /*
-GetSectionOnRoute
-
-Returns the section ~tuple~ of the network which includes the ~GPoint~
+Returns the section ~tuple~ of the network which includes the ~GPoint~.
+Attention: The tupleId of the returned Tuple is not the TupleId in the sections
+relation! If you need the correct tupleId of the sections relation use
+~GetTupleIdSectionOnRoute~ instead.
 
 */
 
  Tuple*  GetSectionOnRoute(GPoint* in_xGPoint);
+
+/*
+Returns the ~tupleid~  of the section which includes the ~GPoint~ .
+
+*/
+
 
  TupleId GetTupleIdSectionOnRoute(GPoint* in_xGPoint);
 
 /*
 GetPointOnRoute
 
-Returns the point value of the GPoint on the route.
+Returns the point value of the GPoint on the route. Used for translation of
+network positions into spatial 2D positions.
 
 */
   void GetPointOnRoute(const GPoint* in_xGPoint, Point *&res);
@@ -1285,21 +1314,13 @@ Returns the route tuple for the given route id.
 /*
 GetLineValueOfRouteInterval
 
-Returns the ~sline~ representing the ~RouteInterval~ in spatial data.
+Returns the ~sline~ representing the ~RouteInterval~ in spatial data. Used
+to translate network values into spatial 2D values.
 
 */
 
   void GetLineValueOfRouteInterval(const RouteInterval* in_rI,
                                    SimpleLine *out_line);
-
-/*
-Reads the geometry of the route interval and returns pairs of gpoint-point
-values for all start end points of the halfsegments inside the routeinverval.
-
-*/
-
-  void GetGPointsOnInterval(int rid, double start, double end,
-                            DBArray<GPointPoint> &gpp_list);
 
 /*
 GetSections
@@ -1314,7 +1335,7 @@ This function is used in the ~sections~ operator.
 GetNetworkPosOfPoint
 
 Returns a GPoint representing the point value in the network if possible, undef
-elsewhere.
+elsewhere. Used to translate spatial 2D positions into network positions.
 
 */
 
@@ -1329,7 +1350,9 @@ Returns the ~sections~ relation (in internal representation).
     Relation *GetSectionsInternal();
 
 /*
-Method GetAdjacentSections
+Method GetAdjacentSection
+Returns a vector of sections which can be reached next upwards respectively
+downwards bool from the section given by TupleId.
 
 */
 
@@ -1340,13 +1363,17 @@ Method GetAdjacentSections
 /*
 GetSections on RouteInterval.
 
+Returns a set of sections which are covered by the given ~RouteInterval~
+~inri~ as ~DBArray~ of SectTreeEntries.
+
 */
 
     void GetSectionsOfRouteInterval(const RouteInterval *in_ri,
                                     DBArray<SectTreeEntry> *io_SectionIds);
 
 /*
-Get Routeinterval for Halfsegment defined by point interval.
+Get Routeinterval for Halfsegment defined by point interval. Used to translate
+spatial 2D values into network values.
 
 */
 
@@ -1359,15 +1386,26 @@ Get Routepart passed limited by the two points.
 
     RouteInterval* FindInterval(Point p1, Point p2);
 
-/*
-2.6.4 Static methods of Class ~Network~ supporting the type constructor
 
-Public parts - Static-Methods supporting the type constructor for
-the network
+/*
+Computes the junction of the two given routes and returns the route measure
+values of the junction on this routes.
 
 */
 
+void GetJunctionMeasForRoutes(CcInt *pLastRouteId, CcInt *pCurrentSectionRid,
+                                  double& rid1meas, double& rid2meas);
+
 /*
+Returns the section with the given id.
+
+*/
+    Tuple* GetSection(TupleId n);
+
+    void FindSP(TupleId j1,TupleId j2,double& length,GLine* res);
+/*
+4.2.9.4 Secondo Integration Methods of Class ~Network~
+
 NetworkProp
 
 */
@@ -1456,27 +1494,11 @@ isDefined
 
  int isDefined();
 
-/*
-Computes the junction of the two given routes and returns the route measure
-values of the junction on this routes.
-
-*/
-
- void GetJunctionMeasForRoutes(CcInt *pLastRouteId, CcInt *pCurrentSectionRid,
-                              double& rid1meas, double& rid2meas);
-
-/*
-Returns the section with the given id.
-
-*/
- Tuple* GetSection(TupleId n);
-
-  void FindSP(TupleId j1,TupleId j2,double& length,GLine* res);
-  private:
+private:
 
 
 /*
-2.6.5 Private methods of class ~Network~
+4.2.9.5 Private methods of class ~Network~
 
 FillRoutes
 
@@ -1498,7 +1520,7 @@ the new attributes.
 /*
 FillSections
 
-Given the two ~routes~ and ~junctions~ relations, the ~sections~ relation
+Given the ~routes~ and ~junctions~ relation, the ~sections~ relation
 is retrieved.
 
 */
@@ -1512,13 +1534,6 @@ Given that all relations are set up, the adjacency lists are created.
 */
   void FillAdjacencyLists();
 
-  /*void FillAdjacencyPair(Tuple* in_pFirstSection,
-                         bool in_bFirstUp,
-                         Tuple* in_pSecondSection,
-                         bool in_bSecondUp,
-                         ConnectivityCode in_xCc,
-                         Transition in_xTransition,
-                         vector<DirectedSectionPair> &inout_xPairs);*/
   void FillAdjacencyPair(TupleId in_pFirstSection,
                          bool in_bFirstUp,
                          TupleId in_pSecondSection,
@@ -1526,17 +1541,25 @@ Given that all relations are set up, the adjacency lists are created.
                          ConnectivityCode in_xCc,
                          Transition in_xTransition,
                          vector<DirectedSectionPair> &inout_xPairs);
+
+/*
+Used for experiments with network distance computation to store precomputed
+distances. Because of the big data overhead and computation time this methods
+and parameters should not be used if not needed. Therefore their calls are
+comment out in the code. Of network constructors.
+  
+*/
   
   void FillDistanceStorage();
 
 /*
-  Helpful functions for Find respectively FindInterval. Tests Network if there
-  is a shorter connection between the two points p1 and p2 than given by
-  start, end.
-  Function doubled because FindInterval is used for ~mpoint~ to ~mgpoint~
-  translation and therefore the values of end and start respectively
-  dpos and dpos2 may not be changed to each other than it is done in Find
-  for ~gline~ ~routeInterval~s.
+Helpful functions for Find respectively FindInterval. Tests Network if there
+is a shorter connection between the two points p1 and p2 than given by
+start, end.
+Function doubled because FindInterval is used for ~mpoint~ to ~mgpoint~
+translation and therefore the values of end and start respectively
+dpos and dpos2 may not be changed to each other than it is done in Find
+for ~gline~ ~routeInterval~.
 
 */
 
@@ -1552,7 +1575,7 @@ Given that all relations are set up, the adjacency lists are created.
 
 
 /*
-2.6.6 Private fields of Class ~Network~
+4.2.9.6 Private fields of Class ~Network~
 
 The ID of the network
 
@@ -1585,26 +1608,26 @@ The ~sections~ relation.
   Relation* m_pSections;
 
 /*
-The B-Tree in the ~routes~ relation.
+The BTree in the ~routes~ relation.
 
 */
   BTree* m_pBTreeRoutes;
 
 /*
-The B-Tree in the ~routes~ relation.
+The BTree in the ~routes~ relation.
 
 */
 
   R_Tree<2,TupleId> *m_pRTreeRoutes;
 
 /*
-The R-Tree in the ~routes~ relation
+The RTree in the ~routes~ relation
 
 */
   BTree* m_pBTreeJunctionsByRoute1;
 
 /*
-The B-Tree in the ~junctions~ relation.
+The BTree in the ~junctions~ relation.
 
 */
   BTree* m_pBTreeJunctionsByRoute2;
@@ -1631,7 +1654,10 @@ The BTree of the sections route ids.
   BTree* m_pBTreeSectionsByRoute;
 
 /*
-Store the distance between two junction points
+Stores the precomputed distances between every possible pair of two junction
+points. Only for experimental use in network distance computing. Comment out
+in the code if not needed the computational and storage space overhead is to
+big.
 
 */
 
@@ -1641,7 +1667,7 @@ Store the distance between two junction points
 
 
 /*
-3.2 class ~gline~
+5 class ~gline~
 
 */
 
@@ -1649,7 +1675,7 @@ Store the distance between two junction points
 class GLine : public StandardAttribute
 {
 /*
-3.2.1 Constructors
+5.1 Constructors and Destructor
 
 The simple constructor. Should not be used.
 
@@ -1657,8 +1683,12 @@ The simple constructor. Should not be used.
   public:
     GLine();
 
-    GLine(int in_iSize);
+/*
+~iniSize~ gives the number of expected ~RouteIntervals~. If it is to small
+the size of the ~DBArray~ is dynamically extended later.
 
+*/
+    GLine(int in_iSize);
 
     GLine(const GLine* in_xOther);
 
@@ -1670,7 +1700,7 @@ The simple constructor. Should not be used.
          bool& inout_bCorrect);
 
 /*
-3.2.2 Methods of class ~gline~
+5.2 Methods of class ~gline~
 
 */
 
@@ -1683,6 +1713,77 @@ The simple constructor. Should not be used.
                           double in_dEnd);
 
     void AddRouteInterval(RouteInterval *ri);
+
+    double GetLength ();
+
+    int GetNetworkId();
+
+    void Get(const int i, const RouteInterval* &ri) const;
+
+    int NoOfComponents();
+
+    bool IsSorted();
+
+    void SetSorted(bool);
+
+    DBArray<RouteInterval>* GetRouteIntervals();
+
+/*
+Computes the network distance of 2 glines.
+
+*/
+
+    double Netdistance(GLine* pgl2);
+
+/*
+Computes the euclidean distance of 2 glines.
+
+*/
+
+    double Distance (GLine* pgl2);
+
+/*
+Computes the union of 2 glines.
+
+*/
+
+
+void Uniongl (GLine* pgl2, GLine *res);
+
+/*
+Translates a gline value into a line value.
+
+*/
+
+    void Gline2line (Line *res);
+
+
+/*
+Returns true if the glines intersect false elswhere.
+
+*/
+
+
+    bool Intersects (GLine* pgl);
+
+
+/*
+Returns the Bounding GPoints of the GLine.
+    
+*/
+
+    GPoints* GetBGP();
+
+    void Clear();
+
+    GLine& operator=( const GLine& l );
+
+    bool operator== (const GLine& p) const;
+
+/*
+5.3 Secondo Integration
+
+*/
 
     static ListExpr Out( ListExpr typeInfo, Word value );
 
@@ -1731,76 +1832,10 @@ The simple constructor. Should not be used.
 
     void CopyFrom(const StandardAttribute*);
 
-    double GetLength ();
-
-    int GetNetworkId();
-
-    void Get(const int i, const RouteInterval* &ri) const;
-
-    int NoOfComponents();
-
-    bool IsSorted();
-
-    void SetSorted(bool);
-
-    DBArray<RouteInterval>* GetRouteIntervals();
-
-/*
-Computes the network distance of 2 glines.
-
-*/
-
-    double Netdistance(GLine* pgl2);
-
-/*
-Computes the euclidean distance of 2 glines.
-
-*/
-
-    double Distance (GLine* pgl2);
-
-/*
-Computes the union of 2 glines.
-
-*/
-
-
-    void Uniongl (GLine* pgl2, GLine *res);
-
-/*
-Translates a gline value into a line value.
-
-*/
-
-  void Gline2line (Line *res);
-
-
-/*
-Returns true if the glines intersect false elswhere.
-
-*/
-
-
-  bool Intersects (GLine* pgl);
-
-
-/*
-Returns the Bounding GPoints of the GLine.
-
-*/
-
-  GPoints* GetBGP();
-
-  void Clear();
-
-  GLine& operator=( const GLine& l );
-
-  bool operator== (const GLine& p) const;
-
   private:
 
 /*
-3.2.3 Private Fields of class ~gline~
+5.4 Private Fields of class ~gline~
 
 The network id.
 
@@ -1844,8 +1879,9 @@ The array of route intervals.
 /*
 1.2.3 ~struct RITree~
 
-Used to compress and sort resulting ~gline~ values. For example used by operator
-~sline2gline~ and ~trajectory~.
+Used to compress and sort ~RouteInterval~s. Because many operators take profit
+from sorted ~RouteInterval~s. We sort and compress resulting ~DBArray~s of
+~RouteInterval~s whenever it is possible.
 
 */
 
@@ -1862,6 +1898,12 @@ struct RITree {
   };
 
   ~RITree(){};
+  
+/*
+Checks if in the ~RITree~ exist son intervals which are covered by the
+previos changed interval of the father.
+
+*/
 
   double CheckTree(RITree& father, int rid, double pos1, double pos2,
                    bool bleft) {
@@ -1938,6 +1980,11 @@ struct RITree {
     else return pos2;
   };
 
+/*
+Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
+~RouteIntervals~ which overlap or are adjacent to the current ~RouteInterval~.
+
+*/
 
   void Insert (int rid, double pos1, double pos2) {
     double test;
@@ -2000,6 +2047,12 @@ struct RITree {
     }
   };
 
+/*
+Stores the ~RouteInterval~s of the ~RITree~ sorted by their route ids and
+start positions into ~gline~.
+
+*/
+
   void TreeToGLine (GLine* gline) {
     if (this->m_left != 0) {
       this->m_left->TreeToGLine (gline);
@@ -2009,6 +2062,12 @@ struct RITree {
       this->m_right->TreeToGLine (gline);
     }
   };
+
+/*
+Stores the ~RouteInterval~s of the ~RITree~ sorted by their route ids and
+start positions into a ~DBArray~. Used to build trajectory of ~mgpoint~.
+
+*/
 
   void TreeToDBArray (DBArray<RouteInterval>* arr) {
     if (this->m_left != 0) {
@@ -2020,6 +2079,10 @@ struct RITree {
     }
   };
 
+/*
+Deletes the tree.
+
+*/
   void RemoveTree(){
     if (m_left != 0) m_left->RemoveTree();
     if (m_right != 0) m_right->RemoveTree();
@@ -2032,7 +2095,7 @@ struct RITree {
 };
 
 /*
-class GPoints by Jianqiu Xu.
+6. class GPoints by Jianqiu Xu.
 
 */
 
