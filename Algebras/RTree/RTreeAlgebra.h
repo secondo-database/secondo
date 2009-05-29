@@ -2736,8 +2736,8 @@ bool R_Tree<dim, LeafInfo>::Next( R_TreeLeafEntry<dim, LeafInfo>& result )
     { // Search next entry / subtree in this node
       currEntry++;
 
-      if( currEntry < nodePtr->EntryCount() )
-        if( (*nodePtr)[ currEntry ].box.Intersects( searchBox ) )
+      if( currEntry < nodePtr->EntryCount() ){
+        if( (*nodePtr)[ currEntry ].box.Intersects( searchBox ) ){
           if( nodePtr->IsLeaf() || currLevel == reportLevel)
           { // Found an appropriate entry
             result = (R_TreeLeafEntry<dim, LeafInfo>&)(*nodePtr)[ currEntry ];
@@ -2749,6 +2749,8 @@ bool R_Tree<dim, LeafInfo>::Next( R_TreeLeafEntry<dim, LeafInfo>& result )
             DownLevel( currEntry );
             currEntry = -1;
           }
+        }
+      }
     }
 
   return retcode;

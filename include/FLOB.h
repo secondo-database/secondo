@@ -434,7 +434,7 @@ state to a ~InMemory~ state.
     mutable FLOB_Type type;
     size_t size;
 
-    typedef union FLOB_Descriptor
+    union FLOB_Descriptor
     {
       struct InMemory
       {

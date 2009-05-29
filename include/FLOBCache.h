@@ -74,7 +74,7 @@ struct FLOBKey
     return fileId < key.fileId ||
            ( fileId == key.fileId && 
              ( recordId < key.recordId ||
-               recordId == key.recordId && pageno < key.pageno ) );
+               (recordId == key.recordId && pageno < key.pageno )));
   }
     
   SmiFileId fileId;

@@ -3082,8 +3082,8 @@ bool Interval<Alpha>::Disjoint( const Interval<Alpha>& i ) const
 template <class Alpha>
 bool Interval<Alpha>::R_Adjacent( const Interval<Alpha>& i ) const
 {
-    bool res=( Disjoint( i ) &&
-               ( end.Compare( &i.start ) == 0 && (rc || i.lc) ) ||
+    bool res=( (Disjoint( i ) &&
+               ( end.Compare( &i.start ) == 0 && (rc || i.lc) )) ||
                ( ( end.Compare( &i.start ) < 0 && rc && i.lc ) &&
                  end.Adjacent( &i.start ) ) );
     return( res );
