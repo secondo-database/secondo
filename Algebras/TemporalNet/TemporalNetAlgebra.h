@@ -65,10 +65,11 @@ used in the ~instant~ type constructor.
 typedef DateTime Instant;
 
 /*
-1.3 UGPoint
+2 UGPoint
 
 This class will be used in the ~ugpoint~ type constructor, i.e., the type
-constructor for the temporal unit of gpoint values.
+constructor for the temporal unit of gpoint values. It inherits from the
+SpatialTemporalUnit class.
 
 */
 class UGPoint : public SpatialTemporalUnit<GPoint, 3>
@@ -176,7 +177,6 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
 /*
 Operator redefinitions
 
-
 Redefinition of the copy operator ~=~.
 
 */
@@ -246,15 +246,27 @@ Functions to be part of relations
       }
   }
 
-
+/*
+Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
+  
+*/
+  
  virtual const Rectangle<3> BoundingBox() const;
+
+ Rectangle<3> BoundingBox(Network* &pNetwork) const;
 
  virtual double Distance(const Rectangle<3>& rect) const;
 
  virtual bool IsEmpty() const{ return IsDefined(); }
 
-  Rectangle<3> BoundingBox(Network* &pNetwork) const;
+ /*
+ Returns the 3 dimensional network bounding box of the ~ugpoint~, which is
+ degenerated to be a rectangle. The two x-coordinates are identic and given by
+ route id of the ~ugpoint~, the y-coordinates are given by the start and the
+ end position of the ugpoint, and the z-coordinates are given by the timestamps
+ of the timeinterval of the ~ugpoint~.
 
+ */
   virtual const Rectangle<3> NetBoundingBox3d() const
   {
     return Rectangle<3> (true,
@@ -266,6 +278,12 @@ Functions to be part of relations
                         timeInterval.end.ToDouble());
   }
 
+  /*
+  The 2 dimensinal network bounding box of the ~ugpoint~ is degenerated to a
+  line. the x- and y-coordinates are defined analogous to the x- and y-coord-
+  inates of the ~NetBoundingBox3d~.
+
+  */
   inline const Rectangle<2> NetBoundingBox2d() const
   {
       return Rectangle<2> (true,
@@ -275,11 +293,86 @@ Functions to be part of relations
                           max(p0.GetPosition(), p1.GetPosition()));
   }
 
+  /*
+  Computes the network position of the ~ugpoint~ at a given time instant ~t~.
+
+  */
   virtual void TemporalFunction( const Instant& t,
                                  GPoint& result,
                                  bool ignoreLimits = false ) const;
+
+  /*
+  Returns true if the ~ugpoint~ passes a given ~gpoint~ false elsewhere.
+  
+  */
   virtual bool Passes( const GPoint& val ) const;
+
+  /*
+  Returns the ~igpoint~ the ~ugpoint~ was at a given network position.
+
+  */
   virtual bool At( const GPoint& val, TemporalUnit<GPoint>& result ) const;
+
+  /*
+  Returns the route id of the ~ugpoint~.
+
+  */
+
+  int GetUnitRid();
+
+  /*
+  Returns the startposition of the ~ugpoint~.
+
+  */
+  double GetUnitStartPos();
+
+  /*
+  Returns the end position of the ~ugpoint~.
+
+  */
+
+  double GetUnitEndPos();
+
+  /*
+  Returns the start timeinstant of the ~ugpoint~s time interval as double value.
+
+  */
+
+  double GetUnitStartTime();
+
+  /*
+  Returns the end timeinstant of the ~ugpoint~s time interval as double value.
+
+  */
+
+  double GetUnitEndTime();
+
+  /*
+  Returns the euclidean Distance of two ~ugpoint~ as ~ureal~
+
+  */
+
+  void Distance (const UGPoint &ugp, UReal &ur) const;
+
+  /*
+  Returns the deftime of the ~ugpoint~.
+
+  */
+
+  void Deftime(Periods &per);
+
+  /*
+  Returns the time instant the ~ugpoint~ was at a given position.
+
+  */
+
+  Instant TimeAtPos(double pos);
+
+
+  /*
+  Methods for Secondo integration.
+
+  */
 
     static ListExpr Property();
 
@@ -310,28 +403,14 @@ Functions to be part of relations
 
     static void* Cast(void* addr);
 
-    int GetUnitRid();
-
-    double GetUnitStartPos();
-
-    double GetUnitEndPos();
-
-    double GetUnitStartTime();
-
-    double GetUnitEndTime();
-
-    void Distance (const UGPoint &ugp, UReal &ur) const;
-
-    void Deftime(Periods &per);
-
-    Instant TimeAtPos(double pos);
-
     GPoint p0, p1;
 
 };
 
 /*
-1.4 MGPoint
+3 class MGPoint
+
+Inherits from the Mapping of the TemporalAlgebra.
 
 */
 
@@ -351,8 +430,6 @@ The simple constructor should not be used.
 
     static bool Check(ListExpr type,
                       ListExpr& errorInfo);
-
-    int GetNetworkId() const;
 
     void Clear();
 
@@ -390,6 +467,11 @@ inline FLOB* GetFLOB(const int i)
 }
 
 /*
+Returns the network id the ~mgpoint~ belongs to.
+
+*/
+   int GetNetworkId() const;
+/*
 Computes the Euclidean Distance between two mgpoint with help of mpoint
 distance function.
 
@@ -404,7 +486,6 @@ distance function.
 Translates an mgpoint into an mpoint value.
 
 */
-
     void Mgpoint2mpoint(MPoint *&mp);
 
 /*
@@ -432,7 +513,7 @@ Returns the deftime of the mgpoint as periods value.
 
 */
 
-   void Deftime(Periods *&res);
+   void Deftime(Periods &res);
 
 /*
 Returns true if the mgpoint is defined at least in one of the periods resp.
@@ -491,6 +572,11 @@ gline.
 
    void At(GLine *&gl, MGPoint *&res);
 
+/*
+Returns the union of two time disjoint ~mgpoint~. ~undef~ elsewhere.
+
+*/
+
    void Union(MGPoint *mp, MGPoint *res);
 /*
 Returns a mgpoint with smaller number of units because units with speed
@@ -509,26 +595,47 @@ Returns true if the mgpoint passes at least once the gpoint resp. gline.
    bool Passes(GLine *&gl);
 
 /*
-Returns the ~igpoint~ of the time instant.
+Returns the spatiotemporal 3 dimensional bounding box of the ~mgpoint~.
+
+*/
+ 
+  Rectangle<3> BoundingBox() const;
+
+/*
+  Adds a unit to the ~mgpoint~ if it is in bulkload state.
+
+*/
+
+  void Add( const UGPoint& unit);
+
+/*
+  Closes the bulkload of the ~mgpoint~.
 
 */
 
 
-//   MGPoint& operator=(const MGPoint &src);
-
-  Rectangle<3> BoundingBox() const;
-
-  void Add( const UGPoint& unit);
   void EndBulkLoad( const bool sort = true);
+
+  /*
+  Restricts a ~mgpoint~ to the given unit intervals.
+
+  */
   void Restrict( const vector< pair<int, int> >& intervals );
+  /*
+  Prints the mgpoint value.
+
+  */
   ostream& Print( ostream &os ) const;
+  
   bool operator==( const MGPoint& r ) const;
+  
   void SetBoundingBoxDefined(bool defined);
+  
   void SetBoundingBox(Rectangle<3> mbr);
 
   DBArray<RouteInterval> m_trajectory;
 
-  int Position(Instant *&inst);
+  int Position(Instant &inst);
 
   private:
 

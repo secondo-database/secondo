@@ -60,6 +60,9 @@ extern QueryProcessor* qp;
 
 1.1 Additional Methods
 
+Returns true if the ~RouteInterval~ ~pRi~ is found in the set of ~rint~.
+false elsewhere.
+
 */
 bool searchUnit(DBArray<RouteInterval> &rint, size_t low, size_t high,
                  const RouteInterval* pRi){
@@ -96,6 +99,10 @@ bool searchUnit(DBArray<RouteInterval> &rint, size_t low, size_t high,
   return false;
 }
 
+/*
+Returns true if the two given sets of ~RouteIntervals~ at least intersect once.
+
+*/
 bool Intersects(DBArray<RouteInterval> &riint1,
                DBArray<RouteInterval> &riint2,
                bool sortedri1,
@@ -145,6 +152,10 @@ bool Intersects(DBArray<RouteInterval> &riint1,
   return false;
 }
 
+/*
+Returns true if a ~RouteInterval~ is found that contains the ~gpoint~
+
+*/
 bool searchRouteInterval(GPoint *pGPoint, DBArray<RouteInterval> &tra,
                           size_t low, size_t high) {
   const RouteInterval *rI;
@@ -183,13 +194,16 @@ bool searchRouteInterval(GPoint *pGPoint, DBArray<RouteInterval> &tra,
 }
 
 
+/*
+Returns true if a ~RouteInterval~ is found that contains the ~gpoint~
+
+*/
 bool Includes(DBArray<RouteInterval> &tra, GPoint *gp){
   if (tra.Size() < 1) return false;
   return (searchRouteInterval(gp, tra, 0, tra.Size()-1));
 }
-/*
-1.1.1 ~setMoveAndSide~
 
+/*
 Sets parameter movingUp and side for the given Unit. Used by ~mpoint2mgpoint~.
 
 */
@@ -214,9 +228,7 @@ void setMoveAndSide(double &startPos, double &endPos, bool &MovingUp,
 }
 
 /*
-1.1.2 ~getUnitValues~
-
-Gets the parameter Values of the given Unit. Used by
+Gets the parameter Values of the given ~upoint~.Used by
 
 */
 
@@ -234,8 +246,6 @@ void getUnitValues(const UPoint *&curUnit, Point &endPoint, Point &startPoint,
 }
 
 /*
-1.1.3 ~checkPoint~
-
 Checks sline value for the point and computes the position from the point on
 the sline including difference value if not exactly on the sline. The problem
 is caused by the gps value simulation which is mostly not exactly on the sline.
@@ -309,8 +319,6 @@ bool checkPoint (SimpleLine *&route, Point point, bool startSmaller,
 
 
 /*
-1.1.4 ~checkPoint03~
-
 Almost Equal to ~checkPoint~ but allows bigger differences. Used by
 ~mpoint2mgpoint~.
 
@@ -438,52 +446,6 @@ bool lastcheckPoint03 (SimpleLine *&route, Point point, bool startSmaller,
 }
 
 /*
-1.1.5 ~searchUnit~
-
-Returns true if there is a ~RouteInterval~ in the sorted ~GLine~ which
-intersects the given ~RouteInterval~ false elsewhere. Used by operator
-~passes~.
-
-*/
-
-bool searchUnit(GLine *&pGLine, size_t low, size_t high,
-                int unitRouteId, double dMGPStart,
-                double dMGPEnd) {
-  const RouteInterval *rI;
-  if (low <= high) {
-    size_t mid = (high + low) / 2;
-    int imid = mid;
-    if ((mid < 0) || (imid >= pGLine->NoOfComponents())) return false;
-    else {
-      pGLine->Get(mid, rI);
-      if (rI->m_iRouteId < unitRouteId)
-        return searchUnit(pGLine, mid+1, high, unitRouteId, dMGPStart, dMGPEnd);
-      else {
-        if (rI->m_iRouteId > unitRouteId){
-          if (mid == 0) return false;
-          else return searchUnit(pGLine, low, mid-1, unitRouteId, dMGPStart,
-                            dMGPEnd);
-        } else {
-          if (rI->m_dStart > dMGPEnd) {
-            if (mid == 0) return false;
-            else return searchUnit(pGLine, low, mid-1, unitRouteId, dMGPStart,
-                              dMGPEnd);
-          } else {
-            if (rI->m_dEnd < dMGPStart){
-              return searchUnit(pGLine, mid+1, high, unitRouteId, dMGPStart,
-                                dMGPEnd);
-            } else return true;
-          }
-        }
-      }
-    }
-  } else return false;
-  return false;
-}
-
-/*
-1.1.6 ~checkEndOfUGPoint~
-
 Used by operator ~inside~ to check the rest of the ~UGPoint~ if there is a
 further intersection.
 
@@ -899,8 +861,6 @@ void sendMessages(string in_strMessage)
 
 
 /*
-1.1.8 ~getRouteIntervals~
-
 Returns the ~RouteIntervals~ of a route between mgpstart and mgpend.
 
 Used by operators ~at~ and ~inside~.
@@ -972,8 +932,6 @@ void getRouteIntervals(GLine *&pGLine, int iRouteId, double mgpstart,
 }
 
 /*
-1.1.9 ~intervalCheck~
-
 Compares two time intervals and returns  a case number describing their
 intersection.
 
@@ -1016,8 +974,6 @@ int intervalCheck (Interval<Instant> i1, Interval<Instant> i2) {
 };
 
 /*
-1.1.10 ~refinementMovingGPoint~
-
 Translates two given ~MGPoint~ to two ~MGPoint~ which have a identical number
 of units with identical time intervals. Used by operator ~intersection~ and
 later on ~distance~ and ~netdistance~
@@ -1534,8 +1490,6 @@ void refinementMovingGPoint (MGPoint *a, MGPoint *b,
 }
 
 /*
-1.1.12 ~chkStartEnd~
-
 Checks if StartPos <= EndPos if not changes StartPos and EndPos. Used by
 operator ~trajectory~.
 
@@ -1551,12 +1505,9 @@ void chkStartEnd(double &StartPos, double &EndPos){
 };
 
 /*
-1.2 Class definitions
-
-1.2.1 class ~MGPoint~
+2 class ~MGPoint~
 
 Constructors
-The simple constructor should not be used.
 
 */
 
@@ -1603,7 +1554,7 @@ bool MGPoint::Check(ListExpr type,
 }
 
 /*
-Get Methods
+Getter and Setter Methods
 
 */
 
@@ -1715,7 +1666,7 @@ void MGPoint::Trajectory(GLine* res) {
   }
 }
 
-void MGPoint::Deftime(Periods *&res){
+void MGPoint::Deftime(Periods &res){
   Periods per(GetNoComponents());
   const UGPoint *unit;
   per.StartBulkLoad();
@@ -1725,7 +1676,7 @@ void MGPoint::Deftime(Periods *&res){
       per.Add(unit->timeInterval);
   }
   per.EndBulkLoad(false);
-  per.Merge(*res);
+  per.Merge(res);
 }
 
 
@@ -3068,12 +3019,12 @@ bool MGPoint::Present(Periods *&per) {
   int mid, first, last;
   while (j < per->GetNoComponents()) {
     per->Get( j, intper );
-    first = 0;
-    last = GetNoComponents() -1;
-    Get(first, pCurrUnit);
-    if(!(intper->Before(pCurrUnit->timeInterval))){
-      Get(last, pCurrUnit);
+    Get(0, pCurrUnit);
+    if(!intper->Before(pCurrUnit->timeInterval)){
+      Get(GetNoComponents()-1, pCurrUnit);
       if (!pCurrUnit->timeInterval.Before(*intper)){
+        first = 0;
+        last = GetNoComponents()-1;
         while (first <= last) {
           mid = (first + last) /2;
           if (mid < 0 || mid >= GetNoComponents()) break;
@@ -3091,8 +3042,12 @@ bool MGPoint::Present(Periods *&per) {
   return false;
 }
 
-int MGPoint::Position(Instant *&inst) {
-  Instant ins = *inst;
+/*
+Searches binary the unit id of the mpgoint unit which includes the given time
+stamp. Returns -1 if the time stamp is not found.
+
+*/
+int MGPoint::Position(Instant &ins) {
   int mid = -1;
   int first = 0;
   int last = GetNoComponents() - 1;
@@ -3113,9 +3068,10 @@ int MGPoint::Position(Instant *&inst) {
   return -1;
 }
 
+
 bool MGPoint::Present(Instant *&per) {
   if (!IsDefined() || IsEmpty()) return false;
-  int pos = Position(per);
+  int pos = Position(*per);
   if (pos == -1) return false;
   else return true;
 }
@@ -3278,7 +3234,8 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
 }
 
 /*
-Checks if ~mgpoint~ is inside a ~gline~
+Checks if ~mgpoint~ is inside a ~gline~. Returns a ~mbool~ which is true for the
+times the ~mgpoint~ is inside the ~gline~ false elsewhere.
 
 */
 
@@ -3629,88 +3586,85 @@ void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
     per->Get( j, interval );
     res->StartBulkLoad();
     while( i < GetNoComponents() && j < per->GetNoComponents()) {
-      if (pLastUnit->timeInterval.Before(*interval)) break;
-      if( interval->Before( pCurrentUnit->timeInterval )) {
+      if (!pLastUnit->timeInterval.Before(*interval)) {
+        if (interval->Before( pFirstUnit->timeInterval )) {
           if( ++j >= per->GetNoComponents()) break;
           per->Get( j, interval );
-      } else {
-        if (pCurrentUnit->timeInterval.Before( *interval)){
-          if( ++i >= GetNoComponents()) break;
-          Get( i, pCurrentUnit );
-        } else { // we have overlapping intervals, now
-          if (pCurrentUnit->timeInterval.start >= interval->start &&
-             pCurrentUnit->timeInterval.end <= interval->end) {
-            res->Add(*pCurrentUnit);
-            if (++i >= GetNoComponents()) break;
-              Get(i,pCurrentUnit);
-          }else{
-            if (pCurrentUnit->timeInterval.start == interval->start) {
-              utstart = interval->start;
-              uGPstart = pCurrentUnit->p0;
-              ulc = pCurrentUnit->timeInterval.lc && interval->lc;
-            } else {
-              if (pCurrentUnit->timeInterval.start > interval->start) {
-                utstart = pCurrentUnit->timeInterval.start;
+        } else {
+          if (pCurrentUnit->timeInterval.Before( *interval)){
+            if( ++i >= GetNoComponents()) break;
+            Get( i, pCurrentUnit );
+          } else { // we have overlapping intervals, now
+            if (pCurrentUnit->timeInterval.start >= interval->start &&
+                pCurrentUnit->timeInterval.end <= interval->end) {
+              res->Add(*pCurrentUnit);
+              if (++i >= GetNoComponents()) break;
+                Get(i,pCurrentUnit);
+            }else{
+              if (pCurrentUnit->timeInterval.start == interval->start) {
+                utstart = interval->start;
                 uGPstart = pCurrentUnit->p0;
-                ulc = pCurrentUnit->timeInterval.lc;
+                ulc = pCurrentUnit->timeInterval.lc && interval->lc;
               } else {
-                if (pCurrentUnit->timeInterval.start < interval->start) {
-                  utstart = interval->start;
-                  ulc = interval->lc;
-                  pCurrentUnit->TemporalFunction(utstart, uGPstart, true);
+                if (pCurrentUnit->timeInterval.start > interval->start) {
+                  utstart = pCurrentUnit->timeInterval.start;
+                  uGPstart = pCurrentUnit->p0;
+                  ulc = pCurrentUnit->timeInterval.lc;
+                } else {
+                  if (pCurrentUnit->timeInterval.start < interval->start) {
+                    utstart = interval->start;
+                    ulc = interval->lc;
+                    pCurrentUnit->TemporalFunction(utstart, uGPstart, false);
+                  }
                 }
               }
-            }
-            if (pCurrentUnit->timeInterval.end == interval->end) {
-              utend = interval->end;
-              uGPend = pCurrentUnit->p1;
-              urc = pCurrentUnit->timeInterval.rc && interval->rc;
-            } else {
-              if (pCurrentUnit->timeInterval.end < interval->end) {
-                utend = pCurrentUnit->timeInterval.end;
-                urc = pCurrentUnit->timeInterval.rc;
+              if (pCurrentUnit->timeInterval.end == interval->end) {
+                utend = interval->end;
                 uGPend = pCurrentUnit->p1;
+                urc = pCurrentUnit->timeInterval.rc && interval->rc;
               } else {
-                if (pCurrentUnit->timeInterval.end > interval->end) {
-                  utend = interval->end;
-                  pCurrentUnit->TemporalFunction(utend, uGPend , true);
-                  urc = interval->rc;
+                if (pCurrentUnit->timeInterval.end < interval->end) {
+                  utend = pCurrentUnit->timeInterval.end;
+                  urc = pCurrentUnit->timeInterval.rc;
+                  uGPend = pCurrentUnit->p1;
+                } else {
+                  if (pCurrentUnit->timeInterval.end > interval->end) {
+                    utend = interval->end;
+                    pCurrentUnit->TemporalFunction(utend, uGPend , false);
+                    urc = interval->rc;
+                  }
                 }
               }
-            }
-            res->Add(UGPoint(Interval<Instant>(utstart, utend, ulc, urc),
-                                uGPstart.GetNetworkId(),
-                                uGPstart.GetRouteId(),
-                                uGPstart.GetSide(),
-                                uGPstart.GetPosition(),
-                                uGPend.GetPosition()));
-            if( interval->end == pCurrentUnit->timeInterval.end ){
-              // same ending instant
-              if( interval->rc == pCurrentUnit->timeInterval.rc ) {
-                // same ending instant and rightclosedness: Advance both
-                if( ++i >= GetNoComponents()) break;
-                Get( i, pCurrentUnit );
-                if( ++j >= per->GetNoComponents()) break;
-                per->Get( j, interval );
-              } else {
-                if( interval->rc == true ) { // Advance in mapping
-                  if( ++i >= GetNoComponents() ) break;
+              res->Add(UGPoint(Interval<Instant>(utstart, utend, ulc, urc),
+                                  uGPstart.GetNetworkId(),
+                                  uGPstart.GetRouteId(),
+                                  uGPstart.GetSide(),
+                                  uGPstart.GetPosition(),
+                                  uGPend.GetPosition()));
+              if( interval->end == pCurrentUnit->timeInterval.end ){
+                // same ending instant
+                if (interval->rc == pCurrentUnit->timeInterval.rc){
+                  if( ++i >= GetNoComponents()) break;
                   Get( i, pCurrentUnit );
-                } else { // Advance in periods
-                  assert( pCurrentUnit->timeInterval.rc == true );
+                  if( ++j >= per->GetNoComponents()) break;
+                  per->Get( j, interval );
+                } else {
+                  if( !pCurrentUnit->timeInterval.rc) {
+                    if( ++i >= GetNoComponents()) break;
+                    Get( i, pCurrentUnit );
+                  } else { // !interval->start
+                    if( ++j >= per->GetNoComponents() ) break;
+                    per->Get( j, interval );
+                  }
+                }
+              } else {
+                if (interval->end < pCurrentUnit->timeInterval.end){
                   if( ++j >= per->GetNoComponents() ) break;
                   per->Get( j, interval );
+                } else {
+                  if( ++i >= GetNoComponents()) break;
+                  Get( i, pCurrentUnit );
                 }
-              }
-            } else {
-              if( interval->end > pCurrentUnit->timeInterval.end ) {
-                // Advance in mpoint
-                if( ++i >= GetNoComponents() ) break;
-                Get( i, pCurrentUnit );
-              } else { // Advance in periods
-                assert( interval->end < pCurrentUnit->timeInterval.end );
-                if( ++j >= per->GetNoComponents() ) break;
-                per->Get( j, interval );
               }
             }
           }
@@ -3725,13 +3679,13 @@ void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
 }
 
 /*
-Restricts the ~mgpoint~ to the given ~periods~
+Restricts the ~mgpoint~ to the given ~instant~
 
 */
 
 void MGPoint::Atinstant(Instant *&per, Intime<GPoint> *&res){
   if (IsDefined() && !IsEmpty()){
-    int pos = Position(per);
+    int pos = Position(*per);
     const UGPoint *pCurrUnit;
     if (pos == -1) res->SetDefined(false);
     else {
@@ -4285,6 +4239,11 @@ void  MGPoint::Simplify(double d, MGPoint* res){
   }
 }
 
+/*
+Checks if the ~mgpoint~ passes the given ~gpoint~ respectively ~gline~.
+
+*/
+
 bool MGPoint::Passes(GPoint *&gp){
   if (!m_traj_Defined){
     GLine *help = new GLine(0);
@@ -4296,10 +4255,6 @@ bool MGPoint::Passes(GPoint *&gp){
 }
 
 
-/*
-Checks if the ~mgpoint~ passes the given places.
-
-*/
 
 bool MGPoint::Passes(GLine *&gl){
   if (!m_traj_Defined){
@@ -4796,7 +4751,7 @@ TypeConstructor movinggpoint(
 
 
 /*
-1.2.2 Classe UGPoint
+3 Classe UGPoint
 
 Temporal Function
 
@@ -4820,10 +4775,10 @@ void UGPoint::TemporalFunction( const Instant& t,
         result.SetDefined(true);
       }  else {
         result = GPoint(true, p0.GetNetworkId(), p0.GetRouteId(),
-                       ((p1.GetPosition()-p0.GetPosition()) *
-                       (t.ToDouble()-timeInterval.start.ToDouble()) /
+                       (((p1.GetPosition()-p0.GetPosition()) *
+                       ((t.ToDouble()-timeInterval.start.ToDouble()) /
                        (timeInterval.end.ToDouble() -
-                           timeInterval.start.ToDouble())
+                           timeInterval.start.ToDouble())))
                         + p0.GetPosition()),
                         p0.GetSide());
         result.SetDefined(true);
@@ -5328,7 +5283,7 @@ TypeConstructor unitgpoint(
         UGPoint::Check);                        // Kind checking function
 
 /*
-1.2.3 ~igpoint~
+4 ~igpoint~
 
 */
 
@@ -5370,9 +5325,9 @@ TypeConstructor intimegpoint(
         CheckIntimeGPoint );               //kind checking function
 
 /*
-1.3 Operators
+5 Operators
 
-1.3.1 Operator ~mpoint2mgpoint~
+5.1 Operator ~mpoint2mgpoint~
 
 Translates a spatial ~MPoint~ into a network based ~MGPoint~.
 
@@ -5456,7 +5411,6 @@ Initialize return value
   bool bMGPointCurrMovingUp, bSecondEndCheck, bSecCheckDual,bAdjSecCheck;
   bool bAdjAddCheck, bAdjSecCheckDual, blastSecEndCheck, blastAdjSecCheck;
   bool blastSecEndCheckDual, blastAdjSecCheckDual;
-  CcBool *pDual;
   double dStartPosOld, difference, firstDifference, aktDifference, dFirstEndPos;
   double dStartPos, dEndPos, speedDifference, dAktUnitSpeed, dAktUnitDistance;
   double dMGPointCurrDistance, dMGPointCurrEndPos, dMGPointCurrStartPos;
@@ -5471,7 +5425,7 @@ Initialize return value
   int ilastSecEndCheckRouteId = 0;
   TupleId ilastAdjSecCheckRid = 0;
   CcInt *pRouteId;
-  Tuple *pCurrentRoute, *pOldSectionTuple, *pCurrentSectionT, *pTestRoute;
+  Tuple *pCurrentRoute, *pCurrentSectionT, *pTestRoute;
   SimpleLine *pRouteCurve, *pLastRouteCurve, *pTestRouteCurve;
   Relation* pRoutes = pNetwork->GetRoutes();
   Relation* pSections = pNetwork->GetSectionsInternal();
@@ -5511,8 +5465,7 @@ Initialize return value
   double test2 = dEndPos;
   chkStartEnd(test1, test2);
   RITree *tree = new RITree(iRouteId, test1, test2 );
-  pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
-  bDual = pDual->GetBoolval();
+  bDual = ((CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
   if (dStartPos < dEndPos) bMovingUp = true;
   else  bMovingUp = false;
   if (bDual && bMovingUp)  side = Up;
@@ -5690,9 +5643,9 @@ the new Route is found compute the new values for the next mgpoint unit.
             }
           }
         }
-        pOldSectionTuple = pNetwork->GetSectionOnRoute(pStartPos);
+        iOldSectionTid = pNetwork->GetTupleIdSectionOnRoute(pStartPos);
         pStartPos->DeleteIfAllowed();
-        if (pOldSectionTuple == NULL) {
+        if (iOldSectionTid == 0) {
             sendMessages("No last section for adjacent sections found.");
             res->EndBulkLoad(true);
             tree->TreeToDBArray(&(res->m_trajectory));
@@ -5702,11 +5655,9 @@ the new Route is found compute the new values for the next mgpoint unit.
             //delete pRoutes;
             return 0;
         }
-        iOldSectionTid = pOldSectionTuple->GetTupleId();
         pLastRouteCurve = pRouteCurve;
         iLastRouteId = iMGPointCurrRId;
         dStartPosOld = dStartPos;
-        pOldSectionTuple->DeleteIfAllowed();
         pAdjacentSections.clear();
         pNetwork->GetAdjacentSections(iOldSectionTid,
                                       bMovingUp,
@@ -5714,9 +5665,9 @@ the new Route is found compute the new values for the next mgpoint unit.
         if (pAdjacentSections.size() == 0 && pRouteCurve->IsCycle()) {
           pAdjacentSections.clear();
           pStartPos = new GPoint(true, iNetworkId, iRouteId, 0.1);
-          pOldSectionTuple = pNetwork->GetSectionOnRoute(pStartPos);
+          iOldSectionTid = pNetwork->GetTupleIdSectionOnRoute(pStartPos);
           pStartPos->DeleteIfAllowed();
-          if (pOldSectionTuple == NULL) {
+          if (iOldSectionTid == 0) {
             sendMessages("No section on cylce found");
             res->EndBulkLoad(true);
             tree->TreeToDBArray(&(res->m_trajectory));
@@ -5727,8 +5678,6 @@ the new Route is found compute the new values for the next mgpoint unit.
             //delete pRoutes;
             return 0;
           }
-          iOldSectionTid = pOldSectionTuple->GetTupleId();
-          pOldSectionTuple->DeleteIfAllowed();
           pNetwork->GetAdjacentSections(iOldSectionTid, false,
                                         pAdjacentSections);
         }
@@ -5907,8 +5856,8 @@ start time and the junction as startposition of the new current unit.
                 chkStartEnd(test1,test2);
                 tree->Insert(iLastRouteId, test1, test2);
                 bNewRouteFound = true;
-                pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
-                bDual = pDual->GetBoolval();
+                bDual = ((CcBool*)
+                    pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
                 setMoveAndSide(rid2meas, dEndPos, bMovingUp, bDual, side);
                 iRouteId = iCurrentSectionRid;
                 dAktUnitDistance = fabs (dEndPos - rid2meas);
@@ -5946,8 +5895,8 @@ start time and the junction as startposition of the new current unit.
           pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
           pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
           iRouteId = pRouteId->GetIntval();
-          pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
-          bDual = pDual->GetBoolval();
+          bDual = ((CcBool*)
+              pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
           bNewRouteFound = true;
           dEndPos = dSecondCheckEndPos;
           setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
@@ -5975,8 +5924,8 @@ start time and the junction as startposition of the new current unit.
           pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
           pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
           iRouteId = pRouteId->GetIntval();
-          pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
-          bDual = pDual->GetBoolval();
+          bDual = ((CcBool*)
+              pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
           bNewRouteFound = true;
           dEndPos = dAdjSecCheckEndPos;
           bStartFound = checkPoint(pRouteCurve, uStartPoint, true, dStartPos,
@@ -6056,8 +6005,8 @@ start time and the junction as startposition of the new current unit.
               chkStartEnd(test1,test2);
               tree->Insert(iLastRouteId, test1, test2);
               bNewRouteFound = true;
-              pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
-              bDual = pDual->GetBoolval();
+              bDual = ((CcBool*)
+                  pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
               setMoveAndSide(rid2meas, dEndPos, bMovingUp, bDual, side);
               iRouteId = iCurrentSectionRid;
               dAktUnitDistance = fabs (dEndPos - rid2meas);
@@ -6097,8 +6046,8 @@ start time and the junction as startposition of the new current unit.
           pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
           pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
           iRouteId = pRouteId->GetIntval();
-          pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
-          bDual = pDual->GetBoolval();
+          bDual = ((CcBool*)
+              pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
           bNewRouteFound = true;
           dEndPos = dlastSecCheckEndPos;
           setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
@@ -6126,8 +6075,8 @@ start time and the junction as startposition of the new current unit.
           pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
           pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
           iRouteId = pRouteId->GetIntval();
-          pDual = (CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL);
-          bDual = pDual->GetBoolval();
+          bDual = ((CcBool*)
+              pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
           bNewRouteFound = true;
           dEndPos = dlastAdjSecCheckEndPos;
           bStartFound = checkPoint(pRouteCurve, uStartPoint, true, dStartPos,
@@ -6208,7 +6157,7 @@ Operator mpoint2mgpoint (
 );
 
 /*
-1.3.2 Operator ~passes~
+5.2 Operator ~passes~
 
 Returns true if a ~MGPoint~ passes a given ~GPoint~ or ~GLine~.
 
@@ -6325,7 +6274,7 @@ Operator tempnetpasses (
 
 
 /*
-1.3.3 Operator ~simplify~
+5.3 Operator ~simplify~
 
 Reduces units of a ~MGPoint~ by concatenation if the speed difference is
 smaller than a given value.
@@ -6397,7 +6346,7 @@ Operator simplify("simplify",
 
 
 /*
-1.3.4 Operator ~at~
+5.4 Operator ~at~
 
 Restricts the ~MGPoint~ to the times it was at a given ~GPoint~ or ~GLine~.
 
@@ -6517,7 +6466,7 @@ Operator tempnetat("at",
                 OpAtTypeMap );
 
 /*
-1.3.5 Operator ~atinstant~
+5.5 Operator ~atinstant~
 
 Restricts the ~MGPoint~ to a given time instant.
 
@@ -6592,7 +6541,7 @@ Operator tempnetatinstant("atinstant",
 
 
 /*
-1.3.6 Operator ~atperiods~
+5.6 Operator ~atperiods~
 
 Restricts a ~MGPoint~ to the given periods.
 
@@ -6669,9 +6618,9 @@ Operator tempnetatperiods("atperiods",
 
 
 /*
-1.3.7 Operator ~deftime~
+5.7 Operator ~deftime~
 
-Returns the deftime of a ~MGPoint~ as ~periods~ value.
+Returns the deftime of a ~MGPoint~ respectively a ~ugpoint~ as ~periods~ value.
 
 */
 
@@ -6714,7 +6663,7 @@ int OpDeftime_mgp(Word* args, Word& result, int message, Word& local,
   if (!pMGP->IsDefined() || pMGP->GetNoComponents() < 1) {
     return 0;
   }
-  pMGP->Deftime(res);
+  pMGP->Deftime(*res);
   return 0;
 }
 
@@ -6748,7 +6697,7 @@ Operator tempnetdeftime("deftime",
                 OpDeftimeTypeMap );
 
 /*
-1.3.8 Operator ~final~
+5.8 Operator ~final~
 
 Returns the final time and position of the ~MGPoint~ as ~IGPoint~
 
@@ -6788,7 +6737,7 @@ Operator tempnetfinal("final",
 
 
 /*
-1.3.9 Operator ~initial~
+5.9 Operator ~initial~
 
 Returns the start point and time of the ~MGPoint~ as ~IGPoint~.
 
@@ -6809,7 +6758,7 @@ Operator tempnetinitial("initial",
                 OpFinalInitialTypeMap );
 
 /*
-1.3.10 Operator ~inside~
+5.10 Operator ~inside~
 
 Returns a ~mbool~ which is true for the times the ~MGPoint~ is inside a ~GLine~
 false elsewhere.
@@ -6879,7 +6828,7 @@ Operator tempnetinside("inside",
 
 
 /*
-1.3.11 Operator ~inst~
+5.11 Operator ~inst~
 
 Returns the time instant of the ~IGPoint~
 
@@ -6917,7 +6866,7 @@ Operator tempnetinst("inst",
                 OpInstTypeMap );
 
 /*
-1.3.12 Operator ~intersection~
+5.12 Operator ~intersection~
 
 Computes a ~MGPoint~ representing the intersection of two ~MGPoint~.
 
@@ -6985,7 +6934,7 @@ Operator tempnetintersection("intersection",
 
 
 /*
-1.3.13 Operator ~isempty~
+5.13 Operator ~isempty~
 
 Returns true if the ~MGPoint~ has no units.
 
@@ -7040,7 +6989,7 @@ Operator tempnetisempty("isempty",
                 OpIsEmptyTypeMap );
 
 /*
-1.3.14 Operator ~length~
+5.14 Operator ~length~
 
 Returns the length of the trip of the ~MGPoint~.
 
@@ -7099,7 +7048,7 @@ Operator tempnetlength("length",
 
 
 /*
-1.3.15 Operator ~no\_components~
+5.15 Operator ~no\_components~
 
 Returns the number of units of a ~MGPoint~.
 
@@ -7156,7 +7105,7 @@ Operator tempnetnocomp("no_components",
                 OpNoCompTypeMap );
 
 /*
-1.3.16 Operator ~present~
+5.16 Operator ~present~
 
 Returns true if the ~MGPoint~ has at least almost one unit with the time instant
 respectively one of the periods.
@@ -7270,7 +7219,7 @@ Operator tempnetpresent(
 
 
 /*
-1.3.17 Operator ~val~
+5.17 Operator ~val~
 
 Returns the ~GPoint~ value of a ~IGPoint~
 
@@ -7308,7 +7257,7 @@ Operator tempnetval("val",
                 OpValTypeMap );
 
 /*
-1.3.18 Operator ~trajectory~
+5.18 Operator ~trajectory~
 
 Returns the sorted ~GLine~ passed by a ~MGPoint~.
 
@@ -7373,7 +7322,7 @@ Operator trajectory("trajectory",
                     OpTrajectoryTypeMap );
 
 /*
-1.3.19 Operator ~units~
+5.19 Operator ~units~
 
 Returns the stream of ~UGPoint~ from the given ~MGPoint~.
 
@@ -7412,7 +7361,7 @@ Operator units("units",
                OpUnitsTypeMap );
 
 /*
-1.3.20 Operator ~unitendpos~
+5.20 Operator ~unitendpos~
 
 Returns the end position of the ~UGPoint~ as ~real~.
 
@@ -7467,7 +7416,7 @@ Operator tempnetunitendpos("unitendpos",
                 OpUnitPosTimeTypeMap );
 
 /*
-1.3.21 Operator ~unitstartpos~
+5.21 Operator ~unitstartpos~
 
 Returns the start position of the ~UGPoint~ as ~real~.
 
@@ -7507,7 +7456,7 @@ Operator tempnetunitstartpos("unitstartpos",
 
 
 /*
-1.3.22 Operator ~unitendtime~
+5.22 Operator ~unitendtime~
 
 Returns the last time instant of the ~UGPoint~ as ~real~.
 
@@ -7546,7 +7495,7 @@ Operator tempnetunitendtime("unitendtime",
 
 
 /*
-1.3.23 Operator ~unitstarttime~
+5.23 Operator ~unitstarttime~
 
 Returns the starting time instant of the ~UGPoint~ as ~real~.
 
@@ -7585,7 +7534,7 @@ Operator tempnetunitstarttime("unitstarttime",
                 OpUnitPosTimeTypeMap );
 
 /*
-1.3.24 Operator ~unitrid~
+5.24 Operator ~unitrid~
 
 Returns the route id of the ~UGPoint~ as ~real~.
 
@@ -7624,7 +7573,7 @@ Operator tempnetunitrid("unitrid",
 
 
 /*
-1.3.25 Operator ~unitbox~
+5.25 Operator ~unitbox~
 
 Returns the bounding box of the ~ugpoint~ as rectangle of dimension 3. with
 rid, rid, min(p0.pos. p1.pos), max(p0.pos, p1.pos), timeInterval.start,
@@ -7675,7 +7624,7 @@ Operator tempnetunitbox("unitbox",
                 OpUnitBoxTypeMap );
 
 /*
-1.3.26 Operator ~unitbox~
+5.26 Operator ~unitbox~
 
 Returns the bounding box of the ~ugpoint~ as rectangle of dimension 2. with
 rid, rid, min(p0.pos. p1.pos), max(p0.pos, p1.pos).
@@ -7729,7 +7678,7 @@ Operator tempnetunitbox2("unitbox2",
 
 
 /*
-1.3.26 Operator ~unitboundingbox~
+5.27 Operator ~unitboundingbox~
 
 Returns the spatialtemporal bounding box of the ~ugpoint~.
 
@@ -7780,7 +7729,7 @@ Operator tempnetunitboundingbox("unitboundingbox",
                 OpUnitBoundingBoxTypeMap );
 
 /*
-1.3.26 Operator ~mgpointboundingbox~
+5.28 Operator ~mgpointboundingbox~
 
 Returns the spatialtemporal bounding box of the ~ugpoint~.
 
@@ -7832,7 +7781,7 @@ Operator tempnetmgpointboundingbox("mgpbbox",
 
 
 /*
-1.3.25 Operator ~mgpoint2mpoint~
+5.29 Operator ~mgpoint2mpoint~
 
 Returns the ~mpoint~ value of the given ~MGPoint~.
 
@@ -7895,7 +7844,7 @@ Operator tempnetmgpoint2mpoint (
 
 
 /*
-1.3.26 Operator ~distance~
+5.30 Operator ~distance~
 
 Computes a mreal representing the Euclidean Distance between the two ~mgpoint~.
 
@@ -7972,7 +7921,7 @@ Operator tempnetdistance("distance",
 
 
 /*
-1.3.4 Operator ~union~
+5.31 Operator ~union~
 
 Returns a ~MGPoint~ which is the ~union~ of the two given MGPoints if possible,
 undefined elsewhere.
@@ -8042,7 +7991,7 @@ Operator tempnetunion("union",
 
 
 /*
-1.4 Creating the Algebra
+6 Creating the Algebra
 
 */
 
