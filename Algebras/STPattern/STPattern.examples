@@ -12,6 +12,6 @@ Result   : 14
 Operator : CREATESTVECTOR
 Number   : 1
 Signature: (string string ... ) -> stvector
-Example  : let follows= v("aa.bb", "aa.b.b", "a.a.bb", "a.a.b.b")  
+Example  : let follows= stvector("aa.bb", "aa.b.b", "a.a.bb", "a.a.b.b")  
 Result   : 14
 

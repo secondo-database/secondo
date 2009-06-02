@@ -21,5 +21,5 @@
 #operator stpattern alias STPATTERN pattern _ op[list]
 #operator intervalstart alias INTERVALSTART pattern op(_)
 #operator intervalend alias INTERVALEND pattern op(_)
-operator v alias CREATESTVECTOR pattern op(_)
+operator vec alias CREATESTVECTOR pattern op(_)
 operator stpattern alias STPATTERN pattern _ op[funlist;list]

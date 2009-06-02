@@ -185,7 +185,7 @@ public:
     {
       for(unsigned int i=0; i<domain.size(); i++)
       {
-        sa.clear();
+        
         sa[index]= domain[i];
         SA.push_back(sa);
       }
@@ -255,6 +255,10 @@ public:
     if(i==Agenda.size()) return -1; else return i;
   }
   
+  void Print()
+  {
+    
+  }
   int Clear()
   {
     SA.clear();

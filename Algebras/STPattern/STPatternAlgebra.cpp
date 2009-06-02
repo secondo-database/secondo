@@ -504,29 +504,63 @@ int CreateSTVectorVM
   }
   return 0;
 }
-
+static int tupleno=1;
 int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool debugme=true;
   Supplier root, namedpredlist, namedpred,alias, pred, constraintlist,
-  constraint;
-  Word value;
-  int noofpred, nosons;
-  bool matchPred;
-  bool isConnector=false;
+  constraint, alias1, alias2, stvector;
+  Word Value;
+  string aliasstr, alias1str, alias2str;
+  int noofpreds, noofconstraints;
 
-  
+
   result = qp->ResultStorage( s );
   root = args[0].addr;
 
+  namedpredlist = args[1].addr;
+  constraintlist= args[2].addr;
+
+  noofpreds= qp->GetNoSons(namedpredlist);
+  noofconstraints= qp->GetNoSons(constraintlist);
+
+  csp.Clear();
+  for(int i=0; i< noofpreds; i++)
+  {
+    namedpred= qp->GetSupplierSon(namedpredlist, i);
+    alias= qp->GetSupplierSon(namedpred, 0);
+    pred = qp->GetSupplierSon(namedpred, 1);
+    aliasstr= nl->ToString(qp->GetType(alias));
+    csp.AddVariable(aliasstr,pred);
+  }
+
+  for(int i=0; i< noofconstraints; i++)
+  {
+    constraint = qp->GetSupplierSon(constraintlist, i);
+    alias1= qp->GetSupplierSon(constraint, 0);
+    alias2= qp->GetSupplierSon(constraint, 1);
+    stvector= qp->GetSupplierSon(constraint, 2);
+
+    qp->Request(alias1, Value);
+    alias1str= ((CcString*) Value.addr)->GetValue();
+    qp->Request(alias2, Value);
+    alias2str= ((CcString*) Value.addr)->GetValue();
+    csp.AddConstraint(alias1str,alias2str, stvector);
+  }
+
+  
+  bool hasSolution=csp.Solve();
+  ((CcBool*)result.addr)->Set(true,hasSolution);
+
   if(debugme)
   {
-    cout<<endl<<"Root "; qp->ListOfTree(root,cout); 
-    // nl->ToString(qp->GetSupplierTypeExpr(root));
-    //cout<<endl<<"Labellist " <<nl->ToString(label)<<endl;
+    cout<< "tuple "<<tupleno++ ;
+    if(hasSolution) cout<<" accepted\n"; cout<<" rejected\n";
+    csp.Print();
     cout.flush();
   }
-    return 0;
+  
+  return 0;
 }
 
 int STConstraintVM 
@@ -539,16 +573,16 @@ int STConstraintVM
 const string CreateSTVectorSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text> (stringlist) -> stvector</text--->"
-  "<text>v( _ )</text--->"
+  "<text>vec( _ )</text--->"
   "<text>Creates a vector temporal connector.</text--->"
-  "<text>let meanwhile = v(\"abab\","
+  "<text>let meanwhile = vec(\"abab\","
   "\"abba\",\"aba.b\")</text--->"
   ") )";
 
 const string STPatternSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text> (stringlist) -> stvector</text--->"
-  "<text>v( _ )</text--->"
+  "<text>stpattern( _ )</text--->"
   "<text>Creates a vector temporal connector.</text--->"
   "<text>let meanwhile = v(\"abab\","
   "\"abba\",\"aba.b\")</text--->"
@@ -557,14 +591,14 @@ const string STPatternSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 const string STConstraintSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text> (stringlist) -> stvector</text--->"
-  "<text>v( _ )</text--->"
+  "<text>stconstraint( _ )</text--->"
   "<text>Creates a vector temporal connector.</text--->"
   "<text>let meanwhile = v(\"abab\","
   "\"abba\",\"aba.b\")</text--->"
   ") )";
 
 Operator createstvector (
-    "v",    //name
+    "vec",    //name
     CreateSTVectorSpec,     //specification
     CreateSTVectorVM,       //value mapping
     Operator::SimpleSelect, //trivial selection function
