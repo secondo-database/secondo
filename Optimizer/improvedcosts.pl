@@ -909,10 +909,20 @@ getResAttrList(Node,AttrList) :-  nodeAttributeList(Node, AttrList), !.
 getResTupleSize(Node, TupleSize) :- nodeTupleSize(Node, TupleSize), !.
 
 /*
-Retrieve the list of argument types and the result type of an expression
+Retrieve the list of argument types of an expression
+
+---- getTopmostArgTypes((+Op,+Args,+ResultType), -ArgTypeList) :-
+----
+
+The input parameters (~Op~, ~Args~, ~ResultType~) can be computed for an
+expression ~Expr~ and a list of relation descriptors ~RelList~ by calling
+
+---- getTypeTree(+Expr,+RelList,-TypeTree)
+----
+
+~TypeTree~ then has the required format (~Op~, ~Args~, ~ResultType~).
 
 */
-getTopmostSignature((Op,Args,ResultType), Signature) :-
-  findall(T,(member((_,_,T),Args)),ArgTypeList),
-  Signature =.. [Op|ArgTypeList],
-  !.
+getTopmostArgTypes((Op,Args,_), ArgTypeList) :-
+  findall(T,(member((_,_,T),Args)),ArgTypeList),!.
+getTopmostArgTypes(_,typeerror).
