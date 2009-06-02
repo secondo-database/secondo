@@ -2211,12 +2211,14 @@ indexselect(arg(N), pr(Pred, _)) => filter(IS, Pred) :-
   Result= filter(IS, InnerPred).
 
 % Generic indexselect translation for predicates checking on mbbs
-indexselect(arg(N), pr(Pred, _)) =>
+indexselect(arg(N), pr(Pred, _/*Rel*/)) =>
   filter(windowintersects(dbobject(IndexName), rel(Name, *), Y), Pred)
   :-
   (  Pred =.. [OP, attr(AttrName, Arg, AttrCase), Y]
    ; Pred =.. [OP, Y, attr(AttrName, Arg, AttrCase)] ),
   isBBoxPredicate(OP),
+%   getTypeTree(Pred,[(1,Rel)],(OP,Args,ResType)),
+%   findall(T,(member((_,_,T),Args)),ArgTypes),
   argument(N, rel(Name, *)),
   (     hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree)
       ; hasIndex(rel(Name,_),attr(AttrName,Arg,AttrCase),DCindex,rtree3)
@@ -3346,7 +3348,8 @@ deleteSizes :-
   retractall(nodeSizeCounter(_, _, _, _)),
   retractall(nodeSizeCounter(_, _)),
   retractall(pathInfo(_, _, _, _, _, _, _, _, _, _)),
-  retractall(path(_)).
+  retractall(path(_)),
+  retractall(tmpStoredTypeTree(_,_)).
 
 deleteSizesNawra :-
   retractall(storedPredNoPET(_, _, _)).
@@ -6594,8 +6597,6 @@ sqlExample( 100,
   groupby a:no
   ).
 
-
-
 % Example: predefined aggregations with groupby, omitting the where-clause, but
 %          with ordering and output restriczion:
 sqlExample( 101,
@@ -6653,6 +6654,7 @@ sqlExample( 106,
   where [plz >= 40000, plz <50000]
   groupby []
   ).
+
 
 example14 :- example(14).
 example15 :- example(15).
@@ -7076,50 +7078,25 @@ updateTypedIndex(insert, Attr, IndexName, btree, StreamIn,
      insertbtree(StreamIn, IndexName, Attr)) :-
   !.
 
-updateTypedIndex(insert, Attr, IndexName, rtree, StreamIn,
+updateTypedIndex(insert, Attr, IndexName, IndexType, StreamIn,
      insertrtree(StreamIn, IndexName, Attr)) :-
-  !.
+  memberchk(IndexType,[rtree,rtree3,rtree4,rtree8]),!.
 
 updateTypedIndex(insert, Attr, IndexName, hash, StreamIn,
      inserthash(StreamIn, IndexName, Attr)) :-
   !.
 
 
-updateTypedIndex(insert, Attr, IndexName, rtree3, StreamIn,
-     insertrtree(StreamIn, IndexName, Attr)) :-
-  !.
-
-updateTypedIndex(insert, Attr, IndexName, rtree4, StreamIn,
-     insertrtree(StreamIn, IndexName, Attr)) :-
-  !.
-
-updateTypedIndex(insert, Attr, IndexName, rtree8, StreamIn,
-     insertrtree(StreamIn, IndexName, Attr)) :-
-  !.
-
 updateTypedIndex(delete, Attr, IndexName, btree, StreamIn,
      deletebtree(StreamIn, IndexName, Attr)) :-
   !.
 
-updateTypedIndex(delete, Attr, IndexName, rtree, StreamIn,
+updateTypedIndex(delete, Attr, IndexName, IndexType, StreamIn,
      deletertree(StreamIn, IndexName, Attr)) :-
-  !.
+  memberchk(IndexType,[rtree,rtree3,rtree4,rtree8]),!.
 
 updateTypedIndex(delete, Attr, IndexName, hash, StreamIn,
      deletehash(StreamIn, IndexName, Attr)) :-
-  !.
-
-
-updateTypedIndex(delete, Attr, IndexName, rtree3, StreamIn,
-     deletertree(StreamIn, IndexName, Attr)) :-
-  !.
-
-updateTypedIndex(delete, Attr, IndexName, rtree4, StreamIn,
-     deletertree(StreamIn, IndexName, Attr)) :-
-  !.
-
-updateTypedIndex(delete, Attr, IndexName, rtree8, StreamIn,
-     deletertree(StreamIn, IndexName, Attr)) :-
   !.
 
 
@@ -7127,25 +7104,12 @@ updateTypedIndex(update, Attr, IndexName, btree, StreamIn,
      updatebtree(StreamIn, IndexName, Attr)) :-
   !.
 
-updateTypedIndex(update, Attr, IndexName, rtree, StreamIn,
+updateTypedIndex(update, Attr, IndexName, IndexType, StreamIn,
      updatertree(StreamIn, IndexName, Attr)) :-
-  !.
+  memberchk(IndexType,[rtree,rtree3,rtree4,rtree8]),!.
 
 updateTypedIndex(update, Attr, IndexName, hash, StreamIn,
      updatehash(StreamIn, IndexName, Attr)) :-
-  !.
-
-
-updateTypedIndex(update, Attr, IndexName, rtree3, StreamIn,
-     updatertree(StreamIn, IndexName, Attr)) :-
-  !.
-
-updateTypedIndex(update, Attr, IndexName, rtree4, StreamIn,
-     updatertree(StreamIn, IndexName, Attr)) :-
-  !.
-
-updateTypedIndex(update, Attr, IndexName, rtree8, StreamIn,
-     updatertree(StreamIn, IndexName, Attr)) :-
   !.
 
 /*

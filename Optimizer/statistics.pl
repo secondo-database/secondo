@@ -38,27 +38,36 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-commute(X = Y, Y = X).
-commute(X < Y, Y > X).
-commute(X <= Y, Y >= X).
-commute(X > Y, Y < X).
-commute(X >= Y, Y <= X).
-commute(X # Y, Y # X).
-commute(trcoveredby(X,Y), trcovers(Y,X)).
-commute(Pred1, Pred2) :-
+% general rules of commution
+commute(Term,_,Commuted) :-
+  member((Term,Commuted),[(X < Y,Y > X),(X <= Y, Y >= X),(X > Y, Y < X),
+                          (X >= Y, Y <= X),(trcoveredby(X,Y), trcovers(Y,X))]),
+  !.
+% special rules inferred from operator characteristics
+commute(Term,ResList,Commuted) :-
+  optimizerOption(determinePredSig),
+  Term =.. [Op, Arg1, Arg2],
+  getTypeTree(Term,ResList,(_,Args,_)),
+  findall(T,member((_,_,T),Args),ArgTypes),
+  isCommutativeOP(Op,ArgTypes),
+  Commuted =.. [Op, Arg2, Arg1], !.
+% old rule - still using old ~isCommutativeOP/1~-facts
+commute(Pred1, _, Pred2) :-
+  not(optimizerOption(determinePredSig)),
   Pred1 =.. [OP, Arg1, Arg2],
   isCommutativeOP(OP),
   Pred2 =.. [OP, Arg2, Arg1], !.
 
-
-
-/*
-1.2 Hard-Coded Selectivities of Predicates
-
-(Deprecated sub-section removed by Christian D[ue]ntgen, May-15-2006)
-
-*/
-
+% binary version - extracting rellist from predicate descriptor
+commute(Pred1, Pred2) :-
+  ( Pred1 = pr(P,A)
+    -> RL = [(1,A)]
+    ; ( Pred1 = pr(P,A,B)
+        -> RL = [(1,A),(2,B)]
+        ; fail
+      )
+  ),
+  commute(Pred1,RL,Pred2),!.
 
 /*
 
@@ -68,14 +77,14 @@ Simple forms of predicates are stored in predicate ~sel~ or
 in predicate ~storedSel~.
 
 
-----	simple(+Term, +Rel1, +Rel2, -Simple) :-
+----	simple(+Term, +ArgRelList, -Simple) :-
 ----
 
 The simple form of a term ~Term~ containing attributes of ~Rel1~ and/or ~Rel2~
 is ~Simple~.
 
 Commutative predicates are transformed to the minimum equivalent expression
-regarding lexicographical order on the argument, e.g.
+regarding lexicographical order on the arguments, e.g.
 
 --- op(b,a)
 ---
@@ -88,46 +97,49 @@ is transformed into
 
 */
 
-simple(attr(Var:Attr, 0, _), rel(Rel, Var), _, Rel2:Attr2) :-
+simple(attr(Var:Attr, 0, _), RelList, Rel2:Attr2) :-
+  memberchk((1,rel(Rel, Var)),RelList),
   downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
-simple(attr(Attr, 0, _), rel(Rel, *), _, Rel2:Attr2) :-
+simple(attr(Attr, 0, _), RelList, Rel2:Attr2) :-
+  memberchk((1,rel(Rel, *)),RelList),
   downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
+simple(attr(Var:Attr, ArgNo, _), RelList, Rel2:Attr2) :-
+  memberchk((ArgNo,rel(Rel, Var)),RelList),
+  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
+simple(attr(Attr, ArgNo, _), RelList, Rel2:Attr2) :-
+  memberchk((ArgNo,rel(Rel, *)),RelList),
+  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
+simple(dbobject(X),_,dbobject(X)) :- !.
 
-simple(attr(Var:Attr, 1, _), rel(Rel, Var), _, Rel2:Attr2) :-
-  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
-simple(attr(Attr, 1, _), rel(Rel, *), _, Rel2:Attr2) :-
-  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
-
-simple(attr(Var:Attr, 2, _), _, rel(Rel, Var),  Rel2:Attr2) :-
-  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
-simple(attr(Attr, 2, _), _, rel(Rel, *), Rel2:Attr2) :-
-  downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
-
-simple(dbobject(X),_,_,dbobject(X)) :- !.
-
-simple([], _, _, []) :- !.
-simple([A|Rest], Rel1, Rel2, [Asimple|RestSimple]) :-
-  simple(A,Rel1,Rel2,Asimple),
-  simple(Rest,Rel1,Rel2,RestSimple),
+simple([], _, []) :- !.
+simple([A|Rest], RelList, [Asimple|RestSimple]) :-
+  simple(A,RelList,Asimple),
+  simple(Rest,RelList,RestSimple),
   !.
 
 % Normalize simple predicates, if possible
-simple(Term,R1,R2,Simple) :-
+simple(Term,RelList,Simple) :-
   compound(Term),
   Term =.. [_,Arg1,Arg2],
   compare(>,Arg1,Arg2),
-  commute(Term,Term2),
-  simple(Term2,R1,R2,Simple),
+  commute(Term,RelList,Term2),
+  simple(Term2,RelList,Simple),
+% dm(selectivity,['Commuting arguments: ',Term, ' changed to ',Simple,'.\n']),
   !.
 
-simple(Term, Rel1, Rel2, Simple) :-
+simple(Term, RelList, Simple) :-
   compound(Term),
   Term =.. [Op|Args],
-  simple(Args, Rel1, Rel2, ArgsSimple),
+  simple(Args, RelList, ArgsSimple),
   Simple =..[Op|ArgsSimple],
   !.
 
-simple(Term, _, _, Term).
+simple(Term, _, Term).
+
+% fallback-clause for calls to old clause
+% ---  simple(+Term,+R1,+R2,-Simple)
+simple(Term,R1,R2,Simple) :-
+  simple(Term,[(1,R1),(2,R2)],Simple),!.
 
 /*
 ----	simplePred(Pred, Simple) :-
@@ -136,17 +148,46 @@ simple(Term, _, _, Term).
 The simple form of predicate ~Pred~ is ~Simple~.
 
 */
+% old clauses used, if option ~determinePredSig~ is not set:
+simplePred(pr(P, A, B), Simple) :-
+  not(optimizerOption(determinePredSig)),
+  optimizerOption(subqueries),
+  simpleSubqueryPred(pr(P, A, B), Simple),!.
 
 simplePred(pr(P, A, B), Simple) :-
-  optimizerOption(subqueries),
-  simpleSubqueryPred(pr(P, A, B), Simple).
+  not(optimizerOption(determinePredSig)),
+  simple(P, A, B, Simple), !.
 
-simplePred(pr(P, A, B), Simple) :- simple(P, A, B, Simple), !.
-simplePred(pr(P, A), Simple) :- simple(P, A, A, Simple), !.
+simplePred(pr(P, A), Simple) :-
+  not(optimizerOption(determinePredSig)),
+  simple(P, A, A, Simple), !.
+
 simplePred(X, Y) :-
+  not(optimizerOption(determinePredSig)),
   term_to_atom(X,Xt),
   concat_atom(['Malformed expression: \'', Xt, '\'.'],'',ErrorMsg),
-  throw(error_SQL(statistics_simplePred(X, Y):malformedExpression#ErrorMsg)).
+  throw(error_SQL(statistics_simplePred(X, Y):malformedExpression#ErrorMsg)),!.
+
+
+% with option ~determinePredSig~ a specialized version is called:
+simplePred(Pred,Simple) :-
+  optimizerOption(determinePredSig),
+  ( Pred = pr(P,A,B)
+     -> RelList = [(1,A),(2,B)]
+     ;  ( Pred = pr(P,A)
+          -> RelList = [(1,A)]
+          ;  ( throw(error_Internal(statistics_simplePred(Pred, Simple)
+                  :simplificationFailed)),
+               fail %% error!
+             )
+        )
+  ),
+  simple(P,RelList,Simple), !.
+
+simplePred(Pred,Simple) :-
+  throw(error_Internal(statistics_simplePred(Pred, Simple)
+                  :simplificationFailed)),
+  !, fail.
 
 /*
 
@@ -1649,6 +1690,13 @@ Otherwise, we need to query Secondo for it.
 Retrieves the complete type/operator tree ~Type~Tree~ from an expression ~Expr~
 for a given relation list ~RelList~.
 
+~Expr~ is an expression in internal format using attribute and relations
+descriptors etc.
+
+~RelList~ has format [(Arg1,Rel1),...(ArgN,RelN)], where Arg1...ArgN are integers
+corresponding to the ~Arg~ fields used in attribute descriptors within ~Expr~,
+and Rel1,..., RelN are the according relation descriptors.
+
 ~TypeTree~ has format (~Op~, ~TypeTreeList~, ~ResType~), where
 ~Op~ is the operator symbol,
 ~TypeTreeList~ is a list of entries with format ~TypeTree~, and
@@ -1659,7 +1707,7 @@ integer, real, text and string atoms have ~atom~, attributes have ~attr~,
 attribute names have ~attrname~, database object names have ~dbobject~,
 type names have ~typename~, relations have ~relation~. In all these cases,
 ~TypeTreeList~ becomes the expression forming the according primitive.
-
+Newly created (calculated) attributes are marked with ~newattr~.
 
 Facts describing known operator signatures are defined in file ~operators.pl~.
 The all have format
@@ -1683,12 +1731,46 @@ and execute a query to determine the according result type. If a result is
 achieved, it is temporarily stored to the optimizer's knowledge base using the
 dynamic predicate
 
----- queriedOpSignature(Op,ArgTypes,TypeDC).
+---- queriedOpSignature(Op,ArgTypes,TypeDC,Flags).
 ----
+
+
+The type trees of all analysed expressions are kept within a temporal facts
+
+---- tmpStoredExprTypeTree(+P,(-Op, -TypeTreeList, -ResType))
+----
+
+These facts are not made persistent and will be lost whenever a new query is
+started.
+
+----  getTypeTree(+PredExpr,-TypeTree)
+----
+
+This form of the predicate receives one argument ~PredExpr~, that represents
+one of the internal predicate representations: pr(P,A) or pr(P,A,B).
+
+It automatically extracts the predicate expression and creates the relation
+argument list and calls ~getTypeTree/3~.
 
 */
 
-:- dynamic(queriedOpSignature/3).
+:- dynamic(queriedOpSignature/4).% used for new operator signatures
+:- dynamic(tmpStoredTypeTree/2). % used to buffer results of expression analysis
+
+getTypeTree(PredExpr,Result) :-
+  PredExpr =.. [pr,P|RelList],
+  createRelArgListFromPredRelList(RelList,RelArgList),
+  getTypeTree(P,RelArgList,Result), !.
+
+% createRelArgListFromPredRelList(+RelList,-RelArgList)
+% numbers all elemenets from ~RelList~, starting with 1.
+createRelArgListFromPredRelList(X,XA) :-
+  createRelArgListFromPredRelList2(X,1,XA),!.
+createRelArgListFromPredRelList([],_,[]).
+createRelArgListFromPredRelList([X|Xs],N1,[(N1,X)|X2]) :-
+  N2 is N1 + 1,
+  createRelArgListFromPredRelList(Xs,N2,X2).
+
 
 % fail, is option not selected:
 getTypeTree(_,_,_,_) :-
@@ -1703,6 +1785,13 @@ getTypeTree(_,_,_,_) :-
     fail.
   */
 
+% Use temporarily saved results.
+% Results of calls to getTypeTree/3 are saved as facts tmpStoredTypeTree/2
+% for the time of the time until the optimizer is shut down or onother database
+% is openend.
+getTypeTree(Expr,_,Result) :-
+  tmpStoredTypeTree(Expr,Result),!.
+
 % Handle Lists of expressions
 getTypeTree(arglist([]),_,[]).
 getTypeTree(arglist([X|R]),Rels,[X1|R1]) :-
@@ -1715,6 +1804,7 @@ getTypeTree(arglist([X|R]),Rels,[X1|R1]) :-
 getTypeTree(IntAtom,_,(atom,IntAtom,int)) :-
   atomic(IntAtom), integer(IntAtom),
 %   dm(selectivity,['§§§ getTypeTree: ',IntAtom,': ',int]),nl,
+  assert(tmpStoredTypeTree(IntAtom,(atom,IntAtom,int))),
   !.
 
 % Primitive: real-atom
@@ -1729,6 +1819,7 @@ getTypeTree(TextAtom,_,(atom,TextAtom,text)) :-
   not(is_list(TextAtom)),
   not(opSignature(TextAtom,_,[],_)),
 %   dm(selectivity,['§§§ getTypeTree: ',TextAtom,': ',text]),nl,
+  assert(tmpStoredTypeTree(TextAtom,(atom,TextAtom,text))),
   !.
 
 % Primitive: string-atom
@@ -1736,6 +1827,7 @@ getTypeTree(TextAtom,_,(atom,TextAtom,string)) :-
   is_list(TextAtom), TextAtom = [First | _], atomic(First), !,
   string_to_list(_,TextAtom),
 %   dm(selectivity,['§§§ getTypeTree: ',TextAtom,': ',string]),nl,
+  assert(tmpStoredTypeTree(TextAtom,(atom,TextAtom,string))),
   !.
 
 % Primitive: relation-descriptor
@@ -1744,12 +1836,15 @@ getTypeTree(rel(DCrelName, X),_,(relation,rel(DCrelName, X),tuple(TupleList))):-
   findall((N,A),(member([N,A,_],AttrList)),TupleList),
 % dm(selectivity,['§§§ getTypeTree: ',rel(DCrelName, X),': ',tuple(TupleList)]),
 % nl,
+  assert(tmpStoredTypeTree(rel(DCrelName, X),
+                           (relation,rel(DCrelName, X),tuple(TupleList)))),
   !.
 
 % Primitive: type-descriptor
 getTypeTree(DCType,_,(typename,DCType,DCType)) :-
   secDatatype(DCType, _, _, _, _, _),
 %   dm(selectivity,['§§§ getTypeTree: ',DCType,': ',DCType]),nl,
+  assert(tmpStoredTypeTree(DCType,(typename,DCType,DCType))),
   !.
 
 % Primitive: object-descriptor
@@ -1757,6 +1852,8 @@ getTypeTree(dbobject(NameDC),_,(dbobject,dbobject(NameDC),TypeDC)) :-
   secondoCatalogInfo(NameDC,_,_,TypeExprList),
   dcNList(TypeExprList,TypeDC),
 %   dm(selectivity,['§§§ getTypeTree: ',dbobject(NameDC),': ',TypeDC]),nl,
+  assert(tmpStoredTypeTree(dbobject(NameDC),
+                           (dbobject,dbobject(NameDC),TypeDC))),
   !.
 
 % Primitive: attribute-descriptor
@@ -1771,6 +1868,8 @@ getTypeTree(attr(RenRelName:Attr, Arg, Z),RelList,
   storedAttrSize(DB,DCrelName,DCAttr,DCType,_,_,_),
 %   dm(selectivity,['§§§ getTypeTree: ',attr(RenRelName:Attr, Arg, Z),
 %   ': ',DCType]),nl,
+  assert(tmpStoredTypeTree(attr(RenRelName:Attr, Arg, Z),
+                          (attr,attr(RenRelName:Attr, Arg, Z),DCType))),
   !.
 getTypeTree(attr(Attr, Arg, Y),Rels,(attr,attr(Attr, Arg, Y),DCType)) :-
   downcase_atom(Attr,DCAttr),
@@ -1781,6 +1880,8 @@ getTypeTree(attr(Attr, Arg, Y),Rels,(attr,attr(Attr, Arg, Y),DCType)) :-
   memberchk(DCAttr,AttrList),
   storedAttrSize(DB,DCrelName,DCAttr,DCType,_,_,_),
 %   dm(selectivity,['§§§ getTypeTree: ',attr(Attr, Arg, Y),': ',DCType]),nl,
+  assert(tmpStoredTypeTree(attr(Attr, Arg, Y),
+                          (attr,attr(Attr, Arg, Y),DCType))),
   !.
 
 % Primitive: attribute-name-descriptor
@@ -1789,13 +1890,33 @@ getTypeTree(attrname(attr(X:Name, Y, Z)),_,(attrname,
   downcase_atom(Name,DCType),
 %   dm(selectivity,['§§§ getTypeTree: ',attrname(attr(X:Name, Y, Z)),
 %   ': ',DCType]),nl,
+  assert(tmpStoredTypeTree(attrname(attr(X:Name, Y, Z)),_,(attrname,
+        attrname(attr(X:Name, Y, Z)),DCType))),
   !.
 getTypeTree(attrname(attr(Name, Y, Z)),_,(attrname,
         attrname(attr(Name, Y, Z)),DCType)) :-
   downcase_atom(Name,DCType),
 %   dm(selectivity,['§§§ getTypeTree: ',attrname(attr(Name, Y, Z)),
 %   ': ',DCType]),nl,
+  assert(tmpStoredTypeTree(attrname(attr(Name, Y, Z)),_,(attrname,
+        attrname(attr(Name, Y, Z)),DCType))),
   !.
+
+% Primitive: newly created attribute
+getTypeTree(newattr(AttrExpr,ValExpr),Rels,(newattr,
+        [AttrExprTree,ValExprTree],DCType)) :-
+  getTypeTree(arglist([AttrExpr,ValExpr]),Rels,[AttrExprTree,ValExprTree]),
+  ValExprTree = (_,_,DCType),
+%   dm(selectivity,['§§§ getTypeTree: ',newattr(AttrExpr,ValExpr),
+%   ': ',DCType]),nl,
+  assert(tmpStoredTypeTree(newattr(AttrExpr,ValExpr),Rels,
+        (newattr,[AttrExprTree,ValExprTree],DCType))),
+  % also store the new attribue itself:
+  ( AttrExpr = attrname(attr(Name, Arg, Case))
+    -> assert(tmpStoredTypeTree(attr(Name, Arg, Case),
+                                  (attr,attr(Name, Arg, Case),DCType)))
+    ;  true
+  ), !.
 
 % Expression using defined operator signature
 getTypeTree(Expr,Rels,(Op,ArgTree,TypeDC)) :-
@@ -1803,10 +1924,11 @@ getTypeTree(Expr,Rels,(Op,ArgTree,TypeDC)) :-
   Expr =.. [Op|Args],
   getTypeTree(arglist(Args),Rels,ArgTree),
   findall(T,member((_,_,T),ArgTree),ArgTypes), % extract types from ArgTree
-  (   opSignature(Op,_,ArgTypes,TypeDC)
-    ; queriedOpSignature(Op,ArgTypes,TypeDC)
+  (   opSignature(Op,_,ArgTypes,TypeDC,_)
+    ; queriedOpSignature(Op,ArgTypes,TypeDC,_)
   ),
 %   dm(selectivity,['§§§ getTypeTree: ',Expr,': ',TypeDC]),nl,
+  assert(tmpStoredTypeTree(Expr,(Op,ArgTree,TypeDC))),
   !.
 
 % Expression using unknown operator signature
@@ -1825,8 +1947,9 @@ getTypeTree(Expr,Rels,(Op,ArgsTypes,TypeDC)) :-
 %   dm(selectivity,['getTypeNL-Query = ',Query]),nl,
   secondo(Query,[text,TypeDC]),
      % store signature in fact base
-  assert(queriedOpSignature(Op,ArgTypes,TypeDC)),
+  assert(queriedOpSignature(Op,ArgTypes,TypeDC,[])),
 %   dm(selectivity,['§§§ getTypeTree: ',Expr,': ',TypeDC]),nl,
+  assert(tmpStoredTypeTree(Expr,(Op,ArgsTypes,TypeDC))),
   !.
 
 getTypeTree(A,B,C) :-
