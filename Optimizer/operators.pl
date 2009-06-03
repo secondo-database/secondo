@@ -302,9 +302,7 @@ type of expressions
 
   * idem: ~Op~ is unary and idempotent
 
-  * bbox(d2): ~Op~ implements a predicate using a filter and refinement approach with 2D-MBRs
-
-  * bbox(d3): ~Op~ implements a predicate using a filter and refinement approach with 3D-MBRs
+  * bbox(D): ~Op~ implements a predicate (~Resulttype is ~bool~) using a filter and refinement approach with D-dimensional MBRs
 
   * block: ~Op~ is a blocking stream operator
 
@@ -724,21 +722,21 @@ SpatialAlgebra ***
 */
 opSignature(isempty, spatial, [T],bool,[]) :-
   memberchk(T,[point,points,line,sline,region]),!.
-opSignature((=), spatial, [T,T],bool,[comm,bbox(d2)]) :-
+opSignature((=), spatial, [T,T],bool,[comm,bbox(2)]) :-
   memberchk(T,[point,points,line,sline,region]),!.
-opSignature((#), spatial, [T,T],bool,[comm,bbox(d2)]) :-
+opSignature((#), spatial, [T,T],bool,[comm,bbox(2)]) :-
   memberchk(T,[point,points,line,sline,region]),!.
-opSignature(intersects, spatial, [T1,T2],bool,[comm,bbox(d2)]) :-
+opSignature(intersects, spatial, [T1,T2],bool,[comm,bbox(2)]) :-
   (   (memberchk(T1,[points,line,region]), memberchk(T2,[points,line,region]))
     ; (T1 = sline, T2 = sline)
   ),!.
-opSignature(inside, spatial, [T1,T2],bool,[bbox(d2)]) :-
+opSignature(inside, spatial, [T1,T2],bool,[bbox(2)]) :-
   memberchk(T1,[points,line,region]), memberchk(T2,[points,line,region]),!.
-opSignature(adjacent, spatial, [T1,T2],bool,[comm,bbox(d2)]) :-
+opSignature(adjacent, spatial, [T1,T2],bool,[comm,bbox(2)]) :-
   memberchk(T1,[points,line,region]), memberchk(T2,[points,line,region]),!.
-opSignature(overlaps, spatial, [region,region],bool,[comm,bbox(d2)]).
-opSignature(onborder, spatial, [point,region],bool,[bbox(d2)]).
-opSignature(ininterior, spatial, [point,region],bool,[bbox(d2)]).
+opSignature(overlaps, spatial, [region,region],bool,[comm,bbox(2)]).
+opSignature(onborder, spatial, [point,region],bool,[bbox(2)]).
+opSignature(ininterior, spatial, [point,region],bool,[bbox(2)]).
 opSignature(intersection, spatial, [T,T],T,[comm]) :-
   memberchk(T,[point,points,line,region]),!.
 opSignature(minus, spatial, [T,T],T,[]) :-
@@ -907,7 +905,7 @@ opSignature(trajectory, temporal, [mpoint],line,[]).
 opSignature(present, temporal, [T1,T2],bool,[]) :-
   memberchk(T2,[instant,periods]),
   memberchk(T1,[mbool,mint,mreal,mstring,mpoint,movingregion]),!.
-opSignature(passes, temporal, [T1,T2],bool,[bbox(d2)]) :-
+opSignature(passes, temporal, [T1,T2],bool,[bbox(2)]) :-
   memberchk((T1,T2),[(mpoint,point),(mpoint,region),(mpoint,rect)]),!.
 opSignature(passes, temporal, [T1,T2],bool,[]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mreal,real),(mstring,string)]),!.
@@ -921,8 +919,9 @@ opSignature(units, temporal, [T],[stream,UT],[]) :-
   memberchk((T,UT),[(mpoint,upoint),(movingregion,uregion),(mreal,ureal),
                     (mint,uint),(mbool,ubool),(mstring,ustring)]),!.
 opSignature(bbox, temporal, [T],rect3,[]) :-
-  memberchk(T,[mpoint,upoint,ipoint,movingregion,intimeregion,uregion]),!.
-opSignature(bbox, temporal, [T],T,[]) :-
+  memberchk(T,[mpoint,movingregion,upoint,uregion,
+               ipoint,intimeregion,instant,periods]),!.
+opSignature(rangevalues, temporal, [T],T,[]) :-
   memberchk(T,[periods,rreal,rint,rbool,rstring]).
 opSignature(bbox2d, temporal, [T],rect,[]) :-
   memberchk(T,[mpoint,upoint,ipoint,movingregion,intimeregion,uregion]),!.
@@ -1000,12 +999,12 @@ TemporalExtAlgebra ***
 opSignature(at, temporalext, [T1,T2],T1,[]) :-
   memberchk((T1,T2),[(mint,rint),(mbool,rbool),(mreal,rreal),
   (mstring,rstring)]), !.
-opSignature(at, temporalext, [mpoint,points],mpoint,[bbox(d2)]).
-opSignature(at, temporalext, [mpoint,line],mpoint,[bbox(d2)]).
-opSignature(passes, temporalext, [mpoint,points],bool,[bbox(d2)]).
-opSignature(passes, temporalext, [mpoint,line],bool,[bbox(d2)]).
-opSignature(passes, temporalext, [movingregion,point],bool,[bbox(d2)]).
-opSignature(passes, temporalext, [movingregion,points],bool,[bbox(d2)]).
+opSignature(at, temporalext, [mpoint,points],mpoint,[bbox(2)]).
+opSignature(at, temporalext, [mpoint,line],mpoint,[bbox(2)]).
+opSignature(passes, temporalext, [mpoint,points],bool,[bbox(2)]).
+opSignature(passes, temporalext, [mpoint,line],bool,[bbox(2)]).
+opSignature(passes, temporalext, [movingregion,point],bool,[bbox(2)]).
+opSignature(passes, temporalext, [movingregion,points],bool,[bbox(2)]).
 opSignature(val, temporal, [istring],string,[]).
 opSignature(derivative_new, temporalext, [mreal],mreal,[]).
 opSignature(derivable_new, temporalext, [mreal],mbool,[]).
@@ -1151,9 +1150,9 @@ opSignature(isempty, temporalunit, [T],bool,[]) :-
   memberchk(T,[upoint,uregion,ubool,uint,ureal,ustring]),!.
 opSignature(deftime, temporalunit, [T],periods,[]) :-
   memberchk(T,[upoint,uregion,ubool,uint,ureal,ustring]),!.
-opSignature(present, temporalunit, [T,instant],bool,[bbox(d3)]) :-
+opSignature(present, temporalunit, [T,instant],bool,[bbox(3)]) :-
   memberchk(T,[upoint,uregion,ubool,uint,ureal,ustring]),!.
-opSignature(present, temporalunit, [T,periods],bool,[bbox(d3)]) :-
+opSignature(present, temporalunit, [T,periods],bool,[bbox(3)]) :-
   memberchk(T,[upoint,uregion,ubool,uint,ureal,ustring]),!.
 opSignature(initial, temporalunit, [[stream,T1]],T2,[block,aggr]) :-
   memberchk((T1,T2),[(upoint,ipoint),(uregion,intimeregion),(ubool,ibool),
@@ -1288,8 +1287,8 @@ opSignature(final, movingregion, [movingregion],intimeregion,[]).
 opSignature(inst, movingregion, [intimeregion],instant,[]).
 opSignature(val, movingregion, [intimeregion],region,[]).
 opSignature(deftime, movingregion, [movingregion],periods,[]).
-opSignature(present, movingregion, [movingregion,instant],bool,[bbox(d3)]).
-opSignature(present, movingregion, [movingregion,periods],bool,[bbox(d3)]).
+opSignature(present, movingregion, [movingregion,instant],bool,[bbox(3)]).
+opSignature(present, movingregion, [movingregion,periods],bool,[bbox(3)]).
 opSignature(intersection, movingregion, [mpoint,movingregion],mpoint,[]).
 opSignature(inside, movingregion, [mpoint,movingregion],mbool,[]).
 opSignature(at, movingregion, [mpoint,region],mpoint,[]).
@@ -2018,14 +2017,14 @@ opSignature(minus_new, planesweep, [line,line],line,[]).
 opSignature(minus_new, planesweep, [line,region],line,[]).
 opSignature(minus_new, planesweep, [region,line],region,[]).
 opSignature(minus_new, planesweep, [region,region],region,[]).
-opSignature(p_intersects, planesweep, [line,line],bool,[comm,bbox(d2)]).
-opSignature(p_intersects, planesweep, [line,region],bool,[comm,bbox(d2)]).
-opSignature(p_intersects, planesweep, [region,line],bool,[comm,bbox(d2)]).
-opSignature(p_intersects, planesweep, [region,region],bool,[comm,bbox(d2)]).
-opSignature(intersects_new, planesweep, [line,line],bool,[comm,bbox(d2)]).
-opSignature(intersects_new, planesweep, [line,region],bool,[comm,bbox(d2)]).
-opSignature(intersects_new, planesweep, [region,line],bool,[comm,bbox(d2)]).
-opSignature(intersects_new, planesweep, [region,region],bool,[comm,bbox(d2)]).
+opSignature(p_intersects, planesweep, [line,line],bool,[comm,bbox(2)]).
+opSignature(p_intersects, planesweep, [line,region],bool,[comm,bbox(2)]).
+opSignature(p_intersects, planesweep, [region,line],bool,[comm,bbox(2)]).
+opSignature(p_intersects, planesweep, [region,region],bool,[comm,bbox(2)]).
+opSignature(intersects_new, planesweep, [line,line],bool,[comm,bbox(2)]).
+opSignature(intersects_new, planesweep, [line,region],bool,[comm,bbox(2)]).
+opSignature(intersects_new, planesweep, [region,line],bool,[comm,bbox(2)]).
+opSignature(intersects_new, planesweep, [region,region],bool,[comm,bbox(2)]).
 
 
 /*
