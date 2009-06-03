@@ -1,3 +1,4 @@
+
 /*
 This file is part of SECONDO.
 
@@ -18,72 +19,64 @@ You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-*/
-/*
 paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
-paragraph [10] Footnote: [{\footnote{] [}}]*/
+paragraph [10] Footnote: [{\footnote{] [}}]
 
-//   March 2009 Brigitte Metzker
+March 2009 Brigitte Metzker
 
-/////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////          0.    Overview       UGrid - Algebra                   ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
+0.    Overview       UGrid - Algebra
 
-// This Algebra implements the datastructures and operators 
-// for create a three- dimensional UGrid and for handle queries.
-//
-// The three dimensions are the two-dimensional euklidian coordinate system
-// for the description of a position and a timestamp assign the positions as the 
-// third dimension.
-// 
-// The applied data structures are 
-// Mobpos         two double values identify the position
-//
-// UGridArea      four double values identify an area limeted by a start- and 
-//                an end- position
-//
-// UpdateUnit     incoming information with an integer value for identifcation
-//                a moving object and a MobPos value for identify its position
-//
-// CurrentUnit    evaluated information of a possible next position in a trajectory
-//                based to the last UpdateUnit for a moving object 
-//
-// HistoryUnit    merged information of the last two updateunits for a moving object
-//
-// UGridCell      Information unit consisting of a header with indication of the
-//                assigned area and timeinterval of storaged data and of the data
-//                portion consisting of an Array of max = sizeHistoryArray (75) 
-//                history units
-//
-// UGrid          the master data structure of this Algebra consisting of a 
-//                header with indication of the assigned area and timeinterval of 
-//                storaged data and the link to a possible followed ugrid and the 
-//                memory part with maximal 1024 ugridcells with requested 
-//                cellcontainer.
-//
-// The provided operators are
-// createugrid           for ugrid-creation
-//
-// insertunit           for insertion of single updateunits into ugrid
-//
-// insertstream         for insertion of a stream of updateunits into ugrid
-//
-// windowintersectug    for request one of the three attributes id, area or time after
-//                      input of the two remaining attributes
-//
-// windowintersectsug   for request two of the three attributes id, area or time after
-//                      input of the one remaining attribute
+This Algebra implements the datastructures and operators
+for create a three- dimensional UGrid and for handle queries.
 
-/////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////                 1.   Defines and Includes                       ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
+The three dimensions are the two-dimensional euklidian coordinate system
+for the description of a position and a timestamp assign the positions
+as the third dimension.
 
+The applied data structures are
+Mobpos         two double values identify the position
+
+UGridArea      four double values identify an area limeted by a start- and
+               an end- position
+
+UpdateUnit     incoming information with an integer value for identifcation
+               a moving object and a MobPos value for identify its position
+
+CurrentUnit    evaluated information of a possible next position in a
+               trajectory based to the last UpdateUnit for a moving object
+
+HistoryUnit    merged information of the last two updateunits for a
+               moving object
+
+UGridCell      Information unit consisting of a header with indication of
+               the assigned area and timeinterval of storaged data and of
+               the data portion consisting of an Array of
+               max = sizeHistoryArray (75) history units
+
+UGrid          the master data structure of this Algebra consisting of a
+               header with indication of the assigned area and timeinterval
+               of storaged data and the link to a possible followed ugrid
+               and the memory part with maximal 1024 ugridcells with
+               requested cellcontainer.
+
+The provided operators are
+createugrid           for ugrid-creation
+
+insertunit           for insertion of single updateunits into ugrid
+
+insertstream         for insertion of a stream of updateunits into ugrid
+
+windowintersectug    for request one of the three attributes id, area or
+                     time after input of the two remaining attributes
+
+windowintersectsug   for request two of the three attributes id,
+                     area or time after input of the one remaining attribute
+*/
+
+/*
+1.   Defines and Includes               
+
+*/
 #include <iostream>
 #include <stack>
 
@@ -118,23 +111,17 @@ extern QueryProcessor* qp;
 using namespace symbols;
 
 namespace ugridAlgebra {
+/*
+1.1   global variables
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////                    1.1   global variables                       ////////   
-////////                                                                 ////////           
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 UGridUtilities myUtilities;
 StACurrentUnit myCurrentUnit;
 StAHistoryUnit myHistoryUnit;
+/*
+1.2   auxiliary functions
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////                    1.2   auxiliary functions                    ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 string intToString(int i)
 {
  char buffer[256];
@@ -192,26 +179,17 @@ Instant LongToInstant(long ltime)
             timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec, 0);
   return inttime;	
 }
-/////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////            2  Implementations of DataStructures                 ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////	
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////            2.1        - Class ~MobPos~                          ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
+/*
+2  Implementations of DataStructures
 
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.1.1           Public methods                        ////////
-/////////////////////////////////////////////////////////////////////////////////
+2.1        - Class ~MobPos~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.1.2    Constructors and destructor                  ////////
-/////////////////////////////////////////////////////////////////////////////////
+2.1.1           Public methods
+
+2.1.2    Constructors and destructor
+
+*/
 
 MobPos::MobPos(double X, double Y) : x(X), y(Y) {}
 
@@ -220,11 +198,10 @@ MobPos::MobPos(const MobPos& Pos) : x(Pos.x), y(Pos.y) {}
 ////  Destructor ~mobpos~
 
 MobPos::~MobPos() {} 
+/*
+2.1.3           Methods
 
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.1.3           Methods                               ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 double MobPos::GetX() const { return x; }
 double MobPos::GetY() const { return y; }
 
@@ -235,20 +212,13 @@ ostream& operator << (ostream &cout, const MobPos &pos)
 {
  return cout << pos.GetX() << ';' << pos.GetY() << '>';
 }
+/*
+2.1.4          static methods
+2.1.5          private methods
+2.1.6          List Representation
+2.1.6.1    ~In~ function of class mobpos
 
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.1.4          static methods                         ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.1.5          private methods                        ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.1.6          List Representation                    ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-////  2.1.6.1    ~In~ function of class mobpos
+*/
 Word  MobPos::InMobPos( const ListExpr typeInfo, const ListExpr instance,
             const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -270,68 +240,85 @@ Word  MobPos::InMobPos( const ListExpr typeInfo, const ListExpr instance,
   cmsg.inFunError("Expecting a list of two double atoms!");
   return w;
 }
-////  2.1.6.2   ~Out~ function of class mobpos
+/*
+2.1.6.2   ~Out~ function of class mobpos
+
+*/
 ListExpr  MobPos::OutMobPos( ListExpr typeInfo, Word value )
 {
   MobPos* point = static_cast<MobPos*>( value.addr );
   return nl->TwoElemList(nl->RealAtom(point->GetX()),
                          nl->RealAtom(point->GetY()));
 }
-////  2.1.6.3   ~SaveToList~ function of class mobpos
-//
-//    not used
+/*
+2.1.6.3   ~SaveToList~ function of class mobpos
 
+   not used
+2.1.6.4   ~RestoreFromList~ function of class mobpos
 
-////  2.1.6.4   ~RestoreFromList~ function of class mobpos
-//
-//    not used
+   not used
+2.1.6.5   ~Create~ function of class mobpos
 
-////  2.1.6.5   ~Create~ function of class mobpos
+*/
 Word  MobPos::CreateMobPos( const ListExpr typeInfo )
 {
   return (SetWord( new MobPos( 0, 0 ) ));
 }
 
-////  2.1.6.6   ~Delete~ function of class mobpos
+/*
+2.1.6.6   ~Delete~ function of class mobpos
+
+*/
 void  MobPos::DeleteMobPos( const ListExpr typeInfo, Word& w )
 { 
   delete static_cast<MobPos*>( w.addr );
   w.addr = 0;
 }
 
-////  2.1.6.7   ~Open~ function of class mobpos
-//
-//    not used
+/*
+2.1.6.7   ~Open~ function of class mobpos
 
-////  2.1.6.8   ~Save~ function of class mobpos
-//
-//    not used
+   not used
 
-////  2.1.6.9   ~Close~ function of class mobpos
+2.1.6.8   ~Save~ function of class mobpos
+
+   not used
+
+2.1.6.9   ~Close~ function of class mobpos
+
+*/
 void  MobPos::CloseMobPos( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<MobPos*>( w.addr );
   w.addr = 0;
 }
 
-////  2.1.6.10  ~Clone~ function of class mobpos
+/*
+2.1.6.10  ~Clone~ function of class mobpos
+
+*/
 Word  MobPos::CloneMobPos( const ListExpr typeInfo, const Word& w )
 {
   MobPos* p = static_cast<MobPos*>( w.addr );
   return SetWord( new MobPos(*p) );
 }
 
-////  2.1.6.11   ~Cast~ function of class mobpos
-//
-//    not used
+/*
+2.1.6.11   ~Cast~ function of class mobpos
 
-////  2.1.6.12   ~SizeOfObj~ function of class mobpos
+   not used
+2.1.6.12   ~SizeOfObj~ function of class mobpos
+
+*/
 int  MobPos::SizeOfObjMobPos()
 {
   return sizeof(MobPos);
 }
 
-////  2.1.6.13   Type Description of class mobpos
+/*
+2.1.6.13   Type Description of class mobpos
+
+*/
 ListExpr  MobPos::PropertyMobPos()
 {
   return (nl->TwoElemList(
@@ -347,40 +334,37 @@ ListExpr  MobPos::PropertyMobPos()
                nl->StringAtom("x-/y-coord of type double"))));
 }
 
-////  2.1.6.14   ~KindCheck~ function of class mobpos
+/*
+2.1.6.14   ~KindCheck~ function of class mobpos
+
+*/
 
 bool  MobPos::KindCheckMobPos( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, MOBPOS ));
 }
 
-////  2.1.6..15 Creation of TypeConstructor instance of class mobpos
+/*
+2.1.6..15 Creation of TypeConstructor instance of class mobpos
+
+*/
 TypeConstructor mobposTC(
   MOBPOS,                                     // name of the type in SECONDO
   MobPos::PropertyMobPos,                     // property function 
   MobPos::OutMobPos, MobPos::InMobPos,        // Out and In functions
-  0, 0,                                       // SaveToList, RestoreFromList functions
+  0, 0,                                       // SaveToList, RestoreFromList 
   MobPos::CreateMobPos, MobPos::DeleteMobPos, // object creation and deletion
   0, 0,                                       // object open, save
   MobPos::CloseMobPos, MobPos::CloneMobPos,   // close, and clone
   0,                                          // cast function
   MobPos::SizeOfObjMobPos,                    // sizeof function
   MobPos::KindCheckMobPos );                  // kind checking function
+/*
+2.2        Class UGridArea
+2.2.1        Public methods
+2.2.2        Constructors and destructor
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////            2.2        Class UGridArea                           ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.2.1        Public methods                           ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.2.2        Constructors and destructor              ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 UGridArea::UGridArea( double X1, double Y1, double X2, double Y2 )
 {
   x1 = X1; y1 = Y1; x2 = X2; y2 = Y2;
@@ -392,10 +376,10 @@ UGridArea::UGridArea( const UGridArea& area )
 }	
 ///  Destructor ~UGridArea~
 UGridArea::~UGridArea() {} 
+/*
+2.2.3        Methods
 
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.2.3        Methods                                  ////////
-/////////////////////////////////////////////////////////////////////////////////
+*/
 double UGridArea::GetX1() const { return x1; }
 double UGridArea::GetY1() const { return y1; }
 double UGridArea::GetX2() const { return x2; }
@@ -414,15 +398,11 @@ void UGridArea::SetX1(double a1) { x1 = a1; }
 void UGridArea::SetY1(double b1) { y1 = b1; }
 void UGridArea::SetX2(double a2) { x2 = a2; }
 void UGridArea::SetY2(double b2) { y2 = b2; }
+/*
+2.2.4        static methods
+2.2.5        private methods
 
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.2.4        static methods                           ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.2.5        private methods                          ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 bool overlap ( double low1, double high1, double low2, double high2 )
 {
   if ( high1 < low2 || high2 < low1 ) 
@@ -436,11 +416,11 @@ bool  UGridArea::intersects( const UGridArea& r ) const
   return ( overlap(x1, x2, r.GetX1(), r.GetX2())
            && overlap(y1, y2, r.GetY1(), r.GetY2()) );
 }
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.2.6        List Representation                      ////////
-/////////////////////////////////////////////////////////////////////////////////
+/*
+2.2.6        List Representation
+2.2.6.1   ~In~ function of class ugridarea
 
-////  2.2.6.1   ~In~ function of class ugridarea
+*/
 Word  UGridArea::InUGridArea( const ListExpr typeInfo, const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct )
 {
@@ -489,7 +469,10 @@ Word  UGridArea::InUGridArea( const ListExpr typeInfo, const ListExpr instance,
   return result;
 }
 
-////  2.2.6.2   ~Out~ function of class ugridarea
+/*
+2.2.6.2   ~Out~ function of class ugridarea
+
+*/
 ListExpr  UGridArea::OutUGridArea( ListExpr typeInfo, Word value )
 {
   UGridArea* area = static_cast<UGridArea*>( value.addr );
@@ -502,28 +485,35 @@ ListExpr  UGridArea::OutUGridArea( ListExpr typeInfo, Word value )
   return fourElems.listExpr();
 }
 
-////  2.2.6.3   ~SaveToList~ function of class ugridarea
-//
-//    not used
+/*
+2.2.6.3   ~SaveToList~ function of class ugridarea
 
-////  2.2.6.4   ~RestoreFromList~ function of class ugridarea
-//
-//    not used
+   not used
+2.2.6.4   ~RestoreFromList~ function of class ugridarea
 
-////  2.2.6.5   ~Create~ function of class ugridarea
+   not used
+2.2.6.5   ~Create~ function of class ugridarea
+
+*/
 Word  UGridArea::CreateUGridArea( const ListExpr typeInfo )
 {
   return (SetWord( new UGridArea( 0, 0, 0, 0 ) ));
 }
 
-////  2.2.6.6   ~Delete~ function of class ugridarea
+/*
+2.2.6.6   ~Delete~ function of class ugridarea
+
+*/
 void  UGridArea::DeleteUGridArea( const ListExpr typeInfo, Word& w )
 { 
   delete static_cast<UGridArea*>( w.addr );
   w.addr = 0;
 }
 
-////  2.2.6.7   ~Open~ function of class ugridarea
+/*
+2.2.6.7   ~Open~ function of class ugridarea
+
+*/
 bool  UGridArea::OpenUGridArea( SmiRecord& valueRecord, 
                   size_t& offset,  const ListExpr typeInfo, 
                   Word& value ) 
@@ -546,7 +536,10 @@ bool  UGridArea::OpenUGridArea( SmiRecord& valueRecord,
   return ok;
 }	
 
-////  2.2.6.8   ~Save~ function of class ugridarea
+/*
+2.2.6.8   ~Save~ function of class ugridarea
+
+*/
 bool UGridArea::SaveUGridArea( SmiRecord& valueRecord, size_t& offset, 
                   const ListExpr typeInfo, Word& value )
 {
@@ -566,31 +559,42 @@ bool UGridArea::SaveUGridArea( SmiRecord& valueRecord, size_t& offset,
   return ok;
 }	
 
-////  2.2.6.9   ~Close~ function of class ugridarea
+/*
+2.2.6.9   ~Close~ function of class ugridarea
+
+*/
 void  UGridArea::CloseUGridArea( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<UGridArea*>( w.addr );
   w.addr = 0;
 }
 
-////  2.2.6.10   ~Clone~ function of class ugridarea
+/*
+2.2.6.10   ~Clone~ function of class ugridarea
+
+*/
 Word  UGridArea::CloneUGridArea( const ListExpr typeInfo, const Word& w )
 {
   UGridArea* p = static_cast<UGridArea*>( w.addr );
   return SetWord( new UGridArea(*p) );
 }
 
-////  2.2.6.11   ~Cast~ function of class ugridarea
-//
-//    not used
+/*
+2.2.6.11   ~Cast~ function of class ugridarea
 
-////  2.2.6.12   ~SizeOfObj~ function of class ugridarea
+   not used
+2.2.6.12   ~SizeOfObj~ function of class ugridarea
+
+*/
 int  UGridArea::SizeOfObjUGridArea()
 {
   return sizeof(UGridArea);
 }
 
-////  2.2.6.13 Type Description of class ugridarea
+/*
+2.2.6.13 Type Description of class ugridarea
+
+*/
 ListExpr  UGridArea::PropertyUGridArea()
 {
   return (nl->TwoElemList(
@@ -606,13 +610,19 @@ ListExpr  UGridArea::PropertyUGridArea()
                nl->StringAtom("x-/y-coord of type double"))));
 }
 
-////  2.2.6.14   ~KindCheck~ function of class ugridarea
+/*
+2.2.6.14   ~KindCheck~ function of class ugridarea
+
+*/
 bool  UGridArea::KindCheckUGridArea( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, UGRIDAREA ));
 }
 
-////  2.2.6.15 Creation of TypeConstructor instance of class ugridarea
+/*
+2.2.6.15 Creation of TypeConstructor instance of class ugridarea
+
+*/
 TypeConstructor ugridareaTC(
   UGRIDAREA,                        // name of the type in SECONDO
   UGridArea::PropertyUGridArea,     // property function describing signature
@@ -629,22 +639,14 @@ TypeConstructor ugridareaTC(
   UGridArea::SizeOfObjUGridArea,    // sizeof function
   UGridArea::KindCheckUGridArea );  // kind checking function
 
+/*
+2.3          Class UpdateUnit
+2.3.1        Public methods
+2.3.2        Constructors and destructor
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////            2.3          Class UpdateUnit                        ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
+create - Constructor ~updateunit~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.3.1        Public methods                           ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.3.2        Constructors and destructor              ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-////  create - Constructor ~updateunit~
+*/
 UpdateUnit::UpdateUnit( const int& Id, const MobPos& Pos)
 {
   id = Id;
@@ -666,11 +668,10 @@ UpdateUnit::UpdateUnit( const UpdateUnit& uu )
   time = uu.time; 
   pos = uu.pos;
 }
+/*
+2.3.3        methods
 
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.3.3        methods                                  ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 int UpdateUnit::GetUId()   const { return id; }
 
 MobPos UpdateUnit::GetPos() const { 
@@ -682,11 +683,10 @@ double UpdateUnit::GetYPos() const{
 	return pos.GetY(); }
 Instant UpdateUnit::GetTime() const {
 	return time;}
-
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.3.4       static  methods                           ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+/*
+2.3.4       static  methods
+  
+*/
 bool isEqual ( double low1, double high1)
 {
   if ( high1 == low1 ) 
@@ -694,17 +694,14 @@ bool isEqual ( double low1, double high1)
   else 
     return true;
 }
+/*
+2.3.5       private methods
+2.3.6       List Representation
+2.3.6.1    ~In~ function of class UpdateUnit
 
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.3.5       private methods                           ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////           2.3.6        List Representation                      ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-////  2.3.6.1    ~In~ function of class UpdateUnit
-Word UpdateUnit::InUpdateUnit( const ListExpr typeInfo, const ListExpr instance,
+*/
+Word UpdateUnit::InUpdateUnit( const ListExpr typeInfo,
+                const ListExpr instance,
                 const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   correct = false;
@@ -763,44 +760,58 @@ Word UpdateUnit::InUpdateUnit( const ListExpr typeInfo, const ListExpr instance,
   }
 }
 
-////  2.3.6.2   ~Out~ function of class UpdateUnit
+/*
+2.3.6.2   ~Out~ function of class UpdateUnit
+
+*/
 ListExpr  UpdateUnit::OutUpdateUnit( ListExpr typeInfo, Word value )
 {
   UpdateUnit* upunit = static_cast<UpdateUnit*>(value.addr);
   ListExpr result;
   ListExpr timeList = OutDateTime(nl->TheEmptyList(),
-                            SetWord((void*) &upunit->time));	                                            
+                            SetWord((void*) &upunit->time));
   ListExpr pointsList = nl->TwoElemList(nl->RealAtom( upunit->pos.GetX() ),
 	                                    nl->RealAtom( upunit->pos.GetY() ));
-  result = nl->ThreeElemList(nl->IntAtom(upunit->GetUId()),timeList,pointsList);
+  result = nl->ThreeElemList(nl->IntAtom(upunit->GetUId()),
+	                         timeList,pointsList);
   return result;
 }
 
-////  2.3.6.3   ~SaveToList~ function of class UpdateUnit 
-//
-//    not used  
+/*
+2.3.6.3   ~SaveToList~ function of class UpdateUnit
 
-////  2.3.6.4   ~RestoreFromList~ function of class UpdateUnit 
-//
-//    not used 
 
-////  2.3.6.5   ~Create~ function of class UpdateUnit
+   not used
+
+2.3.6.4   ~RestoreFromList~ function of class UpdateUnit
+
+   not used
+
+2.3.6.5   ~Create~ function of class UpdateUnit
+
+*/
 
 Word UpdateUnit::CreateUpdateUnit( const ListExpr typeInfo )
 {
   return SetWord(new UpdateUnit());
 }
 
-////  2.3.6.6   ~Delete~ function of class UpdateUnit
+/*
+2.3.6.6   ~Delete~ function of class UpdateUnit
+
+*/
 void UpdateUnit::DeleteUpdateUnit( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<UpdateUnit*>( w.addr );
   w.addr = 0;
 }
 
-////  2.3.6.7   ~Open~ function of class UpdateUnit
-bool UpdateUnit::OpenUpdateUnit( SmiRecord& valueRecord, size_t& offset, 
-								 const ListExpr typeInfo, 
+/*
+2.3.6.7   ~Open~ function of class UpdateUnit
+
+*/
+bool UpdateUnit::OpenUpdateUnit( SmiRecord& valueRecord, size_t& offset,
+                                 const ListExpr typeInfo,
                                  Word& value ) 
 {
   Instant time;
@@ -822,7 +833,10 @@ bool UpdateUnit::OpenUpdateUnit( SmiRecord& valueRecord, size_t& offset,
   return ok;
 }
 
-////  2.3.6.8   ~Save~ function of class UpdateUnit
+/*
+2.3.6.8   ~Save~ function of class UpdateUnit
+
+*/
 bool UpdateUnit::SaveUpdateUnit( SmiRecord& valueRecord, size_t& offset, 
                                 const ListExpr typeInfo, Word& value )
 {
@@ -842,31 +856,43 @@ bool UpdateUnit::SaveUpdateUnit( SmiRecord& valueRecord, size_t& offset,
   return ok; 
 }
 
-////  2.3.6.9   ~Close~ function of class UpdateUnit
+/*
+2.3.6.9   ~Close~ function of class UpdateUnit
+
+*/
 void UpdateUnit::CloseUpdateUnit( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<UpdateUnit*>( w.addr );
   w.addr = 0;
 }
 
-////  2.3.6.10   ~Clone~ function of class UpdateUnit
+/*
+2.3.6.10   ~Clone~ function of class UpdateUnit
+
+*/
 Word UpdateUnit::CloneUpdateUnit( const ListExpr typeInfo, const Word& w )
 {
   UpdateUnit* uu = static_cast<UpdateUnit*>( w.addr );
   return SetWord( new UpdateUnit(*uu));
 }
 
-////  2.3.6.11   ~Cast~ function of class UpdateUnit 
-//
-//    not used  
+/*
+2.3.6.11   ~Cast~ function of class UpdateUnit
 
-////  2.3.6.12   ~SizeOfObj~ function of class UpdateUnit
+   not used
+
+2.3.6.12   ~SizeOfObj~ function of class UpdateUnit
+
+*/
 int   UpdateUnit::SizeOfObjUpdateUnit()
 {
   return sizeof(UpdateUnit);
 }
  
-////  2.3.6.13 Type Description of class UpdateUnit
+/*
+2.3.6.13 Type Description of class UpdateUnit
+
+*/
 ListExpr  UpdateUnit::PropertyUpdateUnit()
 {
   return (nl->TwoElemList(
@@ -882,13 +908,19 @@ ListExpr  UpdateUnit::PropertyUpdateUnit()
                nl->StringAtom("id,x-/y-coord timestamp"))));
 }
 
-////  2.3.6.14   ~KindCheck~ function of class UpdateUnit
+/*
+2.3.6.14   ~KindCheck~ function of class UpdateUnit
+
+*/
 bool  UpdateUnit::KindCheckUpdateUnit( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, UPDATEUNIT ));
 }
 
-////  2.3.6.15 Creation of TypeConstructor instance of class updateunit
+/*
+2.3.6.15 Creation of TypeConstructor instance of class updateunit
+
+*/
 TypeConstructor updateunitTC(
   UPDATEUNIT,                         // name of the type in SECONDO
   UpdateUnit::PropertyUpdateUnit,     // property function describing signature
@@ -905,22 +937,14 @@ TypeConstructor updateunitTC(
   UpdateUnit::SizeOfObjUpdateUnit,    // sizeof function
   UpdateUnit::KindCheckUpdateUnit);   // kind checking function
 
+/*
+2.4         Class CurrentUnit
+2.4.1         Public methods
+2.4.2         Constructors and destructor
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////            2.4         Class CurrentUnit                        ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.4.1         Public methods                         ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.4.2         Constructors and destructor            ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-CurrentUnit::CurrentUnit( int CId, Interval<Instant> CTimeInterval, MobPos Cpos, MobPos Npos)
+*/
+CurrentUnit::CurrentUnit( int CId, Interval<Instant> CTimeInterval,
+						  MobPos Cpos, MobPos Npos)
 {
   cid = CId; 
   cTimeInterval = CTimeInterval;
@@ -937,10 +961,10 @@ CurrentUnit::CurrentUnit( const CurrentUnit& cu )
   cpos = cu.cpos;
   npos = cu.npos;
 }
+/*
+2.4.3         methods
 
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.4.3         methods                                ////////
-/////////////////////////////////////////////////////////////////////////////////
+*/
 int CurrentUnit::GetCId()   const { return cid; }
 
 MobPos CurrentUnit::GetCPos() const 
@@ -967,23 +991,17 @@ double CurrentUnit::GetNYPos() const
 { 
 	return npos.y; 
 }
+/*
+2.4.4         static methods
+2.4.5         private methods
+2.4.6         List Representation
+2.4.6.1   ~In~ function of class CurrentUnit
 
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.4.4         static methods                         ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.4.5         private methods                        ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.4.6         List Representation                    ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-////  2.4.6.1   ~In~ function of class CurrentUnit
-Word CurrentUnit::InCurrentUnit(const ListExpr typeInfo, const ListExpr instance,
-                                const int errorPos, ListExpr& errorInfo, 
-								bool& correct )
+*/
+Word CurrentUnit::InCurrentUnit(const ListExpr typeInfo,
+                                const ListExpr instance,
+                                const int errorPos, ListExpr& errorInfo,
+                                bool& correct )
 {
   correct = false;
   Interval<Instant> cuinterval;
@@ -994,26 +1012,26 @@ Word CurrentUnit::InCurrentUnit(const ListExpr typeInfo, const ListExpr instance
 	errMsg = "CurrentUnit1:nl->ListLength(instance) != 4";
     cmsg.inFunError(errMsg);
     return result;
-  }  
-  else  
+  }
+  else
   {
-	ListExpr ident = nl->First(instance);            //id in nestedList
-	ListExpr timeinterval = nl->Second(instance);    //time in nestedList
-	ListExpr cposition = nl->Third(instance);        //current position
-	ListExpr nposition = nl->Fourth(instance);       //next position in nestedList 
-	if (nl->IsAtom(ident) && nl->AtomType(ident) == IntType) 
-	{
-	  int id = nl->IntValue(ident);
-	  if ( nl->ListLength(timeinterval) != 4)
-	  {
+  ListExpr ident = nl->First(instance);         //id in nestedList
+  ListExpr timeinterval = nl->Second(instance); //time in nestedList
+  ListExpr cposition = nl->Third(instance);     //current position
+  ListExpr nposition = nl->Fourth(instance);    //next position in nestedList
+  if (nl->IsAtom(ident) && nl->AtomType(ident) == IntType)
+  {
+    int id = nl->IntValue(ident);
+    if ( nl->ListLength(timeinterval) != 4)
+    {
         errMsg = "InCurrentUnit2:ListLength(timeint)!=4";
         cmsg.inFunError(errMsg);
         return result;
-	  }
-	  else  // timeintervall
-	  { 
-		if  (nl->IsAtom( nl->Third( timeinterval ) ) &&
-		     nl->AtomType( nl->Third( timeinterval ) ) == BoolType &&
+    }
+    else  // timeintervall
+    {
+    if  (nl->IsAtom( nl->Third( timeinterval ) ) &&
+         nl->AtomType( nl->Third( timeinterval ) ) == BoolType &&
 		     nl->IsAtom( nl->Fourth( timeinterval ) ) &&
 		     nl->AtomType( nl->Fourth( timeinterval ) ) == BoolType &&
 			 nl->IsAtom( nl->First( timeinterval ) ) &&
@@ -1066,15 +1084,15 @@ Word CurrentUnit::InCurrentUnit(const ListExpr typeInfo, const ListExpr instance
 			  nl->IsAtom( nl->Second( nposition ) ) &&
 			  nl->AtomType( nl->Second( nposition ) ) == RealType )
 		  {
-		    double cx = nl->RealValue( nl->First( cposition));
+		  double cx = nl->RealValue( nl->First( cposition));
 			double cy = nl->RealValue( nl->Second( cposition));
 			MobPos cpos(cx,cy);
 			double nx = nl->RealValue( nl->First( nposition));
 			double ny = nl->RealValue( nl->Second( nposition));
 			MobPos npos(nx,ny);
 			correct = true;
-			result.addr = new CurrentUnit(id, cuinterval, cpos, npos);  
-			return result;
+      result.addr = new CurrentUnit(id, cuinterval, cpos, npos);
+      return result;
 		  }
 		  else
 		  {
@@ -1103,7 +1121,10 @@ Word CurrentUnit::InCurrentUnit(const ListExpr typeInfo, const ListExpr instance
     return result;
 }
 
-////  2.4.6.2   ~Out~ function of class CurrentUnit
+/*
+2.4.6.2   ~Out~ function of class CurrentUnit
+
+*/
 ListExpr  CurrentUnit::OutCurrentUnit( ListExpr typeInfo, Word value )
 {
   CurrentUnit* cuunit = (CurrentUnit*)(value.addr);
@@ -1125,28 +1146,37 @@ ListExpr  CurrentUnit::OutCurrentUnit( ListExpr typeInfo, Word value )
 	         timeintervalList, cpointsList, npointsList );
 }
 
-////  2.4.6.3   ~SaveToList~ function of class CurrentUnit 
-//
-//    not used  
+/*
+2.4.6.3   ~SaveToList~ function of class CurrentUnit
 
-////  2.4.6.4   ~RestoreFromList~ function of class CurrentUnit 
-//
-//    not used 
+   not used
 
-////  2.4.6.5   ~Create~ function of class CurrentUnit
+2.4.6.4   ~RestoreFromList~ function of class CurrentUnit
+
+   not used
+
+2.4.6.5   ~Create~ function of class CurrentUnit
+
+*/
 Word CurrentUnit::CreateCurrentUnit( const ListExpr typeInfo )
 {
   return SetWord(new CurrentUnit());
 }
 
-////  2.4.6.6   ~Delete~ function of class CurrentUnit
+/*
+2.4.6.6   ~Delete~ function of class CurrentUnit
+
+*/
 void CurrentUnit::DeleteCurrentUnit( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<CurrentUnit*>( w.addr );
   w.addr = 0;
 }
 
-////  2.4.6.7   ~Open~ function of class CurrentUnit
+/*
+2.4.6.7   ~Open~ function of class CurrentUnit
+
+*/
 bool CurrentUnit::OpenCurrentUnit( SmiRecord& valueRecord, 
                                    size_t& offset, const ListExpr typeInfo, 
                                    Word& value ) 
@@ -1175,7 +1205,10 @@ bool CurrentUnit::OpenCurrentUnit( SmiRecord& valueRecord,
   return ok;
 }	
 
-////  2.4.6.8   ~Save~ function of class CurrentUnit
+/*
+2.4.6.8   ~Save~ function of class CurrentUnit
+
+*/
 bool CurrentUnit::SaveCurrentUnit( SmiRecord& valueRecord, size_t& offset, 
                   const ListExpr typeInfo, Word& value )
 {
@@ -1200,31 +1233,44 @@ bool CurrentUnit::SaveCurrentUnit( SmiRecord& valueRecord, size_t& offset,
   return ok;
 }
 
-////  2.4.6.9   ~Close~ function of class CurrentUnit
+/*
+2.4.6.9   ~Close~ function of class CurrentUnit
+
+*/
 void CurrentUnit::CloseCurrentUnit( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<CurrentUnit*>( w.addr );
   w.addr = 0;
 }
 
-////  2.4.6.10   ~Clone~ function of class CurrentUnit
+/*
+2.4.6.10   ~Clone~ function of class CurrentUnit
+
+*/
+
 Word CurrentUnit::CloneCurrentUnit( const ListExpr typeInfo, const Word& w )
 {
   CurrentUnit* cu = static_cast<CurrentUnit*>( w.addr );
   return SetWord( new CurrentUnit(*cu));
 }
 
-////  2.4.6.11   ~Cast~ function of class CurrentUnit
-//
-//    not used
+/*
+2.4.6.11   ~Cast~ function of class CurrentUnit
 
-////  2.4.6.12   ~SizeOfObj~ function of class CurrentUnit
+   not used
+
+2.4.6.12   ~SizeOfObj~ function of class CurrentUnit
+
+*/
 int   CurrentUnit::SizeOfObjCurrentUnit()
 {
   return sizeof(CurrentUnit);
 }
 
-////  2.4.6.13 Type Description of class CurrentUnit
+/*
+2.4.6.13 Type Description of class CurrentUnit
+
+*/
 ListExpr  CurrentUnit::PropertyCurrentUnit()
 {
   return (nl->TwoElemList(
@@ -1240,43 +1286,42 @@ ListExpr  CurrentUnit::PropertyCurrentUnit()
                nl->StringAtom("id,current time, current position"))));
 }
 
-////  2.4.6.14   ~KindCheck~ function of class CurrentUnit
+/*
+2.4.6.14   ~KindCheck~ function of class CurrentUnit
+
+*/
 bool  CurrentUnit::KindCheckCurrentUnit( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, CURRENTUNIT ));
 }
 
-////  2.4.6.15 Creation of TypeConstructor instance of class updateunit
+/*
+2.4.6.15 Creation of TypeConstructor instance of class updateunit
+
+*/
 TypeConstructor currentunitTC(
-  CURRENTUNIT,                         // name of the type in SECONDO
-  CurrentUnit::PropertyCurrentUnit,    // property function describing signature
-  CurrentUnit::OutCurrentUnit,         // Out functions
-  CurrentUnit::InCurrentUnit,          // In functions
-  0, 0,                                // SaveToList, RestoreFromList functions
-  CurrentUnit::CreateCurrentUnit,      // object creation 
-  CurrentUnit::DeleteCurrentUnit,      // object deletion
-  CurrentUnit::OpenCurrentUnit,        // open object 
-  CurrentUnit::SaveCurrentUnit,        // save object 
-  CurrentUnit::CloseCurrentUnit,       // close
-  CurrentUnit::CloneCurrentUnit,       // clone
-  0,                                   // cast function
-  CurrentUnit::SizeOfObjCurrentUnit,   // sizeof function
-  CurrentUnit::KindCheckCurrentUnit);  // kind checking function
+  CURRENTUNIT,                        // name of the type in SECONDO
+  CurrentUnit::PropertyCurrentUnit,   // property function describing signature
+  CurrentUnit::OutCurrentUnit,        // Out functions
+  CurrentUnit::InCurrentUnit,         // In functions
+  0, 0,                               // SaveToList, RestoreFromList functions
+  CurrentUnit::CreateCurrentUnit,     // object creation 
+  CurrentUnit::DeleteCurrentUnit,     // object deletion
+  CurrentUnit::OpenCurrentUnit,       // open object 
+  CurrentUnit::SaveCurrentUnit,       // save object 
+  CurrentUnit::CloseCurrentUnit,      // close
+  CurrentUnit::CloneCurrentUnit,      // clone
+  0,                                  // cast function
+  CurrentUnit::SizeOfObjCurrentUnit,  // sizeof function
+  CurrentUnit::KindCheckCurrentUnit); // kind checking function
+/*
+2.5         Class HistoryUnit
+2.5.1        public methods
+2.5.2       Constructors and destructor
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////            2.5         Class HistoryUnit                        ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.5.1        public methods                          ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.5.2       Constructors and destructor              ////////
-/////////////////////////////////////////////////////////////////////////////////
-HistoryUnit::HistoryUnit( int HId, Interval<Instant> HTimeInterval, MobPos Spos, MobPos Epos)
+*/
+HistoryUnit::HistoryUnit( int HId, Interval<Instant> HTimeInterval, 
+						  MobPos Spos, MobPos Epos)
 {
   hid = HId; 
   htimeInterval = HTimeInterval;
@@ -1285,7 +1330,8 @@ HistoryUnit::HistoryUnit( int HId, Interval<Instant> HTimeInterval, MobPos Spos,
   spos = Spos;
   epos = Epos;
 }
-HistoryUnit::HistoryUnit( int HId, long HuSTime, long HuETime, MobPos Spos, MobPos Epos)
+HistoryUnit::HistoryUnit( int HId, long HuSTime, long HuETime, 
+						  MobPos Spos, MobPos Epos)
 {
   hid = HId; 
   htimestart = HuSTime;
@@ -1307,10 +1353,10 @@ HistoryUnit::HistoryUnit( const HistoryUnit& hu )
   spos = hu.spos;
   epos = hu.epos;
 }
+/*
+2.5.3        methods
 
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.5.3        methods                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
+*/
 int HistoryUnit::GetHId()   const { return hid; }
 
 MobPos HistoryUnit::GetSPos() const 
@@ -1348,27 +1394,22 @@ long HistoryUnit::GetHuTimeEnd() const
 
 int HistoryUnit::SizeOfHistoryUnit()
 {
-  return sizeof (int )          +           // Id of moving object
-	     sizeof( MobPos )       +           // Startposition
-         sizeof( MobPos )       +           // Endposition
-		 sizeof( Interval<Instant> );       // Timeinterval of HistoryUnit
+  return sizeof (int ) + // Id of moving object
+         sizeof( MobPos ) +  // Startposition
+         sizeof( MobPos ) +  // Endposition
+         sizeof( Interval<Instant> );  // Timeinterval of HistoryUnit
 }
+/*
+2.5.4        static methods
+2.5.5        private methods
+2.5.6        List Representation
+2.5.6.1   ~In~ function of class HistoryUnit
 
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.5.4        static methods                          ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.5.5        private methods                         ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.5.6        List Representation                     ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-////  2.5.6.1   ~In~ function of class HistoryUnit
-Word HistoryUnit::InHistoryUnit(const ListExpr typeInfo, const ListExpr instance,
-                const int errorPos, ListExpr& errorInfo, bool& correct )
+*/
+Word HistoryUnit::InHistoryUnit(const ListExpr typeInfo,
+                                const ListExpr instance,
+                                const int errorPos, ListExpr& errorInfo,
+                                bool& correct )
 {
   correct = false;
   Word result = SetWord(Address(0));
@@ -1383,8 +1424,8 @@ Word HistoryUnit::InHistoryUnit(const ListExpr typeInfo, const ListExpr instance
   {
 	ListExpr ident = nl->First(instance);            //id in nestedList
 	ListExpr timeinterval = nl->Second(instance);    //time in nestedList
-	ListExpr sposition = nl->Third(instance);        //start position in nestedList
-	ListExpr eposition = nl->Fourth(instance);       //end position in nestedList 
+	ListExpr sposition = nl->Third(instance);        //start position in NL
+	ListExpr eposition = nl->Fourth(instance);       //end position in NL
     if (nl->IsAtom(ident) && nl->AtomType(ident) == IntType) 
 	{
 	  int id = nl->IntValue(ident);
@@ -1463,19 +1504,19 @@ Word HistoryUnit::InHistoryUnit(const ListExpr typeInfo, const ListExpr instance
 		    else  
 		    {
 		      if (nl->IsAtom( nl->First( eposition ) ) &&
-			      nl->AtomType( nl->First( eposition) ) == RealType &&
-			      nl->IsAtom( nl->Second( eposition ) ) &&
-			      nl->AtomType( nl->Second( eposition ) ) == RealType )
-	          {
-			    double ex = nl->RealValue( nl->First( eposition));
-			    double ey = nl->RealValue( nl->Second( eposition));
-			    MobPos epos(ex,ey);
-		        correct = true;	
-			    result.addr = new HistoryUnit(id, huinterval, spos, epos);  
-			    return result;
-		      }
-			  else
-			  {
+              nl->AtomType( nl->First( eposition) ) == RealType &&
+              nl->IsAtom( nl->Second( eposition ) ) &&
+              nl->AtomType( nl->Second( eposition ) ) == RealType )
+          {
+          double ex = nl->RealValue( nl->First( eposition));
+          double ey = nl->RealValue( nl->Second( eposition));
+          MobPos epos(ex,ey);
+          correct = true;
+          result.addr = new HistoryUnit(id, huinterval, spos, epos);
+          return result;
+          }
+          else
+			   {
                 errMsg = "InHistoryUnit:Error in epos of HistoryUnit";
 			    cmsg.inFunError(errMsg);
 			    return result;
@@ -1500,7 +1541,10 @@ Word HistoryUnit::InHistoryUnit(const ListExpr typeInfo, const ListExpr instance
   } // end else nl->ListLength(instance) != 4
 }
 
-////  2.5.6.2   ~Out~ function of class HistoryUnit
+/*
+2.5.6.2   ~Out~ function of class HistoryUnit
+
+*/
 ListExpr  HistoryUnit::OutHistoryUnit( ListExpr typeInfo, Word value )
 {
   HistoryUnit* hiunit = (HistoryUnit*)(value.addr);
@@ -1522,28 +1566,37 @@ ListExpr  HistoryUnit::OutHistoryUnit( ListExpr typeInfo, Word value )
 	         timeintervalList, spointsList, epointsList );
 }
 
-////  2.5.6.3   ~SaveToList~ function of class HistoryUnit 
-//
-//    not used  
+/*
+2.5.6.3   ~SaveToList~ function of class HistoryUnit
 
-////  2.5.6.4   ~RestoreFromList~ function of class HistoryUnit 
-//
-//    not used 
+   not used
 
-////  2.5.6.5   ~Create~ function of class HistoryUnit
+2.5.6.4   ~RestoreFromList~ function of class HistoryUnit
+
+   not used
+
+2.5.6.5   ~Create~ function of class HistoryUnit
+
+*/
 Word HistoryUnit::CreateHistoryUnit( const ListExpr typeInfo )
 {
   return SetWord(new HistoryUnit());
 }
 
-////  2.5.6.6   ~Delete~ function of class HistoryUnit
+/*
+2.5.6.6   ~Delete~ function of class HistoryUnit
+
+*/
 void HistoryUnit::DeleteHistoryUnit( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<HistoryUnit*>( w.addr );
   w.addr = 0;
 }
 
-////  2.5.6.7   ~Open~ function of class HistoryUnit
+/*
+2.5.6.7   ~Open~ function of class HistoryUnit
+
+*/
 bool HistoryUnit::OpenHistoryUnit( SmiRecord& valueRecord, 
                   size_t& offset, const ListExpr typeInfo, 
                   Word& value ) 
@@ -1572,7 +1625,10 @@ bool HistoryUnit::OpenHistoryUnit( SmiRecord& valueRecord,
   return ok;
 }	
 
-////  2.5.6.8   ~Save~ function of class CurrentUnit
+/*
+2.5.6.8   ~Save~ function of class CurrentUnit
+
+*/
 bool HistoryUnit::SaveHistoryUnit( SmiRecord& valueRecord, size_t& offset, 
                   const ListExpr typeInfo, Word& value )
 {
@@ -1597,31 +1653,43 @@ bool HistoryUnit::SaveHistoryUnit( SmiRecord& valueRecord, size_t& offset,
   return ok;
 }	
 
-////  2.5.6.9   ~Close~ function of class HistoryUnit
+/*
+2.5.6.9   ~Close~ function of class HistoryUnit
+
+*/
 void HistoryUnit::CloseHistoryUnit( const ListExpr typeInfo, Word& w )
 {
   delete static_cast<HistoryUnit*>( w.addr );
   w.addr = 0;
 }
 
-////  2.5.6.10   ~Clone~ function of class HistoryUnit
+/*
+2.5.6.10   ~Clone~ function of class HistoryUnit
+
+*/
 Word HistoryUnit::CloneHistoryUnit( const ListExpr typeInfo, const Word& w )
 {
   HistoryUnit* cu = static_cast<HistoryUnit*>( w.addr );
   return SetWord( new HistoryUnit(*cu));
 }
 
-////  2.5.6.11   ~Cast~ function of class HistoryUnit
-//
-//    not used
+/*
+2.5.6.11   ~Cast~ function of class HistoryUnit
 
-////  2.5.6.12   ~SizeOfObj~ function of class HistoryUnit
+   not used
+
+2.5.6.12   ~SizeOfObj~ function of class HistoryUnit
+
+*/
 int   HistoryUnit::SizeOfObjHistoryUnit()
 {
   return sizeof(HistoryUnit);
 }
 
-////  2.5.6.13 Type Description of class HistoryUnit
+/*
+2.5.6.13 Type Description of class HistoryUnit
+
+*/
 ListExpr  HistoryUnit::PropertyHistoryUnit()
 {
   return (nl->TwoElemList(
@@ -1637,48 +1705,44 @@ ListExpr  HistoryUnit::PropertyHistoryUnit()
                nl->StringAtom("id,tinterval, start/end position"))));
 }
 
-////  2.5.6.14   ~KindCheck~ function of class HistoryUnit
+/*
+2.5.6.14   ~KindCheck~ function of class HistoryUnit
+
+*/
 bool  HistoryUnit::KindCheckHistoryUnit( ListExpr type, ListExpr& errorInfo )
 {
   return (nl->IsEqual( type, HISTORYUNIT ));
 }
 
-//// 2.5.6.15  Creation of TypeConstructor instance of class historyunit
+/*
+2.5.6.15  Creation of TypeConstructor instance of class historyunit
+
+*/
 TypeConstructor historyunitTC(
-  HISTORYUNIT,                          // name of the type in SECONDO
-  HistoryUnit::PropertyHistoryUnit,     // property function describing signature
-  HistoryUnit::OutHistoryUnit,          // Out functions
-  HistoryUnit::InHistoryUnit,           // In functions
-  0, 0,                                 // SaveToList, RestoreFromList functions
-  HistoryUnit::CreateHistoryUnit,       // object creation 
-  HistoryUnit::DeleteHistoryUnit,       // object deletion
-  HistoryUnit::OpenHistoryUnit,         // open object 
-  HistoryUnit::SaveHistoryUnit,         // save object 
-  HistoryUnit::CloseHistoryUnit,        // close
-  HistoryUnit::CloneHistoryUnit,        // clone
-  0,                                    // cast function
-  HistoryUnit::SizeOfObjHistoryUnit,    // sizeof function
-  HistoryUnit::KindCheckHistoryUnit);   // kind checking function
+  HISTORYUNIT,                        // name of the type in SECONDO
+  HistoryUnit::PropertyHistoryUnit,   // property function describing signature
+  HistoryUnit::OutHistoryUnit,        // Out functions
+  HistoryUnit::InHistoryUnit,         // In functions
+  0, 0,                               // SaveToList, RestoreFromList functions
+  HistoryUnit::CreateHistoryUnit,     // object creation 
+  HistoryUnit::DeleteHistoryUnit,     // object deletion
+  HistoryUnit::OpenHistoryUnit,       // open object 
+  HistoryUnit::SaveHistoryUnit,       // save object 
+  HistoryUnit::CloseHistoryUnit,      // close
+  HistoryUnit::CloneHistoryUnit,      // clone
+  0,                                  // cast function
+  HistoryUnit::SizeOfObjHistoryUnit,  // sizeof function
+  HistoryUnit::KindCheckHistoryUnit); // kind checking function
+/*
+2.6         Class UGridCell
+2.6.1        public methods
+2.6.2        Constructors and destructor
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////            2.6         Class UGridCell                          ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.6.1        public methods                          ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.6.2        Constructors and destructor             ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 UGridCell::UGridCell( int labelIndex, dimsize dim, UGridArea area) :
                       intlabel(0), ucarea(area), noOfEntries (0),
-					  modified(false),
-                      firstEntry (DateTime(instanttype)),
-					  lastEntry (DateTime(instanttype))		
+                      modified(false), firstEntry (DateTime(instanttype)),
+                      lastEntry (DateTime(instanttype))
 { 
   firstTime = LongTime();
   lastTime = LongTime();
@@ -1687,11 +1751,11 @@ UGridCell::UGridCell( int labelIndex, dimsize dim, UGridArea area) :
   modified = false;
 }
 
-UGridCell::UGridCell(int intLabel, UGridArea area, int nofEntries, long t1, 
-					 long t2, bool modified, 
-					 HistoryUnit HistoryArray[sizeHistoryArray]):
-                     intlabel(intLabel), ucarea(area), noOfEntries(nofEntries), 
-					 firstTime(t1), lastTime(t2), modified(modified)
+UGridCell::UGridCell(int intLabel, UGridArea area, int nofEntries, long t1,
+                     long t2, bool modified,
+                     HistoryUnit HistoryArray[sizeHistoryArray]):
+                     intlabel(intLabel), ucarea(area), noOfEntries(nofEntries),
+                     firstTime(t1), lastTime(t2), modified(modified)
 {
   Instant firstEntry = LongToInstant(firstTime);
   Instant lastEntry = LongToInstant(lastTime);
@@ -1716,11 +1780,11 @@ UGridCell::UGridCell(int intLabel, UGridArea area, int nofEntries, long t1,
 	historyArray[ i ].htimeInterval.rc = false;
   }
 }
-UGridCell::UGridCell(int intLabel, UGridArea area, int nofEntries, Instant int1, 
-					 Instant int2, bool modified, 
-					 HistoryUnit HistoryArray[sizeHistoryArray]):
-                     intlabel(intLabel), ucarea(area), noOfEntries(nofEntries), 
-					 modified(modified)
+UGridCell::UGridCell(int intLabel, UGridArea area, int nofEntries,
+                     Instant int1, Instant int2, bool modified,
+                     HistoryUnit HistoryArray[sizeHistoryArray]):
+                     intlabel(intLabel), ucarea(area), noOfEntries(nofEntries),
+                     modified(modified)
 {
   ugcInterval.start = int1;
   ugcInterval.end = int2;
@@ -1745,11 +1809,10 @@ UGridCell::UGridCell(int intLabel, UGridArea area, int nofEntries, Instant int1,
   }
 } 
 
-UGridCell::UGridCell(const UGridCell& ugridcell): 
-			 intlabel(ugridcell.intlabel), ucarea(ugridcell.ucarea), 
-             noOfEntries(ugridcell.noOfEntries),
-			 firstTime(ugridcell.firstTime), lastTime(ugridcell.lastTime), 
-			 modified(ugridcell.modified)
+UGridCell::UGridCell(const UGridCell& ugridcell):
+    intlabel(ugridcell.intlabel), ucarea(ugridcell.ucarea),
+    noOfEntries(ugridcell.noOfEntries), firstTime(ugridcell.firstTime),
+    lastTime(ugridcell.lastTime), modified(ugridcell.modified)
  {
    Instant firstEntry = LongToInstant(firstTime);
    Instant lastEntry = LongToInstant(lastTime);
@@ -1762,8 +1825,8 @@ UGridCell::UGridCell(const UGridCell& ugridcell):
      historyArray[ i ].spos.y = ugridcell.historyArray[ i ].spos.y;
      historyArray[ i ].epos.x = ugridcell.historyArray[ i ].epos.x;
      historyArray[ i ].epos.y = ugridcell.historyArray[ i ].epos.y;	
-     historyArray[ i ].htimestart = ugridcell.historyArray[ i ].htimestart; 
-	 historyArray[ i ].htimeend = ugridcell.historyArray[ i ].htimeend;     
+     historyArray[ i ].htimestart = ugridcell.historyArray[ i ].htimestart;
+     historyArray[ i ].htimeend = ugridcell.historyArray[ i ].htimeend;
      Instant firstEntry = LongToInstant(historyArray[ i ].htimestart);
      Instant lastEntry = LongToInstant(historyArray[ i ].htimeend);
      Interval<Instant> timeInterval(firstEntry, lastEntry, true, false);
@@ -1771,7 +1834,8 @@ UGridCell::UGridCell(const UGridCell& ugridcell):
    }
  }
 
- UGridCell::UGridCell(int ind, SmiRecordId cellRecId, const UGridCell& ugridcell) 
+ UGridCell::UGridCell(int ind, SmiRecordId cellRecId, 
+	                  const UGridCell& ugridcell) 
  {
      cellArray[ind ].cellRecId = cellRecId;
 	 cellArray[ind ].cellabel = ugridcell.intlabel;
@@ -1783,12 +1847,15 @@ UGridCell::UGridCell(const UGridCell& ugridcell):
 	 cellArray[ind ].ugctimeend = ugridcell.lastTime;        
  }
 
-////  Destructor ~UGridCell~
-UGridCell::~UGridCell(){}
+/*
+Destructor ~UGridCell~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.6.3        methods                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
+*/
+UGridCell::~UGridCell(){}
+/*
+2.6.3        methods
+
+*/
 int UGridCell::GetIntLabel() const {return intlabel;}
 UGridArea UGridCell::GetArea() const 
 {
@@ -1800,8 +1867,8 @@ UGridArea UGridCell::GetArea() const
   return area;
 }
 int UGridCell::GetNoOfEntries() const {return noOfEntries;}  
-long UGridCell::GetFirstEntry() const {return firstTime;}    // for calculations
-long UGridCell::GetLastEntry() const {return lastTime;}      // for calculations
+long UGridCell::GetFirstEntry() const {return firstTime;}   // for calculations
+long UGridCell::GetLastEntry() const {return lastTime;}     // for calculations
 bool UGridCell::IsModified() const {return modified;}
 
 string IntLabelToString(int label)  
@@ -1813,7 +1880,10 @@ string IntLabelToString(int label)
   return stringLabel;
 }
 
-// Clears all entries of historyunits.
+/*
+Clears all entries of historyunits.
+
+*/
 void UGridCell::ClearHu()
 {
   for( int i = 0; i < noOfEntries; i++ )
@@ -1831,7 +1901,10 @@ void UGridCell::ClearHu()
   lastTime = time(NULL);
   modified = false;
 }
-// Clears all entries of cellunits.
+/*
+Clears all entries of cellunits.
+
+*/
 void UGridCell::ClearCu()
 {
   for( int i = 0; i < noOfEntries; i++ )
@@ -1851,7 +1924,10 @@ void UGridCell::ClearCu()
   modified = false;
 }
 
-// add historyunit in ugridcell
+/*
+add historyunit in ugridcell
+
+*/
 void UGridCell::AddHistoryUnit(HistoryUnit Hu)
 {
     int i = noOfEntries;
@@ -1872,21 +1948,13 @@ void UGridCell::AddHistoryUnit(HistoryUnit Hu)
     }
 	modified = true;
 }
+/*
+2.6.4        static methods
+2.6.5       private methods
+2.6.6       List Representation
+2.6.6.1   ~In~ function of class UGridCell
 
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.6.4        static methods                          ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.6.5       private methods                          ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            2.6.6       List Representation                      ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-////  2.6.6.1   ~In~ function of class UGridCell
-
+*/
 Word UGridCell::InUGridCell(const ListExpr typeInfo, const ListExpr instance,
                             const int errorPos, ListExpr& errorInfo, 
 							bool& correct)
@@ -1903,13 +1971,12 @@ Word UGridCell::InUGridCell(const ListExpr typeInfo, const ListExpr instance,
   }  
   else  
   {
-	ListExpr ugcindex = nl->First(instance);        //index in nestedList
-	ListExpr dimension = nl->Second(instance);      //dimension in nestedList
-	ListExpr area = nl->Third(instance);            //area in nestedList
-
-    if (!(nl->IsAtom(ugcindex) && nl->AtomType(ugcindex) == IntType))
-	{
-	  errMsg = "InUGridCell:Error in defining index";
+  ListExpr ugcindex = nl->First(instance);        //index in nestedList
+  ListExpr dimension = nl->Second(instance);      //dimension in nestedList
+  ListExpr area = nl->Third(instance);            //area in nestedList
+  if (!(nl->IsAtom(ugcindex) && nl->AtomType(ugcindex) == IntType))
+  {
+    errMsg = "InUGridCell:Error in defining index";
       cmsg.inFunError(errMsg);
       return result;
 	}
@@ -1951,24 +2018,24 @@ Word UGridCell::InUGridCell(const ListExpr typeInfo, const ListExpr instance,
                 nl->IsAtom( nl->Fourth( area ) ) &&
                 nl->AtomType( nl->Fourth( area ) ) == RealType )
 		    {
-			  double ax1 = nl->RealValue( nl->First( area));
-			  double ay1 = nl->RealValue( nl->Second( area));
-			  double ax2 = nl->RealValue( nl->Third( area));
-			  double ay2 = nl->RealValue( nl->Fourth( area));
-			  if (( ax2 == ax1 ) || (ay1 == ay2 ))      // vertical or horizontal line   
-	          {
-                errMsg = "vertical or horizontal line or point";
-		        cmsg.inFunError(errMsg);
-                return result;
-	          }
+          double ax1 = nl->RealValue( nl->First( area));
+          double ay1 = nl->RealValue( nl->Second( area));
+          double ax2 = nl->RealValue( nl->Third( area));
+          double ay2 = nl->RealValue( nl->Fourth( area));
+          if (( ax2 == ax1 ) || (ay1 == ay2 ))   // vert or horizontal line
+        {
+            errMsg = "vertical or horizontal line or point";
+            cmsg.inFunError(errMsg);
+            return result;
+	      }
 			  else
 			  {
 			    UGridArea ugcarea(ax1,ay1,ax2,ay2);
 			    dimsize ugcdim = (dimsize) dim;
-			    correct = true;
-			    result.addr = new UGridCell(intlabel, ugcdim, ugcarea);  
-			    return result;
-			  }
+          correct = true;
+          result.addr = new UGridCell(intlabel, ugcdim, ugcarea);
+          return result;
+        }
 		    }
 		    else  // area isn't four real type
 		    {
@@ -1983,50 +2050,64 @@ Word UGridCell::InUGridCell(const ListExpr typeInfo, const ListExpr instance,
   } // end else nl->ListLength(instance) != 3
 }
 
-////  2.6.6.2   ~Out~ function of class UGridCell
+/*
+2.6.6.2   ~Out~ function of class UGridCell
+
+*/
   ListExpr UGridCell::OutUGridCell(ListExpr typeInfo, Word value )
 {
   UGridCell* ugridcell = (UGridCell*)(value.addr);  
   ListExpr timeintervalList = nl->FourElemList(
-	  OutDateTime( nl->TheEmptyList(), SetWord(&ugridcell->ugcInterval.start)),
-      OutDateTime( nl->TheEmptyList(), SetWord(&ugridcell->ugcInterval.end)),
-      nl->BoolAtom( true ),
-      nl->BoolAtom( false));
+	OutDateTime( nl->TheEmptyList(), 
+	  SetWord(&ugridcell->ugcInterval.start)),
+    OutDateTime( nl->TheEmptyList(), 
+	  SetWord(&ugridcell->ugcInterval.end)),
+    nl->BoolAtom( true ),
+    nl->BoolAtom( false));
   ListExpr areaList = nl->FourElemList(
-	  nl->RealAtom( ugridcell->ucarea.GetX1() ),
-	  nl->RealAtom( ugridcell->ucarea.GetY1()),
-	  nl->RealAtom( ugridcell->ucarea.GetX2() ),
-	  nl->RealAtom( ugridcell->ucarea.GetY2() ));
-   ListExpr entriesList = nl->TwoElemList(
-	  nl->IntAtom(ugridcell->GetIntLabel()),
-      nl->IntAtom(ugridcell->GetNoOfEntries()));
+	nl->RealAtom( ugridcell->ucarea.GetX1() ),
+	nl->RealAtom( ugridcell->ucarea.GetY1()),
+	nl->RealAtom( ugridcell->ucarea.GetX2() ),
+	nl->RealAtom( ugridcell->ucarea.GetY2() ));
+  ListExpr entriesList = nl->TwoElemList(
+	nl->IntAtom(ugridcell->GetIntLabel()),
+    nl->IntAtom(ugridcell->GetNoOfEntries()));
 	  
   return nl->FourElemList( entriesList, areaList, timeintervalList,
 	                       nl->BoolAtom(ugridcell->IsModified())); 
 }
 
-////  2.6.6.3   ~SaveToList~ function of class UGridCell 
-//
-//    not used  
+/*
+2.6.6.3   ~SaveToList~ function of class UGridCell
 
-////  2.6.6.4   ~RestoreFromList~ function of class UGridCell
-//
-//    not used 
+   not used
 
-////  2.6.6.5   ~Create~ function of class UGridCell
+2.6.6.4   ~RestoreFromList~ function of class UGridCell
+
+   not used
+
+2.6.6.5   ~Create~ function of class UGridCell
+
+*/
 Word     UGridCell::CreateUGridCell( const ListExpr typeInfo )
 {
   return SetWord(new UGridCell());
 }
 
-////  2.6.6.6   Implementations ~Delete~ function of class UGridCell
+/*
+2.6.6.6   Implementations ~Delete~ function of class UGridCell
+
+*/
 void     UGridCell::DeleteUGridCell( const ListExpr typeInfo, Word& w )
 { 
   delete static_cast<UGridCell*>( w.addr );
   w.addr = 0;
 }
 
-////  2.6.6.7   ~Open~ function of class UGridCell
+/*
+2.6.6.7   ~Open~ function of class UGridCell
+
+*/
    bool UGridCell::OpenUGridCell( SmiRecord& valueRecord, 
                       size_t& offset, const ListExpr typeInfo, 
                       Word& value ) 
@@ -2084,13 +2165,17 @@ void     UGridCell::DeleteUGridCell( const ListExpr typeInfo, Word& w )
   }
   int1 = LongToInstant(t1);
   int2 = LongToInstant(t2);
-  value.addr = new UGridCell(intLabel, area, nofEntries, int1, int2, modified, historyArray); 
+  value.addr = new UGridCell(intLabel, area, nofEntries, int1, int2,
+	  modified, historyArray); 
   return ok;
 }	
 
- ////  2.6.6.8   ~Save~ function of class UGridCell
+/*
+2.6.6.8   ~Save~ function of class UGridCell
+
+*/
   bool     UGridCell::SaveUGridCell(SmiRecord& valueRecord, size_t& offset, 
-                         const ListExpr typeInfo, Word& value )
+                                    const ListExpr typeInfo, Word& value )
 {
   UGridCell* uc = (UGridCell*)( value.addr );	
   size_t size = sizeof(int); 	
@@ -2120,54 +2205,64 @@ void     UGridCell::DeleteUGridCell( const ListExpr typeInfo, Word& w )
   int entries = uc->GetNoOfEntries();
   for (int i = 0; i < entries; i ++)
   {
-	size = sizeof(int);
-	ok = ok && valueRecord.Write(&uc->historyArray[i].hid, size, offset );
-	offset += size;
-	size = sizeof(double);
-	ok = ok && valueRecord.Write(&uc->historyArray[i].spos.x, size, offset );
-	offset += size;
-	ok = ok && valueRecord.Write(&uc->historyArray[i].spos.y, size, offset );
-	offset += size;
-	ok = ok && valueRecord.Write(&uc->historyArray[i].epos.x, size, offset );
-	offset += size;
-	ok = ok && valueRecord.Write(&uc->historyArray[i].epos.y, size, offset );
-	offset += size;
-	size = sizeof(long);
-	ok = ok && valueRecord.Write(&uc->historyArray[i].htimestart, 
-		                         size, offset );
-	offset += size;
-	ok = ok && valueRecord.Write(&uc->historyArray[i].htimeend, 
-		                         size, offset );
-	offset += size;
+  size = sizeof(int);
+  ok = ok && valueRecord.Write(&uc->historyArray[i].hid, size, offset );
+  offset += size;
+  size = sizeof(double);
+  ok = ok && valueRecord.Write(&uc->historyArray[i].spos.x, size, offset );
+  offset += size;
+  ok = ok && valueRecord.Write(&uc->historyArray[i].spos.y, size, offset );
+  offset += size;
+  ok = ok && valueRecord.Write(&uc->historyArray[i].epos.x, size, offset );
+  offset += size;
+  ok = ok && valueRecord.Write(&uc->historyArray[i].epos.y, size, offset );
+  offset += size;
+  size = sizeof(long);
+  ok = ok && valueRecord.Write(&uc->historyArray[i].htimestart,
+                                size, offset );
+  offset += size;
+  ok = ok && valueRecord.Write(&uc->historyArray[i].htimeend,
+                                size, offset );
+  offset += size;
   } 
   return ok;
 }	
 
-//// 2.6.6.9   ~Close~ function of class UGridCell
+/*
+2.6.6.9   ~Close~ function of class UGridCell
+
+*/
 void     UGridCell::CloseUGridCell( const ListExpr typeInfo, Word& w )
 { 
   delete static_cast<UGridCell*>( w.addr );
   w.addr = 0;
 }
 
-//// 2.6.6.10   ~Clone~ function of class UGridCell
+/*
+2.6.6.10   ~Clone~ function of class UGridCell
+
+*/
 Word     UGridCell::CloneUGridCell( const ListExpr typeInfo, const Word& w)
 {
   UGridCell* ug = static_cast<UGridCell*>( w.addr );
   return SetWord( new UGridCell(*ug) );
 }
 
-//// 2.6.6.11   ~Cast~ function of class UGridCell
-//
-//   not used
+/*
+2.6.6.11   ~Cast~ function of class UGridCell
+   not used
+2.6.6.12   Implementations ~SizeOfObj~ function of class UGridCell
 
-////  2.6.6.12   Implementations ~SizeOfObj~ function of class UGridCell
+*/
 int      UGridCell::SizeOfObjUGridCell()
 {
   return sizeof(UGridCell);
 }
 
-////  2.6.6.13 Type Description of class  UGridCell
+/*
+2.6.6.13 Type Description of class  UGridCell
+
+*/
 ListExpr  UGridCell::PropertyUGridCell()
 {
   return (nl->TwoElemList(
@@ -2189,7 +2284,10 @@ bool  UGridCell::KindCheckUGridCell( ListExpr type, ListExpr& errorInfo )
   return (nl->IsEqual( type, UGRIDCELL ));
 }
 
-////  2.6.6.15 Creation of TypeConstructor instance for ugridcell
+/*
+2.6.6.15 Creation of TypeConstructor instance for ugridcell
+
+*/
 TypeConstructor ugridcellTC(
   UGRIDCELL,                        // name of the type in SECONDO
   UGridCell::PropertyUGridCell,     // property function describing signature
@@ -2205,29 +2303,24 @@ TypeConstructor ugridcellTC(
   0,                                // cast function
   UGridCell::SizeOfObjUGridCell,    // sizeof function
   UGridCell::KindCheckUGridCell);   // kind checking function
+/*
+2.7         Class UGrid
+2.7.1        public methods
+2.7.2        Constructors and destructor
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////               2.7         Class UGrid                           ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
+default constructor
 
-/////////////////////////////////////////////////////////////////////////////////
-////////               2.7.1        public methods                       ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////               2.7.2        Constructors and destructor          ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-// default constructor
+*/
 UGrid::UGrid() :
   file( true ),        //fixed record length 
   header(),
   cells(0)
   {};
 
-//  Create Constructor
+/*
+Create Constructor
+
+*/
 UGrid::UGrid( UGridArea area, const int pageSize ) :
   file( true, pageSize ),        //fixed record length , pageSize (= 4000)
   header(area),
@@ -2238,10 +2331,10 @@ UGrid::UGrid( UGridArea area, const int pageSize ) :
   int intdim = (int)dim;                         
   // Calculate length and heigth of area in ugrid and in ugridcell
   double xLength, yLength, xCellength, yCellength;
-  xLength = abs(area.x2 - area.x1);      // length of x-coordinate in ugrid       
-  yLength = abs(area.y2 - area.y1);      // length of y-coordinate in ugrid
-  xCellength = xLength / intdim;         // length of x-coordinate in an ugridcell 
-  yCellength = yLength / intdim;         // length of y-coordinate in an ugridcell
+  xLength = abs(area.x2 - area.x1);   // length of x-coordinate in ugrid       
+  yLength = abs(area.y2 - area.y1);   // length of y-coordinate in ugrid
+  xCellength = xLength / intdim;      // length of x-coordinate in an ugridcell 
+  yCellength = yLength / intdim;      // length of y-coordinate in an ugridcell
   // store euklidian region of ugrid in header.area
   header.area.SetX1(area.x1);
   header.area.SetY1(area.y1);
@@ -2272,8 +2365,8 @@ UGrid::UGrid( UGridArea area, const int pageSize ) :
       ugcarea.y1 = area.y1 + ((j / intdim) * yCellength);
       ugcarea.y2 = ugcarea.y1 + yCellength; 
 	}
-	UGridCell* cell = new UGridCell(j, dim, ugcarea);  // initiate ugridcell-object 
-    cells.Append (*cell);                              // append ugridcell to ugrid
+	UGridCell* cell = new UGridCell(j, dim, ugcarea); // initiate ugridcell 
+    cells.Append (*cell);                             // append ugridcell 
   }
   // store noOf Cells, ModCells and Entries in header
   header.noOfCells = (int)cells.Size();
@@ -2307,52 +2400,52 @@ UGrid::UGrid( UGridArea area, const int pageSize ) :
 	if (256<=cellind && cellind<=511) 
 	{
 	  cellContQ2[ (cellind % 256) ].celllabel = intlabel;         
-	  cellContQ2[ (cellind % 256) ].cellRecordId = cellRecno;                 
+	  cellContQ2[ (cellind % 256) ].cellRecordId = cellRecno;
 	}
 	if (512<=cellind && cellind<=767) 
 	{
-	  cellContQ3[ (cellind % 256) ].celllabel = intlabel;   
-	  cellContQ3[ (cellind % 256) ].cellRecordId = cellRecno;                 
-	}
+    cellContQ3[ (cellind % 256) ].celllabel = intlabel;
+    cellContQ3[ (cellind % 256) ].cellRecordId = cellRecno;
+  }
 	if (768<=cellind && cellind<=1023) 
 	{
-	  cellContQ4[ (cellind % 256) ].celllabel = intlabel;   
-	  cellContQ4[ (cellind % 256) ].cellRecordId = cellRecno;                 
-	}
+    cellContQ4[ (cellind % 256) ].celllabel = intlabel;
+    cellContQ4[ (cellind % 256) ].cellRecordId = cellRecno;
+  }
 	if (1024<=cellind && cellind<=1279) 
 	{
-	  cellContQ5[ cellind ].celllabel = intlabel;   
-	  cellContQ5[ cellind ].cellRecordId = cellRecno;                 
+    cellContQ5[ cellind ].celllabel = intlabel;
+    cellContQ5[ cellind ].cellRecordId = cellRecno;
 	}
 	if (1280<=cellind && cellind<=1535) 
 	{
-	  cellContQ6[ cellind ].celllabel = intlabel;   
-	  cellContQ6[ cellind ].cellRecordId = cellRecno;                 
-	}
+    cellContQ6[ cellind ].celllabel = intlabel;
+    cellContQ6[ cellind ].cellRecordId = cellRecno;
+  }
 	if (1536<=cellind && cellind<=1791) 
 	{
-	  cellContQ7[ cellind ].celllabel = intlabel;   
-	  cellContQ7[ cellind ].cellRecordId = cellRecno;                 
-	}
+    cellContQ7[ cellind ].celllabel = intlabel;
+    cellContQ7[ cellind ].cellRecordId = cellRecno;
+  }
 	if (1792<=cellind && cellind<=2047) 
 	{
-	  cellContQ8[ cellind ].celllabel = intlabel;   
-	  cellContQ8[ cellind ].cellRecordId = cellRecno;                 
+    cellContQ8[ cellind ].celllabel = intlabel;
+    cellContQ8[ cellind ].cellRecordId = cellRecno;
 	}
 	if (2048<=cellind && cellind<=2303) 
 	{
-	  cellContQ9[ cellind ].celllabel = intlabel;   
-	  cellContQ9[ cellind ].cellRecordId = cellRecno;                 
+    cellContQ9[ cellind ].celllabel = intlabel;
+    cellContQ9[ cellind ].cellRecordId = cellRecno;
 	}
-	if (2304<=cellind && cellind<=2559)                
+	if (2304<=cellind && cellind<=2559) 
 	{
-	  cellContQ10[ cellind ].celllabel = intlabel;   
-	  cellContQ10[ cellind ].cellRecordId = cellRecno;                 
+    cellContQ10[ cellind ].celllabel = intlabel;
+    cellContQ10[ cellind ].cellRecordId = cellRecno;
 	}
 	if (2560<=cellind && cellind<=2815) 
 	{
-	  cellContQ11[ cellind ].celllabel = intlabel;   
-	  cellContQ11[ cellind ].cellRecordId = cellRecno;                 
+    cellContQ11[ cellind ].celllabel = intlabel;
+    cellContQ11[ cellind ].cellRecordId = cellRecno;
 	}
 	if (2816<=cellind && cellind<=3071) 
 	{
@@ -2393,7 +2486,10 @@ UGrid::UGrid( UGridArea area, const int pageSize ) :
   }
 }
 
-// Query Constructor
+/*
+Query Constructor
+
+*/
 UGrid::UGrid( const SmiFileId fileid ) :
 file( true ),
 header(),
@@ -2404,7 +2500,10 @@ cells(0)
   ReadCells();
 }
 
-// Copy constructor 
+/*
+Copy constructor
+
+*/
 UGrid::UGrid( UGrid& ug):
 file(true),
 header (),
@@ -2520,23 +2619,29 @@ cells (0)
   }
 }
  
-// the slave constructor to create a slave ugrid 
+/*
+the slave constructor to create a slave ugrid
+
+*/
 UGrid::UGrid(bool slave, UGrid& mug, UGrid& ug):
 file(true),
 header (),
 cells (0)
 {
-  
   double thisDim = ((double)(sqrt(mug.header.noOfCells)) / 2);
   //int d = (int)mug.cells.Size();
   int intdim = (int)thisDim;
   dimsize dim = (dimsize)intdim;
   // Calculate length and heigth of area in ugrid and in ugridcell
   double xLength, yLength, xCellength, yCellength;
-  xLength = abs(ug. header.area.x2 -ug. header.area.x1); // length of x-coordinate    
-  yLength = abs(ug.header.area.y2 - ug.header.area.y1);  // length of y-coordinate 
-  xCellength = xLength / intdim;         // length of x-coordinate in an ugridcell 
-  yCellength = yLength / intdim;         // length of y-coordinate in an ugridcell
+  xLength = abs(ug. header.area.x2 -ug. header.area.x1); 
+  // length of x-coord    
+  yLength = abs(ug.header.area.y2 - ug.header.area.y1);  
+  // length of y-coord
+  xCellength = xLength / intdim;         
+  // length of x-coord in an ugridcell 
+  yCellength = yLength / intdim;         
+  // length of y-coord in an ugridcell
   // store euklidian region of ugrid in header.area
   header.area.SetX1(ug.header.area.x1);
   header.area.SetY1(ug.header.area.y1);
@@ -2544,7 +2649,7 @@ cells (0)
   header.area.SetY2(ug.header.area.y2);
   // generate the cells of the ugrid
   UGridArea ugcarea (0.0, 0.0, 0.0, 0.0);
-  for (int j = 0; j <intdim * intdim; j++)             
+  for (int j = 0; j <intdim * intdim; j++)
   {
   // Calculate the area-partition of ugridcell  
 	if (header.area.x1 < header.area.x2)
@@ -2567,9 +2672,9 @@ cells (0)
       ugcarea.y1 = header.area.y1 - ((j / intdim) * yCellength);
       ugcarea.y2 = ugcarea.y1 - yCellength; 
 	}
-	UGridCell* cell = new UGridCell(j, dim, ugcarea);  // initiate ugridcell-object 
+	UGridCell* cell = new UGridCell(j, dim, ugcarea);  // initiate ugridcell
 	cell->intlabel = cell->intlabel + (intdim * 10000);
-    cells.Append (*cell);                              // append ugridcell to ugrid
+    cells.Append (*cell);                              // append ugridcell
   }
   // store noOf Cells, ModCells and Entries in header
   header.noOfCells = (int)cells.Size();
@@ -2585,8 +2690,9 @@ cells (0)
   SmiRecord headerRecord;
   int AppendedRecord = ug.file.AppendRecord( headerRecno, headerRecord );
   assert( AppendedRecord );
-  header.ugridRecordId = headerRecno;                // store headerRecno in own header 
-  mug.header.slaveUgridId = headerRecno; // store headerRecno in header of master ugrid
+  header.ugridRecordId = headerRecno;    // store headerRecno in own header 
+  mug.header.slaveUgridId = headerRecno; // store headerRecno in header
+                                         // of master ugrid
   mug.header.ugcPtr = this;
   
   // Creating new pages for each UGridCell.
@@ -2598,7 +2704,7 @@ cells (0)
 	const int cellind = k;
 	
 	AppendedRecord = ug.file.AppendRecord( cellRecno, cellRecord );
-    assert( AppendedRecord );                                // ugridcells still are empty
+    assert( AppendedRecord );               // ugridcells still are empty
 	// store RecordId for ugridcell in assigned CellContainer
 	if (0<=cellind && cellind <=255) 
 	{
@@ -2608,33 +2714,37 @@ cells (0)
 	if (256<=cellind && cellind<=511) 
 	{
 	  cellContQ2[ (cellind % 256) ].celllabel = intlabel;         
-	  cellContQ2[ (cellind % 256) ].cellRecordId = cellRecno;                 
+	  cellContQ2[ (cellind % 256) ].cellRecordId = cellRecno; 
 	}
 	if (512<=cellind && cellind<=767) 
 	{
-	  cellContQ3[ (cellind % 256) ].celllabel = intlabel;   
-	  cellContQ3[ (cellind % 256) ].cellRecordId = cellRecno;                 
+    cellContQ3[ (cellind % 256) ].celllabel = intlabel;
+    cellContQ3[ (cellind % 256) ].cellRecordId = cellRecno;
 	}
 	if (768<=cellind && cellind<=1023) 
 	{
-	  cellContQ4[ (cellind % 256) ].celllabel = intlabel;   
-	  cellContQ4[ (cellind % 256) ].cellRecordId = cellRecno;                 
-	}
+    cellContQ4[ (cellind % 256) ].celllabel = intlabel;
+    cellContQ4[ (cellind % 256) ].cellRecordId = cellRecno;
+  }
   }
   // Creating new pages for all cellContainer.
   SmiRecordId cellContRecno;
   SmiRecord cellContRecord;
-  for (int l = 0; l < maxCont; l++) // append record for each cellRecordContainer in file 
+  for (int l = 0; l < maxCont; l++)
+  // append record for each cellRecordContainer in file
   {
     AppendedRecord = ug.file.AppendRecord( cellContRecno, cellContRecord );
-    assert( AppendedRecord );                                
-	// store record of cellContainer in header
+    assert( AppendedRecord );
+    // store record of cellContainer in header
 	header.contArray[l].containerId = contsuffix(l+1);        
 	header.contArray[l].contRecordId = cellContRecno; 
   }
 }
 
-// destructor    
+/*
+destructor
+
+*/
 UGrid::~UGrid()
 {
   if( file.IsOpen() )
@@ -2644,143 +2754,178 @@ UGrid::~UGrid()
     file.Close();
   }
 }
+/*
+2.7.3        methods
+2.7.4        static methods
+2.7.5        private methods
+ Write cells
 
-/////////////////////////////////////////////////////////////////////////////////
-////////               2.7.3        methods                              ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////               2.7.4        static methods                       ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////               2.7.5        private methods                      ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-// Write cells
-  void UGrid::WriteCells (SmiRecord &cellRecord, CellRecId cont[maxCellRec], UGridCell &ugc)
+*/
+  void UGrid::WriteCells (SmiRecord &cellRecord, CellRecId cont[maxCellRec], 
+	                      UGridCell &ugc)
   {
 	SmiRecordId cellRecno;
-    for (int k = 0; k < maxCellRec; k++) 
-    { 
+    for (int k = 0; k < maxCellRec; k++)
+    {
       cellRecno = (SmiRecordId)cont[k].cellRecordId;
-	  size_t offset = 0 ;
-	  int RecordSelected = file.SelectRecord( cellRecno, cellRecord, SmiFile::Update );
-	  assert (RecordSelected);
-	  int RecordWritten = cellRecord.Write(&ugc.intlabel, sizeof( int), 0 );
-	  offset += sizeof( int );
-	  RecordWritten = cellRecord.Write( &ugc.ucarea.x1, sizeof( double), offset );
-	  offset += sizeof( double );
-	  RecordWritten = cellRecord.Write( &ugc.ucarea.y1, sizeof( double), offset );
-	  offset += sizeof( double );
-	  RecordWritten = cellRecord.Write( &ugc.ucarea.x2, sizeof( double), offset );
-	  offset += sizeof( double );
-	  RecordWritten = cellRecord.Write( &ugc.ucarea.y2, sizeof( double), offset );
-	  offset += sizeof( double );
-	  RecordWritten = cellRecord.Write( &ugc.noOfEntries, sizeof( int), offset );
-	  offset += sizeof( int );
-	  RecordWritten = cellRecord.Write( &ugc.firstTime, sizeof( long), offset );
-	  offset += sizeof( long );
-	  RecordWritten = cellRecord.Write( &ugc.lastTime, sizeof( long), offset );
-	  offset += sizeof( long );
-	  RecordWritten = cellRecord.Write( &ugc.modified, sizeof( bool), offset );
-	  offset += sizeof( bool );
-	  // read the history units
-	  for (int j = 0; j < ugc.noOfEntries; j ++)
-	  {
-	    // read current entry
-	    RecordWritten = cellRecord.Write( &ugc.historyArray[j].hid, sizeof (int), offset );
-	    offset += sizeof (int);
-		RecordWritten = cellRecord.Write( &ugc.historyArray[j].htimestart, sizeof (long), offset );	
-		offset += sizeof (long); 
-		RecordWritten = cellRecord.Write( &ugc.historyArray[j].htimeend, sizeof (long), offset );	
-		offset += sizeof (long); 
-		RecordWritten = cellRecord.Write( &ugc.historyArray[j].spos.x, sizeof(double), offset );	
-		offset += sizeof(double);  
-		RecordWritten = cellRecord.Write( &ugc.historyArray[j].spos.y, sizeof(double), offset );	
-		offset += sizeof(double);  
-		RecordWritten = cellRecord.Write( &ugc.historyArray[j].epos.x, sizeof(double), offset );	
-		offset += sizeof(double);  
-		RecordWritten = cellRecord.Write( &ugc.historyArray[j].epos.y, sizeof(double), offset );	
-		offset += sizeof(double); 
-	  }
-	}
+      size_t offset = 0 ;
+      int RecordSelected = file.SelectRecord( cellRecno, cellRecord,
+                                              SmiFile::Update );
+      assert (RecordSelected);
+      int RecordWritten = cellRecord.Write(&ugc.intlabel, sizeof( int), 0 );
+      offset += sizeof( int );
+      RecordWritten = cellRecord.Write( &ugc.ucarea.x1, sizeof( double),
+                                         offset );
+      offset += sizeof( double );
+      RecordWritten = cellRecord.Write( &ugc.ucarea.y1, sizeof( double),
+                                         offset );
+      offset += sizeof( double );
+      RecordWritten = cellRecord.Write( &ugc.ucarea.x2, sizeof( double),
+                                         offset );
+      offset += sizeof( double );
+      RecordWritten = cellRecord.Write( &ugc.ucarea.y2, sizeof( double),
+                                         offset );
+      offset += sizeof( double );
+      RecordWritten = cellRecord.Write( &ugc.noOfEntries, sizeof( int),
+                                         offset );
+      offset += sizeof( int );
+      RecordWritten = cellRecord.Write( &ugc.firstTime, sizeof( long),
+                                         offset );
+      offset += sizeof( long );
+      RecordWritten = cellRecord.Write( &ugc.lastTime, sizeof( long),
+                                         offset );
+      offset += sizeof( long );
+      RecordWritten = cellRecord.Write( &ugc.modified, sizeof( bool),
+                                         offset );
+      offset += sizeof( bool );
+      // read the history units
+    for (int j = 0; j < ugc.noOfEntries; j ++)
+    {
+       // read current entry
+      RecordWritten = cellRecord.Write( &ugc.historyArray[j].hid,
+                                         sizeof (int), offset );
+      offset += sizeof (int);
+      RecordWritten = cellRecord.Write( &ugc.historyArray[j].htimestart,
+                                         sizeof (long), offset );
+      offset += sizeof (long);
+      RecordWritten = cellRecord.Write( &ugc.historyArray[j].htimeend,
+                                         sizeof (long), offset );
+      offset += sizeof (long);
+      RecordWritten = cellRecord.Write( &ugc.historyArray[j].spos.x,
+                                       sizeof(double), offset );
+    offset += sizeof(double);
+    RecordWritten = cellRecord.Write( &ugc.historyArray[j].spos.y,
+                                       sizeof(double), offset );
+    offset += sizeof(double);
+    RecordWritten = cellRecord.Write( &ugc.historyArray[j].epos.x,
+                                       sizeof(double), offset );
+    offset += sizeof(double);
+    RecordWritten = cellRecord.Write( &ugc.historyArray[j].epos.y,
+                                       sizeof(double), offset );
+    offset += sizeof(double);
+    }
   }
-//////
-/// Read the merged ugrids
-//////
+}
+
+/*
+Read the merged ugrids
+
+*/
   void UGrid::ReadSlaveCells (UGrid &sug)
   {
     // Read cell container
     SmiRecordId cellContRecno;
     SmiRecord   cellContRecord;
-    cellContRecno = sug.header.contArray[0].contRecordId; // slave ugrid has max 1 container
-	int RecordSelected = file.SelectRecord( cellContRecno, cellContRecord, SmiFile::ReadOnly );
+    cellContRecno = sug.header.contArray[0].contRecordId; 
+	                             // slave ugrid has max 1 container
+	int RecordSelected = file.SelectRecord( cellContRecno, cellContRecord, 
+		                                    SmiFile::ReadOnly );
 	assert (RecordSelected);
 	// Read cell recordIs
 	size_t offset = 0;
 	for (int k = 0; k < sug.header.noOfCells; k++)   // statt maxCellRec
 	{
-	  int RecordRead = cellContRecord.Read( &sug.cellContQ1[k].celllabel, sizeof(int), offset );
-	  offset += sizeof( int );
-	  RecordRead = cellContRecord.Read( &sug.cellContQ1[k].cellRecordId, sizeof( SmiRecordId), offset );  
-	  offset += sizeof(  SmiRecordId );
-	  // Read cells  
-	  SmiRecordId cellRecno = sug.cellContQ1[k].cellRecordId;
+	  int RecordRead = cellContRecord.Read( &sug.cellContQ1[k].celllabel,
+                                           sizeof(int), offset );
+    offset += sizeof( int );
+    RecordRead = cellContRecord.Read( &sug.cellContQ1[k].cellRecordId,
+                                       sizeof( SmiRecordId), offset );
+    offset += sizeof(  SmiRecordId );
+    // Read cells
+    SmiRecordId cellRecno = sug.cellContQ1[k].cellRecordId;
       SmiRecord cellRecord;
       size_t offset = 0;
       UGridCell * ugc = new UGridCell();
-	  cellRecno = (SmiRecordId)(sug.cellContQ1[(k % 256)].cellRecordId);
-	  int RecordSelected = file.SelectRecord( cellRecno, cellRecord, SmiFile::ReadOnly );
+      cellRecno = (SmiRecordId)(sug.cellContQ1[(k % 256)].cellRecordId);
+      int RecordSelected = file.SelectRecord( cellRecno, cellRecord,
+                                            SmiFile::ReadOnly );
       assert (RecordSelected);
-	  int cellRecordRead = cellRecord.Read( &ugc->intlabel, sizeof( int), offset );
-	  offset += sizeof( int );
-	  cellRecordRead = cellRecord.Read( &ugc->ucarea.x1, sizeof( double), offset );
-	  offset += sizeof( double );
-	  cellRecordRead = cellRecord.Read( &ugc->ucarea.y1, sizeof( double), offset );
-	  offset += sizeof( double );
-	  cellRecordRead = cellRecord.Read( &ugc->ucarea.x2, sizeof( double), offset );
-	  offset += sizeof( double );
-	  cellRecordRead = cellRecord.Read( &ugc->ucarea.y2, sizeof( double), offset );
-	  offset += sizeof( double );
-	  cellRecordRead = cellRecord.Read( &ugc->noOfEntries, sizeof( int), offset );
-	  offset += sizeof( int );
-	  cellRecordRead = cellRecord.Read( &ugc->firstTime, sizeof( long), offset );
-	  offset += sizeof( long );
-	  cellRecordRead = cellRecord.Read( &ugc->lastTime, sizeof( long), offset );
-	  offset += sizeof( long );
-	  cellRecordRead = cellRecord.Read( &ugc->modified, sizeof( bool), offset );
-	  offset += sizeof( bool );
-	  // read the history units
-	  if (ugc->noOfEntries >0)
-	  {
-	    for (int j = 0; j < ugc->noOfEntries; j ++)
-		{
-		  // read current entry
-		  cellRecordRead = cellRecord.Read( &ugc->cellArray[j].cellRecId, sizeof( SmiRecordId), offset );
-	      offset += sizeof( SmiRecordId);
-		  cellRecordRead = cellRecord.Read( &ugc->cellArray[j].cellabel, sizeof( int), offset );
-	      offset += sizeof( int );
-		  cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugctimestart, sizeof( long), offset );
-	      offset += sizeof( long );
-		  cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugctimeend, sizeof( long), offset );
-	      offset += sizeof( long );
-		  cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugcspos.x, sizeof( double), offset );
-	      offset += sizeof( double );
-		  cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugcspos.y, sizeof( double), offset );
-	      offset += sizeof( double );
-		  cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugcepos.x, sizeof( double), offset );
-	      offset += sizeof( double );
-		  cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugcepos.y, sizeof( double), offset );
-	      offset += sizeof( double );
-		}
-	  }
-      sug.cells.Append (*ugc);                    // append ugridcell to ugrid 
-	} // noOfCells
+      int cellRecordRead = cellRecord.Read( &ugc->intlabel,
+                                           sizeof( int), offset );
+      offset += sizeof( int );
+      cellRecordRead = cellRecord.Read( &ugc->ucarea.x1,
+                                         sizeof( double), offset );
+      offset += sizeof( double );
+      cellRecordRead = cellRecord.Read( &ugc->ucarea.y1,
+                                         sizeof( double), offset );
+      offset += sizeof( double );
+      cellRecordRead = cellRecord.Read( &ugc->ucarea.x2,
+                                         sizeof( double), offset );
+      offset += sizeof( double );
+      cellRecordRead = cellRecord.Read( &ugc->ucarea.y2,
+                                         sizeof( double), offset );
+      offset += sizeof( double );
+      cellRecordRead = cellRecord.Read( &ugc->noOfEntries,
+                                         sizeof( int), offset );
+      offset += sizeof( int );
+      cellRecordRead = cellRecord.Read( &ugc->firstTime,
+                                         sizeof( long), offset );
+      offset += sizeof( long );
+      cellRecordRead = cellRecord.Read( &ugc->lastTime,
+                                         sizeof( long), offset );
+      offset += sizeof( long );
+      cellRecordRead = cellRecord.Read( &ugc->modified,
+                                         sizeof( bool), offset );
+      offset += sizeof( bool );
+      // read the history units
+      if (ugc->noOfEntries >0)
+      {
+        for (int j = 0; j < ugc->noOfEntries; j ++)
+        {
+          // read current entry
+          cellRecordRead = cellRecord.Read( &ugc->cellArray[j].cellRecId,
+                                             sizeof( SmiRecordId), offset );
+          offset += sizeof( SmiRecordId);
+          cellRecordRead = cellRecord.Read( &ugc->cellArray[j].cellabel,
+                                             sizeof( int), offset );
+          offset += sizeof( int );
+          cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugctimestart,
+                                             sizeof( long), offset );
+          offset += sizeof( long );
+          cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugctimeend,
+                                             sizeof( long), offset );
+          offset += sizeof( long );
+          cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugcspos.x,
+                                             sizeof( double), offset );
+          offset += sizeof( double );
+          cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugcspos.y,
+                                             sizeof( double), offset );
+          offset += sizeof( double );
+          cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugcepos.x,
+                                             sizeof( double), offset );
+          offset += sizeof( double );
+          cellRecordRead = cellRecord.Read( &ugc->cellArray[j].ugcepos.y,
+                                             sizeof( double), offset );
+          offset += sizeof( double );
+        }
+      }
+      sug.cells.Append (*ugc);               // append ugridcell to ugrid
+    } // noOfCells
   }
-  //////
-  /// Write the merged ugrids
-  //////
+/*
+Write the merged ugrids
+
+*/
   void UGrid::WriteSlaveCells (UGrid* ugPtr)
   {
     //SmiRecordFile file = this.file;
@@ -2793,66 +2938,91 @@ UGrid::~UGrid()
 	  cellRecno = (SmiRecordId)(ugPtr->cellContQ1[(k % 256)].cellRecordId);
       // read current entry
 	  const UGridCell* ugc;
-	  ugPtr->cells.Get(k, ugc);                // read the slave-ugridcell out of main memory
-	  int RecordSelected = file.SelectRecord( cellRecno, cellRecord, SmiFile::Update );
+	  ugPtr->cells.Get(k, ugc);  
+	  // read the slave-ugridcell out of main memory
+	  int RecordSelected = file.SelectRecord( cellRecno, cellRecord, 
+		                                      SmiFile::Update );
 	  assert (RecordSelected);
-	  int RecordWritten = cellRecord.Write(&ugc->intlabel, sizeof( int), 0 );
+	  int RecordWritten = cellRecord.Write(&ugc->intlabel, 
+		                                   sizeof( int), 0 );
 	  offset += sizeof( int );
-	  RecordWritten = cellRecord.Write( &ugc->ucarea.x1, sizeof( double), offset );
+	  RecordWritten = cellRecord.Write( &ugc->ucarea.x1, 
+		                                sizeof( double), offset );
 	  offset += sizeof( double );
-	  RecordWritten = cellRecord.Write( &ugc->ucarea.y1, sizeof( double), offset );
+	  RecordWritten = cellRecord.Write( &ugc->ucarea.y1, 
+		                                sizeof( double), offset );
 	  offset += sizeof( double );
-	  RecordWritten = cellRecord.Write( &ugc->ucarea.x2, sizeof( double), offset );
+	  RecordWritten = cellRecord.Write( &ugc->ucarea.x2, 
+		                                sizeof( double), offset );
 	  offset += sizeof( double );
-	  RecordWritten = cellRecord.Write( &ugc->ucarea.y2, sizeof( double), offset );
+	  RecordWritten = cellRecord.Write( &ugc->ucarea.y2, 
+		                                sizeof( double), offset );
 	  offset += sizeof( double );
-	  RecordWritten = cellRecord.Write( &ugc->noOfEntries, sizeof( int), offset );
+	  RecordWritten = cellRecord.Write( &ugc->noOfEntries, 
+		                                sizeof( int), offset );
 	  offset += sizeof( int );
-	  RecordWritten = cellRecord.Write( &ugc->firstTime, sizeof( long), offset );
+	  RecordWritten = cellRecord.Write( &ugc->firstTime, 
+		                                sizeof( long), offset );
 	  offset += sizeof( long );
-	  RecordWritten = cellRecord.Write( &ugc->lastTime, sizeof( long), offset );
+	  RecordWritten = cellRecord.Write( &ugc->lastTime, 
+		                                sizeof( long), offset );
 	  offset += sizeof( long );
-	  RecordWritten = cellRecord.Write( &ugc->modified, sizeof( bool), offset );
+	  RecordWritten = cellRecord.Write( &ugc->modified, 
+		                                sizeof( bool), offset );
 	  offset += sizeof( bool );
 	  // read the history units
 	  for (int j = 0; j < ugc->noOfEntries; j ++)
 	  {
 	    // read current entry
-	    RecordWritten = cellRecord.Write( &ugc->cellArray[j].cellRecId, sizeof (SmiRecordId), offset );
+	    RecordWritten = cellRecord.Write( &ugc->cellArray[j].cellRecId,
+			sizeof (SmiRecordId), offset );
 	    offset += sizeof (SmiRecordId);
-		RecordWritten = cellRecord.Write( &ugc->cellArray[j].cellabel, sizeof (int), offset );
+		RecordWritten = cellRecord.Write( &ugc->cellArray[j].cellabel, 
+			                              sizeof (int), offset );
 	    offset += sizeof (int);
-		RecordWritten = cellRecord.Write( &ugc->cellArray[j].ugctimestart, sizeof (long), offset );	
+		RecordWritten = cellRecord.Write(
+		&ugc->cellArray[j].ugctimestart,sizeof (long), offset );	
 		offset += sizeof (long); 
-		RecordWritten = cellRecord.Write( &ugc->cellArray[j].ugctimeend, sizeof (long), offset );	
+		RecordWritten = cellRecord.Write( &ugc->cellArray[j].ugctimeend,
+			sizeof (long), offset );	
 		offset += sizeof (long); 
-		RecordWritten = cellRecord.Write( &ugc->cellArray[j].ugcspos.x, sizeof(double), offset );	
+		RecordWritten = cellRecord.Write( &ugc->cellArray[j].ugcspos.x,
+			sizeof(double), offset );	
 		offset += sizeof(double);  
-		RecordWritten = cellRecord.Write( &ugc->cellArray[j].ugcspos.y, sizeof(double), offset );	
+		RecordWritten = cellRecord.Write( &ugc->cellArray[j].ugcspos.y,
+			sizeof(double), offset );	
 		offset += sizeof(double);  
-		RecordWritten = cellRecord.Write( &ugc->cellArray[j].ugcepos.x, sizeof(double), offset );	
+		RecordWritten = cellRecord.Write( &ugc->cellArray[j].ugcepos.x,
+			sizeof(double), offset );	
 		offset += sizeof(double);  
-		RecordWritten = cellRecord.Write( &ugc->cellArray[j].ugcepos.y, sizeof(double), offset );	
+		RecordWritten = cellRecord.Write( &ugc->cellArray[j].ugcepos.y,
+			sizeof(double), offset );	
 		offset += sizeof(double); 
 	  }
 	}
     SmiRecordId cellContRecno;
     SmiRecord cellContRecord;
     size_t offset = 0 ;
-	cellContRecno = (ugPtr->header.contArray[0].contRecordId);  // max one cell container in slave ugrid 
-    int RecordSelected = file.SelectRecord( cellContRecno, cellContRecord, SmiFile::Update );
+	cellContRecno = (ugPtr->header.contArray[0].contRecordId);  
+	    // max one cell container in slave ugrid 
+    int RecordSelected = file.SelectRecord( cellContRecno, cellContRecord, 
+		                                    SmiFile::Update );
 	assert (RecordSelected);
 	for (int k = 0; k < maxCellRec; k ++)
 	{
-	  int RecordWritten = cellContRecord.Write(&ugPtr->cellContQ1[k].celllabel, sizeof( int), offset);
+	  int RecordWritten = cellContRecord.Write(
+	   &ugPtr->cellContQ1[k].celllabel,sizeof( int), offset);
 	  offset += sizeof( int );
-	  RecordWritten = cellContRecord.Write( &ugPtr->cellContQ1[k].cellRecordId, sizeof( SmiRecordId), offset );
+	  RecordWritten = cellContRecord.Write( 
+		  &ugPtr->cellContQ1[k].cellRecordId,
+		  sizeof( SmiRecordId), offset );
 	  offset += sizeof( SmiRecordId); 
 	}
   }
-  //////
-  /// Read the header of a slave ugrid
-  //////
+/*
+Read the header of a slave ugrid
+
+*/
   void UGrid::ReadSlaveHeader(SmiRecordId  sUgridId, UGrid* mugPtr) 
   {
     UGrid* sugrid = new UGrid();
@@ -2922,18 +3092,20 @@ UGrid::~UGrid()
 	// max 6 child slave ugrids
 	delete sugrid;
   }
-  //////
-  /// Write the header of a slave ugrid
-  //////
+/*
+Write the header of a slave ugrid
+
+*/
   void UGrid::WriteSlaveHeader(SmiRecordId sUgridId, UGrid *ugPtr)
   {
     // write cellcontainer und cells of ugrid
     WriteSlaveCells(ugPtr);
 	// write ugrid header
 	SmiRecord record;
-	int RecordSelected = file.SelectRecord( sUgridId, record, SmiFile::Update );
+	int RecordSelected = file.SelectRecord( sUgridId, record, 
+		SmiFile::Update);
     assert( RecordSelected );
-    int RecordWritten = record.Write( &ugPtr->header, sizeof( Header ), 0 );// == sizeof( Header );
+    int RecordWritten = record.Write( &ugPtr->header, sizeof( Header ), 0 );
     assert( RecordWritten );
 	if ((!(ugPtr->header.slaveUgridId == (SmiRecordId)0) )  &&
 		  (ugPtr->header.noOfCells > 1 ))
@@ -2941,9 +3113,10 @@ UGrid::~UGrid()
       WriteSlaveHeader(ugPtr->header.slaveUgridId, ugPtr->header.ugcPtr);
 	}
   }
-  //////
-  /// Read the header
-  //////
+/*
+Read the header
+
+*/
   void UGrid::ReadHeader()
   {
     SmiRecord record;
@@ -2958,9 +3131,10 @@ UGrid::~UGrid()
       ReadSlaveHeader(header.slaveUgridId, this);
 	}
   }
-  //////
-  /// Write the header
-  //////
+/*
+Write the header
+
+*/
   void UGrid::WriteHeader()  
   {
     SmiRecord record;
@@ -2975,9 +3149,10 @@ UGrid::~UGrid()
         record.Write( &header, sizeof( Header ), 0 );
     assert( RecordWritten );
   }
-  //////
-  /// Read appended ugridcells from file via cellContainer
-  //////
+/*
+Read appended ugridcells from file via cellContainer
+
+*/
   void UGrid::ReadCells ()
   {
 	SmiRecordId cellContRecno;
@@ -2985,16 +3160,20 @@ UGrid::~UGrid()
 	for (int l = 0; l < maxCont; l ++)
 	{
       cellContRecno = header.contArray[l].contRecordId;
-	  int RecordSelected = file.SelectRecord( cellContRecno, cellContRecord, SmiFile::ReadOnly );
+	  int RecordSelected = file.SelectRecord( cellContRecno, cellContRecord,
+		  SmiFile::ReadOnly );
 	  assert (RecordSelected);
 	  size_t offset = 0;
 	  if (l == 0)
 	  {
 	    for (int k = 0; k < maxCellRec; k++)
 		{
-		  int RecordRead = cellContRecord.Read( &cellContQ1[k].celllabel, sizeof(int), offset );
+		  int RecordRead = cellContRecord.Read( 
+			  &cellContQ1[k].celllabel, 
+			  sizeof(int), offset );
 	      offset += sizeof( int );
-	      RecordRead = cellContRecord.Read( &cellContQ1[k].cellRecordId, sizeof( SmiRecordId), offset );  
+	      RecordRead = cellContRecord.Read( &cellContQ1[k].cellRecordId,
+			  sizeof( SmiRecordId), offset );  
 	      offset += sizeof(  SmiRecordId );
 		}
 	  }
@@ -3002,9 +3181,12 @@ UGrid::~UGrid()
 	  {
 	    for (int k = 0; k < maxCellRec; k++)
 		{
-		  int RecordRead = cellContRecord.Read( &cellContQ2[k].celllabel, sizeof(int), offset);
+		  int RecordRead = cellContRecord.Read( 
+			  &cellContQ2[k].celllabel, 
+			        sizeof(int), offset);
 	      offset += sizeof( int );
-	      RecordRead = cellContRecord.Read( &cellContQ2[k].cellRecordId, sizeof( SmiRecordId), offset );  
+	      RecordRead = cellContRecord.Read( &cellContQ2[k].cellRecordId, 
+			        sizeof( SmiRecordId), offset );  
 	      offset += sizeof(  SmiRecordId );
 		}
 	  }
@@ -3012,9 +3194,12 @@ UGrid::~UGrid()
 	  {
 	    for (int k = 0; k < maxCellRec; k++)
 		{
-		  int RecordRead = cellContRecord.Read( &cellContQ3[k].celllabel, sizeof(int), offset );
+		  int RecordRead = cellContRecord.Read( 
+			  &cellContQ3[k].celllabel, 
+			        sizeof(int), offset );
 	      offset += sizeof( int );
-	      RecordRead = cellContRecord.Read( &cellContQ3[k].cellRecordId, sizeof( SmiRecordId), offset );  
+	      RecordRead = cellContRecord.Read( &cellContQ3[k].cellRecordId, 
+			        sizeof( SmiRecordId), offset );  
 	      offset += sizeof(  SmiRecordId );
 		}
 	  }
@@ -3022,9 +3207,13 @@ UGrid::~UGrid()
 	  {
 	    for (int k = 0; k < maxCellRec; k++)
 		{
-		  int RecordRead = cellContRecord.Read( &cellContQ4[k].celllabel, sizeof(int), offset );
+		  int RecordRead = cellContRecord.Read( 
+			  &cellContQ4[k].celllabel, 
+			        sizeof(int), offset );
 	      offset += sizeof( int );
-	      RecordRead = cellContRecord.Read( &cellContQ4[k].cellRecordId, sizeof( SmiRecordId), offset );  
+	      RecordRead = cellContRecord.Read( 
+			  &cellContQ4[k].cellRecordId, 
+			        sizeof( SmiRecordId), offset );  
 	      offset += sizeof(  SmiRecordId );
 		}
 	  }
@@ -3038,25 +3227,35 @@ UGrid::~UGrid()
 	  if ((k / 256) == 0 )
 	  {
 	    cellRecno = (SmiRecordId)(cellContQ1[(k % 256)].cellRecordId);
-	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, SmiFile::ReadOnly );
+	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, 
+			                                    SmiFile::ReadOnly );
 		assert (RecordSelected);
-	    int RecordRead = cellRecord.Read( &ugc->intlabel, sizeof( int), offset );
+	    int RecordRead = cellRecord.Read( &ugc->intlabel, 
+			      sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.x1, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.x1, 
+			      sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.y1, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.y1, 
+			      sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.x2, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.x2, 
+			      sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.y2, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.y2, 
+			      sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->noOfEntries, sizeof( int), offset );
+	    RecordRead = cellRecord.Read( &ugc->noOfEntries, 
+			      sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordRead = cellRecord.Read( &ugc->firstTime, sizeof( long), offset );
+	    RecordRead = cellRecord.Read( &ugc->firstTime, 
+			      sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordRead = cellRecord.Read( &ugc->lastTime, sizeof( long), offset );
+	    RecordRead = cellRecord.Read( &ugc->lastTime, 
+			      sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordRead = cellRecord.Read( &ugc->modified, sizeof( bool), offset );
+	    RecordRead = cellRecord.Read( &ugc->modified, 
+			      sizeof( bool), offset );
 	    offset += sizeof( bool );
 	    // read the history units
 	    if (ugc->noOfEntries >0)
@@ -3064,19 +3263,32 @@ UGrid::~UGrid()
 		  for (int j = 0; j < ugc->noOfEntries; j ++)
 		  {
 		    // read current entry
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].hid, sizeof( int), offset );
+		    RecordRead = cellRecord.Read( &ugc->historyArray[j].hid, 
+				      sizeof( int), offset );
 	        offset += sizeof( int );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].htimestart, sizeof( long), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].htimestart,
+			    sizeof( long), offset );
 	        offset += sizeof( long );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].htimeend, sizeof( long), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].htimeend,
+				sizeof( long), offset );
 	        offset += sizeof( long );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].spos.x, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].spos.x, 
+				sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].spos.y, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].spos.y,
+				sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].epos.x, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].epos.x,
+				sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].epos.y, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].epos.y,
+				sizeof( double), offset );
 	        offset += sizeof( double );
 		  }
 	    }
@@ -3084,25 +3296,35 @@ UGrid::~UGrid()
       if ((k / 256) == 1 )
 	  {
 	    cellRecno = (SmiRecordId)(cellContQ2[(k % 256)].cellRecordId);
-	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, SmiFile::ReadOnly );
+	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, 
+			                                    SmiFile::ReadOnly );
 		assert (RecordSelected);
-	    int RecordRead = cellRecord.Read( &ugc->intlabel, sizeof( int), offset );
+	    int RecordRead = cellRecord.Read( &ugc->intlabel, 
+			                              sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.x1, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.x1, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.y1, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.y1, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.x2, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.x2, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.y2, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.y2, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->noOfEntries, sizeof( int), offset );
+	    RecordRead = cellRecord.Read( &ugc->noOfEntries, 
+			                          sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordRead = cellRecord.Read( &ugc->firstTime, sizeof( long), offset );
+	    RecordRead = cellRecord.Read( &ugc->firstTime, 
+			                          sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordRead = cellRecord.Read( &ugc->lastTime, sizeof( long), offset );
+	    RecordRead = cellRecord.Read( &ugc->lastTime, 
+			                          sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordRead = cellRecord.Read( &ugc->modified, sizeof( bool), offset );
+	    RecordRead = cellRecord.Read( &ugc->modified, 
+			                          sizeof( bool), offset );
 	    offset += sizeof( bool );
 	    // read the history units
 	    if (ugc->noOfEntries >0)
@@ -3110,19 +3332,32 @@ UGrid::~UGrid()
 		  for (int j = 0; j < ugc->noOfEntries; j ++)
 		  {
 		    // read current entry
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].hid, sizeof( int), offset );
+		    RecordRead = cellRecord.Read( &ugc->historyArray[j].hid, 
+				      sizeof( int), offset );
 	        offset += sizeof( int );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].htimestart, sizeof( long), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].htimestart, 
+				      sizeof( long), offset );
 	        offset += sizeof( long );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].htimeend, sizeof( long), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].htimeend, 
+				      sizeof( long), offset );
 	        offset += sizeof( long );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].spos.x, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].spos.x, 
+				      sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].spos.y, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].spos.y, 
+				      sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].epos.x, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].epos.x, 
+				      sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].epos.y, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].epos.y, 
+				      sizeof( double), offset );
 	        offset += sizeof( double );
 		  }
 	    }
@@ -3130,25 +3365,35 @@ UGrid::~UGrid()
       if ((k / 256 )== 2 )
 	  {
 	    cellRecno = (SmiRecordId)(cellContQ3[(k % 256)].cellRecordId);
-	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, SmiFile::ReadOnly );
+	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, 
+			                                    SmiFile::ReadOnly );
 		assert (RecordSelected);
-	    int RecordRead = cellRecord.Read( &ugc->intlabel, sizeof( int), offset );
+	    int RecordRead = cellRecord.Read( &ugc->intlabel, 
+			                              sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.x1, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.x1, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.y1, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.y1, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.x2, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.x2, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.y2, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.y2, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->noOfEntries, sizeof( int), offset );
+	    RecordRead = cellRecord.Read( &ugc->noOfEntries, 
+			                          sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordRead = cellRecord.Read( &ugc->firstTime, sizeof( long), offset );
+	    RecordRead = cellRecord.Read( &ugc->firstTime, 
+			                          sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordRead = cellRecord.Read( &ugc->lastTime, sizeof( long), offset );
+	    RecordRead = cellRecord.Read( &ugc->lastTime, 
+			                          sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordRead = cellRecord.Read( &ugc->modified, sizeof( bool), offset );
+	    RecordRead = cellRecord.Read( &ugc->modified, 
+			                          sizeof( bool), offset );
 	    offset += sizeof( bool );
 	    // read the history units
 	    if (ugc->noOfEntries >0)
@@ -3156,19 +3401,27 @@ UGrid::~UGrid()
 		  for (int j = 0; j < ugc->noOfEntries; j ++)
 		  {
 		    // read current entry
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].hid, sizeof( int), offset );
-	        offset += sizeof( int );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].htimestart, sizeof( long), offset );
+		    RecordRead = cellRecord.Read( 
+			 &ugc->historyArray[j].hid, sizeof( int), offset );
+			offset += sizeof( int );
+		    RecordRead = cellRecord.Read(
+			&ugc->historyArray[j].htimestart,
+			sizeof( long), offset );
 	        offset += sizeof( long );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].htimeend, sizeof( long), offset );
+		    RecordRead = cellRecord.Read( 
+			&ugc->historyArray[j].htimeend,sizeof( long), offset );
 	        offset += sizeof( long );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].spos.x, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+			&ugc->historyArray[j].spos.x,sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].spos.y, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+			&ugc->historyArray[j].spos.y,sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].epos.x, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+			&ugc->historyArray[j].epos.x,sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].epos.y, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( &ugc->historyArray[j].epos.y, 
+				      sizeof( double), offset );
 	        offset += sizeof( double );
 		  }
 	    }
@@ -3176,25 +3429,35 @@ UGrid::~UGrid()
       if ((k / 256) == 3 )
 	  {
 	    cellRecno = (SmiRecordId)(cellContQ4[(k % 256)].cellRecordId);
-	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, SmiFile::ReadOnly );
+	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, 
+			                                    SmiFile::ReadOnly );
 		assert (RecordSelected);
-	    int RecordRead = cellRecord.Read( &ugc->intlabel, sizeof( int), offset );
+	    int RecordRead = cellRecord.Read( &ugc->intlabel, 
+			                              sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.x1, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.x1, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.y1, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.y1, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.x2, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.x2, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->ucarea.y2, sizeof( double), offset );
+	    RecordRead = cellRecord.Read( &ugc->ucarea.y2, 
+			                          sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordRead = cellRecord.Read( &ugc->noOfEntries, sizeof( int), offset );
+	    RecordRead = cellRecord.Read( &ugc->noOfEntries, 
+			                          sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordRead = cellRecord.Read( &ugc->firstTime, sizeof( long), offset );
+	    RecordRead = cellRecord.Read( &ugc->firstTime, 
+			                          sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordRead = cellRecord.Read( &ugc->lastTime, sizeof( long), offset );
+	    RecordRead = cellRecord.Read( &ugc->lastTime, 
+			                          sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordRead = cellRecord.Read( &ugc->modified, sizeof( bool), offset );
+	    RecordRead = cellRecord.Read( &ugc->modified, 
+			                          sizeof( bool), offset );
 	    offset += sizeof( bool );
 	    // read the history units
 	    if (ugc->noOfEntries >0)
@@ -3202,19 +3465,32 @@ UGrid::~UGrid()
 		  for (int j = 0; j < ugc->noOfEntries; j ++)
 		  {
 		    // read current entry
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].hid, sizeof( int), offset );
+		    RecordRead = cellRecord.Read( &ugc->historyArray[j].hid, 
+				      sizeof( int), offset );
 	        offset += sizeof( int );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].htimestart, sizeof( long), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].htimestart, 
+				      sizeof( long), offset );
 	        offset += sizeof( long );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].htimeend, sizeof( long), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].htimeend, 
+				      sizeof( long), offset );
 	        offset += sizeof( long );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].spos.x, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].spos.x, 
+				      sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].spos.y, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].spos.y, 
+				      sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].epos.x, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].epos.x, 
+				     sizeof( double), offset );
 	        offset += sizeof( double );
-		    RecordRead = cellRecord.Read( &ugc->historyArray[j].epos.y, sizeof( double), offset );
+		    RecordRead = cellRecord.Read( 
+				&ugc->historyArray[j].epos.y, 
+				sizeof( double), offset );
 	        offset += sizeof( double );
 		  }
 	    }
@@ -3222,9 +3498,10 @@ UGrid::~UGrid()
       cells.Append (*ugc);                    // append ugridcell to ugrid 
 	} // noOfCells
   }
-  //////
-  /// Given that all ugridcells are resistent stored
-  //////
+/*
+Given that all ugridcells are resistent stored
+
+*/
   void UGrid::SaveCells ()                             //###
   {   
 	//SmiRecordFile file = this.file;
@@ -3238,44 +3515,67 @@ UGrid::~UGrid()
 	    cellRecno = (SmiRecordId)(cellContQ1[(k % 256)].cellRecordId);
         // read current entry
 	    const UGridCell* ugc;
-	    cells.Get(k, ugc);                   // read the ugridcell out of main memory
-	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, SmiFile::Update );
+	    cells.Get(k, ugc);         // read the ugridcell out of main memory
+	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, 
+			                                    SmiFile::Update );
 		assert (RecordSelected);
-	    int RecordWritten = cellRecord.Write(&ugc->intlabel, sizeof( int), 0 );
+	    int RecordWritten = cellRecord.Write(&ugc->intlabel, 
+			                                 sizeof( int), 0 );
 	    offset += sizeof( int );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.x1, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.x1, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.y1, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.y1, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.x2, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.x2, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.y2, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.y2, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->noOfEntries, sizeof( int), offset );
+	    RecordWritten = cellRecord.Write( &ugc->noOfEntries, 
+			                              sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordWritten = cellRecord.Write( &ugc->firstTime, sizeof( long), offset );
+	    RecordWritten = cellRecord.Write( &ugc->firstTime, 
+			                              sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordWritten = cellRecord.Write( &ugc->lastTime, sizeof( long), offset );
+	    RecordWritten = cellRecord.Write( &ugc->lastTime, 
+			                              sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordWritten = cellRecord.Write( &ugc->modified, sizeof( bool), offset );
+	    RecordWritten = cellRecord.Write( &ugc->modified, 
+			                              sizeof( bool), offset );
 	    offset += sizeof( bool );
 	    // read the history units
 		for (int j = 0; j < ugc->noOfEntries; j ++)
 		{
 		  // read current entry
-	      RecordWritten = cellRecord.Write( &ugc->historyArray[j].hid, sizeof (int), offset );
+	      RecordWritten = cellRecord.Write( &ugc->historyArray[j].hid, 
+			                                sizeof (int), offset );
 		  offset += sizeof (int);
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].htimestart, sizeof (long), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].htimestart, 
+			        sizeof (long), offset );	
 		  offset += sizeof (long); 
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].htimeend, sizeof (long), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].htimeend, 
+			        sizeof (long), offset );	
 		  offset += sizeof (long); 
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].spos.x, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].spos.x, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].spos.y, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].spos.y, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].epos.x, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].epos.x, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].epos.y, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].epos.y, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double); 
 		}
 	  } // cellContQ1
@@ -3286,43 +3586,66 @@ UGrid::~UGrid()
         size_t offset = 0 ;
 	    const UGridCell* ugc;
 	    cells.Get(k, ugc);
-	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, SmiFile::Update );
+	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, 
+			                                    SmiFile::Update );
 		assert (RecordSelected);
-	    int RecordWritten = cellRecord.Write(&ugc->intlabel, sizeof( int), 0 );
+	    int RecordWritten = cellRecord.Write(&ugc->intlabel, 
+			                                 sizeof( int), 0 );
 	    offset += sizeof( int );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.x1, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.x1, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.y1, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.y1, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.x2, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.x2, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.y2, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.y2, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->noOfEntries, sizeof( int), offset );
+	    RecordWritten = cellRecord.Write( &ugc->noOfEntries, 
+			                              sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordWritten = cellRecord.Write( &ugc->firstTime, sizeof( long), offset );
+	    RecordWritten = cellRecord.Write( &ugc->firstTime, 
+			                              sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordWritten = cellRecord.Write( &ugc->lastTime, sizeof( long), offset );
+	    RecordWritten = cellRecord.Write( &ugc->lastTime, 
+			                              sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordWritten = cellRecord.Write( &ugc->modified, sizeof( bool), offset );
+	    RecordWritten = cellRecord.Write( &ugc->modified, 
+			                              sizeof( bool), offset );
 	    offset += sizeof( bool );
 	    // read the history units
 		for (int j = 0; j < ugc->noOfEntries; j ++)
 		{
 		  // read current entry
-	      RecordWritten = cellRecord.Write( &ugc->historyArray[j].hid, sizeof (int), offset );
+	      RecordWritten = cellRecord.Write( &ugc->historyArray[j].hid, 
+			                                sizeof (int), offset );
 		  offset += sizeof (int);
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].htimestart, sizeof (long), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].htimestart,   
+			        sizeof (long), offset );	
 		  offset += sizeof (long); 
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].htimeend, sizeof (long), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].htimeend, 
+			        sizeof (long), offset );	
 		  offset += sizeof (long); 
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].spos.x, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].spos.x, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].spos.y, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].spos.y, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].epos.x, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].epos.x, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].epos.y, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].epos.y, 
+			         sizeof(double), offset );	
 		  offset += sizeof(double); 
 		}
 	  } // cellContQ2
@@ -3333,43 +3656,66 @@ UGrid::~UGrid()
         size_t offset = 0 ;
 	    const UGridCell* ugc;
 	    cells.Get(k, ugc);
-	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, SmiFile::Update );
+	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, 
+			                                    SmiFile::Update );
 		assert (RecordSelected);
-	    int RecordWritten = cellRecord.Write(&ugc->intlabel, sizeof( int), 0 );
+	    int RecordWritten = cellRecord.Write(&ugc->intlabel, 
+			                                 sizeof( int), 0 );
 	    offset += sizeof( int );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.x1, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.x1, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.y1, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.y1, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.x2, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.x2, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.y2, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.y2, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->noOfEntries, sizeof( int), offset );
+	    RecordWritten = cellRecord.Write( &ugc->noOfEntries, 
+			                              sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordWritten = cellRecord.Write( &ugc->firstTime, sizeof( long), offset );
+	    RecordWritten = cellRecord.Write( &ugc->firstTime, 
+			                              sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordWritten = cellRecord.Write( &ugc->lastTime, sizeof( long), offset );
+	    RecordWritten = cellRecord.Write( &ugc->lastTime, 
+			                              sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordWritten = cellRecord.Write( &ugc->modified, sizeof( bool), offset );
+	    RecordWritten = cellRecord.Write( &ugc->modified, 
+			                              sizeof( bool), offset );
 	    offset += sizeof( bool );
 	    // read the history units
 		for (int j = 0; j < ugc->noOfEntries; j ++)
 		{
 		  // read current entry
-	      RecordWritten = cellRecord.Write( &ugc->historyArray[j].hid, sizeof (int), offset );
+	      RecordWritten = cellRecord.Write( &ugc->historyArray[j].hid, 
+			                                sizeof (int), offset );
 		  offset += sizeof (int);
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].htimestart, sizeof (long), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].htimestart,		  
+			  sizeof (long), offset );	
 		  offset += sizeof (long); 
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].htimeend, sizeof (long), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].htimeend, 
+			        sizeof (long), offset );	
 		  offset += sizeof (long); 
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].spos.x, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].spos.x, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].spos.y, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].spos.y, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].epos.x, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].epos.x, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].epos.y, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].epos.y, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double); 
 		}
 	  } // cellContQ3
@@ -3380,43 +3726,67 @@ UGrid::~UGrid()
         size_t offset = 0 ;
 	    const UGridCell* ugc;
 	    cells.Get(k, ugc);
-	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, SmiFile::Update );
+	    int RecordSelected = file.SelectRecord( cellRecno, cellRecord, 
+			                                    SmiFile::Update );
 		assert (RecordSelected);
-	    int RecordWritten = cellRecord.Write(&ugc->intlabel, sizeof( int), 0 );
+	    int RecordWritten = cellRecord.Write(&ugc->intlabel, 
+			                                 sizeof( int), 0 );
 	    offset += sizeof( int );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.x1, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.x1, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.y1, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.y1, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.x2, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.x2, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->ucarea.y2, sizeof( double), offset );
+	    RecordWritten = cellRecord.Write( &ugc->ucarea.y2, 
+			                              sizeof( double), offset );
 	    offset += sizeof( double );
-	    RecordWritten = cellRecord.Write( &ugc->noOfEntries, sizeof( int), offset );
+	    RecordWritten = cellRecord.Write( &ugc->noOfEntries, 
+			                              sizeof( int), offset );
 	    offset += sizeof( int );
-	    RecordWritten = cellRecord.Write( &ugc->firstTime, sizeof( long), offset );
+	    RecordWritten = cellRecord.Write( &ugc->firstTime, 
+			                              sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordWritten = cellRecord.Write( &ugc->lastTime, sizeof( long), offset );
+	    RecordWritten = cellRecord.Write( &ugc->lastTime, 
+			                              sizeof( long), offset );
 	    offset += sizeof( long );
-	    RecordWritten = cellRecord.Write( &ugc->modified, sizeof( bool), offset );
+	    RecordWritten = cellRecord.Write( &ugc->modified, 
+			                              sizeof( bool), offset );
 	    offset += sizeof( bool );
 	    // read the history units
 		for (int j = 0; j < ugc->noOfEntries; j ++)
 		{
 		  // read current entry
-	      RecordWritten = cellRecord.Write( &ugc->historyArray[j].hid, sizeof (int), offset );
+	      RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].hid, 
+			        sizeof (int), offset );
 		  offset += sizeof (int);
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].htimestart, sizeof (long), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].htimestart, 
+			        sizeof (long), offset );	
 		  offset += sizeof (long); 
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].htimeend, sizeof (long), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].htimeend, 
+			        sizeof (long), offset );	
 		  offset += sizeof (long); 
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].spos.x, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].spos.x, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].spos.y, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].spos.y, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].epos.x, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].epos.x, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double);  
-		  RecordWritten = cellRecord.Write( &ugc->historyArray[j].epos.y, sizeof(double), offset );	
+		  RecordWritten = cellRecord.Write( 
+			  &ugc->historyArray[j].epos.y, 
+			        sizeof(double), offset );	
 		  offset += sizeof(double); 
 		}
 	  } // cellContQ4
@@ -3430,63 +3800,74 @@ UGrid::~UGrid()
 	  if (l == 0)
 	  {
 	    cellContRecno = header.contArray[l].contRecordId;
-		int RecordSelected = file.SelectRecord( cellContRecno, cellContRecord, SmiFile::Update );
+		int RecordSelected = file.SelectRecord( 
+			cellContRecno, cellContRecord, SmiFile::Update );
 		assert (RecordSelected);
         for (int k = 0; k < maxCellRec; k++)
 		{
-		  int RecordWritten = cellContRecord.Write( &cellContQ1[k].celllabel, sizeof(int), offset );
+		  int RecordWritten = cellContRecord.Write( 
+			  &cellContQ1[k].celllabel, sizeof(int), offset );
 		  offset += sizeof(  int );
-		  RecordWritten = cellContRecord.Write( &cellContQ1[k].cellRecordId, sizeof(SmiRecordId ), offset );
+		  RecordWritten = cellContRecord.Write( 
+		  &cellContQ1[k].cellRecordId, sizeof(SmiRecordId ), offset );
 		  offset += sizeof(  SmiRecordId );
 		}
 	  }
 	  if (l == 1)
 	  {
 	    cellContRecno = header.contArray[l].contRecordId;
-		int RecordSelected = file.SelectRecord( cellContRecno, cellContRecord, SmiFile::Update );
+		int RecordSelected = file.SelectRecord( 
+			cellContRecno, cellContRecord, SmiFile::Update );
 		assert (RecordSelected);
 		for (int k = 0; k < maxCellRec; k++)
 		{
-		  int RecordWritten = cellContRecord.Write( &cellContQ2[k].celllabel, sizeof(int), offset );
+		  int RecordWritten = cellContRecord.Write( 
+			  &cellContQ2[k].celllabel, sizeof(int), offset );
 		  offset += sizeof(  int );
-		  RecordWritten = cellContRecord.Write( &cellContQ2[k].cellRecordId, sizeof(SmiRecordId ), offset );
+		  RecordWritten = cellContRecord.Write( 
+		  &cellContQ2[k].cellRecordId, sizeof(SmiRecordId ), offset );
 		  offset += sizeof(  SmiRecordId );
 		}
 	  }
 	  if (l == 2)
 	  {
 	    cellContRecno = header.contArray[l].contRecordId;
-		int RecordSelected = file.SelectRecord( cellContRecno, cellContRecord, SmiFile::Update );
+		int RecordSelected = file.SelectRecord( 
+			cellContRecno, cellContRecord, SmiFile::Update );
 		assert (RecordSelected);
 		for (int k = 0; k < maxCellRec; k++)
 		{
-		  int RecordWritten = cellContRecord.Write( &cellContQ3[k].celllabel, sizeof(int), offset );
+		  int RecordWritten = cellContRecord.Write( 
+			  &cellContQ3[k].celllabel, sizeof(int), offset );
 		  offset += sizeof(  int );
-		  RecordWritten = cellContRecord.Write( &cellContQ3[k].cellRecordId, sizeof(SmiRecordId ), offset );
+		  RecordWritten = cellContRecord.Write( 
+		  &cellContQ3[k].cellRecordId, sizeof(SmiRecordId ), offset );
 		  offset += sizeof(  SmiRecordId );
 		}
 	  }
 	  if (l == 3)
 	  {
 	    cellContRecno = header.contArray[l].contRecordId;
-		int RecordSelected = file.SelectRecord( cellContRecno, cellContRecord, SmiFile::Update );
+		int RecordSelected = file.SelectRecord( 
+			cellContRecno, cellContRecord, SmiFile::Update );
 		assert (RecordSelected);
 		for (int k = 0; k < maxCellRec; k++)
 		{
-		  int RecordWritten = cellContRecord.Write( &cellContQ4[k].celllabel, sizeof(int), offset );
+		  int RecordWritten = cellContRecord.Write( 
+		  &cellContQ4[k].celllabel, sizeof(int), offset );
 		  offset += sizeof(  int );
-		  RecordWritten = cellContRecord.Write( &cellContQ4[k].cellRecordId, sizeof(SmiRecordId ), offset );
+		  RecordWritten = cellContRecord.Write( 
+		  &cellContQ4[k].cellRecordId, sizeof(SmiRecordId ), offset );
 		  offset += sizeof(  SmiRecordId );
 		}
 	  }
 	}	  
   }
+/*
+2.7.6        List Representation
+2.7.6.1   ~Out~ function of class UGrid
 
-/////////////////////////////////////////////////////////////////////////////////
-////////               2.7.6        List Representation                  ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-////  2.7.6.1   ~Out~ function of class UGrid
+*/
   ListExpr UGrid::OutUGrid(ListExpr typeInfo, Word value )
 {
   UGrid* ugrid = (UGrid*)(value.addr);
@@ -3497,8 +3878,10 @@ UGrid::~UGrid()
   Instant Time2 = LongToInstant(ugrid->header.lastTime);
   ugrid->ugInterval.end = Time2;
   ListExpr timeintervalList = nl->FourElemList(
-	  OutDateTime( nl->TheEmptyList(), SetWord(&ugrid->ugInterval.start)),  // = &ugrid->firstTime 
-      OutDateTime( nl->TheEmptyList(), SetWord(&ugrid->ugInterval.end)),  // = &ugrid->lastTime
+	  OutDateTime( nl->TheEmptyList(), SetWord(&ugrid->ugInterval.start)), 
+	                                                 // = &ugrid->firstTime 
+      OutDateTime( nl->TheEmptyList(), SetWord(&ugrid->ugInterval.end)),  
+	                                                 // = &ugrid->lastTime
 	  nl->BoolAtom( true ),
       nl->BoolAtom( false));
   ListExpr areaList = nl->FourElemList(
@@ -3510,22 +3893,29 @@ UGrid::~UGrid()
    int noOfModCells = (int)ugrid->header.noOfModCells;
    int noOfEntries = (int)ugrid->header.noOfEntries;	
   return nl->FiveElemList(
-	         nl->StringAtom( "UGrid statistics" ),
-	         nl->TwoElemList( nl->StringAtom( "RecordId / FileId / number of UgridCells :" ),
-                              nl->ThreeElemList(nl->StringAtom( recordId ),
-							                    nl->StringAtom( fileid ),
-												nl->IntAtom( noOfCells ))),
-			 nl->TwoElemList( nl->StringAtom( "TimeInterval: " ),
-                              timeintervalList),
-			 nl->TwoElemList( nl->StringAtom( "Area : " ),
-                              areaList),
-             nl->TwoElemList( nl->StringAtom( "number of Entries / number of mod Cells : " ),
-                              nl->TwoElemList(nl->IntAtom( noOfEntries ),
-							                  nl->IntAtom( noOfModCells )))
-                              );  
+	       nl->StringAtom( "UGrid statistics" ),
+	       nl->TwoElemList( 
+			 nl->StringAtom( 
+			    "RecordId / FileId / number of UgridCells :" ),
+			 nl->ThreeElemList(nl->StringAtom( recordId ),
+			   nl->StringAtom( fileid ),
+			   nl->IntAtom( noOfCells ))),
+			nl->TwoElemList( nl->StringAtom( "TimeInterval: " ),
+                             timeintervalList),
+			nl->TwoElemList( nl->StringAtom( "Area : " ),
+                             areaList),
+            nl->TwoElemList( 
+			  nl->StringAtom( 
+			    "number of Entries / number of mod Cells : " ),
+              nl->TwoElemList(nl->IntAtom( noOfEntries ),
+			                  nl->IntAtom( noOfModCells )))
+                             );  
 }
 
-////  2.7.6.2   ~In~ function of class UGrid
+/*
+2.7.6.2   ~In~ function of class UGrid
+
+*/
   Word UGrid::InUGrid( ListExpr typeInfo, ListExpr value,
               int errorPos, ListExpr& errorInfo, bool& correct )
 
@@ -3541,7 +3931,7 @@ UGrid::~UGrid()
   }  
   else  
   {
-    if (nl->ListLength(value) == 4 &&                   //UGridArea gridarea;
+    if (nl->ListLength(value) == 4 &&                 //UGridArea gridarea;
 	    nl->IsAtom( nl->First( value ) ) &&
         nl->AtomType( nl->First( value) ) == RealType &&
         nl->IsAtom( nl->Second( value ) ) &&
@@ -3555,7 +3945,7 @@ UGrid::~UGrid()
 	  double ay1 = nl->RealValue( nl->Second( value));
 	  double ax2 = nl->RealValue( nl->Third( value));
 	  double ay2 = nl->RealValue( nl->Fourth( value));
-      if (( ax2 == ax1 ) || (ay1 == ay2 ))      // vertical or horizontal line   
+      if (( ax2 == ax1 ) || (ay1 == ay2 ))     // vertical or horizontal line   
 	  {
         errMsg = "vertical or horizontal line or point";
 		cmsg.inFunError(errMsg);
@@ -3580,7 +3970,8 @@ UGrid::~UGrid()
 	      double ay1 = nl->RealValue( nl->Second( area));
 	      double ax2 = nl->RealValue( nl->Third( area));
 	      double ay2 = nl->RealValue( nl->Fourth( area));
-		  if (( ax2 == ax1 ) || (ay1 == ay2 ))      // vertical or horizontal line   
+		  if (( ax2 == ax1 ) || (ay1 == ay2 ))    
+			  // vert or horizontal line   
 	      {
             errMsg = "vertical or horizontal line or point";
 		    cmsg.inFunError(errMsg);
@@ -3601,15 +3992,18 @@ UGrid::~UGrid()
   } 
 }
 
-////  2.6.7.3   ~SaveToList~ function of class UGrid
-//
-//    not used 
+/*
+2.6.7.3   ~SaveToList~ function of class UGrid
 
-////  2.6.7.4   ~RestoreFromList~ function of class UGrid
-//
-//    not used 
+   not used
 
-////  2.6.7.5   ~Create~ function of class UGrid
+2.6.7.4   ~RestoreFromList~ function of class UGrid
+
+   not used
+
+2.6.7.5   ~Create~ function of class UGrid
+
+*/
 Word UGrid::CreateUGrid( const ListExpr typeInfo )
 {
   string errMsg;
@@ -3629,7 +4023,8 @@ Word UGrid::CreateUGrid( const ListExpr typeInfo )
 	  double ay1 = nl->RealValue( nl->Second( typeInfo));
 	  double ax2 = nl->RealValue( nl->Third( typeInfo));
 	  double ay2 = nl->RealValue( nl->Fourth( typeInfo));
-	  if (( ax2 == ax1 ) || (ay1 == ay2 ))      // vertical or horizontal line   
+	  if (( ax2 == ax1 ) || (ay1 == ay2 ))      
+		  // vertical or horizontal line   
 	  {
         errMsg = "vertical or horizontal line or point";
 		cmsg.inFunError(errMsg);
@@ -3653,7 +4048,8 @@ Word UGrid::CreateUGrid( const ListExpr typeInfo )
 	      double ay1 = nl->RealValue( nl->Second( area));
 	      double ax2 = nl->RealValue( nl->Third( area));
 	      double ay2 = nl->RealValue( nl->Fourth( area));
-		  if (( ax2 == ax1 ) || (ay1 == ay2 ))      // vertical or horizontal line   
+		  if (( ax2 == ax1 ) || (ay1 == ay2 ))      
+			  // vert or horizontal line   
 	      {
             errMsg = "vertical or horizontal line or point";
 		    cmsg.inFunError(errMsg);
@@ -3671,7 +4067,10 @@ Word UGrid::CreateUGrid( const ListExpr typeInfo )
   return result;
 }
 
-////  2.7.6.6   ~Delete~ function of class UGrid
+/*
+2.7.6.6   ~Delete~ function of class UGrid
+
+*/
 void UGrid::DeleteUGrid( const ListExpr typeInfo, Word& w )
 {
   UGrid* ug = (UGrid*)w.addr;
@@ -3679,7 +4078,10 @@ void UGrid::DeleteUGrid( const ListExpr typeInfo, Word& w )
   delete ug;
 }
 
-//// 2.7.6.7   ~Open~ function of class UGrid
+/*
+2.7.6.7   ~Open~ function of class UGrid
+
+*/
 bool UGrid::OpenUGrid( SmiRecord& valueRecord,
                 size_t& offset,
                 const ListExpr typeInfo,
@@ -3696,7 +4098,10 @@ bool UGrid::OpenUGrid( SmiRecord& valueRecord,
   return true;
 }
 
-////  2.7.6.8   ~Save~ function of class UGrid
+/*
+2.7.6.8   ~Save~ function of class UGrid
+
+*/
 bool UGrid::SaveUGrid( SmiRecord& valueRecord,
                 size_t& offset,
                 const ListExpr typeInfo,
@@ -3715,32 +4120,47 @@ bool UGrid::SaveUGrid( SmiRecord& valueRecord,
   return true;
 }
 
-////  2.7.6.9   ~Close~ function of class UGrid
+/*
+2.7.6.9   ~Close~ function of class UGrid
+
+*/
 void UGrid::CloseUGrid( const ListExpr typeInfo, Word& w )
 {
   UGrid* ug = (UGrid*)w.addr;
   delete ug;
 }
 
-////  2.7.6.10   ~Clone~ function of class UGrid
+/*
+2.7.6.10   ~Clone~ function of class UGrid
+
+*/
 Word UGrid::CloneUGrid( const ListExpr typeInfo, const Word& w )
 {
   return SetWord( Address(0) );
 }
 
-////  2.7.6.11   ~Cast~ function of class UGrid
+/*
+2.7.6.11   ~Cast~ function of class UGrid
+
+*/
 void* CastUGrid( void* addr)
 {
   return ( 0 );
 }
 
-////  2.7.6.12   ~SizeOfObj~ function of class UGrid
+/*
+2.7.6.12   ~SizeOfObj~ function of class UGrid
+
+*/
 int UGrid::SizeOfObjUGrid()
 {
   return sizeof(UGrid);
 }
 
-////  2.7.6.13   Type Description of class UGrid
+/*
+2.7.6.13   Type Description of class UGrid
+
+*/
 ListExpr UGrid::UGridProp()
 {
   ListExpr examplelist = nl->TextAtom();
@@ -3754,16 +4174,22 @@ ListExpr UGrid::UGridProp()
                          nl->StringAtom("Example Creation")),
          nl->TwoElemList(examplelist,
                          nl->StringAtom("(let myugrid = createugrid"
-                         " area)"))));
+                         " (area))"))));
 }
 
-////  2.7.6.14   ~Check~ function of class UGrid
+/*
+2.7.6.14   ~Check~ function of class UGrid
+
+*/
 bool UGrid::CheckUGrid(ListExpr type, ListExpr& errorInfo)
 {
   return (nl->IsEqual(type, "ugrid"));
 }
 
-////  2.7.6.15 creation of TypeConstructor instance of class UGrid
+/*
+2.7.6.15 creation of TypeConstructor instance of class UGrid
+
+*/
 TypeConstructor ugridTC( UGRID,
                         UGrid::UGridProp,
                         UGrid::OutUGrid,
@@ -3779,28 +4205,13 @@ TypeConstructor ugridTC( UGRID,
                         CastUGrid,
                         UGrid::SizeOfObjUGrid,
                         UGrid::CheckUGrid );
+/*
+3 Creating Operators
+3.1  Create UGrid
+3.1.1  auxiliary functions of operator ~createugrid~
+3.1.2 Type Mapping of operator ~createugrid~
 
-/////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////                    3 Creating Operators                         ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////                    3.1  Create UGrid                            ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////      3.1.1  auxiliary functions of operator ~createugrid~       ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            3.1.2 Type Mapping of operator ~createugrid~         ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 ListExpr CreateUGridOpTypeMap(ListExpr args)
 {
   string errMsg = "Expecting ugridarea";
@@ -3849,12 +4260,12 @@ ListExpr CreateUGridOpTypeMap(ListExpr args)
     } // end  if(nl->ListLength(args) == 4)
   }
 }
+/*
+3.1.3 Value Mapping of operator ~createugrid~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////            3.1.3 Value Mapping of operator ~createugrid~        ////////
-/////////////////////////////////////////////////////////////////////////////////
+3.1.3.1  CreateUGridOpVMarea
 
-////  3.1.3.1  CreateUGridOpVM_area
+*/
 int CreateUGridOpVM_area(Word* args, Word& result, int message,
                           Word& local, Supplier s)
 {
@@ -3865,7 +4276,10 @@ int CreateUGridOpVM_area(Word* args, Word& result, int message,
   return 0;
 }
 
-////  3.1.3.2 CreateUGridOpVM_double
+/*
+3.1.3.2 CreateUGridOpVMdouble
+
+*/
 int CreateUGridOpVM_double(Word* args, Word& result, int message,
                           Word& local, Supplier s)
 {
@@ -3874,7 +4288,8 @@ int CreateUGridOpVM_double(Word* args, Word& result, int message,
   double* ugy1 = (double*)args[1].addr;
   double* ugx2 = (double*)args[2].addr;
   double* ugy2 = (double*)args[3].addr;
-  if (( *ugx1 == *ugx2 ) || (*ugy1 == *ugy2 ))      // vertical or horizontal line   
+  if (( *ugx1 == *ugx2 ) || (*ugy1 == *ugy2 ))      
+	  // vert or horizontal line   
   {
 	 ug = new UGrid();
 	 ug->header.noOfCells = 0;
@@ -3888,16 +4303,18 @@ int CreateUGridOpVM_double(Word* args, Word& result, int message,
   return 0;
 }
 
-////   3.1.3.3 CreateUGridOpMap
+/*
+3.1.3.3 CreateUGridOpMap
+
+*/
 ValueMapping CreateUGridOpMap[] = {
   CreateUGridOpVM_area,
   CreateUGridOpVM_double
 };
+/*
+3.1.4 Selection of operator ~createugrid~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////            3.1.4 Selection of operator ~createugrid~            ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 int  CreateUGridOpSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First(args);
@@ -3911,11 +4328,10 @@ int  CreateUGridOpSelect( ListExpr args )
   }
   return -1; // This point should never be reached
 }
+/*
+3.1.5 Specification of operator ~createugrid~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////            3.1.5 Specification of operator ~createugrid~        ////////
-/////////////////////////////////////////////////////////////////////////////////
- 
+*/ 
 const string CreateUGridSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -3932,25 +4348,14 @@ Operator createugrid (
 		  CreateUGridOpSelect,    // selection function
           CreateUGridOpTypeMap    // type mapping
 );
+/*
+3.2  Insertunit
+3.2.1  auxiliary functions of operator ~insertunit~
+3.2.1.1   CalculatePosX
+3.2.1.2   CalculatePosY
+3.2.1.1   IdentifyColumn
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////                    3.2  Insertunit                              ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////      3.2.1  auxiliary functions of operator ~insertunit~        ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-
-////  3.2.1.1   CalculatePosX
-
-
-
-////  3.2.1.2   CalculatePosY
-
-////  3.2.1.1   IdentifyColumn
+*/
 int IdentifyColumn(UGridArea  area, double posX, double xLength)
 {
   int col, i;
@@ -4004,8 +4409,12 @@ int IdentifyLine(UGridArea  area, double posY, double yLength)
   return 0;
 }
 
-////  3.2.1.1   InsertCell
-void InsertCell(UGridCell* modcell, int index, SmiRecordId cellRecId, UGridCell *ugce)
+/*
+3.2.1.1   InsertCell
+
+*/
+void InsertCell(UGridCell* modcell, int index, 
+				SmiRecordId cellRecId, UGridCell *ugce)
 {
   // insert cell unit
   modcell->cellArray[index].cellRecId = cellRecId;
@@ -4020,12 +4429,17 @@ void InsertCell(UGridCell* modcell, int index, SmiRecordId cellRecId, UGridCell 
   modcell->noOfEntries = index;
 }
 
-////  3.2.1.2   InsertCellUnit
-bool InsertCellUnit(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ugce)
-{  
+/*
+3.2.1.2   InsertCellUnit
+
+*/
+bool InsertCellUnit(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, 
+					UGridCell *ugce)
+{    
   // first evaluate the cellabel in slave ugrid
-  int intlabel = ((((ugce->intlabel % 10000) /100) / 2) * 100) +        //line (*100) in slave ugrid
-			      (((ugce->intlabel % 10000) % 100) / 2);               //column in slave ugrid
+  int intlabel = ((((ugce->intlabel % 10000) /100) / 2) * 100) +  
+	              (((ugce->intlabel % 10000) % 100) / 2);               
+                   //line (*100) in slave ugrid, column in slave ugrid
   int slintlabel;
   dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
   slintlabel = (dim *10000 )+ intlabel;
@@ -4034,7 +4448,7 @@ bool InsertCellUnit(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ugc
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
-  mug->cells.Get(ci, cellunit);                      // read the cell of slave ugrid
+  mug->cells.Get(ci, cellunit);                // read the cell of slave ugrid
   // initiate new ugridcell for modifications
   UGridCell* modcell = new UGridCell();
   // check the cell is the right
@@ -4056,11 +4470,13 @@ bool InsertCellUnit(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ugc
 }
 
 ////  3.2.1.3   InsertCellUnit2
-bool InsertCellUnit2(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ugce)
+bool InsertCellUnit2(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, 
+					 UGridCell *ugce)
 {  
   // first evaluate the cellabel in slave ugrid
-  int intlabel = ((((ugce->intlabel % 10000) /100) / 2) * 100) +        //line (*100) in slave ugrid
-			      (((ugce->intlabel % 10000) % 100) / 2);               //column in slave ugrid
+  int intlabel = ((((ugce->intlabel % 10000) /100) / 2) * 100) + 
+	             (((ugce->intlabel % 10000) % 100) / 2);               
+                    //line (*100) in slave ugrid, column in slave ugrid
   int slintlabel;
   dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
  
@@ -4070,7 +4486,7 @@ bool InsertCellUnit2(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ug
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
-  mug->cells.Get(ci, cellunit);                      // read the cell of slave ugrid
+  mug->cells.Get(ci, cellunit);                // read the cell of slave ugrid
   // initiate new ugridcell for modifications
   UGridCell* modcell = new UGridCell();
   // check the cell is the right
@@ -4095,11 +4511,13 @@ bool InsertCellUnit2(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ug
 }
 
 ////  3.2.1.4   InsertCellUnit4
-bool InsertCellUnit4(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ugce)
+bool InsertCellUnit4(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, 
+					 UGridCell *ugce)
 {  
   // first evaluate the cellabel in slave ugrid
-  int intlabel = ((((ugce->intlabel % 10000) /100) / 2) * 100) +        //line (*100) in slave ugrid
-			      (((ugce->intlabel % 10000) % 100) / 2);               //column in slave ugrid
+  int intlabel = ((((ugce->intlabel % 10000) /100) / 2) * 100) + 
+	             (((ugce->intlabel % 10000) % 100) / 2);               
+                   //line (*100) in slave ugrid, column in slave ugrid
   int slintlabel;
   dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
   slintlabel = (dim *10000 )+ intlabel;
@@ -4108,7 +4526,7 @@ bool InsertCellUnit4(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ug
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
-  mug->cells.Get(ci, cellunit);                      // read the cell of slave ugrid
+  mug->cells.Get(ci, cellunit);               // read the cell of slave ugrid
   // initiate new ugridcell for modifications
   UGridCell* modcell = new UGridCell();
   // check the cell is the right
@@ -4125,7 +4543,7 @@ bool InsertCellUnit4(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ug
 	// If slave ugrid doesn't exist, initiate a slave ugrid
 	if (mug->header.slaveUgridId == (SmiRecordId)0)
 	{
-      //SmiFileId ugridFileId = ug->FileId();          // ug = 32x32 master with the sigle link to file
+      // ug = 32x32 master with the sigle link to file
 	  sug = new UGrid(true, *mug, *ug);              // generate slave ugrid
 	  // insert header recordid of slave ugrid in master ugrid
       mug->header.slaveUgridId = sug->header.ugridRecordId; 
@@ -4149,12 +4567,17 @@ bool InsertCellUnit4(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ug
   mug->cells.Put(ci, *modcell);
   return true;
 }
-////  3.2.1.5   InsertCellUnit8
-bool InsertCellUnit8(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ugce)
+/*
+3.2.1.5   InsertCellUnit8
+
+*/
+bool InsertCellUnit8(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, 
+					 UGridCell *ugce)
 {  
   // first evaluate the cellabel in slave ugrid
-  int intlabel = ((((ugce->intlabel % 10000) /100) / 2) * 100) +        //line (*100) in slave ugrid
-			      (((ugce->intlabel % 10000) % 100) / 2);               //column in slave ugrid
+  int intlabel = ((((ugce->intlabel % 10000) /100) / 2) * 100) + 
+	              (((ugce->intlabel % 10000) % 100) / 2);               
+                    //line (*100) in slave ugrid, column in slave ugrid
   int slintlabel;
   dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
   slintlabel = (dim *10000 )+ intlabel;
@@ -4163,7 +4586,7 @@ bool InsertCellUnit8(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ug
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
-  mug->cells.Get(ci, cellunit);                      // read the cell of slave ugrid
+  mug->cells.Get(ci, cellunit);                // read the cell of slave ugrid
   // initiate new ugridcell for modifications
   UGridCell* modcell = new UGridCell();
   // check the cell is the right
@@ -4180,8 +4603,8 @@ bool InsertCellUnit8(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ug
 	// If slave ugrid doesn't exist, initiate a slave ugrid
 	if (mug->header.slaveUgridId == (SmiRecordId)0)
 	{
-      //SmiFileId ugridFileId = ug->FileId();          // ug = 32x32 master with the sigle link to file
-	  sug = new UGrid(true, *mug, *ug);           // generate slave ugrid
+      // ug = 32x32 master with the sigle link to file
+	  sug = new UGrid(true, *mug, *ug);         // generate slave ugrid
 		  // insert header recordid of slave ugrid in master ugrid
       mug->header.slaveUgridId = sug->header.ugridRecordId; 
 	}
@@ -4205,12 +4628,17 @@ bool InsertCellUnit8(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ug
   return true;
 }
 
-////  3.2.1.6   InsertCellUnit16
-bool InsertCellUnit16(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ugce)
+/*
+3.2.1.6   InsertCellUnit16
+
+*/
+bool InsertCellUnit16(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, 
+					  UGridCell *ugce)
 {  
   // first evaluate the cellabel in slave ugrid
-  int intlabel = ((((ugce->intlabel % 10000) /100) / 2) * 100) +        //line (*100) in slave ugrid
-			      (((ugce->intlabel % 10000) % 100) / 2);               //column in slave ugrid
+  int intlabel = ((((ugce->intlabel % 10000) /100) / 2) * 100) + 
+	              (((ugce->intlabel % 10000) % 100) / 2);               
+                   //line (*100) in slave ugrid, column in slave ugrid
   int slintlabel;
   dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
   slintlabel = (dim *10000 )+ intlabel;
@@ -4219,7 +4647,7 @@ bool InsertCellUnit16(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *u
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
-  mug->cells.Get(ci, cellunit);                      // read the cell of slave ugrid
+  mug->cells.Get(ci, cellunit);              // read the cell of slave ugrid
   // initiate new ugridcell for modifications
   UGridCell* modcell = new UGridCell();
   // check the cell is the right
@@ -4236,8 +4664,8 @@ bool InsertCellUnit16(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *u
 	UGrid* sug = mug->header.ugcPtr;
 	if (mug->header.slaveUgridId == (SmiRecordId)0)
 	{
-      //SmiFileId ugridFileId = ug->FileId();          // ug = 32x32 master with the sigle link to file
-	  sug = new UGrid(true, *mug, *ug);           // generate slave ugrid
+      // ug = 32x32 master with the sigle link to file
+	  sug = new UGrid(true, *mug, *ug);         // generate slave ugrid
 		  // insert header recordid of slave ugrid in master ugrid
       mug->header.slaveUgridId = sug->header.ugridRecordId; 
 	}
@@ -4261,14 +4689,20 @@ bool InsertCellUnit16(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *u
   return true;
 }
 
-////  3.2.1.7.  InsertCellUnit32
-bool InsertCellUnit32(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *ugce)
+/*
+3.2.1.7.  InsertCellUnit32
+
+*/
+bool InsertCellUnit32(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, 
+					  UGridCell *ugce)
 { 
   // append full ugridcell ugce in ugrid ug file, append a cellunit in 
   // slave ugrid mug with the assigned recordid and clear the ugridcell ugce
   // first evaluate the cellabel in slave ugrid
-  int intlabel = (((ugce->intlabel /100) / 2) * 100) +        //line (*100) in slave ugrid
-			      ((ugce->intlabel % 100) / 2);               //column in slave ugrid
+  int intlabel = (((ugce->intlabel /100) / 2) * 100) +       
+	                           //line (*100) in slave ugrid
+			      ((ugce->intlabel % 100) / 2);               
+                              //column in slave ugrid
   int slintlabel;
   dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
   slintlabel = (dim *10000 )+ intlabel;
@@ -4277,7 +4711,7 @@ bool InsertCellUnit32(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *u
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
-  mug->cells.Get(ci, cellunit);                      // read the cell of slave ugrid
+  mug->cells.Get(ci, cellunit);             // read the cell of slave ugrid
   // initiate new ugridcell for modifications
   UGridCell* modcell = new UGridCell();
   // check the cell is the right
@@ -4294,8 +4728,8 @@ bool InsertCellUnit32(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *u
 	// If slave ugrid doesn't exist, initiate a slave ugrid
 	if (mug->header.slaveUgridId == (SmiRecordId)0)
 	{
-      //SmiFileId ugridFileId = ug->FileId();          // ug = 32x32 master with the sigle link to file
-	  sug = new UGrid(true, *mug, *ug);           // generate slave ugrid
+      // ug = 32x32 master with the sigle link to file
+	  sug = new UGrid(true, *mug, *ug);    // generate slave ugrid
 		  // insert header recordid of slave ugrid in master ugrid
       mug->header.slaveUgridId = sug->header.ugridRecordId; 
 	}
@@ -4318,7 +4752,10 @@ bool InsertCellUnit32(UGrid* ug, UGrid *mug, SmiRecordId cellRecId, UGridCell *u
   mug->cells.Put(ci, *modcell);
   return true;
 }
-////  3.2.1.8.  InsertHistoryUnit
+/*
+3.2.1.8.  InsertHistoryUnit
+
+*/
 void InsertHistoryUnit (UGrid * ug, UGridCell* ugc, int index, HistoryUnit* hu)
 {
   ugc->historyArray[ index - 1 ].hid = hu->hid;
@@ -4346,7 +4783,10 @@ void InsertHistoryUnit (UGrid * ug, UGridCell* ugc, int index, HistoryUnit* hu)
     ug->header.lastTime = hu->htimeend;
   }
 }
-////  3.2.1.9.  Inserthandle
+/*
+3.2.1.9.  Inserthandle
+
+*/
 int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 {
   dimsize dim = (dimsize)32; 
@@ -4369,8 +4809,8 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
   //
   // current timestamp / datatype = Instant
   //
-  //Instant t1 = upunit->GetTime(); //stored timestamp in upddateunit isn't current
-  DateTime t2(instanttype);       // current timestamp
+  //Instant t1 = upunit->GetTime(); //timestamp in updateunit isn't current
+  DateTime t2(instanttype);        // current timestamp
   t2.Now();
   //
   // current timestamp in seconds / datatype = long
@@ -4390,15 +4830,17 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 	MobPos npos;
 	npos.x = nx;
 	npos.y = ny;
-	long predtime = currenttime + 60;      // timestamp for predicted position
+	long predtime = currenttime + 60;    // timestamp for predicted position
 	// entry in currentmap
-	myCurrentUnit.enter (id, currenttime, predtime, pos.x, pos.y, npos.x, npos.y);
+	myCurrentUnit.enter (id, currenttime, predtime, pos.x, pos.y, 
+		                 npos.x, npos.y);
 	myCurrentUnit.dump();
 	// time in Secondo-format Instant for result
 	Instant ctime1 = LongToInstant(currenttime);
 	Instant ctime2 = LongToInstant(predtime);
 	//currentunit generated according to the updateunit and prediction 
-	Interval<Instant>  t  = Interval<Instant>(ctime1, ctime2, true, false);	
+	Interval<Instant>  t  = 
+		Interval<Instant>(ctime1, ctime2, true, false);	
 	cu = new CurrentUnit(id, t, pos, npos);
 	// output
 	result.addr = cu;
@@ -4409,7 +4851,8 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
     long cutimestamp = 0;
 	double cux = 0;
 	double cuy = 0;
-    myCurrentUnit.readEntry (id, cutimestamp, cux, cuy);  // predicted timestamp not relevant
+    myCurrentUnit.readEntry (id, cutimestamp, cux, cuy);  
+	                      // predicted timestamp not relevant
 	//
 	// generate historyunit
 	//
@@ -4417,9 +4860,11 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 	spos.x = cux;
 	spos.y = cuy;
 	// starttimestamp = cutimestamp, endtimestamp = currenttime
-	HistoryUnit* newhu = new HistoryUnit(id, cutimestamp, currenttime, spos, pos);
+	HistoryUnit* newhu = new HistoryUnit(id, cutimestamp, currenttime, 
+		                                 spos, pos);
 	// enter historyunit in historymap and display it
-	myHistoryUnit.enter(id, cutimestamp, currenttime, spos.x, spos.y, pos.x, pos.y);
+	myHistoryUnit.enter(id, cutimestamp, currenttime, spos.x, spos.y, 
+		                pos.x, pos.y);
 	myHistoryUnit.dump();
 	//
 	// insert historyunit in ugrid-ugridcell
@@ -4429,10 +4874,10 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 	//
 	// Calculate length and heigth of area in ugrid and in ugridcell
     double xLength, yLength, xCellength, yCellength;
-    xLength = abs(gridarea.x2 - gridarea.x1);          // length of x-coordinate in ugrid 
-    yLength = abs(gridarea.y2 - gridarea.y1);          // length of y-coordinate in ugrid
-    xCellength = xLength / intdim;                // length of x-coordinate in an ugridcell TBD
-    yCellength = yLength / intdim;                // length of y-coordinate in an ugridcell
+    xLength = abs(gridarea.x2 - gridarea.x1); // length of x-coord in ugrid 
+    yLength = abs(gridarea.y2 - gridarea.y1); // length of y-coord in ugrid
+    xCellength = xLength / intdim;            // length of x-coord in ugridcell 
+    yCellength = yLength / intdim;            // length of y-coord in ugridcell
 	//select ugridcell for entry
 	// first we have to identify line and column of start- and endposition
 	int sposcol, sposline, eposcol, eposline;
@@ -4443,51 +4888,63 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
     int celllabel = 0 ;                  // label of ugridcell
 	int cellindex = 0 ;                  // index of ugridcell
     husplit contflag = none;             // flag continue splitting
-	
-    while ((sposcol < eposcol) || (sposline < eposline) ||   // while trajectory merge more than one ugridcell  
+	// while trajectory merge more than one ugridcell 
+    while ((sposcol < eposcol) || (sposline < eposline) ||    
 		   (sposcol > eposcol) || (sposline > eposline))
     {
 	  //
 	  // identify the ugridcell of the start position
       //
-      celllabel = (sposline * 100) + sposcol;                    // label of ugridcell
-	  cellindex = (sposline * intdim )+ (sposcol % intdim);      // index of ugridcell
+      celllabel = (sposline * 100) + sposcol;               
+	  cellindex = (sposline * intdim )+ (sposcol % intdim); 
 	  // calculate the the coordinates of the boundary   
 	  double boundxl, boundxr,boundyu, boundyl;
 	  if (gridarea.x1 < gridarea.x2)
 	  {
-        boundxl = gridarea.x1 + (sposcol * xCellength);            // x-coord of the left edge
-	    //boundxr = gridarea.x1 + ((sposcol + 1 ) * xCellength);   // x-coord of the right edge
+        boundxl = gridarea.x1 + (sposcol * xCellength);            
+		                    // x-coord of the left edge
+	    //boundxr = gridarea.x1 + ((sposcol + 1 ) * xCellength);   
+		                    // x-coord of the right edge
 		boundxl = boundxl +  xCellength;  
 	  }
 	  else
 	  {
-        boundxl = gridarea.x1 - (sposcol * xCellength);            // x-coord of the left edge
-	    //boundxr = gridarea.x1 - ((sposcol + 1 ) * xCellength);   // x-coord of the right edge
-		boundxr = boundxl -  xCellength;                          // x-coord of the right edge
+        boundxl = gridarea.x1 - (sposcol * xCellength);            
+		                     // x-coord of the left edge
+	    //boundxr = gridarea.x1 - ((sposcol + 1 ) * xCellength);   
+		                     // x-coord of the right edge
+		boundxr = boundxl -  xCellength;                         
+		                     // x-coord of the right edge
 	  }
 	  if (gridarea.y1 < gridarea.y2)
 	  {
-	    boundyu = gridarea.y1 + ((sposline + 1) * yCellength);   // y-coord of the upper edge 
-	    boundyl = gridarea.y1 + (sposline * yCellength);         // y-coord of the lower edge
+	    boundyu = gridarea.y1 + ((sposline + 1) * yCellength);   
+		                              // y-coord of the upper edge 
+	    boundyl = gridarea.y1 + (sposline * yCellength);         
+		                             // y-coord of the lower edge
 	  }
 	  else 
 	  {
-        boundyu = gridarea.y1 - ((sposline + 1)  * yCellength);   // y-coord of the upper edge 
-	    boundyl = gridarea.y1 - (sposline  * yCellength);         // y-coord of the lower edge
+        boundyu = gridarea.y1 - ((sposline + 1)  * yCellength);   
+		                             // y-coord of the upper edge 
+	    boundyl = gridarea.y1 - (sposline  * yCellength);         
+		                            // y-coord of the lower edge
 	  }
 	  
-	  UGridCell* ugcput = new UGridCell();                        // create ugridcell for Put new track  
-      const UGridCell* ugcget = new UGridCell();                  // create ugridcell for Get stored ugridcell
+	  UGridCell* ugcput = new UGridCell();                        
+	                               // create ugridcell for Put new track  
+      const UGridCell* ugcget = new UGridCell(); 
+	    // create ugridcell for Get stored ugridcell
 	  const int ci = cellindex;
-      if ((cellindex < ug->cells.Size()) && (cellindex >= 0))     // check index of ugridcell
+      if ((cellindex < ug->cells.Size()) && (cellindex >= 0))     
+		                          // check index of ugridcell
 	  {
 		ug->cells.Get(ci, ugcget); 
 		//int ugclabel = ugcget->intlabel;
 	  }
 	  else 
 	  {
-		break;     // ugridcell can not be identified - should never happen
+	    break;     // ugridcell can not be identified - should never happen
 	  }
       //
 	  //  Utilities for entry history unit
@@ -4497,7 +4954,7 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
       // direction of trajectory
 	  double trajdir = myUtilities.Direction (newhu->spos.x, newhu->spos.y, 
 		                          newhu->epos.x, newhu->epos.y);
-	  double dir = trajdir / 180 * PI ;                                   // direction in radian 
+	  double dir = trajdir / 180 * PI ;              // direction in radian 
 	  // calculate the track of trajectory line
       double trajectory = sqrt(pow((newhu->epos.y - newhu->spos.y),2) + 
 		                       pow((newhu->epos.x - newhu->spos.x),2)); 
@@ -4519,7 +4976,8 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
           //
 		  // Intersection with upper horizontal boundary line
           //
-		  // split trajectory in additional history unit newhu1 and modified newhu
+		  // split trajectory in additional history unit 
+		  // newhu1 and mod newhu
           HistoryUnit * newhu1 = new HistoryUnit();
           newhu1->hid = newhu->hid;
           newhu1->spos.x = newhu->spos.x;
@@ -4541,15 +4999,17 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		    // If slave ugrid doesn't exist, initiate a slave ugrid
 		    if (ug->header.slaveUgridId == (SmiRecordId)0)
 		    {
-               //SmiFileId ugridFileId = ug->FileId();
-			   UGrid* ugL1 = new UGrid(true,*ug, *ug);     // generate slave ugrid
-			   // insert header recordid of slave ugrid in master ugrid
-               ug->header.slaveUgridId = ugL1->header.ugridRecordId; 
+              //SmiFileId ugridFileId = ug->FileId();
+			  UGrid* ugL1 = new UGrid(true,*ug, *ug);     
+			  // generate slave ugrid
+			  // insert header recid of slave ugrid in master ugrid
+			  ug->header.slaveUgridId = ugL1->header.ugridRecordId; 
 		    }
 		    // append the full ugridcell in the file
 		    SmiRecordId fcellRecno;
             SmiRecord fcellRecord;
-		    int AppendedRecord = ug->file.AppendRecord(fcellRecno, fcellRecord);
+		    int AppendedRecord = ug->file.AppendRecord
+				(fcellRecno, fcellRecord);
 		    assert (AppendedRecord);
             // insert cell unit incl. fcellRecno in slave ugrid
             bool slavestore = InsertCellUnit32(ug, ug, fcellRecno, ugcput); 
@@ -4563,18 +5023,20 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		  InsertHistoryUnit (ug, ugcput, maxEntries, newhu1);
 		  // new history unit (spos secpoint)inserted
 		  ug->header.noOfEntries ++;
-          ug->cells.Put(ci,*ugcput);                // store ugridcell with new historyunit 
+          ug->cells.Put(ci,*ugcput);   // store ugridcell with new historyunit 
 		  // modify historyunit (secpoint epos)
           newhu->spos.x = secpointx;
           newhu->spos.y = boundyu;
           newhu->htimestart = newhu->htimestart + (long)sectimeuh;
-          contflag = linesp;            // start position of modified history unit now 1 line upper
+          contflag = linesp;  
+		  // start position of modified history unit now 1 line upper
 		}
 		else  // no intersection with upper horizontal boundary line
 		{
           if ((0 <= trajdir) && (trajdir <= 90))
 	      { 
-			// possible intersection with the right vertical boundary line 
+			// possible intersection with the 
+			//  right vertical boundary line 
             // intersetion: x-coord known - calculate time of intersection
 	        double sectimerv = (boundxr - newhu->spos.x) / (vel * cos(dir));
 		    // calculate the y-coord at the sectime
@@ -4583,7 +5045,8 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
                 ((boundyl <= secpointy)  && ( secpointy  <=  boundyu))) 
 	        {
               // Intersection with right vertical boundary line
-		      // split trajectory in additional history unit newhu1 and modified newhu
+		      // split trajectory in add. history unit 
+			  // newhu1 and mod newhu
               HistoryUnit * newhu1 = new HistoryUnit();
               newhu1->hid = newhu->hid;
               newhu1->spos = newhu->spos;
@@ -4605,14 +5068,17 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		        if (ug->header.slaveUgridId == (SmiRecordId)0)
 		        {
                   //SmiFileId ugridFileId = ug->FileId();
-			      UGrid* ugL1 = new UGrid(true,*ug, *ug);     // generate slave ugrid
-			      // insert header recordid of slave ugrid in master ugrid
+			      UGrid* ugL1 = new UGrid(true,*ug, *ug); 
+				                    // generate slave ugrid
+			      // insert header recordid of slave ugrid 
+				  // in master ugrid
                   ug->header.slaveUgridId = ugL1->header.ugridRecordId; 
 		        }
 		        // append the full ugridcell in the file
 		        SmiRecordId fcellRecno;
                 SmiRecord fcellRecord;
-		        int AppendedRecord = ug->file.AppendRecord(fcellRecno, fcellRecord);
+		        int AppendedRecord = ug->file.AppendRecord(fcellRecno, 
+					fcellRecord);
 		        assert (AppendedRecord);
                 // insert cell unit incl. fcellRecno in slave ugrid
                 bool slavestore = InsertCellUnit32(ug, ug, fcellRecno, ugcput); 
@@ -4630,20 +5096,25 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
               newhu->spos.x = boundxr;
               newhu->spos.y = secpointy;
               newhu->htimestart = newhu->htimestart + (long)sectimerv;
-              contflag = colsp;            // start position of modified history unit now 1 column right
+              contflag = colsp;            
+			  // start position of modified history unit
+			  // now 1 column right
 			}
             else  // no intersection historyunit - right vertical boundary line
             {     // 90 <= trajdir <= 180
               // possible intersection with left vertical boundaryline
               // intersetion: x-coord known - calculate time of intersection 
-	          double sectimelv = (newhu->spos.x - boundxl) / (vel * cos(dir));
+	          double sectimelv = (newhu->spos.x - boundxl) 
+				  / (vel * cos(dir));
 			  // calculate the y-coord at the sectime
               double secpointy = newhu->spos.y + (vel * sectimelv * sin(dir));
               if (((sectimelv > 0) && (sectimelv < dtime))  &&
-				  ((boundyl <= secpointy)  &&  (secpointy  <=  boundyu)))
+				  ((boundyl <= secpointy)  &&  (secpointy 
+				  <=  boundyu)))
 	          {
                 // Intersection with left vertical boundary line
-		        // split trajectory in additional history unit newhu1 and modified newhu
+		        // split trajectory in add. history unit newhu1 
+				// and mod newhu
                 HistoryUnit * newhu1 = new HistoryUnit();
                 newhu1->hid = newhu->hid;
                 newhu1->spos.x = newhu->spos.x;
@@ -4655,28 +5126,32 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		        // nhu1 put in ugridcell
 		        if (!ugcget->IsModified())
 		        {
-                  ug->header.noOfModCells ++;  // TBD  nur bei erstem Eintrag in Cell
+                  ug->header.noOfModCells ++;  //only first entry in Cell
 		        }
-				*ugcput = *ugcget;             // ugcget is const
+				*ugcput = *ugcget;      // ugcget is const
 		        int maxEntries = ugcput->noOfEntries;
 		        maxEntries ++;
 		        if (maxEntries >= (sizeHistoryArray+1))
 		        {
-		          // If slave ugrid doesn't exist, initiate a slave ugrid
+		          //If slave ugrid doesn't exist, initiate a slave ugrid
 		          if (ug->header.slaveUgridId == (SmiRecordId)0)
 		          {
                     //SmiFileId ugridFileId = ug->FileId();
-			        UGrid* ugL1 = new UGrid(true,*ug, *ug);     // generate slave ugrid
-			        // insert header recordid of slave ugrid in master ugrid
+			        UGrid* ugL1 = new UGrid(true,*ug, *ug);     
+					                // generate slave ugrid
+			        // insert header recordid of slave ugrid 
+					// in master ugrid
                     ug->header.slaveUgridId = ugL1->header.ugridRecordId; 
 		          }
 		          // append the full ugridcell in the file
 		          SmiRecordId fcellRecno;
                   SmiRecord fcellRecord;
-		          int AppendedRecord = ug->file.AppendRecord(fcellRecno, fcellRecord);
+		          int AppendedRecord = ug->file.AppendRecord(
+					  fcellRecno, fcellRecord);
 		          assert (AppendedRecord);
                   // insert cell unit incl. fcellRecno in slave ugrid
-                  bool slavestore = InsertCellUnit32(ug, ug, fcellRecno, ugcput); 
+                  bool slavestore = InsertCellUnit32(ug, ug, 
+					    fcellRecno, ugcput); 
                   if (slavestore = false)
 		          {
 			        return -1;
@@ -4684,7 +5159,8 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		          ugcput->ClearHu(); 
 		          maxEntries  = ugcput->noOfEntries + 1;
 		        }
-				InsertHistoryUnit (ug, ugcput, maxEntries, newhu1);
+				InsertHistoryUnit (ug, ugcput, 
+					maxEntries, newhu1);
 			    // new historyunit (spos secpoint) inserted
 		        ug->header.noOfEntries ++;
                 ug->cells.Put(ci,*ugcput);
@@ -4692,7 +5168,9 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
                 newhu->spos.x = boundxl;
                 newhu->spos.y = secpointy;
                 newhu->htimestart = newhu->htimestart + (long)sectimelv;
-                contflag = colsm;        // start position of modified history unit now 1 column left
+                contflag = colsm;        
+				// start position of modified history unit 
+				// now 1 column left
 			  }// no intersection with right vertical line
 			} //  end else 90 <= trajdir <= 180 
 		  }  // end if 0 <= trajdir <= 90
@@ -4702,7 +5180,9 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 	  { 
 		//possible intersection with the lower horizontal boundary line 
         // intersetion: y-coord known - calculate time of intersection
-	    double sectimelh = - ((newhu->spos.y - boundyl) / (vel * sin(dir))); // sin(dir) <0 because downwards
+	    double sectimelh = - ((newhu->spos.y - boundyl)
+			  / (vel * sin(dir))); 
+		// sin(dir) <0 because downwards
 	    // calculate the x-coord at the sectimelh
         double secpointx = newhu->spos.x + ((vel * sectimelh) * (cos(dir)));
 	    if (((sectimelh > 0) && (sectimelh < dtime))   &&
@@ -4711,7 +5191,7 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
           //
 		  // Intersection with lower horizontal boundary line
           //
-		  // split trajectory in additional history unit newhu1 and modified newhu
+		  // split trajectory in add. history unit newhu1 and mod newhu
           HistoryUnit * newhu1 = new HistoryUnit();
           newhu1->hid = newhu->hid;
           newhu1->spos.x = newhu->spos.x;
@@ -4735,14 +5215,17 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		    if (ug->header.slaveUgridId == (SmiRecordId)0)
 		    {
               //SmiFileId ugridFileId = ug->FileId();
-			  sug = new UGrid(true, *ug, *ug);     // generate slave ugrid
-			  // insert header recordid of slave ugrid in master ugrid
+			  sug = new UGrid(true, *ug, *ug);    
+			    // generate slave ugrid
+			  // insert header recordid of slave ugrid 
+			  // in master ugrid
               ug->header.slaveUgridId = sug->header.ugridRecordId; 
 		    }
 		    // append the full ugridcell in the file
 		    SmiRecordId fcellRecno;
             SmiRecord fcellRecord;
-		    int AppendedRecord = ug->file.AppendRecord(fcellRecno, fcellRecord);
+		    int AppendedRecord = ug->file.AppendRecord(
+				fcellRecno, fcellRecord);
 		    assert (AppendedRecord);
             // insert cell unit incl. fcellRecno in slave ugrid
             bool slavestore = InsertCellUnit32(ug, sug, fcellRecno, ugcput); 
@@ -4756,12 +5239,13 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		  InsertHistoryUnit (ug, ugcput, maxEntries, newhu1);
 		  // new history unit (spos secpoint)inserted
 		  ug->header.noOfEntries ++;
-          ug->cells.Put(ci,*ugcput);                // store ugridcell with new historyunit 
+          ug->cells.Put(ci,*ugcput);   // store ugridcell with new historyunit 
 		  // modify historyunit (secpoint epos)
           newhu->spos.x = secpointx;
           newhu->spos.y = boundyl;
           newhu->htimestart = newhu->htimestart + (long)sectimelh;
-          contflag = linesm;            // start position of modified history unit now 1 line upper
+          contflag = linesm;           
+		    // start position of modified history unit now 1 line upper
 		}
 		else  // no intersection with lower horizontal boundary line
 		{
@@ -4769,14 +5253,17 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		  {
             // possible intersection with left vertical boundaryline
             // intersetion: x-coord known - calculate time of intersection 
-	        double sectimelv = -((newhu->spos.x - boundxl) / (vel * cos(dir)));
+	        double sectimelv = -((newhu->spos.x - boundxl) 
+				/ (vel * cos(dir)));
 			// calculate the y-coord at the sectime
             double secpointy = newhu->spos.y + (vel * sectimelv * sin(dir));
             if (((sectimelv > 0) && (sectimelv < dtime))  &&
-			    ((boundyl <= secpointy)  &&  (secpointy  <=  boundyu)))
+			    ((boundyl <= secpointy)  &&  (secpointy  
+				<=  boundyu)))
 	        {
               // Intersection with left vertical boundary line
-		      // split trajectory in additional history unit newhu1 and modified newhu
+		      // split trajectory in add. history unit newhu1 
+			  // and mod newhu
               HistoryUnit * newhu1 = new HistoryUnit();
               newhu1->hid = newhu->hid;
               newhu1->spos.x = newhu->spos.x;
@@ -4788,7 +5275,7 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		      // nhu1 put in ugridcell
 		      if (!ugcget->IsModified())
 		      {
-                ug->header.noOfModCells ++;  // TBD  nur bei erstem Eintrag in Cell
+                ug->header.noOfModCells ++;  //only first entry in Cell
 		      }
 			  *ugcput = *ugcget;             // ugcget is const
  		      int maxEntries = ugcput->noOfEntries;
@@ -4799,14 +5286,17 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		        if (ug->header.slaveUgridId == (SmiRecordId)0)
 		        {
                   //SmiFileId ugridFileId = ug->FileId();
-			      UGrid* ugL1 = new UGrid(true, *ug, *ug);     // generate slave ugrid
-			      // insert header recordid of slave ugrid in master ugrid
+			      UGrid* ugL1 = new UGrid(true, *ug, *ug);     
+				                   // generate slave ugrid
+			      // insert header recordid of slave ugrid 
+				  // in master ugrid
                   ug->header.slaveUgridId = ugL1->header.ugridRecordId; 
 		        }
 		        // append the full ugridcell in the file
 		        SmiRecordId fcellRecno;
                 SmiRecord fcellRecord;
-		        int AppendedRecord = ug->file.AppendRecord(fcellRecno, fcellRecord);
+		        int AppendedRecord = ug->file.AppendRecord(
+					fcellRecno, fcellRecord);
 		        assert (AppendedRecord);
                 // insert cell unit incl. fcellRecno in slave ugrid
                 bool slavestore = InsertCellUnit32(ug, ug, fcellRecno, ugcput); 
@@ -4825,52 +5315,69 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
               newhu->spos.x = boundxl;
               newhu->spos.y = secpointy;
               newhu->htimestart = newhu->htimestart + (long)sectimelv;
-              contflag = colsm;      // start position of modified history unit now 1 column left
+              contflag = colsm;      
+			   // start position of modified history unit 
+			   // now 1 column left
 			} //  intersection with left vertical line
 			else // ((270 <= trajdir) && (trajdir <= 360))
 			{ 
-			  // possible intersection with the right vertical boundary line 
-			  // intersetion: x-coord known - calculate time of intersection
-			  double sectimerv = -((boundxr - newhu->spos.x) / (vel * cos(dir)));
+			  // possible intersection with the 
+			  // right vertical boundary line 
+			  // intersetion: x-coord known - 
+			  // calculate time of intersection
+			  double sectimerv = -((boundxr - newhu->spos.x) / 
+				                   (vel * cos(dir)));
 			  // calculate the y-coord at the sectime
-			  double secpointy = newhu->spos.y - (vel * sectimerv * sin(dir));
-			  if (((sectimerv > 0) && (sectimerv < dtime))  &&
-			      ((boundyl <= secpointy)  && ( secpointy  <=  boundyu))) 
+			  double secpointy = newhu->spos.y - 
+				  (vel * sectimerv * sin(dir));
+			  if (((sectimerv > 0) && 
+				  (sectimerv < dtime))  &&
+			      ((boundyl <= secpointy)  && 
+				  ( secpointy  <=  boundyu))) 
 			  {
 			    // Intersection with right vertical boundary line
-				// split trajectory in additional history unit newhu1 and modified newhu
+				// split trajectory in add. history unit 
+				// newhu1 and mod newhu
 				HistoryUnit * newhu1 = new HistoryUnit();
 				newhu1->hid = newhu->hid;
 				newhu1->spos = newhu->spos;
 				newhu1->epos.x = boundxr;
 				newhu1->epos.y = secpointy;
 				newhu1->htimestart = newhu->htimestart;
-				newhu1->htimeend = newhu->htimestart + (long)sectimerv;
+				newhu1->htimeend = newhu->htimestart + 
+					(long)sectimerv;
 				// nhu1 put in ugridcell
 				if (!ugcget->IsModified())
 				{
-				  ug->header.noOfModCells ++;  // TBD  nur bei erstem Eintrag in Cell
+				  ug->header.noOfModCells ++;  
+				  //only first entry in Cell
 				}
-				*ugcput = *ugcget;             // ugcget is const
+				*ugcput = *ugcget;             
+				// ugcget is const
 				int maxEntries = ugcput->noOfEntries;
 				maxEntries ++;
 				if (maxEntries >= (sizeHistoryArray+1))
 				{
-		          // If slave ugrid doesn't exist, initiate a slave ugrid
+		          // If slave ugrid doesn't exist, 
+				  // initiate a slave ugrid
 		          if (ug->header.slaveUgridId == (SmiRecordId)0)
 		          {
                     //SmiFileId ugridFileId = ug->FileId();
-			        UGrid* ugL1 = new UGrid(true, *ug, *ug);     // generate slave ugrid
-			        // insert header recordid of slave ugrid in master ugrid
+			        UGrid* ugL1 = new UGrid(true, *ug, *ug);    
+					// generate slave ugrid
+			        // insert header recordid of slave ugrid 
+					// in master ugrid
                     ug->header.slaveUgridId = ugL1->header.ugridRecordId; 
 		          }
 		          // append the full ugridcell in the file
 		          SmiRecordId fcellRecno;
                   SmiRecord fcellRecord;
-		          int AppendedRecord = ug->file.AppendRecord(fcellRecno, fcellRecord);
+		          int AppendedRecord = ug->file.AppendRecord(
+					  fcellRecno, fcellRecord);
 		          assert (AppendedRecord);
                   // insert cell unit incl. fcellRecno in slave ugrid
-                  bool slavestore = InsertCellUnit32(ug, ug, fcellRecno, ugcput); 
+                  bool slavestore = InsertCellUnit32(ug, ug, 
+					  fcellRecno, ugcput); 
                   if (slavestore = false)
 		          {
 			        return -1;
@@ -4878,15 +5385,19 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		          ugcput->ClearHu(); 
 		          maxEntries  = ugcput->noOfEntries + 1;
 				}
-				InsertHistoryUnit (ug, ugcput, maxEntries, newhu1);
+				InsertHistoryUnit 
+					(ug, ugcput, maxEntries, newhu1);
 				// hu inserted
 				ug->header.noOfEntries ++;
 				ug->cells.Put(ci,*ugcput);
 				// modify newhu
 				newhu->spos.x = boundxr;
 				newhu->spos.y = secpointy;
-				newhu->htimestart = newhu->htimestart + (long)sectimerv;
-				contflag = colsp;       // start position of modified history unit now 1 column  
+				newhu->htimestart = 
+					newhu->htimestart + (long)sectimerv;
+				contflag = colsp;       
+				// start position of modified history unit 
+				// now 1 column  
 			  } // intersection with right vertical boundary line
             } //((270 <= trajdir) && (trajdir <= 360))
 		  }  // end ((180 < trajdir) && (trajdir <= 270))
@@ -4941,8 +5452,8 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
     // insert newhu: spos and epos in the same ugridcell
     //
     // identify the ugridcell of the start position
-    celllabel = (sposline * 100) + sposcol;                      // label of ugridcell
-	cellindex = (sposline * intdim )+ (sposcol % intdim);        // index of ugridcell
+    celllabel = (sposline * 100) + sposcol;                      
+	cellindex = (sposline * intdim )+ (sposcol % intdim);       
     // read ugridcell
     if ((cellindex < ug->cells.Size()) && (cellindex >= 0))
     {
@@ -4972,17 +5483,21 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		  if (ug->header.slaveUgridId == (SmiRecordId)0)
 		  {
              //SmiFileId ugridFileId = ug->FileId();
-			 UGrid* ugL1 = new UGrid(true, *ug, *ug);     // generate slave ugrid
+			 UGrid* ugL1 = new UGrid(true, *ug, *ug);   
+			 // generate slave ugrid
 			 ugL1->header.noOfModCells = 0;
 		  }
 		  // append the full ugridcell in the file
 		  SmiRecordId fcellRecno;
           SmiRecord fcellRecord;
-		  int AppendedRecord = ug->file.AppendRecord(fcellRecno, fcellRecord);
+		  int AppendedRecord = 
+			  ug->file.AppendRecord(fcellRecno, fcellRecord);
 		  assert (AppendedRecord);
           // insert cell unit incl. fcellRecno in slave ugrid
-          bool slavestore = InsertCellUnit32(ug, ug->header.ugcPtr, fcellRecno, ugcput); 
-		  //bool slavestore = InsertCellUnit32(ug, sug, fcellRecno, ugcput);
+          bool slavestore = InsertCellUnit32(
+			  ug, ug->header.ugcPtr, fcellRecno, ugcput); 
+		  //bool slavestore = InsertCellUnit32
+		  // (ug, sug, fcellRecno, ugcput);
           if (slavestore = false)
 		  {
 			return -1;
@@ -5024,11 +5539,13 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 	npos.x = nx;
 	npos.y = ny;
 	// entry in currentmap, time as long type
-	myCurrentUnit.enter (id, currenttime, currenttime+60, pos.x, pos.y, npos.x, npos.y);
+	myCurrentUnit.enter (id, currenttime, 
+		currenttime+60, pos.x, pos.y, npos.x,npos.y);
 	myCurrentUnit.dump();
 	Instant cutime1 = LongToInstant(currenttime);
 	Instant cutime2 = LongToInstant(currenttime + 60);
-	Interval<Instant>  t  = Interval<Instant>(cutime1, cutime2, true, false);	
+	Interval<Instant>  t  = Interval<Instant>(
+		cutime1, cutime2, true, false);	
     cu = new CurrentUnit(id, t, pos, npos);
     result.addr = cu;
   }//end no first entry
@@ -5039,11 +5556,10 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
   return -1;
   }
 }
+/*
+3.2.2 Type Mapping of operator ~insertunit~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////            3.2.2 Type Mapping of operator ~insertunit~          ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 ListExpr InsertUnitOpTypeMap(ListExpr args)
 {
   string errMsg = "Expecting updateunit";
@@ -5065,22 +5581,24 @@ ListExpr InsertUnitOpTypeMap(ListExpr args)
   }
   return nl->SymbolAtom("typeerror");
 }
+/*
+3.2.3 Value Mapping of operator ~insertunit~
+3.3.3.1  InsertUnitOpVMunit
 
-/////////////////////////////////////////////////////////////////////////////////
-////////            3.2.3 Value Mapping of operator ~insertunit~         ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-////  3.3.3.1  InsertUnitOpVM_unit
+*/
 int InsertUnitOpVM(Word* args, Word& result, int message,
                           Word& local, Supplier s)
 {
   //dimsize dim = (dimsize)32; 
   // prepare result
-  CurrentUnit *cu = (CurrentUnit*)qp->ResultStorage(s).addr;    //resultaddress linked with currentunit
+  CurrentUnit *cu = (CurrentUnit*)qp->ResultStorage(s).addr;    
+                      //resultaddress linked with currentunit
   // open assigned ugrid
-  UGrid* ug = static_cast<UGrid*>( args[0].addr );              // ugrid in args[0] will be opened
+  UGrid* ug = static_cast<UGrid*>( args[0].addr );              
+                     // ugrid in args[0] will be opened
   //read inserted updateunit and display it
-  UpdateUnit* upunit = static_cast<UpdateUnit*>( args[1].addr ); // updateunit in arg[1] is read
+  UpdateUnit* upunit = static_cast<UpdateUnit*>( args[1].addr ); 
+                         // updateunit in arg[1] is read
   int ret = Inserthandle (cu, ug, upunit, result);
   if (ret == -1 )
   { 
@@ -5095,15 +5613,11 @@ int InsertUnitOpVM(Word* args, Word& result, int message,
   }
   return 0;
 }
+/*
+3.2.4 Selection of operator ~insertunit~
+3.2.5 Specification of operator ~insertunit~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////             3.2.4 Selection of operator ~insertunit~            ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////            3.2.5 Specification of operator ~insertunit~         ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 const string InsertUnitSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -5120,20 +5634,12 @@ Operator insertunit (
 		  Operator::SimpleSelect,    // selection function
           InsertUnitOpTypeMap       // type mapping
 );
+/*
+3.3  Insertsingle
+3.3.1  auxiliary functions of operator ~insertsingle~
+3.3.2  Type Mapping of operator ~insertsingle~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////                    3.3  Insertsingle                            ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////     3.3.1  auxiliary functions of operator ~insertsingle~       ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////         3.3.2  Type Mapping of operator ~insertsingle~          ////////
-/////////////////////////////////////////////////////////////////////////////////
+*/
 ListExpr InsertSingleOpTypeMap(ListExpr args)
 {
   string errMsg = "Expecting moving object";
@@ -5164,18 +5670,18 @@ ListExpr InsertSingleOpTypeMap(ListExpr args)
 	}
   }
 }
+/*
+3.3.3  Value mapping of operator ~insertsingle~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////        3.3.3  Value mapping of operator ~insertsingle~          ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 int InsertSingleOpVM(Word* args, Word& result, int message,
                           Word& local, Supplier s)
 { //dimsize dim = (dimsize)32; 
   //output will be a currentunit
   CurrentUnit *cu = (CurrentUnit*)qp->ResultStorage(s).addr;
   // open assigned ugrid
-  UGrid* ug = static_cast<UGrid*>( args[0].addr );              // ugrid in args[0] will be opened
+  UGrid* ug = static_cast<UGrid*>( args[0].addr ); 
+  // ugrid in args[0] will be opened
   // read the three arguments
   CcInt* id = static_cast<CcInt*>(args[1].addr);
   CcReal* x1 = static_cast<CcReal*>(args[2].addr);
@@ -5200,14 +5706,11 @@ int InsertSingleOpVM(Word* args, Word& result, int message,
   }
   return 0;
 }
-/////////////////////////////////////////////////////////////////////////////////
-////////           3.3.4  Selection of operator ~insertsingle~           ////////
-/////////////////////////////////////////////////////////////////////////////////
+/*
+3.3.4  Selection of operator ~insertsingle~
+3.3.5  Specification of operator ~insertsingle~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////           3.3.5  Specification of operator ~insertsingle~       ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 const string InsertSingleSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -5224,20 +5727,12 @@ Operator insertsingle (
 		  Operator::SimpleSelect,     // selection function
           InsertSingleOpTypeMap       // type mapping
 );
+/*
+3.4  Insertstream
+3.4.1  auxiliary functions of operator ~insertstream~
+3.4.2  Type Mapping of operator ~insertstream~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////                    3.4  Insertstream                            ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////     3.4.1  auxiliary functions of operator ~insertstream~       ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////         3.4.2  Type Mapping of operator ~insertstream~          ////////
-/////////////////////////////////////////////////////////////////////////////////
+*/
 ListExpr InsertStreamOpTypeMap(ListExpr args)
 {
   string errMsg = "Expecting moving object";
@@ -5266,11 +5761,10 @@ ListExpr InsertStreamOpTypeMap(ListExpr args)
 	}
   }
 }
+/*
+3.4.3  Value mapping of operator ~insertstream~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////        3.4.3  Value mapping of operator ~insertstream~          ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 int InsertStreamOpVM(Word* args, Word& result, int message,
                           Word& local, Supplier s)
 {
@@ -5289,15 +5783,11 @@ int InsertStreamOpVM(Word* args, Word& result, int message,
   result.setAddr( cu );
   return 0;
 }
+/*
+3.4.4  Selection of operator ~insertstream~
+3.4.5  Specification of operator ~insertstream~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////           3.4.4  Selection of operator ~insertstream~           ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////           3.4.5  Specification of operator ~insertstream~       ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 const string InsertStreamSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -5314,18 +5804,12 @@ Operator insertstream (
 		  Operator::SimpleSelect,     // selection function
           InsertStreamOpTypeMap       // type mapping
 );
+/*
+3.5  windowintersectug
+3.5.1  auxiliary functions of operator ~windowintersectug~
+3.5.1.1   Winintersecttime
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////                    3.5  windowintersectug                       ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////  3.5.1  auxiliary functions of operator ~windowintersectug~     ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-//// 3.5.1.1   Winintersecttime
+*/
 long Winintersecttime (UGrid* ugrid, int index, UGridArea area)
 { 
   UGridArea gridarea = ugrid->header.area;
@@ -5340,10 +5824,8 @@ long Winintersecttime (UGrid* ugrid, int index, UGridArea area)
   {
     if (ugrid->header.noOfEntries != 0)
 	{
-      //int celllabel = 0 ;           // label of ugridcell
-	  int cellindex = 0 ;         // index of ugridcell containing startposition
-	  //int ecellindex = 0 ;         // index of ugridcell containing endposition
-      //husplit contflag = none;     // flag continue splitting
+      //int celllabel = 0 ;     
+	  int cellindex = 0 ;     
 	  int intdim = (int)(sqrt(ugrid->header.noOfCells));
 	  // Identify xLenth, yLenth of ugrid and the ugridcell 
 	  // according the area of the request 
@@ -5359,7 +5841,8 @@ long Winintersecttime (UGrid* ugrid, int index, UGridArea area)
       //
       int sposcol = IdentifyColumn (ugrid->header.area, area.x1, xCellength);
 	  int sposline = IdentifyLine (ugrid->header.area, area.y1, yCellength);
-	  int eposcol = IdentifyColumn (ugrid->header.area, area.x2, xCellength);
+	  int eposcol = IdentifyColumn (ugrid->header.area, 
+		  area.x2, xCellength);
 	  int eposline = IdentifyLine (ugrid->header.area, area.y2, yCellength);
 	  if (sposcol <= eposcol)
 	  {
@@ -5481,7 +5964,10 @@ long Winintersecttime (UGrid* ugrid, int index, UGridArea area)
   }
 }
 
-//// 3.5.1.2   Winintersectarea
+/*
+3.5.1.2   Winintersectarea
+
+*/
 UGridArea Winintersectarea (UGrid* ugrid, int index, long time)
 { 
 UGridArea gridarea = ugrid->header.area; 
@@ -5503,11 +5989,11 @@ if (time >= 0)
      long t3 = (long) cutime;
      long reqtime = (t1 - t3) + time;
 	 double m, speed, a, nx, ny;
-     speed = 16.66;                           // angenommene Geschwindigkei = 60 km / h
-     m = area->y1/area->x1;                                 // Steigungswinkel 
-     a = atan(m);                             // Steigungswinkel in Grad
-     nx = area->x1 + (reqtime * speed * cos(a));          // neu berechnete x-Koordinate in time
-     ny = area->y1 + (reqtime * speed * sin(a));          // neu berechnete y-Koordinate in time 
+     speed = 16.66;                   // angenommene Geschwindigkei = 60 km / h
+     m = area->y1/area->x1;           // Steigungswinkel 
+     a = atan(m);                     // Steigungswinkel in Grad
+     nx = area->x1 + (reqtime * speed * cos(a));  // berechnete x-Koord in time
+     ny = area->y1 + (reqtime * speed * sin(a));  // berechnete y-Koord in time 
 	 area->x2 = nx;
 	 area->y2 = ny;
    }
@@ -5550,9 +6036,9 @@ else
 			  //break;
 			  UGridArea* resarea = new UGridArea();
 			  resarea->x1 = ugc->historyArray[j].spos.x;
-			            resarea->y1 = ugc->historyArray[j].spos.y;
-						resarea->x2 = ugc->historyArray[j].epos.x;
-						resarea->y2 = ugc->historyArray[j].epos.y;
+			  resarea->y1 = ugc->historyArray[j].spos.y;
+		      resarea->x2 = ugc->historyArray[j].epos.x;
+			  resarea->y2 = ugc->historyArray[j].epos.y;
 			  return *resarea;
 			}
 			else
@@ -5561,9 +6047,9 @@ else
 			  {
 				UGridArea* harea = new UGridArea();
                harea->x1 = ugc->historyArray[j].spos.x;
-			            harea->y1 = ugc->historyArray[j].spos.y;
-						harea->x2 = ugc->historyArray[j].epos.x;
-						harea->y2 = ugc->historyArray[j].epos.y;
+			   harea->y1 = ugc->historyArray[j].spos.y;
+			   harea->x2 = ugc->historyArray[j].epos.x;
+			   harea->y2 = ugc->historyArray[j].epos.y;
                return *harea ;
 			  }
 			}
@@ -5574,17 +6060,20 @@ else
 }
   return gridarea;
 }
-//// 3.5.1.2   Winintersectarea
+/*
+3.5.1.2   Winintersectarea
+
+*/
 int Winintersectid (UGrid* ugrid, UGridArea area, long time)
 { 
 	// not yet implemented
 	int id = 12;
 	return id;
 }
-/////////////////////////////////////////////////////////////////////////////////
-////////       3.5.2  Type Mapping of operator ~windowintersectug~       ////////
-/////////////////////////////////////////////////////////////////////////////////
+/*
+3.5.2  Type Mapping of operator ~windowintersectug~
 
+*/
 ListExpr WindowIntersectUGOpTypeMap(ListExpr args)
 {
   string errMsg = "Expecting ugrid with arguments";
@@ -5631,12 +6120,11 @@ ListExpr WindowIntersectUGOpTypeMap(ListExpr args)
 	}
   }
 }
+/*
+3.5.3  Value Mapping of operator ~windowintersectug~
+3.5.3.1   WindowIntersectUGOpVMid
 
-/////////////////////////////////////////////////////////////////////////////////
-////////       3.5.3  Value Mapping of operator ~windowintersectug~      ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-////  3.5.3.1   WindowIntersectUGOpVM_id
+*/
 int WindowIntersectUGOpVM_id(Word* args, Word& result, int message,
                               Word& local, Supplier s)
 {
@@ -5653,7 +6141,10 @@ int WindowIntersectUGOpVM_id(Word* args, Word& result, int message,
   return 0;
 }
 
-////  3.5.3.2   WindowIntersectUGOpVM_time
+/*
+3.5.3.2   WindowIntersectUGOpVMtime
+
+*/
 int WindowIntersectUGOpVM_time(Word* args, Word& result, int message,
                               Word& local, Supplier s)
 {
@@ -5669,8 +6160,12 @@ int WindowIntersectUGOpVM_time(Word* args, Word& result, int message,
   return 0;
 }
 
-////  3.5.3.3   WindowIntersectUGOpVM_area
-int WindowIntersectUGOpVM_area(Word* args, Word& result, int message,
+/*
+3.5.3.3   WindowIntersectUGOpVMarea
+
+*/
+int WindowIntersectUGOpVM_area(Word* args, Word& result, 
+							   int message,
                               Word& local, Supplier s)
 {
   UGridArea* area = (UGridArea*)qp->ResultStorage(s).addr;
@@ -5689,17 +6184,19 @@ int WindowIntersectUGOpVM_area(Word* args, Word& result, int message,
   return 0;
 }
 
-////  3.5.3.4   WindowIntersectUGMap
+/*
+3.5.3.4   WindowIntersectUGMap
+
+*/
 ValueMapping WindowIntersectUGMap[] = {
   WindowIntersectUGOpVM_id,
   WindowIntersectUGOpVM_time,
   WindowIntersectUGOpVM_area
 };
+/*
+3.5.4 Selection of operator ~windowintersectug~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////          3.5.4 Selection of operator ~windowintersectug~        ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 int  WindowIntersectUGOpSelect( ListExpr args )
 {
   ListExpr arg1 = nl->Second(args);
@@ -5726,11 +6223,10 @@ int  WindowIntersectUGOpSelect( ListExpr args )
   }
   return -1; // This point should never be reached
 }
+/*
+3.5.5  Specification of operator ~windowintersectug~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////       3.5.5  Specification of operator ~windowintersectug~      ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 const string WindowIntersectUGSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -5749,21 +6245,12 @@ Operator windowintersectug (
 		  WindowIntersectUGOpSelect,       // selection function
           WindowIntersectUGOpTypeMap       // type mapping
 );
+/*
+3.6  windowintersectsug
+3.6.1  auxiliary functions of operator ~windowintersectsug~
+3.6.2  Type Mapping of operator ~windowintersectsug~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////                    3.6  windowintersectsug                      ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////  3.6.1  auxiliary functions of operator ~windowintersectsug~    ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-/////////////////////////////////////////////////////////////////////////////////
-////////       3.6.2  Type Mapping of operator ~windowintersectsug~      ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 ListExpr WindowIntersectsUGOpTypeMap(ListExpr args)
 {
   string errMsg = "Expecting ugrid with arguments";
@@ -5780,36 +6267,41 @@ ListExpr WindowIntersectsUGOpTypeMap(ListExpr args)
 	if (nl->IsEqual( ugrid, UGRID)  &&
 		nl->IsEqual( attr, INT) )
 	{ 
-	  return nl->ThreeElemList(nl->TwoElemList(nl->StringAtom("TimeInterval: "),
-			                                       nl->SymbolAtom(REAL)),
-			                       nl->TwoElemList(nl->StringAtom("Area: "),
-			                                       nl->SymbolAtom(UGRIDAREA)),
-								   nl->TwoElemList(nl->StringAtom("Count: "),
-			                                       nl->SymbolAtom(INT))) ;
+	 return nl->ThreeElemList(
+		        nl->TwoElemList(nl->StringAtom("TimeInterval: "),
+			                    nl->SymbolAtom(REAL)),
+			    nl->TwoElemList(nl->StringAtom("Area: "),
+			                    nl->SymbolAtom(UGRIDAREA)),
+                nl->TwoElemList(nl->StringAtom("Count: "),
+			                    nl->SymbolAtom(INT))) ;
     }
 	else
 	{
       if (nl->IsEqual( ugrid, UGRID)  &&
 		  nl->IsEqual( attr, REAL) )
 	  { 
-		return nl->ThreeElemList(nl->TwoElemList(nl->StringAtom("Id: "),
-			                                       nl->SymbolAtom(INT)),
-			                       nl->TwoElemList(nl->StringAtom("Area: "),
-			                                       nl->SymbolAtom(UGRIDAREA)),
-								   nl->TwoElemList(nl->StringAtom("Count: "),
-			                                       nl->SymbolAtom(INT))) ;
+		return nl->ThreeElemList(
+			       nl->TwoElemList(nl->StringAtom("Id: "),
+			                       nl->SymbolAtom(INT)),
+			       nl->TwoElemList(nl->StringAtom("Area: "),
+			                       nl->SymbolAtom(UGRIDAREA)),
+				   nl->TwoElemList(nl->StringAtom("Count: "),
+			                       nl->SymbolAtom(INT))) ;
       } 
       else
       {
         if (nl->IsEqual( ugrid, UGRID)  &&
 		    nl->IsEqual( attr, UGRIDAREA) )
 	    { 
-		  return nl->ThreeElemList(nl->TwoElemList(nl->StringAtom("TimeInterval: "),
-			                                       nl->SymbolAtom(REAL)),
-			                       nl->TwoElemList(nl->StringAtom("Id: "),
-			                                       nl->SymbolAtom(INT)),
-								   nl->TwoElemList(nl->StringAtom("Count: "),
-			                                       nl->SymbolAtom(INT)) );
+		  return nl->ThreeElemList(
+			            nl->TwoElemList(
+			                nl->StringAtom("TimeInterval: "),
+			                nl->SymbolAtom(REAL)),
+			            nl->TwoElemList(nl->StringAtom("Id: "),
+			                nl->SymbolAtom(INT)),
+					    nl->TwoElemList(
+						    nl->StringAtom("Count: "),
+						    nl->SymbolAtom(INT)) );
         } 
 	    else
 		{
@@ -5821,12 +6313,11 @@ ListExpr WindowIntersectsUGOpTypeMap(ListExpr args)
     }
   }
 }
+/*
+3.6.3  Vale Mapping of operator ~windowintersectsug~
+3.6.3.1  WindowIntersectsUGOpVMid
 
-/////////////////////////////////////////////////////////////////////////////////
-////////       3.6.3  Vale Mapping of operator ~windowintersectsug~      ////////
-/////////////////////////////////////////////////////////////////////////////////
-
-////  3.6.3.1  WindowIntersectsUGOpVM_id
+*/
 int WindowIntersectsUGOpVM_id(Word* args, Word& result, int message,
                               Word& local, Supplier s)
 {
@@ -5840,7 +6331,10 @@ int WindowIntersectsUGOpVM_id(Word* args, Word& result, int message,
   result.setAddr( id );
   return 0;
 }
-////  3.6.3.2  WindowIntersectsUGOpVM_time
+/*
+3.6.3.2  WindowIntersectsUGOpVMtime
+
+*/
 int WindowIntersectsUGOpVM_time(Word* args, Word& result, int message,
                               Word& local, Supplier s)
 {
@@ -5855,7 +6349,10 @@ int WindowIntersectsUGOpVM_time(Word* args, Word& result, int message,
   return 0;
 }
 
-////  3.6.3.3  WindowIntersectsUGOpVM_area
+/*
+3.6.3.3  WindowIntersectsUGOpVMarea
+
+*/
 int WindowIntersectsUGOpVM_area(Word* args, Word& result, int message,
                               Word& local, Supplier s)
 {
@@ -5870,17 +6367,19 @@ int WindowIntersectsUGOpVM_area(Word* args, Word& result, int message,
   return 0;
 }
 
-////  3.6.3.4  WindowIntersectsUGMap
+/*
+3.6.3.4  WindowIntersectsUGMap
+
+*/
 ValueMapping WindowIntersectsUGMap[] = {
   WindowIntersectsUGOpVM_id,
   WindowIntersectsUGOpVM_time,
   WindowIntersectsUGOpVM_area
 };
+/*
+3.6.4  Selection of operator ~windowintersectsug~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////        3.6.4  Selection of operator ~windowintersectsug~        ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 int  WindowIntersectsUGOpSelect( ListExpr args )
 {
   ListExpr arg1 = nl->Second(args);
@@ -5898,11 +6397,10 @@ int  WindowIntersectsUGOpSelect( ListExpr args )
   }
   return -1; // This point should never be reached
 }
+/*
+3.6.5  Specification of operator ~windowintersectsug~
 
-/////////////////////////////////////////////////////////////////////////////////
-////////      3.6.5  Specification of operator ~windowintersectsug~      ////////
-/////////////////////////////////////////////////////////////////////////////////
- 
+*/ 
 const string WindowIntersectsUGSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -5921,10 +6419,11 @@ Operator windowintersectsug (
 		  WindowIntersectsUGOpSelect,       // selection function
           WindowIntersectsUGOpTypeMap       // type mapping
 );
+/*
+4.1   T y p e   M a p p i n g   Functions
+4.1.1  CoordCoordBool
 
-//////////   4.1   T y p e   M a p p i n g   Functions      /////////   
-
-//  4.1.1  CoordCoordBool
+*/
 
 ListExpr  RectRectBool( ListExpr args )
 {	
@@ -5944,7 +6443,10 @@ ListExpr  verintTypeMap( ListExpr args )
 
   return NList(INT).listExpr();
 }
-//  4.1.2  insideTypeMap
+/*
+4.1.2  insideTypeMap
+
+*/
 
 ListExpr  insideTypeMap( ListExpr args )
 {
@@ -5987,10 +6489,11 @@ ListExpr  insideTypeMap( ListExpr args )
   }  
   return NList::typeError(errMsg);
 }
-
-//  4.1.4  inserthuTypeMap
 /*
-The operator ~inserthu~ inserts a historyunit in UGridCell . 
+4.1.4  inserthuTypeMap
+
+The operator ~inserthu~ inserts a historyunit in UGridCell .
+
 */
 ListExpr inserthuTypeMap(ListExpr args)
 {	  
@@ -6015,7 +6518,10 @@ ListExpr inserthuTypeMap(ListExpr args)
   return nl->SymbolAtom("typeerror");
 }
 
-//  4.2.1 The ~inside~ selection for two coords, two UpdateUnits or MobPos/Coord
+/*
+4.2.1 The ~inside~ selection for two coords, two UpdateUnits or MobPos/Coord
+
+*/
 int  insideSelect( ListExpr args )
 {
   NList type(args);
@@ -6066,9 +6572,11 @@ int  insideSelect( ListExpr args )
   } 
 return -2;  // Should never happen - error  
 }  
-//////////   4.3   V a l u e   M a p p i n g   Functions      /////////   
- 
-//  4.3.1  intersectsFun
+/*
+4.3   V a l u e   M a p p i n g   Functions
+4.3.1  intersectsFun
+
+*/
 int  intersectsFun (Word* args, Word& result, int message, 
               Word& local, Supplier s)
 {
@@ -6082,9 +6590,11 @@ int  intersectsFun (Word* args, Word& result, int message,
   return 0;
 }
 
-// 4.3.2  insideFun_PA:The ~inside~ predicate for a point and a area
+/*
+4.3.2  insideFunPA:The ~inside~ predicate for a point and a area
 
-int  insideFun_PA (Word* args, Word& result, int message, 
+*/
+int  insideFun_PA (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   MobPos* p = static_cast<MobPos*>( args[0].addr );
@@ -6100,7 +6610,10 @@ int  insideFun_PA (Word* args, Word& result, int message,
   return 0;
 }
 
-// 4.3.3  insideFun_PU:The ~inside~ predicate for a point and a Updateunit
+/*
+4.3.3  insideFunPU:The ~inside~ predicate for a point and a Updateunit
+
+*/
 
 int  insideFun_PU (Word* args, Word& result, int message, 
              Word& local, Supplier s)
@@ -6117,7 +6630,10 @@ int  insideFun_PU (Word* args, Word& result, int message,
   b->Set(true, res);
   return 0;
 }
-// 4.3.4  insideFun_PC:The ~inside~ predicate for a point and a currentunit
+/*
+4.3.4  insideFunPC:The ~inside~ predicate for a point and a currentunit
+
+*/
 
 int  insideFun_PC (Word* args, Word& result, int message, 
              Word& local, Supplier s)
@@ -6136,9 +6652,11 @@ int  insideFun_PC (Word* args, Word& result, int message,
   b->Set(true, res); 
   return 0;
 }
-// 4.3.5  insideFun_PH:The ~inside~ predicate for a point and a historyunit
+/*
+4.3.5  insideFunPH:The ~inside~ predicate for a point and a historyunit
 
-int  insideFun_PH (Word* args, Word& result, int message, 
+*/
+int  insideFun_PH (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   MobPos* p = static_cast<MobPos*>( args[0].addr );
@@ -6154,7 +6672,10 @@ int  insideFun_PH (Word* args, Word& result, int message,
   return 0;
 }
 
-// 4.3.6 insideFun_AA:The ~inside~ predicate for two areas
+/*
+4.3.6 insideFunAA:The ~inside~ predicate for two areas
+
+*/
 
 int  insideFun_AA (Word* args, Word& result, int message, 
              Word& local, Supplier s)
@@ -6175,7 +6696,10 @@ int  insideFun_AA (Word* args, Word& result, int message,
   b->Set(true, res); 
   return 6;
 }
-// 4.3.7 insideFun_AC :The ~inside~ predicate for a area and a currentunit
+/*
+4.3.7 insideFunAC :The ~inside~ predicate for a area and a currentunit
+
+*/
 
 int  insideFun_AC (Word* args, Word& result, int message, 
              Word& local, Supplier s)
@@ -6195,7 +6719,10 @@ int  insideFun_AC (Word* args, Word& result, int message,
   b->Set(true, res); 
   return 7;
 }
-// 4.3.8 insideFun_AH :The ~inside~ predicate for a area and a historyunit
+/*
+4.3.8 insideFunAH :The ~inside~ predicate for a area and a historyunit
+
+*/
 
 int  insideFun_AH (Word* args, Word& result, int message, 
              Word& local, Supplier s)
@@ -6215,7 +6742,10 @@ int  insideFun_AH (Word* args, Word& result, int message,
   b->Set(true, res); 
   return 8;
 }
-// 4.3.9 insideFun_UU :The ~inside~ predicate for two updateunit
+/*
+4.3.9 insideFunUU :The ~inside~ predicate for two updateunit
+
+*/
 
 int  insideFun_UU (Word* args, Word& result, int message, 
              Word& local, Supplier s)
@@ -6241,7 +6771,10 @@ int  insideFun_UU (Word* args, Word& result, int message,
   b->Set(true, res); 
   return 9;
 }
-// 4.3.10 verintFun:The ~verint~ compares two points
+/*
+4.3.10 verintFun:The ~verint~ compares two points
+
+*/
 
 int  verintFun (Word* args, Word& result, int message, 
              Word& local, Supplier s)
@@ -6265,13 +6798,16 @@ int  verintFun (Word* args, Word& result, int message,
   return 1;
 }
 
-// 4.3.6 inserthuFun :The ~inserthu~ insert historyunit in UGridCell
+/*
+4.3.6 inserthuFun :The ~inserthu~ insert historyunit in UGridCell
+
+*/
 
 int  inserthuFun (Word* args, Word& result, int message, 
                         Word& local, Supplier s)
 {  
   HistoryUnit* hunit = static_cast<HistoryUnit*>( args[0].addr );
-  result = qp->ResultStorage(s);   //result number of UGridcell in which                                
+  result = qp->ResultStorage(s);   //result number of UGridcell in which
                                    //the historyunit is splitted
   hunit->hid = 0;
   UGridCell* ugc = (UGridCell*) result.addr;
@@ -6285,10 +6821,11 @@ int  inserthuFun (Word* args, Word& result, int message,
   ugc = new UGridCell( cellindex, dim, ucarea);
   return 0;
 }
+/*
+4.4  O p e r a t o r   D e s c r i p t i o n s
+4.4.1  Operator Descriptions  intersectsInfo
 
-////////// 4.4  O p e r a t o r   D e s c r i p t i o n s  /////////   
-
-//  4.4.1  Operator Descriptions  intersectsInfo
+*/
 
 struct intersectsInfo : OperatorInfo {
   intersectsInfo()
@@ -6300,7 +6837,10 @@ struct intersectsInfo : OperatorInfo {
   }
 }; 
 
-//  4.4.2  Operator Descriptions  insideInfo
+/*
+4.4.2  Operator Descriptions  insideInfo
+
+*/
 
 struct insideInfo : OperatorInfo {
   insideInfo()
@@ -6330,7 +6870,10 @@ struct verintInfo : OperatorInfo {
   }
 };
 
-//  4.4.4  Operator Descriptions  inserthuInfo
+/*
+4.4.4  Operator Descriptions  inserthuInfo
+
+*/
 
 struct inserthuInfo : OperatorInfo {
   inserthuInfo()
@@ -6341,14 +6884,10 @@ struct inserthuInfo : OperatorInfo {
     meaning   = "Insert Historyunit in UgridCell.";
   }
 };  
+/*
+4  Implementation of the Algebra Class
 
-/////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////
-////////                                                                 ////////
-////////             4  Implementation of the Algebra Class              ////////
-////////                                                                 ////////
-/////////////////////////////////////////////////////////////////////////////////
-
+*/
 
 class UGridAlgebra : public Algebra
 {
@@ -6364,8 +6903,8 @@ class UGridAlgebra : public Algebra
 	AddTypeConstructor( &mobposTC );
 
     
-    ugridTC.AssociateKind( "DATA" );
-    ugridareaTC.AssociateKind("DATA");
+    ugridTC.AssociateKind( "UGRID" );
+    ugridareaTC.AssociateKind("UGRIDAREA");
 
     AddOperator( &createugrid );
 	AddOperator( &insertunit);
@@ -6376,9 +6915,10 @@ class UGridAlgebra : public Algebra
 
 	AddOperator( intersectsInfo(), intersectsFun, RectRectBool );  
    
-    ValueMapping insideFuns[] = { insideFun_PA, insideFun_PU, insideFun_PC,
-		                          insideFun_PH, insideFun_AA, insideFun_AC,
-								  insideFun_AH, insideFun_UU, 0 };
+    ValueMapping insideFuns[] = { 
+		 insideFun_PA, insideFun_PU, insideFun_PC,
+		 insideFun_PH, insideFun_AA, insideFun_AC,
+         insideFun_AH, insideFun_UU, 0 };
     AddOperator( insideInfo(), insideFuns, insideSelect, insideTypeMap );
     AddOperator( verintInfo(), verintFun,  verintTypeMap );
   }
@@ -6386,10 +6926,10 @@ class UGridAlgebra : public Algebra
 };
 } // end of namespace ugridAlgebra
 
-/////////////////////////////////////////////////////////////////////////////
-//////////              6 Initialization of the Algebra             /////////   
-/////////////////////////////////////////////////////////////////////////////
+/*
+6 Initialization of the Algebra
 
+*/
 extern "C"
 Algebra*
 InitializeUGridAlgebra( NestedList* nlRef, 
@@ -6398,5 +6938,4 @@ InitializeUGridAlgebra( NestedList* nlRef,
   // The C++ scope-operator :: must be used to qualify the full name 
   return new ugridAlgebra::UGridAlgebra; 
 }
-
 
