@@ -113,9 +113,11 @@ public:
   map<string, int> VarAliasMap;
   vector< vector<Supplier> >ConstraintGraph;
   int count;
+  int iterator;
   Interval<Instant> nullInterval;
   
-  CSP():count(0),
+  
+  CSP():count(0),iterator(-1),
   nullInterval(Instant(0,0,instanttype), Instant(0,0,instanttype),true,true){}
   
   int AddVariable(string alias, Supplier handle)
@@ -255,6 +257,40 @@ public:
     if(i==Agenda.size()) return -1; else return i;
   }
   
+  
+  bool MoveNext()
+  {
+    if(iterator < (signed int)SA.size()-1)
+      iterator++;
+    else
+      return false;
+    return true;
+  }
+  
+  bool GetStart(string alias, Instant& result)
+  {
+    map<string, int>::iterator it;
+
+    it=VarAliasMap.find(alias);
+    if(it== VarAliasMap.end()) return false;
+
+    int index=(*it).second;
+    result.CopyFrom(& SA[iterator][index].start);
+    return true;
+  }
+  
+  bool GetEnd(string alias, Instant& result)
+  {
+    map<string, int>::iterator it;
+
+    it=VarAliasMap.find(alias);
+    if(it== VarAliasMap.end()) return false;
+
+    int index=(*it).second;
+    result.CopyFrom(& SA[iterator][index].end);
+    return true;
+  }
+  
   void Print()
   {
     
@@ -266,6 +302,7 @@ public:
     ConstraintGraph.clear();
     VarAliasMap.clear();
     count=0;
+    iterator=-1;
     return 0;
   }
 }csp;

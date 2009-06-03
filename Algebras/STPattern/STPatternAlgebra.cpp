@@ -358,7 +358,7 @@ TypeConstructor stvectorTC(
 
 ListExpr CreateSTVectorTM(ListExpr args)
 {
-  bool debugme= false;
+//  bool debugme= false;
   string argstr;
   ListExpr rest= args, first;
   while (!nl->IsEmpty(rest)) 
@@ -374,6 +374,79 @@ ListExpr CreateSTVectorTM(ListExpr args)
 }
 
 ListExpr STPatternTM(ListExpr args)
+{
+  bool debugme= true;
+
+  string argstr;
+
+  if(debugme)
+  {
+    cout<<endl<< nl->ToString(args)<<endl;
+    cout.flush();
+  }
+
+  ListExpr tupleExpr = nl->First(args),   //tuple(x)
+  NamedPredList  = nl->Second(args),  //named predicate list
+  ConstraintList = nl->Third(args);    //STConstraint list
+
+  nl->WriteToString(argstr, tupleExpr);
+
+  //  //checking for the first parameter tuple(x)
+  CHECK_COND( (nl->ListLength(tupleExpr) == 2) &&
+      (TypeOfRelAlgSymbol(nl->First(tupleExpr)) == tuple),
+      "Operator stpattern: expects as first argument "
+      "a list with structure (tuple ((a1 t1)...(an tn))).\n"
+      "But got '" + argstr + "'.");
+
+  //  //checking ofr the second parameter predicatelist
+  nl->WriteToString(argstr, NamedPredList);
+  CHECK_COND( ! nl->IsAtom(NamedPredList) ,
+      "Operator  stpattern expects as second argument a "
+      "list of aliased lifted predicates.\n"
+      "But got '" + argstr + "'.\n" );
+
+  ListExpr NamedPredListRest = NamedPredList;
+  ListExpr NamedPred;
+  while( !nl->IsEmpty(NamedPredListRest) )
+  {
+    NamedPred = nl->First(NamedPredListRest);
+    NamedPredListRest = nl->Rest(NamedPredListRest);
+    nl->WriteToString(argstr, NamedPred);
+
+    CHECK_COND
+    ((nl->ListLength(NamedPred) == 2 &&
+        nl->IsAtom(nl->First(NamedPred))&&
+        nl->IsAtom(nl->Second(NamedPred))&&
+        nl->SymbolValue(nl->Second(NamedPred))== "mbool"),
+        "Operator stpattern: expects a list of aliased predicates. "
+        "But got '" + argstr + "'.");
+  }
+
+  ListExpr ConstraintListRest = ConstraintList;
+  ListExpr STConstraint;
+  while( !nl->IsEmpty(ConstraintListRest) )
+  {
+    STConstraint = nl->First(ConstraintListRest);
+    ConstraintListRest = nl->Rest(ConstraintListRest);
+    nl->WriteToString(argstr, STConstraint);
+
+    CHECK_COND
+    ((nl->IsAtom(STConstraint)&&
+        nl->SymbolValue(STConstraint)== "bool"),
+        "Operator stpattern: expects a list of temporal connectors. "
+        "But got '" + argstr + "'.");
+  }
+
+  ListExpr result = nl->SymbolAtom("bool");
+  if(debugme)
+  {
+    cout<<endl<<endl<<"Operator stpattern accepted the input";
+    cout.flush();
+  }
+  return result;
+}
+
+ListExpr STPatternExTM(ListExpr args)
 {
   bool debugme= true;
 
@@ -489,6 +562,28 @@ ListExpr STConstraintTM(ListExpr args)
   return result;
 }
 
+ListExpr StartEndTM(ListExpr args)
+{
+  bool debugme=false;
+  string argstr;
+  if(debugme)
+  {
+    cout<<endl<< nl->ToString(args) <<endl;
+    cout<< nl->ListLength(args)  << ".."<< nl->IsAtom(nl->First(args))<<
+    ".."<< nl->SymbolValue(nl->First(args));
+    cout.flush();
+  }
+  nl->WriteToString(argstr, args);
+  CHECK_COND(nl->ListLength(args) == 1 &&
+      nl->IsAtom(nl->First(args)) &&
+      nl->SymbolValue(nl->First(args))== "string",
+      "Operator start/end expects a string symbol "
+      "but got." + argstr);
+  return nl->SymbolAtom("instant");
+}
+
+
+
 int CreateSTVectorVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -563,12 +658,127 @@ int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
+int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
+{
+  bool debugme=true;
+  Supplier root, namedpredlist, namedpred,alias, pred, constraintlist, filter,
+  constraint, alias1, alias2, stvector;
+  Word Value;
+  string aliasstr, alias1str, alias2str;
+  int noofpreds, noofconstraints;
+
+
+  result = qp->ResultStorage( s );
+  root = args[0].addr;
+
+  namedpredlist = args[1].addr;
+  constraintlist= args[2].addr;
+  filter= args[3].addr;
+
+  noofpreds= qp->GetNoSons(namedpredlist);
+  noofconstraints= qp->GetNoSons(constraintlist);
+
+  csp.Clear();
+  for(int i=0; i< noofpreds; i++)
+  {
+    namedpred= qp->GetSupplierSon(namedpredlist, i);
+    alias= qp->GetSupplierSon(namedpred, 0);
+    pred = qp->GetSupplierSon(namedpred, 1);
+    aliasstr= nl->ToString(qp->GetType(alias));
+    csp.AddVariable(aliasstr,pred);
+  }
+
+  for(int i=0; i< noofconstraints; i++)
+  {
+    constraint = qp->GetSupplierSon(constraintlist, i);
+    alias1= qp->GetSupplierSon(constraint, 0);
+    alias2= qp->GetSupplierSon(constraint, 1);
+    stvector= qp->GetSupplierSon(constraint, 2);
+
+    qp->Request(alias1, Value);
+    alias1str= ((CcString*) Value.addr)->GetValue();
+    qp->Request(alias2, Value);
+    alias2str= ((CcString*) Value.addr)->GetValue();
+    csp.AddConstraint(alias1str,alias2str, stvector);
+  }
+
+
+  bool hasSolution=csp.Solve();
+
+  if(!hasSolution)
+  {
+    ((CcBool*)result.addr)->Set(true,hasSolution);
+    if(debugme)
+    {
+      cout<< "tuple "<<tupleno++ ;
+      if(hasSolution) cout<<" part1 accepted\t";else cout<<" rejected\n";
+      csp.Print();
+      cout.flush();
+    }
+    return 0;
+  }
+
+  bool Part2=false;
+  while(csp.MoveNext() && !Part2)
+  {
+    qp->Request(filter, Value);
+    Part2= ((CcBool*)Value.addr)->GetValue();
+  }
+  ((CcBool*)result.addr)->Set(true,Part2);
+  if(debugme)
+  {
+    cout<< "tuple "<<tupleno++ ;
+    if(Part2) cout<<" part2 accepted\n"; else cout<<" part2 rejected\n";
+    csp.Print();
+    cout.flush();
+  }
+  return 0;
+}
+
+
 int STConstraintVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   assert(0); //this function should never be invoked.
   return 0;
 }
+
+
+template <bool leftbound> int StartEndVM
+(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  bool debugme= false;
+  Interval<Instant> interval;
+  Word input;
+  string lbl;
+
+  //qp->Request(args[0].addr, input);
+  lbl= ((CcString*)args[0].addr)->GetValue();
+  if(debugme)
+  {
+    cout<<endl<<"Accessing the value of label "<<lbl;
+    cout.flush();
+  }
+
+  Instant res(0,0,instanttype);
+  bool found=false;
+  if(leftbound)
+    found=csp.GetStart(lbl, res);
+  else
+    found=csp.GetEnd(lbl, res);
+  
+  if(debugme)
+  {
+    cout<<endl<<"Value is "; if(found) cout<<"found"; else cout<<"Not found";
+    res.Print(cout);
+    cout.flush();
+  }
+
+  result = qp->ResultStorage( s );
+  ((Instant*)result.addr)->CopyFrom(&res);
+  return 0;
+}
+
 
 const string CreateSTVectorSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -588,6 +798,15 @@ const string STPatternSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"abba\",\"aba.b\")</text--->"
   ") )";
 
+const string STPatternExSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> (stringlist) -> stvector</text--->"
+  "<text>stpattern( _ )</text--->"
+  "<text>Creates a vector temporal connector.</text--->"
+  "<text>let meanwhile = v(\"abab\","
+  "\"abba\",\"aba.b\")</text--->"
+  ") )";
+
 const string STConstraintSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text> (stringlist) -> stvector</text--->"
@@ -595,6 +814,20 @@ const string STConstraintSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "<text>Creates a vector temporal connector.</text--->"
   "<text>let meanwhile = v(\"abab\","
   "\"abba\",\"aba.b\")</text--->"
+  ") )";
+
+const string StartEndSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> string -> instant</text--->"
+  "<text>start( _ )/ end(_)</text--->"
+  "<text>Are used only within an extended spatiotemporal pattern predicate. "
+  "They return the start and end time instants for a predicate in the SA list"
+  "</text--->"
+  "<text> query Trains feed filter[. stpatternex[a: .Trip inside msnow, "
+  "b:distance(.Trip, mehringdamm)<10.0 ; "
+  "stconstraint(\"a\",\"b\", vec(\"aabb\", \"aab.b\")) ; "
+  "(start(\"b\")-end(\"a\"))< [const duration vecalue(0 1200000)] ] ] "
+  "count </text--->"
   ") )";
 
 Operator createstvector (
@@ -613,6 +846,14 @@ Operator stpattern (
     STPatternTM        //type mapping
 );
 
+Operator stpatternex (
+    "stpatternex",    //name
+    STPatternExSpec,     //specification
+    STPatternExVM,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    STPatternExTM        //type mapping
+);
+
 Operator stconstraint (
     "stconstraint",    //name
     STConstraintSpec,     //specification
@@ -621,6 +862,21 @@ Operator stconstraint (
     STConstraintTM        //type mapping
 );
 
+Operator start (
+    "start",    //name
+    StartEndSpec,     //specification
+    StartEndVM<true>,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    StartEndTM        //type mapping
+);
+
+Operator end (
+    "end",    //name
+    StartEndSpec,     //specification
+    StartEndVM<false>,       //value mapping
+    Operator::SimpleSelect, //trivial selection function
+    StartEndTM        //type mapping
+);
 
 
 class STPatternAlgebra : public Algebra
@@ -642,9 +898,13 @@ public:
 
      */
     stpattern.SetRequestsArguments();
+    stpatternex.SetRequestsArguments();
     AddOperator(&STP::createstvector);
     AddOperator(&STP::stpattern);
     AddOperator(&STP::stconstraint);
+    AddOperator(&STP::stpatternex);
+    AddOperator(&STP::start);
+    AddOperator(&STP::end);
   }
   ~STPatternAlgebra() {};
 };
