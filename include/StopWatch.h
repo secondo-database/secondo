@@ -34,10 +34,10 @@ An instance could be used as a clock to measure time differences.
 #define STOPWATCH_H
 
 #include <string>
-#include <sys/time.h>
+#include "SecondoConfig.h"
 
-#ifdef SECONDO_WIN32
-#else
+
+#ifndef SECONDO_WIN32
 #include <sys/times.h>
 #endif
 

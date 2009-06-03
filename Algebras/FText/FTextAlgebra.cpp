@@ -80,11 +80,10 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include "StopWatch.h"
 #include "Symbols.h"
 #include "SecondoSMI.h"
-#include "Crypt.h"
-#include "md5.h"
-#include "blowfish.h"
-
 #include "SocketIO.h"
+#include "Crypt.h"
+#include "blowfish.h"
+#include "md5.h"
 #include <math.h>
 #include <time.h>
 #include <sys/timeb.h>
