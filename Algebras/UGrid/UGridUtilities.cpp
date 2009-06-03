@@ -101,10 +101,10 @@ Einige Variablen
   StACurrentUnit ut_CurrentUnit;
   StAHistoryUnit ut_HistoryUnit;
 
-	/*
-	 Methode zum Berechnen der zurueckgelegten Distanz
+/*
+  Methode zum Berechnen der zurueckgelegten Distanz
 
-	*/
+*/
     double UGridUtilities::Distance (double x, double y, double nx, double ny)
     {
 	  double dx = abs(nx - x);   // nx = X-Koordinate der Endposition, 
