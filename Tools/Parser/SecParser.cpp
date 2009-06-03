@@ -71,6 +71,9 @@ public:
   void SetDebug( const int value ) { yy_flex_debug = value; }
 
 void deleteAllBuffers(){
+#if YY_FLEX_MAJOR_VERSION >1 && \
+    YY_FLEX_MINOR_VERSION > 4 && \
+    YY_FLEX_SUBMINOR_VERSION > 32
    while(YY_CURRENT_BUFFER){
      yy_delete_buffer(YY_CURRENT_BUFFER);
    }
@@ -78,7 +81,7 @@ void deleteAllBuffers(){
       free(yy_buffer_stack);
       yy_buffer_stack=0;
    }
-
+#endif
 }
 
 };
