@@ -1,0 +1,50 @@
+%
+% Headerdatei der Diplomarbeit
+%
+%
+
+\documentclass[
+		a4paper,
+		12pt,
+		twoside,
+		openright,
+		parskip,
+		%draft,
+		chapterprefix,%       Kapitel anschreiben als Kapitel
+]{scrreprt}
+
+\usepackage{moreverb}
+
+%Deutsche Trennungen, Anführungsstriche und mehr:
+\usepackage[ngerman]{babel} 
+
+%Eingabe von ü,ä,ö,ß erlauben
+\usepackage[latin1]{inputenc}
+
+\usepackage[babel,german=quotes]{csquotes}
+
+%T1 Fonts benutzen
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}
+\usepackage{lmodern}
+
+%Zum Einbinden von Grafiken
+\usepackage{graphicx}
+
+% Silbentrennung
+\usepackage{hyphenat}
+
+%Ein Paket, das die Darstellung von "Text, wie er eingegeben wird"
+%erlaubt: Also
+%\begin{verbatim} \end{document}\end{verbatim} erzeugt die Ausgabe von
+%\end{document} im Typewrites-Style und beendet nicht das Dokument.
+\usepackage{verbatim}
+
+%Source-Code printer for LaTeX
+\usepackage{listings}
+
+%Darstellung des Glossars einstellen
+\usepackage[style=super, header=none, border=none, number=none, cols=2,
+						toc=true]{glossary}
+
+\makeglossary

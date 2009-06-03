@@ -65,6 +65,75 @@ write(H), nl,
 secondo('query SEC2TYPEINFO feed count', I),
 write(I), nl.  
 
+berlinmod(7, select [pp:pos as pos, v1:licence as licence]
+from [datascar as v1, querypoints as pp]
+where [v1:trip passes pp:pos, v1:type = "passenger",
+  inst(initial(v1:trip at pp:pos)) <= (all 
+  (select inst(initial(v2:trip at pp:pos))
+   from [datascar as v2]
+   where [v2:trip passes pp:pos, v2:type = "passenger"]))
+]).
+
+ganski(1, select sname from s where sno in (select sno from sp where no = 'P2')).
+ganski(2, select sno from sp where pno = (select max(pno) from p)).
+ganski(3, select sno from sp where pno in (select pno from p where weight > 50)).
+ganski(4, select sname from s where sno in (select sno from sp where [qty > 100, sporigin = scity])).
+ganski(5, select pname from p where pno = (select max(pno) from sp where sporigin = pcity)).
+kiessling(2, select pnum from parts where qoh = (select count(shipdate) from supply where [supply:pnum = parts:pnum, shipdate < 19800101])).
+kiessling(5, select pnum from parts where qoh = (select max(quan) from supply where [supply:pnum < parts:pnum, shipdate < 19800101])).
+kim(4, select sno from sp where pno = (select max(pno) from p where price > 25)).
+kim(5, select sno from sp where pno in (select pno from p where price > 25)).
+kim(6, select sno from sp where pno in (select pno from pj where [sp:sno = pj:jno, jloc = 'NEW YORK'])).
+kim(7, select sno from sp where pno = (select max(pno) from pj where [pj:jno = sp:jno, jloc = 'NEW YORK'])).
+kim(10, select sname from s where sno not in(select sno from sp where [pno = 'P1'])).
+
+testQuery(1, select * from orte where ort in (select ort from plz where plz < 10000)).
+testQuery(2, select * from orte where ort in (select ort from plz where plz > bevt)).
+testQuery(3, select * from [orte, staedte as s] where [ort = s:sname, ort in (select p:ort from plz as p where p:ort = s:sname)]).
+testQuery(4, select * from orte where ort not in(select ort from plz where plz > 10000)).
+testQuery(5, select * from orte where ort not in(select ort from plz where plz < bevt)).
+testQuery(6, select * from [orte, staedte as s] where [ort = s:sname, ort not in(select p:ort from plz as p where p:ort = s:sname)]).
+testQuery(7, select * from orte where [exists(select ort from plz where plz < bevt)]).
+testQuery(8, select * from [orte, staedte as s] where [ort = s:sname, exists(select p:ort from plz as p where [p:ort = s:sname, s:bev > bevt])]).
+testQuery(9, select * from orte where [not(exists(select ort from plz where plz < bevt))]).
+testQuery(10, select * from [orte, staedte as s] where [ort = s:sname, not(exists(select p:ort from plz as p where [p:ort = s:sname, s:bev > bevt]))]).
+testQuery(11, select * from orte where bevt <= all(select bev from staedte where plz > 80000)).
+testQuery(12, select * from orte where bevt <= all(select bev from staedte where ort > sname)).
+testQuery(13, select * from [orte, plz as p] where bevt <= all(select bev from staedte where [ort > sname, p:ort = sname])).
+testQuery(14, select * from orte where bevt < all(select bev from staedte where plz > 80000)).
+testQuery(15, select * from orte where bevt < all(select bev from staedte where ort > sname)).
+testQuery(16, select * from [orte, plz as p] where bevt < all(select bev from staedte where [ort > sname, p:ort = sname])).
+testQuery(17, select * from orte where bevt >= all(select bev from staedte where plz > 80000)).
+testQuery(18, select * from orte where bevt >= all(select bev from staedte where ort > sname)).
+testQuery(19, select * from [orte, plz as p] where bevt >= all(select bev from staedte where [ort > sname, p:ort = sname])).
+testQuery(20, select * from orte where bevt > all(select bev from staedte where plz > 80000)).
+testQuery(21, select * from orte where bevt > all(select bev from staedte where ort > sname)).
+testQuery(22, select * from [orte, plz as p] where bevt > all(select bev from staedte where [ort > sname, p:ort = sname])).
+testQuery(23, select * from orte where bevt <= any(select bev from staedte where plz > 80000)).
+testQuery(24, select * from orte where bevt <= any(select bev from staedte where ort > sname)).
+testQuery(25, select * from [orte, plz as p] where bevt <= any(select bev from staedte where [ort > sname, p:ort = sname])).
+testQuery(26, select * from orte where bevt < any(select bev from staedte where plz > 80000)).
+testQuery(27, select * from orte where bevt < any(select bev from staedte where ort > sname)).
+testQuery(28, select * from [orte, plz as p] where bevt < any(select bev from staedte where [ort > sname, p:ort = sname])).
+testQuery(29, select * from orte where bevt = any(select bev from staedte where plz > 80000)).
+testQuery(30, select * from orte where bevt = any(select bev from staedte where ort > sname)).
+testQuery(31, select * from [orte, plz as p] where bevt = any(select bev from staedte where [ort > sname, p:ort = sname])).
+testQuery(32, select * from orte where bevt >= any(select bev from staedte where plz > 80000)).
+testQuery(33, select * from orte where bevt >= any(select bev from staedte where ort > sname)).
+testQuery(34, select * from [orte, plz as p] where bevt >= any(select bev from staedte where [ort > sname, p:ort = sname])).
+testQuery(35, select * from orte where bevt > any(select bev from staedte where plz > 80000)).
+testQuery(36, select * from orte where bevt > any(select bev from staedte where ort > sname)).
+testQuery(37, select * from [orte, plz as p] where bevt = (select max(bev*1000) from staedte where [ort > sname, p:ort = sname])).
+testQuery(38, select * from orte where bevt = (select max(bev*1000) from staedte where plz > 80000)).
+testQuery(39, select * from orte where bevt = (select max(bev*1000) from staedte where ort > sname)).
+testQuery(40, select * from [orte, plz as p] where bevt = (select max(bev*1000) from staedte where [ort > sname, p:ort = sname])).
+testQuery(41, select * from orte where bevt = (select min(bev*1000) from staedte where plz > 80000)).
+testQuery(42, select * from orte where bevt = (select min(bev*1000) from staedte where ort > sname)).
+testQuery(43, select * from [orte, plz as p] where bevt = (select min(bev*1000) from staedte where [ort > sname, p:ort = sname])).
+testQuery(44, select * from orte where bevt = (select avg(bev*1000) from staedte where plz > 80000)).
+testQuery(45, select * from orte where bevt = (select avg(bev*1000) from staedte where ort > sname)).
+testQuery(46, select * from [orte, plz as p] where bevt = (select avg(bev*1000) from staedte where [ort > sname, p:ort = sname])).
+
 /*
 OuterJoinQuery: 
 temprel1  feed  temprel2  feed  sortmergejoin[pnum , pnum_s] {0.333, 71.4444}  temprel1 feed  extend[pnum_s: real2int(1/0), quan_s: real2int(1/0), shipdate_
