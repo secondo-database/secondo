@@ -82,9 +82,33 @@ Result   : (mpoint((("2003-11-20-07:01:40" "2003-11-20-07:01:44.586" TRUE FALSE)
 
 Operator : bbox
 Number   : 1
-Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, rT -> rT
+Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, periods -> rect3, instant -> rect3
 Example  : query bbox([const upoint value (("2003-10-10" "2003-12-10" TRUE TRUE) (0.0 0.0 1.0 1.0))])
 Result   : (rect3 (0.0 1.0 0.0 1.0 1376.0 1437.0))
+
+Operator : bbox
+Number   : 2
+Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, periods -> rect3, instant -> rect3
+Example  : query bbox(deftime(train1))
+Result   : (rect3 (-1.797693134862313e+308 1.797693134862313e+308 -1.797693134862313e+308 1.797693134862313e+308  1417.252083333333 1417.279861111111))
+
+Operator : bbox
+Number   : 3
+Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, periods -> rect3, instant -> rect3
+Example  : query bbox(six30)
+Result   : (rect3 (-1.797693134862313e+308 1.797693134862313e+308 -1.797693134862313e+308 1.797693134862313e+308 1417.270833333333 1417.270833333333))
+
+Operator : rangevalues
+Number   : 1
+Signature: rT -> rT, (T in {int, real}), periods -> periods
+Example  : query rangevalues(deftime([const upoint value (("2003-10-10" "2003-12-10" TRUE TRUE) (0.0 0.0 1.0 1.0))]))
+Result   : (periods (("2003-10-10" "2003-12-10" TRUE TRUE)))
+
+Operator : rangevalues
+Number   : 2
+Signature: rT -> rT (T in {int, real}), periods -> periods
+Example  : query rangevalues(deftime(train7))
+Result   : (periods (("2003-11-20-06:06" "2003-11-20-07:02" TRUE TRUE)))
 
 Operator : bboxold
 Number   : 1
@@ -445,7 +469,7 @@ Operator : samplempoint
 Number   : 2
 Signature: mpoint x duration x bool x bool -> mpoint
 Example  : query trajectory(samplempoint(train7, [const duration value (1 60000)],TRUE,TRUE))=trajectory(train7)
-Result   : (bool TRUE)
+Result   : TRUE
 
 Operator : gps
 Number   : 1
@@ -463,25 +487,25 @@ Operator  : restrict
 Number    : 1
 Signature : mint -> mint
 Example   : query units(restrict(noAtCenter) = noAtCenter) count
-Result    : (int 1)
+Result    : 1
 
 Operator  : restrict
 Number    : 2
 Signature : mint x int -> mint
 Example   : query units(restrict(noAtCenter, 1) = noAtCenter) count
-Result    : (int 1)
+Result    : 1
 
 Operator  : speedup
 Number    : 2
 Signature : mpoint x real -> mpoint
 Example   : query deftime(train1 speedup[2.0])
-Result    :(periods (("2003-11-20-06:03" "2003-11-20-06:22:59.980" TRUE FALSE))))
+Result    : (periods (("2003-11-20-06:03" "2003-11-20-06:22:59.980" TRUE FALSE))))
 
 Operator  : avespeed
 Number    : 2
 Signature : mpoint ->  real
 Example   : query avespeed(train1)
-Result    : (real 7.8796161609)
+Result    : 7.8796161609
 
 Operator  : submove
 Number    : 2
@@ -494,12 +518,12 @@ Operator  : vertices
 Number    : 1
 Signature : mpoint -> points
 Example   : query no_components(vertices(train1))
-Result    : (int 91)
+Result    : 91
 
 Operator  : gk
 Number    : 1
 Signature : point -> point
-Example   : query gk([const point value(51.36667 7.48333)])
+Example   : query gk([const point value (51.36667 7.48333)])
 Result    : (point (8090870.0 1152000.0))
 Tolerance : 5.0
 
@@ -507,4 +531,4 @@ Operator  : equalizeU
 Number    : 1
 Signature : mpoint x real -> mpoint
 Example   : query (train7 equalizeU[0.0]) = train7
-Result    : (mbool ( ( ("2003-11-20-06:06" "2003-11-20-07:02" TRUE FALSE) TRUE))) 
+Result    : (mbool ((("2003-11-20-06:06" "2003-11-20-07:02" TRUE FALSE) TRUE)))

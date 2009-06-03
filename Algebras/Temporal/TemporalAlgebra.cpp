@@ -53,6 +53,9 @@ place.)
 The operator with the "right" syntax can be found in
 TemporalLiftedAlgebra.
 
+02.06.2009 Christian D[ue]ntgen renamed ~bbox~: ~rT~ [->] ~rT~ to ~rangevalues~: ~rT~ [->] ~rT~
+           Added operators ~bbox~: ~periods~ [->] ~rect3~, ~bbox~: ~instant~ [->] ~rect3~.
+
 01.06.2006 Christian D[ue]ntgen added operator ~bbox~ for ~range~-types.
 
 Sept 2006 Christian D[ue]ntgen implemented ~defined~ flag for unit types
@@ -128,7 +131,7 @@ const bool TA_DEBUG = false;  // debugging off
 // const bool TA_DEBUG = true;  // debugging on
 
 const double MAXDOUBLE = numeric_limits<double>::max();
-const double MINDOUBLE = numeric_limits<double>::min();
+const double MINDOUBLE = -1.0 * numeric_limits<double>::max();
 
 /*
 3 Implementation of C++ Classes
@@ -7750,21 +7753,51 @@ ListExpr TemporalBBoxTypeMap( ListExpr args )
     if( nl->IsEqual( arg1, "upoint" ) )
       return (nl->SymbolAtom( "rect3" ));
 
-    if( nl->IsEqual( arg1, "rint" )  )
-      return (nl->SymbolAtom( "rint" ));
-
-    if( nl->IsEqual( arg1, "rreal" ) )
-      return (nl->SymbolAtom( "rreal" ));
-
-    if( nl->IsEqual( arg1, "periods" ) )
-      return (nl->SymbolAtom( "periods" ));
-
     if( nl->IsEqual( arg1, "mpoint" ) )
       return (nl->SymbolAtom( "rect3" ));
 
     if( nl->IsEqual( arg1, "ipoint" ) )
       return (nl->SymbolAtom( "rect3" ));
 
+    if( nl->IsEqual( arg1, "periods" ) )
+      return (nl->SymbolAtom( "rect3" ));
+
+    if( nl->IsEqual( arg1, "instant" ) )
+      return (nl->SymbolAtom( "rect3" ));
+
+
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+16.1.18 Type mapping function "TemporalRangevaluesTypeMap"
+
+For operator ~bbox~
+
+*/
+
+ListExpr TemporalRangevaluesTypeMap( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+
+    if( nl->IsEqual( arg1, "rint" )  )
+      return (nl->SymbolAtom( "rint" ));
+
+    if( nl->IsEqual( arg1, "rreal" ) )
+      return (nl->SymbolAtom( "rreal" ));
+
+    if( nl->IsEqual( arg1, "rbool" ) )
+      return (nl->SymbolAtom( "rreal" ));
+
+    if( nl->IsEqual( arg1, "rstring" ) )
+      return (nl->SymbolAtom( "rstring" ));
+
+    if( nl->IsEqual( arg1, "periods" ) )
+      return (nl->SymbolAtom( "periods" ));
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -8701,22 +8734,46 @@ int TemporalBBoxSelect( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "upoint" )
     return 0;
 
-  if( nl->SymbolValue( arg1 ) == "rint" )
+  if( nl->SymbolValue( arg1 ) == "mpoint" )
     return 1;
 
-  if( nl->SymbolValue( arg1 ) == "rreal" )
+  if( nl->SymbolValue( arg1 ) == "ipoint" )
     return 2;
 
   if( nl->SymbolValue( arg1 ) == "periods" )
     return 3;
 
-  if( nl->SymbolValue( arg1 ) == "mpoint" )
+  if( nl->SymbolValue( arg1 ) == "instant" )
     return 4;
 
-  if( nl->SymbolValue( arg1 ) == "ipoint" )
-    return 5;
-
   return -1; // This point should never be reached
+}
+
+/*
+Selection function for the bbox operator
+
+*/
+
+int TemporalRangevaluesSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if( nl->SymbolValue( arg1 ) == "rint" )
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "rreal" )
+    return 1;
+
+  if( nl->SymbolValue( arg1 ) == "periods" )
+    return 2;
+
+  if( nl->SymbolValue( arg1 ) == "rbool" )
+    return 3;
+
+  if( nl->SymbolValue( arg1 ) == "rstring" )
+  return 4;
+
+return -1; // This point should never be reached
 }
 
 /*
@@ -9803,8 +9860,61 @@ int UPointBBox(Word* args, Word& result, int message, Word& local,
   return 0;
 }
 
+int PeriodsBBox(Word* args, Word& result, int message, Word& local,
+               Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<3>* res = (Rectangle<3>*) result.addr;
+  Periods*      arg = (Periods*)      args[0].addr;
+  if( !arg->IsDefined() || arg->IsEmpty() )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+    double min[3], max[3];
+    Instant minT(true);
+    Instant maxT(true);
+    arg->Minimum(minT);
+    arg->Maximum(maxT);
+    min[0] = MINDOUBLE; // minX
+    max[0] = MAXDOUBLE; // maxX
+    min[1] = MINDOUBLE; // minY
+    max[1] = MAXDOUBLE; // maxY
+    min[2] = minT.ToDouble(); // min t
+    max[2] = maxT.ToDouble(); // max t
+    res->Set( true, min, max );
+  }
+  return 0;
+}
+
+int InstantBBox(Word* args, Word& result, int message, Word& local,
+               Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<3>* res = (Rectangle<3>*) result.addr;
+  Instant*      arg = (Instant*)      args[0].addr;
+  if( !arg->IsDefined() )
+  {
+    res->SetDefined(false);
+  }
+  else
+  {
+    double min[3], max[3];
+    min[0] = MINDOUBLE; // minX
+    max[0] = MAXDOUBLE; // maxX
+    min[1] = MINDOUBLE; // minY
+    max[1] = MAXDOUBLE; // maxY
+    min[2] = arg->ToDouble(); // min t
+    max[2] = arg->ToDouble(); // max t
+    res->Set( true, min, max );
+  }
+  return 0;
+}
+
+
 template <class Range>
-int RangeBBox( Word* args, Word& result, int message, Word&
+int TempRangeValues( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -11121,16 +11231,22 @@ ValueMapping temporalnocomponentsmap[] = { RangeNoComponents<RInt>,
                                            MappingNoComponents<MPoint, Point>};
 
 ValueMapping temporalbboxmap[] = { UPointBBox,
-                                   RangeBBox<RInt>,
-                                   RangeBBox<RReal>,
-                                   RangeBBox<Periods>,
                                    MPointBBox,
-                                   IPointBBox };
+                                   IPointBBox,
+                                   PeriodsBBox,
+                                   InstantBBox };
+
+ValueMapping temporalrangevaluesmap[] = {
+                                   TempRangeValues<RInt>,
+                                   TempRangeValues<RReal>,
+                                   TempRangeValues<Periods>,
+                                   TempRangeValues<RBool>,
+                                   TempRangeValues<RString>};
 
 ValueMapping temporalbboxoldmap[] = { UPointBBox,
-                                      RangeBBox<RInt>,
-                                      RangeBBox<RReal>,
-                                      RangeBBox<Periods>,
+                                      TempRangeValues<RInt>,
+                                      TempRangeValues<RReal>,
+                                      TempRangeValues<Periods>,
                                       MPointBBoxOld,
                                       IPointBBox };
 
@@ -11613,12 +11729,21 @@ const string TemporalSpecBBox  =
   "( <text>upoint -> rect3,\n"
   "mpoint -> rect3,\n"
   "ipoint -> rect3,\n"
-  "rT -> rT</text--->"
+  "periods -> rect3</text--->"
   "<text>bbox ( _ )</text--->"
   "<text>Returns the 3d bounding box of the spatio-temporal object, \n"
-  "resp. the range value with the smallest closed interval that contains "
-  "all intervals of a range-value (for range-value).</text--->"
+  "resp. the universe restricted to the definition time of the instant/\n"
+  "period value.</text--->"
   "<text>query bbox( upoint1 )</text--->"
+  ") )";
+
+const string TemporalSpecRangevalues  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>rT -> rT, T in {int, real, bool, string}</text--->"
+  "<text>rangevalues ( _ )</text--->"
+  "<text>Returns the smallest closed interval containing all values within \n"
+  "the given range type value.</text--->"
+  "<text>query rangevalue( deftime(train6) )</text--->"
   ") )";
 
 const string TemporalSpecBBoxOld  =
@@ -11854,7 +11979,7 @@ const string MintHatSpec =
     "<text> hat(_) </text--->"
     "<text>"
     " Summarizes a moving integer into another moving integer"
-    " consisting of at most 3 units." 
+    " consisting of at most 3 units."
     " Summarization is done in  such a way that the area"
     " computed from the length of the time interval of the middle piece"
     " and the minimum number reached within that interval is maximal."
@@ -12214,10 +12339,17 @@ Operator temporalunits( "units",
 
 Operator temporalbbox( "bbox",
                        TemporalSpecBBox,
-                       6,
+                       5,
                        temporalbboxmap,
                        TemporalBBoxSelect,
                        TemporalBBoxTypeMap );
+
+Operator temporalrangevalues( "rangevalues",
+                       TemporalSpecRangevalues,
+                       5,
+                       temporalrangevaluesmap,
+                       TemporalRangevaluesSelect,
+                       TemporalRangevaluesTypeMap );
 
 Operator temporalbbox2d( "bbox2d",
                          TemporalSpecBBox2d,
@@ -12462,6 +12594,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalfinal );
     AddOperator( &temporalunits );
     AddOperator( &temporalbbox );
+    AddOperator( &temporalrangevalues );
     AddOperator( &temporalbbox2d );
     AddOperator( &temporalbboxold);
 

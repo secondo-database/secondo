@@ -1226,6 +1226,18 @@ typedef Range<CcInt> RInt;
 typedef Range<CcReal> RReal;
 
 /*
+3.6 Class ~RBool~
+
+*/
+typedef Range<CcBool> RBool;
+
+/*
+3.6 Class ~RString~
+
+*/
+typedef Range<CcString> RString;
+
+/*
 3.6 Class ~Periods~
 
 */
