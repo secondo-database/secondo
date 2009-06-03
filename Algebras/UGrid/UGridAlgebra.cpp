@@ -2628,7 +2628,7 @@ file(true),
 header (),
 cells (0)
 {
-  double thisDim = ((double)(sqrt(mug.header.noOfCells)) / 2);
+  double thisDim = ((sqrt((double)mug.header.noOfCells)) / 2);
   //int d = (int)mug.cells.Size();
   int intdim = (int)thisDim;
   dimsize dim = (dimsize)intdim;
@@ -4441,10 +4441,11 @@ bool InsertCellUnit(UGrid* ug, UGrid *mug, SmiRecordId cellRecId,
 	              (((ugce->intlabel % 10000) % 100) / 2);               
                    //line (*100) in slave ugrid, column in slave ugrid
   int slintlabel;
-  dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
+  dimsize dim = (dimsize)(sqrt((double)mug->header.noOfCells));
   slintlabel = (dim *10000 )+ intlabel;
   // read evaluated cell of slave ugrid
-  int slindex = ((intlabel  / 100 )*((int)(sqrt(mug->header.noOfCells)) ) + 
+  int slindex = ((intlabel  / 100 )*
+((int)(sqrt((double)mug->header.noOfCells)) ) + 
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
@@ -4478,11 +4479,12 @@ bool InsertCellUnit2(UGrid* ug, UGrid *mug, SmiRecordId cellRecId,
 	             (((ugce->intlabel % 10000) % 100) / 2);               
                     //line (*100) in slave ugrid, column in slave ugrid
   int slintlabel;
-  dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
+  dimsize dim = (dimsize)(sqrt((double)mug->header.noOfCells));
  
   slintlabel = (dim *10000 )+ intlabel;
   // read evaluated cell of slave ugrid
-  int slindex = ((intlabel  / 100 )*((int)(sqrt(mug->header.noOfCells)) ) + 
+  int slindex = ((intlabel  / 100 )*
+((int)(sqrt((double)mug->header.noOfCells)) ) + 
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
@@ -4519,10 +4521,11 @@ bool InsertCellUnit4(UGrid* ug, UGrid *mug, SmiRecordId cellRecId,
 	             (((ugce->intlabel % 10000) % 100) / 2);               
                    //line (*100) in slave ugrid, column in slave ugrid
   int slintlabel;
-  dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
+  dimsize dim = (dimsize)(sqrt((double)mug->header.noOfCells));
   slintlabel = (dim *10000 )+ intlabel;
   // read evaluated cell of slave ugrid
-  int slindex = ((intlabel  / 100 )*((int)(sqrt(mug->header.noOfCells)) ) + 
+  int slindex = ((intlabel  / 100 )*
+((int)(sqrt((double)mug->header.noOfCells)) ) + 
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
@@ -4579,10 +4582,12 @@ bool InsertCellUnit8(UGrid* ug, UGrid *mug, SmiRecordId cellRecId,
 	              (((ugce->intlabel % 10000) % 100) / 2);               
                     //line (*100) in slave ugrid, column in slave ugrid
   int slintlabel;
-  dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
+  dimsize dim = (dimsize)
+(sqrt((double)mug->header.noOfCells));
   slintlabel = (dim *10000 )+ intlabel;
   // read evaluated cell of slave ugrid
-  int slindex = ((intlabel  / 100 )*((int)(sqrt(mug->header.noOfCells)) ) + 
+  int slindex = ((intlabel  / 100 )*
+((int)(sqrt((double)mug->header.noOfCells)) ) + 
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
@@ -4640,10 +4645,11 @@ bool InsertCellUnit16(UGrid* ug, UGrid *mug, SmiRecordId cellRecId,
 	              (((ugce->intlabel % 10000) % 100) / 2);               
                    //line (*100) in slave ugrid, column in slave ugrid
   int slintlabel;
-  dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
+  dimsize dim = (dimsize)(sqrt((double)mug->header.noOfCells));
   slintlabel = (dim *10000 )+ intlabel;
   // read evaluated cell of slave ugrid
-  int slindex = ((intlabel  / 100 )*((int)(sqrt(mug->header.noOfCells)) ) + 
+  int slindex = ((intlabel  / 100 )*
+((int)(sqrt((double)mug->header.noOfCells)) ) + 
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
@@ -4704,10 +4710,11 @@ bool InsertCellUnit32(UGrid* ug, UGrid *mug, SmiRecordId cellRecId,
 			      ((ugce->intlabel % 100) / 2);               
                               //column in slave ugrid
   int slintlabel;
-  dimsize dim = (dimsize)(sqrt(mug->header.noOfCells));
+  dimsize dim = (dimsize)(sqrt((double)mug->header.noOfCells));
   slintlabel = (dim *10000 )+ intlabel;
   // read evaluated cell of slave ugrid
-  int slindex = ((intlabel  / 100 )*((int)(sqrt(mug->header.noOfCells)) ) + 
+  int slindex = ((intlabel  / 100 )*
+((int)(sqrt((double)mug->header.noOfCells)) ) + 
 	                (intlabel % 100));
   const int ci = slindex;
   const UGridCell * cellunit = new UGridCell();
@@ -4956,8 +4963,9 @@ int Inserthandle (CurrentUnit *cu, UGrid* ug, UpdateUnit* upunit,Word& result)
 		                          newhu->epos.x, newhu->epos.y);
 	  double dir = trajdir / 180 * PI ;              // direction in radian 
 	  // calculate the track of trajectory line
-      double trajectory = sqrt(pow((newhu->epos.y - newhu->spos.y),2) + 
-		                       pow((newhu->epos.x - newhu->spos.x),2)); 
+      double trajectory = sqrt(
+(double)(pow((newhu->epos.y - newhu->spos.y),2) + 
+              pow((newhu->epos.x - newhu->spos.x),2))); 
 	  // speed of the trajectory
 	  double vel = myUtilities.Speed(trajectory,dtime);
       //
@@ -5826,7 +5834,7 @@ long Winintersecttime (UGrid* ugrid, int index, UGridArea area)
 	{
       //int celllabel = 0 ;     
 	  int cellindex = 0 ;     
-	  int intdim = (int)(sqrt(ugrid->header.noOfCells));
+	  int intdim = (int)(sqrt((double)ugrid->header.noOfCells));
 	  // Identify xLenth, yLenth of ugrid and the ugridcell 
 	  // according the area of the request 
 	  double xLength, yLength, xCellength, yCellength;
@@ -5965,7 +5973,7 @@ long Winintersecttime (UGrid* ugrid, int index, UGridArea area)
 }
 
 /*
-3.5.1.2   Winintersectarea
+3.5.1.2   
 
 */
 UGridArea Winintersectarea (UGrid* ugrid, int index, long time)
@@ -6043,7 +6051,7 @@ else
 			}
 			else
 			{
-              if (i = 1)
+              if (i == 1)
 			  {
 				UGridArea* harea = new UGridArea();
                harea->x1 = ugc->historyArray[j].spos.x;

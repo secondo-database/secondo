@@ -5,73 +5,85 @@ Operator : inside
 Number   : 1
 Signature: mobpos x uridarea -> bool
 Example  : query ([const mobpos value(12.5 12.5)]) inside ([const ugridarea value(10.5 10.5 20.9 20.9)])
-Result   : TRUE
+Result   : crashes
+Remark   : TRUE
 
 Operator : inside
 Number   : 2
 Signature: mobpos x updateunit -> bool
 Example  : query ([const mobpos value(12.5 12.5)]) inside ([const updateunit value(12(10.5 10.5 20.9 20.9))])
-Result   : TRUE
+Result   : crashes
+Remark   : TRUE
 
 Operator : inside
 Number   : 3
 Signature: mobpos x currentunit -> bool
 Example  : query ([const mobpos value(12.5 12.5)]) inside ([const currentunit value(12("2009-03-03-12:20:05""2009-03-03-12:21:05"TRUE FALSE)(20.5 20.5 20.9 20.9))])
-Result   : FALSE
+Result   : crashes
+Remark   : FALSE
 
 Operator : inside
 Number   : 4
 Signature: mobpos x currentunit -> bool
 Example  : query ([const mobpos value(12.5 12.5)]) inside ([const currentunit value(12("2009-03-03-12:20:05""2009-03-03-12:21:05"TRUE FALSE)(10.5 10.5 25.9 25.9))])
-Result   : TRUE
+Result   : crashes
+Remark   : TRUE
 
 Operator : inside
 Number   : 5
 Signature: mobpos x historyunit -> bool
 Example  : query ([const mobpos value(12.5 12.5)]) inside ([const historyunit value(12("2009-03-03-12:20:05""2009-03-03-12:25:05"TRUE FALSE)(10.5 10.5 12.0 12.0))])
-Result   : FALSE
+Result   : crashes
+Remark   : FALSE
 
 Operator : inside
 Number   : 6
 Signature: mobpos x historyunit -> bool
 Example  : query ([const mobpos value(12.5 12.5)]) inside ([const historyunit value(12("2009-03-03-12:20:05""2009-03-03-12:25:05"TRUE FALSE)(10.5 10.5 25.9 25.9))])
-Result   : TRUE
+Result   : crashes
+Remark   : TRUE
 
 Operator : inside
 Number   : 7
 Signature: ugridarea x uridarea -> bool
 Example  : query ([const ugridarea value(10.5 10.5 20.9 20.9)]) inside ([const ugridarea value(10.5 10.5 15.9 15.9)])
-Result   : FALSE
+Result   : crashes
+Remark   : FALSE
 
 Operator : inside
 Number   : 8
 Signature: ugridarea x uridarea -> bool
 Example  : query ([const ugridarea value(10.5 10.5 20.9 20.9)]) inside ([const ugridarea value(10.5 10.5 25.9 25.9)])
-Result   : TRUE
+Result   : crashes
+Remark   : TRUE
 
 Operator : inside
 Number   : 9
 Signature: ugridarea x currentunit -> bool
 Example  : query ([const ugridarea value(10.5 10.5 20.9 20.9)]) inside ([const currentunit value(12("2009-03-03-12:20:05""2009-03-03-12:21:05"TRUE FALSE)(10.5 10.5 25.9 25.9))])
-Result   : TRUE
+Result   : crashes
+Remark   : TRUE
 
 Operator : inside
 Number   : 10
 Signature: ugridarea x historyunit -> bool
 Example  : query ([const ugridarea value(10.5 10.5 20.9 20.9)]) inside ([const historyunit value(12("2009-03-03-12:20:05""2009-03-03-12:25:05"TRUE FALSE)(10.5 10.5 25.9 25.9))])
-Result   : TRUE
+Result   : crashes
+Remark   : TRUE
 
 Operator : inside
 Number   : 11
 Signature: updateunit x updateunit -> bool
 Example  : query ([const updateunit value(12(15.5 15.5 20.9 20.9))]) inside ([const updateunit value(12(10.5 10.5 25.9 25.9))])
-Result   : TRUE
+Result   : crashes
+Remark   : TRUE
 
 Operator : intersects
 Number   : 1
 Signature: ugridarea x ugridarea -> bool
 Example  : query ([const ugridarea value(10.5 10.5 20.9 20.9)]) intersects ([const ugridarea value(10.5 10.5 15.9 15.9)])
-Result   : TRUE
+Result   : crashes
+Remark   : TRUE
 
 Operator : verint
 Number   : 1
@@ -82,59 +94,69 @@ Result   : 20
 Operator : createugrid
 Number   : 1
 Signature: ugridarea -> ugrid
-Example  : query testgrid = createugrid ([const ugridarea value(1000.0 1000.0 10000.0 10000.0)])
-Result   : ("UGrid statistics"("RecordId / FileId" ("1" "4"))("TimeInterval: " ("2009-03-19-11:17:51" "2009-03-19-11:18:51" TRUE FALSE))("Area : "(1000.0 1000.0 10000.0 10000.0))("Anzahl UgridCells : " 1024))
+Example  : query createugrid ([const ugridarea value(1000.0 1000.0 10000.0 10000.0)])
+Result   : crashes
+Remark   : ("UGrid statistics"("RecordId / FileId" ("1" "4"))("TimeInterval: " ("2009-03-19-11:17:51" "2009-03-19-11:18:51" TRUE FALSE))("Area : "(1000.0 1000.0 10000.0 10000.0))("Anzahl UgridCells : " 1024))
 
 Operator : createugrid
 Number   : 2
 Signature: ugridarea -> ugrid
-Example  : let testgrid = createugrid ([const ugridarea value(1000.0 1000.0 10000.0 10000.0)])
-Result   : ("UGrid statistics"("RecordId / FileId" ("1" "4"))("TimeInterval: " ("2009-03-19-11:17:51" "2009-03-19-11:18:51" TRUE FALSE))("Area : "(1000.0 1000.0 10000.0 10000.0))("Anzahl UgridCells : " 1024))
+Example  : query createugrid ([const ugridarea value(1000.0 1000.0 10000.0 10000.0)])
+Result   : crashes
+Remark   : ("UGrid statistics"("RecordId / FileId" ("1" "4"))("TimeInterval: " ("2009-03-19-11:17:51" "2009-03-19-11:18:51" TRUE FALSE))("Area : "(1000.0 1000.0 10000.0 10000.0))("Anzahl UgridCells : " 1024))
 
 Operator : createugrid
 Number   : 3
 Signature: double x double x double x double-> ugrid
-Example  : let testgrid = createugrid (1000.0, 1000.0, 10000.0, 10000.0)
-Result   : ("UGrid statistics"("RecordId / FileId" ("1" "4"))("TimeInterval: " ("2009-03-19-11:17:51" "2009-03-19-11:18:51" TRUE FALSE))("Area : "(1000.0 1000.0 10000.0 10000.0))("Anzahl UgridCells : " 1024))
+Example  : query createugrid (1000.0, 1000.0, 10000.0, 10000.0)
+Result   : crashes
+Remark   : ("UGrid statistics"("RecordId / FileId" ("1" "4"))("TimeInterval: " ("2009-03-19-11:17:51" "2009-03-19-11:18:51" TRUE FALSE))("Area : "(1000.0 1000.0 10000.0 10000.0))("Anzahl UgridCells : " 1024))
 
 Operator : insertunit
 Number   : 1
 Signature: ugrid x updateunit -> currentunit
 Example  : query testgrid insertunit ([const updateunit value(12(1005.5 1005.5 ))])
-Result   : (12("2009-03-03-12:20:05""2009-03-03-12:21:05"TRUE FALSE)(1005.5 1005.5 1711.8239 1711.8239))
+Result   : crashes
+Remark   : (12("2009-03-03-12:20:05""2009-03-03-12:21:05"TRUE FALSE)(1005.5 1005.5 1711.8239 1711.8239))
 
 Operator : windowintersectug
 Number   : 1
 Signature: ugrid x ugridarea x real -> int
 Example  : query windowintersectug (grid1,[const ugridarea value(999.0 999.0 9999.0 9999.0)], -3000.0)
-Result   : 12
+Result   : crashes
+Remark   :12
 
 Operator : windowintersectug
 Number   : 2
 Signature: ugrid x int x real -> ugridarea
 Example  : query windowintersectug (grid1,11, -3000.0)
-Result   : (-10836.00000001 33575.00000001 -6686.00000001 28095.00000001)
+Result   : crashes
+Remark   : (-10836.00000001 33575.00000001 -6686.00000001 28095.00000001)
 
 Operator : windowintersectug
 Number   : 3
 Signature: ugrid x int x ugridarea -> instant
 Example  : query windowintersectug (grid1,11, ([const ugridarea value(999.0 999.0 9999.0 9999.0)]))
-Result   : "2009-03-03-12:20:25"
+Result   : crashes
+Remark   : "2009-03-03-12:20:25"
 
 Operator : windowintersectsug
 Number   : 1
 Signature: ugrid x ugridarea -> int x instant
 Example  : query windowintersectug (grid1,[const ugridarea value(999.0 999.0 9999.0 9999.0)])
-Result   : 12 "2009-03-03-12:20:25"
+Result   : crashes
+Remark   : 12 "2009-03-03-12:20:25"
 
 Operator : windowintersectsug
 Number   : 2
 Signature: ugrid x int -> instant x ugridarea
 Example  : query windowintersectug (grid1,12)
-Result   :  "2009-03-03-12:20:25" (-10836.00000001 33575.00000001 -6686.00000001 28095.00000001) 
+Result   : crashes
+Remark   : "2009-03-03-12:20:25" (-10836.00000001 33575.00000001 -6686.00000001 28095.00000001) 
 
 Operator : windowintersectsug
 Number   : 3
 Signature: real -> int x ugridarea
 Example  : query windowintersectug (-3000.0)
-Result   : 12 (-10836.00000001 33575.00000001 -6686.00000001 28095.00000001)
+Result   : crashes
+Remark   : 12 (-10836.00000001 33575.00000001 -6686.00000001 28095.00000001)
