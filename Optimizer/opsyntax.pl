@@ -122,14 +122,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, p_intersects).
 :- op(800, xfx, equalway).
 
-% The following operators have precedence higher then the comma
-% The precedence of the comma is 1000
-:- op(1001, xfy, then).
-:- op(1001, xfy, later).
-:- op(1001, xfy, meanwhile).
-:- op(1001, xfy, immediately).
-:- op(1001, xfy, follows).
-
 
 /*
 
@@ -203,6 +195,7 @@ secondoOp( addtupleid,        postfix, 1).
 %secondoOp( aggregateS,       postfixbrackets1, 3). % TODO: special syntax
 secondoOp( approximate,       postfixbrackets1, 3).
 secondoOp( attr,              prefix, 2).
+secondoOp( vec,               prefix, 2).
 secondoOp( attrsize,          postfixbrackets1, 2).
 secondoOp( avg,               postfixbrackets1, 2).
 secondoOp( bbox,              prefix, 1).

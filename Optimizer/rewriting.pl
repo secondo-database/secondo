@@ -537,10 +537,18 @@ inferPredicate(Premises, [bbox(X) intersects box3d(bbox(Z),Y)]) :-
 % Infering the predicates for spatiotemporal pattern queries
 inferPredicate(Premises, AdditionalConditions):-
   member( Pattern, Premises),
-  Pattern=.. [pattern|Params],
-  parsePattern(Params, _/* Aliases*/ , Preds, _/*Conns*/, _/*BExpr*/),
-  list_to_set(Preds, Preds2),
-  inferPatternPredicates(Preds2, AdditionalConditions),!.
+  Pattern=..[pattern|[NamedPredList, _ ]],
+  removeAliases(NamedPredList, PredList, _),
+	inferPatternPredicates(PredList, AdditionalConditions),
+	!.
+
+% Infering the predicates for extended spatiotemporal pattern queries
+inferPredicate(Premises, AdditionalConditions):-
+  member( Pattern, Premises),
+  Pattern=..[patternex|[NamedPredList, _, _ ]],
+  removeAliases(NamedPredList, PredList, _),
+	inferPatternPredicates(PredList, AdditionalConditions),
+	!.
 
 /*
 The following rules are deprecated, since generic rules for operators ~OP~ with
@@ -590,20 +598,11 @@ inferPatternPredicates([Pred|Preds], [sometimes(Pred)|Preds2] ):-
 
 parseNPred(AP , P, A):-
 	AP=..[as, P, A],!.
-parseNPred(P , P, null).
 
-parseNPredList( NPList , [A | ARest], [P | PRest], [Conn| ConnRest]):-
-	NPList=..[Conn, AP, APRest],
-	member(Conn, [then, later, meanwhile, follows, immediately]),!,
+removeAliases( [AP| NPListRest] , [P | PListRest], [A | AListRest]):-
   parseNPred(AP, P, A),
-	parseNPredList(APRest, ARest, PRest, ConnRest).
-parseNPredList( AP , [A] , [P], [] ):-
-  parseNPred(AP, P, A),!.
-
-parsePattern([NPredList , BExpr], Aliases , Preds, Conns, BExpr):-
-  !, parseNPredList(NPredList, Aliases, Preds, Conns).
-parsePattern([NPredList] , Aliases , Preds ,Conns, []):-
-  parseNPredList(NPredList, Aliases, Preds, Conns),!.
+	removeAliases(NPListRest, PListRest, AListRest),!.
+removeAliases( [] , [], [] ):- !.
 
 /*
 
