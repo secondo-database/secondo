@@ -7730,7 +7730,16 @@ ListExpr Box2dTypeMap(ListExpr args)
   {
     arg1 = nl->First( args );
 
+    if( nl->IsEqual( arg1, "rect" ) )
+      return nl->SymbolAtom( "rect" );
+
     if( nl->IsEqual( arg1, "rect3" ) )
+      return nl->SymbolAtom( "rect" );
+
+    if( nl->IsEqual( arg1, "rect4" ) )
+      return nl->SymbolAtom( "rect" );
+
+    if( nl->IsEqual( arg1, "rect8" ) )
       return nl->SymbolAtom( "rect" );
   }
   return nl->SymbolAtom( "typeerror" );
@@ -8796,6 +8805,30 @@ int TemporalBBox2dSelect( ListExpr args )
 
   return -1; // This point should never be reached
 }
+
+/*
+16.2.31 Selection function for ~box2d~
+
+*/
+int TemporalBox2dSelect( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args );
+
+  if( nl->SymbolValue( arg1 ) == "rect" )
+    return 0;
+
+  if( nl->SymbolValue( arg1 ) == "rect3" )
+    return 1;
+
+  if( nl->SymbolValue( arg1 ) == "rect4" )
+    return 2;
+
+  if( nl->SymbolValue( arg1 ) == "rect8" )
+    return 3;
+
+  return -1; // This point should never be reached
+}
+
 
 /*
 16.2.31 Selection function for extdeftime
@@ -10449,12 +10482,14 @@ int Box3d_rect_periods( Word* args, Word& result, int message,
 
 */
 
+template <int dim>
 int TemporalBox2d( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
+  assert(dim >= 2);
   result = qp->ResultStorage(s);
   Rectangle<2>* res = (Rectangle<2>*) result.addr;
-  Rectangle<3>* arg = (Rectangle<3>*) args[0].addr;
+  Rectangle<dim>* arg = (Rectangle<dim>*) args[0].addr;
 
   if( !arg->IsDefined() )
   {
@@ -11323,6 +11358,11 @@ ValueMapping temporalbox3dmap[] = { Box3d_rect,
                                     Box3d_periods,
                                     Box3d_rect_periods};
 
+ValueMapping temporalbox2dmap[] = { TemporalBox2d<2>,
+                                    TemporalBox2d<3>,
+                                    TemporalBox2d<4>,
+                                    TemporalBox2d<8> };
+
 ValueMapping extdeftimemap[] = { TemporalExtDeftime<UBool, CcBool>,
                                  TemporalExtDeftime<UInt, CcInt>
                                };
@@ -11729,6 +11769,7 @@ const string TemporalSpecBBox  =
   "( <text>upoint -> rect3,\n"
   "mpoint -> rect3,\n"
   "ipoint -> rect3,\n"
+  "instant -> rect3,\n"
   "periods -> rect3</text--->"
   "<text>bbox ( _ )</text--->"
   "<text>Returns the 3d bounding box of the spatio-temporal object, \n"
@@ -11851,10 +11892,10 @@ const string Box3dSpec  =
 
 const string TemporalBox2dSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>rect3 -> rect</text--->"
+  "( <text>{rect|rect3|rect4|rect8} -> rect</text--->"
   "<text>box2d( _ )</text--->"
-  "<text>returns the 2d part of a rect3. Can be used to eliminate the temporal"
-  "dimension of a 3d bounding box.</text--->"
+  "<text>Restricts a rect<d> to its 1st and 2nd dimension. Can be used to "
+  "eliminate the temporal dimension of a 3d bounding box.</text--->"
   "<text>box2d(r3)</text--->"
   ") )";
 
@@ -12415,8 +12456,9 @@ Operator temporaltheperiod( "theperiod",
 
 Operator temporalbox2d( "box2d",
                          TemporalBox2dSpec,
-                         TemporalBox2d,
-                         Operator::SimpleSelect,
+                         4,
+                         temporalbox2dmap,
+                         TemporalBox2dSelect,
                          Box2dTypeMap );
 
 Operator mbool2mint( "mbool2mint",

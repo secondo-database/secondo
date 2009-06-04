@@ -132,7 +132,7 @@ Result   : FALSE
 
 Operator : box2d
 Number   : 1
-Signature: rect3 -> rect
+Signature: {rect|rect3|rect4|rect8} -> rect
 Example  : query box2d(box1000)
 Result   : (rect (2265.0 2265.0 4892.0 4892.0))
 
