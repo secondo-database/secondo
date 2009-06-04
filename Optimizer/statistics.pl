@@ -47,8 +47,8 @@ commute(Term,_,Commuted) :-
 commute(Term,ResList,Commuted) :-
   optimizerOption(determinePredSig),
   Term =.. [Op, Arg1, Arg2],
-  getTypeTree(Term,ResList,(_,Args,_)),
-  findall(T,member((_,_,T),Args),ArgTypes),
+  getTypeTree(Term,ResList,[_,Args,_]),
+  findall(T,member([_,_,T],Args),ArgTypes),
   isCommutativeOP(Op,ArgTypes),
   Commuted =.. [Op, Arg2, Arg1], !.
 % old rule - still using old ~isCommutativeOP/1~-facts
@@ -139,6 +139,7 @@ simple(Term, _, Term).
 % fallback-clause for calls to old clause
 % ---  simple(+Term,+R1,+R2,-Simple)
 simple(Term,R1,R2,Simple) :-
+  dm(selectivity,['§§§§§§§§ Using simple/4 fallback clause! §§§§§§§§\n']),
   simple(Term,[(1,R1),(2,R2)],Simple),!.
 
 /*
@@ -184,6 +185,7 @@ simplePred(Pred,Simple) :-
   ),
   simple(P,RelList,Simple), !.
 
+% prompt an error, if simplification failed:
 simplePred(Pred,Simple) :-
   throw(error_Internal(statistics_simplePred(Pred, Simple)
                   :simplificationFailed)),
@@ -274,11 +276,27 @@ If ~Pred~ has a predicate operator that performs checking of overlapping minimal
 
 */
 
+% return the bbox-selectivity-predicate term
+% --- getBBoxIntersectionTerm(+Arg1,+Arg2,+Dimension,-Term) :-
+getBBoxIntersectionTerm(Arg1,Arg2,2,Term) :-
+  Term =.. [intersects, box2d(bbox(Arg1)), box2d(bbox(Arg2))], !.
+getBBoxIntersectionTerm(Arg1,Arg2,_,Term) :-
+  Term =.. [intersects, bbox(Arg1), bbox(Arg2)], !.
+
+% spatial predicate with bbox-checking
 selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
         FilterResCard) :-
   Pred =.. [OP, Arg1, Arg2],
-  isBBoxPredicate(OP),     % spatial predicate with bbox-checking
-  BBoxPred =.. [intersects, bbox(Arg1), bbox(Arg2)],
+  ( optimizerOption(determinePredSig)
+    -> ( getTypeTree(Pred,[(1,Rel)],[OP,ArgsTrees,bool]),
+         findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
+         isBBoxOperator(OP,ArgsTypeList,Dim),
+         getBBoxIntersectionTerm(Arg1,Arg2,Dim,BBoxPred)
+       )
+    ;  ( isBBoxPredicate(OP),
+         getBBoxIntersectionTerm(Arg1,Arg2,std,BBoxPred)
+       )
+  ),
   ( optimizerOption(dynamicSample)
     -> dynamicPossiblyRenameS(Rel, RelQuery)
     ;  ( Rel = rel(DCrelName, _),
@@ -287,6 +305,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
          possiblyRename(RelS, RelQuery)
        )
   ),
+  write('========= spatial unary predicate with bbox-checking ========='),nl,
   Query = count(filter(counter(filter(RelQuery, BBoxPred),1), Pred)),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
@@ -335,9 +354,16 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   ),
   !.
 
+% normal predicate
 selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   Pred =.. [OP|_],
-  not(isBBoxPredicate(OP)), % normal predicate
+  ( optimizerOption(determinePredSig)
+    -> ( getTypeTree(Pred,[(1,Rel)],[OP,ArgsTrees,bool]),
+         findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
+         not(isBBoxOperator(OP,ArgsTypeList,_))
+       )
+    ;  not(isBBoxPredicate(OP))
+  ),
   ( optimizerOption(dynamicSample)
     -> dynamicPossiblyRenameS(Rel, RelQuery)
     ;  ( Rel = rel(DCrelName, _), writeln(Rel),
@@ -346,6 +372,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
          possiblyRename(RelS, RelQuery)
        )
   ),
+  write('----------------  unary standard predicate ----------------'),nl,
   Query = count(filter(RelQuery, Pred)),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
@@ -359,7 +386,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
                        'function! '],'',ErrMsg),
            write_list(['\nERROR:\t',ErrMsg]), nl,
            throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel,
-                         QueryTime, noBBox, ResCard):selectivityQueryFailed#ErrMsg)),
+                QueryTime, noBBox, ResCard):selectivityQueryFailed#ErrMsg)),
            fail
          )
     )
@@ -381,16 +408,27 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
 
 selectivityQuerySelection(Pred, Rel, QueryTime, BBox, ResCard) :-
   write_list(['\nERROR:\tSelectivity query failed for unknown reason.']), nl,
-  throw(error_Internal(statistics_selectivityQuerySelection(Pred, Rel, QueryTime,
+  throw(error_Internal(statistics_selectivityQuerySelection(Pred, Rel,QueryTime,
         BBox, ResCard):selectivityQueryFailed)),  fail.
 
-selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
-	FilterResCard) :-
+% spatial predicate with bbox-checking
+selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
   Pred =.. [OP|_],
-  isBBoxPredicate(OP),     % spatial predicate with bbox-checking
+  ( optimizerOption(determinePredSig)
+    -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
+         findall(T,member([ _, _, T],ArgsTrees),ArgsTypeList),
+         write_list(['ArgsTypeList = ',ArgsTypeList,'\n']),
+         write_list(['Trying: ',isBBoxOperator(OP,ArgsTypeList,Dim),'.\n']),
+         isBBoxOperator(OP,ArgsTypeList,Dim)
+       )
+    ;  ( isBBoxPredicate(OP),
+         Dim = std
+       )
+  ),
   transformPred(Pred, txx1, 1, Pred2),
+  write('========= spatial binary predicate with bbox-checking ========='),nl,
   Pred2 =.. [_, Arg1, Arg2],
-  Pred3 =.. [intersects, bbox(Arg1), bbox(Arg2)],
+  getBBoxIntersectionTerm(Arg1,Arg2,Dim,Pred3),
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
@@ -457,10 +495,18 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard,
   ),
   !.
 
+% normal predicate
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
   Pred =.. [OP|_],
-  not(isBBoxPredicate(OP)), % normal predicate
+  ( optimizerOption(determinePredSig)
+    -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
+         findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
+         not(isBBoxOperator(OP,ArgsTypeList,_))
+       )
+    ;  not(isBBoxPredicate(OP))
+  ),
   transformPred(Pred, txx1, 1, Pred2),
+  write('---------------- binary standard predicate ----------------'),nl,
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
@@ -492,7 +538,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
       ;  ( write_list(['\nERROR:\tSelectivity query failed. Please check ',
                        'whether predicate \'', Pred, '\' is a boolean ',
                        'function! ']), nl,
-           throw(error_Internal(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
+           throw(error_Internal(statistics_selectivityQueryJoin(Pred, Rel1,Rel2,
                          QueryTime, noBBox, ResCard):selectivityQueryFailed)),
            fail
          )
@@ -733,10 +779,10 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   ),
   ( optimizerOption(determinePredSig)
     -> (
-          getTypeTree(Pred, [(1,Rel1),(2,Rel2)], (Op,Args,ResultType)),
-          findall(T,(member((_,_,T),Args)),ArgTypeList),
+          getTypeTree(Pred, [(1,Rel1),(2,Rel2)], [Op,Args,ResultType]),
+          findall(T,(member([_,_,T],Args)),ArgTypeList),
           Signature =.. [Op|ArgTypeList],
-          assert(storedPredicateSignature(DB, PSimple, (Op,Args,ResultType))),
+          assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
           dm(selectivity,['The topmost signature for ',Pred,' is:\t',
                           Signature,' -> ',ResultType,'\n'])
        )
@@ -774,10 +820,10 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   ),
   ( optimizerOption(determinePredSig)
       -> (
-           getTypeTree(Pred, [(1,Rel)], (Op,Args,ResultType)),
-           findall(T,(member((_,_,T),Args)),ArgTypeList),
+           getTypeTree(Pred, [(1,Rel)], [Op,Args,ResultType]),
+           findall(T,(member([_,_,T],Args)),ArgTypeList),
            Signature =.. [Op|ArgTypeList],
-           assert(storedPredicateSignature(DB, PSimple, (Op,Args,ResultType))),
+           assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
            dm(selectivity,['The topmost signature for ',Pred,' is:\t',
                            Signature,' -> ',ResultType,'\n'])
          )
@@ -823,10 +869,10 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   ),
   ( optimizerOption(determinePredSig)
       -> (
-           getTypeTree(Pred, [(1,Rel1),(2,Rel2)], (Op,Args,ResultType)),
-           findall(T,(member((_,_,T),Args)),ArgTypeList),
+           getTypeTree(Pred, [(1,Rel1),(2,Rel2)], [Op,Args,ResultType]),
+           findall(T,(member([_,_,T],Args)),ArgTypeList),
            Signature =.. [Op|ArgTypeList],
-           assert(storedPredicateSignature(DB, PSimple, (Op,Args,ResultType))),
+           assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
            dm(selectivity,['The topmost signature for ',Pred,' is:\t',
                            Signature,' -> ',ResultType,'\n'])
 
@@ -865,10 +911,10 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   ),
   ( optimizerOption(determinePredSig)
       -> (
-          getTypeTree(Pred, [(1,Rel)], (Op,Args,ResultType)),
-          findall(T,(member((_,_,T),Args)),ArgTypeList),
+          getTypeTree(Pred, [(1,Rel)], [Op,Args,ResultType]),
+          findall(T,(member([_,_,T],Args)),ArgTypeList),
           Signature =.. [Op|ArgTypeList],
-          assert(storedPredicateSignature(DB, PSimple, (Op,Args,ResultType))),
+          assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
           dm(selectivity,['The topmost signature for ',Pred,' is:\t',
                           Signature,' -> ',ResultType,'\n'])
          )
@@ -970,9 +1016,9 @@ writeStoredSel(Stream) :-
   write(Stream, storedBBoxSel(DB, XReplaced, Y)), write(Stream, '.\n').
 
 writeStoredSel(Stream) :-
-  storedPredicateSignature(DB, X, (Y1,Y2,Y3)),
+  storedPredicateSignature(DB, X, [Y1,Y2,Y3]),
   replaceCharList(X, XReplaced),
-  write(Stream, storedPredicateSignature(DB, XReplaced, (Y1,Y2,Y3))),
+  write(Stream, storedPredicateSignature(DB, XReplaced, [Y1,Y2,Y3])),
   write(Stream, '.\n').
 
 showSel :-
@@ -1057,9 +1103,9 @@ writeStoredPredicateSignatures :-
   close(FD).
 
 writeStoredPredicateSignature(Stream) :-
-  storedPredicateSignature(DB, X, (Y1,Y2,Y3)),
+  storedPredicateSignature(DB, X, [Y1,Y2,Y3]),
   replaceCharList(X, XReplaced),
-  write(Stream, storedPredicateSignature(DB, XReplaced, (Y1,Y2,Y3))),
+  write(Stream, storedPredicateSignature(DB, XReplaced, [Y1,Y2,Y3])),
   write(Stream, '.\n').
 
 :-assert(helpLine(showStoredPredicateSignatures,0,[],
@@ -1697,7 +1743,7 @@ descriptors etc.
 corresponding to the ~Arg~ fields used in attribute descriptors within ~Expr~,
 and Rel1,..., RelN are the according relation descriptors.
 
-~TypeTree~ has format (~Op~, ~TypeTreeList~, ~ResType~), where
+~TypeTree~ has format [~Op~, ~TypeTreeList~, ~ResType~], where
 ~Op~ is the operator symbol,
 ~TypeTreeList~ is a list of entries with format ~TypeTree~, and
 ~ResType~ is the type of the complete expression (root node).
@@ -1772,18 +1818,14 @@ createRelArgListFromPredRelList([X|Xs],N1,[(N1,X)|X2]) :-
   createRelArgListFromPredRelList(Xs,N2,X2).
 
 
-% fail, is option not selected:
-getTypeTree(_,_,_,_) :-
+% fail, if option not selected:
+getTypeTree(_,_,_) :-
   not(optimizerOption(determinePredSig)),!,
   fail.
 
-  /*
-  ----
-  % write debug message...
-  getTypeTree(Expr,Rels,_) :-
-    dm(selectivity,['§§§ Calling getTypeTree for: ',Expr,', ',Rels]),nl,
-    fail.
-  */
+% getTypeTree(Expr,Rels,Result) :-
+%   write_list(['$$$ Calling ',getTypeTree(Expr,Rels,Result),'\n']),
+%   fail.
 
 % Use temporarily saved results.
 % Results of calls to getTypeTree/3 are saved as facts tmpStoredTypeTree/2
@@ -1801,64 +1843,65 @@ getTypeTree(arglist([X|R]),Rels,[X1|R1]) :-
   !.
 
 % Primitive: int-atom
-getTypeTree(IntAtom,_,(atom,IntAtom,int)) :-
+getTypeTree(IntAtom,_,[atom,IntAtom,int]) :-
   atomic(IntAtom), integer(IntAtom),
 %   dm(selectivity,['§§§ getTypeTree: ',IntAtom,': ',int]),nl,
-  assert(tmpStoredTypeTree(IntAtom,(atom,IntAtom,int))),
+  assert(tmpStoredTypeTree(IntAtom,[atom,IntAtom,int])),
   !.
 
 % Primitive: real-atom
-getTypeTree(RealAtom,_,(atom,RealAtom,real)) :-
+getTypeTree(RealAtom,_,[atom,RealAtom,real]) :-
   atomic(RealAtom), float(RealAtom),
 %   dm(selectivity,['§§§ getTypeTree: ',RealAtom,': ',real]),nl,
+  assert(tmpStoredTypeTree(RealAtom,[atom,RealAtom,real])),
   !.
 
 % Primitive: text-atom
-getTypeTree(TextAtom,_,(atom,TextAtom,text)) :-
+getTypeTree(TextAtom,_,[atom,TextAtom,text]) :-
   atom(TextAtom),
   not(is_list(TextAtom)),
   not(opSignature(TextAtom,_,[],_)),
 %   dm(selectivity,['§§§ getTypeTree: ',TextAtom,': ',text]),nl,
-  assert(tmpStoredTypeTree(TextAtom,(atom,TextAtom,text))),
+  assert(tmpStoredTypeTree(TextAtom,[atom,TextAtom,text])),
   !.
 
 % Primitive: string-atom
-getTypeTree(TextAtom,_,(atom,TextAtom,string)) :-
+getTypeTree(TextAtom,_,[atom,TextAtom,string]) :-
   is_list(TextAtom), TextAtom = [First | _], atomic(First), !,
   string_to_list(_,TextAtom),
 %   dm(selectivity,['§§§ getTypeTree: ',TextAtom,': ',string]),nl,
-  assert(tmpStoredTypeTree(TextAtom,(atom,TextAtom,string))),
+  assert(tmpStoredTypeTree(TextAtom,[atom,TextAtom,string])),
   !.
 
 % Primitive: relation-descriptor
-getTypeTree(rel(DCrelName, X),_,(relation,rel(DCrelName, X),tuple(TupleList))):-
+getTypeTree(rel(DCrelName, X),_,[relation,rel(DCrelName, X),tuple(TupleList)]):-
   getRelAttrList(DCrelName, AttrList, _),
   findall((N,A),(member([N,A,_],AttrList)),TupleList),
 % dm(selectivity,['§§§ getTypeTree: ',rel(DCrelName, X),': ',tuple(TupleList)]),
 % nl,
   assert(tmpStoredTypeTree(rel(DCrelName, X),
-                           (relation,rel(DCrelName, X),tuple(TupleList)))),
+                           [relation,rel(DCrelName, X),tuple(TupleList)])),
   !.
 
 % Primitive: type-descriptor
-getTypeTree(DCType,_,(typename,DCType,DCType)) :-
+getTypeTree(DCType,_,[typename,DCType,DCType]) :-
   secDatatype(DCType, _, _, _, _, _),
 %   dm(selectivity,['§§§ getTypeTree: ',DCType,': ',DCType]),nl,
-  assert(tmpStoredTypeTree(DCType,(typename,DCType,DCType))),
+  assert(tmpStoredTypeTree(DCType,[typename,DCType,DCType])),
   !.
 
 % Primitive: object-descriptor
-getTypeTree(dbobject(NameDC),_,(dbobject,dbobject(NameDC),TypeDC)) :-
-  secondoCatalogInfo(NameDC,_,_,TypeExprList),
+getTypeTree(dbobject(NameDC),_,[dbobject,dbobject(NameDC),TypeDC]) :-
+  secondoCatalogInfo(NameDC,_,_,[TypeExprList]),
   dcNList(TypeExprList,TypeDC),
 %   dm(selectivity,['§§§ getTypeTree: ',dbobject(NameDC),': ',TypeDC]),nl,
   assert(tmpStoredTypeTree(dbobject(NameDC),
-                           (dbobject,dbobject(NameDC),TypeDC))),
+                           [dbobject,dbobject(NameDC),TypeDC])),
   !.
 
 % Primitive: attribute-descriptor
 getTypeTree(attr(RenRelName:Attr, Arg, Z),RelList,
-        (attr,attr(RenRelName:Attr, Arg, Z),DCType)) :-
+        [attr,attr(RenRelName:Attr, Arg, Z),DCType]) :-
   memberchk((Arg,Rel),RelList),
   Rel = rel(DCrelName,RenRelName),
   downcase_atom(Attr,DCAttr),
@@ -1869,9 +1912,9 @@ getTypeTree(attr(RenRelName:Attr, Arg, Z),RelList,
 %   dm(selectivity,['§§§ getTypeTree: ',attr(RenRelName:Attr, Arg, Z),
 %   ': ',DCType]),nl,
   assert(tmpStoredTypeTree(attr(RenRelName:Attr, Arg, Z),
-                          (attr,attr(RenRelName:Attr, Arg, Z),DCType))),
+                          [attr,attr(RenRelName:Attr, Arg, Z),DCType])),
   !.
-getTypeTree(attr(Attr, Arg, Y),Rels,(attr,attr(Attr, Arg, Y),DCType)) :-
+getTypeTree(attr(Attr, Arg, Y),Rels,[attr,attr(Attr, Arg, Y),DCType]) :-
   downcase_atom(Attr,DCAttr),
   memberchk((Arg,Rel),Rels),
   Rel = rel(DCrelName, _),
@@ -1881,63 +1924,63 @@ getTypeTree(attr(Attr, Arg, Y),Rels,(attr,attr(Attr, Arg, Y),DCType)) :-
   storedAttrSize(DB,DCrelName,DCAttr,DCType,_,_,_),
 %   dm(selectivity,['§§§ getTypeTree: ',attr(Attr, Arg, Y),': ',DCType]),nl,
   assert(tmpStoredTypeTree(attr(Attr, Arg, Y),
-                          (attr,attr(Attr, Arg, Y),DCType))),
+                          [attr,attr(Attr, Arg, Y),DCType])),
   !.
 
 % Primitive: attribute-name-descriptor
-getTypeTree(attrname(attr(X:Name, Y, Z)),_,(attrname,
-        attrname(attr(X:Name, Y, Z)),DCType)) :-
+getTypeTree(attrname(attr(X:Name, Y, Z)),_,[attrname,
+        attrname(attr(X:Name, Y, Z)),DCType]) :-
   downcase_atom(Name,DCType),
 %   dm(selectivity,['§§§ getTypeTree: ',attrname(attr(X:Name, Y, Z)),
 %   ': ',DCType]),nl,
-  assert(tmpStoredTypeTree(attrname(attr(X:Name, Y, Z)),_,(attrname,
-        attrname(attr(X:Name, Y, Z)),DCType))),
+  assert(tmpStoredTypeTree(attrname(attr(X:Name, Y, Z)),_,[attrname,
+        attrname(attr(X:Name, Y, Z)),DCType])),
   !.
-getTypeTree(attrname(attr(Name, Y, Z)),_,(attrname,
-        attrname(attr(Name, Y, Z)),DCType)) :-
+getTypeTree(attrname(attr(Name, Y, Z)),_,[attrname,
+        attrname(attr(Name, Y, Z)),DCType]) :-
   downcase_atom(Name,DCType),
 %   dm(selectivity,['§§§ getTypeTree: ',attrname(attr(Name, Y, Z)),
 %   ': ',DCType]),nl,
-  assert(tmpStoredTypeTree(attrname(attr(Name, Y, Z)),_,(attrname,
-        attrname(attr(Name, Y, Z)),DCType))),
+  assert(tmpStoredTypeTree(attrname(attr(Name, Y, Z)),_,[attrname,
+        attrname(attr(Name, Y, Z)),DCType])),
   !.
 
 % Primitive: newly created attribute
-getTypeTree(newattr(AttrExpr,ValExpr),Rels,(newattr,
-        [AttrExprTree,ValExprTree],DCType)) :-
+getTypeTree(newattr(AttrExpr,ValExpr),Rels,[newattr,
+        [AttrExprTree,ValExprTree],DCType]) :-
   getTypeTree(arglist([AttrExpr,ValExpr]),Rels,[AttrExprTree,ValExprTree]),
-  ValExprTree = (_,_,DCType),
+  ValExprTree = [_,_,DCType],
 %   dm(selectivity,['§§§ getTypeTree: ',newattr(AttrExpr,ValExpr),
 %   ': ',DCType]),nl,
   assert(tmpStoredTypeTree(newattr(AttrExpr,ValExpr),Rels,
-        (newattr,[AttrExprTree,ValExprTree],DCType))),
+        [newattr,[AttrExprTree,ValExprTree],DCType])),
   % also store the new attribue itself:
   ( AttrExpr = attrname(attr(Name, Arg, Case))
     -> assert(tmpStoredTypeTree(attr(Name, Arg, Case),
-                                  (attr,attr(Name, Arg, Case),DCType)))
+                                  [attr,attr(Name, Arg, Case),DCType]))
     ;  true
   ), !.
 
 % Expression using defined operator signature
-getTypeTree(Expr,Rels,(Op,ArgTree,TypeDC)) :-
+getTypeTree(Expr,Rels,[Op,ArgTree,TypeDC]) :-
   compound(Expr),
   Expr =.. [Op|Args],
   getTypeTree(arglist(Args),Rels,ArgTree),
-  findall(T,member((_,_,T),ArgTree),ArgTypes), % extract types from ArgTree
+  findall(T,member([_,_,T],ArgTree),ArgTypes), % extract types from ArgTree
   (   opSignature(Op,_,ArgTypes,TypeDC,_)
     ; queriedOpSignature(Op,ArgTypes,TypeDC,_)
   ),
 %   dm(selectivity,['§§§ getTypeTree: ',Expr,': ',TypeDC]),nl,
-  assert(tmpStoredTypeTree(Expr,(Op,ArgTree,TypeDC))),
+  assert(tmpStoredTypeTree(Expr,[Op,ArgTree,TypeDC])),
   !.
 
 % Expression using unknown operator signature
-getTypeTree(Expr,Rels,(Op,ArgsTypes,TypeDC)) :-
+getTypeTree(Expr,Rels,[Op,ArgsTypes,TypeDC]) :-
   compound(Expr),
   Expr =.. [Op|Args],
   getTypeTree(Args,Rels,ArgTree),
      % extract types from ArgTree
-  findall(T,member((_,_,T),ArgTree),ArgTypes),
+  findall(T,member([_,_,T],ArgTree),ArgTypes),
      % create a valid expression using defined null values
   createNullValues(ArgsTypes,NullArgs),
      % send getTypeNL-query to Secondo to infer the signature
@@ -1949,13 +1992,13 @@ getTypeTree(Expr,Rels,(Op,ArgsTypes,TypeDC)) :-
      % store signature in fact base
   assert(queriedOpSignature(Op,ArgTypes,TypeDC,[])),
 %   dm(selectivity,['§§§ getTypeTree: ',Expr,': ',TypeDC]),nl,
-  assert(tmpStoredTypeTree(Expr,(Op,ArgsTypes,TypeDC))),
+  assert(tmpStoredTypeTree(Expr,[Op,ArgsTypes,TypeDC])),
   !.
 
 getTypeTree(A,B,C) :-
-    concat_atom(['Cannot resolve typetree for expression \'',A,'\'.'],'',MSG),
-    throw(error_Internal(statistics_getTypeTree(A,B,C)
-                             :typeMapError#MSG)),
+    term_to_atom(A,A1),
+    concat_atom(['Cannot resolve typetree for expression \'',A1,'\'.'],'',MSG),
+    throw(error_Internal(statistics_getTypeTree(A,B,C):typeMapError#MSG)),
     !, fail.
 
 %-----------------------------------------------------------------------------

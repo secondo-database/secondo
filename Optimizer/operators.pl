@@ -136,6 +136,7 @@ in their ~opSignature/5~ description.
 
 */
 
+% old version: if optimizerOption(determinePredSig) is NOT used
 isBBoxPredicate(intersects).  % but not: rT x rT
 isBBoxPredicate(intersects_new).
 isBBoxPredicate(p_intersects).
@@ -154,7 +155,8 @@ isBBoxPredicate(trcovers).
 isBBoxPredicate(trcoveredby).
 isBBoxPredicate(troverlaps).
 
-% more recent version: isBBoxPredicate(+Op,+ArgTypeList,?Dimension)
+% more recent version: if optimizerOption(determinePredSig) is used
+% --- isBBoxPredicate(+Op,+ArgTypeList,?Dimension)
 isBBoxPredicate(Op,ArgsTypeList,Dim) :-
   opSignature(Op, _, ArgsTypeList,bool,Flags),
   memberchk(bbox(Dim),Flags),!.
@@ -163,6 +165,7 @@ isBBoxPredicate(Op,ArgsTypeList,Dim) :-
 isBBoxLiftedPred(inside).
 
 % other operators using bboxes:
+% old version: if optimizerOption(determinePredSig) is NOT used
 isBBoxOperator(touchpoints).
 isBBoxOperator(intersection).
 isBBoxOperator(intersection_new).
@@ -170,7 +173,8 @@ isBBoxOperator(commonborder).
 isBBoxOperator(commonborderscan).
 isBBoxOperator(X) :- isBBoxPredicate(X).
 
-% more recent version: isBBoxOperator(+Op,+ArgTypeList,?Dimension)
+% more recent version: if optimizerOption(determinePredSig) is used
+% --- isBBoxOperator(+Op,+ArgTypeList,?Dimension)
 isBBoxOperator(Op,ArgsTypeList,Dim) :-
   opSignature(Op, _, ArgsTypeList,_,Flags),
   memberchk(bbox(Dim),Flags),!.
@@ -183,7 +187,7 @@ They should be marked with ~comm~ in their property flags within ~opSignature/5~
 
 */
 
-% old version
+% old version: if optimizerOption(determinePredSig) is NOT used
 isCommutativeOP((=)).
 isCommutativeOP((#)).
 isCommutativeOP(intersects).
@@ -198,7 +202,8 @@ isCommutativeOP(trequal).
 isCommutativeOP(trdisjoint).
 isCommutativeOP(troverlaps).
 
-% more recent version isCommutativeOP(+Op,+ArgTypeList)
+% more recent version: if optimizerOption(determinePredSig) is used
+% --- isCommutativeOP(+Op,+ArgTypeList)
 isCommutativeOP(Op,[A1,A2]) :-
   opSignature(Op, _, [A1,A2], _, Flags),
   memberchk(comm,Flags),!.
@@ -902,7 +907,7 @@ opSignature(atperiods, temporal, [T,periods],T,[]) :-
 opSignature(deftime, temporal, [T],periods,[]) :-
   memberchk(T,[mbool,mint,mreal,mstring,mpoint,movingregion]),!.
 opSignature(trajectory, temporal, [mpoint],line,[]).
-opSignature(present, temporal, [T1,T2],bool,[]) :-
+opSignature(present, temporal, [T1,T2],bool,[bbox(3)]) :-
   memberchk(T2,[instant,periods]),
   memberchk(T1,[mbool,mint,mreal,mstring,mpoint,movingregion]),!.
 opSignature(passes, temporal, [T1,T2],bool,[bbox(2)]) :-
@@ -921,7 +926,7 @@ opSignature(units, temporal, [T],[stream,UT],[]) :-
 opSignature(bbox, temporal, [T],rect3,[]) :-
   memberchk(T,[mpoint,movingregion,upoint,uregion,
                ipoint,intimeregion,instant,periods]),!.
-opSignature(rangevalues, temporal, [T],T,[]) :-
+opSignature(mbrange, temporal, [T],T,[]) :-
   memberchk(T,[periods,rreal,rint,rbool,rstring]).
 opSignature(bbox2d, temporal, [T],rect,[]) :-
   memberchk(T,[mpoint,upoint,ipoint,movingregion,intimeregion,uregion]),!.

@@ -3918,11 +3918,12 @@ createExtendAttrList([Field|MoreFields],
     ; downcase_atom(Name,AttrName)
   ),
   createExtendAttrList(MoreFields, RelInfoList, MoreAttrs, MoreAttrsSize),
-  ( getTypeTree(Expr,RelInfoList,(_,_,ExprType))
+  ( getTypeTree(Expr,RelInfoList,[_,_,ExprType])
     -> AttrType = ExprType  % use inferred type
     ;  ( AttrType = int,
          write_list(['WARNING:\t could not determine expression type for ',
-                     'extended attribute ',Name,': ',Expr,'!']),nl)
+                     'extended attribute ',Name,': ',Expr,
+                     '!\n\t\tUsing \'int\' as a fallback.']),nl)
         % using 'int' as a fallback
   ),
   secDatatype(AttrType, MemSize, _ /* NoFlobs */, _ /* PersistencyMode */,_,_),
