@@ -48,7 +48,7 @@ operator equal alias EQUAL pattern _ infixop _
 operator nonequal alias NONEQUAL pattern _ infixop _
 
 operator bbox alias BBOX pattern op ( _ )
-operator rangevalues alias RANGEVALUES pattern op ( _ )
+operator mbrange alias MBRANGE pattern op ( _ )
 operator box2d alias BOX2D pattern op ( _ )
 operator bbox2d alias BBOX2D pattern op ( _ )
 operator bboxold alias BBOXOLD pattern op ( _ )

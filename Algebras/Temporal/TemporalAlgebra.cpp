@@ -53,7 +53,7 @@ place.)
 The operator with the "right" syntax can be found in
 TemporalLiftedAlgebra.
 
-02.06.2009 Christian D[ue]ntgen renamed ~bbox~: ~rT~ [->] ~rT~ to ~rangevalues~: ~rT~ [->] ~rT~
+04.06.2009 Christian D[ue]ntgen renamed ~bbox~: ~rT~ [->] ~rT~ to ~mbrange~: ~rT~ [->] ~rT~
            Added operators ~bbox~: ~periods~ [->] ~rect3~, ~bbox~: ~instant~ [->] ~rect3~.
 
 01.06.2006 Christian D[ue]ntgen added operator ~bbox~ for ~range~-types.
@@ -7771,13 +7771,13 @@ ListExpr TemporalBBoxTypeMap( ListExpr args )
 }
 
 /*
-16.1.18 Type mapping function "TemporalRangevaluesTypeMap"
+16.1.18 Type mapping function "TemporalMBRangeTypeMap"
 
 For operator ~bbox~
 
 */
 
-ListExpr TemporalRangevaluesTypeMap( ListExpr args )
+ListExpr TemporalMBRangeTypeMap( ListExpr args )
 {
   ListExpr arg1;
   if ( nl->ListLength( args ) == 1 )
@@ -8754,7 +8754,7 @@ Selection function for the bbox operator
 
 */
 
-int TemporalRangevaluesSelect( ListExpr args )
+int TemporalMBRangeSelect( ListExpr args )
 {
   ListExpr arg1 = nl->First( args );
 
@@ -9914,7 +9914,7 @@ int InstantBBox(Word* args, Word& result, int message, Word& local,
 
 
 template <class Range>
-int TempRangeValues( Word* args, Word& result, int message, Word&
+int TempMBRange( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -11236,17 +11236,17 @@ ValueMapping temporalbboxmap[] = { UPointBBox,
                                    PeriodsBBox,
                                    InstantBBox };
 
-ValueMapping temporalrangevaluesmap[] = {
-                                   TempRangeValues<RInt>,
-                                   TempRangeValues<RReal>,
-                                   TempRangeValues<Periods>,
-                                   TempRangeValues<RBool>,
-                                   TempRangeValues<RString>};
+ValueMapping temporalmbrangemap[] = {
+                                   TempMBRange<RInt>,
+                                   TempMBRange<RReal>,
+                                   TempMBRange<Periods>,
+                                   TempMBRange<RBool>,
+                                   TempMBRange<RString>};
 
 ValueMapping temporalbboxoldmap[] = { UPointBBox,
-                                      TempRangeValues<RInt>,
-                                      TempRangeValues<RReal>,
-                                      TempRangeValues<Periods>,
+                                      TempMBRange<RInt>,
+                                      TempMBRange<RReal>,
+                                      TempMBRange<Periods>,
                                       MPointBBoxOld,
                                       IPointBBox };
 
@@ -11737,13 +11737,13 @@ const string TemporalSpecBBox  =
   "<text>query bbox( upoint1 )</text--->"
   ") )";
 
-const string TemporalSpecRangevalues  =
+const string TemporalSpecMBRange  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>rT -> rT, T in {int, real, bool, string}</text--->"
-  "<text>rangevalues ( _ )</text--->"
-  "<text>Returns the smallest closed interval containing all values within \n"
-  "the given range type value.</text--->"
-  "<text>query rangevalue( deftime(train6) )</text--->"
+  "<text>mbrange ( _ )</text--->"
+  "<text>Returns the argument's minimum bounding range (the smallest closed\n"
+  "interval containing all values within the given range type value).</text--->"
+  "<text>query mbrange( deftime(train6) )</text--->"
   ") )";
 
 const string TemporalSpecBBoxOld  =
@@ -12344,12 +12344,12 @@ Operator temporalbbox( "bbox",
                        TemporalBBoxSelect,
                        TemporalBBoxTypeMap );
 
-Operator temporalrangevalues( "rangevalues",
-                       TemporalSpecRangevalues,
+Operator temporalmbrange( "mbrange",
+                       TemporalSpecMBRange,
                        5,
-                       temporalrangevaluesmap,
-                       TemporalRangevaluesSelect,
-                       TemporalRangevaluesTypeMap );
+                       temporalmbrangemap,
+                       TemporalMBRangeSelect,
+                       TemporalMBRangeTypeMap );
 
 Operator temporalbbox2d( "bbox2d",
                          TemporalSpecBBox2d,
@@ -12594,7 +12594,7 @@ class TemporalAlgebra : public Algebra
     AddOperator( &temporalfinal );
     AddOperator( &temporalunits );
     AddOperator( &temporalbbox );
-    AddOperator( &temporalrangevalues );
+    AddOperator( &temporalmbrange );
     AddOperator( &temporalbbox2d );
     AddOperator( &temporalbboxold);
 

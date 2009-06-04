@@ -98,16 +98,16 @@ Signature: upoint -> rect3, mpoint -> rect3, ipoint -> rect3, periods -> rect3, 
 Example  : query bbox(six30)
 Result   : (rect3 (-1.797693134862313e+308 1.797693134862313e+308 -1.797693134862313e+308 1.797693134862313e+308 1417.270833333333 1417.270833333333))
 
-Operator : rangevalues
+Operator : mbrange
 Number   : 1
 Signature: rT -> rT, (T in {int, real}), periods -> periods
-Example  : query rangevalues(deftime([const upoint value (("2003-10-10" "2003-12-10" TRUE TRUE) (0.0 0.0 1.0 1.0))]))
+Example  : query mbrange(deftime([const upoint value (("2003-10-10" "2003-12-10" TRUE TRUE) (0.0 0.0 1.0 1.0))]))
 Result   : (periods (("2003-10-10" "2003-12-10" TRUE TRUE)))
 
-Operator : rangevalues
+Operator : mbrange
 Number   : 2
 Signature: rT -> rT (T in {int, real}), periods -> periods
-Example  : query rangevalues(deftime(train7))
+Example  : query mbrange(deftime(train7))
 Result   : (periods (("2003-11-20-06:06" "2003-11-20-07:02" TRUE TRUE)))
 
 Operator : bboxold
