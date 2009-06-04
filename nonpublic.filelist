@@ -16,8 +16,6 @@ PartitionedStreamAlgebra PartitionedStream
 
 # Student's algebras
 HierarchicalGeoAlgebra HierarchicalGeo
-TemporalNetAlgebra TemporalNet
-NetworkAlgebra Network
 WebAlgebra Web
 ChessAlgebra Chess
 RasterAlgebra Raster
