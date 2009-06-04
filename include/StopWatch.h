@@ -39,6 +39,7 @@ An instance could be used as a clock to measure time differences.
 
 #ifndef SECONDO_WIN32
 #include <sys/times.h>
+#include <sys/time.h>
 #endif
 
 #include "SecondoConfig.h"
