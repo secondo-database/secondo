@@ -1154,16 +1154,16 @@ Return: a boolean
 bool MPointExt::Passes( Line* ln ) const
 {
     const UPoint* unitin;
-    clock_t clock1, clock2, clock3, clock4, clock_ges;
-    double time1, time2;
+//     clock_t clock1, clock2, clock3, clock4, clock_ges;
+//     double time1, time2;
     bool result = false;
 
-    clock1 = clock();
-    clock_ges = 0;
+//     clock1 = clock();
+//     clock_ges = 0;
     int i = 0;
     while( !result && i<GetNoComponents() )
     {
-        clock3 = clock();
+//         clock3 = clock();
         Get(i, unitin);
         const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
         Rectangle<2> unit_pbb;
@@ -1187,8 +1187,16 @@ Raw intersection with Bounding Boxes ...
 */
         if(unit_pbb.Intersects( obj_pbb ))
         {
+            bool isSegment = false;
             HalfSegment up_chs;
-            up_chs.Set( false, unitin->p0, unitin->p1 );
+            Point       up_point(true);
+            if(!AlmostEqual(unitin->p0, unitin->p1)){
+              up_chs.Set( false, unitin->p0, unitin->p1 );
+              isSegment = true;
+            } else {
+              up_point = unitin->p0;
+              isSegment = false;
+            }
             if(0)
             {
                 cout << "No of HS: " << ln->Size() << endl;
@@ -1221,7 +1229,7 @@ Scanning of one 1 of 2 HalfSegment
 For unit points which do not have any motion
 
 */
-                    if( unitin->p0 == unitin->p1 )
+                    if( !isSegment )
                     {
                         if( ln_chs->Contains( unitin->p0 ) )
                         {
@@ -1277,15 +1285,15 @@ Looks for intersections in a point inter\_p
                 j++;
             }
         }
-        clock4 = clock();
-        clock_ges = clock_ges + (clock4 - clock3);
+//         clock4 = clock();
+//         clock_ges = clock_ges + (clock4 - clock3);
         i++;
     }
-    clock2 = clock();
-    time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
-    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
-    cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
-    cout << "Total computing time : " << time1 << " ms" << endl;
+//     clock2 = clock();
+//     time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+//     time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+//     cout << "Average computing time per unit: " <<time2<< " ms/unit" << endl;
+//     cout << "Total computing time : " << time1 << " ms" << endl;
 
     return result;
 }
