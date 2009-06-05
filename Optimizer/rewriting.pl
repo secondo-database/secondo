@@ -573,15 +573,17 @@ inferPredicate(Premises, [X intersects Y]) :-
 
 
 /*
-
 14.2.3 Auxiliary Predicates for Inference of Conditions
 
 ---- inferPatternPredicates(+Preds,-InferedPreds)
+----
+
 For every predicates P inside a pattern query,
 a condition sometimes(P) is add to the query. The
 dynamic predicate removefilter ise used to flag
 sometimes(P). This flag is used in rewritePlan to
 remove sometimes(P) from the query expression again.
+
 */
 
 
@@ -597,26 +599,22 @@ inferPatternPredicates([Pred|Preds], [sometimes(Pred)|Preds2] ):-
   inferPatternPredicates(Preds,Preds2).
 
 parseNPred(AP , P, A):-
-	AP=..[as, P, A],!.
+  AP=..[as, P, A],!.
 
 removeAliases( [AP| NPListRest] , [P | PListRest], [A | AListRest]):-
   parseNPred(AP, P, A),
-	removeAliases(NPListRest, PListRest, AListRest),!.
+  removeAliases(NPListRest, PListRest, AListRest),!.
 removeAliases( [] , [], [] ):- !.
 
 /*
-
 14.3 Redundancy Elimination
 
 Redundant clauses should be removed.
 
-*/
-
-/*
----- rewriteQueryForRedundancy(+Query,-RewrittenQuery).
+---- rewriteQueryForRedundancy(+Query,-RewrittenQuery)
 ----
 
-rewrites ~Query~ by dropping redundant where clauses and optimizing
+Rewrites ~Query~ by dropping redundant where clauses and optimizing
 equivalent expressions. At the moment, only doublets within the list of where
 conditions are dropped.
 
@@ -673,7 +671,6 @@ rewriteQueryForRedundancy(Query,Query) :-
 
 
 /*
-
 14.4 Handle Common SubExpressions (CSEs)
 
 The repeated evaluation of common subexpressions (CSEs) should be avoided,

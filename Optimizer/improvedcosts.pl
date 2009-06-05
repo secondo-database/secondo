@@ -1,6 +1,8 @@
 /*
 8 Computing Edge Costs for Plan Edges
 
+This extension requires, that ~optimizerOption(determinePredSig)~ is set.
+
 8.1 The Costs of Terms
 
 ----

@@ -121,170 +121,14 @@ secOptConstant(sampleJoinMinCard, 50).         % minimum cardinality for samples
 secOptConstant(sampleJoinMaxCard, 500).        % maximum cardinality for samples
 
 /*
-2 Checking Operators for Certain Properties
 
-*/
+2 Operators
 
-/*
-2.1 Predicates which can use bboxes
-
-Several operators, like geometric predicates who use bounding boxes, have
-properties, that require them to be handled differently in some ways. These
-operators are flagged with a property ~bbox(Dim)~, where ~Dim~ is the dimension
-of the used minimum bounding rectangles: either ~d2~, ~d3~, ~d4~, or ~d8~,
-in their ~opSignature/5~ description.
-
-*/
-
-% old version: if optimizerOption(determinePredSig) is NOT used
-isBBoxPredicate(intersects).  % but not: rT x rT
-isBBoxPredicate(intersects_new).
-isBBoxPredicate(p_intersects).
-isBBoxPredicate(inside).      % but also: mT x mT -> movingbool
-isBBoxPredicate(insideold).
-isBBoxPredicate(adjacent).
-isBBoxPredicate(attached).
-isBBoxPredicate(overlaps).
-isBBoxPredicate(onborder).
-isBBoxPredicate(ininterior).
-isBBoxPredicate(trcovers).
-isBBoxPredicate(trequal).
-isBBoxPredicate(tradjacent).
-isBBoxPredicate(trinside).
-isBBoxPredicate(trcovers).
-isBBoxPredicate(trcoveredby).
-isBBoxPredicate(troverlaps).
-
-% more recent version: if optimizerOption(determinePredSig) is used
-% --- isBBoxPredicate(+Op,+ArgTypeList,?Dimension)
-isBBoxPredicate(Op,ArgsTypeList,Dim) :-
-  opSignature(Op, _, ArgsTypeList,bool,Flags),
-  memberchk(bbox(Dim),Flags),!.
-
-% Lifted Predicates that use bboxes
-isBBoxLiftedPred(inside).
-
-% other operators using bboxes:
-% old version: if optimizerOption(determinePredSig) is NOT used
-isBBoxOperator(touchpoints).
-isBBoxOperator(intersection).
-isBBoxOperator(intersection_new).
-isBBoxOperator(commonborder).
-isBBoxOperator(commonborderscan).
-isBBoxOperator(X) :- isBBoxPredicate(X).
-
-% more recent version: if optimizerOption(determinePredSig) is used
-% --- isBBoxOperator(+Op,+ArgTypeList,?Dimension)
-isBBoxOperator(Op,ArgsTypeList,Dim) :-
-  opSignature(Op, _, ArgsTypeList,_,Flags),
-  memberchk(bbox(Dim),Flags),!.
-
-/*
-2.2 Commutative operators
-
-These binary operators can be handled specially in some translation rules.
-They should be marked with ~comm~ in their property flags within ~opSignature/5~.
-
-*/
-
-% old version: if optimizerOption(determinePredSig) is NOT used
-isCommutativeOP((=)).
-isCommutativeOP((#)).
-isCommutativeOP(intersects).
-isCommutativeOP(intersects_new).
-isCommutativeOP(p_intersects).
-isCommutativeOP(adjacent).
-isCommutativeOP(attached).
-isCommutativeOP(overlaps).
-isCommutativeOP(everNearerThan).
-isCommutativeOP(distance).
-isCommutativeOP(trequal).
-isCommutativeOP(trdisjoint).
-isCommutativeOP(troverlaps).
-
-% more recent version: if optimizerOption(determinePredSig) is used
-% --- isCommutativeOP(+Op,+ArgTypeList)
-isCommutativeOP(Op,[A1,A2]) :-
-  opSignature(Op, _, [A1,A2], _, Flags),
-  memberchk(comm,Flags),!.
+In this section, signatures and property descriptions for operators are defined
+and made available.
 
 
-/*
-2.3 Aggregation operators
-
-These use a common cost function. They can be recognized by predicate
-~isAggregationOP(OP)~.
-
-Aggregation operators should be marked with ~aggr~ in their property flags
-within ~opSignature/5~
-
-*/
-
-isAggregationOP(count).
-isAggregationOP(min).
-isAggregationOP(max).
-isAggregationOP(sum).
-isAggregationOP(avg).
-isAggregationOP(extract).
-isAggregationOP(var).
-
-/*
-For later extensions (though needing separate cost functions):
-
-*/
-isAggregationOP(aggregate).  % the cost of the provided function should be applied, works lineary
-isAggregationOP(aggregateB). % the cost of the provided function should be applied,
-                             %   Additionally, the operator works balanced (in log(CX) steps).
-
-
-/*
-2.4 Join Operators
-
-PlanRewriting needs to identify join operators to allow for a generalized handling.
-For each join operator ~j~, a fact ~isJoinOP(j)~ must be defined. Join operators
-are expected to merge the attribute sets of their first two arguments. All other
-operators are expected not to change the attribute set of the manipulated stream.
-
-Otherwise, a dedicated rule must be added to predicate ~insertExtend/4~ in file
-~optimizer.pl~.
-
-*/
-isJoinOP(sortmergejoin).
-isJoinOP(mergejoin).
-%isJoinOP(symmjoin). % has a dedicated rule for insertExtend/4
-isJoinOP(symmproductextend). % could get a dedicated rule for insertExtend/4
-isJoinOP(hashjoin).
-isJoinOP(spatialjoin).
-isJoinOP(loopjoin).
-isJoinOP(product).
-isJoinOP(symmproduct).
-isJoinOP(pjoin).
-
-
-/*
-2.5 Maitenance of Tuple Ordering
-
-The interesting orders extension needs to recognize operators, that maintain/disturb existing
-orderings. ~no~ means, the operator will destroy preexisting orderings. ~outer~ means, it will
-keep the ordering of the outer input stream (the leftmost one). If no fact is stored about an
-operator, it is assumed, that it will maintain any existing ordering.
-
-*/
-
-maintainsOrderOP(hashjoin,              no).
-maintainsOrderOP(symmjoin,              no).
-maintainsOrderOP(spatialjoin,           no).
-maintainsOrderOP(loopjoin,           outer).
-maintainsOrderOP(product,               no).
-maintainsOrderOP(symmproduct,           no).
-maintainsOrderOP(symmproductextend,     no).
-maintainsOrderOP(sort,                  no).
-maintainsOrderOP(sortby,                no).
-maintainsOrderOP(sortmergejoin,    special).
-
-
-/*
-2.7 Signatures and Properties of Operators
+2.1 Signatures and Properties of Operators
 
 The result data type of an operator call may either be queried from the Secondo
 kernel, or it may be infered from using one of the following rules, if the type
@@ -297,27 +141,15 @@ type of expressions
 ---- opSignature(+Operator, +Algebra, +ArgTypeList, -Resulttype, -Flags).
 ----
 
-~Flags~ is a list of flags indicating that the operator has specific properties:
+Basically, these clauses do the same as the ~type mapping fubctions~ within the
+Secondo kernel: They are provided with a list of argument (~ArgTypeList~) types
+and return the type ~Resulttype~ of the ~Operator~, when called with that argument
+types. Addiditionally, we register information on which algebra defines the operator
+and on whether the operator has certain properties, resp. belongs to certain classes
+of operators.
 
-  * comm: ~Op~ is binary and commutative
-
-  * ass: ~Op~ is binary and associative
-
-  * trans: ~Op~ is binary and transitive
-
-  * idem: ~Op~ is unary and idempotent
-
-  * bbox(D): ~Op~ implements a predicate (~Resulttype is ~bool~) using a filter and refinement approach with D-dimensional MBRs
-
-  * block: ~Op~ is a blocking stream operator
-
-  * aggr: ~Op~ somehow aggregates a stream to a scalar object
-
-  * sidefx: ~Op~ may have side effects (modifies state of pseudo random number generators, creates output on terminal, creates/modifies the filesystem).
-
-  * itract: ~Op~ is interactive, e.g. waiting for external events, like user interaction, network events, etc.
-
-  * (list may be extended as required)
+While for some operators according information may be queried from the database kernel,
+we strongly recommend to provide descriptions for each operator available!
 
 ~ArgTypeList~ is a PROLOG list of terms representing the valid Secondo type
 expressions for all arguments. Simple types are noted by their DC-name.
@@ -328,6 +160,7 @@ To avoid confusion with Prolog-variables, everything is written in lower case
 letters (DC-spelling).
 
 Lists are noted
+
 ---- [E1,E2,...,En]
 ----
 
@@ -339,24 +172,28 @@ Tuples are noted
 where ~Ai~ is the DC-name of an attribute and ~Ti~ its DC-type.
 
 Streams are noted
+
 ---- [stream,T]
 ----
 
 where ~T~ is the stream's element type.
 
 Relations are noted
+
 ---- [rel, <tuple>]
 ----
 
 Where ~Ei~ is the ith element.
 
 Mappings are noted
+
 ---- [map, T1, T2, ..., Tn, T]
 ----
 Where ~Ti~ is the DC-type of the mapping's i-th argument and ~T~ is the DC-type
 of the mapping's result.
 
 Functionlist are noted
+
 ---- [(N1,M1),(N2,M2),...(Nm,Mn)]
 ----
 
@@ -365,27 +202,29 @@ i-th mapping.
 
 ~Resulttype~ is a term representing a valid Secondo type expression.
 
-*/
+~Flags~ is a list of flags indicating that the operator has specific properties:
 
-% isData(+T)
-% check, whether data type ~T~ is in kind DATA
-isData(T) :-
-  secDatatype(T, _, _, _, _, Kinds),
-  memberchk(data,Kinds), !.
+   * comm: ~Op~ is binary and commutative
 
-% isKind(+T,+K)
-% check, whether data type ~T~ is in kind K
-isKind(TC,K) :-
-  is_list(TC),
-  TC =.. [T|_],
-  secDatatype(T, _, _, _, _, Kinds),
-  memberchk(K,Kinds), !.
-isKind(T,K) :-
-  secDatatype(T, _, _, _, _, Kinds),
-  memberchk(K,Kinds), !.
+   * ass: ~Op~ is binary and associative
 
-/*
-StandardAlgebra ***
+   * trans: ~Op~ is binary and transitive
+
+   * idem: ~Op~ is unary and idempotent
+
+   * bbox(D): ~Op~ implements a predicate (~Resulttype~ is ~bool~) using a filter and refinement approach with D-dimensional MBRs
+
+   * block: ~Op~ is a blocking stream operator
+
+   * aggr: ~Op~ somehow aggregates a stream to a scalar object
+
+   * sidefx: ~Op~ may have side effects (modifies state of pseudo random number generators, creates output on terminal, creates/modifies the filesystem).
+
+   * itract: ~Op~ is interactive, e.g. waiting for external events, like user interaction, network events, etc.
+
+   * (list may be extended as required)
+
+2.7.1 StandardAlgebra
 
 */
 opSignature((+), standard, [int,int],int,[comm,ass]).
@@ -518,7 +357,7 @@ opSignature(abs, standard, [int],int,[]).
 opSignature(abs, standard, [real],real,[]).
 
 /*
-FTextAlgebra ***
+2.7.2 FTextAlgebra
 
 */
 opSignature((contains), ftext, [text,string],bool,[]).
@@ -675,7 +514,7 @@ opSignature(blowfish_decode, ftext, [string,string], text,[]).
 
 
 /*
-DateTimeAlgebra ***
+2.7.3 DateTimeAlgebra
 
 */
 opSignature((+), datetime, [instant,duration],instant,[]).
@@ -722,7 +561,7 @@ opSignature(tostring, datetime, [duration],string,[]).
 
 
 /*
-SpatialAlgebra ***
+2.7.4 SpatialAlgebra
 
 */
 opSignature(isempty, spatial, [T],bool,[]) :-
@@ -824,7 +663,7 @@ opSignature(iscycle, spatial, [sline],bool,[]).
 
 
 /*
-TemporalAlgebra ***
+2.7.5 TemporalAlgebra
 
 */
 opSignature(isempty, temporal, [T],bool,[]) :-
@@ -998,7 +837,7 @@ opSignature(avespeed, temporal, [mpoint],real,[]).
 opSignature(submove, temporal, [mpoint,real],mpoint,[]).
 
 /*
-TemporalExtAlgebra ***
+2.7.5 TemporalExtAlgebra
 
 */
 opSignature(at, temporalext, [T1,T2],T1,[]) :-
@@ -1036,7 +875,7 @@ opSignature(everNearerThan, temporalext, [mpoint,point,real],bool,[]).
 opSignature(everNearerThan, temporalext, [point,mpoint,real],bool,[]).
 
 /*
-TemporalLiftedAlgebra ***
+2.7.6 TemporalLiftedAlgebra
 
 */
 opSignature((=), temporallifted, [T,T],mbool,[comm]) :-
@@ -1134,7 +973,7 @@ opSignature(concat, temporallifted, [mpoint,mpoint],mpoint,[]).
 opSignature(abs, temporallifted, [mreal],mreal,[]).
 
 /*
-TemporalUnitAlgebra ***
+2.7.7 TemporalUnitAlgebra
 
 */
 opSignature(makemvalue, temporalunit, [[stream,[tuple,AttrList]],Attr],T2,
@@ -1282,7 +1121,7 @@ opSignature(length, temporalunit, [upoint],real,[]).
 
 
 /*
-MovingRegionAlgebra ***
+2.7.8 MovingRegionAlgebra
 
 */
 opSignature(atinstant, movingregion, [movingregion,instant],intimeregion,[]).
@@ -1311,7 +1150,7 @@ opSignature(units, movingregion, [movingregion],[stream,uregion],[]).
 
 
 /*
-RectangleAlgebra ***
+2.7.9 RectangleAlgebra
 
 */
 opSignature(isempty, rectangle, [T],bool,[]) :-
@@ -1360,7 +1199,7 @@ opSignature(enlargeRect, rectangle, [rect8,real,real,real,real,
 
 
 /*
-StreamAlgebra ***
+2.7.10 StreamAlgebra
 
 */
 opSignature(count, stream, [[stream,T]],int,[block]) :- isData(T), !.
@@ -1418,7 +1257,7 @@ opSignature(kinds, stream, [string],[stream,string],[]).
 
 
 /*
-TupleIdentifierAlgebra ***
+2.7.11 TupleIdentifierAlgebra
 
 */
 opSignature(tupleid, tupleidentifier, [[tuple,_]],int,[]).
@@ -1436,7 +1275,7 @@ opSignature(int2tid, tupleidentifier, [int],tid,[]).
 
 
 /*
-RTreeAlgebra ***
+2.7.12 RTreeAlgebra
 
 */
 opSignature(creatertree, rtree, [[rel,[tuple,AttrList]],Key],Result,[block]) :-
@@ -1581,7 +1420,7 @@ opSignature(getFileInfo, rtree, [[RTreeType|_]],text,[]) :-
 
 
 /*
-FunctionAlgebra ***
+2.7.13 FunctionAlgebra
 
 */
 % Typemap operator 'ANY' omitted
@@ -1595,7 +1434,7 @@ opSignature(whiledo, function, [T,[map,T,bool],[map,T,T],bool],[stream,T],[]) :-
 
 
 /*
-CollectionAlgebra ***
+2.7.14 CollectionAlgebra
 
 */
 opSignature(contains, collection, [[vector,T],T],bool,[]) :- isData(T), !.
@@ -1653,7 +1492,7 @@ opSignature(is_defined, collection, [[vector,T]],bool,[]) :- isData(T),!.
 
 
 /*
-GSLAlgebra ***
+2.7.15 GSLAlgebra
 
 */
 opSignature(rng_init, gsl, [inbt,int],bool,[sidefx]).
@@ -1679,7 +1518,7 @@ opSignature(rng_GeneratorMaxRand, gsl, [int],int,[]).
 
 
 /*
-SimulationAlgebra ***
+2.7.16 SimulationAlgebra
 
 */
 opSignature(sim_set_rng, simulation, [int,int],bool,[sidefx]).
@@ -1701,7 +1540,7 @@ opSignature(sim_trips, simulation, [mpoint,duration,real],[stream,mpoint],[]).
 
 
 /*
-ArrayAlgebra ***
+2.7.17 ArrayAlgebra
 
 */
 opSignature(size, array, [[array,_]],int,[]).
@@ -1755,13 +1594,13 @@ opSignature(partjoinselect, array,[[array,[rel,T]], [array,[rel,U]],
 
 
 /*
-BinaryFileAlgebra ***
+2.7.18 BinaryFileAlgebra
 
 */
 opSignature(saveto, binaryfile, [binfile,string],bool,[sidefx]).
 
 /*
-BTreeAlgebra ***
+2.7.19 BTreeAlgebra
 
 */
 opSignature(createbtree, btree, [[rel,[tuple,AttrList]],Key],
@@ -1812,7 +1651,7 @@ opSignature(updatebtree, btree, [[stream,[tuple,AttrList1]],
 opSignature(getFileInfo, btree, [[btree,_,_]],text,[]).
 
 /*
-RelationAlgebra ***
+2.7.20 RelationAlgebra
 
 */
 opSignature(feed, relation, [[rel,[tuple,X]]],[stream,[tuple,X]],[]).
@@ -1874,7 +1713,7 @@ opSignature(countboth, relation, [[stream,[tuple,_]],[stream,[tuple,_]]],int,
 
 
 /*
-ExtRelationAlgebra ***
+2.7.21 ExtRelationAlgebra
 
 */
 opSignature(sample, extrelation, [[rel,[tuple,X]],int,real],[stream,[tuple,X]],
@@ -1993,7 +1832,7 @@ opSignature(kbiggest, extrelation, [[stream,[tuple,A]],int,Attr],
 
 
 /*
-PlugJoinAlgebra ***
+2.7.22 PlugJoinAlgebra
 
 */
 opSignature(spatialjoin, plugjoin, [[stream,[tuple,X]],[stream,[tuple,Y]],AX,AY],
@@ -2003,7 +1842,7 @@ opSignature(spatialjoin, plugjoin, [[stream,[tuple,X]],[stream,[tuple,Y]],AX,AY]
 
 
 /*
-PlaneSweepAlgebra ***
+2.7.23 PlaneSweepAlgebra
 
 */
 opSignature(realm, planesweep, [line,line],line,[]).
@@ -2033,7 +1872,7 @@ opSignature(intersects_new, planesweep, [region,region],bool,[comm,bbox(2)]).
 
 
 /*
-GraphAlgebra ***
+2.7.24 GraphAlgebra
 
 */
 opSignature(thevertex, graph, [graph,int],vertex,[]).
@@ -2073,7 +1912,7 @@ opSignature(equalway, graph, [path,path],bool,[comm]).
 
 
 /*
-OptAuxAlgebra ***
+2.7.25 OptAuxAlgebra
 
 */
 opSignature(predcounts, optaux, [[stream,[tuple,X]],FL],
@@ -2083,7 +1922,7 @@ opSignature(predcounts, optaux, [[stream,[tuple,X]],FL],
 
 
 /*
-TopOpsAlgebra ***
+2.7.26 TopOpsAlgebra
 
 */
 opSignature(toprel, topops, [T1,T2],int9m,[]) :-
@@ -2118,7 +1957,7 @@ opSignature(trcontains, topops, [T1,T2],bool,[]) :-
   memberchk(T2,[point, points, line, region]),!.
 
 /*
-TopRelAlgebra ***
+2.7.27 TopRelAlgebra
 
 */
 opSignature(invert, toprel, [int9m],int9m,[idem]).
@@ -2167,7 +2006,7 @@ opSignature(getcluster, toprel, [predicategroup,string],cluster,[]).
 
 
 /*
-PictureAlgebra ***
+2.7.28 PictureAlgebra
 
 */
 opSignature(height, picture, [picture],int,[]).
@@ -2192,7 +2031,7 @@ opSignature(export, picture, [picture,text],bool,[sidefx]).
 
 
 /*
-ImExAlgebra ***
+2.7.29 ImExAlgebra
 
 */
 opSignature(csvexport, imex, [[stream,[tuple,X]],string,bool,bool],
@@ -2247,7 +2086,7 @@ opSignature(fromCSVtext, imex, [T,string],T,[]) :- isKind(T,csvimportable),!.
 
 
 /*
-HashAlgebra ***
+2.7.30 HashAlgebra
 
 */
 opSignature(createhash, hash, [[rel,[tuple,AttrList]],Key],
@@ -2281,7 +2120,7 @@ opSignature(getFileInfo, hash, [[hash,_,_]],text,[]).
 
 
 /*
-TBTreeAlgebra ***
+2.7.31 TBTreeAlgebra
 
 */
 opSignature(createtbtree, tbtree, [[rel,[tuple,X]],ID,UP],[tbtree,X, ID, UP],
@@ -2309,7 +2148,7 @@ opSignature(getallentries,tbtree,[[tbtree,_,_,_]],[stream,[tuple,[[tupleid,int],
         [trjid,int],[box,rect3],[nodeid,int]]]],[]).
 
 /*
-UpdateRelationAlgebra ***
+2.7.32 UpdateRelationAlgebra
 
 */
 opSignature(createinsertrel, updaterelation, [[rel,[tuple,X]]],[rel,[tuple,R]],
@@ -2429,50 +2268,252 @@ opSignature(updatertree, updaterelation, [[stream,[tuple,R]],
           O),
   append(R,O,XI), !.
 
-%GeneralTreeAlgebra
-%MTreeAlgebra
-%XTreeAlgebra
+/*
+2.7.2 (Still) Missing Algebras
 
-%ChessAlgebra
-%ClusterAlgebra
-%ConstraintAlgebra
-%DateAlgebra
-%FuzzyAlgebra
-%GraphVizAlgebra
-%HierarchicalGeoAlgebra
-%HistogramAlgebra
-%JBBoxAlgebra
-%MidiAlgebra
-%MP3Algebra
-%MRegionOpsAlgebra
-%NearestNeighborAlgebra
-%NetworkAlgebra
-%OldRelationAlgebra
-%PartitionedStreamAlgebra
-%PeriodicAlgebra
-%PointRectangleAlgebra
-%PointSequenceAlgebra
-%PolygonAlgebra
-%RasterAlgebra
-%RasterSpatialAlgebra
-%RegionInterpolationAlgebra
-%RemoteStreamAlgebra
-%RoseAlgebra
-%STPatternAlgebra
-%StreamExampleAlgebra
-%TemporalNetAlgebra
-%UGridAlgebra
-%WebAlgebra
+The typemappings for the operators of the following algebras still need to be declared:
+
+   * GeneralTreeAlgebra
+
+   * MTreeAlgebra
+
+   * XTreeAlgebra
+
+   * ChessAlgebra
+
+   * ClusterAlgebra
+
+   * ConstraintAlgebra
+
+   * DateAlgebra
+
+   * FuzzyAlgebra
+
+   * GraphVizAlgebra
+
+   * HierarchicalGeoAlgebra
+
+   * HistogramAlgebra
+
+   * JBBoxAlgebra
+
+   * MidiAlgebra
+
+   * MP3Algebra
+
+   * MRegionOpsAlgebra
+
+   * NearestNeighborAlgebra
+
+   * NetworkAlgebra
+
+   * OldRelationAlgebra
+
+   * PartitionedStreamAlgebra
+
+   * PeriodicAlgebra
+
+   * PointRectangleAlgebra
+
+   * PointSequenceAlgebra
+
+   * PolygonAlgebra
+
+   * RasterAlgebra
+
+   * RasterSpatialAlgebra
+
+   * RegionInterpolationAlgebra
+
+   * RemoteStreamAlgebra
+
+   * RoseAlgebra
+
+   * STPatternAlgebra
+
+   * StreamExampleAlgebra
+
+   * TemporalNetAlgebra
+
+   * UGridAlgebra
+
+   * WebAlgebra
+
+Decriptions of the operators provided by these algebras should be added, when
+they are indended to be used with the optimizer.
+
+*/
 
 
 /*
-Adaptor clause to adapold predicate to new one
+2.2 Checking Operators for Certain Properties
+
+The following subsections introduce predicates for checking on whether a
+operator or signature has certain properties (resp. belongs to certain classes
+of operators).
+
+2.2.1 Predicates which can use bboxes
+
+Several operators, like geometric predicates who use bounding boxes, have
+properties, that require them to be handled differently in some ways. These
+operators are flagged with a property ~bbox(Dim)~, where ~Dim~ is the dimension
+of the used minimum bounding rectangles: either ~d2~, ~d3~, ~d4~, or ~d8~,
+in their ~opSignature/5~ description.
+
 */
-opSignature(Op,Alg,Args,ResType) :- opSignature(Op,Alg,Args,ResType,_),!.
+
+% old version: if optimizerOption(determinePredSig) is NOT used
+isBBoxPredicate(intersects).  % but not: rT x rT
+isBBoxPredicate(intersects_new).
+isBBoxPredicate(p_intersects).
+isBBoxPredicate(inside).      % but also: mT x mT -> movingbool
+isBBoxPredicate(insideold).
+isBBoxPredicate(adjacent).
+isBBoxPredicate(attached).
+isBBoxPredicate(overlaps).
+isBBoxPredicate(onborder).
+isBBoxPredicate(ininterior).
+isBBoxPredicate(trcovers).
+isBBoxPredicate(trequal).
+isBBoxPredicate(tradjacent).
+isBBoxPredicate(trinside).
+isBBoxPredicate(trcovers).
+isBBoxPredicate(trcoveredby).
+isBBoxPredicate(troverlaps).
+
+% more recent version: if optimizerOption(determinePredSig) is used
+% --- isBBoxPredicate(+Op,+ArgTypeList,?Dimension)
+isBBoxPredicate(Op,ArgsTypeList,Dim) :-
+  opSignature(Op, _, ArgsTypeList,bool,Flags),
+  memberchk(bbox(Dim),Flags),!.
+
+% Lifted Predicates that use bboxes
+isBBoxLiftedPred(inside).
+
+% other operators using bboxes:
+% old version: if optimizerOption(determinePredSig) is NOT used
+isBBoxOperator(touchpoints).
+isBBoxOperator(intersection).
+isBBoxOperator(intersection_new).
+isBBoxOperator(commonborder).
+isBBoxOperator(commonborderscan).
+isBBoxOperator(X) :- isBBoxPredicate(X).
+
+% more recent version: if optimizerOption(determinePredSig) is used
+% --- isBBoxOperator(+Op,+ArgTypeList,?Dimension)
+isBBoxOperator(Op,ArgsTypeList,Dim) :-
+  opSignature(Op, _, ArgsTypeList,_,Flags),
+  memberchk(bbox(Dim),Flags),!.
+
+/*
+2.2.2 Commutative operators
+
+These binary operators can be handled specially in some translation rules.
+They should be marked with ~comm~ in their property flags within ~opSignature/5~.
+
+*/
+
+% old version: if optimizerOption(determinePredSig) is NOT used
+isCommutativeOP((=)).
+isCommutativeOP((#)).
+isCommutativeOP(intersects).
+isCommutativeOP(intersects_new).
+isCommutativeOP(p_intersects).
+isCommutativeOP(adjacent).
+isCommutativeOP(attached).
+isCommutativeOP(overlaps).
+isCommutativeOP(everNearerThan).
+isCommutativeOP(distance).
+isCommutativeOP(trequal).
+isCommutativeOP(trdisjoint).
+isCommutativeOP(troverlaps).
+
+% more recent version: if optimizerOption(determinePredSig) is used
+% --- isCommutativeOP(+Op,+ArgTypeList)
+isCommutativeOP(Op,[A1,A2]) :-
+  opSignature(Op, _, [A1,A2], _, Flags),
+  memberchk(comm,Flags),!.
+
+
+/*
+2.2.3 Aggregation operators
+
+These use a common cost function. They can be recognized by predicate
+~isAggregationOP(OP)~.
+
+Aggregation operators should be marked with ~aggr~ in their property flags
+within ~opSignature/5~
+
+*/
+
+isAggregationOP(count).
+isAggregationOP(min).
+isAggregationOP(max).
+isAggregationOP(sum).
+isAggregationOP(avg).
+isAggregationOP(extract).
+isAggregationOP(var).
+
+/*
+For later extensions (though needing separate cost functions):
+
+*/
+isAggregationOP(aggregate).  % the cost of the provided function should be applied, works lineary
+isAggregationOP(aggregateB). % the cost of the provided function should be applied,
+                             %   Additionally, the operator works balanced (in log(CX) steps).
+
+
+/*
+2.2.4 Join Operators
+
+PlanRewriting needs to identify join operators to allow for a generalized handling.
+For each join operator ~j~, a fact ~isJoinOP(j)~ must be defined. Join operators
+are expected to merge the attribute sets of their first two arguments. All other
+operators are expected not to change the attribute set of the manipulated stream.
+
+Otherwise, a dedicated rule must be added to predicate ~insertExtend/4~ in file
+~optimizer.pl~.
+
+*/
+isJoinOP(sortmergejoin).
+isJoinOP(mergejoin).
+%isJoinOP(symmjoin). % has a dedicated rule for insertExtend/4
+isJoinOP(symmproductextend). % could get a dedicated rule for insertExtend/4
+isJoinOP(hashjoin).
+isJoinOP(spatialjoin).
+isJoinOP(loopjoin).
+isJoinOP(product).
+isJoinOP(symmproduct).
+isJoinOP(pjoin).
+
+
+/*
+2.2.5 Maitenance of Tuple Ordering
+
+The interesting orders extension needs to recognize operators, that maintain/disturb existing
+orderings. ~no~ means, the operator will destroy preexisting orderings. ~outer~ means, it will
+keep the ordering of the outer input stream (the leftmost one). If no fact is stored about an
+operator, it is assumed, that it will maintain any existing ordering.
+
+*/
+
+maintainsOrderOP(hashjoin,              no).
+maintainsOrderOP(symmjoin,              no).
+maintainsOrderOP(spatialjoin,           no).
+maintainsOrderOP(loopjoin,           outer).
+maintainsOrderOP(product,               no).
+maintainsOrderOP(symmproduct,           no).
+maintainsOrderOP(symmproductextend,     no).
+maintainsOrderOP(sort,                  no).
+maintainsOrderOP(sortby,                no).
+maintainsOrderOP(sortmergejoin,    special).
+
 
 
 /*
 3 Properties of Datatypes
+
+This section defines properties for certain data types.
 
 3.1 Null Values
 

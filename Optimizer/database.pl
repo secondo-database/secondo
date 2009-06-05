@@ -3974,7 +3974,9 @@ tryDelete(_).
 
 
 /*
-11 Datatype Information
+11 Managing Datatypes
+
+11.1 Datatype Information
 
 For all available Secondo data types, the algebra providing the type,
 all kinds the types implement and the core tuple sizes are inquired from
@@ -4084,6 +4086,35 @@ showDatatypes :-
   format('~p~20|~p~30|~p~35|~p~40|~p~55|~p~70|~p~n',
          ['Type','Size','Flobs','Pers','Algebra','Kinds','NullValues']),
   findall(_, showOneDatatype, _).
+
+/*
+11.2 Kind Checking Data Types
+
+---- isData(+T)
+----
+Succeeds, iff data type ~T~ is in kind DATA
+
+---- isKind(+T,+K)
+----
+Succeeds, if data type ~T~ is in kind ~K~
+
+*/
+
+
+isData(T) :-
+  secDatatype(T, _, _, _, _, Kinds),
+  memberchk(data,Kinds), !.
+
+% isKind(+T,+K)
+% check, whether data type ~T~ is in kind K
+isKind(TC,K) :-
+  is_list(TC),
+  TC =.. [T|_],
+  secDatatype(T, _, _, _, _, Kinds),
+  memberchk(K,Kinds), !.
+isKind(T,K) :-
+  secDatatype(T, _, _, _, _, Kinds),
+  memberchk(K,Kinds), !.
 
 
 /*

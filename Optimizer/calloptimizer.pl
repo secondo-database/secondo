@@ -278,13 +278,15 @@ optimizerOptionInfo(allOff, none, no,
 
 optimizerOptionInfo(nawracosts, none, yes,
                     'Use cost functions as implemented by A. Nawra.',
-                    true,
+                    ( delOption(improvedcosts)
+                    ),
                     true
                    ).
 
 optimizerOptionInfo(improvedcosts, none, yes,
                     'Use improved cost functions.',
                     ( delOption(nawracosts),
+                      setOption(determinePredSig),
                       loadFiles(improvedcosts)
                     ),
                     true
@@ -303,7 +305,7 @@ optimizerOptionInfo(costsConjuctive, none, yes,
 */
 optimizerOptionInfo(determinePredSig, none, yes,
                     'Send queries to investigate predicate argument types.',
-                    true, true).
+                    true, (delOption(improvedcosts))).
 
 optimizerOptionInfo(immediatePlan, none, yes,
                     'Immediately create a path rather than the POG.',

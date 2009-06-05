@@ -139,10 +139,11 @@ simple(Term, _, Term).
 % fallback-clause for calls to old clause
 % ---  simple(+Term,+R1,+R2,-Simple)
 simple(Term,R1,R2,Simple) :-
-  dm(selectivity,['§§§§§§§§ Using simple/4 fallback clause! §§§§§§§§\n']),
+  dm(selectivity,['$$$$$$$ Using simple/4 fallback clause! $$$$$$$\n']),
   simple(Term,[(1,R1),(2,R2)],Simple),!.
 
 /*
+
 ----	simplePred(Pred, Simple) :-
 ----
 
@@ -1733,7 +1734,7 @@ Otherwise, we need to query Secondo for it.
 
 ---- getTypeTree(+Expr,+RelList,-TypeTree)
 ----
-Retrieves the complete type/operator tree ~Type~Tree~ from an expression ~Expr~
+Retrieves the complete type/operator tree ~TypeTree~ from an expression ~Expr~
 for a given relation list ~RelList~.
 
 ~Expr~ is an expression in internal format using attribute and relations
@@ -1758,7 +1759,7 @@ Newly created (calculated) attributes are marked with ~newattr~.
 Facts describing known operator signatures are defined in file ~operators.pl~.
 The all have format
 
----- opSignature(+Operator, +Algebra, +ArgTypeList, -Resulttype).
+---- opSignature(+Operator, +Algebra, +ArgTypeList, -Resulttype, -Flags).
 ----
 
 ~Operator~ is the name of the operator (Prolog infix-operators are inclosed in
@@ -1771,6 +1772,7 @@ expressions for all arguments.
 
 ~Resulttype~ is a term representing a valid Secondo type expression.
 
+~Flags~ is a list describing certain properties of the operators
 
 If an operator/signature combination is unknown, the optimizer tries to create
 and execute a query to determine the according result type. If a result is
@@ -1839,20 +1841,20 @@ getTypeTree(arglist([]),_,[]).
 getTypeTree(arglist([X|R]),Rels,[X1|R1]) :-
   getTypeTree(X,Rels,X1),
   getTypeTree(arglist(R),Rels,R1),
-%   dm(selectivity,['§§§ getTypeTree: []: []']),nl,
+%   dm(selectivity,['$$$ getTypeTree: []: []']),nl,
   !.
 
 % Primitive: int-atom
 getTypeTree(IntAtom,_,[atom,IntAtom,int]) :-
   atomic(IntAtom), integer(IntAtom),
-%   dm(selectivity,['§§§ getTypeTree: ',IntAtom,': ',int]),nl,
+%   dm(selectivity,['$$$ getTypeTree: ',IntAtom,': ',int]),nl,
   assert(tmpStoredTypeTree(IntAtom,[atom,IntAtom,int])),
   !.
 
 % Primitive: real-atom
 getTypeTree(RealAtom,_,[atom,RealAtom,real]) :-
   atomic(RealAtom), float(RealAtom),
-%   dm(selectivity,['§§§ getTypeTree: ',RealAtom,': ',real]),nl,
+%   dm(selectivity,['$$$ getTypeTree: ',RealAtom,': ',real]),nl,
   assert(tmpStoredTypeTree(RealAtom,[atom,RealAtom,real])),
   !.
 
@@ -1860,8 +1862,8 @@ getTypeTree(RealAtom,_,[atom,RealAtom,real]) :-
 getTypeTree(TextAtom,_,[atom,TextAtom,text]) :-
   atom(TextAtom),
   not(is_list(TextAtom)),
-  not(opSignature(TextAtom,_,[],_)),
-%   dm(selectivity,['§§§ getTypeTree: ',TextAtom,': ',text]),nl,
+  not(opSignature(TextAtom,_,[],_,_)),
+%   dm(selectivity,['$$$ getTypeTree: ',TextAtom,': ',text]),nl,
   assert(tmpStoredTypeTree(TextAtom,[atom,TextAtom,text])),
   !.
 
@@ -1869,7 +1871,7 @@ getTypeTree(TextAtom,_,[atom,TextAtom,text]) :-
 getTypeTree(TextAtom,_,[atom,TextAtom,string]) :-
   is_list(TextAtom), TextAtom = [First | _], atomic(First), !,
   string_to_list(_,TextAtom),
-%   dm(selectivity,['§§§ getTypeTree: ',TextAtom,': ',string]),nl,
+%   dm(selectivity,['$$$ getTypeTree: ',TextAtom,': ',string]),nl,
   assert(tmpStoredTypeTree(TextAtom,[atom,TextAtom,string])),
   !.
 
@@ -1877,7 +1879,7 @@ getTypeTree(TextAtom,_,[atom,TextAtom,string]) :-
 getTypeTree(rel(DCrelName, X),_,[relation,rel(DCrelName, X),tuple(TupleList)]):-
   getRelAttrList(DCrelName, AttrList, _),
   findall((N,A),(member([N,A,_],AttrList)),TupleList),
-% dm(selectivity,['§§§ getTypeTree: ',rel(DCrelName, X),': ',tuple(TupleList)]),
+% dm(selectivity,['$$$ getTypeTree: ',rel(DCrelName, X),': ',tuple(TupleList)]),
 % nl,
   assert(tmpStoredTypeTree(rel(DCrelName, X),
                            [relation,rel(DCrelName, X),tuple(TupleList)])),
@@ -1886,7 +1888,7 @@ getTypeTree(rel(DCrelName, X),_,[relation,rel(DCrelName, X),tuple(TupleList)]):-
 % Primitive: type-descriptor
 getTypeTree(DCType,_,[typename,DCType,DCType]) :-
   secDatatype(DCType, _, _, _, _, _),
-%   dm(selectivity,['§§§ getTypeTree: ',DCType,': ',DCType]),nl,
+%   dm(selectivity,['$$$ getTypeTree: ',DCType,': ',DCType]),nl,
   assert(tmpStoredTypeTree(DCType,[typename,DCType,DCType])),
   !.
 
@@ -1894,7 +1896,7 @@ getTypeTree(DCType,_,[typename,DCType,DCType]) :-
 getTypeTree(dbobject(NameDC),_,[dbobject,dbobject(NameDC),TypeDC]) :-
   secondoCatalogInfo(NameDC,_,_,[TypeExprList]),
   dcNList(TypeExprList,TypeDC),
-%   dm(selectivity,['§§§ getTypeTree: ',dbobject(NameDC),': ',TypeDC]),nl,
+%   dm(selectivity,['$$$ getTypeTree: ',dbobject(NameDC),': ',TypeDC]),nl,
   assert(tmpStoredTypeTree(dbobject(NameDC),
                            [dbobject,dbobject(NameDC),TypeDC])),
   !.
@@ -1909,7 +1911,7 @@ getTypeTree(attr(RenRelName:Attr, Arg, Z),RelList,
   storedRel(DB,DCrelName,AttrList),
   memberchk(DCAttr,AttrList),
   storedAttrSize(DB,DCrelName,DCAttr,DCType,_,_,_),
-%   dm(selectivity,['§§§ getTypeTree: ',attr(RenRelName:Attr, Arg, Z),
+%   dm(selectivity,['$$$ getTypeTree: ',attr(RenRelName:Attr, Arg, Z),
 %   ': ',DCType]),nl,
   assert(tmpStoredTypeTree(attr(RenRelName:Attr, Arg, Z),
                           [attr,attr(RenRelName:Attr, Arg, Z),DCType])),
@@ -1922,7 +1924,7 @@ getTypeTree(attr(Attr, Arg, Y),Rels,[attr,attr(Attr, Arg, Y),DCType]) :-
   storedRel(DB,DCrelName,AttrList),
   memberchk(DCAttr,AttrList),
   storedAttrSize(DB,DCrelName,DCAttr,DCType,_,_,_),
-%   dm(selectivity,['§§§ getTypeTree: ',attr(Attr, Arg, Y),': ',DCType]),nl,
+%   dm(selectivity,['$$$ getTypeTree: ',attr(Attr, Arg, Y),': ',DCType]),nl,
   assert(tmpStoredTypeTree(attr(Attr, Arg, Y),
                           [attr,attr(Attr, Arg, Y),DCType])),
   !.
@@ -1931,7 +1933,7 @@ getTypeTree(attr(Attr, Arg, Y),Rels,[attr,attr(Attr, Arg, Y),DCType]) :-
 getTypeTree(attrname(attr(X:Name, Y, Z)),_,[attrname,
         attrname(attr(X:Name, Y, Z)),DCType]) :-
   downcase_atom(Name,DCType),
-%   dm(selectivity,['§§§ getTypeTree: ',attrname(attr(X:Name, Y, Z)),
+%   dm(selectivity,['$$$ getTypeTree: ',attrname(attr(X:Name, Y, Z)),
 %   ': ',DCType]),nl,
   assert(tmpStoredTypeTree(attrname(attr(X:Name, Y, Z)),_,[attrname,
         attrname(attr(X:Name, Y, Z)),DCType])),
@@ -1939,7 +1941,7 @@ getTypeTree(attrname(attr(X:Name, Y, Z)),_,[attrname,
 getTypeTree(attrname(attr(Name, Y, Z)),_,[attrname,
         attrname(attr(Name, Y, Z)),DCType]) :-
   downcase_atom(Name,DCType),
-%   dm(selectivity,['§§§ getTypeTree: ',attrname(attr(Name, Y, Z)),
+%   dm(selectivity,['$$$ getTypeTree: ',attrname(attr(Name, Y, Z)),
 %   ': ',DCType]),nl,
   assert(tmpStoredTypeTree(attrname(attr(Name, Y, Z)),_,[attrname,
         attrname(attr(Name, Y, Z)),DCType])),
@@ -1950,7 +1952,7 @@ getTypeTree(newattr(AttrExpr,ValExpr),Rels,[newattr,
         [AttrExprTree,ValExprTree],DCType]) :-
   getTypeTree(arglist([AttrExpr,ValExpr]),Rels,[AttrExprTree,ValExprTree]),
   ValExprTree = [_,_,DCType],
-%   dm(selectivity,['§§§ getTypeTree: ',newattr(AttrExpr,ValExpr),
+%   dm(selectivity,['$$$ getTypeTree: ',newattr(AttrExpr,ValExpr),
 %   ': ',DCType]),nl,
   assert(tmpStoredTypeTree(newattr(AttrExpr,ValExpr),Rels,
         [newattr,[AttrExprTree,ValExprTree],DCType])),
@@ -1970,7 +1972,7 @@ getTypeTree(Expr,Rels,[Op,ArgTree,TypeDC]) :-
   (   opSignature(Op,_,ArgTypes,TypeDC,_)
     ; queriedOpSignature(Op,ArgTypes,TypeDC,_)
   ),
-%   dm(selectivity,['§§§ getTypeTree: ',Expr,': ',TypeDC]),nl,
+%   dm(selectivity,['$$$ getTypeTree: ',Expr,': ',TypeDC]),nl,
   assert(tmpStoredTypeTree(Expr,[Op,ArgTree,TypeDC])),
   !.
 
@@ -1991,7 +1993,7 @@ getTypeTree(Expr,Rels,[Op,ArgsTypes,TypeDC]) :-
   secondo(Query,[text,TypeDC]),
      % store signature in fact base
   assert(queriedOpSignature(Op,ArgTypes,TypeDC,[])),
-%   dm(selectivity,['§§§ getTypeTree: ',Expr,': ',TypeDC]),nl,
+%   dm(selectivity,['$$$ getTypeTree: ',Expr,': ',TypeDC]),nl,
   assert(tmpStoredTypeTree(Expr,[Op,ArgsTypes,TypeDC])),
   !.
 
@@ -2000,8 +2002,6 @@ getTypeTree(A,B,C) :-
     concat_atom(['Cannot resolve typetree for expression \'',A1,'\'.'],'',MSG),
     throw(error_Internal(statistics_getTypeTree(A,B,C):typeMapError#MSG)),
     !, fail.
-
-%-----------------------------------------------------------------------------
 
 /*
 The following predicate changes a complete nested list to use DC-spelling
