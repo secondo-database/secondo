@@ -6157,8 +6157,9 @@ ListExpr OutMapping( ListExpr typeInfo, Word value )
   else
   {
     assert( m->IsOrdered() );
-    ListExpr l = nl->TheEmptyList(),
-             lastElem, unitList;
+    ListExpr l = nl->TheEmptyList();
+    ListExpr lastElem = nl->TheEmptyList();
+    ListExpr unitList;
 
     for( int i = 0; i < m->GetNoComponents(); i++ )
     {
