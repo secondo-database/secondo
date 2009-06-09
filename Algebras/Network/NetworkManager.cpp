@@ -48,6 +48,92 @@ extern NestedList* nl;
 Loads a network with a given id.
 
 */
+
+Network* NetworkManager::GetNetworkNew(int in_iNetworkId,
+                                       map<int,string> *netList)
+{
+  Network *pNetResult = 0;
+  bool found = false;
+  map<int,string>::iterator it = netList->find(in_iNetworkId);
+  if (it != netList->end()) {
+    found = true;
+    string netobjname = (*it).second;
+    if (netobjname != "")
+    {
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(netobjname,
+                                           xValue,
+                                           bDefined);
+      if(bDefined && bOk) {
+        pNetResult = (Network*)xValue.addr;
+        return pNetResult;
+      }
+    }
+  }
+  ListExpr xObjectList = SecondoSystem::GetCatalog()->ListObjects();
+  xObjectList = nl->Rest(xObjectList);
+  while(!nl->IsEmpty(xObjectList))
+  {
+    // Next element in list
+    ListExpr xCurrent = nl->First(xObjectList);
+    xObjectList = nl->Rest(xObjectList);
+
+    // Type of object is at fourth position in list
+    ListExpr xObjectType = nl->First(nl->Fourth(xCurrent));
+    if(nl->IsAtom(xObjectType) &&
+       nl->SymbolValue(xObjectType) == "network")
+    {
+      // Get name of the network
+      ListExpr xObjectName = nl->Second(xCurrent);
+      string strObjectName = nl->SymbolValue(xObjectName);
+
+      Word xValue;
+      bool bDefined;
+      bool bOk = SecondoSystem::GetCatalog()->GetObject(strObjectName,
+                                           xValue,
+                                           bDefined);
+      if(bDefined && bOk)
+      {
+        Network* pNetwork = (Network*)xValue.addr;
+        if (!found && pNetwork->GetId() == in_iNetworkId)
+        {
+          netList->insert(pair<int,string>(in_iNetworkId, strObjectName));
+          pNetResult = (Network*) xValue.addr;
+        }
+        else
+        {
+          if (found && pNetwork->GetId() == in_iNetworkId)
+          {
+            netList->erase(in_iNetworkId);
+            netList->insert(pair<int,string>(in_iNetworkId, strObjectName));
+            pNetResult = (Network*) xValue.addr;
+          }
+          else
+          {
+            map<int,string>::iterator curIt = netList->find(pNetwork->GetId());
+            if (curIt == netList->end())
+              netList->insert(pair<int,string>(pNetwork->GetId(),
+                                               strObjectName));
+            else
+            {
+              if ((*curIt).second != strObjectName)
+              {
+                netList->erase(pNetwork->GetId());
+                netList->insert(pair<int,string>(pNetwork->GetId(),
+                                                strObjectName));
+              }
+            }
+            SecondoSystem::GetCatalog()->CloseObject(nl->SymbolAtom("network"),
+                                      xValue);
+          }
+        }
+      }
+    }
+  }
+  return pNetResult;
+}
+
 Network* NetworkManager::GetNetwork(int in_iNetworkId)
 {
   // Search in all objects in the current database for a network

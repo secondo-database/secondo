@@ -38,6 +38,8 @@ October 2008 - Jianqiu Xu
 
 #include <sstream>
 #include <time.h>
+#include <map>
+#include <iterator>
 
 #include "TupleIdentifier.h"
 #include "RelationAlgebra.h"
@@ -54,7 +56,7 @@ October 2008 - Jianqiu Xu
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
-
+static map<int,string> *netList;
 /*
 1 Helping structs, methods and classes
 
@@ -2339,6 +2341,8 @@ void Network::FillAdjacencyLists()
     }
     xLastPair = xPair;
   }
+  m_xAdjacencyList.TrimToSize();
+  m_xSubAdjacencyList.TrimToSize();
 }
 
   /*
@@ -2725,6 +2729,7 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
   endSection->DeleteIfAllowed();
   result->SetSorted(false);
   result->SetDefined(true);
+  result->TrimToSize();
   delete end;
   return true;
 };
@@ -2750,6 +2755,7 @@ void Network::FindSP(TupleId j1,TupleId j2,double& length,GLine* res)
     }
     tuple->DeleteIfAllowed();
   }
+  res->TrimToSize();
 }
 
 /*
@@ -3074,6 +3080,7 @@ void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
     }
     actSect->DeleteIfAllowed();
   }
+  io_SectionIds->TrimToSize();
   delete pSectionIter;
 };
 
@@ -3083,6 +3090,7 @@ Returns the spatial position of the gpoint.
 */
 void Network::GetPointOnRoute(const GPoint* in_pGPoint, Point*& res){
   /*Point *res = new Point(false);*/
+  cout << "Networkpointer in GetPointOnRoute:" << this << endl;
   CcInt* pRouteId = new CcInt(true, in_pGPoint->GetRouteId());
   BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
   delete pRouteId;
@@ -4186,6 +4194,7 @@ The simple constructor. Should not be used.
     }
     del.refs=1;
     del.isDelete=true;
+    TrimToSize();
   }
 
   GLine::GLine( ListExpr in_xValue,
@@ -4270,6 +4279,7 @@ The simple constructor. Should not be used.
   }
   del.refs=1;
   del.isDelete=true;
+  TrimToSize();
   return;
 }
 
@@ -4375,6 +4385,7 @@ Word GLine::In(const ListExpr typeInfo, const ListExpr instance,
                             nl->RealValue(lpos2));
   }
   correct = true;
+  pGline->TrimToSize();
   return SetWord(pGline);
 }
 
@@ -4579,6 +4590,7 @@ GLine& GLine::operator=( const GLine& l )
   m_bSorted = l.m_bSorted;
   m_bDefined = l.m_bDefined;
   m_iNetworkId = l.m_iNetworkId;
+  TrimToSize();
   return *this;
 }
 
@@ -4647,10 +4659,7 @@ FLOB* GLine::GetFLOB(const int i)
 
 DBArray<RouteInterval>* GLine::GetRouteIntervals(){
   if (IsDefined()) return &m_xRouteIntervals;
-  else {
-    DBArray<RouteInterval> *n = new DBArray<RouteInterval>(0);
-    return n;
-  }
+  else return 0;
 };
 
 void GLine::CopyFrom(const StandardAttribute* right)
@@ -4937,11 +4946,13 @@ void GLine::Uniongl(GLine *pgl2, GLine *res){
       }
     }
   }
+  res->TrimToSize();
 }
 
 void GLine::Gline2line(Line* res){
   if (IsDefined() && NoOfComponents() >0) {
-    Network* pNetwork = NetworkManager::GetNetwork(GetNetworkId());
+    //Network* pNetwork = NetworkManager::GetNetwork(GetNetworkId());
+    Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
     const RouteInterval *rI;
     Line *l = new Line(0);
     Line *x = new Line(0);
@@ -4969,6 +4980,7 @@ void GLine::Gline2line(Line* res){
       res->SetDefined(false);
     }
   }
+  res->TrimToSize();
 }
 
 bool GLine::Intersects(GLine *pgl){
@@ -5190,9 +5202,12 @@ Distance function computes the Euclidean Distance between two ~GPoint~s.
 */
 
 double GPoint::Distance (GPoint* pToGPoint){
+  map<int,string>::iterator it = netList->begin();
   if (IsDefined() && pToGPoint->IsDefined() &&
       GetNetworkId() == pToGPoint->GetNetworkId()) {
-    Network* pNetwork=NetworkManager::GetNetwork(this->GetNetworkId());
+    //Network* pNetwork=NetworkManager::GetNetwork(GetNetworkId());
+    Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),
+                                                      netList);
     Point *from = new Point(false);
     pNetwork->GetPointOnRoute(this, from);
     Point *to = new Point(false);
@@ -5287,7 +5302,9 @@ bool GPoint::ShortestPath(GPoint *to, GLine *result){
   }
   result->SetNetworkId(start->GetNetworkId());
   // Load the network
-  Network* pNetwork = NetworkManager::GetNetwork(start->GetNetworkId());
+  //Network* pNetwork = NetworkManager::GetNetwork(start->GetNetworkId());
+  Network* pNetwork = NetworkManager::GetNetworkNew(start->GetNetworkId(),
+                                                    netList);
   if(pNetwork == 0)
   {
     sendMessage("Network not found.");
@@ -5784,6 +5801,7 @@ stack to turn in right order.
   NetworkManager::CloseNetwork(pNetwork);
   result->SetSorted(false);
   result->SetDefined(true);
+  result->TrimToSize();
   delete start;
   delete end;
   return true;
@@ -5795,7 +5813,8 @@ Returns the x,y point represented by gpoint.
 */
 
 void GPoint::ToPoint(Point *&res) {
-  Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
+  //Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
   if (pNetwork != 0) {
     pNetwork->GetPointOnRoute(this, res);
   } else {
@@ -5806,7 +5825,8 @@ void GPoint::ToPoint(Point *&res) {
 
 Point* GPoint::ToPoint() const{
   Point *res = new Point(false);
-  Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
+  //Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
   if (pNetwork != 0) pNetwork->GetPointOnRoute(this, res);
   NetworkManager::CloseNetwork(pNetwork);
   return res;
@@ -5830,7 +5850,8 @@ GPoints* GLine::GetBGP (){
     SectTree *sectionTree = 0;
     const RouteInterval *ri;
     DBArray<SectTreeEntry> *actSections = new DBArray<SectTreeEntry> (0);
-    Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
+    //Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
+    Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
     bool first = true;
     const SectTreeEntry *nEntry;
     for (int i = 0; i < Size(); i++) {
@@ -5851,6 +5872,7 @@ GPoints* GLine::GetBGP (){
     sectionTree->WriteResult(pNetwork, *result, *sectionTree);
     sectionTree->Remove();
     NetworkManager::CloseNetwork(pNetwork);
+    result->TrimToSize();
     return result;
   }
 };
@@ -5902,6 +5924,7 @@ GPoints::GPoints(GPoints* in_xOther):m_xGPoints(0)
     }
     del.refs=1;
     del.isDelete=true;
+    TrimToSize();
 }
 bool GPoints::IsEmpty()const
 {
@@ -5926,6 +5949,7 @@ GPoints& GPoints::operator=(const GPoints& gps)
     gps.Get(i,gp);
     m_xGPoints.Append(*gp);
   }
+  TrimToSize();
   return *this;
 }
 int GPoints::NumOfFLOBs()const
@@ -5954,6 +5978,7 @@ int GPoints::Size()const
 GPoints& GPoints::operator+=(const GPoint& gp)
 {
   m_xGPoints.Append(gp);
+  TrimToSize();
   return *this;
 }
 
@@ -5965,6 +5990,7 @@ GPoints& GPoints::operator-=(const GPoint& gp)
     m_xGPoints.Get(i, actGP);
     if (gp != *actGP) nGPs->m_xGPoints.Append(actGP);
   }
+  nGPs->TrimToSize();
   return *nGPs;
 }
 
@@ -6038,6 +6064,7 @@ Word GPoints::In(const ListExpr typeInfo, const ListExpr instance,
   }
   correct = true;
   pGPS->SetDefined(true);
+  pGPS->TrimToSize();
   return SetWord(pGPS);
 }
 bool GPoints::OpenGPoints(SmiRecord& valueRecord,size_t& offset,
@@ -6045,6 +6072,7 @@ bool GPoints::OpenGPoints(SmiRecord& valueRecord,size_t& offset,
 {
   GPoints* pGPS = (GPoints*)Attribute::Open(valueRecord,offset,typeInfo);
   value = SetWord(pGPS);
+  pGPS->TrimToSize();
   return true;
 }
 bool GPoints::SaveGPoints(SmiRecord& valueRecord,size_t& offset,
@@ -6892,13 +6920,20 @@ int OpNetworkTheNetworkValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
   Network* pNetwork = (Network*)qp->ResultStorage(s).addr;
-
   CcInt* pId = (CcInt*)args[0].addr;
   int iId = pId->GetIntval();
-
+  map<int,string>::iterator it = netList->find(iId);
+  if (it != netList->end()) {
+    cout << "NetworkId used before" << iId << endl;
+    while (it != netList->end())
+    {
+      it = netList->find(++iId);
+    }
+    cout << "NetworkId changed to: " << iId << endl;
+  }
+  netList->insert(pair<int,string> (iId, ""));
   Relation* pRoutes = (Relation*)args[1].addr;
   Relation* pJunctions = (Relation*)args[2].addr;
-
   pNetwork->Load(iId,
                  pRoutes,
                  pJunctions);
@@ -6912,7 +6947,7 @@ const string OpNetworkTheNetworkSpec  =
   "\"Example\") "
   "(<text>int x rel x rel -> network" "</text--->"
   "<text>thenetwork(_, _, _)</text--->"
-  "<text>Creates a network.</text--->"
+  "<text>Creates network with id or next free id.</text--->"
   "<text>let n = thenetwork(int, routes, junctions)</text--->"
   "))";
 
@@ -7681,5 +7716,6 @@ InitializeNetworkAlgebra( NestedList* nlRef,
 {
   nl = nlRef;
   qp = qpRef;
+  netList = new map<int,string>();
   return (new NetworkAlgebra());
 }

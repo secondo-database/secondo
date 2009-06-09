@@ -1493,6 +1493,10 @@ isDefined
 */
 
  int isDefined();
+ void SetDefined(bool def)
+ {
+   m_bDefined = def;
+ };
 
 private:
 
@@ -1832,6 +1836,11 @@ Returns the Bounding GPoints of the GLine.
 
     void CopyFrom(const StandardAttribute*);
 
+    void TrimToSize()
+     {
+       m_xRouteIntervals.TrimToSize();
+     };
+
   private:
 
 /*
@@ -2140,6 +2149,7 @@ public:
   void CopyFrom(const StandardAttribute* right);
   GPoints& operator=(const GPoints& gps);
   void FilterAliasGPoints(Network *pNetwork);
+  void TrimToSize () {m_xGPoints.TrimToSize();}
 
 private:
   bool m_defined;
