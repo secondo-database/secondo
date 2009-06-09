@@ -363,6 +363,23 @@ changes the ~this~ object and returns it.
           return os << "undef";
       }
 
+    inline double Size() const
+      {
+        if(!StandardSpatialAttribute<dim>::del.isDefined) return -1.0;
+        double accu = +0.0;
+        try{
+          accu = (max[0] - min[0]);
+          for(unsigned int i=1; i<dim; i++){
+            accu *= (max[i] - min[i]);
+          };
+          accu = abs(accu);
+        }
+        catch(...){ // catch any exception!
+          accu = -1.0;
+        }
+        return accu;
+      }
+
   private:
 
     inline bool Proper() const;

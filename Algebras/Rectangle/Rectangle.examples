@@ -167,3 +167,9 @@ Signature: rect<dim> x real^<dim> -> rect<dim>
 Example  : query enlargeRect(rectangle3(17, 24, 12, 13, 4, 6), -1.0, 1.0, -1.0)
 Result   : (rect3 undef)
 
+Operator : size
+Number   : 1
+Signature: rect<dim> -> real
+Example  : query size(rectangle3(17, 24, 12, 13, 4, 6))
+Result   : 14.0
+

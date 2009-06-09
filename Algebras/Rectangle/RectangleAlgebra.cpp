@@ -357,36 +357,15 @@ A type mapping function takes a nested list as argument. Its contents are
 type descriptions of an operator's input parameters. A nested list describing
 the output type of the operator is returned.
 
-4.1.1 Type mapping function ~RectangleTypeMapBool~
 
-It is for the compare operators which have ~bool~ as resulttype, like =, !=.
-
-*/
-ListExpr
-RectangleTypeMapBool( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-    if( nl->IsEqual( arg1, "rect" ) && nl->IsEqual( arg2, "rect" ) ||
-        nl->IsEqual( arg1, "rect3" ) && nl->IsEqual( arg2, "rect3" ) ||
-        nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) )
-      return (nl->SymbolAtom( "bool" ));
-  }
-  return (nl->SymbolAtom( "typeerror" ));
-}
-
-/*
-4.1.2 Type mapping function ~RectangleTypeMapBool1~
+4.1.2 Type mapping function ~RectTypeMapBool~
 
 It is for the operator ~isempty~ which have ~rect~, ~rect3~, or ~rect4~
 as input and ~bool~ as result type.
 
 */
 ListExpr
-RectangleTypeMapBool1( ListExpr args )
+RectTypeMapBool( ListExpr args )
 {
   ListExpr arg1;
   if ( nl->ListLength( args ) == 1 )
@@ -394,8 +373,33 @@ RectangleTypeMapBool1( ListExpr args )
     arg1 = nl->First( args );
     if( nl->IsEqual( arg1, "rect" ) ||
         nl->IsEqual( arg1, "rect3" ) ||
-        nl->IsEqual( arg1, "rect4" ) )
+        nl->IsEqual( arg1, "rect4" ) ||
+        nl->IsEqual( arg1, "rect8" ))
       return (nl->SymbolAtom( "bool" ));
+  }
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+/*
+4.1.2 Type mapping function ~RectTypeMapReal~
+
+It is for the operator ~isempty~ which have ~rect~, ~rect3~, or ~rect4~
+as input and ~real~ as result type.
+
+*/
+ListExpr
+RectTypeMapReal( ListExpr args )
+{
+  ListExpr arg1;
+  if ( nl->ListLength( args ) == 1 )
+  {
+    arg1 = nl->First( args );
+    if( nl->IsEqual( arg1, "rect" ) ||
+        nl->IsEqual( arg1, "rect3" ) ||
+        nl->IsEqual( arg1, "rect4" ) ||
+        nl->IsEqual( arg1, "rect8" ))
+      return (nl->SymbolAtom( "real" ));
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -421,6 +425,35 @@ RectRectTypeMapRect( ListExpr args )
       return nl->SymbolAtom( "rect3" );
     if( nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) )
       return nl->SymbolAtom( "rect4" );
+    if( nl->IsEqual( arg1, "rect8" ) && nl->IsEqual( arg2, "rect8" ) )
+      return nl->SymbolAtom( "rect8" );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+4.1.3 Type mapping function ~RectRectTypeMapBool~
+
+It is for the operator like ~equal~, which takes
+two rectangles as arguments and return a bool.
+
+*/
+ListExpr
+RectRectTypeMapBool( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if( nl->IsEqual( arg1, "rect" ) && nl->IsEqual( arg2, "rect" ) )
+      return nl->SymbolAtom( "bool" );
+    if( nl->IsEqual( arg1, "rect3" ) && nl->IsEqual( arg2, "rect3" ) )
+      return nl->SymbolAtom( "bool" );
+    if( nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) )
+      return nl->SymbolAtom( "bool" );
+    if( nl->IsEqual( arg1, "rect8" ) && nl->IsEqual( arg2, "rect8" ) )
+      return nl->SymbolAtom( "bool" );
   }
   return nl->SymbolAtom( "typeerror" );
 }
@@ -725,6 +758,9 @@ RectangleUnarySelect( ListExpr args )
   if( nl->IsEqual( arg1, "rect4" ) )
     return 2;
 
+  if( nl->IsEqual( arg1, "rect8" ) )
+    return 3;
+
   return -1; // should never occur
 }
 
@@ -748,6 +784,9 @@ RectangleBinarySelect( ListExpr args )
 
   if( nl->IsEqual( arg1, "rect4" ) && nl->IsEqual( arg2, "rect4" ) )
     return 2;
+
+  if( nl->IsEqual( arg1, "rect8" ) && nl->IsEqual( arg2, "rect8" ) )
+    return 3;
 
   return -1; // should never occur
 }
@@ -822,23 +861,6 @@ int Rectangle8Select( ListExpr args )
   return -1; // should never occur
 }
 
-/*
-
-4.3.2 Selection function ~Rectangle8Select~
-
-Is used for the ~rectangle8size~ operator.
-
-*/
-int RectangleRectprojectSelect( ListExpr args )
-{
-  ListExpr arg1 = nl->First(args);
-  if(nl->IsEqual(arg1, "rect" )) return 0;
-  if(nl->IsEqual(arg1, "rect3")) return 1;
-  if(nl->IsEqual(arg1, "rect4")) return 2;
-  if(nl->IsEqual(arg1, "rect8")) return 3;
-
-  return -1; // should never occur
-}
 
 /*
 
@@ -1304,6 +1326,21 @@ template<unsigned int dim>
   return 0;
 }
 
+/*
+4.4.10 Value mapping functions of operator ~size~
+
+*/
+template<unsigned int dim>
+    int RectangleSizeValueMap( Word* args, Word& result, int message,
+                                     Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  Rectangle<dim> *arg = static_cast<Rectangle<dim> *>(args[0].addr);
+  CcReal *res = static_cast<CcReal*>(result.addr);
+  double resval = arg->Size();
+  res->Set( (resval >= -0.1), resval);
+  return 0;
+}
 
 /*
 4.5 Definition of operators
@@ -1320,23 +1357,28 @@ defined, so it easier to make them overloaded.
 */
 ValueMapping rectangleisemptymap[] = { RectangleIsEmpty<2>,
                                        RectangleIsEmpty<3>,
-                                       RectangleIsEmpty<3> };
+                                       RectangleIsEmpty<4>,
+                                       RectangleIsEmpty<8> };
 
 ValueMapping rectangleequalmap[] = { RectangleEqual<2>,
                                      RectangleEqual<3>,
-                                     RectangleEqual<4> };
+                                     RectangleEqual<4>,
+                                     RectangleEqual<8> };
 
 ValueMapping rectanglenotequalmap[] = { RectangleNotEqual<2>,
                                         RectangleNotEqual<3>,
-                                        RectangleNotEqual<4> };
+                                        RectangleNotEqual<4>,
+                                        RectangleNotEqual<8>};
 
 ValueMapping rectangleintersectsmap[] = { RectangleIntersects<2>,
                                           RectangleIntersects<3>,
-                                          RectangleIntersects<4> };
+                                          RectangleIntersects<4>,
+                                          RectangleIntersects<8> };
 
 ValueMapping rectangleinsidemap[] = { RectangleInside<2>,
                                       RectangleInside<3>,
-                                      RectangleInside<4> };
+                                      RectangleInside<4>,
+                                      RectangleInside<8> };
 
 ValueMapping rectangletranslatemap[] = { RectangleTranslate<2>,
                                          RectangleTranslate<3>,
@@ -1344,10 +1386,12 @@ ValueMapping rectangletranslatemap[] = { RectangleTranslate<2>,
 
 ValueMapping rectangleunionmap[] = { RectangleUnion<2>,
                                      RectangleUnion<3>,
-                                     RectangleUnion<4> };
+                                     RectangleUnion<4>,
+                                     RectangleUnion<8> };
 
 ValueMapping rectangleintersectionmap[] = { RectangleIntersection<2>,
                                             RectangleIntersection<3>,
+                                            RectangleIntersection<4>,
                                             RectangleIntersection<4> };
 
 ValueMapping rectanglerectangle2map[] = { RectangleValueMap<CcInt, 2>,
@@ -1364,7 +1408,8 @@ ValueMapping rectanglerectangle8map[] = { Rectangle8ValueMap<CcInt, 8>,
 
 ValueMapping rectangledistancemap[] = { RectangleDistanceValueMap<2>,
                                         RectangleDistanceValueMap<3>,
-                                        RectangleDistanceValueMap<4> };
+                                        RectangleDistanceValueMap<4>,
+                                        RectangleDistanceValueMap<8> };
 
 ValueMapping rectanglerectprojectmap[] =
 {
@@ -1403,6 +1448,14 @@ ValueMapping rectangleEnlargeRectmap[] =
   RectangleEnlargeRectValueMap<3>,
   RectangleEnlargeRectValueMap<4>,
   RectangleEnlargeRectValueMap<8>
+};
+
+ValueMapping rectangleSizemap[] =
+{
+  RectangleSizeValueMap<2>,
+  RectangleSizeValueMap<3>,
+  RectangleSizeValueMap<4>,
+  RectangleSizeValueMap<8>
 };
 
 /*
@@ -1610,55 +1663,66 @@ const string RectangleSpecEnlargeRect  =
     "<text></text--->"
     ") )";
 
+const string RectangleSpecSize  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+    "( <text>rect<d> -> real</text--->"
+    "<text>size( rect )</text--->"
+    "<text>Caculates the rectangle's area (resp. D-dimensional volume)."
+    "</text--->"
+    "<text>query size([const rect3 value "
+    "(1.0 2.0 3.0 4.0 5.0 6.0) ], 2.0, 3.0, -1.0)</text--->"
+    "<text></text--->"
+    ") )";
+
 /*
 4.5.3 Definition of the operators
 
 */
 Operator rectangleisempty( "isempty",
                            RectangleSpecIsEmpty,
-                           3,
+                           4,
                            rectangleisemptymap,
                            RectangleUnarySelect,
-                           RectangleTypeMapBool1 );
+                           RectTypeMapBool );
 
 Operator rectangleequal( "=",
                          RectangleSpecEqual,
-                         3,
+                         4,
                          rectangleequalmap,
                          RectangleBinarySelect,
-                         RectangleTypeMapBool );
+                         RectRectTypeMapBool );
 
 Operator rectanglenotequal( "#",
                             RectangleSpecNotEqual,
-                            3,
+                            4,
                             rectanglenotequalmap,
                             RectangleBinarySelect,
-                            RectangleTypeMapBool );
+                            RectRectTypeMapBool );
 
 Operator rectangleintersects( "intersects",
                               RectangleSpecIntersects,
-                              3,
+                              4,
                               rectangleintersectsmap,
                               RectangleBinarySelect,
-                              RectangleTypeMapBool );
+                              RectRectTypeMapBool );
 
 Operator rectangleinside( "inside",
                           RectangleSpecInside,
-                          3,
+                          4,
                           rectangleinsidemap,
                           RectangleBinarySelect,
-                          RectangleTypeMapBool );
+                          RectRectTypeMapBool );
 
 Operator rectangleunion( "union",
                           RectangleSpecUnion,
-                          3,
+                          4,
                           rectangleunionmap,
                           RectangleBinarySelect,
                           RectRectTypeMapRect );
 
 Operator rectangleintersection( "intersection",
                                 RectangleSpecIntersection,
-                                3,
+                                4,
                                 rectangleintersectionmap,
                                 RectangleBinarySelect,
                                 RectRectTypeMapRect );
@@ -1700,7 +1764,7 @@ Operator rectanglerectangle8( "rectangle8",
 
 Operator rectangledistance( "distance",
                           RectangleSpecDistance,
-                          3,
+                          4,
                           rectangledistancemap,
                           RectangleBinarySelect,
                           RectRectTypeMapReal );
@@ -1709,19 +1773,19 @@ Operator rectanglerectproject( "rectproject",
                           RectangleSpecRectproject,
                           4,
                           rectanglerectprojectmap,
-                          RectangleRectprojectSelect,
+                          RectangleUnarySelect,
                           RectProjectTypeMap );
 
 Operator rectangleminD( "minD",
                          RectangleSpecMinD,
-                         2,
+                         4,
                          rectangleMinDmap,
                          RectangleMinMaxDSelect,
                          RectangleMinMaxTypeMap );
 
 Operator rectanglemaxD( "maxD",
                         RectangleSpecMaxD,
-                        2,
+                        4,
                         rectangleMaxDmap,
                         RectangleMinMaxDSelect,
                         RectangleMinMaxTypeMap );
@@ -1730,15 +1794,22 @@ Operator rectanglebbox( "bbox",
                         RectangleSpecBbox,
                         4,
                         rectangleBboxmap,
-                        RectangleRectprojectSelect,
+                        RectangleUnarySelect,
                         RectangleTypeMapRectRect );
 
 Operator rectangleextendrect( "enlargeRect",
                         RectangleSpecEnlargeRect,
                         4,
                         rectangleEnlargeRectmap,
-                        RectangleRectprojectSelect,
+                        RectangleUnarySelect,
                         RectangleTypeMapEnlargeRect );
+
+Operator rectanglesize( "size",
+                        RectangleSpecSize,
+                        4,
+                        rectangleSizemap,
+                        RectangleUnarySelect,
+                        RectTypeMapReal );
 
 /*
 5 Creating the Algebra
@@ -1778,8 +1849,8 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectanglemaxD );
     AddOperator( &rectanglebbox );
     AddOperator( &rectangleextendrect );
-
-
+    AddOperator( &rectangleextendrect );
+    AddOperator( &rectanglesize );
   }
   ~RectangleAlgebra() {};
 };
