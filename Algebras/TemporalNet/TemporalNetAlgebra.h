@@ -448,6 +448,7 @@ The simple constructor should not be used.
       EndBulkLoad(true);
       if (src->m_traj_Defined) SetTrajectory(src->m_trajectory);
       SetTrajectoryDefined(src->m_traj_Defined);
+      m_trajectory.TrimToSize();
       if (src->m_bbox.IsDefined()) SetBoundingBox(src->BoundingBox());
       SetBoundingBoxDefined(m_bbox.IsDefined());
     }
@@ -609,17 +610,9 @@ Returns the spatiotemporal 3 dimensional bounding box of the ~mgpoint~.
   void Add( const UGPoint& unit);
 
 /*
-  Closes the bulkload of the ~mgpoint~.
+Restricts a ~mgpoint~ to the given unit intervals.
 
 */
-
-
-  void EndBulkLoad( const bool sort = true);
-
-  /*
-  Restricts a ~mgpoint~ to the given unit intervals.
-
-  */
   void Restrict( const vector< pair<int, int> >& intervals );
   /*
   Prints the mgpoint value.
