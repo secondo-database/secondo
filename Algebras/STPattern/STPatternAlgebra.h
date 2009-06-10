@@ -24,7 +24,7 @@ Author: m.attia
 using namespace datetime;
 typedef DateTime Instant;
 extern NestedList *nl;
-extern QueryProcessor* qp;
+extern QueryProcessor* qp;  
 
 
 namespace STP {
@@ -83,9 +83,9 @@ public:
   
   bool Add(int simple);
   
-  bool ApplyVector(Interval<Instant>& p1, Interval<Instant>& p2);
+  bool ApplyVector(Interval<CcReal>& p1, Interval<CcReal>& p2);
   
-  bool ApplySimple(Interval<Instant>& p1, Interval<Instant>& p2, 
+  bool ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2, 
       int simple);
   //Secondo framework support
   static Word In( const ListExpr typeInfo, const ListExpr instance,
@@ -108,17 +108,19 @@ public:
 class CSP  
 {
 public:
-  vector< vector<Interval<Instant> > > SA;
+  vector< vector<Interval<CcReal> > > SA;
   vector<Supplier> Agenda;
   map<string, int> VarAliasMap;
   vector< vector<Supplier> >ConstraintGraph;
   int count;
   int iterator;
-  Interval<Instant> nullInterval;
+  Interval<CcReal> nullInterval;
+  vector<int> assignedVars;
   
   
-  CSP():count(0),iterator(-1),
-  nullInterval(Instant(0,0,instanttype), Instant(0,0,instanttype),true,true){}
+  CSP():count(0),iterator(-1), 
+  nullInterval(CcReal(true,0.0),CcReal(true,0.0), true,true)
+  {}
   
   int AddVariable(string alias, Supplier handle)
   {
@@ -150,9 +152,10 @@ public:
   
   bool Solve()
   {
+    bool debugme=true;
     int varIndex;
     Word Value;
-    vector<Interval<Instant> > domain(0);
+    vector<Interval<CcReal> > domain(0);
     while( (varIndex= PickVariable()) != -1)
     {
       qp->Request(Agenda[varIndex], Value);
@@ -161,30 +164,45 @@ public:
       if(domain.size()==0) return false;
       if(Extend(varIndex, domain)!= 0) return false;
       if(SA.size()==0) return false;
+      if(debugme)
+        Print();
     }
     return true;
   }
   
-  int MBool2Vec(const MBool* mb, vector<Interval<Instant> >& vec)
+  void IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
+      Interval<CcReal>& out)
+  {
+    out.start.Set(in.start.IsDefined(), in.start.ToDouble());
+    out.end.Set(in.end.IsDefined(), in.end.ToDouble());
+  }
+  
+  
+  int MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec)
   {
     const UBool* unit;
     vec.clear();
+    Interval<CcReal> elem(CcReal(true,0.0),CcReal(true,0.0),true,true);
     for(int i=0; i<mb->GetNoComponents(); i++)
     {
       mb->Get(i, unit);
       if( ((CcBool)unit->constValue).GetValue())
-        vec.push_back(unit->timeInterval);
+      {
+        IntervalInstant2IntervalCcReal(unit->timeInterval, elem);
+        vec.push_back(elem);
+      }
     }
     return 0;
   }
   
-  int Extend(int index, vector<Interval<Instant> >& domain )
+  int Extend(int index, vector<Interval<CcReal> >& domain )
   {
-    vector<Interval<Instant> > sa(count);
-    for(int i=0; i<count; i++)
-      sa[i]= nullInterval;
+    vector<Interval<CcReal> > sa(count);
+    
     if(SA.size() == 0)
     {
+      for(int i=0; i<count; i++)
+        sa[i].CopyFrom(nullInterval);
       for(unsigned int i=0; i<domain.size(); i++)
       {
         
@@ -200,8 +218,8 @@ public:
       sa= SA[0];
       for(unsigned int j=0; j< domain.size(); j++)
       {
-        sa[index]= domain[i];
-        if(IsSupported(sa))
+        sa[index]= domain[j];
+        if(IsSupported(sa,index))
           SA.push_back(sa);
       }
       SA.erase(SA.begin());
@@ -209,39 +227,38 @@ public:
     return 0;
   }
   
-  bool IsSupported(vector<Interval<Instant> > sa)
+  bool IsSupported(vector<Interval<CcReal> > sa, int index)
   {
-    vector<int> assignedVars;
-    bool supported=false;
-    for(unsigned int i=0; i<sa.size(); i++)
-    {
-      if(sa[i] != nullInterval)
-        assignedVars.push_back(i);
-    }
     
+    bool supported=false; 
     for(unsigned int i=0; i<assignedVars.size()-1; i++)
     {
       for(unsigned int j=0; j<assignedVars.size(); j++)
       {
-        if(ConstraintGraph[assignedVars[i]][assignedVars[j]] != 0)
+        if(i== (unsigned int)index || j == (unsigned int)index )
         {
-          supported= CheckConstraint(sa[assignedVars[i]], sa[assignedVars[j]], 
-              ConstraintGraph[assignedVars[i]][assignedVars[j]]);
-          if(!supported) return false;
-        }
-        
-        if(ConstraintGraph[assignedVars[j]][assignedVars[i]] != 0)
-        {
-          supported= CheckConstraint(sa[assignedVars[j]], sa[assignedVars[i]], 
-              ConstraintGraph[assignedVars[j]][assignedVars[i]]);
-          if(!supported) return false;
+          if(ConstraintGraph[assignedVars[i]][assignedVars[j]] != 0)
+          {
+            supported= CheckConstraint(sa[assignedVars[i]], 
+                sa[assignedVars[j]], 
+                ConstraintGraph[assignedVars[i]][assignedVars[j]]);
+            if(!supported) return false;
+          }
+
+          if(ConstraintGraph[assignedVars[j]][assignedVars[i]] != 0)
+          {
+            supported= CheckConstraint(sa[assignedVars[j]], 
+                sa[assignedVars[i]], 
+                ConstraintGraph[assignedVars[j]][assignedVars[i]]);
+            if(!supported) return false;
+          }
         }
       }
     }
     return true;
   }
   
-  bool CheckConstraint(Interval<Instant>& p1, Interval<Instant>& p2, 
+  bool CheckConstraint(Interval<CcReal>& p1, Interval<CcReal>& p2, 
       Supplier constraint)
   {
     Word Value;
@@ -252,11 +269,62 @@ public:
   
   int PickVariable()
   {
-    unsigned int i=0;
-    while(Agenda[i]==0 && i<Agenda.size()) i++;
-    if(i==Agenda.size()) return -1; else return i;
+    bool debugme=true;
+    vector<int> vars(0);
+    vector<double> numconstraints(0);
+    double cnt=0;
+    int index=-1;
+    for(unsigned int i=0;i<Agenda.size();i++)
+    {
+      if(Agenda[i] != 0)
+      {
+        vars.push_back(i);
+        cnt=0;
+        for(unsigned int r=0; r< ConstraintGraph.size(); r++)
+        {
+          for(unsigned int c=0; c< ConstraintGraph[r].size(); c++)
+          {
+            if( r == i && ConstraintGraph[r][c] != 0)
+            {
+              cnt+=0.5;
+              for(unsigned int v=0; v< assignedVars.size(); v++)
+              {
+                if(c == (unsigned int)assignedVars[v]) cnt+=0.5;
+              }
+            }
+            
+            if( c == i && ConstraintGraph[r][c] != 0)
+            {
+              cnt+=0.5;
+              for(unsigned int v=0; v< assignedVars.size(); v++)
+              {
+                if(r == (unsigned int)assignedVars[v]) cnt+=0.5;
+              }
+            }
+          }
+        }
+        numconstraints.push_back(cnt);
+      }
+    }
+    double max=-1;
+    
+    for(unsigned int i=0; i<numconstraints.size(); i++)
+    {
+      if(numconstraints[i]>max){ max=numconstraints[i]; index=vars[i];}
+    }
+    if(debugme)
+    {
+      for(unsigned int i=0; i<numconstraints.size(); i++)
+        cout<< "\nConnectivity of variable " <<vars[i] <<"  = "
+        << numconstraints[i];
+      cout<<endl<< "Picking variable "<< index<<endl;
+      cout.flush();
+    }
+    if(index== -1) return -1; 
+    assignedVars.push_back(index);
+    return index;
   }
-  
+
   
   bool MoveNext()
   {
@@ -273,9 +341,9 @@ public:
 
     it=VarAliasMap.find(alias);
     if(it== VarAliasMap.end()) return false;
-
+    
     int index=(*it).second;
-    result.CopyFrom(& SA[iterator][index].start);
+    result.ReadFrom(SA[iterator][index].start.GetRealval());
     return true;
   }
   
@@ -287,13 +355,23 @@ public:
     if(it== VarAliasMap.end()) return false;
 
     int index=(*it).second;
-    result.CopyFrom(& SA[iterator][index].end);
+    result.ReadFrom(SA[iterator][index].end.GetRealval());
     return true;
   }
   
   void Print()
   {
-    
+    cout<< "\n==========================\nSA.size() = "<< SA.size()<< endl;
+    for(unsigned int i=0; i< SA.size(); i++)
+    {
+      for(unsigned int j=0; j<SA[i].size(); j++)
+      {
+        cout<<(SA[i][j].start.GetRealval()-3444)*24*60*60<< "\t "<<
+        (SA[i][j].end.GetRealval()-3444)*24*60*60 <<" | ";
+      }
+      cout<<endl;
+    }
+    cout.flush();
   }
   int Clear()
   {
@@ -301,6 +379,7 @@ public:
     Agenda.clear();
     ConstraintGraph.clear();
     VarAliasMap.clear();
+    assignedVars.clear();
     count=0;
     iterator=-1;
     return 0;

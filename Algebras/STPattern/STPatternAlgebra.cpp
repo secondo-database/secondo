@@ -126,7 +126,7 @@ bool STVector::Add(int simple)
   return false;
 }
 
-bool STVector::ApplyVector(Interval<Instant>& p1, Interval<Instant>& p2)
+bool STVector::ApplyVector(Interval<CcReal>& p1, Interval<CcReal>& p2)
 {
   int simple=1;
   bool supported=false;
@@ -142,12 +142,11 @@ bool STVector::ApplyVector(Interval<Instant>& p1, Interval<Instant>& p2)
   return false;
 }
 
-bool STVector::ApplySimple(Interval<Instant>& p1, Interval<Instant>& p2, 
+bool STVector::ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2, 
     int simple)
-{
-  //can be optimized if we converted the Instant to int 
-  double  a=p1.start.ToDouble(),   A=p1.end.ToDouble(),
-          b=p2.start.ToDouble(),   B=p2.end.ToDouble();
+{ 
+  double  a=p1.start.GetRealval(),   A=p1.end.GetRealval(),
+          b=p2.start.GetRealval(),   B=p2.end.GetRealval();
   switch(simple)
   {
   case   aabb:
@@ -375,7 +374,7 @@ ListExpr CreateSTVectorTM(ListExpr args)
 
 ListExpr STPatternTM(ListExpr args)
 {
-  bool debugme= true;
+  bool debugme= false;
 
   string argstr;
 
@@ -448,7 +447,7 @@ ListExpr STPatternTM(ListExpr args)
 
 ListExpr STPatternExTM(ListExpr args)
 {
-  bool debugme= true;
+  bool debugme= false;
 
   string argstr;
 
@@ -521,7 +520,7 @@ ListExpr STPatternExTM(ListExpr args)
 
 ListExpr STConstraintTM(ListExpr args)
 {
-  bool debugme= true;
+  bool debugme= false;
 
   string argstr;
 
@@ -602,7 +601,7 @@ int CreateSTVectorVM
 static int tupleno=1;
 int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  bool debugme=true;
+  bool debugme=false;
   Supplier root, namedpredlist, namedpred,alias, pred, constraintlist,
   constraint, alias1, alias2, stvector;
   Word Value;
@@ -660,7 +659,7 @@ int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
 
 int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
 {
-  bool debugme=true;
+  bool debugme=false;
   Supplier root, namedpredlist, namedpred,alias, pred, constraintlist, filter,
   constraint, alias1, alias2, stvector;
   Word Value;
