@@ -109,3 +109,10 @@ Number   : 1
 Signature: ((tbtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))rel(tuple ((x1 t1)...(xn tn))) x btree(tuple((x1 t1)...(xn tn)))mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UnitTrains_UTrip_tbtree UnitTrains btreeCov Cov ctbknearestfilter[train1, 5] count
 Result   : (int 1535)
+
+
+Operator : rknearestfilter
+Number   : 1
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query UnitTrains_UTrip UnitTrains rknearestfilter [train7, 5] count
+Result   : (int 3665)

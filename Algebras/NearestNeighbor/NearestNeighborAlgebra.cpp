@@ -6140,6 +6140,24 @@ const string CTBknearestfilterSpec  =
       " Cov ctbknearestfilter "
       "[train1, 5] count;</text--->"
       ") )";
+const string RknearestfilterSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>tbtree(tuple ((x1 t1)...(xn tn))"
+      " ti) x rel(tuple ((x1 t1)...(xn tn))) x rtree(tuple((x1 t1)...(xn tn)))"
+      " x rel(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
+      " (stream (tuple ((x1 t1)...(xn tn))))"
+      "</text--->"
+      "<text>_ _ rknearestfilter [ _, _ ]</text--->"
+      "<text>The operator results a stream of all input tuples "
+      "which are the k-nearest tupels to the given mpoint. "
+      "The operator do not separate tupels if necessary. The "
+      "result may have more than the k-nearest tupels. It is a "
+      "filter operator for the knearest operator, if there are a great "
+      "many input tupels. "
+      "The operator expects an r-tree built on moving objects</text--->"
+      "<text>query UnitTrains_UTrip UnitTrains "
+      " rknearestfilter [train1, 5] count;</text--->"
+      ") )";
 
 /*
   Algorithm from paper Frentzos et.al 2007,using TB-Tree
@@ -6296,6 +6314,8 @@ SegEntry<timeType>& se)
       }
     }
 }
+
+
 /*
 tbknearestFilterFun is the value function for the tbknearestfilter operator
 It is a filter operator for the knearest operator. It can be called
@@ -6388,6 +6408,184 @@ int tbknearestFilterFun (Word* args, Word& result, int message,
   }
   return 0;
 }
+
+/*
+rknearestFilterFun is the value function for the rknearestfilter operator
+It is a filter operator for the knearest operator. It can be called
+if there exists a tb-tree for the unit attribute
+The argument vector contains the following values:
+args[0] = an rtree with the unit attribute as key
+args[1] = the relation of the tbtree
+args[2] = mpoint
+args[3] = int k, how many nearest are searched
+
+*/
+
+template<class timeType,int dim>
+void RHCTNNSearch(R_TreeNode<dim,TupleId>* rnode, MPoint* mp,
+KnearestFilterLocalInfo<timeType>* localInfo,BBTree<timeType>* t,int level,
+SegEntry<timeType>& se)
+{
+  if(localInfo->timeTree.erase(se.start,se.end,se.nodeid,se.maxdist) == false)
+    return;
+  if(rnode->IsLeaf()){ //leaf node
+    for(int j = 0;j < rnode->EntryCount();j++){
+      R_TreeLeafEntry<dim, TupleId> e =
+                  (R_TreeLeafEntry<dim, TupleId>&)(*rnode)[j];
+      timeType t1((double)(e.box.MinD(2)));
+      timeType t2((double)(e.box.MaxD(2)));
+      if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
+        Interval<timeType> d(t1,t2,true,true);
+        BBox<2> entrybox = makexyBox(e.box);
+        BBox<2> mBox(t->getBox(d));
+        double mindist,maxdist;
+
+        mindist = mBox.Distance(entrybox);
+        maxdist = maxDistance(mBox,entrybox);
+        SegEntry<timeType> se(entrybox,t1,t2,mindist,
+                              maxdist,1,-1,e.info);
+        unsigned int cov = localInfo->timeTree.calcCoverage(se.start,
+                                      se.end,se.mindist);
+        if(cov < localInfo->k){
+           localInfo->timeTree.insert(se,localInfo->k);
+           localInfo->resultMap.insert(make_pair(se,se.tpid));
+        }
+      }
+    }
+  }else{
+      SmiRecordId adr;
+      vector<EFieldEntry<timeType> > candidate;
+      for(int j = 0;j < rnode->EntryCount();j++){
+          R_TreeInternalEntry<dim> e =
+                  (R_TreeInternalEntry<dim>&)(*rnode)[j];
+          timeType t1(e.box.MinD(2));
+          timeType t2(e.box.MaxD(2));
+          if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
+            adr = e.pointer;
+            BBox<2> entrybox = makexyBox(e.box);
+            Interval<timeType> d(t1,t2,true,true);
+            BBox<2> mBox(t->getBox(d));
+            double mindist,maxdist;
+            mindist = mBox.Distance(entrybox);
+            maxdist = maxDistance(mBox,entrybox);
+            candidate.push_back(
+            EFieldEntry<timeType>(adr,mindist,maxdist,level+1,t1,t2));
+          }
+      }
+      //sort by mindist
+      stable_sort(candidate.begin(),candidate.end(),CmpEFE<timeType>);
+      for(unsigned int i = 0;i < candidate.size();i++){
+        adr = candidate[i].nodeid;
+        R_TreeNode<dim, TupleId> *node = localInfo->rtree->GetMyNode(
+                     adr, false,
+                     localInfo->rtree->MinEntries( candidate[i].level ),
+                     localInfo->rtree->MaxEntries( candidate[i].level ));
+
+        BBox<2> xybox = makexyBox(node->BoundingBox());
+        SegEntry<timeType> se(xybox,candidate[i].start,candidate[i].end,
+                candidate[i].mindist,candidate[i].maxdist,0,adr,-1);
+        if(checkInsert<timeType>(localInfo->timeTree, se,xybox,
+              localInfo->k, localInfo->rtree, candidate[i].level)){
+          RHCTNNSearch<timeType,dim>(node,mp,localInfo,t,candidate[i].level,se);
+        }
+        delete node;
+      }
+
+  } //else if inner node
+
+}
+template<class timeType>
+int rknearestFilterFun (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+  const int dim = 3;
+  KnearestFilterLocalInfo<timeType> *localInfo;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      MPoint *mp = (MPoint*)args[2].addr;
+      const UPoint *up1, *up2;
+      mp->Get( 0, up1);
+      mp->Get( mp->GetNoComponents() - 1, up2);
+      BBTree<timeType>* t = new BBTree<timeType>(*mp);
+      localInfo = new KnearestFilterLocalInfo<timeType>(
+        up1->timeInterval.start.ToDouble(), up2->timeInterval.end.ToDouble());
+      localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
+      localInfo->relation = (Relation*)args[1].addr;
+      localInfo->k = (unsigned)((CcInt*)args[3].addr)->GetIntval();
+      localInfo->scanFlag = true;
+      local = SetWord(localInfo);
+      if (mp->IsEmpty())
+      {
+        return 0;
+      }
+      SmiRecordId adr = localInfo->rtree->RootRecordId();
+      R_TreeNode<dim, TupleId> *root = localInfo->rtree->GetMyNode(
+                     adr,
+                     false,
+                     localInfo->rtree->MinEntries( 0 ),
+                     localInfo->rtree->MaxEntries( 0 ) );
+      timeType t1(root->BoundingBox().MinD(2));
+      timeType t2(root->BoundingBox().MaxD(2));
+
+      if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
+        FieldEntry<timeType> fe = FieldEntry<timeType>(
+            localInfo->rtree->RootRecordId(), 0, t1, t2, 0);
+            localInfo->vectorA.push_back(fe);
+            const BBox<2> xyBox = makexyBox(root->BoundingBox() );
+            SegEntry<timeType> se(xyBox,t1, t2, 0.0, 0.0, 0,
+                          localInfo->rtree->RootRecordId(), -1);
+            localInfo->timeTree.insert( se, localInfo->k );
+            RHCTNNSearch<timeType,dim>(root,mp,localInfo,t,0,se);
+      }
+      localInfo->timeTree.fillMap( localInfo->resultMap );
+      localInfo->mapit = localInfo->resultMap.begin();
+      delete root;
+      delete t;
+      return 0;
+    }
+
+    case REQUEST :
+    {
+     localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
+      if ( !localInfo->scanFlag )
+      {
+        return CANCEL;
+      }
+
+      if ( !localInfo->k)
+      {
+        return CANCEL;
+      }
+
+      /* give out alle elements of the resultmap */
+      if ( localInfo->mapit != localInfo->resultMap.end() )
+      {
+          TupleId tid = localInfo->mapit->second;
+          Tuple *tuple = localInfo->relation->GetTuple(tid);
+          result = SetWord(tuple);
+          ++localInfo->mapit;
+          return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+
+    case CLOSE :
+    {
+      localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
+      delete localInfo;
+      return 0;
+    }
+  }
+
+  return 0;
+}
+
 
 /*
   Compare the minmum distacne
@@ -6640,7 +6838,7 @@ int ctbknearestFilterFun (Word* args, Word& result, int message,
 }
 
 /*
-The function oldknearestFilterTypeMap is the type map for the
+The function tbknearestFilterTypeMap is the type map for the
 operator knearestfilter
 
 */
@@ -6695,7 +6893,7 @@ ListExpr tbknearestFilterTypeMap( ListExpr args )
 }
 
 /*
-The function oldknearestFilterTypeMap is the type map for the
+The function ctbknearestFilterTypeMap is the type map for the
 operator knearestfilter
 
 */
@@ -6754,6 +6952,60 @@ ListExpr ctbknearestFilterTypeMap( ListExpr args )
       nl->Second(nl->Second(args)));
 }
 
+/*
+The function rknearestFilterTypeMap is the type map for the
+operator knearestfilter
+
+*/
+ListExpr rknearestFilterTypeMap( ListExpr args )
+{
+
+  string errmsg = "rtree x relation x mpoint x int expected";
+
+  if(nl->ListLength(args)!=4){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+  ListExpr tbtreeDescription = nl->First(args);
+  ListExpr relDescription = nl->Second(args);
+  ListExpr mpoint = nl->Third(args);
+  ListExpr quantity = nl->Fourth(args);
+
+  // the third element has to be of type mpoint
+  if(!nl->IsEqual(mpoint,"mpoint")){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  // the third element has to be of type mpoint
+  if(!nl->IsEqual(quantity,"int")){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  // an tbtree description must have length 4
+  if(nl->ListLength(tbtreeDescription)!=4){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  ListExpr tbtreeSymbol = nl->First(tbtreeDescription);
+
+  if(!nl->IsEqual(tbtreeSymbol, "rtree3")){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  if(!IsRelDescription(relDescription)){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  return
+    nl->TwoElemList(
+      nl->SymbolAtom("stream"),
+      nl->Second(nl->Second(args)));
+}
 
 Operator tbknearestfilter (
          "tbknearestfilter",        // name
@@ -6769,6 +7021,14 @@ Operator ctbknearestfilter (
          ctbknearestFilterFun<double>,       // value mapping
          Operator::SimpleSelect,  // trivial selection function
          ctbknearestFilterTypeMap    // type mapping
+);
+
+Operator rknearestfilter (
+         "rknearestfilter",        // name
+         RknearestfilterSpec,      // specification
+         rknearestFilterFun<double>,       // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         rknearestFilterTypeMap    // type mapping
 );
 /*
 4 Implementation of the Algebra Class
@@ -6802,6 +7062,8 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &covleafnode);
     AddOperator( &tbknearestfilter);
     AddOperator( &ctbknearestfilter);
+    AddOperator( &rknearestfilter);
+
   }
   ~NearestNeighborAlgebra() {};
 };

@@ -32,3 +32,4 @@ operator mqknearest alias MQKNEAREST pattern _ _ _ _ _ _ op[_, _]
 operator covleafnode alias COVLEAFNODE pattern op(_,_,_)
 operator tbknearestfilter alias TBKNEARESTFILTER pattern _ _ op [_, _]
 operator ctbknearestfilter alias CTBKNEARESTFILTER pattern _ _ _ _ op [_, _]
+operator rknearestfilter alias TBKNEARESTFILTER pattern _ _ op [_, _]
