@@ -11107,7 +11107,13 @@ int SubMoveVM( Word* args, Word& result, int message,
      return 0;
    }
    if(arg2->GetRealval() >= 1.0){
-      *res = *arg1;
+      res->StartBulkLoad();
+      const UPoint* up;
+      for(int i = 0;i < arg1->GetNoComponents();i++){
+        arg1->Get(i,up);
+        res->Add(*up);
+      }
+      res->EndBulkLoad();
       return 0;
    }
    const UPoint* up1;
