@@ -450,7 +450,6 @@ Example call:
 
 */
 
-
 createPredicateFacts(Preds) :-
   optimizerOption(adaptiveJoin),
   storePredicates(Preds),
@@ -4761,6 +4760,7 @@ clearUsedAttributes  :- retractall(usedAttr(_, _)).
 clearIsStarQuery     :- retractall(isStarQuery).
 clearSelectivityQuery :- retractall(selectivityQuery(_)).
 
+
 /*
 
 ----    lookup(+Query, -Query2) :-
@@ -4935,7 +4935,8 @@ Translate and store a single relation definition.
   queryRel/2,
   queryAttr/1,
   isStarQuery/0,
-  usedAttr/2.
+  usedAttr/2,
+  distanceRel/4.
 
 
 lookupRel(Rel as Var, Y) :-
@@ -5604,6 +5605,14 @@ translate(Select from [Rel | Rels],
   !.
 
 
+makeStream(Rel, distancescan(IndexName, Rel, Attr, HeadCount)) :- 
+  Rel = rel(_, *),
+  distanceRel(Rel, IndexName, Attr, HeadCount), !.
+
+makeStream(Rel, rename(distancescan(IndexName, Rel, Attr, HeadCount), Var)) :- 
+  Rel = rel(_, Var),
+  distanceRel(Rel, IndexName, Attr, HeadCount), !.
+
 makeStream(Rel, feed(Rel)) :- Rel = rel(_, *), !.
 
 makeStream(Rel, rename(feed(Rel), Var)) :- Rel = rel(_, Var).
@@ -6005,23 +6014,27 @@ translateType(boolean, bool) :- !.
 translateType(Type, Type) :- !.
 
 
-translateDistanceQuery(Select from Rel, X, Y, HeadCount, StreamOut, 
-		       SelectOut, Update, 0) :-
-  Rel = rel(_,_),
-  X = attr(_, _, _),
-  hasIndex(Rel, X ,DCindex, rtree), !,
-  dcName2externalName(DCindex,IndexName),
-  StreamOut = distancescan(IndexName, Rel, Y, HeadCount),
-  splitSelect(Select, SelectOut, Update).
+
 
 translateDistanceQuery(Select from Rel, X, Y, HeadCount, StreamOut, 
-		       SelectOut, Update, 0) :-
+		       SelectOut, Update, Cost) :-
+  Rel = rel(_,_),
+  X = attr(_, _, _),
+  hasIndex(Rel, X ,DCindex, rtree),
+  dcName2externalName(DCindex,IndexName), !,
+  assert(distanceRel(Rel, IndexName, Y, HeadCount)),
+  translate1(Select from Rel, StreamOut, SelectOut, Update, Cost),
+  retractall(distanceRel(Rel, IndexName, Y, HeadCount)).
+
+translateDistanceQuery(Select from Rel, X, Y, HeadCount, StreamOut, 
+		       SelectOut, Update, Cost) :-
   Rel = rel(_,_),
   Y = attr(_, _, _),
-  hasIndex(Rel, Y ,DCindex, rtree), !,
-  dcName2externalName(DCindex,IndexName),
-  StreamOut = distancescan(IndexName, Rel, X, HeadCount),
-  splitSelect(Select, SelectOut, Update).
+  hasIndex(Rel, Y ,DCindex, rtree),
+  dcName2externalName(DCindex,IndexName), !,
+  assert(distanceRel(Rel, IndexName, X, HeadCount)),
+  translate1(Select from Rel, StreamOut, SelectOut, Update, Cost),
+  retractall(distanceRel(Rel, IndexName, X, HeadCount)).
 
 translateDistanceQuery(Query, X, Y, 0, StreamOut, 
 		       Select, Update, Cost) :-
