@@ -3372,7 +3372,7 @@ deleteSizes :-
   retractall(nodeSizeCounter(_, _, _, _)),
   retractall(nodeSizeCounter(_, _)),
   retractall(pathInfo(_, _, _, _, _, _, _, _, _, _)),
-  retractall(path(_)).
+  retractall(path(_)),
   retractall(tmpStoredTypeTree(_,_)).
 
 deleteSizesNawra :-
@@ -5269,7 +5269,7 @@ lookupPred1(pattern(Preds,BExpr), pattern(Res), RelsBefore, RelsAfter) :-
   lookupPattern([Preds,BExpr], Res, RelsBefore, RelsAfter),
   !.
 
-lookupPred1(pattern(Preds), pattern(Res), RelsBefore, RelsAfter) :-
+lookupPred1(patternex(Preds,C, F), patternex(Res,C, F1), RelsBefore, RelsAfter) :-
 	lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
 	lookupPred1(F, F1, RelsAfterMe, RelsAfter),
 	!.
