@@ -1,0 +1,32 @@
+%
+% Kapitel Entwurf
+%
+%
+
+\chapter{Entwurf}
+Begriffserklärung Schachtelunsgtiefe
+
+Schritte des Optimierers
+\begin{itemize}
+	\item Query-Rewriting
+	\item Schema-Lookup
+	\item Abfrageplan-Ermittlung 
+	\item Übersetzung Plan in ausführbare Syntax
+\end{itemize}
+
+\section[Auflösen der Korrelation]{Optimierung durch Auflösung der Korrelation}
+durch vorhanden Operatoren in SECONDO fast vollständig umsetzbar, nur Erweiterung um Full-Outerjoin-Operator notwendig\\
+Vergleich nested-iteration/dekorrelierter Plan wird \underline{nicht} implementiert:\\
+Für den Vergleich der Kosten müsste die komplette Selektivitäts- und Kostenbestimmung für die notwendigen temporären Relationen simuliert werden (**ausführlicher beschreiben**)\\
+kann nicht für alle Formen von Subqueries genutzt werden (Beispiele)\\
+Ergebnis sollte eine Abfrage der Schachtelungstiefe 0 sein. Der Optimierer 
+
+\section[Übersetzung geschachtelter Abfragen]{Integration der Übersetzung von geschachtelten Abfragen in den Optimierer}
+Schema-Lookup erweitern\\
+
+
+
+%
+% EOF
+%
+%

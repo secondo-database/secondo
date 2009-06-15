@@ -1,0 +1,32 @@
+%
+% SECONDO SQL-Dialekt
+%
+%
+
+\chapter{SECONDO SQL-Dialekt}
+
+\begin{align*}
+&\texttt{sql-clause} &\texttt{-->}\quad &\op{let} \texttt{objectname mquery.}\\
+&&|&\op{let}(\texttt{objectname, mquery, secondo-rest-query}).\\
+&&|&\op{sql}\ \texttt{mquery.}\\
+&&|&\op{sql}(\texttt{mquery, secondo-rest-query}).\\[1em]
+&\texttt{aggr} &\texttt{-->}\quad &\texttt{groupattr}\ |\ \texttt{groupattr} \op{as} \texttt{newname}\ |\ \texttt{aggr2}\\[1em]
+&\texttt{aggr2} &\texttt{-->}\quad &\op{count}(\texttt{distinct-clause *}) \op{as} \texttt{newname}\\
+&&|&\operatorname{aggrop}(\texttt{ext-attr-expr}) \op{as} \texttt{newname}\\
+&&|&\op{aggregate}(\texttt{ext-attr-expr, aggrfun, datatype, datatype-\textit{constant}})\\
+&&&\op{as} \texttt{newname}\\[1em]
+&\texttt{aggrop} &\texttt{-->}\quad &\op{min}|\op{max}|\op{sum}|\op{avg}|\op{extract}|\op{count}\\[1em]
+&\texttt{aggr-clause} &\texttt{-->}\quad &\texttt{aggr}\ |\ \texttt{[aggr, aggr-list]}\\[1em]
+&\texttt{aggr-fun} &\texttt{-->}\quad &\textbf{(\begin{math}*\end{math})} |\textbf{(+)}| \op{union\_new}|\op{intersection\_new}|\dots\\
+&&&\text{\% any name \textit{fun} of a binary \textsc{Secondo}-operator or function object}\\
+&&&\text{with syntax}\ fun:T \times T\operatorname{\texttt{-->}}T\\
+&&&\text{which should be associative and commutative. Infix-operators}\\
+&&&\text{must be enclosed in round parentheses.}\\
+&\texttt{aggr-list} &\texttt{-->}\quad &\texttt{aggr}\ |\ \texttt{aggr, aggr-list}\\
+&\texttt{attr} &\texttt{-->}\quad &\texttt{attrname}\ |\ \texttt{var:attrname}
+\end{align*}
+
+%
+% EOF
+%
+%

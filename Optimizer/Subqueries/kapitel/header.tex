@@ -6,14 +6,16 @@
 \documentclass[
 		a4paper,
 		12pt,
-		twoside,
+%		twoside,
 		openright,
 		parskip,
-		%draft,
-		chapterprefix,%       Kapitel anschreiben als Kapitel
+%		draft,
+%		chapterprefix,%       Kapitel anschreiben als Kapitel
 ]{scrreprt}
 
 \usepackage{moreverb}
+
+\usepackage{booktabs}
 
 %Deutsche Trennungen, Anführungsstriche und mehr:
 \usepackage[ngerman]{babel} 
@@ -23,9 +25,18 @@
 
 \usepackage[babel,german=quotes]{csquotes}
 
+\usepackage{bibgerm}
+
+\usepackage{color}
+
+%\usepackage{url}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=blue}
+
+
 %T1 Fonts benutzen
 \usepackage[T1]{fontenc}
-\usepackage{mathptmx}
+\usepackage{amsmath}
 \usepackage{lmodern}
 
 %Zum Einbinden von Grafiken
@@ -41,10 +52,43 @@
 \usepackage{verbatim}
 
 %Source-Code printer for LaTeX
+
 \usepackage{listings}
+%\definecolor{ListingBackground}{rgb}{0.85,0.85,0.85}
+\definecolor{ListingBackground}{rgb}{0.94,0.94,0.94}
+
+\lstset{%
+  keywordstyle=*\textbf,
+	language=SQL,     % Sprache des Quellcodes ist SQL	
+	mathescape=true,	  % 
+	columns=fullflexible,
+	escapeinside=§§,    % Escapeumgebung für LaTeX
+	numbersep=5pt,           % 5pt Abstand zum Quellcode
+	numberstyle=\tiny,       % Zeichengrösse 'tiny' für die Nummern.
+	breaklines=true,         % Zeilen umbrechen wenn notwendig.
+	breakautoindent=true,    % Nach dem Zeilenumbruch Zeile einrücken.
+	postbreak=\space,        % Bei Leerzeichen umbrechen.
+	tabsize=2,               % Tabulatorgrösse 2
+	basicstyle=\ttfamily\footnotesize, % Nichtproportionale Schrift, klein für den Quellcode
+	showspaces=false,        % Leerzeichen nicht anzeigen.
+	showstringspaces=false,  % Leerzeichen auch in Strings ('') nicht anzeigen.
+	extendedchars=true,      % Alle Zeichen vom Latin1 Zeichensatz anzeigen.
+	backgroundcolor=\color{ListingBackground}} % Hintergrundfarbe des Quellcodes setzen.
+
+\usepackage{multirow}
+
+%\input{../../Documents/SecondoLanguage}
 
 %Darstellung des Glossars einstellen
 \usepackage[style=super, header=none, border=none, number=none, cols=2,
 						toc=true]{glossary}
+						
+
+\newcommand{\op}[1]{\operatorname{\textbf{#1}}}					
 
 \makeglossary
+
+%
+% EOF
+%
+%

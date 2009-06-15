@@ -8,6 +8,7 @@
 
 \begin{document}
 
+\pagenumbering{roman}
 
 %Alle in der Datenbank existierenden Einträge werden bearbeitet
 \nocite{*}
@@ -15,21 +16,27 @@
 
 \input{kapitel/titelseite}
 
-\pagenumbering{roman}
+\setcounter{page}{1}
 
-\include{kapitel/abstract}
+%\include{kapitel/abstract}
 
 %\input{kapitel/danksagung}
 
 \tableofcontents
 
-\pagenumbering{arabic}
-
 \input{kapitel/einleitung}
 		
-\pagenumbering{roman}
+\input{kapitel/review}	
+
+\input{kapitel/entwurf}
+
+\input{kapitel/implementierung}
+
+\input{kapitel/leistungsbewertung}
 
 \newpage
+
+\pagenumbering{roman}
 
 %\input{kapitel/eidesstattliche_erklaerung}
 
@@ -46,4 +53,12 @@
 \bibliographystyle{geralpha}
 
 \appendix
+
+\input{kapitel/anhang}
+
 \end{document}
+
+%
+% EOF
+%
+%
