@@ -2104,6 +2104,16 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
                                timeInterval.start.ToDouble(),
                                timeInterval.end.ToDouble() );
   }
+  
+  virtual const Rectangle<3> BoundingBox(const double scaleTime) const
+  {
+    return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() ),
+                               MAX( p0.GetX(), p1.GetX() ),
+                               MIN( p0.GetY(), p1.GetY() ),
+                               MAX( p0.GetY(), p1.GetY() ),
+                               timeInterval.start.ToDouble()*scaleTime,
+                               timeInterval.end.ToDouble()*scaleTime );
+  }
 
   const Rectangle<2> BoundingBoxSpatial() const
   {
