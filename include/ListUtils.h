@@ -92,6 +92,26 @@ Checks for kind DATA
 
 
 /*
+Checks for a numeric value 
+
+*/
+ bool isNumeric(const ListExpr num);
+
+
+/*
+Returns the numeric value.
+
+*/
+double getNumValue(const ListExpr n);
+
+/*
+Checks for a numeric type
+
+*/
+bool isNumericType(const ListExpr n);
+
+
+/*
  Checks for a valid attribute list
 
 */

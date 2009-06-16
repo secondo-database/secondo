@@ -247,6 +247,34 @@ bool isDATA(ListExpr type){
 }
 
 
+/*
+ Checks for a numeric type
+
+*/
+bool isNumeric(ListExpr num){
+   return nl->AtomType(num) == IntType ||
+          nl->AtomType(num) == RealType;
+}
+
+double getNumValue(ListExpr n){
+  if(nl->AtomType(n)==IntType){
+    return nl->IntValue(n);
+  } if(nl->AtomType(n)==RealType){
+    return nl->RealValue(n);
+  } else {
+    assert(false);
+  }
+}
+
+bool isNumericType(ListExpr n){
+  if(nl->AtomType(n)!=SymbolType){
+     return false;
+  } 
+  string v = nl->SymbolValue(n);
+  return v=="int" || v=="real";
+}
+
+
 
 /*
 Checks for a stream of kind DATA
