@@ -173,3 +173,12 @@ Signature: rect<dim> -> real
 Example  : query size(rectangle3(17, 24, 12, 13, 4, 6))
 Result   : 14.0
 
+Operator : scalerect
+Number   : 1
+Signature: rect<dim> x real^<dim> -> rect<dim>
+Example  : query scalerect(rectangle3(17, 24, 12, 13, 4, 6), 1.0, 1.0, 2.0)
+Result   : (rect3 (17.0 24.0 12.0 13.0 8.0 12.0))
+
+
+
+

@@ -48,6 +48,7 @@ using namespace std;
 #include "RectangleAlgebra.h"
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -697,6 +698,65 @@ ListExpr  RectangleTypeMapRectRect( ListExpr args )
 }
 
 /*
+4.1.7 Type Mapping for scale rect
+
+*/
+ListExpr scalerectTypeMap(ListExpr args){
+  string err = " rect_d x real_1 x ... x real_d expected ";
+  int len = nl->ListLength(args);
+  int dim = len - 1;
+  if(dim<2){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  ListExpr arg1 = nl->First(args);
+  if(nl->AtomType(arg1)!=SymbolType){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(!listutils::isRectangle(arg1)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  string a1 = nl->SymbolValue(arg1);
+
+  if((a1=="rect") && (dim !=2)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(a1=="rect3"){
+    if(dim!=3){
+      ErrorReporter::ReportError(err);
+      return nl->TypeError();
+     }
+  } else if(a1=="rect4"){
+    if( dim!=4){
+      ErrorReporter::ReportError(err);
+      return nl->TypeError();
+    }
+  } else if(a1=="rect8"){
+    if( dim!=8){
+      ErrorReporter::ReportError(err);
+      return nl->TypeError();
+    }
+  } else {
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  ListExpr rest = nl->Rest(args);
+  while(!nl->IsEmpty(rest)){
+     if(!nl->IsEqual(nl->First(rest),"real")){
+       ErrorReporter::ReportError(err);
+       return nl->TypeError();
+     }
+     rest = nl->Rest(rest);
+  }
+  return arg1;
+}
+
+
+
+/*
 4.1.8 Type mapping function ~RectangleTypeMapEnlargeRect~
 
 It is used for the ~enlargeRect~ operator.
@@ -1343,6 +1403,45 @@ template<unsigned int dim>
 }
 
 /*
+4.4.12 Value Mapping for ~scalerect~
+
+*/
+template<unsigned int dim>
+int scalerectValueMap( Word* args, Word& result, int message,
+                                     Word& local, Supplier s ){
+
+   result = qp->ResultStorage(s);    
+   Rectangle<dim>* res = static_cast<Rectangle<dim>*>(result.addr);
+   Rectangle<dim>* arg1 = static_cast<Rectangle<dim>*>(args[0].addr);
+   if(!arg1->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   } 
+   double min[dim];
+   double max[dim];
+
+  
+
+   for(unsigned int i=1; i<=dim; i++){
+     CcReal* f = static_cast<CcReal*>(args[i].addr);
+     if(!f->IsDefined()){
+        res->SetDefined(false);
+        return 0;
+     }
+
+     double factor = f->GetValue();
+     if(factor<0){
+        res->SetDefined(false);
+        return 0;
+     }
+     min[i-1] = arg1->MinD(i-1)*factor;
+     max[i-1] = arg1->MaxD(i-1)*factor;
+   }
+   res->Set(true,min,max);
+   return 0;
+}
+
+/*
 4.5 Definition of operators
 
 Definition of operators is done in a way similar to definition of
@@ -1457,6 +1556,15 @@ ValueMapping rectangleSizemap[] =
   RectangleSizeValueMap<4>,
   RectangleSizeValueMap<8>
 };
+
+ValueMapping scalerectMap[] =
+{
+  scalerectValueMap<2>,
+  scalerectValueMap<3>,
+  scalerectValueMap<4>,
+  scalerectValueMap<8>
+};
+
 
 /*
 4.5.2 Definition of specification strings
@@ -1674,6 +1782,18 @@ const string RectangleSpecSize  =
     "<text></text--->"
     ") )";
 
+const string scalerectSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" \"Remarks\")"
+    "( <text>rect<d> x real^d -> rect<d></text--->"
+    "<text>scaleRect( rect, f1, ... , fd )</text--->"
+    "<text>scale the rectangle by the factor given for "
+    " each dimension.</text--->"
+    "<text>query scalerect([const rect3 value "
+    "(1.0 2.0 3.0 4.0 5.0 6.0) ], 1.0, 1.0, 2.0)</text--->"
+    "<text></text--->"
+    ") )";
+
+
 /*
 4.5.3 Definition of the operators
 
@@ -1811,6 +1931,12 @@ Operator rectanglesize( "size",
                         RectangleUnarySelect,
                         RectTypeMapReal );
 
+Operator scalerect( "scalerect",
+                     scalerectSpec,
+                     4,
+                     scalerectMap,
+                     RectangleUnarySelect,
+                     scalerectTypeMap );
 /*
 5 Creating the Algebra
 
@@ -1851,6 +1977,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectangleextendrect );
     AddOperator( &rectangleextendrect );
     AddOperator( &rectanglesize );
+    AddOperator( &scalerect);
   }
   ~RectangleAlgebra() {};
 };
