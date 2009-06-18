@@ -835,6 +835,7 @@ opSignature(restrict, temporal, [mint,int],mint,[]).
 opSignature(speedup, temporal, [mpoint,real],mpoint,[]).
 opSignature(avespeed, temporal, [mpoint],real,[]).
 opSignature(submove, temporal, [mpoint,real],mpoint,[]).
+opSignature(uval, temporal, [uint], int,[]).
 
 /*
 2.7.5 TemporalExtAlgebra
@@ -1196,6 +1197,14 @@ opSignature(enlargeRect, rectangle, [rect3,real,real,real],rect3,[]).
 opSignature(enlargeRect, rectangle, [rect4,real,real,real,real],rect4,[]).
 opSignature(enlargeRect, rectangle, [rect8,real,real,real,real,
                                      real,real,real,real],rect8,[]).
+opSignature(size, rectangle, [T],real,[]) :-
+  memberchk(T,[rect,rect3,rect4,rect8]),!.
+opSignature(scalerect, rectangle, [T|FactorList],T,[]) :-
+  memberchk((T,D),[(rect,2),(rect3,3),(rect4,4),(rect8,8)]),
+  length(FactorList,D),
+  findall(X,member(X,FactorList),[real]),
+  !.
+
 
 
 /*
