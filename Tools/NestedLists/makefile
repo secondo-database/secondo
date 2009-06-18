@@ -33,6 +33,10 @@ PARSER := NLParser.tab.cpp
 
 DEP_FILES += NLParser.tab.dep
 
+CCFLAGS += -DYY_FLEX_MAJOR_VERSION=$(shell getversion.sh major flex -V)
+CCFLAGS += -DYY_FLEX_MINOR_VERSION=$(shell getversion.sh minor flex -V)
+CCFLAGS += -DYY_FLEX_SUBMINOR_VERSION=$(shell getversion.sh subminor flex -V)
+
 GENSRC := $(TOKENDEF) $(PARSER) $(SCANNER)
 OBJECTS += NLLex.$(OBJEXT) NLParser.tab.o NLParser.o
 
