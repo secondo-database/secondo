@@ -38,6 +38,11 @@ ALL_ALGEBRA_DIRS := $(shell find ../../Algebras -maxdepth 1 -type d ! -name "Alg
 
 SPECFILES := $(wildcard $(addsuffix /*.spec, $(ALL_ALGEBRA_DIRS) ))
 
+CCFLAGS = $(DEFAULTCCFLAGS)
+CCFLAGS += -DYY_FLEX_MAJOR_VERSION=$(shell ../../bin/getversion.sh major flex -V)
+CCFLAGS += -DYY_FLEX_MINOR_VERSION=$(shell ../../bin/getversion.sh minor flex -V)
+CCFLAGS += -DYY_FLEX_SUBMINOR_VERSION=$(shell ../../bin/getversion.sh subminor flex -V)
+
 ifdef WINE
 # wine has problem to execute the Specparser
 # as work around it will be compiled with the
@@ -65,7 +70,6 @@ GENFILES := $(SCANNER_DEF) $(PARSER_DEF) $(TOKEN_DEF) $(SCANNER) $(PARSER) \
 	    lexrules tokens yaccrules1 yaccrules2 
 
 CC := g++
-CCFLAGS = $(DEFAULTCCFLAGS)
 
 SPECPARSER := SpecParser/Parser$(PARSEREXT)
 SPECFILE := ../../Algebras/specs 
