@@ -11582,7 +11582,7 @@ const string TemporalSpecUVal  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>iT x position -> x</text--->"
   "<text>uval ( _ )</text--->"
-  "<text>Return an intime value's value.</text--->"
+  "<text>Return an uint's value.</text--->"
   "<text>uval ( ui1 )</text--->"
   ") )";
 
