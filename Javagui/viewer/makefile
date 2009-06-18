@@ -27,28 +27,15 @@ include ../makefile.inc
 
 
 .PHONY: all  # compile Menuvector and SecondoViewer
-all: viewers MenuVector.class SecondoViewer.class 
+all: makefile.viewers viewers MenuVector.class SecondoViewer.class 
+
+makefile.viewers: makefile.viewers.example
+	$(cp-config-file)
+
+include makefile.viewers
 
 
-# add below new Viewer classes or subdirectories to compile
-VIEWER_CLASSES := StandardViewer.class
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  FormattedViewer.class
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  InquiryViewer.class
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  QueryViewer.class
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  RelViewer.class
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  Viewer3D.class 
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  Fuzzy2D.class 
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  RelSplit.class
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  HoeseViewer.class
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  MP3V.class
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  MidiViewer.class
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  TreeViewer.class
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  PictureViewer.class
-VIEWER_CLASSES +=  $(VIEWERCLASSES)  UpdateViewer.class 
-#VIEWER_CLASSES +=  $(VIEWERCLASSES)  GrappaViewer.class 
-#VIEWER_CLASSES +=  $(VIEWERCLASSES)  SvgViewer.class 
 
-VIEWER_DIRS := fuzzy2d midi relsplit viewer3d hoese pictureviewer update
 
 INC_FILES := $(shell ls ./makefile.n*c 2>/dev/null)
 ifdef INC_FILES
@@ -72,6 +59,7 @@ makedirs:
 .PHONY: clean
 clean:
 	rm -f *.class
+	rm -f makefile.viewers
 	for dir in $(VIEWER_DIRS); do \
           if !($(MAKE) -C $$dir clean) then \
             exit 1; \

@@ -92,3 +92,12 @@ JARS := $(JLEXCLASSESPATH):$(CUPCLASSESPATH):$(MP3CLASSESPATH):$(PDFCLASSESPATH)
 
 DOCPATH := ./doc
 
+
+
+# define standard rule for creating configuration files by
+# copying the sample files.
+define cp-config-file
+@([ ! -f $@ ] && (cp $< $@; echo -e "Make created $@ as a copy of $<")) \
+|| (echo -e "\a\n* Warning: Example file $< is newer than $@"; sleep 2)
+endef
+
