@@ -1956,11 +1956,13 @@ previos changed interval of the father.
               }
               if (father.m_left == this) {
                 father.m_left = this->m_left;
+                this->m_left = 0;
               } else {
                 father.m_right = this->m_left;
+                this->m_left = 0;
               }
+              this->RemoveTree();
               if (father.m_left != 0) {
-                //delete this;
                 return father.m_left->CheckTree(father, rid, pos1, pos2, bleft);
               } else {
                 return pos1;
@@ -1971,11 +1973,13 @@ previos changed interval of the father.
               }
               if (father.m_left == this) {
                 father.m_left = this->m_right;
+                this->m_right = 0;
               } else {
                 father.m_right = this->m_right;
+                this->m_right = 0;
               }
+              this->RemoveTree();
               if (father.m_right != 0 ) {
-                //delete this;
                 return father.m_right->CheckTree(father, rid, pos1, pos2,bleft);
               } else {
                 return pos2;

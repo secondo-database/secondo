@@ -2863,7 +2863,7 @@ Translation from network ~mgpoint~ to spatial ~mpoint~
 void MGPoint::Mgpoint2mpoint(MPoint *&mp) {
   if (IsDefined() && !IsEmpty()){
   //Network* pNetwork = NetworkManager::GetNetwork(GetNetworkId());
-    Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
+  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
   const UGPoint *pCurrUnit;
   UGPoint CurrUnit;
   int iAktRouteId = 1;
@@ -3013,7 +3013,8 @@ void MGPoint::Mgpoint2mpoint(MPoint *&mp) {
   mp->EndBulkLoad();
   pRoute->DeleteIfAllowed();
   NetworkManager::CloseNetwork(pNetwork);
-  } else mp->SetDefined(false);
+  }
+  else mp->SetDefined(false);
 }
 
 /*
@@ -8116,7 +8117,7 @@ class TemporalNetAlgebra : public Algebra
   }
 
 
-  ~TemporalNetAlgebra() {};
+  ~TemporalNetAlgebra() {delete netList;};
 };
 
 /*

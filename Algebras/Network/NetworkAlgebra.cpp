@@ -7689,7 +7689,7 @@ class NetworkAlgebra : public Algebra
     AddOperator(&networkunion);
     AddOperator(&networkdistance);
   }
-  ~NetworkAlgebra() {};
+  ~NetworkAlgebra() {delete netList;};
 };
 
 /*
