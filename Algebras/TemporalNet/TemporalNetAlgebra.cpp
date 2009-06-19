@@ -3593,134 +3593,152 @@ void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
   }
   else //both are defined and have at least one interval
   {
-    int i = 0;
-    Get(i, pCurrentUnit);
-    int j = 0;
-    const Interval<Instant> *interval;
-    per->Get(j,interval);
-    while (interval->Before(pCurrentUnit->timeInterval))
+    Instant perMinInst;
+    per->Minimum(perMinInst);
+    Instant perMaxInst;
+    per->Maximum(perMaxInst);
+    double dPerMinInst = perMinInst.ToDouble();
+    double dPerMaxInst = perMaxInst.ToDouble();
+    Get(0,pCurrentUnit);
+    double dMinTime = pCurrentUnit->timeInterval.start.ToDouble();
+    Get(GetNoComponents()-1,pCurrentUnit);
+    double dMaxTime = pCurrentUnit->timeInterval.end.ToDouble();
+    if ((dPerMinInst > dMaxTime && !AlmostEqual(dPerMinInst,dMaxTime))||
+         (dPerMaxInst < dMinTime && !AlmostEqual(dPerMaxInst, dMinTime)))
     {
-      if (++j >= per->GetNoComponents()) break;
-      else per->Get(j,interval);
+      res->SetDefined(true);
     }
-    res->StartBulkLoad();
-    while( i < GetNoComponents() && j < per->GetNoComponents())
+    else
     {
-      if (pCurrentUnit->timeInterval.Before( *interval))
+      int i = 0;
+      Get(i, pCurrentUnit);
+      int j = 0;
+      const Interval<Instant> *interval;
+      per->Get(j,interval);
+      res->StartBulkLoad();
+      while( i < GetNoComponents() && j < per->GetNoComponents())
       {
-        if( ++i >= GetNoComponents()) break;
-        else Get( i, pCurrentUnit );
-      }
-      else
-      { // we have overlapping intervals, now
-        if (pCurrentUnit->timeInterval.start >= interval->start &&
-            pCurrentUnit->timeInterval.end <= interval->end)
+        if (pCurrentUnit->timeInterval.Before( *interval))
         {
-          res->Add(*pCurrentUnit);
-          if (++i >= GetNoComponents()) break;
-          else Get(i,pCurrentUnit);
+          if( ++i >= GetNoComponents()) break;
+          else Get( i, pCurrentUnit );
         }
         else
         {
-          if (pCurrentUnit->timeInterval.start == interval->start)
+          if (interval->Before(pCurrentUnit->timeInterval))
           {
-            utstart = interval->start;
-            uGPstart = pCurrentUnit->p0;
-            ulc = pCurrentUnit->timeInterval.lc && interval->lc;
+            if (++j >= per->GetNoComponents()) break;
+            else per->Get(j, interval);
           }
           else
           {
-            if (pCurrentUnit->timeInterval.start > interval->start)
+          // we have overlapping intervals, now
+            if (pCurrentUnit->timeInterval.start >= interval->start &&
+                pCurrentUnit->timeInterval.end <= interval->end)
             {
-              utstart = pCurrentUnit->timeInterval.start;
-              uGPstart = pCurrentUnit->p0;
-              ulc = pCurrentUnit->timeInterval.lc;
+              res->Add(*pCurrentUnit);
+              if (++i >= GetNoComponents()) break;
+              else Get(i,pCurrentUnit);
             }
             else
             {
-              if (pCurrentUnit->timeInterval.start < interval->start)
+              if (pCurrentUnit->timeInterval.start == interval->start)
               {
                 utstart = interval->start;
-                ulc = interval->lc;
-                pCurrentUnit->TemporalFunction(utstart, uGPstart, false);
+                uGPstart = pCurrentUnit->p0;
+                ulc = pCurrentUnit->timeInterval.lc && interval->lc;
               }
-            }
-          }
-          if (pCurrentUnit->timeInterval.end == interval->end)
-          {
-            utend = interval->end;
-            uGPend = pCurrentUnit->p1;
-            urc = pCurrentUnit->timeInterval.rc && interval->rc;
-          }
-          else
-          {
-            if (pCurrentUnit->timeInterval.end < interval->end)
-            {
-              utend = pCurrentUnit->timeInterval.end;
-              urc = pCurrentUnit->timeInterval.rc;
-              uGPend = pCurrentUnit->p1;
-            }
-            else
-            {
-              if (pCurrentUnit->timeInterval.end > interval->end)
+              else
+              {
+                if (pCurrentUnit->timeInterval.start > interval->start)
+                {
+                  utstart = pCurrentUnit->timeInterval.start;
+                  uGPstart = pCurrentUnit->p0;
+                  ulc = pCurrentUnit->timeInterval.lc;
+                }
+                else
+                {
+                  // pCurrentUnit->timeInterval.start < interval->start
+                  utstart = interval->start;
+                  ulc = interval->lc;
+                  pCurrentUnit->TemporalFunction(utstart, uGPstart, false);
+                }
+              }
+              if (pCurrentUnit->timeInterval.end == interval->end)
               {
                 utend = interval->end;
-                pCurrentUnit->TemporalFunction(utend, uGPend , false);
-                urc = interval->rc;
+                uGPend = pCurrentUnit->p1;
+                urc = pCurrentUnit->timeInterval.rc && interval->rc;
+              }
+              else
+              {
+                if (pCurrentUnit->timeInterval.end < interval->end)
+                {
+                  utend = pCurrentUnit->timeInterval.end;
+                  urc = pCurrentUnit->timeInterval.rc;
+                  uGPend = pCurrentUnit->p1;
+                }
+                else
+                {
+                  // pCurrentUnit->timeInterval.end > interval->end
+                  utend = interval->end;
+                  pCurrentUnit->TemporalFunction(utend, uGPend , false);
+                  urc = interval->rc;
+                }
               }
             }
-          }
-          res->Add(UGPoint(Interval<Instant>(utstart, utend, ulc, urc),
+            res->Add(UGPoint(Interval<Instant>(utstart, utend, ulc, urc),
                                   uGPstart.GetNetworkId(),
                                   uGPstart.GetRouteId(),
                                   uGPstart.GetSide(),
                                   uGPstart.GetPosition(),
                                   uGPend.GetPosition()));
-          if( interval->end == pCurrentUnit->timeInterval.end )
-          {
-            // same ending instant
-            if (interval->rc == pCurrentUnit->timeInterval.rc)
+            if( interval->end == pCurrentUnit->timeInterval.end )
             {
-              if( ++i >= GetNoComponents()) break;
-              else Get( i, pCurrentUnit );
-              if( ++j >= per->GetNoComponents()) break;
-              else per->Get( j, interval );
-            }
-            else
-            {
-              if(interval->rc)
+              // same ending instant
+              if (interval->rc == pCurrentUnit->timeInterval.rc)
               {
                 if( ++i >= GetNoComponents()) break;
                 else Get( i, pCurrentUnit );
+                if( ++j >= per->GetNoComponents()) break;
+                else per->Get( j, interval );
               }
               else
-              { // !interval->start
-                if( ++j >= per->GetNoComponents() ) break;
+              {
+                if(interval->rc)
+                {
+                  if( ++i >= GetNoComponents()) break;
+                  else Get( i, pCurrentUnit );
+                }
+                else
+                { // !interval->rc
+                  if( ++j >= per->GetNoComponents() ) break;
+                  else per->Get( j, interval );
+                }
+              }
+            }
+            else
+            {
+              if (interval->end > pCurrentUnit->timeInterval.end)
+              {
+                if( ++i >= GetNoComponents() ) break;
+                else Get( i, pCurrentUnit );
+              }
+              else
+              {
+                if( ++j >= per->GetNoComponents()) break;
                 else per->Get( j, interval );
               }
             }
           }
-          else
-          {
-            if (interval->end > pCurrentUnit->timeInterval.end)
-            {
-              if( ++i >= GetNoComponents() ) break;
-              else Get( i, pCurrentUnit );
-            }
-            else
-            {
-              if( ++j >= per->GetNoComponents()) break;
-               else per->Get( j, interval );
-            }
-          }
-        }
+        } 
       }
+      res->EndBulkLoad(true);
+      res->SetDefined(true);
+      res->SetTrajectoryDefined(false);
+      res->m_trajectory.TrimToSize();
+      res->SetBoundingBoxDefined(false);
     }
-    res->EndBulkLoad(true);
-    res->SetDefined(true);
-    res->SetTrajectoryDefined(false);
-    res->m_trajectory.TrimToSize();
-    res->SetBoundingBoxDefined(false);
   }
 }
 
@@ -3736,36 +3754,13 @@ void MGPoint::Atinstant(Instant *&per, Intime<GPoint> *&res){
     if (pos == -1) res->SetDefined(false);
     else {
       Get(pos,pCurrUnit);
-      if (AlmostEqual(per->ToDouble(),
-                      pCurrUnit->timeInterval.start.ToDouble())){
-        *res = (Intime<GPoint>(*per, pCurrUnit->p0));
-        res->SetDefined(true);
-      } else {
-        if(AlmostEqual(per->ToDouble(),
-                       pCurrUnit->timeInterval.end.ToDouble())) {
-          *res = (Intime<GPoint>(*per,pCurrUnit->p1));
-          res->SetDefined(true);
-        }  else {
-          *res = (Intime<GPoint>(*per,
-                        GPoint(true,
-                               pCurrUnit->p0.GetNetworkId(),
-                               pCurrUnit->p0.GetRouteId(),
-                              ((pCurrUnit->p1.GetPosition() -
-                                pCurrUnit->p0.GetPosition()) *
-                                (per->ToDouble() -
-                                pCurrUnit->timeInterval.start.ToDouble()) /
-                                (pCurrUnit->timeInterval.end.ToDouble() -
-                                 pCurrUnit->timeInterval.start.ToDouble())
-                               + pCurrUnit->p0.GetPosition()),
-                               pCurrUnit->p0.GetSide())));
-          res->SetDefined(true);
-        }
-      }
+      GPoint gp = GPoint(false);
+      pCurrUnit->TemporalFunction(*per, gp, true);
+      if (gp.IsDefined()) (*res) = Intime<GPoint>(*per,gp);
+      else res->SetDefined(false);
     }
   }
-  else {
-    res->SetDefined(false);
-  }
+  else res->SetDefined(false);
 }
 
 /*
@@ -5615,6 +5610,7 @@ mgpoint unit with the values of the actual mpoint unit as start values.
             dMGPointCurrSpeed = dMGPointCurrDistance / lMGPointCurrDuration;
             dStartPos = dEndPos;
             uStartPoint = uEndPoint;
+            continue;
           } else {
             res->Add(UGPoint(Interval<Instant>(tMGPointCurrStartTime,
                                                tMGPointCurrEndTime,
@@ -5645,7 +5641,6 @@ mgpoint unit with the values of the actual mpoint unit as start values.
             uStartPoint = uEndPoint;
             continue;
           }
-        continue;
     } else {
 /*
 End not on the  same Route!
