@@ -3090,7 +3090,6 @@ Returns the spatial position of the gpoint.
 */
 void Network::GetPointOnRoute(const GPoint* in_pGPoint, Point*& res){
   /*Point *res = new Point(false);*/
-  cout << "Networkpointer in GetPointOnRoute:" << this << endl;
   CcInt* pRouteId = new CcInt(true, in_pGPoint->GetRouteId());
   BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
   delete pRouteId;
