@@ -1,3 +1,28 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2009, University in Hagen,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+*/
+
 
 import java.io.*;
 import java.util.zip.*;
@@ -7,6 +32,7 @@ import java.util.Enumeration;
 import java.util.Iterator;
 import org.w3c.dom.*;
 import javax.xml.parsers.*;
+import java.util.StringTokenizer;
 
 class ExtensionInfo{
 
@@ -373,6 +399,11 @@ class ExtensionInfo{
      return libFlags;
   }
 
+  /** Returns the filkename for copyright information. **/
+  public String getCopyright(){
+     return copyright;
+  }
+
 }
 
 
@@ -566,6 +597,9 @@ private boolean modifyMakeFileAlgebras(File f, ExtensionInfo info){
       BufferedReader in = new BufferedReader(new FileReader(f));
       boolean inActivateAllAlgebrasSection = false;
       boolean inNotMinAlgebraSet = false;
+      Vector algebras = new Vector(); // already existing algebras
+      Vector libs = new Vector();     // already existing libs in all algs section
+
       while(in.ready()){
         String line = in.readLine();
         if(line.matches("ifdef\\s+SECONDO_ACTIVATE_ALL_ALGEBRAS\\s*")){
@@ -578,31 +612,52 @@ private boolean modifyMakeFileAlgebras(File f, ExtensionInfo info){
            if(inActivateAllAlgebrasSection){
               inActivateAllAlgebrasSection = false;
               // add librarie here
-              Vector libFlags = info.getLibFlags();
+              TreeSet libFlags = new TreeSet(info.getLibFlags());
+              for(int i=0;i<libs.size();i++){
+                libFlags.remove(libs.get(i));
+              }              
+
               if(libFlags.size()>0){
                   String flags = "";
-                  for(int j=0;j<libFlags.size();j++){
-                      flags += " " + libFlags.get(j);
+                  Iterator it = libFlags.iterator();
+                  while(it.hasNext()){
+                      flags += " " + it.next();
                   }
                   content += "ALGEBRA_DEPS += "+flags+"\n";
               }
            } else if(inNotMinAlgebraSet){
               inNotMinAlgebraSet = false;
-              // make algebra entries
-              content += "ALGEBRA_DIRS += " + info.getAlgebraDir()+"\n";
-              content += "ALGEBRAS += " + info.getAlgebraName()+"\n"; 
-              Vector libFlags = info.getLibFlags();
-              if(libFlags.size()>0){
-                 String flags = "";
-                 for(int j=0;j<libFlags.size();j++){
-                     flags +=" "+libFlags.get(j);
-                 }
-                 content += "ALGEBRA_DEPS += "+flags+"\n";
+              if(algebras.indexOf(info.getAlgebraName())<0){
+                 // make algebra entries
+                 content += "ALGEBRA_DIRS += " + info.getAlgebraDir()+"\n";
+                content += "ALGEBRAS += " + info.getAlgebraName()+"\n"; 
+                Vector libFlags = info.getLibFlags();
+                if(libFlags.size()>0){
+                   String flags = "";
+                   for(int j=0;j<libFlags.size();j++){
+                       flags +=" "+libFlags.get(j);
+                   }
+                   content += "ALGEBRA_DEPS += "+flags+"\n";
+                }
+                content +="\n";
+              } else {
+                System.out.println("Algebra already present in "+f);
               }
-              content +="\n";
            }
            content += line + "\n";
         } else { // any other line, copy it
+           if(line.matches("ALGEBRAS\\s*(:|\\+)=\\s\\w+")){
+               String alg = line.replaceAll(".*=","").trim();
+               algebras.add(alg);
+           } else if(inActivateAllAlgebrasSection &&
+                     line.matches("ALGEBRA_DEPS\\s*\\+=.*")){
+             String l = line.replaceAll(".*=","").trim();
+             StringTokenizer st = new StringTokenizer(l);
+             while(st.hasMoreTokens()){
+                libs.add(st.nextToken());
+             }
+                
+           }
            content += line +"\n";
         }
       }
@@ -647,7 +702,6 @@ private boolean install(String secondoDir, ExtensionInfo info){
          in = zipFile.getInputStream(entry);
          byte[] buffer = new byte[1024];
          String fileName =  algDir.getAbsolutePath()+ File.separator +  name;
-         System.out.println("copy "+ fileName);
          out = new FileOutputStream(fileName);
          int read = 0;
          int size = 0;
@@ -717,8 +771,6 @@ private boolean install(String secondoDir, ExtensionInfo info){
        return false;
     }
    
-    System.out.println("modifying AlgebraList.i.cfg finished"); 
-
     System.out.println("modify makefile.algebras and makefile.algebras.sample");
 
     File f = new File(secondoDir + File.separator + "makefile.algebras.sample");
@@ -731,6 +783,24 @@ private boolean install(String secondoDir, ExtensionInfo info){
        if(!modifyMakeFileAlgebras(f,info)){
          return false;
        }
+    }
+    // show copyrightnotice
+    ZipEntry entry = zipFile.getEntry(info.getCopyright());
+    if(entry==null){
+       System.out.println("No copyright information available");
+    } else {
+       String cr = "";
+       try{
+          BufferedReader r = new BufferedReader(new InputStreamReader(zipFile.getInputStream(entry)));
+          while(r.ready()){
+            cr += r.readLine() + "\n";
+          }
+          r.close();
+          System.out.println("================= COPYRIGHT NOTICE =============== \n\n"+cr);
+          System.out.println("=================END OF COPYRIGHT NOTICE ========= \n");
+       } catch(Exception e){
+           System.err.println("Error during redaing the copyright");
+       }  
     }
 
 
@@ -796,7 +866,7 @@ public boolean installExtensions(String[] extensionFiles){
     return false;
   }
 
-  return false; // implementation not finished yet 
+  return true; // implementation not finished yet 
 
 }
 
