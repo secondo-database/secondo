@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<SecondoExtension>
+  <Algebra>
+     <Name> SimuationAlgebra </Name>
+     <Dependencies>
+        <SecondoVersion> 
+          <Major> 2 </Major>
+          <Minor> 8 </Minor>
+        </SecondoVersion>
+        <Algebra> DateTimeAlgebra </Algebra>
+        <Algebra> RelationAlgebra </Algebra> 
+        <Algebra> TemporalAlgebra </Algebra>
+        <Libraries>
+          <Lib name="GSL" flag="gsl" />
+          <Lib name="GSLCDLAS" flag="gslcblas" />
+        </Libraries>
+     </Dependencies>
+     <SourceCode>
+        <file> makefile </file>
+        <file> SimulationAlgebra.cpp </file>
+     </SourceCode>
+     <SpecFile> SimulationAlgebra.spec </SpecFile>
+     <ExampleFile> Simulation.examples </ExampleFile>
+     <Copyright>  copyright.txt </Copyright>
+  </Algebra>
+
+  <Viewer> 
+  </Viewer>
+
+  <HoeseExtension>
+  </HoeseExtension>
+
+  <Optimizer>
+  </Optimizer>
+
+  <Kernel> 
+  </Kernel>
+
+</SecondoExtension>
+
