@@ -1,39 +1,42 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- This file is an example for a secondo extension -->
 <SecondoExtension>
   <Algebra>
-     <Name> SimuationAlgebra </Name>
+     <Name> SimulationAlgebra </Name> <!-- name of the algebra -->
      <Dependencies>
-        <SecondoVersion> 
+        <SecondoVersion>             <!-- minimum required version, major required -->
           <Major> 2 </Major>
           <Minor> 8 </Minor>
-        </SecondoVersion>
+        </SecondoVersion>            <!-- algebras which must be already exist or must be 
+                                          installed at the same time. The StandardAlgebra
+                                          can be omitted. -->
         <Algebra> DateTimeAlgebra </Algebra>
         <Algebra> RelationAlgebra </Algebra> 
         <Algebra> TemporalAlgebra </Algebra>
-        <Libraries>
+        <Libraries>                  <!-- Needed libraries. -->
           <Lib name="GSL" flag="gsl" />
           <Lib name="GSLCDLAS" flag="gslcblas" />
         </Libraries>
      </Dependencies>
-     <SourceCode>
+     <SourceCode>                 <!-- Source files, including makefile -->
         <file> makefile </file>
         <file> SimulationAlgebra.cpp </file>
      </SourceCode>
-     <SpecFile> SimulationAlgebra.spec </SpecFile>
-     <ExampleFile> Simulation.examples </ExampleFile>
-     <Copyright>  copyright.txt </Copyright>
+     <SpecFile> SimulationAlgebra.spec </SpecFile>   <!-- Specification file -->
+     <ExampleFile> Simulation.examples </ExampleFile><!-- Example file --> 
+     <Copyright>  copyright.txt </Copyright>         <!-- copyright notice -->
   </Algebra>
 
-  <Viewer> 
+  <Viewer>  <!-- additional viewers, not supported yet --> 
   </Viewer>
 
-  <HoeseExtension>
+  <HoeseExtension> <!-- display classes, not supported yet -->
   </HoeseExtension>
 
-  <Optimizer>
+  <Optimizer>      <!-- optimizer extensions, not supported yet -->
   </Optimizer>
 
-  <Kernel> 
+  <Kernel>         <!-- kernel extensions, not supported yet -->
   </Kernel>
 
 </SecondoExtension>
