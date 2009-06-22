@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- This file is an example for a secondo extension -->
+<SecondoExtension>
+  <Algebra>
+     <Name> SimulationAlgebra </Name> <!-- name of the algebra -->
+     <Dependencies>
+        <SecondoVersion>             <!-- minimum required version, major required -->
+          <Major> 2 </Major>
+          <Minor> 8 </Minor>
+        </SecondoVersion>            <!-- algebras which must be already exist or must be 
+                                          installed at the same time. The StandardAlgebra
+                                          can be omitted. -->
+        <Algebra> DateTimeAlgebra </Algebra>
+        <Algebra> RelationAlgebra </Algebra> 
+        <Algebra> TemporalAlgebra </Algebra>
+        <Libraries>                  <!-- Needed libraries. -->
+          <Lib name="GSL" flag="gsl" />
+          <Lib name="GSLCDLAS" flag="gslcblas" />
+        </Libraries>
+     </Dependencies>
+     <SourceCode>                 <!-- Source files, including makefile -->
+        <file> makefile </file>
+        <file> SimulationAlgebra.cpp </file>
+     </SourceCode>
+     <SpecFile> SimulationAlgebra.spec </SpecFile>   <!-- Specification file -->
+     <ExampleFile> Simulation.examples </ExampleFile><!-- Example file --> 
+     <Copyright>  copyright.txt </Copyright>         <!-- copyright notice -->
+  </Algebra>
+
+  <Viewer>  <!-- additional viewers, not supported yet --> 
+  </Viewer>
+
+  <HoeseExtension> <!-- display classes, not supported yet -->
+  </HoeseExtension>
+
+  <Optimizer>      <!-- optimizer extensions, not supported yet -->
+  </Optimizer>
+
+  <Kernel>         <!-- kernel extensions, not supported yet -->
+  </Kernel>
+
+</SecondoExtension>
+
