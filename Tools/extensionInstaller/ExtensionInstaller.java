@@ -359,6 +359,22 @@ class ExtensionInfo{
 */
 public class  ExtensionInstaller{
 
+
+private Vector getPossibleAlgebraDirNames(String algName){
+  Vector res = new Vector(4);
+  res.add(algName);
+  if(algName.endsWith("Algebra")){
+     res.add(algName.substring(0,algName.length()-7));
+  }else{
+     res.add(algName+"Algebra");
+  }
+  for(int i=0;i<2;i++){
+    res.add(res.get(i).toString()+"-C++");
+  }
+  return res;
+}
+
+
 private File secondoDir=null;
 
 public ExtensionInstaller(String secondoDirectory){
@@ -374,7 +390,7 @@ public ExtensionInstaller(String secondoDirectory){
   }
 }
 
-boolean checkConflicts(Vector infos){
+boolean checkConflicts(String secondoDir, Vector infos){
   // AlgebraNames of all infos dijoint
   TreeSet names  = new TreeSet();
   for(int i=0;i<infos.size();i++){
@@ -384,12 +400,23 @@ boolean checkConflicts(Vector infos){
      System.err.println("multiple used algebra names");
      return false;
   }
+
+
   // AlgebraNames not already included
+  String algDir = secondoDir+File.separator+"Algebras"+File.separator;
   for(int i=0;i<infos.size();i++){
-     String name = ((ExtensionInfo)infos.get(i)).getAlgebraDir();
-     File f = new File(secondoDir+name);
-     if(f.exists()){
-        System.err.println("Algebra " + name + " already exists");
+     ExtensionInfo info = (ExtensionInfo)infos.get(i);
+     Vector algDirNames = getPossibleAlgebraDirNames(info.getAlgebraName());
+     boolean found = false;
+     for(int j=0;j<algDirNames.size();j++){
+        File f = new File(algDir+algDirNames.get(j).toString());
+        if(f.exists()){
+           found=true;
+        }
+     }
+     if(found){
+        System.err.println("Algebra " + info.getAlgebraName() + " already istalled");
+        return false;
      }
   }
   return true; 
@@ -527,21 +554,22 @@ private boolean modifyMakeFileAlgebras(File f, ExtensionInfo info){
                   for(int j=0;j<libFlags.size();j++){
                       flags += " " + libFlags.get(j);
                   }
-                  content += "ALGEBRA_DEPS "+flags+"\n";
+                  content += "ALGEBRA_DEPS += "+flags+"\n";
               }
            } else if(inNotMinAlgebraSet){
               inNotMinAlgebraSet = false;
               // make algebra entries
-              content += "ALGEBRA_DIRS += " + info.getAlgebraName()+"\n";
-              content += "ALGEBRAS += " + info.getAlgebraDir()+"\n"; 
+              content += "ALGEBRA_DIRS += " + info.getAlgebraDir()+"\n";
+              content += "ALGEBRAS += " + info.getAlgebraName()+"\n"; 
               Vector libFlags = info.getLibFlags();
               if(libFlags.size()>0){
                  String flags = "";
                  for(int j=0;j<libFlags.size();j++){
                      flags +=" "+libFlags.get(j);
                  }
-                 content += "ALGEBRA_DEPS "+flags+"\n";
+                 content += "ALGEBRA_DEPS += "+flags+"\n";
               }
+              content +="\n";
            }
            content += line + "\n";
         } else { // any other line, copy it
@@ -565,7 +593,7 @@ private boolean modifyMakeFileAlgebras(File f, ExtensionInfo info){
 private boolean install(String secondoDir, ExtensionInfo info){
   System.out.println("install algabra " + info.getAlgebraName());
   // create algebra directory
-  File algDir = new File(secondoDir+File.separator+info.getAlgebraName());
+  File algDir = new File(secondoDir+File.separator+"Algebras"+File.separator+info.getAlgebraDir());
   algDir.mkdir();
 
   // collect all Filename to be installed into the algebra directory
@@ -623,26 +651,34 @@ private boolean install(String secondoDir, ExtensionInfo info){
        BufferedReader in = new BufferedReader(new FileReader(f));
        String content = new String(); 
        int maxNum = 0;
-     
-       while(in.ready()){
+    
+       boolean foundInList=false; 
+       while(in.ready()&&!foundInList){
          String line = in.readLine();
          content += line+"\n";
-         if(line.matches("\\s*ALGEBRA_INCLUDE\\([0-9]\\s*,\\s*\\w*\\s*\\)\\s*")){
-           System.out.println("found" + line);
-           String n1 =  line.replaceAll("\\D","");
+         if(line.matches("\\s*ALGEBRA_INCLUDE\\([0-9]+\\s*,\\s*\\w*\\s*\\)\\s*")){
+           String n1 =  line.replaceAll(",.*","");
+           n1 = n1.replaceAll("\\D","");
            int num = Integer.parseInt(n1); 
            if(num>maxNum){
              maxNum = num;
-           }
+          }
+         }
+         if(line.matches("\\s*ALGEBRA_INCLUDE\\([0-9]+\\s*,\\s*i"+info.getAlgebraName()+"\\s*\\)\\s*")){
+             foundInList = true;
          } 
        }
        in.close();
-       // Append the entry for the new Algebra
-       content +="ALGEBRA_INCLUDE("+(maxNum+1)+","+info.getAlgebraName()+")\n";
-       // write the file
-       PrintStream out = new PrintStream(new  FileOutputStream(f));
-       out.println(content);
-       out.close();
+       if(!foundInList){
+          // Append the entry for the new Algebra
+          content +="ALGEBRA_INCLUDE("+(maxNum+1)+","+info.getAlgebraName()+")\n";
+          // write the file
+          PrintStream out = new PrintStream(new  FileOutputStream(f));
+          out.println(content);
+          out.close();
+       } else{
+          System.out.println("Algebra already found in AlgebraList.i.cfg");
+       }
     }catch(Exception e){
        e.printStackTrace();
        System.err.println("AlgebraList.i.cfg could not be updated");
@@ -710,7 +746,7 @@ public boolean installExtensions(String[] extensionFiles){
         zipFile.close();
      }
      // all zip files was read successfully
-     if(!checkConflicts(infos)){
+     if(!checkConflicts(secondoDir.getAbsolutePath(),infos)){
          System.err.println("Conflict found" );
          return false;
      }
