@@ -7830,7 +7830,7 @@ void ReportResult(TBKnearestLocalInfo<timeType>* local)
 //      cout<<"top "<<top.tid<<" "<<top.mind<<" "<<
 //            top.maxd<<" "<<top.nodeid<<endl;
       assert(top.tid != -1 && top.nodeid == -1);
-      if(top.dataup->timeInterval.start > top.dataup->timeInterval.end)
+      if(top.dataup->timeInterval.start < top.dataup->timeInterval.end)
         local->result.push_back(top);
       head = cur;
       cur = cur->next;
