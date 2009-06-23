@@ -359,7 +359,7 @@ secondoOp( polylinesC,        prefix, 2). % also prefix 3 (optional argument)
 secondoOp( printstream,       postfix, 1).
 secondoOp( product,           postfix, 2).
 %secondoOp( project,            postfixbrackets1, 2). % special syntax
-%secondoOp( projectextendstream,postfixbrackets1, 3). % TODO: special syntax
+%secondoOp( projectextendstream,postfixbrackets1, 3). % special syntax
 secondoOp( projecttransformstream,postfixbrackets1, 2).
 secondoOp( pwdisjoint,        prefix, 2). % also prefix 3+
 secondoOp( puse,              postfixbrackets1, 2).

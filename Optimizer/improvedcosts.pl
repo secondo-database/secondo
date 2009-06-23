@@ -17,29 +17,27 @@ The costedge starts from node ~POGnode~ within the predicate order graph.
 This information can be used to retrieve and propagate information on attribute
 types and sizes throughout the recursive evaluation of the cost-predicate.
 
-While the tupleSize is always propagated up, ~ResAttrList~ can be set to
-~ignore~. In this case, attribute list is not considered by the recursive calls.
-Otherwise, cost returns the list of available attributes ~ResAttrList~ with all
+While the result's tuple size is always propagated up, ~ResAttrList~ can be set to
+~ignore~. In this case, the attribute list is not considered by the recursive calls.
+Otherwise, ~cost/8~ returns the list of available attributes ~ResAttrList~ with all
 available information on attribute names and sizes. ~ResAttrList~ has format
 
 ----
-[[AttrName, AttrType, sizeTerm(CoreSize,IntFLOBSize,ExtFLOBSize)], [...]]
+[[AttrName, AttrType, sizeTerm(MemSize, CoreSize, LOBSize)], [...]]
 
 ----
 
 with one inner list for each attribute.
 
 This is evaluated recursively descending into the term. When the operator
-realizing the predicate (e.g. ~filter~) is encountered, the selectivity
-~Sel~ is
-used to determine the size of the result.
+realizing a predicate (e.g. ~filter~) is encountered, the selectivity
+~Sel~ is used to determine the size of the result.
 
 If more than a single operator with a selectivity occurs within ~Term~, the
 topmost call receives the total selectivity as an argument.
 
 Information on attributes and tuple sizes for each node ~N~ of the POG
-can be
-retrieved by calling
+can be retrieved by calling
 
 ----
     getResTupleSize(+Node, -ResCardinality)
@@ -53,11 +51,7 @@ facts
 ---- costConst(+OpName, +ConstName, -Value)
 ----
 
-*/
-
-/*
-
-The term
+Within the term,
 
 ---- optimizerAnnotation(+Plan, +Note)
 ----
@@ -68,16 +62,24 @@ plan creation and/or cost estimation.
 When found within special operators, it may encode additional information.
 So, it is used to pass down information into the evaluation of the sub plans.
 
-If encounteres alone, it is just ignored.
+If encountered alone, it is just ignored.
 
 */
 
+
+/*
+8.1.0 Plan Annotations
+
+*/
+% ignore plan annotations:
 cost(optimizerAnnotation(X,_), Sel, Pred, ResAttrList, ResTupleSize, ResCard, 0) :-
   cost(X, Sel, Pred, ResAttrList, ResTupleSize, ResCard, 0),!.
 
 
 /*
 8.1.1 Arguments
+
+Arguments are either basic relations, or intermediate results.
 
 */
 
@@ -178,17 +180,20 @@ For ~filter~, there are several special cases to distinguish:
 
   4 ``normal'' ~filter(...)~
 
-For the first three cases, the edge is the translation of a spatial predicate, that
-makes use of bounding box checks. The first argument of filter will already reduce
-the set of possible candidates, so that the cardinality of tuples processed by filter
-will be smaller than the cardinality passed down in the 3rd argument of ~cost~. Also, the selectivity passed with the second argument of ~cost~ is the ~total~ selectivity. To
-get the selectivity of the preselection, one can analyse the predicate and lookup
-the table ~storedBBoxSel/3~ for that selectivity, which should be passed to the recursive call of ~cost~.
+For the first three cases, the edge is the translation of a spatial predicate,
+that makes use of bounding box checks. The first argument of filter will already
+reduce the set of possible candidates, so that the cardinality of tuples
+processed by filter will be smaller than the cardinality passed down in the 3rd
+argument of ~cost~. Also, the selectivity passed with the second argument of
+~cost~ is the ~total~ selectivity. To get the selectivity of the preselection,
+one can analyse the predicate and lookup the table ~storedBBoxSel/3~ for that
+selectivity, which should be passed to the recursive call of ~cost~.
 
-PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is no
-problem, as the index is used to create a fresh tuple stream. But, as for case 1, we
-might get into problems, as the selectivity of the bbox-check depends on earlier
-predicates - so we should consider both selectivities in the minimization of the entropy.
+PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is
+no problem, as the index is used to create a fresh tuple stream. But, as for
+case 1, we might get into problems, as the selectivity of the bbox-check depends
+on earlier predicates - so we should consider both selectivities in the
+minimization of the entropy.
 
 */
 
@@ -306,37 +311,6 @@ cost(product(X, Y), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
           + ResCard  * TupleSizeRes * V,!.
 
 
-cost(leftrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
-  :-
-  cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
-  costConst(btreelookup, msPerSearch, U),
-  costConst(btreelookup, msPerResultTuple, V),
-  ResCard is ResCard1 * Sel,
-  Cost is   U
-          + V * ResCard,!.
-
-cost(rightrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
-  :-
-  cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
-  costConst(btreelookup, msPerSearch, U),
-  costConst(btreelookup, msPerResultTuple, V),
-  ResCard is ResCard1 * Sel,
-  Cost is   U
-          + V * ResCard,!.
-
-cost(range(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
-  cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
-  costConst(btreelookup, msPerSearch, U),
-  costConst(btreelookup, msPerResultTuple, V),
-  ResCard is ResCard1 * Sel,
-  Cost is   U
-          + V * ResCard,!.
-
-%% Missing:
-% exactmatchS
-% leftrangeS
-% rightrangeS
-% rangeS
 
 /*
 
@@ -369,6 +343,38 @@ cost(exactmatch(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   ResCard is ResCard1 * Sel,
   Cost is   U
           + V * ResCard,!.
+
+cost(leftrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
+  :-
+  cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
+  costConst(btreelookup, msPerSearch, U),
+  costConst(btreelookup, msPerResultTuple, V),
+  ResCard is ResCard1 * Sel,
+  Cost is   U
+          + V * ResCard,!.
+
+cost(rightrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
+  :-
+  cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
+  costConst(btreelookup, msPerSearch, U),
+  costConst(btreelookup, msPerResultTuple, V),
+  ResCard is ResCard1 * Sel,
+  Cost is   U
+          + V * ResCard,!.
+
+cost(range(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
+  cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
+  costConst(btreelookup, msPerSearch, U),
+  costConst(btreelookup, msPerResultTuple, V),
+  ResCard is ResCard1 * Sel,
+  Cost is   U
+          + V * ResCard,!.
+
+%% Missing:
+% exactmatchS
+% leftrangeS
+% rightrangeS
+% rangeS
 
 cost(loopjoin(X, Y), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   ( (ground(ResAttrList), ResAttrList = ignore)
@@ -418,6 +424,7 @@ cost(hashjoin(X, Y, _, _, _ /* NBuckets */), Sel, Pred,
           + ResCardY * V             % reading into hashtable
           + ResCardX * NoPasses * U  % probing
           + ResCard * W,!.           % output tuples
+
 
 cost(sort(X), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   cost(X, Sel, Pred, ResAttrList, ResTupleSize, ResCard, CostX),
@@ -591,9 +598,9 @@ cost(extend(X, ExtendFields), Sel, Pred,
   length(ExtendFields,NoNewAttrs),
   Cost is   Cost1
           + ResCard * (U + NoNewAttrs * V),
-  nl,write('***************************************************************'),nl,
-  write_list(['Extended Attributes: ',ExtendAttrs]),
-  nl,write('***************************************************************'),nl,
+  dm(costFunctions,['*****************************************************\n']),
+  dm(costFunctions,['Extended Attributes: ',ExtendAttrs,'\n']),
+  dm(costFunctions,['*****************************************************\n']),
   !.
 
 
@@ -670,9 +677,9 @@ cost(projectextend(X,ProjAttrFields,ExtendFields), Sel, Pred,
           + ResCard * (  U                    % per tuple
                        + NoEAttrs * VE        % extended attrs
                        + NoPAttrs * VP ),     % projected attrs
-  nl,write('***************************************************************'),nl,
-  write_list(['Extended Attributes: ',ExtendAttrs]),
-  nl,write('***************************************************************'),nl,
+  dm(costFunctions,['*****************************************************\n']),
+  dm(costFunctions,['Extended Attributes: ',ExtendAttrs,'\n']),
+  dm(costFunctions,['*****************************************************\n']),
   !.
 
 
@@ -695,11 +702,12 @@ cost(rdup(X), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   costConst(rdup, msPerTuple, U),
   costConst(rdup, msPerComparison, V),
   costConst(rdup, defaultSelectivity, W),
-  Sel1 = Sel/U,  %% claim a fraction of the overall selectivity for rdup
+  Sel1 = Sel/W,  %% claim a fraction of the overall selectivity for rdup
+                 %% rdup filters out an relative amount of (1-W) duplicats
   cost(X, Sel1, Pred, ResAttrList, ResTupleSize, ResCard1, Cost1),
   ResCard is ResCard1 * W,
   Cost is   Cost1
-          + ResCard1 * U * V,!. %% ToDo: Cost function looks strange...
+          + ResCard1 * (U + V),!. %% ToDo: Cost function looks strange...
 
 
 cost(windowintersects(dbobject(_/* Index */), Rel, _/* QueryObj */), Sel, Pred,
@@ -804,18 +812,6 @@ cost(T, S, P, A, TS, RC, Cost) :-
                    :unknownError#ErrMsg)),
   !, fail.
 
-isPrefilter(X) :-
-  X = spatialjoin(_, _, _, _),!.
-
-isPrefilter(X) :-
-  X = loopjoin(_, _),!.
-
-renameAttrs([],_,[]).
-renameAttrs([[Attr, T, S]|More], Suffix, [[AttrRenamed, T, S]|MoreRes]) :-
-  concat_atom([Attr, Suffix],'_',AttrRenamed),
-  renameAttrs(More,Suffix,MoreRes), !.
-
-
 
 /*
 The following code fragment may be needed, when also the non-conjunctive
@@ -833,6 +829,127 @@ cost(simpleUserAggrNoGroupby(Stream, _, _, _), S, P, A, TS, RC, Cost) :-
 
 ----
 
+*/
+
+/*
+8.2 Predicates Auxiliar to cost/8
+
+*/
+
+% Succeeds, if ~X~ is a term that could act as a prefilter
+% --- isPrefilter(+X)
+isPrefilter(X) :-
+  X = spatialjoin(_, _, _, _),!.
+
+isPrefilter(X) :-
+  X = loopjoin(_, _),!.
+
+% Reflect modifications done by the ~rename~ operator to an attribute list
+%     (i.e. a common ~Suffix~ is appended to every attribute name
+% --- renameAttrs(+AttrList, +Suffix, -RenamedAttrList)
+renameAttrs([],_,[]).
+renameAttrs([[Attr, T, S]|More], Suffix, [[AttrRenamed, T, S]|MoreRes]) :-
+  concat_atom([Attr, Suffix],'_',AttrRenamed),
+  renameAttrs(More,Suffix,MoreRes), !.
+
+
+:- dynamic(nodeAttributeList/2).
+
+/*
+---- setNodeResAttrList(+Node, +AttrList)
+----
+
+Annotate a node of the POG with a list of available attribute list ~AttrList~.
+
+*/
+% setNodeResAttrList(+Node, +AttrList)
+setNodeResAttrList(Node, _) :- nodeAttributeList(Node, _), !.
+setNodeResAttrList(Node, AttrList) :-
+  ground(Node), ground(AttrList),
+  assert(nodeAttributeList(Node, AttrList)),!.
+setNodeResAttrList(N, A) :-
+  concat_atom(['Error in setNodeResAttrList: Unbound variable.'],'',ErrMsg),
+  write(ErrMsg), nl,
+  throw(error_Internal(improvedcosts_setNodeResAttrList(N,A)
+                   :malformedExpression#ErrMsg)),
+  !, fail.
+
+/*
+----
+getResAttrList(+Node, -AttrList)
+getResTupleSize(+Node, -TupleSize)
+----
+Retrieve tuple sizes and attributes at given nodes.
+
+*/
+% getResAttrList(+Node, -AttrList)
+getResAttrList(0,[]) :- !.
+getResAttrList(Node,AttrList) :-  nodeAttributeList(Node, AttrList), !.
+
+% getResTupleSize(+Node, -TupleSize)
+getResTupleSize(0,sizeTerm(0,0,0)) :- !.
+getResTupleSize(Node, TupleSize) :- nodeTupleSize(Node, TupleSize), !.
+
+/*
+
+---- getSignature([+Op,+Args,+ResultType], -Op, -ArgTypeList) :-
+----
+
+Extract the operator name and the list of argument types of a ~TypeTree~
+expression. If the signature cannot be retrieved, ~typeerror~ is returned
+instead of the argument type list.
+
+The input parameters [~Op~, ~Args~, ~ResultType~] can be computed for an
+expression ~Expr~ and a list of relation descriptors ~RelList~ by calling
+
+---- getSignature(+Expr,+RelList,-TypeTree)
+----
+
+~TypeTree~ then has the required format [~Op~, ~Args~, ~ResultType~].
+
+*/
+getSignature([Op,Args,_], Op, ArgTypeList) :-
+  findall(T,(member([_,_,T],Args)),ArgTypeList),!.
+getSignature([Op,_,_],Op,typeerror).
+getSignature(A,B,C) :-
+  throw(error_Internal(improvedcosts_getSignature(A,B,C)
+                   :wrongInstantiationPattern)),
+  !, fail.
+
+
+/*
+8.3 Applying Cost Estination and Annotation of Intermediate Results
+
+---- costterm(+Term, +Source, +Target, +Result, +Sel, +Pred, -Card, -Cost)
+----
+
+Determine the assessed costs of an input term using rules ~cost/8~.
+
+~Term~ is the term, whose cost is to estimate,
+~Source~ and ~Target~ are the pog node numbers incident to the edge represented by ~Term~,
+~Result~ is the result number used for the result of the edge,
+~Sel~ is the overall edge selectivity,
+~Pred~ is the predicate represented by the edge,
+~Card~ is the expected cardinality at the ~Target~ node,
+~Cost~ is the expected cost in milliseconds.
+
+*/
+
+% costterm(+Term, +Source, +Target, +Result, +Sel, +Pred, -Card, -Cost)
+costterm(Term, Source, Target, Result, Sel, Pred, Card, Cost) :-
+  cost(Term, Sel, Pred, ResAttrList, TupleSize, Card, Cost),
+  setNodeResAttrList(Result, ResAttrList),
+  setNodeTupleSize(Result, TupleSize),
+  !.
+
+/*
+8.4 Operator-related Constants
+
+Operator-related constants used within the cost functions should be
+stored in facts
+
+---- costConst(+OpName, +ConstName, -Value)
+----
 
 */
 
@@ -873,58 +990,3 @@ costConst(rdup, defaultSelectivity,0.9).
 costConst(windowintersects, msPerTuple, 0.00194).
 costConst(windowintersects, msPerByte, 0.0000106).
 
-/*
-Determine the assessed costs of an input term using rules ~cost/8~.
-
-*/
-
-% costterm(+Term, +Source, +Target, +Sel, +Pred, -Card, -Cost)
-costterm(Term, Source, Target, Sel, Pred, Card, Cost) :-
-  cost(Term, Sel, Pred, ResAttrList, TupleSize, Card, Cost),
-  setNodeResAttrList(Target, ResAttrList),
-  setNodeTupleSize(Target, TupleSize),
-  !.
-
-:- dynamic(nodeAttributeList/2).
-
-% setNodeResAttrList(+Node, +AttrList)
-setNodeResAttrList(Node, _) :- nodeAttributeList(Node, _), !.
-setNodeResAttrList(Node, AttrList) :-
-  ground(Node), ground(AttrList),
-  assert(nodeAttributeList(Node, AttrList)),!.
-setNodeResAttrList(N, A) :-
-  concat_atom(['Error in setNodeResAttrList: Unbound variable.'],'',ErrMsg),
-  write(ErrMsg), nl,
-  throw(error_Internal(improvedcosts_setNodeResAttrList(N,A)
-                   :malformedExpression#ErrMsg)),
-  !, fail.
-
-/*
-Retrieve tuple sizes and attributes at given nodes.
-
-*/
-% getResAttrList(+Node, -AttrList)
-getResAttrList(0,[]).
-getResAttrList(Node,AttrList) :-  nodeAttributeList(Node, AttrList), !.
-
-% getResTupleSize(+Node, -TupleSize)
-getResTupleSize(Node, TupleSize) :- nodeTupleSize(Node, TupleSize), !.
-
-/*
-Retrieve the list of argument types of an expression
-
----- getTopmostArgTypes((+Op,+Args,+ResultType), -ArgTypeList) :-
-----
-
-The input parameters (~Op~, ~Args~, ~ResultType~) can be computed for an
-expression ~Expr~ and a list of relation descriptors ~RelList~ by calling
-
----- getTypeTree(+Expr,+RelList,-TypeTree)
-----
-
-~TypeTree~ then has the required format (~Op~, ~Args~, ~ResultType~).
-
-*/
-getTopmostArgTypes((Op,Args,_), ArgTypeList) :-
-  findall(T,(member((_,_,T),Args)),ArgTypeList),!.
-getTopmostArgTypes(_,typeerror).

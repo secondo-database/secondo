@@ -3153,6 +3153,20 @@ getIndexStatistics(DCindexName, KeyName, DCrelName, KeyValue) :-
                  KeyValue):unknownError)),
   !.
 
+% calculateBBoxSize(+Dimension,+BBox,-BoxSize)
+calculateBBoxSize([],BoxSize) :-
+  BoxSize is 1.0, !.
+
+calculateBBoxSize([Min, Max | More],BoxSize) :-
+  calculateBBoxSize(More,MoreBoxSize),
+  BoxSize is MoreBoxSize * (Max - Min), !.
+
+calculateBBoxSize(Box, BoxSize) :-
+  concat_atom(['Cannot calculate bbox size,'],'',ErrMsg),
+  throw(error_Internal(calculateBBoxSize(Box, BoxSize)
+                                          :unspecifiedError#ErrMsg)).
+
+
 % wrapper for call by index name only
 %   inquireIndexStatistics(+DCindexName)
 inquireIndexStatistics(DCindexName) :-
@@ -3198,6 +3212,7 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
           ( ResList = [[PhysIndexType, [tuple, _], KeyType, Double],
                        [_, [_, Height], [_, Entries], [_, Nodes], [_, BBox]]]
             -> (
+                 calculateBBoxSize(BBox,BoxSize),
                  assert(storedIndexStat(DB,DCindexName,DCrel,height,Height)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,entries,Entries)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,nodes,Nodes)),
@@ -3205,6 +3220,7 @@ inquireIndexStatistics(DB,ExtIndexName,DCindexName,
                  assert(storedIndexStat(DB,DCindexName,DCrel,type,KeyType)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,double,Double)),
                  assert(storedIndexStat(DB,DCindexName,DCrel,dim,Dimension)),
+                 assert(storedIndexStat(DB,DCindexName,DCrel,boxsize,BoxSize)),
                  ( ( concat_atom(['query getFileInfo(',ExtIndexName,')'],'',
                                  Query2),
                      secondo(Query2,[text,ValueAtom]),
@@ -3293,6 +3309,7 @@ assertFileStats(DB,DCindexName,DCrel,[[[Key],[Value]]|MoreElems]) :-
   ),
   assert(storedIndexStat(DB,DCindexName,DCrel,KeyDC,ValueDC)), !,
   assertFileStats(DB,DCindexName,DCrel,MoreElems).
+
 
 
 /*
@@ -3460,6 +3477,8 @@ updateDB(DB1) :-
          retractall(storedIndexStat(DB, _, _, _, _)),
          retractall(storedPET(DB, _, _, _)),
          retractall(storedSel(DB, _, _)),
+         retractall(storedPredicateSignature(DB, _, _)),
+         retractall(storedBBoxSize(DB, _, _)),
          write_list(['\nINFO: All information on database \'', DB, '\' has ',
                      'been retracted.'])
        )
@@ -4058,8 +4077,9 @@ extractSecondoTypeSizes([X|Rest]) :-
     )
     ; Algebra = AlgebraLongDC
   ),
+  term_to_atom(KindsList,Kinds),
   assert(secDatatype(TypeNameDC, TypeSize, NoFlobs, PersCode,
-                     Algebra, Kinds)),!,
+                     Algebra, KindsList)),!,
   extractSecondoTypeSizes(Rest).
 
 readSecondoTypeSizes :-
@@ -4107,7 +4127,7 @@ isData(T) :-
 
 % isKind(+T,+K)
 % check, whether data type ~T~ is in kind K
-isKind(TC,K) :-
+isKind(TC,K) :- % complex type
   is_list(TC),
   TC =.. [T|_],
   secDatatype(T, _, _, _, _, Kinds),

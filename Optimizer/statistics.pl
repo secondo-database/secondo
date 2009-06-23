@@ -260,11 +260,12 @@ dynamicPossiblyRenameS(Rel, Renamed) :-
 
 
 /*
-----  selectivityQuerySelection(+Pred, +Rel,
-                                -QueryTime, -BBoxResCard, -FilterResCard)
+----
+  selectivityQuerySelection(+Pred, +Rel,
+                            -QueryTime, -BBoxResCard, -FilterResCard)
 
-           selectivityQueryJoin(+Pred, +Rel1, +Rel2,
-                                -QueryTime, -BBoxResCard, -FilterResCard)
+  selectivityQueryJoin(+Pred, +Rel1, +Rel2,
+                       -QueryTime, -BBoxResCard, -FilterResCard)
 ----
 
 The cardinality query for a selection predicate is performed on the selection sample. The cardinality query for a join predicate is performed on the first ~n~ tuples of the selection sample vs. the join sample, where ~n~ is the size of the join sample. It is done in this way in order to have two independent samples for the join, avoiding correlations, especially for equality conditions.
@@ -278,11 +279,121 @@ If ~Pred~ has a predicate operator that performs checking of overlapping minimal
 */
 
 % return the bbox-selectivity-predicate term
-% --- getBBoxIntersectionTerm(+Arg1,+Arg2,+Dimension,-Term) :-
-getBBoxIntersectionTerm(Arg1,Arg2,2,Term) :-
-  Term =.. [intersects, box2d(bbox(Arg1)), box2d(bbox(Arg2))], !.
-getBBoxIntersectionTerm(Arg1,Arg2,_,Term) :-
-  Term =.. [intersects, bbox(Arg1), bbox(Arg2)], !.
+% --- getBBoxIntersectionTerm(+Arg1,+Arg2,+Dimension,-PredTerm)
+getBBoxIntersectionTerm(Arg1,Arg2,2,PredTerm) :-
+  PredTerm   =.. [intersects, box2d(bbox(Arg1)), box2d(bbox(Arg2))], !.
+getBBoxIntersectionTerm(Arg1,Arg2,_,PredTerm) :-
+  PredTerm   =.. [intersects, bbox(Arg1), bbox(Arg2)], !.
+
+%%-----------------------------------------------------------------------------
+% Query for the average size (volume) of a term's MBR and store it
+% within the knowledge base.
+% Only do so, if ~optimizerOption(determinePredSig)~ is active.
+%
+% Returns ~Size = none~, if the term has no bounding box, or
+% ~optimizerOption(determinePredSig)~ is not active.
+
+% For terms within selection predicates:
+% --- bboxSizeQuerySel(+Term,+Rel,+TermTypeTree,-Size)
+bboxSizeQuerySel(_,_,_,none) :-
+  not(optimizerOption(determinePredSig)),!.
+
+bboxSizeQuerySel(Term,Rel,_,Size) :-
+  simple(Term, [(1,Rel)], SimpleTerm),
+  databaseName(DB),
+  storedBBoxSize(DB,SimpleTerm,Size), !. % already known
+
+bboxSizeQuerySel(Term,Rel,[_,_,T],Size) :-
+  dm(selectivity,['\nbboxSizeQuerySel(',Term,', ',Rel,', [_,_,',
+                  T,'], ',Size,') called!\n']),
+  ( isKind(T,spatial2d) ; memberchk(T,[rect,rect3,rect4,rect8,
+                                     mpoint,upoint,ipoint,
+                                     instant,periods,
+                                     movingregion,intimeregion,uregion]) ),
+  simple(Term, [(1,Rel)], SimpleTerm),
+  Rel = rel(DCrelName, _),
+  ( optimizerOption(dynamicSample)
+    -> dynamicPossiblyRenameS(Rel, RelQuery)
+    ;  ( ensureSampleSexists(DCrelName),
+         sampleS(Rel, RelS),
+         possiblyRename(RelS, RelQuery)
+       )
+  ),
+  newVariable(NewAttr),
+  SizeQueryT = avg(projectextend(RelQuery,
+                                 [],
+                                 [field(attr(NewAttr,0,l),size(bbox(Term)))]),
+                   NewAttr),
+  plan_to_atom(SizeQueryT,SizeQueryA),
+  concat_atom(['query ',SizeQueryA],'',SizeQuery),
+  dm(selectivity,['\nThe Avg-Size query is: ', SizeQuery, '\n']),
+  secondo(SizeQuery,[real,Size]),
+  databaseName(DB),
+  assert(storedBBoxSize(DB,SimpleTerm,Size)), !. % store it
+
+bboxSizeQuerySel(Term,Rel,[_,_,T],none) :-
+  dm(selectivity,['bboxSizeQuerySel/5: Term \'',Term,'\' for relation ',Rel,
+            ' has Type ',T,', but no bbox!\n\n']),!. % no bbox available
+
+
+% For terms within join predicates:
+% --- bboxSizeQueryJoin(+Term,+Rel1,+Rel2,+TermTypeTree,-Size)
+bboxSizeQueryJoin(_,_,_,_,none) :-
+  not(optimizerOption(determinePredSig)),!.
+
+bboxSizeQueryJoin(Term,Rel1,Rel2,_,Size) :-
+  simple(Term, [(1,Rel1),(2,Rel2)], SimpleTerm),
+  databaseName(DB),
+  storedBBoxSize(DB,SimpleTerm,Size), !. % already known
+
+% --- bboxSizeQueryJoin(+Term,+Rel1,+Rel2,+TermTypeTree,-Size)
+bboxSizeQueryJoin(Term,Rel1,Rel2,[_,_,T],Size) :-
+  dm(selectivity,['\nbboxSizeQueryJoin(',Term,', ',Rel1,', ',Rel2,', [_,_,',
+                  T,'], ',Size,') called!\n']),
+  ( isKind(T,spatial2d) ; memberchk(T,[rect,rect3,rect4,rect8,
+                                     mpoint,upoint,ipoint,
+                                     instant,periods,
+                                     movingregion,intimeregion,uregion]) ),
+  simple(Term, [(1,Rel1),(2,Rel2)], SimpleTerm),
+  Rel1 = rel(DCrelName1, _),
+  Rel2 = rel(DCrelName2, _),
+  transformPred(Term, txx1, 1, Term2),
+  newVariable(NewAttr),
+  ( optimizerOption(dynamicSample)
+    -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
+         dynamicPossiblyRenameJ(Rel2, Rel2Query),
+         SizeQueryT = avg(projectextend(
+            loopjoin(Rel1Query, fun([param(txx1, tuple)], Rel2Query)),
+            [],
+            [field(attr(NewAttr,0,l),size(bbox(Term2)))]),NewAttr)
+       )
+    ;  ( ensureSampleSexists(DCrelName1),
+         ensureSampleJexists(DCrelName2),
+         sampleS(Rel1, Rel1S),
+         sampleJ(Rel2, Rel2S),
+         possiblyRename(Rel1S, Rel1Query),
+         possiblyRename(Rel2S, Rel2Query),
+         Rel2S = rel(BaseName, _),
+         card(BaseName, JoinSize),
+         SizeQueryT = avg(projectextend(
+            loopjoin(head(Rel1Query, JoinSize),
+            fun([param(txx1, tuple)], Rel2Query)),
+            [],
+            [field(attr(NewAttr,0,l),size(bbox(Term2)))]),NewAttr)
+       )
+  ),
+  plan_to_atom(SizeQueryT,SizeQueryA),
+  concat_atom(['query ',SizeQueryA],'',SizeQuery),
+  dm(selectivity,['\nThe Avg-Size query is: ', SizeQuery, '\n']),
+  secondo(SizeQuery,[real,Size]),
+  databaseName(DB),
+  assert(storedBBoxSize(DB,SimpleTerm,Size)), !. % store it
+
+bboxSizeQueryJoin(Term,Rel1,Rel2,[_,_,T],none) :- % no bbox available
+  dm(selectivity,['bboxSizeQueryJoin/5: Term \'',Term,'\' for relations ',Rel1,
+    ' and ',Rel2,' has Type ',T,', but no bbox!\n\n']),!.
+
+%%-----------------------------------------------------------------------------
 
 % spatial predicate with bbox-checking
 selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
@@ -292,7 +403,10 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
     -> ( getTypeTree(Pred,[(1,Rel)],[OP,ArgsTrees,bool]),
          findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
          isBBoxOperator(OP,ArgsTypeList,Dim),
-         getBBoxIntersectionTerm(Arg1,Arg2,Dim,BBoxPred)
+         getBBoxIntersectionTerm(Arg1,Arg2,Dim,BBoxPred),
+         ArgsTrees = [Arg1Tree,Arg2Tree],
+         bboxSizeQuerySel(Arg1,Rel,Arg1Tree,_),
+         bboxSizeQuerySel(Arg2,Rel,Arg2Tree,_)
        )
     ;  ( isBBoxPredicate(OP),
          getBBoxIntersectionTerm(Arg1,Arg2,std,BBoxPred)
@@ -301,12 +415,12 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   ( optimizerOption(dynamicSample)
     -> dynamicPossiblyRenameS(Rel, RelQuery)
     ;  ( Rel = rel(DCrelName, _),
-         ensureSampleSexists(DCrelName), writeln(Rel),
+         ensureSampleSexists(DCrelName),
          sampleS(Rel, RelS),
          possiblyRename(RelS, RelQuery)
        )
   ),
-  write('========= spatial unary predicate with bbox-checking ========='),nl,
+  dm(selectivity,['===== spatial unary predicate with bbox-checking =====\n']),
   Query = count(filter(counter(filter(RelQuery, BBoxPred),1), Pred)),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
@@ -367,13 +481,13 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   ),
   ( optimizerOption(dynamicSample)
     -> dynamicPossiblyRenameS(Rel, RelQuery)
-    ;  ( Rel = rel(DCrelName, _), writeln(Rel),
+    ;  ( Rel = rel(DCrelName, _),
          ensureSampleSexists(DCrelName),
          sampleS(Rel, RelS),
          possiblyRename(RelS, RelQuery)
        )
   ),
-  write('----------------  unary standard predicate ----------------'),nl,
+  dm(selectivity,['--------------  unary standard predicate --------------\n']),
   Query = count(filter(RelQuery, Pred)),
   plan_to_atom(Query, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
@@ -414,20 +528,21 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBox, ResCard) :-
 
 % spatial predicate with bbox-checking
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
-  Pred =.. [OP|_],
+  Pred =.. [OP, Arg01, Arg02],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
          findall(T,member([ _, _, T],ArgsTrees),ArgsTypeList),
-         write_list(['ArgsTypeList = ',ArgsTypeList,'\n']),
-         write_list(['Trying: ',isBBoxOperator(OP,ArgsTypeList,Dim),'.\n']),
-         isBBoxOperator(OP,ArgsTypeList,Dim)
+         isBBoxOperator(OP,ArgsTypeList,Dim),
+         ArgsTrees = [Arg1Tree,Arg2Tree],
+         bboxSizeQueryJoin(Arg01,Rel1,Rel2,Arg1Tree,_),
+         bboxSizeQueryJoin(Arg02,Rel1,Rel2,Arg2Tree,_)
        )
     ;  ( isBBoxPredicate(OP),
          Dim = std
        )
   ),
   transformPred(Pred, txx1, 1, Pred2),
-  write('========= spatial binary predicate with bbox-checking ========='),nl,
+  dm(selectivity,['===== spatial binary predicate with bbox-checking =====\n']),
   Pred2 =.. [_, Arg1, Arg2],
   getBBoxIntersectionTerm(Arg1,Arg2,Dim,Pred3),
   ( optimizerOption(dynamicSample)
@@ -436,8 +551,8 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
          Query = count(filter(counter(loopjoin(Rel1Query,
            fun([param(txx1, tuple)], filter(Rel2Query, Pred3))),1),Pred2) )
        )
-    ;  ( Rel1 = rel(DCrelName1, _), writeln(Rel1),
-         Rel2 = rel(DCrelName2, _), writeln(Rel2),
+    ;  ( Rel1 = rel(DCrelName1, _),
+         Rel2 = rel(DCrelName2, _),
          ensureSampleSexists(DCrelName1),
          ensureSampleJexists(DCrelName2),
          sampleS(Rel1, Rel1S),
@@ -507,15 +622,15 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
     ;  not(isBBoxPredicate(OP))
   ),
   transformPred(Pred, txx1, 1, Pred2),
-  write('---------------- binary standard predicate ----------------'),nl,
+  dm(selectivity,['-------------- binary standard predicate --------------\n']),
   ( optimizerOption(dynamicSample)
     -> ( dynamicPossiblyRenameJ(Rel1, Rel1Query),
          dynamicPossiblyRenameJ(Rel2, Rel2Query),
          Query = count(loopsel(Rel1Query, fun([param(txx1, tuple)],
                        filter(Rel2Query, Pred2))))
        )
-    ;  ( Rel1 = rel(DCrelName1, _), writeln(Rel1),
-         Rel2 = rel(DCrelName2, _), writeln(Rel2),
+    ;  ( Rel1 = rel(DCrelName1, _),
+         Rel2 = rel(DCrelName2, _),
          ensureSampleSexists(DCrelName1),
          ensureSampleJexists(DCrelName1),
          ensureSampleJexists(DCrelName2),
@@ -964,6 +1079,7 @@ readStoredSels :-
   retractall(storedSel(_, _, _)),
   retractall(storedBBoxSel(_, _, _)),
   retractall(storedPredicateSignature(_, _, _)),
+  retractall(storedBBoxSize(_,_,_)),
   [storedSels].
 
 /*
@@ -1022,6 +1138,12 @@ writeStoredSel(Stream) :-
   write(Stream, storedPredicateSignature(DB, XReplaced, [Y1,Y2,Y3])),
   write(Stream, '.\n').
 
+writeStoredSel(Stream) :-
+  storedBBoxSize(DB,X,Y),
+  replaceCharList(X, XReplaced),
+  write(Stream, storedBBoxSize(DB, XReplaced, Y)),
+  write(Stream, '.\n').
+
 showSel :-
   storedSel(DB, X, Y),
   replaceCharList(X, XRepl),
@@ -1034,17 +1156,26 @@ showBBoxSel :-
   format('  ~p~16|~p.~p~n',[Y,DB,XRepl]).
 %  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
 
+showBBoxSize :-
+  storedBBoxSize(DB, X, Y),
+  replaceCharList(X, XRepl),
+  format('  ~p~16|~p.~p~n',[Y,DB,XRepl]).
+%  write(Y), write('\t\t'), write(DB), write('.'), write(X), nl.
+
 :-assert(helpLine(showSels,0,[],'Display known selectivities.')).
 showSels :-
   write('\nStored selectivities:\n'),
   findall(_, showSel, _),
   write('\nStored bbox-selectivities:\n'),
-  findall(_, showBBoxSel, _) .
+  findall(_, showBBoxSel, _),
+  write('\nStored average bbox sizes:\n'),
+  findall(_, showBBoxSize, _).
 
 :-
   dynamic(storedSel/3),
   dynamic(storedBBoxSel/3),
   dynamic(storedPredicateSignature/3),
+  dynamic(storedBBoxSize/3),
   at_halt(writeStoredSels),
   readStoredSels.
 

@@ -1557,6 +1557,12 @@ plan_to_atom(interval(X, Y), Result) :-
   concat_atom(['[const duration value (', X, ' ', Y, ')]'], '', Result),
   !.
 
+plan_to_atom(projectextend(Stream,ProjectFields,ExtendFields), Result) :-
+  plan_to_atom(Stream,SAtom),
+  plan_to_atom(ProjectFields,PAtom),
+  plan_to_atom(ExtendFields,EAtom),
+  concat_atom([SAtom,' projectextend[',PAtom,' ; ',EAtom,']'], '', Result),
+  !.
 
 /*
 Sort orders and attribute names.
@@ -3778,7 +3784,7 @@ createCostEdge(Source,Target,costEdge(Source, Target, Term, Result, Size, Cost))
   edge(Source, Target, EdgeTerm, _, _, _),
   ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred) ),
   edgeSelectivity(Source, Target, Sel),
-  costterm(Term, Source, Target, Sel, Pred, Size, Cost),
+  costterm(Term, Source, Target, Result, Sel, Pred, Size, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, Cost)).
 
 
@@ -3788,7 +3794,7 @@ createCostEdge :- % use improved cost functions
   edge(Source, Target, EdgeTerm, _, _, _),
   ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred) ),
   edgeSelectivity(Source, Target, Sel),
-  costterm(Term, Source, Target, Sel, Pred, Size, Cost),
+  costterm(Term, Source, Target, Result, Sel, Pred, Size, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
 
@@ -6470,13 +6476,9 @@ Example 17. This may need a larger local stack size. Start Prolog as
 
 which initializes the local stack to 4 MB.
 
-*/
-
-
-/*
 Example 17 is too complex for the interesting Orders extension (even with 64M stacks):
 
-----
+*/
 sqlExample( 17,
   select *
   from [staedte, plz as p1, plz as p2, plz as p3]
@@ -6492,9 +6494,6 @@ sqlExample( 17,
     p3:ort contains "burg",
     p3:ort starts "M"]
   ).
-----
-
-*/
 
 
 sqlExample( 18,
@@ -6632,6 +6631,20 @@ sqlExample( 302,
   select [t:id as id]
   from [trains as t]
   where [t:trip present six30]
+  ).
+
+% Example: spatio temporal predicate (database berlintest)
+sqlExample( 303,
+  select [s:name as sname]
+  from [strassen as s]
+  where [(train1 atperiods deftime(train5)) passes s:geodata]
+  ).
+
+% Example: spatio temporal predicate (database berlintest)
+sqlExample( 304,
+  select [s:name as sname]
+  from [trains as t, strassen as s]
+  where [(t:trip atperiods deftime(train5)) passes s:geodata]
   ).
 
 example14 :- example(14).
