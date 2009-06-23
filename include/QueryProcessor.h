@@ -337,11 +337,6 @@ is closed already.
   void SetEvaluable(Supplier s, bool value);
 
 
-
-
-
-
-
   bool RequestProgress( const Supplier s, ProgressInfo* p );
 /*
 ~RequestProgress~ evaluates the subtree ~s~ for a PROGRESS message. It returns true iff a progress info has been received. In ~p~ the address of a ProgressInfo must be passed.
@@ -351,13 +346,13 @@ is closed already.
 
   double GetSelectivity( const Supplier s);
 /*
->From a given supplier ~s~ get its Selectivity
+From a given supplier ~s~ get its Selectivity
 
 */
 
   double GetPredCost( const Supplier s);
 /*
->From a given supplier ~s~ get its Predicate Cost
+From a given supplier ~s~ get its Predicate Cost
 
 */
 
@@ -373,9 +368,16 @@ For a given supplier ~s~ set its Predicate Cost ~predCost~
 
 */
 
+  void CheckProgress();
+
+/*
+Trigger a progress query if the time has come to do so.
+
+*/
+
   Supplier GetSupplierSon( const Supplier s, const int no );
 /*
->From a given supplier ~s~ that must not represent an argument list,
+From a given supplier ~s~ that must not represent an argument list,
 get its son number ~no~.
 
 */
@@ -727,12 +729,6 @@ each node, and returns the result in ~result~. The ~message~ is "OPEN"[4],
 */
 
 
-  void CheckProgress();
-
-/*
-Trigger a progress query if the time has come to do so.
-
-*/
 
 
   void CloseProgress( const Supplier s );
