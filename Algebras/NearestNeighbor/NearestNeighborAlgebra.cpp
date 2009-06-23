@@ -119,6 +119,7 @@ double difftimeb( struct timeb* t1, struct timeb* t2 )
   return dt1 - dt2;
 }
 
+//#define mydebug 1
 
 /*
 The implementation of the algebra is embedded into
@@ -6103,43 +6104,6 @@ Operator covleafnode (
          covleafnodeTypeMap    // type mapping
 );
 
-const string TBknearestfilterSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>tbtree(tuple ((x1 t1)...(xn tn))"
-      " ti) x rel(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
-      " (stream (tuple ((x1 t1)...(xn tn))))"
-      "</text--->"
-      "<text>_ _ tbknearestfilter [ _, _ ]</text--->"
-      "<text>The operator results a stream of all input tuples "
-      "which are the k-nearest tupels to the given mpoint. "
-      "The operator do not separate tupels if necessary. The "
-      "result may have more than the k-nearest tupels. It is a "
-      "filter operator for the knearest operator, if there are a great "
-      "many input tupels. "
-      "The operator expects a tb-tree built on moving objects </text--->"
-      "<text>query UnitTrains_UTrip_tbtree UnitTrains tbknearestfilter "
-      "[train1, 5] count;</text--->"
-      ") )";
-const string CTBknearestfilterSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>tbtree(tuple ((x1 t1)...(xn tn))"
-      " ti) x rel(tuple ((x1 t1)...(xn tn))) x btree(tuple((x1 t1)...(xn tn)))"
-      " x rel(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
-      " (stream (tuple ((x1 t1)...(xn tn))))"
-      "</text--->"
-      "<text>_ _ _ _ ctbknearestfilter [ _, _ ]</text--->"
-      "<text>The operator results a stream of all input tuples "
-      "which are the k-nearest tupels to the given mpoint. "
-      "The operator do not separate tupels if necessary. The "
-      "result may have more than the k-nearest tupels. It is a "
-      "filter operator for the knearest operator, if there are a great "
-      "many input tupels. "
-      "The operator expects a tb-tree built on moving objects and"
-      " the coverage number of each node in tb-tree </text--->"
-      "<text>query UnitTrains_UTrip_tbtree UnitTrains btreeCov "
-      " Cov ctbknearestfilter "
-      "[train1, 5] count;</text--->"
-      ") )";
 const string RknearestfilterSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
       "( <text>tbtree(tuple ((x1 t1)...(xn tn))"
@@ -6157,6 +6121,23 @@ const string RknearestfilterSpec  =
       "The operator expects an r-tree built on moving objects</text--->"
       "<text>query UnitTrains_UTrip UnitTrains "
       " rknearestfilter [train1, 5] count;</text--->"
+      ") )";
+const string hcknnknearestSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>tbtree(tuple ((x1 t1)...(xn tn))"
+      " ti) x rel(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
+      " (stream (tuple ((x1 t1)...(xn tn))))"
+      "</text--->"
+      "<text>_ _ hcknnknearest [ _, _ ]</text--->"
+      "<text>The operator results a stream of all input tuples "
+      "which are the k-nearest tupels to the given mpoint. "
+      "The operator do not separate tupels if necessary. The "
+      "result may have more than the k-nearest tupels. It is a "
+      "filter operator for the knearest operator, if there are a great "
+      "many input tupels. "
+      "The operator expects a tb-tree built on moving objects </text--->"
+      "<text>query UnitTrains_UTrip_tbtree UnitTrains hcknnknearest"
+      "[train1, 5] count;</text--->"
       ") )";
 
 /*
@@ -6316,98 +6297,6 @@ SegEntry<timeType>& se)
 }
 
 
-/*
-tbknearestFilterFun is the value function for the tbknearestfilter operator
-It is a filter operator for the knearest operator. It can be called
-if there exists a tb-tree for the unit attribute
-The argument vector contains the following values:
-args[0] = a tbtree with the unit attribute as key
-args[1] = the relation of the tbtree
-args[2] = mpoint
-args[3] = int k, how many nearest are searched
-
-*/
-template<class timeType>
-int tbknearestFilterFun (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  const int dim = 3;
-  KnearestFilterLocalInfo<timeType> *localInfo;
-
-  switch (message)
-  {
-    case OPEN :
-    {
-      MPoint *mp = (MPoint*)args[2].addr;
-      const UPoint *up1, *up2;
-      mp->Get( 0, up1);
-      mp->Get( mp->GetNoComponents() - 1, up2);
-      BBTree<timeType>* t = new BBTree<timeType>(*mp);
-      localInfo = new KnearestFilterLocalInfo<timeType>(
-        up1->timeInterval.start.ToDouble(), up2->timeInterval.end.ToDouble());
-      localInfo->tbtree = (TBTree*)args[0].addr;
-      localInfo->relation = (Relation*)args[1].addr;
-      localInfo->k = (unsigned)((CcInt*)args[3].addr)->GetIntval();
-      localInfo->scanFlag = true;
-      local = SetWord(localInfo);
-      if (mp->IsEmpty())
-      {
-        return 0;
-      }
-      SmiRecordId adr = localInfo->tbtree->getRootId();
-      tbtree::BasicNode<dim>* root = localInfo->tbtree->getNode(adr);
-      timeType t1(root->getBox().MinD(2));
-      timeType t2(root->getBox().MaxD(2));
-      if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
-          BBox<2> xyBox = makexyBox(root->getBox());
-          int cov = localInfo->tbtree->getcoverage(root);
-          SegEntry<timeType> se(xyBox,t1,t2,0,0,cov,adr,-1);
-          localInfo->timeTree.insert(se,localInfo->k);
-          HCTNNSearch(root,mp,localInfo,t,0,se);
-      }
-      localInfo->mapit = localInfo->resultMap.begin();
-      delete root;
-      delete t;
-      return 0;
-    }
-
-    case REQUEST :
-    {
-     localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
-      if ( !localInfo->scanFlag )
-      {
-        return CANCEL;
-      }
-
-      if ( !localInfo->k)
-      {
-        return CANCEL;
-      }
-
-      /* give out alle elements of the resultmap */
-      if ( localInfo->mapit != localInfo->resultMap.end() )
-      {
-          TupleId tid = localInfo->mapit->second;
-          Tuple *tuple = localInfo->relation->GetTuple(tid);
-          result = SetWord(tuple);
-          ++localInfo->mapit;
-          return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-    }
-
-    case CLOSE :
-    {
-      localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
-      delete localInfo;
-      return 0;
-    }
-  }
-  return 0;
-}
 
 /*
 rknearestFilterFun is the value function for the rknearestfilter operator
@@ -6434,6 +6323,10 @@ SegEntry<timeType>& se)
                   (R_TreeLeafEntry<dim, TupleId>&)(*rnode)[j];
       timeType t1((double)(e.box.MinD(2)));
       timeType t2((double)(e.box.MaxD(2)));
+
+      t1 = t1/864000.0;
+      t2 = t2/864000.0;
+
       if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
         Interval<timeType> d(t1,t2,true,true);
         BBox<2> entrybox = makexyBox(e.box);
@@ -6448,7 +6341,7 @@ SegEntry<timeType>& se)
                                       se.end,se.mindist);
         if(cov < localInfo->k){
            localInfo->timeTree.insert(se,localInfo->k);
-           localInfo->resultMap.insert(make_pair(se,se.tpid));
+ //          localInfo->resultMap.insert(make_pair(se,se.tpid));
         }
       }
     }
@@ -6460,6 +6353,10 @@ SegEntry<timeType>& se)
                   (R_TreeInternalEntry<dim>&)(*rnode)[j];
           timeType t1(e.box.MinD(2));
           timeType t2(e.box.MaxD(2));
+
+          t1 = t1/864000.0;
+          t2 = t2/864000.0;
+
           if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
             adr = e.pointer;
             BBox<2> entrybox = makexyBox(e.box);
@@ -6530,6 +6427,9 @@ int rknearestFilterFun (Word* args, Word& result, int message,
       timeType t1(root->BoundingBox().MinD(2));
       timeType t2(root->BoundingBox().MaxD(2));
 
+      t1 = t1/864000.0;
+      t2 = t2/864000.0;
+
       if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
         FieldEntry<timeType> fe = FieldEntry<timeType>(
             localInfo->rtree->RootRecordId(), 0, t1, t2, 0);
@@ -6587,274 +6487,1580 @@ int rknearestFilterFun (Word* args, Word& result, int message,
 }
 
 
+struct hpelem{
+  UReal* movdist;
+  TupleId tid;
+  UPoint* dataup;
+  double mind,maxd;
+  long nodeid;
+  hpelem* next;
+  double nodets,nodete;
+  bool operator<(const hpelem& e)const
+  {
+    if(mind < e.mind) return false;
+    return true;
+
+  }
+  hpelem(){}
+  hpelem(const hpelem& le)
+  :movdist(le.movdist),dataup(le.dataup),tid(le.tid),
+   mind(le.mind),maxd(le.maxd),
+   nodeid(le.nodeid),nodets(le.nodets),nodete(le.nodete){next = le.next;}
+  hpelem(TupleId id1,double d1,double d2,long id2)
+  :tid(id1),mind(d1),maxd(d2),nodeid(id2){
+    movdist = NULL;
+    dataup = NULL;
+    next = NULL;
+    nodets = nodete = 0;
+  }
+  hpelem& operator=(const hpelem& le)
+  {
+    tid = le.tid;
+    nodeid = le.nodeid;
+    mind = le.mind;
+    maxd = le.maxd;
+    nodets = le.nodets;
+    nodete = le.nodete;
+    movdist = le.movdist;
+    dataup = le.dataup;
+    next = NULL;
+    return *this;
+  }
+};
+
+struct Nearestlist{
+  double mind;
+  double maxd;
+//  list<hpelem> nearestlist;
+  hpelem* head;
+  Instant startTime,endTime;
+  Instant start,end;//range
+  //startTime = mp.starttime, endtime = current lasttime
+};
+
+template<class timeType>
+struct TBKnearestLocalInfo
+{
+  unsigned int k;
+  unsigned int attrpos;
+  bool scanFlag;
+  Relation* relation;
+  TBTree* tbtree;
+  BTree* btreehats;
+  timeType startTime,endTime;
+  Line* mptraj;
+  Nearestlist* nlist;
+  double* prunedist;
+  priority_queue<hpelem> hp;
+  vector<hpelem> result;
+  unsigned int counter;
+  TBKnearestLocalInfo(unsigned int nn):k(nn)
+  {
+      nlist = new Nearestlist[k](); //k buffers for NearestLists
+      prunedist = new double[k];
+  }
+  ~TBKnearestLocalInfo()
+  {
+      delete[] nlist;
+      delete[] prunedist;
+  }
+
+};
+/*Initialization*/
+template<class timeType>
+void hcknnInitialize(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
+{
+//  cout<<"hcknnInitialization"<<endl;
+  //Initialization NearestList and prunedist
+  for(unsigned int i = 0;i < local->k;i++){
+    local->nlist[i].mind = numeric_limits<double>::max();
+    local->nlist[i].maxd = numeric_limits<double>::min();
+    local->nlist[i].startTime = local->startTime;
+//    local->nlist[i].endTime = local->endTime;
+    local->nlist[i].endTime = local->startTime; //start time = end time
+    local->nlist[i].start = local->startTime;
+    local->nlist[i].end = local->endTime;
+    local->nlist[i].head = new hpelem(-1,0,0,-1);
+    local->prunedist[i] = numeric_limits<double>::max();//mindist in nearestlist
+  }
+
+  SmiRecordId adr = local->tbtree->getRootId();
+  tbtree::BasicNode<3>* root = local->tbtree->getNode(adr);
+  timeType t1(root->getBox().MinD(2));
+  timeType t2(root->getBox().MaxD(2));
+  if(!(t1 >= local->endTime || t2 <= local->startTime)){//timeinterval overlaps
+    Line* line = new Line(0);
+    mp->Trajectory(*line);
+    local->mptraj = new Line(*line);
+    delete line;
+    tbtree::InnerNode<3,InnerInfo>* innernode =
+            dynamic_cast<InnerNode<3,InnerInfo>*>(root);
+    //insert all the entries of the root into hp
+    for(unsigned int i = 0;i < innernode->entryCount();i++){
+        const Entry<3,InnerInfo>* entry = innernode->getEntry(i);
+        timeType tt1((double)entry->getBox().MinD(2));
+        timeType tt2((double)entry->getBox().MaxD(2));
+        if(!(tt1 >= local->endTime || tt2 <= local->startTime)){
+          BBox<2> entrybox = makexyBox(entry->getBox());//entry box
+          double mindist = local->mptraj->Distance(entrybox);
+          double maxdist = numeric_limits<double>::max();
+          hpelem le(-1,mindist,maxdist,entry->getInfo().getPointer());
+          le.nodets = tt1;
+          le.nodete = tt2;
+          local->hp.push(le);
+        }
+    }
+  }
+}
+/*Interpolate for entry in TB-tree*/
+template<class timeType>
+void CreateUPoint_ne(TBKnearestLocalInfo<timeType>* local,const UPoint* up,
+TupleId tid,UPoint*& ne)
+{
+  Tuple* tuple = local->relation->GetTuple(tid);
+  UPoint* data = (UPoint*)tuple->GetAttribute(local->attrpos);
+  Instant start;
+  Instant end;
+  Point p0,p1;
+
+  if(data->timeInterval.start > up->timeInterval.start){
+    start = data->timeInterval.start;
+    p0 = data->p0;
+  }
+  else{
+    start = up->timeInterval.start;
+    data->TemporalFunction(start,p0,true);
+  }
+  if(data->timeInterval.end < up->timeInterval.end){
+    end = data->timeInterval.end;
+    p1 = data->p1;
+  }
+  else{
+    end = up->timeInterval.end;
+    data->TemporalFunction(end,p1,true);
+  }
+  ne->timeInterval.start = start;
+  ne->timeInterval.end = end;
+  ne->p0 = p0;
+  ne->p1 = p1;
+
+}
 /*
-  Compare the minmum distacne
+Interpolate for entry in MQ
+
+*/
+
+template<class timeType>
+void CreateUPoint_nqe(TBKnearestLocalInfo<timeType>* local,const UPoint* up,
+TupleId tid,UPoint*& nqe)
+{
+  Tuple* tuple = local->relation->GetTuple(tid);
+  UPoint* data = (UPoint*)tuple->GetAttribute(local->attrpos);
+  Instant start;
+  Instant end;
+  Point p0,p1;
+
+  if(data->timeInterval.start > up->timeInterval.start){
+    start = data->timeInterval.start;
+    up->TemporalFunction(start,p0,true);
+  }
+  else{
+    start = up->timeInterval.start;
+    p0 = up->p0;
+  }
+  if(data->timeInterval.end < up->timeInterval.end){
+    end = data->timeInterval.end;
+    up->TemporalFunction(end,p1,true);
+  }
+  else{
+    end = up->timeInterval.end;
+    p1 = up->p1;
+  }
+  nqe->timeInterval.start = start;
+  nqe->timeInterval.end = end;
+  nqe->p0 = p0;
+  nqe->p1 = p1;
+
+}
+/*
+Update information in each NearestList, mind,maxd, startTime,endTime
+after each new elem is inserted
 
 */
 template<class timeType>
-bool CmpSE(const SegEntry<timeType>& fe1, const SegEntry<timeType>& fe2)
+void UpdateInfoInNL(TBKnearestLocalInfo<timeType>* local,hpelem* elem,int i)
 {
-  if(fe1.mindist < fe2.mindist)
-    return true;
-  if(fe1.maxdist < fe2.maxdist)
-    return true;
-  return false;
+  if(elem->mind < local->nlist[i].mind)
+    local->nlist[i].mind = elem->mind;
+  if(elem->maxd > local->nlist[i].maxd)
+    local->nlist[i].maxd = elem->maxd;
+  Instant dataend = (elem->dataup)->timeInterval.end;
+  Instant datastart = (elem->dataup)->timeInterval.start;
+  if(datastart < local->nlist[i].startTime)
+    local->nlist[i].startTime = datastart;
+  if(dataend > local->nlist[i].endTime)
+    local->nlist[i].endTime = dataend;
+  if(local->nlist[i].maxd > local->prunedist[i])
+    local->prunedist[i] = local->nlist[i].maxd;
+
+}
+double URealMin(UReal* u,Instant& start)
+{
+//  cout<<"Min"<<endl;
+//  cout<<u->timeInterval<<endl;
+//  cout<<"start "<<start<<endl;
+  bool def = true;
+  if(start == u->timeInterval.start)
+    return u->Min(def);
+  else{
+//    cout<<u->Min(def)<<endl;
+    double t_start = (u->timeInterval.start-start).ToDouble();
+    double t_end = (u->timeInterval.end-start).ToDouble();
+    double v1 = sqrt(u->a*t_start*t_start + u->b*t_start + u->c);
+    double v2 = sqrt(u->a*t_end*t_end + u->b*t_end + u->c);
+    double min = v1;
+    if(v2 < min)
+      min = v2;
+    if(AlmostEqual(u->a,0.0))
+      return min;
+//    cout<<t_start<<" "<<t_end<<endl;
+    double asymx = (-1.0*u->b)/(2*u->a);
+    double v3 = min;
+    if(t_start < asymx && asymx < t_end){ //three values
+      v3 = sqrt(u->a*asymx*asymx+u->b*asymx+u->c);
+      if(v3 < min)
+        min = v3;
+    }
+//    cout<<v1<<" "<<v2<<" "<<v3<<endl;
+//    cout<<"min "<<min<<endl;
+    return min;
+  }
+
+}
+double URealMax(UReal* u,Instant& start)
+{
+//  cout<<"Max"<<endl;
+//  cout<<u->timeInterval<<endl;
+//  cout<<start<<endl;
+  bool def = true;
+  if(start == u->timeInterval.start)
+    return u->Max(def);
+  else{
+//    cout<<u->Max(def)<<endl;
+    double t_start = (u->timeInterval.start-start).ToDouble();
+    double t_end = (u->timeInterval.end-start).ToDouble();
+    double v1 = sqrt(u->a*t_start*t_start + u->b*t_start + u->c);
+    double v2 = sqrt(u->a*t_end*t_end + u->b*t_end + u->c);
+    double max = v1;
+    if(v2 > max)
+      max = v2;
+    if(AlmostEqual(u->a,0.0))
+      return max;
+//    cout<<t_start<<" "<<t_end<<endl;
+    double asymx = (-1.0*u->b)/(2*u->a);
+    double v3 = 0;
+    if(t_start < asymx && asymx < t_end){ //three values
+      v3 = sqrt(u->a*asymx*asymx+u->b*asymx+u->c);
+      if(v3 > max)
+        max = v3;
+    }
+//    cout<<v1<<" "<<v2<<" "<<v3<<endl;
+//    cout<<"max "<<max<<endl;
+    return max;
+  }
 }
 /*
-ctbknearestFilterFun is the value function for the ctbknearestfilter operator
+translate the start time of parabolas
+
+*/
+void URealTranslate(UReal*& u,Instant& start)
+{
+//  cout<<"now "<<u->timeInterval.start<<endl;
+//  cout<<"before "<<start<<endl;
+
+  double b,c;
+  double ts = (u->timeInterval.start - start).ToDouble();
+  b = 2*u->a*ts + u->b;
+  c = u->c + u->b*ts + u->a*ts*ts;
+  u->b = b;
+  u->c = c;
+}
+
+/*
+interpolation parabolas
+entry unit (in list) is first smaller than data (new elem), and then new
+elem is smaller than entry (the one already stored in Nearestlist)
+T is smaller first
+
+*/
+
+template<class timeType>
+void ParabolasTM(TBKnearestLocalInfo<timeType>* local,hpelem& elem
+,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
+Instant& intersect,Instant& elemstart,Instant& curstart)
+{
+//    cout<<"TM"<<endl;
+    bool def = true;
+
+    hpelem* newelem1 = new hpelem(*cur);
+    newelem1->movdist = new UReal(*(cur->movdist));
+    newelem1->dataup = new UPoint(*(cur->dataup));
+    newelem1->movdist->timeInterval.start = intersect;
+    Point start;
+    newelem1->dataup->TemporalFunction(intersect,start,true);
+    newelem1->dataup->timeInterval.start = intersect;
+    newelem1->dataup->p0 = start;
+    newelem1->next= NULL;
+//    newelem1->mind = newelem1->movdist->Min(def);
+//    newelem1->maxd = newelem1->movdist->Max(def);
+    newelem1->mind = URealMin(newelem1->movdist,curstart);
+    newelem1->maxd = URealMax(newelem1->movdist,curstart);
+    URealTranslate(newelem1->movdist,curstart);
+
+
+    cur->movdist->timeInterval.end = intersect;
+    Point end;
+    cur->dataup->TemporalFunction(intersect,end,true);
+    cur->dataup->timeInterval.end = intersect;
+    cur->dataup->p1 = end;
+    cur->mind = cur->movdist->Min(def);
+    cur->maxd = cur->movdist->Max(def);
+
+
+    hpelem* newelem2 = new hpelem(elem);
+    newelem2->movdist = new UReal(*(elem.movdist));
+    newelem2->dataup = new UPoint(*(elem.dataup));
+    newelem2->movdist->timeInterval.end = intersect;
+    newelem2->dataup->TemporalFunction(intersect,end,true);
+    newelem2->dataup->timeInterval.end = intersect;
+    newelem2->dataup->p1 = end;
+    newelem2->mind = newelem2->movdist->Min(def);
+    newelem2->maxd = newelem2->movdist->Max(def);
+
+
+    nextupdatelist.push_back(*newelem1);
+    nextupdatelist.push_back(*newelem2);
+
+    hpelem* newelem3 = new hpelem(elem);
+    newelem3->movdist = new UReal(*(elem.movdist));
+    newelem3->dataup = new UPoint(*(elem.dataup));
+    newelem3->movdist->timeInterval.start = intersect;
+    newelem3->dataup->TemporalFunction(intersect,start,true);
+    newelem3->dataup->timeInterval.start = intersect;
+    newelem3->dataup->p0 = start;
+    newelem3->next = cur->next;
+
+    cur->next = newelem3;
+////////////////////////////////////
+    head = cur;
+    cur = newelem3;
+////////////////////////////////
+
+//    newelem3->mind = newelem3->movdist->Min(def);
+//    newelem3->maxd = newelem3->movdist->Max(def);
+    newelem3->mind = URealMin(newelem3->movdist,elemstart);
+    newelem3->maxd = URealMax(newelem3->movdist,elemstart);
+    URealTranslate(newelem3->movdist,elemstart);
+
+
+    UpdateInfoInNL(local,cur,i);
+    UpdateInfoInNL(local,newelem3,i);
+}
+/*
+interpolation parabolas
+entry unit (in list) is first larger than data (new elem), and then new
+elem is larger than entry (the one already stored in Nearestlist)
+M is smaller first
+
+*/
+template<class timeType>
+void ParabolasMT(TBKnearestLocalInfo<timeType>* local,hpelem& elem
+,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
+Instant& intersect,Instant& elemstart,Instant& curstart)
+{
+//  cout<<"MT"<<endl;
+  bool def = true;
+  Point end;
+  hpelem* newelem1 = new hpelem(elem);
+  newelem1->movdist = new UReal(*(elem.movdist));
+  newelem1->dataup = new UPoint(*(elem.dataup));
+  newelem1->movdist->timeInterval.end = intersect;
+  newelem1->dataup->TemporalFunction(intersect,end,true);
+  newelem1->dataup->timeInterval.end = intersect;
+  newelem1->dataup->p1 = end;
+  newelem1->next = NULL;
+  newelem1->mind = newelem1->movdist->Min(def);
+  newelem1->maxd = newelem1->movdist->Max(def);
+
+  hpelem* newelem2 = new hpelem(*cur);
+  newelem2->movdist = new UReal(*(cur->movdist));
+  newelem2->dataup = new UPoint(*(cur->dataup));
+  newelem2->movdist->timeInterval.end = intersect;
+  newelem2->dataup->TemporalFunction(intersect,end,true);
+  newelem2->dataup->timeInterval.end = intersect;
+  newelem2->dataup->p1 = end;
+  newelem2->next= NULL;
+  newelem2->mind = newelem2->movdist->Min(def);
+  newelem2->maxd = newelem2->movdist->Max(def);
+
+//  Instant temp = cur->movdist->timeInterval.start;
+  cur->movdist->timeInterval.start = intersect;
+  Point start;
+  cur->dataup->TemporalFunction(intersect,start,true);
+  cur->dataup->timeInterval.start = intersect;
+  cur->dataup->p0 = start;
+//  cur->mind = cur->movdist->Min(def);
+//  cur->maxd = cur->movdist->Max(def);
+
+  cur->mind = URealMin(cur->movdist,curstart);
+  cur->maxd = URealMax(cur->movdist,curstart);
+  URealTranslate(cur->movdist,curstart);
+
+
+  head->next = newelem1;
+  newelem1->next = cur;
+///////////////////////
+  head = newelem1;
+////////////////////////
+  UpdateInfoInNL(local,newelem1,i);
+  UpdateInfoInNL(local,cur,i);
+
+  hpelem* newelem3 = new hpelem(elem);
+  newelem3->movdist = new UReal(*(elem.movdist));
+  newelem3->dataup = new UPoint(*(elem.dataup));
+  newelem3->movdist->timeInterval.start = intersect;
+  newelem3->dataup->TemporalFunction(intersect,start,true);
+  newelem3->dataup->timeInterval.start = intersect;
+  newelem3->dataup->p0 = start;
+  newelem3->next = NULL;
+//  newelem3->mind = newelem3->movdist->Min(def);
+//  newelem3->maxd = newelem3->movdist->Max(def);
+
+  newelem3->mind = URealMin(newelem3->movdist,elemstart);
+  newelem3->maxd = URealMax(newelem3->movdist,elemstart);
+  URealTranslate(newelem3->movdist,elemstart);
+
+
+  nextupdatelist.push_back(*newelem2);
+  nextupdatelist.push_back(*newelem3);
+}
+/*
+Process different splitting cases of parabolas
+restrict to the same time interval
+
+*/
+template<class timeType>
+void Parabolas(TBKnearestLocalInfo<timeType>* local,hpelem& elem
+,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
+Instant& elemstart,Instant& curstart)
+{
+  bool def = true;
+  assert(elem.movdist->timeInterval.start == cur->movdist->timeInterval.start);
+  assert(elem.movdist->timeInterval.end == cur->movdist->timeInterval.end);
+
+  double ma,mb,mc; //data
+  double ta,tb,tc; //entry in list
+  double ttelem = elemstart.ToDouble();
+  double ttcur = curstart.ToDouble();
+
+  //a1(t-t1)^2 + b1(t-t1) + c1
+  //a2(t-t2)^2 + b2(t-t2) + c2
+  ma = elem.movdist->a;
+//  mb = elem.movdist->b;
+//  mc = elem.movdist->c;
+  mb = elem.movdist->b - 2*ma*ttelem;
+  mc = elem.movdist->c + ma*ttelem*ttelem- mb*ttelem;
+  ta = cur->movdist->a;
+  tb = cur->movdist->b - 2*ta*ttcur;
+//  tb = cur->movdist->b;
+//  tc = cur->movdist->c;
+  tc = cur->movdist->c + ta*ttcur*ttcur - tb*ttcur;
+
+
+  double start_m,start_t;
+  if(elemstart == elem.movdist->timeInterval.start){
+    start_m = sqrt(elem.movdist->c);
+//    cout<<"if m "<<start_m<<endl;
+  }
+  else{
+    double delta_m = (elem.movdist->timeInterval.start-elemstart).ToDouble();
+    start_m =
+        sqrt(ma*delta_m*delta_m + elem.movdist->b*delta_m + elem.movdist->c);
+//    cout<<"else m "<<delta_m<<" "<<start_m<<endl;
+  }
+
+  if(curstart == cur->movdist->timeInterval.start){
+    start_t = sqrt(cur->movdist->c);
+//    cout<<"if t "<<start_t<<endl;
+  }
+  else{
+    double delta_t = (cur->movdist->timeInterval.start-curstart).ToDouble();
+    start_t =
+        sqrt(ta*delta_t*delta_t + cur->movdist->b*delta_t + cur->movdist->c);
+//    cout<<"else t "<<delta_t<<" "<<start_t<<endl;
+  }
+
+//  cout<<"m "<<ma<<" "<<mb<<" "<<mc<<endl;
+//  cout<<"ta "<<ta<<" "<<tb<<" "<<tc<<endl;
+//  cout<<"m max "<<URealMax(elem.movdist,elemstart)
+//      <<" t max "<<URealMax(cur->movdist,curstart)<<endl;
+
+//  cout<<"startm "<<start_m<<" start_t "<<start_t<<endl;
+
+
+  if(ma == ta && mb == tb && mc == tc){
+      nextupdatelist.push_back(elem);
+      return;//for next
+  }
+  if(ma == ta && mb == tb){
+//      if(tc <= mc){
+        if(start_t <= start_m){
+          nextupdatelist.push_back(elem);
+          return;
+      }else{// entry is to be replaced by data
+          hpelem* newhp = new hpelem(elem);
+          newhp->movdist = new UReal(*(elem.movdist));
+          newhp->dataup = new UPoint(*(elem.dataup));
+          head->next = newhp;
+          newhp->next = cur->next;
+          UpdateInfoInNL(local,newhp,i);
+          cur->next = NULL;
+          nextupdatelist.push_back(*cur);
+          cur = newhp; //new cur
+          return;
+      }
+  }
+  if(ma == ta){
+      assert(mb != tb);
+      double v1 = elem.movdist->timeInterval.start.ToDouble();
+      double v2 = elem.movdist->timeInterval.end.ToDouble();
+      double time_m,time_t; //start time for cur and elem
+      time_m = elemstart.ToDouble();//real start time
+      time_t = curstart.ToDouble(); //real start time
+
+//      double t = (tc-tb*time_t-mc+mb*time_m)/(mb-tb);//absolute value
+      double t = (tc-mc)/(mb-tb);
+//      cout<<"v1 "<<v1<<" v2 "<<v2<<" t "<<t<<endl;
+      if(v1 >= t || t >= v2){ //intersection point is no use
+          //    cout<<"no use"<<endl;
+//          if(tc <= mc){ //entry is smaller
+            if(start_t <= start_m){
+              nextupdatelist.push_back(elem);
+              return;//for next
+          }else{ //entry is to be replaced by data
+                hpelem* newhp = new hpelem(elem);
+                newhp->movdist = new UReal(*(elem.movdist));
+                newhp->dataup = new UPoint(*(elem.dataup));
+                head->next = newhp;
+                newhp->next = cur->next;
+                UpdateInfoInNL(local,newhp,i);
+                cur->next = NULL;
+                nextupdatelist.push_back(*cur);
+                cur = newhp; //new cur
+                return;
+               }
+      }else{ //needs to be interpolation
+          Instant intersect(instanttype);
+          intersect.ReadFrom(t);
+          //        cout<<elem.movdist->timeInterval<<endl;
+          //        cout<<"intersect "<<intersect<<endl;
+//          if(tc <= mc){//entry is smaller
+            if(start_t <= start_m){
+              ParabolasTM(local,elem,nextupdatelist,i,head,cur,
+              intersect,elemstart,curstart);
+              return;
+          }else{ //
+              ParabolasMT(local,elem,nextupdatelist,i,head,cur,
+              intersect,elemstart,curstart);
+              return;
+          }
+        }
+  }
+
+  //a is not equal to a'
+//  bool def = true;
+//  double mind_m = elem.movdist->Min(def);//data
+//  double maxd_m = elem.movdist->Max(def);
+//  double mind_t = cur->movdist->Min(def);//entry
+//  double maxd_t = cur->movdist->Max(def);
+//  double mind_m = URealMin(elem.movdist,elemstart);
+//  double maxd_m = URealMax(elem.movdist,elemstart);
+//  double mind_t = URealMin(cur->movdist,curstart);
+//  double maxd_t = URealMax(cur->movdist,curstart);
+  double mind_m = start_m;
+  double mind_t = start_t;
+
+//  double start = elem.movdist->timeInterval.start.ToDouble();
+  double time_m,time_t; //start time for cur and elem
+  time_m = elemstart.ToDouble();//real start time
+  time_t = curstart.ToDouble(); //real start time
+
+  double delta_a = ma-ta;
+  double delta_b = mb-tb;
+  double delta_c = mc-tc;
+  double delta = delta_b*delta_b - 4*delta_a*delta_c;
+//  cout<<"delta "<<delta<<endl;
+
+  if(fabs(delta) < 0.001){
+//      if(maxd_t <= maxd_m){
+      if(mind_t <= mind_m){
+        nextupdatelist.push_back(elem);
+        return;
+      }else{ //entry is to be replaced by data
+          hpelem* newhp = new hpelem(elem);
+          newhp->movdist = new UReal(*(elem.movdist));
+          newhp->dataup = new UPoint(*(elem.dataup));
+          head->next = newhp;
+          newhp->next = cur->next;
+          UpdateInfoInNL(local,newhp,i);
+          cur->next = NULL;
+          nextupdatelist.push_back(*cur);
+          cur = newhp;  //new cur
+          return;
+      }
+  }
+
+  if(delta < 0) { //no intersects
+#ifdef mydebug
+    cout<<"delta < 0"<<endl;
+#endif
+//    cout<<"mind_t "<<mind_t<<" mind_m "<<mind_m<<endl;
+    if(mind_t <= mind_m){
+#ifdef mydebug
+        cout<<"update "<<endl;
+#endif
+        nextupdatelist.push_back(elem);
+        return;
+    }else{ //entry is to be replaced by data
+#ifdef mydebug
+        cout<<"replaced "<<endl;
+#endif
+        hpelem* newhp = new hpelem(elem);
+        newhp->movdist = new UReal(*(elem.movdist));
+        newhp->dataup = new UPoint(*(elem.dataup));
+        head->next = newhp;
+        newhp->next = cur->next;
+        UpdateInfoInNL(local,newhp,i);
+        cur->next = NULL;
+        nextupdatelist.push_back(*cur);
+        cur = newhp; //new cur
+//        cout<<"new cur heapelem "<<cur->dataup->timeInterval<<" min "
+//              <<cur->movdist->Min(def)<<" max "
+//              <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
+        return;
+    }
+  }
+
+  cout<<"delta > 0"<<endl;
+  //delta > 0
+  double x1 = (-delta_b-sqrt(delta))/(2*delta_a);
+  double x2 = (-delta_b+sqrt(delta))/(2*delta_a);
+  Instant intersect1(instanttype);
+  Instant intersect2(instanttype);
+  double intersect_t1,intersect_t2;
+
+  if(x1 < x2){
+      intersect1.ReadFrom(x1);
+      intersect2.ReadFrom(x2);
+      intersect_t1 = x1;
+      intersect_t2 = x2;
+  }else{
+      intersect1.ReadFrom(x2);
+      intersect2.ReadFrom(x1);
+      intersect_t1 = x2;
+      intersect_t2 = x1;
+  }
+  //intersection is no use
+  if(intersect2 <= elem.movdist->timeInterval.start ||
+    intersect1 >= elem.movdist->timeInterval.end ||
+    (intersect1 <= elem.movdist->timeInterval.start &&
+     intersect2 >= elem.movdist->timeInterval.end)){
+    if(mind_t <= mind_m){//entry is smaller
+      nextupdatelist.push_back(elem);
+      return;
+    }else{ //entry is to be replaced by data
+       hpelem* newhp = new hpelem(elem);
+       newhp->movdist = new UReal(*(elem.movdist));
+       newhp->dataup = new UPoint(*(elem.dataup));
+       head->next = newhp;
+       newhp->next = cur->next;
+       UpdateInfoInNL(local,newhp,i);
+       cur->next = NULL;
+       nextupdatelist.push_back(*cur);
+       cur = newhp; //new cur
+       return;
+     }
+  }
+  //one intersection point
+  if(intersect1 > elem.movdist->timeInterval.start &&
+      intersect1 < elem.movdist->timeInterval.end &&
+      intersect2 > elem.movdist->timeInterval.end){
+//      cout<<"11"<<endl;
+//      if(tc <= mc){//entry is smaller
+        if(start_t <= start_m){
+          ParabolasTM(local,elem,nextupdatelist,i,head,cur,
+            intersect1,elemstart,curstart);
+          return;
+      }else{ //
+          ParabolasMT(local,elem,nextupdatelist,i,head,cur,
+            intersect1,elemstart,curstart);
+          return;
+      }
+  }
+  if(intersect1 < elem.movdist->timeInterval.start &&
+     intersect2 > elem.movdist->timeInterval.start &&
+     intersect2 < elem.movdist->timeInterval.end){
+//     cout<<"22"<<endl;
+//     if(tc <= mc){//entry is smaller
+       if(start_t <= start_m){
+        ParabolasTM(local,elem,nextupdatelist,i,head,cur,
+          intersect2,elemstart,curstart);
+        return;
+     }else{ //
+        ParabolasMT(local,elem,nextupdatelist,i,head,cur,
+          intersect2,elemstart,curstart);
+        return;
+     }
+  }
+  //two intersection points
+//  cout<<"two intersection points"<<endl;
+  //six sub parts
+//  cout<<"whole "<<elem.movdist->timeInterval<<endl;
+//  cout<<"x1 "<<intersect1<<" x2 "<<intersect2<<endl;
+//  if(tc <= mc){ //entry is smaller
+  if(start_t <= start_m){
+
+    cout<<"two intersection points"<<endl;
+
+    hpelem* next = cur->next;
+    Point start, end;
+    Point p0,p1;
+    bool def = true;
+
+    hpelem* newhp1 = new hpelem(*cur);
+    newhp1->movdist = new UReal(*(cur->movdist));
+    newhp1->dataup = new UPoint(*(cur->dataup));
+    newhp1->movdist->timeInterval.end = intersect1;
+    newhp1->dataup->TemporalFunction(intersect1,end,true);
+    newhp1->dataup->timeInterval.end = intersect1;
+    newhp1->dataup->p1 = end;
+    newhp1->mind = newhp1->movdist->Min(def);
+    newhp1->maxd = newhp1->movdist->Max(def);
+
+    hpelem* newhp2 = new hpelem(elem);
+    newhp2->movdist = new UReal(*(elem.movdist));
+    newhp2->dataup = new UPoint(*(elem.dataup));
+    newhp2->movdist->timeInterval.start = intersect1;
+    newhp2->movdist->timeInterval.end = intersect2;
+    newhp2->dataup->TemporalFunction(intersect1,p0,true);
+    newhp2->dataup->TemporalFunction(intersect2,p1,true);
+    newhp2->dataup->timeInterval.start = intersect1;
+    newhp2->dataup->timeInterval.end = intersect2;
+    newhp2->dataup->p0 = p0;
+    newhp2->dataup->p1 = p1;
+//    newhp2->mind = newhp2->movdist->Min(def);
+//    newhp2->maxd = newhp2->movdist->Max(def);
+    newhp2->mind = URealMin(newhp2->movdist,elemstart);
+    newhp2->maxd = URealMax(newhp2->movdist,elemstart);
+    URealTranslate(newhp2->movdist,elemstart);
+
+
+    hpelem* newhp3 = new hpelem(*cur);
+    newhp3->movdist = new UReal(*(cur->movdist));
+    newhp3->dataup = new UPoint(*(cur->dataup));
+    newhp3->movdist->timeInterval.start = intersect2;
+    newhp3->dataup->TemporalFunction(intersect2,start,true);
+    newhp3->dataup->timeInterval.start = intersect2;
+    newhp3->dataup->p0 = start;
+//    newhp3->mind = newhp3->movdist->Min(def);
+//    newhp3->maxd = newhp3->movdist->Max(def);
+    newhp3->mind = URealMin(newhp3->movdist,curstart);
+    newhp3->maxd = URealMax(newhp3->movdist,curstart);
+    URealTranslate(newhp3->movdist,curstart);
+
+
+    hpelem* newhp4 = new hpelem(elem);
+    newhp4->movdist = new UReal(*(elem.movdist));
+    newhp4->dataup = new UPoint(*(elem.dataup));
+    newhp4->movdist->timeInterval.end = intersect1;
+    newhp4->dataup->TemporalFunction(intersect1,end,true);
+    newhp4->dataup->timeInterval.end = intersect1;
+    newhp4->dataup->p1 = end;
+    newhp4->next = NULL;
+    newhp4->mind = newhp4->movdist->Min(def);
+    newhp4->maxd = newhp4->movdist->Max(def);
+
+
+    hpelem* newhp5 = new hpelem(*(cur));
+    newhp5->movdist = new UReal(*(cur->movdist));
+    newhp5->dataup = new UPoint(*(cur->dataup));
+    newhp5->movdist->timeInterval.start = intersect1;
+    newhp5->movdist->timeInterval.end = intersect2;
+    newhp5->dataup->TemporalFunction(intersect1,p0,true);
+    newhp5->dataup->TemporalFunction(intersect2,p1,true);
+    newhp5->dataup->timeInterval.start = intersect1;
+    newhp5->dataup->timeInterval.end = intersect2;
+    newhp5->dataup->p0 = p0;
+    newhp5->dataup->p1 = p1;
+    newhp5->next = NULL;
+//    newhp5->mind = newhp5->movdist->Min(def);
+//    newhp5->maxd = newhp5->movdist->Max(def);
+    newhp5->mind = URealMin(newhp5->movdist,curstart);
+    newhp5->maxd = URealMax(newhp5->movdist,curstart);
+    URealTranslate(newhp5->movdist,curstart);
+
+
+    hpelem* newhp6 = new hpelem(elem);
+    newhp6->movdist = new UReal(*(elem.movdist));
+    newhp6->dataup = new UPoint(*(elem.dataup));
+    newhp6->movdist->timeInterval.start = intersect2;
+    newhp6->dataup->TemporalFunction(intersect2,start,true);
+    newhp6->dataup->timeInterval.start = intersect2;
+    newhp6->dataup->p0 = start;
+    newhp6->next = NULL;
+//   newhp6->mind = newhp6->movdist->Min(def);
+//   newhp6->maxd = newhp6->movdist->Max(def);
+    newhp6->mind = URealMin(newhp6->movdist,elemstart);
+    newhp6->maxd = URealMax(newhp6->movdist,elemstart);
+    URealTranslate(newhp6->movdist,elemstart);
+
+
+    head->next = newhp1;
+    newhp1->next = newhp2;
+    newhp2->next = newhp3;
+    newhp3->next = next;
+    UpdateInfoInNL(local,newhp2,i);
+    head = newhp2;
+    cur = newhp3;
+
+    nextupdatelist.push_back(*newhp4);
+    nextupdatelist.push_back(*newhp5);
+    nextupdatelist.push_back(*newhp6);
+
+//    cout<<newhp1->movdist->timeInterval<<endl;
+//    cout<<newhp2->movdist->timeInterval<<endl;
+//    cout<<newhp3->movdist->timeInterval<<endl;
+//    cout<<newhp4->movdist->timeInterval<<endl;
+//    cout<<newhp5->movdist->timeInterval<<endl;
+//    cout<<newhp6->movdist->timeInterval<<endl;
+
+    return;
+  }else{
+    cout<<"not processing"<<endl;
+    assert(false);
+
+  }
+
+}
+/*
+Update k NearestList structure
+
+*/
+template<class timeType>
+void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
+,vector<hpelem>& nextupdatelist,int i)
+{
+//  cout<<elem.dataup->timeInterval<<endl;
+//  cout<<elem.movdist->timeInterval<<endl;
+//  assert(elem.dataup->timeInterval == elem.movdist->timeInterval);
+  bool def = true;
+  hpelem* head = local->nlist[i].head;
+  assert(head != NULL);
+  hpelem* cur = head->next;
+
+  if(cur == NULL){
+//    head->next = &elem;
+    hpelem* newhp = new hpelem(elem);
+    newhp->movdist = new UReal(*(elem.movdist));
+    newhp->dataup = new UPoint(*(elem.dataup));
+    head->next = newhp;
+    newhp->next = NULL;
+//    cout<<"head "<<newhp->tid<<" "<<newhp->mind<<" "<<newhp->maxd
+//        <<newhp->dataup->timeInterval<<endl;
+    local->nlist[i].mind = elem.mind;
+    local->nlist[i].maxd = elem.maxd;
+    local->nlist[i].startTime = elem.dataup->timeInterval.start;
+    local->nlist[i].endTime = elem.dataup->timeInterval.end;
+    local->prunedist[i] = local->nlist[i].maxd;
+    return;
+  }else{
+      //the first elem
+      if(elem.dataup->timeInterval.end <= cur->dataup->timeInterval.start){ //
+           hpelem* newhp = new hpelem(elem);
+           newhp->movdist = new UReal(*(elem.movdist));
+           newhp->dataup = new UPoint(*(elem.dataup));
+           head->next = newhp;
+           newhp->next = cur;
+//           cout<<"cur "<<cur->dataup->timeInterval<<endl;
+//           cout<<"new1 "<<newhp->dataup->timeInterval<<endl;
+           UpdateInfoInNL(local,newhp,i);
+           return;// no update list
+       }
+#ifdef mydebug
+      cout<<"Update Nearest elem "<<elem.dataup->timeInterval<<" min "
+          <<elem.movdist->Min(def)<<" max "
+          <<elem.movdist->Max(def)<<" tid "<<elem.tid<<endl;
+#endif
+      while(cur != NULL){ //big program
+
+#ifdef mydebug
+//        cout<<"while cur "<<cur->dataup->timeInterval<<" min "
+//            <<cur->movdist->Min(def)<<" max "
+//            <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
+#endif
+
+        if(cur->dataup->timeInterval.end <= elem.dataup->timeInterval.start){
+          if(cur->next == NULL){//the last element
+            hpelem* newhp = new hpelem(elem);
+            newhp->movdist = new UReal(*(elem.movdist));
+            newhp->dataup = new UPoint(*(elem.dataup));
+            cur->next = newhp;
+            newhp->next = NULL;
+//           cout<<"cur "<<cur->dataup->timeInterval<<endl;
+//           cout<<"new2 "<<newhp->dataup->timeInterval<<endl;
+            UpdateInfoInNL(local,newhp,i);
+            return;// no update list
+          }else{
+            head = cur;
+            cur = cur->next;
+            continue;
+          }
+        }
+        if(head->tid != -1 &&   //not the head element
+          head->dataup->timeInterval.end <= elem.dataup->timeInterval.start&&
+          elem.dataup->timeInterval.end <= cur->dataup->timeInterval.start){
+           hpelem* newhp = new hpelem(elem);
+           newhp->movdist = new UReal(*(elem.movdist));
+           newhp->dataup = new UPoint(*(elem.dataup));
+           head->next = newhp;
+           newhp->next = cur;
+//           cout<<"head "<<head->dataup->timeInterval<<endl;
+//           cout<<"cur "<<cur->dataup->timeInterval<<endl;
+//           cout<<"new3 "<<newhp->dataup->timeInterval<<endl;
+           UpdateInfoInNL(local,newhp,i);
+           return;//no updatelist
+        }
+        if(elem.movdist->timeInterval.
+          Intersects(cur->movdist->timeInterval) == false){//no intersection
+          head = cur;
+          cur = cur->next;
+          continue;
+        }
+
+        Instant mts = elem.movdist->timeInterval.start;//M
+        Instant mte = elem.movdist->timeInterval.end;
+        Instant tts = cur->movdist->timeInterval.start;//T
+        Instant tte = cur->movdist->timeInterval.end;
+
+
+        if(mts == tts && mte == tte){ //the same time interval
+#ifdef mydebug
+            cout<<"equal "<<endl;
+#endif
+            Parabolas(local,elem,nextupdatelist,i,head,cur,mts,tts);
+            return;
+        }else{// needs to be interpolation
+
+          //overlap
+          Instant ts = mts > tts ? mts:tts;
+          Instant te = mte < tte ? mte:tte;
+//          cout<<elem.movdist->timeInterval<<endl;
+//          cout<<cur->movdist->timeInterval<<endl;
+//          cout<<"ts "<<ts<<" te "<<te<<endl;
+
+          if(mts < ts){
+            bool def = true;
+            hpelem* newhp = new hpelem(elem);
+            newhp->movdist = new UReal(*(elem.movdist));
+            newhp->dataup = new UPoint(*(elem.dataup));
+            newhp->movdist->timeInterval.end = ts;
+            Point end;
+            newhp->dataup->TemporalFunction(ts,end,true);
+            newhp->dataup->p1 = end;
+            newhp->dataup->timeInterval.end = ts;
+            newhp->mind = newhp->movdist->Min(def);
+            newhp->maxd = newhp->movdist->Max(def);
+
+            head->next = newhp;
+            newhp->next = cur;
+            head = newhp;
+            UpdateInfoInNL(local,newhp,i);
+
+            elem.movdist->timeInterval.start = ts;
+            Point start;
+            elem.dataup->TemporalFunction(ts,start,true);
+            elem.dataup->p0 = start;
+            elem.dataup->timeInterval.start = ts;
+//            elem.mind = elem.movdist->Min(def);
+//            elem.maxd = elem.movdist->Max(def);
+            elem.mind = URealMin(elem.movdist,mts);
+            elem.maxd = URealMax(elem.movdist,mts);
+            URealTranslate(elem.movdist,mts);
+          }
+
+          if(tts < ts){
+            bool def = true;
+            hpelem* newhp = new hpelem(*cur);
+            newhp->movdist = new UReal(*(cur->movdist));
+            newhp->dataup = new UPoint(*(cur->dataup));
+            newhp->movdist->timeInterval.end = ts;
+            Point end;
+            newhp->dataup->TemporalFunction(ts,end,true);
+            newhp->dataup->timeInterval.end = ts;
+            newhp->dataup->p1 = end;
+            newhp->mind = newhp->movdist->Min(def);
+            newhp->maxd = newhp->movdist->Max(def);
+
+            head->next = newhp;
+            newhp->next = cur;
+            head = newhp;
+
+            cur->movdist->timeInterval.start = ts;
+            Point start;
+            cur->dataup->TemporalFunction(ts,start,true);
+            cur->dataup->timeInterval.start = ts;
+            cur->dataup->p0 = start;
+//            cur->mind = cur->movdist->Min(def);
+//            cur->maxd = cur->movdist->Max(def);
+            cur->mind = URealMin(cur->movdist,tts);
+            cur->maxd = URealMax(cur->movdist,tts);
+            URealTranslate(cur->movdist,tts);
+
+          }
+          //up to now,  cur and elem start at the same time interval
+//          cout<<elem.movdist->timeInterval<<endl;
+//          cout<<cur->movdist->timeInterval<<endl;
+          if(tte > te){ //M is finished here
+//            cout<<"elem finished"<<endl;
+            bool def = true;
+            hpelem* newhp = new hpelem(*cur);
+            newhp->movdist = new UReal(*(cur->movdist));
+            newhp->dataup = new UPoint(*(cur->dataup));
+            newhp->movdist->timeInterval.start = te;
+            Point start;
+            newhp->dataup->TemporalFunction(te,start,true);
+            newhp->dataup->timeInterval.start = te;
+            newhp->dataup->p0 = start;
+//            newhp->mind = newhp->movdist->Min(def);
+//            newhp->maxd = newhp->movdist->Max(def);
+//            newhp->mind = URealMin(newhp->movdist,tts);
+//            newhp->maxd = URealMax(newhp->movdist,tts);
+            newhp->mind = URealMin(newhp->movdist,ts);
+            newhp->maxd = URealMax(newhp->movdist,ts);
+            URealTranslate(newhp->movdist,ts);
+
+            newhp->next = cur->next;
+            cur->next = newhp;
+
+            Point end;
+            cur->movdist->timeInterval.end = te;
+            cur->dataup->TemporalFunction(te,end,true);
+            cur->dataup->timeInterval.end = te;
+            cur->dataup->p1 = end;
+            cur->mind = cur->movdist->Min(def);
+            cur->maxd = cur->movdist->Max(def);
+
+            Parabolas(local,elem,nextupdatelist,i,head,cur,ts,ts);
+            return;
+          }else{ //M is longer
+//            cout<<"elem1 "<<elem.movdist->timeInterval<<endl;
+//            cout<<"cur1 "<<cur->movdist->timeInterval<<endl;
+#ifdef mydebug
+            cout<<"elem is longer"<<endl;
+#endif
+            if(elem.movdist->timeInterval.end ==
+                cur->movdist->timeInterval.end){
+#ifdef mydebug
+              cout<<"elem equal to cur in end time"<<endl;
+#endif
+              Parabolas(local,elem,nextupdatelist,i,head,cur,ts,ts);
+              return;
+            }else{
+#ifdef mydebug
+              cout<<"next loop"<<endl;
+#endif
+              bool def = true;
+              hpelem* tempnext = cur->next;
+
+              hpelem* newhp = new hpelem(elem);
+              newhp->movdist = new UReal(*(elem.movdist));
+              newhp->dataup = new UPoint(*(elem.dataup));
+              newhp->movdist->timeInterval.start = te;
+              Point start;
+              newhp->dataup->TemporalFunction(te,start,true);
+              newhp->dataup->timeInterval.start = te;
+              newhp->dataup->p0 = start;
+//              newhp->mind = newhp->movdist->Min(def);
+//              newhp->maxd = newhp->movdist->Max(def);
+//              newhp->mind = URealMin(newhp->movdist,mts);
+//              newhp->maxd = URealMax(newhp->movdist,mts);
+              newhp->mind = URealMin(newhp->movdist,ts);
+              newhp->maxd = URealMax(newhp->movdist,ts);
+              URealTranslate(newhp->movdist,ts);
+
+
+              elem.movdist->timeInterval.end = te;
+              Point end;
+              elem.dataup->TemporalFunction(te,end,true);
+              elem.dataup->timeInterval.end = te;
+              elem.dataup->p1 = end;
+              elem.mind = elem.movdist->Min(def);
+              elem.maxd = elem.movdist->Max(def);
+
+              Parabolas(local,elem,nextupdatelist,i,head,cur,ts,ts);
+#ifdef mydebug
+              if(head->tid != -1){
+                cout<<"after parabolas head "<<head->dataup->timeInterval
+                <<" min "<<head->movdist->Min(def)<<" max "
+                <<head->movdist->Max(def)<<" tid "<<head->tid<<endl;
+              }
+
+              cout<<"after parabolas cur "<<cur->dataup->timeInterval<<" min "
+              <<cur->movdist->Min(def)<<" max "
+              <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
+#endif
+              elem = *newhp;
+              head = cur;
+              cur = cur->next;
+#ifdef mydebug
+              cout<<"newelem "<<elem.dataup->timeInterval<<" min "
+              <<elem.movdist->Min(def)<<" max "
+              <<elem.movdist->Max(def)<<" tid "<<elem.tid<<endl;
+
+              cout<<"new cur "<<cur->dataup->timeInterval<<" min "
+              <<cur->movdist->Min(def)<<" max "
+              <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
+#endif
+              continue;
+            }
+          }
+        }
+      } //end big while
+
+   }
+}
+bool HpelemCompare(const hpelem& e1,const hpelem& e2)
+{
+  return e1.dataup->timeInterval.start < e2.dataup->timeInterval.start;
+}
+/*
+Check whether this element has to be pruned or not
+By time interval and MINDIST,MAXDIST
+
+*/
+template<class timeType>
+bool CheckPrune_entry(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
+{
+//  return false; //no prune
+
+  hpelem* head = local->nlist[local->k-1].head;
+  if(head->next == NULL)
+    return false; //not prune
+  hpelem* cur = head->next;
+
+  if(cur->movdist->timeInterval.start > elem.movdist->timeInterval.start)
+    return false;
+  while(cur != NULL){
+
+    if(elem.movdist->timeInterval.start < cur->movdist->timeInterval.start)
+      return false;
+
+    if(elem.movdist->timeInterval.start >= cur->movdist->timeInterval.end){
+      head = cur;
+      cur = cur->next;
+      continue;
+    }
+
+    if(cur->movdist->timeInterval.start <= elem.movdist->timeInterval.start &&
+      elem.movdist->timeInterval.end <= cur->movdist->timeInterval.end){
+      if(cur->maxd <= elem.mind)
+        return true;//prune
+      else
+        return false;
+    }
+
+    if(cur->movdist->timeInterval.start <= elem.movdist->timeInterval.start &&
+       elem.movdist->timeInterval.end > cur->movdist->timeInterval.end){
+      if(cur->maxd <= elem.mind){
+          if(cur->next == NULL)
+            return false;
+          hpelem* next = cur->next;
+          while(next != NULL){
+              if(next->movdist->timeInterval.start >
+                  cur->movdist->timeInterval.end)  //disjoint
+                return false;
+              if(next->movdist->timeInterval.end >=
+                  elem.movdist->timeInterval.end &&
+                 next->maxd < elem.mind)
+                return true;//prune
+              if(next->movdist->timeInterval.end <
+                 elem.movdist->timeInterval.end &&
+                 next->maxd < elem.mind){
+                    cur = next;
+                    next = cur->next;
+                    continue;
+                }
+              return false;
+          }
+      }
+      else
+        return false;
+    }
+    cout<<"entry not deal with"<<endl;
+    head = cur;
+    cur = cur->next;
+  }
+  return false;
+}
+
+template<class timeType>
+bool CheckPrune_node(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
+{
+//  return false;
+
+  hpelem* head = local->nlist[local->k-1].head;
+  if(head->next == NULL)
+    return false; //not prune
+  hpelem* cur = head->next;
+
+  if(cur->movdist->timeInterval.start.ToDouble() > elem.nodets)
+    return false;
+  while(cur != NULL){
+
+    if(elem.nodets < cur->movdist->timeInterval.start.ToDouble())
+      return false;
+
+    if(elem.nodets >= cur->movdist->timeInterval.end.ToDouble()){
+      head = cur;
+      cur = cur->next;
+      continue;
+    }
+
+    if(cur->movdist->timeInterval.start.ToDouble() <= elem.nodets &&
+      elem.nodete <= cur->movdist->timeInterval.end.ToDouble()){
+      if(cur->maxd <= elem.mind)
+        return true;//prune
+      else
+        return false;
+    }
+
+    if(cur->movdist->timeInterval.start.ToDouble() <= elem.nodets &&
+       elem.nodete > cur->movdist->timeInterval.end.ToDouble()){
+      if(cur->maxd <= elem.mind){
+          if(cur->next == NULL)
+            return false;
+          hpelem* next = cur->next;
+          while(next != NULL){
+              if(next->movdist->timeInterval.start >
+                  cur->movdist->timeInterval.end)  //disjoint
+                return false;
+              if(next->movdist->timeInterval.end >=
+                  elem.nodete &&
+                 next->maxd < elem.mind)
+                return true;//prune
+              if(next->movdist->timeInterval.end <
+                 elem.nodete &&
+                 next->maxd < elem.mind){
+                    cur = next;
+                    next = cur->next;
+                    continue;
+                }
+              return false;
+          }
+      }
+      else
+        return false;
+    }
+    cout<<"node not deal with"<<endl;
+    head = cur;
+    cur = cur->next;
+  }
+  return false;
+}
+
+
+template<class timeType>
+void UpdatekNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
+{
+  list<hpelem> updatelist;
+  //Initialization prunedist, and Update prunedist
+
+  for(unsigned int i = 0;i < local->k;i++){
+//     cout<<"prune dist "<<i<<" "<<local->prunedist[i]<<endl;
+  }
+
+
+//  if(elem.mind < local->prunedist[local->k-1]){
+    if(CheckPrune_entry(local,elem) == false){
+      updatelist.push_back(elem);
+      vector<hpelem> auxiliarylist;
+      vector<hpelem> templist;
+      for(unsigned int i = 0;i < local->k;i++){//for each NearestList
+        while(updatelist.empty() == false){
+            hpelem top = updatelist.front();
+            updatelist.pop_front();
+//            if(top.mind >= local->prunedist[i]) continue;
+            if(CheckPrune_entry(local,top) == false)
+              UpdateNearest(local,top,templist,i); //key function
+
+            for(unsigned int j = 0;j < templist.size();j++)//transfer step1
+              auxiliarylist.push_back(templist[j]);
+            templist.clear();
+        }
+        for(unsigned int j = 0;j < auxiliarylist.size();j++)//transfer step2
+          updatelist.push_back(auxiliarylist[j]);
+        auxiliarylist.clear();
+
+      }
+  }
+}
+
+template<class timeType>
+void ReportResult(TBKnearestLocalInfo<timeType>* local)
+{
+  cout<<"report result "<<endl;
+  for(unsigned int i = 0; i < local->k;i++){ //traverse NearestList
+
+    hpelem* head = local->nlist[i].head;
+    hpelem* cur = head->next;
+    while(cur != NULL){
+      hpelem top = *cur;
+//      cout<<"cur "<<cur->tid<<" "<<cur->mind<<" "
+//        <<cur->maxd<<" "<<cur->nodeid<<endl;
+//      cout<<"top "<<top.tid<<" "<<top.mind<<" "<<
+//            top.maxd<<" "<<top.nodeid<<endl;
+      assert(top.tid != -1 && top.nodeid == -1);
+      if(top.dataup->timeInterval.start > top.dataup->timeInterval.end)
+        local->result.push_back(top);
+      head = cur;
+      cur = cur->next;
+    }
+  }
+//  stable_sort(local->result.begin(),local->result.end(),HpelemCompare);
+}
+
+template<class timeType>
+void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
+{
+  bool flag = true;
+//  cout<<"hcknnFun()--hp size "<<local->hp.size()<<endl;
+  while(local->hp.empty() == false){
+    hpelem top = local->hp.top();
+    local->hp.pop();
+//  cout<<"top "<<"nodeid "<<top.nodeid<<" tid "<<top.tid<<" "<<top.mind<<endl;
+
+//    if(top.mind >= local->prunedist[local->k-1]) //return results;
+//      break;
+    if(top.tid != -1)
+      if(CheckPrune_entry(local,top))
+        continue;
+    else{
+      if(CheckPrune_node(local,top))
+        continue;
+    }
+
+    if(top.tid != -1 && top.nodeid == -1){ //an actual trajectory segment
+        assert(top.movdist != NULL && top.dataup != NULL);
+//        cout<<"hcknnFun "<<top.tid<<endl;
+        UpdatekNearest(local,top);
+        delete top.movdist;
+        delete top.dataup;
+    }
+    else if(top.tid == -1 && top.nodeid != -1){ // a node
+        tbtree::BasicNode<3>* tbnode = local->tbtree->getNode(top.nodeid);
+        if(tbnode->isLeaf()){ //leaf node
+            tbtree::TBLeafNode<3,TBLeafInfo>* leafnode =
+            dynamic_cast<TBLeafNode<3,TBLeafInfo>* > (tbnode);
+            for(unsigned int i = 0;i < leafnode->entryCount();i++){
+              const Entry<3,TBLeafInfo>* entry = leafnode->getEntry(i);
+              timeType t1((double)entry->getBox().MinD(2));
+              timeType t2((double)entry->getBox().MaxD(2));
+              if(!(t1 >= local->endTime || t2 <= local->startTime)){
+                  //for each unit in mp
+                const UPoint* up;
+                for(int j = 0;j < mp->GetNoComponents();j++){
+                    mp->Get(j,up);
+                    timeType tt1 = (double)(up->timeInterval.start.ToDouble());
+                    timeType tt2 = (double)(up->timeInterval.end.ToDouble());
+                    if(!(t1 >= tt2 || t2 <= tt1)){
+                      UPoint* ne = new UPoint(true);
+                      UPoint* nqe = new UPoint(true);
+                      CreateUPoint_ne(local,up,
+                                      entry->getInfo().getTupleId(),ne);
+                      CreateUPoint_nqe(local,up,
+                                     entry->getInfo().getTupleId(),nqe);
+//                    double mindist =
+//                            makexyBox(nqe->BoundingBox()).Distance
+//                            (makexyBox(ne->BoundingBox()));
+//                    double maxdist = maxDistance(
+//                      makexyBox(nqe->BoundingBox()),
+//                      makexyBox(ne->BoundingBox()));
+
+                      UReal* mdist = new UReal(true);
+                      ne->Distance(*nqe,*mdist);
+                      bool def = true;
+                      double mind = mdist->Min(def);
+                      double maxd = mdist->Max(def);
+//                    printf("mind %f\n",mind);
+//                    printf("mindist %f\n",mindist);
+//                    printf("max %f\n",maxd);
+
+
+/*
+                      if(mind < local->prunedist[local->k-1]){//< prunedist(k)
+                        hpelem le(entry->getInfo().getTupleId(),mind,maxd,-1);
+                        le.movdist = new UReal(*mdist);
+                        le.dataup = new UPoint(*ne);
+                        local->hp.push(le);
+                       }
+
+*/
+
+                      hpelem le(entry->getInfo().getTupleId(),mind,maxd,-1);
+                      le.movdist = new UReal(*mdist);
+                      le.dataup = new UPoint(*ne);
+
+                      if(CheckPrune_entry(local,le) == false){
+                        local->hp.push(le);
+//                        cout<<"insert "<<"nodeid "<<le.nodeid<<" tid "
+//                            <<le.tid<<" "<<le.mind<<endl;
+                      }
+                      delete mdist;
+                      delete ne;
+                      delete nqe;
+                    }
+                }
+              }
+           }
+        }else{ //inner node
+            tbtree::InnerNode<3,InnerInfo>* innernode =
+              dynamic_cast<InnerNode<3,InnerInfo>* > (tbnode);
+            for(unsigned int i = 0;i < innernode->entryCount();i++){
+              const Entry<3,InnerInfo>* entry = innernode->getEntry(i);
+              timeType t1((double)entry->getBox().MinD(2));
+              timeType t2((double)entry->getBox().MaxD(2));
+              if(!(t1 >= local->endTime || t2 <= local->startTime)){
+                BBox<2> entrybox = makexyBox(entry->getBox());//entry box
+                double mindist = local->mptraj->Distance(entrybox);
+                double maxdist = maxDistance(entrybox,
+                                  local->mptraj->BoundingBox());
+/*
+                if(mindist < local->prunedist[local->k-1]){
+                  hpelem le(-1,mindist,maxdist,entry->getInfo().getPointer());
+                  local->hp.push(le);
+                }
+
+*/
+                  hpelem le(-1,mindist,maxdist,entry->getInfo().getPointer());
+                  le.nodets = t1;
+                  le.nodete = t2;
+                  if(CheckPrune_node(local,le) == false)
+                    local->hp.push(le);
+              }
+            }
+        }
+    }
+  }
+  //results are stored in Nearests
+  ReportResult(local);
+
+}
+/*
+
+hcknnknearestFun is the value function for the hcknnknearest operator
 It is a filter operator for the knearest operator. It can be called
 if there exists a tb-tree for the unit attribute
 The argument vector contains the following values:
 args[0] = a tbtree with the unit attribute as key
 args[1] = the relation of the tbtree
-args[2] = btree on the nodeid of tb-tree
-args[3] = a relation of coverage number of tb-tree
-args[4] = mpoint
-args[6] = int k, how many nearest are searched
+args[2] = attribute UPoint
+args[3] = mpoint
+args[4] = int k, how many nearest are searched
 
 */
 template<class timeType>
-int ctbknearestFilterFun (Word* args, Word& result, int message,
+int hcknnknearestFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
-  const int dim = 3;
-  KnearestFilterLocalInfo<timeType> *localInfo;
-
+  TBKnearestLocalInfo<timeType> *localInfo;
   switch (message)
   {
     case OPEN :
     {
-      MPoint *mp = (MPoint*)args[4].addr;
-      const UPoint *up1, *up2;
-      mp->Get( 0, up1);
-      mp->Get( mp->GetNoComponents() - 1, up2);
-      BBTree<timeType>* t = new BBTree<timeType>(*mp);
-      localInfo = new KnearestFilterLocalInfo<timeType>(
-        up1->timeInterval.start.ToDouble(), up2->timeInterval.end.ToDouble());
+      //Initialize hp,kNearestLists and PruneDist
+      MPoint* mp = (MPoint*)args[3].addr;
+      if(mp->IsEmpty())
+        return 0;
+      const UPoint* up1;
+      const UPoint* up2;
+      mp->Get(0,up1);
+      mp->Get(mp->GetNoComponents()-1,up2);
+      unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
+      int attrpos = ((CcInt*)args[5].addr)->GetIntval()-1;
+      localInfo = new TBKnearestLocalInfo<timeType>(k);
+      local = SetWord(localInfo);
+      localInfo->attrpos = attrpos;
+      localInfo->startTime = up1->timeInterval.start.ToDouble();
+      localInfo->endTime = up2->timeInterval.end.ToDouble();
       localInfo->tbtree = (TBTree*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
-      localInfo->btreehats = (BTree*)args[2].addr;
-      localInfo->hats = (Relation*)args[3].addr;
-      localInfo->k = (unsigned)((CcInt*)args[5].addr)->GetIntval();
+      localInfo->counter = 0;
       localInfo->scanFlag = true;
-      local = SetWord(localInfo);
-      if (mp->IsEmpty())
-      {
-        return 0;
-      }
-      //Best-first algorithm (BFTkNN Chinese version)
-      SmiRecordId adr = localInfo->tbtree->getRootId();
-      tbtree::BasicNode<dim>* root = localInfo->tbtree->getNode(adr);
-      timeType t1(root->getBox().MinD(2));
-      timeType t2(root->getBox().MaxD(2));
-      list<SegEntry<timeType> > hp;
-      if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
-        BBox<2> xyBox = makexyBox(root->getBox());
-        SegEntry<timeType> se(xyBox,t1,t2,0,0,0,adr,-1);
-        hp.push_front(se);
-        localInfo->timeTree.insert(se,localInfo->k);
-      }
-      delete root;
-      while(!hp.empty()){
-        SegEntry<timeType> top = hp.front();
-        hp.pop_front();
-        tbtree::BasicNode<dim>* tbnode = localInfo->tbtree->getNode(top.nodeid);
-       if(localInfo->timeTree.erase(top.start,top.end,top.nodeid,top.maxdist)){
-         if(tbnode->isLeaf()){
-
-        tbtree::TBLeafNode<dim,TBLeafInfo>* leafnode =
-          dynamic_cast<TBLeafNode<dim, TBLeafInfo>* >(tbnode);
-        for(unsigned int j = 0;j < leafnode->entryCount();j++){
-            const Entry<dim,TBLeafInfo>* entry = leafnode->getEntry(j);
-
-            timeType t1((double)entry->getBox().MinD(2));
-            timeType t2((double)entry->getBox().MaxD(2));
-            assert(t1 < t2);
-            if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
-              Interval<timeType> d(t1,t2,true,true);
-              BBox<2> entrybox = makexyBox(entry->getBox());
-              BBox<2> mBox(t->getBox(d));
-              double mindist,maxdist;
-              mindist = mBox.Distance(entrybox);
-              maxdist = maxDistance(mBox,entrybox);
-
-/*Interval<Instant> interv(entry->getBox().MinD(2),
-                                entry->getBox().MaxD(2),true,true);
-              Periods p(1);
-              p.Add(interv);
-              MPoint* submp = new MPoint(0);
-              mp->AtPeriods(p,*submp);
-              Line* traj = new Line(0);
-              submp->Trajectory(*traj);
-              if(traj->Size() == 0){
-                delete submp;
-                delete traj;
-                mindist = mBox.Distance(entrybox);
-                maxdist = maxDistance(entrybox,mBox);
-                SegEntry<timeType> se(entrybox,t1,t2,mindist,
-                              maxdist,1,-1,
-                              entry->getInfo().getTupleId());
-                unsigned int cov = localInfo->timeTree.calcCoverage(se.start,
-                                      se.end,se.mindist);
-                if(cov < localInfo->k){
-                  localInfo->timeTree.insert(se,localInfo->k);
-                    localInfo->resultMap.insert(make_pair(se,se.tpid));
-
-                 }
-                continue;
-              }
-             if(AlmostEqual(entrybox.MinD(0), entrybox.MaxD(0)) ||
-                 AlmostEqual(entrybox.MinD(1),entrybox.MaxD(1))){
-                  Point* p = new Point(true,entrybox.MinD(0),entrybox.MinD(1));
-                   mindist = traj->Distance(*p);
-                  maxdist = traj->MaxDistance(*p);
-                  delete p;
-              }else{
-                mindist = traj->Distance(entrybox);
-                maxdist = traj->MaxDistance(entrybox);
-              }
-              delete submp;
-              delete traj;*/
-
-              SegEntry<timeType> se(entrybox,t1,t2,mindist,
-                                maxdist,1,-1,entry->getInfo().getTupleId());
-              unsigned int cov = localInfo->timeTree.calcCoverage(se.start,
-                                      se.end,se.mindist);
-              if(cov < localInfo->k){
-               localInfo->timeTree.insert(se,localInfo->k);
-               localInfo->resultMap.insert(make_pair(se,se.tpid));
-              }
-            }
-          }
-        }else{
-            tbtree::InnerNode<dim,InnerInfo>* innernode =
-              dynamic_cast<InnerNode<dim, InnerInfo>* >(tbnode);
-            SmiRecordId adr;
-            for(unsigned int j = 0;j < innernode->entryCount();j++){
-              const Entry<dim,InnerInfo>* entry = innernode->getEntry(j);
-              timeType t1(entry->getBox().MinD(2));
-              timeType t2(entry->getBox().MaxD(2));
-              assert(t1 < t2);
-              if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
-               adr = entry->getInfo().getPointer();
-               BBox<2> entrybox = makexyBox(entry->getBox());
-               Interval<timeType> d(t1,t2,true,true);
-               BBox<2> mBox(t->getBox(d));
-
-              double mindist,maxdist;
-              mindist = mBox.Distance(entrybox);
-              maxdist = maxDistance(mBox,entrybox);
-
-/*Interval<Instant> interv(entry->getBox().MinD(2),
-                                entry->getBox().MaxD(2),true,true);
-              Periods p(1);
-              p.Add(interv);
-              MPoint* submp = new MPoint(0);
-              mp->AtPeriods(p,*submp);
-              Line* traj = new Line(0);
-              submp->Trajectory(*traj);
-              if(traj->Size() == 0){
-                delete submp;
-                delete traj;
-                continue;
-              }
-              if(AlmostEqual(entrybox.MinD(0), entrybox.MaxD(0)) ||
-                AlmostEqual(entrybox.MinD(1),entrybox.MaxD(1))){
-                Point* p = new Point(true,entrybox.MinD(0),entrybox.MinD(1));
-                mindist = traj->Distance(*p);
-                maxdist = traj->MaxDistance(*p);
-                delete p;
-              }else{
-                mindist = traj->Distance(entrybox);
-                maxdist = traj->MaxDistance(entrybox);
-              }
-              delete submp;
-              delete traj;*/
-
-            CcInt* id = new CcInt(true,adr);
-            BTreeIterator* btreeiter = localInfo->btreehats->ExactMatch(id);
-            assert(btreeiter->Next());
-            Tuple* tuple = localInfo->hats->GetTuple(btreeiter->GetId());
-            int cov = ((CcInt*)tuple->GetAttribute(6))->GetIntval();
-            tuple->DeleteIfAllowed();
-            delete btreeiter;
-            delete id;
-            SegEntry<timeType> se(entrybox,t1,t2,mindist,maxdist,cov,adr,-1);
-            unsigned int covnode = localInfo->timeTree.calcCoverage(se.start,
-                                          se.end,se.mindist);
-            if(covnode < localInfo->k){
-              localInfo->timeTree.insert(se,localInfo->k);
-              hp.push_front(se);
-            }
-           }
-          }
-          hp.sort(CmpSE<timeType>);//BF (Best First)
-         }
-        } //timeTree insert
-
-      }
-      localInfo->mapit = localInfo->resultMap.begin();
-      delete t;
+      hcknnInitialize(localInfo,mp);
+      hcknnFun(localInfo,mp);
       return 0;
     }
-
     case REQUEST :
     {
-     localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
-      if ( !localInfo->scanFlag )
-      {
-        return CANCEL;
-      }
+        localInfo = (TBKnearestLocalInfo<timeType>*)local.addr;
+        if(localInfo->k == 0)
+          return CANCEL;
+        if(localInfo->counter < localInfo->result.size()){
+            TupleId tid = localInfo->result[localInfo->counter].tid;
+            Tuple* tuple = localInfo->relation->GetTuple(tid);
+//            UPoint* up = (UPoint*)tuple->GetAttribute(localInfo->attrpos);
+//          *up = *(localInfo->result[localInfo->counter].dataup);
 
-      if ( !localInfo->k)
-      {
-        return CANCEL;
-      }
+//          cout<<
+//          localInfo->result[localInfo->counter].dataup->timeInterval<<endl;
+            tuple->PutAttribute(localInfo->attrpos,
+            new UPoint(*(localInfo->result[localInfo->counter].dataup)));
 
-      /* give out alle elements of the resultmap */
-      if ( localInfo->mapit != localInfo->resultMap.end() )
-      {
-          TupleId tid = localInfo->mapit->second;
-          Tuple *tuple = localInfo->relation->GetTuple(tid);
-          result = SetWord(tuple);
-          ++localInfo->mapit;
-          return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
+            result = SetWord(tuple);
+            localInfo->counter++;
+            return YIELD;
+        }else
+          return CANCEL;
     }
 
     case CLOSE :
     {
-      localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
+      localInfo = (TBKnearestLocalInfo<timeType>*)local.addr;
       delete localInfo;
       return 0;
     }
   }
-
   return 0;
 }
-
 /*
-The function tbknearestFilterTypeMap is the type map for the
+The function rknearestFilterTypeMap is the type map for the
 operator knearestfilter
 
 */
-ListExpr tbknearestFilterTypeMap( ListExpr args )
+ListExpr hcknnknearestTypeMap( ListExpr args )
 {
 
   string errmsg = "tbtree x relation x mpoint x int expected";
 
-  if(nl->ListLength(args)!=4){
+  if(nl->ListLength(args)!=5){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
   ListExpr tbtreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
-  ListExpr mpoint = nl->Third(args);
-  ListExpr quantity = nl->Fourth(args);
+  ListExpr attrName = nl->Third(args);
+  ListExpr mpoint = nl->Fourth(args);
+  ListExpr quantity = nl->Fifth(args);
 
   // the third element has to be of type mpoint
   if(!nl->IsEqual(mpoint,"mpoint")){
@@ -6885,71 +8091,18 @@ ListExpr tbknearestFilterTypeMap( ListExpr args )
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
-
-  return
-    nl->TwoElemList(
+  int j;
+  ListExpr attrType;
+  j = FindAttribute(nl->Second(nl->Second(relDescription)),
+      nl->SymbolValue(attrName),attrType);
+  CHECK_COND((j > 0) && (nl->IsEqual(attrType,"upoint")),"expect upoint");
+  ListExpr res = nl->TwoElemList(
       nl->SymbolAtom("stream"),
       nl->Second(nl->Second(args)));
-}
 
-/*
-The function ctbknearestFilterTypeMap is the type map for the
-operator knearestfilter
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+          nl->OneElemList(nl->IntAtom(j)),res);
 
-*/
-ListExpr ctbknearestFilterTypeMap( ListExpr args )
-{
-
- string errmsg = "tbtree x relation x btree x relation x mpoint x int expected";
-
-  if(nl->ListLength(args)!=6){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-  ListExpr tbtreeDescription = nl->First(args);
-  ListExpr relDescription = nl->Second(args);
-  ListExpr btreeDescription = nl->Third(args);
-  ListExpr rel2Description = nl->Fourth(args);
-  ListExpr mpoint = nl->Fifth(args);
-  ListExpr quantity = nl->Sixth(args);
-
-  // the third element has to be of type mpoint
-  if(!nl->IsEqual(mpoint,"mpoint")){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-  if(!nl->IsEqual(quantity,"int")){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-
-
-  ListExpr errorList = listutils::emptyErrorInfo();
-  if(!tbtree::CheckTBTree(tbtreeDescription,errorList)){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-
-  if(!listutils::isRelDescription(relDescription)){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-
-  if(!listutils::isBTreeDescription(btreeDescription)){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-
-  if(!listutils::isRelDescription(rel2Description)){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-
-
-  return
-    nl->TwoElemList(
-      nl->SymbolAtom("stream"),
-      nl->Second(nl->Second(args)));
 }
 
 /*
@@ -7007,22 +8160,6 @@ ListExpr rknearestFilterTypeMap( ListExpr args )
       nl->Second(nl->Second(args)));
 }
 
-Operator tbknearestfilter (
-         "tbknearestfilter",        // name
-         TBknearestfilterSpec,      // specification
-         tbknearestFilterFun<double>,       // value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         tbknearestFilterTypeMap    // type mapping
-);
-
-Operator ctbknearestfilter (
-         "ctbknearestfilter",        // name
-         CTBknearestfilterSpec,      // specification
-         ctbknearestFilterFun<double>,       // value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         ctbknearestFilterTypeMap    // type mapping
-);
-
 Operator rknearestfilter (
          "rknearestfilter",        // name
          RknearestfilterSpec,      // specification
@@ -7030,6 +8167,14 @@ Operator rknearestfilter (
          Operator::SimpleSelect,  // trivial selection function
          rknearestFilterTypeMap    // type mapping
 );
+Operator hcknnknearest (
+         "hcknnknearest",        // name
+         hcknnknearestSpec,      // specification
+         hcknnknearestFun<double>,// value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         hcknnknearestTypeMap    // type mapping
+);
+
 /*
 4 Implementation of the Algebra Class
 
@@ -7060,9 +8205,8 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &distancescan4);
     AddOperator( &mqknearest);
     AddOperator( &covleafnode);
-    AddOperator( &tbknearestfilter);
-    AddOperator( &ctbknearestfilter);
     AddOperator( &rknearestfilter);
+    AddOperator( &hcknnknearest);
 
   }
   ~NearestNeighborAlgebra() {};
