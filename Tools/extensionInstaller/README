@@ -17,7 +17,7 @@ Subdirectories are not supported, thus all files must be located in
 the main directory. 
 The tool can be compiled by typing 'make'.
 After that, the tool can be used by the following command:
-  java Install module_1.zip ... module_n.zip
+  secinstall module_1.zip ... module_n.zip
 
 It will install all modules given as argument.
 
