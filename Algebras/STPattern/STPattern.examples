@@ -4,14 +4,51 @@ Restore  : NO
 
 Operator : STPATTERN
 Number   : 1
-Signature: ((tuple x) (mbool1 ... mbooln) ) -> bool
-Example  : query Trains feed filter[. stpattern[a: .Trip inside msnow 
-later b: distance(.Trip, mehringdamm) < 10.0 ; intervalend("a") < intervalstart("b")]] count 
+Signature: tuple(x) X namedFunlist X constraintList -> bool
+Example  : query Trains feed filter[. stpattern[a: .Trip inside msnow,
+  b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;"
+  stconstraint("a","b",vec("aabb")), 
+  stconstraint("b","c",vec("bbaa"))  ]] count
 Result   : 14
 
 Operator : CREATESTVECTOR
 Number   : 1
 Signature: (string string ... ) -> stvector
-Example  : let follows= stvector("aa.bb", "aa.b.b", "a.a.bb", "a.a.b.b")  
+Example  : let follows= vec("aa.bb", "aa.b.b", "a.a.bb", "a.a.b.b")  
+Result   : []
+
+Operator : STPATTERNEX
+Number   : 1
+Signature: tuple(x) X namedFunlist X constraintList X bool -> bool
+Example  : query Trains feed filter[. stpatternex[a: .Trip inside msnow,  
+  b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;  
+  stconstraint("a","b",vec("aabb")),  stconstraint("b","c",vec("bbaa"));  
+  end("b")-start("a") < 0.5 ]] count
 Result   : 14
 
+Operator : STCONSTRAINT
+Number   : 1
+Signature: string X string X stvector -> bool
+Example  : query Trains feed filter[. stpattern[a: .Trip inside msnow,
+  b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;"
+  stconstraint("a","b",vec("aabb")), 
+  stconstraint("b","c",vec("bbaa"))  ]] count
+Result   : 14
+
+Operator : START
+Number   : 1
+Signature: string -> instant
+Example  : query Trains feed filter[. stpatternex[a: .Trip inside msnow,  
+  b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;  
+  stconstraint("a","b",vec("aabb")),  stconstraint("b","c",vec("bbaa"));  
+  end("b")-start("a") < 0.5 ]] count
+Result   : 14
+
+Operator : END
+Number   : 1
+Signature: string -> instant
+Example  : query Trains feed filter[. stpatternex[a: .Trip inside msnow,  
+  b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;  
+  stconstraint("a","b",vec("aabb")),  stconstraint("b","c",vec("bbaa"));  
+  end("b")-start("a") < 0.5 ]] count
+Result   : 14

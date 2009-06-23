@@ -1,16 +1,52 @@
 /*
+----
+This file is part of SECONDO.
 
- STPatternAlgebra.cpp
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
 
- Created on: Jan 6, 2009
-       Author: m.attia
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
 
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+
+[1] Source File of the Spatiotemporal Pattern Algebra
+
+June, 2009 Mahmoud Sakr
+
+[TOC]
+
+1 Overview
+
+This source file essentially contains the necessary implementations for 
+evaluating the spatiotemporal pattern predicates (STP). 
+
+2 Defines and includes
 
 */
-
 #include "STPatternAlgebra.h"
 namespace STP{
 
+/*
+3 Classes
+
+3.1 Class STVector 
+
+
+*/
 inline int STVector::Count(int vec)
 {
   int c=0;
@@ -336,10 +372,340 @@ bool STVector::KindCheck( ListExpr type, ListExpr& errorInfo )
   return (nl->IsEqual( type, "stvector" ));
 }
 
+void IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
+    Interval<CcReal>& out)
+{
+  out.start.Set(in.start.IsDefined(), in.start.ToDouble());
+  out.end.Set(in.end.IsDefined(), in.end.ToDouble());
+}
 
 
 
+void CSP::IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
+    Interval<CcReal>& out)
+{
+  out.start.Set(in.start.IsDefined(), in.start.ToDouble());
+  out.end.Set(in.end.IsDefined(), in.end.ToDouble());
+}
 
+/*
+3.2 Class CSP 
+
+
+*/
+
+/*
+The MBool2Vec function is called first thing within the extend function. It
+converts the time intervals for the true units from Interval<Instant> into
+Interval<CcReal>. This is done for the sake of performance since the Instant 
+comparisons are more expensive than the Real comparisons. 
+ 
+*/
+int CSP::MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec)
+{
+  const UBool* unit;
+  vec.clear();
+  Interval<CcReal> elem(CcReal(true,0.0),CcReal(true,0.0),true,true);
+  for(int i=0; i<mb->GetNoComponents(); i++)
+  {
+    mb->Get(i, unit);
+    if( ((CcBool)unit->constValue).GetValue())
+    {
+      IntervalInstant2IntervalCcReal(unit->timeInterval, elem);
+      vec.push_back(elem);
+    }
+  }
+  return 0;
+}
+
+/*
+The Extend function distinguishes between two cases:
+  
+  * If the variable given is the first variable to be consumed, 
+    the SA is intialized.
+  
+  * Else, the function creates and checks (on the fly) the Cartesean product
+    of SA and the domain of the variable.     
+ 
+*/
+int CSP::Extend(int index, vector<Interval<CcReal> >& domain )
+{
+  vector<Interval<CcReal> > sa(count);
+
+  if(SA.size() == 0)
+  {
+    for(int i=0; i<count; i++)
+      sa[i].CopyFrom(nullInterval);
+    for(unsigned int i=0; i<domain.size(); i++)
+    {
+
+      sa[index]= domain[i];
+      SA.push_back(sa);
+    }
+    return 0;
+  }
+
+  unsigned int SASize= SA.size();
+  for(unsigned int i=0; i<SASize; i++)
+  {
+    sa= SA[0];
+    for(unsigned int j=0; j< domain.size(); j++)
+    {
+      sa[index]= domain[j];
+      if(IsSupported(sa,index))
+        SA.push_back(sa);
+    }
+    SA.erase(SA.begin());
+  }
+  return 0;
+}
+
+/*
+The function IsSupported searches the ConstraintGraph for the constraints that 
+involve the given variable and check their fulfillment. It is modified to check
+only the constraints related to the newly evaluated variable instead of 
+re-checking all the constraints. 
+ 
+*/
+bool CSP::IsSupported(vector<Interval<CcReal> > sa, int index)
+{
+
+  bool supported=false; 
+  for(unsigned int i=0; i<assignedVars.size()-1; i++)
+  {
+    for(unsigned int j=0; j<assignedVars.size(); j++)
+    {
+      if(i== (unsigned int)index || j == (unsigned int)index )
+      {
+        if(ConstraintGraph[assignedVars[i]][assignedVars[j]].size() != 0)
+        {
+          supported= CheckConstraint(sa[assignedVars[i]], 
+              sa[assignedVars[j]], 
+              ConstraintGraph[assignedVars[i]][assignedVars[j]]);
+          if(!supported) return false;
+        }
+
+        if(ConstraintGraph[assignedVars[j]][assignedVars[i]].size() != 0)
+        {
+          supported= CheckConstraint(sa[assignedVars[j]], 
+              sa[assignedVars[i]], 
+              ConstraintGraph[assignedVars[j]][assignedVars[i]]);
+          if(!supported) return false;
+        }
+      }
+    }
+  }
+  return supported;
+}
+
+bool CSP::CheckConstraint(Interval<CcReal>& p1, Interval<CcReal>& p2, 
+    vector<Supplier> constraint)
+{
+  bool debugme=false;
+  Word Value;
+  bool satisfied=false;
+  for(unsigned int i=0;i< constraint.size(); i++)
+  {
+    if(debugme)
+    {
+      cout<< "\nChecking constraint "<< qp->GetType(constraint[i])<<endl;
+      cout.flush();
+    }
+    qp->Request(constraint[i],Value);
+    STVector* vec= (STVector*) Value.addr;
+    satisfied= vec->ApplyVector(p1, p2);
+    if(!satisfied) return false;
+  }
+  return true; 
+}
+/*
+The function PickVariable picks Agenda variables according to their connectivity
+rank. 
+For every variable v
+{
+  For every constraint c(v,x)
+  {
+   if x in Agenda rank+=0.5
+   if x is not in the Agenda rank+=1
+  }
+}
+ 
+*/
+int CSP::PickVariable()
+{
+  bool debugme=false;
+  vector<int> vars(0);
+  vector<double> numconstraints(0);
+  double cnt=0;
+  int index=-1;
+  for(unsigned int i=0;i<Agenda.size();i++)
+  {
+    if(Agenda[i] != 0)
+    {
+      vars.push_back(i);
+      cnt=0;
+      for(unsigned int r=0; r< ConstraintGraph.size(); r++)
+      {
+        for(unsigned int c=0; c< ConstraintGraph[r].size(); c++)
+        {
+          if( r == i && ConstraintGraph[r][c].size() != 0)
+          {
+            cnt+= ConstraintGraph[r][c].size() * 0.5;
+            for(unsigned int v=0; v< assignedVars.size(); v++)
+            {
+              if(c == (unsigned int)assignedVars[v]) 
+                cnt+=0.5 * ConstraintGraph[r][c].size();
+            }  
+
+
+          }
+
+          if( c == i && ConstraintGraph[r][c].size() != 0)
+          {
+            cnt+=0.5 * ConstraintGraph[r][c].size();
+            for(unsigned int v=0; v< assignedVars.size(); v++)
+            {
+              if(r == (unsigned int)assignedVars[v]) 
+                cnt+=0.5 * ConstraintGraph[r][c].size();
+            }
+          }
+        }
+      }
+      numconstraints.push_back(cnt);
+    }
+  }
+  double max=-1;
+
+  for(unsigned int i=0; i<numconstraints.size(); i++)
+  {
+    if(numconstraints[i]>max){ max=numconstraints[i]; index=vars[i];}
+  }
+  if(debugme)
+  {
+    for(unsigned int i=0; i<numconstraints.size(); i++)
+      cout<< "\nConnectivity of variable " <<vars[i] <<"  = "
+      << numconstraints[i];
+    cout<<endl<< "Picking variable "<< index<<endl;
+    cout.flush();
+  }
+  if(index== -1) return -1; 
+  assignedVars.push_back(index);
+  return index;
+}
+
+int CSP::AddVariable(string alias, Supplier handle)
+{
+  Agenda.push_back(handle);
+  VarAliasMap[alias]=count;
+  count++;
+  ConstraintGraph.resize(count);
+  for(int i=0; i<count; i++)
+    ConstraintGraph[i].resize(count);
+  return 0;
+}
+
+int CSP::AddConstraint(string alias1, string alias2, Supplier handle)
+{
+  int index1=-1, index2=-1;
+  try{
+    index1= VarAliasMap[alias1];
+    index2= VarAliasMap[alias2];
+    if(index1==index2)
+      throw;
+  }
+  catch(...)
+  {
+    return -1;
+  }
+  ConstraintGraph[index1][index2].push_back(handle);
+  return 0;
+}
+  
+bool CSP::Solve()
+{
+  bool debugme=false;
+  int varIndex;
+  Word Value;
+  vector<Interval<CcReal> > domain(0);
+  while( (varIndex= PickVariable()) != -1)
+  {
+    qp->Request(Agenda[varIndex], Value);
+    Agenda[varIndex]=0;
+    MBool2Vec((MBool*)Value.addr, domain);
+    if(domain.size()==0) return false;
+    if(Extend(varIndex, domain)!= 0) return false;
+    if(SA.size()==0) return false;
+    if(debugme)
+      Print();
+  }
+  return true;
+}
+
+bool CSP::MoveNext()
+{
+  if(iterator < (signed int)SA.size()-1)
+    iterator++;
+  else
+    return false;
+  return true;
+}
+ 
+bool CSP::GetStart(string alias, Instant& result)
+{
+  map<string, int>::iterator it;
+
+  it=VarAliasMap.find(alias);
+  if(it== VarAliasMap.end()) return false;
+
+  int index=(*it).second;
+  result.ReadFrom(SA[iterator][index].start.GetRealval());
+  return true;
+}
+  
+bool CSP::GetEnd(string alias, Instant& result)
+{
+  map<string, int>::iterator it;
+
+  it=VarAliasMap.find(alias);
+  if(it== VarAliasMap.end()) return false;
+
+  int index=(*it).second;
+  result.ReadFrom(SA[iterator][index].end.GetRealval());
+  return true;
+}
+  
+void CSP::Print()
+{
+  cout<< "\n==========================\nSA.size() = "<< SA.size()<< endl;
+  for(unsigned int i=0; i< SA.size(); i++)
+  {
+    for(unsigned int j=0; j<SA[i].size(); j++)
+    {
+      cout<<(SA[i][j].start.GetRealval()-3444)*24*60*60<< "\t "<<
+      (SA[i][j].end.GetRealval()-3444)*24*60*60 <<" | ";
+    }
+    cout<<endl;
+  }
+  cout.flush();
+}
+
+int CSP::Clear()
+{
+  SA.clear();
+  Agenda.clear();
+  ConstraintGraph.clear();
+  VarAliasMap.clear();
+  assignedVars.clear();
+  count=0;
+  iterator=-1;
+  return 0;
+}
+
+/*
+4 Algebra Types and Operators 
+
+
+*/
 
 
 TypeConstructor stvectorTC(
@@ -581,8 +947,6 @@ ListExpr StartEndTM(ListExpr args)
   return nl->SymbolAtom("instant");
 }
 
-
-
 int CreateSTVectorVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -598,6 +962,7 @@ int CreateSTVectorVM
   }
   return 0;
 }
+
 static int tupleno=1;
 int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -734,14 +1099,12 @@ int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
   return 0;
 }
 
-
 int STConstraintVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
   assert(0); //this function should never be invoked.
   return 0;
 }
-
 
 template <bool leftbound> int StartEndVM
 (Word* args, Word& result, int message, Word& local, Supplier s)
@@ -784,35 +1147,48 @@ const string CreateSTVectorSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "( <text> (stringlist) -> stvector</text--->"
   "<text>vec( _ )</text--->"
   "<text>Creates a vector temporal connector.</text--->"
-  "<text>let meanwhile = vec(\"abab\","
-  "\"abba\",\"aba.b\")</text--->"
+  "<text>let meanwhile = vec(\"abab\","\"abba\",\"aba.b\")</text--->"
   ") )";
 
 const string STPatternSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> (stringlist) -> stvector</text--->"
-  "<text>stpattern( _ )</text--->"
-  "<text>Creates a vector temporal connector.</text--->"
-  "<text>let meanwhile = v(\"abab\","
-  "\"abba\",\"aba.b\")</text--->"
+  "( <text> tuple(x) X namedFunlist X constraintList -> bool</text--->"
+  "<text>_ stpattern[ namedFunlist;  constraintList ]</text--->"
+  "<text>The operator implements the Spatiotemporal Pattern Predicate."
+  "</text--->"
+  "<text>query Trains feed filter[. stpattern[a: .Trip inside msnow,"
+  "b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;"
+  "stconstraint(\"a\",\"b\",vec(\"aabb\")), "
+  "stconstraint(\"b\",\"c\",vec(\"bbaa\"))  ]] count"
   ") )";
 
 const string STPatternExSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> (stringlist) -> stvector</text--->"
-  "<text>stpattern( _ )</text--->"
-  "<text>Creates a vector temporal connector.</text--->"
-  "<text>let meanwhile = v(\"abab\","
-  "\"abba\",\"aba.b\")</text--->"
+  "( <text> tuple(x) X namedFunlist X constraintList X bool -> bool</text--->"
+  "<text>_ stpatternex[ namedFunlist;  constraintList; bool ]</text--->"
+  "<text>The operator implements the Extended Spatiotemporal Pattern Predicate."
+  "</text--->"
+  "<text>query Trains feed filter[. stpattern[a: .Trip inside msnow,"
+  "b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;"
+  "stconstraint(\"a\",\"b\",vec(\"aabb\")), "
+  "stconstraint(\"b\",\"c\",vec(\"bbaa\"));"
+  "end(\"b\")-start(\"a\") < 0.5 ]] count"
   ") )";
 
 const string STConstraintSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> (stringlist) -> stvector</text--->"
-  "<text>stconstraint( _ )</text--->"
-  "<text>Creates a vector temporal connector.</text--->"
-  "<text>let meanwhile = v(\"abab\","
-  "\"abba\",\"aba.b\")</text--->"
+  "( <text> string X string X stvector -> bool</text--->"
+  "<text>_ stconstraint( string, string, vec(_))</text--->"
+  "<text>The operator is used only within the stpattern and stpatternex "
+  "operators. It is used to express a spatiotemporal constraint. The operator "
+  "doesn't have a value mapping function because it is evaluated within the "
+  "stpattern. It should never be called elsewhere."
+  "</text--->"
+  "<text>query Trains feed filter[. stpattern[a: .Trip inside msnow,"
+  "b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;"
+  "stconstraint(\"a\",\"b\",vec(\"aabb\")), "
+  "stconstraint(\"b\",\"c\",vec(\"bbaa\"));"
+  "end(\"b\")-start(\"a\") < 0.5 ]] count"
   ") )";
 
 const string StartEndSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -820,7 +1196,9 @@ const string StartEndSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "( <text> string -> instant</text--->"
   "<text>start( _ )/ end(_)</text--->"
   "<text>Are used only within an extended spatiotemporal pattern predicate. "
-  "They return the start and end time instants for a predicate in the SA list"
+  "They return the start and end time instants for a predicate in the SA list."
+  "These operators should never be called unless within the stpatternex "
+  "operator."
   "</text--->"
   "<text> query Trains feed filter[. stpatternex[a: .Trip inside msnow, "
   "b:distance(.Trip, mehringdamm)<10.0 ; "
@@ -884,18 +1262,12 @@ public:
   STPatternAlgebra() : Algebra()
   {
 
-    /*
-
-2.1 Registration of Types
-
-
-     */
     AddTypeConstructor( &stvectorTC );
 
-    /*
-2.2 Registration of Operators
+/*
+The spattern and stpatternex operators are registered as lazy variables.
 
-     */
+*/
     stpattern.SetRequestsArguments();
     stpatternex.SetRequestsArguments();
     AddOperator(&STP::createstvector);
@@ -911,25 +1283,7 @@ public:
 };
 
 /*
-3 Initialization
-
-Each algebra module needs an initialization function. The algebra manager
-has a reference to this function if this algebra is included in the list
-of required algebras, thus forcing the linker to include this module.
-
-The algebra manager invokes this function to get a reference to the instance
-of the algebra class and to provide references to the global nested list
-container (used to store constructor, type, operator and object information)
-and to the query processor.
-
-The function has a C interface to make it possible to load the algebra
-dynamically at runtime (if it is built as a dynamic link library). The name
-of the initialization function defines the name of the algebra module. By
-convention it must start with "Initialize<AlgebraName>".
-
-To link the algebra together with the system you must create an
-entry in the file "makefile.algebra" and to define an algebra ID in the
-file "Algebras/Management/AlgebraList.i.cfg".
+5 Initialization
 
 */
 

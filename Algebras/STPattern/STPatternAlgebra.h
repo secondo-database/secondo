@@ -1,9 +1,55 @@
 /*
+----
+This file is part of SECONDO.
 
-STPatternAlgebra.h
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
 
-Created on: Jan 6, 2009
-Author: m.attia
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[TOC] [\tableofcontents]
+
+[1] Header File of the Spatiotemporal Pattern Algebra
+
+June, 2009 Mahmoud Sakr
+
+[TOC]
+
+1 Overview
+
+This header file essentially contains the necessary classes for evaluating the 
+spatiotemporal pattern predicates (STP). The contents of the file are:
+  * The class "STVector": which represents a vector temporal connector. Simple 
+temporal connectors are vectors of length one. The "STVector" data type is used 
+within the "stconstraint" that expresses a spatiotemporal constraints between 
+to lifted predicates in the STPP.
+
+  * The enumeration SimpleConnector: which assigns powers of two constants to 
+the 26 possible simple temporal connectors.
+
+  * The string array StrSimpleConnectors: which is used to translate  
+the integer codes of the simple temporal connectors into their string 
+representations and visa versa.  
+
+  * The CSP class: which is our implementation for the constraint satisfaction 
+problem solver. The class implements the algorithm "Solve Pattern" in the 
+paper "Spatiotemporal Pattern Queries" 
+
+2 Defines and includes
 
 */
 
@@ -28,6 +74,13 @@ extern QueryProcessor* qp;
 
 
 namespace STP {
+
+/*
+3 Global definitions
+
+*/    
+ 
+
 enum SimpleConnector {
   aabb=1,
   bbaa=2,
@@ -64,11 +117,42 @@ string StrSimpleConnectors[]= {"aabb"  , "bbaa"  ,  "aa.bb"  ,  "bb.aa"  ,
   "ab.ba"  ,  "aa.b.b"  ,  "aab.b"  ,  "a.ab.b"  ,  "a.a.b.b"  ,
   "b.ba.a"  };
 
+/*
+4 Classes
+
+4.1 Class STVector for Spatiotemporal Vector.
+
+*/
 class STVector
 {
 private:
+/*
+The Count helper function
+Input: an integer representation for a vector temporal connector.
+Process: the function counts the number of constituent simple temporal 
+connectors.
+Output: the count value
+
+*/  
   inline int Count(int vec);
+  
+/*
+The Str2Simple helper function.
+Input: a string representation for a simple temporal connector. Note that since
+the "." operator is commutative, one simple connector may have many string 
+representations.
+Process: uses the array StrSimpleConnectors for the translation.
+Output: the integer representation of the connector.
+
+*/ 
   inline int Str2Simple(string s);
+/*
+The Vector2List helper function.
+Input: none. The function operates on the class member "v";
+Process: construct the NestedList of string atoms corresponding to "v".
+Output: the NestedList.
+
+*/     
   inline ListExpr Vector2List();
 public:
 
@@ -79,15 +163,53 @@ public:
   STVector(STVector* vec):v(vec->v), count(vec->count){};
   ~STVector(){};
 
+/*
+The Add function. Used to add a simple temporal connector to "this".
+Input: a string representation for the simple connector.
+Process: translates the string into integer and adds it to the STVector.
+Output: none.
+
+*/  
   bool Add(string simple);
   
+/*
+The Add function. Used to add a simple temporal connector to "this".
+Input: an integer representation for the simple connector.
+Process: adds it to the STVector.
+Output: none.
+
+*/  
   bool Add(int simple);
   
+/*
+The ApplyVector function. Checks whether "this" is fulfilled by two time
+intervals.
+Input: two time intervals. Note that Interval<CcReal> are used to speed up the 
+processing but they represent Interval<Instant>
+Process: iteratively checks the constituent simple connectors.
+Output: fulfilled or not.
+
+*/  
+
   bool ApplyVector(Interval<CcReal>& p1, Interval<CcReal>& p2);
-  
+
+/*
+The ApplySimple function. Checks whether a simple temporal connector is 
+fulfilled by two time intervals.
+Input: two time intervals. Note that Interval<CcReal> are used to speed up the 
+processing but they represent Interval<Instant>
+Process: checks the simple connectors.
+Output: fulfilled or not.
+
+*/  
+
   bool ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2, 
       int simple);
-  //Secondo framework support
+  
+/*  
+Secondo framework support functions
+
+*/
   static Word In( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct );
   static ListExpr Out( ListExpr typeInfo, Word value );
@@ -104,17 +226,93 @@ public:
   static bool KindCheck( ListExpr type, ListExpr& errorInfo );
 };
 
+/*
+4.2 Class CSP for Constraint Satisfaction Problem.
 
+*/
 class CSP  
 {
+private:
+/*
+The IntervalInstant2IntervalCcReal helper function. It converts the 
+Interval<Instant> to Internal<CcReal> for more efficient processing
+
+*/  
+  void IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
+      Interval<CcReal>& out);
+
+/*
+The MBool2Vec helper function. It constructs a vector from the true units in the
+MBool argument.
+ 
+*/  
+  int MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec);
+
+/* 
+The Extend function as in the paper.  
+    
+*/  
+  int Extend(int index, vector<Interval<CcReal> >& domain );
+    
+/*
+The IsSupported function.
+Input: a partial assignment sa and the index of the newly evaluated variable.
+Process: It checks whether the constraints that involve the new variable are
+fulfilled.
+Output: whether the partial assignment is consistent.
+   
+*/  
+  bool IsSupported(vector<Interval<CcReal> > sa, int index);
+
+/*
+The CheckConstraint helper function. It checks whether an STVector is fulfilled 
+by two lifted predicates. 
+
+*/
+
+  bool CheckConstraint(Interval<CcReal>& p1, Interval<CcReal>& p2, 
+      vector<Supplier> constraint);
+/*
+The PickVariable function. It implements the picking methodology based on the
+Connectivity rank as in the paper.
+
+*/
+  int PickVariable();
+
+    
+  
 public:
+/*
+The list of supported assignments
+
+*/  
   vector< vector<Interval<CcReal> > > SA;
   vector<Supplier> Agenda;
+  
+/*
+A helper data structure to translate the string aliases into their integer
+poistion in the Agenda, SA and ConstraintGeraph.
+
+*/
   map<string, int> VarAliasMap;
-  vector< vector<Supplier> >ConstraintGraph;
+  vector< vector< vector<Supplier> > >ConstraintGraph;
+/*
+The total number of variables in the CSP.
+ 
+*/  
   int count;
+  
+/*
+The iterator is used in the "start" and "end" operators to iterate over the SA
+
+*/
   int iterator;
   Interval<CcReal> nullInterval;
+  
+/*
+A list of the variable that have been consumed so far.
+
+*/
   vector<int> assignedVars;
   
   
@@ -122,272 +320,68 @@ public:
   nullInterval(CcReal(true,0.0),CcReal(true,0.0), true,true)
   {}
   
-  int AddVariable(string alias, Supplier handle)
-  {
-    Agenda.push_back(handle);
-    VarAliasMap[alias]=count;
-    count++;
-    ConstraintGraph.resize(count);
-    for(int i=0; i<count; i++)
-      ConstraintGraph[i].resize(count);
-    return 0;
-  }
-  
-  int AddConstraint(string alias1, string alias2, Supplier handle)
-  {
-    int index1=-1, index2=-1;
-    try{
-      index1= VarAliasMap[alias1];
-      index2= VarAliasMap[alias2];
-      if(index1==index2)
-        throw;
-    }
-    catch(...)
-    {
-      return -1;
-    }
-    ConstraintGraph[index1][index2]= handle;
-    return 0;
-  }
-  
-  bool Solve()
-  {
-    bool debugme=true;
-    int varIndex;
-    Word Value;
-    vector<Interval<CcReal> > domain(0);
-    while( (varIndex= PickVariable()) != -1)
-    {
-      qp->Request(Agenda[varIndex], Value);
-      Agenda[varIndex]=0;
-      MBool2Vec((MBool*)Value.addr, domain);
-      if(domain.size()==0) return false;
-      if(Extend(varIndex, domain)!= 0) return false;
-      if(SA.size()==0) return false;
-      if(debugme)
-        Print();
-    }
-    return true;
-  }
-  
-  void IntervalInstant2IntervalCcReal(const Interval<Instant>& in, 
-      Interval<CcReal>& out)
-  {
-    out.start.Set(in.start.IsDefined(), in.start.ToDouble());
-    out.end.Set(in.end.IsDefined(), in.end.ToDouble());
-  }
-  
-  
-  int MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec)
-  {
-    const UBool* unit;
-    vec.clear();
-    Interval<CcReal> elem(CcReal(true,0.0),CcReal(true,0.0),true,true);
-    for(int i=0; i<mb->GetNoComponents(); i++)
-    {
-      mb->Get(i, unit);
-      if( ((CcBool)unit->constValue).GetValue())
-      {
-        IntervalInstant2IntervalCcReal(unit->timeInterval, elem);
-        vec.push_back(elem);
-      }
-    }
-    return 0;
-  }
-  
-  int Extend(int index, vector<Interval<CcReal> >& domain )
-  {
-    vector<Interval<CcReal> > sa(count);
-    
-    if(SA.size() == 0)
-    {
-      for(int i=0; i<count; i++)
-        sa[i].CopyFrom(nullInterval);
-      for(unsigned int i=0; i<domain.size(); i++)
-      {
-        
-        sa[index]= domain[i];
-        SA.push_back(sa);
-      }
-      return 0;
-    }
-    
-    unsigned int SASize= SA.size();
-    for(unsigned int i=0; i<SASize; i++)
-    {
-      sa= SA[0];
-      for(unsigned int j=0; j< domain.size(); j++)
-      {
-        sa[index]= domain[j];
-        if(IsSupported(sa,index))
-          SA.push_back(sa);
-      }
-      SA.erase(SA.begin());
-    }
-    return 0;
-  }
-  
-  bool IsSupported(vector<Interval<CcReal> > sa, int index)
-  {
-    
-    bool supported=false; 
-    for(unsigned int i=0; i<assignedVars.size()-1; i++)
-    {
-      for(unsigned int j=0; j<assignedVars.size(); j++)
-      {
-        if(i== (unsigned int)index || j == (unsigned int)index )
-        {
-          if(ConstraintGraph[assignedVars[i]][assignedVars[j]] != 0)
-          {
-            supported= CheckConstraint(sa[assignedVars[i]], 
-                sa[assignedVars[j]], 
-                ConstraintGraph[assignedVars[i]][assignedVars[j]]);
-            if(!supported) return false;
-          }
+/* 
+The AddVariable function.
+Input: the alias of the lifted predicate and a pointer to the its node in the 
+operator tree.
+Process: adds the variable to the Agenda and resizes the ConstraintGraph.
+Output: error code
 
-          if(ConstraintGraph[assignedVars[j]][assignedVars[i]] != 0)
-          {
-            supported= CheckConstraint(sa[assignedVars[j]], 
-                sa[assignedVars[i]], 
-                ConstraintGraph[assignedVars[j]][assignedVars[i]]);
-            if(!supported) return false;
-          }
-        }
-      }
-    }
-    return true;
-  }
+*/ 
+  int AddVariable(string alias, Supplier handle);
+
+/* 
+The AddConstraint function.
+Input: the two aliases of the two lifted predicates and a pointer to the 
+"stconstraint" node in the operator tree.
+Process: adds the constraint to the ConstraintGraph.
+Output: error code
+
+*/ 
+ 
+  int AddConstraint(string alias1, string alias2, Supplier handle);
   
-  bool CheckConstraint(Interval<CcReal>& p1, Interval<CcReal>& p2, 
-      Supplier constraint)
-  {
-    Word Value;
-    qp->Request(constraint,Value);
-    STVector* vec= (STVector*) Value.addr;
-    return vec->ApplyVector(p1, p2);
-  }
+/*
+The Solve function. It implements the Solve Pattern algorithm in the paper.
+
+*/
   
-  int PickVariable()
-  {
-    bool debugme=true;
-    vector<int> vars(0);
-    vector<double> numconstraints(0);
-    double cnt=0;
-    int index=-1;
-    for(unsigned int i=0;i<Agenda.size();i++)
-    {
-      if(Agenda[i] != 0)
-      {
-        vars.push_back(i);
-        cnt=0;
-        for(unsigned int r=0; r< ConstraintGraph.size(); r++)
-        {
-          for(unsigned int c=0; c< ConstraintGraph[r].size(); c++)
-          {
-            if( r == i && ConstraintGraph[r][c] != 0)
-            {
-              cnt+=0.5;
-              for(unsigned int v=0; v< assignedVars.size(); v++)
-              {
-                if(c == (unsigned int)assignedVars[v]) cnt+=0.5;
-              }
-            }
-            
-            if( c == i && ConstraintGraph[r][c] != 0)
-            {
-              cnt+=0.5;
-              for(unsigned int v=0; v< assignedVars.size(); v++)
-              {
-                if(r == (unsigned int)assignedVars[v]) cnt+=0.5;
-              }
-            }
-          }
-        }
-        numconstraints.push_back(cnt);
-      }
-    }
-    double max=-1;
+  bool Solve();
+  
+/*
+The MoveNext function. It is used to iterate over the SA list. The function is
+used by the "start" and "end" operators in the extended STPP.
+  
+*/
+  bool MoveNext();
+  
+/*
+The GetStart function. It is the impelementation of the "start" operator.
+  
+*/
+  bool GetStart(string alias, Instant& result);
+  
+/*
+The GetStart function. It is the impelementation of the "end" operator.
     
-    for(unsigned int i=0; i<numconstraints.size(); i++)
-    {
-      if(numconstraints[i]>max){ max=numconstraints[i]; index=vars[i];}
-    }
-    if(debugme)
-    {
-      for(unsigned int i=0; i<numconstraints.size(); i++)
-        cout<< "\nConnectivity of variable " <<vars[i] <<"  = "
-        << numconstraints[i];
-      cout<<endl<< "Picking variable "<< index<<endl;
-      cout.flush();
-    }
-    if(index== -1) return -1; 
-    assignedVars.push_back(index);
-    return index;
-  }
-
+*/
+  bool GetEnd(string alias, Instant& result);
   
-  bool MoveNext()
-  {
-    if(iterator < (signed int)SA.size()-1)
-      iterator++;
-    else
-      return false;
-    return true;
-  }
-  
-  bool GetStart(string alias, Instant& result)
-  {
-    map<string, int>::iterator it;
+/*
+The Print function. It is used for debug purposes.
+ 
+*/  
+  void Print();
+/*
+The Clear function. It is used to intialize the CSP. It is necessary to 
+call it before processing every tuple in order to reintialize the CSP.
 
-    it=VarAliasMap.find(alias);
-    if(it== VarAliasMap.end()) return false;
-    
-    int index=(*it).second;
-    result.ReadFrom(SA[iterator][index].start.GetRealval());
-    return true;
-  }
-  
-  bool GetEnd(string alias, Instant& result)
-  {
-    map<string, int>::iterator it;
-
-    it=VarAliasMap.find(alias);
-    if(it== VarAliasMap.end()) return false;
-
-    int index=(*it).second;
-    result.ReadFrom(SA[iterator][index].end.GetRealval());
-    return true;
-  }
-  
-  void Print()
-  {
-    cout<< "\n==========================\nSA.size() = "<< SA.size()<< endl;
-    for(unsigned int i=0; i< SA.size(); i++)
-    {
-      for(unsigned int j=0; j<SA[i].size(); j++)
-      {
-        cout<<(SA[i][j].start.GetRealval()-3444)*24*60*60<< "\t "<<
-        (SA[i][j].end.GetRealval()-3444)*24*60*60 <<" | ";
-      }
-      cout<<endl;
-    }
-    cout.flush();
-  }
-  int Clear()
-  {
-    SA.clear();
-    Agenda.clear();
-    ConstraintGraph.clear();
-    VarAliasMap.clear();
-    assignedVars.clear();
-    count=0;
-    iterator=-1;
-    return 0;
-  }
+*/
+  int Clear();
 }csp;
 
 
-} // namespace STPattern
+} // namespace STP
 
 
 
