@@ -6439,7 +6439,8 @@ showExample(Nr, Query) :-
   nl, write('SQL: '), write(Query), nl, nl.
 
 example(Nr) :- showExample(Nr, Query), optimize(Query).
-example(Nr, Query, Cost) :- showExample(Nr, Example), optimize(Example, Query, Cost).
+example(Nr, Query, Cost) :- showExample(Nr, Example),
+                            optimize(Example, Query, Cost).
 
 
 /*

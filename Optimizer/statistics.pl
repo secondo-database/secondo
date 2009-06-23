@@ -194,7 +194,12 @@ simplePred(Pred,Simple) :-
 
 /*
 
-1.4 Retrieving, Storing, and Loading Selectivities and PETs
+1.4 Handling Selectivities, PETs and MBR Sizes
+
+Selectivities, bounding box (MBR) intersection selectivities and average
+bounding box sizes are estimated using a sample approach. The according
+information is added to the knowledge base and saved to files when quitting
+the optimizer.
 
 Auxiliary predicates for ~selectivity~.
 
@@ -278,23 +283,38 @@ If ~Pred~ has a predicate operator that performs checking of overlapping minimal
 
 */
 
-% return the bbox-selectivity-predicate term
-% --- getBBoxIntersectionTerm(+Arg1,+Arg2,+Dimension,-PredTerm)
+/*
+---- getBBoxIntersectionTerm(+Arg1,+Arg2,+Dimension,-PredTerm)
+----
+
+Return the bbox-selectivity-predicate ~PredTerm~ for for ~Dimension~ dimensions
+for arguments ~Arg1~ and ~Arg2~.
+
+*/
 getBBoxIntersectionTerm(Arg1,Arg2,2,PredTerm) :-
   PredTerm   =.. [intersects, box2d(bbox(Arg1)), box2d(bbox(Arg2))], !.
 getBBoxIntersectionTerm(Arg1,Arg2,_,PredTerm) :-
   PredTerm   =.. [intersects, bbox(Arg1), bbox(Arg2)], !.
 
-%%-----------------------------------------------------------------------------
-% Query for the average size (volume) of a term's MBR and store it
-% within the knowledge base.
-% Only do so, if ~optimizerOption(determinePredSig)~ is active.
-%
-% Returns ~Size = none~, if the term has no bounding box, or
-% ~optimizerOption(determinePredSig)~ is not active.
+/*
+
+----
+  bboxSizeQuerySel(+Term,+Rel,+TermTypeTree,-Size)
+  bboxSizeQueryJoin(+Term,+Rel1,+Rel2,+TermTypeTree,-Size)
+----
+
+Query for the average size (volume) of ~Term~'s MBR (in a selection or join
+predicate) and store it within the knowledge base.
+
+Only do so, if ~optimizerOption(determinePredSig)~ is active.
+
+Returns ~Size~ = ~none~, if the term has no bounding box, or
+~optimizerOption(determinePredSig)~ is not active.
+
+*/
 
 % For terms within selection predicates:
-% --- bboxSizeQuerySel(+Term,+Rel,+TermTypeTree,-Size)
+%--- bboxSizeQuerySel(+Term,+Rel,+TermTypeTree,-Size)
 bboxSizeQuerySel(_,_,_,none) :-
   not(optimizerOption(determinePredSig)),!.
 
@@ -393,7 +413,11 @@ bboxSizeQueryJoin(Term,Rel1,Rel2,[_,_,T],none) :- % no bbox available
   dm(selectivity,['bboxSizeQueryJoin/5: Term \'',Term,'\' for relations ',Rel1,
     ' and ',Rel2,' has Type ',T,', but no bbox!\n\n']),!.
 
-%%-----------------------------------------------------------------------------
+/*
+Now, we are prepared to formulate the actual predicates committing the
+selectivity queries:
+
+*/
 
 % spatial predicate with bbox-checking
 selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
@@ -702,45 +726,6 @@ transformPred(attr(Attr, Arg, Case), Param, Arg,
   attribute(Param, attrname(attr(Attr, Arg, Case)))) :- !.
 
 transformPred(attr(Attr, Arg, Case), _, _, attr(Attr, Arg, Case)) :- !.
-
-/*
-
-----
-transformPred(Pred, Param, Arg, Pred2) :-
-  compound(Pred),
-  functor(Pred, T, 1), !,
-  arg(1, Pred, Arg1),
-  transformPred(Arg1, Param, Arg, Arg1T),
-  functor(Pred2, T, 1),
-  arg(1, Pred2, Arg1T).
-
-transformPred(Pred, Param, Arg, Pred2) :-
-  compound(Pred),
-  functor(Pred, T, 2), !,
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  transformPred(Arg1, Param, Arg, Arg1T),
-  transformPred(Arg2, Param, Arg, Arg2T),
-  functor(Pred2, T, 2),
-  arg(1, Pred2, Arg1T),
-  arg(2, Pred2, Arg2T).
-
-transformPred(Pred, Param, Arg, Pred2) :-
-  compound(Pred),
-  functor(Pred, T, 3), !,
-  arg(1, Pred, Arg1),
-  arg(2, Pred, Arg2),
-  arg(3, Pred, Arg3),
-  transformPred(Arg1, Param, Arg, Arg1T),
-  transformPred(Arg2, Param, Arg, Arg2T),
-  transformPred(Arg3, Param, Arg, Arg3T),
-  functor(Pred2, T, 3),
-  arg(1, Pred2, Arg1T),
-  arg(2, Pred2, Arg2T),
-  arg(3, Pred2, Arg3T).
-----
-
-*/
 
 transformPred([], _, _, []).
 transformPred([Arg1|Args1], Param, Arg, [Arg1T|Args1T]) :-
@@ -1849,7 +1834,7 @@ example23 :- optimize(
 
 
 /*
-1.9 Determining Operator Signatures
+1.9 Determining Expression Types and Operator Signatures
 
 The following predicates are used to determine the Signature of operators
 used within queries, especially within predicates.

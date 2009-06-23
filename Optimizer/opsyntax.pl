@@ -450,10 +450,3 @@ secondoOp( within2,           postfixbrackets2, 3).
 %secondoOp( whiledo,           postfixbrackets1, 4). % TODO: special syntax
 secondoOp( writeFile,         prefix, 2). % also prefix 3
 
-
-
-
-
-
-
-
