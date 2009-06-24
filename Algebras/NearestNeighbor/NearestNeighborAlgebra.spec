@@ -33,4 +33,4 @@ operator covleafnode alias COVLEAFNODE pattern op(_,_,_)
 
 
 operator rknearestfilter alias TBKNEARESTFILTER pattern _ _ op [_, _]
-operator hcknnknearest alias HCKNNKNEAREST pattern _ _ op [_, _]
+operator hcknnknearest alias HCKNNKNEAREST pattern _ _ op [_,_, _]
