@@ -7390,15 +7390,11 @@ void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
   if(cur == NULL){
 
     hpelem* newhp = new hpelem(elem);
-//    newhp->movdist = new UReal(*(elem.movdist));
-//    newhp->dataup = new UPoint(*(elem.dataup));
     head->next = newhp;
     newhp->next = NULL;
     local->nlist[i].mind = elem.mind;
     local->nlist[i].maxd = elem.maxd;
 
-//    local->nlist[i].startTime = elem.dataup->timeInterval.start;
-//    local->nlist[i].endTime = elem.dataup->timeInterval.end;
     local->nlist[i].startTime = elem.nodets;
     local->nlist[i].endTime = elem.nodete;
 
@@ -7409,8 +7405,6 @@ void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
 //      if(elem.dataup->timeInterval.end <= cur->dataup->timeInterval.start){
         if(elem.nodete <= cur->nodets){
            hpelem* newhp = new hpelem(elem);
-//           newhp->movdist = new UReal(*(elem.movdist));
-//           newhp->dataup = new UPoint(*(elem.dataup));
            head->next = newhp;
            newhp->next = cur;
            UpdateInfoInNL(local,newhp,i);
@@ -7429,12 +7423,10 @@ void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
 //            <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
 #endif
 
-//        if(cur->dataup->timeInterval.end <= elem.dataup->timeInterval.start){
+
         if(cur->nodete <= elem.nodets){
           if(cur->next == NULL){//the last element
             hpelem* newhp = new hpelem(elem);
-//            newhp->movdist = new UReal(*(elem.movdist));
-//            newhp->dataup = new UPoint(*(elem.dataup));
             cur->next = newhp;
             newhp->next = NULL;
             UpdateInfoInNL(local,newhp,i);
@@ -7446,19 +7438,13 @@ void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
           }
         }
         if(head->tid != -1 &&   //not the head element
-//          head->dataup->timeInterval.end <= elem.dataup->timeInterval.start&&
-//          elem.dataup->timeInterval.end <= cur->dataup->timeInterval.start){
           head->nodete <= elem.nodets && elem.nodete <= cur->nodets){
            hpelem* newhp = new hpelem(elem);
-//           newhp->movdist = new UReal(*(elem.movdist));
-//           newhp->dataup = new UPoint(*(elem.dataup));
            head->next = newhp;
            newhp->next = cur;
            UpdateInfoInNL(local,newhp,i);
            return;//no updatelist
         }
-//        if(elem.movdist->timeInterval.
-//          Intersects(cur->movdist->timeInterval) == false){//no intersection
          if(elem.nodete < cur->nodets ||elem.nodets > cur->nodete){
           head = cur;
           cur = cur->next;
@@ -7487,21 +7473,13 @@ void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
           if(mts < ts){
 
             hpelem* newhp = new hpelem(elem);
-//            newhp->movdist = new UReal(*(elem.movdist));
-//            newhp->dataup = new UPoint(*(elem.dataup));
-//            newhp->movdist->timeInterval.end = ts;
             newhp->nodete = ts;
 
             Point end;
-//            newhp->dataup->TemporalFunction(ts,end,true);
-//            newhp->dataup->p1 = end;
-//            newhp->dataup->timeInterval.end = ts;
             MyTemporalFunction(newhp,ts,end);
             newhp->dataup.p1 = end;
 
 
-//            newhp->mind = URealMin(newhp->movdist,mts);
-//            newhp->maxd = URealMax(newhp->movdist,mts);
             newhp->mind = URealMin(newhp,mts);
             newhp->maxd = URealMax(newhp,mts);
 
@@ -7549,10 +7527,7 @@ void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
 
           }
           //up to now,  cur and elem start at the same time interval
-//          cout<<elem.movdist->timeInterval<<endl;
-//          cout<<cur->movdist->timeInterval<<endl;
           if(tte > te){ //M is finished here
-//            cout<<"elem finished"<<endl;
 
             hpelem* newhp = new hpelem(*cur);
 
@@ -7594,7 +7569,6 @@ void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
 #ifdef mydebug
               cout<<"next loop"<<endl;
 #endif
-
 
               hpelem* newhp = new hpelem(elem);
 
@@ -7648,7 +7622,6 @@ void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
 }
 bool HpelemCompare(const hpelem& e1,const hpelem& e2)
 {
-//  return e1.dataup->timeInterval.start < e2.dataup->timeInterval.start;
       return e1.nodets < e2.nodets;
 }
 
@@ -7660,7 +7633,6 @@ By time interval and MINDIST,MAXDIST
 template<class timeType>
 bool CheckPrune_entry(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
 {
-//  return false; //no prune
 
   hpelem* head = local->nlist[local->k-1].head;
   if(head->next == NULL)
@@ -7672,9 +7644,6 @@ bool CheckPrune_entry(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
 
   double curts = cur->nodets;
   double curte = cur->nodete;
-
-
-//  if(cur->movdist->timeInterval.start > elem.movdist->timeInterval.start)
   if(curts > elemts)
     return false;
 
@@ -7708,15 +7677,11 @@ bool CheckPrune_entry(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
           hpelem* next = cur->next;
           double nextts,nextte;
           while(next != NULL){
-//              nextts = next->movdist->timeInterval.start.ToDouble();
-//              curte = cur->movdist->timeInterval.end.ToDouble();
               nextts = next->nodets;
               curte = cur->nodete;
 
               if(nextts > curte)
                 return false;
-//              nextte = next->movdist->timeInterval.end.ToDouble();
-
                 nextte = next->nodete;
 
                 if(nextte >= elemte && next->maxd < elem.mind)
@@ -7734,97 +7699,6 @@ bool CheckPrune_entry(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
       else
         return false;
     }
-    cout<<"entry not deal with"<<endl;
-
-
-    head = cur;
-    cur = cur->next;
-  }
-  return false;
-}
-/*
-use double value stored in elem to compare
-
-*/
-
-template<class timeType>
-bool CheckPrune_entry_t(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
-{
-//  return false; //no prune
-
-  hpelem* head = local->nlist[local->k-1].head;
-  if(head->next == NULL)
-    return false; //not prune
-  hpelem* cur = head->next;
-
-  double elemts = elem.nodets;
-  double elemte = elem.nodete;
-
-  double curts = cur->nodets;
-  double curte = cur->nodete;
-
-
-  if(curts > elemts)
-    return false;
-
-  while(cur != NULL){
-//    curts = cur->movdist->timeInterval.start.ToDouble();
-//    curte = cur->movdist->timeInterval.end.ToDouble();
-    curts = cur->nodets;
-    curte = cur->nodete;
-
-
-    if(elemts < curts)
-      return false;
-
-    if(elemts >= curte){
-      head = cur;
-      cur = cur->next;
-      continue;
-    }
-
-    if(curts <= elemts && elemte <= curte){
-      if(cur->maxd <= elem.mind)
-        return true;//prune
-      else
-        return false;
-    }
-
-      if(curts <= elemts && elemte > curte){
-
-      if(cur->maxd <= elem.mind){
-          if(cur->next == NULL)
-            return false;
-          hpelem* next = cur->next;
-          double nextts,nextte;
-          while(next != NULL){
-//              nextts = next->movdist->timeInterval.start.ToDouble();
-//              curte = cur->movdist->timeInterval.end.ToDouble();
-              nextts = next->nodets;
-              curte = cur->nodete;
-
-              if(nextts > curte)
-                return false;
-//              nextte = next->movdist->timeInterval.end.ToDouble();
-                nextte = next->nodete;
-
-                if(nextte >= elemte && next->maxd < elem.mind)
-                return true;//prune
-                if(nextte < elemte && next->maxd < elem.mind){
-                    cur = next;
-                    next = cur->next;
-                    continue;
-                }
-              return false;
-          }
-          return false;
-      }
-      else
-        return false;
-    }
-    cout<<"entry not deal with"<<endl;
-
-
     head = cur;
     cur = cur->next;
   }
@@ -7842,16 +7716,12 @@ bool CheckPrune_node(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
   if(head->next == NULL)
     return false; //not prune
   hpelem* cur = head->next;
-//  double curts = cur->movdist->timeInterval.start.ToDouble();
-//  double curte;
   double curts = cur->nodets;
   double curte = cur->nodete;
 
   if(curts > elem.nodets)
     return false;
   while(cur != NULL){
-//    curts = cur->movdist->timeInterval.start.ToDouble();
-//    curte = cur->movdist->timeInterval.end.ToDouble();
     curts = cur->nodets;
     curte = cur->nodete;
 
@@ -7878,13 +7748,11 @@ bool CheckPrune_node(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
           hpelem* next = cur->next;
           double nextts,nextte;
           while(next != NULL){
-//              nextts = next->movdist->timeInterval.start.ToDouble();
-//              curte = cur->movdist->timeInterval.end.ToDouble();
               nextts = next->nodets;
               curte = cur->nodete;
               if(nextts > curte)
                 return false;
-//              nextte = next->movdist->timeInterval.end.ToDouble();
+
               nextte = next->nodete;
 
               if(nextte >= elem.nodete && next->maxd < elem.mind)
@@ -7902,7 +7770,6 @@ bool CheckPrune_node(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
       else
         return false;
     }
-    cout<<"node not deal with"<<endl;
     head = cur;
     cur = cur->next;
   }
@@ -7916,11 +7783,10 @@ template<class timeType>
 void UpdatekNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
 {
   list<hpelem> updatelist;
-  //Initialization prunedist, and Update prunedist
+
 //  if(elem.mind < local->prunedist[local->k-1]){
     if(CheckPrune_entry(local,elem) == false){
 
-//    if(CheckPrune_entry_t(local,elem) == false){
       updatelist.push_back(elem);
       vector<hpelem> auxiliarylist;
       vector<hpelem> templist;
@@ -7977,7 +7843,6 @@ void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
     local->hp.pop();
     if(top.tid != -1)
       if(CheckPrune_entry(local,top))
-//    if(CheckPrune_entry_t(local,top))
         continue;
     else{
       if(CheckPrune_node(local,top))
@@ -7986,8 +7851,6 @@ void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
 
     if(top.tid != -1 && top.nodeid == -1){ //an actual trajectory segment
         UpdatekNearest(local,top);
-//        delete top.movdist;
-//        delete top.dataup;
     }
     else if(top.tid == -1 && top.nodeid != -1){ // a node
         tbtree::BasicNode<3>* tbnode = local->tbtree->getNode(top.nodeid);
@@ -8008,6 +7871,7 @@ void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
                     if(!(t1 >= tt2 || t2 <= tt1)){
                       UPoint* ne = new UPoint(true);
                       UPoint* nqe = new UPoint(true);
+                      /*interpolation restrict to the same time interval*/
                       CreateUPoint_ne(local,up,
                                       entry->getInfo().getTupleId(),ne);
                       CreateUPoint_nqe(local,up,
@@ -8018,21 +7882,13 @@ void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
                       double mind = mdist->Min(def);
                       double maxd = mdist->Max(def);
 
-
                       hpelem le(entry->getInfo().getTupleId(),mind,maxd,-1);
-//                      le.movdist = new UReal(*mdist);
-//                      le.dataup = new UPoint(*ne);
-//                      le.nodets = le.movdist->timeInterval.start.ToDouble();
-//                      le.nodete = le.movdist->timeInterval.end.ToDouble();
                       le.nodets = mdist->timeInterval.start.ToDouble();
                       le.nodete = mdist->timeInterval.end.ToDouble();
                       AssignURUP(&le,mdist,ne);
 
                       if(CheckPrune_entry(local,le) == false){
-//                      if(CheckPrune_entry_t(local,le) == false){
                         local->hp.push(le);
-//                        cout<<"insert "<<"nodeid "<<le.nodeid<<" tid "
-//                            <<le.tid<<" "<<le.mind<<endl;
                       }
                       delete mdist;
                       delete ne;
