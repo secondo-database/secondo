@@ -7753,7 +7753,7 @@ The main Function of chinese algorithm
 template<class timeType>
 void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
 {
-  BBox<2> mpbox = local->mptraj->BoundingBox();
+  BBox<2> mpbox = makexyBox(mp->BoundingBox());
 
   while(local->hp.empty() == false){
     hpelem top = local->hp.top();
