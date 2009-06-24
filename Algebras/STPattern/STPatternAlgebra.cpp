@@ -963,7 +963,6 @@ int CreateSTVectorVM
   return 0;
 }
 
-static int tupleno=1;
 int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   bool debugme=false;
@@ -1013,7 +1012,7 @@ int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
 
   if(debugme)
   {
-    cout<< "tuple "<<tupleno++ ;
+    //cout<< "tuple "<<tupleno++ ;
     if(hasSolution) cout<<" accepted\n"; cout<<" rejected\n";
     csp.Print();
     cout.flush();
@@ -1031,6 +1030,11 @@ int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
   string aliasstr, alias1str, alias2str;
   int noofpreds, noofconstraints;
 
+  if(debugme)
+  {
+    cout<<" Inside STPatternEXVM\n";
+    cout.flush();
+  }
 
   result = qp->ResultStorage( s );
   root = args[0].addr;
@@ -1074,7 +1078,7 @@ int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
     ((CcBool*)result.addr)->Set(true,hasSolution);
     if(debugme)
     {
-      cout<< "tuple "<<tupleno++ ;
+      //cout<< "tuple "<<tupleno++ ;
       if(hasSolution) cout<<" part1 accepted\t";else cout<<" rejected\n";
       csp.Print();
       cout.flush();
@@ -1091,7 +1095,7 @@ int STPatternExVM(Word* args, Word& result,int message, Word& local, Supplier s)
   ((CcBool*)result.addr)->Set(true,Part2);
   if(debugme)
   {
-    cout<< "tuple "<<tupleno++ ;
+    //cout<< "tuple "<<tupleno++ ;
     if(Part2) cout<<" part2 accepted\n"; else cout<<" part2 rejected\n";
     csp.Print();
     cout.flush();
@@ -1144,40 +1148,40 @@ template <bool leftbound> int StartEndVM
 
 const string CreateSTVectorSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> (stringlist) -> stvector</text--->"
+  "( <text>(stringlist) -> stvector</text--->"
   "<text>vec( _ )</text--->"
   "<text>Creates a vector temporal connector.</text--->"
-  "<text>let meanwhile = vec(\"abab\","\"abba\",\"aba.b\")</text--->"
+  "<text>let meanwhile = vec(\"abab\",\"abba\",\"aba.b\")</text--->"
   ") )";
 
 const string STPatternSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> tuple(x) X namedFunlist X constraintList -> bool</text--->"
+  "( <text>tuple(x) X namedFunlist X constraintList -> bool</text--->"
   "<text>_ stpattern[ namedFunlist;  constraintList ]</text--->"
   "<text>The operator implements the Spatiotemporal Pattern Predicate."
   "</text--->"
   "<text>query Trains feed filter[. stpattern[a: .Trip inside msnow,"
   "b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;"
   "stconstraint(\"a\",\"b\",vec(\"aabb\")), "
-  "stconstraint(\"b\",\"c\",vec(\"bbaa\"))  ]] count"
+  "stconstraint(\"b\",\"c\",vec(\"bbaa\"))  ]] count </text--->"
   ") )";
 
 const string STPatternExSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> tuple(x) X namedFunlist X constraintList X bool -> bool</text--->"
+  "( <text>tuple(x) X namedFunlist X constraintList X bool -> bool</text--->"
   "<text>_ stpatternex[ namedFunlist;  constraintList; bool ]</text--->"
   "<text>The operator implements the Extended Spatiotemporal Pattern Predicate."
   "</text--->"
-  "<text>query Trains feed filter[. stpattern[a: .Trip inside msnow,"
-  "b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;"
-  "stconstraint(\"a\",\"b\",vec(\"aabb\")), "
-  "stconstraint(\"b\",\"c\",vec(\"bbaa\"));"
-  "end(\"b\")-start(\"a\") < 0.5 ]] count"
+  "<text>query Trains feed filter[. stpatternex[a: .Trip inside msnow, "
+  "b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;  "
+  "stconstraint(\"a\",\"b\",vec(\"aabb\")),  "
+  "stconstraint(\"b\",\"c\",vec(\"bbaa\"));  (end(\"b\") - start(\"a\")) < "
+      "[const duration value (1 0)] ]] count  </text--->"
   ") )";
 
 const string STConstraintSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> string X string X stvector -> bool</text--->"
+  "( <text>string X string X stvector -> bool</text--->"
   "<text>_ stconstraint( string, string, vec(_))</text--->"
   "<text>The operator is used only within the stpattern and stpatternex "
   "operators. It is used to express a spatiotemporal constraint. The operator "
@@ -1188,12 +1192,13 @@ const string STConstraintSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;"
   "stconstraint(\"a\",\"b\",vec(\"aabb\")), "
   "stconstraint(\"b\",\"c\",vec(\"bbaa\"));"
-  "end(\"b\")-start(\"a\") < 0.5 ]] count"
+  "(end(\"b\") - start(\"a\")) < "
+  "[const duration value (1 0)] ]] count </text--->"
   ") )";
 
 const string StartEndSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
-  "( <text> string -> instant</text--->"
+  "( <text>string -> instant</text--->"
   "<text>start( _ )/ end(_)</text--->"
   "<text>Are used only within an extended spatiotemporal pattern predicate. "
   "They return the start and end time instants for a predicate in the SA list."
