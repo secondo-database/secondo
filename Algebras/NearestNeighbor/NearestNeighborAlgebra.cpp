@@ -6675,10 +6675,9 @@ Interpolate for entry in TB-tree
 */
 template<class timeType>
 void CreateUPoint_ne(TBKnearestLocalInfo<timeType>* local,const UPoint* up,
-TupleId tid,UPoint*& ne)
+UPoint*& ne,UPoint* data)
 {
-  Tuple* tuple = local->relation->GetTuple(tid);
-  UPoint* data = (UPoint*)tuple->GetAttribute(local->attrpos);
+
   Instant start;
   Instant end;
   Point p0,p1;
@@ -6714,10 +6713,8 @@ Interpolate for entry in MQ
 
 template<class timeType>
 void CreateUPoint_nqe(TBKnearestLocalInfo<timeType>* local,const UPoint* up,
-TupleId tid,UPoint*& nqe)
+UPoint*& nqe,UPoint* data)
 {
-  Tuple* tuple = local->relation->GetTuple(tid);
-  UPoint* data = (UPoint*)tuple->GetAttribute(local->attrpos);
   Instant start;
   Instant end;
   Point p0,p1;
@@ -7510,12 +7507,9 @@ void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
             newhp->mind = URealMin(newhp,tts);
             newhp->maxd = URealMax(newhp,tts);
 
-
             head->next = newhp;
             newhp->next = cur;
             head = newhp;
-
-
 
             cur->nodets = ts;
             Point start;
@@ -7620,10 +7614,7 @@ void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
 
    }
 }
-bool HpelemCompare(const hpelem& e1,const hpelem& e2)
-{
-      return e1.nodets < e2.nodets;
-}
+
 
 /*
 Check whether this element has to be pruned or not
@@ -7809,6 +7800,10 @@ void UpdatekNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
       }
   }
 }
+bool HpelemCompare(const hpelem& e1,const hpelem& e2)
+{
+    return e1.nodets < e2.nodets;
+}
 /*
 Store results into an array
 
@@ -7864,18 +7859,24 @@ void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
               if(!(t1 >= local->endTime || t2 <= local->startTime)){
                   //for each unit in mp
                 const UPoint* up;
+                TupleId tid = entry->getInfo().getTupleId();
+                Tuple* tuple = local->relation->GetTuple(tid);
+                UPoint* data = (UPoint*)tuple->GetAttribute(local->attrpos);
+
                 for(int j = 0;j < mp->GetNoComponents();j++){
                     mp->Get(j,up);
                     timeType tt1 = (double)(up->timeInterval.start.ToDouble());
                     timeType tt2 = (double)(up->timeInterval.end.ToDouble());
+                    if(tt1 > t2) //mq's time interval is larger than entry
+                      break;
                     if(!(t1 >= tt2 || t2 <= tt1)){
                       UPoint* ne = new UPoint(true);
                       UPoint* nqe = new UPoint(true);
                       /*interpolation restrict to the same time interval*/
-                      CreateUPoint_ne(local,up,
-                                      entry->getInfo().getTupleId(),ne);
-                      CreateUPoint_nqe(local,up,
-                                     entry->getInfo().getTupleId(),nqe);
+
+                      CreateUPoint_ne(local,up,ne,data);
+                      CreateUPoint_nqe(local,up,nqe,data);
+
                       UReal* mdist = new UReal(true);
                       ne->Distance(*nqe,*mdist);
                       bool def = true;
@@ -7894,7 +7895,8 @@ void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
                       delete ne;
                       delete nqe;
                     }
-                }
+                }//end for
+                tuple->DeleteIfAllowed();
               }
            }
         }else{ //inner node
