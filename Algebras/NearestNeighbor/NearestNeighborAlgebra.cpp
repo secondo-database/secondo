@@ -7753,6 +7753,7 @@ The main Function of chinese algorithm
 template<class timeType>
 void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
 {
+  BBox<2> mpbox = local->mptraj->BoundingBox();
 
   while(local->hp.empty() == false){
     hpelem top = local->hp.top();
@@ -7829,9 +7830,8 @@ void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
               timeType t2((double)entry->getBox().MaxD(2));
               if(!(t1 >= local->endTime || t2 <= local->startTime)){
                 BBox<2> entrybox = makexyBox(entry->getBox());//entry box
-                double mindist = local->mptraj->Distance(entrybox);
-                double maxdist = maxDistance(entrybox,
-                                  local->mptraj->BoundingBox());
+                double mindist =  mpbox.Distance(entrybox);
+                double maxdist = maxDistance(entrybox,mpbox);
 
                   hpelem le(-1,mindist,maxdist,entry->getInfo().getPointer());
                   le.nodets = t1;
