@@ -6553,7 +6553,6 @@ struct hpelem{
   }
 };
 
-
 void AssignURUP(hpelem* elem,UReal* movdist,UPoint* dataup)
 {
   elem->movdist.a = movdist->a;
@@ -6763,7 +6762,6 @@ void UpdateInfoInNL(TBKnearestLocalInfo<timeType>* local,hpelem* elem,int i)
     local->nlist[i].startTime = elem->nodets;
   if(elem->nodete > local->nlist[i].endTime)
     local->nlist[i].endTime = elem->nodete;
-
   if(local->nlist[i].maxd > local->prunedist[i])
     local->prunedist[i] = local->nlist[i].maxd;
 
@@ -6808,7 +6806,6 @@ double URealMax(hpelem* elem,double& start)
     double a = elem->movdist.a;
     double b = elem->movdist.b;
     double c = elem->movdist.c;
-
     double t_start = elem->nodets - start;
     double t_end = elem->nodete - start;
 
@@ -6993,8 +6990,6 @@ double& elemstart,double& curstart)
 
   double ma,mb,mc; //data
   double ta,tb,tc; //entry in list
-//  double ttelem = elemstart.ToDouble();
-//  double ttcur = curstart.ToDouble();
   double ttelem = elemstart;
   double ttcur = curstart;
 
@@ -7011,30 +7006,22 @@ double& elemstart,double& curstart)
 
   double start_m,start_t;
 
-//  if(ttelem == elem.movdist->timeInterval.start.ToDouble()){
-//    start_m = sqrt(elem.movdist->c);
-    if(ttelem == elem.nodets){
+  if(ttelem == elem.nodets){
       start_m = sqrt(elem.movdist.c);
   }
   else{
-//    double delta_m = (elem.movdist->timeInterval.start-elemstart).ToDouble();
     double delta_m = elem.nodets-elemstart;
     start_m =
-//        sqrt(ma*delta_m*delta_m + elem.movdist->b*delta_m + elem.movdist->c);
-    sqrt(ma*delta_m*delta_m + elem.movdist.b*delta_m + elem.movdist.c);
+        sqrt(ma*delta_m*delta_m + elem.movdist.b*delta_m + elem.movdist.c);
   }
 
-
-//  if(ttcur == cur->movdist->timeInterval.start.ToDouble()){
-//    start_t = sqrt(cur->movdist->c);
   if(ttcur == cur->nodets){
     start_t = sqrt(cur->movdist.c);
   }
   else{
-//    double delta_t = (cur->movdist->timeInterval.start-curstart).ToDouble();
+
     double delta_t = cur->nodets-curstart;
     start_t =
-//        sqrt(ta*delta_t*delta_t + cur->movdist->b*delta_t + cur->movdist->c);
     sqrt(ta*delta_t*delta_t + cur->movdist.b*delta_t + cur->movdist.c);
   }
 
@@ -7049,8 +7036,6 @@ double& elemstart,double& curstart)
           return;
       }else{// entry is to be replaced by data
           hpelem* newhp = new hpelem(elem);
-//          newhp->movdist = new UReal(*(elem.movdist));
-//          newhp->dataup = new UPoint(*(elem.dataup));
           head->next = newhp;
           newhp->next = cur->next;
           UpdateInfoInNL(local,newhp,i);
@@ -7062,8 +7047,6 @@ double& elemstart,double& curstart)
   }
   if(ma == ta){
       assert(mb != tb);
-//      double v1 = elem.movdist->timeInterval.start.ToDouble();
-//      double v2 = elem.movdist->timeInterval.end.ToDouble();
       double v1 = elem.nodets;
       double v2 = elem.nodete;
 
@@ -7078,8 +7061,6 @@ double& elemstart,double& curstart)
               return;//for next
           }else{ //entry is to be replaced by data
                 hpelem* newhp = new hpelem(elem);
-//                newhp->movdist = new UReal(*(elem.movdist));
-//                newhp->dataup = new UPoint(*(elem.dataup));
                 head->next = newhp;
                 newhp->next = cur->next;
                 UpdateInfoInNL(local,newhp,i);
@@ -7089,9 +7070,6 @@ double& elemstart,double& curstart)
                 return;
                }
       }else{ //needs to be interpolation
-
-//          Instant intersect(instanttype);
-//          intersect.ReadFrom(t);
             double intersect = t;
 
             if(start_t <= start_m){
@@ -7126,8 +7104,6 @@ double& elemstart,double& curstart)
         return;
       }else{ //entry is to be replaced by data
           hpelem* newhp = new hpelem(elem);
-//          newhp->movdist = new UReal(*(elem.movdist));
-//          newhp->dataup = new UPoint(*(elem.dataup));
           head->next = newhp;
           newhp->next = cur->next;
           UpdateInfoInNL(local,newhp,i);
@@ -7153,8 +7129,6 @@ double& elemstart,double& curstart)
         cout<<"replaced "<<endl;
 #endif
         hpelem* newhp = new hpelem(elem);
-//        newhp->movdist = new UReal(*(elem.movdist));
-//        newhp->dataup = new UPoint(*(elem.dataup));
         head->next = newhp;
         newhp->next = cur->next;
         UpdateInfoInNL(local,newhp,i);
@@ -7164,23 +7138,15 @@ double& elemstart,double& curstart)
         return;
     }
   }
-
-//  cout<<"delta > 0"<<endl;
   //delta > 0
   double x1 = (-delta_b-sqrt(delta))/(2*delta_a);
   double x2 = (-delta_b+sqrt(delta))/(2*delta_a);
-//  Instant intersect1(instanttype);
-//  Instant intersect2(instanttype);
   double intersect_t1,intersect_t2;
 
   if(x1 < x2){
-//      intersect1.ReadFrom(x1);
-//      intersect2.ReadFrom(x2);
       intersect_t1 = x1;
       intersect_t2 = x2;
   }else{
-//      intersect1.ReadFrom(x2);
-//      intersect2.ReadFrom(x1);
       intersect_t1 = x2;
       intersect_t2 = x1;
   }
@@ -7188,8 +7154,6 @@ double& elemstart,double& curstart)
   double intersect2 = intersect_t2;
 
 
-//  double elemts = elem.movdist->timeInterval.start.ToDouble();
-//  double elemte = elem.movdist->timeInterval.end.ToDouble();
     double elemts = elem.nodets;
     double elemte = elem.nodete;
 
@@ -7205,8 +7169,6 @@ double& elemstart,double& curstart)
       return;
     }else{ //entry is to be replaced by data
        hpelem* newhp = new hpelem(elem);
-//       newhp->movdist = new UReal(*(elem.movdist));
-//       newhp->dataup = new UPoint(*(elem.dataup));
        head->next = newhp;
        newhp->next = cur->next;
        UpdateInfoInNL(local,newhp,i);
@@ -7253,7 +7215,6 @@ double& elemstart,double& curstart)
     hpelem* next = cur->next;
     Point start, end;
     Point p0,p1;
-
 
     hpelem* newhp1 = new hpelem(*cur);
     newhp1->nodete = intersect1;
@@ -7332,8 +7293,84 @@ double& elemstart,double& curstart)
 
     return;
   }else{
-    cout<<"not processing"<<endl;
-    assert(false);
+
+    hpelem* next = cur->next;
+    Point start, end;
+    Point p0,p1;
+
+    hpelem* newhp1 = new hpelem(elem);
+    newhp1->nodete = intersect1;
+    MyTemporalFunction(newhp1,intersect1,end);
+    newhp1->dataup.p1 = end;
+    newhp1->next = NULL;
+    newhp1->mind = URealMin(newhp1,elemstart);
+    newhp1->maxd = URealMax(newhp1,elemstart);
+
+
+    hpelem* newhp2 = new hpelem(*(cur));
+    newhp2->nodets = intersect1;
+    newhp2->nodete = intersect2;
+    MyTemporalFunction(newhp2,intersect1,p0);
+    MyTemporalFunction(newhp2,intersect2,p1);
+    newhp2->dataup.p0 = p0;
+    newhp2->dataup.p1 = p1;
+    newhp2->next = NULL;
+    newhp2->mind = URealMin(newhp2,curstart);
+    newhp2->maxd = URealMax(newhp2,curstart);
+    URealTranslate(newhp2,curstart);
+
+
+    hpelem* newhp3 = new hpelem(elem);
+    newhp3->nodets = intersect2;
+    MyTemporalFunction(newhp3,intersect2,start);
+    newhp3->dataup.p0 = start;
+    newhp3->next = NULL;
+    newhp3->mind = URealMin(newhp3,elemstart);
+    newhp3->maxd = URealMax(newhp3,elemstart);
+    URealTranslate(newhp3,elemstart);
+
+
+    hpelem* newhp4 = new hpelem(*cur);
+    newhp4->nodete = intersect1;
+    MyTemporalFunction(newhp4,intersect1,end);
+    newhp4->dataup.p1 = end;
+    newhp4->mind = URealMin(newhp4,curstart);
+    newhp4->maxd = URealMax(newhp4,curstart);
+
+
+    hpelem* newhp5 = new hpelem(elem);
+    newhp5->nodets = intersect1;
+    newhp5->nodete = intersect2;
+    MyTemporalFunction(newhp5,intersect1,p0);
+    MyTemporalFunction(newhp5,intersect2,p1);
+    newhp5->dataup.p0 = p0;
+    newhp5->dataup.p1 = p1;
+    newhp5->mind = URealMin(newhp5,elemstart);
+    newhp5->maxd = URealMax(newhp5,elemstart);
+    URealTranslate(newhp5,elemstart);
+
+
+    hpelem* newhp6 = new hpelem(*cur);
+    newhp6->nodets = intersect2;
+    MyTemporalFunction(newhp6,intersect2,start);
+    newhp6->dataup.p0 = start;
+    newhp6->mind = URealMin(newhp6,curstart);
+    newhp6->maxd = URealMax(newhp6,curstart);
+    URealTranslate(newhp6,curstart);
+
+
+    head->next = newhp1;
+    newhp1->next = newhp2;
+    newhp2->next = newhp3;
+    newhp3->next = next;
+    UpdateInfoInNL(local,newhp2,i);
+    head = newhp2;
+    cur = newhp3;
+
+    nextupdatelist.push_back(*newhp4);
+    nextupdatelist.push_back(*newhp5);
+    nextupdatelist.push_back(*newhp6);
+    return;
   }
 
 }
