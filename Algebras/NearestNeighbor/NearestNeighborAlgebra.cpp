@@ -6128,7 +6128,7 @@ const string hcknnknearestSpec  =
       " ti) x rel(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))"
       "</text--->"
-      "<text>_ _ hcknnknearest [ _, _ ]</text--->"
+      "<text>_ _ hcknnknearest [_, _, _ ]</text--->"
       "<text>The operator results a stream of all input tuples "
       "which are the k-nearest tupels to the given mpoint. "
       "The operator do not separate tupels if necessary. The "
@@ -6137,7 +6137,7 @@ const string hcknnknearestSpec  =
       "many input tupels. "
       "The operator expects a tb-tree built on moving objects </text--->"
       "<text>query UnitTrains_UTrip_tbtree UnitTrains hcknnknearest"
-      "[train1, 5] count;</text--->"
+      "[UTrip,train1, 5] count;</text--->"
       ") )";
 
 /*
