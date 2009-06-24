@@ -30,382 +30,7 @@ import java.util.Vector;
 import java.util.TreeSet;
 import java.util.Enumeration;
 import java.util.Iterator;
-import org.w3c.dom.*;
-import javax.xml.parsers.*;
 import java.util.StringTokenizer;
-
-class ExtensionInfo{
-
-  private boolean valid;                      // a valid Info ?
-  private String fileName = null;             // filename of the corresponding zip file
-  private String algName = null;              // Name of the Algebra 
-  private int secondo_Major_Version = -1;     // version informtion
-  private int secondo_Minor_Version = 0;      // version information
-  private int secondo_SubMinor_Version = 0;   // version information
-  private String specFile = null;             // name of the specfile included in the zip
-  private String exampleFile = null;          // name of the example file included in the zip
-  private String copyright = null;            // name of the file containing the copyright notice
-  private Vector algebraDeps = new Vector();  // needed algabras except Standard
-  private Vector libNames = new Vector();     // Names of needed libraries, e.g. GSL
-  private Vector libFlags = new Vector();     // lib names, e.g. gsl
-  private Vector sourceFiles = new Vector();  // all sources of the algebra
-
-
-  /**
-    *  Returns the names of all sources to be installed into the algebra directory.
-    **/
-  TreeSet getAllSources(){
-     TreeSet res = new TreeSet();
-     res.add(specFile);
-     res.add(exampleFile);
-     res.addAll(sourceFiles);
-     return res;  
-  }
-
-  /** Creates a new ExtensionInfo **/
-  public  ExtensionInfo(String extensionFile, InputStream i){
-    valid = readDocument(i);
-    fileName = extensionFile;
-  }
-
-  /** CHeck for validity **/
-  public boolean isValid(){
-    return valid;
-  }
-
-  /** Conversion to a string **/
-  public String toString(){
-    String res =  "[ ExtensionInfo: ";
-    res += "valid = " + valid +", ";
-    res += "AlgName = " + algName+",";
-    res += "Version = " + secondo_Major_Version+"."+secondo_Minor_Version+"."+secondo_SubMinor_Version+", ";
-    res += "SpecFile = " + specFile + ", " ;
-    res += "ExampleFile = " + exampleFile+", ";
-    res += "copyright = " + copyright+" ,";
-    res += "AlgDeps: (";
-    for(int i=0;i<algebraDeps.size();i++){
-       res += algebraDeps.get(i);
-       if(i<algebraDeps.size()-1){
-          res += ",";
-       }
-    }
-    res += "), ";
-    res += "LibNames: (";
-    for(int i=0;i<libNames.size();i++){
-       res += libNames.get(i);
-       if(i<libNames.size()-1){
-          res += ",";
-       }
-    }
-    res += "), ";
-    res += "LibFlags: (";
-    for(int i=0;i<libFlags.size();i++){
-       res += libFlags.get(i);
-       if(i<libFlags.size()-1){
-          res += ",";
-       }
-    }
-    res += "), ";
-
-    res += "SourceFiles: (";
-    for(int i=0;i<sourceFiles.size();i++){
-       res += sourceFiles.get(i);
-       if(i<sourceFiles.size()-1){
-          res += ",";
-       }
-    }
-    res += "]";
-    return res; 
-  }
-
-
-  /** Reads the complete xml file **/
-  private boolean readDocument(InputStream i){
-    try{
-      Document d = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(i);
-      return processDoc(d);
-    } catch( Exception e ) {
-      e.printStackTrace();
-      return false;
-    }
-  }
-
-
-  /** Analyses the complte xml file **/
-  private boolean processDoc(Document d){
-    Element root = d.getDocumentElement();
-    if(root==null){
-        System.err.println("Error in document");
-        return false;
-    }
-    if(!root.getTagName().equals("SecondoExtension")){
-       System.err.println("not a SecondoExtension file");
-       return false;
-    }
-    NodeList nl = root.getChildNodes();
-    boolean isExtension = false;
-    boolean algebraInstalled = false;
-    for(int i=0; i< nl.getLength();i++){
-       Node n = nl.item(i);
-       String name = n.getNodeName();
-       if(name.equals("Algebra")){
-          if(algebraInstalled){
-             System.err.println("only one algebra per module possible");
-             return false;
-          }
-          if(!readAlgebra(n)){
-              return false;
-          }
-          isExtension = true;
-          algebraInstalled = true;
-       } else if(name.equals("Viewer")){
-          System.err.println("Viewer not supported yet");
-
-       } else if(name.equals("HoeseExtension")){
-          System.err.println("HoeseViewer not supported yet");
-       } else if(name.equals("Optimizer")){
-
-       } else if(name.equals("Kernel")){
-          System.err.println("Kernel not supported yet");
-
-       } else if(!name.equals("#text")){
-           System.err.println("unknown entry " + name );
-       }
-     }
-     return isExtension;
-  }
-
-
-  /** Alanyse of the algebra part of the xml file **/
-  private boolean readAlgebra(Node n){
-     NodeList nl = n.getChildNodes();
-     for(int i=0; i < nl.getLength(); i++){
-        Node n2 = nl.item(i);
-        String name = n2.getNodeName();
-        if(name.equals("Dependencies")){
-          readDependencies(n2);
-        } else if(name.equals("SourceCode")){
-          readSources(n2);
-        } else if(name.equals("SpecFile")){
-           if(specFile!=null){
-             System.err.println("only a single spec file is allowed");
-             return false;
-           } else {
-             if(n2.hasChildNodes()){
-                specFile = n2.getFirstChild().getNodeValue().trim();
-             } else {
-               System.err.println("empty Spec not allowed");
-               return false;
-             }
-           }
-
-        }else if(name.equals("ExampleFile")){
-           if(exampleFile!=null){
-             System.err.println("only a single example file is allowed");
-             return false;
-           } else {
-             if(n2.hasChildNodes()){
-                exampleFile = n2.getFirstChild().getNodeValue().trim();
-             } else {
-               System.err.println("empty Example not allowed");
-               return false;
-             }
-           }
-       } else if(name.equals("Copyright")){
-           if(copyright!=null){
-             System.err.println("only a single copyright is allowed");
-             return false;
-           } else {
-             if(n2.hasChildNodes()){
-                copyright = n2.getFirstChild().getNodeValue().trim();
-             } else {
-               System.err.println("empty Copyright not allowed");
-               return false;
-             }
-           }
-       } else if(name.equals("Name")){
-           if(algName!=null){
-             System.err.println("only a single name is allowed");
-             return false;
-           } else {
-             if(n2.hasChildNodes()){
-                algName = n2.getFirstChild().getNodeValue().trim();
-             } else {
-               System.err.println("empty Copyright not allowed");
-               return false;
-             }
-           }
-       } else if(!name.equals("#text")){
-           System.out.println("Unsupported node name in algebra " + name );
-       }
-    }
-    return algName!=null &&
-           secondo_Major_Version >0 && 
-           secondo_Minor_Version>=0 &&
-           secondo_SubMinor_Version>=0 &&
-           sourceFiles.size()>0 &&
-           specFile!=null &&
-           exampleFile!=null &&
-           copyright!=null;
-  }  // readAlgebra 
-
-
-  /** Collects the names of the source files from the xml file. **/
-  boolean  readSources(Node n1){
-     NodeList nl = n1.getChildNodes();
-     for(int i=0;i<nl.getLength(); i++){
-        Node n = nl.item(i);
-        if(n.getNodeName().equals("file")){
-            if(n.hasChildNodes()){
-               String f  = n.getFirstChild().getNodeValue().trim();
-               if(f.length()>0){
-                  sourceFiles.add(f);
-               }
-            } 
-        } else if(!n.getNodeName().equals("#text")){
-          System.out.println("Unsupported node type in Sources");
-        }
-     }
-     return sourceFiles.size() > 0;
-  }
-
-  /** Extracts the dependencies form the xml file **/ 
-  boolean readDependencies(Node n1){
-    NodeList nl = n1.getChildNodes();
-    for(int i=0;i<nl.getLength(); i++){
-       Node n = nl.item(i);
-       String name = n.getNodeName();
-       if(name.equals("Algebra")){
-          if(n.hasChildNodes()){
-             String  a = n.getFirstChild().getNodeValue().trim();
-             if(a.length()>0){
-                  algebraDeps.add(a);
-             }
-          } 
-       } else if(name.equals("SecondoVersion")){
-         readVersion(n);
-       } else if(name.equals("Libraries")){
-         readLibraries(n);
-       } else if(!name.equals("#text")){
-         System.err.println("unknown element found in dependencies: " + name);
-       }
-    }
-    return true;
-
-  }
-
-  /** Extracts the version information from the xml file **/
-  boolean readVersion(Node n1){
-    NodeList nl = n1.getChildNodes();
-    for(int i=0;i<nl.getLength(); i++){
-       Node n = nl.item(i);
-       String name = n.getNodeName();
-       if(name.equals("Major")){
-          if(n.hasChildNodes()){
-             String  a = n.getFirstChild().getNodeValue().trim();
-             secondo_Major_Version=Integer.parseInt(a.trim());
-          } 
-       } else if(name.equals("Minor")){
-          if(n.hasChildNodes()){
-             String  a = n.getFirstChild().getNodeValue().trim();
-             secondo_Minor_Version=Integer.parseInt(a.trim());
-          } 
-       } else if(name.equals("SubMinor")){
-          if(n.hasChildNodes()){
-             String  a = n.getFirstChild().getNodeValue().trim();
-             secondo_SubMinor_Version=Integer.parseInt(a.trim());
-          } 
-       } else if(!name.equals("#text")){
-           System.err.println("Unknown version information found" + name);
-       }
-    }
-    return secondo_Major_Version>0 &&
-           secondo_Minor_Version>=0 &&
-           secondo_SubMinor_Version>=0;
-  }
-
-  /** Extracts the needed algebras from the xml file. **/
-  boolean readLibraries(Node n1){
-     NodeList nl = n1.getChildNodes();
-     for(int i=0;i<nl.getLength(); i++){
-       Node n = nl.item(i);
-       if(n.getNodeName().equals("Lib")){
-          NamedNodeMap m = n.getAttributes();
-          for(int j=0;j<m.getLength();j++){
-             Node a = m.item(j);
-             if(a.getNodeName().equals("name")){
-                libNames.add(a.getNodeValue().trim());
-             } else if(a.getNodeName().equals("flag")){
-                libFlags.add(a.getNodeValue().trim());
-             } else {
-                System.err.println("Unknown Attribute in library");
-             }
-          }
-       } else if(!n.getNodeName().equals("#text")) {
-          System.err.println("unknown node found in lib" + n.getNodeName());
-       }
-     }
-     return true; 
-  }
-
-  /** Returns the name of the Algebra **/
-  String getAlgebraName(){
-    return algName;
-  }
-
-  /** Returns version information **/
-  public int getSecondo_Major_Version(){
-     return secondo_Major_Version;
-  }
-  
-  /** Returns version information **/
-  public int getSecondo_Minor_Version(){
-    return secondo_Minor_Version;
-  }
-  
-  /** Returns version information **/
-  public int getSecondo_SubMinor_Version(){
-    return secondo_SubMinor_Version;
-  }
-
-  /* Returns the names of the needed Algebras **/
-  public Vector getAlgebraDeps(){
-    return algebraDeps;
-  }
-
-  /** Returns the names of the needed libraries. **/
-  public Vector getLibNames(){
-    return libNames;
-  }
-
-  /** Returns the names the zip file **/
-  public String getFileName(){
-     return fileName;
-  }
- 
-  /** Returns the name of the algebra directory, normally 
-    * the algebra name without the "Algebra".
-    **/
-  public String getAlgebraDir(){
-     if(algName.endsWith("Algebra")){
-        return algName.substring(0,algName.length()-7);
-     }else{
-        return algName;
-     }
-  }
-
-  /** Returns libary names used fro linking. **/
-  public Vector getLibFlags(){
-     return libFlags;
-  }
-
-  /** Returns the filkename for copyright information. **/
-  public String getCopyright(){
-     return copyright;
-  }
-
-}
-
 
 
 /*
@@ -415,23 +40,6 @@ class ExtensionInfo{
 */
 public class  ExtensionInstaller{
 
-/**
- *Returns possible Algebra directory names for an algebra name.
- *Algebra name without Algebra and extended by "-C++".  
-**/
-private Vector getPossibleAlgebraDirNames(String algName){
-  Vector res = new Vector(4);
-  res.add(algName);
-  if(algName.endsWith("Algebra")){
-     res.add(algName.substring(0,algName.length()-7));
-  }else{
-     res.add(algName+"Algebra");
-  }
-  for(int i=0;i<2;i++){
-    res.add(res.get(i).toString()+"-C++");
-  }
-  return res;
-}
 
 /** The secondo build dir. **/
 private File secondoDir=null;
@@ -442,7 +50,6 @@ public ExtensionInstaller(String secondoDirectory){
      secondoDirectory += File.separator;
   }
   File f = new File(secondoDirectory);
-  
   if(f.exists()){
     secondoDir = f;
   } else {
@@ -450,371 +57,71 @@ public ExtensionInstaller(String secondoDirectory){
   }
 }
 
-/** checks whether the algebra is already installed or if
-  * the same algebra should be installed twice.
-  **/
-boolean checkConflicts(String secondoDir, Vector infos){
-  // AlgebraNames of all infos dijoint
-  TreeSet names  = new TreeSet();
+private boolean checkAndInstallAlgebras(Vector<ExtensionInfo> infos){
+   // collect all Algebras to check conflicts and dependencies
+   Vector<AlgebraInfo> algInfos = new Vector<AlgebraInfo>(infos.size());
+   for(int i=0; i< infos.size();i++){
+       ExtensionInfo info1 = infos.get(i);
+       AlgebraInfo info = info1.getAlgebraInfo();
+       if(info!=null){
+          algInfos.add(info);
+       }
+   }
+
+   if(!AlgebraInfo.check(secondoDir.getAbsolutePath(),algInfos)){
+       return false;
+   }
+   for(int i=0;i<infos.size();i++){
+       ExtensionInfo info1 = infos.get(i);
+       AlgebraInfo info = info1.getAlgebraInfo();
+       if(info!=null){
+          info.install(secondoDir.getAbsolutePath(), info1.getFileName()); 
+       }
+   }
+   return true;
+}
+
+private boolean checkAndInstallViewers(Vector<ExtensionInfo> infos){
+  // collect all ViewerInfos
+  Vector<ViewerInfo> viewerInfos = new Vector<ViewerInfo>(infos.size());
   for(int i=0;i<infos.size();i++){
-     names.add( ((ExtensionInfo)infos.get(i)).getAlgebraName());
-  } 
-  if(names.size() < infos.size()){
-     System.err.println("multiple used algebra names");
+    ExtensionInfo info = infos.get(i);
+    ViewerInfo vinfo = info.getViewerInfo();
+    if(vinfo!=null){
+      // check whether all files are present
+      boolean ok = false;
+      ZipFile f = null;
+      try{
+        f = new ZipFile(info.getFileName());
+        ok = vinfo.filesPresent(f);
+      } catch(Exception e){
+        e.printStackTrace();
+        return false;
+      } finally { 
+      if(f!=null){
+         try{f.close();}catch(Exception e){}
+       }
+      }       if(!ok){
+         return false;
+      }
+      viewerInfos.add(vinfo);
+    }
+  }
+  if(!ViewerInfo.check(secondoDir.getAbsolutePath(), viewerInfos)){
      return false;
   }
 
-
-  // AlgebraNames not already included
-  String algDir = secondoDir+File.separator+"Algebras"+File.separator;
   for(int i=0;i<infos.size();i++){
-     ExtensionInfo info = (ExtensionInfo)infos.get(i);
-     Vector algDirNames = getPossibleAlgebraDirNames(info.getAlgebraName());
-     boolean found = false;
-     for(int j=0;j<algDirNames.size();j++){
-        File f = new File(algDir+algDirNames.get(j).toString());
-        if(f.exists()){
-           found=true;
+     ExtensionInfo info = infos.get(i);
+     ViewerInfo vinfo = info.getViewerInfo();
+     if(vinfo!=null){
+        if(!vinfo.install(secondoDir.getAbsolutePath(), info.getFileName())){
+           return false;
         }
-     }
-     if(found){
-        System.err.println("Algebra " + info.getAlgebraName() + " already installed");
-        return false;
      }
   }
   return true; 
-
 }
-
-/** This fumction checks whether all dependencies are solved.  **/
-boolean checkDependencies(String secondoDir, Vector infos){
-  // get SecondoVersion
-  File versionFile = new File(secondoDir + "/include/version.h");
-  if(!versionFile.exists()){
-    System.err.println("Version file '"+versionFile.getAbsolutePath()+"' not found");
-    return false;
-  }
-  int major = -1;
-  int minor = -1;
-  int subminor = -1;
-  try{
-      BufferedReader in = new BufferedReader(new FileReader(versionFile));
-      while((major<0 || minor <0 || subminor <0) && in.ready()){
-         String line = in.readLine();
-         if(line!=null){
-            line = line.trim();
-            if(line.indexOf("SECONDO_VERSION_MAJOR") >=0){
-                line = line.replaceAll("[^0123456789]",""); // only keep digits
-                major = Integer.parseInt(line); 
-            } else if(line.indexOf("SECONDO_VERSION_MINOR") >=0){
-                line = line.replaceAll("[^0123456789]",""); // only keep digits
-                minor = Integer.parseInt(line); 
-            } else if(line.indexOf("SECONDO_VERSION_REVISION") >=0){
-                line = line.replaceAll("[^0123456789]",""); // only keep digits
-                subminor = Integer.parseInt(line); 
-            }
-         }
-      }
-      in.close();
-      if(major<0 || minor < 0  || subminor <0){
-         System.err.println("version not completely found");
-         return false;
-      }
-  } catch (Exception e){
-    e.printStackTrace();
-    return false;
-  }
-
-
-  // get Algebra Names 
-  TreeSet names  = new TreeSet();
-  for(int i=0;i<infos.size();i++){
-     names.add( ((ExtensionInfo)infos.get(i)).getAlgebraName());
-  }
- 
-  for(int i=0;i<infos.size();i++){
-      ExtensionInfo info = (ExtensionInfo)infos.get(i);
-     // check version
-     String name = info.getAlgebraName();
-     if( major < info.getSecondo_Major_Version() ||
-         minor < info.getSecondo_Minor_Version() ||
-         subminor < info.getSecondo_SubMinor_Version()){
-       System.err.println("Algebra " + name + " requires a Secondo Version " +
-                          info.getSecondo_Major_Version() + "." +
-                          info.getSecondo_Minor_Version() + "." +
-                          info.getSecondo_Minor_Version()
-                          + " but the currently installed version is " +
-                          major + "." + minor+"." + subminor);
-       return false;  
-     }
-     // check required algebras
-     Vector algebraDeps = info.getAlgebraDeps();
-     String algDir = secondoDir+File.separator+"Algebras"+File.separator;
-     for(int j=0;j<algebraDeps.size();j++){
-       String alg = algebraDeps.get(j).toString();
-       if(!names.contains(alg)){ // algs installed together
-          File a = new File(algDir+alg);
-          if(!a.exists() || !a.isDirectory()){
-             if(alg.endsWith("Algebra")){
-                alg = alg.substring(0,alg.length()-7);
-                a = new  File(algDir+alg);
-             }
-             if(!a.exists() || !a.isDirectory()){
-                alg = alg+"-C++";
-                a = new File(algDir+alg);
-             }
-             if(!a.exists() || !a.isDirectory()){
-                System.err.println(a.getAbsolutePath());
-                System.err.println("The algebra "+ name+
-                                   " requires the algebra " + alg +
-                                   " but this algebra is not installed.");
-                return false;
-             }
-          }
-       }
-     } 
-
-     // show library dependencies
-     Vector libDeps = info.getLibNames();
-     for(int j=0;j<libDeps.size();j++){
-       System.err.println("The Algebra "+ name +" requires the library " + 
-                           libDeps.get(j) + " to be installed. Please ensure to "+
-                           "have installed this library before compiling secondo."); 
-
-     }
-  }
-  return true;  
-}
-
-/** inserts the algebra into makefile.algebras.  **/
-private boolean modifyMakeFileAlgebras(File f, ExtensionInfo info){
-    if(!f.exists()){
-      System.err.println("makefile.algebras.sample does not exist. Check the secondo installation");
-      return false;
-    }
-    try{ 
-      String content = "";
-      BufferedReader in = new BufferedReader(new FileReader(f));
-      boolean inActivateAllAlgebrasSection = false;
-      boolean inNotMinAlgebraSet = false;
-      Vector algebras = new Vector(); // already existing algebras
-      Vector libs = new Vector();     // already existing libs in all algs section
-
-      while(in.ready()){
-        String line = in.readLine();
-        if(line.matches("ifdef\\s+SECONDO_ACTIVATE_ALL_ALGEBRAS\\s*")){
-           content += line + "\n";
-           inActivateAllAlgebrasSection = true;
-        } else if(line.matches("ifndef\\sSECONDO_MIN_ALGEBRA_SET\\s*")){
-           content += line  + "\n";
-           inNotMinAlgebraSet = true;
-        } else if(line.matches("endif\\s*")){
-           if(inActivateAllAlgebrasSection){
-              inActivateAllAlgebrasSection = false;
-              // add librarie here
-              TreeSet libFlags = new TreeSet(info.getLibFlags());
-              for(int i=0;i<libs.size();i++){
-                libFlags.remove(libs.get(i));
-              }              
-
-              if(libFlags.size()>0){
-                  String flags = "";
-                  Iterator it = libFlags.iterator();
-                  while(it.hasNext()){
-                      flags += " " + it.next();
-                  }
-                  content += "ALGEBRA_DEPS += "+flags+"\n";
-              }
-           } else if(inNotMinAlgebraSet){
-              inNotMinAlgebraSet = false;
-              if(algebras.indexOf(info.getAlgebraName())<0){
-                 // make algebra entries
-                 content += "ALGEBRA_DIRS += " + info.getAlgebraDir()+"\n";
-                content += "ALGEBRAS += " + info.getAlgebraName()+"\n"; 
-                Vector libFlags = info.getLibFlags();
-                if(libFlags.size()>0){
-                   String flags = "";
-                   for(int j=0;j<libFlags.size();j++){
-                       flags +=" "+libFlags.get(j);
-                   }
-                   content += "ALGEBRA_DEPS += "+flags+"\n";
-                }
-                content +="\n";
-              } else {
-                System.out.println("Algebra already present in "+f);
-              }
-           }
-           content += line + "\n";
-        } else { // any other line, copy it
-           if(line.matches("ALGEBRAS\\s*(:|\\+)=\\s\\w+")){
-               String alg = line.replaceAll(".*=","").trim();
-               algebras.add(alg);
-           } else if(inActivateAllAlgebrasSection &&
-                     line.matches("ALGEBRA_DEPS\\s*\\+=.*")){
-             String l = line.replaceAll(".*=","").trim();
-             StringTokenizer st = new StringTokenizer(l);
-             while(st.hasMoreTokens()){
-                libs.add(st.nextToken());
-             }
-                
-           }
-           content += line +"\n";
-        }
-      }
-      in.close();
-      PrintStream out = new PrintStream(new  FileOutputStream(f));
-      out.println(content);
-      out.close();
-    } catch(Exception e){
-       e.printStackTrace();
-       System.err.println("could not update makefile.algebras.sample");
-       return false;
-    }
-    return true;
-
-}
-
-/** Installs the algebra.  */
-private boolean install(String secondoDir, ExtensionInfo info){
-  System.out.println("install algabra " + info.getAlgebraName());
-  // create algebra directory
-  File algDir = new File(secondoDir+File.separator+"Algebras"+File.separator+info.getAlgebraDir());
-  algDir.mkdir();
-
-  // collect all Filename to be installed into the algebra directory
-  TreeSet names = info.getAllSources(); 
-
-  try{
-     ZipFile zipFile = new ZipFile(info.getFileName());
-     Iterator it = names.iterator();
-     while(it.hasNext()){
-       String name = (String)it.next();
-       ZipEntry entry = zipFile.getEntry(name);
-       if(entry==null || entry.isDirectory()){
-         System.err.println("File " + name +" not present in the zip file ");
-         return false;
-       } 
-       // copy the file
-       System.out.println("copy file "  + name);
-       InputStream in = null;
-       OutputStream out = null;
-       try{
-         in = zipFile.getInputStream(entry);
-         byte[] buffer = new byte[1024];
-         String fileName =  algDir.getAbsolutePath()+ File.separator +  name;
-         out = new FileOutputStream(fileName);
-         int read = 0;
-         int size = 0;
-         while((read=in.read(buffer))>=0){
-            size += read;
-            out.write(buffer,0,read);
-         }
-       } finally{
-         if(in!=null){
-           try{in.close();} catch(Exception e){ System.err.println("Problem in closing in file");}
-         }
-         if(out!=null){
-           try{out.close();} catch(Exception e){System.out.println("Problen in closing out file");}
-         }
-       }
-     }
-
-    System.out.println("Source files successful installed");
-
-    System.out.println("modify AlgebraList.i.cfg");
-    try{
-       // copy the complete file into a string and get the highest algebra number
-       int number = 0;
-       File f = new File (secondoDir +
-                          File.separator +
-                          "Algebras" + File.separator +
-                          "Management" + File.separator+
-                          "AlgebraList.i.cfg");
-       if(!f.exists()){
-          System.err.println("AlgebraList.i.cfg not found, please check your Secondo installation");
-          return false;
-       }
-       BufferedReader in = new BufferedReader(new FileReader(f));
-       String content = new String(); 
-       int maxNum = 0;
-    
-       boolean foundInList=false; 
-       while(in.ready()&&!foundInList){
-         String line = in.readLine();
-         content += line+"\n";
-         if(line.matches("\\s*ALGEBRA_INCLUDE\\([0-9]+\\s*,\\s*\\w*\\s*\\)\\s*")){
-           String n1 =  line.replaceAll(",.*","");
-           n1 = n1.replaceAll("\\D","");
-           int num = Integer.parseInt(n1); 
-           if(num>maxNum){
-             maxNum = num;
-          }
-         }
-         if(line.matches("\\s*ALGEBRA_INCLUDE\\([0-9]+\\s*,\\s*"+info.getAlgebraName()+"\\s*\\)\\s*")){
-             foundInList = true;
-         } 
-       }
-       in.close();
-       if(!foundInList){
-          // Append the entry for the new Algebra
-          content +="ALGEBRA_INCLUDE("+(maxNum+1)+","+info.getAlgebraName()+")\n";
-          // write the file
-          PrintStream out = new PrintStream(new  FileOutputStream(f));
-          out.println(content);
-          out.close();
-       } else{
-          System.out.println("Algebra already found in AlgebraList.i.cfg");
-       }
-    }catch(Exception e){
-       e.printStackTrace();
-       System.err.println("AlgebraList.i.cfg could not be updated");
-       return false;
-    }
-   
-    System.out.println("modify makefile.algebras and makefile.algebras.sample");
-
-    File f = new File(secondoDir + File.separator + "makefile.algebras.sample");
- 
-    if(!modifyMakeFileAlgebras(f,info)){
-       return false;
-    }   
-    f = new File(secondoDir + File.separator + "makefile.algebras");
-    if(f.exists()){
-       if(!modifyMakeFileAlgebras(f,info)){
-         return false;
-       }
-    }
-    // show copyrightnotice
-    ZipEntry entry = zipFile.getEntry(info.getCopyright());
-    if(entry==null){
-       System.out.println("No copyright information available");
-    } else {
-       String cr = "";
-       try{
-          BufferedReader r = new BufferedReader(new InputStreamReader(zipFile.getInputStream(entry)));
-          while(r.ready()){
-            cr += r.readLine() + "\n";
-          }
-          r.close();
-          System.out.println("================= COPYRIGHT NOTICE =============== \n\n"+cr);
-          System.out.println("=================END OF COPYRIGHT NOTICE ========= \n");
-       } catch(Exception e){
-           System.err.println("Error during redaing the copyright");
-       }  
-    }
-
-
-    return true;
-  } catch(Exception e){
-    e.printStackTrace();
-    System.err.println("error in installing algebra " + info.getAlgebraName());
-    return false;
-  }
-  
-
-
-}
-
 
 
 
@@ -824,7 +131,7 @@ private boolean install(String secondoDir, ExtensionInfo info){
 public boolean installExtensions(String[] extensionFiles){
   try{
      // step one: extract the ExtensionInformations
-     Vector infos = new Vector(extensionFiles.length);
+     Vector<ExtensionInfo> infos = new Vector<ExtensionInfo>(extensionFiles.length);
      for(int i=0; i< extensionFiles.length; i++){
         ZipFile zipFile = new ZipFile(extensionFiles[i]);
         Enumeration entries = zipFile.entries();
@@ -847,26 +154,17 @@ public boolean installExtensions(String[] extensionFiles){
         }
         zipFile.close();
      }
-     // all zip files was read successfully
-     if(!checkConflicts(secondoDir.getAbsolutePath(),infos)){
-         System.err.println("Conflict found" );
-         return false;
-     }
-     if(!checkDependencies(secondoDir.getAbsolutePath(), infos)){
-       System.err.println("problem in dependencies found" );
-       return false;
-     }  
+     // all xml files are analysed and the results are stored
+     // process algebras
+     checkAndInstallAlgebras(infos);
+     checkAndInstallViewers(infos);
 
-     System.out.println("No problems found, start to install the algebra(s)");
-     for(int i=0;i<infos.size();i++){
-        install(secondoDir.getAbsolutePath(), (ExtensionInfo) infos.get(i));
-     }
-  } catch ( Exception e){
+
+  } catch(Exception e){
     e.printStackTrace();
-    return false;
+    System.err.println("Problem in analyse of modules");
   }
-
-  return true; // implementation not finished yet 
+  return true; 
 
 }
 
