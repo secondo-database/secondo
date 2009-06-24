@@ -28,6 +28,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [File ~statistics.pl~]
 
+While module [~database.pl~] handles basic information on database objects, like
+types/ schemas, tuple sizes, cardinalities etc. this module deals with statistics
+on databases, that rely to predicate evaluation.
+
+Above all, it covers the estimation of predicate selectivities, predicate
+evaluation times (PETs), and type inference for expressions.
+
 [toc]
 
 1 Information about Selectivity of Predicates
@@ -1239,125 +1246,6 @@ showStoredPredicateSignature :-
 
 
 /*
-1.5 Printing Metadata on Database
-
----- showDatabase
-----
-
-This predicate will inquire all collected statistical data on the
-opened Secondo database and print it on the screen.
-
-*/
-
-:-assert(helpLine(showDatabase,0,[],
-         'List available metadata on relations within current database.')).
-
-showSingleOrdering(DB, Rel) :-
-  findall( X,
-           ( storedOrder(DB,Rel,X1),
-             translateOrderingInfo(Rel, X1, X)
-           ),
-           OrderingAttrs
-         ),
-  write('\n\n\tOrdering:  '),
-  write(OrderingAttrs), nl, !.
-
-translateOrderingInfo(_, none,none) :- !.
-translateOrderingInfo(_, shuffled,shuffled) :- !.
-translateOrderingInfo(Rel, Attr, AttrS) :-
-  dcName2externalName(Rel:Attr, AttrS).
-
-showSingleRelationCard(DB, Rel) :-
-  storedCard(DB, Rel, Card),
-  write('\n\n\tCardinality:   '), write(Card), nl, !.
-
-showSingleRelationCard(_, _) :-
-  write('\n\n\tCardinality:   *'), nl, !.
-
-showSingleRelationTuplesize(_, Rel) :-
-  tuplesize(Rel, Size),
-  tupleSizeSplit(Rel, Size2),
-  write('\tAvg.TupleSize: '), write(Size), write(' = '),
-    write(Size2), nl, !.
-
-showSingleRelationTuplesize(_, _) :-
-  write('\tAvg.TupleSize: *'), nl, !.
-
-showSingleIndex(Rel) :-
-  databaseName(DB),
-  storedIndex(DB, Rel, Attr, IndexType, _),
-  dcName2externalName(Rel:Attr, AttrS),
-  write('\t('), write(AttrS), write(':'), write(IndexType), write(')').
-
-showSingleRelation :- showRelation(_).
-:- assert(helpLine(showRelation,1,
-    [[+,'RelDC','The relation to get information about.']],
-    'Show meta data on a given relation.')).
-
-showRelation(Rel) :-
-  databaseName(DB),
-  storedRel(DB, Rel, _),
-  dcName2externalName(Rel, RelS),
-  ( ( sub_atom(Rel,_,_,1,'_sample_') ; sub_atom(Rel,_,_,0,'_small') )
-    -> fail
-    ;  true
-  ),
-  write('\nRelation '), write(RelS),
-  ( systemTable(Rel,_)
-    -> write('\t***SYSTEM TABLE***')
-    ;  true
-  ),
-  getSampleSname(RelS, SampleS),
-  getSampleJname(RelS, SampleJ),
-  getSmallName(RelS, Small),
-  write('\t(Auxiliary objects:'),
-  ( secondoCatalogInfo(DCSampleS,SampleS,_,_)
-    -> (card(DCSampleS,CardSS), write_list([' SelSample(',CardSS,') ']) )
-    ; true ),
-  ( secondoCatalogInfo(DCSampleJ,SampleJ,_,_)
-    -> (card(DCSampleJ,CardSJ), write_list([' JoinSample(',CardSJ,') ']) )
-    ; true ),
-  ( secondoCatalogInfo(DCSmall,Small  ,_,_)
-    -> (card(DCSmall,CardSM), write_list([' SmallObject(',CardSM,') ']) )
-    ; true ),
-  write(')'), nl,
-  findall(_, showAllAttributes(Rel), _),
-  findall(_, showAllIndices(Rel), _),
-  showSingleOrdering(DB, Rel),
-  showSingleRelationCard(DB, Rel),
-  showSingleRelationTuplesize(DB, Rel).
-
-showSingleAttribute(Rel,Attr) :-
-  databaseName(DB),
-  storedAttrSize(DB, Rel, Attr, Type, MemSize, CoreSize, LobSize),
-  dcName2externalName(Rel:Attr, AttrS),
-  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',
-  [AttrS, Type, MemSize, CoreSize, LobSize]).
-
-showAllAttributes(Rel) :-
-  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',
-  ['AttributeName','Type','MemoryFix','DiskCore','DiskLOB']),
-  findall(_, showSingleAttribute(Rel, _), _).
-
-showAllIndices(Rel) :-
-  write('\n\tIndices: \n'),
-  findall(_, showSingleIndex(Rel), _).
-
-showDatabase :-
-  databaseName(DB),
-  write('\nCollected information for database \''), write(DB),
-    write('\':\n'),
-  findall(_, showSingleRelation, _),
-  write('\n(Type \'showDatabaseSchema.\' to view the complete '),
-  write('database schema.)\n').
-
-showDatabase :-
-  write('\nNo database open. Use open \'database <name>\' to'),
-  write(' open an existing database.\n'),
-  fail.
-
-
-/*
 1.5 Determining System Speed and Calibration Factors
 
 To achieve good cost estimations, the used cost factors for operators need to be calibrated.
@@ -1802,39 +1690,9 @@ calcExpPET(MSs, Card1, TupleSize1, Card2, TupleSize2, ResCard, Time) :-
 calcExpPET(MSs, _, _, _, _, _, MSs) :-
   not(optimizerOption(nawracosts)), !.
 
-/*
-1.8 Examples
-
-Example 22:
-
-*/
-example24 :- optimize(
-  select *
-  from [staedte as s, ten]
-  where [
-    s:plz < 1000 * no,
-    s:plz < 4578]
-  ).
 
 /*
-Example 23:
-
-*/
-
-example23 :- optimize(
-  select *
-  from [thousand as th, ten]
-  where [
-    (th:no mod 10) < 5,
-    th:no * 100 < 50000,
-    (th:no mod 7) = no]
-  ).
-
-
-
-
-/*
-1.9 Determining Expression Types and Operator Signatures
+1 Determining Expression Types and Operator Signatures
 
 The following predicates are used to determine the Signature of operators
 used within queries, especially within predicates.
@@ -2210,3 +2068,151 @@ createFunArgs([ArgType|R],[param(Var, ArgType)|Args]) :-
   newVariable(Var),
   createFunArgs(R,Args),!.
 
+
+/*
+1 Printing Metadata on Database
+
+---- showDatabase
+----
+
+This predicate will inquire all collected statistical data on the
+opened Secondo database and print it on the screen.
+
+*/
+
+:-assert(helpLine(showDatabase,0,[],
+         'List available metadata on relations within current database.')).
+
+showSingleOrdering(DB, Rel) :-
+  findall( X,
+           ( storedOrder(DB,Rel,X1),
+             translateOrderingInfo(Rel, X1, X)
+           ),
+           OrderingAttrs
+         ),
+  write('\n\n\tOrdering:  '),
+  write(OrderingAttrs), nl, !.
+
+translateOrderingInfo(_, none,none) :- !.
+translateOrderingInfo(_, shuffled,shuffled) :- !.
+translateOrderingInfo(Rel, Attr, AttrS) :-
+  dcName2externalName(Rel:Attr, AttrS).
+
+showSingleRelationCard(DB, Rel) :-
+  storedCard(DB, Rel, Card),
+  write('\n\n\tCardinality:   '), write(Card), nl, !.
+
+showSingleRelationCard(_, _) :-
+  write('\n\n\tCardinality:   *'), nl, !.
+
+showSingleRelationTuplesize(_, Rel) :-
+  tuplesize(Rel, Size),
+  tupleSizeSplit(Rel, Size2),
+  write('\tAvg.TupleSize: '), write(Size), write(' = '),
+    write(Size2), nl, !.
+
+showSingleRelationTuplesize(_, _) :-
+  write('\tAvg.TupleSize: *'), nl, !.
+
+showSingleIndex(Rel) :-
+  databaseName(DB),
+  storedIndex(DB, Rel, Attr, IndexType, _),
+  dcName2externalName(Rel:Attr, AttrS),
+  write('\t('), write(AttrS), write(':'), write(IndexType), write(')').
+
+showSingleRelation :- showRelation(_).
+:- assert(helpLine(showRelation,1,
+    [[+,'RelDC','The relation to get information about.']],
+    'Show meta data on a given relation.')).
+
+showRelation(Rel) :-
+  databaseName(DB),
+  storedRel(DB, Rel, _),
+  dcName2externalName(Rel, RelS),
+  ( ( sub_atom(Rel,_,_,1,'_sample_') ; sub_atom(Rel,_,_,0,'_small') )
+    -> fail
+    ;  true
+  ),
+  write('\nRelation '), write(RelS),
+  ( systemTable(Rel,_)
+    -> write('\t***SYSTEM TABLE***')
+    ;  true
+  ),
+  getSampleSname(RelS, SampleS),
+  getSampleJname(RelS, SampleJ),
+  getSmallName(RelS, Small),
+  write('\t(Auxiliary objects:'),
+  ( secondoCatalogInfo(DCSampleS,SampleS,_,_)
+    -> (card(DCSampleS,CardSS), write_list([' SelSample(',CardSS,') ']) )
+    ; true ),
+  ( secondoCatalogInfo(DCSampleJ,SampleJ,_,_)
+    -> (card(DCSampleJ,CardSJ), write_list([' JoinSample(',CardSJ,') ']) )
+    ; true ),
+  ( secondoCatalogInfo(DCSmall,Small  ,_,_)
+    -> (card(DCSmall,CardSM), write_list([' SmallObject(',CardSM,') ']) )
+    ; true ),
+  write(')'), nl,
+  findall(_, showAllAttributes(Rel), _),
+  findall(_, showAllIndices(Rel), _),
+  showSingleOrdering(DB, Rel),
+  showSingleRelationCard(DB, Rel),
+  showSingleRelationTuplesize(DB, Rel).
+
+showSingleAttribute(Rel,Attr) :-
+  databaseName(DB),
+  storedAttrSize(DB, Rel, Attr, Type, MemSize, CoreSize, LobSize),
+  dcName2externalName(Rel:Attr, AttrS),
+  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',
+  [AttrS, Type, MemSize, CoreSize, LobSize]).
+
+showAllAttributes(Rel) :-
+  format('\t~p~35|~p~49|~p~60|~p~69|~p~n',
+  ['AttributeName','Type','MemoryFix','DiskCore','DiskLOB']),
+  findall(_, showSingleAttribute(Rel, _), _).
+
+showAllIndices(Rel) :-
+  write('\n\tIndices: \n'),
+  findall(_, showSingleIndex(Rel), _).
+
+showDatabase :-
+  databaseName(DB),
+  write('\nCollected information for database \''), write(DB),
+    write('\':\n'),
+  findall(_, showSingleRelation, _),
+  write('\n(Type \'showDatabaseSchema.\' to view the complete '),
+  write('database schema.)\n').
+
+showDatabase :-
+  write('\nNo database open. Use open \'database <name>\' to'),
+  write(' open an existing database.\n'),
+  fail.
+
+/*
+1 Examples
+
+The following examples can be used used to test the functionality of this module.
+
+Example 22:
+
+*/
+example24 :- optimize(
+  select *
+  from [staedte as s, ten]
+  where [
+    s:plz < 1000 * no,
+    s:plz < 4578]
+  ).
+
+/*
+Example 23:
+
+*/
+
+example23 :- optimize(
+  select *
+  from [thousand as th, ten]
+  where [
+    (th:no mod 10) < 5,
+    th:no * 100 < 50000,
+    (th:no mod 7) = no]
+  ).
