@@ -1258,7 +1258,7 @@ void R_TreeNode<dim, LeafInfo>::Split( R_TreeNode<dim,
              splitPoint <= MaxEntries()-MinEntries();
              splitPoint++, pstat++ )
           if( pstat->overlap < minOverlap ||
-              pstat->overlap == minOverlap && pstat->area < minArea )
+              (pstat->overlap == minOverlap && pstat->area < minArea) )
           {
             minOverlap = pstat->overlap;
             minArea = pstat->area;
@@ -2314,7 +2314,7 @@ void R_Tree<dim, LeafInfo>::LocateBestNode( const R_TreeEntry<dim>& entry,
           overlap = overlapAfter - overlapBefore;
 
           if( overlap < bestoverlap ||
-              overlap == bestoverlap && enlargement < bestEnlargement )
+              (overlap == bestoverlap && enlargement < bestEnlargement) )
           {
             bestoverlap = overlap;
             bestEnlargement = enlargement;
