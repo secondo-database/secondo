@@ -628,7 +628,7 @@ Restricts a ~mgpoint~ to the given unit intervals.
 
   DBArray<RouteInterval> m_trajectory;
 
-  int Position(Instant &inst);
+  int Position(const Instant &inst);
 
   private:
 

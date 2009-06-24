@@ -3057,7 +3057,7 @@ Searches binary the unit id of the mpgoint unit which includes the given time
 stamp. Returns -1 if the time stamp is not found.
 
 */
-int MGPoint::Position(Instant &ins) {
+int MGPoint::Position(const Instant &ins) {
   int mid = -1;
   int first = 0;
   int last = GetNoComponents() - 1;
@@ -3073,7 +3073,7 @@ int MGPoint::Position(Instant &ins) {
     if (pCurrUnit->timeInterval.end < ins) first = mid + 1;
     else
       if (pCurrUnit->timeInterval.start > ins ) last = mid - 1;
-    else return mid;
+      else return mid;
   }
   return -1;
 }
@@ -3603,6 +3603,12 @@ void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
       if (++j >= per->GetNoComponents()) break;
       else per->Get(j,interval);
     }
+    if(pCurrentUnit->timeInterval.Before(*interval))
+    {
+      i = Position(interval->start);
+      if (i != -1) Get(i,pCurrentUnit);
+      else i = GetNoComponents()+1;
+    }
     res->StartBulkLoad();
     while( i < GetNoComponents() && j < per->GetNoComponents())
     {
@@ -3613,8 +3619,8 @@ void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
       }
       else
       { // we have overlapping intervals, now
-        if (pCurrentUnit->timeInterval.start >= interval->start &&
-            pCurrentUnit->timeInterval.end <= interval->end)
+        if (pCurrentUnit->timeInterval.start > interval->start &&
+            pCurrentUnit->timeInterval.end < interval->end)
         {
           res->Add(*pCurrentUnit);
           if (++i >= GetNoComponents()) break;
@@ -3694,7 +3700,7 @@ void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
                 else Get( i, pCurrentUnit );
               }
               else
-              { // !interval->start
+              { // !interval->rc
                 if( ++j >= per->GetNoComponents() ) break;
                 else per->Get( j, interval );
               }
@@ -3710,7 +3716,7 @@ void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
             else
             {
               if( ++j >= per->GetNoComponents()) break;
-               else per->Get( j, interval );
+              else per->Get( j, interval );
             }
           }
         }
@@ -3730,14 +3736,17 @@ Restricts the ~mgpoint~ to the given ~instant~
 */
 
 void MGPoint::Atinstant(Instant *&per, Intime<GPoint> *&res){
-  if (IsDefined() && !IsEmpty()){
-    int pos = Position(*per);
+  if (IsDefined() && !IsEmpty() && per->IsDefined())
+  {
     const UGPoint *pCurrUnit;
+    int pos = Position(*per);
     if (pos == -1) res->SetDefined(false);
-    else {
+    else
+    {
+      res->SetDefined(true);
       Get(pos,pCurrUnit);
       GPoint gp = GPoint(false);
-      pCurrUnit->TemporalFunction(*per, gp, true);
+      pCurrUnit->TemporalFunction(*per, gp);
       if (gp.IsDefined()) *res=Intime<GPoint>(*per,gp);
       else res->SetDefined(false);
     }
@@ -4809,9 +4818,8 @@ void UGPoint::TemporalFunction( const Instant& t,
       }  else {
         result = GPoint(true, p0.GetNetworkId(), p0.GetRouteId(),
                        (((p1.GetPosition()-p0.GetPosition()) *
-                       ((t.ToDouble()-timeInterval.start.ToDouble()) /
-                       (timeInterval.end.ToDouble() -
-                           timeInterval.start.ToDouble())))
+                       ((t-timeInterval.start) /
+                       (timeInterval.end - timeInterval.start)))
                         + p0.GetPosition()),
                         p0.GetSide());
         result.SetDefined(true);
