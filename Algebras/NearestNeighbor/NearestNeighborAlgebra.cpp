@@ -7617,91 +7617,12 @@ void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
 
 
 /*
-Check whether this element has to be pruned or not
-By time interval and MINDIST,MAXDIST
-
-*/
-template<class timeType>
-bool CheckPrune_entry(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
-{
-
-  hpelem* head = local->nlist[local->k-1].head;
-  if(head->next == NULL)
-    return false; //not prune
-  hpelem* cur = head->next;
-
-  double elemts = elem.nodets;
-  double elemte = elem.nodete;
-
-  double curts = cur->nodets;
-  double curte = cur->nodete;
-  if(curts > elemts)
-    return false;
-
-  while(cur != NULL){
-
-    curts = cur->nodets;
-    curte = cur->nodete;
-
-    if(elemts < curts)
-      return false;
-
-
-    if(elemts >= curte){
-      head = cur;
-      cur = cur->next;
-      continue;
-    }
-
-    if(curts <= elemts && elemte <= curte){
-      if(cur->maxd <= elem.mind)
-        return true;//prune
-      else
-        return false;
-    }
-
-      if(curts <= elemts && elemte > curte){
-
-      if(cur->maxd <= elem.mind){
-          if(cur->next == NULL)
-            return false;
-          hpelem* next = cur->next;
-          double nextts,nextte;
-          while(next != NULL){
-              nextts = next->nodets;
-              curte = cur->nodete;
-
-              if(nextts > curte)
-                return false;
-                nextte = next->nodete;
-
-                if(nextte >= elemte && next->maxd < elem.mind)
-                return true;//prune
-
-                if(nextte < elemte && next->maxd < elem.mind){
-                    cur = next;
-                    next = cur->next;
-                    continue;
-                }
-              return false;
-          }
-          return false;
-      }
-      else
-        return false;
-    }
-    head = cur;
-    cur = cur->next;
-  }
-  return false;
-}
-/*
-Check whether a inner has to be inserted or not
+Check whether a node or entry has to be inserted or not
 traverse the k nearest list
 
 */
 template<class timeType>
-bool CheckPrune_node(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
+bool CheckPrune(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
 {
   hpelem* head = local->nlist[local->k-1].head;
   if(head->next == NULL)
@@ -7776,7 +7697,7 @@ void UpdatekNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
   list<hpelem> updatelist;
 
 //  if(elem.mind < local->prunedist[local->k-1]){
-    if(CheckPrune_entry(local,elem) == false){
+    if(CheckPrune(local,elem) == false){
 
       updatelist.push_back(elem);
       vector<hpelem> auxiliarylist;
@@ -7786,7 +7707,7 @@ void UpdatekNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
             hpelem top = updatelist.front();
             updatelist.pop_front();
 //            if(top.mind >= local->prunedist[i]) continue;
-            if(CheckPrune_entry(local,top) == false)
+            if(CheckPrune(local,top) == false)
               UpdateNearest(local,top,templist,i); //key function
 
             for(unsigned int j = 0;j < templist.size();j++)//transfer step1
@@ -7837,10 +7758,10 @@ void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
     hpelem top = local->hp.top();
     local->hp.pop();
     if(top.tid != -1)
-      if(CheckPrune_entry(local,top))
+      if(CheckPrune(local,top))
         continue;
     else{
-      if(CheckPrune_node(local,top))
+      if(CheckPrune(local,top))
         continue;
     }
 
@@ -7888,7 +7809,7 @@ void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
                       le.nodete = mdist->timeInterval.end.ToDouble();
                       AssignURUP(&le,mdist,ne);
 
-                      if(CheckPrune_entry(local,le) == false){
+                      if(CheckPrune(local,le) == false){
                         local->hp.push(le);
                       }
                       delete mdist;
@@ -7915,14 +7836,14 @@ void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
                   hpelem le(-1,mindist,maxdist,entry->getInfo().getPointer());
                   le.nodets = t1;
                   le.nodete = t2;
-                  if(CheckPrune_node(local,le) == false)
+                  if(CheckPrune(local,le) == false)
                     local->hp.push(le);
               }
             }
         }
     }
   }
-  //results are stored in Nearests
+  //results are stored in Nearest_List
   ReportResult(local);
 
 }
