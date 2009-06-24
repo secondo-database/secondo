@@ -7915,6 +7915,11 @@ int hcknnknearestFun (Word* args, Word& result, int message,
             temp->timeInterval.start = t1;
             temp->p1 = p1;
             temp->timeInterval.end = t2;
+            double factor = 0.0000001;
+            if((localInfo->result[localInfo->counter].nodete -
+                localInfo->result[localInfo->counter].nodets) < factor)
+              temp->timeInterval.lc = temp->timeInterval.rc = true;
+
             tuple->PutAttribute(localInfo->attrpos,new UPoint(*temp));
             delete temp;
 
