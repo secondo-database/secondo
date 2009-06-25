@@ -6613,8 +6613,9 @@ struct TBKnearestLocalInfo
   unsigned int counter;
   TBKnearestLocalInfo(unsigned int nn):k(nn)
   {
-      nlist = new Nearestlist[k](); //k buffers for NearestLists
-      prunedist = new double[k];
+      const int ksize = k;
+      nlist = new Nearestlist[ksize](); //k buffers for NearestLists
+      prunedist = new double[ksize];
   }
   ~TBKnearestLocalInfo()
   {
