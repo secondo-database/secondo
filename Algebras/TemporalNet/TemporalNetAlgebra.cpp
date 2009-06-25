@@ -3057,7 +3057,7 @@ Searches binary the unit id of the mpgoint unit which includes the given time
 stamp. Returns -1 if the time stamp is not found.
 
 */
-int MGPoint::Position(const Instant &ins) {
+int MGPoint::Position(const Instant &ins, bool atinst /*=true*/) {
   int mid = -1;
   int first = 0;
   int last = GetNoComponents() - 1;
@@ -3075,7 +3075,14 @@ int MGPoint::Position(const Instant &ins) {
       if (pCurrUnit->timeInterval.start > ins ) last = mid - 1;
       else return mid;
   }
-  return -1;
+/*
+If we try to find a start position of a period inside a mgpoint it must not
+be the exact position it reaches to find the position nearest before the start
+of the periods start to catch the units inside the periods.
+
+*/
+  if (atinst) return -1;
+  else return mid-1;
 }
 
 
@@ -3605,14 +3612,14 @@ void MGPoint::Atperiods(Periods *&per, MGPoint *&res){
     }
     if(pCurrentUnit->timeInterval.Before(*interval))
     {
-      i = Position(interval->start);
-      if (i != -1) Get(i,pCurrentUnit);
-      else i = GetNoComponents()+1;
+      i = Position(interval->start, false);
+      if (i != -1) Get(i, pCurrentUnit);
+      else i = 0;
     }
     res->StartBulkLoad();
     while( i < GetNoComponents() && j < per->GetNoComponents())
     {
-      if (pCurrentUnit->timeInterval.Before( *interval))
+      if (pCurrentUnit->timeInterval.end < interval->start)
       {
         if( ++i >= GetNoComponents()) break;
         else Get( i, pCurrentUnit );
