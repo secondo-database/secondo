@@ -69,6 +69,7 @@ in a R-Tree. A new datatype is not given but there are some operators:
 #include "BTreeAlgebra.h"
 #include "TBTree.h"
 #include "ListUtils.h"
+
 using namespace tbtree;
 
 /*
@@ -6343,6 +6344,11 @@ struct Nearestlist{
   double maxd;
   hpelem* head;
   double startTime,endTime;
+  Nearestlist(double min,double max,hpelem* p,double s,double e)
+  :mind(min),maxd(max),head(p),startTime(s),endTime(e){}
+  Nearestlist(const Nearestlist& nl)
+  :mind(nl.mind),maxd(nl.maxd),head(nl.head),
+  startTime(nl.startTime),endTime(nl.endTime){}
 };
 
 template<class timeType>
@@ -6356,21 +6362,24 @@ struct TBKnearestLocalInfo
   R_Tree<3,TupleId>* rtree;
   timeType startTime,endTime;
   Line* mptraj;
-  Nearestlist* nlist;
-  double* prunedist;
+//  Nearestlist* nlist;
+//  double* prunedist;
+  vector<Nearestlist> nlist;
+  vector<double> prunedist;
   priority_queue<hpelem> hp;
   vector<hpelem> result;
   unsigned int counter;
-  TBKnearestLocalInfo(const int nn)
+  bool iscovered; //used to detect time interval in Nearest_list
+
+  TBKnearestLocalInfo(unsigned int nn):k(nn)
   {
-      k = nn;
-      nlist = new Nearestlist[k](); //k buffers for NearestLists
-      prunedist = new double[k];
+ //     nlist = new Nearestlist[k](); //k buffers for NearestLists
+ //     prunedist = new double[k];
+       iscovered = false;
   }
   ~TBKnearestLocalInfo()
   {
-      delete[] nlist;
-      delete[] prunedist;
+
   }
 
 };
@@ -6381,15 +6390,22 @@ Initialization, knearestlist prunedist
 template<class timeType>
 void hcknnInitialize(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
 {
-//  cout<<"hcknnInitialization"<<endl;
   //Initialization NearestList and prunedist
+
   for(unsigned int i = 0;i < local->k;i++){
-    local->nlist[i].mind = numeric_limits<double>::max();
-    local->nlist[i].maxd = numeric_limits<double>::min();
-    local->nlist[i].startTime = local->startTime;
-    local->nlist[i].endTime = local->startTime;
-    local->nlist[i].head = new hpelem(-1,0,0,-1);
-    local->prunedist[i] = numeric_limits<double>::max();
+    double mind = numeric_limits<double>::max();
+    double maxd = numeric_limits<double>::min();
+    double st = local->startTime;
+    double et = local->startTime;
+    Nearestlist nl(mind,maxd,new hpelem(-1,0,0,-1),st,et);
+//    local->nlist[i].mind = numeric_limits<double>::max();
+//    local->nlist[i].maxd = numeric_limits<double>::min();
+//    local->nlist[i].startTime = local->startTime;
+//    local->nlist[i].endTime = local->startTime;
+//    local->nlist[i].head = new hpelem(-1,0,0,-1);
+    local->nlist.push_back(nl);
+//    local->prunedist[i] = numeric_limits<double>::max();
+    local->prunedist.push_back(mind);
   }
 
   SmiRecordId adr = local->tbtree->getRootId();
@@ -7375,68 +7391,73 @@ traverse the k nearest list
 template<class timeType>
 bool CheckPrune(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
 {
-  hpelem* head = local->nlist[local->k-1].head;
-  if(head->next == NULL)
-    return false; //not prune
-  hpelem* cur = head->next;
-  double curts = cur->nodets;
-  double curte = cur->nodete;
+  if(local->iscovered){//if the whole time interval covers
 
-  if(curts > elem.nodets)
-    return false;
-  while(cur != NULL){
-    curts = cur->nodets;
-    curte = cur->nodete;
 
-    if(elem.nodets < curts)
-      return false;
+  }else{
+      hpelem* head = local->nlist[local->k-1].head;
+      if(head->next == NULL)
+        return false; //not prune
+      hpelem* cur = head->next;
+      double curts = cur->nodets;
+      double curte = cur->nodete;
 
-    if(elem.nodets >= curte){
-      head = cur;
-      cur = cur->next;
-      continue;
-    }
-
-    if(curts <= elem.nodets && elem.nodete <= curte){
-      if(cur->maxd <= elem.mind)
-        return true;//prune
-      else
+      if(curts > elem.nodets)
         return false;
-    }
+      while(cur != NULL){
+        curts = cur->nodets;
+        curte = cur->nodete;
 
-    if(curts <= elem.nodets && elem.nodete > curte){
-      if(cur->maxd <= elem.mind){
-          if(cur->next == NULL)
-            return false;
-          hpelem* next = cur->next;
-          double nextts,nextte;
-          while(next != NULL){
-              nextts = next->nodets;
-              curte = cur->nodete;
-              if(nextts > curte)
+        if(elem.nodets < curts)
+          return false;
+
+        if(elem.nodets >= curte){
+          head = cur;
+          cur = cur->next;
+          continue;
+        }
+
+        if(curts <= elem.nodets && elem.nodete <= curte){
+          if(cur->maxd <= elem.mind)
+            return true;//prune
+        else
+          return false;
+        }
+
+        if(curts <= elem.nodets && elem.nodete > curte){
+          if(cur->maxd <= elem.mind){
+            if(cur->next == NULL)
+             return false;
+            hpelem* next = cur->next;
+            double nextts,nextte;
+            while(next != NULL){
+               nextts = next->nodets;
+               curte = cur->nodete;
+               if(nextts > curte)
                 return false;
 
-              nextte = next->nodete;
+                nextte = next->nodete;
 
-              if(nextte >= elem.nodete && next->maxd < elem.mind)
-                return true;//prune
+                if(nextte >= elem.nodete && next->maxd < elem.mind)
+                  return true;//prune
 
-              if(nextte < elem.nodete && next->maxd < elem.mind){
+                if(nextte < elem.nodete && next->maxd < elem.mind){
                     cur = next;
                     next = cur->next;
                     continue;
                 }
-              return false;
+                return false;
+            }
+            return false;
           }
-          return false;
+          else
+            return false;
+        }
+        head = cur;
+        cur = cur->next;
       }
-      else
-        return false;
-    }
-    head = cur;
-    cur = cur->next;
+      return false;
   }
-  return false;
 }
 /*
 Main function, update the k nearest list structure and prunedist
@@ -7609,14 +7630,23 @@ void rknearestInitialize(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
 {
   //Initialization NearestList and prunedist
   const int dim = 3;
+
   for(unsigned int i = 0;i < local->k;i++){
-    local->nlist[i].mind = numeric_limits<double>::max();
-    local->nlist[i].maxd = numeric_limits<double>::min();
-    local->nlist[i].startTime = local->startTime;
-    local->nlist[i].endTime = local->startTime;
-    local->nlist[i].head = new hpelem(-1,0,0,-1);
-    local->prunedist[i] = numeric_limits<double>::max();
+    double mind = numeric_limits<double>::max();
+    double maxd = numeric_limits<double>::min();
+    double st = local->startTime;
+    double et = local->startTime;
+    Nearestlist nl(mind,maxd,new hpelem(-1,0,0,-1),st,et);
+//    local->nlist[i].mind = numeric_limits<double>::max();
+//    local->nlist[i].maxd = numeric_limits<double>::min();
+//    local->nlist[i].startTime = local->startTime;
+//    local->nlist[i].endTime = local->startTime;
+//    local->nlist[i].head = new hpelem(-1,0,0,-1);
+    local->nlist.push_back(nl);
+//    local->prunedist[i] = numeric_limits<double>::max();
+    local->prunedist.push_back(mind);
   }
+
 
   SmiRecordId adr = local->rtree->RootRecordId();
   R_TreeNode<dim,TupleId>* root = local->rtree->GetMyNode(adr,
@@ -7634,7 +7664,7 @@ void rknearestInitialize(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
     delete line;
 
     //insert all the entries of the root into hp
-    for(unsigned int i = 0;i < root->EntryCount();i++){
+    for(int i = 0;i < root->EntryCount();i++){
         R_TreeInternalEntry<dim> e = (R_TreeInternalEntry<dim>&)(*root)[i];
         timeType tt1((double)e.box.MinD(2));
         timeType tt2((double)e.box.MaxD(2));
@@ -7803,7 +7833,7 @@ int rknearest(Word* args, Word& result, int message,
       const UPoint* up2;
       mp->Get(0,up1);
       mp->Get(mp->GetNoComponents()-1,up2);
-      unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
+      const unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
       int attrpos = ((CcInt*)args[5].addr)->GetIntval()-1;
       localInfo = new TBKnearestLocalInfo<timeType>(k);
       local = SetWord(localInfo);
@@ -7897,13 +7927,15 @@ int hcknnknearestFun (Word* args, Word& result, int message,
       const UPoint* up2;
       mp->Get(0,up1);
       mp->Get(mp->GetNoComponents()-1,up2);
-      unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
+      const unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
       int attrpos = ((CcInt*)args[5].addr)->GetIntval()-1;
       localInfo = new TBKnearestLocalInfo<timeType>(k);
       local = SetWord(localInfo);
       localInfo->attrpos = attrpos;
       localInfo->startTime = up1->timeInterval.start.ToDouble();
       localInfo->endTime = up2->timeInterval.end.ToDouble();
+
+
       localInfo->tbtree = (TBTree*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
       localInfo->counter = 0;
@@ -7953,6 +7985,7 @@ int hcknnknearestFun (Word* args, Word& result, int message,
     case CLOSE :
     {
       localInfo = (TBKnearestLocalInfo<timeType>*)local.addr;
+
       delete localInfo;
       return 0;
     }
