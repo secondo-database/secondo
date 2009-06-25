@@ -6111,7 +6111,7 @@ const string RknearestfilterSpec  =
       " x rel(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))"
       "</text--->"
-      "<text>_ _ rknearestfilter [ _, _ ]</text--->"
+      "<text>_ _ greeceknearest [_, _, _ ]</text--->"
       "<text>The operator results a stream of all input tuples "
       "which are the k-nearest tupels to the given mpoint. "
       "The operator do not separate tupels if necessary. The "
@@ -6120,7 +6120,7 @@ const string RknearestfilterSpec  =
       "many input tupels. "
       "The operator expects an r-tree built on moving objects</text--->"
       "<text>query UnitTrains_UTrip UnitTrains "
-      " rknearestfilter [train1, 5] count;</text--->"
+      " greeceknearest [UTrip,train1, 5] count;</text--->"
       ") )";
 const string hcknnknearestSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -6139,163 +6139,6 @@ const string hcknnknearestSpec  =
       "<text>query UnitTrains_UTrip_tbtree UnitTrains hcknnknearest"
       "[UTrip,train1, 5] count;</text--->"
       ") )";
-
-/*
-  Algorithm from paper Frentzos et.al 2007,using TB-Tree
-  called by Function tbknearestFilterFun
-  it is recursively called,
-  arg-1  TB-tree node
-  arg-2 query moving point
-  arg-3 global info structure
-  arg-4 level, arg6 segentry
-
-*/
-template<class timeType>
-void HCTNNSearch(BasicNode<3>* tbnode,MPoint* mp,
-KnearestFilterLocalInfo<timeType>* localInfo,BBTree<timeType>* t,int level,
-SegEntry<timeType>& se)
-{
-  if(localInfo->timeTree.erase(se.start,se.end,se.nodeid,se.maxdist) == false)
-    return;
-  const int dim = 3;
-  if(tbnode->isLeaf()){
-    tbtree::TBLeafNode<dim,TBLeafInfo>* leafnode =
-          dynamic_cast<TBLeafNode<dim, TBLeafInfo>* >(tbnode);
-    for(unsigned int j = 0;j < leafnode->entryCount();j++){
-      const Entry<dim,TBLeafInfo>* entry = leafnode->getEntry(j);
-      timeType t1((double)entry->getBox().MinD(2));
-      timeType t2((double)entry->getBox().MaxD(2));
-      if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
-        Interval<timeType> d(t1,t2,true,true);
-        BBox<2> entrybox = makexyBox(entry->getBox());
-        BBox<2> mBox(t->getBox(d));
-        double mindist,maxdist;
-
-        mindist = mBox.Distance(entrybox);
-        maxdist = maxDistance(mBox,entrybox);
-/////////////////////////////
-/*        Interval<Instant> interv(entry->getBox().MinD(2),
-                                entry->getBox().MaxD(2),true,true);
-        Periods p(1);
-        p.Add(interv);
-        MPoint* submp = new MPoint(0);
-        mp->AtPeriods(p,*submp);
-        Line* traj = new Line(0);
-        submp->Trajectory(*traj);
-        if(traj->Size() == 0){
-          delete submp;
-          delete traj;
-          mindist = mBox.Distance(entrybox);
-          maxdist = maxDistance(entrybox,mBox);
-          SegEntry<timeType> se(entrybox,t1,t2,mindist,
-                              maxdist,1,-1,
-                              entry->getInfo().getTupleId());
-          unsigned int cov = localInfo->timeTree.calcCoverage(se.start,
-                                      se.end,se.mindist);
-         if(cov < localInfo->k){
-            localInfo->timeTree.insert(se,localInfo->k);
-            localInfo->resultMap.insert(make_pair(se,se.tpid));
-          }
-          continue;
-        }
-       if(AlmostEqual(entrybox.MinD(0), entrybox.MaxD(0)) ||
-           AlmostEqual(entrybox.MinD(1),entrybox.MaxD(1))){
-           Point* p = new Point(true,entrybox.MinD(0),entrybox.MinD(1));
-           mindist = traj->Distance(*p);
-           maxdist = traj->MaxDistance(*p);
-           delete p;
-        }else{
-           mindist = traj->Distance(entrybox);
-           maxdist = traj->MaxDistance(entrybox);
-        }
-        delete submp;
-        delete traj;*/
-///////////////////////////
-
-
-        SegEntry<timeType> se(entrybox,t1,t2,mindist,
-                              maxdist,1,-1,
-                              entry->getInfo().getTupleId());
-        unsigned int cov = localInfo->timeTree.calcCoverage(se.start,
-                                      se.end,se.mindist);
-        if(cov < localInfo->k){
-           localInfo->timeTree.insert(se,localInfo->k);
-           localInfo->resultMap.insert(make_pair(se,se.tpid));
-        }
-      }
-    }
-  }else{
-      tbtree::InnerNode<dim,InnerInfo>* innernode =
-              dynamic_cast<InnerNode<dim, InnerInfo>* >(tbnode);
-      SmiRecordId adr;
-      vector<EFieldEntry<timeType> > candidate;
-      for(unsigned int j = 0;j < innernode->entryCount();j++){
-          const Entry<dim,InnerInfo>* entry = innernode->getEntry(j);
-          timeType t1(entry->getBox().MinD(2));
-          timeType t2(entry->getBox().MaxD(2));
-          if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
-            adr = entry->getInfo().getPointer();
-            BBox<2> entrybox = makexyBox(entry->getBox());
-            Interval<timeType> d(t1,t2,true,true);
-            BBox<2> mBox(t->getBox(d));
-            double mindist,maxdist;
-            mindist = mBox.Distance(entrybox);
-            maxdist = maxDistance(mBox,entrybox);
-
-/*Interval<Instant> interv(entry->getBox().MinD(2),
-                                entry->getBox().MaxD(2),true,true);
-            Periods p(1);
-            p.Add(interv);
-            MPoint* submp = new MPoint(0);
-            mp->AtPeriods(p,*submp);
-            Line* traj = new Line(0);
-            submp->Trajectory(*traj);
-            if(traj->Size() == 0){
-              delete submp;
-              delete traj;
-              mindist = mBox.Distance(entrybox);
-              maxdist = maxDistance(entrybox,mBox);
-              candidate.push_back(
-              EFieldEntry<timeType>(adr,mindist,maxdist,level+1,t1,t2));
-              continue;
-            }
-            if(AlmostEqual(entrybox.MinD(0), entrybox.MaxD(0)) ||
-               AlmostEqual(entrybox.MinD(1),entrybox.MaxD(1))){
-              Point* p = new Point(true,entrybox.MinD(0),entrybox.MinD(1));
-              mindist = traj->Distance(*p);
-              maxdist = traj->MaxDistance(*p);
-              delete p;
-            }else{
-              mindist = traj->Distance(entrybox);
-              maxdist = traj->MaxDistance(entrybox);
-            }
-            delete submp;
-            delete traj;*/
-
-            candidate.push_back(
-            EFieldEntry<timeType>(adr,mindist,maxdist,level+1,t1,t2));
-          }
-      }
-      //sort by mindist
-      stable_sort(candidate.begin(),candidate.end(),CmpEFE<timeType>);
-      for(unsigned int i = 0;i < candidate.size();i++){
-        adr = candidate[i].nodeid;
-        tbtree::BasicNode<dim>* node = localInfo->tbtree->getNode(adr);
-        BBox<2> xybox = makexyBox(node->getBox());
-        int cov = localInfo->tbtree->getcoverage(node);
-        SegEntry<timeType> se(xybox,candidate[i].start,candidate[i].end,
-                candidate[i].mindist,candidate[i].maxdist,cov,adr,-1);
-        unsigned int covnode = localInfo->timeTree.calcCoverage(se.start,
-                                          se.end,se.mindist);
-        if(covnode < localInfo->k){
-          localInfo->timeTree.insert(se,localInfo->k);
-          HCTNNSearch(node,mp,localInfo,t,candidate[i].level,se);
-        }
-        delete node;
-      }
-    }
-}
-
 
 
 /*
@@ -6391,100 +6234,7 @@ SegEntry<timeType>& se)
   } //else if inner node
 
 }
-template<class timeType>
-int rknearestFilterFun (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  const int dim = 3;
-  KnearestFilterLocalInfo<timeType> *localInfo;
 
-  switch (message)
-  {
-    case OPEN :
-    {
-      MPoint *mp = (MPoint*)args[2].addr;
-      const UPoint *up1, *up2;
-      mp->Get( 0, up1);
-      mp->Get( mp->GetNoComponents() - 1, up2);
-      BBTree<timeType>* t = new BBTree<timeType>(*mp);
-      localInfo = new KnearestFilterLocalInfo<timeType>(
-        up1->timeInterval.start.ToDouble(), up2->timeInterval.end.ToDouble());
-      localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
-      localInfo->relation = (Relation*)args[1].addr;
-      localInfo->k = (unsigned)((CcInt*)args[3].addr)->GetIntval();
-      localInfo->scanFlag = true;
-      local = SetWord(localInfo);
-      if (mp->IsEmpty())
-      {
-        return 0;
-      }
-      SmiRecordId adr = localInfo->rtree->RootRecordId();
-      R_TreeNode<dim, TupleId> *root = localInfo->rtree->GetMyNode(
-                     adr,
-                     false,
-                     localInfo->rtree->MinEntries( 0 ),
-                     localInfo->rtree->MaxEntries( 0 ) );
-      timeType t1(root->BoundingBox().MinD(2));
-      timeType t2(root->BoundingBox().MaxD(2));
-
-      t1 = t1/864000.0;
-      t2 = t2/864000.0;
-
-      if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
-        FieldEntry<timeType> fe = FieldEntry<timeType>(
-            localInfo->rtree->RootRecordId(), 0, t1, t2, 0);
-            localInfo->vectorA.push_back(fe);
-            const BBox<2> xyBox = makexyBox(root->BoundingBox() );
-            SegEntry<timeType> se(xyBox,t1, t2, 0.0, 0.0, 0,
-                          localInfo->rtree->RootRecordId(), -1);
-            localInfo->timeTree.insert( se, localInfo->k );
-            RHCTNNSearch<timeType,dim>(root,mp,localInfo,t,0,se);
-      }
-      localInfo->timeTree.fillMap( localInfo->resultMap );
-      localInfo->mapit = localInfo->resultMap.begin();
-      delete root;
-      delete t;
-      return 0;
-    }
-
-    case REQUEST :
-    {
-     localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
-      if ( !localInfo->scanFlag )
-      {
-        return CANCEL;
-      }
-
-      if ( !localInfo->k)
-      {
-        return CANCEL;
-      }
-
-      /* give out alle elements of the resultmap */
-      if ( localInfo->mapit != localInfo->resultMap.end() )
-      {
-          TupleId tid = localInfo->mapit->second;
-          Tuple *tuple = localInfo->relation->GetTuple(tid);
-          result = SetWord(tuple);
-          ++localInfo->mapit;
-          return YIELD;
-      }
-      else
-      {
-        return CANCEL;
-      }
-    }
-
-    case CLOSE :
-    {
-      localInfo = (KnearestFilterLocalInfo<timeType>*)local.addr;
-      delete localInfo;
-      return 0;
-    }
-  }
-
-  return 0;
-}
 
 /* the same as UReal, but not store a,b,c the distance function at^2+bt+c */
 struct myureal{
@@ -6603,7 +6353,7 @@ struct TBKnearestLocalInfo
   bool scanFlag;
   Relation* relation;
   TBTree* tbtree;
-  BTree* btreehats;
+  R_Tree<3,TupleId>* rtree;
   timeType startTime,endTime;
   Line* mptraj;
   Nearestlist* nlist;
@@ -6611,11 +6361,11 @@ struct TBKnearestLocalInfo
   priority_queue<hpelem> hp;
   vector<hpelem> result;
   unsigned int counter;
-  TBKnearestLocalInfo(unsigned int nn):k(nn)
+  TBKnearestLocalInfo(const int nn)
   {
-      const int ksize = k;
-      nlist = new Nearestlist[ksize](); //k buffers for NearestLists
-      prunedist = new double[ksize];
+      k = nn;
+      nlist = new Nearestlist[k](); //k buffers for NearestLists
+      prunedist = new double[k];
   }
   ~TBKnearestLocalInfo()
   {
@@ -7851,6 +7601,273 @@ void hcknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
 
 }
 /*
+Initialization,
+
+*/
+template<class timeType>
+void rknearestInitialize(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
+{
+  //Initialization NearestList and prunedist
+  const int dim = 3;
+  for(unsigned int i = 0;i < local->k;i++){
+    local->nlist[i].mind = numeric_limits<double>::max();
+    local->nlist[i].maxd = numeric_limits<double>::min();
+    local->nlist[i].startTime = local->startTime;
+    local->nlist[i].endTime = local->startTime;
+    local->nlist[i].head = new hpelem(-1,0,0,-1);
+    local->prunedist[i] = numeric_limits<double>::max();
+  }
+
+  SmiRecordId adr = local->rtree->RootRecordId();
+  R_TreeNode<dim,TupleId>* root = local->rtree->GetMyNode(adr,
+      false,local->rtree->MinEntries(0),local->rtree->MaxEntries(0));
+
+  timeType t1(root->BoundingBox().MinD(2));
+  timeType t2(root->BoundingBox().MaxD(2));
+  t1 = t1/864000.0;
+  t2 = t2/864000.0;
+
+  if(!(t1 >= local->endTime || t2 <= local->startTime)){
+    Line* line = new Line(0);
+    mp->Trajectory(*line);
+    local->mptraj = new Line(*line);
+    delete line;
+
+    //insert all the entries of the root into hp
+    for(unsigned int i = 0;i < root->EntryCount();i++){
+        R_TreeInternalEntry<dim> e = (R_TreeInternalEntry<dim>&)(*root)[i];
+        timeType tt1((double)e.box.MinD(2));
+        timeType tt2((double)e.box.MaxD(2));
+        tt1 = tt1/864000.0;
+        tt2 = tt2/864000.0;
+
+        if(!(tt1 >= local->endTime || tt2 <= local->startTime)){
+          BBox<2> entrybox = makexyBox(e.box);//entry box
+          double mindist = local->mptraj->Distance(entrybox);
+          double maxdist = numeric_limits<double>::max();
+          hpelem le(-1,mindist,maxdist,e.pointer);
+          le.nodets = tt1;
+          le.nodete = tt2;
+          local->hp.push(le);
+        }
+    }
+  }
+}
+
+/*
+Greece algorithm
+
+*/
+template<class timeType>
+void rknearestFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp,int level)
+{
+  const int dim = 3;
+  BBox<2> mpbox = local->mptraj->BoundingBox();
+  if(mpbox.IsDefined() == false)
+    mpbox = makexyBox(mp->BoundingBox());
+
+  while(local->hp.empty() == false){
+    hpelem top = local->hp.top();
+    local->hp.pop();
+    if(top.tid != -1)
+      if(CheckPrune(local,top))
+        continue;
+    else{
+      if(CheckPrune(local,top))
+        continue;
+    }
+
+    if(top.tid != -1 && top.nodeid == -1){ //an actual trajectory segment
+        UpdatekNearest(local,top);
+    }
+    else if(top.tid == -1 && top.nodeid != -1){ // a leaf node
+        SmiRecordId adr = top.nodeid;
+        R_TreeNode<dim,TupleId>* tbnode = local->rtree->GetMyNode(
+            adr,false,local->rtree->MinEntries(0),
+                             local->rtree->MaxEntries(0));
+        if(tbnode->IsLeaf()){ //leaf node
+
+            for(int i = 0;i < tbnode->EntryCount();i++){
+              R_TreeLeafEntry<dim,TupleId> e =
+                        (R_TreeLeafEntry<dim,TupleId>&)(*tbnode)[i];
+
+              timeType t1((double)e.box.MinD(2));
+              timeType t2((double)e.box.MaxD(2));
+              t1 = t1/864000.0;
+              t2 = t2/864000.0;
+              if(!(t1 >= local->endTime || t2 <= local->startTime)){
+                  //for each unit in mp
+                const UPoint* up;
+                TupleId tid = e.info;
+                Tuple* tuple = local->relation->GetTuple(tid);
+                UPoint* data = (UPoint*)tuple->GetAttribute(local->attrpos);
+
+                for(int j = 0;j < mp->GetNoComponents();j++){
+                    mp->Get(j,up);
+                    timeType tt1 = (double)(up->timeInterval.start.ToDouble());
+                    timeType tt2 = (double)(up->timeInterval.end.ToDouble());
+
+                    if(tt1 > t2) //mq's time interval is larger than entry
+                      break;
+                    if(!(t1 >= tt2 || t2 <= tt1)){
+                      UPoint* ne = new UPoint(true);
+                      UPoint* nqe = new UPoint(true);
+                      /*interpolation restrict to the same time interval*/
+
+                      CreateUPoint_ne(local,up,ne,data);
+                      CreateUPoint_nqe(local,up,nqe,data);
+
+                      double nodets = ne->timeInterval.start.ToDouble();
+                      double nodete = ne->timeInterval.end.ToDouble();
+                      if(AlmostEqual(nodets,nodete))
+                        continue;
+
+                      UReal* mdist = new UReal(true);
+                      ne->Distance(*nqe,*mdist);
+                      bool def = true;
+                      double mind = mdist->Min(def);
+                      double maxd = mdist->Max(def);
+
+                      hpelem le(tid,mind,maxd,-1);
+                      le.nodets = nodets;
+                      le.nodete = nodete;
+                      AssignURUP(&le,mdist,ne);
+
+                      if(CheckPrune(local,le) == false){
+                        local->hp.push(le);
+                      }
+                      delete mdist;
+                      delete ne;
+                      delete nqe;
+                    }
+                }//end for
+                tuple->DeleteIfAllowed();
+              }
+           }
+        }else{ //inner node
+            for(int i = 0;i < tbnode->EntryCount();i++){
+              R_TreeInternalEntry<dim> e =
+                    (R_TreeInternalEntry<dim>&)(*tbnode)[i];
+              timeType t1((double)e.box.MinD(2));
+              timeType t2((double)e.box.MaxD(2));
+              t1 = t1/864000.0;
+              t2 = t2/864000.0;
+              if(!(t1 >= local->endTime || t2 <= local->startTime)){
+                BBox<2> entrybox = makexyBox(e.box);//entry box
+                double mindist =  mpbox.Distance(entrybox);
+                double maxdist = maxDistance(entrybox,mpbox);
+
+                  hpelem le(-1,mindist,maxdist,e.pointer);
+                  le.nodets = t1;
+                  le.nodete = t2;
+                  if(CheckPrune(local,le) == false)
+                    local->hp.push(le);
+              }
+            }
+        }
+    }
+  }
+  //results are stored in Nearest_List
+  ReportResult(local);
+
+}
+/*
+rknearestfilterFun is the value function for the rknearest operator
+It is a filter operator for the knearest operator. It can be called
+if there exists an r-tree for the unit attribute
+The argument vector contains the following values:
+args[0] = an r-tree with the unit attribute as key
+args[1] = the relation of the tbtree
+args[2] = attribute UPoint
+args[3] = mpoint
+args[4] = int k, how many nearest are searched
+
+*/
+
+
+template<class timeType>
+int rknearest(Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+  const int dim = 3;
+  TBKnearestLocalInfo<timeType> *localInfo;
+  switch (message)
+  {
+    case OPEN :
+    {
+      //Initialize hp,kNearestLists and PruneDist
+      MPoint* mp = (MPoint*)args[3].addr;
+      if(mp->IsEmpty())
+        return 0;
+      const UPoint* up1;
+      const UPoint* up2;
+      mp->Get(0,up1);
+      mp->Get(mp->GetNoComponents()-1,up2);
+      unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
+      int attrpos = ((CcInt*)args[5].addr)->GetIntval()-1;
+      localInfo = new TBKnearestLocalInfo<timeType>(k);
+      local = SetWord(localInfo);
+      localInfo->attrpos = attrpos;
+      localInfo->startTime = up1->timeInterval.start.ToDouble();
+      localInfo->endTime = up2->timeInterval.end.ToDouble();
+      localInfo->rtree = (R_Tree<dim,TupleId>*)args[0].addr;
+      localInfo->relation = (Relation*)args[1].addr;
+      localInfo->counter = 0;
+      localInfo->scanFlag = true;
+      rknearestInitialize(localInfo,mp);
+      rknearestFun(localInfo,mp,0);
+      return 0;
+    }
+    case REQUEST :
+    {
+        localInfo = (TBKnearestLocalInfo<timeType>*)local.addr;
+        if(localInfo->k == 0)
+          return CANCEL;
+        if(localInfo->counter < localInfo->result.size()){
+            TupleId tid = localInfo->result[localInfo->counter].tid;
+            Tuple* tuple = localInfo->relation->GetTuple(tid);
+            UPoint* up = (UPoint*)tuple->GetAttribute(localInfo->attrpos);
+            Point p0;
+            Point p1;
+            Instant t1(instanttype);
+            Instant t2(instanttype);
+            t1.ReadFrom(localInfo->result[localInfo->counter].nodets);
+            t2.ReadFrom(localInfo->result[localInfo->counter].nodete);
+            Interval<Instant> interv(t1,t2,true,true);
+            UPoint* temp = new UPoint(*up);
+            temp->TemporalFunction(t1,p0,true);
+            temp->TemporalFunction(t2,p1,true);
+            temp->p0 = p0;
+            temp->timeInterval.start = t1;
+            temp->p1 = p1;
+            temp->timeInterval.end = t2;
+            double factor = 0.0000001;
+            if((localInfo->result[localInfo->counter].nodete -
+                localInfo->result[localInfo->counter].nodets) < factor)
+              temp->timeInterval.lc = temp->timeInterval.rc = true;
+
+            tuple->PutAttribute(localInfo->attrpos,new UPoint(*temp));
+            delete temp;
+
+            result = SetWord(tuple);
+            localInfo->counter++;
+            return YIELD;
+        }else
+          return CANCEL;
+    }
+
+    case CLOSE :
+    {
+      localInfo = (TBKnearestLocalInfo<timeType>*)local.addr;
+      delete localInfo;
+      return 0;
+    }
+  }
+  return 0;
+
+}
+
+/*
 
 hcknnknearestFun is the value function for the hcknnknearest operator
 It is a filter operator for the knearest operator. It can be called
@@ -7943,7 +7960,7 @@ int hcknnknearestFun (Word* args, Word& result, int message,
   return 0;
 }
 /*
-The function rknearestFilterTypeMap is the type map for the
+The function hcknnknearestTypeMap is the type map for the
 operator knearestfilter
 
 */
@@ -8013,16 +8030,17 @@ operator knearestfilter
 ListExpr rknearestFilterTypeMap( ListExpr args )
 {
 
-  string errmsg = "rtree x relation x mpoint x int expected";
+  string errmsg = "rtree x relation x utrip x mpoint x int expected";
 
-  if(nl->ListLength(args)!=4){
+  if(nl->ListLength(args)!=5){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
   ListExpr tbtreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
-  ListExpr mpoint = nl->Third(args);
-  ListExpr quantity = nl->Fourth(args);
+  ListExpr attrName = nl->Third(args);
+  ListExpr mpoint = nl->Fourth(args);
+  ListExpr quantity = nl->Fifth(args);
 
   // the third element has to be of type mpoint
   if(!nl->IsEqual(mpoint,"mpoint")){
@@ -8054,16 +8072,23 @@ ListExpr rknearestFilterTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  return
-    nl->TwoElemList(
+  int j;
+  ListExpr attrType;
+  j = FindAttribute(nl->Second(nl->Second(relDescription)),
+      nl->SymbolValue(attrName),attrType);
+  CHECK_COND((j > 0) && (nl->IsEqual(attrType,"upoint")),"expect upoint");
+  ListExpr res = nl->TwoElemList(
       nl->SymbolAtom("stream"),
       nl->Second(nl->Second(args)));
+
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+          nl->OneElemList(nl->IntAtom(j)),res);
 }
 
-Operator rknearestfilter (
-         "rknearestfilter",        // name
+Operator greeceknearest (
+         "greeceknearest",        // name
          RknearestfilterSpec,      // specification
-         rknearestFilterFun<double>,       // value mapping
+         rknearest<double>,       // value mapping
          Operator::SimpleSelect,  // trivial selection function
          rknearestFilterTypeMap    // type mapping
 );
@@ -8105,7 +8130,7 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &distancescan4);
     AddOperator( &mqknearest);
     AddOperator( &covleafnode);
-    AddOperator( &rknearestfilter);
+    AddOperator( &greeceknearest);
     AddOperator( &hcknnknearest);
 
   }
