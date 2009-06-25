@@ -534,7 +534,13 @@ inferPredicate(Premises, [bbox(X) intersects box3d(bbox(Z),Y)]) :-
   member(X passes Z,  Premises),
   X \= Y, X \= Z, Y \= Z.
 
-% Infering the predicates for spatiotemporal pattern queries
+/*
+Infering the predicates for spatiotemporal pattern predicte
+The aliases of the lifted predicates are first removed by
+calling "removeAliases". Then, for every lifted predicate, 
+a suitable standard predicate is infered
+
+*/
 inferPredicate(Premises, AdditionalConditions):-
   member( Pattern, Premises),
   Pattern=..[pattern|[NamedPredList, _ ]],
@@ -542,7 +548,11 @@ inferPredicate(Premises, AdditionalConditions):-
 	inferPatternPredicates(PredList, AdditionalConditions),
 	!.
 
-% Infering the predicates for extended spatiotemporal pattern queries
+/*
+Infering the predicates for Extended spatiotemporal pattern predicte
+in a similar way as above
+
+*/
 inferPredicate(Premises, AdditionalConditions):-
   member( Pattern, Premises),
   Pattern=..[patternex|[NamedPredList, _, _ ]],
@@ -578,29 +588,51 @@ inferPredicate(Premises, [X intersects Y]) :-
 ---- inferPatternPredicates(+Preds,-InferedPreds)
 ----
 
-For every predicates P inside a pattern query,
-a condition sometimes(P) is add to the query. The
-dynamic predicate removefilter ise used to flag
-sometimes(P). This flag is used in rewritePlan to
-remove sometimes(P) from the query expression again.
+For every lifted predicate P inside the spatiotemporal
+pattern predicate, a standard predicate is added.
+For range lifted predicates (ex: inside), the "passes" 
+predicate is used, otherwise, sometimes(P). 
+
+The dynamic predicate removefilter is used to keep a list
+of the additiotnal standard predicates so that they are removed
+from the query before execution.
 
 */
 
 
 :- dynamic removefilter/1.
 inferPatternPredicates([], [] ).
+/*
+If the lifted predicate is a range lifted predicate (i.e. isBBoxLiftedPred),
+the "passes" predicate is the result ofthe inference.
+
+*/
 inferPatternPredicates([Pred|Preds], [passes(P1,bbox2d(P2))|Preds2] ):-
   Pred=..[F,P1,P2],
   isBBoxLiftedPred(F),!,
   assert(removefilter(passes(P1,bbox2d(P2)))),
-  inferPatternPredicates(Preds,Preds2).
+	inferPatternPredicates(Preds,Preds2).
+
+/*
+Otherwise, the "sometimes" predicate is the result ofthe inference.
+
+*/
 inferPatternPredicates([Pred|Preds], [sometimes(Pred)|Preds2] ):-
   assert(removefilter(sometimes(Pred))),
   inferPatternPredicates(Preds,Preds2).
 
+
+/*
+14.2.4 Auxiliary Predicates for parsing spatiotemporal pattern predicates
+
+---- removeAliases(+NamedLiftedPreds,-LiftedPreds, -Aliases)
+---- parseNPred(+NamedLiftedPred,-LiftedPred, -Alias) 
+
+The predicates are used to seperate the predicates and their aliases
+for further processing.
+*/
 parseNPred(AP , P, A):-
   AP=..[as, P, A],!.
-
 removeAliases( [AP| NPListRest] , [P | PListRest], [A | AListRest]):-
   parseNPred(AP, P, A),
   removeAliases(NPListRest, PListRest, AListRest),!.
