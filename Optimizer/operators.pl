@@ -2396,7 +2396,7 @@ isBBoxPredicate(Op,ArgsTypeList,Dim) :-
   opSignature(Op, _, ArgsTypeList,bool,Flags),
   memberchk(bbox(Dim),Flags),!.
 
-% Lifted Predicates that use bboxes
+% Range Lifted Predicates
 isBBoxLiftedPred(inside).
 
 % other operators using bboxes:
