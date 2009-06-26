@@ -649,9 +649,6 @@ public class ViewerInfo{
               content += line +"\n";
            }
         }
-        System.out.println("Viewers found = " + viewers);
-        System.out.println("Directories found = " + dirs);
- 
         if(!viewers.contains(viewerName)){
            content += "VIEWER_CLASSES += " + viewerName +".class\n";
         }
@@ -685,6 +682,80 @@ public class ViewerInfo{
        }
      }
      return true;
+  }
+
+  boolean modifyMakeFileInc(String secondoDir){
+     // extract the lib names to add to makefile.inc
+     Vector<StringBoolPair> libext = new Vector<StringBoolPair>();
+     for(int i=0;i<libDeps.size();i++){
+         StringBoolPair p = libDeps.get(i);
+         if(p.secondB){
+            libext.add(p);
+         }
+     }
+     if(libext.size()==0){
+        return true;
+     }
+
+
+     // appends libraries to makefile.inc
+     String s = File.separator;
+     File f = new File(secondoDir + s + "Javagui"+s+"makefile.inc");
+     boolean ok = true;
+     if(!f.exists()){
+        System.err.println("Javagui/makefile.inc not found, check your Secondo installation");
+        return false;
+     }
+     BufferedReader in = null;
+     PrintWriter out = null;
+     int pos = -1;
+     try{
+        in = new BufferedReader(new FileReader(f));
+        String content = "";
+        while(in.ready()){
+           String line = in.readLine(); 
+           if(!line.matches("\\s*JARS\\s*:=.*")){
+              content += line +"\n";
+           } else {
+              content += line +"\n";
+              pos = content.length();
+              for(int i=libext.size()-1;i>=0;i--){
+                 if(line.matches(".*"+libext.get(i).firstS+"\\s*")){
+                   System.out.println("Lib " + libext.get(i).firstS+"already included in makefile.inc");
+                   libext.remove(i);
+                 }
+              } 
+           }
+        }
+
+        try{in.close(); in=null;}catch(Exception e){}
+
+        if(libext.size()==0){
+            return true;
+        }
+        String block = "";
+        for(int i=0;i<libext.size();i++){
+           StringBoolPair p = libext.get(i);
+           String subdir = p.secondS.equals(".")?"":p.secondS;
+           block += "JARS := $(JARS):$(LIBPATH)/"+subdir+p.firstS+"\n";
+        }
+        if(pos<0){
+          content += block; 
+        } else {
+           String p1 = content.substring(0,pos);
+           String p2 = content.substring(pos,content.length());
+           content = p1+block+p2;
+        }
+        out = new PrintWriter(new FileOutputStream(f));
+        out.print(content);
+     }catch(Exception e){
+       e.printStackTrace();
+       ok = false;
+     }finally{
+       if(in!=null) try{in.close();}catch(Exception e){}
+       if(out!=null) try{out.close();}catch(Exception e){}
+     }
+     return ok;
   }
 
 
@@ -746,6 +817,8 @@ public class ViewerInfo{
        if(make.exists()){
           addToMakeFile(make);
        }
+       modifyMakeFileInc(secondoDir);
+
      } catch(Exception e){
         e.printStackTrace();
         return false;
