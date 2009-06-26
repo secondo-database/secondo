@@ -65,8 +65,6 @@ LIBPATH=$(GUIPATH)/lib
 JLEX:=JLex_v1.2.6.jar
 CUP:=java_cup_v10k.jar
 CUPRUNTIME:=java_cup_v10k_runtime.jar
-MP3:=jl0.4.jar
-PDF:=14_os_jpedal.jar
 
 # switch for enabling persistent nested lists
 NL_PERSISTENT=true
@@ -75,12 +73,6 @@ NL_PERSISTENT=true
 JLEXCLASSESPATH := $(LIBPATH)/$(JLEX)
 CUPCLASSESPATH := $(LIBPATH)/$(CUP)
 CUPCLASSESRUNTIME := $(LIBPATH)/$(CUPRUNTIME)
-MP3CLASSESPATH := $(LIBPATH)/$(MP3)
-PDFCLASSESPATH := $(LIBPATH)/$(PDF)
-
-GRAPPA := $(LIBPATH)/grappa1_2.jar
-BATIK := $(LIBPATH)/batik.jar
-
 
 CLASSPATH := $(GUIPATH)
 
@@ -88,7 +80,19 @@ ifdef SECONDO_JAVART
 CLASSPATH := $(CLASSPATH):$(SECONDO_JAVART)
 endif
 
-JARS := $(JLEXCLASSESPATH):$(CUPCLASSESPATH):$(MP3CLASSESPATH):$(PDFCLASSESPATH):$(BATIK)
+JARS := $(JLEXCLASSESPATH):$(CUPCLASSESPATH)
+JARS := $(JARS):$(LIBPATH)/jl0.4.jar
+JARS := $(JARS):$(LIBPATH)/14_os_jpedal.jar
+JARS := $(JARS):$(LIBPATH)/batik.jar
+JARS := $(JARS):$(LIBPATH)/grappa1_1.jar
+
+
+
+
+
+
+
+
 
 DOCPATH := ./doc
 
