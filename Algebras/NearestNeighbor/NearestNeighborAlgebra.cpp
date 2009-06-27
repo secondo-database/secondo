@@ -7562,6 +7562,110 @@ void ReportResult(TBKnearestLocalInfo<timeType>* local)
 }
 
 
+/*
+ChinaknnFun is the value function for the chineseknearest operator
+It is a filter operator for the knearest operator. It can be called
+if there exists an r-tree for the unit attribute
+The main Function of chinese algorithm
+using bf-first method
+for leaf node, try to insert the entry into nearestlist
+at the same time, update the prunedist
+for each new element, using prunedist to check whether it needs to be inserted
+into the heap structure
+
+*/
+template<class timeType>
+void ChinaknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
+{
+  BBox<2> mpbox = local->mptraj->BoundingBox();
+  if(mpbox.IsDefined() == false)
+    mpbox = makexyBox(mp->BoundingBox());
+
+  while(local->hp.empty() == false){
+    hpelem top = local->hp.top();
+    local->hp.pop();
+
+    if(top.mind > local->prunedist.dist)
+      break;
+    if(top.tid != -1 && top.nodeid == -1){ //an actual trajectory segment
+        UpdatekNearest(local,top);
+    }
+    else if(top.tid == -1 && top.nodeid != -1){ // a node
+        tbtree::BasicNode<3>* tbnode = local->tbtree->getNode(top.nodeid);
+        if(tbnode->isLeaf()){ //leaf node
+            tbtree::TBLeafNode<3,TBLeafInfo>* leafnode =
+            dynamic_cast<TBLeafNode<3,TBLeafInfo>* > (tbnode);
+            for(unsigned int i = 0;i < leafnode->entryCount();i++){
+              const Entry<3,TBLeafInfo>* entry = leafnode->getEntry(i);
+              timeType t1((double)entry->getBox().MinD(2));
+              timeType t2((double)entry->getBox().MaxD(2));
+              if(!(t1 >= local->endTime || t2 <= local->startTime)){
+                  //for each unit in mp
+                const UPoint* up;
+                TupleId tid = entry->getInfo().getTupleId();
+                Tuple* tuple = local->relation->GetTuple(tid);
+                UPoint* data = (UPoint*)tuple->GetAttribute(local->attrpos);
+
+                for(int j = 0;j < mp->GetNoComponents();j++){
+                    mp->Get(j,up);
+                    timeType tt1 = (double)(up->timeInterval.start.ToDouble());
+                    timeType tt2 = (double)(up->timeInterval.end.ToDouble());
+                    if(tt1 > t2) //mq's time interval is larger than entry
+                      break;
+                    if(!(t1 >= tt2 || t2 <= tt1)){
+                      UPoint* ne = new UPoint(true);
+                      UPoint* nqe = new UPoint(true);
+                      //interpolation restrict to the same time interval
+
+                      CreateUPoint_ne(local,up,ne,data);
+                      CreateUPoint_nqe(local,up,nqe,data);
+
+                      UReal* mdist = new UReal(true);
+                      ne->Distance(*nqe,*mdist);
+                      bool def = true;
+                      double mind = mdist->Min(def);
+                      double maxd = mdist->Max(def);
+
+                      hpelem le(entry->getInfo().getTupleId(),mind,maxd,-1);
+                      le.nodets = mdist->timeInterval.start.ToDouble();
+                      le.nodete = mdist->timeInterval.end.ToDouble();
+                      AssignURUP(&le,mdist,ne);
+
+                      if(le.mind < local->prunedist.dist)
+                          local->hp.push(le);
+
+                      delete mdist;
+                      delete ne;
+                      delete nqe;
+                    }
+                }//end for
+                tuple->DeleteIfAllowed();
+              }
+           }
+        }else{ //inner node
+            tbtree::InnerNode<3,InnerInfo>* innernode =
+              dynamic_cast<InnerNode<3,InnerInfo>* > (tbnode);
+            for(unsigned int i = 0;i < innernode->entryCount();i++){
+              const Entry<3,InnerInfo>* entry = innernode->getEntry(i);
+              timeType t1((double)entry->getBox().MinD(2));
+              timeType t2((double)entry->getBox().MaxD(2));
+              if(!(t1 >= local->endTime || t2 <= local->startTime)){
+                BBox<2> entrybox = makexyBox(entry->getBox());//entry box
+                double mindist =  mpbox.Distance(entrybox);
+                double maxdist = maxDistance(entrybox,mpbox);
+
+                  hpelem le(-1,mindist,maxdist,entry->getInfo().getPointer());
+                  le.nodets = t1;
+                  le.nodete = t2;
+                  if(le.mind < local->prunedist.dist)
+                      local->hp.push(le);
+              }
+            }
+        }
+    }
+  }
+  ReportResult(local); //results are stored in NearestList
+}
 
 /*
 Initialization for greeceknearest operator
