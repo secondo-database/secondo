@@ -7498,6 +7498,71 @@ void UpdatekNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
   }
 }
 
+/*
+Main function for Greece algorithm,
+update the k nearest list structure and prunedist using
+checkprune function
+
+*/
+template<class timeType>
+void UpdatekNearestG(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
+{
+  list<hpelem> updatelist;
+
+    if(CheckPrune(local,elem) == false){
+
+      updatelist.push_back(elem);
+      vector<hpelem> auxiliarylist;
+      vector<hpelem> templist;
+      for(unsigned int i = 0;i < local->k;i++){//for each NearestList
+        while(updatelist.empty() == false){
+            hpelem top = updatelist.front();
+            updatelist.pop_front();
+
+          if(CheckPrune(local,top) == false)
+              UpdateNearest(local,top,templist,i); //key function
+
+            for(unsigned int j = 0;j < templist.size();j++)//transfer step1
+              auxiliarylist.push_back(templist[j]);
+            templist.clear();
+        }
+        for(unsigned int j = 0;j < auxiliarylist.size();j++)//transfer step2
+          updatelist.push_back(auxiliarylist[j]);
+        auxiliarylist.clear();
+      }
+  }
+}
+
+
+bool HpelemCompare(const hpelem& e1,const hpelem& e2)
+{
+    return e1.nodets < e2.nodets;
+}
+
+/*
+Report result
+
+*/
+template<class timeType>
+void ReportResult(TBKnearestLocalInfo<timeType>* local)
+{
+  for(unsigned int i = 0; i < local->k;i++){ //traverse NearestList
+    hpelem* head = local->nlist[i].head;
+    hpelem* cur = head->next;
+    while(cur != NULL){
+      hpelem top = *cur;
+      assert(top.tid != -1 && top.nodeid == -1);
+      if(top.nodets != top.nodete)
+        local->result.push_back(top);
+      head = cur;
+      cur = cur->next;
+    }
+  }
+  stable_sort(local->result.begin(),local->result.end(),HpelemCompare);
+}
+
+
+
 
 /*
 Initialization for greeceknearest operator
