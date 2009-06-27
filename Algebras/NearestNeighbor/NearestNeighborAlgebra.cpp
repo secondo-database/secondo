@@ -7500,6 +7500,163 @@ void UpdatekNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
 
 
 /*
+Main function for Greece algorithm,
+update the k nearest list structure and prunedist using
+checkprune function
+
+*/
+template<class timeType>
+void UpdatekNearestG(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
+{
+  list<hpelem> updatelist;
+
+    if(CheckPrune(local,elem) == false){
+
+      updatelist.push_back(elem);
+      vector<hpelem> auxiliarylist;
+      vector<hpelem> templist;
+      for(unsigned int i = 0;i < local->k;i++){//for each NearestList
+        while(updatelist.empty() == false){
+            hpelem top = updatelist.front();
+            updatelist.pop_front();
+
+          if(CheckPrune(local,top) == false)
+              UpdateNearest(local,top,templist,i); //key function
+
+            for(unsigned int j = 0;j < templist.size();j++)//transfer step1
+              auxiliarylist.push_back(templist[j]);
+            templist.clear();
+        }
+        for(unsigned int j = 0;j < auxiliarylist.size();j++)//transfer step2
+          updatelist.push_back(auxiliarylist[j]);
+        auxiliarylist.clear();
+      }
+  }
+}
+
+
+
+
+/*
+GreeceknnFun is the value function for the greeceknearest operator
+It is a filter operator for the knearest operator. It can be called
+if there exists an r-tree for the unit attribute
+The argument vector contains the following values:
+args[0] = an r-tree with the unit attribute as key
+args[1] = the relation of the r-tree
+args[2] = attribute UPoint
+args[3] = mpoint
+args[4] = int k, how many nearest are searched
+
+*/
+template<class timeType>
+void GreeceknnFun(TBKnearestLocalInfo<timeType>* local,MPoint* mp,int level,
+hpelem& elem)
+{
+//  cout<<local->prunedist.dist<<endl;
+  const int dim = 3;
+  BBox<2> mpbox = local->mpbox;
+
+  SmiRecordId adr = elem.nodeid;
+  R_TreeNode<dim,TupleId>* tbnode = local->rtree->GetMyNode(
+            adr,false,local->rtree->MinEntries(level),
+            local->rtree->MaxEntries(level));
+
+  if(tbnode->IsLeaf()){ //leaf node
+      for(int i = 0;i < tbnode->EntryCount();i++){
+        R_TreeLeafEntry<dim,TupleId> e =
+            (R_TreeLeafEntry<dim,TupleId>&)(*tbnode)[i];
+        timeType t1((double)e.box.MinD(2));
+        timeType t2((double)e.box.MaxD(2));
+        t1 = t1/864000;
+        t2 = t2/864000;
+        if(!(t1 >= local->endTime || t2 <= local->startTime)){
+            //for each unit in mp
+            const UPoint* up;
+            TupleId tid = e.info;
+            Tuple* tuple = local->relation->GetTuple(tid);
+            UPoint* data = (UPoint*)tuple->GetAttribute(local->attrpos);
+
+            for(int j = 0;j < mp->GetNoComponents();j++){
+              mp->Get(j,up);
+              timeType tt1 = (double)(up->timeInterval.start.ToDouble());
+              timeType tt2 = (double)(up->timeInterval.end.ToDouble());
+
+              if(tt1 > t2) //mq's time interval is larger than entry
+                  break;
+              if(!(t1 >= tt2 || t2 <= tt1)){
+                  UPoint* ne = new UPoint(true);
+                  UPoint* nqe = new UPoint(true);
+                  //interpolation restrict to the same time interval
+
+                  CreateUPoint_ne(local,up,ne,data);
+                  CreateUPoint_nqe(local,up,nqe,data);
+
+                  double nodets = ne->timeInterval.start.ToDouble();
+                  double nodete = ne->timeInterval.end.ToDouble();
+                  if(AlmostEqual(nodets,nodete))
+                        continue;
+                  UReal* mdist = new UReal(true);
+                  ne->Distance(*nqe,*mdist);
+                  bool def = true;
+                  double mind = mdist->Min(def);
+                  double maxd = mdist->Max(def);
+                  hpelem le(tid,mind,maxd,-1);
+                  le.nodets = nodets;
+                  le.nodete = nodete;
+                  AssignURUP(&le,mdist,ne);
+//                  if(le.mind < local->prunedist.dist)
+//                    UpdatekNearest(local,le);
+                  if(CheckPrune(local,le) == false)
+                      UpdatekNearestG(local,le);
+                  delete mdist;
+                  delete ne;
+                  delete nqe;
+              }
+            }//end for
+                tuple->DeleteIfAllowed();
+        }
+      }
+  }else{ //an internal node
+    vector<hpelem> branchlist;
+    for(int i = 0;i < tbnode->EntryCount();i++){
+       R_TreeInternalEntry<dim> e =
+          (R_TreeInternalEntry<dim>&)(*tbnode)[i];
+          timeType t1((double)e.box.MinD(2));
+          timeType t2((double)e.box.MaxD(2));
+          t1 = t1/864000;
+          t2 = t2/864000;
+          if(!(t1 >= local->endTime || t2 <= local->startTime)){
+              BBox<2> entrybox = makexyBox(e.box);//entry box
+              double mindist =  mpbox.Distance(entrybox);
+              double maxdist = maxDistance(entrybox,mpbox);
+
+              hpelem le(-1,mindist,maxdist,e.pointer);
+              le.nodets = t1;
+              le.nodete = t2;
+              branchlist.push_back(le);
+          }
+    }
+    stable_sort(branchlist.begin(),branchlist.end());
+    vector<hpelem> prunelist;
+
+    for(unsigned int i = 0; i < branchlist.size();i++){
+      if(CheckPrune(local,branchlist[i]) == false)
+        prunelist.push_back(branchlist[i]);
+    }
+    for(unsigned int i = 0;i < prunelist.size();){
+        GreeceknnFun(local,mp,level+1,prunelist[i]);
+
+        unsigned int j = i + 1;
+        while(j < prunelist.size() &&
+              CheckPrune(local,prunelist[j]))j++;
+        i = j;
+
+    }
+  }
+}
+
+/*
 Greeceknearest is the value function for the greeceknearest operator
 It is a filter operator for the knearest operator. It can be called
 if there exists an r-tree for the unit attribute
