@@ -7500,42 +7500,37 @@ void UpdatekNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
 
 
 /*
-Main function for Greece algorithm,
-update the k nearest list structure and prunedist using
-checkprune function
+Initialization for greeceknearest operator
+1---initialize nearest list structure
+2---boundingbox, prunedist
 
 */
 template<class timeType>
-void UpdatekNearestG(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
+void GreeceknearestInitialize(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
 {
-  list<hpelem> updatelist;
+  //Initialization NearestList and prunedist
 
-    if(CheckPrune(local,elem) == false){
-
-      updatelist.push_back(elem);
-      vector<hpelem> auxiliarylist;
-      vector<hpelem> templist;
-      for(unsigned int i = 0;i < local->k;i++){//for each NearestList
-        while(updatelist.empty() == false){
-            hpelem top = updatelist.front();
-            updatelist.pop_front();
-
-          if(CheckPrune(local,top) == false)
-              UpdateNearest(local,top,templist,i); //key function
-
-            for(unsigned int j = 0;j < templist.size();j++)//transfer step1
-              auxiliarylist.push_back(templist[j]);
-            templist.clear();
-        }
-        for(unsigned int j = 0;j < auxiliarylist.size();j++)//transfer step2
-          updatelist.push_back(auxiliarylist[j]);
-        auxiliarylist.clear();
-      }
+  for(unsigned int i = 0;i < local->k;i++){
+    double mind = numeric_limits<double>::max();
+    double maxd = numeric_limits<double>::min();
+    double st = local->startTime;
+    double et = local->startTime;
+    Nearestlist nl(mind,maxd,new hpelem(-1,0,0,-1),st,et);
+    local->nlist.push_back(nl);
   }
+
+  local->prunedist.dist = numeric_limits<double>::max();
+  local->prunedist.define = false;
+
+  Line* line = new Line(0);
+  mp->Trajectory(*line);
+  local->mptraj = new Line(*line);
+  delete line;
+
+  local->mpbox = local->mptraj->BoundingBox();
+  if(local->mpbox.IsDefined() == false)
+    local->mpbox = makexyBox(mp->BoundingBox());
 }
-
-
-
 
 /*
 GreeceknnFun is the value function for the greeceknearest operator
