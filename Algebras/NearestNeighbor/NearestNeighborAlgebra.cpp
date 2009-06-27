@@ -7455,6 +7455,187 @@ void InitializePrunedist(TBKnearestLocalInfo<timeType>* local)
   }
 }
 
+/*
+Main function, update the k nearest list structure and prunedist
+traverse k nearestlist, and update it
+
+*/
+template<class timeType>
+void UpdatekNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
+{
+  list<hpelem> updatelist;
+
+//    if(CheckPrune(local,elem) == false){
+    if(elem.mind < local->prunedist.dist){
+
+      updatelist.push_back(elem);
+      vector<hpelem> auxiliarylist;
+      vector<hpelem> templist;
+      for(unsigned int i = 0;i < local->k;i++){//for each NearestList
+        while(updatelist.empty() == false){
+            hpelem top = updatelist.front();
+            updatelist.pop_front();
+
+//          if(CheckPrune(local,top) == false)
+            if(top.mind < local->prunedist.dist)
+              UpdateNearest(local,top,templist,i); //key function
+
+            //check whether the time interval covers
+            if(i == local->k - 1 && local->iscovered == false)
+              CheckCovered(local,top);
+
+            for(unsigned int j = 0;j < templist.size();j++)//transfer step1
+              auxiliarylist.push_back(templist[j]);
+            templist.clear();
+        }
+        for(unsigned int j = 0;j < auxiliarylist.size();j++)//transfer step2
+          updatelist.push_back(auxiliarylist[j]);
+        auxiliarylist.clear();
+
+        if(local->iscovered && i == local->k - 1) //check prunedist
+          InitializePrunedist(local);
+      }
+  }
+}
+
+/*
+Main function for Greece algorithm,
+update the k nearest list structure and prunedist using
+checkprune function
+
+*/
+template<class timeType>
+void UpdatekNearestG(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
+{
+  list<hpelem> updatelist;
+
+    if(CheckPrune(local,elem) == false){
+//    if(elem.mind < local->prunedist.dist){
+
+      updatelist.push_back(elem);
+      vector<hpelem> auxiliarylist;
+      vector<hpelem> templist;
+      for(unsigned int i = 0;i < local->k;i++){//for each NearestList
+        while(updatelist.empty() == false){
+            hpelem top = updatelist.front();
+            updatelist.pop_front();
+
+          if(CheckPrune(local,top) == false)
+//            if(top.mind < local->prunedist.dist)
+              UpdateNearest(local,top,templist,i); //key function
+
+            for(unsigned int j = 0;j < templist.size();j++)//transfer step1
+              auxiliarylist.push_back(templist[j]);
+            templist.clear();
+        }
+        for(unsigned int j = 0;j < auxiliarylist.size();j++)//transfer step2
+          updatelist.push_back(auxiliarylist[j]);
+        auxiliarylist.clear();
+      }
+  }
+}
+
+
+bool HpelemCompare(const hpelem& e1,const hpelem& e2)
+{
+    return e1.nodets < e2.nodets;
+}
+template<class timeType>
+void ReportResult(TBKnearestLocalInfo<timeType>* local)
+{
+  for(unsigned int i = 0; i < local->k;i++){ //traverse NearestList
+    hpelem* head = local->nlist[i].head;
+    hpelem* cur = head->next;
+    while(cur != NULL){
+      hpelem top = *cur;
+      assert(top.tid != -1 && top.nodeid == -1);
+      if(top.nodets != top.nodete)
+        local->result.push_back(top);
+      head = cur;
+      cur = cur->next;
+    }
+  }
+  stable_sort(local->result.begin(),local->result.end(),HpelemCompare);
+}
+
+
+/*
+The function rknearestFilterTypeMap is the type map for the
+operator knearestfilter
+
+*/
+ListExpr GreeceknearestTypeMap( ListExpr args )
+{
+
+  string errmsg = "rtree x relation x utrip x mpoint x int expected";
+
+  if(nl->ListLength(args)!=5){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+  ListExpr tbtreeDescription = nl->First(args);
+  ListExpr relDescription = nl->Second(args);
+  ListExpr attrName = nl->Third(args);
+  ListExpr mpoint = nl->Fourth(args);
+  ListExpr quantity = nl->Fifth(args);
+
+  // the third element has to be of type mpoint
+  if(!nl->IsEqual(mpoint,"mpoint")){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  // the third element has to be of type mpoint
+  if(!nl->IsEqual(quantity,"int")){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  // an tbtree description must have length 4
+  if(nl->ListLength(tbtreeDescription)!=4){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  ListExpr tbtreeSymbol = nl->First(tbtreeDescription);
+
+  if(!nl->IsEqual(tbtreeSymbol, "rtree3")){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  if(!IsRelDescription(relDescription)){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  int j;
+  ListExpr attrType;
+  j = FindAttribute(nl->Second(nl->Second(relDescription)),
+      nl->SymbolValue(attrName),attrType);
+  CHECK_COND((j > 0) && (nl->IsEqual(attrType,"upoint")),"expect upoint");
+  ListExpr res = nl->TwoElemList(
+      nl->SymbolAtom("stream"),
+      nl->Second(nl->Second(args)));
+
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+          nl->OneElemList(nl->IntAtom(j)),res);
+}
+
+Operator greeceknearest (
+         "greeceknearest",        // name
+         GreeceknearestfilterSpec,      // specification
+         Greeceknearest<double>,       // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         GreeceknearestTypeMap    // type mapping
+);
+Operator chinaknearest (
+         "chinaknearest",        // name
+         ChinaknearestSpec,      // specification
+         ChinaknearestFun<double>,// value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         ChinaknearestTypeMap    // type mapping
+);
 
 /*
 4 Implementation of the Algebra Class
