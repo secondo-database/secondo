@@ -7563,7 +7563,6 @@ void ReportResult(TBKnearestLocalInfo<timeType>* local)
 
 
 
-
 /*
 Initialization for greeceknearest operator
 1---initialize nearest list structure
