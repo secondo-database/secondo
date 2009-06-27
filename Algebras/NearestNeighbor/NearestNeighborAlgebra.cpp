@@ -7498,43 +7498,121 @@ void UpdatekNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
   }
 }
 
+
 /*
-Main function for Greece algorithm,
-update the k nearest list structure and prunedist using
-checkprune function
+Greeceknearest is the value function for the greeceknearest operator
+It is a filter operator for the knearest operator. It can be called
+if there exists an r-tree for the unit attribute
+The argument vector contains the following values:
+args[0] = an r-tree with the unit attribute as key
+args[1] = the relation of the r-tree
+args[2] = attribute UPoint
+args[3] = mpoint
+args[4] = int k, how many nearest are searched
 
 */
 template<class timeType>
-void UpdatekNearestG(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
+int Greeceknearest(Word* args, Word& result, int message,
+             Word& local, Supplier s)
 {
-  list<hpelem> updatelist;
+  const int dim = 3;
+  TBKnearestLocalInfo<timeType> *localInfo;
+  switch (message)
+  {
+    case OPEN :
+    {
+      //Initialize hp,kNearestLists and PruneDist
+      MPoint* mp = (MPoint*)args[3].addr;
+      if(mp->IsEmpty())
+        return 0;
+      const UPoint* up1;
+      const UPoint* up2;
+      mp->Get(0,up1);
+      mp->Get(mp->GetNoComponents()-1,up2);
+      const unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
+      int attrpos = ((CcInt*)args[5].addr)->GetIntval()-1;
+      localInfo = new TBKnearestLocalInfo<timeType>(k);
+      local = SetWord(localInfo);
+      localInfo->attrpos = attrpos;
+      localInfo->startTime = up1->timeInterval.start.ToDouble();
+      localInfo->endTime = up2->timeInterval.end.ToDouble();
+      localInfo->ci =
+        new CIC<timeType>(localInfo->startTime,localInfo->endTime);
 
-    if(CheckPrune(local,elem) == false){
+      localInfo->rtree = (R_Tree<dim,TupleId>*)args[0].addr;
+      localInfo->relation = (Relation*)args[1].addr;
+      localInfo->counter = 0;
+      localInfo->scanFlag = true;
+      GreeceknearestInitialize(localInfo,mp);
 
-      updatelist.push_back(elem);
-      vector<hpelem> auxiliarylist;
-      vector<hpelem> templist;
-      for(unsigned int i = 0;i < local->k;i++){//for each NearestList
-        while(updatelist.empty() == false){
-            hpelem top = updatelist.front();
-            updatelist.pop_front();
+      SmiRecordId adr = localInfo->rtree->RootRecordId();
+      R_TreeNode<dim,TupleId>* root = localInfo->rtree->GetMyNode(adr,
+      false,localInfo->rtree->MinEntries(0),localInfo->rtree->MaxEntries(0));
 
-          if(CheckPrune(local,top) == false)
-              UpdateNearest(local,top,templist,i); //key function
-
-            for(unsigned int j = 0;j < templist.size();j++)//transfer step1
-              auxiliarylist.push_back(templist[j]);
-            templist.clear();
-        }
-        for(unsigned int j = 0;j < auxiliarylist.size();j++)//transfer step2
-          updatelist.push_back(auxiliarylist[j]);
-        auxiliarylist.clear();
+      timeType t1(root->BoundingBox().MinD(2));
+      timeType t2(root->BoundingBox().MaxD(2));
+      t1 = t1/864000;
+      t2 = t2/864000;
+      if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
+        BBox<2> entrybox = makexyBox(root->BoundingBox());
+        double mindist = localInfo->mptraj->Distance(entrybox);
+        double maxdist = maxDistance(entrybox,localInfo->mpbox);
+        hpelem le(-1,mindist,maxdist,adr);
+        le.nodets = t1;
+        le.nodete = t2;
+        GreeceknnFun(localInfo,mp,0,le);
+        ReportResult(localInfo);
       }
+      return 0;
+    }
+    case REQUEST :
+    {
+        localInfo = (TBKnearestLocalInfo<timeType>*)local.addr;
+        if(localInfo->k == 0)
+          return CANCEL;
+        if(localInfo->counter < localInfo->result.size()){
+            TupleId tid = localInfo->result[localInfo->counter].tid;
+            Tuple* tuple = localInfo->relation->GetTuple(tid);
+            UPoint* up = (UPoint*)tuple->GetAttribute(localInfo->attrpos);
+            Point p0;
+            Point p1;
+            Instant t1(instanttype);
+            Instant t2(instanttype);
+            t1.ReadFrom(localInfo->result[localInfo->counter].nodets);
+            t2.ReadFrom(localInfo->result[localInfo->counter].nodete);
+            Interval<Instant> interv(t1,t2,true,true);
+            UPoint* temp = new UPoint(*up);
+            temp->TemporalFunction(t1,p0,true);
+            temp->TemporalFunction(t2,p1,true);
+            temp->p0 = p0;
+            temp->timeInterval.start = t1;
+            temp->p1 = p1;
+            temp->timeInterval.end = t2;
+            double factor = 0.0000001;
+            if((localInfo->result[localInfo->counter].nodete -
+                localInfo->result[localInfo->counter].nodets) < factor)
+              temp->timeInterval.lc = temp->timeInterval.rc = true;
+
+            tuple->PutAttribute(localInfo->attrpos,new UPoint(*temp));
+            delete temp;
+
+            result = SetWord(tuple);
+            localInfo->counter++;
+            return YIELD;
+        }else
+          return CANCEL;
+    }
+
+    case CLOSE :
+    {
+      localInfo = (TBKnearestLocalInfo<timeType>*)local.addr;
+      delete localInfo;
+      return 0;
+    }
   }
+  return 0;
+
 }
-
-
-
 
 /*
 ChinaknearestFun is the value function for the chinaknearest operator
