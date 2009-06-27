@@ -7568,7 +7568,7 @@ It is a filter operator for the knearest operator. It can be called
 if there exists an r-tree for the unit attribute
 The main Function of chinese algorithm
 using bf-first method
-for leaf node, try to insert the entry into nearest\_list
+for leaf node, try to insert the entry into nearestlist
 at the same time, update the prunedist
 for each new element, using prunedist to check whether it needs to be inserted
 into the heap structure
