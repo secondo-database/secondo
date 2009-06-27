@@ -6292,6 +6292,816 @@ struct  Prunedist{
   bool define;
 };
 
+/*
+main structur for chinese and greece knn algorithm
+
+*/
+template<class timeType>
+struct TBKnearestLocalInfo
+{
+  unsigned int k;
+  unsigned int attrpos;
+  bool scanFlag;
+  Relation* relation;
+  TBTree* tbtree;
+  R_Tree<3,TupleId>* rtree;
+  timeType startTime,endTime;
+  Line* mptraj;
+  CIC<timeType>* ci;
+  vector<Nearestlist> nlist;
+//  vector<double> prunedist;
+  Prunedist prunedist;
+  BBox<2> mpbox;
+  priority_queue<hpelem> hp;
+  vector<hpelem> result;
+  unsigned int counter;
+  bool iscovered; //used to detect time interval in Nearest_list
+
+  TBKnearestLocalInfo(unsigned int nn):k(nn)
+  {
+      ci = NULL;
+       iscovered = false;
+  }
+  ~TBKnearestLocalInfo()
+  {
+    if( ci != NULL)
+      delete ci;
+
+  }
+
+};
+/*
+Initialization, knearestlist prunedist
+
+*/
+template<class timeType>
+void ChinaknnInitialize(TBKnearestLocalInfo<timeType>* local,MPoint* mp)
+{
+  //Initialization NearestList and prunedist
+
+  for(unsigned int i = 0;i < local->k;i++){
+    double mind = numeric_limits<double>::max();
+    double maxd = numeric_limits<double>::min();
+    double st = local->startTime;
+    double et = local->startTime;
+    Nearestlist nl(mind,maxd,new hpelem(-1,0,0,-1),st,et);
+    local->nlist.push_back(nl);
+  }
+
+  local->prunedist.dist = numeric_limits<double>::max();
+  local->prunedist.define = false;
+
+
+  SmiRecordId adr = local->tbtree->getRootId();
+  tbtree::BasicNode<3>* root = local->tbtree->getNode(adr);
+  timeType t1(root->getBox().MinD(2));
+  timeType t2(root->getBox().MaxD(2));
+  if(!(t1 >= local->endTime || t2 <= local->startTime)){
+    Line* line = new Line(0);
+    mp->Trajectory(*line);
+    local->mptraj = new Line(*line);
+    delete line;
+    tbtree::InnerNode<3,InnerInfo>* innernode =
+            dynamic_cast<InnerNode<3,InnerInfo>*>(root);
+    //insert all the entries of the root into hp
+    for(unsigned int i = 0;i < innernode->entryCount();i++){
+        const Entry<3,InnerInfo>* entry = innernode->getEntry(i);
+        timeType tt1((double)entry->getBox().MinD(2));
+        timeType tt2((double)entry->getBox().MaxD(2));
+        if(!(tt1 >= local->endTime || tt2 <= local->startTime)){
+          BBox<2> entrybox = makexyBox(entry->getBox());//entry box
+          double mindist = local->mptraj->Distance(entrybox);
+          double maxdist = numeric_limits<double>::max();
+          hpelem le(-1,mindist,maxdist,entry->getInfo().getPointer());
+          le.nodets = tt1;
+          le.nodete = tt2;
+          local->hp.push(le);
+        }
+    }
+  }
+}
+/*
+Interpolate for between data entry and query entry
+
+*/
+template<class timeType>
+void CreateUPoint_ne(TBKnearestLocalInfo<timeType>* local,const UPoint* up,
+UPoint*& ne,UPoint* data)
+{
+
+  Instant start;
+  Instant end;
+  Point p0,p1;
+
+  if(data->timeInterval.start > up->timeInterval.start){
+    start = data->timeInterval.start;
+    p0 = data->p0;
+  }
+  else{
+    start = up->timeInterval.start;
+    data->TemporalFunction(start,p0,true);
+  }
+  if(data->timeInterval.end < up->timeInterval.end){
+    end = data->timeInterval.end;
+    p1 = data->p1;
+  }
+  else{
+    end = up->timeInterval.end;
+    data->TemporalFunction(end,p1,true);
+  }
+  ne->timeInterval.start = start;
+  ne->timeInterval.end = end;
+  ne->p0 = p0;
+  ne->p1 = p1;
+
+}
+/*
+Interpolate for entry in MQ, split entries
+
+*/
+
+template<class timeType>
+void CreateUPoint_nqe(TBKnearestLocalInfo<timeType>* local,const UPoint* up,
+UPoint*& nqe,UPoint* data)
+{
+  Instant start;
+  Instant end;
+  Point p0,p1;
+
+  if(data->timeInterval.start > up->timeInterval.start){
+    start = data->timeInterval.start;
+    up->TemporalFunction(start,p0,true);
+  }
+  else{
+    start = up->timeInterval.start;
+    p0 = up->p0;
+  }
+  if(data->timeInterval.end < up->timeInterval.end){
+    end = data->timeInterval.end;
+    up->TemporalFunction(end,p1,true);
+  }
+  else{
+    end = up->timeInterval.end;
+    p1 = up->p1;
+  }
+  nqe->timeInterval.start = start;
+  nqe->timeInterval.end = end;
+  nqe->p0 = p0;
+  nqe->p1 = p1;
+
+}
+/*
+Update information in each NearestList, mind,maxd, startTime,endTime
+after each new elem is inserted
+
+*/
+template<class timeType>
+void UpdateInfoInNL(TBKnearestLocalInfo<timeType>* local,hpelem* elem,int i)
+{
+  if(elem->mind < local->nlist[i].mind)
+    local->nlist[i].mind = elem->mind;
+  if(elem->maxd > local->nlist[i].maxd)
+    local->nlist[i].maxd = elem->maxd;
+  if(elem->nodets < local->nlist[i].startTime)
+    local->nlist[i].startTime = elem->nodets;
+  if(elem->nodete > local->nlist[i].endTime)
+    local->nlist[i].endTime = elem->nodete;
+
+  //update prune_dist here
+  if(elem->nodets > local->prunedist.te ||
+     elem->nodete < local->prunedist.ts){   //time interval disjoint
+      if(elem->maxd > local->prunedist.dist){
+        local->prunedist.dist = elem->maxd;
+        local->prunedist.ts = elem->nodets;
+        local->prunedist.te = elem->nodete;
+    }
+  }else{
+        hpelem* head = local->nlist[local->k-1].head;
+        hpelem* cur = head->next;
+        hpelem* bigelem;
+        if(cur != NULL){
+          double max = cur->maxd;
+          bigelem = cur;
+          while(cur != NULL){
+            if(cur->maxd > max){
+              max = cur->maxd;
+              bigelem = cur;
+            }
+            cur = cur->next;
+          }
+          local->prunedist.dist = max;
+          local->prunedist.ts = bigelem->nodets;
+          local->prunedist.te = bigelem->nodete;
+        }
+    }
+}
+/*
+the same function as Min in UReal
+
+*/
+double URealMin(hpelem* elem,double& start)
+{
+    double a = elem->movdist.a;
+    double b = elem->movdist.b;
+    double c = elem->movdist.c;
+
+    double t_start = elem->nodets - start;
+    double t_end = elem->nodete - start;
+    double v1 = sqrt(a*t_start*t_start + b*t_start + c);
+    double v2 = sqrt(a*t_end*t_end + b*t_end + c);
+    double min = v1;
+    if(v2 < min)
+      min = v2;
+    if(AlmostEqual(a,0.0))
+      return min;
+    double asymx = (-1.0*b)/(2*a);
+    double v3 = min;
+    if(t_start < asymx && asymx < t_end){
+      v3 = sqrt(a*asymx*asymx+b*asymx+c);
+      if(v3 < min)
+        min = v3;
+    }
+    return min;
+
+}
+
+/*
+the same function as Max in UReal
+
+*/
+
+double URealMax(hpelem* elem,double& start)
+{
+    double a = elem->movdist.a;
+    double b = elem->movdist.b;
+    double c = elem->movdist.c;
+    double t_start = elem->nodets - start;
+    double t_end = elem->nodete - start;
+
+    double v1 = sqrt(a*t_start*t_start + b*t_start + c);
+    double v2 = sqrt(a*t_end*t_end + b*t_end + c);
+    double max = v1;
+    if(v2 > max)
+      max = v2;
+    if(AlmostEqual(a,0.0))
+      return max;
+    double asymx = (-1.0*b)/(2*a);
+    double v3 = 0;
+    if(t_start < asymx && asymx < t_end){ //three values
+      v3 = sqrt(a*asymx*asymx+b*asymx+c);
+      if(v3 > max)
+        max = v3;
+    }
+    return max;
+}
+
+
+/*
+translate the start time of parabolas
+
+*/
+void URealTranslate(hpelem* elem,double& start)
+{
+  double b,c;
+  double ts = elem->nodets - start;
+  b = 2*elem->movdist.a*ts + elem->movdist.b;
+  c = elem->movdist.c + elem->movdist.b*ts + elem->movdist.a*ts*ts;
+  elem->movdist.b = b;
+  elem->movdist.c = c;
+}
+
+
+/*
+interpolation parabolas
+entry unit (in list) is first smaller than data (new elem), and then new
+elem is smaller than entry (the one already stored in Nearestlist)
+T is smaller first
+
+*/
+
+template<class timeType>
+void ParabolasTM(TBKnearestLocalInfo<timeType>* local,hpelem& elem
+,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
+double& intersect,double& elemstart,double& curstart)
+{
+
+    hpelem* newelem1 = new hpelem(*cur);
+    newelem1->nodets = intersect;
+    Point start;
+    MyTemporalFunction(newelem1,intersect,start);
+    newelem1->dataup.p0 = start;
+    newelem1->next= NULL;
+    newelem1->mind = URealMin(newelem1,curstart);
+    newelem1->maxd = URealMax(newelem1,curstart);
+    URealTranslate(newelem1,curstart);
+
+
+    cur->nodete = intersect;
+    Point end;
+    MyTemporalFunction(cur,intersect,end);
+    cur->dataup.p1 = end;
+    cur->mind = URealMin(cur,curstart);
+    cur->maxd = URealMax(cur,curstart);
+
+
+
+    hpelem* newelem2 = new hpelem(elem);
+    newelem2->nodete = intersect;
+    MyTemporalFunction(newelem2,intersect,end);
+    newelem2->dataup.p1 = end;
+    newelem2->mind = URealMin(newelem2,elemstart);
+    newelem2->maxd = URealMax(newelem2,elemstart);
+
+
+
+    nextupdatelist.push_back(*newelem1);
+    nextupdatelist.push_back(*newelem2);
+
+    hpelem* newelem3 = new hpelem(elem);
+    newelem3->nodets = intersect;
+    MyTemporalFunction(newelem3,intersect,start);
+    newelem3->dataup.p0 = start;
+    newelem3->next = cur->next;
+
+
+    cur->next = newelem3;
+////////////////////////////////////
+    head = cur;
+    cur = newelem3;
+////////////////////////////////
+    newelem3->mind = URealMin(newelem3,elemstart);
+    newelem3->maxd = URealMax(newelem3,elemstart);
+    URealTranslate(newelem3,elemstart);
+
+
+    UpdateInfoInNL(local,cur,i);
+    UpdateInfoInNL(local,newelem3,i);
+}
+/*
+interpolation parabolas
+entry unit (in list) is first larger than data (new elem), and then new
+elem is larger than entry (the one already stored in Nearestlist)
+M is smaller first
+
+*/
+template<class timeType>
+void ParabolasMT(TBKnearestLocalInfo<timeType>* local,hpelem& elem
+,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
+double& intersect,double& elemstart,double& curstart)
+{
+
+  Point end;
+  hpelem* newelem1 = new hpelem(elem);
+
+  newelem1->nodete = intersect;
+  MyTemporalFunction(newelem1,intersect,end);
+  newelem1->dataup.p1 = end;
+  newelem1->next = NULL;
+  newelem1->mind = URealMin(newelem1,elemstart);
+  newelem1->maxd = URealMax(newelem1,elemstart);
+
+
+  hpelem* newelem2 = new hpelem(*cur);
+
+  newelem2->nodete = intersect;
+  MyTemporalFunction(newelem2,intersect,end);
+  newelem2->dataup.p1 = end;
+  newelem2->next= NULL;
+  newelem2->mind = URealMin(newelem2,curstart);
+  newelem2->maxd = URealMax(newelem2,curstart);
+
+
+
+  cur->nodets = intersect;
+  Point start;
+  MyTemporalFunction(cur,intersect,start);
+  cur->dataup.p0 = start;
+  cur->mind = URealMin(cur,curstart);
+  cur->maxd = URealMax(cur,curstart);
+  URealTranslate(cur,curstart);
+
+
+  head->next = newelem1;
+  newelem1->next = cur;
+///////////////////////
+  head = newelem1;
+////////////////////////
+  UpdateInfoInNL(local,newelem1,i);
+  UpdateInfoInNL(local,cur,i);
+
+  hpelem* newelem3 = new hpelem(elem);
+
+  newelem3->nodets = intersect;
+  MyTemporalFunction(newelem3,intersect,start);
+  newelem3->dataup.p0 = start;
+  newelem3->next = NULL;
+  newelem3->mind = URealMin(newelem3,elemstart);
+  newelem3->maxd = URealMax(newelem3,elemstart);
+  URealTranslate(newelem3,elemstart);
+
+
+  nextupdatelist.push_back(*newelem2);
+  nextupdatelist.push_back(*newelem3);
+}
+
+/*
+Process different splitting cases of parabolas
+restrict to the same time interval and check whether the moving distance
+function has to be split or not
+
+*/
+template<class timeType>
+void Parabolas(TBKnearestLocalInfo<timeType>* local,hpelem& elem
+,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
+double& elemstart,double& curstart)
+{
+
+  double ma,mb,mc; //data
+  double ta,tb,tc; //entry in list
+  double ttelem = elemstart;
+  double ttcur = curstart;
+
+  //a1(t-t1)*(t-t1) + b1(t-t1) + c1
+  //a2(t-t2)*(t-t2) + b2(t-t2) + c2
+
+  ma = elem.movdist.a;
+  mb = elem.movdist.b - 2*ma*ttelem;
+  mc = elem.movdist.c + ma*ttelem*ttelem- mb*ttelem;
+  ta = cur->movdist.a;
+  tb = cur->movdist.b - 2*ta*ttcur;
+  tc = cur->movdist.c + ta*ttcur*ttcur - tb*ttcur;
+
+
+  double start_m,start_t;
+
+  if(ttelem == elem.nodets){
+      start_m = sqrt(elem.movdist.c);
+  }
+  else{
+    double delta_m = elem.nodets-elemstart;
+    start_m =
+        sqrt(ma*delta_m*delta_m + elem.movdist.b*delta_m + elem.movdist.c);
+  }
+
+  if(ttcur == cur->nodets){
+    start_t = sqrt(cur->movdist.c);
+  }
+  else{
+
+    double delta_t = cur->nodets-curstart;
+    start_t =
+    sqrt(ta*delta_t*delta_t + cur->movdist.b*delta_t + cur->movdist.c);
+  }
+
+
+  if(ma == ta && mb == tb && mc == tc){
+      nextupdatelist.push_back(elem);
+      return;//for next
+  }
+  if(ma == ta && mb == tb){
+        if(start_t <= start_m){
+          nextupdatelist.push_back(elem);
+          return;
+      }else{// entry is to be replaced by data
+          hpelem* newhp = new hpelem(elem);
+          head->next = newhp;
+          newhp->next = cur->next;
+          UpdateInfoInNL(local,newhp,i);
+          cur->next = NULL;
+          nextupdatelist.push_back(*cur);
+          cur = newhp; //new cur
+          return;
+      }
+  }
+  if(ma == ta){
+      assert(mb != tb);
+      double v1 = elem.nodets;
+      double v2 = elem.nodete;
+
+      double time_m,time_t; //start time for cur and elem
+      time_m = ttelem;//real start time
+      time_t = ttcur; //real start time
+      double t = (tc-mc)/(mb-tb);
+
+      if(v1 >= t || t >= v2){ //intersection point is no use
+            if(start_t <= start_m){
+              nextupdatelist.push_back(elem);
+              return;//for next
+          }else{ //entry is to be replaced by data
+                hpelem* newhp = new hpelem(elem);
+                head->next = newhp;
+                newhp->next = cur->next;
+                UpdateInfoInNL(local,newhp,i);
+                cur->next = NULL;
+                nextupdatelist.push_back(*cur);
+                cur = newhp; //new cur
+                return;
+               }
+      }else{ //needs to be interpolation
+            double intersect = t;
+
+            if(start_t <= start_m){
+              ParabolasTM(local,elem,nextupdatelist,i,head,cur,
+              intersect,elemstart,curstart);
+              return;
+          }else{ //
+              ParabolasMT(local,elem,nextupdatelist,i,head,cur,
+              intersect,elemstart,curstart);
+              return;
+          }
+        }
+  }
+
+  //a is not equal to a'
+  double mind_m = start_m;
+  double mind_t = start_t;
+
+  double time_m,time_t; //start time for cur and elem
+  time_m = ttelem;//real start time
+  time_t = ttcur; //real start time
+
+  double delta_a = ma-ta;
+  double delta_b = mb-tb;
+  double delta_c = mc-tc;
+  double delta = delta_b*delta_b - 4*delta_a*delta_c;
+
+  if(fabs(delta) < 0.001){
+//      if(maxd_t <= maxd_m){
+      if(mind_t <= mind_m){
+        nextupdatelist.push_back(elem);
+        return;
+      }else{ //entry is to be replaced by data
+          hpelem* newhp = new hpelem(elem);
+          head->next = newhp;
+          newhp->next = cur->next;
+          UpdateInfoInNL(local,newhp,i);
+          cur->next = NULL;
+          nextupdatelist.push_back(*cur);
+          cur = newhp;  //new cur
+          return;
+      }
+  }
+
+  if(delta < 0) { //no intersects
+#ifdef mydebug
+    cout<<"delta < 0"<<endl;
+#endif
+    if(mind_t <= mind_m){
+#ifdef mydebug
+        cout<<"update "<<endl;
+#endif
+        nextupdatelist.push_back(elem);
+        return;
+    }else{ //entry is to be replaced by data
+#ifdef mydebug
+        cout<<"replaced "<<endl;
+#endif
+        hpelem* newhp = new hpelem(elem);
+        head->next = newhp;
+        newhp->next = cur->next;
+        UpdateInfoInNL(local,newhp,i);
+        cur->next = NULL;
+        nextupdatelist.push_back(*cur);
+        cur = newhp; //new cur
+        return;
+    }
+  }
+  //delta > 0
+  double x1 = (-delta_b-sqrt(delta))/(2*delta_a);
+  double x2 = (-delta_b+sqrt(delta))/(2*delta_a);
+  double intersect_t1,intersect_t2;
+
+  if(x1 < x2){
+      intersect_t1 = x1;
+      intersect_t2 = x2;
+  }else{
+      intersect_t1 = x2;
+      intersect_t2 = x1;
+  }
+  double intersect1 = intersect_t1;
+  double intersect2 = intersect_t2;
+
+
+    double elemts = elem.nodets;
+    double elemte = elem.nodete;
+
+  //intersection is no use
+
+  if(intersect_t2 <= elemts ||
+    intersect_t1 >= elemte ||
+    (intersect_t1 <= elemts&&
+     intersect_t2 >= elemte)){
+
+    if(mind_t <= mind_m){//entry is smaller
+      nextupdatelist.push_back(elem);
+      return;
+    }else{ //entry is to be replaced by data
+       hpelem* newhp = new hpelem(elem);
+       head->next = newhp;
+       newhp->next = cur->next;
+       UpdateInfoInNL(local,newhp,i);
+       cur->next = NULL;
+       nextupdatelist.push_back(*cur);
+       cur = newhp; //new cur
+       return;
+     }
+  }
+  //one intersection point
+
+    if(intersect_t1 > elemts &&
+        intersect_t1 < elemte&&
+        intersect_t2 > elemte){
+        if(start_t <= start_m){
+          ParabolasTM(local,elem,nextupdatelist,i,head,cur,
+            intersect1,elemstart,curstart);
+          return;
+      }else{ //
+          ParabolasMT(local,elem,nextupdatelist,i,head,cur,
+            intersect1,elemstart,curstart);
+          return;
+      }
+  }
+
+    if(intersect_t1 < elemts &&
+       intersect_t2 > elemts &&
+       intersect_t2 < elemte){
+
+       if(start_t <= start_m){
+        ParabolasTM(local,elem,nextupdatelist,i,head,cur,
+          intersect2,elemstart,curstart);
+        return;
+     }else{ //
+        ParabolasMT(local,elem,nextupdatelist,i,head,cur,
+          intersect2,elemstart,curstart);
+        return;
+     }
+  }
+  //two intersection points
+  //six sub parts
+  if(start_t <= start_m){
+
+    hpelem* next = cur->next;
+    Point start, end;
+    Point p0,p1;
+
+    hpelem* newhp1 = new hpelem(*cur);
+    newhp1->nodete = intersect1;
+    MyTemporalFunction(newhp1,intersect1,end);
+    newhp1->dataup.p1 = end;
+    newhp1->mind = URealMin(newhp1,curstart);
+    newhp1->maxd = URealMax(newhp1,curstart);
+
+
+    hpelem* newhp2 = new hpelem(elem);
+    newhp2->nodets = intersect1;
+    newhp2->nodete = intersect2;
+    MyTemporalFunction(newhp2,intersect1,p0);
+    MyTemporalFunction(newhp2,intersect2,p1);
+    newhp2->dataup.p0 = p0;
+    newhp2->dataup.p1 = p1;
+    newhp2->mind = URealMin(newhp2,elemstart);
+    newhp2->maxd = URealMax(newhp2,elemstart);
+    URealTranslate(newhp2,elemstart);
+
+
+    hpelem* newhp3 = new hpelem(*cur);
+    newhp3->nodets = intersect2;
+    MyTemporalFunction(newhp3,intersect2,start);
+    newhp3->dataup.p0 = start;
+    newhp3->mind = URealMin(newhp3,curstart);
+    newhp3->maxd = URealMax(newhp3,curstart);
+    URealTranslate(newhp3,curstart);
+
+
+
+    hpelem* newhp4 = new hpelem(elem);
+    newhp4->nodete = intersect1;
+    MyTemporalFunction(newhp4,intersect1,end);
+    newhp4->dataup.p1 = end;
+    newhp4->next = NULL;
+    newhp4->mind = URealMin(newhp4,elemstart);
+    newhp4->maxd = URealMax(newhp4,elemstart);
+
+
+
+    hpelem* newhp5 = new hpelem(*(cur));
+    newhp5->nodets = intersect1;
+    newhp5->nodete = intersect2;
+    MyTemporalFunction(newhp5,intersect1,p0);
+    MyTemporalFunction(newhp5,intersect2,p1);
+    newhp5->dataup.p0 = p0;
+    newhp5->dataup.p1 = p1;
+    newhp5->next = NULL;
+    newhp5->mind = URealMin(newhp5,curstart);
+    newhp5->maxd = URealMax(newhp5,curstart);
+    URealTranslate(newhp5,curstart);
+
+
+    hpelem* newhp6 = new hpelem(elem);
+    newhp6->nodets = intersect2;
+    MyTemporalFunction(newhp6,intersect2,start);
+    newhp6->dataup.p0 = start;
+    newhp6->next = NULL;
+    newhp6->mind = URealMin(newhp6,elemstart);
+    newhp6->maxd = URealMax(newhp6,elemstart);
+    URealTranslate(newhp6,elemstart);
+
+
+    head->next = newhp1;
+    newhp1->next = newhp2;
+    newhp2->next = newhp3;
+    newhp3->next = next;
+    UpdateInfoInNL(local,newhp2,i);
+    head = newhp2;
+    cur = newhp3;
+
+    nextupdatelist.push_back(*newhp4);
+    nextupdatelist.push_back(*newhp5);
+    nextupdatelist.push_back(*newhp6);
+
+    return;
+  }else{
+
+    hpelem* next = cur->next;
+    Point start, end;
+    Point p0,p1;
+
+    hpelem* newhp1 = new hpelem(elem);
+    newhp1->nodete = intersect1;
+    MyTemporalFunction(newhp1,intersect1,end);
+    newhp1->dataup.p1 = end;
+    newhp1->next = NULL;
+    newhp1->mind = URealMin(newhp1,elemstart);
+    newhp1->maxd = URealMax(newhp1,elemstart);
+
+
+    hpelem* newhp2 = new hpelem(*(cur));
+    newhp2->nodets = intersect1;
+    newhp2->nodete = intersect2;
+    MyTemporalFunction(newhp2,intersect1,p0);
+    MyTemporalFunction(newhp2,intersect2,p1);
+    newhp2->dataup.p0 = p0;
+    newhp2->dataup.p1 = p1;
+    newhp2->next = NULL;
+    newhp2->mind = URealMin(newhp2,curstart);
+    newhp2->maxd = URealMax(newhp2,curstart);
+    URealTranslate(newhp2,curstart);
+
+
+    hpelem* newhp3 = new hpelem(elem);
+    newhp3->nodets = intersect2;
+    MyTemporalFunction(newhp3,intersect2,start);
+    newhp3->dataup.p0 = start;
+    newhp3->next = NULL;
+    newhp3->mind = URealMin(newhp3,elemstart);
+    newhp3->maxd = URealMax(newhp3,elemstart);
+    URealTranslate(newhp3,elemstart);
+
+
+    hpelem* newhp4 = new hpelem(*cur);
+    newhp4->nodete = intersect1;
+    MyTemporalFunction(newhp4,intersect1,end);
+    newhp4->dataup.p1 = end;
+    newhp4->mind = URealMin(newhp4,curstart);
+    newhp4->maxd = URealMax(newhp4,curstart);
+
+
+    hpelem* newhp5 = new hpelem(elem);
+    newhp5->nodets = intersect1;
+    newhp5->nodete = intersect2;
+    MyTemporalFunction(newhp5,intersect1,p0);
+    MyTemporalFunction(newhp5,intersect2,p1);
+    newhp5->dataup.p0 = p0;
+    newhp5->dataup.p1 = p1;
+    newhp5->mind = URealMin(newhp5,elemstart);
+    newhp5->maxd = URealMax(newhp5,elemstart);
+    URealTranslate(newhp5,elemstart);
+
+
+    hpelem* newhp6 = new hpelem(*cur);
+    newhp6->nodets = intersect2;
+    MyTemporalFunction(newhp6,intersect2,start);
+    newhp6->dataup.p0 = start;
+    newhp6->mind = URealMin(newhp6,curstart);
+    newhp6->maxd = URealMax(newhp6,curstart);
+    URealTranslate(newhp6,curstart);
+
+
+    head->next = newhp1;
+    newhp1->next = newhp2;
+    newhp2->next = newhp3;
+    newhp3->next = next;
+    UpdateInfoInNL(local,newhp2,i);
+    head = newhp2;
+    cur = newhp3;
+
+    nextupdatelist.push_back(*newhp4);
+    nextupdatelist.push_back(*newhp5);
+    nextupdatelist.push_back(*newhp6);
+    return;
+  }
+
+}
 
 
 /*
