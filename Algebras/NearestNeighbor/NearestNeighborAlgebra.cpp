@@ -7537,6 +7537,103 @@ void UpdatekNearestG(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
 
 
 /*
+ChinaknearestFun is the value function for the chinaknearest operator
+It is a filter operator for the knearest operator. It can be called
+if there exists a tb-tree for the unit attribute
+The argument vector contains the following values:
+args[0] = a tbtree with the unit attribute as key
+args[1] = the relation of the tbtree
+args[2] = attribute UPoint
+args[3] = mpoint
+args[4] = int k, how many nearest are searched
+
+*/
+template<class timeType>
+int ChinaknearestFun (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+  TBKnearestLocalInfo<timeType> *localInfo;
+  switch (message)
+  {
+    case OPEN :
+    {
+      //Initialize hp,kNearestLists and PruneDist
+      MPoint* mp = (MPoint*)args[3].addr;
+      if(mp->IsEmpty())
+        return 0;
+      const UPoint* up1;
+      const UPoint* up2;
+      mp->Get(0,up1);
+      mp->Get(mp->GetNoComponents()-1,up2);
+      const unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
+      int attrpos = ((CcInt*)args[5].addr)->GetIntval()-1;
+      localInfo = new TBKnearestLocalInfo<timeType>(k);
+      local = SetWord(localInfo);
+      localInfo->attrpos = attrpos;
+      localInfo->startTime = up1->timeInterval.start.ToDouble();
+      localInfo->endTime = up2->timeInterval.end.ToDouble();
+
+      localInfo->ci =
+        new CIC<timeType>(localInfo->startTime,localInfo->endTime);
+
+      localInfo->tbtree = (TBTree*)args[0].addr;
+      localInfo->relation = (Relation*)args[1].addr;
+      localInfo->counter = 0;
+      localInfo->scanFlag = true;
+      ChinaknnInitialize(localInfo,mp);
+      ChinaknnFun(localInfo,mp);
+      return 0;
+    }
+    case REQUEST :
+    {
+        localInfo = (TBKnearestLocalInfo<timeType>*)local.addr;
+        if(localInfo->k == 0)
+          return CANCEL;
+        if(localInfo->counter < localInfo->result.size()){
+            TupleId tid = localInfo->result[localInfo->counter].tid;
+            Tuple* tuple = localInfo->relation->GetTuple(tid);
+            UPoint* up = (UPoint*)tuple->GetAttribute(localInfo->attrpos);
+            Point p0;
+            Point p1;
+            Instant t1(instanttype);
+            Instant t2(instanttype);
+            t1.ReadFrom(localInfo->result[localInfo->counter].nodets);
+            t2.ReadFrom(localInfo->result[localInfo->counter].nodete);
+            Interval<Instant> interv(t1,t2,true,true);
+            UPoint* temp = new UPoint(*up);
+            temp->TemporalFunction(t1,p0,true);
+            temp->TemporalFunction(t2,p1,true);
+            temp->p0 = p0;
+            temp->timeInterval.start = t1;
+            temp->p1 = p1;
+            temp->timeInterval.end = t2;
+            double factor = 0.0000001;
+            if((localInfo->result[localInfo->counter].nodete -
+                localInfo->result[localInfo->counter].nodets) < factor)
+              temp->timeInterval.lc = temp->timeInterval.rc = true;
+
+            tuple->PutAttribute(localInfo->attrpos,new UPoint(*temp));
+            delete temp;
+
+            result = SetWord(tuple);
+            localInfo->counter++;
+            return YIELD;
+        }else
+          return CANCEL;
+    }
+
+    case CLOSE :
+    {
+      localInfo = (TBKnearestLocalInfo<timeType>*)local.addr;
+
+      delete localInfo;
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
 The function hcknnknearestTypeMap is the type map for the
 operator knearestfilter
 
