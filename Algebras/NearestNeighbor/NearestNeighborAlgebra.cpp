@@ -7102,6 +7102,358 @@ double& elemstart,double& curstart)
   }
 
 }
+/*
+Update k NearestList structure traverse the k nearest list
+
+*/
+template<class timeType>
+void UpdateNearest(TBKnearestLocalInfo<timeType>* local,hpelem& elem
+,vector<hpelem>& nextupdatelist,int i)
+{
+  hpelem* head = local->nlist[i].head;
+  assert(head != NULL);
+  hpelem* cur = head->next;
+
+  if(cur == NULL){
+
+    hpelem* newhp = new hpelem(elem);
+    head->next = newhp;
+    newhp->next = NULL;
+    local->nlist[i].mind = elem.mind;
+    local->nlist[i].maxd = elem.maxd;
+
+    local->nlist[i].startTime = elem.nodets;
+    local->nlist[i].endTime = elem.nodete;
+
+    return;
+  }else{
+      //the first elem
+        if(elem.nodete <= cur->nodets){
+           hpelem* newhp = new hpelem(elem);
+           head->next = newhp;
+           newhp->next = cur;
+           UpdateInfoInNL(local,newhp,i);
+           return;// no update list
+       }
+#ifdef mydebug
+      cout<<"Update Nearest elem "<<elem.dataup->timeInterval<<" min "
+          <<elem.movdist->Min(def)<<" max "
+          <<elem.movdist->Max(def)<<" tid "<<elem.tid<<endl;
+#endif
+      while(cur != NULL){ //big program
+
+#ifdef mydebug
+//        cout<<"while cur "<<cur->dataup->timeInterval<<" min "
+//            <<cur->movdist->Min(def)<<" max "
+//            <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
+#endif
+
+
+        if(cur->nodete <= elem.nodets){
+          if(cur->next == NULL){//the last element
+            hpelem* newhp = new hpelem(elem);
+            cur->next = newhp;
+            newhp->next = NULL;
+            UpdateInfoInNL(local,newhp,i);
+            return;// no update list
+          }else{
+            head = cur;
+            cur = cur->next;
+            continue;
+          }
+        }
+        if(head->tid != -1 &&   //not the head element
+          head->nodete <= elem.nodets && elem.nodete <= cur->nodets){
+           hpelem* newhp = new hpelem(elem);
+           head->next = newhp;
+           newhp->next = cur;
+           UpdateInfoInNL(local,newhp,i);
+           return;//no updatelist
+        }
+         if(elem.nodete < cur->nodets ||elem.nodets > cur->nodete){
+          head = cur;
+          cur = cur->next;
+          continue;
+        }
+
+        double mts = elem.nodets;
+        double mte = elem.nodete;
+        double tts = cur->nodets;
+        double tte = cur->nodete;
+
+
+        if(mts == tts && mte == tte){ //the same time interval
+#ifdef mydebug
+            cout<<"equal "<<endl;
+#endif
+            Parabolas(local,elem,nextupdatelist,i,head,cur,mts,tts);
+            return;
+        }else{// needs to be interpolation
+
+          //overlap
+
+          double ts =  mts > tts ? mts:tts;
+          double te = mte < tte ? mte:tte;
+
+          if(mts < ts){
+
+            hpelem* newhp = new hpelem(elem);
+            newhp->nodete = ts;
+
+            Point end;
+            MyTemporalFunction(newhp,ts,end);
+            newhp->dataup.p1 = end;
+
+
+            newhp->mind = URealMin(newhp,mts);
+            newhp->maxd = URealMax(newhp,mts);
+
+
+            head->next = newhp;
+            newhp->next = cur;
+            head = newhp;
+            UpdateInfoInNL(local,newhp,i);
+
+            elem.nodets = ts;
+            Point start;
+            MyTemporalFunction(&elem,ts,start);
+            elem.dataup.p0 = start;
+            elem.mind = URealMin(&elem,mts);
+            elem.maxd = URealMax(&elem,mts);
+            URealTranslate(&elem,mts);
+
+          }
+
+          if(tts < ts){
+
+            hpelem* newhp = new hpelem(*cur);
+
+            newhp->nodete = ts;
+            Point end;
+            MyTemporalFunction(newhp,ts,end);
+            newhp->dataup.p1 = end;
+            newhp->mind = URealMin(newhp,tts);
+            newhp->maxd = URealMax(newhp,tts);
+
+            head->next = newhp;
+            newhp->next = cur;
+            head = newhp;
+
+            cur->nodets = ts;
+            Point start;
+            MyTemporalFunction(cur,ts,start);
+            cur->dataup.p0 = start;
+            cur->mind = URealMin(cur,tts);
+            cur->maxd = URealMax(cur,tts);
+            URealTranslate(cur,tts);
+
+          }
+          //up to now,  cur and elem start at the same time interval
+          if(tte > te){ //M is finished here
+
+            hpelem* newhp = new hpelem(*cur);
+
+            newhp->nodets = te;
+            Point start;
+            MyTemporalFunction(newhp,te,start);
+            newhp->dataup.p0 = start;
+            newhp->mind = URealMin(newhp,ts);
+            newhp->maxd = URealMax(newhp,ts);
+            URealTranslate(newhp,ts);
+
+
+            newhp->next = cur->next;
+            cur->next = newhp;
+
+            Point end;
+            cur->nodete = te;
+            MyTemporalFunction(cur,te,end);
+            cur->dataup.p1 = end;
+            cur->mind = URealMin(cur,ts);
+            cur->maxd = URealMax(cur,ts);
+
+
+            Parabolas(local,elem,nextupdatelist,i,head,cur,ts,ts);
+            return;
+          }else{ //M is longer
+#ifdef mydebug
+            cout<<"elem is longer"<<endl;
+#endif
+            if(elem.nodete == cur->nodete){
+#ifdef mydebug
+              cout<<"elem equal to cur in end time"<<endl;
+#endif
+              Parabolas(local,elem,nextupdatelist,i,head,cur,ts,ts);
+              return;
+            }else{
+#ifdef mydebug
+              cout<<"next loop"<<endl;
+#endif
+
+              hpelem* newhp = new hpelem(elem);
+
+              newhp->nodets = te;
+              Point start;
+              MyTemporalFunction(newhp,te,start);
+              newhp->dataup.p0 = start;
+              newhp->mind = URealMin(newhp,ts);
+              newhp->maxd = URealMax(newhp,ts);
+              URealTranslate(newhp,ts);
+
+
+              elem.nodete = te;
+              Point end;
+              MyTemporalFunction(&elem,te,end);
+              elem.dataup.p1 = end;
+              elem.mind = URealMin(&elem,ts);
+              elem.maxd = URealMax(&elem,ts);
+
+              Parabolas(local,elem,nextupdatelist,i,head,cur,ts,ts);
+#ifdef mydebug
+              if(head->tid != -1){
+                cout<<"after parabolas head "<<head->dataup->timeInterval
+                <<" min "<<head->movdist->Min(def)<<" max "
+                <<head->movdist->Max(def)<<" tid "<<head->tid<<endl;
+              }
+
+              cout<<"after parabolas cur "<<cur->dataup->timeInterval<<" min "
+              <<cur->movdist->Min(def)<<" max "
+              <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
+#endif
+              elem = *newhp;
+              head = cur;
+              cur = cur->next;
+#ifdef mydebug
+              cout<<"newelem "<<elem.dataup->timeInterval<<" min "
+              <<elem.movdist->Min(def)<<" max "
+              <<elem.movdist->Max(def)<<" tid "<<elem.tid<<endl;
+
+              cout<<"new cur "<<cur->dataup->timeInterval<<" min "
+              <<cur->movdist->Min(def)<<" max "
+              <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
+#endif
+              continue;
+            }
+          }
+        }
+      } //end big while
+
+   }
+}
+
+
+/*
+Check whether a node or entry has to be inserted or not
+traverse the k nearest list
+
+*/
+template<class timeType>
+bool CheckPrune(TBKnearestLocalInfo<timeType>* local, hpelem& elem)
+{
+    //linear traverse method
+      hpelem* head = local->nlist[local->k-1].head;
+      if(head->next == NULL)
+        return false; //not prune
+      hpelem* cur = head->next;
+      double curts = cur->nodets;
+      double curte = cur->nodete;
+
+      if(curts > elem.nodets)
+        return false;
+      while(cur != NULL){
+        curts = cur->nodets;
+        curte = cur->nodete;
+
+        if(elem.nodets < curts)
+          return false;
+
+        if(elem.nodets >= curte){
+          head = cur;
+          cur = cur->next;
+          continue;
+        }
+
+        if(curts <= elem.nodets && elem.nodete <= curte){
+          if(cur->maxd <= elem.mind)
+            return true;//prune
+        else
+          return false;
+        }
+
+        if(curts <= elem.nodets && elem.nodete > curte){
+          if(cur->maxd <= elem.mind){
+            if(cur->next == NULL)
+             return false;
+            hpelem* next = cur->next;
+            double nextts,nextte;
+            while(next != NULL){
+               nextts = next->nodets;
+               curte = cur->nodete;
+               if(nextts > curte)
+                return false;
+
+                nextte = next->nodete;
+
+                if(nextte >= elem.nodete && next->maxd < elem.mind)
+                  return true;//prune
+
+                if(nextte < elem.nodete && next->maxd < elem.mind){
+                    cur = next;
+                    next = cur->next;
+                    continue;
+                }
+                return false;
+            }
+            return false;
+          }
+          else
+            return false;
+        }
+        head = cur;
+        cur = cur->next;
+      }
+      return false;
+}
+
+/*
+Detect whether the time interval in Nerestlist(k) is full
+
+*/
+template<class timeType>
+void CheckCovered(TBKnearestLocalInfo<timeType>* local,hpelem& elem)
+{
+  local->ci->insert(elem.nodets,elem.nodete);
+  local->iscovered = local->ci->IsCovered();
+}
+
+/*
+Initialize Prunedist check the maxdist in Nearestlist(k)
+
+*/
+template<class timeType>
+void InitializePrunedist(TBKnearestLocalInfo<timeType>* local)
+{
+  if(local->prunedist.define == false && local->iscovered){
+      hpelem* head = local->nlist[local->k-1].head;
+      hpelem* cur = head->next;
+      hpelem* bigelem;
+      if(cur != NULL){
+        double max = cur->maxd;
+        bigelem = cur;
+        while(cur != NULL){
+          if(cur->maxd > max){
+            max = cur->maxd;
+            bigelem = cur;
+          }
+          cur = cur->next;
+        }
+        local->prunedist.dist = max;
+        local->prunedist.define = true;
+        local->prunedist.ts = bigelem->nodets;
+        local->prunedist.te = bigelem->nodete;
+      }
+  }
+}
 
 
 /*
