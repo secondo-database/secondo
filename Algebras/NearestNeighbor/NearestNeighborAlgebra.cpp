@@ -7799,7 +7799,16 @@ args[3] = mpoint
 args[4] = int k, how many nearest are searched
 
 */
-
+struct idtime{
+  long id;
+  double ts;
+  idtime(long a,double time):id(a),ts(time){}
+  idtime(const idtime& idt):id(idt.id),ts(idt.ts){}
+  bool operator<(const idtime& idt2) const
+  {
+    return ts < idt2.ts;
+  }
+};
 void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
 {
 //  cout<<local->prunedist.dist<<endl;
@@ -7810,7 +7819,20 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
             adr,false,rtree->MinEntries(level),rtree->MaxEntries(level));
 
   if(tbnode->IsLeaf()){ //leaf node
+
+      vector<idtime> entryarray;
       for(int i = 0;i < tbnode->EntryCount();i++){
+        R_TreeLeafEntry<dim,TupleId> e =
+            (R_TreeLeafEntry<dim,TupleId>&)(*tbnode)[i];
+        double ts((double)e.box.MinD(2));
+        idtime idt(i,ts);
+        entryarray.push_back(idt);
+      }
+      stable_sort(entryarray.begin(),entryarray.end());
+
+//      for(int i = 0;i < tbnode->EntryCount();i++){
+      for(unsigned int j = 0;j < entryarray.size();j++){
+        int i = entryarray[j].id;
         R_TreeLeafEntry<dim,TupleId> e =
             (R_TreeLeafEntry<dim,TupleId>&)(*tbnode)[i];
         double t1((double)e.box.MinD(2));
