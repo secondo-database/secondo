@@ -6290,7 +6290,7 @@ void hpelem::URealMin(double& start)
       min = v2;
     if(AlmostEqual(a,0.0))
       this->mind = min;
-//      return min;
+
     double asymx = (-1.0*b)/(2*a);
     double v3 = min;
     if(t_start < asymx && asymx < t_end){
@@ -6298,7 +6298,7 @@ void hpelem::URealMin(double& start)
       if(v3 < min)
         min = v3;
     }
-//    return min;
+
     this->mind = min;
 }
 
@@ -6322,7 +6322,7 @@ void hpelem::URealMax(double& start)
       max = v2;
     if(AlmostEqual(a,0.0))
       this->maxd = max;
-//      return max;
+
     double asymx = (-1.0*b)/(2*a);
     double v3 = 0;
     if(t_start < asymx && asymx < t_end){ //three values
@@ -6330,7 +6330,6 @@ void hpelem::URealMax(double& start)
       if(v3 > max)
         max = v3;
     }
-//    return max;
     this->maxd = max;
 }
 
@@ -6390,62 +6389,82 @@ struct TBKnearestLocalInfo
   Relation* relation;
   TBTree* tbtree;
   R_Tree<3,TupleId>* rtree;
-//  timeType startTime,endTime;
   double startTime,endTime;
   Line* mptraj;
-//  CIC<timeType>* ci;
-  CIC<double>* ci;
-  vector<Nearestlist> nlist;
-//  vector<double> prunedist;
+  CIC<double>* ci;//detect a time interval is fully covered
+  bool iscovered; //used to detect time interval in Nearest_list
+  vector<Nearestlist> nlist;//main structure for pruning and record results
   Prunedist prunedist;
   BBox<2> mpbox;
   priority_queue<hpelem> hp;
   vector<hpelem> result;
   unsigned int counter;
-  bool iscovered; //used to detect time interval in Nearest_list
 
   TBKnearestLocalInfo(unsigned int nn):k(nn)
   {
       ci = NULL;
-       iscovered = false;
+      iscovered = false;
   }
   ~TBKnearestLocalInfo()
   {
     if( ci != NULL)
       delete ci;
-
   }
+  /*public function*/
+  void UpdateInfoInNL(hpelem* elem,int i);
+  void ReportResult();
+  void ParabolasTM(hpelem& elem,vector<hpelem>& nextupdatelist,int i,
+                  hpelem*& head,hpelem*& cur,double& intersect,
+                  double& elemstart,double& curstart);
+  void ParabolasMT(hpelem& elem,vector<hpelem>& nextupdatelist,int i,
+                  hpelem*& head,hpelem*& cur,double& intersect,
+                  double& elemstart,double& curstart);
+  void Parabolas(hpelem& elem,vector<hpelem>& nextupdatelist,int i,
+                  hpelem*& head,hpelem*& cur,double& elemstart,
+                  double& curstart);
+  void UpdateNearest(hpelem& elem,vector<hpelem>& nextupdatelist,int i);
+/*Greece algorithm function*/
+  bool CheckPrune(hpelem& elem);
+  void GreeceknnFun(MPoint* mp,int level,hpelem& elem);
+  void UpdatekNearestG(hpelem& elem);
+  void GreeceknearestInitialize(MPoint* mp);
+/*Chinese algorithm function*/
+  void ChinaknnInitialize(MPoint* mp);
+  void ChinaknnFun(MPoint* mp);
+  void UpdatekNearest(hpelem& elem);
+  void InitializePrunedist();
+  void CheckCovered(hpelem& elem);
 
 };
 /*
 Initialization, knearestlist prunedist
 
 */
-void ChinaknnInitialize(TBKnearestLocalInfo* local,MPoint* mp)
+void TBKnearestLocalInfo::ChinaknnInitialize(MPoint* mp)
 {
   //Initialization NearestList and prunedist
 
-  for(unsigned int i = 0;i < local->k;i++){
+  for(unsigned int i = 0;i < k;i++){
     double mind = numeric_limits<double>::max();
     double maxd = numeric_limits<double>::min();
-    double st = local->startTime;
-    double et = local->startTime;
+    double st = startTime;
+    double et = startTime;
     Nearestlist nl(mind,maxd,new hpelem(-1,0,0,-1),st,et);
-    local->nlist.push_back(nl);
+    nlist.push_back(nl);
   }
 
-  local->prunedist.dist = numeric_limits<double>::max();
-  local->prunedist.define = false;
+  prunedist.dist = numeric_limits<double>::max();
+  prunedist.define = false;
 
 
-  SmiRecordId adr = local->tbtree->getRootId();
-  tbtree::BasicNode<3>* root = local->tbtree->getNode(adr);
+  SmiRecordId adr = tbtree->getRootId();
+  tbtree::BasicNode<3>* root = tbtree->getNode(adr);
   double t1((double)root->getBox().MinD(2));
   double t2((double)root->getBox().MaxD(2));
-  if(!(t1 >= local->endTime || t2 <= local->startTime)){
+  if(!(t1 >= endTime || t2 <= startTime)){
     Line* line = new Line(0);
     mp->Trajectory(*line);
-    local->mptraj = new Line(*line);
+    mptraj = new Line(*line);
     delete line;
     tbtree::InnerNode<3,InnerInfo>* innernode =
             dynamic_cast<InnerNode<3,InnerInfo>*>(root);
@@ -6454,14 +6473,14 @@ void ChinaknnInitialize(TBKnearestLocalInfo* local,MPoint* mp)
         const Entry<3,InnerInfo>* entry = innernode->getEntry(i);
         double tt1((double)entry->getBox().MinD(2));
         double tt2((double)entry->getBox().MaxD(2));
-        if(!(tt1 >= local->endTime || tt2 <= local->startTime)){
+        if(!(tt1 >= endTime || tt2 <= startTime)){
           BBox<2> entrybox = makexyBox(entry->getBox());//entry box
-          double mindist = local->mptraj->Distance(entrybox);
+          double mindist = mptraj->Distance(entrybox);
           double maxdist = numeric_limits<double>::max();
           hpelem le(-1,mindist,maxdist,entry->getInfo().getPointer());
           le.nodets = tt1;
           le.nodete = tt2;
-          local->hp.push(le);
+          hp.push(le);
         }
     }
   }
@@ -6471,8 +6490,7 @@ Interpolate for between data entry and query entry
 
 */
 
-void CreateUPoint_ne(TBKnearestLocalInfo* local,const UPoint* up,
-UPoint*& ne,UPoint* data)
+void CreateUPoint_ne(const UPoint* up,UPoint*& ne,UPoint* data)
 {
 
   Instant start;
@@ -6507,8 +6525,7 @@ Interpolate for entry in MQ, split entries
 */
 
 
-void CreateUPoint_nqe(TBKnearestLocalInfo* local,const UPoint* up,
-UPoint*& nqe,UPoint* data)
+void CreateUPoint_nqe(const UPoint* up,UPoint*& nqe,UPoint* data)
 {
   Instant start;
   Instant end;
@@ -6541,28 +6558,27 @@ Update information in each NearestList, mind,maxd, startTime,endTime
 after each new elem is inserted
 
 */
-
-void UpdateInfoInNL(TBKnearestLocalInfo* local,hpelem* elem,int i)
+void TBKnearestLocalInfo::UpdateInfoInNL(hpelem* elem,int i)
 {
-  if(elem->mind < local->nlist[i].mind)
-    local->nlist[i].mind = elem->mind;
-  if(elem->maxd > local->nlist[i].maxd)
-    local->nlist[i].maxd = elem->maxd;
-  if(elem->nodets < local->nlist[i].startTime)
-    local->nlist[i].startTime = elem->nodets;
-  if(elem->nodete > local->nlist[i].endTime)
-    local->nlist[i].endTime = elem->nodete;
+  if(elem->mind < nlist[i].mind)
+    nlist[i].mind = elem->mind;
+  if(elem->maxd > nlist[i].maxd)
+    nlist[i].maxd = elem->maxd;
+  if(elem->nodets < nlist[i].startTime)
+    nlist[i].startTime = elem->nodets;
+  if(elem->nodete > nlist[i].endTime)
+    nlist[i].endTime = elem->nodete;
 
   //update prune_dist here
-  if(elem->nodets > local->prunedist.te ||
-     elem->nodete < local->prunedist.ts){   //time interval disjoint
-      if(elem->maxd > local->prunedist.dist){
-        local->prunedist.dist = elem->maxd;
-        local->prunedist.ts = elem->nodets;
-        local->prunedist.te = elem->nodete;
+  if(elem->nodets > prunedist.te ||
+     elem->nodete < prunedist.ts){   //time interval disjoint
+      if(elem->maxd > prunedist.dist){
+        prunedist.dist = elem->maxd;
+        prunedist.ts = elem->nodets;
+        prunedist.te = elem->nodete;
     }
   }else{
-        hpelem* head = local->nlist[local->k-1].head;
+        hpelem* head = nlist[k-1].head;
         hpelem* cur = head->next;
         hpelem* bigelem;
         if(cur != NULL){
@@ -6575,9 +6591,9 @@ void UpdateInfoInNL(TBKnearestLocalInfo* local,hpelem* elem,int i)
             }
             cur = cur->next;
           }
-          local->prunedist.dist = max;
-          local->prunedist.ts = bigelem->nodets;
-          local->prunedist.te = bigelem->nodete;
+          prunedist.dist = max;
+          prunedist.ts = bigelem->nodets;
+          prunedist.te = bigelem->nodete;
         }
     }
 }
@@ -6591,7 +6607,7 @@ T is smaller first
 */
 
 
-void ParabolasTM(TBKnearestLocalInfo* local,hpelem& elem
+void TBKnearestLocalInfo::ParabolasTM(hpelem& elem
 ,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
 double& intersect,double& elemstart,double& curstart)
 {
@@ -6661,8 +6677,10 @@ double& intersect,double& elemstart,double& curstart)
     newelem3->URealMax(elemstart);
     newelem3->URealTranslate(elemstart);
 
-    UpdateInfoInNL(local,cur,i);
-    UpdateInfoInNL(local,newelem3,i);
+//    UpdateInfoInNL(local,cur,i);
+//    UpdateInfoInNL(local,newelem3,i);
+    UpdateInfoInNL(cur,i);
+    UpdateInfoInNL(newelem3,i);
 }
 /*
 interpolation parabolas
@@ -6672,7 +6690,7 @@ M is smaller first
 
 */
 
-void ParabolasMT(TBKnearestLocalInfo* local,hpelem& elem
+void TBKnearestLocalInfo::ParabolasMT(hpelem& elem
 ,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
 double& intersect,double& elemstart,double& curstart)
 {
@@ -6728,8 +6746,12 @@ double& intersect,double& elemstart,double& curstart)
 ///////////////////////
   head = newelem1;
 ////////////////////////
-  UpdateInfoInNL(local,newelem1,i);
-  UpdateInfoInNL(local,cur,i);
+//  UpdateInfoInNL(local,newelem1,i);
+//  UpdateInfoInNL(local,cur,i);
+
+  UpdateInfoInNL(newelem1,i);
+  UpdateInfoInNL(cur,i);
+
 
   hpelem* newelem3 = new hpelem(elem);
 
@@ -6760,7 +6782,7 @@ function has to be split or not
 
 */
 
-void Parabolas(TBKnearestLocalInfo* local,hpelem& elem
+void TBKnearestLocalInfo::Parabolas(hpelem& elem
 ,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
 double& elemstart,double& curstart)
 {
@@ -6819,7 +6841,8 @@ double& elemstart,double& curstart)
           hpelem* newhp = new hpelem(elem);
           head->next = newhp;
           newhp->next = cur->next;
-          UpdateInfoInNL(local,newhp,i);
+//          UpdateInfoInNL(local,newhp,i);
+          UpdateInfoInNL(newhp,i);
           cur->next = NULL;
           nextupdatelist.push_back(*cur);
           cur = newhp; //new cur
@@ -6845,7 +6868,8 @@ double& elemstart,double& curstart)
                 hpelem* newhp = new hpelem(elem);
                 head->next = newhp;
                 newhp->next = cur->next;
-                UpdateInfoInNL(local,newhp,i);
+//                UpdateInfoInNL(local,newhp,i);
+                UpdateInfoInNL(newhp,i);
                 cur->next = NULL;
                 nextupdatelist.push_back(*cur);
                 cur = newhp; //new cur
@@ -6855,11 +6879,11 @@ double& elemstart,double& curstart)
             double intersect = t;
 
             if(start_t <= start_m){
-              ParabolasTM(local,elem,nextupdatelist,i,head,cur,
+              ParabolasTM(elem,nextupdatelist,i,head,cur,
               intersect,elemstart,curstart);
               return;
           }else{ //
-              ParabolasMT(local,elem,nextupdatelist,i,head,cur,
+              ParabolasMT(elem,nextupdatelist,i,head,cur,
               intersect,elemstart,curstart);
               return;
           }
@@ -6888,7 +6912,8 @@ double& elemstart,double& curstart)
           hpelem* newhp = new hpelem(elem);
           head->next = newhp;
           newhp->next = cur->next;
-          UpdateInfoInNL(local,newhp,i);
+//          UpdateInfoInNL(local,newhp,i);
+          UpdateInfoInNL(newhp,i);
           cur->next = NULL;
           nextupdatelist.push_back(*cur);
           cur = newhp;  //new cur
@@ -6913,7 +6938,8 @@ double& elemstart,double& curstart)
         hpelem* newhp = new hpelem(elem);
         head->next = newhp;
         newhp->next = cur->next;
-        UpdateInfoInNL(local,newhp,i);
+//        UpdateInfoInNL(local,newhp,i);
+        UpdateInfoInNL(newhp,i);
         cur->next = NULL;
         nextupdatelist.push_back(*cur);
         cur = newhp; //new cur
@@ -6953,7 +6979,8 @@ double& elemstart,double& curstart)
        hpelem* newhp = new hpelem(elem);
        head->next = newhp;
        newhp->next = cur->next;
-       UpdateInfoInNL(local,newhp,i);
+//       UpdateInfoInNL(local,newhp,i);
+       UpdateInfoInNL(newhp,i);
        cur->next = NULL;
        nextupdatelist.push_back(*cur);
        cur = newhp; //new cur
@@ -6966,11 +6993,11 @@ double& elemstart,double& curstart)
         intersect_t1 < elemte&&
         intersect_t2 > elemte){
         if(start_t <= start_m){
-          ParabolasTM(local,elem,nextupdatelist,i,head,cur,
+          ParabolasTM(elem,nextupdatelist,i,head,cur,
             intersect1,elemstart,curstart);
           return;
       }else{ //
-          ParabolasMT(local,elem,nextupdatelist,i,head,cur,
+          ParabolasMT(elem,nextupdatelist,i,head,cur,
             intersect1,elemstart,curstart);
           return;
       }
@@ -6981,11 +7008,11 @@ double& elemstart,double& curstart)
        intersect_t2 < elemte){
 
        if(start_t <= start_m){
-        ParabolasTM(local,elem,nextupdatelist,i,head,cur,
+        ParabolasTM(elem,nextupdatelist,i,head,cur,
           intersect2,elemstart,curstart);
         return;
      }else{ //
-        ParabolasMT(local,elem,nextupdatelist,i,head,cur,
+        ParabolasMT(elem,nextupdatelist,i,head,cur,
           intersect2,elemstart,curstart);
         return;
      }
@@ -7103,7 +7130,8 @@ double& elemstart,double& curstart)
     newhp1->next = newhp2;
     newhp2->next = newhp3;
     newhp3->next = next;
-    UpdateInfoInNL(local,newhp2,i);
+//    UpdateInfoInNL(local,newhp2,i);
+    UpdateInfoInNL(newhp2,i);
     head = newhp2;
     cur = newhp3;
 
@@ -7221,7 +7249,8 @@ double& elemstart,double& curstart)
     newhp1->next = newhp2;
     newhp2->next = newhp3;
     newhp3->next = next;
-    UpdateInfoInNL(local,newhp2,i);
+//    UpdateInfoInNL(local,newhp2,i);
+    UpdateInfoInNL(newhp2,i);
     head = newhp2;
     cur = newhp3;
 
@@ -7237,10 +7266,10 @@ Update k NearestList structure traverse the k nearest list
 
 */
 
-void UpdateNearest(TBKnearestLocalInfo* local,hpelem& elem
-,vector<hpelem>& nextupdatelist,int i)
+void TBKnearestLocalInfo::UpdateNearest(hpelem& elem,
+vector<hpelem>& nextupdatelist,int i)
 {
-  hpelem* head = local->nlist[i].head;
+  hpelem* head = nlist[i].head;
   assert(head != NULL);
   hpelem* cur = head->next;
 
@@ -7249,11 +7278,11 @@ void UpdateNearest(TBKnearestLocalInfo* local,hpelem& elem
     hpelem* newhp = new hpelem(elem);
     head->next = newhp;
     newhp->next = NULL;
-    local->nlist[i].mind = elem.mind;
-    local->nlist[i].maxd = elem.maxd;
+    nlist[i].mind = elem.mind;
+    nlist[i].maxd = elem.maxd;
 
-    local->nlist[i].startTime = elem.nodets;
-    local->nlist[i].endTime = elem.nodete;
+    nlist[i].startTime = elem.nodets;
+    nlist[i].endTime = elem.nodete;
 
     return;
   }else{
@@ -7262,7 +7291,8 @@ void UpdateNearest(TBKnearestLocalInfo* local,hpelem& elem
            hpelem* newhp = new hpelem(elem);
            head->next = newhp;
            newhp->next = cur;
-           UpdateInfoInNL(local,newhp,i);
+//           UpdateInfoInNL(local,newhp,i);
+           UpdateInfoInNL(newhp,i);
            return;// no update list
        }
 #ifdef mydebug
@@ -7284,7 +7314,8 @@ void UpdateNearest(TBKnearestLocalInfo* local,hpelem& elem
             hpelem* newhp = new hpelem(elem);
             cur->next = newhp;
             newhp->next = NULL;
-            UpdateInfoInNL(local,newhp,i);
+//            UpdateInfoInNL(local,newhp,i);
+            UpdateInfoInNL(newhp,i);
             return;// no update list
           }else{
             head = cur;
@@ -7297,7 +7328,8 @@ void UpdateNearest(TBKnearestLocalInfo* local,hpelem& elem
            hpelem* newhp = new hpelem(elem);
            head->next = newhp;
            newhp->next = cur;
-           UpdateInfoInNL(local,newhp,i);
+//           UpdateInfoInNL(local,newhp,i);
+           UpdateInfoInNL(newhp,i);
            return;//no updatelist
         }
          if(elem.nodete < cur->nodets ||elem.nodets > cur->nodete){
@@ -7317,7 +7349,7 @@ void UpdateNearest(TBKnearestLocalInfo* local,hpelem& elem
 #ifdef mydebug
             cout<<"equal "<<endl;
 #endif
-            Parabolas(local,elem,nextupdatelist,i,head,cur,mts,tts);
+            Parabolas(elem,nextupdatelist,i,head,cur,mts,tts);
             return;
         }else{// needs to be interpolation
 
@@ -7349,7 +7381,8 @@ void UpdateNearest(TBKnearestLocalInfo* local,hpelem& elem
             head->next = newhp;
             newhp->next = cur;
             head = newhp;
-            UpdateInfoInNL(local,newhp,i);
+//            UpdateInfoInNL(local,newhp,i);
+            UpdateInfoInNL(newhp,i);
 
             elem.nodets = ts;
             Point start;
@@ -7443,7 +7476,7 @@ void UpdateNearest(TBKnearestLocalInfo* local,hpelem& elem
             cur->URealMax(ts);
 
 
-            Parabolas(local,elem,nextupdatelist,i,head,cur,ts,ts);
+            Parabolas(elem,nextupdatelist,i,head,cur,ts,ts);
             return;
           }else{ //M is longer
 #ifdef mydebug
@@ -7454,7 +7487,7 @@ void UpdateNearest(TBKnearestLocalInfo* local,hpelem& elem
 #ifdef mydebug
               cout<<"elem equal to cur in end time"<<endl;
 #endif
-              Parabolas(local,elem,nextupdatelist,i,head,cur,ts,ts);
+              Parabolas(elem,nextupdatelist,i,head,cur,ts,ts);
               return;
             }else{
 #ifdef mydebug
@@ -7491,7 +7524,7 @@ void UpdateNearest(TBKnearestLocalInfo* local,hpelem& elem
               elem.URealMax(ts);
 
 
-              Parabolas(local,elem,nextupdatelist,i,head,cur,ts,ts);
+              Parabolas(elem,nextupdatelist,i,head,cur,ts,ts);
 #ifdef mydebug
               if(head->tid != -1){
                 cout<<"after parabolas head "<<head->dataup->timeInterval
@@ -7531,10 +7564,10 @@ traverse the k nearest list
 
 */
 
-bool CheckPrune(TBKnearestLocalInfo* local, hpelem& elem)
+bool TBKnearestLocalInfo::CheckPrune(hpelem& elem)
 {
     //linear traverse method
-      hpelem* head = local->nlist[local->k-1].head;
+      hpelem* head = nlist[k-1].head;
       if(head->next == NULL)
         return false; //not prune
       hpelem* cur = head->next;
@@ -7603,10 +7636,10 @@ Detect whether the time interval in Nerestlist(k) is full
 
 */
 
-void CheckCovered(TBKnearestLocalInfo* local,hpelem& elem)
+void TBKnearestLocalInfo::CheckCovered(hpelem& elem)
 {
-  local->ci->insert(elem.nodets,elem.nodete);
-  local->iscovered = local->ci->IsCovered();
+  ci->insert(elem.nodets,elem.nodete);
+  iscovered = ci->IsCovered();
 }
 
 /*
@@ -7614,10 +7647,10 @@ Initialize Prunedist check the maxdist in Nearestlist(k)
 
 */
 
-void InitializePrunedist(TBKnearestLocalInfo* local)
+void TBKnearestLocalInfo::InitializePrunedist()
 {
-  if(local->prunedist.define == false && local->iscovered){
-      hpelem* head = local->nlist[local->k-1].head;
+  if(prunedist.define == false && iscovered){
+      hpelem* head = nlist[k-1].head;
       hpelem* cur = head->next;
       hpelem* bigelem;
       if(cur != NULL){
@@ -7630,10 +7663,10 @@ void InitializePrunedist(TBKnearestLocalInfo* local)
           }
           cur = cur->next;
         }
-        local->prunedist.dist = max;
-        local->prunedist.define = true;
-        local->prunedist.ts = bigelem->nodets;
-        local->prunedist.te = bigelem->nodete;
+        prunedist.dist = max;
+        prunedist.define = true;
+        prunedist.ts = bigelem->nodets;
+        prunedist.te = bigelem->nodete;
       }
   }
 }
@@ -7644,28 +7677,28 @@ traverse k nearestlist, and update it
 
 */
 
-void UpdatekNearest(TBKnearestLocalInfo* local,hpelem& elem)
+void TBKnearestLocalInfo::UpdatekNearest(hpelem& elem)
 {
   list<hpelem> updatelist;
 
 //    if(CheckPrune(local,elem) == false){
-    if(elem.mind < local->prunedist.dist){
+    if(elem.mind < prunedist.dist){
 
       updatelist.push_back(elem);
       vector<hpelem> auxiliarylist;
       vector<hpelem> templist;
-      for(unsigned int i = 0;i < local->k;i++){//for each NearestList
+      for(unsigned int i = 0;i < k;i++){//for each NearestList
         while(updatelist.empty() == false){
             hpelem top = updatelist.front();
             updatelist.pop_front();
 
 //          if(CheckPrune(local,top) == false)
-            if(top.mind < local->prunedist.dist)
-              UpdateNearest(local,top,templist,i); //key function
+            if(top.mind < prunedist.dist)
+              UpdateNearest(top,templist,i); //key function
 
             //check whether the time interval covers
-            if(i == local->k - 1 && local->iscovered == false)
-              CheckCovered(local,top);
+            if(i == k - 1 && iscovered == false)
+              CheckCovered(top);
 
             for(unsigned int j = 0;j < templist.size();j++)//transfer step1
               auxiliarylist.push_back(templist[j]);
@@ -7675,8 +7708,8 @@ void UpdatekNearest(TBKnearestLocalInfo* local,hpelem& elem)
           updatelist.push_back(auxiliarylist[j]);
         auxiliarylist.clear();
 
-        if(local->iscovered && i == local->k - 1) //check prunedist
-          InitializePrunedist(local);
+        if(iscovered && i == k - 1) //check prunedist
+          InitializePrunedist();
       }
   }
 }
@@ -7688,22 +7721,24 @@ checkprune function
 
 */
 
-void UpdatekNearestG(TBKnearestLocalInfo* local,hpelem& elem)
+void TBKnearestLocalInfo::UpdatekNearestG(hpelem& elem)
 {
   list<hpelem> updatelist;
 
-    if(CheckPrune(local,elem) == false){
+//    if(CheckPrune(local,elem) == false){
+     if(CheckPrune(elem) == false){
 
       updatelist.push_back(elem);
       vector<hpelem> auxiliarylist;
       vector<hpelem> templist;
-      for(unsigned int i = 0;i < local->k;i++){//for each NearestList
+      for(unsigned int i = 0;i < k;i++){//for each NearestList
         while(updatelist.empty() == false){
             hpelem top = updatelist.front();
             updatelist.pop_front();
 
-          if(CheckPrune(local,top) == false)
-              UpdateNearest(local,top,templist,i); //key function
+      //    if(CheckPrune(local,top) == false)
+            if(CheckPrune(top) == false)
+              UpdateNearest(top,templist,i); //key function
 
             for(unsigned int j = 0;j < templist.size();j++)//transfer step1
               auxiliarylist.push_back(templist[j]);
@@ -7727,21 +7762,21 @@ Report result
 
 */
 
-void ReportResult(TBKnearestLocalInfo* local)
+void TBKnearestLocalInfo::ReportResult()
 {
-  for(unsigned int i = 0; i < local->k;i++){ //traverse NearestList
-    hpelem* head = local->nlist[i].head;
+  for(unsigned int i = 0; i < k;i++){ //traverse NearestList
+    hpelem* head = nlist[i].head;
     hpelem* cur = head->next;
     while(cur != NULL){
       hpelem top = *cur;
       assert(top.tid != -1 && top.nodeid == -1);
       if(top.nodets != top.nodete)
-        local->result.push_back(top);
+        result.push_back(top);
       head = cur;
       cur = cur->next;
     }
   }
-  stable_sort(local->result.begin(),local->result.end(),HpelemCompare);
+  stable_sort(result.begin(),result.end(),HpelemCompare);
 }
 
 
@@ -7758,23 +7793,23 @@ into the heap structure
 
 */
 
-void ChinaknnFun(TBKnearestLocalInfo* local,MPoint* mp)
+void TBKnearestLocalInfo::ChinaknnFun(MPoint* mp)
 {
-  BBox<2> mpbox = local->mptraj->BoundingBox();
+  BBox<2> mpbox = mptraj->BoundingBox();
   if(mpbox.IsDefined() == false)
     mpbox = makexyBox(mp->BoundingBox());
 
-  while(local->hp.empty() == false){
-    hpelem top = local->hp.top();
-    local->hp.pop();
+  while(hp.empty() == false){
+    hpelem top = hp.top();
+    hp.pop();
 
-    if(top.mind > local->prunedist.dist)
+    if(top.mind > prunedist.dist)
       break;
     if(top.tid != -1 && top.nodeid == -1){ //an actual trajectory segment
-        UpdatekNearest(local,top);
+        UpdatekNearest(top);
     }
     else if(top.tid == -1 && top.nodeid != -1){ // a node
-        tbtree::BasicNode<3>* tbnode = local->tbtree->getNode(top.nodeid);
+        tbtree::BasicNode<3>* tbnode = tbtree->getNode(top.nodeid);
         if(tbnode->isLeaf()){ //leaf node
             tbtree::TBLeafNode<3,TBLeafInfo>* leafnode =
             dynamic_cast<TBLeafNode<3,TBLeafInfo>* > (tbnode);
@@ -7782,12 +7817,12 @@ void ChinaknnFun(TBKnearestLocalInfo* local,MPoint* mp)
               const Entry<3,TBLeafInfo>* entry = leafnode->getEntry(i);
               double t1((double)entry->getBox().MinD(2));
               double t2((double)entry->getBox().MaxD(2));
-              if(!(t1 >= local->endTime || t2 <= local->startTime)){
+              if(!(t1 >= endTime || t2 <= startTime)){
                   //for each unit in mp
                 const UPoint* up;
                 TupleId tid = entry->getInfo().getTupleId();
-                Tuple* tuple = local->relation->GetTuple(tid);
-                UPoint* data = (UPoint*)tuple->GetAttribute(local->attrpos);
+                Tuple* tuple = this->relation->GetTuple(tid);
+                UPoint* data = (UPoint*)tuple->GetAttribute(attrpos);
 
                 for(int j = 0;j < mp->GetNoComponents();j++){
                     mp->Get(j,up);
@@ -7800,8 +7835,8 @@ void ChinaknnFun(TBKnearestLocalInfo* local,MPoint* mp)
                       UPoint* nqe = new UPoint(true);
                       //interpolation restrict to the same time interval
 
-                      CreateUPoint_ne(local,up,ne,data);
-                      CreateUPoint_nqe(local,up,nqe,data);
+                      CreateUPoint_ne(up,ne,data);
+                      CreateUPoint_nqe(up,nqe,data);
 
                       UReal* mdist = new UReal(true);
                       ne->Distance(*nqe,*mdist);
@@ -7815,8 +7850,8 @@ void ChinaknnFun(TBKnearestLocalInfo* local,MPoint* mp)
                       //AssignURUP(&le,mdist,ne);
                       le.AssignURUP(mdist,ne);
 
-                      if(le.mind < local->prunedist.dist)
-                          local->hp.push(le);
+                      if(le.mind < prunedist.dist)
+                          hp.push(le);
 
                       delete mdist;
                       delete ne;
@@ -7833,7 +7868,7 @@ void ChinaknnFun(TBKnearestLocalInfo* local,MPoint* mp)
               const Entry<3,InnerInfo>* entry = innernode->getEntry(i);
               double t1((double)entry->getBox().MinD(2));
               double t2((double)entry->getBox().MaxD(2));
-              if(!(t1 >= local->endTime || t2 <= local->startTime)){
+              if(!(t1 >= endTime || t2 <= startTime)){
                 BBox<2> entrybox = makexyBox(entry->getBox());//entry box
                 double mindist =  mpbox.Distance(entrybox);
                 double maxdist = maxDistance(entrybox,mpbox);
@@ -7841,14 +7876,14 @@ void ChinaknnFun(TBKnearestLocalInfo* local,MPoint* mp)
                   hpelem le(-1,mindist,maxdist,entry->getInfo().getPointer());
                   le.nodets = t1;
                   le.nodete = t2;
-                  if(le.mind < local->prunedist.dist)
-                      local->hp.push(le);
+                  if(le.mind < prunedist.dist)
+                      hp.push(le);
               }
             }
         }
     }
   }
-  ReportResult(local); //results are stored in NearestList
+  ReportResult(); //results are stored in NearestList
 }
 
 /*
@@ -7858,30 +7893,30 @@ Initialization for greeceknearest operator
 
 */
 
-void GreeceknearestInitialize(TBKnearestLocalInfo* local,MPoint* mp)
+void TBKnearestLocalInfo::GreeceknearestInitialize(MPoint* mp)
 {
   //Initialization NearestList and prunedist
 
-  for(unsigned int i = 0;i < local->k;i++){
+  for(unsigned int i = 0;i < k;i++){
     double mind = numeric_limits<double>::max();
     double maxd = numeric_limits<double>::min();
-    double st = local->startTime;
-    double et = local->startTime;
+    double st = startTime;
+    double et = startTime;
     Nearestlist nl(mind,maxd,new hpelem(-1,0,0,-1),st,et);
-    local->nlist.push_back(nl);
+    nlist.push_back(nl);
   }
 
-  local->prunedist.dist = numeric_limits<double>::max();
-  local->prunedist.define = false;
+  prunedist.dist = numeric_limits<double>::max();
+  prunedist.define = false;
 
   Line* line = new Line(0);
   mp->Trajectory(*line);
-  local->mptraj = new Line(*line);
+  mptraj = new Line(*line);
   delete line;
 
-  local->mpbox = local->mptraj->BoundingBox();
-  if(local->mpbox.IsDefined() == false)
-    local->mpbox = makexyBox(mp->BoundingBox());
+  mpbox = mptraj->BoundingBox();
+  if(mpbox.IsDefined() == false)
+    mpbox = makexyBox(mp->BoundingBox());
 }
 
 /*
@@ -7897,17 +7932,14 @@ args[4] = int k, how many nearest are searched
 
 */
 
-void GreeceknnFun(TBKnearestLocalInfo* local,MPoint* mp,int level,
-hpelem& elem)
+void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
 {
 //  cout<<local->prunedist.dist<<endl;
   const int dim = 3;
-  BBox<2> mpbox = local->mpbox;
 
   SmiRecordId adr = elem.nodeid;
-  R_TreeNode<dim,TupleId>* tbnode = local->rtree->GetMyNode(
-            adr,false,local->rtree->MinEntries(level),
-            local->rtree->MaxEntries(level));
+  R_TreeNode<dim,TupleId>* tbnode = rtree->GetMyNode(
+            adr,false,rtree->MinEntries(level),rtree->MaxEntries(level));
 
   if(tbnode->IsLeaf()){ //leaf node
       for(int i = 0;i < tbnode->EntryCount();i++){
@@ -7917,12 +7949,12 @@ hpelem& elem)
         double t2((double)e.box.MaxD(2));
         t1 = t1/864000;
         t2 = t2/864000;
-        if(!(t1 >= local->endTime || t2 <= local->startTime)){
+        if(!(t1 >= endTime || t2 <= startTime)){
             //for each unit in mp
             const UPoint* up;
             TupleId tid = e.info;
-            Tuple* tuple = local->relation->GetTuple(tid);
-            UPoint* data = (UPoint*)tuple->GetAttribute(local->attrpos);
+            Tuple* tuple = relation->GetTuple(tid);
+            UPoint* data = (UPoint*)tuple->GetAttribute(attrpos);
 
             for(int j = 0;j < mp->GetNoComponents();j++){
               mp->Get(j,up);
@@ -7936,8 +7968,8 @@ hpelem& elem)
                   UPoint* nqe = new UPoint(true);
                   //interpolation restrict to the same time interval
 
-                  CreateUPoint_ne(local,up,ne,data);
-                  CreateUPoint_nqe(local,up,nqe,data);
+                  CreateUPoint_ne(up,ne,data);
+                  CreateUPoint_nqe(up,nqe,data);
 
                   double nodets = ne->timeInterval.start.ToDouble();
                   double nodete = ne->timeInterval.end.ToDouble();
@@ -7951,12 +7983,11 @@ hpelem& elem)
                   hpelem le(tid,mind,maxd,-1);
                   le.nodets = nodets;
                   le.nodete = nodete;
-                  //AssignURUP(&le,mdist,ne);
                   le.AssignURUP(mdist,ne);
 //                  if(le.mind < local->prunedist.dist)
 //                    UpdatekNearest(local,le);
-                  if(CheckPrune(local,le) == false)
-                      UpdatekNearestG(local,le);
+                  if(CheckPrune(le) == false)
+                      UpdatekNearestG(le);
                   delete mdist;
                   delete ne;
                   delete nqe;
@@ -7974,7 +8005,7 @@ hpelem& elem)
           double t2((double)e.box.MaxD(2));
           t1 = t1/864000;
           t2 = t2/864000;
-          if(!(t1 >= local->endTime || t2 <= local->startTime)){
+          if(!(t1 >= endTime || t2 <= startTime)){
               BBox<2> entrybox = makexyBox(e.box);//entry box
               double mindist =  mpbox.Distance(entrybox);
               double maxdist = maxDistance(entrybox,mpbox);
@@ -7989,15 +8020,15 @@ hpelem& elem)
     vector<hpelem> prunelist;
 
     for(unsigned int i = 0; i < branchlist.size();i++){
-      if(CheckPrune(local,branchlist[i]) == false)
+        if(CheckPrune(branchlist[i]) == false)
         prunelist.push_back(branchlist[i]);
     }
     for(unsigned int i = 0;i < prunelist.size();){
-        GreeceknnFun(local,mp,level+1,prunelist[i]);
+        GreeceknnFun(mp,level+1,prunelist[i]);
 
         unsigned int j = i + 1;
         while(j < prunelist.size() &&
-              CheckPrune(local,prunelist[j]))j++;
+          CheckPrune(prunelist[j]))j++;//prune branchlist
         i = j;
 
     }
@@ -8048,7 +8079,7 @@ int Greeceknearest(Word* args, Word& result, int message,
       localInfo->relation = (Relation*)args[1].addr;
       localInfo->counter = 0;
       localInfo->scanFlag = true;
-      GreeceknearestInitialize(localInfo,mp);
+      localInfo->GreeceknearestInitialize(mp);
 
       SmiRecordId adr = localInfo->rtree->RootRecordId();
       R_TreeNode<dim,TupleId>* root = localInfo->rtree->GetMyNode(adr,
@@ -8065,8 +8096,8 @@ int Greeceknearest(Word* args, Word& result, int message,
         hpelem le(-1,mindist,maxdist,adr);
         le.nodets = t1;
         le.nodete = t2;
-        GreeceknnFun(localInfo,mp,0,le);
-        ReportResult(localInfo);
+        localInfo->GreeceknnFun(mp,0,le);
+        localInfo->ReportResult();
       }
       return 0;
     }
@@ -8163,8 +8194,10 @@ int ChinaknearestFun (Word* args, Word& result, int message,
       localInfo->relation = (Relation*)args[1].addr;
       localInfo->counter = 0;
       localInfo->scanFlag = true;
-      ChinaknnInitialize(localInfo,mp);
-      ChinaknnFun(localInfo,mp);
+//      ChinaknnInitialize(localInfo,mp);
+//      ChinaknnFun(localInfo,mp);
+      localInfo->ChinaknnInitialize(mp);
+      localInfo->ChinaknnFun(mp);
       return 0;
     }
     case REQUEST :
