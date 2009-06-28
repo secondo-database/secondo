@@ -6615,40 +6615,27 @@ double& intersect,double& elemstart,double& curstart)
     hpelem* newelem1 = new hpelem(*cur);
     newelem1->nodets = intersect;
     Point start;
-//    MyTemporalFunction(newelem1,intersect,start);
+
     newelem1->MyTemporalFunction(intersect,start);
     newelem1->dataup.p0 = start;
     newelem1->next= NULL;
-//    newelem1->mind = URealMin(newelem1,curstart);
-//    newelem1->maxd = URealMax(newelem1,curstart);
-//    URealTranslate(newelem1,curstart);
-//    newelem1->mind = newelem1->URealMin(curstart);
-//    newelem1->maxd = newelem1->URealMax(curstart);
     newelem1->URealMin(curstart);
     newelem1->URealMax(curstart);
     newelem1->URealTranslate(curstart);
 
     cur->nodete = intersect;
     Point end;
-//    MyTemporalFunction(cur,intersect,end);
+
     cur->MyTemporalFunction(intersect,end);
     cur->dataup.p1 = end;
-//    cur->mind = URealMin(cur,curstart);
-//    cur->maxd = URealMax(cur,curstart);
-//    cur->mind = cur->URealMin(curstart);
-//    cur->maxd = cur->URealMax(curstart);
     cur->URealMin(curstart);
     cur->URealMax(curstart);
 
     hpelem* newelem2 = new hpelem(elem);
     newelem2->nodete = intersect;
-//    MyTemporalFunction(newelem2,intersect,end);
+
     newelem2->MyTemporalFunction(intersect,end);
     newelem2->dataup.p1 = end;
-//    newelem2->mind = URealMin(newelem2,elemstart);
-//    newelem2->maxd = URealMax(newelem2,elemstart);
-//    newelem2->mind = newelem2->URealMin(elemstart);
-//    newelem2->maxd = newelem2->URealMax(elemstart);
     newelem2->URealMin(elemstart);
     newelem2->URealMax(elemstart);
 
@@ -6657,7 +6644,7 @@ double& intersect,double& elemstart,double& curstart)
 
     hpelem* newelem3 = new hpelem(elem);
     newelem3->nodets = intersect;
-//  MyTemporalFunction(newelem3,intersect,start);
+
     newelem3->MyTemporalFunction(intersect,start);
     newelem3->dataup.p0 = start;
     newelem3->next = cur->next;
@@ -6668,17 +6655,10 @@ double& intersect,double& elemstart,double& curstart)
     head = cur;
     cur = newelem3;
 ////////////////////////////////
-//    newelem3->mind = URealMin(newelem3,elemstart);
-//    newelem3->maxd = URealMax(newelem3,elemstart);
-//    URealTranslate(newelem3,elemstart);
-//    newelem3->mind = newelem3->URealMin(elemstart);
-//    newelem3->maxd = newelem3->URealMax(elemstart);
     newelem3->URealMin(elemstart);
     newelem3->URealMax(elemstart);
     newelem3->URealTranslate(elemstart);
 
-//    UpdateInfoInNL(local,cur,i);
-//    UpdateInfoInNL(local,newelem3,i);
     UpdateInfoInNL(cur,i);
     UpdateInfoInNL(newelem3,i);
 }
@@ -6699,42 +6679,29 @@ double& intersect,double& elemstart,double& curstart)
   hpelem* newelem1 = new hpelem(elem);
 
   newelem1->nodete = intersect;
-//  MyTemporalFunction(newelem1,intersect,end);
+
   newelem1->MyTemporalFunction(intersect,end);
   newelem1->dataup.p1 = end;
   newelem1->next = NULL;
-//  newelem1->mind = URealMin(newelem1,elemstart);
-//  newelem1->maxd = URealMax(newelem1,elemstart);
-//  newelem1->mind = newelem1->URealMin(elemstart);
-//  newelem1->maxd = newelem1->URealMax(elemstart);
   newelem1->URealMin(elemstart);
   newelem1->URealMax(elemstart);
 
   hpelem* newelem2 = new hpelem(*cur);
 
   newelem2->nodete = intersect;
-//  MyTemporalFunction(newelem2,intersect,end);
+
   newelem2->MyTemporalFunction(intersect,end);
   newelem2->dataup.p1 = end;
   newelem2->next= NULL;
-//  newelem2->mind = URealMin(newelem2,curstart);
-//  newelem2->maxd = URealMax(newelem2,curstart);
-//  newelem2->mind = newelem2->URealMin(curstart);
-//  newelem2->maxd = newelem2->URealMax(curstart);
   newelem2->URealMin(curstart);
   newelem2->URealMax(curstart);
 
 
   cur->nodets = intersect;
   Point start;
-//  MyTemporalFunction(cur,intersect,start);
+
   cur->MyTemporalFunction(intersect,start);
   cur->dataup.p0 = start;
-//  cur->mind = URealMin(cur,curstart);
-//  cur->maxd = URealMax(cur,curstart);
-//  URealTranslate(cur,curstart);
-//  cur->mind = cur->URealMin(curstart);
-//  cur->maxd = cur->URealMax(curstart);
   cur->URealMin(curstart);
   cur->URealMax(curstart);
   cur->URealTranslate(curstart);
@@ -6746,8 +6713,6 @@ double& intersect,double& elemstart,double& curstart)
 ///////////////////////
   head = newelem1;
 ////////////////////////
-//  UpdateInfoInNL(local,newelem1,i);
-//  UpdateInfoInNL(local,cur,i);
 
   UpdateInfoInNL(newelem1,i);
   UpdateInfoInNL(cur,i);
@@ -6756,16 +6721,10 @@ double& intersect,double& elemstart,double& curstart)
   hpelem* newelem3 = new hpelem(elem);
 
   newelem3->nodets = intersect;
-//  MyTemporalFunction(newelem3,intersect,start);
+
   newelem3->MyTemporalFunction(intersect,start);
   newelem3->dataup.p0 = start;
   newelem3->next = NULL;
-//  newelem3->mind = URealMin(newelem3,elemstart);
-//  newelem3->maxd = URealMax(newelem3,elemstart);
-//  URealTranslate(newelem3,elemstart);
-
-//  newelem3->mind = newelem3->URealMin(elemstart);
-//  newelem3->maxd = newelem3->URealMax(elemstart);
   newelem3->URealMin(elemstart);
   newelem3->URealMax(elemstart);
   newelem3->URealTranslate(elemstart);
@@ -6804,8 +6763,6 @@ double& elemstart,double& curstart)
 
 
   double start_m,start_t;
-
-//  if(ttelem == elem.nodets){
   if(AlmostEqual(ttelem, elem.nodets)){
       start_m = sqrt(elem.movdist.c);
   }
@@ -6815,7 +6772,7 @@ double& elemstart,double& curstart)
         sqrt(ma*delta_m*delta_m + elem.movdist.b*delta_m + elem.movdist.c);
   }
 
-//  if(ttcur == cur->nodets){
+
   if(AlmostEqual(ttcur, cur->nodets)){
     start_t = sqrt(cur->movdist.c);
   }
@@ -6826,13 +6783,11 @@ double& elemstart,double& curstart)
     sqrt(ta*delta_t*delta_t + cur->movdist.b*delta_t + cur->movdist.c);
   }
 
-
-//  if(ma == ta && mb == tb && mc == tc){
   if(AlmostEqual(ma ,ta ) && AlmostEqual(mb ,tb) && AlmostEqual(mc ,tc)){
       nextupdatelist.push_back(elem);
       return;//for next
   }
-//  if(ma == ta && mb == tb){
+
     if(AlmostEqual(ma, ta) && AlmostEqual(mb ,tb)){
         if(start_t <= start_m){
           nextupdatelist.push_back(elem);
@@ -6841,7 +6796,7 @@ double& elemstart,double& curstart)
           hpelem* newhp = new hpelem(elem);
           head->next = newhp;
           newhp->next = cur->next;
-//          UpdateInfoInNL(local,newhp,i);
+
           UpdateInfoInNL(newhp,i);
           cur->next = NULL;
           nextupdatelist.push_back(*cur);
@@ -6849,7 +6804,7 @@ double& elemstart,double& curstart)
           return;
       }
   }
-//  if(ma == ta){
+
     if(AlmostEqual(ma ,ta)){
       assert(mb != tb);
       double v1 = elem.nodets;
@@ -6868,7 +6823,7 @@ double& elemstart,double& curstart)
                 hpelem* newhp = new hpelem(elem);
                 head->next = newhp;
                 newhp->next = cur->next;
-//                UpdateInfoInNL(local,newhp,i);
+
                 UpdateInfoInNL(newhp,i);
                 cur->next = NULL;
                 nextupdatelist.push_back(*cur);
@@ -6904,7 +6859,6 @@ double& elemstart,double& curstart)
   double delta = delta_b*delta_b - 4*delta_a*delta_c;
 
   if(fabs(delta) < 0.001){
-//      if(maxd_t <= maxd_m){
       if(mind_t <= mind_m){
         nextupdatelist.push_back(elem);
         return;
@@ -6912,7 +6866,7 @@ double& elemstart,double& curstart)
           hpelem* newhp = new hpelem(elem);
           head->next = newhp;
           newhp->next = cur->next;
-//          UpdateInfoInNL(local,newhp,i);
+
           UpdateInfoInNL(newhp,i);
           cur->next = NULL;
           nextupdatelist.push_back(*cur);
@@ -6938,7 +6892,7 @@ double& elemstart,double& curstart)
         hpelem* newhp = new hpelem(elem);
         head->next = newhp;
         newhp->next = cur->next;
-//        UpdateInfoInNL(local,newhp,i);
+
         UpdateInfoInNL(newhp,i);
         cur->next = NULL;
         nextupdatelist.push_back(*cur);
@@ -6979,7 +6933,7 @@ double& elemstart,double& curstart)
        hpelem* newhp = new hpelem(elem);
        head->next = newhp;
        newhp->next = cur->next;
-//       UpdateInfoInNL(local,newhp,i);
+
        UpdateInfoInNL(newhp,i);
        cur->next = NULL;
        nextupdatelist.push_back(*cur);
@@ -7027,13 +6981,9 @@ double& elemstart,double& curstart)
 
     hpelem* newhp1 = new hpelem(*cur);
     newhp1->nodete = intersect1;
-//    MyTemporalFunction(newhp1,intersect1,end);
+
     newhp1->MyTemporalFunction(intersect1,end);
     newhp1->dataup.p1 = end;
-//    newhp1->mind = URealMin(newhp1,curstart);
-//    newhp1->maxd = URealMax(newhp1,curstart);
-//    newhp1->mind = newhp1->URealMin(curstart);
-//    newhp1->maxd = newhp1->URealMax(curstart);
     newhp1->URealMin(curstart);
     newhp1->URealMax(curstart);
 
@@ -7041,17 +6991,11 @@ double& elemstart,double& curstart)
     hpelem* newhp2 = new hpelem(elem);
     newhp2->nodets = intersect1;
     newhp2->nodete = intersect2;
-//    MyTemporalFunction(newhp2,intersect1,p0);
+
     newhp2->MyTemporalFunction(intersect1,p0);
-//    MyTemporalFunction(newhp2,intersect2,p1);
     newhp2->MyTemporalFunction(intersect2,p1);
     newhp2->dataup.p0 = p0;
     newhp2->dataup.p1 = p1;
-//    newhp2->mind = URealMin(newhp2,elemstart);
-//    newhp2->maxd = URealMax(newhp2,elemstart);
-//    URealTranslate(newhp2,elemstart);
-//    newhp2->mind = newhp2->URealMin(elemstart);
-//    newhp2->maxd = newhp2->URealMax(elemstart);
     newhp2->URealMin(elemstart);
     newhp2->URealMax(elemstart);
     newhp2->URealTranslate(elemstart);
@@ -7060,14 +7004,9 @@ double& elemstart,double& curstart)
 
     hpelem* newhp3 = new hpelem(*cur);
     newhp3->nodets = intersect2;
-//    MyTemporalFunction(newhp3,intersect2,start);
+
     newhp3->MyTemporalFunction(intersect2,start);
     newhp3->dataup.p0 = start;
-//    newhp3->mind = URealMin(newhp3,curstart);
-//    newhp3->maxd = URealMax(newhp3,curstart);
-//    URealTranslate(newhp3,curstart);
-//    newhp3->mind = newhp3->URealMin(curstart);
-//    newhp3->maxd = newhp3->URealMax(curstart);
     newhp3->URealMin(curstart);
     newhp3->URealMax(curstart);
     newhp3->URealTranslate(curstart);
@@ -7076,14 +7015,10 @@ double& elemstart,double& curstart)
 
     hpelem* newhp4 = new hpelem(elem);
     newhp4->nodete = intersect1;
-//    MyTemporalFunction(newhp4,intersect1,end);
+
     newhp4->MyTemporalFunction(intersect1,end);
     newhp4->dataup.p1 = end;
     newhp4->next = NULL;
-//    newhp4->mind = URealMin(newhp4,elemstart);
-//    newhp4->maxd = URealMax(newhp4,elemstart);
-//    newhp4->mind = newhp4->URealMin(elemstart);
-//    newhp4->maxd = newhp4->URealMax(elemstart);
     newhp4->URealMin(elemstart);
     newhp4->URealMax(elemstart);
 
@@ -7092,18 +7027,12 @@ double& elemstart,double& curstart)
     hpelem* newhp5 = new hpelem(*(cur));
     newhp5->nodets = intersect1;
     newhp5->nodete = intersect2;
-//    MyTemporalFunction(newhp5,intersect1,p0);
+
     newhp5->MyTemporalFunction(intersect1,p0);
-//    MyTemporalFunction(newhp5,intersect2,p1);
     newhp5->MyTemporalFunction(intersect2,p1);
     newhp5->dataup.p0 = p0;
     newhp5->dataup.p1 = p1;
     newhp5->next = NULL;
-//    newhp5->mind = URealMin(newhp5,curstart);
-//    newhp5->maxd = URealMax(newhp5,curstart);
-//    URealTranslate(newhp5,curstart);
-//    newhp5->mind = newhp5->URealMin(curstart);
-//    newhp5->maxd = newhp5->URealMax(curstart);
     newhp5->URealMin(curstart);
     newhp5->URealMax(curstart);
     newhp5->URealTranslate(curstart);
@@ -7112,15 +7041,10 @@ double& elemstart,double& curstart)
 
     hpelem* newhp6 = new hpelem(elem);
     newhp6->nodets = intersect2;
-//    MyTemporalFunction(newhp6,intersect2,start);
+
     newhp6->MyTemporalFunction(intersect2,start);
     newhp6->dataup.p0 = start;
     newhp6->next = NULL;
-//    newhp6->mind = URealMin(newhp6,elemstart);
-//    newhp6->maxd = URealMax(newhp6,elemstart);
-//    URealTranslate(newhp6,elemstart);
-//    newhp6->mind = newhp6->URealMin(elemstart);
-//    newhp6->maxd = newhp6->URealMax(elemstart);
     newhp6->URealMin(elemstart);
     newhp6->URealMax(elemstart);
     newhp6->URealTranslate(elemstart);
@@ -7130,7 +7054,7 @@ double& elemstart,double& curstart)
     newhp1->next = newhp2;
     newhp2->next = newhp3;
     newhp3->next = next;
-//    UpdateInfoInNL(local,newhp2,i);
+
     UpdateInfoInNL(newhp2,i);
     head = newhp2;
     cur = newhp3;
@@ -7148,34 +7072,23 @@ double& elemstart,double& curstart)
 
     hpelem* newhp1 = new hpelem(elem);
     newhp1->nodete = intersect1;
-//    MyTemporalFunction(newhp1,intersect1,end);
+
     newhp1->MyTemporalFunction(intersect1,end);
     newhp1->dataup.p1 = end;
     newhp1->next = NULL;
- //   newhp1->mind = URealMin(newhp1,elemstart);
- //   newhp1->maxd = URealMax(newhp1,elemstart);
- //   newhp1->mind = newhp1->URealMin(elemstart);
- //   newhp1->maxd = newhp1->URealMax(elemstart);
     newhp1->URealMin(elemstart);
     newhp1->URealMax(elemstart);
-
 
 
     hpelem* newhp2 = new hpelem(*(cur));
     newhp2->nodets = intersect1;
     newhp2->nodete = intersect2;
-//    MyTemporalFunction(newhp2,intersect1,p0);
+
     newhp2->MyTemporalFunction(intersect1,p0);
-//    MyTemporalFunction(newhp2,intersect2,p1);
     newhp2->MyTemporalFunction(intersect2,p1);
     newhp2->dataup.p0 = p0;
     newhp2->dataup.p1 = p1;
     newhp2->next = NULL;
-//    newhp2->mind = URealMin(newhp2,curstart);
-//    newhp2->maxd = URealMax(newhp2,curstart);
-//    URealTranslate(newhp2,curstart);
-//    newhp2->mind = newhp2->URealMin(curstart);
-//    newhp2->maxd = newhp2->URealMax(curstart);
     newhp2->URealMin(curstart);
     newhp2->URealMax(curstart);
     newhp2->URealTranslate(curstart);
@@ -7183,15 +7096,10 @@ double& elemstart,double& curstart)
 
     hpelem* newhp3 = new hpelem(elem);
     newhp3->nodets = intersect2;
-//    MyTemporalFunction(newhp3,intersect2,start);
+
     newhp3->MyTemporalFunction(intersect2,start);
     newhp3->dataup.p0 = start;
     newhp3->next = NULL;
-//    newhp3->mind = URealMin(newhp3,elemstart);
-//    newhp3->maxd = URealMax(newhp3,elemstart);
-//    URealTranslate(newhp3,elemstart);
-//    newhp3->mind = newhp3->URealMin(elemstart);
-//    newhp3->maxd = newhp3->URealMax(elemstart);
     newhp3->URealMin(elemstart);
     newhp3->URealMax(elemstart);
     newhp3->URealTranslate(elemstart);
@@ -7199,13 +7107,9 @@ double& elemstart,double& curstart)
 
     hpelem* newhp4 = new hpelem(*cur);
     newhp4->nodete = intersect1;
-//    MyTemporalFunction(newhp4,intersect1,end);
+
     newhp4->MyTemporalFunction(intersect1,end);
     newhp4->dataup.p1 = end;
-//    newhp4->mind = URealMin(newhp4,curstart);
-//    newhp4->maxd = URealMax(newhp4,curstart);
-//    newhp4->mind = newhp4->URealMin(curstart);
-//    newhp4->maxd = newhp4->URealMax(curstart);
     newhp4->URealMin(curstart);
     newhp4->URealMax(curstart);
 
@@ -7213,17 +7117,11 @@ double& elemstart,double& curstart)
     hpelem* newhp5 = new hpelem(elem);
     newhp5->nodets = intersect1;
     newhp5->nodete = intersect2;
-//    MyTemporalFunction(newhp5,intersect1,p0);
+
     newhp5->MyTemporalFunction(intersect1,p0);
-//    MyTemporalFunction(newhp5,intersect2,p1);
     newhp5->MyTemporalFunction(intersect2,p1);
     newhp5->dataup.p0 = p0;
     newhp5->dataup.p1 = p1;
-//    newhp5->mind = URealMin(newhp5,elemstart);
-//    newhp5->maxd = URealMax(newhp5,elemstart);
-//    URealTranslate(newhp5,elemstart);
-//    newhp5->mind = newhp5->URealMin(elemstart);
-//   newhp5->maxd = newhp5->URealMax(elemstart);
     newhp5->URealMin(elemstart);
     newhp5->URealMax(elemstart);
     newhp5->URealTranslate(elemstart);
@@ -7232,14 +7130,9 @@ double& elemstart,double& curstart)
 
     hpelem* newhp6 = new hpelem(*cur);
     newhp6->nodets = intersect2;
-//    MyTemporalFunction(newhp6,intersect2,start);
+
     newhp6->MyTemporalFunction(intersect2,start);
     newhp6->dataup.p0 = start;
-//    newhp6->mind = URealMin(newhp6,curstart);
-//    newhp6->maxd = URealMax(newhp6,curstart);
-//    URealTranslate(newhp6,curstart);
-//    newhp6->mind = newhp6->URealMin(curstart);
-//    newhp6->maxd = newhp6->URealMax(curstart);
     newhp6->URealMin(curstart);
     newhp6->URealMax(curstart);
     newhp6->URealTranslate(curstart);
@@ -7249,7 +7142,7 @@ double& elemstart,double& curstart)
     newhp1->next = newhp2;
     newhp2->next = newhp3;
     newhp3->next = next;
-//    UpdateInfoInNL(local,newhp2,i);
+
     UpdateInfoInNL(newhp2,i);
     head = newhp2;
     cur = newhp3;
@@ -7291,7 +7184,6 @@ vector<hpelem>& nextupdatelist,int i)
            hpelem* newhp = new hpelem(elem);
            head->next = newhp;
            newhp->next = cur;
-//           UpdateInfoInNL(local,newhp,i);
            UpdateInfoInNL(newhp,i);
            return;// no update list
        }
@@ -7314,7 +7206,6 @@ vector<hpelem>& nextupdatelist,int i)
             hpelem* newhp = new hpelem(elem);
             cur->next = newhp;
             newhp->next = NULL;
-//            UpdateInfoInNL(local,newhp,i);
             UpdateInfoInNL(newhp,i);
             return;// no update list
           }else{
@@ -7328,7 +7219,6 @@ vector<hpelem>& nextupdatelist,int i)
            hpelem* newhp = new hpelem(elem);
            head->next = newhp;
            newhp->next = cur;
-//           UpdateInfoInNL(local,newhp,i);
            UpdateInfoInNL(newhp,i);
            return;//no updatelist
         }
@@ -7343,8 +7233,6 @@ vector<hpelem>& nextupdatelist,int i)
         double tts = cur->nodets;
         double tte = cur->nodete;
 
-
-//        if(mts == tts && mte == tte){ //the same time interval
         if(AlmostEqual(mts ,tts) && AlmostEqual(mte ,tte)){
 #ifdef mydebug
             cout<<"equal "<<endl;
@@ -7364,16 +7252,8 @@ vector<hpelem>& nextupdatelist,int i)
             newhp->nodete = ts;
 
             Point end;
-//            MyTemporalFunction(newhp,ts,end);
             newhp->MyTemporalFunction(ts,end);
             newhp->dataup.p1 = end;
-
-
-//            newhp->mind = URealMin(newhp,mts);
-//            newhp->maxd = URealMax(newhp,mts);
-
-//            newhp->mind = newhp->URealMin(mts);
-//            newhp->maxd = newhp->URealMax(mts);
 
             newhp->URealMin(mts);
             newhp->URealMax(mts);
@@ -7381,20 +7261,14 @@ vector<hpelem>& nextupdatelist,int i)
             head->next = newhp;
             newhp->next = cur;
             head = newhp;
-//            UpdateInfoInNL(local,newhp,i);
+
             UpdateInfoInNL(newhp,i);
 
             elem.nodets = ts;
             Point start;
-//            MyTemporalFunction(&elem,ts,start);
+
             elem.MyTemporalFunction(ts,start);
             elem.dataup.p0 = start;
-//            elem.mind = URealMin(&elem,mts);
-//            elem.maxd = URealMax(&elem,mts);
-//            URealTranslate(&elem,mts);
-
-//            elem.mind = elem.URealMin(mts);
-//            elem.maxd = elem.URealMax(mts);
             elem.URealMin(mts);
             elem.URealMax(mts);
 
@@ -7408,14 +7282,9 @@ vector<hpelem>& nextupdatelist,int i)
 
             newhp->nodete = ts;
             Point end;
-//            MyTemporalFunction(newhp,ts,end);
+
             newhp->MyTemporalFunction(ts,end);
             newhp->dataup.p1 = end;
-//            newhp->mind = URealMin(newhp,tts);
-//            newhp->maxd = URealMax(newhp,tts);
-
-//            newhp->mind = newhp->URealMin(tts);
-//            newhp->maxd = newhp->URealMax(tts);
             newhp->URealMin(tts);
             newhp->URealMax(tts);
 
@@ -7426,14 +7295,9 @@ vector<hpelem>& nextupdatelist,int i)
 
             cur->nodets = ts;
             Point start;
-//            MyTemporalFunction(cur,ts,start);
+
             cur->MyTemporalFunction(ts,start);
             cur->dataup.p0 = start;
-//            cur->mind = URealMin(cur,tts);
-//            cur->maxd = URealMax(cur,tts);
-//            URealTranslate(cur,tts);
-//            cur->mind = cur->URealMin(tts);
-//            cur->maxd = cur->URealMax(tts);
             cur->URealMin(tts);
             cur->URealMax(tts);
             cur->URealTranslate(tts);
@@ -7447,14 +7311,9 @@ vector<hpelem>& nextupdatelist,int i)
 
             newhp->nodets = te;
             Point start;
-//            MyTemporalFunction(newhp,te,start);
+
             newhp->MyTemporalFunction(te,start);
             newhp->dataup.p0 = start;
-//            newhp->mind = URealMin(newhp,ts);
-//            newhp->maxd = URealMax(newhp,ts);
-//            URealTranslate(newhp,ts);
-//            newhp->mind = newhp->URealMin(ts);
-//            newhp->maxd = newhp->URealMax(ts);
             newhp->URealMin(ts);
             newhp->URealMax(ts);
             newhp->URealTranslate(ts);
@@ -7465,13 +7324,9 @@ vector<hpelem>& nextupdatelist,int i)
 
             Point end;
             cur->nodete = te;
-//            MyTemporalFunction(cur,te,end);
+
             cur->MyTemporalFunction(te,end);
             cur->dataup.p1 = end;
-//            cur->mind = URealMin(cur,ts);
-//            cur->maxd = URealMax(cur,ts);
-//            cur->mind = cur->URealMin(ts);
-//            cur->maxd = cur->URealMax(ts);
             cur->URealMin(ts);
             cur->URealMax(ts);
 
@@ -7482,7 +7337,7 @@ vector<hpelem>& nextupdatelist,int i)
 #ifdef mydebug
             cout<<"elem is longer"<<endl;
 #endif
-//            if(elem.nodete == cur->nodete){
+
             if(AlmostEqual(elem.nodete ,cur->nodete)){
 #ifdef mydebug
               cout<<"elem equal to cur in end time"<<endl;
@@ -7498,14 +7353,8 @@ vector<hpelem>& nextupdatelist,int i)
 
               newhp->nodets = te;
               Point start;
-//              MyTemporalFunction(newhp,te,start);
               newhp->MyTemporalFunction(te,start);
               newhp->dataup.p0 = start;
-//              newhp->mind = URealMin(newhp,ts);
-//              newhp->maxd = URealMax(newhp,ts);
-//              URealTranslate(newhp,ts);
-//              newhp->mind = newhp->URealMin(ts);
-//              newhp->maxd = newhp->URealMax(ts);
               newhp->URealMin(ts);
               newhp->URealMax(ts);
               newhp->URealTranslate(ts);
@@ -7513,16 +7362,11 @@ vector<hpelem>& nextupdatelist,int i)
 
               elem.nodete = te;
               Point end;
-//              MyTemporalFunction(&elem,te,end);
+
               elem.MyTemporalFunction(te,end);
               elem.dataup.p1 = end;
-//              elem.mind = URealMin(&elem,ts);
-//              elem.maxd = URealMax(&elem,ts);
-//              elem.mind = elem.URealMin(ts);
-//              elem.maxd = elem.URealMax(ts);
               elem.URealMin(ts);
               elem.URealMax(ts);
-
 
               Parabolas(elem,nextupdatelist,i,head,cur,ts,ts);
 #ifdef mydebug
@@ -7751,7 +7595,10 @@ void TBKnearestLocalInfo::UpdatekNearestG(hpelem& elem)
   }
 }
 
+/*
+element is ordered by start time
 
+*/
 bool HpelemCompare(const hpelem& e1,const hpelem& e2)
 {
     return e1.nodets < e2.nodets;
@@ -7984,8 +7831,6 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
                   le.nodets = nodets;
                   le.nodete = nodete;
                   le.AssignURUP(mdist,ne);
-//                  if(le.mind < local->prunedist.dist)
-//                    UpdatekNearest(local,le);
                   if(CheckPrune(le) == false)
                       UpdatekNearestG(le);
                   delete mdist;
@@ -8194,8 +8039,6 @@ int ChinaknearestFun (Word* args, Word& result, int message,
       localInfo->relation = (Relation*)args[1].addr;
       localInfo->counter = 0;
       localInfo->scanFlag = true;
-//      ChinaknnInitialize(localInfo,mp);
-//      ChinaknnFun(localInfo,mp);
       localInfo->ChinaknnInitialize(mp);
       localInfo->ChinaknnFun(mp);
       return 0;
