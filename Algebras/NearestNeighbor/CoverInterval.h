@@ -35,9 +35,9 @@ double myabs(const double d){
    return  d<0?-d:d;
 }
 
-bool MyAlmostEqual(const double d1, const double d2){
-   return myabs(d1-d2) < 0.000001;
-}
+//bool MyAlmostEqual(const double d1, const double d2){
+//   return myabs(d1-d2) < 0.000001;
+//}
 
 double mymax(const double d1, const double d2){
    return d1<d2?d2:d1;
@@ -119,11 +119,11 @@ class ICNode{
        timeType ts2 = mymax(ts1,ts);
        timeType te2 = mymin(te1,te);
 
-       if(MyAlmostEqual(ts2,te2)){
+       if(AlmostEqual(ts2,te2)){
           return this;
        }
 
-       if(MyAlmostEqual(ts2,ts) && MyAlmostEqual(te2,te)){
+       if(AlmostEqual(ts2,ts) && AlmostEqual(te2,te)){
           cover = true;
           if(left) delete left;
           if(right) delete right;
@@ -133,14 +133,14 @@ class ICNode{
        }
 
        if(left==0 ) { // leaf
-        if(MyAlmostEqual(ts2,ts)){
+        if(AlmostEqual(ts2,ts)){
            ICNode* n1 = new ICNode(ts2,te2);
            n1->cover = true;
            ICNode* n2 = new ICNode(te2,te);
            left = n1;
            right = n2;
            return this;
-        } else if(MyAlmostEqual(te2,te)){
+        } else if(AlmostEqual(te2,te)){
            ICNode* n1 = new ICNode(ts,ts2);
            ICNode* n2 = new ICNode(ts2,te2);
            n2->cover = true;
