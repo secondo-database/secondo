@@ -202,3 +202,119 @@ class CIC{
    private:
       ICNode<timeType>* root;
 };
+
+
+template<class Type>
+struct CoverNode{
+    Type ts,te;
+    CoverNode* next;
+    CoverNode(){}
+    CoverNode(Type a,Type b):ts(a),te(b){next = NULL;}
+    CoverNode(const CoverNode& cn):ts(cn.ts),te(cn.te){}
+};
+
+template<class Type>
+class CoverInterval{
+    bool iscovered;
+    CoverNode<Type>* head;
+public:
+    CoverInterval(){}
+    CoverInterval(Type s,Type e){
+        head = new CoverNode<Type>(s,e);
+        iscovered = false;
+    }
+    ~CoverInterval(){delete head;}
+    bool IsCovered()
+    {
+        CoverNode<Type>* cur = head->next;
+        if(cur == NULL)
+          return false;
+        if(cur->next != NULL)
+          return false;
+        if(fabs(cur->ts - head->ts) < 0.000000001 &&
+           fabs(cur->te - head->te) < 0.000000001)
+          iscovered = true;
+        else
+          iscovered = false;
+        return iscovered;
+    }
+    void insert(struct CoverNode<Type>* node);
+    void Print();
+};
+template<class Type>
+void CoverInterval<Type>::Print()
+{
+    CoverNode<Type>* cur = head->next;
+    while(cur != NULL){
+        cur = cur->next;
+    }
+}
+
+template<class Type>
+void CoverInterval<Type>::insert(struct CoverNode<Type>* node)
+{
+    assert(node->ts < node->te);
+    if(node->ts < head->ts)
+        node->ts = head->ts;
+    if(node->te > head->te)
+        node->te = head->te;
+
+    if(IsCovered())
+        return;
+    if(head->next == NULL){
+        head->next = node;
+        return;
+    }
+    CoverNode<Type>* cur = head->next;
+    CoverNode<Type>* next;
+
+    while(cur != NULL){
+        if(cur->ts >= node->ts)
+            cur->ts = node->ts;
+        if(cur->ts <= node->ts && node->te <= cur->te)
+            break;
+
+        if(cur->te < node->ts){
+            if(cur->next == NULL){
+                cur->next = node;
+                break;
+            }
+            cur = cur->next;
+            continue;
+        }
+        next = cur->next;
+        if(next == NULL){
+            cur->te = node->te;
+            break;
+        }
+        if(next->ts > node->te){
+            cur->te = node->te;
+            break;
+        }
+        Type t1, t2;
+        while(next != NULL && next->te < node->te){
+            CoverNode<Type>* temp = next;
+            next = next->next;
+            cur->next = next;
+            t1 = temp->ts;
+            t2 = temp->te;
+            delete temp;
+        }
+
+        if(next == NULL){
+            if(node->te > t2)
+                cur->te = node->te;
+            else
+                cur->te = t2;
+            cur->next = NULL;
+            break;
+        }
+        if(next->te > node->te){
+          cur->te = next->te;
+          cur->next = next->next;
+          delete next;
+          break;
+        }
+    }
+
+}

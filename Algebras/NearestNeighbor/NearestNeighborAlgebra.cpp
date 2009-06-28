@@ -6399,16 +6399,20 @@ struct TBKnearestLocalInfo
   priority_queue<hpelem> hp;
   vector<hpelem> result;
   unsigned int counter;
+  CoverInterval<double>* cic;
 
   TBKnearestLocalInfo(unsigned int nn):k(nn)
   {
       ci = NULL;
+      cic = NULL;
       iscovered = false;
   }
   ~TBKnearestLocalInfo()
   {
     if( ci != NULL)
       delete ci;
+    if( cic != NULL)
+      delete cic;
   }
   /*public function*/
   void UpdateInfoInNL(hpelem* elem,int i);
@@ -6428,6 +6432,7 @@ struct TBKnearestLocalInfo
   void GreeceknnFun(MPoint* mp,int level,hpelem& elem);
   void UpdatekNearestG(hpelem& elem);
   void GreeceknearestInitialize(MPoint* mp);
+  void CheckCoveredG(hpelem& elem);
 /*Chinese algorithm function*/
   void ChinaknnInitialize(MPoint* mp);
   void ChinaknnFun(MPoint* mp);
@@ -7486,6 +7491,16 @@ void TBKnearestLocalInfo::CheckCovered(hpelem& elem)
   iscovered = ci->IsCovered();
 }
 
+void TBKnearestLocalInfo::CheckCoveredG(hpelem& elem)
+{
+
+//  ci->insert(elem.nodets,elem.nodete);
+  struct CoverNode<double>* n = new CoverNode<double>(elem.nodets,elem.nodete);
+  cic->insert(n);
+//  iscovered = ci->IsCovered();
+  iscovered = cic->IsCovered();
+}
+
 /*
 Initialize Prunedist check the maxdist in Nearestlist(k)
 
@@ -7569,7 +7584,7 @@ void TBKnearestLocalInfo::UpdatekNearestG(hpelem& elem)
 {
   list<hpelem> updatelist;
 
-//    if(CheckPrune(local,elem) == false){
+//    if(elem.mind < prunedist.dist){
      if(CheckPrune(elem) == false){
 
       updatelist.push_back(elem);
@@ -7580,9 +7595,12 @@ void TBKnearestLocalInfo::UpdatekNearestG(hpelem& elem)
             hpelem top = updatelist.front();
             updatelist.pop_front();
 
-      //    if(CheckPrune(local,top) == false)
+//            if(top.mind < prunedist.dist)
             if(CheckPrune(top) == false)
-              UpdateNearest(top,templist,i); //key function
+            UpdateNearest(top,templist,i); //key function
+
+//            if(i == k - 1 && iscovered == false)
+//              CheckCoveredG(top);
 
             for(unsigned int j = 0;j < templist.size();j++)//transfer step1
               auxiliarylist.push_back(templist[j]);
@@ -7591,7 +7609,10 @@ void TBKnearestLocalInfo::UpdatekNearestG(hpelem& elem)
         for(unsigned int j = 0;j < auxiliarylist.size();j++)//transfer step2
           updatelist.push_back(auxiliarylist[j]);
         auxiliarylist.clear();
+//        if(iscovered && i == k - 1) //check prunedist
+//          InitializePrunedist();
       }
+
   }
 }
 
@@ -7833,6 +7854,9 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
                   le.AssignURUP(mdist,ne);
                   if(CheckPrune(le) == false)
                       UpdatekNearestG(le);
+//                  if(le.mind < prunedist.dist)
+//                    UpdatekNearest(le);
+//                      UpdatekNearestG(le);
                   delete mdist;
                   delete ne;
                   delete nqe;
@@ -7867,14 +7891,21 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
     for(unsigned int i = 0; i < branchlist.size();i++){
         if(CheckPrune(branchlist[i]) == false)
         prunelist.push_back(branchlist[i]);
+//      if(branchlist[i].mind <  prunedist.dist)
+//        prunelist.push_back(branchlist[i]);
     }
     for(unsigned int i = 0;i < prunelist.size();){
         GreeceknnFun(mp,level+1,prunelist[i]);
 
         unsigned int j = i + 1;
+
         while(j < prunelist.size() &&
           CheckPrune(prunelist[j]))j++;//prune branchlist
         i = j;
+
+//        while(j < prunelist.size() &&
+//          prunelist[j].mind > prunedist.dist)j++;//prune branchlist
+//        i = j;
 
     }
   }
@@ -7919,6 +7950,9 @@ int Greeceknearest(Word* args, Word& result, int message,
       localInfo->endTime = up2->timeInterval.end.ToDouble();
       localInfo->ci =
         new CIC<double>(localInfo->startTime,localInfo->endTime);
+
+      localInfo->cic =
+        new CoverInterval<double>(localInfo->startTime,localInfo->endTime);
 
       localInfo->rtree = (R_Tree<dim,TupleId>*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
