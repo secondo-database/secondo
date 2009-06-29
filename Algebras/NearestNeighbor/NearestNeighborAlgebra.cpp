@@ -6155,7 +6155,7 @@ the same as UReal, but not store a,b,c the distance function
 
 struct myureal{
   double a,b,c;
-  myureal(){}
+  myureal():a(0.0),b(0.0),c(0.0){}
   myureal(double x,double y,double z):a(x),b(y),c(z){}
   myureal(const myureal& u):a(u.a),b(u.b),c(u.c){}
   myureal& operator=(const myureal& u)
@@ -6174,7 +6174,7 @@ the same as UPoint, but not store p0,p1
 */
 struct myupoint{
   Point p0,p1;
-  myupoint(){}
+  myupoint():p0(true,0,0),p1(true,0,0){}
   myupoint(Point& a,Point& b):p0(a),p1(b){}
   myupoint(const myupoint& u):p0(u.p0),p1(u.p1){}
   myupoint& operator=(const myupoint& u)
@@ -6208,7 +6208,7 @@ struct hpelem{
   hpelem(const hpelem& le)
   :movdist(le.movdist),tid(le.tid),dataup(le.dataup),
    mind(le.mind),maxd(le.maxd),nodeid(le.nodeid),
-   nodets(le.nodets),nodete(le.nodete){next = le.next;}
+   nodets(le.nodets),nodete(le.nodete){next = le.next; assert(nodets<nodete);}
   hpelem(TupleId id1,double d1,double d2,long id2)
   :tid(id1),mind(d1),maxd(d2),nodeid(id2){
     next = NULL;
@@ -6373,6 +6373,7 @@ struct  Prunedist{
   double dist;
   double ts,te;
   bool define;
+  Prunedist():dist(0),ts(0),te(0),define(false){}
 };
 
 /*
@@ -6404,6 +6405,7 @@ struct TBKnearestLocalInfo
   {
       ci = NULL;
       cic = NULL;
+      mptraj = NULL;
       iscovered = false;
   }
   ~TBKnearestLocalInfo()
@@ -6412,6 +6414,8 @@ struct TBKnearestLocalInfo
       delete ci;
     if( cic != NULL)
       delete cic;
+    if(mptraj != NULL)
+      delete mptraj;
   }
   /*public function*/
   void UpdateInfoInNL(hpelem* elem,int i);
@@ -6646,6 +6650,10 @@ double& intersect,double& elemstart,double& curstart)
     nextupdatelist.push_back(*newelem1);
     nextupdatelist.push_back(*newelem2);
 
+    delete newelem1;
+    delete newelem2;
+
+
     hpelem* newelem3 = new hpelem(elem);
     newelem3->nodets = intersect;
 
@@ -6736,6 +6744,9 @@ double& intersect,double& elemstart,double& curstart)
 
   nextupdatelist.push_back(*newelem2);
   nextupdatelist.push_back(*newelem3);
+
+  delete newelem2;
+  delete newelem3;
 }
 
 /*
@@ -6749,6 +6760,7 @@ void TBKnearestLocalInfo::Parabolas(hpelem& elem
 ,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
 double& elemstart,double& curstart)
 {
+
 //  double factor = 0.000000001;
   double ma,mb,mc; //data
   double ta,tb,tc; //entry in list
@@ -6791,6 +6803,7 @@ double& elemstart,double& curstart)
 
   if(AlmostEqual(ma ,ta ) && AlmostEqual(mb ,tb) && AlmostEqual(mc ,tc)){
 //  if(fabs(ma -ta ) < factor && fabs(mb-tb) < factor && fabs(mc -tc)<factor){
+
       nextupdatelist.push_back(elem);
       return;//for next
   }
@@ -6798,6 +6811,7 @@ double& elemstart,double& curstart)
     if(AlmostEqual(ma, ta) && AlmostEqual(mb ,tb)){
 //    if(fabs(ma - ta) < factor && fabs(mb - tb)< factor ){
         if(start_t <= start_m){
+
           nextupdatelist.push_back(elem);
           return;
       }else{// entry is to be replaced by data
@@ -6807,6 +6821,7 @@ double& elemstart,double& curstart)
 
           UpdateInfoInNL(newhp,i);
           cur->next = NULL;
+
           nextupdatelist.push_back(*cur);
           cur = newhp; //new cur
           return;
@@ -6826,6 +6841,7 @@ double& elemstart,double& curstart)
 
       if(v1 >= t || t >= v2){ //intersection point is no use
             if(start_t <= start_m){
+
               nextupdatelist.push_back(elem);
               return;//for next
           }else{ //entry is to be replaced by data
@@ -6835,6 +6851,7 @@ double& elemstart,double& curstart)
 
                 UpdateInfoInNL(newhp,i);
                 cur->next = NULL;
+
                 nextupdatelist.push_back(*cur);
                 cur = newhp; //new cur
                 return;
@@ -6869,6 +6886,7 @@ double& elemstart,double& curstart)
 
   if(fabs(delta) < 0.001){
       if(mind_t <= mind_m){
+
         nextupdatelist.push_back(elem);
         return;
       }else{ //entry is to be replaced by data
@@ -6878,6 +6896,7 @@ double& elemstart,double& curstart)
 
           UpdateInfoInNL(newhp,i);
           cur->next = NULL;
+
           nextupdatelist.push_back(*cur);
           cur = newhp;  //new cur
           return;
@@ -6892,6 +6911,7 @@ double& elemstart,double& curstart)
 #ifdef mydebug
         cout<<"update "<<endl;
 #endif
+
         nextupdatelist.push_back(elem);
         return;
     }else{ //entry is to be replaced by data
@@ -6904,6 +6924,7 @@ double& elemstart,double& curstart)
 
         UpdateInfoInNL(newhp,i);
         cur->next = NULL;
+
         nextupdatelist.push_back(*cur);
         cur = newhp; //new cur
         return;
@@ -6936,6 +6957,7 @@ double& elemstart,double& curstart)
      intersect_t2 >= elemte)){
 
     if(mind_t <= mind_m){//entry is smaller
+
       nextupdatelist.push_back(elem);
       return;
     }else{ //entry is to be replaced by data
@@ -6945,6 +6967,7 @@ double& elemstart,double& curstart)
 
        UpdateInfoInNL(newhp,i);
        cur->next = NULL;
+
        nextupdatelist.push_back(*cur);
        cur = newhp; //new cur
        return;
@@ -7068,6 +7091,7 @@ double& elemstart,double& curstart)
     head = newhp2;
     cur = newhp3;
 
+
     nextupdatelist.push_back(*newhp4);
     nextupdatelist.push_back(*newhp5);
     nextupdatelist.push_back(*newhp6);
@@ -7136,7 +7160,6 @@ double& elemstart,double& curstart)
     newhp5->URealTranslate(elemstart);
 
 
-
     hpelem* newhp6 = new hpelem(*cur);
     newhp6->nodets = intersect2;
 
@@ -7156,6 +7179,7 @@ double& elemstart,double& curstart)
     head = newhp2;
     cur = newhp3;
 
+
     nextupdatelist.push_back(*newhp4);
     nextupdatelist.push_back(*newhp5);
     nextupdatelist.push_back(*newhp6);
@@ -7171,6 +7195,7 @@ Update k NearestList structure traverse the k nearest list
 void TBKnearestLocalInfo::UpdateNearest(hpelem& elem,
 vector<hpelem>& nextupdatelist,int i)
 {
+
   double factor = 0.000000001;
   hpelem* head = nlist[i].head;
   assert(head != NULL);
@@ -7249,6 +7274,8 @@ vector<hpelem>& nextupdatelist,int i)
 #ifdef mydebug
             cout<<"equal "<<endl;
 #endif
+            elem.nodets = cur->nodets;
+            elem.nodete = cur->nodete;
             Parabolas(elem,nextupdatelist,i,head,cur,mts,tts);
             return;
         }else{// needs to be interpolation
@@ -7256,7 +7283,7 @@ vector<hpelem>& nextupdatelist,int i)
           //overlap
 
           double ts =  mts > tts ? mts:tts;
-          double te = mte < tte ? mte:tte;
+          double te =  mte < tte ? mte:tte;
 
           if(mts < ts){
 
@@ -7394,6 +7421,9 @@ vector<hpelem>& nextupdatelist,int i)
               <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
 #endif
               elem = *newhp;
+
+              delete newhp;
+
               head = cur;
               cur = cur->next;
 #ifdef mydebug
@@ -7651,6 +7681,7 @@ void TBKnearestLocalInfo::ReportResult()
         result.push_back(top);
       head = cur;
       cur = cur->next;
+      delete head;
     }
   }
   stable_sort(result.begin(),result.end(),HpelemCompare);
@@ -7708,8 +7739,13 @@ void TBKnearestLocalInfo::ChinaknnFun(MPoint* mp)
                     if(tt1 > t2) //mq's time interval is larger than entry
                       break;
                     if(!(t1 >= tt2 || t2 <= tt1)){
-                      UPoint* ne = new UPoint(true);
-                      UPoint* nqe = new UPoint(true);
+//                      UPoint* ne = new UPoint(true);
+//                      UPoint* nqe = new UPoint(true);
+                      Point p0(true,0,0);
+                      Point p1(true,0,0);
+                      UPoint* ne = new UPoint(up->timeInterval,p0,p1);
+                      UPoint* nqe = new UPoint(up->timeInterval,p0,p1);
+
                       //interpolation restrict to the same time interval
 
                       CreateUPoint_ne(up,ne,data);
@@ -7862,8 +7898,12 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
               if(tt1 > t2) //mq's time interval is larger than entry
                   break;
               if(!(t1 >= tt2 || t2 <= tt1)){
-                  UPoint* ne = new UPoint(true);
-                  UPoint* nqe = new UPoint(true);
+//                  UPoint* ne = new UPoint(true);
+//                  UPoint* nqe = new UPoint(true);
+                    Point p0(true,0,0);
+                    Point p1(true,0,0);
+                    UPoint* ne = new UPoint(up->timeInterval,p0,p1);
+                    UPoint* nqe = new UPoint(up->timeInterval,p0,p1);
                   //interpolation restrict to the same time interval
 
                   CreateUPoint_ne(up,ne,data);
