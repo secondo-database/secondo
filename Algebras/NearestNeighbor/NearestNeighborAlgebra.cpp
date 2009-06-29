@@ -6750,7 +6750,7 @@ void TBKnearestLocalInfo::Parabolas(hpelem& elem
 ,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
 double& elemstart,double& curstart)
 {
-
+//  double factor = 0.000000001;
   double ma,mb,mc; //data
   double ta,tb,tc; //entry in list
   double ttelem = elemstart;
@@ -6769,6 +6769,7 @@ double& elemstart,double& curstart)
 
   double start_m,start_t;
   if(AlmostEqual(ttelem, elem.nodets)){
+//  if(fabs(ttelem- elem.nodets) < factor){
       start_m = sqrt(elem.movdist.c);
   }
   else{
@@ -6779,6 +6780,7 @@ double& elemstart,double& curstart)
 
 
   if(AlmostEqual(ttcur, cur->nodets)){
+//  if(fabs(ttcur - cur->nodets) < factor){
     start_t = sqrt(cur->movdist.c);
   }
   else{
@@ -6789,11 +6791,13 @@ double& elemstart,double& curstart)
   }
 
   if(AlmostEqual(ma ,ta ) && AlmostEqual(mb ,tb) && AlmostEqual(mc ,tc)){
+//  if(fabs(ma -ta ) < factor && fabs(mb-tb) < factor && fabs(mc -tc)<factor){
       nextupdatelist.push_back(elem);
       return;//for next
   }
 
     if(AlmostEqual(ma, ta) && AlmostEqual(mb ,tb)){
+//    if(fabs(ma - ta) < factor && fabs(mb - tb)< factor ){
         if(start_t <= start_m){
           nextupdatelist.push_back(elem);
           return;
@@ -6811,6 +6815,7 @@ double& elemstart,double& curstart)
   }
 
     if(AlmostEqual(ma ,ta)){
+//    if(fabs(ma -ta) < factor){
       assert(mb != tb);
       double v1 = elem.nodets;
       double v2 = elem.nodete;
@@ -7167,6 +7172,7 @@ Update k NearestList structure traverse the k nearest list
 void TBKnearestLocalInfo::UpdateNearest(hpelem& elem,
 vector<hpelem>& nextupdatelist,int i)
 {
+  double factor = 0.000000001;
   hpelem* head = nlist[i].head;
   assert(head != NULL);
   hpelem* cur = head->next;
@@ -7238,7 +7244,9 @@ vector<hpelem>& nextupdatelist,int i)
         double tts = cur->nodets;
         double tte = cur->nodete;
 
+
         if(AlmostEqual(mts ,tts) && AlmostEqual(mte ,tte)){
+//        if(fabs(mts -tts) < factor && fabs(mte -tte) < factor){
 #ifdef mydebug
             cout<<"equal "<<endl;
 #endif
@@ -7343,7 +7351,8 @@ vector<hpelem>& nextupdatelist,int i)
             cout<<"elem is longer"<<endl;
 #endif
 
-            if(AlmostEqual(elem.nodete ,cur->nodete)){
+//            if(AlmostEqual(elem.nodete ,cur->nodete)){
+            if(fabs(elem.nodete - cur->nodete) < factor){
 #ifdef mydebug
               cout<<"elem equal to cur in end time"<<endl;
 #endif
@@ -7558,6 +7567,7 @@ void TBKnearestLocalInfo::UpdatekNearest(hpelem& elem)
             //check whether the time interval covers
             if(i == k - 1 && iscovered == false)
               CheckCovered(top);
+//                CheckCoveredG(top);
 
             for(unsigned int j = 0;j < templist.size();j++)//transfer step1
               auxiliarylist.push_back(templist[j]);
@@ -7585,7 +7595,7 @@ void TBKnearestLocalInfo::UpdatekNearestG(hpelem& elem)
   list<hpelem> updatelist;
 
 //    if(elem.mind < prunedist.dist){
-     if(CheckPrune(elem) == false){
+//     if(CheckPrune(elem) == false){
 
       updatelist.push_back(elem);
       vector<hpelem> auxiliarylist;
@@ -7595,12 +7605,13 @@ void TBKnearestLocalInfo::UpdatekNearestG(hpelem& elem)
             hpelem top = updatelist.front();
             updatelist.pop_front();
 
-//            if(top.mind < prunedist.dist)
-            if(CheckPrune(top) == false)
+            if(top.mind < prunedist.dist)
+//            if(CheckPrune(top) == false)
             UpdateNearest(top,templist,i); //key function
 
-//            if(i == k - 1 && iscovered == false)
-//              CheckCoveredG(top);
+            if(i == k - 1 && iscovered == false)
+              CheckCoveredG(top);
+//              CheckCovered(top);
 
             for(unsigned int j = 0;j < templist.size();j++)//transfer step1
               auxiliarylist.push_back(templist[j]);
@@ -7609,11 +7620,11 @@ void TBKnearestLocalInfo::UpdatekNearestG(hpelem& elem)
         for(unsigned int j = 0;j < auxiliarylist.size();j++)//transfer step2
           updatelist.push_back(auxiliarylist[j]);
         auxiliarylist.clear();
-//        if(iscovered && i == k - 1) //check prunedist
-//          InitializePrunedist();
+        if(iscovered && i == k - 1) //check prunedist
+          InitializePrunedist();
       }
 
-  }
+//  }
 }
 
 /*
@@ -7874,11 +7885,11 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
                   le.nodets = nodets;
                   le.nodete = nodete;
                   le.AssignURUP(mdist,ne);
-                  if(CheckPrune(le) == false)
-                      UpdatekNearestG(le);
-//                  if(le.mind < prunedist.dist)
-//                    UpdatekNearest(le);
+//                  if(CheckPrune(le) == false)
 //                      UpdatekNearestG(le);
+                  if(le.mind < prunedist.dist)
+//                    UpdatekNearest(le);
+                      UpdatekNearestG(le);
                   delete mdist;
                   delete ne;
                   delete nqe;
@@ -7911,18 +7922,22 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
     vector<hpelem> prunelist;
 
     for(unsigned int i = 0; i < branchlist.size();i++){
-        if(CheckPrune(branchlist[i]) == false)
-        prunelist.push_back(branchlist[i]);
-//      if(branchlist[i].mind <  prunedist.dist)
+//        if(CheckPrune(branchlist[i]) == false)
 //        prunelist.push_back(branchlist[i]);
+      if(branchlist[i].mind <  prunedist.dist)
+        if(CheckPrune(branchlist[i]) == false)
+            prunelist.push_back(branchlist[i]);
     }
     for(unsigned int i = 0;i < prunelist.size();){
         GreeceknnFun(mp,level+1,prunelist[i]);
-
         unsigned int j = i + 1;
 
-        while(j < prunelist.size() &&
-          CheckPrune(prunelist[j]))j++;//prune branchlist
+        while(j < prunelist.size() && prunelist[j].mind > prunedist.dist){
+          if(CheckPrune(prunelist[j]))
+            j++;//prune branchlist
+          else
+            break;
+        }
         i = j;
 
 //        while(j < prunelist.size() &&
@@ -8090,6 +8105,9 @@ int ChinaknearestFun (Word* args, Word& result, int message,
 
       localInfo->ci =
         new CIC<double>(localInfo->startTime,localInfo->endTime);
+
+      localInfo->cic =
+        new CoverInterval<double>(localInfo->startTime,localInfo->endTime);
 
       localInfo->tbtree = (TBTree*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
