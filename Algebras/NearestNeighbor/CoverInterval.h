@@ -316,5 +316,4 @@ void CoverInterval<Type>::insert(struct CoverNode<Type>* node)
           break;
         }
     }
-
 }

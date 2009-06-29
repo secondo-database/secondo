@@ -5330,7 +5330,7 @@ const string mqknearestSpec  =
       " x queryrel(tuple ((x1 t1)...(xn tn))) x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))"
       "</text--->"
-      "<text>_ _ _ _ mqknearest[_ _]</text--->"
+      "<text>_ _ _ _ _ _ mqknearest[_ _]</text--->"
       "<text>The operator results a stream of all input tuples "
       "where for each point in Points1, returns its k nearest neighbor"
       "in Points2 </text--->"
@@ -6148,7 +6148,6 @@ const string ChinaknearestSpec  =
       "[UTrip,train1, 5] count;</text--->"
       ") )";
 
-
 /*
 the same as UReal, but not store a,b,c the distance function
 
@@ -6207,7 +6206,7 @@ struct hpelem{
   }
   hpelem(){}
   hpelem(const hpelem& le)
-  :movdist(le.movdist),dataup(le.dataup),tid(le.tid),
+  :movdist(le.movdist),tid(le.tid),dataup(le.dataup),
    mind(le.mind),maxd(le.maxd),nodeid(le.nodeid),
    nodets(le.nodets),nodete(le.nodete){next = le.next;}
   hpelem(TupleId id1,double d1,double d2,long id2)
