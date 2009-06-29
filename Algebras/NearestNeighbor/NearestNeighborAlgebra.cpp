@@ -7549,7 +7549,7 @@ void TBKnearestLocalInfo::UpdatekNearest(hpelem& elem)
 {
   list<hpelem> updatelist;
 
-//    if(CheckPrune(local,elem) == false){
+//    if(CheckPrune(local,elem) == false){ //faster
     if(elem.mind < prunedist.dist){
 
       updatelist.push_back(elem);
@@ -7560,14 +7560,13 @@ void TBKnearestLocalInfo::UpdatekNearest(hpelem& elem)
             hpelem top = updatelist.front();
             updatelist.pop_front();
 
-//          if(CheckPrune(local,top) == false)
+//          if(CheckPrune(local,top) == false) //faster
             if(top.mind < prunedist.dist)
               UpdateNearest(top,templist,i); //key function
 
             //check whether the time interval covers
             if(i == k - 1 && iscovered == false)
               CheckCovered(top);
-//                CheckCoveredG(top);
 
             for(unsigned int j = 0;j < templist.size();j++)//transfer step1
               auxiliarylist.push_back(templist[j]);
@@ -7605,13 +7604,13 @@ void TBKnearestLocalInfo::UpdatekNearestG(hpelem& elem)
             hpelem top = updatelist.front();
             updatelist.pop_front();
 
-            if(top.mind < prunedist.dist)
+            if(top.mind < prunedist.dist && CheckPrune(top) == false)
 //            if(CheckPrune(top) == false)
             UpdateNearest(top,templist,i); //key function
 
             if(i == k - 1 && iscovered == false)
               CheckCoveredG(top);
-//              CheckCovered(top);
+//                CheckCovered(top);
 
             for(unsigned int j = 0;j < templist.size();j++)//transfer step1
               auxiliarylist.push_back(templist[j]);
@@ -7822,7 +7821,6 @@ struct idtime{
 };
 void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
 {
-//  cout<<local->prunedist.dist<<endl;
   const int dim = 3;
 
   SmiRecordId adr = elem.nodeid;
@@ -7839,7 +7837,7 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
         idtime idt(i,ts);
         entryarray.push_back(idt);
       }
-      stable_sort(entryarray.begin(),entryarray.end());
+      stable_sort(entryarray.begin(),entryarray.end());//sort by start time
 
 //      for(int i = 0;i < tbnode->EntryCount();i++){
       for(unsigned int j = 0;j < entryarray.size();j++){
@@ -7887,8 +7885,9 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
                   le.AssignURUP(mdist,ne);
 //                  if(CheckPrune(le) == false)
 //                      UpdatekNearestG(le);
-                  if(le.mind < prunedist.dist)
+//                  if(le.mind < prunedist.dist)
 //                    UpdatekNearest(le);
+                  if(le.mind < prunedist.dist)
                       UpdatekNearestG(le);
                   delete mdist;
                   delete ne;
