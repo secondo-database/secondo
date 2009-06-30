@@ -6815,16 +6815,26 @@ double& elemstart,double& curstart)
           nextupdatelist.push_back(elem);
           return;
       }else{// entry is to be replaced by data
-          hpelem* newhp = new hpelem(elem);
-          head->next = newhp;
-          newhp->next = cur->next;
+//          hpelem* newhp = new hpelem(elem);
+//          head->next = newhp;
+//          newhp->next = cur->next;
 
-          UpdateInfoInNL(newhp,i);
-          cur->next = NULL;
+//          UpdateInfoInNL(newhp,i);
+//          cur->next = NULL;
 
-          nextupdatelist.push_back(*cur);
-          cur = newhp; //new cur
-          return;
+//          nextupdatelist.push_back(*cur);
+
+//          delete cur;
+
+//          cur = newhp; //new cur
+
+            hpelem* temppointer = cur->next;
+            UpdateInfoInNL(&elem,i);
+            cur->next = NULL;
+            nextupdatelist.push_back(*cur);
+            *cur = elem;
+            cur->next = temppointer;
+            return;
       }
   }
 
@@ -6845,15 +6855,26 @@ double& elemstart,double& curstart)
               nextupdatelist.push_back(elem);
               return;//for next
           }else{ //entry is to be replaced by data
-                hpelem* newhp = new hpelem(elem);
-                head->next = newhp;
-                newhp->next = cur->next;
+//                hpelem* newhp = new hpelem(elem);
+//                head->next = newhp;
+//                newhp->next = cur->next;
 
-                UpdateInfoInNL(newhp,i);
+//                UpdateInfoInNL(newhp,i);
+//                cur->next = NULL;
+
+//                nextupdatelist.push_back(*cur);
+
+//                delete cur;
+
+//                cur = newhp; //new cur
+
+
+                hpelem* temppointer = cur->next;
+                UpdateInfoInNL(&elem,i);
                 cur->next = NULL;
-
                 nextupdatelist.push_back(*cur);
-                cur = newhp; //new cur
+                *cur = elem;
+                cur->next = temppointer;
                 return;
                }
       }else{ //needs to be interpolation
@@ -6890,16 +6911,28 @@ double& elemstart,double& curstart)
         nextupdatelist.push_back(elem);
         return;
       }else{ //entry is to be replaced by data
-          hpelem* newhp = new hpelem(elem);
-          head->next = newhp;
-          newhp->next = cur->next;
+//          hpelem* newhp = new hpelem(elem);
+//          head->next = newhp;
+//          newhp->next = cur->next;
 
-          UpdateInfoInNL(newhp,i);
-          cur->next = NULL;
+//          UpdateInfoInNL(newhp,i);
+//          cur->next = NULL;
 
-          nextupdatelist.push_back(*cur);
-          cur = newhp;  //new cur
-          return;
+//          nextupdatelist.push_back(*cur);
+
+//          delete cur;
+
+//          cur = newhp;  //new cur
+
+
+            hpelem* temppointer = cur->next;
+            UpdateInfoInNL(&elem,i);
+            cur->next = NULL;
+            nextupdatelist.push_back(*cur);
+            *cur = elem;
+            cur->next = temppointer;
+
+            return;
       }
   }
 
@@ -6918,15 +6951,26 @@ double& elemstart,double& curstart)
 #ifdef mydebug
         cout<<"replaced "<<endl;
 #endif
-        hpelem* newhp = new hpelem(elem);
-        head->next = newhp;
-        newhp->next = cur->next;
+        hpelem* temppointer = cur->next;
 
-        UpdateInfoInNL(newhp,i);
+//        hpelem* newhp = new hpelem(elem);
+//        head->next = newhp;
+//        newhp->next = cur->next;
+
+//        UpdateInfoInNL(newhp,i);
+//        cur->next = NULL;
+
+//        nextupdatelist.push_back(*cur);
+
+//        delete cur;
+
+//        cur = newhp; //new cur
+
+        UpdateInfoInNL(&elem,i);
         cur->next = NULL;
-
         nextupdatelist.push_back(*cur);
-        cur = newhp; //new cur
+        *cur = elem;
+        cur->next = temppointer;
         return;
     }
   }
@@ -6961,16 +7005,27 @@ double& elemstart,double& curstart)
       nextupdatelist.push_back(elem);
       return;
     }else{ //entry is to be replaced by data
-       hpelem* newhp = new hpelem(elem);
-       head->next = newhp;
-       newhp->next = cur->next;
 
-       UpdateInfoInNL(newhp,i);
-       cur->next = NULL;
+//       hpelem* newhp = new hpelem(elem);
+//       head->next = newhp;
+//       newhp->next = cur->next;
 
-       nextupdatelist.push_back(*cur);
-       cur = newhp; //new cur
-       return;
+//       UpdateInfoInNL(newhp,i);
+//       cur->next = NULL;
+
+//       nextupdatelist.push_back(*cur);
+
+//       delete cur;
+
+//       cur = newhp; //new cur
+
+        hpelem* temppointer = cur->next;
+        UpdateInfoInNL(&elem,i);
+        cur->next = NULL;
+        nextupdatelist.push_back(*cur);
+        *cur = elem;
+        cur->next = temppointer;
+        return;
      }
   }
   //one intersection point
@@ -7274,6 +7329,7 @@ vector<hpelem>& nextupdatelist,int i)
 #ifdef mydebug
             cout<<"equal "<<endl;
 #endif
+            //magic thing   double not equal to double, but almostequal,split
             elem.nodets = cur->nodets;
             elem.nodete = cur->nodete;
             Parabolas(elem,nextupdatelist,i,head,cur,mts,tts);
@@ -7679,10 +7735,13 @@ void TBKnearestLocalInfo::ReportResult()
       assert(top.tid != -1 && top.nodeid == -1);
       if(top.nodets != top.nodete)
         result.push_back(top);
+      delete head;
       head = cur;
       cur = cur->next;
-      delete head;
+      if(cur == NULL)
+        delete head;
     }
+
   }
   stable_sort(result.begin(),result.end(),HpelemCompare);
 }
@@ -7856,6 +7915,7 @@ struct idtime{
 };
 void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
 {
+
   const int dim = 3;
 
   SmiRecordId adr = elem.nodeid;
@@ -7911,8 +7971,11 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
 
                   double nodets = ne->timeInterval.start.ToDouble();
                   double nodete = ne->timeInterval.end.ToDouble();
-                  if(AlmostEqual(nodets,nodete))
-                        continue;
+                  if(AlmostEqual(nodets,nodete)){
+                      delete ne;
+                      delete nqe;
+                      continue;
+                  }
                   UReal* mdist = new UReal(true);
                   ne->Distance(*nqe,*mdist);
                   bool def = true;
@@ -7926,6 +7989,7 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
 //                      UpdatekNearestG(le);
 //                  if(le.mind < prunedist.dist)
 //                    UpdatekNearest(le);
+
                   if(le.mind < prunedist.dist)
                       UpdatekNearestG(le);
                   delete mdist;
@@ -7984,6 +8048,7 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
 
     }
   }
+  delete tbnode;
 }
 
 /*
@@ -8053,6 +8118,7 @@ int Greeceknearest(Word* args, Word& result, int message,
         localInfo->GreeceknnFun(mp,0,le);
         localInfo->ReportResult();
       }
+      delete root;
       return 0;
     }
     case REQUEST :

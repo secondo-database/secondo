@@ -223,7 +223,15 @@ public:
         head = new CoverNode<Type>(s,e);
         iscovered = false;
     }
-    ~CoverInterval(){delete head;}
+    ~CoverInterval(){
+      CoverNode<Type>* cur = head->next;
+      while(cur != NULL){
+        delete head;
+        head = cur;
+        cur = cur->next;
+      }
+      delete head;
+    }
     bool IsCovered()
     {
         CoverNode<Type>* cur = head->next;
@@ -271,9 +279,10 @@ void CoverInterval<Type>::insert(struct CoverNode<Type>* node)
     while(cur != NULL){
         if(cur->ts >= node->ts)
             cur->ts = node->ts;
-        if(cur->ts <= node->ts && node->te <= cur->te)
+        if(cur->ts <= node->ts && node->te <= cur->te){
+            delete node;
             break;
-
+        }
         if(cur->te < node->ts){
             if(cur->next == NULL){
                 cur->next = node;
@@ -285,10 +294,12 @@ void CoverInterval<Type>::insert(struct CoverNode<Type>* node)
         next = cur->next;
         if(next == NULL){
             cur->te = node->te;
+            delete node;
             break;
         }
         if(next->ts > node->te){
             cur->te = node->te;
+            delete node;
             break;
         }
         Type t1, t2;
@@ -307,12 +318,14 @@ void CoverInterval<Type>::insert(struct CoverNode<Type>* node)
             else
                 cur->te = t2;
             cur->next = NULL;
+            delete node;
             break;
         }
         if(next->te > node->te){
           cur->te = next->te;
           cur->next = next->next;
           delete next;
+          delete node;
           break;
         }
     }
