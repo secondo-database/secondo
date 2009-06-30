@@ -123,8 +123,46 @@ private boolean checkAndInstallViewers(Vector<ExtensionInfo> infos){
   return true; 
 }
 
-
-
+/** Installs extensions of the HoeseViewer **/
+private boolean checkAndInstallDisplayClasses(Vector<ExtensionInfo> infos){
+   Vector<HoeseInfo> hoeseinfos = new Vector<HoeseInfo>();
+   for(int i=0;i<infos.size();i++){
+      ExtensionInfo info = infos.get(i);
+      Vector<HoeseInfo> hinfos = info.getHoeseInfos();
+      for(int j=0;j<hinfos.size();j++){
+         HoeseInfo hinfo = hinfos.get(j);
+         boolean ok = false;
+         ZipFile f = null;
+         try{
+            f = new ZipFile(info.getFileName());
+            ok = hinfo.filesPresent(f);
+         } catch (Exception e){
+            e.printStackTrace();
+            return false;
+         } finally{
+            if(f!=null) {try{f.close();}catch(Exception e){}}
+         }
+         if(!ok){
+           return false;
+         }
+         hoeseinfos.add(hinfo);
+      }
+   }
+   if(!HoeseInfo.check(secondoDir.getAbsolutePath(), hoeseinfos)){
+     return false;
+   }
+   for( int i=0;i<infos.size();i++){
+      ExtensionInfo info = infos.get(i);
+      String zip = info.getFileName();
+      Vector<HoeseInfo> hinfos = info.getHoeseInfos();
+      for(int j=0;j<hinfos.size();j++){
+         if(!hinfos.get(j).install(secondoDir.getAbsolutePath(),zip)){
+            return false;
+         }
+      }
+   }
+   return true;
+}
 
 
 /** Installs a set of modules. **/
@@ -158,6 +196,7 @@ public boolean installExtensions(String[] extensionFiles){
      // process algebras
      checkAndInstallAlgebras(infos);
      checkAndInstallViewers(infos);
+     checkAndInstallDisplayClasses(infos);
 
 
   } catch(Exception e){

@@ -189,20 +189,28 @@ public class HoeseInfo extends JavaExtension{
 
   /** Checks whether the dependencies are fullfilled */
   static boolean checkDependencies(String secondoDir, Vector<HoeseInfo> infos){
-     TreeSet<String> names = new TreeSet<String>();
+     TreeSet<String> providedLibs = new TreeSet<String>();
      for(int i=0;i<infos.size();i++){
        HoeseInfo info = infos.get(i);
        if(!info.checkJavaVersion()){
          return false;
        }
+       for(int j=0;j<info.libDeps.size();j++){
+           StringBoolPair e = info.libDeps.get(j);
+           if(e.firstB){ // lib is provided
+             providedLibs.add(e.firstS);
+           }
+       }
+
      }
      String s = File.separator;
      String mainDir = secondoDir+s+"Javagui"+s;
      for(int i=0;i<infos.size();i++){
         HoeseInfo info = infos.get(i);
+        // check dependencies on libraries
         for(int j=0;j<info.libDeps.size();j++){
            StringBoolPair e = info.libDeps.get(j);
-           if(!e.firstB){ // dependency to a non provided lib
+           if(!e.firstB && !providedLibs.contains(e.firstS)){ // dependency to a non provided lib
               String fn = mainDir + "lib" + s + e.secondS.replaceAll("/",s) + s +  e.firstS;
               File f = new File(fn);
               if(f.exists()){
@@ -296,141 +304,109 @@ public class HoeseInfo extends JavaExtension{
   }
   
 
-  boolean modifyMakeFileInc(String secondoDir){
-     // extract the lib names to add to makefile.inc
-     Vector<StringBoolPair> libext = new Vector<StringBoolPair>();
-     for(int i=0;i<libDeps.size();i++){
-         StringBoolPair p = libDeps.get(i);
-         if(p.secondB){
-            libext.add(p);
-         }
-     }
-     if(libext.size()==0){
-        return true;
-     }
-
-
-     // appends libraries to makefile.inc
-     String s = File.separator;
-     File f = new File(secondoDir + s + "Javagui"+s+"makefile.inc");
-     boolean ok = true;
-     if(!f.exists()){
-        System.err.println("Javagui/makefile.inc not found, check your Secondo installation");
-        return false;
-     }
-     BufferedReader in = null;
-     PrintWriter out = null;
-     int pos = -1;
-     try{
-        in = new BufferedReader(new FileReader(f));
-        String content = "";
-        while(in.ready()){
-           String line = in.readLine(); 
-           if(!line.matches("\\s*JARS\\s*:=.*")){
-              content += line +"\n";
-           } else {
-              content += line +"\n";
-              pos = content.length();
-              for(int i=libext.size()-1;i>=0;i--){
-                 if(line.matches(".*"+libext.get(i).firstS+"\\s*")){
-                   System.out.println("Lib " + libext.get(i).firstS+"already included in makefile.inc");
-                   libext.remove(i);
-                 }
-              } 
-           }
-        }
-
-        try{in.close(); in=null;}catch(Exception e){}
-
-        if(libext.size()==0){
-            return true;
-        }
-        String block = "";
-        for(int i=0;i<libext.size();i++){
-           StringBoolPair p = libext.get(i);
-           String subdir = p.secondS.equals(".")?"":p.secondS;
-           block += "JARS := $(JARS):$(LIBPATH)/"+subdir+p.firstS+"\n";
-        }
-        if(pos<0){
-          content += block; 
-        } else {
-           String p1 = content.substring(0,pos);
-           String p2 = content.substring(pos,content.length());
-           content = p1+block+p2;
-        }
-        out = new PrintWriter(new FileOutputStream(f));
-        out.print(content);
-     }catch(Exception e){
-       e.printStackTrace();
-       ok = false;
-     }finally{
-       if(in!=null) try{in.close();}catch(Exception e){}
-       if(out!=null) try{out.close();}catch(Exception e){}
-     }
-     return ok;
-  }
-
   private boolean updateHoeseMake(File f){
     if(!f.exists()){
         System.err.println("File "+f.getAbsolutePath()+" not found. Check your Secondo installation");
         return false;
     }
     // check whether the file must be modyfied
-    TreeSet<String> subdirs = new TreeSet<String>();
+    TreeSet<String> subdirsAll = new TreeSet<String>();
+    TreeSet<String> subdirsClean = new TreeSet<String>();
     for(int i=0;i<files.size();i++){
        StringPair p = files.get(i);
        String loc = p.second.replaceAll("/.*","");
        if(!loc.equals(".") && loc.length()>0){
-          subdirs.add(loc);
+          subdirsAll.add(loc);
+          subdirsClean.add(loc);
        }
     }
-    if(subdirs.size()==0){ // no changes required
+    if(subdirsAll.size()==0){ // no changes required
        return true;
     }
     BufferedReader in = null;
     PrintWriter out = null;
-    int pos = -1;
+    int posAll = -1;
+    int posClean = -1;
     try{
       in = new BufferedReader(new FileReader(f));
       String content = "";
       while(in.ready()){
          String line = in.readLine();
-         if(!line.matches("all:.*")){
-           content += line + "\n";
-         } else {
-             content += line;
+         if(line.matches("all:.*")) {
+             content += line +"\n";
              while(in.ready() && ((line=in.readLine()).startsWith("\t"))){
-                 if(line.matches("\t\\s*make\\s+-C\\s+\\w+\\s*")){
+                 if(line.matches("\t\\s*make\\s+-C\\s+\\w+\\s+all\\s*")){
                    // extract subdir information
                    String g = line.replaceAll("\t\\s*make\\s+-C\\s+","");
                    g = g.replaceAll(" .*","");
-                   subdirs.remove(g); 
-                   System.out.println("found subdir "+ g);
+                   subdirsAll.remove(g); 
                  }
                  content += line + "\n";
              }
-             pos = content.length();
+             posAll = content.length();
+             content += line +"\n";
+         } else if(line.matches("clean:.*")){
+             content += line +"\n";
+             while(in.ready() && ((line=in.readLine()).startsWith("\t"))){
+                 if(line.matches("\t\\s*make\\s+-C\\s+\\w+\\s+clean\\s*")){
+                   // extract subdir information
+                   String g = line.replaceAll("\t\\s*make\\s+-C\\s+","");
+                   g = g.replaceAll(" .*","");
+                   subdirsClean.remove(g); 
+                 }
+                 content += line + "\n";
+             }
+             if(in.ready()){
+                posClean = content.length();
+                content += line +"\n";
+             } else {
+                content += line +"\n";
+                posClean = content.length();
+             }
+         } else {
+             content += line +"\n";
          }
       }
+
       try{in.close();in=null;}catch(Exception e){}
-      if(subdirs.size()==0){
+      if(subdirsAll.size()==0 && subdirsClean.size()==0){
          return true;
       }
-      String block = "";
-      Iterator<String> it = subdirs.iterator();
+      String blockAll = "";
+      Iterator<String> it = subdirsAll.iterator();
       while(it.hasNext()){
-        block += "\tmake -C " + it.next() +" all\n";
+        blockAll += "\tmake -C " + it.next() +" all\n";
       }
-      String p1 = content.substring(0,pos);
-      String p2 = content.substring(pos,content.length());
+      String blockClean = "";
+      it = subdirsClean.iterator();
+      while(it.hasNext()){
+        blockClean += "\tmake -C " + it.next() +" clean\n";
+      }
+
+      if(posAll > posClean){
+        System.out.println("invalid makefile found");
+        return false;
+      }
+
+      String p1 = content.substring(0,posAll);
+      String p2 = content.substring(posAll,posClean);
+      String p3 = content.substring(posClean, content.length());
       out = new PrintWriter(new FileOutputStream(f));
       out.print(p1);
-      out.print(block);
+      out.print(blockAll);
       out.print(p2);
+      out.print(blockClean);
+      out.print(p3);
     } catch (Exception e){
        e.printStackTrace();
        return false;
-    }   
+    } finally{
+       if(out!=null){
+          try{
+            out.close();
+          } catch(Exception e){}
+       }
+    }  
     return true;
 
   } 

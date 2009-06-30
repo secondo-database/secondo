@@ -11,6 +11,7 @@ public class ExtensionInfo{
   private String fileName = null;             // filename of the corresponding zip file
   AlgebraInfo algebraInfo = null;
   ViewerInfo viewerInfo = null;
+  Vector<HoeseInfo> hoeseInfos = new Vector<HoeseInfo>();
 
 
   /** Creates a new ExtensionInfo **/
@@ -76,7 +77,13 @@ public class ExtensionInfo{
             }
             isExtension = true;
        } else if(name.equals("HoeseExtension")){
-          System.err.println("HoeseViewer not supported yet");
+          HoeseInfo hoeseInfo = new HoeseInfo(n);
+          if(!hoeseInfo.isValid()){
+              System.out.println("Invalid HoeseViewer extension found");
+              return false;
+          } 
+          isExtension = true;
+          hoeseInfos.add(hoeseInfo);
        } else if(name.equals("Optimizer")){
 
        } else if(name.equals("Kernel")){
@@ -102,6 +109,11 @@ public class ExtensionInfo{
   /** Returns the ViewerInfo */
   public ViewerInfo getViewerInfo(){
     return viewerInfo;
+  }
+
+  /** Returns the collected HoseInfos **/
+  public Vector<HoeseInfo> getHoeseInfos(){
+    return hoeseInfos;
   }
 
 
