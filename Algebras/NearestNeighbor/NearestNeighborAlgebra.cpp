@@ -5447,7 +5447,7 @@ void Mqkfilter(MQKnearest* mqk,vector<TupleId>& datanode,BBox<2> query)
     }
     array1.clear();
     sort(array2.begin(),array2.end(),CmpEFE<double>);
-    double dist;
+    double dist = 0;
     double num = 0;
     for(unsigned int i = 0;i < array2.size();i++){
       CcInt* id = new CcInt(true,array2[i].nodeid);
@@ -5471,7 +5471,7 @@ void Mqkfilter(MQKnearest* mqk,vector<TupleId>& datanode,BBox<2> query)
   }
   //process leaf node
   sort(candidate.begin(),candidate.end(),CmpEFE<double>);
-  double dist;
+  double dist = 0;
   double num = 0;
 
   for(unsigned int i = 0;i < candidate.size();i++){
@@ -5566,7 +5566,7 @@ vector<Point>& ps,BBox<2> box) //ps--query objects, box -- query box
   }
   stable_sort(candidate.begin(),candidate.end(),CmpSLN);
   //set threshold distance value
-  double dist;
+  double dist = 0;
   double num = 0;
   for(unsigned int i = 0;i < candidate.size();i++){
     CcInt* id = new CcInt(true,candidate[i].nodeid);
@@ -6032,7 +6032,7 @@ int covleafnodeFun(Word* args, Word& result, int message,
    case REQUEST: {
       localInfo = (Covleafnode*)local.addr;
       R_TreeNode<2,TupleId>* node = NULL;
-      int nodeid;
+      int nodeid = 0;
       while(localInfo->covtid <= localInfo->cov->GetNoTuples()){
         Tuple* tuple = localInfo->cov->GetTuple(localInfo->covtid);
         assert(tuple != NULL);
@@ -6213,14 +6213,14 @@ struct hpelem{
   :tid(id1),mind(d1),maxd(d2),nodeid(id2){
     next = NULL;
   }
-  hpelem& operator=(const hpelem& le);
-  void AssignURUP(UReal* movdist,UPoint* dataup);
-  void MyTemporalFunction(double& t,Point& result);
-  void URealMin(double& start);
-  void URealMax(double& start);
-  void URealTranslate(double& start);
+  inline hpelem& operator=(const hpelem& le);
+  inline void AssignURUP(UReal* movdist,UPoint* dataup);
+  inline void MyTemporalFunction(double& t,Point& result);
+  inline void URealMin(double& start);
+  inline void URealMax(double& start);
+  inline void URealTranslate(double& start);
 };
-hpelem& hpelem::operator=(const hpelem& le)
+inline hpelem& hpelem::operator=(const hpelem& le)
 {
     tid = le.tid;
     nodeid = le.nodeid;
@@ -6234,7 +6234,7 @@ hpelem& hpelem::operator=(const hpelem& le)
     return *this;
 }
 
-void hpelem::AssignURUP(UReal* movdist,UPoint* dataup)
+inline void hpelem::AssignURUP(UReal* movdist,UPoint* dataup)
 {
   this->movdist.a = movdist->a;
   this->movdist.b = movdist->b;
@@ -6247,7 +6247,7 @@ void hpelem::AssignURUP(UReal* movdist,UPoint* dataup)
 The same function as ureal TemporalFunction
 
 */
-void hpelem::MyTemporalFunction(double& t,Point& result)
+inline void hpelem::MyTemporalFunction(double& t,Point& result)
 {
   if(t == this->nodets){
     result = this->dataup.p0;
@@ -6274,7 +6274,7 @@ void hpelem::MyTemporalFunction(double& t,Point& result)
 the same function as Min in UReal
 
 */
-void hpelem::URealMin(double& start)
+inline void hpelem::URealMin(double& start)
 {
     double a = this->movdist.a;
     double b = this->movdist.b;
@@ -6306,7 +6306,7 @@ the same function as Max in UReal
 
 */
 
-void hpelem::URealMax(double& start)
+inline void hpelem::URealMax(double& start)
 {
     double a = this->movdist.a;
     double b = this->movdist.b;
@@ -6336,7 +6336,7 @@ void hpelem::URealMax(double& start)
 translate the start time of parabolas
 
 */
-void hpelem::URealTranslate(double& start)
+inline void hpelem::URealTranslate(double& start)
 {
   double b,c;
   double ts = this->nodets - start;

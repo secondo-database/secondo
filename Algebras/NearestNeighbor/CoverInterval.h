@@ -31,7 +31,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 using namespace std;
 
-double myabs(const double d){
+inline double myabs(const double d){
    return  d<0?-d:d;
 }
 
@@ -39,11 +39,11 @@ double myabs(const double d){
 //   return myabs(d1-d2) < 0.000001;
 //}
 
-double mymax(const double d1, const double d2){
+inline double mymax(const double d1, const double d2){
    return d1<d2?d2:d1;
 }
 
-double mymin(const double d1, const double d2){
+inline double mymin(const double d1, const double d2){
    return d1>d2?d2:d1;
 }
 
@@ -65,12 +65,12 @@ class ICNode{
         right = 0;
       }
 
-     bool IsCovered(){
+     inline bool IsCovered(){
        return cover;
      }
 
      // inserts a new interval
-     ICNode* insert(const timeType& ts,
+     inline ICNode* insert(const timeType& ts,
                     const timeType& te){
          return insertrec(ts,te);
      }
@@ -182,11 +182,11 @@ class CIC{
 
    ~CIC(){ delete root; root = 0;}
 
-   void insert(const timeType& ts, const timeType& te){
+  inline void insert(const timeType& ts, const timeType& te){
      root = root->insert(ts,te);
    }
 
-   bool IsCovered(){
+   inline bool IsCovered(){
       return root->IsCovered();
    }
 
@@ -232,7 +232,7 @@ public:
       }
       delete head;
     }
-    bool IsCovered()
+    inline bool IsCovered()
     {
         CoverNode<Type>* cur = head->next;
         if(cur == NULL)
