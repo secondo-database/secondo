@@ -2079,6 +2079,49 @@ void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
 }
 
 /*
+3.15 Method Inside of class MPointExt
+
+Parameters:
+
+  r: region
+
+Return: an mbool
+
+*/
+
+MBool MPointExt::Inside( const Region& r ) const
+{
+	bool debugme=false;
+	MBool res(0);
+	if(IsDefined())
+	{
+		Intime<Point> start, end;
+		Initial(start); Final(end);
+		Interval<Instant> dtime(start.instant, end.instant, true, true);
+		
+		UPoint up(dtime,start.value.GetX(),start.value.GetY(),
+				start.value.GetX(),start.value.GetY());
+		MPoint mp(0);
+		mp.Add(up);
+		
+		
+		MRegion mr(mp, r);
+		mr.Inside( *(MPoint*)this, res);
+		if(debugme)
+		{
+			cout<< "mpoint = "; mp.Print(cout);
+			cout<< "\nmregion = "; mr.Print(cout);
+			cout<< "\nresult = "; res.Print(cout);
+			cout.flush();
+		}
+	}
+	else
+		res.SetDefined(false);
+
+	return res;
+} 
+
+/*
 4 Auxiliary Functions
 
 4.1 Aux. Function ~CheckURealDerivable~
@@ -2947,6 +2990,29 @@ ListExpr
 EverNearerThan_tm( ListExpr args )
 {
   return SimpleMaps<3,4>(mapsEverNearerThan, args);
+}
+
+/*
+9.1.20 Type mapping for ~inside~
+
+signatures:
+  mpoint X region -> mbool
+
+*/
+ListExpr InsideTypeMapMPR(ListExpr args){
+  string err = "mpoint x region expected";
+  int len = nl->ListLength(args);
+  if(len!=2){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+
+ if(nl->IsEqual(nl->First(args),"mpoint") &&
+     nl->IsEqual(nl->Second(args),"region")){
+      return nl->SymbolAtom("mbool");
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
 }
 
 /*
@@ -4923,6 +4989,21 @@ EverNearerThan_vm( Word* args, Word& result, int message,
   return (0);
 }
 
+int InsideVM( Word* args, Word& result, int message,
+                          Word& local, Supplier s ) {
+   result = qp->ResultStorage(s);
+   MBool* res = static_cast<MBool*>(result.addr);
+   MPointExt* arg1 = static_cast<MPointExt*>(args[0].addr);
+   Region* arg2 = static_cast<Region*>(args[1].addr);
+   if(!arg1->IsDefined() ||!arg2->IsDefined() ||
+     arg1->GetNoComponents() == 0){
+     res->Clear();
+     res->SetDefined(false);
+     return 0;
+   }
+   res->CopyFrom(&arg1->Inside(*arg2));
+   return 0;
+}
 
 /*
 9.4 Definition of operators
@@ -5296,6 +5377,14 @@ const string TemporalSpecConcatS2  =
     "<text>query train6 feed concatS2 [1000]   </text--->"
     ") )";
 
+const string insideSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>mpoint x region-> mbool </text---> "
+    "<text> _ inside _ </text--->"
+    "<text>the lifted inside predicate for mpoint X region</text--->"
+    "<text>query train7 inside thecenter</text--->"
+    ") )";
+
 struct EverNearerThanInfo : OperatorInfo {
 
   EverNearerThanInfo() : OperatorInfo()
@@ -5521,6 +5610,12 @@ Operator temporalconcatS2(
     Operator::SimpleSelect,
     ConcatSTypeMap);
 
+Operator inside( "inside",
+    insideSpec,
+    InsideVM,
+    Operator::SimpleSelect,
+    InsideTypeMapMPR);
+
 
 
 class TemporalExtAlgebra : public Algebra
@@ -5583,6 +5678,7 @@ class TemporalExtAlgebra : public Algebra
 
         AddOperator( EverNearerThanInfo(), EverNearerThan_vms,
                      EverNearerThan_sf, EverNearerThan_tm );
+        AddOperator(&inside);
 
     }
     ~TemporalExtAlgebra() {}

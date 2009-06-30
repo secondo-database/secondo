@@ -81,7 +81,7 @@ typedef Range<CcString> RString;
 This class is an extension of the class MPoint declared in the
 TemporalAlgebra.h . It is adding following methods:
 
-~MDirection~, ~Locations~, ~At~ and ~Passes~
+~MDirection~, ~Locations~, ~At~, ~Passes~ and Inside
 
 in order to implement the operations:
 
@@ -100,6 +100,9 @@ mapping(point) x C -> bool
 
 where
 C in {points, line}
+
+Inside:
+mpoint X region -> mbool
 
 for supporting the value mapping functions for a part of the signature
 belonging these operations.
@@ -123,6 +126,8 @@ public:
     bool Passes( Points* pts ) const;
 
     bool Passes( Line* ln ) const;
+    
+    MBool Inside( const Region& r ) const;
 };
 
 /*

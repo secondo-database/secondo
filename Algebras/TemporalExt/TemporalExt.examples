@@ -179,7 +179,7 @@ Operator : initial
 Number   : 1
 Signature: mstring -> istring
 Example  : query val(initial(train7upsights))
-Result   : "Flughafen Schönefeld"
+Result   : "Flughafen Schï¿½nefeld"
 
 Operator : inst
 Number   : 1
@@ -365,3 +365,10 @@ Number   : 1
 Signature: stream(mpoint) x int -> mpoint
 Example  : query train6 = (train6 feed concatS2[10])
 Result   : ( mbool ( ( ("2003-11-20-06:06" "2003-11-20-06:45:40" TRUE FALSE) TRUE)))
+
+Operator  : inside
+Number    : 1
+Signature : mpoint x region ->  mbool
+Example   : query Trains feed filter[sometimes(.Trip inside zoogarten)] count
+Result    : 80
+
