@@ -42,10 +42,6 @@ public class ViewerInfo extends JavaExtension{
       valid = readViewerInfo(n);
    }
 
-   public boolean isValid(){
-     return valid;
-   }
-
 
    /** Checks wether all files are present in the zip file **/
    public boolean filesPresent(ZipFile f){

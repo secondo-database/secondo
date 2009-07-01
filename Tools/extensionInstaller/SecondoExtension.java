@@ -25,6 +25,23 @@ public class SecondoExtension{
      return  true;
    }
 
+   public boolean isValid(){
+     return valid;
+   }
+
+   protected boolean readCopyright(Node n){
+      if(!n.hasChildNodes()){
+        return false;
+      }
+      String cr = n.getFirstChild().getNodeValue().trim();
+      if(cr.length()==0){
+        System.err.println("empty copyright file found");
+        return false;
+      }
+      copyright = cr;
+      return true;
+   }
+
 
   /** Extracts the version information from the xml file **/
   boolean readSecondoVersion(Node n1){

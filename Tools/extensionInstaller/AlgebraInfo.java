@@ -8,16 +8,11 @@ import java.util.zip.*;
 /** Class collecting information about 
   *  Algebra modules
   **/
-public class AlgebraInfo{
+public class AlgebraInfo extends SecondoExtension{
 
-   private boolean valid;                      // a valid Info ?
    private String algName = null;              // Name of the Algebra 
-   private int secondo_Major_Version = -1;     // version informtion
-   private int secondo_Minor_Version = 0;      // version information
-   private int secondo_SubMinor_Version = 0;   // version information
    private String specFile = null;             // name of the specfile included in the zip
    private String exampleFile = null;          // name of the example file included in the zip
-   private String copyright = null;            // name of the file containing the copyright notice
    private Vector<String> algebraDeps = new Vector<String>();  // needed algabras except Standard
    private Vector<String> libNames = new Vector<String>();     // Names of needed libraries, e.g. GSL
    private Vector<String> libFlags = new Vector<String>();     // lib names, e.g. gsl
@@ -27,12 +22,6 @@ public class AlgebraInfo{
    public AlgebraInfo(Node n){
       valid = readAlgebra(n);
    }
-
-  /** Check for validity **/
-  public boolean isValid(){
-    return valid;
-  }
-
 
 /**
  *Returns possible Algebra directory names for an algebra name.
@@ -217,7 +206,7 @@ private static Vector<String> getPossibleAlgebraDirNames(String algName){
              }
           } 
        } else if(name.equals("SecondoVersion")){
-         readVersion(n);
+         readSecondoVersion(n);
        } else if(name.equals("Libraries")){
          readLibraries(n);
        } else if(!name.equals("#text")){
@@ -228,35 +217,6 @@ private static Vector<String> getPossibleAlgebraDirNames(String algName){
 
   }
 
-  /** Extracts the version information from the xml file **/
-  boolean readVersion(Node n1){
-    NodeList nl = n1.getChildNodes();
-    for(int i=0;i<nl.getLength(); i++){
-       Node n = nl.item(i);
-       String name = n.getNodeName();
-       if(name.equals("Major")){
-          if(n.hasChildNodes()){
-             String  a = n.getFirstChild().getNodeValue().trim();
-             secondo_Major_Version=Integer.parseInt(a.trim());
-          } 
-       } else if(name.equals("Minor")){
-          if(n.hasChildNodes()){
-             String  a = n.getFirstChild().getNodeValue().trim();
-             secondo_Minor_Version=Integer.parseInt(a.trim());
-          } 
-       } else if(name.equals("SubMinor")){
-          if(n.hasChildNodes()){
-             String  a = n.getFirstChild().getNodeValue().trim();
-             secondo_SubMinor_Version=Integer.parseInt(a.trim());
-          } 
-       } else if(!name.equals("#text")){
-           System.err.println("Unknown version information found" + name);
-       }
-    }
-    return secondo_Major_Version>0 &&
-           secondo_Minor_Version>=0 &&
-           secondo_SubMinor_Version>=0;
-  }
 
   /** Extracts the needed algebras from the xml file. **/
   boolean readLibraries(Node n1){
