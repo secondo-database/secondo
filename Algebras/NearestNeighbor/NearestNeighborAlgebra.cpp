@@ -123,13 +123,15 @@ double difftimeb( struct timeb* t1, struct timeb* t2 )
 }
 
 
+struct timeb gt1;
+struct timeb gt2;
 
 /*
 The implementation of the algebra is embedded into
 a namespace ~near~ in order to avoid name conflicts with other modules.
 
 */
-//#define mydebug 1
+
 namespace near {
 
 const double DISTDELTA = 0.001;
@@ -6208,7 +6210,12 @@ struct hpelem{
   hpelem(const hpelem& le)
   :movdist(le.movdist),tid(le.tid),dataup(le.dataup),
    mind(le.mind),maxd(le.maxd),nodeid(le.nodeid),
-   nodets(le.nodets),nodete(le.nodete){next = le.next; assert(nodets<nodete);}
+   nodets(le.nodets),nodete(le.nodete)
+   {
+      next = le.next;
+//      printf("%.16f %.16f\n",nodets,nodete);
+      assert(nodets<=nodete);
+   }
   hpelem(TupleId id1,double d1,double d2,long id2)
   :tid(id1),mind(d1),maxd(d2),nodeid(id2){
     next = NULL;
@@ -6760,7 +6767,8 @@ void TBKnearestLocalInfo::Parabolas(hpelem& elem
 ,vector<hpelem>& nextupdatelist,int i,hpelem*& head,hpelem*& cur,
 double& elemstart,double& curstart)
 {
-
+//  printf("%.12f %.12f\n",elem.nodets,elem.nodete);
+//  printf("%.12f %.12f\n",cur->nodets,cur->nodete);
 //  double factor = 0.000000001;
   double ma,mb,mc; //data
   double ta,tb,tc; //entry in list
@@ -6815,18 +6823,6 @@ double& elemstart,double& curstart)
           nextupdatelist.push_back(elem);
           return;
       }else{// entry is to be replaced by data
-//          hpelem* newhp = new hpelem(elem);
-//          head->next = newhp;
-//          newhp->next = cur->next;
-
-//          UpdateInfoInNL(newhp,i);
-//          cur->next = NULL;
-
-//          nextupdatelist.push_back(*cur);
-
-//          delete cur;
-
-//          cur = newhp; //new cur
 
             hpelem* temppointer = cur->next;
             UpdateInfoInNL(&elem,i);
@@ -6855,19 +6851,6 @@ double& elemstart,double& curstart)
               nextupdatelist.push_back(elem);
               return;//for next
           }else{ //entry is to be replaced by data
-//                hpelem* newhp = new hpelem(elem);
-//                head->next = newhp;
-//                newhp->next = cur->next;
-
-//                UpdateInfoInNL(newhp,i);
-//                cur->next = NULL;
-
-//                nextupdatelist.push_back(*cur);
-
-//                delete cur;
-
-//                cur = newhp; //new cur
-
 
                 hpelem* temppointer = cur->next;
                 UpdateInfoInNL(&elem,i);
@@ -6911,19 +6894,6 @@ double& elemstart,double& curstart)
         nextupdatelist.push_back(elem);
         return;
       }else{ //entry is to be replaced by data
-//          hpelem* newhp = new hpelem(elem);
-//          head->next = newhp;
-//          newhp->next = cur->next;
-
-//          UpdateInfoInNL(newhp,i);
-//          cur->next = NULL;
-
-//          nextupdatelist.push_back(*cur);
-
-//          delete cur;
-
-//          cur = newhp;  //new cur
-
 
             hpelem* temppointer = cur->next;
             UpdateInfoInNL(&elem,i);
@@ -6937,34 +6907,12 @@ double& elemstart,double& curstart)
   }
 
   if(delta < 0) { //no intersects
-#ifdef mydebug
-    cout<<"delta < 0"<<endl;
-#endif
     if(mind_t <= mind_m){
-#ifdef mydebug
-        cout<<"update "<<endl;
-#endif
 
         nextupdatelist.push_back(elem);
         return;
     }else{ //entry is to be replaced by data
-#ifdef mydebug
-        cout<<"replaced "<<endl;
-#endif
         hpelem* temppointer = cur->next;
-
-//        hpelem* newhp = new hpelem(elem);
-//        head->next = newhp;
-//        newhp->next = cur->next;
-
-//        UpdateInfoInNL(newhp,i);
-//        cur->next = NULL;
-
-//        nextupdatelist.push_back(*cur);
-
-//        delete cur;
-
-//        cur = newhp; //new cur
 
         UpdateInfoInNL(&elem,i);
         cur->next = NULL;
@@ -7006,18 +6954,6 @@ double& elemstart,double& curstart)
       return;
     }else{ //entry is to be replaced by data
 
-//       hpelem* newhp = new hpelem(elem);
-//       head->next = newhp;
-//       newhp->next = cur->next;
-
-//       UpdateInfoInNL(newhp,i);
-//       cur->next = NULL;
-
-//       nextupdatelist.push_back(*cur);
-
-//       delete cur;
-
-//       cur = newhp; //new cur
 
         hpelem* temppointer = cur->next;
         UpdateInfoInNL(&elem,i);
@@ -7277,19 +7213,7 @@ vector<hpelem>& nextupdatelist,int i)
            UpdateInfoInNL(newhp,i);
            return;// no update list
        }
-#ifdef mydebug
-      cout<<"Update Nearest elem "<<elem.dataup->timeInterval<<" min "
-          <<elem.movdist->Min(def)<<" max "
-          <<elem.movdist->Max(def)<<" tid "<<elem.tid<<endl;
-#endif
       while(cur != NULL){ //big program
-
-#ifdef mydebug
-//        cout<<"while cur "<<cur->dataup->timeInterval<<" min "
-//            <<cur->movdist->Min(def)<<" max "
-//            <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
-#endif
-
 
         if(cur->nodete <= elem.nodets){
           if(cur->next == NULL){//the last element
@@ -7323,15 +7247,39 @@ vector<hpelem>& nextupdatelist,int i)
         double tts = cur->nodets;
         double tte = cur->nodete;
 
-
         if(AlmostEqual(mts ,tts) && AlmostEqual(mte ,tte)){
 //        if(fabs(mts -tts) < factor && fabs(mte -tte) < factor){
-#ifdef mydebug
-            cout<<"equal "<<endl;
-#endif
-            //magic thing   double not equal to double, but almostequal,split
+            mts = mts > tts ? mts:tts;
+            mte = mte < tte ? mte:tte;
+            if(mts > mte){
+                head = cur;
+                cur = cur->next;
+                continue;
+            }
+            elem.nodets = cur->nodets = mts;
+            elem.nodete = cur->nodete = mte;
+
+            //magic thing   double not equal to double, but almost equal,split
+/*if(elem.nodets < cur->nodets){
+            cur->nodets = elem.nodets;
+            tts = mts;
+          }else{
+            elem.nodets = cur->nodets;
+            mts = tts;
+          }
+          if(elem.nodete > cur->nodete){
+            cur->nodete = elem.nodete;
+            tte = mte;
+          }else{
+            elem.nodete = cur->nodete;
+            mte = tte;
+          }*/
+
             elem.nodets = cur->nodets;
             elem.nodete = cur->nodete;
+
+            mts = tts;
+
             Parabolas(elem,nextupdatelist,i,head,cur,mts,tts);
             return;
         }else{// needs to be interpolation
@@ -7429,22 +7377,12 @@ vector<hpelem>& nextupdatelist,int i)
             Parabolas(elem,nextupdatelist,i,head,cur,ts,ts);
             return;
           }else{ //M is longer
-#ifdef mydebug
-            cout<<"elem is longer"<<endl;
-#endif
 
 //            if(AlmostEqual(elem.nodete ,cur->nodete)){
             if(fabs(elem.nodete - cur->nodete) < factor){
-#ifdef mydebug
-              cout<<"elem equal to cur in end time"<<endl;
-#endif
               Parabolas(elem,nextupdatelist,i,head,cur,ts,ts);
               return;
             }else{
-#ifdef mydebug
-              cout<<"next loop"<<endl;
-#endif
-
               hpelem* newhp = new hpelem(elem);
 
               newhp->nodets = te;
@@ -7465,32 +7403,12 @@ vector<hpelem>& nextupdatelist,int i)
               elem.URealMax(ts);
 
               Parabolas(elem,nextupdatelist,i,head,cur,ts,ts);
-#ifdef mydebug
-              if(head->tid != -1){
-                cout<<"after parabolas head "<<head->dataup->timeInterval
-                <<" min "<<head->movdist->Min(def)<<" max "
-                <<head->movdist->Max(def)<<" tid "<<head->tid<<endl;
-              }
-
-              cout<<"after parabolas cur "<<cur->dataup->timeInterval<<" min "
-              <<cur->movdist->Min(def)<<" max "
-              <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
-#endif
               elem = *newhp;
 
               delete newhp;
 
               head = cur;
               cur = cur->next;
-#ifdef mydebug
-              cout<<"newelem "<<elem.dataup->timeInterval<<" min "
-              <<elem.movdist->Min(def)<<" max "
-              <<elem.movdist->Max(def)<<" tid "<<elem.tid<<endl;
-
-              cout<<"new cur "<<cur->dataup->timeInterval<<" min "
-              <<cur->movdist->Min(def)<<" max "
-              <<cur->movdist->Max(def)<<" tid "<<cur->tid<<endl;
-#endif
               continue;
             }
           }
@@ -7621,6 +7539,8 @@ void TBKnearestLocalInfo::InitializePrunedist()
         prunedist.ts = bigelem->nodets;
         prunedist.te = bigelem->nodete;
       }
+//    ftime(&gt2);
+//    cout<<difftimeb(&gt2,&gt1)<<endl;
   }
 }
 
@@ -7798,8 +7718,6 @@ void TBKnearestLocalInfo::ChinaknnFun(MPoint* mp)
                     if(tt1 > t2) //mq's time interval is larger than entry
                       break;
                     if(!(t1 >= tt2 || t2 <= tt1)){
-//                      UPoint* ne = new UPoint(true);
-//                      UPoint* nqe = new UPoint(true);
                       Point p0(true,0,0);
                       Point p1(true,0,0);
                       UPoint* ne = new UPoint(up->timeInterval,p0,p1);
@@ -7810,6 +7728,15 @@ void TBKnearestLocalInfo::ChinaknnFun(MPoint* mp)
                       CreateUPoint_ne(up,ne,data);
                       CreateUPoint_nqe(up,nqe,data);
 
+                      double nodets = ne->timeInterval.start.ToDouble();
+                      double nodete = ne->timeInterval.end.ToDouble();
+
+                      if(AlmostEqual(nodets,nodete)){
+                        delete ne;
+                        delete nqe;
+                        continue;
+                      }
+
                       UReal* mdist = new UReal(true);
                       ne->Distance(*nqe,*mdist);
                       bool def = true;
@@ -7817,9 +7744,9 @@ void TBKnearestLocalInfo::ChinaknnFun(MPoint* mp)
                       double maxd = mdist->Max(def);
 
                       hpelem le(entry->getInfo().getTupleId(),mind,maxd,-1);
-                      le.nodets = mdist->timeInterval.start.ToDouble();
-                      le.nodete = mdist->timeInterval.end.ToDouble();
-                      //AssignURUP(&le,mdist,ne);
+                      le.nodets = nodets;
+                      le.nodete = nodete;
+
                       le.AssignURUP(mdist,ne);
 
                       if(le.mind < prunedist.dist)
@@ -7915,7 +7842,6 @@ struct idtime{
 };
 void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
 {
-
   const int dim = 3;
 
   SmiRecordId adr = elem.nodeid;
@@ -7958,8 +7884,6 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
               if(tt1 > t2) //mq's time interval is larger than entry
                   break;
               if(!(t1 >= tt2 || t2 <= tt1)){
-//                  UPoint* ne = new UPoint(true);
-//                  UPoint* nqe = new UPoint(true);
                     Point p0(true,0,0);
                     Point p1(true,0,0);
                     UPoint* ne = new UPoint(up->timeInterval,p0,p1);
@@ -8115,6 +8039,7 @@ int Greeceknearest(Word* args, Word& result, int message,
         hpelem le(-1,mindist,maxdist,adr);
         le.nodets = t1;
         le.nodete = t2;
+//        ftime(&gt1);
         localInfo->GreeceknnFun(mp,0,le);
         localInfo->ReportResult();
       }

@@ -261,7 +261,7 @@ void CoverInterval<Type>::Print()
 template<class Type>
 void CoverInterval<Type>::insert(struct CoverNode<Type>* node)
 {
-    assert(node->ts < node->te);
+    assert(node->ts <= node->te);
     if(node->ts < head->ts)
         node->ts = head->ts;
     if(node->te > head->te)
