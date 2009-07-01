@@ -1086,8 +1086,7 @@ Retracts all stored meta data on relation ~DCrel~ (given in down-cased spelling)
 retractAllStoredInfo(DCrel) :-
   dm(dbhandling,['\nTry: retractAllStoredInfo(',DCrel,').']),
   databaseName(DB),
-  retractSels(Rel),
-  retractPETs(Rel),
+  retractPredStats(DCrel),
   retractall(storedTupleSize(DB, DCrel, _, _, _)),
   retractall(storedCard(DB, DCrel, _)),
   retractall(storedOrderings(DB, DCrel, _)),
@@ -3351,68 +3350,54 @@ can be used on the user-level.
     'Retract all metadata for a given database (which may not be opened).')).
 
 % Some auxiliary predicates to retract selectivity and PET information facts
-getRelAttrName(Rel, Arg) :-
-  Arg = Rel:_.
 
-getRelAttrName(Rel, Term) :-
-  functor(Term, _, 1),
-  arg(1, Term, Arg1),
-  getRelAttrName(Rel, Arg1).
+% relUsedByTerm(+Rel, +Term)
+% --- succeeds, iff relation Rel is used within Term.
 
-getRelAttrName(Rel, Term) :-
-  functor(Term, _, 2),
-  arg(1, Term, Arg1),
-  getRelAttrName(Rel, Arg1).
+relUsedByTerm(Rel, Rel:_) :- !.
+relUsedByTerm(Rel, Rel2:_) :- Rel \= Rel2, !, fail.
+relUsedByTerm(_,[]) :- !, fail.
+relUsedByTerm(Rel,[X|_]) :- relUsedByTerm(Rel,X), !.
+relUsedByTerm(Rel,[_|Y]) :- relUsedByTerm(Rel,Y), !.
+relUsedByTerm(Rel, Term) :-
+  compound(Term),
+  not(is_list(Term)),
+  Term =.. [_|Args],
+  relUsedByTerm(Rel, Args), !.
 
-getRelAttrName(Rel, Term) :-
-  functor(Term, _, 2),
-  arg(2, Term, Arg2),
-  getRelAttrName(Rel, Arg2).
-
-retractSels(Rel) :-
+% retract all selectivities, bbox-selectivities, avg-bbox-sizes, predicate
+% signatures for a given relation ~DCRel~ in the currect database
+retractPredStats(DCRel) :-
   databaseName(DB),
-  storedSel(DB, Term, _),
-  arg(1, Term, Arg1),
-  getRelAttrName(Rel, Arg1),
-  retract(storedSel(DB, Term, _)),
-  retractSels(Rel).
+  retractPredStat(DB,DCRel).
 
-retractSels(Rel) :-
-  databaseName(DB),
-  storedSel(DB, Term, _),
-  arg(2, Term, Arg2),
-  getRelAttrName(Rel, Arg2),
-  retract(storedSel(DB, Term, _)),
-  retractSels(Rel).
+retractPredStat(DB,Rel) :-
+  (   storedSel(DB, Term, _)                  % selectivities
+    ; storedBBoxSel(DB, Term, _)              % bbox-selectivities
+    ; storedBBoxSize(DB, Term, _)             % avg-bbox-sizes
+    ; storedBBoxSize(DB, Term, _)             % avg-bbox-sizes
+    ; storedPET(DB, Term, _, _)               % PETs
+    ; storedPredicateSignature(DB, Term, _)   % predicate signatures
+  ),
+  relUsedByTerm(Rel, Term),
+  retractall(storedSel(DB, Term, _)),         % selectivities
+  retractall(storedBBoxSel(DB, Term, _)),     % bbox-selectivities
+  retractall(storedBBoxSize(DB, Term, _)),    % avg-bbox-sizes
+  retractall(storedPET(DB, Term, _, _)),      % PETs
+  retractall(storedPredicateSignature(DB, Term, _)), % predicate signatures
+  !,
+  retractPredStat(DB,Rel).
 
-retractSels(_).
+retractPredStat(_,_).
 
-retractPETs(Rel) :-
-  databaseName(DB),
-  storedPET(DB, Term, _, _),
-  arg(1, Term, Arg1),
-  getRelAttrName(Rel, Arg1),
-  retract(storedPET(DB, Term, _, _)),
-  retractPETs(Rel).
-
-retractPETs(Rel) :-
-  databaseName(DB),
-  storedPET(DB, Term, _, _),
-  arg(2, Term, Arg2),
-  getRelAttrName(Rel, Arg2),
-  retract(storedPET(DB, Term, _, _)),
-  retractPETs(Rel).
-
-retractPETs(_).
-
+%
 retractStoredInformation(DCrel) :-
   dm(dbhandling,['\nTry: retractStoredInformation(',DCrel,').']),
   databaseName(DB),
   getSampleSname(DCrel, SampleS),
   getSampleJname(DCrel, SampleJ),
   getSmallName(DCrel,Small),
-  retractSels(DCrel),
-  retractPETs(DCrel),
+  retractPredStats(DCrel),
   retractall(storedOrderings(DB, DCrel, _)),
   retractall(storedCard(DB, DCrel, _)),
   retractall(storedCard(DB, SampleS, _)),
