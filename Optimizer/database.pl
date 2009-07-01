@@ -3369,7 +3369,7 @@ relUsedByTerm(Rel, Term) :-
 % signatures for a given relation ~DCRel~ in the currect database
 retractPredStats(DCRel) :-
   databaseName(DB),
-  retractPredStat(DB,DCRel).
+  findall(_,retractPredStat(DB,DCRel),_).
 
 retractPredStat(DB,Rel) :-
   (   storedSel(DB, Term, _)                  % selectivities
@@ -3384,11 +3384,7 @@ retractPredStat(DB,Rel) :-
   retractall(storedBBoxSel(DB, Term, _)),     % bbox-selectivities
   retractall(storedBBoxSize(DB, Term, _)),    % avg-bbox-sizes
   retractall(storedPET(DB, Term, _, _)),      % PETs
-  retractall(storedPredicateSignature(DB, Term, _)), % predicate signatures
-  !,
-  retractPredStat(DB,Rel).
-
-retractPredStat(_,_).
+  retractall(storedPredicateSignature(DB, Term, _)). % predicate signatures
 
 %
 retractStoredInformation(DCrel) :-
