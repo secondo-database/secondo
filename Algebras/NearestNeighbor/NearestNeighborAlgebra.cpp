@@ -7867,8 +7867,16 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
             (R_TreeLeafEntry<dim,TupleId>&)(*tbnode)[i];
         double t1((double)e.box.MinD(2));
         double t2((double)e.box.MaxD(2));
-        t1 = t1/864000;
-        t2 = t2/864000;
+
+	// The following lines were used in published experiments, that 
+	// were done on a modified R-tree that scaled up the R-tree temporal 
+	// dimension by the same factor. They are commented out for use with 
+	// the standard R-tree.
+
+        // t1 = t1/864000;
+        // t2 = t2/864000;
+
+
         if(!(t1 >= endTime || t2 <= startTime)){
             //for each unit in mp
             const UPoint* up;
@@ -7931,8 +7939,16 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
           (R_TreeInternalEntry<dim>&)(*tbnode)[i];
           double t1((double)e.box.MinD(2));
           double t2((double)e.box.MaxD(2));
-          t1 = t1/864000;
-          t2 = t2/864000;
+
+	// The following lines were used in published experiments, that 
+	// were done on a modified R-tree that scaled up the R-tree temporal 
+	// dimension by the same factor. They are commented out for use with 
+	// the standard R-tree.
+
+       // t1 = t1/864000;
+       // t2 = t2/864000;
+
+
           if(!(t1 >= endTime || t2 <= startTime)){
               BBox<2> entrybox = makexyBox(e.box);//entry box
               double mindist =  mpbox.Distance(entrybox);
@@ -8030,8 +8046,16 @@ int Greeceknearest(Word* args, Word& result, int message,
 
       double t1(root->BoundingBox().MinD(2));
       double t2(root->BoundingBox().MaxD(2));
-      t1 = t1/864000;
-      t2 = t2/864000;
+
+	// The following lines were used in published experiments, that 
+	// were done on a modified R-tree that scaled up the R-tree temporal 
+	// dimension by the same factor. They are commented out for use with 
+	// the standard R-tree.
+
+      // t1 = t1/864000;
+      // t2 = t2/864000;
+
+
       if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
         BBox<2> entrybox = makexyBox(root->BoundingBox());
         double mindist = localInfo->mptraj->Distance(entrybox);
