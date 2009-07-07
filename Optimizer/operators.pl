@@ -776,7 +776,7 @@ opSignature(bboxold, temporal, [T],T,[]) :-
 opSignature(at, temporal, [T1,T2],T1,[]) :-
   memberchk((T1,T2),[(mpoint,point),(movingregion,region),(mint,int),
                      (mreal,real),(mbool,bool),(mstring,string)]),!.
-opSignature(distance, temporal, [mpoint,point],real,[]).
+opSignature(distance, temporal, [mpoint,point],mreal,[]).
 opSignature(simplify, temporal, [mpoint,real],mpoint,[]).
 opSignature(simplify, temporal, [mpoint,real,duration],mpoint,[]).
 opSignature(simplify, temporal, [mreal,real],mreal,[]).
