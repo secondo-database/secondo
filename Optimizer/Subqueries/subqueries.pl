@@ -213,8 +213,8 @@ clearSubqueryHandling :-
   clearSecondRel.
   
 % clearSelectivityQuery :- retractall(selectivityQuery(_)).
-clearPlanRelVar :- retractall(planRelVar(_, _)), retractall(lastPlanRel(_)), retractall(subqueryPredRel(_, _, _)).
-clearSecondRel :- retractall(secondRel(_)), retractall(firstStream(_)), retractall(secondStream(_)), retractall(currentFirst(_)), retractall(currentSecond(_)).
+clearPlanRelVar :- clear(streamRel), clear(streamName), retractall(planRelVar(_, _)), retractall(lastPlanRel(_)), retractall(subqueryPredRel(_, _, _)), retractall(sampleSize(_)), retractall(isJoinPred(_)).
+clearSecondRel :- retractall(secondRel(_)), retractall(firstStream(_)), retractall(secondStream(_)), retractall(streamRel(_, _)).
 
 
 /* 
@@ -1341,46 +1341,45 @@ lookupRelNoDblCheck(Rel as Var, rel(RelDC, Var)) :-
   ( variable(Var, _)
     ;  assert(variable(Var, rel(RelDC, Var)))
   ).
-  
-% unterscheiden zwischen join und selection prädikaten
-% einmal RelsAfter = [_,_]
-% sonst [_], 
 
 :- dynamic(currentAttrs/1).
 :- dynamic(currentFirst/1).
 :- dynamic(currentSecond/1).
 :- dynamic(firstStream/1).
 :- dynamic(isJoinPred/1).
-:- dynamic(lastPlanRel/1).
-:- dynamic(planRelVar/2).
-:- dynamic(secondRel/1).
-:- dynamic(secondStream/1).
+%:- dynamic(lastPlanRel/1).
+%:- dynamic(planRelVar/2).
+%:- dynamic(secondRel/1).
+%:- dynamic(secondStream/1).
 :- dynamic(selectivityQuery/1).
 :- dynamic(selectivityRels/1).
-:- dynamic(subqueryPredRel/3).
+%:- dynamic(subqueryPredRel/3).
+:- dynamic(sampleSize/1).
+:- dynamic(maxSampleCard/1).
+:- dynamic(maxSelCard/1).
 
 
 subquerySelectivity(Pred, [Rel]) :-
 %  subqueryRels(Pred, [Rel]),
-  retractall(currentFirst(_)),
-  assert(currentFirst(Rel)),
-  subquerySelectivity(pr(Pred, Rel)),
-  retractall(currentFirst(_)).
+%  retractall(streamRel(_)),
+%  assert(streamRel(Rel)),
+  subquerySelectivity(pr(Pred, Rel)).
+%  retractall(streamRel(_)).
 
 subquerySelectivity(Pred, [Rel1, Rel2]) :-
 %  subqueryRels(Pred, [Rel1, Rel2]),
-  retractall(firstStream(_)),
-  assert(firstStream(txx1)),  
-  retractall(currentFirst(_)),
-  assert(currentFirst(Rel1)),
-  retractall(currentSecond(_)),
-  assert(currentSecond(Rel2)),
-  subquerySelectivity(pr(Pred, Rel1, Rel2)),
-  retractall(currentFirst(_)),
-  retractall(currentSecond(_)),
-  retractall(firstStream(_)).
+%  retractall(firstStream(_)),
+%  assert(firstStream(txx1)),  
+%  retractall(streamRel(_)),
+%  assert(streamRel(Rel1)),
+%  retractall(streamRel(_)),
+%  assert(streamRel(Rel2)),
+  subquerySelectivity(pr(Pred, Rel1, Rel2)).
+%  retractall(streamRel(_)),
+%  retractall(streamRel(_)),
+%  retractall(firstStream(_)).
   
-subqueryRels(Pred, [Rel]) :-
+/* subqueryRels(Pred, [Rel]) :-
   assert(subqueryPredRel(Pred, 1, Rel)),
   transformPred(Pred, txx1, 1, Pred1),
   assert(subqueryPredRel(Pred1, 1, Rel)),
@@ -1395,7 +1394,7 @@ subqueryRels(Pred, [Rel1, Rel2]) :-
   assert(subqueryPredRel(Pred1, 1, Rel1)),
   assert(subqueryPredRel(Pred1, 2, Rel2)),
   assert(subqueryPredRel(Pred2, 1, Rel1)),
-  assert(subqueryPredRel(Pred2, 2, Rel2)).
+  assert(subqueryPredRel(Pred2, 2, Rel2)). */
   
 lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
 %  length(RelsAfter, 2),
@@ -1411,7 +1410,8 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   assert(currentAttrs(QueryAttrs)),
   lookupSubquery(Query, Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2]),  
-  Pred2 =.. [not, Attr2, in(Query2)],
+  Query3 = subquery(Query2, RelsAfter),
+  Pred2 =.. [not, Attr2, in(Query3)],
   correlationRels(Query2, Rels),
   dm(subqueryDebug, ['\nRels: ', Rels]),
   findall( Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L1), !,
@@ -1440,7 +1440,8 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   assert(currentAttrs(QueryAttrs)),
   lookupSubquery(Query, Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2]),  
-  Pred2 =.. [Op, Attr2, Query2],
+  Query3 = subquery(Query2, RelsAfter),
+  Pred2 =.. [Op, Attr2, Query3],
   correlationRels(Query2, Rels),
   dm(subqueryDebug, ['\nRels: ', Rels]),
   findall( Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L1), !, 
@@ -1468,7 +1469,8 @@ lookupSubqueryPred(not(Pred), not(Pred2), RelsBefore, RelsAfter) :-
 					 '\nQuery: ', Query]),    
   lookupSubquery(Query, Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2]),
-  Pred2 =.. [Op, Query2],
+  Query3 = subquery(Query2, RelsAfter),
+  Pred2 =.. [Op, Query3],
   correlationRels(Query2, Rels),
   append(Rels, RelsBefore, RelsAfter),
   dm(subqueryDebug, ['\nPred2: ', not(Pred2)]),
@@ -1482,7 +1484,8 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
 					 '\nQuery: ', Query]),    
   lookupSubquery(Query, Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2]),
-  Pred2 =.. [Op, Query2],
+  Query3 = subquery(Query2, RelsAfter),
+  Pred2 =.. [Op, Query3],
   correlationRels(Query2, Rels),
   append(Rels, RelsBefore, RelsAfter),
   dm(subqueryDebug, ['\nPred2: ', Pred2]),
@@ -1524,8 +1527,35 @@ isSubqueryPred1(Pred) :-
   isQuantifier(Quantifier),
   Subquery =.. [from, _, _].
   
+isSubqueryPred1(Pred) :- 
+  compound(Pred),
+  Pred =.. [Op, _, Subquery],
+  isSubqueryOp(Op),
+  isSubquery(Subquery).
+  
+isSubqueryPred1(Pred) :- 
+  compound(Pred),
+  Pred =.. [not, _, in(Subquery)],
+  isSubquery(Subquery).
+  
+isSubqueryPred1(Pred) :- 
+  compound(Pred),
+  Pred =.. [Op, Subquery],
+  isSubqueryOp(Op),
+  isSubquery(Subquery).  
+  
+isSubqueryPred1(Pred) :-
+  compound(Pred),
+  Pred =.. [Op, _, QuantifiedPred],
+  QuantifiedPred =.. [Quantifier, Subquery],
+  isComparisonOp(Op),
+  isQuantifier(Quantifier),
+  isSubquery(Subquery).
+  
 isSubqeryPred1(exists(Subquery)) :-
-  Subquery =.. [from, _, _].
+  isSubquery(Subquery).  
+  
+isSubquery(subquery(_, _)).
 
 correlationRels(Query, OuterRels) :-
   removeCorrelatedPreds(Query, _, Preds),
@@ -1605,46 +1635,60 @@ addCorrelatedPred(count(project(Stream, Attrs)), count(project(filter(Stream, P)
 addCorrelatedPred(count(Plan), count(filter(Plan, P)), pr(P, _, _)).
 addCorrelatedPred(Plan, filter(Plan, P), pr(P, _, _)).
 
+isNameOf(Param, Rel) :-
+  stack(streamRel, SR),
+  stack(streamName, SN),  
+  length(SR, N),
+  length(SN, N),
+  peak(streamName, Param),
+  peak(streamRel, Rel).
+  
+isNameOf(txx1, Rel) :-
+  peak(streamName, txx1),
+  peak(streamRel, 2, Rel).
+  
+isNameOf(Param, Rel) :-
+  Param \= txx1,
+  peak(streamName, Param),
+  peak(streamRel, Rel).  
+  
+isNameOf(Param, Rel) :-
+  stack(streamRel, SR),
+  stack(streamName, SN),  
+  length(SR, N),
+  length(SN, N1),
+  N1 < N,
+  peak(streamName, Param),
+  peak(streamRel, 2, Rel).  
+  
+isNameOf(Param, Rel) :-
+  peak(streamName, 2, Param),
+  peak(streamRel, 2, Rel).
+
 transformCorrelatedPreds(_, _, [], []).
 
-/* transformCorrelatedPreds(Rels, _, [pr(P, Rel1, Rel2)], _) :-
-  write('\nRels: '), write(Rels), nl,
-  write('R1 ==> '), write(Rel1), nl,
-  write('R2 ==> '), write(Rel2), nl,
-  currentFirst(A), 
-  write('currentFirst: '), write(A),nl,
-  currentSecond(B), 
-  write('currentSecond: '), write(B), nl,
-  fail. */
+% Rels = InnerRels of Subquery    
 
-% Rels = InnerRels of Subquery   
-transformCorrelatedPreds(Rels, Param, [pr(P, Rel1, Rel2)], [Pred2]) :- 
-  ( (member(Rel1, Rels), Arg is 2) 
-	  ; (member(Rel2, Rels), Arg is 1) ),
-%   write('Arg: '), write(Arg), nl,
-   transformPred(pr(P, Rel1, Rel2), Param, Arg, Pred2).   
-
-transformCorrelatedPreds(_, Param, [pr(P, Rel1, Rel2)], [Pred2]) :- 
-  firstStream(Param),
-  currentFirst(Rel1),
-  transformPred(pr(P, Rel1, Rel2), Param, 1, Pred2).
-  
-transformCorrelatedPreds(_, Param, [pr(P, Rel1, Rel2)], [Pred3]) :- 
-  not(firstStream(Param)),
-  currentFirst(Rel2),
+transformCorrelatedPreds(Rels, Param, [pr(P, Rel1, Rel2)], [Pred3]) :- 
+  not(member(Rel1, Rels)),
+  not(member(Rel2, Rels)),
+  isNameOf(Param, Rel1),
+  isNameOf(Param, Rel2),
   transformPred(pr(P, Rel1, Rel2), Param, 1, Pred2),
-  firstStream(Param1),
-  transformPred(Pred2, Param1, 2, Pred3).
-  
-transformCorrelatedPreds(_, Param, [pr(P, Rel1, Rel2)], [Pred3]) :- 
-  firstStream(Param1),
-  transformPred(pr(P, Rel1, Rel2), Param1, 1, Pred2),
   transformPred(Pred2, Param, 2, Pred3).
   
-transformCorrelatedPreds(_, Param, [pr(P, Rel1, Rel2)], [Pred3]) :- 
-  not(firstStream(Param)),
-  transformPred(pr(P, Rel1, Rel2), Param, 1, Pred2),
-  transformPred(Pred2, Param, 2, Pred3).    
+transformCorrelatedPreds(Rels, Param, [pr(P, Rel1, Rel2)], [Pred2]) :- 
+  not(member(Rel1, Rels)),
+  isNameOf(Param, Rel1),
+  transformPred(pr(P, Rel1, Rel2), Param, 1, Pred2).    
+  
+transformCorrelatedPreds(Rels, Param, [pr(P, Rel1, Rel2)], [Pred2]) :- 
+  not(member(Rel2, Rels)),
+  isNameOf(Param, Rel2),
+  transformPred(pr(P, Rel1, Rel2), Param, 2, Pred2).  
+  
+transformCorrelatedPreds(_, _, [pr(P, Rel1, Rel2)], [pr(P, Rel1, Rel2)]).
+  
 
 transformCorrelatedPreds(Rels, Param, [pr(P, Rel1, Rel2)], [_]) :- 
   write('Rels: '), write(Rels), nl,
@@ -1660,27 +1704,49 @@ transformCorrelatedPreds(Rels, Param, [Pred | Rest], [Pred2 | Rest2]) :-
   transformCorrelatedPreds(Rels, Param, [Pred], [Pred2]),
   transformCorrelatedPreds(Rels, Param, Rest, Rest2).
   
-transformAttributeExpr(attr(Var:Attr, Arg, Case), Param, 1, attribute(Param, attrname(attr(Var:Attr, Arg, Case))), Rels) :-
-  currentFirst(rel(Rel, Var)),
+transformAttributeExpr(attr(Var:Attr, Arg, Case), Param, _, attribute(Param, attrname(attr(Var:Attr, Arg, Case))), Rels) :-
+  peak(streamRel, rel(Rel, Var)),
+  isNameOf(Param, rel(Rel, Var)),  
   not(member(rel(Rel, Var), Rels)),
-  isAttributeOf(Attr, Rel).
+%  peak(streamName, Param),
+  findAttribute(Attr, rel(Rel, Var)).
   
-transformAttributeExpr(attr(Var:Attr, Arg, Case), Param, 2, attribute(Param, attrname(attr(Var:Attr, Arg, Case))), Rels) :-
-  currentSecond(rel(Rel, Var)),
+transformAttributeExpr(attr(Var:Attr, Arg, Case), Param, _, attribute(Param, attrname(attr(Var:Attr, Arg, Case))), Rels) :-
+  peak(streamRel, 2, rel(Rel, Var)),
+  isNameOf(Param, rel(Rel, Var)),
   not(member(rel(Rel, Var), Rels)),
-  isAttributeOf(Attr, Rel). 
+%  peak(streamName, 2, Param),
+  findAttribute(Attr, rel(Rel, Var)). 
 
-transformAttributeExpr(attr(Attr, Arg, Case), Param, 1, attribute(Param, attrname(attr(Attr, Arg, Case))), Rels) :-
-  currentFirst(rel(Rel, Var)),
+transformAttributeExpr(attr(Attr, Arg, Case), Param, _, attribute(Param, attrname(attr(Attr, Arg, Case))), Rels) :-
+  peak(streamRel, rel(Rel, Var)),
+  isNameOf(Param, rel(Rel, Var)),  
   not(member(rel(Rel, Var), Rels)),
-  isAttributeOf(Attr, Rel).
+%  peak(streamName, Param),
+  findAttribute(Attr, rel(Rel, Var)).
 
-transformAttributeExpr(attr(Attr, Arg, Case), Param, 2, attribute(Param, attrname(attr(Attr, Arg, Case))), Rels) :-
-  currentSecond(rel(Rel, Var)),
+transformAttributeExpr(attr(Attr, Arg, Case), Param, _, attribute(Param, attrname(attr(Attr, Arg, Case))), Rels) :-
+  peak(streamRel, 2, rel(Rel, Var)),
+  isNameOf(Param, rel(Rel, Var)),
   not(member(rel(Rel, Var), Rels)),
-  isAttributeOf(Attr, Rel).  
+%  peak(streamName, 2, Param),
+  findAttribute(Attr, rel(Rel, Var)).  
   
-transformAttributeExpr(attribute(Param, attrname(attr(Attr, Arg, Case))), _, Arg,
+% transformAttributeExpr(attr(Attr, Arg, Case), Param, _, attr(Attr, Arg, Case), Rels) :-
+  % peak(streamRel, 2, rel(Rel, Var)),
+  % not(member(rel(Rel, Var), Rels)),
+  % peak(streamName, 2, Param),
+  % findAttribute(Attr, rel(Rel, Var)).
+  
+% transformAttributeExpr(attr(Attr, Arg, Case), Param, _, attr(Attr, Arg, Case), Rels) :-
+  % peak(streamRel, rel(Rel, Var)),
+  % not(member(rel(Rel, Var), Rels)),
+  % peak(streamName, Param),
+  % findAttribute(Attr, rel(Rel, Var)).  
+  
+% transformAttributeExpr(attr(Attr, Arg, Case), Param, Arg, attribute(Param, attrname(attr(Attr, Arg, Case))), _).
+  
+transformAttributeExpr(attribute(Param, attrname(attr(Attr, Arg, Case))), _, _,
                       attribute(Param, attrname(attr(Attr, Arg, Case))), _) :- !.  
   
 transformAttributeExpr([], _, _, [], _).
@@ -1697,6 +1763,12 @@ transformAttributeExpr(Pred, Param, Arg, Pred2, Rels) :-
 
 transformAttributeExpr(Pred, _, _, Pred, _).  
 
+findAttribute(Attr, rel(Rel, *)) :-
+  isAttributeOf(Attr, Rel).
+  
+findAttribute(Attr, rel(Rel, Var)) :-
+  isAttributeOf(Attr, Rel as Var).
+
 subqueryTransformPred(Pred, T, Arg, Pred3) :-
   Pred =.. [not, Attr, InExpr],
   InExpr =.. [in, Query],
@@ -1710,16 +1782,20 @@ subqueryTransformPred(Pred, T, Arg, Pred3) :-
 subqueryTransformPred(Pred, T, Arg, Pred2) :-
   Pred =.. [Op, Attr, Query],
   isSubqueryOp(Op),
-  Query =.. [from, Select, Where],
+  extractQuery(Query, Query1),
+  Query =.. [subquery, _, OuterRels],
+  Query1 =.. [from, Select, Where],
   Where =.. [where, Rels, Preds],
 %  write('Expr: '), write(Select), nl,
   transformAttributeExpr(Select, T, Arg, Select2, Rels),
+%  subquery_expr_to_plan(Select, T, Select2),
 %  nl, write('Expr2: '), write(Select2), nl,
-  transformAttributeExpr(Attr, T, Arg, Attr2, Rels),
+  transformAttributeExpr(Attr, T, Arg, Attr2, []),
+%   subquery_expr_to_plan(Attr, T, Attr2),
 %  write('Attr2: '), write(Attr2), nl,
-  removeCorrelatedPreds(Query, _, Preds2),
+  removeCorrelatedPreds(Query1, _, CorrelatedPreds),
 %  removeCorrelatedPreds(Query, _, CorrelatedPreds),
-%  transformCorrelatedPreds(Rels, txx1, CorrelatedPreds, Preds2),
+  transformCorrelatedPreds(Rels, txx1, CorrelatedPreds, Preds2),
   dm(subqueryDebug, ['\nsubqueryTransformPred\n\tCorrelatedPreds: ', CorrelatedPreds,
                      '\n\tPreds2: ', Preds2]),
   dm(subqueryDebug, ['\nPreds: ', Preds]),
@@ -1729,7 +1805,8 @@ subqueryTransformPred(Pred, T, Arg, Pred2) :-
   dm(subqueryDebug, ['\nPredList: ', PredList]),
   Where2 =.. [where, Rels, PredList],
   Query2 =.. [from, Select2, Where2],
-  Pred2 =.. [Op, Attr2, Query2]. 
+  Pred2 =.. [Op, Attr2, subquery(Query2, OuterRels)], 
+  clearQuery(Query).
   
 subqueryTransformPred(attribute(Param, attrname(attr(Attr, Arg, Case))), _, Arg,
                       attribute(Param, attrname(attr(Attr, Arg, Case)))) :- !.
@@ -1790,15 +1867,138 @@ sampleSQ([], []).
 
 sampleSQ(rel(Rel, Var), rel(Rel2, Var)) :-
   not(sampleS(_, rel(Rel, Var))),
+  not(sampleJ(_, rel(Rel, Var))),
   sampleS(rel(Rel, Var), rel(Rel2, Var)).
   
 sampleSQ([ Rel | Rest ], [ Rel2 | Rest2 ]) :-
   sampleSQ(Rel, Rel2),
   sampleSQ(Rest, Rest2).
+  
+sampleSQ(Rel, Rel).
 
-maxSelCard(250000).
-maxSampleCard(500).
+:- assert(maxSelCard(250000)).
+:- assert(maxSampleCard(500)).
 
+%:- dynamic(streamName/2).
+%:- dynamic(streamRel/2).
+:- dynamic(currentLevel/1).
+
+:- assert(currentLevel(0)).
+
+ascendLevel :-
+  currentLevel(L),
+  L1 is L - 1,
+  retract(currentLevel(_)),
+  assert(currentLevel(L1)).
+  
+descendLevel :-
+  currentLevel(L),
+  L1 is L + 1,
+  retract(currentLevel(_)),
+  assert(currentLevel(L1)).
+
+streamName(Var) :-
+  push(streamName, Var).
+
+% streamName(Var) :-
+  % not(streamName(_, 1)),
+  % assert(streamName(Var, 1)).
+  
+% streamName(Var) :-
+  % not(streamName(_, 2)),
+  % assert(streamName(Var, 2)).
+  
+% streamName(Var) :-
+  % concat_atom(['Detected more than two Streams.'],'',ErrMsg),  
+  % throw(error_SQL(subqueries_streamName(Var):malformedExpression#ErrMsg)).
+  
+clearStreamName :-
+  pop(streamName, _).
+  
+clearStreamName :-
+  concat_atom(['Pop empty', ' stack streamName'], ErrMsg),
+  throw(error_SQL(subqueries_streamName:malformedExpression#ErrMsg)).
+  
+clearStreamName(Var) :-
+  streamName(Var, _),
+  retract(streamName(Var, _)).
+  
+clearStreamName(_).
+  
+clearStreamNames :-  
+  retractall(streamName(_, _)).
+  
+streamRel(Rel) :-
+  push(streamRel, Rel).
+  
+% streamRel(Rel) :-
+  % not(streamRel(_, 1)),
+  % assert(streamRel(Rel, 1)).
+  
+% streamRel(Rel) :-
+  % not(streamRel(_, 2)),
+  % assert(streamRel(Rel, 2)).
+  
+% streamRel(Rel) :-
+  % concat_atom(['Detected more than two Streams.'],'',ErrMsg),  
+  % throw(error_SQL(subqueries_streamRel(Rel):malformedExpression#ErrMsg)).  
+  
+clearStreamRel :-
+  pop(streamRel, _).
+  
+clearStreamRel.
+
+clearStreamRel(Rel) :-
+  peak(streamRel, Rel),
+  !,
+  pop(streamRel, Rel).
+  
+clearStreamRel(_).
+  
+clearStreamRel(Rel1, Rel2) :-
+  peak(streamRel, Rel2),
+  peak(streamRel, 2, Rel1),
+  !,
+  pop(streamRel, Rel2), 
+  pop(streamRel, Rel1).
+  
+clearStreamRel(_, _).
+  
+transformQuery(_, _, Query, Query) :-
+  not(optimizerOption(subqueries)).
+  
+transformQuery(_, Pred, Query, Query2) :-
+  assert(selectivityQuery(Pred)),
+%  streamRel(Rel),
+  transformPlan(Query, Query2).
+  
+transformQuery(_, _, _, Query, _, Query) :-
+  not(optimizerOption(subqueries)).
+  
+transformQuery(_, _, _, Query, JoinSize, Query2) :-
+  maxSampleCard(C),
+  retractall(maxSampleCard(_)),  
+  assert(maxSampleCard(min(JoinSize, C))),
+%  assert(selectivityQuery(Pred)),
+%  clearStreamNames,
+%  streamName(txx1),
+%  streamRel(Rel1),
+%  streamRel(Rel2),
+  transformPlan(Query, Query2),
+  write_canonical(Query2).
+  
+clearSelectivityQuery(_, Pred) :-
+  !,
+%  clearStreamRel(Rel),
+  retractall(selectivityQuery(Pred)).
+  
+clearSelectivityQuery(_, _, Pred) :-
+  !,
+%  clearStreamRel(Rel1, Rel2),
+%  clearStreamName,
+  retractall(selectivityQuery(Pred)).
+  
+  
 selectivityRel :-
   selectivityRels(N),
   retractall(selectivityRels(_)),
@@ -1813,6 +2013,13 @@ transformPlan(Plan, Plan) :-
   not(selectivityQuery(_)).
   
 transformPlan(Plan, Plan2) :-
+  sampleSize(C),
+  maxSampleCard(C1),
+  C < C1,
+  transformPlan1(Plan, Plan2, C),
+  retractall(sampleSize(_)).
+  
+transformPlan(Plan, Plan2) :-
   retractall(selectivityRels(_)),
   transformPlan1(Plan, Plan2, C),
   selectivityRels(N),
@@ -1820,17 +2027,25 @@ transformPlan(Plan, Plan2) :-
   maxSampleCard(SampleSize),
   A is 1 / N,
   B is Max ** A,
-  C is min(SampleSize, floor(B)).
+  C is min(SampleSize, floor(B)),
+  retractall(sampleSize(_)),
+  assert(sampleSize(C)).
   
 transformPlan1([], [], _).
 
+transformPlan1(pr(P, R1, R2), pr(P, R1, R2), _).
+transformPlan1(pr(P, R1), pr(P, R1), _).
+
 transformPlan1(feed(Rel), head(feed(Rel2), C), C) :-
-  selectivityRel,
-  sampleSQ(Rel, Rel2).
+  sampleSQ(Rel, Rel2),
+  selectivityRel.
   
 transformPlan1(feedproject(Rel, Attrs), head(feedproject(Rel2, Attrs), C), C) :-
-  selectivityRel,
-  sampleSQ(Rel, Rel2).  
+  sampleSQ(Rel, Rel2),
+  selectivityRel.  
+  
+transformPlan1(rel(Rel, Var), rel(Rel, Var), _) :-
+  selectivityRel.  
   
 transformPlan1([ Plan | Rest ], [Plan2 | Rest2], C) :-
   transformPlan1(Plan, Plan2, C),
@@ -1845,35 +2060,37 @@ transformPlan1(Plan, Plan2, C) :-
   
 transformPlan1(Plan, Plan, _). 
 
-subqueryPredRel(Pred) :-
-  subqueryPredRel(Pred, 2, Rel2),
-  subqueryPredRel(Pred, 1, Rel1),
-  retractall(currentFirst(_)),
-  retractall(currendSecond(_)),
-  assert(currentFirst(Rel1)),
-  assert(currentSecond(Rel2)).
+% subqueryPredRel(Pred) :-
+  % subqueryPredRel(Pred, 2, Rel2),
+  % subqueryPredRel(Pred, 1, Rel1),
+% %  retractall(streamRel(_, _)),
+  % retractall(currendSecond(_)).
+% %  assert(streamRel(Rel1, 1)),
+% %  assert(streamRel(Rel2, 2)).
   
-subqueryPredRel(Pred) :-
-  subqueryPredRel(Pred, 1, Rel1),
-  retractall(currentFirst(_)),
-  retractall(currendSecond(_)),
-  assert(currentFirst(Rel1)).
+% subqueryPredRel(Pred) :-
+  % subqueryPredRel(Pred, 1, Rel1),
+% %  retractall(streamRel(_, _)),
+  % retractall(currendSecond(_)).
+% %  assert(streamRel(Rel1, 1)).
   
 subqueryPredRel(_).
 
 joinRel([], _).
 
 joinRel(feed(Rel), 1) :-
-  assert(currentFirst(Rel)).
+%  retract(streamRel(_)),
+  assert(streamRel(Rel, 1)).
   
 joinRel(feed(Rel), 2) :-
-  assert(currentSecond(Rel)).
+  assert(streamRel(Rel, 2)).
   
 joinRel(feedproject(Rel, _), 1) :-
-  assert(currentFirst(Rel)).
+%  retractall(streamRel(_)),
+  assert(streamRel(Rel, 1)).
   
 joinRel(feedproject(Rel, _), 2) :-
-  assert(currentSecond(Rel)).  
+  assert(streamRel(Rel, 2)).  
   
 joinRel([ Stream | Rest ], Arg) :-
   joinRel(Stream, Arg),
@@ -1885,8 +2102,12 @@ joinRel(Stream, Arg) :-
   Stream =.. [_ | Args],
   joinRel(Args, Arg).
   
+joinRel(_ ,_).
+  
 % joinRel(Stream, _) :-
 %  nl, write('Stream: '), write(Stream), nl.
+
+joinRels(_, _).
 
 joinRels(Arg1, Arg2) :-
   joinRel(Arg1, 1),
@@ -1928,7 +2149,9 @@ subquery_to_plan(Query, Plan3, T) :-
   Query1 =.. [from, Select1, Where1],
   transformAttributeExpr(Select1, T, 2, Select2, []),
   Query2 =..[from, Select2, Where1],
+  descendLevel,
   queryToPlan(Query2, Plan, _), !, 
+  ascendLevel,
   dm(subqueryDebug, ['\nPlan: ', Plan]),
   transformCorrelatedPreds(Rels, T, Preds, Preds2),  
   addCorrelatedPreds(Plan, Plan2, Preds2),  
@@ -1938,9 +2161,34 @@ subquery_to_plan(Query, Plan3, T) :-
   
 subquery_to_plan(Query, Plan2, _) :-
   ground(Query),
-  queryToPlan(Query, Plan, _),
+  descendLevel,
+  queryToPlan(Query, Plan, _), !,
+  ascendLevel,
   transformPlan(Plan, Plan2),
   dm(subqueryDebug, ['\nPlan2: ', Plan2]).
+  
+subquery_to_plan(Query, Plan3, T1, T2) :-
+  ground(Query),
+  Query =.. [from, _, Where],
+  Where =.. [where, Rels, _],
+  removeCorrelatedPreds(Query, Query1, Preds), !,
+  ground(Query1),
+  dm(subqueryDebug, ['\nQuery1: ', Query1,
+                     '\nCorrelatedPreds: ', Preds]),
+  Query1 =.. [from, Select1, Where1],
+  transformAttributeExpr(Select1, T1, 2, Select2, []),
+  transformAttributeExpr(Select2, T2, 1, Select3, []),
+  Query2 =..[from, Select3, Where1],
+  descendLevel,
+  queryToPlan(Query2, Plan, _), !, 
+  ascendLevel,
+  dm(subqueryDebug, ['\nPlan: ', Plan]),
+  transformCorrelatedPreds(Rels, T1, Preds, Preds2),  
+  transformCorrelatedPreds(Rels, T2, Preds2, Preds3),
+  addCorrelatedPreds(Plan, Plan2, Preds3),  
+  dm(subqueryDebug, ['\nPlan2: ', Plan2]),
+  transformPlan(Plan2, Plan3),
+  dm(subqueryDebug, ['\nPlan3: ', Plan3]).    
 
 subquery_to_atom(Query, QueryAtom) :-
   ground(Query),
@@ -1951,15 +2199,22 @@ subquery_to_atom(Query, QueryAtom) :-
 subquery_expr_to_plan(Expr, _, Expr) :-
   atomic(Expr).
   
-subquery_expr_to_plan(attr(A, 2, Case), T, attribute(T, attrname(attr(A, 2, Case)))).
-/* subquery_expr_to_plan(attr(A, 1, Case), _, attribute(T, attrname(attr(A, 1, Case)))) :-
-  selectivityQuery(_),
-  planRelVar(_, T). */
+subquery_expr_to_plan(attr(A, Arg, Case), _, attribute(T, attrname(attr(A, Arg, Case)))) :-
+  peak(streamRel, rel(Rel, _)),
+  isAttributeOf(A, Rel),
+  peak(streamName, T).
+
   
-subquery_expr_to_plan(attr(A, 1, Case), _, attribute(T, attrname(attr(A, 1, Case)))) :-
-  firstStream(T).
+subquery_expr_to_plan(attr(A, Arg, Case), _, attribute(T, attrname(attr(A, Arg, Case)))) :-
+  peak(streamRel, 2, rel(Rel, _)),
+  isAttributeOf(A, Rel),
+  peak(streamName, 2, T).
   
-subquery_expr_to_plan(attr(A, 1, Case), T, attribute(T, attrname(attr(A, 1, Case)))).
+subquery_expr_to_plan(attr(A, Arg, Case), _, attribute(T, attrname(attr(A, Arg, Case)))) :-
+  peak(streamRel, 2, rel(Rel, _)),
+  isAttributeOf(A, Rel),
+  not(peak(streamName, 2, _)),
+  peak(streamName, T).  
 
 subquery_expr_to_plan(Expr, Param, Expr2) :-
   transformAttributeExpr(Expr, Param, 1, Expr1, []),
@@ -1969,60 +2224,73 @@ subquery_expr_to_plan(A, B, C) :-
   concat_atom(['Not Implemented'], Msg),
   throw(error_Internal(subqueries_Expr(A, B, C):notImplemented#Msg)).
   
+extractQuery(subquery(Query, [Rel]), Query) :-
+  !,
+  streamRel(Rel).
+  
+extractQuery(subquery(Query, [Rel1, Rel2]), Query) :-
+  !,
+  streamRel(Rel1),
+  streamRel(Rel2).
+  
+clearQuery(subquery(_, [Rel])) :-
+  !,
+  clearStreamRel(Rel).
+  
+clearQuery(subquery(_, [Rel1, Rel2])) :-
+  !,
+  clearStreamRel(Rel1, Rel2).
+  
 subquery_plan_to_atom(in(Attr, ValueList), Result) :-
   in2or(Attr, ValueList, Pred),
   plan_to_atom(Pred, Result).
-  
-/* subquery_plan_to_atom(feed(rel(Rel, Var)), _) :-
-  retractall(lastPlanRel(_)),
-  assert(lastPlanRel(rel(Rel, Var))),
-  nl, nl, write('lastPlanRel: '), write(Rel), nl, nl,  
-  fail. 
-  
-subquery_plan_to_atom(fun([param(Var, tuple)], _), _) :-
-  retractall(planRelVar(_, Var)),
-  lastPlanRel(rel(Rel, _)),
-  assert(planRelVar(Rel, Var)),
-  nl, nl, write('planRelVar: '), write(Rel), write(','), write(Var), nl, nl,
-  fail. */
   
 subquery_plan_to_atom(Pred, Result) :-
   ground(Pred),
   Pred =.. [not, Attr, InExpr],
   InExpr =.. [in, Query],
   Pred2 =.. [in, Attr, Query],
-  Query =.. [from | _],
+  extractQuery(Query, Query1),
+  Query1 =.. [from | _],
   dm(subqueryDebug, ['\n\n\n\n', 
 					 '\nsubquery_plan_to_atom\n\n\t']),
   dc(subqueryDebug, write_canonical(Pred2)),  
   dm(subqueryDebug, ['\nAttr: ', Attr,
-					 '\nQuery: ', Query, '\n\n\n\n']),  
-  newTempRel(T),		  
+					 '\nQuery: ', Query1, '\n\n\n\n']),  
+  newTempRel(T),		
+  streamName(T),  
 %  subquery_to_plan(Query, consume(project(StreamPlan, QueryAttr)), T),
-  subquery_to_plan(Query, QueryPlan, T),
+  subquery_to_plan(Query1, QueryPlan, T),
   extractStream(QueryPlan, StreamPlan, QueryAttr),
   dm(subqueryDebug, ['\nStreamPlan: ', StreamPlan]),
   subquery_expr_to_plan(Attr, T, Attr2),  
   ResultPlan =.. [in, Attr2, collect_set(projecttransformstream(StreamPlan, QueryAttr))],
-  plan_to_atom(fun([param(T, tuple)], not(ResultPlan)), Result). 
+  plan_to_atom(fun([param(T, tuple)], not(ResultPlan)), Result),
+  clearStreamName,
+  clearQuery(Query).
   
 subquery_plan_to_atom(Pred, Result) :-
   ground(Pred),
   Pred =.. [in, Attr, Query],
-  Query =.. [from | _],
+  extractQuery(Query, Query1),
+  Query1 =.. [from | _],
   dm(subqueryDebug, ['\n\n\n\n', 
 					 '\nsubquery_plan_to_atom\n\n\t']),
   dc(subqueryDebug, write_canonical(Pred)),  
   dm(subqueryDebug, ['\nAttr: ', Attr,
 					 '\nQuery: ', Query, '\n\n\n\n']),  
-  newTempRel(T),					 
-  subquery_to_plan(Query, QueryPlan, T),
+  newTempRel(T),	
+  streamName(T),
+%  assert(firstStream(T)),  
+  subquery_to_plan(Query1, QueryPlan, T),
   % consume(project(StreamPlan, QueryAttr))  
   extractStream(QueryPlan, StreamPlan, QueryAttr),  
   dm(subqueryDebug, ['\nStreamPlan: ', StreamPlan]),
   subquery_expr_to_plan(Attr, T, Attr2),
   ResultPlan =.. [in, Attr2, collect_set(projecttransformstream(StreamPlan, QueryAttr))],
-  plan_to_atom(fun([param(T, tuple)], ResultPlan), Result). 
+  plan_to_atom(fun([param(T, tuple)], ResultPlan), Result),
+  clearStreamName,
+  clearQuery(Query).
   
 subquery_plan_to_atom(Pred, Result) :-
   ground(Pred),
@@ -2031,33 +2299,40 @@ subquery_plan_to_atom(Pred, Result) :-
   isJoinPred(Pred),
   dm(subqueryDebug, ['\nisJoinPred!\n']),
   Pred =.. [Op, Attr, Query],
+  extractQuery(Query, Query1),
 %  write('Op: '), write(Op), nl,
   isSubqueryOp(Op),
 %  write('SubqueryOp'), nl,
-  Query =.. [from | _],
+  Query1 =.. [from | _],
   dm(subqueryDebug, ['\n',  
 					 '\nisJoinPred\n\n\t']),
   dc(subqueryDebug, write_canonical(Pred)),  
   dm(subqueryDebug, ['\nOp: ', Op, 
 					 '\nAttr: ', Attr,
-					 '\nQuery: ', Query]),  
+					 '\nQuery: ', Query1]),  
   newTempRel(T1),
-  assert(firstStream(T1)),
+  streamName(T1),
+%  assert(firstStream(T1)),
   newTempRel(T2),  
-  subquery_to_plan(Query, QueryPlan, T2),
+  streamName(T2),
+  subquery_to_plan(Query1, QueryPlan, T1, T2),
   transformAttributeExpr(Attr, T1, 1, Attr3, []),
 %  nl, nl, write('Attr3: '), write(Attr3), nl,
   transformAttributeExpr(Attr3, T2, 2, Attr4, []),
 %  nl, nl, write('Attr3: '), write(Attr4), nl,  
   ResultPlan =.. [Op, Attr4, QueryPlan],
   dm(subqueryDebug, ['\nQueryPlan: ', QueryPlan]),
-  plan_to_atom(fun([param(T1, tuple), param(T2, tuple2)], ResultPlan), Result).
+  plan_to_atom(fun([param(T1, tuple), param(T2, tuple2)], ResultPlan), Result),
+  clearStreamName,
+  clearStreamName,
+  clearQuery(Query).
  
 subquery_plan_to_atom(Pred, Result) :-
   ground(Pred),
   Pred =.. [Op, Attr, Query],
   isSubqueryOp(Op),
-  Query =.. [from | _],
+  extractQuery(Query, Query1),
+  Query1 =.. [from | _],
   dm(subqueryDebug, ['\n', 
 					 '=================', 
 					 '=================', 
@@ -2067,15 +2342,19 @@ subquery_plan_to_atom(Pred, Result) :-
   dc(subqueryDebug, write_canonical(Pred)),  
   dm(subqueryDebug, ['\nOp: ', Op, 
 					 '\nAttr: ', Attr,
-					 '\nQuery: ', Query]),  
+					 '\nQuery: ', Query1]),  
   newTempRel(T),	
+  streamName(T),
 /*   write(Pred), nl,
   subqueryPredRel(Pred),
   write('Success'), nl, */
-  subquery_to_plan(Query, QueryPlan, T),
+  subquery_to_plan(Query1, QueryPlan, T),
   subquery_expr_to_plan(Attr, T, Attr2),
+  dm(subqueryDebug, ['\nAttr2: ', Attr2]),
   ResultPlan =.. [Op, Attr2, QueryPlan],
-  plan_to_atom(fun([param(T, tuple)], ResultPlan), Result).
+  plan_to_atom(fun([param(T, tuple)], ResultPlan), Result),
+  clearStreamName,
+  clearQuery(Query).
   
 subquery_plan_to_atom(AttrExpr, Result) :-
   ground(AttrExpr),
@@ -2090,13 +2369,15 @@ subquery_plan_to_atom(AttrExpr, Result) :-
 subquery_plan_to_atom(Expr, Result) :-
   ground(Expr),
   Expr =.. [exists, Query],  
-  Query =.. [from, _, Where],
+  extractQuery(Query, Query1),
+  Query1 =.. [from, _, Where],
   Where =.. [where | _],
-  removeCorrelatedPreds(Query, Query2, Preds), !,
+  removeCorrelatedPreds(Query1, Query2, Preds), !,
   ground(Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2,
                      '\nCorrelatedPreds: ', Preds]),
-  newTempRel(T),					 
+  newTempRel(T),				
+  streamName(T),  
 %  queryToPlan(Query2, Plan, _),  
   subquery_to_plan(Query2, Plan, T),
   dm(subqueryDebug, ['\nPlan: ', Plan]),  
@@ -2105,18 +2386,22 @@ subquery_plan_to_atom(Expr, Result) :-
   addCorrelatedPreds(Plan, consume(Query3), Preds2),
   dm(subqueryDebug, ['\nsubquery_plan_to_atom_Query2: ', Query3]),
   plan_to_atom(fun([param(T, tuple)], =(count(head(Query3, 1)), 1)), Result),
-  dm(subqueryDebug, ['\nsubquery_plan_to_atom_QueryAtom: ', Result]). 
+  dm(subqueryDebug, ['\nsubquery_plan_to_atom_QueryAtom: ', Result]),
+  clearStreamName,
+  clearQuery(Query).
  
 subquery_plan_to_atom(not(Expr), Result) :-
   ground(Expr),
   Expr =.. [exists, Query],  
-  Query =.. [from, _, Where],
+  extractQuery(Query, Query1),
+  Query1 =.. [from, _, Where],
   Where =.. [where | _],
-  removeCorrelatedPreds(Query, Query2, Preds), !,
+  removeCorrelatedPreds(Query1, Query2, Preds), !,
   ground(Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2,
                      '\nCorrelatedPreds: ', Preds]),
-  newTempRel(T),					 
+  newTempRel(T),				
+  streamName(T),  
 %  queryToPlan(Query2, Plan, _), 
   subquery_to_plan(Query2, Plan, T), 
   dm(subqueryDebug, ['\nPlan: ', Plan]),  
@@ -2125,11 +2410,17 @@ subquery_plan_to_atom(not(Expr), Result) :-
   addCorrelatedPreds(Plan, consume(Query3), Preds2),
   dm(subqueryDebug, ['\nsubquery_plan_to_atom_Query2: ', Query3]),
   plan_to_atom(fun([param(T, tuple)], not(=(count(head(Query3, 1)), 1))), Result),
-  dm(subqueryDebug, ['\nsubquery_plan_to_atom_Result: ', Result]).
+  dm(subqueryDebug, ['\nsubquery_plan_to_atom_Result: ', Result]),
+  clearStreamName,
+  clearQuery(Query).
   
 subquery_plan_to_atom(symmjoin(Arg1, Arg2, Pred), Result) :-
+  % nl, write('1   #######################################################################################'), nl,
+  % write(Pred), nl,
   isSubqueryPred1(Pred),
+  % nl, write('2   #######################################################################################'), nl,
   not(isJoinPred(Pred)),
+  % nl, write('3   #######################################################################################'), nl,
   dm(subqueryDebug, ['\nsymmjoin: ', Pred]),
   assert(isJoinPred(Pred)), 
   joinRels(Arg1, Arg2),
@@ -2138,24 +2429,18 @@ subquery_plan_to_atom(symmjoin(Arg1, Arg2, Pred), Result) :-
   retractall(isJoinPred(Pred)). 
   
 subquery_plan_to_atom(rightrange(Arg1, Arg2, Query), Result) :-
-  Query =.. [from | _],
+  extractQuery(Query, Query1),
+  Query1 =.. [from | _],
   dm(subqueryDebug, ['\nrightrange: ', Query]),
-  subquery_to_plan(Query, Plan, _),
+  subquery_to_plan(Query1, Plan, _),  
   plan_to_atom(rightrange(Arg1, Arg2, Plan), Result).
   
 subquery_plan_to_atom(leftrange(Arg1, Arg2, Query), Result) :-
-  Query =.. [from | _],
+  extractQuery(Query, Query1),
+  Query1 =.. [from | _],
   dm(subqueryDebug, ['\nleftrange: ', Query]),
-  subquery_to_plan(Query, Plan, _),
-  plan_to_atom(rightrange(Arg1, Arg2, Plan), Result).
-  
-/* subquery_plan_to_atom(fun([param(txx1, tuple)], filter(feed(Rel), Pred)), Result) :-
-  isSubqueryPred1(Pred),
-  not(secondRel(Rel)),
-  assert(secondRel(Rel)),
-  nl, nl, write('secondRel: '), write(Rel), nl, nl,
-  plan_to_atom(fun([param(txx1, tuple)], filter(feed(Rel), Pred)), Result),
-  retractall(secondRel(Rel)). */
+  subquery_to_plan(Query1, Plan, _),
+  plan_to_atom(rightrange(Arg1, Arg2, Plan), Result).  
   
 subquerypred_to_atom(Pred, Result) :-
   ground(Pred),
@@ -2201,20 +2486,20 @@ subquerySelectivity([ Pred | Rest ]) :-
   subquerySelectivity(Rest).
 					 
 subquerySelectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
-  not(selectivityQuery(Pred)),
+%  not(selectivityQuery(Pred)),
   isSubqueryPred1(Pred),
-  assert(selectivityQuery(Pred)),
+%  assert(selectivityQuery(Pred)),
   selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET),
-  retractall(firstStream(_)),
-  retractall(selctivityQuery(_)). 
+  retractall(firstStream(_)).
+%  retractall(selctivityQuery(_)). 
   
 subquerySelectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
-  not(selectivityQuery(Pred)),
+%  not(selectivityQuery(Pred)),
   isSubqueryPred1(Pred),
-  assert(selectivityQuery(Pred)),
+%  assert(selectivityQuery(Pred)),
   selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET),
-  retractall(firstStream(_)),
-  retractall(selectivityQuery(_)).    
+  retractall(firstStream(_)).
+%  retractall(selectivityQuery(_)).    
   
 subqueryToStream(Query orderby OrderAttrs, Stream4, Cost) :-
   subqueryToStream1(Query, OrderAttrs, Stream4, Cost).
@@ -2273,9 +2558,45 @@ subqueryToStream1(SelectClause from (Subquery) as _ groupby GroupAttrs, Attrs,
   
 /*
 
-for Debugging purposes
+Utility Functions
 
 */
+
+:- dynamic(stack/2).
+
+push(StackName, Var) :-
+  ground(Var),
+  stack(StackName, L),
+  retractall(stack(StackName, _)),
+  assert(stack(StackName, [ Var | L])).
+
+push(StackName, Var) :-
+  ground(Var),
+  not(stack(StackName, _)),
+  assert(stack(StackName, [ Var ])).
+  
+push(_, _) :-
+  throw(error_SQL(subqueries_push:unknownError#_)).
+  
+pop(StackName, Var) :-
+  stack(StackName, [ Var | L ]),
+  retractall(stack(StackName, _)),
+  assert(stack(StackName, L)).  
+  
+peak(StackName, Var) :-
+  stack(StackName, [ Var | _ ]).
+  
+peak(StackName, Depth, Var) :-
+  stack(StackName, L),
+  nth1(Depth, L, Var).
+  
+clear(StackName) :-
+  retractall(stack(StackName, _)).
+  
+printStack(StackName) :-
+  stack(StackName, L),
+  nl, write('Stack '), write(StackName), nl,
+  write_list(L), nl.
 
 partition(Pred, List, Included, Excluded) :-
 	partition_(List, Pred, Included, Excluded).

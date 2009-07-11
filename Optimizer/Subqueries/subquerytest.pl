@@ -133,6 +133,46 @@ testQuery(43, select * from [orte, plz as p] where bevt = (select min(bev*1000) 
 testQuery(44, select * from orte where bevt = (select avg(bev*1000) from staedte where plz > 80000)).
 testQuery(45, select * from orte where bevt = (select avg(bev*1000) from staedte where ort > sname)).
 testQuery(46, select * from [orte, plz as p] where bevt = (select avg(bev*1000) from staedte where [ort > sname, p:ort = sname])).
+testQuery(47, select * from plz as p1 where p1:plz = (select max(plz) from plz where ort = p1:ort)).
+
+regression(1) :-
+    ( cdb ; true ),
+	odb(opt),
+	clear(streamName),
+	clear(streamRel),
+	retractall(selectivityQuery(_)),
+	streamRel(rel(orte, *)),
+	streamRel(rel(staedte, s)),
+	streamName(txx1),
+	transformCorrelatedPreds([rel(plz, p)], txx1, [pr(attr(p:ort, 1, u)=attr(s:sName, 2, u), rel(plz, p), rel(staedte, s)), pr(attr(s:bev, 1, u)>attr(bevT, 2, u), rel(staedte, s), rel(orte, *))], Result),
+	Result= [pr(attr(p:ort, 1, u)=attr(s:sName, 2, u), rel(plz, p), rel(staedte, s)), pr(attr(s:bev, 1, u)>attribute(txx1, attrname(attr(bevT, 2, u))), rel(staedte, s), rel(orte, *))],
+	cdb.
+
+regression(2) :-	
+    ( cdb ; true ),
+	odb(opt),
+	clear(streamName),
+	clear(streamRel),
+	retractall(selectivityQuery(_)),
+	streamRel(rel(orte, *)),
+	streamRel(rel(staedte, s)),
+	streamName(txxrel35),
+	transformCorrelatedPreds([rel(plz, p)], txxrel35, [pr(attr(s:bev, 1, u)>attr(bevT, 2,u), rel(staedte, s), rel(orte, *))], Result),
+	Result = [pr(attribute(txxrel35, attrname(attr(s:bev, 1, u)))>attribute(txxrel35, attrname(attr(bevT, 2, u))), rel(staedte, s), rel(orte, *))],
+	cdb.
+
+regression(3) :-
+    ( cdb ; true ),
+	odb(tpcd),
+	clear(streamName),
+	clear(streamRel),
+	retractall(selectivityQuery(_)),
+	streamRel(rel(partsupp, *)),
+	streamRel(rel(part, *)),
+	streamName(txx1),
+	transformAttributeExpr(attr(psSUPPLYCOST, 1, l), txx1, 1, Result, []),
+	Result = attribute(txx1, attrname(attr(psSUPPLYCOST, 1, l))),
+	cdb.
 
 /*
 OuterJoinQuery: 
@@ -273,3 +313,7 @@ RPRIORITY, 0, l))asc]), [attrname(attr(oORDERPRIORITY, 0, l))], [field(attr(orde
 rdercount, 0, u))]), [attrname(attr(oORDERPRIORITY, 0, l))asc])),
 C = 24002.0
 */
+
+%findall(No, (tpcd(No, Q), not(skipQuery(d, No))), L), findall(N, ( member(N, L), tpcd(N, Q), sql(Q) ), L2), findall(N, (member(N, L), not(member(N, L2))), L3).
+%findall(No, ( testQuery(No, Q), No > 7, No < 47), L), findall(N, ( member(N, L), testQuery(N, Q), sql(Q) ), L2), findall(N, (member(N, L), not(member(N, L2))), L3).
+%[9, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 46]

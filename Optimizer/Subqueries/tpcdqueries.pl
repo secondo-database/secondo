@@ -20,6 +20,40 @@
    assert(skipQuery(d, 18)),
    assert(skipQuery(d, 19)).
    
+:- dynamic(resultRelation/1).
+
+:- assert(resultRelation(benchmarkResult)).
+  
+initialize :-
+  resultRelation(Rel),
+  concat_atom([Rel, ' = [const rel(tuple([Query: string,', 
+                                  'Setup: bool, ',
+								  'Rewrite: bool, ',
+								  'Lookup: bool, ',
+								  'QueryToPlan: bool, ',
+								  'planToAtom: bool, ',
+								  'Execute: bool, ',
+								  'Teardown: bool, ',
+								  'runtime_Rewrite: duration, ',
+								  'runtime_Lookup: duration, ',
+								  'runtime_QueryToPlan: duration, ',
+								  'runtime_planToAtom: duration, ',
+								  'runtime_Execute: duration, ',
+								  'runtime_Total: duration, ',
+								  'Date: instant]))',
+								  ' value (("Dummy" FALSE FALSE FALSE FALSE FALSE FALSE FALSE (0 0) (0 0) (0 0) (0 0) (0 0) (0 0) -1))]'], 
+								  Query),
+  let(Query).
+  
+initialize :-
+  nl, write('Please assert resultRelation(<RelName>)').
+  
+time(Begin, Duration) :-
+  get_time(End),
+  Time is End - Begin,  
+  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
+  Duration is Minute * 60000 + Sec*1000 + MilliSec.
+   
 tpc(Benchmark, No) :-
   skipQuery(Benchmark, No),
   upcase_atom(Benchmark, BMOut),  
@@ -28,44 +62,56 @@ tpc(Benchmark, No) :-
   ( retractall(benchmarkResult(Key, _)) ; true ),
   assert(benchmarkResult(Key, Result)).  
 
-tpc(Benchmark, No) :- 
+tpc(Benchmark, No) :-  
+  resultRelation(Rel),
   upcase_atom(Benchmark, BMOut),  
-  catch( (setupQuery(Benchmark, No)
-    -> SetupResult = '' % concat_atom(['Setup successful', '\n'], SetupResult)
+  concat_atom(['"TPC-', BMOut, ' ', No, '"'], QueryName),
+  string_to_atom(QueryString, QueryName),
+  sql insert into Rel values [QueryString, false, false, false, false, false, false, false, create_duration(0, 0), create_duration(0, 0), create_duration(0, 0), create_duration(0, 0), create_duration(0, 0), create_duration(0, 0), instant(0)],
+  get_time(BeginAll),
+  catch( ((setupQuery(Benchmark, No) )
+%    -> SetupResult = '' % concat_atom(['Setup successful', '\n'], SetupResult)
+     -> ( SetupResult = '', sql update Rel set [setup = true] where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tSetup failed', '\n'], SetupResult)
    ),
    _, concat_atom(['\tSetup failed', '\n'], SetupResult)),
   tpc(Benchmark, No, Query),    
-  catch( (ground(Query), (rewriteQuery(Query, RQuery))
-    -> RewriteResult = '' % concat_atom(['Rewrite successful', '\n'], RewriteResult)
+  catch( (ground(Query), get_time(BeginRewrite), (rewriteQuery(Query, RQuery))
+%    -> RewriteResult = '' % concat_atom(['Rewrite successful', '\n'], RewriteResult)
+    -> ( RewriteResult = '', time(BeginRewrite, TRewrite), sql update Rel set [rewrite = true, runtime_Rewrite = create_duration(0, TRewrite)] where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tRewrite failed', '\n'], RewriteResult)
    ),
    _, concat_atom(['\tRewrite failed', '\n'], RewriteResult)),  
-  catch( ((ground(RQuery), callLookup(RQuery, Query2))
-    -> LookupResult = '' % concat_atom(['Lookup successful', '\n'], LookupResult)
+  catch( ((ground(RQuery), get_time(BeginLookup), callLookup(RQuery, Query2))
+%    -> LookupResult = '' % concat_atom(['Lookup successful', '\n'], LookupResult)
+	-> ( LookupResult = '', time(BeginLookup, TLookup), sql update Rel set [lookup = true, runtime_Lookup = create_duration(0, TLookup)] where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tLookup failed', '\n'], LookupResult)
    ),
    _, concat_atom(['\tLookup failed', '\n'], LookupResult)),  
   !,
-  catch( ((ground(Query2), queryToPlan(Query2, Plan, _))
-    -> QueryToPlanResult = '' % concat_atom(['QueryToPlan successful', '\n'], QueryToPlanResult)
+  catch( ((ground(Query2), get_time(BeginQTP), queryToPlan(Query2, Plan, _))
+%    -> QueryToPlanResult = '' % concat_atom(['QueryToPlan successful', '\n'], QueryToPlanResult)  
+    -> ( QueryToPlanResult = '', time(BeginQTP, TQTP), sql update Rel set [queryToPlan = true, runtime_QueryToPlan = create_duration(0, TQTP)] where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tQueryToPlan failed', '\n'], QueryToPlanResult)
    ),
    _, concat_atom(['\tQueryToPlan failed', '\n'], QueryToPlanResult)),  
   !,
-  catch( ((ground(Plan), plan_to_atom(Plan, QueryOut))
-    -> PlanToAtomResult = '' % concat_atom(['PlanToAtom successful', '\n'], PlanToAtomResult)
+  catch( ((ground(Plan), get_time(BeginPTA), plan_to_atom(Plan, QueryOut))
+%    -> PlanToAtomResult = '' % concat_atom(['PlanToAtom successful', '\n'], PlanToAtomResult)
+    -> ( PlanToAtomResult = '', time(BeginPTA, TPTA), sql update Rel set [planToAtom = true, runtime_PlanToAtom = create_duration(0, TPTA)] where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tPlanToAtom failed', '\n'], PlanToAtomResult)
    ),
    _, concat_atom(['\tPlanToAtom failed', '\n'], PlanToAtomResult)),  
-  (( ground(QueryOut), concat_atom(['query ', QueryOut], QueryText) ) ; true),
+  (( ground(QueryOut), get_time(BeginExec), concat_atom(['query ', QueryOut], QueryText) ) ; true),
   catch( ((ground(QueryOut), secondo(QueryText))
-    -> ExecuteResult = '' % concat_atom(['Execute successful', '\n'], ExecuteResult)
+%    -> ExecuteResult = '' % concat_atom(['Execute successful', '\n'], ExecuteResult)
+    -> ( ExecuteResult = '', time(BeginExec, TExec), sql update Rel set [execute = true, runtime_Execute = create_duration(0, TExec)] where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tExecute failed', '\n'], ExecuteResult)
    ),
    _, concat_atom(['\tExecute failed', '\n'], ExecuteResult)),  
   catch( (teardownQuery(Benchmark, No)
-    -> TeardownResult = '' % concat_atom(['Teardown successful', '\n'], TeardownResult)
+%    -> TeardownResult = '' % concat_atom(['Teardown successful', '\n'], TeardownResult)
+    -> ( TeardownResult = '', sql update Rel set [teardown = true] where [date = instant(0), (query) = QueryString] )
     ;  concat_atom(['\tTeardown failed', '\n'], TeardownResult)
    ),
    _, concat_atom(['\tTeardown failed', '\n'], TeardownResult)), 
@@ -77,7 +123,9 @@ tpc(Benchmark, No) :-
                 PlanToAtomResult	,
                 ExecuteResult	,
                 TeardownResult],
-                Result),				
+                Result),		
+   time(BeginAll, TotalTime),
+   sql update Rel set [runtime_Total = create_duration(0, TotalTime)] where [date = instant(0)],				
    concat_atom([Benchmark, No], Key),
    ( retractall(benchmarkResult(Key, _)) ; true ),
    assert(benchmarkResult(Key, Result)).
@@ -99,10 +147,22 @@ executeQueries(Benchmark, [[No, _] | Rest]) :-
   executeQueries(Benchmark, Rest).
   
 executeBenchmark(Benchmark) :- 
+    get_time(Begin),
+    resultRelation(Rel),
+    sql delete from Rel where date = instant(0),	
     setupBenchmark(Benchmark),
     retractall(benchmarkResult(_, _)),
 	findall([No, Query], tpc(Benchmark, No, Query), Queries),
 	executeQueries(Benchmark, Queries),
+	!,
+	time(Begin, Total),
+    upcase_atom(Benchmark, BMOut),  
+    concat_atom(['"TPC-', BMOut, '"'], BMName),
+    string_to_atom(BMString, BMName),
+	let('tempXXXXXXX = now()'),
+    sql insert into Rel values [BMString, false, false, false, false, false, false, false, create_duration(0, 0), create_duration(0, 0), create_duration(0, 0), create_duration(0, 0), create_duration(0, 0), create_duration(0, Total), instant(0)],
+	sql update Rel set [date = tempXXXXXXX] where [date = instant(0)],
+	delete(tempXXXXXXX),
 	findall(Result, benchmarkResult(_, Result), L),	
 	nl,
     write_list(L).
