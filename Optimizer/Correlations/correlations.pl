@@ -472,7 +472,7 @@ identifiers of join predicates.
 
 */
 
-% join´predicate is found -> end of recursion
+% join predicate is found -> end of recursion
 is_join_list([ [ J ] | _ ]):-
 	debug_writeln(is_join_list/1, 51, [ 'join predicate id ', [J], 'detected' ]).
 % current element isn't a identifier of a join predicate -> continue with next one
@@ -550,6 +550,10 @@ build_query(Relation, [ PredIdentList , Query , Relation ]):-
 	get_sel_predicates(Relation, SelPredicateIDs, _),
 	debug_writeln(build_query/2, 59, [ 'got select predicates ', SelPredicateIDs, ' for relation ', Relation]),
 	!,
+	% set samples to be used instead of relations
+	removeSamplesToBeUsed,
+	setSamplesToBeUsed(Relation),
+	!,
 	% build relation expression
 	build_relation_expr(Relation, JoinPredicates, RelationExpr, UsedJoinPredicateIDs),
 	debug_writeln(build_query/2, 59, [ 'relation expression ', RelationExpr, ' built for relation ', Relation, ' using join predicates ', UsedJoinPredicateIDs]),
@@ -575,7 +579,9 @@ build_query(Relation, [ PredIdentList , Query , Relation ]):-
 	atom_concat('query ', RelationExpr, PredcountExpr,
 		' consume;', '', Query),
 %?%	debug_writeln(build_query/2, 51, [ 'query tuple ', [ PredIdentList , Query , RelPred ], ' built for relation ', Relation]).
-	debug_writeln(build_query/2, 51, [ 'query tuple ', [ PredIdentList , Query , Relation ], ' built for relation ', Relation]).
+	debug_writeln(build_query/2, 51, [ 'query tuple ', [ PredIdentList , Query , Relation ], ' built for relation ', Relation]),
+	% remove samples to be used instead of relations
+	removeSamplesToBeUsed.
 
 
 % unexpected call
@@ -591,17 +597,19 @@ build_query(A, B):-
 Setting the alias is necessary to support direct using of sql predicates
 of the original query. 
 
-  If Option correlationsProduct is activated the string "relation feed \{
-alias \} is generated for each relation of a set of relations. The 
+  If Option correlationsProduct is activated the string " relation feed \{
+alias \} " is generated for each relation of a set of relations. The 
 generated strings are concatinated and joined with the key words query and
-product.
+product.  
 
   If Option correlationsJoin is activated a more complicated
 algorithm is used to produce a derivated relation used to
 calculate the resulats of operator predcount. The algorithm
-is described in capture ???VJO.
+is described in capture.
 
 */
+
+%???VJO doku?
 
 % if Option correlationsJoin is set - applicate operator predcount on a derivated relation
 build_relation_expr(Relation, JoinPredicates, RelationExpr, SmallestJoinSet):-
@@ -616,20 +624,25 @@ build_relation_expr(Relation, JoinPredicates, RelationExpr, SmallestJoinSet):-
 		not(JoinSets=[])
 		->
 		debug_writeln(build_relation_expr/4, 69, [ 'set of possible sets of join predicates for relation ', Relation, ' is ', JoinSets]);
-		debug_writeln(build_relation_expr/4, 69, [ 'no set sufficient join predicates for relation ', Relation, ' found - use product']),
+		warn_continue(build_relation_expr/4, [ 'no set sufficient join predicates for relation ', Relation, ' found - use product']),
 		fail
 	),
-	!, 
+	%!,  if its not possible to construct a sample query
+	% repeat until a joinset and path is found which is translatable to a sample query
 	get_smallest_join(JoinSets, SmallestJoinSet, _),
 	debug_writeln(build_relation_expr/4, 69, [ 'smallest set of join predicates for relation ', Relation, ' is ', SmallestJoinSet]),
-	!,
+	%!, if its not possible to construct a sample query
 	get_cheapest_path(SmallestJoinSet, CheapestJoinPath),
 	debug_writeln(build_relation_expr/4, 69, [ 'cheapest path of smallest join ', CheapestJoinPath]),
+	%!, if its not possible to construct a sample query
+	%plan(CheapestJoinPath, CheapestJoinPlan),
+	%debug_writeln(build_relation_expr/4, 69, [ 'plan of cheapest path of smallest join ', CheapestJoinPlan]),
+	%!, if its not possible to construct a sample query
+	%prepare_sample_query(CheapestJoinPlan,XXX),
+	construct_sample_plan(CheapestJoinPath, SamplePlan),
 	!,
-	plan(CheapestJoinPath, CheapestJoinPlan),
-	debug_writeln(build_relation_expr/4, 69, [ 'plan of cheapest path of smallest join ', CheapestJoinPlan]),
-	!,
-	plan_to_atom(CheapestJoinPlan, RelationExpr),
+	plan_to_atom(SamplePlan, RelationExpr),
+	%plan_to_atom(CheapestJoinPlan, RelationExpr),
 	debug_writeln(build_relation_expr/4, 61, [ '(Option joinCorrelations2 set) relation expression ', RelationExpr, ' built for relation ', Relation, ' using set of join predicates ', SmallestJoinSet]),
 	!.
 
@@ -642,12 +655,16 @@ build_relation_expr([ LastRelation | [] ], _, RelationExpr, []):-
 		optimizerOption(joinCorrelations2);
 		optimizerOption(joinCorrelations)
 	),
-	LastRelation = rel(_, _),
+	LastRelation = rel(_, RelAlias),
+	% use Sample instead of relation
+	sampleToBeUsed(LastRelation, NameSample),
+	debug_writeln(build_relation_expr/4, 69, ['use sample ',NameSample,' instead of relation ',LastRelation]),
+	Sample = rel(NameSample, RelAlias),
 %?%	!, % keine Wirkung von unexpected call
-	plan_to_atom(LastRelation, RelName), % determine relation
+	plan_to_atom(Sample, RelName), % determine relation
 	% ??? add using of small relation / samples here
 	% build alias if necessary
-	build_alias_string(LastRelation, RelAliasString),
+	build_alias_string(Sample, RelAliasString),
 	atom_concat(' ', RelName, ' feed ', RelAliasString,
 		' ', RelationExpr), % concatinate string
 	debug_writeln(build_relation_expr/4, 62, [ '(Option joinCorrelations* set) last relation ', LastRelation, ' added as ', RelName, ' with alias ', RelAliasString, ' to product']).
@@ -658,12 +675,16 @@ build_relation_expr([ Relation | OtherRelations ], JoinPredicates, RelationExpr,
 		optimizerOption(joinCorrelations2);
 		optimizerOption(joinCorrelations)
 	),
-	Relation = rel(_, _),
+	Relation = rel(_, RelAlias),
+	% use Sample instead of relation
+	sampleToBeUsed(Relation, NameSample),
+	debug_writeln(build_relation_expr/4, 69, ['use sample ',NameSample,' instead of relation ',Relation]),
+	Sample = rel(NameSample, RelAlias),
 %?%	!, % keine Wirkung von unexpected call
-	plan_to_atom(Relation, RelName), % determine relation
+	plan_to_atom(Sample, RelName), % determine relation
 	% ??? add using of small relation / samples here
 	% build alias if necessary
-	build_alias_string(Relation, RelAliasString),
+	build_alias_string(Sample, RelAliasString),
 	build_relation_expr(OtherRelations, JoinPredicates, RelationExprTmp, JoinPredicates2),
 	atom_concat(RelationExprTmp, RelName, ' feed ', RelAliasString,
 		' product ', RelationExpr), % concatinate string
@@ -671,12 +692,16 @@ build_relation_expr([ Relation | OtherRelations ], JoinPredicates, RelationExpr,
 
 % for singleton relations
 build_relation_expr(Relation, [], RelationExpr, []):-
-	Relation = rel(_, _),
+	Relation = rel(_, RelAlias),
+	% use Sample instead of relation
+	sampleToBeUsed(Relation, NameSample),
+	debug_writeln(build_relation_expr/4, 69, ['use sample ',NameSample,' instead of relation ',Relation]),
+	Sample = rel(NameSample, RelAlias),
 %?%	!, % keine Wirkung von unexpected call
-	plan_to_atom(Relation, RelName), % determine relation
+	plan_to_atom(Sample, RelName), % determine relation
 	% ??? add using of small relation / samples here
 	% build alias if necessary
-	build_alias_string(Relation, RelAliasString),
+	build_alias_string(Sample, RelAliasString),
 	atom_concat(' ', RelName, ' feed ', RelAliasString, 
 		'', RelationExpr), % concatinate string
 	debug_writeln(build_relation_expr/4, 63, [ 'singleton relation ', Relation, ' used as ', RelName, ' with alias ', RelAliasString]).
@@ -1038,7 +1063,8 @@ predcounts to the corresponding node identifier of POG.
 */
 
 % end of recursion
-calculate_pog_ident(0, [], 0):- % Rekursionsabschluss
+%??? vjo Fehler nicht genau bestimmt: calculate_pog_ident(0, [], 0):- % Rekursionsabschluss
+calculate_pog_ident(_, [], 0):- % Rekursionsabschluss
 	debug_writeln(calculate_pog_ident/3, 52, ['end of recursion']).
 calculate_pog_ident(InAtom, [ [ JoinId ] | TRest ], OutAtom):-
 	debug_outln('calculate_pog_ident: add join ID ', JoinId),
@@ -1848,12 +1874,12 @@ result 11 has to be transformed to 101 and 10 to 100.
   
 */
 /*
-1 Helper predicates
+5 Helper predicates
 
   The following predicates are used for easier programming and
 understanding of the main code.
 
-1.1 debug\_write
+5.1 debug\_write
 
 ----    debug_writeln(Message)
 ----
@@ -1887,7 +1913,7 @@ debug_out(Message):-
 debug_out(_).       % in any other case ignore call of debug_write
 
 /*
-1.2 debug\_outln
+5.2 debug\_outln
 
 ----    debug_outln(message)
         debug_outln(Msg1, Msg2)
@@ -1963,18 +1989,31 @@ debug_writeln(Pred, Level, _):-
 		check_debug_list(Pred)
 	).
 
+debug_writelnFacts(Pred, Level, MessageList, Arg1, Arg2):-
+	% check whether the message has to be written or not
+	(
+		check_debug_level(Level);
+		check_debug_list(Pred)
+	),
+	findall(Arg1, Arg2, List),
+	write_list(['DEBUG(', Level, '): ', Pred, ': ']),
+	write_list(MessageList),
+	write_list(List),
+	nl,
+	!.
+
+debug_writelnFacts(Pred, Level, _, _, _):-
+	not(
+		check_debug_level(Level);
+		check_debug_list(Pred)
+	).
+
 %debug_writeln(_, _, _).
 
 write_list([]).
 write_list([ nl | Rest ]):-
 	nl,
 	write_list(Rest).
-%write_list([ SubList | Rest ]):-
-%	SubList = [ _ | _ ],
-%	writeln('['),
-%	write_sub_list('   ', SubList),
-%	write(']'),
-%	write_list(Rest).
 write_list([ Atom | Rest ]):-
 	write(Atom),
 	write_list(Rest).
@@ -2030,7 +2069,7 @@ debug_outln(Msg1,Msg2,Msg3,Msg4,Msg5,Msg6):-
    debug_outln(Msg6).
 
 /*
-1.3 atom\_concat/6
+5.3 atom\_concat/6
 
 ----    atom_concat(Txt1, Txt2, Txt3, Txt4, Txt5, Rslt)
 ----
@@ -2057,12 +2096,13 @@ atom_concat(Txt1, Txt2, Txt3, Txt4, Txt5, Rslt):-
    atom_concat(TMP3, Txt5, Rslt).
 
 /*
-1.4 writeln/2 - writeln/6
+5.4 writeln/2 - writeln/6
 
 ----    writeln(Txt1, Txt2, Txt3, Txt4, Txt5, Rslt)
 ----
 
 	* to document *
+
 */
 
 % concat more than two strings
@@ -2080,13 +2120,102 @@ writeln(Msg1, Msg2, Msg3, Msg4, Msg5, Msg6):-
    write(Msg1), writeln(Msg2, Msg3, Msg4, Msg5, Msg6).
 
 
-
 /*
+5.5 xxx
 
-7 several code
+	* to document *
 
 */
 
+info_continue(Pred, MessageList):-
+	write_list([ 'INFO: ', Pred, ': ']),
+	write_list(MessageList),
+	nl.
+info_continue(Pred, Message, List):-
+	info_continue(Pred,[Message,' args:',List]).
+warn_continue(Pred, MessageList):-
+	write_list([ 'WARN: ', Pred, ': ']),
+	write_list(MessageList),
+	nl.
+warn_continue(Pred, Message, List):-
+	warn_continue(Pred,[Message,' args:',List]).
+error_exit(Pred, MessageList):-
+	write_list([ 'ERROR: ', Pred, ': ']),
+	write_list(MessageList),
+	nl,
+	abort.
+error_exit(Pred, Message, List):-
+	error_exit(Pred,[Message,' args:',List]).
+
+
+equals_or_contains(Relation, Relation2):-
+	set_equal(Relation, Relation2),
+	debug_outln('equals_or_contains: Relation of Predicate equals Relation of query to build').
+
+equals_or_contains([ Relation2 | _ ], Relation2):-
+	debug_outln('equals_or_contains: Relation ',Relation2,
+		' of Predicate in Relations of query to build').
+
+equals_or_contains([], Relation2):-
+	debug_outln('equals_or_contains: Relation ',Relation2,
+		' of Predicate not in Relations of query to build'),
+	fail.
+
+equals_or_contains([ _ | Relations ], Relation2):-
+	equals_or_contains(Relations,Relation2).
+
+
+
+set_debug_list(List):-
+	retractall((debug_list(_))),
+	assert((debug_list(List))).
+
+set_debug_level(Level):-
+	retractall((debug_level(_))),
+	assert((debug_level(Level))).
+
+max_list([ E | [] ], E).
+max_list([ E | R ], Max):-
+	max_list(R, MaxOld),
+	Max is max(E, MaxOld),
+	!.
+max_list(L,_):-
+	error_exit(max_list/2, 'unexpected call', [L]).
+
+min_list([ E | [] ], E).
+min_list([ E | R ], Min):-
+	min_list(R, MinOld),
+	Min is min(E, MinOld),
+	!.
+min_list(L,_):-
+	error_exit(min_list/2, 'unexpected call', [L]).
+
+
+and(X,Y):-
+	X,
+	Y.
+
+contains(E1, [ E2 ]):-
+	E1 =:= E2.
+contains(E1, [ E2 | _ ]):-
+	E1 =:= E2.
+contains(E,[ _ | S ]):-
+	not(S=[]),
+	contains(E,S).
+
+
+equals_and(A, B, C):-
+	A2 is round(A),
+	B2 is round(B),
+	C2 is round(C),
+	A2 =:= B2 /\ C2.
+
+
+	%
+get_real_nodeid(NodeID, NodeIDReal):-
+	node(NodeIDReal, _, _),
+	NodeID =:= NodeIDReal,
+	!.
 
 
 
@@ -2096,12 +2225,22 @@ writeln(Msg1, Msg2, Msg3, Msg4, Msg5, Msg6):-
 
 
 
+/*
+6 The interface for the optimizer
 
+6.1 addCorrelationSizes/0
 
+  The predicate calls all predicates to be used to interact with
+the correlations approach.
 
+*/
 
-% VJO new part
 addCorrelationSizes:-
+	info_continue(addCorrelationSizes,['start correlations code']),
+	% remove temporary facts
+	%retractall(corrCummSel(_,_)),
+	%!,
+	% get all predicates and all relations of the query
 	build_list_of_predicates,
 	listOfRelations(ListOfRelations),
         debug_writeln(addCorrelationSizes/0, 9, ['list of relations built ', ListOfRelations]),
@@ -2114,148 +2253,89 @@ addCorrelationSizes:-
 	%append(R,[[rel(ten, a), rel(ten, *), rel(ten, b)]],Rnew),
 	%assert((listOfRelations(Rnew))),
 	!,
+	% construct the predcounts execution plans
 	build_queries(Queries),
 	debug_writeln(addCorrelationSizes/0, 9, ['predcount queries built ', Queries]),
 	!,
+	% run the executions plans
 	calculate_predcounts(Queries, PCResults),
 	debug_writeln(addCorrelationSizes/0, 9, ['predcount results calculated ', PCResults]),
 	!,
+	% translate all predcounts atoms into predcounts cardinalities
 	correct_nodeids(PCResults, PCResultsNew),
 	debug_writeln(addCorrelationSizes/0, 9, ['node ids corrected ', PCResultsNew]),
 	!,
+	% store results of predcounts queries into facts corrCummSel/2
 	retractall((corrCummSel(_, _))),
+	storeCorrCummSel(PCResultsNew),
+	debug_writeln(addCorrelationSizes/0, 9, ['facts corrCummSel/2 created']),
 	!,
-	createEdgeSelectivities(PCResultsNew),
-	debug_writeln(addCorrelationSizes/0, 9, ['edgeSelectivities/3 and resultSize/2 of POG updated']),
+	% use selectivities of marginal predicates estimated by default optimizer
+	% the selectivities will be overwritten by values estimated by correlations optimizer within corrFeasible/4
+	findall([MarginalPred,Sel],edgeSelectivity(0,MarginalPred,Sel),MP),
+	!,
+	% prepare a consistent set of relative node cardinalities (MP2 and JP2)
+	% use no additional joint selectivities (2nd arg = []), use facts corrCummSel/2 only
+	corrFeasible(MP, [], MP2, JP2),
+	debug_writeln(addCorrelationSizes/0, 9, ['corrFeasible/4 finished with: ',[MP2,JP2]]),
+	!,
+	% estimate unknown cardinalities by maximum entropy approach
+	maximize_entropy(MP2, JP2, Result),
+	!,
+	% store relative node cardinalities of all nodes as facts corrRelNodeCard/2
+	retractall((corrRelNodeCard(_,_))),
+	storeRelativeNodeCardinalities(Result),
+	debug_writeln(addCorrelationSizes/0, 9, ['corrRelNodeCard/2']),
+	!,
+	% reset facts resultSize/2 and edgeSelectivity/3 by using facts corrRelNodeCard/2
+	resetPOGSizes,
+	debug_writeln(addCorrelationSizes/0, 9, ['resultSize/2 and edgeSelectivity/3 of POG updated']),
+	%!,
+	% remove temporary facts
+	%retractall(corrCummSel(_,_)),
+	info_continue(addCorrelationSizes,['finish correlations code']),
 	!.
 
-% dann kommt correlations feasible
 
-createEdgeSelectivities([]):-
+/*
+6.2 storeRelativeNodeCardinalities/1
+
+  The predicate stores the result sets of all predcounts queries
+as facts corrRelNodeCard/2.
+
+*/
+
+storeRelativeNodeCardinalities([]):-
+	debug_writeln(storeRelativeNodeCardinalities/1, 32, ['end of recursion']).
+storeRelativeNodeCardinalities([ [ NodeId, Sel ] | Rest ]):-
+	node(Node,_,_),
+	Node =:= NodeId,
+	!,
+	retractall((corrRelNodeCard(Node,_))),
+	assert((corrRelNodeCard(Node, Sel))),
+	storeRelativeNodeCardinalities(Rest).
+
+
+storeCorrCummSel([]):-
 	removePCResults,
-	debug_writeln(createEdgeSelectivities/1, 32, ['end of recursion']).
-createEdgeSelectivities([ TupleList | RList ]):-
-	debug_writeln(createEdgeSelectivities/1, 39, ['evaluate predcounts results ', TupleList]),
+	debug_writeln(storeCorrCummSel/1, 32, ['end of recursion']).
+storeCorrCummSel([ TupleList | RList ]):-
+	debug_writeln(storeCorrCummSel/1, 39, ['evaluate predcounts results ', TupleList]),
 	% predcount Tupel in Fakten storedPCTuple/2 mit korrigierten Count-Werten umsetzen
 	removePCResults,
-	debug_writeln(createEdgeSelectivities/1, 39, ['predcount results facts removed']),
+	debug_writeln(storeCorrCummSel/1, 39, ['predcount results facts removed']),
 	storePCResults(TupleList, TupleList),
-	debug_writeln(createEdgeSelectivities/1, 39, ['predcount results ', TupleList, ' stored as facts']),
+	debug_writeln(storeCorrCummSel/1, 39, ['predcount results ', TupleList, ' stored as facts']),
 	!,
 	% aus PCResults fuer Option entropy die kummulierten Sels berrechnen und als corrCummSel/2 speichern
 	storeCummSel,
-	debug_writeln(createEdgeSelectivities/1, 39, ['edgeSelectivities based on predcounts results calculated']),
+	debug_writeln(storeCorrCummSel/1, 39, ['edgeSelectivities based on predcounts results calculated']),
 	!,
-	% aus storedPCTuple/2 die Fakten edgeSelectivity/3 und resultSize/2 berechnen (?nur ohne Option entropy?)
-	storeCorrelationSizes(TupleList, TupleList), % resSize, edgeSel nur ohne entropy
-	debug_writeln(createEdgeSelectivities/1, 31, ['facts edgeSelectivity/3 and resultSize/2 of POG updated']),
-	!,
-	%createEdgeSelectivities2(TupleList, TupleList), % resSize, edgeSel nur ohne entropy
+	%storeCorrCummSel(TupleList, TupleList), % resSize, edgeSel nur ohne entropy
 	% Ergebnis der naechsten query verarbeiten
-	createEdgeSelectivities(RList).
-
-storeCorrelationSizes([], _):-
-	debug_writeln(storeCorrelationSizes/2, 42, ['end of recursion']).
-storeCorrelationSizes([ [ NodeID , _ ] | RList ], TupleList):-
-	% reale Kardinalitaet des ResultSets der Node ermitteln
-	storedPCTuple(NodeID, CorrectCard),
-	% resultSize/2 eintragen oder korrigieren
-	resetNodeSize(NodeID, CorrectCard),
-	debug_writeln(storeCorrelationSizes/2, 41, ['update cardinality of node ', NodeID, ' to ', CorrectCard]),
-	% edgeSelectivity/3 fuer Kanten zur Node NodeID speichern oder korrigieren
-	storeCorrEdgeSelectivity(NodeID),
-	debug_writeln(storeCorrelationSizes/2, 41, ['update edgeSelectivity/3 of edges to node ', NodeID]),
-	%createEdgeSelectivities3(NodeID, CorrectCard, NodeID),
-	storeCorrelationSizes(RList, TupleList).
-% unexpected call
-storeCorrelationSizes(A, B):-
-	error_exit(storeCorrelationSizes/2, ['unexpected call',[A, B]]).
-
-% zwei Fakten zum besseren Lesen
-storeCorrEdgeSelectivity(0):- % nichts tun
-	debug_writeln(storeCorrEdgeSelectivity/1, 52, ['do nothing for node 0']).
-storeCorrEdgeSelectivity(0.0):- % nichts tun
-	debug_writeln(storeCorrEdgeSelectivity/1, 52, ['do nothing for node 0.0']).
-storeCorrEdgeSelectivity(NodeID):-
-	findall(PrevNodeID, edge(PrevNodeID, NodeID, _, _, _, _), PrevNodeIDs),
-	debug_writeln(storeCorrEdgeSelectivity/1, 59, ['previous nodes of node ', NodeID, ' are ', PrevNodeIDs]),
-	storeCorrEdgeSelectivity2(NodeID, PrevNodeIDs),
-	debug_writeln(storeCorrEdgeSelectivity/1, 51, ['edgeSelectivity/3 of all edges updated/inserted to node ', NodeID, ' from ', PrevNodeIDs]).
-
-storeCorrEdgeSelectivity2(_, []):-
-	debug_writeln(storeCorrEdgeSelectivity2/2, 62, ['end of recursion']).
-storeCorrEdgeSelectivity2(NodeID, [ PrevNodeID | PrevNodeIDs ]):-
-	storedPCTuple(NodeID, NodeCard),
-	storeCorrEdgeSelectivity3(PrevNodeID, NodeID, NodeCard),
-	debug_writeln(storeCorrEdgeSelectivity2/2, 61, ['edgeSelectivity/3 of edge (', PrevNodeID,',',NodeID,') upserted']),
-	storeCorrEdgeSelectivity2(NodeID, PrevNodeIDs).
-
-resetNodeSize(0, _):- % is still the correct size
-	debug_writeln(resetNodeSize/2, 52, ['node size of node 0 is still correct']).
-resetNodeSize(0.0, _):- % is still the correct size
-	debug_writeln(resetNodeSize/2, 52, ['node size of node 0.0 is still correct']).
-resetNodeSize(NodeID, Size) :- 
-	resultSize(Node,_),
-	Node=:=NodeID, % wegen int und real-Mischung!
-	retract((resultSize(Node,_))),
-	setNodeSize(Node, Size),
-	debug_writeln(resetNodeSize/2, 51, ['size of node ', Node, ' updated to ', Size]).
-resetNodeSize(NodeID, Size) :- 
-	Node is NodeID + 0.0, % NodeID has to be real
-	setNodeSize(Node, Size),
-	debug_writeln(resetNodeSize/2, 53, ['size ', Size, ' of node ', Node, ' inserted']).
-
-storeCorrEdgeSelectivity3(PrevNodeID, NodeID, NodeCard):-
-	storedPCTuple(PrevNodeID, PrevNodeCard), % Card ist bereits korrigiert
-	storeCorrEdgeSelectivity4(PrevNodeID, NodeID, PrevNodeCard, NodeCard),
-	debug_writeln(storeCorrEdgeSelectivity3/3, 71, ['edgeSelectivity/3 of edge (', [PrevNodeID,NodeID], ') using ', [PrevNodeCard, NodeCard]]).
-storeCorrEdgeSelectivity3(PrevNodeID, NodeID, _):-
-	debug_writeln(storeCorrEdgeSelectivity3/3, 72, ['ignore edge ',[PrevNodeID,NodeID]]).
-
-removeEdgeSelectivity(0, NodeID):-
-	NodeIDreal is NodeID + 0.0,
-	%retractall((corrEdgeSelectivity(0, NodeIDreal, _))),
-	retractall((edgeSelectivity(0, NodeIDreal, _))),
-	debug_writeln(removeEdgeSelectivity/2, 91, ['edgeSelectivity/3 of edge (', [0, NodeIDreal], ') removed']).
-removeEdgeSelectivity(PrevNodeID, NodeID):-
-	% for real nodes
-	PrevNodeIDreal is PrevNodeID + 0.0,
-	NodeIDreal is NodeID + 0.0,
-	%retractall((corrEdgeSelectivity(PrevNodeIDreal, NodeIDreal, _))),
-	retractall((edgeSelectivity(PrevNodeIDreal, NodeIDreal, _))),
-	debug_writeln(removeEdgeSelectivity/2, 92, ['edgeSelectivity/3 of edge (', [PrevNodeIDreal, NodeIDreal], ') removed']).
+	storeCorrCummSel(RList).
 
 
-
-storeCorrEdgeSelectivity4(PrevNodeID, NodeID, 0, _):-
-	removeEdgeSelectivity(PrevNodeID, NodeID),
-	storeCorrEdgeSelectivity5(PrevNodeID, NodeID, 1),
-	debug_writeln(storeCorrEdgeSelectivity4/4, 82, ['edgeSelectivity(', [PrevNodeID, NodeID, 1], ') stored']).
-
-storeCorrEdgeSelectivity4(PrevNodeID, NodeID, _, 0):-
-	removeEdgeSelectivity(PrevNodeID, NodeID),
-	storeCorrEdgeSelectivity5(PrevNodeID, NodeID, 0),
-	debug_writeln(storeCorrEdgeSelectivity4/4, 83, ['edgeSelectivity(', [PrevNodeID, NodeID, 0], ') stored']).
-
-storeCorrEdgeSelectivity4(PrevNodeID, NodeID, PrevNodeCard, NodeCard):-
-	removeEdgeSelectivity(PrevNodeID, NodeID),
-	EdgeSel is NodeCard / PrevNodeCard,
-	storeCorrEdgeSelectivity5(PrevNodeID, NodeID, EdgeSel),
-	debug_writeln(storeCorrEdgeSelectivity4/4, 81, ['edgeSelectivity(', [PrevNodeID, NodeID, EdgeSel], ') stored']).
-
-storeCorrEdgeSelectivity5(0, NodeID, EdgeSel):-
-	% for real nodes
-	NodeIDreal is NodeID + 0.0,
-	assert((edgeSelectivity(0, NodeIDreal, EdgeSel))),
-	debug_writeln(storeCorrEdgeSelectivity5/3, 92, ['edgeSelectivity(', [0, NodeIDreal, EdgeSel], ') asserted']).
-	
-storeCorrEdgeSelectivity5(PrevNodeID, NodeID, EdgeSel):-
-	% for real nodes
-	PrevNodeIDreal is PrevNodeID + 0.0,
-	NodeIDreal is NodeID + 0.0,
-	assert((edgeSelectivity(PrevNodeIDreal, NodeIDreal, EdgeSel))),
-	debug_writeln(storeCorrEdgeSelectivity5/3, 91, ['edgeSelectivity(', [PrevNodeIDreal, NodeIDreal, EdgeSel], ') asserted']).
-	
 storeCummSel:-
 	storedPCTuple(0, BaseCard),
 	% fuer alle Nodes die Kummulierte Sel speichern
@@ -2284,6 +2364,17 @@ storeCummSel3(NodeID, NodeCard, BaseCard):-
 
 storeCummSel(NodeID, CummSel):-
 	retractall((corrCummSel(NodeID, _))),
+	assert((corrCummSel(NodeID, CummSel))).
+
+correctCorrCummSels([]).
+correctCorrCummSels([ [Node,Sel] | Rest ]):-
+	storeCummSel(Node, Sel),
+	!,
+	correctCorrCummSels(Rest).
+
+appendCummSel(NodeID, _):-
+	corrCummSel(NodeID, _).
+appendCummSel(NodeID, CummSel):-
 	assert((corrCummSel(NodeID, CummSel))).
 
 removePCResults:-
@@ -2317,214 +2408,102 @@ getAdjustment(NodeID, NID, _, 0):-
 
 	
 
-
 /*
-  Neuimplemeniterung feasible
+6.3 resetPOGSizes/0
+
+  The predicate uses the facts corrRelNodeCard/2 to reset the facts
+resultSize/2 and edgeSelectivity/3 of POG. By doing so, the results
+of correlations aproach are returned to the optimizer.
 
 */
-	
-corrFeasible(MP, JP, MP2, JP2):-
-	% corrCummSel/2 existiert bereits
-	optimizerOption(correlations),
-% corrCummSel/2
-% => Entropy zu CorrCummSel-Fakten
-%
-	storeMarginalSels(MP), % MP von assignEntropyCost
-	storeEntropyEdgeSelectivities(JP), % all edges stored as corrEdgeSelectivity/3
-	%storeCorrEdgeSelectivities, % all edges stored as corrEdgeSelectivity/3
-	%storeJointSels(JP), % JP von assignEntropyCost
-	!,
-	corrFeasible,
-	!,
-	renormAllCummSels,
-	!,
-	loadMarginalSels(MP2),
-	findall([NodeID, NodeSel], corrCummSel(NodeID, NodeSel), JP2),
-	!,
-	writeln('Corr MP2: ', MP2),
-	writeln('Corr JP2: ',JP2).
 
-renormAllCummSels:-
-	highNode(HN),
-	corrCummSel(NodeID, BaseSel),
-	NodeID =:= 0,
-	renormAllCummSels2(BaseSel, HN).
+resetPOGSizes :- 
+  findall([Source, Target, Term, Result], edge(Source, Target, Term, Result, _, _), Edges),
+  debug_writeln(resetPOGSizes1/0, 49, ['edges to be refreshed: ', Edges]),
+  resetPOGSizes1(Edges),
+  debug_writeln(resetPOGSizes1/0, 49, ['all edges refreshed', Edges]).
 
-renormAllCummSels2(1, _).
-renormAllCummSels2(_, NodeID):-
-	NodeID < 0.
-renormAllCummSels2(BaseSel, NodeID):-
-	renormAllCummSel(BaseSel, NodeID),
-	NodeIDNew is NodeID - 1,
-	renormAllCummSels2(BaseSel, NodeIDNew).
+resetPOGSizes1([]):-
+	debug_writeln(resetPOGSizes1/1, 52, ['end of recursion']).
+resetPOGSizes1([ [Source, Target, Term, Result] | Rest ]):-
+  resetPOGSize(Source, Target, Term, Result),
+  resetPOGSizes1(Rest).
+resetPOGSizes1(A):-
+  error_exit(resetPOGSizes1/1,'unexpected call',[A]).
 
-renormAllCummSel(BaseSel, NodeID):-
-	corrCummSel(NodeID2, CummSel),
-	NodeID2 =:= NodeID,
-	retract((corrCummSel(NodeID2, CummSel))),
-	CummSelNew is CummSel / BaseSel,
-	assert((corrCummSel(NodeID2, CummSelNew))),
-	debug_outln('renormAllCummSel: ',[NodeID2, CummSel, CummSelNew]).
+% derivated from resetNodeSize of entropy_opt.pl
+resetPOGSize(Source, Target, select(Arg, _), Result):-
+  resSize(Arg, Card),
+  correlationsSel(Source, Target, Sel),
+  Size is Card * Sel,
+  resetNodeSize(Result, Size),
+  debug_writeln(resetPOGSize/4, 69, ['fact reseted to: resultSize(',[Result, Size],')']),
+  retractall((edgeSelectivity(Source, Target, _))),
+  assert(edgeSelectivity(Source, Target, Sel)),
+  debug_writeln(resetPOGSize/4, 69, ['fact reseted to: edgeSelectivity(',[Source, Target, Sel],')']),
+  !.
 
-loadMarginalSels(CorrectedMarginalPreds):-
-	findall(PredID, corrMarginalSel(PredID, _), MarginalPredIDs),
-	loadMarginalSels2(MarginalPredIDs, CorrectedMarginalPreds).
+% derivated from resetNodeSize of entropy_opt.pl
+resetPOGSize(Source, Target, join(Arg1, Arg2, _), Result) :-
+  resSize(Arg1, Card1),
+  resSize(Arg2, Card2),
+  correlationsSel(Source, Target, Sel),
+  Size is Card1 * Card2 * Sel,
+  resetNodeSize(Result, Size),
+  debug_writeln(resetPOGSize/4, 69, ['fact reseted to: resultSize(',[Result, Size],')']),
+  retractall((edgeSelectivity(Source, Target, _))),
+  assert(edgeSelectivity(Source, Target, Sel)),
+  debug_writeln(resetPOGSize/4, 69, ['fact reseted to: edgeSelectivity(',[Source, Target, Sel],')']),
+  !.
 
-loadMarginalSels2([], []).
-loadMarginalSels2([ PredID | PredIDs ], [ [ PredID, CummSel ] | MP ]):-
-	corrCummSel(PredID, CummSel),
-	!,
-	loadMarginalSels2(PredIDs, MP).
-loadMarginalSels2([ PredID | PredIDs ], [ [ PredID, MargSel ] | MP ]):-
-	corrMarginalSel(PredID, MargSel),
-	!,
-	loadMarginalSels2(PredIDs, MP).
-% unexpected call
-loadMarginalSels2(A, B):-
-	error_exit(loadMarginalSels2/2,'unexpected call',[A,B]).
-	
-storeMarginalSels(MP):-
-	retractall((corrMarginalSel(_, _))),
-	storeMarginalSels2(MP).
+resetPOGSize(A, B, C, D):-
+  error_exit(resetNodeSize/4,'unexpected call',[A,B,C,D]).
 
-storeMarginalSels2([]).
-storeMarginalSels2([ [ PredID, MargSel ] | MP ]):-
-	resetMarginalSel(PredID, MargSel),
-	storeMarginalSels2(MP).
+correlationsSel(Source, _, 0):-
+  corrRelNodeCard(Source, SSel),
+  SSel =:= 0.
 
-resetMarginalSel(PredID, MargSel):-
-	retractall((corrMarginalSel(PredID, _))),
-	assert((corrMarginalSel(PredID, MargSel))).
+correlationsSel(Source, Target, Sel):-
+  corrRelNodeCard(Source, SSel),
+  corrRelNodeCard(Target, TSel),
+  Sel is TSel / SSel.
+
+correlationsSel(Source, _, _):-
+  not(corrRelNodeCard(Source, _)),
+  error_exit(correlationsSel/3, 'no corrRelNodeCard found for node',[Source]).
+
+correlationsSel(_, Target, _):-
+  not(corrRelNodeCard(Target, _)),
+  error_exit(correlationsSel/3, 'no corrRelNodeCard found for node',[Target]).
+
+correlationsSel(A, B, C):-
+  error_exit(correlationsSel/3,'unexpected call',[A,B,C]).
 
 
-% VJO Eintrittspunkt
-corrFeasible:-
-	findall([A,B],corrCummSel(A,B),X),writeln('corrCummSel/2: ',X),
-	highNode(HN),
-	corrFeasible2(HN).
+resetNodeSize(0, _):- % is still the correct size
+	debug_writeln(resetNodeSize/2, 52, ['node size of node 0 is still correct']).
+resetNodeSize(0.0, _):- % is still the correct size
+	debug_writeln(resetNodeSize/2, 52, ['node size of node 0.0 is still correct']).
+resetNodeSize(NodeID, Size) :- 
+	resultSize(Node,_),
+	Node=:=NodeID, % wegen int und real-Mischung!
+	retract((resultSize(Node,_))),
+	setNodeSize(Node, Size),
+	debug_writeln(resetNodeSize/2, 51, ['size of node ', Node, ' updated to ', Size]).
+resetNodeSize(NodeID, Size) :- 
+	Node is NodeID + 0.0, % NodeID has to be real
+	setNodeSize(Node, Size),
+	debug_writeln(resetNodeSize/2, 53, ['size ', Size, ' of node ', Node, ' inserted']).
+resetNodeSize(NodeID, Size) :- 
+	error_exit(resetNodeSize/2,'unexpected call',[NodeID, Size]).
 
-corrFeasible2(0).
-corrFeasible2(0.0).
-corrFeasible2(NodeID):-
-	% Kanten mit Selektivitaet zu 0 modifizieren
-	correct0Selectivity(NodeID),
-	!,
-	% Kanten mit Selektivitaet 1 modifizieren
-	% falls Betrachtung indirekter Vorgaenger noetig wird,
-	% erfolgt dies durch indirekte Rekursion in correct1Selectivity/2
-	findall(PrevNodeID, edge(PrevNodeID, NodeID, _, _, _, _), PrevNodeIDs),
-	debug_outln('corrFeasible2: check previous nodes ',[ NodeID, PrevNodeIDs]),
-	corrFeasible3(NodeID, PrevNodeIDs),
-	NextNodeID is NodeID - 1,
-	!,
-	corrFeasible2(NextNodeID).
+/*
+6.4 correct_nodeids/2
 
-corrFeasible3(_, []).
-corrFeasible3(NodeID, [ PrevNodeID | Rest ]):-
-	correct1Selectivity(PrevNodeID,NodeID),
-	corrFeasible3(NodeID, Rest).
+  The predicates resets all node identifiers in the predcounts queries
+result sets to the identifier of POG. (transfomrs int to real numbers)
 
-correct0Selectivity(NodeID):-
-	corrCummSel(NodeID, CummSel),
-	CummSel > 0,
-	debug_outln('correct0Selectivity(1): keep ', [NodeID, CummSel]).
-correct0Selectivity(NodeID):-
-	corrCummSel(NodeID, _),
-	debug_outln('correct0Selectivity(2): to increase ',NodeID),
-	% jede VorgaengerNode hat kleinere ID!
-	increaseSelectivityRecursive(NodeID, NodeID).
-% dann ist nichts zu korrigieren
-correct0Selectivity(NodeID):-
-	not(corrCummSel(NodeID, _)).
-correct0Selectivity(NodeID):-
-	error_exit(correct0Selectivity/1, 'unexpected call',[NodeID]).
-
-correct1Selectivity(PrevNodeID,NodeID):-
-	corrCummSel(NodeID, CummSel),
-	corrCummSel(PrevNodeID, PrevCummSel),
-	% dann ist die Selektivitaet der Kante kleiner als 1
-	CummSel < PrevCummSel,
-	debug_outln('correct1Selectivity(1): keep ', [PrevNodeID,NodeID,CummSel,PrevCummSel]).
-correct1Selectivity(PrevNodeID,NodeID):-
-	corrCummSel(NodeID, CummSel),
-	corrCummSel(PrevNodeID, CummSel),
-	% 10^-19 = Delta is CummSel - PrevCummSel,
-	%writeln('correct1Selectivity(2): to increase check delta ',[CummSel,PrevCummSel,Delta]),
-	% Kante mit Selektivitaet 0 gefunden
-	debug_outln('correct1Selectivity(2): to increase ', [PrevNodeID,NodeID,CummSel]),
-	% alle Vorgaengerknoten erhoehen
-	increaseSelectivityRecursive(PrevNodeID,PrevNodeID).
-correct1Selectivity(PrevNodeID,NodeID):-
-	corrCummSel(NodeID, CummSel),
-	corrCummSel(PrevNodeID, PrevCummSel),
-	% Kante mit Selektivitaet >1 gefunden
-	CummSel > PrevCummSel,
-	% das kann nicht sein => Fehler in Datenbasis
-	%findall([A,B],corrCummSel(A,B),X),writeln('corrCummSel/2: ',X),
-	writeln('WARN: correct1Selectivity: Inkonsistenz gefunden [ vonNode, zuNode ]',[PrevNodeID,NodeID],
-		' kummulierte Selektivitaeten [vonSel, nachSel] ',[PrevCummSel,CummSel],
-		' - wird korrigiert'),
-	% Delta berrechnen
-	Delta is CummSel - PrevCummSel,
-	% alle Vorgaengerknoten erhoehen (Inkonsistenz korrigieren)
-	increaseSelectivityRecursive(PrevNodeID,PrevNodeID, Delta),
-	% Kante mit Selektivitaet 1 entfernen
-	increaseSelectivityRecursive(PrevNodeID,PrevNodeID).
-% wenn fuer den unmittelbaren Vorgaenger des Knotens keine Selektivitaet bekannt ist,
-% dann pruefen, ob sie fuer indirekte Vorgaegner bekannt sind
-% (Suche nur bis bekannten gefunden)
-correct1Selectivity(PrevNodeID,NodeID):-
-	corrCummSel(NodeID, _),
-	not(corrCummSel(PrevNodeID, _)),
-	% unmittelbarer Vorgaenger nicht bekannt,
-	% dann fuer all dessen Vorgaenger pruefen
-	findall(NewPrevNodeID, edge(NewPrevNodeID, PrevNodeID, _, _, _, _), NewPrevNodeIDs),
-	debug_outln('previous nodes (recursive search): ',[ NodeID, PrevNodeID, NewPrevNodeIDs]),
-	corrFeasible3(NodeID, NewPrevNodeIDs).
-% es werden alle N´Knoten geprueft,
-% falls ein Knoten nicht bekannt, dann ignorieren
-correct1Selectivity(_,NodeID):-
-	not(corrCummSel(NodeID, _)).
-correct1Selectivity(PrevNodeID,NodeID):-
-	error_exit(correct1Selectivity/2,'unexpected call',[PrevNodeID,NodeID]).
-
-getEpsilon(Epsilon):-
-	retract(corrEpsilon(Epsilon)),
-	assert(corrEpsilon(Epsilon)),
-	!.
-getEpsilon(0.001):-
-	!.
-
-increaseSelectivityRecursive(NodeID, ChildNodeID):-
-	getEpsilon(Epsilon),
-	increaseSelectivityRecursive(NodeID, ChildNodeID, Epsilon).
-
-increaseSelectivityRecursive(NodeID, _, _):-
-	NodeID < 0.
-increaseSelectivityRecursive(NodeID, ChildNodeID, Epsilon):-
-	% % Node A ist VG von Node B, falls A=and(A,B)
-	equals_and(NodeID, NodeID, ChildNodeID),
-	increaseSelectivity(NodeID, Epsilon),
-	% jede VorgaengerNode hat kleinere ID!
-	NewNodeID is NodeID - 1,
-	increaseSelectivityRecursive(NewNodeID, ChildNodeID, Epsilon).
-increaseSelectivityRecursive(NodeID, ChildNodeID, Epsilon):-
-	% jede VorgaengerNode hat kleinere ID!
-	NewNodeID is NodeID - 1,
-	increaseSelectivityRecursive(NewNodeID, ChildNodeID, Epsilon).
-
-increaseSelectivity(NodeID, Epsilon):- % VJO int oder real
-	retract((corrCummSel(NodeID, CummSel))),
-	CummSelNew is CummSel + Epsilon,
-	assert((corrCummSel(NodeID, CummSelNew))),
-	debug_outln('increaseSelectivity: NodeID increased by Epsilon to value ',[NodeID,Epsilon,CummSelNew]).
-
-storeEntropyEdgeSelectivities([]).
-storeEntropyEdgeSelectivities([ [ _, NodeID, CummEdgeSel ] | Rest]):-
-	%storeCummEdgeSelectivity(PrevNodeID, NodeID, CummEdgeSel),
-	storeCummSel(NodeID, CummEdgeSel),
-	storeEntropyEdgeSelectivities(Rest).
-
+*/
 
 correct_nodeids([], []).
 correct_nodeids([ PCResult | PCResults ], [ PCResultNew | PCResultsNew ]):-
@@ -2543,70 +2522,380 @@ correct_nodeid(NodeID, NodeIDNew):-
 correct_nodeid(NodeID, _):-
 	writeln('Fehler: kann Fakt node/3 zu Node ',NodeID,' nicht finden').
 
-equals_and(A, B, C):-
-	A2 is round(A),
-	B2 is round(B),
-	C2 is round(C),
-	A2 =:= B2 /\ C2.
 
 
-	%
-get_real_nodeid(NodeID, NodeIDReal):-
-	node(NodeIDReal, _, _),
-	NodeID =:= NodeIDReal,
+
+/*
+6.5 corrFeasible/4
+
+  The predicate is a wrapper for corrFeasible/0. It was created to provide
+an interface equal to feasible/4 of entropy approach. The predicate has
+to be used to join selectivities of different approaches for iterative scaling
+algorithm. 
+
+*/
+
+corrFeasible(MP, JP, MP2, JP2):-
+	% facts corrCummSel/2 of correlations approach still exists
+	optimizerOption(correlations),
+	% store given selectivities as additional facts corrCummSel/2
+	storeMarginalSels(MP),
+	storeAdditionalJointSelectivities(JP), 
+	% now all known marginal and joint selectivities stored as fact corrCummSel/2
+	debug_writeln(corrFeasible/4, 39, ['all known node selectivities stored']),
+	debug_writelnFacts(corrFeasible/4, 39, ['known node selectivities [NodeId, Selectivity]: '], [N,S], corrCummSel(N,S)),
+	!,
+	% just for debugging issues - set predefined relative node cardinalities
+	setPredefinedNodeCards,
+	debug_writeln(corrFeasible/4, 39, ['all predefined node selectivities set']),
+	debug_writelnFacts(corrFeasible/4, 39, ['known node selectivities [NodeId, Selectivity]: '], [N,S], corrCummSel(N,S)),
+	% produce a consistent set of known selectivities
+	corrFeasible,
+	debug_writeln(corrFeasible/4, 39, ['all inconsistent selectivities corrected']),
+	debug_writelnFacts(corrFeasible/4, 39, ['known node selectivities [NodeId, Selectivity]: '], [N,S], corrCummSel(N,S)),
+	!,
+	% correct edges with selectivity of 0 or 1
+	highNode(HN),
+	correct0And1SelEdges(HN),
+	debug_writeln(corrFeasible/4, 39, ['all edges with selectivity 0 or 1 removed']),
+	debug_writelnFacts(corrFeasible/4, 39, ['known node selectivities [NodeId, Selectivity]: '], [N,S], corrCummSel(N,S)),
+	!,
+	% while running corrFeasible/0 the node 0 could be a selectivity greater than 1
+	% now correct that by dividing all selectivities by selectivity of node 0
+	renormAllCummSels,
+	!,
+	% build list of selectivities of marginal and joint predicates
+	loadMarginalSels(MP2),
+	findall([NodeID, NodeSel], corrCummSel(NodeID, NodeSel), JP2),
+	debug_writeln(corrFeasible/4, 39, ['finished']),
 	!.
 
+/*
+6.5.1 renormAllCummSels/0
 
-find_cheapest_Path([], []).
-	%writeln('xxxxx1== ').
-	%nicht join preds ignorieren
-find_cheapest_Path([ JoinEdge | JoinEdges ], CheapestEdge):-
-	JoinEdge = [ TargetNodeID, _, _ ],
-	node(TargetNodeID, [Predicate], _),
-	% is a join ?
-	Predicate = pr(_, _),
+  While using corrFeasible/0 to produce a consistent set of cardinalities
+the relative node cardinality of node 0 could become greater than 1.
+If the cardinality greater than 1 so divide all relative node cardinalities
+by the relative node cardinalities of node 0.
+
+*/
+
+renormAllCummSels:-
+	corrCummSel(NodeID, BaseSel),
+	NodeID =:= 0,
+	BaseSel =:= 1, % nothing to be done
+	debug_writeln(renormAllCummSels/0, 9000, ['relative node cardinality of node ',NodeID,' is ',BaseSel,' - nothing to do']).
+renormAllCummSels:-
+	highNode(HN),
+	corrCummSel(NodeID, BaseSel),
+	NodeID =:= 0,
+	debug_writeln(renormAllCummSels/0, 9000, ['relative node cardinality of node ',NodeID,' is ',BaseSel,' - correct all nodes']),
+	renormAllCummSels2(BaseSel, HN).
+
+renormAllCummSels2(1, _).
+renormAllCummSels2(_, NodeID):-
+	NodeID < 0,
+	debug_writeln(renormAllCummSels2/2, 9000, ['end of recursision']).
+renormAllCummSels2(BaseSel, NodeID):-
+	renormAllCummSel(BaseSel, NodeID),
+	debug_writeln(renormAllCummSels2/2, 9000, ['relative node cardinality of node ',NodeID,' corrected']),
+	NodeIDNew is NodeID - 1,
+	renormAllCummSels2(BaseSel, NodeIDNew).
+
+renormAllCummSel(BaseSel, NodeID):-
+	corrCummSel(NodeID2, CummSel),
+	NodeID2 =:= NodeID,
+	retract((corrCummSel(NodeID2, CummSel))),
+	CummSelNew is CummSel / BaseSel,
+	assert((corrCummSel(NodeID2, CummSelNew))),
+	debug_writeln(renormAllCummSel/2, 9000, ['relative node cardinality of node ',NodeID,' corrected from ',CummSel,' to ',CummSelNew]).
+renormAllCummSel(_, NodeID):-
+	node(NodeID2,_,_),
+	NodeID2 =:= NodeID,
+	not(corrCummSel(NodeID2, _)),
+	debug_writeln(renormAllCummSel/2, 9000, ['no relative node cardinality of node ',NodeID,' known']).
+
+/*
+6.5.2 loadMarginalSels/1
+
+  The predicates constructs the new list of selectivities of
+marginal predicates. If once was corrected by corrFeasible/0
+the corrected value is used.
+
+*/
+
+loadMarginalSels(CorrectedMarginalPreds):-
+	findall(PredID, corrMarginalSel(PredID, _), MarginalPredIDs),
+	loadMarginalSels2(MarginalPredIDs, CorrectedMarginalPreds).
+
+loadMarginalSels2([], []).
+% use fact corrCummSel/2 to get selectivity of marginal predicate
+loadMarginalSels2([ PredID | PredIDs ], [ [ PredID, CummSel ] | MP ]):-
+	corrCummSel(PredID, CummSel),
 	!,
-	%writeln('xxxxx2-> ',[TargetNodeID]),
-	find_cheapest_Path(JoinEdges, CheapestEdge).
-find_cheapest_Path([ JoinEdge | JoinEdges], CheapestEdge):-
-	%writeln('xxxxx4-> ',[JoinEdge]),
-	find_cheapest_Path(JoinEdges, CheapestEdgeOld),
-	%writeln('xxxxx4<- ',[CheapestEdgeOld]),
+	loadMarginalSels2(PredIDs, MP).
+% if no fact corrCummSel/2 exists, use corrMarginalSel/2
+loadMarginalSels2([ PredID | PredIDs ], [ [ PredID, MargSel ] | MP ]):-
+	corrMarginalSel(PredID, MargSel),
 	!,
-	JoinEdge = [ _, JoinEdgeCost, _ ],
-	(
-		CheapestEdgeOld = [ _, CheapestEdgeOldCost, _ ],
-		JoinEdgeCost >= CheapestEdgeOldCost
-		->
-		CheapestEdge = CheapestEdgeOld;
-		CheapestEdge = JoinEdge
-	).
+	loadMarginalSels2(PredIDs, MP).
+% unexpected call
+loadMarginalSels2(A, B):-
+	error_exit(loadMarginalSels2/2,'unexpected call',[A,B]).
+	
+/*
+6.5.3 storeMarginalSels/1
 
-and(X,Y):-
-	X,
-	Y.
+  stores known selectivities as facts corrMarginalSel/2 or corrCummSel/2
 
-contains(E1, [ E2 ]):-
-	E1 =:= E2.
-contains(E1, [ E2 | _ ]):-
-	E1 =:= E2.
-contains(E,[ _ | S ]):-
-	not(S=[]),
-	contains(E,S).
+*/
 
+storeMarginalSels(MP):-
+	retractall((corrMarginalSel(_, _))),
+	storeMarginalSels2(MP).
 
+storeMarginalSels2([]).
+storeMarginalSels2([ [ PredID, MargSel ] | MP ]):-
+	resetMarginalSel(PredID, MargSel),
+	%??? vjo hier nicht gut, besser weiter oben
+	%set MargSel only, if no Sel set for PredID
+	appendCummSel(PredID, MargSel),
+	storeMarginalSels2(MP).
 
+resetMarginalSel(PredID, MargSel):-
+	retractall((corrMarginalSel(PredID, _))),
+	assert((corrMarginalSel(PredID, MargSel))).
 
-correct_predlist([], _, []).
-correct_predlist([ [JoinPred] | PredIdentList ], UsedJoinPredicate, [ JoinPred | PredIdentListNew]):-
-	JoinPred =\= UsedJoinPredicate,
-	debug_outln('xxx2',[[JoinPred]]),
+storeAdditionalJointSelectivities([]).
+storeAdditionalJointSelectivities([ [ _, NodeID, CummEdgeSel ] | Rest]):-
+	storeCummSel(NodeID, CummEdgeSel),
+	storeAdditionalJointSelectivities(Rest).
+
+/*
+6.5.4 
+
+  The predicate checks the known relative node cardinalities stored as facts corrCummSel/2.
+If the set of cardinalities not consistent the predicate generates a consistent set.
+
+*/
+
+corrFeasible:-
+	findall([A,B],corrCummSel(A,B),KnownSelectivities),
+	debug_writeln(corrCummSel/2,9,['known selectivities: ',KnownSelectivities]),
+	highNode(HN),
+	retractall((nodeCardRange(_,_))),
+	retractall((nodeCardList(_,_))),
+	% block 1 (lines 003 - 015)
+	initNodeCardLimits(0, HN),
+  	findall([N,L,U],nodeCardRange(N,[L,U]),X), 
+  	debug_writeln(corrFeasible/0, 49, ['initial cardinality ranges of nodes [node, low, up]: ',X]),
+	% other blocks (lines 020 - 106)
+	correctNodeCards(HN),
+  	findall([N,L,U],nodeCardRange(N,[L,U]),X2),
+	debug_writeln(corrFeasible/0, 49, ['final cardinality ranges of nodes [node, low, up]: ',X2]),
+	% reset facts corrCummSel/2
+  	findall([Node, Sel],nodeCardRange(Node,[Sel,Sel]),NodesToCorrect),
+	correctCorrCummSels(NodesToCorrect).
+
+/*
+6.5.4.1 initNodeCardLimits/0
+
+  block 1
+
+*/
+
+initNodeCardLimits(CurrentNode, HighestNode):-
+	CurrentNode > HighestNode,
+	debug_writeln(initNodeCardLimits/2, 52, ['end of recursion']).
+initNodeCardLimits(CurrentNode, HighestNode):-
+	corrCummSel(CurrentNodeId, RelCard),
+	CurrentNode =:= CurrentNodeId, % wegen Durchmischung von int und real
+	debug_writeln(initNodeCardLimits/2, 59, ['set nodeCardRange of known node [node, low, up]: ',CurrentNodeId, [RelCard, RelCard]]),
+	assert((nodeCardRange(CurrentNodeId, [RelCard, RelCard]))),
 	!,
-	correct_predlist(PredIdentList, UsedJoinPredicate, PredIdentListNew).
-correct_predlist([ Pred | PredIdentList ], UsedJoinPredicate, [ Pred | PredIdentListNew]):-
-	debug_outln('xxx3',[Pred]),
-	correct_predlist(PredIdentList, UsedJoinPredicate, PredIdentListNew).
+	NextNode is CurrentNode + 1.0,
+	initNodeCardLimits(NextNode, HighestNode).
+initNodeCardLimits(CurrentNode, HighestNode):-
+	% fact corrCummSel/2 does not exist for current node
+	% get real nodeID
+	node(Curr,_,_),
+	Curr=:=CurrentNode,
+	!,
+	findall(ULim, (edge(Prev, Curr, _,_,_,_), nodeCardRange(Prev,[_,ULim])), ULimPrevs),
+	% select the minimum of upper limit of all previous nodes
+	min_list([1 | ULimPrevs], UpperLimit),
+	debug_writeln(initNodeCardLimits/2, 59, ['set nodeCardRange of UNKNOWN node [node, low, up]: ',Curr, [0, UpperLimit]]),
+	assert((nodeCardRange(Curr, [ 0, UpperLimit]))),
+	!,
+	NextNode is CurrentNode + 1.0,
+	initNodeCardLimits(NextNode, HighestNode).
 
+/*
+6.5.4.2 correctNodeCards/1
+
+  blocks 2 to last
+
+*/
+
+correctNodeCards(CurrentNode):-
+	CurrentNode<0,
+	debug_writeln(correctNodeCards/1, 52, ['end of recursion']).
+correctNodeCards(CurrentNode):-
+	% get real nodeID
+	node(Curr,_,_),
+	Curr=:=CurrentNode,
+	!,
+	% block 3 (lines 030 - 035)
+	findall(SuccCardList, (edge(Curr,Succ,_,_,_,_), nodeCardList(Succ, SuccCardList)), SuccCardLists),
+	debug_writeln(correctNodeCards/1, 59, ['node ',Curr,': card lists of successors: ',SuccCardLists]),
+	!,
+	% block 4 (lines 040 - 060)
+	mergeCardLists(SuccCardLists, MergedList),
+	debug_writeln(correctNodeCards/1, 59, ['node ',Curr,': merged card lists: ',MergedList]),
+	!,
+	% block 5 (lines 070 - 079)
+	calculateLowerLimit(MergedList, LowerLimit),
+	debug_writeln(correctNodeCards/1, 59, ['node ',Curr,': calculated lower limit of card is: ',LowerLimit]),
+	!,
+	% block 6 (lines 080 - 095)
+	% resets nodeCardRange/2
+	checkConsistencyAndCorrectNodeCard(Curr, LowerLimit),
+	!,
+	% block 7 (lines 100 - 106)
+	nodeCardRange(Curr, Tuple),
+	assert(nodeCardList( Curr, [ Tuple | MergedList] )), 
+	debug_writeln(correctNodeCards/1, 59, ['node ',Curr,': set card list: ',[ Tuple | MergedList]]),
+	!,
+	NextNode is CurrentNode - 1.0,
+	correctNodeCards(NextNode).
+/*
+6.5.4.3 mergeCardLists/2
+
+ block 4
+
+*/
+
+mergeCardLists([], []):-
+	debug_writeln(mergeCardLists/2, 62, ['end of recursion']).
+mergeCardLists(SuccCardLists, MergedList):-
+	nth1(1,SuccCardLists, FirstList),
+	length(FirstList, CardListLen),
+	debug_writeln(mergeCardLists/2, 69, ['merge list ', SuccCardLists,' with ', CardListLen,' levels']),
+	mergeCardLists(SuccCardLists, MergedList, 1, CardListLen).
+
+mergeCardLists(_, [], Level, HighestLevel):-
+	Level > HighestLevel,
+	debug_writeln(mergeCardLists/4, 72, ['end of recursion']).
+mergeCardLists(SuccCardLists, [ MergedTuples | MergedList ], Level, HighestLevel):-
+	NextLevel is Level + 1,
+	mergeCardLists(SuccCardLists, MergedList, NextLevel, HighestLevel),
+	!,
+	sumLimits(SuccCardLists, Level, SumLowerLimit, SumUpperLimit),
+	LowerLimit is SumLowerLimit / Level,
+	UpperLimit is SumUpperLimit / Level,
+	debug_writeln(mergeCardLists/4, 79, ['tuples at level ',Level,' merged to ',[LowerLimit,UpperLimit]]),
+	MergedTuples = [ LowerLimit, UpperLimit ].
+
+sumLimits([], _, 0, 0):-
+	debug_writeln(sumLimits/4, 82, ['end of recursion']).
+sumLimits([ SuccCardList | SuccCardLists ], Level, SumLowerLimit, SumUpperLimit):-
+	sumLimits(SuccCardLists, Level, SumLowerLimitOld, SumUpperLimitOld),
+	!,
+	nth1(Level, SuccCardList, Tuple),
+	Tuple = [ LowerLimit, UpperLimit ],
+	debug_writeln(sumLimits/4, 89, ['tuple ',Tuple,' to be merged at level ',Level]),
+	SumLowerLimit is SumLowerLimitOld + LowerLimit,
+	SumUpperLimit is SumUpperLimitOld + UpperLimit.
+sumLimits(A,B,C,D):-
+	error_exit(sumLimits/4,'unexpected call',[A,B,C,D]).
+
+/*
+6.5.4.4 calculateLowerLimit/2
+
+ block 5
+
+*/
+
+calculateLowerLimit([], 0):-
+	debug_writeln(calculateLowerLimit/2, 62, ['end of recursion']).
+calculateLowerLimit([ [ LowLim, _ ] | MergedList ], LowerLimit):-
+	calculateLowerLimit(MergedList, LowerLimitOld),
+	!,
+	% the expression -LowerLimitOld produces the alternating signs for the odd/even levels
+	LowerLimit is LowLim - LowerLimitOld.
+	
+
+/*
+6.5.4.5 checkConsistencyAndCorrectNodeCard/2
+
+ block 6
+
+*/
+
+checkConsistencyAndCorrectNodeCard(Curr, LowerLimit):-
+	nodeCardRange(Curr, [ StoredLowLim, StoredUpLim]),
+	!,
+	debug_writeln(checkConsistencyAndCorrectNodeCard/2, 69, ['node ',Curr,' check consistency of card against max of set ',
+		[StoredUpLim, [StoredLowLim, LowerLimit]]]),
+	max_list([StoredLowLim, LowerLimit], NewLowerLimit),
+	resetNodeCardRange(Curr, NewLowerLimit, StoredUpLim).
+checkConsistencyAndCorrectNodeCard(Curr, _):-
+	error_exit(checkConsistencyAndCorrectNodeCard/2, 'unexpected call (nodeCardRange/2 not set for node)',[Curr]).
+
+resetNodeCardRange(Curr, NewLowerLimit, StoredUpLim):-
+	NewLowerLimit =< StoredUpLim,
+ 	debug_writeln(resetNodeCardRange/3, 79,['node ',Curr,': cardinality range consistent: ', [Curr, NewLowerLimit, StoredUpLim]]).
+resetNodeCardRange(Curr, NewLowerLimit, StoredUpLim):-
+	NewLowerLimit > StoredUpLim,
+	info_continue(resetNodeCardRange/3, ['cardinality range ', [NewLowerLimit, StoredUpLim],' of node ',Curr,' inconsistent']),
+	retract((nodeCardRange(Curr,_))),
+	assert((nodeCardRange(Curr,[ NewLowerLimit, NewLowerLimit]))).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+7. the rest
+
+7.1 xxx
+
+7.1.1 xxx
+
+*/
+
+
+
+
+
+
+/*
+6.5.4.5 get\_join\_predicates/3
+
+  returns all join predicates applicable to the relations
+
+*/
 
 % alle JoinPreds fuer Relation ermitteln
 get_join_predicates(Relation, JoinPredicateIDs, JoinPredicates):-
@@ -2621,6 +2910,13 @@ get_join_predicates2(Relation, [ Predicate | Predicates ], [ [PredID] | JoinPred
 	get_join_predicates2(Relation, Predicates, JoinPredicateIDs, JoinPredicates).
 get_join_predicates2(Relation, [ _ | Predicates ], JoinPredicateIDs, JoinPredicates):-
 	get_join_predicates2(Relation, Predicates, JoinPredicateIDs, JoinPredicates).
+
+/*
+6.5.4.5 get\_sel\_predicates/3
+
+  returns all selection predicates applicable to the relations
+
+*/
 
 % alle SelPreds ermitteln
 get_sel_predicates(Relation, SelPredicateIDs, SelPredicates):-
@@ -2640,6 +2936,13 @@ get_sel_predicates2(Relation, [ Predicate | Predicates ], [ PredID | SelPredicat
 	get_sel_predicates2(Relation, Predicates, SelPredicateIDs, SelPredicates).
 get_sel_predicates2(Relation, [ _ | Predicates ], SelPredicateIDs, SelPredicates):-
 	get_sel_predicates2(Relation, Predicates, SelPredicateIDs, SelPredicates).
+
+/*
+6.5.4.5 get\_all\_join\_sets/3
+
+  find all sets of join predicates to join the relations
+
+*/
 
 %alle Kombis von JoinPreds ermitteln, die reichen alle Relationen zu verbinden
 get_all_join_sets(Relation, JoinPredicates, JoinSets):-
@@ -2665,43 +2968,77 @@ get_join_set(Relations, [ JoinPredicate | JoinPredicates ], JointRelations, Join
 	%ist Alternativpfad fuer findall, deshalb nicht: subset(PredRelations, JointRelations),
 	get_join_set(Relations, JoinPredicates, JointRelations, JoinSet).
 	
+/*
+6.5.4.5 get\_smallest\_join/3
+
+  looks for the join set with the smallest result set
+
+*/
+
 % Kosten aller Kombis ermitteln
 % geht von Unabhaengigkeit der Predikate aus
 get_smallest_join([ JoinSet | [] ], [JoinSet], Selectivity):-
 	get_join_selectivity(JoinSet, Selectivity).
-get_smallest_join([ JoinSet | JoinSets ], JoinSetNew, SelectivityNew):-
+get_smallest_join([ JoinSet | JoinSets ], JoinSetOld, SelectivityOld):-
+	not(JoinSets=[]),
 	get_smallest_join(JoinSets, JoinSetOld, SelectivityOld),
 	get_join_selectivity(JoinSet, Selectivity),
-	(
-		Selectivity < SelectivityOld
-		->
-		SelectivityNew = Selectivity,
-		JoinSetNew = JoinSet;
-		SelectivityNew = SelectivityOld,
-		JoinSetNew = JoinSetOld
-	).
+	Selectivity >= SelectivityOld.
+get_smallest_join([ JoinSet | JoinSets ], JoinSet, Selectivity):-
+	not(JoinSets=[]),
+	get_join_selectivity(JoinSet, Selectivity).
 
-get_join_selectivity([], 1).
+
+get_join_selectivity([], 1):-
+	!.
 get_join_selectivity([ JoinPredID | JoinSet ], SelectivityNew):-
 	get_join_selectivity(JoinSet, SelectivityOld),
 	get_joinpred_selectivity(JoinPredID, Selectivity),
-	SelectivityNew is SelectivityOld * Selectivity.
+	SelectivityNew is SelectivityOld * Selectivity,
+	!.
 get_join_selectivity(Unknown, _):-
-	writeln('ERROR: unexpected call get_join_selectivity(',Unknown,',_)').
+	error_exit(get_join_selectivity/2,'unexpected call',[Unknown]).
 
 get_joinpred_selectivity(JoinPredID, Selectivity):-
 	get_real_nodeid(JoinPredID, JoinPredIDReal),
-	edgeSelectivity(0, JoinPredIDReal, Selectivity).
+	edgeSelectivity(0, JoinPredIDReal, Selectivity),
+	!.
 get_joinpred_selectivity(JoinPredID, 1):-
+	get_real_nodeid(JoinPredID, JoinPredIDReal),
+	not(edgeSelectivity(0, JoinPredIDReal, _)),
 	writeln('WARN: get_joinpred_selectivity/2: no edgeSelectivity/3 found for node ',JoinPredID,' - use selectivity of 1').
+
+/*
+6.5.4.5 get\_cheapest\_path/2
+
+ finds the cheapest path
+
+ The implementation using get_first_path/2 supports searching of the cheapest path
+which is translateable to a sample query.
+
+*/
 
 % Algo Dijkstra ist besser, aber noch unnoetig
 get_cheapest_path(JoinSet, CheapestJoinPath):-
 	flatten(JoinSet, JoinSetTmp),
-	sum_elements_of_list(JoinSetTmp, TargetNodeID),
+	sumlist(JoinSetTmp, TargetNodeID),
 	findall([Cost, PredIDs, Path], get_path_cost(0, TargetNodeID, Path, PredIDs, Cost), Paths),
 	msort(Paths, OrderedPaths),
-	OrderedPaths = [ [ _, _, CheapestJoinPath ] | _ ].
+	!,
+	% doesn't support: try different paths
+	%OrderedPaths = [ [ _, _, CheapestJoinPath ] | _ ],
+	% get first path
+	get_first_path(OrderedPaths, CheapestJoinPath).
+
+% use the first path
+get_first_path([[ _, _, CheapestJoinPath] | _], CheapestJoinPath):-
+	true.
+% if the last returned path is not translatable try next one
+get_first_path([ _ | Rest], CheapestJoinPath):-
+	not(Rest=[]),
+	get_first_path(Rest, CheapestJoinPath).
+        
+
 
 	
 get_path_cost(NodeID2, NodeID, [], [], 0):-
@@ -2717,50 +3054,248 @@ get_path_cost(LastNodeID, TargetNodeID, [ CostEdge | CostEdges ], [ PredID | Pre
 	get_path_cost(NewNodeID, TargetNodeID, CostEdges, PredIDs, CostOld),
 	CostNew is CostOld + Cost.
 
-sum_elements_of_list([], 0).
-sum_elements_of_list([ Elem | List ], SumNew):-
-	sum_elements_of_list(List, SumOld),
-	SumNew is SumOld + Elem.
+/*
+6.5.4.5 get\_cheapest\_path/2
 
-% VJO Nachrichten
-info_continue(Pred, MessageList):-
-	write_list([ 'INFO: ', Pred, ': ']),
-	write_list(MessageList),
-	nl.
-warn_continue(Pred, MessageList):-
-	write_list([ 'WARN: ', Pred, ': ']),
-	write_list(MessageList),
-	nl.
-error_exit(Pred, MessageList):-
-	write_list([ 'ERROR: ', Pred, ': ']),
-	write_list(MessageList),
-	nl,
-	abort.
+ finds the cheapest path
+
+*/
+
+% there are 2 named samples which could be used
+setSamplesToBeUsed(Relations):-
+	% if relation instances have to use the same sample for any usage
+	% the facts corrUsageCounter/2 and sampleToBeUsed/2 have to be
+	% global at level build_queries/0
+	retractall(corrUsageCounter(_,_)),
+	setSamplesToBeUsed2(Relations).
+
+% predcounts query uses just one relation
+setSamplesToBeUsed2(Relation):-
+	Relation = rel(_,_),
+	increaseRelationCounter(Relation, CurrentCounter),
+	setSampleToBeUsed(Relation, CurrentCounter).
+% predcounts query uses more than one relation
+setSamplesToBeUsed2([]):-
+	debug_writeln(storeSamplesToBeUsed/2, 9000, ['end of recusision']),
+	!.
+setSamplesToBeUsed2([ Relation | Rest ]):-
+	not(Relation=[]),
+	increaseRelationCounter(Relation, CurrentCounter),
+	setSampleToBeUsed(Relation, CurrentCounter),
+	!,
+	setSamplesToBeUsed2(Rest).
+
+increaseRelationCounter(Relation, CurrentCounter):-
+	retract(corrUsageCounter(Relation, CurrentCounter)),
+	NextCounter is CurrentCounter + 1,
+	assert(corrUsageCounter(Relation, NextCounter)).
+increaseRelationCounter(Relation, 1):-
+	assert(corrUsageCounter(Relation, 1)).
 
 
-equals_or_contains(Relation, Relation2):-
-	set_equal(Relation, Relation2),
-	debug_outln('equals_or_contains: Relation of Predicate equals Relation of query to build').
+setSampleToBeUsed(Relation, Counter):-
+	debug_writeln(setSampleToBeUsed/2, 999, ['call: ', [Relation, Counter]]),
+	fail.
+% just for debugging issues - use a sample predefined by fact correlationsPredefinedSamples/2
+setSampleToBeUsed(Relation, _):-
+	retract(correlationsPredefinedSamples(Relation, PredefinedSample)),
+	assert(correlationsPredefinedSamples(Relation, PredefinedSample)),
+	correlationsPredefinedSamples(Relation, PredefinedSample),
+	assert(sampleToBeUsed(Relation, PredefinedSample)),
+	warn_continue(setSampleToBeUsed/2, ['use predefined sample ',PredefinedSample,' for relation ',Relation]).
+% second usage of relation - use sample S
+setSampleToBeUsed(Relation, 2):-
+	Relation = rel(Name,_),
+	% costruct sample name
+	SampleSuffix = '_sample_s',
+	atom_concat(Name, SampleSuffix, NameSample),
+	downcase_atom(NameSample,DCNameSample),
+	% if neccesary create sample (the name of created sample have to be equal to NameSample !!!)
+	ensureSampleSexists(Name),
+	% register sample
+	assert(sampleToBeUsed(Relation, DCNameSample)),
+	debug_writeln(setSampleToBeUsed/2, 9000, ['register sample ',DCNameSample,' for relation ',Relation,' (stored as sampleToBeUsed/2)']).
+% first usage of relation - use sample J
+setSampleToBeUsed(Relation, 1):-
+	Relation = rel(Name,_),
+	% costruct sample name
+	SampleSuffix = '_sample_j',
+	atom_concat(Name, SampleSuffix, NameSample),
+	downcase_atom(NameSample,DCNameSample),
+	% if neccesary create sample (the name of created sample have to be equal to NameSample !!!)
+	ensureSampleJexists(Name),
+	% register sample
+	assert(sampleToBeUsed(Relation, DCNameSample)),
+	debug_writeln(setSampleToBeUsed/2, 9000, ['register sample ',DCNameSample,' for relation ',Relation,' (stored as sampleToBeUsed/2)']).
+% other usages of relation - use relation itself (another implementation: create new samples)
+setSampleToBeUsed(Relation, Id):-
+	Id >= 3,
+	Relation = rel(_,_),
+	assert(sampleToBeUsed(Relation, Relation)),
+	warn_continue(setSampleToBeUsed/2, ['no more sample avalible for relation ',Relation]).
+% unexpected call
+setSampleToBeUsed(A,B):-
+	error_exit(setSampleToBeUsed/2,'unexpected call',[A,B]).
 
-equals_or_contains([ Relation2 | _ ], Relation2):-
-	debug_outln('equals_or_contains: Relation ',Relation2,
-		' of Predicate in Relations of query to build').
+removeSamplesToBeUsed:-
+	retractall(sampleToBeUsed(_,_)),
+	debug_writeln(removeSampleSuffixes/0, 9000, ['facts sampleToBeUsed/2 retracted']).
 
-equals_or_contains([], Relation2):-
-	debug_outln('equals_or_contains: Relation ',Relation2,
-		' of Predicate not in Relations of query to build'),
+construct_sample_plan(Path, Plan):-
+	plan(Path, TmpPlan),
+	!, % if prepare_sample_query/2 fails because of untranslatable TmpPlan do not retry plan/2
+	prepare_sample_query(TmpPlan, Plan).
+	
+prepare_sample_query(In, Out):-
+	%writeln('in: ', In),
+	query_sample(In, Out),
+	%writeln('out: ', Out),
+	!.
+prepare_sample_query(In, Out):-
+	warn_continue(prepare_sample_query/2, ['unable to build sample query', [In, Out]]),
+	!,
 	fail.
 
-equals_or_contains([ _ | Relations ], Relation2):-
-	equals_or_contains(Relations,Relation2).
+query_sample([],[]) :- 
+	!.
+
+query_sample([First|Next], [FirstResult|NextResult]) :-
+	query_sample(First, FirstResult),
+	query_sample(Next, NextResult), !.
+
+query_sample(IndexName, _) :-
+	atomic(IndexName),
+	dcName2externalName(DCindexName,IndexName),
+	databaseName(DB),
+	storedIndex(DB,_,_,_,DCindexName),
+	% dann ist der Ausdruck fuer sample nicht anwendbar
+	% Suche nach sample query ist fehlgeschlagen
+	warn_continue(query_sample/2,['using of indexes not supported for sample queries - try another path',IndexName]),
+	!,
+	fail.
+
+query_sample(rel(Name, V), rel(NameSample, V)) :-
+	sampleToBeUsed(rel(Name, V), NameSample),
+	debug_writeln(query_sample/2, 9000, ['use sample ',NameSample,' instead of relation ',rel(Name, V)]),
+	!.
+
+query_sample( rel(Name, V), rel(Name, V) ) :-
+	atomic(rel(Name, V)), 
+	warn_continue(query_sample/2, ['no sample of relation ',rel(Name, V),' usable - use relation itself']),
+	!.
+
+query_sample( Term, Term ) :-
+	atomic(Term), !.
+
+query_sample( Term, Result ) :-
+  not(Term=rel(_, _)),
+	compound(Term),
+	not(is_list(Term)),
+	Term =.. [Op|Args],
+	query_sample( Args, ArgsResult ),
+	Result =.. [Op|ArgsResult], !.
 
 
 
-set_debug_list(List):-
-	retractall((debug_list(_))),
-	assert((debug_list(List))).
+correct0And1SelEdges(Node):-
+	Node =< 0.
+correct0And1SelEdges(Node):-
+	corrCummSel(Node, NodeSel),
+	NodeSel =:= 0,
+	!,
+	getEpsilon(Epsilon),
+	increaseNodeAtomCard(Node, Epsilon).
+correct0And1SelEdges(Node):-
+	corrCummSel(Node, NodeSel),
+	findall([Sel, Succ], (corrCummSel(Succ, Sel), Succ>Node, equals_and(Node, Succ, Node)), SuccSels),
+	not(SuccSels=[]),
+	msort(SuccSels, SuccSelsAsc),
+	reverse(SuccSelsAsc, SuccSelsDesc),
+	SuccSelsDesc = [ [MaxSuccSel, _] | _ ],
+	!,
+	checkAndCorrectNodeSel(Node, NodeSel, MaxSuccSel),
+	!,
+	NextNode is Node - 1,
+	correct0And1SelEdges(NextNode).
+correct0And1SelEdges(Node):-
+	NextNode is Node - 1,
+	correct0And1SelEdges(NextNode).
 
-set_debug_level(Level):-
-	retractall((debug_level(_))),
-	assert((debug_level(Level))).
+checkAndCorrectNodeSel(_, NodeSel, MaxSuccSel):-
+	getEpsilon(Epsilon),
+	NodeSel >= MaxSuccSel + Epsilon,
+	!.
+checkAndCorrectNodeSel(Node, NodeSel, MaxSuccSel):-
+	getEpsilon(Epsilon),
+	NodeSel < MaxSuccSel + Epsilon,
+	Delta is ( MaxSuccSel + Epsilon ) - NodeSel,
+	!,
+	increaseNodeAtomCard(Node, Delta).
+
+increaseNodeAtomCard(Node, Delta):-
+	% get all previous nodes with known selectivity at node itself (test against succ nodes!)
+	findall(Prev, (corrCummSel(Prev, _), Prev=<Node, equals_and(Prev,Prev,Node)), PrevNodes),
+	increaseNodes(PrevNodes, Delta).
+
+increaseNodes([], _).
+increaseNodes([ Node | Rest ], Delta):-
+	retract(corrCummSel(Node,Sel)),
+	SelNew is Sel + Delta,
+	assert(corrCummSel(Node,SelNew)),
+	!,
+	increaseNodes(Rest, Delta).
+	
+
+getEpsilon(Epsilon):-
+	retract(correlationsEpsilon(Epsilon)),
+	assert(correlationsEpsilon(Epsilon)),
+	!.
+getEpsilon(1e-05):-
+	!.
+
+setPredefinedNodeCards:-
+	retract(correlationsPredefinedNodeCard(A,B)),
+	assert(correlationsPredefinedNodeCard(A,B)),
+	findall([Node,Sel], correlationsPredefinedNodeCard(Node, Sel), PredefCards),
+	setPredefinedNodeCards(PredefCards).
+setPredefinedNodeCards.
+
+setPredefinedNodeCards([]).
+setPredefinedNodeCards([ [ Node, Card ] | Rest]):-
+	not(Node=[]),
+	retractall(corrCummSel(Node,_)),
+	assert(corrCummSel(Node,Card)),
+	warn_continue(setPredefinedNodeCards/1, ['predefined relative node cardinality ',Card,' set for node ',Node]),
+	!,
+	setPredefinedNodeCards(Rest).
+
+%increaseSelectivityRecursive(NodeID, ChildNodeID):-
+%	getEpsilon(Epsilon),
+%	increaseSelectivityRecursive(NodeID, ChildNodeID, Epsilon).
+
+%increaseSelectivityRecursive(NodeID, _, _):-
+%	NodeID < 0.
+%increaseSelectivityRecursive(NodeID, ChildNodeID, Epsilon):-
+%	% % Node A ist VG von Node B, falls A=and(A,B)
+%	equals_and(NodeID, NodeID, ChildNodeID),
+%	increaseSelectivity(NodeID, Epsilon),
+%	% jede VorgaengerNode hat kleinere ID!
+%	NewNodeID is NodeID - 1,
+%	increaseSelectivityRecursive(NewNodeID, ChildNodeID, Epsilon).
+%increaseSelectivityRecursive(NodeID, ChildNodeID, Epsilon):-
+%	% jede VorgaengerNode hat kleinere ID!
+%	NewNodeID is NodeID - 1,
+%	increaseSelectivityRecursive(NewNodeID, ChildNodeID, Epsilon).
+%
+%increaseSelectivity(NodeID, Epsilon):- % VJO int oder real
+%	retract((corrCummSel(NodeID, CummSel))),
+%	CummSelNew is CummSel + Epsilon,
+%	assert((corrCummSel(NodeID, CummSelNew))),
+%	debug_outln('increaseSelectivity: NodeID increased by Epsilon to value ',[NodeID,Epsilon,CummSelNew]).
+
+
+
+
+
+
 
