@@ -62,7 +62,7 @@ The type system of the Temporal Algebra can be seen below.
         & \to \textrm{TIME}     & {\underline{\smash{\mathit{instant}}}} \\
 \textrm{BASE} \cup \textrm{TIME}        & \to \textrm{RANGE}    & {\underline{\smash{\mathit{range}}}} \\
 \textrm{BASE} \cup \textrm{SPATIAL}     & \to \textrm{TEMPORAL} & {\underline{\smash{\mathit{intime}}}},
-                                                                  {\underline{\smash{\mathit{moving}}}}
+{\underline{\smash{\mathit{moving}}}}
 \end{array}
 \end{displaymath}
 
@@ -2104,7 +2104,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
                                timeInterval.start.ToDouble(),
                                timeInterval.end.ToDouble() );
   }
-  
+
   virtual const Rectangle<3> BoundingBox(const double scaleTime) const
   {
     return Rectangle<3>( true, MIN( p0.GetX(), p1.GetX() ),
