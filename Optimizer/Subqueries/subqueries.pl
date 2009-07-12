@@ -766,8 +766,6 @@ joinPred(_, OuterRels, Pred, [], [], OuterPreds, []) :-
   Pred =.. [_ | Args],
   areAttributesOf(Args, OuterRels),
   makeList(Pred, OuterPreds).
-  
-% joinPred(_, _, Pred, Pred, [], [], []).
 
 joinPred(InnerRels, OuterRels, Pred, [Pred], [], [], OuterAttrs) :-
   makeList(InnerRels, IRelsList),
@@ -922,7 +920,6 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, New
   ),  
   TempRelation3 =.. [groupby, from(select AttrList, where([TempRel1, TempRel2], JoinPreds2)), JoinAttrs2],
   dm(subqueryDebug, ['\nTemporaryRel3: ', TempRelation3]), 
-%  optimize(TempRelation3, Plan, _), 
   rewriteQuery(TempRelation3, RQuery),
   callLookup(RQuery, Query2), !,
   queryToPlan(Query2, Plan, _), !,  
@@ -1000,9 +997,6 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, New
   dm(subqueryDebug, ['\nExtJoinAttr2: ', ExtJoinAttr2]),
   plan_to_atom(attrname(IntNewColumn), ExtNewColumn),
   dm(subqueryDebug, ['\nExtNewColumn: ', ExtNewColumn]),  
-%  newTempRel(TempRel3),
-%  dm(subqueryDebug, ['\nTempRel3: ', TempRel3]),
-%  concat_atom([TempRel3, ' = ', 
    concat_atom([
                ExtTempRel1, ' feed ', 
                ExtTempRel2, ' feed ',
@@ -1154,7 +1148,6 @@ newTempRel(Var) :-
 
 newTempRel(Var) :-
   assert(relDefined(1)),
-%  dropTempRels,
   Var = 'txxrel1'.
   
 newTempRel(Query, TempRelName) :-  
@@ -1295,7 +1288,6 @@ lookupSubquery(select Attrs from Rels where Preds,
   lookupPreds(Preds, Preds2),
   makeList(Rels2, Rels2List),
   makeList(Preds2, Preds2List),
-%  subquerySelectivity(Preds2List),  
   (optimizerOption(entropy)
     -> registerSelfJoins(Preds2List, 1); true).
 					% needed for entropy optimizer
@@ -1347,57 +1339,20 @@ lookupRelNoDblCheck(Rel as Var, rel(RelDC, Var)) :-
 :- dynamic(currentSecond/1).
 :- dynamic(firstStream/1).
 :- dynamic(isJoinPred/1).
-%:- dynamic(lastPlanRel/1).
-%:- dynamic(planRelVar/2).
-%:- dynamic(secondRel/1).
-%:- dynamic(secondStream/1).
 :- dynamic(selectivityQuery/1).
 :- dynamic(selectivityRels/1).
-%:- dynamic(subqueryPredRel/3).
 :- dynamic(sampleSize/1).
 :- dynamic(maxSampleCard/1).
 :- dynamic(maxSelCard/1).
 
 
 subquerySelectivity(Pred, [Rel]) :-
-%  subqueryRels(Pred, [Rel]),
-%  retractall(streamRel(_)),
-%  assert(streamRel(Rel)),
   subquerySelectivity(pr(Pred, Rel)).
-%  retractall(streamRel(_)).
 
 subquerySelectivity(Pred, [Rel1, Rel2]) :-
-%  subqueryRels(Pred, [Rel1, Rel2]),
-%  retractall(firstStream(_)),
-%  assert(firstStream(txx1)),  
-%  retractall(streamRel(_)),
-%  assert(streamRel(Rel1)),
-%  retractall(streamRel(_)),
-%  assert(streamRel(Rel2)),
   subquerySelectivity(pr(Pred, Rel1, Rel2)).
-%  retractall(streamRel(_)),
-%  retractall(streamRel(_)),
-%  retractall(firstStream(_)).
-  
-/* subqueryRels(Pred, [Rel]) :-
-  assert(subqueryPredRel(Pred, 1, Rel)),
-  transformPred(Pred, txx1, 1, Pred1),
-  assert(subqueryPredRel(Pred1, 1, Rel)),
-  transformPred(Pred, txx1, 2, Pred2),
-  assert(subqueryPredRel(Pred2, 1, Rel)).
-  
-subqueryRels(Pred, [Rel1, Rel2]) :-
-  assert(subqueryPredRel(Pred, 1, Rel1)),
-  assert(subqueryPredRel(Pred, 2, Rel2)),
-  transformPred(Pred, txx1, 1, Pred1),
-  transformPred(Pred, txx1, 2, Pred2),
-  assert(subqueryPredRel(Pred1, 1, Rel1)),
-  assert(subqueryPredRel(Pred1, 2, Rel2)),
-  assert(subqueryPredRel(Pred2, 1, Rel1)),
-  assert(subqueryPredRel(Pred2, 2, Rel2)). */
   
 lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
-%  length(RelsAfter, 2),
   isSubqueryPred1(Pred),
   dm(subqueryDebug, ['\nlookupSubqueryPred 1\nPred: ', Pred]),  
   Pred =.. [not, Attr, in(Query)],
@@ -1415,8 +1370,7 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   correlationRels(Query2, Rels),
   dm(subqueryDebug, ['\nRels: ', Rels]),
   findall( Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L1), !,
-  ( (setof(R, member(R, L1), L), /* write('\nL: '), write(L), nl, */ append(AttrRelsAfter, L, RelsAfter) )
-%  ( append(AttrRelsAfter, L, RelsAfter)
+  ( (setof(R, member(R, L1), L), append(AttrRelsAfter, L, RelsAfter) )
     ; ( L1 = [], AttrRelsAfter = RelsAfter ) ),
   dm(subqueryDebug, ['\nL: ', L,
                      '\nAttrRelsAfter: ', AttrRelsAfter]), !,	
@@ -1426,7 +1380,6 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   subquerySelectivity(Pred2, RelsAfter).  
 
 lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
-%  length(RelsAfter, 2),
   isSubqueryPred1(Pred),
   dm(subqueryDebug, ['\nlookupSubqueryPred 1\nPred: ', Pred]),  
   Pred =.. [Op, Attr, Query],
@@ -1445,8 +1398,7 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   correlationRels(Query2, Rels),
   dm(subqueryDebug, ['\nRels: ', Rels]),
   findall( Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L1), !, 
-  ( (setof(R, member(R, L1), L), /* write('\nL: '), write(L), nl, */ append(AttrRelsAfter, L, RelsAfter) )
-%  ( append(AttrRelsAfter, L, RelsAfter) 
+  ( (setof(R, member(R, L1), L), append(AttrRelsAfter, L, RelsAfter) )
     ; ( L1 = [], AttrRelsAfter = RelsAfter ) ),
   dm(subqueryDebug, ['\nL: ', L,
                      '\nAttrRelsAfter: ', AttrRelsAfter]), !,	
@@ -1708,43 +1660,25 @@ transformAttributeExpr(attr(Var:Attr, Arg, Case), Param, _, attribute(Param, att
   peak(streamRel, rel(Rel, Var)),
   isNameOf(Param, rel(Rel, Var)),  
   not(member(rel(Rel, Var), Rels)),
-%  peak(streamName, Param),
   findAttribute(Attr, rel(Rel, Var)).
   
 transformAttributeExpr(attr(Var:Attr, Arg, Case), Param, _, attribute(Param, attrname(attr(Var:Attr, Arg, Case))), Rels) :-
   peak(streamRel, 2, rel(Rel, Var)),
   isNameOf(Param, rel(Rel, Var)),
   not(member(rel(Rel, Var), Rels)),
-%  peak(streamName, 2, Param),
   findAttribute(Attr, rel(Rel, Var)). 
 
 transformAttributeExpr(attr(Attr, Arg, Case), Param, _, attribute(Param, attrname(attr(Attr, Arg, Case))), Rels) :-
   peak(streamRel, rel(Rel, Var)),
   isNameOf(Param, rel(Rel, Var)),  
   not(member(rel(Rel, Var), Rels)),
-%  peak(streamName, Param),
   findAttribute(Attr, rel(Rel, Var)).
 
 transformAttributeExpr(attr(Attr, Arg, Case), Param, _, attribute(Param, attrname(attr(Attr, Arg, Case))), Rels) :-
   peak(streamRel, 2, rel(Rel, Var)),
   isNameOf(Param, rel(Rel, Var)),
   not(member(rel(Rel, Var), Rels)),
-%  peak(streamName, 2, Param),
   findAttribute(Attr, rel(Rel, Var)).  
-  
-% transformAttributeExpr(attr(Attr, Arg, Case), Param, _, attr(Attr, Arg, Case), Rels) :-
-  % peak(streamRel, 2, rel(Rel, Var)),
-  % not(member(rel(Rel, Var), Rels)),
-  % peak(streamName, 2, Param),
-  % findAttribute(Attr, rel(Rel, Var)).
-  
-% transformAttributeExpr(attr(Attr, Arg, Case), Param, _, attr(Attr, Arg, Case), Rels) :-
-  % peak(streamRel, rel(Rel, Var)),
-  % not(member(rel(Rel, Var), Rels)),
-  % peak(streamName, Param),
-  % findAttribute(Attr, rel(Rel, Var)).  
-  
-% transformAttributeExpr(attr(Attr, Arg, Case), Param, Arg, attribute(Param, attrname(attr(Attr, Arg, Case))), _).
   
 transformAttributeExpr(attribute(Param, attrname(attr(Attr, Arg, Case))), _, _,
                       attribute(Param, attrname(attr(Attr, Arg, Case))), _) :- !.  
@@ -1786,15 +1720,9 @@ subqueryTransformPred(Pred, T, Arg, Pred2) :-
   Query =.. [subquery, _, OuterRels],
   Query1 =.. [from, Select, Where],
   Where =.. [where, Rels, Preds],
-%  write('Expr: '), write(Select), nl,
   transformAttributeExpr(Select, T, Arg, Select2, Rels),
-%  subquery_expr_to_plan(Select, T, Select2),
-%  nl, write('Expr2: '), write(Select2), nl,
   transformAttributeExpr(Attr, T, Arg, Attr2, []),
-%   subquery_expr_to_plan(Attr, T, Attr2),
-%  write('Attr2: '), write(Attr2), nl,
   removeCorrelatedPreds(Query1, _, CorrelatedPreds),
-%  removeCorrelatedPreds(Query, _, CorrelatedPreds),
   transformCorrelatedPreds(Rels, txx1, CorrelatedPreds, Preds2),
   dm(subqueryDebug, ['\nsubqueryTransformPred\n\tCorrelatedPreds: ', CorrelatedPreds,
                      '\n\tPreds2: ', Preds2]),
@@ -1821,7 +1749,6 @@ transformPreds([ Pred | Rest ], Param, Arg, [ Pred2 | Rest2 ] ) :-
   transformPreds(Rest, Param, Arg, Rest2).
   
 simpleSubqueryPred(pr(P, A, B), Simple) :- 
-%  isSubqueryPred1(P),
   simple1(P, A, B, Simple).
 
 simple1(attr(Var:Attr, 0, _), _, _, Rel:Attr) :- 
@@ -1879,8 +1806,6 @@ sampleSQ(Rel, Rel).
 :- assert(maxSelCard(250000)).
 :- assert(maxSampleCard(500)).
 
-%:- dynamic(streamName/2).
-%:- dynamic(streamRel/2).
 :- dynamic(currentLevel/1).
 
 :- assert(currentLevel(0)).
@@ -1899,18 +1824,6 @@ descendLevel :-
 
 streamName(Var) :-
   push(streamName, Var).
-
-% streamName(Var) :-
-  % not(streamName(_, 1)),
-  % assert(streamName(Var, 1)).
-  
-% streamName(Var) :-
-  % not(streamName(_, 2)),
-  % assert(streamName(Var, 2)).
-  
-% streamName(Var) :-
-  % concat_atom(['Detected more than two Streams.'],'',ErrMsg),  
-  % throw(error_SQL(subqueries_streamName(Var):malformedExpression#ErrMsg)).
   
 clearStreamName :-
   pop(streamName, _).
@@ -1930,18 +1843,6 @@ clearStreamNames :-
   
 streamRel(Rel) :-
   push(streamRel, Rel).
-  
-% streamRel(Rel) :-
-  % not(streamRel(_, 1)),
-  % assert(streamRel(Rel, 1)).
-  
-% streamRel(Rel) :-
-  % not(streamRel(_, 2)),
-  % assert(streamRel(Rel, 2)).
-  
-% streamRel(Rel) :-
-  % concat_atom(['Detected more than two Streams.'],'',ErrMsg),  
-  % throw(error_SQL(subqueries_streamRel(Rel):malformedExpression#ErrMsg)).  
   
 clearStreamRel :-
   pop(streamRel, _).
@@ -1979,23 +1880,15 @@ transformQuery(_, _, _, Query, JoinSize, Query2) :-
   maxSampleCard(C),
   retractall(maxSampleCard(_)),  
   assert(maxSampleCard(min(JoinSize, C))),
-%  assert(selectivityQuery(Pred)),
-%  clearStreamNames,
-%  streamName(txx1),
-%  streamRel(Rel1),
-%  streamRel(Rel2),
   transformPlan(Query, Query2),
   write_canonical(Query2).
   
 clearSelectivityQuery(_, Pred) :-
   !,
-%  clearStreamRel(Rel),
   retractall(selectivityQuery(Pred)).
   
 clearSelectivityQuery(_, _, Pred) :-
   !,
-%  clearStreamRel(Rel1, Rel2),
-%  clearStreamName,
   retractall(selectivityQuery(Pred)).
   
   
@@ -2059,20 +1952,6 @@ transformPlan1(Plan, Plan2, C) :-
   Plan2 =.. [Op | Args2]. 
   
 transformPlan1(Plan, Plan, _). 
-
-% subqueryPredRel(Pred) :-
-  % subqueryPredRel(Pred, 2, Rel2),
-  % subqueryPredRel(Pred, 1, Rel1),
-% %  retractall(streamRel(_, _)),
-  % retractall(currendSecond(_)).
-% %  assert(streamRel(Rel1, 1)),
-% %  assert(streamRel(Rel2, 2)).
-  
-% subqueryPredRel(Pred) :-
-  % subqueryPredRel(Pred, 1, Rel1),
-% %  retractall(streamRel(_, _)),
-  % retractall(currendSecond(_)).
-% %  assert(streamRel(Rel1, 1)).
   
 subqueryPredRel(_).
 
@@ -2103,18 +1982,12 @@ joinRel(Stream, Arg) :-
   joinRel(Args, Arg).
   
 joinRel(_ ,_).
-  
-% joinRel(Stream, _) :-
-%  nl, write('Stream: '), write(Stream), nl.
 
 joinRels(_, _).
 
 joinRels(Arg1, Arg2) :-
   joinRel(Arg1, 1),
   joinRel(Arg2, 2).
-
-% joinRels(Arg1, Arg2) :-
-%  nl, nl, write('joinRelsArg1: '), write(Arg1), nl , write('joinRelsArg2: '), write(Arg2), nl, nl.
   
 extractStream(consume(project(StreamPlan, QueryAttr)), StreamPlan, QueryAttr).
 
