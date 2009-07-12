@@ -2172,7 +2172,7 @@ void MInt::Hat(MInt& mint)
 
           int lastvalue = -1;
 //          UInt* tempuint = new UInt(*upi);
-          double sum_time = 0;
+
           while(!uintstack.empty() && cur.GetIntval() <= top.GetIntval()){
             UInt topelem = uintstack.top();
             lastvalue = topelem.constValue.GetValue();
