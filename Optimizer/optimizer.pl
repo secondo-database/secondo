@@ -470,9 +470,9 @@ pog(Rels, Preds, Nodes, Edges) :-
   createPredicateFacts(Preds),
   deletePlanEdges, createPlanEdges,
   HighNode is 2**M -1,
-  retract(highNode(_)), assert(highNode(HighNode)).
+  retract(highNode(_)), assert(highNode(HighNode)),
   % uncomment next line for debugging
-  % showpog(Rels, Preds),
+  dc(pog, showpog(Rels, Preds)).
 
 /*
 
@@ -1176,6 +1176,11 @@ consider_Arg2(Term, Term) :-
   optimizerOption(subqueries),
   compound(Term),
   Term =.. [from | _].
+  
+consider_Arg2(Term, Term) :-
+  optimizerOption(subqueries),
+  compound(Term),
+  isSubqueryPred1(Term).
 
 consider_Arg2(Term,Term2) :-
   compound(Term),
@@ -1245,6 +1250,11 @@ plan_to_atom(res(N), Result) :-
   atom_concat('res(', N, Res1),
   atom_concat(Res1, ') ', Result),
   !.
+  
+plan_to_atom(SubqueryPred, Result) :-
+  optimizerOption(subqueries),
+  subquery_plan_to_atom(SubqueryPred, Result),
+  !.  
 
 plan_to_atom(SubqueryPred, Result) :-
   optimizerOption(subqueries),
@@ -1601,7 +1611,16 @@ plan_to_atom(a(X, _, u), X2) :-
 
 plan_to_atom(true, Result) :-
   concat_atom(['TRUE'], '', Result),
-  !.
+  !.  
+  
+plan_to_atom(false, Result) :-
+  concat_atom(['FALSE'], '', Result),
+  !.  
+
+plan_to_atom(now, Result) :-
+  concat_atom(['now()'], '', Result),
+  !.      
+  
 
 /*
 Integrating counters into query plans
@@ -1761,7 +1780,6 @@ plan_to_atom(updatehash(UpdateQuery, IndexName, Column),Result) :-
   concat_atom([UpdateQuery2, ' ', IndexName, ' updatehash [', Column2, ']'],
         Result),
   !.
-
 
 /*
 Translation of operators driven by predicate ~secondoOp~ in
@@ -2077,6 +2095,7 @@ select(arg(N), Y) => project(X, RenamedAttrNames) :-
 
 % replace (Attr = Term) by (Term = Attr)
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
+  not(isSubquery(Y)),
   indexselect(arg(N), pr(Y = attr(AttrName, Arg, Case), Rel)) => X.
 
 % generic rule for (Term = Attr): exactmatch using btree or hashtable
@@ -2217,6 +2236,7 @@ indexselect(arg(N), pr(Pred, _)) =>
 % exploit commutativity of operators (additional cases)
 indexselect(arg(N), pr(Pred, Rel)) => X :-
   Pred =.. [OP, Y, attr(AttrName, Arg, Case)],
+  not(isSubquery(Y)),
   isBBoxPredicate(OP),
   isCommutativeOP(OP),
   Pred2 =.. [OP, attr(AttrName, Arg, Case), Y],
@@ -2708,7 +2728,9 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) => JoinPlan :-
 join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
         remove(JoinPlan, [attrname(attr(r_expr, 2, l))]) :-
   X = attr(_, _, _),
-  not(Y = attr(_, _, _)), !,
+  not(Y = attr(_, _, _)), 
+  not(isSubquery(Y)),
+  !,
   Arg1 => Arg1S,
   Arg2 => Arg2S,
   Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
@@ -2717,6 +2739,7 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
 join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
         remove(JoinPlan, [attrname(attr(l_expr, 2, l))]) :-
   not(X = attr(_, _, _)),
+  not(isSubquery(X)),
   Y = attr(_, _, _), !,
   Arg1 => Arg1S,
   Arg2 => Arg2S,
@@ -2727,7 +2750,10 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
         remove(JoinPlan, [attrname(attr(l_expr, 1, l)),
                 attrname(attr(r_expr, 2, l))]) :-
   not(X = attr(_, _, _)),
-  not(Y = attr(_, _, _)), !,
+  not(Y = attr(_, _, _)), 
+  not(isSubquery(Y)),
+  not(isSubquery(X)),
+  !,
   Arg1 => Arg1S,
   Arg2 => Arg2S,
   Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
@@ -4852,6 +4878,14 @@ lookupRel(Rel, rel(RelDC, *)) :-
   relation(RelDC, _), !,
   not(duplicateAttrs(RelDC)),
   assert(queryRel(RelDC, rel(RelDC, *))).
+  
+lookupRel(Rel, Rel2) :-
+  optimizerOption(subqueries),
+  lookupSubquery(Rel, Rel2).
+  
+lookupRel((Rel) as Var, (Rel2) as Var) :-
+  optimizerOption(subqueries),
+  lookupSubquery(Rel, Rel2).
 
 lookupRel(Rel, Rel2) :-
   optimizerOption(subqueries),
@@ -5002,6 +5036,11 @@ Generic lookupAttr/2-rule for functors of arbitrary arity using Univ (=../2):
 lookupAttr(Name, attr(Name, 0, u)) :-
   queryAttr(attr(Name, 0, u)),
   !.
+  
+lookupAttr(Term, Term) :-
+  is_list(Term),
+  catch(string_to_list(_, Term), _, fail),
+  !.  
 
 lookupAttr(Term, Term) :-
   is_list(Term),
@@ -5020,7 +5059,7 @@ lookupAttr(Term, dbobject(TermDC)) :-
   dcName2externalName(TermDC,Term),
   secondoCatalogInfo(TermDC,_,_,_),
   !.
-
+  
 lookupAttr(Term, Term) :-
   atom(Term),
   concat_atom(['Unknown symbol: \'',Term,'\' is not recognized!'],'',ErrMsg),
@@ -5094,11 +5133,11 @@ lookupPred(Pred, X) :-
   term_to_atom(Pred,PredA),
   term_to_atom(Rels,RelsA),
   ( (N = 0)
-    -> ( conacat_atom(['Malformed predicate: \'',PredA,
-                     '\' is a constant. This is not allowed.'],'',ErrMsg)
+    -> ( concat_atom(['Malformed predicate: \'',PredA,
+                     '\' is a constant. This is not allowed.'],'',ErrMsg) 
        )
     ; ( (N > 2)
-        -> write_list(['Malformed predicate: \'',PredA,
+        -> concat_atom(['Malformed predicate: \'',PredA,
                        '\' involves more than two relations: ',RelsA,
                        '. This is not allowed.'],'',ErrMsg)
         ; concat_atom(['Malformed predicate: \'',PredA,
@@ -5151,7 +5190,7 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
   nth1(Index,RelsAfter,Rel2),
   (   usedAttr(Rel2, attr(Attr2, X, Case))
     ; assert(usedAttr(Rel2, attr(Attr2, X, Case)))
-  ), !.
+  ), !.  
 
 /*
 Used within the spatiotemporal pattern predicates stpattern.
@@ -5198,7 +5237,7 @@ lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
   not(is_list(Term)),
   dcName2externalName(TermDC,Term),
   secondoCatalogInfo(TermDC,_,_,_),
-  !.
+  !.  
 
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
@@ -6129,6 +6168,11 @@ queryToStream(Query, Stream3, Cost) :-
   finish(Stream, Select, [], Stream2),
   finishUpdate(Update, Stream2, Stream3),
   !.
+  
+queryToStream(Query, Stream, Cost) :-
+  optimizerOption(subqueries),
+  subqueryToStream(Query, Stream, Cost),
+  !.
 
 queryToStream(Query, Stream, Cost) :-
   optimizerOption(subqueries),
@@ -7038,6 +7082,7 @@ allCards :-
 
 :- [nawra].
 
+
 /*
 18 Loading Extensions for Subquery Processing
 
@@ -7156,3 +7201,4 @@ finishUpdate(update Rel set Transformations, Stream2, Stream3) :-
 
 writeDebug(Text) :-
   write(Text), nl.
+

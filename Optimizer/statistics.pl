@@ -453,7 +453,8 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   ),
   dm(selectivity,['===== spatial unary predicate with bbox-checking =====\n']),
   Query = count(filter(counter(filter(RelQuery, BBoxPred),1), Pred)),
-  plan_to_atom(Query, QueryAtom1),
+  transformQuery(Rel, Pred, Query, Query2),
+  plan_to_atom(Query2, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
   getTime(
@@ -472,6 +473,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
     )
     ,QueryTime
   ),
+  clearSelectivityQuery(Rel, Pred),
   ( ResultList = [int, FilterResCard]
     -> true
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
@@ -520,7 +522,8 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   ),
   dm(selectivity,['--------------  unary standard predicate --------------\n']),
   Query = count(filter(RelQuery, Pred)),
-  plan_to_atom(Query, QueryAtom1),
+  transformQuery(Rel, Pred, Query, Query2),
+  plan_to_atom(Query2, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
   getTime(
@@ -538,6 +541,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
     )
     ,QueryTime
   ),
+  clearSelectivityQuery(Rel, Pred),
   ( ResultList = [int, ResCard]
     -> true
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
@@ -572,6 +576,8 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
          Dim = std
        )
   ),
+  streamName(txx1),
+  assert(selectivityQuery(Pred)),
   transformPred(Pred, txx1, 1, Pred2),
   dm(selectivity,['===== spatial binary predicate with bbox-checking =====\n']),
   Pred2 =.. [_, Arg1, Arg2],
@@ -592,12 +598,13 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
          possiblyRename(Rel2S, Rel2Query),
          Rel2S = rel(BaseName, _),
          card(BaseName, JoinSize),
-         Query = count(filter(counter(loopjoin(head(Rel1Query, JoinSize),
+         Query = count(filter(counter(loopjoin(Rel1Query,
                        fun([param(txx1, tuple)],
                        filter(Rel2Query, Pred3))),1), Pred2) )
        )
   ),
-  plan_to_atom(Query, QueryAtom1),
+  transformQuery(Rel1, Rel2, Pred, Query, JoinSize, Query2),
+  plan_to_atom(Query2, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
   getTime(
@@ -614,6 +621,8 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
     )
     ,QueryTime
   ),
+  clearSelectivityQuery(Rel1, Rel2, Pred),
+  clearStreamName,
   ( ResultList = [int, FilterResCard]
     -> true
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
@@ -652,6 +661,8 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
        )
     ;  not(isBBoxPredicate(OP))
   ),
+  streamName(txx1),
+  assert(selectivityQuery(Pred)),
   transformPred(Pred, txx1, 1, Pred2),
   dm(selectivity,['-------------- binary standard predicate --------------\n']),
   ( optimizerOption(dynamicSample)
@@ -672,11 +683,12 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
          possiblyRename(Rel1S, Rel1Query),
          possiblyRename(Rel2S, Rel2Query),
          card(BaseName, JoinSize),
-         Query = count(loopsel(head(Rel1Query, JoinSize),
+         Query = count(loopsel(Rel1Query,
            fun([param(txx1, tuple)], filter(Rel2Query, Pred2))))
        )
-   ),
-  plan_to_atom(Query, QueryAtom1),
+   ),  
+  transformQuery(Rel1, Rel2, Pred, Query, JoinSize, Query2),
+  plan_to_atom(Query2, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
   dm(selectivity,['\nSelectivity query : ', QueryAtom, '\n']),
   getTime(
@@ -692,6 +704,8 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
     )
     ,QueryTime
   ),
+  clearSelectivityQuery(Rel1, Rel2, Pred),
+  clearStreamName,
   ( ResultList = [int, ResCard]
     -> true
     ;  ( write_list(['\nERROR:\tUnexpected result list format during ',
@@ -769,8 +783,7 @@ getTime(Goal, TimeMS) :-
   Time3 is Time2 - Time1,
   convert_time(Time3, _, _, _, _, Minute, Sec, MilliSec),
   TimeMS is Minute *60000 + Sec*1000 + MilliSec, !.
-
-
+  
 /*
 
 ----
@@ -833,9 +846,6 @@ selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET) :-
 selectivity(Pred, Sel, noBBox, CalcPET, ExpPET) :-
   selectivity(Pred, Sel, CalcPET, ExpPET).
 
-
-
-
 % handle 'pseudo-joins' (2 times the same argument) as selections
 selectivity(pr(Pred, Rel, Rel), Sel, CalcPET, ExpPET) :-
   selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET), !.
@@ -844,11 +854,6 @@ selectivity(pr(Pred, Rel, Rel), Sel, CalcPET, ExpPET) :-
 selectivity(P, Sel, CalcPET, ExpPET) :-
   simplePred(P, PSimple),
   sels(PSimple, Sel, CalcPET, ExpPET), !.
-
-% for selectivity of subqueries
-selectivity(Pred, Sel, CalcPET, ExpPET) :-
-  optimizerOption(subqueries),
-  subquerySelectivity(Pred, Sel, CalcPET, ExpPET).
 
 % query for join-selectivity (static samples case)
 selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
