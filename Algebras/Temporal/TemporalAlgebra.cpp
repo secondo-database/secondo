@@ -2099,11 +2099,35 @@ void MInt::ReadFrom(const MBool& arg){
   }
   EndBulkLoad(false);
 }
+bool compareuint(const UInt& u1,const UInt& u2)
+{
+  if(u1.timeInterval.start < u2.timeInterval.start)
+    return true;
+  if(u1.timeInterval.start == u2.timeInterval.start)
+    if(u1.timeInterval.end <= u2.timeInterval.end)
+      return true;
+  return false;
+}
+int myunitcompare(const void* a,const void* b)
+{
+  const UInt* u1 = (const UInt*)a;
+  const UInt* u2 = (const UInt*)b;
+  if(u1->timeInterval.start < u2->timeInterval.start)
+    return -1;
+  if(u1->timeInterval.start == u2->timeInterval.start)
+    if(u1->timeInterval.end <= u2->timeInterval.end)
+      return -1;
+  return 1;
+}
 
-
+void MInt::SortbyUnitTime()
+{
+  units.Sort(UnitCompare<UInt>);
+}
 
 void MInt::Hat(MInt& mint)
 {
+
    mint.Clear();
    stack<UInt> uintstack;
    const UInt* upi;
@@ -2117,8 +2141,8 @@ void MInt::Hat(MInt& mint)
    string starttime = upi->timeInterval.start.ToString();
    Get(GetNoComponents() - 1,upi);
    string endtime = upi->timeInterval.end.ToString();
-   int nocomponents;
-   int i;
+   unsigned int nocomponents;
+   unsigned int i;
    bool defstart;
    if(starttime == "begin of time" && endtime == "end of time"){
     i = 1;
@@ -2131,18 +2155,15 @@ void MInt::Hat(MInt& mint)
     assert(GetNoComponents() >= 1);
     defstart = false;
    }
+   for(;i < nocomponents;i++){
 
-//   for(;i < nocomponents;i++){
-   bool flag = false;
-   for(;i < nocomponents - 1;i++){
       Get(i,upi);
       if(!uintstack.empty()){
         cur.Set(upi->constValue.GetValue());
         top.Set(uintstack.top().constValue.GetValue());
         if(cur.GetIntval() >= top.GetIntval()){
             uintstack.push(*upi);
-
-            if(curuint.IsDefined())
+/*if(curuint.IsDefined())
               if(cur.GetIntval() >= curuint.constValue.GetValue()){
                 if(curuint.timeInterval.end == upi->timeInterval.start){
                   curuint.timeInterval.end = upi->timeInterval.end;
@@ -2151,12 +2172,11 @@ void MInt::Hat(MInt& mint)
                               upi->timeInterval.start).ToDouble();
                   lastarea += sum * curuint.constValue.GetValue();
                 }
-              }
-
+              }*/
         }
         else{
 ///////////////////////////////////
-         if(cur.GetIntval() >= curuint.constValue.GetValue()){
+/*if(cur.GetIntval() >= curuint.constValue.GetValue()){
             if(curuint.IsDefined()){
               if(curuint.timeInterval.end == upi->timeInterval.start){
                   curuint.timeInterval.end = upi->timeInterval.end;
@@ -2166,73 +2186,80 @@ void MInt::Hat(MInt& mint)
                   lastarea += sum * curuint.constValue.GetValue();
               }
             }
-          }
-
+          }*/
 /////////////////////////////////////////////
-
           int lastvalue = -1;
-//          UInt* tempuint = new UInt(*upi);
-
-          while(!uintstack.empty() && cur.GetIntval() <= top.GetIntval()){
+          vector<int> stackint;
+//          stackint.push_back( cur.GetIntval());
+//          while(!uintstack.empty() && cur.GetIntval() <= top.GetIntval()){
+          while(!uintstack.empty() && cur.GetIntval() < top.GetIntval()){
             UInt topelem = uintstack.top();
             lastvalue = topelem.constValue.GetValue();
-
             uintstack.pop();
             if(!uintstack.empty())
               top.Set(uintstack.top().constValue.GetValue());
-
+/////////////
+            unsigned int k = 0;
+            for(;k < stackint.size();k++)
+              if(stackint[k] == lastvalue)
+                break;
+            if(k == stackint.size())
+                stackint.push_back(lastvalue);
+///////////
           }
+
           if(!uintstack.empty() && lastvalue != -1){
+for(unsigned int k = 0; k < stackint.size();k++){
+
             last = uintstack.top();
             const UInt* tempupi;
-//            int j = i - 1;
-            int j = i;
+//            int j = i;
+            int j = i - 1;
             Get(j,tempupi);
             UInt lastuint = *tempupi;
             UInt firstuint = *tempupi;
-            double sumtime = 0;
-
-
-//          while(*tempupi != last){
+            double sumtime = 0.0;
 
             while(tempupi->timeInterval.start >= last.timeInterval.end
-                  && j >= 0){
+                  && j > 0 &&
+                  tempupi->constValue.GetValue() >= cur.GetIntval()){
+//                  tempupi->constValue.GetValue() >= stackint[k]){
+              if(tempupi->constValue.GetValue() < stackint[k])
+                  break;
 
-//              Instant inter = tempupi->timeInterval.end -
-//                              tempupi->timeInterval.start;
-//              sumtime+= inter.GetDay()*24*60*60+
-//                        inter.GetAllMilliSeconds()/1000.0;
+              if(tempupi->constValue.GetValue() >= stackint[k]){
+                  if(AlmostEqual(sumtime,0.0))
+                    lastuint = *tempupi;
 
-              sumtime += (tempupi->timeInterval.end -
+                  sumtime += (tempupi->timeInterval.end -
                               tempupi->timeInterval.start).ToDouble();
-//            tempupi->Print(cout);
+                  firstuint = *tempupi;
+              }
+
+              assert(tempupi->constValue.GetValue() >= cur.GetIntval());
               j--;
-              firstuint = *tempupi;
+//              firstuint = *tempupi;
               Get(j,tempupi);
             }
 
-            lastvalue = cur.GetIntval();
-
+//            lastvalue = cur.GetIntval();
+            lastvalue = stackint[k];
             double curarea = lastvalue*sumtime;
 
             if(curarea > lastarea){
               lastarea = curarea;
               curuint.timeInterval.start = firstuint.timeInterval.start;
+//              curuint.timeInterval.start = firstuint.timeInterval.end;
               curuint.timeInterval.end = lastuint.timeInterval.end;
               curuint.timeInterval.lc = true;
               curuint.timeInterval.rc = false;
               curuint.constValue.Set(lastvalue);
               curuint.SetDefined(true);
-              flag = true;
-//              cout<<"sumtime "<<sumtime<<" area "<<curarea<<endl;
-//              cout<<"last update "<<curuint.timeInterval.start<<" "
-//                  <<curuint.timeInterval.end <<endl;
             }
+}
 
-          }
+          }//if
           uintstack.push(*upi);
-//            uintstack.push(*tempuint);
-//            delete tempuint;
         }
       }else
         uintstack.push(*upi);
@@ -2258,7 +2285,7 @@ void MInt::Hat(MInt& mint)
        begin.timeInterval.end = curuint.timeInterval.start;
        begin.timeInterval.rc = false;
        int value = upi->constValue.GetValue();
-       int i;
+       unsigned int i;
        for(i = 1;i < nocomponents;i++){
         Get(i,upi);
         if(upi->timeInterval.start >= curuint.timeInterval.start)
@@ -2360,6 +2387,7 @@ void MInt::Hat(MInt& mint)
           }
         }
     }
+
 }
 
 void MInt::Restrict(MInt& result,

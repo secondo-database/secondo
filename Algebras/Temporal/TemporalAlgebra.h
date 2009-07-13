@@ -2613,6 +2613,8 @@ the given value.
 
    void  PlusExtend(const MInt* arg2, MInt& result) const;
 
+   void SortbyUnitTime();
+
 };
 
 /*

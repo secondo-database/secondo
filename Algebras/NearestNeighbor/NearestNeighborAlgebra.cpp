@@ -4167,11 +4167,14 @@ If the tree is exhausted, NULL is returned.
       if(!completeResult){
          return 0;
       } else {
+
+        completeResult->SortbyUnitTime();//to be sure sort by time
         Tuple* resTuple = new Tuple(tupleType);
         CcInt* ni = new CcInt(true,currentNodeId);
         CcInt* level  = new CcInt(true, this->level);
         resTuple->PutAttribute(0,ni);
         resTuple->PutAttribute(1,level);
+
         resTuple->PutAttribute(2,completeResult);
         completeResult = 0;
         return resTuple;
@@ -5382,6 +5385,12 @@ bool CmpPointNeighbor(const PointNeighbor& e1,const PointNeighbor& e2)
 {
   return e1.q.Distance(e1.p) < e2.q.Distance(e2.p);
 }
+struct PruneLeafNode{
+  long nodeid;
+  BBox<2> box;
+  PruneLeafNode(long id,BBox<2> b):nodeid(id),box(b){}
+};
+
 struct MQKnearest{
   Relation* querypoints;
   Relation* datapoints;
@@ -5429,6 +5438,7 @@ void Mqkfilter(MQKnearest* mqk,vector<TupleId>& datanode,BBox<2> query)
   EFieldEntry<double> fe(adr,0,0,0,0,0);
   array1.push_back(fe);
   unsigned int pos;
+  //BF-first method
   while(array1.empty() == false){
     array2.clear();
     for(pos = 0;pos < array1.size();pos++){
@@ -7868,9 +7878,9 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
         double t1((double)e.box.MinD(2));
         double t2((double)e.box.MaxD(2));
 
-	// The following lines were used in published experiments, that 
-	// were done on a modified R-tree that scaled up the R-tree temporal 
-	// dimension by the same factor. They are commented out for use with 
+	// The following lines were used in published experiments, that
+	// were done on a modified R-tree that scaled up the R-tree temporal
+	// dimension by the same factor. They are commented out for use with
 	// the standard R-tree.
 
         // t1 = t1/864000;
@@ -7940,9 +7950,9 @@ void TBKnearestLocalInfo::GreeceknnFun(MPoint* mp,int level,hpelem& elem)
           double t1((double)e.box.MinD(2));
           double t2((double)e.box.MaxD(2));
 
-	// The following lines were used in published experiments, that 
-	// were done on a modified R-tree that scaled up the R-tree temporal 
-	// dimension by the same factor. They are commented out for use with 
+	// The following lines were used in published experiments, that
+	// were done on a modified R-tree that scaled up the R-tree temporal
+	// dimension by the same factor. They are commented out for use with
 	// the standard R-tree.
 
        // t1 = t1/864000;
@@ -8047,9 +8057,9 @@ int Greeceknearest(Word* args, Word& result, int message,
       double t1(root->BoundingBox().MinD(2));
       double t2(root->BoundingBox().MaxD(2));
 
-	// The following lines were used in published experiments, that 
-	// were done on a modified R-tree that scaled up the R-tree temporal 
-	// dimension by the same factor. They are commented out for use with 
+	// The following lines were used in published experiments, that
+	// were done on a modified R-tree that scaled up the R-tree temporal
+	// dimension by the same factor. They are commented out for use with
 	// the standard R-tree.
 
       // t1 = t1/864000;
