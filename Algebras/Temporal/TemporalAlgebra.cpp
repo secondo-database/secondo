@@ -2156,7 +2156,6 @@ void MInt::Hat(MInt& mint)
     defstart = false;
    }
    for(;i < nocomponents;i++){
-
       Get(i,upi);
       if(!uintstack.empty()){
         cur.Set(upi->constValue.GetValue());
@@ -2188,6 +2187,7 @@ void MInt::Hat(MInt& mint)
             }
           }*/
 /////////////////////////////////////////////
+//          cout<<"cur "<<cur.GetIntval()<<endl;
           int lastvalue = -1;
           vector<int> stackint;
 //          stackint.push_back( cur.GetIntval());
@@ -2200,18 +2200,34 @@ void MInt::Hat(MInt& mint)
               top.Set(uintstack.top().constValue.GetValue());
 /////////////
             unsigned int k = 0;
-            for(;k < stackint.size();k++)
+
+            for(;k < stackint.size();k++){
               if(stackint[k] == lastvalue)
                 break;
-            if(k == stackint.size())
+            }
+
+            if(k == stackint.size() && lastvalue > cur.GetIntval())
                 stackint.push_back(lastvalue);
 ///////////
           }
+            assert(lastvalue != -1);
+//          if(!uintstack.empty() && lastvalue != -1){
+//          if(lastvalue != -1){
+        for(unsigned int k = 0; k < stackint.size();k++){
+//            cout<<stackint[k]<<endl;
 
-          if(!uintstack.empty() && lastvalue != -1){
-for(unsigned int k = 0; k < stackint.size();k++){
+            if(!uintstack.empty())
+                last = uintstack.top();
+            else{
+                const UInt* p_uint;
 
-            last = uintstack.top();
+                if(defstart)
+                  Get(1,p_uint);
+                else
+                  Get(0,p_uint);
+                last = *p_uint;
+              }
+
             const UInt* tempupi;
 //            int j = i;
             int j = i - 1;
@@ -2222,8 +2238,10 @@ for(unsigned int k = 0; k < stackint.size();k++){
 
             while(tempupi->timeInterval.start >= last.timeInterval.end
                   && j > 0 &&
-                  tempupi->constValue.GetValue() >= cur.GetIntval()){
-//                  tempupi->constValue.GetValue() >= stackint[k]){
+//                  tempupi->constValue.GetValue() >= cur.GetIntval()){
+                  tempupi->constValue.GetValue() >= stackint[k]){
+//                cout<<*tempupi<<endl;
+
               if(tempupi->constValue.GetValue() < stackint[k])
                   break;
 
@@ -2249,23 +2267,24 @@ for(unsigned int k = 0; k < stackint.size();k++){
             if(curarea > lastarea){
               lastarea = curarea;
               curuint.timeInterval.start = firstuint.timeInterval.start;
-//              curuint.timeInterval.start = firstuint.timeInterval.end;
               curuint.timeInterval.end = lastuint.timeInterval.end;
               curuint.timeInterval.lc = true;
               curuint.timeInterval.rc = false;
               curuint.constValue.Set(lastvalue);
               curuint.SetDefined(true);
             }
-}
+          }
 
-          }//if
+//          }//if
           uintstack.push(*upi);
         }
       }else
         uintstack.push(*upi);
     }
 
-//    cout<<"final "<<lastarea<<endl;
+//    curuint.Print(cout);
+//    cout<<endl;
+
 
     while(!uintstack.empty())
       uintstack.pop();//clear stack
