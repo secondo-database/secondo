@@ -4168,7 +4168,7 @@ If the tree is exhausted, NULL is returned.
          return 0;
       } else {
 
-        completeResult->SortbyUnitTime();//to be sure sort by time
+//        completeResult->SortbyUnitTime();//to be sure sort by time
         Tuple* resTuple = new Tuple(tupleType);
         CcInt* ni = new CcInt(true,currentNodeId);
         CcInt* level  = new CcInt(true, this->level);
