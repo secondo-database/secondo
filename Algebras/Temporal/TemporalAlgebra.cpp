@@ -2136,7 +2136,7 @@ void MInt::Hat(MInt& mint)
    last.SetDefined(true);
    curuint.SetDefined(false);
 
-   float lastarea = 0;
+   float lastarea = 0.0;
    Get(0,upi);
    string starttime = upi->timeInterval.start.ToString();
    Get(GetNoComponents() - 1,upi);
@@ -2162,126 +2162,54 @@ void MInt::Hat(MInt& mint)
         top.Set(uintstack.top().constValue.GetValue());
         if(cur.GetIntval() >= top.GetIntval()){
             uintstack.push(*upi);
-/*if(curuint.IsDefined())
-              if(cur.GetIntval() >= curuint.constValue.GetValue()){
-                if(curuint.timeInterval.end == upi->timeInterval.start){
-                  curuint.timeInterval.end = upi->timeInterval.end;
-                  double sum = 0;
-                  sum = (upi->timeInterval.end -
-                              upi->timeInterval.start).ToDouble();
-                  lastarea += sum * curuint.constValue.GetValue();
-                }
-              }*/
         }
         else{
-///////////////////////////////////
-/*if(cur.GetIntval() >= curuint.constValue.GetValue()){
-            if(curuint.IsDefined()){
-              if(curuint.timeInterval.end == upi->timeInterval.start){
-                  curuint.timeInterval.end = upi->timeInterval.end;
-                  double sum = 0;
-                  sum = (upi->timeInterval.end -
-                              upi->timeInterval.start).ToDouble();
-                  lastarea += sum * curuint.constValue.GetValue();
-              }
-            }
-          }*/
-/////////////////////////////////////////////
-//          cout<<"cur "<<cur.GetIntval()<<endl;
-          int lastvalue = -1;
-          vector<int> stackint;
-//          stackint.push_back( cur.GetIntval());
-//          while(!uintstack.empty() && cur.GetIntval() <= top.GetIntval()){
+          Instant end = upi->timeInterval.start;
+          Instant start = upi->timeInterval.start;
+          int lastvalue = 0;
           while(!uintstack.empty() && cur.GetIntval() < top.GetIntval()){
             UInt topelem = uintstack.top();
             lastvalue = topelem.constValue.GetValue();
+
+            start = topelem.timeInterval.start;
+
             uintstack.pop();
             if(!uintstack.empty())
               top.Set(uintstack.top().constValue.GetValue());
-/////////////
-            unsigned int k = 0;
-
-            for(;k < stackint.size();k++){
-              if(stackint[k] == lastvalue)
-                break;
-            }
-
-            if(k == stackint.size() && lastvalue > cur.GetIntval())
-                stackint.push_back(lastvalue);
-///////////
-          }
-            assert(lastvalue != -1);
-//          if(!uintstack.empty() && lastvalue != -1){
-//          if(lastvalue != -1){
-        for(unsigned int k = 0; k < stackint.size();k++){
-//            cout<<stackint[k]<<endl;
-
-            if(!uintstack.empty())
-                last = uintstack.top();
-            else{
-                const UInt* p_uint;
-
-                if(defstart)
-                  Get(1,p_uint);
-                else
-                  Get(0,p_uint);
-                last = *p_uint;
-              }
-
-            const UInt* tempupi;
-//            int j = i;
-            int j = i - 1;
-            Get(j,tempupi);
-            UInt lastuint = *tempupi;
-            UInt firstuint = *tempupi;
-            double sumtime = 0.0;
-
-            while(tempupi->timeInterval.start >= last.timeInterval.end
-                  && j > 0 &&
-//                  tempupi->constValue.GetValue() >= cur.GetIntval()){
-                  tempupi->constValue.GetValue() >= stackint[k]){
-//                cout<<*tempupi<<endl;
-
-              if(tempupi->constValue.GetValue() < stackint[k])
-                  break;
-
-              if(tempupi->constValue.GetValue() >= stackint[k]){
-                  if(AlmostEqual(sumtime,0.0))
-                    lastuint = *tempupi;
-
-                  sumtime += (tempupi->timeInterval.end -
-                              tempupi->timeInterval.start).ToDouble();
-                  firstuint = *tempupi;
-              }
-
-              assert(tempupi->constValue.GetValue() >= cur.GetIntval());
-              j--;
-//              firstuint = *tempupi;
-              Get(j,tempupi);
-            }
-
-//            lastvalue = cur.GetIntval();
-            lastvalue = stackint[k];
-            double curarea = lastvalue*sumtime;
-
-            if(curarea > lastarea){
-              lastarea = curarea;
-              curuint.timeInterval.start = firstuint.timeInterval.start;
-              curuint.timeInterval.end = lastuint.timeInterval.end;
+            if(lastarea == 0.0){
+              lastarea = (end-topelem.timeInterval.start).ToDouble()*lastvalue;
+              curuint.timeInterval.start = topelem.timeInterval.start;
+              curuint.timeInterval.end = end;
               curuint.timeInterval.lc = true;
               curuint.timeInterval.rc = false;
               curuint.constValue.Set(lastvalue);
               curuint.SetDefined(true);
+            }else{
+              double curarea =
+                      lastvalue*(end-topelem.timeInterval.start).ToDouble();
+
+              if(curarea > lastarea){
+                lastarea = curarea;
+                curuint.timeInterval.start = topelem.timeInterval.start;
+                curuint.timeInterval.end = end;
+                curuint.timeInterval.lc = true;
+                curuint.timeInterval.rc = false;
+                curuint.constValue.Set(lastvalue);
+                curuint.SetDefined(true);
+              }
             }
           }
+          UInt* tempuint = new UInt(*upi);
+//          (const_cast<UInt*>(upi))->timeInterval.start = start;
+          tempuint->timeInterval.start = start;
+          uintstack.push(*tempuint);
+          delete tempuint;
 
-//          }//if
-          uintstack.push(*upi);
+//          uintstack.push(*upi);
         }
       }else
         uintstack.push(*upi);
     }
-
 //    curuint.Print(cout);
 //    cout<<endl;
 
@@ -2313,8 +2241,9 @@ void MInt::Hat(MInt& mint)
           value = upi->constValue.GetValue();//the minimum value before hat
        }
        begin.constValue.Set(value);
-       assert(begin.timeInterval.start != begin.timeInterval.end);
-       mint.Add(begin);
+//       assert(begin.timeInterval.start != begin.timeInterval.end);
+       if(begin.timeInterval.IsValid())
+        mint.Add(begin);
 
        if(curuint.timeInterval.IsValid())//start != curuint.timeInterval.end)
         mint.Add(curuint);
@@ -2335,8 +2264,9 @@ void MInt::Hat(MInt& mint)
             value = upi->constValue.GetValue();
           }
           end.constValue.Set(value);
-          assert(end.timeInterval.start != end.timeInterval.end);
-          mint.Add(end);
+//          assert(end.timeInterval.start != end.timeInterval.end);
+          if(end.timeInterval.IsValid())
+            mint.Add(end);
           Get(GetNoComponents() - 1,upi);
           end = *upi;
           mint.Add(end);
@@ -2355,8 +2285,9 @@ void MInt::Hat(MInt& mint)
             value = upi->constValue.GetValue();
           }
           end.constValue.Set(value); //the same as hat threshold
-          assert(end.timeInterval.start != end.timeInterval.end);
-          mint.Add(end);
+//          assert(end.timeInterval.start != end.timeInterval.end);
+          if(end.timeInterval.IsValid())
+            mint.Add(end);
        }
     }
     else{ //hat does not exist,return the first and last
