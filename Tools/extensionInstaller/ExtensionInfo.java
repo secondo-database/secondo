@@ -12,6 +12,7 @@ public class ExtensionInfo{
   AlgebraInfo algebraInfo = null;
   ViewerInfo viewerInfo = null;
   Vector<HoeseInfo> hoeseInfos = new Vector<HoeseInfo>();
+  OptimizerInfo optInfo = null;
 
 
   /** Creates a new ExtensionInfo **/
@@ -85,7 +86,17 @@ public class ExtensionInfo{
           isExtension = true;
           hoeseInfos.add(hoeseInfo);
        } else if(name.equals("Optimizer")){
-
+           if(optInfo!=null){
+             System.err.println("Only a single optimizer extension is allowed within a module");
+             return false;
+           }
+           OptimizerInfo oinfo = new OptimizerInfo(n);
+           if(!oinfo.isValid()){
+              System.err.println("Invalid Optimizer extension found");
+              return false;
+           }
+           isExtension = true;
+           optInfo = oinfo;
        } else if(name.equals("Kernel")){
           System.err.println("Kernel not supported yet");
 
@@ -116,6 +127,10 @@ public class ExtensionInfo{
     return hoeseInfos;
   }
 
+  /** Returns the stored OptimizerInfo **/
+  public OptimizerInfo getOptimizerInfo(){
+     return optInfo;
+  }
 
 }
 

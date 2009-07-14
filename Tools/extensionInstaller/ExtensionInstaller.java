@@ -164,6 +164,47 @@ private boolean checkAndInstallDisplayClasses(Vector<ExtensionInfo> infos){
    return true;
 }
 
+/** Installs extensions of the Optimizer **/
+private boolean checkAndInstallOptimizerExtensions(Vector<ExtensionInfo> infos){
+   Vector<OptimizerInfo> optinfos = new Vector<OptimizerInfo>();
+   for(int i=0;i<infos.size();i++){
+      ExtensionInfo info = infos.get(i);
+      OptimizerInfo oinfo = info.getOptimizerInfo();
+      boolean ok = false;
+      ZipFile f = null;
+      try{
+         f = new ZipFile(info.getFileName());
+         ok = oinfo.filesPresent(f);
+      } catch (Exception e){
+         e.printStackTrace();
+         return false;
+      } finally{
+         if(f!=null) {try{f.close();}catch(Exception e){}}
+      }
+      if(!ok){
+        return false;
+      }
+      optinfos.add(oinfo);
+   }
+   if(!OptimizerInfo.check(secondoDir.getAbsolutePath(), optinfos)){
+     return false;
+   }
+   for( int i=0;i<infos.size();i++){
+      ExtensionInfo info = infos.get(i);
+      String zip = info.getFileName();
+      OptimizerInfo oinfo = info.getOptimizerInfo();
+      try{
+         if(!oinfo.install(secondoDir.getAbsolutePath(),new ZipFile(info.getFileName()))){
+            return false;
+         }
+      } catch(Exception e){
+         e.printStackTrace();
+         return false;
+      }
+   }
+   return true;
+}
+
 
 /** Installs a set of modules. **/
 public boolean installExtensions(String[] extensionFiles){
@@ -197,6 +238,7 @@ public boolean installExtensions(String[] extensionFiles){
      checkAndInstallAlgebras(infos);
      checkAndInstallViewers(infos);
      checkAndInstallDisplayClasses(infos);
+     checkAndInstallOptimizerExtensions(infos);
 
 
   } catch(Exception e){

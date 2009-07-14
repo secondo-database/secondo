@@ -13,6 +13,7 @@ public class SecondoExtension{
    protected int secondo_Major_Version = -1;     // version informtion
    protected int secondo_Minor_Version = 0;      // version information
    protected int secondo_SubMinor_Version = 0;   // version information
+   protected Vector<StringPair> files = new Vector<StringPair>();
    protected String copyright=null;
 
    boolean filesPresent(ZipFile f, Vector<String> names){
@@ -106,4 +107,101 @@ public class SecondoExtension{
      }
      return ok;
   }
+
+
+   /** Reads the required files and its location **/
+   protected boolean readFiles(Node n1){
+     NodeList nl = n1.getChildNodes();
+     for(int i=0;i<nl.getLength();i++){
+       Node n = nl.item(i);
+       String name = n.getNodeName();
+       if(!name.equals("File") && !name.equals("#text") && !name.equals("#comment")){
+         System.err.println("Unknown node name for files detected: " + name);
+       } else if(name.equals("File")){
+          StringPair pair = new StringPair();
+         // get the filename
+         if(n.hasChildNodes()){
+            String fn = n.getFirstChild().getNodeValue().trim();
+            if(fn.length()>0){
+               pair.first = fn;
+            } 
+         }
+         if(pair.first==null){
+            System.err.println("XMLFile corrupt: filename missing");
+            return false;
+         }
+         // get the location
+         NamedNodeMap m = n.getAttributes();
+         Node loc  = m.getNamedItem("location");
+         if(loc==null){
+            System.err.println("XML-file corupted: location of a file is missing");
+            return false;
+         }
+         String tmp = loc.getNodeValue().trim();
+         while(tmp.startsWith("/")){
+              tmp = tmp.substring(1,tmp.length()-1);
+         }
+         while(tmp.endsWith("/")){
+             tmp = tmp.substring(0,tmp.length()-1);
+         }
+         if(tmp.length()==0){
+            System.err.println("invalid value for location");
+            return false;
+         }
+         pair.second = tmp;
+         files.add(pair);  
+       }
+     }
+     return true;
+   } 
+
+
+   /** extracts the secondo version from the existing system. 
+     * If any error occurs, the result will be null.
+     **/
+   public static Version readSecondoVersion(String secondoDir){
+       String s = File.separator;
+       File versionFile = new File(secondoDir + s + "include" + s + "version.h");
+       if(!versionFile.exists()){
+         System.err.println("Version file '"+versionFile.getAbsolutePath()+"' not found");
+         return null;
+       }
+       int major = -1;
+       int minor = -1;
+       int subminor = -1;
+       try{
+          BufferedReader in = new BufferedReader(new FileReader(versionFile));
+          while((major<0 || minor <0 || subminor <0) && in.ready()){
+             String line = in.readLine();
+             if(line!=null){
+                line = line.trim();
+                if(line.indexOf("SECONDO_VERSION_MAJOR") >=0){
+                    line = line.replaceAll("[^0123456789]",""); // only keep digits
+                    major = Integer.parseInt(line); 
+                } else if(line.indexOf("SECONDO_VERSION_MINOR") >=0){
+                    line = line.replaceAll("[^0123456789]",""); // only keep digits
+                    minor = Integer.parseInt(line); 
+                } else if(line.indexOf("SECONDO_VERSION_REVISION") >=0){
+                    line = line.replaceAll("[^0123456789]",""); // only keep digits
+                    subminor = Integer.parseInt(line); 
+                }
+             }
+          }
+          in.close();
+          if(major<0 || minor < 0  || subminor <0){
+             System.err.println("version not completely found");
+             return null;
+          }
+       } catch (Exception e){
+         e.printStackTrace();
+         return null;
+       }
+      Version res = new Version();
+      res.major = major;
+      res.minor = minor;
+      res.subminor = subminor;
+      return res;
+   }
+
+
 }

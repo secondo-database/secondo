@@ -10,7 +10,6 @@ public class JavaExtension extends SecondoExtension{
    protected int java_Major_Version = 0;     // version informtion
    protected int java_Minor_Version = 0;      // version information
    protected String mainClass = null;
-   protected Vector<StringPair> files = new Vector<StringPair>();
    protected Vector<StringBoolPair> libDeps = new Vector<StringBoolPair>();
 
 
@@ -214,51 +213,6 @@ public class JavaExtension extends SecondoExtension{
     return true;
   }
 
-   /** Reads the required files and its location **/
-   protected boolean readFiles(Node n1){
-     NodeList nl = n1.getChildNodes();
-     for(int i=0;i<nl.getLength();i++){
-       Node n = nl.item(i);
-       String name = n.getNodeName();
-       if(!name.equals("File") && !name.equals("#text") && !name.equals("#comment")){
-         System.err.println("Unknown node name for files detected: " + name);
-       } else if(name.equals("File")){
-          StringPair pair = new StringPair();
-         // get the filename
-         if(n.hasChildNodes()){
-            String fn = n.getFirstChild().getNodeValue().trim();
-            if(fn.length()>0){
-               pair.first = fn;
-            } 
-         }
-         if(pair.first==null){
-            System.err.println("XMLFile corrupt: filename missing");
-            return false;
-         }
-         // get the location
-         NamedNodeMap m = n.getAttributes();
-         Node loc  = m.getNamedItem("location");
-         if(loc==null){
-            System.err.println("XML-file corupted: location of a file is missing");
-            return false;
-         }
-         String tmp = loc.getNodeValue().trim();
-         while(tmp.startsWith("/")){
-              tmp = tmp.substring(1,tmp.length()-1);
-         }
-         while(tmp.endsWith("/")){
-             tmp = tmp.substring(0,tmp.length()-1);
-         }
-         if(tmp.length()==0){
-            System.err.println("invalid value for location");
-            return false;
-         }
-         pair.second = tmp;
-         files.add(pair);  
-       }
-     }
-     return true;
-   } 
 
 }
 
