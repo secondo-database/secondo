@@ -1605,8 +1605,8 @@ void Network::FillRoutes(const Relation *routes)
   ostringstream xNetRoutes;
   xNetRoutes << (long) m_pRoutes;
 
-  strQuery = "(creatertree (" + routesTypeInfo + "(ptr "
-              + xNetRoutes.str() +")) curve)";
+  strQuery = "(bulkloadrtree(sortby(addid(feed (" + routesTypeInfo +
+      " (ptr " + xThisRoutesPtrStream.str() + "))))((curve asc))) curve)";
   QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
   assert(QueryExecuted);
   m_pRTreeRoutes = (R_Tree<2,TupleId>*)xResult.addr;

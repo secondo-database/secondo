@@ -84,7 +84,7 @@ Operator : point2gpoint
 Number   : 1
 Signature: point -> gpoint
 Example  : query point2gpoint(B_NETWORK, [const point value(8594.0 8773.0)]);
-Result   : (gpoint (1 1 385.0474775448921 2))
+Result   : (gpoint (1 4 0.0 2))
 Tolerance:%0.01
 
 Operator : gpoint2point
