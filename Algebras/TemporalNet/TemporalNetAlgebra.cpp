@@ -4348,9 +4348,9 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
    if (u.IsValid()) {
     units.Append(u);
     if (units.Size() == 1){;
-        m_length = fabs(u.p1.GetPosition()-u.p0.GetPosition());
+        m_length = u.Length();
     } else {
-        m_length += fabs(u.p1.GetPosition()-u.p0.GetPosition());
+        m_length += u.Length();
     }
   }
 }
@@ -4836,6 +4836,10 @@ void UGPoint::TemporalFunction( const Instant& t,
   return;
 }
 
+double UGPoint::Length() const
+{
+  return fabs(p1.GetPosition() - p0.GetPosition());
+}
 
 /*
 Checks wether a unit passes a fixed point in the network
@@ -7066,8 +7070,9 @@ ListExpr OpLengthTypeMapping(ListExpr in_xArgs)
   ListExpr xMGPointDesc = nl->First(in_xArgs);
 
   if( (!nl->IsAtom( xMGPointDesc )) ||
-      nl->AtomType( xMGPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMGPointDesc ) != "mgpoint" )
+      nl->AtomType( xMGPointDesc ) != SymbolType ||(
+      nl->SymbolValue( xMGPointDesc ) != "mgpoint" &&
+      nl->SymbolValue (xMGPointDesc) != "ugpoint"))
   {
     return (nl->SymbolAtom( "typeerror" ));
   }
@@ -7075,7 +7080,7 @@ ListExpr OpLengthTypeMapping(ListExpr in_xArgs)
   return nl->SymbolAtom( "real" );
 }
 
-int OpLengthValueMapping(Word* args,
+int OpLength_mgp(Word* args,
                                    Word& result,
                                    int message,
                                    Word& local,
@@ -7095,18 +7100,53 @@ int OpLengthValueMapping(Word* args,
   return 1;
 }
 
+int OpLength_ugp(Word* args,
+                 Word& result,
+                 int message,
+                 Word& local,
+                 Supplier in_xSupplier)
+{
+  result = qp->ResultStorage(in_xSupplier);
+  CcReal* pResult = (CcReal*) result.addr;
+  // Get input value
+  UGPoint* pUGPoint = (UGPoint*)args[0].addr;
+  if(pUGPoint == NULL || !pUGPoint->IsDefined()) {
+    cmsg.inFunError("UGPoint does not exist.");
+    pResult->Set(false, 0.0);
+    return 0;
+     }
+     pResult-> Set(true, pUGPoint->Length());
+     return 1;
+}
+
 const string OpTLengthSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mgpoint -> real" "</text--->"
-  "<text>length(mgpoint)</text--->"
-  "<text>Calculates the length of the pass passed by a moving gpoint.</text--->"
-  "<text>length(mgpoint)</text--->"
+  "( <text>mgpoint -> real, ugpoint -> real" "</text--->"
+  "<text>length(xgpoint)</text--->"
+  "<text>Returns the length of the path passed by a m(u)gpoint.</text--->"
+  "<text>length(xgpoint)</text--->"
   ") )";
+
+int OpLengthSelect(ListExpr args){
+  ListExpr arg1 = nl->First( args );
+
+  if ( nl->SymbolValue(arg1) == "mgpoint")
+    return 0;
+  if ( nl->SymbolValue(arg1) == "ugpoint")
+    return 1;
+  return -1; // This point should never be reached
+};
+
+ValueMapping OpLengthValueMap[] = {
+  OpLength_mgp,
+  OpLength_ugp
+};
 
 Operator tempnetlength("length",
                     OpTLengthSpec,
-                    OpLengthValueMapping,
-                    Operator::SimpleSelect,
+                    2,
+                    OpLengthValueMap,
+                    OpLengthSelect,
                     OpLengthTypeMapping );
 
 

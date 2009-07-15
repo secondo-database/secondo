@@ -314,6 +314,12 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
   virtual bool At( const GPoint& val, TemporalUnit<GPoint>& result ) const;
 
   /*
+  Returns the length of the route passed within the ~ugpoint~
+
+  */
+  double Length()const;
+        
+  /*
   Returns the route id of the ~ugpoint~.
 
   */

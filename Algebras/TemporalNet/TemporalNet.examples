@@ -112,6 +112,13 @@ Example  : query length([const mgpoint value( (("2007-01-01" "2007-01-02" TRUE F
 Result   : 2.2
 Tolerance: 0.01%
 
+Operator : length
+Number   : 2
+Signature: ugpoint -> real
+Example  : query length([const ugpoint value(("2007-01-01" "2007-01-02" TRUE FALSE)(1 1 1 0.2 2.4))]);
+Result   : 2.2
+Tolerance: 0.01%
+
 Operator : atinstant
 Number   : 1
 Signature: mgpoint x instant -> igpoint
