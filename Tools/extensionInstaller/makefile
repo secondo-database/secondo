@@ -26,8 +26,14 @@ JAVAFILES =$(shell find -maxdepth 1  -name "*.java")
 TMPFILES = $(subst .java,.class,$(JAVAFILES))
 CLASSFILES = $(subst ./,,$(TMPFILES))
 
-.PHONY: all
-all: $(CLASSFILES)
+
+
+.PHONY: all 
+all: $(CLASSFILES) Installer.jar
+
+Installer.jar: $(JAVAFILES)
+	jar cmf manifest Installer.jar *.class
+
 
 %.class: %.java
 	javac  $<

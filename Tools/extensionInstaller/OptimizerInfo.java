@@ -9,8 +9,7 @@ import java.util.zip.*;
 
 public class OptimizerInfo extends SecondoExtension{
 
-   Vector<Block> blocks;    // blocks for inserting
-   Vector<StringPair> files;   // new files
+   Vector<Block> blocks=new Vector<Block>();    // blocks for inserting
    String name = null;
 
    public String getStartTag(){
@@ -138,7 +137,19 @@ public class OptimizerInfo extends SecondoExtension{
           return false;
        }
      }
-     b.content = n.getNodeValue();
+     if(!n1.hasChildNodes()){
+         System.err.println("empty block is not allowed");
+         return false;
+     }
+     b.content = n1.getFirstChild().getNodeValue();
+     if(b.content==null){
+         System.err.println("Empty block found in XML file");
+         return false;
+     }
+     if(b.content.startsWith("\n")){
+        b.content = b.content.substring(1);
+     }
+     b.content= b.content.replaceAll("\\s+$","");
      if(b.content.trim().length()==0){
         System.err.println("empty block found");
         return false;
@@ -162,7 +173,7 @@ public class OptimizerInfo extends SecondoExtension{
       TreeSet<String> names = new TreeSet<String>();
       TreeSet<String> fnames = new TreeSet<String>();
       String s = File.separator;
-      String mainDir = secondoDir+"Optimizer"+s;
+      String mainDir = secondoDir+s+"Optimizer"+s;
 
       for(int i=0;i<infos.size();i++){
          OptimizerInfo info = infos.get(i);
@@ -313,11 +324,12 @@ public class OptimizerInfo extends SecondoExtension{
   /** installs the extension **/
   boolean install(String secondoDir, ZipFile f){
      String s = File.separator;
-     String mainDir = secondoDir+"Optimizer"+s;
+     String mainDir = secondoDir+s+"Optimizer"+s;
      // copy files
      for(int i=0;i<files.size();i++){
        StringPair p = files.get(i);
        String fn = mainDir+p.second.replaceAll("/",s)+s+p.first;
+       System.out.println("Copy to File " + fn);
        if(!SecondoExtension.copyZipEntryToFile(new File(fn), f, f.getEntry(p.first))){
            return false;
        } 
@@ -342,7 +354,7 @@ public class OptimizerInfo extends SecondoExtension{
       BufferedReader in = null;
       boolean ok = true;
       String s = File.separator;
-      String mainDir = secondoDir+"Optimizer"+s;
+      String mainDir = secondoDir+s+"Optimizer"+s;
       File f = new File(mainDir + b.file);
       try{
         in = new BufferedReader(new FileReader(f));
@@ -365,14 +377,14 @@ public class OptimizerInfo extends SecondoExtension{
            System.err.println("Error during processing file " + f + ", section end " + b.getSectionEnd()+ " not found");
            return false;
          } 
-         content = parts[0] + b.content+"\n"+b.getSectionEnd()+"\n"+parts[1];
+         content = parts[0] +"\n"+ getStartTag()+"\n"+b.content+"\n"+getEndTag()+"\n"+b.getSectionEnd()+"\n"+parts[1];
       } else { // insert content at the beginb of the section
          String[] parts = content.split("\n"+ b.getSectionStartTemplate()+"\n");
          if(parts.length!=2){
            System.err.println("Error during processing file " + f + ", section start" + b.getSectionStart()+ " not found");
            return false;
          }
-         content = parts[0] + "\n"+b.getSectionStart()+"\n"+b.content+"\n"+parts[1];
+         content = parts[0] + "\n"+b.getSectionStart()+"\n"+getStartTag()+"\n"+b.content+"\n"+getEndTag()+"\n"+parts[1];
       }
       // write modified content to file
       PrintWriter out = null;
