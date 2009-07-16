@@ -22,8 +22,8 @@ public static void main(String[] args){
            TreeSet<String> names = new TreeSet<String>();
            while(in.ready()){
               String line = in.readLine();
-              if(line.matches("%\\s+Extension:Start:\\s*\\w+\\s*")){
-                 String name = line.replaceAll("%\\s+Extension:Start:","");
+              if(line.matches("%\\s+Section:Start:\\s*\\w+\\s*")){
+                 String name = line.replaceAll("%\\s+Section:Start:","");
                  name = name.trim();
                  if(currentSection!=null){
                     System.err.println("nested Sections detected: try to start section " + 
@@ -37,8 +37,8 @@ public static void main(String[] args){
                    currentSection = name;
                    names.add(name);
                  }
-              } else if(line.matches("%\\s+Extension:End:\\w+\\s*")){
-                 String name = line.replaceAll("%\\s+Extension:End:","");
+              } else if(line.matches("%\\s+Section:End:\\w+\\s*")){
+                 String name = line.replaceAll("%\\s+Section:End:","");
                  name = name.trim();
                  if(currentSection==null){
                     System.err.println("Try to end section " + name + 
