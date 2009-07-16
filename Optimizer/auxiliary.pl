@@ -178,6 +178,8 @@ type constructors are added to Secondo.
 */
 
 
+% Extension:Start:display_2_b
+% Extension:End:display_2_b
 
 display(int, N) :-
   !,
