@@ -48,6 +48,8 @@ the finally ~RewrittenQuery~.
 */
 
 rewriteQuery(Query, RewrittenQuery) :-
+% Section:Start:rewriteQuery_2_i1
+% Section:End:rewriteQuery_2_i1
  rewriteQueryForMacros(Query, RQuery1),
  rewriteQueryForSubqueryProcessing(RQuery1, RQuery2),
  rewriteQueryForInferenceOfPredicates(RQuery2, RQuery3),
@@ -278,6 +280,8 @@ rewritingNonemptyRule(minus(X, Y),        [Y inside X]).
 rewritingNonemptyRule(X,                  [not(isempty(X))]) :-
   X =.. [OP|_],
   isBBoxOperator(OP).
+% Section:Start:rewritingNonemptyRule_2_e
+% Section:End:rewritingNonemptyRule_2_e
 
 
 /*
@@ -516,6 +520,9 @@ analyseConditions(WhereIn, WhereOut) :-
 
 % rules to infer additional predicates
 
+% Section:Start:inferPredicate_2_b
+% Section:End:inferPredicate_2_b
+
 /*
 
 ----
@@ -537,7 +544,7 @@ inferPredicate(Premises, [bbox(X) intersects box3d(bbox(Z),Y)]) :-
 /*
 Infering the predicates for spatiotemporal pattern predicte
 The aliases of the lifted predicates are first removed by
-calling "removeAliases". Then, for every lifted predicate, 
+calling "removeAliases". Then, for every lifted predicate,
 a suitable standard predicate is infered
 
 */
@@ -581,6 +588,8 @@ inferPredicate(Premises, [X intersects Y]) :-
 
 */
 
+% Section:Start:inferPredicate_2_e
+% Section:End:inferPredicate_2_e
 
 /*
 14.2.3 Auxiliary Predicates for Inference of Conditions
@@ -590,8 +599,8 @@ inferPredicate(Premises, [X intersects Y]) :-
 
 For every lifted predicate P inside the spatiotemporal
 pattern predicate, a standard predicate is added.
-For range lifted predicates (ex: inside), the "passes" 
-predicate is used, otherwise, sometimes(P). 
+For range lifted predicates (ex: inside), the "passes"
+predicate is used, otherwise, sometimes(P).
 
 The dynamic predicate removefilter is used to keep a list
 of the additiotnal standard predicates so that they are removed
@@ -626,7 +635,7 @@ inferPatternPredicates([Pred|Preds], [sometimes(Pred)|Preds2] ):-
 14.2.4 Auxiliary Predicates for parsing spatiotemporal pattern predicates
 
 ---- removeAliases(+NamedLiftedPreds,-LiftedPreds, -Aliases)
----- parseNPred(+NamedLiftedPred,-LiftedPred, -Alias) 
+---- parseNPred(+NamedLiftedPred,-LiftedPred, -Alias)
 
 The predicates are used to seperate the predicates and their aliases
 for further processing.
@@ -651,6 +660,9 @@ equivalent expressions. At the moment, only doublets within the list of where
 conditions are dropped.
 
 */
+
+% Section:Start:rewriteQueryForRedundancy_2_b
+% Section:End:rewriteQueryForRedundancy_2_b
 
 rewriteQueryForRedundancy(Query, RewrittenQuery) :-
   Query = first(X),
@@ -695,6 +707,9 @@ rewriteQueryForRedundancy(Query, RewrittenQuery) :-
   dm(rewrite,['\nREWRITING: Remove redundant predicates\n\tIn:  ',
               Query,'\n\tOut: ',RewrittenQuery,'\n\n']),
   !.
+
+% Section:Start:rewriteQueryForRedundancy_2_e
+% Section:End:rewriteQueryForRedundancy_2_e
 
 rewriteQueryForRedundancy(Query,Query) :-
   dm(rewrite,['\nREWRITING: Remove redundant predicates\n\tIn:  ',
@@ -1240,6 +1255,9 @@ Called by predicate ~translate~.
 :- dynamic(storedAvailStreamAttributes/1).
 :- dynamic(rewritePlanInsertedAttribute/1). % Table of attributes extended to the streams
 
+% Section:Start:rewritePlanforCSE_4_b
+% Section:End:rewritePlanforCSE_4_b
+
 rewritePlanforCSE(PlanIn, PlanOut, SelectIn, SelectOut) :-
   optimizerOption(rewriteCSE),
   retractall(rewritePlanInsertedAttribute(_)),
@@ -1453,6 +1471,10 @@ attributes.
 
 */
 
+% Section:Start:insertExtend_4_b
+% Section:End:insertExtend_4_b
+
+
 % Case: remove (Can be ignored, as (so far) only used as extend-join-remove
 % Case: extend (Can be ignored, as (so far) only used as extend-join-remove
 
@@ -1625,6 +1647,9 @@ insertExtend(PlanIn, PlanOut, AttrsIn, AttrsOut) :-
   dm(insertExtend,['insertExtend - avail attrs: ',filter(AttrArg),' = ',
                   AttrsOut,'\n']),
   !.
+
+% Section:Start:insertExtend_4_m
+% Section:End:insertExtend_4_m
 
 % Case: Operator that does not modify attribute sets
 % (should be the last clause! Do nothing)
@@ -2033,6 +2058,9 @@ removeUnusedAttrs(PlanIn,PlanIn, _) :-
 removeUnusedAttrs(PlanIn,PlanIn, _) :-
   atomic(PlanIn), !.
 
+% Section:Start:removeUnusedAttrs_3_b
+% Section:End:removeUnusedAttrs_3_b
+
 % Case: remove. Remove nothing, but add UsedAttrs to SeenAttrs
 removeUnusedAttrs(remove(Arg,AttrList), remove(ArgE,AttrList), SeenAttrs) :-
   usedAttributes(remove(Arg,AttrList),UsedAttrs),
@@ -2076,6 +2104,9 @@ removeUnusedAttrs(PlanIn,PlanOut,SeenAttrs) :-
   removePhrase(Plan2, PlanOut, RemoveAttrs),
   !.
 
+% Section:Start:removeUnusedAttrs_3_e
+% Section:End:removeUnusedAttrs_3_e
+
 % Case: Default case. Do nothing
 removeUnusedAttrs(PlanIn,PlanIn,SeenAttrs) :-
   dm(rewritePlan,['\nremoveUnusedAttrs(',PlanIn,',',SeenAttrs,
@@ -2086,7 +2117,7 @@ removeUnusedAttrs(PlanIn,PlanIn,SeenAttrs) :-
 ---- removePhrase(+ArgS, -ArgSE, +RemoveAttrs)
 ----
 Remove attributes ~RemoveAttrs~ from stream ~ArgS~ by prepending a remove-operator
-to ~ArgS~. The reulting plan is ~ArgSE~. Elements of ~RemoveAttrs~ are in simple
+to ~ArgS~. The resulting plan is ~ArgSE~. Elements of ~RemoveAttrs~ are in simple
 format, either ``attributename'' or ``alias:attributename''.
 
 When processing the conjunctive subplan, ~RemoveAttrs~ can be initialized to the
@@ -2127,6 +2158,9 @@ Returns the set of attributes ~Attrs~ that are directly used in Operator
 ~Operator~.
 
 */
+
+% Section:Start:usedAttributes_2_b
+% Section:End:usedAttributes_2_b
 
 usedAttributes([],[]).
 usedAttributes([A|As],Attrs) :-
@@ -2190,6 +2224,9 @@ usedAttributes(gettuples(_,_), [id]) :- !.
 
 usedAttributes(sort(_),[]) :- !. % XRIS: Perhaps, to be handeled separately?
 usedAttributes(rdup(_),[]) :- !.
+
+% Section:Start:usedAttributes_2_m
+% Section:End:usedAttributes_2_m
 
 usedAttributes(Term,Attrs) :-
   compound(Term),

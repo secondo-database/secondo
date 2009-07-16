@@ -1176,7 +1176,7 @@ consider_Arg2(Term, Term) :-
   optimizerOption(subqueries),
   compound(Term),
   Term =.. [from | _].
-  
+
 consider_Arg2(Term, Term) :-
   optimizerOption(subqueries),
   compound(Term),
@@ -1203,6 +1203,10 @@ Arguments:
 
 rel_to_atom(rel(DCname, _), ExtName) :-
   dcName2externalName(DCname,ExtName).
+
+% Section:Start:plan_to_atom_2_b
+% Section:End:plan_to_atom_2_b
+
 
 /*
 the stpattern predicate
@@ -1250,11 +1254,11 @@ plan_to_atom(res(N), Result) :-
   atom_concat('res(', N, Res1),
   atom_concat(Res1, ') ', Result),
   !.
-  
+
 plan_to_atom(SubqueryPred, Result) :-
   optimizerOption(subqueries),
   subquery_plan_to_atom(SubqueryPred, Result),
-  !.  
+  !.
 
 plan_to_atom(SubqueryPred, Result) :-
   optimizerOption(subqueries),
@@ -1611,16 +1615,16 @@ plan_to_atom(a(X, _, u), X2) :-
 
 plan_to_atom(true, Result) :-
   concat_atom(['TRUE'], '', Result),
-  !.  
-  
+  !.
+
 plan_to_atom(false, Result) :-
   concat_atom(['FALSE'], '', Result),
-  !.  
+  !.
 
 plan_to_atom(now, Result) :-
   concat_atom(['now()'], '', Result),
-  !.      
-  
+  !.
+
 
 /*
 Integrating counters into query plans
@@ -1781,6 +1785,9 @@ plan_to_atom(updatehash(UpdateQuery, IndexName, Column),Result) :-
         Result),
   !.
 
+% Section:Start:plan_to_atom_2_m
+% Section:End:plan_to_atom_2_m
+
 /*
 Translation of operators driven by predicate ~secondoOp~ in
 file ~opsyntax~. There are rules for
@@ -1915,6 +1922,9 @@ plan_to_atom(X, Result) :-
   term_to_atom(X, Result),
   !.
 
+% Section:Start:plan_to_atom_2_e
+% Section:End:plan_to_atom_2_e
+
 /* Error case */
 plan_to_atom(X, _) :-
   term_to_atom(X,XA),
@@ -1999,6 +2009,9 @@ type_to_atom(tuple, 'TUPLE')   :- !.
 type_to_atom(tuple2, 'TUPLE2') :- !.
 type_to_atom(group, 'GROUP')   :- !.
 
+% Section:Start:type_to_atom_2_m
+% Section:End:type_to_atom_2_m
+
 % Needed for aggregate
 type_to_atom(X, Y) :-
   concat_atom([X], Y),
@@ -2023,6 +2036,10 @@ of translation results.
 
 */
 
+% Section:Start:translationRule_2_b
+% Section:End:translationRule_2_b
+
+
 res(N) => res(N).
 
 arg(N) => feed(rel(Name, *)) :-
@@ -2040,6 +2057,7 @@ arg(N) => feedproject(rel(Name, *), AttrNames) :-
 arg(N) => rename(feedproject(rel(Name, Var), AttrNames), Var) :-
   argument(N, rel(Name, Var)), !,
   usedAttrList(rel(Name, Var), AttrNames).
+
 
 /*
 5.2.2 Translation of Selections
@@ -2091,7 +2109,6 @@ select(arg(N), Y) => project(X, RenamedAttrNames) :-
   usedAttrList(rel(Name, Var), AttrNames),
   % with renaming, so modify the projection attr list
   renameAttributes(Var, AttrNames, RenamedAttrNames).
-
 
 % replace (Attr = Term) by (Term = Attr)
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
@@ -2251,12 +2268,9 @@ Again. a possible ~rename~ must be done before ~filter~ can be applied.
 
 */
 
-
 indexselect(arg(N), Pred) => X :-
   optimizerOption(rtreeIndexRules),
   indexselectRT(arg(N), Pred) => X.
-
-
 
 % 'present' with temporal(rtree,object) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
@@ -2728,7 +2742,7 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) => JoinPlan :-
 join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
         remove(JoinPlan, [attrname(attr(r_expr, 2, l))]) :-
   X = attr(_, _, _),
-  not(Y = attr(_, _, _)), 
+  not(Y = attr(_, _, _)),
   not(isSubquery(Y)),
   !,
   Arg1 => Arg1S,
@@ -2750,7 +2764,7 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
         remove(JoinPlan, [attrname(attr(l_expr, 1, l)),
                 attrname(attr(r_expr, 2, l))]) :-
   not(X = attr(_, _, _)),
-  not(Y = attr(_, _, _)), 
+  not(Y = attr(_, _, _)),
   not(isSubquery(Y)),
   not(isSubquery(X)),
   !,
@@ -2845,6 +2859,8 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _))
 
 */
 
+% Section:Start:translationRule_2_e
+% Section:End:translationRule_2_e
 
 isOfFirst(X, X, _) :- X = attr(_, 1, _).
 isOfFirst(Y, _, Y) :- Y = attr(_, 1, _).
@@ -3752,6 +3768,8 @@ cost(gettuples(X, _), Sel, Size, Cost) :-
           + Size * C * 0.75. % other 0.25 applied in 'windowintersectsS'
 
 
+% Section:Start:cost_4_e
+% Section:End:cost_4_e
 
 isPrefilter(X) :-
   X = spatialjoin(_, _, _, _).
@@ -3759,6 +3777,8 @@ isPrefilter(X) :-
 isPrefilter(X) :-
   X = loopjoin(_, _).
 
+% Section:Start:isPrefilter_1_e
+% Section:End:isPrefilter_1_e
 
 
 
@@ -3880,7 +3900,11 @@ assignCosts :-
   ( ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) )
     -> deleteSizesNawra; true),
   deleteCostEdges,
+% Section:Start:assignCosts_0_i1
+% Section:End:assignCosts_0_i1
   assignSizes,
+% Section:Start:assignCosts_0_i2
+% Section:End:assignCosts_0_i2
   createCostEdges.
 
 
@@ -4650,6 +4674,9 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(950,  fx,  delete).% for update, insert
 :- op(950,  fx,  update).% for update, insert
 :- op(950, xfx,  values).% for update, insert
+% Section:Start:opPrologSyntax_3_e
+% Section:End:opPrologSyntax_3_e
+
 
 /*
 This ensures that the select-from-where statement is viewed as a term with the
@@ -4714,6 +4741,8 @@ callLookup(Query, Query2) :-
   lookup(Query, Query2), !.
 
 newQuery :-
+% Section:Start:newQuery_0_i
+% Section:End:newQuery_0_i
   clearVariables,
   clearQueryRelations,
   clearQueryAttributes,
@@ -4737,6 +4766,9 @@ clearSelectivityQuery :- retractall(selectivityQuery(_)).
 attribute names have the form as required in [Section Translation].
 
 */
+
+% Section:Start:lookup_2_b
+% Section:End:lookup_2_b
 
 lookup(select Attrs from Rels where Preds,
         select Attrs2 from Rels2List where Preds2List) :-
@@ -4810,6 +4842,9 @@ lookup(Query first N, Query2 first N) :-
 lookup(Query last N, Query2 last N) :-
   lookup(Query, Query2).
 
+% Section:Start:lookup_2_e
+% Section:End:lookup_2_e
+
 
 makeList(L, L) :- is_list(L).
 
@@ -4878,11 +4913,11 @@ lookupRel(Rel, rel(RelDC, *)) :-
   relation(RelDC, _), !,
   not(duplicateAttrs(RelDC)),
   assert(queryRel(RelDC, rel(RelDC, *))).
-  
+
 lookupRel(Rel, Rel2) :-
   optimizerOption(subqueries),
   lookupSubquery(Rel, Rel2).
-  
+
 lookupRel((Rel) as Var, (Rel2) as Var) :-
   optimizerOption(subqueries),
   lookupSubquery(Rel, Rel2).
@@ -5036,11 +5071,11 @@ Generic lookupAttr/2-rule for functors of arbitrary arity using Univ (=../2):
 lookupAttr(Name, attr(Name, 0, u)) :-
   queryAttr(attr(Name, 0, u)),
   !.
-  
+
 lookupAttr(Term, Term) :-
   is_list(Term),
   catch(string_to_list(_, Term), _, fail),
-  !.  
+  !.
 
 lookupAttr(Term, Term) :-
   is_list(Term),
@@ -5059,7 +5094,7 @@ lookupAttr(Term, dbobject(TermDC)) :-
   dcName2externalName(TermDC,Term),
   secondoCatalogInfo(TermDC,_,_,_),
   !.
-  
+
 lookupAttr(Term, Term) :-
   atom(Term),
   concat_atom(['Unknown symbol: \'',Term,'\' is not recognized!'],'',ErrMsg),
@@ -5106,12 +5141,16 @@ lookupPreds(Pred, Pred2) :-
 /*
 Used within the spatiotemporal pattern predicate.
 If Pred is among the additional predicates list, it
-is looked up and the list is updated with the new 
+is looked up and the list is updated with the new
 syntax not to loose track of the additonal predicates.
-This lookupPred should always be placed as the first 
+This lookupPred should always be placed as the first
 called lookupPred.
 
 */
+
+% Section:Start:lookupPred_2_b
+% Section:End:lookupPred_2_b
+
 lookupPred(Pred, pr(Pred2, Rel)) :-
   removefilter(Pred),
   nextCounter(selectionPred,_),
@@ -5134,7 +5173,7 @@ lookupPred(Pred, X) :-
   term_to_atom(Rels,RelsA),
   ( (N = 0)
     -> ( concat_atom(['Malformed predicate: \'',PredA,
-                     '\' is a constant. This is not allowed.'],'',ErrMsg) 
+                     '\' is a constant. This is not allowed.'],'',ErrMsg)
        )
     ; ( (N > 2)
         -> concat_atom(['Malformed predicate: \'',PredA,
@@ -5157,6 +5196,9 @@ attributes so far considered have already used relations from list ~RelsBefore~.
 The relation list is updated and returned in ~RelsAfter~.
 
 */
+
+% Section:Start:lookupPred1_2_b
+% Section:End:lookupPred1_2_b
 
 lookupPred1(Pred, Pred2, RelsBefore, RelsAfter) :-
   optimizerOption(subqueries),
@@ -5190,16 +5232,16 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
   nth1(Index,RelsAfter,Rel2),
   (   usedAttr(Rel2, attr(Attr2, X, Case))
     ; assert(usedAttr(Rel2, attr(Attr2, X, Case)))
-  ), !.  
+  ), !.
 
 /*
 Used within the spatiotemporal pattern predicates stpattern.
 The only component of the STPP that need lookup is the
-list of lifted predicates. This special lookupPred1 
+list of lifted predicates. This special lookupPred1
 predicate seperates the lifted predicates and pass them
 to the normal lookupPred1. The constratins are passed as is
-since there is no need to lookup them. The aliases are 
-composed back with the looked up lifted predicates by the 
+since there is no need to lookup them. The aliases are
+composed back with the looked up lifted predicates by the
 lookupPattern predicate.
 
 */
@@ -5209,13 +5251,13 @@ lookupPred1(pattern(Preds,C), pattern(Res,C), RelsBefore, RelsAfter) :-
 
 /*
 Used within the extended spatiotemporal pattern predicates stpatternex.
-The components that need lookup are the list of lifted predicates and 
-the boolean condition (part2 of the pattern). This special lookupPred1 
+The components that need lookup are the list of lifted predicates and
+the boolean condition (part2 of the pattern). This special lookupPred1
 predicate seperates the lifted predicates and pass them
-to the normal lookupPred1. The boolean condidtion is also 
+to the normal lookupPred1. The boolean condidtion is also
 passed to the normal lookupPred1. The constratins are passed as is
-since there is no need to lookup them. The aliases are 
-composed back with the looked up lifted predicates by the 
+since there is no need to lookup them. The aliases are
+composed back with the looked up lifted predicates by the
 lookupPattern predicate.
 
 */
@@ -5237,7 +5279,10 @@ lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
   not(is_list(Term)),
   dcName2externalName(TermDC,Term),
   secondoCatalogInfo(TermDC,_,_,_),
-  !.  
+  !.
+
+% Section:Start:lookupPred1_2_m
+% Section:End:lookupPred1_2_m
 
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
@@ -6168,7 +6213,7 @@ queryToStream(Query, Stream3, Cost) :-
   finish(Stream, Select, [], Stream2),
   finishUpdate(Update, Stream2, Stream3),
   !.
-  
+
 queryToStream(Query, Stream, Cost) :-
   optimizerOption(subqueries),
   subqueryToStream(Query, Stream, Cost),
@@ -6708,6 +6753,9 @@ sqlExample( 304,
   from [trains as t, strassen as s]
   where [(t:trip atperiods deftime(train5)) passes s:geodata]
   ).
+
+% Section:Start:sqlExample_1_e
+% Section:End:sqlExample_1_e
 
 example14 :- example(14).
 example15 :- example(15).

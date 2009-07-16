@@ -71,10 +71,16 @@ If encountered alone, it is just ignored.
 8.1.0 Plan Annotations
 
 */
+
+% Section:Start:cost_7_b
+% Section:End:cost_7_b
+
 % ignore plan annotations:
 cost(optimizerAnnotation(X,_), Sel, Pred, ResAttrList, ResTupleSize, ResCard, 0) :-
   cost(X, Sel, Pred, ResAttrList, ResTupleSize, ResCard, 0),!.
 
+% Section:Start:cost_7_m
+% Section:End:cost_7_m
 
 /*
 8.1.1 Arguments
@@ -831,6 +837,10 @@ cost(simpleUserAggrNoGroupby(Stream, _, _, _), S, P, A, TS, RC, Cost) :-
 
 */
 
+% Section:Start:cost_7_e
+% Section:End:cost_7_e
+
+
 /*
 8.2 Predicates Auxiliar to cost/8
 
@@ -838,11 +848,18 @@ cost(simpleUserAggrNoGroupby(Stream, _, _, _), S, P, A, TS, RC, Cost) :-
 
 % Succeeds, if ~X~ is a term that could act as a prefilter
 % --- isPrefilter(+X)
+
+% Section:Start:isPrefilter_1_b
+% Section:End:isPrefilter_1_b
+
 isPrefilter(X) :-
   X = spatialjoin(_, _, _, _),!.
 
 isPrefilter(X) :-
   X = loopjoin(_, _),!.
+
+% Section:Start:isPrefilter_1_e
+% Section:End:isPrefilter_1_e
 
 % Reflect modifications done by the ~rename~ operator to an attribute list
 %     (i.e. a common ~Suffix~ is appended to every attribute name
@@ -953,6 +970,9 @@ stored in facts
 
 */
 
+% Section:Start:costConst_3_b
+% Section:End:costConst_3_b
+
 costConst(general, maxMemBytePerOperator, 4194304). % 4 MB buffers per operator
 costConst(feed, pertuple, 0.00194).
 costConst(feed, perbyte, 0.0000196).
@@ -990,3 +1010,5 @@ costConst(rdup, defaultSelectivity,0.9).
 costConst(windowintersects, msPerTuple, 0.00194).
 costConst(windowintersects, msPerByte, 0.0000106).
 
+% Section:Start:costConst_3_e
+% Section:End:costConst_3_e

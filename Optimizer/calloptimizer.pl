@@ -442,8 +442,8 @@ optimizerOptionInfo(subqueryUnnesting, subqueries, yes,
                    true
                   ).
 
-% Extension:Start:optimizerOptionInfo_6_e
-% Extension:End:optimizerOptionInfo_6_e
+% Section:Start:optimizerOptionInfo_6_e
+% Section:End:optimizerOptionInfo_6_e
 
 :- [calloptimizer_sec]. % include more options
 
@@ -657,8 +657,8 @@ loadFiles(standard) :-
     [searchtree],
     [relations],
     [testExamples],
-% Extension:Start:loadFiles_1_i
-% Extension:End:loadFiles_1_i
+% Section:Start:loadFiles_1_i
+% Section:End:loadFiles_1_i
     retractall(loadedModule(_)),
     assert(loadedModule(standard))
   )
@@ -714,8 +714,8 @@ loadFiles(improvedcosts) :-
   )
   ; true.
 
-% Extension:Start:loadFiles_1_e
-% Extension:End:loadFiles_1_e
+% Section:Start:loadFiles_1_e
+% Section:End:loadFiles_1_e
 
 /*
 4 Some Auxiliary predicates for Debugging
@@ -817,8 +817,8 @@ defaultOptions :-
   setOption(debug),
   debugLevel(selectivity),
   setOption(autoSamples),
-% Extension:Start:defaultOptions_0_i
-% Extension:End:defaultOptions_0_i
+% Section:Start:defaultOptions_0_i
+% Section:End:defaultOptions_0_i
   setOption(autosave).
 
 

@@ -122,6 +122,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 :- op(800, xfx, p_intersects).
 :- op(800, xfx, equalway).
 
+% Section:Start:opSyntaxPreference_3_e
+% Section:End:opSyntaxPreference_3_e
 
 /*
 
@@ -450,3 +452,5 @@ secondoOp( within2,           postfixbrackets2, 3).
 %secondoOp( whiledo,           postfixbrackets1, 4). % TODO: special syntax
 secondoOp( writeFile,         prefix, 2). % also prefix 3
 
+% Section:Start:secondoOp_3_e
+% Section:End:secondoOp_3_e

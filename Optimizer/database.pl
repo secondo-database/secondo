@@ -2150,6 +2150,9 @@ special index operators.
 
 */
 
+% Section:Start:indexType_2_b
+% Section:End:indexType_2_b
+
 indexType( btree,  [[btree|_]]  ).
 indexType( hash,   [[hash|_]]   ).
 indexType( rtree,  [[rtree|_]]  ).
@@ -2158,6 +2161,9 @@ indexType( rtree4, [[rtree4|_]] ).
 indexType( rtree8, [[rtree8|_]] ).
 indexType( mtree,  [mtree]      ).
 indexType( xtree,  [xtree]      ).
+
+% Section:Start:indexType_2_e
+% Section:End:indexType_2_e
 
 
 /*
@@ -2246,6 +2252,9 @@ showIndexTypes :-
               '----------------------------']),nl,
   findall(_,showSingleIndexType,_),
   nl,!.
+
+% Section:Start:logicalIndexType_8_b
+% Section:End:logicalIndexType_8_b
 
 % standard indexes - just wrapping physical index types
 logicalIndexType(btree, btree, btree,
@@ -2377,6 +2386,8 @@ logicalIndexType(sptmpuni, spatiotemporal(rtree3, unit), rtree3,
     undefined,
     undefined).
 
+% Section:Start:logicalIndexType_8_e
+% Section:End:logicalIndexType_8_e
 
 
 /*
@@ -4437,6 +4448,8 @@ readSystemIdentifiers :-
   assert(systemIdentifier(save,save)),
   assert(systemIdentifier(to,to)),
   assert(systemIdentifier(from,from)),
+% Section:Start:readSystemIdentifiers_0_i
+% Section:End:readSystemIdentifiers_0_i
   write('\nINFO:\tNow retrieving system identifiers...'),nl,
   secondo('query SEC2OPERATORINFO feed project[Name] tconsume', OperatorList),
   OperatorList = [_, OL], flatten(OL,OLF), sort(OLF,OLS),

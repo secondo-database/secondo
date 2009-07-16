@@ -686,7 +686,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
          Query = count(loopsel(Rel1Query,
            fun([param(txx1, tuple)], filter(Rel2Query, Pred2))))
        )
-   ),  
+   ),
   transformQuery(Rel1, Rel2, Pred, Query, JoinSize, Query2),
   plan_to_atom(Query2, QueryAtom1),
   atom_concat('query ', QueryAtom1, QueryAtom),
@@ -783,7 +783,7 @@ getTime(Goal, TimeMS) :-
   Time3 is Time2 - Time1,
   convert_time(Time3, _, _, _, _, Minute, Sec, MilliSec),
   TimeMS is Minute *60000 + Sec*1000 + MilliSec, !.
-  
+
 /*
 
 ----
@@ -1472,6 +1472,10 @@ If the type of a term cannot be dertermined, a failure value (e.g. ~undefined~) 
 predCost(Pred, PredCost) :-
   predCost(Pred, PredCost, _, _, predArg(1)).
 
+
+% Section:Start:predCost_5_b
+% Section:End:predCost_5_b
+
 predCost(Pred, PredCost, predArg(N)) :-
   predCost(Pred, PredCost, _, _, predArg(N)).
 
@@ -1581,6 +1585,9 @@ predCost(Rel:Attr, 0,  ArgType, ArgSize, _) :- !,
   downcase_atom(Rel, DCRel),
   attrType(DCRel:DCAttr, ArgType),
   attrSize(DCRel:DCAttr, ArgSize), !.
+
+% Section:Start:predCost_5_m
+% Section:End:predCost_5_m
 
 % default value changed from 0 to 0.0000005
 predCost(_, 0.0000005, notype, 1, _) :- !.
