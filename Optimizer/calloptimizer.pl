@@ -283,6 +283,12 @@ optimizerOptionInfo(nawracosts, none, yes,
                     true
                    ).
 
+optimizerOptionInfo(earlyproject, none, yes,
+                    'Project before sort and groupby',
+                    true,
+                    true
+                   ).
+
 optimizerOptionInfo(improvedcosts, none, yes,
                     'Use improved cost functions.',
                     ( delOption(nawracosts),
