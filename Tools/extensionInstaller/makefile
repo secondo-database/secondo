@@ -41,4 +41,4 @@ Installer.jar: $(JAVAFILES)
 
 .PHONY: clean
 clean:
-	rm -f *.class
+	rm -f *.class Installer.jar

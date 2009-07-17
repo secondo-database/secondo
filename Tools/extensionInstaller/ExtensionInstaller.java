@@ -57,6 +57,7 @@ public ExtensionInstaller(String secondoDirectory){
   }
 }
 
+/** Installs all algebra contained in the argument **/
 private boolean checkAndInstallAlgebras(Vector<ExtensionInfo> infos){
    // collect all Algebras to check conflicts and dependencies
    Vector<AlgebraInfo> algInfos = new Vector<AlgebraInfo>(infos.size());
@@ -81,6 +82,8 @@ private boolean checkAndInstallAlgebras(Vector<ExtensionInfo> infos){
    return true;
 }
 
+
+/** Installs all viewers contained in the argument **/
 private boolean checkAndInstallViewers(Vector<ExtensionInfo> infos){
   // collect all ViewerInfos
   Vector<ViewerInfo> viewerInfos = new Vector<ViewerInfo>(infos.size());

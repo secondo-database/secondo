@@ -1,3 +1,28 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2009, University in Hagen,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+*/
+
 import java.util.*;
 import org.w3c.dom.*;
 import javax.xml.parsers.*;
@@ -6,9 +31,11 @@ import java.util.zip.*;
 import java.util.regex.Pattern;
 
 
-
+/** The class HoeseInfo corresponds to a set of display classes to install **/
 public class HoeseInfo extends JavaExtension{
-   
+
+
+   /** Conversion into a string representation **/   
    public String toString(){
      String res = "[HoeseInfo: " + 
                          " SecondoVersion = " + secondo_Major_Version + "."
@@ -34,7 +61,7 @@ public class HoeseInfo extends JavaExtension{
 
  
   /** Creates a new HoeseInfoo object from an XML 
-    * decsription.
+    * description.
     **/
    public HoeseInfo(Node n){
       valid = readHoeseInfo(n);
@@ -57,7 +84,7 @@ public class HoeseInfo extends JavaExtension{
       return filesPresent(f, names);
    }
 
-
+   /** Reads the infoamtion from n1 **/
    private boolean readHoeseInfo(Node n1){
      NodeList nl = n1.getChildNodes();
      for(int i=0;i<nl.getLength();i++){
@@ -101,7 +128,7 @@ public class HoeseInfo extends JavaExtension{
      return checkValidity();
    }
 
-
+  /** Check whether all information is available **/
   boolean checkValidity(){
    if(secondo_Major_Version<0){
      System.err.println("version information missing");
@@ -114,6 +141,8 @@ public class HoeseInfo extends JavaExtension{
    return true;
   }
 
+
+  /** Checks whether all dependencies are fullfilled and no conflicts are present **/
   static boolean check(String secondoDir, Vector<HoeseInfo> infos){
     if(!checkConflicts(secondoDir,infos)){
        return false;  
@@ -220,7 +249,9 @@ public class HoeseInfo extends JavaExtension{
    return true;
   }
 
- 
+  /** If there are additional libraries, the classpath used by the start script
+    * is extended by these files.
+    **/ 
   private boolean addToStartScript(File f){
     // check whether the file is to mofify, i.e. if libs are required
     Vector<String> libFlags = new Vector<String>();
@@ -299,7 +330,7 @@ public class HoeseInfo extends JavaExtension{
     return true;
   }
   
-
+  /** Adds subdirectory to the makefile within the algebras directory **/
   private boolean updateHoeseMake(File f){
     if(!f.exists()){
         System.err.println("File "+f.getAbsolutePath()+" not found. Check your Secondo installation");
@@ -408,6 +439,7 @@ public class HoeseInfo extends JavaExtension{
   } 
 
 
+  /** Installs the display classes */
   public boolean install(String secondoDir, String ZipFileName){
     // copy the files
      ZipFile f = null;
@@ -447,7 +479,7 @@ public class HoeseInfo extends JavaExtension{
 
        File hoesemake = new File(algDir+"makefile");
        updateHoeseMake(hoesemake);
-
+       showCopyright(f);
      } catch(Exception e){
         e.printStackTrace();
         return false;

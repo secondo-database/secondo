@@ -1,3 +1,28 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2009, University in Hagen,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+*/
+
 
 import java.util.*;
 import org.w3c.dom.*;
@@ -6,16 +31,18 @@ import java.io.*;
 import java.util.zip.*;
 import java.util.regex.Pattern;
 
-
+/** Super class for all Secondo extensions **/
 public class SecondoExtension{
 
-   protected boolean valid;
+   protected boolean valid;                      // flag whether the Info is valid
    protected int secondo_Major_Version = -1;     // version informtion
    protected int secondo_Minor_Version = 0;      // version information
    protected int secondo_SubMinor_Version = 0;   // version information
-   protected Vector<StringPair> files = new Vector<StringPair>();
-   protected String copyright=null;
+   protected Vector<StringPair> files = new Vector<StringPair>(); // Files to install
+   protected String copyright=null;                               // name of the file containing the copyright notice
 
+
+  /** Checks whether the files, given in names, are present in f **/
    boolean filesPresent(ZipFile f, Vector<String> names){
      for(int i=0;i<names.size();i++){
         if(f.getEntry(names.get(i))==null){
@@ -26,10 +53,12 @@ public class SecondoExtension{
      return  true;
    }
 
+   /** checkes whether this extension is valid **/
    public boolean isValid(){
      return valid;
    }
 
+   /** Reads the copyright information from n **/
    protected boolean readCopyright(Node n){
       if(!n.hasChildNodes()){
         return false;
@@ -74,6 +103,8 @@ public class SecondoExtension{
            secondo_SubMinor_Version>=0;
   }
 
+
+  /** Copyies the content of entry e within zip to f **/
   static boolean copyZipEntryToFile(File f, ZipFile zip, ZipEntry e){
      boolean ok = true;
      File path = f.getParentFile();
@@ -202,6 +233,38 @@ public class SecondoExtension{
       res.subminor = subminor;
       return res;
    }
+
+
+   /** display the copyright notice **/
+   protected void showCopyright(ZipFile zipFile){
+    if(copyright==null){
+       System.out.println("No copyright information available");
+       return;
+    }
+    ZipEntry entry = zipFile.getEntry(getCopyright());
+    if(entry==null){
+       System.out.println("No copyright information available");
+    } else {
+       String cr = "";
+       try{
+          BufferedReader r = new BufferedReader(new InputStreamReader(zipFile.getInputStream(entry)));
+          while(r.ready()){
+            cr += r.readLine() + "\n";
+          }
+          r.close();
+          System.out.println("================= COPYRIGHT NOTICE =============== \n\n"+cr);
+          System.out.println("=================END OF COPYRIGHT NOTICE ========= \n");
+       } catch(Exception e){
+           System.err.println("Error during redaing the copyright");
+       }  
+    }
+   }
+  
+
+   /** Returns the filename containing copyright information. **/
+  public String getCopyright(){
+     return copyright;
+  }
 
 
 }

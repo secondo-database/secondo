@@ -1,3 +1,28 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2009, University in Hagen,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+*/
+
 
 
 import java.util.*;
@@ -6,30 +31,38 @@ import javax.xml.parsers.*;
 import java.io.*;
 import java.util.zip.*;
 
-
+/** Information about optimizer extensions **/
 public class OptimizerInfo extends SecondoExtension{
 
+   /** set of blocks (code snippets with position information **/
    Vector<Block> blocks=new Vector<Block>();    // blocks for inserting
    String name = null;
 
+   /** returns the tag markling the start of this extension **/
    public String getStartTag(){
      return "% Extension:Start:"+name;
    }
+   /** returns a regular expression for recognizing the start of this extension **/
    public String getStartTagTemplate(){
      return "%\\s+Extension:Start:\\s*"+name+"\\s*";
    }
 
+   /** returns a regular expression for recognizing the end of that extension **/
    public String getEndTagTemplate(){
      return "%\\s+Extension:End:\\s*"+name+"\\s*";
    }
+  
+   /** returns the end tag of that extension **/
    public String getEndTag(){
      return "% Extension:End:"+name;
    }
 
+   /** creates a new OptimizerInfo from the given Node **/
    public OptimizerInfo(Node n){
      valid = readOptimizerInfo(n);
    }
 
+   /** Reads in the information from n1 **/
    private boolean readOptimizerInfo(Node n1){
       NodeList nl = n1.getChildNodes();
       for(int i=0; i< nl.getLength(); i++){
@@ -81,6 +114,7 @@ public class OptimizerInfo extends SecondoExtension{
       return true;
    } 
 
+   /** extracts the dependencies from n1 **/
    private boolean readDependencies(Node n1){
        NodeList nl = n1.getChildNodes();
        for( int i=0;i < nl.getLength(); i++){
@@ -98,6 +132,7 @@ public class OptimizerInfo extends SecondoExtension{
    }
 
 
+   /** reads a block from n1 **/
    private boolean readBlock(Node n1){
       NamedNodeMap m = n1.getAttributes();
       // filename
@@ -158,6 +193,8 @@ public class OptimizerInfo extends SecondoExtension{
      return true;
    }
 
+
+   /** check for fullfilled dependencies and absence of conflicts **/
    static boolean check(String secondoDir, Vector<OptimizerInfo> infos){
       if(!checkConflicts(secondoDir,infos)){
         return false;
@@ -168,6 +205,7 @@ public class OptimizerInfo extends SecondoExtension{
       return true;
    }
 
+   /** Checks whether no conflicts are presnet **/
    static boolean checkConflicts(String secondoDir, Vector<OptimizerInfo> infos){
       // check for disjoint names of the extensions
       TreeSet<String> names = new TreeSet<String>();
@@ -291,7 +329,7 @@ public class OptimizerInfo extends SecondoExtension{
     return true;
    }
 
-
+  /** checks whether all dependencies are fullfilled **/
   static  boolean checkDependencies(String secondoDir, Vector<OptimizerInfo> infos){
      Version ver = readSecondoVersion(secondoDir);
      if(ver==null){
@@ -340,11 +378,12 @@ public class OptimizerInfo extends SecondoExtension{
        if(!installBlock(secondoDir,b)){
           return false;
        }
-     }    
+     }   
+     showCopyright(f); 
      return true; 
   }
 
-
+  /** installs a single block **/
   boolean installBlock(String secondoDir, Block b){
       if(b.content==null){
          return true;

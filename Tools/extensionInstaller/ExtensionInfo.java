@@ -1,3 +1,29 @@
+
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2009, University in Hagen,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+*/
+
 import java.util.Vector;
 import java.util.TreeSet;
 import java.io.InputStream;
@@ -5,14 +31,17 @@ import java.io.InputStream;
 import org.w3c.dom.*;
 import javax.xml.parsers.*;
 
+
+/** The class ExtensionInfo collects all extensions of a single plugin **/
+
 public class ExtensionInfo{
 
   private boolean valid;                      // a valid Info ?
   private String fileName = null;             // filename of the corresponding zip file
-  AlgebraInfo algebraInfo = null;
-  ViewerInfo viewerInfo = null;
-  Vector<HoeseInfo> hoeseInfos = new Vector<HoeseInfo>();
-  OptimizerInfo optInfo = null;
+  AlgebraInfo algebraInfo = null;             // the algebra extension
+  ViewerInfo viewerInfo = null;               // the viewerExtension
+  Vector<HoeseInfo> hoeseInfos = new Vector<HoeseInfo>(); // set of display classes
+  OptimizerInfo optInfo = null;                           // optimizer extension
 
 
   /** Creates a new ExtensionInfo **/
@@ -38,7 +67,7 @@ public class ExtensionInfo{
   }
 
 
-  /** Analyses the complte xml file **/
+  /** Analyses the complete xml file **/
   private boolean processDoc(Document d){
     Element root = d.getDocumentElement();
     if(root==null){

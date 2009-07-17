@@ -1,3 +1,30 @@
+
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2009, University in Hagen,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+*/
+
+
 import java.util.*;
 import org.w3c.dom.*;
 import javax.xml.parsers.*;
@@ -10,18 +37,20 @@ import java.util.zip.*;
   **/
 public class AlgebraInfo extends SecondoExtension{
 
-   private String algName = null;              // Name of the Algebra 
-   private String specFile = null;             // name of the specfile included in the zip
-   private String exampleFile = null;          // name of the example file included in the zip
-   private Vector<String> algebraDeps = new Vector<String>();  // needed algabras except Standard
-   private Vector<String> libNames = new Vector<String>();     // Names of needed libraries, e.g. GSL
-   private Vector<String> libFlags = new Vector<String>();     // lib names, e.g. gsl
-   private Vector<String> sourceFiles = new Vector<String>();  // all sources of the algebra
+private String algName = null;              // Name of the Algebra 
+private String specFile = null;             // name of the specfile included in the zip
+private String exampleFile = null;          // name of the example file included in the zip
+private Vector<String> algebraDeps = new Vector<String>();  // needed algabras except Standard
+private Vector<String> libNames = new Vector<String>();     // Names of needed libraries, e.g. GSL
+private Vector<String> libFlags = new Vector<String>();     // lib names, e.g. gsl
+private Vector<String> sourceFiles = new Vector<String>();  // all sources of the algebra
 
-
-   public AlgebraInfo(Node n){
-      valid = readAlgebra(n);
-   }
+/** Creates a new AlgebraInfo from the given node. If an error occurs,
+  * The isValid() function will return a false result.
+  **/
+public AlgebraInfo(Node n){
+   valid = readAlgebra(n);
+}
 
 /**
  *Returns possible Algebra directory names for an algebra name.
@@ -99,7 +128,7 @@ private static Vector<String> getPossibleAlgebraDirNames(String algName){
      return res;  
   }
 
-  /** Alanyse of the algebra part of the xml file **/
+  /** Analyse of the algebra part of the xml file **/
   private boolean readAlgebra(Node n){
      NodeList nl = n.getChildNodes();
      for(int i=0; i < nl.getLength(); i++){
@@ -547,24 +576,7 @@ boolean install(String secondoDir, String zipFileName ){
        }
     }
     // show copyrightnotice
-    ZipEntry entry = zipFile.getEntry(getCopyright());
-    if(entry==null){
-       System.out.println("No copyright information available");
-    } else {
-       String cr = "";
-       try{
-          BufferedReader r = new BufferedReader(new InputStreamReader(zipFile.getInputStream(entry)));
-          while(r.ready()){
-            cr += r.readLine() + "\n";
-          }
-          r.close();
-          System.out.println("================= COPYRIGHT NOTICE =============== \n\n"+cr);
-          System.out.println("=================END OF COPYRIGHT NOTICE ========= \n");
-       } catch(Exception e){
-           System.err.println("Error during redaing the copyright");
-       }  
-    }
-
+    showCopyright(zipFile);
 
     return true;
   } catch(Exception e){
@@ -572,12 +584,12 @@ boolean install(String secondoDir, String zipFileName ){
     System.err.println("error in installing algebra " + getAlgebraName());
     return false;
   }
-  
-
-
 }
 
 
+  /** Checks whether this plugin can be installed, i.e. wether the dependencies are
+    * fullfilled and no conflicts are present.
+    **/
   static boolean check(String secondoDir, Vector<AlgebraInfo> infos){
      if(!checkConflicts(secondoDir,infos)){
         return false;
@@ -670,12 +682,6 @@ boolean install(String secondoDir, String zipFileName ){
   public Vector<String> getLibFlags(){
      return libFlags;
   }
-
-  /** Returns the filkename for copyright information. **/
-  public String getCopyright(){
-     return copyright;
-  }
-
 
 
 }

@@ -1,3 +1,28 @@
+/*
+----
+This file is part of SECONDO.
+
+Copyright (C) 2009, University in Hagen,
+Faculty of Mathematics and Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+*/
+
 import java.util.*;
 import org.w3c.dom.*;
 import javax.xml.parsers.*;
@@ -5,12 +30,15 @@ import java.io.*;
 import java.util.zip.*;
 import java.util.regex.Pattern;
 
+/** Superclass for all Java extensions, i.e. viewer and display classes **/
+
 public class JavaExtension extends SecondoExtension{
 
    protected int java_Major_Version = 0;     // version informtion
    protected int java_Minor_Version = 0;      // version information
-   protected String mainClass = null;
-   protected Vector<StringBoolPair> libDeps = new Vector<StringBoolPair>();
+   protected String mainClass = null;         // name of the main class
+
+   protected Vector<StringBoolPair> libDeps = new Vector<StringBoolPair>(); // dependencies to libraries
 
 
   /** Extracts the version information from the xml file **/
@@ -36,6 +64,8 @@ public class JavaExtension extends SecondoExtension{
     return true;
   }
 
+
+  /** Checks whether to current java version is at least this required by this extension **/
   protected boolean checkJavaVersion(){
      String V = System.getProperty("java.version");
      int cv_major= 0;
@@ -70,6 +100,7 @@ public class JavaExtension extends SecondoExtension{
      return true;
   }
 
+  /** Checks whether the libraries are present or provided by the extension **/
   protected boolean checkLibDeps(String secondoDir){
      String s = File.separator;
      String libDir = secondoDir+s+"lib"+s;
@@ -87,11 +118,13 @@ public class JavaExtension extends SecondoExtension{
      return true;
   }
 
-
+  /** converts the java version information to a string **/
   protected String getJavaVersionString(){
      return "" + java_Major_Version + "."+  java_Minor_Version;
   }
 
+
+  /** Modifies the makefile.inc, i.e. adds libraries to the classpath used during compiling **/
   protected boolean modifyMakeFileInc(String secondoDir){
      // extract the lib names to add to makefile.inc
      Vector<StringBoolPair> libext = new Vector<StringBoolPair>();
@@ -166,7 +199,7 @@ public class JavaExtension extends SecondoExtension{
      return ok;
   }
 
-
+  /** Reads the dependencies from n1 **/
   protected boolean readDependencies(Node n1){
     NodeList nl = n1.getChildNodes();
     for(int i=0;i<nl.getLength();i++){
