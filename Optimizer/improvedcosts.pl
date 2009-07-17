@@ -6,6 +6,12 @@ This extension requires, that ~optimizerOption(determinePredSig)~ is set.
 8.1 The Costs of Terms
 
 ----
+
+Implemented:
+    cost(+Term,           +Sel, +Pred,
+        ?ResAttrList, -ResTupleSize, -ResCard, -Cost)
+
+Planned:
     cost(+Term, +POGnode, +Sel, +Pred,
         ?ResAttrList, -ResTupleSize, -ResCard, -Cost)
 ----
