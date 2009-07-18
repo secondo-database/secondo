@@ -1420,12 +1420,12 @@ relsAfter(Rels, RelsAfter, RelsAfter) :-
 relsAfter(_, _, _) :-
   currentRels(QueryRels),
   currentVariables(QueryVariables),
-  write('\nQueryRels: '), write(QueryRels), nl,
+%  write('\nQueryRels: '), write(QueryRels), nl,
   findall(A, variable(A, _), L1),
-  write('\nVariables: '), write(L1), nl,
+%  write('\nVariables: '), write(L1), nl,
   findall([R, rel(R, Var)], (queryRel(R, rel(R, Var)), not(member([R, rel(R, Var)], QueryRels)), retractall(queryRel(R, rel(R, Var)))), L),
   findall(V, (variable(V, _), not(member(V, QueryVariables)), retractall(variable(V, _))), _),
-  write('\nRetractRels: '), write(L),
+%  write('\nRetractRels: '), write(L),
 %  retractall(currentRels(_)),
   fail.
   
@@ -1970,6 +1970,7 @@ transformQuery(_, Pred, Query, Query2) :-
   transformPlan(Query, Query2).
 
 transformQuery(_, _, Query, _) :-
+  not(optimizerOption(subqueries)),
   throw(error_Internal(subqueries_transformQuery(Query):notImplemented#_)).
   
 transformQuery(_, _, _, count(loopsel(Query, Fun)), JoinSize, count(loopsel(head(Query, JoinSize), Fun))) :-
@@ -1979,6 +1980,7 @@ transformQuery(_, _, _, count(filter(counter(loopjoin(Query, Fun), C), Pred)), J
   not(optimizerOption(subqueries)).
   
 transformQuery(_, _, _, Query, JoinSize, _) :-
+  not(optimizerOption(subqueries)),
   throw(error_Internal(subqueries_transformQuery(Query, JoinSize):notImplemented#_)).
   
 transformQuery(_, _, _, Query, JoinSize, Query2) :-
