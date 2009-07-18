@@ -717,8 +717,27 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   dm(subqueryDebug, ['\nPredNext :', PredNext]),
   makeList(Rels, RelsList),
   append(RelsList, [TempRel3 as Var], RelsNext),
-  dm(subqueryDebug, ['\nRelsNext :', RelsNext]), 
-  transformNestedPredicate(Attrs, Attrs2, RelsNext, Rels2, PredNext, Pred2).  
+  dm(subqueryDebug, ['\nRelsNext :', RelsNext, '\n']), 
+  projectIfNeeded(Attrs, RelsList, Attrs1),
+  transformNestedPredicate(Attrs1, Attrs2, RelsNext, Rels2, PredNext, Pred2).  
+  
+projectIfNeeded1(Rel as Var, AttrList) :-
+  !,
+  relation(Rel, Attrs),
+  findall(Var:A, member(A, Attrs), AttrList).
+  
+projectIfNeeded1(Rel, Attrs) :-
+  relation(Rel, Attrs).
+  
+projectIfNeeded(*, [], []).
+  
+projectIfNeeded(*, [Rel | Rels], AttrList) :-
+  projectIfNeeded1(Rel, Attr),
+  projectIfNeeded(*, Rels, Attrs),
+  makeList(Attr, Attr1),
+  append(Attr1, Attrs, AttrList).
+  
+projectIfNeeded(Attrs, _, Attrs).
   
 aliasInternal(ExternalAttr, InternalAttr) :-
   sub_atom(ExternalAttr, B, _, _, '_'),
@@ -858,6 +877,7 @@ tempRel1(JoinAttrs, [], TempRel1) :-
   dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
   dm(subqueryDebug, ['\nNeededRels: ', NeededRels]),
   ground(NeededRels),
+  !,
   TemporaryRel1 =.. [from, select distinct JoinAttrs, NeededRels],
   dm(subqueryUnnesting, ['\nTemporaryRel1: ', TemporaryRel1]), 
   newTempRel(TemporaryRel1, TempRel1).
@@ -867,6 +887,7 @@ tempRel1(JoinAttrs, Preds, TempRel1) :-
   dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
   dm(subqueryDebug, ['\nNeededRels: ', NeededRels]),
   ground(NeededRels),  
+  !,
   TemporaryRel1 =.. [from, select distinct JoinAttrs, where(NeededRels, Preds)],
   dm(subqueryUnnesting, ['\nTemporaryRel1: ', TemporaryRel1]), 
   newTempRel(TemporaryRel1, TempRel1).  
@@ -1000,13 +1021,17 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, JoinPreds, TempRel3, New
   dm(subqueryDebug, ['\nExtJoinAttr2: ', ExtJoinAttr2]),
   plan_to_atom(attrname(IntNewColumn), ExtNewColumn),
   dm(subqueryDebug, ['\nExtNewColumn: ', ExtNewColumn]),  
+  newVariable(IntNewColumn2),
+  plan_to_atom(IntNewColumn2, ExtNewColumn2),  
+  dm(subqueryDebug, ['\nExtNewColumn2: ', ExtNewColumn2]), 
    concat_atom([
                ExtTempRel1, ' feed ', 
                ExtTempRel2, ' feed ',
-               ' smouterjoin[',ExtJoinAttr1, ',', ExtJoinAttr2, ']',			   
-               ' sortby[', ExtJoinAttr2, ' asc]', 
-               ' groupby[', ExtJoinAttr2, ';', ExtNewColumn, ': group count]',	
-               ' project[', ExtJoinAttr2, ',', ExtNewColumn, ']',			   
+               ' smouterjoin[',ExtJoinAttr1, ',', ExtJoinAttr2, ']',		
+               ' extend[', ExtNewColumn2, ': ifthenelse(isempty(.', ExtJoinAttr2, '), 0, 1)]',
+               ' sortby[', ExtJoinAttr1, ' asc]', 
+               ' groupby[', ExtJoinAttr1, ';', ExtNewColumn, ': group feed sum[', ExtNewColumn2, ']]',	
+               ' projectextend[', ExtNewColumn, '; ', ExtJoinAttr2 , ': .', ExtJoinAttr1, ']',			   
                ' consume'], 
   '', TempRelation3),  
   dm(subqueryUnnesting, ['\nTempRelation3: ', TempRelation3]),
