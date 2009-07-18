@@ -209,12 +209,15 @@ in2or(Attr, Elem, Attr = Elem) :-
   (atomic(Elem) ; is_list(Elem)).
   
 clearSubqueryHandling :-
-  clearPlanRelVar,
-  clearSecondRel.
+  clear(streamRel), clear(streamName),
+  retractall(currentRels(_)),
+  retractall(sampleSize(_)), retractall(isJoinPred(_)).
+  % clearPlanRelVar,
+  % clearSecondRel.
   
 % clearSelectivityQuery :- retractall(selectivityQuery(_)).
-clearPlanRelVar :- clear(streamRel), clear(streamName), retractall(planRelVar(_, _)), retractall(lastPlanRel(_)), retractall(subqueryPredRel(_, _, _)), retractall(sampleSize(_)), retractall(isJoinPred(_)).
-clearSecondRel :- retractall(secondRel(_)), retractall(firstStream(_)), retractall(secondStream(_)), retractall(streamRel(_, _)).
+% clearPlanRelVar :- clear(streamRel), clear(streamName), retractall(planRelVar(_, _)), retractall(lastPlanRel(_)), retractall(subqueryPredRel(_, _, _)), retractall(sampleSize(_)), retractall(isJoinPred(_)).
+% clearSecondRel :- retractall(secondRel(_)), retractall(firstStream(_)), retractall(secondStream(_)), retractall(streamRel(_, _)).
 
 
 /* 
@@ -1284,6 +1287,8 @@ lookupSubquery(any(Query), any(Query2)) :-
 lookupSubquery(select Attrs from Rels where Preds,
         select Attrs2 from Rels2List where Preds2List) :-
   lookupRelsNoDblCheck(Rels, Rels2),
+%  lookupRels(Rels, Rels2),
+  !,
   lookupAttrs(Attrs, Attrs2),
   lookupPreds(Preds, Preds2),
   makeList(Rels2, Rels2List),
@@ -1295,6 +1300,7 @@ lookupSubquery(select Attrs from Rels where Preds,
 lookupSubquery(select Attrs from Rels,
         select Attrs2 from Rels2) :-
   lookupRelsNoDblCheck(Rels, Rels2), !,
+%  lookupRels(Rels, Rels2), !,
   lookupAttrs(Attrs, Attrs2).
   
 lookupSubquery(Query orderby Attrs, Query2 orderby Attrs3) :-
@@ -1316,12 +1322,30 @@ lookupSubquery(Query last N, Query2 last N) :-
 lookupRelsNoDblCheck([], []).
 
 lookupRelsNoDblCheck([R | Rs], [R2 | R2s]) :-
-  lookupRelNoDblCheck(R, R2),
+  lookupRelDblCheck(R, R2),
+%  !,
   lookupRelsNoDblCheck(Rs, R2s).
 
 lookupRelsNoDblCheck(Rel, Rel2) :-
   not(is_list(Rel)),
-  lookupRelNoDblCheck(Rel, Rel2). 
+%  !,
+  lookupRelDblCheck(Rel, Rel2). 
+  
+lookupRelDblCheck(Rel as Var, rel(RelDC, Var)) :-
+%  !,
+  lookupRel(Rel as Var, rel(RelDC, Var)).
+  
+lookupRelDblCheck(Rel, rel(RelDC, *)) :-
+  not(queryRel(Rel, _)),
+%  !,
+  lookupRel(Rel, rel(RelDC, *)).
+  
+lookupRelDblCheck(Rel, rel(RelDC, *)) :-
+  queryRel(Rel, rel(RelDC, *)),
+  term_to_atom(Rel, RelA),
+  concat_atom(['Ambiguous use of relation ',RelA,' in outer and inner query block.'],'',ErrMsg),
+  write_list(['\nERROR:\t',ErrMsg]),
+  throw(error_SQL(subqueries_lookupRelDblCheck(Rel):malformedExpression#ErrMsg)).
   
 :- multifile(lookupRelNoDblCheck/2).
 
@@ -1335,9 +1359,8 @@ lookupRelNoDblCheck(Rel as Var, rel(RelDC, Var)) :-
   ).
 
 :- dynamic(currentAttrs/1).
-:- dynamic(currentFirst/1).
-:- dynamic(currentSecond/1).
-:- dynamic(firstStream/1).
+:- dynamic(currentRels/1).
+:- dynamic(currentVariables/1).
 :- dynamic(isJoinPred/1).
 :- dynamic(selectivityQuery/1).
 :- dynamic(selectivityRels/1).
@@ -1352,6 +1375,36 @@ subquerySelectivity(Pred, [Rel]) :-
 subquerySelectivity(Pred, [Rel1, Rel2]) :-
   subquerySelectivity(pr(Pred, Rel1, Rel2)).
   
+% relsAfter(Rels, AttrRelsAfter, RelsAfter) :-
+  % findall( Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L1), !,
+  % ( (setof(R, member(R, L1), L), append(AttrRelsAfter, L, RelsAfter) )
+    % ; ( L1 = [], AttrRelsAfter = RelsAfter ) ),  
+  % dm(subqueryDebug, ['\nL: ', L,
+                     % '\nAttrRelsAfter: ', AttrRelsAfter]), !.	
+
+relsAfter(Rels, AttrRelsAfter, RelsAfter) :-
+  findall(Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L1),
+  setof(R, member(R, L1), L), append(AttrRelsAfter, L, RelsAfter).
+  
+relsAfter(Rels, [], RelsAfter) :-
+  setof(R, member(R, Rels), RelsAfter).
+  
+relsAfter(Rels, RelsAfter, RelsAfter) :-
+  findall(Rel, ( member(Rel, Rels), not(member(Rel, RelsAfter))), []).
+  
+relsAfter(Rels, AttrRelsAfter, RelsAfter) :-
+  currentRels(QueryRels),
+  currentVariables(QueryVariables),
+  write('\nQueryRels: '), write(QueryRels), nl,
+  findall(A, variable(A, _), L1),
+  write('\nVariables: '), write(L1), nl,
+  findall([R, rel(R, Var)], (queryRel(R, rel(R, Var)), not(member([R, rel(R, Var)], QueryRels)), retractall(queryRel(R, rel(R, Var)))), L),
+  findall(V, (variable(V, _), not(member(V, QueryVariables)), retractall(variable(V, _))), L2),
+  write('\nRetractRels: '), write(L),
+%  retractall(currentRels(_)),
+  fail.
+  
+  
 lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   isSubqueryPred1(Pred),
   dm(subqueryDebug, ['\nlookupSubqueryPred 1\nPred: ', Pred]),  
@@ -1363,19 +1416,26 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
 					 '\nAttrRelsAfter: ', AttrRelsAfter]),
   findall(A, queryAttr(A), QueryAttrs),
   assert(currentAttrs(QueryAttrs)),
+  findall([R, RR], queryRel(R, RR), QueryRels),
+  assert(currentRels(QueryRels)),  
+  findall(V, variable(V, _), Variables),
+  assert(currentVariables(Variables)),  
   lookupSubquery(Query, Query2),
-  dm(subqueryDebug, ['\nQuery2: ', Query2]),  
-  Query3 = subquery(Query2, RelsAfter),
-  Pred2 =.. [not, Attr2, in(Query3)],
+  dm(subqueryDebug, ['\nQuery2: ', Query2]),   
   correlationRels(Query2, Rels),
   dm(subqueryDebug, ['\nRels: ', Rels]),
-  findall( Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L1), !,
-  ( (setof(R, member(R, L1), L), append(AttrRelsAfter, L, RelsAfter) )
-    ; ( L1 = [], AttrRelsAfter = RelsAfter ) ),
-  dm(subqueryDebug, ['\nL: ', L,
-                     '\nAttrRelsAfter: ', AttrRelsAfter]), !,	
+  % findall( Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L1), !,
+  % ( (setof(R, member(R, L1), L), append(AttrRelsAfter, L, RelsAfter) )
+    % ; ( L1 = [], AttrRelsAfter = RelsAfter ) ),
+  % dm(subqueryDebug, ['\nL: ', L,
+                     % '\nAttrRelsAfter: ', AttrRelsAfter]), !,	
+  relsAfter(Rels, AttrRelsAfter, RelsAfter), !,
   dm(subqueryDebug, ['\nRelsAfter: ', RelsAfter]),
+  Query3 = subquery(Query2, RelsAfter),
+  Pred2 =.. [not, Attr2, in(Query3)],  
   retractall(currentAttrs(_)),
+  retractall(currentRels(_)),
+  retractall(currentVariables(_)),
   dm(subqueryDebug, ['\nPred2: ', Pred2]),
   subquerySelectivity(Pred2, RelsAfter).  
 
@@ -1385,25 +1445,33 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   Pred =.. [Op, Attr, Query],
   dm(subqueryDebug, ['\nOp: ', Op,
 				     '\nAttr: ', Attr,
-					 '\nQuery: ', Query]),  
+					 '\nQuery: ', Query,
+					 '\nRelsAfter: ', RelsAfter]),  
   lookupPred1(Attr, Attr2, RelsBefore, AttrRelsAfter),
   dm(subqueryDebug, ['\nAttr2: ', Attr2,
 					 '\nAttrRelsAfter: ', AttrRelsAfter]),
   findall(A, queryAttr(A), QueryAttrs),
   assert(currentAttrs(QueryAttrs)),
+  findall([R, RR], queryRel(R, RR), QueryRels),
+  assert(currentRels(QueryRels)),    
+  findall(V, variable(V, _), Variables),
+  assert(currentVariables(Variables)),    
   lookupSubquery(Query, Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2]),  
-  Query3 = subquery(Query2, RelsAfter),
-  Pred2 =.. [Op, Attr2, Query3],
   correlationRels(Query2, Rels),
   dm(subqueryDebug, ['\nRels: ', Rels]),
-  findall( Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L1), !, 
-  ( (setof(R, member(R, L1), L), append(AttrRelsAfter, L, RelsAfter) )
-    ; ( L1 = [], AttrRelsAfter = RelsAfter ) ),
-  dm(subqueryDebug, ['\nL: ', L,
-                     '\nAttrRelsAfter: ', AttrRelsAfter]), !,	
+  % findall( Rel, ( member(Rel, Rels), not(member(Rel, AttrRelsAfter))), L1), !, 
+  % ( (setof(R, member(R, L1), L), append(AttrRelsAfter, L, RelsAfter) )
+    % ; ( L1 = [], AttrRelsAfter = RelsAfter ) ),
+  % dm(subqueryDebug, ['\nL: ', L,
+                     % '\nAttrRelsAfter: ', AttrRelsAfter]), !,	
+  relsAfter(Rels, AttrRelsAfter, RelsAfter), !,					 
   dm(subqueryDebug, ['\nRelsAfter: ', RelsAfter]),
+  Query3 = subquery(Query2, RelsAfter),
+  Pred2 =.. [Op, Attr2, Query3],  
   retractall(currentAttrs(_)),
+  retractall(currentRels(_)),
+  retractall(currentVariables(_)),
   dm(subqueryDebug, ['\nPred2: ', Pred2]),
   subquerySelectivity(Pred2, RelsAfter).
   
@@ -1421,10 +1489,10 @@ lookupSubqueryPred(not(Pred), not(Pred2), RelsBefore, RelsAfter) :-
 					 '\nQuery: ', Query]),    
   lookupSubquery(Query, Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2]),
-  Query3 = subquery(Query2, RelsAfter),
-  Pred2 =.. [Op, Query3],
   correlationRels(Query2, Rels),
   append(Rels, RelsBefore, RelsAfter),
+  Query3 = subquery(Query2, RelsAfter),
+  Pred2 =.. [Op, Query3],  
   dm(subqueryDebug, ['\nPred2: ', not(Pred2)]),
   subquerySelectivity(not(Pred2), RelsAfter).
 
@@ -1436,10 +1504,10 @@ lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
 					 '\nQuery: ', Query]),    
   lookupSubquery(Query, Query2),
   dm(subqueryDebug, ['\nQuery2: ', Query2]),
-  Query3 = subquery(Query2, RelsAfter),
-  Pred2 =.. [Op, Query3],
   correlationRels(Query2, Rels),
   append(Rels, RelsBefore, RelsAfter),
+  Query3 = subquery(Query2, RelsAfter),
+  Pred2 =.. [Op, Query3],  
   dm(subqueryDebug, ['\nPred2: ', Pred2]),
   subquerySelectivity(Pred2, RelsAfter).
 					 
@@ -1517,7 +1585,8 @@ correlationRels(Query, OuterRels) :-
   findall(Rel, ( member(Rel, Rels), not(member(Rel, InnerRels)) ), OuterRels),
   dm(subqueryDebug, ['\ncorrelationRels_OuterRels: ', OuterRels]).
   
-correlationRels(select _ from InnerRels, InnerRels).
+correlationRels(select _ from InnerRels, InnerRels) :-
+  not(InnerRels =.. [where | _ ]).
 
 correlationRels(all(Query), OuterRels) :-
   correlationRels(Query, OuterRels).
@@ -1795,6 +1864,7 @@ sampleSQ([], []).
 sampleSQ(rel(Rel, Var), rel(Rel2, Var)) :-
   not(sampleS(_, rel(Rel, Var))),
   not(sampleJ(_, rel(Rel, Var))),
+  ensureSampleSexists(Rel),
   sampleS(rel(Rel, Var), rel(Rel2, Var)).
   
 sampleSQ([ Rel | Rest ], [ Rel2 | Rest2 ]) :-

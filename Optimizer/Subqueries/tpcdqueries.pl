@@ -279,18 +279,18 @@ tpcd(2, select
          rname = Region,
 		 pssupplycost = (
 			select
-			min(pssupplycost)
+			min(ps:pssupplycost)
 			from
-			[partsupp, supplier,
-			nation, region]
+			[partsupp as ps, supplier as s,
+			nation as n, region as r]
 			where
-			[ppartkey = pspartkey,
-			 ssuppkey = pssuppkey,
-			 snationkey = nnationkey,
-			 nregionkey = rregionkey,
+			[ppartkey = ps:pspartkey,
+			 s:ssuppkey = ps:pssuppkey,
+			 s:snationkey = n:nnationkey,
+			 n:nregionkey = r:rregionkey,
 	% substitution parameter		
 %			 rname = "EUROPE"]
-			 rname = Region]
+			 r:rname = Region]
 		)]
 
 		orderby[
@@ -737,11 +737,11 @@ tpcd(17, select
 		pcontainer = "MED BOX",
 		lquantity < (
 			select
-			avg(0.2 * lquantity)
+			avg(0.2 * l1:lquantity)
 			from
-			[lineitem]
+			[lineitem as l1]
 			where
-			[lpartkey = ppartkey]
+			[l1:lpartkey = ppartkey]
 		)]
 		groupby
 		[]).		
@@ -971,19 +971,19 @@ tpcd(22, select
 			[substr(cphone, 1, 2) as cntrycode,
 			cacctbal]
 			from
-			customer
+			customer 
 			where
 			[substr(cphone, 1, 2) in
 % substitution parameters			
 			("13","35","31","23","29","30","18"),
 			cacctbal > (
 				select
-				avg(cacctbal)
+				avg(c1:cacctbal)
 				from
-				customer
+				customer as c1
 				where
-				[cacctbal > 0.00,
-				substr(cphone, 1, 2) in
+				[c1:cacctbal > 0.00,
+				substr(c1:cphone, 1, 2) in
 % substitution parameter				
 				("13","35","31","23","29","30","18")]
 			),
