@@ -97,42 +97,42 @@ testQuery(7, select * from orte as o where [exists(select ort from plz where plz
 testQuery(8, select * from [orte as o, staedte as s] where [o:ort = s:sname, exists(select p:ort from plz as p where [p:ort = s:sname, s:bev > o:bevt])] first 10).
 testQuery(9, select * from orte as o where [not(exists(select ort from plz where plz < o:bevt))] first 10).
 testQuery(10, select * from [orte as o, staedte as s] where [o:ort = s:sname, not(exists(select p:ort from plz as p where [p:ort = s:sname, s:bev > o:bevt]))] first 10).
-testQuery(11, select * from orte as o where o:bevt <= all(select bev from staedte where plz > 80000) first 10).
+testQuery(11, select * from orte as o where o:bevt <= all(select bev from staedte where plz > 8699) first 10).
 testQuery(12, select * from orte as o where o:bevt <= all(select bev from staedte where o:ort > sname) first 10).
 testQuery(13, select * from [orte as o, plz as p] where o:bevt <= all(select bev from staedte where [o:ort > sname, p:ort = sname]) first 10).
-testQuery(14, select * from orte as o where o:bevt < all(select bev from staedte where plz > 80000) first 10).
+testQuery(14, select * from orte as o where o:bevt < all(select bev from staedte where plz > 8699) first 10).
 testQuery(15, select * from orte as o where o:bevt < all(select bev from staedte where o:ort > sname) first 10).
 testQuery(16, select * from [orte as o, plz as p] where o:bevt < all(select bev from staedte where [o:ort > sname, p:ort = sname]) first 10).
-testQuery(17, select * from orte as o where o:bevt >= all(select bev from staedte where plz > 80000) first 10).
+testQuery(17, select * from orte as o where o:bevt >= all(select bev from staedte where plz > 8699) first 10).
 testQuery(18, select * from orte as o where o:bevt >= all(select bev from staedte where o:ort > sname) first 10).
 testQuery(19, select * from [orte as o, plz as p] where o:bevt >= all(select bev from staedte where [o:ort > sname, p:ort = sname]) first 10).
-testQuery(20, select * from orte as o where o:bevt > all(select bev from staedte where plz > 80000) first 10).
+testQuery(20, select * from orte as o where o:bevt > all(select bev from staedte where plz > 8699) first 10).
 testQuery(21, select * from orte as o where o:bevt > all(select bev from staedte where o:ort > sname) first 10).
 testQuery(22, select * from [orte as o, plz as p] where o:bevt > all(select bev from staedte where [o:ort > sname, p:ort = sname]) first 10).
-testQuery(23, select * from orte as o where o:bevt <= any(select bev from staedte where plz > 80000) first 10).
+testQuery(23, select * from orte as o where o:bevt <= any(select bev from staedte where plz > 8699) first 10).
 testQuery(24, select * from orte as o where o:bevt <= any(select bev from staedte where o:ort > sname) first 10).
 testQuery(25, select * from [orte as o, plz as p] where o:bevt <= any(select bev from staedte where [o:ort > sname, p:ort = sname]) first 10).
-testQuery(26, select * from orte as o where o:bevt < any(select bev from staedte where plz > 80000) first 10).
+testQuery(26, select * from orte as o where o:bevt < any(select bev from staedte where plz > 8699) first 10).
 testQuery(27, select * from orte as o where o:bevt < any(select bev from staedte where o:ort > sname) first 10).
 testQuery(28, select * from [orte as o, plz as p] where o:bevt < any(select bev from staedte where [o:ort > sname, p:ort = sname]) first 10).
-testQuery(29, select * from orte as o where o:bevt = any(select bev from staedte where plz > 80000) first 10).
+testQuery(29, select * from orte as o where o:bevt = any(select bev from staedte where plz > 8699) first 10).
 testQuery(30, select * from orte as o where o:bevt = any(select bev from staedte where o:ort > sname) first 10).
 testQuery(31, select * from [orte as o, plz as p] where o:bevt = any(select bev from staedte where [o:ort > sname, p:ort = sname]) first 10).
-testQuery(32, select * from orte as o where o:bevt >= any(select bev from staedte where plz > 80000) first 10).
+testQuery(32, select * from orte as o where o:bevt >= any(select bev from staedte where plz > 8699) first 10).
 testQuery(33, select * from orte as o where o:bevt >= any(select bev from staedte where o:ort > sname) first 10).
 testQuery(34, select * from [orte as o, plz as p] where o:bevt >= any(select bev from staedte where [o:ort > sname, p:ort = sname]) first 10).
-testQuery(35, select * from orte as o where o:bevt > any(select bev from staedte where plz > 80000) first 10).
+testQuery(35, select * from orte as o where o:bevt > any(select bev from staedte where plz > 8699) first 10).
 testQuery(36, select * from orte as o where o:bevt > any(select bev from staedte where o:ort > sname) first 10).
 testQuery(37, select * from [orte as o, plz as p] where o:bevt = (select max(bev*1000) from staedte where [o:ort > sname, p:ort = sname]) first 10).
-testQuery(38, select * from orte as o where o:bevt = (select max(bev*1000) from staedte where plz > 80000) first 10).
-testQuery(39, select * from orte as o where o:bevt = (select max(bev*1000) from staedte where o:ort > sname) first 10).
-testQuery(40, select * from [orte as o, plz as p] where o:bevt = (select max(bev*1000) from staedte where [o:ort > sname, p:ort = sname]) first 10).
-testQuery(41, select * from orte as o where o:bevt = (select min(bev*1000) from staedte where plz > 80000) first 10).
-testQuery(42, select * from orte as o where o:bevt = (select min(bev*1000) from staedte where o:ort > sname) first 10).
-testQuery(43, select * from [orte as o, plz as p] where o:bevt = (select min(bev*1000) from staedte where [o:ort > sname, p:ort = sname]) first 10).
-testQuery(44, select * from orte as o where o:bevt = (select avg(bev*1000) from staedte where plz > 80000) first 10).
-testQuery(45, select * from orte as o where o:bevt = (select avg(bev*1000) from staedte where o:ort > sname) first 10).
-testQuery(46, select * from [orte as o, plz as p] where o:bevt = (select avg(bev*1000) from staedte where [o:ort > sname, p:ort = sname]) first 10).
+testQuery(38, select * from orte as o where o:bevt = (select max(bev/1000) from staedte where plz > 8699) first 10).
+testQuery(39, select * from orte as o where o:bevt = (select max(bev/1000) from staedte where o:ort > sname) first 10).
+testQuery(40, select * from [orte as o, plz as p] where o:bevt = (select max(bev/1000) from staedte where [o:ort > sname, p:ort = sname]) first 10).
+testQuery(41, select * from orte as o where o:bevt = (select min(bev/1000) from staedte where plz > 8699) first 10).
+testQuery(42, select * from orte as o where o:bevt = (select min(bev/1000) from staedte where o:ort > sname) first 10).
+testQuery(43, select * from [orte as o, plz as p] where o:bevt = (select min(bev/1000) from staedte where [o:ort > sname, p:ort = sname]) first 10).
+testQuery(44, select * from orte as o where o:bevt = (select avg(bev/1000) from staedte where plz > 8699) first 10).
+testQuery(45, select * from orte as o where o:bevt = (select avg(bev/1000) from staedte where o:ort > sname) first 10).
+testQuery(46, select * from [orte as o, plz as p] where o:bevt = (select avg(bev/1000) from staedte where [o:ort > sname, p:ort = sname]) first 10).
 testQuery(47, select * from plz as p1 where p1:plz = (select max(plz) from plz where ort = p1:ort) first 10).
 
 regression(1) :-
@@ -316,4 +316,4 @@ C = 24002.0
 
 %findall(No, (tpcd(No, Q), not(skipQuery(d, No))), L), findall(N, ( member(N, L), tpcd(N, Q), sql(Q) ), L2), findall(N, (member(N, L), not(member(N, L2))), L3).
 %findall(No, ( testQuery(No, Q), No > 7, No < 47), L), findall(N, ( member(N, L), testQuery(N, Q), sql(Q) ), L2), findall(N, (member(N, L), not(member(N, L2))), L3).
-%[9, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 46]
+
