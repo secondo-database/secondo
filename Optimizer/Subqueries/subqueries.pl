@@ -1417,14 +1417,14 @@ relsAfter(Rels, [], RelsAfter) :-
 relsAfter(Rels, RelsAfter, RelsAfter) :-
   findall(Rel, ( member(Rel, Rels), not(member(Rel, RelsAfter))), []).
   
-relsAfter(Rels, AttrRelsAfter, RelsAfter) :-
+relsAfter(_, _, _) :-
   currentRels(QueryRels),
   currentVariables(QueryVariables),
   write('\nQueryRels: '), write(QueryRels), nl,
   findall(A, variable(A, _), L1),
   write('\nVariables: '), write(L1), nl,
   findall([R, rel(R, Var)], (queryRel(R, rel(R, Var)), not(member([R, rel(R, Var)], QueryRels)), retractall(queryRel(R, rel(R, Var)))), L),
-  findall(V, (variable(V, _), not(member(V, QueryVariables)), retractall(variable(V, _))), L2),
+  findall(V, (variable(V, _), not(member(V, QueryVariables)), retractall(variable(V, _))), _),
   write('\nRetractRels: '), write(L),
 %  retractall(currentRels(_)),
   fail.
@@ -1964,14 +1964,25 @@ transformQuery(_, _, Query, Query) :-
   not(optimizerOption(subqueries)).
   
 transformQuery(_, Pred, Query, Query2) :-
+  optimizerOption(subqueries),
   assert(selectivityQuery(Pred)),
 %  streamRel(Rel),
   transformPlan(Query, Query2).
+
+transformQuery(_, _, Query, _) :-
+  throw(error_Internal(subqueries_transformQuery(Query):notImplemented#_)).
   
-transformQuery(_, _, _, Query, _, Query) :-
+transformQuery(_, _, _, count(loopsel(Query, Fun)), JoinSize, count(loopsel(head(Query, JoinSize), Fun))) :-
   not(optimizerOption(subqueries)).
   
+transformQuery(_, _, _, count(filter(counter(loopjoin(Query, Fun), C), Pred)), JoinSize, count(filter(counter(loopjoin(head(Query, JoinSize), Fun), C), Pred))) :-
+  not(optimizerOption(subqueries)).
+  
+transformQuery(_, _, _, Query, JoinSize, _) :-
+  throw(error_Internal(subqueries_transformQuery(Query, JoinSize):notImplemented#_)).
+  
 transformQuery(_, _, _, Query, JoinSize, Query2) :-
+  optimizerOption(subqueries),
   maxSampleCard(C),
   retractall(maxSampleCard(_)),  
   assert(maxSampleCard(min(JoinSize, C))),
