@@ -79,6 +79,7 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 #define BBox Rectangle
+#define BBoxSet RectangleSet
 
 /*
 2 Constants
@@ -668,14 +669,14 @@ Update entry corresponding to ~pointer~ to have bounding box ~box~.
 
 */
 
-    void Read(SmiRecordFile& file, const SmiRecordId pointer );
+    void Read( SmiRecordFile *file, const SmiRecordId pointer );
     void Read( SmiRecord& record );
 /*
 Reads this node from an ~SmiRecordFile~ at position ~id~.
 
 */
 
-    void Write( SmiRecordFile& file, const SmiRecordId pointer );
+    void Write( SmiRecordFile *file, const SmiRecordId pointer );
     void Write( SmiRecord& record );
 /*
 Writes this node to an ~SmiRecordFile~ at position ~id~
@@ -1428,11 +1429,11 @@ void R_TreeNode<dim, LeafInfo>::UpdateBox( BBox<dim>& b, SmiRecordId pointer )
 }
 
 template<unsigned dim, class LeafInfo>
-void R_TreeNode<dim, LeafInfo>::Read( SmiRecordFile& file,
+void R_TreeNode<dim, LeafInfo>::Read( SmiRecordFile *file,
                                       const SmiRecordId pointer )
 {
   SmiRecord record;
-  int RecordSelected = file.SelectRecord( pointer, record, SmiFile::ReadOnly );
+  int RecordSelected = file->SelectRecord( pointer, record, SmiFile::ReadOnly );
   assert( RecordSelected );
   Read( record );
 }
@@ -1469,13 +1470,13 @@ void R_TreeNode<dim, LeafInfo>::Read( SmiRecord& record )
 }
 
 template<unsigned dim, class LeafInfo>
-void R_TreeNode<dim, LeafInfo>::Write( SmiRecordFile& file,
+void R_TreeNode<dim, LeafInfo>::Write( SmiRecordFile *file,
                                        const SmiRecordId pointer )
 {
   if( modified )
   {
     SmiRecord record;
-    int RecordSelected = file.SelectRecord( pointer, record, SmiFile::Update );
+    int RecordSelected = file->SelectRecord( pointer, record, SmiFile::Update );
     assert( RecordSelected );
     Write( record );
   }
@@ -1561,12 +1562,15 @@ class R_Tree
   public:
 
     R_Tree( const int pageSize );
+    R_Tree( SmiRecordFile *file );
 /*
 The first constructor. Creates an empty R-tree.
 
 */
 
     R_Tree( const SmiFileId fileId );
+    R_Tree( SmiRecordFile *file,
+            const SmiRecordId headerRecordId );
 /*
 Opens an existing R-tree.
 
@@ -1594,8 +1598,8 @@ Open and Save are used by NetworkAlgebra to save and open the rtree of network.
 
     inline void DeleteFile()
     {
-      file.Close();
-      file.Drop();
+      file->Close();
+      file->Drop();
     }
 /*
 Deletes the file of the R-Tree.
@@ -1604,7 +1608,7 @@ Deletes the file of the R-Tree.
 
     inline SmiFileId FileId()
     {
-      return file.GetFileId();
+      return file->GetFileId();
     }
 /*
 Returns the ~SmiFileId~ of the R-Tree database file.
@@ -1622,6 +1626,15 @@ Returns the ~SmiFileId~ of the R-Tree database file.
     }
 /*
 Returns the ~SmiRecordId~ of the root node.
+
+*/
+
+    inline SmiRecordId HeaderRecordId() const
+    {
+      return header.headerRecordId;
+    }
+/*
+Returns the ~SmiRecordId~ of the header node.
 
 */
 
@@ -1692,9 +1705,10 @@ and successfully deleted, and ~false~ otherwise.
 */
 
     bool First( const BBox<dim>& bx,
-                R_TreeLeafEntry<dim,
-                LeafInfo>& result,
+                R_TreeLeafEntry<dim, LeafInfo>& result,
                 int replevel = -1 );
+    bool First( const BBoxSet<dim>& searchBoxSet,
+                R_TreeLeafEntry<dim, LeafInfo>& result );
     bool Next( R_TreeLeafEntry<dim, LeafInfo>& result );
 /*
 Sets ~result~ to the (leaf) entry corresponding to the first/next
@@ -1789,31 +1803,36 @@ Implemented by NearestNeighborAlgebra.
   bool getFileStats( SmiStatResultType &result );
 
   private:
-    SmiRecordFile file;
+    bool fileOwner;
+    SmiRecordFile *file;
 /*
 The record file of the R-Tree.
 
 */
-
     struct Header
     {
-      SmiRecordId rootRecordId;// Root node address (Path[ 0 ])
-      int minLeafEntries;      // min # of entries per leaf node
-      int maxLeafEntries;      // max # of entries per leaf node
-      int minInternalEntries;  // min # of entries per internal node
-      int maxInternalEntries;  // max # of entries per internal node
-      int nodeCount;           // number of nodes in this tree
-      int entryCount;          // number of entries in this tree
-      int height;              // height of the tree
+      SmiRecordId headerRecordId; // Header node address.
+      SmiRecordId rootRecordId;   // Root node address (Path[ 0 ]).
+      int minLeafEntries;         // min # of entries per leaf node.
+      int maxLeafEntries;         // max # of entries per leaf node.
+      int minInternalEntries;     // min # of entries per internal node.
+      int maxInternalEntries;     // max # of entries per internal node.
+      int nodeCount;              // number of nodes in this tree.
+      int entryCount;             // number of entries in this tree.
+      int height;                 // height of the tree.
 
       Header() :
-        rootRecordId( 0 ), minLeafEntries( 0 ), maxLeafEntries( 0 ),
+        headerRecordId( 0 ), rootRecordId( 0 ),
+        minLeafEntries( 0 ), maxLeafEntries( 0 ),
         minInternalEntries( 0 ), maxInternalEntries( 0 ),
         nodeCount( 0 ), entryCount( 0 ), height( 0 )
         {}
-      Header( long rootRecordId, int minEntries, int maxEntries,
-              int minInternalEntries, int maxInternalEntries,
-              int nodeCount, int entryCount, int nodeSize, int height ) :
+      Header( SmiRecordId headerRecordId, SmiRecordId rootRecordId = 0,
+              int minEntries = 0, int maxEntries = 0,
+              int minInternalEntries = 0, int maxInternalEntries = 0,
+              int nodeCount = 0, int entryCount = 0,
+              int nodeSize = 0, int height = 0 ) :
+        headerRecordId( headerRecordId ),
         rootRecordId( rootRecordId ),
         minLeafEntries( minLeafEntries ),
         maxLeafEntries( maxLeafEntries ),
@@ -1824,6 +1843,7 @@ The record file of the R-Tree.
         height( height )
         {}
     } header;
+
 /*
 The header of the R-Tree which will be written (read) to (from) the file.
 
@@ -1872,12 +1892,14 @@ Report level for first/next.
 */
 
     BBox<dim> searchBox;
+    BBoxSet<dim> searchBoxSet;
 /*
 Bounding box for first/next.
 
 */
 
-    bool scanFlag;
+    enum SearchType { NoSearch, BoxSearch, BoxSetSearch };
+    SearchType searchType;
 /*
 A flag that tells whether we're in the middle of a First/Next
 scan of the tree.
@@ -2015,20 +2037,21 @@ Used by NearestNeighborAlgebra.
 
 template <unsigned dim, class LeafInfo>
 R_Tree<dim, LeafInfo>::R_Tree( const int pageSize ) :
-  file( true, pageSize ),
+  fileOwner( true ),
+  file( new SmiRecordFile( true, pageSize ) ),
   header(),
   nodePtr( NULL ),
   currLevel( -1 ),
   currEntry( -1 ),
   reportLevel( -1 ),
   searchBox( false ),
-  scanFlag( false ),
+  searchBoxSet(),
+  searchType( NoSearch ),
   bulkMode( false ),
   bli( NULL ),
   nodeIdCounter( 0 )
 {
-
-  file.Create();
+  file->Create();
 
   // Calculating maxEntries e minEntries
   int nodeEmptySize = R_TreeNode<dim, LeafInfo>::SizeOfEmptyNode();
@@ -2061,16 +2084,16 @@ R_Tree<dim, LeafInfo>::R_Tree( const int pageSize ) :
                                            MaxEntries( 0 ) );
 
   // Creating a new page for the R-Tree header.
-  SmiRecordId headerRecno;
   SmiRecord headerRecord;
-  int AppendedRecord = file.AppendRecord( headerRecno, headerRecord );
+  int AppendedRecord = file->AppendRecord( header.headerRecordId, 
+                                           headerRecord );
   assert( AppendedRecord );
-  assert( headerRecno == 1 );
+  assert( header.headerRecordId == 1 );
 
   // Creating the root node.
   SmiRecordId rootRecno;
   SmiRecord rootRecord;
-  AppendedRecord = file.AppendRecord( rootRecno, rootRecord );
+  AppendedRecord = file->AppendRecord( rootRecno, rootRecord );
   assert( AppendedRecord );
   header.rootRecordId = path[ 0 ] = rootRecno;
   header.nodeCount = 1;
@@ -2080,18 +2103,88 @@ R_Tree<dim, LeafInfo>::R_Tree( const int pageSize ) :
 }
 
 template <unsigned dim, class LeafInfo>
+R_Tree<dim, LeafInfo>::R_Tree( SmiRecordFile *file ) :
+  fileOwner( false ),
+  file( file ),
+  header(),
+  nodePtr( NULL ),
+  currLevel( -1 ),
+  currEntry( -1 ),
+  reportLevel( -1 ),
+  searchBox( false ),
+  searchBoxSet(),
+  searchType( NoSearch ),
+  bulkMode( false ),
+  bli( NULL ),
+  nodeIdCounter( 0 )
+{
+  // Calculating maxEntries e minEntries
+  int nodeEmptySize = R_TreeNode<dim, LeafInfo>::SizeOfEmptyNode();
+  int leafEntrySize = sizeof( R_TreeLeafEntry<dim, LeafInfo> ),
+      internalEntrySize = sizeof( R_TreeInternalEntry<dim> );
+
+  int maxLeaf = ( file->GetRecordLength() - nodeEmptySize ) / 
+                leafEntrySize,
+      maxInternal = ( file->GetRecordLength() - nodeEmptySize ) / 
+                    internalEntrySize;
+
+  header.maxLeafEntries = maxLeaf;
+  header.minLeafEntries = (int)(maxLeaf * 0.4);
+
+  header.maxInternalEntries = maxInternal;
+  header.minInternalEntries = (int)(maxInternal * 0.4);
+
+  assert( header.maxLeafEntries >= 2*header.minLeafEntries &&
+          header.minLeafEntries > 0 );
+  assert( header.maxInternalEntries >= 2*header.minInternalEntries &&
+          header.minInternalEntries > 0 );
+
+  // initialize overflowflag array
+  for( int i = 0; i < MAX_PATH_SIZE; i++ )
+  {
+    overflowFlag[ i ] = 0;
+    nodeId[ i ] = 0;
+  }
+
+  nodePtr = new R_TreeNode<dim, LeafInfo>( true,
+                                           MinEntries( 0 ),
+                                           MaxEntries( 0 ) );
+
+  // Creating a new page for the R-Tree header.
+  SmiRecord headerRecord;
+  int AppendedRecord = 
+    file->AppendRecord( header.headerRecordId, headerRecord );
+  assert( AppendedRecord );
+
+  // Creating the root node.
+  SmiRecordId rootRecno;
+  SmiRecord rootRecord;
+  AppendedRecord = file->AppendRecord( rootRecno, rootRecord );
+  assert( AppendedRecord );
+  header.rootRecordId = path[ 0 ] = rootRecno;
+  header.nodeCount = 1;
+  nodePtr->Write( rootRecord );
+
+  currLevel = 0;
+}
+
+
+
+template <unsigned dim, class LeafInfo>
 R_Tree<dim, LeafInfo>::R_Tree( const SmiFileId fileid ) :
-file( true ),
-header(),
+fileOwner( true ),
+file( new SmiRecordFile( true ) ),
+header( 1 ),
 nodePtr( NULL ),
 currLevel( -1 ),
 currEntry( -1 ),
 reportLevel( -1 ),
-searchBox(),
-scanFlag( false ),
+searchBox( false ),
+searchBoxSet(),
+searchType( NoSearch ),
 nodeIdCounter( 0 )
 {
-  file.Open( fileid );
+  file->Open( fileid );
 
   // initialize overflowflag array
   for( int i = 0; i < MAX_PATH_SIZE; i++ )
@@ -2115,6 +2208,44 @@ nodeIdCounter( 0 )
   path[ 0 ] = header.rootRecordId;
 }
 
+template <unsigned dim, class LeafInfo>
+R_Tree<dim, LeafInfo>::R_Tree( SmiRecordFile *file,
+                               const SmiRecordId headerRecordId ) :
+fileOwner( false ),
+file( file ),
+header( headerRecordId ),
+nodePtr( NULL ),
+currLevel( -1 ),
+currEntry( -1 ),
+reportLevel( -1 ),
+searchBox( false ),
+searchBoxSet(),
+searchType( NoSearch ),
+nodeIdCounter( 0 )
+{
+  // initialize overflowflag array
+  for( int i = 0; i < MAX_PATH_SIZE; i++ )
+  {
+    overflowFlag[ i ] = 0;
+    nodeId[ i ] = 0;
+  }
+
+  ReadHeader();
+  assert( header.maxLeafEntries >= 2*header.minLeafEntries &&
+          header.minLeafEntries > 0 );
+  assert( header.maxInternalEntries >= 2*header.minInternalEntries &&
+          header.minInternalEntries > 0 );
+
+  currLevel = 0;
+
+  nodePtr = GetNode( RootRecordId(),
+                     currLevel == Height(),
+                     MinEntries( currLevel ),
+                     MaxEntries( currLevel ) );
+  path[ 0 ] = header.rootRecordId;
+}
+
+
 /*
 5.2 The destructor
 
@@ -2122,14 +2253,18 @@ nodeIdCounter( 0 )
 template <unsigned dim, class LeafInfo>
 R_Tree<dim, LeafInfo>::~R_Tree()
 {
-  if( file.IsOpen() )
+  if( file->IsOpen() )
   {
     if( nodePtr != NULL )
       PutNode( path[ currLevel ], &nodePtr );
 
     WriteHeader();
-    file.Close();
+
+    if( fileOwner )
+      file->Close();
   }
+  if( fileOwner )
+    delete file;
 }
 
 /*
@@ -2142,9 +2277,12 @@ void R_Tree<dim, LeafInfo>::ReadHeader()
 
   SmiRecord record;
 
-  int RecordSelected = file.SelectRecord( (SmiRecordId)1, record,
-                                           SmiFile::ReadOnly );
+  int RecordSelected = 
+    file->SelectRecord( header.headerRecordId, 
+                        record,
+                        SmiFile::ReadOnly );
   assert( RecordSelected );
+
   int RecordRead = record.Read( &header, sizeof( Header ), 0 )
       == sizeof( Header );
   assert( RecordRead );
@@ -2155,7 +2293,9 @@ void R_Tree<dim, LeafInfo>::WriteHeader()
 {
   SmiRecord record;
   int RecordSelected =
-      file.SelectRecord( (SmiRecordId)1, record, SmiFile::Update );
+      file->SelectRecord( header.headerRecordId, 
+                          record, 
+                          SmiFile::Update );
   assert( RecordSelected );
   int RecordWritten =
       record.Write( &header, sizeof( Header ), 0 ) == sizeof( Header );
@@ -2170,7 +2310,7 @@ template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::PutNode( const SmiRecordId recno,
                                      R_TreeNode<dim, LeafInfo> **node )
 {
-  assert( file.IsOpen() );
+  assert( file->IsOpen() );
   (*node)->Write( file, recno );
   delete *node;
   *node = NULL;
@@ -2196,7 +2336,7 @@ R_TreeNode<dim, LeafInfo> *R_Tree<dim, LeafInfo>::GetNode(
     const int min,
     const int max )
 {
-  assert( file.IsOpen() );
+  assert( file->IsOpen() );
   R_TreeNode<dim, LeafInfo> *node =
       new R_TreeNode<dim, LeafInfo>( leaf, min, max );
   node->Read( file, recno );
@@ -2247,7 +2387,7 @@ BBox<dim> R_Tree<dim, LeafInfo>::BoundingBox()
 template <unsigned dim, class LeafInfo>
 void R_Tree<dim,LeafInfo>::Insert(const R_TreeLeafEntry<dim,LeafInfo>& entry)
 {
-  scanFlag = false;
+  searchType = NoSearch;
 
   LocateBestNode( entry, Height() );
   InsertEntry( entry );
@@ -2407,7 +2547,7 @@ void R_Tree<dim, LeafInfo>::DownLevel( int entryNo )
 template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
 {
-  assert( file.IsOpen() );
+  assert( file->IsOpen() );
 
   if( nodePtr->Insert( entry ) )
     UpdateBox();
@@ -2434,7 +2574,7 @@ void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
         BBox<dim> n1Box( n1->BoundingBox() );
         SmiRecordId node1recno;
         SmiRecord *node1record = new SmiRecord();
-        int RecordAppended = file.AppendRecord( node1recno, *node1record );
+        int RecordAppended = file->AppendRecord( node1recno, *node1record );
         assert( RecordAppended );
         PutNode( *node1record, &n1 );
         int EntryInserted =
@@ -2445,7 +2585,7 @@ void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
         BBox<dim> n2Box( n2->BoundingBox() );
         SmiRecordId node2recno;
         SmiRecord *node2record = new SmiRecord();
-        RecordAppended = file.AppendRecord( node2recno, *node2record );
+        RecordAppended = file->AppendRecord( node2recno, *node2record );
         assert( RecordAppended );
         PutNode( *node2record, &n2 );
         EntryInserted =
@@ -2460,7 +2600,7 @@ void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
       { // splitting non-root node
         SmiRecordId newNoderecno;
         SmiRecord *newNoderecord = new SmiRecord();
-        int RecordAppended = file.AppendRecord( newNoderecno, *newNoderecord );
+        int RecordAppended = file->AppendRecord( newNoderecno, *newNoderecord );
         assert( RecordAppended );
         R_TreeInternalEntry<dim> newEntry( n2->BoundingBox(), newNoderecno );
         PutNode( *newNoderecord, &n2 );
@@ -2698,11 +2838,29 @@ bool R_Tree<dim, LeafInfo>::First( const BBox<dim>& box,
                                    int replevel )
 {
   // Remember that we have started a scan of the R_Tree
-  scanFlag = true;
+  searchType = BoxSearch;
 
   // Init search params
   searchBox = box;
   reportLevel = replevel;
+
+  // Load root node
+  GotoLevel( 0 );
+
+  // Finish with the actual search
+  currEntry = -1;
+  return Next( result );
+}
+
+template<unsigned dim, class LeafInfo>
+bool R_Tree<dim, LeafInfo>::First( const BBoxSet<dim>& boxSet,
+                                   R_TreeLeafEntry<dim, LeafInfo>& result )
+{
+  // Remember that we have started a scan of the R_Tree
+  searchType = BoxSetSearch;
+
+  // Init search params
+  searchBoxSet = boxSet;
 
   // Load root node
   GotoLevel( 0 );
@@ -2720,7 +2878,7 @@ template <unsigned dim, class LeafInfo>
 bool R_Tree<dim, LeafInfo>::Next( R_TreeLeafEntry<dim, LeafInfo>& result )
 {
   // Next can be called only after a 'First' or a 'Next' operation
-  assert( scanFlag );
+  assert( searchType != NoSearch );
 
   bool retcode = false;
 
@@ -2736,8 +2894,12 @@ bool R_Tree<dim, LeafInfo>::Next( R_TreeLeafEntry<dim, LeafInfo>& result )
     { // Search next entry / subtree in this node
       currEntry++;
 
-      if( currEntry < nodePtr->EntryCount() ){
-        if( (*nodePtr)[ currEntry ].box.Intersects( searchBox ) ){
+      if( currEntry < nodePtr->EntryCount() )
+      {
+        if( searchType == BoxSearch ? 
+              searchBox.Intersects( (*nodePtr)[ currEntry ].box ) :
+              searchBoxSet.Intersects( (*nodePtr)[ currEntry ].box ) )
+        {
           if( nodePtr->IsLeaf() || currLevel == reportLevel)
           { // Found an appropriate entry
             result = (R_TreeLeafEntry<dim, LeafInfo>&)(*nodePtr)[ currEntry ];
@@ -2755,6 +2917,8 @@ bool R_Tree<dim, LeafInfo>::Next( R_TreeLeafEntry<dim, LeafInfo>& result )
 
   return retcode;
 }
+
+
 
 /*
 Variants of ~First~ and ~Next~ for introspection into the R-tree.
@@ -2787,7 +2951,7 @@ bool R_Tree<dim, LeafInfo>::IntrospectFirst( IntrospectResult<dim>& result)
 
 
   // Remember that we have started a scan of the R_Tree
-  scanFlag = true;
+  searchType = BoxSearch;
   currEntry = -1;
   for(int i = 0; i < MAX_PATH_SIZE; i++)
   {
@@ -2803,7 +2967,8 @@ template <unsigned dim, class LeafInfo>
 {
   // Next can be called only after a 'IntrospectFirst'
   // or a 'IntrospectNext' operation
-  assert( scanFlag );
+  assert( searchType == BoxSearch );
+
   bool retcode = false;
 
   pathEntry[currLevel]++;
@@ -2869,7 +3034,7 @@ template <unsigned dim, class LeafInfo>
 {
   // Next can be called only after a 'IntrospectFirst'
   // or a 'IntrospectNext' operation
-  assert( scanFlag );
+  assert( searchType == BoxSearch );
 
   bool retcode = false;
 
@@ -2947,9 +3112,9 @@ template <unsigned dim, class LeafInfo>
 bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim,
                                     LeafInfo>& entry )
 {
-  assert( file.IsOpen() );
+  assert( file->IsOpen() );
 
-  scanFlag = 0;
+  searchType = NoSearch;
 
   // First locate the entry in the tree
   if( !FindEntry( entry ) )
@@ -2978,7 +3143,7 @@ bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim,
 
         // Remove node from the tree
         nodePtr->Clear();
-        int RecordDeleted = file.DeleteRecord( path[ currLevel ] );
+        int RecordDeleted = file->DeleteRecord( path[ currLevel ] );
         assert( RecordDeleted );
       }
       else
@@ -3028,7 +3193,7 @@ bool R_Tree<dim, LeafInfo>::Remove( const R_TreeLeafEntry<dim,
       long newRoot = ((R_TreeInternalEntry<dim>&)(*nodePtr)[ 0 ]).pointer;
 
       // Remove former root node from the tree
-      file.DeleteRecord( RootRecordId() );
+      file->DeleteRecord( RootRecordId() );
       delete nodePtr; nodePtr = NULL;
 
       // Retrieve new root
@@ -3166,10 +3331,10 @@ void R_Tree<dim, LeafInfo>::InsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
 
 //   cout << "  --> Passing upwards..." << endl;
   //  Write node[currentLevel] to disk
-  assert(file.IsOpen());
+  assert(file->IsOpen());
   SmiRecordId recId;
   SmiRecord rec;
-  bool RecordAppended = file.AppendRecord(recId, rec);
+  bool RecordAppended = file->AppendRecord(recId, rec);
   assert(RecordAppended);
   // Possible signature for write are:
   bli->node[bli->currentLevel]->Write(file, recId);
@@ -3239,10 +3404,10 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
     { // need to write the node
       assert( bli->node[i] != NULL );
       assert( i <= bli->currentHeight );
-      assert(file.IsOpen());
+      assert(file->IsOpen());
       SmiRecordId recId;
       SmiRecord *rec = new SmiRecord();
-      int RecordAppended = file.AppendRecord(recId, *rec);
+      int RecordAppended = file->AppendRecord(recId, *rec);
       assert(RecordAppended);
       bli->node[i]->Write(*rec);
       rootId = recId;
@@ -3287,14 +3452,14 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
         SmiRecordId newRootId =  recId;
 
         // Remove old root node from the tree
-        file.DeleteRecord( RootRecordId() );
+        file->DeleteRecord( RootRecordId() );
         delete nodePtr;
         nodePtr = NULL;
         currLevel   = 0;
         currEntry   = -1;
         reportLevel = -1;
         searchBox   = false;
-        scanFlag    = false;
+        searchType   = NoSearch;
 
         // Set new root to topmost node
         header.nodeCount    = bli->nodeCount;
@@ -3332,19 +3497,17 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
   return true;
 };
 
-
 template <unsigned dim, class LeafInfo>
 bool R_Tree<dim, LeafInfo>::getFileStats( SmiStatResultType &result )
 {
-  result = file.GetFileStatistics(SMI_STATS_EAGER);
+  result = file->GetFileStatistics(SMI_STATS_EAGER);
   std::stringstream fileid;
-  fileid << file.GetFileId();
+  fileid << file->GetFileId();
   result.push_back(pair<string,string>("FilePurpose",
             "SecondaryRtreeIndexFile"));
   result.push_back(pair<string,string>("FileId",fileid.str()));
   return true;
 }
-
 
 /*
 6 Template functions for the type constructors

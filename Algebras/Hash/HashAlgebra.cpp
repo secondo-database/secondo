@@ -153,7 +153,7 @@ opened( false )
 }
 
 Hash::Hash( SmiKey::KeyDataType keyType, SmiFileId fileId ):
-temporary( true ),
+temporary( false ),
 file( 0 ),
 opened( false )
 {
@@ -955,6 +955,7 @@ public:
   bool first;
   int completeCalls;
   int completeReturned;
+  bool progressInitialized;
 };
 
 

@@ -11,25 +11,10 @@ export SECONDO_PARAM_RTFlags="DEBUG:DemangleStackTrace,CMSG:Color,CTLG:SkipExamp
 # the process as soon as an error is recognized.
 export MALLOC_CHECK_=2
 
-if [ "$1" == "--valgrind" ]; then
-  shift
-  runner="valgrind --num-callers=25  $(which SecondoBDB) -test -e"
-else 
-if [ "$1" == "--valgrindlc" ]; then
-  shift
-  runner="valgrind --num-callers=25 --leak-check=full $(which SecondoBDB) -test -e"
-else  
-  runner="$(which SecondoBDB) -test -e"
-fi
-fi  
+runner="$(which SecondoBDB) -test -e"
 
 # check if nice command is present
-ncmd=$(which nice)
-if [ $? -ne 0 ]; then
-   runCmd=$runner
-else
-  runCmd="nice -n 19  $runner" 
-fi
+runCmd=$runner
 
 if [ $# -eq 0 ]; then
   files=$(find tmp -iname "*.examples")
@@ -38,7 +23,6 @@ else
 fi
 
 
-declare -i err=0
 errFiles=""
 for f in $files; do
  $runCmd -i $f

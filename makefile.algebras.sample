@@ -216,8 +216,11 @@ ALGEBRAS     += CollectionAlgebra
 #ALGEBRA_DIRS += UGrid 
 #ALGEBRAS     += UGridAlgebra
 
-#ALGEBRA_DIRS += Hash 
-#ALGEBRAS     += HashAlgebra
+ALGEBRA_DIRS += Hash 
+ALGEBRAS     += HashAlgebra
+
+ALGEBRA_DIRS += MONTree 
+ALGEBRAS     += MONTreeAlgebra
 
 # JNI Algebras - Java code will be called from C++ code.
 

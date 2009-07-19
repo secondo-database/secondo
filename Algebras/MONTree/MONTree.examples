@@ -1,0 +1,15 @@
+Database: montest
+Restore : no
+
+Operator : windowtimeintersects
+Number   : 1
+Signature: network x montree x rel(tuple(X)) x rect x instant x instant -> stream(tuple(X))
+Example  : query net montree trains windowtimeintersects[w1, t1, t2] count;
+Result   : 0
+
+Operator : windowtimeintersects
+Number   : 2 
+Signature: network x montree x rel(tuple(X)) x rect x instant x instant -> stream(tuple(X))
+Example  : query net montree trains windowtimeintersects[w2, t1, t2] count;
+Result   : 1
+

@@ -969,7 +969,7 @@ ListExpr WindowIntersectsTypeMap(ListExpr args)
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
-  char* errmsg = "Incorrect input for operator windowintersects.";
+  string errmsg = "Incorrect input for operator windowintersects.";
   string rtreeDescriptionStr, relDescriptionStr;
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
@@ -1486,7 +1486,7 @@ ListExpr WindowIntersectsSTypeMap(ListExpr args)
   algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
-  char* errmsg = "Incorrect input for operator windowintersectsS.";
+  string errmsg = "Incorrect input for operator windowintersectsS.";
   string rtreeDescriptionStr;
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
@@ -3635,7 +3635,7 @@ ListExpr RTreeNodesTypeMap(ListExpr args)
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
-  char* errmsg = "Incorrect input for operator nodes.";
+  string errmsg = "Incorrect input for operator nodes.";
   string rtreeDescriptionStr;
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
@@ -4033,7 +4033,7 @@ ListExpr RTreeEntriesTypeMap(ListExpr args)
   AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
-  char* errmsg = "Incorrect input for operator entries.";
+  string errmsg = "Incorrect input for operator entries.";
   string rtreeDescriptionStr;
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);

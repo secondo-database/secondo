@@ -363,7 +363,7 @@ opened( false )
 }
 
 BTree::BTree( SmiKey::KeyDataType keyType, SmiFileId fileId ):
-temporary( true ),
+temporary( false ),
 file( 0 ),
 opened( false )
 {

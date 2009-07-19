@@ -63,5 +63,16 @@ restore database berlintest from berlintest;
 #yields success
 close database;
 
+#testcase montest1  
+#yields success
+create database montest;
+
+#testcase montest2
+#yields success
+restore database montest from montest;
+
+#test case montest3 
+#yields success
+close database;
 #teardown
 

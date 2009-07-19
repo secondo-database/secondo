@@ -962,5 +962,59 @@ Word
 InRectangle( const ListExpr typeInfo, const ListExpr instance,
              const int errorPos, ListExpr& errorInfo, bool& correct );
 
+/*
+4 Class ~RectangleSet~
+
+This class simply contains a set of rectangles. It is used by the 
+MON-Tree to search in an R-Tree using a set of rectangles instead
+of only one.
+
+2.3 Struct ~RectangleSet~
+
+This structure contains a set of rectangles used in the 
+MON-Tree search.
+
+*/
+template<unsigned dim>
+class RectangleSet
+{
+  public:
+    RectangleSet()
+      {}
+
+    inline RectangleSet<dim>& operator = ( const RectangleSet<dim>& r )
+    {
+      set.clear();
+      set = r.set;
+      return *this;
+    }
+
+    inline virtual bool Intersects( const Rectangle<dim>& r ) const
+    {
+      if( set.empty() )
+        return false;
+
+      for( size_t i = 0; i < set.size(); i++ )
+        if( set[i].Intersects( r ) )
+          return true;
+
+      return false;
+    }
+
+    size_t Size() const
+      { return set.size(); }
+
+    void Add( const Rectangle<dim>& r )
+    {
+      set.push_back( r );
+    }
+
+    void Clear()
+      { set.clear(); }
+
+  protected:
+    vector< Rectangle<dim> > set;
+};
+
 #endif
 

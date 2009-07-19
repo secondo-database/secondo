@@ -156,7 +156,7 @@ SmiFile::Implementation::CheckDbHandles() {
     ctr++;
     bdbHandle = SmiEnvironment::Implementation::AllocateDbHandle();
     bdbFile   = SmiEnvironment::Implementation::GetDbHandle( bdbHandle );
-		noHandle = false;
+    noHandle = false;
   }
 }
 
@@ -735,6 +735,14 @@ SmiFileId
 SmiFile::GetFileId()
 {
   return (fileId);
+}
+
+SmiSize 
+SmiFile::GetPageSize()
+{
+  u_int32_t pageSize;
+  impl->bdbFile->get_pagesize( &pageSize ); 
+  return (SmiSize)pageSize;
 }
 
 bool
@@ -1343,9 +1351,8 @@ bool PrefetchingIteratorImpl::NewPrefetch()
              << endl;
 
         if(!isBTreeIterator)
-	{
           recordNumber = *((db_recno_t*)keyBuffer);
-	};
+        
         return true;
       }
     }
@@ -1435,7 +1442,7 @@ bool PrefetchingIteratorImpl::RightBoundaryExceeded()
       }
       else
       {
-	return false;
+        return false;
       };
 
     case SmiKey::String:
@@ -1449,12 +1456,12 @@ bool PrefetchingIteratorImpl::RightBoundaryExceeded()
       if(rc > 0 || (rc == 0 && keyLength > rightBoundaryLength))
       {
         // the first cmpLength bytes of key are greater than rightBoundary
-	// or they are equal but the keyLength is greater
+        // or they are equal but the keyLength is greater
         return true;
       }
       else
       {
-	return false;
+        return false;
       };
 
     default:
