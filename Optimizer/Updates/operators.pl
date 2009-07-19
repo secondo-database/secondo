@@ -56,7 +56,9 @@ projectTC(0.1).
 renameTC(0.1).
 windowintersectsTC(0.1).
 spatialjoinTC(20.0, 0.7).
-distancescanTC(3.24).
+distancescanTC(0.25).
+ksmallestTC(0.04, 0.26).
+createbtreeTC(0.12).
 
 % sorttidTC and rdupTC are estimated without experiment
 % They still need to be estimated
@@ -90,6 +92,9 @@ showOptConstants :-
   nl, write('Overview on all optimizer constants secOptConstant/2:\n'),
   findall(_, showOptConstant, _).
 
+% Section:Start:secOptConstant_2_b
+% Section:End:secOptConstant_2_b
+
 /*
 1.2.1 Constants for Buffer Size
 
@@ -120,6 +125,9 @@ secOptConstant(sampleSelMaxCard, 2000).        % maximum cardinality for samples
 secOptConstant(sampleJoinMaxDiskSize, 2048).   % maximum KB size for samples
 secOptConstant(sampleJoinMinCard, 50).         % minimum cardinality for samples
 secOptConstant(sampleJoinMaxCard, 500).        % maximum cardinality for samples
+
+% Section:Start:secOptConstant_2_e
+% Section:End:secOptConstant_2_e
 
 /*
 
@@ -777,7 +785,7 @@ opSignature(bboxold, temporal, [T],T,[]) :-
 opSignature(at, temporal, [T1,T2],T1,[]) :-
   memberchk((T1,T2),[(mpoint,point),(movingregion,region),(mint,int),
                      (mreal,real),(mbool,bool),(mstring,string)]),!.
-opSignature(distance, temporal, [mpoint,point],real,[]).
+opSignature(distance, temporal, [mpoint,point],mreal,[]).
 opSignature(simplify, temporal, [mpoint,real],mpoint,[]).
 opSignature(simplify, temporal, [mpoint,real,duration],mpoint,[]).
 opSignature(simplify, temporal, [mreal,real],mreal,[]).
@@ -2354,6 +2362,8 @@ they are indended to be used with the optimizer.
 
 */
 
+% Section:Start:opSignature_5_e
+% Section:End:opSignature_5_e
 
 /*
 2.2 Checking Operators for Certain Properties
@@ -2391,6 +2401,9 @@ isBBoxPredicate(trcovers).
 isBBoxPredicate(trcoveredby).
 isBBoxPredicate(troverlaps).
 
+% Section:Start:isBBoxPredicate_1_e
+% Section:End:isBBoxPredicate_1_e
+
 % more recent version: if optimizerOption(determinePredSig) is used
 % --- isBBoxPredicate(+Op,+ArgTypeList,?Dimension)
 isBBoxPredicate(Op,ArgsTypeList,Dim) :-
@@ -2399,6 +2412,9 @@ isBBoxPredicate(Op,ArgsTypeList,Dim) :-
 
 % Range Lifted Predicates
 isBBoxLiftedPred(inside).
+
+% Section:Start:isBBoxLiftedPred_1_e
+% Section:End:isBBoxLiftedPred_1_e
 
 % other operators using bboxes:
 % old version: if optimizerOption(determinePredSig) is NOT used
@@ -2409,11 +2425,15 @@ isBBoxOperator(commonborder).
 isBBoxOperator(commonborderscan).
 isBBoxOperator(X) :- isBBoxPredicate(X).
 
+% Section:Start:isBBoxOperator_1_e
+% Section:End:isBBoxOperator_1_e
+
 % more recent version: if optimizerOption(determinePredSig) is used
 % --- isBBoxOperator(+Op,+ArgTypeList,?Dimension)
 isBBoxOperator(Op,ArgsTypeList,Dim) :-
   opSignature(Op, _, ArgsTypeList,_,Flags),
   memberchk(bbox(Dim),Flags),!.
+
 
 /*
 2.2.2 Commutative operators
@@ -2437,6 +2457,9 @@ isCommutativeOP(distance).
 isCommutativeOP(trequal).
 isCommutativeOP(trdisjoint).
 isCommutativeOP(troverlaps).
+
+% Section:Start:isCommutativeOP_1_e
+% Section:End:isCommutativeOP_1_e
 
 % more recent version: if optimizerOption(determinePredSig) is used
 % --- isCommutativeOP(+Op,+ArgTypeList)
@@ -2472,6 +2495,9 @@ isAggregationOP(aggregate).  % the cost of the provided function should be appli
 isAggregationOP(aggregateB). % the cost of the provided function should be applied,
                              %   Additionally, the operator works balanced (in log(CX) steps).
 
+% Section:Start:isAggregationOP_1_e
+% Section:End:isAggregationOP_1_e
+
 
 /*
 2.2.4 Join Operators
@@ -2496,6 +2522,8 @@ isJoinOP(product).
 isJoinOP(symmproduct).
 isJoinOP(pjoin).
 
+% Section:Start:isJoinOP_1_e
+% Section:End:isJoinOP_1_e
 
 /*
 2.2.5 Maitenance of Tuple Ordering
@@ -2518,6 +2546,8 @@ maintainsOrderOP(sort,                  no).
 maintainsOrderOP(sortby,                no).
 maintainsOrderOP(sortmergejoin,    special).
 
+% Section:Start:maintainsOrderOP_2_e
+% Section:End:maintainsOrderOP_2_e
 
 
 /*
@@ -2759,3 +2789,6 @@ nullValue(rect8,undefined,'undef').
 nullValue(rect8,empty,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
 nullValue(rect8,error,'undef').
 nullValue(rect8,default,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0)').
+
+% Section:Start:nullValue_3_e
+% Section:End:nullValue_3_e
