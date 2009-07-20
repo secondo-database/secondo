@@ -672,6 +672,17 @@ int CreateRTreeRelSpatial(Word* args, Word& result, int message,
     {
       BBox<dim> box = ((StandardSpatialAttribute<dim>*)(tuple->
                         GetAttribute(attrIndex)))->BoundingBox();
+/*if(dim == 3){
+            double min[3];
+            double max[3];
+            for(int i = 0;i < 3;i++){
+              min[i] = box.MinD(i);
+              max[i] = box.MaxD(i);
+            }
+            min[2] = min[2]*864000;
+            max[2] = max[2]*864000;
+            box.Set(true,min,max);
+        }*/
       R_TreeLeafEntry<dim, TupleId> e( box, tuple->GetTupleId() );
       rtree->Insert( e );
     }
@@ -2923,6 +2934,21 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
     {
         BBox<dim> box = ((StandardSpatialAttribute<dim>*)tuple->
               GetAttribute(attrIndex))->BoundingBox();
+/////only for Greece knn algorithm////
+
+//        if(dim == 3){
+//            double min[3];
+//            double max[3];
+//            for(int i = 0;i < 3;i++){
+//              min[i] = box.MinD(i);
+//              max[i] = box.MaxD(i);
+//            }
+//            min[2] = min[2]*864000;
+//            max[2] = max[2]*864000;
+//            box.Set(true,min,max);
+//        }
+
+//////////
         R_TreeLeafEntry<dim, TupleId>
               e( box,
                  ((TupleIdentifier *)tuple->
