@@ -297,9 +297,18 @@ If ~Pred~ has a predicate operator that performs checking of overlapping minimal
 Return the bbox-selectivity-predicate ~PredTerm~ for for ~Dimension~ dimensions
 for arguments ~Arg1~ and ~Arg2~.
 
+If ~Dimension~ is ~std~, a special operator is used, that for operands of dimensions $n$, $m$ checks whether the bounding boxes of the objects' projections to the first $min\{n,m\}$ dimensions interesect.
+
 */
+
+% standard rule for unknown boxtypes using
+%   projective intersection ~bboxintersects~ (ingmar Goehr)
+getBBoxIntersectionTerm(Arg1,Arg2,std,PredTerm) :-
+  PredTerm   =.. [bboxintersects, bbox(Arg1), bbox(Arg2)], !.
+% 2D-only rule:
 getBBoxIntersectionTerm(Arg1,Arg2,2,PredTerm) :-
   PredTerm   =.. [intersects, box2d(bbox(Arg1)), box2d(bbox(Arg2))], !.
+% general rule:
 getBBoxIntersectionTerm(Arg1,Arg2,_,PredTerm) :-
   PredTerm   =.. [intersects, bbox(Arg1), bbox(Arg2)], !.
 
