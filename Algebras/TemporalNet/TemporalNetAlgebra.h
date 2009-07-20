@@ -317,41 +317,127 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
   Returns the length of the route passed within the ~ugpoint~
 
   */
-  double Length()const;
+  inline double Length() const
+  {
+    return fabs(p1.GetPosition() - p0.GetPosition());
+  };
         
   /*
-  Returns the route id of the ~ugpoint~.
+  Get Methods of ~ugpoint~
 
   */
 
-  int GetUnitRid();
+  inline int GetUnitRid()
+  {
+    return p0.GetRouteId();
+  };
 
-  /*
-  Returns the startposition of the ~ugpoint~.
+  inline double GetUnitStartPos()
+  {
+    return p0.GetPosition();
+  };
 
-  */
-  double GetUnitStartPos();
+  inline double GetUnitEndPos()
+  {
+    return p1.GetPosition();
+  };
 
-  /*
-  Returns the end position of the ~ugpoint~.
+  inline Side GetUnitSide()
+  {
+    return p0.GetSide();
+  };
 
-  */
+  inline Interval<Instant> GetUnitTimeInterval()
+  {
+    return timeInterval;
+  };
 
-  double GetUnitEndPos();
+  inline Instant GetUnitStartTime()
+  {
+    return timeInterval.start;
+  };
 
-  /*
-  Returns the start timeinstant of the ~ugpoint~s time interval as double value.
+  inline Instant GetUnitEndTime()
+  {
+    return timeInterval.end;
+  };
 
-  */
+  inline bool GetUnitStartTimeBool()
+  {
+    return timeInterval.lc;
+  };
 
-  double GetUnitStartTime();
+  inline bool GetUnitEndTimeBool()
+  {
+    return timeInterval.rc;
+  };
 
-  /*
-  Returns the end timeinstant of the ~ugpoint~s time interval as double value.
+  inline double GetDoubleUnitStartTime()
+  {
+    return timeInterval.start.ToDouble();
+  };
 
-  */
+  inline double GetDoubleUnitEndTime()
+  { 
+    return timeInterval.end.ToDouble();
+  };
 
-  double GetUnitEndTime();
+  inline double Duration()
+  {
+    return (timeInterval.end.ToDouble() - timeInterval.start.ToDouble());
+  }
+
+  inline double Speed()
+  {
+    return (Length() / Duration());
+  }
+
+/*
+SetMethoden f[ue]r ~ugpoint~
+
+*/
+
+  inline void SetUnitRid(int rid)
+  {
+    p0.SetRouteId(rid);
+    p1.SetRouteId(rid);
+  };
+
+  inline void SetUnitStartPos(double pos)
+  {
+    p0.SetPosition(pos);
+  };
+
+  inline void SetUnitEndPos(double pos)
+  {
+    p1.SetPosition(pos);
+  };
+
+  inline void SetUnitSide(Side a)
+  {
+    p0.SetSide(a);
+    p1.SetSide(a);
+  };
+  
+  inline void SetUnitStartTime(Instant time)
+  {
+    timeInterval.start = time;
+  };
+
+  inline void SetUnitEndTime(Instant time)
+  {
+    timeInterval.end = time;
+  };
+
+  inline void SetUnitStartTimeBool(bool b)
+  {
+    timeInterval.lc = b;
+  };
+
+  inline void SetUnitEndTimeBool(bool b)
+  {
+    timeInterval.rc = b;
+  };
 
   /*
   Returns the euclidean Distance of two ~ugpoint~ as ~ureal~

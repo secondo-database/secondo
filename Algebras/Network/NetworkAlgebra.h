@@ -138,10 +138,22 @@ interval~.
   Rectangle<2> BoundingBox(Network* pNetwork) const;
 
 /*
+Get and Set private values.
+
+*/
+  inline int GetRouteId() const {return m_iRouteId;};
+  inline double GetStartPos() const {return m_dStart;};
+  inline double GetEndPos() const {return m_dEnd;};
+  inline void SetRouteId(int rid) {m_iRouteId = rid;};
+  inline void SetStartPos(double pos) {m_dStart = pos;};
+  inline void SetEndPos(double pos){m_dEnd = pos;};
+
+  private:
+/*
 The route id.
 
 */
-
+  
   int m_iRouteId;
 
 /*
@@ -211,6 +223,9 @@ Assignment operator
     return *this;
   }
 
+  void SetRouteId(int r){rid = r;}
+  void SetPosition(double p) {d = p;}
+  void SetSide(Side s){side = s;}
 /*
 
 Private fields.
@@ -302,60 +317,56 @@ class GPoint : public StandardAttribute
     }
 
 /*
-Returns the ~network~ id of the ~network~ the gpoint belongs to.
+Get Methods of ~gpoint~
 
 */
 
-    int GetNetworkId() const
+    inline int GetNetworkId() const
     {
       return m_iNetworkId;
     }
 
-/*
-Returns the ~routeid~ of the route the gpoint belongs to.
-
-*/
-
-    int GetRouteId() const
+    inline int GetRouteId() const
     {
       return m_xRouteLocation.rid;
     }
 
-/*
-Returns the position of the ~gpoint~ on the route the gpoint belongs to.
-
-*/
-    
-    double GetPosition() const
+    inline double GetPosition() const
     {
       return m_xRouteLocation.d;
     }
 
-/*
-Returns the side value of the ~gpoint~s network location.
-
-*/
-    
-    Side GetSide() const
+    inline Side GetSide() const
     {
       return m_xRouteLocation.side;
     }
 
-/*
-Returns the defined flag of the ~gpoint~.
-
-*/
-    bool IsDefined() const
+    inline bool IsDefined() const
     {
       return m_bDefined;
     }
 
 /*
-Returns the defined flag of the ~gpoint~.
+Set Methods of ~gpoint~
 
 */
 
-    void SetDefined( bool in_bDefined )
+    inline void SetRouteId( int in_rid )
+    {
+      m_xRouteLocation.SetRouteId(in_rid);
+    }
+
+    inline void SetPosition( double pos )
+    {
+      m_xRouteLocation.SetPosition(pos);
+    }
+
+    inline void SetSide( Side s )
+    {
+      m_xRouteLocation.SetSide(s);
+    }
+    
+    inline void SetDefined( bool in_bDefined )
     {
       m_bDefined = in_bDefined;
     }
@@ -1303,13 +1314,32 @@ network positions into spatial 2D positions.
   void GetPointOnRoute(const GPoint* in_xGPoint, Point *&res);
 
 /*
-GetRouteCurve
+GetRoute
 
 Returns the route tuple for the given route id.
 
 */
 
   Tuple* GetRoute(int in_RouteId);
+  Tuple* GetRoute(TupleId in_routeTID);
+
+/*
+GetRouteCurve
+
+Returns the route curve for the given route id.
+
+*/
+
+  SimpleLine GetRouteCurve(int in_iRouteId);
+
+/*
+GetDual
+
+Returns the dual value of the given route id.
+
+*/
+
+  bool GetDual(int in_iRouteId);
 
 /*
 GetLineValueOfRouteInterval
@@ -1492,7 +1522,7 @@ isDefined
 
 */
 
- int isDefined();
+ int IsDefined();
  void SetDefined(bool def)
  {
    m_bDefined = def;
@@ -1998,6 +2028,11 @@ Inserts a ~RouteInterval~ in the ~RITree~ checking if there are already
 ~RouteIntervals~ which overlap or are adjacent to the current ~RouteInterval~.
 
 */
+  void InsertUnit(int rid, double pos1, double pos2)
+  {
+    if (pos1 < pos2) Insert(rid, pos1, pos2);
+    else Insert(rid, pos2, pos1);
+  }
 
   void Insert (int rid, double pos1, double pos2) {
     double test;

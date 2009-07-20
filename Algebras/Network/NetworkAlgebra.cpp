@@ -78,7 +78,8 @@ Computes a spatial BoundingBox of a RouteInterval
 
 */
 
-Rectangle<2> RouteInterval::BoundingBox(Network* pNetwork) const{
+Rectangle<2> RouteInterval::BoundingBox(Network* pNetwork) const
+{
   if (AlmostEqual(m_dStart , m_dEnd)) {
     Point *p = (GPoint(true, pNetwork->GetId(), m_iRouteId,
                 m_dStart)).ToPoint(pNetwork);
@@ -130,20 +131,20 @@ bool searchRouteInterval(GPoint *pGPoint, GLine *&pGLine, size_t low,
       return false;
     }else {
       pGLine->Get(mid, rI);
-      if (rI->m_iRouteId < pGPoint->GetRouteId()) {
+      if (rI->GetRouteId() < pGPoint->GetRouteId()) {
         return searchRouteInterval(pGPoint, pGLine, mid+1, high);
       } else {
-        if (rI->m_iRouteId > pGPoint->GetRouteId()){
+        if (rI->GetRouteId() > pGPoint->GetRouteId()){
           return searchRouteInterval(pGPoint, pGLine, low, mid-1);
         } else {
-          if (fabs(pGPoint->GetPosition() - rI->m_dStart) < 0.01 ||
-              fabs(pGPoint->GetPosition() - rI->m_dEnd) < 0.01) {
+          if (fabs(pGPoint->GetPosition() - rI->GetStartPos()) < 0.01 ||
+              fabs(pGPoint->GetPosition() - rI->GetEndPos()) < 0.01) {
             return true;
           } else {
-            if (rI->m_dStart > pGPoint->GetPosition()) {
+            if (rI->GetStartPos() > pGPoint->GetPosition()) {
               return searchRouteInterval(pGPoint, pGLine, low, mid-1);
             } else {
-              if (rI->m_dEnd < pGPoint->GetPosition()){
+              if (rI->GetEndPos() < pGPoint->GetPosition()){
                 return searchRouteInterval(pGPoint, pGLine, mid+1, high);
               } else {
                 return true;
@@ -549,16 +550,16 @@ bool searchUnit(GLine *pGLine, size_t low, size_t high,
       return false;
     }else {
       pGLine->Get(mid, rI);
-      if (rI->m_iRouteId < pRi->m_iRouteId) {
+      if (rI->GetRouteId() < pRi->GetRouteId()) {
         return searchUnit(pGLine, mid+1, high, pRi);
       } else {
-        if (rI->m_iRouteId > pRi->m_iRouteId){
+        if (rI->GetRouteId() > pRi->GetRouteId()){
           return searchUnit(pGLine, low, mid-1, pRi);
         } else {
-          if (rI->m_dStart > pRi->m_dEnd) {
+          if (rI->GetStartPos() > pRi->GetEndPos()) {
             return searchUnit(pGLine, low, mid-1, pRi);
           } else {
-            if (rI->m_dEnd < pRi->m_dStart){
+            if (rI->GetEndPos() < pRi->GetStartPos()){
               return searchUnit(pGLine, mid+1, high, pRi);
             } else {
               return true;
@@ -691,10 +692,10 @@ Creates a RectangleList from a given gline.
     for (int i = 0 ; i < gl->NoOfComponents(); i++) {
       gl->Get(i, ri);
       Rectangle<2> elem(true,
-                              (double) ri->m_iRouteId,
-                              (double) ri->m_iRouteId,
-                              min(ri->m_dStart,ri->m_dEnd),
-                              max(ri->m_dStart, ri->m_dEnd));
+                              (double) ri->GetRouteId(),
+                              (double) ri->GetRouteId(),
+                              min(ri->GetStartPos(),ri->GetEndPos()),
+                              max(ri->GetStartPos(), ri->GetEndPos()));
       aliasRectangleList.Append(elem);
     }
   }
@@ -3037,11 +3038,16 @@ Tuple* Network::GetRoute(int in_RouteId){
 
 }
 
+Tuple* Network::GetRoute(TupleId in_routeTID)
+{
+  return m_pRoutes->GetTuple(in_routeTID);
+}
+
 void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
                                 DBArray<SectTreeEntry> *io_SectionIds){
-  double ristart = min(ri->m_dStart, ri->m_dEnd);
-  double riend = max(ri->m_dStart, ri->m_dEnd);
-  CcInt* ciRouteId = new CcInt(true, ri->m_iRouteId);
+  double ristart = min(ri->GetStartPos(), ri->GetEndPos());
+  double riend = max(ri->GetStartPos(), ri->GetEndPos());
+  CcInt* ciRouteId = new CcInt(true, ri->GetRouteId());
   BTreeIterator* pSectionIter =
       m_pBTreeSectionsByRoute->ExactMatch(ciRouteId);
   delete ciRouteId;
@@ -3069,7 +3075,7 @@ void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
         bsectend = false;
       }
       SectTreeEntry *sect =
-          new SectTreeEntry(actSect->GetTupleId(), ri->m_iRouteId, start, end,
+          new SectTreeEntry(actSect->GetTupleId(), ri->GetRouteId(), start, end,
                             bsectstart, bsectend);
       io_SectionIds->Append(*sect);
       delete sect;
@@ -3308,6 +3314,35 @@ bool Network::ShorterConnection2(Tuple *route, double &start,
     return false;
   }
 }
+
+/*
+
+Returns the route curve for the given route id.
+
+*/
+
+  SimpleLine Network::GetRouteCurve(int in_iRouteId)
+ {
+   Tuple *pRoute = GetRoute(in_iRouteId);
+   SimpleLine sl = *((SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE));
+   delete pRoute;
+   return sl;
+ }
+
+/*
+  GetDual
+
+  Returns the dual value of the given route id.
+
+*/
+
+  bool Network::GetDual(int in_iRouteId)
+  {
+    Tuple *pRoute = GetRoute(in_iRouteId);
+    bool dual = ((CcBool*) pRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
+    delete pRoute;
+    return dual;
+  }
 
 /*
 Searches the route interval between the two given point values.
@@ -3943,7 +3978,7 @@ int Network::SizeOfNetwork()
   return 0;
 }
 
-int Network::isDefined() {
+int Network::IsDefined() {
   return m_bDefined;
 }
 
@@ -4114,7 +4149,7 @@ Return sLine Value from RouteId
 
 void Network::GetLineValueOfRouteInterval (const RouteInterval *in_ri,
                                            SimpleLine *out_Line){
-  CcInt* pRouteId = new CcInt(true, in_ri->m_iRouteId);
+  CcInt* pRouteId = new CcInt(true, in_ri->GetRouteId());
   BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
   delete pRouteId;
   Tuple *pRoute = 0;
@@ -4124,8 +4159,8 @@ void Network::GetLineValueOfRouteInterval (const RouteInterval *in_ri,
   assert(pLine != 0);
   CcBool* pStSm = (CcBool*) pRoute->GetAttribute(ROUTE_STARTSSMALLER);
   bool startSmaller = pStSm->GetBoolval();
-  pLine->SubLine(min(in_ri->m_dStart, in_ri->m_dEnd),
-                 max(in_ri->m_dStart, in_ri->m_dEnd),
+  pLine->SubLine(min(in_ri->GetStartPos(), in_ri->GetEndPos()),
+                 max(in_ri->GetStartPos(), in_ri->GetEndPos()),
                  startSmaller, *out_Line);
   pRoute->DeleteIfAllowed();
   delete pRoutesIter;
@@ -4184,9 +4219,9 @@ The simple constructor. Should not be used.
       const RouteInterval* pCurrentInterval;
       in_xOther->m_xRouteIntervals.Get(i, pCurrentInterval);
 
-      int iRouteId = pCurrentInterval->m_iRouteId;
-      double dStart = pCurrentInterval->m_dStart;
-      double dEnd = pCurrentInterval->m_dEnd;
+      int iRouteId = pCurrentInterval->GetRouteId();
+      double dStart = pCurrentInterval->GetStartPos();
+      double dEnd = pCurrentInterval->GetEndPos();
       AddRouteInterval(iRouteId,
                        dStart,
                        dEnd);
@@ -4294,7 +4329,7 @@ void GLine::SetNetworkId(int in_iNetworkId)
 
 void GLine::AddRouteInterval(RouteInterval *ri) {
   m_xRouteIntervals.Append(*ri);
-  m_dLength = m_dLength + fabs (ri->m_dEnd - ri->m_dStart);
+  m_dLength = m_dLength + fabs (ri->GetEndPos() - ri->GetStartPos());
 }
 
 void GLine::AddRouteInterval(int in_iRouteId,
@@ -4410,9 +4445,9 @@ ListExpr GLine::Out(ListExpr in_xTypeInfo,
     const RouteInterval* pCurrentInterval;
     pGline->m_xRouteIntervals.Get(i, pCurrentInterval);
 
-    int iRouteId = pCurrentInterval->m_iRouteId;
-    double dStart = pCurrentInterval->m_dStart;
-    double dEnd = pCurrentInterval->m_dEnd;
+    int iRouteId = pCurrentInterval->GetRouteId();
+    double dStart = pCurrentInterval->GetStartPos();
+    double dEnd = pCurrentInterval->GetEndPos();
     // Build list
     xNext = nl->ThreeElemList(nl->IntAtom(iRouteId),
                               nl->RealAtom(dStart),
@@ -4479,9 +4514,9 @@ GLine* GLine::Clone() const{
   const RouteInterval *ri;
   for (int i = 0; i < Size(); i++){
     Get(i, ri);
-    int rid = ri->m_iRouteId;
-    double start = ri->m_dStart;
-    double end = ri->m_dEnd;
+    int rid = ri->GetRouteId();
+    double start = ri->GetStartPos();
+    double end = ri->GetEndPos();
     xOther->AddRouteInterval(rid, start, end);
   }
   return xOther;
@@ -4513,8 +4548,9 @@ ostream& GLine::Print( ostream& os ) const
     for (int i = 0; i < m_xRouteIntervals.Size() ; i++) {
       const RouteInterval *ri;
       Get(i, ri);
-      os << "RouteInterval: " << i << " rid: " << ri->m_iRouteId;
-      os << " from: " << ri->m_dStart << " to: " << ri->m_dEnd << endl;
+      os << "RouteInterval: " << i << " rid: " << ri->GetRouteId();
+      os << " from: " << ri->GetStartPos() << " to: " << ri->GetEndPos():
+      os << endl;
     }
     os << " end gline";
     return os;
@@ -4555,17 +4591,17 @@ int GLine::Compare( const Attribute* arg ) const
                   while(i < m_xRouteIntervals.Size()) {
                     Get(i,ri1);
                     gl2->Get(i,ri2);
-                    if (ri1->m_iRouteId < ri2->m_iRouteId) return -1;
+                    if (ri1->GetRouteId() < ri2->GetRouteId()) return -1;
                     else
-                      if (ri1->m_iRouteId > ri2->m_iRouteId) return 1;
+                      if (ri1->GetRouteId() > ri2->GetRouteId()) return 1;
                       else
-                        if (ri1->m_dStart < ri2->m_dStart) return -1;
+                        if (ri1->GetStartPos() < ri2->GetStartPos()) return -1;
                         else
-                          if (ri1->m_dStart > ri2->m_dStart) return 1;
+                          if (ri1->GetStartPos() > ri2->GetStartPos()) return 1;
                           else
-                            if (ri1->m_dEnd < ri2->m_dEnd) return -1;
+                            if (ri1->GetEndPos() < ri2->GetEndPos()) return -1;
                             else
-                              if (ri1->m_dEnd > ri2->m_dEnd) return 1;
+                              if (ri1->GetEndPos() > ri2->GetEndPos()) return 1;
                     i++;
                   }
                 }
@@ -4580,9 +4616,9 @@ GLine& GLine::operator=( const GLine& l )
     const RouteInterval *ri;
     for( int i = 0; i < l.m_xRouteIntervals.Size(); i++ ) {
       l.m_xRouteIntervals.Get( i, ri );
-      int rid = ri->m_iRouteId;
-      double start = ri->m_dStart;
-      double end = ri->m_dEnd;
+      int rid = ri->GetRouteId();
+      double start = ri->GetStartPos();
+      double end = ri->GetEndPos();
       AddRouteInterval(rid, start, end);
     }
   }
@@ -4604,9 +4640,9 @@ bool GLine::operator== (const GLine& l) const{
         for (int i=0; i < m_xRouteIntervals.Size(); i++) {
           Get(i,rIt);
           l.Get(i,rIl);
-          if (!(rIt->m_iRouteId == rIl->m_iRouteId &&
-                rIt->m_dStart == rIl->m_dStart &&
-                rIt->m_dEnd == rIl->m_dEnd)) return false;
+          if (!(rIt->GetRouteId() == rIl->GetRouteId() &&
+                rIt->GetStartPos() == rIl->GetStartPos() &&
+                rIt->GetEndPos() == rIl->GetEndPos())) return false;
         }
         return true;
       } else {
@@ -4614,9 +4650,9 @@ bool GLine::operator== (const GLine& l) const{
           Get(i,rIt);
           for (int j = 0; j < m_xRouteIntervals.Size(); j++) {
             l.Get(i,rIl);
-            if (!(rIt->m_iRouteId == rIl->m_iRouteId &&
-                  rIt->m_dStart == rIl->m_dStart &&
-                  rIt->m_dEnd == rIl->m_dEnd)) return false;
+            if (!(rIt->GetRouteId() == rIl->GetRouteId() &&
+                  rIt->GetStartPos() == rIl->GetStartPos() &&
+                  rIt->GetEndPos() == rIl->GetEndPos())) return false;
           }
         }
         return true;
@@ -4637,9 +4673,9 @@ size_t GLine::HashValue() const
     m_xRouteIntervals.Get(i, pCurrentInterval);
 
     // Add something for each entry
-    int iRouteId = pCurrentInterval->m_iRouteId;
-    double dStart = pCurrentInterval->m_dStart;
-    double dEnd = pCurrentInterval->m_dEnd;
+    int iRouteId = pCurrentInterval->GetRouteId();
+    double dStart = pCurrentInterval->GetStartPos();
+    double dEnd = pCurrentInterval->GetEndPos();
     xHash += iRouteId + (size_t)dStart + (size_t)dEnd;
   }
   return xHash;
@@ -4672,9 +4708,9 @@ void GLine::CopyFrom(const StandardAttribute* right)
   const RouteInterval* ri;
   for (int i = 0; i < src->Size(); i++) {
     src->Get(i,ri);
-    int rid = ri->m_iRouteId;
-    double start = ri->m_dStart;
-    double end = ri->m_dEnd;
+    int rid = ri->GetRouteId();
+    double start = ri->GetStartPos();
+    double end = ri->GetEndPos();
     AddRouteInterval(rid, start, end);
   }
   */
@@ -4792,17 +4828,18 @@ void GLine::Uniongl(GLine *pgl2, GLine *res){
       if (pgl2->IsSorted()) {
         for (int j = 0; j < pgl2->NoOfComponents(); j++) {
           pgl2->Get(j,pRi2);
-          res->AddRouteInterval(pRi2->m_iRouteId,
-                            pRi2->m_dStart,
-                            pRi2->m_dEnd);
+          res->AddRouteInterval(pRi2->GetRouteId(),
+                            pRi2->GetStartPos(),
+                            pRi2->GetEndPos());
         }
       } else {
         pgl2->Get(0,pRi2);
-        RITree *ritree = new RITree(pRi2->m_iRouteId,
-                          pRi2->m_dStart, pRi2->m_dEnd,0,0);
+        RITree *ritree = new RITree(pRi2->GetRouteId(),
+                          pRi2->GetStartPos(), pRi2->GetEndPos(),0,0);
         for (int j = 1; j < pgl2->NoOfComponents(); j++) {
           pgl2->Get(j,pRi2);
-          ritree->Insert(pRi2->m_iRouteId, pRi2->m_dStart, pRi2->m_dEnd);
+          ritree->Insert(pRi2->GetRouteId(), pRi2->GetStartPos(),
+                         pRi2->GetEndPos());
         }
         ritree->TreeToGLine(res);
         ritree->RemoveTree();
@@ -4820,17 +4857,18 @@ void GLine::Uniongl(GLine *pgl2, GLine *res){
         if (IsSorted()) {
           for (int i = 0; i < NoOfComponents(); i++) {
             Get(i,pRi1);
-            res->AddRouteInterval(pRi1->m_iRouteId,
-                                pRi1->m_dStart,
-                                pRi1->m_dEnd);
+            res->AddRouteInterval(pRi1->GetRouteId(),
+                                pRi1->GetStartPos(),
+                                pRi1->GetEndPos());
           }
         } else {
           Get(0,pRi1);
-          RITree *ritree = new RITree(pRi1->m_iRouteId,
-                            pRi1->m_dStart, pRi1->m_dEnd,0,0);
+          RITree *ritree = new RITree(pRi1->GetRouteId(),
+                            pRi1->GetStartPos(), pRi1->GetEndPos(),0,0);
           for (int i = 1; i < NoOfComponents(); i++) {
             Get(i,pRi1);
-            ritree->Insert(pRi1->m_iRouteId, pRi1->m_dStart, pRi1->m_dEnd);
+            ritree->Insert(pRi1->GetRouteId(), pRi1->GetStartPos(),
+                           pRi1->GetEndPos());
           }
           ritree->TreeToGLine(res);
           ritree->RemoveTree();
@@ -4857,38 +4895,39 @@ void GLine::Uniongl(GLine *pgl2, GLine *res){
           while (i < NoOfComponents() && j < pgl2->NoOfComponents()) {
             Get(i, pRi1);
             pgl2->Get(j, pRi2);
-            if (pRi1->m_iRouteId < pRi2->m_iRouteId){
-              res->AddRouteInterval(pRi1->m_iRouteId,
-                                    pRi1->m_dStart,
-                                    pRi1->m_dEnd);
+            if (pRi1->GetRouteId() < pRi2->GetRouteId()){
+              res->AddRouteInterval(pRi1->GetRouteId(),
+                                    pRi1->GetStartPos(),
+                                    pRi1->GetEndPos());
               i++;
             } else {
-              if (pRi1->m_iRouteId > pRi2->m_iRouteId) {
-                res->AddRouteInterval(pRi2->m_iRouteId, pRi2->m_dStart,
-                                      pRi2->m_dEnd);
+              if (pRi1->GetRouteId() > pRi2->GetRouteId()) {
+                res->AddRouteInterval(pRi2->GetRouteId(), pRi2->GetStartPos(),
+                                      pRi2->GetEndPos());
                 j++;
               } else {
-                if (pRi1->m_dEnd < pRi2->m_dStart) {
-                  res->AddRouteInterval(pRi1->m_iRouteId, pRi1->m_dStart,
-                                        pRi1->m_dEnd);
+                if (pRi1->GetEndPos() < pRi2->GetStartPos()) {
+                  res->AddRouteInterval(pRi1->GetRouteId(), pRi1->GetStartPos(),
+                                        pRi1->GetEndPos());
                   i++;
                 } else {
-                  if (pRi2->m_dEnd < pRi1->m_dStart) {
-                    res->AddRouteInterval(pRi2->m_iRouteId, pRi2->m_dStart,
-                                          pRi2->m_dEnd);
+                  if (pRi2->GetEndPos() < pRi1->GetStartPos()) {
+                    res->AddRouteInterval(pRi2->GetRouteId(),
+                                          pRi2->GetStartPos(),
+                                          pRi2->GetEndPos());
                     j++;
                   } else {
-                    iRouteId = pRi1->m_iRouteId;
-                    start = min(pRi1->m_dStart, pRi2->m_dStart),
-                    end = max(pRi1->m_dEnd, pRi2->m_dEnd);
+                    iRouteId = pRi1->GetRouteId();
+                    start = min(pRi1->GetStartPos(), pRi2->GetStartPos()),
+                    end = max(pRi1->GetEndPos(), pRi2->GetEndPos());
                     i++;
                     j++;
                     newroute = false;
                     while (i < NoOfComponents() && !newroute){
                       Get(i,pRi1);
-                      if (pRi1->m_iRouteId == iRouteId) {
-                        if (pRi1->m_dStart <= end) {
-                          end = max (pRi1->m_dEnd, end);
+                      if (pRi1->GetRouteId() == iRouteId) {
+                        if (pRi1->GetStartPos() <= end) {
+                          end = max (pRi1->GetEndPos(), end);
                           i++;
                         } else newroute = true;
                       } else newroute = true;
@@ -4896,9 +4935,9 @@ void GLine::Uniongl(GLine *pgl2, GLine *res){
                     newroute = false;
                     while (j < pgl2->NoOfComponents() && !newroute){
                       pgl2->Get(j,pRi2);
-                      if (pRi2->m_iRouteId == iRouteId) {
-                        if (pRi2->m_dStart <= end) {
-                          end = max (pRi2->m_dEnd, end);
+                      if (pRi2->GetRouteId() == iRouteId) {
+                        if (pRi2->GetStartPos() <= end) {
+                          end = max (pRi2->GetEndPos(), end);
                           j++;
                         } else newroute = true;
                       } else newroute = true;
@@ -4911,15 +4950,15 @@ void GLine::Uniongl(GLine *pgl2, GLine *res){
           }
           while (i < NoOfComponents()) {
             Get(i,pRi1);
-            res->AddRouteInterval(pRi1->m_iRouteId,
-                                  pRi1->m_dStart,
-                                  pRi1->m_dEnd);
+            res->AddRouteInterval(pRi1->GetRouteId(),
+                                  pRi1->GetStartPos(),
+                                  pRi1->GetEndPos());
             i++;
           }
           while (j < pgl2->NoOfComponents()) {
             pgl2->Get(j,pRi2);
-            res->AddRouteInterval(pRi2->m_iRouteId, pRi2->m_dStart,
-                                  pRi2->m_dEnd);
+            res->AddRouteInterval(pRi2->GetRouteId(), pRi2->GetStartPos(),
+                                  pRi2->GetEndPos());
             j++;
           }
           res->SetDefined(true);
@@ -4927,15 +4966,17 @@ void GLine::Uniongl(GLine *pgl2, GLine *res){
         } else {
           RITree *ritree;
           Get(0,pRi1);
-          ritree = new RITree(pRi1->m_iRouteId,
-                              pRi1->m_dStart, pRi1->m_dEnd,0,0);
+          ritree = new RITree(pRi1->GetRouteId(),
+                              pRi1->GetStartPos(), pRi1->GetEndPos(),0,0);
           for (int i = 1; i < NoOfComponents(); i++) {
             Get(i,pRi1);
-            ritree->Insert(pRi1->m_iRouteId, pRi1->m_dStart, pRi1->m_dEnd);
+            ritree->Insert(pRi1->GetRouteId(), pRi1->GetStartPos(),
+                           pRi1->GetEndPos());
           }
           for (int j = 0; j < pgl2->NoOfComponents(); j++) {
             pgl2->Get(j,pRi2);
-            ritree->Insert(pRi2->m_iRouteId, pRi2->m_dStart, pRi2->m_dEnd);
+            ritree->Insert(pRi2->GetRouteId(), pRi2->GetStartPos(),
+                           pRi2->GetEndPos());
           }
           ritree->TreeToGLine(res);
           ritree->RemoveTree();
@@ -4994,9 +5035,9 @@ bool GLine::Intersects(GLine *pgl){
       } else {
         for (int j = 0 ; j < pgl->NoOfComponents(); j ++){
           pgl->Get(j,pRi2);
-          if (pRi1->m_iRouteId == pRi2->m_iRouteId &&
-              (!(pRi1->m_dEnd < pRi2->m_dStart ||
-              pRi2->m_dStart > pRi1->m_dEnd))){
+          if (pRi1->GetRouteId() == pRi2->GetRouteId() &&
+              (!(pRi1->GetEndPos() < pRi2->GetStartPos() ||
+              pRi2->GetStartPos() > pRi1->GetEndPos()))){
             return true;
           }
         }
@@ -5009,13 +5050,13 @@ bool GLine::Intersects(GLine *pgl){
       while (i<NoOfComponents() && j < pgl->NoOfComponents()) {
         Get(i,pRi1);
         pgl->Get(j,pRi2);
-        if (pRi1->m_iRouteId < pRi2->m_iRouteId) i++;
+        if (pRi1->GetRouteId() < pRi2->GetRouteId()) i++;
         else
-          if (pRi1->m_iRouteId > pRi2->m_iRouteId) j++;
+          if (pRi1->GetRouteId() > pRi2->GetRouteId()) j++;
           else
-            if (pRi1->m_dStart > pRi2->m_dEnd) j++;
+            if (pRi1->GetStartPos() > pRi2->GetEndPos()) j++;
             else
-              if (pRi1->m_dEnd < pRi2->m_dStart) i++;
+              if (pRi1->GetEndPos() < pRi2->GetStartPos()) i++;
               else return true;
       }
     } else {
@@ -5234,16 +5275,16 @@ bool GPoint::Inside(GLine *gl){
     int i = 0;
     while (i < gl->NoOfComponents()) {
       gl->Get(i, pCurrRInter);
-      if (pCurrRInter->m_iRouteId == GetRouteId()){
-        if(pCurrRInter->m_dStart < GetPosition() &&
-           GetPosition() < pCurrRInter->m_dEnd)
+      if (pCurrRInter->GetRouteId() == GetRouteId()){
+        if(pCurrRInter->GetStartPos() < GetPosition() &&
+           GetPosition() < pCurrRInter->GetEndPos())
           return true;
-        if(pCurrRInter->m_dStart > GetPosition() &&
-           GetPosition() > pCurrRInter->m_dEnd)
+        if(pCurrRInter->GetStartPos() > GetPosition() &&
+           GetPosition() > pCurrRInter->GetEndPos())
           return true;
-        if(fabs(pCurrRInter->m_dStart - GetPosition()) < 0.1)
+        if(fabs(pCurrRInter->GetStartPos() - GetPosition()) < 0.1)
           return true;
-        if(fabs(pCurrRInter->m_dEnd - GetPosition()) < 0.1)
+        if(fabs(pCurrRInter->GetEndPos() - GetPosition()) < 0.1)
           return true;
       }
       i++;
@@ -6465,7 +6506,7 @@ int OpLine2GLineValueMapping(Word* args,
   // Get and check input values.
   Network* pNetwork = (Network*)args[0].addr;
   GLine *res = new GLine(0);
-  if (pNetwork == 0 || !pNetwork->isDefined()) {
+  if (pNetwork == 0 || !pNetwork->IsDefined()) {
     string strMessage = "Network is not defined.";
     cerr << strMessage << endl;
     sendMessage(strMessage);
@@ -6500,13 +6541,14 @@ int OpLine2GLineValueMapping(Word* args,
   RouteInterval *ri =
       pNetwork->Find(hs->GetLeftPoint(), hs->GetRightPoint());
   if (ri!= 0) {
-    RITree *riTree = new RITree(ri->m_iRouteId, ri->m_dStart, ri->m_dEnd);
+    RITree *riTree = new RITree(ri->GetRouteId(), ri->GetStartPos(),
+                                ri->GetEndPos());
     delete ri;
     for (int i = 1; i < pLine->Size();i++) {
       pLine->Get(i,hs);
       ri = pNetwork->Find(hs->GetLeftPoint(), hs->GetRightPoint());
       if (ri!=0){
-        riTree->Insert(ri->m_iRouteId, ri->m_dStart, ri->m_dEnd);
+        riTree->Insert(ri->GetRouteId(), ri->GetStartPos(), ri->GetEndPos());
         delete ri;
       }
     }
@@ -7051,7 +7093,7 @@ int OpPoint2GPointValueMapping(Word* args,
   GPoint* pGPoint = (GPoint*)qp->ResultStorage(in_xSupplier).addr;
   result = SetWord( pGPoint );
   Network* pNetwork = (Network*)args[0].addr;
-  if (pNetwork == 0 || !pNetwork->isDefined()) {
+  if (pNetwork == 0 || !pNetwork->IsDefined()) {
     string strMessage = "Network is not defined.";
     cerr << strMessage << endl;
     sendMessage(strMessage);
