@@ -3701,7 +3701,12 @@ analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
   ),
   analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,MoreInfos,TupleMemSize),
   assert(storedCard(DB, DCrel, Card)),
-  StoreLOBsize is max(0,TupleSizeLOB), % avoid rounding errors
+  ( TupleSizeLOB = undef 
+    -> ( % undef tuplesize due to empty relation
+              StoreLOBsize = nAn
+            )
+	; StoreLOBsize is max(0,TupleSizeLOB) % avoid rounding errors
+	),
   assert(storedTupleSize(DB, DCrel, TupleMemSize, StoreCoreSize, StoreLOBsize)),
   !.
 
