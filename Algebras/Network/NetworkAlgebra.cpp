@@ -4549,7 +4549,7 @@ ostream& GLine::Print( ostream& os ) const
       const RouteInterval *ri;
       Get(i, ri);
       os << "RouteInterval: " << i << " rid: " << ri->GetRouteId();
-      os << " from: " << ri->GetStartPos() << " to: " << ri->GetEndPos():
+      os << " from: " << ri->GetStartPos() << " to: " << ri->GetEndPos();
       os << endl;
     }
     os << " end gline";
