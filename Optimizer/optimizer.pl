@@ -862,6 +862,7 @@ writeEdges :- not(writeEdge).
 
 /*
 5 Rule-Based Translation of Selections and Joins
+
 [:Section Translation]
 
 5.1 Precise Notation for Input
@@ -2569,6 +2570,7 @@ exactmatch(IndexName, arg(N), Expr) =>
 
 /*
 Jan09 Ingmar Goehr
+
 Loopindexjoin with bbox predicate using specialized spatial R-Tree indices
 
 */
@@ -2992,7 +2994,6 @@ isFirstAttr/1 tests whether the first element of a given list is an
 attribute attr(\_,\_,\_) or not
 
 */
-
 isFirstAttr(List) :-
  List=[attr(_,_,_)|_].
 
@@ -3036,9 +3037,11 @@ cutLastIfNotAttr(List,NewList) :-
  reverse(Tail,NewList).
 
 /*
+---- makeList2(+Expr,-List)
+----
+
 makeList2/2 converts an ~Expr~ to a ~List~
 
-makeList2(+Expr,-List)
 */
 makeList2(Expr,Expr) :-
  is_list(Expr).
@@ -3051,13 +3054,11 @@ makeList2(Expr,NewList) :-
 ---- makeFirstList(+List,-NewList)
 ----
 
-makeFirstList/2 checks
-  1  whether the first element of the given ~List~ is an list itself or not.
-     If so, it concatenates the list with the rest of the given ~list~.
-
-  2  whether the first element of the given ~List~ is an attribute attr(_,_,_) or
-     not. If so, it is converted to an list and concatenated with the rest of the
-  ~List~.
+makeFirstList/2 checks whether the first element of the given ~List~ is an list
+itself or not. If so, it concatenates the list with the rest of the given
+~list~. Otherwise, if the first element of the given ~List~ is an attribute
+attr(\_,\_,\_), it is converted to an list and concatenated with the rest of
+the ~List~.
 
 */
 makeFirstList([Head|Tail],NewList) :-
@@ -3145,7 +3146,7 @@ writePlanEdgesX :- not(writePlanEdges3).
 /*
 7 Assigning Sizes and Selectivities to the Nodes and Edges of the POG
 
-----    assignSizes.
+----    assignSizes
 ----
 
 Assign sizes (numbers of tuples) to all nodes in the pog, based on the
@@ -3861,7 +3862,7 @@ cost(sortRightThenMergejoin(X, Y, AX, AY), Sel, P, S, C) :-
 
 
 /*
-   Simple cost estimation for ~symmjoin~
+Simple cost estimation for ~symmjoin~
 
 */
 cost(symmjoin(X, Y, _), Sel, P, S, C) :-
@@ -4971,8 +4972,7 @@ lookup(select Attrs from Rels where Preds,
   makeList(Rels2, Rels2List),
   makeList(Preds2, Preds2List),
   (optimizerOption(entropy)
-    -> registerSelfJoins(Preds2List, 1); true).
-					% needed for entropy optimizer
+    -> registerSelfJoins(Preds2List, 1); true). % needed for entropy optimizer
 
 lookup(select Attrs from Rels,
         select Attrs2 from Rels2) :-
@@ -5679,10 +5679,10 @@ translate1(Query, Stream2, Select2, Update, Cost) :-
   rewritePlanforCSE(Stream, Stream2, Select, Select2), % Hook for CSE substitution
   !.
 
-%   the main predicate which does the translation of a query
-%   translate(+Query, -Stream, -SelectClause, -Cost).
-%   This version of the predicate is used while the optimizer option
-%   earlyproject is active.
+%    the main predicate which does the translation of a query
+%    translate(+Query, -Stream, -SelectClause, -Cost).
+%  This version of the predicate is only used while the optimizer option
+%  earlyproject is active.
 % (Clause added by Goehr)
 translate(Query groupby Attrs,
         groupby(sortby(projectextend(Stream,AExtend1,[FExtend|ExtendAttrs]),
@@ -5691,7 +5691,7 @@ translate(Query groupby Attrs,
   optimizerOption(earlyproject),
   translate(Query, Stream, SelectClause, Update, Cost),
   makeList(Attrs, Attrs2),
-  not(length(Attrs2,0)),
+  Attrs2 \= [],
   SelectClause = (select Select),
   makeList(Select, SelAttrs),
   translateFields(SelAttrs, Attrs2, Fields, Select2, ExtendAttrs,ProjectAttrs),
@@ -5851,7 +5851,7 @@ delExtends([_ as Name|Select],[Name|NewAttr]) :-
 
 getProjectAttrs is part of the earlyproject optimizerOption
 and gathers all attribute which must be included in
-the projectextend before sortby
+the projectextend before sortby.
 
 */
 getProjectAttrs(_,[],[],[]).
@@ -5893,7 +5893,7 @@ End Code added by Goehr
 /*
 The next predicate finds all attributes of a given relation ~Rel~
 which are needed in this query. The result can be used to create
-project(feed(..)) streams instead of simply feeding all attributes
+project(feed(...)) streams instead of simply feeding all attributes
 from a relation into a stream. The system predicate ~setof~ is used
 to find all goal for query ~usedAttr(Rel,X)~.
 
@@ -5910,11 +5910,11 @@ renameAttributes(Var, [attrname(attr(Attr,Arg,Case))|AttrNames],
                 ) :-
   renameAttributes(Var, AttrNames, RenamedAttrNames), !.
 
-  /* Begin Code modified by Goehr */
+/* Begin Code modified by Goehr */
 
 /*
 ----  translateFields(+Select, +GroupAttrs,
-                      -Fields, -Select2, -ExtendAttrs, -ProjectAttrs) :-
+                      -Fields, -Select2, -ExtendAttrs, -ProjectAttrs)
 ----
 
 Translate the ~Select~ clause of a query containing ~groupby~. Grouping
@@ -5922,7 +5922,6 @@ was done by the attributes ~GroupAttrs~. Return a list ~Fields~ of terms
 of the form ~field(Name, Expr)~; such a list can be used as an argument to the
 groupby operator. Also, return a modified select clause ~Select2~,
 which will translate to a corresponding projection operation.
-~ Var ~ ist ein Container für expr bei groupby
 
 */
 
@@ -5945,8 +5944,8 @@ translateFields([Attr as Name | Select], GroupAttrs, Fields,
                   ExtendAttrs, ProjectAttrs).
 
 /*
-  Aggregations using ~count~ need a translation different from other
-  simple aggregation operators:
+Aggregations using ~count~ need a translation different from other
+simple aggregation operators:
 
 */
 
@@ -6032,12 +6031,12 @@ translateFields([count(Term) as NewAttr | Select], GroupAttrs,
   !.
 
 /*
-  Generic rules for simple predifined aggregation functions, similar to sum,
-  min, max, avg.
-  For these operators, the property ~isAggregationOP(Op)~ is declared in file
-  ``operators.pl''. For ``count'', there are special cases (see above).
-  These aggregation functions are expected to ignore undefined values and
-  therefore we can do without filter(X,not(isempty(Y))).
+Generic rules for simple predifined aggregation functions, similar to sum,
+min, max, avg.
+For these operators, the property ~isAggregationOP(Op)~ is declared in file
+``operators.pl''. For ``count'', there are special cases (see above).
+These aggregation functions are expected to ignore undefined values and
+therefore we can do without filter(X,not(isempty(Y))).
 
 */
 
@@ -6314,7 +6313,7 @@ translateFields(X, GroupAttrs, Fields, Select2, ExtendAttrs, ProjectAttr) :-
                                            :malformedExpression#ErrMsg)),
   !.
 
-  /* End Code modified by Goehr */
+/* End Code modified by Goehr */
 
 translateTransformations([], []) :-
   !.
