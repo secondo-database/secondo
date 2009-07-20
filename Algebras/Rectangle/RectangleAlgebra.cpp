@@ -359,6 +359,8 @@ type descriptions of an operator's input parameters. A nested list describing
 the output type of the operator is returned.
 
 
+
+
 4.1.2 Type mapping function ~RectTypeMapBool~
 
 It is for the operator ~isempty~ which have ~rect~, ~rect3~, or ~rect4~
@@ -789,6 +791,36 @@ ListExpr RectangleTypeMapEnlargeRect( ListExpr args )
 }
 
 /*
+4.1.1.1 Type mapping function ~RectangleTypeMapBool2~
+
+It is for the operator ~bboxintersects~ which has two ~rect~, ~rect3~, or ~rect4~
+as input and ~bool~ as result type.
+
+*/
+ListExpr
+RectangleTypeMapBool2( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if ( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+    if( (nl->IsEqual( arg1, "rect" )   ||
+        nl->IsEqual( arg1, "rect3" )   ||
+        nl->IsEqual( arg1, "rect4" )   ||
+        nl->IsEqual( arg1, "rect8" )) &&
+  (nl->IsEqual( arg2, "rect" )   ||
+        nl->IsEqual( arg2, "rect3" )   ||
+        nl->IsEqual( arg2, "rect4" )   ||
+        nl->IsEqual( arg2, "rect8" )))
+       return (nl->SymbolAtom( "bool" ));
+  }
+  ErrorReporter::ReportError("Expected rect<Dim1> x rect<Dim2>.");
+  return (nl->SymbolAtom( "typeerror" ));
+}
+
+
+/*
 4.2 Selection functions
 
 A selection function is quite similar to a type mapping function. The only
@@ -849,6 +881,34 @@ RectangleBinarySelect( ListExpr args )
     return 3;
 
   return -1; // should never occur
+}
+
+/*
+
+4.3.2 Selection function ~RectangleBinarySelect1~
+
+Is used for the ~bboxintersects~ operator.
+
+*/
+int
+RectangleBinarySelect1( ListExpr args )
+{
+  ListExpr arg1 = nl->First( args ),
+           arg2 = nl->Second( args );
+  int d1 = 0;
+  int d2 = 0;
+  if( nl->IsEqual( arg2, "rect" ) )      d1 = 0;
+  else if( nl->IsEqual( arg2, "rect3" )) d1 = 1;
+  else if( nl->IsEqual( arg2, "rect4" )) d1 = 2;
+  else if( nl->IsEqual( arg2, "rect8" )) d1 = 3;
+  else return -1; // should never occur
+  if( nl->IsEqual( arg1, "rect" ) )      d1 = 0;
+  else if( nl->IsEqual( arg1, "rect3" )) d1 = 4;
+  else if( nl->IsEqual( arg1, "rect4" )) d1 = 8;
+  else if( nl->IsEqual( arg1, "rect8" )) d1 = 12;
+  else return -1; // should never occur
+
+  return (d1 + d2);
 }
 
 /*
@@ -1410,17 +1470,17 @@ template<unsigned int dim>
 int scalerectValueMap( Word* args, Word& result, int message,
                                      Word& local, Supplier s ){
 
-   result = qp->ResultStorage(s);    
+   result = qp->ResultStorage(s);
    Rectangle<dim>* res = static_cast<Rectangle<dim>*>(result.addr);
    Rectangle<dim>* arg1 = static_cast<Rectangle<dim>*>(args[0].addr);
    if(!arg1->IsDefined()){
      res->SetDefined(false);
      return 0;
-   } 
+   }
    double min[dim];
    double max[dim];
 
-  
+
 
    for(unsigned int i=1; i<=dim; i++){
      CcReal* f = static_cast<CcReal*>(args[i].addr);
@@ -1439,6 +1499,37 @@ int scalerectValueMap( Word* args, Word& result, int message,
    }
    res->Set(true,min,max);
    return 0;
+}
+
+/*
+4.4.4.1 Value mapping functions of operator ~bboxintersects~
+
+*/
+template <unsigned int d1, unsigned int d2>
+int RectangleBboxIntersects( Word* args, Word& result, int message,
+                         Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+   CcBool* res = static_cast<CcBool*>(result.addr);
+   Rectangle<d1>* arg1 = static_cast<Rectangle<d1>*>(args[0].addr);
+   Rectangle<d2>* arg2 = static_cast<Rectangle<d2>*>(args[1].addr);
+
+  if ( ((Rectangle<d1>*)args[0].addr)->IsDefined() &&
+       ((Rectangle<d2>*)args[1].addr)->IsDefined() )
+  {
+    bool inter = true;
+    for(unsigned int d = 0; ( inter && (d < min(d1,d2)) ); d++){
+      if(    arg1->MaxD((int)d) < arg2->MinD((int)d)
+          || arg2->MaxD((int)d) < arg1->MinD((int)d) )
+        inter = false;
+    }
+    res->Set( true, inter );
+  }
+  else
+  {
+    res->Set( false, false );
+  }
+  return (0);
 }
 
 /*
@@ -1563,6 +1654,25 @@ ValueMapping scalerectMap[] =
   scalerectValueMap<3>,
   scalerectValueMap<4>,
   scalerectValueMap<8>
+};
+
+ValueMapping rectanglebboxintersectsmap[] = {
+  RectangleBboxIntersects<2,2>,
+  RectangleBboxIntersects<2,3>,
+  RectangleBboxIntersects<2,4>,
+  RectangleBboxIntersects<2,8>,
+  RectangleBboxIntersects<3,2>,
+  RectangleBboxIntersects<3,3>,
+  RectangleBboxIntersects<3,4>,
+  RectangleBboxIntersects<3,8>,
+  RectangleBboxIntersects<4,2>,
+  RectangleBboxIntersects<4,3>,
+  RectangleBboxIntersects<4,4>,
+  RectangleBboxIntersects<4,8>,
+  RectangleBboxIntersects<8,2>,
+  RectangleBboxIntersects<8,3>,
+  RectangleBboxIntersects<8,4>,
+  RectangleBboxIntersects<8,8>
 };
 
 
@@ -1793,6 +1903,15 @@ const string scalerectSpec  =
     "<text></text--->"
     ") )";
 
+const string RectangleSpecBboxIntersects  =
+        "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+        "( <text>(rect<D1> x rect<D2>) -> bool </text--->"
+        "<text>_ bboxintersects _</text--->"
+        "<text>Tests, whether the projections of both rectangles to their "
+        "first min{D1mD2} dimensions intersect.</text--->"
+        "<text>query rect1 bboxintersects rect</text--->"
+        ") )";
+
 
 /*
 4.5.3 Definition of the operators
@@ -1937,6 +2056,14 @@ Operator scalerect( "scalerect",
                      scalerectMap,
                      RectangleUnarySelect,
                      scalerectTypeMap );
+
+Operator rectanglebboxintersects( "bboxintersects",
+                              RectangleSpecBboxIntersects,
+                              16,
+                              rectanglebboxintersectsmap,
+                              RectangleBinarySelect1,
+                              RectangleTypeMapBool2 );
+
 /*
 5 Creating the Algebra
 
@@ -1978,6 +2105,7 @@ class RectangleAlgebra : public Algebra
     AddOperator( &rectangleextendrect );
     AddOperator( &rectanglesize );
     AddOperator( &scalerect);
+    AddOperator( &rectanglebboxintersects );
   }
   ~RectangleAlgebra() {};
 };

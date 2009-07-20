@@ -35,3 +35,4 @@ operator bbox alias BBOX pattern op( _ )
 operator enlargeRect alias ENLARGERECT pattern op( _ )
 operator scalerect alias SCALERECT pattern op( _, _, _ )
 operator size alias SIZE pattern op( _ )
+operator bboxintersects alias BBOXINTERSECTS pattern _ infixop _
