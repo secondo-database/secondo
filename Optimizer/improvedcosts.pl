@@ -543,7 +543,7 @@ cost(symmjoin(X, Y, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   ResCard is ResCardX * ResCardY * Sel,
   getPET(Pred, _, ExpPET),             % only uses experimental PET
   Cost is   CostX + CostY
-          + CostX * CostY * ExpPET * U,!.
+          + ResCardX * ResCardY * (ExpPET + U),!.
 
 
 cost(spatialjoin(X, Y, _, _), Sel, Pred,
