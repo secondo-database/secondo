@@ -748,8 +748,8 @@ cost(windowintersectsS(dbobject(IndexName), _ /* QueryObj */), Sel, Pred,
   cost(Rel, Sel, Pred, ignore, _, ResCard1, Cost1),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> true
-    ;  ( secDatatype(tid, Mem, Core, Lob, _, _),
-         ResAttrList = [id, tid, sizeTerm(Mem, Core, Lob)]
+    ;  ( secDatatype(tid, TMem, _, _, _, _), % Xris: Error
+         ResAttrList = [id, tid, sizeTerm(TMem, 0, 0)]
        )
   ),
   costConst(windowintersects, msPerTuple, U),
@@ -772,8 +772,8 @@ cost(gettuples(X, Rel), Sel, Pred,
   cost(X, Sel, Pred, ResAttrList1, ResTupleSize1, ResCard, Cost1),
   cost(Rel, Sel, Pred, ResAttrList2, ResTupleSize2, _, _),
   ( (ground(ResAttrList), ResAttrList = ignore)
-    -> (  secDatatype(tid, Mem, Core, Lob, _, _),
-          negateSizeTerms(sizeTerm(Mem, Core, Lob),NegTidSize),
+    -> (  secDatatype(tid, TMem, _, _, _, _),
+          negateSizeTerms(sizeTerm(TMem, 0, 0),NegTidSize),
           addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
     ;  ( delete(ResAttrList1,[_,tid,TidSize],ResAttrList1WOtid), % drop tid-attr
@@ -798,8 +798,8 @@ cost(gettuples2(X, Rel, attrname(TidAttr)), Sel, Pred,
   cost(X, Sel, Pred, ResAttrList1, ResTupleSize1, ResCard, Cost1),
   cost(Rel, Sel, Pred, ResAttrList2, ResTupleSize2, _, _),
   ( (ground(ResAttrList), ResAttrList = ignore)
-    -> ( secDatatype(tid, Mem, Core, Lob, _, _),
-         negateSizeTerms(sizeTerm(Mem, Core, Lob),NegTidSize),
+    -> ( secDatatype(tid, TMem, _, _, _, _),
+         negateSizeTerms(sizeTerm(TMem, 0, 0),NegTidSize),
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
     ;  ( delete(ResAttrList1,[TidAttr,tid,TidSize],ResAttrList1WOtid), % drop tid-attr

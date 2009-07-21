@@ -3701,7 +3701,7 @@ analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
   ),
   analyseTupleInfoQueryResultList2(DB,DCrel,ExtAttrList,MoreInfos,TupleMemSize),
   assert(storedCard(DB, DCrel, Card)),
-  ( TupleSizeLOB = undef 
+  ( TupleSizeLOB = undef
     -> ( % undef tuplesize due to empty relation
               StoreLOBsize = nAn
             )
@@ -4012,7 +4012,7 @@ Type information is inquired from the database kernel and stored in facts
 ----
 
 where ~TypeNameDC~ is the type name, ~TypeSize~ is the in-memory size of the
-according fixed part if the data type in bytes (the minimum memory required
+according fixed part of the data type in bytes (the minimum memory required
 excluding FLOB data, but inclusing other variable parts of the data)),
 ~NoFlobs~ is the number of FLOBS the type maintains, ~PersistencyModeDC~ is
 the type of storage mechanism used to save instances of this data type to disk.
@@ -4612,7 +4612,7 @@ checkAttrTypeList(AttrTypeList) :-
 checkAttrTypeList2([],[]) :- !.
 checkAttrTypeList2([[ExtAttrName, Type] | MoreLists],
                   [DCattrName|MoreDCattrNames]) :-
-  ( secDatatype(Type, _, _, _)
+  ( secDatatype(Type, _, _, _, _, _)
     -> true
     ;  ( write_list(['\nERROR:\tUnknown data type \'', Type,'\'.']),nl,
          fail
