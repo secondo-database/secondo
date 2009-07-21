@@ -104,7 +104,7 @@ entries.
 */
 struct TopR_TreeLeafInfo
 {
-  TupleId routeId;
+  int routeId;
   SmiRecordId childTreeId;
 
   TopR_TreeLeafInfo():
@@ -112,7 +112,7 @@ struct TopR_TreeLeafInfo
     childTreeId( 0 )
     {}
 
-  TopR_TreeLeafInfo( const TupleId routeId, 
+  TopR_TreeLeafInfo( const int routeId, 
                      const SmiRecordId childTreeId ):
     routeId( routeId ),
     childTreeId( childTreeId )

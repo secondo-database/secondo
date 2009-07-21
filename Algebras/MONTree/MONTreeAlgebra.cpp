@@ -102,7 +102,7 @@ void MON_Tree::Insert( const MGPoint& mgpoint,
     const UGPoint *ugpoint;
     mgpoint.Get( i, ugpoint );
 
-    SmiRecordId routeId = ugpoint->p0.GetRouteId();
+    int routeId = ugpoint->p0.GetRouteId();
     CcInt key( true, routeId );
     HashIterator *iter = routeHash->ExactMatch( &key );
 
