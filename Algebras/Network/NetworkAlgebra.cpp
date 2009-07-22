@@ -1678,7 +1678,6 @@ void Network::FillJunctions(const Relation *in_pJunctions)
     // Store Pointer to the second route in the new relation.
     CcInt* pR2Id = (CcInt*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE2_ID);
     pRoutesIter = m_pBTreeRoutes->ExactMatch(pR2Id);
-    // TODO: Fehlerbehandlung verbessern
     NextIter = pRoutesIter->Next();
     assert(NextIter); // no query with side effects, please!
     TupleIdentifier *pR2RC = new TupleIdentifier(true, pRoutesIter->GetId());
@@ -5460,7 +5459,6 @@ Initialize PriorityQueue
       for(size_t i = 0;  i < adjSectionList.size(); i++) {
         DirectedSection actNextSect = adjSectionList[i];
         if (actNextSect.GetSectionTid() != startSectTID) {
-
           PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
                                actNextSect.GetUpDownFlag(),
                                startSectTID);
@@ -5484,7 +5482,6 @@ Initialize PriorityQueue
             PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
                                   actNextSect.GetUpDownFlag(),
                                   startSectTID);
-
             prioQ->Insert(*actEntry, visitedSect);
             delete actEntry;
           }

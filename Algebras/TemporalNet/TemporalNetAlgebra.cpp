@@ -5322,19 +5322,6 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
                           timeInterval.start.ToDouble(),
                           timeInterval.end.ToDouble());
     } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-   /*if (IsDefined()) {
-      Point *pt0 = p0.ToPoint();
-      Point *pt1 = p1.ToPoint();
-      double x1 = min(pt0->GetX(), pt1->GetX());
-      double x2 = max(pt0->GetX(), pt1->GetX());
-      double y1 = min(pt0->GetY(), pt1->GetY());
-      double y2 = max(pt0->GetY(), pt1->GetY());
-      delete pt0;
-      delete pt1;
-      return Rectangle<3>(true, x1 , x2, y1, y2,
-                          timeInterval.start.ToDouble(),
-                          timeInterval.end.ToDouble());
-    } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);*/
   }
 
  double UGPoint::Distance(const Rectangle<3>& rect) const{
@@ -5359,20 +5346,6 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
                           timeInterval.start.ToDouble(),
                           timeInterval.end.ToDouble());
     }else return Rectangle<3>(false,0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    /*
-  if (IsDefined()) {
-      Point *pt0 = p0.ToPoint(pNetwork);
-      Point *pt1 = p1.ToPoint(pNetwork);
-      double x1 = min(pt0->GetX(), pt1->GetX());
-      double x2 = max(pt0->GetX(), pt1->GetX());
-      double y1 = min(pt0->GetY(), pt1->GetY());
-      double y2 = max(pt0->GetY(), pt1->GetY());
-      delete pt0;
-      delete pt1;
-      return Rectangle<3>(true, x1 , x2, y1, y2,
-                          timeInterval.start.ToDouble(),
-                          timeInterval.end.ToDouble());
-    } else return Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);*/
   }
 
 
@@ -5521,7 +5494,8 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   */
   int iNetworkId = pNetwork->GetId();
   const UPoint *pUPoint;
-  pMPoint->Get(0,pUPoint);
+  int i = 0;
+  pMPoint->Get(i,pUPoint);
   RouteInterval *ri = pNetwork->FindInterval(pUPoint->p0, pUPoint->p1);
   if (ri == 0 || ri->GetRouteId() == numeric_limits<int>::max())
   {
@@ -5560,7 +5534,7 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   Continue with translation of all other units.
   
   */
-  for (int i = 1; i < pMPoint->GetNoComponents(); i++)
+  while (++i < pMPoint->GetNoComponents())
   {
     pMPoint->Get(i,pUPoint);
     double dNewEndPos;
@@ -5625,14 +5599,90 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
       ri = pNetwork->FindInterval(pUPoint->p0, pUPoint->p1);
       if (ri == 0 || ri->GetRouteId() == numeric_limits<int>::max())
       {
-        cerr << "MPoint lost Network! Translation Stopped!" << endl;
-        res->EndBulkLoad(true);
-        riTree->TreeToDBArray(&(res->m_trajectory));
-        res->SetTrajectoryDefined(true);
-        res->m_trajectory.TrimToSize();
-        res->SetBoundingBox(pMPoint->BoundingBox());
-        riTree->RemoveTree();
-        return 0;
+        /*
+        MPoint lost Network!
+
+        */
+        Instant tstart = pUPoint->timeInterval.start;
+        GPoint start = aktUGPoint.p1;
+        while (ri == 0 && ++i < pMPoint->GetNoComponents())
+        {
+          /*
+          Find first unit of Mpoint back on Network.
+
+          */
+          pMPoint->Get(i,pUPoint);
+          ri = pNetwork->FindInterval(pUPoint->p0, pUPoint->p1);
+        }
+        if (ri != 0)
+        {
+          /*
+          Calculate shortest path between last known network position and
+          new network position. Fill in ugpoint units for the shortest path
+          route intervals. For the time interval between network lost and 
+          network found again.
+
+          */
+          Instant tend = pUPoint->timeInterval.start;
+          Side s = None;
+          if (ri->GetStartPos() > ri->GetEndPos()) bMovingUp = false;
+          else bMovingUp = true;
+          if (bDual && bMovingUp) s = Up;
+          else
+            if (bDual && !bMovingUp) s = Down;
+            else s = None;
+          pActRouteCurve = pNetwork->GetRouteCurve(ri->GetRouteId());
+          bDual = pNetwork->GetDual(ri->GetRouteId());
+          GPoint end = GPoint(true, iNetworkId, ri->GetRouteId(),
+                              ri->GetStartPos(), s);
+          GLine *gl = new GLine(0);
+          if (!start.ShortestPath(&end,gl))
+          {
+            cerr << "One unit couldn't be mapped to the network." << endl;
+          }
+          else
+          {
+            for (int k = 0; k < gl->NoOfComponents(); k++)
+            {
+              const RouteInterval *gri;
+              gl->Get(k,gri);
+              Instant tpos =(tend - tstart) *
+                              (fabs(gri->GetEndPos()-gri->GetStartPos())/
+                                gl->GetLength()) +
+                            tstart;
+              if (gri->GetRouteId() == end.GetRouteId() &&
+                  gri->GetEndPos() == end.GetPosition()) tpos = tend;
+              Side s = None;
+              if (ri->GetStartPos() > ri->GetEndPos()) bMovingUp = false;
+              else bMovingUp = true;
+              if (bDual && gri->GetStartPos() <= gri->GetEndPos()) s = Up;
+              else
+                if (bDual && gri->GetStartPos() > gri->GetEndPos()) s = Down;
+                else s = None;
+              res->Add(UGPoint(Interval<Instant> (tstart, tpos, true, false),
+                               iNetworkId,
+                               gri->GetRouteId(),
+                               s,
+                               gri->GetStartPos(),
+                               gri->GetEndPos()));
+              riTree->InsertUnit(gri->GetRouteId(),
+                                 gri->GetStartPos(),
+                                 gri->GetEndPos());
+              tstart = tpos;
+            }
+          }
+        }
+        else
+        {
+          cerr << "MPoint lost Network! Translation stopped!" << endl;
+          res->EndBulkLoad(true);
+          riTree->TreeToDBArray(&(res->m_trajectory));
+          res->SetTrajectoryDefined(true);
+          res->m_trajectory.TrimToSize();
+          res->SetBoundingBox(pMPoint->BoundingBox());
+          riTree->RemoveTree();
+          return 0;
+        }
       }
       aktUGPoint.SetUnitStartTime(pUPoint->timeInterval.start);
       aktUGPoint.SetUnitEndTime(pUPoint->timeInterval.end);
@@ -5669,6 +5719,7 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   riTree->RemoveTree();
   return 0;
 }
+
 
 int OpMPoint2MGPointValueMapping(Word* args,
                                    Word& result,
