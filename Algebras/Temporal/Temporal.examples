@@ -532,3 +532,21 @@ Number    : 1
 Signature : mpoint x real -> mpoint
 Example   : query (train7 equalizeU[0.0]) = train7
 Result    : (mbool ((("2003-11-20-06:06" "2003-11-20-07:02" TRUE FALSE) TRUE)))
+
+
+Operator  : p2mp
+Number    : 1
+Signature : p x instant x instant -> mpoint
+Example   : query p2mp( point(2 3),theInstant(2003,11,20,6),theInstant(2003,11,20,7))
+Result    :((("2003-11-20-06:00" "2003-11-20-07:00" TRUE TRUE)(2.0 3.0 2.0 3.0)))
+
+
+Operator  : mp2onemp
+Number    : 1
+Signature : mpoint x instant x instant -> mpoint
+Example   : query mp2onemp ( train1 ,minimum(deftime(train1)),maximum(deftime(train1)))
+Result    :((("2003-11-20-06:03" "2003-11-20-06:43" TRUE FALSE)(7311.0 10520.0 7311.0 10520.0)))
+
+
+
+

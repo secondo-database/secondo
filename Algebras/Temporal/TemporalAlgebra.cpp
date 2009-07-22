@@ -114,6 +114,7 @@ bool isnan(double x)
 #endif
 
 
+static int counter;
 
 
 string int2string(const int& number)
@@ -8321,7 +8322,7 @@ ListExpr AveSpeedTypeMap(ListExpr args){
 ~SubMoveTypeMap~
 
 signatures:
-  mpoint -> real
+  mpoint -> mpoint
 
 */
 ListExpr SubMoveTypeMap(ListExpr args){
@@ -8334,6 +8335,53 @@ ListExpr SubMoveTypeMap(ListExpr args){
 
  if(nl->IsEqual(nl->First(args),"mpoint") &&
      nl->IsEqual(nl->Second(args),"real")){
+      return nl->SymbolAtom("mpoint");
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+}
+/*
+~Mp2OneMpTypeMap~
+
+signatures:
+  mpoint -> mpoint
+
+*/
+ListExpr Mp2OneMpTypeMap(ListExpr args){
+  string err = "mpoint expected";
+  int len = nl->ListLength(args);
+  if(len!=3){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+
+ if(nl->IsEqual(nl->First(args),"mpoint") &&
+    nl->IsEqual(nl->Second(args),"instant") &&
+    nl->IsEqual(nl->Third(args),"instant")){
+      return nl->SymbolAtom("mpoint");
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+}
+
+/*
+~P2MpTypeMap~
+
+signatures:
+  point -> mpoint
+
+*/
+ListExpr P2MpTypeMap(ListExpr args){
+  string err = "point expected";
+  int len = nl->ListLength(args);
+  if(len!=3){
+     ErrorReporter::ReportError(err);
+     return nl->TypeError();
+  }
+
+ if(nl->IsEqual(nl->First(args),"point") &&
+    nl->IsEqual(nl->Second(args),"instant") &&
+    nl->IsEqual(nl->Third(args),"instant")){
       return nl->SymbolAtom("mpoint");
   }
   ErrorReporter::ReportError(err);
@@ -11201,6 +11249,92 @@ int SubMoveVM( Word* args, Word& result, int message,
    return 0;
 }
 
+int Mp2OneMpVM( Word* args, Word& result, int message,
+                          Word& local, Supplier s ) {
+
+   result = qp->ResultStorage(s);
+   MPoint* res = static_cast<MPoint*>(result.addr);
+   MPoint* arg = static_cast<MPoint*>(args[0].addr);
+   Instant* start = (Instant*)args[1].addr;
+   Instant* end = (Instant*)args[2].addr;
+
+
+   if(!arg->IsDefined() || arg->GetNoComponents() == 0){
+     res->Clear();
+     res->SetDefined(false);
+     return 0;
+   }
+   res->Clear();
+   res->StartBulkLoad();
+   const UPoint* up;
+   Line* line = new Line(0);
+   arg->Trajectory(*line);
+   srand(time(0)+counter);
+
+
+   int pos = rand() % arg->GetNoComponents();
+   assert(0<= pos && pos < arg->GetNoComponents());
+   arg->Get(pos,up);
+   UPoint* cur = new UPoint(*up);
+///
+//   Rectangle<3> xyBox = arg->BoundingBox();
+//   double maxx = xyBox.MaxD(0);
+//   double maxy = xyBox.MaxD(1);
+//   double x = (xyBox.MinD(0)+xyBox.MaxD(0))/2;
+//   double y = (xyBox.MinD(1)+xyBox.MaxD(1))/2;
+//
+//    cout<<pos<<endl;
+
+   double x = (cur->p0.GetX() + counter);
+   double y = (cur->p0.GetY() + counter);
+//   if(x > maxx)
+//      x = (int)(x) % (int)maxx;
+//   if(y > maxy)
+//      x = (int)(x) % (int)maxy;
+//   cout<<x<<" "<<y<<endl;
+
+   Point* p = new Point(true,x,y);
+   cur->p0 = *p;
+   cur->p1 = *p;
+   cur->timeInterval.start = *start;
+   cur->timeInterval.end = *end;
+   cur->p0 = *p;
+   cur->p1 = *p;
+   res->Add(*cur);
+   delete p;
+   delete cur;
+   counter++;
+   res->EndBulkLoad(true);
+   return 0;
+}
+
+int P2MpVM( Word* args, Word& result, int message,
+                          Word& local, Supplier s ) {
+
+   result = qp->ResultStorage(s);
+   MPoint* res = static_cast<MPoint*>(result.addr);
+   Point* arg = static_cast<Point*>(args[0].addr);
+   Instant* startt = (Instant*)args[1].addr;
+   Instant* endt = (Instant*)args[2].addr;
+
+   if(!arg->IsDefined()){
+     res->Clear();
+     res->SetDefined(false);
+     return 0;
+   }
+   res->Clear();
+   res->StartBulkLoad();
+   UPoint* up = new UPoint(true);
+   up->timeInterval.start = *startt;
+   up->timeInterval.end = *endt;
+   up->p0 = *arg;
+   up->p1 = *arg;
+   res->Add(*up);
+   delete up;
+   res->EndBulkLoad(true);
+   return 0;
+}
+
 /*
 16.4 Definition of operators
 
@@ -12108,6 +12242,23 @@ const string submoveSpec =
     "query submove(train1)</text--->"
     ") )";
 
+const string TemporalSpecMp2Onemp  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mpont x starttime x endtime -> x</text--->"
+  "<text>mp2onemp ( _,_,_ )</text--->"
+  "<text>Return an moving point but spatial doesn't change.</text--->"
+  "<text> query mp2onemp (train1 ,minimum(deftime(train1)),"
+  "maximum(deftime(train1)))</text--->"
+  ") )";
+const string TemporalSpecP2Mp  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mpont x starttime x endtime -> x</text--->"
+  "<text>p2mp ( _,_,_ )</text--->"
+  "<text>create an moving point from a point and the time interval.</text--->"
+  "<text>query p2mp ( point(2 3) ,theInstant(2003,11,20,6)"
+  "theInstant(2003,11,20,7))</text--->"
+  ") )";
+
 /*
 16.4.3 Operators
 
@@ -12587,6 +12738,16 @@ Operator temporaluval( "uval",
                       temporaluvalmap,
                       UIntimeSimpleSelect,
                       UIntimeTypeMapBase );
+Operator mp2onemp( "mp2onemp",
+                      TemporalSpecMp2Onemp,
+                      Mp2OneMpVM,
+                      Operator::SimpleSelect,
+                      Mp2OneMpTypeMap );
+Operator p2mp( "p2mp",
+                      TemporalSpecP2Mp,
+                      P2MpVM,
+                      Operator::SimpleSelect,
+                      P2MpTypeMap );
 
 /*
 6 Creating the Algebra
@@ -12720,12 +12881,14 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporaldisturb);
     AddOperator(&temporallength);
     AddOperator(&equalizeU);
-    AddOperator(&hat);//hat
+    AddOperator(&hat);
     AddOperator(&restrict);
     AddOperator(&speedup);
     AddOperator(&avespeed);
     AddOperator(&submove);
     AddOperator(&temporaluval);
+    AddOperator(&mp2onemp);
+    AddOperator(&p2mp);
   }
   ~TemporalAlgebra() {};
 };
