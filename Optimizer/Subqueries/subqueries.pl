@@ -1,23 +1,4 @@
 /*
-//paragraph [10] title: [{\Large \bf ]  [}]
-//characters [1] formula:       [$]     [$]
-//[ae] [\"{a}]
-//[oe] [\"{o}]
-//[ue] [\"{u}]
-//[ss] [{\ss}]
-//[Ae] [\"{A}]
-//[Oe] [\"{O}]
-//[Ue] [\"{U}]
-//[**] [$**$]
-//[star] [$*$]
-//[->] [$\rightarrow$]
-//[toc] [\tableofcontents]
-//[=>] [\verb+=>+]
-//[:Section Translation] [\label{sec:translation}]
-//[Section Translation] [Section~\ref{sec:translation}]
-//[:Section 4.1.1] [\label{sec:4.1.1}]
-//[Section 4.1.1] [Section~\ref{sec:4.1.1}]
-//[newpage] [\newpage]
 
 ----
 This file is part of SECONDO.
@@ -81,15 +62,18 @@ isComparisonOp(<>).
 
 ---- isQuery(+Term)
 ----
+
 This predicate is true, if the term is a query formulated in the sql syntax defined for secondo. 
 
 */
 
 isQuery(Query) :-
-  catch(callLookup(Query, _), error_SQL(optimizer_lookupPred1(Term, Term):unknownIdentifier#_), true).
+  catch(callLookup(Query, _), 
+	error_SQL(optimizer_lookupPred1(Term, Term):unknownIdentifier#_), true).
   
 isQuery(Query) :-
-  catch(callLookup(Query, _), error_SQL(optimizer_lookupPred(Term, Term):malformedExpression#_), true).
+  catch(callLookup(Query, _), 
+	error_SQL(optimizer_lookupPred(Term, Term):malformedExpression#_), true).
   
   
 /*
@@ -212,14 +196,7 @@ clearSubqueryHandling :-
   clear(streamRel), clear(streamName),
   retractall(currentRels(_)),
   retractall(sampleSize(_)), retractall(isJoinPred(_)).
-  % clearPlanRelVar,
-  % clearSecondRel.
   
-% clearSelectivityQuery :- retractall(selectivityQuery(_)).
-% clearPlanRelVar :- clear(streamRel), clear(streamName), retractall(planRelVar(_, _)), retractall(lastPlanRel(_)), retractall(subqueryPredRel(_, _, _)), retractall(sampleSize(_)), retractall(isJoinPred(_)).
-% clearSecondRel :- retractall(secondRel(_)), retractall(firstStream(_)), retractall(secondStream(_)), retractall(streamRel(_, _)).
-
-
 /* 
 
 Predicates for Type-A Queries
@@ -287,6 +264,7 @@ table subquery
 table subquery
 
 ---- rewriteQueryForSubqueryProcessing(+QueryIn,-QueryOut)
+
 ----
 
 Rewrites a query by transforming subqueries within ~QueryIn~ to their canonical form and unifies rewritten query with ~QueryOut~.
@@ -299,14 +277,16 @@ rewriteQueryForSubqueryProcessing(QueryIn, QueryIn) :-
 rewriteQueryForSubqueryProcessing(QueryIn, QueryOut) :-
   not(optimizerOption(subqueryUnnesting)), 
   preTransform(QueryIn, QueryOut), 
-  dm(subqueryUnnesting,['\nREWRITING: Subqueries\n\tIn:  ',QueryIn,'\n\tOut: ',
+  dm(subqueryUnnesting,['\nREWRITING: Subqueries\n\tIn:  ',
+					QueryIn,'\n\tOut: ',
                     QueryOut,'\n\n']),  
   clearSubqueryHandling,
   !.
   
 rewriteQueryForSubqueryProcessing(NestedQuery, CanonicalQuery) :-
     transform(NestedQuery, CanonicalQuery),
-    dm(subqueryUnnesting,['\nREWRITING: Subqueries\n\tIn:  ',NestedQuery,'\n\tOut: ',
+    dm(subqueryUnnesting,['\nREWRITING: Subqueries\n\tIn:  ',
+					NestedQuery,'\n\tOut: ',
                     CanonicalQuery,'\n\n']). 
 					
 					
@@ -329,7 +309,8 @@ preTransform(Query first N, Query2 first N) :-
 preTransform(Query last N, Query2 last N) :-
   preTransform(Query, Query2).  
   
-preTransform(select Attrs from Rels where Preds, select CanonicalAttrs from CanonicalRels where CanonicalPreds) :-
+preTransform(select Attrs from Rels where Preds, 
+			 select CanonicalAttrs from CanonicalRels where CanonicalPreds) :-
   preTransformNestedPredicates(Attrs, CanonicalAttrs, Rels, CanonicalRels, Preds, CanonicalPredList),
   flatten(CanonicalPredList, CanonicalPreds).	
 
@@ -344,7 +325,10 @@ preTransformNestedPredicates(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
 preTransformNestedPredicates(Attrs, Attrs2, Rels, Rels3, [ Pred | Rest ], [ Pred2 | Rest2 ]) :-  
   preTransformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2),
   dc(subqueryUnnesting, ( not(Pred = Pred2)
-						  -> dm(subqueryUnnesting, ['\nPredicate: ', Pred, '\nTransformedPredicate: ', Pred2])
+						  -> dm(subqueryUnnesting, ['\nPredicate: ', 
+													Pred, 
+													'\nTransformedPredicate: ', 
+													Pred2])
 						  ; true
 						 )),
   preTransformNestedPredicates(Attrs, Attrs2, Rels2, Rels3, Rest, Rest2).
@@ -354,12 +338,16 @@ preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, Pred) :-
   
 /* The SQL predicates EXISTS, NOT EXISTS, ALL and ANY are transformed to a canonical form, which can be further unnested */
 
-preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, exists(select SubAttr from RelsWhere), 0 < (select count(SubAttr) from RelsWhere)).
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, 
+	exists(select SubAttr from RelsWhere), 
+	0 < (select count(SubAttr) from RelsWhere)).
 /* :-
   transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, 0 < (select count(SubAttr) from RelsWhere first 1), TransformedQuery),
   write_canonical(TransformedQuery). */
   
-preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, not(exists(select SubAttr from RelsWhere)), 0 = (select count(SubAttr) from RelsWhere)).
+preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, 
+	not(exists(select SubAttr from RelsWhere)), 
+	0 = (select count(SubAttr) from RelsWhere)).
 /* :-
   transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, 0 = (select count(SubAttr) from RelsWhere first 1), TransformedQuery),
   write_canonical(TransformedQuery). */
@@ -369,8 +357,7 @@ preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, NewPred) :-
   anyToAggr(Op, Aggr),
   AggrExpression =.. [Aggr, SubAttr],
   NewPred =.. [Op, Attr, select AggrExpression from RelsWhere].
-/*  
-  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, NewPred, TransformedQuery),
+/*  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, NewPred, TransformedQuery),
   write_canonical(TransformedQuery).   */
   
 preTransformNestedPredicate(Attrs, Attrs, Rels, Rels, Attr = any(Query), Attr in(Query)).
@@ -420,7 +407,8 @@ transform(Query first N, Query2 first N) :-
 transform(Query last N, Query2 last N) :-
   transform(Query, Query2).  
   
-transform(select Attrs from Rels where Preds, select CanonicalAttrs from CanonicalRels where CanonicalPreds) :-
+transform(select Attrs from Rels where Preds, 
+		  select CanonicalAttrs from CanonicalRels where CanonicalPreds) :-
   transform(select Attrs from Rels, select Attrs2 from Rels2),
   transformNestedPredicates(Attrs2, CanonicalAttrs, Rels2, CanonicalRels, Preds, CanonicalPredList),
   flatten(CanonicalPredList, CanonicalPreds).
@@ -437,11 +425,6 @@ Default handling for queries without subqueries.
 
 transform(Query, Query).
 
-/* :-
-  write_canonical(Query),
-  not(isNestedQuery(Query)), !, write('No nesting').  */
-
-  
 /*
 
 Subqueries in the attribute list have to yield a scalar result. If the nested query is uncorrelated with the outer query,
@@ -548,12 +531,16 @@ transformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, Pred) :-
   
 /* The SQL predicates EXISTS, NOT EXISTS, ALL and ANY are transformed to a canonical form, which can be further unnested */
 
-transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, exists(select SubAttr from RelsWhere), TransformedQuery) :-
-  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, 0 < (select count(SubAttr) from RelsWhere), TransformedQuery),
+transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, 
+	exists(select SubAttr from RelsWhere), TransformedQuery) :-
+  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, 
+	0 < (select count(SubAttr) from RelsWhere), TransformedQuery),
   write_canonical(TransformedQuery).
   
-transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, not(exists(select SubAttr from RelsWhere)), TransformedQuery) :-
-  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, 0 = (select count(SubAttr) from RelsWhere), TransformedQuery),
+transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, 
+	not(exists(select SubAttr from RelsWhere)), TransformedQuery) :-
+  transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, 
+	0 = (select count(SubAttr) from RelsWhere), TransformedQuery),
   write_canonical(TransformedQuery).
   
 transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, TransformedQuery) :-
@@ -1179,7 +1166,7 @@ newTempRel(Var) :-
   Var = 'txxrel1'.
   
 newTempRel(Query, TempRelName) :-  
-  dm(subqueries, ['\nTempRelName: ', TempRelName, '\n']),
+  dm(temprels, ['\nTempRelName: ', TempRelName, '\n']),
   ( temporaryRelation(TempRelName, Query)
     ; ( newTempRel(TempRelName),
 	    assert(temporaryRelation(TempRelName, Query)), 
@@ -1188,7 +1175,7 @@ newTempRel(Query, TempRelName) :-
   ).
 
 newTempRel_direct(Plan, TempRelName) :-
-  dm(subqueries, ['\nTempRelName_direct: ', TempRelName, '\n']),
+  dm(temprels, ['\nTempRelName_direct: ', TempRelName, '\n']),
   ( temporaryRelation(TempRelName, Plan)
      ; (  newTempRel(TempRelName),
 	      concat_atom([TempRelName, ' = ', Plan], Query),
@@ -1201,7 +1188,7 @@ newTempRel_direct(Plan, TempRelName) :-
 createTempRel(TempRelName) :-
   ground(TempRelName),
   temporaryRelation(TempRelName, RelQuery),
-  dm(subqueries, ['\nRelQuery: ', RelQuery]),
+  dm(temprels, ['\nRelQuery: ', RelQuery]),
   let(TempRelName, RelQuery),
   retractall(temporaryRelation(TempRelName, _, _)),
   assert(temporaryRelation(TempRelName)). 
@@ -1217,9 +1204,9 @@ deleteTempRels([]) :-
   retractall(temporaryRelation(_, _)).
 
 deleteTempRels([ Rel | Rest ]) :-
-  dm(subqueries, ['\nDeleting temporary Relation ', Rel, ' ...']),
+  dm(temprels, ['\nDeleting temporary Relation ', Rel, ' ...']),
   catch(drop_relation(Rel), Ex, true),
-  dm(subqueryUnnesting, [Ex]),
+  dm(temprels, [Ex]),
   deleteTempRels(Rest).
   
 dropTempRels :-
@@ -1230,10 +1217,7 @@ dropTempRels :-
 				), RelList),
   not(RelList = []),
   catch(deleteTempRels(RelList), _, true),
-  databaseName(DB),
-  closeDB,
-  updateDB(DB),
-  open database DB.
+  updateCatalog.
   
 /*
 
@@ -2060,6 +2044,14 @@ transformPlan1(Plan, Plan2, C) :-
   Plan2 =.. [Op | Args2]. 
   
 transformPlan1(Plan, Plan, _). 
+
+getSubqueryTypeTree(subquery(Query, OuterRels), OuterRels1, [subquery, TypeTree, DCType]) :-
+  newVariable(T),
+  subquery_to_plan(Query, simpleAggrNoGroupby(Op, Plan, Attr), T),
+  Plan2 =.. [Op, Plan, Attr],
+  getTypeTree(Plan2, OuterRels1, TypeTree),
+  TypeTree = [_, _, DCType],
+  !.      
   
 subqueryPredRel(_).
 
@@ -2115,7 +2107,6 @@ extractQueryAttr(_, _) :- !, fail.
 Subquery aus Prädikat extrahieren,
 korrelierte Prädikate aus Subquery entfernen und mit queryToPlan Plan ermitteln
 korrelierte Prädikate mit filter einfügen, Reihenfolge mit Hilfe der selectivity ermitteln?
-plan_to_atom liefert Übersetzung
 
 */
 
