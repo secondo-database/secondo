@@ -110,3 +110,14 @@ Signature: ((tbtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn t
 Example  : query UnitTrains_UTrip_tbtree UnitTrains chinaknearest[UTrip,train1, 5] count
 Result   : file_platform
 
+Operator : gnuplotnode
+Number   : 6
+Signature: (stream (tuple ((x1 t1)...(xn tn)))) x rect3 x string -> int
+Example  : query nodes(UnitTrains25_UTrip) filter[.level=3] gnuplotnode[MBR,"rectdata"];
+Result   : 50
+
+Operator : cellindex
+Number   : 6
+Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)) x int -> (a stream (tuple ((x1 t1)...))
+Example  : query cellindex(rtreegps,50) count;
+Result   : 5526

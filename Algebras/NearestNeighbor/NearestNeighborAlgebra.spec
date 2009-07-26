@@ -34,3 +34,10 @@ operator covleafnode alias COVLEAFNODE pattern op(_,_,_)
 
 operator greeceknearest alias TBKNEARESTFILTER pattern _ _ op [_,_, _]
 operator chinaknearest alias HCKNNKNEAREST pattern _ _ op [_,_, _]
+
+operator cellindex alias CELLINDEX pattern op(_,_)
+operator directionknearestfilter alias DIRECTIONKNEARESTFILTER pattern _ _ _ _ op [_,_,_,_]
+operator directionknearest alias DIRECTIONKNEARESTFILTER pattern _ _  op [_,_,_,_,_]
+
+
+operator gnuplotnode alias GNUPLOTNODE pattern _ op[_,_]
