@@ -29,6 +29,14 @@
 
 \usepackage{color}
 
+\usepackage{lscape}
+
+\usepackage{pgfpages}
+
+\usepackage{pdfpages}
+
+\usepackage{alltt}
+
 %\usepackage{url}
 \usepackage{hyperref}
 \hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=blue}
@@ -58,9 +66,11 @@
 \definecolor{ListingBackground}{rgb}{0.94,0.94,0.94}
 
 \lstset{%
-  keywordstyle=*\textbf,
+  keywordstyle=\textbf,
 	language=SQL,     % Sprache des Quellcodes ist SQL	
+	morekeywords={,groupby,orderby,theInstant,year_of,month_of,day_of,aggregate,ifthenelse,instant,}
 	mathescape=true,	  % 
+	captionpos=b,
 	columns=fullflexible,
 	escapeinside=§§,    % Escapeumgebung für LaTeX
 	numbersep=5pt,           % 5pt Abstand zum Quellcode

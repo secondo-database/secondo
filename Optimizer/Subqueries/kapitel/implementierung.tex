@@ -4,17 +4,41 @@
 %
 
 \chapter{Implementierung}
+\section{Ein Outerjoin-Operator für SECONDO}
+Basis ist sortmergejoin, jedes nicht \enquote{matchende} Tupel wird mit NULL-Werten aufgefüllt, nur Equi-Outerjoin\\
+Ausblick: allgemeiner Outerjoin auf Basis von Symmjoin, zwei Hash-Tabelle mit Tupel-Ids für alle gematchten Tupel, Tupelbuffer durchlaufen und ein mit NULL-Werten aufgefülltes Tupel erzeugen für alle nicht gematchten Tupel
 \section{Umschreiben quantifizierter Prädikate}
 Prädikate mit den Operatoren \textbf{EXISTS, NOT EXISTS, ANY} und \textbf{ALL} werden in äquivalente Prädikate mit Aggregationen überführt.
 
-\section{Entschachtelung von Subqueries}
+\section{Entschachtelung}
+Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong. Rekursive Entschachtelung von Abfragen. Dabei werden die oben beschriebenen Schachtelungstypen unterschieden. Je nach Schachtelungstyp wird der entsprechende Entschachtelungs-Algorithmus angewendet. \enquote{Temporäre Relationen} werden für die Entschachtelung korrelierter Abfragen mit Aggregationsfunktion benötigt. Sie werden beim Schließen der Datenbank gelöscht.
+
+\section{Schema-Lookup}
+\begin{itemize}
+	\item Selektionsattribute der Subquery
+	\item Innere Tabellen
+	\item Prädikate
+	\subitem nach dem Lookup eines Prädikats immer die Selektivität ermitteln, um die globalen Datenstrukturen (pog etc.) nicht während der Plan-Ermittlung durch Subqueries zerstören
+\end{itemize}
+
+\section{Ermittlung des Ausführungsplans}
+\begin{itemize}
+	\item korrelierte Prädikate der Subquery entfernen
+	\item Plan für Subquery ohne korrlierte Prädikate ermitteln
+	\item korrelierte Prädikate mit aufsteigender Selektivität an Plan \enquote{anflanschen}
+\end{itemize}
+
+\section{Übersetzung des Plans in ausführbare Syntax}
+\subsection{IN Operator}
+Übersetzung mit den Operatoren \begin{verbatim}collect_set und transformstream\end{verbatim}
+\subsection{Using Parameter functions}
+\begin{itemize}
+	\item Mit einem Parameter (normalerweise Filter)
+	\item mit zwei Parametern für symmjoin (akzeptiert allgemeine Funktion)
+\end{itemize}
 
 
-\section{Schema-Lookup für geschachtelte Abfragen}
 
-\section{Plan-Ermittlung}
-
-\section{Übersetzung des Plans in SECONDO-Syntax}
 %
 % EOF
 %

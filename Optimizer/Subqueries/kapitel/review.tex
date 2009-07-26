@@ -5,6 +5,33 @@
 
 \chapter{Review}
 \section{Überblick}
+\subsection{Beschreibung Secondo}
+\begin{itemize}
+	\item Erweiterbares Datenbanksystem
+	\item Second-Order-Signatures
+	\item Kernel/Algebren
+	\item Optimierer
+	\item GUI
+\end{itemize}
+\subsection{SQL}
+
+\begin{itemize}
+	\item Datenbanksprache
+	\subitem Datendefinition (DDL)
+	\subitem Datenmanipulation (DML)
+	\subitem Rechtevergabe (DCL)
+	\item Abfrageblock bestehend aus 
+	\subitem SELECT-Klausel
+	\subitem FROM-Klausel
+	\subitem WHERE-Klausel
+	\subitem GROUP BY\dots HAVING-Klausel
+	\subitem ORDER BY-Klausel
+	\item geschachtelte Abfragen
+	\subitem in der SELECT-Klausel
+	\subitem in der FROM-Klausel
+	\subitem in der WHERE Klausel
+	\subitem in der GROUP BY\dots HAVING-Klausel (nicht implementiert)
+\end{itemize}
 \begin{itemize}
 	\item SQL-Standard unterscheidet in
 	\subitem \enquote{scalar subqueries} (Ergebnis der Abfrage ist ein einzelner Wert)
@@ -22,9 +49,11 @@
 	\subitem (GROUP BY\dots HAVING-Klausel)
 \end{itemize}
 
-\section{Optimierungsansätze für geschachtelte Abfragen}
-\subsection{Mit Standard-Operatoren}
-\subsection{Mit erweiterten Operatoren}
+\subsection{TPC-D Benchmark}
+
+\section{Ausführunsstrategien}
+\subsection{Geschachtelte Iteration}
+\subsection{Entschachtelung}
 \begin{itemize}
 	\item G-Aggregation
 	\item G-Join
@@ -54,114 +83,37 @@ J =(hat Join-Prädikat das die/eine Relation aus dem äußeren Abfrageblock referen
 JA =(hat Join-Prädikat mit Verweis auf Relation im äußeren Abfrageblock, Aggregationsfunktion), 
 D =(ein Divisions-Prädikat, dass in einer der beiden Abfrageblöcke ein Join-Prädikat mit Verweis auf eine Relation im äußeren Abfrageblock, drückt die relationale Divisionsoperation aus), \\
 \emph{nested-iteration method}, vollständige Auswertung des inneren Abfrageblocks für jedes Tupel des äußeren Blocks
-\subsection{Algorithmus \textbf{NEST-N-J}}
-Alle FROM-Klausel kombinieren\\
-Die Konjunktion der WHERE-Klauseln bilden\\
-Das geschachtelte Prädikat \begin{math}[R_i.C_h \operatorname{op}\ (\texttt{SELECT} R_j.C_m \dots)]\end{math} ersetzen durch ein neues Join-Prädikat \begin{math}[R_i.C_h \operatorname{\emph{new-op}} R_j.C_m]\end{math}, das mit der restlichen WHERE-Klausel per Konjunktion verbunden ist\\
-Die SELECT-Klausel des äußersten Abfrageblocks behalten\\
 
+\section{Klassifikation geschachtelter Abfragen}
+\subsection{Typ A}
+geschachtelte Abfrage mit Aggregationsfunktion, ohne Prädikate die Attribute aus den äußeren Relationen verwenden, kann unabhängig vom äußeren Abfrageblock ausgewertet werden, hat einen Wert als Ergebnis, nicht Liste wg. Aggregationsfunktion. Beispiel: Den Ort mit der höchsten Postleitzahl aus der Relation PLZ
 \begin{lstlisting}
-select $A_1 ,\dots,A_n$ 
-from $R_1 ,\dots,R_m$ 
-where $P_1,\dots,P_l,$ 
-	$X\operatorname{\theta}\ ($
-		select 
-			$T_i.B$ 
-		from 
-			$T_1 ,\dots,T_s$ 
-		where 
-			$Q_1,\dots,Q_r$
-	$)$
+select ort 
+from plz
+where
+	plz = (select max(p:plz) from plz as p)
 \end{lstlisting}
-
-wird transformiert in 
-
+\subsection{Typ N}
+Abfrage ohne Aggregationsfunktion, ohne Prädikate die Attribute aus der äußeren Relationen beinhalten. Kann unabhängig vom äußeren Abfrageblock ausgewertet werden, hat eine Liste von Werten als Ergebnis. Beispiel: Alle Städte mit einer Postleitzahl > 5000
 \begin{lstlisting}
-select $A_1,\dots,A_n$
-from $R_1,\dots,R_m,T_1,\dots,T_s$
-where $P_1,\dots,P_l$,
-	$Q_1,\dots,Q_r$
-	$X\operatorname{\theta^'}T_i.B$
+select sname 
+from staedte
+where sname in (select ort from plz where plz > 5000)
 \end{lstlisting}
-
-\begin{math}
-X \subset\{A_1,\ldots,A_n\} \\[1em]
-\theta \in \{\operatorname{IN},\operatorname{NOT\ IN},=,\not=,>,\geq,<,\leq\} \\[1em]
-\theta^{'} = 
-\begin{cases}
-=&\quad\text{falls}\ \theta = \operatorname{IN}, \\
-\not=&\quad\text{falls}\ \theta = \operatorname{NOT\ IN}, \\
-\theta&\quad\text{sonst}.
-\end{cases}
-\end{math}
-
-\subsection{Algorithmus \textbf{NEST-JA2}}
-1. temporäre Relation = Projektion der äußeren Relation(en) auf die Join-Spalten und Restriktion durch \emph{simple} Prädikate, die in der äußeren WHERE-Klausel enthalten sind\\
-2. temporäre Relation = Join aus 1. temporärer und innerer/en Relationen, falls Aggregationsfunktion = COUNT, dann müssen die simplen Prädikate auf die innere Relation vor dem Join angewandt werden. Ist die Aggregationsfunktion COUNT(*), dann muss COUNT über die/eine Join-Spalte ausgeführt werden. Das Join-Prädikat muss den selben Operator enthalten, wie die ursprüngliche geschachtelte Abfrage. Der Join-Operator in der ursprünglichen Abfrage muss in \emph{=} geändert werden. In der SELECT-Klausel muss die Join-Spalte der äußeren Relation anstelle der Inneren Relation verwendet werden\\
-
+\subsection{Typ J}
+Abfrage mit mindestens einem Verweis auf Attribute einer äußeren Relation, keine Aggregationsfunktion. Beispiel: Finde alle Städte, deren Bevölkerung größer als die Postleitzahl ist
 \begin{lstlisting}
-select $A_1,\dots,A_n$
-from $R_1,\dots,R_m$
-where $P_1 (R_1 ),\dots,P_k (R_1 )$,
-	$P_1 ,\ldots,P_l,$,
-	$R_i.X \operatorname{\theta}\ ($
-		select $\operatorname{AGGR}(T_j.A)$
-		from $T_1 ,\dots,T_s$			
-		where $Q_1 ,\dots,Q_r$,
-			pred$[R_1.Y \operatorname{op} T_1.Z]$
-	$)$
+select sname
+from staedte
+where sname in (select ort from plz where plz < bev)
 \end{lstlisting}
-
-Die Projektion der äußeren Relation
-
+\subsection{Typ JA}
+korrelierte Abfrage mit Aggregationsfunktion. Beispiel: Alle Orte mit ihrer maximalen Postleitzahl
 \begin{lstlisting}
-TEMP1 = (
-	select distinct $R_1.Y$
-	from $R_1$
-	where	$P_1(R_1),\dots,P_k(R_1)$
-	)
+select ort 
+from plz
+where plz = (select max(p:plz) from plz as p where ort = p:ort)
 \end{lstlisting}
-
-\begin{lstlisting}
-TEMP2 = (
-	select $T_j.A,T_1.Z$
-	from $T_1,\dots,T_s$
-	where $Q_1,\dots,Q_r$
-	)
-\end{lstlisting}
-
-\begin{lstlisting}
-TEMP3 = (
-	select $T_1.Y,\operatorname{AGGR}(T_j.A)$ as AggrResult
-  from TEMP1, TEMP2
-  where pred$[R_1.Y \operatorname{op} T_1.Z]$
-  group by
-  	$T_1.Y$
-  $)$
-\end{lstlisting}
-
-\begin{lstlisting}
-TEMP3 = (
-	select $T_1.Y,\operatorname{AGGR}(T_j.A)$ as AggrResult
-  from TEMP1 outer join TEMP2
-    on pred$[R_1.Y \operatorname{op} T_1.Z]$
-  group by
-  	$T_1.Y$
-  $)$
-\end{lstlisting}
-
-\begin{lstlisting}
-select $A_1,\dots,A_n$
-from $R_1,\dots,R_m$,TEMP3
-where $P_1,\dots,P_l,$
-	$R_i.X \operatorname{\theta}$ TEMP3.AggrResult, 
-	$R_1.Y=$Temp3.Z
-\end{lstlisting}
-
-\begin{math}\theta \in\{=,\not=,>,\geq,<,\leq\}\end{math}
-
-allgemeiner Algorithmus zur Entschachtelung mit temporären Tabellen, auf der Basis von Join- und Outerjoin-Operatoren und temporären Tabellen,
-
 
 %
 % EOF

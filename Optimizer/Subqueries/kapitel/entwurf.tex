@@ -4,6 +4,121 @@
 %
 
 \chapter{Entwurf}
+\begin{itemize}
+	\item keine automatische Entscheidung entschachteln oder nicht
+	\subitem alle Metadaten über temp. Relationen wären notwendig
+	\subitem inkl. Selektivitäten
+	\item \textbf{IN} ohne Subquery -> Übersetzung in geschachtelte \textbf{OR} Prädikate
+\end{itemize}
+\section{Algorithmus \textbf{NEST-N-J}}
+Alle FROM-Klausel kombinieren\\
+Die Konjunktion der WHERE-Klauseln bilden\\
+Das geschachtelte Prädikat \begin{math}[R_i.C_h \operatorname{op}\ (\texttt{SELECT} R_j.C_m \dots)]\end{math} ersetzen durch ein neues Join-Prädikat \begin{math}[R_i.C_h \operatorname{\emph{new-op}} R_j.C_m]\end{math}, das mit der restlichen WHERE-Klausel per Konjunktion verbunden ist\\
+Die SELECT-Klausel des äußersten Abfrageblocks behalten\\
+
+\begin{lstlisting}
+select §$A_1 ,\dots,A_n$§ 
+from §$R_1 ,\dots,R_m$§ 
+where §$P_1,\dots,P_l,$§ 
+	§$X\operatorname{\theta}\ ($§
+		select 
+			§$T_i.B$§ 
+		from 
+			§$T_1 ,\dots,T_s$§ 
+		where 
+			§$Q_1,\dots,Q_r$§
+	§$)$§
+\end{lstlisting}
+
+wird transformiert in 
+
+\begin{lstlisting}
+select §$A_1,\dots,A_n$§
+from §$R_1,\dots,R_m,T_1,\dots,T_s$§
+where §$P_1,\dots,P_l$§,
+	§$Q_1,\dots,Q_r$§
+	§$X\operatorname{\theta^'}T_i.B$§
+\end{lstlisting}
+
+\begin{math}
+X \subset\{A_1,\ldots,A_n\} \\[1em]
+\theta \in \{\operatorname{IN},\operatorname{NOT\ IN},=,\not=,>,\geq,<,\leq\} \\[1em]
+\theta^{'} = 
+\begin{cases}
+=&\quad\text{falls}\ \theta = \operatorname{IN}, \\
+\not=&\quad\text{falls}\ \theta = \operatorname{NOT\ IN}, \\
+\theta&\quad\text{sonst}.
+\end{cases}
+\end{math}
+
+\section{Algorithmus \textbf{NEST-JA2}}
+1. temporäre Relation = Projektion der äußeren Relation(en) auf die Join-Spalten und Restriktion durch \emph{simple} Prädikate, die in der äußeren WHERE-Klausel enthalten sind\\
+2. temporäre Relation = Join aus 1. temporärer und innerer/en Relationen, falls Aggregationsfunktion = COUNT, dann müssen die simplen Prädikate auf die innere Relation vor dem Join angewandt werden. Ist die Aggregationsfunktion COUNT(*), dann muss COUNT über die/eine Join-Spalte ausgeführt werden. Das Join-Prädikat muss den selben Operator enthalten, wie die ursprüngliche geschachtelte Abfrage. Der Join-Operator in der ursprünglichen Abfrage muss in \emph{=} geändert werden. In der SELECT-Klausel muss die Join-Spalte der äußeren Relation anstelle der Inneren Relation verwendet werden\\
+
+\begin{lstlisting}
+select §$A_1,\dots,A_n$§
+from §$R_1,\dots,R_m$§
+where §$P_1 (R_1 ),\dots,P_k (R_1 )$§,
+	§$P_1 ,\ldots,P_l,$§,
+	§$R_i.X \operatorname{\theta}\ ($§
+		select §$\operatorname{AGGR}(T_j.A)$§
+		from §$T_1 ,\dots,T_s$§			
+		where §$Q_1 ,\dots,Q_r$§,
+			pred§$[R_1.Y \operatorname{op} T_1.Z]$§
+	§$)$§
+\end{lstlisting}
+
+Die Projektion der äußeren Relation
+
+\begin{lstlisting}
+TEMP1 = (
+	select distinct §$R_1.Y$§
+	from §$R_1$§
+	where	§$P_1(R_1),\dots,P_k(R_1)$§
+	)
+\end{lstlisting}
+
+\begin{lstlisting}
+TEMP2 = (
+	select §$T_j.A,T_1.Z$§
+	from §$T_1,\dots,T_s$§
+	where §$Q_1,\dots,Q_r$§
+	)
+\end{lstlisting}
+
+\begin{lstlisting}
+TEMP3 = (
+	select §$T_1.Y,\operatorname{AGGR}(T_j.A)$§ as AggrResult
+  from TEMP1, TEMP2
+  where pred§$[R_1.Y \operatorname{op} T_1.Z]$§
+  group by
+  	§$T_1.Y$§
+  §$)$§
+\end{lstlisting}
+
+\begin{lstlisting}
+TEMP3 = (
+	select §$T_1.Y,\operatorname{AGGR}(T_j.A)$§ as AggrResult
+  from TEMP1 outer join TEMP2
+    on pred§$[R_1.Y \operatorname{op} T_1.Z]$§
+  group by
+  	§$T_1.Y$§
+  §$)$§
+\end{lstlisting}
+
+\begin{lstlisting}
+select §$A_1,\dots,A_n$§
+from §$R_1,\dots,R_m$§,TEMP3
+where §$P_1,\dots,P_l,$§
+	§$R_i.X \operatorname{\theta}$§ TEMP3.AggrResult, 
+	§$R_1.Y=$§Temp3.Z
+\end{lstlisting}
+
+\begin{math}\theta \in\{=,\not=,>,\geq,<,\leq\}\end{math}
+
+allgemeiner Algorithmus zur Entschachtelung mit temporären Tabellen, auf der Basis von Join- und Outerjoin-Operatoren und temporären Tabellen,
+
+
 Begriffserklärung Schachtelunsgtiefe
 
 Schritte des Optimierers
@@ -14,14 +129,13 @@ Schritte des Optimierers
 	\item Übersetzung Plan in ausführbare Syntax
 \end{itemize}
 
-\section[Auflösen der Korrelation]{Optimierung durch Auflösung der Korrelation}
+
 durch vorhanden Operatoren in SECONDO fast vollständig umsetzbar, nur Erweiterung um Full-Outerjoin-Operator notwendig\\
 Vergleich nested-iteration/dekorrelierter Plan wird \underline{nicht} implementiert:\\
 Für den Vergleich der Kosten müsste die komplette Selektivitäts- und Kostenbestimmung für die notwendigen temporären Relationen simuliert werden (**ausführlicher beschreiben**)\\
 kann nicht für alle Formen von Subqueries genutzt werden (Beispiele)\\
 Ergebnis sollte eine Abfrage der Schachtelungstiefe 0 sein. Der Optimierer 
 
-\section[Übersetzung geschachtelter Abfragen]{Integration der Übersetzung von geschachtelten Abfragen in den Optimierer}
 Schema-Lookup erweitern\\
 
 
