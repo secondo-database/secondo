@@ -7,7 +7,12 @@
 
 \section{Laufzeit- und Strukturvergleich}
 \subsection{TPC-D Q2}
-
+Findet den günstigsten Lieferanten für ein gegebenes Bauteil in einer Region. Für ein Bauteil einer bestimmten Art und Größe wird der Lieferant ermittelt, der dieses zu den günstigsten Konditionen anbietet. Gibt es mehrere Lieferanten in der gewählten Region, die das gewünschte Teil zu den günstigsten Konditionen anbieten, so werden die 100 Lieferanten mit dem höchsten Kontostand angezeigt. Von jedem Lieferanten werden der Kontostand, der Name und das Land, die Teilenummer und der Hersteller, die Lieferantenadresse, Telefonnummer und ein Kommentar angezeigt. Als Werte der Parameter SIZE, TYPE und REGION wurden die Werte aus der Abfrageüberprüfung des Benchmarks gewählt.
+\begin{itemize}
+	\item SIZE = 15
+	\item TYPE = BRASS
+	\item REGION = EUROPE
+\end{itemize}
 \begin{lstlisting}[caption=Abfrage Q2]
 select
 	[sacctbal, sname,
@@ -65,7 +70,7 @@ where[s:ssuppkey = ps:pssuppkey,
 		r:rname = "EUROPE"]
 \end{lstlisting}
 
-Join der äußeren und inneren Relationen und Berechnung der Aggregation. Da 
+Join der äußeren und inneren Relationen und Berechnung der Aggregation. Da sich Optimierer und ausführbare Ebene in der Syntax für umbenannte Tupel unterscheiden muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden.
 
 \begin{lstlisting}[caption=TempRel3]
 select[pspartkey_ps, min(pssupplycost_ps) as var1]
@@ -74,7 +79,7 @@ where [ppartkey = pspartkey_ps]
 groupby pspartkey_ps
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Entschachtelte Version von Abfrage Q2]
+\begin{lstlisting}[caption=Entschachtelte Variante von Abfrage Q2]
 select
 	[sacctbal, sname, 
 	nname, ppartkey, 
@@ -100,7 +105,69 @@ orderby[sacctbal desc,
 		 ppartkey]
 first 100
 \end{lstlisting}
+
 \subsection{TPC-D Q4}
+Diese Abfrage ermittelt, wie gut das 
+\begin{lstlisting}[caption=Abfrage Q4]
+select
+	[oorderpriority,
+	 count(*) as ordercount]
+from orders
+where		
+	[oorderdate >= instant("1993-07-01"),		
+	oorderdate < theInstant(
+		year_of(instant("1993-07-01")), 
+	 	month_of(instant("1993-07-01")) + 3, 
+	 	day_of(instant("1993-07-01"))
+	),
+	exists(
+	 	select *
+		from lineitem
+		where
+			[lorderkey = oorderkey, lcommitdate < lreceiptdate]
+	)]
+groupby [oorderpriority]
+orderby	[oorderpriority]
+\end{lstlisting}
+
+Projektion der äußeren Relation auf die Join-Spalte.
+\begin{lstlisting}[caption=TempRel1]
+select distinct[oorderkey] from orders
+\end{lstlisting}
+
+Einschränkung der inneren Relation mit allen \emph{simplen} Prädikate.
+\begin{lstlisting}[caption=TempRel2]
+select * from lineitem where[lcommitdate < lreceiptdate]
+\end{lstlisting}
+
+
+Full-Outerjoin zwischen den temporären Relationen. Das \texttt{ifthenelse} Konstrukt ist notwendig, da \textsc{SECONDO} nur die zeilenbasierte Semantik des \texttt{count}-Operators unterstützt. 
+\begin{lstlisting}[caption=TempRel3]
+txxrel1  feed 
+txxrel2  feed  
+smouterjoin[oORDERKEY,lORDERKEY] 
+extend[var1: ifthenelse(isempty(.lORDERKEY), 0, 1)] 
+sortby[oORDERKEY asc] 
+groupby[oORDERKEY;Var1: group feed sum[var1]] 
+projectextend[Var1; lORDERKEY: .oORDERKEY] 
+consume
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Entschachtelte Variante von Q4]
+select [oorderpriority, 
+	count(*)as ordercount] 
+from [orders, 
+	txxrel3 as txxrel5] 
+where [oorderdate>=instant("1993-07-01"), 
+	oorderdate<theInstant(year_of(instant("1993-07-01")), 
+	month_of(instant("1993-07-01")) + 3, 
+	day_of(instant("1993-07-01"))), 
+	oorderkey = txxrel5:lorderkey, 
+	0 < txxrel5:var1] 
+groupby [oorderpriority] 
+orderby [oorderpriority]
+\end{lstlisting}
+
 \subsection{TPC-D Q7}
 \subsection{TPC-D Q9}
 \subsection{TPC-D Q15}
