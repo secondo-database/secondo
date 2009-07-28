@@ -43,10 +43,11 @@ if [ $1 == "-f" ]; then
   
 fi
 
-printSep "Mirroring zeppelin:/home/cvsroot to vieta:CVS_Backup ..."
 
-rsync -vuac --exclude secondo-data /home/cvsroot /www/CVS_Backup/
-rsync -vua /home/cvsroot/secondo-data /www/CVS_Backup/cvsroot
+printSep "Mirroring $SourceDir to $BackupDir ..."
+
+rsync -vuac --exclude secondo-data $SourceDir $BackupDir/
+rsync -vua $SourceDir/secondo-data $BackupDir/cvsroot
 checkErr $?
 
 exit $err
