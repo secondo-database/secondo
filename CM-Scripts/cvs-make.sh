@@ -57,6 +57,7 @@ opt_earlyExit="no"
 LU_SENDMAIL="true"
 LU_SENDMAIL_FROM="spieker@bassi"
 failedBuild_DefaultRecipients="spieker@bassi behr@bassi duentgen@bassi"
+newTarFile_MailRecipients="spieker@bassi"
 
 LU_LOG_SCREEN="true"
 
@@ -626,7 +627,7 @@ $(find $opt_logRoot -name "_failed_*" -exec cat {} \;)
     # send a notification
     archive="/tmp/make-$USER/secondo-$tagSym.tar.gz"
     mkMailStr2 "$mailBody4" $archive
-    sendMail "New public version source archives created" "$mailRecipients" "$MAIL_STR"
+    sendMail "New public version source archives created" "$newTarFile_MailRecipients" "$MAIL_STR"
 
     # clean up
     rm -rf $cbuildDir
