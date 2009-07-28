@@ -4419,7 +4419,8 @@ createCostEdge :- % use standard cost functions
   not(optimizerOption(improvedcosts)),
   planEdge(Source, Target, Term, Result),
   edge(Source, Target, EdgeTerm, _, _, _),
-  ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred) ),
+  ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred);
+    EdgeTerm = sortedjoin(_, _, Pred, _, _)),
   edgeSelectivity(Source, Target, Sel),
   cost(Term, Sel, Pred, Size, Cost), % Code changed by Goehr
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
@@ -8526,7 +8527,7 @@ finishDistanceSort(Stream, Cost, X, Y, 0, StreamOut, Cost2) :-
   StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, distance(X, Y))]),
 			    attrname(ExprAttr)), 
 		     attrname(ExprAttr)),
-  cost(remove(sort(extend(pogstream, _)), _), 1, _, CostTmp),
+  cost(remove(sort(extend(pogstream, _)), _), 1, _, _, CostTmp),
   Cost2 is Cost + CostTmp.
 
 finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
@@ -8536,7 +8537,7 @@ finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
 				      [field(ExprAttr, distance(X, Y))]), 
 			       HeadCount, attrname(ExprAttr)), 
 		     attrname(ExprAttr)),
-  cost(remove(ksmallest(extend(pogstream, _), HeadCount), _), 1, _,
+  cost(remove(ksmallest(extend(pogstream, _), HeadCount), _), 1, _, _,
        CostTmp),
   Cost2 is Cost + CostTmp.
 
