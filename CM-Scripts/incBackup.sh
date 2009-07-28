@@ -19,16 +19,17 @@
 PREFIX=cvs                       
 
 # define a list of directories to backup
-DIRECTORIES="/cvsroot"          
+# Note: don't start with "/"
+DIRECTORIES="cvsroot"          
 
 # define where to store the backups
-BACKUPDIR=/www/CVS_Backup
+BACKUPDIR=/home/spieker/CVS_Backup
 
 
 # Abbreviation of the day for a full backup
 # Note: This depends on language settings, 
 # for Example (LANG=en) Sun Mon Tue Wed Thu Fri Sat
-FULLDAY="Thu"
+FULLDAY="Fri"
 
 ###
 ###  Rarely used options
@@ -76,7 +77,7 @@ if [ "$DOW" = "$FULLDAY" ]; then
   fullFile=$BACKUPDIR/$PREFIX-$DOW-full-weekly.tar
   tmpFile=$fullFile-tmp$$
   tmpInc=$incFile-tmp$$
-  $TAR -g $tmpInc -cpf $tmpFile $DIRECTORIES
+  $TAR -g $tmpInc -cpf $tmpFile -C / $DIRECTORIES
   rc=$?
   if [ $rc -ne 0 ]; then 
     echo -e "Error during creation of the weekly full backup. Please check $BACKUPDIR"
@@ -96,7 +97,7 @@ else
   fi 
   dailyFile=$dailyFile.tar	  
 
-  $TAR -g $incFile -cpf $dailyFile  $DIRECTORIES
+  $TAR -g $incFile -cpf $dailyFile -C / $DIRECTORIES
   rc=$?
   if [ $rc -ne 0 ]; then 
     echo -e "Error during creation of a daily incremental backup. Please check $BACKUPDIR"
