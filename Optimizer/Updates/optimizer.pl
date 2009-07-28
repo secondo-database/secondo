@@ -708,6 +708,13 @@ newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
   Result is ArgNo + PNo,
   Edge = edge(Source, Target, select(Arg, pr(P, R1, R2)), Result, Node, PNo).
 
+/*
+Special handling for distance-queries:
+If a distancescan query is used, only joins keeping the order
+are allowed
+
+*/
+
 newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
   distanceRel(R3, _, _, _),
   findRels(R1, R2, Node, Source, Arg1, Arg2),
@@ -889,6 +896,7 @@ writeEdges :- not(writeEdge).
 
 /*
 5 Rule-Based Translation of Selections and Joins
+
 [:Section Translation]
 
 5.1 Precise Notation for Input
@@ -1074,6 +1082,9 @@ In the target language, we use the following operators:
                                 where   Tuple2 is Tuple1 projected on the
                                         mentioned attributes.
 
+        projectextend:  stream(tuple1) x Attrname x (Newname
+                          x (Tuple -> Attrtype))+  --> stream(tuple2)
+
         rename:         stream(Tuple1) x NewName -> stream(Tuple2)
 
                                 where   Tuple2 is Tuple1 modified by appending
@@ -1223,24 +1234,10 @@ consider_Arg2_2([Me|Others],[Me2|Others2]) :-
   consider_Arg2_2(Others,Others2).
 
 
-addPlanVariables(Result, [], Result) :- !.
-
-addPlanVariables(ResultIn, [[Var, Expr]|Rest], ResultOut) :-
-  addPlanVariables(ResultIn, Rest, ResultTmp),
-  concat_atom([Expr, ' within[fun(', Var, ':ANY) ', ResultTmp, ']'], 
-	      ResultOut).
-
-
 /*
 Arguments:
 
 */
-
-call_plan_to_atom(Plan, Result) :-
-  plan_to_atom(Plan, Result1),
-  findall([Variable, Expression], planvariable(Variable, Expression), L),
-  addPlanVariables(Result1, L, Result),
-  retractall(planvariable(_, _)).
 
 rel_to_atom(rel(DCname, _), ExtName) :-
   dcName2externalName(DCname,ExtName).
@@ -1274,6 +1271,7 @@ plan_to_atom(A,A) :-
   string(A),
   !.
 
+% Special Handling for distance queries using a temporary index
 plan_to_atom(dbobject(tmpindex(Rel, Attr)), Result) :-
   rel_to_atom(Rel, Rel2),
   plan_to_atom(attrname(Attr), Attr2),
@@ -1527,8 +1525,6 @@ plan_to_atom(project(Stream, Fields), Result) :-
   plan_to_atom(Fields2, FAtom),
   concat_atom([SAtom, 'project[', FAtom, '] '], '', Result),
   !.
-
-
 
 plan_to_atom(feedproject(Stream, Fields), Result) :-
   not(removeHiddenAttributes), !,		% standard behaviour
@@ -1838,6 +1834,11 @@ plan_to_atom(updatehash(UpdateQuery, IndexName, Column),Result) :-
 % Section:Start:plan_to_atom_2_m
 % Section:End:plan_to_atom_2_m
 
+/*
+Extensions for SQL ~create~ and ~drop~ commands
+
+*/
+
 plan_to_atom(let(VarName, Type),Result) :-
   plan_to_atom(VarName, VarName2),
   plan_to_atom(Type, Type2),
@@ -1871,6 +1872,11 @@ plan_to_atom(createIndex(Rel, Columns, LogIndexType), Result) :-
   getCreateIndexExpression(Rel2, Columns2, LogIndexType, no, IndexName, 
 			   Query), 
   concat_atom(['derive ', IndexName, ' = ', Query], Result), !.
+
+/*
+Extensions for distance-queries
+
+*/
 
 plan_to_atom(ksmallest(Stream, Count, Attr), Result) :-
   plan_to_atom(Stream, Stream2),
@@ -2139,21 +2145,25 @@ of translation results.
 
 res(N) => res(N).
 
+% special handling for distancescan queries
 arg(N) => distancescan(IndexName, rel(Name, *), Attr, 0) :-
   isStarQuery,
   argument(N, rel(Name, *)),
   distanceRel(rel(Name, *), IndexName, Attr, _), !.
 
+% special handling for distancescan queries
 arg(N) => rename(distancescan(IndexName, rel(Name, Var), Attr, 0), Var) :-
   isStarQuery,
   argument(N, rel(Name, Var)),
   distanceRel(rel(Name, Var), IndexName, Attr, _), !.
 
+% special handling for distancescan queries
 arg(N) => project(distancescan(IndexName, rel(Name, *), Attr, 0), AttrNames) :-
   argument(N, rel(Name, *)), 
   distanceRel(rel(Name, *), IndexName, Attr, _), !,
   usedAttrList(rel(Name, *), AttrNames).
 
+% special handling for distancescan queries
 arg(N) => rename(project(distancescan(IndexName, rel(Name, Var), Attr, 0), 
 			 AttrNames), Var) :-
   argument(N, rel(Name, Var)),
@@ -2376,6 +2386,8 @@ indexselect(arg(N), pr(Pred, Rel)) => X :-
   isCommutativeOP(OP),
   Pred2 =.. [OP, attr(AttrName, Arg, Case), Y],
   indexselect(arg(N), pr(Pred2, Rel)) => X.
+  
+  
 /*
 C. D[ue]ntgen, Apr 2006: Added rules for specialized spatio-temporal R-Tree indices.
 These indices are recognized by their index type.
@@ -2645,6 +2657,11 @@ join(arg(N), Arg2, pr(X=Y, _, _)) => loopjoin(Arg2S, MatchExpr) :-
   Arg2 => Arg2S,
   exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
 
+/*
+A loopjoin keeps the order of the outer relation, so it can also be
+used for sortedjoin
+
+*/
 sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) => loopjoin(Arg1S,
 							     MatchExpr) :-
   isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
@@ -2664,6 +2681,12 @@ sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, _) => loopjoin(Arg2S,
   dcName2externalName(DCindex,IndexName),
   Arg2 => Arg2S,
   exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
+
+/*
+If the Inner Relation doesn't have an index on the join attribute,
+try to create a temporary one
+
+*/
 
 sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) => 
 	loopjoin(Arg1S, MatchExpr) :-
@@ -2726,6 +2749,68 @@ exactmatch(IndexName, arg(N), Expr) =>
   usedAttrList(Rel, AttrNames),
   !.
 
+/*
+Jan09 Ingmar Goehr
+
+Loopindexjoin with bbox predicate using specialized spatial R-Tree indices
+
+*/
+
+join(arg(N), Arg2, pr(Pred, _, _)) => filter(loopjoin(Arg2S, RTSpExpr),Pred) :-
+  Pred =.. [Op, X, Y],
+  isBBoxPredicate(Op),
+  isOfFirst(Attr1, X, Y),     % determine attribute from the first relation
+  isNotOfFirst(Expr2, X, Y),  % determine attribute not from the first relation
+  argument(N, RelDescription),  % get first relation
+  hasIndex(RelDescription, Attr1, DCindex, spatial(rtree, unit)),
+  dcName2externalName(DCindex,IndexName),
+  Arg2 => Arg2S,
+  rtSpExpr(IndexName, arg(N), Expr2) => RTSpExpr.
+
+
+rtSpExpr(IndexName, arg(N), Expr) =>
+  rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+                                              bbox(Expr)))),Rel),Var)
+          :-
+  argument(N, Rel),
+  Rel = rel(_, Var),    % with renaming
+  !.
+
+rtSpExpr(IndexName, arg(N), Expr) =>
+  gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),bbox(Expr)))),Rel)
+          :-
+  argument(N, Rel),
+  Rel = rel(_, *),    % without renaming
+  !.
+
+join(arg(N), Arg2, pr(Pred, _, _))
+  => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred) :-
+  makeList2(Pred,PredList),
+  fetchAttributeList(PredList,AttrList),
+  [A,B,C] = AttrList,
+  isOfFirst(Attr1,A,B,C),
+  areNotOfFirst(Attr2,Attr3,A,B,C),
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr1, DCindex, spatiotemporal(rtree3, unit)),
+  dcName2externalName(DCindex,IndexName),
+  Arg2 => Arg2S,
+  rtSpTmpExpr(IndexName, arg(N), Attr2, Attr3) => RTSpTmpExpr.
+
+rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
+ rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+                                          box3d(bbox(Expr2),Expr1)))),Rel),Var)
+  :-
+ argument(N,Rel),
+ Rel = rel(_,Var), % with renaming
+ !.
+
+rtSpTmpExpr(IndexName, arg(N), Expr1, Expr2) =>
+ gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+                                          box3d(bbox(Expr2),Expr1)))),Rel)
+  :-
+ argument(N,Rel),
+ Rel = rel(_, *), % without renaming
+ !.
 
 /*
 One could easily add rules for ~loopjoin~ with ~rightrange~ and ~leftrange~
@@ -2778,6 +2863,11 @@ join(arg(N), Arg2, pr(Pred, _, _))
   Arg2 => Arg2S,
   rtreeindexlookupexpr(IndexName, arg(N), Expr2) => RTreeLookupExpr.
 
+/*
+A loopjoin keeps the order of the outer relation, so it can also be
+used for sortedjoin
+
+*/
 sortedjoin(Arg1, arg(N), pr(Pred, _, _), Arg1, _)
   => filter(loopjoin(Arg1S, RTreeLookupExpr), Pred) :-
   Pred =.. [Op, X, Y],        % join condition is
@@ -2969,6 +3059,12 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
   join00(Arg1Extend, Arg2Extend,
         pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2)) => JoinPlan.
 
+/*
+As join00 could be an orderkeeping sort, we also need a transformation
+for sortedjoin
+
+*/
+
 sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) => JoinPlan :-
   X = attr(_, _, _),
   Y = attr(_, _, _), !,
@@ -3079,6 +3175,12 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _)) => hashjoin(Arg2S, Arg1S,
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
 
+/*
+hashjoin keeps the order, if the size of the inner relation is
+smaller than the size of the hash
+
+*/
+
 sortedjoin00(Arg1S, Arg2S, pr(X = Y, _, _), Arg1S, UpperBound) => 
         hashjoin(Arg1S, Arg2S, attrname(Attr1), attrname(Attr2), 99997)   :-
   not(optimizerOption(noHashjoin)),
@@ -3095,7 +3197,8 @@ sortedjoin00(Arg1S, Arg2S, pr(X = Y, _, _), Arg2S, UpperBound) =>
 
 
 /*
-The following two rules are used for the ~adaptiveJoin~ extension. If used, the previous two rules must be deactivated, inserting fail, as shown below.
+The following two rules are used for the ~adaptiveJoin~ extension. If used, the
+previous two rules must be deactivated, inserting fail, as shown below.
 
 */
 
@@ -3171,6 +3274,147 @@ isNotOfFirst(X, X, Y) :- Y = attr(_, 1, _).
 isNotOfSecond(Y, X, Y) :- X = attr(_, 2, _).
 isNotOfSecond(X, X, Y) :- Y = attr(_, 2, _).
 
+/*
+Begin of Goehr's extension
+
+*/
+
+isOfFirst(X, X, _, _) :- X = attr(_, 1, _).
+isOfFirst(Y, _, Y, _) :- Y = attr(_, 1, _).
+isOfFirst(Z, _, _, Z) :- Z = attr(_, 1, _).
+
+
+areNotOfFirst(X, Y, X, Y, _) :-
+  X \= attr(_, 1, _),
+  Y \= attr(_, 1, _).
+
+areNotOfFirst(X, Z, X, _, Z) :-
+  X \= attr(_, 1, _),
+  Z \= attr(_, 1, _).
+
+areNotOfFirst(Y, Z, _, Y, Z) :-
+  Y \= attr(_, 1, _),
+  Z \= attr(_, 1, _).
+
+/*
+fetchAttributeList/2 eleminates recursivly all items of a given list
+except of attr(\_,\_,\_) predicates. If the item of the list is an
+expressionen, it is splitted up to a list by using the makeList2/2
+predicate.
+
+---- fetchAttributeList(+List,-AttributeList)
+----
+
+*/
+fetchAttributeList(List,AttrList) :-
+ cutFirstIfAtom(List,TmpList1),
+ makeFirstList(TmpList1,TmpList2),
+ not(isFirstAttr(TmpList2)),
+ fetchAttributeList(TmpList2,AttrList).
+
+fetchAttributeList(List,TmpList2) :-
+ cutFirstIfAtom(List,TmpList1),
+ makeFirstList(TmpList1,TmpList2),
+ isFirstAttr(TmpList2),
+ isLastAttr(TmpList2).
+
+fetchAttributeList(List,AttrList) :-
+ cutFirstIfAtom(List,TmpList1),
+ makeFirstList(TmpList1,TmpList2),
+ isFirstAttr(TmpList2),
+ not(isLastAttr(TmpList2)),
+ cutLastIfNotAttr(TmpList2,TempList3),
+ fetchAttributeList(TempList3,AttrList).
+
+/*
+isFirstAttr/1 tests whether the first element of a given list is an
+attribute attr(\_,\_,\_) or not
+
+*/
+isFirstAttr(List) :-
+ List=[attr(_,_,_)|_].
+
+/*
+isFirstAttr/1 tests whether the last element of a given list is an
+attribute attr(\_,\_,\_) or not
+
+*/
+isLastAttr(List) :-
+ reverse(List,RevList),
+ RevList=[attr(_,_,_)|_].
+
+/*
+---- cutFirstIfAtom(+List,-NewList)
+----
+
+cutFirstIfAtom/2 will discard the first element of a given list when it is an
+atom.
+
+*/
+cutFirstIfAtom(List,Tail) :-
+ List=[Head|Tail],
+ atom(Head).
+
+cutFirstIfAtom(List,List) :-
+ List=[Head|_],
+ not(atom(Head)).
+
+/*
+---- cutLastIfNotAttr(+List,-NewList)
+----
+
+cutLastIfNotAttr/2 will discard the first element of a given list when it is
+not an attribute.
+
+*/
+cutLastIfNotAttr(List,NewList) :-
+ reverse(List,RevList),
+ RevList=[Head|Tail],
+ Head \= attr(_,_,_),
+ reverse(Tail,NewList).
+
+/*
+---- makeList2(+Expr,-List)
+----
+
+makeList2/2 converts an ~Expr~ to a ~List~
+
+*/
+makeList2(Expr,Expr) :-
+ is_list(Expr).
+
+makeList2(Expr,NewList) :-
+ not(is_list(Expr)),
+ Expr =.. NewList.
+
+/*
+---- makeFirstList(+List,-NewList)
+----
+
+makeFirstList/2 checks whether the first element of the given ~List~ is an list
+itself or not. If so, it concatenates the list with the rest of the given
+~list~. Otherwise, if the first element of the given ~List~ is an attribute
+attr(\_,\_,\_), it is converted to an list and concatenated with the rest of
+the ~List~.
+
+*/
+makeFirstList([Head|Tail],NewList) :-
+ is_list(Head),
+ append(Head,Tail,NewList).
+
+makeFirstList([Head|Tail],NewList) :-
+ not(is_list(Head)),
+ Head \= attr(_,_,_),
+ makeList2(Head,NewHead),
+ append(NewHead,Tail,NewList).
+
+makeFirstList(List,List) :-
+ List=[attr(_,_,_)|_].
+
+/*
+End of Goehr's extension
+
+*/
 
 /*
 6 Creating Query Plan Edges
@@ -3239,7 +3483,7 @@ writePlanEdgesX :- not(writePlanEdges3).
 /*
 7 Assigning Sizes and Selectivities to the Nodes and Edges of the POG
 
-----    assignSizes.
+----    assignSizes
 ----
 
 Assign sizes (numbers of tuples) to all nodes in the pog, based on the
@@ -3406,7 +3650,8 @@ resTupleSize(X, Y) :-
 
 
 /*
-Save and query Predicate Evalation Times (PETs) indexed by predicate number or by Source and Target node numbers.
+Save and query Predicate Evalation Times (PETs) indexed by predicate number or
+by Source and Target node numbers.
 
 */
 
@@ -3541,7 +3786,8 @@ createPathInfo([H|T]) :-
   %showValue('SizeEstInt: ', SizeEstInt),
   %showValue('SelReal: ', SizeReal),
   relativeError(SizeEstInt, SizeReal, SizeErr),
-  assert(pathInfo(Src, Tgt, C1c, C2c, SelEst, SelReal, SelErr, SizeEstInt, SizeReal, SizeErr)),
+  assert(pathInfo(Src, Tgt, C1c, C2c, SelEst, SelReal, SelErr, SizeEstInt,
+                                                          SizeReal, SizeErr)),
   createPathInfo(T).
 
 createPathInfo([]).
@@ -3681,32 +3927,11 @@ deleteSizesNawra :-
 
 8.1 The Costs of Terms
 
-----    cost(+Term, +Sel, -Size, -Cost)
+----    cost(+Term, +Sel, +Pred, -Size, -Cost)
 ----
 
-The cost of an executable ~Term~ representing a predicate with selectivity ~Sel~
-is ~Cost~ and the size of the result is ~Size~.
-
-This is evaluated recursively descending into the term. When the operator
-realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
-used to determine the size of the result.
-It is assumed that only a single operator of this kind occurs within the term.
-
-NEW:
-
----- cost(+Term, +Sel, +PETCalc, +PETExp,
-        -ResAttrList, -ResTupleSize, -ResCard, -Cost)
-----
-
-Calculates the expected ~Cost~ of an executable ~Term~ representing a predicate
-with selectivity ~Sel~, experimental/ calculated PET ~PETExp~/ ~PETCalc~.
-Also returns the list of available attributes ~ResAttrList~ with all available
-information on attribute names and sizes. ~ResAttrList~ has format
-
-----[[AttrName, AttrType, sizeTerm(CoreSize,IntFLOBSize,ExtFLOBSize)], [...]]
-----
-
-with one list for each attribute.
+The cost of an executable ~Term~ representing a predicate ~Pred~ with
+selectivity ~Sel~ is ~Cost~ and the size of the result is ~Size~.
 
 This is evaluated recursively descending into the term. When the operator
 realizing the predicate (e.g. ~filter~) is encountered, the selectivity ~Sel~ is
@@ -3719,21 +3944,21 @@ It is assumed that only a single operator of this kind occurs within the term.
 */
 
 % the if-then-else-part  is just for error-detection --- FIXME!
-cost(rel(Rel, X1_), X2_, Size, 0) :-
+cost(rel(Rel, X1_), X2_, Pred_, Size, 0) :-
   dcName2internalName(RelDC,Rel),
   ( Rel = RelDC
     -> true
     ;  (
          write('ERROR:\tcost/4 failed due to non-dc relation name.'), nl,
          write('---> THIS SHOULD BE CORRECTED!'), nl,
-         throw(error_Internal(optimizer_cost(rel(Rel, X1_, X2_, Size, 0)
+         throw(error_Internal(optimizer_cost(rel(Rel, X1_, X2_, Pred_, Size, 0)
               :malformedExpression))),
          fail
        )
   ),
   card(Rel, Size).
 
-cost(res(N), _, Size, 0) :-
+cost(res(N), _, _, Size, 0) :-
   resultSize(N, Size).
 
 /*
@@ -3741,8 +3966,8 @@ cost(res(N), _, Size, 0) :-
 
 */
 
-cost(feed(X), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(feed(X), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C1),
   feedTC(A),
   C is C1 + A * S.
 
@@ -3754,15 +3979,15 @@ be determined in experiments. These constants are kept in file ``operators.pl''.
 */
 
 
-cost(feedproject(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(feedproject(X, _), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C1),
   feedTC(A),
   C is C1 + A * S.
 
 
 
-cost(consume(X), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(consume(X), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C1),
   consumeTC(A),
   C is C1 + A * S.
 
@@ -3777,39 +4002,42 @@ For ~filter~, there are several special cases to distinguish:
 
   4 ``normal'' ~filter(...)~
 
-For the first three cases, the edge is the translation of a spatial predicate, that
-makes use of bounding box checks. The first argument of filter will already reduce
-the set of possible candidates, so that the cardinality of tuples processed by filter
-will be smaller than the cardinality passed down in the 3rd argument of ~cost~. Also, the selectivity passed with the second argument of ~cost~ is the ~total~ selectivity. To
-get the selectivity of the preselection, one can analyse the predicate and lookup
-the table ~storedBBoxSel/3~ for that selectivity, which should be passed to the recursive call of ~cost~.
+For the first three cases, the edge is the translation of a spatial predicate,
+that makes use of bounding box checks. The first argument of filter will already
+reduce the set of possible candidates, so that the cardinality of tuples
+processed by filter will be smaller than the cardinality passed down in the 3rd
+argument of ~cost~. Also, the selectivity passed with the second argument of
+~cost~ is the ~total~ selectivity. To get the selectivity of the preselection,
+one can analyse the predicate and lookup the table ~storedBBoxSel/3~ for that
+selectivity, which should be passed to the recursive call of ~cost~.
 
-PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is no
-problem, as the index is used to create a fresh tuple stream. But, as for case 1, we
-might get into problems, as the selectivity of the bbox-check depends on earlier
-predicates - so we should consider both selectivities in the minimization of the entropy.
+PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is
+no problem, as the index is used to create a fresh tuple stream. But, as for
+case 1, we might get into problems, as the selectivity of the bbox-check depends
+on earlier predicates - so we should consider both selectivities in the
+minimization of the entropy.
 
 */
 
-cost(filter(X, _), Sel, S, C) :-
-  isPrefilter(X),			% holds for spatialjoin or loopjoin
-					% isPrefilter defindad after cost clauses.
+cost(filter(X, _), Sel, P, S, C) :-
+  isPrefilter(X),  % holds for spatialjoin or loopjoin
+                   % isPrefilter defindad after cost clauses.
 
 %  X = spatialjoin(_, _, attrname(attr(Attr1, ArgNr1, Case1)),
 %                        attrname(attr(Attr2, ArgNr2, Case2))),
 %  getSimplePred(P, PSimple),
 %  databaseName(DB),
 %  storedBBoxSel(DB, PSimple, BBoxSel),
-%  cost(X, BBoxSel, SizeX, CostX),
+%  cost(X, BBoxSel, _, SizeX, CostX),
 
-  cost(X, Sel, SizeX, CostX),
+  cost(X, Sel, P, SizeX, CostX),
   filterTC(A),
   S is SizeX,
   C is CostX + A * SizeX, !.
 
 cost(filter(gettuples(rdup(sort(
       windowintersectsS(dbobject(IndexName), BBox))), rel(RelName, *)),
-      FilterPred), Sel, Size, Cost):-
+      FilterPred), Sel, _, Size, Cost):-
   dm(costFunctions,['cost(filter(gettuples(rdup(sort(windowintersectsS(...): ',
                     'IndexName= ',IndexName,', BBox=',BBox,
                     ', FilterPred=',FilterPred]),
@@ -3825,7 +4053,7 @@ cost(filter(gettuples(rdup(sort(
 %   write('...IndexCard' - IndexCard),nl,
 %   windowintersectsTC(WITC),
 %   write('...Inside cost estimation3 '),nl,
-%   CostWI is Sel * 1.2 * IndexCard * WITC * 0.25,   % including 20% false positives
+%   CostWI is Sel * 1.2 * IndexCard * WITC * 0.25, % including 20% false positives
 %   write('...Inside cost estimation4 '),nl,
 %   sorttidTC(STC),
 %   write('...Inside cost estimation5 '),nl,
@@ -3844,28 +4072,29 @@ cost(filter(gettuples(rdup(sort(
 
 
 
-cost(filter(X, _), Sel, S, C) :- 	% 'normal' filter
-  cost(X, 1, SizeX, CostX),
+cost(filter(X, _), Sel, P, S, C) :- 	% 'normal' filter
+  cost(X, 1, P, SizeX, CostX),
+  getPET(P, _, ExpPET),            % fetch stored predicate evaluation time
   filterTC(A),
   S is SizeX * Sel,
-  C is CostX + A * SizeX.
+  C is CostX + SizeX * (A + ExpPET).
   %C is CostX.
 
-cost(product(X, Y), _, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(product(X, Y), _, P, S, C) :-
+  cost(X, 1, P, SizeX, CostX),
+  cost(Y, 1, P, SizeY, CostY),
   productTC(A, B),
   S is SizeX * SizeY,
   C is CostX + CostY + SizeY * B + S * A.
 
-cost(leftrange(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(leftrange(_, Rel, _), Sel, P, Size, Cost) :-
+  cost(Rel, 1, P, RelSize, _),
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
 
-cost(rightrange(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(rightrange(_, Rel, _), Sel, P, Size, Cost) :-
+  cost(Rel, 1, P, RelSize, _),
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
@@ -3884,34 +4113,41 @@ input stream arrives, it is also possible to estimate the
 overall index join cost.
 
 */
-cost(exactmatchfun(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(exactmatchfun(_, Rel, _), Sel, P, Size, Cost) :-
+  cost(Rel, 1, P, RelSize, _),
   exactmatchTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
 
-cost(exactmatch(tmpindex(Rel, _), Rel, _), Sel, S, Cost) :-
+/*
+special handling for distance-queries which have to create an
+temporary index
+
+*/
+cost(exactmatch(dbobject(tmpindex(rel(Rel, _), _)), rel(Rel, _), _), Sel, P, S,
+     Cost) :-
   !,
-  cost(exactmatch(Rel, Rel, _), Sel, S, CostX),
+  cost(exactmatch(1, rel(Rel, _), _), Sel, P, S, CostX),
   createbtreeTC(C),
-  Cost is C * card(Rel) + CostX.
+  card(Rel, RelSize),
+  Cost is C * RelSize + CostX.
 
 
-cost(exactmatch(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(exactmatch(_, Rel, _), Sel, P, Size, Cost) :-
+  cost(Rel, 1, P, RelSize, _),
   exactmatchTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
 
-cost(loopjoin(X, Y), Sel, S, Cost) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, Sel, SizeY, CostY),
+cost(loopjoin(X, Y), Sel, P, S, Cost) :-
+  cost(X, 1, P, SizeX, CostX),
+  cost(Y, Sel, P, SizeY, CostY),
   S is SizeX * SizeY,
   loopjoinTC(C),
   Cost is C * SizeX + CostX + SizeX * CostY.
 
-cost(fun(_, X), Sel, Size, Cost) :-
-  cost(X, Sel, Size, Cost).
+cost(fun(_, X), Sel, P, Size, Cost) :-
+  cost(X, Sel, P, Size, Cost).
 
 
 
@@ -3929,9 +4165,9 @@ of computing products of buckets. Therefore that term
 was considered unnecessary.
 
 */
-cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(hashjoin(X, Y, _, _, NBuckets), Sel, P, S, C) :-
+  cost(X, 1, P, SizeX, CostX),
+  cost(Y, 1, P, SizeY, CostY),
   hashjoinTC(A, B),
   S is SizeX * SizeY * Sel,
   %showValue('SizeX', SizeX),
@@ -3946,8 +4182,8 @@ cost(hashjoin(X, Y, _, _, NBuckets), Sel, S, C) :-
   C is CostX + CostY + H.                       % producing the result tuples
 
 
-cost(sort(X), Sel, S, C) :-
-  cost(X, Sel, SizeX, CostX),
+cost(sort(X), Sel, P, S, C) :-
+  cost(X, Sel, P, SizeX, CostX),
   sortmergejoinTC(A, _),
   S is SizeX,
   C is CostX +                                  % producing the argument
@@ -3956,56 +4192,57 @@ cost(sort(X), Sel, S, C) :-
 
 
 % Sortby with empty sorting list is ignored:
-cost(sortby(X, []), Sel, S, C) :-
-  cost(X, Sel, S, C).
+cost(sortby(X, []), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C).
 
-cost(sortby(X, Y), Sel, S, C) :-
+cost(sortby(X, Y), Sel, P, S, C) :-
   Y \= [],
-  cost(sort(X), Sel, S, C).
+  cost(sort(X), Sel, P, S, C).
 
-cost(mergejoin(X, Y, _, _), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(mergejoin(X, Y, _, _), Sel, P, S, C) :-
+  cost(X, 1, P, SizeX, CostX),
+  cost(Y, 1, P, SizeY, CostY),
   sortmergejoinTC(_, B),
   S is SizeX * SizeY * Sel,
-  C is CostX + CostY +                        % producing the arguments
-    B * S.                                    % parallel scan of sorted relations
+  C is CostX + CostY +                     % producing the arguments
+    B * S.                                 % parallel scan of sorted relations
 
-cost(sortmergejoin(X, Y, AX, AY), Sel, S, C) :-
-  cost(mergejoin(sortby(X, [AX]),sortby(Y, [AY]), AX, AY), Sel, S, C).
+cost(sortmergejoin(X, Y, AX, AY), Sel, P, S, C) :-
+  cost(mergejoin(sortby(X, [AX]),sortby(Y, [AY]), AX, AY), Sel, P, S, C).
 
 
 % two rules used by the 'interesting orders extension':
-cost(sortLeftThenMergejoin(X, Y, AX, AY), Sel, S, C) :-
-  cost(mergejoin(sortby(X, [AX]), Y, AX, AY), Sel, S, C).
+cost(sortLeftThenMergejoin(X, Y, AX, AY), Sel, P, S, C) :-
+  cost(mergejoin(sortby(X, [AX]), Y, AX, AY), Sel, P, S, C).
 
-cost(sortRightThenMergejoin(X, Y, AX, AY), Sel, S, C) :-
-  cost(mergejoin(X, sortby(Y, [AY]), AX, AY), Sel, S, C).
+cost(sortRightThenMergejoin(X, Y, AX, AY), Sel, P, S, C) :-
+  cost(mergejoin(X, sortby(Y, [AY]), AX, AY), Sel, P, S, C).
 
 
 
 /*
-   Simple cost estimation for ~symmjoin~
+Simple cost estimation for ~symmjoin~
 
 */
-cost(symmjoin(X, Y, _), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(symmjoin(X, Y, _), Sel, P, S, C) :-
+  cost(X, 1, P, SizeX, CostX),
+  cost(Y, 1, P, SizeY, CostY),
+  getPET(P, _, ExpPET),                 % fetch stored predicate evaluation time
   symmjoinTC(A, B),                     % fetch relative costs
   S is SizeX * SizeY * Sel,             % calculate size of result
   C is CostX + CostY +                  % cost to produce the arguments
-    A * (SizeX * SizeY) +               % cost to handle buffers and collision
+    A * ExpPET * (SizeX * SizeY) +      % cost to handle buffers and collision
     B * S.                              % cost to produce result tuples
 
-cost(spatialjoin(X, Y, _, _), Sel, S, C) :-
-  cost(X, 1, SizeX, CostX),
-  cost(Y, 1, SizeY, CostY),
+cost(spatialjoin(X, Y, _, _), Sel, P, S, C) :-
+  cost(X, 1, P, SizeX, CostX),
+  cost(Y, 1, P, SizeY, CostY),
   spatialjoinTC(A, B),
   S is SizeX * SizeY * Sel,
   C is CostX + CostY +
-  A * (SizeX + SizeY) +                	% effort is essentially proportional to the
-					% sizes of argument streams
-  B * S.                                % cost to produce result tuples
+  A * (SizeX + SizeY) +           % effort is essentially proportional to the
+                                  % sizes of argument streams
+  B * S.                          % cost to produce result tuples
 
 
 /*
@@ -4013,51 +4250,51 @@ costs for pjoin2 will only be used if option ~adpativeJoin~ is enabled.
 
 */
 
-cost(pjoin2(X, Y, [ _ | _ ]), Sel, Size, C) :-
-  cost(X, 1, SizeX, _),
-  cost(Y, 1, SizeY, _),
+cost(pjoin2(X, Y, [ _ | _ ]), Sel, P, Size, C) :-
+  cost(X, 1, P, SizeX, _),
+  cost(Y, 1, P, SizeY, _),
   Size is Sel * SizeX * SizeY,
-  cost(sortmergejoin(X, Y, _, _), Sel, S1, C1),
-  cost(hashjoin(X, Y, _, _, 99997), Sel, S1, C2),
+  cost(sortmergejoin(X, Y, _, _), Sel, P, S1, C1),
+  cost(hashjoin(X, Y, _, _, 99997), Sel, P, S1, C2),
   C is min(C1, C2).
 
-cost(pjoin2_hj(X, Y, [ _ | _ ]), Sel, Size, C) :-
-  cost(hashjoin(X, Y, _, _, 99997), Sel, Size, C).
+cost(pjoin2_hj(X, Y, [ _ | _ ]), Sel, P, Size, C) :-
+  cost(hashjoin(X, Y, _, _, 99997), Sel, P, Size, C).
 
-cost(pjoin2_smj(X, Y, [ _ | _ ]), Sel, Size, C) :-
-  cost(hashjoin(X, Y, _, _, 99997), Sel, Size, C).
+cost(pjoin2_smj(X, Y, [ _ | _ ]), Sel, P, Size, C) :-
+  cost(hashjoin(X, Y, _, _, 99997), Sel, P, Size, C).
 
-cost(extend(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(extend(X, _), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C1),
   extendTC(A),
   C is C1 + A * S.
 
-cost(remove(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(remove(X, _), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C1),
   removeTC(A),
   C is C1 + A * S.
 
-cost(project(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(project(X, _), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C1),
   projectTC(A),
   C is C1 + A * S.
 
-cost(rename(X, _), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(rename(X, _), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C1),
   renameTC(A),
   C is C1 + A * S.
 
 % Xris: Added, costfactors not verified
-cost(rdup(X), Sel, S, C) :-
-  cost(X, Sel, S, C1),
+cost(rdup(X), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C1),
   sortmergejoinTC(A, _),
   C is C1 + A * S.
 
 
 
 %fapra1590
-cost(windowintersects(_, Rel, _), Sel, Size, Cost) :-
-  cost(Rel, 1, RelSize, _),
+cost(windowintersects(_, Rel, _), Sel, P, Size, Cost) :-
+  cost(Rel, 1, P, RelSize, _),
   windowintersectsTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
@@ -4065,37 +4302,43 @@ cost(windowintersects(_, Rel, _), Sel, Size, Cost) :-
 % Cost function copied from windowintersects
 % May be wrong, but as it is usually used together
 % with 'gettuples', the total cost should be OK
-cost(windowintersectsS(dbobject(IndexName), _), Sel, Size, Cost) :-
+cost(windowintersectsS(dbobject(IndexName), _), Sel, P, Size, Cost) :-
   % get relationName Rel from Index
   concat_atom([RelName|_],'_',IndexName),
   dcName2internalName(RelDC,RelName),
   Rel = rel(RelDC, *),
-  cost(Rel, 1, RelSize, _),
+  cost(Rel, 1, P, RelSize, _),
   windowintersectsTC(C),
   Size is Sel * RelSize,  % bad estimation, may contain additional dublicates
   Cost is Sel * RelSize * C * 0.25. % other 0.75 applied in 'gettuples'
 
-cost(gettuples(X, _), Sel, Size, Cost) :-
-  cost(X, Sel, Size, CostX),
+cost(gettuples(X, _), Sel, P, Size, Cost) :-
+  cost(X, Sel, P, Size, CostX),
   windowintersectsTC(C),
   Cost is   CostX            % expected to include cost of 'windowintersectsS'
           + Size * C * 0.75. % other 0.25 applied in 'windowintersectsS'
 
-cost(pogstream, _, Size, 0) :-
+/*
+For distance-queries
+
+*/
+
+% get the size from the POG's high node
+cost(pogstream, _, _, Size, 0) :-
   highNode(Node),
   resultSize(Node, Size).
 
-cost(distancescan(_, Rel, _, _), Sel, Size, Cost) :-
-  cost(Rel, Sel, Size, C1),
+cost(distancescan(_, Rel, _, _), Sel, P, Size, Cost) :-
+  cost(Rel, Sel, P, Size, C1),
   distancescanTC(C),
   Cost is C1 + C * Size * log(Size + 1).
 
-cost(ksmallest(X, K), Sel, S, C) :-
-  cost(X, Sel, SizeX, CostX),
+cost(ksmallest(X, K), Sel, P, S, C) :-
+  cost(X, Sel, P, SizeX, CostX),
   ksmallestTC(A, B),
   S is min(SizeX, K),
-  C is CostX +                                  % producing the argument
-    A * SizeX * log(SizeX + 1) +                % sorting the arguments
+  C is CostX +
+    A * SizeX * log(SizeX + 1) +
     B * S * log(SizeX + 1).
 
 % Section:Start:cost_4_e
@@ -4120,11 +4363,11 @@ and therefore commented out:
 ----
 
 % Dummy-Costs for simple aggregation queries
-cost(simpleAggrNoGroupby(_, Stream, _), Sel, Size, Cost) :-
-  cost(Stream, Sel, Size, Cost).
+cost(simpleAggrNoGroupby(_, Stream, _), Sel, P, Size, Cost) :-
+  cost(Stream, Sel, P, Size, Cost).
 
 cost(simpleUserAggrNoGroupby(Stream, _, _, _),
-  Sel, Size, Cost) :- cost(Stream, Sel, Size, Cost).
+  Sel, P, Size, Cost) :- cost(Stream, Sel, P, Size, Cost).
 
 ----
 
@@ -4175,8 +4418,10 @@ createCostEdge :- % use standard cost functions
   not(optimizerOption(nawracosts)),
   not(optimizerOption(improvedcosts)),
   planEdge(Source, Target, Term, Result),
+  edge(Source, Target, EdgeTerm, _, _, _),
+  ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred) ),
   edgeSelectivity(Source, Target, Sel),
-  cost(Term, Sel, Size, Cost),
+  cost(Term, Sel, Pred, Size, Cost), % Code changed by Goehr
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
   fail.
 
@@ -5116,8 +5361,7 @@ lookup(select Attrs from Rels where Preds,
   makeList(Rels2, Rels2List),
   makeList(Preds2, Preds2List),
   (optimizerOption(entropy)
-    -> registerSelfJoins(Preds2List, 1); true).
-					% needed for entropy optimizer
+    -> registerSelfJoins(Preds2List, 1); true). % needed for entropy optimizer
 
 lookup(select Attrs from Rels,
         select Attrs2 from Rels2) :-
@@ -5230,6 +5474,15 @@ makeList(L, L) :- is_list(L).
 
 makeList(L, [L]) :- not(is_list(L)).
 
+/*
+
+----    dissolvelist(+ListIn, -ElementOut)
+----
+
+Removes the brackets of ListIn, if ListIn Contains only one element
+
+*/
+
 
 dissolveList([], []) :- !.
 
@@ -5326,6 +5579,15 @@ lookupRel(X,Y) :- !,
   throw(error_SQL(optimizer_lookupRel(X,Y):unknownRelation#ErrMsg)),
   fail.
 
+/*
+----    lookupRelNoDblCheck(+Rel, -Rel2) :-
+----
+
+Translate and store a single relation definition without looking for
+duplicate attributes.
+
+*/
+
 %%%% Begin: for update and insert
 lookupRelNoDblCheck(Rel, rel(RelDC, *)) :-
   atomic(Rel),       %% changed code FIXME
@@ -5333,6 +5595,15 @@ lookupRelNoDblCheck(Rel, rel(RelDC, *)) :-
   relation(RelDC, _), !,
   assert(queryRel(RelDC, rel(RelDC, *))).
 %%%% End: for update and insert
+
+
+/*
+----    lookupIndex(+Rel, -Rel2) :-
+----
+
+Translate and store a single index definition.
+
+*/
 
 lookupIndex(Rel, RelDC) :-
   atomic(Rel),
@@ -5716,6 +5987,13 @@ lookupPattern( NPredList , NPredList2, RelsBefore, RelsAfter) :-
 	lookupPatternPreds(PredList, PredList2, RelsBefore, RelsAfter),
 	composeNPredList(PredList2, AliasList, NPredList2).
 
+/*
+----    lookupTransformations(+Transf, -Transf2)
+----
+
+Handles the transformations in an update command
+*/
+
 %%%% Begin: for update and insert
 lookupTransformations([], []) :- !.
 
@@ -5727,11 +6005,24 @@ lookupTransformations(Trans, Trans2) :-
   not(is_list(Trans)),
   lookupTransformation(Trans, Trans2), !.
 
+/*
+----    lookupTransformation(+Transf, -Transf2)
+----
+
+Handles one transformation in an update command
+*/
+
 lookupTransformation(Attr = Expr, Attr2 = Expr2) :-
   lookupAttr(Attr,Attr2),
   lookupSetExpr(Expr, Expr2),
   !.
 
+/*
+----    lookupSetExpr(+Expr, -Expr2)
+----
+
+Handles the expressions in the set-clause of an update command
+*/
 
 lookupSetExpr([], []) :- !.
 
@@ -5858,7 +6149,7 @@ translate1(Query groupby Attrs,
   attrnamesSort(Attrs2, AttrNamesSort),
   SelectClause = (select Select),
   makeList(Select, SelAttrs),
-  translateFields(SelAttrs, Attrs2, Fields, Select2),
+  translateFields(SelAttrs, Attrs2, Fields, Select2,_,_),
   !.
 
 translate1(Query, Stream3, Select2, Update, Cost2) :-
@@ -5879,42 +6170,72 @@ translate1(Query, Stream2, Select2, Update, Cost) :-
   rewritePlanforCSE(Stream, Stream2, Select, Select2), % Hook for CSE substitution
   !.
 
+%    the main predicate which does the translation of a query
+%    translate(+Query, -Stream, -SelectClause, -Cost).
+%  This version of the predicate is only used while the optimizer option
+%  earlyproject is active.
+% (Clause added by Goehr)
+translate(Query groupby Attrs,
+        groupby(sortby(projectextend(Stream,AExtend1,[FExtend|ExtendAttrs]),
+                                     AttrNamesSort), AttrNamesGroup, Fields),
+        select Select3, Update, Cost) :-
+  optimizerOption(earlyproject),
+  translate(Query, Stream, SelectClause, Update, Cost),
+  makeList(Attrs, Attrs2),
+  Attrs2 \= [],
+  SelectClause = (select Select),
+  makeList(Select, SelAttrs),
+  translateFields(SelAttrs, Attrs2, Fields, Select2, ExtendAttrs,ProjectAttrs),
+  getProjectAttrs(Select,Attrs2,FExtend,Project),
+  getProjectAttrs1(Select,Attrs2,ProjectAttrs,AExtend),
+  attrnames(Project, AttrNamesGroup),
+  attrnames(AExtend,AExtend1),
+  attrnamesSort(Project, AttrNamesSort),
+  delExtends(Select2,Select3),
+  !.
+
 % the main predicate which does the translation of a query
 %   translate(+Query, -Stream, -SelectClause, -Cost)
 translate(Query groupby Attrs,
         groupby(sortby(Stream, AttrNamesSort), AttrNamesGroup, Fields),
         select Select2, Update, Cost) :-
-  translate(Query, Stream, SelectClause, Update, Cost),
+  translate(Query, Stream, SelectClause, Update, Cost), % Added by Goehr
   makeList(Attrs, Attrs2),
   attrnames(Attrs2, AttrNamesGroup),
   attrnamesSort(Attrs2, AttrNamesSort),
   SelectClause = (select Select),
   makeList(Select, SelAttrs),
-  translateFields(SelAttrs, Attrs2, Fields, Select2),
+  % translateFields(SelAttrs, Attrs2, Fields, Select2), % Original Code
+  translateFields(SelAttrs, Attrs2, Fields, Select2,_,_), % change by Goehr
   !.
 
+% insert query
 translate(insert into Rel values Val,
         Stream, select*, [], 0) :-
   updateIndex(insert, Rel, inserttuple(Rel, Val), Stream),
   !.
 
+% delete query
 translate(delete from Rel where Condition,
         Stream, Select, delete from Rel, Cost) :-
   translate(select * from Rel where Condition, Stream, Select, _, Cost),
   !.
 
 
+% delete query
 translate(delete from Rel,
         Stream, Select, delete from Rel, Cost) :-
   translate(select * from Rel, Stream, Select, _, Cost),
   !.
 
+% update query
 translate(update Rel set Transformations where Condition,
         Stream, Select, update Rel set Transformations2, Cost) :-
   translate(select * from Rel where Condition, Stream, Select, _, Cost),
   translateTransformations(Transformations, Transformations2),
   !.
 
+% update query
 translate(update Rel set Transformations,
         Stream, Select, update Rel set Transformations2, Cost) :-
   translate(select * from Rel, Stream, Select, _, Cost),
@@ -5997,11 +6318,12 @@ translate(Select from [Rel | Rels],
   newVariable(T2),
   !.
 
-
+% special handling for distance-queries
 makeStream(Rel, distancescan(IndexName, Rel, Attr, HeadCount)) :- 
   Rel = rel(_, *),
   distanceRel(Rel, IndexName, Attr, HeadCount), !.
 
+% special handling for distance-queries
 makeStream(Rel, rename(distancescan(IndexName, Rel, Attr, HeadCount), Var)) :- 
   Rel = rel(_, Var),
   distanceRel(Rel, IndexName, Attr, HeadCount), !.
@@ -6010,11 +6332,73 @@ makeStream(Rel, feed(Rel)) :- Rel = rel(_, *), !.
 
 makeStream(Rel, rename(feed(Rel), Var)) :- Rel = rel(_, Var).
 
+/*
+Begin Code added by Goehr
+
+*/
+
+% Delete all attributes from ~SelectClause~ which
+% otherwise would be extended in the finish part.
+delExtends([],[]).
+
+delExtends([Name|Select],[Name|NewAttr]) :-
+  attr(_,_,_) = Name,
+  delExtends(Select,NewAttr),
+  !.
+
+delExtends([_ as Name|Select],[Name|NewAttr]) :-
+  delExtends(Select,NewAttr),
+  !.
+
+/*
+---- getProjectAttrs(+SelectClause,+GroupAttrs,-FExtend,-ProjectAttrs)
+----
+
+getProjectAttrs is part of the earlyproject optimizerOption
+and gathers all attribute which must be included in
+the projectextend before sortby.
+
+*/
+getProjectAttrs(_,[],[],[]).
+
+
+getProjectAttrs(Select,GroupAttrs,[field(SName,SExpr)|ExtendAttrs],
+                                  [SName|ProjectAttrs]) :-
+  Select = [SExpr as SName |RestSelect],
+  GroupAttrs = [GExpr|RestGroup],
+  SExpr = GExpr,
+  getProjectAttrs(RestSelect,RestGroup,ExtendAttrs,ProjectAttrs),
+  !.
+
+getProjectAttrs(Select,GroupAttrs,ExtendAttrs,[SName|ProjectAttrs]) :-
+  Select = [SExpr as SName |_],
+  GroupAttrs = [GExpr|RestGroup],
+  SExpr \= GExpr,
+  getProjectAttrs(Select,RestGroup,ExtendAttrs,ProjectAttrs),
+  !.
+
+% ---- getProjectAttrs1(+Select,+GroupAttrs,+ProjAttrs,-IntersAttrs)
+% ----
+getProjectAttrs1(Select,GroupAttrs,GroupAttrs2,AExtend) :-
+  GroupAttrs2 = [attr(_,_,_)|_],
+  list_to_set(Select,SelectSet),
+  list_to_set(GroupAttrs,GroupAttrsSet),
+  intersection(SelectSet,GroupAttrsSet,Intersect),
+  append(Intersect,GroupAttrs2,AExtend),
+  !.
+
+getProjectAttrs1(_,_,[],[]).
+
+
+/*
+End Code added by Goehr
+
+*/
 
 /*
 The next predicate finds all attributes of a given relation ~Rel~
 which are needed in this query. The result can be used to create
-project(feed(..)) streams instead of simply feeding all attributes
+project(feed(...)) streams instead of simply feeding all attributes
 from a relation into a stream. The system predicate ~setof~ is used
 to find all goal for query ~usedAttr(Rel,X)~.
 
@@ -6031,10 +6415,11 @@ renameAttributes(Var, [attrname(attr(Attr,Arg,Case))|AttrNames],
                 ) :-
   renameAttributes(Var, AttrNames, RenamedAttrNames), !.
 
-
+/* Begin Code modified by Goehr */
 
 /*
-----    translateFields(+Select, +GroupAttrs, -Fields, -Select2) :-
+----  translateFields(+Select, +GroupAttrs,
+                      -Fields, -Select2, -ExtendAttrs, -ProjectAttrs)
 ----
 
 Translate the ~Select~ clause of a query containing ~groupby~. Grouping
@@ -6045,51 +6430,68 @@ which will translate to a corresponding projection operation.
 
 */
 
-translateFields([], _, [], []).
+translateFields([], _, [], [],_,_).
 
 % case: attribute without rename
-translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2]) :-
+translateFields([Attr | Select], GroupAttrs, Fields, [Attr | Select2],
+                ExtendAttrs, ProjectAttrs) :-
   member(Attr, GroupAttrs),
   !,
-  translateFields(Select, GroupAttrs, Fields, Select2).
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs).
 
 % case: attribute with rename
 translateFields([Attr as Name | Select], GroupAttrs, Fields,
-                [Attr as Name | Select2]) :-
+                [Attr as Name | Select2], ExtendAttrs, ProjectAttrs) :-
   member(Attr, GroupAttrs),
   !,
-  translateFields(Select, GroupAttrs, Fields, Select2).
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs).
 
 /*
-  Aggregations using ~count~ need a translation different from other
-  simple aggregation operators:
+Aggregations using ~count~ need a translation different from other
+simple aggregation operators:
 
 */
 
 % case: count(*) / count(all *) with rename
 translateFields([count(*) as NewAttr | Select], GroupAttrs,
-        [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
-  translateFields(Select, GroupAttrs, Fields, Select2),
+        [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2],
+        ExtendAttrs, ProjectAttrs) :-
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 translateFields([count(all *) as NewAttr | Select], GroupAttrs,
-        [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2]) :-
-  translateFields(Select, GroupAttrs, Fields, Select2),
+        [field(NewAttr , count(feed(group))) | Fields], [NewAttr | Select2],
+        ExtendAttrs, ProjectAttrs) :-
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 % case: count(distinct *) with rename
 translateFields([count(distinct *) as NewAttr | Select], GroupAttrs,
         [field(NewAttr , count(rdup(sort(feed(group))))) | Fields],
-        [NewAttr | Select2]) :-
-  translateFields(Select, GroupAttrs, Fields, Select2),
+        [NewAttr | Select2],ExtendAttrs, ProjectAttrs) :-
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 % case: count(attr) / count(all attr) with rename
 % (does not count rows, where the attr is undefined)
 translateFields([count(Term) as NewAttr | Select], GroupAttrs,
   [field(NewAttr,count(filter(feed(group),not(isempty(attr(A,B,C))))))|Fields],
-  [NewAttr | Select2]) :-
+  [NewAttr | Select2],[],[Term|Term2]) :-
+  optimizerOption(earlyproject),
   ( Term = attr(A,B,C) ; Term = (all attr(A,B,C)) ),
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,[],Term2),
+  !.
+
+translateFields([count(Term) as NewAttr | Select], GroupAttrs,
+  [field(NewAttr,count(filter(feed(group),not(isempty(attr(A,B,C))))))|Fields],
+  [NewAttr | Select2],ExtendAttrs, ProjectAttrs) :-
+  ( Term = attr(A,B,C) ; Term = (all attr(A,B,C)) ),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 % case: count(distinct attr) with rename
@@ -6097,14 +6499,16 @@ translateFields([count(Term) as NewAttr | Select], GroupAttrs,
 translateFields([count(distinct attr(A,B,C)) as NewAttr | Select], GroupAttrs,
   [field(NewAttr,count(rdup(sort(project(filter(feed(group),
   not(isempty(attr(A,B,C)))),AttrName)))))|Fields],
-  [NewAttr | Select2]) :-
+  [NewAttr | Select2],ExtendAttrs, ProjectAttrs) :-
   attrnames([attr(A,B,C)], AttrName),
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 % case: count(distinct expr) with rename
 translateFields([count(distinct Expr) as NewAttr | Select], GroupAttrs,
-  [field(NewAttr,count(CountStream))|Fields], [NewAttr | Select2]) :-
+          [field(NewAttr,count(CountStream))|Fields], [NewAttr | Select2],
+          ExtendAttrs, ProjectAttrs) :-
   compound(Expr),
   newVariable(ExpAttrName),
   Expr \= attr(_,_,_),
@@ -6112,12 +6516,14 @@ translateFields([count(distinct Expr) as NewAttr | Select], GroupAttrs,
                          [newattr(attrname(attr(ExpAttrName, 1, l)), Expr)]),
   CountStream = rdup(sort(filter(AttrExtStream,
                                  not(isempty(attr(ExpAttrName, 1, l)))))),
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 % case: count(expr) / count(all expr) with rename
 translateFields([count(Term) as NewAttr | Select], GroupAttrs,
-  [field(NewAttr,count(CountStream))|Fields], [NewAttr | Select2]) :-
+          [field(NewAttr,count(CountStream))|Fields], [NewAttr | Select2],
+          ExtendAttrs, ProjectAttrs) :-
   (Term = (all Expr) ; Term = Expr),
   compound(Expr),
   Expr \= attr(_,_,_),
@@ -6125,50 +6531,56 @@ translateFields([count(Term) as NewAttr | Select], GroupAttrs,
   AttrExtStream = extend(feed(group),
                          [newattr(attrname(attr(ExpAttrName, 1, l)), Expr)]),
   CountStream = filter(AttrExtStream ,not(isempty(attr(ExpAttrName, 1, l)))),
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 /*
-  Generic rules for simple predifined aggregation functions, similar to sum,
-  min, max, avg.
-  For these operators, the property ~isAggregationOP(Op)~ is declared in file
-  ``operators.pl''. For ``count'', there are special cases (see above).
-  These aggregation functions are expected to ignore undefined values and
-  therefore we can do without filter(X,not(isempty(Y))).
+Generic rules for simple predifined aggregation functions, similar to sum,
+min, max, avg.
+For these operators, the property ~isAggregationOP(Op)~ is declared in file
+``operators.pl''. For ``count'', there are special cases (see above).
+These aggregation functions are expected to ignore undefined values and
+therefore we can do without filter(X,not(isempty(Y))).
 
 */
 
 % case: simple predefined aggregation functions (always with rename!)
 %       aggrop(distinct attr) with rename
 translateFields([Term as NewAttr | Select], GroupAttrs,
-  [field(NewAttr, Term2) | Fields], [NewAttr | Select2]) :-
+          [field(NewAttr, Term2) | Fields], [NewAttr | Select2],
+          ExtendAttrs, ProjectAttrs) :-
   compound(Term),
   Term =.. [AggrOp, (distinct attr(Name, Var, Case))],
   isAggregationOP(AggrOp),
   attrnames([attr(Name, Var, Case)], AttrName),
   AggStream = rdup(sort(project(feed(group),AttrName))),
   Term2 =.. [AggrOp, AggStream, attrname(attr(Name, Var, Case))],
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 % case: simple predefined aggregation functions (always with rename!)
 %       aggrop(attr) / aggrop(all attr) with rename
 translateFields([Term as NewAttr | Select], GroupAttrs,
-        [field(NewAttr, Term2) | Fields], [NewAttr| Select2]) :-
+        [field(NewAttr, Term2) | Fields], [NewAttr| Select2],
+        ExtendAttrs, ProjectAttrs) :-
   compound(Term),
   (   Term =.. [AggrOp, (all attr(Name, Var, Case))]
     ; Term =.. [AggrOp, attr(Name, Var, Case)]
   ),
   isAggregationOP(AggrOp),
   Term2 =.. [AggrOp, feed(group), attrname(attr(Name, Var, Case))],
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 % case: simple predefined aggregation functions
 %       over expression (always with rename!)
 %       aggrop(distinct expr) with rename
 translateFields([Term as NewAttr | Select], GroupAttrs,
-  [field(NewAttr, Term2) | Fields], [NewAttr | Select2]) :-
+          [field(NewAttr, Term2) | Fields], [NewAttr | Select2],
+          ExtendAttrs, ProjectAttrs) :-
   compound(Term),
   Term =.. [AggrOp, (distinct Expr)],
   isAggregationOP(AggrOp),
@@ -6179,14 +6591,30 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
                          [newattr(attrname(attr(ExprAttr, 0, l)), Expr)]),
   AggStream = rdup(sort(project(AttrExtStream, ExprAttrName))),
   Term2 =.. [AggrOp, AggStream, attrname(attr(ExprAttr, 0, l))],
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 % case: simple predefined aggregation functions
 %       over expression (always with rename!)
 %       aggrop(expr) / aggrop(all expr) with rename
 translateFields([Term as NewAttr | Select], GroupAttrs,
-  [field(NewAttr, Term2) | Fields], [NewAttr | Select2]) :-
+          [field(NewAttr, Term2) | Fields], [NewAttr | Select2],
+          [ExtendAttrs|ExtendAttrs2],[]) :-
+  optimizerOption(earlyproject),
+  compound(Term),
+  ( Term =.. [AggrOp, (all Expr)]; Term =.. [AggrOp, Expr] ),
+  isAggregationOP(AggrOp),
+  Expr \= attr(_,_,_),
+  newVariable(ExprAttr),
+  AttrExtStream = feed(group),
+  Term2 =.. [AggrOp, AttrExtStream, attrname(attr(ExprAttr, 0, u))],
+  ExtendAttrs = field(attr(ExprAttr, 0, u),Expr),
+  translateFields(Select, GroupAttrs, Fields, Select2, ExtendAttrs2,[]),
+  !.
+
+translateFields([Term as NewAttr | Select], GroupAttrs,
+  [field(NewAttr, Term2) | Fields], [NewAttr | Select2],_,_) :-
   compound(Term),
   ( Term =.. [AggrOp, (all Expr)]; Term =.. [AggrOp, Expr] ),
   isAggregationOP(AggrOp),
@@ -6195,21 +6623,24 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
   AttrExtStream = extend(feed(group),
                          [newattr(attrname(attr(ExprAttr, 0, u)), Expr)]),
   Term2 =.. [AggrOp, AttrExtStream, attrname(attr(ExprAttr, 0, u))],
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,_,_),
   !.
 
 % case: ERROR simple predefined aggregation functions (missing new name)
-translateFields([Term | Select], GroupAttrs, Fields, Select2) :-
+translateFields([Term | Select], GroupAttrs, Fields, Select2,
+                ExtendAttrs, ProjectAttrs) :-
   compound(Term),
   Term =.. [AggrOp, _],
   isAggregationOP(AggrOp),
 %  Term2 =.. [AggrOp, feed(group), attrname(Attr)],
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   concat_atom(['Malformed expression: Missing name for aggregation ',
                'expression.'],ErrMsg), nl,
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_translateFields([Term | Select], GroupAttrs,
-                                            Fields, Select2)
+                                            Fields, Select2, ExtendAttrs,
+                                            ProjectAttrs)
                                            :malformedExpression#ErrMsg)),
   !.
 
@@ -6253,7 +6684,7 @@ The SQL-syntax is as follows:
 %       over distinct attribute (without defined-filtering)
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
-        [NewAttr| Select2]) :-
+        [NewAttr| Select2],ExtendAttrs, ProjectAttrs) :-
   compound(Term),
   Term =.. [AggrOp, (distinct attr(Name, Var, Case)), FunOp, Type, Default],
   member(AggrOp, [aggregate]),
@@ -6266,14 +6697,15 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
             attrname(attr(Name, Var, Case)),
             fun([ param(Var1, Type), param(Var2, Type)], AggrFun),
             Default],
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 % case: complex/user defined arbitrary aggregation functions over
 %       all attribute (without defined-filtering)
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
-        [NewAttr| Select2]) :-
+        [NewAttr| Select2],ExtendAttrs, ProjectAttrs) :-
   compound(Term),
   (   Term =.. [AggrOp, (all attr(Name, Var, Case)), FunOp, Type, Default]
     ; Term =.. [AggrOp,      attr(Name, Var, Case) , FunOp, Type, Default]
@@ -6287,14 +6719,15 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
             attrname(attr(Name, Var, Case)),
             fun([ param(Var1, Type), param(Var2, Type)], AggrFun),
             Default],
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 % case: complex/arbitrary aggregation functions over distinct expression
 %       over distinct attribute (without defined-filtering)
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
-        [NewAttr| Select2]) :-
+        [NewAttr| Select2],ExtendAttrs, ProjectAttrs) :-
   compound(Term),
   Term =.. [AggrOp, (distinct Expr), FunOp, Type, Default],
   member(AggrOp, [aggregate]),
@@ -6311,14 +6744,15 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
              attrname(attr(ExprAttr, 0, l)),
              fun([param(Var1, Type),param(Var2, Type)],AggrFun),
              Default],
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
 
 % case: complex/arbitrary aggregation functions over all expression
 %       over distinct attribute (without defined-filtering)
 translateFields([Term as NewAttr | Select], GroupAttrs,
         [field(NewAttr, Term2) | Fields],
-        [NewAttr| Select2]) :-
+        [NewAttr| Select2],ExtendAttrs, ProjectAttrs) :-
   compound(Term),
   (   Term =.. [AggrOp, (all Expr), FunOp, Type, Default]
     ; Term =.. [AggrOp, Expr, FunOp, Type, Default]
@@ -6334,50 +6768,65 @@ translateFields([Term as NewAttr | Select], GroupAttrs,
              attrname(attr(ExpAttrName, 0, l)),
              fun([param(Var1, Type),param(Var2, Type)],AggrFun),
              Default],
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttrs),
   !.
-
 
 % case: ERROR complex/user defined arbitrary aggregation functions
 %       missing new name
-translateFields([Term | Select], GroupAttrs,
-        Fields,
-        Select2) :-
+translateFields([Term | Select], GroupAttrs, Fields, Select2,
+                ExtendAttrs, ProjectAttr) :-
   compound(Term),
   Term =.. [AggrOp, _, _, _],
   member(AggrOp, [aggregate]),
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttr),
   term_to_atom(Term,XA),
   concat_atom(['Malformed expression: Missing name for aggregation ',
                'expression in \'',XA,'\'.'],'',ErrMsg), nl,
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_translateFields([Term | Select], GroupAttrs,
-                                            Fields, Select2)
+                                            Fields, Select2,
+                                            ExtendAttrs, ProjectAttr)
                                            :malformedExpression#ErrMsg)),
   !.
 
 % case: ERROR (general error case)
-translateFields([Attr | Select], GroupAttrs, Fields, Select2) :-
+translateFields([Attr | Select], GroupAttrs, Fields, Select2,
+                ExtendAttrs, ProjectAttr) :-
   not(member(Attr, GroupAttrs)),
   !,
-  translateFields(Select, GroupAttrs, Fields, Select2),
+  translateFields(Select, GroupAttrs, Fields, Select2,
+                  ExtendAttrs, ProjectAttr),
   term_to_atom(Attr,XA),
   concat_atom(['Malformed expression: ',XA,' is neither a grouping attribute ',
                'nor an aggregate expression.'],'',ErrMsg), nl,
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_translateFields([Attr | Select], GroupAttrs,
-                                            Fields, Select2)
+                                            Fields, Select2,
+                                            ExtendAttrs, ProjectAttr)
                                            :malformedExpression#ErrMsg)),
   !.
 
 % case: ERROR (fallback error case)
-translateFields(X, GroupAttrs, Fields, Select2) :-
+translateFields(X, GroupAttrs, Fields, Select2, ExtendAttrs, ProjectAttr) :-
   term_to_atom(X,XA),
   concat_atom(['Malformed expression in fields: \'', XA, '\'.'],'',ErrMsg), nl,
   write_list(['ERROR: ',ErrMsg]),
-  throw(error_SQL(optimizer_translateFields(X, GroupAttrs, Fields, Select2)
+  throw(error_SQL(optimizer_translateFields(X, GroupAttrs, Fields, Select2,
+                                            ExtendAttrs, ProjectAttr)
                                            :malformedExpression#ErrMsg)),
   !.
+
+/* End Code modified by Goehr */
+
+/*
+----    translateTransformations(+Transf, -Transf2)
+----
+
+Translates the transformations in an update-command
+
+*/
 
 translateTransformations([], []) :-
   !.
@@ -6386,8 +6835,24 @@ translateTransformations([Transf|Rest], [Transf2|Rest2]) :-
   translateTransformation(Transf, Transf2),
   translateTransformations(Rest, Rest2).
 			 
+/*
+----  translateTransformation(+Transf, -Transf2)
+----
+
+Translates one transformation in an update-command
+
+*/
+
 translateTransformation(Attr = Term, set(Attr, Term)).
 
+
+/*
+----    translateColumns(+Col, -Col2)
+----
+
+Translates the columns in a create table command
+
+*/
 
 translateColumns([], []) :- 
   !.
@@ -6397,70 +6862,45 @@ translateColumns([Column|Rest], [Column2|Rest2]) :-
   translateColumns(Rest, Rest2),
   !.
 
+/*
+----    translateColumn(+Col, -Col2)
+----
+
+Translates one column in a create table command
+
+*/
+
 translateColumn(Name: Type, column(Name, Type2)) :- 
   translateType(Type, Type2), !.
 
+
+/*
+----    translateType(+Type, -Type2)
+----
+
+Translates an SQL-Type to a SECONDO-Type
+
+*/
 
 translateType(integer, int) :- !.
 translateType(boolean, bool) :- !.
 
 translateType(Type, Type) :- !.
 
+/*
+----    translateDistanceQuery(+Query, +DistAttr1, +DistAttr2,
+			       +HeadCount, -Stream, -Select, -Update, -Cost)
+----
 
-assertDistanceRel([Rel|_], X, Y, HeadCount) :-
-  Rel = rel(_,_),
-  X = attr(_, _, _),
-  hasIndex(Rel, X ,DCindex, rtree),
-  dcName2externalName(DCindex,IndexName), !,
-  assert(distanceRel(Rel, IndexName, Y, HeadCount)).
-	
-assertDistanceRel([Rel|_], X, Y, HeadCount) :-
-  Rel = rel(_,_),
-  Y = attr(_, _, _),
-  hasIndex(Rel, Y ,DCindex, rtree),
-  dcName2externalName(DCindex,IndexName), !,
-  assert(distanceRel(Rel, IndexName, X, HeadCount)).
+Translates a query which is ordered by the distance between ~DistAttr1~
+and ~DistAttr2~. ~HeadCount~ is the number of object to look for in the
+distance query
 
-assertDistanceRel([_|Rels], X, Y, HeadCount) :-
-  assertDistanceRel(Rels, X, Y, HeadCount).
+*/
 
-
-finishDistanceSort(Stream, Cost, X, Y, 0, StreamOut, Cost2) :-
-  !, newVariable(ExprAttrName),
-  ExprAttr = attr(ExprAttrName, *, l),
-  StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, distance(X, Y))]),
-			    attrname(ExprAttr)), 
-		     attrname(ExprAttr)),
-  cost(remove(sort(extend(pogstream, _)), _), 1, _, CostTmp),
-  Cost2 is Cost + CostTmp.
-
-finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
-  !, newVariable(ExprAttrName),
-  ExprAttr = attr(ExprAttrName, *, l),
-  StreamOut = remove(ksmallest(extend(Stream, 
-				      [field(ExprAttr, distance(X, Y))]), 
-			       HeadCount, attrname(ExprAttr)), 
-		     attrname(ExprAttr)),
-  cost(remove(ksmallest(extend(pogstream, _), HeadCount), _), 1, _,
-       CostTmp),
-  Cost2 is Cost + CostTmp.
-
-finishDistanceSortRTree(StreamIn, CostIn, HeadCount, 
-			head(StreamIn, HeadCount), CostOut) :-
-  highNode(Node),
-  resultSize(Node, Size),
-  CostOut is CostIn * min(HeadCount, Size) / Size.
-
-chooseFasterSolution(StreamOut1, SelectOut1, Update1, Cost1, _, _, _, Cost2, 
-		     StreamOut1, SelectOut1,Update1, Cost1) :- 
-  Cost1 < Cost2, !.
-
-chooseFasterSolution(_, _, _, _, StreamOut2, SelectOut2, Update2, Cost2, 
-		     StreamOut2, SelectOut2, Update2, Cost2).
-
-
-translateDistanceQuery(Select from [Rel], X, Y, HeadCount, StreamOut, 
-		       SelectOut, Update, Cost) :-
+translateDistanceQuery(Select from Rel, X, Y, HeadCount, 
+		       StreamOut, SelectOut, Update, Cost) :-
+  Rel = rel(_, _),
   assertDistanceRel([Rel], X, Y, HeadCount), !,
   translate1(Select from [Rel], StreamOut, SelectOut, Update, Cost),
   retractall(distanceRel(Rel, _, _, HeadCount)).
@@ -6733,6 +7173,9 @@ userDefAggrQuery(Query last N, Query1 last N, AggrExpr, Fun, Default) :-
   userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default), !.
 
 /*
+----    updateQuery(+Query)
+----
+
 Check whether ~Query~ is an update query.
 
 */
@@ -6756,11 +7199,13 @@ Same as ~queryToPlan~, but returns a stream plan, if possible.
 
 */
 
+% special handling for distance-queries
 queryToStream(Query orderby [distance(X, Y)] first N, StreamOut, Cost) :-
   !, translateDistanceQuery(Query, X, Y, N, Stream, Select, Update, Cost),
   finish(Stream, Select, [], Stream2),
   finishUpdate(Update, Stream2, StreamOut).
 
+% special handling for distance-queries
 queryToStream(Query orderby [distance(X, Y)], StreamOut, Cost) :-
   !, translateDistanceQuery(Query, X, Y, 0, Stream, Select, Update, Cost),
   finish(Stream, Select, [], Stream2),
@@ -6997,68 +7442,8 @@ attrnameSort(Attr desc, attrname(Attr) desc) :- !.
 
 attrnameSort(Attr, attrname(Attr) asc).
 
-/*
-
----- rewriteForDistanceSort(+StreamIn, +AttrsIn, -StreamOut, -AttrsOut,
-     -NewAttrs) :-
-----
-
-Transform the distance operator in the orderby-clause.
-
-*/
-
-rewriteForDistanceSort(Stream, [], Stream, [], []).
-
-rewriteForDistanceSort(Stream, distance(X, Y), StreamOut, ExprAttr, 
-		       attrname(ExprAttr)) :-
-  !, newVariable(ExprAttrName),
-  ExprAttr = attr(ExprAttrName, *, l),
-  StreamOut = extend(Stream, [field(ExprAttr, distance(X, Y))]).
-
-rewriteForDistanceSort(Stream, [Attr | Attrs], StreamOut, [Attr2 | Attrs2],
-		      NewAttrsOut) :-
-  rewriteForDistanceSort(Stream, Attr, Stream2, Attr2, NewAttr),
-  rewriteForDistanceSort(Stream2, Attrs, StreamOut, Attrs2, NewAttrs),
-  concatNonEmpty(NewAttr, NewAttrs, NewAttrsOut).
-
-rewriteForDistanceSort(Stream, Attr asc, StreamOut, Attr2 asc, NewAttrs) :-
-  rewriteForDistanceSort(Stream, Attr, StreamOut, Attr2, NewAttrs).
-
-rewriteForDistanceSort(Stream, Attr desc, StreamOut, Attr2 desc, NewAttrs) :-
-  rewriteForDistanceSort(Stream, Attr, StreamOut, Attr2, NewAttrs).
-
-rewriteForDistanceSort(Stream, Attr, Stream, Attr, []).
 
 /*
-
----- concatNonEmpty(+Elem, +List, -ListOut) :-
-----
-
-Adds ~Elem~ to the front of ~List~ if ~Elem~ is not empty
-
-*/
-
-
-concatNonEmpty([], List, List).
-
-concatNonEmpty(Attr, List, [Attr | List]).
-
-/*
-
----- removeAttrs(+StreamIn, +NewAttrs, -StreamOut).
-----
-
-Removes the Attributes ~NewAttrs~ from the query
-
-*/
-
-
-removeAttrs(StreamIn, [], StreamIn).
-
-removeAttrs(StreamIn, NewAttrs, remove(StreamIn, NewAttrs)).
-
-/*
-
 
 11.3.8 Integration with Optimizer
 
@@ -7613,7 +7998,15 @@ let(X, Term, SecondoQueryRest) :- defaultExceptionHandler((
   secondo(Command)
  )).
 
-% for create and drop-queries
+/* 
+----    sqlNoQuery(+Term)
+----
+
+special handling for create and drop-queries, which do not use the
+query command in SECONDO
+
+*/
+
 sqlNoQuery(Term) :-  defaultExceptionHandler((
   isDatabaseOpen,
   mOptimize(Term, Query, Cost),
@@ -7622,6 +8015,15 @@ sqlNoQuery(Term) :-  defaultExceptionHandler((
   multiquery(Query)
  )).
 
+/* 
+----    multiquery(+Querylist)
+----
+
+Executes all queries in ~Querylist~.
+This is used for the drop command, which can result in multiple queries
+in SECONDO to delete the relation and all indices.
+
+*/
 
 multiquery([]) :- !.
 
@@ -7818,6 +8220,12 @@ allCards :-
 /*
 19.1 Update the Index after an Insert, Update or Delete-Operation
 
+----    updateIndex(+Operation, +Rel, +Stream, -Stream2)
+----
+
+Extends ~Stream~ by the commands which are necessary to update the indices 
+of ~Rel~
+
 */
 
 updateIndex(Operation, [rel(Rel, Var)], StreamIn, StreamOut) :-
@@ -7825,6 +8233,14 @@ updateIndex(Operation, [rel(Rel, Var)], StreamIn, StreamOut) :-
   updateIndex(Operation, rel(Rel, Var), Attrs, StreamIn, StreamOut),
   !.
 
+/*
+----    updateIndex(+Operation, +Rel, +Attrs, +Stream, -Stream2)
+----
+
+Extends ~Stream~ by the commands which are necessary to update the indices 
+of ~Rel~ on the Attributes ~Attrs~
+
+*/
 
 updateIndex(_, _, [], StreamIn, StreamIn) :-
   !.
@@ -7835,11 +8251,29 @@ updateIndex(Operation, Rel, [Attr|Attrs], StreamIn, StreamOut) :-
   updateIndex(Operation, Rel, Attrs, Stream, StreamOut).
 
 
+/*
+----    updateAttrIndex(+Operation, +Rel, +Attr, +Stream, -Stream2)
+----
+
+Extends ~Stream~ by the commands which are necessary to update the indices 
+of ~Rel~ on the Attribute ~Attr~
+
+*/
+
 updateAttrIndex(Operation, Rel, Attr, StreamIn, StreamOut) :-
   findall((DCindex, LogicalIndexType), 
 	  hasIndex(Rel, Attr, DCindex, LogicalIndexType), List),
   updateAttrIndex(Operation, Rel, Attr, List, StreamIn, StreamOut), 
   !.
+
+/*
+----    updateAttrIndex(+Operation, +Rel, +Attr, +Indices, +Stream, -Stream2)
+----
+
+Extends ~Stream~ by the commands which are necessary to update the indices 
+of ~Rel~ on the Attribute ~Attr~
+
+*/
 
 updateAttrIndex(_, _, _, [], StreamIn, StreamIn) :- !.
 
@@ -7851,6 +8285,16 @@ updateAttrIndex(Operation, Rel, Attr, [(DCindex, LogicalIndexType)|Rest],
 		   StreamIn, Stream2),
   updateAttrIndex(Operation, Rel, Attr, Rest, Stream2, StreamOut), 
   !.
+
+/*
+----    updateTypedIndex(+Operation, +Attr, +IndexName, +IndexType, +Stream, 
+                         -Stream2)
+----
+
+Extends ~Stream~ by the commands which are necessary to update the index 
+~IndexName~ on the Attribute ~Attr~
+
+*/
 
 updateTypedIndex(insert, Attr, IndexName, btree, StreamIn,
 		 insertbtree(StreamIn, IndexName, Attr)) :-
@@ -7899,6 +8343,11 @@ updateTypedIndex(drop, _, IndexName, _, StreamIn,
 /*
 19.2 Split the select and update clause
 
+----    splitSelect(+Clause, -SelectClause, -UpdateClause)
+----
+
+Splits ~Clause~ into ~SelectClause~ and ~UpdateCluase~
+
 */
 
 splitSelect(select SelectClause, select SelectClause, []) :-
@@ -7911,6 +8360,12 @@ splitSelect(UpdateClause select SelectClause, select SelectClause,
 
 /*
 19.3 Insert the update commands in the end of the operation
+
+----    finishUpdate(+UpdateClause, +Stream, -Stream2)
+----
+
+Extends ~Stream~ by the commands for an insert, delete or update-
+operation.
 
 */
 	
@@ -7935,6 +8390,19 @@ finishUpdate(drop table Rel, Stream2, Stream3) :-
   !.
 
 
+/*
+20 Auxiliary functions for create index
+
+*/
+
+/*
+----    convertToLfName(+Name, -LFName)
+----
+
+Converts ~Name~ to the form which is needed by keyAttributeTypeMatchesIndexType
+
+*/
+
 convertToLfName([], []) :- !.
 
 convertToLfName(attr(DcName, _, _), LfName) :-
@@ -7946,13 +8414,35 @@ convertToLfName(rel(DcName, _), LfName) :-
 convertToLfName([FullName, Rest], [LfName, Rest2]) :- 
   convertToLfName(FullName, LfName),
   convertToLfName(Rest, Rest2), !.
+  
 
+/*
+21 Distance queries
+
+*/
+
+/*
+----    upperBound(+Rel, +Node, -UpperBound)
+----
+
+Calculates the maximum number of elements, the arp of ~Node~ which contains
+~Rel~ can have
+
+*/
 
 upperBound(Rel, node(_, _, Arps), UpperBound) :-
   select(X, Arps, _),
   X = arp(_, RelsX, _),
   member(Rel, RelsX),
   upperBound(RelsX, UpperBound).
+
+/*
+----    upperBound(+Rels, -UpperBound)
+----
+
+Calculates the maximum number of elements, a join of Rels can have
+
+*/
 
 upperBound([], 1) :-
   !.
@@ -7962,5 +8452,212 @@ upperBound([rel(Rel, _)|Rels], UpperBound) :-
   card(Rel, Card),
   UpperBound is UpperBound1 * Card.
 
-writeDebug(Text) :- 
-  write(Text), nl.
+
+/*
+----    addPlanVariables(+Plan, +Variables, -Plan2)
+----
+
+Adds ~Variables~ to the beginning of ~Plan~
+This is used for distance-queries using temporary indices
+
+*/
+
+addPlanVariables(Result, [], Result) :- !.
+
+addPlanVariables(ResultIn, [[Var, Expr]|Rest], ResultOut) :-
+  addPlanVariables(ResultIn, Rest, ResultTmp),
+  concat_atom([Expr, ' within[fun(', Var, ':ANY) ', ResultTmp, ']'], 
+	      ResultOut).
+
+/*
+----    call_plan_to_atom(+Plan, -Result)
+----
+
+Converts ~Plan~ to a SECONDO-Term and adds the variables needed
+for temporary indices to the beginning of ~Result~
+
+*/
+
+call_plan_to_atom(Plan, Result) :-
+  plan_to_atom(Plan, Result1),
+  findall([Variable, Expression], planvariable(Variable, Expression), L),
+  addPlanVariables(Result1, L, Result),
+  retractall(planvariable(_, _)).
+
+/*
+----    assertDistanceRel(+Rels, +DistAttr1, +DistAttr2, +HeadCount)
+----
+
+Checks whether an rtree-index on ~DistAttr1~ or ~DistAttr2~ exists in ~Rels~
+
+*/
+
+assertDistanceRel([Rel|_], X, Y, HeadCount) :-
+  Rel = rel(_,_),
+  X = attr(_, _, _),
+  hasIndex(Rel, X ,DCindex, rtree),
+  dcName2externalName(DCindex,IndexName), !,
+  assert(distanceRel(Rel, IndexName, Y, HeadCount)).
+	
+assertDistanceRel([Rel|_], X, Y, HeadCount) :-
+  Rel = rel(_,_),
+  Y = attr(_, _, _),
+  hasIndex(Rel, Y ,DCindex, rtree),
+  dcName2externalName(DCindex,IndexName), !,
+  assert(distanceRel(Rel, IndexName, X, HeadCount)).
+
+assertDistanceRel([_|Rels], X, Y, HeadCount) :-
+  assertDistanceRel(Rels, X, Y, HeadCount).
+
+
+/*
+----    finishDistanceSort(+Stream, +Cost, +DistAttr1, +DistAttr2, 
+                           +HeadCount, -Stream2, -Cost2)
+----
+
+Adds the commands to sort ~Stream~ by the distance between ~DistAttr1~ and
+~DistAttr2~ and calculates the additional costs
+
+*/
+
+finishDistanceSort(Stream, Cost, X, Y, 0, StreamOut, Cost2) :-
+  !, newVariable(ExprAttrName),
+  ExprAttr = attr(ExprAttrName, *, l),
+  StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, distance(X, Y))]),
+			    attrname(ExprAttr)), 
+		     attrname(ExprAttr)),
+  cost(remove(sort(extend(pogstream, _)), _), 1, _, CostTmp),
+  Cost2 is Cost + CostTmp.
+
+finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
+  !, newVariable(ExprAttrName),
+  ExprAttr = attr(ExprAttrName, *, l),
+  StreamOut = remove(ksmallest(extend(Stream, 
+				      [field(ExprAttr, distance(X, Y))]), 
+			       HeadCount, attrname(ExprAttr)), 
+		     attrname(ExprAttr)),
+  cost(remove(ksmallest(extend(pogstream, _), HeadCount), _), 1, _,
+       CostTmp),
+  Cost2 is Cost + CostTmp.
+
+/*
+----    finishDistanceSortRTree(+Stream, +Cost, +HeadCount, -Stream2, -Cost2)
+----
+
+Adds the commands for a distancescanquery which are not set by the POG and
+corrects the cost estimation according to ~HeadCount~
+
+*/
+
+finishDistanceSortRTree(StreamIn, CostIn, HeadCount, 
+			head(StreamIn, HeadCount), CostOut) :-
+  highNode(Node),
+  resultSize(Node, Size),
+  CostOut is CostIn * min(HeadCount, Size) / Size.
+
+/*
+----    chooseFasterSolution(+Stream1, +Select1, +Update1, +Cost1,
+                             +Stream2, +Select2, +Update2, +Cost2,
+                             -Stream3, -Select3, -Update3, -Cost3)
+----
+
+Compares the costs of the two possible solutions and returns the faster one
+
+*/
+
+chooseFasterSolution(StreamOut1, SelectOut1, Update1, Cost1, _, _, _, Cost2, 
+		     StreamOut1, SelectOut1,Update1, Cost1) :- 
+  Cost1 < Cost2, !.
+
+chooseFasterSolution(_, _, _, _, StreamOut2, SelectOut2, Update2, Cost2, 
+		     StreamOut2, SelectOut2, Update2, Cost2).
+
+/*
+
+---- rewriteForDistanceSort(+StreamIn, +AttrsIn, -StreamOut, -AttrsOut,
+     -NewAttrs) :-
+----
+
+Transform the distance operator in the orderby-clause.
+
+*/
+
+rewriteForDistanceSort(Stream, [], Stream, [], []).
+
+rewriteForDistanceSort(Stream, distance(X, Y), StreamOut, ExprAttr, 
+		       attrname(ExprAttr)) :-
+  !, newVariable(ExprAttrName),
+  ExprAttr = attr(ExprAttrName, *, l),
+  StreamOut = extend(Stream, [field(ExprAttr, distance(X, Y))]).
+
+rewriteForDistanceSort(Stream, [Attr | Attrs], StreamOut, [Attr2 | Attrs2],
+		      NewAttrsOut) :-
+  rewriteForDistanceSort(Stream, Attr, Stream2, Attr2, NewAttr),
+  rewriteForDistanceSort(Stream2, Attrs, StreamOut, Attrs2, NewAttrs),
+  concatNonEmpty(NewAttr, NewAttrs, NewAttrsOut).
+
+rewriteForDistanceSort(Stream, Attr asc, StreamOut, Attr2 asc, NewAttrs) :-
+  rewriteForDistanceSort(Stream, Attr, StreamOut, Attr2, NewAttrs).
+
+rewriteForDistanceSort(Stream, Attr desc, StreamOut, Attr2 desc, NewAttrs) :-
+  rewriteForDistanceSort(Stream, Attr, StreamOut, Attr2, NewAttrs).
+
+rewriteForDistanceSort(Stream, Attr, Stream, Attr, []).
+
+/*
+
+---- concatNonEmpty(+Elem, +List, -ListOut) :-
+----
+
+Adds ~Elem~ to the front of ~List~ if ~Elem~ is not empty
+
+*/
+
+
+concatNonEmpty([], List, List).
+
+concatNonEmpty(Attr, List, [Attr | List]).
+
+/*
+
+---- removeAttrs(+StreamIn, +NewAttrs, -StreamOut).
+----
+
+Removes the Attributes ~NewAttrs~ from the query
+
+*/
+
+
+removeAttrs(StreamIn, [], StreamIn).
+
+removeAttrs(StreamIn, NewAttrs, remove(StreamIn, NewAttrs)).
+
+/*
+
+/*
+
+examples
+
+*/
+% Example: distance query, no predicate (database berlintest)
+sqlExample( 305,
+  select *
+  from kinos
+  orderby distance(geoData, mehringdamm) first 5
+  ).
+
+% Example: distance query, selection predicate (database berlintest)
+sqlExample( 306,
+  select *
+  from ubahnhof 
+  where typ = "Zone A"
+  orderby distance(geoData, alexanderplatz) first 5
+  ).
+
+% Example: distance query, join predicate (database berlintest)
+sqlExample( 307,
+  select *
+  from [orte2, staedte] 
+  where name = sname
+  orderby distance(geoData, alexanderplatz) first 5
+  ).
