@@ -536,8 +536,8 @@ Result    : (mbool ((("2003-11-20-06:06" "2003-11-20-07:02" TRUE FALSE) TRUE)))
 
 Operator  : p2mp
 Number    : 1
-Signature : p x instant x instant -> mpoint
-Example   : query p2mp( point(2 3),theInstant(2003,11,20,6),theInstant(2003,11,20,7))
+Signature : p x instant x instant x int -> mpoint
+Example   : query p2mp( point(2 3),theInstant(2003,11,20,6),theInstant(2003,11,20,7),1)
 Result    :((("2003-11-20-06:00" "2003-11-20-07:00" TRUE TRUE)(2.0 3.0 2.0 3.0)))
 
 
