@@ -43,40 +43,55 @@ where
 		 	n:nregionkey = r:rregionkey,	
 		 	r:rname = "EUROPE"]
 	 )]
-orderby[sacctbal desc,
-		 nname,
-	   sname,
-	   ppartkey] 
+orderby
+	[sacctbal desc,
+	nname,
+	sname,
+	ppartkey] 
 first 100
 \end{lstlisting}
 
 Die erste temporäre Relation ist die Restriktion der im inneren Abfrageblock verwendeten Relationen des äußeren Blocks auf die benötigten Attribute.
 
 \begin{lstlisting}[caption=TempRel1]
-select distinct[ppartkey, pspartkey] from [part, partsupp]
+select distinct
+	[ppartkey, 
+	pspartkey] 
+from 
+	[part, 
+	partsupp]
 \end{lstlisting}
 
 Einschränkung der inneren Relation durch alle \emph{simplen} Prädikaten.
 
 \begin{lstlisting}[caption=TempRel2]
-select*
-from[partsupp as ps, 
-		supplier as s, 
-		nation as n, 
-		region as r]
-where[s:ssuppkey = ps:pssuppkey, 
-		s:snationkey = n:nnationkey, 
-		n:nregionkey = r:rregionkey, 
-		r:rname = "EUROPE"]
+select
+	*
+from
+	[partsupp as ps, 
+	supplier as s, 
+	nation as n, 
+	region as r]
+where
+	[s:ssuppkey = ps:pssuppkey, 
+	s:snationkey = n:nnationkey, 
+	n:nregionkey = r:rregionkey, 
+	r:rname = "EUROPE"]
 \end{lstlisting}
 
 Join der äußeren und inneren Relationen und Berechnung der Aggregation. Da sich Optimierer und ausführbare Ebene in der Syntax für umbenannte Tupel unterscheiden muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden.
 
 \begin{lstlisting}[caption=TempRel3]
-select[pspartkey_ps, min(pssupplycost_ps) as var1]
-from [txxrel1, txxrel2]
-where [ppartkey = pspartkey_ps]
-groupby pspartkey_ps
+select
+	[pspartkey_ps, 
+	min(pssupplycost_ps) as var1]
+from
+	[txxrel1, 
+	txxrel2]
+where 
+	[ppartkey = pspartkey_ps]
+groupby 
+	pspartkey_ps
 \end{lstlisting}
 
 \begin{lstlisting}[caption=Entschachtelte Variante von Abfrage Q2]
@@ -99,20 +114,26 @@ where
 	rname="EUROPE", 
 	ppartkey=txxrel4:pspartkey_ps, 
 	pssupplycost=txxrel4:var1]
-orderby[sacctbal desc, 
-		 nname, 
-		 sname, 
-		 ppartkey]
+orderby
+	[sacctbal desc, 
+	nname, 
+	sname, 
+	ppartkey]
 first 100
 \end{lstlisting}
 
 \subsection{TPC-D Q4}
-Diese Abfrage ermittelt, wie gut das 
+Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. Es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf.
+Als Parameter DATE wurde der Wert aus der Abfrage-Überprüfung gewählt
+\begin{itemize}
+	\item DATE = 1993-07-01
+\end{itemize}
 \begin{lstlisting}[caption=Abfrage Q4]
 select
 	[oorderpriority,
 	 count(*) as ordercount]
-from orders
+from 
+	orders
 where		
 	[oorderdate >= instant("1993-07-01"),		
 	oorderdate < theInstant(
@@ -121,23 +142,36 @@ where
 	 	day_of(instant("1993-07-01"))
 	),
 	exists(
-	 	select *
-		from lineitem
+	 	select 
+	 		*
+		from 
+			lineitem
 		where
-			[lorderkey = oorderkey, lcommitdate < lreceiptdate]
+			[lorderkey = oorderkey, 
+			lcommitdate < lreceiptdate]
 	)]
-groupby [oorderpriority]
-orderby	[oorderpriority]
+groupby 
+	[oorderpriority]
+orderby	
+	[oorderpriority]
 \end{lstlisting}
 
 Projektion der äußeren Relation auf die Join-Spalte.
 \begin{lstlisting}[caption=TempRel1]
-select distinct[oorderkey] from orders
+select 
+	distinct[oorderkey] 
+from 
+	orders
 \end{lstlisting}
 
 Einschränkung der inneren Relation mit allen \emph{simplen} Prädikate.
 \begin{lstlisting}[caption=TempRel2]
-select * from lineitem where[lcommitdate < lreceiptdate]
+select 
+	* 
+from 
+	lineitem 
+where
+	[lcommitdate < lreceiptdate]
 \end{lstlisting}
 
 
@@ -154,29 +188,657 @@ consume
 \end{lstlisting}
 
 \begin{lstlisting}[caption=Entschachtelte Variante von Q4]
-select [oorderpriority, 
-	count(*)as ordercount] 
-from [orders, 
+select 
+	[oorderpriority, 
+	count(*) as ordercount] 
+from 
+	[orders, 
 	txxrel3 as txxrel5] 
-where [oorderdate>=instant("1993-07-01"), 
-	oorderdate<theInstant(year_of(instant("1993-07-01")), 
-	month_of(instant("1993-07-01")) + 3, 
-	day_of(instant("1993-07-01"))), 
+where 
+	[oorderdate>=instant("1993-07-01"), 
+	oorderdate<theInstant(
+		year_of(instant("1993-07-01")), 
+		month_of(instant("1993-07-01")) + 3, 
+		day_of(instant("1993-07-01"))
+	), 
 	oorderkey = txxrel5:lorderkey, 
 	0 < txxrel5:var1] 
-groupby [oorderpriority] 
-orderby [oorderpriority]
+groupby 
+	[oorderpriority] 
+orderby 
+	[oorderpriority]
 \end{lstlisting}
 
 \subsection{TPC-D Q7}
+Diese Abfrage listet für zwei gewählte Länder den Wert der versandten Waren. Es wird Wert der Waren der zwischen Lieferanten und Kunden länderübergreifend versandt wurde ausgegeben, gruppiert nach Land des Lieferanten, Land des Kunden und Jahr. 
+\begin{lstlisting}[caption=Abfrage Q7]
+select
+	[supp_nation,
+	 cust_nation,
+	 lyear, 
+	 sum(volume) as revenue]
+from (
+	select
+		[n1:nname as supp_nation,
+		 n2:nname as cust_nation,
+		 year_of(lshipdate) as lyear,
+		 lextendedprice * (1 - ldiscount) as volume]
+	from
+		[supplier, 
+		lineitem,
+		orders, 
+		customer,
+		nation as n1, 
+		nation as n2]
+	where
+		[ssuppkey = lsuppkey,
+		oorderkey = lorderkey,
+		ccustkey = ocustkey,
+		snationkey = n1:nnationkey,
+		cnationkey = n2:nnationkey,
+		(n1:nname = "FRANCE" and n2:nname = "GERMANY")
+		or 
+		(n1:nname = "GERMANY" and n2:nname = "FRANCE"),
+		between(instant2real(lshipdate), 
+			instant2real(instant("1995-01-01")), 
+			instant2real(instant("1996-12-31"))
+		)]
+	) as shipping
+groupby	
+	[supp_nation, 
+	cust_nation, 
+	lyear]
+orderby	
+	[supp_nation, 
+	cust_nation, 
+	lyear]
+\end{lstlisting}
+
+Ermittlung der Grunddaten, über die selektiert wird.
+\begin{lstlisting}[caption=TempRel1]
+select 
+	[n1:nname as supp_nation, 
+	n2:nname as cust_nation, 
+	year_of(lshipdate)as lyear, 
+	lextendedprice* (1-ldiscount)as volume]
+from 
+	[supplier, 
+	lineitem, 
+	orders, 
+	customer, 
+	nation as n1, 
+	nation as n2]
+where 
+	[ssuppkey = lsuppkey, 
+	oorderkey = lorderkey, 
+	ccustkey = ocustkey, 
+	snationkey = n1:nnationkey, 
+	cnationkey = n2:, 
+	(n1:nname = "FRANCE" and n2:nname = "GERMANY")
+	or 
+	(n1:nname = "GERMANY" and n2:nname = "FRANCE"), 
+	between(instant2real(lshipdate), 
+		instant2real(instant("1995-01-01")), 
+		instant2real(instant("1996-12-31"))
+	)]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Entschachtelte Variante von Q7]
+select 
+	[supp_nation, 
+	cust_nation, 
+	lyear, 
+	sum(volume)as revenue]
+from 
+	txxrel1 
+groupby 
+	[supp_nation, 
+	cust_nation, 
+	lyear]
+orderby 
+	[supp_nation, 
+	cust_nation, 
+	lyear]
+\end{lstlisting}
+
 \subsection{TPC-D Q9}
+Ermittelt den Gewinn, der mit bestimmten Teilen gemacht wurde, gruppiert nach Land und Jahr. Gewinn ist hier definiert als rabattierter Verkaufspreis - Einkaufspreis * Anzahl.
+\begin{lstlisting}[caption=Abfrage Q9]
+select
+	[nation,
+	 oyear,
+	 sum(amount) as sumprofit]
+from (
+	select
+		[nname as nation,
+		 year_of(oorderdate) as oyear,
+		 lextendedprice * (1 - ldiscount) - pssupplycost * lquantity as amount]
+	from
+		[part, supplier,
+		 lineitem, partsupp,
+		 orders, nation]
+	where
+		[ssuppkey = lsuppkey,
+		 pssuppkey = lsuppkey,
+		 pspartkey = lpartkey,
+		 ppartkey = lpartkey,
+		 oorderkey = lorderkey,
+		 snationkey = nnationkey,
+		 pname contains "green"]
+	)  as profit
+groupby
+	[nation, 
+	oyear]
+orderby
+	[nation, 
+	oyear desc]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel1]
+select 
+	[nname as nation, 
+	year_of(oorderdate)as oyear, 
+	lextendedprice * (1 - ldiscount) - pssupplycost * lquantity as amount]
+from 
+	[part, 
+	supplier, 
+	lineitem, 
+	partsupp, 
+	orders, 
+	nation]
+where 
+	[ssuppkey = lsuppkey, 
+	pssuppkey = lsuppkey, 
+	pspartkey = lpartkey, 
+	ppartkey = lpartkey, 
+	oorderkey = lorderkey, 
+	snationkey = nnationkey, 
+	pname contains "green"]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Entschachtelte Variante von Q9]
+select 
+	[nation, 
+	oyear, 
+	sum(amount)as sumprofit]
+from 
+	txxrel1 
+groupby 
+	[nation, 
+	oyear]
+orderby 
+	[nation, 
+	oyear desc]
+\end{lstlisting}
+
 \subsection{TPC-D Q15}
+Diese Abfrage ermittelt den Top-Lieferanten. Es wird der Lieferant ermittelt, der das meiste zum Umsatz im gewählten Quartal beigetragen hat, gibt es mehrere, so werden sie nach Lieferantennummer geordnet angezeigt.
+\begin{lstlisting}[caption=Abfrage Q15] 
+select
+	[ssuppkey, 
+	sname,
+	saddress, 
+	sphone,
+	total_revenue]
+from
+	[supplier, 
+	revenue]
+where
+	[ssuppkey = supplier_no,
+	total_revenue = (select max(total_revenue) from revenue)]
+orderby [ssuppkey]
+\end{lstlisting}
+
+Da \scshape{SECONDO} \upshape keine Views unterstützt, wird hier eine temporäre Tabelle angelegt.
+\begin{lstlisting}[caption=Definition von revenue]
+select
+	[lsuppkey as supplier_no, 
+	sum(lextendedprice* (1-ldiscount))as total_revenue]
+from 
+	lineitem 
+where
+	[lshipdate>=instant("1996-01-01"), 
+	lshipdate<theInstant(
+		year_of(instant("1996-01-01")), 
+		month_of(instant("1996-01-01"))+3, 
+		day_of(instant("1996-01-01"))
+	)]
+groupby
+	[lsuppkey]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Entschachtelte Variante von Q15]
+select
+	[ssuppkey, 
+	sname, 
+	saddress, 
+	sphone, 
+	total_revenue]
+from
+	[supplier, 
+	revenue]
+where
+	[ssuppkey=supplier_no, 
+	total_revenue=678596.0]
+orderby
+	[ssuppkey]
+\end{lstlisting}
+
 \subsection{TPC-D Q16}
+Mit dieser Abfrage wird die Anzahl der Lieferanten für bestimmte Teile ermittelt. Die Teile dürfen nicht von einem bestimmten Typ sein, nicht von einer bestimmten Marke und es darf keine Kundenbeschwerden über den Lieferanten geben.
+\begin{lstlisting}[caption=Abfrage Q16]
+select
+	[pbrand, 
+	ptype, 
+	psize,
+	count(distinct pssuppkey) as suppliercnt]
+from
+	[partsupp, 
+	part]
+where
+	[ppartkey = pspartkey,
+	not(pbrand = "Brand#45"),
+	not(ptype starts "MEDIUM POLISHED"),
+	psize in (49, 14, 23, 45, 19, 3, 36, 9),
+	pssuppkey not in(
+		select 
+			ssuppkey
+		from 
+			supplier
+		where
+    	[scomment contains "Customer",
+			 scomment contains "Complaints"]
+		)]
+groupby
+	[pbrand, 
+	ptype, 
+	psize]
+orderby
+	[suppliercnt desc, 
+	pbrand, 
+	ptype, 
+	psize]
+\end{lstlisting}
+
 \subsection{TPC-D Q17}
+Diese Abfrage beantwortet, wieviel Umsatz verloren ginge, falls Bestellungen über kleine Mengen bestimmter Teile nicht mehr ausgeführt würden.
+\begin{lstlisting}[caption=Abfrage Q17]
+select
+	[sum(lextendedprice / 7.0) as avg_yearly]		
+from
+	[lineitem, part]
+where
+	[ppartkey = lpartkey,
+	 pbrand = "Brand#23",
+	 pcontainer = "MED BOX",
+	 lquantity < (
+		select
+			avg(0.2 * l1:lquantity)
+		from
+			[lineitem as l1]
+		where
+			[l1:lpartkey = ppartkey]
+	)]
+groupby	[]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel1]
+select distinct
+	[lpartkey, 
+	ppartkey]
+from
+	[lineitem,
+	part]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel2]
+select
+	*
+from
+	[lineitem as l1]
+where
+	[]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel3]
+select
+	[lpartkey_l1, 
+	avg(0.2*lquantity_l1)as var1]
+from
+	[txxrel1, 
+	txxrel2]
+where
+	[lpartkey_l1 = ppartkey]
+groupby 
+	lpartkey_l1
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Entschachtelte Variante von Q17]
+select
+	[sum(lextendedprice/7.0)as avg_yearly]
+from
+	[lineitem, 
+	part, 
+	txxrel3 as txxrel4]
+where
+	[ppartkey = lpartkey, 
+	pbrand = "Brand#23", 
+	pcontainerv = "MED BOX", 
+	ppartkey = txxrel4:lpartkey_l1, 
+	lquantity < txxrel4:var1]
+groupby
+	[]
+\end{lstlisting}
 \subsection{TPC-D Q20}
+Identifiziert Liefereanten, die einen Überschuss an bestimmten Teilen haben. Überschuss ist hier definiert als mehr als 50\% der von einem Lieferanten versandten Teile über ein Jahr. Nur Teile mit einem vorgegebenen Namensbestandteil werden betrachtet.
+\begin{lstlisting}[caption=Abfrage Q20]
+select
+	[sname,
+	 saddress]
+from
+	[supplier, nation]
+where
+	[ssuppkey in (
+		select
+			[pssuppkey]
+		from
+			[partsupp]
+		where
+			[pspartkey in (
+				select ppartkey
+				from part
+				where
+					tostring(pname) starts "forest"
+			),
+			psavailqty > (
+				select sum(lquantity * 0.5)
+				from lineitem
+				where
+					[lpartkey = pspartkey,
+					lsuppkey = pssuppkey,
+					lshipdate >= instant("1994-01-01"),
+					lshipdate < theInstant(
+						year_of(instant("1994-01-01")) + 1, 
+					 	month_of(instant("1994-01-01")), 
+					 	day_of(instant("1994-01-01"))
+					 )]
+			)]
+		),
+	 snationkey = nnationkey,
+	 nname = "CANADA"]
+orderby	
+	[sname]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel1]
+select distinct
+	[pspartkey, 
+	pssuppkey]
+from 
+	partsupp
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel2]
+select
+	*
+from 
+	lineitem 
+where
+	[]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel3]
+select
+	[lpartkey, 
+	sum(lquantity*0.5)as var2]
+from
+	[txxrel1, 
+	txxrel2]
+where
+	[lpartkey = pspartkey]
+groupby 
+	lpartkey
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Entschachtelte Variante von Abfrage Q20]
+select
+	[sname, 
+	saddress]
+from
+	[supplier, 
+	nation, 
+	partsupp, 
+	part, 
+	txxrel5 as txxrel6]
+where
+	[ssuppkey = pssuppkey, 
+	pspartkey = ppartkey, 
+	tostring(pname) starts "forest", 
+	pspartkey = txxrel6:lpartkey, 
+	psavailqty > txxrel6:var1, 
+	snationkey = nnationkey, 
+	nname = "CANADA"]
+orderby
+	[sname]
+\end{lstlisting}
+
 \subsection{TPC-D Q21}
+Diese Abfrage ermittelt Lieferanten die bei einer Mehr-Lieferanten Bestellung nicht pünktlich geliefert haben.
+\begin{lstlisting}[caption=Abfrage Q21]
+select
+	[sname, count(*) as numwait]
+from
+	[supplier, lineitem as l1,
+	 orders, nation]
+where
+	[ssuppkey = l1:lsuppkey,
+	oorderkey = l1:lorderkey,
+	oorderstatus = "F",
+	l1:lreceiptdate > l1:lcommitdate,
+	exists(
+		select *
+		from lineitem as l2
+		where
+			[l2:lorderkey = l1:lorderkey,
+			not(l2:lsuppkey = l1:lsuppkey)]
+	),
+	not(exists(
+		select *
+		from lineitem as l3
+		where
+			[l3:lorderkey = l1:lorderkey,
+			not(l3:lsuppkey = l1:lsuppkey),
+			l3:lreceiptdate > l3:lcommitdate]
+	)),
+	snationkey = nnationkey,
+	nname = "SAUDI ARABIA"]
+groupby	[sname]
+orderby	[numwait desc, sname] 
+first 100
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel1]
+select distinct
+	[l1:lorderkey, 
+	l1:lsuppkey]
+from 
+	lineitem as l1
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel2]
+select
+	*
+from 
+	lineitem as l2 
+where
+	[]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel3]
+txxrel1  feed 
+txxrel2  feed  
+smouterjoin[lORDERKEY_l1,lORDERKEY_l2] 
+extend[var1: ifthenelse(isempty(.lORDERKEY_l2), 0, 1)] 
+sortby[lORDERKEY_l1 asc] 
+groupby[lORDERKEY_l1;Var1: group feed sum[var1]] 
+projectextend[Var1; lORDERKEY_l2: .lORDERKEY_l1] 
+consume
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel1 die zweite]
+select distinct
+	[l1:lorderkey, 
+	l1:lsuppkey]
+from 
+	lineitem as l1
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel2 die zweite]
+select
+	*
+from 
+	lineitem as l3 
+where
+	[l3:lreceiptdate > l3:lcommitdate]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel3 die zweite]
+txxrel1  feed 
+txxrel5  feed 
+smouterjoin[lORDERKEY_l1,lORDERKEY_l3] 
+extend[var1: ifthenelse(isempty(.lORDERKEY_l3), 0, 1)] 
+sortby[lORDERKEY_l1 asc] 
+groupby[lORDERKEY_l1;Var1: group feed sum[var1]] 
+projectextend[Var1; lORDERKEY_l3: .lORDERKEY_l1] 
+consume
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Entschachtelte Variante von Q21]
+select
+	[sname, 
+	count(*)as numwait]
+from
+	[supplier, 
+	lineitem as l1, 
+	orders, 
+	nation, 
+	txxrel3 as txxrel8, 
+	txxrel9 as txxrel10]
+where
+	[ssuppkey = l1:lsuppkey, 
+	oorderkey = l1:lorderkey, 
+	oorderstatus="F", 
+	l1:lreceiptdate > l1:lcommitdate, 
+	l1:lorderkey = txxrel8:lorderkey_l2, 
+	0 < txxrel8:var1, 
+	l1:lorderkey = txxrel10:lorderkey_l3, 
+	0 = txxrel10:var2, 
+	snationkey = nnationkey, 
+	nname = "SAUDI ARABIA"]
+groupby
+	[sname]
+orderby
+	[numwait desc, 
+	sname]
+first 
+	100
+\end{lstlisting}
+
 \subsection{TPC-D Q22}
-\begin{table}[ht]
+Diese Abfrage ermittelt, wieviele Kunden in den letzten 7 Jahren keine Bestellung getätigt haben, aber dennoch einen überdurchschnittlichen Umsatz auf ihrem Konto. Gruppiert nach \enquote{Länderschlüssel}, wobei Länderschlüssel als die ersten zwei Ziffern der Telefonnummer definiert ist.
+\begin{lstlisting}[caption=Abfrage Q22]
+select
+	[cntrycode,
+	 count(*) as numcust,
+	 sum(cacctbal) as totacctbal]
+from (
+	select
+		[substr(cphone, 1, 2) as cntrycode, 
+		cacctbal]
+	from customer 
+	where
+		[substr(cphone, 1, 2) in ("13","35","31","23","29","30","18"),
+		cacctbal > (
+			select 
+				avg(c1:cacctbal)
+			from 
+				customer as c1
+			where
+				[c1:cacctbal > 0.00,
+				substr(c1:cphone, 1, 2) in ("13","35","31","23","29","30","18")]
+		),
+		not( exists(
+			select 
+				*
+			from 
+				orders
+			where	
+				ocustkey = ccustkey
+		))]
+	) as custsale
+groupby	
+	[cntrycode]
+orderby	
+	[cntrycode]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel1]
+select distinct
+	[ccustkey]
+from
+	customer
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel2]
+select
+	*
+from 
+	orders 
+where
+	[]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=TempRel3]
+txxrel1  feed 
+txxrel2  feed 
+smouterjoin[cCUSTKEY,oCUSTKEY] 
+extend[var1: ifthenelse(isempty(.oCUSTKEY), 0, 1)] 
+sortby[cCUSTKEY asc] 
+groupby[cCUSTKEY;Var1: group feed sum[var1]] 
+projectextend[Var1; oCUSTKEY: .cCUSTKEY] 
+consume
+\end{lstlisting}
+
+\begin{lstlisting}[caption=FROM Nesting]
+select
+	[substr(cphone, 1, 2)as cntrycode, 
+	cacctbal]
+from
+	[customer, 
+	txxrel3 as txxrel4]
+where
+	[substr(cphone, 1, 2) in ("13","35","31","23","29","30","18"), 
+	cacctbal > 5527.01, 
+	ccustkey = txxrel4:ocustkey, 
+	0 = txxrel4:var1]
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Entschachtelte Variante von Q22]
+select
+	[cntrycode, 
+	count(*)as numcust, 
+	sum(cacctbal)as totacctbal]
+from 
+	txxrel5 
+groupby
+	[cntrycode]
+orderby
+	[cntrycode]
+\end{lstlisting}
+
+\subsection{Laufzeit Übersicht}
+
+\begin{table}[h]
 \centering
 \begin{tabular}{@{}lrr@{}} \toprule
 & \multicolumn{2}{c}{Laufzeit in s} \\ \cmidrule(l){2-3}
@@ -196,7 +858,7 @@ Q22 & & \\
   \label{tab_runtime_with_selectivity}
 \end{table}
 
-\begin{table}[ht]
+\begin{table}[h]
 \centering
 \begin{tabular}{@{}crr@{}} \toprule
 & \multicolumn{2}{c}{Laufzeit in s} \\ \cmidrule(l){2-3}

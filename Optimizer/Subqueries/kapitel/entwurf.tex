@@ -10,6 +10,26 @@
 	\subitem inkl. Selektivitäten
 	\item \textbf{IN} ohne Subquery -> Übersetzung in geschachtelte \textbf{OR} Prädikate
 \end{itemize}
+In \cite{319745} wird gezeigt, dass eine Abfrage der Form 
+\begin{lstlisting}
+SELECT §$R_i.C_k$§
+FROM §$R_i$§
+WHERE §$R_i.C_h$§ IN (SELECT §$R_j.C_m$§
+											FROM §$R_j$§);
+\end{lstlisting}
+
+semantisch äquivalent zu einer Abfrage 
+
+\begin{lstlisting}
+SELECT §$R_i.C_k$§
+FROM §$R_i, R_j$§
+WHERE §$R_i.C_h = R_j.C_m$§
+\end{lstlisting}
+
+unter der Voraussetzung, dass $R_j$ bezüglich der Spalte $C_m$ duplikatfrei ist. Dies kann aber jederzeit erreicht werden, indem $R_j$ auf die Spalte $C_m$ eingeschränkt und projiziert wird. Für skalare Vergleichsoperatoren gilt die Äquivalenz ohne diese Einschränkung. Skalare Vergleichsoperatoren sind nicht \enquote{duplikats-entfernend}.
+
+
+
 \section{Algorithmus \textbf{NEST-N-J}}
 Alle FROM-Klausel kombinieren\\
 Die Konjunktion der WHERE-Klauseln bilden\\

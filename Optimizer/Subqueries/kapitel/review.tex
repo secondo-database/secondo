@@ -46,10 +46,11 @@
 	\subitem \textbf{SELECT-Klausel}
 	\subitem \textbf{FROM-Klausel}
 	\subitem \textbf{WHERE-Klausel}
-	\subitem (GROUP BY\dots HAVING-Klausel)
+	\subitem \textbf{(GROUP BY\dots HAVING-Klausel)}
 \end{itemize}
 
 \subsection{TPC-D Benchmark}
+TPC = Transaction Processing Performance Council. Stellt Benchmarks zum Vergleich von OLTP Systemen auf. 
 
 \section{Ausführunsstrategien}
 \subsection{Geschachtelte Iteration}
@@ -67,6 +68,12 @@
 \cite{375748,1247598,ISO:1992:IITa} 
 Die Auswertung von geschachtelten Abfragen wird im SQL-Standard \cite{ISO:1992:IITa} definiert. Hierbei wird der innere Abfrageblock für jedes Tupel des äußeren Abfrageblocks ausgewertet. Enthält die Unterabfrage korrelierte Join-Prädikate, so werden die entsprechenden Werte aus dem Tupel des äußeren Abfrageblocks als Konstanten in die Prädikate der Subquery übernommen.
 \cite{319745, 38723} 
+
+SQL Prädikate lassen sich in verschiedene Klassen einteilen. Abhängig von der Semantik der Operation, kann man in \emph{einfache} Prädikate, \emph{Join}-Prädikate, \emph{Divisions}-Prädikate und \emph{geschachtelte} Prädikate unterscheiden. Einfache Prädikate sind solche Prädikate die zu ihrer Berechnung nur auf Konstanten und Attribute einer Relation zugreifen. Ein Beispiel für ein solches Prädikat ist \textbf{$C_m = 10$}. Join-Prädikate benötigen zu ihrer Berechnung Attribute aus zwei oder mehr Relationen. Sie \emph{verbinden} (to join -- engl. verbinden) die verwendeten Relationen. 
+\begin{lstlisting} 
+select * from §$R_i, R_j$§ where §$R_i.C_n=R_j.C_m$§ 
+\end{lstlisting} 
+Divisions-Prädikate berechnen die relationale Division über zwei Relationen. Geschachtelte Prädikate enthalten eine Unterabfrage in ihrem Ausdruck.
 Klassifikation von Prädikaten in 
 Simple(Vergleich mit Konstante(n)), 
 Nested, 
