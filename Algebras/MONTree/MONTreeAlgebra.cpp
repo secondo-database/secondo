@@ -155,10 +155,10 @@ void MON_Tree::CalculateSearchBoxSet( const Rectangle<2>& box,
 
   if( box.Contains( curve.BoundingBox() ) )
   {
-    result.Add( BBox<2>( true, 0, 
-                               curve.Length(), 
-                               timeInterval.start.ToDouble(), 
-                               timeInterval.end.ToDouble() ) );
+    result.Add( BBox<2>( true, 
+                         0.0, curve.Length(), 
+                         timeInterval.start.ToDouble(), 
+                         timeInterval.end.ToDouble() ) );
   }
   else
   {
