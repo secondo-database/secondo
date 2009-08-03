@@ -117,5 +117,9 @@ mv .tmp_algebras $file1
 eval $sed2 > .tmp_alglist
 mv .tmp_alglist $file2
 
+# remove optimizer extensions
+rmoptext.sh $prefix
+
+
 exit 0
 
