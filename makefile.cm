@@ -321,6 +321,9 @@ fileList := $(tempdir)/_SRC_FILE_LIST
 .PHONY: src-archive
 src-archive: rmList mkLat1
 	
+.PHONY: public-version 
+public-version: rmList mkLat1 mkcp1252
+
 .PHONY: src-archives
 src-archives: rmList mkLat1 mkcp1252
 
