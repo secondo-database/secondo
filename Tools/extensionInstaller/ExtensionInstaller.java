@@ -63,10 +63,8 @@ private boolean checkAndInstallAlgebras(Vector<ExtensionInfo> infos){
    Vector<AlgebraInfo> algInfos = new Vector<AlgebraInfo>(infos.size());
    for(int i=0; i< infos.size();i++){
        ExtensionInfo info1 = infos.get(i);
-       AlgebraInfo info = info1.getAlgebraInfo();
-       if(info!=null){
-          algInfos.add(info);
-       }
+       Vector<AlgebraInfo> ainfos = info1.getAlgebraInfos();
+       algInfos.addAll(ainfos);
    }
 
    if(!AlgebraInfo.check(secondoDir.getAbsolutePath(),algInfos)){
@@ -74,9 +72,9 @@ private boolean checkAndInstallAlgebras(Vector<ExtensionInfo> infos){
    }
    for(int i=0;i<infos.size();i++){
        ExtensionInfo info1 = infos.get(i);
-       AlgebraInfo info = info1.getAlgebraInfo();
-       if(info!=null){
-          info.install(secondoDir.getAbsolutePath(), info1.getFileName()); 
+       Vector<AlgebraInfo> ainfos = info1.getAlgebraInfos();
+       for(int j=0;j<ainfos.size();j++) {
+          ainfos.get(j).install(secondoDir.getAbsolutePath(), info1.getFileName()); 
        }
    }
    return true;
@@ -89,8 +87,9 @@ private boolean checkAndInstallViewers(Vector<ExtensionInfo> infos){
   Vector<ViewerInfo> viewerInfos = new Vector<ViewerInfo>(infos.size());
   for(int i=0;i<infos.size();i++){
     ExtensionInfo info = infos.get(i);
-    ViewerInfo vinfo = info.getViewerInfo();
-    if(vinfo!=null){
+    Vector<ViewerInfo> vinfos = info.getViewerInfos();
+    for(int j=0;j<vinfos.size();j++){
+      ViewerInfo vinfo = vinfos.get(j);
       // check whether all files are present
       boolean ok = false;
       ZipFile f = null;
@@ -116,9 +115,9 @@ private boolean checkAndInstallViewers(Vector<ExtensionInfo> infos){
 
   for(int i=0;i<infos.size();i++){
      ExtensionInfo info = infos.get(i);
-     ViewerInfo vinfo = info.getViewerInfo();
-     if(vinfo!=null){
-        if(!vinfo.install(secondoDir.getAbsolutePath(), info.getFileName())){
+     Vector<ViewerInfo> vinfos = info.getViewerInfos();
+     for(int j=0;j<vinfos.size();j++){
+        if(!vinfos.get(j).install(secondoDir.getAbsolutePath(), info.getFileName())){
            return false;
         }
      }
@@ -172,22 +171,25 @@ private boolean checkAndInstallOptimizerExtensions(Vector<ExtensionInfo> infos){
    Vector<OptimizerInfo> optinfos = new Vector<OptimizerInfo>();
    for(int i=0;i<infos.size();i++){
       ExtensionInfo info = infos.get(i);
-      OptimizerInfo oinfo = info.getOptimizerInfo();
-      boolean ok = false;
-      ZipFile f = null;
-      try{
-         f = new ZipFile(info.getFileName());
-         ok = oinfo.filesPresent(f);
-      } catch (Exception e){
-         e.printStackTrace();
-         return false;
-      } finally{
-         if(f!=null) {try{f.close();}catch(Exception e){}}
+      Vector<OptimizerInfo> oinfos = info.getOptimizerInfos();
+      for(int j=0;j<oinfos.size();j++){
+        OptimizerInfo oinfo = oinfos.get(j);
+        boolean ok = false;
+        ZipFile f = null;
+        try{
+           f = new ZipFile(info.getFileName());
+           ok = oinfo.filesPresent(f);
+        } catch (Exception e){
+           e.printStackTrace();
+           return false;
+        } finally{
+           if(f!=null) {try{f.close();}catch(Exception e){}}
+        }
+        if(!ok){
+          return false;
+        }
+        optinfos.add(oinfo);
       }
-      if(!ok){
-        return false;
-      }
-      optinfos.add(oinfo);
    }
    if(!OptimizerInfo.check(secondoDir.getAbsolutePath(), optinfos)){
      return false;
@@ -195,15 +197,18 @@ private boolean checkAndInstallOptimizerExtensions(Vector<ExtensionInfo> infos){
    for( int i=0;i<infos.size();i++){
       ExtensionInfo info = infos.get(i);
       String zip = info.getFileName();
-      OptimizerInfo oinfo = info.getOptimizerInfo();
-      try{
-         if(!oinfo.install(secondoDir.getAbsolutePath(),new ZipFile(info.getFileName()))){
+      Vector<OptimizerInfo> oinfos = info.getOptimizerInfos();
+      for(int j=0;j<oinfos.size();j++){
+        OptimizerInfo oinfo = oinfos.get(j);
+        try{
+          if(!oinfo.install(secondoDir.getAbsolutePath(),new ZipFile(info.getFileName()))){
             return false;
-         }
-      } catch(Exception e){
-         e.printStackTrace();
-         return false;
-      }
+          }
+        } catch(Exception e){
+          e.printStackTrace();
+          return false;
+        }
+     }
    }
    return true;
 }

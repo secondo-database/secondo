@@ -38,9 +38,59 @@ public class SecondoExtension{
    protected int secondo_Major_Version = -1;     // version informtion
    protected int secondo_Minor_Version = 0;      // version information
    protected int secondo_SubMinor_Version = 0;   // version information
-   protected Vector<StringPair> files = new Vector<StringPair>(); // Files to install
+   protected Vector<StringTriple> files = new Vector<StringTriple>(); // Files to install
    protected String copyright=null;                               // name of the file containing the copyright notice
+   protected String folder = null;               // sourcefolder, . if null
 
+
+   protected boolean readFolder(Node n){
+     if(n!=null){
+       String tmp = n.getNodeValue().trim();
+       while(tmp.startsWith("/")){
+         tmp = tmp.substring(1,tmp.length()-1);
+       }
+       while(tmp.endsWith("/")){
+         tmp = tmp.substring(0,tmp.length()-1);
+       }
+       if(tmp.length()>0){
+          folder = tmp;
+       } else{
+          folder = null;
+       }
+     }
+     return true;
+   }
+
+   protected String getFolderString(){
+      return folder==null?"":folder+"/";
+   }
+
+   String getEntryName(StringTriple t){
+      String d = folder==null?"":folder+"/";
+      String sd = t.third==null?"":t.third+"/";
+      return d+sd+t.first;
+   }
+
+   String getTargetName(StringTriple t){
+     if(t.second==null){
+        return t.first;
+     } else {
+        return t.second+"/"+t.first;
+    }
+   }
+
+   boolean copyFiles(String baseDir, ZipFile zipFile){
+      String fold = getFolderString(); // global folder in zip file
+      for(int i=0;i<files.size();i++){
+         StringTriple t = files.get(i);
+         String middle = t.second==null?"":t.second.replaceAll("/",File.separator)+File.separator;
+         String filename = baseDir + middle+t.first;
+         if(!copyZipEntryToFile(new File(filename), zipFile, zipFile.getEntry(getEntryName(t)))){
+           return false;
+         }
+      }
+      return true;
+   }
 
   /** Checks whether the files, given in names, are present in f **/
    boolean filesPresent(ZipFile f, Vector<String> names){
@@ -53,7 +103,7 @@ public class SecondoExtension{
      return  true;
    }
 
-   /** checkes whether this extension is valid **/
+   /** checks whether this extension is valid **/
    public boolean isValid(){
      return valid;
    }
@@ -146,41 +196,46 @@ public class SecondoExtension{
      for(int i=0;i<nl.getLength();i++){
        Node n = nl.item(i);
        String name = n.getNodeName();
-       if(!name.equals("File") && !name.equals("#text") && !name.equals("#comment")){
+       if(!name.toLowerCase().equals("file") && !name.equals("#text") && !name.equals("#comment")){
          System.err.println("Unknown node name for files detected: " + name);
-       } else if(name.equals("File")){
-          StringPair pair = new StringPair();
+       } else if(name.toLowerCase().equals("file")){
+          StringTriple triple = new StringTriple();
          // get the filename
          if(n.hasChildNodes()){
             String fn = n.getFirstChild().getNodeValue().trim();
             if(fn.length()>0){
-               pair.first = fn;
+               triple.first = fn;
             } 
          }
-         if(pair.first==null){
+         if(triple.first==null){
             System.err.println("XMLFile corrupt: filename missing");
             return false;
          }
          // get the location
          NamedNodeMap m = n.getAttributes();
          Node loc  = m.getNamedItem("location");
-         if(loc==null){
-            System.err.println("XML-file corupted: location of a file is missing");
-            return false;
+         if(loc!=null){
+            String tmp = loc.getNodeValue().trim();
+            while(tmp.startsWith("/")){
+                tmp = tmp.substring(1,tmp.length()-1);
+            }
+            while(tmp.endsWith("/")){
+               tmp = tmp.substring(0,tmp.length()-1);
+            }
+           triple.second = tmp;
          }
-         String tmp = loc.getNodeValue().trim();
-         while(tmp.startsWith("/")){
-              tmp = tmp.substring(1,tmp.length()-1);
+         Node source = m.getNamedItem("sourcefolder");
+         if(source!=null){
+            String tmp = source.getNodeValue().trim();
+            while(tmp.startsWith("/")){
+                tmp = tmp.substring(1,tmp.length()-1);
+            }
+            while(tmp.endsWith("/")){
+               tmp = tmp.substring(0,tmp.length()-1);
+            }
+           triple.third = tmp;
          }
-         while(tmp.endsWith("/")){
-             tmp = tmp.substring(0,tmp.length()-1);
-         }
-         if(tmp.length()==0){
-            System.err.println("invalid value for location");
-            return false;
-         }
-         pair.second = tmp;
-         files.add(pair);  
+         files.add(triple);  
        }
      }
      return true;

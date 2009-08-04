@@ -88,6 +88,10 @@ public class ViewerInfo extends JavaExtension{
    /** reads the info from n1**/
    private boolean readViewerInfo(Node n1){
      NodeList nl = n1.getChildNodes();
+     NamedNodeMap nm = n1.getAttributes();
+     if(!readFolder(nm.getNamedItem("folder"))){
+       return false;
+     }
      for(int i=0;i<nl.getLength();i++){
         Node n = nl.item(i);
         String name = n.getNodeName();
@@ -137,7 +141,7 @@ public class ViewerInfo extends JavaExtension{
   /** checks for validity **/
   boolean checkValidity(){
    if(viewerName==null){
-      System.err.println("vieweName missing");   
+      System.err.println("viewerName missing");   
       return false;
    }
    if(secondo_Major_Version<0){
@@ -186,8 +190,9 @@ public class ViewerInfo extends JavaExtension{
        files.add(fn);
        // files
        for(int j=0;j<info.files.size();j++){
-          StringPair pair = info.files.get(j);
-          fn = mainDir +"viewer"+s+pair.second.replaceAll("/",s) + s + pair.first; 
+          StringTriple triple = info.files.get(j);
+          String middle = triple.second==null?"":triple.second.replaceAll("/",s)+s;
+          fn = mainDir +"viewer"+s+middle + triple.first; 
           if(files.contains(fn)){
             System.err.println("Conflict: File " + fn + " found twice");
             return false;
@@ -466,19 +471,22 @@ public class ViewerInfo extends JavaExtension{
        f = new ZipFile(ZipFileName);
        // copy mainClass
        String fn = viewerDir + mainClass; 
-       copyZipEntryToFile(new File(fn), f, f.getEntry(mainClass));
+       String fold = folder==null?"":folder+"/";
+       copyZipEntryToFile(new File(fn), f, f.getEntry(fold + mainClass));
        // copy Files
        for(int i=0; i< files.size(); i++){
-         StringPair pair = files.get(i);
-         fn = viewerDir + pair.second.replaceAll("/",s) + s + pair.first;
-         copyZipEntryToFile(new File(fn), f, f.getEntry(pair.first));
+         StringTriple triple = files.get(i);
+         String middle = triple.second==null?"":triple.second.replaceAll("/",s)+s;
+         fn = viewerDir + middle + triple.first;
+         copyZipEntryToFile(new File(fn), f, f.getEntry(getEntryName(triple)));
        }
        // copy libraries
        for(int i=0;i<libDeps.size();i++){
           StringBoolPair ld = libDeps.get(i);
           if(ld.firstB){ // lib provided in zip file
             fn = libDir + ld.secondS.replaceAll("/",s) + s +  ld.firstS; 
-            copyZipEntryToFile(new File(fn), f, f.getEntry(ld.firstS));
+            fold = folder==null?"":folder+"/";
+            copyZipEntryToFile(new File(fn), f, f.getEntry(fold + ld.firstS));
           }
        }
        

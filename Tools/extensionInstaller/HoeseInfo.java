@@ -71,14 +71,15 @@ public class HoeseInfo extends JavaExtension{
    /** Checks wether all files are present in the zip file **/
    public boolean filesPresent(ZipFile f){
       Vector<String> names = new Vector<String>();
-      names.add(mainClass);
+      String fold = folder==null?"":folder+"/";
+      names.add(fold+mainClass);
       for(int i=0;i<files.size();i++){
-         names.add(files.get(i).first);
+         names.add(getEntryName(files.get(i)));
       }
       for(int i=0;i<libDeps.size();i++){
         StringBoolPair entry = libDeps.get(i);
-        if(entry.firstB){
-           names.add(entry.firstS);
+        if(entry.firstB){ // lib is provided
+           names.add(fold + entry.firstS);
         }
       }
       return filesPresent(f, names);
@@ -86,6 +87,10 @@ public class HoeseInfo extends JavaExtension{
 
    /** Reads the infoamtion from n1 **/
    private boolean readHoeseInfo(Node n1){
+     NamedNodeMap nm = n1.getAttributes();
+     if(!readFolder(nm.getNamedItem("folder"))){
+        return false;
+     }
      NodeList nl = n1.getChildNodes();
      for(int i=0;i<nl.getLength();i++){
         Node n = nl.item(i);
@@ -175,8 +180,9 @@ public class HoeseInfo extends JavaExtension{
        files.add(fn);
        // files
        for(int j=0;j<info.files.size();j++){
-          StringPair pair = info.files.get(j);
-          fn = algDir+pair.second.replaceAll("/",s) + s + pair.first; 
+          StringTriple triple = info.files.get(j);
+          String middle = triple.second==null?"":triple.second.replaceAll("/",s)+s;
+          fn = algDir+middle + triple.first; 
           if(files.contains(fn)){
             System.err.println("Conflict: File " + fn + " found twice");
             return false;
@@ -340,8 +346,8 @@ public class HoeseInfo extends JavaExtension{
     TreeSet<String> subdirsAll = new TreeSet<String>();
     TreeSet<String> subdirsClean = new TreeSet<String>();
     for(int i=0;i<files.size();i++){
-       StringPair p = files.get(i);
-       String loc = p.second.replaceAll("/.*","");
+       StringTriple t  = files.get(i);
+       String loc = t.second==null?"":t.second.replaceAll("/.*","");
        if(!loc.equals(".") && loc.length()>0){
           subdirsAll.add(loc);
           subdirsClean.add(loc);
@@ -450,20 +456,22 @@ public class HoeseInfo extends JavaExtension{
      try{
        f = new ZipFile(ZipFileName);
        // copy mainClass
-       String fn = algDir + mainClass; 
-       copyZipEntryToFile(new File(fn), f, f.getEntry(mainClass));
+       String fn = algDir + mainClass;
+       copyZipEntryToFile(new File(fn), f, f.getEntry(getFolderString() + mainClass));
        // copy Files
        for(int i=0; i< files.size(); i++){
-         StringPair pair = files.get(i);
-         fn = algDir + pair.second.replaceAll("/",s) + s + pair.first;
-         copyZipEntryToFile(new File(fn), f, f.getEntry(pair.first));
+         StringTriple triple = files.get(i);
+         fn = algDir + getTargetName(triple).replaceAll("/",s);
+         copyZipEntryToFile(new File(fn), f, f.getEntry(getEntryName(triple)));
        }
        // copy libraries
        for(int i=0;i<libDeps.size();i++){
           StringBoolPair ld = libDeps.get(i);
           if(ld.firstB){ // lib provided in zip file
             fn = libDir + ld.secondS.replaceAll("/",s) + s +  ld.firstS; 
-            copyZipEntryToFile(new File(fn), f, f.getEntry(ld.firstS));
+            String fold = folder==null?"":folder.replaceAll("/",s);
+            String libEntry = fold+ld.firstS;
+            copyZipEntryToFile(new File(fn), f, f.getEntry(libEntry));
           }
        }
        

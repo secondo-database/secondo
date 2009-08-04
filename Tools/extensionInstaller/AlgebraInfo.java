@@ -1,4 +1,5 @@
 
+
 /*
 ----
 This file is part of SECONDO.
@@ -43,7 +44,6 @@ private String exampleFile = null;          // name of the example file included
 private Vector<String> algebraDeps = new Vector<String>();  // needed algabras except Standard
 private Vector<String> libNames = new Vector<String>();     // Names of needed libraries, e.g. GSL
 private Vector<String> libFlags = new Vector<String>();     // lib names, e.g. gsl
-private Vector<String> sourceFiles = new Vector<String>();  // all sources of the algebra
 
 /** Creates a new AlgebraInfo from the given node. If an error occurs,
   * The isValid() function will return a false result.
@@ -104,10 +104,10 @@ private static Vector<String> getPossibleAlgebraDirNames(String algName){
     }
     res += "), ";
 
-    res += "SourceFiles: (";
-    for(int i=0;i<sourceFiles.size();i++){
-       res += sourceFiles.get(i);
-       if(i<sourceFiles.size()-1){
+    res += "Files: (";
+    for(int i=0;i<files.size();i++){
+       res += files.get(i);
+       if(i<files.size()-1){
           res += ",";
        }
     }
@@ -117,27 +117,22 @@ private static Vector<String> getPossibleAlgebraDirNames(String algName){
 
 
 
-  /**
-    *  Returns the names of all sources to be installed into the algebra directory.
-    **/
-  TreeSet<String> getAllSources(){
-     TreeSet<String> res = new TreeSet<String>();
-     res.add(specFile);
-     res.add(exampleFile);
-     res.addAll(sourceFiles);
-     return res;  
-  }
-
   /** Analyse of the algebra part of the xml file **/
   private boolean readAlgebra(Node n){
+     NamedNodeMap nm = n.getAttributes();
+     Node fn = nm.getNamedItem("folder");
+     if(!readFolder(fn)){
+       return false;
+     }
+      
      NodeList nl = n.getChildNodes();
      for(int i=0; i < nl.getLength(); i++){
         Node n2 = nl.item(i);
         String name = n2.getNodeName();
         if(name.equals("Dependencies")){
           readDependencies(n2);
-        } else if(name.equals("SourceCode")){
-          readSources(n2);
+        } else if(name.equals("Files") || name.equals("SourceCode")){
+          readFiles(n2);
         } else if(name.equals("SpecFile")){
            if(specFile!=null){
              System.err.println("only a single spec file is allowed");
@@ -195,31 +190,12 @@ private static Vector<String> getPossibleAlgebraDirNames(String algName){
            secondo_Major_Version >0 && 
            secondo_Minor_Version>=0 &&
            secondo_SubMinor_Version>=0 &&
-           sourceFiles.size()>0 &&
+           files.size()>0 &&
            specFile!=null &&
            exampleFile!=null &&
            copyright!=null;
   }  // readAlgebra 
 
-
-  /** Collects the names of the source files from the xml file. **/
-  boolean  readSources(Node n1){
-     NodeList nl = n1.getChildNodes();
-     for(int i=0;i<nl.getLength(); i++){
-        Node n = nl.item(i);
-        if(n.getNodeName().equals("file")){
-            if(n.hasChildNodes()){
-               String f  = n.getFirstChild().getNodeValue().trim();
-               if(f.length()>0){
-                  sourceFiles.add(f);
-               }
-            } 
-        } else if(!n.getNodeName().equals("#text")){
-          System.out.println("Unsupported node type in Sources");
-        }
-     }
-     return sourceFiles.size() > 0;
-  }
 
   /** Extracts the dependencies form the xml file **/ 
   boolean readDependencies(Node n1){
@@ -328,7 +304,7 @@ private static boolean checkDependencies(String secondoDir, Vector<AlgebraInfo> 
        System.err.println("Algebra " + name + " requires a Secondo Version " +
                           info.getSecondo_Major_Version() + "." +
                           info.getSecondo_Minor_Version() + "." +
-                          info.getSecondo_Minor_Version()
+                          info.getSecondo_SubMinor_Version()
                           + " but the currently installed version is " +
                           major + "." + minor+"." + subminor);
        return false;  
@@ -462,54 +438,16 @@ private boolean modifyMakeFileAlgebras(File f){
 
 /** Installs the algebra.  */
 boolean install(String secondoDir, String zipFileName ){
-  System.out.println("install algabra " + getAlgebraName());
+  System.out.println("install algebra " + getAlgebraName());
   // create algebra directory
-  File algDir = new File(secondoDir + 
-                         File.separator +
-                         "Algebras" + 
-                         File.separator +
-                         getAlgebraDir());
-  algDir.mkdir();
-
-  // collect all Filename to be installed into the algebra directory
-  TreeSet<String> names = getAllSources(); 
-
+  String algDir = secondoDir + File.separator + "Algebras" + File.separator + getAlgebraDir();
+  (new File(algDir)).mkdirs();
+   algDir += File.separator;
+   
   try{
      ZipFile zipFile = new ZipFile(zipFileName);
-     Iterator<String> it = names.iterator();
-     while(it.hasNext()){
-       String name = it.next();
-       ZipEntry entry = zipFile.getEntry(name);
-       if(entry==null || entry.isDirectory()){
-         System.err.println("File " + name +" not present in the zip file ");
-         return false;
-       } 
-       // copy the file
-       System.out.println("copy file "  + name);
-       InputStream in = null;
-       OutputStream out = null;
-       try{
-         in = zipFile.getInputStream(entry);
-         byte[] buffer = new byte[1024];
-         String fileName =  algDir.getAbsolutePath()+ File.separator +  name;
-         out = new FileOutputStream(fileName);
-         int read = 0;
-         int size = 0;
-         while((read=in.read(buffer))>=0){
-            size += read;
-            out.write(buffer,0,read);
-         }
-       } finally{
-         if(in!=null){
-           try{in.close();} catch(Exception e){ System.err.println("Problem in closing in file");}
-         }
-         if(out!=null){
-           try{out.close();} catch(Exception e){System.out.println("Problen in closing out file");}
-         }
-       }
-     }
-
-    System.out.println("Source files successful installed");
+     copyFiles(algDir,zipFile);
+     System.out.println("Source files successful installed");
 
     System.out.println("modify AlgebraList.i.cfg");
     try{

@@ -65,6 +65,10 @@ public class OptimizerInfo extends SecondoExtension{
    /** Reads in the information from n1 **/
    private boolean readOptimizerInfo(Node n1){
       NodeList nl = n1.getChildNodes();
+      NamedNodeMap nm = n1.getAttributes();
+      if(!readFolder(nm.getNamedItem("folder"))){
+        return false;
+      }
       for(int i=0; i< nl.getLength(); i++){
          Node n = nl.item(i);
          String name = n.getNodeName();
@@ -221,8 +225,9 @@ public class OptimizerInfo extends SecondoExtension{
          }
          names.add(info.name);
          for(int j=0;j<info.files.size();j++){
-            StringPair pair = info.files.get(j);
-            String fn = pair.second.replaceAll("/",s) + s + pair.first;
+            StringTriple triple  = info.files.get(j);
+            String start = triple.second==null?"":triple.second.replaceAll("/",s) + s;
+            String fn = start + triple.first;
             if(fnames.contains(fn)){
                System.err.println("File " + mainDir+fn+" is tried to copy twice");
                return false;
@@ -319,8 +324,9 @@ public class OptimizerInfo extends SecondoExtension{
   
          // checks whether all new files are not present
          for(int j=0;j<info.files.size();j++){
-           StringPair p = info.files.get(j);
-           File f = new File(mainDir + p.second.replaceAll("/",s)+s+p.first);
+           StringTriple t = info.files.get(j);
+           String middle = t.second==null?"":t.second.replaceAll("/",s)+s;
+           File f = new File(mainDir + middle+t.first);
            if(f.exists()){
              System.err.println("Try to install file " + f+" which is already present");
            }
@@ -365,10 +371,11 @@ public class OptimizerInfo extends SecondoExtension{
      String mainDir = secondoDir+s+"Optimizer"+s;
      // copy files
      for(int i=0;i<files.size();i++){
-       StringPair p = files.get(i);
-       String fn = mainDir+p.second.replaceAll("/",s)+s+p.first;
+       StringTriple t = files.get(i);
+       String middle = t.second==null?"":t.second.replaceAll("/",s)+s;
+       String fn = mainDir+middle+t.first;
        System.out.println("Copy to File " + fn);
-       if(!SecondoExtension.copyZipEntryToFile(new File(fn), f, f.getEntry(p.first))){
+       if(!SecondoExtension.copyZipEntryToFile(new File(fn), f, f.getEntry(getEntryName(t)))){
            return false;
        } 
      } 

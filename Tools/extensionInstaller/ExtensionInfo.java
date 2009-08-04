@@ -38,10 +38,11 @@ public class ExtensionInfo{
 
   private boolean valid;                      // a valid Info ?
   private String fileName = null;             // filename of the corresponding zip file
-  AlgebraInfo algebraInfo = null;             // the algebra extension
-  ViewerInfo viewerInfo = null;               // the viewerExtension
-  Vector<HoeseInfo> hoeseInfos = new Vector<HoeseInfo>(); // set of display classes
-  OptimizerInfo optInfo = null;                           // optimizer extension
+
+  Vector<AlgebraInfo>   algebraInfos = new Vector<AlgebraInfo>(); // the algebra extensions
+  Vector<ViewerInfo>    viewerInfos = new Vector<ViewerInfo>();   // the viewerExtensions
+  Vector<HoeseInfo>     hoeseInfos = new Vector<HoeseInfo>();     // set of display classes
+  Vector<OptimizerInfo> optInfos = new Vector<OptimizerInfo>();     // optimizer extensions
 
 
   /** Creates a new ExtensionInfo **/
@@ -84,27 +85,21 @@ public class ExtensionInfo{
        Node n = nl.item(i);
        String name = n.getNodeName();
        if(name.equals("Algebra")){
-          if(algebraInfo!=null){
-             System.err.println("only one algebra per module possible");
-             return false;
-          }
-          algebraInfo = new AlgebraInfo(n);
+          AlgebraInfo algebraInfo = new AlgebraInfo(n);
           if(!algebraInfo.isValid()){
              System.err.println("XML file corrupted, error in reading algebra extension");
              return false;
           }
+          algebraInfos.add(algebraInfo);
           isExtension = true;
        } else if(name.equals("Viewer")){
-            if(viewerInfo!=null){
-                System.err.println("module contains more than one viewer section");
-                return false;
-            }
-            viewerInfo = new ViewerInfo(n);
+            ViewerInfo viewerInfo = new ViewerInfo(n);
             if(!viewerInfo.isValid()){
                System.err.println("ViewerInfo invalid");
                viewerInfo = null;
                return false;
             }
+            viewerInfos.add(viewerInfo);
             isExtension = true;
        } else if(name.equals("HoeseExtension")){
           HoeseInfo hoeseInfo = new HoeseInfo(n);
@@ -115,17 +110,13 @@ public class ExtensionInfo{
           isExtension = true;
           hoeseInfos.add(hoeseInfo);
        } else if(name.equals("Optimizer")){
-           if(optInfo!=null){
-             System.err.println("Only a single optimizer extension is allowed within a module");
-             return false;
-           }
            OptimizerInfo oinfo = new OptimizerInfo(n);
            if(!oinfo.isValid()){
               System.err.println("Invalid Optimizer extension found");
               return false;
            }
            isExtension = true;
-           optInfo = oinfo;
+           optInfos.add(oinfo);
        } else if(name.equals("Kernel")){
           System.err.println("Kernel not supported yet");
 
@@ -142,13 +133,13 @@ public class ExtensionInfo{
   }
 
   /** Returns the AlgebraInfo */
-  public AlgebraInfo getAlgebraInfo(){
-     return algebraInfo;
+  public Vector<AlgebraInfo> getAlgebraInfos(){
+     return algebraInfos;
   }
 
-  /** Returns the ViewerInfo */
-  public ViewerInfo getViewerInfo(){
-    return viewerInfo;
+  /** Returns the ViewerInfos */
+  public Vector<ViewerInfo> getViewerInfos(){
+    return viewerInfos;
   }
 
   /** Returns the collected HoseInfos **/
@@ -157,8 +148,8 @@ public class ExtensionInfo{
   }
 
   /** Returns the stored OptimizerInfo **/
-  public OptimizerInfo getOptimizerInfo(){
-     return optInfo;
+  public Vector<OptimizerInfo> getOptimizerInfos(){
+     return optInfos;
   }
 
 }
