@@ -5,10 +5,18 @@
 
 \chapter{Implementierung}
 \section{Ein Outerjoin-Operator für SECONDO}
+\begin{itemize}
+	\item Beschreibung Sortmergejoin
+	\subitem Zwei Tupelbuffer
+	\subitem sortieren
+	\subitem immer mit dem kleineren Tupel arbeiten und vergleichen
+	\subitem falls Treffer, merge Schritt
+	\subitem sonst Tupel verwerfen und mit nächstem Tupel weiterarbeiten
+\end{itemize}
 Basis ist sortmergejoin, jedes nicht \enquote{matchende} Tupel wird mit NULL-Werten aufgefüllt, nur Equi-Outerjoin\\
 Ausblick: allgemeiner Outerjoin auf Basis von Symmjoin, zwei Hash-Tabelle mit Tupel-Ids für alle gematchten Tupel, Tupelbuffer durchlaufen und ein mit NULL-Werten aufgefülltes Tupel erzeugen für alle nicht gematchten Tupel
 \section{Umschreiben quantifizierter Prädikate}
-Prädikate mit den Operatoren \textbf{EXISTS, NOT EXISTS, ANY} und \textbf{ALL} werden in äquivalente Prädikate mit Aggregationen überführt.
+Prädikate mit den Operatoren \textsc{EXISTS, NOT EXISTS, ANY} und \textsc{ALL} werden in äquivalente Prädikate mit Aggregationen überführt.
 
 \section{Entschachtelung}
 Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong. Rekursive Entschachtelung von Abfragen. Dabei werden die oben beschriebenen Schachtelungstypen unterschieden. Je nach Schachtelungstyp wird der entsprechende Entschachtelungs-Algorithmus angewendet. \enquote{Temporäre Relationen} werden für die Entschachtelung korrelierter Abfragen mit Aggregationsfunktion benötigt. Sie werden beim Schließen der Datenbank gelöscht.
@@ -24,16 +32,28 @@ Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong
 \section{Ermittlung des Ausführungsplans}
 \begin{itemize}
 	\item korrelierte Prädikate der Subquery entfernen
-	\item Plan für Subquery ohne korrlierte Prädikate ermitteln
-	\item korrelierte Prädikate mit aufsteigender Selektivität an Plan \enquote{anflanschen}
+	\item Plan für Subquery ohne korrelierte Prädikate ermitteln. Unterabfragen ohne korrelierten Prädikate werden durch die Standardmechanismen des \textsc{Secondo}-Optimierers übersetzt, um einen möglichst effizienten Ausführungsplan zu ermitteln. 
+	\item korrelierte Prädikate mit aufsteigender Selektivität an Plan \enquote{anflanschen}. 
 \end{itemize}
 
 \section{Übersetzung des Plans in ausführbare Syntax}
 \subsection{IN Operator}
-Übersetzung mit den Operatoren \begin{verbatim}collect_set und transformstream\end{verbatim}
+Übersetzung mit den \textsc{Secondo} Operatoren \secondo{in}, \secondo{collect\_set} und \secondo{projecttransformstream}. 
+Der Operator \secondo{projecttransformstream} hat die Signatur 
+\secondo{$stream(tuple((a_1 t_1)\cdots(a_n t_n)))\times a_n$ ---> $(stream t_n)$} 
+und wandelt einen Tupel-Strom in einen Strom von Werten um. Hierbei wird das Selektions-Attribute der geschachtelten Abfrage als zu wählender Parameter mitgegeben. Der Strom wird dann mit dem Operator \secondo{collect\_set} in eine Menge umgewandelt und für jedes Tupel des äußeren Stroms wird mit \secondo{in} geprüft, ob der entsprechende Attributwert enthalten ist. 
+
+\begin{lstlisting}
+§$A_i$§ in (select §$A_j$§ from §$R_n$§)
+\end{lstlisting}
+
+wird in den \textsc{Secondo}-Ausdruck 
+
+\secondo{filter[.$A_i$ in $R_n$ feed projecttransformstream[$A_j$] collect\_set]} übersetzt. 
 \subsection{Using Parameter functions}
 \begin{itemize}
 	\item Mit einem Parameter (normalerweise Filter)
+	
 	\item mit zwei Parametern für symmjoin (akzeptiert allgemeine Funktion)
 \end{itemize}
 

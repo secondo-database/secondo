@@ -31,8 +31,8 @@ unter der Voraussetzung, dass $R_j$ bezüglich der Spalte $C_m$ duplikatfrei ist.
 
 
 \section{Algorithmus \textbf{NEST-N-J}}
-Alle FROM-Klausel kombinieren\\
-Die Konjunktion der WHERE-Klauseln bilden\\
+Alle FROM-Klausel kombinieren. Die resultierende FROM-Klausel umfasst alle Relationen des inneren und des äußeren Abfrageblocks\\
+Die Konjunktion der WHERE-Klauseln bilden.\\
 Das geschachtelte Prädikat \begin{math}[R_i.C_h \operatorname{op}\ (\texttt{SELECT} R_j.C_m \dots)]\end{math} ersetzen durch ein neues Join-Prädikat \begin{math}[R_i.C_h \operatorname{\emph{new-op}} R_j.C_m]\end{math}, das mit der restlichen WHERE-Klausel per Konjunktion verbunden ist\\
 Die SELECT-Klausel des äußersten Abfrageblocks behalten\\
 
@@ -150,7 +150,7 @@ Schritte des Optimierers
 \end{itemize}
 
 
-durch vorhanden Operatoren in SECONDO fast vollständig umsetzbar, nur Erweiterung um Full-Outerjoin-Operator notwendig\\
+durch vorhanden Operatoren in \textsc{Secondo} fast vollständig umsetzbar, nur Erweiterung um Full-Outerjoin-Operator notwendig\\
 Vergleich nested-iteration/dekorrelierter Plan wird \underline{nicht} implementiert:\\
 Für den Vergleich der Kosten müsste die komplette Selektivitäts- und Kostenbestimmung für die notwendigen temporären Relationen simuliert werden (**ausführlicher beschreiben**)\\
 kann nicht für alle Formen von Subqueries genutzt werden (Beispiele)\\

@@ -175,7 +175,7 @@ where
 \end{lstlisting}
 
 
-Full-Outerjoin zwischen den temporären Relationen. Das \texttt{ifthenelse} Konstrukt ist notwendig, da \textsc{SECONDO} nur die zeilenbasierte Semantik des \texttt{count}-Operators unterstützt. 
+Full-Outerjoin zwischen den temporären Relationen. Das \texttt{ifthenelse} Konstrukt ist notwendig, da \textsc{Secondo} nur die zeilenbasierte Semantik des \texttt{count}-Operators unterstützt. 
 \begin{lstlisting}[caption=TempRel3]
 txxrel1  feed 
 txxrel2  feed  
@@ -389,7 +389,7 @@ where
 orderby [ssuppkey]
 \end{lstlisting}
 
-Da \scshape{SECONDO} \upshape keine Views unterstützt, wird hier eine temporäre Tabelle angelegt.
+Da \textsc{Secondo} keine Views unterstützt, wird hier eine temporäre Tabelle angelegt.
 \begin{lstlisting}[caption=Definition von revenue]
 select
 	[lsuppkey as supplier_no, 

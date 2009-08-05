@@ -5,7 +5,7 @@
 
 \chapter{Review}
 \section{Überblick}
-\subsection{Beschreibung Secondo}
+\subsection{Beschreibung SECONDO}
 \begin{itemize}
 	\item Erweiterbares Datenbanksystem
 	\item Second-Order-Signatures
@@ -20,12 +20,17 @@
 	\subitem Datendefinition (DDL)
 	\subitem Datenmanipulation (DML)
 	\subitem Rechtevergabe (DCL)
-	\item Abfrageblock bestehend aus 
-	\subitem SELECT-Klausel
-	\subitem FROM-Klausel
-	\subitem WHERE-Klausel
-	\subitem GROUP BY\dots HAVING-Klausel
-	\subitem ORDER BY-Klausel
+	\item Ein typischer Abfrageblock hat die Form
+	\begin{lstlisting}
+	select §$A_1,A_2,\cdots,A_n$§
+	from §$r_1,r_2,\cdots,r_m$§
+	where P
+	\end{lstlisting}
+	\subitem Die SELECT-Klausel entspricht der Projektions-Operation der relationalen Algebra. In ihr werden alle Attribute der Ergebnisrelation angegeben. Um alle Attribute der beteiligten Relationen zu erhalten gibt es die spezielle Notation \enquote{*}.
+	\subitem Die FROM-Klausel entspricht dem kartesischen Produkt in der relationalen Algebra. Hier werden alle in der Abfrage verwendeten Relationen aufgeführt.
+	\subitem Die WHERE-Klausel entspricht der Selektions-Operation der relationalen Algebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der FROM-Klausel aufgelisteten Relationen.
+	\subitem GROUP BY\dots HAVING-Klausel Die Eingabemenge der Aggregationsfunktion wird in \enquote{Gruppen} mit gleichen Attributwerten in den angegebenen Attributen partitioniert; die Aggregationsfunktion wird dann jeweils separat für jede Gruppe berechnet. Die optionale HAVING-Klausel erlaubt die Selektions-Operation auf den Ergebnissen der Aggregationsfunktion(en).
+	\subitem In der ORDER BY-Klausel werden die Ergebnis Attribute angegeben, nach welchen das Ergebnis sortiert werden soll. Mit dem Zusatz ASC bzw. DESC hinter dem Attributnamen kann auf- und absteigende Sortierung gewählt werden.
 	\item geschachtelte Abfragen
 	\subitem in der SELECT-Klausel
 	\subitem in der FROM-Klausel
@@ -101,7 +106,7 @@ where
 	plz = (select max(p:plz) from plz as p)
 \end{lstlisting}
 \subsection{Typ N}
-Abfrage ohne Aggregationsfunktion, ohne Prädikate die Attribute aus der äußeren Relationen beinhalten. Kann unabhängig vom äußeren Abfrageblock ausgewertet werden, hat eine Liste von Werten als Ergebnis. Beispiel: Alle Städte mit einer Postleitzahl > 5000
+Ein geschachteltes Prädikat ist vom Typ N, genau dann wenn die innere Abfrage keine  Aggregationsfunktion enthält und alle Prädikate entweder simple Prädikate oder Join-Prädikate über Attributen der Relationen des inneren Abfrageblocks sind. Prädikate vom Typ N können unabhängig vom äußeren Abfrageblock ausgewertet werden; ihr Ergebnis ist eine Liste von Konstanten. Beispiel: Alle Städte mit einer Postleitzahl > 5000
 \begin{lstlisting}
 select sname 
 from staedte
