@@ -616,10 +616,10 @@ If the lifted predicate is a range lifted predicate (i.e. isBBoxLiftedPred),
 the "passes" predicate is the result ofthe inference.
 
 */
-inferPatternPredicates([Pred|Preds], [passes(P1,bbox2d(P2))|Preds2] ):-
+inferPatternPredicates([Pred|Preds], [passes(P1,box2d(bbox(P2)))|Preds2] ):-
   Pred=..[F,P1,P2],
   isBBoxLiftedPred(F),!,
-  assert(removefilter(passes(P1,bbox2d(P2)))),
+  assert(removefilter(passes(P1,box2d(bbox(P2))))),
 	inferPatternPredicates(Preds,Preds2).
 
 /*
