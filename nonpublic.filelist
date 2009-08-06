@@ -24,6 +24,8 @@ MONTreeAlgebra MONTree
 NearestNeighborAlgebra NearestNeighbor
 STPatternAlgebra STPattern
 
+PeriodicAlgebra Periodic
+
 
 # Student's algebras
 HierarchicalGeoAlgebra HierarchicalGeo
@@ -53,6 +55,7 @@ FuzzyAlgebra Fuzzy
 Optimizer/Entropy
 Data/Databases/spatial
 Data/Objects/Distrikte
+Javagui/viewers/hoese/algebras/periodic
 
 # chessalgebra
 Tests/Testspecs/chessalgebra
@@ -82,6 +85,14 @@ Data/Objects/KreisLaender
 
 Algebras/Relation-C++/Measurements-feed-project-consume.sxc
 Algebras/Relation-C++/Measurements-feed-project-consume.xls
+
+Javagui/viewer/hoese/algebras/Dsplpmpoint.java
+Javagui/viewer/hoese/algebras/Dsplpmpoints.java
+Javagui/viewer/hoese/algebras/Dsplpmreal.java
+Javagui/viewer/hoese/algebras/Dsplpmrect.java
+Javagui/viewer/hoese/algebras/Dsplpmregion.java
+
+
 
 # Viewers of the practical course developed 
 # in the winter term 2006/2007
