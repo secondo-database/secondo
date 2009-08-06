@@ -319,7 +319,7 @@ tag-version:
 
 fileList := $(tempdir)/_SRC_FILE_LIST
 .PHONY: public-linux
-src-archive: rmList mkLat1
+public-linux: rmList mkLat1
 	
 .PHONY: public-version 
 public-version: rmList mkLat1 mkcp1252
