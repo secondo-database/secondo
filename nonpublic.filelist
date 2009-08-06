@@ -71,7 +71,9 @@ CM-Scripts/makepublicsecondo
 Optimizer/calloptimizer_sec.pl
 
 CM-Scripts/cvs-make.sh
-CM-Scripts/cvs-chgrp.sh
+CM-Scripts/cvs-chgrps.sh
+CM-Scripts/nocvs.sh
+CM-Scripts/rmoptext.sh
 CM-Scripts/cvspass.pl
 CM-Scripts/mkpublic.sh
 CM-Scripts/public-version.pd
