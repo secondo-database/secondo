@@ -108,6 +108,34 @@ public class SecondoExtension{
      return valid;
    }
 
+   /** delete a directory or a file. if f is a directory, removing is done
+     * recursively.
+     */
+   public boolean remove(File f){
+     try{
+        if(!f.exists()){
+          return false;
+        }
+        if(!f.isDirectory()){
+           f.delete();
+           return true;
+        } else {
+          File[] content = f.listFiles();
+          boolean res = true;
+          for(int i=0;i<content.length;i++){
+             if(!remove(content[i])){
+               res = false;
+             }
+          }
+          f.delete();
+          return res;
+        }
+     } catch(Exception e){
+         return false;   
+     }
+   }
+
+
    /** Reads the copyright information from n **/
    protected boolean readCopyright(Node n){
       if(!n.hasChildNodes()){

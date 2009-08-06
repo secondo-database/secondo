@@ -41,7 +41,19 @@ public static void main(String[] args){
       System.exit(-1);
    }
    ExtensionInstaller si = new ExtensionInstaller(secDir);
-   si.installExtensions(args);
+   if(!args[0].equals("-uninstall")){
+      si.installExtensions(args);
+   } else {
+      if(args.length<2){
+          System.out.println("missing argument");
+          System.exit(1);
+      }
+      String[] args2 = new String[args.length-1];
+      for(int i=0;i<args2.length;i++){
+       args2[i] = args[i+1];
+      }
+      si.unInstallExtensions(args2);
+   }
 }
 
 }

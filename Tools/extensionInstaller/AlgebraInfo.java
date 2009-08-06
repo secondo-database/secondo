@@ -436,7 +436,75 @@ private boolean modifyMakeFileAlgebras(File f){
 
 }
 
-/** Installs the algebra.  */
+/** remove the algebra from makefile.algebras.  **/
+private boolean removeFromMakeFileAlgebras(File f){
+    if(!f.exists()){
+      System.err.println("makefile.algebras.sample does not exist. Check the secondo installation");
+      return false;
+    }
+    try{ 
+      String content = "";
+      BufferedReader in = new BufferedReader(new FileReader(f));
+      boolean modified = false;
+      boolean lastLineAlgebraRelated = false;
+      String algDir = getAlgebraDir();
+      String algName = getAlgebraName();
+      while(in.ready()){
+        String line = in.readLine();
+        if(line.matches("\\s*ALGEBRA_DIRS\\s*\\+=\\s*"+algDir+"\\s*")){
+          modified=true;
+          lastLineAlgebraRelated = true;
+        }  else if(line.matches("\\s*ALGEBRAS\\s*\\+=\\s*"+algName+"\\s*")){
+          modified = true;
+          lastLineAlgebraRelated = true;
+        } else if(line.matches("\\s*")){
+           content += line +"\n";
+        } else if(line.matches("\\s*ALGEBRA_DEPS\\s*\\+=.*")){
+          if(!lastLineAlgebraRelated){
+            content += line + "\n";
+          } else {
+             // look whether the line contains only algebra deps listed here
+             String deps = line.replaceAll("^\\s*ALGEBRA_DEPS\\s*\\+=\\s*","");
+             deps = deps.trim();
+             StringTokenizer st = new StringTokenizer(deps);
+             boolean other = false;
+             while(st.hasMoreTokens()){
+               String token = st.nextToken();
+                if(!libFlags.contains(token)){
+                   other = true;
+                }
+             }
+             if(other){ // line contains more dependencies as given in plugin
+               content += line;
+             } else {
+               modified=true;
+             }
+          }
+        } else {
+           content += line +"\n";
+           lastLineAlgebraRelated = false;
+        }
+      }
+      in.close();
+
+      if(modified){
+         PrintStream out = new PrintStream(new  FileOutputStream(f));
+         out.println(content);
+         out.close();
+      }
+    } catch(Exception e){
+       e.printStackTrace();
+       System.err.println("could not update makefile.algebras.sample");
+       return false;
+    }
+    return true;
+
+}
+/** Installs the algebra. 
+    Creates an algebra directory.
+    Copies the source files into that directory.
+    Modifies AlgebgraList.i.cfg, makefile.algebras, and makefile.algebras.sample.
+  **/
 boolean install(String secondoDir, String zipFileName ){
   System.out.println("install algebra " + getAlgebraName());
   // create algebra directory
@@ -523,6 +591,75 @@ boolean install(String secondoDir, String zipFileName ){
     return false;
   }
 }
+
+boolean  unInstall(String secondoDir, String zipFileName ){
+     System.out.println("uninstall algebra " + getAlgebraName());
+     // remove algebra directory
+     String algDir = secondoDir + File.separator + "Algebras" + File.separator + getAlgebraDir();
+     // delete algebra directory
+     File f = new File(algDir);
+     if(!f.exists()){
+        System.err.println("AlgebraDirectory not found");
+     } else {
+        if(!remove(f)){
+          System.err.println("Problem in deleting algebra directory:" + algDir);
+        } else {
+          System.err.print("algebra directory successful removed:" + algDir);
+        }
+     }
+     // remove Algebra from AlgebraList.i.cfg
+    System.out.println("modify AlgebraList.i.cfg");
+    try{
+       // copy the complete file into a string and get the highest algebra number
+       int number = 0;
+       f = new File (secondoDir +
+                          File.separator +
+                          "Algebras" + File.separator +
+                          "Management" + File.separator+
+                          "AlgebraList.i.cfg");
+       if(!f.exists()){
+          System.err.println("AlgebraList.i.cfg not found, please check your Secondo installation");
+          return false;
+       }
+       BufferedReader in = new BufferedReader(new FileReader(f));
+       String content = new String(); 
+       boolean foundInList=false; 
+       while(in.ready()&&!foundInList){
+         String line = in.readLine();
+         if(line.matches("\\s*ALGEBRA_INCLUDE\\([0-9]+\\s*,\\s*" + 
+            getAlgebraName()+"\\s*\\)\\s*")){
+            foundInList = true;
+         }else{
+           content+=line+"\n";
+         } 
+       }
+       in.close();
+       if(foundInList){
+          // write the file
+          PrintStream out = new PrintStream(new  FileOutputStream(f));
+          out.println(content);
+          out.close();
+       } 
+    }catch(Exception e){
+       e.printStackTrace();
+       System.err.println("AlgebraList.i.cfg could not be updated");
+       return false;
+    }
+
+    // remove algebra from makefile.algebras and makefile.algebras.sample
+    f = new File(secondoDir + File.separator + "makefile.algebras.sample");
+    removeFromMakeFileAlgebras(f);
+    f = new File(secondoDir + File.separator + "makefile.algebras");
+    removeFromMakeFileAlgebras(f);
+    if(libFlags.size()>0){
+      System.out.println("Please check your makefile.algebras[.sample].");
+      System.out.println("for unused libraries in the ACTIVATE_ALL_ACGEBRAS section");
+      System.out.println("This plugin uses the libs:"+libFlags);
+    }
+    return true;
+}
+
+     
 
 
   /** Checks whether this plugin can be installed, i.e. wether the dependencies are

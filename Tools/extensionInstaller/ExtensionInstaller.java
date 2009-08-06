@@ -213,9 +213,7 @@ private boolean checkAndInstallOptimizerExtensions(Vector<ExtensionInfo> infos){
    return true;
 }
 
-
-/** Installs a set of modules. **/
-public boolean installExtensions(String[] extensionFiles){
+private Vector<ExtensionInfo> readInfos(String[] extensionFiles){
   try{
      // step one: extract the ExtensionInformations
      Vector<ExtensionInfo> infos = new Vector<ExtensionInfo>(extensionFiles.length);
@@ -241,23 +239,57 @@ public boolean installExtensions(String[] extensionFiles){
         }
         zipFile.close();
      }
-     // all xml files are analysed and the results are stored
-     // process algebras
-     checkAndInstallAlgebras(infos);
-     checkAndInstallViewers(infos);
-     checkAndInstallDisplayClasses(infos);
-     checkAndInstallOptimizerExtensions(infos);
-
-
+     return infos;
   } catch(Exception e){
     e.printStackTrace();
-    System.err.println("Problem in analyse of modules");
+    return null;
   }
-  return true; 
+
 
 }
 
+/** Installs a set of modules. **/
+public boolean installExtensions(String[] extensionFiles){
+   Vector<ExtensionInfo> infos = readInfos(extensionFiles);
+   if(infos==null){
+     return false;
+   }
+   checkAndInstallAlgebras(infos);
+   checkAndInstallViewers(infos);
+   checkAndInstallDisplayClasses(infos);
+   checkAndInstallOptimizerExtensions(infos);
+   return true; 
+}
 
+private boolean unInstallAlgebras(Vector<ExtensionInfo> infos){
+   boolean ok = true;
+   for(int i=0;i<infos.size();i++){
+      ExtensionInfo extinfo = infos.get(i);
+      Vector<AlgebraInfo> alginfos = extinfo.getAlgebraInfos();
+      for(int j=0;j<alginfos.size();j++){
+         if(!alginfos.get(j).unInstall(secondoDir.getAbsolutePath(), extinfo.getFileName())){
+           System.err.println("Problem in unINstalling algebra"+alginfos.get(j).getAlgebraName());
+           ok = false;
+         }
+      }
+   }
+   return ok;
+}
+
+/** unInstalls extsnions **/
+public boolean unInstallExtensions(String[] extensionFiles){
+  Vector<ExtensionInfo> infos = readInfos(extensionFiles);
+  if(infos==null){
+    return false;
+  }
+  unInstallAlgebras(infos);
+  System.err.println("uninstalling for Viewer, DisplayClasses, and optimizer not implemented yet");
+ // unInstallViewers(infos);
+ // unInstallDisplayClasses(infos);
+ // unOptimizerExtensions(infos);
+  return true; 
+
+}
 
 
 

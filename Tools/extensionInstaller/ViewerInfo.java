@@ -461,7 +461,7 @@ public class ViewerInfo extends JavaExtension{
 
   /** Installs that extension **/
   public boolean install(String secondoDir, String ZipFileName){
-    // copy the files
+     // copy the files
      ZipFile f = null;
      String s = File.separator;
      String guiDir = secondoDir + s + "Javagui"+ s;
@@ -535,7 +535,26 @@ public class ViewerInfo extends JavaExtension{
      return true;  
   }
 
+
+  public boolean unInstall(String secondoDir, String ZipFileName){
+    // delete MainClass
+
+    // delete other files
+
+    // delete libraries
+
+    // modify configfile (gui.cfg, gui.cfg.example)
   
+    // modify startscript
+
+    // modify makefile.viewers[.example]
+
+    // modify makefile.inc
+
+    System.err.println("UnInstalling viewers not implemented yet");
+    return false;
+
+  }  
 
 
 } // class ViewerInfo
