@@ -30,7 +30,7 @@ CLASSFILES = $(subst ./,,$(TMPFILES))
 
 .PHONY: all
 all: $(CLASSFILES)
-	make -C periodic all
+	make -C periodic all | echo "" 
 	make -C network all
 	make -C fileviewers all
 
@@ -41,6 +41,6 @@ all: $(CLASSFILES)
 .PHONY: clean
 clean:
 	rm -f *.class
-	make -C periodic clean
+	make -C periodic clean | echo ""
 	make -C network clean
 	make -C fileviewers clean
