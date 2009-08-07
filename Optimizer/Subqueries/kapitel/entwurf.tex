@@ -4,6 +4,7 @@
 %
 
 \chapter{Entwurf}
+Der von Kim bzw. Ganski/Wong vorgestellte Algorithmus zur Optimierung geschachtelter Abfragen hat für die Implementierung in \textsc{Secondo} den Vorteil, dass er sich mit der Einführung eines weiteren Operators in die bestehende \textsc{Secondo}-Implementierung integrieren lässt. 
 \begin{itemize}
 	\item keine automatische Entscheidung entschachteln oder nicht
 	\subitem alle Metadaten über temp. Relationen wären notwendig
@@ -26,11 +27,14 @@ FROM §$R_i, R_j$§
 WHERE §$R_i.C_h = R_j.C_m$§
 \end{lstlisting}
 
-unter der Voraussetzung, dass $R_j$ bezüglich der Spalte $C_m$ duplikatfrei ist. Dies kann aber jederzeit erreicht werden, indem $R_j$ auf die Spalte $C_m$ eingeschränkt und projiziert wird. Für skalare Vergleichsoperatoren gilt die Äquivalenz ohne diese Einschränkung. Skalare Vergleichsoperatoren sind nicht \enquote{duplikats-entfernend}.
+ist.
+
+Die Mengen basierte Semantik des IN-Operators wird nur dann erhalten, wenn $R_j$ bezüglich der Spalte $C_m$ duplikatfrei ist. Dies kann aber jederzeit erreicht werden, indem $R_j$ auf die Spalte $C_m$ eingeschränkt und projiziert wird. Für skalare Vergleichsoperatoren gilt die Äquivalenz ohne diese Einschränkung. Skalare Vergleichsoperatoren sind nicht \enquote{duplikats-entfernend}. 
 
 
 
 \section{Algorithmus \textbf{NEST-N-J}}
+Idee des Algorithmus ist es, die Abfrageblöcke zu verschmelzen. Dafür wird die Konjunktion der WHERE-Klauseln gebildet und um ein Join-Prädikat ergänzt, das aus dem ursprünglich geschachtelten Prädikat abgleitet ist.
 Alle FROM-Klausel kombinieren. Die resultierende FROM-Klausel umfasst alle Relationen des inneren und des äußeren Abfrageblocks\\
 Die Konjunktion der WHERE-Klauseln bilden.\\
 Das geschachtelte Prädikat \begin{math}[R_i.C_h \operatorname{op}\ (\texttt{SELECT} R_j.C_m \dots)]\end{math} ersetzen durch ein neues Join-Prädikat \begin{math}[R_i.C_h \operatorname{\emph{new-op}} R_j.C_m]\end{math}, das mit der restlichen WHERE-Klausel per Konjunktion verbunden ist\\

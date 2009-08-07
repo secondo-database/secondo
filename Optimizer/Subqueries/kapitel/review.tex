@@ -5,13 +5,24 @@
 
 \chapter{Review}
 \section{Überblick}
+Ein Datenbanksystem ist eine Menge zusammenhängender Dateien und Programmen, die es einem Benutzer erlauben auf diese Dateien zuzugreifen und diese zu ändern. Eine Hauptaufgabe eines Datenbanksystems ist es, dem Benutzer eine abstrakte Sicht auf die Daten zu ermöglichen. Die physikalische Ablage und der eigentliche Zugriff auf die Daten werden dabei vor dem Benutzer verborgen. Dabei können drei Abstraktionsebenen unterschieden werden. Die physische Ebene beschreibt, wie die Daten physikalisch abgelegt werden. Mit Hilfe von systemnahen komplexen Datenstrukturen wird die physische Ablage der Daten beschrieben. 
+
+Die logische Ebene umfasst die Beschreibung der Art der Daten und der Beziehungen zwischen den Daten. In ihr wird die gesamte Datenbank auf der Basis von vergleichsweise einfachen Strukturen beschrieben. Bei der Realisierung der Strukturen auf der logischen Ebene kann auf die Strukturen der physischen Ebene zurückgegriffen werden. Für einen Benutzer der logischen Ebene, z.B. einem Datenbankadministrator muss dies jedoch nicht sichtbar sein.
+
+Auf der höchsten Abstraktionsebene, der Sichtenebene wird nur ein Teil der Datenbank beschrieben. Obwohl die logische Ebene mit einfacheren Strukturen arbeitet, bleibt eine gewisse Komplexität wegen der Unterschiedlichkeit der in einer großen Datenbank gespeicherten Informationen. Viele Benutzer eines Datenbanksystems benötigen nicht alle Informationen; stattdessen brauchen sie nur einen Teil der Datenbank. Die Sichtenebene dient der Vereinfachung beim Zugriff auf das System. Es können beliebig viele Sichten auf eine Datenbank existieren.
+
+Jedem Datenbanksystem liegt ein Datenmodell zugrunde. Das Datenmodell beschreibt die konzeptionellen Einheiten und Werkzeuge um Daten Beziehungen zwischen den Daten, die Semantik der Daten und Konsistenzeinschränkungen zu beschreiben. Verbreitete Datenmodell für Datenbanken sind das relationale und das objektorientierte Datenbankmodell. 
 \subsection{Beschreibung SECONDO}
+\textsc{Secondo} ist ein modular aufgebautes, erweiterbares Datenbanksystem. Über den Formalismus der Signaturen zweiter Ordnung (\textbf{SECOND} \textbf{O}rder Signatures) lassen sich die Datentypen und Operationen auf den Datentypen beschreiben. Signaturen zweiter Ordnung sind zwei gekoppelte Signaturen. Die Sorten der ersten Signatur werden \enquote{Kinds} genannt, die Operationen Typ-Konstruktoren. Die im System verfügbaren Datentypen sind genau die Ausdrücke dieser Signatur. Die zweite Signatur beschreibt Operationen auf diesen Datentypen. Über die Implementierung von Algebramodulen lässt sich \textsc{Secondo} um beliebige Datentypen und Operationen auf diesen Datentypen erweitern. 
+
+\textsc{Secondo} besteht aus den drei Komponenten Kernel, Optimierer und Grafischer-Benutzeroberfläche (GUI). Diese drei Komponenten können getrennt aber auch im Zusammenspiel genutzt werden. Der Kernel bietet die Möglichkeit Ausdrücke in der \textsc{Secondo}-eigenen Syntax auszuführen. Mit dem Optimierer können SQL-ähnliche Ausdrücke in ausführbare Pläne übersetzt werden.
 \begin{itemize}
 	\item Erweiterbares Datenbanksystem
 	\item Second-Order-Signatures
 	\item Kernel/Algebren
 	\item Optimierer
 	\item GUI
+	\item Client/Server Betrieb
 \end{itemize}
 \subsection{SQL}
 
@@ -28,12 +39,12 @@
 	\end{lstlisting}
 	\subitem Die SELECT-Klausel entspricht der Projektions-Operation der relationalen Algebra. In ihr werden alle Attribute der Ergebnisrelation angegeben. Um alle Attribute der beteiligten Relationen zu erhalten gibt es die spezielle Notation \enquote{*}.
 	\subitem Die FROM-Klausel entspricht dem kartesischen Produkt in der relationalen Algebra. Hier werden alle in der Abfrage verwendeten Relationen aufgeführt.
-	\subitem Die WHERE-Klausel entspricht der Selektions-Operation der relationalen Algebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der FROM-Klausel aufgelisteten Relationen.
+	\subitem Die WHERE-Klausel entspricht der Selektions-Operation der relationalen Algebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der FROM-Klausel aufgelisteten Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnden Termen von einem Prädikat der Abfrage.
 	\subitem GROUP BY\dots HAVING-Klausel Die Eingabemenge der Aggregationsfunktion wird in \enquote{Gruppen} mit gleichen Attributwerten in den angegebenen Attributen partitioniert; die Aggregationsfunktion wird dann jeweils separat für jede Gruppe berechnet. Die optionale HAVING-Klausel erlaubt die Selektions-Operation auf den Ergebnissen der Aggregationsfunktion(en).
 	\subitem In der ORDER BY-Klausel werden die Ergebnis Attribute angegeben, nach welchen das Ergebnis sortiert werden soll. Mit dem Zusatz ASC bzw. DESC hinter dem Attributnamen kann auf- und absteigende Sortierung gewählt werden.
 	\item geschachtelte Abfragen
-	\subitem in der SELECT-Klausel
-	\subitem in der FROM-Klausel
+	\subitem in der SELECT-Klausel 
+	\subitem in der FROM-Klausel 
 	\subitem in der WHERE Klausel
 	\subitem in der GROUP BY\dots HAVING-Klausel (nicht implementiert)
 \end{itemize}
@@ -55,13 +66,17 @@
 \end{itemize}
 
 \subsection{TPC-D Benchmark}
-TPC = Transaction Processing Performance Council. Stellt Benchmarks zum Vergleich von OLTP Systemen auf. 
+TPC = Transaction Processing Performance Council. Stellt Benchmarks zum Vergleich von OLTP Systemen auf. Je nach Anwendungsgebiet werden verschiedene Metriken zum Vergleich von real verfügbaren Systemen bereitgestellt. Der in dieser Arbeit für den Vergleich herangezogene Benchmark TPC-D ist ein Entscheidungshilfe-Benchmark. In dem Benchmark sind 22 Abfragen zusammengefasst, die Antworten auf betriebswirtschaftliche Fragestellungen geben. Insgesamt 10 dieser Abfragen haben geschachtelte Abfrageblöcke und eignen sich daher als Anschauungsobjekt für die Optimierung geschachtelter Anfragen. In Kapitel \ref{Leistungsvergleich} findet sich eine Gegenüberstellung der geschachtelten und der optimierten Ausführung diser Abfragen.
 
 \section{Ausführunsstrategien}
 \subsection{Geschachtelte Iteration}
+\cite{375748,1247598,ISO:1992:IITa} 
+Die Semantik der Auswertung von geschachtelten Abfragen wird im SQL-Standard \cite{ISO:1992:IITa} definiert. Hierbei wird der innere Abfrageblock für jedes Tupel des äußeren Abfrageblocks ausgewertet. Enthält die Unterabfrage korrelierte Prädikate, d.h. Prädikate, die sich auf Attribute der Relationen des äußeren Abfrageblocks beziehen, so werden die entsprechenden Werte aus dem Tupel des äußeren Abfrageblocks als Konstanten in die Prädikate der Subquery übernommen.
+\cite{319745, 38723} 
 \subsection{Entschachtelung}
+In \cite{319745} wurde erstmals die Möglichkeit vorgestellt, eine geschachtelte Abfrage durch Transformation in eine semantisch äquivalente, nicht geschachtelte Abfrage zu optimieren. Die dort vorgestellten Algorithmen benötigen nur die erweiterten Standard-Operationen der Relationen Algebra. 
 \begin{itemize}
-	\item G-Aggregation
+	\item G-Aggregation 
 	\item G-Join
 	\item G-Restriction
 	\item G-Outerjoin
@@ -69,10 +84,6 @@ TPC = Transaction Processing Performance Council. Stellt Benchmarks zum Vergleic
 	\item SegmentApply
 	\item NULL-rejecting Outerjoin
 \end{itemize}
-
-\cite{375748,1247598,ISO:1992:IITa} 
-Die Auswertung von geschachtelten Abfragen wird im SQL-Standard \cite{ISO:1992:IITa} definiert. Hierbei wird der innere Abfrageblock für jedes Tupel des äußeren Abfrageblocks ausgewertet. Enthält die Unterabfrage korrelierte Join-Prädikate, so werden die entsprechenden Werte aus dem Tupel des äußeren Abfrageblocks als Konstanten in die Prädikate der Subquery übernommen.
-\cite{319745, 38723} 
 
 SQL Prädikate lassen sich in verschiedene Klassen einteilen. Abhängig von der Semantik der Operation, kann man in \emph{einfache} Prädikate, \emph{Join}-Prädikate, \emph{Divisions}-Prädikate und \emph{geschachtelte} Prädikate unterscheiden. Einfache Prädikate sind solche Prädikate die zu ihrer Berechnung nur auf Konstanten und Attribute einer Relation zugreifen. Ein Beispiel für ein solches Prädikat ist \textbf{$C_m = 10$}. Join-Prädikate benötigen zu ihrer Berechnung Attribute aus zwei oder mehr Relationen. Sie \emph{verbinden} (to join -- engl. verbinden) die verwendeten Relationen. 
 \begin{lstlisting} 
