@@ -92,6 +92,12 @@ Javagui/viewer/hoese/algebras/Dsplpmreal.java
 Javagui/viewer/hoese/algebras/Dsplpmrect.java
 Javagui/viewer/hoese/algebras/Dsplpmregion.java
 
+Javagui/tools/PointDataDisturber.java
+Javagui/tools/DisturberGui.java
+Javagui/tools/MovingPointBuilder.java
+Javagui/tools/PeriodExtractor.java
+Javagui/tools/PeriodicPointBuilder.java
+
 
 
 # Viewers of the practical course developed 
