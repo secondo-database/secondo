@@ -140,6 +140,11 @@ private static Vector<String> getPossibleAlgebraDirNames(String algName){
            } else {
              if(n2.hasChildNodes()){
                 specFile = n2.getFirstChild().getNodeValue().trim();
+                StringTriple t = new StringTriple();
+                t.first = specFile;
+                t.second = null;
+                t.third = null;
+                files.add(t);
              } else {
                System.err.println("empty Spec not allowed");
                return false;
@@ -153,6 +158,11 @@ private static Vector<String> getPossibleAlgebraDirNames(String algName){
            } else {
              if(n2.hasChildNodes()){
                 exampleFile = n2.getFirstChild().getNodeValue().trim();
+                StringTriple t = new StringTriple();
+                t.first = exampleFile;
+                t.second = null;
+                t.third = null;
+                files.add(t);
              } else {
                System.err.println("empty Example not allowed");
                return false;
@@ -513,9 +523,11 @@ boolean install(String secondoDir, String zipFileName ){
    algDir += File.separator;
    
   try{
-     ZipFile zipFile = new ZipFile(zipFileName);
-     copyFiles(algDir,zipFile);
-     System.out.println("Source files successful installed");
+    ZipFile zipFile = new ZipFile(zipFileName);
+    copyFiles(algDir,zipFile);
+
+    
+    System.out.println("Source files successful installed");
 
     System.out.println("modify AlgebraList.i.cfg");
     try{
