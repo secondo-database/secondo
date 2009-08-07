@@ -28,19 +28,25 @@ JAVAFILES =$(shell find -maxdepth 1  -name "*.java")
 TMPFILES = $(subst .java,.class,$(JAVAFILES))
 CLASSFILES = $(subst ./,,$(TMPFILES))
 
+SUBDIRS = $(shell find -maxdepth 1 -not -name "CVS" -not -name "." -type d -printf "%f.dir ")
+SUBDIRSCLEAN = $(subst .dir,.dirclean,$(SUBDIRS))
+
+
 .PHONY: all
-all: $(CLASSFILES)
-	make -C periodic all | echo "" 
-	make -C network all
-	make -C fileviewers all
+all: $(SUBDIRS) $(CLASSFILES)
+
+
+%.dir: %
+	make -C  $<  all
 
 %.class: %.java
 	$(JAVAC) -classpath $(CLASSPATH):$(JARS) $<
 
 
 .PHONY: clean
-clean:
+clean: $(SUBDIRSCLEAN)
 	rm -f *.class
-	make -C periodic clean | echo ""
-	make -C network clean
-	make -C fileviewers clean
+
+%.dirclean: %
+	make -C $< clean
+
