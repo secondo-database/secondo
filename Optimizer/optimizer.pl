@@ -1209,9 +1209,6 @@ rel_to_atom(rel(DCname, _), ExtName) :-
   dcName2externalName(DCname,ExtName).
 
 % Section:Start:plan_to_atom_2_b
-% Section:End:plan_to_atom_2_b
-
-
 /*
 the stpattern predicate
 
@@ -1232,6 +1229,8 @@ plan_to_atom( patternex(NPredList, ConstraintList, Filter) , Result):-
 	plan_to_atom(Filter, Filter2),
 	concat_atom(['. stpatternex[', NPredList2, '; ', ConstraintList2, '; ', Filter2, ']'],'',  Result),
 	!.
+% Section:End:plan_to_atom_2_b
+
 
 plan_to_atom(A,A) :-
   string(A),
@@ -1953,26 +1952,6 @@ list_to_atom([X | Xs], Result) :-
   list_to_atom(Xs, XsAtom),
   concat_atom([XAtom, ', ', XsAtom], '', Result),
   !.
-/*
-Used within spatiotemporal pattern predicates
-
-*/
-
-namedPred_to_atom(NP,NP1):-
-	NP=..[as,P,A],
-	flatten([A],A1),
-	flatten([P],P1),
-	A1=[A3], P1=[P2],
-	plan_to_atom(P2,P3),
-	concat_atom([A3, ' : ', P3],'', NP1),!.
-
-namedPredList_to_atom([NP], NP1):-
-	namedPred_to_atom(NP,NP1),!.
-namedPredList_to_atom([ NP | NPListRest], Result):-
-	namedPred_to_atom(NP, NP1),
-	namedPredList_to_atom( NPListRest, SubResult),
-	concat_atom([NP1, ',', SubResult], ' ', Result),!.
-
 
 
 /*
@@ -2112,6 +2091,7 @@ select(arg(N), Y) => project(X, RenamedAttrNames) :-
   % with renaming, so modify the projection attr list
   renameAttributes(Var, AttrNames, RenamedAttrNames).
 
+
 % replace (Attr = Term) by (Term = Attr)
 indexselect(arg(N), pr(attr(AttrName, Arg, Case) = Y, Rel)) => X :-
   not(isSubquery(Y)),
@@ -2136,6 +2116,7 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
   hasIndex(rel(Name,Var),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
   dcName2externalName(DCindex,IndexName),
   (IndexType = btree; IndexType = hash).
+
 
 % generic rule for (Term = Attr): rangesearch using mtree
 % without rename
@@ -2212,13 +2193,6 @@ filter is used.
 
 */
 
-% Generic indexselect translation for predicates checking on mbbs
-
-% translation rule for sometimes(Pred). It is necessary for STPattern
-indexselect(arg(N), pr(Pred, _)) => filter(IS, Pred) :-
-  Pred =.. [sometimes, InnerPred] ,
-  indexselect(arg(N), pr(InnerPred, _)) => Result,
-  Result= filter(IS, InnerPred).
 
 % Generic indexselect translation for predicates checking on mbbs
 indexselect(arg(N), pr(Pred, _/*Rel*/)) =>
@@ -2273,6 +2247,7 @@ Again. a possible ~rename~ must be done before ~filter~ can be applied.
 indexselect(arg(N), Pred) => X :-
   optimizerOption(rtreeIndexRules),
   indexselectRT(arg(N), Pred) => X.
+
 
 % 'present' with temporal(rtree,object) index
 indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) present Y, _)) =>
@@ -2353,63 +2328,6 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= * ,
   hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
-           DCindex, spatial(rtree,unit)),
-  dcName2externalName(DCindex,IndexName).
-
-
-% special rules for range queries in the form distance(m(x), y) < d
-% 'distance <' with spatial(rtree,object) index
-
-indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(gettuples(windowintersectsS(dbobject(IndexName),
-				enlargeRect(bbox(Y),D,D)),  rel(Name, *)),
-				distance(attr(AttrName, Arg, AttrCase), Y)< D)
-  :-
-%the translation will work only if Y is of spatial type
-%otherwise it will crash
-%We still need to develop a predicate that will check the type of a param
-  argument(N, rel(Name, *)),
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
-           DCindex, spatial(rtree,object)),
-  dcName2externalName(DCindex,IndexName).
-
-indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(rename(gettuples(windowintersectsS(dbobject(IndexName),
-				enlargeRect(bbox(Y),D,D)),  rel(Name, *)), RelAlias),
-				distance(attr(AttrName, Arg, AttrCase), Y)< D)
-  :-
-%the translation will work only if Y is of spatial type
-%otherwise it will crash
-%We still need to develop a predicate that will check the type of a param
-  argument(N, rel(Name, RelAlias)), RelAlias \= *,
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
-           DCindex, spatial(rtree,object)),
-  dcName2externalName(DCindex,IndexName).
-
-% 'distance <' with spatial(rtree,unit) index
-indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
-				enlargeRect(bbox(Y),D,D)))),  rel(Name, *)),
-				distance(attr(AttrName, Arg, AttrCase), Y)< D)
-  :-
-%the translation will work only if Y is of spatial type
-%otherwise it will crash
-%We still need to develop a predicate that will check the type of a param
-  argument(N, rel(Name, *)),
-  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
-           DCindex, spatial(rtree,unit)),
-  dcName2externalName(DCindex,IndexName).
-
-indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
-				enlargeRect(bbox(Y),D,D)))),rel(Name, *)), RelAlias),
-				distance(attr(AttrName, Arg, AttrCase), Y)< D)
-  :-
-%the translation will work only if Y is of spatial type
-%otherwise it will crash
-%We still need to develop a predicate that will check the type of a param
-  argument(N, rel(Name, RelAlias)), RelAlias \= *,
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
            DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
@@ -2925,6 +2843,67 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _))
 */
 
 % Section:Start:translationRule_2_e
+% translation rule for sometimes(Pred). It is necessary for STPattern
+indexselect(arg(N), pr(Pred, _)) => filter(IS, Pred) :-
+  Pred =.. [sometimes, InnerPred] ,
+  indexselect(arg(N), pr(InnerPred, _)) => Result,
+  Result= filter(IS, InnerPred).
+
+% special rules for range queries in the form distance(m(x), y) < d
+% 'distance <' with spatial(rtree,object) index
+
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(gettuples(windowintersectsS(dbobject(IndexName),
+				enlargeRect(bbox(Y),D,D)),  rel(Name, *)),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
+           DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
+
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(rename(gettuples(windowintersectsS(dbobject(IndexName),
+				enlargeRect(bbox(Y),D,D)),  rel(Name, *)), RelAlias),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, RelAlias)), RelAlias \= *,
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
+           DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
+
+% 'distance <' with spatial(rtree,unit) index
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+				enlargeRect(bbox(Y),D,D)))),  rel(Name, *)),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
+           DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
+
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+				enlargeRect(bbox(Y),D,D)))),rel(Name, *)), RelAlias),
+				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, RelAlias)), RelAlias \= *,
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
+           DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
 % Section:End:translationRule_2_e
 
 isOfFirst(X, X, _) :- X = attr(_, 1, _).
@@ -3690,6 +3669,7 @@ cost(filter(X, _), Sel, P, S, C) :-
   S is SizeX,
   C is CostX + A * SizeX, !.
 
+% Section:Start:cost_5_m
 cost(filter(gettuples(rdup(sort(
       windowintersectsS(dbobject(IndexName), BBox))), rel(RelName, *)),
       FilterPred), Sel, _, Size, Cost):-
@@ -3699,33 +3679,7 @@ cost(filter(gettuples(rdup(sort(
   Cost is 0,
   card(RelName, RelCard),
   Size is RelCard * Sel,!.
-%   write('...Inside cost estimation '),nl,
-%   card(RelName, RelCard),
-%   write('...Inside cost estimation1 '),nl,
-%   concat_atom(['query no_entries(', IndexName, ') '], '', Command),
-%   write('...Inside cost estimation2 '- Command),nl,
-%   secondo(Command, [_,IndexCard]),
-%   write('...IndexCard' - IndexCard),nl,
-%   windowintersectsTC(WITC),
-%   write('...Inside cost estimation3 '),nl,
-%   CostWI is Sel * 1.2 * IndexCard * WITC * 0.25, % including 20% false positives
-%   write('...Inside cost estimation4 '),nl,
-%   sorttidTC(STC),
-%   write('...Inside cost estimation5 '),nl,
-%   CostSort is Sel * 1.2 * IndexCard * STC,
-%   write('...Inside cost estimation6 '),nl,
-%   rdupTC(RDTC),
-%   write('...Inside cost estimation7 '),nl,
-%   CostRD is Sel * 1.2 * IndexCard * RDTC,
-%   write('...Inside cost estimation8 '),nl,
-%   CostGT is Sel * 1.2 * WITC * 0.75,
-%   Cost is CostWI+ CostSort + CostRD + CostGT,
-%   write('...Total cost is ' - Cost),nl,
-%   Size is Sel * RelCard,
-%   write('...Final size is ' - Size),nl.
-
-
-
+% Section:End:cost_5_m
 
 cost(filter(X, _), Sel, P, S, C) :- 	% 'normal' filter
   cost(X, 1, P, SizeX, CostX),
@@ -3960,8 +3914,8 @@ cost(gettuples(X, _), Sel, P, Size, Cost) :-
           + Size * C * 0.75. % other 0.25 applied in 'windowintersectsS'
 
 
-% Section:Start:cost_4_e
-% Section:End:cost_4_e
+% Section:Start:cost_5_e
+% Section:End:cost_5_e
 
 isPrefilter(X) :-
   X = spatialjoin(_, _, _, _).
@@ -5331,6 +5285,7 @@ lookupPreds(Pred, Pred2) :-
   not(is_list(Pred)),
   lookupPred(Pred, Pred2), !.
 
+% Section:Start:lookupPred_2_b
 /*
 Used within the spatiotemporal pattern predicate.
 If Pred is among the additional predicates list, it
@@ -5341,15 +5296,15 @@ called lookupPred.
 
 */
 
-% Section:Start:lookupPred_2_b
-% Section:End:lookupPred_2_b
-
 lookupPred(Pred, pr(Pred2, Rel)) :-
   removefilter(Pred),
   nextCounter(selectionPred,_),
   lookupPred1(Pred, Pred2, [], [Rel]), !,
   retract(removefilter(Pred)),
   assert(removefilter(Pred2)).
+% Section:End:lookupPred_2_b
+
+
 
 lookupPred(Pred, pr(Pred2, Rel)) :-
   nextCounter(selectionPred,_),
@@ -5427,6 +5382,7 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
     ; assert(usedAttr(Rel2, attr(Attr2, X, Case)))
   ), !.
 
+% Section:Start:lookupPred1_2_m
 /*
 Used within the spatiotemporal pattern predicates stpattern.
 The only component of the STPP that need lookup is the
@@ -5458,8 +5414,9 @@ lookupPred1(patternex(Preds,C, F), patternex(Res,C, F1), RelsBefore, RelsAfter) 
 	lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
 	lookupPred1(F, F1, RelsAfterMe, RelsAfter),
 	!.
+% Section:End:lookupPred1_2_m
 
-lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-
+lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-  %if placed before lookupPred1(pattern*), pattern query crash
   compound(Term),
   Term =.. [Op|Args],
   not(isSubqueryPred1(Term)),
@@ -5474,8 +5431,6 @@ lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
   secondoCatalogInfo(TermDC,_,_,_),
   !.
 
-% Section:Start:lookupPred1_2_m
-% Section:End:lookupPred1_2_m
 
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
@@ -5494,27 +5449,6 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
   lookupPred1(Me,     Me2,     RelsBefore,  RelsAfterMe),
   lookupPred2(Others, Others2, RelsAfterMe, RelsAfter),
   !.
-
-/*
-Used within the spatiotemporal pattern predicates.
-Looks up the aliased lifted predicate list within the
-spatiotemporal pattern predicate.
-
-*/
-composeNPredList( [P | PredListRest], [A | AliasListRest], [P as A | NPredListRest]):-
-	composeNPredList(PredListRest, AliasListRest, NPredListRest).
-composeNPredList( [], [], []).
-
-
-lookupPatternPreds([Pred| PRest], [Pred2| PRest2], RelsBefore, RelsAfterPreds):-
-	lookupPred1(Pred, Pred2, RelsBefore, RelsAfterMe),
-	lookupPatternPreds(PRest, PRest2, RelsAfterMe, RelsAfterPreds).
-	lookupPatternPreds([], [], RelsBefore, RelsBefore).
-
-lookupPattern( NPredList , NPredList2, RelsBefore, RelsAfter) :-
-  	removeAliases(NPredList, PredList, AliasList),
-	lookupPatternPreds(PredList, PredList2, RelsBefore, RelsAfter),
-	composeNPredList(PredList2, AliasList, NPredList2).
 
 %%%% Begin: for update and insert
 lookupTransformations([], []) :- !.
@@ -7587,3 +7521,58 @@ finishUpdate(update Rel set Transformations, Stream2, Stream3) :-
 writeDebug(Text) :-
   write(Text), nl.
 
+
+% Section:Start:auxiliaryPredicates
+/*
+Used within the spatiotemporal pattern predicates.
+Looks up the aliased lifted predicate list within the
+spatiotemporal pattern predicate.
+
+*/
+composeNPredList( [P | PredListRest], [A | AliasListRest], [P as A | NPredListRest]):-
+	composeNPredList(PredListRest, AliasListRest, NPredListRest).
+composeNPredList( [], [], []).
+
+
+lookupPatternPreds([Pred| PRest], [Pred2| PRest2], RelsBefore, RelsAfterPreds):-
+	lookupPred1(Pred, Pred2, RelsBefore, RelsAfterMe),
+	lookupPatternPreds(PRest, PRest2, RelsAfterMe, RelsAfterPreds).
+	lookupPatternPreds([], [], RelsBefore, RelsBefore).
+
+lookupPattern( NPredList , NPredList2, RelsBefore, RelsAfter) :-
+  	removeAliases(NPredList, PredList, AliasList),
+	lookupPatternPreds(PredList, PredList2, RelsBefore, RelsAfter),
+	composeNPredList(PredList2, AliasList, NPredList2).
+
+/*
+Used within spatiotemporal pattern predicates
+
+*/
+
+namedPred_to_atom(NP,NP1):-
+	NP=..[as,P,A],
+	flatten([A],A1),
+	flatten([P],P1),
+	A1=[A3], P1=[P2],
+	plan_to_atom(P2,P3),
+	concat_atom([A3, ' : ', P3],'', NP1),!.
+
+namedPredList_to_atom([NP], NP1):-
+	namedPred_to_atom(NP,NP1),!.
+namedPredList_to_atom([ NP | NPListRest], Result):-
+	namedPred_to_atom(NP, NP1),
+	namedPredList_to_atom( NPListRest, SubResult),
+	concat_atom([NP1, ',', SubResult], ' ', Result),!.
+
+isStringList(string).
+isStringList([string|StrListRest]):-
+	isStringList(StrListRest).
+
+isBoolList(bool).
+isBoolList([bool|BoolListRest]):-
+	isBoolList(BoolListRest).
+
+isNamedPredList(namedPred).
+isNamedPredList([namedPred|PredListRest]):-
+	isNamedPredList(PredListRest).
+% Section:End:auxiliaryPredicates

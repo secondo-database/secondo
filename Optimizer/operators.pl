@@ -2284,6 +2284,23 @@ opSignature(updatertree, updaterelation, [[stream,[tuple,R]],
   append(R,O,XI), !.
 
 /*
+2.7.33 STPatternAlgebra
+
+*/
+opSignature(stconstraint, stpattern, [string, string, stvector],bool,[]).
+opSignature(vec, stpattern, StrList, stvector,[]):-
+	isStringList(StrList).
+opSignature(end, stpattern, [string], instant,[]).
+opSignature(start, stpattern, [string], instant,[]).
+opSignature(pattern, stpattern, [NamedPredList, ConList], bool,[]):-
+	isNamedPredList(NamedPredList),
+	isBoolList(ConList).
+opSignature(patternex, stpattern, [NamedPredList, ConList, bool], bool,[]):-
+	isNamedPredList(NamedPredList),
+	isBoolList(ConList).
+%opSignature(as, stpattern, [mbool,text], namedPred,[]).
+
+/*
 2.7.2 (Still) Missing Algebras
 
 The typemappings for the operators of the following algebras still need to be declared:
@@ -2343,8 +2360,6 @@ The typemappings for the operators of the following algebras still need to be de
    * RemoteStreamAlgebra
 
    * RoseAlgebra
-
-   * STPatternAlgebra
 
    * StreamExampleAlgebra
 
@@ -2407,10 +2422,9 @@ isBBoxPredicate(Op,ArgsTypeList,Dim) :-
   opSignature(Op, _, ArgsTypeList,bool,Flags),
   memberchk(bbox(Dim),Flags),!.
 
+% Section:Start:isBBoxLiftedPred_1_e
 % Range Lifted Predicates
 isBBoxLiftedPred(inside).
-
-% Section:Start:isBBoxLiftedPred_1_e
 % Section:End:isBBoxLiftedPred_1_e
 
 % other operators using bboxes:

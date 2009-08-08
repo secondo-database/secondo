@@ -197,7 +197,6 @@ secondoOp( addtupleid,        postfix, 1).
 %secondoOp( aggregateS,       postfixbrackets1, 3). % TODO: special syntax
 secondoOp( approximate,       postfixbrackets1, 3).
 secondoOp( attr,              prefix, 2).
-secondoOp( vec,               prefix, 2).
 secondoOp( attrsize,          postfixbrackets1, 2).
 secondoOp( avg,               postfixbrackets1, 2).
 secondoOp( bbox,              prefix, 1).
