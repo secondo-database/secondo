@@ -4,7 +4,21 @@
 %
 
 \chapter{Implementierung}
-\section{Ein Outerjoin-Operator für SECONDO}
+\section{Ein Full-Outer-Join-Operator für SECONDO}
+\textsc{Secondo} enthält bereits mehrere allgemeine Join-Operatoren. Als Vorlage für die Implementierung des Full-Outer-Join-Operators wurde der Operator \secondo{sortmergejoin} ausgewählt, da sich der zugrunde liegende Algorithmus mit wenigen Änderungen in einen Full-Outer-Join umbauen lässt. Sort-Merge-Join ist ein Algorithmus zur Berechnung von Equi-Joins. Voraussetzung ist die Sortierung der Relationen bzw. Ströme bezüglich der Join-Attribute. Diese Anforderung kann durch das vorhergehende Sortieren der Relationen erfüllt werden. In \textsc{Secondo} wird diese Aufgabe von dem Operator \secondo{sortmergejoin} erledigt. 
+
+Zu Beginn des Algorithmus zeigen die beiden Zeiger auf den Anfang jeder Relation. 
+\begin{enumerate}
+\item Jetzt werden alle Tupel der ersten Relation mit übereinstimmenden Wert im Join-Attribut in einen Puffer gelesen und der Zeiger jeweils auf das aktuell gelesene Tupel gesetzt. 
+\item Im nächsten Schritt werden alle Tupel der zweiten Relation in einen Puffer gelesen, die bezüglich ihres Join-Attribut-Werts übereinstimmen. 
+\subitem Ist der Wert des Join-Attributs kleiner, als der des Tupels im ersten Puffer, wird der Zeiger in der zweiten Relation um eine Position erhöht. 
+\subitem Besteht Gleichheit im Wert des Join-Attributs, so wird ein Tupel der Ergebnisrelation erzeugt, das aus der Aneinanderreihung der Tupel der Eingaberelationen besteht, für jedes Tupel das im ersten Puffer steht. Anschließend wird das Tupel aus dem zweiten Puffer gelöscht und mit dem nächsten Tupel aus diesem Puffer fortgefahren. Ist der zweite Puffer erschöpft, wird auch der erste Puffer geleert und mit dem ersten Schritt fortgefahren. 
+\subitem Ist der Wert des Join-Attributs im zweiten Puffer größer, als im ersten, so wird der Zeiger in der ersten Relation solange erhöht, bis einer der oben genannten Fälle eintritt. 
+\item Ist eine der beiden Relationen erschöpft, ist der Algorithmus beendet.
+\end{enumerate}
+
+Dieser Algorithmus lässt sich auf folgende Art und Weise zum Full-Outer-Join ausbauen. Bei jedem Vergleichsschritt wird jetzt mindestens ein Tupel der Ausgaberelation erzeugt. Ist der Wert im ersten Puffer größer als im zweiten, so besteht das Tupel der Ergebnismenge aus einer Verkettung des Tupels aus dem Puffer und einem mit NULL-Werten gefüllten Tupel der zweiten Relation. Auf die gleiche Art wird mit jedem Tupel des Puffers verfahren. Ist der Attribut-Wert gleich, so wird wie beim Sort-Merge-Join verfahren. Ist der Wert größer, so wird für jedes Tupel im zweiten Puffer ein Ausgabe-Tupel erzeugt, dass aus einer Aneinanderreihung eines NULL-Tupels der ersten Relation und dem Tupel aus dem Puffer besteht.
+
 \begin{itemize}
 	\item Beschreibung Sortmergejoin
 	\subitem Zwei Tupelbuffer
@@ -16,10 +30,10 @@
 Basis ist sortmergejoin, jedes nicht \enquote{matchende} Tupel wird mit NULL-Werten aufgefüllt, nur Equi-Outerjoin\\
 Ausblick: allgemeiner Outerjoin auf Basis von Symmjoin, zwei Hash-Tabelle mit Tupel-Ids für alle gematchten Tupel, Tupelbuffer durchlaufen und ein mit NULL-Werten aufgefülltes Tupel erzeugen für alle nicht gematchten Tupel
 \section{Umschreiben quantifizierter Prädikate}
-Prädikate mit den Operatoren \textsc{EXISTS, NOT EXISTS, ANY} und \textsc{ALL} werden in äquivalente Prädikate mit Aggregationen überführt.
+Prädikate mit den Operatoren \sql{EXISTS, NOT EXISTS, ANY} und \sql{ALL} werden in äquivalente Prädikate mit Aggregationen überführt. Damit sind sie den in \ref{chp:Entwurf} beschriebenen Algorithmen zur Entschachtelung zugänglich. Exists und Not-Exists werden in einen Vergleich der Anzahl Tupel mit 0 transformiert. Also \sql{exists(select §$C_n$§ from §$R_m$§ where P)} in \sql{0 < (select count(§$C_n$§) from §$R_m$§ where P)} und \sql{not exists(select §$C_n$§ from §$R_m$§ where P)} in \sql{0 = (select count(§$C_n$§) from §$R_m$§ where P)}.
 
 \section{Entschachtelung}
-Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong. Rekursive Entschachtelung von Abfragen. Dabei werden die oben beschriebenen Schachtelungstypen unterschieden. Je nach Schachtelungstyp wird der entsprechende Entschachtelungs-Algorithmus angewendet. \enquote{Temporäre Relationen} werden für die Entschachtelung korrelierter Abfragen mit Aggregationsfunktion benötigt. Sie werden beim Schließen der Datenbank gelöscht.
+Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong. Rekursive Entschachtelung von Abfragen. Dabei werden die oben beschriebenen Schachtelungstypen unterschieden. Je nach Schachtelungstyp wird der entsprechende Entschachtelungsalgorithmus angewendet. \enquote{Temporäre Relationen} werden für die Entschachtelung korrelierter Abfragen mit Aggregationsfunktion benötigt. Sie werden beim Schließen der Datenbank gelöscht.
 
 \section{Schema-Lookup}
 \begin{itemize}
@@ -31,17 +45,18 @@ Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong
 
 \section{Ermittlung des Ausführungsplans}
 \begin{itemize}
-	\item korrelierte Prädikate der Subquery entfernen
+	\item korrelierte Prädikate der Subquery entfernen. Hierzu werden die Prädikate untersucht, ob sie Attribute aus Relationen des äußeren Abfrageblocks verwenden.
 	\item Plan für Subquery ohne korrelierte Prädikate ermitteln. Unterabfragen ohne korrelierten Prädikate werden durch die Standardmechanismen des \textsc{Secondo}-Optimierers übersetzt, um einen möglichst effizienten Ausführungsplan zu ermitteln. 
 	\item korrelierte Prädikate mit aufsteigender Selektivität an Plan \enquote{anflanschen}. 
 \end{itemize}
 
 \section{Übersetzung des Plans in ausführbare Syntax}
 \subsection{IN Operator}
-Übersetzung mit den \textsc{Secondo} Operatoren \secondo{in}, \secondo{collect\_set} und \secondo{projecttransformstream}. 
-Der Operator \secondo{projecttransformstream} hat die Signatur 
-\secondo{$stream(tuple((a_1 t_1)\cdots(a_n t_n)))\times a_n$ ---> $(stream t_n)$} 
-und wandelt einen Tupel-Strom in einen Strom von Werten um. Hierbei wird das Selektions-Attribute der geschachtelten Abfrage als zu wählender Parameter mitgegeben. Der Strom wird dann mit dem Operator \secondo{collect\_set} in eine Menge umgewandelt und für jedes Tupel des äußeren Stroms wird mit \secondo{in} geprüft, ob der entsprechende Attributwert enthalten ist. 
+Der in-Operator wird mit dem \textsc{Secondo} Operator \secondo{in} der Collection-Algebra übersetzt, unter Zuhilfenahme der Operatoren \secondo{collect\_set} und \secondo{projecttransformstream}.Der Operator \secondo{projecttransformstream} hat die Signatur 
+
+\secondo{$stream(tuple((a_1 t_1)\cdots(a_n t_n)))\times a_n$ $\rightarrow$ $(stream t_n)$} 
+
+und wandelt einen Tupel-Strom in einen Strom von Werten um. Hierbei wird das Selektions-Attribute der geschachtelten Abfrage als zu wählender Parameter mitgegeben. Der Strom wird dann mit dem Operator \secondo{collect\_set} in eine Menge umgewandelt und für jedes Tupel des äußeren Stroms wird mit \secondo{in} geprüft, ob der entsprechende Attributwert enthalten ist. D.h. 
 
 \begin{lstlisting}
 §$A_i$§ in (select §$A_j$§ from §$R_n$§)

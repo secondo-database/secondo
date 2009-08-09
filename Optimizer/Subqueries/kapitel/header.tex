@@ -20,6 +20,9 @@
 %Deutsche Trennungen, Anführungsstriche und mehr:
 \usepackage[ngerman]{babel} 
 
+% zusätzliche Silbentrennung
+\hyphenation{Ent-schach-tel-ungs Im-ple-men-tie-rung}
+
 %Eingabe von ü,ä,ö,ß erlauben
 \usepackage[latin1]{inputenc}
 
@@ -51,7 +54,7 @@
 \usepackage{graphicx}
 
 % Silbentrennung
-\usepackage{hyphenat}
+%\usepackage{hyphenat}
 
 %Ein Paket, das die Darstellung von "Text, wie er eingegeben wird"
 %erlaubt: Also
@@ -96,6 +99,7 @@
 
 \newcommand{\op}[1]{\operatorname{\textbf{#1}}}
 \newcommand{\secondo}[1]{\texttt{#1}}					
+\newcommand{\sql}[1]{\textbf{#1}}
 
 \makeglossary
 

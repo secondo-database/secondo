@@ -11,11 +11,11 @@ Die logische Ebene umfasst die Beschreibung der Art der Daten und der Beziehunge
 
 Auf der höchsten Abstraktionsebene, der Sichtenebene wird nur ein Teil der Datenbank beschrieben. Obwohl die logische Ebene mit einfacheren Strukturen arbeitet, bleibt eine gewisse Komplexität wegen der Unterschiedlichkeit der in einer großen Datenbank gespeicherten Informationen. Viele Benutzer eines Datenbanksystems benötigen nicht alle Informationen; stattdessen brauchen sie nur einen Teil der Datenbank. Die Sichtenebene dient der Vereinfachung beim Zugriff auf das System. Es können beliebig viele Sichten auf eine Datenbank existieren.
 
-Jedem Datenbanksystem liegt ein Datenmodell zugrunde. Das Datenmodell beschreibt die konzeptionellen Einheiten und Werkzeuge um Daten Beziehungen zwischen den Daten, die Semantik der Daten und Konsistenzeinschränkungen zu beschreiben. Verbreitete Datenmodell für Datenbanken sind das relationale und das objektorientierte Datenbankmodell. 
+Jedem Datenbanksystem liegt ein Datenmodell zugrunde. Das Datenmodell beschreibt die konzeptionellen Einheiten und Werkzeuge um Daten, Beziehungen zwischen den Daten, die Semantik der Daten und Konsistenzeinschränkungen zu beschreiben. Verbreitete Datenmodelle für Datenbanken sind das relationale und das objektorientierte Datenbankmodell. 
 \subsection{Beschreibung SECONDO}
 \textsc{Secondo} ist ein modular aufgebautes, erweiterbares Datenbanksystem. Über den Formalismus der Signaturen zweiter Ordnung (\textbf{SECOND} \textbf{O}rder Signatures) lassen sich die Datentypen und Operationen auf den Datentypen beschreiben. Signaturen zweiter Ordnung sind zwei gekoppelte Signaturen. Die Sorten der ersten Signatur werden \enquote{Kinds} genannt, die Operationen Typ-Konstruktoren. Die im System verfügbaren Datentypen sind genau die Ausdrücke dieser Signatur. Die zweite Signatur beschreibt Operationen auf diesen Datentypen. Über die Implementierung von Algebramodulen lässt sich \textsc{Secondo} um beliebige Datentypen und Operationen auf diesen Datentypen erweitern. 
 
-\textsc{Secondo} besteht aus den drei Komponenten Kernel, Optimierer und Grafischer-Benutzeroberfläche (GUI). Diese drei Komponenten können getrennt aber auch im Zusammenspiel genutzt werden. Der Kernel bietet die Möglichkeit Ausdrücke in der \textsc{Secondo}-eigenen Syntax auszuführen. Mit dem Optimierer können SQL-ähnliche Ausdrücke in ausführbare Pläne übersetzt werden.
+\textsc{Secondo} besteht aus den drei Komponenten Kernel, Optimierer und grafischer Benutzeroberfläche (GUI). Diese drei Komponenten können getrennt aber auch im Zusammenspiel genutzt werden. Der Kernel bietet die Möglichkeit Ausdrücke in der \textsc{Secondo}-eigenen Syntax auszuführen. Mit dem Optimierer können SQL-ähnliche Ausdrücke in ausführbare Pläne übersetzt werden.
 \begin{itemize}
 	\item Erweiterbares Datenbanksystem
 	\item Second-Order-Signatures
@@ -66,7 +66,7 @@ Jedem Datenbanksystem liegt ein Datenmodell zugrunde. Das Datenmodell beschreibt
 \end{itemize}
 
 \subsection{TPC-D Benchmark}
-TPC = Transaction Processing Performance Council. Stellt Benchmarks zum Vergleich von OLTP Systemen auf. Je nach Anwendungsgebiet werden verschiedene Metriken zum Vergleich von real verfügbaren Systemen bereitgestellt. Der in dieser Arbeit für den Vergleich herangezogene Benchmark TPC-D ist ein Entscheidungshilfe-Benchmark. In dem Benchmark sind 22 Abfragen zusammengefasst, die Antworten auf betriebswirtschaftliche Fragestellungen geben. Insgesamt 10 dieser Abfragen haben geschachtelte Abfrageblöcke und eignen sich daher als Anschauungsobjekt für die Optimierung geschachtelter Anfragen. In Kapitel \ref{Leistungsvergleich} findet sich eine Gegenüberstellung der geschachtelten und der optimierten Ausführung diser Abfragen.
+TPC = Transaction Processing Performance Council. Stellt Benchmarks zum Vergleich von OLTP Systemen auf. Je nach Anwendungsgebiet werden verschiedene Metriken zum Vergleich von real verfügbaren Systemen bereitgestellt. Der in dieser Arbeit für den Vergleich herangezogene Benchmark TPC-D ist ein Entscheidungshilfe-Benchmark. In dem Benchmark sind 22 Abfragen zusammengefasst, die Antworten auf betriebswirtschaftliche Fragestellungen geben. Insgesamt 10 dieser Abfragen haben geschachtelte Abfrageblöcke und eignen sich daher als Anschauungsobjekt für die Optimierung geschachtelter Anfragen. In Kapitel \ref{chp:Leistungsbewertung} findet sich eine Gegenüberstellung der geschachtelten und der optimierten Ausführung dieser Abfragen.
 
 \section{Ausführunsstrategien}
 \subsection{Geschachtelte Iteration}
@@ -74,7 +74,7 @@ TPC = Transaction Processing Performance Council. Stellt Benchmarks zum Vergleic
 Die Semantik der Auswertung von geschachtelten Abfragen wird im SQL-Standard \cite{ISO:1992:IITa} definiert. Hierbei wird der innere Abfrageblock für jedes Tupel des äußeren Abfrageblocks ausgewertet. Enthält die Unterabfrage korrelierte Prädikate, d.h. Prädikate, die sich auf Attribute der Relationen des äußeren Abfrageblocks beziehen, so werden die entsprechenden Werte aus dem Tupel des äußeren Abfrageblocks als Konstanten in die Prädikate der Subquery übernommen.
 \cite{319745, 38723} 
 \subsection{Entschachtelung}
-In \cite{319745} wurde erstmals die Möglichkeit vorgestellt, eine geschachtelte Abfrage durch Transformation in eine semantisch äquivalente, nicht geschachtelte Abfrage zu optimieren. Die dort vorgestellten Algorithmen benötigen nur die erweiterten Standard-Operationen der Relationen Algebra. 
+In \cite{319745} wurde erstmals die Möglichkeit vorgestellt, eine geschachtelte Abfrage durch Transformation in eine semantisch äquivalente, nicht geschachtelte Abfrage zu optimieren. Die dort vorgestellten Algorithmen benötigen nur die erweiterten Standard-Operationen der Relationen Algebra. Ziel der Entschachtelungen ist die Überführung geschachtelter Abfrageblöcke in eine semantisch äquivalente Form. Zwei Abfrageblöcke sind semantisch äquivalent, wenn für jede beliebige Interpretation (Belegung mit Werten) der Variablen (in diesem Fall Relationen, Attribute und Konstanten), das Ergebnis der Abfrage übereinstimmt. Grundsätzlich haben die Entschachtelungsansätze gemeinsam, dass Äquivalenzen aufgestellt werden, die die Transformation einer Abfrage in eine strukturell anders aufgebaute Abfrage erlauben. \cite{375748} wird die SQL-Abfrage erst einmal in eine algebraische Darstellung übersetzt. Um die Transformationen leisten zu können, wird die relationale Algebra um einige Operatoren erweitert, mit deren Hilfe sich der Term, der durch die Übersetzung entsteht, in eine entschachtelte Variante überführen lässt. 
 \begin{itemize}
 	\item G-Aggregation 
 	\item G-Join
@@ -108,6 +108,7 @@ D =(ein Divisions-Prädikat, dass in einer der beiden Abfrageblöcke ein Join-Präd
 \emph{nested-iteration method}, vollständige Auswertung des inneren Abfrageblocks für jedes Tupel des äußeren Blocks
 
 \section{Klassifikation geschachtelter Abfragen}
+Grundsätzlich lassen sich geschachtelte Abfragen in unabhängige Abfragen und korrelierte Abfragen unterscheiden. Unabhängige Abfragen lassen sich unabhängig vom äußeren Abfrageblock auswerten. Ist eine unabhängige Auswertung nicht möglich spricht man korrelierten Abfragen, da das Ergebnis der inneren Abfrage vom Wert des Tupels des äußeren Abfrageblocks abhängt.
 \subsection{Typ A}
 geschachtelte Abfrage mit Aggregationsfunktion, ohne Prädikate die Attribute aus den äußeren Relationen verwenden, kann unabhängig vom äußeren Abfrageblock ausgewertet werden, hat einen Wert als Ergebnis, nicht Liste wg. Aggregationsfunktion. Beispiel: Den Ort mit der höchsten Postleitzahl aus der Relation PLZ
 \begin{lstlisting}
@@ -117,21 +118,21 @@ where
 	plz = (select max(p:plz) from plz as p)
 \end{lstlisting}
 \subsection{Typ N}
-Ein geschachteltes Prädikat ist vom Typ N, genau dann wenn die innere Abfrage keine  Aggregationsfunktion enthält und alle Prädikate entweder simple Prädikate oder Join-Prädikate über Attributen der Relationen des inneren Abfrageblocks sind. Prädikate vom Typ N können unabhängig vom äußeren Abfrageblock ausgewertet werden; ihr Ergebnis ist eine Liste von Konstanten. Beispiel: Alle Städte mit einer Postleitzahl > 5000
+Eine geschachtelte Abfrage ist vom Typ N, genau dann wenn die innere Abfrage keine  Aggregationsfunktion enthält und alle Prädikate entweder simple Prädikate oder Join-Prädikate über Attributen der Relationen des inneren Abfrageblocks sind. Prädikate vom Typ N können unabhängig vom äußeren Abfrageblock ausgewertet werden; ihr Ergebnis ist eine Liste von Konstanten. Beispiel: Alle Städte mit einer Postleitzahl > 5000
 \begin{lstlisting}
 select sname 
 from staedte
 where sname in (select ort from plz where plz > 5000)
 \end{lstlisting}
 \subsection{Typ J}
-Abfrage mit mindestens einem Verweis auf Attribute einer äußeren Relation, keine Aggregationsfunktion. Beispiel: Finde alle Städte, deren Bevölkerung größer als die Postleitzahl ist
+Eine Abfrage hat den Typ J, wenn mindestens ein Attribut der äußeren Relation im Prädikat verwendet wird, aber keine Aggregationsfunktion in der SELECT-Klausel vorkommt. Beispiel: Finde alle Städte, deren Bevölkerung größer als die Postleitzahl ist
 \begin{lstlisting}
 select sname
 from staedte
 where sname in (select ort from plz where plz < bev)
 \end{lstlisting}
 \subsection{Typ JA}
-korrelierte Abfrage mit Aggregationsfunktion. Beispiel: Alle Orte mit ihrer maximalen Postleitzahl
+Korrelierte Abfragen mit Aggregationsfunktion in der SELECT-Klausel heißen vom Typ JA. Beispiel: Alle Orte mit ihrer maximalen Postleitzahl
 \begin{lstlisting}
 select ort 
 from plz
