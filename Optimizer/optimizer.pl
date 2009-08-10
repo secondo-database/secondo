@@ -7025,6 +7025,11 @@ sqlExample( 304,
   where [(t:trip atperiods deftime(train5)) passes s:geodata]
   ).
 
+sqlExample(305,
+  select count(*)
+  from trains
+  where pattern([trip inside msnow as preda, distance(trip, mehringdamm)<10.0 as predb],[stconstraint("preda","predb",vec("aabb"))])).	
+
 % Section:Start:sqlExample_1_e
 % Section:End:sqlExample_1_e
 
@@ -7565,14 +7570,17 @@ namedPredList_to_atom([ NP | NPListRest], Result):-
 	concat_atom([NP1, ',', SubResult], ' ', Result),!.
 
 isStringList(string).
+isStringList([string]).
 isStringList([string|StrListRest]):-
 	isStringList(StrListRest).
 
 isBoolList(bool).
+isBoolList([bool]).
 isBoolList([bool|BoolListRest]):-
 	isBoolList(BoolListRest).
 
 isNamedPredList(namedPred).
+isNamedPredList([namedPred]).
 isNamedPredList([namedPred|PredListRest]):-
 	isNamedPredList(PredListRest).
 % Section:End:auxiliaryPredicates
