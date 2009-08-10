@@ -2298,7 +2298,8 @@ opSignature(pattern, stpattern, [NamedPredList, ConList], bool,[]):-
 opSignature(patternex, stpattern, [NamedPredList, ConList, bool], bool,[]):-
 	isNamedPredList(NamedPredList),
 	isBoolList(ConList).
-%opSignature(as, stpattern, [mbool,text], namedPred,[]).
+opSignature(as, stpattern, [mbool,X], namedPred,[]):-
+	atom(X).
 
 /*
 2.7.2 (Still) Missing Algebras
