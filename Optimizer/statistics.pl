@@ -1832,7 +1832,26 @@ getTypeTree(Expr,_,Result) :-
   tmpStoredTypeTree(Expr,Result),!.
 
 % Handle Lists of expressions
-getTypeTree(arglist([]),_,[]).
+getTypeTree(arglist([]),_,[]) :- !.
+getTypeTree(arglist([X]),Rels,[X1]) :-
+  is_list(X),
+  catch((string_to_list(_,X), Test = ok),_,Test = failed), Test = failed,
+  write('--------arglist([X])'- arglist([X])),nl,
+  getTypeTree(arglist(X),Rels,X1), !.
+
+getTypeTree(arglist([X]),Rels,[X1]) :-
+%  not(is_list(X)),
+  getTypeTree(X,Rels,X1), !.
+
+getTypeTree(arglist([X|R]),Rels,[X1|R1]) :-
+  is_list(X),
+  catch((string_to_list(_,X), Test = ok),_,Test = failed), Test = failed,
+  write('--------arglist([X|R])'- arglist([X|R])),nl,
+  getTypeTree(arglist(X),Rels,X1),
+  getTypeTree(arglist(R),Rels,R1),
+%   dm(selectivity,['$$$ getTypeTree: []: []']),nl,
+  !.
+
 getTypeTree(arglist([X|R]),Rels,[X1|R1]) :-
   getTypeTree(X,Rels,X1),
   getTypeTree(arglist(R),Rels,R1),
@@ -1961,9 +1980,11 @@ getTypeTree(newattr(AttrExpr,ValExpr),Rels,[newattr,
 % Expression using defined operator signature
 getTypeTree(Expr,Rels,[Op,ArgTree,TypeDC]) :-
   compound(Expr),
+  not(is_list(Expr)),
   Expr =.. [Op|Args],
   getTypeTree(arglist(Args),Rels,ArgTree),
-  findall(T,member([_,_,T],ArgTree),ArgTypes), % extract types from ArgTree
+  trav(ArgTree,ArgTypes),
+%  findall(T,member([_,_,T],ArgTree),ArgTypes), % extract types from ArgTree
   (   opSignature(Op,_,ArgTypes,TypeDC,_)
     ; queriedOpSignature(Op,ArgTypes,TypeDC,_)
   ),
@@ -1974,10 +1995,12 @@ getTypeTree(Expr,Rels,[Op,ArgTree,TypeDC]) :-
 % Expression using unknown operator signature
 getTypeTree(Expr,Rels,[Op,ArgsTypes,TypeDC]) :-
   compound(Expr),
+  not(is_list(Expr)),
   Expr =.. [Op|Args],
   getTypeTree(Args,Rels,ArgTree),
      % extract types from ArgTree
-  findall(T,member([_,_,T],ArgTree),ArgTypes),
+  trav(ArgTree,ArgTypes),
+%  findall(T,member([_,_,T],ArgTree),ArgTypes),
      % create a valid expression using defined null values
   createNullValues(ArgsTypes,NullArgs),
      % send getTypeNL-query to Secondo to infer the signature
@@ -2013,6 +2036,17 @@ dcNList([],[]).
 dcNList([X1|R1],[X2|R2]) :-
   dcNList(X1,X2),
   dcNList(R1,R2),!.
+
+trav([],[]).
+trav( [TreeH| TreeRest] ,[ResH| ResRest]) :-
+  travChild(TreeH,ResH),
+  trav(TreeRest, ResRest).
+
+travChild([Fun,_,T],T):-
+  atomic(Fun),!.
+
+travChild(Tree, Res):-
+  trav(Tree, Res). 
 
 /*
 The next predicate creates a list of Null Values for a given type list.
