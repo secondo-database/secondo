@@ -2283,23 +2283,26 @@ opSignature(updatertree, updaterelation, [[stream,[tuple,R]],
           O),
   append(R,O,XI), !.
 
+% Section:Start:opSignature_5_e
 /*
-2.7.33 STPatternAlgebra
+STPatternAlgebra
 
 */
 opSignature(stconstraint, stpattern, [string, string, stvector],bool,[]).
 opSignature(vec, stpattern, StrList, stvector,[]):-
-	isStringList(StrList).
+  isStringList(StrList).
 opSignature(end, stpattern, [string], instant,[]).
 opSignature(start, stpattern, [string], instant,[]).
 opSignature(pattern, stpattern, [NamedPredList, ConList], bool,[]):-
-	isNamedPredList(NamedPredList),
-	isBoolList(ConList).
+  isNamedPredList(NamedPredList),
+  isBoolList(ConList).
 opSignature(patternex, stpattern, [NamedPredList, ConList, bool], bool,[]):-
-	isNamedPredList(NamedPredList),
-	isBoolList(ConList).
+  isNamedPredList(NamedPredList),
+  isBoolList(ConList).
 opSignature(as, stpattern, [mbool,X], namedPred,[]):-
-	atom(X).
+  atom(X).
+
+% Section:End:opSignature_5_e
 
 /*
 2.7.2 (Still) Missing Algebras
