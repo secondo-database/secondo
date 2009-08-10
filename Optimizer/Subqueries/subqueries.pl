@@ -2015,7 +2015,7 @@ transformQuery(_, _, _, count(loopsel(Query, Fun)), JoinSize,
 		count(loopsel(head(Query, JoinSize), Fun))) :-
   not(optimizerOption(subqueries)).
   
-transformQ(_, _, _, count(filter(counter(loopjoin(Q, Fun), C), P)), 
+transformQuery(_, _, _, count(filter(counter(loopjoin(Q, Fun), C), P)), 
 		JoinSize, 
 		count(filter(counter(loopjoin(head(Q, JoinSize), Fun), C), P))) :-
   not(optimizerOption(subqueries)).
@@ -2164,9 +2164,9 @@ extractQueryAttr(_, _) :- !, fail.
   
 /* 
 
-Subquery aus Prädikat extrahieren,
-korrelierte Prädikate aus Subquery entfernen und mit queryToPlan Plan ermitteln
-korrelierte Prädikate mit filter einfügen, Reihenfolge mit Hilfe der selectivity ermitteln?
+Subquery aus Prï¿½dikat extrahieren,
+korrelierte Prï¿½dikate aus Subquery entfernen und mit queryToPlan Plan ermitteln
+korrelierte Prï¿½dikate mit filter einfï¿½gen, Reihenfolge mit Hilfe der selectivity ermitteln?
 
 */
 
