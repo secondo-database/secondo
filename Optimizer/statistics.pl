@@ -55,7 +55,8 @@ commute(Term,ResList,Commuted) :-
   optimizerOption(determinePredSig),
   Term =.. [Op, Arg1, Arg2],
   getTypeTree(Term,ResList,[_,Args,_]),
-  findall(T,member([_,_,T],Args),ArgTypes),
+  trav(Args,ArgTypes),
+%findall(T,member([_,_,T],Args),ArgTypes),
   isCommutativeOP(Op,ArgTypes),
   Commuted =.. [Op, Arg2, Arg1], !.
 % old rule - still using old ~isCommutativeOP/1~-facts
@@ -441,7 +442,8 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
   Pred =.. [OP, Arg1, Arg2],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel)],[OP,ArgsTrees,bool]),
-         findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
+         trav(ArgsTrees,ArgsTypeList),
+%findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
          isBBoxOperator(OP,ArgsTypeList,Dim),
          getBBoxIntersectionTerm(Arg1,Arg2,Dim,BBoxPred),
          ArgsTrees = [Arg1Tree,Arg2Tree],
@@ -516,7 +518,8 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
   Pred =.. [OP|_],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel)],[OP,ArgsTrees,bool]),
-         findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
+         trav(ArgsTrees,ArgsTypeList),
+%findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
          not(isBBoxOperator(OP,ArgsTypeList,_))
        )
     ;  not(isBBoxPredicate(OP))
@@ -575,7 +578,8 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
   Pred =.. [OP, Arg01, Arg02],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
-         findall(T,member([ _, _, T],ArgsTrees),ArgsTypeList),
+         trav(ArgsTrees,ArgsTypeList),
+%findall(T,member([ _, _, T],ArgsTrees),ArgsTypeList),
          isBBoxOperator(OP,ArgsTypeList,Dim),
          ArgsTrees = [Arg1Tree,Arg2Tree],
          bboxSizeQueryJoin(Arg01,Rel1,Rel2,Arg1Tree,_),
@@ -665,7 +669,8 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
   Pred =.. [OP|_],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
-         findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
+         trav(ArgsTrees,ArgsTypeList),
+%findall(T,member([_,_,T],ArgsTrees),ArgsTypeList),
          not(isBBoxOperator(OP,ArgsTypeList,_))
        )
     ;  not(isBBoxPredicate(OP))
@@ -902,7 +907,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   ( optimizerOption(determinePredSig)
     -> (
           getTypeTree(Pred, [(1,Rel1),(2,Rel2)], [Op,Args,ResultType]),
-          findall(T,(member([_,_,T],Args)),ArgTypeList),
+          trav(Args,ArgTypeList),
+%findall(T,(member([_,_,T],Args)),ArgTypeList),
           Signature =.. [Op|ArgTypeList],
           assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
           dm(selectivity,['The topmost signature for ',Pred,' is:\t',
@@ -943,7 +949,8 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   ( optimizerOption(determinePredSig)
       -> (
            getTypeTree(Pred, [(1,Rel)], [Op,Args,ResultType]),
-           findall(T,(member([_,_,T],Args)),ArgTypeList),
+           trav(Args,ArgTypeList),
+%findall(T,(member([_,_,T],Args)),ArgTypeList),
            Signature =.. [Op|ArgTypeList],
            assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
            dm(selectivity,['The topmost signature for ',Pred,' is:\t',
@@ -992,7 +999,8 @@ selectivity(pr(Pred, Rel1, Rel2), Sel, CalcPET, ExpPET) :-
   ( optimizerOption(determinePredSig)
       -> (
            getTypeTree(Pred, [(1,Rel1),(2,Rel2)], [Op,Args,ResultType]),
-           findall(T,(member([_,_,T],Args)),ArgTypeList),
+           trav(Args,ArgTypeList),
+%findall(T,(member([_,_,T],Args)),ArgTypeList),
            Signature =.. [Op|ArgTypeList],
            assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
            dm(selectivity,['The topmost signature for ',Pred,' is:\t',
@@ -1034,7 +1042,8 @@ selectivity(pr(Pred, Rel), Sel, CalcPET, ExpPET) :-
   ( optimizerOption(determinePredSig)
       -> (
           getTypeTree(Pred, [(1,Rel)], [Op,Args,ResultType]),
-          findall(T,(member([_,_,T],Args)),ArgTypeList),
+          trav(Args,ArgTypeList),
+%findall(T,(member([_,_,T],Args)),ArgTypeList),
           Signature =.. [Op|ArgTypeList],
           assert(storedPredicateSignature(DB, PSimple, [Op,Args,ResultType])),
           dm(selectivity,['The topmost signature for ',Pred,' is:\t',
@@ -1836,7 +1845,7 @@ getTypeTree(arglist([]),_,[]) :- !.
 getTypeTree(arglist([X]),Rels,[X1]) :-
   is_list(X),
   catch((string_to_list(_,X), Test = ok),_,Test = failed), Test = failed,
-  write('--------arglist([X])'- arglist([X])),nl,
+  %write('--------arglist([X])'- arglist([X])),nl,
   getTypeTree(arglist(X),Rels,X1), !.
 
 getTypeTree(arglist([X]),Rels,[X1]) :-
@@ -1846,7 +1855,7 @@ getTypeTree(arglist([X]),Rels,[X1]) :-
 getTypeTree(arglist([X|R]),Rels,[X1|R1]) :-
   is_list(X),
   catch((string_to_list(_,X), Test = ok),_,Test = failed), Test = failed,
-  write('--------arglist([X|R])'- arglist([X|R])),nl,
+  %write('--------arglist([X|R])'- arglist([X|R])),nl,
   getTypeTree(arglist(X),Rels,X1),
   getTypeTree(arglist(R),Rels,R1),
 %   dm(selectivity,['$$$ getTypeTree: []: []']),nl,
