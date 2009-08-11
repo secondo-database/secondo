@@ -3347,7 +3347,7 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
                         } else {
                           if (pCurr1->timeInterval.lc == true &&
                              (fabs(posJunc - pCurr1->p0.GetPosition()) < 0.01 ||
-                            fabs(interPosition-pCurr2->p0.GetPosition()<0.01)))
+                            fabs(interPosition-pCurr2->p0.GetPosition())<0.01))
                           {
                             res->Add(UGPoint(Interval<Instant> (tinter, tinter,
                                      true, true),
@@ -3359,7 +3359,7 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
                           } else {
                             if (pCurr1->timeInterval.rc == true &&
                               (fabs(posJunc - pCurr1->p1.GetPosition()) <0.01 ||
-                             fabs(interPosition-pCurr2->p1.GetPosition()<0.01)))
+                             fabs(interPosition-pCurr2->p1.GetPosition())<0.01))
                             {
                               res->Add(UGPoint(Interval<Instant> (tinter,
                                        tinter,
