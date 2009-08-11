@@ -7366,14 +7366,17 @@ namedPredList_to_atom([ NP | NPListRest], Result):-
 	concat_atom([NP1, ',', SubResult], ' ', Result),!.
 
 isStringList(string).
+isStringList([string]).
 isStringList([string|StrListRest]):-
 	isStringList(StrListRest).
 
 isBoolList(bool).
+isBoolList([bool]).
 isBoolList([bool|BoolListRest]):-
 	isBoolList(BoolListRest).
 
 isNamedPredList(namedPred).
+isNamedPredList([namedPred]).
 isNamedPredList([namedPred|PredListRest]):-
 	isNamedPredList(PredListRest).
 % Section:End:auxiliaryPredicates
