@@ -2514,6 +2514,21 @@ char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
 
 }
 
+
+// SPM: Extension communicated by K. Teufel
+
+Relation *Relation::GetRelation (const SmiFileId fileId )
+{
+   
+   map<RelationDescriptor, Relation*>::iterator it;
+   for (it=pointerTable.begin(); it != pointerTable.end(); it++)
+   {
+       if (((*it).first.tupleFileId == fileId))
+         return (*it).second;
+   }
+   return 0;
+}
+
 #endif
 
 

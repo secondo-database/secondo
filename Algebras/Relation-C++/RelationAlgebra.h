@@ -2000,6 +2000,8 @@ The destructor. Deletes the memory part of an relation object.
 */
 
     static Relation *GetRelation( const RelationDescriptor& d );
+    // SPM: communicated by K. Teufel
+    static Relation *GetRelation (const SmiFileId fileId );
 /*
 
 Given a relation descriptor, finds if there is an opened relation with that
