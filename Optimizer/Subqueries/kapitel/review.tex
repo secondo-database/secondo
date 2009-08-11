@@ -15,7 +15,7 @@ Jedem Datenbanksystem liegt ein Datenmodell zugrunde. Das Datenmodell beschreibt
 \subsection{Beschreibung SECONDO}
 \textsc{Secondo} ist ein modular aufgebautes, erweiterbares Datenbanksystem. Über den Formalismus der Signaturen zweiter Ordnung (\textbf{SECOND} \textbf{O}rder Signatures) lassen sich die Datentypen und Operationen auf den Datentypen beschreiben. Signaturen zweiter Ordnung sind zwei gekoppelte Signaturen. Die Sorten der ersten Signatur werden \enquote{Kinds} genannt, die Operationen Typ-Konstruktoren. Die im System verfügbaren Datentypen sind genau die Ausdrücke dieser Signatur. Die zweite Signatur beschreibt Operationen auf diesen Datentypen. Über die Implementierung von Algebramodulen lässt sich \textsc{Secondo} um beliebige Datentypen und Operationen auf diesen Datentypen erweitern. 
 
-\textsc{Secondo} besteht aus den drei Komponenten Kernel, Optimierer und grafischer Benutzeroberfläche (GUI). Diese drei Komponenten können getrennt aber auch im Zusammenspiel genutzt werden. Der Kernel bietet die Möglichkeit Ausdrücke in der \textsc{Secondo}-eigenen Syntax auszuführen. Mit dem Optimierer können SQL-ähnliche Ausdrücke in ausführbare Pläne übersetzt werden.
+\textsc{Secondo} besteht aus den drei Komponenten Kernel, Optimierer und grafischer Benutzeroberfläche (GUI). Diese drei Komponenten können getrennt aber auch im Zusammenspiel genutzt werden. Der Kernel bietet die Möglichkeit Ausdrücke in der \textsc{Secondo}-eigenen Syntax auszuführen. Hierzu gibt es eine Kommandozeilen-Schnittstelle, über die mit dem Kernel kommuniziert werden kann. Zusätzlich kann der Kernel auch im Client/Server-Betriebsmodus gestartet werden. Er bietet dann anderen Komponenten die Möglichkeit, auf den Kernel zuzugreifen. Mit dem Optimierer können SQL-ähnliche Ausdrücke in ausführbare Pläne übersetzt werden. Dies kann losgelöst von den anderen Komponenten über die Kommandozeile erfolgen. Zusätzlich gibt es auch beim Optimierer die Möglichkeit, ihn im Client/Server-Modus zu starten. Mit der GUI können Abfragen sowohl an den Optimierer als auch an den Kernel gestellt werden. Zusätzlich ist sie in der Lage z.B. raum-zeitliche Datentypen darzustellen. Es wird eine zweidimensionale Projektion der Daten dargestellt, die über die Zeitachse abgespielt werden kann. Hierbei kann die Geschwindigkeit variiert werden. Da die GUI die Möglichkeit bietet, das Ergebnis einer Abfragen in einem eigenen Foramt zu speichern, kann man ihre Darstellungsmöglichkeiten auch ohne Kernel und Optimierer benutzen.
 \begin{itemize}
 	\item Erweiterbares Datenbanksystem
 	\item Second-Order-Signatures
@@ -24,8 +24,10 @@ Jedem Datenbanksystem liegt ein Datenmodell zugrunde. Das Datenmodell beschreibt
 	\item GUI
 	\item Client/Server Betrieb
 \end{itemize}
+
 \subsection{SQL}
 
+SQL ist eine auf dem relationalen Datenbankmodell beruhende Datenbanksprache. 
 \begin{itemize}
 	\item Datenbanksprache
 	\subitem Datendefinition (DDL)
