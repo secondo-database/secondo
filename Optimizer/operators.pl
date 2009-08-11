@@ -198,7 +198,15 @@ Mappings are noted
 Where ~Ti~ is the DC-type of the mapping's i-th argument and ~T~ is the DC-type
 of the mapping's result.
 
-Functionlist are noted
+~Lists~ are noted
+
+---- [E1, E2, E3]
+----
+
+where ~Ei~ are the elements of the parameter list
+(which may be nested list types, again).
+
+~Functionlist~ are noted
 
 ---- [(N1,M1),(N2,M2),...(Nm,Mn)]
 ----
@@ -2804,3 +2812,8 @@ nullValue(rect8,default,'(0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.
 
 % Section:Start:nullValue_3_e
 % Section:End:nullValue_3_e
+
+/*
+End of file ~operators.pl~
+
+*/

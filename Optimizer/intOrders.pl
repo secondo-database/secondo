@@ -1925,3 +1925,8 @@ W. Weisweber, Prolog, Logische Programmierung in der Praxis,
 Bonn, 1997.
 
 */
+
+/*
+End of file ~intOrders.pl~
+
+*/

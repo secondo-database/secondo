@@ -5,7 +5,7 @@
 % as prolog facts.
 
 tpcQuery(tpc1, select
-	[ 
+	[
           count(*) as count_order,
           lreturnflag,
           llinestatus,
@@ -18,23 +18,23 @@ tpcQuery(tpc1, select
 	  avg(ldiscount) as avg_disc
         ]
 from
-	  lineitem 
+	  lineitem
 where
 lshipdate < theInstant(1998,9,2)
 groupby [
           lreturnflag,
           llinestatus
-        ] 
+        ]
 orderby
-	[ 
+	[
     lreturnflag asc,
-    llinestatus asc 
+    llinestatus asc
   ]
 ).
 
 
 tpcQuery(tpc1_simplified, select
-	[ 
+	[
       count(*) as count_order,
       lreturnflag,
       llinestatus,
@@ -42,45 +42,45 @@ tpcQuery(tpc1_simplified, select
 	    avg(ldiscount) as avg_disc
   ]
 from
-	  lineitem 
+	  lineitem
 where
     lshipdate < theInstant(1998,9,2)
 groupby [
           lreturnflag,
           llinestatus
-        ] 
+        ]
 ).
 
 
 tpcQuery(tpc3, select
-  [ 
+  [
     lorderkey,
     sum(lextendedprice * (1 - ldiscount)) as revenue,
     oorderdate,
-    oshippriority 
+    oshippriority
   ]
 from
-	[ 
+	[
     customer,
     orders,
     lineitem
   ]
 where
 	[
-    cmktsegment = "BUILDING", 
+    cmktsegment = "BUILDING",
     ccustkey = ocustkey,
-    lorderkey = oorderkey 
+    lorderkey = oorderkey
   ]
 groupby
-  [ 
+  [
     lorderkey,
     oorderdate,
-    oshippriority 
+    oshippriority
   ]
 orderby
-  [ 
+  [
     revenue desc,
-    oorderdate asc 
+    oorderdate asc
   ]
 first 10
 ).
@@ -108,7 +108,7 @@ where
         cnationkey = snationkey,
         snationkey = nnationkey,
         nregionkey = rregionkey,
-        rname = "ASIA", 
+        rname = "ASIA",
 	((oorderdate >= theInstant(1994,1,1)) and (oorderdate < theInstant(1995,1,1)))
        ]
 groupby [ nname ]
@@ -155,23 +155,23 @@ groupby
         ccomment
       ]
 orderby [ revenue desc]
-first 20 
+first 20
 ).
 
 
 tpcQueryExt(tpc3a, select
-  [ 
+  [
     oorderdate,
-    oshippriority 
+    oshippriority
   ]
 from
-	[ 
+	[
     customer,
     orders
   ]
 where
   [
-    cmktsegment = "BUILDING", 
+    cmktsegment = "BUILDING",
     ccustkey = ocustkey
   ]
 first 10
@@ -179,18 +179,18 @@ first 10
 
 
 tpcQueryExt(tpc3b, select
-  [ 
+  [
     oorderdate,
-    oshippriority 
+    oshippriority
   ]
 from
-  [ 
+  [
     orders,
     lineitem
   ]
 where
   [
-    lorderkey = oorderkey 
+    lorderkey = oorderkey
   ]
 first 10
 ).
@@ -198,21 +198,21 @@ first 10
 
 
 tpcQueryExt(tpc3c, select
-  [ 
+  [
     oorderdate,
-    oshippriority 
+    oshippriority
   ]
 from
-	[ 
+	[
     customer,
     orders,
     lineitem
   ]
 where
   [
-    cmktsegment = "BUILDING", 
+    cmktsegment = "BUILDING",
     ccustkey = ocustkey,
-    lorderkey = oorderkey 
+    lorderkey = oorderkey
   ]
 first 10
 ).
@@ -221,15 +221,15 @@ first 10
 
 % a variant of TPC-3 which includes some correlated predicates
 tpcQueryExt(tpc3_correlated, select
-	[ 
+	[
           cnationkey,
           count(*) as sumX
         ]
         from
-	[ 
+	[
           customer,
 	  orders,
-	  lineitem 
+	  lineitem
         ]
          where
 	[
@@ -239,29 +239,29 @@ tpcQueryExt(tpc3_correlated, select
     lreceiptdate > (theInstant(1996,1,1) + create_duration(30.0)),
     lcommitdate > (theInstant(1996,1,1) + create_duration(30.0)),
     lshipdate >  (theInstant(1996,1,1) + create_duration(30.0)),
-    lquantity > 25, 
+    lquantity > 25,
     ccustkey = ocustkey,
-    lorderkey = oorderkey 
+    lorderkey = oorderkey
   ]
 groupby [
-          cnationkey 
-        ] 
+          cnationkey
+        ]
 
 ).
 
 % a query which demonstrates the need of randomization
 tpcQueryExt(tpc_random1,
-  
-  select [ l1:ldiscount, l1:lorderkey, 
-           l1:lsuppkey, l1:lcomment, 
-           o:oorderkey 
-	 ] 
-  from   [ lineitem as l1, orders as o, 
-           lineitem2 as l2 
-	 ] 
-  where  [ l1:lorderkey = l2:lorderkey, 
-           l1:lorderkey = o:oorderkey, 
-           l2:lorderkey > 500 
+
+  select [ l1:ldiscount, l1:lorderkey,
+           l1:lsuppkey, l1:lcomment,
+           o:oorderkey
+	 ]
+  from   [ lineitem as l1, orders as o,
+           lineitem2 as l2
+	 ]
+  where  [ l1:lorderkey = l2:lorderkey,
+           l1:lorderkey = o:oorderkey,
+           l2:lorderkey > 500
 	 ]
 ).
 
@@ -292,10 +292,10 @@ tpcJP( bj6, customer, ccustkey, orders, ocustkey).
 % encoded in tpcJP.
 tpcQuery2( X, select count(*) from [ R1, R2 ] where A1 = A2 ) :-
   tpcJP( X, R1, A1, R2, A2 ).
-  
+
 
 tpcGetQuery(No, X) :-
-  ( not(tpcQuery(No, X)), not(tpcQueryExt(No, X)), not(tpcQuery2(No, X)) ) 
+  ( not(tpcQuery(No, X)), not(tpcQueryExt(No, X)), not(tpcQuery2(No, X)) )
     -> write('There is no tpc query with label '), write(No), nl, fail
      ; ( tpcQuery(No, X) ; tpcQueryExt(No, X) ; tpcQuery2(No, X) ).
 
@@ -314,7 +314,7 @@ tpcOptimize(No) :- tpcGetQuery(No, X), !, optimize(X).
 tpcAfterLookup(No) :- tpcGetQuery(No, X), callLookup(X,Y), !, write(Y).
 
 
-%%% 
+%%%
 %%% Experiments
 %%%
 
@@ -333,12 +333,12 @@ objectDef(lineitem2, 'let LINEITEM2 = LINEITEM feed consume').
 createIfNecessary(O) :-
   objectDef(O, Cmd),
   not(relation(O, _)),
-  nl, write('Object '), write(O) , write(' needs to be created.'), nl,	
+  nl, write('Object '), write(O) , write(' needs to be created.'), nl,
   runQuery(Cmd).
 
 createIfNecessary(O) :-
-  relation(O, _),	
-  nl, write('Object '), write(O) , write(' is already present.'), nl.	
+  relation(O, _),
+  nl, write('Object '), write(O) , write(' is already present.'), nl.
 
 createTPCObjects :-
   findall([O], createIfNecessary(O), _).
@@ -358,11 +358,11 @@ indexCmd(Rel, Attr, Q) :-
   rel_to_atom2(Rel, Rel_A),
   attr_to_atom(Rel, Attr, Attr_A),
   downcase_first(Rel_A, Rel_Adown),
-  concat_atom([ 'let ', Rel_Adown, '_', Attr_A, ' = ', 
+  concat_atom([ 'let ', Rel_Adown, '_', Attr_A, ' = ',
                 Rel_A, ' createbtree[', Attr_A, ']' ], Q).
 
 createIndex(X) :-
-  tpcIndex(X, Rel, Attr), 
+  tpcIndex(X, Rel, Attr),
   indexCmd(Rel, Attr, Q),
   runQuery(Q).
 
@@ -371,8 +371,8 @@ createIndexes :-
 
 
 prepareTPC :-
-  createTPCObjects,	
-  createIndexes.  
+  createTPCObjects,
+  createIndexes.
 
 
 /*
@@ -386,7 +386,7 @@ attr_to_atom( Rel, Attr, Atom) :-
 
 rel_to_atom2( Rel, Atom) :-
   lookupRel(Rel, Rel2),
-  rel_to_atom(Rel2, Atom).  
+  rel_to_atom(Rel2, Atom).
 
 sampleRel(RelAtom, S) :-
   concat_atom([RelAtom, '_sample_j'], S).
@@ -402,16 +402,16 @@ joinTerm(smj, R1, R2, A1, A2, Term) :-
   concat_atom([ R1,  ' feed ', R2, ' feed sortmergejoin[', A1, ', ',  A2, ']'], Term).
 
 joinTerm(smjr2, R1, R2, A1, A2, Term) :-
-  concat_atom([ R1,  ' feed ', R2, 
+  concat_atom([ R1,  ' feed ', R2,
                 ' feed sortmergejoin_r2[', A1, ', ',  A2, '] shuffle3 head[500]'], Term).
 
 joinTerm(hash, R1, R2, A1, A2, Term) :-
-  concat_atom([ R1,  ' feed ', R2, 
+  concat_atom([ R1,  ' feed ', R2,
                 ' feed hashjoin[', A1, ', ',  A2, ', 9997', '] shuffle3 head[500]'], Term).
 
 
 joinQueryLet( Type, Ident, R1, R2, A1, A2, Q ) :-
-  joinTerm(Type, R1, R2, A1, A2, T),	
+  joinTerm(Type, R1, R2, A1, A2, T),
   concat_atom(['let ', Ident, ' = ',  T, 'consume'], Q).
 
 
@@ -427,15 +427,15 @@ joinQueryCount( Type, R1, R2, A1, A2, Q ) :-
 % Ntuples : number of tuples
 
 histaggr(Attr, Width, Ntuples, Result) :-
-  concat_atom( 
+  concat_atom(
     [' sortby[ ', Attr, ' asc ] extend[Bucket: .', Attr, ' div ', Width, ' ]',
      ' groupby[Bucket; Percent: . count / ', Ntuples ,'] consume'], Result ).
 
 
 %% queries for an index scan
 
-indexScan(Value, Q) :- 
-  concat_atom(['query lINEITEM_lORDERKEY LINEITEM leftrange[', Value, ']'], Q). 
+indexScan(Value, Q) :-
+  concat_atom(['query lINEITEM_lORDERKEY LINEITEM leftrange[', Value, ']'], Q).
 
 
 getSuffix(shuffle, ' shuffle3 count').
@@ -443,7 +443,7 @@ getSuffix(no_shuffle, ' head[100000] count').
 
 indexQuery(Value, Q, S) :-
   indexScan(Value, Q_tmp),
-  getSuffix(S, Q_tmp2),  
+  getSuffix(S, Q_tmp2),
   concat_atom([Q_tmp, Q_tmp2], Q).
 
 
@@ -452,8 +452,8 @@ indexQuery(Value, Q, S) :-
 clearCache :-
   tpcBigScan(Q),
   runQuery(Q).
-         	
-clearCache(clear_cache) :- clearCache. 
+
+clearCache(clear_cache) :- clearCache.
 
 clearCache(keep_cache).
 
@@ -466,18 +466,18 @@ indexScanRun(Opt, Suffix, [H | T]) :-
   indexQuery(H, Q, Suffix),
   runQuery(Q),
   indexScanRun(Opt, Suffix, T).
-  
+
 indexScanRun(_, _, []).
 
 compareIndexScans(L) :-
   indexScanRun(keep_cache, shuffle, L),
-  clearCache,  
+  clearCache,
   indexScanRun(keep_cache, no_shuffle, L),
-  cmdHist2File('indexscan_keep_cache.csv'), 
-  clearCache,  
-  indexScanRun(clear_cache, shuffle, L),	
-  indexScanRun(clear_cache, no_shuffle, L),	
-  cmdHist2File('indexscan_clear_cache.csv'). 
+  cmdHist2File('indexscan_keep_cache.csv'),
+  clearCache,
+  indexScanRun(clear_cache, shuffle, L),
+  indexScanRun(clear_cache, no_shuffle, L),
+  cmdHist2File('indexscan_clear_cache.csv').
 
 
 % create a relation wich contains 3 histograms
@@ -486,32 +486,32 @@ joinHists(X, Q) :-
   concat_atom([X, '_hist_complete'], R1),
   concat_atom([X, '_hist_smjr3'], R2),
   concat_atom([X, '_hist_sample'], R3),
-  concat_atom(['query ', R1, ' feed {R1} ', 
-                         R2, ' feed {R2} ', 	
+  concat_atom(['query ', R1, ' feed {R1} ',
+                         R2, ' feed {R2} ',
                          R3, ' feed {R3} ',
-		         ' sortmergejoin[Bucket_R2, Bucket_R3] ',	 
+		         ' sortmergejoin[Bucket_R2, Bucket_R3] ',
 		         ' sortmergejoin[Bucket_R1, Bucket_R2] '], Q).
 
 
 % create extended histogram data for query Q. Since spreadsheets programs
 % like OpenOffice-Calc do not have a diagram type for histograms additional
-% points are computed in order to use x-y plots instead.   
+% points are computed in order to use x-y plots instead.
 
 extendHistData(Q, Res) :-
   concat_atom([Q, 'extendstream[Dup: intstream(1,2)] ',
                   'addcounter[Cntx, 0] ',
-		  'extend[No: ceil(.Cntx / 2)] '], Res). 
+		  'extend[No: ceil(.Cntx / 2)] '], Res).
 
 
 createOutputs(X) :-
   joinHists(X, Q),
   %concat_atom([X, '_hists.csv'], File),
-  %dumpQueryResult2File(Q, File, Q2),  
+  %dumpQueryResult2File(Q, File, Q2),
   %runQuery(Q2),
   extendHistData(Q, Q2ext),
   concat_atom([Q2ext, 'project[No, Percent_R1, Percent_R2, Percent_R3]'], Q3),
   concat_atom([X, '_hists.csv'], File2),
-  dumpQueryResult2File(Q3, File2, Q4),  
+  dumpQueryResult2File(Q3, File2, Q4),
   runQuery(Q4).
 
 
@@ -535,13 +535,13 @@ tpcRelAttr(X, R1a, R2a, A1a, A2a) :-
 % create 3 histograms for the same join query
 %
 % 1: histogram of the complete join result
-% 2: histogram of the join of two samples 
-% 3: histogram of the random prefix hash-sort-merge, 
-% 4: hashjoin, 
+% 2: histogram of the join of two samples
+% 3: histogram of the random prefix hash-sort-merge,
+% 4: hashjoin,
 % 5: index-loop (if applicable)
 
 histcompare(X) :-
-  tpcRelAttr(X, R1a, R2a, A1a, A2a),	
+  tpcRelAttr(X, R1a, R2a, A1a, A2a),
   % compute histogram for the complete join result
   concat_atom([X, '_hist_complete'], F1),
   histquery(smj, R1a, R2a, A1a, A2a, F1),
@@ -562,7 +562,7 @@ histcompare(X) :-
 % hash-sort-merge.
 
 perfcompare(X) :-
-  tpcRelAttr(X, R1a, R2a, A1a, A2a),	
+  tpcRelAttr(X, R1a, R2a, A1a, A2a),
   joinQueryCount(smj, R1a, R2a, A1a, A2a, Q1),
   nl, write(Q1), nl, runQuery(Q1), runQuery(Q1),
   joinQueryCount(smjr2, R1a, R2a, A1a, A2a, Q2),
@@ -584,41 +584,41 @@ experiment(compare_tpc_idx, 'Run TPC-H queries with and without adaptive join, u
 
 showExperiment(X, Y) :-
   experiment(X, Y),
-  nl, write(X), write(':'), 
-  nl, write('----------------------------------'), 
-  nl, write(Y), nl.  
+  nl, write(X), write(':'),
+  nl, write('----------------------------------'),
+  nl, write(Y), nl.
 
 showExperiments :-
-  findall([X, Y], showExperiment(X,Y), _).	
+  findall([X, Y], showExperiment(X,Y), _).
 
 showQueries(L) :-
   nl, write('Evaluated queries: '), write(L), nl.
 
 compare_smj_performance :-
   findall(X, perfcompare(X), L),
-  showQueries(L), 
+  showQueries(L),
   cmdHist2File('smj_perf.csv').
 
 compare_attribute_distributions :-
   findall(X, histcompare(X), L),
-  showQueries(L). 
+  showQueries(L).
 
 compare_index_scans :-
-  L = [1000, 2000, 3000, 4000, 5000],	
+  L = [1000, 2000, 3000, 4000, 5000],
   compareIndexScans(L),
-  showQueries(L). 
+  showQueries(L).
 
 
-runtpc(Id) :-	
-  nl, write('*** Test Query '), write(Id), write(' ***'), nl, nl, 
+runtpc(Id) :-
+  nl, write('*** Test Query '), write(Id), write(' ***'), nl, nl,
   (tpcQuery(Id, Q) ; tpcQueryExt(Id, Q)),
   sql2Query(Q, Cmd),
   runQuery(Cmd).
 
 runtpc(_).
 
-runtpc2(Id) :-	
-  runtpc(Id),	
+runtpc2(Id) :-
+  runtpc(Id),
   getSizes(L, Format),
   concat_atom([Id, '_checkSizes.csv'], Name),
   dumpTuples2File(Name, L, Format),
@@ -628,17 +628,17 @@ runtpc2(Id) :-
 
 runtpc2(_).
 
-compare_tpc_queries(Param, Q) :-	
+compare_tpc_queries(Param, Q) :-
   delOption(adaptiveJoin),
   setOption(useCounters),
   setOption(noSymmjoin),
   setOption(noprogress),
-  (Param = useIndex -> delOption(noIndex) 
+  (Param = useIndex -> delOption(noIndex)
                       ; setOption(noIndex) ),
   checklist(runtpc, Q), !,
   setOption(adaptiveJoin),
-  delOption(useCounters),  
-  checklist(runtpc2, Q). 
+  delOption(useCounters),
+  checklist(runtpc2, Q).
 
 compare_tpc :-
   Q = [tpc3, tpc5, tpc10, tpc3_correlated, tpc_random1],
@@ -650,8 +650,12 @@ compare_tpc_idx :-
 
 
 checkAll :-
-  clearflag(runMode),	
+  clearflag(runMode),
   findall(X, showExperiment(X,_), L),
-  checklist(call, L).   
-  
+  checklist(call, L).
 
+
+/*
+End of file ~tpcqueries.pl~
+
+*/

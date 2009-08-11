@@ -823,3 +823,7 @@ deleteSmallResults :-
 
 
 
+/*
+End of file ~entropy\_opt.pl~
+
+*/

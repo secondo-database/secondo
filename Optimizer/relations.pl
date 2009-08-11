@@ -295,3 +295,7 @@ appendToRelCmd(ObjName, RelSchema, Values, ResultCmd) :-
   atom_concat(Q4 , RelConstant, Q5),
   atom_concat(Q5 , ' feed concat consume', ResultCmd ).
 
+/*
+End of file ~relations.pl~
+
+*/

@@ -919,3 +919,7 @@ s4 :- setOption(intOrders(test)), q1.
 
 */
 
+/*
+End of file ~calloptimizer.pl~
+
+*/

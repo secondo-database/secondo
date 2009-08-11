@@ -7589,4 +7589,8 @@ writeDebug(Text) :-
   write(Text), nl.
 
 
+/*
+End of file ~optimizer.pl~
+
+*/
 

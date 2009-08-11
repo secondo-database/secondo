@@ -984,3 +984,8 @@ time(Clause) :-
   write('Elapsed Time: '),
   write(MSs),
   write(' ms'),nl.
+
+/*
+End of file ~auxiliary.pl~
+
+*/

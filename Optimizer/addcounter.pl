@@ -1,4 +1,4 @@
-quit :- 
+quit :-
   halt.
 
 argList( 1, [_] ).
@@ -14,3 +14,7 @@ showValues2( Pred, Arity ) :-
   P=..[Pred|L], !, P, nl, write( P ), fail.
 
 
+/*
+End of file ~addcounter.pl~
+
+*/

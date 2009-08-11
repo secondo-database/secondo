@@ -1018,3 +1018,8 @@ costConst(windowintersects, msPerByte, 0.0000106).
 
 % Section:Start:costConst_3_e
 % Section:End:costConst_3_e
+
+/*
+End of file ~improvedcosts.pl~
+
+*/

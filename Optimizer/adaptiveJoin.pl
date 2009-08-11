@@ -762,3 +762,8 @@ showUnshuffledRels :-
   write(' which need to be shuffled:\n'),
   extractRels(ObjList, Rels),
   nl, write(Rels), nl.
+
+/*
+End of file ~adaptiveJoin.pl~
+
+*/

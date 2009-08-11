@@ -1,16 +1,16 @@
-/* 
+/*
 
 28.04.2005 M. Spiekermann
 
 These predictes defined below are used as a small regression test of the
 optimizer. However, it will only test if optimization and execution of given
 SQL queries is successful. There is no check if the result of the optimization
-is correct. 
+is correct.
 
 Currently there are three kinds of tests:
 
   * ~runExamples/0~ which runs the examples presented in the file optimizer.pl.
-Therefore you will need database opt. 
+Therefore you will need database opt.
 
   * ~runTPCExamples/0~ which runs some queries of the TPC-H benchmark. The
 queries need the database ~tpc~.
@@ -56,11 +56,11 @@ optimizeTPCExamples :-
   tpcExampleList(L),
   optimizeQueries(L).
 
-runExamples2(NumOfErrors, N) :- 
+runExamples2(NumOfErrors, N) :-
   sqlExampleList(List),
   runQueries(List, NumOfErrors, N).
 
-runExamples3(NumOfErrors, N) :- 
+runExamples3(NumOfErrors, N) :-
   sqlExampleList(List),
   addfirst(List, [], L2),
   runQueries(L2, NumOfErrors, N).
@@ -69,7 +69,7 @@ runTPCExamples2(NumOfErrors, N) :-
   tpcExampleList(List),
   runQueries(List, NumOfErrors, N).
 
-runGenExamples2(NumOfErrors, N) :- 
+runGenExamples2(NumOfErrors, N) :-
   genExampleList(List),
   addfirst(List, [], L2),
   runQueries(L2, NumOfErrors, N).
@@ -94,7 +94,7 @@ addfirst([], A, A).
 addfirst([H|T], A, L) :-
   addfirst(H, H1),
   append(A, [H1], R),
-  addfirst(T, R, L). 
+  addfirst(T, R, L).
 
 addfirst(H, H) :- hasFirstOp(H).
 addfirst(H, H first 3).
@@ -115,8 +115,8 @@ showGenExamples :-
   showQueries(List).
 
 showQueries(L) :-
-  nl, 
-  write('List of SQL queries:'), nl, 
+  nl,
+  write('List of SQL queries:'), nl,
   write('===================='),
   showQueries2(L).
 
@@ -138,61 +138,61 @@ openTPC :-
 
 openTPC :-
   openDB('adapOpt').
- 
+
 
 
 runQueries(List, NumOfErrors, N) :-
   optimizeQueries(List, NumOfErrors, N, Plans),
   executeQueries(Plans, NumOfErrors, N).
 
-optimizeQueries(InputList) :- 
+optimizeQueries(InputList) :-
   optimizeQueries(InputList, _, 0, _).
 
-optimizeQueries(InputList, NumOfErrors, N, PlanList) :- 
-  optimizeQueries2(InputList,[], PlanList, [], OptErrList), 
+optimizeQueries(InputList, NumOfErrors, N, PlanList) :-
+  optimizeQueries2(InputList,[], PlanList, [], OptErrList),
   nl, nl, write('Error Report:'),
   showError('optimization', OptErrList, NumOfErrors, N).
 
-executeQueries(PlanList, NumOfErrors, N) :- 
+executeQueries(PlanList, NumOfErrors, N) :-
   runQuery(PlanList, [], ExecErrList),
   nl, nl, write('Error Report:'),
   showError('execution', ExecErrList, NumOfErrors, N).
 
 optimizeQueries2([], A, A, B, B).
-optimizeQueries2([H|T], A, N, B, M) :- 
+optimizeQueries2([H|T], A, N, B, M) :-
   optimizeQuery(H, A1, A, B1, B),
   optimizeQueries2(T, A1, N, B1, M).
 
 optimizeQuery(H, A1, A, B1, B) :-
   nl, write('SQL: '), write(H), nl,
   ( not(optimize(H))
-      *-> nl, write('*** Error: Optimization of query ('),   
+      *-> nl, write('*** Error: Optimization of query ('),
           write(H), write(') failed!'), nl, nl, A1 = A, append(B, [H], B1)
         ; append(A, [H], A1), B1 = B ).
 
 runQuery([], A, A).
 runQuery([H|T], A, N) :-
   ( not(sql(H))
-    *-> nl, write('*** Error: Execution of query ('), 
+    *-> nl, write('*** Error: Execution of query ('),
         write(H), write(') failed!'), nl, nl, append(A, [H], A1)
       ; true ),
   runQuery(T, A1, N).
 
 
 showError(_, L, N, N) :-
-  length(L,0), 
+  length(L,0),
   nl, write('  There were no errors!'), nl, !.
 
 showError(Type, L, NumOfErrors, N) :-
   length(L,N1),
-  nl, write('  '), write(Type), write('  There were '), write(N1), write(' errors!'), 
+  nl, write('  '), write(Type), write('  There were '), write(N1), write(' errors!'),
   NumOfErrors is N1 + N,
-  showError2(Type, L). 
+  showError2(Type, L).
 
 showError2(_, []).
-showError2(Type, [H|T]) :- 
+showError2(Type, [H|T]) :-
   nl, write('('), write(H), write(')  -- '), write(Type), write(' failed.'),
-  nl, write('Query: '), 
+  nl, write('Query: '),
   showError2(Type, T).
 
 
@@ -311,7 +311,7 @@ sqlQuery( 18,
   ).
 
 
-sqlQuery( 19, 
+sqlQuery( 19,
   select count(*)
   from [staedte, plz as p1, plz2 as p2]
   where [
@@ -337,7 +337,7 @@ sqlQuery( 20,
   ).
 
 
-sqlQuery( 21, 
+sqlQuery( 21,
   select count(*)
   from [staedte, plz as p1, plz2 as p2, plz3 as p3]
   where [
@@ -347,3 +347,7 @@ sqlQuery( 21,
   ).
 
 
+/*
+End of file ~autotest.pl~
+
+*/

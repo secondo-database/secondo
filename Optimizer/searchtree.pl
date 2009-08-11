@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -30,7 +30,7 @@ This module offers a binary search tree with an additional operation to get
 queue. It supports duplicate entries for keys.
 
 1.1 The Interface
- 
+
 ----	tree_empty(-Tree).
 ----
 
@@ -203,3 +203,8 @@ tree_height(tree(_, _, Left, Right), H) :-
   tree_height(Left, L),
   tree_height(Right, R),
   H is max(L, R) + 1.
+
+/*
+End of file ~searchtree.pl~
+
+*/

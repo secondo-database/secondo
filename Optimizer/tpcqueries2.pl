@@ -43,7 +43,7 @@ groupby
         ccomment
       ]
 orderby [ revenue desc]
-first 20 
+first 20
 ).
 
 tpcQuery(5, select
@@ -68,7 +68,7 @@ where
         cnationkey = snationkey,
         snationkey = nnationkey,
         nregionkey = rregionkey,
-        rname = "ASIA", 
+        rname = "ASIA",
 	((oorderdate >= theInstant(1994,1,1)) and (oorderdate < theInstant(1995,1,1)))
        ]
 groupby [ nname ]
@@ -77,40 +77,40 @@ orderby [ revenue desc ]
 
 
 tpcQuery(3, select
-  [ 
+  [
     lorderkey,
     sum(lextendedprice * (1 - ldiscount)) as revenue,
     oorderdate,
-    oshippriority 
+    oshippriority
   ]
 from
-	[ 
+	[
     customer,
     orders,
     lineitem
   ]
 where
 	[
-    cmktsegment = "BUILDING", 
+    cmktsegment = "BUILDING",
     ccustkey = ocustkey,
-    lorderkey = oorderkey 
+    lorderkey = oorderkey
   ]
 groupby
-  [ 
+  [
     lorderkey,
     oorderdate,
-    oshippriority 
+    oshippriority
   ]
 orderby
-  [ 
+  [
     revenue desc,
-    oorderdate asc 
+    oorderdate asc
   ]
 first 10
 ).
 
 tpcQuery(1, select
-	[ 
+	[
           count(*) as count_order,
           lreturnflag,
           llinestatus,
@@ -123,22 +123,22 @@ tpcQuery(1, select
 	  avg(ldiscount) as avg_disc
         ]
 from
-	  lineitem 
+	  lineitem
 where
 lshipdate < theInstant(1998,9,2)
 groupby [
           lreturnflag,
           llinestatus
-        ] 
+        ]
 orderby
-	[ 
+	[
     lreturnflag asc,
-    llinestatus asc 
+    llinestatus asc
   ]
 ).
 
 tpcQuery(simple1, select
-	[ 
+	[
       count(*) as count_order,
       lreturnflag,
       llinestatus,
@@ -146,13 +146,13 @@ tpcQuery(simple1, select
 	    avg(ldiscount) as avg_disc
   ]
 from
-	  lineitem 
+	  lineitem
 where
     lshipdate < theInstant(1998,9,2)
 groupby [
           lreturnflag,
           llinestatus
-        ] 
+        ]
 ).
 
 
@@ -163,24 +163,24 @@ tpcAfterLookup(No) :- tpcQuery(No, X), callLookup(X,Y), !, write(Y).
 
 tpch :- query 'LINEITEM feed count',
   query 'ORDERS feed count',
-  tpc(1), 
-  tpc(3), 
-  tpc(5), 
+  tpc(1),
+  tpc(3),
+  tpc(5),
   tpc(10).
 
 
 
 % a variant of TPC-3 which includes some correlated predicates
 tpcCorrelated(1, select
-	[ 
+	[
           cnationkey,
           count(*) as sumX
   ]
 from
-	[ 
+	[
     customer,
 	  orders,
-	  lineitem 
+	  lineitem
   ]
 where
 	[
@@ -190,16 +190,20 @@ where
     lreceiptdate > (theInstant(1996,1,1) + create_duration(30.0)),
     lcommitdate > (theInstant(1996,1,1) + create_duration(30.0)),
     lshipdate >  (theInstant(1996,1,1) + create_duration(30.0)),
-    lquantity > 25, 
+    lquantity > 25,
     ccustkey = ocustkey,
-    lorderkey = oorderkey 
+    lorderkey = oorderkey
   ]
 groupby [
-          cnationkey 
-        ] 
+          cnationkey
+        ]
 
 ).
 
 tpcCorrel(N) :-
-  tpcCorrelated(N, T), sql(T). 
+  tpcCorrelated(N, T), sql(T).
 
+/*
+End of file ~tpcqueries2.pl~
+
+*/

@@ -453,3 +453,8 @@ secondoOp( writeFile,         prefix, 2). % also prefix 3
 
 % Section:Start:secondoOp_3_e
 % Section:End:secondoOp_3_e
+
+/*
+End of file ~opsyntax.pl~
+
+*/

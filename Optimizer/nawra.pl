@@ -1115,3 +1115,8 @@ endcostnew( _, _, 0, 0) :-
   nl,
   write('Error at the determination of the operators without POG.'),
   nl.
+
+/*
+End of file ~nawra.pl~
+
+*/

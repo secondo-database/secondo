@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -25,9 +25,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [File ~boundary.pl~]
 
 1.1 The Interface
- 
-The boundary is represented in a data structure with the following 
-operations: 
+
+The boundary is represented in a data structure with the following
+operations:
 
 ----	b_empty(-Boundary) :-
 ----
@@ -41,32 +41,32 @@ Checks whether the boundary is empty.
 
 
 ----	b_removemin(+Boundary, -Node, -BoundaryOut) :-
----- 
- 
+----
+
 Returns the node ~Node~ with minimal distance from the set ~Boundary~ and
 returns also ~BoundaryOut~ where this node is removed.
-   
+
 ----	b_insert(+Boundary, +Node, -BoundaryOut) :-
 ----
- 
+
 Inserts a node that must not yet be present (i.e., no other node of that
 name).
-   
+
 ----	b_memberByName(+Boundary, +Name, -Node) :-
----- 
- 
-If a node ~Node~ with name ~Name~ is present, it is returned. 
- 
+----
+
+If a node ~Node~ with name ~Name~ is present, it is returned.
+
 ---- 	b_deleteByName(+Boundary, +Name, -BoundaryOut) :-
----- 
- 
+----
+
 Returns the boundary, where the node with name ~Name~ is deleted.
 
-*/ 
- 
-/* 
-1.2 Implementation of Boundary 
- 
+*/
+
+/*
+1.2 Implementation of Boundary
+
 The boundary is represented by two data structures, namely (i) a predicate
 
 ----	boundary(Name, node(Name, Distance, Path))
@@ -162,50 +162,7 @@ Material for testing:
 */
 
 
+/*
+End of file ~boundary.pl~
 
-
-
-
-
-
-
-
-
- 
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+*/

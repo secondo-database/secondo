@@ -21,6 +21,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 //paragraph [10] title: [{\Large \bf ]  [}]
+//[->] [$\rightarrow$]
 //[toc] [\tableofcontents]
 
 
@@ -2046,6 +2047,15 @@ dcNList([X1|R1],[X2|R2]) :-
   dcNList(X1,X2),
   dcNList(R1,R2),!.
 
+/*
+The following predicate extracts the type information from a ~TypeTree~,
+maintaining the tree's general structure. Only the leaf nodes are
+transformed: [\_, \_, T] [->] T. The result tree is returned in ~DataTypeTree~.
+
+---- trav(+TypeTree,-DataTypeTree)
+----
+
+*/
 trav([],[]).
 trav( [TreeH| TreeRest] ,[ResH| ResRest]) :-
   travChild(TreeH,ResH),
@@ -2055,7 +2065,7 @@ travChild([Fun,_,T],T):-
   atomic(Fun),!.
 
 travChild(Tree, Res):-
-  trav(Tree, Res). 
+  trav(Tree, Res).
 
 /*
 The next predicate creates a list of Null Values for a given type list.
@@ -2280,3 +2290,8 @@ example23 :- optimize(
     th:no * 100 < 50000,
     (th:no mod 7) = no]
   ).
+
+/*
+End of file ~statistics.pl~
+
+*/
