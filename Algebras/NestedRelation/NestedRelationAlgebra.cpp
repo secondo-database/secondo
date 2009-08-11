@@ -1320,7 +1320,7 @@ aFeed(Word* args, Word& result, int message, Word& local, Supplier s)
       if (*index < arel->getTupleIds()->Size())
       { 
         arel->getTupleIds()->Get(*index, tid); 
-       t = r->GetTuple(*tid);
+        t = r->GetTuple(*tid);
         int i = *index;
         i++;
         delete index;
@@ -1407,6 +1407,7 @@ aConsume(Word* args, Word& result, int message,
   Relation* rel; 
   if (!(arel->hasOwnRelation()))
   {
+     
      ListExpr relType = nl->TwoElemList(nl->TwoElemList(nl->IntAtom(relAlgId), nl->IntAtom(relId)),nl->Second(arel->getArelType())); 
      rel = new Relation(relType);
      arel->setRel(rel);
@@ -1466,8 +1467,8 @@ the name of which is specified by the second argument.
 Type mapping for ~nest~ is
 
 ----     ((stream (tuple ((x1 t1)...(xn tn)))) ((xi1) ... (xij)) (xo))
-              -> (nrel (tuple ((xi1 ti1)...(xij tij) (xo arel(tuple((xik tik)
-                  ...(xin tin))))) APPEND (j n-j (i1 i2 ... ij) (ik ... in) "xo")
+              -> (stream (tuple ((xi1 ti1)...(xij tij) (xo arel(tuple((xik tik)
+                  ...(xin tin))))) APPEND (j n-j (i1 i2 ... ij) (ik ... in))
 ----
 
 */
@@ -1482,15 +1483,14 @@ ListExpr nestTypeMap( ListExpr args )
    ListExpr errorInfo, attrtype, outlist;
    bool allArel = true;  
    errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-   string argstr, argstr2, attrname, type, subrelname;
+   string argstr, argstr2, attrname, type;
    CHECK_COND(nl->ListLength(args) == 3,
     "Operator nest expects a list of length three.");
    first = argList.first();
    second = argList.second();
    third = argList.third();
    CHECK_COND(third.isSymbol(), 
-   "Operator nest expects a valid attribute name as third argument.");
-   subrelname = third.str(); 
+   "Operator nest expects a valid attribute name as third argument."); 
    nl->WriteToString(argstr, first.listExpr());
    CHECK_COND(nl->ListLength(first.listExpr()) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first.listExpr())) == stream) &&
@@ -1583,145 +1583,209 @@ ListExpr nestTypeMap( ListExpr args )
    ListExpr temp2 = nl -> TwoElemList(nl -> SymbolAtom (third.str()), temp1);
    NList subrel(temp2);
    primary.append(subrel);
-   ListExpr numbers = nl -> FiveElemList (nl -> IntAtom(numberlist1.length()), nl -> IntAtom(numberlist2.length()),
-   numberlist1.listExpr(), numberlist2.listExpr(), nl->StringAtom(subrelname));
-   ListExpr streamdescription = nl -> TwoElemList (nl->SymbolAtom( "nrel" ),
+   ListExpr numbers = nl -> FourElemList (nl -> IntAtom(numberlist1.length()), nl -> IntAtom(numberlist2.length()),
+   numberlist1.listExpr(), numberlist2.listExpr());
+   ListExpr streamdescription = nl -> TwoElemList (nl->SymbolAtom( "stream" ),
       nl -> TwoElemList ( nl -> SymbolAtom( "tuple" ), primary.listExpr()));
    outlist = nl -> ThreeElemList (nl -> SymbolAtom ("APPEND"), numbers, streamdescription);   
    return outlist;
 }
 
+struct NestInfo
+{
+  int index;
+  bool endOfStream;
+  SmiFileId fileId;
+  Tuple* lastTuple;
+  Relation* subrel;
+  int primaryLength;
+  int subrelLength;
+  TupleType *tupleType;
+  TupleType *subTupleType;
+  bool firstCall;
+  AttributeRelation* arel;
+};
+
 int
 nestValueMap(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
+   NestInfo* info;
    Supplier son;
    Word elem1, elem2;
-   AttributeRelation* arel;
-   NestedRelation* nrel = (NestedRelation*)(qp->ResultStorage(s).addr);
    Tuple* current;
-   Tuple* lastTuple = 0;
-   int primaryLength = ((CcInt*)args[3].addr)->GetIntval();   
-   int subrelLength = ((CcInt*)args[4].addr)->GetIntval();
-   string arelName = ((CcString*)args[7].addr)->GetValue();
-   SubRelation* subrel = nrel->getSubRel(arelName);
    int index;
    Tuple* tuple;
-   qp->Open(args[0].addr);
-   qp->Request(args[0].addr, elem1);
-   while (qp->Received(args[0].addr))
+   Tuple* subtuple;
+   switch (message)
    {
-      bool equal = true;
-      current = (Tuple*)elem1.addr;
-      ListExpr tupletype = nl->Second(subrel->typeInfo);
-      Tuple* subtuple = new Tuple (tupletype);
-      if (lastTuple == 0)
-      {
-         tuple = new Tuple( nl->First(nrel->getTupleType()) );
-         assert( tuple->GetNoAttributes() == primaryLength + 1);                    
-         assert( subtuple->GetNoAttributes() == subrelLength);
-         for (int i = 0; i < primaryLength; i++)
+     case OPEN :
+     {//(stream (tuple ((xi1 ti1)...(xij tij) (xo arel(tuple((xik tik)
+       info = new NestInfo();
+       ListExpr resultType = GetTupleResultType( s );
+       info->tupleType = new TupleType(nl->Second(resultType));
+       info->primaryLength = ((CcInt*)args[3].addr)->GetIntval();
+       //search for arel type information
+       NList rest = NList(nl->Second(nl->Second(resultType)));
+       for (int i = 0; i < info->primaryLength; i++)
+         rest.rest();
+       info->subTupleType = new TupleType(rest.first().second().second().listExpr());
+       info->subrelLength =  ((CcInt*)args[4].addr)->GetIntval();  
+       info->firstCall = true;
+       info->endOfStream = false;
+       info->subrel = new Relation(info->subTupleType); 
+       info->fileId = info->subrel->GetPrivateRelation()->tupleFile.GetFileId();
+       local.addr = info;
+       qp->Open(args[0].addr);
+       return 0;
+     }  
+     case REQUEST :
+     {       
+       info = (NestInfo*)local.addr;
+       if (!(info->endOfStream))
+       {
+         bool equal = true;
+         if ((info->firstCall))  
+         {  
+           qp->Request(args[0].addr, elem1);
+           if (qp->Received(args[0].addr))
+           {
+             current = (Tuple*)elem1.addr;
+             info->lastTuple =(Tuple*)elem1.addr;
+             info->firstCall = false;
+             info->arel = new AttributeRelation(info->fileId);
+             tuple = new Tuple( info->tupleType );
+             subtuple = new Tuple (info->subTupleType);  
+           }
+           else
+           {
+             return CANCEL;
+           }
+         }    
+         else
          {
-            son = qp->GetSupplier(args[5].addr, i);
-            qp->Request(son, elem2);
-            index = ((CcInt*)elem2.addr)->GetIntval(); 
-            tuple->CopyAttribute(index-1, current, i);
-           
+           info->arel = new AttributeRelation(info->fileId);
+           current = info->lastTuple; 
+           tuple = new Tuple( info->tupleType );
+           subtuple = new Tuple (info->subTupleType);      
          }
-         for (int i = 0; i < subrelLength; i++)
+         assert( tuple->GetNoAttributes() == info->primaryLength + 1);                    
+         assert( subtuple->GetNoAttributes() == info->subrelLength);
+         for (int i = 0; i < info->primaryLength; i++)
          {
-            son = qp->GetSupplier(args[6].addr, i);
-            qp->Request(son, elem2);
-            index = ((CcInt*)elem2.addr)->GetIntval();
-            subtuple->CopyAttribute(index-1, current, i);
+           son = qp->GetSupplier(args[5].addr, i);
+           qp->Request(son, elem2);
+           index = ((CcInt*)elem2.addr)->GetIntval(); 
+           tuple->CopyAttribute(index-1, current, i);
          }
-         arel = new AttributeRelation(subrel->fileId);
-         subrel->rel->AppendTuple(subtuple);
-         arel->Append(subtuple->GetTupleId());
-         tuple->PutAttribute(primaryLength, arel);
+         for (int i = 0; i < info->subrelLength; i++)
+         {
+           son = qp->GetSupplier(args[6].addr, i);
+           qp->Request(son, elem2);
+           index = ((CcInt*)elem2.addr)->GetIntval();
+           subtuple->CopyAttribute(index-1, current, i);
+         }
+         info->subrel->AppendTuple(subtuple);
+         info->arel->Append(subtuple->GetTupleId());
          subtuple->DeleteIfAllowed();
-         subtuple = 0;
-         lastTuple = current;
-      }
-      else
-      {
-         Attribute* attr1;
-         Attribute* attr2;
-         for (int i = 0; i < primaryLength; i++)
+         tuple->PutAttribute(info->primaryLength, info->arel);
+         qp->Request(args[0].addr, elem1);
+         if (qp->Received(args[0].addr))
          {
-            son = qp->GetSupplier(args[5].addr, i);
-            qp->Request(son, elem2);
-            index = ((CcInt*)elem2.addr)->GetIntval();     
-            attr1 = lastTuple->GetAttribute(index - 1);
-            attr2 = current->GetAttribute(index - 1);
-            if (!(attr1->Compare(attr2) == 0))
-            { 
+           info->arel = (AttributeRelation*)(tuple->GetAttribute(info->primaryLength));
+           current = (Tuple*)elem1.addr;
+           Attribute* attr1;
+           Attribute* attr2;
+           for (int i = 0; i < info->primaryLength; i++)
+           {
+             son = qp->GetSupplier(args[5].addr, i);
+             qp->Request(son, elem2);
+             index = ((CcInt*)elem2.addr)->GetIntval();     
+             attr1 = info->lastTuple->GetAttribute(index - 1);
+             attr2 = current->GetAttribute(index - 1);
+             if (!(attr1->Compare(attr2) == 0))
+             { 
                equal = false;
                break;
-            }
-         }
-         if (equal)
-         {
-            ListExpr tupletype = nl->Second(subrel->typeInfo);
-            Tuple* subtuple = new Tuple (tupletype);
-            for (int i = 0; i < subrelLength; i++)
-            {
+             }
+           }
+           while(equal)
+           {
+             subtuple = new Tuple (info->subTupleType);
+             for (int i = 0; i < info->subrelLength; i++)
+             {
                son = qp->GetSupplier(args[6].addr, i);
                qp->Request(son, elem2);
                index = ((CcInt*)elem2.addr)->GetIntval();
                subtuple->CopyAttribute(index-1, current, i);
-            }  
-            arel = (AttributeRelation*)(tuple->GetAttribute(primaryLength));
-            subrel->rel->AppendTuple(subtuple);
-            arel->Append(subtuple->GetTupleId());
-            subtuple->DeleteIfAllowed();
-            subtuple = 0;
-            current->DeleteIfAllowed();
-            current = 0;
+             }  
+             info->subrel->AppendTuple(subtuple);
+             info->arel->Append(subtuple->GetTupleId());
+             subtuple->DeleteIfAllowed();
+             current->DeleteIfAllowed();
+             current = 0;
+             qp->Request(args[0].addr, elem1);
+             if (qp->Received(args[0].addr))
+             {
+               current = (Tuple*)elem1.addr;
+               Attribute* attr1;
+               Attribute* attr2;
+               for (int i = 0; i < info->primaryLength; i++)
+               {
+                 son = qp->GetSupplier(args[5].addr, i);
+                 qp->Request(son, elem2);
+                 index = ((CcInt*)elem2.addr)->GetIntval();     
+                 attr1 = info->lastTuple->GetAttribute(index - 1);
+                 attr2 = current->GetAttribute(index - 1);
+                 if (!(attr1->Compare(attr2) == 0))
+                 { 
+                   equal = false;
+                 }
+               }
+             }
+             else
+             {
+                
+                info->endOfStream = true;
+                result.setAddr(tuple);
+                return YIELD;
+             }
+           }
+           
+           info->lastTuple->DeleteIfAllowed();
+           info->lastTuple = current;
+           result.setAddr(tuple);
+           return YIELD;
          }
          else
          {
-            nrel->getPrimary()->AppendTuple(tuple);
-            tuple->DeleteIfAllowed();
-            tuple = new Tuple( nl->First(nrel->getTupleType()));
-            ListExpr tupletype = nl->Second(subrel->typeInfo);
-            Tuple* subtuple = new Tuple (tupletype);
-            assert( tuple->GetNoAttributes() == primaryLength + 1);                    
-            assert( subtuple->GetNoAttributes() == subrelLength);
-            for (int i = 0; i < primaryLength; i++)
-            {
-               son = qp->GetSupplier(args[5].addr, i);
-               qp->Request(son, elem2);
-               index = ((CcInt*)elem2.addr)->GetIntval(); 
-               tuple->CopyAttribute(index-1, current, i);
-            }
-            for (int i = 0; i < subrelLength; i++)
-            {
-               son = qp->GetSupplier(args[6].addr, i);
-               qp->Request(son, elem2);
-               index = ((CcInt*)elem2.addr)->GetIntval();
-               subtuple->CopyAttribute(index-1, current, i);
-            }
-            arel = new AttributeRelation(subrel->fileId);
-            subrel->rel->AppendTuple(subtuple);
-            arel->Append(subtuple->GetTupleId());
-            subtuple->DeleteIfAllowed();
-            subtuple = 0;
-            tuple->PutAttribute(primaryLength, arel);
-            lastTuple->DeleteIfAllowed();
-            lastTuple = current;
-         }   
-      }
-      qp->Request(args[0].addr, elem1);   
-   }
-  
-   nrel->getPrimary()->AppendTuple(tuple);
-   tuple->DeleteIfAllowed();
-   if (!(lastTuple == 0))
-     lastTuple->DeleteIfAllowed();
-   result.setAddr(nrel);
-   qp->Close(args[0].addr);
+           info->endOfStream = true;
+           result.setAddr(tuple);
+           return YIELD;
+         }
+       }
+       else
+       {   
+         return CANCEL;  
+       }
+     }    
+     case CLOSE :
+     {
+       if(local.addr)
+       {
+         info = (NestInfo*)local.addr;
+         if (info->lastTuple)
+           info->lastTuple->DeleteIfAllowed();
+         info->tupleType->DeleteIfAllowed();
+         info->subrel->Delete();
+         delete info;
+         local.setAddr(0);
+       }
+       qp->Close(args[0].addr);
+       return 0;
+     }
    return 0;                              
+   }
 }
  
 /*
@@ -1733,8 +1797,8 @@ struct nestInfo : OperatorInfo {
   nestInfo() : OperatorInfo()
   {
     name =      "nest";
-    signature = "(stream x) -> (nrel x)";
-    syntax =    "_ nest";
+    signature = "(stream x) -> (stream y)";
+    syntax =    "_ nest [xi1,..., xij; x0]";
     meaning =   "Collects objects from a stream. The stream should be sorted"
                 "by the attributes that are to appear in the primary relation" ;
     example =   "query papers nfeed sortby [title] nest[title; new_title]";
@@ -1744,7 +1808,7 @@ struct nestInfo : OperatorInfo {
 /*
 3.6 Operator ~unnest~
 
-3.6.1 Type mapping function of operator ~project~
+3.6.1 Type mapping function of operator ~unnest~
 
 
 ----  ((stream (tuple ((x1 T1) ... (xn Tn)))) xj)  ->
