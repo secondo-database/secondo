@@ -189,6 +189,7 @@ bool
 TTYParameter::CheckConfiguration()
 {
   bool ok = true;
+
   int i = 1;
   string argSwitch = "", argValue = "";
   bool argOk = false;
@@ -329,6 +330,10 @@ TTYParameter::CheckConfiguration()
     {
       i++;
     }
+  }
+
+  if((runMode==Optimizer) && (plargs.size()==0) ){
+    plargs.push_back(argValues[0]);
   }
  
   if (!ok) {
