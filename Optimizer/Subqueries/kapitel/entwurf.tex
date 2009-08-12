@@ -9,6 +9,7 @@ Der von Kim bzw. Ganski/Wong vorgestellten Algorithmen zur Optimierung geschacht
 Bei der Analyse des Problems wurde klar, das eine echte Optimierung, d.h. ein Vergleich der geschachtelten und der nicht geschachtelten Ausführungsvariante einer Abfrage umfangreiche Berechnungen und Simulationen erfordern würde. Um die Kosten der entschachtelten Abfrage ermitteln zu können müssen die Selektivitäten der Prädikate ermittelt werden. Dies erfolgt durch Auswertung jedes einzelnen Prädikats über eine bzw. zwei Stichproben-Relationen, die aus den eigentlichen Relationen abgeleitet werden. Da die Prädikate der entschachtelten Abfrage 
 möglicherweise auf temporäre Relationen bezugnehmen, müsste hier die entsprechende Selektivität simuliert werden. Um an dieser Stelle vernünftige Daten zu erhalten, wäre der Nachbau eines großen Teils der Metadaten-Ermittlung des Optimierers notwendig gewesen. Da dies den Rahmen dieser Diplomarbeit sprengen würde, wurde hierauf verzichtet.
 
+Da der Operator \sql{in} für Tupel noch nicht implementiert ist, wurde die triviale Umsetzung von \sql{in} in die Disjunktion der angegebenen Konstanten als Übersetzung integriert. 
 \begin{itemize}
 	\item keine automatische Entscheidung entschachteln oder nicht
 	\subitem alle Metadaten über temp. Relationen wären notwendig

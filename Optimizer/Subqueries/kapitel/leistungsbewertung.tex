@@ -809,6 +809,8 @@ projectextend[Var1; oCUSTKEY: .cCUSTKEY]
 consume
 \end{lstlisting}
 
+Da es sich bei der inneren Abfrage in dem ersten geschachtelten Prädikat um eine nicht-korrelierte Abfrage handelt, wird sie in der entschachtelten Variante durch den durch ihre Ausführung erhaltenene Wert ersetzt.
+
 \begin{lstlisting}[caption=FROM Nesting]
 select
 	[substr(cphone, 1, 2)as cntrycode, 
@@ -880,7 +882,7 @@ Q22 & 2.308& 0.938\\
 
 \subsection{Fazit}
 \subsection{Ausblick}
-allgemeiner Full-Outerjoin-Operator auf Basis von Symmjoin. Unterstützung von \textbf{GROUPBY...HAVING}-Klauseln inkl. Subqueries. Geschachtelte Prädikate in Disjunktionen.
+Um die Entschachtelung zu vervollständigen sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden. Auch ein allgemeiner Full-Outerjoin-Operator auf Basis von Symmjoin. Unterstützung von \textbf{GROUPBY...HAVING}-Klauseln inkl. Subqueries. Geschachtelte Prädikate in Disjunktionen. Allgemeiner \sql{in}-Operator für Konstanten, möglicherweise auf der Basis des bestehenden \sql{in}-Operators der \algebra{Collection-Algebra}. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen.
 
 %
 % EOF

@@ -39,7 +39,7 @@ Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong
 \begin{itemize}
 	\item Selektionsattribute der Subquery
 	\item Innere Tabellen
-	\item Prädikate
+	\item Prädikated
 	\subitem nach dem Lookup eines Prädikats immer die Selektivität ermitteln, um die globalen Datenstrukturen (pog etc.) nicht während der Plan-Ermittlung durch Subqueries zerstören
 \end{itemize}
 
@@ -66,6 +66,9 @@ wird in den \textsc{Secondo}-Ausdruck
 
 \secondo{filter[.$A_i$ in $R_n$ feed projecttransformstream[$A_j$] collect\_set]} übersetzt. 
 \subsection{Using Parameter functions}
+\textsc{Secondo} unterstützt im Moment Prädikate die aus Attributen von bis zu zwei Relationen aufgebaut sind. Da diese Beschränkung durch den nur durch Erweiterungen am zentralen Optimierungs-Algorithmus aufgehoben werden kann, gilt sie auch für Prädikate mit geschachtelten Abfragen. D.h. in einer Unterabfrage können maximal Attribute aus zwei äußeren Relationen verwendet werden. Da durch die Entschachtelung neue, temporäre Tabellen eingeführt werden können, kann es zu der Situation kommen, dass ein Prädikat in seiner geschachtelten Form ein Ausdruck über den Attributen zweier Relationen ist, aber bei der Entschachtelung zu einem Ausdruck über drei oder mehr Relationen wird. 
+
+Je nach Anzahl der verwendeten äußeren Relationen wird die geschachtelte Abfrage in eine allgemeine Mapping-Funktion mit einer entsprechenden Anzahl Parameter übersetzt. Die innere Abfrage wird in einen \enquote{normalen} \textsc{Secondo}-Ausdruck übersetzt, auf die Attribute der äußeren Relation kann dann über die Parameter der Mapping-Fuktion zugegriffen werden.
 \begin{itemize}
 	\item Mit einem Parameter (normalerweise Filter)
 	
