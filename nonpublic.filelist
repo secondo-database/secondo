@@ -55,7 +55,7 @@ FuzzyAlgebra Fuzzy
 Optimizer/Entropy
 Data/Databases/spatial
 Data/Objects/Distrikte
-Javagui/viewers/hoese/algebras/periodic
+Javagui/viewer/hoese/algebras/periodic
 
 # chessalgebra
 Tests/Testspecs/chessalgebra
