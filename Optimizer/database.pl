@@ -3321,6 +3321,33 @@ assertFileStats(DB,DCindexName,DCrel,[[[Key],[Value]]|MoreElems]) :-
   assertFileStats(DB,DCindexName,DCrel,MoreElems).
 
 
+/*
+---- showIndexStatistics
+----
+
+This predicate lists all index statistics available in the knowledge base
+
+*/
+
+:- assert(helpLine(showIndexStatistics,0,
+    [],
+    'List index statistics on current DB.')).
+
+showIndexStatistics :-
+  databaseName(DB),
+  write_list(['\nStatistics on Indexes for Database \'',DB,'\':\n']),
+  format('  ~p~40|~p~75|~p~n',['Index Name','Statistic Name','Statistic Value']),
+  write('------------------------------------------------------'),
+  write('-----------------------------------------------------\n'),
+ findall(_,showIndexStatistics1(DB),_).
+
+showIndexStatistics1(DB) :-
+  storedIndexStat(DB,DCindexName,_,Key,Entry),
+  ( catch(string_to_list(EntryP, Entry), _, fail)
+    -> true
+    ;  EntryP = Entry
+  ),
+  format('  ~p~40|~p~75|~p~n',[DCindexName,Key,EntryP]).
 
 /*
 9 Update Indexes And Relations
