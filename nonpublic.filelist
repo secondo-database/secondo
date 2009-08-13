@@ -41,11 +41,13 @@ UGridAlgebra UGrid
 ConstraintAlgebra Constraint
 PointSequenceAlgebra PointSequence
 ConstraintAlgebra Constraint
+ExtRelationAlgebraB ExtRelation-2
 
 
 # Java algebras - not longer supported
 JBBoxAlgebra JBBox
 FuzzyAlgebra Fuzzy
+OldRelationAlgebra OldRelation-C++
 
 
 ###             ###
@@ -53,9 +55,12 @@ FuzzyAlgebra Fuzzy
 ###             ###
 
 Optimizer/Entropy
+Optimizer/Correlations
 Data/Databases/spatial
 Data/Objects/Distrikte
 Javagui/viewer/hoese/algebras/periodic
+Algebras/RegionInterpolation/Tex
+Tools/Generators/TPC-H
 
 # chessalgebra
 Tests/Testspecs/chessalgebra
@@ -98,7 +103,6 @@ Javagui/tools/MovingPointBuilder.java
 Javagui/tools/PeriodExtractor.java
 Javagui/tools/PeriodicPointBuilder.java
 
-bin/tbtreetest
 
 
 
@@ -110,13 +114,16 @@ Documents/Secondo-Ideas.txt
 
 Optimizer/adaptiveJoin.pl
 
+
+# Databases and test files
+
 bin/geo
 bin/chesstest
 bin/sochi84.pgn
+bin/tbtreetest
 
 Tests/Testspecs/partstream.test
 
-Tools/Generators/TPC-H/postgres
 
 ###                    ###
 ### Files by Extension ###
