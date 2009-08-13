@@ -8,7 +8,7 @@
       (
          ( "2003-11-20-06:13"  "2003-11-20-06:16"  TRUE  FALSE ) "DRK-Klinikum Westend" )
       (
-         ( "2003-11-20-06:16"  "2003-11-20-06:20:32.874"  TRUE  FALSE ) "Schloß Charlottenburg" )
+         ( "2003-11-20-06:16"  "2003-11-20-06:20:32.874"  TRUE  FALSE ) "SchloÃŸ Charlottenburg" )
       (
          ( "2003-11-20-06:20:32.874"  "2003-11-20-06:22:26.071"  TRUE  FALSE ) "Rathaus Charlottenburg" )
       (
@@ -18,11 +18,11 @@
       (
          ( "2003-11-20-06:28"  "2003-11-20-06:31"  TRUE  FALSE ) "St.-Gertrauden-Krankenhaus" )
       (
-         ( "2003-11-20-06:31"  "2003-11-20-06:33"  TRUE  FALSE ) "Rathaus Schöneberg" )
+         ( "2003-11-20-06:31"  "2003-11-20-06:33"  TRUE  FALSE ) "Rathaus SchÃ¶neberg" )
       (
          ( "2003-11-20-06:35:45.579"  "2003-11-20-06:35:52.520"  TRUE  FALSE ) "Kammergericht" )
       (
-         ( "2003-11-20-06:35:52.520"  "2003-11-20-06:38"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+         ( "2003-11-20-06:35:52.520"  "2003-11-20-06:38"  TRUE  FALSE ) "Museum fÃ¼r Verkehr und Technik" )
       (
          ( "2003-11-20-06:38"  "2003-11-20-06:39:11.389"  TRUE  FALSE ) "Hebbeltheater" )
       (
@@ -38,4 +38,4 @@
       (
          ( "2003-11-20-06:50:12.676"  "2003-11-20-06:54:39.776"  TRUE  FALSE ) "Hufeisensiedlung" )
       (
-         ( "2003-11-20-06:54:39.776"  "2003-11-20-07:02"  TRUE  FALSE ) "Krankenhaus Neukölln" )))
+         ( "2003-11-20-06:54:39.776"  "2003-11-20-07:02"  TRUE  FALSE ) "Krankenhaus NeukÃ¶lln" )))
