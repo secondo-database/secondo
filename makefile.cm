@@ -311,6 +311,10 @@ define checkTag
 endef
 
 
+define checkDir
+  @if [ -d $(srcprefix) ]; then echo -e "\n Error: subdirectory $(srcprefix) already present! \n"; exit 1; fi
+endef
+
 .PHONY: tag-version
 tag-version:
 	$(checkTag)
@@ -365,14 +369,16 @@ mkcp1252: $(fileList)
           -or -name "*.sda" \
           -or -name "*.vsd" \
           -or -name "*.zip" \
+          -or -name "*.icns" \
           -or -path "*javazoom*" \
+          -or -path "*TPC-D*" \
         \) \
         -exec recode lat1..cp1252 {} \;
 	cat $< | zip -9 -r $(WIN_SRC) -@ > /dev/null
-	rm -rf $(srcprefix) 
 
 .PHONY: rmList
 rmList: 
+	$(checkDir)
 	rm -f $(fileList)
 
 $(fileList): $(srcprefix)/makefile
