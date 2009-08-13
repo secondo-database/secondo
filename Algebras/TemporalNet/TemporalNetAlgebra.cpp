@@ -1631,9 +1631,13 @@ Getter and Setter Methods
 */
 
 int MGPoint::GetNetworkId() const{
-  const UGPoint *u;
-  Get(0,u);
-  return u->p0.GetNetworkId();
+  if (GetNoComponents()>0)
+  {
+    const UGPoint *u;
+    Get(0,u);
+    return u->p0.GetNetworkId();
+  }
+   else return numeric_limits<int>::min();
 }
 
 
@@ -1741,16 +1745,17 @@ void MGPoint::Trajectory(GLine* res) {
 }
 
 void MGPoint::Deftime(Periods &res){
-  Periods per(GetNoComponents());
-  const UGPoint *unit;
-  per.StartBulkLoad();
-  for( int i = 0; i < GetNoComponents(); i++ ) {
-    Get( i, unit );
-    if (unit->IsDefined())
-      per.Add(unit->timeInterval);
-  }
-  per.EndBulkLoad(false);
-  per.Merge(res);
+    res.Clear();
+    Periods per(GetNoComponents());
+    const UGPoint *unit;
+    per.StartBulkLoad();
+    for( int i = 0; i < GetNoComponents(); i++ ) {
+      Get( i, unit );
+      if (unit->IsDefined())
+        per.Add(unit->timeInterval);
+    }
+    per.EndBulkLoad(false);
+    per.Merge(res);
 }
 
 
@@ -3197,7 +3202,7 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
           NetworkManager::CloseNetwork(pNetwork);
         } else {
           if (resA->GetNoComponents() < 1) {
-            res->SetDefined(true);
+            res->SetDefined(false);
             NetworkManager::CloseNetwork(pNetwork);
           } else {
             res->StartBulkLoad();
@@ -3207,8 +3212,7 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
               resA->Get(i,pCurr1);
               resB->Get(i,pCurr2);
               if (pCurr1->p0.GetNetworkId() == pCurr2->p0.GetNetworkId() &&
-                  pCurr1->p0.GetRouteId() == pCurr2->p0.GetRouteId() &&
-                  pCurr1->p0.GetSide() == pCurr2->p0.GetSide()) {;
+                  pCurr1->p0.GetRouteId() == pCurr2->p0.GetRouteId()) {
                 if (pCurr1->p0.GetPosition() == pCurr2->p0.GetPosition() &&
                     pCurr1->p1.GetPosition() == pCurr2->p1.GetPosition()) {
                   res->Add(*pCurr1/*, pNetwork*/);
@@ -3377,10 +3381,11 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
                   }
                   k++;
                 }
-              }// end if else same route and side
+              }// end if else same route
             }// end for
             res->EndBulkLoad(true);
-            res->SetDefined(true);
+            if (res->GetNoComponents() > 0) res->SetDefined(true);
+            else res->SetDefined(false);
             NetworkManager::CloseNetwork(pNetwork);
           }
         }
@@ -5794,782 +5799,6 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   return 0;
 }
 
-
-int OpMPoint2MGPointValueMapping(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
-{
-/*
-Initialize return value
-
-*/
-  result = qp->ResultStorage(in_xSupplier);
-  MGPoint* res = static_cast<MGPoint*>(result.addr);
-  res->Clear();
-  res->SetDefined(true);
-  // Get and check input values.
-  Network *pNetwork = (Network*)args[0].addr;
-  if (!pNetwork->IsDefined()) {
-    sendMessages("Network is not defined.");
-    res->SetDefined(false);
-    return 0;
-  }
-  int iNetworkId = pNetwork->GetId();
-  MPoint* pMPoint = (MPoint*)args[1].addr;
-  if(pMPoint == NULL || pMPoint->GetNoComponents() < 1 ||
-     !pMPoint->IsDefined()) {
-    sendMessages("MPoint does not exist.");
-    res->SetDefined(false);
-    return 0;
-  }
-  // Some initialisations
-  const UPoint *pCurrentUnit;
-  Point uStartPoint, uEndPoint, juncPoint, uFirstEndPoint;
-  bool bStartFound, bEndFound, bMovingUp, bNewRouteFound, bDual;
-  bool bMGPointCurrMovingUp, bSecondEndCheck, bSecCheckDual,bAdjSecCheck;
-  bool bAdjAddCheck, bAdjSecCheckDual, blastSecEndCheck, blastAdjSecCheck;
-  bool blastSecEndCheckDual, blastAdjSecCheckDual;
-  double dStartPosOld, difference, firstDifference, aktDifference, dFirstEndPos;
-  double dStartPos, dEndPos, speedDifference, dAktUnitSpeed, dAktUnitDistance;
-  double dMGPointCurrDistance, dMGPointCurrEndPos, dMGPointCurrStartPos;
-  double dMGPointCurrSpeed, rid1meas, rid2meas, dSecondCheckEndPos, dSecDiff;
-  double dAdjSecCheckEndPos, dFirstAdjSecCheckDiff, dAdjAddCheckEndPos;
-  double dAdjSecCheckDiff, dlastSecCheckEndPos, dlastSecDiff;
-  double dlastAdjSecCheckEndPos, dlastAdjSecCheckDiff;
-  int iRouteId, iLastRouteId,  iCurrentSectionRid, iMGPointCurrRId;
-  TupleId iCurrentSectionRTid,  iOldSectionTid, iCurrentSectionTid;
-  int iSecCheckRouteId = 0;
-  TupleId iAdjSecCheckRid = 0;
-  int ilastSecEndCheckRouteId = 0;
-  TupleId ilastAdjSecCheckRid = 0;
-  CcInt *pRouteId;
-  Tuple *pCurrentRoute, *pCurrentSectionT, *pTestRoute;
-  SimpleLine *pRouteCurve, *pLastRouteCurve, *pTestRouteCurve;
-  Relation* pRoutes = pNetwork->GetRoutes();
-  Relation* pSections = pNetwork->GetSectionsInternal();
-  GPoint *pStartPos;
-  Side side, sMGPointCurrSide;
-  vector<DirectedSection> pAdjacentSections;
-  Instant tMGPointCurrStartTime, tMGPointCurrEndTime, aktUnitStartTime;
-  Instant aktUnitEndTime, tPassJunction;
-  Instant correcture(0,1,durationtype);
-  double lMGPointCurrStartTime, lMGPointCurrEndTime, lMGPointCurrDuration;
-  double lAktUnitStartTime, lAktUnitEndTime, lAktUnitDuration;
-  // Translate every Unit of MPoint to MGPoint Units.
-  // Compute Position in Network for the (start) of the first Unit of MGPoint
-  /*res->SetBBox(pMPoint->BoundingBox());
-  res->SetLength(pMPoint->Length());*/
-  res->StartBulkLoad();
-  pMPoint->Get(0, pCurrentUnit);
-  getUnitValues(pCurrentUnit, uEndPoint, uStartPoint, aktUnitStartTime,
-                  aktUnitEndTime, lAktUnitStartTime, lAktUnitEndTime,
-                  lAktUnitDuration);
-/////////////////////////////////////////////////////////////////////////////
-
-  RouteInterval *ri = pNetwork->FindInterval(uStartPoint, uEndPoint);
-  if (ri == 0 || ri->GetRouteId() == numeric_limits<int>::max())  {
-    sendMessages("First Unit not found in network.");
-    res->SetDefined(false);
-    if (ri != 0) delete ri;
-    return 0;
-  }
-  iRouteId = ri->GetRouteId();
-  pCurrentRoute = pNetwork->GetRoute(iRouteId);
-  pTestRoute = pNetwork->GetRoute(iRouteId);
-  dStartPos = ri->GetStartPos();
-  dEndPos = ri->GetEndPos();
-  delete ri;
-  double test1 = dStartPos;
-  double test2 = dEndPos;
-  chkStartEnd(test1, test2);
-  RITree *tree = new RITree(iRouteId, test1, test2 );
-  bDual = ((CcBool*) pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
-  if (dStartPos < dEndPos) bMovingUp = true;
-  else  bMovingUp = false;
-  if (bDual && bMovingUp)  side = Up;
-  else {
-    if (bDual && !bMovingUp)  side = Down;
-    else  side = None;
-  }
-  pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
-  dAktUnitDistance = fabs (dEndPos - dStartPos);
-  dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
-  iMGPointCurrRId = iRouteId;
-  sMGPointCurrSide = side;
-  dMGPointCurrSpeed = dAktUnitSpeed;
-  tMGPointCurrStartTime = aktUnitStartTime;
-  tMGPointCurrEndTime = aktUnitEndTime;
-  dMGPointCurrStartPos = dStartPos;
-  dMGPointCurrEndPos = dEndPos;
-  bMGPointCurrMovingUp = bMovingUp;
-  dMGPointCurrDistance = dAktUnitDistance;
-  lMGPointCurrStartTime = lAktUnitStartTime;
-  lMGPointCurrEndTime= lAktUnitEndTime;
-  lMGPointCurrDuration = lAktUnitDuration;
-  dStartPos = dEndPos;
-  uStartPoint = uEndPoint;
-  for (int i=1; i < pMPoint->GetNoComponents() ; i++){
-    bSecondEndCheck = false;
-    blastSecEndCheck = false;
-    bAdjSecCheck = false;
-    blastAdjSecCheck = false;
-    bAdjAddCheck = false;
-    bNewRouteFound = false;
-    pMPoint->Get(i, pCurrentUnit);
-    getUnitValues(pCurrentUnit, uEndPoint, uStartPoint, aktUnitStartTime,
-                  aktUnitEndTime, lAktUnitStartTime, lAktUnitEndTime,
-                  lAktUnitDuration);
-    if (aktUnitStartTime < tMGPointCurrEndTime) {
-       aktUnitStartTime = tMGPointCurrEndTime;
-       lAktUnitStartTime = aktUnitStartTime.ToDouble();
-       if (aktUnitEndTime < aktUnitStartTime) {
-         aktUnitEndTime = aktUnitStartTime + correcture;
-         lAktUnitEndTime = aktUnitEndTime.ToDouble();
-       }
-       lAktUnitDuration = lAktUnitEndTime - lAktUnitStartTime;
-    }
-    bEndFound = checkPoint(pRouteCurve, uEndPoint, true, dEndPos,
-                           firstDifference);
-    if (!bEndFound) {
-      bSecondEndCheck = checkPoint03(pRouteCurve, uEndPoint, true,
-                                   dSecondCheckEndPos, dSecDiff);
-      if (bSecondEndCheck) {
-        bSecCheckDual = bDual;
-        iSecCheckRouteId = pCurrentRoute->GetTupleId();
-      } else {
-        blastSecEndCheck = lastcheckPoint03 (pRouteCurve, uEndPoint, true,
-                                   dlastSecCheckEndPos, dlastSecDiff);
-        if (blastSecEndCheck) {
-          blastSecEndCheckDual = bDual;
-          ilastSecEndCheckRouteId = pCurrentRoute->GetTupleId();
-        }
-      }
-    }
-    if (bEndFound &&
-       (fabs(uEndPoint.Distance(uStartPoint) -
-          fabs(dEndPos-dStartPos)) < 5.0)) {
-/*
-Moving point stays on the same route.
-Check if the direction,speed and side are the same as before. If this is the
-case expand the current unit of the mgpoint for the current unit of the mpoint.
-In the other case close and write the open unit of the mgpoint and start a new
-mgpoint unit with the values of the actual mpoint unit as start values.
-
-*/
-          bNewRouteFound = true;
-          setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
-          dAktUnitDistance = fabs (dEndPos - dStartPos);
-          dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
-          speedDifference = fabs (dAktUnitSpeed - dMGPointCurrSpeed);
-          if (bMGPointCurrMovingUp == bMovingUp &&
-              sMGPointCurrSide == side &&
-              speedDifference < 0.00000001){
-            tMGPointCurrEndTime = aktUnitEndTime;
-            dMGPointCurrEndPos = dEndPos;
-            dMGPointCurrDistance =
-                fabs(dMGPointCurrEndPos - dMGPointCurrStartPos);
-            lMGPointCurrEndTime= tMGPointCurrEndTime.ToDouble();
-            lMGPointCurrDuration = lMGPointCurrEndTime - lMGPointCurrStartTime;
-            dMGPointCurrSpeed = dMGPointCurrDistance / lMGPointCurrDuration;
-            dStartPos = dEndPos;
-            uStartPoint = uEndPoint;
-            continue;
-          } else {
-            res->Add(UGPoint(Interval<Instant>(tMGPointCurrStartTime,
-                                               tMGPointCurrEndTime,
-                                               true,
-                                               false),
-                             iNetworkId,
-                             iMGPointCurrRId,
-                             sMGPointCurrSide,
-                             dMGPointCurrStartPos,
-                             dMGPointCurrEndPos));
-            test1 = dMGPointCurrStartPos;
-            test2 = dMGPointCurrEndPos;
-            chkStartEnd(test1,test2);
-            tree->Insert(iMGPointCurrRId, test1, test2);
-            tMGPointCurrStartTime = aktUnitStartTime;
-            tMGPointCurrEndTime = aktUnitEndTime;
-            dMGPointCurrStartPos = dStartPos;
-            dMGPointCurrEndPos = dEndPos;
-            bMGPointCurrMovingUp = bMovingUp;
-            dMGPointCurrDistance = dAktUnitDistance;
-            lMGPointCurrStartTime= lAktUnitStartTime;
-            lMGPointCurrEndTime= lAktUnitEndTime;
-            lMGPointCurrDuration = lAktUnitDuration;
-            iMGPointCurrRId = iRouteId;
-            sMGPointCurrSide = side;
-            dMGPointCurrSpeed = dAktUnitSpeed;
-            dStartPos = dEndPos;
-            uStartPoint = uEndPoint;
-            continue;
-          }
-    } else {
-/*
-End not on the  same Route!
-The ~mpoint~ changed route at the start of the unit.
-Write the open unit to the mgpoint and compute the start of the new mgpoint
-unit. To find the new route use the adjacent segments of the actual segment. If
-the new Route is found compute the new values for the next mgpoint unit.
-
-*/
-
-      res->Add(UGPoint(Interval<Instant>(tMGPointCurrStartTime,
-                                                tMGPointCurrEndTime,
-                                                true,
-                                                false),
-                                iNetworkId,
-                                iMGPointCurrRId,
-                                sMGPointCurrSide,
-                                dMGPointCurrStartPos,
-                                dMGPointCurrEndPos));
-        dStartPos = dMGPointCurrEndPos;
-        test1 = dMGPointCurrStartPos;
-        test2 = dMGPointCurrEndPos;
-        chkStartEnd(test1,test2);
-        tree->Insert(iMGPointCurrRId, test1, test2);
-        bNewRouteFound = false;
-
-        if (bMovingUp && dStartPos > 0.1) {
-          pStartPos =
-              new GPoint(true, iNetworkId, iRouteId, dStartPos-0.01, Up);}
-        else {
-          if (!bMovingUp && dStartPos == 0.0){
-            pStartPos =
-                new GPoint(true, iNetworkId, iRouteId, dStartPos);
-            if (dMGPointCurrSpeed == 0) bMovingUp = true;}
-          else {
-            if (!bMovingUp && !(fabs(dStartPos-pRouteCurve->Length())<0.1)){
-              pStartPos =
-                new GPoint(true, iNetworkId, iRouteId, dStartPos + 0.1, Down);}
-            else {
-              if (!bMovingUp && fabs(dStartPos-pRouteCurve->Length())<0.1) {
-                pStartPos =
-                    new GPoint(true, iNetworkId, iRouteId, dStartPos, Down);
-                if (dMGPointCurrSpeed == 0) bMovingUp = true;
-              }
-              else {
-                if (bMovingUp && fabs(dStartPos - 0.0) < 0.1) {
-                  pStartPos =
-                    new GPoint(true, iNetworkId, iRouteId, 0.0, Up);
-                  if (dMGPointCurrSpeed == 0) bMovingUp = false;
-                }
-                else {
-                  pStartPos =
-                      new GPoint(true, iNetworkId, iRouteId, dStartPos);}
-              }
-            }
-          }
-        }
-        iOldSectionTid = pNetwork->GetTupleIdSectionOnRoute(pStartPos);
-        pStartPos->DeleteIfAllowed();
-        if (iOldSectionTid == 0) {
-            sendMessages("No last section for adjacent sections found.");
-            res->EndBulkLoad(true);
-            tree->TreeToDBArray(&(res->m_trajectory));
-            res->m_trajectory.TrimToSize();
-            res->SetTrajectoryDefined(true);
-            res->SetBoundingBoxDefined(false);
-            tree->RemoveTree();
-            pCurrentRoute->DeleteIfAllowed();
-            pTestRoute->DeleteIfAllowed();
-            //delete pRoutes;
-            return 0;
-        }
-        pLastRouteCurve = pRouteCurve;
-        iLastRouteId = iMGPointCurrRId;
-        dStartPosOld = dStartPos;
-        pAdjacentSections.clear();
-        pNetwork->GetAdjacentSections(iOldSectionTid,
-                                      bMovingUp,
-                                      pAdjacentSections);
-        if (pAdjacentSections.size() == 0 && pRouteCurve->IsCycle()) {
-          pAdjacentSections.clear();
-          pStartPos = new GPoint(true, iNetworkId, iRouteId, 0.1);
-          iOldSectionTid = pNetwork->GetTupleIdSectionOnRoute(pStartPos);
-          pStartPos->DeleteIfAllowed();
-          if (iOldSectionTid == 0) {
-            sendMessages("No section on cylce found");
-            res->EndBulkLoad(true);
-            tree->TreeToDBArray(&(res->m_trajectory));
-            tree->RemoveTree();
-            res->SetTrajectoryDefined(true);
-            res->m_trajectory.TrimToSize();
-            res->SetBoundingBoxDefined(false);
-            pCurrentRoute->DeleteIfAllowed();
-            pTestRoute->DeleteIfAllowed();
-            //delete pRoutes;
-            return 0;
-          }
-          pNetwork->GetAdjacentSections(iOldSectionTid, false,
-                                        pAdjacentSections);
-        }
-        for (size_t a = 0; a < pAdjacentSections.size(); a++) {
-          DirectedSection pCurrentDirectedSection = pAdjacentSections[a];
-          iCurrentSectionTid = pCurrentDirectedSection.GetSectionTid();
-          pCurrentSectionT = pSections->GetTuple(iCurrentSectionTid);
-          iCurrentSectionRid = ((CcInt*)
-              pCurrentSectionT->GetAttribute(SECTION_RID))->GetIntval();
-          iCurrentSectionRTid = ((TupleIdentifier*)
-              pCurrentSectionT->GetAttribute(SECTION_RRC))->GetTid();
-          pCurrentSectionT->DeleteIfAllowed();
-          if (iCurrentSectionRid != iRouteId) {
-            pCurrentRoute->DeleteIfAllowed();
-            pCurrentRoute = pRoutes->GetTuple(iCurrentSectionRTid);
-            pRouteCurve =
-                (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
-            bEndFound = checkPoint(pRouteCurve, uEndPoint, true, dEndPos,
-                                  aktDifference);
-            if (!bEndFound) {
-              if (!bAdjSecCheck) {
-                bAdjSecCheck = checkPoint03(pRouteCurve, uEndPoint, true,
-                                            dAdjSecCheckEndPos,
-                                            dFirstAdjSecCheckDiff);
-                if (bAdjSecCheck) {
-                  bAdjSecCheckDual = bDual;
-                  iAdjSecCheckRid = pCurrentRoute->GetTupleId();
-                } else {
-                  blastAdjSecCheck = lastcheckPoint03(pRouteCurve, uEndPoint,
-                                                      true,
-                                                      dlastAdjSecCheckEndPos,
-                                                      dlastAdjSecCheckDiff);
-                  if (blastAdjSecCheck) {
-                    blastAdjSecCheckDual = bDual;
-                    ilastAdjSecCheckRid = pCurrentRoute->GetTupleId();
-                  }
-                }
-              } else {
-                bAdjAddCheck = checkPoint03(pRouteCurve, uEndPoint, true,
-                                          dAdjAddCheckEndPos, dAdjSecCheckDiff);
-                if (bAdjAddCheck && dFirstAdjSecCheckDiff > dAdjSecCheckDiff) {
-                  dAdjSecCheckEndPos = dAdjAddCheckEndPos;
-                  dFirstAdjSecCheckDiff = dAdjSecCheckDiff;
-                  bAdjSecCheckDual = bDual;
-                  iAdjSecCheckRid = pCurrentRoute->GetTupleId();
-                }
-              }
-            } else {
-              bStartFound =
-                  checkPoint(pRouteCurve, uStartPoint, true, dStartPos,
-                             difference);
-              if (bStartFound) {
-                  bNewRouteFound = true;
-                  bDual = ((CcBool*)
-                      pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
-                  setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
-                  iRouteId = iCurrentSectionRid;
-                  pCurrentRoute->DeleteIfAllowed();
-                  pCurrentRoute = pRoutes->GetTuple(iCurrentSectionRTid);
-                  pRouteCurve =
-                      (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
-                  firstDifference = aktDifference;
-                  dAktUnitDistance = fabs (dEndPos - dStartPos);
-                  dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
-                  iMGPointCurrRId = iRouteId;
-                  sMGPointCurrSide = side;
-                  dMGPointCurrSpeed = dAktUnitSpeed;
-                  tMGPointCurrStartTime = aktUnitStartTime;
-                  tMGPointCurrEndTime = aktUnitEndTime;
-                  dMGPointCurrStartPos = dStartPos;
-                  dMGPointCurrEndPos = dEndPos;
-                  bMGPointCurrMovingUp = bMovingUp;
-                  dMGPointCurrDistance = dAktUnitDistance;
-                  lMGPointCurrStartTime = lAktUnitStartTime;
-                  lMGPointCurrEndTime= lAktUnitEndTime;
-                  lMGPointCurrDuration = lAktUnitDuration;
-                  dFirstEndPos = dEndPos;
-                  uFirstEndPoint = uEndPoint;
-/*
-If a route splits up into two routes it might be that in the beginning
-the difference between the two new routes is very small, So it can happen
-that the checkPoint-Function first computes the false new route. Because of this
-we have to check the other adjacent routes if there is one with a lower
-difference than the first found route. If a route with a lower difference value
-is found. This route has to be taken instead of the first computed route.
-
-*/
-                  for (size_t j = a ; j < pAdjacentSections.size(); j++) {
-                    DirectedSection pCurrentDirectedSection =
-                        pAdjacentSections[j];
-                    iCurrentSectionTid =
-                        pCurrentDirectedSection.GetSectionTid();
-                    pCurrentSectionT = pSections->GetTuple(iCurrentSectionTid);
-                    iCurrentSectionRid =  ((CcInt*)
-                     pCurrentSectionT->GetAttribute(SECTION_RID))->GetIntval();
-                    iCurrentSectionRTid = ((TupleIdentifier*)
-                     pCurrentSectionT->GetAttribute(SECTION_RRC))->GetTid();
-                    pCurrentSectionT->DeleteIfAllowed();
-                    if (iCurrentSectionRid != iMGPointCurrRId) {
-                      pTestRoute->DeleteIfAllowed();
-                      pTestRoute = pRoutes->GetTuple(iCurrentSectionRTid);
-                      pTestRouteCurve =
-                          (SimpleLine*) pTestRoute->GetAttribute(ROUTE_CURVE);
-                      bEndFound = checkPoint(pTestRouteCurve, uEndPoint, true,
-                                            dEndPos, aktDifference);
-                      if (bEndFound) {
-                        bStartFound = checkPoint(pTestRouteCurve, uStartPoint,
-                                                true, dStartPos, difference);
-                        if (bStartFound) {
-                          if (firstDifference > aktDifference) {
-                            bDual = ((CcBool*)
-                        pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
-                            setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual,
-                                          side);
-                            iRouteId = iCurrentSectionRid;
-                            pCurrentRoute->DeleteIfAllowed();
-                            pCurrentRoute =
-                                pRoutes->GetTuple(iCurrentSectionRTid);
-                            pRouteCurve =
-                              (SimpleLine*) pCurrentRoute->
-                                GetAttribute(ROUTE_CURVE);
-                            firstDifference = aktDifference;
-                            dAktUnitDistance = fabs (dEndPos - dStartPos);
-                            dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
-                            iMGPointCurrRId = iRouteId;
-                            sMGPointCurrSide = side;
-                            dMGPointCurrSpeed = dAktUnitSpeed;
-                            dMGPointCurrStartPos = dStartPos;
-                            dMGPointCurrEndPos = dEndPos;
-                            bMGPointCurrMovingUp = bMovingUp;
-                            dMGPointCurrDistance = dAktUnitDistance;
-                            dFirstEndPos = dEndPos;
-                            uFirstEndPoint = uEndPoint;
-                          }
-                        }
-                      }
-                    }
-                  }
-                  dStartPos = dFirstEndPos;
-                  uStartPoint = uFirstEndPoint;
-                  break;
-                } else { //bstart not found
-/*
-Specialcase; ~mpoint~ passes junction within unit changing the route.
-Might happen if old Route and new Route have the same direction.
-Compute additional Unit for MGPoint from end last Unit to junction and correct
-values for next unit of MGPoint taking the time of passing the junction as
-start time and the junction as startposition of the new current unit.
-
-*/
-                CcInt pRouteId1(true, iLastRouteId);
-                CcInt pRouteId2(true, iCurrentSectionRid);
-                pNetwork->GetJunctionMeasForRoutes(&pRouteId1,
-                                                  &pRouteId2,
-                                                  rid1meas,
-                                                  rid2meas);
-                double factor = fabs(rid1meas - dStartPosOld) /
-                                (uEndPoint.Distance(uStartPoint));
-                tPassJunction = (aktUnitEndTime - aktUnitStartTime) * factor +
-                                aktUnitStartTime;
-                if (tPassJunction == aktUnitStartTime)
-                    tPassJunction = tPassJunction + correcture;
-                else if (tPassJunction < aktUnitStartTime)
-                        tPassJunction = aktUnitStartTime + correcture;
-                res->Add(UGPoint(Interval<Instant>(aktUnitStartTime,
-                                                tPassJunction,
-                                                true,
-                                                false),
-                                iNetworkId,
-                                iLastRouteId,
-                                sMGPointCurrSide,
-                                dMGPointCurrEndPos,
-                                rid1meas));
-                test1 = dMGPointCurrEndPos;
-                test2 = rid1meas;
-                chkStartEnd(test1,test2);
-                tree->Insert(iLastRouteId, test1, test2);
-                bNewRouteFound = true;
-                bDual = ((CcBool*)
-                    pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
-                setMoveAndSide(rid2meas, dEndPos, bMovingUp, bDual, side);
-                iRouteId = iCurrentSectionRid;
-                dAktUnitDistance = fabs (dEndPos - rid2meas);
-                if (tPassJunction == aktUnitEndTime)
-                    aktUnitEndTime = aktUnitEndTime + correcture;
-                else if (tPassJunction > aktUnitEndTime)
-                        aktUnitEndTime = tPassJunction + correcture;
-                lAktUnitEndTime = aktUnitEndTime.ToDouble();
-                lAktUnitDuration = lAktUnitEndTime -
-                                            tPassJunction.ToDouble();
-                dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
-                iMGPointCurrRId = iRouteId;
-                sMGPointCurrSide = side;
-                dMGPointCurrSpeed = dAktUnitSpeed;
-                tMGPointCurrStartTime = tPassJunction;
-                tMGPointCurrEndTime = aktUnitEndTime;
-                dMGPointCurrStartPos = rid2meas;
-                dMGPointCurrEndPos = dEndPos;
-                bMGPointCurrMovingUp = bMovingUp;
-                dMGPointCurrDistance = dAktUnitDistance;
-                lMGPointCurrStartTime= tPassJunction.ToDouble();
-                lMGPointCurrEndTime= lAktUnitEndTime;
-                lMGPointCurrDuration = lAktUnitDuration;
-                dStartPos = dEndPos;
-                uStartPoint = uEndPoint;
-                break;
-              }//end ifelse bStartFound
-            } // end if bEndFound
-          } //end if CurrentRid != RouteId
-        } //end for AdjacentSections
-      } //end ifelse bEndFound
-      if (!bNewRouteFound && bSecondEndCheck) {
-          pCurrentRoute->DeleteIfAllowed();
-          pCurrentRoute = pRoutes->GetTuple(iSecCheckRouteId);
-          pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
-          pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
-          iRouteId = pRouteId->GetIntval();
-          bDual = ((CcBool*)
-              pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
-          bNewRouteFound = true;
-          dEndPos = dSecondCheckEndPos;
-          setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
-          dAktUnitDistance = fabs (dEndPos - dStartPos);
-          dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
-          iMGPointCurrRId = iRouteId;
-          sMGPointCurrSide = side;
-          dMGPointCurrSpeed = dAktUnitSpeed;
-          tMGPointCurrStartTime = aktUnitStartTime;
-          tMGPointCurrEndTime = aktUnitEndTime;
-          dMGPointCurrStartPos = dStartPos;
-          dMGPointCurrEndPos = dEndPos;
-          bMGPointCurrMovingUp = bMovingUp;
-          dMGPointCurrDistance = dAktUnitDistance;
-          lMGPointCurrStartTime = lAktUnitStartTime;
-          lMGPointCurrEndTime= lAktUnitEndTime;
-          lMGPointCurrDuration = lAktUnitDuration;
-          dStartPos = dEndPos;
-          uStartPoint = uEndPoint;
-          continue;
-        }
-        if (!bNewRouteFound && bAdjSecCheck) {
-          pCurrentRoute->DeleteIfAllowed();
-          pCurrentRoute = pRoutes->GetTuple(iAdjSecCheckRid);
-          pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
-          pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
-          iRouteId = pRouteId->GetIntval();
-          bDual = ((CcBool*)
-              pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
-          bNewRouteFound = true;
-          dEndPos = dAdjSecCheckEndPos;
-          bStartFound = checkPoint(pRouteCurve, uStartPoint, true, dStartPos,
-                                   difference);
-          if (!bStartFound) {
-            checkPoint03(pRouteCurve, uStartPoint, true, dStartPos, difference);
-          }
-          setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
-          dAktUnitDistance = fabs (dEndPos - dStartPos);
-          dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
-          iMGPointCurrRId = iRouteId;
-          sMGPointCurrSide = side;
-          dMGPointCurrSpeed = dAktUnitSpeed;
-          tMGPointCurrStartTime = aktUnitStartTime;
-          tMGPointCurrEndTime = aktUnitEndTime;
-          dMGPointCurrStartPos = dStartPos;
-          dMGPointCurrEndPos = dEndPos;
-          bMGPointCurrMovingUp = bMovingUp;
-          dMGPointCurrDistance = dAktUnitDistance;
-          lMGPointCurrStartTime = lAktUnitStartTime;
-          lMGPointCurrEndTime= lAktUnitEndTime;
-          lMGPointCurrDuration = lAktUnitDuration;
-          dStartPos = dEndPos;
-          uStartPoint = uEndPoint;
-          continue;
-        }
-      if (!bNewRouteFound) {
-        pAdjacentSections.clear();
-        pNetwork->GetAdjacentSections(iOldSectionTid, !bMovingUp,
-                                        pAdjacentSections);
-        for (size_t a = 0; a < pAdjacentSections.size(); a++) {
-          DirectedSection pCurrentDirectedSection = pAdjacentSections[a];
-          iCurrentSectionTid = pCurrentDirectedSection.GetSectionTid();
-          pCurrentSectionT = pSections->GetTuple(iCurrentSectionTid);
-          iCurrentSectionRid = ((CcInt*)
-           pCurrentSectionT->GetAttribute(SECTION_RID))->GetIntval();
-          iCurrentSectionRTid = ((TupleIdentifier*)
-           pCurrentSectionT->GetAttribute(SECTION_RRC))->GetTid();
-          pCurrentSectionT->DeleteIfAllowed();
-          if (iCurrentSectionRid != iRouteId) {
-            pCurrentRoute->DeleteIfAllowed();
-            pCurrentRoute = pRoutes->GetTuple(iCurrentSectionRTid);
-            pRouteCurve =
-                (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
-            bEndFound = checkPoint(pRouteCurve, uEndPoint, true, dEndPos,
-                                 aktDifference);
-            if (bEndFound) {
-              bNewRouteFound = true;
-              CcInt pRouteId1(true, iLastRouteId);
-              CcInt pRouteId2(true, iCurrentSectionRid);
-              pNetwork->GetJunctionMeasForRoutes(&pRouteId1,
-                                                  &pRouteId2,
-                                                  rid1meas,
-                                                  rid2meas);
-              double factor = fabs(rid1meas - dStartPosOld) /
-                                (uEndPoint.Distance(uStartPoint));
-              tPassJunction = (aktUnitEndTime - aktUnitStartTime) * factor +
-                                aktUnitStartTime;
-              if (tPassJunction <= aktUnitStartTime) {
-                if (tPassJunction < aktUnitStartTime) {
-                  tPassJunction = aktUnitStartTime + correcture;
-                } else {
-                  tPassJunction = tPassJunction + correcture;
-                }
-              }
-              res->Add(UGPoint(Interval<Instant>(aktUnitStartTime,
-                                                tPassJunction,
-                                                true,
-                                                false),
-                                iNetworkId,
-                                iLastRouteId,
-                                sMGPointCurrSide,
-                                dMGPointCurrEndPos,
-                                rid1meas));
-              test1 = dMGPointCurrStartPos;
-              test2 = rid1meas;
-              chkStartEnd(test1,test2);
-              tree->Insert(iLastRouteId, test1, test2);
-              bNewRouteFound = true;
-              bDual = ((CcBool*)
-                  pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
-              setMoveAndSide(rid2meas, dEndPos, bMovingUp, bDual, side);
-              iRouteId = iCurrentSectionRid;
-              dAktUnitDistance = fabs (dEndPos - rid2meas);
-              if (tPassJunction >= aktUnitEndTime) {
-                if (tPassJunction > aktUnitEndTime) {
-                  aktUnitEndTime = tPassJunction + correcture;
-                } else {
-                    aktUnitEndTime = aktUnitEndTime + correcture;
-                }
-              }
-              lAktUnitEndTime = aktUnitEndTime.ToDouble();
-              lAktUnitDuration = lAktUnitEndTime -
-                                          tPassJunction.ToDouble();
-              dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
-              iMGPointCurrRId = iRouteId;
-              sMGPointCurrSide = side;
-              dMGPointCurrSpeed = dAktUnitSpeed;
-              tMGPointCurrStartTime = tPassJunction;
-              tMGPointCurrEndTime = aktUnitEndTime;
-              dMGPointCurrStartPos = rid2meas;
-              dMGPointCurrEndPos = dEndPos;
-              bMGPointCurrMovingUp = bMovingUp;
-              dMGPointCurrDistance = dAktUnitDistance;
-              lMGPointCurrStartTime= tPassJunction.ToDouble();
-              lMGPointCurrEndTime= lAktUnitEndTime;
-              lMGPointCurrDuration = lAktUnitDuration;
-              dStartPos = dEndPos;
-              uStartPoint = uEndPoint;
-              break;
-            }
-          }
-        } //end for adjacentSections
-      }
-      if (!bNewRouteFound && blastSecEndCheck) {
-          pCurrentRoute->DeleteIfAllowed();
-          pCurrentRoute = pRoutes->GetTuple(ilastSecEndCheckRouteId);
-          pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
-          pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
-          iRouteId = pRouteId->GetIntval();
-          bDual = ((CcBool*)
-              pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
-          bNewRouteFound = true;
-          dEndPos = dlastSecCheckEndPos;
-          setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
-          dAktUnitDistance = fabs (dEndPos - dStartPos);
-          dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
-          iMGPointCurrRId = iRouteId;
-          sMGPointCurrSide = side;
-          dMGPointCurrSpeed = dAktUnitSpeed;
-          tMGPointCurrStartTime = aktUnitStartTime;
-          tMGPointCurrEndTime = aktUnitEndTime;
-          dMGPointCurrStartPos = dStartPos;
-          dMGPointCurrEndPos = dEndPos;
-          bMGPointCurrMovingUp = bMovingUp;
-          dMGPointCurrDistance = dAktUnitDistance;
-          lMGPointCurrStartTime = lAktUnitStartTime;
-          lMGPointCurrEndTime= lAktUnitEndTime;
-          lMGPointCurrDuration = lAktUnitDuration;
-          dStartPos = dEndPos;
-          uStartPoint = uEndPoint;
-          continue;
-        }
-        if (!bNewRouteFound && blastAdjSecCheck) {
-          pCurrentRoute->DeleteIfAllowed();
-          pCurrentRoute = pRoutes->GetTuple(ilastAdjSecCheckRid);
-          pRouteCurve = (SimpleLine*) pCurrentRoute->GetAttribute(ROUTE_CURVE);
-          pRouteId = (CcInt*) pCurrentRoute->GetAttribute(ROUTE_ID);
-          iRouteId = pRouteId->GetIntval();
-          bDual = ((CcBool*)
-              pCurrentRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
-          bNewRouteFound = true;
-          dEndPos = dlastAdjSecCheckEndPos;
-          bStartFound = checkPoint(pRouteCurve, uStartPoint, true, dStartPos,
-                                   difference);
-          if (!bStartFound) {
-            checkPoint03(pRouteCurve, uStartPoint, true, dStartPos, difference);
-          }
-          setMoveAndSide(dStartPos, dEndPos, bMovingUp, bDual, side);
-          dAktUnitDistance = fabs (dEndPos - dStartPos);
-          dAktUnitSpeed = dAktUnitDistance / lAktUnitDuration;
-          iMGPointCurrRId = iRouteId;
-          sMGPointCurrSide = side;
-          dMGPointCurrSpeed = dAktUnitSpeed;
-          tMGPointCurrStartTime = aktUnitStartTime;
-          tMGPointCurrEndTime = aktUnitEndTime;
-          dMGPointCurrStartPos = dStartPos;
-          dMGPointCurrEndPos = dEndPos;
-          bMGPointCurrMovingUp = bMovingUp;
-          dMGPointCurrDistance = dAktUnitDistance;
-          lMGPointCurrStartTime = lAktUnitStartTime;
-          lMGPointCurrEndTime= lAktUnitEndTime;
-          lMGPointCurrDuration = lAktUnitDuration;
-          dStartPos = dEndPos;
-          uStartPoint = uEndPoint;
-          continue;
-        }
-      if (!bNewRouteFound) {
-        //should not happen
-        sendMessages("MPoint is not longer found on network.");
-        res->EndBulkLoad(true);
-        tree->TreeToDBArray(&(res->m_trajectory));
-        tree->RemoveTree();
-        res->SetTrajectoryDefined(true);
-        res->m_trajectory.TrimToSize();
-        res->SetBoundingBoxDefined(false);
-        pCurrentRoute->DeleteIfAllowed();
-        pTestRoute->DeleteIfAllowed();
-        //delete pRoutes;
-        return 0;
-      }
-  } //end for units MPoint
-  res->Add(UGPoint(Interval<Instant>(tMGPointCurrStartTime,
-                                                tMGPointCurrEndTime,
-                                                true,
-                                                false),
-                              iNetworkId,
-                              iMGPointCurrRId,
-                              sMGPointCurrSide,
-                              dMGPointCurrStartPos,
-                              dMGPointCurrEndPos));
-  test1 = dMGPointCurrStartPos;
-  test2 = dMGPointCurrEndPos;
-  chkStartEnd(test1,test2);
-  tree->Insert(iMGPointCurrRId, test1, test2);
-  res->EndBulkLoad(true);
-  tree->TreeToDBArray(&(res->m_trajectory));
-  tree->RemoveTree();
-  res->SetTrajectoryDefined(true);
-  res->m_trajectory.TrimToSize();
-  res->SetBoundingBox(pMPoint->BoundingBox());
-  res->SetBoundingBoxDefined(true);
-  pCurrentRoute->DeleteIfAllowed();
-  pTestRoute->DeleteIfAllowed();
-  pAdjacentSections.clear();
-  return 0;
-} //end ValueMapping
-
-
 const string OpMPoint2MGPointSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
@@ -6755,6 +5984,7 @@ int OpSimplifyValueMapping(Word* args,
   {
     string strMessage = "MGPoint is Empty.";
     cerr << endl << strMessage << endl << endl;
+    pMGPoint->SetDefined(false);
     return 0;
   }
   pMGPoint->Simplify(dEpsilon, pMGPointSimplified);
@@ -7080,6 +6310,7 @@ int OpDeftime_ugp(Word* args, Word& result, int message,
   UGPoint* pUGP = (UGPoint*) args[0].addr;
   pResult->Clear();
   if (!pUGP->IsDefined()) {
+    pResult->SetDefined(false);
     return 0;
   }
   pUGP->Deftime(*pResult);
@@ -7091,11 +6322,14 @@ int OpDeftime_mgp(Word* args, Word& result, int message, Word& local,
   Periods* res = (Periods*) qp->ResultStorage(in_xSupplier).addr;
   result = SetWord(res);
   MGPoint* pMGP = (MGPoint*) args[0].addr;
-  if (!pMGP->IsDefined() || pMGP->GetNoComponents() < 1) {
+  if (!pMGP->IsDefined() || pMGP->GetNoComponents() == 0) {
+    res->Clear();
+    res->SetDefined(false);
+    return 0;
+  } else {
+    pMGP->Deftime(*res);
     return 0;
   }
-  pMGP->Deftime(*res);
-  return 0;
 }
 
 int OpDeftimeSelect(ListExpr args) {
@@ -7331,15 +6565,15 @@ int OpIntersectionValueMapping(Word* args,
   pResult->Clear();
   // Get input values
   MGPoint* pMGPoint1 = (MGPoint*)args[0].addr;
-  if(pMGPoint1 == NULL || pMGPoint1->GetNoComponents() < 1 ||
-      !pMGPoint1->IsDefined()) {
+  if(pMGPoint1 == NULL || !pMGPoint1->IsDefined() ||
+     pMGPoint1->GetNoComponents() < 1) {
     cerr << "First mgpoint does not exist." << endl;
     pResult->SetDefined(false);
     return 0;
   }
   MGPoint* pMGPoint2 = (MGPoint*)args[1].addr;
-  if(pMGPoint2 == NULL || pMGPoint2->GetNoComponents() < 1 ||
-      !pMGPoint2->IsDefined()) {
+  if(pMGPoint2 == NULL || !pMGPoint2->IsDefined() ||
+     pMGPoint2->GetNoComponents() < 1 ) {
     sendMessages("Second mgpoint does not exist.");
     pResult->SetDefined(false);
     return 0;
