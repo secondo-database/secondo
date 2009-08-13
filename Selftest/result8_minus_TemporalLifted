@@ -2,9 +2,9 @@
 ( mstring 
    (
       (
-         ( "2003-11-20-06:06"  "2003-11-20-06:06:08.692"  TRUE  FALSE ) "Flughafen Schönefeld" )
+         ( "2003-11-20-06:06"  "2003-11-20-06:06:08.692"  TRUE  FALSE ) "Flughafen SchÃ¶nefeld" )
       (
-         ( "2003-11-20-06:06:08.692"  "2003-11-20-06:13:25.780"  TRUE  FALSE ) "Krankenhaus Neukölln" )
+         ( "2003-11-20-06:06:08.692"  "2003-11-20-06:13:25.780"  TRUE  FALSE ) "Krankenhaus NeukÃ¶lln" )
       (
          ( "2003-11-20-06:13:25.780"  "2003-11-20-06:18:50"  TRUE  FALSE ) "Hufeisensiedlung" )
       (
@@ -20,11 +20,11 @@
       (
          ( "2003-11-20-06:29:01.859"  "2003-11-20-06:30:18.775"  TRUE  FALSE ) "Hebbeltheater" )
       (
-         ( "2003-11-20-06:30:18.775"  "2003-11-20-06:32:12.509"  TRUE  FALSE ) "Museum für Verkehr und Technik" )
+         ( "2003-11-20-06:30:18.775"  "2003-11-20-06:32:12.509"  TRUE  FALSE ) "Museum fÃ¼r Verkehr und Technik" )
       (
          ( "2003-11-20-06:32:12.509"  "2003-11-20-06:35:45.579"  TRUE  FALSE ) "Kammergericht" )
       (
-         ( "2003-11-20-06:35:45.579"  "2003-11-20-06:37:24.485"  TRUE  FALSE ) "Rathaus Schöneberg" )
+         ( "2003-11-20-06:35:45.579"  "2003-11-20-06:37:24.485"  TRUE  FALSE ) "Rathaus SchÃ¶neberg" )
       (
          ( "2003-11-20-06:37:24.485"  "2003-11-20-06:40:50"  TRUE  FALSE ) "St.-Gertrauden-Krankenhaus" )
       (
@@ -34,7 +34,7 @@
       (
          ( "2003-11-20-06:45:42.743"  "2003-11-20-06:47:38.161"  TRUE  FALSE ) "Rathaus Charlottenburg" )
       (
-         ( "2003-11-20-06:47:38.161"  "2003-11-20-06:52:10.594"  TRUE  FALSE ) "Schloß Charlottenburg" )
+         ( "2003-11-20-06:47:38.161"  "2003-11-20-06:52:10.594"  TRUE  FALSE ) "SchloÃŸ Charlottenburg" )
       (
          ( "2003-11-20-06:52:10.594"  "2003-11-20-06:55:50"  TRUE  FALSE ) "DRK-Klinikum Westend" )
       (
