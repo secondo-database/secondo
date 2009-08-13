@@ -179,7 +179,7 @@ Operator : initial
 Number   : 1
 Signature: mstring -> istring
 Example  : query val(initial(train7upsights))
-Result   : "Flughafen Sch�nefeld"
+Result   : "Flughafen Schönefeld"
 
 Operator : inst
 Number   : 1
