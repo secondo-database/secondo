@@ -60,7 +60,7 @@ Operator  : windowintersectsS
 Number    : 1
 Signature : tbtree x rect -> stream(tuple(id tid))
 Example   : query UnitTrains_UTrip_tbtree windowintersectsS[bbox(thecenter)] count
-Result    : (int 30835)
+Result    : (int 30844)
 
 
 Operator  : windowintersectsS
@@ -74,7 +74,7 @@ Operator  : windowintersects
 Number    : 1
 Signature : tbtree(...) x  rel(...) x rect -> stream(...)
 Example   : query UnitTrains_UTrip_tbtree UnitTrains windowintersects[bbox(thecenter)] count
-Result    : (int 30835)
+Result    : (int 30844)
 
 
 Operator  : windowintersects
@@ -103,5 +103,5 @@ Operator  : getallentries
 Number    : 1
 Signature : tbtree -> stream(tuple(TupleId tid)(TrjId int)(Box rect3))
 Example   : query getallentries(UnitTrains_UTrip_tbtree) count;
-Result    : (int 309264)
+Result    : (int 154632)
 
