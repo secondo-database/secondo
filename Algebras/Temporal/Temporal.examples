@@ -545,7 +545,7 @@ Operator  : mp2onemp
 Number    : 1
 Signature : mpoint x instant x instant -> mpoint
 Example   : query mp2onemp ( train1 ,minimum(deftime(train1)),maximum(deftime(train1)))
-Result    :((("2003-11-20-06:03" "2003-11-20-06:43" TRUE FALSE)(7311.0 10520.0 7311.0 10520.0)))
+Result    :no fixed value
 
 
 

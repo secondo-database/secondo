@@ -8389,37 +8389,7 @@ ListExpr P2MpTypeMap(ListExpr args){
   return nl->TypeError();
 }
 
-/*
-~MpTranTypeMap~
 
-signatures:
-  mpoint -> a stream of upoint
-
-*/
-ListExpr MpTranTypeMap(ListExpr args){
-  string err = "mpoint expected";
-  int len = nl->ListLength(args);
-  if(len!=3){
-     ErrorReporter::ReportError(err);
-     return nl->TypeError();
-  }
-
- if(nl->IsEqual(nl->First(args),"mpoint") &&
-    nl->IsEqual(nl->Second(args),"real") &&
-    nl->IsEqual(nl->Third(args),"real")){
-      return nl->TwoElemList(
-            nl->SymbolAtom("stream"),
-            nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-                nl->OneElemList(
-                    nl->TwoElemList(
-                        nl->SymbolAtom("UTrip"),
-                        nl->SymbolAtom("upoint")
-                    ))));
-  }
-  ErrorReporter::ReportError(err);
-  return nl->TypeError();
-}
 
 /*
 16.2 Selection function
@@ -11380,294 +11350,6 @@ int P2MpVM( Word* args, Word& result, int message,
    res->EndBulkLoad(true);
    return 0;
 }
-struct MPTran{
-  int counter1;
-  int counter2;
-  double delta;
-  int max;
-  TupleType* resulttype;
-  MPoint* mp;
-  double start,end;
-  bool clock;
-  MPTran(MPoint* m,double s,double e):mp(m),start(s),end(e)
-   {
-   counter1 = 0;
-   counter2 = -10;
-   max = 10;
-   const UPoint* up;
-   m->Get(0,up);
-   Line* line = new Line(0);
-   mp->Trajectory(*line);
-   delta = line->Length()/500;
-   delete line;
-   resulttype = NULL;
-   clock = true;//clockwise and counter-clockwise
-  }
-  ~MPTran()
-   {
-     if(resulttype != NULL)
-        delete resulttype;
-   }
-   void DeterminXY_CounterClock(UPoint* up,double& x1,double& y1,double&x2,
-                                double& y2);
-   void DeterminXY_Clock(UPoint* up,double& x1,double& y1,double&x2,double& y2);
-};
-void MPTran::DeterminXY_Clock(UPoint* up,double& x1,double& y1,
-double&x2,double& y2)
-{
-  Point p0 = up->p0;
-  Point p1 = up->p1;
-  double angle = start;
-  clock = false;
-  if(AlmostEqual(angle,0.0) || AlmostEqual(angle,180.0)){
-        if(AlmostEqual(p0.GetX(),p1.GetX())){
-          x1 = p0.GetX();
-          y1 = p0.GetY() - counter2*delta;
-          x2 = p1.GetX();
-          y2 = p1.GetY() - counter2*delta;
-          return;
-        }else{
-          double k = (p1.GetY()-p0.GetY())/(p1.GetX()-p0.GetX());
-          double l = p0.GetY() - k*p0.GetX();
-          x1 = p0.GetX() + counter2*delta;
-          x2 = p1.GetX() + counter2*delta;
-          y1 = k*x1 + l;
-          y2 = k*x2 + l;
-          return;
-        }
-  }
-  if(AlmostEqual(p0.GetX(),p1.GetX())){
-        double k2 = tan(((long)(90.0-angle))*(3.1415 / 180.0));
-        double l1 = p0.GetY() - k2*p0.GetX();
-        double l2 = p1.GetY() - k2*p1.GetX();
-        if(p0.GetY() < p1.GetY()){
-          x1 = p0.GetX() + counter2*delta;
-          x2 = p1.GetX() + counter2*delta;
-        }else{
-          x1 = p0.GetX() - counter2*delta;
-          x2 = p1.GetX() - counter2*delta;
-        }
-        y1 = k2*x1 + l1;
-        y2 = k2*x2 + l2;
-        return;
-    }else{
-      double k1 = (p1.GetY()-p0.GetY())/(p1.GetX()-p0.GetX());
-      if(AlmostEqual(angle,90.0)){
-          if(AlmostEqual(p0.GetY(),p1.GetY())){
-            if(p0.GetX() < p1.GetX()){
-              x1 = p0.GetX();
-              y1 = p0.GetY()-counter2*delta;
-              x2 = p1.GetX();
-              y2 = p1.GetY()-counter2*delta;
-              return;
-            }else{
-              x1 = p0.GetX();
-              y1 = p0.GetY() + counter2*delta;
-              x2 = p1.GetX();
-              y2 = p1.GetY() + counter2*delta;
-              return;
-            }
-          }else{
-              double k2 = -1.0/k1;
-              if(p0.GetX() < p1.GetX() && p0.GetY() > p1.GetY() ){
-                x1 = p0.GetX() - counter2*delta;
-                x2 = p1.GetX() - counter2*delta;
-              }else{
-                x1 = p0.GetX() + counter2*delta;
-                x2 = p1.GetX() + counter2*delta;
-              }
-              double l1 = p0.GetY() - p0.GetX()*k2;
-              double l2 = p1.GetY() - p1.GetX()*k2;
-              y1 = k2*x1 + l1;
-              y2 = k2*x2 + l2;
-              return;
-          }
-      }else{
-          if(p0.GetX() < p1.GetX() && p0.GetY() > p1.GetY()){
-              double k2 = (k1+tan(angle*3.1415/180.0))/
-                    (k1*tan(angle*3.1415/180.0) - 1);
-
-              double l1 = p0.GetY() - k2*p0.GetX();
-              double l2 = p1.GetY() - k2*p1.GetX();
-              x1 = p0.GetX() - counter2*delta;
-              x2 = p1.GetX() - counter2*delta;
-              y1 = x1*k2 + l1;
-              y2 = x2*k2 + l2;
-              return;
-            }else{
-              double k2 = (k1-tan(angle*3.1415/180.0))/
-                    (1+k1*tan(angle*3.1415/180.0));
-              double l1 = p0.GetY() - k2*p0.GetX();
-              double l2 = p1.GetY() - k2*p1.GetX();
-              x1 = p0.GetX() + counter2*delta;
-              x2 = p1.GetX() + counter2*delta;
-              y1 = x1*k2 + l1;
-              y2 = x2*k2 + l2;
-              return;
-            }
-          }
-      }
-}
-void MPTran::DeterminXY_CounterClock(UPoint* up,double& x1,double& y1,
-double&x2,double& y2)
-{
-  clock = true;
-  Point p0 = up->p0;
-  Point p1 = up->p1;
-  double angle = start;
-  if(AlmostEqual(angle,0.0) || AlmostEqual(angle,180.0)){
-      if(AlmostEqual(p0.GetX(),p1.GetX())){
-          x1 = p0.GetX();
-          y1 = p0.GetY() - counter2*delta;
-          x2 = p1.GetX();
-          y2 = p1.GetY() - counter2*delta;
-          return;
-        }else{
-          double k = (p1.GetY()-p0.GetY())/(p1.GetX()-p0.GetX());
-          double l = p0.GetY() - k*p0.GetX();
-          x1 = p0.GetX() + counter2*delta;
-          x2 = p1.GetX() + counter2*delta;
-          y1 = k*x1 + l;
-          y2 = k*x2 + l;
-          return;
-      }
-  }
-  if(AlmostEqual(p0.GetX(),p1.GetX())){
-        double k2 = -tan(((long)(90.0-angle))*(3.1415 / 180.0));
-        double l1 = p0.GetY() - k2*p0.GetX();
-        double l2 = p1.GetY() - k2*p1.GetX();
-        if(p0.GetY() < p1.GetY()){
-          x1 = p0.GetX() - counter2*delta;
-          x2 = p1.GetX() - counter2*delta;
-        }else{
-          x1 = p0.GetX() + counter2*delta;
-          x2 = p1.GetX() + counter2*delta;
-        }
-        y1 = k2*x1 + l1;
-        y2 = k2*x2 + l2;
-        return;
-    }else{
-      double k1 = (p1.GetY()-p0.GetY())/(p1.GetX()-p0.GetX());
-      if(AlmostEqual(angle,90.0)){
-          if(AlmostEqual(p0.GetY(),p1.GetY())){
-            if(p0.GetX() < p1.GetX()){
-              x1 = p0.GetX();
-              y1 = p0.GetY()+counter2*delta;
-              x2 = p1.GetX();
-              y2 = p1.GetY()+counter2*delta;
-              return;
-            }else{
-              x1 = p0.GetX();
-              y1 = p0.GetY() - counter2*delta;
-              x2 = p1.GetX();
-              y2 = p1.GetY() - counter2*delta;
-              return;
-            }
-          }else{
-              double k2 = -1.0/k1;
-              if(p0.GetY() < p1.GetY()){
-                x1 = p0.GetX() - counter2*delta;
-                x2 = p1.GetX() - counter2*delta;
-              }else{
-                x1 = p0.GetX() + counter2*delta;
-                x2 = p1.GetX() + counter2*delta;
-              }
-              double l1 = p0.GetY() - p0.GetX()*k2;
-              double l2 = p1.GetY() - p1.GetX()*k2;
-              y1 = k2*x1 + l1;
-              y2 = k2*x2 + l2;
-              return;
-          }
-      }else{
-          if(p0.GetX() < p1.GetX() && p0.GetY() > p1.GetY()){
-              double k2 = (k1+tan(angle*3.1415/180.0))/
-                    (1-k1*tan(angle*3.1415/180.0));
-
-              double l1 = p0.GetY() - k2*p0.GetX();
-              double l2 = p1.GetY() - k2*p1.GetX();
-              x1 = p0.GetX() - counter2*delta;
-              x2 = p1.GetX() - counter2*delta;
-              y1 = x1*k2 + l1;
-              y2 = x2*k2 + l2;
-              return;
-            }else{
-              double k2 = (k1+tan(angle*3.1415/180.0))/
-                    (1-k1*tan(angle*3.1415/180.0));
-              double l1 = p0.GetY() - k2*p0.GetX();
-              double l2 = p1.GetY() - k2*p1.GetX();
-              x1 = p0.GetX() + counter2*delta;
-              x2 = p1.GetX() + counter2*delta;
-              y1 = x1*k2 + l1;
-              y2 = x2*k2 + l2;
-              return;
-            }
-          }
-      }
-}
-int MpTranslateVM( Word* args, Word& result, int message,
-                          Word& local, Supplier s ) {
-  MPTran *localInfo;
-  switch(message){
-     case OPEN: {
-      localInfo = new MPTran(static_cast<MPoint*>(args[0].addr),
-        ((CcReal*)args[1].addr)->GetRealval(),
-        ((CcReal*)args[2].addr)->GetRealval());
-      localInfo->resulttype = new
-                      TupleType(nl->Second(GetTupleResultType(s)));
-     local = SetWord(localInfo);
-     return 0;
-    }
-    case REQUEST: {
-        localInfo = (MPTran*)local.addr;
-        if(! (0 <= localInfo->start && localInfo->start <= 180) &&
-            (0 <= localInfo->end && localInfo->end <= 180) ){
-          cout<<"angle is limited to 0-180"<<endl;
-          return CANCEL;
-        }
-        if(localInfo->counter1 == localInfo->mp->GetNoComponents())
-          return CANCEL;
-        int pos = localInfo->counter1;
-        const UPoint* up;
-        localInfo->mp->Get(pos,up);
-        if(AlmostEqual(up->p0,up->p1)){
-            localInfo->counter1++;
-            if(localInfo->counter1 == localInfo->mp->GetNoComponents())
-                return CANCEL;
-            pos = localInfo->counter1;
-            localInfo->mp->Get(pos,up);
-        }
-        UPoint* cur = new UPoint(*up);
-
-        Tuple* tuple = new Tuple(localInfo->resulttype);
-        double x1 = 0;
-        double y1 = 0;
-        double x2 = 0;
-        double y2 = 0;
-        if(localInfo->clock)
-          localInfo->DeterminXY_Clock(cur,x1,y1,x2,y2);
-        else
-          localInfo->DeterminXY_CounterClock(cur,x1,y1,x2,y2);
-        cur->p0.Set(x1,y1);
-        cur->p1.Set(x2,y2);
-        tuple->PutAttribute(0,new UPoint(*cur));
-        localInfo->counter2++;
-        if(localInfo->counter2 >= localInfo->max){
-          localInfo->counter2 = -10;
-          localInfo->counter1++;
-        }
-        result.setAddr(tuple);
-        delete cur;
-        return YIELD;
-    }
-    case CLOSE : {
-     localInfo = (MPTran*)local.addr;
-      delete localInfo;
-      return 0;
-     }
-   }
-
-   return 0;
-}
 
 /*
 16.4 Definition of operators
@@ -12593,14 +12275,7 @@ const string TemporalSpecP2Mp  =
   "theInstant(2003,11,20,7),100)</text--->"
   ") )";
 
-const string TemporalSpecMpTrans  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mpoint x angle1 x angle2 -> x</text--->"
-  "<text>mptranslate ( _,_,_ )</text--->"
-  "<text>create a stream of upoint from a mpoint and the time interval."
-  "</text--->"
-  "<text>query mptranslate ( train1,20.0,90.0)</text--->"
-  ") )";
+
 
 /*
 16.4.3 Operators
@@ -13092,12 +12767,6 @@ Operator p2mp( "p2mp",
                       Operator::SimpleSelect,
                       P2MpTypeMap );
 
-Operator mptranslate( "mptranslate",
-                      TemporalSpecMpTrans,
-                      MpTranslateVM,
-                      Operator::SimpleSelect,
-                      MpTranTypeMap );
-
 
 /*
 6 Creating the Algebra
@@ -13239,7 +12908,6 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporaluval);
     AddOperator(&mp2onemp);
     AddOperator(&p2mp);
-//    AddOperator(&mptranslate);
   }
   ~TemporalAlgebra() {};
 };
