@@ -122,7 +122,7 @@ RTFlags +=  Server:BinaryTransfer
 ###
 
 # Switch off the transaction and logging subsystem of Berkeley-DB
-RTFlags += SMI:NoTransactions
+#RTFlags += SMI:NoTransactions
 
 #RTFlags += SMI:DbHandles
 
