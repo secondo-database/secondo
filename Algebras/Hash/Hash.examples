@@ -60,6 +60,5 @@ Operator : getFileInfo
 Number   : 1
 Signature: (hash(tuple(x) ti) xi) -> text
 Example  : query isdefined(getFileInfo(staedte_Bev_h))
-Result   : crashes
-Remark   : This query causes one of the next queries in the Selftest (inserthash) to wait forever: Reason Hash:Open is blocking while trying to open staedte_Bev_h
+Result   : TRUE
 
