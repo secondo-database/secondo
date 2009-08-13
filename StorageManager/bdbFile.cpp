@@ -799,7 +799,9 @@ SmiStatResultType
       // set flags according to ~mode~
       // call bdb stats method
 #if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
-      getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
+      DbTxn* tid = !impl->isTemporaryFile ?
+                    SmiEnvironment::instance.impl->usrTxn : 0;
+      getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
 #else
       getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
 #endif
@@ -848,7 +850,9 @@ SmiStatResultType
       // set flags according to ~mode~
       // call bdb stats method
 #if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
-      getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
+      DbTxn* tid = !impl->isTemporaryFile ?
+                    SmiEnvironment::instance.impl->usrTxn : 0;
+      getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
 #else
       getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
 #endif
@@ -909,7 +913,9 @@ SmiStatResultType
       SmiStatResultType result;
       // call bdb stats method
 #if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
-      getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
+      DbTxn* tid = !impl->isTemporaryFile ?
+                    SmiEnvironment::instance.impl->usrTxn : 0;
+      getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
 #else
       getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
 #endif
@@ -963,7 +969,9 @@ SmiStatResultType
       // set flags according to ~mode~
       // call bdb stats method
 #if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
-      getStatReturnValue = impl->bdbFile->stat(0, &sRS, flags);
+      DbTxn* tid = !impl->isTemporaryFile ?
+                    SmiEnvironment::instance.impl->usrTxn : 0;
+      getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
 #else
       getStatReturnValue = impl->bdbFile->stat( &sRS, flags);
 #endif
