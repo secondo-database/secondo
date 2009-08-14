@@ -947,6 +947,40 @@ ListExpr StartEndTM(ListExpr args)
   return nl->SymbolAtom("instant");
 }
 
+/*
+ 
+The randommbool operator is used for experimental evaluation. We use it to 
+generate the random mbool values that are used in the first experiment in the
+technical report.
+ 
+*/
+ListExpr RandomMBoolTM(ListExpr args)
+{
+	//cout<<nl->ToString(args);
+	CHECK_COND( nl->ListLength(args) == 1 &&
+		nl->IsAtom(nl->First(args)) && 
+		(nl->SymbolValue(nl->First(args))== "instant") ,
+		"Operator randommbool expects one parameter.");
+	return nl->SymbolAtom("mbool");
+}
+
+/*
+ 
+The passmbool operator is used for experimental evaluation. We use it to 
+mimic lifted predicates in the first experiment in the technical report.
+ 
+*/
+ListExpr PassMBoolTM(ListExpr args)
+{
+	//cout<<nl->ToString(args);
+	CHECK_COND( nl->ListLength(args) == 1 &&
+		nl->IsAtom(nl->First(args)) && 
+		(nl->SymbolValue(nl->First(args))== "mbool") ,
+		"Operator passmbool expects one parameter.");
+	return nl->SymbolAtom("mbool");
+}
+
+
 int CreateSTVectorVM 
 (Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -1145,7 +1179,53 @@ template <bool leftbound> int StartEndVM
   return 0;
 }
 
+void CreateRandomMBool(Instant starttime, MBool& result)
+{
+	bool debugme=false,bval=false;
+	result.Clear();
+	int rnd,i=0,n;
+	UBool unit(true);
+	Interval<Instant> intr(starttime, starttime, true, false);
 
+	rnd=rand()%20;  //deciding the number of units in the mbool value
+	n=++rnd;
+	bval= ((rand()%2)==1); //deciding the bool value of the first unit
+	while(i++<n)
+	{
+		rnd=rand()%50000; //deciding the duration of a unit
+		while(rnd<2)
+			rnd=rand()%50000;
+		intr.end.Set(intr.start.GetYear(), intr.start.GetMonth(),
+        intr.start.GetGregDay(), intr.start.GetHour(),intr.start.GetMinute(),
+        intr.start.GetSecond(),intr.start.GetMillisecond()+rnd); 
+		unit.constValue.Set(true, bval);
+		unit.timeInterval= intr;
+		result.Add(unit);
+		intr.start= intr.end;
+		bval=!bval;
+	}
+	if(debugme)
+		result.Print(cout);
+}
+
+int 
+RandomMBoolVM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+	   result = qp->ResultStorage(s);
+	   MBool* res = (MBool*) result.addr;
+	   DateTime* tstart = (DateTime*) args[0].addr;
+	   CreateRandomMBool(*tstart,*res);
+	   return 0;
+}
+
+int PassMBoolVM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+	   result = qp->ResultStorage(s);
+	   MBool* res = (MBool*) result.addr;
+	   MBool* inp = (MBool*) args[0].addr;
+	   res->CopyFrom(inp);
+	   return 0;
+}
 const string CreateSTVectorSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(stringlist) -> stvector</text--->"
@@ -1212,6 +1292,25 @@ const string StartEndSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "count </text--->"
   ") )";
 
+const string RandomMBoolSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> instant -> mbool</text--->"
+  "<text>randommbool( _ )</text--->"
+  "<text>Creates a random mbool value. The operator is used for testing"
+  "purposes.</text--->"
+  "<text>let mb1 = randommbool(now())</text--->"
+  ") )";
+
+const string PassMBoolSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>mbool -> mbool</text--->"
+  "<text>passmbool( _ )</text--->"
+  "<text>Mimics a lifted predicate. The operator takes the name"
+  "of an mbool dbobject and return the object itself. The operator is "
+  "used for testing purposes.</text--->"
+  "<text>let mb2= passmbool(mb1)</text--->"
+  ") )";
+
 Operator createstvector (
     "vec",    //name
     CreateSTVectorSpec,     //specification
@@ -1260,6 +1359,21 @@ Operator end (
     StartEndTM        //type mapping
 );
 
+Operator randommbool (
+    "randommbool",               // name
+    RandomMBoolSpec,             // specification
+    RandomMBoolVM,                 // value mapping
+    Operator::SimpleSelect, // trivial selection function
+    RandomMBoolTM          // type mapping
+);
+
+Operator passmbool (
+    "passmbool",               // name
+    PassMBoolSpec,             // specification
+    PassMBoolVM,                 // value mapping
+    Operator::SimpleSelect, // trivial selection function
+    PassMBoolTM          // type mapping
+);
 
 class STPatternAlgebra : public Algebra
 {
@@ -1281,6 +1395,8 @@ The spattern and stpatternex operators are registered as lazy variables.
     AddOperator(&STP::stpatternex);
     AddOperator(&STP::start);
     AddOperator(&STP::end);
+    AddOperator(&randommbool);
+   	AddOperator(&passmbool);
   }
   ~STPatternAlgebra() {};
 };

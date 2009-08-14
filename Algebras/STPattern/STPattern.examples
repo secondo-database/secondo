@@ -37,3 +37,15 @@ Number   : 1
 Signature: string -> instant
 Example  : query Trains feed filter[. stpatternex[a: .Trip inside msnow, b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;  stconstraint("a","b",vec("aabb")),  stconstraint("b","c",vec("bbaa"));  (end("b") - start("a")) < [const duration value (1 0)] ]] count
 Result   : 14
+
+Operator : randommbool
+Number   : 1
+Signature: instant -> mbool
+Example  : query ten feed extend[mb1: randommbool(now())] count 
+Result   : 10
+
+Operator : passmbool
+Number   : 1
+Signature: mbool -> mbool
+Example  : query ten feed extend[mb1: randommbool(now()), mb2: randommbool(now())] filter[. stpattern[f1: passmbool(.mb1), f2: passmbool(.mb2); stconstraint("f1","f2",vec("aabb")) ]]  count 
+Result   : n: 10 <= n <= 0 

@@ -23,3 +23,5 @@ operator stpatternex alias STPATTERNEX pattern _ op[funlist;list;_]
 operator stconstraint alias STCONSTRAINT pattern op(_,_,_)
 operator end alias END pattern op(_)
 operator start alias START pattern op(_)
+operator randommbool alias RandomMBool pattern op(_)
+operator passmbool alias PassMBool pattern op(_)
