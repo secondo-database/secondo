@@ -345,7 +345,7 @@ special handling for distancescanqueries which have to create an
 temporary index
 
 */
-cost(exactmatch(dbobject(tmpindex(rel(Rel, _), _)), rel(Rel, _), _), Sel, 
+cost(exactmatch(dbobject(tmpindex(rel(Rel, _), _)), rel(Rel, _), _), Sel,
      Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   !,
   cost(exactmatch(1, rel(Rel, _), _), Sel, Pred, ResAttrList, RestTupleSize,
@@ -765,7 +765,7 @@ cost(windowintersectsS(dbobject(IndexName), _ /* QueryObj */), Sel, Pred,
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> true
     ;  ( secDatatype(tid, TMem, _, _, _, _), % Xris: Error
-         ResAttrList = [id, tid, sizeTerm(TMem, 0, 0)]
+         ResAttrList = [[id, tid, sizeTerm(TMem, 0, 0)]]
        )
   ),
   costConst(windowintersects, msPerTuple, U),
@@ -789,11 +789,11 @@ cost(gettuples(X, Rel), Sel, Pred,
   cost(Rel, Sel, Pred, ResAttrList2, ResTupleSize2, _, _),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> (  secDatatype(tid, TMem, _, _, _, _),
-          negateSizeTerms(sizeTerm(TMem, 0, 0),NegTidSize),
+          negateSizeTerm(sizeTerm(TMem, 0, 0),NegTidSize),
           addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
     ;  ( delete(ResAttrList1,[_,tid,TidSize],ResAttrList1WOtid), % drop tid-attr
-         negateSizeTerms(TidSize,NegTidSize),                    % adjust size
+         negateSizeTerm(TidSize,NegTidSize),                    % adjust size
          append(ResAttrList1WOtid,ResAttrList2,ResAttrList),     % concat tuples
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
@@ -815,11 +815,11 @@ cost(gettuples2(X, Rel, attrname(TidAttr)), Sel, Pred,
   cost(Rel, Sel, Pred, ResAttrList2, ResTupleSize2, _, _),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> ( secDatatype(tid, TMem, _, _, _, _),
-         negateSizeTerms(sizeTerm(TMem, 0, 0),NegTidSize),
+         negateSizeTerm(sizeTerm(TMem, 0, 0),NegTidSize),
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
     ;  ( delete(ResAttrList1,[TidAttr,tid,TidSize],ResAttrList1WOtid), % drop tid-attr
-         negateSizeTerms(TidSize,NegTidSize),                          % adjust size
+         negateSizeTerm(TidSize,NegTidSize),                          % adjust size
          append(ResAttrList1WOtid,ResAttrList2,ResAttrList),           % concat tuples
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
@@ -852,7 +852,7 @@ cost(distancescan(_, Rel, _, _), Sel, Pred,
   distancescanTC(C),
   Cost is C1 + C * ResCard * log(ResCard + 1).
 
-cost(ksmallest(X, K), Sel, Pred, 
+cost(ksmallest(X, K), Sel, Pred,
      ResAttrList, ResTupleSize, ResCard, C) :-
   cost(X, Sel,Pred, ResAttrList, ResTupleSize, ResCard, CostX),
   ksmallestTC(A, B),

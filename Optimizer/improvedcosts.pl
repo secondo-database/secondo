@@ -448,7 +448,7 @@ cost(sort(X), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   Size is max(Core + Lob, Mem),
   ( (MaxMem / Mem) < ResCard
     -> State is 0
-    ,  State is 1
+    ;  State is 1
   ),
   Cost is   CostX
           + ResCard * Size * (U + O * State)
@@ -714,8 +714,8 @@ cost(rdup(X), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   costConst(rdup, msPerTuple, U),
   costConst(rdup, msPerComparison, V),
   costConst(rdup, defaultSelectivity, W),
-  Sel1 = Sel/W,  %% claim a fraction of the overall selectivity for rdup
-                 %% rdup filters out an relative amount of (1-W) duplicats
+  Sel1 is Sel/W,  %% claim a fraction of the overall selectivity for rdup
+                  %% rdup filters out an relative amount of (1-W) duplicats
   cost(X, Sel1, Pred, ResAttrList, ResTupleSize, ResCard1, Cost1),
   ResCard is ResCard1 * W,
   Cost is   Cost1
@@ -749,13 +749,13 @@ cost(windowintersectsS(dbobject(IndexName), _ /* QueryObj */), Sel, Pred,
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> true
     ;  ( secDatatype(tid, TMem, _, _, _, _), % Xris: Error
-         ResAttrList = [id, tid, sizeTerm(TMem, 0, 0)]
+         ResAttrList = [[id, tid, sizeTerm(TMem, 0, 0)]]
        )
   ),
   costConst(windowintersects, msPerTuple, U),
   costConst(windowintersects, msPerByte, V),
-  ResTupleSize = sizeTerm(Mem,Core,Lob),
-  SizeE is max(Mem+Lob,Core+Lob), % assuming Rel has only one FLOB
+  ResTupleSize = sizeTerm(TMem,0,0),
+  SizeE is TMem,             % assuming Rel has only one FLOB
   ResCard is ResCard1 * Sel, %% ToDo: Estimate number of results using
                              %%       statistics on Index, Rel, and QueryObj
                              %%       eg. Sel = Keys(Index) * area(bbox(Index))
@@ -773,17 +773,17 @@ cost(gettuples(X, Rel), Sel, Pred,
   cost(Rel, Sel, Pred, ResAttrList2, ResTupleSize2, _, _),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> (  secDatatype(tid, TMem, _, _, _, _),
-          negateSizeTerms(sizeTerm(TMem, 0, 0),NegTidSize),
+          negateSizeTerm(sizeTerm(TMem, 0, 0),NegTidSize),
           addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
     ;  ( delete(ResAttrList1,[_,tid,TidSize],ResAttrList1WOtid), % drop tid-attr
-         negateSizeTerms(TidSize,NegTidSize),                    % adjust size
+         negateSizeTerm(TidSize,NegTidSize),                     % adjust size
          append(ResAttrList1WOtid,ResAttrList2,ResAttrList),     % concat tuples
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
   ),
   ResTupleSize2 = sizeTerm(Mem,Core,Lob),
-  SizeE is max(Mem+Lob,Core+Lob), % assuming Rel has only one FLOB
+  SizeE is max(0,max(Mem+Lob,Core+Lob)), % assuming Rel has only one FLOB
   costConst(windowintersects, msPerTuple, U),
   costConst(windowintersects, msPerByte, V),
   Cost is   Cost1           % expected to include cost of 'windowintersectsS'
@@ -799,11 +799,11 @@ cost(gettuples2(X, Rel, attrname(TidAttr)), Sel, Pred,
   cost(Rel, Sel, Pred, ResAttrList2, ResTupleSize2, _, _),
   ( (ground(ResAttrList), ResAttrList = ignore)
     -> ( secDatatype(tid, TMem, _, _, _, _),
-         negateSizeTerms(sizeTerm(TMem, 0, 0),NegTidSize),
+         negateSizeTerm(sizeTerm(TMem, 0, 0),NegTidSize),
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
     ;  ( delete(ResAttrList1,[TidAttr,tid,TidSize],ResAttrList1WOtid), % drop tid-attr
-         negateSizeTerms(TidSize,NegTidSize),                          % adjust size
+         negateSizeTerm(TidSize,NegTidSize),                          % adjust size
          append(ResAttrList1WOtid,ResAttrList2,ResAttrList),           % concat tuples
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
@@ -959,7 +959,7 @@ Determine the assessed costs of an input term using rules ~cost/8~.
 */
 
 % costterm(+Term, +Source, +Target, +Result, +Sel, +Pred, -Card, -Cost)
-costterm(Term, Source, Target, Result, Sel, Pred, Card, Cost) :-
+costterm(Term, _/*Source*/, _/*Target*/, Result, Sel, Pred, Card, Cost) :-
   cost(Term, Sel, Pred, ResAttrList, TupleSize, Card, Cost),
   setNodeResAttrList(Result, ResAttrList),
   setNodeTupleSize(Result, TupleSize),
@@ -1010,9 +1010,9 @@ costConst(sortmergejoin, msPerByteReadSort, 0.00043).
 costConst(symmjoin, msPerTuplePair, 0.2).
 costConst(extend, msPerTuple, 0.0012).
 costConst(extend, msPerTupleAndAttribute, 0.00085).
-costConst(rdup, msPerTuple,0.01).
-costConst(rdup, msPerComparison,0.1).
-costConst(rdup, defaultSelectivity,0.9).
+costConst(rdup, msPerTuple, 0.01).
+costConst(rdup, msPerComparison, 0.1).
+costConst(rdup, defaultSelectivity, 0.9).
 costConst(windowintersects, msPerTuple, 0.00194).
 costConst(windowintersects, msPerByte, 0.0000106).
 
