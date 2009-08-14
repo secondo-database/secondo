@@ -51,7 +51,7 @@ orderby
 first 100
 \end{lstlisting}
 
-Die erste temporäre Relation ist die Restriktion der im inneren Abfrageblock verwendeten Relationen des äußeren Blocks auf die benötigten Attribute.
+Die innere Abfrage ist vom Typ JA, da eine Aggregation (das Minimum) berechnet wird und sie ein Prädikat \sql{ppartkey = ps:ppartkey} enthält, das auf die Relation \emph{pssupplycost} des äußeren Abfrageblocks zugreift. Der Optimierer wendet also den in \ref{sct:Algorithmus NEST-JA2} beschriebenen Algorithmus an. Hierzu werden insgesamt drei temporäre Tabellen benötigt. Die erste temporäre Relation ist die Restriktion der im inneren Abfrageblock verwendeten Relationen des äußeren Blocks auf die benötigten Attribute.
 
 \begin{lstlisting}[caption=TempRel1]
 select distinct
@@ -62,7 +62,7 @@ from
 	partsupp]
 \end{lstlisting}
 
-Einschränkung der inneren Relation durch alle \emph{simplen} Prädikaten.
+Einschränkung der inneren Relation durch alle \emph{einfachen} Prädikaten.
 
 \begin{lstlisting}[caption=TempRel2]
 select
@@ -79,7 +79,7 @@ where
 	r:rname = "EUROPE"]
 \end{lstlisting}
 
-Join der äußeren und inneren Relationen und Berechnung der Aggregation. Da sich Optimierer und ausführbare Ebene in der Syntax für umbenannte Tupel unterscheiden muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden.
+Equi-Join der ersten und zweiten temporären Relationen und Berechnung der Aggregation. Da sich Optimierer und \textsc{Secondo} in der Syntax für umbenannte Tupel unterscheiden muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden. 
 
 \begin{lstlisting}[caption=TempRel3]
 select
@@ -105,15 +105,15 @@ from
 	partsupp, nation, 
 	region, txxrel3 as txxrel4]
 where
-	[ppartkey=pspartkey, 
-	ssuppkey=pssuppkey, 
-	psize=15, 
+	[ppartkey = pspartkey, 
+	ssuppkey = pssuppkey, 
+	psize = 15, 
 	ptype contains "BRASS", 
-	snationkey=nnationkey, 
-	nregionkey=rregionkey, 
-	rname="EUROPE", 
-	ppartkey=txxrel4:pspartkey_ps, 
-	pssupplycost=txxrel4:var1]
+	snationkey = nnationkey, 
+	nregionkey = rregionkey, 
+	rname = "EUROPE", 
+	ppartkey = txxrel4:pspartkey_ps, 
+	pssupplycost = txxrel4:var1]
 orderby
 	[sacctbal desc, 
 	nname, 
@@ -121,6 +121,26 @@ orderby
 	ppartkey]
 first 100
 \end{lstlisting}
+
+Das geschachtelte Prädikat 
+
+\begin{lstlisting}[caption=geschachteltes Prädikat]
+pssupplycost = (
+		select
+			min(ps:pssupplycost)
+		from
+			[partsupp as ps, supplier as s,
+			nation as n, region as r]
+		where
+			[ppartkey = ps:pspartkey,
+		 	s:ssuppkey = ps:pssuppkey,
+		 	s:snationkey = n:nnationkey,
+		 	n:nregionkey = r:rregionkey,	
+		 	r:rname = "EUROPE"]
+	 )
+\end{lstlisting}
+
+wurde durch die zwei Prädikate \sql{ppartkey = txxrel4:pspartkey\_ps} und \sql{pssupplycost = txxrel4:var1} ersetzt. Zusätzlich wurde die neue Relation txxrel3 in die FROM-Klausel aufgenommen. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate.
 
 \subsection{TPC-D Q4}
 Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. Es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf.
@@ -882,7 +902,7 @@ Q22 & 2.308& 0.938\\
 
 \subsection{Fazit}
 \subsection{Ausblick}
-Um die Entschachtelung zu vervollständigen sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden. Auch ein allgemeiner Full-Outerjoin-Operator auf Basis von Symmjoin. Unterstützung von \textbf{GROUPBY...HAVING}-Klauseln inkl. Subqueries. Geschachtelte Prädikate in Disjunktionen. Allgemeiner \sql{in}-Operator für Konstanten, möglicherweise auf der Basis des bestehenden \sql{in}-Operators der \algebra{Collection-Algebra}. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen.
+Um die Entschachtelung zu vervollständigen sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden. Auch ein allgemeiner Full-Outerjoin-Operator auf Basis von Symmjoin. Unterstützung von \textbf{GROUPBY...HAVING}-Klauseln inkl. Subqueries. Geschachtelte Prädikate in Disjunktionen. Allgemeiner \sql{in}-Operator für Konstanten, möglicherweise auf der Basis des bestehenden \sql{in}-Operators der \algebra{Collection-Algebra}. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen. Weitere Formen von geschachtelten Abfragen, die noch nicht optimiert werden können: korrelierte Abfragen in der SELECT-Klausel und der FROM-Klausel, geschachtelte Abfragen in Disjunktionen, geschachtelte Abfragen, die mehrere Schachtelungsebenen überspringen.
 
 %
 % EOF
