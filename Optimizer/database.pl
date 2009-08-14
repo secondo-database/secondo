@@ -4232,6 +4232,7 @@ showStoredAttrSizes :-
 % sum-up a list of sizeTerms
 addSizeTerms([], sizeTerm(0, 0, 0)) :- !.
 addSizeTerms([sizeTerm(X1,Y1,Z1)|Rest], sizeTerm(Res1, Res2, Res3)) :-
+  number(X1), number(Y1), number(Z1),
   addSizeTerms(Rest, sizeTerm(X2,Y2,Z2)),
   Res1 is X1 + X2,
   Res2 is Y1 + Y2,
@@ -4242,10 +4243,15 @@ addSizeTerms(X, Y) :-
   fail, !.
 
 negateSizeTerm(sizeTerm(A,B,C),sizeTerm(A1,B1,C1)) :-
+  number(A), number(B), number(C),
   A1 is -1 * A,
   B1 is -1 * B,
   C1 is -1 * C,
   !.
+negateSizeTerm(A,B) :-
+  concat_atom(['Unknown error.'],'',ErrMsg),
+  throw(error_Internal(database_negateSizeTerm(A,B)#ErrMsg)),
+  fail, !.
 
 % Get the total disk size from a sizeTerm or list of sizeTerms
 getTotalDiskSize(sizeTerm(_,Core,LOB),Total) :-
