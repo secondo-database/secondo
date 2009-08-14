@@ -182,8 +182,6 @@ Symbols sym;
 
 */
 
-int
-DerivedObj::ObjRecord::id = 0;
 
 /*
 
