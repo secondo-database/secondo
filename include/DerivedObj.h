@@ -166,8 +166,6 @@ void addObj(string& objName, const ListExpr valueExpr ) {
 
    // create new entries for derived objects
    ObjRecord* newObj = new ObjRecord(objName, valueExprStr);
-   int& objId = newObj->id;
-   derivedObjNames[objName] = objId - 1;
 
    for ( vector<ListExpr>::const_iterator it = atoms.begin();
          it != atoms.end();
@@ -180,6 +178,7 @@ void addObj(string& objName, const ListExpr valueExpr ) {
        usedObjs.insert( val );
      }
    }
+   derivedObjNames[objName] = derivedObjRecords.size();
    derivedObjRecords.push_back( newObj );
    updateTable();
 }
@@ -445,7 +444,7 @@ void ListToMemory(ListExpr list) {
        usedObjs.insert( symbol );
        depList = nl.Rest(depList);
     }
-    derivedObjNames[name] = newObjRec->id - 1;
+    derivedObjNames[name] = derivedObjRecords.size();
     derivedObjRecords.push_back( newObjRec );
   }
 }
@@ -483,11 +482,9 @@ class ObjRecord {
     string value;
     set<string> depSet;
     bool deleted;
-    static int id;
 
     ObjRecord(const string& nameStr, const string& val) :
       name(nameStr), value(val), deleted(false) {
-      id++;
     }
     ~ObjRecord(){
      //cerr << "~ObjRecord() called!" << endl;
