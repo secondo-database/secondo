@@ -5236,6 +5236,9 @@ lookupAttr(Term, Term2) :-
   Term2 =.. [Op|Args2],
   !.
 
+lookupAttr(true, true) :- !.
+lookupAttr(false, false) :- !.
+
 lookupAttr(Term, dbobject(TermDC)) :-
   atom(Term),
   dcName2externalName(TermDC,Term),
