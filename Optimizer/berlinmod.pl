@@ -99,22 +99,18 @@ sqlBerlinMOD_R_query(6,
          sometimes(distance(v1:journey,v2:journey) <= 10.0)]
 ).
 
-% Query 7 omitted (contains a subquery).
-:- setOption(subqueryUnnesting). % fully activate subquery processing
-
+% Query 7 omitted (contains a subquery - does not work yet).
 sqlBerlinMOD_R_query(7,
   select [pp:pos as pos, v1:licence as licence]
   from [datascar as v1, querypoints as pp]
-  where [v1:trip passes pp:pos,
-         v1:type = "passenger",
-         inst(initial(v1:trip at pp:pos)) <= (
-          all(
-            select [inst(initial(v2:trip at pp:pos)) as firsttime]
-            from [datascar as v2]
-            where [v2:trip passes pp:pos,
-                  v2:type = "passenger"
-                  ]
-            )
+  where [ v1:trip passes pp:pos,
+          v1:type = "passenger",
+          inst(initial(v1:trip at pp:pos)) <= (
+            all(
+                  select inst(initial(v2:trip at pp:pos))
+                  from [datascar as v2]
+                  where [v2:trip passes pp:pos, v2:type = "passenger"]
+               )
           )
         ]
 ).
@@ -187,7 +183,10 @@ sqlBerlinMOD_R_query(15,
 ).
 
 % Query 16 omitted (predicate depends on 4 relations).
-
+sqlBerlinMOD_R_query(16, nonimplemented) :-
+  write_list(['Query 16 is omitted, since its predicate depends on 4 relations',
+              ' at once, where only 2 are allowed with the Secondo Optimizer.',
+              '\n']).
 
 % Query 17:
 
