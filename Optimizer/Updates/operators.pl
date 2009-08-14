@@ -584,7 +584,8 @@ opSignature(intersects, spatial, [T1,T2],bool,[comm,bbox(2)]) :-
     ; (T1 = sline, T2 = sline)
   ),!.
 opSignature(inside, spatial, [T1,T2],bool,[bbox(2)]) :-
-  memberchk(T1,[points,line,region]), memberchk(T2,[points,line,region]),!.
+  memberchk(T1,[point.points,line,region]),
+  memberchk(T2,[points,line,region]),!.
 opSignature(adjacent, spatial, [T1,T2],bool,[comm,bbox(2)]) :-
   memberchk(T1,[points,line,region]), memberchk(T2,[points,line,region]),!.
 opSignature(overlaps, spatial, [region,region],bool,[comm,bbox(2)]).
@@ -2316,8 +2317,8 @@ opSignature(knearestvector, nearestneighbor, [[stream,[tuple,AttrList]], Key,
 	   [stream,[tuple,AttrList]], []) :-
   memberchk([Key, _],AttrList), !.
 
-opSignature(oldknearestfilter, nearestneighbor, [[rtree,[tuple,X], _, _], 
-						 [rel,[tuple,X]], 
+opSignature(oldknearestfilter, nearestneighbor, [[rtree,[tuple,X], _, _],
+						 [rel,[tuple,X]],
 						 mpoint, int],
 	   [stream,[tuple,X]], []) :-
   !.
@@ -2325,22 +2326,22 @@ opSignature(oldknearestfilter, nearestneighbor, [[rtree,[tuple,X], _, _],
 opSignature(rect2periods, nearestneighbor, [rect3], periods, []) :-
   !.
 
-opSignature(bboxes, nearestneighbor, [[stream, periods], mpoint], 
+opSignature(bboxes, nearestneighbor, [[stream, periods], mpoint],
 	    [stream, rect], []) :-
   !.
 
-opSignature(coverage, nearestneighbor, [[rtree3,_, _, _]], 
+opSignature(coverage, nearestneighbor, [[rtree3,_, _, _]],
 	    [stream, [tuple, [[_, int], [_, uint]]]], []) :-
   !.
 
-opSignature(coverage2, nearestneighbor, [[rtree3,_, _, _]], 
-	    [stream, [tuple, [[_, int], [_, int], 
+opSignature(coverage2, nearestneighbor, [[rtree3,_, _, _]],
+	    [stream, [tuple, [[_, int], [_, int],
 			      [_, mint]]]], []) :-
   !.
 
 opSignature(knearestfilter, nearestneighbor,[[rtree,[tuple,X1], _, _],
 	   [rel,[tuple,X1]], [btree,[tuple,X2], _, _], [rel,[tuple,X2]],
-					    mpoint, int], 
+					    mpoint, int],
 	    [stream, [tuple, _]], []) :-
   !.
 

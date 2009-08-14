@@ -589,7 +589,8 @@ opSignature(intersects, spatial, [T1,T2],bool,[comm,bbox(2)]) :-
     ; (T1 = sline, T2 = sline)
   ),!.
 opSignature(inside, spatial, [T1,T2],bool,[bbox(2)]) :-
-  memberchk(T1,[points,line,region]), memberchk(T2,[points,line,region]),!.
+  memberchk(T1,[point,points,line,region]),
+  memberchk(T2,[points,line,region]),!.
 opSignature(adjacent, spatial, [T1,T2],bool,[comm,bbox(2)]) :-
   memberchk(T1,[points,line,region]), memberchk(T2,[points,line,region]),!.
 opSignature(overlaps, spatial, [region,region],bool,[comm,bbox(2)]).
