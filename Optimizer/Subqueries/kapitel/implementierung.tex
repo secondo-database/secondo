@@ -28,12 +28,12 @@ Dieser Algorithmus lässt sich auf folgende Art und Weise zum Full-Outer-Join aus
 	\subitem sonst Tupel verwerfen und mit nächstem Tupel weiterarbeiten
 \end{itemize}
 Basis ist sortmergejoin, jedes nicht \enquote{matchende} Tupel wird mit NULL-Werten aufgefüllt, nur Equi-Outerjoin\\
-Ausblick: allgemeiner Outerjoin auf Basis von Symmjoin, zwei Hash-Tabelle mit Tupel-Ids für alle gematchten Tupel, Tupelbuffer durchlaufen und ein mit NULL-Werten aufgefülltes Tupel erzeugen für alle nicht gematchten Tupel
+Ausblick: Full-Outer-Join auf Basis von Symmjoin. Die Tupel der beiden Ströme werden um ein Attribut TupelID erweitert. Zu jedem Tupel, das über den Symmjoin-Algorithmus einen Partner gefunden hat, wird die TupelID in einer Hash-Tabelle gespeichert. Dabei werden die TupelIDs für jeden Strom in einer eigenen Hash-Tabelle abgelegt. Nach Beendigung des Symmjoin-Algorithmus wird jeder Tupelpuffer ein zweites Mal durchlaufen. Ist die TupelID eines Tupels nicht in der entsprechenden Hash-Tabelle enthalten, so wird ein Ergebnistupel erzeugt, das die Werte aus dem betrachteten Tupel übernimmt und für die zusätzlichen Spalten mit NULL-Werten aufgefüllt wird. zwei Hash-Tabelle mit Tupel-Ids für alle gematchten Tupel, Tupelbuffer durchlaufen und ein mit NULL-Werten aufgefülltes Tupel erzeugen für alle nicht gematchten Tupel
 \section{Umschreiben quantifizierter Prädikate}
 Prädikate mit den Operatoren \sql{EXISTS, NOT EXISTS, ANY} und \sql{ALL} werden in äquivalente Prädikate mit Aggregationen überführt. Damit sind sie den in \ref{chp:Entwurf} beschriebenen Algorithmen zur Entschachtelung zugänglich. Exists und Not-Exists werden in einen Vergleich der Anzahl Tupel mit 0 transformiert. Also \sql{exists(select §$C_n$§ from §$R_m$§ where P)} in \sql{0 < (select count(§$C_n$§) from §$R_m$§ where P)} und \sql{not exists(select §$C_n$§ from §$R_m$§ where P)} in \sql{0 = (select count(§$C_n$§) from §$R_m$§ where P)}.
 
 \section{Entschachtelung}
-Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong. Rekursive Entschachtelung von Abfragen. Dabei werden die oben beschriebenen Schachtelungstypen unterschieden. Je nach Schachtelungstyp wird der entsprechende Entschachtelungsalgorithmus angewendet. \enquote{Temporäre Relationen} werden für die Entschachtelung korrelierter Abfragen mit Aggregationsfunktion benötigt. Um die Geschwindigkeit bei wiederholtem Ausführen der Abfragen zu beschleunigen, werden die zum Entschachteln eines Prädikats notwendigen temporären Relationen zur Laufzeit in einem Prolog-Fakt gespeichert. Beim Schließen der Datenbank werden alle temporären Relationen gelöscht, um in jeder neuen Sitzung eine saubere Datenbankumgebung bereitzustellen.
+Die Reihenfolge der auf eine Abfrage angewandte Entschachtelungsalgorithmen ist: Entschachtelung von nicht korrelierten Unterabfragen in der SELECT-Klausel, Entschachtelung von nicht korrelierten Unterabfragen in der FROM-Klausel und Entschachtelung von Unterabfragen in der WHERE-Klausel. Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong. Rekursive Entschachtelung von Abfragen. Dabei werden die oben beschriebenen Schachtelungstypen unterschieden. Je nach Schachtelungstyp wird der entsprechende Entschachtelungsalgorithmus angewendet. \enquote{Temporäre Relationen} werden für die Entschachtelung korrelierter Abfragen mit Aggregationsfunktion benötigt. Um die Geschwindigkeit bei wiederholtem Ausführen der Abfragen zu beschleunigen, werden die zum Entschachteln eines Prädikats notwendigen temporären Relationen zur Laufzeit in einem Prolog-Fakt gespeichert. Beim Schließen der Datenbank werden alle temporären Relationen gelöscht, um in jeder neuen Sitzung eine saubere Datenbankumgebung bereitzustellen.
 
 \section{Schema-Lookup}
 \begin{itemize}
@@ -65,6 +65,7 @@ und wandelt einen Tupel-Strom in einen Strom von Werten um. Hierbei wird das Sel
 wird in den \textsc{Secondo}-Ausdruck 
 
 \secondo{filter[.$A_i$ in $R_n$ feed projecttransformstream[$A_j$] collect\_set]} übersetzt. 
+
 \subsection{Using Parameter functions}
 \textsc{Secondo} unterstützt im Moment Prädikate die aus Attributen von bis zu zwei Relationen aufgebaut sind. Da diese Beschränkung durch den nur durch Erweiterungen am zentralen Optimierungs-Algorithmus aufgehoben werden kann, gilt sie auch für Prädikate mit geschachtelten Abfragen. D.h. in einer Unterabfrage können maximal Attribute aus zwei äußeren Relationen verwendet werden. Da durch die Entschachtelung neue, temporäre Tabellen eingeführt werden können, kann es zu der Situation kommen, dass ein Prädikat in seiner geschachtelten Form ein Ausdruck über den Attributen zweier Relationen ist, aber bei der Entschachtelung zu einem Ausdruck über drei oder mehr Relationen wird. 
 
@@ -72,7 +73,7 @@ Je nach Anzahl der verwendeten äußeren Relationen wird die geschachtelte Abfrage
 \begin{itemize}
 	\item Mit einem Parameter (normalerweise Filter)
 	
-	\item mit zwei Parametern für symmjoin (akzeptiert allgemeine Funktion)
+	\item mit zwei Parametern für symmjoin (akzeptiert allgemeine Funktion) Wird in einem geschachtelten Prädikat auf zwei Relationen des äußeren Abfrageblocks verwiesen, so handelt es sich semantisch um ein Join-Prädikat. Symmjoin ist der einzige Algorithmus, der die Join-Operation auch für andere als den Equi-Join ausführen kann. Der Operator akzeptiert zwei Tupelströme und eine Mapping-Funktion mit zwei Parameter als Argumente.
 \end{itemize}
 
 

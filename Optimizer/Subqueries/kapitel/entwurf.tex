@@ -49,7 +49,7 @@ max&\quad\text{falls}\ \theta > oder \geq.
 Im Spezialfall \sql{$C_n$ = any(select $C_m$ from $R_i$ where P)} wird das Prädikat durch das semantisch äquivalente Prädikat \sql{$C_n$ in (select $C_m$ from $R_i$ where P)} ersetzt.
 
 \section{Algorithmus \textbf{NEST-N-J}}
-Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine semantische äquivalente entschachtelte Form zu überführen. Dafür wird die Konjunktion der WHERE-Klauseln gebildet und um ein Join-Prädikat ergänzt, das aus dem ursprünglich geschachtelten Prädikat abgleitet ist.
+Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine semantische äquivalente entschachtelte Form zu überführen. Dafür wird die Konjunktion der WHERE-Klauseln gebildet und um ein Join-Prädikat ergänzt, das aus dem ursprünglich geschachtelten Prädikat abgeleitet ist. 
 Alle FROM-Klausel kombinieren. Die resultierende FROM-Klausel umfasst alle Relationen des inneren und des äußeren Abfrageblocks\\
 Die Konjunktion der WHERE-Klauseln bilden.\\
 Das geschachtelte Prädikat \begin{math}[R_i.C_h \operatorname{op}\ (\texttt{SELECT} R_j.C_m \dots)]\end{math} ersetzen durch ein neues Join-Prädikat \begin{math}[R_i.C_h \operatorname{\emph{new-op}} R_j.C_m]\end{math}, das mit der restlichen WHERE-Klausel per Konjunktion verbunden ist\\
