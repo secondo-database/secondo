@@ -86,13 +86,13 @@ Die Semantik der Auswertung von geschachtelten Abfragen wird im SQL-Standard \ci
 \subsection{Entschachtelung}
 In \cite{319745} wurde erstmals die Möglichkeit vorgestellt, eine geschachtelte Abfrage durch Transformation in eine semantisch äquivalente, nicht geschachtelte Abfrage zu optimieren. Die dort vorgestellten Algorithmen benötigen nur die erweiterten Standard-Operationen der Relationenalgebra. Ziel der Entschachtelungen ist die Überführung geschachtelter Abfrageblöcke in eine semantisch äquivalente Form. Zwei Abfrageblöcke sind semantisch äquivalent, wenn für jede beliebige Interpretation (Belegung mit Werten) der Variablen (in diesem Fall Relationen, Attribute und Konstanten), das Ergebnis der Abfrage übereinstimmt. Grundsätzlich haben die Entschachtelungsansätze gemeinsam, dass Äquivalenzen aufgestellt werden, die die Transformation einer Abfrage in eine strukturell anders aufgebaute Abfrage erlauben. \cite{375748} wird die SQL-Abfrage erst einmal in eine algebraische Darstellung übersetzt. Um die Transformationen leisten zu können, wird die relationale Algebra um einige Operatoren erweitert, mit deren Hilfe sich der Term, der durch die Übersetzung entsteht, in eine entschachtelte Variante überführen lässt. 
 \begin{itemize}
-	\item G-Aggregation 
-	\item G-Join
-	\item G-Restriction
-	\item G-Outerjoin
-	\item Apply 
+	\item G-Aggregation (Generalized-Aggregation)
+	\item G-Join (Generalized-Join)
+	\item G-Restriction (Generalized-Restriction)
+	\item G-Outerjoin (Generalized-Outer-Join)
+	\item Apply (
 	\item SegmentApply
-	\item NULL-rejecting Outer-Join 
+	\item NULL-rejecting Outer-Join Ein Outer-Join heißt NULL-verwerfend, wenn das Join-Prädikat NULL-verwerfend ist und die Menge A der Attribute Teilmenge des Schemas der zweiten Relation. Ist ein Outer-Join-Prädikat NULL-verwerfend, so ist es äquivalent zu einem Join-Prädikat mit der gleichen Join-Bedingung.
 \end{itemize}
 
 SQL Prädikate lassen sich in verschiedene Klassen einteilen. Abhängig von der Semantik der Operation, kann man in \emph{einfache} Prädikate, \emph{Join}-Prädikate, \emph{Divisions}-Prädikate und \emph{geschachtelte} Prädikate unterscheiden. Einfache Prädikate sind solche Prädikate, die zu ihrer Berechnung nur auf Konstanten und Attribute einer Relation zugreifen. Ein Beispiel für ein solches Prädikat ist \textbf{$C_m = 10$}. Join-Prädikate benötigen zu ihrer Berechnung Attribute aus zwei oder mehr Relationen. Sie \emph{verbinden} (to join -- engl. verbinden) die verwendeten Relationen. In der Relationenalgebra entspricht diese Operation der Kombination von Kreuzprodukt und Selektion. 

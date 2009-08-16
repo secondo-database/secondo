@@ -9,7 +9,7 @@ Der von Kim bzw. Ganski/Wong vorgestellten Algorithmen zur Optimierung geschacht
 Bei der Analyse des Problems wurde klar, das eine echte Optimierung, d.h. ein Vergleich der geschachtelten und der nicht geschachtelten Ausführungsvariante einer Abfrage umfangreiche Berechnungen und Simulationen erfordern würde. Um die Kosten der entschachtelten Abfrage ermitteln zu können müssen die Selektivitäten der Prädikate ermittelt werden. Dies erfolgt durch Auswertung jedes einzelnen Prädikats über eine bzw. zwei Stichproben-Relationen, die aus den eigentlichen Relationen abgeleitet werden. Da die Prädikate der entschachtelten Abfrage 
 möglicherweise auf temporäre Relationen bezugnehmen, müsste hier die entsprechende Selektivität simuliert werden. Um an dieser Stelle vernünftige Daten zu erhalten, wäre der Nachbau eines großen Teils der Metadaten-Ermittlung des Optimierers notwendig gewesen. Da dies den Rahmen dieser Diplomarbeit sprengen würde, wurde hierauf verzichtet.
 
-Da der Operator \sql{in} für Tupel noch nicht implementiert ist, wurde die triviale Umsetzung von \sql{in} in die Disjunktion der angegebenen Konstanten als Übersetzung integriert. Eine Implementierung des \sql{in}-Operators für Tupelströme auf Basis \secondo{in}-Operators der \algebra{Collection}-Algebra wäre 
+Da der Operator \sql{in} für Tupel noch nicht implementiert ist, wurde die triviale Umsetzung von \sql{in} in die Disjunktion der angegebenen Konstanten als Übersetzung integriert. Eine Implementierung des \sql{in}-Operators für Tupelströme auf Basis \secondo{in}- und \secondo{collect\_set}-Operators der \algebra{Collection}-Algebra wäre eine mögliche Vorgehensweise zur performante Implementierung dieses Operators.
 \begin{itemize}
 	\item keine automatische Entscheidung entschachteln oder nicht
 	\subitem alle Metadaten über temp. Relationen wären notwendig
@@ -176,9 +176,13 @@ Für den Vergleich der Kosten müsste die komplette Selektivitäts- und Kostenbesti
 kann nicht für alle Formen von Subqueries genutzt werden (Beispiele)\\
 Ergebnis sollte eine Abfrage der Schachtelungstiefe 0 sein. Der Optimierer 
 
-Schema-Lookup erweitern\\
-
-
+\section{Algorithmus \textbf{NEST-G}}
+\begin{enumerate}
+	\item Jedes Typ-A Prädikat wird in ein einfaches Prädikat umgewandelt, indem es vollständig ausgewertet wird. Falls das Prädikat ebenfalls geschachtelt ist, wird Algorithmus NEST-G rekursiv angewandt, bis das Prädikat nicht weiter entschachtelt werden kann.
+	\item Jedes Typ-JA Prädikat wird mit dem Algorithmus NEST-JA(G) in eine semantisch äquivalente Abfrage vom Typ-N oder -J umgewandelt.
+	\item \emph{In dieser Arbeit nicht implementiert}: Prädikate vom Typ-D werden in ihre kanonische Form transformiert. 
+	\item Die aus den bisherigen Schritten des Algorithmus resultierende Abfrage hat nur noch Prädikate vom Typ-N oder Typ-J. Diese wird mit dem Algorithmus NEST-N-J in ihre kanonische Form überführt.
+\end{enumerate}
 
 %
 % EOF
