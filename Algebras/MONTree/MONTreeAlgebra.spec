@@ -19,3 +19,4 @@
 
 operator createmontree alias CREATEMONTREE pattern _ _ op [ _ ]
 operator windowtimeintersects alias WINDOWTIMEINTERSECTS pattern _ _ _ op [ _, _, _ ]
+operator windowtimeintersectsS alias WINDOWTIMEINTERSECTSS pattern _ _ _ op [ _, _, _ ]

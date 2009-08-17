@@ -47,7 +47,8 @@ May 2008, Victor Almeida
 
 using namespace std;
 
-MON_Tree::MON_Tree():
+template<class BottomR_TreeLeafInfo>
+MON_Tree<BottomR_TreeLeafInfo>::MON_Tree():
 index( true, 4000 ),
 routeHash( new Hash(SmiKey::Integer) ),
 network( NULL ),
@@ -58,12 +59,14 @@ bottom_RTree( NULL )
   top_RTree = new R_Tree<2, TopR_TreeLeafInfo>( &index );
 }
 
-void MON_Tree::SetNetwork( Network *network )
+template<class BottomR_TreeLeafInfo>
+void MON_Tree<BottomR_TreeLeafInfo>::SetNetwork( Network *network )
 {
   this->network = network;
 }
 
-MON_Tree::MON_Tree( Network *network,
+template<class BottomR_TreeLeafInfo>
+MON_Tree<BottomR_TreeLeafInfo>::MON_Tree( Network *network,
                     SmiFileId indexFileId,
                     SmiFileId hashFileId ):
 index( true ),
@@ -76,7 +79,8 @@ bottom_RTree( NULL )
   top_RTree = new R_Tree<2, TopR_TreeLeafInfo>( &index, 1 );
 }
 
-MON_Tree::~MON_Tree()
+template<class BottomR_TreeLeafInfo>
+MON_Tree<BottomR_TreeLeafInfo>::~MON_Tree()
 {
   delete routeHash;
   if( bottom_RTree != NULL )
@@ -86,14 +90,16 @@ MON_Tree::~MON_Tree()
     index.Close();
 }
 
-void MON_Tree::Insert( const int routeId, 
+template<class BottomR_TreeLeafInfo>
+void MON_Tree<BottomR_TreeLeafInfo>::Insert( const int routeId, 
                        const SmiRecordId bottomId )
 {
   routeHash->Append( SmiKey((long)routeId), bottomId );
 }
 
-void MON_Tree::Insert( const MGPoint& mgpoint, 
-                       const SmiRecordId mgpointId )
+template<class BottomR_TreeLeafInfo>
+void MON_Tree<BottomR_TreeLeafInfo>::Insert( const MGPoint& mgpoint, 
+                       const BottomR_TreeLeafInfo& info )
 {
   assert( network != NULL );
 
@@ -101,55 +107,60 @@ void MON_Tree::Insert( const MGPoint& mgpoint,
   {
     const UGPoint *ugpoint;
     mgpoint.Get( i, ugpoint );
-
-    int routeId = ugpoint->p0.GetRouteId();
-    CcInt key( true, routeId );
-    HashIterator *iter = routeHash->ExactMatch( &key );
-
-    Rectangle<3> box3D = ugpoint->NetBoundingBox3d();
-    Rectangle<2> box2D = BBox<2>( true, box3D.MinD(1), box3D.MaxD(1), 
-                                        box3D.MinD(2), box3D.MaxD(2) );
-    // box is constructed first with the position, then the interval.
-    
-    R_TreeLeafEntry<2, SmiRecordId> 
-      entry( box2D, mgpointId );
-    // VTA - The original code of the MON-Tree is expecting the entries 
-    // in the bounding in a different order. There will be an error in
-    // query processing.
-
-    if( iter->Next() )
-    {
-      assert( iter->GetId() > 0 );
-      bottom_RTree = new R_Tree<2, SmiRecordId>( &index, iter->GetId() );
-    }
-    else
-    {
-      Tuple *t = network->GetRoute( routeId );
-      Line *curve = (Line*)t->GetAttribute( ROUTE_CURVE );  
-      Rectangle<2> routeBox = curve->BoundingBox();
-
-      assert( bottom_RTree == NULL );
-      bottom_RTree = new R_Tree<2, SmiRecordId>( &index );
-         
-      routeHash->Append( SmiKey( (long)key.GetIntval() ), 
-                         bottom_RTree->HeaderRecordId() );
-
-      TopR_TreeLeafInfo info( routeId, bottom_RTree->HeaderRecordId() );
-      top_RTree->Insert( R_TreeLeafEntry<2, TopR_TreeLeafInfo>( routeBox, 
-                                                               info ) );
-      t->DeleteIfAllowed();
-    }
-    delete iter;
-
-    bottom_RTree->Insert( entry );
-    delete bottom_RTree; bottom_RTree = NULL;
+    Insert( *ugpoint, info );
   }
 }
 
-void MON_Tree::CalculateSearchBoxSet( const Rectangle<2>& box,
-                                      const SimpleLine& curve,
-                                      const Interval<Instant>& timeInterval,
-                                      RectangleSet<2>& result ) const
+template<class BottomR_TreeLeafInfo>
+void MON_Tree<BottomR_TreeLeafInfo>::Insert( const UGPoint& ugpoint, 
+                       const BottomR_TreeLeafInfo& info )
+{
+  int routeId = ugpoint.p0.GetRouteId();
+  CcInt key( true, routeId );
+  HashIterator *iter = routeHash->ExactMatch( &key );
+
+  Rectangle<3> box3D = ugpoint.NetBoundingBox3d();
+  Rectangle<2> box2D = BBox<2>( true, box3D.MinD(1), box3D.MaxD(1), 
+                                      box3D.MinD(2), box3D.MaxD(2) );
+  // box is constructed first with the position, then the interval.
+    
+  R_TreeLeafEntry<2, BottomR_TreeLeafInfo> 
+    entry( box2D, info );
+
+  if( iter->Next() )
+  {
+    assert( iter->GetId() > 0 );
+    bottom_RTree = new R_Tree<2, BottomR_TreeLeafInfo>( &index, iter->GetId() );
+  }
+  else
+  {
+    Tuple *t = network->GetRoute( routeId );
+    Line *curve = (Line*)t->GetAttribute( ROUTE_CURVE );  
+    Rectangle<2> routeBox = curve->BoundingBox();
+
+    assert( bottom_RTree == NULL );
+    bottom_RTree = new R_Tree<2, BottomR_TreeLeafInfo>( &index );
+         
+    routeHash->Append( SmiKey( (long)key.GetIntval() ), 
+                       bottom_RTree->HeaderRecordId() );
+
+    TopR_TreeLeafInfo info( routeId, bottom_RTree->HeaderRecordId() );
+    top_RTree->Insert( R_TreeLeafEntry<2, TopR_TreeLeafInfo>( routeBox, 
+                                                               info ) );
+    t->DeleteIfAllowed();
+  }
+  delete iter;
+
+  bottom_RTree->Insert( entry );
+  delete bottom_RTree; bottom_RTree = NULL;
+}
+
+template<class BottomR_TreeLeafInfo>
+void MON_Tree<BottomR_TreeLeafInfo>::
+  CalculateSearchBoxSet( const Rectangle<2>& box,
+                         const SimpleLine& curve,
+                         const Interval<Instant>& timeInterval,
+                         RectangleSet<2>& result ) const
 {
   assert( box.Intersects( curve.BoundingBox() ) );
 
@@ -207,9 +218,10 @@ void MON_Tree::CalculateSearchBoxSet( const Rectangle<2>& box,
   }
 }
 
-bool MON_Tree::First( const Rectangle<2>& box, 
+template<class BottomR_TreeLeafInfo>
+bool MON_Tree<BottomR_TreeLeafInfo>::First( const Rectangle<2>& box, 
                       const Interval<Instant>& timeInterval,
-                      R_TreeLeafEntry<2, SmiRecordId>& result )
+                      R_TreeLeafEntry<2, BottomR_TreeLeafInfo>& result )
 {
   assert( network != NULL );
 
@@ -223,7 +235,8 @@ bool MON_Tree::First( const Rectangle<2>& box,
   begin = true;
   assert( entry.info.childTreeId > 0 );
 
-  bottom_RTree = new R_Tree<2, SmiRecordId>( &index, entry.info.childTreeId );
+  bottom_RTree = 
+    new R_Tree<2, BottomR_TreeLeafInfo>( &index, entry.info.childTreeId );
   Tuple *t = network->GetRoute( entry.info.routeId );
   SimpleLine *curve = (SimpleLine*)t->GetAttribute( ROUTE_CURVE );  
 
@@ -238,7 +251,9 @@ bool MON_Tree::First( const Rectangle<2>& box,
   return Next( result );
 }
 
-bool MON_Tree::Next( R_TreeLeafEntry<2, SmiRecordId>& result )
+template<class BottomR_TreeLeafInfo>
+bool MON_Tree<BottomR_TreeLeafInfo>::
+  Next( R_TreeLeafEntry<2, BottomR_TreeLeafInfo>& result )
 {
   assert( network != NULL );
 
@@ -276,8 +291,9 @@ bool MON_Tree::Next( R_TreeLeafEntry<2, SmiRecordId>& result )
       bottom_RTree = NULL;
       begin = true;
       assert( topEntry.info.childTreeId > 0 );
-      bottom_RTree = new R_Tree<2, SmiRecordId>( &index, 
-                                                 topEntry.info.childTreeId );
+      bottom_RTree = 
+        new R_Tree<2, BottomR_TreeLeafInfo>( &index, 
+                                             topEntry.info.childTreeId );
       Tuple *t = network->GetRoute( topEntry.info.routeId );
       SimpleLine *curve = (SimpleLine*)t->GetAttribute( ROUTE_CURVE );  
       searchBoxSet.Clear();
@@ -323,13 +339,15 @@ bool CheckMON_Tree(ListExpr type, ListExpr& errorInfo)
   AlgebraManager* algMgr;
 
   if((!nl->IsAtom(type))
-    && (nl->ListLength(type) == 3)
+    && (nl->ListLength(type) == 4)
     && nl->Equal(nl->First(type), nl->SymbolAtom("montree")))
   {
     algMgr = SecondoSystem::GetAlgebraManager();
     return
       algMgr->CheckKind("TUPLE", nl->Second(type), errorInfo) &&
-      nl->IsEqual(nl->Third(type), "mgpoint"); 
+      nl->IsEqual(nl->Third(type), "mgpoint") &&
+      nl->IsAtom(nl->Fourth(type)) &&
+      nl->AtomType(nl->Fourth(type)) == BoolType;
   }
   errorInfo = nl->Append(errorInfo,
     nl->ThreeElemList(
@@ -376,7 +394,10 @@ Word InMON_Tree( ListExpr typeInfo, ListExpr value,
 */
 Word CreateMON_Tree( const ListExpr typeInfo )
 {
-  return SetWord( new MON_Tree() );
+  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+    return SetWord( new MON_Tree<BottomR_TreeLeafInfo>() );
+  else
+    return SetWord( new MON_Tree<SmiRecordId>() );
 }
 
 /*
@@ -385,8 +406,18 @@ Word CreateMON_Tree( const ListExpr typeInfo )
 */
 void CloseMON_Tree( const ListExpr typeInfo, Word& w )
 {
-  MON_Tree *montree = (MON_Tree*)w.addr;
-  delete montree;
+  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+  {
+    MON_Tree<BottomR_TreeLeafInfo> *montree = 
+      (MON_Tree<BottomR_TreeLeafInfo>*)w.addr;
+    delete montree;
+  }
+  else
+  {
+    MON_Tree<SmiRecordId> *montree = 
+      (MON_Tree<SmiRecordId>*)w.addr;
+    delete montree;
+  }
 }
 
 /*
@@ -406,8 +437,18 @@ Word CloneMON_Tree( const ListExpr typeInfo, const Word& w )
 */
 void DeleteMON_Tree( const ListExpr typeInfo, Word& w )
 {
-  MON_Tree *montree = (MON_Tree*)w.addr;
-  delete montree;
+  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+  {
+    MON_Tree<BottomR_TreeLeafInfo> *montree = 
+      (MON_Tree<BottomR_TreeLeafInfo>*)w.addr;
+    delete montree;
+  }
+  else
+  {
+    MON_Tree<SmiRecordId> *montree = 
+      (MON_Tree<SmiRecordId>*)w.addr;
+    delete montree;
+  }
 }
 
 /*
@@ -436,11 +477,23 @@ bool OpenMON_Tree( SmiRecord& valueRecord,
   valueRecord.Read( &hashFileId, sizeof( SmiFileId ), offset );
   offset += sizeof( SmiFileId );
 
-  MON_Tree *montree = new MON_Tree( NULL,
-                                    indexFileId,
-                                    hashFileId );
 
-  value = SetWord( montree );
+  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+  {
+    MON_Tree<BottomR_TreeLeafInfo> *montree = 
+      new MON_Tree<BottomR_TreeLeafInfo>( NULL,
+                                          indexFileId,
+                                          hashFileId );
+    value = SetWord( montree );
+  }
+  else
+  {
+    MON_Tree<SmiRecordId> *montree = 
+      new MON_Tree<SmiRecordId>( NULL,
+                                 indexFileId,
+                                 hashFileId );
+    value = SetWord( montree );
+  }
   return true;
 }
 
@@ -453,10 +506,23 @@ bool SaveMON_Tree( SmiRecord& valueRecord,
                   const ListExpr typeInfo,
                   Word& value )
 {
-  MON_Tree *montree = (MON_Tree *)value.addr;
-  SmiFileId indexFileId = montree->GetIndexFileId(),
-            hashFileId = montree->GetHashFileId();
-  
+  SmiFileId indexFileId, hashFileId;
+
+  if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
+  {
+    MON_Tree<BottomR_TreeLeafInfo> *montree = 
+      (MON_Tree<BottomR_TreeLeafInfo> *)value.addr;
+    indexFileId = montree->GetIndexFileId();
+    hashFileId = montree->GetHashFileId();
+  }
+  else
+  {
+    MON_Tree<SmiRecordId> *montree = 
+      (MON_Tree<SmiRecordId> *)value.addr;
+    indexFileId = montree->GetIndexFileId();
+    hashFileId = montree->GetHashFileId();
+  }
+
   valueRecord.Write( &indexFileId, sizeof( SmiFileId ), offset );
   offset += sizeof( SmiFileId );
 
@@ -549,10 +615,13 @@ ListExpr CreateMONTreeTypeMap(ListExpr args)
     "the relation or stream description\n'" +
     relDescriptionStr + "'.");
 
-  CHECK_COND(nl->IsEqual(attrType, "mgpoint"),
+  CHECK_COND(nl->IsEqual(attrType, "mgpoint") ||
+             nl->IsEqual(attrType, "ugpoint"),
     errmsg +
     "\nOperator createmontree expects that attribute "+attrName+"\n"
-    "belongs to type mgpoint.");
+    "belongs to type mgpoint or ugpoint.");
+
+  bool mgpoint = nl->IsEqual(attrType, "mgpoint");
 
   if( nl->IsEqual(nl->First(relDescription), "rel") )
   {
@@ -561,18 +630,38 @@ ListExpr CreateMONTreeTypeMap(ListExpr args)
         nl->SymbolAtom("APPEND"),
         nl->OneElemList(
           nl->IntAtom(attrIndex)),
-        nl->ThreeElemList(
+        nl->FourElemList(
           nl->SymbolAtom("montree"),
           tupleDescription,
-          attrType));
+          attrType,
+          nl->BoolAtom(mgpoint)));
   }
   else
   {
+/*
+Here we can have two possibilities:
+
+- multi-entry indexing, or
+- double indexing
+
+For multi-entry indexing, one and only one of the attributes
+must be a tuple identifier. In the latter, together with
+a tuple identifier, the last two attributes must be of
+integer type (~int~).
+
+In the first case, a standard MON-Tree is created 
+containing several entries to the same tuple identifier, and
+in the latter, a double index MON-Tree is created using as low
+and high parameters these two last integer numbers.
+
+*/
     ListExpr first, rest, newAttrList, lastNewAttrList;
     int tidIndex = 0;
     string type;
-    bool firstcall = true;
+    bool firstcall = true,
+         doubleIndex = false;
 
+    int nAttrs = nl->ListLength( attrList );
     rest = attrList;
     int j = 1;
     while (!nl->IsEmpty(rest))
@@ -584,11 +673,17 @@ ListExpr CreateMONTreeTypeMap(ListExpr args)
       if (type == "tid")
       {
         CHECK_COND( tidIndex == 0,
-          "Operator createmontree expects as second argument a stream "
+          "Operator createmontree expects as first argument a stream "
           "with\none and only one attribute of type 'tid'\n'"
           "but gets\n'" + relDescriptionStr + "'.");
 
         tidIndex = j;
+      }
+      else if( j == nAttrs - 1 && type == "int" &&
+               nl->SymbolValue(
+                 nl->Second(nl->First(rest))) == "int" )
+      { // the last two attributes are integers
+        doubleIndex = true;
       }
       else
       {
@@ -606,7 +701,7 @@ ListExpr CreateMONTreeTypeMap(ListExpr args)
       j++;
     }
     CHECK_COND( tidIndex != 0,
-      "Operator createmontree expects as second argument a stream "
+      "Operator createmontree expects as first argument a stream "
       "with\none and only one attribute of type 'tid'\n'"
       "but gets\n'" + relDescriptionStr + "'.");
 
@@ -616,12 +711,13 @@ ListExpr CreateMONTreeTypeMap(ListExpr args)
         nl->TwoElemList(
           nl->IntAtom(attrIndex),
           nl->IntAtom(tidIndex)),
-        nl->ThreeElemList(
+        nl->FourElemList(
           nl->SymbolAtom("montree"),
           nl->TwoElemList(
             nl->SymbolAtom("tuple"),
             newAttrList),
-          attrType));
+          attrType,
+          nl->BoolAtom(doubleIndex)));
   }
 }
 
@@ -642,11 +738,29 @@ CreateMONTreeSelect (ListExpr args)
   ListExpr attrType;
   attrIndex = FindAttribute(attrList, attrName, attrType);
 
+  int doubleUp = 0;
+  if(nl->IsEqual(attrType, "ugpoint"))
+    doubleUp = 3;
+  
   if( nl->SymbolValue(nl->First(relDescription)) == "rel")
-    return 0;
+    return doubleUp + 0;
   if( nl->SymbolValue(nl->First(relDescription)) == "stream")
-    return 1;
-
+  {
+    ListExpr first,
+             rest = attrList;
+    while (!nl->IsEmpty(rest))
+    {
+      first = nl->First(rest);
+      rest = nl->Rest(rest);
+    }
+    if( nl->IsEqual( nl->Second( first ), "int" ) )
+      // Double indexing
+      return doubleUp + 2;
+    else
+      // Multi-entry indexing
+      return doubleUp + 1;
+  }
+  
   return -1;
 }
 
@@ -654,8 +768,8 @@ CreateMONTreeSelect (ListExpr args)
 4.1.3 Value mapping function of operator ~createmontree~
 
 */
-int CreateMONTreeRel(Word* args, Word& result, int message,
-                     Word& local, Supplier s)
+int CreateMONTreeRelMGPoint(Word* args, Word& result, int message,
+                            Word& local, Supplier s)
 {
   Relation* relation;
   int attrIndex;
@@ -663,7 +777,8 @@ int CreateMONTreeRel(Word* args, Word& result, int message,
   Tuple* tuple;
   Network *network;
 
-  MON_Tree *montree = (MON_Tree*)qp->ResultStorage(s).addr;
+  MON_Tree<BottomR_TreeLeafInfo> *montree = 
+    (MON_Tree<BottomR_TreeLeafInfo> *)qp->ResultStorage(s).addr;
   result.setAddr( montree );
 
   network = (Network*)args[0].addr;
@@ -678,7 +793,13 @@ int CreateMONTreeRel(Word* args, Word& result, int message,
     MGPoint* mgpoint = (MGPoint*)tuple->GetAttribute(attrIndex);
     if( mgpoint->IsDefined() )
     {
-      montree->Insert( *mgpoint, tuple->GetTupleId() );
+      for( int i = 0; i < mgpoint->GetNoComponents(); i++ )
+      {
+        BottomR_TreeLeafInfo info(tuple->GetTupleId(), i, i);
+        const UGPoint *ugpoint;
+        mgpoint->Get( i, ugpoint );
+        montree->Insert( *ugpoint, info );
+      }
     }
     tuple->DeleteIfAllowed();
   }
@@ -687,11 +808,45 @@ int CreateMONTreeRel(Word* args, Word& result, int message,
   return 0;
 }
 
+int CreateMONTreeRelUGPoint(Word* args, Word& result, int message,
+                            Word& local, Supplier s)
+{
+  Relation* relation;
+  int attrIndex;
+  GenericRelationIterator* iter;
+  Tuple* tuple;
+  Network *network;
+
+  MON_Tree<SmiRecordId> *montree =
+    (MON_Tree<SmiRecordId> *)qp->ResultStorage(s).addr;
+  result.setAddr( montree );
+
+  network = (Network*)args[0].addr;
+  relation = (Relation*)args[1].addr;
+  attrIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+
+  montree->SetNetwork( network );
+
+  iter = relation->MakeScan();
+  while( (tuple = iter->GetNextTuple()) != 0 )
+  {
+    UGPoint* ugpoint = (UGPoint*)tuple->GetAttribute(attrIndex);
+    if( ugpoint->IsDefined() )
+      montree->Insert( *ugpoint, tuple->GetTupleId() );
+    tuple->DeleteIfAllowed();
+  }
+  delete iter;
+
+  return 0;
+}
+
+template<class T>
 int CreateMONTreeStream(Word* args, Word& result, int message,
                         Word& local, Supplier s)
 {
   Word wTuple;
-  MON_Tree *montree = (MON_Tree*)qp->ResultStorage(s).addr;
+  MON_Tree<SmiRecordId> *montree = 
+    (MON_Tree<SmiRecordId> *)qp->ResultStorage(s).addr;
   result.setAddr( montree );
 
   int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
@@ -702,12 +857,12 @@ int CreateMONTreeStream(Word* args, Word& result, int message,
   while (qp->Received(args[0].addr))
   {
     Tuple* tuple = (Tuple*)wTuple.addr;
-    MGPoint *mgpoint = (MGPoint*)tuple->GetAttribute(attrIndex);
+    T *t = (T*)tuple->GetAttribute(attrIndex);
     TupleIdentifier *tupleId = (TupleIdentifier *)tuple->GetAttribute(tidIndex);
 
-    if( mgpoint->IsDefined() && tupleId->IsDefined() )
+    if( t->IsDefined() && tupleId->IsDefined() )
     {
-      montree->Insert( *mgpoint, tupleId->GetTid() );
+      montree->Insert( *t, tupleId->GetTid() );
     }
     tuple->DeleteIfAllowed();
     qp->Request(args[0].addr, wTuple);
@@ -717,12 +872,58 @@ int CreateMONTreeStream(Word* args, Word& result, int message,
   return 0;
 }
 
+template<class T>
+int CreateMONTreeDblStream(Word* args, Word& result, int message,
+                           Word& local, Supplier s)
+{
+  Word wTuple;
+  MON_Tree<BottomR_TreeLeafInfo> *montree = 
+    (MON_Tree<BottomR_TreeLeafInfo> *)qp->ResultStorage(s).addr;
+  result.setAddr( montree );
+
+  int attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1,
+      tidIndex = ((CcInt*)args[3].addr)->GetIntval() - 1;
+
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, wTuple);
+  while (qp->Received(args[0].addr))
+  {
+    Tuple* tuple = (Tuple*)wTuple.addr;
+    T *t = (T*)tuple->GetAttribute(attrIndex);
+    TupleIdentifier *tupleId = 
+      (TupleIdentifier *)tuple->GetAttribute(tidIndex); 
+    CcInt *low = (CcInt*)tuple->GetAttribute(tuple->GetNoAttributes()-2),
+          *high = (CcInt*)tuple->GetAttribute(tuple->GetNoAttributes()-1);
+
+    if( t->IsDefined() && 
+        tupleId->IsDefined() &&
+        low->IsDefined() &&
+        high->IsDefined() )
+    {
+      BottomR_TreeLeafInfo info( tupleId->GetTid(),
+                                 low->GetIntval(), 
+                                 high->GetIntval() );
+      montree->Insert( *t, info );
+    }
+    tuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, wTuple);
+  }
+  qp->Close(args[0].addr);
+
+  return 0;
+}
+
+
 /*
 4.1.5 Definition of value mapping vectors
 
 */
-ValueMapping createmontreemap [] = { CreateMONTreeRel,
-                                     CreateMONTreeStream };
+ValueMapping createmontreemap [] = { CreateMONTreeRelMGPoint,
+                                     CreateMONTreeStream<MGPoint>,
+                                     CreateMONTreeDblStream<MGPoint>,
+                                     CreateMONTreeRelUGPoint,
+                                     CreateMONTreeStream<UGPoint>,
+                                     CreateMONTreeDblStream<UGPoint> };
 
 /*
 4.1.6 Specification of operator ~createmontree~
@@ -751,21 +952,21 @@ const string CreateMONTreeSpec  =
 Operator createmontree (
           "createmontree",       // name
           CreateMONTreeSpec,     // specification
-          2,                  // Number of overloaded functions
+          6,                  // Number of overloaded functions
           createmontreemap, // value mapping
           CreateMONTreeSelect,   // trivial selection function
           CreateMONTreeTypeMap   // type mapping
 );
 
 /*
-7.2 Operator ~windowintersects~
+7.2 Operator ~windowtimeintersects~
 
-7.2.1 Type mapping function of operator ~windowintersects~
+7.2.1 Type mapping function of operator ~windowtimeintersects~
 
 */
-ListExpr MON_WindowIntersectsTypeMap(ListExpr args)
+ListExpr MON_WindowTimeIntersectsTypeMap(ListExpr args)
 {
-  string errmsg = "Incorrect input for operator windowintersects.";
+  string errmsg = "Incorrect input for operator windowtimeintersects.";
   string monDescriptionStr, relDescriptionStr;
 
   CHECK_COND(!nl->IsEmpty(args), errmsg);
@@ -781,27 +982,27 @@ ListExpr MON_WindowIntersectsTypeMap(ListExpr args)
            searchEnd = nl->Sixth(args);
 
   CHECK_COND(nl->IsEqual(networkDescription, "network"),
-    "Operator windowintersects expects the first argument\n"
+    "Operator windowtimeintersects expects the first argument\n"
     "to be of type network.");
     
   /* Query window: find out type of key */
   CHECK_COND(nl->IsEqual(searchWindow, "rect"),
-    "Operator windowintersects expects that the search window\n"
+    "Operator windowtimeintersects expects that the search window\n"
     "is of type rect.");
 
   // Handling of the time interval
   CHECK_COND(nl->IsEqual(searchStart, "instant") &&
              nl->IsEqual(searchEnd, "instant"),
-    "Operator windowintersects expects the fifth and sixth\n"
+    "Operator windowtimeintersects expects the fifth and sixth\n"
     "arguments to be a time interval.");
 
   /* handle montree part of argument */
   nl->WriteToString (monDescriptionStr, monDescription);
   CHECK_COND(!nl->IsEmpty(monDescription) &&
     !nl->IsAtom(monDescription) &&
-    nl->ListLength(monDescription) == 3,
-    "Operator windowintersects expects a MON-Tree with structure "
-    "(montree (tuple ((a1 t1)...(an tn))) attrtype\n"
+    nl->ListLength(monDescription) == 4,
+    "Operator windowtimeintersects expects a MON-Tree with structure "
+    "(montree (tuple ((a1 t1)...(an tn))) attrtype bool)\n"
     "\nbut gets the following '"
     +monDescriptionStr+"'.");
 
@@ -810,13 +1011,13 @@ ListExpr MON_WindowIntersectsTypeMap(ListExpr args)
 
   /* handle rtree type constructor */
   CHECK_COND(nl->IsEqual(monSymbol, "montree"),
-   "Operator windowintersects expects a montree \n"
+   "Operator windowtimeintersects expects a MON-Tree \n"
    "as second argument.");
 
   /* handle rel part of argument */
   nl->WriteToString (relDescriptionStr, relDescription);
   CHECK_COND(IsRelDescription(relDescription),
-    "Operator windowintersects expects a "
+    "Operator windowtimeintersects expects a "
     "relation as its third argument, but gets '"
         + relDescriptionStr + "'.");
 
@@ -830,27 +1031,27 @@ ListExpr MON_WindowIntersectsTypeMap(ListExpr args)
 5.1.3 Value mapping function of operator ~windowintersects~
 
 */
-struct MON_WindowIntersectsLocalInfo
+struct MON_WindowTimeIntersectsLocalInfo
 {
   Relation* relation;
-  MON_Tree* montree;
+  MON_Tree<SmiRecordId>* montree;
   BBox<2> searchBox;
   Interval<Instant> searchTimeInterval;
   bool first;
 };
 
-int MON_WindowIntersects( Word* args, Word& result,
-                      int message, Word& local,
-                      Supplier s )
+int MON_WindowTimeIntersects( Word* args, Word& result,
+                              int message, Word& local,
+                              Supplier s )
 {
-  MON_WindowIntersectsLocalInfo *localInfo;
+  MON_WindowTimeIntersectsLocalInfo *localInfo;
 
   switch (message)
   {
     case OPEN :
     {
-      localInfo = new MON_WindowIntersectsLocalInfo;
-      localInfo->montree = (MON_Tree*)args[1].addr;
+      localInfo = new MON_WindowTimeIntersectsLocalInfo;
+      localInfo->montree = (MON_Tree<SmiRecordId>*)args[1].addr;
       localInfo->montree->SetNetwork( (Network*)args[0].addr );
       localInfo->relation = (Relation*)args[2].addr;
       localInfo->first = true;
@@ -869,7 +1070,7 @@ int MON_WindowIntersects( Word* args, Word& result,
 
     case REQUEST :
     {
-      localInfo = (MON_WindowIntersectsLocalInfo*)local.addr;
+      localInfo = (MON_WindowTimeIntersectsLocalInfo*)local.addr;
        R_TreeLeafEntry<2, SmiRecordId> e;
 
       if ( !localInfo->searchBox.IsDefined() ||
@@ -911,7 +1112,7 @@ int MON_WindowIntersects( Word* args, Word& result,
     {
       if(local.addr)
       {
-        localInfo = (MON_WindowIntersectsLocalInfo*)local.addr;
+        localInfo = (MON_WindowTimeIntersectsLocalInfo*)local.addr;
         delete localInfo;
         local.setAddr(Address(0));
       }
@@ -949,14 +1150,357 @@ const string windowintersectsSpec  =
 Operator windowtimeintersects (
          "windowtimeintersects",        // name
          windowintersectsSpec,      // specification
-         MON_WindowIntersects,
+         MON_WindowTimeIntersects,
          Operator::SimpleSelect,    // trivial selection function
-         MON_WindowIntersectsTypeMap    // type mapping
+         MON_WindowTimeIntersectsTypeMap    // type mapping
 );
 
+/*
+7.2 Operator ~windowtimeintersectsS~
+
+7.2.1 Type mapping function of operator ~windowtimeintersectsS~
+
+*/
+ListExpr MON_WindowTimeIntersectsSTypeMap(ListExpr args)
+{
+  string errmsg = "Incorrect input for operator windowtimeintersectsS.";
+  string monDescriptionStr, relDescriptionStr;
+
+  CHECK_COND(!nl->IsEmpty(args), errmsg);
+  CHECK_COND(!nl->IsAtom(args), errmsg);
+  CHECK_COND(nl->ListLength(args) == 6, errmsg);
+
+  /* Split argument in three parts */
+  ListExpr networkDescription = nl->First(args),
+           monDescription = nl->Second(args),
+           relDescription = nl->Third(args),
+           searchWindow = nl->Fourth(args),
+           searchStart = nl->Fifth(args),
+           searchEnd = nl->Sixth(args);
+
+  CHECK_COND(nl->IsEqual(networkDescription, "network"),
+    "Operator windowtimeintersectsS expects the first argument\n"
+    "to be of type network.");
+    
+  /* Query window: find out type of key */
+  CHECK_COND(nl->IsEqual(searchWindow, "rect"),
+    "Operator windowtimeintersectsS expects that the search window\n"
+    "is of type rect.");
+
+  // Handling of the time interval
+  CHECK_COND(nl->IsEqual(searchStart, "instant") &&
+             nl->IsEqual(searchEnd, "instant"),
+    "Operator windowtimeintersectsS expects the fifth and sixth\n"
+    "arguments to be a time interval.");
+
+  /* handle montree part of argument */
+  nl->WriteToString (monDescriptionStr, monDescription);
+  CHECK_COND(!nl->IsEmpty(monDescription) &&
+    !nl->IsAtom(monDescription) &&
+    nl->ListLength(monDescription) == 4,
+    "Operator windowtimeintersectsS expects a MON-Tree with structure "
+    "(montree (tuple ((a1 t1)...(an tn))) attrtype\n"
+    "\nbut gets the following '"
+    +monDescriptionStr+"'.");
+
+  ListExpr monSymbol = nl->First(monDescription);
+
+  /* handle rtree type constructor */
+  CHECK_COND(nl->IsEqual(monSymbol, "montree"),
+   "Operator windowtimeintersectsS expects a MON-Tree \n"
+   "as second argument.");
+
+  /* handle rel part of argument */
+  nl->WriteToString (relDescriptionStr, relDescription);
+  CHECK_COND(IsRelDescription(relDescription),
+    "Operator windowtimeintersectsS expects a "
+    "relation as its third argument, but gets '"
+        + relDescriptionStr + "'.");
+
+  ListExpr isDouble = nl->BoolValue(nl->Fourth(monDescription));
+  if(!isDouble)
+  {
+    return
+      nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->OneElemList(
+            nl->TwoElemList(
+              nl->SymbolAtom("id"),
+              nl->SymbolAtom("tid")))));
+  }
+  else
+  {
+    return
+      nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->ThreeElemList(
+            nl->TwoElemList(
+              nl->SymbolAtom("id"),
+              nl->SymbolAtom("tid")),
+            nl->TwoElemList(
+              nl->SymbolAtom("low"),
+              nl->SymbolAtom("int")),
+            nl->TwoElemList(
+              nl->SymbolAtom("high"),
+              nl->SymbolAtom("int")))));
+  }
+}
 
 /*
-6 Definition and initialization of RTree Algebra
+5.1.3 Value mapping function of operator ~windowintersectsS~
+
+*/
+template<class BottomR_TreeLeafInfo>
+struct MON_WindowTimeIntersectsSLocalInfo
+{
+  Relation* relation;
+  MON_Tree<BottomR_TreeLeafInfo>* montree;
+  BBox<2> searchBox;
+  Interval<Instant> searchTimeInterval;
+  bool first;
+  TupleType *resultTupleType;
+};
+
+int MON_WindowTimeIntersectsS( Word* args, Word& result,
+                               int message, Word& local,
+                               Supplier s )
+{
+  MON_WindowTimeIntersectsSLocalInfo<SmiRecordId> *localInfo;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      localInfo = new MON_WindowTimeIntersectsSLocalInfo<SmiRecordId>;
+      localInfo->montree = (MON_Tree<SmiRecordId>*)args[1].addr;
+      localInfo->montree->SetNetwork( (Network*)args[0].addr );
+      localInfo->relation = (Relation*)args[2].addr;
+      localInfo->first = true;
+
+      localInfo->searchBox = *(BBox<2>*)args[3].addr;
+      localInfo->searchTimeInterval = 
+        Interval<Instant>( *(Instant*)args[4].addr,
+                           *(Instant*)args[5].addr,
+                           true, true ); 
+      localInfo->resultTupleType =
+        new TupleType(nl->Second(GetTupleResultType(s)));
+
+      assert(localInfo->montree != 0);
+      assert(localInfo->relation != 0);
+      local.setAddr(localInfo);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      localInfo = (MON_WindowTimeIntersectsSLocalInfo<SmiRecordId>*)local.addr;
+       R_TreeLeafEntry<2, SmiRecordId> e;
+
+      if ( !localInfo->searchBox.IsDefined() ||
+           !localInfo->searchTimeInterval.IsValid() )
+      { 
+        return CANCEL;
+      }
+      else
+      {
+        if(localInfo->first)
+        {
+          localInfo->first = false;
+          if( localInfo->montree->First( localInfo->searchBox, 
+                                         localInfo->searchTimeInterval,
+                                         e ) )
+          {
+            Tuple *tuple = new Tuple( localInfo->resultTupleType );
+            tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
+            result.setAddr(tuple);
+            return YIELD;
+          }
+          else
+            return CANCEL;
+        }
+        else
+        {
+          if( localInfo->montree->Next( e ) )
+          {
+            Tuple *tuple = new Tuple( localInfo->resultTupleType );
+            tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
+            result.setAddr(tuple);
+            return YIELD;
+          }
+          else
+            return CANCEL;
+        }
+      }
+    }
+
+    case CLOSE :
+    {
+      if(local.addr)
+      {
+        localInfo = 
+          (MON_WindowTimeIntersectsSLocalInfo<SmiRecordId>*)local.addr;
+        delete localInfo;
+        local.setAddr(Address(0));
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+int MON_WindowTimeIntersectsSDbl( Word* args, Word& result,
+                                  int message, Word& local,
+                                  Supplier s )
+{
+  MON_WindowTimeIntersectsSLocalInfo<BottomR_TreeLeafInfo> *localInfo;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      localInfo = new MON_WindowTimeIntersectsSLocalInfo<BottomR_TreeLeafInfo>;
+      localInfo->montree = (MON_Tree<BottomR_TreeLeafInfo>*)args[1].addr;
+      localInfo->montree->SetNetwork( (Network*)args[0].addr );
+      localInfo->relation = (Relation*)args[2].addr;
+      localInfo->first = true;
+
+      localInfo->searchBox = *(BBox<2>*)args[3].addr;
+      localInfo->searchTimeInterval = 
+        Interval<Instant>( *(Instant*)args[4].addr,
+                           *(Instant*)args[5].addr,
+                           true, true ); 
+      localInfo->resultTupleType =
+        new TupleType(nl->Second(GetTupleResultType(s)));
+
+      assert(localInfo->montree != 0);
+      assert(localInfo->relation != 0);
+      local.setAddr(localInfo);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      localInfo = 
+        (MON_WindowTimeIntersectsSLocalInfo<BottomR_TreeLeafInfo>*)local.addr;
+       R_TreeLeafEntry<2, BottomR_TreeLeafInfo> e;
+
+      if ( !localInfo->searchBox.IsDefined() ||
+           !localInfo->searchTimeInterval.IsValid() )
+      { 
+        return CANCEL;
+      }
+      else
+      {
+        if(localInfo->first)
+        {
+          localInfo->first = false;
+          if( localInfo->montree->First( localInfo->searchBox, 
+                                         localInfo->searchTimeInterval,
+                                         e ) )
+          {
+            Tuple *tuple = new Tuple( localInfo->resultTupleType );
+            tuple->PutAttribute(
+              0, new TupleIdentifier( true, e.info.tupleId ) );
+            tuple->PutAttribute( 1, new CcInt( true, e.info.low ) );
+            tuple->PutAttribute( 2, new CcInt( true, e.info.high ) );
+            result.setAddr(tuple);
+            return YIELD;
+          }
+          else
+            return CANCEL;
+        }
+        else
+        {
+          if( localInfo->montree->Next( e ) )
+          {
+            Tuple *tuple = new Tuple( localInfo->resultTupleType );
+            tuple->PutAttribute(
+              0, new TupleIdentifier( true, e.info.tupleId ) );
+            tuple->PutAttribute( 1, new CcInt( true, e.info.low ) );
+            tuple->PutAttribute( 2, new CcInt( true, e.info.high ) );
+            result.setAddr(tuple);
+            return YIELD;
+          }
+          else
+            return CANCEL;
+        }
+      }
+    }
+
+    case CLOSE :
+    {
+      if(local.addr)
+      {
+        localInfo = 
+          (MON_WindowTimeIntersectsSLocalInfo<BottomR_TreeLeafInfo>*)local.addr;
+        delete localInfo;
+        local.setAddr(Address(0));
+      }
+      return 0;
+    }
+  }
+  return 0;
+}
+
+/*
+5.1.2 Selection function of operator ~windowintersectsS~
+
+*/
+int
+WindowTimeIntersectsSSelection( ListExpr args )
+{
+  if(nl->BoolValue(nl->Fourth(nl->Second(args))))
+    return 1;
+  return 0;
+}
+
+/*
+5.1.5 Specification of operator ~windowintersectsS~
+
+*/
+const string windowtimeintersectsSSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>montree(tuple ((x1 t1)...(xn tn))"
+      " ti) x rel(tuple ((x1 t1)...(xn tn))) "
+      "x rect x instant x instant ->\n"
+      " (stream (tuple ((id tid))))\n</text--->"
+      "<text>_ _ windowintersectsS [ _, _, _ ]</text--->"
+      "<text>Uses the given MON-Tree to find all tuples"
+      " in the given relation with .xi intersects the "
+      " argument value's bounding box within "
+      " the time interval argument.</text--->"
+      "<text>query trainsInd trains windowintersects"
+      " [r, t1, t2] consume; where trainsInd "
+      "is e.g. created with 'let trainsInd = "
+      "net trains createmontree [trip]'</text--->"
+      ") )";
+
+/*
+4.1.5 Definition of value mapping vectors
+
+*/
+ValueMapping windowtimeintersectss [] = { MON_WindowTimeIntersectsS,
+                                          MON_WindowTimeIntersectsSDbl };
+
+/*
+5.1.6 Definition of operator ~windowtimeintersectsS~
+
+*/
+Operator windowtimeintersectsS (
+         "windowtimeintersectsS",        
+         windowtimeintersectsSSpec,      
+         3,
+         windowtimeintersectss,
+         WindowTimeIntersectsSSelection, 
+         MON_WindowTimeIntersectsSTypeMap    
+);
+
+/*
+6 Definition and initialization of MON-Tree Algebra
 
 */
 class MONTreeAlgebra : public Algebra
@@ -968,6 +1512,7 @@ class MONTreeAlgebra : public Algebra
 
     AddOperator( &createmontree );
     AddOperator( &windowtimeintersects );
+    AddOperator( &windowtimeintersectsS );
   }
   ~MONTreeAlgebra() {};
 };
@@ -982,4 +1527,6 @@ InitializeMONTreeAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   qp = qpRef;
   return (new MONTreeAlgebra);
 }
+
+
 

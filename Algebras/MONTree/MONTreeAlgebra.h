@@ -30,6 +30,7 @@ using namespace std;
 #include "TemporalAlgebra.h"
 
 class MGPoint;
+class UGPoint;
 class Network;
 
 /*
@@ -124,10 +125,25 @@ struct TopR_TreeLeafInfo
     {}
 };
 
+
+struct BottomR_TreeLeafInfo
+{
+  TupleId tupleId;
+  int low;
+  int high;
+
+  BottomR_TreeLeafInfo() {}
+
+  BottomR_TreeLeafInfo( TupleId tupleId, int low, int high ):
+      tupleId( tupleId ), low( low ), high( high )
+      {}
+};
+
 /*
 3 Class ~MON\_Tree~
 
 */
+template<class BottomR_TreeLeafInfo>
 class MON_Tree
 {
   public:
@@ -173,7 +189,9 @@ Loads the routes from the network into the index.
 */
 
     void Insert( const MGPoint& mgpoint, 
-                 const SmiRecordId mgpointId );
+                 const BottomR_TreeLeafInfo& mgpointId );
+    void Insert( const UGPoint& ugpoint, 
+                 const BottomR_TreeLeafInfo& ugpointId );
 /*
 Inserts a moving(gpoint) into the MON-Tree.
 
@@ -181,8 +199,8 @@ Inserts a moving(gpoint) into the MON-Tree.
 
     bool First( const Rectangle<2>& searchRectangle, 
                 const Interval<Instant>& timeInterval,
-                R_TreeLeafEntry<2, SmiRecordId>& result );
-    bool Next( R_TreeLeafEntry<2, SmiRecordId>& result );
+                R_TreeLeafEntry<2, BottomR_TreeLeafInfo>& result );
+    bool Next( R_TreeLeafEntry<2, BottomR_TreeLeafInfo>& result );
 /*
 The search of the MON-Tree.
 
@@ -208,7 +226,7 @@ Attributes
     Network *network;
 
     R_Tree<2, TopR_TreeLeafInfo> *top_RTree;
-    R_Tree<2, SmiRecordId> *bottom_RTree;
+    R_Tree<2, BottomR_TreeLeafInfo> *bottom_RTree;
 
     Rectangle<2> searchBox;
     Interval<Instant> searchTimeInterval;

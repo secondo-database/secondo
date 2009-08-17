@@ -13,3 +13,6 @@ Signature: network x montree x rel(tuple(X)) x rect x instant x instant -> strea
 Example  : query net montree trains windowtimeintersects[w2, t1, t2] count;
 Result   : 1
 
+
+query B_NETWORK dataSNcar_MONTree dataSNcar windowtimeintersectsS[qw, t1, t2] consume;
+
