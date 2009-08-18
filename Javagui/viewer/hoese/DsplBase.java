@@ -94,7 +94,9 @@ public interface DsplBase {
    */
   public boolean getSelected ();
 
-
+  public void setBorderLeft (int i);
+  
+  public int getBorderLeft ();
 
 
 }

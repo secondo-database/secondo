@@ -34,7 +34,7 @@ public class DsplGeneric implements DsplBase {
   protected String AttrName;
   protected boolean selected;
   private boolean visible = true;
-
+  protected int borderLeft = 0;
   /**
    * In relations it is neccessary to get the name of the attribute of this datatype instance in
    * a tuple.
@@ -139,6 +139,13 @@ public void init(String name,int nameWidth,
     return false;
   }
 
+  public void setBorderLeft(int i){
+	borderLeft = i;
+  }
+	  
+  public int getBorderLeft(){
+	return borderLeft;
+  }
 
 }
 
