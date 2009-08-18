@@ -8780,8 +8780,18 @@ ListExpr CellIndexTypeMap( ListExpr args )
   }
 
   ListExpr rtree = nl->First(args);
+
+  if(!listutils::isRTreeDescription(rtree)){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+
   string rtreedescription;
   nl->WriteToString(rtreedescription,rtree);
+  
+
+
   ListExpr rtsymbol = nl->First(rtree);
 
   ListExpr cellnumber = nl->Second(args);
