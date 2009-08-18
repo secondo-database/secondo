@@ -197,6 +197,12 @@ SmiEnvironment::Implementation::FreeDbHandle( DbHandleIndex idx )
 }
 
 void
+SmiEnvironment::Implementation::DeleteDbHandle( DbHandleIndex idx )
+{
+  instance.impl->dbHandles[idx].handle = 0;
+}
+
+void
 SmiEnvironment::Implementation::CloseDbHandles()
 {
   static bool traceHandles =
@@ -1660,6 +1666,10 @@ SmiEnvironment::GetCacheStatistics(CacheInfo& ci, vector<FileInfo*>& fi)
   DB_MPOOL_STAT* gsp;
   DB_MPOOL_FSTAT** fsp;
   int rc = dbenv->memp_stat( &gsp, &fsp, DB_STAT_CLEAR);
+
+  if(rc!=0){
+    cerr << "error during memstat operation" << endl;
+  }
 
   ci.bytes = gsp->st_bytes;
   ci.regsize = gsp->st_regsize;

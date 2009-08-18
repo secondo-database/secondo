@@ -370,6 +370,10 @@ Returns the "Berkeley DB"[3] handle at the position ~idx~ of the handle array.
 
 */
   static void FreeDbHandle( DbHandleIndex idx );
+
+  static void DeleteDbHandle( DbHandleIndex idx );
+
+
 /*
 Marks the "Berkeley DB"[3] handle at position ~idx~ as *not in use*.
 
