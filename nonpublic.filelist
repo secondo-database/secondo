@@ -60,7 +60,6 @@ Data/Databases/spatial
 Data/Objects/Distrikte
 Javagui/viewer/hoese/algebras/periodic
 Algebras/RegionInterpolation/Tex
-Tools/Generators/TPC-H
 
 # chessalgebra
 Tests/Testspecs/chessalgebra
