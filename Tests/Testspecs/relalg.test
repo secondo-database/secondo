@@ -471,7 +471,7 @@ query Staedte roottuplesize = Staedte feed roottuplesize
 
 #testcase size2
 #yields (bool TRUE)
-query Staedte exttuplesize = Staedte feed exttuplesize
+query abs( (Staedte exttuplesize) - (Staedte feed exttuplesize)) < 0.001
 
 #testcase size3
 #yields (bool TRUE)
