@@ -639,6 +639,13 @@ SmiFile::Close()
     {
       SmiEnvironment::Implementation::FreeDbHandle( impl->bdbHandle );
       impl->noHandle = true;
+      if(impl->bdbFile){
+        impl->bdbFile->close(0);
+        delete impl->bdbFile;
+        impl->bdbFile=0;
+        impl->noHandle=true;
+        SmiEnvironment::Implementation::DeleteDbHandle( impl->bdbHandle );
+      }
     }
     else
     {
