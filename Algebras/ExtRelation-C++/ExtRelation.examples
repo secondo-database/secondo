@@ -303,3 +303,8 @@ Signature: stream(tuple((a1 t1)...(an tn)(id int))) x int x a_k_1 x ... a_k_m ->
 Example  : query (plz feed sortby[Ort desc] head [10] project[Ort]) (plz feed kbiggest[10;Ort] project[Ort]) mergediff count
 Result   : (int 0)
 
+Operator : printrefs 
+Number   : 1
+Signature: stream(tuple((a1 t1)..(an tn))) -> stream(tuple((a1 t1)...(an tn)(id int)))
+Example  : query ten feed printrefs count;
+Result   : (int 10)

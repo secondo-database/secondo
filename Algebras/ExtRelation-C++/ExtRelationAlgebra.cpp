@@ -9397,7 +9397,7 @@ struct printrefsInfo : OperatorInfo {
   {
     name      = PRINTREFS;
 
-    signature = REL_TUPLE + " -> " + REL_TUPLE;
+    signature = STREAM_TUPLE + " -> " + STREAM_TUPLE;
     syntax    = "_" + PRINTREFS + "_";
     meaning   = "Prints out the values of the tuple's "
                 "and attribute's reference counter";
