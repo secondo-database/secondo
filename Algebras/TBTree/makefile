@@ -45,3 +45,16 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	rm -f TBTree.zip
+
+PLUGINFILES = copyright.txt makefile SecondoExtension.xml TBTreeAlgebra.cpp 
+PLUGINFILES += TBTreeAlgebra.spec TBTree.examples TBTree.h
+PLUGINFILES += ../../bin/tbtreetest
+
+
+.PHONY: plugin
+plugin:
+	zip -D -j TBTree.zip $(PLUGINFILES)
+
+
+
