@@ -104,9 +104,14 @@ Result   : 580
 Operator : project
 Number   : 1
 Signature: ((stream (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (tuple ((ai1 Ti1) ... (aik Tik))))
-Example  : query Staedte feed project[SName, Bev] consume count
+Example  : query Staedte feed project[SName, Bev] tconsume count
 Result   : 58
 
+Operator : feedproject
+Number   : 1
+Signature: ((rel (tuple ((x1 T1) ... (xn Tn)))) (ai1 ... aik)) -> (stream (tuple ((ai1 Ti1) ... (aik Tik))))
+Example  : query Staedte feedproject[SName, Bev] tconsume count
+Result   : 58
 
 Operator : reduce
 Number   : 1
@@ -125,7 +130,7 @@ Result   : ( (rel(tuple((Bev int)))) ((239000)) )
 Operator : rename
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, ... ,anar:dn)))
-Example  : query ten feed rename[t1] consume count
+Example  : query ten feed rename[t1] tconsume count
 Result   : 10
 
 
