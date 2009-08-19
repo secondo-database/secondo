@@ -38,4 +38,4 @@ do
 done
 
 regexp=$regexp")"
-awk "BEGIN {FS=\"(\"}; /"$regexp"/{print \"ALGEBRA_INCLUDE(\"\$2}; " $file 
+awk "BEGIN {IGNORECASE=1}; {FS=\"(\"}; /"$regexp"/{print \"ALGEBRA_INCLUDE(\"\$2}; " $file 
