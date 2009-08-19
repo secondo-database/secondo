@@ -1,4 +1,4 @@
-Database : berlintest
+Database : nntest
 Restore  : No
 
 Operator : distancescan
