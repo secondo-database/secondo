@@ -45,3 +45,12 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	rm -f NN.zip
+
+PLUGIN_FILES = BBTree.h copyright.txt makefile NearestNeighborAlgebra.cpp NearestNeighborAlgebra.h 
+PLUGIN_FILES += NearestNeighborAlgebra.spec NearestNeighbor.examples SecondoExtension.xml
+PLUGIN_FILES += ../../bin/nntest
+
+.PHONY: plugin
+plugin:
+	zip -D -j NN.zip $(PLUGIN_FILES)
