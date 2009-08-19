@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-using namespace std;
 
 #include <stdlib.h>
 #include <assert.h>
@@ -37,6 +36,8 @@ using namespace std;
 #include "FileSystem.h"
 #include "LogMsg.h"
 
+using namespace std;
+
 extern CMsg cmsg;
 
 Environment*
@@ -49,6 +50,7 @@ Environment::Environment()
   keyMap["SEC_pMaxRead"] = Int;
   keyMap["SEC_pAllowHints"] = Bool;
   keyMap["SECONDO_PLATFORM"] = String; 
+  keyMap["SECONDO_BUILD_DIR"] = String; 
 
   init(); 
 }
@@ -80,7 +82,8 @@ Environment::init() {
 		    boolMap[key] = v;
 		    break; }
 
-      case String: { stringMap[key] = value; break; }
+      case String: { cerr << "Env: " << key << " = " << value << endl; 
+			   stringMap[key] = value; break; }
 
       default: assert(false);		   
     }	      

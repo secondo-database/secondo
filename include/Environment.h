@@ -38,17 +38,24 @@ March. 2007, M. Spiekermann: A class for extracting environment variables
 
 This class maintains values of environment variables. If you want
 to add new variables to extract you need to add them in the implementation
-file Tools/Utilities/Environment.cpp
+file Tools/Utilities/Environment.cpp. This class enables you to
+access any preconfigured environment variable by one line of code, e.g.
+
+----
+  #include "Envinronment.h"
+
+  string bdir = Environment::getInstance.getString("SECONDO_BUILD_DIR");
+----
 
 */
 class Environment {
 
  typedef enum {Int, Float, Bool, String} Type; 	
- map<string, Type>   keyMap;
- map<string, int>    intMap;
- map<string, double> floatMap;
- map<string, bool>   boolMap;
- map<string, string> stringMap;
+ std::map<std::string, Type>   keyMap;
+ std::map<std::string, int>    intMap;
+ std::map<std::string, double> floatMap;
+ std::map<std::string, bool>   boolMap;
+ std::map<std::string, std::string> stringMap;
 
  // There will be only one instance. Hence the constructor
  // is private. ~getInstance~ will call it if necessary.
@@ -56,7 +63,7 @@ class Environment {
  static Environment* instance;
  
  template<class R>
- R getValue(string key, map<string, R>& m, R d) 
+ R getValue(std::string key, std::map<std::string, R>& m, const R& d) 
  {
    if ( m.find(key) == m.end() )
      return d;
@@ -79,22 +86,24 @@ class Environment {
      delete instance;	  
   } 
   
-  int getInt(string key, int d=0) 
+  // return a stored environment value. The optional parameter
+  // d is the default if key is not present; 
+  int getInt(std::string key, int d=0) 
   {
     return getValue(key, intMap, d);  
   } 	  
 
-  double getFloat(string key, double d=0.0) 
+  double getFloat(std::string key, double d=0.0) 
   {
     return getValue(key, floatMap, d);  
   } 	  
 
-  bool getBool(string key, bool d=false) 
+  bool getBool(std::string key, bool d=false) 
   {
     return getValue(key, boolMap, d);  
   } 	  
 
-  string getString(string key, string d="") 
+  std::string getString(std::string key, std::string d="") 
   {
     return getValue(key, stringMap, d);  
   } 	  
