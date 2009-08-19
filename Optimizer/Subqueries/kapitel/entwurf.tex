@@ -9,7 +9,7 @@ Der von Kim bzw. Ganski/Wong vorgestellten Algorithmen zur Optimierung geschacht
 Bei der Analyse des Problems wurde klar, das eine echte Optimierung, d.h. ein Vergleich der geschachtelten und der nicht geschachtelten Ausführungsvariante einer Abfrage umfangreiche Berechnungen und Simulationen erfordern würde. Um die Kosten der entschachtelten Abfrage ermitteln zu können müssen die Selektivitäten der Prädikate ermittelt werden. Dies erfolgt durch Auswertung jedes einzelnen Prädikats über eine bzw. zwei Stichproben-Relationen, die aus den eigentlichen Relationen abgeleitet werden. Da die Prädikate der entschachtelten Abfrage 
 möglicherweise auf temporäre Relationen bezugnehmen, müsste hier die entsprechende Selektivität simuliert werden. Um an dieser Stelle vernünftige Daten zu erhalten, wäre der Nachbau eines großen Teils der Metadaten-Ermittlung des Optimierers notwendig gewesen. Da dies den Rahmen dieser Diplomarbeit sprengen würde, wurde hierauf verzichtet.
 
-Da der Operator \sql{in} für Tupel noch nicht implementiert ist, wurde die triviale Umsetzung von \sql{in} in die Disjunktion der angegebenen Konstanten als Übersetzung integriert. Eine Implementierung des \sql{in}-Operators für Tupelströme auf Basis \secondo{in}- und \secondo{collect\_set}-Operators der \algebra{Collection}-Algebra wäre eine mögliche Vorgehensweise zur performante Implementierung dieses Operators.
+Da der Operator \sql{in} für Tupel noch nicht implementiert ist, wurde die triviale Umsetzung von \sql{in} in die Disjunktion der angegebenen Konstanten als Übersetzung integriert. Eine Implementierung des \sql{in}-Operators für Tupelströme auf Basis \secondo{in}- und \secondo{collect\_set}-Operators der \algebra{Collection}-Algebra wäre eine mögliche Vorgehensweise zur performanten Implementierung dieses Operators.
 \begin{itemize}
 	\item keine automatische Entscheidung entschachteln oder nicht
 	\subitem alle Metadaten über temp. Relationen wären notwendig
@@ -47,6 +47,7 @@ max&\quad\text{falls}\ \theta > oder \geq.
 \end{math}
 
 Im Spezialfall \sql{$C_n$ = any(select $C_m$ from $R_i$ where P)} wird das Prädikat durch das semantisch äquivalente Prädikat \sql{$C_n$ in (select $C_m$ from $R_i$ where P)} ersetzt.
+
 
 \section{Algorithmus \textbf{NEST-N-J}}
 Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine semantische äquivalente entschachtelte Form zu überführen. Dafür wird die Konjunktion der WHERE-Klauseln gebildet und um ein Join-Prädikat ergänzt, das aus dem ursprünglich geschachtelten Prädikat abgeleitet ist. 
@@ -109,7 +110,7 @@ where §$P_1 (R_1 ),\dots,P_k (R_1 )$§,
 	§$)$§
 \end{lstlisting}
 
-Die Projektion der äußeren Relation
+Die Projektion der äußeren Relation auf die Join-Spalte des korrelierten Prädikats.
 
 \begin{lstlisting}
 TEMP1 = (
@@ -127,6 +128,8 @@ TEMP2 = (
 	)
 \end{lstlisting}
 
+Für Aggregationsfunktionen ungleich \sql{count} ergibt sich folgender Ausdruck für die dritte temporäre Relation.
+
 \begin{lstlisting}
 TEMP3 = (
 	select §$T_1.Y,\operatorname{AGGR}(T_j.A)$§ as AggrResult
@@ -137,6 +140,8 @@ TEMP3 = (
   §$)$§
 \end{lstlisting}
 
+Ist die Aggregationsfunktion \sql{count}, so muss stattdessen der Full-Outer-Join berechnet werden.
+
 \begin{lstlisting}
 TEMP3 = (
 	select §$T_1.Y,\operatorname{AGGR}(T_j.A)$§ as AggrResult
@@ -146,6 +151,8 @@ TEMP3 = (
   	§$T_1.Y$§
   §$)$§
 \end{lstlisting}
+
+Nach der Berechnung der temporären Tabellen vereinfacht sich die ursprüngliche Abfrage zu 
 
 \begin{lstlisting}
 select §$A_1,\dots,A_n$§

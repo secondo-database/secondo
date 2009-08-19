@@ -58,7 +58,7 @@ Der in-Operator wird mit dem \textsc{Secondo} Operator \secondo{in} der Collecti
 
 \secondo{$stream(tuple((a_1 t_1)\cdots(a_n t_n)))\times a_n$ $\rightarrow$ $(stream t_n)$} 
 
-und wandelt einen Tupel-Strom in einen Strom von Werten um. Hierbei wird das Selektions-Attribute der geschachtelten Abfrage als zu wählender Parameter mitgegeben. Der Strom wird dann mit dem Operator \secondo{collect\_set} in eine Menge umgewandelt und für jedes Tupel des äußeren Stroms wird mit \secondo{in} geprüft, ob der entsprechende Attributwert enthalten ist. D.h. 
+und wandelt einen Tupel-Strom in einen Strom von Werten um. Hierbei wird das Selektions-Attribute der geschachtelten Abfrage als zu wählender Parameter mitgegeben. Der Strom wird dann mit dem Operator \secondo{collect\_set} in eine Menge umgewandelt und für jedes Tupel des äußeren Stroms wird mit \secondo{in} geprüft, ob der entsprechende Attributwert enthalten ist. D.h. es wird genau die mengenbasierte Semantik des \sql{in}-Operators erreicht.
 
 \begin{lstlisting}
 §$A_i$§ in (select §$A_j$§ from §$R_n$§)
@@ -71,11 +71,13 @@ wird in den \textsc{Secondo}-Ausdruck
 \subsection{Using Parameter functions}
 \textsc{Secondo} unterstützt im Moment Prädikate die aus Attributen von bis zu zwei Relationen aufgebaut sind. Da diese Beschränkung durch den nur durch Erweiterungen am zentralen Optimierungs-Algorithmus aufgehoben werden kann, gilt sie auch für Prädikate mit geschachtelten Abfragen. D.h. in einer Unterabfrage können maximal Attribute aus zwei äußeren Relationen verwendet werden. Da durch die Entschachtelung neue, temporäre Tabellen eingeführt werden können, kann es zu der Situation kommen, dass ein Prädikat in seiner geschachtelten Form ein Ausdruck über den Attributen zweier Relationen ist, aber bei der Entschachtelung zu einem Ausdruck über drei oder mehr Relationen wird. 
 
-Je nach Anzahl der verwendeten äußeren Relationen wird die geschachtelte Abfrage in eine allgemeine Mapping-Funktion mit einer entsprechenden Anzahl Parameter übersetzt. Die innere Abfrage wird in einen \enquote{normalen} \textsc{Secondo}-Ausdruck übersetzt, auf die Attribute der äußeren Relation kann dann über die Parameter der Mapping-Fuktion zugegriffen werden.
+Je nach Anzahl der verwendeten äußeren Relationen wird die geschachtelte Abfrage mit einer allgemeine Mapping-Funktion mit einer entsprechenden Anzahl Parameter übersetzt. Die innere Abfrage wird in einen \enquote{normalen} \textsc{Secondo}-Ausdruck übersetzt, auf die Attribute der äußeren Relation kann dann über die Parameter der Mapping-Fuktion zugegriffen werden.
+
+Der Filter Operator erwartet neben einem Tupelstrom eine Mapping-Funktion, die vom Datentyp \secondo{tupel} nach \secondo{bool} abbildet. Handelt es sich bei dem zu übersetzenden Prädikat um ein geschachteltes Prädikat mit einem skalaren Vergleichsoperator, so hat die Funktion die Form $A_i \theta\!$ \secondo{query}-Ausdruck. Der \textsc{Secondo}-Parser prüft Attribut und Ergebnis des \secondo{query}-Ausdrucks auf Typ-Kompatibilität.
 \begin{itemize}
 	\item Mit einem Parameter (normalerweise Filter)
 	
-	\item mit zwei Parametern für symmjoin (akzeptiert allgemeine Funktion) Wird in einem geschachtelten Prädikat auf zwei Relationen des äußeren Abfrageblocks verwiesen, so handelt es sich semantisch um ein Join-Prädikat. Symmjoin ist der einzige Algorithmus, der die Join-Operation auch für andere als den Equi-Join ausführen kann. Der Operator akzeptiert zwei Tupelströme und eine Mapping-Funktion mit zwei Parameter als Argumente.
+	\item mit zwei Parametern für symmjoin (akzeptiert allgemeine Funktion) Wird in einem geschachtelten Prädikat auf zwei Relationen des äußeren Abfrageblocks verwiesen, so handelt es sich semantisch um ein Join-Prädikat. Symmjoin ist der einzige Algorithmus, der die Join-Operation auch für andere Fälle als den Equi-Join ausführen kann. Der Operator akzeptiert zwei Tupelströme und eine Mapping-Funktion mit zwei Parameter als Argumente. Die Mapping-Funktion hat die Signatur $(streamelem1, streamelem2) \rightarrow bool$.
 \end{itemize}
 
 
