@@ -176,11 +176,112 @@ Identifies the record number of the ~FileId~ sequence.
 
 */
 
-struct SmiDbHandleEntry
-{
-  Db*           handle;
-  bool          inUse;
-  DbHandleIndex nextFree;
+class SmiDbHandleEntry
+{ public: 
+    SmiDbHandleEntry(Db* _handle): handle(_handle), 
+                                                inUse(false),
+                                                nextFree(0){} 
+    SmiDbHandleEntry(const SmiDbHandleEntry& src): handle(src.handle), 
+                                         inUse(src.inUse), 
+                                         nextFree(src.nextFree){}
+    SmiDbHandleEntry& operator=(const SmiDbHandleEntry& src){
+        handle = src.handle;
+        inUse  = src.inUse;
+        nextFree = src.nextFree;
+        return *this;
+    }
+    ~SmiDbHandleEntry(){}
+
+    inline bool isOpen() {
+       if(!handle){
+          return false;
+       } else {
+          u_int32_t* flags;
+          return (handle->get_open_flags(flags)==0);
+       }
+    }
+
+    inline string getFileName(){
+       if(!handle){
+          return "";
+       }
+       const char* fn; // file Name
+       const char* dn; // database name
+       int rc = handle->get_dbname(&fn, &dn);
+       if(rc!=0){
+          return "";
+       }
+       string fns(fn);
+       return fns;
+    }
+
+    bool canBeUsedFor(const string& fileName, const u_int32_t flags){
+       if(inUse){
+         return false;
+       }
+       if(!handle){
+         return false;
+       }
+       u_int32_t storedFlags;
+       int rc = handle->get_open_flags(&storedFlags);
+       if(rc!=0){ // file not open
+         return false;
+       }
+       if(storedFlags != flags){ // opened in different mode
+          return false;
+       }
+       if(fileName.length()==0){
+            return false;
+       }
+       return fileName == getFileName();
+    }
+
+    inline DbHandleIndex getNextFree() const{
+      return nextFree;
+    }
+
+    inline void setNextFree(const DbHandleIndex _nextFree) {
+       nextFree = _nextFree;
+    }
+
+    inline Db* getHandle() const{
+      return handle;
+    }
+
+    inline void setHandle(Db* _handle){
+       if(handle && _handle){
+          cerr << "overwriting an existing handle" << endl;
+       }
+       handle = _handle;       
+    }
+
+    inline void setInUse(const bool _inUse){
+       inUse = _inUse;
+    }
+
+    inline bool isInUse() const {
+        return inUse;
+    }
+  
+    inline bool hasHandle() const{
+      return handle!=0;
+    }
+
+    inline int closeAndDeleteHandle(u_int32_t flag){
+        if(!handle){
+          return 1;
+        }
+        int rc = handle->close(flag);
+        delete handle;
+        handle=0;
+        return rc; 
+    }
+
+
+  private:
+    Db*           handle;
+    bool          inUse;
+    DbHandleIndex nextFree;
 };
 /*
 Defines the structure of the elements of the "Berkeley DB"[3] handle array.
@@ -364,6 +465,15 @@ public:
 Allocates a new "Berkeley DB"[3] handle and returns the index within the handle array.
 
 */
+  static int FindOpen(const string& fileName,const u_int32_t flags);
+/*
+  Returns the index of a open, unused bdb entry matching the given filename, or -1 
+  if such an entry does not exist.  
+
+*/
+
+  
+
   static Db*  GetDbHandle( DbHandleIndex idx );
 /*
 Returns the "Berkeley DB"[3] handle at the position ~idx~ of the handle array.
@@ -373,6 +483,12 @@ Returns the "Berkeley DB"[3] handle at the position ~idx~ of the handle array.
 
   static void DeleteDbHandle( DbHandleIndex idx );
 
+
+ static void SetUnUsed(DbHandleIndex idx );
+/* Sets the handle at position idx to be unused **/
+
+ static void SetUsed(DbHandleIndex idx );
+/* Sets the handle at position idx to be used **/
 
 /*
 Marks the "Berkeley DB"[3] handle at position ~idx~ as *not in use*.

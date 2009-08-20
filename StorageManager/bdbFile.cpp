@@ -92,9 +92,9 @@ ostream& operator<<(ostream& os, const SmiFile& f)
 
 SmiFile::Implementation::Implementation()
 {
-  bdbHandle = SmiEnvironment::Implementation::AllocateDbHandle();
-  bdbFile   = SmiEnvironment::Implementation::GetDbHandle( bdbHandle );
-  noHandle = false;
+  bdbHandle =  0; // SmiEnvironment::Implementation::AllocateDbHandle();
+  bdbFile   = 0; //SmiEnvironment::Implementation::GetDbHandle( bdbHandle );
+  noHandle = true;
   bdbName = "undefined";
 /*
 The constructor cannot allocate a Berkeley DB handle by itself since handles
@@ -286,9 +286,14 @@ SmiFile::Create( const string& context /* = "Default" */ )
 
       u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
       u_int32_t dirtyFlag = useTxn ? DB_DIRTY_READ : 0;
+      DbTxn* tid = !impl->isTemporaryFile ?
+                    SmiEnvironment::instance.impl->usrTxn : 0;
+      if(tid){
+        commitFlag=0;    
+      }
       u_int32_t flags = (!impl->isTemporaryFile) ?
                            DB_CREATE | dirtyFlag | commitFlag : DB_CREATE;
-      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
+      rc = impl->bdbFile->open( tid, bdbName.c_str(), 0, bdbType, flags, 0 );
       if (trace)
         cerr << "Creating " << *this << endl;
       if ( rc == 0 )
@@ -323,16 +328,18 @@ SmiFile::Create( const string& context /* = "Default" */ )
 
   return (rc == 0);
 }
+/*
+Opens a file by name.
 
+*/
 bool
 SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 {
   assert ( !opened );
-
   static long& ctr = Counter::getRef("SmiFile::Open");
   int rc = 0;
   bool existing = false;
-  impl->CheckDbHandles();
+  //impl->CheckDbHandles(); // allocating dbhandles moved 
 
   if ( impl->isTemporaryFile )
   {
@@ -376,6 +383,32 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
       fileName = bdbName;
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
+      u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
+      u_int32_t dirtyFlag = useTxn ? DB_DIRTY_READ : 0;
+      DbTxn* tid = !impl->isTemporaryFile ?
+                    SmiEnvironment::instance.impl->usrTxn : 0;
+      if(tid){
+        commitFlag=0;    
+      }
+      u_int32_t openFlags = DB_CREATE | dirtyFlag | commitFlag;
+
+      int alreadyExisting = 
+          SmiEnvironment::Implementation::FindOpen(fileName,openFlags);
+      if(alreadyExisting>=0){
+         DbHandleIndex old = impl->bdbHandle;
+         if(!impl->noHandle){
+             SmiEnvironment::Implementation::SetUnUsed(old);
+         }
+         impl->bdbHandle = alreadyExisting;
+         impl->bdbFile = 
+               SmiEnvironment::Implementation::GetDbHandle(impl->bdbHandle);
+         SmiEnvironment::Implementation::SetUsed(impl->bdbHandle);
+         opened = true;
+         impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
+         return true;
+      }
+
+      impl->CheckDbHandles();
 
       DBTYPE bdbType;
       switch ( fileType )
@@ -430,11 +463,9 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 
       // --- Open Berkeley DB file
 
-      u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
-      u_int32_t dirtyFlag = useTxn ? DB_DIRTY_READ : 0;
-      rc = impl->bdbFile->open( 0, bdbName.c_str(),
+      rc = impl->bdbFile->open( tid, bdbName.c_str(),
                                 0, bdbType,
-                                DB_CREATE | dirtyFlag | commitFlag, 0 );
+                                openFlags, 0 );
 
       if (trace)
         cerr << "opening by name = " << name << ", " << *this << endl;
@@ -494,7 +525,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
   static long& ctr = Counter::getRef("SmiFile::Open");
   TRACE("SmiFile::Open")
   int rc = 0;
-  impl->CheckDbHandles();
+  // impl->CheckDbHandles(); memory allocated later
 
   if ( CheckName( context ) )
   {
@@ -527,6 +558,32 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 
       impl->bdbName = bdbName;
       fileName = bdbName;
+      u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
+      u_int32_t dirtyFlag = useTxn ? DB_DIRTY_READ : 0;
+      DbTxn* tid = !impl->isTemporaryFile ?
+                    SmiEnvironment::instance.impl->usrTxn : 0;
+      if(tid){
+        commitFlag=0;    
+      }
+      u_int32_t flags = (!impl->isTemporaryFile) ?
+                            dirtyFlag | commitFlag : 0;
+
+      int alreadyExist = 
+          SmiEnvironment::Implementation::FindOpen(bdbName,flags);
+      if(alreadyExist>=0){
+         DbHandleIndex old = impl->bdbHandle;
+         if(!impl->noHandle){
+             SmiEnvironment::Implementation::SetUnUsed(old);
+         }
+         impl->bdbHandle = alreadyExist;
+         impl->bdbFile = 
+               SmiEnvironment::Implementation::GetDbHandle(impl->bdbHandle);
+         SmiEnvironment::Implementation::SetUsed(impl->bdbHandle);
+         opened = true;
+         impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
+         return true;
+      } 
+      impl->CheckDbHandles();
       // --- Find out the appropriate Berkeley DB file type
       // --- and set required flags or options if necessary
 
@@ -583,12 +640,8 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 
       // --- Open Berkeley DB file
 
-      u_int32_t commitFlag = SmiEnvironment::Implementation::AutoCommitFlag;
-      u_int32_t dirtyFlag = useTxn ? DB_DIRTY_READ : 0;
-      u_int32_t flags = (!impl->isTemporaryFile) ?
-                            dirtyFlag | commitFlag : 0;
 
-      rc = impl->bdbFile->open( 0, bdbName.c_str(), 0, bdbType, flags, 0 );
+      rc = impl->bdbFile->open( tid, bdbName.c_str(), 0, bdbType, flags, 0 );
       fileId = fileid;
       if (trace)
         cerr << "opening by id =" << fileid << ", "<< *this << endl;

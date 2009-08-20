@@ -121,7 +121,7 @@ SmiEnvironment::Implementation::Implementation()
   bdbEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
   tmpEnv = 0;
   dbHandles.reserve( DEFAULT_DBHANDLE_ALLOCATION_COUNT );
-  SmiDbHandleEntry dummy = { 0, false, 0 };
+  SmiDbHandleEntry dummy(0);
   dbHandles.push_back( dummy );
   firstFreeDbHandle = 0;
 
@@ -163,20 +163,21 @@ SmiEnvironment::Implementation::AllocateDbHandle()
       instance.impl->dbHandles.reserve( instance.impl->dbHandles.size()
                                         + DEFAULT_DBHANDLE_ALLOCATION_COUNT );
     }
-    SmiDbHandleEntry dummy = { 0, false, 0 };
+    SmiDbHandleEntry dummy(0);
     instance.impl->dbHandles.push_back( dummy );
     idx = instance.impl->dbHandles.size() - 1;
   }
   else
   {
     // --- Reuse free handle entry
-    instance.impl->firstFreeDbHandle = instance.impl->dbHandles[idx].nextFree;
+    instance.impl->firstFreeDbHandle = 
+          instance.impl->dbHandles[idx].getNextFree();
   }
 
-  instance.impl->dbHandles[idx].handle   =
-  new Db( instance.impl->bdbEnv, DB_CXX_NO_EXCEPTIONS );
-  instance.impl->dbHandles[idx].inUse    = true;
-  instance.impl->dbHandles[idx].nextFree = 0;
+  instance.impl->dbHandles[idx].setHandle(
+                     new Db( instance.impl->bdbEnv, DB_CXX_NO_EXCEPTIONS ));
+  instance.impl->dbHandles[idx].setInUse(true);
+  instance.impl->dbHandles[idx].setNextFree(0);
 
   if (traceHandles)
     cerr << "Allocate: returned idx = " << idx << endl;	 
@@ -184,22 +185,40 @@ SmiEnvironment::Implementation::AllocateDbHandle()
   return (idx);
 }
 
+int SmiEnvironment::Implementation::FindOpen(const string& fileName, 
+                                             const u_int32_t flags){
+   for(unsigned int i=0;i<instance.impl->dbHandles.size();i++){
+       if(instance.impl->dbHandles[i].canBeUsedFor(fileName,flags)){
+         return i;
+       }
+   }
+   return -1;
+
+}
+ 
+
+void SmiEnvironment::Implementation::SetUnUsed(DbHandleIndex idx )
+{
+  instance.impl->dbHandles[idx].setInUse(false);
+}
+
+
+void SmiEnvironment::Implementation::SetUsed(DbHandleIndex idx )
+{
+  instance.impl->dbHandles[idx].setInUse(true);
+}
+
+
 Db*
 SmiEnvironment::Implementation::GetDbHandle( DbHandleIndex idx )
 {
-  return (instance.impl->dbHandles[idx].handle);
+  return (instance.impl->dbHandles[idx].getHandle());
 }
 
 void
 SmiEnvironment::Implementation::FreeDbHandle( DbHandleIndex idx )
 {
-  instance.impl->dbHandles[idx].inUse = false;
-}
-
-void
-SmiEnvironment::Implementation::DeleteDbHandle( DbHandleIndex idx )
-{
-  instance.impl->dbHandles[idx].handle = 0;
+  instance.impl->dbHandles[idx].setInUse(false);
 }
 
 void
@@ -220,28 +239,21 @@ SmiEnvironment::Implementation::CloseDbHandles()
     cerr << "CloseDbHandles (size = " << size << ")" << endl;
   for ( DbHandleIndex idx = 1; idx < size; idx++ )
   {
-    if ( !instance.impl->dbHandles[idx].inUse &&
-          instance.impl->dbHandles[idx].handle != 0 )
+    if ( !instance.impl->dbHandles[idx].isInUse() &&
+          instance.impl->dbHandles[idx].hasHandle())
     {
       closed++;
 
       if (traceHandles)
       {
-        const char* f;
-        const char* d;
-        int rc = instance.impl->dbHandles[idx].handle->get_dbname(&f, &d);
-	if (rc != 0) {
-	  f = "unknown file name";
-        }	  
-        cerr << "closing handle for idx = "
-             << idx << " (" << f << ")" << endl;
+	        string f = instance.impl->dbHandles[idx].getFileName();
+          cerr << "closing handle for idx = "
+               << idx << " (" << f << ")" << endl;
       }
-      int rc = instance.impl->dbHandles[idx].handle->close( flag );
+      int rc = instance.impl->dbHandles[idx].closeAndDeleteHandle( flag );
       SetBDBError(rc);
-      delete instance.impl->dbHandles[idx].handle;
-      instance.impl->dbHandles[idx].handle = 0;
-      instance.impl->dbHandles[idx].nextFree =
-	                              instance.impl->firstFreeDbHandle;
+      instance.impl->dbHandles[idx].setNextFree(
+                                    instance.impl->firstFreeDbHandle);
       instance.impl->firstFreeDbHandle = idx;
     }
   }
