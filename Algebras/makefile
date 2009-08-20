@@ -48,10 +48,9 @@ EXAMPLEFILES := $(wildcard $(addsuffix /*.examples, $(USED_ALGEBRA_DIRS) ))
 examples:
 	@for dir in "../bin/tmp" "../Optimizer/tmp"; do \
 	  mkdir -p $$dir; \
-	  echo "Removing old examples in $$dir"; \
+	  echo "Removing old .examples in $$dir"; \
 	  rm -rf $$dir/*.examples; \
-          echo "Copying example files to $$dir"; \
-	  echo $(EXAMPLEFILES) $$dir; \
+          echo "Copying .examples files to $$dir"; \
 	  cp $(EXAMPLEFILES) $$dir; \
 	done 
 
