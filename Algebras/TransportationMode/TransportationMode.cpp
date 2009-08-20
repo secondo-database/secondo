@@ -51,7 +51,9 @@ Subclass for manage bus network
 */
 class BusNetwork{
 
-
+private:
+  Relation* bus_node;
+  Relation* bus_edge;
 };
 
 /*
@@ -66,6 +68,8 @@ class TransportationModeAlgebra : public Algebra
 
   }
   ~TransportationModeAlgebra() {};
+ private:
+  BusNetwork* busnetwork;
 };
 
 };
@@ -76,6 +80,8 @@ Algebra*
 InitializeTransportationModeAlgebra( NestedList* nlRef,
     QueryProcessor* qpRef )
     {
+    nl = nlRef;
+    qp = qpRef;
   // The C++ scope-operator :: must be used to qualify the full name
-  return new TransportationMode::TransportationModeAlgebra();
+  return new TransportationMode::TransportationModeAlgebra;
     }
