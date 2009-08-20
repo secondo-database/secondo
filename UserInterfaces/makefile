@@ -98,6 +98,9 @@ all: $(CODE_DEPENDENCIES) $(MK_ENTROPY) $(APPLOBJECTS)
 .PHONY: buildapp
 buildapp: $(APPLICATIONS)
 
+.PHONY: secondobdb
+secondobdb: $(BINDIR)/Secondo$(SMIUP)
+
 .PHONY: TTYDemo
 TTYDemo: ../$(SECONDO_DEMO)/SecondoTTY$(SMIUP)$(EXEEXT)
 

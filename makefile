@@ -65,7 +65,7 @@ CONFIG_FILES = bin/SecondoConfig.ini \
 
 ALL_TARGETS = makedirs \
 	buildlibs \
-	buildalg \
+	buildAlgebras \
 	buildapps \
 	$(OPTIMIZER_SERVER) \
 	java2 \
@@ -77,10 +77,14 @@ ALL_TARGETS = makedirs \
 all: jnicheck $(ALL_TARGETS) 
 
 .PHONY: TTY 
-TTY: kernel examples
+TTY: kernel buildapps examples
+
+.PHONY: minTTY 
+minTTY: kernel minApps examples
+
 
 .PHONY: kernel
-kernel: makedirs buildlibs buildalg buildapps
+kernel: makedirs buildlibs buildAlgebras
 
 .PHONY: linkonly
 linkonly: buildapps
@@ -126,8 +130,8 @@ makedirs:
 .PHONY: libs
 libs: makedirs buildlibs
 
-.PHONY: buildalg
-buildalg:
+.PHONY: buildAlgebras
+buildAlgebras:
 	$(MAKE) -C Algebras buildlibs
 
 
@@ -155,7 +159,7 @@ endif
 optimizer: optimizer2 optserver update-config
 
 .PHONY: optimizer2
-optimizer2: makedirs buildlibs buildalg
+optimizer2: makedirs buildlibs buildAlgebras
 	$(MAKE) -C UserInterfaces optimizer
 
 
@@ -186,12 +190,17 @@ endif
 
 
 
-
 .PHONY: buildapps
 buildapps: 
 	@echo -e "\n *** Linking Applications *** \n"
 	$(MAKE) -C UserInterfaces buildapp
 	$(MAKE) -C ClientServer buildapp
+
+.PHONY: minApps
+minApps: 
+	@echo -e "\n *** Linking Applications *** \n"
+	$(MAKE) -C UserInterfaces secondobdb
+
 
 .PHONY: tests
 tests: makedirs buildlibs
