@@ -31,8 +31,8 @@ Die Implementierung des Optimierers ist in Prolog geschrieben. Da die vom Optimi
 
 \subsection{SQL}
 
-Relationale Datenbanken beruhen auf dem von E.F. Codd vorgeschlagenen Relationenalgebra und dem ebenfalls von Codd vorgestellten Relationenkalkül. Ein grundsätzlicher Vorteil des relationalen Datenbankmodells ist die Möglichkeit, die gewünschten Ergebnisse einer Abfrage auf einem hohen Abstraktionsniveau formulieren zu können. Die Zugriffspfade auf die Daten müssen hier nicht mit angegeben werden. Da die mathematischen Grundlagen der Relationenalgebra und des Relationenkalküls für nicht-technische Benutzer einer Datenbank nicht einfach zu verstehen sind, wurde viel Arbeit in die Entwicklung einer Datenbanksprache gesteckt, die genauso mächtig wie das Relationenkalkül und die Relationenalgebra ist, sich aber leichter erlenen lässt. Eines der interessantesten Merkmale von SQL ist die Möglichkeit Abfrageblöcke beliebig zu schachteln.
-SQL ist eine auf dem relationalen Datenbankmodell beruhende Datenbanksprache. Mit ihr können in relationalen Datenbanken die Metadaten der Relationen angelegt und geändert werden. Außerdem erlaubt sie die Manipulation der Daten. 
+Relationale Datenbanken beruhen auf dem von E.F. Codd vorgeschlagenen Relationenalgebra und dem ebenfalls von Codd vorgestellten Relationenkalkül\cite{DBLP:books/mg/SilberschatzKS01}. Ein grundsätzlicher Vorteil des relationalen Datenbankmodells ist die Möglichkeit, die gewünschten Ergebnisse einer Abfrage auf einem hohen Abstraktionsniveau formulieren zu können. Die Zugriffspfade auf die Daten müssen hier nicht mit angegeben werden. Da die mathematischen Grundlagen der Relationenalgebra und des Relationenkalküls für nicht-technische Benutzer einer Datenbank nicht einfach zu verstehen sind, wurde viel Arbeit in die Entwicklung einer Datenbanksprache gesteckt, die genauso mächtig wie das Relationenkalkül und die Relationenalgebra ist, sich aber leichter erlernen lässt. Eines der interessantesten Merkmale von SQL ist die Möglichkeit Abfrageblöcke beliebig zu schachteln.
+SQL ist eine auf dem relationalen Datenbankmodell beruhende Datenbanksprache. Mit ihr können in relationalen Datenbanken die Metadaten der Relationen angelegt und geändert werden. Außerdem erlaubt sie die Manipulation der Daten. Auch die granulare Vergabe von Berechtigungen wurde in SQL standardisiert.
 \begin{itemize}
 	\item Datenbanksprache
 	\subitem Datendefinition (DDL)
@@ -44,9 +44,10 @@ SQL ist eine auf dem relationalen Datenbankmodell beruhende Datenbanksprache. Mi
 	from §$r_1,r_2,\cdots,r_m$§
 	where P
 	\end{lstlisting}
+Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln SELECT, FROM und WHERE. In der SELECT-Klausel werden die Attribute der Ergebnisrelation angegeben. Die FROM-Klausel gibt die Quellrelationen an, aus denen das Ergebnis ermittelt wird. Die optionale WHERE-Klausel gibt schließlich Einschränkungen an, denen die Ergebnistupel genügen müssen.
 	\subitem Die SELECT-Klausel entspricht der Projektions-Operation der Relationenalgebra. In ihr werden alle Attribute der Ergebnisrelation angegeben. Um alle Attribute der beteiligten Relationen zu erhalten gibt es die spezielle Notation \enquote{*}.
 	\subitem Die FROM-Klausel entspricht dem kartesischen Produkt in der Relationenlgebra. Hier werden alle in der Abfrage verwendeten Relationen aufgeführt.
-	\subitem Die WHERE-Klausel entspricht der Selektions-Operation der Relationenalgebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der FROM-Klausel aufgelisteten Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnden Termen von einem Prädikat der Abfrage.
+	\subitem Die WHERE-Klausel entspricht der Selektions-Operation der Relationenalgebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der FROM-Klausel aufgelisteten Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnen Termen von einem Prädikat der Abfrage.
 	\subitem GROUP BY\dots HAVING-Klausel Die Eingabemenge der Aggregationsfunktion wird in \enquote{Gruppen} mit gleichen Attributwerten in den angegebenen Attributen partitioniert; die Aggregationsfunktion wird dann jeweils separat für jede Gruppe berechnet. Die optionale HAVING-Klausel erlaubt die Selektions-Operation auf den Ergebnissen der Aggregationsfunktion(en). Hierzu wird ein Prädikat angegeben, dass auf das Ergebnis der Aggregation angewandt wird. Nur Ergebnistupel, für die dieses Prädikat zu \enquote{WAHR} auswertet, werden in die Ergebnisrelation übernommen.
 	\subitem In der ORDER BY-Klausel werden die Ergebnis Attribute angegeben, nach welchen das Ergebnis sortiert werden soll. Mit dem Zusatz ASC bzw. DESC hinter dem Attributnamen kann zwischen auf- und absteigender Sortierung für das entsprechende Attribut gewählt werden. Die Reihenfolge der Attribute in der ORDER BY-Klausel 
 	\item geschachtelte Abfragen
@@ -67,14 +68,34 @@ SQL ist eine auf dem relationalen Datenbankmodell beruhende Datenbanksprache. Mi
 	\subsubitem ohne Aggregation
 	\subsubitem mit Aggregation
 	\item Ort des Auftretens
-	\subitem \textbf{SELECT-Klausel} das Ergebnis der Auswertung der geschachtelten Abfrage wird in die Ergebnisrelation aufgenommen. In der SELECT-Klausel sind nur skalare Unterabfragen zulässig.
-	\subitem \textbf{FROM-Klausel} komplexe Abfragen über mehrere Relationen lassen sich oft verständlicher formulieren, wenn in einem ersten Schritt die notwendigen Daten zu einer Relation zusammengefasst werden. Im darauf folgenden Schritt wird dann die eigentliche Abfrage über dieser neuen Relation formuliert. Diese Form der Strukturierung lässt sich durch Unterabfragen in der FROM-Klausel bewerkstelligen. Die Unterabfrage liefert die Zusammenfassung der Daten, auf deren Basis die Abfrage formuliert wird.
-	\subitem \textbf{WHERE-Klausel}
+	\subitem \textbf{SELECT-Klausel} das Ergebnis der Auswertung der geschachtelten Abfrage wird in die Ergebnisrelation aufgenommen. In der SELECT-Klausel sind nur skalare Unterabfragen zulässig. 
+	\subitem \textbf{FROM-Klausel} komplexe Abfragen über mehrere Relationen lassen sich oft verständlicher formulieren, wenn in einem ersten Schritt die notwendigen Daten zu einer Relation zusammengefasst werden. Im darauf folgenden Schritt wird dann die eigentliche Abfrage über dieser neuen Relation formuliert. Diese Form der Strukturierung lässt sich durch Unterabfragen in der FROM-Klausel bewerkstelligen. Die Unterabfrage liefert die Zusammenfassung der Daten, auf deren Basis die Abfrage formuliert wird. 
+	\subitem \textbf{WHERE-Klausel} geschachtelte Abfragen in der WHERE-Klausel bieten die Möglichkeit, das Ergebnis einer Abfrage in einer Bedingung zu verwenden. Hierzu können die Operatoren \sql{in}, \sql{exists}, \sql{all}, \sql{any} und skalare Vergleichsoperatoren benutzt werden. Die Semantik dieser Operatoren wird im nächsten Absatz kurz skizziert.
+	
+\begin{lstlisting}
+§$A_i$§ in (select §$A_j$§ from §$R_n$§ where P)
+\end{lstlisting} 
+Der \sql{in}-Operator prüft das Enthaltensein eines Werts in einer Menge. Die Menge kann durch Auflistung oder durch eine Abfrage spezifiziert werden. Ein geschachteltes Prädikat mit dem \sql{in}-Operator ist genau dann wahr, wenn der Wert auf der linken Seite (Attribut oder Zeile) im Ergebnis der Unterabfrage enthalten ist.
+
+\begin{lstlisting}
+exists(select §$A_j$§ from §$R_n$§ where P)
+\end{lstlisting}
+Mit dem \sql{exists}-Operator wird die Ergebnisrelation darauf überprüft, ob sie mindestens ein Ergebnistupel enthält. In nicht-korrelierten Prädikaten ist die Verwendung von \sql{exits} meist unsinnig, da das Prädikat in diesem Fall zu der Konstant \enquote{TRUE} bzw. \enquote{FALSE} auswertet. Bei korrelierten Prädikaten lassen sich mit \sql{exists} komplexe Bedingungen prüfen. 
+
+\begin{lstlisting}
+§$A_i$§ §$\theta$§ any(select §$A_j$§ from §$R_n$§ where P)
+\end{lstlisting}
+Das Ergebnis eines Prädikats mit dem \sql{any}-Operator ist genau dann wahr, wenn mindestens ein Tupel der Ergebnisrelation den Vergleich $\theta$ erfüllt. Als Vergleichsoperator sind die skalaren Operatoren $<, <=, =, >, >=$ mit ihrer üblichen Semantik und der Operator <> mit der Bedeutung \enquote{ungleich} zulässig.
+
+\begin{lstlisting}
+§$A_i$§ §$\theta$§ all(select §$A_j$§ from §$R_n$§ where P)
+\end{lstlisting}
+Der \sql{all}-Operator wertet zu \sql{TRUE} aus, wenn der Vergleich für alle Ergebnistupel positiv ausfällt. Die zulässigen Vergleichsoperatoren sind die selben wie beim Operator \sql{any}.
 	\subitem \textbf{(GROUP BY\dots HAVING-Klausel)}
 \end{itemize}
 
 \subsection{TPC-D Benchmark}
-TPC = Transaction Processing Performance Council. Stellt Benchmarks zum Vergleich von OLTP Systemen auf. Je nach Anwendungsgebiet werden verschiedene Metriken zum Vergleich von real verfügbaren Systemen bereitgestellt. Der in dieser Arbeit für den Vergleich herangezogene Benchmark TPC-D ist ein Entscheidungshilfe-Benchmark. In dem Benchmark sind 22 Abfragen zusammengefasst, die Antworten auf betriebswirtschaftliche Fragestellungen geben. Insgesamt 10 dieser Abfragen haben geschachtelte Abfrageblöcke und eignen sich daher als Anschauungsobjekt für die Optimierung geschachtelter Anfragen. In Kapitel \ref{chp:Leistungsbewertung} findet sich eine Gegenüberstellung der geschachtelten und der optimierten Ausführung dieser Abfragen. 
+TPC = Transaction Processing Performance Council. Stellt Benchmarks zum Vergleich von Datenbankystemen auf. Je nach Anwendungsgebiet werden verschiedene Metriken zum Vergleich von real verfügbaren Systemen bereitgestellt. Der in dieser Arbeit für den Vergleich herangezogene Benchmark TPC-D ist ein Entscheidungshilfe-Benchmark. In dem Benchmark sind 22 Abfragen zusammengefasst, die Antworten auf betriebswirtschaftliche Fragestellungen geben. Insgesamt 10 dieser Abfragen haben geschachtelte Abfrageblöcke und eignen sich daher als Anschauungsobjekt für die Optimierung geschachtelter Anfragen. In Kapitel \ref{chp:Leistungsbewertung} findet sich eine Gegenüberstellung der geschachtelten und der optimierten Ausführung dieser Abfragen. Ziel des Benchmarks ist der Vergleich von Datenbanksystemen über Metriken, die sowohl die Performance, gemessen über die Antwortzeiten der Abfragen, als auch die Kosten für die verwendete Hardware mit einbezieht ermöglicht. Die Ergebnisse eines solchen Benchmarks können nach einer Überprüfung durch den TPC auf der Website \url{http://www.tpc.org/} veröffentlicht werden.
 
 \section{Ausführunsstrategien}
 \subsection{Geschachtelte Iteration}
@@ -115,7 +136,7 @@ Einschränkung bei Join-Prädikaten auf =-Operator, \\
 nur eine Spalte in der Select-Klausel erlaubt in Subquery, \\
 keine GROUP BY\dots HAVING-Klausel in Subquery \cite{671658}, \\
 Innerer und und äußerer Abfrageblock, \\
-Klassifkation in 
+Klassifikation in 
 N =(kein Join-Prädikat, dass auf Relationen im äußeren Abfrageblock verweist, keine Aggregationsfunktion in  Select-Klausel, ergibt eine Liste von Konstanten), 
 A =(kein Join-Prädikat, dass auf Relationen im äußeren Abfrageblock verweist, Aggregationsfunktion in Select-Klausel, kann vollkommen unabhängig vom äußeren Abfrageblock ausgewertet werden, Ergebnis ist immer eine Konstante, 
 J =(hat Join-Prädikat das die/eine Relation aus dem äußeren Abfrageblock referenziert, keine Aggregationsfunktion in Select-Klausel), 
