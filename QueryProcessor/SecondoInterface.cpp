@@ -1732,8 +1732,8 @@ SecondoInterface::Command_Let( const ListExpr list, string& errorMessage  )
 	 errorCode = err;     
          qp.Destroy( tree, true );
       }	      
-      FinishCommand( errorCode, errorMessage );
     }
+    FinishCommand( errorCode, errorMessage );
   }
   else // no database open
   {
