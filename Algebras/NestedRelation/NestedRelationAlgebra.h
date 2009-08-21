@@ -247,13 +247,6 @@ of AttributeRelation
         
 */
         
-        bool tupleFileSet;
-/*
-True means that the SmiFileId tupleFile is set, false means that is not
-yet set.
-        
-*/
-        
         Relation* rel;
 /*
 Pointer to the relation which is used to save the tuples pertaining to
@@ -266,18 +259,25 @@ an instance of AttributeRelation.
 The type information for AttributeRelation.
         
 */
-        
-        SmiFileId tupleFile; 
-/*
-The SmiFileId of the relation which is used to save tuples.
-        
-*/
-        
+    
         bool ownRelation;
 /*
 True means that the relation used for saving tuples was created
 by AttributeRelation. False means that the relation was created by 
 NestedRelation.
+        
+*/
+   
+        bool tupleFileSet;
+/*
+True means that the SmiFileId tupleFile is set, false means that is not
+yet set.
+        
+*/  
+      
+        SmiFileId tupleFile; 
+/*
+The SmiFileId of the relation which is used to save tuples.
         
 */
         
@@ -299,13 +299,13 @@ an nrel-type.
 struct SubRelation
 {
        
-       SubRelation(Relation* ptr, const string n, SmiFileId id, ListExpr tI):
-                             rel(ptr),
+       SubRelation::SubRelation(Relation* ptr, const string n, SmiFileId id, ListExpr tI):
                              name(n),
-                             fileId(id),
-                             typeInfo(tI)
+                             typeInfo(tI),
+                             rel(ptr),
+                             fileId(id)
                              {}
-       
+                             
        ~SubRelation()
        {     
        }
@@ -340,7 +340,7 @@ from the meta-data passed in typeInfo
           NestedRelation( ListExpr typeInfo, Relation* ptr, 
                           vector<SubRelation*>& sR );
 /*
-The copy-constructor
+The second constructor, used in the Open-function.
           
 */
           ~NestedRelation() {};
@@ -349,7 +349,7 @@ The destructor
           
 */
    
-          void InsertSubRelations(const ListExpr typeInfo);
+          void insertSubRelations(const ListExpr typeInfo);
 /*
 Reads typeInfo, creates a SubRelation for every arel type in typeInfo and 
 appends it to vector subRels.
@@ -403,7 +403,7 @@ id algId
           
 */
       
-          static bool NamesUnique(ListExpr type);
+          static bool namesUnique(ListExpr type);
 /*
 Returns true, if all attribute names in the type are unique, false
 otherwise.
@@ -435,14 +435,8 @@ Auxiliary function for opening an instance of NestedRelation.
 /*
 Used to delete the primary relation and all subrelations.
          
-*/
-          
-          void Close();
-/*
-Used to close the primary relation and all subrelation.
-          
-*/
-          
+*/          
+        
           NestedRelation* Clone(ListExpr typeInfo);
 /*
 Used to clone a nested relation
@@ -479,7 +473,6 @@ Returns a pointer to subrels.
                             
           static bool     KindCheck( ListExpr type, ListExpr& errorInfo ); 
           
-          static ListExpr Property();
    private:
         NestedRelation(){}
         Relation* primary;

@@ -52,7 +52,7 @@ types and functions implemented by the Relation Algebra module.
 
 */
 AttributeRelation::AttributeRelation( ListExpr typeInfo, bool ownRelation):
- tupleIds(0), 
+ tupleIds(0),
  arelType( typeInfo ),
  ownRelation( ownRelation),
  tupleFileSet(false)
@@ -233,7 +233,7 @@ Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr value,
       errorInfo = nl->Append(errorInfo,
       nl->ThreeElemList(
        nl->IntAtom(70),
-       nl->SymbolAtom("rel"),
+       nl->SymbolAtom("arel"),
        tuplelist));
       return result;
    }
@@ -266,7 +266,7 @@ Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr value,
           nl->Append(errorInfo,
             nl->TwoElemList(
             nl->IntAtom(72),
-            nl->SymbolAtom("rel")));
+            nl->SymbolAtom("arel")));
          delete arel;
          return result;
       }
@@ -488,7 +488,7 @@ NestedRelation::NestedRelation(ListExpr typeInfo) :
                                      nl->IntAtom(relId)), nl->Second
                                      (typeInfo));
    primary = new Relation( primaryTypeInfo );
-   InsertSubRelations( nl->Second(nl->Second(typeInfo)));
+   insertSubRelations( nl->Second(nl->Second(typeInfo)));
    setTupleTypeInfo(typeInfo); 
 }
 
@@ -510,7 +510,7 @@ NestedRelation::NestedRelation( ListExpr typeInfo, Relation* ptr,
 4.2 Auxiliary functions
 
 */
-void NestedRelation::InsertSubRelations( ListExpr typeInfo )
+void NestedRelation::insertSubRelations( ListExpr typeInfo )
 {
    int nrelAlgId = am->GetAlgebraId("NestedRelationAlgebra");
    int relAlgId = am->GetAlgebraId("RelationAlgebra");
@@ -541,7 +541,7 @@ void NestedRelation::InsertSubRelations( ListExpr typeInfo )
                           subRelInfo);
          append(s);
         
-         InsertSubRelations( first2.second().second().listExpr() );
+         insertSubRelations( first2.second().second().listExpr() );
       }
    }               
 }
@@ -627,7 +627,7 @@ ListExpr NestedRelation::getSubRelationInfo( ListExpr typeInfo )
 
 SubRelation* NestedRelation::getSubRel(string name)
 {
-   for ( int i = 0; i < subRels.size(); i++ )
+   for ( unsigned int i = 0; i < subRels.size(); i++ )
    {
       SubRelation* srel = subRels[i];
       if ( srel->name == name )
@@ -652,7 +652,7 @@ int NestedRelation::getTypeId(int algId, string typeName)
     return result;
 }
 
-bool NestedRelation::NamesUnique(ListExpr type)
+bool NestedRelation::namesUnique(ListExpr type)
 {
   vector<string> attrnamelist;
   ListExpr attrlist, pair;
@@ -745,22 +745,11 @@ void NestedRelation::Delete()
 {
    this->primary->Delete();
    this->primary = 0;
-   for (int i = 0; i < this->subRels.size(); i++)
+   for (unsigned int i = 0; i < this->subRels.size(); i++)
    {
       SubRelation* srel = this->subRels[i];
       srel->rel->Delete();
       srel->rel = 0;
-      delete srel;
-   }
-}
-
-void NestedRelation::Close()
-{
-  primary->Close();
-  for (int i = 0; i < subRels.size(); i++)
-   {
-      SubRelation* srel = subRels[i];
-      srel->rel->Close();
       delete srel;
    }
 }
@@ -779,7 +768,7 @@ NestedRelation *NestedRelation::Clone(ListExpr typeInfo)
    delete iter;
    
    vector<SubRelation*>* srels = nrel->getSubRels();
-   for ( int i = 0; i < subRels.size(); i++ )
+   for ( unsigned int i = 0; i < subRels.size(); i++ )
    {
       SubRelation* srel = subRels[i];
       SubRelation* srelClone = srels->at(i);
@@ -936,7 +925,7 @@ void NestedRelation::Close( const ListExpr typeInfo, Word& w )
    NestedRelation* nR = static_cast<NestedRelation*>(w.addr);
    nR->primary->Close();
    nR->primary = 0;
-   for (int i = 0; i < nR->subRels.size(); i++)
+   for (unsigned int i = 0; i < nR->subRels.size(); i++)
    {
       SubRelation* srel = nR->subRels[i];
       srel->rel->Close();
@@ -1015,7 +1004,7 @@ bool NestedRelation::Save( SmiRecord& valueRecord, size_t& offset,
    ok = ok && valueRecord.Write(&size, sizeof(int), offset);
    offset += sizeof(int);
    string typeString;
-   for ( int i = 0; i < sV->size(); i++)
+   for ( unsigned int i = 0; i < sV->size(); i++)
    {
       SubRelation* sR = sV->at(i);
       nl->WriteToString(typeString, sR->typeInfo);
@@ -1051,7 +1040,7 @@ NestedRelation::KindCheck( ListExpr type, ListExpr& errorInfo )
       return false;
     }
     ListExpr temp = unnestedList(nl->Second(type));
-    correct = NamesUnique(temp);
+    correct = namesUnique(temp);
     if (!correct)
     {
       errorInfo = nl->Append(errorInfo,
@@ -1314,7 +1303,7 @@ nConsume(Word* args, Word& result, int message,
     rel->Clear();
   }
   vector<SubRelation*>* srels = nrel->getSubRels();
-  for (int k = 0; k < srels->size(); k++)
+  for (unsigned int k = 0; k < srels->size(); k++)
   {
      srels->at(k)->rel->Clear();
      
