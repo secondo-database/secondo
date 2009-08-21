@@ -1,4 +1,4 @@
-# 1 "C:\\msys\\1.0\\home\\Klaus\\secondo\\Algebras\\NestedRelation//"
+# 1 "C:\\msys\\1.0\\home\\Klaus\\secondo\\algebras\\NestedRelation//"
 NestedRelationAlgebra.o: NestedRelationAlgebra.cpp \
   NestedRelationAlgebra.h \
   C:/msys/1.0/home/Klaus/secondo/include/Algebra.h \
