@@ -113,6 +113,15 @@ class GeneralPredcountsLocalData {
   private: 
     RESULT_TYPE counter; 
 
+    inline static unsigned short highestBit(unsigned int value)
+    {
+	unsigned short rtn;
+
+	for (rtn=0; (value>>rtn)>0; rtn++) /* nothing more to do */;
+
+	return rtn;
+    }
+
   public:
 
    GeneralPredcountsLocalData() :
@@ -139,9 +148,9 @@ class GeneralPredcountsLocalData {
       // for savety reasons (usage of int instead of unsigned int anywhere) 
       // decrement by 1 the memory to be allocated for the counter array 
       // is the product of 2\^maxPredicateCount * 2\^sizeof(RESULT_TYPE)
-      // this value must not greater than 2\^32 (2\^32 at 64 bit libs)
+      // this value must not greater than 2\^32 (2\^64 at 64 bit libs)
       // that's why reduce maxPredicateCount by ld(2\^sizeof(RESULT_TYPE))
-      return (sizeof(INDEX_TYPE)*8 - sizeof(RESULT_TYPE) - 1); 
+      return (32/*Bit*/ - highestBit(sizeof(RESULT_TYPE)*8-1) - 1); 
    }
 
    bool allocate(size_t predCount) 
@@ -179,12 +188,15 @@ class GeneralPredcountsLocalData {
      const RESULT_TYPE ctrMax = 
         ((((RESULT_TYPE) 1) << sizeof(RESULT_TYPE)*8-1 ) - 1); 
 
+     counter++;
+
      if ( counter > ctrMax ) {
             cerr << "ERROR: es koennen nur max. " << ctrMax << 
                " Zeilen des Eingabestromes sicher verarbeitet werden, " <<
                "dannach besteht die Gefahr eines Ueberlaufes" << endl;
        return false;       
      }
+
      return true;
    }
 
