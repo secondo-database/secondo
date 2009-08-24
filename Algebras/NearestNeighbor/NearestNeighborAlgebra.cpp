@@ -3178,7 +3178,340 @@ int knearestFun (Word* args, Word& result, int message,
 
   return 0;
 }
+int newknearestFun (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+  switch (message)
+  {
+    /*
+    in open the eventqueue is initialized with the left
+    and the right elements
 
+    */
+    case OPEN :
+    {
+      qp->Open(args[0].addr);
+      CcInt* k = static_cast<CcInt*>(args[3].addr);
+      const MPoint* mp = static_cast<const MPoint*>(args[2].addr);
+      int attrPos = (static_cast<CcInt*>(args[4].addr))->GetIntval() - 1;
+      if(!mp->IsDefined() || mp->IsEmpty() || !k->IsDefined()){
+         local.addr = 0;
+      } else{
+         KnearestLocalInfo* localInfo =
+                new KnearestLocalInfo(args[0], attrPos, mp,
+                                      k->GetIntval(), true);
+         const UPoint *up1, *up2;
+         mp->Get( 0, up1);
+         mp->Get( mp->GetNoComponents() - 1, up2);
+         localInfo->startTime = up1->timeInterval.start;
+         localInfo->endTime = up2->timeInterval.end;
+         local = SetWord(localInfo);
+      }
+      return 0;
+    }
+
+    /*
+    in request the eventqueue is executed. new intersect events
+    are computed
+
+    */
+    case REQUEST :
+    {
+     if(!local.addr){
+       return CANCEL;
+     }
+     int attrNr = ((CcInt*)args[4].addr)->GetIntval() - 1;
+     KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
+      if ( !localInfo->scanFlag )
+      {
+        return CANCEL;
+      }
+
+      if ( !localInfo->k)
+      {
+        return CANCEL;
+      }
+
+      while ( !localInfo->eventQueue.empty() )
+      {
+        EventElem elem = localInfo->eventQueue.top();
+        localInfo->eventQueue.pop();
+        ActiveElem::currtime = elem.pointInTime;
+
+        //eleminate same elements
+        deleteDupElements( localInfo->eventQueue, elem.type,
+          elem.tuple, elem.tuple2, elem.pointInTime);
+
+        switch ( elem.type ){
+          case E_LEFT:
+          {
+
+            bool lc = elem.pointInTime >= localInfo->startTime
+              ? elem.up->timeInterval.lc : false;
+            ActiveElem newElem(elem.distance, elem.tuple, elem.pointInTime,
+              elem.up->timeInterval.end, lc, elem.up->timeInterval.rc);
+            IT newPos = insertActiveElem( localInfo->activeLine,
+              newElem, elem.pointInTime);
+
+            // check intersections
+            checkIntersections(E_LEFT, elem.pointInTime,
+              newPos, localInfo->activeLine, localInfo->eventQueue,
+              localInfo->endTime);
+
+            bool hasChangedFirstK = false;
+            IT posAfterK;
+            if( localInfo->activeLine.size() > localInfo->k )
+            {
+              posAfterK = checkFirstK(localInfo->activeLine,
+                localInfo->k,newPos,hasChangedFirstK);
+            }
+            if( hasChangedFirstK)
+            {
+              //something in the first k has changed
+              //now give out the k. element, but only until this time.
+              //Clone the tuple and change the unit-attribut to the
+              //new time interval
+              bool rc = newPos->lc ? false
+                : (posAfterK->end == elem.pointInTime ? posAfterK->rc : true);
+              if( posAfterK->start != elem.pointInTime
+                || (rc && posAfterK->lc))
+              {
+                Tuple* cloneTuple = changeTupleUnit(
+                  posAfterK->tuple, attrNr, posAfterK->start,
+                  elem.pointInTime, posAfterK->lc, rc);
+                posAfterK->start = elem.pointInTime;
+                posAfterK->lc = false;
+                result = SetWord(cloneTuple);
+
+                return YIELD;
+              }
+            }
+
+            break;
+          }
+          case E_RIGHT:
+          {
+            //a unit ends. It has to be removed from the map
+            IT posDel = findActiveElem( localInfo->activeLine,
+              elem.distance, elem.pointInTime, elem.tuple);
+            Tuple* cloneTuple = NULL;
+            if( posDel != localInfo->activeLine.end())
+            {
+              //check if this tuple is one of the first k, then give out this
+              //and change the start of the k+1 and the following to this time
+              bool hasDelFirstK = false;
+              IT posAfterK;
+              posAfterK = checkFirstK(localInfo->activeLine,
+                  localInfo->k,posDel,hasDelFirstK);
+
+              if( hasDelFirstK && (posDel->start != elem.pointInTime
+                || (posDel->lc && posDel->rc)))
+              {
+                if( posDel->start < localInfo->endTime )
+                {
+                  cloneTuple = changeTupleUnit(
+                    posDel->tuple, attrNr, posDel->start, elem.pointInTime,
+                    posDel->lc, posDel->rc);
+                }
+                for( ; posAfterK != localInfo->activeLine.end(); ++posAfterK)
+                {
+                  posAfterK->start = elem.pointInTime;
+                  posAfterK->lc = false;
+                }
+              }
+              //now calculate the intersection of the neighbors
+              checkIntersections(E_RIGHT, elem.pointInTime,
+                posDel, localInfo->activeLine, localInfo->eventQueue,
+                localInfo->endTime);
+
+              localInfo->activeLine.erase( posDel );
+              elem.distance->Destroy();
+              delete elem.distance;
+              elem.tuple->DeleteIfAllowed();
+            }
+            else
+            {
+              //the program should never be here. This is a program error!
+              double slope;
+              for( IT it=localInfo->activeLine.begin();
+                it!=localInfo->activeLine.end(); ++it)
+              {
+                cout << "dist: " << CalcDistance(it->distance,
+                  elem.pointInTime,slope) << ", Tuple: " << it->tuple << endl;
+              }
+              assert(false);
+            }
+            if( cloneTuple )
+            {
+              result = SetWord(cloneTuple);
+              return YIELD;
+            }
+            break;
+          }
+
+          case E_INTERSECT:
+          {
+            IT posFirst = findActiveElem( localInfo->activeLine,
+              elem.distance, elem.pointInTime, elem.tuple);
+            IT posNext = posFirst;
+            ++posNext;
+
+            IT posSec;
+            if( posNext == localInfo->activeLine.end() )
+            {
+              //perhaps changed before
+              bool t1 = check(localInfo->activeLine ,elem.pointInTime);
+              assert(t1);
+
+              break;
+            }
+            if( posNext->tuple != elem.tuple2 )
+            {
+              posSec = findActiveElem( localInfo->activeLine,
+                elem.distance, elem.pointInTime, elem.tuple2);
+            }
+            else
+              posSec = posNext;
+
+            //check if the first of the inters.-tuples is the k. and give it out
+            Tuple* cloneTuple = NULL;
+            if( checkK(localInfo->activeLine,localInfo->k,posFirst))
+            {
+              cloneTuple = changeTupleUnit( posFirst->tuple,
+                attrNr, posFirst->start, elem.pointInTime,
+                posFirst->lc,posFirst->rc);
+              posFirst->start = elem.pointInTime;
+              posFirst->lc = true;
+              if( posNext != localInfo->activeLine.end() )
+              {
+                posNext->start = elem.pointInTime;
+                posNext->lc = true;
+              }
+            }
+
+            if( posNext == posSec)
+            {
+              //look for intersections between the new neighbors
+              checkIntersections(E_INTERSECT, elem.pointInTime,
+                posFirst, localInfo->activeLine, localInfo->eventQueue,
+                localInfo->endTime);
+
+              //swap the two entries in activeline
+              ActiveElem e = *posFirst;
+              *posFirst = *posSec;
+              *posSec = e;
+            }
+            else
+            {
+              //the are some elements which has the same distance between
+              //the two intersect elements, so calc like delete then insert
+              vector<ActiveElem> va;
+              set<Tuple*> s;
+              pair< set<Tuple*>::iterator, bool > pr;
+
+              ActiveElem newElem1(posFirst->distance,
+                  posFirst->tuple, elem.pointInTime,
+                  posFirst->end, posFirst->lc, posFirst->rc);
+              va.push_back(newElem1);
+              s.insert(posFirst->tuple);
+              localInfo->activeLine.erase( posFirst );
+              ActiveElem newElem2(posSec->distance,
+                  posSec->tuple, elem.pointInTime,
+                  posSec->end, posSec->lc, posSec->rc);
+              va.push_back(newElem2);
+              s.insert(posSec->tuple);
+              localInfo->activeLine.erase( posSec );
+
+              while( !localInfo->eventQueue.empty() )
+              {
+                //handle all intersections at the same time
+                EventElem elemIs = localInfo->eventQueue.top();
+
+                if( elemIs.type == E_INTERSECT
+                  && elem.pointInTime == elemIs.pointInTime)
+                {
+
+                  localInfo->eventQueue.pop();
+                  //eleminate same elements
+                  deleteDupElements( localInfo->eventQueue, elemIs.type,
+                      elemIs.tuple, elemIs.tuple2, elem.pointInTime);
+
+                  pr = s.insert( elemIs.tuple );
+                  if(pr.second == true)
+                  {
+                    //the element was not removed yet
+                    IT pos = findActiveElem( localInfo->activeLine,
+                      elemIs.distance, elemIs.pointInTime, elemIs.tuple);
+                    ActiveElem newElem(pos->distance,
+                      pos->tuple, elem.pointInTime,
+                      pos->end, pos->lc, pos->rc);
+                    localInfo->activeLine.erase( pos );
+                    va.push_back(newElem);
+                  }
+                  pr = s.insert( elemIs.tuple2 );
+                  if(pr.second == true)
+                  {
+                    //the element was not removed yet
+                    IT pos = findActiveElem( localInfo->activeLine,
+                      elemIs.distance, elemIs.pointInTime, elemIs.tuple2);
+                    ActiveElem newElem(pos->distance,
+                      pos->tuple, elem.pointInTime,
+                      pos->end, pos->lc, pos->rc);
+                    localInfo->activeLine.erase( pos );
+                    va.push_back(newElem);
+                  }
+                }
+                else
+                {
+
+                  break;
+                }
+              }
+
+              vector<IT> vit;
+              for( unsigned int ii=0; ii < va.size(); ++ii )
+              {
+                  IT newPos = insertActiveElem( localInfo->activeLine,
+                    va[ii], elem.pointInTime);
+                  vit.push_back(newPos);
+              }
+              // check intersections
+              for( unsigned int ii=0; ii < vit.size(); ++ii )
+              {
+                checkIntersections(E_LEFT, elem.pointInTime, vit[ii],
+                  localInfo->activeLine, localInfo->eventQueue,
+                  localInfo->endTime);
+              }
+            }
+            if( cloneTuple )
+            {
+              result = SetWord(cloneTuple);
+              return YIELD;
+            }
+
+            break;
+          }
+        }
+      }
+      return CANCEL;
+    }
+
+    case CLOSE :
+    {
+
+      qp->Close(args[0].addr);
+      KnearestLocalInfo* localInfo = (KnearestLocalInfo*)local.addr;
+      if(localInfo){
+
+        delete localInfo;
+        local.setAddr(0);
+      }
+      return 0;
+    }
+  }
+
+  return 0;
+}
 /*
 checks if there are intersections and puts them into the eventqueue
 this is the right function if the eventqueue is a vector
@@ -4692,7 +5025,8 @@ Operator distancescan4 (
 Operator knearest (
          "knearest",            // name
          knearestSpec,          // specification
-         knearestFun,           // value mapping
+//         knearestFun,           // value mapping
+         newknearestFun,           // value mapping
          Operator::SimpleSelect, // trivial selection function
          knearestTypeMap        // type mapping
 );
@@ -6125,9 +6459,9 @@ Chinese algorithm and Greece algorithm
 */
 const string GreeceknearestfilterSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>tbtree(tuple ((x1 t1)...(xn tn))"
-      " ti) x rel(tuple ((x1 t1)...(xn tn))) x rtree(tuple((x1 t1)...(xn tn)))"
-      " x rel(tuple ((x1 t1)...(xn tn))) x mpoint x k ->"
+      "( <text>rtree(tuple ((x1 t1)...(xn tn))"
+      " ti) x rel(tuple ((x1 t1)...(xn tn)))"
+      " x mpoint x k ->"
       " (stream (tuple ((x1 t1)...(xn tn))))"
       "</text--->"
       "<text>_ _ greeceknearest [_, _, _ ]</text--->"
@@ -6416,8 +6750,7 @@ struct TBKnearestLocalInfo
   vector<hpelem> result;
   unsigned int counter;
   CoverInterval<double>* cic;
-  double start_angle;
-  double end_angle;
+
 
   TBKnearestLocalInfo(unsigned int nn):k(nn)
   {
@@ -6461,9 +6794,6 @@ struct TBKnearestLocalInfo
   void UpdatekNearest(hpelem& elem);
   void InitializePrunedist();
   void CheckCovered(hpelem& elem);
-/*Direction*/
-  void BFTraverse(MPoint* mp,int level,hpelem& elem);
-  bool DirectionFilter(UPoint* up,UPoint* data);
 };
 /*
 Initialization, knearestlist prunedist
@@ -6581,57 +6911,6 @@ void CreateUPoint_nqe(const UPoint* up,UPoint*& nqe,UPoint* data)
   nqe->p0 = p0;
   nqe->p1 = p1;
 
-}
-/*
-Check whether the candidate upoint satisfy the direction predicate
-
-*/
-
-bool TBKnearestLocalInfo::DirectionFilter(UPoint* up,UPoint* data)
-{
-  Point up_p0 = up->p0;
-  Point up_p1 = up->p1;
-  Point data_p0 = data->p0;
-  Point data_p1 = data->p1;
-  //switch direction predicate
-
-  if(AlmostEqual(up_p0.GetX(),up_p1.GetX())){
-    double x = up_p0.GetX();
-    if(up_p0.GetY() <= up_p1.GetY()){
-      if(data_p0.GetX() >= x && data_p1.GetX() >= x) //right side
-        return true;
-     return false;//need to consider intersection
-    }else{
-      if(data_p0.GetX() < x && data_p1.GetX() < x) //right side
-        return true;
-     return false;//need to consider intersection
-    }
-  }else if(AlmostEqual(up_p0.GetY(),up_p1.GetY())){
-    double y = up_p0.GetY();
-    if(up_p0.GetX() <= up_p1.GetX()){
-      if(data_p0.GetY() <= y && data_p1.GetY() <= y) //below
-        return true;
-      return false;//need to consider intersection
-    }else{
-     if(data_p0.GetY() > y && data_p1.GetY() > y) //above
-        return true;
-      return false;//need to consider intersection
-   }
-  }else{
-    double a = (up_p1.GetY()-up_p0.GetY())/(up_p1.GetX()-up_p0.GetX());
-    double b = up_p1.GetY() - a*up_p1.GetX();
-    if(up_p0.GetX() <= up_p1.GetX()){
-       if((data_p0.GetY() <= a*data_p0.GetX()+ b) &&
-         (data_p1.GetY() <= a*data_p1.GetX()+ b))
-        return true;
-      return false; //need to consider intersection
-    }else{
-       if((data_p0.GetY() > a*data_p0.GetX()+ b) &&
-         (data_p1.GetY() > a*data_p1.GetX()+ b))
-        return true;
-      return false; //need to consider intersection
-   }
-  }
 }
 
 
@@ -7907,168 +8186,6 @@ struct idtime{
     return ts < idt2.ts;
   }
 };
-void TBKnearestLocalInfo::BFTraverse(MPoint* mp,int level,hpelem& elem)
-{
-  hp.push(elem);
-  SmiRecordId adr;
-
-  while(hp.empty() == false){
-    hpelem top = hp.top();
-    hp.pop();
-
-    if(top.mind > prunedist.dist)
-      break;
-    if(top.tid != -1 && top.nodeid == -1){ //an actual trajectory segment
-        UpdatekNearestG(top);
-    }
-    else if(top.tid == -1 && top.nodeid != -1){ // a node
-        adr = top.nodeid;
-        R_TreeNode<3,TupleId>* tbnode =
-                rtree->GetMyNode(adr,false,
-                                 rtree->MinEntries(level),
-                                 rtree->MaxEntries(level));
-
-        if(tbnode->IsLeaf()){ //leaf node
-            vector<idtime> entryarray;
-            for(unsigned int i = 0; i < tbnode->EntryCount();i++){
-                R_TreeLeafEntry<3,TupleId> entry =
-                       (R_TreeLeafEntry<3,TupleId>&)(*tbnode)[i];
-                double ts((double)entry.box.MinD(2));
-                idtime idt(i,ts);
-                entryarray.push_back(idt);
-            }
-            stable_sort(entryarray.begin(),entryarray.end());
-            for(unsigned int j = 0;j < entryarray.size();j++){
-//            for(unsigned int i = 0;i < tbnode->EntryCount();i++){
-              int i = entryarray[j].id;
-              R_TreeLeafEntry<3,TupleId> entry =
-                       (R_TreeLeafEntry<3,TupleId>&)(*tbnode)[i];
-
-              double t1((double)entry.box.MinD(2));
-              double t2((double)entry.box.MaxD(2));
-    // The following lines were used in published experiments, that
-    // were done on a modified R-tree that scaled up the R-tree temporal
-    // dimension by the same factor. They are commented out for use with
-    // the standard R-tree.
-
-//        t1 = t1/864000;
-//        t2 = t2/864000;
-
-              if(!(t1 >= endTime || t2 <= startTime)){
-                  //for each unit in mp
-                const UPoint* up;
-                TupleId tid = entry.info;
-                Tuple* tuple = this->relation->GetTuple(tid);
-                UPoint* data = (UPoint*)tuple->GetAttribute(attrpos);
-
-                for(int j = 0;j < mp->GetNoComponents();j++){
-                    mp->Get(j,up);
-                    double tt1 = (double)(up->timeInterval.start.ToDouble());
-                    double tt2 = (double)(up->timeInterval.end.ToDouble());
-                    if(tt1 > t2) //mq's time interval is larger than entry
-                      break;
-                    if(!(t1 >= tt2 || t2 <= tt1)){
-                      Point p0(true,0,0);
-                      Point p1(true,0,0);
-                      UPoint* ne = new UPoint(up->timeInterval,p0,p1);
-                      UPoint* nqe = new UPoint(up->timeInterval,p0,p1);
-
-                      CreateUPoint_ne(up,ne,data);
-                      CreateUPoint_nqe(up,nqe,data);
-
-                      double nodets = ne->timeInterval.start.ToDouble();
-                      double nodete = ne->timeInterval.end.ToDouble();
-
-                      if(AlmostEqual(nodets,nodete)){
-                        delete ne;
-                        delete nqe;
-                        continue;
-                      }
-
-                      //interpolation restrict to the same time interval
-                      if(DirectionFilter(nqe,ne) == false){
-                         delete ne;
-                         delete nqe;
-                         continue;
-                      }
-
-                      UReal* mdist = new UReal(true);
-                      ne->Distance(*nqe,*mdist);
-                      bool def = true;
-                      double mind = mdist->Min(def);
-                      double maxd = mdist->Max(def);
-
-                      hpelem le(tid,mind,maxd,-1);
-                      le.nodets = nodets;
-                      le.nodete = nodete;
-
-                      le.AssignURUP(mdist,ne);
-
-                      if(le.mind < prunedist.dist)
-                          hp.push(le);
-
-                      delete mdist;
-                      delete ne;
-                      delete nqe;
-                    }
-                }//end for
-                tuple->DeleteIfAllowed();
-              }
-           }
-        }else{ //inner node
-
-                vector<hpelem> branchlist;
-                for(int i = 0;i < tbnode->EntryCount();i++){
-                      R_TreeInternalEntry<3> e =
-                        (R_TreeInternalEntry<3>&)(*tbnode)[i];
-                      double t1((double)e.box.MinD(2));
-                      double t2((double)e.box.MaxD(2));
-
-            // The following lines were used in published experiments, that
-           // were done on a modified R-tree that scaled up the R-tree temporal
-           // dimension by the same factor. They are commented out for use with
-           // the standard R-tree.
-
-              //        t1 = t1/864000;
-              //        t2 = t2/864000;
-
-                    if(!(t1 >= endTime || t2 <= startTime)){
-                        BBox<2> entrybox = makexyBox(e.box);//entry box
-                        double mindist =  mpbox.Distance(entrybox);
-                        double maxdist = maxDistance(entrybox,mpbox);
-
-                        hpelem le(-1,mindist,maxdist,e.pointer);
-                        le.nodets = t1;
-                        le.nodete = t2;
-                        branchlist.push_back(le);
-                      }
-                }
-                stable_sort(branchlist.begin(),branchlist.end());
-                vector<hpelem> prunelist;
-
-                for(unsigned int i = 0; i < branchlist.size();i++){
-                  if(branchlist[i].mind <  prunedist.dist)
-                      if(CheckPrune(branchlist[i]) == false)
-                          prunelist.push_back(branchlist[i]);
-                }
-                for(unsigned int i = 0;i < prunelist.size();){
-                   hp.push(prunelist[i]);
-                   unsigned int j = i + 1;
-                   while(j < prunelist.size() &&
-                         prunelist[j].mind > prunedist.dist){
-                        if(CheckPrune(prunelist[j]))
-                        j++;//prune branchlist
-                        else
-                          break;
-                  }
-                  i = j;
-                }
-
-        }
-        delete tbnode;
-    }
-  }
-}
 
 void TBKnearestLocalInfo::GreeceknnFunBF(MPoint* mp,int level,hpelem& elem)
 {
@@ -8093,7 +8210,7 @@ void TBKnearestLocalInfo::GreeceknnFunBF(MPoint* mp,int level,hpelem& elem)
 
         if(tbnode->IsLeaf()){ //leaf node
             vector<idtime> entryarray;
-            for(unsigned int i = 0; i < tbnode->EntryCount();i++){
+            for(int i = 0; i < tbnode->EntryCount();i++){
                 R_TreeLeafEntry<3,TupleId> entry =
                        (R_TreeLeafEntry<3,TupleId>&)(*tbnode)[i];
                 double ts((double)entry.box.MinD(2));
@@ -8114,8 +8231,8 @@ void TBKnearestLocalInfo::GreeceknnFunBF(MPoint* mp,int level,hpelem& elem)
     // dimension by the same factor. They are commented out for use with
     // the standard R-tree.
 
-//        t1 = t1/864000;
-//        t2 = t2/864000;
+//        t1 = t1/864000.0;
+//        t2 = t2/864000.0;
 
               if(!(t1 >= endTime || t2 <= startTime)){
                   //for each unit in mp
@@ -8187,8 +8304,8 @@ void TBKnearestLocalInfo::GreeceknnFunBF(MPoint* mp,int level,hpelem& elem)
            // dimension by the same factor. They are commented out for use with
            // the standard R-tree.
 
-              //        t1 = t1/864000;
-              //        t2 = t2/864000;
+//                      t1 = t1/864000.0;
+//                      t2 = t2/864000.0;
 
                     if(!(t1 >= endTime || t2 <= startTime)){
                         BBox<2> entrybox = makexyBox(e.box);//entry box
@@ -8261,8 +8378,8 @@ void TBKnearestLocalInfo::GreeceknnFunDF(MPoint* mp,int level,hpelem& elem)
 	// dimension by the same factor. They are commented out for use with
 	// the standard R-tree.
 
-//         t1 = t1/864000;
-//         t2 = t2/864000;
+//         t1 = t1/864000.0;
+//         t2 = t2/864000.0;
 
 
         if(!(t1 >= endTime || t2 <= startTime)){
@@ -8333,8 +8450,8 @@ void TBKnearestLocalInfo::GreeceknnFunDF(MPoint* mp,int level,hpelem& elem)
 	// dimension by the same factor. They are commented out for use with
 	// the standard R-tree.
 
-//        t1 = t1/864000;
-//        t2 = t2/864000;
+//        t1 = t1/864000.0;
+//        t2 = t2/864000.0;
 
 
           if(!(t1 >= endTime || t2 <= startTime)){
@@ -8440,8 +8557,8 @@ int Greeceknearest(Word* args, Word& result, int message,
 	// dimension by the same factor. They are commented out for use with
 	// the standard R-tree.
 
-//       t1 = t1/864000;
-//       t2 = t2/864000;
+//       t1 = t1/864000.0;
+//       t2 = t2/864000.0;
 
 
       if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
@@ -8774,7 +8891,7 @@ ListExpr CellIndexTypeMap( ListExpr args )
 
   string errmsg = "rtree x cellnumber expected";
 
-  if(nl->ListLength(args)!=2){
+  if(nl->ListLength(args)!=2 ){
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
@@ -8789,20 +8906,27 @@ ListExpr CellIndexTypeMap( ListExpr args )
 
   string rtreedescription;
   nl->WriteToString(rtreedescription,rtree);
-  
+
 
 
   ListExpr rtsymbol = nl->First(rtree);
 
   ListExpr cellnumber = nl->Second(args);
+  ListExpr MBR_ATOM;
 
+  CHECK_COND(listutils::isRTreeDescription(rtree),
+            "first argument must be an rtree");
 
   if(nl->IsAtom(rtsymbol) &&
     nl->AtomType(rtsymbol) == SymbolType &&
-    nl->SymbolValue(rtsymbol) == "rtree" &&
-    nl->SymbolValue(cellnumber) == "int")
-
-  return
+    (nl->SymbolValue(rtsymbol) == "rtree" ||
+     nl->SymbolValue(rtsymbol) == "rtree3")&&
+    nl->SymbolValue(cellnumber) == "int"){
+    if(nl->SymbolValue(rtsymbol) == "rtree")
+      MBR_ATOM = nl->SymbolAtom("rect");
+    if(nl->SymbolValue(rtsymbol) == "rtree3")
+      MBR_ATOM = nl->SymbolAtom("rect3");
+   return
         nl->TwoElemList(
             nl->SymbolAtom("stream"),
             nl->TwoElemList(
@@ -8813,8 +8937,8 @@ ListExpr CellIndexTypeMap( ListExpr args )
                         nl->SymbolAtom("int")
                     ),
                     nl->TwoElemList(
-                        nl->SymbolAtom("Box"),
-                        nl->SymbolAtom("rect")
+                        nl->SymbolAtom("MBR"),
+                        MBR_ATOM
                     ),
                     nl->TwoElemList(
                         nl->SymbolAtom("nodeid"),
@@ -8824,6 +8948,7 @@ ListExpr CellIndexTypeMap( ListExpr args )
                         nl->SymbolAtom("nodelevel"),
                         nl->SymbolAtom("int")
                     ))));
+  }
   ErrorReporter::ReportError(errmsg);
   return nl->TypeError();
 }
@@ -8835,6 +8960,7 @@ index that intersects the cell and the level of node in index
 struct SubCell{
   int nodeid;
   int nodelevel;
+  SubCell(){}
   SubCell(int id,int l):nodeid(id),nodelevel(l){}
   SubCell(const SubCell& sc):nodeid(sc.nodeid),nodelevel(sc.nodelevel){}
   SubCell& operator=(const SubCell& sc)
@@ -8844,10 +8970,11 @@ struct SubCell{
     return *this;
   }
 };
+template<unsigned dim>
 struct Cell:public SubCell{
   int id;
-  BBox<2> box;
-  Cell(int i,BBox<2> b,int nodeid,int l):SubCell(nodeid,l),id(i),box(b){}
+  BBox<dim> box;
+  Cell(int i,BBox<dim> b,int nodeid,int l):SubCell(nodeid,l),id(i),box(b){}
   Cell(const Cell& cell):SubCell(cell),id(cell.id),box(cell.box){}
   Cell& operator=(const Cell& cell)
   {
@@ -8857,16 +8984,24 @@ struct Cell:public SubCell{
     return *this;
   }
 };
+template<unsigned dim>
 struct CellIndex{
-  R_Tree<2,TupleId>* rtree;
+  R_Tree<dim,TupleId>* rtree;
   long cellno;
-  CellIndex(R_Tree<2,TupleId>*r, long no)
+  CellIndex(R_Tree<dim,TupleId>*r, long no)
   :rtree(r),cellno(no){}
-  vector<Cell> cellq;
+
+  vector<Cell<dim> > cellq;
+  vector<double> gmin;
+  vector<double> gmax;
+  vector<double> cellsize;
+  SubCell tempcell;
+
   unsigned int counter;
   TupleType* resulttype;
   ~CellIndex(){delete resulttype;}
   void Partition_Cell();
+  void Accessfunction(int,vector<long>&,vector<long>&,vector<int>&);
 };
 /*
 It partitions the space covered by an R-tree into several cells and for each
@@ -8874,31 +9009,88 @@ cell it records all nodes from the R-tree that their bounding boxes intersect
 the cell.
 
 */
-void CellIndex::Partition_Cell()
+
+template<unsigned dim>
+void CellIndex<dim>::Accessfunction(int depth,vector<long>& start_index,
+vector<long>& end_index,vector<int>& pos)
+{
+  if(depth == dim - 1){
+    for(long i = start_index[depth]; i <= end_index[depth];i++){
+      pos[depth] = i;
+      long cellid = 1;
+      for(int j = depth;j >= 0;j--){
+        int k = j - 1;
+        int size_low = 1;
+        while( k >= 0){
+          size_low = size_low * cellno;
+          k--;
+        }
+        cellid += size_low * pos[j];
+//        cout<<cellid<<endl;
+      }
+      double min[dim];
+      double max[dim];
+      for(unsigned int j = 0;j < dim;j++){
+        min[j] = gmin[j] + pos[j]*cellsize[j];
+        max[j] = gmin[j] + (pos[j]+1)*cellsize[j];
+      }
+      Rectangle<dim> cellbox(true,min,max);
+      cellq.push_back(Cell<dim>(cellid,cellbox,
+                                tempcell.nodeid,tempcell.nodelevel));
+    }
+  }else{
+    for(long i = start_index[depth];i <= end_index[depth];i++){
+      pos[depth] = i;
+      Accessfunction(depth+1,start_index,end_index,pos);
+    }
+  }
+
+}
+template<unsigned dim>
+void CellIndex<dim>::Partition_Cell()
 {
 //  cout<<CI->cellq.max_size()<<endl;
-  BBox<2> r_box = rtree->BoundingBox();
-  double minx = r_box.MinD(0);
+  BBox<dim> r_box = rtree->BoundingBox();
+////
+
+  for(unsigned int i = 0; i < dim;i++){
+    gmin.push_back(r_box.MinD(i));
+    gmax.push_back(r_box.MaxD(i));
+  }
+
+/*double minx = r_box.MinD(0);
   double maxx = r_box.MaxD(0);
   double miny = r_box.MinD(1);
-  double maxy = r_box.MaxD(1);
-//  cout<<minx<<" "<<maxx<<" "<<miny<<" "<<maxy<<endl;
-  double sizex = (long)floor((maxx-minx)/cellno);
-  double sizey = (long)floor((maxy-miny)/cellno);
+  double maxy = r_box.MaxD(1);*/
 
-//  cout<<numcell_x<<" "<<numcell_y<<endl;
+
+  for(unsigned int i = 0; i < dim;i++){
+//    cout<<(long)floor((gmax[i]-gmin[i])/cellno)<<endl;
+    cellsize.push_back(floor((gmax[i]-gmin[i])/cellno));
+  }
+/////////
+/*double sizex = (long)floor((maxx-minx)/cellno);
+  double sizey = (long)floor((maxy-miny)/cellno);*/
+
   queue<SubCell> q_node;
   SmiRecordId adr = rtree->RootRecordId();
-  R_TreeNode<2,TupleId>* node =
+  R_TreeNode<dim,TupleId>* node =
         rtree->GetMyNode(adr,false,
         rtree->MinEntries(0),
         rtree->MaxEntries(0));
   //skip root node
   for(int i = 0; i < node->EntryCount();i++){
-      R_TreeInternalEntry<2> e = (R_TreeInternalEntry<2>&)(*node)[i];
+      R_TreeInternalEntry<dim> e = (R_TreeInternalEntry<dim>&)(*node)[i];
       q_node.push(SubCell(e.pointer,1));
   }
   delete node;
+
+  vector<int> pos;
+
+  vector<double> lower;
+  vector<double> upper;
+  vector<long> start_index;
+  vector<long> end_index;
 
   while(q_node.empty() == false){
     SubCell subcell = q_node.front();
@@ -8909,53 +9101,73 @@ void CellIndex::Partition_Cell()
         rtree->MinEntries(subcell.nodelevel),
         rtree->MaxEntries(subcell.nodelevel));
 
-//    cout<<"nodeid "<<subcell.nodeid<<" level "<<subcell.nodelevel<<endl;
-//    node->BoundingBox().Print(cout);
-    double lowerx = node->BoundingBox().MinD(0);
+/*double lowerx = node->BoundingBox().MinD(0);
     double upperx = node->BoundingBox().MaxD(0);
     double lowery = node->BoundingBox().MinD(1);
     double uppery = node->BoundingBox().MaxD(1);
     long start_i = (long)floor((lowerx-minx)/sizex);//starts from 1
     long end_i = (long)floor((upperx-minx)/sizex);
     long start_j = (long)floor((lowery-miny)/sizey);
-    long end_j = (long)floor((uppery-miny)/sizey);
-//    cout<<start_i<<" "<<end_i<<" "<<start_j<<" "<<end_j<<endl;
-    for(;start_i <= end_i;start_i++){
+    long end_j = (long)floor((uppery-miny)/sizey);*/
+
+///////////////
+    lower.clear();
+    upper.clear();
+    start_index.clear();
+    end_index.clear();
+
+    for(unsigned int i = 0;i < dim;i++){
+        lower.push_back(node->BoundingBox().MinD(i));
+        upper.push_back(node->BoundingBox().MaxD(i));
+    }
+    for(unsigned int i = 0;i < dim;i++){
+        start_index.push_back((long)floor((lower[i]-gmin[i])/cellsize[i]));
+        end_index.push_back((long)floor((upper[i]-gmin[i])/cellsize[i]));
+    }
+//    cout<<pos.size()<<endl;
+      tempcell = subcell;
+      pos.clear();
+      for(unsigned int i = 0;i < dim;i++)
+        pos.push_back(-1);
+
+      Accessfunction(0,start_index,end_index,pos);
+
+////////////
+/*for(;start_i <= end_i;start_i++){
       for(long temp_j = start_j;temp_j <= end_j; temp_j++){
-        long cellid = temp_j*cellno + start_i + 1;
+      long cellid = temp_j*cellno + start_i + 1;
+//        long cellid = start_i*cellno + temp_j + 1;
         double min[2];
         double max[2];
         min[0] = minx + start_i*sizex;
         max[0] = minx + (start_i+1)*sizex;
         min[1] = miny + temp_j*sizey;
         max[1] = miny + (temp_j+1)*sizey;
-        BBox<2> cellbox(true,min,max);
+        BBox<dim> cellbox(true,min,max);
         cellq.push_back(
-                  Cell(cellid,cellbox,subcell.nodeid,subcell.nodelevel));
-//        cout<<cellid<<" "<<subcell.nodeid<<" "<<subcell.nodelevel<<endl;
-//        cellbox.Print(cout);
+                Cell<dim>(cellid,cellbox,subcell.nodeid,subcell.nodelevel));
       }
-    }
+    }*/
 
     if(node->IsLeaf()){
       delete node;
       continue;
     }
     for(int i = 0; i < node->EntryCount();i++){
-      R_TreeInternalEntry<2> e = (R_TreeInternalEntry<2>&)(*node)[i];
+      R_TreeInternalEntry<dim> e = (R_TreeInternalEntry<dim>&)(*node)[i];
       q_node.push(SubCell(e.pointer,subcell.nodelevel+1));
     }
     delete node;
   }
-  cout<<cellq.size()<<endl;
 }
+template<unsigned dim>
 int CellIndexFun(Word* args, Word& result, int message,
               Word& local, Supplier s){
 
-  CellIndex *localInfo;
+  CellIndex<dim>* localInfo;
   switch(message){
      case OPEN: {
-     localInfo = new CellIndex((R_Tree<2,TupleId>*)args[0].addr,
+     localInfo = new CellIndex<dim>((R_Tree<dim,TupleId>*)args[0].addr,
         ((CcInt*)args[1].addr)->GetIntval());
      localInfo->counter = 0;
      localInfo->resulttype = new
@@ -8965,13 +9177,13 @@ int CellIndexFun(Word* args, Word& result, int message,
      return 0;
    }
    case REQUEST: {
-      localInfo = (CellIndex*)local.addr;
+      localInfo = (CellIndex<dim>*)local.addr;
       if(localInfo->counter == localInfo->cellq.size())
         return CANCEL;
       Tuple* tuple = new Tuple(localInfo->resulttype);
-      Cell cell = localInfo->cellq[localInfo->counter] ;
+      Cell<dim> cell = localInfo->cellq[localInfo->counter] ;
       tuple->PutAttribute(0,new CcInt(true,cell.id));
-      tuple->PutAttribute(1,new Rectangle<2>(cell.box));
+      tuple->PutAttribute(1,new Rectangle<dim>(cell.box));
       tuple->PutAttribute(2,new CcInt(true,cell.nodeid));
       tuple->PutAttribute(3,new CcInt(true,cell.nodelevel));
       localInfo->counter++;
@@ -8979,632 +9191,44 @@ int CellIndexFun(Word* args, Word& result, int message,
       return YIELD;
    }
    case CLOSE : {
-      localInfo = (CellIndex*)local.addr;
+      localInfo = (CellIndex<dim>*)local.addr;
       delete localInfo;
       return 0;
    }
  }
  return 0;
 }
+ValueMapping CellIndexFunMap [] =
+{
+  CellIndexFun<2>,
+  CellIndexFun<3>
+};
+int CellIndexSelect(ListExpr args)
+{
+  ListExpr rtree = nl->First(args);
+  string rtreedescription;
+  nl->WriteToString(rtreedescription,rtree);
+  ListExpr rtsymbol = nl->First(rtree);
 
+  if(nl->IsAtom(rtsymbol) &&
+    nl->AtomType(rtsymbol) == SymbolType &&
+    nl->SymbolValue(rtsymbol) == "rtree")
+  return 0;
+  if(nl->IsAtom(rtsymbol) &&
+    nl->AtomType(rtsymbol) == SymbolType &&
+    nl->SymbolValue(rtsymbol) == "rtree3")
+  return 1;
+  return -1;
+}
 Operator cellindex(
         "cellindex",
         CellIndexSpec,
-        CellIndexFun,
-        Operator::SimpleSelect,
+        2,
+        CellIndexFunMap,
+        CellIndexSelect,
         CellIndexTypeMap
 );
 
-
-const string knearestFilter_DirectionSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>rtree(tuple ((x1 t1)...(xn tn))"
-     " ti) x rel1(tuple ((x1 t1)...(xn tn))) x btree(tuple ((x1 t1)...(xn tn)))"
-      " x rel2(tuple ((x1 t1)...(xn tn))) x xi x mpoint x k x direction ->"
-      " (stream (tuple ((x1 t1)...(xn tn))))"
-      "</text--->"
-      "<text>_ _ _ _ knearestfilter [_, _, _ ,_]</text--->"
-      "<text>The operator results a stream of all input tuples "
-      "which are the k-nearest tupels to the given mpoint with direction limit."
-      "The operator do not separate tupels if necessary. The "
-      "result may have more than the k-nearest tupels. It is a "
-      "filter operator for the knearest operator, if there are a great "
-      "many input tupels. "
-      "The operator expects a three dimensional rtree where the "
-      "third dimension is the time</text--->"
-      "<text>query UTOrdered_RTree UTOrdered btreehats hats "
-      "directionknearestfilter [UTrip,train1, 5,left] count;</text--->"
-      "))";
-
-const string knearest_DirectionSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>rtree(tuple ((x1 t1)...(xn tn))"
-     " ti) x rel1(tuple ((x1 t1)...(xn tn))) x xi x mpoint x k x direction ->"
-      " (stream (tuple ((x1 t1)...(xn tn))))"
-      "</text--->"
-      "<text>_ _ knearestfilter [_, _, _ ,_]</text--->"
-      "<text>The operator results a stream of all input tuples "
-      "which are the k-nearest tupels to the given mpoint with direction limit."
-      "The operator do not separate tupels if necessary. The "
-      "result may have more than the k-nearest tupels. It is a "
-      "filter operator for the knearest operator, if there are a great "
-      "many input tupels. "
-      "The operator expects a three dimensional rtree where the "
-      "third dimension is the time</text--->"
-      "<text>query UTOrdered_RTree UTOrdered directionknearest "
-      "[UTrip,train1, 5,0.0,180.0] count;</text--->"
-      "))";
-/*
-The function knearestFilterTypeMap is the type map for the
-operator knearestfilter
-
-*/
-ListExpr knearestFilterDirectionTypeMap( ListExpr args )
-{
-  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-
-  char* errmsg = "Incorrect input for operator knearestfilter.";
-  string rtreeDescriptionStr, relDescriptionStr;
-  string argstr, argstr2;
-
-  CHECK_COND(nl->ListLength(args) == 8,
-    "Operator knearestfilter expects a list of length eight.");
-
-  ListExpr rtreeDescription = nl->First(args);
-  ListExpr relDescription = nl->Second(args);
-  ListExpr btreeDescription = nl->Third(args);
-  ListExpr brelDescription = nl->Fourth(args);
-  ListExpr attrName = nl->Fifth(args);
-  ListExpr queryobject = nl->Sixth(args);
-  ListExpr quantity = nl->Nth(7,args);
-  ListExpr direction = nl->Nth(8,args);
-
-  CHECK_COND(listutils::isRTreeDescription(rtreeDescription),
-             "first argument must be an rtree");
-
-  CHECK_COND (listutils::isRelDescription(relDescription),
-             "Second argument must be a relation");
-
-  CHECK_COND(listutils::isBTreeDescription(btreeDescription),
-             "third argument must be an btree");
-
-  CHECK_COND(listutils::isRelDescription(brelDescription),
-             "fourth argument must be a relation");
-
-  CHECK_COND(nl->AtomType(attrName)==SymbolType,
-             "fifth argument must be an attribute name");
-
-  CHECK_COND(nl->IsEqual(queryobject,"mpoint"),
-             "sixth argument must be of type mpoint");
-
-  CHECK_COND(nl->IsEqual(quantity,"int"),
-             "seventh argument must be of type int");
-  CHECK_COND(nl->IsEqual(direction,"string"),
-             "eighth argument must be of type string");
-
-
-  int j;
-  ListExpr attrType;
-  j = FindAttribute(nl->Second(nl->Second(relDescription)),
-      nl->SymbolValue(attrName),attrType);
-  CHECK_COND( (j>0) && (nl->IsEqual( attrType, "upoint" )),
-  "Operator knearestfilter expects as a fifth argument an attribute"
-  "name, where the attribute is of type upoint\n"
-  "operator knearestfilter gets '" + argstr + "'.");
-
-  ListExpr rtreeSymbol = nl->First(rtreeDescription),
-           rtreeTupleDescription = nl->Second(rtreeDescription),
-           rtreeKeyType = nl->Third(rtreeDescription),
-           rtreeTwoLayer = nl->Fourth(rtreeDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeKeyType) &&
-    nl->AtomType(rtreeKeyType) == SymbolType &&
-    (algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
-     nl->IsEqual(rtreeKeyType, "rect3")),
-   "Operator knearestfilter expects a R-Tree with key type\n"
-   "of kind SPATIAL3D\n"
-   "or rect3.");
-
-  /* handle rtree type constructor */
-  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
-    nl->AtomType(rtreeSymbol) == SymbolType &&
-     nl->SymbolValue(rtreeSymbol) == "rtree3" ,
-   "Operator knearestfilter expects a R-Tree \n"
-   "of type rtree3.");
-
-  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
-    !nl->IsAtom(rtreeTupleDescription) &&
-    nl->ListLength(rtreeTupleDescription) == 2,
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
-    "bool)\nbut gets a first list with wrong tuple description in "
-    "structure \n'"+rtreeDescriptionStr+"'.");
-
-  ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);
-  ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeTupleSymbol) &&
-    nl->AtomType(rtreeTupleSymbol) == SymbolType &&
-    nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
-    IsTupleDescription(rtreeAttrList),
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
-    "bool)\nbut gets a first list with wrong tuple description in "
-    "structure \n'"+rtreeDescriptionStr+"'.");
-
-  CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
-    nl->AtomType(rtreeTwoLayer) == BoolType,
-   "Operator distancescan expects a R-Tree with structure "
-   "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
-   "bool)\nbut gets a first list with wrong tuple description in "
-   "structure \n'"+rtreeDescriptionStr+"'.");
-
-  /* handle rel part of argument */
-  nl->WriteToString (relDescriptionStr, relDescription);
-  CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(relDescription), errmsg);
-  CHECK_COND(nl->ListLength(relDescription) == 2, errmsg);
-
-  ListExpr relSymbol = nl->First(relDescription);;
-  ListExpr tupleDescription = nl->Second(relDescription);
-
-  CHECK_COND(nl->IsAtom(relSymbol) &&
-    nl->AtomType(relSymbol) == SymbolType &&
-    nl->SymbolValue(relSymbol) == "rel" &&
-    !nl->IsEmpty(tupleDescription) &&
-    !nl->IsAtom(tupleDescription) &&
-    nl->ListLength(tupleDescription) == 2,
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
-    "but gets a relation list with structure \n"
-    "'"+relDescriptionStr+"'.");
-
-  ListExpr tupleSymbol = nl->First(tupleDescription);
-  ListExpr attrList = nl->Second(tupleDescription);
-
-  CHECK_COND(nl->IsAtom(tupleSymbol) &&
-    nl->AtomType(tupleSymbol) == SymbolType &&
-    nl->SymbolValue(tupleSymbol) == "tuple" &&
-    IsTupleDescription(attrList),
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
-    "but gets a relation list with structure \n"
-    "'"+relDescriptionStr+"'.");
-
-  /* check that rtree and rel have the same associated tuple type */
-  CHECK_COND(nl->Equal(attrList, rtreeAttrList),
-   "Operator knearestfilter: The tuple type of the R-tree\n"
-   "differs from the tuple type of the relation.");
-
-
-
-  ListExpr res = nl->TwoElemList(
-      nl->SymbolAtom("stream"),
-      tupleDescription);
-
-  return  nl->ThreeElemList(
-             nl->SymbolAtom("APPEND"),
-             nl->OneElemList(nl->IntAtom(j)),
-            res);
-}
-
-/*
-The function knearestDirectionTypeMap is the type map for the
-operator knearestfilter
-
-*/
-
-ListExpr knearestDirectionTypeMap( ListExpr args )
-{
-  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-
-  char* errmsg = "Incorrect input for operator knearestfilter.";
-  string rtreeDescriptionStr, relDescriptionStr;
-  string argstr, argstr2;
-
-  CHECK_COND(nl->ListLength(args) == 7,
-    "Operator knearestfilter expects a list of length eight.");
-
-  ListExpr rtreeDescription = nl->First(args);
-  ListExpr relDescription = nl->Second(args);
-//  ListExpr btreeDescription = nl->Third(args);
-//  ListExpr brelDescription = nl->Fourth(args);
-  ListExpr attrName = nl->Third(args);
-  ListExpr queryobject = nl->Fourth(args);
-  ListExpr quantity = nl->Fifth(args);
-  ListExpr direction1 = nl->Sixth(args);
-  ListExpr direction2 = nl->Nth(7,args);
-
-  CHECK_COND(listutils::isRTreeDescription(rtreeDescription),
-             "first argument must be an rtree");
-
-  CHECK_COND (listutils::isRelDescription(relDescription),
-             "Second argument must be a relation");
-
-  CHECK_COND(nl->AtomType(attrName)==SymbolType,
-             "third argument must be an attribute name");
-
-  CHECK_COND(nl->IsEqual(queryobject,"mpoint"),
-             "fourth argument must be of type mpoint");
-
-  CHECK_COND(nl->IsEqual(quantity,"int"),
-             "fifth argument must be of type int");
-  CHECK_COND(nl->IsEqual(direction1,"real"),
-             "sixth argument must be of type real");
-  CHECK_COND(nl->IsEqual(direction2,"real"),
-             "sixth argument must be of type real");
-
-
-  int j;
-  ListExpr attrType;
-  j = FindAttribute(nl->Second(nl->Second(relDescription)),
-      nl->SymbolValue(attrName),attrType);
-  CHECK_COND( (j>0) && (nl->IsEqual( attrType, "upoint" )),
-  "Operator knearestfilter expects as a fifth argument an attribute"
-  "name, where the attribute is of type upoint\n"
-  "operator knearestfilter gets '" + argstr + "'.");
-
-  ListExpr rtreeSymbol = nl->First(rtreeDescription),
-           rtreeTupleDescription = nl->Second(rtreeDescription),
-           rtreeKeyType = nl->Third(rtreeDescription),
-           rtreeTwoLayer = nl->Fourth(rtreeDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeKeyType) &&
-    nl->AtomType(rtreeKeyType) == SymbolType &&
-    (algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
-     nl->IsEqual(rtreeKeyType, "rect3")),
-   "Operator knearestfilter expects a R-Tree with key type\n"
-   "of kind SPATIAL3D\n"
-   "or rect3.");
-
-  /* handle rtree type constructor */
-  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
-    nl->AtomType(rtreeSymbol) == SymbolType &&
-     nl->SymbolValue(rtreeSymbol) == "rtree3" ,
-   "Operator knearestfilter expects a R-Tree \n"
-   "of type rtree3.");
-
-  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
-    !nl->IsAtom(rtreeTupleDescription) &&
-    nl->ListLength(rtreeTupleDescription) == 2,
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
-    "bool)\nbut gets a first list with wrong tuple description in "
-    "structure \n'"+rtreeDescriptionStr+"'.");
-
-  ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);
-  ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeTupleSymbol) &&
-    nl->AtomType(rtreeTupleSymbol) == SymbolType &&
-    nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
-    IsTupleDescription(rtreeAttrList),
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
-    "bool)\nbut gets a first list with wrong tuple description in "
-    "structure \n'"+rtreeDescriptionStr+"'.");
-
-  CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
-    nl->AtomType(rtreeTwoLayer) == BoolType,
-   "Operator distancescan expects a R-Tree with structure "
-   "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
-   "bool)\nbut gets a first list with wrong tuple description in "
-   "structure \n'"+rtreeDescriptionStr+"'.");
-
-  /* handle rel part of argument */
-  nl->WriteToString (relDescriptionStr, relDescription);
-  CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(relDescription), errmsg);
-  CHECK_COND(nl->ListLength(relDescription) == 2, errmsg);
-
-  ListExpr relSymbol = nl->First(relDescription);;
-  ListExpr tupleDescription = nl->Second(relDescription);
-
-  CHECK_COND(nl->IsAtom(relSymbol) &&
-    nl->AtomType(relSymbol) == SymbolType &&
-    nl->SymbolValue(relSymbol) == "rel" &&
-    !nl->IsEmpty(tupleDescription) &&
-    !nl->IsAtom(tupleDescription) &&
-    nl->ListLength(tupleDescription) == 2,
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
-    "but gets a relation list with structure \n"
-    "'"+relDescriptionStr+"'.");
-
-  ListExpr tupleSymbol = nl->First(tupleDescription);
-  ListExpr attrList = nl->Second(tupleDescription);
-
-  CHECK_COND(nl->IsAtom(tupleSymbol) &&
-    nl->AtomType(tupleSymbol) == SymbolType &&
-    nl->SymbolValue(tupleSymbol) == "tuple" &&
-    IsTupleDescription(attrList),
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
-    "but gets a relation list with structure \n"
-    "'"+relDescriptionStr+"'.");
-
-  /* check that rtree and rel have the same associated tuple type */
-  CHECK_COND(nl->Equal(attrList, rtreeAttrList),
-   "Operator knearestfilter: The tuple type of the R-tree\n"
-   "differs from the tuple type of the relation.");
-
-
-
-  ListExpr res = nl->TwoElemList(
-      nl->SymbolAtom("stream"),
-      tupleDescription);
-
-  return  nl->ThreeElemList(
-             nl->SymbolAtom("APPEND"),
-             nl->OneElemList(nl->IntAtom(j)),
-            res);
-}
-
-struct PruneTree{
-  double startTime, endTime;
-  vector<FieldEntry<double> > vectorA;
-  vector<FieldEntry<double> > vectorB;
-  NNSegTree<double> timeTree;
-  PruneTree( const double &s, const double &e) :
-    startTime(s), endTime(e), timeTree( s, e )
-  {}
-};
-
-struct KnearestFilterLocalInfoExtend{
-  CcString* direction;
-  PruneTree* filter_pointer;
-  TBKnearestLocalInfo *tbknearest;
-  bool scanFlag;
-  Relation* relation;
-  R_Tree<3, TupleId>* rtree;
-  Relation* hats;
-  BTree* btreehats;
-  unsigned int k;
-  map<SegEntry<double>, TupleId> resultmap;
-  typedef map<SegEntry<double>, TupleId>::const_iterator CIMAP;
-  CIMAP mapit;
-};
-
-
-int knearestFilterDirectionFun (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  const int dim = 3;
-  KnearestFilterLocalInfoExtend* localInfo;
-
-  switch (message)
-  {
-    case OPEN :
-    {
-      localInfo = new KnearestFilterLocalInfoExtend();
-      localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
-      localInfo->relation = (Relation*)args[1].addr;
-      localInfo->btreehats = (BTree*)args[2].addr;
-      localInfo->hats = (Relation*)args[3].addr;
-      localInfo->k = (unsigned)((CcInt*)args[6].addr)->GetIntval();
-      localInfo->direction = (CcString*)args[7].addr;
-
-      SmiRecordId adr = localInfo->rtree->RootRecordId();
-      R_TreeNode<dim, TupleId> *rootnode =
-                    localInfo->rtree->GetMyNode(
-                     adr,
-                     false,
-                     localInfo->rtree->MinEntries( 0 ),
-                     localInfo->rtree->MaxEntries( 0 ) );
-       double global_t1(rootnode->BoundingBox().MinD(2));
-       double global_t2(rootnode->BoundingBox().MaxD(2));
-
-      local = SetWord(localInfo);
-
-      MPoint *mp1 = (MPoint*)args[5].addr;//5 th parameter
-      for(int i = 0; i < mp1->GetNoComponents();i++){ // for each upoint
-        const UPoint *up1, *up2;
-        MPoint* mp = new MPoint(0);
-        mp->SetDefined(true);
-        mp->StartBulkLoad();
-        mp1->Get(i,up1);
-        mp->Add(*up1);
-        mp->EndBulkLoad();
-
-        mp->Get( 0, up1);
-        mp->Get( mp->GetNoComponents() - 1, up2);
-        if (mp->IsEmpty())
-          continue;
-
-        BBTree<double>* t = new BBTree<double>(*mp);
-        localInfo->filter_pointer = new PruneTree(
-                 up1->timeInterval.start.ToDouble(),
-                 up2->timeInterval.end.ToDouble());
-
-        cout<<"direction "<<localInfo->direction->GetValue()<<endl;
-        localInfo->scanFlag = true;
-
-
-
-       if( !(global_t1 >= localInfo->filter_pointer->endTime ||
-            global_t2 <= localInfo->filter_pointer->startTime)){
-        localInfo->filter_pointer->vectorA.push_back( FieldEntry<double>(
-          localInfo->rtree->RootRecordId(), 0, global_t1, global_t1, 0));
-        const BBox<2> xyBox = makexyBox( rootnode->BoundingBox() );
-        SegEntry<double> se(xyBox,global_t1, global_t1, 0.0, 0.0, 0,
-              localInfo->rtree->RootRecordId(), -1);
-        localInfo->filter_pointer->timeTree.insert( se,localInfo->k );
-       }
-       //Big Pruning Process
-
-
-
-        delete t;
-        delete mp;
-        delete localInfo->filter_pointer;
-
-      }
-      delete rootnode;
-
-      return 0;
-    }
-
-    case REQUEST :
-    {
-        return CANCEL;
-    }
-
-    case CLOSE :
-    {
-      localInfo = (KnearestFilterLocalInfoExtend*)local.addr;
-      delete localInfo;
-      return 0;
-    }
-  }
-
-  return 0;
-}
-/*
-knearest function with direction limitation
-
-*/
-int knearestDirectionFun (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  const int dim = 3;
-  TBKnearestLocalInfo *localInfo;
-  switch (message)
-  {
-    case OPEN :
-    {
-      //Initialize hp,kNearestLists and PruneDist
-      MPoint* mp = (MPoint*)args[3].addr;
-      if(mp->IsEmpty())
-        return 0;
-      const UPoint* up1;
-      const UPoint* up2;
-      mp->Get(0,up1);
-      mp->Get(mp->GetNoComponents()-1,up2);
-      const unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
-      int attrpos = ((CcInt*)args[7].addr)->GetIntval()-1;
-      localInfo = new TBKnearestLocalInfo(k);
-      local = SetWord(localInfo);
-      localInfo->attrpos = attrpos;
-      localInfo->startTime = up1->timeInterval.start.ToDouble();
-      localInfo->endTime = up2->timeInterval.end.ToDouble();
-
-      localInfo->cic =
-        new CoverInterval<double>(localInfo->startTime,localInfo->endTime);
-
-      localInfo->start_angle = ((CcReal*)args[5].addr)->GetRealval();
-      localInfo->end_angle = ((CcReal*)args[6].addr)->GetRealval();
-      if(!(0<= localInfo->start_angle &&
-              localInfo->start_angle <= localInfo->end_angle &&
-              localInfo->end_angle <= 360.0)){
-        cout<<"angle is not valid"<<endl;
-        return 0;
-      }
-
-      localInfo->rtree = (R_Tree<dim,TupleId>*)args[0].addr;
-      localInfo->relation = (Relation*)args[1].addr;
-      localInfo->counter = 0;
-      localInfo->scanFlag = true;
-      localInfo->GreeceknearestInitialize(mp);
-
-      SmiRecordId adr = localInfo->rtree->RootRecordId();
-      R_TreeNode<dim,TupleId>* root = localInfo->rtree->GetMyNode(adr,
-      false,localInfo->rtree->MinEntries(0),localInfo->rtree->MaxEntries(0));
-
-      double t1(root->BoundingBox().MinD(2));
-      double t2(root->BoundingBox().MaxD(2));
-
-    // The following lines were used in published experiments, that
-    // were done on a modified R-tree that scaled up the R-tree temporal
-    // dimension by the same factor. They are commented out for use with
-    // the standard R-tree.
-
-//       t1 = t1/864000;
-//       t2 = t2/864000;
-
-
-      if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
-        BBox<2> entrybox = makexyBox(root->BoundingBox());
-        double mindist = localInfo->mptraj->Distance(entrybox);
-        double maxdist = maxDistance(entrybox,localInfo->mpbox);
-        hpelem le(-1,mindist,maxdist,adr);
-        le.nodets = t1;
-        le.nodete = t2;
-//        ftime(&gt1);
-        localInfo->BFTraverse(mp,0,le);//0.73s train1,5
-        localInfo->ReportResult();
-      }
-      delete root;
-      return 0;
-    }
-    case REQUEST :
-    {
-        localInfo = (TBKnearestLocalInfo*)local.addr;
-        if(localInfo->k == 0)
-          return CANCEL;
-        if(localInfo->counter < localInfo->result.size()){
-            TupleId tid = localInfo->result[localInfo->counter].tid;
-            Tuple* tuple = localInfo->relation->GetTuple(tid);
-            UPoint* up = (UPoint*)tuple->GetAttribute(localInfo->attrpos);
-            Point p0;
-            Point p1;
-            Instant t1(instanttype);
-            Instant t2(instanttype);
-            t1.ReadFrom(localInfo->result[localInfo->counter].nodets);
-            t2.ReadFrom(localInfo->result[localInfo->counter].nodete);
-            Interval<Instant> interv(t1,t2,true,true);
-            UPoint* temp = new UPoint(*up);
-            temp->TemporalFunction(t1,p0,true);
-            temp->TemporalFunction(t2,p1,true);
-            temp->p0 = p0;
-            temp->timeInterval.start = t1;
-            temp->p1 = p1;
-            temp->timeInterval.end = t2;
-            double factor = 0.0000001;
-            if((localInfo->result[localInfo->counter].nodete -
-                localInfo->result[localInfo->counter].nodets) < factor)
-              temp->timeInterval.lc = temp->timeInterval.rc = true;
-
-            tuple->PutAttribute(localInfo->attrpos,new UPoint(*temp));
-            delete temp;
-
-            result = SetWord(tuple);
-            localInfo->counter++;
-            return YIELD;
-        }else
-          return CANCEL;
-    }
-
-    case CLOSE :
-    {
-      localInfo = (TBKnearestLocalInfo*)local.addr;
-      delete localInfo;
-      return 0;
-    }
-  }
-  return 0;
-
-  return 0;
-}
-
-Operator directionknearestfilter(
-         "directionknearestfilter",        // name
-         knearestFilter_DirectionSpec,      // specification
-         //newknearestFilterFun<Instant>,       // value mapping
-         knearestFilterDirectionFun,       // value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         knearestFilterDirectionTypeMap    // type mapping
-);
-
-Operator directionknearest(
-         "directionknearest",        // name
-         knearest_DirectionSpec,      // specification
-         //newknearestFilterFun<Instant>,       // value mapping
-         knearestDirectionFun,       // value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         knearestDirectionTypeMap    // type mapping
-);
 
 
 ListExpr GnuplotNodeTypeMap( ListExpr args )
@@ -9703,10 +9327,10 @@ int gnuplotnodeFun (Word* args, Word& result, int message,
 
       tuple->DeleteIfAllowed();
       count++;
-      if(count >= 50){
-        cout<<"maximum number of nodes to plot is 50"<<endl;
-        break;
-      }
+//      if(count >= 50){
+//        cout<<"maximum number of nodes to plot is 50"<<endl;
+//        break;
+//      }
     }
     qp->Request(stream.addr,current);
     finished = !qp->Received(stream.addr);
@@ -9775,6 +9399,605 @@ Operator gnuplotnode(
          Operator::SimpleSelect,
          GnuplotNodeTypeMap
 );
+
+const string KclosestpairSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>rtree(tuple ((x1 t1)...(xn tn))"
+      " ti) x rel(tuple ((x1 t1)...(xn tn)))"
+      " x attribute x querywindo x k ->"
+      " a stream of tuple (<(u1 upoint) (u2 upoint)>)"
+      "</text--->"
+      "<text> _ _ kclosestpair [_, _,_]</text--->"
+       "it outputs the data of bounding box from a certain level into "
+       "a file read by gnuplot"
+      "<text>query UnitTrains_UTrip UnitTrains kclosestpair[UTrip,qw,2] count;"
+       "</text--->"
+      "))";
+/*
+The function rknearestFilterTypeMap is the type map for the
+operator knearestfilter
+
+*/
+ListExpr KclosestpairTypeMap( ListExpr args )
+{
+
+  string errmsg = "rtree x relation x utrip x box x int expected";
+
+  if(nl->ListLength(args)!=5){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+  ListExpr tbtreeDescription = nl->First(args);
+  ListExpr relDescription = nl->Second(args);
+  ListExpr attrName = nl->Third(args);
+  ListExpr rectangle = nl->Fourth(args);
+  ListExpr quantity = nl->Fifth(args);
+
+  // the third element has to be of type mpoint
+  if(!nl->IsEqual(rectangle,"rect3")){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  // the third element has to be of type mpoint
+  if(!nl->IsEqual(quantity,"int")){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  ListExpr rtreeSymbol = nl->First(tbtreeDescription);
+
+  if(!nl->IsEqual(rtreeSymbol, "rtree3")){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  if(!IsRelDescription(relDescription)){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  int j;
+  ListExpr attrType;
+  j = FindAttribute(nl->Second(nl->Second(relDescription)),
+      nl->SymbolValue(attrName),attrType);
+  CHECK_COND((j > 0) && (nl->IsEqual(attrType,"upoint")),"expect upoint");
+
+
+  ListExpr res = nl->TwoElemList(
+      nl->SymbolAtom("stream"),
+      nl->TwoElemList(nl->SymbolAtom("tuple"),
+                      nl->TwoElemList(
+              nl->TwoElemList(nl->SymbolAtom("p1"),nl->SymbolAtom("upoint")),
+              nl->TwoElemList(nl->SymbolAtom("p2"),nl->SymbolAtom("upoint")))));
+
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+          nl->OneElemList(nl->IntAtom(j)),res);
+}
+
+struct PairElem{
+  myureal movdist;
+  TupleId tid1,tid2;
+  myupoint p1,p2;
+  long nid1,nid2;
+  double mind,maxd;
+  double stime,etime;
+  PairElem* next;
+  PairElem(TupleId id1,TupleId id2,long n1,long n2,double min,double max,
+          double s,double e)
+  :tid1(id1),tid2(id2),nid1(n1),nid2(n2),mind(min),maxd(max),stime(s),etime(e){}
+};
+
+struct PairList{
+  double mind,maxd;
+  PairElem* head;
+  double stime,etime;
+  PairList(double min,double max,PairElem* pe,double s,double e)
+  :mind(min),maxd(max),head(pe),stime(s),etime(e){}
+  PairList(const PairList& pl)
+  :mind(pl.mind),maxd(pl.maxd),head(pl.head),stime(pl.stime),etime(pl.etime){}
+};
+
+struct KClosestPair{
+  R_Tree<3,TupleId>* rtree;
+  Relation* relation;
+  BBox<3>* qw;
+  unsigned int k;
+  vector<PairList> pairlist;
+  CIC<double>* detect_time1;
+  CoverInterval<double>* detect_time2;
+  KClosestPair(R_Tree<3,TupleId>* index,Relation* rel,BBox<3>* box,
+              unsigned int nn)
+  :rtree(index),relation(rel),qw(box),k(nn){}
+  void KClosestPairProcess();
+  double prunedist;//the maximum distance in list [k]
+};
+/*
+Main function of operator kclosestpair
+
+*/
+void KClosestPair::KClosestPairProcess()
+{
+  //SearchCandidate();
+
+}
+/*
+operator kclosestpair.
+Give a relation on upoint, a 3D R-tree, a query window qw(x,y,t), and an integer
+number k, it returns the continuous k closest pair of moving objects restricted
+to query window qw.
+args[0] = a relation storing upoints
+args[1] = a 3D R-tree
+args[2] = attribute upoint
+args[3] = query window
+args[4] = integer number k
+
+*/
+int kclosestpairFun (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+  BBox<3>* qw = (Rectangle<3>*)args[3].addr;
+  KClosestPair* localInfo;
+  switch(message){
+     case OPEN: {
+       localInfo = new KClosestPair((R_Tree<3,TupleId>*)args[0].addr,
+            (Relation*)args[1].addr,(BBox<3>*)args[3].addr,
+            ((CcInt*)args[4].addr)->GetIntval());
+       localInfo->qw->Print(cout);
+       localInfo->KClosestPairProcess();
+       return 0;
+   }
+   case REQUEST: {
+        localInfo = (KClosestPair*)local.addr;
+        return CANCEL;
+   }
+   case CLOSE : {
+      localInfo = (KClosestPair*)local.addr;
+      delete localInfo;
+      return 0;
+   }
+ }
+ return 0;
+}
+
+
+Operator kclosestpair(
+        "kclosestpair",
+         KclosestpairSpec,
+         kclosestpairFun,
+         Operator::SimpleSelect,
+         KclosestpairTypeMap
+);
+
+const string CellPartitionSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>a stream of tuple x 3D box x  upoint"
+      " x cellno1 x cellno2 x cellno3 ->"
+      " a stream of tuple (<(cellid int) (u upoint)>)"
+      "</text--->"
+      "<text> _ cellpartition [ _,_,_,_,_]</text--->"
+       "it outputs the cellid and all the upoints inside "
+      "<text>query UnitTrains feed cellpartition[Box,UTrip,10,10,10] count;"
+       "</text--->"
+      "))";
+
+/*
+The function CellPartitionTypeMap is the type map for the
+operator cellpartition
+
+*/
+ListExpr CellPartitionTypeMap( ListExpr args )
+{
+
+  string errmsg = "stream x 3d box x upoint x int1 x int2 x int3 expected";
+
+  if(nl->ListLength(args)!=6){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+  ListExpr stream = nl->First(args);
+  ListExpr threedbox = nl->Second(args);
+  ListExpr attrName = nl->Third(args);
+  ListExpr cellno1 = nl->Fourth(args);
+  ListExpr cellno2 = nl->Fifth(args);
+  ListExpr cellno3 = nl->Sixth(args);
+
+  if(!IsStreamDescription(stream)){
+    ErrorReporter::ReportError(errmsg);
+    return nl->TypeError();
+  }
+
+  CHECK_COND(nl->IsEqual(threedbox,"rect3"),
+            "second argument must be a 3D box");
+
+  CHECK_COND(nl->AtomType(attrName) == SymbolType,
+            "third argument must be an attribute name");
+
+  CHECK_COND(nl->IsEqual(cellno1,"int"),
+            "fourth argument must be of type int");
+
+  CHECK_COND(nl->IsEqual(cellno2,"int"),
+            "fifth argument must be of type int");
+
+  CHECK_COND(nl->IsEqual(cellno3,"int"),
+            "sixth argument must be of type int");
+
+  int j;
+  ListExpr attrType;
+  j = FindAttribute(nl->Second(nl->Second(stream)),
+      nl->SymbolValue(attrName),attrType);
+  CHECK_COND((j > 0) && (nl->IsEqual(attrType,"upoint")),"expect upoint");
+
+
+  ListExpr res = nl->TwoElemList(
+      nl->SymbolAtom("stream"),
+      nl->TwoElemList(nl->SymbolAtom("tuple"),
+                      nl->ThreeElemList(
+           nl->TwoElemList(nl->SymbolAtom("cellid"),nl->SymbolAtom("int")),
+           nl->TwoElemList(nl->SymbolAtom("cellbox"),nl->SymbolAtom("rect3")),
+           nl->TwoElemList(nl->SymbolAtom("utrip"),nl->SymbolAtom("upoint")))));
+
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+          nl->OneElemList(nl->IntAtom(j)),res);
+}
+/*
+It partitions the space into a list of cubes, and for each cube it records all
+upoints inside. If the upoint intersect more than one cube, interpolates the
+cube and put each sub part into its corresponding cube.
+args[0] - 3D box
+args[1] - an relation with attribute upoint
+args[2] - attrName for upoint
+args[3,4,5] - the number of cell for each dimension,x,y,t
+
+*/
+struct CellPart{
+  Rectangle<3>* box;
+  int attrpos;
+  int cellno[3];
+  int cellx,celly,cellt;
+  TupleType* resulttype;
+  unsigned int count;
+  unsigned int id;
+  Tuple* lasttuple;
+  double global_min;
+  vector<double> gmin;
+  vector<double> gmax;
+  vector<double> cellsize;
+  CellPart(Rectangle<3>* bbox,int x,int y,int z)
+  :box(bbox),cellx(x),celly(y),cellt(z){
+    count = 0;
+    id = 1;
+    resulttype = NULL;
+    for(unsigned int i = 0;i < 3;i++){
+      gmin.push_back(bbox->MinD(i));
+      gmax.push_back(bbox->MaxD(i));
+    }
+    cellsize.push_back(floor((gmax[0]-gmin[0])/cellx));
+    cellsize.push_back(floor((gmax[1]-gmin[1])/celly));
+    cellsize.push_back(floor((gmax[2]-gmin[2])/cellt));
+    cellno[0] = cellx;
+    cellno[1] = celly;
+    cellno[2] = cellt;
+//
+    gmax[2] = gmax[2] - gmin[2];
+    global_min = gmin[2];
+    gmin[2] = 0;
+//
+    for(unsigned int i = 0;i < 3;i++)
+      cout<<"size dimension "<<i<<" "<<cellsize[i]<<endl;
+  }
+  ~CellPart(){if(resulttype != NULL)delete resulttype;}
+
+  vector<UPoint> ups;
+  vector<BBox<3> > cellbox; //store the box of each cell
+
+  void AssignUPinCell();
+  void AccessFunction(int depth,vector<long>& start_index,
+       vector<long>& end_index,vector<int>& pos,UPoint* up);
+};
+void CellPart::AccessFunction(int depth,vector<long>& start_index,
+       vector<long>& end_index,vector<int>& pos,UPoint* up)
+{
+  if(depth == 2){
+    for(long i = start_index[depth]; i <= end_index[depth];i++){
+      pos[depth] = i;
+      long cellid = 1;
+      for(int j = depth;j >= 0;j--){
+        int k = j - 1;
+        int size_low = 1;
+        while( k >= 0){
+          size_low = size_low * cellno[k];
+          k--;
+        }
+        cellid += size_low * pos[j];
+//        cout<<cellid<<endl;
+      }
+      double min[3];
+      double max[3];
+      for(unsigned int j = 0;j < 3;j++){
+        min[j] = gmin[j] + pos[j]*cellsize[j];
+        max[j] = gmin[j] + (pos[j]+1)*cellsize[j];
+      }
+      Rectangle<3> cell_box(true,min,max);
+//      cell_box.Print(cout);
+      //interpolate up to small one
+      UPoint* tempup = new UPoint(*up);
+      if(tempup->timeInterval.start.ToDouble()*86400.0 - global_min < min[2]){
+          Instant start(instanttype);
+          start.ReadFrom((min[2] + global_min)/86400.0);
+          Point p0;
+          tempup->TemporalFunction(start,p0,true);
+          tempup->p0 = p0;
+          tempup->timeInterval.start = start;
+
+      }
+      if(tempup->timeInterval.end.ToDouble()*86400.0 - global_min > max[2]){
+          Instant end(instanttype);
+          end.ReadFrom((max[2] + global_min)/86400.0);
+          Point p1;
+          tempup->TemporalFunction(end,p1,true);
+          tempup->p1 = p1;
+          tempup->timeInterval.end = end;
+
+      }
+      if(tempup->p0.GetX() < min[0]){
+          double x = min[0];
+          double y = tempup->p0.GetY();
+          tempup->p0.Set(x,y);
+      }
+      if(tempup->p1.GetX() < min[0]){
+          double x = min[0];
+          double y = tempup->p1.GetY();
+          tempup->p0.Set(x,y);
+      }
+      if(tempup->p0.GetX() > max[0]){
+          double x = max[0];
+          double y = tempup->p0.GetY();
+          tempup->p0.Set(x,y);
+      }
+      if(tempup->p1.GetX() > max[0]){
+          double x = max[0];
+          double y = tempup->p1.GetY();
+          tempup->p0.Set(x,y);
+      }
+      if(tempup->p0.GetY() < min[1]){
+          double x = tempup->p0.GetX();
+          double y = min[1];
+          tempup->p0.Set(x,y);
+      }
+      if(tempup->p1.GetY() < min[1]){
+          double x = tempup->p0.GetX();
+          double y = min[1];
+          tempup->p1.Set(x,y);
+      }
+      if(tempup->p0.GetY() > max[1]){
+          double x = tempup->p0.GetX();
+          double y = max[1];
+          tempup->p0.Set(x,y);
+      }
+      if(tempup->p1.GetY() > max[1]){
+          double x = tempup->p0.GetX();
+          double y = max[1];
+          tempup->p1.Set(x,y);
+      }
+//      cout<<*tempup<<endl;
+      if(!AlmostEqual(tempup->timeInterval.start.ToDouble(),
+                      tempup->timeInterval.end.ToDouble())){
+        cellbox.push_back(cell_box);
+        ups.push_back(*tempup);
+      }
+      delete tempup;
+    }
+  }else{
+    for(long i = start_index[depth];i <= end_index[depth];i++){
+      pos[depth] = i;
+      AccessFunction(depth+1,start_index,end_index,pos,up);
+    }
+  }
+}
+void CellPart::AssignUPinCell()
+{
+  ups.clear();
+  cellbox.clear();
+
+  UPoint* up = (UPoint*)(lasttuple->GetAttribute(attrpos));
+
+  cout<<"proces unit "<<*up<<endl;
+
+  BBox<3> box = up->BoundingBox();
+  double boxmin[3],boxmax[3];
+
+  for(unsigned int i = 0;i < 3;i++){
+      boxmin[i] = box.MinD(i);
+      boxmax[i] = box.MaxD(i);
+  }
+  boxmin[2] = boxmin[2] * 86400.0 - global_min;
+  boxmax[2] = boxmax[2] * 86400.0 - global_min;
+
+  vector<double> lower;
+  vector<double> upper;
+  vector<long> start_index;
+  vector<long> end_index;
+  vector<int> pos;
+
+  for(unsigned int i = 0;i < 3;i++){
+    lower.push_back(boxmin[i]);
+    upper.push_back(boxmax[i]);
+  }
+
+  for(unsigned int i = 0;i < 3;i++){
+    start_index.push_back((long)floor((lower[i]-gmin[i])/cellsize[i]));
+    end_index.push_back((long)floor((upper[i]-gmin[i]) /cellsize[i]));
+//    cout<<"start "<<i<<" "<<start_index[i]<<endl;
+//    cout<<"end "<<i<<" "<<end_index[i]<<endl;
+  }
+
+
+//  cout<<"range "<<endl;
+//  for(unsigned int i = 0;i < 3;i++)
+//    cout<<boxmin[i]<<" "<<boxmax[i]<<endl;
+
+//  AccessFunction(0,start_index,end_index,pos,up);
+
+///
+  vector<UPoint> tempups;
+  for(int i = start_index[2];i <= end_index[2];i++){
+      double t_min = gmin[2] + i*cellsize[2];
+      double t_max = gmin[2] + (i+1)*cellsize[2];
+//      cout<<t_min<<" "<<t_max<<endl;
+      Instant start(instanttype);
+      start.ReadFrom((t_min + global_min)/86400.0);
+      Instant end(instanttype);
+      end.ReadFrom((t_max + global_min)/86400.0);
+//      cout<<start<<" "<<end<<endl;
+      if(start < up->timeInterval.start)
+        start = up->timeInterval.start;
+      if(end > up->timeInterval.end)
+        end = up->timeInterval.end;
+      UPoint* upoint = new UPoint(*up);
+      Point p0,p1;
+      up->TemporalFunction(start,p0,true);;
+      up->TemporalFunction(end,p1,true);
+      upoint->p0 = p0;
+      upoint->p1 = p1;
+      upoint->timeInterval.start = start;
+      upoint->timeInterval.end = end;
+      tempups.push_back(*upoint);
+      cout<<*upoint<<endl;
+      delete upoint;
+  }
+
+  for(unsigned int i = 0;i < tempups.size();i++){
+      box = tempups[i].BoundingBox();
+      for(unsigned int i = 0;i < 3;i++){
+        boxmin[i] = box.MinD(i);
+        boxmax[i] = box.MaxD(i);
+      }
+      boxmin[2] = boxmin[2] * 86400.0 - global_min;
+      boxmax[2] = boxmax[2] * 86400.0 - global_min;
+      lower.clear();
+      upper.clear();
+      start_index.clear();
+      end_index.clear();
+      pos.clear();
+      for(unsigned int i = 0;i < 3;i++){
+        lower.push_back(boxmin[i]);
+        upper.push_back(boxmax[i]);
+      }
+
+      for(unsigned int i = 0;i < 3;i++){
+        start_index.push_back((long)floor((lower[i]-gmin[i])/cellsize[i]));
+        end_index.push_back((long)floor((upper[i]-gmin[i]) /cellsize[i]));
+        cout<<"start "<<i<<" "<<start_index[i]<<endl;
+        cout<<"end "<<i<<" "<<end_index[i]<<endl;
+      }
+      cout<<endl;
+      for(unsigned int i = 0;i < 3;i++)
+        pos.push_back(-1);
+      AccessFunction(0,start_index,end_index,pos,&tempups[i]);
+/////////////
+
+      double min[3];
+      double max[3];
+      int position[2];
+      for(unsigned int i = start_index[0];i <= end_index[0];i++){
+        for(unsigned int j = start_index[1];j <= end_index[j];j++){
+          position[0] = i;
+          position[1] = j;
+          for(unsigned int k = 0;k < 2;k++){
+            min[k] = gmin[k] + position[k]*cellsize[k];
+            max[k] = gmin[k] + (position[k]+1)*cellsize[k];
+          }
+          //to be continued
+        }
+      }
+
+////////////
+
+  }
+
+}
+int CellPartitionFun (Word* args, Word& result, int message,
+             Word& local, Supplier s)
+{
+  CellPart* localInfo;
+  Word elem(Address(0));
+  switch(message){
+     case OPEN: {
+       localInfo = new CellPart((Rectangle<3>*)args[1].addr,
+              ((CcInt*)args[3].addr)->GetIntval(),
+              ((CcInt*)args[4].addr)->GetIntval(),
+              ((CcInt*)args[5].addr)->GetIntval());
+       localInfo->resulttype = new TupleType(nl->Second(GetTupleResultType(s)));
+       localInfo->attrpos = ((CcInt*)args[6].addr)->GetIntval()-1;
+       local.setAddr(localInfo);
+       qp->Open(args[0].addr);
+       qp->Request(args[0].addr,elem);
+       if(qp->Received(args[0].addr) == false)
+        return 0;
+       localInfo->lasttuple = (Tuple*)elem.addr;
+       localInfo->AssignUPinCell();
+       return 0;
+   }
+   case REQUEST: {
+        localInfo = (CellPart*)local.addr;
+        if(localInfo->count < localInfo->ups.size()){
+
+          Tuple* t = new Tuple(localInfo->resulttype);
+          t->PutAttribute(0,new CcInt(true,localInfo->id));
+//          UPoint* up =
+//          (UPoint*)(localInfo->lasttuple->GetAttribute(localInfo->attrpos));
+//          t->PutAttribute(1,new UPoint(*up));
+          t->PutAttribute(1,
+                      new Rectangle<3>(localInfo->cellbox[localInfo->count]));
+          t->PutAttribute(2,new UPoint(localInfo->ups[localInfo->count]));
+          localInfo->id++;
+          localInfo->count++;
+          result.setAddr(t);
+          return YIELD;
+        }else{
+           qp->Request(args[0].addr,elem);
+           if(qp->Received(args[0].addr) == false)
+             return CANCEL;
+           localInfo->lasttuple->DeleteIfAllowed();
+           localInfo->lasttuple = (Tuple*)elem.addr;
+           localInfo->count = 0;
+
+           localInfo->AssignUPinCell();
+           Tuple* t = new Tuple(localInfo->resulttype);
+           t->PutAttribute(0,new CcInt(true,localInfo->id));
+//          UPoint* up =
+//          (UPoint*)(localInfo->lasttuple->GetAttribute(localInfo->attrpos));
+//          t->PutAttribute(1,new UPoint(*up));
+            t->PutAttribute(1,
+                      new Rectangle<3>(localInfo->cellbox[localInfo->count]));
+            t->PutAttribute(2,new UPoint(localInfo->ups[localInfo->count]));
+            localInfo->id++;
+            localInfo->count++;
+            result.setAddr(t);
+            return YIELD;
+        }
+   }
+   case CLOSE : {
+      qp->Close(args[0].addr);
+      CellPart* localInfo = (CellPart*)local.addr;
+      if(localInfo){
+        delete localInfo;
+        local.setAddr(NULL);
+      }
+      return 0;
+   }
+ }
+ return 0;
+}
+Operator cellpartition(
+        "cellpartition",
+         CellPartitionSpec,
+         CellPartitionFun,
+         Operator::SimpleSelect,
+         CellPartitionTypeMap
+);
+
 /*
 4 Implementation of the Algebra Class
 
@@ -9806,10 +10029,10 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &chinaknearest);
     AddOperator( &mqknearest);
     AddOperator( &covleafnode);
-    AddOperator( &cellindex);
-//    AddOperator( &directionknearestfilter);
-//    AddOperator( &directionknearest);
-    AddOperator( &gnuplotnode);
+//    AddOperator( &cellindex);
+//    AddOperator( &gnuplotnode);
+//    AddOperator( &kclosestpair);
+//    AddOperator( &cellpartition);
   }
   ~NearestNeighborAlgebra() {};
 };

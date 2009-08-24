@@ -36,8 +36,6 @@ operator greeceknearest alias TBKNEARESTFILTER pattern _ _ op [_,_, _]
 operator chinaknearest alias HCKNNKNEAREST pattern _ _ op [_,_, _]
 
 operator cellindex alias CELLINDEX pattern op(_,_)
-operator directionknearestfilter alias DIRECTIONKNEARESTFILTER pattern _ _ _ _ op [_,_,_,_]
-operator directionknearest alias DIRECTIONKNEARESTFILTER pattern _ _  op [_,_,_,_,_]
-
-
+operator cellpartition alias CELLPARTITION pattern _op[_,_,_,_,_]
 operator gnuplotnode alias GNUPLOTNODE pattern _ op[_,_]
+operator kclosestpair alias KCLOSESTPAIR pattern _ _ op[_,_,_]
