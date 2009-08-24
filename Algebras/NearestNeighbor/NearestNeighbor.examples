@@ -5,7 +5,8 @@ Operator : distancescan
 Number   : 1
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) T int) -> (stream (tuple ((x1 t1)...(xn tn)))), where T = ti = SPATIAL[2,3,4]D
 Example  : query Kinos creatertree[geoData] Kinos distancescan [[const point value (10539.0 14412.0)], 5] consume
-Result   : file
+Result   : bug
+Remark   : the distancescn openarors does not work on on the fly created r-trees
 
 Operator : distancescan
 Number   : 2
@@ -57,13 +58,13 @@ Result   : 20
 Operator : oldknearestfilter
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UTOrdered_RTree UTOrdered oldknearestfilter[train1, 5] count
+Example  : query UTOrdered_rtree UTOrdered oldknearestfilter[train1, 5] count
 Result   : file_platform
 
 Operator : oldknearestfilter
 Number   : 7
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UTOrdered_RTree UTOrdered oldknearestfilter[train1, 5]  knearest[UTrip, train1, 5] count
+Example  : query UTOrdered_rtree UTOrdered oldknearestfilter[train1, 5]  knearest[UTrip, train1, 5] count
 Result   : file_platform
 
 
@@ -95,13 +96,13 @@ Result    : (bool TRUE)
 Operator : knearestfilter
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))(btree (tuple ((x1 t1)...(xn tn))) ti)(rel2 (tuple ((x1 t1)...(xn tn)))) x  mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UTOrdered_RTree UTOrdered btree numbers knearestfilter[UTrip,train1, 10] count
+Example  : query UTOrdered_rtree UTOrdered btree numbers knearestfilter[UTrip,train1, 10] count
 Result   : file_platform
 
 Operator : greeceknearest
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn)))) x  mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UTOrdered_RTree UTOrdered greeceknearest[UTrip,train1, 3] count
+Example  : query UTOrdered_rtree UTOrdered greeceknearest[UTrip,train1, 3] count
 Result   : 0
 
 Operator : chinaknearest
