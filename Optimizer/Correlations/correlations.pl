@@ -134,7 +134,7 @@ findRelation(A, B):-
 	error_exit(findRelation/2, [ 'unexpected call with arguments: ', [A, B] ]).
 
 
-% VJO ??? - neu Doku
+% 
 set_equal(Set, Set):-
 	debug_writeln(set_equal/2, 81, [ 'lists ', Set, ' and ', Set, ' are equal']).
 % this definition is just for performance issues
@@ -223,7 +223,7 @@ build_list_of_predicates:-
 %?%	!, kann dann "unexpected call" noch erreicht werden?
 	% get all Predicates
 	findall([PredIdent,Pr], edge(0,PredIdent,Pr,_,_,_), PredList),
-	debug_writeln(build_list_of_predicates/0, 31, [ 'all predicates added to list ', PredList]),
+	debug_writeln(build_list_of_predicates/0, 31, [ 'predicates found ', PredList]),
 	% build list of relations and list of predicates
 	build_list_of_predicates2(PredList).
 
@@ -257,8 +257,8 @@ build_list_of_predicates3(PredIdent, PredExpr, Relation):-
 	% PredExpr is the predicate itself used for predcounts query
 	debug_writeln(build_list_of_predicates3/3, 59, [ 'predicate id ', PredIdent, ' is transformed to ', PredIdent2]),
 	(
-		not(optimizerOption(joinCorrelations)),
 		not(optimizerOption(joinCorrelations2)),
+		not(optimizerOption(joinCorrelations)),
 		is_list(Relation)
 		->
 		info_continue(
@@ -293,14 +293,14 @@ get_predicate_contents(Predicate, PredExpr, Relation):-
 	% only select supports selects only currently
 	Predicate = select( _ , PredExpr ),
 	PredExpr = pr( _ , Relation ),
-	debug_writeln(get_predicate_contents/3, 61, [ 'select predicate evaluated ', Predicate, ' => ', [PredExpr, Relation]]).
+	debug_writeln(get_predicate_contents/3, 61, [ 'select predicate found ', Predicate, ' => ', [PredExpr, Relation]]).
 
 % join predicates
 get_predicate_contents(Predicate, PredExpr, Relation):-
 	Predicate = join( _, _, PredExpr ),
 	PredExpr = pr( _ , Relation1, Relation2 ),
 	Relation = [ Relation1, Relation2 ],
-	debug_writeln(get_predicate_contents/3, 62, [ 'join predicate evaluated ', Predicate, ' => ', [PredExpr, Relation]]).
+	debug_writeln(get_predicate_contents/3, 62, [ 'join predicate found ', Predicate, ' => ', [PredExpr, Relation]]).
 
 % other unsupported type of predicate
 get_predicate_contents(Predicate, _, _):-
@@ -533,8 +533,11 @@ storeCorrPredicates([ [ PredID, PredRel, PredExpr ] | ListOfPredicates ]):-
 storeCorrPredicates(A):-
 	error_exit(storeCorrPredicates/1, ['unexpected call with argument ', A]).
 
+
+
 /*
 3.4.3 build\_query/2
+
 
   The predicate constructs the tuple [ PredIdentList Query ] 
 for the given relation (argument 1).
@@ -542,20 +545,19 @@ for the given relation (argument 1).
 */
 
 build_query(Relation, [ PredIdentList , Query , Relation ]):-
-%?%build_query(Relation, [ PredIdentList , Query , RelPred ]):-
-%?%	set_equal(Relation, RelPred), unklar wieso - 
 	% build sel and join lists
 	get_join_predicates(Relation, JoinPredicateIDs, JoinPredicates),
 	debug_writeln(build_query/2, 59, [ 'got join predicates ', JoinPredicateIDs, ' for relation ', Relation]),
 	get_sel_predicates(Relation, SelPredicateIDs, _),
 	debug_writeln(build_query/2, 59, [ 'got select predicates ', SelPredicateIDs, ' for relation ', Relation]),
+	length(SelPredicateIDs, CountSelPreds),
 	!,
 	% set samples to be used instead of relations
 	removeSamplesToBeUsed,
 	setSamplesToBeUsed(Relation),
 	!,
 	% build relation expression
-	build_relation_expr(Relation, JoinPredicates, RelationExpr, UsedJoinPredicateIDs),
+	build_relation_expr(Relation, JoinPredicates, RelationExpr, UsedJoinPredicateIDs, CountSelPreds),
 	debug_writeln(build_query/2, 59, [ 'relation expression ', RelationExpr, ' built for relation ', Relation, ' using join predicates ', UsedJoinPredicateIDs]),
 	!,
 	% build list of predicate identifiers identifying the predicates
@@ -583,7 +585,6 @@ build_query(Relation, [ PredIdentList , Query , Relation ]):-
 	% remove samples to be used instead of relations
 	removeSamplesToBeUsed.
 
-
 % unexpected call
 build_query(A, B):-
 	error_exit(build_query/2, ['unexpected call with arguments ', [A,B] ]).
@@ -609,13 +610,13 @@ is described in capture.
 
 */
 
-%???VJO doku?
-
 % if Option correlationsJoin is set - applicate operator predcount on a derivated relation
-build_relation_expr(Relation, JoinPredicates, RelationExpr, SmallestJoinSet):-
-        optimizerOption(joinCorrelations2), % nicht Option Kreuzprodukt
+build_relation_expr(Relation, JoinPredicates, RelationExpr, SmallestJoinSet, CountSelPreds):-
+        optimizerOption(joinCorrelations), % nicht Option Kreuzprodukt
 	% if no join predicate exists use product by default
 	not(JoinPredicates=[]),
+	% at least one selection predicate
+	CountSelPreds > 0,
 %?%	is_list(Relation), wie sollte ein join pred definiert werden ueber eine relationsinstanz
 	%!, no cut here - it is possible, that no set of join predicates joins all relations
 	% in that case get_all_join_sets/3 fails (that's correct) and a product of relations should be used
@@ -635,63 +636,65 @@ build_relation_expr(Relation, JoinPredicates, RelationExpr, SmallestJoinSet):-
 	get_cheapest_path(SmallestJoinSet, CheapestJoinPath),
 	debug_writeln(build_relation_expr/4, 69, [ 'cheapest path of smallest join ', CheapestJoinPath]),
 	%!, if its not possible to construct a sample query
-	%plan(CheapestJoinPath, CheapestJoinPlan),
-	%debug_writeln(build_relation_expr/4, 69, [ 'plan of cheapest path of smallest join ', CheapestJoinPlan]),
-	%!, if its not possible to construct a sample query
-	%prepare_sample_query(CheapestJoinPlan,XXX),
 	construct_sample_plan(CheapestJoinPath, SamplePlan),
 	!,
 	plan_to_atom(SamplePlan, RelationExpr),
 	%plan_to_atom(CheapestJoinPlan, RelationExpr),
-	debug_writeln(build_relation_expr/4, 61, [ '(Option joinCorrelations2 set) relation expression ', RelationExpr, ' built for relation ', Relation, ' using set of join predicates ', SmallestJoinSet]),
+	debug_writeln(build_relation_expr/4, 61, [ '(Option joinCorrelations set) relation expression ', RelationExpr, ' built for relation ', Relation, ' using set of join predicates ', SmallestJoinSet]),
 	!.
+
+
+build_relation_expr(Relation, JoinPredicates, RelationExpr, SmallestJoinSet, _):-
+	build_relation_expr2(Relation, JoinPredicates, RelationExpr, SmallestJoinSet).
+
+% unexpected call
+build_relation_expr(A, B, C, D, E):-
+	error_exit(build_relation_expr/4, ['unexpected call with arguments ',[A, B, C, D, E]]).
 
 % if Option correlationsProduct is set or
 % if Option correlationsJoin is set and no sufficient set of join predicates were found to build the derivated relation
 %             - applicate operator predcount on a product of relations
 % end of recursion
-build_relation_expr([ LastRelation | [] ], _, RelationExpr, []):-
+build_relation_expr2([ LastRelation | [] ], _, RelationExpr, []):-
 	(
-		optimizerOption(joinCorrelations2);
-		optimizerOption(joinCorrelations)
+		optimizerOption(joinCorrelations);
+		optimizerOption(joinCorrelations2)
 	),
 	LastRelation = rel(_, RelAlias),
 	% use Sample instead of relation
 	sampleToBeUsed(LastRelation, NameSample),
-	debug_writeln(build_relation_expr/4, 69, ['use sample ',NameSample,' instead of relation ',LastRelation]),
+	debug_writeln(build_relation_expr2/4, 69, ['use sample ',NameSample,' instead of relation ',LastRelation]),
 	Sample = rel(NameSample, RelAlias),
 %?%	!, % keine Wirkung von unexpected call
 	plan_to_atom(Sample, RelName), % determine relation
-	% ??? add using of small relation / samples here
 	% build alias if necessary
 	build_alias_string(Sample, RelAliasString),
 	atom_concat(' ', RelName, ' feed ', RelAliasString,
 		' ', RelationExpr), % concatinate string
-	debug_writeln(build_relation_expr/4, 62, [ '(Option joinCorrelations* set) last relation ', LastRelation, ' added as ', RelName, ' with alias ', RelAliasString, ' to product']).
+	debug_writeln(build_relation_expr2/4, 62, [ '(Option joinCorrelations* set) last relation ', LastRelation, ' added as ', RelName, ' with alias ', RelAliasString, ' to product']).
 
 % recursion
-build_relation_expr([ Relation | OtherRelations ], JoinPredicates, RelationExpr, JoinPredicates2):-
+build_relation_expr2([ Relation | OtherRelations ], JoinPredicates, RelationExpr, JoinPredicates2):-
 	(
-		optimizerOption(joinCorrelations2);
-		optimizerOption(joinCorrelations)
+		optimizerOption(joinCorrelations);
+		optimizerOption(joinCorrelations2)
 	),
 	Relation = rel(_, RelAlias),
 	% use Sample instead of relation
 	sampleToBeUsed(Relation, NameSample),
-	debug_writeln(build_relation_expr/4, 69, ['use sample ',NameSample,' instead of relation ',Relation]),
+	debug_writeln(build_relation_expr2/4, 69, ['use sample ',NameSample,' instead of relation ',Relation]),
 	Sample = rel(NameSample, RelAlias),
 %?%	!, % keine Wirkung von unexpected call
 	plan_to_atom(Sample, RelName), % determine relation
-	% ??? add using of small relation / samples here
 	% build alias if necessary
 	build_alias_string(Sample, RelAliasString),
-	build_relation_expr(OtherRelations, JoinPredicates, RelationExprTmp, JoinPredicates2),
+	build_relation_expr2(OtherRelations, JoinPredicates, RelationExprTmp, JoinPredicates2),
 	atom_concat(RelationExprTmp, RelName, ' feed ', RelAliasString,
 		' product ', RelationExpr), % concatinate string
-	debug_writeln(build_relation_expr/4, 62, [ '(Option joinCorrelations* set) relation ', Relation, ' added as ', RelName, ' with alias ', RelAliasString, ' to product']).
+	debug_writeln(build_relation_expr2/4, 62, [ '(Option joinCorrelations* set) relation ', Relation, ' added as ', RelName, ' with alias ', RelAliasString, ' to product']).
 
 % for singleton relations
-build_relation_expr(Relation, [], RelationExpr, []):-
+build_relation_expr2(Relation, [], RelationExpr, []):-
 	Relation = rel(_, RelAlias),
 	% use Sample instead of relation
 	sampleToBeUsed(Relation, NameSample),
@@ -699,16 +702,15 @@ build_relation_expr(Relation, [], RelationExpr, []):-
 	Sample = rel(NameSample, RelAlias),
 %?%	!, % keine Wirkung von unexpected call
 	plan_to_atom(Sample, RelName), % determine relation
-	% ??? add using of small relation / samples here
 	% build alias if necessary
 	build_alias_string(Sample, RelAliasString),
 	atom_concat(' ', RelName, ' feed ', RelAliasString, 
 		'', RelationExpr), % concatinate string
-	debug_writeln(build_relation_expr/4, 63, [ 'singleton relation ', Relation, ' used as ', RelName, ' with alias ', RelAliasString]).
+	debug_writeln(build_relation_expr2/4, 63, [ 'singleton relation ', Relation, ' used as ', RelName, ' with alias ', RelAliasString]).
 
 % unexpected call
-build_relation_expr(A, B, C, D):-
-	error_exit(build_relation_expr/4, ['unexpected call with arguments ',[A, B, C, D]]).
+build_relation_expr2(A, B, C, D):-
+	error_exit(build_relation_expr2/4, ['unexpected call with arguments ',[A, B, C, D]]).
 
 
 
@@ -872,6 +874,335 @@ build_comma_separated_string(A, B, C):-
 
 
 /*
+6.5.4.5 get\_join\_predicates/3
+
+  returns all join predicates applicable to the relations
+
+*/
+
+% alle JoinPreds fuer Relation ermitteln
+get_join_predicates(Relation, JoinPredicateIDs, JoinPredicates):-
+	listOfPredicates(Predicates),
+	get_join_predicates2(Relation, Predicates, JoinPredicateIDs, JoinPredicates).
+
+get_join_predicates2(_, [], [], []).
+get_join_predicates2(Relation, [ Predicate | Predicates ], [ [PredID] | JoinPredicateIDs ], [ Predicate | JoinPredicates ]):-
+	Predicate = [ PredID, PredRelation, pr(_, _, _) ],
+	subset(PredRelation, Relation),
+	!,
+	get_join_predicates2(Relation, Predicates, JoinPredicateIDs, JoinPredicates).
+get_join_predicates2(Relation, [ _ | Predicates ], JoinPredicateIDs, JoinPredicates):-
+	get_join_predicates2(Relation, Predicates, JoinPredicateIDs, JoinPredicates).
+
+/*
+6.5.4.5 get\_sel\_predicates/3
+
+  returns all selection predicates applicable to the relations
+
+*/
+
+% alle SelPreds ermitteln
+get_sel_predicates(Relation, SelPredicateIDs, SelPredicates):-
+	listOfPredicates(Predicates),
+	get_sel_predicates2(Relation, Predicates, SelPredicateIDs, SelPredicates).
+
+get_sel_predicates2(_, [], [], []).
+get_sel_predicates2(Relation, [ Predicate | Predicates ], [ PredID | SelPredicateIDs ], [ Predicate | SelPredicates ]):-
+	Predicate = [ PredID, PredRelation, pr(_, _) ],
+	(
+		is_list(Relation)
+		->
+		member(PredRelation, Relation);
+		Relation = PredRelation
+	),
+	!,
+	get_sel_predicates2(Relation, Predicates, SelPredicateIDs, SelPredicates).
+get_sel_predicates2(Relation, [ _ | Predicates ], SelPredicateIDs, SelPredicates):-
+	get_sel_predicates2(Relation, Predicates, SelPredicateIDs, SelPredicates).
+
+/*
+6.5.4.5 get\_all\_join\_sets/3
+
+  find all sets of join predicates to join the relations
+
+*/
+
+%alle Kombis von JoinPreds ermitteln, die reichen alle Relationen zu verbinden
+get_all_join_sets(Relation, JoinPredicates, JoinSets):-
+	debug_outln('get_all_join_sets: ',[Relation, JoinPredicates, JoinSets]),
+	flatten([Relation], RelationList),
+	findall(JoinSet, get_join_set0(RelationList, JoinPredicates, [], JoinSet), JoinSets).
+
+get_join_set0(Relation, JoinPredicates, [], JoinSet):-
+	debug_outln('get_join_set0: ',[Relation, JoinPredicates, [], JoinSet]),
+	get_join_set(Relation, JoinPredicates, [], JoinSet).
+
+get_join_set(Relations, _, JointRelations, []):-
+	set_equal(Relations, JointRelations),
+	!.
+get_join_set(Relations, [ JoinPredicate | JoinPredicates ], JointRelations, [ JoinPredicateID | JoinSet ]):-
+	JoinPredicate = [ JoinPredicateID, PredRelations, _ ],
+	not(subset(PredRelations, JointRelations)),
+	append(PredRelations, JointRelations, JointRelationsTmp),
+	list_to_set(JointRelationsTmp, JointRelationsNew),
+	get_join_set(Relations, JoinPredicates, JointRelationsNew, JoinSet).
+get_join_set(Relations, [ JoinPredicate | JoinPredicates ], JointRelations, JoinSet):-
+	JoinPredicate = [ _, _, _ ],
+	%ist Alternativpfad fuer findall, deshalb nicht: subset(PredRelations, JointRelations),
+	get_join_set(Relations, JoinPredicates, JointRelations, JoinSet).
+	
+/*
+6.5.4.5 get\_smallest\_join/3
+
+  looks for the join set with the smallest result set
+
+*/
+
+% Kosten aller Kombis ermitteln
+% geht von Unabhaengigkeit der Predikate aus
+get_smallest_join([ JoinSet | [] ], [JoinSet], Selectivity):-
+	get_join_selectivity(JoinSet, Selectivity).
+get_smallest_join([ JoinSet | JoinSets ], JoinSetOld, SelectivityOld):-
+	not(JoinSets=[]),
+	get_smallest_join(JoinSets, JoinSetOld, SelectivityOld),
+	get_join_selectivity(JoinSet, Selectivity),
+	Selectivity >= SelectivityOld.
+get_smallest_join([ JoinSet | JoinSets ], JoinSet, Selectivity):-
+	not(JoinSets=[]),
+	get_join_selectivity(JoinSet, Selectivity).
+
+
+/*
+6.5.4.5 get\_join\_selectivity/2
+
+  calculate the selectivity of a join set 
+
+*/
+
+get_join_selectivity([], 1):-
+	!.
+get_join_selectivity([ JoinPredID | JoinSet ], SelectivityNew):-
+	get_join_selectivity(JoinSet, SelectivityOld),
+	get_joinpred_selectivity(JoinPredID, Selectivity),
+	SelectivityNew is SelectivityOld * Selectivity,
+	!.
+get_join_selectivity(Unknown, _):-
+	error_exit(get_join_selectivity/2,'unexpected call',[Unknown]).
+
+/*
+6.5.4.5 get\_joinpred\_selectivity/2
+
+  get the marginal selectivity of a join predicate
+
+*/
+
+get_joinpred_selectivity(JoinPredID, Selectivity):-
+	get_real_nodeid(JoinPredID, JoinPredIDReal),
+	edgeSelectivity(0, JoinPredIDReal, Selectivity),
+	!.
+get_joinpred_selectivity(JoinPredID, 1):-
+	get_real_nodeid(JoinPredID, JoinPredIDReal),
+	not(edgeSelectivity(0, JoinPredIDReal, _)),
+	writeln('WARN: get_joinpred_selectivity/2: no edgeSelectivity/3 found for node ',JoinPredID,' - use selectivity of 1').
+
+/*
+6.5.4.5 get\_cheapest\_path/2
+
+ finds the cheapest path
+
+ The implementation using get_first_path/2 supports searching of the cheapest path
+which is translateable to a sample query.
+
+*/
+
+get_cheapest_path(JoinSet, CheapestJoinPath):-
+	flatten(JoinSet, JoinSetTmp),
+	sumlist(JoinSetTmp, TargetNodeID),
+	findall([Cost, PredIDs, Path], get_path_cost(0, TargetNodeID, Path, PredIDs, Cost), Paths),
+	msort(Paths, OrderedPaths),
+	!,
+	% doesn't support: try different paths
+	%OrderedPaths = [ [ _, _, CheapestJoinPath ] | _ ],
+	% get first path
+	get_first_path(OrderedPaths, CheapestJoinPath).
+
+% use the first path
+get_first_path([[ _, _, CheapestJoinPath] | _], CheapestJoinPath):-
+	true.
+% if the last returned path is not translatable try next one
+get_first_path([ _ | Rest], CheapestJoinPath):-
+	not(Rest=[]),
+	get_first_path(Rest, CheapestJoinPath).
+        
+
+
+	
+/*
+6.5.4.5 get\_path\_cost/5
+
+ calculate cost of a path
+
+*/
+
+get_path_cost(NodeID2, NodeID, [], [], 0):-
+	NodeID2 =:= NodeID.
+get_path_cost(LastNodeID, TargetNodeID, [ CostEdge | CostEdges ], [ PredID | PredIDs ], CostNew):-
+	planEdge(LastNodeID, NewNodeID, PredPath, _),
+	PredID is NewNodeID - LastNodeID,
+	equals_and(PredID,PredID,TargetNodeID),
+	edgeSelectivity(LastNodeID, NewNodeID, Selectivity),
+	cost(PredPath, Selectivity, ResultSize, Cost),
+	CostEdge = costEdge(LastNodeID, NewNodeID, PredPath, NewNodeID, ResultSize, Cost),
+	get_path_cost(NewNodeID, TargetNodeID, CostEdges, PredIDs, CostOld),
+	CostNew is CostOld + Cost.
+
+/*
+6.5.4.5 setSamplesToBased/2
+
+ manages the samples used by predcounts approach
+
+*/
+
+% there are 2 named samples which could be used
+setSamplesToBeUsed(Relations):-
+	% if relation instances have to use the same sample for any usage
+	% the facts corrUsageCounter/2 and sampleToBeUsed/2 have to be
+	% global at level build_queries/0
+	retractall(corrUsageCounter(_,_)),
+	setSamplesToBeUsed2(Relations).
+
+% predcounts query uses just one relation
+setSamplesToBeUsed2(Relation):-
+	Relation = rel(_,_),
+	increaseRelationCounter(Relation, CurrentCounter),
+	setSampleToBeUsed(Relation, CurrentCounter).
+% predcounts query uses more than one relation
+setSamplesToBeUsed2([]):-
+	debug_writeln(storeSamplesToBeUsed/2, 9000, ['end of recusision']),
+	!.
+setSamplesToBeUsed2([ Relation | Rest ]):-
+	not(Relation=[]),
+	increaseRelationCounter(Relation, CurrentCounter),
+	setSampleToBeUsed(Relation, CurrentCounter),
+	!,
+	setSamplesToBeUsed2(Rest).
+
+increaseRelationCounter(Relation, CurrentCounter):-
+	retract(corrUsageCounter(Relation, CurrentCounter)),
+	NextCounter is CurrentCounter + 1,
+	assert(corrUsageCounter(Relation, NextCounter)).
+increaseRelationCounter(Relation, 1):-
+	assert(corrUsageCounter(Relation, 1)).
+
+setSampleToBeUsed(Relation, Counter):-
+	debug_writeln(setSampleToBeUsed/2, 999, ['call: ', [Relation, Counter]]),
+	fail.
+% just for debugging issues - use a sample predefined by fact correlationsPredefinedSample/2
+setSampleToBeUsed(Relation, _):-
+	retract(correlationsPredefinedSample(Relation, PredefinedSample)),
+	assert(correlationsPredefinedSample(Relation, PredefinedSample)),
+	correlationsPredefinedSample(Relation, PredefinedSample),
+	assert(sampleToBeUsed(Relation, PredefinedSample)),
+	warn_continue(setSampleToBeUsed/2, ['use predefined sample ',PredefinedSample,' for relation ',Relation]).
+% second usage of relation - use sample S
+setSampleToBeUsed(Relation, 2):-
+	Relation = rel(Name,_),
+	% costruct sample name
+	SampleSuffix = '_sample_s',
+	atom_concat(Name, SampleSuffix, NameSample),
+	downcase_atom(NameSample,DCNameSample),
+	% if neccesary create sample (the name of created sample have to be equal to NameSample !!!)
+	ensureSampleSexists(Name),
+	% register sample
+	assert(sampleToBeUsed(Relation, DCNameSample)),
+	debug_writeln(setSampleToBeUsed/2, 9000, ['register sample ',DCNameSample,' for relation ',Relation,' (stored as sampleToBeUsed/2)']).
+% first usage of relation - use sample J
+setSampleToBeUsed(Relation, 1):-
+	Relation = rel(Name,_),
+	% costruct sample name
+	SampleSuffix = '_sample_j',
+	atom_concat(Name, SampleSuffix, NameSample),
+	downcase_atom(NameSample,DCNameSample),
+	% if neccesary create sample (the name of created sample have to be equal to NameSample !!!)
+	ensureSampleJexists(Name),
+	% register sample
+	assert(sampleToBeUsed(Relation, DCNameSample)),
+	debug_writeln(setSampleToBeUsed/2, 9000, ['register sample ',DCNameSample,' for relation ',Relation,' (stored as sampleToBeUsed/2)']).
+% other usages of relation - use relation itself (another implementation: create new samples)
+setSampleToBeUsed(Relation, Id):-
+	Id >= 3,
+	Relation = rel(_,_),
+	assert(sampleToBeUsed(Relation, Relation)),
+	warn_continue(setSampleToBeUsed/2, ['no more sample avalible for relation ',Relation]).
+% unexpected call
+setSampleToBeUsed(A,B):-
+	error_exit(setSampleToBeUsed/2,'unexpected call',[A,B]).
+
+removeSamplesToBeUsed:-
+	retractall(sampleToBeUsed(_,_)),
+	debug_writeln(removeSampleSuffixes/0, 9000, ['facts sampleToBeUsed/2 retracted']).
+
+/*
+6.5.4.5 construct\_sample\_plan/2
+
+ prepares a plan based of a path and replaces all usages of relations
+ by usages of their samples
+
+*/
+
+construct_sample_plan(Path, Plan):-
+	plan(Path, TmpPlan),
+	!, % if prepare_sample_query/2 fails because of untranslatable TmpPlan do not retry plan/2
+	prepare_sample_query(TmpPlan, Plan).
+	
+prepare_sample_query(In, Out):-
+	query_sample(In, Out),
+	!.
+prepare_sample_query(In, Out):-
+	warn_continue(prepare_sample_query/2, ['unable to build sample query', [In, Out]]),
+	!,
+	fail.
+
+query_sample([],[]) :- 
+	!.
+
+query_sample([First|Next], [FirstResult|NextResult]) :-
+	query_sample(First, FirstResult),
+	query_sample(Next, NextResult), !.
+
+query_sample(IndexName, _) :-
+	atomic(IndexName),
+	dcName2externalName(DCindexName,IndexName),
+	databaseName(DB),
+	storedIndex(DB,_,_,_,DCindexName),
+	% dann ist der Ausdruck fuer sample nicht anwendbar
+	% Suche nach sample query ist fehlgeschlagen
+	warn_continue(query_sample/2,['using of indexes not supported for sample queries - try another path',IndexName]),
+	!,
+	fail.
+
+query_sample(rel(Name, V), rel(NameSample, V)) :-
+	sampleToBeUsed(rel(Name, V), NameSample),
+	debug_writeln(query_sample/2, 9000, ['use sample ',NameSample,' instead of relation ',rel(Name, V)]),
+	!.
+
+query_sample( rel(Name, V), rel(Name, V) ) :-
+	atomic(rel(Name, V)), 
+	warn_continue(query_sample/2, ['no sample of relation ',rel(Name, V),' usable - use relation itself']),
+	!.
+
+query_sample( Term, Term ) :-
+	atomic(Term), !.
+
+query_sample( Term, Result ) :-
+  not(Term=rel(_, _)),
+	compound(Term),
+	not(is_list(Term)),
+	Term =.. [Op|Args],
+	query_sample( Args, ArgsResult ),
+	Result =.. [Op|ArgsResult], !.
+
+/*
 4 Part three - execution of predcounts plans and 
 tranforming of the results for the POG
 
@@ -926,7 +1257,7 @@ calculate_predcounts([[PredIDs , Query , Relation ] | QRest],
 	debug_writeln(calculate_predcounts/2, 39, [ 'translated predcounts results ', PredCount ]),
 	% bei Nutzung von nested-loop statt product ist noch ein Tupel aufzunehmen
 	(
-		optimizerOption(joinCorrelations2), % nicht Kreuzprodukt
+		optimizerOption(joinCorrelations), % nicht Kreuzprodukt
 		%containsJoinPred(PredIDs)
 		% Relation is a list of Relations
 		is_list(Relation)
@@ -951,7 +1282,7 @@ calculate_predcounts(A, B):-
 /*
 4.4.2 Helper get_sum_tuples/2
 
-  VJO Docu ???
+  
 
 */
 
@@ -969,7 +1300,7 @@ get_sum_tuples(A, B):-
 /*
 4.4.2 Helper get_card_product/2
 
-  VJO Docu ???
+  
 
 */
 
@@ -999,7 +1330,7 @@ get_card_product2(A, B):-
 /*
 4.4.2 Helper get_card_relation/2
 
-  VJO Docu ???
+  
 
 */
 
@@ -1063,7 +1394,6 @@ predcounts to the corresponding node identifier of POG.
 */
 
 % end of recursion
-%??? vjo Fehler nicht genau bestimmt: calculate_pog_ident(0, [], 0):- % Rekursionsabschluss
 calculate_pog_ident(_, [], 0):- % Rekursionsabschluss
 	debug_writeln(calculate_pog_ident/3, 52, ['end of recursion']).
 calculate_pog_ident(InAtom, [ [ JoinId ] | TRest ], OutAtom):-
@@ -1078,801 +1408,13 @@ calculate_pog_ident(InAtom, [ TranElem | TRest ], OutAtom):-
 	calculate_pog_ident(IRest, TRest, ORest), 
 	OBit is IBit * TranElem,
 	OutAtom is ORest + OBit,
-	debug_writeln(calculate_pog_ident/3, 51, ['???VJO???']).
+	debug_writeln(calculate_pog_ident/3, 51, ['']).
 % unexpected call
 calculate_pog_ident(A, B, C):-
 	error_exit(calculate_pog_ident/2, ['unexpected call',[A, B, C]]).
-/*
-4 Implementation of interfaces for SecondoPL
 
-4.1 Overview
 
-*/
 
-/*
-4.4.24 feasible/4
-
-	the predicate feasible/4 implemented in entropy\_opt.pl is designed
-for the special purposes of entropy approach. The reimplemented feasible/4
-is more general. It only assumes that the cardinality of a POG's node
-will only be determineable if an approximation of the node was done before.
-???
-
-	The new implementation checks any node (except node 0) with a 
-known cardinality approximation against all of it's previous nodes
-with a known cardinality approximation.
-
-	Any previous node $N_p,i \in \{ N_x \in N | P_{N_x} \subset P_{N_i} \wedge |P_{N_i} \setminus P_{N_x}| = 1\}$ of a node $N_i$ ...
-
-
-*/
-
-% orginal feasible geht von fester REihenfolge aus,
-% dass ist aber nicht mehr gegeben
-/* in constrast to the implementation of feasible there isn't an order of
-edges within the list of joint selectivities */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-5 A simple example
-
-5.1 Overview
-
-  The following simple example explains the using of
-
-  * build\_list\_of\_predicates/0
-
-  * build\_queries/1
-
-  * calculate\_predcounts/2
-
-5.2 Code example
-
-  The output that shows the content of variables is restructured
-for easier understanding. Normally the variable's content is shown
-within one line per variable. For easier reading and referencing
-such a line is devided into more than one. Additionally these lines
-are numerated.
-
-----
-    F=[8,[2,3]]
-----
-
-  For example such a original prolog output line would
-devided as follows:
-
-----
-    000 F=
-    001 [
-    002   8,
-    003   [
-    004     2,
-    005     3
-    006   ]
-    007 ]
-----
-
-  Now it's possible to reference each element just by the
-line's number.
-
-  In Prolog all structured data is represented as a list.
-For simplifing the explanations below we decide between a list and
-a tuple. Both structures are represented as a list in Prolog, but
-a tuple is a list with a fixed len. In no case a list called 
-tuple will be composed of more or less elements as described in
-this example.
-
-  For example the list of predicates is a typical list
-because their len is determined by the sql query to be optimized.
-The predicate description which the list of predicates is composed of
-is a typical tuple. It ever contains of three element.
-
-5.2.1 Preparation
-
-----
-    1 ?- secondo('open database opt;').
-    Total runtime ...   Times (elapsed / cpu): 0.010001sec / 0.01sec = 1.0001
-    Command succeeded, result:
-    
-    ** output truncated **
-
-    2 ?- setOption(entropy).
-    Total runtime ... Times (elapsed / cpu): 0.080001sec / 0.07sec = 1.14287
-    Switched ON option: 'entropy' - Use entropy to estimate selectivities.
-
-    Yes
-----
-
-  Setting the option entropy is nessecary first to let the
-system generate the dynamic facts edge/6. These facts are used
-by later prolog praedicates to analyse the sql query to be
-optimized.
-
-  After toggling on the Option entropy the sql query to be
-optimized has to be entered.
-
-----
-    3 ?- sql select count(*) from [ plz as a, plz as b ]
-     where [a:plz > 40000, b:plz < 50000, a:plz <50000].
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    Computing best Plan ...
-    Destination node 7 reached at iteration 6
-    Height of search tree for boundary is 1
-    
-    No
-----
-
-  After entering the sql query the option correlation
-has to be toggled on. By doing this the option entropy
-will be toggled off automatically.
-
-----
-    4 ?- setOption(correlations).
-    Switched OFF option: 'entropy' - Use entropy to estimate selectivities.
-    % ./Correlations/correlations compiled 0.01 sec, 10,660 bytes
-    Switched ON option: 'correlations' - Try to take predicate interdependence into account.
-
-    Yes
-----
-
-5.2.2 Analyze the query to be opimized
-
-  This analysis is done by the prolog predicate 
-build\_list\_of\_predicates/0.
-
-----
-    5 ?- build_list_of_predicates.
-
-    No
-----
-
-  After calling the predicate build\_list\_of\_predicates/0
-the dynamic facts listOfPredicates/1 and listOfRelations/1 were
-created. The content of their arguments are shown below.
-
-----
-    6 ?- listOfPredicates(X).
-    010 X = 
-    020 [
-    030   [
-    031     4, 
-    032     rel(plz, a), 
-    033     pr(attr(a:pLZ, 1, u)<50000, rel(plz, a))
-    034   ], 
-    040   [
-    041     2, 
-    042     rel(plz, b), 
-    043     pr(attr(b:pLZ, 1, u)<50000, rel(plz, b))
-    044   ], 
-    050   [
-    051     1, 
-    052     rel(plz, a), 
-    053     pr(attr(a:pLZ, 1, u)>40000, rel(plz, a))
-    054   ]
-    060 ]
-    
-    Yes
-----
-
-  The content of X is the list of sql predicates found by
-predicate build\_list\_of\_predicates/0 before. Each sql predicate found 
-is represented by one tuple (lines 30-34, 40-44 and 50-54).
-Each tuple is composed of three elements: (sql joins are disallowed yet!)
-
-  1 POG identifier of the sql predicate (lines 31,41 and 51)
-
-  2 the relation instance of the sql predicate represented by fact rel/2
-(lines 32, 42 and 52)
-
-  3 the sql predicate itself (lines 33, 43 and 53)
-
-----
-
-    7 ?- listOfRelations(Y).
-    
-    110 Y = 
-    120 [
-    130   rel(plz, b, l), 
-    140   rel(plz, a, l)
-    150 ]
-    
-    Yes
-----
-
-  The content of Y is the distinctive list of relation instances
-found by build\_list\_of\_predicates/0. Although two sql predicates use
-the same relation PLZ the relation was added twice to the list
-because the relation PLZ was used as relation instance a and relation
-instance b within the sql query. On the other hand the relation instance
-b was added just once, although the relation instance is used by
-two predicates. For a more detailed explanation of relation instances
-see the section instances of relations above.
-
-5.2.3 Build predcounts queries and get the statistics
-
-----
-    8 ?- build_queries(Queries), calculate_predcounts(Queries,Result).
-    0.init finished
-    Total runtime ... Times (elapsed / cpu): 1.91003sec / 1.91sec = 1.00002
-    0.init finished
-    Total runtime ... Times (elapsed / cpu): 0.530008sec / 0.54sec = 0.981496
-    210 Queries = 
-    220 [
-    230   [
-    231     [2] |
-    232     query plz feed {b} predcounts [ P2: (.PLZ_b < 50000) ]
-    232     consume;
-    233   ], 
-    240   [
-    241     [4, 1] |
-    242     query plz  feed  {a} predcounts [ P4: (.PLZ_a < 50000),
-    242     P1: (.PLZ_a > 40000) ]  consume;
-    243   ]
-    250 ],
-    310 Result = 
-    320 [
-    330   [
-    331     [2, 21470], 
-    332     [0, 19797]
-    333   ], 
-    340   [
-    341     [5, 3127], 
-    342     [1, 19797], 
-    343     [4, 18343], 
-    344     [0, 0]
-    345   ]
-    350 ]
-
-    Yes
-----
-
-  The variable Queries contains a list of tuples (lines
-230-233 and 240-243). One tuple
-corresponds with exactly one relation instance (lines 130
-and 140)
-found by build\_list\_of\_predicates/0. Each tuple is composed of two 
-elements:
-
-  1 the list of POG identifiers of the sql predicates used by
-the predcounts execution plan (see element two);  the order of the
-POG identifiers corresponds with the order of using the sql predicates
-within the predcounts execution plan
-
-  2 predcounts execution plan of one relation instance with all
-sql predicates using this relation instance
-
-  The variable Result is unified with the list of results of
-predcounts execution plans created by the predicate build\_queries/1.
-(lines 232 and 242) Each result corresponds with one relation instance.
-The order of predcounts results stored in Result matches the order of
-predcounts execution plans in the variable Queries.
-
-  The predcounts result is a list of tuples. Each tuple is
-composed of a element atom (first one) and an element count (second
-one). An explanation of the tuple's meaning could be found in the 
-documentation of operator predcounts.
-
-  The predcounts's results stored in Result are already
-transformed. What means transformed? This issue is discussed later in
-this document detailed. In a short manner one could say, the identifiers
-of the tuples (column atom) are transformed for using it directly to
-identify nodes of the POG.
-
-5.2.4 How are the predcounts results to be interpreted ?
-
-  Each predcounts result is exclusively calculated for
-exact one relation instance. The tuples attribute atom identifies which
-predicates a tuple has to solve and not to solve to increase the count value
-of this tuple. 
-
-  To understand the meaning of predcounts result the predcounts
-execution plan of relation instance a (line 242) will be executed. 
-  
-----
-    9 ?- secondo(query plz  feed  {a} predcounts [ P4: (.PLZ_a < 50000),
-    P1: (.PLZ_a > 40000) ]  consume;', A).
-    0.init finished
-    Total runtime ...   Times (elapsed / cpu): 0.940014sec / 0.89sec = 1.0562
-    
-    410 A =
-    420 [
-    430   [rel, 
-    431     [tuple, 
-    432       [
-    433         [Atom, int], 
-    434         [Count, int]
-    435       ]
-    436     ]
-    437   ],
-    440   [
-    441     [3, 3127],
-    442     [2, 19797],
-    443     [1, 18343],
-    444     [0, 0]
-    445   ]
-    450 ]
-    
-    Yes
-----
-
-  While looking at the listing above you will see the predcounts
-result is a list of tuples and each tuple is composed of a value Atom
-and a value Count.
-
-  To understand the value atom one has to imagine the value in
-binary mode. So the value 1 is 01. The Count 18343 means that 18343 tuples
-of the relation instance b solve the the predicate P4 but not the
-predicate P1. (Please note the tuples must not solve the predicate P1.
-This is in contradiction to the meaning of POG's nodes identifier.)
-
-  To determine how many tuples of relation instance a solves
-the predicate P4 in independence of predicate P1, the values Count of 
-the result's tuples identified by 2 (binary 10) and 3 (binary 11) 
-has to be added. In the example you get a count of 18343 + 3127 = 21470.
-
-5.2.5 Some Theory
-
-5.2.5.1 Definitions
-
-	.
-
-  Be $Pi = \{ p_1, p_2, p_4, ..., p_{2^m} \}$ the set of predicates used
-by the sql query to be optimized and $P_{N_i}$ the set of predicates
-solved at POG's node $N_i$.
-
-  Be $R = \{R_0, R_1, \ldots, R_n \}$ the set of relation instances used by
-the sql query to be optimized and $R_{N_i}$ the set of relation instances
-used by the predicates of set $P_{N_i}$.
-
-  Be $C_{N_0} = R_0 \times R_1 \times \ldots \times R_n$ the
-initial set of tupels at the start node $N_0$.
-
-  Be $r: P \rightarrow 2^R$ the function which determines the
-relation instances $R_{p_i} \subseteq R$ used by the predicate
-$p_i \in P$.
-
-  Be the cardinality $C_{N_i}$ the count of tuples which solves all
-predicates $p \in P_{N_i}$.
-
-  Be the selectivity $S_{N_i} = \frac{C_{N_i}}{C_{N_0}}$.
-
-  Be $PC_{R_i} \subset \aleph \times \aleph$ the predcounts result. Each 
-element $t \in PC_{R_i}$ is composed of an attribute atom and an attribute
-count. The elements of the tuple $t \in PC_{R_i}$ can be obtained
-by the functions $a_{atom}: PC_{R_i} \rightarrow \aleph$ and
-$a_{count}: PC_{R_i} \rightarrow \aleph$. In addition there is a function
-$solved: PC_{R_i} \rightarrow P$ which determines the set of predicates
-solved by the tuples $e \in R_i$ that are represented by tuple $t \in PC_{R_i}$
-of predcounts result.
-
-  Be $card: R_{N_i} \times \aleph \rightarrow \aleph$ a function which
-determines $\forall t \in R_{N_i}, n \le 2^{|P|}: card(t,n) = ???$
-
-  Be $CM_{R_i}$ the set of tuples $c_{R_i,\aleph} \in \aleph \times
-\aleph$ of the the predcounts result. The elements of the tuple $c_{R_i,\aleph}$
-can be obtained by the functions $a_{atom}(c_{R_i,\aleph}) \mapsto \aleph$ and
-$a_{count}(c_{R_i,\aleph}) \mapsto \aleph$
-
-  Be $s: PC_{R_i} \rightarrow P$ the function which determines
-the set of predicates solved by tuples represented by a tuple
-of predcounts result PC. For example the $a_{atom}(R_i,3)=5$ returns
-the set $\{p_4, p_1\}$.
-
-5.2.5.2 Types of POG's nodes
-
-	.
-
-  While evaluating the predcounts results it's possible to devide
-the set of POG's nodes into the following types of nodes:
-
-  ** was ist mit Praedikaten, die keine Relation verwenden **
-
-	1. the start node $N_0$ with $|P_{N_0}| = 0$
-
-	2. nodes $N_i$ with $|P_{N_i}| = 1$ and $|R_{N_i}| = 1$
-
-	3. nodes $N_i$ with $|R_{N_i}| = 1$
-
-	4. nodes $N_i$ with $|R_{N_i}| > 1$ but 
-$\forall p \in P_{N_i}: |r(p)| = 1$
-
-	5. nodes $N_i$ with $\exists p \in P_{N_i}: |r(p)| \ge 2$
-
-5.2.5.3 Determine the cardinalities
-
-	** Das folgende muesste eigentlich bewiesen werden - oder ? **
-
-5.2.5.3.1 Node of type 1
-
-	Within a POG there exist only one node of type 1. This node is
-the start node of the POG.
-
-	To determine the cardinality of node $N_0$ based on predcount results
-the cardinalities $C_{R_i}$ of all relation instances have to calculated first.
-This can be done by: $$C_{R_i} = \sum_t^{PC_{R_i}} a_{count}(t)$$ 
-
-	The cardinality $C_{N_0}$ can be calculated as follows:
-$$C_{N_0} = \prod_{R_i}^R C_{R_i}$$
-
-5.2.5.3.1 Nodes of type 2 and 3
-
-	The nodes of type 2 are all nodes which follows directly of the
-POG's start node. At all of these nodes just one predicate was evaluated.
-The predicate evaluated uses exactly one relation instance $R_{p_i} \in
-R_{N_i}$ with $p_i \in P_{N_i}$.
-
-
-	The cardinality of these nodes $C_{N_i}$ can be obtained using
-predcounts results $PC_{R_i}$:
-$$C_{N_i} = C_{R_i}' * \prod_{R_j}^{R \setminus R_{N_i}} C_{R_j}$$
-with
-$$C_{R_i}' = \sum_t^{\{e \in PC_{R_i} { | } \forall p \in P_{N_i}:
-p \in solved(e)\}}
-a_{count}(t)$$
-
-	The way described above is also usable to determine the
-cardinality $C_{N_i}$ of nodes of type 3.
-
-5.2.5.3.1 Nodes of type 4
-
-	The nodes of type 4 includes all nodes except type 1,2,3 nodes and
-nodes which includes join predicates. To obtain the cardinality of such
-a node the following equation has to be solved:
-$$C_{N_i} = \prod_{R_m}^{R_{N_i}} C_{R_m}' * 
-\prod_{R_j}^{R \setminus R_{N_i}} C_{R_j}$$ with
-$$C_{R_m}' = \sum_t^{\{e \in PC_{R_m} { | } \forall p \in P_{N_i}:
-p \in solved(e)\}} a_{count}(t)$$.
-
-	The both equations above are the general form of the equations
-for type 1,2 and 3 nodes.
-
-5.2.5.3.1 nodes of type 5
-
-	The nodes of type 5 are nodes including join predicates. The
-source is not still able to deal with these predicates.
-
-5.2.6 The cardinalities of the example's nodes
-
-  The sql query to be optimized contains three predicates (see lines 010 - 060):
-
-  * $P1: attr(a:pLZ, 1, u)>40000$
-
-  * $P2: attr(b:pLZ, 1, u)<50000$
-
-  * $P4: attr(a:pLZ, 1, u)<50000$
-
-  The three predicates uses two relation instances. Therefore two
-predcounts execution plans were created (lines 232 and 242).
-
-  * $query plz feed \{b\} predcounts [ P2: (.PLZ\_b < 50000) ] consume;$
-
-  * $query plz  feed  \{a\} predcounts [ P4: (.PLZ\_a < 50000), 
-P1: (.PLZ_a > 40000) ]  consume;$
-
-  The queries's result was stored in the variable Result as follows:
-
-----
-    310 Result =
-    320 [
-    330   [
-    331     [2, 21470],
-    332     [0, 19797]
-    333   ],
-    340   [
-    341     [5, 3127],
-    342     [1, 19797],
-    343     [4, 18343],
-    344     [0, 0]
-    345   ]
-    350 ]
-----
-
-  Using the predcounts result's above we get:
-
-  * $R = \{ R_a, R_b \}$
-
-  * $PC_{R_a} = \{ (5,3127), (1,19797), (4,18343), (0,0) \}$
-
-  * $PC_{R_b} = \{ (2,21470), (0,19797) \}$
-
-  By adding some values we get additionally:
-$$C_{R_a} = \sum_t^{PC_{R_a}} a_{count}(t) = 3127 + 19797 + 18343 + 0 = 41267$$
-$$C_{R_b} = \sum_t^{PC_{R_b}} a_{count}(t) = 21470 + 19797 = 41267$$
-
-  At first all nodes of the example's POG are of the type 1 to 4.
-So the cardinality of each POG's node can be obtained by using the
-equations for type 4 nodes.
-
-
-5.2.6.1 node $N_0$ (type 1)
-
-	$P_{N_0} = \emptyset$ and $R_{N_0} = \emptyset$
-
-  $$C_{N_0} = \prod_{R_i}^R C_{R_i} $$
-$$ C_{N_0} =  \prod_{R_i}^{\{ R_a, R_b\}} C_{R_i} $$
-$$ C_{N_0} =  C_{R_a} * C_{R_b} $$
-$$ C_{N_0} = 41267 * 41267 $$
-$$ C_{N_0} = 1702965289 $$
-
-5.2.6.2 node $N_1$ (type 2)
-
-	$P_{N_1} = \{ p_1 \}$ and $R_{N_1} = \{ R_a \}$
-
-  $$ C_{N_1} = C_{R_{N_1}}' * \prod_{R_i}^{R \setminus R_{N_1}} C_{R_i}$$
-$$ C_{N_1} = C_{R_a}' * \prod_{R_i}^{R \setminus \{ R_a \}} C_{R_i} $$
-$$ C_{N_1} = C_{R_a}' * \prod_{R_i}^{\{ R_b \}} C_{R_i} $$
-$$ C_{N_1} = C_{R_a}' * C_{R_b} $$
-$$ C_{N_1} = \left( \sum_t^{\{e \in PC_{R_a} { | } \forall p \in \{ p_1 \}: 
-p \in solved(e)\}} a_{count}(t) \right) * C_{R_b} $$
-$$ C_{N_1} = \left( \sum_t^{\{ (5,3127), (1,19797) \}} a_{count}(t)
-\right) * C_{R_b} $$
-$$ C_{N_1} = ( 3127 + 19797 ) * 41267$$
-$$ C_{N_1} = 946004708 $$
-
-5.2.6.3 node $N_2$ (type 2)
-
-	$P_{N_2} = \{ p_2 \}$ and $R_{N_2} = \{ R_b \}$
-
-$$ C_{N_2} = C_{R_b}' * C_{R_a} $$
-$$ C_{N_2} = \left( \sum_t^{\{e \in PC_{R_b} { | } \forall p \in \{ p_2 \}: 
-p \in solved(e)\}} a_{count}(t) \right) * C_{R_a} $$
-$$ C_{N_2} = \left( \sum_t^{\{ (2,21470) \}} a_{count}(t)
-\right) * C_{R_a} $$
-$$ C_{N_2} = ( 21470 ) * 41267$$
-$$ C_{N_2} = 886002490 $$
-
-5.2.6.4 node $N_4$ (type 2)
-
-	$P_{N_4} = \{ p_4 \}$ and $R_{N_4} = \{ R_a \}$
-
-$$ C_{N_4} = C_{R_a}' * C_{R_b} $$
-$$ C_{N_4} = \left( \sum_t^{\{e \in PC_{R_a} { | } \forall p \in \{ p_4 \}: 
-p \in solved(e)\}} a_{count}(t) \right) * C_{R_b} $$
-$$ C_{N_4} = \left( \sum_t^{\{ (5,3127), (4,18343) \}} a_{count}(t)
-\right) * C_{R_b} $$
-$$ C_{N_4} = ( 3127 + 18343 ) * 41267$$
-$$ C_{N_4} = 886002490 $$
-
-5.2.6.4 node $N_5$ (type 3)
-
-	$P_{N_5} = \{ p_1, p_4 \}$ and $R_{N_5} = \{ R_a \}$
-
-$$ C_{N_4} = C_{R_a}' * C_{R_b} $$
-$$ C_{N_4} = \left( \sum_t^{\{e \in PC_{R_a} { | } \forall p \in \{ p_1, p_4 \}:
-p \in solved(e)\}} a_{count}(t) \right) * C_{R_b} $$
-$$ C_{N_4} = \left( \sum_t^{\{ (5,3127) \}} a_{count}(t)
-\right) * C_{R_b} $$
-$$ C_{N_4} = ( 3127 ) * 41267$$
-$$ C_{N_4} = 129041909 $$
-
-
-5.2.6.5 node $N_3$ (type 4)
-
-	$P_{N_3} = \{ p_1, p_2 \}$ and $R_{N_3} = \{ R_a, R_b \}$
-
-  $$ C_{N_3} = \prod_{R_m}^{R_{N_3}} C_{R_m}' * 
-\prod_{R_j}^{R \setminus R_{N_3}} C_{R_j} $$
-$$ C_{N_3} = \prod_{R_m}^{\{R_a, R_b\}} C_{R_m}' * 
-\prod_{R_j}^{R \setminus \{ R_a, R_b \}} C_{R_j} $$
-$$ C_{N_3} = \prod_{R_m}^{\{R_a, R_b\}} C_{R_m}' * 
-\prod_{R_j}^{\emptyset} C_{R_j} $$
-$$ C_{N_3} = \prod_{R_m}^{\{R_a, R_b\}} C_{R_m}'$$
-$$ C_{N_3} = C_{R_a}' * C_{R_b}' $$
-
-  ** aus nachfolgender Formel ergibt sich noch ein Fehler (p in Durchschnitt!) **
-
-$$ C_{N_3} = \sum_t^{\{e \in PC_{R_a} { | } \forall p \in P_{N_3}:
-p \in solved(e)\}} a_{count}(t) * 
-\sum_t^{\{e \in PC_{R_b} { | } \forall p \in P_{N_3}:
-p \in solved(e)\}} a_{count}(t)$$.
-
-  ** denn eigentlich muss folgendes herauskommen {p1} statt {p1,p2} **
-
-$$ C_{N_3} = \sum_t^{\{e \in PC_{R_a} { | } \forall p \in \{ p_1 \}: 
-p \in solved(e)\}} a_{count}(t) * 
-\sum_t^{\{e \in PC_{R_b} { | } \forall p \in \{ p_2 \}: 
-p \in solved(e)\}} a_{count}(t)$$
-$$ C_{N_3} = \sum_t^{\{ (5,3127), (1,19797) \}} a_{count}(t) * 
-\sum_t^{\{ (2,21470) \}} a_{count}(t) $$
-$$ C_{N_3} = ( 3127 + 19797 ) * 21470 $$
-$$ C_{N_3} = 22924 * 21470 $$
-$$ C_{N_3} = 492178280 $$
-
-
-5.2.6.5 node $N_6$ (type 4)
-
-	dto
-
-5.2.6.5 node $N_7$ (type 4)
-
-	dto
-
-
-5.2.7 What means transformed in case of the result set?
-
-  ** der Abschnitt muss woanders hin **
-
-  To explain let us look at the native??? results of the 
-predcounts execution plans.
-
-----
-66 ?- secondo('query plz  feed  {b} predcounts [ P2: (.PLZ_b < 50000) ] 
- consume;', Z).
-0.init finished
-Total runtime ...   Times (elapsed / cpu): 0.800012sec / 0.61sec = 1.3115
-
-410 Z = 
-420 [
-430   [rel, [tuple, [[Atom, int], [Count, int]]]], 
-440   [
-441     [1, 21470], 
-442     [0, 19797]
-443   ]
-450 ]
-
-Yes
-67 ?- secondo(, A).
-0.init finished
-Total runtime ...   Times (elapsed / cpu): 0.940014sec / 0.89sec = 1.0562
-
-510 A = 
-520 [
-530   [rel, [tuple, [[Atom, int], [Count, int]]]], 
-540   [
-541     [3, 3127], 
-542     [2, 19797], 
-543     [1, 18343], 
-544     [0, 0]
-545   ]
-550 ]
-
-Yes
-----
-
-  As you can see??? the tuples of the result are identified by
-0 and 1. The tuple identified by 0 shows the number of rows of the
-relation plz doesn't solve??? the sql predicate " PLZ < 50000 " . The
-other tuple shows the number of rows solve the sql predicate. But
-where should these results are written at the POG?
-
-  For each predcounts execution plan there was created a 
-transformation list (lines 231 and 241). For the example we have to
-look at the first one. The list contains just one element. So the only
-one predicate of predcounts operator corresponds with this element.
-This means 21470 rows of plz solve the predicate identified with 2 in
-the POG and 19797 rows don't do so???. So one is able to set the
-cardinalty of node 2 (binary: 010) to 21470. The value 19797 cann't
-be used directly. To used this value one have to combine them with 
-the result tuples of the other predcounts queries identified with
-atom = 0.
-
-  Let's have a look at the second predounts query (lines 242),
-their transformation list (line 241) and their native result list (lines
-540-545). The predcounts query builds statistics of two predicates P4
-and P1. Using the transformation list one is able to determine the
-identifiers of the predicates within the POG. Within the POG the
-predicate P1 is identified by 1 (binary 001) and the predicate P4
-by 4 (binary 100). Within the predcounts result set the predicate P4
-is identified by 2 (binary 010) and P1 by 1 (binary 001). To transform
-the identifiers (column atom) of the native result set the identifiers
-have to be changed by the following way:
-
-  1 Each identifier of the tuples (lines 541-544) is composed of
-the predicate identifiers. By looking at the identifiers in binary mode
-you are able to recognize this. The identifier is the sum??? of all
-of the identifiers of solved predicates. In case of the example it means:
-
-    * atom=3 - binary 11 - predicates 1 and 2 are solved
-
-    * atom=2 - binary 10 - predicate 2 is solved AND predicate 1 is not
-
-    * atom=1 - binary 01 - predicate 1 is solved AND predicate 2 is not
-
-    * atom=0 - binary 00 - predicates 1 and 2 are not solved
-
-  2 The transformation list (line 241) means:
-
-    * predicate 1 is identified by 1 within the POG
-
-    * predicate 2 is identified by 4 within the POG
-
-  3 In case of predicate 1 there is nothing to do.
-
-  4 In case of predicate 2 it's identifier has to be changed to 4.
-
-  5 As you've seen above in the case of a solved predicate 2 the bit
-2\^2 is set. (atom=3 and atom=2) To transform the tuples for using
-for POG the bit 2i\^3 has to be set instead of bit 2i\^2. For the
-result 11 has to be transformed to 101 and 10 to 100.
-
-
-
-  ** hier weiter **
-
-
-----
-66 ?-
-----
-
-  
-*/
 /*
 5 Helper predicates
 
@@ -2218,13 +1760,6 @@ get_real_nodeid(NodeID, NodeIDReal):-
 	!.
 
 
-
-
-
-
-
-
-
 /*
 6 The interface for the optimizer
 
@@ -2261,14 +1796,15 @@ addCorrelationSizes:-
 	calculate_predcounts(Queries, PCResults),
 	debug_writeln(addCorrelationSizes/0, 9, ['predcount results calculated ', PCResults]),
 	!,
-	% translate all predcounts atoms into predcounts cardinalities
+	% set float nodeids
 	correct_nodeids(PCResults, PCResultsNew),
 	debug_writeln(addCorrelationSizes/0, 9, ['node ids corrected ', PCResultsNew]),
 	!,
 	% store results of predcounts queries into facts corrCummSel/2
 	retractall((corrCummSel(_, _))),
 	storeCorrCummSel(PCResultsNew),
-	debug_writeln(addCorrelationSizes/0, 9, ['facts corrCummSel/2 created']),
+	findall([Node, RCard], corrCummSel(Node, RCard), DEBUG),
+	debug_writeln(addCorrelationSizes/0, 9, ['facts corrCummSel/2 created: ', DEBUG]),
 	!,
 	% use selectivities of marginal predicates estimated by default optimizer
 	% the selectivities will be overwritten by values estimated by correlations optimizer within corrFeasible/4
@@ -2279,8 +1815,11 @@ addCorrelationSizes:-
 	corrFeasible(MP, [], MP2, JP2),
 	debug_writeln(addCorrelationSizes/0, 9, ['corrFeasible/4 finished with: ',[MP2,JP2]]),
 	!,
+	% the predicate maximize_entropy/3 seems to be 6 times faster if JP2 is sorted
+	msort(JP2, SortedJP2),
 	% estimate unknown cardinalities by maximum entropy approach
-	maximize_entropy(MP2, JP2, Result),
+	getTime( maximize_entropy(MP2, SortedJP2, Result) , MaxEntropyTime),
+	writeln('maximize_entropy needed: ',MaxEntropyTime,' ms'),
 	!,
 	% store relative node cardinalities of all nodes as facts corrRelNodeCard/2
 	retractall((corrRelNodeCard(_,_))),
@@ -2360,9 +1899,12 @@ storeCummSel3(NodeID, _, 0):-
 storeCummSel3(NodeID, NodeCard, BaseCard):-
 	CummSel is NodeCard / BaseCard,
 	storeCummSel(NodeID, CummSel),
-	debug_writeln(storeCummSel3/3, 52, ['corrCummSel(', [NodeID, 1], ') asserted']).
+	debug_writeln(storeCummSel3/3, 52, ['corrCummSel(', [NodeID, CummSel], ') asserted']).
+	%format(atom(DEBUG),'~20f',CummSel),
+	%debug_writeln(storeCummSel3/3, 52, ['corrCummSel(', [NodeID, DEBUG], ') asserted']).
 
 storeCummSel(NodeID, CummSel):-
+	debug_writeln(storeCummSel/2,9000,['reset corrCummSel: ',[NodeID, CummSel]]),
 	retractall((corrCummSel(NodeID, _))),
 	assert((corrCummSel(NodeID, CummSel))).
 
@@ -2552,12 +2094,7 @@ corrFeasible(MP, JP, MP2, JP2):-
 	% produce a consistent set of known selectivities
 	corrFeasible,
 	debug_writeln(corrFeasible/4, 39, ['all inconsistent selectivities corrected']),
-	debug_writelnFacts(corrFeasible/4, 39, ['known node selectivities [NodeId, Selectivity]: '], [N,S], corrCummSel(N,S)),
 	!,
-	% correct edges with selectivity of 0 or 1
-	highNode(HN),
-	correct0And1SelEdges(HN),
-	debug_writeln(corrFeasible/4, 39, ['all edges with selectivity 0 or 1 removed']),
 	debug_writelnFacts(corrFeasible/4, 39, ['known node selectivities [NodeId, Selectivity]: '], [N,S], corrCummSel(N,S)),
 	!,
 	% while running corrFeasible/0 the node 0 could be a selectivity greater than 1
@@ -2587,7 +2124,11 @@ renormAllCummSels:-
 	debug_writeln(renormAllCummSels/0, 9000, ['relative node cardinality of node ',NodeID,' is ',BaseSel,' - nothing to do']).
 renormAllCummSels:-
 	highNode(HN),
+	%mit hoechster Genauigkeit, dann aber Rundungsfehler: 
 	corrCummSel(NodeID, BaseSel),
+	%corrCummSel(NodeID, BaseSelTmp),
+	%getEpsilon(Epsilon),
+	%BaseSel is ceil(BaseSelTmp/Epsilon) * Epsilon,
 	NodeID =:= 0,
 	debug_writeln(renormAllCummSels/0, 9000, ['relative node cardinality of node ',NodeID,' is ',BaseSel,' - correct all nodes']),
 	renormAllCummSels2(BaseSel, HN).
@@ -2632,11 +2173,14 @@ loadMarginalSels2([], []).
 % use fact corrCummSel/2 to get selectivity of marginal predicate
 loadMarginalSels2([ PredID | PredIDs ], [ [ PredID, CummSel ] | MP ]):-
 	corrCummSel(PredID, CummSel),
+	%nodeCardRange(PredID, [CummSel|_]),
+	debug_writeln(loadMarginalSels2/2,9000,['got marginal Sel from corrCummSel: ',[PredID, CummSel]]),
 	!,
 	loadMarginalSels2(PredIDs, MP).
 % if no fact corrCummSel/2 exists, use corrMarginalSel/2
 loadMarginalSels2([ PredID | PredIDs ], [ [ PredID, MargSel ] | MP ]):-
 	corrMarginalSel(PredID, MargSel),
+	debug_writeln(loadMarginalSels2/2,9000,['got marginal Sel from corrMarginalSel: ',[PredID, MargSel]]),
 	!,
 	loadMarginalSels2(PredIDs, MP).
 % unexpected call
@@ -2657,7 +2201,7 @@ storeMarginalSels(MP):-
 storeMarginalSels2([]).
 storeMarginalSels2([ [ PredID, MargSel ] | MP ]):-
 	resetMarginalSel(PredID, MargSel),
-	%??? vjo hier nicht gut, besser weiter oben
+	% vjo hier nicht gut, besser weiter oben
 	%set MargSel only, if no Sel set for PredID
 	appendCummSel(PredID, MargSel),
 	storeMarginalSels2(MP).
@@ -2694,7 +2238,12 @@ corrFeasible:-
   	findall([N,L,U],nodeCardRange(N,[L,U]),X2),
 	debug_writeln(corrFeasible/0, 49, ['final cardinality ranges of nodes [node, low, up]: ',X2]),
 	% reset facts corrCummSel/2
-  	findall([Node, Sel],nodeCardRange(Node,[Sel,Sel]),NodesToCorrect),
+  	%alle corrCummSels anpassen:
+	%findall([Node, Sel],nodeCardRange(Node,[Sel,Sel]),NodesToCorrect),
+  	findall([Node, Sel],
+	   (corrCummSel(Node,_), nodeCardRange(Node,[Sel,_])),
+	   NodesToCorrect),
+  writeln(['to correct: ',NodesToCorrect]),
 	correctCorrCummSels(NodesToCorrect).
 
 /*
@@ -2710,7 +2259,9 @@ initNodeCardLimits(CurrentNode, HighestNode):-
 initNodeCardLimits(CurrentNode, HighestNode):-
 	corrCummSel(CurrentNodeId, RelCard),
 	CurrentNode =:= CurrentNodeId, % wegen Durchmischung von int und real
-	debug_writeln(initNodeCardLimits/2, 59, ['set nodeCardRange of known node [node, low, up]: ',CurrentNodeId, [RelCard, RelCard]]),
+	format(atom(DEBUG),'~20f',RelCard),
+	debug_writeln(initNodeCardLimits/2, 59, ['set nodeCardRange of known node [node, low, up]: ',CurrentNodeId, [DEBUG, DEBUG]]),
+	%debug_writeln(initNodeCardLimits/2, 59, ['set nodeCardRange of known node [node, low, up]: ',CurrentNodeId, [RelCard, RelCard]]),
 	assert((nodeCardRange(CurrentNodeId, [RelCard, RelCard]))),
 	!,
 	NextNode is CurrentNode + 1.0,
@@ -2724,7 +2275,9 @@ initNodeCardLimits(CurrentNode, HighestNode):-
 	findall(ULim, (edge(Prev, Curr, _,_,_,_), nodeCardRange(Prev,[_,ULim])), ULimPrevs),
 	% select the minimum of upper limit of all previous nodes
 	min_list([1 | ULimPrevs], UpperLimit),
-	debug_writeln(initNodeCardLimits/2, 59, ['set nodeCardRange of UNKNOWN node [node, low, up]: ',Curr, [0, UpperLimit]]),
+	format(atom(DEBUG),'~20f',UpperLimit),
+	debug_writeln(initNodeCardLimits/2, 59, ['set nodeCardRange of UNKNOWN node [node, low, up]: ',Curr, [0, DEBUG]]),
+	%debug_writeln(initNodeCardLimits/2, 59, ['set nodeCardRange of UNKNOWN node [node, low, up]: ',Curr, [0, UpperLimit]]),
 	assert((nodeCardRange(Curr, [ 0, UpperLimit]))),
 	!,
 	NextNode is CurrentNode + 1.0,
@@ -2754,8 +2307,15 @@ correctNodeCards(CurrentNode):-
 	debug_writeln(correctNodeCards/1, 59, ['node ',Curr,': merged card lists: ',MergedList]),
 	!,
 	% block 5 (lines 070 - 079)
-	calculateLowerLimit(MergedList, LowerLimit),
-	debug_writeln(correctNodeCards/1, 59, ['node ',Curr,': calculated lower limit of card is: ',LowerLimit]),
+	calculateLowerLimit(MergedList, LowerLimitTmp),
+	getEpsilon(Epsilon),
+	%besser mal runden: 
+	LowerLimit is LowerLimitTmp + Epsilon,
+	%LowerLimit is ceil(LowerLimitTmp/Epsilon)*Epsilon + Epsilon,
+	%format(atom(DEBUG2),'~20f',LowerLimit),
+  %writeln(['XXX: ',LowerLimitTmp,LowerLimit,DEBUG2]),
+	format(atom(DEBUG),'~20f',LowerLimit),
+	debug_writeln(correctNodeCards/1, 59, ['node ',Curr,': calculated lower limit of card is: ',DEBUG]),
 	!,
 	% block 6 (lines 080 - 095)
 	% resets nodeCardRange/2
@@ -2838,7 +2398,10 @@ checkConsistencyAndCorrectNodeCard(Curr, LowerLimit):-
 	debug_writeln(checkConsistencyAndCorrectNodeCard/2, 69, ['node ',Curr,' check consistency of card against max of set ',
 		[StoredUpLim, [StoredLowLim, LowerLimit]]]),
 	max_list([StoredLowLim, LowerLimit], NewLowerLimit),
-	resetNodeCardRange(Curr, NewLowerLimit, StoredUpLim).
+  	%T is StoredUpLim - LowerLimit,
+ 	%writeln(['ACard of ',Curr,' is ',T]),
+	resetNodeCardRange(Curr, NewLowerLimit, StoredUpLim),
+	true.
 checkConsistencyAndCorrectNodeCard(Curr, _):-
 	error_exit(checkConsistencyAndCorrectNodeCard/2, 'unexpected call (nodeCardRange/2 not set for node)',[Curr]).
 
@@ -2847,404 +2410,22 @@ resetNodeCardRange(Curr, NewLowerLimit, StoredUpLim):-
  	debug_writeln(resetNodeCardRange/3, 79,['node ',Curr,': cardinality range consistent: ', [Curr, NewLowerLimit, StoredUpLim]]).
 resetNodeCardRange(Curr, NewLowerLimit, StoredUpLim):-
 	NewLowerLimit > StoredUpLim,
-	info_continue(resetNodeCardRange/3, ['cardinality range ', [NewLowerLimit, StoredUpLim],' of node ',Curr,' inconsistent']),
+	%format(atom(DEBUG1),'~20f',NewLowerLimit),
+	%format(atom(DEBUG2),'~20f',StoredUpLim),
+	%writeln('###',DEBUG1,'###',DEBUG2),
+	DEBUG_delta is NewLowerLimit - StoredUpLim,
+	info_continue(resetNodeCardRange/3, ['cardinality range ', [NewLowerLimit, StoredUpLim],' of node ',Curr,
+		' inconsistent reset upper limit (Delta: ',DEBUG_delta,')']),
 	retract((nodeCardRange(Curr,_))),
 	assert((nodeCardRange(Curr,[ NewLowerLimit, NewLowerLimit]))).
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /*
-7. the rest
+6.6.6.6 getEpsilon/2
 
-7.1 xxx
-
-7.1.1 xxx
+ returns the current Epsilon, which is used to avoid
+ atom cardinalities of 0
 
 */
-
-
-
-
-
-
-/*
-6.5.4.5 get\_join\_predicates/3
-
-  returns all join predicates applicable to the relations
-
-*/
-
-% alle JoinPreds fuer Relation ermitteln
-get_join_predicates(Relation, JoinPredicateIDs, JoinPredicates):-
-	listOfPredicates(Predicates),
-	get_join_predicates2(Relation, Predicates, JoinPredicateIDs, JoinPredicates).
-
-get_join_predicates2(_, [], [], []).
-get_join_predicates2(Relation, [ Predicate | Predicates ], [ [PredID] | JoinPredicateIDs ], [ Predicate | JoinPredicates ]):-
-	Predicate = [ PredID, PredRelation, pr(_, _, _) ],
-	subset(PredRelation, Relation),
-	!,
-	get_join_predicates2(Relation, Predicates, JoinPredicateIDs, JoinPredicates).
-get_join_predicates2(Relation, [ _ | Predicates ], JoinPredicateIDs, JoinPredicates):-
-	get_join_predicates2(Relation, Predicates, JoinPredicateIDs, JoinPredicates).
-
-/*
-6.5.4.5 get\_sel\_predicates/3
-
-  returns all selection predicates applicable to the relations
-
-*/
-
-% alle SelPreds ermitteln
-get_sel_predicates(Relation, SelPredicateIDs, SelPredicates):-
-	listOfPredicates(Predicates),
-	get_sel_predicates2(Relation, Predicates, SelPredicateIDs, SelPredicates).
-
-get_sel_predicates2(_, [], [], []).
-get_sel_predicates2(Relation, [ Predicate | Predicates ], [ PredID | SelPredicateIDs ], [ Predicate | SelPredicates ]):-
-	Predicate = [ PredID, PredRelation, pr(_, _) ],
-	(
-		is_list(Relation)
-		->
-		member(PredRelation, Relation);
-		Relation = PredRelation
-	),
-	!,
-	get_sel_predicates2(Relation, Predicates, SelPredicateIDs, SelPredicates).
-get_sel_predicates2(Relation, [ _ | Predicates ], SelPredicateIDs, SelPredicates):-
-	get_sel_predicates2(Relation, Predicates, SelPredicateIDs, SelPredicates).
-
-/*
-6.5.4.5 get\_all\_join\_sets/3
-
-  find all sets of join predicates to join the relations
-
-*/
-
-%alle Kombis von JoinPreds ermitteln, die reichen alle Relationen zu verbinden
-get_all_join_sets(Relation, JoinPredicates, JoinSets):-
-	debug_outln('get_all_join_sets: ',[Relation, JoinPredicates, JoinSets]),
-	flatten([Relation], RelationList),
-	findall(JoinSet, get_join_set0(RelationList, JoinPredicates, [], JoinSet), JoinSets).
-
-get_join_set0(Relation, JoinPredicates, [], JoinSet):-
-	debug_outln('get_join_set0: ',[Relation, JoinPredicates, [], JoinSet]),
-	get_join_set(Relation, JoinPredicates, [], JoinSet).
-
-get_join_set(Relations, _, JointRelations, []):-
-	set_equal(Relations, JointRelations),
-	!.
-get_join_set(Relations, [ JoinPredicate | JoinPredicates ], JointRelations, [ JoinPredicateID | JoinSet ]):-
-	JoinPredicate = [ JoinPredicateID, PredRelations, _ ],
-	not(subset(PredRelations, JointRelations)),
-	append(PredRelations, JointRelations, JointRelationsTmp),
-	list_to_set(JointRelationsTmp, JointRelationsNew),
-	get_join_set(Relations, JoinPredicates, JointRelationsNew, JoinSet).
-get_join_set(Relations, [ JoinPredicate | JoinPredicates ], JointRelations, JoinSet):-
-	JoinPredicate = [ _, _, _ ],
-	%ist Alternativpfad fuer findall, deshalb nicht: subset(PredRelations, JointRelations),
-	get_join_set(Relations, JoinPredicates, JointRelations, JoinSet).
-	
-/*
-6.5.4.5 get\_smallest\_join/3
-
-  looks for the join set with the smallest result set
-
-*/
-
-% Kosten aller Kombis ermitteln
-% geht von Unabhaengigkeit der Predikate aus
-get_smallest_join([ JoinSet | [] ], [JoinSet], Selectivity):-
-	get_join_selectivity(JoinSet, Selectivity).
-get_smallest_join([ JoinSet | JoinSets ], JoinSetOld, SelectivityOld):-
-	not(JoinSets=[]),
-	get_smallest_join(JoinSets, JoinSetOld, SelectivityOld),
-	get_join_selectivity(JoinSet, Selectivity),
-	Selectivity >= SelectivityOld.
-get_smallest_join([ JoinSet | JoinSets ], JoinSet, Selectivity):-
-	not(JoinSets=[]),
-	get_join_selectivity(JoinSet, Selectivity).
-
-
-get_join_selectivity([], 1):-
-	!.
-get_join_selectivity([ JoinPredID | JoinSet ], SelectivityNew):-
-	get_join_selectivity(JoinSet, SelectivityOld),
-	get_joinpred_selectivity(JoinPredID, Selectivity),
-	SelectivityNew is SelectivityOld * Selectivity,
-	!.
-get_join_selectivity(Unknown, _):-
-	error_exit(get_join_selectivity/2,'unexpected call',[Unknown]).
-
-get_joinpred_selectivity(JoinPredID, Selectivity):-
-	get_real_nodeid(JoinPredID, JoinPredIDReal),
-	edgeSelectivity(0, JoinPredIDReal, Selectivity),
-	!.
-get_joinpred_selectivity(JoinPredID, 1):-
-	get_real_nodeid(JoinPredID, JoinPredIDReal),
-	not(edgeSelectivity(0, JoinPredIDReal, _)),
-	writeln('WARN: get_joinpred_selectivity/2: no edgeSelectivity/3 found for node ',JoinPredID,' - use selectivity of 1').
-
-/*
-6.5.4.5 get\_cheapest\_path/2
-
- finds the cheapest path
-
- The implementation using get_first_path/2 supports searching of the cheapest path
-which is translateable to a sample query.
-
-*/
-
-% Algo Dijkstra ist besser, aber noch unnoetig
-get_cheapest_path(JoinSet, CheapestJoinPath):-
-	flatten(JoinSet, JoinSetTmp),
-	sumlist(JoinSetTmp, TargetNodeID),
-	findall([Cost, PredIDs, Path], get_path_cost(0, TargetNodeID, Path, PredIDs, Cost), Paths),
-	msort(Paths, OrderedPaths),
-	!,
-	% doesn't support: try different paths
-	%OrderedPaths = [ [ _, _, CheapestJoinPath ] | _ ],
-	% get first path
-	get_first_path(OrderedPaths, CheapestJoinPath).
-
-% use the first path
-get_first_path([[ _, _, CheapestJoinPath] | _], CheapestJoinPath):-
-	true.
-% if the last returned path is not translatable try next one
-get_first_path([ _ | Rest], CheapestJoinPath):-
-	not(Rest=[]),
-	get_first_path(Rest, CheapestJoinPath).
-        
-
-
-	
-get_path_cost(NodeID2, NodeID, [], [], 0):-
-	NodeID2 =:= NodeID.
-get_path_cost(LastNodeID, TargetNodeID, [ CostEdge | CostEdges ], [ PredID | PredIDs ], CostNew):-
-	planEdge(LastNodeID, NewNodeID, PredPath, _),
-	PredID is NewNodeID - LastNodeID,
-	equals_and(PredID,PredID,TargetNodeID),
-	%writeln(' versuche von ', LastNodeID, ' nach ', NewNodeID),
-	edgeSelectivity(LastNodeID, NewNodeID, Selectivity),
-	cost(PredPath, Selectivity, ResultSize, Cost),
-	CostEdge = costEdge(LastNodeID, NewNodeID, PredPath, NewNodeID, ResultSize, Cost),
-	get_path_cost(NewNodeID, TargetNodeID, CostEdges, PredIDs, CostOld),
-	CostNew is CostOld + Cost.
-
-/*
-6.5.4.5 get\_cheapest\_path/2
-
- finds the cheapest path
-
-*/
-
-% there are 2 named samples which could be used
-setSamplesToBeUsed(Relations):-
-	% if relation instances have to use the same sample for any usage
-	% the facts corrUsageCounter/2 and sampleToBeUsed/2 have to be
-	% global at level build_queries/0
-	retractall(corrUsageCounter(_,_)),
-	setSamplesToBeUsed2(Relations).
-
-% predcounts query uses just one relation
-setSamplesToBeUsed2(Relation):-
-	Relation = rel(_,_),
-	increaseRelationCounter(Relation, CurrentCounter),
-	setSampleToBeUsed(Relation, CurrentCounter).
-% predcounts query uses more than one relation
-setSamplesToBeUsed2([]):-
-	debug_writeln(storeSamplesToBeUsed/2, 9000, ['end of recusision']),
-	!.
-setSamplesToBeUsed2([ Relation | Rest ]):-
-	not(Relation=[]),
-	increaseRelationCounter(Relation, CurrentCounter),
-	setSampleToBeUsed(Relation, CurrentCounter),
-	!,
-	setSamplesToBeUsed2(Rest).
-
-increaseRelationCounter(Relation, CurrentCounter):-
-	retract(corrUsageCounter(Relation, CurrentCounter)),
-	NextCounter is CurrentCounter + 1,
-	assert(corrUsageCounter(Relation, NextCounter)).
-increaseRelationCounter(Relation, 1):-
-	assert(corrUsageCounter(Relation, 1)).
-
-
-setSampleToBeUsed(Relation, Counter):-
-	debug_writeln(setSampleToBeUsed/2, 999, ['call: ', [Relation, Counter]]),
-	fail.
-% just for debugging issues - use a sample predefined by fact correlationsPredefinedSamples/2
-setSampleToBeUsed(Relation, _):-
-	retract(correlationsPredefinedSamples(Relation, PredefinedSample)),
-	assert(correlationsPredefinedSamples(Relation, PredefinedSample)),
-	correlationsPredefinedSamples(Relation, PredefinedSample),
-	assert(sampleToBeUsed(Relation, PredefinedSample)),
-	warn_continue(setSampleToBeUsed/2, ['use predefined sample ',PredefinedSample,' for relation ',Relation]).
-% second usage of relation - use sample S
-setSampleToBeUsed(Relation, 2):-
-	Relation = rel(Name,_),
-	% costruct sample name
-	SampleSuffix = '_sample_s',
-	atom_concat(Name, SampleSuffix, NameSample),
-	downcase_atom(NameSample,DCNameSample),
-	% if neccesary create sample (the name of created sample have to be equal to NameSample !!!)
-	ensureSampleSexists(Name),
-	% register sample
-	assert(sampleToBeUsed(Relation, DCNameSample)),
-	debug_writeln(setSampleToBeUsed/2, 9000, ['register sample ',DCNameSample,' for relation ',Relation,' (stored as sampleToBeUsed/2)']).
-% first usage of relation - use sample J
-setSampleToBeUsed(Relation, 1):-
-	Relation = rel(Name,_),
-	% costruct sample name
-	SampleSuffix = '_sample_j',
-	atom_concat(Name, SampleSuffix, NameSample),
-	downcase_atom(NameSample,DCNameSample),
-	% if neccesary create sample (the name of created sample have to be equal to NameSample !!!)
-	ensureSampleJexists(Name),
-	% register sample
-	assert(sampleToBeUsed(Relation, DCNameSample)),
-	debug_writeln(setSampleToBeUsed/2, 9000, ['register sample ',DCNameSample,' for relation ',Relation,' (stored as sampleToBeUsed/2)']).
-% other usages of relation - use relation itself (another implementation: create new samples)
-setSampleToBeUsed(Relation, Id):-
-	Id >= 3,
-	Relation = rel(_,_),
-	assert(sampleToBeUsed(Relation, Relation)),
-	warn_continue(setSampleToBeUsed/2, ['no more sample avalible for relation ',Relation]).
-% unexpected call
-setSampleToBeUsed(A,B):-
-	error_exit(setSampleToBeUsed/2,'unexpected call',[A,B]).
-
-removeSamplesToBeUsed:-
-	retractall(sampleToBeUsed(_,_)),
-	debug_writeln(removeSampleSuffixes/0, 9000, ['facts sampleToBeUsed/2 retracted']).
-
-construct_sample_plan(Path, Plan):-
-	plan(Path, TmpPlan),
-	!, % if prepare_sample_query/2 fails because of untranslatable TmpPlan do not retry plan/2
-	prepare_sample_query(TmpPlan, Plan).
-	
-prepare_sample_query(In, Out):-
-	%writeln('in: ', In),
-	query_sample(In, Out),
-	%writeln('out: ', Out),
-	!.
-prepare_sample_query(In, Out):-
-	warn_continue(prepare_sample_query/2, ['unable to build sample query', [In, Out]]),
-	!,
-	fail.
-
-query_sample([],[]) :- 
-	!.
-
-query_sample([First|Next], [FirstResult|NextResult]) :-
-	query_sample(First, FirstResult),
-	query_sample(Next, NextResult), !.
-
-query_sample(IndexName, _) :-
-	atomic(IndexName),
-	dcName2externalName(DCindexName,IndexName),
-	databaseName(DB),
-	storedIndex(DB,_,_,_,DCindexName),
-	% dann ist der Ausdruck fuer sample nicht anwendbar
-	% Suche nach sample query ist fehlgeschlagen
-	warn_continue(query_sample/2,['using of indexes not supported for sample queries - try another path',IndexName]),
-	!,
-	fail.
-
-query_sample(rel(Name, V), rel(NameSample, V)) :-
-	sampleToBeUsed(rel(Name, V), NameSample),
-	debug_writeln(query_sample/2, 9000, ['use sample ',NameSample,' instead of relation ',rel(Name, V)]),
-	!.
-
-query_sample( rel(Name, V), rel(Name, V) ) :-
-	atomic(rel(Name, V)), 
-	warn_continue(query_sample/2, ['no sample of relation ',rel(Name, V),' usable - use relation itself']),
-	!.
-
-query_sample( Term, Term ) :-
-	atomic(Term), !.
-
-query_sample( Term, Result ) :-
-  not(Term=rel(_, _)),
-	compound(Term),
-	not(is_list(Term)),
-	Term =.. [Op|Args],
-	query_sample( Args, ArgsResult ),
-	Result =.. [Op|ArgsResult], !.
-
-
-
-correct0And1SelEdges(Node):-
-	Node =< 0.
-correct0And1SelEdges(Node):-
-	corrCummSel(Node, NodeSel),
-	NodeSel =:= 0,
-	!,
-	getEpsilon(Epsilon),
-	increaseNodeAtomCard(Node, Epsilon).
-correct0And1SelEdges(Node):-
-	corrCummSel(Node, NodeSel),
-	findall([Sel, Succ], (corrCummSel(Succ, Sel), Succ>Node, equals_and(Node, Succ, Node)), SuccSels),
-	not(SuccSels=[]),
-	msort(SuccSels, SuccSelsAsc),
-	reverse(SuccSelsAsc, SuccSelsDesc),
-	SuccSelsDesc = [ [MaxSuccSel, _] | _ ],
-	!,
-	checkAndCorrectNodeSel(Node, NodeSel, MaxSuccSel),
-	!,
-	NextNode is Node - 1,
-	correct0And1SelEdges(NextNode).
-correct0And1SelEdges(Node):-
-	NextNode is Node - 1,
-	correct0And1SelEdges(NextNode).
-
-checkAndCorrectNodeSel(_, NodeSel, MaxSuccSel):-
-	getEpsilon(Epsilon),
-	NodeSel >= MaxSuccSel + Epsilon,
-	!.
-checkAndCorrectNodeSel(Node, NodeSel, MaxSuccSel):-
-	getEpsilon(Epsilon),
-	NodeSel < MaxSuccSel + Epsilon,
-	Delta is ( MaxSuccSel + Epsilon ) - NodeSel,
-	!,
-	increaseNodeAtomCard(Node, Delta).
-
-increaseNodeAtomCard(Node, Delta):-
-	% get all previous nodes with known selectivity at node itself (test against succ nodes!)
-	findall(Prev, (corrCummSel(Prev, _), Prev=<Node, equals_and(Prev,Prev,Node)), PrevNodes),
-	increaseNodes(PrevNodes, Delta).
-
-increaseNodes([], _).
-increaseNodes([ Node | Rest ], Delta):-
-	retract(corrCummSel(Node,Sel)),
-	SelNew is Sel + Delta,
-	assert(corrCummSel(Node,SelNew)),
-	!,
-	increaseNodes(Rest, Delta).
-	
 
 getEpsilon(Epsilon):-
 	retract(correlationsEpsilon(Epsilon)),
@@ -3252,6 +2433,13 @@ getEpsilon(Epsilon):-
 	!.
 getEpsilon(1e-05):-
 	!.
+
+/*
+6.6.6.6 setPredefinedNodeCards/2
+
+ support usage of predefined node cardinalities
+
+*/
 
 setPredefinedNodeCards:-
 	retract(correlationsPredefinedNodeCard(A,B)),
@@ -3268,34 +2456,6 @@ setPredefinedNodeCards([ [ Node, Card ] | Rest]):-
 	warn_continue(setPredefinedNodeCards/1, ['predefined relative node cardinality ',Card,' set for node ',Node]),
 	!,
 	setPredefinedNodeCards(Rest).
-
-%increaseSelectivityRecursive(NodeID, ChildNodeID):-
-%	getEpsilon(Epsilon),
-%	increaseSelectivityRecursive(NodeID, ChildNodeID, Epsilon).
-
-%increaseSelectivityRecursive(NodeID, _, _):-
-%	NodeID < 0.
-%increaseSelectivityRecursive(NodeID, ChildNodeID, Epsilon):-
-%	% % Node A ist VG von Node B, falls A=and(A,B)
-%	equals_and(NodeID, NodeID, ChildNodeID),
-%	increaseSelectivity(NodeID, Epsilon),
-%	% jede VorgaengerNode hat kleinere ID!
-%	NewNodeID is NodeID - 1,
-%	increaseSelectivityRecursive(NewNodeID, ChildNodeID, Epsilon).
-%increaseSelectivityRecursive(NodeID, ChildNodeID, Epsilon):-
-%	% jede VorgaengerNode hat kleinere ID!
-%	NewNodeID is NodeID - 1,
-%	increaseSelectivityRecursive(NewNodeID, ChildNodeID, Epsilon).
-%
-%increaseSelectivity(NodeID, Epsilon):- % VJO int oder real
-%	retract((corrCummSel(NodeID, CummSel))),
-%	CummSelNew is CummSel + Epsilon,
-%	assert((corrCummSel(NodeID, CummSelNew))),
-%	debug_outln('increaseSelectivity: NodeID increased by Epsilon to value ',[NodeID,Epsilon,CummSelNew]).
-
-
-
-
 
 
 
