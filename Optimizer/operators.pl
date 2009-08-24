@@ -1056,9 +1056,10 @@ opSignature(inside, temporalunit, [upoint,uregion],[stream,ubool],[comm]).
 opSignature(inside, temporalunit, [upoint,line],[stream,ubool],[comm]).
 opSignature(inside, temporalunit, [upoint,points],[stream,ubool],[]).
 opSignature(inside, temporalunit, [uregion,points],[stream,ubool],[]).
+opSignature(passes, temporalunit, [T1,T2],bool,[bbox(2)]) :-
+  memberchk((T1,T2),[(upoint,point),(uregion,region)]), !.
 opSignature(passes, temporalunit, [T1,T2],bool,[]) :-
-  memberchk((T1,T2),[(ubool,bool),(uint,int),(ureal,real),(ustring,string),
-                     (upoint,point),(uregion,region)]), !.
+  memberchk((T1,T2),[(ubool,bool),(uint,int),(ureal,real),(ustring,string)]), !.
 opSignature(get_duration, temporalunit, [periods],duration,[]).
 opSignature(trajectory, temporalunit, [upoint],line,[]).
 opSignature(distance, temporalunit, [T1,T2],ureal,[comm]) :-
@@ -2409,6 +2410,7 @@ isBBoxPredicate(intersects).  % but not: rT x rT
 isBBoxPredicate(intersects_new).
 isBBoxPredicate(p_intersects).
 isBBoxPredicate(inside).      % but also: mT x mT -> movingbool
+isBBoxPredicate(passes).
 isBBoxPredicate(insideold).
 isBBoxPredicate(adjacent).
 isBBoxPredicate(attached).
