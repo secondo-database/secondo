@@ -58,16 +58,31 @@ TypeConstructor busnetwork( "busnetwork", BusNetwork::BusNetworkProp,
   BusNetwork::CheckBusNetwork);
 
 
-
+/************string description about bus network operators*************/
 const string OpTheBusNetworkSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
   "(<text>int x rel -> busnetwork" "</text--->"
   "<text>thebusnetwork(_, _)</text--->"
   "<text>Creates busnetwork with id and a relation.</text--->"
-  "<text>let busnet = thebusnetwork(int, busroutes)</text--->"
+  "<text>let busnet = thebusnetwork(1, busroutes)</text--->"
   "))";
 
+const string OpBusStopSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "<text>busstop(_,)</text--->"
+  "<text>returns a stream of tuple where each corresponds to a bus stop"
+  ".</text--->"
+  "<text>query busstop(busroutes) count</text--->"
+  "))";
+
+/***********Value Map Function for Bus Network****************************/
+/*
+Creates a bus network with the given id, from the given bus routes relations.
+
+*/
 int OpTheBusNetworkValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
@@ -79,10 +94,68 @@ int OpTheBusNetworkValueMapping(Word* args, Word& result,
   result = SetWord(bus);
   return 0;
 }
-/*
-6.11 Operator ~thebusnetwork~
 
-Creates a bus network with the given id, from the given bus routes relations.
+/*
+Return all bus stops.
+
+*/
+struct DisplBus{
+  BusNetwork* busnet;
+  Relation* busstop;
+  int no_stop;
+  int bus_stop_count;
+  TupleType* resulttype;
+  DisplBus(BusNetwork* p):busnet(p){
+    busstop = busnet->GetRelBus_Node();
+    no_stop = busstop->GetNoTuples();
+    bus_stop_count = 1;
+    resulttype = NULL;
+  }
+  ~DisplBus(){
+    if(resulttype != NULL)
+      delete resulttype;
+  }
+};
+int OpBusStopValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  DisplBus* localInfo;
+  switch(message){
+    case OPEN:{
+        localInfo = new DisplBus((BusNetwork*)args[0].addr);
+        localInfo->resulttype =
+              new TupleType(nl->Second(GetTupleResultType(s)));
+        local = SetWord(localInfo);
+        return 0;
+    }
+    case REQUEST:{
+        localInfo = (DisplBus*)local.addr;
+        if(localInfo->bus_stop_count > localInfo->no_stop)
+          return CANCEL;
+        Tuple* tuple = new Tuple(localInfo->resulttype);
+        Tuple* temp_tuple =
+                localInfo->busstop->GetTuple(localInfo->bus_stop_count);
+        CcInt* id = (CcInt*)temp_tuple->GetAttribute(BusNetwork::SID);
+        Point* location = (Point*)temp_tuple->GetAttribute(BusNetwork::LOC);
+        tuple->PutAttribute(BusNetwork::SID,new CcInt(*id));
+        tuple->PutAttribute(BusNetwork::LOC,new Point(*location));
+        result.setAddr(tuple);
+        temp_tuple->DeleteIfAllowed();
+        localInfo->bus_stop_count++;
+        return YIELD;
+    }
+    case CLOSE:{
+        localInfo = (DisplBus*)local.addr;
+        delete localInfo;
+        return 0;
+    }
+  }
+  return 0;
+}
+
+
+/*
+Operator ~thebusnetwork~
 
 */
 ListExpr OpTheBusNetworkTypeMap(ListExpr in_xArgs)
@@ -112,6 +185,33 @@ ListExpr OpTheBusNetworkTypeMap(ListExpr in_xArgs)
   return nl->SymbolAtom("busnetwork");
 }
 
+/*
+Operator ~busstop~
+
+*/
+ListExpr OpBusStopTypeMap(ListExpr in_xArgs)
+{
+  if(nl->ListLength(in_xArgs) != 1)
+    return (nl->SymbolAtom("typeerror"));
+
+  ListExpr arg = nl->First(in_xArgs);
+  if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
+     nl->SymbolValue(arg) == "busnetwork"){
+    return nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+            nl->TwoElemList(nl->SymbolAtom("tuple"),
+              nl->TwoElemList(
+                nl->TwoElemList(nl->SymbolAtom("id"),nl->SymbolAtom("int")),
+                nl->TwoElemList(nl->SymbolAtom("loc"),nl->SymbolAtom("point"))
+              )
+            )
+          );
+  }
+  return nl->SymbolAtom("typeerror");
+
+}
+
+/*****************Operators for Bus Network*************************/
 Operator thebusnetwork(
   "thebusnetwork", //name
   OpTheBusNetworkSpec,
@@ -119,6 +219,15 @@ Operator thebusnetwork(
   Operator::SimpleSelect,
   OpTheBusNetworkTypeMap
 );
+
+Operator busstop(
+  "busstop", //name
+  OpBusStopSpec,
+  OpBusStopValueMapping,
+  Operator::SimpleSelect,
+  OpBusStopTypeMap
+);
+
 
 /*
 Main Class for Transportation Mode
@@ -135,7 +244,7 @@ class TransportationModeAlgebra : public Algebra
 
 
   AddOperator(&thebusnetwork);//construct bus network
-  //AddOperator(&busstop);
+  AddOperator(&busstop);
   }
   ~TransportationModeAlgebra() {};
  private:

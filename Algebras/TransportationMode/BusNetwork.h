@@ -89,6 +89,8 @@ public:
   BusNetwork(SmiRecord&,size_t&,const ListExpr);
   void FillBusNode(const Relation*);
   void  Destory();
+/*Interface function*/
+  Relation* GetRelBus_Node(){return bus_node;}
 
 private:
   int bus_id;
