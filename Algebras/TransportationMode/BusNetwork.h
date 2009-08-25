@@ -57,10 +57,46 @@ Subclass for manage bus network
 
 */
 class BusNetwork{
+public:
+/*data*/
+  static string busrouteTypeInfo;//relation description for pre-defined paths
+  enum BusRouteInfo{RID=0,TRIP};
+  static string busstopTypeInfo; //relation description for bus stop
+  enum BusStopInfo{SID=0,LOC};
+
+/*function for type constructor*/
+  static ListExpr BusNetworkProp();
+  static ListExpr OutBusNetwork(ListExpr,Word);
+  static Word InBusNetwork(ListExpr,ListExpr,int,ListExpr&,bool&);
+  static Word CreateBusNetwork(const ListExpr);
+  static void DeleteBusNetwork(const ListExpr,Word&);
+  static bool OpenBusNetwork(SmiRecord&,size_t&,const ListExpr,Word&);
+  static bool SaveBusNetwork(SmiRecord&,size_t&,const ListExpr,Word&);
+  static void CloseBusNetwork(const ListExpr,Word&);
+  static Word CloneBusNetwork(const ListExpr,const Word&);
+  static void* CastBusNetwork(void* addr);
+  static int SizeOfBusNetwork();
+  static bool CheckBusNetwork(ListExpr,ListExpr&);
+  ListExpr Out(ListExpr typeInfo);
+  void Load(int in_iId,const Relation* in_busRoute);
+  static BusNetwork* Open(SmiRecord& valueRecord,size_t& offset,
+                          const ListExpr typeInfo);
+  bool Save(SmiRecord&,size_t&,const ListExpr);
+/*Type Constructor and Deconstructor*/
+  BusNetwork(ListExpr in_xValue,int in_iErrorPos,ListExpr& inout_xErrorInfo,
+             bool& inout_bCorrect);
+  BusNetwork();
+  BusNetwork(SmiRecord&,size_t&,const ListExpr);
+  void FillBusNode(const Relation*);
+  void  Destory();
 
 private:
-  Relation* bus_node;
-  Relation* bus_edge;
+  int bus_id;
+  bool bus_def;
+  Relation* bus_node; //relation storing bus stops
+  Relation* bus_weight; //relation storing weight function for each edge
+  Relation* bus_edge;//relation storing edge
 };
+
 
 #endif

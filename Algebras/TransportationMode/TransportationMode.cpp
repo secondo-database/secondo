@@ -39,22 +39,86 @@ queries moving objects with transportation modes.
 */
 
 #include "TransportationMode.h"
+#include "BusNetwork.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
 namespace TransportationMode{
 
+
+/*data type for bus network*/
+TypeConstructor busnetwork( "busnetwork", BusNetwork::BusNetworkProp,
+  BusNetwork::OutBusNetwork, BusNetwork::InBusNetwork,
+  0,0,
+  BusNetwork::CreateBusNetwork, BusNetwork::DeleteBusNetwork,
+  BusNetwork::OpenBusNetwork, BusNetwork::SaveBusNetwork,
+  BusNetwork::CloseBusNetwork, BusNetwork::CloneBusNetwork,
+  BusNetwork::CastBusNetwork, BusNetwork::SizeOfBusNetwork,
+  BusNetwork::CheckBusNetwork);
+
+
+
+const string OpTheBusNetworkSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>int x rel -> busnetwork" "</text--->"
+  "<text>thebusnetwork(_, _)</text--->"
+  "<text>Creates busnetwork with id and a relation.</text--->"
+  "<text>let busnet = thebusnetwork(int, busroutes)</text--->"
+  "))";
+
+int OpTheBusNetworkValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  BusNetwork* bus = (BusNetwork*)qp->ResultStorage(s).addr;
+  CcInt* pId = (CcInt*)args[0].addr;
+  int iId = pId->GetIntval();
+  Relation* BusRoutes = (Relation*)args[1].addr;
+  bus->Load(iId,BusRoutes);
+  result = SetWord(bus);
+  return 0;
+}
 /*
-Subclass for manage bus network
+6.11 Operator ~thebusnetwork~
+
+Creates a bus network with the given id, from the given bus routes relations.
 
 */
-class BusNetwork{
+ListExpr OpTheBusNetworkTypeMap(ListExpr in_xArgs)
+{
+  if(nl->ListLength(in_xArgs) != 2)
+    return (nl->SymbolAtom("typeerror"));
 
-private:
-  Relation* bus_node;
-  Relation* bus_edge;
-};
+  ListExpr xIdDesc = nl->First(in_xArgs);
+  ListExpr xRoutesRelDesc = nl->Second(in_xArgs);
+
+  if(!nl->IsEqual(xIdDesc, "int"))
+  {
+    return (nl->SymbolAtom("typeerror"));
+  }
+
+  if(!IsRelDescription(xRoutesRelDesc))
+  {
+    return (nl->SymbolAtom("typeerror"));
+  }
+
+  ListExpr xType;
+  nl->ReadFromString(BusNetwork::busrouteTypeInfo, xType);
+  if(!CompareSchemas(xRoutesRelDesc, xType))
+  {
+    return (nl->SymbolAtom("typeerror"));
+  }
+  return nl->SymbolAtom("busnetwork");
+}
+
+Operator thebusnetwork(
+  "thebusnetwork", //name
+  OpTheBusNetworkSpec,
+  OpTheBusNetworkValueMapping,
+  Operator::SimpleSelect,
+  OpTheBusNetworkTypeMap
+);
 
 /*
 Main Class for Transportation Mode
@@ -65,23 +129,28 @@ class TransportationModeAlgebra : public Algebra
  public:
   TransportationModeAlgebra() : Algebra()
   {
+   AddTypeConstructor(&busnetwork);
+  //can't be stored as an attribute in a relation
+   busnetwork.AssociateKind("BUSNETWORK");
 
+
+  AddOperator(&thebusnetwork);//construct bus network
+  //AddOperator(&busstop);
   }
   ~TransportationModeAlgebra() {};
  private:
-  BusNetwork* busnetwork;
+  BusNetwork* busnet;
 };
 
 };
 
 
 extern "C"
-Algebra*
-InitializeTransportationModeAlgebra( NestedList* nlRef,
+Algebra* InitializeTransportationModeAlgebra( NestedList* nlRef,
     QueryProcessor* qpRef )
     {
     nl = nlRef;
     qp = qpRef;
   // The C++ scope-operator :: must be used to qualify the full name
-  return new TransportationMode::TransportationModeAlgebra;
+  return new TransportationMode::TransportationModeAlgebra();
     }
