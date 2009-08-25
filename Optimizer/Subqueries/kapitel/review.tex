@@ -50,7 +50,7 @@ Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln SELECT, FROM und WH
 	\subitem Die FROM-Klausel entspricht dem kartesischen Produkt in der Relationenlgebra. Hier werden alle in der Abfrage verwendeten Relationen aufgeführt.
 	\subitem Die WHERE-Klausel entspricht der Selektions-Operation der Relationenalgebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der FROM-Klausel aufgelisteten Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnen Termen von einem Prädikat der Abfrage.
 	\subitem GROUP BY\dots HAVING-Klausel Die Eingabemenge der Aggregationsfunktion wird in \enquote{Gruppen} mit gleichen Attributwerten in den angegebenen Attributen partitioniert; die Aggregationsfunktion wird dann jeweils separat für jede Gruppe berechnet. Die optionale HAVING-Klausel erlaubt die Selektions-Operation auf den Ergebnissen der Aggregationsfunktion(en). Hierzu wird ein Prädikat angegeben, dass auf das Ergebnis der Aggregation angewandt wird. Nur Ergebnistupel, für die dieses Prädikat zu \enquote{WAHR} auswertet, werden in die Ergebnisrelation übernommen.
-	\subitem In der ORDER BY-Klausel werden die Ergebnis Attribute angegeben, nach welchen das Ergebnis sortiert werden soll. Mit dem Zusatz ASC bzw. DESC hinter dem Attributnamen kann zwischen auf- und absteigender Sortierung für das entsprechende Attribut gewählt werden. Die Reihenfolge der Attribute in der ORDER BY-Klausel 
+	\subitem In der ORDER BY-Klausel werden die Ergebnis Attribute angegeben, nach welchen das Ergebnis sortiert werden soll. Mit dem Zusatz ASC bzw. DESC hinter dem Attributnamen kann zwischen auf- und absteigender Sortierung für das entsprechende Attribut gewählt werden. Die Reihenfolge der Attribute in der ORDER BY-Klausel gibt die Rangfolge bei der Sortierung an.
 	\item geschachtelte Abfragen
 	
 	\subitem in der SELECT-Klausel. 
@@ -81,17 +81,19 @@ Der \sql{in}-Operator prüft das Enthaltensein eines Werts in einer Menge. Die Me
 \begin{lstlisting}
 exists(select §$A_j$§ from §$R_n$§ where P)
 \end{lstlisting}
-Mit dem \sql{exists}-Operator wird die Ergebnisrelation darauf überprüft, ob sie mindestens ein Ergebnistupel enthält. In nicht-korrelierten Prädikaten ist die Verwendung von \sql{exits} meist unsinnig, da das Prädikat in diesem Fall zu der Konstant \enquote{TRUE} bzw. \enquote{FALSE} auswertet. Bei korrelierten Prädikaten lassen sich mit \sql{exists} komplexe Bedingungen prüfen. 
+Mit dem \sql{exists}-Operator wird die Ergebnisrelation darauf überprüft, ob sie mindestens ein Ergebnistupel enthält. In nicht-korrelierten Prädikaten ist die Verwendung von \sql{exits} meist nicht relevant, da das Prädikat in diesem Fall zu der Konstant \enquote{TRUE} bzw. \enquote{FALSE} auswertet. Bei korrelierten Prädikaten lassen sich mit \sql{exists} komplexe Bedingungen prüfen. 
 
 \begin{lstlisting}
 §$A_i$§ §$\theta$§ any(select §$A_j$§ from §$R_n$§ where P)
 \end{lstlisting}
-Das Ergebnis eines Prädikats mit dem \sql{any}-Operator ist genau dann wahr, wenn mindestens ein Tupel der Ergebnisrelation den Vergleich $\theta$ erfüllt. Als Vergleichsoperator sind die skalaren Operatoren $<, <=, =, >, >=$ mit ihrer üblichen Semantik und der Operator <> mit der Bedeutung \enquote{ungleich} zulässig.
+Das Ergebnis eines Prädikats mit dem \sql{any}-Operator ist genau dann wahr, wenn mindestens ein Tupel der Ergebnisrelation den Vergleich $\theta$ erfüllt. Als Vergleichsoperator sind die skalaren Operatoren $<, <=, =, >, >=$ mit ihrer üblichen Semantik und der Operator <> mit der Bedeutung \enquote{ungleich} zulässig. Um den semantischen Unterschied des Operators \sql{any} zu der Verwendung des Wortes \enquote{any} in der englischen Sprache zu betonen und Missverständnisse zu vermeiden, wurde mit SQL92 der Operator \sql{some} mit identischer Semantik eingeführt.
 
 \begin{lstlisting}
 §$A_i$§ §$\theta$§ all(select §$A_j$§ from §$R_n$§ where P)
 \end{lstlisting}
 Der \sql{all}-Operator wertet zu \sql{TRUE} aus, wenn der Vergleich für alle Ergebnistupel positiv ausfällt. Die zulässigen Vergleichsoperatoren sind die selben wie beim Operator \sql{any}.
+
+
 	\subitem \textbf{(GROUP BY\dots HAVING-Klausel)}
 \end{itemize}
 
@@ -114,7 +116,7 @@ In \cite{319745} wurde erstmals die Möglichkeit vorgestellt, eine geschachtelte 
 	\item G-Outerjoin (Generalized-Outer-Join)
 	\item Apply (
 	\item SegmentApply
-	\item NULL-rejecting Outer-Join Ein Outer-Join heißt NULL-verwerfend, wenn das Join-Prädikat NULL-verwerfend ist und die Menge A der Attribute Teilmenge des Schemas der zweiten Relation. Ist ein Outer-Join-Prädikat NULL-verwerfend, so ist es äquivalent zu einem Join-Prädikat mit der gleichen Join-Bedingung.
+	\item NULL-rejecting Outer-Join Ein Outer-Join heißt NULL-verwerfend, wenn das Join-Prädikat NULL-verwerfend ist und die Menge A der Attribute Teilmenge des Schemas der zweiten Relation. Ist ein Outer-Join-Prädikat NULL-verwerfend, so ist es äquivalent zu einem Join-Prädikat mit der gleichen Join-Bedingung. Diese Äquivalenz ermöglicht die Ausführungsreihenfolge zumindest für gewisse Outer-Joins und Joins zu vertauschen.
 \end{itemize}
 
 SQL Prädikate lassen sich in verschiedene Klassen einteilen. Abhängig von der Semantik der Operation, kann man in \emph{einfache} Prädikate, \emph{Join}-Prädikate, \emph{Divisions}-Prädikate und \emph{geschachtelte} Prädikate unterscheiden. Einfache Prädikate sind solche Prädikate, die zu ihrer Berechnung nur auf Konstanten und Attribute einer Relation zugreifen. Ein Beispiel für ein solches Prädikat ist \textbf{$C_m = 10$}. Join-Prädikate benötigen zu ihrer Berechnung Attribute aus zwei oder mehr Relationen. Sie \emph{verbinden} (to join -- engl. verbinden) die verwendeten Relationen. In der Relationenalgebra entspricht diese Operation der Kombination von Kreuzprodukt und Selektion. 

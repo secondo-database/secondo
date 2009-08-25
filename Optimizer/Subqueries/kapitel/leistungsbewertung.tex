@@ -829,7 +829,7 @@ projectextend[Var1; oCUSTKEY: .cCUSTKEY]
 consume
 \end{lstlisting}
 
-Da es sich bei der inneren Abfrage in dem ersten geschachtelten Prädikat um eine nicht-korrelierte Abfrage handelt, wird sie in der entschachtelten Variante durch den durch ihre Ausführung erhaltenene Wert ersetzt.
+Da es sich bei der inneren Abfrage in dem ersten geschachtelten Prädikat um eine nicht-korrelierte Abfrage handelt, wird sie in der entschachtelten Variante durch den durch ihre Ausführung erhaltenenen Wert ersetzt.
 
 \begin{lstlisting}[caption=FROM Nesting]
 select
@@ -901,7 +901,7 @@ Q22 & 2.308& 0.938\\
 \end{table}
 
 \subsection{Fazit}
-Bis auf wenige Ausnahmen (Q17 und Q21) ist die entschachtelte Ausführung der iterativen Ausführung in den betrachteten überlegen.
+Bis auf wenige Ausnahmen (Q17 und Q21) ist die entschachtelte Ausführung der iterativen Ausführung in den betrachteten Abfragen überlegen.
 \subsection{Ausblick}
 Um die Entschachtelung zu vervollständigen sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden. Auch ein allgemeiner Full-Outerjoin-Operator auf Basis von Symmjoin. Unterstützung von \textbf{GROUPBY...HAVING}-Klauseln inkl. Subqueries. Geschachtelte Prädikate in Disjunktionen. Allgemeiner \sql{in}-Operator für Konstanten, möglicherweise auf der Basis des bestehenden \sql{in}-Operators der \algebra{Collection-Algebra}. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen. Weitere Formen von geschachtelten Abfragen, die noch nicht optimiert werden können: korrelierte Abfragen in der SELECT-Klausel und der FROM-Klausel, geschachtelte Abfragen in Disjunktionen, geschachtelte Abfragen, die mehrere Schachtelungsebenen überspringen.
 
