@@ -59,13 +59,13 @@ Operator : oldknearestfilter
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UTOrdered_rtree UTOrdered oldknearestfilter[train1, 5] count
-Result   : file_platform
+Result   : 1683
 
 Operator : oldknearestfilter
 Number   : 7
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel (tuple ((x1 t1)...(xn tn)))) mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UTOrdered_rtree UTOrdered oldknearestfilter[train1, 5]  knearest[UTrip, train1, 5] count
-Result   : file_platform
+Result   : 542
 
 
 Operator : rect2periods
