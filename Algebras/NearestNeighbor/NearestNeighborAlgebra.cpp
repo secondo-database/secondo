@@ -8453,7 +8453,6 @@ void TBKnearestLocalInfo::GreeceknnFunDF(MPoint* mp,int level,hpelem& elem)
 //        t1 = t1/864000.0;
 //        t2 = t2/864000.0;
 
-
           if(!(t1 >= endTime || t2 <= startTime)){
               BBox<2> entrybox = makexyBox(e.box);//entry box
               double mindist =  mpbox.Distance(entrybox);
@@ -8559,7 +8558,6 @@ int Greeceknearest(Word* args, Word& result, int message,
 
 //       t1 = t1/864000.0;
 //       t2 = t2/864000.0;
-
 
       if(!(t1 >= localInfo->endTime || t2 <= localInfo->startTime)){
         BBox<2> entrybox = makexyBox(root->BoundingBox());
@@ -9078,10 +9076,12 @@ void CellIndex<dim>::Partition_Cell()
         rtree->GetMyNode(adr,false,
         rtree->MinEntries(0),
         rtree->MaxEntries(0));
+  if(!node->IsLeaf()){
   //skip root node
-  for(int i = 0; i < node->EntryCount();i++){
-      R_TreeInternalEntry<dim> e = (R_TreeInternalEntry<dim>&)(*node)[i];
-      q_node.push(SubCell(e.pointer,1));
+    for(int i = 0; i < node->EntryCount();i++){
+        R_TreeInternalEntry<dim> e = (R_TreeInternalEntry<dim>&)(*node)[i];
+        q_node.push(SubCell(e.pointer,1));
+    }
   }
   delete node;
 
@@ -10027,9 +10027,9 @@ class NearestNeighborAlgebra : public Algebra
     AddOperator( &distancescan4);
     AddOperator( &greeceknearest);
     AddOperator( &chinaknearest);
-    AddOperator( &mqknearest);
-    AddOperator( &covleafnode);
-//    AddOperator( &cellindex);
+//    AddOperator( &mqknearest);
+//    AddOperator( &covleafnode);
+    AddOperator( &cellindex);
 //    AddOperator( &gnuplotnode);
 //    AddOperator( &kclosestpair);
 //    AddOperator( &cellpartition);

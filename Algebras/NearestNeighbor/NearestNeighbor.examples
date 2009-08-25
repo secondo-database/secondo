@@ -97,13 +97,13 @@ Operator : knearestfilter
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn))))(btree (tuple ((x1 t1)...(xn tn))) ti)(rel2 (tuple ((x1 t1)...(xn tn)))) x  mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UTOrdered_rtree UTOrdered btree numbers knearestfilter[UTrip,train1, 5] count
-Result   : file_platform
+Result   : 1542
 
 Operator : greeceknearest
 Number   : 6
 Signature: ((rtree (tuple ((x1 t1)...(xn tn))) ti)(rel1 (tuple ((x1 t1)...(xn tn)))) x  mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
 Example  : query UTOrdered_rtree UTOrdered greeceknearest[UTrip,train1, 3] count
-Result   : 0
+Result   : 4433
 
 Operator : chinaknearest
 Number   : 6
@@ -112,5 +112,9 @@ Example  : query UnitTrains_UTrip_tbtree UnitTrains chinaknearest[UTrip,train1, 
 Result   : 8737
 
 
-
+Operator : cellindex
+Number   : 6
+Signature: rtree(tuple ((x1 t1)...(xn tn)) ti) x cellno -> (stream (tuple ((x1 t1)...(xn tn))))
+Example  : query cellindex(kinosrtree,10) count
+Result   : 0
 
