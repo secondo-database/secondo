@@ -1,0 +1,17 @@
+Database: tm
+Restore : yes
+
+
+Operator : thebusnetwork
+Number   : 1
+Signature: int x rel -> busnetwork
+Example  : query thebusnetwork(1, busroutes);
+Result   : file
+
+
+Operator : busstop
+Number   : 1
+Signature: busnetwork -> int
+Example  : query busstop(berlintrains) count;
+Result   : 173
+
