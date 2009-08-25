@@ -42,6 +42,10 @@ queries moving objects with transportation modes.
 
 string BusNetwork::busrouteTypeInfo = "(rel(tuple((Id int)(Trip mpoint))))";
 string BusNetwork::busstopTypeInfo = "(rel(tuple((Id int)(BusStop point))))";
+string BusNetwork::btreebusstopTypeInfo =
+                  "(btree(tuple((Id int)(BusStop point))) int)";
+string BusNetwork::rtreebusstopTypeInfo =
+                  "(rtree(tuple((Id int)(BusStop point))) BusStop FALSE)";
 
 ListExpr BusNetwork::BusNetworkProp()
 {
@@ -72,12 +76,8 @@ void BusNetwork::DeleteBusNetwork(const ListExpr typeInfo,Word& w)
 {
   cout<<"DeleteBusNetwork"<<endl;
   BusNetwork* p = (BusNetwork*)w.addr;
-//  p->Destory();
-  if(p->bus_node != NULL){
-//  p->bus_node->Close();
-    p->bus_node->Delete();
-    p->bus_node = NULL;
-  }
+  p->Destory();
+
   delete p;
 }
 
@@ -156,7 +156,17 @@ const ListExpr in_xTypeInfo)
   ListExpr xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
   if(!bus_node->Save(in_xValueRecord,inout_iOffset,xNumericType))
       return false;
-  //save weight
+  /********************Save b-tree for bus stop***************************/
+  nl->ReadFromString(btreebusstopTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_bus_node->Save(in_xValueRecord,inout_iOffset,xNumericType))
+    return false;
+
+  /*******************Save r-tree for bus stop**************************/
+  if(!rtree_bus_node->Save(in_xValueRecord,inout_iOffset))
+    return false;
+
+  /********************Save weight function****************************/
 
   //save edges
 
@@ -166,8 +176,16 @@ const ListExpr in_xTypeInfo)
 
 void BusNetwork::CloseBusNetwork(const ListExpr typeInfo,Word& w)
 {
+  //bus stop
   if((BusNetwork*)w.addr != NULL)
       ((BusNetwork*)w.addr)->bus_node->Close();
+  //b-tree on bus stop
+  if((BusNetwork*)w.addr != NULL)
+      delete ((BusNetwork*)w.addr)->btree_bus_node;
+  //r-tree on bus stop
+  if((BusNetwork*)w.addr != NULL)
+      delete ((BusNetwork*)w.addr)->rtree_bus_node;
+
   delete static_cast<BusNetwork*>(w.addr);
   w.addr = NULL;
 }
@@ -203,6 +221,10 @@ int in_iErrorPos,ListExpr& inout_xErrorInfo,bool& inout_bCorrect)
     return SetWord(Address(0));
   }
 }
+/*
+Create the relation for storing bus stops
+
+*/
 void BusNetwork::FillBusNode(const Relation* in_busRoute)
 {
   Points* ps = new Points(0);
@@ -215,15 +237,17 @@ void BusNetwork::FillBusNode(const Relation* in_busRoute)
       trip->Get(j,up);
       Point p0 = up->p0;
       Point p1 = up->p1;
+      if(j == 0 ){ //add the start location as a stop
+        *ps += p0;
+         continue;
+      }
       if(AlmostEqual(p0,p1)){
         *ps += p0;
       }
     }
     tuple->DeleteIfAllowed();
   }
-//  cout<<ps->Size()<<endl;
   ps->EndBulkLoad(true,true);
-//  cout<<ps->Size()<<endl;
 
   ListExpr xTypeInfo;
   nl->ReadFromString(busstopTypeInfo,xTypeInfo);
@@ -250,6 +274,33 @@ void BusNetwork::FillBusNode(const Relation* in_busRoute)
   bus_node = (Relation*)xResult.addr;
   temp_bus_node->Delete();
 
+  /************b-tree on bus stop****************************/
+  ostringstream xThisBusStopPtrStream;
+  xThisBusStopPtrStream<<(long)bus_node;
+  strQuery = "(createbtree (" + busstopTypeInfo +
+             "(ptr " + xThisBusStopPtrStream.str() + "))" + "Id)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  btree_bus_node = (BTree*)xResult.addr;
+
+  /***********r-tree on bus stop*****************************/
+  ostringstream xBusStop;
+  xBusStop <<(long)bus_node;
+  strQuery = "(bulkloadrtree(sortby(addid(feed(" + busstopTypeInfo +
+            "(ptr " + xBusStop.str() + "))))((BusStop asc))) BusStop)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  rtree_bus_node = (R_Tree<2,TupleId>*)xResult.addr;
+
+}
+/*
+Create the relation for storing edges as well as its weight function
+
+*/
+void BusNetwork::FillBusWeightAndEdge(const Relation* in_busRoute)
+{
+
+
 }
 void BusNetwork::Load(int in_iId,const Relation* in_busRoute)
 {
@@ -265,26 +316,31 @@ void BusNetwork::Load(int in_iId,const Relation* in_busRoute)
 
 */
 BusNetwork::BusNetwork():
-bus_id(0),bus_def(false),bus_node(NULL),bus_weight(NULL),bus_edge(NULL)
+bus_id(0),bus_def(false),bus_node(NULL),btree_bus_node(NULL),
+rtree_bus_node(NULL),bus_weight(NULL),bus_edge(NULL)
 {
 
 }
 
 void BusNetwork::Destory()
 {
+ //bus stop
   if(bus_node != NULL){
+//  p->bus_node->Close();
     bus_node->Delete();
     bus_node = NULL;
   }
-/*if(bus_weight != NULL){
-    bus_weight->Delete();
-    bus_weight = NULL;
+  //b-tree on bus stop
+  if(btree_bus_node != NULL){
+    delete btree_bus_node;
+    btree_bus_node = NULL;
+  }
+  //r-tree on bus stop
+  if(rtree_bus_node != NULL){
+    delete rtree_bus_node;
+    rtree_bus_node = NULL;
   }
 
-  if(bus_edge != NULL){
-    bus_edge->Delete();
-    bus_edge = NULL;
-  }*/
 }
 
 BusNetwork::BusNetwork(SmiRecord& in_xValueRecord,size_t& inout_iOffset,
@@ -302,6 +358,44 @@ const ListExpr in_xTypeInfo)
   bus_node = Relation::Open(in_xValueRecord,inout_iOffset,xNumericType);
   if(!bus_node) return;
 
+  /***********************Open btree for bus stop************************/
+  nl->ReadFromString(btreebusstopTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  btree_bus_node = BTree::Open(in_xValueRecord,inout_iOffset,xNumericType);
+  if(!btree_bus_node){
+    bus_node->Delete();
+    return;
+  }
+///////// Test B-tree //////////////////////
+/*  for(int i = 1;i <= bus_node->GetNoTuples();i++){
+    CcInt* id = new CcInt(true,i);
+    BTreeIterator* btreeiter = btree_bus_node->ExactMatch(id);
+    while(btreeiter->Next()){
+      Tuple* tuple = bus_node->GetTuple(btreeiter->GetId());
+      cout<<*tuple<<endl;
+      tuple->DeleteIfAllowed();
+    }
+    delete id;
+    delete btreeiter;
+  }*/
+//////////////////////////////////////////
+
+/***************************Open R-tree for bus stop************************/
+  Word xValue;
+  if(!(rtree_bus_node->Open(in_xValueRecord,inout_iOffset,
+                          rtreebusstopTypeInfo,xValue))){
+    bus_node->Delete();
+    delete btree_bus_node;
+    return;
+  }
+  rtree_bus_node = (R_Tree<2,TupleId>*)xValue.addr;
+////////////////////Test R-tree ////////////////////////////////
+//  cout<<rtree_bus_node->NodeCount()<<endl;
+//  rtree_bus_node->BoundingBox().Print(cout);
+
+
+/////////////////////////////////////////////////////////////////
+
   /************************* weight**********************************/
 
   /****************************edges*********************************/
@@ -312,7 +406,8 @@ const ListExpr in_xTypeInfo)
 
 BusNetwork::BusNetwork(ListExpr in_xValue,int in_iErrorPos,
 ListExpr& inout_xErrorInfo,bool& inout_bCorrect):
-bus_id(0),bus_def(false),bus_node(NULL),bus_weight(NULL),bus_edge(NULL)
+bus_id(0),bus_def(false),bus_node(NULL),btree_bus_node(NULL),
+rtree_bus_node(NULL),bus_weight(NULL),bus_edge(NULL)
 {
   cout<<"BusNetwork() 3"<<endl;
   if(!(nl->ListLength(in_xValue) == 2)){
@@ -338,7 +433,6 @@ bus_id(0),bus_def(false),bus_node(NULL),bus_weight(NULL),bus_edge(NULL)
   }
   bus_id = nl->IntValue(xIdList);
   cout<<"bus id "<<bus_id<<endl;
-
   bus_def = true;
 }
 

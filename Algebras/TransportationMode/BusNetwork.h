@@ -63,6 +63,8 @@ public:
   enum BusRouteInfo{RID=0,TRIP};
   static string busstopTypeInfo; //relation description for bus stop
   enum BusStopInfo{SID=0,LOC};
+  static string btreebusstopTypeInfo; //b-tree on bus stop
+  static string rtreebusstopTypeInfo; //r-tree on bus stop
 
 /*function for type constructor*/
   static ListExpr BusNetworkProp();
@@ -88,6 +90,7 @@ public:
   BusNetwork();
   BusNetwork(SmiRecord&,size_t&,const ListExpr);
   void FillBusNode(const Relation*);
+  void FillBusWeightAndEdge(const Relation*);
   void  Destory();
 /*Interface function*/
   Relation* GetRelBus_Node(){return bus_node;}
@@ -96,6 +99,8 @@ private:
   int bus_id;
   bool bus_def;
   Relation* bus_node; //relation storing bus stops
+  BTree* btree_bus_node;
+  R_Tree<2,TupleId>* rtree_bus_node;
   Relation* bus_weight; //relation storing weight function for each edge
   Relation* bus_edge;//relation storing edge
 };
