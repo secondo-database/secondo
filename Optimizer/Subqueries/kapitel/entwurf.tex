@@ -6,8 +6,7 @@
 \chapter{Entwurf}\label{chp:Entwurf}
 Der von Kim bzw. Ganski/Wong vorgestellten Algorithmen zur Optimierung geschachtelter Abfragen hat für die Implementierung in \textsc{Secondo} den Vorteil, dass er sich mit der Einführung eines weiteren Operators in die bestehende \textsc{Secondo}-Implementierung integrieren lässt. Zur Umsetzung der Algorithmen sind die vorhandenen Stan\-dard-Ope\-ra\-ti\-on\-en Projektion und Selektion sowie die Operationen Anti-Join und Full-Outer-Join notwendig. Im Rahmen dieser Arbeit wurde ein Full-Outer-Join-Operator für den Fall der Attribut-Gleichheit implementiert. Da sich keiner der vorhandenen Join-Algorithmen zur Umsetzung eines effizienten Anti-Join-Algorithmus eignet, wurde auf die Implementierung eines entsprechenden Algorithmus verzichtet. Geschachtelte Abfragen mit dem Operator \sql{not in} werden zwar übersetzt, die entsprechenden Prädikate sind aber keiner weiteren Optimierung zugänglich. D.h. eine Optimierung über Entschachtelung ist in diesem Spezialfall nicht möglich. Nach der Implementierung eines Anti-Join-Operators sollte die Implementierung eines Prädikats zur Entschachtelung mit dem in \cite{319745} vorgestellten trivial sein.
 
-Bei der Analyse des Problems wurde klar, das eine echte Optimierung, d.h. ein Vergleich der geschachtelten und der nicht geschachtelten Ausführungsvariante einer Abfrage umfangreiche Berechnungen und Simulationen erfordern würde. Um die Kosten der entschachtelten Abfrage ermitteln zu können müssen die Selektivitäten der Prädikate ermittelt werden. Dies erfolgt durch Auswertung jedes einzelnen Prädikats über eine bzw. zwei Stichproben-Relationen, die aus den eigentlichen Relationen abgeleitet werden. Da die Prädikate der entschachtelten Abfrage 
-möglicherweise auf temporäre Relationen bezugnehmen, müsste hier die entsprechende Selektivität simuliert werden. Um an dieser Stelle vernünftige Daten zu erhalten, wäre der Nachbau eines großen Teils der Metadaten-Ermittlung des Optimierers notwendig gewesen. Da dies den Rahmen dieser Diplomarbeit sprengen würde, wurde hierauf verzichtet.
+Bei der Analyse des Problems wurde klar, das eine echte Optimierung, d.h. ein Vergleich der geschachtelten und der nicht geschachtelten Ausführungsvariante einer Abfrage umfangreiche Berechnungen und Simulationen erfordern würde. Um die Kosten der entschachtelten Abfrage ermitteln zu können müssen die Selektivitäten der Prädikate ermittelt werden. Dies erfolgt durch Auswertung jedes einzelnen Prädikats über einer bzw. zwei Stichproben-Relationen, die aus den eigentlichen Relationen abgeleitet werden. Die Erzeugung der temporären Relationen zu diesem Zeitpunkt würde die Laufzeitkosten hierfür bei beiden Ausführungsvarianten erhöhen. Ein sinnvoller Vergleich wäre nicht mehr gegeben, da gerade die Erzeugung der temporären Relationen zu einer längeren Laufzeit bei entschachtelter Ausführung führen kann. Da die Prädikate der entschachtelten Abfrage möglicherweise auf temporäre Relationen bezugnehmen, müsste hier die entsprechende Selektivität simuliert werden. Um an dieser Stelle vernünftige Daten zu erhalten, wäre der Nachbau eines großen Teils der Metadaten-Ermittlung des Optimierers notwendig gewesen. Da dies den Rahmen dieser Diplomarbeit sprengen würde, wurde hierauf verzichtet.
 
 Da der Operator \sql{in} für Tupel noch nicht implementiert ist, wurde die triviale Umsetzung von \sql{in} in die Disjunktion der angegebenen Konstanten als Übersetzung integriert. Eine Implementierung des \sql{in}-Operators für Tupelströme auf Basis \secondo{in}- und \secondo{collect\_set}-Operators der \algebra{Collection}-Algebra wäre eine mögliche Vorgehensweise zur performanten Implementierung dieses Operators. 
 \begin{itemize}
@@ -35,6 +34,21 @@ WHERE §$R_i.C_h = R_j.C_m$§
 ist.
 
 Die Mengen basierte Semantik des IN-Operators wird nur dann erhalten, wenn $R_j$ bezüglich der Spalte $C_m$ duplikatfrei ist. Dies kann aber jederzeit erreicht werden, indem $R_j$ durch eine temporäre Relation $R_{j}^{'}$ ersetzt wird. $R_{j}^{'}$ erhält man, indem $R_j$ auf die Spalte $C_m$ eingeschränkt und projiziert wird. Für skalare Vergleichsoperatoren gilt die Äquivalenz ohne diese Einschränkung. Skalare Vergleichsoperatoren sind nicht \enquote{duplikats-entfernend}. 
+
+\begin{lstlisting}
+SELECT §$R_i.C_k$§
+FROM §$R_i$§
+WHERE §$R_i.C_h$§ IN (SELECT §$R_j.C_m$§
+											FROM §$R_j$§);
+\end{lstlisting}
+
+lässt sich nicht mit 
+
+\begin{lstlisting}
+SELECT §$R_i.C_k$§
+FROM §$R_i, R_j$§
+WHERE §$R_i.C_h <> R_j.C_m$§
+\end{lstlisting}
 
 \section{Behandlung quantifizierter Prädikate}\label{sct:Behandlung quantifizierter Prädikate}
 Prädikate mit den Operatoren \sql{exists}, \sql{all} oder \sql{any} können in ein inhaltlich äquivalentes Prädikat mit Aggregationsfunktion transformiert werden. Das Prädikate \sql{exists(Q)}  ist genau dann wahr, wenn die Ergebnisrelation des Abfrageblocks  Q mindestens ein Tupel enthält. Ist \sql{Q = select $C_n$ from $R_m$ where P}, so lässt sich aber auch als \sql{0 < (select count($C_n$) from $R_m$ where P)} ausdrücken. Analog dazu kann \sql{not exists(select $C_n$ from $R_m$ where P)} in \sql{0 = (select count($C_n$) from $R_m$ where P)} überführt werden. Um die Berechnung der Aggregation zu beschleunigen, kann die Abfrage mit dem Ausdruck \secondo{first 1} noch auf das erste Tupel der Unterabfrage beschränkt werden. Dies verhindert das teuere Operatoren auf allen Tupeln der Unterabfrage ausgeführt werden müssen. Das Ergebnis von Abfragen mit den Operatoren \sql{all} und \sql{any} bleibt ebenfalls erhalten, wenn man Prädikate mit den beiden Operatoren in Prädikate umwandelt, die einen Vergleich mit dem Maximum bzw. Minimum der Unterabfrage darstellen. \sql{$C_n$ $\theta$ any(select $C_m$ from $R_i$ where P)} wird für $\theta \in {<,<=,>,>=}$ transformiert in \sql{$C_n$ $\theta$ (select AGGR($C_n$) from $R_i$ where P)}. Wobei hier gilt
