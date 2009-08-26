@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 
-[1] Source File of the Spatiotemporal Pattern Algebra
+[1] Source File of the Transportation Mode Algebra
 
 August, 2009 Jianqiu Xu
 

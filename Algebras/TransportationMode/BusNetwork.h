@@ -23,7 +23,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin {center}] [\end {center}}]
 //[TOC] [\tableofcontents]
 
-[1] Header File of the Spatiotemporal Pattern Algebra
+[1] Header File of the Transportation Mode-Bus Network Algebra
 
 August, 2009 Jianqiu Xu
 
@@ -65,7 +65,12 @@ public:
   enum BusStopInfo{SID=0,LOC};
   static string btreebusstopTypeInfo; //b-tree on bus stop
   static string rtreebusstopTypeInfo; //r-tree on bus stop
-
+  static string busweightTypeInfo; //relation for weight function
+  enum BusWeightInfo{FID=0,DEF_T,LINE,FEE};
+  static string btreebusweightTypeInfo; //b-tree on weight function
+  static string busedgeTypeInfo; //relation description for edge
+  enum BusEdgeInfo{EID=0,V1,V2,WFID};
+  static string btreebusedgeTypeInfo; //b-tree on edge
 /*function for type constructor*/
   static ListExpr BusNetworkProp();
   static ListExpr OutBusNetwork(ListExpr,Word);
@@ -92,17 +97,20 @@ public:
   void FillBusNode(const Relation*);
   void FillBusWeightAndEdge(const Relation*);
   void  Destory();
-/*Interface function*/
+/*Interface function and Application function*/
   Relation* GetRelBus_Node(){return bus_node;}
+  int FindPointTid(Point& p);
 
 private:
   int bus_id;
   bool bus_def;
   Relation* bus_node; //relation storing bus stops
-  BTree* btree_bus_node;
-  R_Tree<2,TupleId>* rtree_bus_node;
+  BTree* btree_bus_node; //b-tree on bus stops
+  R_Tree<2,TupleId>* rtree_bus_node; //r-tree on bus stops
   Relation* bus_weight; //relation storing weight function for each edge
+  BTree* btree_bus_weight; //b-tree on weight function, key is fid
   Relation* bus_edge;//relation storing edge
+  BTree* btree_bus_edge; //b-tree on edge
 };
 
 
