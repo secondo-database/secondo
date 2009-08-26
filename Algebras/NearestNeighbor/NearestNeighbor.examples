@@ -43,16 +43,11 @@ Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple 
 Example  : query UnitTrains feed head[20]  knearest [UTrip,train1, 2] count
 Result   : 20
 
-Operator : knearest
-Number   : 4
-Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query (units(train5) transformstream ) (units(train6) transformstream ) concat (units(train7) transformstream ) concat sortby[elem] knearest [elem, train1, 2] consume
-Result   : file_platform
 
 Operator : knearestvector
 Number   : 5
 Signature: (stream (tuple ((x1 t1)...(xn tn))) xn mpoint int) -> (stream (tuple ((x1 t1)...(xn tn))))
-Example  : query UnitTrains feed head[20] UTrip knearestvector [train1, 2] consume
+Example  : query UnitTrains feed head[20] UTrip knearestvector [train1, 2] count;
 Result   : 20
 
 Operator : oldknearestfilter
