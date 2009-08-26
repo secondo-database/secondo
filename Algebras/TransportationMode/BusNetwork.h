@@ -99,6 +99,7 @@ public:
   void  Destory();
 /*Interface function and Application function*/
   Relation* GetRelBus_Node(){return bus_node;}
+  Relation* GetRelBus_Weight(){return bus_weight;}
   int FindPointTid(Point& p);
 
 private:

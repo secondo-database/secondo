@@ -78,6 +78,16 @@ const string OpBusStopSpec =
   "<text>query busstop(busroutes) count</text--->"
   "))";
 
+const string OpBusLineSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "<text>busline(_,)</text--->"
+  "<text>returns a stream of tuple where each corresponds to the trajectory"
+  "of a bus's movement</text--->"
+  "<text>query busline(busroutes) count</text--->"
+  "))";
+
 /***********Value Map Function for Bus Network****************************/
 /*
 Creates a bus network with the given id, from the given bus routes relations.
@@ -95,20 +105,23 @@ int OpTheBusNetworkValueMapping(Word* args, Word& result,
   return 0;
 }
 
-/*
-Return all bus stops.
 
-*/
 struct DisplBus{
   BusNetwork* busnet;
   Relation* busstop;
+  Relation* busweight;
+  int no_weight;
+  int bus_weight_count;
   int no_stop;
   int bus_stop_count;
   TupleType* resulttype;
   DisplBus(BusNetwork* p):busnet(p){
     busstop = busnet->GetRelBus_Node();
+    busweight = busnet->GetRelBus_Weight();
     no_stop = busstop->GetNoTuples();
+    no_weight = busweight->GetNoTuples();
     bus_stop_count = 1;
+    bus_weight_count = 1;
     resulttype = NULL;
   }
   ~DisplBus(){
@@ -116,6 +129,10 @@ struct DisplBus{
       delete resulttype;
   }
 };
+/*
+Return all bus stops.
+
+*/
 int OpBusStopValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
@@ -152,7 +169,48 @@ int OpBusStopValueMapping(Word* args, Word& result,
   }
   return 0;
 }
+/*
+Display the trajectory of bus movement.
 
+*/
+int OpBusLineValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  DisplBus* localInfo;
+  switch(message){
+    case OPEN:{
+        localInfo = new DisplBus((BusNetwork*)args[0].addr);
+        localInfo->resulttype =
+              new TupleType(nl->Second(GetTupleResultType(s)));
+        local = SetWord(localInfo);
+        return 0;
+    }
+    case REQUEST:{
+        localInfo = (DisplBus*)local.addr;
+        if(localInfo->bus_weight_count > localInfo->no_weight)
+          return CANCEL;
+        Tuple* tuple = new Tuple(localInfo->resulttype);
+        Tuple* temp_tuple =
+                localInfo->busweight->GetTuple(localInfo->bus_weight_count);
+        CcInt* id = (CcInt*)temp_tuple->GetAttribute(BusNetwork::FID);
+        Line* l = (Line*)temp_tuple->GetAttribute(BusNetwork::LINE);
+        CcReal* fee = (CcReal*)temp_tuple->GetAttribute(BusNetwork::FEE);
+        tuple->PutAttribute(0,new CcInt(*id));
+        tuple->PutAttribute(1,new Line(*l));
+        tuple->PutAttribute(2,new CcReal(*fee));
+        result.setAddr(tuple);
+        temp_tuple->DeleteIfAllowed();
+        localInfo->bus_weight_count++;
+        return YIELD;
+    }
+    case CLOSE:{
+        localInfo = (DisplBus*)local.addr;
+        delete localInfo;
+        return 0;
+    }
+  }
+  return 0;
+}
 
 /*
 Operator ~thebusnetwork~
@@ -210,6 +268,32 @@ ListExpr OpBusStopTypeMap(ListExpr in_xArgs)
   return nl->SymbolAtom("typeerror");
 
 }
+/*
+Operator ~busline~
+
+*/
+ListExpr OpBusLineTypeMap(ListExpr in_xArgs)
+{
+  if(nl->ListLength(in_xArgs) != 1)
+    return (nl->SymbolAtom("typeerror"));
+
+  ListExpr arg = nl->First(in_xArgs);
+  if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
+     nl->SymbolValue(arg) == "busnetwork"){
+    return nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+            nl->TwoElemList(nl->SymbolAtom("tuple"),
+              nl->ThreeElemList(
+                nl->TwoElemList(nl->SymbolAtom("id"),nl->SymbolAtom("int")),
+                nl->TwoElemList(nl->SymbolAtom("l"),nl->SymbolAtom("line")),
+                nl->TwoElemList(nl->SymbolAtom("fee"),nl->SymbolAtom("real"))
+              )
+            )
+          );
+  }
+  return nl->SymbolAtom("typeerror");
+
+}
 
 /*****************Operators for Bus Network*************************/
 Operator thebusnetwork(
@@ -228,6 +312,13 @@ Operator busstop(
   OpBusStopTypeMap
 );
 
+Operator busline(
+  "busline", //name
+  OpBusLineSpec,
+  OpBusLineValueMapping,
+  Operator::SimpleSelect,
+  OpBusLineTypeMap
+);
 
 /*
 Main Class for Transportation Mode
@@ -244,7 +335,8 @@ class TransportationModeAlgebra : public Algebra
 
 
   AddOperator(&thebusnetwork);//construct bus network
-  AddOperator(&busstop);
+  AddOperator(&busstop);//display bus stop
+  AddOperator(&busline); //display the trajectory of of bus
   }
   ~TransportationModeAlgebra() {};
  private:
