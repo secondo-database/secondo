@@ -118,7 +118,7 @@ eval $sed2 > .tmp_alglist
 mv .tmp_alglist $file2
 
 # remove optimizer extensions
-rmoptext.sh $prefix
+$SECONDO_BUILD_DIR/CM-Scripts/rmoptext.sh $prefix
 
 
 exit 0
