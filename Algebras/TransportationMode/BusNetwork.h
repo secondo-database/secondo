@@ -61,6 +61,7 @@ public:
 /*data description*/
   static string busrouteTypeInfo;//relation description for pre-defined paths
   enum BusRouteInfo{RID=0,TRIP};
+  static string btreebusrouteTypeInfo;//b-tree on bus route
   static string busstopTypeInfo; //relation description for bus stop
   enum BusStopInfo{SID=0,LOC};
   static string btreebusstopTypeInfo; //b-tree on bus stop
@@ -105,8 +106,10 @@ public:
   int FindPointTid(Point& p);
 
 private:
-  int bus_id;
+  int busnet_id;
   bool bus_def;
+  Relation* bus_route;//relation storing bus routes
+  BTree* btree_bus_route;// b-tree on bus route
   Relation* bus_node; //relation storing bus stops
   BTree* btree_bus_node; //b-tree on bus stops
   R_Tree<2,TupleId>* rtree_bus_node; //r-tree on bus stops
