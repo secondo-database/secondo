@@ -22,3 +22,8 @@ Signature: busnetwork -> int
 Example  : query busline(berlintrains) count;
 Result   : 11372
 
+Operator : busmove
+Number   : 1
+Signature: busnetwork -> int
+Example  : query busmove(berlintrains) count;
+Result   : 562

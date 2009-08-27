@@ -103,6 +103,7 @@ public:
 /*Interface function and Application function*/
   Relation* GetRelBus_Node(){return bus_node;}
   Relation* GetRelBus_Weight(){return bus_weight;}
+  Relation* GetRelBus_Route(){return bus_route;}
   int FindPointTid(Point& p);
 
 private:
