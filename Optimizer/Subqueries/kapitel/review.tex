@@ -129,7 +129,7 @@ In \cite{319745} wurde erstmals die Möglichkeit vorgestellt, eine geschachtelte 
 	\item G-Join (Generalized-Join)
 	\item G-Restriction (Generalized-Restriction)
 	\item G-Outerjoin (Generalized-Outer-Join)
-	\item Apply (
+	\item Apply ist eine Ausprägung des Generalized-Projection Operators wie er z.B. in \cite{DBLP:books/mg/SilberschatzKS01} für die erweiterte Relationenalgebra vorgestellt wird. Der Generalized-Projection-Operator erlaubt nicht nur die Projektion auf Attribute der Ursprungsrelation, sondern auch auf Funktionsergebnisse die über den Attributen dieser Relation formuliert werden.
 	\item SegmentApply
 	\item NULL-rejecting Outer-Join Ein Outer-Join heißt NULL-verwerfend, wenn das Join-Prädikat NULL-verwerfend ist und die Menge A der Attribute Teilmenge des Schemas der zweiten Relation. Ist ein Outer-Join-Prädikat NULL-verwerfend, so ist es äquivalent zu einem Join-Prädikat mit der gleichen Join-Bedingung. Diese Äquivalenz ermöglicht die Ausführungsreihenfolge zumindest für gewisse Outer-Joins und Joins zu vertauschen.
 \end{itemize}
@@ -146,7 +146,7 @@ entspricht in der Relationenalgebra dem Ausdruck
 
 Divisions-Prädikate berechnen die relationale Division über zwei Relationen. 
 
-Geschachtelte Prädikate enthalten eine Unterabfrage in ihrem Ausdruck. Abhängig von dem Ergebnismächtigkeit der Unterabfrage spricht der SQL-Standard von skalaren Unterabfragen, deren Ergebnis genau ein Wert ist; Zeilen-Unterabfragen (row subqueries), Ergebnis dieser Abfragen ist ein Tupel, das aus mehreren Attributen bestehen kann, sowie von Tabellen-Unterabfragen, deren Ergebnis eine Relation ist. Je nach Ergebnistyp ist die Verwendung von Unterabfragen an verschiedenen Stellen eines Abfrageblocks zulässig. Skalare Unterabfragen sind an jeder Stelle zulässig, an der auch Literale erlaubt sind.
+Geschachtelte Prädikate enthalten eine Unterabfrage in ihrem Ausdruck. Abhängig von der Ergebnismächtigkeit der Unterabfrage spricht der SQL-Standard von skalaren Unterabfragen, deren Ergebnis genau ein Wert ist; Zeilen-Unterabfragen (row subqueries), Ergebnis dieser Abfragen ist ein Tupel, das aus mehreren Attributen bestehen kann, sowie von Tabellen-Unterabfragen, deren Ergebnis eine Relation ist. Je nach Ergebnistyp ist die Verwendung von Unterabfragen an verschiedenen Stellen eines Abfrageblocks zulässig. Skalare Unterabfragen sind an jeder Stelle zulässig, an der auch Literale erlaubt sind.
 Klassifikation von Prädikaten in 
 einfache(Vergleich mit Konstante(n)), 
 Nested, 

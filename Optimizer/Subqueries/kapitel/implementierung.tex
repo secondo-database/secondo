@@ -4,31 +4,9 @@
 %
 
 \chapter{Implementierung}
-\section{Ein Full-Outer-Join-Operator für SECONDO}
-\textsc{Secondo} enthält bereits mehrere allgemeine Join-Operatoren. Als Vorlage für die Implementierung des Full-Outer-Join-Operators wurde der Operator \secondo{sortmergejoin} ausgewählt, da sich der zugrunde liegende Algorithmus mit wenigen Änderungen in einen Full-Outer-Join umbauen lässt. Sort-Merge-Join ist ein Algorithmus zur Berechnung von Equi-Joins. Voraussetzung ist die Sortierung der Relationen bzw. Ströme bezüglich der Join-Attribute. Diese Anforderung kann durch das vorhergehende Sortieren der Relationen erfüllt werden. In \textsc{Secondo} wird diese Aufgabe von dem Operator \secondo{sortmergejoin} erledigt. 
 
-Zu Beginn des Algorithmus zeigen die beiden Zeiger auf den Anfang jeder Relation. 
-\begin{enumerate}
-\item Jetzt werden alle Tupel der ersten Relation mit übereinstimmenden Wert im Join-Attribut in einen Puffer gelesen und der Zeiger jeweils auf das aktuell gelesene Tupel gesetzt. 
-\item Im nächsten Schritt werden alle Tupel der zweiten Relation in einen Puffer gelesen, die bezüglich ihres Join-Attribut-Werts übereinstimmen. 
-\subitem Ist der Wert des Join-Attributs kleiner, als der des Tupels im ersten Puffer, wird der Zeiger in der zweiten Relation um eine Position erhöht. 
-\subitem Besteht Gleichheit im Wert des Join-Attributs, so wird ein Tupel der Ergebnisrelation erzeugt, das aus der Aneinanderreihung der Tupel der Eingaberelationen besteht, für jedes Tupel das im ersten Puffer steht. Anschließend wird das Tupel aus dem zweiten Puffer gelöscht und mit dem nächsten Tupel aus diesem Puffer fortgefahren. Ist der zweite Puffer erschöpft, wird auch der erste Puffer geleert und mit dem ersten Schritt fortgefahren. 
-\subitem Ist der Wert des Join-Attributs im zweiten Puffer größer, als im ersten, so wird der Zeiger in der ersten Relation solange erhöht, bis einer der oben genannten Fälle eintritt. 
-\item Ist eine der beiden Relationen erschöpft, ist der Algorithmus beendet.
-\end{enumerate}
-
-Dieser Algorithmus lässt sich auf folgende Art und Weise zum Full-Outer-Join ausbauen. Bei jedem Vergleichsschritt wird jetzt ein Tupel der Ausgaberelation erzeugt. Ist der Wert im ersten Puffer größer als im zweiten, so besteht das Tupel der Ergebnismenge aus einer Verkettung des Tupels aus dem Puffer und einem mit NULL-Werten gefüllten Tupel der zweiten Relation. Auf die gleiche Art wird mit jedem Tupel des Puffers verfahren. Ist der Attribut-Wert gleich, so wird wie beim Sort-Merge-Join verfahren. Ist der Wert größer, so wird für jedes Tupel im zweiten Puffer ein Ausgabe-Tupel erzeugt, dass aus einer Aneinanderreihung eines NULL-Tupels der ersten Relation und dem Tupel aus dem Puffer besteht.
-
-\begin{itemize}
-	\item Beschreibung Sortmergejoin
-	\subitem Zwei Tupelbuffer
-	\subitem sortieren
-	\subitem immer mit dem kleineren Tupel arbeiten und vergleichen
-	\subitem falls Treffer, merge Schritt
-	\subitem sonst Tupel verwerfen und mit nächstem Tupel weiterarbeiten
-\end{itemize}
-Basis ist sortmergejoin, jedes nicht \enquote{matchende} Tupel wird mit NULL-Werten aufgefüllt, nur Equi-Outerjoin\\
-Ausblick: Full-Outer-Join auf Basis von Symmjoin. Die Tupel der beiden Ströme werden um ein Attribut TupelID erweitert. Zu jedem Tupel, das über den Symmjoin-Algorithmus einen Partner gefunden hat, wird die TupelID in einer Hash-Tabelle gespeichert. Dabei werden die TupelIDs für jeden Strom in einer eigenen Hash-Tabelle abgelegt. Nach Beendigung des Symmjoin-Algorithmus wird jeder Tupelpuffer ein zweites Mal durchlaufen. Ist die TupelID eines Tupels nicht in der entsprechenden Hash-Tabelle enthalten, so wird ein Ergebnistupel erzeugt, das die Werte aus dem betrachteten Tupel übernimmt und für die zusätzlichen Spalten mit NULL-Werten aufgefüllt wird. zwei Hash-Tabelle mit TupelIds für alle gefundenen Tupel, Tupelbuffer durchlaufen und ein mit NULL-Werten aufgefülltes Tupel erzeugen für alle nicht gematchten Tupel
+\section{Sort-Merge-Outer-Join}
+Grundlage für die Implementierung des Operators \secondo{smouterjoin} ist der Operator \secondo{sortmergejoin} der \algebra{ExtRelation-C++}-Algebra. Type-Mapping-Funktion und die Grundstruktur des Algorithmus konnten übernommen werden. Aus Gründen der Wartbarkeit wurde auf eine gemeinsame Implementierung der Value-Mapping-Funktion mit Hilfe von C++-Templates für \secondo{sortmergejoin} und \secondo{smouterjoin} verzichtet. Eine prototypische Implementierung führte zu unübersichtlichem Quellcode und Leistungseinbußen beim \secondo{sortmergejoin}. 
 
 \section{Umschreiben quantifizierter Prädikate}
 Prädikate mit den quantifizierenden Operatoren \sql{EXISTS, NOT EXISTS, ANY} und \sql{ALL} werden in äquivalente Prädikate mit Aggregationen überführt. Damit sind sie den in \ref{chp:Entwurf} beschriebenen Algorithmen zur Entschachtelung zugänglich. Exists und Not-Exists werden in einen Vergleich der Anzahl Tupel mit 0 transformiert. Also \sql{exists(select §$C_n$§ from §$R_m$§ where P)} in \sql{0 < (select count(§$C_n$§) from §$R_m$§ where P)} und \sql{not exists(select §$C_n$§ from §$R_m$§ where P)} in \sql{0 = (select count(§$C_n$§) from §$R_m$§ where P)}. Dieser Schritt erfolgt bei jedem geschachtelten Prädikat, unabhängig davon, ob eine Entschachtelung möglich ist.
