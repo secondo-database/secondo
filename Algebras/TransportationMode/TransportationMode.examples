@@ -20,5 +20,5 @@ Operator : busline
 Number   : 1
 Signature: busnetwork -> int
 Example  : query busline(berlintrains) count;
-Result   : 11062
+Result   : 11372
 

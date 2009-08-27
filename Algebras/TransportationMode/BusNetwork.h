@@ -58,7 +58,7 @@ Subclass for manage bus network
 */
 class BusNetwork{
 public:
-/*data*/
+/*data description*/
   static string busrouteTypeInfo;//relation description for pre-defined paths
   enum BusRouteInfo{RID=0,TRIP};
   static string busstopTypeInfo; //relation description for bus stop
@@ -69,8 +69,10 @@ public:
   enum BusWeightInfo{FID=0,DEF_T,LINE,FEE};
   static string btreebusweightTypeInfo; //b-tree on weight function
   static string busedgeTypeInfo; //relation description for edge
-  enum BusEdgeInfo{EID=0,V1,V2,WFID};
-  static string btreebusedgeTypeInfo; //b-tree on edge
+  enum BusEdgeInfo{EID=0,V1,V2,WFID,PID};
+  static string btreebusedgeTypeInfo; //b-tree on edge id
+
+
 /*function for type constructor*/
   static ListExpr BusNetworkProp();
   static ListExpr OutBusNetwork(ListExpr,Word);
@@ -112,6 +114,8 @@ private:
   BTree* btree_bus_weight; //b-tree on weight function, key is fid
   Relation* bus_edge;//relation storing edge
   BTree* btree_bus_edge; //b-tree on edge
+  BTree* btree_bus_edge_v1; //b-tree on edge start node id
+  BTree* btree_bus_edge_v2; //b-tree on edge end node id
 };
 
 

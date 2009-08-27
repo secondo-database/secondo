@@ -72,9 +72,9 @@ const string OpBusStopSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
   "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
-  "<text>busstop(_,)</text--->"
-  "<text>returns a stream of tuple where each corresponds to a bus stop"
-  ".</text--->"
+  "<text>busstop(_)</text--->"
+  "<text>returns a stream of tuple where each corresponds to a bus stop."
+  "</text--->"
   "<text>query busstop(busroutes) count</text--->"
   "))";
 
@@ -82,9 +82,9 @@ const string OpBusLineSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
   "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
-  "<text>busline(_,)</text--->"
-  "<text>returns a stream of tuple where each corresponds to the trajectory"
-  "of a bus's movement</text--->"
+  "<text>busline(_)</text--->"
+  "<text>returns a stream of tuple where each corresponds to"
+  "the trajectoryof a bus's movement.</text--->"
   "<text>query busline(busroutes) count</text--->"
   "))";
 
@@ -333,10 +333,9 @@ class TransportationModeAlgebra : public Algebra
   //can't be stored as an attribute in a relation
    busnetwork.AssociateKind("BUSNETWORK");
 
-
-  AddOperator(&thebusnetwork);//construct bus network
-  AddOperator(&busstop);//display bus stop
-  AddOperator(&busline); //display the trajectory of of bus
+   AddOperator(&thebusnetwork);//construct bus network
+   AddOperator(&busstop);//display bus stop
+   AddOperator(&busline); //display the trajectory of a bus
   }
   ~TransportationModeAlgebra() {};
  private:
