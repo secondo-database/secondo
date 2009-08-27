@@ -5397,9 +5397,11 @@ composed back with the looked up lifted predicates by the
 lookupPattern predicate.
 
 */
-lookupPred1(pattern(Preds,C), pattern(Res,C), RelsBefore, RelsAfter) :-
-  lookupPattern(Preds, Res, RelsBefore, RelsAfter),
-	!.
+
+lookupPred1(pattern(Preds,C), pattern(Res,C1), RelsBefore, RelsAfter) :-
+  lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
+  lookupPred1(C, C1, RelsAfterMe, RelsAfter), 
+  !.
 
 /*
 Used within the extended spatiotemporal pattern predicates stpatternex.
@@ -5413,10 +5415,12 @@ composed back with the looked up lifted predicates by the
 lookupPattern predicate.
 
 */
-lookupPred1(patternex(Preds,C, F), patternex(Res,C, F1), RelsBefore, RelsAfter) :-
-	lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
-	lookupPred1(F, F1, RelsAfterMe, RelsAfter),
-	!.
+lookupPred1(patternex(Preds,C, F), patternex(Res,C1, F1), RelsBefore, RelsAfter) :-
+  lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
+  lookupPred1(F, F1, RelsAfterMe, RelsAfterMee),
+  lookupPred1(C, C1, RelsAfterMee, RelsAfter),
+  !.
+
 % Section:End:lookupPred1_2_m
 
 lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-  %if placed before lookupPred1(pattern*), pattern query crash
