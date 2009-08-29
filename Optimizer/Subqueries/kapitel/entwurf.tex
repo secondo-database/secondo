@@ -4,9 +4,11 @@
 %
 
 \chapter{Entwurf}\label{chp:Entwurf}
-Der von Kim bzw. Ganski/Wong vorgestellten Algorithmen zur Optimierung geschachtelter Abfragen hat für die Implementierung in \textsc{Secondo} den Vorteil, dass er sich mit der Einführung eines weiteren Operators in die bestehende \textsc{Secondo}-Implementierung integrieren lässt. Zur Umsetzung der Algorithmen sind die vorhandenen Stan\-dard-Ope\-ra\-ti\-on\-en Projektion und Selektion sowie die Operationen Anti-Join und Full-Outer-Join notwendig. Im Rahmen dieser Arbeit wurde ein Full-Outer-Join-Operator für den Fall der Attribut-Gleichheit implementiert. Da sich keiner der vorhandenen Join-Algorithmen zur Umsetzung eines effizienten Anti-Join-Algorithmus eignet, wurde auf die Implementierung eines entsprechenden Algorithmus verzichtet. Geschachtelte Abfragen mit dem Operator \sql{not in} werden zwar übersetzt, die entsprechenden Prädikate sind aber keiner weiteren Optimierung zugänglich. D.h. eine Optimierung über Entschachtelung ist in diesem Spezialfall nicht möglich. Nach der Implementierung eines Anti-Join-Operators sollte die Implementierung eines Prädikats zur Entschachtelung mit dem in \cite{319745} vorgestellten Algorithmus trivial sein. 
+Der von Kim bzw. Ganski/Wong vorgestellten Algorithmen zur Optimierung geschachtelter Abfragen hat für die Implementierung in \textsc{Secondo} den Vorteil, dass er sich mit der Einführung weniger weiterer Operatoren in die bestehende \textsc{Secondo}-Implementierung integrieren lässt. Zur Umsetzung der Algorithmen sind die vorhandenen Stan\-dard-Ope\-ra\-ti\-on\-en Projektion und Selektion sowie die Operationen Anti-Join und Full-Outer-Join notwendig. Im Rahmen dieser Arbeit wurde ein Full-Outer-Join-Operator für den Fall der Attribut-Gleichheit implementiert. Da sich keiner der vorhandenen Join-Algorithmen zur Umsetzung eines effizienten Anti-Join-Algorithmus eignet, wurde auf die Implementierung eines entsprechenden Algorithmus verzichtet. 
 
-Bei der Analyse des Problems wurde klar, das eine echte Optimierung, d.h. ein Vergleich der geschachtelten und der nicht geschachtelten Ausführungsvariante einer Abfrage umfangreiche Berechnungen und Simulationen erfordern würde. Um die Kosten der entschachtelten Abfrage ermitteln zu können müssen die Selektivitäten der Prädikate ermittelt werden. Dies erfolgt durch Auswertung jedes einzelnen Prädikats über einer bzw. zwei Stichproben-Relationen, die aus den eigentlichen Relationen abgeleitet werden. Die Erzeugung der temporären Relationen zu diesem Zeitpunkt würde die Laufzeitkosten hierfür bei beiden Ausführungsvarianten erhöhen. Ein sinnvoller Vergleich wäre nicht mehr gegeben, da gerade die Erzeugung der temporären Relationen zu einer längeren Laufzeit bei entschachtelter Ausführung führen kann. Da die Prädikate der entschachtelten Abfrage möglicherweise auf temporäre Relationen bezugnehmen, müsste hier die entsprechende Selektivität simuliert werden. Um an dieser Stelle vernünftige Daten zu erhalten, wäre der Nachbau eines großen Teils der Metadaten-Ermittlung des Optimierers notwendig gewesen. Da dies den Rahmen dieser Diplomarbeit sprengen würde, wurde hierauf verzichtet.
+Geschachtelte Abfragen mit dem Operator \sql{not in} werden zwar übersetzt, die entsprechenden Prädikate sind aber keiner weiteren Optimierung zugänglich. D.h. eine Optimierung über Entschachtelung ist in diesem Spezialfall nicht möglich. Nach der Implementierung eines Anti-Join-Operators sollte die Implementierung eines Prädikats zur Entschachtelung mit dem in \cite{319745} vorgestellten Algorithmus trivial sein. 
+
+Bei der Analyse des Problems wurde klar, das eine echte Optimierung, d.h. ein Vergleich der geschachtelten und der nicht geschachtelten Ausführungsvariante einer Abfrage umfangreiche Berechnungen und Simulationen erfordern würde. Um die Kosten der entschachtelten Abfrage ermitteln zu können, müssen die Selektivitäten der Prädikate ermittelt werden. Dies erfolgt durch Auswertung jedes einzelnen Prädikats über einer bzw. zwei Stichproben-Relationen, die aus den eigentlichen Relationen abgeleitet werden. Die Erzeugung der temporären Relationen zu diesem Zeitpunkt würde die Laufzeitkosten hierfür bei beiden Ausführungsvarianten erhöhen. Ein sinnvoller Vergleich wäre nicht mehr gegeben, da gerade die Erzeugung der temporären Relationen zu einer längeren Laufzeit bei entschachtelter Ausführung führen kann. Da die Prädikate der entschachtelten Abfrage möglicherweise auf temporäre Relationen bezugnehmen, müsste hier die entsprechende Selektivität simuliert werden. Um an dieser Stelle vernünftige Daten zu erhalten, wäre der Nachbau eines großen Teils der Metadaten-Ermittlung des Optimierers notwendig gewesen. Da dies den Rahmen dieser Diplomarbeit sprengen würde, wurde hierauf verzichtet.
 
 Da der Operator \sql{in} für Tupel noch nicht implementiert ist, wurde die triviale Umsetzung von \sql{in} in die Disjunktion der angegebenen Konstanten als Übersetzung integriert. Eine Implementierung des \sql{in}-Operators für Tupelströme auf Basis des \secondo{in}- und \secondo{collect\_set}-Operators der \algebra{Collection}-Algebra wäre eine mögliche Vorgehensweise zur performanten Implementierung dieses Operators. 
 
@@ -54,7 +56,7 @@ WHERE §$R_i.C_h <> R_j.C_m$§
 übersetzen, da die Semantik und das Ergebnis der beiden Abfragen nicht übereinstimmen. In der geschachtelten Abfrage werden als Ergebnis alle Tupel der äußeren Relation erwartet, zu denen es keine Entsprechung in der inneren Relation gibt. Das Ergebnis der zweiten Abfrage ist die Teilmenge des Kreuzprodukts der beiden Relationen, die in den Werten $C_h$ und $C_m$ nicht übereinstimmen. Die entsprechende Operationen der Relationenalgebra ist der Anti-Join. In den für \textsc{Secondo} implementierten Algebramodulen für die Relationenalgebra, \algebra{Relation-C++}- und \algebra{ExtRelation-C++}-Algebra ist kein entsprechender Operator enthalten. Eine Implementierung im Rahmen dieser Diplomarbeit erfolgte nicht. 
 
 \section{Ein Full-Outer-Join-Operator für SECONDO}
-\textsc{Secondo} enthält bereits mehrere allgemeine Join-Operatoren. Als Vorlage für die Implementierung des Full-Outer-Join-Operators wurde der Operator \secondo{sortmergejoin} ausgewählt, da sich der zugrunde liegende Algorithmus mit wenigen Änderungen in einen Full-Outer-Join umbauen lässt. Sort-Merge-Join ist ein Algorithmus zur Berechnung von Equi-Joins. Voraussetzung ist die Sortierung der Relationen bzw. Ströme bezüglich der Join-Attribute. Diese Anforderung kann durch das vorhergehende Sortieren der Relationen erfüllt werden. In \textsc{Secondo} wird diese Aufgabe von dem Operator \secondo{sortmergejoin} erledigt. 
+\textsc{Secondo} enthält bereits mehrere Join-Operatoren. Als Vorlage für die Implementierung des Full-Outer-Join-Operators wurde der Operator \secondo{sortmergejoin} ausgewählt, da sich der zugrunde liegende Algorithmus mit wenigen Änderungen in einen Full-Outer-Join umbauen lässt. Sort-Merge-Join ist ein Algorithmus zur Berechnung von Equi-Joins. Voraussetzung ist die Sortierung der Relationen bzw. Ströme bezüglich der Join-Attribute. Diese Anforderung kann durch das vorhergehende Sortieren der Relationen erfüllt werden. In \textsc{Secondo} wird diese Aufgabe von dem Operator \secondo{sortmergejoin} erledigt. 
 
 Zu Beginn des Algorithmus zeigen die beiden Zeiger auf den Anfang jeder Relation. 
 \begin{enumerate}
@@ -80,7 +82,32 @@ Basis ist sortmergejoin, nicht \enquote{matchende} Tupel wird mit NULL-Werten au
 Ausblick: Full-Outer-Join auf Basis von Symmjoin. Die Tupel der beiden Ströme werden um ein Attribut TupelID erweitert. Zu jedem Tupel, das über den Symmjoin-Algorithmus einen Partner gefunden hat, wird die TupelID in einer Hash-Tabelle gespeichert. Dabei werden die TupelIDs für jeden Strom in einer eigenen Hash-Tabelle abgelegt. Nach Beendigung des Symmjoin-Algorithmus wird jeder Tupelpuffer ein zweites Mal durchlaufen. Ist die TupelID eines Tupels nicht in der entsprechenden Hash-Tabelle enthalten, so wird ein Ergebnistupel erzeugt, das die Werte aus dem betrachteten Tupel übernimmt und für die zusätzlichen Spalten mit NULL-Werten aufgefüllt wird. zwei Hash-Tabelle mit TupelIds für alle gefundenen Tupel, Tupelbuffer durchlaufen und ein mit NULL-Werten aufgefülltes Tupel erzeugen für alle nicht gematchten Tupel
 
 \section{Behandlung quantifizierter Prädikate}\label{sct:Behandlung quantifizierter Prädikate}
-Prädikate mit den Operatoren \sql{exists}, \sql{all} oder \sql{any} können in ein inhaltlich äquivalentes Prädikat mit Aggregationsfunktion transformiert werden. Das Prädikate \sql{exists(Q)}  ist genau dann wahr, wenn die Ergebnisrelation des Abfrageblocks  Q mindestens ein Tupel enthält. Ist \sql{Q = select $C_n$ from $R_m$ where P}, so lässt sich aber auch als \sql{0 < (select count($C_n$) from $R_m$ where P)} ausdrücken. Analog dazu kann \sql{not exists(select $C_n$ from $R_m$ where P)} in \sql{0 = (select count($C_n$) from $R_m$ where P)} überführt werden. Um die Berechnung der Aggregation zu beschleunigen, kann die Abfrage mit dem Ausdruck \secondo{first 1} noch auf das erste Tupel der Unterabfrage beschränkt werden. Dies verhindert das teure Operatoren auf allen Tupeln der Unterabfrage ausgeführt werden müssen. Das Ergebnis von Abfragen mit den Operatoren \sql{all} und \sql{any} bleibt ebenfalls erhalten, wenn man Prädikate mit den beiden Operatoren in Prädikate umwandelt, die einen Vergleich mit dem Maximum bzw. Minimum der Unterabfrage darstellen. \sql{$C_n$ $\theta$ any(select $C_m$ from $R_i$ where P)} wird für $\theta \in {<,<=,>,>=}$ transformiert in \sql{$C_n$ $\theta$ (select AGGR($C_n$) from $R_i$ where P)}. Wobei hier gilt
+Prädikate mit den Operatoren \sql{exists}, \sql{all} oder \sql{any} können in ein inhaltlich äquivalentes Prädikat mit Aggregationsfunktion transformiert werden. 
+
+Das Prädikate \sql{exists(Q)}  ist genau dann wahr, wenn die Ergebnisrelation des Abfrageblocks  Q mindestens ein Tupel enthält. Ist \sql{Q = select $C_n$ from $R_m$ where P}, so lässt sich aber auch als \sql{0 < (select count($C_n$) from $R_m$ where P)} ausdrücken. Analog dazu kann \sql{not exists(select $C_n$ from $R_m$ where P)} in \sql{0 = (select count($C_n$) from $R_m$ where P)} überführt werden. Um die Berechnung der Aggregation zu beschleunigen, kann die Abfrage mit dem Ausdruck \secondo{first 1} noch auf das erste Tupel der Unterabfrage beschränkt werden. Dies verhindert das teure Operatoren auf allen Tupeln der Unterabfrage ausgeführt werden müssen. 
+
+Das Ergebnis von Abfragen mit den Operatoren \sql{all} und \sql{any} bleibt ebenfalls erhalten, wenn man Prädikate mit den beiden Operatoren in Prädikate umwandelt, die einen Vergleich mit dem Maximum bzw. Minimum der Unterabfrage darstellen. \sql{$C_n$ $\theta$ any(select $C_m$ from $R_i$ where P)} wird für $\theta \in {<,<=,>,>=}$ transformiert in \sql{$C_n$ $\theta$ (select AGGR($C_n$) from $R_i$ where P)}. Wobei hier gilt
+\begin{math}
+AGGR = 
+\begin{cases}
+max&\quad\text{falls}\ \theta < oder \leq, \\
+min&\quad\text{falls}\ \theta > oder \geq. 
+\end{cases}
+\end{math}
+
+So wird 
+
+\sql{select * from $R_i$ where $C_n$ $\leq$ any(select $C_m$ from $R_j$ where P)}
+
+in 
+
+\sql{select * from $R_i$ where $C_n$ $\leq$ (select $max(C_m)$ from $R_j$ where P)}
+
+transformiert.
+
+Im Spezialfall \sql{$C_n$ = any(select $C_m$ from $R_i$ where P)} wird das Prädikat durch das semantisch äquivalente Prädikat \sql{$C_n$ in (select $C_m$ from $R_i$ where P)} ersetzt. 
+
+\sql{$C_n$ $\theta$ all(select $C_m$ from $R_i$ where P)} wird für $\theta \in {<,<=,>,>=}$ transformiert in \sql{$C_n$ $\theta$ (select AGGR($C_n$) from $R_i$ where P)}. Wobei hier gilt
 \begin{math}
 AGGR = 
 \begin{cases}
@@ -91,19 +118,21 @@ max&\quad\text{falls}\ \theta > oder \geq.
 
 So wird 
 
-\sql{select * from $R_i$ where $C_n$ $\leq$ any(select $C_m$ from $R_j$ where P)}
+\sql{select * from $R_i$ where $C_n$ $\leq$ all(select $C_m$ from $R_j$ where P)}
 
 in 
 
-\sql{select * from $R_i$ where $C_n$ $\leq$ (select min($C_m$ from $R_j$ where P)}
+\sql{select * from $R_i$ where $C_n$ $\leq$ (select $min(C_m)$ from $R_j$ where P)}
 
 transformiert.
 
-Im Spezialfall \sql{$C_n$ = any(select $C_m$ from $R_i$ where P)} wird das Prädikat durch das semantisch äquivalente Prädikat \sql{$C_n$ in (select $C_m$ from $R_i$ where P)} ersetzt. Mit diesen Transformationen lassen sich auch quantifizierte Prädikate als Prädikate der Typen J, N, A oder JA betrachten. Dies hat zur Folge, dass sich die im folgenden beschriebenen Optimierungsalgorithmen auch auf diese Prädikate anwenden lassen.
+Ein Prädikat \sql{$C_n$ = all(select $C_m$ from $R_i$ where P)} hat keine sinnvolle Semantik mehr, sobald die geschachtelte Abfrage mehr als einen Wert für $C_m$ liefert. Die Verwendung von = all(Q) wird daher nicht unterstützt.
+
+Mit diesen Transformationen lassen sich auch quantifizierte Prädikate als Prädikate der Typen J, N, A oder JA betrachten. Dies hat zur Folge, dass sich die im folgenden beschriebenen Optimierungsalgorithmen auch auf diese Prädikate anwenden lassen. Außerdem sind die Prädikate einer Übersetzung in ausführbare \textsc{Secondo}-Syntax besser zugänglich, da die Aggregation bereits durch Standard-Operatoren implementiert ist. Eine Einführung weiterer Operatoren zur Übersetzung quantifizierter Prädikate ist hierdurch nicht notwendig.
 
 
 \section{Algorithmus \textbf{NEST-N-J}}\label{sct:Algorithmus NEST-N-J}
-Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine inhaltlich identische entschachtelte Form zu überführen. 
+Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine inhaltlich identische entschachtelte Form zu überführen. Basis der Transformation ist die Beobachtung, dass das Ergebnis einer geschachtelten Abfrage vom Typ N oder J und einer Abfrage über allen verwendeten Relationen mit einem zusätzlichen Join-Prädikat identisch ist. Da die Join-Operation in SQL Multimengen-Semantik hat, müssen bei Operatoren mit strenger Mengen-Semantik z.B. \sql{in} die inneren Relationen vor der Verwendung in der entschachtelten Variante auf ihre Join-Spalten projiziert und durch die Prädikate der Unterabfrage eingeschränkt werden.
 
 \begin{algorithm}
 Algorithmus NEST-N-J
@@ -115,7 +144,7 @@ Algorithmus NEST-N-J
 \end{algorithmic}
 \end{algorithm}
 
-Dafür wird die Konjunktion der WHERE-Klauseln gebildet und um ein Join-Prädikat ergänzt, das aus dem ursprünglich geschachtelten Prädikat abgeleitet ist. Die Relationen des äußeren Abfrageblocks werden um die Relationen der Unterabfrage erweitert. Die WHERE-Klausel wird durch die Konjunktion der WHERE-Klauseln des äußeren und des inneren Abfrageblocks gebildet und um ein Join-Prädikat erweitert. Dieses ist der Vergleich des im geschachtelten Prädikat auf der linken Seite auftretenden Attributs mit dem Attribut der SELECT-Klausel des inneren Abfrageblocks. Der Vergleichsoperator des neuen Prädikats ist nur für die Operatoren \sql{in} und \sql{not in} abweichend von dem im geschachtelten Prädikat verwendeten Operator. Im Fall von \sql{in} wird = und im Fall von \sql{not in} <> verwendet. Die SELECT-Klausel der geschachtelten Abfrage bleibt unverändert.
+Die \sql{from}-Klausel der entschachtelten Abfrage setzt sich aus der Vereinigung der \sql{from}-Klauseln des äußeren und inneren Abfrageblocks zusammen. Für die \sql{where}-Klausel wird die Konjunktion der \sql{where}-Klauseln gebildet. Zusätzlich wird diese um ein Join-Prädikat ergänzt, das aus dem ursprünglich geschachtelten Prädikat abgeleitet ist. Das Prädikat ist der Vergleich des im geschachtelten Prädikat auf der linken Seite auftretenden Attributs mit dem Attribut der \sql{select}-Klausel des inneren Abfrageblocks. Der Vergleichsoperator des neuen Prädikats ist nur für die Operatoren \sql{in} und \sql{not in} abweichend von dem im geschachtelten Prädikat verwendeten Operator. Im Fall von \sql{in} wird = und im Fall von \sql{not in} <> verwendet. Die \sql{select}-Klausel der geschachtelten Abfrage bleibt unverändert. 
 Alle FROM-Klausel kombinieren. Die resultierende FROM-Klausel umfasst alle Relationen des inneren und des äußeren Abfrageblocks\\
 Die Konjunktion der WHERE-Klauseln bilden.\\
 Das geschachtelte Prädikat \begin{math}[R_i.C_h \operatorname{op}\ (\texttt{SELECT} R_j.C_m \dots)]\end{math} ersetzen durch ein neues Join-Prädikat \begin{math}[R_i.C_h \operatorname{\emph{new-op}} R_j.C_m]\end{math}, das mit der restlichen WHERE-Klausel per Konjunktion verbunden ist\\
@@ -155,6 +184,8 @@ X \subset\{A_1,\ldots,A_n\} \\[1em]
 \theta&\quad\text{sonst}.
 \end{cases}
 \end{math}
+
+Der Beweis für die Korrektheit wird in \cite{319745} geführt. Aus der im SQL Standard definierten Semantik für geschachtelte Abfragen, ergibt sich, dass für jedes betrachtete Tupel der äußeren Abfrage die innere Abfrage ausgewertet werden kann. Für den Operator \sql{in} bedeutet dies, dass das geschachtelte Prädikat \sql{WAHR} ist, wenn der Wert $X$ im Ergebnis der inneren Abfrage enthalten ist. Das Join-Prädikat der entschachtelten Abfrage ist genau dann \sql{WAHR}, wenn das geschachtelte Prädikat wahr ist.
 
 \section{Algorithmus \textbf{NEST-JA2}}\label{sct:Algorithmus NEST-JA2}
 Der Algorithmus basiert auf der Idee, die Aggregation für alle benötigten Gruppen im Voraus zu berechnen. 
@@ -225,16 +256,29 @@ TEMP3 = (
   §$)$§
 \end{lstlisting}
 
-Ist die Aggregationsfunktion \sql{count}, so muss stattdessen der Full-Outer-Join berechnet werden.
+Ist die Aggregationsfunktion \sql{count}, so muss stattdessen der Full-Outer-Join berechnet werden. Die hier angegebene Syntax für den Outer-Join entspricht der Syntax des SQL-Standards. Die momentan im Optimierer implementierte Struktur von SQL-Abfragen lässt eine einfache Erweiterung um diese Outer-Join-Syntax nicht zu. Erschwerend kommt hinzu, dass Join- und Outer-Join-Operationen nur unter eingeschränkten in ihrer Reihenfolge vertauscht werden können. Daher wurde auf die Integration des Outer-Join-Operators im Optimierer verzichtet. Die Erzeugung der entsprechenden temporären Relation erfolgt direkt in ausführbarer Syntax.
 
 \begin{lstlisting}
 TEMP3 = (
 	select §$T_1.Y,\operatorname{AGGR}(T_j.A)$§ as AggrResult
-  from TEMP1 outer join TEMP2
+  from TEMP1 full outer join TEMP2
     on pred§$[R_1.Y \operatorname{op} T_1.Z]$§
   group by
   	§$T_1.Y$§
   §$)$§
+\end{lstlisting}
+
+Die gleiche Definition in ausführbarer Syntax
+
+\begin{lstlisting}
+TEMP3 = 
+query 
+	TEMP1 feed 
+	TEMP2 feed 
+	smouterjoin[pred§$[R_1.Y \operatorname{op} T_1.Z]]$§
+	groupby[§$AggrResult: group feed \operatorname{AGGR}(T_j.A)$§]
+	project[§$T_1.Y, AggrResult$§]
+	consume
 \end{lstlisting}
 
 Nach der Berechnung der temporären Tabellen vereinfacht sich die ursprüngliche Abfrage zu 
