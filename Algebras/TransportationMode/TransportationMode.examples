@@ -9,17 +9,17 @@ Example  : query thebusnetwork(1, busroutes);
 Result   : file
 
 
-Operator : busstop
+Operator : busnode
 Number   : 1
 Signature: busnetwork -> int
-Example  : query busstop(berlintrains) count;
+Example  : query busnode(berlintrains) count;
 Result   : 173
 
 
-Operator : busline
+Operator : busedge
 Number   : 1
 Signature: busnetwork -> int
-Example  : query busline(berlintrains) count;
+Example  : query busedge(berlintrains) count;
 Result   : 11372
 
 Operator : busmove

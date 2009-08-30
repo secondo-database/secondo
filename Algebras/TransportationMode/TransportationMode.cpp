@@ -70,34 +70,43 @@ const string OpTheBusNetworkSpec =
   "<text>let busnet = thebusnetwork(1, busroutes)</text--->"
   "))";
 
-const string OpBusStopSpec =
+const string OpBusNodeSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
   "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
-  "<text>busstop(_)</text--->"
+  "<text>busnode(_)</text--->"
   "<text>returns a stream of tuple where each corresponds to a bus stop."
   "</text--->"
-  "<text>query busstop(busroutes) count</text--->"
+  "<text>query busnode(busroutes) count</text--->"
   "))";
 
-const string OpBusLineSpec =
+const string OpBusEdgeSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
   "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
-  "<text>busline(_)</text--->"
+  "<text>busedge(_)</text--->"
   "<text>returns a stream of tuple where each corresponds to"
   "the trajectory of a bus's movement.</text--->"
-  "<text>query busline(busroutes) count</text--->"
+  "<text>query busedge(busroutes) count</text--->"
   "))";
-
 const string OpBusMoveSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
   "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
   "<text>busmove(_)</text--->"
-  "<text>returns a stream of tuple where each corresponds to "
-  "the movement of a bus.</text--->"
+  "<text>returns a stream of tuple where each corresponds to"
+  "the movement of bus.</text--->"
   "<text>query busmove(busroutes) count</text--->"
+  "))";
+
+const string OpBusReachabilitySpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "<text>reachability(_)</text--->"
+  "<text>returns a stream of tuple where each corresponds to "
+  "the sequence movement of a trip.</text--->"
+  "<text>query reachability(mint1) count</text--->"
   "))";
 
 /***********Value Map Function for Bus Network****************************/
@@ -119,26 +128,8 @@ int OpTheBusNetworkValueMapping(Word* args, Word& result,
 /*structure for displaying information about bus network*/
 struct DisplBus{
   BusNetwork* busnet;
-  Relation* busstop;
-  Relation* busweight;
-  Relation* busroute;
-  int no_weight;
-  int bus_weight_count;
-  int no_stop;
-  int bus_stop_count;
-  int no_route;
-  int bus_route_count;
   TupleType* resulttype;
   DisplBus(BusNetwork* p):busnet(p){
-    busstop = busnet->GetRelBus_Node();
-    busweight = busnet->GetRelBus_Weight();
-    busroute = busnet->GetRelBus_Route();
-    no_route = busroute->GetNoTuples();
-    no_stop = busstop->GetNoTuples();
-    no_weight = busweight->GetNoTuples();
-    bus_stop_count = 1;
-    bus_weight_count = 1;
-    bus_route_count = 1;
     resulttype = NULL;
   }
   ~DisplBus(){
@@ -146,24 +137,69 @@ struct DisplBus{
       delete resulttype;
   }
 };
+/*structure for displaying bus stop*/
+struct DisplBusStop:public DisplBus{
+  int no_stop;
+  int bus_stop_count;
+  Relation* busstop;
+  DisplBusStop(BusNetwork* p):DisplBus(p){
+    busstop = busnet->GetRelBus_Node();
+    no_stop = busstop->GetNoTuples();
+    bus_stop_count = 1;
+  }
+
+};
+/*structure for displaying bus edge*/
+struct DisplBusEdge:public DisplBus{
+  int no_edge;
+  int bus_edge_count;
+  Relation* bus_edge;
+  DisplBusEdge(BusNetwork* p):DisplBus(p){
+    bus_edge = busnet->GetRelBus_Edge();
+    assert(bus_edge != NULL);
+    no_edge = bus_edge->GetNoTuples();
+    bus_edge_count = 1;
+  }
+};
+
+/*structure for displaying bus route*/
+struct DisplBusRoute:public DisplBus{
+  int no_route;
+  int bus_route_count;
+  Relation* bus_route;
+  DisplBusRoute(BusNetwork* p):DisplBus(p){
+    bus_route = busnet->GetRelBus_Route();
+    assert(bus_route != NULL);
+    no_route = bus_route->GetNoTuples();
+    bus_route_count = 1;
+  }
+};
+
+/*structure for opeator reachability*/
+struct DisplReach:public DisplBus{
+  MPoint* route;
+  DisplReach(BusNetwork* p):DisplBus(p){
+  }
+};
+
 /*
 Return all bus stops.
 
 */
-int OpBusStopValueMapping(Word* args, Word& result,
+int OpBusNodeValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
-  DisplBus* localInfo;
+  DisplBusStop* localInfo;
   switch(message){
     case OPEN:{
-        localInfo = new DisplBus((BusNetwork*)args[0].addr);
+        localInfo = new DisplBusStop((BusNetwork*)args[0].addr);
         localInfo->resulttype =
               new TupleType(nl->Second(GetTupleResultType(s)));
         local = SetWord(localInfo);
         return 0;
     }
     case REQUEST:{
-        localInfo = (DisplBus*)local.addr;
+        localInfo = (DisplBusStop*)local.addr;
         if(localInfo->bus_stop_count > localInfo->no_stop)
           return CANCEL;
         Tuple* tuple = new Tuple(localInfo->resulttype);
@@ -179,7 +215,7 @@ int OpBusStopValueMapping(Word* args, Word& result,
         return YIELD;
     }
     case CLOSE:{
-        localInfo = (DisplBus*)local.addr;
+        localInfo = (DisplBusStop*)local.addr;
         delete localInfo;
         return 0;
     }
@@ -187,41 +223,47 @@ int OpBusStopValueMapping(Word* args, Word& result,
   return 0;
 }
 /*
-Display the trajectory of bus movement.
+Display the trajectory (edge-weight) of bus movement.
 
 */
-int OpBusLineValueMapping(Word* args, Word& result,
+int OpBusEdgeValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
-  DisplBus* localInfo;
+  DisplBusEdge* localInfo;
   switch(message){
     case OPEN:{
-        localInfo = new DisplBus((BusNetwork*)args[0].addr);
+        localInfo = new DisplBusEdge((BusNetwork*)args[0].addr);
         localInfo->resulttype =
               new TupleType(nl->Second(GetTupleResultType(s)));
         local = SetWord(localInfo);
         return 0;
     }
     case REQUEST:{
-        localInfo = (DisplBus*)local.addr;
-        if(localInfo->bus_weight_count > localInfo->no_weight)
+        localInfo = (DisplBusEdge*)local.addr;
+        if(localInfo->bus_edge_count > localInfo->no_edge)
           return CANCEL;
         Tuple* tuple = new Tuple(localInfo->resulttype);
         Tuple* temp_tuple =
-                localInfo->busweight->GetTuple(localInfo->bus_weight_count);
-        CcInt* id = (CcInt*)temp_tuple->GetAttribute(BusNetwork::FID);
+                localInfo->bus_edge->GetTuple(localInfo->bus_edge_count);
+        CcInt* id = (CcInt*)temp_tuple->GetAttribute(BusNetwork::EID);
+        CcInt* nid1 = (CcInt*)temp_tuple->GetAttribute(BusNetwork::V1);
+        CcInt* nid2 = (CcInt*)temp_tuple->GetAttribute(BusNetwork::V2);
         Line* l = (Line*)temp_tuple->GetAttribute(BusNetwork::LINE);
         CcReal* fee = (CcReal*)temp_tuple->GetAttribute(BusNetwork::FEE);
+
         tuple->PutAttribute(0,new CcInt(*id));
-        tuple->PutAttribute(1,new Line(*l));
-        tuple->PutAttribute(2,new CcReal(*fee));
+        tuple->PutAttribute(1,new CcInt(*nid1));
+        tuple->PutAttribute(2,new CcInt(*nid2));
+        tuple->PutAttribute(3,new Line(*l));
+        tuple->PutAttribute(4,new CcReal(*fee));
+
         result.setAddr(tuple);
         temp_tuple->DeleteIfAllowed();
-        localInfo->bus_weight_count++;
+        localInfo->bus_edge_count++;
         return YIELD;
     }
     case CLOSE:{
-        localInfo = (DisplBus*)local.addr;
+        localInfo = (DisplBusEdge*)local.addr;
         delete localInfo;
         return 0;
     }
@@ -236,22 +278,22 @@ Display the bus movement.
 int OpBusMoveValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
-  DisplBus* localInfo;
+  DisplBusRoute* localInfo;
   switch(message){
     case OPEN:{
-        localInfo = new DisplBus((BusNetwork*)args[0].addr);
+        localInfo = new DisplBusRoute((BusNetwork*)args[0].addr);
         localInfo->resulttype =
               new TupleType(nl->Second(GetTupleResultType(s)));
         local = SetWord(localInfo);
         return 0;
     }
     case REQUEST:{
-        localInfo = (DisplBus*)local.addr;
+        localInfo = (DisplBusRoute*)local.addr;
         if(localInfo->bus_route_count > localInfo->no_route)
           return CANCEL;
         Tuple* tuple = new Tuple(localInfo->resulttype);
         Tuple* temp_tuple =
-                localInfo->busroute->GetTuple(localInfo->bus_route_count);
+                localInfo->bus_route->GetTuple(localInfo->bus_route_count);
         CcInt* id = (CcInt*)temp_tuple->GetAttribute(BusNetwork::RID);
         MPoint* mp = (MPoint*)temp_tuple->GetAttribute(BusNetwork::TRIP);
         tuple->PutAttribute(0,new CcInt(*id));
@@ -262,13 +304,28 @@ int OpBusMoveValueMapping(Word* args, Word& result,
         return YIELD;
     }
     case CLOSE:{
-        localInfo = (DisplBus*)local.addr;
+        localInfo = (DisplBusRoute*)local.addr;
         delete localInfo;
         return 0;
     }
   }
   return 0;
 }
+
+/*
+query reachability for a start node and an end node.
+
+*/
+int OpBusReachValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  BusNetwork* busnet = (BusNetwork*)args[0].addr;
+  MInt* querycond = (MInt*)args[1].addr;
+  busnet->Reachability(*(MPoint*)result.addr,querycond);
+  return 0;
+}
+
 
 /*
 Operator ~thebusnetwork~
@@ -302,10 +359,10 @@ ListExpr OpTheBusNetworkTypeMap(ListExpr in_xArgs)
 }
 
 /*
-Operator ~busstop~
+Operator ~busnode~
 
 */
-ListExpr OpBusStopTypeMap(ListExpr in_xArgs)
+ListExpr OpBusNodeTypeMap(ListExpr in_xArgs)
 {
   if(nl->ListLength(in_xArgs) != 1)
     return (nl->SymbolAtom("typeerror"));
@@ -327,10 +384,10 @@ ListExpr OpBusStopTypeMap(ListExpr in_xArgs)
 
 }
 /*
-Operator ~busline~
+Operator ~busedge~
 
 */
-ListExpr OpBusLineTypeMap(ListExpr in_xArgs)
+ListExpr OpBusEdgeTypeMap(ListExpr in_xArgs)
 {
   if(nl->ListLength(in_xArgs) != 1)
     return (nl->SymbolAtom("typeerror"));
@@ -338,11 +395,13 @@ ListExpr OpBusLineTypeMap(ListExpr in_xArgs)
   ListExpr arg = nl->First(in_xArgs);
   if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
      nl->SymbolValue(arg) == "busnetwork"){
-    return nl->TwoElemList(
+      return nl->TwoElemList(
           nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),
-              nl->ThreeElemList(
+              nl->FiveElemList(
                 nl->TwoElemList(nl->SymbolAtom("id"),nl->SymbolAtom("int")),
+                nl->TwoElemList(nl->SymbolAtom("nid1"),nl->SymbolAtom("int")),
+                nl->TwoElemList(nl->SymbolAtom("nid2"),nl->SymbolAtom("int")),
                 nl->TwoElemList(nl->SymbolAtom("l"),nl->SymbolAtom("line")),
                 nl->TwoElemList(nl->SymbolAtom("fee"),nl->SymbolAtom("real"))
               )
@@ -365,12 +424,12 @@ ListExpr OpBusMoveTypeMap(ListExpr in_xArgs)
   ListExpr arg = nl->First(in_xArgs);
   if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
      nl->SymbolValue(arg) == "busnetwork"){
-    return nl->TwoElemList(
+      return nl->TwoElemList(
           nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),
               nl->TwoElemList(
-               nl->TwoElemList(nl->SymbolAtom("rid"),nl->SymbolAtom("int")),
-               nl->TwoElemList(nl->SymbolAtom("trip"),nl->SymbolAtom("mpoint"))
+                nl->TwoElemList(nl->SymbolAtom("id"),nl->SymbolAtom("int")),
+                nl->TwoElemList(nl->SymbolAtom("trip"),nl->SymbolAtom("mpoint"))
               )
             )
           );
@@ -379,6 +438,28 @@ ListExpr OpBusMoveTypeMap(ListExpr in_xArgs)
 
 }
 
+/*
+Operator ~reachability~
+
+*/
+ListExpr OpBusReachTypeMap(ListExpr in_xArgs)
+{
+  string err = "busnetwork x mint expected";
+  if(nl->ListLength(in_xArgs) != 2){
+      ErrorReporter::ReportError(err);
+      return nl->TypeError();
+  }
+
+  ListExpr arg1 = nl->First(in_xArgs);
+  ListExpr arg2 = nl->Second(in_xArgs);
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "busnetwork" && nl->IsEqual(arg2,"mint"))
+    return nl->SymbolAtom("mpoint");
+
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+
+}
 /*****************Operators for Bus Network*************************/
 Operator thebusnetwork(
   "thebusnetwork", //name
@@ -388,20 +469,20 @@ Operator thebusnetwork(
   OpTheBusNetworkTypeMap
 );
 
-Operator busstop(
-  "busstop", //name
-  OpBusStopSpec,
-  OpBusStopValueMapping,
+Operator busnode(
+  "busnode", //name
+  OpBusNodeSpec,
+  OpBusNodeValueMapping,
   Operator::SimpleSelect,
-  OpBusStopTypeMap
+  OpBusNodeTypeMap
 );
 
-Operator busline(
-  "busline", //name
-  OpBusLineSpec,
-  OpBusLineValueMapping,
+Operator busedge(
+  "busedge", //name
+  OpBusEdgeSpec,
+  OpBusEdgeValueMapping,
   Operator::SimpleSelect,
-  OpBusLineTypeMap
+  OpBusEdgeTypeMap
 );
 
 Operator busmove(
@@ -410,6 +491,14 @@ Operator busmove(
   OpBusMoveValueMapping,
   Operator::SimpleSelect,
   OpBusMoveTypeMap
+);
+
+Operator reachability(
+  "reachability", //name
+  OpBusReachabilitySpec,
+  OpBusReachValueMapping,
+  Operator::SimpleSelect,
+  OpBusReachTypeMap
 );
 
 /*
@@ -426,9 +515,10 @@ class TransportationModeAlgebra : public Algebra
    busnetwork.AssociateKind("BUSNETWORK");
 
    AddOperator(&thebusnetwork);//construct bus network
-   AddOperator(&busstop);//display bus stop
-   AddOperator(&busline); //display the trajectory of a bus
-   AddOperator(&busmove);//display the movement of bus
+   AddOperator(&busnode);//display bus stop
+   AddOperator(&busedge); //display the trajectory of a bus
+   AddOperator(&busmove);//display bus movement
+   AddOperator(&reachability);
   }
   ~TransportationModeAlgebra() {};
  private:

@@ -51,7 +51,7 @@ August, 2009 Jianqiu Xu
 #include "LogMsg.h"
 #include "NList.h"
 #include "RelationAlgebra.h"
-
+#include <list>
 /*
 Subclass for manage bus network
 
@@ -61,16 +61,13 @@ public:
 /*data description*/
   static string busrouteTypeInfo;//relation description for pre-defined paths
   enum BusRouteInfo{RID=0,TRIP};
-  static string btreebusrouteTypeInfo;//b-tree on bus route
+  static string btreebusrouteTypeInfo;//b-tree on pre-defined paths
   static string busstopTypeInfo; //relation description for bus stop
   enum BusStopInfo{SID=0,LOC};
   static string btreebusstopTypeInfo; //b-tree on bus stop
   static string rtreebusstopTypeInfo; //r-tree on bus stop
-  static string busweightTypeInfo; //relation for weight function
-  enum BusWeightInfo{FID=0,DEF_T,LINE,FEE};
-  static string btreebusweightTypeInfo; //b-tree on weight function
   static string busedgeTypeInfo; //relation description for edge
-  enum BusEdgeInfo{EID=0,V1,V2,WFID,PID};
+  enum BusEdgeInfo{EID=0,V1,V2,DEF_T,LINE,FEE,PID};
   static string btreebusedgeTypeInfo; //b-tree on edge id
 
 
@@ -96,26 +93,27 @@ public:
   BusNetwork(ListExpr in_xValue,int in_iErrorPos,ListExpr& inout_xErrorInfo,
              bool& inout_bCorrect);
   BusNetwork();
+  ~BusNetwork();
   BusNetwork(SmiRecord&,size_t&,const ListExpr);
   void FillBusNode(const Relation*);
-  void FillBusWeightAndEdge(const Relation*);
+  void FillBusEdge(const Relation*);
   void  Destory();
 /*Interface function and Application function*/
   Relation* GetRelBus_Node(){return bus_node;}
-  Relation* GetRelBus_Weight(){return bus_weight;}
   Relation* GetRelBus_Route(){return bus_route;}
+  Relation* GetRelBus_Edge(){return bus_edge;}
   int FindPointTid(Point& p);
+  void Reachability(MPoint& route,MInt* query);
+  void FindPath(const UInt* ui1,const UInt* ui2,vector<int>& path);
 
 private:
   int busnet_id;
   bool bus_def;
-  Relation* bus_route;//relation storing bus routes
-  BTree* btree_bus_route;// b-tree on bus route
+  Relation* bus_route;//relation storing bus route
+  BTree* btree_bus_route; //b_tree on bus route
   Relation* bus_node; //relation storing bus stops
   BTree* btree_bus_node; //b-tree on bus stops
   R_Tree<2,TupleId>* rtree_bus_node; //r-tree on bus stops
-  Relation* bus_weight; //relation storing weight function for each edge
-  BTree* btree_bus_weight; //b-tree on weight function, key is fid
   Relation* bus_edge;//relation storing edge
   BTree* btree_bus_edge; //b-tree on edge
   BTree* btree_bus_edge_v1; //b-tree on edge start node id
