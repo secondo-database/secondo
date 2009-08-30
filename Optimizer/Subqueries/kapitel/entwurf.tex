@@ -36,7 +36,7 @@ WHERE §$R_i.C_h = R_j.C_m$§
 
 ist.
 
-Die Mengen basierte Semantik des IN-Operators wird nur dann erhalten, wenn $R_j$ bezüglich der Spalte $C_m$ duplikatfrei ist. Dies kann aber jederzeit erreicht werden, indem $R_j$ durch eine temporäre Relation $R_{j}^{'}$ ersetzt wird. $R_{j}^{'}$ erhält man, indem $R_j$ auf die Spalte $C_m$ eingeschränkt und projiziert wird. Für skalare Vergleichsoperatoren gilt die Äquivalenz ohne diese Einschränkung. Skalare Vergleichsoperatoren sind nicht \enquote{duplikats-entfernend}. 
+Die mengenbasierte Semantik des IN-Operators wird nur dann erhalten, wenn $R_j$ bezüglich der Spalte $C_m$ duplikatfrei ist. Dies kann aber jederzeit erreicht werden, indem $R_j$ durch eine temporäre Relation $R_{j}^{'}$ ersetzt wird. $R_{j}^{'}$ erhält man, indem $R_j$ auf die Spalte $C_m$ eingeschränkt und projiziert wird. Für skalare Vergleichsoperatoren gilt die Äquivalenz ohne diese Einschränkung.  Skalare Vergleichsoperatoren sind nicht \enquote{duplikats-entfernend}. 
 
 \begin{lstlisting}
 SELECT §$R_i.C_k$§
@@ -53,7 +53,9 @@ FROM §$R_i, R_j$§
 WHERE §$R_i.C_h <> R_j.C_m$§
 \end{lstlisting}
 
-übersetzen, da die Semantik und das Ergebnis der beiden Abfragen nicht übereinstimmen. In der geschachtelten Abfrage werden als Ergebnis alle Tupel der äußeren Relation erwartet, zu denen es keine Entsprechung in der inneren Relation gibt. Das Ergebnis der zweiten Abfrage ist die Teilmenge des Kreuzprodukts der beiden Relationen, die in den Werten $C_h$ und $C_m$ nicht übereinstimmen. Die entsprechende Operationen der Relationenalgebra ist der Anti-Join. In den für \textsc{Secondo} implementierten Algebramodulen für die Relationenalgebra, \algebra{Relation-C++}- und \algebra{ExtRelation-C++}-Algebra ist kein entsprechender Operator enthalten. Eine Implementierung im Rahmen dieser Diplomarbeit erfolgte nicht. 
+übersetzen, da die Semantik und das Ergebnis der beiden Abfragen nicht übereinstimmen. In der geschachtelten Abfrage werden als Ergebnis alle Tupel der äußeren Relation erwartet, zu denen es keine Entsprechung in der inneren Relation gibt. Das Ergebnis der zweiten Abfrage ist die Teilmenge des Kreuzprodukts der beiden Relationen, die in den Werten $C_h$ und $C_m$ nicht übereinstimmen. Die entsprechende Operation der Relationenalgebra ist der Anti-Join. In den für \textsc{Secondo} implementierten Algebramodulen für die Relationenalgebra, \algebra{Relation-C++}- und \algebra{ExtRelation-C++}-Algebra ist kein entsprechender Operator enthalten. Eine Implementierung im Rahmen dieser Diplomarbeit erfolgte nicht. 
+
+Die Optimierung von geschachtelten Abfragen die in dieser Arbeit implementiert wurden unterliegen aufgrund der verwendeten Algorithmen einigen Einschränkungen. Geschachtelte Abfragen dürfen im inneren Abfrageblock keine \sql{group by/having}-Klausel aufweisen (vgl. \cite{671658}). In korrelierten Abfragen dürfen nur Attribute der Relationen des den Abfrageblock direkt umgebenden Abfrageblocks verwendet werden. D.h. auf Schachtelungsebene n dürfen nur Relationen des inneren Abfrageblocks und Relationen der Schachtelungsebene n-1 verwendet werden. Tritt ein geschachteltes Prädikat in einem Disjunktionsterm auf, so ist es einer Optimierung mit den hier implementierten Algorithmen ebenfalls nicht zugänglich. Algorithmen zur Optimierung geschachtelter Abfragen in Disjunktionen wurden aber z.B. in \cite{Brantner2007} vorgestellt.
 
 \section{Ein Full-Outer-Join-Operator für SECONDO}
 \textsc{Secondo} enthält bereits mehrere Join-Operatoren. Als Vorlage für die Implementierung des Full-Outer-Join-Operators wurde der Operator \secondo{sortmergejoin} ausgewählt, da sich der zugrunde liegende Algorithmus mit wenigen Änderungen in einen Full-Outer-Join umbauen lässt. Sort-Merge-Join ist ein Algorithmus zur Berechnung von Equi-Joins. Voraussetzung ist die Sortierung der Relationen bzw. Ströme bezüglich der Join-Attribute. Diese Anforderung kann durch das vorhergehende Sortieren der Relationen erfüllt werden. In \textsc{Secondo} wird diese Aufgabe von dem Operator \secondo{sortmergejoin} erledigt. 
@@ -132,7 +134,7 @@ Mit diesen Transformationen lassen sich auch quantifizierte Prädikate als Prädik
 
 
 \section{Algorithmus \textbf{NEST-N-J}}\label{sct:Algorithmus NEST-N-J}
-Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine inhaltlich identische entschachtelte Form zu überführen. Basis der Transformation ist die Beobachtung, dass das Ergebnis einer geschachtelten Abfrage vom Typ N oder J und einer Abfrage über allen verwendeten Relationen mit einem zusätzlichen Join-Prädikat identisch ist. Da die Join-Operation in SQL Multimengen-Semantik hat, müssen bei Operatoren mit strenger Mengen-Semantik z.B. \sql{in} die inneren Relationen vor der Verwendung in der entschachtelten Variante auf ihre Join-Spalten projiziert und durch die Prädikate der Unterabfrage eingeschränkt werden.
+Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine inhaltlich identische entschachtelte Form zu überführen. Basis der Transformation ist die Beobachtung, dass das Ergebnis einer geschachtelten Abfrage vom Typ N oder J und einer Abfrage über allen verwendeten Relationen mit einem zusätzlichen Join-Prädikat identisch ist. Da die Join-Operation in SQL Multimengen-Semantik hat, müssen bei Operatoren mit strenger Mengen-Semantik z.B. \sql{in} die inneren Relationen vor der Verwendung in der entschachtelten Variante auf ihre Join-Spalten projiziert und durch die Prädikate der Unterabfrage eingeschränkt werden. Da das Ergebnis der Projektion und Selektion maximal die gleiche Mächtigkeit hat, wie die Ursprungsrelationen, wirkt sich diese zusätzliche Operation in den meisten Fällen eher positiv auf die Anzahl der I/O-Operationen aus (siehe auch \cite{319745}).
 
 \begin{algorithm}
 Algorithmus NEST-N-J
@@ -140,11 +142,11 @@ Algorithmus NEST-N-J
 \STATE \textbf{procedure} $nest\_n\_j(Q)$
 \STATE $combine\_from\_clauses(outer\_query\_block, inner\_query\_block)$
 \STATE $combine\_where\_clauses(outer\_query\_block, inner\_query\_block)$
-\STATE $inser\_new\_join\_predicate(Q)$
+\STATE $insert\_new\_join\_predicate(Q)$
 \end{algorithmic}
 \end{algorithm}
 
-Die \sql{from}-Klausel der entschachtelten Abfrage setzt sich aus der Vereinigung der \sql{from}-Klauseln des äußeren und inneren Abfrageblocks zusammen. Für die \sql{where}-Klausel wird die Konjunktion der \sql{where}-Klauseln gebildet. Zusätzlich wird diese um ein Join-Prädikat ergänzt, das aus dem ursprünglich geschachtelten Prädikat abgeleitet ist. Das Prädikat ist der Vergleich des im geschachtelten Prädikat auf der linken Seite auftretenden Attributs mit dem Attribut der \sql{select}-Klausel des inneren Abfrageblocks. Der Vergleichsoperator des neuen Prädikats ist nur für die Operatoren \sql{in} und \sql{not in} abweichend von dem im geschachtelten Prädikat verwendeten Operator. Im Fall von \sql{in} wird = und im Fall von \sql{not in} <> verwendet. Die \sql{select}-Klausel der geschachtelten Abfrage bleibt unverändert. 
+Die \sql{from}-Klausel der entschachtelten Abfrage setzt sich aus der Vereinigung der \sql{from}-Klauseln des äußeren und inneren Abfrageblocks zusammen. Für die \sql{where}-Klausel wird die Konjunktion der \sql{where}-Klauseln gebildet. Zusätzlich wird diese um ein Join-Prädikat ergänzt, das aus dem ursprünglich geschachtelten Prädikat abgeleitet ist. Das Prädikat ist der Vergleich des im geschachtelten Prädikat auf der linken Seite auftretenden Attributs mit dem Attribut der \sql{select}-Klausel des inneren Abfrageblocks. Der Vergleichsoperator des neuen Prädikats ist nur für die Operatoren \sql{in} und \sql{not in} abweichend von dem im geschachtelten Prädikat verwendeten Operator. Ist \sql{in} der Operator des geschachtelten Prädikats, so wird der Equi-Join benötigt; der Operator des neuen Join-Prädikats ist dann \enquote{=}. Beim Operator \sql{not in} ist ein Anti-Join notwendig. Eine entsprechende Syntax existiert im SQL-Standard nicht. Die \sql{select}-Klausel der geschachtelten Abfrage bleibt unverändert. 
 Alle FROM-Klausel kombinieren. Die resultierende FROM-Klausel umfasst alle Relationen des inneren und des äußeren Abfrageblocks\\
 Die Konjunktion der WHERE-Klauseln bilden.\\
 Das geschachtelte Prädikat \begin{math}[R_i.C_h \operatorname{op}\ (\texttt{SELECT} R_j.C_m \dots)]\end{math} ersetzen durch ein neues Join-Prädikat \begin{math}[R_i.C_h \operatorname{\emph{new-op}} R_j.C_m]\end{math}, das mit der restlichen WHERE-Klausel per Konjunktion verbunden ist\\
