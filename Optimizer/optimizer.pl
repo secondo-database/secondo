@@ -680,7 +680,7 @@ nodeNo(res(N), N).
 /*
 3.6 newEdges
 
-----    newEdges(Pred, PredNo, NodesOld, EdgesNew) :-
+----    newEdges(+Pred, +PredNo, +NodesOld, -EdgesNew)
 ----
 
 for each of the nodes in ~NodesOld~ return a new edge in ~EdgesNew~
@@ -694,6 +694,7 @@ newEdges(Pred, PNo, [Node | Nodes], [Edge | Edges]) :-
   newEdge(Pred, PNo, Node, Edge),
   newEdges(Pred, PNo, Nodes, Edges).
 
+% newEdge(+Pred, +PredNo, +NodeOld, -EdgeNew)
 newEdge(pr(P, Rel), PNo, Node, Edge) :-
   findRel(Rel, Node, Source, Arg),
   Target is Source + PNo,
@@ -3073,7 +3074,8 @@ createPlanEdges :-
   not(createPlanEdge),
   modifyPlanEdges.
 
-deletePlanEdges :- retractall(planEdge(_, _, _, _)).
+deletePlanEdges :-
+  retractall(planEdge(_, _, _, _)).
 
 modifyPlanEdges :-
   optimizerOption(adaptiveJoin),
@@ -3162,6 +3164,7 @@ assignSizes1 :-
 
 % Versions for A. Nawra's and improved cost functions:
 % Annotates tuple sizes to nodes and predicates to edges
+%  - assignSize(+Source, +Target, +Term, -Result)
 assignSize(Source, Target, select(Arg, Pred), Result) :-
   ( optimizerOption(nawracosts) ; optimizerOption(improvedcosts) ),
   resSize(Arg, Card),
@@ -4807,21 +4810,21 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(980, xfx,  orderby).
 :- op(970, xfx,  groupby).
 :- op(960, xfx,  from).
+:- op(960, xfx,  set).   % for update, insert
 :- op(950,  fx,  select).
 :- op(950, xfx,  where).
+:- op(950, xfx,  select).% for update, insert
+:- op(950,  fx,  delete).% for update, insert
+:- op(950,  fx,  update).% for update, insert
+:- op(950, xfx,  values).% for update, insert
+:- op(940, xfx,  into).  % for update, insert
 :- op(940,  fx,  distinct).
 :- op(940,  fx,  all).
 :- op(935,  fx,  nonempty).
 :- op(930, xfx,  as).
 :- op(930, xf ,  asc).
 :- op(930, xf ,  desc).
-:- op(940, xfx,  into).  % for update, insert
-:- op(960, xfx,  set).   % for update, insert
-:- op(950, xfx,  select).% for update, insert
 :- op(930,  fx,  insert).% for update, insert
-:- op(950,  fx,  delete).% for update, insert
-:- op(950,  fx,  update).% for update, insert
-:- op(950, xfx,  values).% for update, insert
 % Section:Start:opPrologSyntax_3_e
 % Section:End:opPrologSyntax_3_e
 
@@ -5400,7 +5403,7 @@ lookupPattern predicate.
 
 lookupPred1(pattern(Preds,C), pattern(Res,C1), RelsBefore, RelsAfter) :-
   lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
-  lookupPred1(C, C1, RelsAfterMe, RelsAfter), 
+  lookupPred1(C, C1, RelsAfterMe, RelsAfter),
   !.
 
 /*
@@ -7573,6 +7576,9 @@ splitSelect(UpdateClause select SelectClause, select SelectClause, UpdateClause)
 
 /*
 19.3 Insert the update commands in the end of the operation
+
+---- finishUpdate(+UpdateList, +Stream, -Stream)
+----
 
 */
 
