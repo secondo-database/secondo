@@ -959,10 +959,16 @@ Determine the assessed costs of an input term using rules ~cost/8~.
 */
 
 % costterm(+Term, +Source, +Target, +Result, +Sel, +Pred, -Card, -Cost)
-costterm(Term, _/*Source*/, _/*Target*/, Result, Sel, Pred, Card, Cost) :-
-  cost(Term, Sel, Pred, ResAttrList, TupleSize, Card, Cost),
-  setNodeResAttrList(Result, ResAttrList),
-  setNodeTupleSize(Result, TupleSize),
+costterm(Term, Source, Target, Result, Sel, Pred, Card, Cost) :-
+  ( optimizerOption(improvedcosts)
+   -> ( cost(Term, Sel, Pred, ResAttrList, TupleSize, Card, Cost),
+        setNodeResAttrList(Result, ResAttrList),
+        setNodeTupleSize(Result, TupleSize)
+      )
+   ;  throw(error_Internal(improvedcosts_costterm(Term, Source, Target, Result,
+              Sel, Pred, Card,
+              Cost):should_not_be_called_without_option_improvedcosts))
+  ),
   !.
 
 /*

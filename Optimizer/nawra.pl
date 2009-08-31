@@ -64,9 +64,14 @@ Determine the assessed costs of an input term using rules ~cost\_new~. Then char
 */
 
 costterm(Term, Sel, Source, Result, Size, CostTotal) :-
-  costnew(Term, Sel, Source, Result, Size, TupleSize, Cost),
-  setNodeTupleSize(Result, TupleSize),
-  costtotal(Cost, CostTotal).
+  ( optimizerOption(nawracosts)
+    -> ( costnew(Term, Sel, Source, Result, Size, TupleSize, Cost),
+         setNodeTupleSize(Result, TupleSize),
+         costtotal(Cost, CostTotal)
+       )
+    ;  throw(error_Internal(nawra_costterm(Term, Sel, Source, Result, Size,
+                    CostTotal):should_not_be_called_without_option_nawracosts))
+  ).
 
 /*
 Calculates the total costs of a term considering the calibration factors.
