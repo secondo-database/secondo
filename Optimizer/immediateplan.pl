@@ -828,7 +828,17 @@ createCostEdges([planEdge(Source, Target, Plan, Result)|PlanEdgeList]) :-
   edgeSelectivity(Source, Target, Sel),
   edge(Source, Target, Term, _, _, _),
   pred(Term,Pred),
-  cost(Plan, Sel, Pred, Size, Cost),
+  ( optimizerOption(improvedcosts)
+    -> costterm(Plan, Source, Target, Result, Sel, Pred, Size, Cost)
+    ;  ( optimizerOption(nawracosts)
+         -> ( % nawracosts excludes immediatepath!
+              throw(error_Internal(immediateplan_createCostEdges(
+                [planEdge(Source, Target, Plan, Result)|PlanEdgeList])
+                :incompatible_option_nawracosts))
+            )
+         ;  cost(Plan, Sel, Pred, Size, Cost) % use standard cost functions
+       )
+  ),
   assert(costEdge(Source, Target, Plan, Result, Size, Cost)),
   createCostEdges(PlanEdgeList).
 
