@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2005, University in Hagen, Department of Computer Science, 
+Copyright (C) 2005, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -56,7 +56,7 @@ www.informatik.fernuni-hagen.de/import/pi4/papers/Secondo04.pdf, page 7 ff.
 The present file named ~modifications.pl~ contains two modifications
 of the query optimizer of Secondo, wich are:
 
-  1 an algorithm, that immediately constructs the cheapest plan for a 
+  1 an algorithm, that immediately constructs the cheapest plan for a
 given query, instead of constructing a predicate order graph first and
 then determining the cheapest plan by tracing the shortest path through
 the graph.
@@ -70,7 +70,7 @@ into the ~Optimizer~-directory of Secondo, start ~SecondoPL~ as usual
 and then enter the Prolog-command ~consult('modifications.pl')~ respectively
 ~['modifications.pl']~.
 
-Each contained modification can be turned on and off using the following 
+Each contained modification can be turned on and off using the following
 commands:
 
   1 ~setOption(immediatePlan)~ extends respectively changes the knowledge-base of
@@ -193,7 +193,7 @@ efficient than the original one, it is necessary to measure and compare times
 needed for optimizing example-queries using first the original optimizer and the
 other time the modified one.
 
-This will be done in a following chapter named 'Measuring und Comparing 
+This will be done in a following chapter named 'Measuring und Comparing
 Times needed for Optimization'.
 
 2.3 Preparation
@@ -213,13 +213,13 @@ There are goals in several clauses existing just for observing, how the
 modified optimizer in detail works. They can be activated by switching on debugmode
 ~setOption(debug)~ and setting debug level to ~immPath~ (by ~debugLevel(immPath)~).
 
-This will result in a lot of information about how the optimizer works being 
-printed on your screen during construction of the cheapest plan. 
+This will result in a lot of information about how the optimizer works being
+printed on your screen during construction of the cheapest plan.
 
 April 2006, Christian D[ue]ntgen. ~Observe~ was replaced by ~dm~ and/or ~dc~
 commands. Set ~setOption(debug), debugLevel(immPath)~ to observe the algorithm.
 Changed integration with optimizer.pl by removing dynamic code
-modification (~immPathCreation/1~, ~immPathCreation/2~) with static predicate 
+modification (~immPathCreation/1~, ~immPathCreation/2~) with static predicate
 ~immPlanTranslate/4~ and ~optimizerOption/1~ for the sake of a common interface.
 Switching of optimizer options is now handled in file  ~calloptimizer.pl~.
 
@@ -242,7 +242,7 @@ general optimizer option.
 % when ~optimizerOption(immediatePlan)~ is defined.
 immPlanTranslate(Select from Rels where Preds, Stream, Select, Cost) :-
   optimizerOption(immediatePlan),
-  immPathCreation(Rels, Preds, Stream, Cost), 
+  immPathCreation(Rels, Preds, Stream, Cost),
   !.
 
 % Fall-back case, that should never be called
@@ -250,26 +250,26 @@ immPlanTranslate(_, _, _, _) :-
   write('\nWARNING: Fall-back clause of immPlanTranslate/4.'),
   throw(immPlanTranslate_fallback_case_reached), fail, !.
 
-  
+
 immPlanPrintWelcomeMod :-
      nl, write('*** Instead of creating the predicate order'),
      nl, write('*** graph and searching the shortest path'),
-     nl, write('*** through it, from now on the shortest path'), 
+     nl, write('*** through it, from now on the shortest path'),
      nl, write('*** will immediately be created.'),
      nl,
      nl, write('*** Please type delOption(immediatePlan) to use'),
-     nl, write('*** the originally implemented algorithm of the'), 
+     nl, write('*** the originally implemented algorithm of the'),
      nl, write('*** Secondo-optimizer again.'), nl.
 
 immPlanPrintWelcomePOG :-
      nl, write('*** From now on the predicate order graph first'),
-     nl, write('*** will be created and after this the shortest'), 
+     nl, write('*** will be created and after this the shortest'),
      nl, write('*** path through it will be searched.'),
      nl,
      nl, write('*** Please type setOption(immediatePlan) to use the'),
      nl, write('*** modification of the optimizer again,'),
      nl, write('*** that immediately creates the shortest path.'), nl.
-	
+
 
 /*
 
@@ -330,13 +330,13 @@ immPathCreation(Relations, Predicates, Plan, Cost) :-
 	sweepKnowledgeBase(EmptyReachedNodesSet),
 	assertArguments(Relations, Partition),
 	length(Predicates, NoOfPreds),
-	dc(immPath, ( write('Number of predicates in the query: '), 
+	dc(immPath, ( write('Number of predicates in the query: '),
 	              write(NoOfPreds), nl,
-                      write('All the predicates of the query: '), 
+                      write('All the predicates of the query: '),
                       write(Predicates), nl, nl)),
 	SourceNodeNo = 0,
 	asserta(node(SourceNodeNo, [], Partition)),
-	putIntoReachedNodesSet(EmptyReachedNodesSet, 
+	putIntoReachedNodesSet(EmptyReachedNodesSet,
 			       node(SourceNodeNo, 0, []),
 			       ReachedNodesSet),
 	immPathCreationLoop(ReachedNodesSet, Predicates, NoOfPreds),
@@ -351,9 +351,9 @@ immPathCreationLoop(ReachedNodesSet, Predicates, NoOfPreds) :-
 	not(isEmpty(ReachedNodesSet)),
 	!,
 	% then
-	processReachedNodesSet(ReachedNodesSet, NewReachedNodesSet, 
+	processReachedNodesSet(ReachedNodesSet, NewReachedNodesSet,
 			       Predicates, NoOfPreds),
-	immPathCreationLoop(NewReachedNodesSet, 
+	immPathCreationLoop(NewReachedNodesSet,
 			    Predicates, NoOfPreds).
 
 immPathCreationLoop(_, _, _) :-
@@ -367,12 +367,12 @@ For a correct implementation of the above described algorithm, the next
 clause ~processReachedNodesSet~ would have to be the following one:
 
 ----
-processReachedNodesSet(ReachedNodesSet, NewNewReachedNodesSet, 
+processReachedNodesSet(ReachedNodesSet, NewNewReachedNodesSet,
 		       Predicates, NoOfPreds) :-
-	getMinimalDistantNode(ReachedNodesSet, NDPNode, 
+	getMinimalDistantNode(ReachedNodesSet, NDPNode,
 			      NewReachedNodesSet),
 	mapNPPNode_NDPNode(NPPNode, NDPNode),
-	createSuccessors(NPPNode, NoOfPreds, 
+	createSuccessors(NPPNode, NoOfPreds,
 			 Predicates, SuccessorList),
 	processSuccessors(NewReachedNodesSet, NewNewReachedNodesSet,
 			  NPPNode, NDPNode, SuccessorList),
@@ -411,7 +411,7 @@ This leads to the following implementation of ~processReachedNodesSet~:
 
 */
 
-processReachedNodesSet(ReachedNodesSet, NewNewReachedNodesSet, 
+processReachedNodesSet(ReachedNodesSet, NewNewReachedNodesSet,
                        Predicates, NoOfPreds) :-
 	getMinimalDistantNode(ReachedNodesSet, NDPNode,
 			      NewReachedNodesSet),
@@ -426,7 +426,7 @@ processReachedNodesSet(ReachedNodesSet, NewNewReachedNodesSet,
 	not(destinationNode(NDPNode, NoOfPreds)),
 	!,
 	% then
-	processSuccessors(NewReachedNodesSet, NewNewReachedNodesSet, 
+	processSuccessors(NewReachedNodesSet, NewNewReachedNodesSet,
                           NPPNode, NDPNode, SuccessorList),
 	dc(immPath, (write('*** Successors processed. ***'), nl, nl)),
 	true.
@@ -473,7 +473,7 @@ the above call should be commented out.
 */
 
 createSuccessors(Node, NoOfPreds, Predicates, SuccessorList) :-
-	successorNodes(Node, NoOfPreds, 
+	successorNodes(Node, NoOfPreds,
 		       Predicates, 1, [], SuccessorList).
 
 /*
@@ -481,7 +481,7 @@ createSuccessors(Node, NoOfPreds, Predicates, SuccessorList) :-
 The arguments of
 
 ----
-successorNodes(node(NodeNo, NodePreds, Partition), NoOfPreds, Predicates, 
+successorNodes(node(NodeNo, NodePreds, Partition), NoOfPreds, Predicates,
 	       PredPos, Accumulator, SuccessorList)
 ----
 have the following meaning:
@@ -500,42 +500,42 @@ successor considered predicate. It must be initialized with 1 when the clause
 with 0, but in ~optimizer.pl~ the first predicate has the position 1 instead of
 0. Thus here the same is done.)
 
-  5 ~Accumulator~ is an accumulator for the list of successors. Initially it 
+  5 ~Accumulator~ is an accumulator for the list of successors. Initially it
 must be the empty list.
 
   6 ~SuccessorList~ is the list of successors of the current node.
 
 */
 
-successorNodes(_, NoOfPreds, _, PredPos, 
+successorNodes(_, NoOfPreds, _, PredPos,
 	       SuccessorList, SuccessorList) :-
 	PredPos > NoOfPreds,
 	!. % All successors are constructed.
 
-successorNodes(node(NodeNo, NodePreds, Partition), 
-	       NoOfPreds, [Predicate|RestAllPreds], PredPos, 
+successorNodes(node(NodeNo, NodePreds, Partition),
+	       NoOfPreds, [Predicate|RestAllPreds], PredPos,
                Accumulator, SuccessorList) :-
 	% if
 	member(Predicate, NodePreds),
         !,
 	% then
 	NewPredPos is PredPos + 1,
-	successorNodes(node(NodeNo, NodePreds, Partition), 
-		       NoOfPreds, RestAllPreds, NewPredPos, 
+	successorNodes(node(NodeNo, NodePreds, Partition),
+		       NoOfPreds, RestAllPreds, NewPredPos,
                        Accumulator, SuccessorList).
 
-successorNodes(node(NodeNo, NodePreds, Partition), 
-	       NoOfPreds, [Predicate|RestAllPreds], PredPos, 
+successorNodes(node(NodeNo, NodePreds, Partition),
+	       NoOfPreds, [Predicate|RestAllPreds], PredPos,
                Accumulator, SuccessorList) :-
 	% else i.e. not(member(Predicate, NodePreds)),
 	PredNo is 2^(PredPos-1),
 	NewNodeNo is NodeNo + PredNo,
-	createSuccessor(NewNodeNo, Predicate, PredNo, NodePreds, 
+	createSuccessor(NewNodeNo, Predicate, PredNo, NodePreds,
                         Partition, NewNode),
 	NewPredPos is PredPos + 1,
-	successorNodes(node(NodeNo, NodePreds, Partition), 
+	successorNodes(node(NodeNo, NodePreds, Partition),
           NoOfPreds, RestAllPreds, NewPredPos,
-	  [succ(NewNodeNo, NewNode, PredNo, Predicate)|Accumulator], 
+	  [succ(NewNodeNo, NewNode, PredNo, Predicate)|Accumulator],
           SuccessorList).
 
 /*
@@ -551,10 +551,10 @@ createSuccessor(NewNodeNo, _, _, _, _, NewNode) :-
 	% then
 	NewNode = node(NewNodeNo, StoredNodePreds, Partition).
 
-createSuccessor(NewNodeNo, Predicate, 
+createSuccessor(NewNodeNo, Predicate,
 		PredNo, NodePreds, Partition, NewNode) :-
 	% else
-	NewNode = node(NewNodeNo, 
+	NewNode = node(NewNodeNo,
 		       [Predicate|NodePreds], NewPartition),
 	assertz(NewNode),
 	copyPart(Predicate, PredNo, Partition, NewPartition),
@@ -567,10 +567,10 @@ To avoid unnecessary duplications of clauses and to use the clauses of the file
 ~optimizer.pl~ when possible, ~copyPart~ is used as a goal in ~createSuccessor~.
 
 But ~copyPart~ can only be used if a node that contains ~NewPartition~
-as its third element is already part of the knowledge-base. However 
-~NewPartition~ is not yet instantiated when ~copyPart~ is called. That's the 
+as its third element is already part of the knowledge-base. However
+~NewPartition~ is not yet instantiated when ~copyPart~ is called. That's the
 reason, why ~NewNode~ is first asserted and then, after ~NewPartition~ has been
-instantiated, is rectracted and again (with the meanwhile instantiated 
+instantiated, is rectracted and again (with the meanwhile instantiated
 ~NewPartition~) asserted.
 
 2.5.4 Different Representations for Nodes
@@ -581,9 +581,8 @@ createNDPNode(node(NodeNo, _, _), node(NodeNo, _, _)).
 
 createNDPSuccessor(succ(NodeNo, _, _, _), node(NodeNo, _, _)).
 
-mapNPPNode_NDPNode(node(NodeNo, Predicates, Partition), 
-		   node(NodeNo, _, _)) :-
-	node(NodeNo, Predicates, Partition).
+mapNPPNode_NDPNode(node(NodeNo, Predicates, Partition), node(NodeNo, _, _)) :-
+  node(NodeNo, Predicates, Partition).
 
 /*
 
@@ -614,18 +613,18 @@ comprehensibility.
 processSuccessors(ReachedNodesSet, ReachedNodesSet, _, _, []) :-
 	!.
 
-processSuccessors(ReachedNodesSet, NewReachedNodesSet, NPPNode, 
+processSuccessors(ReachedNodesSet, NewReachedNodesSet, NPPNode,
                   NDPNode, [Successor]) :-
 	dc(immPath, (write('Check Successor: '), write(Successor), nl)),
-	checkSuccessor(ReachedNodesSet, NewReachedNodesSet, NPPNode, 
+	checkSuccessor(ReachedNodesSet, NewReachedNodesSet, NPPNode,
                        NDPNode, Successor),
 	dc(immPath, (write('Successor checked.'), nl, nl)),
 	true.
 
-processSuccessors(ReachedNodesSet, NewNewReachedNodesSet, NPPNode, 
+processSuccessors(ReachedNodesSet, NewNewReachedNodesSet, NPPNode,
                   NDPNode, [Successor|SuccessorList]) :-
 	dc(immPath, (write('Check Successor: '), write(Successor), nl)),
-	checkSuccessor(ReachedNodesSet, NewReachedNodesSet, NPPNode, 
+	checkSuccessor(ReachedNodesSet, NewReachedNodesSet, NPPNode,
                        NDPNode, Successor),
 
 	dc(immPath, (write('Successor checked.'), nl, nl)),
@@ -675,19 +674,19 @@ retractCheckSuccessorClause :-
 
 restoreCheckSuccessorClauses :-
   retractCheckSuccessorClauses,
-  assert( checkSuccessor(ReachedNodesSet, ReachedNodesSet, _, _, 
+  assert( checkSuccessor(ReachedNodesSet, ReachedNodesSet, _, _,
                                        succ(SuccNodeNo, _, _, _)) :-
           ( isTickedOff(SuccNodeNo),
             dc(immPath, (write('Successor is already ticked off.'), nl)),
             !
           )
         ),
-  assert( checkSuccessor(ReachedNodesSet, NewReachedNodesSet, 
-                 node(NodeNo, NodePreds, Partition), NDPNode, 
+  assert( checkSuccessor(ReachedNodesSet, NewReachedNodesSet,
+                 node(NodeNo, NodePreds, Partition), NDPNode,
                         succ(SuccNodeNo, _, PredNo, Predicate)) :-
           ( isInReachedNodesSet(ReachedNodesSet, node(SuccNodeNo, _, _)),
             !,
-            dc(immPath, (write('Successor is not ticked off '), 
+            dc(immPath, (write('Successor is not ticked off '),
                          write('but already reached.'), nl)),
             createEdge(NodeNo, SuccNodeNo,
                        node(NodeNo, NodePreds, Partition),
@@ -699,25 +698,25 @@ restoreCheckSuccessorClauses :-
                                    ReachedNodesSet, NewReachedNodesSet)
           )
         ),
-  assert( checkSuccessor(ReachedNodesSet, NewReachedNodesSet, 
-                         node(NodeNo, NodePreds, Partition), NDPNode, 
+  assert( checkSuccessor(ReachedNodesSet, NewReachedNodesSet,
+                         node(NodeNo, NodePreds, Partition), NDPNode,
                                  succ(SuccNodeNo, _, PredNo, Predicate)) :-
           ( dc(immPath, (write('Successor is not ticked off '),
                          write('and not yet reached.'), nl)),
-            createEdge(NodeNo, SuccNodeNo, 
-                       node(NodeNo, NodePreds, Partition), 
+            createEdge(NodeNo, SuccNodeNo,
+                       node(NodeNo, NodePreds, Partition),
                        PredNo, Predicate, Edge),
             createPlanEdges(Edge, PlanEdges),
             assignSize(Edge),
             cheapestCostEdge(PlanEdges, CostEdge),
-            dc(immPath, (write('Cheapest cost edge is determined: '), 
+            dc(immPath, (write('Cheapest cost edge is determined: '),
                          write(CostEdge), nl)),
             createNDPSuccessor(succ(SuccNodeNo, _, _, _), NDPSuccessor),
             setDistanceAndPath(NDPNode, NDPSuccessor, CostEdge),
             putIntoReachedNodesSet(ReachedNodesSet, NDPSuccessor,
                                                     NewReachedNodesSet)
           )
-        ). 
+        ).
 
 
 :- restoreCheckSuccessorClauses.
@@ -728,12 +727,13 @@ restoreCheckSuccessorClauses :-
 
 */
 
-createEdge(NodeNo, NewNodeNo, Node, PredNo, _, NewEdge) :-
+createEdge(NodeNo, NewNodeNo, Node, PredNo, Predicate, NewEdge) :-
 	% if
-	edge(NodeNo, NewNodeNo, _, _, Node, PredNo),
+	edge(NodeNo, NewNodeNo, Term, Result, Node, PredNo),
+  pred(Term,Predicate),
 	!,
 	% then
-	NewEdge = edge(NodeNo, NewNodeNo, _, _, Node, PredNo).
+	NewEdge = edge(NodeNo, NewNodeNo, Term, Result, Node, PredNo).
 
 createEdge(NodeNo, NewNodeNo, Node, PredNo, Predicate, NewEdge) :-
 	% else
@@ -749,9 +749,9 @@ To avoid unnecessary duplications of clauses and to use the clauses of the file
 ~optimizer.pl~ when possible, ~newEdge~ is used as a goal in ~createEdge~.
 
 But ~newEdge~ can only be used if a corresponding ~edge~-structure is already
-part of the knowledge-base. However ~NewEdge~ is not yet instantiated when 
-~newEdge~ is called. That's the reason, why ~NewEdge~ is first asserted and 
-then, after ~newEdge~ has been called, is rectracted and again (with the 
+part of the knowledge-base. However ~NewEdge~ is not yet instantiated when
+~newEdge~ is called. That's the reason, why ~NewEdge~ is first asserted and
+then, after ~newEdge~ has been called, is rectracted and again (with the
 meanwhile instantiated elements) asserted.
 
 2.5.8 Creating Plan Edges
@@ -772,8 +772,8 @@ createPlanEdge(edge(Source, Target, Term, Result, _, _)) :-
 
 /*
 
-According to ~createPlanEdges~/0 and ~createPlanEdge~/0, which are defined in 
-~optimizer.pl~ the clauses ~createPlanEdges~/1 and ~createPlanEdge~/1 aim at 
+According to ~createPlanEdges~/0 and ~createPlanEdge~/0, which are defined in
+~optimizer.pl~ the clauses ~createPlanEdges~/1 and ~createPlanEdge~/1 aim at
 the creation of plan edges corresponding to a given Edge.
 
 2.5.9 Getting Plan Edges
@@ -782,7 +782,8 @@ the creation of plan edges corresponding to a given Edge.
 
 allCorrPlanEdges(edge(Source, Target, _, Result, _, _), PlanEdges) :-
 	findall(planEdge(Source, Target, Plan, Result),
-		planEdge(Source, Target, Plan, Result), PlanEdges).
+          planEdge(Source, Target, Plan, Result),
+          PlanEdges).
 
 getPlanEdges(EdgeList, PlanEdgeList) :-
 	getPlanEdges(EdgeList, [], PlanEdgeList).
@@ -823,12 +824,13 @@ testing. And they may be useful for further modifications of the optimizer.
 
 createCostEdges([]).
 
-createCostEdges([planEdge(Source, Target, Plan, Result)|
-                 PlanEdgeList]) :-
-	edgeSelectivity(Source, Target, Sel),
-	cost(Plan, Sel, Size, Cost),
-	assert(costEdge(Source, Target, Plan, Result, Size, Cost)),
-	createCostEdges(PlanEdgeList).
+createCostEdges([planEdge(Source, Target, Plan, Result)|PlanEdgeList]) :-
+  edgeSelectivity(Source, Target, Sel),
+  edge(Source, Target, Term, _, _, _),
+  pred(Term,Pred),
+  cost(Plan, Sel, Pred, Size, Cost),
+  assert(costEdge(Source, Target, Plan, Result, Size, Cost)),
+  createCostEdges(PlanEdgeList).
 
 /*
 
@@ -836,11 +838,10 @@ createCostEdges([planEdge(Source, Target, Plan, Result)|
 
 */
 
-cheapestCostEdge([planEdge(Source, Target, Plan, Result)|
-		  PlanEdgeList], CostEdge) :-
-	createCostEdges([planEdge(Source, Target, Plan, Result)|
-		         PlanEdgeList]),
-	getCheapestCostEdge(Source, Target, CostEdge).
+cheapestCostEdge([planEdge(Source, Target, Plan, Result)|PlanEdgeList],
+                 CostEdge) :-
+  createCostEdges([planEdge(Source, Target, Plan, Result)|PlanEdgeList]),
+  getCheapestCostEdge(Source, Target, CostEdge).
 
 /*
 
@@ -850,26 +851,23 @@ empty. But in the current context it is guaranteed, that the list is not empty.
 */
 
 getCheapestCostEdge(Source, Target, CheapestCostEdge) :-
-	findall(costEdge(Source, Target, Plan, Result, Size, Cost),
-		costEdge(Source, Target, Plan, Result, Size, Cost),
-		CostEdges),
-	findCheapestCostEdge(CostEdges, CheapestCostEdge).
+  findall(costEdge(Source, Target, Plan, Result, Size, Cost),
+          costEdge(Source, Target, Plan, Result, Size, Cost),
+          CostEdges),
+  findCheapestCostEdge(CostEdges, CheapestCostEdge).
 
-findCheapestCostEdge([CheapestCostEdge], CheapestCostEdge) :-
-	!.
+findCheapestCostEdge([CheapestCostEdge], CheapestCostEdge) :- !.
 
-findCheapestCostEdge([costEdge(Source, Target, Plan, 
-                               Result, Size, Cost1)|Remainder], 
-		      costEdge(ResSource, ResTarget, ResPlan, 
-                      ResResult, ResSize, ResCost)) :-
-	findCheapestCostEdge(Remainder, 
-			     costEdge(_, _, _, _, _, Cost2)),
+findCheapestCostEdge([costEdge(Source, Target, Plan,
+                               Result, Size, Cost1)|Remainder],
+                     costEdge(ResSource, ResTarget, ResPlan,
+                     ResResult, ResSize, ResCost)) :-
+  findCheapestCostEdge(Remainder,costEdge(_, _, _, _, _, Cost2)),
 	% if
 	Cost1 =< Cost2,
 	!,
 	% then
-	costEdge(ResSource, ResTarget, ResPlan, 
-		 ResResult, ResSize, ResCost) 
+	costEdge(ResSource, ResTarget, ResPlan, ResResult, ResSize, ResCost)
 	= costEdge(Source, Target, Plan, Result, Size, Cost1).
 
 findCheapestCostEdge([_|Remainder], CheapestCostEdge) :-
@@ -906,18 +904,18 @@ edge of the POG, hence the list always contains just a few elements.
 
 */
 
-setDistanceAndPath(node(NodeNo, Distance, Path), 
-               node(SuccNo, SuccDistance, SuccPath), 
+setDistanceAndPath(node(NodeNo, Distance, Path),
+               node(SuccNo, SuccDistance, SuccPath),
 	       costEdge(NodeNo, SuccNo, Term, Result, Size, Cost)) :-
 	SuccDistance is Distance + Cost,
 	dc(immPath, (write('Distance of successor '), write(SuccNo),
                      write(' determined: '), write(SuccDistance), nl)),
-	append(Path, 
-               [costEdge(NodeNo, SuccNo, Term, Result, Size, Cost)], 
+	append(Path,
+               [costEdge(NodeNo, SuccNo, Term, Result, Size, Cost)],
                SuccPath).
 
 correctDistanceAndPath(node(NodeNo, Distance, Path), SuccNo,
-		 costEdge(NodeNo, SuccNo, Term, Result, Size, Cost), 
+		 costEdge(NodeNo, SuccNo, Term, Result, Size, Cost),
 		 ReachedNodesSet, NewNewReachedNodesSet) :-
 	readAlreadyReachedNode(ReachedNodesSet, SuccNo,
                                node(SuccNo, SuccDistance, SuccPath)),
@@ -926,21 +924,21 @@ correctDistanceAndPath(node(NodeNo, Distance, Path), SuccNo,
 	SuccDistance > NewSuccDistance,
 	!,
 	% then
-	deleteOutOfReachedNodesSet(ReachedNodesSet, 
-                               node(SuccNo, SuccDistance, SuccPath), 
+	deleteOutOfReachedNodesSet(ReachedNodesSet,
+                               node(SuccNo, SuccDistance, SuccPath),
                                NewReachedNodesSet),
-	append(Path, 
+	append(Path,
 	       [costEdge(NodeNo, SuccNo, Term, Result, Size, Cost)],
                NewSuccPath),
 	dc(immPath, (write('Distance of successor is corrected: '),
 	             write(NewSuccDistance), nl)),
-	putIntoReachedNodesSet(NewReachedNodesSet, 
+	putIntoReachedNodesSet(NewReachedNodesSet,
                          node(SuccNo, NewSuccDistance, NewSuccPath),
                          NewNewReachedNodesSet).
 
 correctDistanceAndPath(_, _, _, ReachedNodesSet, ReachedNodesSet).
 	% else do nothing
-	
+
 /*
 
 2.5.14 Ticking Off Nodes - The Interface
@@ -952,8 +950,8 @@ Actually they are not absolutely necessary.
 
 
 % enable modifications by intOrder:
-:- dynamic emptyTickedOffSet/0. 
-:- dynamic tickOff/1. 
+:- dynamic emptyTickedOffSet/0.
+:- dynamic tickOff/1.
 :- dynamic isTickedOff/1.
 :- dynamic getTickedOffNode/2.
 
@@ -971,7 +969,7 @@ restoreTOSImplementation :-
   assert( tickOff(node(NodeNo, Distance, Path)) :-
           ( assert(center(NodeNo, node(NodeNo, Distance, Path))) )
         ),
-  assert( isTickedOff(NodeNo) :- ( center(NodeNo, _) ) ), 
+  assert( isTickedOff(NodeNo) :- ( center(NodeNo, _) ) ),
   assert( getTickedOffNode(NodeNo, Node) :- ( center(NodeNo, Node) ) ).
 
 :- restoreTOSImplementation.
@@ -1015,7 +1013,7 @@ retractCurrentRNSImplementation :- !.
 
 restoreRNSImplementation :-
   retractCurrentRNSImplementation,
-  assert( createEmptyReachedNodesSet(ReachedNodesSet) :- 
+  assert( createEmptyReachedNodesSet(ReachedNodesSet) :-
           ( b_empty(ReachedNodesSet) )
         ),
   assert( putIntoReachedNodesSet(ReachedNodesSet, Node, NewReachedNodesSet) :-
@@ -1030,7 +1028,7 @@ restoreRNSImplementation :-
   assert( getMinimalDistantNode(ReachedNodesSet, Node, NewReachedNodesSet) :-
           ( b_removemin(ReachedNodesSet, Node, NewReachedNodesSet) )
         ),
-  assert( deleteOutOfReachedNodesSet(ReachedNodesSet, node(NodeNo, _, _), 
+  assert( deleteOutOfReachedNodesSet(ReachedNodesSet, node(NodeNo, _, _),
                                                        NewReachedNodesSet) :-
           ( b_deleteByName(ReachedNodesSet, NodeNo, NewReachedNodesSet) )
         ),
@@ -1084,19 +1082,19 @@ countMinDistNodes :-
 
 2.6 Measuring und Comparing Times needed for Optimization
 
-April 2006, Christian D[ue]ntgen: 
+April 2006, Christian D[ue]ntgen:
 
-The text of this and the following sub-sections of section 2 have not been adopted to the current 
+The text of this and the following sub-sections of section 2 have not been adopted to the current
 implementation (regarding integration into the optimizer and switching between options).
 
 2.6.1 The Procedure
 
-*/ 
+*/
 
 checkCalcTime(Head):-
 	getTime(Head, Time2),
 	Time3 is 1000*Time2,
-	write('Time needed for calculating the overall result: '), 
+	write('Time needed for calculating the overall result: '),
 	write(Time3), nl.
 
 countNodes :-
@@ -1107,8 +1105,9 @@ countNodes :-
 
 countPlanEdges :-
 	findall(planEdge(Source, Target, Plan, Result),
-		planEdge(Source, Target, Plan, Result), PlanEdges),
-	length(PlanEdges, Length),
+          planEdge(Source, Target, Plan, Result),
+          PlanEdges),
+  length(PlanEdges, Length),
 	write(Length), write(' plan edges were found.'), nl.
 
 /*
@@ -1150,8 +1149,8 @@ storedSel(staedte:pLZ>40000, 0.0172414).
 storedSel(staedte:pLZ<50000, 1.01724).
 ----
 
-The used computer for the tests was a Fujitsu Siemens 
-Amilo L 1300 Notebook with an Intel Celeron M 370 1.5 GHz 
+The used computer for the tests was a Fujitsu Siemens
+Amilo L 1300 Notebook with an Intel Celeron M 370 1.5 GHz
 processor and 512 MB RAM.
 
 The operating system was Linux, distribution 9.3 from the SUSE distributor with kernel 2.6.11.4.
@@ -1216,7 +1215,7 @@ The following clauses are identical to the clauses ~example14~/2,
 */
 
 test1(Query, Cost) :- optimize(
-  select * from [staedte as s, plz as p] 
+  select * from [staedte as s, plz as p]
   where [p:ort = s:sname, p:plz > 40000,  (p:plz mod 5) = 0],
   Query, Cost
   ).
@@ -1227,7 +1226,7 @@ test2(Query, Cost) :- optimize(
   ).
 
 test3(Query, Cost) :-  optimize(
-  select * from [staedte as s, plz as p] 
+  select * from [staedte as s, plz as p]
   where [s:sname = p:ort, p:plz > 40000],
   Query, Cost
   ).
@@ -1297,14 +1296,14 @@ test7(Query, Cost) :- optimize(
 
 test8(Query, Cost) :- optimize(
   select [sname, bev]
-  from staedte 
+  from staedte
   where [bev>270000, sname starts "S"],
   Query, Cost
   ).
 
 test9(Query, Cost) :- optimize(
-  select * 
-  from [orte as o, plz as p] 
+  select *
+  from [orte as o, plz as p]
   where [o:ort = p:ort, o:ort contains "dorf", (p:plz mod 13) = 0],
   Query, Cost
   ).
@@ -1316,39 +1315,39 @@ test10(Query, Cost) :- optimize(
   ).
 
 test11(Query, Cost) :- optimize(
-  select [o:ort, p1:plz, p2:plz] 
-  from [orte as o, plz as p1, plz as p2] 
+  select [o:ort, p1:plz, p2:plz]
+  from [orte as o, plz as p1, plz as p2]
   where [
-    o:ort = p1:ort, 
-    p2:plz = (p1:plz +1), 
-    o:ort contains "dorf"] 
+    o:ort = p1:ort,
+    p2:plz = (p1:plz +1),
+    o:ort contains "dorf"]
   orderby [o:ort asc, p2:plz desc],
   Query, Cost
   ).
 
 test12(Query, Cost) :- optimize(
-  select * 
-  from [orte as o, plz as p] 
+  select *
+  from [orte as o, plz as p]
   where [o:ort = p:ort, p:plz = 44225],
   Query, Cost
   ).
 
 test13(Query, Cost) :- optimize(
-  select * 
-  from [orte as o, plz as p] 
+  select *
+  from [orte as o, plz as p]
   where [
-    o:ort = p:ort, 
+    o:ort = p:ort,
     p:plz > 50000,
     o:ort contains "dorf"],
   Query, Cost
   ).
 
 test14(Query, Cost) :- optimize(
-  select count(*) 
-  from [orte as o, plz as p1, plz as p2] 
+  select count(*)
+  from [orte as o, plz as p1, plz as p2]
   where [
-    o:ort = p1:ort, 
-    p2:plz = p1:plz + 1, 
+    o:ort = p1:ort,
+    p2:plz = p1:plz + 1,
     (p2:plz mod 5) = 0,
     p1:plz > 50000,
     o:ort contains "dorf"],
@@ -1356,8 +1355,8 @@ test14(Query, Cost) :- optimize(
   ).
 
 test15(Query, Cost) :- optimize(
-  select [ort, min(plz) as minplz, 
-          max(plz) as maxplz, count(*) as cntplz] 
+  select [ort, min(plz) as minplz,
+          max(plz) as maxplz, count(*) as cntplz]
   from plz
   where plz > 40000
   groupby ort
@@ -2069,7 +2068,7 @@ altRNSImplementation1 :-
 			( deleteAllReachedNodes )
              ),
       asserta(
-              putIntoReachedNodesSet(ReachedNodesSet, 
+              putIntoReachedNodesSet(ReachedNodesSet,
 		  node(NodeNo, Distance, Path),
                        NewReachedNodesSet) :-
 		( assert(reachedNode(NodeNo, Distance, Path)),
@@ -2082,13 +2081,13 @@ altRNSImplementation1 :-
 		( reachedNode(NodeNo, _, _) )
              ),
       asserta(
-	      readAlreadyReachedNode(_, NodeNo, 
+	      readAlreadyReachedNode(_, NodeNo,
 		  node(NodeNo, Distance, Path)) :-
 		( reachedNode(NodeNo, Distance, Path) )
              ),
       asserta(
-	      getMinimalDistantNode(ReachedNodesSet, 
-		  node(NodeNo, Distance, Path), 
+	      getMinimalDistantNode(ReachedNodesSet,
+		  node(NodeNo, Distance, Path),
 		  NewReachedNodesSet) :-
 		( deleteFirstOfDistanceList(ReachedNodesSet,
 		  pair(_, NodeNo),
@@ -2096,8 +2095,8 @@ altRNSImplementation1 :-
 		  retract(reachedNode(NodeNo, Distance, Path)) )
              ),
       asserta(
-	      deleteOutOfReachedNodesSet(ReachedNodesSet, 
-		  node(NodeNo, Distance, _), 
+	      deleteOutOfReachedNodesSet(ReachedNodesSet,
+		  node(NodeNo, Distance, _),
                        NewReachedNodesSet) :-
 		( deleteOutOfDistanceList(ReachedNodesSet,
 		  pair(Distance, NodeNo),
@@ -2125,28 +2124,28 @@ putIntoDistanceList(InList, pair(Distance, NodeNo), OutList) :-
 	!,
 	% then
 	OutList = [pair(Distance, NodeNo)|InList].
-	
-putIntoDistanceList([Element|InListRemainder], 
+
+putIntoDistanceList([Element|InListRemainder],
 		pair(Distance, NodeNo),
 		[Element|OutListRemainder]) :-
 	% else
-	putIntoDistanceList(InListRemainder, 
+	putIntoDistanceList(InListRemainder,
 			    pair(Distance, NodeNo),
 			    OutListRemainder).
-	
+
 deleteFirstOfDistanceList([pair(_, NodeNo)|ListRemainder],
 			  pair(_, NodeNo),
 			  ListRemainder).
 
 deleteOutOfDistanceList([], _, []).
 
-deleteOutOfDistanceList([Element|InListRemainder], 
+deleteOutOfDistanceList([Element|InListRemainder],
 			Element, InListRemainder) :-
 	!.
 
 deleteOutOfDistanceList([OtherElement|InListRemainder],
 			Element, [OtherElement|OutListRemainder]) :-
-	deleteOutOfDistanceList(InListRemainder, 
+	deleteOutOfDistanceList(InListRemainder,
 				Element, OutListRemainder).
 
 /*
@@ -2164,7 +2163,7 @@ altRNSImplementation2 :-
 			( true )
              ),
       asserta(
-              putIntoReachedNodesSet(ReachedNodesSet, 
+              putIntoReachedNodesSet(ReachedNodesSet,
 			  node(NodeNo, Distance, Path),
                           NewReachedNodesSet) :-
 			( putIntoNodeList(ReachedNodesSet,
@@ -2176,7 +2175,7 @@ altRNSImplementation2 :-
 			( member(Node, ReachedNodesSet) )
              ),
       asserta(
-	      readAlreadyReachedNode(ReachedNodesSet, NodeNo, 
+	      readAlreadyReachedNode(ReachedNodesSet, NodeNo,
 			  node(NodeNo, Distance, Path)) :-
 			( member(node(NodeNo, Distance, Path),
 			  ReachedNodesSet) )
@@ -2190,7 +2189,7 @@ altRNSImplementation2 :-
 			  NewReachedNodesSet) )
              ),
       asserta(
-	      deleteOutOfReachedNodesSet(ReachedNodesSet, 
+	      deleteOutOfReachedNodesSet(ReachedNodesSet,
 			  node(NodeNo, _, _),
                           NewReachedNodesSet) :-
 			( deleteOutOfNodeList(ReachedNodesSet,
@@ -2214,13 +2213,13 @@ putIntoNodeList(InList, node(NodeNo, Distance, Path), OutList) :-
 	!,
 	% then
 	OutList = [node(NodeNo, Distance, Path)|InList].
-	
-putIntoNodeList([Element|InListRemainder], 
+
+putIntoNodeList([Element|InListRemainder],
 		node(NodeNo, Distance, Path),
 		[Element|OutListRemainder]) :-
 	% else
 	putIntoNodeList(InListRemainder,
-			    node(NodeNo, Distance, Path), 
+			    node(NodeNo, Distance, Path),
 			    OutListRemainder).
 
 deleteFirstOfNodeList([node(NodeNo, Distance, Path)|ListRemainder],
@@ -2229,13 +2228,13 @@ deleteFirstOfNodeList([node(NodeNo, Distance, Path)|ListRemainder],
 
 deleteOutOfNodeList([], _, []).
 
-deleteOutOfNodeList([Element|InListRemainder], 
+deleteOutOfNodeList([Element|InListRemainder],
 		     Element, InListRemainder) :-
 	!.
 
 deleteOutOfNodeList([OtherElement|InListRemainder],
 			Element, [OtherElement|OutListRemainder]) :-
-	deleteOutOfNodeList(InListRemainder, 
+	deleteOutOfNodeList(InListRemainder,
 			    Element, OutListRemainder).
 
 /*
@@ -2261,7 +2260,7 @@ altRNSImplementation3 :-
 			( deleteAllReachedNodes )
              ),
       asserta(
-              putIntoReachedNodesSet(_, 
+              putIntoReachedNodesSet(_,
 		  node(NodeNo, Distance, Path),
                        full) :-
 		( assert(reachedNode(NodeNo, Distance, Path)) )
@@ -2271,7 +2270,7 @@ altRNSImplementation3 :-
 		( reachedNode(NodeNo, _, _) )
              ),
       asserta(
-	      readAlreadyReachedNode(_, NodeNo, 
+	      readAlreadyReachedNode(_, NodeNo,
 		  node(NodeNo, Distance, Path)) :-
 		( reachedNode(NodeNo, Distance, Path) )
              ),
@@ -2311,7 +2310,7 @@ findMinimalDistantNode([Node], Node) :-
 
 findMinimalDistantNode([reachedNode(_, Distance1,_)|Remainder],
 		       MinDistNode) :-
-	findMinimalDistantNode(Remainder, 
+	findMinimalDistantNode(Remainder,
 		       reachedNode(NodeNo2, Distance2, Path2)),
 	% if
 	Distance1 >= Distance2,
@@ -2511,25 +2510,25 @@ The following list considers only those books and papers, that have
 been very useful for learning Prolog and programming the above
 described modifications of the original Secondo-optimizer.
 
-W.F. Clocksin, C.S. Mellish, Programming in Prolog: using the ISO 
+W.F. Clocksin, C.S. Mellish, Programming in Prolog: using the ISO
 standard, 5th Edition, Berlin, Heidelberg, New York, 2003.
 
 R.H. G[ue]ting, Datenstrukturen, Fernuniversit[ae]t Hagen, 1999.
 
-R.H. G[ue]ting, T. Behr, V. T. de Almeida, Z. Ding, F. Hoffmann, 
-and M. Spiekermann, Secondo: An Extensible DBMS Architecture and 
-Prototype. Fernuniversit[ae]t Hagen, Informatik-Report 313, March 
+R.H. G[ue]ting, T. Behr, V. T. de Almeida, Z. Ding, F. Hoffmann,
+and M. Spiekermann, Secondo: An Extensible DBMS Architecture and
+Prototype. Fernuniversit[ae]t Hagen, Informatik-Report 313, March
 2004, www.informatik.fernuni-hagen.de/import/pi4/papers/
 Secondo04.pdf
 
-R. H. G[ue]ting, D. Ansorge, T. Behr, M. Spiekermann, Secondo User 
-Manual, Version 3, September 21, 2004. Fernuniversit[ae]t Hagen, 
+R. H. G[ue]ting, D. Ansorge, T. Behr, M. Spiekermann, Secondo User
+Manual, Version 3, September 21, 2004. Fernuniversit[ae]t Hagen,
 www.informatik.fernuni-hagen.de/import/pi4/Secondo.html/
 files/SecondoManual.pdf
 
-R. H. G[ue]ting, V. T. de Almeida, D. Ansorge, T. Behr, 
-M. Spiekermann. Secondo Programmers Guide, Version 2, 
-October 5, 2004, Fernuniversit[ae]t Hagen, 
+R. H. G[ue]ting, V. T. de Almeida, D. Ansorge, T. Behr,
+M. Spiekermann. Secondo Programmers Guide, Version 2,
+October 5, 2004, Fernuniversit[ae]t Hagen,
 www.informatik.fernuni-hagen.de/import/pi4/
 Secondo.html/files/ProgrammersGuide.pdf
 
@@ -2537,10 +2536,10 @@ G. R[oe]hner, Informatik mit Prolog, Wiesbaden, 2002.
 
 R. Sedgewick, Algorithmen, 2. Auflage, M[ue]nchen, 2002.
 
-L. Sterling, E. Shapiro, Prolog, Fortgeschrittene 
+L. Sterling, E. Shapiro, Prolog, Fortgeschrittene
 Programmiertechniken, Bonn, 1988.
 
-W. Weisweber, Prolog, Logische Programmierung in der Praxis, 
+W. Weisweber, Prolog, Logische Programmierung in der Praxis,
 Bonn, 1997.
 
 */
