@@ -322,7 +322,7 @@ int OpBusReachValueMapping(Word* args, Word& result,
   result = qp->ResultStorage(s);
   BusNetwork* busnet = (BusNetwork*)args[0].addr;
   MInt* querycond = (MInt*)args[1].addr;
-  busnet->Reachability(*(MPoint*)result.addr,querycond);
+  busnet->Reachability((MPoint*)result.addr,querycond);
   return 0;
 }
 

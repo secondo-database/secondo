@@ -101,8 +101,8 @@ public:
   Relation* GetRelBus_Node(){return bus_node;}
   Relation* GetRelBus_Route(){return bus_route;}
   Relation* GetRelBus_Edge(){return bus_edge;}
-  int FindPointTid(Point& p);
-  void Reachability(MPoint& route,MInt* query);
+  TupleId FindPointTid(Point& p);
+  void Reachability(MPoint* result,MInt* query);
   void FindPath(const UInt* ui1,const UInt* ui2,vector<int>& path);
 
 private:

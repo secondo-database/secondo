@@ -400,17 +400,12 @@ void BusNetwork::FillBusNode(const Relation* in_busRoute)
 Get the node id of a bus stop
 
 */
-int BusNetwork::FindPointTid(Point& p)
+TupleId BusNetwork::FindPointTid(Point& p)
 {
   BBox<2> searchbox = p.BoundingBox();
   R_TreeLeafEntry<2,TupleId> e;
-  if(rtree_bus_node->First(searchbox,e)){
-    Tuple* tuple = bus_node->GetTuple(e.info);
-    CcInt* nid = (CcInt*)tuple->GetAttribute(SID);
-    int id = nid->GetIntval();
-    tuple->DeleteIfAllowed();
-    return id;
-  }
+  if(rtree_bus_node->First(searchbox,e))
+    return e.info;
   return 0;
 }
 /*
@@ -450,6 +445,7 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
     //////////
     int start_index=0;
     int end_index=0;
+//    cout<<*trip<<endl;
     for(int j = 0;j < trip->GetNoComponents();j++){
       trip->Get(j,up);
       Point p0 = up->p0;
@@ -463,7 +459,7 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
           start_index++;
         if(!AlmostEqual(p0,p1))
           connectpoints.push_back(p1);
-        timeInterval.start = up->timeInterval.start;
+
         continue;
       }
 
@@ -471,7 +467,6 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
         endpoints.push_back(p0);
 
         if(endpoints.size() == 2){ //extract edge
-          timeInterval.end = up->timeInterval.start;
  //       cout<<i<<" Interval "<<timeInterval<<" "<<connectpoints.size()<<endl;
           //create line
           Line* line = new Line(0);
@@ -489,28 +484,37 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
           }
           line->EndBulkLoad();
  ////////////////////    edge         ///////////////////////////////////////
-          int id1 = FindPointTid(endpoints[0]);
-          int id2 = FindPointTid(endpoints[1]);
+          TupleId tid1 = FindPointTid(endpoints[0]);
+          TupleId tid2 = FindPointTid(endpoints[1]);
 //          cout<<id1<<" "<<id2<<endl;
-          assert(id1 != id2 && id1 != 0 && id2 != 0);
+          assert(tid1 != tid2 && tid1 != 0 && tid2 != 0);
 //          cout<<endpoints[0]<<" "<<endpoints[1]<<endl;
-          Tuple* tuple_p1 = bus_node->GetTuple(id1);
-          Tuple* tuple_p2 = bus_node->GetTuple(id2);
+          Tuple* tuple_p1 = bus_node->GetTuple(tid1);
+          Tuple* tuple_p2 = bus_node->GetTuple(tid2);
 //          cout<<*tuple_p1<<" "<<*tuple_p2<<endl;
           Point* p1 = (Point*)tuple_p1->GetAttribute(LOC);
           Point* p2 = (Point*)tuple_p2->GetAttribute(LOC);
+          int nid1 = ((CcInt*)tuple_p1->GetAttribute(SID))->GetIntval();
+          int nid2 = ((CcInt*)tuple_p2->GetAttribute(SID))->GetIntval();
           assert(AlmostEqual(*p1,endpoints[0])&&AlmostEqual(*p2,endpoints[1]));
           tuple_p1->DeleteIfAllowed();
           tuple_p2->DeleteIfAllowed();
 
           Tuple* edgetuple = new Tuple(nl->Second(xNumType2));
 
+
+///////////////////////////////////////////////////////////////////////////
+          end_index = j;
+
+          trip->Get(start_index,up);
+          timeInterval.start = up->timeInterval.start;
+          trip->Get(end_index,up);
+          timeInterval.end = up->timeInterval.start;
           Periods* peri = new Periods(1);
           peri->StartBulkLoad();
           peri->Add(timeInterval);
           peri->EndBulkLoad(true);
-///////////////////////////////////////////////////////////////////////////
-          end_index = j;
+
           MPoint* temp_mp = new MPoint(0);
           temp_mp->StartBulkLoad();
           for(;start_index < end_index;start_index++){//no static behavior
@@ -518,11 +522,13 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
             temp_mp->Add(*up);
           }
           temp_mp->EndBulkLoad(true);
-//          cout<<*temp_mp;
+
+//          cout<<timeInterval<<endl;
+//          cout<<*temp_mp<<endl;
 /////////////////////////////////////////////////////////////////////////////
           edgetuple->PutAttribute(EID,new CcInt(true,eid));
-          edgetuple->PutAttribute(V1, new CcInt(true,id1));
-          edgetuple->PutAttribute(V2, new CcInt(true,id2));
+          edgetuple->PutAttribute(V1, new CcInt(true,nid1));
+          edgetuple->PutAttribute(V2, new CcInt(true,nid2));
           edgetuple->PutAttribute(DEF_T, peri);
           edgetuple->PutAttribute(LINE, new Line(*line));
           edgetuple->PutAttribute(FEE,new CcReal(true,costfee));
@@ -540,8 +546,6 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
 
           endpoints.push_back(p0);//next line
           connectpoints.push_back(p0);
-          timeInterval.start = up->timeInterval.end;
-          timeInterval.end = up->timeInterval.end;
         }else{
           //the prorgram should never come here
           assert(false);
@@ -553,7 +557,6 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
          if(j == trip->GetNoComponents() - 1){ //add a trip without middle stop
           endpoints.push_back(p1);
 
-          timeInterval.end = up->timeInterval.end;
           Line* line = new Line(0);
           line->StartBulkLoad();
           int edgeno = 0;
@@ -570,39 +573,49 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
           line->EndBulkLoad();
 
 ////////////////////    edge         ///////////////////////////////////////
-          int id1 = FindPointTid(endpoints[0]);
-          int id2 = FindPointTid(endpoints[1]);
+          TupleId tid1 = FindPointTid(endpoints[0]);
+          TupleId tid2 = FindPointTid(endpoints[1]);
 //          cout<<id1<<" "<<id2<<endl;
-          assert(id1 != id2);
+          assert(tid1 != tid2);
 //          cout<<endpoints[0]<<" "<<endpoints[1]<<endl;
-          Tuple* tuple_p1 = bus_node->GetTuple(id1);
-          Tuple* tuple_p2 = bus_node->GetTuple(id2);
+          Tuple* tuple_p1 = bus_node->GetTuple(tid1);
+          Tuple* tuple_p2 = bus_node->GetTuple(tid2);
 //          cout<<*tuple_p1<<" "<<*tuple_p2<<endl;
           Point* p1 = (Point*)tuple_p1->GetAttribute(LOC);
           Point* p2 = (Point*)tuple_p2->GetAttribute(LOC);
+          int nid1 = ((CcInt*)tuple_p1->GetAttribute(SID))->GetIntval();
+          int nid2 = ((CcInt*)tuple_p2->GetAttribute(SID))->GetIntval();
+
           assert(AlmostEqual(*p1,endpoints[0])&&AlmostEqual(*p2,endpoints[1]));
           tuple_p1->DeleteIfAllowed();
           tuple_p2->DeleteIfAllowed();
+    ///////////////////////////////////////////////////////////////////////////
+          end_index = j;
+//          cout<<start_index<<" "<<end_index<<endl;
+          trip->Get(start_index,up);
+          timeInterval.start = up->timeInterval.start;
+          trip->Get(end_index,up);
+          timeInterval.end = up->timeInterval.end;
 
           Periods* peri = new Periods(1);
           peri->StartBulkLoad();
           peri->Add(timeInterval);
           peri->EndBulkLoad(true);
-///////////////////////////////////////////////////////////////////////////
-          end_index = j;
+
           MPoint* temp_mp = new MPoint(0);
           temp_mp->StartBulkLoad();
-          for(;start_index < end_index;start_index++){//no static behavior
+          for(;start_index <= end_index;start_index++){//no static behavior
             trip->Get(start_index,up);
             temp_mp->Add(*up);
           }
           temp_mp->EndBulkLoad(true);
-//          cout<<*temp_mp;
+//          cout<<timeInterval<<endl;
+//          cout<<*temp_mp<<endl;
 ////////////////////////////////////////////////////////////////////////////
           Tuple* edgetuple = new Tuple(nl->Second(xNumType2));
           edgetuple->PutAttribute(EID,new CcInt(true,eid));
-          edgetuple->PutAttribute(V1, new CcInt(true,id1));
-          edgetuple->PutAttribute(V2, new CcInt(true,id2));
+          edgetuple->PutAttribute(V1, new CcInt(true,nid1));
+          edgetuple->PutAttribute(V2, new CcInt(true,nid2));
           edgetuple->PutAttribute(DEF_T,peri);
           edgetuple->PutAttribute(LINE, new Line(*line));
           edgetuple->PutAttribute(FEE,new CcReal(true,costfee));
@@ -612,7 +625,6 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
           edgetuple->DeleteIfAllowed();
           eid++;
           delete line;
-
 //////////////////////////////////////////////////////////////////////////
           endpoints.clear();
           connectpoints.clear();
@@ -958,26 +970,66 @@ struct Elem{
   int edge_tuple_id;
   int pre_eid;
   double dist; //network distance to start node + Euclidan distance to end node
-  Elem(int id):edge_tuple_id(id){pre_eid=-1;dist=0;}
+  Interval<Instant> interval;
+  Elem(int id,Interval<Instant> interv):edge_tuple_id(id),
+  interval(interv)
+  {pre_eid=-1;dist=0.0;}
   Elem(const Elem& e):
-  edge_tuple_id(e.edge_tuple_id),pre_eid(e.pre_eid),dist(e.dist){}
+  edge_tuple_id(e.edge_tuple_id),pre_eid(e.pre_eid),
+  dist(e.dist),interval(e.interval){}
   Elem& operator=(const Elem& e)
   {
     edge_tuple_id = e.edge_tuple_id;
     pre_eid = e.pre_eid;
     dist = e.dist;
+    interval = e.interval;
     return *this;
   }
   bool operator<(const Elem& e)const
   {
-    if(dist <= e.dist) return false;
-    return true;
+//    if(AlmostEqual(dist,e.dist)){
+      if(interval.start < e.interval.start)
+        return false;
+      return true;
+//    }
+//    if(dist < e.dist) return false;
+//    return true;
   }
   void Print()
   {
     cout<<edge_tuple_id<<" "<<pre_eid<<" "<<dist<<endl;
   }
 };
+
+
+/*store the info of an edge*/
+struct bedge{
+  int edge_tuple_id;
+  Interval<Instant> interval;
+  int start_node;
+  bedge(int tid,Interval<Instant> interv,int snid):edge_tuple_id(tid),
+  interval(interv),start_node(snid){}
+  bedge(const bedge& edge):
+  edge_tuple_id(edge.edge_tuple_id),interval(edge.interval),
+  start_node(edge.start_node){}
+  bedge& operator=(const bedge& edge)
+  {
+    edge_tuple_id = edge.edge_tuple_id;
+    interval = edge.interval;
+    start_node = edge.start_node;
+    return *this;
+  }
+  bool operator<(const bedge& edge)const
+  {
+    if(interval.start <= edge.interval.start) return false;
+    return true;
+  }
+  void Print()
+  {
+   cout<<"etid "<<edge_tuple_id<<" time "<<interval<<" nid1 "<<start_node<<endl;
+  }
+};
+
 void BusNetwork::FindPath(const UInt* ui1,const UInt* ui2,vector<int>& path)
 {
   int id1 = ui1->constValue.GetValue();
@@ -999,31 +1051,45 @@ void BusNetwork::FindPath(const UInt* ui1,const UInt* ui2,vector<int>& path)
   //Initialize list
   CcInt* start_id = new CcInt(true,id1);
   BTreeIterator* bt_iter_edge_v1 = btree_bus_edge_v1->ExactMatch(start_id);
+  priority_queue<bedge> temp_edges;
   while(bt_iter_edge_v1->Next()){
     Tuple* t = bus_edge->GetTuple(bt_iter_edge_v1->GetId());
+    CcInt* start_node = (CcInt*)t->GetAttribute(V1);
     Periods* peri = (Periods*)t->GetAttribute(DEF_T);
     const Interval<Instant>* interval;
     peri->Get(0,interval);
     if(interval->start > ui1->timeInterval.start){
-        Elem elem(bt_iter_edge_v1->GetId());
-        elem.pre_eid = -1;
-        q_list.push(elem);
+//        Elem elem(bt_iter_edge_v1->GetId());
+//        elem.pre_eid = -1;
+//        q_list.push(elem);
+          bedge e(bt_iter_edge_v1->GetId(),*interval,
+                  start_node->GetIntval());
+          temp_edges.push(e);
     }
     t->DeleteIfAllowed();
   }
+  while(temp_edges.empty() == false){
+      bedge e = temp_edges.top();
+      temp_edges.pop();
+//      e.Print();
+      Elem elem(e.edge_tuple_id,e.interval);
+      elem.pre_eid = -1;
+      q_list.push(elem);
+  }
+
+  delete bt_iter_edge_v1;
   delete start_id;
-//  cout<<"initialize size "<<q_list.size()<<endl;
+  cout<<"initialize size "<<q_list.size()<<endl;
+
+//////////////////////////////////////////////////////////////////////////
+
   while(q_list.empty() == false){
     Elem top = q_list.top();
     Tuple* edge_tuple = bus_edge->GetTuple(top.edge_tuple_id);
 //    top.Print();
-//    cout<<*edge_tuple<<endl;
     CcInt* edge_id = (CcInt*)edge_tuple->GetAttribute(EID);
     CcInt* start_node = (CcInt*)edge_tuple->GetAttribute(V1);
     CcInt* end_node = (CcInt*)edge_tuple->GetAttribute(V2);
-
-//    cout<<"edge "<<edge_id->GetIntval()<<" v1 "<<start_node->GetIntval()
-//        <<" v2 "<<end_node->GetIntval()<<endl;
 
     if(end_node->GetIntval() == id2){//find the end
       cout<<"find "<<endl;
@@ -1039,40 +1105,77 @@ void BusNetwork::FindPath(const UInt* ui1,const UInt* ui2,vector<int>& path)
     const Interval<Instant>* interval_cur;
     cur_def_t->Get(0,interval_cur);
 
+    cout<<"edge "<<edge_id->GetIntval()<<" v1 "<<start_node->GetIntval()
+        <<" v2 "<<end_node->GetIntval()<<" time "<<*interval_cur<<endl;
+
+    /////////////get all edges from the same start node////////////////
     bt_iter_edge_v1 = btree_bus_edge_v1->ExactMatch(end_node);
+    priority_queue<bedge> edges;
+
     while(bt_iter_edge_v1->Next()){
      Tuple* t = bus_edge->GetTuple(bt_iter_edge_v1->GetId());
-     Periods* next_def_t = (Periods*)t->GetAttribute(DEF_T);
-      const Interval<Instant>* interval_next;
-      next_def_t->Get(0,interval_next);
-      if(interval_next->start > interval_cur->end){
-          Elem elem(bt_iter_edge_v1->GetId());
-          elem.pre_eid = expansion_count - 1;
-          q_list.push(elem);
-      }
-      t->DeleteIfAllowed();
-    }
 
+     CcInt* start_node_next = (CcInt*)t->GetAttribute(V1);//start node
+     CcInt* end_node_next = (CcInt*)t->GetAttribute(V2);//end node
+     Periods* next_def_t = (Periods*)t->GetAttribute(DEF_T);
+     MPoint* trip = (MPoint*)t->GetAttribute(MOVE);
+     const Interval<Instant>* interval_next;
+     next_def_t->Get(0,interval_next);
+     //time instant of next edge should be late than cur edge
+     //end node id of next edge should not be equal to start node id of cur edge
+//     cout<<"next "<<*interval_next<<endl;
+//     cout<<*trip<<endl;
+
+      if(interval_next->start > interval_cur->end &&
+           end_node_next->GetIntval() != start_node->GetIntval()){
+ //           Elem elem(bt_iter_edge_v1->GetId());
+ //           elem.pre_eid = expansion_count - 1;
+ //           q_list.push(elem);
+            //store all edges from the same start node
+            bedge e(bt_iter_edge_v1->GetId(),*interval_next,
+                  start_node_next->GetIntval());
+            edges.push(e);
+        }
+        t->DeleteIfAllowed();
+      }
+      delete bt_iter_edge_v1;
+//      cout<<"expansion edge size "<<edges.size()<<endl;
+      while(edges.empty() == false){
+        bedge e = edges.top();
+        edges.pop();
+//        e.Print();
+        Elem elem(e.edge_tuple_id,e.interval);
+        elem.pre_eid = expansion_count - 1;
+        q_list.push(elem);
+      }
+
+    //////////////////////////////////////////////////////////////////////////
     edge_tuple->DeleteIfAllowed();
   }
-  cout<<expansionlist.size()<<endl;
+
+//  cout<<expansionlist.size()<<endl;
   if(q_list.empty() == false){
-    stack<Elem> path;
+    stack<Elem> temp_path;
     Elem top = q_list.top();
-    path.push(top);
-    cout<<top.edge_tuple_id<<endl;
+    temp_path.push(top);
+//    cout<<top.edge_tuple_id<<endl;
     while(top.pre_eid != -1){
       int id = top.pre_eid;
 //      cout<<"pre id "<<id<<endl;
       top = expansionlist[id];
-      cout<<top.edge_tuple_id<<endl;
-      path.push(top);
+//      cout<<top.edge_tuple_id<<endl;
+      temp_path.push(top);
     }
-    cout<<path.size()<<endl;
+//    cout<<temp_path.size()<<endl;
+    while(temp_path.empty() == false){
+      Elem top = temp_path.top();
+      temp_path.pop();
+      path.push_back(top.edge_tuple_id);
+    }
   }
 
 }
-void BusNetwork::Reachability(MPoint& route,MInt* query)
+void BusNetwork::Reachability(MPoint* mp,MInt* query)
 {
 //  cout<<"BusNetwork::Reachability"<<endl;
   if(query->GetNoComponents() < 4){
@@ -1080,7 +1183,8 @@ void BusNetwork::Reachability(MPoint& route,MInt* query)
     return;
   }
 
-  MPoint* mp = new MPoint(0);
+//  MPoint* mp = new MPoint(0);
+  mp->Clear();
   mp->StartBulkLoad();
 
   vector<int> path; //record edge id
@@ -1089,13 +1193,40 @@ void BusNetwork::Reachability(MPoint& route,MInt* query)
     const UInt* ui2;
     query->Get(i,ui1);
     query->Get(i+1,ui2);
-//    ui1->Print(cout);
-//    ui2->Print(cout);
-
     FindPath(ui1,ui2,path);
+  }
+  /****************Construct the Reulst (MPoint)*************************/
+  const UPoint* lastup = NULL;
+  for(unsigned int i = 0;i < path.size();i++){
+//    cout<<path[i]<<" ";
+    Tuple* edge_tuple = bus_edge->GetTuple(path[i]);
+    MPoint* temp_mp = (MPoint*)edge_tuple->GetAttribute(MOVE);
+//    cout<<*temp_mp<<endl;
+    for(int j = 0;j < temp_mp->GetNoComponents();j++){
+      const UPoint* up;
+      temp_mp->Get(j,up);
 
+      if(j == temp_mp->GetNoComponents() - 1)
+        lastup = new UPoint(*up);
+
+      if(lastup != NULL && i != 0 && j == 0){ //not the first trip
+        UPoint* insert_up = new UPoint(true);
+//        cout<<"last "<<*lastup<<endl;
+//        cout<<"cur "<<*up<<endl;
+        insert_up->p0 = lastup->p1;
+        insert_up->timeInterval.start = lastup->timeInterval.end;
+        insert_up->p1 = up->p0;
+        insert_up->timeInterval.end = up->timeInterval.start;
+//        cout<<"insert "<<*insert_up<<endl;
+        insert_up->timeInterval.lc = insert_up->timeInterval.rc = false;
+        mp->Add(*insert_up);
+        delete insert_up;
+        delete lastup;
+        lastup = NULL;
+      }
+      mp->Add(*up);
+    }
+    edge_tuple->DeleteIfAllowed();
   }
   mp->EndBulkLoad();
-  route = *mp;
-  delete mp;
 }
