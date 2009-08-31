@@ -252,7 +252,7 @@ rewriteQueryForInferenceOfPredicates(Query, RewrittenQuery) :-
   optimizerOption(rewriteInference),
   rewriteQueryForNonempty(Query, RQuery1),
   rewriteQueryForInferredPredicates(RQuery1, RewrittenQuery),
-  dm(rewriteMacros,['\nREWRITING: Inference of Predicates\n\tIn:  ',
+  dm(rewrite,['\nREWRITING: Inference of Predicates\n\tIn:  ',
                     Query,'\n\tOut: ',RewrittenQuery,'\n\n']).
 
 
