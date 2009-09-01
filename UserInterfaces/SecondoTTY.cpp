@@ -2,8 +2,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and
+Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -217,7 +217,7 @@ SecondoTTY::ProcessFile( const string& fileName )
     ProcessCommands();
 
     cout << "Runtime for " << fileName << ": " 
-	 << scriptTime.diffTimes() << endl;
+         << scriptTime.diffTimes() << endl;
 
     isStdInput = saveIsStdInput;
     cout << "*** End processing file '" << fileName << "'." << endl;
@@ -257,9 +257,9 @@ SecondoTTY::MatchQuery(string& cmdWord, istringstream& is) const
     {
       cmdWord = ReadCommand(is);
       if (cmdWord == "QUERY")
-	isQuery = true;
+        isQuery = true;
       else
-	isQuery = false;
+        isQuery = false;
     }
   }
   return isQuery;
@@ -317,8 +317,8 @@ SecondoTTY::ProcessCommand()
 
         while (repeatCtr > 0) {
           CallSecondo2();
-	  if (errorCode > 0) // exit loop on failure
-	    break;
+          if (errorCode > 0) // exit loop on failure
+            break;
           repeatCtr--;
         }
       }
@@ -503,7 +503,7 @@ SecondoTTY::TypeOutputListFormatted ( ListExpr list )
   else
   {
     cout << "=> Result:" << endl;
-    DisplayTTY::DisplayResult2( list );
+    DisplayTTY::GetInstance().DisplayResult2( list );
     cout << endl;
   }
 }
@@ -530,7 +530,8 @@ SecondoTTY::ShowQueryResult( ListExpr list )
   }
   else
   {
-    DisplayTTY::DisplayResult( nl->First( list ), nl->Second( list ) );
+    DisplayTTY::GetInstance().DisplayResult( nl->First( list ), 
+                                             nl->Second( list ) );
   }
 }
 
@@ -680,27 +681,29 @@ SecondoTTY::Execute()
     // initialize the pointer to the nested list instance
     nl = si->GetNestedList();
     NList::setNLRef(nl);
-    DisplayTTY::Initialize( si );
+    DisplayTTY::Set_SI( si );
+    DisplayTTY::Set_NL( nl );
+    DisplayTTY::Initialize();
 
     if ( useOutputFile )
     {
       fileOutput.open( oFileName.c_str() );
       if ( fileOutput.is_open() )
       {
-	oldOutputBuffer = cout.rdbuf( fileOutput.rdbuf() );
+        oldOutputBuffer = cout.rdbuf( fileOutput.rdbuf() );
         cout << endl << "Redirecting output to " << oFileName << endl;
       }
       else 
       {
         cerr << "Error: Could not redirect ouput to " << oFileName << endl;
-	useOutputFile = false;
+        useOutputFile = false;
       } 
     }
    
     if ( isStdInput )
     {
       cout << endl << "Secondo TTY ready for operation." << endl
-	   << "Type 'HELP' to get a list of available commands." << endl;
+           << "Type 'HELP' to get a list of available commands." << endl;
       ProcessCommands();
     }
     else 
@@ -724,7 +727,7 @@ SecondoTTY::Execute()
   {
      cerr << e.msg() << endl;
      rc = 17;    
-  }	  
+  }       
   return (rc);
 }
 

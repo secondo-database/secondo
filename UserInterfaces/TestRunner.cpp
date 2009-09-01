@@ -2,8 +2,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and
+Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -135,7 +135,7 @@ class TestRunner : public Application
   void ShowTestSuccessMsg(const string& msg) const;
 
   void VerifyResult( ListExpr outList, 
-		     ListExpr expectedResult, bool warning = false ); 
+                     ListExpr expectedResult, bool warning = false ); 
 
   void DisplayError( const string& cmd, ListExpr expectedResult, 
                      int errorCode, const string& errorMessage, 
@@ -329,7 +329,7 @@ TestRunner::ShowTestSuccessMsg(const string& msg) const
 void
 TestRunner::ShowTestErrorMsg(bool warning) const
 {
-  if (warning) {	
+  if (warning) {        
   cout
     << endl << color(blue) 
     << "==> [TEST COVERAGE WARNING]" << color(normal) << endl;
@@ -339,7 +339,7 @@ TestRunner::ShowTestErrorMsg(bool warning) const
   cout
     << endl << color(red) 
     << "==> [ERROR]" << color(normal) << endl;
-  }	  
+  }       
 }
 
 
@@ -445,7 +445,7 @@ TestRunner::ShowErrorSummary() const
 void
 TestRunner::RegisterError(bool warning /*= false */)
 {
-  if (!warning)	{
+  if (!warning) {
     numErrors++;
     errorLines.push_back( make_pair(testCaseNumber, testCaseLine) );
   }  
@@ -483,7 +483,7 @@ TestRunner::ProcessCommand()
     CFile f(queryFile);
     f.open();
     while (!f.eof()) {
-      string line = "";	    
+      string line = "";     
       getline(f.ios(), line);
       query += line;      
     }
@@ -616,7 +616,7 @@ TestRunner::GetCommand()
           // check for TestRunner directives
           if(command.find("setup") == 0)
           {
-	    istringstream spec(restOfLine);
+            istringstream spec(restOfLine);
             spec >> testName;
             cout << endl << "### Starting test " << testName << endl << endl;
             if(state != START)
@@ -624,37 +624,37 @@ TestRunner::GetCommand()
               cout
                 << "Setup directive must appear just once in a test file."
                 << endl;
-	      quit = true;
+              quit = true;
               return false;
             }
             state = SETUP;
 
-	    ListExpr result = nl->Empty();
-	    SecErrInfo err;
+            ListExpr result = nl->Empty();
+            SecErrInfo err;
             bool rc = si->Secondo( "list algebras", result, err);
-	    if (!rc) {
+            if (!rc) {
               cout << "Internal command list algebras failed!" << endl;
               quit = true;
-              return false;	      
-            }	
-	    ListExpr algList = nl->Second(nl->Second(result));
+              return false;           
+            }   
+            ListExpr algList = nl->Second(nl->Second(result));
             //cout << nl->ToString(algList) << endl;
             while ( !nl->IsEmpty(algList) ) {
                algModules[ nl->SymbolValue(nl->First(algList)) ] = true;       
-	       algList = nl->Rest(algList); 
-	    }	    
-	      	    
+               algList = nl->Rest(algList); 
+            }       
+                    
 
 
-	    string alg="";
-	    while ( spec >> alg ) {
+            string alg="";
+            while ( spec >> alg ) {
               if (algModules.find(alg) == algModules.end()) {
-	        cout << "Needed algebra module " << alg << " unknown!"
-		     << " The test will not be executed." << endl;	
+                cout << "Needed algebra module " << alg << " unknown!"
+                     << " The test will not be executed." << endl;      
                 quit = true;
-                return false;		
-	      }
-	    }	    
+                return false;           
+              }
+            }       
           }
           else if(command.find("description") == 0) {
             cout << "description: " << endl << restOfLine << endl;
@@ -666,7 +666,7 @@ TestRunner::GetCommand()
                    << endl
                    << "Reason: " << restOfLine << endl << endl;
               quit = true;
-	      return false;
+              return false;
             } else {
               cout << "Warning: stop directives after setup are ignored!" 
                    << endl;
@@ -729,8 +729,8 @@ TestRunner::GetCommand()
                   cout << "Query result specified in file '" << resultFileStr 
                        << "'" << endl;
                   bool ok = nl->ReadFromFile( expandVar(resultFileStr), 
-				              expectedResult            );
-		  if (!ok) { RegisterError(); } 
+                                              expectedResult            );
+                  if (!ok) { RegisterError(); } 
                 }       
                 else if (first=='(')
                 {
@@ -961,7 +961,7 @@ TestRunner::ProcessExamples()
 
      if ( info.resultType == ExampleInfo::List ) 
      { 
-       ListExpr list = nl->Empty(); 	     
+       ListExpr list = nl->Empty();          
        resultOk = nl->ReadFromString(info.result, list);
        // Anaylize list and extract a platform specific result if necessary!
        if ( nl->HasLength(list,1) ) {
@@ -969,34 +969,34 @@ TestRunner::ProcessExamples()
        if( nl->IsEqual(list1,"platform") )
        {     
          ListExpr list2 = nl->Rest(list);
-	 string token = WinUnix::getPlatformStr();	 
-	 while ( !nl->IsEmpty(list2) ) {
+         string token = WinUnix::getPlatformStr();       
+         while ( !nl->IsEmpty(list2) ) {
            //cout << nl->ToString(list2) << endl;
-	   if ( nl->HasLength(list2, 1) ) {
-	     ListExpr tmpList = nl->First(list2);
+           if ( nl->HasLength(list2, 1) ) {
+             ListExpr tmpList = nl->First(list2);
              if( nl->HasLength(tmpList, 1) 
-		  && nl->IsEqual(nl->First(tmpList), token) ) {
-	       list = nl->Second(tmpList);
-	       cout << "Using result for " << token << endl;
-	       if ( nl->IsEqual(list, "bug") )
-	         info.resultType = ExampleInfo::Bug;	        
-	       if ( nl->IsEqual(list, "file") )
-	         info.resultType = ExampleInfo::File;	        
-	       if ( nl->IsEqual(list, "platform") )
-	         info.resultType = ExampleInfo::PlatformFile;	        
-	       if ( nl->IsEqual(list, "crashes") )
-	         info.resultType = ExampleInfo::PlatformFile;	        
-               break;	     
-	     }
-	     else
-	     {
-	       cout << "No result for " 
-		    << token << " specified!" << endl;	     
-	     }	     
-           }	     
-           list2 = nl->Rest(list2);		   
-         }		 
-       }	       
+                  && nl->IsEqual(nl->First(tmpList), token) ) {
+               list = nl->Second(tmpList);
+               cout << "Using result for " << token << endl;
+               if ( nl->IsEqual(list, "bug") )
+                 info.resultType = ExampleInfo::Bug;            
+               if ( nl->IsEqual(list, "file") )
+                 info.resultType = ExampleInfo::File;           
+               if ( nl->IsEqual(list, "platform") )
+                 info.resultType = ExampleInfo::PlatformFile;           
+               if ( nl->IsEqual(list, "crashes") )
+                 info.resultType = ExampleInfo::PlatformFile;           
+               break;        
+             }
+             else
+             {
+               cout << "No result for " 
+                    << token << " specified!" << endl;       
+             }       
+           }         
+           list2 = nl->Rest(list2);                
+         }               
+       }               
        expectedResult = list;        
        }
      }
@@ -1029,7 +1029,7 @@ TestRunner::ProcessExamples()
        if (resultOk)
        {
           expectedResult = objList;
-	  // check if result is formatted in OBJECT representation.
+          // check if result is formatted in OBJECT representation.
           if ( nl->ListLength(objList) == 5 
                && nl->IsEqual(nl->First(objList),"OBJECT") ) 
           {
@@ -1135,18 +1135,18 @@ TestRunner::VerifyResult( ListExpr outList,
     RegisterError(warning);
     if (!warning) {
       cout 
-	<< color(red)
-	<< "The test returned unexpected results!" << endl;
+        << color(red)
+        << "The test returned unexpected results!" << endl;
 
       if (d != 0.0) 
       {
-	cout << "Used real value tolerance: " << d; 
-	if (realValTolerance.isRelative ) {
-	  cout << " (relative) ";
-	} else {
-	  cout << " (absolute) ";
-	}  
-	cout << endl;
+        cout << "Used real value tolerance: " << d; 
+        if (realValTolerance.isRelative ) {
+          cout << " (relative) ";
+        } else {
+          cout << " (absolute) ";
+        }  
+        cout << endl;
       }
     }
 
@@ -1356,7 +1356,7 @@ TestRunner::CallSecondo()
           else 
           {
             // in case of success compare results, but handle 
-	    // differences only as warning 		  
+            // differences only as warning                
             VerifyResult(outList, expectedResult, true);
             ListExpr ops = nl->Second(outList);
             missingOps += nl->ToString(ops);
@@ -1460,10 +1460,10 @@ TestRunner::Execute()
           oldInputBuffer = cin.rdbuf( fileInput.rdbuf() );
           isStdInput = false;
         }
-	else
-	{
-	  cout << "ERROR: Could not open file " << iFileName << endl;
-	}	
+        else
+        {
+          cout << "ERROR: Could not open file " << iFileName << endl;
+        }       
       }
 
       if (isStdInput)
@@ -1478,7 +1478,10 @@ TestRunner::Execute()
         }
       }
       nl = si->GetNestedList();
-      DisplayTTY::Initialize( si );
+
+      DisplayTTY::Set_SI(si);
+      DisplayTTY::Set_NL(nl);
+      DisplayTTY::Initialize();
 
 
       // check RTFlags
