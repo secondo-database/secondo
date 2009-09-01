@@ -62,7 +62,7 @@ from
 	partsupp]
 \end{lstlisting}
 
-Einschränkung der inneren Relation durch alle \emph{einfachen} Prädikaten.
+Die zweite temporäre Relation ist die Einschränkung der inneren Relation durch alle \emph{einfachen} Prädikaten.
 
 \begin{lstlisting}[caption=TempRel2]
 select
@@ -79,7 +79,7 @@ where
 	r:rname = "EUROPE"]
 \end{lstlisting}
 
-Equi-Join der ersten und zweiten temporären Relationen und Berechnung der Aggregation. Da sich Optimierer und \textsc{Secondo} in der Syntax für umbenannte Tupel unterscheiden muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden. 
+Die dritte temporäre Relation wird aus dem Equi-Join der ersten und zweiten temporären Relationen und Berechnung der Aggregation gebildet. Man beachte die Attributnamen mit \enquote{\_ps}. Diese sind notwendig, da sich Optimierer und \textsc{Secondo} in der Syntax für umbenannte Tupel unterscheiden. Es muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden. 
 
 \begin{lstlisting}[caption=TempRel3]
 select
@@ -140,7 +140,7 @@ pssupplycost = (
 	 )
 \end{lstlisting}
 
-wurde durch die zwei Prädikate \sql{ppartkey = txxrel4:pspartkey\_ps} und \sql{pssupplycost = txxrel4:var1} ersetzt. Zusätzlich wurde die neue Relation txxrel3 in die FROM-Klausel aufgenommen. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate.
+wurde durch die zwei Prädikate \sql{pssupplycost = txxrel4:var1} und \sql{ppartkey = txxrel4:pspartkey\_ps} ersetzt. Das erste der beiden Prädikate ergibt sich direkt aus dem geschachtelten Prädikat, während das zweite Prädikat die Korrelation abbildet. Zusätzlich wurde die neue Relation txxrel3 in die FROM-Klausel aufgenommen. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate.
 
 \subsection{TPC-D Q4}
 Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. Es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf.
@@ -176,7 +176,9 @@ orderby
 	[oorderpriority]
 \end{lstlisting}
 
-Projektion der äußeren Relation auf die Join-Spalte.
+Die Abfrage ist vom Typ J, da das geschachtelte Prädikat keine Aggregation enthält, aber über das Prädikat \sql{lorderkey = oorderkey} mit dem äußeren Abfrageblock korreliert ist.
+
+Die Projektion der äußeren Relation auf die Join-Spalte ergibt
 \begin{lstlisting}[caption=TempRel1]
 select 
 	distinct[oorderkey] 
@@ -184,7 +186,7 @@ from
 	orders
 \end{lstlisting}
 
-Einschränkung der inneren Relation mit allen \emph{simplen} Prädikate.
+Einschränkung der inneren Relation mit allen \emph{einfachen} Prädikate.
 \begin{lstlisting}[caption=TempRel2]
 select 
 	* 
