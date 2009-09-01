@@ -47,6 +47,9 @@ December 1998 Miguel Rodr[i]guez Luaces Ported for use in the client server vers
 
 May 2002 Ulrich Telle Port to new "Secondo"[3] version
 
+August 2009 M. Spiekermann. Introduction of struct Displayfunction. A specific Displayfunction
+must now be a child of this base class, refer to DisplayTTY.cpp for examples.
+
 1.1 Overview
 
 There must be exactly one TTY display function of type ~DisplayFunction~
@@ -69,11 +72,32 @@ parameter is this value in nested list format.
 #include "SecondoInterface.h"
 #include "NestedList.h"
 
-typedef void (*DisplayFunction)( ListExpr type,
-                                 ListExpr numType,
-                                 ListExpr value );
+struct DisplayFunction {
+
+  DisplayFunction() {}
+  virtual ~DisplayFunction() {} 
+
+  virtual void Display( ListExpr type,
+                        ListExpr numType,
+                        ListExpr value    ) = 0;
+
+
+  double GetNumeric(ListExpr value, bool &err);
+  void DisplayResult( ListExpr type, ListExpr value );
+  void CallDisplayFunction( const ListExpr idPair,
+                                   ListExpr type,
+                                   ListExpr numType,
+                                   ListExpr value );
+
+
+  static SecondoInterface* si; // Ref. to Secondo interface
+  static NestedList*       nl; // Ref. to nested list container
+
+};
+
 /*
-Is the type definition for references to display functions.
+The class above is a base class and abstraction for display functions.
+User defined display functions need to inherit from this class.
 
 */
 
@@ -95,39 +119,25 @@ the subtypes, passing the subtype and subvalue, respectively.
 class DisplayTTY
 {
  public:
-  static void Initialize( SecondoInterface* secondoInterface );
+  static void Initialize();
 /*
-Initializes the display function mapping for the "Secondo"[3] interface
-given by ~secondoInterface~.
+Initializes the display function mapping.
 
 */
-  static void DisplayResult( ListExpr type, ListExpr value );
+  void DisplayResult( ListExpr type, ListExpr value );
 /*
 Displays a ~value~ of ~type~ using the defined display functions. Both
 paramaters are given as nested lists.
 
 */
 
-static void DisplayResult2( ListExpr value );
+  void DisplayResult2( ListExpr value );
 /*
-Displays all type constructors and operators, currently registered, in formatted manner.
-Displays all type constructors and operators for a single, included algebra in
-formatted manner.
+Displays all type constructors and operators, currently registered, 
+in formatted manner.
 
 */
- protected:
- private:
-  DisplayTTY();
-  ~DisplayTTY();
-  static void InsertDisplayFunction( const string& name,
-                                     DisplayFunction df );
-/*
-The method ~InsertDisplayFunction~ inserts the display function ~df~ given as
-the second argument into the map ~displayFunctions~ at the index which is
-determined by the type constructor ~name~ given as first argument.
-
-*/
-  static void CallDisplayFunction( const ListExpr idPair,
+  void CallDisplayFunction( const ListExpr idPair,
                                    ListExpr type,
                                    ListExpr numType,
                                    ListExpr value );
@@ -138,7 +148,51 @@ the right display function in the map ~displayFunctions~. The arguments
 are simply passed to this display function.
 
 */
-  static void DisplayGeneric( ListExpr type,
+
+   double GetNumeric(ListExpr value, bool &err);
+/* 
+Returns the numeric value of a ListExpr containing a IntAtom,
+a RealAtom or a list representing a rational number 
+
+*/
+
+   inline static DisplayTTY& GetInstance() 
+   { 
+     if (!dtty)
+       dtty = new DisplayTTY();
+     return *dtty;
+   }  
+
+/*
+Create an instance and initialize the dtty pointer if necessary.
+
+*/   
+   void Insert( const string& name, DisplayFunction* df );
+
+   static void Set_SI(SecondoInterface* SI) 
+   { 
+     si = SI; 
+     DisplayFunction::si = SI; 
+   }
+   static void Set_NL(NestedList* NL) 
+   { 
+     nl = NL; 
+     DisplayFunction::nl = NL; 
+   }
+
+ protected:
+ private:
+  static DisplayTTY* dtty;
+
+  DisplayTTY() {};
+  ~DisplayTTY();
+/*
+The method ~Insert~ inserts the display function ~df~ given as
+the second argument into the map ~displayFunctions~ at the index which is
+determined by the type constructor ~name~ given as first argument.
+
+*/
+   void DisplayGeneric( ListExpr type,
                               ListExpr numType,
                               ListExpr value );
 /*
@@ -146,252 +200,24 @@ Is a generic display function used as default for types to which not special
 display function was assigned:
 
 */
-  static void DisplayRelation( ListExpr type,
-                               ListExpr numType,
-                               ListExpr value );
-/*
-Is a display function for relations.
 
-*/
-// concatenates two lists
-static ListExpr ConcatLists ( ListExpr l1, ListExpr l2 );
-static int  MaxHeaderLength( ListExpr type );
+  //SPM: Obsolete auxiliary functions 
+  //
+  //ListExpr ConcatLists ( ListExpr l1, ListExpr l2 );
+  //static int  MaxHeaderLength( ListExpr type );
 
-static void DisplayDescriptionLines( ListExpr value, int  maxNameLen);
+  void DisplayDescriptionLines( ListExpr value, int  maxNameLen);
 /*
 Displays a single type constructor or operator formatted, similar display function for relations.
 
 */
 
-  static int  MaxAttributLength( ListExpr type );
-  static void DisplayTuple( ListExpr type,
-                            ListExpr numType,
-                            ListExpr value,
-                            const int maxNameLen );
-  static void DisplayTuples( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
-/*
-Are display functions for tuples.
-
-*/
-  static void DisplayInt( ListExpr type,
-                          ListExpr numType,
-                          ListExpr value );
-
-  static void DisplayReal( ListExpr type,
-                           ListExpr numType,
-                           ListExpr value );
-
-  static void DisplayBoolean( ListExpr list,
-                              ListExpr numType,
-                              ListExpr value );
-
-  static void DisplayString( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
-
-  static void DisplayText( ListExpr type,
-                           ListExpr numType,
-                           ListExpr value );
-
-  static void DisplayXPoint( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
-
-  static void DisplayPoint( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
-  
-static void DisplayTBTree( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
-
-  static void DisplayRect( ListExpr type,
-                           ListExpr numType,
-                           ListExpr value );
-
-  static void DisplayRect3( ListExpr type,
-                            ListExpr numType,
-                            ListExpr value );
-
-  static void DisplayRect4( ListExpr type,
-                            ListExpr numType,
-                            ListExpr value );
-                            
-  static void DisplayRect8( ListExpr type,
-                            ListExpr numType,
-                            ListExpr value );
-
-  static void DisplayBinfile( ListExpr type,
-                              ListExpr numType,
-                              ListExpr value );
- 
-  static void DisplayArray( ListExpr type,
-                            ListExpr numType,
-                            ListExpr value );
-
-  static void DisplayMP3( ListExpr type,
-                          ListExpr numType,
-                          ListExpr value );
-
-  static void DisplayID3( ListExpr type,
-                          ListExpr numType,
-                          ListExpr value );
-
-  static void DisplayLyrics( ListExpr type,
-                             ListExpr numType,
-                             ListExpr value );
-
-  static void DisplayMidi( ListExpr type,
-                           ListExpr numType,
-                           ListExpr value );
-
-  static void DisplayInstant( ListExpr type,
-                              ListExpr numType,
-                              ListExpr value );
-
-  static void DisplayDuration( ListExpr type,
-                               ListExpr numType,
-                               ListExpr value );
-
-  static void DisplayTid( ListExpr type,
-                          ListExpr numType,
-                          ListExpr value );
-
-/* Returns the numeric value of a ListExpr containing a IntAtom, a RealAtom
-   or a list representing a rational number */
-   static double getNumeric(ListExpr value, bool &err);
-
-/*
-Are display functions for the types of the standard algebra.
-
-*/
-  static void DisplayFun( ListExpr type,
-                          ListExpr numType,
-                          ListExpr value );
-/*
-Is a display function for functions.
-
-*/
-  static void DisplayDate( ListExpr type,
-                          ListExpr numType,
-                          ListExpr value );
-/*
-Is a display function for date.
-
-*/
- static void DisplayHtml( ListExpr type,
-                          ListExpr numType,
-                          ListExpr value );
-/*
-Is a display function for html.
-
-*/
-
- static void DisplayPage( ListExpr type,
-                          ListExpr numType,
-                          ListExpr value );
-/*
- Is a display function for page.
-
-*/
-
-  static void DisplayUrl( ListExpr type,
-                          ListExpr numType,
-                          ListExpr value );
-/*
-Is a display function for url.
-
-*/
-
-   static void DisplayVertex( ListExpr type,
-                              ListExpr numType,
-                              ListExpr value );
-
-/*
-Is a display function for vertex.
-
-*/
-
-  static void DisplayEdge( ListExpr type,
-                           ListExpr numType,
-                           ListExpr value );
-
-/*
- Is a display function for vertex.
-
-*/
-
-  static void DisplayPath( ListExpr type,
-                           ListExpr numType,
-                           ListExpr value );
-
-/*
-Is a display function for path.
-
-*/
-
-  static void DisplayGraph( ListExpr type,
-                            ListExpr numType,
-                            ListExpr value );
-
-/*
-Is a display function for graph.
-
-*/
-
-  static void DisplayHistogram1d( ListExpr type, 
-		  					   ListExpr numType, 
-		  					   ListExpr value );  
- 
-/*
-Displayfunction for histogram1d
-
-*/
-  
-  static void DisplayHistogram2d( ListExpr type, 
-		  					   ListExpr numType, 
-		  					   ListExpr value );  
- 
-/*
-Displayfunction for histogram2d
-
-*/
-  
-
-  static void DisplayPosition( ListExpr type,
-                               ListExpr numType,
-                               ListExpr value );
-
-  static void DisplayMove( ListExpr type,
-                               ListExpr numType,
-                               ListExpr value );
-
-/*
-Is a display function for Collections with list type
-collection(subtype)
-
-*/
-  static void DisplayCollection( ListExpr type,
-         ListExpr numType,
-         ListExpr value);
-/*
-Is a display function for Collections with list type
-collection(subtype amount)
-
-*/
-  static void DisplayMultiset( ListExpr type,
-         ListExpr numType,
-         ListExpr value);
-
-
 
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container
-  static map<string,DisplayFunction> displayFunctions;
 
-  static int maxIndent; // used for multi line text values inside tuples
+  typedef map<string,DisplayFunction*> DisplayMap; 
+  DisplayMap displayFunctions;
 
 };
 
