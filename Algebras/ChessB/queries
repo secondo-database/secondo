@@ -1,0 +1,570 @@
+query field("e5") neighbors printstream count
+
+open database g;
+query readpgn('f:\sochi84.pgn') printstream count;
+
+query readpgn('C:\secondo-sdk\secondo\Tests\Testspecs\chessalgebra\wjc.pgn') printstream count;
+
+'wjc.pgn'
+
+let wjc = readpgn('C:\secondo-sdk\secondo\Tests\Testspecs\chessalgebra\wjc.pgn') transformstream extend[No: seqnext()] consume
+let twic = readpgn('F:\twic657.pgn') transformstream extend[No: seqnext()] consume;
+let wjc = readpgn('/home/fp0708/Tests/Testspecs/chessalgebra/wjc.pgn') transformstream extend[No: seqnext()] consume;
+
+query wjc feed filter[.No = 2] extract[elem] getposition[1] pieces < wjc feed filter[.No = 2] extract[elem] getposition[28] pieces;
+
+query wjc feed filter[.No = 2] extract[elem] getkey["Event"];
+
+query wjc feed filter[.No = 2] extract[elem] getkey["Event"];
+"WJun"
+
+query wjc feed filter[.No = 2] extract[elem] getkey["Round"];
+"1"
+
+query wjc feed filter[.No = 2] extract[elem] getkey["ECO"];
+"B47"
+
+query wjc feed filter[.No = 2] extract[elem] getkey["Result"];
+"0-1"
+
+query wjc feed filter[.No = 2] extract[elem] getkey["Date"];
+"2006.10.03"
+
+query wjc feed filter[.No = 2] extract[elem] getposition[5];
+(6 ((9 5 7 11 13 7 0 9) (3 3 3 0 0 3 3 3) (0 0 0 0 0 5 0 0) (0 0 0 3 3 0 0 0) (0 0 2 0 0 0 0 0) (0 0 0 0 2 0 0 0) (2 2 0 2 0 2 2 2) (8 4 6 10 12 6 4 8)) 0 127)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6];
+(7 ((9 5 7 11 13 7 0 9) (3 3 3 0 0 3 3 3) (0 0 0 0 0 5 0 0) (0 0 0 2 3 0 0 0) (0 0 0 0 0 0 0 0) (0 0 0 0 2 0 0 0) (2 2 0 2 0 2 2 2) (8 4 6 10 12 6 4 8)) 1 15)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[7];
+(8 ((9 5 7 11 13 7 0 9) (3 3 3 0 0 3 3 3) (0 0 0 0 0 0 0 0) (0 0 0 5 3 0 0 0) (0 0 0 0 0 0 0 0) (0 0 0 0 2 0 0 0) (2 2 0 2 0 2 2 2) (8 4 6 10 12 6 4 8)) 0 15)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[1] pieces < wjc feed filter[.No = 2] extract[elem] getposition[28] pieces;
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[5] pieces < wjc feed filter[.No = 2] extract[elem] getposition[6] pieces;
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[5] pieces < wjc feed filter[.No = 2] extract[elem] getposition[7] pieces;
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pieces < wjc feed filter[.No = 2] extract[elem] getposition[7] pieces;
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6];
+(7 ((9 5 7 11 13 7 0 9) (3 3 3 0 0 3 3 3) (0 0 0 0 0 5 0 0) (0 0 0 2 3 0 0 0) (0 0 0 0 0 0 0 0) (0 0 0 0 2 0 0 0) (2 2 0 2 0 2 2 2) (8 4 6 10 12 6 4 8)) 1 15)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[7];
+(8 ((9 5 7 11 13 7 0 9) (3 3 3 0 0 3 3 3) (0 0 0 0 0 0 0 0) (0 0 0 5 3 0 0 0) (0 0 0 0 0 0 0 0) (0 0 0 0 2 0 0 0) (2 2 0 2 0 2 2 2) (8 4 6 10 12 6 4 8)) 0 15)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[lastmove(wjc feed filter[.No = 2] extract[elem])];
+(73 ((0 0 0 0 0 0 0 13) (0 0 0 0 0 0 8 3) (0 3 0 0 0 6 0 0) (3 0 0 0 0 0 0 0) (2 0 0 0 0 0 0 5) (0 0 0 0 0 0 0 2) (0 0 0 0 0 0 2 12) (0 0 0 0 9 0 0 0)) 1 0)
+
+query wjc feed filter[.No = 5] extract[elem] getmove[7];
+((0 "Knight" "pawn" "f" 2 "d" 3 FALSE 0 0 15))
+
+query wjc feed filter[.No = 2] extract[elem] getmove[lastmove(wjc feed filter[.No = 2] extract[elem])];
+((0 "bishop" "none" "a" 7 "f" 2 FALSE 0 0 0))
+
+query wjc feed filter[.No = 2] extract[elem] positions transformstream head[3] consume;
+elem:(0 (("Rook" "Knight" "Bishop" "Queen" "King" "Bishop" "Knight" "Rook") ("Pawn" "Pawn" "Pawn" "Pawn" "Pawn" "Pawn" "Pawn" "Pawn") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("pawn" "pawn" "pawn" "pawn" "pawn" "pawn" "pawn" "pawn") ("rook" "knight" "bishop" "queen" "king" "bishop" "knight" "rook")) 1 15)
+elem:(1 (("Rook" "Knight" "Bishop" "Queen" "King" "Bishop" "Knight" "Rook") ("Pawn" "Pawn" "Pawn" "Pawn" "Pawn" "Pawn" "Pawn" "Pawn") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "pawn" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("pawn" "pawn" "none" "pawn" "pawn" "pawn" "pawn" "pawn") ("rook" "knight" "bishop" "queen" "king" "bishop" "knight" "rook")) 0 95)
+elem:(2 (("Rook" "Knight" "Bishop" "Queen" "King" "Bishop" "none" "Rook") ("Pawn" "Pawn" "Pawn" "Pawn" "Pawn" "Pawn" "Pawn" "Pawn") ("none" "none" "none" "none" "none" "Knight" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "pawn" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("pawn" "pawn" "none" "pawn" "pawn" "pawn" "pawn" "pawn") ("rook" "knight" "bishop" "queen" "king" "bishop" "knight" "rook")) 1 15)
+
+query wjc feed filter[.No = 2] extract[elem] history head[3] consume;
+"No":1
+"Pos":(1 (("Rook" "Knight" "Bishop" "Queen" "King" "Bishop" "Knight" "Rook") ("Pawn" "Pawn" "Pawn" "Pawn" "none" "Pawn" "Pawn" "Pawn") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "Pawn" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("pawn" "pawn" "pawn" "pawn" "pawn" "pawn" "pawn" "pawn") ("rook" "knight" "bishop" "queen" "king" "bishop" "knight" "rook")) 0 159)
+"Move":((0 "Pawn" "none" "e" 1 "e" 3 FALSE 0 0 15))
+
+"No":2
+"Pos":(2 (("Rook" "Knight" "Bishop" "Queen" "King" "Bishop" "Knight" "Rook") ("Pawn" "Pawn" "Pawn" "Pawn" "none" "Pawn" "Pawn" "Pawn") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "Pawn" "none" "none" "none") ("none" "none" "pawn" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("pawn" "pawn" "none" "pawn" "pawn" "pawn" "pawn" "pawn") ("rook" "knight" "bishop" "queen" "king" "bishop" "knight" "rook")) 1 223)
+"Move":((0 "pawn" "none" "c" 6 "c" 4 FALSE 0 0 31))
+
+query field("e4");
+"e4"
+
+query field("e4") = field("e4");
+TRUE
+
+query field("e4") = field("g6");
+FALSE
+
+query field("e4") < field("g6");
+TRUE
+
+query field("e4") > field("g6");
+FALSE
+
+query field("a5") > field("d2");
+TRUE
+
+query field("a5") < field("d2");
+FALSE
+
+query iswhite( field("a5") );
+FALSE
+
+query iswhite( field("e2") );
+TRUE
+
+query file( field("e2") );
+e
+
+query file( field("a1") );
+a
+
+query row( field("a1") );
+1
+
+query row( field("f5") );
+5
+
+query north( field("f5") );
+"f6"
+
+query north( field("d1") );
+"d2"
+
+query north( field("h8") );
+undef
+
+query east( field("h8") );
+undef
+
+query east( field("d3") );
+"e3"
+
+query south( field("d3") );
+"d2"
+
+query south( field("d1") );
+undef
+
+query west( field("d1") );
+"c1"
+
+query west( field("a3") );
+undef
+
+query northwest( field("a3") );
+undef
+
+query northwest( field("h8") );
+undef
+
+query northwest( field("a1") );
+undef
+
+query northwest( field("h1") );
+"g2"
+
+query northeast( field("h1") );
+undef
+
+query northeast( field("f5") );
+"g6"
+
+query southwest( field("f5") );
+"e4"
+
+query southwest( field("d1") );
+undef
+
+query southeast( field("d2") );
+"e1"
+
+query southeast( field("h7") );
+undef
+
+query field("g6") is_neighbor field("h7");
+TRUE
+
+query field("g6") is_neighbor field("h4");
+FALSE
+
+query field("g6") left field("h4");
+FALSE
+
+query field("g6") left field("e6");
+FALSE
+
+query field("g6") left field("f6");
+FALSE
+
+query field("g6") left field("h6");
+TRUE
+
+query field("g6") right field("f6");
+TRUE
+
+query field("g6") above field("f5");
+FALSE
+
+query field("g6") above field("g7");
+FALSE
+
+query field("g6") above field("g5");
+TRUE
+
+query field("g6") below field("g7");
+TRUE
+
+query field("g6") neighbors printstream count;
+8
+
+query piece("Pawn")
+"Pawn"
+
+query piece("Pawn");
+"Pawn"
+
+query piece("none");
+"none"
+
+query piece("king");
+"king"
+
+query iswhite(piece("king"));
+FALSE
+
+query iswhite(piece("King"));
+TRUE
+
+query iswhite(piece("none"));
+FALSE
+
+query piece("king") = piece("Queen")
+FALSE
+
+query piece("king") = piece("king")
+TRUE
+
+query piece("king") is piece("king");
+TRUE
+
+query piece("king") is piece("King");
+TRUE
+
+query piece("king") is piece("pawn");
+FALSE
+
+query piece("king") samecolor piece("pawn");
+TRUE
+
+query piece("king") samecolor piece("Pawn");
+FALSE
+
+query piecevalue( piece("king") );
+0
+
+query piecevalue( piece("Queen") );
+9
+
+query wjc feed filter[.No = 5] extract[elem] getmove[7];
+((0 "Knight" "none" "g" 1 "f" 3 FALSE 0 0 15))
+
+query wjc feed filter[.No = 5] extract[elem] getmove[7] = wjc feed filter[.No = 5] extract[elem] getmove[7];
+TRUE
+
+query wjc feed filter[.No = 5] extract[elem] getmove[7] = wjc feed filter[.No = 5] extract[elem] getmove[6];
+FALSE
+
+query wjc feed filter[.No = 5] extract[elem] getmove[7];
+((0 "Knight" "none" "g" 1 "f" 3 FALSE 0 0 15))
+
+query startfield(wjc feed filter[.No = 5] extract[elem] getmove[7]);
+"g1"
+
+query endfield(wjc feed filter[.No = 5] extract[elem] getmove[7]);
+"f3"
+
+query agent(wjc feed filter[.No = 5] extract[elem] getmove[7]);
+"Knight"
+
+query captures(wjc feed filter[.No = 5] extract[elem] getmove[7]);
+FALSE
+
+query captured(wjc feed filter[.No = 5] extract[elem] getmove[7]);
+"none"
+
+query check(wjc feed filter[.No = 5] extract[elem] getmove[7]);
+FALSE
+
+query is_mate(wjc feed filter[.No = 5] extract[elem] getmove[7]);
+FALSE
+
+query is_stalemate(wjc feed filter[.No = 5] extract[elem] getmove[7]);
+FALSE
+
+query is_castling(wjc feed filter[.No = 5] extract[elem] getmove[7]);
+FALSE
+
+query is_enpassant(wjc feed filter[.No = 5] extract[elem] getmove[7]);
+FALSE
+
+query enpassant_field(wjc feed filter[.No = 5] extract[elem] getmove[7]);
+undef
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pieces;
+(8 7 2 2 2 2 2 2 1 1 1 1)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pieces piececount[piece("Pawn")];
+7
+
+query wjc feed filter[.No = 2] extract[elem] getposition[36] pieces piececount[piece("Pawn")];
+6
+
+query wjc feed filter[.No = 2] extract[elem] getposition[36] pieces piececount[piece("knight")];
+1
+
+query wjc feed filter[.No = 2] extract[elem] getposition[36] pieces;
+(5 6 1 1 2 2 2 2 1 1 1 1)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[36] pieces = wjc feed filter[.No = 2] extract[elem] getposition[36] pieces;
+TRUE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[36] pieces = wjc feed filter[.No = 2] extract[elem] getposition[20] pieces;
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pieces = wjc feed filter[.No = 2] extract[elem] getposition[7] pieces;
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pieces;
+(8 7 2 2 2 2 2 2 1 1 1 1)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[7] pieces;
+(7 7 2 2 2 2 2 2 1 1 1 1)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pieces ~ wjc feed filter[.No = 2] extract[elem] getposition[7] pieces;
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pieces ~ wjc feed filter[.No = 2] extract[elem] getposition[6] pieces;
+TRUE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pieces < wjc feed filter[.No = 2] extract[elem] getposition[6] pieces;
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pieces > wjc feed filter[.No = 2] extract[elem] getposition[6] pieces;
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pieces < wjc feed filter[.No = 2] extract[elem] getposition[7] pieces;
+TRUE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pieces > wjc feed filter[.No = 2] extract[elem] getposition[7] pieces;
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[7] pieces > wjc feed filter[.No = 2] extract[elem] getposition[6] pieces;
+TRUE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[7] pieces < wjc feed filter[.No = 2] extract[elem] getposition[6] pieces;
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[5] moveNo;
+5
+
+query wjc feed filter[.No = 2] extract[elem] getposition[34] moveNo;
+34
+
+query even(2)
+TRUE
+
+query odd(2)
+FALSE
+
+query odd(5)
+TRUE
+
+query odd(4)
+FALSE
+
+query odd(0)
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[34] includes [ wjc feed filter[.No = 2] extract[elem] getposition[34] ];
+TRUE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[34] includes [ wjc feed filter[.No = 2] extract[elem] getposition[15] ];
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[34] piececount[piece("Pawn")];
+6
+
+query wjc feed filter[.No = 2] extract[elem] getposition[34] pieces;
+(6 6 1 1 2 2 2 2 1 1 1 1)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[34] piececount[piece("bishop")];
+2
+
+query wjc feed filter[.No = 2] extract[elem] getposition[7] = wjc feed filter[.No = 2] extract[elem] getposition[6];
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[7] = wjc feed filter[.No = 2] extract[elem] getposition[7];
+TRUE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[7] < wjc feed filter[.No = 2] extract[elem] getposition[7];
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[7] > wjc feed filter[.No = 2] extract[elem] getposition[7];
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[7] > wjc feed filter[.No = 2] extract[elem] getposition[6];
+TRUE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[7] < wjc feed filter[.No = 2] extract[elem] getposition[6];
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] < wjc feed filter[.No = 2] extract[elem] getposition[7];
+TRUE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] > wjc feed filter[.No = 2] extract[elem] getposition[7];
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] ~ wjc feed filter[.No = 2] extract[elem] getposition[7];
+FALSE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] ~ wjc feed filter[.No = 2] extract[elem] getposition[6];
+TRUE
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] apply_ply[wjc feed filter[.No = 2] extract[elem] getmove[7] ];
+(7 (("Rook" "Knight" "Bishop" "Queen" "King" "Bishop" "none" "Rook") ("Pawn" "Pawn" "Pawn" "none" "none" "Pawn" "Pawn" "Pawn") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none""none" "Knight" "Pawn" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "pawn" "none" "none" "none") ("pawn" "pawn" "none" "pawn" "none" "pawn" "pawn" "pawn") ("rook" "knight" "bishop" "queen" "king" "bishop" "knight" "rook")) 0 15)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6];
+(6 (("Rook" "Knight" "Bishop" "Queen" "King" "Bishop" "none" "Rook") ("Pawn" "Pawn" "Pawn" "none" "none" "Pawn" "Pawn" "Pawn") ("none" "none" "none" "none" "none" "Knight" "none" "none") ("none" "none" "none" "pawn" "Pawn" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "pawn" "none" "none" "none") ("pawn" "pawn" "none" "pawn" "none" "pawn" "pawn" "pawn") ("rook" "knight" "bishop" "queen" "king" "bishop" "knight" "rook")) 1 15)
+
+query wjc feed filter[.No = 2] extract[elem] getmove[7];
+((0 "Knight" "pawn" "f" 3 "d" 4 FALSE 0 0 15))
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] posrange[field("a1"),field("c3")];
+(0 (("Rook" "Knight" "Bishop" "none" "none" "none" "none" "none") ("Pawn" "Pawn" "Pawn" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none")) 1 0)
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6] pos_fields head[3] consume;
+"Field":"a1"
+"Piece":"Rook"
+
+"Field":"b1"
+"Piece":"Knight"
+
+"Field":"c1"
+"Piece":"Bishop"
+
+let pos3 = [const position value (6 (("Rook" "Knight" "Bishop" "Queen" "King" "Bishop" "none" "Rook") ("Pawn" "Pawn" "Pawn" "none" "none" "Pawn" "Pawn" "Pawn") ("none" "none" "none" "none" "none" "Knight" "none" "none") ("none" "none" "none" "pawn" "Pawn" "none" "none" "none") ("none" "none" "none" "none" "none" "none" "none" "none") ("none" "none" "none" "none" "pawn" "none" "none" "none") ("pawn" "pawn" "none" "pawn" "none" "pawn" "pawn" "pawn") ("rook" "knight" "bishop" "queen" "king" "bishop" "knight" "rook")) 1 15)];
+query pos3;
+
+open database x;
+let mat1 = [const material value(8 7 2 2 2 2 2 2 1 1 1 1)];
+query mat1;
+
+query wjc feed filter[.No = 2] extract[elem] getposition[2] attackcount[f3];
+3
+
+query wjc feed filter[.No = 2] extract[elem] getposition[2] attackcount[h3];
+2
+
+query wjc feed filter[.No = 2] extract[elem] getposition[2] attackcount[h5];
+1
+
+query wjc feed filter[.No = 2] extract[elem] getposition[2] attackcount[f5];
+1
+
+query wjc feed filter[.No = 2] extract[elem] getposition[2] attackcount[b5];
+1
+
+query wjc feed filter[.No = 2] extract[elem] getposition[3] attackcount[b5];
+0
+
+query wjc feed filter[.No = 2] extract[elem] getposition[3] attackcount[a6];
+2
+
+query wjc feed filter[.No = 2] extract[elem] getposition[3] attackcount[d4];
+1
+
+query wjc feed filter[.No = 2] extract[elem] getposition[3] attackcount[d6];
+1
+
+query wjc feed filter[.No = 2] extract[elem] getposition[3] attackcount[d5];
+0
+
+query wjc feed filter[.No = 2] extract[elem] getposition[3] attackcount[d5];
+0
+
+query wjc feed filter[.No = 2] extract[elem] getposition[3] protectcount[d5];
+1
+
+query wjc feed filter[.No = 2] extract[elem] getposition[3] protectcount[f3];
+2
+
+query wjc feed filter[.No = 2] extract[elem] getposition[3] protectcount[h6];
+0
+
+query wjc feed filter[.No = 2] extract[elem] getposition[3] protectcount[a6];
+1
+
+query wjc feed filter[.No = 2] extract[elem] getposition[6];
+(
+	6
+	(
+		("Rook" "Knight" "Bishop" "Queen" "King" "Bishop" "none" "Rook")
+		("Pawn" "Pawn" 	 "Pawn"   "none"  "none" "Pawn"   "Pawn" "Pawn")
+		("none" "none"   "none"   "none"  "none" "Knight" "none" "none")
+		("none" "none"   "none"   "pawn"  "Pawn" "none"   "none" "none")
+		("none" "none"   "none"   "none"  "none" "none"   "none" "none")
+		("none" "none"   "none"   "none"  "pawn" "none"   "none" "none")
+		("pawn" "pawn"   "none"   "pawn"  "none" "pawn"   "pawn" "pawn")
+		("rook" "knight" "bishop" "queen" "king" "bishop" "knight" "rook")
+	)
+	1
+	15
+)
+
+Secondo => query wjc feed filter[.No = 2] extract[elem] getposition[60];
+
+Move number: 60, Turn: white, Enpassant file: None
+White castling[ long: no,  short: no ]
+Black castling[ long: no,  short: no ]
+
+    _________________
+ 8 |     r           |
+ 7 |             p k |
+ 6 | p             p |
+ 5 |                 |
+ 4 | P p     b       |
+ 3 |   P   N         |
+ 2 |     P       P P |
+ 1 |           R   K |
+    -----------------
+     a b c d e f g h
+
+
+Secondo => query wjc feed filter[.No = 2] extract[elem] getposition[60] king attackedby[Bishop];
+FALSE
+
+Secondo => query wjc feed filter[.No = 2] extract[elem] getposition[61];
+
+Move number: 61, Turn: black, Enpassant file: None
+White castling[ long: no,  short: no ]
+Black castling[ long: no,  short: no ]
+
+    _________________
+ 8 |     r           |
+ 7 |             p k |
+ 6 | p             p |
+ 5 |                 |
+ 4 | P N     b       |
+ 3 |   P             |
+ 2 |     P       P P |
+ 1 |           R   K |
+    -----------------
+     a b c d e f g h
+
+
+Secondo => query wjc feed filter[.No = 2] extract[elem] getposition[61] Pawn attackedby[rook];
+TRUE
+
+let rel2 = [const rel(tuple([Name: string, Field: field])) value(("Peter" a1)("Klaus" h3))];
+query rel2 feed consume;
+
+ Name:Peter
+Field:a1
+
+ Name:Klaus
+Field:h3
