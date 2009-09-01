@@ -4220,7 +4220,7 @@ showStoredAttrSize :-
   write(CoreSize), write('/'), write(LOBSize), write(')\n').
 
 showStoredAttrSizes :-
-  write('Stored attribute sizes\nRel.Attr: Type '),
+  write('Stored attribute sizes\nDb.Rel.Attr: Type '),
   write('(CoreTupleSize/Avg.InlineFlobSize/Avg.ExtFlobSize) [byte]:\n'),
   findall(_, showStoredAttrSize, _).
 
