@@ -1,4 +1,0 @@
-; c:\mingw\bin\dlltool.exe -z MeshGenerator.def.tmp MeshGenerator.o
-EXPORTS
-	Java_twodsack_util_meshgenerator_MeshGenerator_triangulate = 	Java_twodsack_util_meshgenerator_MeshGenerator_triangulate@88 ; 
-	Java_twodsack_util_meshgenerator_MeshGenerator_freeMemory = 	Java_twodsack_util_meshgenerator_MeshGenerator_freeMemory@8 ; 

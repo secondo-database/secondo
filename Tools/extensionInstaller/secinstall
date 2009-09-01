@@ -1,4 +1,0 @@
-
-
-
-java -DSECONDO_BUILD_DIR=$SECONDO_BUILD_DIR -jar Installer.jar $*

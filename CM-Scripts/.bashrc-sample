@@ -1,7 +1,0 @@
-# Sample .bashrc for SECONDO
-# May 2004, Markus Spiekermann 
-#
-
-export SECONDO_CVS_USER=$USER
-source ~/.secondorc
-
