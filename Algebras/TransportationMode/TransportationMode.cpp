@@ -99,14 +99,14 @@ const string OpBusMoveSpec =
   "<text>query busmove(busroutes) count</text--->"
   "))";
 
-const string OpBusReachabilitySpec =
+const string OpBusFindPath_T_1Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
   "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
-  "<text>reachability(_)</text--->"
-  "<text>returns a stream of tuple where each corresponds to "
+  "<text>find_path_t_1(_)</text--->"
+  "<text>returns a stream of tuple where each corresponds to"
   "the sequence movement of a trip.</text--->"
-  "<text>query reachability(mint1) count</text--->"
+  "<text>query find_path_t_1(mint1) count</text--->"
   "))";
 
 /***********Value Map Function for Bus Network****************************/
@@ -251,12 +251,20 @@ int OpBusEdgeValueMapping(Word* args, Word& result,
         Line* l = (Line*)temp_tuple->GetAttribute(BusNetwork::LINE);
         CcReal* fee = (CcReal*)temp_tuple->GetAttribute(BusNetwork::FEE);
 
+        Periods* peri = (Periods*)temp_tuple->GetAttribute(BusNetwork::DEF_T);
+        const Interval<Instant>* interval;
+        peri->Get(0,interval);
+        string start_t = interval->start.ToString();
+        string end_t = interval->end.ToString();
+//        cout<<start_t<<" "<<end_t<<endl;
+
         tuple->PutAttribute(0,new CcInt(*id));
         tuple->PutAttribute(1,new CcInt(*nid1));
         tuple->PutAttribute(2,new CcInt(*nid2));
         tuple->PutAttribute(3,new Line(*l));
         tuple->PutAttribute(4,new CcReal(*fee));
-
+        tuple->PutAttribute(5,new CcString(true,start_t));
+        tuple->PutAttribute(6,new CcString(true,end_t));
         result.setAddr(tuple);
         temp_tuple->DeleteIfAllowed();
         localInfo->bus_edge_count++;
@@ -316,13 +324,13 @@ int OpBusMoveValueMapping(Word* args, Word& result,
 query reachability for a start node and an end node.
 
 */
-int OpBusReachValueMapping(Word* args, Word& result,
+int OpBusFindPath_T_1ValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
   BusNetwork* busnet = (BusNetwork*)args[0].addr;
   MInt* querycond = (MInt*)args[1].addr;
-  busnet->Reachability((MPoint*)result.addr,querycond);
+  busnet->FindPath_T_1((MPoint*)result.addr,querycond);
   return 0;
 }
 
@@ -398,13 +406,16 @@ ListExpr OpBusEdgeTypeMap(ListExpr in_xArgs)
       return nl->TwoElemList(
           nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),
-              nl->FiveElemList(
+              nl->Cons(
                 nl->TwoElemList(nl->SymbolAtom("id"),nl->SymbolAtom("int")),
+                nl->SixElemList(
                 nl->TwoElemList(nl->SymbolAtom("nid1"),nl->SymbolAtom("int")),
                 nl->TwoElemList(nl->SymbolAtom("nid2"),nl->SymbolAtom("int")),
                 nl->TwoElemList(nl->SymbolAtom("l"),nl->SymbolAtom("line")),
-                nl->TwoElemList(nl->SymbolAtom("fee"),nl->SymbolAtom("real"))
-              )
+                nl->TwoElemList(nl->SymbolAtom("fee"),nl->SymbolAtom("real")),
+                nl->TwoElemList(nl->SymbolAtom("t1"),nl->SymbolAtom("string")),
+                nl->TwoElemList(nl->SymbolAtom("t2"),nl->SymbolAtom("string"))
+              ))
             )
           );
   }
@@ -442,7 +453,7 @@ ListExpr OpBusMoveTypeMap(ListExpr in_xArgs)
 Operator ~reachability~
 
 */
-ListExpr OpBusReachTypeMap(ListExpr in_xArgs)
+ListExpr OpBusFindPath_T_1TypeMap(ListExpr in_xArgs)
 {
   string err = "busnetwork x mint expected";
   if(nl->ListLength(in_xArgs) != 2){
@@ -493,12 +504,12 @@ Operator busmove(
   OpBusMoveTypeMap
 );
 
-Operator reachability(
-  "reachability", //name
-  OpBusReachabilitySpec,
-  OpBusReachValueMapping,
+Operator find_path_t_1(
+  "find_path_t_1", //name
+  OpBusFindPath_T_1Spec,
+  OpBusFindPath_T_1ValueMapping,
   Operator::SimpleSelect,
-  OpBusReachTypeMap
+  OpBusFindPath_T_1TypeMap
 );
 
 /*
@@ -518,7 +529,8 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&busnode);//display bus stop
    AddOperator(&busedge); //display the trajectory of a bus
    AddOperator(&busmove);//display bus movement
-   AddOperator(&reachability);
+   //middle stop with no temporal property, no user defined time instant
+   AddOperator(&find_path_t_1);//minimum total time cost
   }
   ~TransportationModeAlgebra() {};
  private:

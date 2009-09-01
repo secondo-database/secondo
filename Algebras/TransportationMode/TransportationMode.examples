@@ -27,3 +27,9 @@ Number   : 1
 Signature: busnetwork -> int
 Example  : query busmove(berlintrains) count;
 Result   : 562
+
+Operator : find_path_t_1
+Number   : 1
+Signature: busnetwork x mint -> mpoint
+Example  : query find_path_t_1(berlintrains,mint1);
+Result   : file
