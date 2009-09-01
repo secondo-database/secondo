@@ -21,14 +21,12 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-*/
-/*
 2 Part one - Determine relations and sql predicates using by the sql query
 
 2.1 Goal of part one
 
   Goal of part one is to determine any relation and any sql predicate
-used by sql query to be optimized. This information will be used by 
+used by sql query to be optimized. This information will be used by
 Part two to construct execution plans for secondo database to
 estimate the selectivity of joined predicates.
 
@@ -49,8 +47,8 @@ estimate the selectivity of joined predicates.
 
     2 one instance of one relation twice (used by different sql predicates)
 
-    In the first case nothing is to be done. In the second case the 
-    second occurence of the relation shouldn't be added to the list of 
+    In the first case nothing is to be done. In the second case the
+    second occurence of the relation shouldn't be added to the list of
     relations.
 
   3 A list is built containing the relations found. This list is stored as
@@ -61,8 +59,6 @@ estimate the selectivity of joined predicates.
   5 The list of sql predicates generated before is stored as parameter of
     the dynamic fact listOfPredicates/1.
 
-*/
-/*
 2.3 The defined dynamic facts
 
 2.3.1 listOfPredicates/1
@@ -75,35 +71,33 @@ are represented as a list of tuples. These tuples consist three elements:
   * the POG identifier of the sql predicate,
 
   * the relation of the sql predicate as predicate rel/3 and
- 
+
   * the sql predicate itself.
 
 2.3.2 listOfRelations/1
 
-  The dynamic fact listOfRelations/1 exists only once, too. The 
+  The dynamic fact listOfRelations/1 exists only once, too. The
 argument
-is also a list, but it contains the instances of the relations used 
+is also a list, but it contains the instances of the relations used
 by the sql predicates of the sql query. Each relation instance is
-represented by 
-the predicate rel/3.The list is distinctive. Nevertheless it could contain 
+represented by
+the predicate rel/3.The list is distinctive. Nevertheless it could contain
 one relation twice, if the relation is used with different aliases.
 
 2.3.2.1 instances of relations
 
-  One relation can be used in a sql query more than one time 
-by defining distinctive aliases. 
+  One relation can be used in a sql query more than one time
+by defining distinctive aliases.
 An instance of a relation is identified uniquely??? by an alias or just by
-the name of the relation if no alias was defined. Each sql predicate 
+the name of the relation if no alias was defined. Each sql predicate
 is exactly bundled with one relation instance.
 
-*/
-/*
 2.4 The implementation of the predicates
 
 2.4.1 findRelation/2
 
   The predicate is used to find a relation (arg 1) in an given list (arg 2)
-of relations. If arg 1 could be found in arg 2, so the predicate finishs 
+of relations. If arg 1 could be found in arg 2, so the predicate finishs
 successfully otherwise it fails.
 
 */
@@ -112,7 +106,7 @@ successfully otherwise it fails.
 findRelation(Relation, [] ):- % Relation not found in list
 	debug_writeln(findRelation/2, 70, [ Relation, ' could not be found in list' ]),
 	!, % do not call unexpected call
-	fail. 
+	fail.
 
 % the element heading the list is be able to unify with argument one
 % (it means arg1 could be found in arg2) - predicate successful
@@ -120,7 +114,7 @@ findRelation(SearchFor, [ Relation | _ ]):- % Relation found
 	set_equal(SearchFor, Relation),
 	debug_writeln(findRelation/2, 71, [ 'found/equals ', SearchFor, ' in/and ', Relation ]).
 
-% the element heading the list couldn't be unified with argument 1, 
+% the element heading the list couldn't be unified with argument 1,
 % but the list is not empty
 % try again with the next top element of list
 findRelation(SearchFor, [ _ | Rest ]):-
@@ -134,7 +128,7 @@ findRelation(A, B):-
 	error_exit(findRelation/2, [ 'unexpected call with arguments: ', [A, B] ]).
 
 
-% 
+%
 set_equal(Set, Set):-
 	debug_writeln(set_equal/2, 81, [ 'lists ', Set, ' and ', Set, ' are equal']).
 % this definition is just for performance issues
@@ -153,16 +147,16 @@ set_equal(Set1, Set2):-
 /*
 2.4.2 add\_relation/1
 
-  The predicate appends the list of relations by the given 
+  The predicate appends the list of relations by the given
 relation (arg 1),
-if arg 1 is not still a part of the list. The list of relations is stored 
+if arg 1 is not still a part of the list. The list of relations is stored
 in fact listOfRelations/1.
 
 */
 
 
-% the given relation is still a part of the list of relations - 
-% do not add the relation 
+% the given relation is still a part of the list of relations -
+% do not add the relation
 add_relation(Relation):-
 	listOfRelations(ListRelations),
 	%!, % if relation not in list - add_relation 1 have to fail
@@ -206,7 +200,7 @@ add_predicate(A):-
 /*
 2.4.4 build\_list\_of\_predicates/1
 
-  The predicate is the entry point of part one. It initiates 
+  The predicate is the entry point of part one. It initiates
 the construction of the list of relations and the list of predicates
 finally stored as argument of facts listOfRelations/1 and
 listOfPredicates/1.
@@ -302,6 +296,13 @@ get_predicate_contents(Predicate, PredExpr, Relation):-
 	Relation = [ Relation1, Relation2 ],
 	debug_writeln(get_predicate_contents/3, 62, [ 'join predicate found ', Predicate, ' => ', [PredExpr, Relation]]).
 
+% sortedjoin predicates
+get_predicate_contents(Predicate, PredExpr, Relation):-
+  Predicate = sortedjoin( _, _, PredExpr, _, _),
+  PredExpr = pr( _ , Relation1, Relation2 ),
+  Relation = [ Relation1, Relation2 ],
+  debug_writeln(get_predicate_contents/3, 62, [ 'join predicate evaluated ', Predicate, ' => ', [PredExpr, Relation]]).
+
 % other unsupported type of predicate
 get_predicate_contents(Predicate, _, _):-
 	info_continue(get_predicate_contents/3, [ 'unsupported type of predicate ', Predicate, ' - ignore it']),
@@ -340,51 +341,41 @@ to bring??? the POG more detailed.
 
     2 construct predcount execution plan (one per relation instance)
 
-    3 generate the list of POG identifiers of sql predicates used 
+    3 generate the list of POG identifiers of sql predicates used
       by the constructed predcount execution plan
 
-*/
-
-/*
 3.2.1 predcount execution plans
 
-  The stream consuming sql operator predcount called with a list of 
-sql predicates determine for each element of the stream which 
+  The stream consuming sql operator predcount called with a list of
+sql predicates determine for each element of the stream which
 combination of given sql predicates are solved.
 Each sql predicate i given as parameter is identified by an identifier
 2\^i. This way of identifing allows to identify each combination of sql
 predicates just by sum the identifiers of each solved sql predicate.
 The result of the predcount operator is a stream of tuples. The count
-of tuples is 2\^(count of sql predicates). Each tuple consists of an 
+of tuples is 2\^(count of sql predicates). Each tuple consists of an
 identifier identifing a unique comination of solved sql predicates and
-number of tuples of the original stream solving this combination of 
+number of tuples of the original stream solving this combination of
 sql predicates.
 
-  The identifier does not correspond with the POG identifier 
+  The identifier does not correspond with the POG identifier
 of the sql predicate. (see section below)
 
-*/
-/*
 3.2.2 POG identifiers
 
-  Each sql predicate has gotten an identifier in POG during parsing 
+  Each sql predicate has gotten an identifier in POG during parsing
 the sql query.
 To assign the collected statistics to the right edge of the POG,
 it's necessary to translate each identifier of the results of predcount
 to the corresponding identifier of the POG. This is done by predicate
 translate\_ident\_bits/3. (see part three for details)
-Part two supplies the translation by bundling the list of original POG 
+Part two supplies the translation by bundling the list of original POG
 identifiers to each constructed predcount execution plan.
 
-*/
-
-/*
 3.3 The defined dynamic facts
 
 none
 
-*/
-/*
 3.4 The implementation of the predicates
 
 3.4.1 build\_queries/1
@@ -392,10 +383,10 @@ none
   The predicate is the entry point of part two. The result is returned
 as the argument. The result is a list of tuples. One tupel per
 relation instance is created. Each tuple contains a query (second
-element) which represents the predcount execution plan for that 
-relation instance. The first element of the tupel is the list of 
+element) which represents the predcount execution plan for that
+relation instance. The first element of the tupel is the list of
 predicate identifiers called translation list. (see section 3.2.2
-above) The elements of the translation list are used in step 3 to 
+above) The elements of the translation list are used in step 3 to
 translate the tupels responsed by predcount for the POG.
 
 */
@@ -479,7 +470,7 @@ is_join_list([ [ J ] | _ ]):-
 is_join_list([ NJ | IdentList]):-
 	debug_writeln(is_join_list/1, 59, [ 'predicate id ', NJ, ' is no join']),
 	is_join_list(IdentList).
-	
+
 
 /*
 3.4.2 build\_queries/2
@@ -539,7 +530,7 @@ storeCorrPredicates(A):-
 3.4.3 build\_query/2
 
 
-  The predicate constructs the tuple [ PredIdentList Query ] 
+  The predicate constructs the tuple [ PredIdentList Query ]
 for the given relation (argument 1).
 
 */
@@ -569,7 +560,7 @@ build_query(Relation, [ PredIdentList , Query , Relation ]):-
 	debug_writeln(build_query/2, 59, ['predcount expression to be built for predicates ', PCPredicates]),
 	!,
 	% build predcount expression
-	build_predcount_exprs(PCPredicates, PredcountExpr, PredIdentListTmp), 
+	build_predcount_exprs(PCPredicates, PredcountExpr, PredIdentListTmp),
 	debug_writeln(build_query/2, 59, ['predcount expression built ', PredcountExpr, ' with translation list ', PredIdentListTmp]),
 	% the identifiers of used join predicates are added to
 	% the list of predicate identifiers to support calculate_pog_ident/3
@@ -596,12 +587,12 @@ build_query(A, B):-
 
   The predicate builds relation expression " query relation feed \{alias\} " .
 Setting the alias is necessary to support direct using of sql predicates
-of the original query. 
+of the original query.
 
   If Option correlationsProduct is activated the string " relation feed \{
-alias \} " is generated for each relation of a set of relations. The 
+alias \} " is generated for each relation of a set of relations. The
 generated strings are concatinated and joined with the key words query and
-product.  
+product.
 
   If Option correlationsJoin is activated a more complicated
 algorithm is used to produce a derivated relation used to
@@ -704,7 +695,7 @@ build_relation_expr2(Relation, [], RelationExpr, []):-
 	plan_to_atom(Sample, RelName), % determine relation
 	% build alias if necessary
 	build_alias_string(Sample, RelAliasString),
-	atom_concat(' ', RelName, ' feed ', RelAliasString, 
+	atom_concat(' ', RelName, ' feed ', RelAliasString,
 		'', RelationExpr), % concatinate string
 	debug_writeln(build_relation_expr2/4, 63, [ 'singleton relation ', Relation, ' used as ', RelName, ' with alias ', RelAliasString]).
 
@@ -741,7 +732,7 @@ build_alias_string(A, B):-
 /*
 3.4.6 build\_predcount\_exprs/3
 
-  The predicate builds the predcounts expression string 
+  The predicate builds the predcounts expression string
  " predcounts [ ... ] " .
 
 */
@@ -749,19 +740,19 @@ build_alias_string(A, B):-
 build_predcount_exprs(Predicates, PredcountString, PredIdentList):-
 	% get list of predicates created by part one
 	findall(
-		[PredID, Predicate], 
+		[PredID, Predicate],
 		(
 			corrPredicates(PredID, _, Predicate),
 			member(PredID, Predicates)
-		), 
+		),
 		ListOfPredicates
 	),
 	debug_writeln(build_predcount_exprs/3, 69, [ 'list of predicates ', ListOfPredicates, ' for predcount expression ']),
 %?%	!, wegen unexpected call raus
-	% build list of predcounts expression elements and 
+	% build list of predcounts expression elements and
 	% predicate translation list
 	build_predcount_expr(ListOfPredicates, PredcountExpr, PredIdentList),
-	atom_concat(' predcounts [ ', PredcountExpr, ' ] ', '', '', 
+	atom_concat(' predcounts [ ', PredcountExpr, ' ] ', '', '',
 		PredcountString),
 	debug_writeln(build_predcount_exprs/3, 61, [ 'predcount expression ', PredcountString, ' and translation list ', PredIdentList, ' for list of predicates ',ListOfPredicates]).
 
@@ -775,7 +766,7 @@ build_predcount_exprs(A, B, C):-
 
   The predicate builds the expression for each sql predicate of
 predcounts expression string and concates the expression to the list
-of predcount expressions (argument 3). It adds the POG identifier 
+of predcount expressions (argument 3). It adds the POG identifier
 of the sql predicate to the translation list (argument 4), too.
 
 
@@ -783,7 +774,7 @@ of the sql predicate to the translation list (argument 4), too.
 
 build_predcount_expr([], '', []):- % end of recursion
 	debug_writeln(build_predcount_expr/3, 72, ['end of recursion']).
-build_predcount_expr([ Predicate | Rest ], PredcountExpr, 
+build_predcount_expr([ Predicate | Rest ], PredcountExpr,
 	PredIdentList):- % used if Predicate use Relation
 	Predicate = [ PredIdentNew, PredExprNew ],
 	get_predicate_expression(PredIdentNew, PredExprNew, PredExpr, PredIdent),
@@ -792,13 +783,13 @@ build_predcount_expr([ Predicate | Rest ], PredcountExpr,
 	% recursive call for other predicates in list
 	build_predcount_expr(Rest, PERest, PIRest),
 	%!, % if Predicate does not use Relation add_predcount fails
-	build_predicate_expression(PredIdent, PredExpr, 
-		PredPredcountExpr), 
+	build_predicate_expression(PredIdent, PredExpr,
+		PredPredcountExpr),
 	debug_writeln(build_predcount_expr/3, 79, [ 'predcount expression ', PredPredcountExpr, ' for predicate ', Predicate]),
-	build_comma_separated_string(PredPredcountExpr, PERest, 
+	build_comma_separated_string(PredPredcountExpr, PERest,
 		PredcountExpr),
 	debug_writeln(build_predcount_expr/3, 71, [ 'new predcount list expression ', PredcountExpr]),
-	% add predicate identifier of POG to list 
+	% add predicate identifier of POG to list
 	PredIdentList = [ PredIdent | PIRest ],
 	debug_writeln(build_predcount_expr/3, 71, [ 'new translation list ', PredIdentList]).
 
@@ -827,7 +818,7 @@ get_predicate_expression(Ident, Predicate, PredExpr, Ident):-
 %X01	Predicate = pr( _, _, _).
 % unexpected call
 get_predicate_expression(A, B, C, D):-
-	error_exit(get_predicate_expression/4, 
+	error_exit(get_predicate_expression/4,
 		['unexpected call (only predicates of form pr/2 and pr/3 supported)',
 		[A, B, C, D]]).
 
@@ -847,7 +838,7 @@ build_predicate_expression(PredIdent, Expression, PredcountExpr):-
 	plan_to_atom(Expression, PredExpr),
 	atom_concat('P', PredIdent, ': ', PredExpr,
 		'', PredcountExpr),
-	debug_writeln(build_predicate_expression/3, 81, [ 'built predcount expression ', PredcountExpr, ' for predicate ', [PredIdent, Expression]]). 
+	debug_writeln(build_predicate_expression/3, 81, [ 'built predcount expression ', PredcountExpr, ' for predicate ', [PredIdent, Expression]]).
 
 % unexpected call
 build_predicate_expression(A, B, C):-
@@ -858,7 +849,7 @@ build_predicate_expression(A, B, C):-
 /*
 3.4.9 build\_comma\_separated\_string/3
 
-  Arg3 = Arg1 + ',' + Arg2 
+  Arg3 = Arg1 + ',' + Arg2
 
 */
 
@@ -950,7 +941,7 @@ get_join_set(Relations, [ JoinPredicate | JoinPredicates ], JointRelations, Join
 	JoinPredicate = [ _, _, _ ],
 	%ist Alternativpfad fuer findall, deshalb nicht: subset(PredRelations, JointRelations),
 	get_join_set(Relations, JoinPredicates, JointRelations, JoinSet).
-	
+
 /*
 6.5.4.5 get\_smallest\_join/3
 
@@ -975,7 +966,7 @@ get_smallest_join([ JoinSet | JoinSets ], JoinSet, Selectivity):-
 /*
 6.5.4.5 get\_join\_selectivity/2
 
-  calculate the selectivity of a join set 
+  calculate the selectivity of a join set
 
 */
 
@@ -1033,10 +1024,10 @@ get_first_path([[ _, _, CheapestJoinPath] | _], CheapestJoinPath):-
 get_first_path([ _ | Rest], CheapestJoinPath):-
 	not(Rest=[]),
 	get_first_path(Rest, CheapestJoinPath).
-        
 
 
-	
+
+
 /*
 6.5.4.5 get\_path\_cost/5
 
@@ -1154,7 +1145,7 @@ construct_sample_plan(Path, Plan):-
 	plan(Path, TmpPlan),
 	!, % if prepare_sample_query/2 fails because of untranslatable TmpPlan do not retry plan/2
 	prepare_sample_query(TmpPlan, Plan).
-	
+
 prepare_sample_query(In, Out):-
 	query_sample(In, Out),
 	!.
@@ -1163,7 +1154,7 @@ prepare_sample_query(In, Out):-
 	!,
 	fail.
 
-query_sample([],[]) :- 
+query_sample([],[]) :-
 	!.
 
 query_sample([First|Next], [FirstResult|NextResult]) :-
@@ -1187,7 +1178,7 @@ query_sample(rel(Name, V), rel(NameSample, V)) :-
 	!.
 
 query_sample( rel(Name, V), rel(Name, V) ) :-
-	atomic(rel(Name, V)), 
+	atomic(rel(Name, V)),
 	warn_continue(query_sample/2, ['no sample of relation ',rel(Name, V),' usable - use relation itself']),
 	!.
 
@@ -1203,7 +1194,7 @@ query_sample( Term, Result ) :-
 	Result =.. [Op|ArgsResult], !.
 
 /*
-4 Part three - execution of predcounts plans and 
+4 Part three - execution of predcounts plans and
 tranforming of the results for the POG
 
 4.1 Goal of part three
@@ -1220,7 +1211,7 @@ identifiers used by POG. Finally the results are added to the POG.
   1 execute predcounts execution plan
 
   2 transform the predicate identifiers (atom) of the operator predcounts
-    to the correspondig node identifiers used by the POG 
+    to the correspondig node identifiers used by the POG
 
 4.3 Defined dynamic facts
 
@@ -1251,7 +1242,7 @@ calculate_predcounts([[PredIDs , Query , Relation ] | QRest],
 	secondo(Query, [_|[PredTupels]]),
 	debug_writeln(calculate_predcounts/2, 39, [ 'predcounts result for relations ', Relation, ' is ', PredTupels]),
 	!,
-	% Wert fuer atom in Ergebnistupel in den Wert 
+	% Wert fuer atom in Ergebnistupel in den Wert
 	% fuer POG uebersetzen
 	translate_ident_bits(PredTupels, PredIDs, PredCount),
 	debug_writeln(calculate_predcounts/2, 39, [ 'translated predcounts results ', PredCount ]),
@@ -1282,8 +1273,6 @@ calculate_predcounts(A, B):-
 /*
 4.4.2 Helper get_sum_tuples/2
 
-  
-
 */
 
 % end of recursion
@@ -1300,8 +1289,6 @@ get_sum_tuples(A, B):-
 /*
 4.4.2 Helper get_card_product/2
 
-  
-
 */
 
 get_card_product([], 0):-
@@ -1314,7 +1301,7 @@ get_card_product(Relation, Card):-
 	debug_writeln(get_card_product/2, 43, ['cardinality of ', Relation, ' is ', Card]).
 % unexpected call
 get_card_product(A, B):-
-	error_exit(get_card_product/2, ['unexpected call',[A, B]]).	
+	error_exit(get_card_product/2, ['unexpected call',[A, B]]).
 
 % end of recursion
 get_card_product2([], 1):-
@@ -1329,8 +1316,6 @@ get_card_product2(A, B):-
 	error_exit(get_card_product2/2, ['unexpected call',[A, B]]).
 /*
 4.4.2 Helper get_card_relation/2
-
-  
 
 */
 
@@ -1359,10 +1344,10 @@ get_relationid2(A, B, C):-
 4.4.2 translate\_ident\_bits/3
 
   The predicate transforms the predicate identifiers of the
-operator predcounts 
+operator predcounts
 (argument one) to the node identifiers of POG (argument three) using
 the translation tables given as a list (argument two).
-Each atom of argument one is finally translated by using 
+Each atom of argument one is finally translated by using
 calculate\_pog\_ident/3.
 
 */
@@ -1404,8 +1389,8 @@ calculate_pog_ident(InAtom, [ [ JoinId ] | TRest ], OutAtom):-
 calculate_pog_ident(InAtom, [ TranElem | TRest ], OutAtom):-
 	% mod = Ganzzahl; restliche Bits
 	IRest is InAtom // 2,
-	IBit is InAtom - ( 2 * IRest), 
-	calculate_pog_ident(IRest, TRest, ORest), 
+	IBit is InAtom - ( 2 * IRest),
+	calculate_pog_ident(IRest, TRest, ORest),
 	OBit is IBit * TranElem,
 	OutAtom is ORest + OBit,
 	debug_writeln(calculate_pog_ident/3, 51, ['']).
@@ -1426,14 +1411,14 @@ understanding of the main code.
 ----    debug_writeln(Message)
 ----
 
-  The predicate debug\_write writes the given message to 
+  The predicate debug\_write writes the given message to
 the screen
 without a trailing newline. The message is only written
 if the fact debug\_level(X) with X greater then 0 is set.
 
 */
 
-debug_out(_):- % if X=0 then no debugging messages  
+debug_out(_):- % if X=0 then no debugging messages
    % if fact debug_level is not set retract fails
    retract((debug_level(X))),
    % reassert the fact
@@ -1465,10 +1450,10 @@ debug_out(_).       % in any other case ignore call of debug_write
         debug_outln(Msg1, Msg2, Msg3, Msg4, Msg5, Msg6)
 ----
 
-  The predicates debug\_outln write the given message(s) to the 
+  The predicates debug\_outln write the given message(s) to the
 screen. The
 given message(s) are concatinated without any delimiter but a newline
-will be appended behind??? the last message. The message(s) are only 
+will be appended behind??? the last message. The message(s) are only
 written if the fact debug\_level(X) with X greater then 0 is set.
 
 */
@@ -1561,7 +1546,7 @@ write_list([ Atom | Rest ]):-
 	write_list(Rest).
 write_list(Atom):-
 	write(Atom).
-	
+
 write_sub_list(Head, [ Atom | [] ]):-
 	writeln(Head, Atom).
 write_sub_list(Head, [ Atom | Rest ]):-
@@ -1569,8 +1554,8 @@ write_sub_list(Head, [ Atom | Rest ]):-
 	write_sub_list(Head, Rest).
 
 
-/* 
-  The following three predicates write two up to four messages 
+/*
+  The following three predicates write two up to four messages
 using the predicates debug\_write/1 and debug\_writeln/1
 
 */
@@ -1948,7 +1933,7 @@ getAdjustment(NodeID, NID, NC, Adjustment):-
 getAdjustment(NodeID, NID, _, 0):-
 	debug_writeln(getAdjustment/4, 61, ['no adjustment of node ', NID, ' for node ', NodeID]).
 
-	
+
 
 /*
 6.3 resetPOGSizes/0
@@ -1959,7 +1944,7 @@ of correlations aproach are returned to the optimizer.
 
 */
 
-resetPOGSizes :- 
+resetPOGSizes :-
   findall([Source, Target, Term, Result], edge(Source, Target, Term, Result, _, _), Edges),
   debug_writeln(resetPOGSizes1/0, 49, ['edges to be refreshed: ', Edges]),
   resetPOGSizes1(Edges),
@@ -1987,6 +1972,19 @@ resetPOGSize(Source, Target, select(Arg, _), Result):-
 
 % derivated from resetNodeSize of entropy_opt.pl
 resetPOGSize(Source, Target, join(Arg1, Arg2, _), Result) :-
+  resSize(Arg1, Card1),
+  resSize(Arg2, Card2),
+  correlationsSel(Source, Target, Sel),
+  Size is Card1 * Card2 * Sel,
+  resetNodeSize(Result, Size),
+  debug_writeln(resetPOGSize/4, 69, ['fact reseted to: resultSize(',[Result, Size],')']),
+  retractall((edgeSelectivity(Source, Target, _))),
+  assert(edgeSelectivity(Source, Target, Sel)),
+  debug_writeln(resetPOGSize/4, 69, ['fact reseted to: edgeSelectivity(',[Source, Target, Sel],')']),
+  !.
+
+% derivated from resetNodeSize of entropy_opt.pl
+resetPOGSize(Source, Target, sortedjoin(Arg1, Arg2, _, _, _), Result) :-
   resSize(Arg1, Card1),
   resSize(Arg2, Card2),
   correlationsSel(Source, Target, Sel),
@@ -2026,17 +2024,17 @@ resetNodeSize(0, _):- % is still the correct size
 	debug_writeln(resetNodeSize/2, 52, ['node size of node 0 is still correct']).
 resetNodeSize(0.0, _):- % is still the correct size
 	debug_writeln(resetNodeSize/2, 52, ['node size of node 0.0 is still correct']).
-resetNodeSize(NodeID, Size) :- 
+resetNodeSize(NodeID, Size) :-
 	resultSize(Node,_),
 	Node=:=NodeID, % wegen int und real-Mischung!
 	retract((resultSize(Node,_))),
 	setNodeSize(Node, Size),
 	debug_writeln(resetNodeSize/2, 51, ['size of node ', Node, ' updated to ', Size]).
-resetNodeSize(NodeID, Size) :- 
+resetNodeSize(NodeID, Size) :-
 	Node is NodeID + 0.0, % NodeID has to be real
 	setNodeSize(Node, Size),
 	debug_writeln(resetNodeSize/2, 53, ['size ', Size, ' of node ', Node, ' inserted']).
-resetNodeSize(NodeID, Size) :- 
+resetNodeSize(NodeID, Size) :-
 	error_exit(resetNodeSize/2,'unexpected call',[NodeID, Size]).
 
 /*
@@ -2073,7 +2071,7 @@ correct_nodeid(NodeID, _):-
   The predicate is a wrapper for corrFeasible/0. It was created to provide
 an interface equal to feasible/4 of entropy approach. The predicate has
 to be used to join selectivities of different approaches for iterative scaling
-algorithm. 
+algorithm.
 
 */
 
@@ -2082,7 +2080,7 @@ corrFeasible(MP, JP, MP2, JP2):-
 	optimizerOption(correlations),
 	% store given selectivities as additional facts corrCummSel/2
 	storeMarginalSels(MP),
-	storeAdditionalJointSelectivities(JP), 
+	storeAdditionalJointSelectivities(JP),
 	% now all known marginal and joint selectivities stored as fact corrCummSel/2
 	debug_writeln(corrFeasible/4, 39, ['all known node selectivities stored']),
 	debug_writelnFacts(corrFeasible/4, 39, ['known node selectivities [NodeId, Selectivity]: '], [N,S], corrCummSel(N,S)),
@@ -2124,7 +2122,7 @@ renormAllCummSels:-
 	debug_writeln(renormAllCummSels/0, 9000, ['relative node cardinality of node ',NodeID,' is ',BaseSel,' - nothing to do']).
 renormAllCummSels:-
 	highNode(HN),
-	%mit hoechster Genauigkeit, dann aber Rundungsfehler: 
+	%mit hoechster Genauigkeit, dann aber Rundungsfehler:
 	corrCummSel(NodeID, BaseSel),
 	%corrCummSel(NodeID, BaseSelTmp),
 	%getEpsilon(Epsilon),
@@ -2186,7 +2184,7 @@ loadMarginalSels2([ PredID | PredIDs ], [ [ PredID, MargSel ] | MP ]):-
 % unexpected call
 loadMarginalSels2(A, B):-
 	error_exit(loadMarginalSels2/2,'unexpected call',[A,B]).
-	
+
 /*
 6.5.3 storeMarginalSels/1
 
@@ -2216,7 +2214,7 @@ storeAdditionalJointSelectivities([ [ _, NodeID, CummEdgeSel ] | Rest]):-
 	storeAdditionalJointSelectivities(Rest).
 
 /*
-6.5.4 
+6.5.4
 
   The predicate checks the known relative node cardinalities stored as facts corrCummSel/2.
 If the set of cardinalities not consistent the predicate generates a consistent set.
@@ -2231,7 +2229,7 @@ corrFeasible:-
 	retractall((nodeCardList(_,_))),
 	% block 1 (lines 003 - 015)
 	initNodeCardLimits(0, HN),
-  	findall([N,L,U],nodeCardRange(N,[L,U]),X), 
+  	findall([N,L,U],nodeCardRange(N,[L,U]),X),
   	debug_writeln(corrFeasible/0, 49, ['initial cardinality ranges of nodes [node, low, up]: ',X]),
 	% other blocks (lines 020 - 106)
 	correctNodeCards(HN),
@@ -2309,7 +2307,7 @@ correctNodeCards(CurrentNode):-
 	% block 5 (lines 070 - 079)
 	calculateLowerLimit(MergedList, LowerLimitTmp),
 	getEpsilon(Epsilon),
-	%besser mal runden: 
+	%besser mal runden:
 	LowerLimit is LowerLimitTmp + Epsilon,
 	%LowerLimit is ceil(LowerLimitTmp/Epsilon)*Epsilon + Epsilon,
 	%format(atom(DEBUG2),'~20f',LowerLimit),
@@ -2323,7 +2321,7 @@ correctNodeCards(CurrentNode):-
 	!,
 	% block 7 (lines 100 - 106)
 	nodeCardRange(Curr, Tuple),
-	assert(nodeCardList( Curr, [ Tuple | MergedList] )), 
+	assert(nodeCardList( Curr, [ Tuple | MergedList] )),
 	debug_writeln(correctNodeCards/1, 59, ['node ',Curr,': set card list: ',[ Tuple | MergedList]]),
 	!,
 	NextNode is CurrentNode - 1.0,
@@ -2383,7 +2381,7 @@ calculateLowerLimit([ [ LowLim, _ ] | MergedList ], LowerLimit):-
 	!,
 	% the expression -LowerLimitOld produces the alternating signs for the odd/even levels
 	LowerLimit is LowLim - LowerLimitOld.
-	
+
 
 /*
 6.5.4.5 checkConsistencyAndCorrectNodeCard/2

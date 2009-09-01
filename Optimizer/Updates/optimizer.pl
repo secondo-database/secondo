@@ -8293,7 +8293,7 @@ updateAttrIndex(Operation, Rel, Attr, [(DCindex, LogicalIndexType)|Rest],
 /*
 ----    updateTypedIndex(+Operation, +Attr, +IndexName, +IndexType, +Stream,
                          -Stream2)
-----
+----n
 
 Extends ~Stream~ by the commands which are necessary to update the index
 ~IndexName~ on the Attribute ~Attr~

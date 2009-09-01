@@ -346,13 +346,12 @@ storedRel(plz, [plz, ort]).
 
 For a better clarity the ~storedOrder~-facts are part of this file. They must be commented out later, if the above mentioned file ~storedOrders.pl~ exists.
 
-*/
-
+----
 :- assert(storedOrder(opt, staedte, sName)),
    assert(storedOrder(opt, orte, kennzeichen)),
    assert(storedOrder(opt, plz, ort)).
 
-/*
+----
 
 Suggested alternatives for testing the optimizer:
 

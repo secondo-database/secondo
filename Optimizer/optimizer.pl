@@ -709,6 +709,37 @@ newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
   Result is ArgNo + PNo,
   Edge = edge(Source, Target, select(Arg, pr(P, R1, R2)), Result, Node, PNo).
 
+/*
+Special handling for distance-queries:
+If a distancescan query is used, only joins keeping the order are allowed
+
+*/
+newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
+  distanceRel(R3, _, _, _),
+  findRels(R1, R2, Node, Source, Arg1, Arg2),
+  findRel(R3, Node, Source, Arg1), !,
+  Target is Source + PNo,
+  nodeNo(Arg1, Arg1No),
+  nodeNo(Arg2, Arg2No),
+  Result is Arg1No + Arg2No + PNo,
+  upperBound(R2, Node, UpperBound),
+  Edge = edge(Source, Target, sortedjoin(Arg1, Arg2, pr(P, R1, R2), Arg1,
+           UpperBound),
+        Result, Node, PNo).
+
+newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
+  distanceRel(R3, _, _, _),
+  findRels(R1, R2, Node, Source, Arg1, Arg2),
+  findRel(R3, Node, Source, Arg2), !,
+  Target is Source + PNo,
+  nodeNo(Arg1, Arg1No),
+  nodeNo(Arg2, Arg2No),
+  Result is Arg1No + Arg2No + PNo,
+  upperBound(R1, Node, UpperBound),
+  Edge = edge(Source, Target, sortedjoin(Arg1, Arg2, pr(P, R1, R2), Arg2,
+           UpperBound),
+        Result, Node, PNo).
+
 newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
   findRels(R1, R2, Node, Source, Arg1, Arg2),
   Target is Source + PNo,
@@ -717,7 +748,6 @@ newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
   Result is Arg1No + Arg2No + PNo,
   Edge = edge(Source, Target, join(Arg1, Arg2, pr(P, R1, R2)), Result,
     Node, PNo).
-
 
 /*
 3.7 findRel
@@ -785,6 +815,7 @@ copyEdges(Pred, PNo, [Edge | Edges], [Edge2 | Edges2]) :-
 
 pred(select(_, P), P).
 pred(join(_, _, P), P).
+pred(sortedjoin(_, _, P, _, _), P).
 
 /*
 3.9 writeEdgeList
@@ -1134,7 +1165,7 @@ upper(Lower, Upper) :-
   atom_codes(Upper, UpperList).*/
 
 wp(Plan) :-
-  plan_to_atom(Plan, PlanAtom),
+  call_plan_to_atom(Plan, PlanAtom),
   write(PlanAtom).
 
 /*
@@ -1236,6 +1267,15 @@ plan_to_atom( patternex(NPredList, ConstraintList, Filter) , Result):-
 plan_to_atom(A,A) :-
   string(A),
   !.
+
+% Special Handling for distance queries using a temporary index
+plan_to_atom(dbobject(tmpindex(Rel, Attr)), Result) :-
+  rel_to_atom(Rel, Rel2),
+  plan_to_atom(attrname(Attr), Attr2),
+  newVariable(IndexName),
+  Result = IndexName,
+  concat_atom([Rel2, ' createbtree[', Attr2, ']'], CreateExpression),
+  assert(planvariable(IndexName, CreateExpression)).
 
 plan_to_atom(dbobject(Name),ExtName) :-
   dcName2externalName(DCname, Name),       % convert to DC-spelling
@@ -1787,6 +1827,61 @@ plan_to_atom(updatehash(UpdateQuery, IndexName, Column),Result) :-
         Result),
   !.
 
+/*
+Extensions for SQL ~create~ and ~drop~ commands
+
+*/
+plan_to_atom(let(VarName, Type),Result) :-
+  plan_to_atom(VarName, VarName2),
+  plan_to_atom(Type, Type2),
+  concat_atom(['let ', VarName2, ' = [const ', Type2, ' value ()]'],
+        Result),
+  !.
+
+plan_to_atom(delete(Identifier),Result) :-
+  plan_to_atom(Identifier, Identifier2),
+  concat_atom(['delete ', Identifier2], Result),
+  !.
+
+plan_to_atom(deleteIndex(Identifier, QueryRest),[Result|QueryRest2]) :-
+  plan_to_atom(QueryRest, QueryRest2),
+  plan_to_atom(Identifier, Identifier2),
+  concat_atom(['delete ', Identifier2], Result),
+  !.
+
+plan_to_atom(rel(Columns),Result) :-
+  list_to_atom(Columns, Columns2),
+  concat_atom(['rel(tuple([', Columns2, ']))'], Result),
+  !.
+
+plan_to_atom(column(Name, Type),Result) :-
+  concat_atom([Name, ': ', Type], Result),
+  !.
+
+plan_to_atom(createIndex(Rel, Columns, LogIndexType), Result) :-
+  rel_to_atom(Rel, Rel2),
+  plan_to_atom(attrname(Columns), Columns2),
+  getCreateIndexExpression(Rel2, Columns2, LogIndexType, no, IndexName,
+         Query),
+  concat_atom(['derive ', IndexName, ' = ', Query], Result), !.
+
+/*
+Extensions for distance-queries
+
+*/
+plan_to_atom(ksmallest(Stream, Count, Attr), Result) :-
+  plan_to_atom(Stream, Stream2),
+  plan_to_atom(Attr, Attr2),
+  concat_atom([Stream2, 'ksmallest[', Count, '; ', Attr2, ']'], Result), !.
+
+plan_to_atom(distancescan(DCIndex, Rel, X, HeadCount), Result) :-
+  plan_to_atom(X, X2),
+  rel_to_atom(Rel, Rel2),
+  concat_atom([DCIndex, ' ', Rel2, ' distancescan[', X2, ', ', HeadCount,']' ],
+        Result), !.
+
+
+
 % Section:Start:plan_to_atom_2_m
 % Section:End:plan_to_atom_2_m
 
@@ -1954,7 +2049,6 @@ list_to_atom([X | Xs], Result) :-
   concat_atom([XAtom, ', ', XsAtom], '', Result),
   !.
 
-
 /*
 Hidden fields have an argument number 100 and can be removed from a projection list by activating the flag ``removeHidenAttributes''. See ~plan\_to\_atom~ for ~project~.
 
@@ -2023,6 +2117,31 @@ of translation results.
 
 
 res(N) => res(N).
+
+% special handling for distancescan queries
+arg(N) => distancescan(IndexName, rel(Name, *), Attr, 0) :-
+  isStarQuery,
+  argument(N, rel(Name, *)),
+  distanceRel(rel(Name, *), IndexName, Attr, _), !.
+
+% special handling for distancescan queries
+arg(N) => rename(distancescan(IndexName, rel(Name, Var), Attr, 0), Var) :-
+  isStarQuery,
+  argument(N, rel(Name, Var)),
+  distanceRel(rel(Name, Var), IndexName, Attr, _), !.
+
+% special handling for distancescan queries
+arg(N) => project(distancescan(IndexName, rel(Name, *), Attr, 0), AttrNames) :-
+  argument(N, rel(Name, *)),
+  distanceRel(rel(Name, *), IndexName, Attr, _), !,
+  usedAttrList(rel(Name, *), AttrNames).
+
+% special handling for distancescan queries
+arg(N) => rename(project(distancescan(IndexName, rel(Name, Var), Attr, 0),
+       AttrNames), Var) :-
+  argument(N, rel(Name, Var)),
+  distanceRel(rel(Name, Var), IndexName, Attr, _), !,
+  usedAttrList(rel(Name, Var), AttrNames).
 
 arg(N) => feed(rel(Name, *)) :-
   isStarQuery,
@@ -2332,6 +2451,60 @@ indexselectRT(arg(N), pr(attr(AttrName, Arg, AttrCase) passes Y, _)) =>
            DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
+% special rules for range queries in the form distance(m(x), y) < d
+% 'distance <' with spatial(rtree,object) index
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(gettuples(windowintersectsS(dbobject(IndexName),
+        enlargeRect(bbox(Y),D,D)),  rel(Name, *)),
+        distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
+           DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
+
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(rename(gettuples(windowintersectsS(dbobject(IndexName),
+        enlargeRect(bbox(Y),D,D)),  rel(Name, *)), RelAlias),
+        distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, RelAlias)), RelAlias \= *,
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
+           DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
+
+% 'distance <' with spatial(rtree,unit) index
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+        enlargeRect(bbox(Y),D,D)))),  rel(Name, *)),
+        distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, *)),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
+           DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
+
+indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
+      filter(rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+        enlargeRect(bbox(Y),D,D)))),rel(Name, *)), RelAlias),
+        distance(attr(AttrName, Arg, AttrCase), Y)< D)
+  :-
+%the translation will work only if Y is of spatial type
+%otherwise it will crash
+%We still need to develop a predicate that will check the type of a param
+  argument(N, rel(Name, RelAlias)), RelAlias \= *,
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
+           DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
 
 % 'bbox(x) intersects box3d(bbox(Z),Y)' with unit_3d index
 indexselectRT(arg(N), pr(bbox(attr(AttrName, Arg, AttrCase)) intersects
@@ -2451,11 +2624,64 @@ join(arg(N), Arg2, pr(X=Y, _, _)) => loopjoin(Arg2S, MatchExpr) :-
   exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
 
 /*
+A loopjoin keeps the order of the outer relation, so it can also be
+used for sortedjoin
+
+*/
+sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) => loopjoin(Arg1S,
+                   MatchExpr) :-
+  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
+  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr2, DCindex, btree),
+  dcName2externalName(DCindex,IndexName),
+  Arg1 => Arg1S,
+  exactmatch(IndexName, arg(N), Expr1) => MatchExpr.
+
+sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, _) => loopjoin(Arg2S,
+                   MatchExpr) :-
+  isOfFirst(Attr1, X, Y),
+  isNotOfFirst(Expr2, X, Y),
+  argument(N, RelDescription),
+  hasIndex(RelDescription, Attr1, DCindex, btree),
+  dcName2externalName(DCindex,IndexName),
+  Arg2 => Arg2S,
+  exactmatch(IndexName, arg(N), Expr2) => MatchExpr.
+
+/*
+If the Inner Relation doesn't have an index on the join attribute,
+try to create a temporary one
+
+*/
+sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) =>
+  loopjoin(Arg1S, MatchExpr) :-
+  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
+  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
+  argument(N, RelDescription),
+  not(hasIndex(RelDescription, Attr2, _, btree)),
+  convertToLfName(Attr2, LfAttr),
+  convertToLfName(RelDescription, LfRel),
+  keyAttributeTypeMatchesIndexType(LfRel, LfAttr, btree),
+  Arg1 => Arg1S,
+  exactmatch(tmpindex(RelDescription, Attr2), arg(N), Expr1) => MatchExpr.
+
+sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, _) =>
+  loopjoin(Arg2S, MatchExpr) :-
+  isOfFirst(Attr1, X, Y),
+  isNotOfFirst(Expr2, X, Y),
+  argument(N, RelDescription),
+  not(hasIndex(RelDescription, Attr1, _, btree)),
+  convertToLfName(Attr1, LfAttr),
+  convertToLfName(RelDescription, LfRel),
+  keyAttributeTypeMatchesIndexType(LfRel, LfAttr, btree),
+  Arg2 => Arg2S,
+  exactmatch(tmpindex(RelDescription, Attr1), arg(N), Expr2) => MatchExpr.
+
+
+/*
 Try to apply projections as early as possible!
 
 */
-
-
 exactmatch(IndexName, arg(N), Expr) =>
   exactmatch(dbobject(IndexName), Rel, Expr) :-
   isStarQuery,
@@ -2586,6 +2812,44 @@ join(Arg1, arg(N), pr(Pred, _, _))
   rtreeindexlookupexpr(IndexName, arg(N), Expr1) => RTreeLookupExpr.
 
 join(arg(N), Arg2, pr(Pred, _, _))
+  => filter(loopjoin(Arg2S, RTreeLookupExpr), Pred) :-
+  Pred =.. [Op, X, Y],
+  isBBoxPredicate(Op),
+  isOfFirst(Attr1, X, Y),
+  isNotOfFirst(Expr2, X, Y),
+  argument(N, RelDescription),
+  (   hasIndex(RelDescription, Attr1, DCindex, rtree)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree3)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree4)
+    ; hasIndex(RelDescription, Attr1, DCindex, rtree8)
+  ),
+  dcName2externalName(DCindex,IndexName),
+  Arg2 => Arg2S,
+  rtreeindexlookupexpr(IndexName, arg(N), Expr2) => RTreeLookupExpr.
+
+/*
+A loopjoin keeps the order of the outer relation, so it can also be
+used for sortedjoin
+
+*/
+sortedjoin(Arg1, arg(N), pr(Pred, _, _), Arg1, _)
+  => filter(loopjoin(Arg1S, RTreeLookupExpr), Pred) :-
+  Pred =.. [Op, X, Y],        % join condition is
+  isBBoxPredicate(Op),        % a bbox-predicate
+  isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
+  isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
+  argument(N, RelDescription),% get info on 2nd relation
+  (                           % the relation has an index on Attr2:
+      hasIndex(RelDescription, Attr2, DCindex, rtree)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree3)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree4)
+    ;   hasIndex(RelDescription, Attr2, DCindex, rtree8)
+  ),
+  dcName2externalName(DCindex,IndexName),
+  Arg1 => Arg1S,
+  rtreeindexlookupexpr(IndexName, arg(N), Expr1) => RTreeLookupExpr.
+
+sortedjoin(arg(N), Arg2, pr(Pred, _, _), Arg2, _)
   => filter(loopjoin(Arg2S, RTreeLookupExpr), Pred) :-
   Pred =.. [Op, X, Y],
   isBBoxPredicate(Op),
@@ -2758,6 +3022,103 @@ join(Arg1, Arg2, pr(X=Y, R1, R2)) =>
   join00(Arg1Extend, Arg2Extend,
         pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2)) => JoinPlan.
 
+
+/*
+As join00 could be an orderkeeping sort, we also need a transformation
+for sortedjoin
+
+*/
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) => JoinPlan :-
+  X = attr(_, _, _),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  sortedjoin00(Arg1S, Arg2S, pr(X=Y, R1, R2), Arg1S, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) => JoinPlan :-
+  X = attr(_, _, _),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  sortedjoin00(Arg1S, Arg2S, pr(X=Y, R1, R2), Arg2S, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(r_expr, 2, l))]) :-
+  X = attr(_, _, _),
+  not(Y = attr(_, _, _)),
+  not(isSubquery(Y)),
+  !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
+  sortedjoin00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, l), R1, R2),
+         Arg1S, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(r_expr, 2, l))]) :-
+  X = attr(_, _, _),
+  not(Y = attr(_, _, _)),
+  not(isSubquery(Y)),
+  !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
+  sortedjoin00(Arg1S, Arg2Extend, pr(X=attr(r_expr, 2, l), R1, R2),
+         Arg2Extend, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(l_expr, 2, l))]) :-
+  not(X = attr(_, _, _)),
+  not(isSubquery(X)),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
+  sortedjoin00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, l)=Y, R1, R2),
+         Arg1Extend, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(l_expr, 2, l))]) :-
+  not(X = attr(_, _, _)),
+  not(isSubquery(X)),
+  Y = attr(_, _, _), !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
+  sortedjoin00(Arg1Extend, Arg2S, pr(attr(l_expr, 1, l)=Y, R1, R2),
+         Arg2S, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg1, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(l_expr, 1, l)),
+                attrname(attr(r_expr, 2, l))]) :-
+  not(X = attr(_, _, _)),
+  not(Y = attr(_, _, _)),
+  not(isSubquery(Y)),
+  not(isSubquery(X)),
+  !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
+  sortedjoin00(Arg1Extend, Arg2Extend,
+        pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2),
+         Arg1Extend, UpperBound) => JoinPlan.
+
+sortedjoin(Arg1, Arg2, pr(X=Y, R1, R2), Arg2, UpperBound) =>
+        remove(JoinPlan, [attrname(attr(l_expr, 1, l)),
+                attrname(attr(r_expr, 2, l))]) :-
+  not(X = attr(_, _, _)),
+  not(Y = attr(_, _, _)),
+  not(isSubquery(Y)),
+  not(isSubquery(X)),
+  !,
+  Arg1 => Arg1S,
+  Arg2 => Arg2S,
+  Arg1Extend = extend(Arg1S, [newattr(attrname(attr(l_expr, 1, l)), X)]),
+  Arg2Extend = extend(Arg2S, [newattr(attrname(attr(r_expr, 2, l)), Y)]),
+  sortedjoin00(Arg1Extend, Arg2Extend,
+        pr(attr(l_expr, 1, l)=attr(r_expr, 2, l), R1, R2),
+         Arg2Extend, UpperBound) => JoinPlan.
 
 join00(Arg1S, Arg2S, pr(X = Y, _, _)) => sortmergejoin(Arg1S, Arg2S,
         attrname(Attr1), attrname(Attr2))   :-
@@ -3224,6 +3585,8 @@ assignSize(Source, Target, join(Arg1, Arg2, Pred), Result) :-
   assert(edgeInfoProgress(Source, Target, BBoxSel, ExpPET)),
   !.
 
+assignSize(Source, Target, sortedjoin(Arg1, Arg2, Pred, _, _), Result) :-
+  assignSize(Source, Target, join(Arg1, Arg2, Pred), Result).
 
 /*
 ----    setNodeSize(Node, Size) :-
@@ -3352,6 +3715,10 @@ edgeSelInfo(Source, Target, Sel, Pred) :-
  edge(Source, Target, join(_, _, pr(Pred, _, _)), _, _, _).
  %plan_to_atom(P, Pred).
 
+edgeSelInfo(Source, Target, Sel, Pred) :-
+ edgeSelectivity(Source, Target, Sel),
+ edge(Source, Target, sortedjoin(_, _, pr(Pred, _, _), _, _), _, _, _).
+ %plan_to_atom(P, Pred).
 
 edgeSelInfo(Source, Target, Sel, Pred) :-
  edgeSelectivity(Source, Target, Sel),
@@ -3731,6 +4098,19 @@ cost(exactmatchfun(_, Rel, _), Sel, P, Size, Cost) :-
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
 
+/*
+special handling for distance-queries which have to create an
+temporary index
+
+*/
+cost(exactmatch(dbobject(tmpindex(rel(Rel, _), _)), rel(Rel, _), _), Sel, P, S,
+     Cost) :-
+  !,
+  cost(exactmatch(1, rel(Rel, _), _), Sel, P, S, CostX),
+  createbtreeTC(C),
+  card(Rel, RelSize),
+  Cost is C * RelSize + CostX.
+
 cost(exactmatch(_, Rel, _), Sel, P, Size, Cost) :-
   cost(Rel, 1, P, RelSize, _),
   exactmatchTC(C),
@@ -3916,6 +4296,28 @@ cost(gettuples(X, _), Sel, P, Size, Cost) :-
   Cost is   CostX            % expected to include cost of 'windowintersectsS'
           + Size * C * 0.75. % other 0.25 applied in 'windowintersectsS'
 
+/*
+For distance-queries
+
+*/
+% get the size from the POG's high node
+cost(pogstream, _, _, Size, 0) :-
+  highNode(Node),
+  resultSize(Node, Size).
+
+cost(distancescan(_, Rel, _, _), Sel, P, Size, Cost) :-
+  cost(Rel, Sel, P, Size, C1),
+  distancescanTC(C),
+  Cost is C1 + C * Size * log(Size + 1).
+
+cost(ksmallest(X, K), Sel, P, S, C) :-
+  cost(X, Sel, P, SizeX, CostX),
+  ksmallestTC(A, B),
+  S is min(SizeX, K),
+  C is CostX +
+    A * SizeX * log(SizeX + 1) +
+    B * S * log(SizeX + 1).
+
 
 % Section:Start:cost_5_e
 % Section:End:cost_5_e
@@ -3964,7 +4366,10 @@ createCostEdge(Source,Target,costEdge(Source, Target, Term, Result, Size, Cost))
   optimizerOption(improvedcosts),
   planEdge(Source, Target, Term, Result),
   edge(Source, Target, EdgeTerm, _, _, _),
-  ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred) ),
+  (   EdgeTerm = select(_, Pred)
+    ; EdgeTerm = join(_, _, Pred)
+    ; EdgeTerm = sortedjoin(_, _, Pred, _, _)
+  ),
   edgeSelectivity(Source, Target, Sel),
   costterm(Term, Source, Target, Result, Sel, Pred, Size, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, Cost)).
@@ -3974,7 +4379,10 @@ createCostEdge :- % use improved cost functions
   optimizerOption(improvedcosts),
   planEdge(Source, Target, Term, Result),
   edge(Source, Target, EdgeTerm, _, _, _),
-  ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred) ),
+  (   EdgeTerm = select(_, Pred)
+    ; EdgeTerm = join(_, _, Pred)
+    ; EdgeTerm = sortedjoin(_, _, Pred, _, _)
+  ),
   edgeSelectivity(Source, Target, Sel),
   costterm(Term, Source, Target, Result, Sel, Pred, Size, Cost),
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
@@ -3993,7 +4401,10 @@ createCostEdge :- % use standard cost functions
   not(optimizerOption(improvedcosts)),
   planEdge(Source, Target, Term, Result),
   edge(Source, Target, EdgeTerm, _, _, _),
-  ( EdgeTerm = select(_, Pred) ; EdgeTerm = join(_, _, Pred) ),
+  (   EdgeTerm = select(_, Pred)
+    ; EdgeTerm = join(_, _, Pred)
+    ; EdgeTerm = sortedjoin(_, _, Pred, _, _)
+  ),
   edgeSelectivity(Source, Target, Sel),
   cost(Term, Sel, Pred, Size, Cost), % Code changed by Goehr
   assert(costEdge(Source, Target, Term, Result, Size, Cost)),
@@ -4802,6 +5213,7 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 
 :- op(993,  fx,  sql).
 :- op(992,  fx,  create).
+:- op(992,  fx,  drop).
 :- op(991,  xfx, by).
 :- op(988,  fx,  with).
 :- op(987, xfx,  in).
@@ -4817,14 +5229,19 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(950,  fx,  delete).% for update, insert
 :- op(950,  fx,  update).% for update, insert
 :- op(950, xfx,  values).% for update, insert
+:- op(950,  fx,  index).
+:- op(950,  fx,  table).
+:- op(945,  fx,  on).
 :- op(940, xfx,  into).  % for update, insert
 :- op(940,  fx,  distinct).
 :- op(940,  fx,  all).
+:- op(940, xfx,  columns).
 :- op(935,  fx,  nonempty).
 :- op(930, xfx,  as).
 :- op(930, xf ,  asc).
 :- op(930, xf ,  desc).
 :- op(930,  fx,  insert).% for update, insert
+:- op(930, xfx,  indextype).
 % Section:Start:opPrologSyntax_3_e
 % Section:End:opPrologSyntax_3_e
 
@@ -4976,6 +5393,47 @@ lookup(update Rel set Transformations,
   !.
 %%%% End: for update and insert
 
+lookup(create table Tablename columns Columns,
+       create table Tablename columns Columns2List) :-
+  makeList(Columns, Columns2List), !.
+
+lookup(create index on Rel columns Attrs indextype IndexType,
+       create index on Rel2List columns Attrs2List indextype IndexType) :-
+  lookup(create index on Rel columns Attrs,
+   create index on Rel2List columns Attrs2List), !.
+
+
+lookup(create index on Rel columns Attrs,
+       create index on Rel2List columns Attrs2List) :-
+  lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List),
+  lookupAttrs(Attrs, Attrs2),
+  makeList(Attrs2, Attrs2List), !.
+
+lookup(drop table Rel,
+       drop table Rel2List) :-
+  lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List),
+  !.
+
+lookup(drop index on Rel columns Attrs indextype IndexType,
+       drop index on Rel2List columns Attrs2List indextype IndexType) :-
+  lookup(drop index on Rel columns Attrs,
+   drop index on Rel2List columns Attrs2List), !.
+
+lookup(drop index on Rel columns Attrs,
+       drop index on Rel2List columns Attrs2List) :-
+  lookupRel(Rel, Rel2),
+  makeList(Rel2, Rel2List),
+  lookupAttrs(Attrs, Attrs2),
+  makeList(Attrs2, Attrs2List), !.
+
+lookup(drop index Rel,
+       drop index Rel2List) :-
+  lookupIndex(Rel, Rel2),
+  makeList(Rel2, Rel2List),
+  !.
+
 lookup(Query orderby Attrs, Query2 orderby Attrs3) :-
   lookup(Query, Query2),
   makeList(Attrs, Attrs2),
@@ -5000,7 +5458,18 @@ makeList(L, L) :- is_list(L).
 
 makeList(L, [L]) :- not(is_list(L)).
 
+/*
 
+----    dissolvelist(+ListIn, -ElementOut)
+----
+
+Removes the brackets of ListIn, if ~ListIn~ contains only one element
+
+*/
+
+dissolveList([], []) :- !.
+dissolveList([L], L) :- !.
+dissolveList([E|R], [E|R]) :- !.
 
 /*
 
@@ -5038,7 +5507,9 @@ Translate and store a single relation definition.
   queryRel/2,
   queryAttr/1,
   isStarQuery/0,
-  usedAttr/2.
+  usedAttr/2,
+  distanceRel/4,
+  planvariable/2.
 
 
 lookupRel(Rel as Var, Y) :-
@@ -5087,6 +5558,16 @@ lookupRel(X,Y) :- !,
   throw(error_SQL(optimizer_lookupRel(X,Y):unknownRelation#ErrMsg)),
   fail.
 
+
+/*
+----    lookupRelNoDblCheck(+Rel, -Rel2) :-
+----
+
+Translate and store a single relation definition without looking for
+duplicate attributes.
+
+*/
+
 %%%% Begin: for update and insert
 lookupRelNoDblCheck(Rel, rel(RelDC, *)) :-
   atomic(Rel),       %% changed code FIXME
@@ -5094,6 +5575,18 @@ lookupRelNoDblCheck(Rel, rel(RelDC, *)) :-
   relation(RelDC, _), !,
   assert(queryRel(RelDC, rel(RelDC, *))).
 %%%% End: for update and insert
+
+/*
+----    lookupIndex(+Rel, -Rel2) :-
+----
+
+Translate and store a single index definition.
+
+*/
+
+lookupIndex(Rel, RelDC) :-
+  atomic(Rel),
+  dcName2externalName(RelDC, Rel).
 
 /*
 ----    duplicateAttrs(Rel) :-
@@ -5460,6 +5953,13 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
   lookupPred2(Others, Others2, RelsAfterMe, RelsAfter),
   !.
 
+/*
+----    lookupTransformations(+Transf, -Transf2)
+----
+
+Handles the transformations in an update command
+*/
+
 %%%% Begin: for update and insert
 lookupTransformations([], []) :- !.
 
@@ -5471,12 +5971,25 @@ lookupTransformations(Trans, Trans2) :-
   not(is_list(Trans)),
   lookupTransformation(Trans, Trans2), !.
 
+/*
+----    lookupTransformation(+Transf, -Transf2)
+----
+
+Handles one transformation in an update command
+
+*/
 lookupTransformation(Attr = Expr, Attr2 = Expr2) :-
   lookupAttr(Attr,Attr2),
   lookupSetExpr(Expr, Expr2),
   !.
 
+/*
+----    lookupSetExpr(+Expr, -Expr2)
+----
 
+Handles the expressions in the set-clause of an update command
+
+*/
 lookupSetExpr([], []) :- !.
 
 lookupSetExpr(Attr, Attr2) :-
@@ -5662,28 +6175,32 @@ translate(Query groupby Attrs,
   translateFields(SelAttrs, Attrs2, Fields, Select2,_,_), % change by Goehr
   !.
 
+% insert query
 translate(insert into Rel values Val,
         Stream, select*, [], 0) :-
   updateIndex(insert, Rel, inserttuple(Rel, Val), Stream),
   !.
 
+% delete query
 translate(delete from Rel where Condition,
         Stream, Select, delete from Rel, Cost) :-
   translate(select * from Rel where Condition, Stream, Select, _, Cost),
   !.
 
-
+% delete query
 translate(delete from Rel,
         Stream, Select, delete from Rel, Cost) :-
   translate(select * from Rel, Stream, Select, _, Cost),
   !.
 
+% update query
 translate(update Rel set Transformations where Condition,
         Stream, Select, update Rel set Transformations2, Cost) :-
   translate(select * from Rel where Condition, Stream, Select, _, Cost),
   translateTransformations(Transformations, Transformations2),
   !.
 
+% update query
 translate(update Rel set Transformations,
         Stream, Select, update Rel set Transformations2, Cost) :-
   translate(select * from Rel, Stream, Select, _, Cost),
@@ -5766,6 +6283,15 @@ translate(Select from [Rel | Rels],
   newVariable(T2),
   !.
 
+% special handling for distance-queries
+makeStream(Rel, distancescan(IndexName, Rel, Attr, HeadCount)) :-
+  Rel = rel(_, *),
+  distanceRel(Rel, IndexName, Attr, HeadCount), !.
+
+% special handling for distance-queries
+makeStream(Rel, rename(distancescan(IndexName, Rel, Attr, HeadCount), Var)) :-
+  Rel = rel(_, Var),
+  distanceRel(Rel, IndexName, Attr, HeadCount), !.
 
 makeStream(Rel, feed(Rel)) :- Rel = rel(_, *), !.
 
@@ -6259,6 +6785,14 @@ translateFields(X, GroupAttrs, Fields, Select2, ExtendAttrs, ProjectAttr) :-
 
 /* End Code modified by Goehr */
 
+/*
+----    translateTransformations(+Transf, -Transf2)
+----
+
+Translates the transformations in an update-command
+
+*/
+
 translateTransformations([], []) :-
   !.
 
@@ -6266,7 +6800,117 @@ translateTransformations([Transf|Rest], [Transf2|Rest2]) :-
   translateTransformation(Transf, Transf2),
   translateTransformations(Rest, Rest2).
 
+/*
+----  translateTransformation(+Transf, -Transf2)
+----
+
+Translates one transformation in an update-command
+
+*/
+
 translateTransformation(Attr = Term, set(Attr, Term)).
+
+
+/*
+----    translateColumns(+Col, -Col2)
+----
+
+Translates the columns in a create table command
+
+*/
+
+translateColumns([], []) :-
+  !.
+
+translateColumns([Column|Rest], [Column2|Rest2]) :-
+  translateColumn(Column, Column2),
+  translateColumns(Rest, Rest2),
+  !.
+
+/*
+----    translateColumn(+Col, -Col2)
+----
+
+Translates one column in a create table command
+
+*/
+
+translateColumn(Name: Type, column(Name, Type2)) :-
+  translateType(Type, Type2), !.
+
+
+/*
+----    translateType(+Type, -Type2)
+----
+
+Translates an SQL-Type to a SECONDO-Type
+
+*/
+
+translateType(integer, int) :- !.
+translateType(boolean, bool) :- !.
+
+translateType(Type, Type) :- !.
+
+/*
+----    translateDistanceQuery(+Query, +DistAttr1, +DistAttr2,
+             +HeadCount, -Stream, -Select, -Update, -Cost)
+----
+
+Translates a query which is ordered by the distance between ~DistAttr1~
+and ~DistAttr2~. ~HeadCount~ is the number of object to look for in the
+distance query
+
+*/
+
+translateDistanceQuery(Select from Rel, X, Y, HeadCount,
+           StreamOut, SelectOut, Update, Cost) :-
+  Rel = rel(_, _),
+  assertDistanceRel([Rel], X, Y, HeadCount), !,
+  translate1(Select from [Rel], StreamOut, SelectOut, Update, Cost),
+  retractall(distanceRel(Rel, _, _, HeadCount)).
+
+translateDistanceQuery(Select from Rels where Condition, X, Y,
+           HeadCount, StreamOut, SelectOut, Update, Cost) :-
+  assertDistanceRel(Rels, X, Y, 0),
+  translate1(Select from Rels where Condition, StreamRTree, SelectOut1,
+       Update1, CostRTree),
+  finishDistanceSortRTree(StreamRTree, CostRTree, HeadCount, StreamOut1,
+        Cost1), !,
+  retractall(distanceRel(_, _, _, _)),
+  translate1(Select from Rels where Condition, StreamTmp, SelectOut2,
+       Update2, CostTmp),
+  finishDistanceSort(StreamTmp, CostTmp, X, Y, HeadCount, StreamOut2, Cost2),
+  write('Best Solution using distancescan: '), nl,
+  write(StreamOut1),nl,
+  write('cost: '), write(Cost1), nl, nl,
+  write('Best Solution without distancescan: '), nl,
+  write(StreamOut2),nl,
+  write('cost: '), write(Cost2), nl, nl,
+  chooseFasterSolution(StreamOut1, SelectOut1, Update1, Cost1, StreamOut2,
+           SelectOut2, Update2, Cost2, StreamOut, SelectOut,
+           Update, Cost).
+
+translateDistanceQuery(Query, X, Y, 0, StreamOut,
+           Select, Update, Cost) :-
+  retractall(distanceRel(_, _, _, _)),
+  translate1(Query, Stream, Select, Update, Cost),
+  newVariable(ExprAttrName),
+  ExprAttr = attr(ExprAttrName, *, l),
+  StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, distance(X, Y))]),
+          attrname(ExprAttr)),
+         attrname(ExprAttr)).
+
+translateDistanceQuery(Query, X, Y, HeadCount, StreamOut,
+           Select, Update, Cost) :-
+  retractall(distanceRel(_, _, _, _)),
+  translate1(Query, Stream, Select, Update, Cost),
+  newVariable(ExprAttrName),
+  ExprAttr = attr(ExprAttrName, *, l),
+  StreamOut = remove(ksmallest(extend(Stream,
+              [field(ExprAttr, distance(X, Y))]),
+             HeadCount, attrname(ExprAttr)),
+         attrname(ExprAttr)).
 
 
 /*
@@ -6284,6 +6928,60 @@ aggregation, without an expression, but respecting all and distinct) that come
 without a groupby clause.
 
 */
+
+% case: create table query
+queryToPlan(create table TableName columns Columns,
+      let(TableName, rel(Columns2)), 0) :-
+  translateColumns(Columns, Columns2),
+  !.
+
+% case: drop table query
+queryToPlan(drop table [TableName], Result, 0) :-
+  finishUpdate(drop table [TableName], delete(TableName), Result), !.
+
+% case: create index query
+queryToPlan(create index on [Rel] columns ColumnList indextype IndexType,
+      createIndex(Rel, ColumnList2, IndexType), 0) :-
+  dissolveList(ColumnList, ColumnList2), !.
+
+% case: create index query
+queryToPlan(create index on [Rel] columns ColumnList,
+      Result, Cost) :-
+  dissolveList(ColumnList, ColumnList2),
+  convertToLfName(ColumnList2, LfColumnList),
+  convertToLfName(Rel, LfRel),
+  keyAttributeTypeMatchesIndexType(LfRel, LfColumnList, LogIndexType),
+  queryToPlan(create index on [Rel] columns ColumnList indextype LogIndexType,
+        Result, Cost), !.
+
+% case: drop index query
+queryToPlan(drop index on [Rel] columns ColumnList indextype IndexType,
+      Result, Cost) :-
+  dissolveList(ColumnList, ColumnList2),
+  findall(DCIndex, hasIndex(Rel, ColumnList2, DCIndex, IndexType), IndexList),
+  queryToPlan(drop index IndexList, Result, Cost), !.
+
+% case: drop index query
+queryToPlan(drop index on [Rel] columns ColumnList, Result, Cost) :-
+  queryToPlan(drop index on [Rel] columns ColumnList indextype _, Result,
+        Cost), !.
+
+% case: drop index query
+queryToPlan(drop index [], [], 0) :-
+  write('\nError:\tNo index found'), nl,
+  throw(error_SQL(optimizer_queryToPlan(drop index [], [], 0):noIndex)),
+  fail.
+
+% case: drop index query
+queryToPlan(drop index [DCTableName], delete(TableName), 0) :-
+  dcName2externalName(DCTableName, TableName), !.
+
+queryToPlan(drop index IndexList, [], 0) :-
+  writeList(['\nError:\tToo many indexes found: ', IndexList]),
+  nl,
+  throw(error_SQL(optimizer_queryToPlan(drop index IndexList, [], 0)
+      :multipleIndexes)),
+  fail.
 
 % case: count query
 queryToPlan(Query, count(Stream), Cost) :-
@@ -6440,6 +7138,9 @@ userDefAggrQuery(Query last N, Query1 last N, AggrExpr, Fun, Default) :-
   userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default), !.
 
 /*
+----    updateQuery(+Query)
+----
+
 Check whether ~Query~ is an update query.
 
 */
@@ -6462,6 +7163,18 @@ updateQuery(Query last _)    :- updateQuery(Query).
 Same as ~queryToPlan~, but returns a stream plan, if possible.
 
 */
+
+% special handling for distance-queries
+queryToStream(Query orderby [distance(X, Y)] first N, StreamOut, Cost) :-
+  !, translateDistanceQuery(Query, X, Y, N, Stream, Select, Update, Cost),
+  finish(Stream, Select, [], Stream2),
+  finishUpdate(Update, Stream2, StreamOut).
+
+% special handling for distance-queries
+queryToStream(Query orderby [distance(X, Y)], StreamOut, Cost) :-
+  !, translateDistanceQuery(Query, X, Y, 0, Stream, Select, Update, Cost),
+  finish(Stream, Select, [], Stream2),
+  finishUpdate(Update, Stream2, StreamOut).
 
 queryToStream(Query first N, head(Stream, N), Cost) :-
   queryToStream(Query, Stream, Cost),
@@ -6631,9 +7344,10 @@ fRdup(Stream, distinct, rdup(sort(Stream))).
 
 fSort(Stream, [], Stream) :- !.
 
-fSort(Stream, SortAttrs, sortby(Stream, AttrNames)) :-
-  attrnamesSort(SortAttrs, AttrNames).
-
+fSort(Stream, SortAttrs, StreamOut) :-
+  rewriteForDistanceSort(Stream, SortAttrs, Stream2, SortAttrs2, NewAttrs),
+  attrnamesSort(SortAttrs2, AttrNames),
+  removeAttrs(sortby(Stream2, AttrNames), NewAttrs, StreamOut).
 
 
 /*
@@ -6726,7 +7440,7 @@ optimize(Query, QueryOut, CostOut) :-
   rewriteQuery(Query, RQuery),
   callLookup(RQuery, Query2), !,
   queryToPlan(Query2, Plan, CostOut), !,
-  plan_to_atom(Plan, QueryOut).
+  call_plan_to_atom(Plan, QueryOut).
 
 /*
 ----    sqlToPlan(QueryText, Plan)
@@ -7036,9 +7750,32 @@ sqlExample( 304,
   ).
 
 
+% Example: distance query, no predicate (database berlintest)
+sqlExample( 400,
+  select *
+  from kinos
+  orderby distance(geoData, mehringdamm) first 5
+  ).
+
+% Example: distance query, selection predicate (database berlintest)
+sqlExample( 401,
+  select *
+  from ubahnhof
+  where typ = "Zone A"
+  orderby distance(geoData, alexanderplatz) first 5
+  ).
+
+% Example: distance query, join predicate (database berlintest)
+sqlExample( 402,
+  select *
+  from [orte2, staedte]
+  where name = sname
+  orderby distance(geoData, alexanderplatz) first 5
+  ).
+
 % Section:Start:sqlExample_1_e
 % Example: spatio temporal pattern query (database berlintest)
-sqlExample( 305,
+sqlExample( 500,
   select count(*)
   from trains
   where pattern([trip inside msnow as preda,
@@ -7210,6 +7947,11 @@ deleteHistory :-
 storeHistory :-
   saveRel('SqlHistory').
 
+% special handling for create query
+sql create Term :- !, sqlNoQuery(create Term).
+
+% special handling for drop query
+sql drop Term :- !, sqlNoQuery(drop Term).
 
 % Default handling
 sql Term :- defaultExceptionHandler((
@@ -7251,6 +7993,42 @@ let(X, Term, SecondoQueryRest) :- defaultExceptionHandler((
   secondo(Command)
  )).
 
+/*
+----    sqlNoQuery(+Term)
+----
+
+special handling for create and drop-queries, which do not use the
+query command in SECONDO
+
+*/
+
+sqlNoQuery(Term) :-  defaultExceptionHandler((
+  isDatabaseOpen,
+  mOptimize(Term, Query, Cost),
+  nl, write('The best plan is: '), nl, nl, write(Query), nl, nl,
+  write('Estimated Cost: '), write(Cost), nl, nl,
+  multiquery(Query)
+ )).
+
+/*
+----    multiquery(+Querylist)
+----
+
+Executes all queries in ~Querylist~.
+This is used for the drop command, which can result in multiple queries
+in SECONDO to delete the relation and all indices.
+
+*/
+
+multiquery([]) :- !.
+
+multiquery([Query|Rest]) :-
+  multiquery(Query),
+  multiquery(Rest), !.
+
+multiquery(Query) :-
+  write('Execute: '), write(Query), nl,
+  secondo(Query), !.
 
 /*
 ----    streamOptimize(Term, Query, Cost) :-
@@ -7263,7 +8041,7 @@ returning a stream.
 streamOptimize(Term, Query, Cost) :-
   callLookup(Term, Term2),
   queryToStream(Term2, Plan, Cost),
-  plan_to_atom(Plan,  Query).
+  call_plan_to_atom(Plan,  Query).
 
 /*
 ----    mOptimize(Term, Query, Cost) :-
@@ -7320,14 +8098,14 @@ Some auxiliary stuff.
 
 bestPlanCount :-
   bestPlan(P, _),
-  plan_to_atom(P, S),
+  call_plan_to_atom(P, S),
   atom_concat(S, ' count', Q),
   nl, write(Q), nl,
   query(Q, _).
 
 bestPlanConsume :-
   bestPlan(P, _),
-  plan_to_atom(P, S),
+  call_plan_to_atom(P, S),
   atom_concat(S, ' consume', Q),
   nl, write(Q), nl,
   query(Q, _).
@@ -7348,7 +8126,7 @@ composeNPredList( [], [], []).
 lookupPatternPreds([Pred| PRest], [Pred2| PRest2], RelsBefore, RelsAfterPreds):-
 	lookupPred1(Pred, Pred2, RelsBefore, RelsAfterMe),
 	lookupPatternPreds(PRest, PRest2, RelsAfterMe, RelsAfterPreds).
-	lookupPatternPreds([], [], RelsBefore, RelsBefore).
+lookupPatternPreds([], [], RelsBefore, RelsBefore).
 
 lookupPattern( NPredList , NPredList2, RelsBefore, RelsAfter) :-
   	removeAliases(NPredList, PredList, AliasList),
@@ -7426,7 +8204,7 @@ card(N) :- dijkstra(0, N, Path, _),
   highNode(High),
   N =< High,
   plan(Path, Plan),
-  plan_to_atom(Plan, Query),
+  call_plan_to_atom(Plan, Query),
   atom_concat(Query, ' count', CountQuery),
   atom_concat('query ', CountQuery, FullQuery),
   secondo(FullQuery, [_, Result]),
@@ -7495,6 +8273,12 @@ allCards :-
 /*
 19.1 Update the Index after an Insert, Update or Delete-Operation
 
+----    updateIndex(+Operation, +Rel, +Stream, -Stream2)
+----
+
+Extends ~Stream~ by the commands which are necessary to update the indices
+of ~Rel~
+
 */
 
 updateIndex(Operation, [rel(Rel, Var)], StreamIn, StreamOut) :-
@@ -7502,6 +8286,14 @@ updateIndex(Operation, [rel(Rel, Var)], StreamIn, StreamOut) :-
   updateIndex(Operation, rel(Rel, Var), Attrs, StreamIn, StreamOut),
   !.
 
+/*
+----    updateIndex(+Operation, +Rel, +Attrs, +Stream, -Stream2)
+----
+
+Extends ~Stream~ by the commands which are necessary to update the indices
+of ~Rel~ on the Attributes ~Attrs~
+
+*/
 
 updateIndex(_, _, [], StreamIn, StreamIn) :-
   !.
@@ -7511,19 +8303,49 @@ updateIndex(Operation, Rel, [Attr|Attrs], StreamIn, StreamOut) :-
   updateAttrIndex(Operation, Rel, Attr2, StreamIn, Stream),
   updateIndex(Operation, Rel, Attrs, Stream, StreamOut).
 
+/*
+----    updateAttrIndex(+Operation, +Rel, +Attr, +Stream, -Stream2)
+----
 
+Extends ~Stream~ by the commands which are necessary to update the indices
+of ~Rel~ on the Attribute ~Attr~
+
+*/
 updateAttrIndex(Operation, Rel, Attr, StreamIn, StreamOut) :-
-  hasIndex(Rel, Attr, DCindex, LogicalIndexType),
+  findall((DCindex, LogicalIndexType),
+    hasIndex(Rel, Attr, DCindex, LogicalIndexType), List),
+  updateAttrIndex(Operation, Rel, Attr, List, StreamIn, StreamOut),
+  !.
+
+/*
+----    updateAttrIndex(+Operation, +Rel, +Attr, +Indices, +Stream, -Stream2)
+----
+
+Extends ~Stream~ by the commands which are necessary to update the indices
+of ~Rel~ on the Attribute ~Attr~
+
+*/
+
+updateAttrIndex(_, _, _, [], StreamIn, StreamIn) :- !.
+
+updateAttrIndex(Operation, Rel, Attr, [(DCindex, LogicalIndexType)|Rest],
+    StreamIn, StreamOut) :-
   dcName2externalName(DCindex,IndexName),
   logicalIndexType(_, LogicalIndexType, PhysicalIndexType, _, _, _, _, _),
   updateTypedIndex(Operation, Attr, IndexName, PhysicalIndexType,
-       StreamIn, StreamOut),
+       StreamIn, Stream2),
+  updateAttrIndex(Operation, Rel, Attr, Rest, Stream2, StreamOut),
   !.
 
-updateAttrIndex(_, Rel, Attr, StreamIn, StreamIn) :-
-  not(hasIndex(Rel, Attr, _, _)),
-  !.
+/*
+----    updateTypedIndex(+Operation, +Attr, +IndexName, +IndexType, +Stream,
+                         -Stream2)
+----
 
+Extends ~Stream~ by the commands which are necessary to update the index
+~IndexName~ on the Attribute ~Attr~
+
+*/
 updateTypedIndex(insert, Attr, IndexName, btree, StreamIn,
      insertbtree(StreamIn, IndexName, Attr)) :-
   !.
@@ -7562,16 +8384,24 @@ updateTypedIndex(update, Attr, IndexName, hash, StreamIn,
      updatehash(StreamIn, IndexName, Attr)) :-
   !.
 
+updateTypedIndex(drop, _, IndexName, _, StreamIn,
+     deleteIndex(IndexName, StreamIn)) :-
+  !.
+
+
 /*
 19.2 Split the select and update clause
 
-*/
+----    splitSelect(+Clause, -SelectClause, -UpdateClause)
+----
 
+Splits ~Clause~ into ~SelectClause~ and ~UpdateCluase~
+
+*/
 splitSelect(select SelectClause, select SelectClause, []) :-
   !.
 
-splitSelect(UpdateClause select SelectClause, select SelectClause, UpdateClause) :-
-  !.
+splitSelect(UpdateClause select SelectClause, select SelectClause, UpdateClause) :- !.
 
 
 /*
@@ -7579,6 +8409,9 @@ splitSelect(UpdateClause select SelectClause, select SelectClause, UpdateClause)
 
 ---- finishUpdate(+UpdateList, +Stream, -Stream)
 ----
+
+Extends ~Stream~ by the commands for an insert, delete or update-
+operation.
 
 */
 
@@ -7597,6 +8430,251 @@ finishUpdate(update Rel set Transformations, Stream2, Stream3) :-
   updateIndex(update, Rel, updatedirect(Rel, Transformations, Stream2),
         Stream3),
   !.
+
+finishUpdate(drop table Rel, Stream2, Stream3) :-
+  updateIndex(drop, Rel, Stream2, Stream3),
+  !.
+
+
+/*
+20 Auxiliary functions for create index
+
+*/
+
+/*
+----    convertToLfName(+Name, -LFName)
+----
+
+Converts ~Name~ to the form which is needed by keyAttributeTypeMatchesIndexType
+
+*/
+
+convertToLfName([], []) :- !.
+
+convertToLfName(attr(DcName, _, _), LfName) :-
+  downcase_atom(DcName, LfName), !.
+
+convertToLfName(rel(DcName, _), LfName) :-
+  downcase_atom(DcName, LfName), !.
+
+convertToLfName([FullName, Rest], [LfName, Rest2]) :-
+  convertToLfName(FullName, LfName),
+  convertToLfName(Rest, Rest2), !.
+
+
+/*
+21 Distance queries
+
+----    upperBound(+Rel, +Node, -UpperBound)
+----
+
+Calculates the maximum number of elements, the arp of ~Node~ which contains
+~Rel~ can have
+
+*/
+
+upperBound(Rel, node(_, _, Arps), UpperBound) :-
+  select(X, Arps, _),
+  X = arp(_, RelsX, _),
+  member(Rel, RelsX),
+  upperBound(RelsX, UpperBound).
+
+/*
+----    upperBound(+Rels, -UpperBound)
+----
+
+Calculates the maximum number of elements, a join of Rels can have
+
+*/
+upperBound([], 1) :-
+  !.
+
+upperBound([rel(Rel, _)|Rels], UpperBound) :-
+  upperBound(Rels, UpperBound1),
+  card(Rel, Card),
+  UpperBound is UpperBound1 * Card.
+
+upperBound([], 1) :- !.
+
+
+/*
+----    addPlanVariables(+Plan, +Variables, -Plan2)
+----
+
+Adds ~Variables~ to the beginning of ~Plan~
+This is used for distance-queries using temporary indices
+
+*/
+
+addPlanVariables(Result, [], Result) :- !.
+
+addPlanVariables(ResultIn, [[Var, Expr]|Rest], ResultOut) :-
+  addPlanVariables(ResultIn, Rest, ResultTmp),
+  concat_atom([Expr, ' within[fun(', Var, ':ANY) ', ResultTmp, ']'],
+        ResultOut).
+
+/*
+----    call_plan_to_atom(+Plan, -Result)
+----
+
+Converts ~Plan~ to a SECONDO-Term and adds the variables needed
+for temporary indices to the beginning of ~Result~
+
+*/
+
+call_plan_to_atom(Plan, Result) :-
+  plan_to_atom(Plan, Result1),
+  findall([Variable, Expression], planvariable(Variable, Expression), L),
+  addPlanVariables(Result1, L, Result),
+  retractall(planvariable(_, _)).
+
+/*
+----    assertDistanceRel(+Rels, +DistAttr1, +DistAttr2, +HeadCount)
+----
+
+Checks whether an rtree-index on ~DistAttr1~ or ~DistAttr2~ exists in ~Rels~
+
+*/
+
+assertDistanceRel([Rel|_], X, Y, HeadCount) :-
+  Rel = rel(_,_),
+  X = attr(_, _, _),
+  hasIndex(Rel, X ,DCindex, rtree),
+  dcName2externalName(DCindex,IndexName), !,
+  assert(distanceRel(Rel, IndexName, Y, HeadCount)).
+
+assertDistanceRel([Rel|_], X, Y, HeadCount) :-
+  Rel = rel(_,_),
+  Y = attr(_, _, _),
+  hasIndex(Rel, Y ,DCindex, rtree),
+  dcName2externalName(DCindex,IndexName), !,
+  assert(distanceRel(Rel, IndexName, X, HeadCount)).
+
+assertDistanceRel([_|Rels], X, Y, HeadCount) :-
+  assertDistanceRel(Rels, X, Y, HeadCount).
+
+
+/*
+----    finishDistanceSort(+Stream, +Cost, +DistAttr1, +DistAttr2,
+                           +HeadCount, -Stream2, -Cost2)
+----
+
+Adds the commands to sort ~Stream~ by the distance between ~DistAttr1~ and
+~DistAttr2~ and calculates the additional costs
+
+*/
+
+finishDistanceSort(Stream, Cost, X, Y, 0, StreamOut, Cost2) :-
+  !, newVariable(ExprAttrName),
+  ExprAttr = attr(ExprAttrName, *, l),
+  StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, distance(X, Y))]),
+          attrname(ExprAttr)),
+         attrname(ExprAttr)),
+  cost(remove(sort(extend(pogstream, _)), _), 1, _, _, CostTmp),
+  Cost2 is Cost + CostTmp.
+
+finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
+  !, newVariable(ExprAttrName),
+  ExprAttr = attr(ExprAttrName, *, l),
+  StreamOut = remove(ksmallest(extend(Stream,
+              [field(ExprAttr, distance(X, Y))]),
+             HeadCount, attrname(ExprAttr)),
+         attrname(ExprAttr)),
+  cost(remove(ksmallest(extend(pogstream, _), HeadCount), _), 1, _, _,
+       CostTmp),
+  Cost2 is Cost + CostTmp.
+
+/*
+----    finishDistanceSortRTree(+Stream, +Cost, +HeadCount, -Stream2, -Cost2)
+----
+
+Adds the commands for a distancescanquery which are not set by the POG and
+corrects the cost estimation according to ~HeadCount~
+
+*/
+
+finishDistanceSortRTree(StreamIn, CostIn, HeadCount,
+      head(StreamIn, HeadCount), CostOut) :-
+  highNode(Node),
+  resultSize(Node, Size),
+  CostOut is CostIn * min(HeadCount, Size) / Size.
+
+/*
+----    chooseFasterSolution(+Stream1, +Select1, +Update1, +Cost1,
+                             +Stream2, +Select2, +Update2, +Cost2,
+                             -Stream3, -Select3, -Update3, -Cost3)
+----
+
+Compares the costs of the two possible solutions and returns the faster one
+
+*/
+
+chooseFasterSolution(StreamOut1, SelectOut1, Update1, Cost1, _, _, _, Cost2,
+         StreamOut1, SelectOut1,Update1, Cost1) :-
+  Cost1 < Cost2, !.
+
+chooseFasterSolution(_, _, _, _, StreamOut2, SelectOut2, Update2, Cost2,
+         StreamOut2, SelectOut2, Update2, Cost2).
+
+/*
+
+---- rewriteForDistanceSort(+StreamIn, +AttrsIn, -StreamOut, -AttrsOut,
+     -NewAttrs) :-
+----
+
+Transform the distance operator in the orderby-clause.
+
+*/
+
+rewriteForDistanceSort(Stream, [], Stream, [], []).
+
+rewriteForDistanceSort(Stream, distance(X, Y), StreamOut, ExprAttr,
+           attrname(ExprAttr)) :-
+  !, newVariable(ExprAttrName),
+  ExprAttr = attr(ExprAttrName, *, l),
+  StreamOut = extend(Stream, [field(ExprAttr, distance(X, Y))]).
+
+rewriteForDistanceSort(Stream, [Attr | Attrs], StreamOut, [Attr2 | Attrs2],
+          NewAttrsOut) :-
+  rewriteForDistanceSort(Stream, Attr, Stream2, Attr2, NewAttr),
+  rewriteForDistanceSort(Stream2, Attrs, StreamOut, Attrs2, NewAttrs),
+  concatNonEmpty(NewAttr, NewAttrs, NewAttrsOut).
+
+rewriteForDistanceSort(Stream, Attr asc, StreamOut, Attr2 asc, NewAttrs) :-
+  rewriteForDistanceSort(Stream, Attr, StreamOut, Attr2, NewAttrs).
+
+rewriteForDistanceSort(Stream, Attr desc, StreamOut, Attr2 desc, NewAttrs) :-
+  rewriteForDistanceSort(Stream, Attr, StreamOut, Attr2, NewAttrs).
+
+rewriteForDistanceSort(Stream, Attr, Stream, Attr, []).
+
+/*
+
+---- concatNonEmpty(+Elem, +List, -ListOut) :-
+----
+
+Adds ~Elem~ to the front of ~List~ if ~Elem~ is not empty
+
+*/
+
+
+concatNonEmpty([], List, List).
+
+concatNonEmpty(Attr, List, [Attr | List]).
+
+/*
+
+---- removeAttrs(+StreamIn, +NewAttrs, -StreamOut).
+----
+
+Removes the Attributes ~NewAttrs~ from the query
+
+*/
+
+
+removeAttrs(StreamIn, [], StreamIn).
+
+removeAttrs(StreamIn, NewAttrs, remove(StreamIn, NewAttrs)).
 
 writeDebug(Text) :-
   write(Text), nl.

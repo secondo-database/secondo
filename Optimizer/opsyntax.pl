@@ -252,6 +252,7 @@ secondoOp( difference,        prefix, 2).
 secondoOp( direction,         prefix, 2).
 secondoOp( display,           postfix, 1).
 secondoOp( distance,          prefix, 2).
+secondoOp( distancescan,      postfixbrackets2, 4).
 secondoOp( distribute,        postfixbrackets1, 2).
 secondoOp( dumpstream,        postfixbrackets1, 3).
 secondoOp( echo,              postfixbrackets1, 3).
@@ -441,6 +442,7 @@ secondoOp( updatesearchsave,  postfixbrackets3, 4).
 secondoOp( use,               postfixbrackets1, 2).
 secondoOp( use2,              postfixbrackets3, 3).
 secondoOp( var,               postfixbrackets1, 2).
+secondoOp( vec,               prefix, 2).
 secondoOp( width,             postfix, 1).
 secondoOp( windowclippingin,  prefix, 2).
 secondoOp( windowclippingout, prefix, 2).

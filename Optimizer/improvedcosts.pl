@@ -338,6 +338,22 @@ input stream arrives, it is also possible to estimate the
 overall index join cost.
 
 */
+
+/*
+
+special handling for distancescanqueries which have to create an
+temporary index
+
+*/
+cost(exactmatch(dbobject(tmpindex(rel(Rel, _), _)), rel(Rel, _), _), Sel,
+     Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
+  !,
+  cost(exactmatch(1, rel(Rel, _), _), Sel, Pred, ResAttrList, RestTupleSize,
+      ResCard, CostX),
+  createbtreeTC(C),
+  card(Rel, RelSize),
+  Cost is C * RelSize + CostX.
+
 cost(exactmatchfun(_, Rel, _), Sel, Pred,
                                ResAttrList, ResTupleSize, ResCard, Cost) :-
   cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
@@ -815,6 +831,35 @@ cost(gettuples2(X, Rel, attrname(TidAttr)), Sel, Pred,
   Cost is   Cost1           % expected to include cost of 'windowintersectsS'
           + ResCard * (U + SizeE * V) * 0.75,!. % other 0.25 applied
                                                 % in 'windowintersectsS'
+
+/*
+cost functions for distancescan queries
+
+*/
+% get the Result properties from the POG's high node
+cost(pogstream, _, _, ResAttrList, ResTupleSize, ResCard, 0) :-
+  highNode(Node),
+  resultSize(Node, ResCard),
+  getResTupleSize(Node, ResTupleSize),
+  ( (ground(ResAttrList), ResAttrList = ignore)
+    -> true ;  getResAttrList(Node, ResAttrList)
+  ).
+
+cost(distancescan(_, Rel, _, _), Sel, Pred,
+     ResAttrList, ResTupleSize, ResCard, Cost) :-
+  cost(Rel, Sel, Pred, ResAttrList, ResTupleSize, ResCard, C1),
+  distancescanTC(C),
+  Cost is C1 + C * ResCard * log(ResCard + 1).
+
+cost(ksmallest(X, K), Sel, Pred,
+     ResAttrList, ResTupleSize, ResCard, C) :-
+  cost(X, Sel,Pred, ResAttrList, ResTupleSize, ResCard, CostX),
+  ksmallestTC(A, B),
+  S is min(ResCard, K),
+  C is CostX +
+    A * ResCard * log(ResCard + 1) +
+    B * S * log(ResCard + 1).
+
 
 % Failed to compute the cost -- throw an exception!
 cost(T, S, P, A, TS, RC, Cost) :-
