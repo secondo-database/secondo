@@ -477,12 +477,12 @@ cost(mergejoin(X, Y, _, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   ),
   ResCard is ResCardX * ResCardY * Sel,
   costConst(mergejoin, msPerTupleRead, U),
-  costConst(mergejoin, msPerResultTuple, X),
-  costConst(mergejoin, msPerResultAttribute, Y),
+  costConst(mergejoin, msPerResultTuple, FX),
+  costConst(mergejoin, msPerResultAttribute, FY),
   length(ResAttrList,NoAttrs),
   Cost is   CostX + CostY
           + (ResCardX + ResCardY) * (ResCardX + ResCardY) * U
-          + ResCard * (X + NoAttrs * Y),!.
+          + ResCard * (FX + NoAttrs * FY),!.
 
 
 cost(sortmergejoin(X, Y, _/*AX*/, _/*AY*/), Sel, Pred,
