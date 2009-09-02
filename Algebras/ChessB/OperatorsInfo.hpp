@@ -49,8 +49,8 @@ const OperatorInfo iswhite_field_info( "iswhite", "field -> bool",
     "iswhite ( _ )", "Return color of the field",
     "query iswhite( a1 )" );
 
-const OperatorInfo file_info( "file", "field -> string", "file ( _ )",
-    "Return file of the field", "query file( a1 )" );
+const OperatorInfo file_info( "column", "field -> string", "column ( _ )",
+    "Return column of the field", "query column( a1 )" );
 
 const OperatorInfo row_info( "row", "field -> int", "row ( _ )",
     "Return row of the field", "query row( a1 )" );
@@ -145,21 +145,21 @@ const OperatorInfo endfield_info( "endfield", "chessmove -> field",
     "endfield ( _ )", "Returns destination field.",
     "query endfield(wjc feed filter[.No = 5] extract[elem] getmove[7])" );
 
-const OperatorInfo agent_info( "agent_b", "chessmove -> piece", "agent ( _ )",
+const OperatorInfo agent_info( "agent", "chessmove -> piece", "_ agent",
     "Returns the moving piece.",
-    "query agent(wjc feed filter[.No = 5] extract[elem] getmove[7])" );
+    "query wjc feed filter[.No = 5] extract[elem] getmove[7] agent" );
 
-const OperatorInfo captures_info( "captures_b", "chessmove -> bool",
-    "captures ( _ )", "Check for a capture.",
-    "query captures(wjc feed filter[.No = 5] extract[elem] getmove[7])" );
+const OperatorInfo captures_info( "captures", "chessmove -> bool",
+    "_ captures", "Check for a capture.",
+    "query wjc feed filter[.No = 5] extract[elem] getmove[7] captures" );
 
-const OperatorInfo captured_info( "captured_b", "chessmove -> piece",
-    "captured ( _ )", "Returns captured piece.",
-    "query captured( wjc feed filter[.No = 5] extract[elem] getmove[7] )" );
+const OperatorInfo captured_info( "captured", "chessmove -> piece",
+    "_ captured", "Returns captured piece.",
+    "query wjc feed filter[.No = 5] extract[elem] getmove[7] captured" );
 
-const OperatorInfo check_info( "check_b", "chessmove -> bool", "check ( _ )",
+const OperatorInfo check_info( "check", "chessmove -> bool", "_ check",
     "Checks for the check.",
-    "query check( wjc feed filter[.No = 5] extract[elem] getmove[7] )" );
+    "query wjc feed filter[.No = 5] extract[elem] getmove[7] check" );
 
 const OperatorInfo is_mate_info( "is_mate", "chessmove -> bool",
     "is_mate ( _ )", "Checks for the mate.",
@@ -390,11 +390,11 @@ const OperatorInfo history_info( "history",
     "query wjc feed filter[.No = 2] extract[elem] history head[3] consume" );
 
 //-----------------------------------------------------------------------------
-const OperatorInfo even_info( "even", "int -> bool",
-    "even ( _ )", "...", "query even(2)" );
+const OperatorInfo even_info( "is_even", "int -> bool",
+    "is_even ( _ )", "...", "query is_even(2)" );
 
-const OperatorInfo odd_info( "odd", "int -> bool",
-    "odd ( _ )", "...", "query odd(2)" );
+const OperatorInfo odd_info( "is_odd", "int -> bool",
+    "is_odd ( _ )", "...", "query is_odd(2)" );
 
 const OperatorInfo exists_info( "exists",
     "stream(ANY) x (ANY -> bool) -> bool",

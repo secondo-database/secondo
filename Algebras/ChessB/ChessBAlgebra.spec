@@ -30,7 +30,7 @@ operator below alias BELOW pattern _ infixop _
 
 operator iswhite alias ISWHITE pattern op ( _ )
 operator piecevalue alias PIECEVALUE pattern op ( _ )
-operator file alias FILE pattern op ( _ )
+operator column alias COLUMN pattern op ( _ )
 operator row alias ROW pattern op ( _ )
 operator north alias NORTH pattern op ( _ )
 operator south alias SOUTH pattern op ( _ )
@@ -43,19 +43,20 @@ operator southwest alias SOUTHWEST pattern op ( _ )
 
 operator startfield alias from pattern op ( _ )
 operator endfield alias to pattern op ( _ )
-operator agent_b alias AGENTB pattern op ( _ )
-operator captures_b alias is_captureb pattern op ( _ )
-operator captured_b alias CAPTUREDB pattern op ( _ )
-operator check_b alias is_checkb pattern op ( _ )
-operator checkmate alias is_mate pattern op ( _ )
+operator agent alias AGENTB pattern _ op
+operator captures alias capturesb pattern _ op 
+operator captured alias CAPTUREDB pattern _ op
+operator check alias is_checkb pattern _ op
+operator checkmate alias CHECKMATE pattern op ( _ )
+operator is_mate alias ISMATE pattern op ( _ )
 operator stalemate alias is_stalemate pattern op ( _ )
 operator is_castling alias IS_CASTLING pattern op ( _ )
 operator is_enpassant alias IS_ENPASSANT pattern op ( _ )
 operator enpassant_field alias ENPASSANT_FIELD pattern op ( _ )
 operator readpgn alias READPGN pattern  op ( _ )
 operator lastmove alias LASTMOVE pattern  op ( _ )
-operator even alias EVEN pattern  op ( _ )
-operator odd alias ODD pattern  op ( _ )
+operator is_even alias IS_EVEN pattern  op ( _ )
+operator is_odd alias IS_ODD pattern  op ( _ )
 
 operator neighbors alias NEIGHBORS pattern _ op
 operator pieces alias PIECES pattern _ op

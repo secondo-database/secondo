@@ -85,10 +85,10 @@ Example  : query field("a2") above field("a1")
 Result   : TRUE
 
 
-Operator : agent_b
+Operator : agent
 Number   : 1
 Signature: chessmove -> piece
-Example  : query agent_b(wjc feed filter[.No = 5] extract[elem] getmove[7])
+Example  : query wjc feed filter[.No = 5] extract[elem] getmove[7] agent
 Result   : (piece "Knight")
 
 
@@ -141,31 +141,31 @@ Example  : query field("a1") below field("a2")
 Result   : TRUE
 
 
-Operator : captured_b
+Operator : captured
 Number   : 1
 Signature: chessmove -> piece
-Example  : query captured_b( wjc feed filter[.No = 5] extract[elem] getmove[7] )
+Example  : query  wjc feed filter[.No = 5] extract[elem] getmove[7] captured 
 Result   : (piece "none")
 
 
-Operator : captures_b
+Operator : captures
 Number   : 1
 Signature: chessmove -> bool
-Example  : query captures_b(wjc feed filter[.No = 5] extract[elem] getmove[7])
+Example  : query wjc feed filter[.No = 5] extract[elem] getmove[7] captures
 Result   : FALSE
 
 
-Operator : check_b
+Operator : check
 Number   : 1
 Signature: chessmove -> bool
-Example  : query check_b( wjc feed filter[.No = 5] extract[elem] getmove[7] )
+Example  : query wjc feed filter[.No = 5] extract[elem] getmove[7] check 
 Result   : FALSE
 
 
 Operator : checkmate
 Number   : 1
 Signature: position -> bool
-Example  : query checkmate (wjc feed filter[.No = 42] extract[elem] getposition[70])
+Example  : query checkmate(wjc feed filter[.No = 42] extract[elem] getposition[70])
 Result   : TRUE
 
 
@@ -190,10 +190,10 @@ Example  : query enpassant_field(wjc feed filter[.No = 5] extract[elem] getmove[
 Result   : (field undef)
 
 
-Operator : even
+Operator : is_even
 Number   : 1
 Signature: int -> bool
-Example  : query even(2)
+Example  : query is_even(2)
 Result   : TRUE
 
 
@@ -211,10 +211,10 @@ Example  : query field( "a1" )
 Result   : (field "a1")
 
 
-Operator : file
+Operator : column 
 Number   : 1
 Signature: field -> string
-Example  : query file( field("a1") )
+Example  : query column( field("a1") )
 Result   : "a"
 
 
@@ -365,10 +365,10 @@ Example  : query northwest( field("a1") )
 Result   : (field undef)
 
 
-Operator : odd
+Operator : is_odd
 Number   : 1
 Signature: int -> bool
-Example  : query odd(2)
+Example  : query is_odd(2)
 Result   : FALSE
 
 
