@@ -8407,7 +8407,7 @@ splitSelect(UpdateClause select SelectClause, select SelectClause, UpdateClause)
 /*
 19.3 Insert the update commands in the end of the operation
 
----- finishUpdate(+UpdateList, +Stream, -Stream)
+---- finishUpdate(+UpdateList, +Stream, -Stream2)
 ----
 
 Extends ~Stream~ by the commands for an insert, delete or update-
@@ -8486,16 +8486,12 @@ upperBound(Rel, node(_, _, Arps), UpperBound) :-
 Calculates the maximum number of elements, a join of Rels can have
 
 */
-upperBound([], 1) :-
-  !.
+upperBound([], 1) :- !.
 
 upperBound([rel(Rel, _)|Rels], UpperBound) :-
   upperBound(Rels, UpperBound1),
   card(Rel, Card),
   UpperBound is UpperBound1 * Card.
-
-upperBound([], 1) :- !.
-
 
 /*
 ----    addPlanVariables(+Plan, +Variables, -Plan2)
