@@ -8,11 +8,13 @@
 \section{Laufzeit- und Strukturvergleich}
 \subsection{TPC-D Q2}
 Findet den günstigsten Lieferanten für ein gegebenes Bauteil in einer Region. Für ein Bauteil einer bestimmten Art und Größe wird der Lieferant ermittelt, der dieses zu den günstigsten Konditionen anbietet. Gibt es mehrere Lieferanten in der gewählten Region, die das gewünschte Teil zu den günstigsten Konditionen anbieten, so werden die 100 Lieferanten mit dem höchsten Kontostand angezeigt. Von jedem Lieferanten werden der Kontostand, der Name und das Land, die Teilenummer und der Hersteller, die Lieferantenadresse, Telefonnummer und ein Kommentar angezeigt. Als Werte der Parameter SIZE, TYPE und REGION wurden die Werte aus der Abfrageüberprüfung des Benchmarks gewählt.
+
 \begin{itemize}
 	\item SIZE = 15
 	\item TYPE = BRASS
 	\item REGION = EUROPE
 \end{itemize}
+
 \begin{lstlisting}[caption=Abfrage Q2]
 select
 	[sacctbal, sname,
