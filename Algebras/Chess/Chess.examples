@@ -41,31 +41,31 @@ Example  : query (sochichess getposition[80]) = (sochichess getposition[80])
 Result   : TRUE
 
 
-Operator : agent_b
+Operator : agent
 Number   : 1
 Signature: chessmove -> string
-Example  : query sochichess getmove[80] agent_b
+Example  : query sochichess getmove[80] agent
 Result   : "king"
 
 
-Operator : captured_b
+Operator : captured
 Number   : 1
 Signature: chessmove -> string
-Example  : query sochichess getmove[25] captured_b
+Example  : query sochichess getmove[25] captured
 Result   : "bishop"
 
 
-Operator : captures_b
+Operator : captures
 Number   : 1
 Signature: chessmove -> bool
-Example  : query sochichess getmove[25] captures_b
+Example  : query sochichess getmove[25] captures
 Result   : TRUE
 
 
-Operator : check_b
+Operator : check
 Number   : 1
 Signature: chessmove -> bool
-Example  : query sochichess getmove[81] check_b
+Example  : query sochichess getmove[81] check
 Result   : FALSE
 
 
@@ -166,10 +166,10 @@ Example  : query sochichess positions transformstream consume
 Result   : file
 
 
-Operator : posrange_b
+Operator : posrange
 Number   : 1
 Signature: position x string x int x string x int-> position
-Example  : query (sochichess getposition[40]) posrange_b["f",2,"h",4]
+Example  : query (sochichess getposition[40]) posrange["f",2,"h",4]
 Result   : file
 
 
