@@ -34,8 +34,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <fstream>
 #include "chessTypes.h"
 
-namespace ChessAlgebra
-{
+namespace ChessAlgebra {
+
+/*
+The flag below may help to find bugs in the parser ot the game
+representation.
+
+*/
+bool trace = false;
 
 /*
 player constants - used in pgn-parser
@@ -47,24 +53,40 @@ enum player
 };
 
 
-inline void parseMove( char &startFile, int &startRow,
-                       char &endFile, int &endRow,
-                       int &playerNo, string &pgn,
-                       Position* position )
+void traceMove( const string& pgn, char agent, char startfile, 
+		 int startrow, char endfile, int endrow, bool captures )
 {
-  char agent, captured, promotion;
-  bool captures, agentSet, doall;
-  int distance;
 
-  agent = ' ';
-  captured = ' ';
-  promotion = ' ';
+  if (trace) 
+  {
+  cout << "pgn: " << pgn 
+       << "  recognized: " << agent 
+       << startfile << startrow << endfile << endrow
+       << "  captures: " << captures << endl; 
+  }	  
+}
+
+bool 
+parseMove( char &startFile, int &startRow,
+           char &endFile, int &endRow,
+           int &playerNo, string &pgn,
+           Position* position )
+{
+  char agent = ' ';
+  char captured = ' ';
+  char promotion = ' ';
+  int distance = 0;
+  
+  bool captures = false;
+  bool agentSet = false;
+  bool doall = false;
+
   startFile = ' ';
-  startRow = 0;
   endFile = ' ';
+
+  startRow = 0;
   endRow = 0;
-  captures = false;
-  agentSet = false;
+
 
   for ( int i = 0; i < min( 5, ( int ) pgn.length() ); i++ )
   {
@@ -77,9 +99,10 @@ inline void parseMove( char &startFile, int &startRow,
     case 'N':
       if ( agentSet )
       {
-        ErrorReporter::ReportError( "unexpected Capital Letter in '" + 
-                                    pgn + "'" );
-        return ;
+        cerr << "unexpected Capital Letter in '" + 
+                                    pgn + "'";
+	
+        return false;
       }
       agent = ( playerNo == WHITE ) ? toupper( pgn[ i ] ) : tolower( pgn[ i ] );
       agentSet = true;
@@ -97,7 +120,9 @@ inline void parseMove( char &startFile, int &startRow,
         agent = ( playerNo == WHITE ) ? 'P' : 'p';
         agentSet = true;
       }
-      if ( endFile != ' ' ) startFile = endFile;
+      if ( endFile != ' ' ) { 
+         startFile = endFile;
+      }	      
       endFile = pgn[ i ];
       break;
     case '1':
@@ -108,7 +133,9 @@ inline void parseMove( char &startFile, int &startRow,
     case '6':
     case '7':
     case '8':
-      if ( endRow != 0 ) startRow = endRow;
+      if ( endRow != 0 ) { 
+        startRow = endRow;
+      }	
       endRow = atoi( pgn.substr( i, 1 ).c_str() );
       break;
     case 'x':
@@ -125,27 +152,34 @@ inline void parseMove( char &startFile, int &startRow,
       }
       else
       {
-        ErrorReporter::ReportError( "unexpected continuation of 'O'\n" );
-        return ;
+        cerr << "unexpected continuation of 'O'\n" << endl;
+        return false;
       }
       agent = ( playerNo == WHITE ) ? 'K' : 'k';
       startFile = 'e';
       startRow = endRow = ( playerNo == WHITE ) ? 1 : 8;
-      return ;
+      traceMove(pgn, agent, startFile, startRow, endFile, endRow, captures);
+      return true;
     default:
-      i = 6;
+      i = 6; //?
     }
   }
-  if ( endRow == 0 || endFile == ' ' ) return ;
+
+  if ( endRow == 0 || endFile == ' ' ) { // what is this good for?	  
+      traceMove(pgn, agent, startFile, startRow, endFile, endRow, captures);
+      return true;
+  }
 
   if ( startRow == 0 || startFile == ' ' )
-  { // Calculate startRow & startFile
+  { 
+    // Calculate startRow and startFile
     doall = ( startRow == 0 && startFile == ' ' );
-    char origStartFile;
-    int origStartRow;
-    bool agentFound;
-    string tmpAgent;
-    bool filepos = true, fileneg = true, rowpos = true, rowneg = true;
+    char origStartFile = ' ';
+    int origStartRow = 0;
+    bool agentFound = false;
+    string tmpAgent = "";
+    bool filepos = true, fileneg = true;
+    bool rowpos = true, rowneg = true;
     bool diag1 = true, diag2 = true, diag3 = true, diag4 = true;
     switch ( agent )
     { // Pawns may move only forward so black and white
@@ -171,7 +205,9 @@ inline void parseMove( char &startFile, int &startRow,
         if ( startRow == 2 &&
              position->TestField( "P", startFile, startRow ) ) break;
       }
-      ErrorReporter::ReportError( "Didn't find white pawn to make move\n" );
+      cerr << "Didn't find white pawn to make move\n" << endl;
+      
+      return false;
       break;
     case 'p':
       if ( captures )
@@ -191,10 +227,12 @@ inline void parseMove( char &startFile, int &startRow,
         startRow = endRow + 1;
         if ( position->TestField( "p", startFile, startRow ) ) break;
         startRow = endRow + 2;
-        if ( startRow == 2 &&
+        if ( startRow == 7 &&
              position->TestField( "p", startFile, startRow ) ) break;
       }
-      ErrorReporter::ReportError( "Didn't find black pawn to make move\n" );
+      cerr << "Didn't find black pawn to make move\n" << endl;
+      
+      return false;
       break;
     case 'N':
     case 'n':
@@ -209,7 +247,9 @@ inline void parseMove( char &startFile, int &startRow,
         if ( startRow <= 8 && 
             ( agentFound = position->TestField( string( 1, agent ),
                                   startFile, startRow ) ) ) break;
-        ErrorReporter::ReportError( "Didn't find Knight to make move\n" );
+        cerr << "Didn't find Knight to make move\n" << endl;
+        
+	return false;
         break;
       }
       else if ( startRow != 0 )
@@ -223,7 +263,9 @@ inline void parseMove( char &startFile, int &startRow,
         if ( startFile <= 'h' && 
             ( agentFound = position->TestField( string( 1, agent ),
                            startFile, startRow ) ) ) break;
-        ErrorReporter::ReportError( "Didn't find Knight to make move\n" );
+        cerr << "Didn't find Knight to make move\n" << endl;
+	
+	return false;
         break;
       }
       else
@@ -277,7 +319,9 @@ inline void parseMove( char &startFile, int &startRow,
                                                  startFile, startRow ) ) )
           break;
       }
-      ErrorReporter::ReportError( "Didn't find Knight to make move\n" );
+      cerr << "Didn't find Knight to make move\n" << endl;
+      
+      return false;
       break;
     case 'B':
     case 'b':
@@ -309,7 +353,9 @@ inline void parseMove( char &startFile, int &startRow,
           break;
       }
       if ( agentFound ) break;
-      ErrorReporter::ReportError( "Didn't find Bishop to make move\n" );
+      cerr << "Didn't find Bishop to make move\n" << endl;
+      
+      return false;
       break;
     case 'R':
     case 'r':
@@ -335,7 +381,7 @@ inline void parseMove( char &startFile, int &startRow,
       {
         if ( filepos )
         {
-          if ( endFile + i > 'h' )
+          if ( (endFile + i) > 'h' )
           {
             filepos = false;
           }
@@ -356,7 +402,7 @@ inline void parseMove( char &startFile, int &startRow,
         }
         if ( fileneg )
         {
-          if ( endFile - i < 'a' )
+          if ( (endFile - i) < 'a' )
           {
             fileneg = false;
           }
@@ -369,7 +415,7 @@ inline void parseMove( char &startFile, int &startRow,
               startFile = endFile - i;
               break;
             }
-            else if ( tmpAgent != "-" && tmpAgent != "x" )
+            else if ( (tmpAgent != "-") && (tmpAgent != "x") )
             {
               fileneg = false;
             }
@@ -377,7 +423,7 @@ inline void parseMove( char &startFile, int &startRow,
         }
         if ( rowpos )
         {
-          if ( endRow + i > 8 )
+          if ( (endRow + i) > 8 )
           {
             rowpos = false;
           }
@@ -398,7 +444,7 @@ inline void parseMove( char &startFile, int &startRow,
         }
         if ( rowneg )
         {
-          if ( endRow - i < 1 )
+          if ( (endRow - i) < 1 )
           {
             rowneg = false;
           }
@@ -411,7 +457,7 @@ inline void parseMove( char &startFile, int &startRow,
               startFile = endFile;
               break;
             }
-            else if ( tmpAgent != "-" && tmpAgent != "x" )
+            else if ( (tmpAgent != "-") && (tmpAgent != "x") )
             {
               rowneg = false;
             }
@@ -420,7 +466,8 @@ inline void parseMove( char &startFile, int &startRow,
       }
       if ( startFile == ' ' || startRow == 0 )
       {
-        ErrorReporter::ReportError( "Didn't find Rook to make move\n" );
+        cerr << "Didn't find Rook to make move\n";
+	
       }
       break;
     case 'Q':
@@ -478,7 +525,7 @@ inline void parseMove( char &startFile, int &startRow,
       {
         if ( filepos )
         {
-          if ( endFile + i > 'h' )
+          if ( (endFile + i) > 'h' )
           {
             filepos = false;
           }
@@ -499,7 +546,7 @@ inline void parseMove( char &startFile, int &startRow,
         }
         if ( fileneg )
         {
-          if ( endFile - i < 'a' )
+          if ( (endFile - i) < 'a' )
           {
             fileneg = false;
           }
@@ -512,7 +559,7 @@ inline void parseMove( char &startFile, int &startRow,
               startFile = endFile - i;
               break;
             }
-            else if ( tmpAgent != "-" && tmpAgent != "x" )
+            else if ( (tmpAgent != "-") && (tmpAgent != "x") )
             {
               fileneg = false;
             }
@@ -520,7 +567,7 @@ inline void parseMove( char &startFile, int &startRow,
         }
         if ( rowpos )
         {
-          if ( endRow + i > 8 )
+          if ( (endRow + i) > 8 )
           {
             rowpos = false;
           }
@@ -533,7 +580,7 @@ inline void parseMove( char &startFile, int &startRow,
               startFile = endFile;
               break;
             }
-            else if ( tmpAgent != "-" && tmpAgent != "x" )
+            else if ( (tmpAgent != "-") && (tmpAgent != "x") )
             {
               rowpos = false;
             }
@@ -554,7 +601,7 @@ inline void parseMove( char &startFile, int &startRow,
               startFile = endFile;
               break;
             }
-            else if ( tmpAgent != "-" && tmpAgent != "x" )
+            else if ( (tmpAgent != "-") && (tmpAgent != "x") )
             {
               rowneg = false;
             }
@@ -562,7 +609,7 @@ inline void parseMove( char &startFile, int &startRow,
         }
         if ( diag1 )
         {
-          if ( endFile + i > 'h' || endRow + i > 8 )
+          if ( (endFile + i) > 'h' || (endRow + i) > 8 )
           {
             diag1 = false;
           }
@@ -575,7 +622,7 @@ inline void parseMove( char &startFile, int &startRow,
               startFile = endFile + i;
               break;
             }
-            else if ( tmpAgent != "-" && tmpAgent != "x" )
+            else if ( (tmpAgent != "-") && (tmpAgent != "x") )
             {
               diag1 = false;
             }
@@ -583,7 +630,7 @@ inline void parseMove( char &startFile, int &startRow,
         }
         if ( diag2 )
         {
-          if ( endFile + i > 'h' || endRow - i < 1 )
+          if ( (endFile + i) > 'h' || (endRow - i) < 1 )
           {
             diag2 = false;
           }
@@ -596,7 +643,7 @@ inline void parseMove( char &startFile, int &startRow,
               startFile = endFile + i;
               break;
             }
-            else if ( tmpAgent != "-" && tmpAgent != "x" )
+            else if ( (tmpAgent != "-") && (tmpAgent != "x") )
             {
               diag2 = false;
             }
@@ -604,7 +651,7 @@ inline void parseMove( char &startFile, int &startRow,
         }
         if ( diag3 )
         {
-          if ( endFile - i < 'a' || endRow + i > 8 )
+          if ( (endFile - i) < 'a' || (endRow + i) > 8 )
           {
             diag3 = false;
           }
@@ -625,7 +672,7 @@ inline void parseMove( char &startFile, int &startRow,
         }
         if ( diag4 )
         {
-          if ( endFile - i < 'a' || endRow - i < 1 )
+          if ( (endFile - i) < 'a' || (endRow - i) < 1 )
           {
             diag4 = false;
           }
@@ -647,70 +694,66 @@ inline void parseMove( char &startFile, int &startRow,
       }
       if ( startFile == ' ' || startRow == 0 )
       {
-        ErrorReporter::ReportError( "Didn't find Rook to make move\n" );
+        cerr << "Didn't find Rook to make move\n" << endl;
+	
+	return false;
       }
       break;
     case 'K':
     case 'k':
-      origStartRow = startRow;
-      origStartFile = startFile;
-      for ( int i = -1; i <= 1; i++ )
-      {
-        startFile = endFile + i;
-        startRow = endRow + 1;
-        if ( startRow >= 1 && startFile >= 'a' && 
-             startRow <= 8 && startFile <= 'h' &&
-             ( doall || origStartRow == startRow || 
-               origStartFile == startFile ) &&
-             ( agentFound = position->TestField( string( 1, agent ), 
-                                                 startFile, startRow ) ) )
+      for ( int i = -1; i <= 1; i++ ) {
+        
+	if (agentFound) // short exit
           break;
-        startRow = endRow - 1;
-        if ( startRow >= 1 && startFile >= 'a' && 
-             startRow <= 8 && startFile <= 'h' &&
-             ( doall || origStartRow == startRow || 
-               origStartFile == startFile ) &&
-             ( agentFound = position->TestField( string( 1, agent ),
-                                                 startFile, startRow ) ) )
-          break;
+
+        for ( int j = -1; j <= 1; j++ ) {
+
+          if (agentFound) // short exit
+            break;
+
+          startFile = endFile + i;
+          startRow = endRow + j;
+          if ( startRow >= 1 && startFile >= 'a' && 
+               startRow <= 8 && startFile <= 'h' &&
+	       !((i == 0) && (j == 0)) )
+	  {
+            agentFound = position->TestField( string( 1, agent ), 
+                                              startFile, startRow );
+	    //cerr << "Test for " << agent << ": " 
+	    //	 << startFile << startRow << " " << agentFound << endl;
+          }
+        }
       }
-      if ( agentFound ) break;
-      startFile = endFile + 1;
-      startRow = endRow;
-      if ( startRow >= 1 && startFile >= 'a' && 
-           startRow <= 8 && startFile <= 'h' &&
-           ( doall || origStartRow == startRow || 
-             origStartFile == startFile ) &&
-           ( agentFound = position->TestField( string( 1, agent ), 
-                                               startFile, startRow ) ) )
-        break;
-      startFile = endFile - 1;
-      startRow = endRow;
-      if ( startRow >= 1 && startFile >= 'a' && 
-           startRow <= 8 && startFile <= 'h' &&
-           ( doall || origStartRow == startRow || 
-             origStartFile == startFile ) &&
-           ( agentFound = position->TestField( string( 1, agent ), 
-                                               startFile, startRow ) ) )
-        break;
-      ErrorReporter::ReportError( "Didn't find King to make move\n" );
+      if (!agentFound) { 
+        cmsg.error() << "Didn't find King to make move\n" << endl;
+        cmsg.send();
+        traceMove(pgn, agent, startFile, startRow, endFile, endRow, captures);
+        return false;
+      }	
       break;
-    default:
-      ErrorReporter::ReportError( "Internal Error: wrong agent"
-                                  " in move calculation\n" );
+    default: {
+      cerr << "Internal Error: wrong agent"
+                                  " in move calculation\n" << endl;
+      
+      return false; }  
     } // switch
   } // calculate startRow and startFile
+
+  traceMove(pgn, agent, startFile, startRow, endFile, endRow, captures);
+  return true;
 }
 
 Chessgame* ParseFile( ifstream* file )
 {
-  // this Version only supports pgn export format
+  // this version only supports pgn format
   Chessgame * result = new Chessgame( 0, 0 );
   string line, key, value, pgn, pgntmp;
-  char inChar, startFile, endFile;
-  int startRow, endRow, parenthesis = 0;
-  string::size_type pos, pos2;
+  char inChar=' ', startFile=' ', endFile=' ';
+  int startRow=0, endRow=0, parenthesis=0;
+  string::size_type pos=0, pos2=0;
   bool comment = false, nextcomment = false;
+  bool skipToNextMatch = false;
+
   // read Tag pair section
   bool foundTagPair = false;
   while ( getline( *file, line ) && (line == "" || line[0] == 13 ));
@@ -730,10 +773,20 @@ Chessgame* ParseFile( ifstream* file )
   result->SortMetainfos();
   // should only happen, if empty line after last game was read
   if ( !foundTagPair ) {
-    return NULL;
+    return 0;
   }
+
+
+  STRING_T white;
+  STRING_T black; 
+  result->GetMetainfoValue("White", &white);
+  result->GetMetainfoValue("Black", &black);
+
+  cerr << "Parsing game notation for " 
+       << white << " vs. " << black << endl << endl;
+  
   // read Movetext section
-  int playerNo;
+  int playerNo=0;
   *file >> pgn;
   while ( comment || parenthesis != 0 ||
           ( pgn != "1-0" ) && ( pgn != "0-1" ) &&
@@ -834,13 +887,24 @@ Chessgame* ParseFile( ifstream* file )
       }
       else
       {
-        parseMove( startFile, startRow, endFile, endRow, playerNo, pgn,
-                   result->GetLastPosition() );
-        if ( endRow != 0 && endFile != ' ' )
+	if (!skipToNextMatch) {
+
+	if (trace)	
+	  result->GetLastPosition()->ShowBoard(cerr);
+
+        bool ok = parseMove( startFile, startRow, endFile, 
+			     endRow, playerNo, pgn,
+                             result->GetLastPosition() );
+       
+        if (ok)
         {
           result->AddMove( startFile, startRow, endFile, endRow, pgn );
           if ( playerNo == WHITE ) playerNo = BLACK;
+        } else {
+	  result->AddMetainfoEntry( "Result", "Parse Error for " + pgn );
+          skipToNextMatch = true;
         }
+        }	
         *file >> pgn;
       }
     }
@@ -851,4 +915,5 @@ Chessgame* ParseFile( ifstream* file )
 }
 
 } // namespace ChessAlgebra
+
 #endif // PST_TYPES_H

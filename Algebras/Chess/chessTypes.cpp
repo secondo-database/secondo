@@ -40,8 +40,8 @@ platform.
 
 #include "chessTypes.h"
 
-namespace ChessAlgebra
-{
+namespace ChessAlgebra {
+
 
 /*
 2 auxiliary functions implementation
@@ -199,7 +199,7 @@ int Material::ComparePieceValues( const Attribute* arg ) const
     return 1;
 
   if (PieceValue() < mat->PieceValue())
-    return -1;	  
+    return -1;      
 
   if (PieceValue() > mat->PieceValue())
     return 1;
@@ -317,15 +317,15 @@ int Material::Count ( string type ) const
   for ( size_t i = 0; i < type.length(); i++ )
   {
     agents.insert( type[i] );
-  }	  
+  }      
 
   int sum = 0;
   set<char>::iterator it = agents.begin();
   for(; it != agents.end(); it++) {
-    map<char,int>::iterator it2 = str2agent.find( *it ); 	  
+    map<char,int>::iterator it2 = str2agent.find( *it );       
     if ( it2 != str2agent.end() )
-      sum += material[ it2->second ];	    
-  }	  
+      sum += material[ it2->second ];        
+  }      
   return sum;
 
   // unknown type string
@@ -343,11 +343,11 @@ bool Material::IsEqual ( const Material* mat )
 
 int Material::PieceValue() const
 {
-  int value = 0;	
+  int value = 0;    
   for ( int i = WHITE_PAWN; i <= BLACK_KING; i++ )
   {
     value += material[ i ] * PIECE_WEIGHT[ i ];
-  }	  
+  }      
   return value;
 }
 
@@ -675,7 +675,7 @@ int Position::ComparePieceValues( const Attribute* arg ) const
   pos->GetMaterial(&argMat);
 
   if (localMat.PieceValue() < argMat.PieceValue())
-    return -1;	  
+    return -1;      
 
   if (localMat.PieceValue() > argMat.PieceValue())
     return 1;
@@ -943,6 +943,21 @@ bool Position::TestField ( string agentStr, char file, int row )
   else
     return false;
 }
+
+void Position::ShowBoard(ostream& os) {
+
+  os << endl;	 
+  for (int row=8; row > 0; row--) {	
+    os << row;	  
+    for (char file='a'; file <= 'h'; file++) {
+      char agent = gamefield[ ( int ) EncodePosition( file, row ) ];
+      os << ' ' << DecodeAgentShort(agent);
+    }
+    os << endl;    
+  }
+  os << "  a b c d e f g h" << endl;  
+}	
+
 
 void Position::Range( Position* result, char startfile, char startrow,
                       char endfile, char endrow )
@@ -1229,7 +1244,7 @@ void Chessgame::WriteTo( char *dest ) const
   strncpy(dest, &Site[0], 49);
   strncpy(dest, &Date[0], 11);
   strncpy(dest, &ECO[0], 7);
-  strncpy(dest, &Result[0], 8);
+  strncpy(dest, &Result[0], 49);
 
   for (int i = 0; i < metainfo.Size(); i++)
   {
@@ -1263,7 +1278,7 @@ void Chessgame::ReadFrom( const char *src )
   strncpy(&Site[0], src, 49);
   strncpy(&Date[0], src, 11);
   strncpy(&ECO[0], src, 7);
-  strncpy(&Result[0], src, 8);
+  strncpy(&Result[0], src, 49);
 
   metainfo.Clear();
   for (int i = 0; i < metainfo.Size(); i++)
@@ -1371,7 +1386,7 @@ void Chessgame::AddMetainfoEntry( string key, string value )
   case 'R' :
     if ( key == "Result" )
     {
-      len = value.copy( Result, 7, 0 );
+      len = value.copy( Result, 48, 0 );
       Result[ len ] = '\0';
       return ;
     }
@@ -1430,7 +1445,7 @@ int Chessgame::AddMove( char startfile, char startrow,
   newmove->SetCheck( pgn[ pgn.size() - 1 ] == '+' );
   bool castling = false;
 
-  // calculate castelling state
+  // calculate castling state
   int startpos = newmove->GetStartPos();
   int endpos = newmove->GetEndPos();
   if ( ( startpos == 4 )
@@ -1461,6 +1476,8 @@ int Chessgame::AddMove( char startfile, char startrow,
     newmove->SetCastelling( QUEENSIDE_CASTLING );
     castling = true;
   }
+  string newAgent = DecodeAgent( curpos->gamefield[ startpos ] );
+  newmove->SetNewAgent( newAgent );
 
   if (castling == false)
   {
@@ -1503,7 +1520,7 @@ int Chessgame::AddMove( char startfile, char startrow,
   if (!ok) {
     cout << "Could not find field <" << endposstr.str() << ">"
          << " in move <" << pgn << ">" << endl;
-    assert(false);	 
+    assert(false);     
   } 
 
   /*
@@ -1511,7 +1528,7 @@ int Chessgame::AddMove( char startfile, char startrow,
   if (!ok) {
     cout << "Found <" << endposstr.str() << ">"
          << "at pos=0 in move <" << pgn << ">" << endl;
-    assert(false);	 
+    assert(false);     
   } 
   */
 
@@ -2472,20 +2489,20 @@ void MovingChessPieces::realizeMove( Move* mv, const MoveData* mvdata )
           || ( *( mcp[i]->getKind() ) == "pawn" && mv->GetEndRow() == 1 ) )
       {
           
-	  // remove the pawn		
+      // remove the pawn        
           mcp[i]->extendInterval(waitBeforeMoveDuration);
           mcp[i]->appendMove( mv->GetEndFile(), 
-			      mv->GetEndRow(), TargetOffset );
+                  mv->GetEndRow(), TargetOffset );
           mcp[i]->removePiece(); 
           
-	  // create a new moving piece
+      // create a new moving piece
           
-	  // find unused mcp
+      // find unused mcp
           for ( j = 32;j < 48;j++ ) { 
             if ( *(mcp[j]->getKind())==AGENT_NAMES[UNDEF] ) break; } 
-	  cout << "unused mcp: " << j 
-	       << ", ptr " << (void*) mcp[j] << endl;
-	  delete mcp[j];
+      cout << "unused mcp: " << j 
+           << ", ptr " << (void*) mcp[j] << endl;
+      delete mcp[j];
           mcp[j] = new MovingChessPiece( 
                         AGENT_NAMES[(int)mvdata->GetNewAgentID()],
                         mv->GetEndFile(), mv->GetEndRow(), 
@@ -2496,30 +2513,30 @@ void MovingChessPieces::realizeMove( Move* mv, const MoveData* mvdata )
       else
       { 
         // move wasn't pawn's promotion, execute move
-	mcp[i]->extendInterval(waitBeforeMoveDuration);
-	mcp[i]->appendMove( mv->GetEndFile() , mv->GetEndRow() , TargetOffset );
+    mcp[i]->extendInterval(waitBeforeMoveDuration);
+    mcp[i]->appendMove( mv->GetEndFile() , mv->GetEndRow() , TargetOffset );
 
-	if (TargetOffset) 
-	  mcp[i]->centerPiece(); // if another piece was captured
+    if (TargetOffset) 
+      mcp[i]->centerPiece(); // if another piece was captured
 
-	// next lines recognize castelling 
-	//if the king was moved over more than one file
-	if ( ( *( mcp[i]->getKind() ) == "King" || 
-	       *( mcp[i] ->getKind() ) == "king" )
-	     && ( abs( (mv->GetEndFile())[0] - (mv->GetStartFile())[0] ) > 1 )
-	   )
-	{ // castelling! look which rook has to move
-	  if ( ( mv->GetEndFile() ) [ 0 ] == 'g' ) 
-	   j = 2; // white kingside rook
-	  else 
-	   j = 1; // white queenside rook
-	  if ( mv->GetStartRow() == 8 ) 
-	    j += 16;  // black rooks
+    // next lines recognize castelling 
+    //if the king was moved over more than one file
+    if ( ( *( mcp[i]->getKind() ) == "King" || 
+           *( mcp[i] ->getKind() ) == "king" )
+         && ( abs( (mv->GetEndFile())[0] - (mv->GetStartFile())[0] ) > 1 )
+       )
+    { // castelling! look which rook has to move
+      if ( ( mv->GetEndFile() ) [ 0 ] == 'g' ) 
+       j = 2; // white kingside rook
+      else 
+       j = 1; // white queenside rook
+      if ( mv->GetStartRow() == 8 ) 
+        j += 16;  // black rooks
 
-	  mcp[j]->extendInterval(waitBeforeMoveDuration);
-	  mcp[j]->extendInterval(moveDuration);
-	  mcp[j]->applyCastelling();
-	}
+      mcp[j]->extendInterval(waitBeforeMoveDuration);
+      mcp[j]->extendInterval(moveDuration);
+      mcp[j]->applyCastelling();
+    }
       }
     }
   }

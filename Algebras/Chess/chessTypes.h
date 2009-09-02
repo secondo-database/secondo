@@ -46,8 +46,8 @@ The following classes are defined in this file:
 #include <string>
 #include <sstream>
 
-namespace ChessAlgebra
-{
+namespace ChessAlgebra {
+
 /*
 2 Auxiliary Constants, Types, and Functions
 
@@ -81,7 +81,7 @@ const int PIECE_WEIGHT[ 14 ] =
   1, 3, 3, 5, 9, 0,
   1, 3, 3, 5, 9, 0,
   0, 0  
-};	
+};
 
 
 /*
@@ -385,6 +385,8 @@ public:
   creates the start position
 
   */
+  
+  void ShowBoard(ostream& os);
 
   int AddAgent( string agent, char file, char row );
   /*
@@ -624,7 +626,7 @@ private:
   char Site[ 49 ];
   char Date[ 11 ];
   char ECO[ 7 ];
-  char Result[ 8 ];
+  char Result[ 49 ];
   bool defined;
   /*
   Metainfo numbering:
@@ -1080,4 +1082,5 @@ inline void MoveData::SetEnPassant( const bool &value )
 }
 
 } // namespace ChessAlgebra
+
 #endif // PST_TYPES_H
