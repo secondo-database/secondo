@@ -176,8 +176,18 @@ ALGEBRA_DIRS += GSL
 ALGEBRAS     += GSLAlgebra
 ALGEBRA_DEPS += gsl gslcblas
 
+# The chess algebras from student projects 
+# during practical courses in 07/08 and 08/09
+#
+# You can only activate one of them at the same time!
+# 
 #ALGEBRA_DIRS += Chess
 #ALGEBRAS     += ChessAlgebra
+
+#ALGEBRA_DIRS += ChessB
+#ALGEBRAS     += ChessBAlgebra
+#CCFLAGS      += -DChessB
+
 
 #ALGEBRA_DIRS += HierarchicalGeo
 #ALGEBRAS     += HierarchicalGeoAlgebra
