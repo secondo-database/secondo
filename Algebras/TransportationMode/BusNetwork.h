@@ -56,11 +56,13 @@ August, 2009 Jianqiu Xu
 Subclass for manage bus network
 
 */
+struct Elem;
+
 class BusNetwork{
 public:
 /*data description*/
   static string busrouteTypeInfo;//relation description for pre-defined paths
-  enum BusRouteInfo{RID=0,TRIP};
+  enum BusRouteInfo{RID=0,LINENO,TRIP};
   static string btreebusrouteTypeInfo;//b-tree on pre-defined paths
   static string busstopTypeInfo; //relation description for bus stop
   enum BusStopInfo{SID=0,LOC};
@@ -103,7 +105,11 @@ public:
   Relation* GetRelBus_Edge(){return bus_edge;}
   TupleId FindPointTid(Point& p);
   void FindPath_T_1(MPoint* result,MInt* query);
-  void FindPath(const UInt* ui1,const UInt* ui2,vector<int>& path);
+  void FindPath_T_2(MPoint* result,MInt* query);//more efficient
+  void FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path);
+  //more efficient
+  void FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path);
+  void Optimize1(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list);
 
 private:
   int busnet_id;

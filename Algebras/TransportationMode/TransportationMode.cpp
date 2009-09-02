@@ -248,6 +248,7 @@ int OpBusEdgeValueMapping(Word* args, Word& result,
         CcInt* id = (CcInt*)temp_tuple->GetAttribute(BusNetwork::EID);
         CcInt* nid1 = (CcInt*)temp_tuple->GetAttribute(BusNetwork::V1);
         CcInt* nid2 = (CcInt*)temp_tuple->GetAttribute(BusNetwork::V2);
+        CcInt* rid = (CcInt*)temp_tuple->GetAttribute(BusNetwork::PID);
         Line* l = (Line*)temp_tuple->GetAttribute(BusNetwork::LINE);
         CcReal* fee = (CcReal*)temp_tuple->GetAttribute(BusNetwork::FEE);
 
@@ -262,7 +263,8 @@ int OpBusEdgeValueMapping(Word* args, Word& result,
         tuple->PutAttribute(1,new CcInt(*nid1));
         tuple->PutAttribute(2,new CcInt(*nid2));
         tuple->PutAttribute(3,new Line(*l));
-        tuple->PutAttribute(4,new CcReal(*fee));
+//        tuple->PutAttribute(4,new CcReal(*fee));
+        tuple->PutAttribute(4,new CcInt(*rid));
         tuple->PutAttribute(5,new CcString(true,start_t));
         tuple->PutAttribute(6,new CcString(true,end_t));
         result.setAddr(tuple);
@@ -322,6 +324,7 @@ int OpBusMoveValueMapping(Word* args, Word& result,
 
 /*
 query reachability for a start node and an end node.
+minimum total time cost
 
 */
 int OpBusFindPath_T_1ValueMapping(Word* args, Word& result,
@@ -334,7 +337,15 @@ int OpBusFindPath_T_1ValueMapping(Word* args, Word& result,
   return 0;
 }
 
-
+int OpBusFindPath_T_2ValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  BusNetwork* busnet = (BusNetwork*)args[0].addr;
+  MInt* querycond = (MInt*)args[1].addr;
+  busnet->FindPath_T_2((MPoint*)result.addr,querycond);
+  return 0;
+}
 /*
 Operator ~thebusnetwork~
 
@@ -412,7 +423,7 @@ ListExpr OpBusEdgeTypeMap(ListExpr in_xArgs)
                 nl->TwoElemList(nl->SymbolAtom("nid1"),nl->SymbolAtom("int")),
                 nl->TwoElemList(nl->SymbolAtom("nid2"),nl->SymbolAtom("int")),
                 nl->TwoElemList(nl->SymbolAtom("l"),nl->SymbolAtom("line")),
-                nl->TwoElemList(nl->SymbolAtom("fee"),nl->SymbolAtom("real")),
+                nl->TwoElemList(nl->SymbolAtom("rid"),nl->SymbolAtom("int")),
                 nl->TwoElemList(nl->SymbolAtom("t1"),nl->SymbolAtom("string")),
                 nl->TwoElemList(nl->SymbolAtom("t2"),nl->SymbolAtom("string"))
               ))
@@ -512,6 +523,14 @@ Operator find_path_t_1(
   OpBusFindPath_T_1TypeMap
 );
 
+Operator find_path_t_2(
+  "find_path_t_2", //name
+  OpBusFindPath_T_1Spec,
+  OpBusFindPath_T_2ValueMapping,
+  Operator::SimpleSelect,
+  OpBusFindPath_T_1TypeMap
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -531,6 +550,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&busmove);//display bus movement
    //middle stop with no temporal property, no user defined time instant
    AddOperator(&find_path_t_1);//minimum total time cost
+   AddOperator(&find_path_t_2);//minimum total time cost, faster
   }
   ~TransportationModeAlgebra() {};
  private:
