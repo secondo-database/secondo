@@ -1,0 +1,20 @@
+#script file to build the bus network database
+# 1.put it into Secondo/bin directory
+# 2.start SecondoTTYBDB run this script file
+##############################################
+
+restore database berlintest from berlintest;
+#construct the pre-defined path (bus routes)
+let berlintrainsroutes = Trains feed project[Id,Line,Trip] consume;
+save berlintrainsroutes to berlintrainsroutes;
+close database;
+
+
+create database tm;
+open database tm;
+restore berlintrainsroutes from berlintrainsroutes;
+
+#create bus network;
+let berlintrains = thebusnetwork(1,berlintrainsroutes);
+
+close database;
