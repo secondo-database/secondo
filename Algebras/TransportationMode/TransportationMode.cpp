@@ -109,6 +109,16 @@ const string OpBusFindPath_T_1Spec =
   "<text>query find_path_t_1(mint1) count</text--->"
   "))";
 
+const string OpBusFindPath_T_2Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "<text>find_path_t_2(_)</text--->"
+  "<text>returns a stream of tuple where each corresponds to"
+  "the sequence movement of a trip.</text--->"
+  "<text>query find_path_t_2(mint1) count</text--->"
+  "))";
+
 /***********Value Map Function for Bus Network****************************/
 /*
 Creates a bus network with the given id, from the given bus routes relations.
@@ -525,7 +535,7 @@ Operator find_path_t_1(
 
 Operator find_path_t_2(
   "find_path_t_2", //name
-  OpBusFindPath_T_1Spec,
+  OpBusFindPath_T_2Spec,
   OpBusFindPath_T_2ValueMapping,
   Operator::SimpleSelect,
   OpBusFindPath_T_1TypeMap

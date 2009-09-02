@@ -976,6 +976,7 @@ struct Elem{
   int e_node_id;
   double delta_t;
   int rid;
+  int pre_edge_tid;
   Elem(int id,Interval<Instant> interv,int snid):edge_tuple_id(id),
   interval(interv),s_node_id(snid),e_node_id(snid)
   {
@@ -983,13 +984,14 @@ struct Elem{
     dist=0.0;
     delta_t=0.0;
     rid=0;
+    pre_edge_tid = 0;
 
   }
   Elem(const Elem& e):
   edge_tuple_id(e.edge_tuple_id),pre_eid(e.pre_eid),
   dist(e.dist),interval(e.interval),
   s_node_id(e.s_node_id),e_node_id(e.e_node_id),
-  delta_t(e.delta_t),rid(e.rid){}
+  delta_t(e.delta_t),rid(e.rid),pre_edge_tid(e.pre_edge_tid){}
   Elem& operator=(const Elem& e)
   {
     edge_tuple_id = e.edge_tuple_id;
@@ -1000,6 +1002,7 @@ struct Elem{
     e_node_id = e.e_node_id;
     delta_t = e.delta_t;
     rid = e.rid;
+    pre_edge_tid = e.pre_edge_tid;
     return *this;
   }
   bool operator<(const Elem& e)const
@@ -1242,6 +1245,7 @@ void BusNetwork::FindPath_T_1(MPoint* mp,MInt* query)
 due to periodic property, use the edge with earliest start time in their route
 
 */
+
 void BusNetwork::Optimize1(priority_queue<Elem>& q_list,
 priority_queue<Elem>& temp_list)
 {
@@ -1255,7 +1259,8 @@ priority_queue<Elem>& temp_list)
     }else{
       unsigned int i = 0;
       for(;i < elem_pop.size();i++)
-        if(elem_pop[i].rid == top.rid && elem_pop[i].e_node_id == top.e_node_id)
+       if(elem_pop[i].rid == top.rid && elem_pop[i].e_node_id == top.e_node_id)
+//        if(elem_pop[i].e_node_id == top.e_node_id)
           break;
       if(i == elem_pop.size()){
         q_list.push(top);
@@ -1284,7 +1289,14 @@ void BusNetwork::FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path)
   //find all edges start from node id1, if time interval is given, filter
   //all edges start time earlier than it, no heuristic value
 
-//  priority_queue<Elem,vector<Elem>,TimeCompare> q_list;
+
+
+  //to control that one edge is not expanded more than once
+  vector<bool> edge_flag;
+  for(unsigned int i = 0; i < bus_edge->GetNoTuples() + 1;i++)
+    edge_flag.push_back(true);
+
+ //priority_queue<Elem,vector<Elem>,TimeCompare> q_list;
   priority_queue<Elem> q_list;
   vector<Elem> expansionlist;
 
@@ -1317,7 +1329,11 @@ void BusNetwork::FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path)
                    start_node->GetIntval());
             e.delta_t = (interval->end-interval_cur->end).ToDouble();
             e.e_node_id = end_node->GetIntval();//end node id
-            tmp_list.push(e);
+            e.pre_edge_tid = 0;
+            if(edge_flag[bt_iter_edge_v1->GetId()]){
+              tmp_list.push(e);
+              edge_flag[bt_iter_edge_v1->GetId()] = false;
+            }
            // q_list.push(e);
         }
         edge_tuple->DeleteIfAllowed();
@@ -1326,9 +1342,12 @@ void BusNetwork::FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path)
         Elem e(bt_iter_edge_v1->GetId(),*interval,
                   start_node->GetIntval());
         e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
-
+        e. pre_edge_tid = 0;
 //        q_list.push(e);
+        if(edge_flag[bt_iter_edge_v1->GetId()]){
           tmp_list.push(e);
+          edge_flag[bt_iter_edge_v1->GetId()] = false;
+        }
       }
     }
     t->DeleteIfAllowed();
@@ -1363,8 +1382,10 @@ void BusNetwork::FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path)
     const Interval<Instant>* interval_cur;
     cur_def_t->Get(0,interval_cur);
 
-//    cout<<"edge "<<edge_id->GetIntval()<<" v1 "<<start_node->GetIntval()
-//        <<" v2 "<<end_node->GetIntval()<<" time "<<*interval_cur<<endl;
+//    outfile<<"edge "<<edge_id->GetIntval()<<" pre-edge tid "<<top.pre_edge_tid
+//        <<" v1 "<<start_node->GetIntval()
+//        <<" v2 "<<end_node->GetIntval()<<" time "<<*interval_cur
+//        <<" delta_t "<<top.delta_t<<" rid "<<top.rid<<endl;
 
     /////////////get all edges from the same start node////////////////
     bt_iter_edge_v1 = btree_bus_edge_v1->ExactMatch(end_node);
@@ -1396,10 +1417,13 @@ void BusNetwork::FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path)
                           (interval_next->end-interval_cur->end).ToDouble();
             e.rid = rid->GetIntval();
             e.e_node_id = end_node_next->GetIntval();
+            e.pre_edge_tid = top.edge_tuple_id;
 //            cout<<e.delta_t<<endl;
 //////////////////    Optimize - 1    ////////////////////////////////////////
-            temp_list.push(e);
-
+            if(edge_flag[bt_iter_edge_v1->GetId()]){
+              temp_list.push(e);
+              edge_flag[bt_iter_edge_v1->GetId()] = false;
+            }
             //q_list.push(e);
 //////////////////////////////////////////////////////////////////////////////
 
