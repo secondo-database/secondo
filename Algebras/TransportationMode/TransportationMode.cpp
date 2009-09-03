@@ -115,8 +115,19 @@ const string OpBusFindPath_T_2Spec =
   "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
   "<text>find_path_t_2(_)</text--->"
   "<text>returns a stream of tuple where each corresponds to"
-  "the sequence movement of a trip.</text--->"
+  "the sequence movement of a trip. faster than 1</text--->"
   "<text>query find_path_t_2(mint1) count</text--->"
+  "))";
+
+const string OpBusFindPath_T_3Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "<text>find_path_t_3(_)</text--->"
+  "<text>returns a stream of tuple where each corresponds to"
+  "the sequence movement of a trip. faster than 1, supporting duration"
+  "for middle stop</text--->"
+  "<text>query find_path_t_3(mint1) count</text--->"
   "))";
 
 /***********Value Map Function for Bus Network****************************/
@@ -356,6 +367,16 @@ int OpBusFindPath_T_2ValueMapping(Word* args, Word& result,
   busnet->FindPath_T_2((MPoint*)result.addr,querycond);
   return 0;
 }
+
+int OpBusFindPath_T_3ValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  BusNetwork* busnet = (BusNetwork*)args[0].addr;
+  MInt* querycond = (MInt*)args[1].addr;
+  busnet->FindPath_T_3((MPoint*)result.addr,querycond);
+  return 0;
+}
 /*
 Operator ~thebusnetwork~
 
@@ -541,6 +562,14 @@ Operator find_path_t_2(
   OpBusFindPath_T_1TypeMap
 );
 
+Operator find_path_t_3(
+  "find_path_t_3", //name
+  OpBusFindPath_T_3Spec,
+  OpBusFindPath_T_3ValueMapping,
+  Operator::SimpleSelect,
+  OpBusFindPath_T_1TypeMap
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -561,6 +590,8 @@ class TransportationModeAlgebra : public Algebra
    //middle stop with no temporal property, no user defined time instant
    AddOperator(&find_path_t_1);//minimum total time cost
    AddOperator(&find_path_t_2);//minimum total time cost, faster
+   //minimum total time cost, faster, time duration for middle stop
+   AddOperator(&find_path_t_3);
   }
   ~TransportationModeAlgebra() {};
  private:

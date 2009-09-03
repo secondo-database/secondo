@@ -39,3 +39,9 @@ Number   : 1
 Signature: busnetwork x mint -> mpoint
 Example  : query find_path_t_2(berlintrains,mint1);
 Result   : file
+
+Operator : find_path_t_3
+Number   : 1
+Signature: busnetwork x mint -> mpoint
+Example  : query find_path_t_3(berlintrains,mint1);
+Result   : file

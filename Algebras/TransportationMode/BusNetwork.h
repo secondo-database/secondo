@@ -105,12 +105,14 @@ public:
   Relation* GetRelBus_Edge(){return bus_edge;}
   TupleId FindPointTid(Point& p);
   void FindPath_T_1(MPoint* result,MInt* query);
-  void FindPath_T_2(MPoint* result,MInt* query);//more efficient
   void FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path);
   //more efficient
   void FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path);
+  void FindPath_T_2(MPoint* result,MInt* query);//more efficient
   void Optimize1(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list);
-
+  //time duration for middle stop
+  bool FindPath3(const UInt* ui1,const UInt* ui2,vector<int>& path);
+  void FindPath_T_3(MPoint* result,MInt* query);
 private:
   int busnet_id;
   bool bus_def;
