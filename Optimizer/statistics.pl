@@ -159,6 +159,19 @@ simple(Term,R1,R2,Simple) :-
 The simple form of predicate ~Pred~ is ~Simple~.
 
 */
+
+% handle faked predicate
+simplePred(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
+           fakePred(Sel,BboxSel,CalcPET,ExpPET)) :-
+  ( (ground(Sel), ground(BboxSel), ground(CalcPET), ground(ExpPET))
+    -> true
+    ;  throw(error_Internal(statistics_simplePred(
+            pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
+            fakePred(Sel,BboxSel,CalcPET,ExpPET))
+            :fakePred_requires_ground_arguments))
+  ),
+  !.
+
 % old clauses used, if option ~determinePredSig~ is not set:
 simplePred(pr(P, A, B), Simple) :-
   not(optimizerOption(determinePredSig)),
@@ -805,6 +818,7 @@ getTime(Goal, TimeMS) :-
 selectivity(+P, -Sel)
 selectivity(+P, -Sel, -CalcPET, -ExpPET)
 getPET(+P, -CalcPET, -ExpPET)
+getBBoxSel(+P, -BBoxSel)
 ----
 
 The selectivity of predicate ~P~ is ~Sel~. The analytic predicate cost function reports the evaluation of the predicate to take ~CalcPET~ milliseconds of time. During the actual query, the evaluation took ~ExpPET~ milliseconds of time for a single evaluation.
@@ -821,7 +835,26 @@ dividing the query time by the number of predicate evaluations.
 The result is stored in a table ~storedPET(DB, Pred, CalcPET, ExpPET)~, where
 ~PET~ means ~Predicate Evaluation Time~.
 
+Bounding Box selectivity and Predicate Evaluation Times are available using
+predicates ~getPET/3~ ans ~getBBoxSel/2~.
+
+It is possible to fake a predicate. In this case, you can explicitely state a
+given selectivity, bbox-selectivity, calculated and experimental PET. This is
+done using the ``predicate'' (May be useful for testing cost functions.):
+
+---- fakePred(+Sel,+BboxSel,+CalcPET,+ExpPET)
+----
+
 */
+
+% faked predicate:
+sels(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET), Sel, ClacPET, ExpPET)) :-
+  ( (ground(Sel), ground(BboxSel), ground(CalcPET), ground(ExpPET))
+    -> true
+    ; throw(error_Internal(statistics_sels(pr(fakePred(Sel,BboxSel,CalcPET,
+            ExpPET)),Sel,ClacPET,ExpPET):fakePred_requires_ground_arguments))
+  ),
+  !.
 
 sels(Pred, Sel, CalcPET, ExpPET) :-
   databaseName(DB),
@@ -833,7 +866,6 @@ sels(Pred, Sel, CalcPET, ExpPET) :-
   databaseName(DB),
   storedSel(DB, Pred2, Sel),
   storedPET(DB, Pred2, CalcPET, ExpPET), !.
-
 
 % Wrapper selectivity/2 for standard optimizer
 selectivity(Pred, Sel) :-
@@ -849,6 +881,19 @@ selectivity(P, X) :-
 
 
 % Wrapper selectivity/5 to get also bbox selectivity
+
+% faked predicate:
+selectivity(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
+            Sel, BBoxSel, CalcPET, ExpPET) :-
+  ( (ground(Sel), ground(BboxSel), ground(CalcPET), ground(ExpPET))
+    -> true
+    ; throw(error_Internal(statistics_selectivity(
+            pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
+            Sel, BBoxSel, CalcPET, ExpPET)
+            :fakePred_requires_ground_arguments))
+  ),
+  !.
+
 selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET) :-
   selectivity(Pred, Sel, CalcPET, ExpPET),
   simplePred(Pred, PSimple),
@@ -860,6 +905,18 @@ selectivity(Pred, Sel, BBoxSel, CalcPET, ExpPET) :-
 
 selectivity(Pred, Sel, noBBox, CalcPET, ExpPET) :-
   selectivity(Pred, Sel, CalcPET, ExpPET).
+
+% selectivity/4
+
+% faked predicate:
+selectivity(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)), Sel, CalcPET, ExpPET) :-
+  ( (ground(Sel), ground(BboxSel), ground(CalcPET), ground(ExpPET))
+    -> true
+    ; throw(error_Internal(statistics_selectivity(
+        pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)), Sel, CalcPET, ExpPET)
+        :fakePred_requires_ground_arguments))
+  ),
+  !.
 
 % handle 'pseudo-joins' (2 times the same argument) as selections
 selectivity(pr(Pred, Rel, Rel), Sel, CalcPET, ExpPET) :-
@@ -1067,6 +1124,16 @@ selectivity(P, X, Y, Z) :-
 
 
 % access stored PETs by simplified predicate term
+getPET(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)), CalcPET, ExpPET) :-
+  ( (ground(Sel), ground(BboxSel), ground(CalcPET), ground(ExpPET))
+    -> true
+    ;  throw(error_Internal(statistics_simplePred(
+            pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
+            fakePred(Sel,BboxSel,CalcPET,ExpPET))
+            :fakePred_requires_ground_arguments))
+  ),
+  !.
+
 getPET(P, CalcPET, ExpPET) :-
   databaseName(DB),
   simplePred(P,PSimple),
@@ -1082,6 +1149,22 @@ getPET(P, X, Y) :-
   write('Call: getPET('), write(P), write(', _, _)\n'),
   throw(error_Internal(statistics_getPET(P, X, Y):missingData#ErrMsg)),
   fail, !.
+
+
+getBBoxSel(pr(fakePred(Sel,BBoxSel,CalcPET,ExpPET), BBoxSel)) :-
+  ( (ground(Sel), ground(BboxSel), ground(CalcPET), ground(ExpPET))
+    -> true
+    ; throw(error_Internal(statistics_getBBoxSel(
+              pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
+              BBoxSel):fakePred_requires_ground_arguments))
+  ),
+  !.
+
+getBBoxSel(Pred,BBoxSel) :-
+  simplePred(Pred, PSimple),
+  databaseName(DB),
+  storedBBoxSel(DB, PSimple, BBoxSel).
+
 
 /*
 

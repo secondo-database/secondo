@@ -4025,7 +4025,7 @@ cost(filter(X, _), Sel, P, S, C) :-
 
 %  X = spatialjoin(_, _, attrname(attr(Attr1, ArgNr1, Case1)),
 %                        attrname(attr(Attr2, ArgNr2, Case2))),
-%  getSimplePred(P, PSimple),
+%  simplePred(P, PSimple),
 %  databaseName(DB),
 %  storedBBoxSel(DB, PSimple, BBoxSel),
 %  cost(X, BBoxSel, _, SizeX, CostX),

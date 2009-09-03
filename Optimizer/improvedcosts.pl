@@ -51,8 +51,7 @@ can be retrieved by calling
 ----
 
 Operator-related constants used within the cost functions should be
-stored in
-facts
+stored in facts
 
 ---- costConst(+OpName, +ConstName, -Value)
 ----
@@ -198,8 +197,9 @@ reduce the set of possible candidates, so that the cardinality of tuples
 processed by filter will be smaller than the cardinality passed down in the 3rd
 argument of ~cost~. Also, the selectivity passed with the second argument of
 ~cost~ is the ~total~ selectivity. To get the selectivity of the preselection,
-one can analyse the predicate and lookup the table ~storedBBoxSel/3~ for that
-selectivity, which should be passed to the recursive call of ~cost~.
+one can analyse the predicate and lookup the BBox-Selectivity calling
+~getBBoxSel/2~ for that predicate, which should be passed to the recursive call
+of ~cost~.
 
 PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is
 no problem, as the index is used to create a fresh tuple stream. But, as for
@@ -214,16 +214,13 @@ cost(filter(X, _), Sel, Pred, ResAttrList,
                 ResTupleSize, ResCard, Cost) :-
   isPrefilter(X),     % holds for spatialjoin or loopjoin
   % the prefilter has already reduced the cardinality of candidates
-  simplePred(Pred, PSimple),
-  databaseName(DB),
-  storedBBoxSel(DB, PSimple, BBoxSel),
+  selectivity(Pred, _, BBoxSel, CalcPET, ExpPET),
   ( BBoxSel > 0
     -> RefinementSel is Sel/BBoxSel
     ;  RefinementSel is 1              % if BBoxSel = 0 then ResCard1 is also 0
   ),
   cost(X, BBoxSel, Pred, ResAttrList, ResTupleSize, ResCard1, Cost1),
   costConst(filter, msPerTuple, U),    % ms per tuple
-  storedPET(DB, PSimple, CalcPET, ExpPET),
   ResCard is ResCard1 * RefinementSel,
   Cost is   Cost1
           + ResCard1 * (U + max(CalcPET,ExpPET)),!.
@@ -285,11 +282,9 @@ cost(filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))),
 % rule for standard filter
 cost(filter(X, _), Sel, Pred, ResAttrList,
                 ResTupleSize, ResCard, Cost) :- % 'normal' filter
-  simplePred(Pred, PSimple),
-  databaseName(DB),
   cost(X, Sel, Pred, ResAttrList, ResTupleSize, ResCard1, Cost1),
   costConst(filter, msPerTuple, U),    % ms per tuple
-  storedPET(DB, PSimple, CalcPET, ExpPET),
+  getPET(Pred,CalcPET,ExpPET),
   ResCard is ResCard1 * Sel,
   Cost is   Cost1
           + ResCard1 * (U + max(CalcPET,ExpPET)),!.

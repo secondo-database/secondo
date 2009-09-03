@@ -5242,6 +5242,8 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(930, xf ,  desc).
 :- op(930,  fx,  insert).% for update, insert
 :- op(930, xfx,  indextype).
+:- op(800,  fx,  union).
+:- op(800,  fx,  intersection).
 % Section:Start:opPrologSyntax_3_e
 % Section:End:opPrologSyntax_3_e
 
@@ -8052,9 +8054,6 @@ Means ``multi-optimize''. Optimize a ~Term~ possibly consisting of several subex
 
 */
 
-:-op(800, fx, union).
-:-op(800, fx, intersection).
-
 mOptimize(union Terms, Query, Cost) :-
   mStreamOptimize(union Terms, Plan, Cost),
   concat_atom([Plan, 'consume'], '', Query).
@@ -8566,7 +8565,16 @@ finishDistanceSort(Stream, Cost, X, Y, 0, StreamOut, Cost2) :-
   StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, distance(X, Y))]),
           attrname(ExprAttr)),
          attrname(ExprAttr)),
-  cost(remove(sort(extend(pogstream, _)), _), 1, _, _, CostTmp),
+  ( (optimizerOption(nawracost) ; optimizerOption(improvedcosts) )
+    -> (  highNode(Source),
+          Target is Source + 1,
+          Result = res(Target),
+          Pred = pr(fakePred(1,1,0,0)),
+          costterm(remove(sort(extend(pogstream, none)), none), Source, Target,
+                   Result, 1, Pred, _Card, CostTmp)
+       )
+    ;  cost(remove(sort(extend(pogstream, _)), _), 1, _, _, CostTmp)
+  ),
   Cost2 is Cost + CostTmp.
 
 finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
@@ -8576,8 +8584,17 @@ finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
               [field(ExprAttr, distance(X, Y))]),
              HeadCount, attrname(ExprAttr)),
          attrname(ExprAttr)),
-  cost(remove(ksmallest(extend(pogstream, _), HeadCount), _), 1, _, _,
-       CostTmp),
+  ( (optimizerOption(nawracost) ; optimizerOption(improvedcosts) )
+    -> (  highNode(Source),
+          Target is Source + 1,
+          Result = res(Target),
+          Pred = pr(fakePred(1,1,0,0)),
+          costterm(remove(sort(extend(pogstream, none)), none), Source, Target,
+                   Result, 1, Pred, _Card, CostTmp)
+       )
+    ; cost(remove(ksmallest(extend(pogstream, _), HeadCount), _), 1, _, _,
+       CostTmp)
+  ),
   Cost2 is Cost + CostTmp.
 
 /*

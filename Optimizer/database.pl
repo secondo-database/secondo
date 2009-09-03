@@ -3855,9 +3855,46 @@ size of data stored in the relation's LOB file.
 
 */
 
-tupleSizeSplit(DCrel, sizeTerm(MemSize,CoreSize,FLOBSize)) :-
+tupleSizeSplit(DCrel, sizeTerm(MemSize3,CoreSize3,LOBSize3)) :-
+  dm(dbhandling,['\nTry: tupleSizeSplit(',DCrel,',',
+                 sizeTerm(MemSize,CoreSize,LOBSize),').']),
   databaseName(DB),
-  storedTupleSize(DB,DCrel,MemSize,CoreSize,FLOBSize),!.
+  ( ( storedTupleSize(DB, DCrel, MemSize, CoreSize, LOBSize), % already known
+      MemSize \= nAn, CoreSize \= nAn, LOBSize \= nAn )       % well defined
+    -> ( MemSize2 = MemSize, CoreSize2 = CoreSize, LOBSize2 = LOBSize
+       )
+    ;  ( write_list(['\INFO:\tTuplesize contained a "not a number" (nAn). ', Size,
+                     '\n--->\tTherefore, I retry getting meaningful data...']),
+         nl,
+         getTupleInfo(DCrel),   % inquire for it, then it should be known!
+         storedTupleSize(DB, DCrel, MemSize2, CoreSize2, LOBSize2)
+       )
+  ),
+  ( MemSize2 = nAn
+    -> ( write_list(['\nWARNING:\tTupleMemSize is not a number (nAn). ', Size,
+                     '\n--->\tTherefore, it is set to 1.']),
+         nl,
+         MemSize3 is 1
+       )
+    ; MemSize3 is MemSize2
+  ),
+  ( CoreSize2 = nAn
+    -> ( write_list(['\nWARNING:\tTupleCoreSize is not a number (nAn). ', Size,
+                     '\n--->\tTherefore, it is set to 1.']),
+         nl,
+         CoreSize3 is 1
+       )
+    ; CoreSize3 is CoreSize2
+  ),
+  ( LOBSize2 = nAn
+    -> ( write_list(['\nWARNING:\tTupleLOBSize is not a number (nAn). ', Size,
+                     '\n--->\tTherefore, it is set to 1.']),
+         nl,
+         LOBSize3 is 1
+       )
+    ; LOBSize3 is LOBSize2
+  ),
+  !.
 
 tupleSizeSplit(DCrel, X) :-
   concat_atom(['Unknown error.'],'',ErrMsg),
