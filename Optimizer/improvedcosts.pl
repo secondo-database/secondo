@@ -343,7 +343,7 @@ temporary index
 cost(exactmatch(dbobject(tmpindex(rel(Rel, _), _)), rel(Rel, _), _), Sel,
      Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   !,
-  cost(exactmatch(1, rel(Rel, _), _), Sel, Pred, ResAttrList, RestTupleSize,
+  cost(exactmatch(1, rel(Rel, _), _), Sel, Pred, ResAttrList, ResTupleSize,
       ResCard, CostX),
   createbtreeTC(C),
   card(Rel, RelSize),
