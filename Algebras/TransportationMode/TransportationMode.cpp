@@ -89,6 +89,16 @@ const string OpBusEdgeSpec =
   "the trajectory of a bus's movement.</text--->"
   "<text>query busedge(busroutes) count</text--->"
   "))";
+
+const string OpBusEdgeRelSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "<text>busedgerel(_)</text--->"
+  "<text>returns a stream of tuple where each corresponds to an edge.</text--->"
+  "<text>query busedgerel(busroutes) count</text--->"
+  "))";
+
 const string OpBusMoveSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
@@ -303,6 +313,22 @@ int OpBusEdgeValueMapping(Word* args, Word& result,
 }
 
 /*
+Display the edge
+
+*/
+
+int OpBusEdgeRelValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  BusNetwork* busnet = (BusNetwork*)args[0].addr;
+  Relation* busedge = busnet->GetRelBus_Edge();
+  result = SetWord(busedge->Clone());
+  Relation* resultSt = (Relation*)qp->ResultStorage(s).addr;
+  resultSt->Close();
+  qp->ChangeResultStorage(s,result);
+  return 0;
+}
+/*
 Display the bus movement.
 
 */
@@ -466,6 +492,25 @@ ListExpr OpBusEdgeTypeMap(ListExpr in_xArgs)
 }
 
 /*
+Operator ~busedgerel~
+
+*/
+ListExpr OpBusEdgeRelTypeMap(ListExpr in_xArgs)
+{
+  if(nl->ListLength(in_xArgs) != 1)
+    return (nl->SymbolAtom("typeerror"));
+
+  ListExpr arg = nl->First(in_xArgs);
+  if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
+     nl->SymbolValue(arg) == "busnetwork"){
+      ListExpr xType;
+      nl->ReadFromString(BusNetwork::busedgeTypeInfo,xType);
+      return xType;
+  }
+  return nl->SymbolAtom("typeerror");
+
+}
+/*
 Operator ~busmove~
 
 */
@@ -537,6 +582,13 @@ Operator busedge(
   Operator::SimpleSelect,
   OpBusEdgeTypeMap
 );
+Operator busedgerel(
+  "busedgerel", //name
+  OpBusEdgeRelSpec,
+  OpBusEdgeRelValueMapping,
+  Operator::SimpleSelect,
+  OpBusEdgeRelTypeMap
+);
 
 Operator busmove(
   "busmove", //name
@@ -587,6 +639,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&busnode);//display bus stop
    AddOperator(&busedge); //display the trajectory of a bus
    AddOperator(&busmove);//display bus movement
+   AddOperator(&busedgerel);//display the original edge
    //middle stop with no temporal property, no user defined time instant
    AddOperator(&find_path_t_1);//minimum total time cost
    AddOperator(&find_path_t_2);//minimum total time cost, faster

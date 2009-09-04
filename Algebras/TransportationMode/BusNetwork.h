@@ -52,6 +52,7 @@ August, 2009 Jianqiu Xu
 #include "NList.h"
 #include "RelationAlgebra.h"
 #include <list>
+#include <sys/timeb.h>
 /*
 Subclass for manage bus network
 
@@ -69,7 +70,7 @@ public:
   static string btreebusstopTypeInfo; //b-tree on bus stop
   static string rtreebusstopTypeInfo; //r-tree on bus stop
   static string busedgeTypeInfo; //relation description for edge
-  enum BusEdgeInfo{EID=0,V1,V2,DEF_T,LINE,FEE,PID,MOVE};
+  enum BusEdgeInfo{EID=0,V1,V2,DEF_T,LINE,FEE,PID,MOVE,RPID};
   static string btreebusedgeTypeInfo; //b-tree on edge id
 
 /*function for type constructor*/
@@ -113,6 +114,8 @@ public:
   //time duration for middle stop
   bool FindPath3(const UInt* ui1,const UInt* ui2,vector<int>& path);
   void FindPath_T_3(MPoint* result,MInt* query);
+  void Optimize2(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list,
+                list<Elem>& end_node_edge,double&);
 private:
   int busnet_id;
   bool bus_def;
@@ -126,6 +129,5 @@ private:
   BTree* btree_bus_edge_v1; //b-tree on edge start node id
   BTree* btree_bus_edge_v2; //b-tree on edge end node id
 };
-
-
+double difftimeb(struct timeb* t1,struct timeb* t2);
 #endif
