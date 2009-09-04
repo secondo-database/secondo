@@ -1080,6 +1080,7 @@ void BusNetwork::FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path)
   while(bt_iter_edge_v1->Next()){
     Tuple* t = bus_edge->GetTuple(bt_iter_edge_v1->GetId());
     CcInt* start_node = (CcInt*)t->GetAttribute(V1);
+    CcInt* end_node = (CcInt*)t->GetAttribute(V2);
     Periods* peri = (Periods*)t->GetAttribute(DEF_T);
     const Interval<Instant>* interval;
     peri->Get(0,interval);
@@ -1097,6 +1098,7 @@ void BusNetwork::FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path)
             Elem e(bt_iter_edge_v1->GetId(),*interval,
                    start_node->GetIntval());
             e.delta_t = (interval->end-interval_cur->end).ToDouble();
+            e.e_node_id = end_node->GetIntval();
             q_list.push(e);
         }
         edge_tuple->DeleteIfAllowed();
@@ -1105,7 +1107,7 @@ void BusNetwork::FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path)
         Elem e(bt_iter_edge_v1->GetId(),*interval,
                   start_node->GetIntval());
         e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
-//        cout<<e.delta_t<<endl;
+        e.e_node_id = end_node->GetIntval();
         q_list.push(e);
       }
     }
@@ -1120,15 +1122,18 @@ void BusNetwork::FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path)
 
   while(q_list.empty() == false){
     Elem top = q_list.top();
-    Tuple* edge_tuple = bus_edge->GetTuple(top.edge_tuple_id);
+//    Tuple* edge_tuple = bus_edge->GetTuple(top.edge_tuple_id);
 //    top.Print();
 
-    CcInt* start_node = (CcInt*)edge_tuple->GetAttribute(V1);
-    CcInt* end_node = (CcInt*)edge_tuple->GetAttribute(V2);
+//    CcInt* start_node = (CcInt*)edge_tuple->GetAttribute(V1);
+//    CcInt* end_node = (CcInt*)edge_tuple->GetAttribute(V2);
+      CcInt* start_node = new CcInt(true,top.s_node_id);
+      CcInt* end_node = new CcInt(true,top.e_node_id);
 
     if(end_node->GetIntval() == id2){//find the end
 //      cout<<"find "<<endl;
-      edge_tuple->DeleteIfAllowed();
+      delete start_node;
+      delete end_node;
       break;
     }
 
@@ -1136,9 +1141,11 @@ void BusNetwork::FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path)
     expansion_count++;
     q_list.pop();
 
-    Periods* cur_def_t = (Periods*)edge_tuple->GetAttribute(DEF_T);
-    const Interval<Instant>* interval_cur;
-    cur_def_t->Get(0,interval_cur);
+//    Periods* cur_def_t = (Periods*)edge_tuple->GetAttribute(DEF_T);
+//    const Interval<Instant>* interval_cur;
+//    cur_def_t->Get(0,interval_cur);
+
+    Interval<Instant>* interval_cur = &top.interval;
 
 //    cout<<"edge "<<edge_id->GetIntval()<<" v1 "<<start_node->GetIntval()
 //        <<" v2 "<<end_node->GetIntval()<<" time "<<*interval_cur<<endl;
@@ -1167,15 +1174,15 @@ void BusNetwork::FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path)
             e.pre_eid = expansion_count - 1;
             e.delta_t = top.delta_t +
                           (interval_next->end-interval_cur->end).ToDouble();
-//            cout<<e.delta_t<<endl;
+            e.e_node_id = end_node_next->GetIntval();
             q_list.push(e);
         }
         t->DeleteIfAllowed();
       }
       delete bt_iter_edge_v1;
-//      cout<<"expansion edge size "<<edges.size()<<endl;
     //////////////////////////////////////////////////////////////////////////
-    edge_tuple->DeleteIfAllowed();
+    delete start_node;
+    delete end_node;
   }
 
 //  cout<<expansionlist.size()<<endl;
@@ -1328,6 +1335,7 @@ void BusNetwork::FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path)
     Periods* peri = (Periods*)t->GetAttribute(DEF_T);
     const Interval<Instant>* interval;
     peri->Get(0,interval);
+
     if(path.size() != 0){ //middle stop
         TupleId edge_tid = path[path.size()-1];
         Tuple* edge_tuple = bus_edge->GetTuple(edge_tid);
@@ -1374,15 +1382,15 @@ void BusNetwork::FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path)
 
   while(q_list.empty() == false){
     Elem top = q_list.top();
-    Tuple* edge_tuple = bus_edge->GetTuple(top.edge_tuple_id);
-//    top.Print();
-
-    CcInt* start_node = (CcInt*)edge_tuple->GetAttribute(V1);
-    CcInt* end_node = (CcInt*)edge_tuple->GetAttribute(V2);
+//    Tuple* edge_tuple = bus_edge->GetTuple(top.edge_tuple_id);
+//    CcInt* start_node = (CcInt*)edge_tuple->GetAttribute(V1);
+//    CcInt* end_node = (CcInt*)edge_tuple->GetAttribute(V2);
+    CcInt* start_node = new CcInt(true,top.s_node_id);
+    CcInt* end_node = new CcInt(true,top.e_node_id);
 
     if(end_node->GetIntval() == id2){//find the end
-//      cout<<"find "<<endl;
-      edge_tuple->DeleteIfAllowed();
+      delete start_node;
+      delete end_node;
       break;
     }
 
@@ -1390,9 +1398,11 @@ void BusNetwork::FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path)
     expansion_count++;
     q_list.pop();
 
-    Periods* cur_def_t = (Periods*)edge_tuple->GetAttribute(DEF_T);
-    const Interval<Instant>* interval_cur;
-    cur_def_t->Get(0,interval_cur);
+//    Periods* cur_def_t = (Periods*)edge_tuple->GetAttribute(DEF_T);
+//    const Interval<Instant>* interval_cur;
+//    cur_def_t->Get(0,interval_cur);
+
+    Interval<Instant>* interval_cur = &top.interval;
 
 //    outfile<<"edge "<<edge_id->GetIntval()<<" pre-edge tid "<<top.pre_edge_tid
 //        <<" v1 "<<start_node->GetIntval()
@@ -1447,7 +1457,8 @@ void BusNetwork::FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path)
       Optimize1(q_list,temp_list);
 
     //////////////////////////////////////////////////////////////////////////
-    edge_tuple->DeleteIfAllowed();
+      delete start_node;
+      delete end_node;
   }
 
 
@@ -1720,15 +1731,17 @@ Relation* busedge,BTree* btree1)
 
   while(q_list.empty() == false){
     Elem top = q_list.top();
-    Tuple* edge_tuple = busedge->GetTuple(top.edge_tuple_id);
-//    top.Print();
 
-    CcInt* start_node = (CcInt*)edge_tuple->GetAttribute(V1);
-    CcInt* end_node = (CcInt*)edge_tuple->GetAttribute(V2);
+//    Tuple* edge_tuple = busedge->GetTuple(top.edge_tuple_id);
+//    CcInt* start_node = (CcInt*)edge_tuple->GetAttribute(V1);
+//    CcInt* end_node = (CcInt*)edge_tuple->GetAttribute(V2);
+
+    CcInt* start_node = new CcInt(true,top.s_node_id);
+    CcInt* end_node = new CcInt(true,top.e_node_id);
 
     if(end_node->GetIntval() == id2){//find the end
-//      cout<<"find "<<endl;
-      edge_tuple->DeleteIfAllowed();
+      delete start_node;
+      delete end_node;
       break;
     }
 
@@ -1736,9 +1749,11 @@ Relation* busedge,BTree* btree1)
     expansion_count++;
     q_list.pop();
 
-    Periods* cur_def_t = (Periods*)edge_tuple->GetAttribute(DEF_T);
-    const Interval<Instant>* interval_cur;
-    cur_def_t->Get(0,interval_cur);
+//    Periods* cur_def_t = (Periods*)edge_tuple->GetAttribute(DEF_T);
+//    const Interval<Instant>* interval_cur;
+//    cur_def_t->Get(0,interval_cur);
+
+     Interval<Instant>* interval_cur = &top.interval;
 
 //    outfile<<"edge "<<edge_id->GetIntval()<<" pre-edge tid "<<top.pre_edge_tid
 //        <<" v1 "<<start_node->GetIntval()
@@ -1799,7 +1814,8 @@ Relation* busedge,BTree* btree1)
       Optimize1(q_list,temp_list);
 
     //////////////////////////////////////////////////////////////////////////
-    edge_tuple->DeleteIfAllowed();
+    delete start_node;
+    delete end_node;
   }
 
   if(q_list.empty() == false){
@@ -2051,15 +2067,16 @@ Relation* busedge, BTree* btree1)
   while(q_list.empty() == false){
 
     Elem top = q_list.top();
-    Tuple* edge_tuple = busedge->GetTuple(top.edge_tuple_id);
-//    top.Print();
 
-    CcInt* start_node = (CcInt*)edge_tuple->GetAttribute(V1);
-    CcInt* end_node = (CcInt*)edge_tuple->GetAttribute(V2);
+//    Tuple* edge_tuple = busedge->GetTuple(top.edge_tuple_id);
+//    CcInt* start_node = (CcInt*)edge_tuple->GetAttribute(V1);
+//    CcInt* end_node = (CcInt*)edge_tuple->GetAttribute(V2);
+    CcInt* start_node = new CcInt(true,top.s_node_id);
+    CcInt* end_node = new CcInt(true,top.e_node_id);
 
     if(end_node->GetIntval() == id2){//find the end
-//      cout<<"find "<<endl;
-      edge_tuple->DeleteIfAllowed();
+      delete start_node;
+      delete end_node;
       break;
     }
 
@@ -2067,9 +2084,10 @@ Relation* busedge, BTree* btree1)
     expansion_count++;
     q_list.pop();
 
-    Periods* cur_def_t = (Periods*)edge_tuple->GetAttribute(DEF_T);
-    const Interval<Instant>* interval_cur;
-    cur_def_t->Get(0,interval_cur);
+//    Periods* cur_def_t = (Periods*)edge_tuple->GetAttribute(DEF_T);
+//    const Interval<Instant>* interval_cur;
+//    cur_def_t->Get(0,interval_cur);
+     Interval<Instant>* interval_cur = &top.interval;
 
 //    outfile<<"edge "<<edge_id->GetIntval()<<" pre-edge tid "<<top.pre_edge_tid
 //        <<" v1 "<<start_node->GetIntval()
@@ -2077,8 +2095,8 @@ Relation* busedge, BTree* btree1)
 //        <<" delta_t "<<top.delta_t<<" rid "<<top.rid<<endl;
 
     /////////////get all edges from the same start node////////////////
-    clock_t start_cpu = clock();
-    ftime(&t1);
+//    clock_t start_cpu = clock();
+//    ftime(&t1);
     bt_iter_edge_v1 = btree1->ExactMatch(end_node);
     priority_queue<Elem> temp_list; //Optimize--1
 
@@ -2131,7 +2149,8 @@ Relation* busedge, BTree* btree1)
       Optimize2(q_list,temp_list,end_node_edge,prune_time);
 
     //////////////////////////////////////////////////////////////////////////
-    edge_tuple->DeleteIfAllowed();
+    delete start_node;
+    delete end_node;
   }
 
   if(q_list.empty() == false){
