@@ -447,16 +447,31 @@ extended by additional ones, e.g. in order to force the use of available indices
 
 %rewriteQueryForInferredPredicates(Query,Query) :- % XRIS: for Testing Only
 %  dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
-%              Query,'\n\tOut: ',Query,'\n\n']),
-%  !.
+%              Query,'\n\tOut: ',Query,'\n\n']), !.
+rewriteQueryForInferredPredicates(QIn, QIn) :-
+  % case: create ...
+  QIn = (create _), !.
+
+rewriteQueryForInferredPredicates(QIn, QIn) :-
+  % case: drop ...
+  QIn = (drop _), !.
+
+rewriteQueryForInferredPredicates(QIn, QIn) :-
+  % case: insert into ... values ...
+  QIn = (insert into _ values _), !.
+
+rewriteQueryForInferredPredicates(QIn, QOut) :-
+  % case: insert into ... <Query>
+  QIn = (insert into Rel select S from R),
+  rewriteQueryForInferredPredicates(select S from R , select Rout from Sout),
+  QOut = (insert into Rel select Rout from Sout), !.
 
 rewriteQueryForInferredPredicates(QIn, QIn) :-
   % case: no where clause
   QIn = from(select(_),WhereClause),
   WhereClause \= where(_,_),
   dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
-              QIn,'\n\tOut: ',QIn,'\n\n']),
-  !.
+              QIn,'\n\tOut: ',QIn,'\n\n']), !.
 
 rewriteQueryForInferredPredicates(QIn, QOut) :-
   % case: non-empty where clause
@@ -464,8 +479,7 @@ rewriteQueryForInferredPredicates(QIn, QOut) :-
   analyseConditions(WhereIn,WhereOut),
   QOut = from(select(SelClause),where(Rels,WhereOut)),
   dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
-              QIn,'\n\tOut: ',QOut,'\n\n']),
-  !.
+              QIn,'\n\tOut: ',QOut,'\n\n']), !.
 
 % Special cases: ordering and grouping clauses can be ignored
 rewriteQueryForInferredPredicates(Query, RewrittenQuery) :-
@@ -473,32 +487,28 @@ rewriteQueryForInferredPredicates(Query, RewrittenQuery) :-
   rewriteQueryForInferredPredicates(Query2, RewrittenQuery2),
   RewrittenQuery = first(RewrittenQuery2,X),
   dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
-              Query,'\n\tOut: ',RewrittenQuery,'\n\n']),
-  !.
+              Query,'\n\tOut: ',RewrittenQuery,'\n\n']), !.
 
 rewriteQueryForInferredPredicates(Query, RewrittenQuery) :-
   Query = last(Query2, X),
   rewriteQueryForInferredPredicates(Query2, RewrittenQuery2),
   RewrittenQuery = last(RewrittenQuery2,X),
   dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
-              Query,'\n\tOut: ',RewrittenQuery,'\n\n']),
-  !.
+              Query,'\n\tOut: ',RewrittenQuery,'\n\n']), !.
 
 rewriteQueryForInferredPredicates(Query, RewrittenQuery) :-
   Query = orderby(Query2, X),
   rewriteQueryForInferredPredicates(Query2, RewrittenQuery2),
   RewrittenQuery = orderby(RewrittenQuery2,X),
   dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
-              Query,'\n\tOut: ',RewrittenQuery,'\n\n']),
-  !.
+              Query,'\n\tOut: ',RewrittenQuery,'\n\n']), !.
 
 rewriteQueryForInferredPredicates(Query, RewrittenQuery) :-
   Query = groupby(Query2, X),
   rewriteQueryForInferredPredicates(Query2, RewrittenQuery2),
   RewrittenQuery = groupby(RewrittenQuery2,X),
   dm(rewrite,['\nREWRITING: Inferred predicates\n\tIn:  ',
-              Query,'\n\tOut: ',RewrittenQuery,'\n\n']),
-  !.
+              Query,'\n\tOut: ',RewrittenQuery,'\n\n']), !.
 
 
 /*
