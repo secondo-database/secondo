@@ -3814,16 +3814,16 @@ tupleSize2(DCrel, sizeTerm(MemSize, CoreSize, LOBSize)) :-
   !.
 
 tuplesize(DCrel, TupleSizeScalar) :-
-  dm(dbhandling,['\nTry: tuplesize(',DCrel,',',Size,').']),
+  dm(dbhandling,['\nTry: tuplesize(',DCrel,',',TupleSizeScalar,').']),
   tupleSize2(DCrel, sizeTerm(_, CoreSize, LOBSize)),
   ( ( CoreSize = nAn )
-    -> ( write_list(['\nWARNING:\tCoreTupleSize is not a number (nAn). ', Size,
+    -> ( write_list(['\nWARNING:\tCoreTupleSize is not a number (nAn). ',
                      '\n--->\tTherefore, CoreTupleSize is set to 1.']),
          nl,
          TupleSizeScalar is 1
        )
     ;  ( (CoreSize =:= 0, LOBSize =:= 0)
-         -> ( write_list(['\nWARNING:\tTuplesize is 0. ', Size,
+         -> ( write_list(['\nWARNING:\tTuplesize is 0. ',
                      '\n--->\tTherefore, tuplesize is set to 1.']),
               nl,
               TupleSizeScalar is 1
@@ -3863,7 +3863,7 @@ tupleSizeSplit(DCrel, sizeTerm(MemSize3,CoreSize3,LOBSize3)) :-
       MemSize \= nAn, CoreSize \= nAn, LOBSize \= nAn )       % well defined
     -> ( MemSize2 = MemSize, CoreSize2 = CoreSize, LOBSize2 = LOBSize
        )
-    ;  ( write_list(['\INFO:\tTuplesize contained a "not a number" (nAn). ', Size,
+    ;  ( write_list(['\INFO:\tTuplesize contains "not a number" (nAn). ',
                      '\n--->\tTherefore, I retry getting meaningful data...']),
          nl,
          getTupleInfo(DCrel),   % inquire for it, then it should be known!
@@ -3871,7 +3871,7 @@ tupleSizeSplit(DCrel, sizeTerm(MemSize3,CoreSize3,LOBSize3)) :-
        )
   ),
   ( MemSize2 = nAn
-    -> ( write_list(['\nWARNING:\tTupleMemSize is not a number (nAn). ', Size,
+    -> ( write_list(['\nWARNING:\tTupleMemSize is not a number (nAn). ',
                      '\n--->\tTherefore, it is set to 1.']),
          nl,
          MemSize3 is 1
@@ -3879,7 +3879,7 @@ tupleSizeSplit(DCrel, sizeTerm(MemSize3,CoreSize3,LOBSize3)) :-
     ; MemSize3 is MemSize2
   ),
   ( CoreSize2 = nAn
-    -> ( write_list(['\nWARNING:\tTupleCoreSize is not a number (nAn). ', Size,
+    -> ( write_list(['\nWARNING:\tTupleCoreSize is not a number (nAn). ',
                      '\n--->\tTherefore, it is set to 1.']),
          nl,
          CoreSize3 is 1
@@ -3887,7 +3887,7 @@ tupleSizeSplit(DCrel, sizeTerm(MemSize3,CoreSize3,LOBSize3)) :-
     ; CoreSize3 is CoreSize2
   ),
   ( LOBSize2 = nAn
-    -> ( write_list(['\nWARNING:\tTupleLOBSize is not a number (nAn). ', Size,
+    -> ( write_list(['\nWARNING:\tTupleLOBSize is not a number (nAn). ',
                      '\n--->\tTherefore, it is set to 1.']),
          nl,
          LOBSize3 is 1
