@@ -112,10 +112,16 @@ public:
   void FindPath_T_2(MPoint* result,MInt* query);//more efficient
   void Optimize1(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list);
   //time duration for middle stop
-  bool FindPath3(const UInt* ui1,const UInt* ui2,vector<int>& path);
-  void FindPath_T_3(MPoint* result,MInt* query);
+  bool FindPath3(const UInt* ui1,const UInt* ui2,vector<int>& path,
+                Relation*,BTree*);
+  void FindPath_T_3(MPoint* result,MInt* query,Relation*,BTree*);
   void Optimize2(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list,
                 list<Elem>& end_node_edge,double&);
+  //input relation and b-tree
+  bool FindPath4(const UInt* ui1,const UInt* ui2,vector<int>& path,
+                Relation*,BTree*);
+  void FindPath_T_4(MPoint* result,MInt* query,Relation*,BTree*);
+
 private:
   int busnet_id;
   bool bus_def;

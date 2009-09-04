@@ -50,5 +50,12 @@ Result   : file
 Operator : find_path_t_3
 Number   : 1
 Signature: busnetwork x mint -> mpoint
-Example  : query find_path_t_3(berlintrains,mint1);
+Example  : query edge_rel_order btree_edge_rel_v1 find_path_t_3[berlintrains,mint1];
+Result   : file
+
+
+Operator : find_path_t_4
+Number   : 1
+Signature: busnetwork x mint -> mpoint
+Example  : query edge_rel_order btree_edge_rel_v1 find_path_t_4[berlintrains,mint1];
 Result   : file

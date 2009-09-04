@@ -51,5 +51,5 @@ August, 2009 Jianqiu Xu
 #include "LogMsg.h"
 #include "NList.h"
 #include "RelationAlgebra.h"
-
+#include "ListUtils.h"
 #endif

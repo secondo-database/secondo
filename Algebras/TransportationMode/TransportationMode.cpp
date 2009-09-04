@@ -113,31 +113,44 @@ const string OpBusFindPath_T_1Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
   "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
-  "<text>find_path_t_1(_)</text--->"
+  "<text>find_path_t_1(_,_)</text--->"
   "<text>returns a stream of tuple where each corresponds to"
   "the sequence movement of a trip.</text--->"
-  "<text>query find_path_t_1(mint1) count</text--->"
+  "<text>query find_path_t_1(berlintrains,mint1) count</text--->"
   "))";
 
 const string OpBusFindPath_T_2Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
   "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
-  "<text>find_path_t_2(_)</text--->"
+  "<text>find_path_t_2(_,_)</text--->"
   "<text>returns a stream of tuple where each corresponds to"
   "the sequence movement of a trip. faster than 1</text--->"
-  "<text>query find_path_t_2(mint1) count</text--->"
+  "<text>query find_path_t_2(berlintrains,mint1) count</text--->"
   "))";
 
 const string OpBusFindPath_T_3Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
   "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
-  "<text>find_path_t_3(_)</text--->"
+  "<text>_ _ find_path_t_3[_,_]</text--->"
   "<text>returns a stream of tuple where each corresponds to"
   "the sequence movement of a trip. faster than 1, supporting duration"
   "for middle stop</text--->"
-  "<text>query find_path_t_3(mint1) count</text--->"
+  "<text>query edge_rel btree_edge_v1 find_path_t_3[berlintrains,mint1] count"
+  "</text--->"
+  "))";
+
+const string OpBusFindPath_T_4Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "<text>_ _ find_path_t_4[_,_]</text--->"
+  "<text>returns a stream of tuple where each corresponds to"
+  "the sequence movement of a trip. faster than 1, supporting duration"
+  "for middle stop</text--->"
+  "<text>query edge_rel btree_edge_v1 find_path_t_4[berlintrains,mint1] count"
+  "</text--->"
   "))";
 
 /***********Value Map Function for Bus Network****************************/
@@ -372,8 +385,10 @@ int OpBusMoveValueMapping(Word* args, Word& result,
 /*
 query reachability for a start node and an end node.
 minimum total time cost
+simple algorithm
 
 */
+
 int OpBusFindPath_T_1ValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
@@ -383,7 +398,10 @@ int OpBusFindPath_T_1ValueMapping(Word* args, Word& result,
   busnet->FindPath_T_1((MPoint*)result.addr,querycond);
   return 0;
 }
+/*
+optimize -1
 
+*/
 int OpBusFindPath_T_2ValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
@@ -394,15 +412,41 @@ int OpBusFindPath_T_2ValueMapping(Word* args, Word& result,
   return 0;
 }
 
+/*
+optimize-1
+middle stop with temporal property
+
+*/
 int OpBusFindPath_T_3ValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
-  BusNetwork* busnet = (BusNetwork*)args[0].addr;
-  MInt* querycond = (MInt*)args[1].addr;
-  busnet->FindPath_T_3((MPoint*)result.addr,querycond);
+  BusNetwork* busnet = (BusNetwork*)args[2].addr;
+  Relation* busedge = (Relation*)args[0].addr;
+  BTree* btree1 = (BTree*)args[1].addr;
+  MInt* querycond = (MInt*)args[3].addr;;
+  busnet->FindPath_T_3((MPoint*)result.addr,querycond,busedge,btree1);
   return 0;
 }
+
+/*
+optimize-1
+middle stop with temporal property
+input edge relation and b-tree
+
+*/
+int OpBusFindPath_T_4ValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  BusNetwork* busnet = (BusNetwork*)args[2].addr;
+  Relation* busedge = (Relation*)args[0].addr;
+  BTree* btree1 = (BTree*)args[1].addr;
+  MInt* querycond = (MInt*)args[3].addr;
+  busnet->FindPath_T_4((MPoint*)result.addr,querycond,busedge,btree1);
+  return 0;
+}
+
 /*
 Operator ~thebusnetwork~
 
@@ -558,6 +602,78 @@ ListExpr OpBusFindPath_T_1TypeMap(ListExpr in_xArgs)
   return nl->TypeError();
 
 }
+
+ListExpr OpBusFindPath_T_3TypeMap(ListExpr in_xArgs)
+{
+string err = "edgerel x b-tree x busnetwork x mint expected";
+  if(nl->ListLength(in_xArgs) != 4){
+      ErrorReporter::ReportError(err);
+      return nl->TypeError();
+  }
+  ListExpr arg1 = nl->First(in_xArgs);
+  ListExpr arg2 = nl->Second(in_xArgs);
+  ListExpr arg3 = nl->Third(in_xArgs);
+  ListExpr arg4 = nl->Fourth(in_xArgs);
+  if(!IsRelDescription(arg1)){
+      string msg =  "first argument muse be a relation";
+      ErrorReporter::ReportError(msg);
+      return nl->TypeError();
+  }
+
+  CHECK_COND(listutils::isBTreeDescription(arg2),
+      "second argument muse be an btree");
+
+  ListExpr relAttrList = nl->Second(nl->Second(arg1));
+  ListExpr btreeAttrList = nl->Second(nl->Second(arg2));
+  if(!nl->Equal(relAttrList,btreeAttrList)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(nl->IsAtom(arg3) && nl->AtomType(arg3) == SymbolType &&
+     nl->SymbolValue(arg3) == "busnetwork" && nl->IsEqual(arg4,"mint"))
+    return nl->SymbolAtom("mpoint");
+
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+
+}
+
+ListExpr OpBusFindPath_T_4TypeMap(ListExpr in_xArgs)
+{
+  string err = "edgerel x b-tree x busnetwork x mint expected";
+  if(nl->ListLength(in_xArgs) != 4){
+      ErrorReporter::ReportError(err);
+      return nl->TypeError();
+  }
+  ListExpr arg1 = nl->First(in_xArgs);
+  ListExpr arg2 = nl->Second(in_xArgs);
+  ListExpr arg3 = nl->Third(in_xArgs);
+  ListExpr arg4 = nl->Fourth(in_xArgs);
+  if(!IsRelDescription(arg1)){
+      string msg =  "first argument muse be a relation";
+      ErrorReporter::ReportError(msg);
+      return nl->TypeError();
+  }
+
+  CHECK_COND(listutils::isBTreeDescription(arg2),
+      "second argument muse be an btree");
+
+  ListExpr relAttrList = nl->Second(nl->Second(arg1));
+  ListExpr btreeAttrList = nl->Second(nl->Second(arg2));
+  if(!nl->Equal(relAttrList,btreeAttrList)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(nl->IsAtom(arg3) && nl->AtomType(arg3) == SymbolType &&
+     nl->SymbolValue(arg3) == "busnetwork" && nl->IsEqual(arg4,"mint"))
+    return nl->SymbolAtom("mpoint");
+
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+
+}
 /*****************Operators for Bus Network*************************/
 Operator thebusnetwork(
   "thebusnetwork", //name
@@ -619,7 +735,15 @@ Operator find_path_t_3(
   OpBusFindPath_T_3Spec,
   OpBusFindPath_T_3ValueMapping,
   Operator::SimpleSelect,
-  OpBusFindPath_T_1TypeMap
+  OpBusFindPath_T_3TypeMap
+);
+
+Operator find_path_t_4(
+  "find_path_t_4", //name
+  OpBusFindPath_T_4Spec,
+  OpBusFindPath_T_4ValueMapping,
+  Operator::SimpleSelect,
+  OpBusFindPath_T_4TypeMap
 );
 
 /*
@@ -645,6 +769,8 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&find_path_t_2);//minimum total time cost, faster
    //minimum total time cost, faster, time duration for middle stop
    AddOperator(&find_path_t_3);
+   //input relation and b-tree
+   AddOperator(&find_path_t_4);
   }
   ~TransportationModeAlgebra() {};
  private:
