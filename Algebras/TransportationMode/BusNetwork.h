@@ -121,6 +121,7 @@ public:
   bool FindPath4(const UInt* ui1,const UInt* ui2,vector<int>& path,
                 Relation*,BTree*);
   void FindPath_T_4(MPoint* result,MInt* query,Relation*,BTree*);
+  void TestFunction(Relation*,BTree*);
 
 private:
   int busnet_id;

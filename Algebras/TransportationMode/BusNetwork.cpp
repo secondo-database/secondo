@@ -1914,6 +1914,7 @@ BTree* btree1)
 use some optimization technique, temporal property with middle stop
 optimize-1
 optimize-2
+optimize-3 filter edge by their start time
 edge relation and a b-tree
 
 */
@@ -2110,6 +2111,12 @@ Relation* busedge, BTree* btree1)
      CcInt* rid = (CcInt*)t->GetAttribute(PID);
      const Interval<Instant>* interval_next;
      next_def_t->Get(0,interval_next);
+     //optimize-3  filter edge by their start time
+    if(interval_next->start < interval_cur->end){
+        t->DeleteIfAllowed();
+        break;
+    }
+
    //time instant of next edge should be late than cur edge
    //end node id of next edge should not be equal to start node id of cur edge
 //     cout<<"next "<<*interval_next<<endl;
@@ -2179,11 +2186,26 @@ Relation* busedge, BTree* btree1)
 /*
 expand the graph by Dijkstra with minimum total time cost so far
 with some optimization techniques, supporting time duration for middle stop
-optimize-1
-optimize-2
+optimize-1 filter the edge from the same route but comes later
+optimize-2 use pre-defined path to find end point
+optimize-3 filter edge by their start time
 input edge relation and b-tree
 
 */
+void BusNetwork::TestFunction(Relation* busedge, BTree* btree1)
+{
+  CcInt* id = new CcInt(true,1);
+  BTreeIterator* bt_iter_edge_v1 = btree1->ExactMatch(id);
+  while(bt_iter_edge_v1->Next()){
+     Tuple* t = busedge->GetTuple(bt_iter_edge_v1->GetId());
+     CcInt* eid = (CcInt*)t->GetAttribute(EID);//start node
+     cout<<"eid "<<eid->GetIntval()<<endl;
+     t->DeleteIfAllowed();
+  }
+  delete id;
+  delete bt_iter_edge_v1;
+}
+
 void BusNetwork::FindPath_T_4(MPoint* mp,MInt* query,Relation* busedge,
 BTree* btree1)
 {
@@ -2200,6 +2222,7 @@ BTree* btree1)
   const UInt* ui2;
   //searching process
 
+//  TestFunction(busedge,btree1);
   for(int i = 1;i < query->GetNoComponents() - 2;i++){
     query->Get(i,ui1);
     query->Get(i+1,ui2);
