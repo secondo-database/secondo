@@ -466,6 +466,13 @@ rewriteQueryForInferredPredicates(QIn, QOut) :-
   rewriteQueryForInferredPredicates(select S from R , select Rout from Sout),
   QOut = (insert into Rel select Rout from Sout), !.
 
+rewriteQueryForInferredPredicates(QIn, QOut) :-
+  % case: delete from ... where ...
+  QIn = (delete from R where C),
+  rewriteQueryForInferredPredicates(select * from R where C,
+                                    select _ from _ where Cout),
+  QOut = (delete from R where Cout), !.
+
 rewriteQueryForInferredPredicates(QIn, QIn) :-
   % case: no where clause
   QIn = from(select(_),WhereClause),
