@@ -19,9 +19,9 @@ Grundlage für die Implementierung des Operators \secondo{smouterjoin} ist der Op
 Prädikate mit den quantifizierenden Operatoren \sql{EXISTS, NOT EXISTS, ANY} und \sql{ALL} werden in äquivalente Prädikate mit Aggregationen überführt. Damit sind sie den in \ref{chp:Entwurf} beschriebenen Algorithmen zur Entschachtelung zugänglich. Exists und Not-Exists werden in einen Vergleich der Anzahl Tupel mit 0 transformiert. Also \sql{exists(select $C_n$ from $R_m$ where P)} in \sql{0 < (select count($C_n$) from $R_m$ where P)} und \sql{not exists(select $C_n$ from $R_m$ where P)} in \sql{0 = (select count($C_n$) from $R_m$ where P)}. Dieser Schritt erfolgt bei jedem geschachtelten Prädikat, unabhängig davon, ob eine weitere Entschachtelung möglich ist. Eine direkte Übersetzung der quantifizierenden Operatoren in die ausführbare Syntax des \textsc{Secondo}-Kernels wurde nicht implementiert. 
 
 \section{Entschachtelung}
-Die Reihenfolge der auf eine Abfrage angewandten Entschachtelungsalgorithmen ist: Entschachtelung von nicht korrelierten Unterabfragen in der SELECT-Klausel, Entschachtelung von nicht korrelierten Unterabfragen in der FROM-Klausel und Entschachtelung von Unterabfragen in der WHERE-Klausel. Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong. Rekursive Entschachtelung von Abfragen. Dabei werden die oben beschriebenen Schachtelungstypen unterschieden. Je nach Schachtelungstyp wird der entsprechende Entschachtelungsalgorithmus angewendet. \enquote{Temporäre Relationen} werden für die Entschachtelung korrelierter Abfragen mit Aggregationsfunktion benötigt. Um die Geschwindigkeit bei wiederholtem Ausführen der Abfragen zu beschleunigen, werden die zum Entschachteln eines Prädikats notwendigen temporären Relationen zur Laufzeit in einem Prolog-Fakt gespeichert. Beim Schließen der Datenbank werden alle temporären Relationen gelöscht, um in jeder neuen Sitzung eine saubere Datenbankumgebung bereitzustellen. Die Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski/Wong wurde mit dem Prädikat \prolog{transformNestedPredicates/6} realisiert. Je nach Schachtelungstyp des Prädikats wird der entsprechende Entschachtelungsalgorithmus angewandt. Da SQL beliebig tief geschachtelte Abfragen zulässt, wird der Algorithmus rekursiv auf das Ergebnis der Entschachtelung angewandt, bis das Ergebnis durch die implementierten Algorithmen nicht weiter entschachtelt werden kann. 
+Die Entschachtelung einer Abfrage erfolgt in mehreren Schritten. In jedem Schritt wird ein Entschachtelungsalgorithmus auf einen Teilausdruck der Abfrage angewandt. Bei Unterabfragen in der \sql{select}- und der \sql{from}-Klausel werden im Moment nur nicht-korrelierte Unterabfragen unterstützt. Die Reihenfolge der auf eine Abfrage angewandten Entschachtelungsalgorithmen ist: Entschachtelung von nicht korrelierten Unterabfragen in der \sql{select}-Klausel, Entschachtelung von nicht korrelierten Unterabfragen in der \sql{from}-Klausel und Entschachtelung von Unterabfragen in der \sql{where}-Klausel. Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong. Rekursive Entschachtelung von Abfragen. Dabei werden die oben beschriebenen Schachtelungstypen unterschieden. Je nach Schachtelungstyp wird der entsprechende Entschachtelungsalgorithmus angewendet. \enquote{Temporäre Relationen} werden für die Entschachtelung korrelierter Abfragen mit Aggregationsfunktion benötigt. Um die Geschwindigkeit bei wiederholtem Ausführen der Abfragen zu beschleunigen, werden die zum Entschachteln eines Prädikats notwendigen temporären Relationen zur Laufzeit in einem Prolog-Fakt gespeichert. Beim Schließen der Datenbank werden alle temporären Relationen gelöscht, um in jeder neuen Sitzung eine saubere Datenbankumgebung bereitzustellen. Die Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski/Wong wurde mit dem Prädikat \prolog{transformNestedPredicates/6} realisiert. Je nach Schachtelungstyp des Prädikats wird der entsprechende Entschachtelungsalgorithmus angewandt. Da SQL beliebig tief geschachtelte Abfragen zulässt, wird der Algorithmus rekursiv auf das Ergebnis der Entschachtelung angewandt, bis das Ergebnis durch die implementierten Algorithmen nicht weiter entschachtelt werden kann. 
 
-Über die Erkennung des Schachtelungstyps wird der Algorithmus ausgewählt, der auf das Prädikat angewandt wird. Hierfür wird das Prädikat zerlegt. Die Unterabfrage wird auf Aggregationsfunktionen untersucht; sind keine vorhanden, so kann der Typ der Abfrage nur noch J oder N sein. Im zweiten Schritt wird ein Schema-Lookup für die Unterabfrage durchgeführt. Dieser ist nur bei nicht-korrelierten Abfragen erfolgreich. Aus der Kombination dieser beiden Ergebnisse kann der Typ der Unterabfrage und damit des geschachtelten Prädikats ermittelt werden.
+Über die Erkennung des Schachtelungstyps wird der Algorithmus ausgewählt, der auf das Prädikat angewandt wird. Hierfür wird das SQL-Prädikat in Teilausdrücke zerlegt. Dabei wird unterschieden zwischen geschachtelten Ausdrücken mit unärem Operator wie z.B. \sql{exists} und binären Operatoren. Binäre Operatoren sind z.B. die skalaren Vergleichsoperatoren, aber auch der Mengenoperator \sql{in}. Die Unterabfrage wird auf Aggregationsfunktionen untersucht; sind keine vorhanden, so kann der Typ der Abfrage nur noch J oder N sein. Im zweiten Schritt wird ein Schema-Lookup für die Unterabfrage durchgeführt. Dieser ist nur bei nicht-korrelierten Abfragen erfolgreich. Aus der Kombination dieser beiden Ergebnisse kann der Typ der Unterabfrage und damit des geschachtelten Prädikats ermittelt werden.
 
 \begin{table}[h]
 \centering
@@ -82,7 +82,7 @@ zu
 \begin{lstlisting}
 select sname 
 from [staedte, plz] 
-where [sname=ort, plz<bev]
+where [sname = ort, plz < bev]
 \end{lstlisting}
 
 Die komplexeste Behandlung erfordert Algorithmus NEST-JA2 (siehe Abschnitt \ref{sct:Algorithmus NEST-JA2}). Im ersten Schritt werden die Prädikate der Unterabfrage in einfache Prädikate, Join-Prädikate der inneren Abfrage und korrelierte Prädikate partitioniert. Danach werden die drei oben beschriebenen temporären Relationen erzeugt. Für die Projektion der äußeren Relationen auf die Join-Attribute müssen diese aus den korrelierten Prädikaten der Unterabfrage ermittelt werden. Hierzu werden die in den korrelierten Prädikaten verwendeten Attribute gegen die Metadaten der Relationen der Unterabfrage geprüft. Die Attribute, die nicht in den Relationen definiert sind, sind Attribute des äußeren Abfrageblocks. Tritt bei der Erstellung einer dieser Relationen ein Fehler auf wird die Verarbeitung mit einer Exception abgebrochen. Aus der dritten temporären Relation und der ursprünglichen Abfrage wird im nächsten Schritt die entschachtelte Variante aufgebaut. Die Syntax für die Umbenennung von Relationen und Attributen im Optimierer deckt sich nicht mit der entsprechenden Syntax im \textsc{Secondo}-Kernel. Daher muss bei der Erstellung der entschachtelten Variante eine Umsetzung dieser Syntax erfolgen, um korrekt auf die Attribute der dritten temporären Relation zugreifen zu können. Die Syntax im Optimierer ist Name:Attribut, während im \textsc{Secondo}-Kernel Attribut\_Name verwendet wird. Jede Verwendung von Name:Attribut muss nun in Attribut\_Name geändert werden, sofern sie sich auf ein Attribut der dritten temporären Relation bezieht. Um sicherzustellen, dass es keine Namenskonflikte durch die neu erstellte Relation gibt, wird diese mit einer Umbenennung in die entschachtelte Abfrage aufgenommen. Dafür müssen alle Attributausdrücke, die Attribute der temporären Relation verwenden, an die Umbenennung angepasst werden.
@@ -104,11 +104,18 @@ where [ort = alias1:ort_p, plz = alias1:var1]
 umgeschrieben. Hierbei werden die temporären Relationen trelxx1, trelxx2 und trelxx3 erzeugt. 
 
 \begin{lstlisting}
-trelxx1 = select distinct[ort]from orte
+trelxx1 = select distinct[ort] from orte
 \end{lstlisting}
 
 \begin{lstlisting}
-trelxx2 = select*from plz as p
+trelxx2 = select * from plz as p
+\end{lstlisting}
+
+\begin{lstlisting}
+trelxx3 = select [ort_p, max(plz_p) as var1] 
+					 from [trelxx1, trelxx2] 
+					 where [ort = ort_p] 
+					 groupby ort_p
 \end{lstlisting}
 
 \section{Schema-Lookup}

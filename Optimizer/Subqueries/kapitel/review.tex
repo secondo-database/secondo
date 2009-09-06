@@ -15,24 +15,130 @@ Auf der höchsten Abstraktionsebene, der externen Ebene wird nur ein Teil der Dat
 
 Jedem Datenbanksystem liegt ein Datenmodell zugrunde. Das Datenmodell beschreibt die konzeptionellen Einheiten und Werkzeuge um Daten, Beziehungen zwischen den Daten, die Semantik der Daten und Konsistenzeinschränkungen zu beschreiben. Verbreitete Datenmodelle für Datenbanken sind das relationale und das objektorientierte Datenbankmodell. 
 
-Die Grundelemente des relationalen Datenmodells sind Attribute, Tupel und Relationen.  Eine Relation wird durch ihr Relationenschema eindeutig beschrieben. Ein Relationenschema ist eine Menge von Attributen. Durch einen zugeordneten Datentyp und einen Namen bestimmt ein Attribut die möglichen Werte, die die Ausprägungen des Attributs annehmen können. Ein Tupel ist eine konkrete Ausprägung, d.h. eine Zeile einer Relation (Tabelle). Damit ist eine Relation eine Menge von Tupeln.
+Die Grundelemente des relationalen Datenmodells sind Attribute, Tupel und Relationen. Eine Relation wird durch ihr Relationenschema eindeutig beschrieben. Ein Relationenschema ist eine Menge von Attributen. Durch einen zugeordneten Datentyp und einen Namen bestimmt ein Attribut die möglichen Werte, die die Ausprägungen des Attributs annehmen können. Ein Tupel ist eine konkrete Ausprägung, d.h. eine Zeile einer Relation (Tabelle). Damit ist eine Relation eine Menge von Tupeln.
+
+Die Relationenalgebra lässt sich durch folgende Konstruktionsvorschriften eindeutig beschreiben.
+Es seien $E_1$ und $E_2$ Ausdrücke über der Relationenalgebra, dann lassen sich alle Ausdrücke der Relationenalgebra mit den folgenden Operationen bilden:
+\begin{itemize}
+	\item $E_1 \cup E_2$
+	\item $E_1 - E_2$
+	\item $E_1 \times E_2$
+	\item $\sigma_P(E_1)$, wobei P ein Prädikat über Attributen von $E_1$ ist.
+	\item $\pi_S(E_1)$, wobei S eine Teilmenge der Attribute von $E_1$ ist.
+	\item $\rho_x(E_1)$, wobei $x$ ein neuer Name für das Ergebnis von $E_1$ ist.
+\end{itemize}
+
+(Quelle: \cite{DBLP:books/mg/SilberschatzKS01})
+
+Die Vereinigung $\cup$ hat als Ergebnis die Vereinigung der Ergebnisse der beiden Ausdrücke $E_1$ und $E_2$. Voraussetzung für die Vereinigung ist die Übereinstimmung der beiden Ausdrücke in ihrem Relationenschema.
+
+Die Mengendifferenz - ermittelt alle Tupel, die im ersten Ausdruck enthalten sind, nicht aber im zweiten.
+
+Das Kreuzprodukt zweier relationaler Ausdrücke, bezeichnet mit $\times$, liefert die Verkettung jedes Tupels des ersten Ausdrucks mit jedem Tupel des zweiten Ausdrucks. Hat $E_1$ $n_1$ Tupel und $E_2$ $n_2$ Tupel, so hat das Kreuzprodukt $n_1 * n_2$ Tupel.
+
+Mit der Selektionsoperation ($\sigma$) werden nur die Tupel ermittelt, die das angegebene Prädikat erfüllen.
+
+Die Projektion (Operator $\pi$) schränkt das Ergebnisschema auf die angegebenen Attribute ein.
+
+Während Relationen und Attribute über einen Namen spezifiziert sind, sind die Ergebnisse relationaler Ausdrücke ohne Bezeichnung. Mit der Umbenennungsoperation ($\rho$) wird dem Ergebnis eines relationalen Ausdrucks eine Bezeichnung zugeordnet. Dies kann auf Relationenebene geschehen, d.h. das Ergebnis bekommt einen Namen zugeordnet. Es ist aber auch möglich die Attribute des Ergebnisses umzubenennen.
 
 \subsection{Beschreibung SECONDO}
 \textsc{Secondo} ist ein modular aufgebautes, erweiterbares Datenbanksystem. Es können sowohl das zugrundeliegende Datenmodell, als auch die verfügbaren Datentypen und Operatoren beliebig erweitert und ausgebaut werden.
 
 Über den Formalismus der Signaturen zweiter Ordnung (\textbf{SECOND} \textbf{O}rder Signatures) lassen sich die Datentypen und Operationen auf den Datentypen beschreiben. Signaturen zweiter Ordnung sind zwei gekoppelte Signaturen. Die Sorten der ersten Signatur werden \enquote{Kinds} genannt, die Operationen Typ-Konstruktoren. Die im System verfügbaren Datentypen sind genau die Ausdrücke dieser Signatur. Die zweite Signatur beschreibt Operationen auf diesen Datentypen. Über die Implementierung von Algebramodulen lässt sich \textsc{Secondo} um beliebige Datentypen und Operationen auf diesen Datentypen erweitern. 
 
-\textsc{Secondo} besteht aus den drei Komponenten Kernel, Optimierer und grafischer Benutzeroberfläche (GUI). Diese drei Komponenten können getrennt aber auch im Zusammenspiel genutzt werden. 
+\textsc{Secondo} besteht aus den drei Komponenten Kernel, Optimierer und grafischer Benutzeroberfläche (GUI). Diese drei Komponenten können getrennt, aber auch im Zusammenspiel genutzt werden. 
 
 Der Kernel ist in C++ geschrieben und bietet die Möglichkeit Ausdrücke in der \textsc{Secondo}-eigenen Syntax auszuführen. Hierzu gibt es eine Kommandozeilen-Schnittstelle, über die mit dem Kernel kommuniziert werden kann. Zusätzlich kann der Kernel auch im Client/Server-Betriebsmodus gestartet werden. Er bietet dann anderen Komponenten die Möglichkeit, auf den Kernel zuzugreifen. 
 
 Mit dem Optimierer können SQL-ähnliche Ausdrücke in ausführbare Pläne übersetzt werden. Dies kann losgelöst von den anderen Komponenten über die Kommandozeile erfolgen. Zusätzlich gibt es auch beim Optimierer die Möglichkeit, ihn im Client/Server-Modus zu starten. 
 
-Basis des Optimierers ist ein in \cite{} vorgestellter Optimierungsalgorithmus der auf kürzesten Pfaden in einem predicate order graph (pog) beruht. Ein pog zu einer Liste von n Prädikaten ist ein n-dimensionaler Hyperwürfel mit zwei ausgezeichneten Knoten maximaler Entfernung, die mit 0 bzw. $2^n$ bezeichnet werden. Hierbei stellen die Pfade die Permutationen der Konjunktionsterme des Prädikats dar. Jeder Knoten gibt durch seine Nummer die ausgewerteten Prädikate an. Die ausgewerteten Prädikate werden in Bits kodiert. Beim Knoten mit der Nummer 5 (binär 101) sind also die Prädikate 1 und 3 bereits ausgewertet. Jede Kante steht für einen booleschen Ausdruck. Für jede Übersetzungsmöglichkeit dieses Ausdrucks wird eine \enquote{ausführbare Kante} erzeugt. Durch die Bewertung der Kanten mit Kosten (die sich aus der Selektivität und den Ausführungskosten des Ausdrucks zusammensetzen) entspricht ein bezüglich der Kosten kürzester Pfad einer optimalen Reihenfolge der Prädikatsauswertung.
+Der Optimierer bietet die Möglichkeit, conjunctive query optimization durchzuführen. D.h. es werden für die Optimierung alle Konjunktionsterme des Prädikats betrachtet. Basis des Optimierers ist ein in \cite{} vorgestellter Optimierungsalgorithmus der auf kürzesten Pfaden in einem predicate order graph (pog) beruht. Ein pog zu einer Liste von n Prädikaten ist ein n-dimensionaler Hyperwürfel mit zwei ausgezeichneten Knoten maximaler Entfernung, die mit 0 bzw. $2^n$ bezeichnet werden. Hierbei stellen die Pfade die Permutationen der Konjunktionsterme des Prädikats dar. Jeder Knoten gibt durch seine Nummer die ausgewerteten Prädikate an. Die ausgewerteten Prädikate werden in Bits kodiert. Beim Knoten mit der Nummer 5 (binär 101) sind also die Prädikate 1 und 3 bereits ausgewertet. Jede Kante steht für einen booleschen Ausdruck. Für jede Übersetzungsmöglichkeit dieses Ausdrucks wird eine \enquote{ausführbare Kante} erzeugt. Durch die Bewertung der Kanten mit Kosten (die sich aus der Selektivität und den Ausführungskosten des Ausdrucks zusammensetzen) entspricht ein bezüglich der Kosten kürzester Pfad einer optimalen Reihenfolge der Prädikatsauswertung.
 
 Die Implementierung des Optimierers ist in Prolog geschrieben. Da die vom Optimierer erkannte SQL-ähnliche Sprache aus gültigen Prolog-Ausdrücken besteht, werden das Parsen und Übersetzen in entsprechende Datenstrukturen von der Prolog-Laufzeitumgebung übernommen. Die Übersetzung der SQL-ähnlichen Ausdrücke in die ausführbare \textsc{Secondo}-Syntax besteht aus den im Folgenden beschriebenen Phasen. In der ersten Phase wird der Ausdruck umgeschrieben. Abhängig von den gewählten Optionen des Optimierers werden z.B. enthaltene Makros ausgewertet, redundante Prädikate entfernt oder der Ausdruck so umstrukturiert, dass an mehreren Stellen verwendete Teilausdrücke nur einmal ausgeführt werden müssen (CSE -- common subexpression elimination). In diese Phase integrieren sich die Ent\-schach\-te\-lungs\-al\-go\-rith\-men, die im Rahmen dieser Arbeit implementiert wurden. Im zweiten Schritt werden die Schema-Daten der an der Abfrage beteiligten Datenbankobjekte (Attribute, Relationen und konstante Objekte) ermittelt und als Prolog-Fakten gespeichert. Sie werden zum Aufbau des predicate order graphs benötigt. Im nächsten Schritt wird der optimale Plan mit dem oben beschriebenen Optimierungsalgorithmus ermittelt. Im letzten Schritt wird aus dem Plan, der immer noch ein gültiger Prolog-Term ist, ein Ausdruck in der ausführbaren Syntax des \textsc{Secondo}-Kernels generiert. Falls vom Benutzer gewünscht, kann die Abfrage direkt aus dem Optimierer heraus an den \textsc{Secondo}-Kernel gestellt werden. Das Ergebnis wird dann ebenfalls im Optimierer ausgegeben.
 
-Die vom Optimierer unterstützte SQL-Syntax ist in Anhang \ref{apd:Secondo SQL} angegeben, inklusive der in dieser Arbeit implementierten Erweiterungen.
+Die vom Optimierer unterstützte SQL-Syntax ist in Anhang \ref{apd:Secondo SQL} angegeben, inklusive der in dieser Arbeit implementierten Erweiterungen. Grundsätzlich wird eine SQL-Abfrage durch folgende Struktur abgebildet:
+
+% Set the overall layout of the tree
+\tikzstyle{level 1}=[level distance=1cm, sibling distance=4cm]
+\tikzstyle{level 2}=[level distance=1cm, sibling distance=4cm]
+
+% Define styles for bags and leafs
+\tikzstyle{bag} = [text width=4em, text centered]
+\tikzstyle{end} = [circle, minimum width=3pt,fill, inner sep=0pt]
+
+% The sloped option gives rotated edge labels. Personally
+% I find sloped labels a bit difficult to read. Remove the sloped options
+% to get horizontal labels. 
+\begin{tikzpicture}[grow=down, sloped]
+\node[bag] {first/last}
+    child {
+        node[end, label=below:
+        		{number}]{}
+        edge from parent
+        node[above] {}
+        node[below]  {}
+    }
+    child {
+        node[bag] {groupby}    
+            child {
+                node[end, label=below:
+                				{grouping attributes}]{}
+                edge from parent
+                node[above] {}
+                node[below]  {}
+            }                				    
+            child {
+                node[bag] {sortby}
+		            child {
+		                node[end, label=below:
+		                				{sorting attributes}]{}
+		                edge from parent
+		                node[above] {}
+		                node[below]  {}
+		            }                  
+		            child {
+		                node[bag] {from}
+		                child{
+		                    node[bag] {select}
+		                    child {
+		                    		node[end, label=below:
+		                						{selection attributes}] {}
+						                edge from parent
+						                node[above] {}
+						                node[below]  {}
+						            }		  		                						
+				                edge from parent
+				                node[above] {}
+				                node[below]  {}
+				            }		                				
+				            child {
+		                    node[bag] {where}
+		                    child {
+		                    		node[end, label=below:
+		                						{predicates}] {}
+						                edge from parent
+						                node[above] {}
+						                node[below]  {}
+						            }					                
+						            edge from parent
+				                node[above] {}
+				                node[below]  {}
+				            }
+		                edge from parent
+		                node[above] {}
+		                node[below]  {}
+		            }               
+                edge from parent
+                node[above] {}
+                node[below]  {}
+            }
+            edge from parent 
+            node[above] {}
+            node[below]  {}
+    };
+\end{tikzpicture}
+
 
 Die grafische Benutzeroberfläche ist in Java implementiert. Mit ihr können Abfragen sowohl an den Optimierer als auch an den Kernel gestellt werden. Zusätzlich ist sie in der Lage z.B. raum-zeitliche Datentypen darzustellen. Es wird eine zweidimensionale Projektion der Daten dargestellt, die über die Zeitachse abgespielt werden kann. Hierbei kann die Geschwindigkeit variiert werden. Durch Erweiterungen kann die GUI um die Darstellung beliebiger Datentypen ergänzt werden. Da die GUI die Möglichkeit bietet, das Ergebnis einer Abfragen in einem eigenen Format zu speichern, kann man ihre Darstellungsmöglichkeiten auch ohne Kernel und Optimierer benutzen. 
 
@@ -64,10 +170,10 @@ SQL ist eine auf dem relationalen Datenbankmodell beruhende Datenbanksprache. Mi
 	from §$r_1,r_2,\cdots,r_m$§
 	where P
 	\end{lstlisting}
-Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln SELECT, FROM und WHERE. In der SELECT-Klausel werden die Attribute der Ergebnisrelation angegeben. Die FROM-Klausel gibt die Quellrelationen an, aus denen das Ergebnis ermittelt wird. Die optionale WHERE-Klausel gibt schließlich Einschränkungen an, denen die Ergebnistupel genügen müssen.
-	\subitem Die SELECT-Klausel entspricht der Projektions-Operation der Relationenalgebra. In ihr werden alle Attribute der Ergebnisrelation angegeben. Um alle Attribute der beteiligten Relationen zu erhalten gibt es die spezielle Notation \enquote{*}. Mit Ihr wird also das Schema der Ergebnisrelation festgelegt.
-	\subitem Die FROM-Klausel entspricht dem kartesischen Produkt in der Relationenalgebra. Hier werden alle in der Abfrage verwendeten Relationen aufgeführt.
-	\subitem Die WHERE-Klausel entspricht der Selektions-Operation der Relationenalgebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der FROM-Klausel aufgelisteten Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnen Termen von einem Prädikat der Abfrage.
+Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln \sql{select}, \sql{from} und \sql{where}. In der \sql{select}-Klausel werden die Attribute der Ergebnisrelation angegeben. Die \sql{from}-Klausel gibt die Quellrelationen an, aus denen das Ergebnis ermittelt wird. Die optionale \sql{where}-Klausel gibt schließlich Einschränkungen an, denen die Ergebnistupel genügen müssen.
+	\subitem Die \sql{select}-Klausel entspricht der Projektions-Operation der Relationenalgebra. In ihr werden alle Attribute der Ergebnisrelation angegeben. Um alle Attribute der beteiligten Relationen zu erhalten gibt es die spezielle Notation \enquote{*}. Mit Ihr wird also das Schema der Ergebnisrelation festgelegt.
+	\subitem Die \sql{from}-Klausel entspricht dem kartesischen Produkt in der Relationenalgebra. Hier werden alle in der Abfrage verwendeten Relationen aufgeführt.
+	\subitem Die \sql{where}-Klausel entspricht der Selektions-Operation der Relationenalgebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der FROM-Klausel aufgelisteten Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnen Termen von einem Prädikat der Abfrage.
 	\subitem GROUP BY\dots HAVING-Klausel Die Eingabemenge der Aggregationsfunktion wird in \enquote{Gruppen} mit gleichen Attributwerten in den angegebenen Attributen partitioniert; die Aggregationsfunktion wird dann jeweils separat für jede Gruppe berechnet. Die optionale HAVING-Klausel erlaubt die Selektions-Operation auf den Ergebnissen der Aggregationsfunktion(en). Hierzu wird ein Prädikat angegeben, dass auf das Ergebnis der Aggregation angewandt wird. Nur Ergebnistupel, für die dieses Prädikat zu \enquote{WAHR} auswertet, werden in die Ergebnisrelation übernommen.
 	\subitem In der ORDER BY-Klausel werden die Ergebnis Attribute angegeben, nach welchen das Ergebnis sortiert werden soll. Mit dem Zusatz ASC bzw. DESC hinter dem Attributnamen kann zwischen auf- und absteigender Sortierung für das entsprechende Attribut gewählt werden. Die Reihenfolge der Attribute in der ORDER BY-Klausel gibt die Rangfolge bei der Sortierung an.
 	\item geschachtelte Abfragen
@@ -90,7 +196,7 @@ Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln SELECT, FROM und WH
 	\item Ort des Auftretens
 	\subitem \textbf{SELECT-Klausel} das Ergebnis der Auswertung der geschachtelten Abfrage wird in die Ergebnisrelation aufgenommen. In der SELECT-Klausel sind nur skalare Unterabfragen zulässig. 
 	\subitem \textbf{FROM-Klausel} komplexe Abfragen über mehrere Relationen lassen sich oft verständlicher formulieren, wenn in einem ersten Schritt die notwendigen Daten zu einer Relation zusammengefasst werden. Im darauf folgenden Schritt wird dann die eigentliche Abfrage über dieser neuen Relation formuliert. Diese Form der Strukturierung lässt sich durch Unterabfragen in der FROM-Klausel bewerkstelligen. Die Unterabfrage liefert die Zusammenfassung der Daten, auf deren Basis die Abfrage formuliert wird. 
-	\subitem \textbf{WHERE-Klausel} geschachtelte Abfragen in der WHERE-Klausel bieten die Möglichkeit, das Ergebnis einer Abfrage in einer Bedingung zu verwenden. Hierzu können die Operatoren \sql{in}, \sql{exists}, \sql{all}, \sql{any} und skalare Vergleichsoperatoren benutzt werden. Die Semantik dieser Operatoren wird im nächsten Absatz kurz skizziert.
+	\subitem \textbf{\sql{where}-Klausel} geschachtelte Abfragen in der \sql{where}-Klausel bieten die Möglichkeit, das Ergebnis einer Abfrage in einer Bedingung zu verwenden. Hierzu können die Operatoren \sql{in}, \sql{exists}, \sql{all}, \sql{any} und skalare Vergleichsoperatoren benutzt werden. Die Semantik dieser Operatoren wird im nächsten Absatz kurz skizziert.
 	
 Der \sql{in}-Operator prüft das Enthaltensein eines Werts in einer Menge. Die Menge kann durch Auflistung oder durch eine Abfrage spezifiziert werden. Ein geschachteltes Prädikat mit dem \sql{in}-Operator ist genau dann wahr, wenn der Wert auf der linken Seite (Attribut oder Zeile) im Ergebnis der Unterabfrage enthalten ist. 
 
@@ -155,18 +261,21 @@ SQL Prädikate lassen sich in verschiedene Klassen einteilen. Abhängig von der Se
 Einfache Prädikate sind solche Prädikate, die zu ihrer Berechnung nur auf Konstanten und Attribute einer Relation zugreifen. Ein Beispiel für ein solches Prädikat ist \textbf{$C_m = 10$}. Die entsprechende Operation der Relationenalgebra ist die Selektion.
  
  Join-Prädikate benötigen zu ihrer Berechnung Attribute aus zwei oder mehr Relationen. Sie \emph{verbinden} (to join -- engl. verbinden) die verwendeten Relationen. In der Relationenalgebra entspricht diese Operation der Kombination von Kreuzprodukt und Selektion. 
+
 \begin{lstlisting} 
 select * from §$R_i, R_j$§ where §$R_i.C_n=R_j.C_m$§ 
 \end{lstlisting} 
+
 entspricht in der Relationenalgebra dem Ausdruck 
-\begin{displaymath}
+
+\begin{math}
 	\sigma_{R_i.C_n=R_j.C_m}(R_i \times R_j)
-\end{displaymath}
+\end{math}
 
 
 Divisions-Prädikate berechnen die relationale Division über zwei Relationen. 
 
-Geschachtelte Prädikate enthalten eine Unterabfrage in ihrem Ausdruck. Abhängig von der Ergebnismächtigkeit der Unterabfrage spricht der SQL-Standard von skalaren Unterabfragen, deren Ergebnis genau ein Wert ist; Zeilen-Unterabfragen (row subqueries), Ergebnis dieser Abfragen ist ein Tupel, das aus mehreren Attributen bestehen kann, sowie von Tabellen-Unterabfragen, deren Ergebnis eine Relation ist. Je nach Ergebnistyp ist die Verwendung von Unterabfragen an verschiedenen Stellen eines Abfrageblocks zulässig. Skalare Unterabfragen sind an jeder Stelle zulässig, an der auch Literale erlaubt sind. Zeilen- und Tabellen-Abfragen unterliegen einigen Einschränkungen, was ihre Verwendung in Views betrifft (siehe \cite{ISO:1992:IITa}), können aber an fast jeder Stelle eingesetzt werden, an der ihr Ergebnistyp zulässig ist.
+Geschachtelte Prädikate enthalten eine Unterabfrage in ihrem Ausdruck. Abhängig von der Ergebnismächtigkeit der Unterabfrage spricht der SQL-Standard von skalaren Unterabfragen, deren Ergebnis genau ein Wert ist; Zeilen-Unterabfragen (row subqueries), Ergebnis dieser Abfragen ist ein Tupel, das aus mehreren Attributen bestehen kann, sowie von Tabellen-Unterabfragen, deren Ergebnis eine Relation ist. Je nach Ergebnistyp ist die Verwendung von Unterabfragen an verschiedenen Stellen eines Abfrageblocks zulässig. Skalare Unterabfragen sind an jeder Stelle zulässig, an der auch Literale erlaubt sind. Zeilen- und Tabellen-Abfragen unterliegen einigen Einschränkungen, was ihre Verwendung in Views betrifft (siehe \cite{ISO:1992:IITa}), können aber an fast jeder Stelle eingesetzt werden, an der ihr Ergebnistyp zulässig ist. 
 
 Klassifikation von Prädikaten in 
 einfache(Vergleich mit Konstante(n)), 
