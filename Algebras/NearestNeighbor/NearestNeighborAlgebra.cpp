@@ -9536,7 +9536,7 @@ args[4] = integer number k
 int kclosestpairFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
-  BBox<3>* qw = (Rectangle<3>*)args[3].addr;
+//  BBox<3>* qw = (Rectangle<3>*)args[3].addr;
   KClosestPair* localInfo;
   switch(message){
      case OPEN: {
@@ -9797,13 +9797,11 @@ void CellPart::AccessFunction(int depth,vector<long>& start_index,
 }
 void CellPart::AssignUPinCell()
 {
-  ups.clear();
+/*ups.clear();
   cellbox.clear();
 
   UPoint* up = (UPoint*)(lasttuple->GetAttribute(attrpos));
-
   cout<<"proces unit "<<*up<<endl;
-
   BBox<3> box = up->BoundingBox();
   double boxmin[3],boxmax[3];
 
@@ -9869,9 +9867,9 @@ void CellPart::AssignUPinCell()
 
   for(unsigned int i = 0;i < tempups.size();i++){
       box = tempups[i].BoundingBox();
-      for(unsigned int i = 0;i < 3;i++){
-        boxmin[i] = box.MinD(i);
-        boxmax[i] = box.MaxD(i);
+      for(unsigned int j = 0;j < 3;j++){
+        boxmin[j] = box.MinD(j);
+        boxmax[j] = box.MaxD(j);
       }
       boxmin[2] = boxmin[2] * 86400.0 - global_min;
       boxmax[2] = boxmax[2] * 86400.0 - global_min;
@@ -9880,28 +9878,30 @@ void CellPart::AssignUPinCell()
       start_index.clear();
       end_index.clear();
       pos.clear();
-      for(unsigned int i = 0;i < 3;i++){
-        lower.push_back(boxmin[i]);
-        upper.push_back(boxmax[i]);
+      for(unsigned int j = 0;j < 3;j++){
+        lower.push_back(boxmin[j]);
+        upper.push_back(boxmax[j]);
       }
 
-      for(unsigned int i = 0;i < 3;i++){
-        start_index.push_back((long)floor((lower[i]-gmin[i])/cellsize[i]));
-        end_index.push_back((long)floor((upper[i]-gmin[i]) /cellsize[i]));
-        cout<<"start "<<i<<" "<<start_index[i]<<endl;
-        cout<<"end "<<i<<" "<<end_index[i]<<endl;
+      for(unsigned int j = 0;j < 3;i++){
+        start_index.push_back((long)floor((lower[j]-gmin[i])/cellsize[j]));
+        end_index.push_back((long)floor((upper[j]-gmin[i]) /cellsize[j]));
+        cout<<"start "<<j<<" "<<start_index[j]<<endl;
+        cout<<"end "<<j<<" "<<end_index[j]<<endl;
       }
       cout<<endl;
+
       for(unsigned int i = 0;i < 3;i++)
         pos.push_back(-1);
+
       AccessFunction(0,start_index,end_index,pos,&tempups[i]);
 /////////////
 
       double min[3];
       double max[3];
       int position[2];
-      for(unsigned int i = start_index[0];i <= end_index[0];i++){
-        for(unsigned int j = start_index[1];j <= end_index[j];j++){
+      for(int i = start_index[0];i <= end_index[0];i++){
+        for(int j = start_index[1];j <= end_index[j];j++){
           position[0] = i;
           position[1] = j;
           for(unsigned int k = 0;k < 2;k++){
@@ -9912,9 +9912,7 @@ void CellPart::AssignUPinCell()
         }
       }
 
-////////////
-
-  }
+  }*/
 
 }
 int CellPartitionFun (Word* args, Word& result, int message,
