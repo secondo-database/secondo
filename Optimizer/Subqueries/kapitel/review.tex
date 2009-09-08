@@ -57,42 +57,41 @@ Der Optimierer bietet die Möglichkeit, conjunctive query optimization durchzufüh
 
 Die Implementierung des Optimierers ist in Prolog geschrieben. Da die vom Optimierer erkannte SQL-ähnliche Sprache aus gültigen Prolog-Ausdrücken besteht, werden das Parsen und Übersetzen in entsprechende Datenstrukturen von der Prolog-Laufzeitumgebung übernommen. Die Übersetzung der SQL-ähnlichen Ausdrücke in die ausführbare \textsc{Secondo}-Syntax besteht aus den im Folgenden beschriebenen Phasen. In der ersten Phase wird der Ausdruck umgeschrieben. Abhängig von den gewählten Optionen des Optimierers werden z.B. enthaltene Makros ausgewertet, redundante Prädikate entfernt oder der Ausdruck so umstrukturiert, dass an mehreren Stellen verwendete Teilausdrücke nur einmal ausgeführt werden müssen (CSE -- common subexpression elimination). In diese Phase integrieren sich die Ent\-schach\-te\-lungs\-al\-go\-rith\-men, die im Rahmen dieser Arbeit implementiert wurden. Im zweiten Schritt werden die Schema-Daten der an der Abfrage beteiligten Datenbankobjekte (Attribute, Relationen und konstante Objekte) ermittelt und als Prolog-Fakten gespeichert. Sie werden zum Aufbau des predicate order graphs benötigt. Im nächsten Schritt wird der optimale Plan mit dem oben beschriebenen Optimierungsalgorithmus ermittelt. Im letzten Schritt wird aus dem Plan, der immer noch ein gültiger Prolog-Term ist, ein Ausdruck in der ausführbaren Syntax des \textsc{Secondo}-Kernels generiert. Falls vom Benutzer gewünscht, kann die Abfrage direkt aus dem Optimierer heraus an den \textsc{Secondo}-Kernel gestellt werden. Das Ergebnis wird dann ebenfalls im Optimierer ausgegeben.
 
-Die vom Optimierer unterstützte SQL-Syntax ist in Anhang \ref{apd:Secondo SQL} angegeben, inklusive der in dieser Arbeit implementierten Erweiterungen. Grundsätzlich wird eine SQL-Abfrage durch folgende Struktur abgebildet:
+Die vom Optimierer unterstützte SQL-Syntax ist in Anhang \ref{apd:Secondo SQL} angegeben, inklusive der in dieser Arbeit implementierten Erweiterungen. Grundsätzlich wird eine SQL-Abfrage durch folgende Struktur abgebildet. Kursiv dargestellte Knoten sind optionale Teile einer Abfrage.
 
 % Set the overall layout of the tree
-\tikzstyle{level 1}=[level distance=1cm, sibling distance=4cm]
-\tikzstyle{level 2}=[level distance=1cm, sibling distance=4cm]
+\tikzstyle{level 1}=[level distance=2cm, sibling distance=4cm]
+\tikzstyle{level 4}=[level distance=2cm, sibling distance=2cm]
+
 
 % Define styles for bags and leafs
 \tikzstyle{bag} = [text width=4em, text centered]
-\tikzstyle{end} = [circle, minimum width=3pt,fill, inner sep=0pt]
+%\tikzstyle{end} = [circle, minimum width=3pt,fill, inner sep=0pt]
+\tikzstyle{end} = [text width=4em, text centered]
 
-% The sloped option gives rotated edge labels. Personally
-% I find sloped labels a bit difficult to read. Remove the sloped options
-% to get horizontal labels. 
-\begin{tikzpicture}[grow=down, sloped]
-\node[bag] {first/last}
+\begin{tikzpicture}[grow=down]
+\node[bag] {\optional{first/last}}
     child {
         node[end, label=below:
-        		{number}]{}
+        		{}]{\optional{Limit}}
         edge from parent
         node[above] {}
         node[below]  {}
     }
     child {
-        node[bag] {groupby}    
+        node[bag] {\optional{groupby}}    
             child {
                 node[end, label=below:
-                				{grouping attributes}]{}
+                				{}]{\optional{grouping Attribute}}
                 edge from parent
                 node[above] {}
                 node[below]  {}
             }                				    
             child {
-                node[bag] {sortby}
+                node[bag] {\optional{sortby}}
 		            child {
 		                node[end, label=below:
-		                				{sorting attributes}]{}
+		                				{}]{\optional{Sortierungs Attribute}}
 		                edge from parent
 		                node[above] {}
 		                node[below]  {}
@@ -103,7 +102,7 @@ Die vom Optimierer unterstützte SQL-Syntax ist in Anhang \ref{apd:Secondo SQL} a
 		                    node[bag] {select}
 		                    child {
 		                    		node[end, label=below:
-		                						{selection attributes}] {}
+		                						{}] {\optional{Selektions Attribute}}
 						                edge from parent
 						                node[above] {}
 						                node[below]  {}
@@ -111,12 +110,19 @@ Die vom Optimierer unterstützte SQL-Syntax ist in Anhang \ref{apd:Secondo SQL} a
 				                edge from parent
 				                node[above] {}
 				                node[below]  {}
-				            }		                				
+				            }	
+				            child{
+				            		node[end, label=below:
+				            					{}] {Relationen}
+				            					edge from parent
+				            					node[above] {}
+				            					node[below] {}
+				            }	                				
 				            child {
-		                    node[bag] {where}
+		                    node[bag] {\optional{where}}
 		                    child {
 		                    		node[end, label=below:
-		                						{predicates}] {}
+		                						{}] {\optional{Prädikate}}
 						                edge from parent
 						                node[above] {}
 						                node[below]  {}
@@ -170,7 +176,7 @@ SQL ist eine auf dem relationalen Datenbankmodell beruhende Datenbanksprache. Mi
 	from §$r_1,r_2,\cdots,r_m$§
 	where P
 	\end{lstlisting}
-Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln \sql{select}, \sql{from} und \sql{where}. In der \sql{select}-Klausel werden die Attribute der Ergebnisrelation angegeben. Die \sql{from}-Klausel gibt die Quellrelationen an, aus denen das Ergebnis ermittelt wird. Die optionale \sql{where}-Klausel gibt schließlich Einschränkungen an, denen die Ergebnistupel genügen müssen.
+Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln \sql{select}, \sql{from} und \sql{where}. Diese bilden einen sogenannten Abfrageblock. In der \sql{select}-Klausel werden die Attribute der Ergebnisrelation angegeben. Die \sql{from}-Klausel gibt die Quellrelationen an, aus denen das Ergebnis ermittelt wird. Die optionale \sql{where}-Klausel gibt schließlich Einschränkungen an, denen die Ergebnistupel genügen müssen.
 	\subitem Die \sql{select}-Klausel entspricht der Projektions-Operation der Relationenalgebra. In ihr werden alle Attribute der Ergebnisrelation angegeben. Um alle Attribute der beteiligten Relationen zu erhalten gibt es die spezielle Notation \enquote{*}. Mit Ihr wird also das Schema der Ergebnisrelation festgelegt.
 	\subitem Die \sql{from}-Klausel entspricht dem kartesischen Produkt in der Relationenalgebra. Hier werden alle in der Abfrage verwendeten Relationen aufgeführt.
 	\subitem Die \sql{where}-Klausel entspricht der Selektions-Operation der Relationenalgebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der FROM-Klausel aufgelisteten Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnen Termen von einem Prädikat der Abfrage.

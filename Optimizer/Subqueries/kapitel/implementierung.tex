@@ -12,6 +12,56 @@ Die in diesem Kapitel dargestellten Beispiele beziehen sich auf die Relationen \
 \STATE Orte(Bevt, Vorwahl, Ort, Kennzeichen)
 \end{algorithmic}
 
+\begin{algorithmic}
+\STATE Supplier(sno, sname, status, city)
+\STATE Part(pno, pname, color, weight, city)
+\STATE Shipment(sno, pno, qty, origin)
+\end{algorithmic}
+
+Mit folgenden Inhalten:
+
+\begin{table}[th]
+\centering
+\begin{tabular}{@{}rrc@{}} 
+\multicolumn{3}{c}{Supplier} \\ 
+\toprule
+pnum & quan & shipdate\\ \midrule
+3 & 4 & 03.07.79 \\
+3 & 2 & 01.10.78 \\
+10 & 1 & 08.06.78 \\
+10 & 2 & 10.08.81 \\
+8 & 5 & 07.05.83 \\
+\bottomrule\end{tabular} 
+	\caption{Relation Supplier}
+  \label{tab_Supplier}
+\end{table}
+
+%\begin{table}[h]
+%\centering
+%\begin{tabular}{@{}lcc@{}} \toprule
+%& \multicolumn{2}{c}{Orders} \\ 
+%& Customer-No & Orderdate\\ \midrule
+%ohne Aggregationsfunktion & N & J \\
+%mit Aggregationsfunktion & A & JA \\
+%\bottomrule\end{tabular} 
+%	\caption{Relation Order}
+%  \label{tab_Order}
+%\end{table}
+
+\begin{table}[th]
+\centering
+\begin{tabular}{@{}rr@{}}
+\multicolumn{2}{c}{Parts} \\ 
+ \toprule
+pnum & qoh \\ \midrule
+3 & 6 \\
+10 & 1 \\
+8 & 0 \\
+\bottomrule\end{tabular} 
+	\caption{Relation Parts}
+  \label{tab_Parts}
+\end{table}
+
 \section{Sort-Merge-Outer-Join}
 Grundlage für die Implementierung des Operators \secondo{smouterjoin} ist der Operator \secondo{sortmergejoin} der \algebra{ExtRelation-C++}-Algebra. Type-Mapping-Funktion und die Grundstruktur des Algorithmus konnten übernommen werden. Aus Gründen der Wartbarkeit wurde auf eine gemeinsame Implementierung der Value-Mapping-Funktion mit Hilfe von C++-Templates für \secondo{sortmergejoin} und \secondo{smouterjoin} verzichtet. Eine prototypische Implementierung führte zu unübersichtlichem Quellcode und Leistungseinbußen beim \secondo{sortmergejoin}. Daher wurde auf der Basis der \secondo{sortmergejoin}-Implementierung eine eigenständige Implementierung des Operators \secondo{smouterjoin} erstellt. 
 
