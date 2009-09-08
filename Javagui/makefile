@@ -34,7 +34,7 @@ help:
 doc: removedoc 
 	@make -s all
 	@mkdir $(DOCPATH)
-	@$(JAVADOC)  -d $(DOCPATH) -sourcepath $(CLASSPATH):$(JARS) -classpath $(CLASSPATH):$(JARS) $(shell find -type d -printf '%P\n'|  grep -v  "CVS" | sed -e 's#/#.#g')   
+	$(JAVADOC)  -d $(DOCPATH) -sourcepath $(CLASSPATH):$(JARS) -classpath $(CLASSPATH):$(JARS) $(shell find -type d -not -name "*CVS" -printf '%P\n' | sed "s#/#.#g" )   
 
 
 .PHONY: demo
