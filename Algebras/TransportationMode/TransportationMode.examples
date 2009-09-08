@@ -23,12 +23,6 @@ Example  : query busedge(berlintrains) count;
 Result   : 11372
 
 
-Operator : busedgerel
-Number   : 1
-Signature: busnetwork -> int
-Example  : query busedgerel(berlintrains) count;
-Result   : 11372
-
 Operator : busmove
 Number   : 1
 Signature: busnetwork -> int
@@ -49,13 +43,20 @@ Result   : file
 
 Operator : find_path_t_3
 Number   : 1
-Signature: busnetwork x mint -> mpoint
+Signature: rel x btree1 x busnetwork x mint -> mpoint
 Example  : query edge_rel_order btree_edge_rel_v1 find_path_t_3[berlintrains,mint1];
 Result   : file
 
 
 Operator : find_path_t_4
 Number   : 1
-Signature: busnetwork x mint -> mpoint
-Example  : query edge_rel_order btree_edge_rel_v1 find_path_t_4[berlintrains,mint1];
+Signature: rel x btree1 x btree2 x busnetwork x mint -> mpoint
+Example  : query edge_rel_order btree_edge_rel_v1 btree_edge_rel_v2 find_path_t_4[berlintrains,mint1];
+Result   : file
+
+
+Operator : find_path_t_5
+Number   : 1
+Signature: rel x btree1 x btree2 x busnetwork x mint -> mpoint
+Example  : query edge_rel_order btree_edge_rel_v1 btree_edge_rel_v2 find_path_t_5[berlintrains,mint1];
 Result   : file

@@ -64,7 +64,7 @@ TypeConstructor busnetwork( "busnetwork", BusNetwork::BusNetworkProp,
 const string OpTheBusNetworkSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>int x rel -> busnetwork" "</text--->"
+  "(<text>int x relation -> busnetwork" "</text--->"
   "<text>thebusnetwork(_, _)</text--->"
   "<text>Creates busnetwork with id and a relation.</text--->"
   "<text>let busnet = thebusnetwork(1, busroutes)</text--->"
@@ -73,7 +73,7 @@ const string OpTheBusNetworkSpec =
 const string OpBusNodeSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "(<text>busnetwork -> stream(tuple([nid:int,loc:point]))" "</text--->"
   "<text>busnode(_)</text--->"
   "<text>returns a stream of tuple where each corresponds to a bus stop."
   "</text--->"
@@ -83,60 +83,46 @@ const string OpBusNodeSpec =
 const string OpBusEdgeSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "(<text>busnetwork -> a relation</text--->"
   "<text>busedge(_)</text--->"
-  "<text>returns a stream of tuple where each corresponds to"
-  "the trajectory of a bus's movement.</text--->"
+  "<text>returns the relation for edges.</text--->"
   "<text>query busedge(busroutes) count</text--->"
-  "))";
-
-const string OpBusEdgeRelSpec =
- "((\"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\") "
-  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
-  "<text>busedgerel(_)</text--->"
-  "<text>returns a stream of tuple where each corresponds to an edge.</text--->"
-  "<text>query busedgerel(busroutes) count</text--->"
   "))";
 
 const string OpBusMoveSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+ "(<text>busnetwork -> stream(tuple(([pid:int,rid:int,trip:mpoint])))</text--->"
   "<text>busmove(_)</text--->"
-  "<text>returns a stream of tuple where each corresponds to"
-  "the movement of bus.</text--->"
+  "<text>returns a stream of tuple where each corresponds to "
+  "the movement of a bus.</text--->"
   "<text>query busmove(busroutes) count</text--->"
   "))";
 
 const string OpBusFindPath_T_1Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "(<text>busnetwork x mint -> mpoint</text--->"
   "<text>find_path_t_1(_,_)</text--->"
-  "<text>returns a stream of tuple where each corresponds to"
-  "the sequence movement of a trip.</text--->"
+  "<text>returns a sequence of movement corresponding to a trip.</text--->"
   "<text>query find_path_t_1(berlintrains,mint1) count</text--->"
   "))";
 
 const string OpBusFindPath_T_2Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "(<text>busnetwork x mint -> mpoint</text--->"
   "<text>find_path_t_2(_,_)</text--->"
-  "<text>returns a stream of tuple where each corresponds to"
-  "the sequence movement of a trip. faster than 1</text--->"
+  "<text>returns a sequence of movement corresponding to a trip.</text--->"
   "<text>query find_path_t_2(berlintrains,mint1) count</text--->"
   "))";
 
 const string OpBusFindPath_T_3Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
+  "(<text>relation x btree1 x busnetwork x mint-> mpoint</text--->"
   "<text>_ _ find_path_t_3[_,_]</text--->"
-  "<text>returns a stream of tuple where each corresponds to"
-  "the sequence movement of a trip. faster than 1, supporting duration"
-  "for middle stop</text--->"
+  "<text>returns a sequence of movement corresponding to a trip</text--->"
   "<text>query edge_rel btree_edge_v1 find_path_t_3[berlintrains,mint1] count"
   "</text--->"
   "))";
@@ -144,13 +130,21 @@ const string OpBusFindPath_T_3Spec =
 const string OpBusFindPath_T_4Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>rel -> a stream of tuple((t1)(t2)...(tn))" "</text--->"
-  "<text>_ _ find_path_t_4[_,_]</text--->"
-  "<text>returns a stream of tuple where each corresponds to"
-  "the sequence movement of a trip. faster than 1, supporting duration"
-  "for middle stop</text--->"
-  "<text>query edge_rel btree_edge_v1 find_path_t_4[berlintrains,mint1] count"
-  "</text--->"
+  "(<text>relation x busnetwork x btree1 x btree2 x mint-> mpoint</text--->"
+  "<text>_ _ _ find_path_t_4[_,_]</text--->"
+  "<text>returns a sequence of movement corresponding to a trip</text--->"
+  "<text>query edge_rel btree_edge_v1 btree_edge_v2 find_path_t_4"
+  "[berlintrains,mint1] count</text--->"
+  "))";
+
+const string OpBusFindPath_T_5Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>relation x busnetwork x btree1 x btree2 x mint-> mpoint</text--->"
+  "<text>_ _ _ find_path_t_5[_,_]</text--->"
+  "<text>returns a sequence of movement corresponding to a trip</text--->"
+  "<text>query edge_rel btree_edge_v1 btree_edge_v2 find_path_t_5"
+  "[berlintrains,mint1] count</text--->"
   "))";
 
 /***********Value Map Function for Bus Network****************************/
@@ -266,71 +260,13 @@ int OpBusNodeValueMapping(Word* args, Word& result,
   }
   return 0;
 }
-/*
-Display the trajectory (edge-weight) of bus movement.
-
-*/
-int OpBusEdgeValueMapping(Word* args, Word& result,
-                               int message, Word& local, Supplier s)
-{
-  DisplBusEdge* localInfo;
-  switch(message){
-    case OPEN:{
-        localInfo = new DisplBusEdge((BusNetwork*)args[0].addr);
-        localInfo->resulttype =
-              new TupleType(nl->Second(GetTupleResultType(s)));
-        local = SetWord(localInfo);
-        return 0;
-    }
-    case REQUEST:{
-        localInfo = (DisplBusEdge*)local.addr;
-        if(localInfo->bus_edge_count > localInfo->no_edge)
-          return CANCEL;
-        Tuple* tuple = new Tuple(localInfo->resulttype);
-        Tuple* temp_tuple =
-                localInfo->bus_edge->GetTuple(localInfo->bus_edge_count);
-        CcInt* id = (CcInt*)temp_tuple->GetAttribute(BusNetwork::EID);
-        CcInt* nid1 = (CcInt*)temp_tuple->GetAttribute(BusNetwork::V1);
-        CcInt* nid2 = (CcInt*)temp_tuple->GetAttribute(BusNetwork::V2);
-        CcInt* rid = (CcInt*)temp_tuple->GetAttribute(BusNetwork::PID);
-        Line* l = (Line*)temp_tuple->GetAttribute(BusNetwork::LINE);
-        CcReal* fee = (CcReal*)temp_tuple->GetAttribute(BusNetwork::FEE);
-
-        Periods* peri = (Periods*)temp_tuple->GetAttribute(BusNetwork::DEF_T);
-        const Interval<Instant>* interval;
-        peri->Get(0,interval);
-        string start_t = interval->start.ToString();
-        string end_t = interval->end.ToString();
-//        cout<<start_t<<" "<<end_t<<endl;
-
-        tuple->PutAttribute(0,new CcInt(*id));
-        tuple->PutAttribute(1,new CcInt(*nid1));
-        tuple->PutAttribute(2,new CcInt(*nid2));
-        tuple->PutAttribute(3,new Line(*l));
-//        tuple->PutAttribute(4,new CcReal(*fee));
-        tuple->PutAttribute(4,new CcInt(*rid));
-        tuple->PutAttribute(5,new CcString(true,start_t));
-        tuple->PutAttribute(6,new CcString(true,end_t));
-        result.setAddr(tuple);
-        temp_tuple->DeleteIfAllowed();
-        localInfo->bus_edge_count++;
-        return YIELD;
-    }
-    case CLOSE:{
-        localInfo = (DisplBusEdge*)local.addr;
-        delete localInfo;
-        return 0;
-    }
-  }
-  return 0;
-}
 
 /*
 Display the edge
 
 */
 
-int OpBusEdgeRelValueMapping(Word* args, Word& result,
+int OpBusEdgeValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
   BusNetwork* busnet = (BusNetwork*)args[0].addr;
@@ -430,7 +366,7 @@ int OpBusFindPath_T_3ValueMapping(Word* args, Word& result,
 }
 
 /*
-optimize-1
+optimize-1, 3
 middle stop with temporal property
 input edge relation and b-tree
 
@@ -439,11 +375,31 @@ int OpBusFindPath_T_4ValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
-  BusNetwork* busnet = (BusNetwork*)args[2].addr;
+  BusNetwork* busnet = (BusNetwork*)args[3].addr;
   Relation* busedge = (Relation*)args[0].addr;
   BTree* btree1 = (BTree*)args[1].addr;
-  MInt* querycond = (MInt*)args[3].addr;
-  busnet->FindPath_T_4((MPoint*)result.addr,querycond,busedge,btree1);
+  BTree* btree2 = (BTree*)args[2].addr;
+  MInt* querycond = (MInt*)args[4].addr;
+  busnet->FindPath_T_4((MPoint*)result.addr,querycond,busedge,btree1,btree2);
+  return 0;
+}
+
+/*
+optimize-1,3 ,2
+middle stop with temporal property
+input edge relation and b-tree
+
+*/
+int OpBusFindPath_T_5ValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  BusNetwork* busnet = (BusNetwork*)args[3].addr;
+  Relation* busedge = (Relation*)args[0].addr;
+  BTree* btree1 = (BTree*)args[1].addr;
+  BTree* btree2 = (BTree*)args[2].addr;
+  MInt* querycond = (MInt*)args[4].addr;
+  busnet->FindPath_T_5((MPoint*)result.addr,querycond,busedge,btree1,btree2);
   return 0;
 }
 
@@ -515,38 +471,6 @@ ListExpr OpBusEdgeTypeMap(ListExpr in_xArgs)
   ListExpr arg = nl->First(in_xArgs);
   if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
      nl->SymbolValue(arg) == "busnetwork"){
-      return nl->TwoElemList(
-          nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),
-              nl->Cons(
-                nl->TwoElemList(nl->SymbolAtom("id"),nl->SymbolAtom("int")),
-                nl->SixElemList(
-                nl->TwoElemList(nl->SymbolAtom("nid1"),nl->SymbolAtom("int")),
-                nl->TwoElemList(nl->SymbolAtom("nid2"),nl->SymbolAtom("int")),
-                nl->TwoElemList(nl->SymbolAtom("l"),nl->SymbolAtom("line")),
-                nl->TwoElemList(nl->SymbolAtom("rid"),nl->SymbolAtom("int")),
-                nl->TwoElemList(nl->SymbolAtom("t1"),nl->SymbolAtom("string")),
-                nl->TwoElemList(nl->SymbolAtom("t2"),nl->SymbolAtom("string"))
-              ))
-            )
-          );
-  }
-  return nl->SymbolAtom("typeerror");
-
-}
-
-/*
-Operator ~busedgerel~
-
-*/
-ListExpr OpBusEdgeRelTypeMap(ListExpr in_xArgs)
-{
-  if(nl->ListLength(in_xArgs) != 1)
-    return (nl->SymbolAtom("typeerror"));
-
-  ListExpr arg = nl->First(in_xArgs);
-  if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
-     nl->SymbolValue(arg) == "busnetwork"){
       ListExpr xType;
       nl->ReadFromString(BusNetwork::busedgeTypeInfo,xType);
       return xType;
@@ -554,6 +478,7 @@ ListExpr OpBusEdgeRelTypeMap(ListExpr in_xArgs)
   return nl->SymbolAtom("typeerror");
 
 }
+
 /*
 Operator ~busmove~
 
@@ -641,8 +566,8 @@ string err = "edgerel x b-tree x busnetwork x mint expected";
 
 ListExpr OpBusFindPath_T_4TypeMap(ListExpr in_xArgs)
 {
-  string err = "edgerel x b-tree x busnetwork x mint expected";
-  if(nl->ListLength(in_xArgs) != 4){
+  string err = "edgerel x btree1 x btree2 x busnetwork x mint expected";
+  if(nl->ListLength(in_xArgs) != 5){
       ErrorReporter::ReportError(err);
       return nl->TypeError();
   }
@@ -650,6 +575,7 @@ ListExpr OpBusFindPath_T_4TypeMap(ListExpr in_xArgs)
   ListExpr arg2 = nl->Second(in_xArgs);
   ListExpr arg3 = nl->Third(in_xArgs);
   ListExpr arg4 = nl->Fourth(in_xArgs);
+  ListExpr arg5 = nl->Fifth(in_xArgs);
   if(!IsRelDescription(arg1)){
       string msg =  "first argument muse be a relation";
       ErrorReporter::ReportError(msg);
@@ -658,16 +584,66 @@ ListExpr OpBusFindPath_T_4TypeMap(ListExpr in_xArgs)
 
   CHECK_COND(listutils::isBTreeDescription(arg2),
       "second argument muse be an btree");
+  CHECK_COND(listutils::isBTreeDescription(arg3),
+      "third argument muse be an btree");
 
   ListExpr relAttrList = nl->Second(nl->Second(arg1));
-  ListExpr btreeAttrList = nl->Second(nl->Second(arg2));
-  if(!nl->Equal(relAttrList,btreeAttrList)){
+  ListExpr btreeAttrList1 = nl->Second(nl->Second(arg2));
+  ListExpr btreeAttrList2 = nl->Second(nl->Second(arg3));
+  if(!nl->Equal(relAttrList,btreeAttrList1)){
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
+  if(!nl->Equal(relAttrList,btreeAttrList2)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(nl->IsAtom(arg4) && nl->AtomType(arg4) == SymbolType &&
+     nl->SymbolValue(arg4) == "busnetwork" && nl->IsEqual(arg5,"mint"))
+    return nl->SymbolAtom("mpoint");
 
-  if(nl->IsAtom(arg3) && nl->AtomType(arg3) == SymbolType &&
-     nl->SymbolValue(arg3) == "busnetwork" && nl->IsEqual(arg4,"mint"))
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+
+}
+
+
+ListExpr OpBusFindPath_T_5TypeMap(ListExpr in_xArgs)
+{
+  string err = "edgerel x btree1 x btree2 x busnetwork x mint expected";
+  if(nl->ListLength(in_xArgs) != 5){
+      ErrorReporter::ReportError(err);
+      return nl->TypeError();
+  }
+  ListExpr arg1 = nl->First(in_xArgs);
+  ListExpr arg2 = nl->Second(in_xArgs);
+  ListExpr arg3 = nl->Third(in_xArgs);
+  ListExpr arg4 = nl->Fourth(in_xArgs);
+  ListExpr arg5 = nl->Fifth(in_xArgs);
+  if(!IsRelDescription(arg1)){
+      string msg =  "first argument muse be a relation";
+      ErrorReporter::ReportError(msg);
+      return nl->TypeError();
+  }
+
+  CHECK_COND(listutils::isBTreeDescription(arg2),
+      "second argument muse be an btree");
+  CHECK_COND(listutils::isBTreeDescription(arg3),
+      "third argument muse be an btree");
+
+  ListExpr relAttrList = nl->Second(nl->Second(arg1));
+  ListExpr btreeAttrList1 = nl->Second(nl->Second(arg2));
+  ListExpr btreeAttrList2 = nl->Second(nl->Second(arg3));
+  if(!nl->Equal(relAttrList,btreeAttrList1)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(!nl->Equal(relAttrList,btreeAttrList2)){
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(nl->IsAtom(arg4) && nl->AtomType(arg4) == SymbolType &&
+     nl->SymbolValue(arg4) == "busnetwork" && nl->IsEqual(arg5,"mint"))
     return nl->SymbolAtom("mpoint");
 
   ErrorReporter::ReportError(err);
@@ -697,13 +673,6 @@ Operator busedge(
   OpBusEdgeValueMapping,
   Operator::SimpleSelect,
   OpBusEdgeTypeMap
-);
-Operator busedgerel(
-  "busedgerel", //name
-  OpBusEdgeRelSpec,
-  OpBusEdgeRelValueMapping,
-  Operator::SimpleSelect,
-  OpBusEdgeRelTypeMap
 );
 
 Operator busmove(
@@ -746,6 +715,14 @@ Operator find_path_t_4(
   OpBusFindPath_T_4TypeMap
 );
 
+Operator find_path_t_5(
+  "find_path_t_5", //name
+  OpBusFindPath_T_5Spec,
+  OpBusFindPath_T_5ValueMapping,
+  Operator::SimpleSelect,
+  OpBusFindPath_T_5TypeMap
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -763,7 +740,6 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&busnode);//display bus stop
    AddOperator(&busedge); //display the trajectory of a bus
    AddOperator(&busmove);//display bus movement
-   AddOperator(&busedgerel);//display the original edge
    //middle stop with no temporal property, no user defined time instant
    AddOperator(&find_path_t_1);//minimum total time cost
    AddOperator(&find_path_t_2);//minimum total time cost, faster
@@ -771,6 +747,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&find_path_t_3);
    //input relation and b-tree
    AddOperator(&find_path_t_4);
+   AddOperator(&find_path_t_5);//optimize-2
   }
   ~TransportationModeAlgebra() {};
  private:

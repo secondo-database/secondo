@@ -53,6 +53,7 @@ August, 2009 Jianqiu Xu
 #include "RelationAlgebra.h"
 #include <list>
 #include <sys/timeb.h>
+
 /*
 Subclass for manage bus network
 
@@ -111,17 +112,21 @@ public:
   void FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path);
   void FindPath_T_2(MPoint* result,MInt* query);//more efficient
   void Optimize1(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list);
-  //time duration for middle stop
+  //time duration for middle stop ,optimize-1
   bool FindPath3(const UInt* ui1,const UInt* ui2,vector<int>& path,
                 Relation*,BTree*);
   void FindPath_T_3(MPoint* result,MInt* query,Relation*,BTree*);
   void Optimize2(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list,
                 list<Elem>& end_node_edge,double&);
-  //input relation and b-tree
+  //input relation and b-tree, optimize-1,3
   bool FindPath4(const UInt* ui1,const UInt* ui2,vector<int>& path,
-                Relation*,BTree*);
-  void FindPath_T_4(MPoint* result,MInt* query,Relation*,BTree*);
+                Relation*,BTree*,BTree*);
+  void FindPath_T_4(MPoint* result,MInt* query,Relation*,BTree*,BTree*);
   void TestFunction(Relation*,BTree*);
+  //optimize-2
+  bool FindPath5(const UInt* ui1,const UInt* ui2, vector<Elem>& path,
+                Relation*,BTree*,BTree*);
+  void FindPath_T_5(MPoint* result,MInt* query,Relation*,BTree*,BTree*);
 
 private:
   int busnet_id;
@@ -138,3 +143,4 @@ private:
 };
 double difftimeb(struct timeb* t1,struct timeb* t2);
 #endif
+
