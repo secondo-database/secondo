@@ -32,7 +32,7 @@ Result   : 562
 Operator : find_path_t_1
 Number   : 1
 Signature: busnetwork x mint -> mpoint
-Example  : query find_path_t_1(berlintrains,mint1);
+Example  : query find_path_t_1(berlintrains,q1,id,querytime);
 Result   : file
 
 Operator : find_path_t_2

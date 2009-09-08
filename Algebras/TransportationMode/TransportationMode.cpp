@@ -102,10 +102,10 @@ const string OpBusMoveSpec =
 const string OpBusFindPath_T_1Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>busnetwork x mint -> mpoint</text--->"
-  "<text>find_path_t_1(_,_)</text--->"
+  "(<text>busnetwork x rel x attribute x instant-> mpoint</text--->"
+  "<text>find_path_t_1(_,_,_,_)</text--->"
   "<text>returns a sequence of movement corresponding to a trip.</text--->"
-  "<text>query find_path_t_1(berlintrains,mint1) count</text--->"
+  "<text>query find_path_t_1(berlintrains,qint1,id,querytime) count</text--->"
   "))";
 
 const string OpBusFindPath_T_2Spec =
@@ -330,8 +330,12 @@ int OpBusFindPath_T_1ValueMapping(Word* args, Word& result,
 {
   result = qp->ResultStorage(s);
   BusNetwork* busnet = (BusNetwork*)args[0].addr;
-  MInt* querycond = (MInt*)args[1].addr;
-  busnet->FindPath_T_1((MPoint*)result.addr,querycond);
+  Relation* querycond = (Relation*)args[1].addr;
+  Instant* instant = static_cast<Instant*>(args[3].addr);
+  int attrpos = ((CcInt*)args[4].addr)->GetIntval() - 1;
+//  cout<<"attrpos "<<attrpos<<endl;
+//  cout<<*instant<<endl;
+  busnet->FindPath_T_1((MPoint*)result.addr,querycond,attrpos,instant);
   return 0;
 }
 /*
@@ -511,22 +515,85 @@ Operator ~reachability~
 */
 ListExpr OpBusFindPath_T_1TypeMap(ListExpr in_xArgs)
 {
-  string err = "busnetwork x mint expected";
-  if(nl->ListLength(in_xArgs) != 2){
+  string err = "busnetwork x rel x attribute x instant expected";
+  if(nl->ListLength(in_xArgs) != 4){
       ErrorReporter::ReportError(err);
       return nl->TypeError();
   }
 
   ListExpr arg1 = nl->First(in_xArgs);
   ListExpr arg2 = nl->Second(in_xArgs);
+  ListExpr arg3 = nl->Third(in_xArgs);
+  ListExpr arg4 = nl->Fourth(in_xArgs);
+  if(!IsRelDescription(arg2)){
+      string msg = "second argument must be a relation";
+      ErrorReporter::ReportError(msg);
+      return nl->TypeError();
+  }
+
+  int j;
+  ListExpr attrType;
+  j = FindAttribute(nl->Second(nl->Second(arg2)),
+                   nl->SymbolValue(arg3),attrType);
+
+  CHECK_COND( j > 0 && (nl->IsEqual(attrType,"int")),
+             "the third attribute should be of type int");
+
+  if(!nl->IsEqual(arg4,"instant")){
+      string msg = "fourth argument must be an instant";
+      ErrorReporter::ReportError(msg);
+      return nl->TypeError();
+  }
+
   if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-     nl->SymbolValue(arg1) == "busnetwork" && nl->IsEqual(arg2,"mint"))
-    return nl->SymbolAtom("mpoint");
+     nl->SymbolValue(arg1) == "busnetwork"){
+//    return nl->SymbolAtom("mpoint");
+    ListExpr res = nl->SymbolAtom("mpoint");
+    return nl->ThreeElemList(
+            nl->SymbolAtom("APPEND"),
+            nl->OneElemList(nl->IntAtom(j)),res);
+  }
 
   ErrorReporter::ReportError(err);
   return nl->TypeError();
 
 }
+
+ListExpr OpBusFindPath_T_2TypeMap(ListExpr in_xArgs)
+{
+  string err = "busnetwork x rel expected";
+  if(nl->ListLength(in_xArgs) != 3){
+      ErrorReporter::ReportError(err);
+      return nl->TypeError();
+  }
+
+  ListExpr arg1 = nl->First(in_xArgs);
+  ListExpr arg2 = nl->Second(in_xArgs);
+  ListExpr arg3 = nl->Third(in_xArgs);
+
+  if(!IsRelDescription(arg2)){
+      string msg = "second argument must be a relation";
+      ErrorReporter::ReportError(msg);
+      return nl->TypeError();
+  }
+
+  int j;
+  ListExpr attrType;
+  j = FindAttribute(nl->Second(nl->Second(arg2)),
+                   nl->SymbolValue(arg3),attrType);
+
+  CHECK_COND( j > 0 && (nl->IsEqual(attrType,"int")),
+             "the attribute should be int");
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "busnetwork")
+    return nl->SymbolAtom("mpoint");
+
+
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+
+}
+
 
 ListExpr OpBusFindPath_T_3TypeMap(ListExpr in_xArgs)
 {
@@ -540,7 +607,7 @@ string err = "edgerel x b-tree x busnetwork x mint expected";
   ListExpr arg3 = nl->Third(in_xArgs);
   ListExpr arg4 = nl->Fourth(in_xArgs);
   if(!IsRelDescription(arg1)){
-      string msg =  "first argument muse be a relation";
+      string msg =  "first argument must be a relation";
       ErrorReporter::ReportError(msg);
       return nl->TypeError();
   }
@@ -696,7 +763,7 @@ Operator find_path_t_2(
   OpBusFindPath_T_2Spec,
   OpBusFindPath_T_2ValueMapping,
   Operator::SimpleSelect,
-  OpBusFindPath_T_1TypeMap
+  OpBusFindPath_T_2TypeMap
 );
 
 Operator find_path_t_3(

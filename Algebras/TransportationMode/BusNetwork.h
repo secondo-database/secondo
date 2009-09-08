@@ -106,8 +106,8 @@ public:
   Relation* GetRelBus_Route(){return bus_route;}
   Relation* GetRelBus_Edge(){return bus_edge;}
   TupleId FindPointTid(Point& p);
-  void FindPath_T_1(MPoint* result,MInt* query);
-  void FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path);
+  void FindPath_T_1(MPoint* result,Relation* query,int attrpos,Instant*);
+  void FindPath1(int id1,int id2,vector<int>& path,Instant*);
   //more efficient
   void FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path);
   void FindPath_T_2(MPoint* result,MInt* query);//more efficient

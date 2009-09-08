@@ -1051,16 +1051,15 @@ public:
   }
 };
 
-void BusNetwork::FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path)
+void BusNetwork::FindPath1(int id1,int id2,vector<int>& path,Instant* instant)
 {
   ofstream outfile("temp_result"); //record info for debug
 
-  int id1 = ui1->constValue.GetValue();
   if(id1 < 1 || id1 > bus_node->GetNoTuples()){
     cout<<"bus id is not valid"<<endl;
     return;
   }
-  int id2 = ui2->constValue.GetValue();
+
   if(id2 < 1 || id2 > bus_node->GetNoTuples()){
     cout<<"bus id is not valid"<<endl;
     return;
@@ -1103,10 +1102,12 @@ void BusNetwork::FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path)
         }
         edge_tuple->DeleteIfAllowed();
     }else{
-      if(interval->start > ui1->timeInterval.start){
+//      if(interval->start > ui1->timeInterval.start){
+      if(interval->start > *instant){
         Elem e(bt_iter_edge_v1->GetId(),*interval,
                   start_node->GetIntval());
-        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
+//        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
+        e.delta_t = (interval->end-*instant).ToDouble();
         e.e_node_id = end_node->GetIntval();
         q_list.push(e);
       }
@@ -1209,10 +1210,11 @@ void BusNetwork::FindPath1(const UInt* ui1,const UInt* ui2,vector<int>& path)
 }
 
 /* expand the graph by Dijkstra with minimum total time cost so far*/
-void BusNetwork::FindPath_T_1(MPoint* mp,MInt* query)
+void BusNetwork::FindPath_T_1(MPoint* mp,Relation* query,int attrpos,
+Instant* instant)
 {
 //  cout<<"BusNetwork::Reachability"<<endl;
-  if(query->GetNoComponents() < 4){
+  if(query->GetNoTuples() < 2){
     cout<<"there is only start location, please give destination"<<endl;
     return;
   }
@@ -1222,12 +1224,17 @@ void BusNetwork::FindPath_T_1(MPoint* mp,MInt* query)
   mp->StartBulkLoad();
 
   vector<int> path; //record edge id
-  for(int i = 1;i < query->GetNoComponents() - 2;i++){
-    const UInt* ui1;
-    const UInt* ui2;
-    query->Get(i,ui1);
-    query->Get(i+1,ui2);
-    FindPath1(ui1,ui2,path);
+  for(int i = 1;i <= query->GetNoTuples() - 1;i++){
+    Tuple* t1 = query->GetTuple(i);
+    Tuple* t2 = query->GetTuple(i+1);
+    CcInt* id1 = (CcInt*)t1->GetAttribute(attrpos);
+    CcInt* id2 = (CcInt*)t2->GetAttribute(attrpos);
+//    cout<<id1->GetIntval()<<" "<<id2->GetIntval()<<endl;
+
+    FindPath1(id1->GetIntval(),id2->GetIntval(),path,instant);
+    t1->DeleteIfAllowed();
+    t2->DeleteIfAllowed();
+
   }
   /****************Construct the Reulst (MPoint)*************************/
   const UPoint* lastup = NULL;
