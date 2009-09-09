@@ -31,7 +31,6 @@ import  viewer.hoese.*;
  * different frame.
  */
 public class Dsplimage implements DsplBase {
-  protected int borderLeft = 0;
   protected String AttrName;
   protected boolean selected;
   private boolean visible = true;
@@ -72,15 +71,6 @@ public class Dsplimage implements DsplBase {
   public String toString () {
     return  AttrName + ":ImageAttr";
   }
-
-  public int getBorderLeft(){
-     return borderLeft;
-  }
-
-  public void setBorderLeft(int value){
-     borderLeft = value;
-  }
-
 
 }
 

@@ -38,7 +38,6 @@ public class Dsplexternal
     implements DsplBase {
   protected String AttrName;
   protected boolean selected;
-  protected int borderLeft;
   private boolean visible = true;
   private String FileType, Command, App;
   private static Launcher LaunchApp = new Launcher();
@@ -335,14 +334,6 @@ public class Dsplexternal
     {
       Reporter.debug(x);
     }
-  }
-
-  public void setBorderLeft(int value){
-     borderLeft = value;
-  }
-
-  public int getBorderLeft(){
-    return borderLeft;
   }
 
 }

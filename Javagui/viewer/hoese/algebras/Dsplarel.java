@@ -6,22 +6,21 @@ import viewer.hoese.*;
 
 
 public class Dsplarel extends DsplGeneric{
-	static public int nestNumber = 0; 
-	private String arelName;
+	String entry;
 	public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
-		arelName = name;
-		setBorderLeft(nestNumber * 15);
+		String T = name;
+	    T = extendString(T, nameWidth);
+	    entry=(T + " :");
 		qr.addEntry(this);
-		nestNumber = nestNumber + 1;
 		int maxAttribNameLen = maxAttributLength(type.second().second());
+		if (nameWidth > maxAttribNameLen)
+			maxAttribNameLen = nameWidth;
 		while (!value.isEmpty()) {
 			displayArelTuple(type.second().second(), value.first(), maxAttribNameLen, qr);
 		    value = value.rest();
 		    if (!value.isEmpty())
-		    	qr.addEntry(new Dsplend(nestNumber * 15));
+		    	qr.addEntry(new Dsplend(maxAttribNameLen));
 		    }
-		    if (nestNumber > 0)
-		    	nestNumber = nestNumber - 1;
 		    return;
 	}
 	/**
@@ -30,7 +29,8 @@ public class Dsplarel extends DsplGeneric{
 	* @see <a href="Dspltuplesrc.html#displayTuple">Source</a>
 	*/
 	private void displayArelTuple (ListExpr type, ListExpr value, int maxNameLen, QueryResult qr) {
-	    int i;
+	    maxNameLen = maxNameLen + 2;
+		int i;
 	    String s;
 	    DsplBase dg;
 	    while (!value.isEmpty()) {
@@ -42,7 +42,6 @@ public class Dsplarel extends DsplGeneric{
 	      dg = LEUtils.getClassFromName(subType.symbolValue());
 	       String typeName = subType.symbolValue();
 	      // ensure to add exactly one entry per attribute
-	      dg.setBorderLeft(nestNumber * 15);
 	      int oldnum = qr.getModel().getSize();
 	      String name = type.first().first().symbolValue();
 	      subType = type.first().second();
@@ -88,18 +87,22 @@ public class Dsplarel extends DsplGeneric{
 	}
 	
 	public String toString(){
-		return (arelName + ":");
+		return entry;
 	}
 	
 	/**
 	 * Auxiliary class to display the end of tuple sign in the correct position.
 	 */
 	public class Dsplend extends DsplGeneric{
-		public Dsplend (int i){
-			borderLeft = i;
+		private int width;
+		private int n;
+		public Dsplend (int w){
+			width = w;
 		}
 		public String toString(){
-			return "---------";
+			String s = "---------";
+			s = extendString(s, width + 2);
+			return s;
 		}
 	}
 }

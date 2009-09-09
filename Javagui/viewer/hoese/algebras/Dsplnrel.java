@@ -9,7 +9,6 @@ import java.awt.*;
 
 public class Dsplnrel extends DsplGeneric{
 	 public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
-		 qr.setCellRenderer(new NrelQueryRenderer());
 		 long startTime=0;
 		 if(gui.Environment.MEASURE_TIME){
 			 startTime = System.currentTimeMillis();
@@ -36,6 +35,9 @@ public class Dsplnrel extends DsplGeneric{
 		}
 	 }
 	 
+	 /**
+	  * Displays the primary tuple of a nested relation.
+	  */
 	 private void displayPrimaryTuple (ListExpr type, ListExpr value, int maxNameLen, QueryResult qr) {
 		    int i;
 		    String s;
@@ -53,7 +55,6 @@ public class Dsplnrel extends DsplGeneric{
 		      int oldnum = qr.getModel().getSize();
 		      String name = type.first().first().symbolValue();
 		      subType = type.first().second();
-		      
 		      dg.init(name, maxNameLen, subType, value.first(), qr);
 		      int newnum = qr.getModel().getSize();
 		      int diff = newnum-oldnum;
@@ -93,36 +94,4 @@ public class Dsplnrel extends DsplGeneric{
 		    }
 		    return  max;
 		}
-	 
-	 
-	 protected class NrelQueryRenderer extends DefaultListCellRenderer {
-		    public Component getListCellRendererComponent (JList list, Object value, 
-		        int index, boolean isSelected, boolean cellHasFocus) {
-		      super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-		      //if (value instanceof DsplGraph)
-		      //setIcon(new ImageIcon("images/labdlg.gif"));
-		      setForeground(Color.BLACK);
-		      if (value instanceof DsplBase)
-		    	  setBorder(BorderFactory.createEmptyBorder(0, ((DsplBase)value).getBorderLeft(), 0, 0));
-		      if (value instanceof Dsplarel.Dsplend)
-		    	  setBorder(BorderFactory.createEmptyBorder(0, ((Dsplarel.Dsplend)value).getBorderLeft(), 0, 0));
-		      if ((value instanceof DsplGraph) && (value instanceof Timed))
-		        setForeground(Color.magenta); 
-		      else if (value instanceof DsplGraph)
-		        setForeground(Color.red); 
-		      else if (value instanceof Timed)
-		        setForeground(Color.blue); 
-		      else if (value instanceof DsplBase){
-		    	  setForeground(new Color(0, 100, 0));
-		    	  
-		      }
-		      if (value instanceof DsplBase)
-		        if (!((DsplBase)value).getVisible())
-		          setForeground(Color.gray);
-		      if( value instanceof ExternDisplay){
-		         setForeground(new Color(255,0,0));
-		      } 
-		      return  this;
-		    }
-		  }
 }
