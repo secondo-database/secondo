@@ -20,47 +20,6 @@ Die in diesem Kapitel dargestellten Beispiele beziehen sich auf die Relationen \
 
 Mit folgenden Inhalten:
 
-\begin{table}[th]
-\centering
-\begin{tabular}{@{}rrc@{}} 
-\multicolumn{3}{c}{Supplier} \\ 
-\toprule
-pnum & quan & shipdate\\ \midrule
-3 & 4 & 03.07.79 \\
-3 & 2 & 01.10.78 \\
-10 & 1 & 08.06.78 \\
-10 & 2 & 10.08.81 \\
-8 & 5 & 07.05.83 \\
-\bottomrule\end{tabular} 
-	\caption{Relation Supplier}
-  \label{tab_Supplier}
-\end{table}
-
-%\begin{table}[h]
-%\centering
-%\begin{tabular}{@{}lcc@{}} \toprule
-%& \multicolumn{2}{c}{Orders} \\ 
-%& Customer-No & Orderdate\\ \midrule
-%ohne Aggregationsfunktion & N & J \\
-%mit Aggregationsfunktion & A & JA \\
-%\bottomrule\end{tabular} 
-%	\caption{Relation Order}
-%  \label{tab_Order}
-%\end{table}
-
-\begin{table}[th]
-\centering
-\begin{tabular}{@{}rr@{}}
-\multicolumn{2}{c}{Parts} \\ 
- \toprule
-pnum & qoh \\ \midrule
-3 & 6 \\
-10 & 1 \\
-8 & 0 \\
-\bottomrule\end{tabular} 
-	\caption{Relation Parts}
-  \label{tab_Parts}
-\end{table}
 
 \section{Sort-Merge-Outer-Join}
 Grundlage für die Implementierung des Operators \secondo{smouterjoin} ist der Operator \secondo{sortmergejoin} der \algebra{ExtRelation-C++}-Algebra. Type-Mapping-Funktion und die Grundstruktur des Algorithmus konnten übernommen werden. Aus Gründen der Wartbarkeit wurde auf eine gemeinsame Implementierung der Value-Mapping-Funktion mit Hilfe von C++-Templates für \secondo{sortmergejoin} und \secondo{smouterjoin} verzichtet. Eine prototypische Implementierung führte zu unübersichtlichem Quellcode und Leistungseinbußen beim \secondo{sortmergejoin}. Daher wurde auf der Basis der \secondo{sortmergejoin}-Implementierung eine eigenständige Implementierung des Operators \secondo{smouterjoin} erstellt. 
@@ -137,6 +96,133 @@ where [sname = ort, plz < bev]
 
 Die komplexeste Behandlung erfordert Algorithmus NEST-JA2 (siehe Abschnitt \ref{sct:Algorithmus NEST-JA2}). Im ersten Schritt werden die Prädikate der Unterabfrage in einfache Prädikate, Join-Prädikate der inneren Abfrage und korrelierte Prädikate partitioniert. Danach werden die drei oben beschriebenen temporären Relationen erzeugt. Für die Projektion der äußeren Relationen auf die Join-Attribute müssen diese aus den korrelierten Prädikaten der Unterabfrage ermittelt werden. Hierzu werden die in den korrelierten Prädikaten verwendeten Attribute gegen die Metadaten der Relationen der Unterabfrage geprüft. Die Attribute, die nicht in den Relationen definiert sind, sind Attribute des äußeren Abfrageblocks. Tritt bei der Erstellung einer dieser Relationen ein Fehler auf wird die Verarbeitung mit einer Exception abgebrochen. Aus der dritten temporären Relation und der ursprünglichen Abfrage wird im nächsten Schritt die entschachtelte Variante aufgebaut. Die Syntax für die Umbenennung von Relationen und Attributen im Optimierer deckt sich nicht mit der entsprechenden Syntax im \textsc{Secondo}-Kernel. Daher muss bei der Erstellung der entschachtelten Variante eine Umsetzung dieser Syntax erfolgen, um korrekt auf die Attribute der dritten temporären Relation zugreifen zu können. Die Syntax im Optimierer ist Name:Attribut, während im \textsc{Secondo}-Kernel Attribut\_Name verwendet wird. Jede Verwendung von Name:Attribut muss nun in Attribut\_Name geändert werden, sofern sie sich auf ein Attribut der dritten temporären Relation bezieht. Um sicherzustellen, dass es keine Namenskonflikte durch die neu erstellte Relation gibt, wird diese mit einer Umbenennung in die entschachtelte Abfrage aufgenommen. Dafür müssen alle Attributausdrücke, die Attribute der temporären Relation verwenden, an die Umbenennung angepasst werden.
 
+\begin{table}[th]
+\centering
+\begin{tabular}{@{}rrc@{}} 
+\multicolumn{3}{c}{Supplier} \\ 
+\toprule
+pnum & quan & shipdate\\ \midrule
+3 & 4 & 03.07.79 \\
+3 & 2 & 01.10.78 \\
+10 & 1 & 08.06.78 \\
+10 & 2 & 10.08.81 \\
+8 & 5 & 07.05.83 \\
+\bottomrule\end{tabular} 
+	\caption{Relation Supplier}
+  \label{tab_Supplier}
+\end{table}
+
+\begin{table}[th]{
+\centering
+\begin{tabular}{@{}rr@{}}
+\multicolumn{2}{c}{Parts} \\ 
+ \toprule
+pnum & qoh \\ \midrule
+3 & 6 \\
+10 & 1 \\
+8 & 0 \\
+\bottomrule\end{tabular}}
+	\caption{Relation Parts}
+  \label{tab_Parts}
+\end{table}
+
+Die Abfrage 
+
+\begin{lstlisting}
+select pnum
+from p:parts as p
+where p:qoh = (select count(shipdate) 
+				     from supply
+				     where pnum = p:pnum and
+				           shipdate < 01.01.80)
+\end{lstlisting}
+
+ergibt folgende Transformationen
+
+\begin{lstlisting}
+trelxx1 = select distinct[p:pnum] from parts as p
+\end{lstlisting}
+
+\begin{table}[ht]
+%\centering
+\begin{tabular}{@{}r@{}}
+\multicolumn{1}{c}{trelxx1} \\ 
+ \toprule
+pnum\_p \\ \midrule
+3 \\
+10 \\
+8 \\
+\bottomrule\end{tabular} 
+	\caption{Relation trelxx1}
+  \label{tab_trelxx1}
+\end{table}
+
+\begin{lstlisting}
+trelxx2 = select [pnum, shipdate] from supply where shipdate < 01.01.80
+\end{lstlisting}
+
+\begin{table}[ht]
+%\centering
+\begin{tabular}{@{}rc@{}} 
+\multicolumn{2}{c}{trelxx2} \\ 
+\toprule
+pnum & shipdate\\ \midrule
+3 & 03.07.79 \\
+3 & 01.10.78 \\
+10 & 08.06.78 \\
+\bottomrule\end{tabular} 
+	\caption{Relation trelxx2}
+  \label{tab_trelxx2}
+\end{table}
+
+\begin{lstlisting}
+trelxx3 = trelxx1 feed 
+					trelxx2 feed
+					smouterjoin[pnum\_p, pnum]
+					groupby[var1: group feed count(shipdate)]
+					project[pnum_p, var1]
+					consume					
+\end{lstlisting}
+
+\begin{table}[ht]
+%\centering
+\begin{tabular}{@{}rc@{}} 
+\multicolumn{2}{c}{trelxx3} \\ 
+\toprule
+pnum\_p & var1\\ \midrule
+3 & 2 \\
+10 & 1 \\
+8 & 0 \\
+\bottomrule\end{tabular} 
+	\caption{Relation trelxx3}
+  \label{tab_trelxx3}
+\end{table}
+
+Mit den Ergebnissen Tabell \ref{tab_trelxx1}, Tabelle \ref{tab_trelxx2} und Tabelle \ref{tab_trelxx3}.
+
+Die entschachtelte Abfrage lautet dann
+
+\begin{lstlisting}
+select p:pnum
+from [parts as p, trelxx3 as alias1]
+where [p:qoh = alias1:var1, 
+		   p:pnum = alias1:pnum_p]
+\end{lstlisting}
+
+Wie sich leicht überprüfen lässt ist das Ergebnis (Tabelle \ref{tab_Q2}) übereinstimmend mit dem Ergebnis der geschachtelten Iteration. (Siehe auch die Ausführungen in \cite{38723})
+
+\begin{table}[th]
+%\centering
+\begin{tabular}{@{}r@{}} 
+\toprule
+pnum\_p \\ \midrule
+10 \\
+8 \\
+\bottomrule\end{tabular} 
+	\caption{Ergebnis Abfrage Q2 von Kiessling}
+  \label{tab_Q2}
+\end{table}
+
 \begin{lstlisting}
 select ort 
 from plz
@@ -170,7 +256,7 @@ trelxx3 = select [ort_p, max(plz_p) as var1]
 
 \section{Schema-Lookup}
 Zum Zeitpunkt der Metadaten-Ermittlung sind nur noch geschachtelte Prädikate enthalten, die nicht durch die Entschachtelungsalgorithmen in ihre kanonische Form überführt werden können. Um auch für diese Prädikate eine Übersetzung in die ausführbare Syntax von \textsc{Secondo} zu gewährleisten, müssen alle für die Optimierung benötigten Metadaten zu den verwendeten Attributen und Relationen ermittelt werden.
-Die Metadaten zu Prädikaten werden im Optimierer in einem Fakt \secondo{pr(Prädikatausdruck, Basisrelation)} für einfache (Selektions)-Prädikate und \secondo{pr(Prädikatausdruck, erste Basisrelation, zweite Basisrelation)} bei Join-Prädikaten für die weitere Verarbeitung ermittelt (siehe auch \cite{DBLP:conf/ideas/DiekerG00}). Attribute, die im Prädikatausdruck verwendet werden werden in einem Fakt \secondo{attr(Attributname, No, Case)} gespeichert. Hierbei bezieht sich No bei Join-Prädikaten auf die Reihenfolge der Relation aus der das Attribut stammt. Ist das Attribut in der ersten aufgeführten Relation enthalten, so hat No den Wert 1, andernfalls hat No den Wert2. Bei Selektionsprädikaten ist dieser Wert immer 0, da die Relation des Attributs eindeutig ist. Bei geschachtelten Prädikaten ist die erste Relation immer die Relation des Attributausdrucks auf der linken Seite des Vergleichsoperators. Steht links vom Vergleichsoperator eine Konstante, so bezieht sich die erste Relation auf die erste in der Unterabfrage verwandte Relation. Um die Stellung der Relationen des geschachtelten Prädikats auch bei der Übersetzung der Unterabfrage zur Verfügung zu haben, wird jede korrelierte Unterabfrage als Fakt subquery(Abfrage, Relation) bzw. subquery(Abfrage, erste Relation, zweite Relation) gespeichert. Hierdurch kann bei der Übersetzung in einen Plan auf die Reihenfolge der verwendeten äußeren Relationen zugegriffen werden, was u.A. bei der Umbenennung der Relationen zur Verwendung in einem \secondo{filter}-Ausdruck notwendig ist.
+Die Metadaten zu Prädikaten werden im Optimierer in einem Fakt \secondo{pr(P, R)} für einfache (Selektions)-Prädikate und \secondo{pr(P, R1, R2)} bei Join-Prädikaten für die weitere Verarbeitung ermittelt (siehe auch \cite{DBLP:conf/ideas/DiekerG00}). P bezeichnet hier einen Prädikatausdruck, R bzw. R1 und R2 sind die Relationen, deren Attribute im Prädikat verwendet werden. Attribute, die im Prädikatausdruck verwendet werden werden in einem Fakt \secondo{attr(Attributname, No, Case)} gespeichert. Hierbei bezieht sich No bei Join-Prädikaten auf die Reihenfolge der Relation aus der das Attribut stammt. Ist das Attribut in der ersten aufgeführten Relation enthalten, so hat No den Wert 1, andernfalls hat No den Wert2. Bei Selektionsprädikaten ist dieser Wert immer 0, da die Relation des Attributs eindeutig ist. Bei geschachtelten Prädikaten ist die erste Relation immer die Relation des Attributausdrucks auf der linken Seite des Vergleichsoperators. Steht links vom Vergleichsoperator eine Konstante, so bezieht sich die erste Relation auf die erste in der Unterabfrage verwandte Relation. Um die Stellung der Relationen des geschachtelten Prädikats auch bei der Übersetzung der Unterabfrage zur Verfügung zu haben, wird jede korrelierte Unterabfrage als Fakt subquery(Abfrage, Relation) bzw. subquery(Abfrage, erste Relation, zweite Relation) gespeichert. Hierdurch kann bei der Übersetzung in einen Plan auf die Reihenfolge der verwendeten äußeren Relationen zugegriffen werden, was u.A. bei der Umbenennung der Relationen zur Verwendung in einem \secondo{filter}-Ausdruck notwendig ist.
 
 Um die weitere Verarbeitung geschachtelter Abfragen zu ermöglichen, müssen in der Phase des Schema-Lookups auch die Metadaten der Objekte der Unterabfragen nachgeschlagen werden. Hierzu werden die Daten zu den Selektionsattributen der Unterabfrage entsprechend den Attributen des äußeren Abfrageblocks ermittelt. Beim Nachschlagen der Relationen wird auf die Eindeutigkeit der Attributnamen über alle Abfrageblöcke hinweg geachtet. D.h. enthält eine Relation ein Attribut \emph{A} so darf keine weitere Relation ohne Umbenennung in der Abfrage verwendet werden, die ein Attribut namens \emph{A} enthält. Auch die Metadaten der in einem Prädikat verwendeten Relationen werden für die Unterabfrage bestimmt. Da die für die Optimierung notwendigen Datenstrukturen wie z.B. die Kanten des pog zu Beginn der Optimierung einer Abfrage zurückgesetzt werden, müssen bereits an dieser Stelle die notwendigen Abfragen auf den Stichproben-Relationen für die Prädikate der Unterabfrage erfolgen. Die Ermittlung der Selektivitäten erfolgt also ebenso wie die Entschachtelung Bottom-Up. Ein geschachteltes Prädikat, das zwei Relationen der äußeren Abfrage referenziert, wird bei der Ermittlung der Selektivität wie ein einfaches Join-Prädikat behandelt. Die Abfrage über den Stichprobenrelationen für ein Join-Prädikat wird immer mit einem \secondo{loopjoin} ausgeführt. Daher wird auch hier wie unten beschrieben, das geschachtelte Prädikat mit Hilfe einer Mapping Funktion übersetzt. Die Relationen der Unterabfrage werden auf entsprechenden Stichprobenrelationen geändert. Die Größe des Ergebnisses der Stichprobenabfrage wird auf insgesamt maximal 250.000 Tupel eingeschränkt. Hierzu wird die Anzahl der in der Stichprobenabfrage verwendeten Relationen gezählt. Bei n Relationen wird nur auf die ersten $\sqrt[n]{250.000}$ Tupel jeder Stichprobenrelation zugegriffen. Die maximal in einer Selektivitätsabfrage verwendete Anzahl von Tupeln pro Relation und insgesamt sind als Prolog-Fakten \prolog{maxSampleCard} und \prolog{maxSelCard} hinterlegt.
 

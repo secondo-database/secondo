@@ -85,9 +85,9 @@ Ausblick: Full-Outer-Join auf Basis von Symmjoin. Die Tupel der beiden Ströme we
 \section{Behandlung quantifizierter Prädikate}\label{sct:Behandlung quantifizierter Prädikate}
 Prädikate mit den Operatoren \sql{exists}, \sql{all} oder \sql{any} können in ein inhaltlich äquivalentes Prädikat mit Aggregationsfunktion transformiert werden. 
 
-Das Prädikate \sql{exists(Q)}  ist genau dann wahr, wenn die Ergebnisrelation des Abfrageblocks  Q mindestens ein Tupel enthält. Ist \sql{Q = select $C_n$ from $R_m$ where P}, so lässt sich aber auch als \sql{0 < (select count($C_n$) from $R_m$ where P)} ausdrücken. Analog dazu kann \sql{not exists(select $C_n$ from $R_m$ where P)} in \sql{0 = (select count($C_n$) from $R_m$ where P)} überführt werden. Um die Berechnung der Aggregation zu beschleunigen, kann die Abfrage mit dem Ausdruck \secondo{first 1} noch auf das erste Tupel der Unterabfrage beschränkt werden. Dies verhindert das teure Operatoren auf allen Tupeln der Unterabfrage ausgeführt werden müssen. 
+Das Prädikate \sql{exists(Q)}  ist genau dann wahr, wenn die Ergebnisrelation des Abfrageblocks  Q mindestens ein Tupel enthält. Ist \lstinline[mathescape=true]{Q = select $C_n$ from $R_m$ where P}, so lässt sich aber auch als \lstinline[mathescape=true]{0 < (select count($C_n$) from $R_m$ where P)} ausdrücken. Analog dazu kann \lstinline[mathescape=true]{not exists(select $C_n$ from $R_m$ where P)} in \lstinline[mathescape=true]{0 = (select count($C_n$) from $R_m$ where P)} überführt werden. Um die Berechnung der Aggregation zu beschleunigen, kann die Abfrage mit dem Ausdruck \secondo{first 1} noch auf das erste Tupel der Unterabfrage beschränkt werden. Dies verhindert das teure Operatoren auf allen Tupeln der Unterabfrage ausgeführt werden müssen. 
 
-Das Ergebnis von Abfragen mit den Operatoren \sql{all} und \sql{any} bleibt ebenfalls erhalten, wenn man Prädikate mit den beiden Operatoren in Prädikate umwandelt, die einen Vergleich mit dem Maximum bzw. Minimum der Unterabfrage darstellen. \sql{$C_n$ $\theta$ any(select $C_m$ from $R_i$ where P)} wird für $\theta \in {<,<=,>,>=}$ transformiert in \sql{$C_n$ $\theta$ (select AGGR($C_n$) from $R_i$ where P)}. Wobei hier gilt
+Das Ergebnis von Abfragen mit den Operatoren \sql{all} und \sql{any} bleibt ebenfalls erhalten, wenn man Prädikate mit den beiden Operatoren in Prädikate umwandelt, die einen Vergleich mit dem Maximum bzw. Minimum der Unterabfrage darstellen. \lstinline[mathescape=true]{$C_n$ $\theta$ any(select $C_m$ from $R_i$ where P)} wird für $\theta \in {<,<=,>,>=}$ transformiert in \lstinline[mathescape=true]{$C_n$ $\theta$ (select AGGR($C_n$) from $R_i$ where P)}. Wobei hier gilt
 \begin{math}
 AGGR = 
 \begin{cases}
@@ -98,17 +98,17 @@ min&\quad\text{falls}\ \theta > oder \geq.
 
 So wird 
 
-\sql{select * from $R_i$ where $C_n$ $\leq$ any(select $C_m$ from $R_j$ where P)}
+\lstinline[mathescape=true]{select * from $R_i$ where $C_n$ $\leq$ any(select $C_m$ from $R_j$ where P)}
 
 in 
 
-\sql{select * from $R_i$ where $C_n$ $\leq$ (select $max(C_m)$ from $R_j$ where P)}
+\lstinline[mathescape=true]{select * from $R_i$ where $C_n$ $\leq$ (select $max(C_m)$ from $R_j$ where P)}
 
 transformiert.
 
-Im Spezialfall \sql{$C_n$ = any(select $C_m$ from $R_i$ where P)} wird das Prädikat durch das semantisch äquivalente Prädikat \sql{$C_n$ in (select $C_m$ from $R_i$ where P)} ersetzt. 
+Im Spezialfall \lstinline[mathescape=true]{$C_n$ = any(select $C_m$ from $R_i$ where P)} wird das Prädikat durch das semantisch äquivalente Prädikat \lstinline[mathescape=true]{$C_n$ in (select $C_m$ from $R_i$ where P)} ersetzt. 
 
-\sql{$C_n$ $\theta$ all(select $C_m$ from $R_i$ where P)} wird für $\theta \in {<,<=,>,>=}$ transformiert in \sql{$C_n$ $\theta$ (select AGGR($C_n$) from $R_i$ where P)}. Wobei hier gilt
+\lstinline[mathescape=true]{$C_n$ $\theta$ all(select $C_m$ from $R_i$ where P)} wird für $\theta \in {<,<=,>,>=}$ transformiert in \lstinline[mathescape=true]{$C_n$ $\theta$ (select AGGR($C_n$) from $R_i$ where P)}. Wobei hier gilt
 \begin{math}
 AGGR = 
 \begin{cases}
@@ -119,15 +119,15 @@ max&\quad\text{falls}\ \theta > oder \geq.
 
 So wird 
 
-\sql{select * from $R_i$ where $C_n$ $\leq$ all(select $C_m$ from $R_j$ where P)}
+\lstinline[mathescape=true]{select * from $R_i$ where $C_n$ $\leq$ all(select $C_m$ from $R_j$ where P)}
 
 in 
 
-\sql{select * from $R_i$ where $C_n$ $\leq$ (select $min(C_m)$ from $R_j$ where P)}
+\lstinline[mathescape=true]{select * from $R_i$ where $C_n$ $\leq$ (select $min(C_m)$ from $R_j$ where P)}
 
 transformiert.
 
-Ein Prädikat \sql{$C_n$ = all(select $C_m$ from $R_i$ where P)} hat keine sinnvolle Semantik mehr, sobald die geschachtelte Abfrage mehr als einen Wert für $C_m$ liefert. Die Verwendung von = all(Q) wird daher nicht unterstützt.
+Ein Prädikat \lstinline[mathescape=true]{$C_n$ = all(select $C_m$ from $R_i$ where P)} hat keine sinnvolle Semantik mehr, sobald die geschachtelte Abfrage mehr als einen Wert für $C_m$ liefert. Die Verwendung von = all(Q) wird daher nicht unterstützt.
 
 Mit diesen Transformationen lassen sich auch quantifizierte Prädikate als Prädikate der Typen J, N, A oder JA betrachten. Dies hat zur Folge, dass sich die im folgenden beschriebenen Optimierungsalgorithmen auch auf diese Prädikate anwenden lassen. Außerdem sind die Prädikate einer Übersetzung in ausführbare \textsc{Secondo}-Syntax besser zugänglich, da die Aggregation bereits durch Standard-Operatoren implementiert ist. Eine Einführung weiterer Operatoren zur Übersetzung quantifizierter Prädikate ist hierdurch nicht notwendig.
 
@@ -188,11 +188,7 @@ X \subset\{A_1,\ldots,A_n\} \\[1em]
 \end{cases}
 \end{math}
 
-\begin{displaymath}
-	\triangleright 
-\end{displaymath}
-
-entspricht hier dem Anti-Join-Operator
+$\triangleright$ entspricht hier dem Anti-Join-Operator
 
 Der Beweis für die Korrektheit wird in \cite{319745} geführt. Aus der im SQL Standard definierten Semantik für geschachtelte Abfragen, ergibt sich, dass für jedes betrachtete Tupel der äußeren Abfrage die innere Abfrage ausgewertet werden kann. Für den Operator \sql{in} bedeutet dies, dass das geschachtelte Prädikat \sql{WAHR} ist, wenn der Wert $X$ im Ergebnis der inneren Abfrage enthalten ist. Das Join-Prädikat der entschachtelten Abfrage ist genau dann \sql{WAHR}, wenn das geschachtelte Prädikat wahr ist.
 

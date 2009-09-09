@@ -210,31 +210,35 @@ Der \sql{in}-Operator prüft das Enthaltensein eines Werts in einer Menge. Die Me
 §$A_i$§ in (select §$A_j$§ from §$R_n$§ where P)
 \end{lstlisting} 
 
-Mit dem \sql{exists}-Operator wird die Ergebnisrelation darauf überprüft, ob sie mindestens ein Ergebnistupel enthält. In nicht-korrelierten Prädikaten ist die Verwendung von \sql{exits} meist nicht relevant, da das Prädikat in diesem Fall zu der Konstant \sql{TRUE} bzw. \sql{FALSE} auswertet. Bei korrelierten Prädikaten lassen sich mit \sql{exists} komplexe Bedingungen prüfen. 
+Mit dem \sql{exists}-Operator wird die Ergebnisrelation darauf überprüft, ob sie mindestens ein Ergebnistupel enthält. In nicht-korrelierten Prädikaten ist die Verwendung von \sql{exists} meist nicht relevant, da das Prädikat in diesem Fall zu der Konstant \sql{TRUE} bzw. \sql{FALSE} auswertet. Bei korrelierten Prädikaten lassen sich mit \sql{exists} komplexe Bedingungen prüfen. 
+
 \begin{lstlisting}
 exists(select §$A_j$§ from §$R_n$§ where P)
 \end{lstlisting}
 
 Die Operatoren \sql{any} und \sql{all} entsprechen den Quantoren $\exists$ und $\forall$ der Prädikatenlogik erster Stufe. Das Ergebnis eines Prädikats mit dem \sql{any}-Operator ist genau dann wahr, wenn mindestens ein Tupel der Ergebnisrelation den Vergleich $\theta$ erfüllt. Als Vergleichsoperator sind die skalaren Operatoren $<, <=, =, >, >=$ mit ihrer üblichen Semantik und der Operator <> mit der Bedeutung \enquote{ungleich} zulässig. Um den semantischen Unterschied des Operators \sql{any} zu der Verwendung des Wortes \enquote{any} in der englischen Sprache zu betonen und Missverständnisse zu vermeiden, wurde mit SQL92 der Operator \sql{some} mit identischer Semantik eingeführt.
+
 \begin{lstlisting}
 §$A_i$§ §$\theta$§ any(select §$A_j$§ from §$R_n$§ where P)
 \end{lstlisting}
 
 Der \sql{all}-Operator wertet zu \sql{TRUE} aus, wenn der Vergleich für alle Ergebnistupel positiv ausfällt. Die zulässigen Vergleichsoperatoren sind die selben wie beim Operator \sql{any}.
+
 \begin{lstlisting}
 §$A_i$§ §$\theta$§ all(select §$A_j$§ from §$R_n$§ where P)
 \end{lstlisting}
 
 
-	\subitem \textbf{(GROUP BY\dots HAVING-Klausel)} Auch in den Prädikaten der HAVING-Klausel kann auf Unterabfragen zurückgegriffen werden. Allerdings kann nur auf die Attribute der Ergebnisrelation der zuvorstehenden Abfrage zugegriffen werden. D.h. die Ausdrücke in einem Prädikat beziehen sich auf ein GROUP-Attribut oder ein Aggregationsergebnis.
+	\subitem \textbf{(GROUP BY\dots HAVING-Klausel)} Auch in den Prädikaten der HAVING-Klausel kann auf Unterabfragen zurückgegriffen werden. Allerdings kann nur auf die Attribute der Ergebnisrelation der zuvorstehenden Abfrage zugegriffen werden. D.h. die Ausdrücke in einem Prädikat beziehen sich auf ein \sql{group by}-Attribut oder ein Aggregationsergebnis.
+	
 \begin{lstlisting}
    select §$A_i$§, §$avg(A_j)$§
-      from §$R_n$§ as R
-      group by §$A_i$§
-      having §$avg(A_j)$§ >
+   from §$R_n$§ as R
+   group by §$A_i$§
+   having §$avg(A_j)$§ >
          (select §$avg(A_j)$§
-            from §$R_n$§
-            where §$R.A_i$§ = §$A_i$§)
+          from §$R_n$§
+          where §$R.A_i$§ = §$A_i$§)
 \end{lstlisting}
 \end{itemize}
 
