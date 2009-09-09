@@ -33,7 +33,6 @@ import tools.Reporter;
  * A displayclass for the movingpoint-type (spatiotemp algebra), 2D with TimePanel
  */
 public class Dsplmovingpoint extends DisplayTimeGraph implements LabelAttribute, RenderAttribute {
-  //AffineTransform internAT;
   Point2D.Double point;
   Vector PointMaps;
   Rectangle2D.Double bounds;
