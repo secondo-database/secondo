@@ -299,7 +299,7 @@ an nrel-type.
 struct SubRelation
 {
        
-       SubRelation::SubRelation(Relation* ptr, const string n, SmiFileId id, ListExpr tI):
+       SubRelation(Relation* ptr, const string n, SmiFileId id, ListExpr tI):
                              name(n),
                              typeInfo(tI),
                              rel(ptr),
