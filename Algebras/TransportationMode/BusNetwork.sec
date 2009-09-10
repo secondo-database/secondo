@@ -17,9 +17,20 @@ restore berlintrainsroutes from berlintrainsroutes;
 #create bus network;
 let berlintrains = thebusnetwork(1,berlintrainsroutes);
 
+let querytime = theInstant(2003,11,20,6,06,20);
 
 
-#query example
+#query example 1
+(let q1 = ((rel(tuple((id int))))(
+(1)
+(5))));
+
+query find_path_t_1(berlintrains,q1,id,querytime);
+
+query deftime(find_path_t_2(berlintrains,q1,id,querytime));
+
+
+#query example 2
 let edge_rel_order_t =  busedgerel(berlintrains) feed extend [start_t:minimum(.def_t)]
 sortby [v1 asc,start_t desc] remove[start_t] consume;
 
@@ -27,19 +38,20 @@ let btree_edge_rel_order_t_v1 = edge_rel_order_t createbtree[v1];
 let btree_edge_rel_order_t_v2 = edge_rel_order_t createbtree[v2];
 
 
-let mint1=[const mint value(
-(("begin of time" "2003-11-20-06:18:16.027" TRUE FALSE) 1)
-(("2003-11-20-06:18:16.027" "2003-11-20-06:35:29.353" FALSE FALSE) 1)
-(("2003-11-20-06:35:29.353" "2003-11-20-06:47:30.647" FALSE TRUE) 5)
-(("2003-11-20-06:47:30.647" "2003-11-20-06:57:30.647" FALSE FALSE) 20)
-(("2003-11-20-06:57:30.647" "end of time" TRUE TRUE) 1)
-)];
+
+(let tq1 = ((rel(tuple((id int)(dur duration))))(
+(1 (0 0))
+(20 (0 360000))
+(161 (0 360000))
+(154 (0 0)))));
 
 
-query deftime(edge_rel_order_t btree_edge_rel_order_t_v1 find_path_t_3[berlintrains,mint1]);
+query deftime(edge_rel_order btree_edge_rel_order_v1 find_path_t_3[berlintrains,tq1,id,dur,querytime]);
 
 
-query deftime(edge_rel_order_t btree_edge_rel_order_t_v1 btree_edge_rel_order_t_v2 find_path_t_4[berlintrains,mint1]);
+query deftime(edge_rel_order_t btree_edge_rel_order_t_v1 btree_edge_rel_order_t_v2 find_path_t_4[berlintrains,tq1,id,dur,querytime]);
+
+query deftime(edge_rel_order_t btree_edge_rel_order_t_v1 btree_edge_rel_order_t_v2 find_path_t_5[berlintrains,tq1,id,dur,querytime]);
 
 
 close database;

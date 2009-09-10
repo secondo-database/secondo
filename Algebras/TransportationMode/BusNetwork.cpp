@@ -1591,20 +1591,20 @@ optimize-1
 input relation and b-tree
 
 */
-bool BusNetwork::FindPath3(const UInt* ui1,const UInt* ui2,vector<int>& path,
-Relation* busedge,BTree* btree1)
+bool BusNetwork::FindPath3(int id1,int id2,vector<int>& path,
+Relation* busedge,BTree* btree1,Instant& queryinstant,double wait_time)
 {
 
 //  struct timeb t1;
 //  struct timeb t2;
 
   ofstream outfile("temp_result"); //record info for debug
-  int id1 = ui1->constValue.GetValue();
+
   if(id1 < 1 || id1 > bus_node->GetNoTuples()){
     cout<<"bus id is not valid"<<endl;
     return false;
   }
-  int id2 = ui2->constValue.GetValue();
+
   if(id2 < 1 || id2 > bus_node->GetNoTuples()){
     cout<<"bus id is not valid"<<endl;
     return false;
@@ -1651,12 +1651,7 @@ Relation* busedge,BTree* btree1)
         //considered
         //if ui1->lc == true
         Instant depart_time(instanttype);
-        if(ui1->timeInterval.rc){//explicitly give the time interval
-          double wait_time =
-              (ui1->timeInterval.end-ui1->timeInterval.start).ToDouble();
-          depart_time.ReadFrom(wait_time+interval_cur->end.ToDouble());
-        }else
-          depart_time = interval_cur->end;
+        depart_time.ReadFrom(wait_time+interval_cur->end.ToDouble());
 
         if(interval->start > depart_time){
             Elem e(bt_iter_edge_v1->GetId(),*interval,
@@ -1673,10 +1668,12 @@ Relation* busedge,BTree* btree1)
         }
         edge_tuple->DeleteIfAllowed();
     }else{
-      if(interval->start > ui1->timeInterval.start){
+//      if(interval->start > ui1->timeInterval.start){
+      if(interval->start > queryinstant){
         Elem e(bt_iter_edge_v1->GetId(),*interval,
                   start_node->GetIntval());
-        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
+//        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
+        e.delta_t = (interval->end-queryinstant).ToDouble();
         e.e_node_id = end_node->GetIntval();//end node id
         e. pre_edge_tid = 0;
         e.rid = rid->GetIntval();
@@ -1841,14 +1838,16 @@ BTree* btree1,int attrpos1,int attrpos2,Instant& instant)
     CcInt* id1 = (CcInt*)t1->GetAttribute(attrpos1);
     CcInt* id2 = (CcInt*)t2->GetAttribute(attrpos1);
     DateTime* timestay = (DateTime*)t1->GetAttribute(attrpos2);
-    cout<<id1->GetIntval()<<" "<<id2->GetIntval()<<endl;
-    cout<<*timestay<<endl;
+//    cout<<id1->GetIntval()<<" "<<id2->GetIntval()<<endl;
+//    cout<<*timestay<<endl;
+    double waittime = timestay->ToDouble();
 
-//    if(FindPath3(ui1,ui2,path,busedge,btree1)==false){
-//        cout<<"such a route is not valid"<<endl;
-//        path.clear();
-//        break;
-//    }
+   if(FindPath3(id1->GetIntval(),id2->GetIntval(),
+              path,busedge,btree1,instant,waittime)==false){
+        cout<<"such a route is not valid"<<endl;
+        path.clear();
+        break;
+    }
     t1->DeleteIfAllowed();
     t2->DeleteIfAllowed();
   }
@@ -1896,20 +1895,20 @@ optimize-3 filter edge by their start time
 edge relation and a b-tree
 
 */
-bool BusNetwork::FindPath4(const UInt* ui1,const UInt* ui2,vector<int>& path,
-Relation* busedge, BTree* btree1,BTree* btree2)
+bool BusNetwork::FindPath4(int id1,int id2,vector<int>& path,
+Relation* busedge, BTree* btree1,BTree* btree2,Instant& queryinstant,
+double& wait_time)
 {
-
 //  struct timeb t1;
 //  struct timeb t2;
 
   ofstream outfile("temp_result"); //record info for debug
-  int id1 = ui1->constValue.GetValue();
+
   if(id1 < 1 || id1 > bus_node->GetNoTuples()){
     cout<<"bus id is not valid"<<endl;
     return false;
   }
-  int id2 = ui2->constValue.GetValue();
+
   if(id2 < 1 || id2 > bus_node->GetNoTuples()){
     cout<<"bus id is not valid"<<endl;
     return false;
@@ -1957,12 +1956,7 @@ Relation* busedge, BTree* btree1,BTree* btree2)
         //considered
         //if ui1->lc == true
         Instant depart_time(instanttype);
-        if(ui1->timeInterval.rc){//give the time interval
-          double wait_time =
-              (ui1->timeInterval.end-ui1->timeInterval.start).ToDouble();
-          depart_time.ReadFrom(wait_time+interval_cur->end.ToDouble());
-        }else
-          depart_time = interval_cur->end;
+        depart_time.ReadFrom(wait_time+interval_cur->end.ToDouble());
 
         //optimize-3, filter edge by start time
         if(interval->start < depart_time){
@@ -1989,15 +1983,18 @@ Relation* busedge, BTree* btree1,BTree* btree2)
         edge_tuple->DeleteIfAllowed();
     }else{
         //optimize-3, filter edge by start time
-        if(interval->start < ui1->timeInterval.start){
+//        if(interval->start < ui1->timeInterval.start){
+        if(interval->start < queryinstant){
            t->DeleteIfAllowed();
            break;
         }
 
-      if(interval->start > ui1->timeInterval.start){
+//      if(interval->start > ui1->timeInterval.start){
+      if(interval->start > queryinstant){
         Elem e(bt_iter_edge_v1->GetId(),*interval,
                   start_node->GetIntval());
-        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
+//        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
+        e.delta_t = (interval->end-queryinstant).ToDouble();
         e.e_node_id = end_node->GetIntval();//end node id
         e.pre_edge_tid = 0;
         e.rpid = rpid->GetIntval();
@@ -2161,10 +2158,10 @@ void BusNetwork::TestFunction(Relation* busedge, BTree* btree1)
   delete bt_iter_edge_v1;
 }
 
-void BusNetwork::FindPath_T_4(MPoint* mp,MInt* query,Relation* busedge,
-BTree* btree1,BTree* btree2)
+void BusNetwork::FindPath_T_4(MPoint* mp,Relation* query,Relation* busedge,
+BTree* btree1,BTree* btree2,int attrpos1,int attrpos2,Instant& queryinstant)
 {
-  if(query->GetNoComponents() < 4){
+  if(query->GetNoTuples() < 2){
     cout<<"there is only start location, please give destination"<<endl;
     return;
   }
@@ -2173,20 +2170,29 @@ BTree* btree1,BTree* btree2)
   mp->StartBulkLoad();
 
   vector<int> path; //record edge id
-  const UInt* ui1;
-  const UInt* ui2;
+
   //searching process
 
 //  TestFunction(busedge,btree1);
-  for(int i = 1;i < query->GetNoComponents() - 2;i++){
-    query->Get(i,ui1);
-    query->Get(i+1,ui2);
-    if(FindPath4(ui1,ui2,path,busedge,btree1,btree2)==false){
+  for(int i = 1;i <= query->GetNoTuples() - 1;i++){
+    Tuple* t1 = query->GetTuple(i);
+    Tuple* t2 = query->GetTuple(i+1);
+    CcInt* id1 = (CcInt*)t1->GetAttribute(attrpos1);
+    CcInt* id2 = (CcInt*)t2->GetAttribute(attrpos1);
+
+    DateTime* timestay = (DateTime*)t1->GetAttribute(attrpos2);
+//    cout<<id1->GetIntval()<<" "<<id2->GetIntval()<<endl;
+//    cout<<*timestay<<endl;
+    double waittime = timestay->ToDouble();
+
+    if(FindPath4(id1->GetIntval(),id2->GetIntval(),path,busedge,btree1,btree2,
+           queryinstant,waittime)==false){
         cout<<"such a route is not valid"<<endl;
         path.clear();
         break;
     }
-
+    t1->DeleteIfAllowed();
+    t2->DeleteIfAllowed();
   }
   /****************Construct the Reulst (MPoint)*************************/
   const UPoint* lastup = NULL;
@@ -2307,20 +2313,21 @@ optimize-3 filter edge by their start time
 edge relation and a b-tree
 
 */
-bool BusNetwork::FindPath5(const UInt* ui1,const UInt* ui2,vector<Elem>& path,
-Relation* busedge, BTree* btree1,BTree* btree2)
+bool BusNetwork::FindPath5(int id1,int id2,vector<Elem>& path,
+Relation* busedge, BTree* btree1,BTree* btree2,Instant& queryinstant,
+double& wait_time)
 {
 
 //  struct timeb t1;
 //  struct timeb t2;
 
   ofstream outfile("temp_result"); //record info for debug
-  int id1 = ui1->constValue.GetValue();
+
   if(id1 < 1 || id1 > bus_node->GetNoTuples()){
     cout<<"bus id is not valid"<<endl;
     return false;
   }
-  int id2 = ui2->constValue.GetValue();
+
   if(id2 < 1 || id2 > bus_node->GetNoTuples()){
     cout<<"bus id is not valid"<<endl;
     return false;
@@ -2368,12 +2375,7 @@ Relation* busedge, BTree* btree1,BTree* btree2)
         //considered
         //if ui1->lc == true
         Instant depart_time(instanttype);
-        if(ui1->timeInterval.rc){//give the time interval
-          double wait_time =
-              (ui1->timeInterval.end-ui1->timeInterval.start).ToDouble();
-          depart_time.ReadFrom(wait_time+interval_cur->end.ToDouble());
-        }else
-          depart_time = interval_cur->end;
+        depart_time.ReadFrom(wait_time+interval_cur->end.ToDouble());
 
         //optimize-3, filter edge by start time
         if(interval->start < depart_time){
@@ -2417,15 +2419,18 @@ Relation* busedge, BTree* btree1,BTree* btree2)
 
     }else{
         //optimize-3, filter edge by start time
-        if(interval->start < ui1->timeInterval.start){
+//        if(interval->start < ui1->timeInterval.start){
+        if(interval->start < queryinstant){
            t->DeleteIfAllowed();
            break;
         }
 
-      if(interval->start > ui1->timeInterval.start){
+//      if(interval->start > ui1->timeInterval.start){
+        if(interval->start > queryinstant){
         Elem e(bt_iter_edge_v1->GetId(),*interval,
                   start_node->GetIntval());
-        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
+//        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
+        e.delta_t = (interval->end-queryinstant).ToDouble();
         e.e_node_id = end_node->GetIntval();//end node id
         e.pre_edge_tid = 0;
         e.rpid = rpid->GetIntval();
@@ -2449,7 +2454,6 @@ Relation* busedge, BTree* btree1,BTree* btree2)
                 if(i == elemlist.size())
                   elemlist.push_back(e);
               }
-
         }
       }
     }
@@ -2518,8 +2522,9 @@ Relation* busedge, BTree* btree1,BTree* btree2)
 //////////////////////////////////////////////////////////////////////////
 
   while(q_list.empty() == false){
-    cout<<"q_list size "<<q_list.size()<<endl;
+//    cout<<"q_list size "<<q_list.size()<<endl;
     Elem top = q_list.top();
+
 //    cout<<"top delta_t "<<top.delta_t<<endl;
 //    cout<<"prune_time "<<prune_time<<endl;
 
@@ -2666,10 +2671,10 @@ optimize-3 filter edge by their start time
 input edge relation and b-tree
 
 */
-void BusNetwork::FindPath_T_5(MPoint* mp,MInt* query,Relation* busedge,
-BTree* btree1,BTree* btree2)
+void BusNetwork::FindPath_T_5(MPoint* mp,Relation* query,Relation* busedge,
+BTree* btree1,BTree* btree2,int attrpos1,int attrpos2,Instant& queryinstant)
 {
-  if(query->GetNoComponents() < 4){
+  if(query->GetNoTuples() < 2){
     cout<<"there is only start location, please give destination"<<endl;
     return;
   }
@@ -2679,15 +2684,23 @@ BTree* btree1,BTree* btree2)
 
 //  vector<int> path; //record edge id
   vector<Elem> path;
-  const UInt* ui1;
-  const UInt* ui2;
   //searching process
 
 //  TestFunction(busedge,btree1);
-  for(int i = 1;i < query->GetNoComponents() - 2;i++){
-    query->Get(i,ui1);
-    query->Get(i+1,ui2);
-    if(FindPath5(ui1,ui2,path,busedge,btree1,btree2)==false){
+  for(int i = 1;i <= query->GetNoTuples() - 1;i++){
+    Tuple* t1 = query->GetTuple(i);
+    Tuple* t2 = query->GetTuple(i+1);
+    CcInt* id1 = (CcInt*)t1->GetAttribute(attrpos1);
+    CcInt* id2 = (CcInt*)t2->GetAttribute(attrpos1);
+
+    DateTime* timestay = (DateTime*)t1->GetAttribute(attrpos2);
+//    cout<<id1->GetIntval()<<" "<<id2->GetIntval()<<endl;
+//    cout<<*timestay<<endl;
+    double waittime = timestay->ToDouble();
+//    cout<<waittime<<endl;
+
+    if(FindPath5(id1->GetIntval(),id2->GetIntval(),
+              path,busedge,btree1,btree2,queryinstant,waittime)==false){
         cout<<"such a route is not valid"<<endl;
         path.clear();
         break;

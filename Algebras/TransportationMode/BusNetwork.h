@@ -115,21 +115,24 @@ public:
   void FindPath_T_2(MPoint* result,Relation* query,int attrpos,Instant&);
   void Optimize1(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list);
   //time duration for middle stop ,optimize-1
-  bool FindPath3(const UInt* ui1,const UInt* ui2,vector<int>& path,
-                Relation*,BTree*);
+  bool FindPath3(int id1,int id2,vector<int>& path,Relation*,BTree*,
+                 Instant&,double);
   void FindPath_T_3(MPoint* result,Relation* query,Relation*,BTree*,int,int,
                     Instant&);
   void Optimize2(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list,
                 list<Elem>& end_node_edge,double&);
   //input relation and b-tree, optimize-1,3
-  bool FindPath4(const UInt* ui1,const UInt* ui2,vector<int>& path,
-                Relation*,BTree*,BTree*);
-  void FindPath_T_4(MPoint* result,MInt* query,Relation*,BTree*,BTree*);
+  bool FindPath4(int id1,int id2,vector<int>& path,
+                Relation*,BTree*,BTree*,Instant&,double&);
+  void FindPath_T_4(MPoint* result,Relation* query,Relation*,BTree*,BTree*,
+                    int,int,Instant&);
+
   void TestFunction(Relation*,BTree*);
   //optimize-2
-  bool FindPath5(const UInt* ui1,const UInt* ui2, vector<Elem>& path,
-                Relation*,BTree*,BTree*);
-  void FindPath_T_5(MPoint* result,MInt* query,Relation*,BTree*,BTree*);
+  bool FindPath5(int id1,int id2,vector<Elem>& path,
+                Relation*,BTree*,BTree*,Instant&,double&);
+  void FindPath_T_5(MPoint* result,Relation* query,Relation*,BTree*,BTree*,
+                    int,int,Instant&);
 
 private:
   int busnet_id;
