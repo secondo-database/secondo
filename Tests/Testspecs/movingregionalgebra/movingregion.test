@@ -23,6 +23,8 @@
 # SecondoBDB -test -i $SECONDO_BUILD_DIR/Tests/Testspecs/movingregionalgebra/movingregion.test
 # Duration: about X minutes (Microsoft Windows Platform)
 
+#stop MovingRegionAlgebra has a lot of problems
+
 # clean up what may be left over from e.g. a segfault
 delete database movingregtest;
 
