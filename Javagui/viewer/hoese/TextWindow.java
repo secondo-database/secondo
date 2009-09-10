@@ -601,7 +601,7 @@ public class TextWindow extends JPanel {
   */
   private void processQuery (QueryResult qr) {
     String name = qr.LEResult.first().toString();
-    LEUtils.analyse(name,qr.LEResult.first(), qr.LEResult.second(), qr); 
+    LEUtils.analyse(name,0,0,qr.LEResult.first(), qr.LEResult.second(), qr); 
     qr.computeTimeBounds(); 
   }
 

@@ -226,11 +226,11 @@ public class Dsplmovingregion extends DisplayTimeGraph{
   }
 
 
-  public void init (String name, int nameWidth,
+  public void init (String name, int nameWidth, int indent,
                     ListExpr type, 
                     ListExpr value,
                     QueryResult qr) {
-    AttrName = extendString(name,nameWidth);
+    AttrName = extendString(name,nameWidth, indent);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Dsplmovingregion Error in ListExpr :parsing aborted");

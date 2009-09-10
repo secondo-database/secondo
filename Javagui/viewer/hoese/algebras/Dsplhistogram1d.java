@@ -182,8 +182,8 @@ public class Dsplhistogram1d extends DsplGeneric implements  DisplayComplex, Ext
 	 * @param qr
 	 *            queryresult to display output.
 	 */
-  public void init(String name, int nameLength, ListExpr type, ListExpr value, QueryResult qr){
-    AttrName = extendString(name, nameLength);
+  public void init(String name, int nameLength, int indent,  ListExpr type, ListExpr value, QueryResult qr){
+    AttrName = extendString(name, nameLength, indent);
  		ScanValue(value);
                 if (undef)
                 {

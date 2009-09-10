@@ -51,12 +51,12 @@ public class Dsplrational extends DsplGeneric {
      return result;
    }
 
- public void init (String name, int nameWidth, 
+ public void init (String name, int nameWidth, int indent, 
                    ListExpr type, ListExpr value, QueryResult qr)
   {
      String T = name;
      String V = getValueString(value);
-     T=extendString(T,nameWidth);
+     T=extendString(T,nameWidth, indent);
      qr.addEntry(T + " : " + V);
      return;
   }

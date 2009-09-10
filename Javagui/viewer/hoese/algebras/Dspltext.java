@@ -57,7 +57,7 @@ public String toString(){
    return Entry;
 }
 
-public void init (String name, int nameWidth, ListExpr type,ListExpr value, QueryResult qr)
+public void init (String name, int nameWidth, int indent, ListExpr type,ListExpr value, QueryResult qr)
   {
      String T = name;
      String V;
@@ -80,7 +80,7 @@ public void init (String name, int nameWidth, ListExpr type,ListExpr value, Quer
 						theList = value;
 				 }
      }
-     T=extendString(T,nameWidth);
+     T=extendString(T,nameWidth, indent);
      String Text = V;
      computeType(Text);
 

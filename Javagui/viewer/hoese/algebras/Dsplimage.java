@@ -45,8 +45,8 @@ public class Dsplimage implements DsplBase {
     return  TestFrame;
   }
 
-  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = DsplGeneric.extendString(name,nameWidth);
+  public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = DsplGeneric.extendString(name,nameWidth, indent);
     lab = new JLabel(new ImageIcon(value.stringValue()));
     lab.setOpaque(true);
     qr.addEntry(this);

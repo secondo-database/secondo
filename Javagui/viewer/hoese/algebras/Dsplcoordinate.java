@@ -69,9 +69,9 @@ public class Dsplcoordinate extends DsplGeneric {
     return  true;
   }
 
-  public void init (String name, int nameWidth, 
+  public void init (String name, int nameWidth, int indent, 
                     ListExpr type, ListExpr value,  QueryResult qr) {
-    String name1 = extendString(name,nameWidth);
+    String name1 = extendString(name,nameWidth, indent);
     if (!ScanValue(value))
       qr.addEntry("(" + name1 + ":" + koord + ")"); 
     else 

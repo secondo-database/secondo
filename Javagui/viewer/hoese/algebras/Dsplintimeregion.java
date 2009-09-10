@@ -110,8 +110,8 @@ public class Dsplintimeregion extends Dsplregion implements Timed {
    * @see sj.lang.ListExpr
    * @see <a href="Dsplintimeregionsrc.html#init">Source</a>
    */
-  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = extendString(name, nameWidth);
+  public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name, nameWidth, indent);
     ScanValue(value);
     if (err) {
       Reporter.writeError("Error in ListExpr :parsing aborted");

@@ -90,13 +90,13 @@ public class Dsplpredicategroup extends DsplGeneric implements  ExternDisplay{
 
 
 
-  public void init (String name, int nameWidth, 
+  public void init (String name, int nameWidth,int indent, 
                     ListExpr type, ListExpr value,  QueryResult qr)
   {
      String T = name;
      text = getDisplay(value);
      String V = "predicategroup";
-     T=extendString(T, nameWidth);
+     T=extendString(T, nameWidth, indent);
      entry = T + " : " + V;
      qr.addEntry(this);
      return;

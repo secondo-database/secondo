@@ -8,7 +8,7 @@ import javax.swing.*;
 import java.awt.*;
 
 public class Dsplnrel extends DsplGeneric{
-	 public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+	 public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
 		 long startTime=0;
 		 if(gui.Environment.MEASURE_TIME){
 			 startTime = System.currentTimeMillis();
@@ -19,7 +19,7 @@ public class Dsplnrel extends DsplGeneric{
 		 }
 		 int maxAttribNameLen = maxAttributLength(type.second().second());
 		 while (!value.isEmpty()) {
-			displayPrimaryTuple(type.second().second(), value.first(), maxAttribNameLen, qr);
+			displayPrimaryTuple(type.second().second(), value.first(), maxAttribNameLen,indent,  qr);
 		    value = value.rest();
 		    if (!value.isEmpty())
 		    	qr.addEntry("---------");
@@ -38,7 +38,7 @@ public class Dsplnrel extends DsplGeneric{
 	 /**
 	  * Displays the primary tuple of a nested relation.
 	  */
-	 private void displayPrimaryTuple (ListExpr type, ListExpr value, int maxNameLen, QueryResult qr) {
+	 private void displayPrimaryTuple (ListExpr type, ListExpr value, int maxNameLen, int indent,  QueryResult qr) {
 		    int i;
 		    String s;
 		    DsplBase dg;
@@ -55,7 +55,7 @@ public class Dsplnrel extends DsplGeneric{
 		      int oldnum = qr.getModel().getSize();
 		      String name = type.first().first().symbolValue();
 		      subType = type.first().second();
-		      dg.init(name, maxNameLen, subType, value.first(), qr);
+		      dg.init(name, maxNameLen, indent, subType, value.first(), qr);
 		      int newnum = qr.getModel().getSize();
 		      int diff = newnum-oldnum;
 		      if(diff<1){

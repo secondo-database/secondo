@@ -34,7 +34,7 @@ public class Dspluint extends DsplGeneric implements LabelAttribute{
    Interval interval;
 
 
-  public void init (String name, int nameWidth,  ListExpr type, ListExpr value, QueryResult qr)
+  public void init (String name, int nameWidth,  int indent, ListExpr type, ListExpr value, QueryResult qr)
   {
      String T = name;
      interval = null;
@@ -62,7 +62,7 @@ public class Dspluint extends DsplGeneric implements LabelAttribute{
         V = "" + interval + " : " + this.value;
      }
      
-     T=extendString(T,nameWidth);
+     T=extendString(T,nameWidth, indent);
      qr.addEntry(T + " : " + V);
   }
 

@@ -88,12 +88,12 @@ public class Dsplintimereal extends Dsplinstant {
     return entry; 
   }
 
-  public void init (String name, int nameWidth, 
+  public void init (String name, int nameWidth, int indent, 
                     ListExpr type, ListExpr value, QueryResult qr)
   {
      String T = name;
      String V = getString(value);
-     T=extendString(T,nameWidth);
+     T=extendString(T,nameWidth, indent);
      entry=(T + " : " + V);
      if(!err){
         qr.addEntry(this);

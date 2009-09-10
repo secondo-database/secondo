@@ -75,8 +75,8 @@ public class Dsplint extends DsplGeneric implements  RenderAttribute, LabelAttri
    * up the intern datastructures for this type. An alphanumeric representation is 
    * neccessary for the displaying this type in the queryresultlist.
    */
-  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
-    entry = extendString(name,nameWidth) +" : "+ getString(value);
+  public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
+    entry = extendString(name,nameWidth, indent) +" : "+ getString(value);
     qr.addEntry(this);
     return;
   }

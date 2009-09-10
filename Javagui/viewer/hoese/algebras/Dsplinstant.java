@@ -90,8 +90,8 @@ public class Dsplinstant extends DsplGeneric implements Timed {
     return LEUtils.convertTimeToString(TimeBounds.getStart());
   }
 
-  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = extendString(name,nameWidth);
+  public void init (String name, int nameWidth, int indent,ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name,nameWidth, indent);
     String v = getString(value);
     entry = AttrName + ":"+v;
     if (err) {

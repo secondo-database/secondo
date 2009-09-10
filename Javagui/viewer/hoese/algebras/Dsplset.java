@@ -81,9 +81,9 @@ public String toString(){
  *  
  * @see <a href="Dsplsetsrc.html#init">Source</a>
  */
-public void init (String name, int namewidth, ListExpr type, ListExpr value, QueryResult qr) 
+public void init (String name, int namewidth, int indent, ListExpr type, ListExpr value, QueryResult qr) 
  {
-  String n = extendString(name,namewidth);
+  String n = extendString(name,namewidth, indent);
   if(type.second().isAtom())
     Entry = n + " : Set of type "+type.second().symbolValue();
   else
@@ -148,7 +148,7 @@ private void initSet(ListExpr value, ListExpr type){
     }
     DsplGraph o = (DsplGraph)t.newInstance();
    graphVector.addElement(o);
-   o.init(type.toString(),0,type,value.first(),new QueryResult(new SecondoObject("nix",value.first()),true));
+   o.init(type.toString(),0,0,type,value.first(),new QueryResult(new SecondoObject("nix",value.first()),true));
    System.out.println("Der aktuelle List Wert ist "+value.first());
    value=value.rest();
    }
@@ -219,14 +219,14 @@ try{
   Class t = Class.forName("viewer.hoese.algebras."+"Dspl"+Source.tempType.second().symbolValue());
   while(!valueCopy.isEmpty()){
     DsplGeneric testklasse = (DsplGeneric)t.newInstance();
-    testklasse.init(Source.tempType.second().toString(),0,Source.tempType.second(),valueCopy.first(),qrNEW);
+    testklasse.init(Source.tempType.second().toString(),0,0,Source.tempType.second(),valueCopy.first(),qrNEW);
     valueCopy = valueCopy.rest();
   } 
 }else{
   Class t = Class.forName("viewer.hoese.algebras."+"Dspl"+Source.tempType.second().first().symbolValue());
   while(!valueCopy.isEmpty()){
     DsplGeneric testklasse = (DsplGeneric)t.newInstance();
-    testklasse.init(Source.tempType.second().toString(),0,Source.tempType.second(),valueCopy.first(),qrNEW);
+    testklasse.init(Source.tempType.second().toString(),0,0,Source.tempType.second(),valueCopy.first(),qrNEW);
     valueCopy = valueCopy.rest();
   } 
 }

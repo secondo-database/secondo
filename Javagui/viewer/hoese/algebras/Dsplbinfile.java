@@ -41,7 +41,7 @@ public class Dsplbinfile extends DsplGeneric implements  Writable{
    * up the intern datastructures for this type. An alphanumeric representation is
    * neccessary for the displaying this type in the queryresultlist.
    */
-  public void init (String Name, int nameWidth,
+  public void init (String Name, int nameWidth, int indent,
                     ListExpr type, ListExpr value,
                     QueryResult qr)
   {
@@ -68,7 +68,7 @@ public class Dsplbinfile extends DsplGeneric implements  Writable{
             defined=false;
          }
      }
-     T=extendString(T,nameWidth);
+     T=extendString(T,nameWidth, indent);
      entry =T+" : " + V;
      if(!defined){
          qr.addEntry(entry);

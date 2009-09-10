@@ -63,8 +63,8 @@ public class Dsplrangereal extends DsplGeneric {
     return  true;
   }
 
-  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
-    name = extendString(name , nameWidth);
+  public void init (String name, int nameWidth, int indent,  ListExpr type, ListExpr value, QueryResult qr) {
+    name = extendString(name , nameWidth, indent);
     String e = "";
     if ((!ScanValue(value)) || value.isEmpty())
       qr.addEntry("(" + name + ":[?,?])"); 

@@ -81,9 +81,9 @@ public String toString(){
  *  
  * @see <a href="Dsplvectorsrc.html#init">Source</a>
  */
-public void init (String name, int namewidth, ListExpr type, ListExpr value, QueryResult qr) 
+public void init (String name, int namewidth, int indent, ListExpr type, ListExpr value, QueryResult qr) 
  {
-  String n = extendString(name,namewidth);
+  String n = extendString(name,namewidth, indent);
 
   if(type.second().isAtom())
     Entry = n + ": Vector of type "+type.second().symbolValue();
@@ -94,7 +94,7 @@ public void init (String name, int namewidth, ListExpr type, ListExpr value, Que
   tempType = type;
   subtyp=getTypeName(type).symbolValue();
   //System.out.println("aktueller value ist: " +value);
-  if(isGraph(subtyp) && value.listLength()!=0)initVector(value,type.second());
+  if(isGraph(subtyp) && value.listLength()!=0)initVector(value,type.second(), indent);
  System.out.println("Größe des graphVectors: " + graphVector.size());
  }
 
@@ -139,7 +139,7 @@ public int numberOfShapes(){
  * 
  * @see <a href="Dsplvectorsrc.html#initVector">Source</a>
  */
-private void initVector(ListExpr value, ListExpr type){
+private void initVector(ListExpr value, ListExpr type, int indent){
  try{
    while(!value.isEmpty()){
    Class t;
@@ -151,7 +151,7 @@ private void initVector(ListExpr value, ListExpr type){
     DsplGraph o = (DsplGraph)t.newInstance();
    graphVector.addElement(o);
    String name = type.toString();
-   o.init(name,0,type,value.first(),new QueryResult(new SecondoObject("nix",value.first()),true));
+   o.init(name,0,indent,type,value.first(),new QueryResult(new SecondoObject("nix",value.first()),true));
    //System.out.println("Der aktuelle Vector List Wert ist "+value.first());
    value=value.rest();
    }
@@ -224,7 +224,7 @@ try{
   while(!valueCopy.isEmpty()){
     DsplGeneric testklasse = (DsplGeneric)t.newInstance();
     String name = Source.tempType.second().toString();
-    testklasse.init(name,0,Source.tempType.second(),valueCopy.first(),qrNEW);
+    testklasse.init(name,0,0,Source.tempType.second(),valueCopy.first(),qrNEW);
     valueCopy = valueCopy.rest();
   } 
 }else{
@@ -232,7 +232,7 @@ try{
   while(!valueCopy.isEmpty()){
     DsplGeneric testklasse = (DsplGeneric)t.newInstance();
     String name = Source.tempType.second().toString();
-    testklasse.init(name,0,Source.tempType.second(),valueCopy.first(),qrNEW);
+    testklasse.init(name,0,0,Source.tempType.second(),valueCopy.first(),qrNEW);
     valueCopy = valueCopy.rest();
   } 
 }

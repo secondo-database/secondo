@@ -7,19 +7,19 @@ import viewer.hoese.*;
 
 public class Dsplarel extends DsplGeneric{
 	String entry;
-	public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+	public void init (String name, int nameWidth, int indent,  ListExpr type, ListExpr value, QueryResult qr) {
 		String T = name;
-	    T = extendString(T, nameWidth);
+	    T = extendString(T, nameWidth, indent);
 	    entry=(T + " :");
 		qr.addEntry(this);
 		int maxAttribNameLen = maxAttributLength(type.second().second());
 		if (nameWidth > maxAttribNameLen)
 			maxAttribNameLen = nameWidth;
 		while (!value.isEmpty()) {
-			displayArelTuple(type.second().second(), value.first(), maxAttribNameLen, qr);
+			displayArelTuple(type.second().second(), value.first(), maxAttribNameLen, indent, qr);
 		    value = value.rest();
 		    if (!value.isEmpty())
-		    	qr.addEntry(new Dsplend(maxAttribNameLen));
+		    	qr.addEntry(new Dsplend(indent));
 		    }
 		    return;
 	}
@@ -28,42 +28,41 @@ public class Dsplarel extends DsplGeneric{
 	* and calls its init method.
 	* @see <a href="Dspltuplesrc.html#displayTuple">Source</a>
 	*/
-	private void displayArelTuple (ListExpr type, ListExpr value, int maxNameLen, QueryResult qr) {
-	    maxNameLen = maxNameLen + 2;
+	private void displayArelTuple (ListExpr type, ListExpr value, int maxNameLen, int indent,QueryResult qr) {
 		int i;
-	    String s;
-	    DsplBase dg;
-	    while (!value.isEmpty()) {
-	      s = type.first().first().symbolValue();
-	      ListExpr subType = type.first().second();
-	      while(subType.atomType()!=ListExpr.SYMBOL_ATOM){
-	         subType = subType.first();
-	      }
-	      dg = LEUtils.getClassFromName(subType.symbolValue());
-	       String typeName = subType.symbolValue();
-	      // ensure to add exactly one entry per attribute
-	      int oldnum = qr.getModel().getSize();
-	      String name = type.first().first().symbolValue();
-	      subType = type.first().second();
-	     
-	      dg.init(name, maxNameLen, subType, value.first(), qr);
-	      int newnum = qr.getModel().getSize();
-	      int diff = newnum-oldnum;
-	      if(diff<1){
-	         tools.Reporter.writeError("missing entry for attribute "+s);
-	         tools.Reporter.writeError("check the implementation of the class " + dg.getClass());
-	         qr.addEntry("error");
-	      }
-	      if (!(typeName.equals("arel"))){
-	    	  if(diff>1){
-	    		  tools.Reporter.writeError("to many entries for attribute "+s+
-	                             "\n please check the implementation of the "+dg.getClass() + " class");
-	    	  }
-	      }
-	      type = type.rest();
-	      value = value.rest();
+	  String s;
+	  DsplBase dg;
+	  while (!value.isEmpty()) {
+	    s = type.first().first().symbolValue();
+	    ListExpr subType = type.first().second();
+	    while(subType.atomType()!=ListExpr.SYMBOL_ATOM){
+	       subType = subType.first();
 	    }
-	    return;
+	    dg = LEUtils.getClassFromName(subType.symbolValue());
+	    String typeName = subType.symbolValue();
+	    // ensure to add exactly one entry per attribute
+	    int oldnum = qr.getModel().getSize();
+	    String name = type.first().first().symbolValue();
+	    subType = type.first().second();
+	     
+	    dg.init(name, maxNameLen, indent +3, subType, value.first(), qr);
+      int newnum = qr.getModel().getSize();
+      int diff = newnum-oldnum;
+      if(diff<1){
+         tools.Reporter.writeError("missing entry for attribute "+s);
+         tools.Reporter.writeError("check the implementation of the class " + dg.getClass());
+         qr.addEntry("error");
+      }
+      if (!(typeName.equals("arel"))){
+    	  if(diff>1){
+    		  tools.Reporter.writeError("to many entries for attribute "+s+
+                             "\n please check the implementation of the "+dg.getClass() + " class");
+    	  }
+      }
+      type = type.rest();
+      value = value.rest();
+    }
+    return;
 	}
 
 	/**
@@ -94,14 +93,14 @@ public class Dsplarel extends DsplGeneric{
 	 * Auxiliary class to display the end of tuple sign in the correct position.
 	 */
 	public class Dsplend extends DsplGeneric{
-		private int width;
+		private int indent;
 		private int n;
-		public Dsplend (int w){
-			width = w;
+		public Dsplend (int indent){
+			this.indent = indent;
 		}
 		public String toString(){
 			String s = "---------";
-			s = extendString(s, width + 2);
+			s = extendStringLeft(s, indent + 2);
 			return s;
 		}
 	}

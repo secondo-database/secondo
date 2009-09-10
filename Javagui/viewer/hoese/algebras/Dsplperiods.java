@@ -113,8 +113,9 @@ public class Dsplperiods extends DsplGeneric implements Timed {
     return "periods";
   }
 
-  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
-    String t = extendString(name, nameWidth);
+  public void init (String name, int nameWidth, int indent,
+                    ListExpr type, ListExpr value, QueryResult qr) {
+    String t = extendString(name, nameWidth, indent);
     String v = getString(value);
     entry = t+":"+v;
     if(err){

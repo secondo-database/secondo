@@ -144,11 +144,10 @@ public class Dsplmovingstring extends DsplGeneric implements Timed,LabelAttribut
     
   }
 
-   public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr)
+   public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr)
   {
-     String T = extendString(name, nameWidth);
+     String T = extendString(name, nameWidth, indent);
      String V = getString(value);
-     T=extendString(T,nameWidth);
      entry=(T + " : " + V);
      if(err){
         qr.addEntry(entry);

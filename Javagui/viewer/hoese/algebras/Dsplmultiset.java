@@ -82,9 +82,9 @@ public String toString(){
  *  
  * @see <a href="Dsplmultisetsrc.html#init">Source</a>
  */
-public void init (String name, int namewidth, ListExpr type, ListExpr value, QueryResult qr) 
+public void init (String name, int namewidth, int indent, ListExpr type, ListExpr value, QueryResult qr) 
  { 
-  String n = extendString(name,namewidth);
+  String n = extendString(name,namewidth, indent);
   if(type.second().isAtom())
     Entry = n + " : Multiset of type "+type.second().symbolValue();
   else
@@ -153,7 +153,7 @@ private void initMultiset(ListExpr value, ListExpr type){
     graphVector.addElement(o);
     String name = "";
     System.out.println(type + "  " + value.first().first());
-    o.init(name,0,type,value.first().first(),new QueryResult(new SecondoObject("nix",value.first().first()),true));
+    o.init(name,0,0,type,value.first().first(),new QueryResult(new SecondoObject("nix",value.first().first()),true));
     System.out.println("Der aktuelle Vector List Wert ist "+value.first());
     value=value.rest();
    }
@@ -225,7 +225,7 @@ try{
   while(!valueCopy.isEmpty()){
     for(int i=0;i<valueCopy.first().second().intValue();i++){
     DsplGeneric testklasse = (DsplGeneric)t.newInstance();
-    testklasse.init(Source.tempType.second().toString(),0,Source.tempType.second(),valueCopy.first().first(),qrNEW);
+    testklasse.init(Source.tempType.second().toString(),0,0,Source.tempType.second(),valueCopy.first().first(),qrNEW);
     }
     valueCopy = valueCopy.rest();
   } 
@@ -234,7 +234,7 @@ try{
   while(!valueCopy.isEmpty()){
     for(int i=0;i<valueCopy.first().second().intValue();i++){
     DsplGeneric testklasse = (DsplGeneric)t.newInstance();
-    testklasse.init(Source.tempType.second().toString(),0,Source.tempType.second(),valueCopy.first().first(),qrNEW);
+    testklasse.init(Source.tempType.second().toString(),0,0,Source.tempType.second(),valueCopy.first().first(),qrNEW);
     }
     valueCopy = valueCopy.rest();
   } 

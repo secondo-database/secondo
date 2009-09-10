@@ -41,10 +41,10 @@ public class Dspltuple extends DsplGeneric {
    * @see sj.lang.ListExpr
    * @see <a href="Dspltuplesrc.html#init">Source</a>
    */
-  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
+  public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
     int maxAttribNameLen = maxAttributLength(type.second());
     while (!value.isEmpty()) {
-      displayTuple(type.second(), value.first(), maxAttribNameLen, qr);
+      displayTuple(type.second(), value.first(), maxAttribNameLen, indent, qr);
       value = value.rest();
       if (!value.isEmpty())
         qr.addEntry("---------");
@@ -60,7 +60,7 @@ public class Dspltuple extends DsplGeneric {
    * and calls its init method.
    * @see <a href="Dspltuplesrc.html#displayTuple">Source</a>
    */
-  private void displayTuple (ListExpr type, ListExpr value, int maxNameLen, QueryResult qr) {
+  private void displayTuple (ListExpr type, ListExpr value, int maxNameLen, int indent, QueryResult qr) {
     int i;
     String s;
     DsplBase dg;
@@ -79,7 +79,7 @@ public class Dspltuple extends DsplGeneric {
       String name = type.first().first().symbolValue();
 
       subType = type.first().second();
-      dg.init(name, maxNameLen, subType, value.first(), qr);
+      dg.init(name, maxNameLen, indent, subType, value.first(), qr);
       int newnum = qr.getModel().getSize();
       int diff = newnum-oldnum;
       if(diff<1){

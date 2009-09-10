@@ -40,7 +40,7 @@ public String toString(){
    return Entry;
 }
 
-public void init(String name, int nameWidth, 
+public void init(String name, int nameWidth,int indent, 
                  ListExpr type,
                  ListExpr value,
                  QueryResult qr){
@@ -57,7 +57,7 @@ public void init(String name, int nameWidth,
      V = "undefined";
      ok = false;
   }
-  AttrName = extendString(AttrName, nameWidth);
+  AttrName = extendString(AttrName, nameWidth, indent);
   Entry = AttrName + " : "+V;
   if(!ok){
     qr.addEntry(Entry);

@@ -98,8 +98,8 @@ public class Dsplintimeline extends Dsplline implements Timed {
     return "intimeline";
   }
 
-  public void init (String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr) {
-    AttrName = extendString(name,nameWidth);
+  public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr) {
+    AttrName = extendString(name,nameWidth, indent);
     String v = getString(value);
     entry = type.symbolValue()+":"+v;
     if(!err){

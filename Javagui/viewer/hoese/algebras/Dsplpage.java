@@ -151,7 +151,7 @@ protected boolean  scanValue(ListExpr value){
 }
 
 
-public void init ( String name , int nameWidth,
+public void init ( String name , int nameWidth,int indent,
                    ListExpr type, ListExpr value,  QueryResult qr)
   {
 
@@ -167,7 +167,7 @@ public void init ( String name , int nameWidth,
        V = "Page";
        scanValue(value);
      }
-     T=extendString(T,nameWidth);
+     T=extendString(T,nameWidth, indent);
      String Text = V;
 
      Entry = T + " : <page> ...";

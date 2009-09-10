@@ -151,12 +151,12 @@ public class Dsplurl extends DsplGeneric implements LabelAttribute{
    String label;
 
 
-  public void init (String name, int nameWidth, ListExpr type, ListExpr value,QueryResult qr)
+  public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value,QueryResult qr)
   {
      url = new Url();
      String V;
      String T = name;
-     T=extendString(T,nameWidth);
+     T=extendString(T,nameWidth, indent);
      if(url.readFrom(value)){
          V=url.toString();
          label=V;

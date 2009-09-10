@@ -143,11 +143,11 @@ public class Dsplpoint extends DisplayGraph implements LabelAttribute {
   }
 
 
-  public void init (String name, int nameWidth,
+  public void init (String name, int nameWidth, int indent,
                     ListExpr type, 
                     ListExpr value,
                     QueryResult qr) {
-    AttrName = extendString(name,nameWidth);
+    AttrName = extendString(name,nameWidth, indent);
     if(isUndefined(value)){
        qr.addEntry(new String("" + AttrName + ": undefined"));
        return;

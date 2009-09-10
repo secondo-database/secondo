@@ -59,13 +59,15 @@ public class DsplGeneric implements DsplBase {
 
 
 
-public void init(String name,int nameWidth, 
+public void init(String name,
+                 int nameWidth, 
+                 int indent,
                  ListExpr type,
                  ListExpr value,
                  QueryResult qr)
 {
     String ts = "no display function defined";
-    String N = extendString(name,nameWidth);
+    String N = extendString(name,nameWidth,indent);
     qr.addEntry(N + " : " + ts);
     return;
 }
@@ -112,7 +114,7 @@ public void init(String name,int nameWidth,
 
 
  /** Adds spaces to S so that S has a minimum length of MinWidth **/
- public  static String extendString(String S ,int MinWidth){
+ public  static String extendStringRight(String S ,int MinWidth){
   //  String R = new String(S);
   // int NoSpaces=MinWidth-R.length();
   // for(int i=0;i<NoSpaces;i++)
@@ -126,6 +128,30 @@ public void init(String name,int nameWidth,
   R = R.replaceAll("\n"," ");
   return R;
   }
+
+ /** Adds spaces to S so that S has a minimum length of MinWidth **/
+ public  static String extendStringLeft(String S ,int MinWidth){
+   String R = new String(S);
+   int NoSpaces=MinWidth-R.length();
+   for(int i=0;i<NoSpaces;i++)
+      R = ' '+R;
+   R=R.replaceAll("\n", " ");
+   return R;
+  }
+
+  /** puts indent white spaces at the begin of S and extends S in that way
+    * bay appending whitespaces that its minimum length is minWidth + indent
+    **/
+  public static String extendString(String S, int minWidth, int indent){
+    String K = extendStringRight(S, minWidth);
+    String ind = "";
+    for(int i=0;i<indent;i++){
+      ind += " ";
+    }
+    return ind + K;
+  }
+
+
 
 
   /**

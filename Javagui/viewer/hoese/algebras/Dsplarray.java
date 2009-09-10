@@ -30,7 +30,7 @@ import tools.Reporter;
  */
 public class Dsplarray extends DsplGeneric {
 
-  public void init (String name, int nameWidth,
+  public void init (String name, int nameWidth, int indent,
                     ListExpr type, ListExpr value, 
                     QueryResult qr) {
 
@@ -46,7 +46,7 @@ public class Dsplarray extends DsplGeneric {
     String simpleType = type.second().symbolValue();
 
     while (!value.isEmpty()) {
-      displayElem(simpleTypeList,simpleType, value.first(), qr);
+      displayElem(simpleTypeList, simpleType, indent, value.first(), qr);
       value = value.rest();
       if (!value.isEmpty())
         qr.addEntry("---------");
@@ -54,13 +54,13 @@ public class Dsplarray extends DsplGeneric {
   }
 
 
-  protected void displayElem(ListExpr typelist, String type, ListExpr value, QueryResult qr){
+  protected void displayElem(ListExpr typelist, String type, int indent, ListExpr value, QueryResult qr){
     int i;
     DsplBase dg;
 		dg = LEUtils.getClassFromName(type);
 		// ensure to add exactly one entry per attribute
 		int oldnum = qr.getModel().getSize();
-	  dg.init("",0, typelist, value, qr);
+	  dg.init("",0,indent, typelist, value, qr);
 		
 		int newnum = qr.getModel().getSize();
 		int diff = newnum-oldnum;

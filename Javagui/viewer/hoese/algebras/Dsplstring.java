@@ -33,7 +33,7 @@ public class Dsplstring extends DsplGeneric implements LabelAttribute{
    String label;
 
 
-  public void init (String name, int nameWidth,  ListExpr type, ListExpr value, QueryResult qr)
+  public void init (String name, int nameWidth, int indent, ListExpr type, ListExpr value, QueryResult qr)
   {
      String T = name;
      String V;
@@ -45,7 +45,7 @@ public class Dsplstring extends DsplGeneric implements LabelAttribute{
          V = "<error>";
      }
      label = V;
-     T=extendString(T,nameWidth);
+     T=extendString(T,nameWidth, indent);
      qr.addEntry(T + " : " + V);
      return;
 

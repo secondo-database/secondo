@@ -66,14 +66,14 @@ public class Dsplduration extends DsplGeneric {
      return entry;
   }
 
-  public void init (String name, int nameWidth, 
+  public void init (String name, int nameWidth, int indent, 
                     ListExpr type, ListExpr value, QueryResult qr)
   {
      String T = name;
      String V = getString(value);
      if(V==null)
        V = "<error>";
-     T=extendString(T,nameWidth);
+     T=extendString(T,nameWidth, indent);
      entry=(T + " : " + V);
      qr.addEntry(this);
      return;

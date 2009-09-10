@@ -58,7 +58,7 @@ public interface DsplBase {
    * @see generic.QueryResult
    * @see sj.lang.ListExpr
    */
-   public void init (String Name, int nameWidth,
+   public void init (String Name, int nameWidth, int indent,
                      ListExpr type,
                      ListExpr value,
                       QueryResult qr);

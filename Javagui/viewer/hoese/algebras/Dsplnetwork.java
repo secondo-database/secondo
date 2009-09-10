@@ -177,14 +177,14 @@ public class Dsplnetwork extends DisplayGraph
   * will be added.
   */
 	public void init(String name,
-                   int nameWidth,
+                   int nameWidth, int indent,
                    ListExpr in_xType, 
 					 ListExpr in_xValue, 
 					 QueryResult inout_xQueryResult)
 	{
 		try 
     {
-			AttrName = extendString(name, nameWidth);
+			AttrName = extendString(name, nameWidth, indent);
 			m_xNetwork = new Network(in_xValue);
 			inout_xQueryResult.addEntry(this);
 		}

@@ -205,9 +205,9 @@ public class Dsplhistogram2d extends DsplGeneric implements ExternDisplay
       *            queryresult to display output.
   */
 
-      public void init(String name, int nameLength, ListExpr type,
+      public void init(String name, int nameLength, int indent, ListExpr type,
                        ListExpr value, QueryResult qr){
-                         AttrName = extendString(name, nameLength);
+                         AttrName = extendString(name, nameLength, indent);
                          ScanValue(value);
                          if(undef){
                            qr.addEntry(new String(AttrName + ": undefined"));

@@ -152,10 +152,10 @@ public class Dsplexternal
    * @see sj.lang.ListExpr
    * @see <a href="Dsplexternalsrc.html#init">Source</a>
    */
-  public void init (String name, int nameWidth,
+  public void init (String name, int nameWidth, int indent,
                     ListExpr type, ListExpr value, 
                     QueryResult qr) {
-    AttrName = DsplGeneric.extendString(name,nameWidth);
+    AttrName = DsplGeneric.extendString(name,nameWidth, indent);
     String s = scanValue(value);
     if (s != null)
       qr.addEntry("(external?:" + s + ")"); 

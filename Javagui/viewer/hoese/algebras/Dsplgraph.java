@@ -350,9 +350,9 @@ private Rectangle2D.Double computeBounds(){
 	 *            queryresult to display output.
 	 */
 
-	public void init(String name, int nameWidth, ListExpr type, ListExpr value, QueryResult qr)
+	public void init(String name, int nameWidth, int indent,ListExpr type, ListExpr value, QueryResult qr)
 	{
-		AttrName = extendString(name,nameWidth);
+		AttrName = extendString(name,nameWidth, indent);
 		ScanValue(value);
 		if (err)
 		{

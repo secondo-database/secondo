@@ -54,7 +54,7 @@ public String toString(){
    return Entry;
 }
 
-public void init (String name, int nameWidth,
+public void init (String name, int nameWidth, int indent,
                   ListExpr type, ListExpr value, QueryResult qr)
   {
      String T = name;
@@ -80,7 +80,7 @@ public void init (String name, int nameWidth,
             }
 				 }
      }
-     T=extendString(T, nameWidth);
+     T=extendString(T, nameWidth, indent);
      text = V;
      File f = new File(V);
      Entry = f.getName();

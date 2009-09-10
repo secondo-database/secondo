@@ -55,11 +55,11 @@ public String toString(){
 /** reads the data from the value list.
   */
   
-public void init (String name, int nameWidth, 
+public void init (String name, int nameWidth,int indent, 
                   ListExpr type, ListExpr value, QueryResult qr)
   {
      String T = name;
-     T=extendString(T, nameWidth);
+     T=extendString(T, nameWidth, indent);
      if(value.listLength()!=5){
         qr.addEntry(T+" : Error");
         return;

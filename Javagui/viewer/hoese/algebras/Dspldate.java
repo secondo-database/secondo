@@ -31,7 +31,7 @@ import viewer.hoese.*;
 public class Dspldate extends DsplGeneric {
 
 
-  public void init (String name, int nameWidth,
+  public void init (String name, int nameWidth, int indent,
                     ListExpr type, ListExpr value, QueryResult qr)
   {  
      String V="";
@@ -45,7 +45,7 @@ public class Dspldate extends DsplGeneric {
         }
      }
      String T = name;
-     T=extendString(T,nameWidth);
+     T=extendString(T,nameWidth, indent);
      qr.addEntry(T + " : " + V);
      return;
 
