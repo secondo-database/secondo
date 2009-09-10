@@ -159,6 +159,9 @@ const ListExpr in_xTypeInfo)
   in_xValueRecord.Write(&iId,sizeof(int),inout_iOffset);
   inout_iOffset += sizeof(int);
 
+  in_xValueRecord.Write(&maxspeed,sizeof(double),inout_iOffset);
+  inout_iOffset += sizeof(double);
+
   ListExpr xType;
   ListExpr xNumericType;
   /************************save bus routes****************************/
@@ -689,6 +692,7 @@ void BusNetwork::Load(int in_iId,const Relation* in_busRoute)
   assert(in_busRoute != NULL);
   FillBusNode(in_busRoute);//for node
   FillBusEdge(in_busRoute);//for edge
+  CalculateMaxSpeed();//calculate the maxspeed
 }
 
 /*
@@ -698,7 +702,8 @@ void BusNetwork::Load(int in_iId,const Relation* in_busRoute)
 BusNetwork::BusNetwork():
 busnet_id(0),bus_def(false),bus_route(NULL),btree_bus_route(NULL),
 bus_node(NULL),btree_bus_node(NULL),rtree_bus_node(NULL),bus_edge(NULL),
-btree_bus_edge(NULL),btree_bus_edge_v1(NULL),btree_bus_edge_v2(NULL)
+btree_bus_edge(NULL),btree_bus_edge_v1(NULL),btree_bus_edge_v2(NULL),
+maxspeed(0)
 {
 
 }
@@ -761,6 +766,9 @@ const ListExpr in_xTypeInfo)
   /***********************Read busnetwork id********************************/
   in_xValueRecord.Read(&busnet_id,sizeof(int),inout_iOffset);
   inout_iOffset += sizeof(int);
+  in_xValueRecord.Read(&maxspeed,sizeof(double),inout_iOffset);
+  inout_iOffset += sizeof(double);
+
   ListExpr xType;
   ListExpr xNumericType;
   /***********************Open relation for bus routes*********************/
@@ -933,14 +941,33 @@ const ListExpr in_xTypeInfo)
     delete btreeiter;
   }*/
   bus_def = true;
+//  cout<<"maxspeed "<<maxspeed<<endl;
 }
-
+void BusNetwork::CalculateMaxSpeed()
+{
+  maxspeed = numeric_limits<float>::min();
+  for(int i = 1;i <= bus_route->GetNoTuples();i++){
+    Tuple* t = bus_route->GetTuple(i);
+    MPoint* trip = (MPoint*)t->GetAttribute(TRIP);
+    for(int j = 0;j < trip->GetNoComponents();j++){
+      const UPoint* up;
+      trip->Get(j,up);
+      double t = (up->timeInterval.end - up->timeInterval.start).ToDouble();
+      double dist = up->p0.Distance(up->p1);
+      if(dist/t > maxspeed)
+        maxspeed = dist/t;
+    }
+    t->DeleteIfAllowed();
+  }
+//  cout<<"max speed "<<maxspeed<<endl;
+}
 
 BusNetwork::BusNetwork(ListExpr in_xValue,int in_iErrorPos,
 ListExpr& inout_xErrorInfo,bool& inout_bCorrect):
 busnet_id(0),bus_def(false),bus_route(NULL),btree_bus_route(NULL),
 bus_node(NULL),btree_bus_node(NULL),rtree_bus_node(NULL),bus_edge(NULL),
-btree_bus_edge(NULL),btree_bus_edge_v1(NULL),btree_bus_edge_v2(NULL)
+btree_bus_edge(NULL),btree_bus_edge_v1(NULL),btree_bus_edge_v2(NULL),
+maxspeed(0)
 {
   cout<<"BusNetwork() 3"<<endl;
   if(!(nl->ListLength(in_xValue) == 2)){
@@ -1302,16 +1329,15 @@ priority_queue<Elem>& temp_list)
 
 }
 /*use some optimization technique*/
-void BusNetwork::FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path)
+void BusNetwork::FindPath2(int id1,int id2,vector<int>& path,Instant& instant)
 {
   ofstream outfile("temp_result"); //record info for debug
 
-  int id1 = ui1->constValue.GetValue();
   if(id1 < 1 || id1 > bus_node->GetNoTuples()){
     cout<<"bus id is not valid"<<endl;
     return;
   }
-  int id2 = ui2->constValue.GetValue();
+
   if(id2 < 1 || id2 > bus_node->GetNoTuples()){
     cout<<"bus id is not valid"<<endl;
     return;
@@ -1366,10 +1392,12 @@ void BusNetwork::FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path)
         }
         edge_tuple->DeleteIfAllowed();
     }else{
-      if(interval->start > ui1->timeInterval.start){
+//      if(interval->start > ui1->timeInterval.start){
+      if(interval->start > instant){
         Elem e(bt_iter_edge_v1->GetId(),*interval,
                   start_node->GetIntval());
-        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
+//        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
+        e.delta_t = (interval->end-instant).ToDouble();
         e.e_node_id = end_node->GetIntval();//end node id
         e. pre_edge_tid = 0;
         e.rid = rid->GetIntval();
@@ -1497,10 +1525,11 @@ expand the graph by Dijkstra with minimum total time cost so far
 with some optimization techniques
 
 */
-void BusNetwork::FindPath_T_2(MPoint* mp,MInt* query)
+void BusNetwork::FindPath_T_2(MPoint* mp,Relation* query,int attrpos,
+Instant& instant)
 {
 //  cout<<"BusNetwork::Reachability"<<endl;
-  if(query->GetNoComponents() < 4){
+  if(query->GetNoTuples() < 2){
     cout<<"there is only start location, please give destination"<<endl;
     return;
   }
@@ -1510,14 +1539,17 @@ void BusNetwork::FindPath_T_2(MPoint* mp,MInt* query)
   mp->StartBulkLoad();
 
   vector<int> path; //record edge id
-  for(int i = 1;i < query->GetNoComponents() - 2;i++){
-    const UInt* ui1;
-    const UInt* ui2;
-    query->Get(i,ui1);
-    query->Get(i+1,ui2);
-    FindPath2(ui1,ui2,path);
+  for(int i = 1;i <= query->GetNoTuples() - 1;i++){
+    Tuple* t1 = query->GetTuple(i);
+    Tuple* t2 = query->GetTuple(i+1);
+    CcInt* id1 = (CcInt*)t1->GetAttribute(attrpos);
+    CcInt* id2 = (CcInt*)t2->GetAttribute(attrpos);
+
+    FindPath2(id1->GetIntval(),id2->GetIntval(),path,instant);
+    t1->DeleteIfAllowed();
+    t2->DeleteIfAllowed();
   }
-  /****************Construct the Reulst (MPoint)*************************/
+  /****************Construct the Result (MPoint)*************************/
   const UPoint* lastup = NULL;
   for(unsigned int i = 0;i < path.size();i++){
 //    cout<<path[i]<<" ";
@@ -1787,10 +1819,10 @@ optimize-1
 input relation and b-tree
 
 */
-void BusNetwork::FindPath_T_3(MPoint* mp,MInt* query,Relation* busedge,
-BTree* btree1)
+void BusNetwork::FindPath_T_3(MPoint* mp,Relation* query,Relation* busedge,
+BTree* btree1,int attrpos1,int attrpos2,Instant& instant)
 {
-  if(query->GetNoComponents() < 4){
+  if(query->GetNoTuples() < 2){
     cout<<"there is only start location, please give destination"<<endl;
     return;
   }
@@ -1799,19 +1831,26 @@ BTree* btree1)
   mp->StartBulkLoad();
 
   vector<int> path; //record edge id
-  const UInt* ui1;
-  const UInt* ui2;
+
+
   //searching process
 
-  for(int i = 1;i < query->GetNoComponents() - 2;i++){
-    query->Get(i,ui1);
-    query->Get(i+1,ui2);
-    if(FindPath3(ui1,ui2,path,busedge,btree1)==false){
-        cout<<"such a route is not valid"<<endl;
-        path.clear();
-        break;
-    }
+  for(int i = 1;i <= query->GetNoTuples() - 1;i++){
+    Tuple* t1 = query->GetTuple(i);
+    Tuple* t2 = query->GetTuple(i+1);
+    CcInt* id1 = (CcInt*)t1->GetAttribute(attrpos1);
+    CcInt* id2 = (CcInt*)t2->GetAttribute(attrpos1);
+    DateTime* timestay = (DateTime*)t1->GetAttribute(attrpos2);
+    cout<<id1->GetIntval()<<" "<<id2->GetIntval()<<endl;
+    cout<<*timestay<<endl;
 
+//    if(FindPath3(ui1,ui2,path,busedge,btree1)==false){
+//        cout<<"such a route is not valid"<<endl;
+//        path.clear();
+//        break;
+//    }
+    t1->DeleteIfAllowed();
+    t2->DeleteIfAllowed();
   }
   /****************Construct the Reulst (MPoint)*************************/
   const UPoint* lastup = NULL;

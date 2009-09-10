@@ -101,6 +101,7 @@ public:
   void FillBusNode(const Relation*);
   void FillBusEdge(const Relation*);
   void  Destory();
+  void CalculateMaxSpeed();
 /*Interface function and Application function*/
   Relation* GetRelBus_Node(){return bus_node;}
   Relation* GetRelBus_Route(){return bus_route;}
@@ -109,13 +110,15 @@ public:
   void FindPath_T_1(MPoint* result,Relation* query,int attrpos,Instant*);
   void FindPath1(int id1,int id2,vector<int>& path,Instant*);
   //more efficient
-  void FindPath2(const UInt* ui1,const UInt* ui2,vector<int>& path);
-  void FindPath_T_2(MPoint* result,MInt* query);//more efficient
+  void FindPath2(int id1,int id2,vector<int>& path,Instant&);
+  //more efficient than FindPath_t_1
+  void FindPath_T_2(MPoint* result,Relation* query,int attrpos,Instant&);
   void Optimize1(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list);
   //time duration for middle stop ,optimize-1
   bool FindPath3(const UInt* ui1,const UInt* ui2,vector<int>& path,
                 Relation*,BTree*);
-  void FindPath_T_3(MPoint* result,MInt* query,Relation*,BTree*);
+  void FindPath_T_3(MPoint* result,Relation* query,Relation*,BTree*,int,int,
+                    Instant&);
   void Optimize2(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list,
                 list<Elem>& end_node_edge,double&);
   //input relation and b-tree, optimize-1,3
@@ -140,6 +143,7 @@ private:
   BTree* btree_bus_edge; //b-tree on edge
   BTree* btree_bus_edge_v1; //b-tree on edge start node id
   BTree* btree_bus_edge_v2; //b-tree on edge end node id
+  double maxspeed;
 };
 double difftimeb(struct timeb* t1,struct timeb* t2);
 #endif
