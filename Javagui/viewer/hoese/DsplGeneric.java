@@ -113,12 +113,18 @@ public void init(String name,int nameWidth,
 
  /** Adds spaces to S so that S has a minimum length of MinWidth **/
  public  static String extendString(String S ,int MinWidth){
-   String R = new String(S);
-   int NoSpaces=MinWidth-R.length();
-   for(int i=0;i<NoSpaces;i++)
-      R = ' '+R;
-   R=R.replaceAll("\n", " ");
-   return R;
+  //  String R = new String(S);
+  // int NoSpaces=MinWidth-R.length();
+  // for(int i=0;i<NoSpaces;i++)
+  //    R = ' '+R;
+  // R=R.replaceAll("\n", " ");
+  // return R;
+  String R = new String(S);
+  while(R.length()!=MinWidth){
+     R += ' ';
+  }
+  R = R.replaceAll("\n"," ");
+  return R;
   }
 
 
