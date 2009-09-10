@@ -20,7 +20,7 @@
 # set Variables
 
 platform := $(SECONDO_PLATFORM)
-BDBDIR := $(BERKELEY_DB_DIR)
+#BDBDIR := $(BERKELEY_DB_DIR)
 
 
 LEX := flex
@@ -32,9 +32,9 @@ ifndef platform
  $(error Variable SECONDO_PLATFORM not defined. Set it to linux, win32 or solaris!)
 endif
 
-ifndef BDBDIR
- $(error Variable BERKELEY_DB_DIR not defined. It must point to the root directory of the Berkeley DB installation!)
-endif
+#ifndef BDBDIR
+# $(error Variable BERKELEY_DB_DIR not defined. It must point to the root directory of the Berkeley DB installation!)
+#endif
 
 
 ifeq ($(platform),win32)
@@ -46,9 +46,9 @@ else
   LIB_FLAG := -lpthread
 endif
 
-BDB_INCLUDE_FLAG = -I$(BDBDIR)/include
-BDBLIB=$(BDBDIR)/lib
-BDB_LIB_DIR_FLAG = -L$(BDBDIR)/lib
+#BDB_INCLUDE_FLAG = -I$(BDBDIR)/include
+#BDBLIB=$(BDBDIR)/lib
+#BDB_LIB_DIR_FLAG = -L$(BDBDIR)/lib
 
 
 .PHONY: all
@@ -73,7 +73,7 @@ FilterHTML.c: FilterHTML.l
 	$(LEX) -o FilterHTML.c FilterHTML.l
 
 Parser: DBLPParser.o dblp.o
-	gcc -o Parser DBLPParser.o dblp.o $(BDBLIB)/libdb.a $(BDB_INCLUDE_FLAG) $(LEX_LIB_FLAG) $(LIB_FLAG)
+	gcc -o Parser DBLPParser.o dblp.o -ldb $(LEX_LIB_FLAG) $(LIB_FLAG)
 
 DBLPParser.o: DBLPParser.y.c
 	gcc -c -o DBLPParser.o  $(BDB_INCLUDE_FLAG) DBLPParser.y.c
