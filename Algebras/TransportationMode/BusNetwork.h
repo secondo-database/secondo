@@ -71,8 +71,14 @@ public:
   static string btreebusstopTypeInfo; //b-tree on bus stop
   static string rtreebusstopTypeInfo; //r-tree on bus stop
   static string busedgeTypeInfo; //relation description for edge
-  enum BusEdgeInfo{EID=0,V1,V2,DEF_T,LINE,FEE,PID,MOVE,RPID};
+  enum BusEdgeInfo{EID=0,V1,V2,DEF_T,LINE,FEE,PID,MOVE,RPID,P1,P2};
   static string btreebusedgeTypeInfo; //b-tree on edge id
+
+/*new schema for bus stop*/
+  static string newbusstopTypeInfo; //relation description for bus stop
+  enum newBusStopInfo{NEWSID=0,NEWLOC,TIMEONSTOP};
+
+
 
 /*function for type constructor*/
   static ListExpr BusNetworkProp();

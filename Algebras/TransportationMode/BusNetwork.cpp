@@ -50,15 +50,14 @@ string BusNetwork::btreebusstopTypeInfo =
 string BusNetwork::rtreebusstopTypeInfo =
                   "(rtree(tuple((Id int)(BusStop point))) BusStop FALSE)";
 string s1 = "(rel(tuple((eid int)(v1 int)(v2 int)";
-string s2 =
-"(def_t periods)(l line)(fee real)(rid int)(trip mpoint)(pid int))))";
-string BusNetwork::busedgeTypeInfo = s1+s2;
+string s2 = "(def_t periods)(l line)(fee real)(rid int)(trip mpoint)";
+string s3 = "(pid int)(p1 point)(p2 point))))";
+string BusNetwork::busedgeTypeInfo = s1+s2+s3;
 
 string bs1 = "(btree(tuple((eid int)(v1 int)(v2 int)";
-string bs2 =
-"(def_t periods)(l line)(fee real)(rid int)(trip mpoint)(pid int))) int)";
-string BusNetwork::btreebusedgeTypeInfo = bs1+bs2;
-
+string bs2 = "(def_t periods)(l line)(fee real)(rid int)(trip mpoint)";
+string bs3 = "(pid int)(p1 point)(p2 point))) int)";
+string BusNetwork::btreebusedgeTypeInfo = bs1+bs2+bs3;
 
 
 ListExpr BusNetwork::BusNetworkProp()
@@ -505,11 +504,9 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
           int nid1 = ((CcInt*)tuple_p1->GetAttribute(SID))->GetIntval();
           int nid2 = ((CcInt*)tuple_p2->GetAttribute(SID))->GetIntval();
           assert(AlmostEqual(*p1,endpoints[0])&&AlmostEqual(*p2,endpoints[1]));
-          tuple_p1->DeleteIfAllowed();
-          tuple_p2->DeleteIfAllowed();
+
 
           Tuple* edgetuple = new Tuple(nl->Second(xNumType2));
-
 
 ///////////////////////////////////////////////////////////////////////////
           end_index = j;
@@ -537,14 +534,18 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
           edgetuple->PutAttribute(EID,new CcInt(true,eid));
           edgetuple->PutAttribute(V1, new CcInt(true,nid1));
           edgetuple->PutAttribute(V2, new CcInt(true,nid2));
+
           edgetuple->PutAttribute(DEF_T, peri);
           edgetuple->PutAttribute(LINE, new Line(*line));
           edgetuple->PutAttribute(FEE,new CcReal(true,costfee));
           edgetuple->PutAttribute(PID,new CcInt(true,routeid));
           edgetuple->PutAttribute(MOVE,temp_mp);
           edgetuple->PutAttribute(RPID,new CcInt(*rpid));
-
+          edgetuple->PutAttribute(P1,new Point(*p1));
+          edgetuple->PutAttribute(P2,new Point(*p2));
           temp_bus_edge->AppendTuple(edgetuple);
+          tuple_p1->DeleteIfAllowed();
+          tuple_p2->DeleteIfAllowed();
           edgetuple->DeleteIfAllowed();
           eid++;
           delete line;
@@ -597,8 +598,7 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
           int nid2 = ((CcInt*)tuple_p2->GetAttribute(SID))->GetIntval();
 
           assert(AlmostEqual(*p1,endpoints[0])&&AlmostEqual(*p2,endpoints[1]));
-          tuple_p1->DeleteIfAllowed();
-          tuple_p2->DeleteIfAllowed();
+
     ///////////////////////////////////////////////////////////////////////////
           end_index = j;
 //          cout<<start_index<<" "<<end_index<<endl;
@@ -632,7 +632,12 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
           edgetuple->PutAttribute(PID,new CcInt(true,routeid));
           edgetuple->PutAttribute(MOVE,temp_mp);
           edgetuple->PutAttribute(RPID,new CcInt(*rpid));
+          edgetuple->PutAttribute(P1,new Point(*p1));
+          edgetuple->PutAttribute(P2,new Point(*p2));
+
           temp_bus_edge->AppendTuple(edgetuple);
+          tuple_p1->DeleteIfAllowed();
+          tuple_p2->DeleteIfAllowed();
           edgetuple->DeleteIfAllowed();
           eid++;
           delete line;
@@ -2310,6 +2315,7 @@ use some optimization technique, temporal property with middle stop
 optimize-1
 optimize-2
 optimize-3 filter edge by their start time
+optimize-4 use A star algorithm, distance / maxspeed
 edge relation and a b-tree
 
 */
@@ -2317,7 +2323,6 @@ bool BusNetwork::FindPath5(int id1,int id2,vector<Elem>& path,
 Relation* busedge, BTree* btree1,BTree* btree2,Instant& queryinstant,
 double& wait_time)
 {
-
 //  struct timeb t1;
 //  struct timeb t2;
 
@@ -2337,6 +2342,25 @@ double& wait_time)
     return false;
   }
   cout<<"start "<<id1<<" end "<<id2<<endl;
+
+
+//get the end point
+  Point end_point;
+  CcInt* end_node_id = new CcInt(true,id2);
+  BTreeIterator* bt_iter_edge = btree2->ExactMatch(end_node_id);
+  while(bt_iter_edge->Next()){
+    Tuple* edge_tuple = busedge->GetTuple(bt_iter_edge->GetId());
+    Point* end_p = (Point*)edge_tuple->GetAttribute(P2);
+    end_point = *end_p;
+    edge_tuple->DeleteIfAllowed();
+    break;
+  }
+  cout<<"end point "<<end_point<<endl;
+  delete end_node_id;
+  delete bt_iter_edge;
+
+
+
   //find all edges start from node id1, if time interval is given, filter
   //all edges start time earlier than it
 
@@ -2363,6 +2387,7 @@ double& wait_time)
     Periods* peri = (Periods*)t->GetAttribute(DEF_T);
     CcInt* rpid = (CcInt*)t->GetAttribute(RPID);
     CcInt* rid = (CcInt*)t->GetAttribute(PID);
+    Point* endp = (Point*)t->GetAttribute(P2);
     const Interval<Instant>* interval;
     peri->Get(0,interval);
 //    cout<<"etid "<<t->GetTupleId()<<" v1 "<<start_node->GetIntval()
@@ -2388,6 +2413,9 @@ double& wait_time)
             Elem e(bt_iter_edge_v1->GetId(),*interval,
                    start_node->GetIntval());
             e.delta_t = (interval->end-interval_cur->end).ToDouble();
+//cout<<"now "<<e.delta_t<<" h "<<endp->Distance(end_point)/maxspeed<<endl;
+            e.delta_t += endp->Distance(end_point)/maxspeed;
+
             e.e_node_id = end_node->GetIntval();//end node id
             e.pre_edge_tid = 0;
             e.rpid = rpid->GetIntval();
@@ -2431,6 +2459,9 @@ double& wait_time)
                   start_node->GetIntval());
 //        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
         e.delta_t = (interval->end-queryinstant).ToDouble();
+        e.delta_t += endp->Distance(end_point)/maxspeed;
+//cout<<"now "<<e.delta_t<<" h "<<endp->Distance(end_point)/maxspeed<<endl;
+
         e.e_node_id = end_node->GetIntval();//end node id
         e.pre_edge_tid = 0;
         e.rpid = rpid->GetIntval();
@@ -2570,6 +2601,7 @@ double& wait_time)
      CcInt* rid = (CcInt*)t->GetAttribute(PID);
      const Interval<Instant>* interval_next;
      next_def_t->Get(0,interval_next);
+     Point* endp = (Point*)t->GetAttribute(P2);
      //optimize-3  filter edge by their start time
     if(interval_next->start < interval_cur->end){
         t->DeleteIfAllowed();
@@ -2589,6 +2621,8 @@ double& wait_time)
             e.pre_eid = expansion_count - 1;
             e.delta_t = top.delta_t +
                           (interval_next->end-interval_cur->end).ToDouble();
+//cout<<"now "<<e.delta_t<<" heu "<<endp->Distance(end_point)/maxspeed<<endl;
+            e.delta_t += endp->Distance(end_point)/maxspeed;
             e.rid = rid->GetIntval();
             e.e_node_id = end_node_next->GetIntval();
             e.pre_edge_tid = top.edge_tuple_id;
@@ -2668,6 +2702,7 @@ with some optimization techniques, supporting time duration for middle stop
 optimize-1 filter the edge from the same route but comes later
 optimize-2 use pre-defined path to find end point
 optimize-3 filter edge by their start time
+optimize-4 use A star algorithm, heuristic-value = distance/maxspeed
 input edge relation and b-tree
 
 */
