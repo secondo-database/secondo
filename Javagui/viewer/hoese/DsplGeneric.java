@@ -122,7 +122,7 @@ public void init(String name,
   // R=R.replaceAll("\n", " ");
   // return R;
   String R = new String(S);
-  while(R.length()!=MinWidth){
+  while(R.length()<MinWidth){
      R += ' ';
   }
   R = R.replaceAll("\n"," ");

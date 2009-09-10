@@ -7,6 +7,7 @@ import viewer.hoese.*;
 
 public class Dsplarel extends DsplGeneric{
 	String entry;
+        static final int INDENT = 3;		
 	public void init (String name, int nameWidth, int indent,  ListExpr type, ListExpr value, QueryResult qr) {
 		String T = name;
 	    T = extendString(T, nameWidth, indent);
@@ -19,7 +20,7 @@ public class Dsplarel extends DsplGeneric{
 			displayArelTuple(type.second().second(), value.first(), maxAttribNameLen, indent, qr);
 		    value = value.rest();
 		    if (!value.isEmpty())
-		    	qr.addEntry(new Dsplend(indent));
+		    	qr.addEntry(new Dsplend(indent + INDENT));
 		    }
 		    return;
 	}
@@ -45,7 +46,7 @@ public class Dsplarel extends DsplGeneric{
 	    String name = type.first().first().symbolValue();
 	    subType = type.first().second();
 	     
-	    dg.init(name, maxNameLen, indent +3, subType, value.first(), qr);
+	    dg.init(name, maxNameLen, indent +INDENT, subType, value.first(), qr);
       int newnum = qr.getModel().getSize();
       int diff = newnum-oldnum;
       if(diff<1){
@@ -100,7 +101,7 @@ public class Dsplarel extends DsplGeneric{
 		}
 		public String toString(){
 			String s = "---------";
-			s = extendStringLeft(s, indent + 2);
+			s = extendString(s, 0, indent );
 			return s;
 		}
 	}
