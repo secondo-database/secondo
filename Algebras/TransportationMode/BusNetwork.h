@@ -156,6 +156,7 @@ private:
   BTree* btree_bus_edge; //b-tree on edge
   BTree* btree_bus_edge_v1; //b-tree on edge start node id
   BTree* btree_bus_edge_v2; //b-tree on edge end node id
+  BTree* btree_bus_edge_path; //b-tree on edge pid
   double maxspeed;
   //similar network adjacency
   //record the start and end index for each edge in adjacencylist

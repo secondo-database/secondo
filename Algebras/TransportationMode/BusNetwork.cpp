@@ -213,6 +213,12 @@ const ListExpr in_xTypeInfo)
   if(!btree_bus_edge_v2->Save(in_xValueRecord,inout_iOffset,xNumericType))
     return false;
 
+  /*******************Save b-tree on edge path id **********************/
+  nl->ReadFromString(btreebusedgeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!btree_bus_edge_path->Save(in_xValueRecord,inout_iOffset,xNumericType))
+    return false;
+
   ///////////////////////adjacency list /////////////////////////////////
   SmiFileId fileId = 0;
   adjacencylist_index.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
@@ -261,7 +267,9 @@ BusNetwork:: ~BusNetwork()
   //b-tree on edge end node id
   if(btree_bus_edge_v2 != NULL)
      delete btree_bus_edge_v2;
-
+  //b-tree on edge path id
+  if(btree_bus_edge_path != NULL)
+    delete btree_bus_edge_path;
 }
 Word BusNetwork::CloneBusNetwork(const ListExpr,const Word&)
 {
@@ -646,7 +654,7 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
           edgetuple->DeleteIfAllowed();
           eid++;
           delete line;
-//////////////////////////////////////////////////////////////////////////
+
           endpoints.clear();
           connectpoints.clear();
         }
@@ -737,6 +745,15 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
   assert(QueryExecuted);
   btree_bus_edge_v2 = (BTree*)xResult.addr;
   cout<<"b-tree on edge end node id is built..."<<endl;
+  /*******************b-tree one edge path id *******************/
+  ostringstream xThisBusEdgePathPtrStream;
+  xThisBusEdgePathPtrStream<<(long)bus_edge;
+  strQuery = "(createbtree (" + busedgeTypeInfo +
+             "(ptr " + xThisBusEdgePathPtrStream.str() + "))" + "pid)";
+  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery,xResult);
+  assert(QueryExecuted);
+  btree_bus_edge_path = (BTree*)xResult.addr;
+  cout<<"b-tree on edge path id is built..."<<endl;
 }
 /*
 store the adjacency list, for each edge it records which edge comes after it
@@ -744,6 +761,7 @@ store the adjacency list, for each edge it records which edge comes after it
 */
 void BusNetwork::FillAdjacency()
 {
+  cout<<"build adjacency list..."<<endl;
   for(int i = 1;i <= bus_edge->GetNoTuples();i++){
     Tuple* t = bus_edge->GetTuple(i);
 //    cout<<"i "<<i<<" tuple id "<<t->GetTupleId()<<endl;
@@ -774,6 +792,7 @@ void BusNetwork::FillAdjacency()
     delete btree_iter;
     t->DeleteIfAllowed();
   }
+  cout<<"adjacency list is created"<<endl;
 }
 
 void BusNetwork::Load(int in_iId,const Relation* in_busRoute)
@@ -795,7 +814,8 @@ BusNetwork::BusNetwork():
 busnet_id(0),bus_def(false),bus_route(NULL),btree_bus_route(NULL),
 bus_node(NULL),btree_bus_node(NULL),rtree_bus_node(NULL),bus_edge(NULL),
 btree_bus_edge(NULL),btree_bus_edge_v1(NULL),btree_bus_edge_v2(NULL),
-maxspeed(0),adjacencylist_index(0),adjacencylist(0)
+btree_bus_edge_path(NULL),maxspeed(0),
+adjacencylist_index(0),adjacencylist(0)
 {
 
 }
@@ -848,6 +868,11 @@ void BusNetwork::Destory()
   if(btree_bus_edge_v2 != NULL){
     delete btree_bus_edge_v2;
     btree_bus_edge_v2 = NULL;
+  }
+  //b-tree on bus edge path id
+  if(btree_bus_edge_path != NULL){
+    delete btree_bus_edge_path;
+    btree_bus_edge_path = NULL;
   }
 }
 
@@ -1032,6 +1057,36 @@ const ListExpr in_xTypeInfo)
     delete id;
     delete btreeiter;
   }*/
+
+  /******************Open btree on edge path id***************************/
+  nl->ReadFromString(btreebusedgeTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  btree_bus_edge_path = BTree::Open(in_xValueRecord,inout_iOffset,xNumericType);
+  if(!btree_bus_edge_path){
+    bus_route->Delete();
+    delete btree_bus_route;
+    bus_node->Delete();
+    delete btree_bus_node;
+    delete rtree_bus_node;
+    bus_edge->Delete();
+    delete btree_bus_edge;
+    delete btree_bus_edge_v1;
+    delete btree_bus_edge_v2;
+    return ;
+  }
+  ///////// Test B-tree on edge path id //////////////////////
+/*  for(int i = 1;i <= bus_route->GetNoTuples();i++){ //1-562
+    CcInt* id = new CcInt(true,i);
+    BTreeIterator* btreeiter = btree_bus_edge_path->ExactMatch(id);
+    while(btreeiter->Next()){
+      Tuple* tuple = bus_edge->GetTuple(btreeiter->GetId());
+      cout<<*tuple<<endl;
+      tuple->DeleteIfAllowed();
+    }
+    delete id;
+    delete btreeiter;
+  }*/
+
   ///////////////adjacency list ////////////////////////////////////
   adjacencylist_index.OpenFromRecord(in_xValueRecord, inout_iOffset);
   adjacencylist.OpenFromRecord(in_xValueRecord, inout_iOffset);
@@ -1063,7 +1118,8 @@ ListExpr& inout_xErrorInfo,bool& inout_bCorrect):
 busnet_id(0),bus_def(false),bus_route(NULL),btree_bus_route(NULL),
 bus_node(NULL),btree_bus_node(NULL),rtree_bus_node(NULL),bus_edge(NULL),
 btree_bus_edge(NULL),btree_bus_edge_v1(NULL),btree_bus_edge_v2(NULL),
-maxspeed(0),adjacencylist_index(0),adjacencylist(0)
+btree_bus_edge_path(NULL),maxspeed(0),
+adjacencylist_index(0),adjacencylist(0)
 {
   cout<<"BusNetwork() 3"<<endl;
   if(!(nl->ListLength(in_xValue) == 2)){
@@ -2467,8 +2523,7 @@ Instant& queryinstant,double& wait_time)
     cout<<"two locations are the same"<<endl;
     return false;
   }
-  cout<<"start "<<id1<<" end "<<id2<<endl;
-
+//  cout<<"start "<<id1<<" end "<<id2<<endl;
 
 //get the end point
   Point end_point;
@@ -2483,7 +2538,7 @@ Instant& queryinstant,double& wait_time)
     edge_tuple->DeleteIfAllowed();
     break;
   }
-  cout<<"end point "<<end_point<<endl;
+//  cout<<"end point "<<end_point<<endl;
   delete end_node_id;
   delete bt_iter_edge;
 
@@ -2542,7 +2597,6 @@ Instant& queryinstant,double& wait_time)
             Elem e(bt_iter_edge_v1->GetId(),*interval,
                    start_node->GetIntval());
             e.delta_t = (interval->end-interval_cur->end).ToDouble();
-
             e.delta_t_pre = e.delta_t; //real cost time
 
             e.delta_t += endp->Distance(end_point)/maxspeed;
@@ -2759,7 +2813,6 @@ Instant& queryinstant,double& wait_time)
             e.delta_t = top.delta_t_pre +
                         (interval_next->end-interval_cur->end).ToDouble();
             e.delta_t_pre = e.delta_t;
-
 
             e.delta_t += endp->Distance(end_point)/maxspeed;
             e.rid = rid->GetIntval();
