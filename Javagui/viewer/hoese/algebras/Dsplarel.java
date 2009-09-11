@@ -7,7 +7,7 @@ import viewer.hoese.*;
 
 public class Dsplarel extends DsplGeneric{
 	String entry;
-        static final int INDENT = 3;		
+        static final int INDENT = 4;		
 	public void init (String name, int nameWidth, int indent,  ListExpr type, ListExpr value, QueryResult qr) {
 		String T = name;
 	    T = extendString(T, nameWidth, indent);
