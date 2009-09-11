@@ -7690,6 +7690,107 @@ Operator tempnetunion("union",
                 Operator::SimpleSelect,
                 OpUnionTypeMap );
 
+/*
+5.32 Operator ~endunitinst~
+
+Returns the end time instant of a ~UGPoint~ as ~Instant~
+
+*/
+
+ListExpr OpEndStartunitinstTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+        nl->AtomType( xMGPointDesc ) != SymbolType ||
+        nl->SymbolValue( xMGPointDesc ) != "ugpoint")
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+  return nl->SymbolAtom("instant");
+}
+
+int OpEndunitinstValueMapping(Word* args,
+                        Word& result,
+                        int message,
+                        Word& local,
+                        Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  Instant* pResult = (Instant*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pResult);
+  // Get input values
+  UGPoint *pUGP = (UGPoint*)args[0].addr;
+  if(pUGP == NULL || !pUGP->IsDefined()) {
+    cerr << "UGPoint not Defined" << endl;
+    pResult->SetDefined(false);
+    return 0;
+  }
+  *pResult = pUGP->timeInterval.end;
+  return 0;
+};
+
+const string OpEndunitinstSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>ugpoint -> instant" "</text--->"
+    "<text>endunitinst (_)</text--->"
+    "<text>Computes the final time instant of a ugpoint.</text--->"
+    "<text>endunitinst(UGPOINT)</text--->"
+    ") )";
+
+Operator tempnetendunitinst("endunitinst",
+                      OpEndunitinstSpec,
+                      OpEndunitinstValueMapping,
+                      Operator::SimpleSelect,
+                      OpEndStartunitinstTypeMap);
+
+
+/*
+5.33 Operator ~startunitinst~
+
+Returns the start time of the ~UGPoint~ as ~Instant~.
+
+TypeMapping see 5.32 ~OpEndStartunitinstTypeMap~
+
+*/
+
+int OpStartunitinstValueMapping(Word* args,
+                              Word& result,
+                              int message,
+                              Word& local,
+                              Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  Instant* pResult = (Instant*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pResult);
+  // Get input values
+  UGPoint *pUGP = (UGPoint*)args[0].addr;
+  if(pUGP == NULL || !pUGP->IsDefined()) {
+    cerr << "UGPoint not Defined" << endl;
+    pResult->SetDefined(false);
+    return 0;
+  }
+  *pResult = pUGP->timeInterval.start;
+  return 0;
+};
+
+const string OpStartunitinstSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>ugpoint -> instant" "</text--->"
+    "<text> startunitinst (_)</text--->"
+    "<text>Computes the start time instant of a ugpoint.</text--->"
+    "<text>startunitinst (UGPOINT)</text--->"
+    ") )";
+
+Operator tempnetstartunitinst("startunitinst",
+                        OpStartunitinstSpec,
+                        OpStartunitinstValueMapping,
+                        Operator::SimpleSelect,
+                        OpEndStartunitinstTypeMap);
+
 
 /*
 6 Creating the Algebra
@@ -7744,6 +7845,8 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetmgpoint2mpoint);
     AddOperator(&tempnetdistance);
     AddOperator(&tempnetunion);
+    AddOperator(&tempnetstartunitinst);
+    AddOperator(&tempnetendunitinst);
   }
 
 
