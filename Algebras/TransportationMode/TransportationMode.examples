@@ -50,8 +50,8 @@ Result   : file
 
 Operator : find_path_t_4
 Number   : 1
-Signature: rel x btree1 x btree2 x busnetwork x rel x attribute_name1 x attribute_name2 x instant  -> mpoint
-Example  : query edge_rel_order btree_edge_rel_v1 btree_edge_rel_v2 find_path_t_4[berlintrains,tq1,id,dur,querytime];
+Signature: rel x btree1 x busnetwork x rel x attribute_name1 x attribute_name2 x instant  -> mpoint
+Example  : query edge_rel_order btree_edge_rel_v1  find_path_t_4[berlintrains,tq1,id,dur,querytime];
 Result   : file
 
 

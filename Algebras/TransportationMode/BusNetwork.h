@@ -59,6 +59,13 @@ Subclass for manage bus network
 
 */
 struct Elem;
+struct ListEntry{
+  ListEntry(){}
+  ListEntry(int l,int h):low(l),high(h){}
+  ListEntry(const ListEntry& le):low(le.low),high(le.high){}
+  int low;
+  int high;
+};
 
 class BusNetwork{
 public:
@@ -77,7 +84,6 @@ public:
 /*new schema for bus stop*/
   static string newbusstopTypeInfo; //relation description for bus stop
   enum newBusStopInfo{NEWSID=0,NEWLOC,TIMEONSTOP};
-
 
 
 /*function for type constructor*/
@@ -106,6 +112,7 @@ public:
   BusNetwork(SmiRecord&,size_t&,const ListExpr);
   void FillBusNode(const Relation*);
   void FillBusEdge(const Relation*);
+  void FillAdjacency();
   void  Destory();
   void CalculateMaxSpeed();
 /*Interface function and Application function*/
@@ -129,8 +136,8 @@ public:
                 list<Elem>& end_node_edge,double&);
   //input relation and b-tree, optimize-1,3
   bool FindPath4(int id1,int id2,vector<int>& path,
-                Relation*,BTree*,BTree*,Instant&,double&);
-  void FindPath_T_4(MPoint* result,Relation* query,Relation*,BTree*,BTree*,
+                Relation*,BTree*,Instant&,double&);
+  void FindPath_T_4(MPoint* result,Relation* query,Relation*,BTree*,
                     int,int,Instant&);
 
   void TestFunction(Relation*,BTree*);
@@ -153,6 +160,16 @@ private:
   BTree* btree_bus_edge_v1; //b-tree on edge start node id
   BTree* btree_bus_edge_v2; //b-tree on edge end node id
   double maxspeed;
+  //similar network adjacency
+  //record the start and end index for each edge in adjacencylist
+  //the following two structurs work together and record for each edge which
+  //edge can be expanded (time after it and has one common position in space)
+  //1-- with edge_tuple_id to access adjacencylist_index
+  //2-- get the start and end position in adjacencylist
+  //3-- get the edge tuple id
+  DBArray<ListEntry> adjacencylist_index;
+  DBArray<int> adjacencylist;
+
 };
 double difftimeb(struct timeb* t1,struct timeb* t2);
 #endif
