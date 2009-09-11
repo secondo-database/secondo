@@ -1105,6 +1105,7 @@ struct Elem{
   int s_node_id;
   int e_node_id;
   double delta_t;
+  double delta_t_pre;
   int rid;
   int pre_edge_tid;
   int rpid;
@@ -1114,6 +1115,7 @@ struct Elem{
     pre_eid=-1;
     dist=0.0;
     delta_t=0.0;
+    delta_t_pre = 0.0;
     rid=0;
     pre_edge_tid = 0;
     rpid = 0;
@@ -1122,7 +1124,8 @@ struct Elem{
   edge_tuple_id(e.edge_tuple_id),pre_eid(e.pre_eid),
   dist(e.dist),interval(e.interval),
   s_node_id(e.s_node_id),e_node_id(e.e_node_id),
-  delta_t(e.delta_t),rid(e.rid),pre_edge_tid(e.pre_edge_tid),rpid(e.rpid){}
+  delta_t(e.delta_t),delta_t_pre(e.delta_t_pre),
+  rid(e.rid),pre_edge_tid(e.pre_edge_tid),rpid(e.rpid){}
   Elem& operator=(const Elem& e)
   {
     edge_tuple_id = e.edge_tuple_id;
@@ -1132,6 +1135,7 @@ struct Elem{
     s_node_id = e.s_node_id;
     e_node_id = e.e_node_id;
     delta_t = e.delta_t;
+    delta_t_pre = e.delta_t_pre;
     rid = e.rid;
     pre_edge_tid = e.pre_edge_tid;
     rpid = e.rpid;
@@ -2443,8 +2447,7 @@ edge relation and a b-tree
 
 */
 bool BusNetwork::FindPath5(int id1,int id2,vector<Elem>& path,
-Relation* busedge, BTree* btree1,BTree* btree2,Instant& queryinstant,
-double& wait_time)
+Instant& queryinstant,double& wait_time)
 {
 //  struct timeb t1;
 //  struct timeb t2;
@@ -2470,9 +2473,11 @@ double& wait_time)
 //get the end point
   Point end_point;
   CcInt* end_node_id = new CcInt(true,id2);
-  BTreeIterator* bt_iter_edge = btree2->ExactMatch(end_node_id);
+//  BTreeIterator* bt_iter_edge = btree2->ExactMatch(end_node_id);
+  BTreeIterator* bt_iter_edge = btree_bus_edge_v2->ExactMatch(end_node_id);
   while(bt_iter_edge->Next()){
-    Tuple* edge_tuple = busedge->GetTuple(bt_iter_edge->GetId());
+//    Tuple* edge_tuple = busedge->GetTuple(bt_iter_edge->GetId());
+    Tuple* edge_tuple = bus_edge->GetTuple(bt_iter_edge->GetId());
     Point* end_p = (Point*)edge_tuple->GetAttribute(P2);
     end_point = *end_p;
     edge_tuple->DeleteIfAllowed();
@@ -2487,7 +2492,8 @@ double& wait_time)
 
   //to control that one edge is not expanded more than once
   vector<bool> edge_flag;
-  for(int i = 0; i < busedge->GetNoTuples() + 1;i++)
+//  for(int i = 0; i < busedge->GetNoTuples() + 1;i++)
+  for(int i = 0; i < bus_edge->GetNoTuples() + 1;i++)
     edge_flag.push_back(true);
 
  //priority_queue<Elem,vector<Elem>,TimeCompare> q_list;
@@ -2499,10 +2505,12 @@ double& wait_time)
   vector<Elem> elemlist; //Optimize-1 faster
   //Initialize list
   CcInt* start_id = new CcInt(true,id1);
-  BTreeIterator* bt_iter_edge_v1 = btree1->ExactMatch(start_id);
+//  BTreeIterator* bt_iter_edge_v1 = btree1->ExactMatch(start_id);
+  BTreeIterator* bt_iter_edge_v1 = btree_bus_edge_v1->ExactMatch(start_id);
 
   while(bt_iter_edge_v1->Next()){
-    Tuple* t = busedge->GetTuple(bt_iter_edge_v1->GetId());
+//    Tuple* t = busedge->GetTuple(bt_iter_edge_v1->GetId());
+    Tuple* t = bus_edge->GetTuple(bt_iter_edge_v1->GetId());
     CcInt* start_node = (CcInt*)t->GetAttribute(V1);
     CcInt* end_node = (CcInt*)t->GetAttribute(V2);
     Periods* peri = (Periods*)t->GetAttribute(DEF_T);
@@ -2534,6 +2542,9 @@ double& wait_time)
             Elem e(bt_iter_edge_v1->GetId(),*interval,
                    start_node->GetIntval());
             e.delta_t = (interval->end-interval_cur->end).ToDouble();
+
+            e.delta_t_pre = e.delta_t; //real cost time
+
             e.delta_t += endp->Distance(end_point)/maxspeed;
 
             e.e_node_id = end_node->GetIntval();//end node id
@@ -2560,8 +2571,7 @@ double& wait_time)
                 if(i == elemlist.size())
                   elemlist.push_back(e);
               }
-        /////////////////////////////////////////////////
-
+        ///////////////////////////////////////////////////////////
             }
         }
 
@@ -2579,6 +2589,8 @@ double& wait_time)
                   start_node->GetIntval());
 //        e.delta_t = (interval->end-ui1->timeInterval.start).ToDouble();
         e.delta_t = (interval->end-queryinstant).ToDouble();
+
+        e.delta_t_pre = e.delta_t; //real cost time
         e.delta_t += endp->Distance(end_point)/maxspeed;
 
         e.e_node_id = end_node->GetIntval();//end node id
@@ -2707,11 +2719,13 @@ double& wait_time)
     /////////////get all edges from the same start node////////////////
 //    clock_t start_cpu = clock();
 //    ftime(&t1);
-    bt_iter_edge_v1 = btree1->ExactMatch(end_node);
+//    bt_iter_edge_v1 = btree1->ExactMatch(end_node);
+    bt_iter_edge_v1 = btree_bus_edge_v1->ExactMatch(end_node);
     priority_queue<Elem> temp_list; //Optimize--1
     elemlist.clear();
     while(bt_iter_edge_v1->Next()){
-     Tuple* t = busedge->GetTuple(bt_iter_edge_v1->GetId());
+//     Tuple* t = busedge->GetTuple(bt_iter_edge_v1->GetId());
+     Tuple* t = bus_edge->GetTuple(bt_iter_edge_v1->GetId());
 
      CcInt* start_node_next = end_node;
      CcInt* end_node_next = (CcInt*)t->GetAttribute(V2);//end node
@@ -2738,8 +2752,14 @@ double& wait_time)
             Elem e(bt_iter_edge_v1->GetId(),*interval_next,
                   start_node_next->GetIntval());
             e.pre_eid = expansion_count - 1;
-            e.delta_t = top.delta_t +
-                          (interval_next->end-interval_cur->end).ToDouble();
+//            e.delta_t = top.delta_t +
+//                          (interval_next->end-interval_cur->end).ToDouble();
+
+            //real time cost
+            e.delta_t = top.delta_t_pre +
+                        (interval_next->end-interval_cur->end).ToDouble();
+            e.delta_t_pre = e.delta_t;
+
 
             e.delta_t += endp->Distance(end_point)/maxspeed;
             e.rid = rid->GetIntval();
@@ -2825,8 +2845,8 @@ optimize-4 use A star algorithm, heuristic-value = distance/maxspeed
 input edge relation and b-tree
 
 */
-void BusNetwork::FindPath_T_5(MPoint* mp,Relation* query,Relation* busedge,
-BTree* btree1,BTree* btree2,int attrpos1,int attrpos2,Instant& queryinstant)
+void BusNetwork::FindPath_T_5(MPoint* mp,Relation* query,
+int attrpos1,int attrpos2,Instant& queryinstant)
 {
   if(query->GetNoTuples() < 2){
     cout<<"there is only start location, please give destination"<<endl;
@@ -2854,7 +2874,7 @@ BTree* btree1,BTree* btree2,int attrpos1,int attrpos2,Instant& queryinstant)
 //    cout<<waittime<<endl;
 
     if(FindPath5(id1->GetIntval(),id2->GetIntval(),
-              path,busedge,btree1,btree2,queryinstant,waittime)==false){
+              path,queryinstant,waittime)==false){
         cout<<"such a route is not valid"<<endl;
         path.clear();
         break;
@@ -2865,9 +2885,10 @@ BTree* btree1,BTree* btree2,int attrpos1,int attrpos2,Instant& queryinstant)
   const UPoint* lastup = NULL;
   for(unsigned int i = 0;i < path.size();i++){
 //    cout<<path[i]<<" ";
-    Tuple* edge_tuple = busedge->GetTuple(path[i].edge_tuple_id);
+//    Tuple* edge_tuple = busedge->GetTuple(path[i].edge_tuple_id);
+    Tuple* edge_tuple = bus_edge->GetTuple(path[i].edge_tuple_id);
     MPoint* temp_mp = (MPoint*)edge_tuple->GetAttribute(MOVE);
-//    cout<<*temp_mp<<endl;
+
     for(int j = 0;j < temp_mp->GetNoComponents();j++){
       const UPoint* up;
       temp_mp->Get(j,up);

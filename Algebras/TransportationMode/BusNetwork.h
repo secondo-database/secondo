@@ -140,9 +140,8 @@ public:
 
   void TestFunction(Relation*,BTree*);
   //optimize-2
-  bool FindPath5(int id1,int id2,vector<Elem>& path,
-                Relation*,BTree*,BTree*,Instant&,double&);
-  void FindPath_T_5(MPoint* result,Relation* query,Relation*,BTree*,BTree*,
+  bool FindPath5(int id1,int id2,vector<Elem>& path,Instant&,double&);
+  void FindPath_T_5(MPoint* result,Relation* query,
                     int,int,Instant&);
 
 private:
