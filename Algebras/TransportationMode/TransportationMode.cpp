@@ -131,12 +131,12 @@ const string OpBusFindPath_T_3Spec =
 const string OpBusFindPath_T_4Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>relation x btree1 x busnetwork x rel x attribute1 "
+  "(<text>busnetwork x rel x attribute1 "
    " x attribute2 x instant-> mpoint</text--->"
-  "<text>_ _ find_path_t_4[_,_,_,_,_]</text--->"
+  "<text>_ find_path_t_4[_,_,_,_]</text--->"
   "<text>returns a sequence of movement corresponding to a trip</text--->"
-  "<text>query deftime(edge_rel btree_edge_v1 find_path_t_4"
-  "[berlintrains,tq1,id,dur,querytime])</text--->"
+  "<text>query deftime(berlintrains find_path_t_4"
+  "[tq1,id,dur,querytime])</text--->"
   "))";
 
 const string OpBusFindPath_T_5Spec =
@@ -391,18 +391,16 @@ int OpBusFindPath_T_4ValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
   result = qp->ResultStorage(s);
-  Relation* busedge = (Relation*)args[0].addr;
-  BTree* btree1 = (BTree*)args[1].addr;
-  BusNetwork* busnet = (BusNetwork*)args[2].addr;
+  BusNetwork* busnet = (BusNetwork*)args[0].addr;
 
-  Relation* querycond = (Relation*)args[3].addr;
-  Instant* instant = static_cast<Instant*>(args[6].addr);
+  Relation* querycond = (Relation*)args[1].addr;
+  Instant* instant = static_cast<Instant*>(args[4].addr);
 
-  int attrpos1 = ((CcInt*)args[7].addr)->GetIntval() - 1;
-  int attrpos2 = ((CcInt*)args[8].addr)->GetIntval() - 1;
+  int attrpos1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+  int attrpos2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
 
-  busnet->FindPath_T_4((MPoint*)result.addr,querycond,busedge,btree1,
-  attrpos1,attrpos2,*instant);
+  busnet->FindPath_T_4((MPoint*)result.addr,
+                  querycond,attrpos1,attrpos2,*instant);
   return 0;
 }
 
@@ -708,71 +706,50 @@ ListExpr OpBusFindPath_T_3TypeMap(ListExpr in_xArgs)
 
 ListExpr OpBusFindPath_T_4TypeMap(ListExpr in_xArgs)
 {
-  string s1 = "edgerel x b-tree1 x busnetwork x rel x attribute1";
+  string s1 = "busnetwork x rel x attribute1";
   string s2 = "x attribute2 x instant expected";
   string err = s1 + s2;
 
-  if(nl->ListLength(in_xArgs) != 7){
+  if(nl->ListLength(in_xArgs) != 5){
       ErrorReporter::ReportError(err);
       return nl->TypeError();
   }
   ListExpr arg1 = nl->First(in_xArgs);
   ListExpr arg2 = nl->Second(in_xArgs);
+
   ListExpr arg3 = nl->Third(in_xArgs);
   ListExpr arg4 = nl->Fourth(in_xArgs);
-
   ListExpr arg5 = nl->Fifth(in_xArgs);
-  ListExpr arg6 = nl->Sixth(in_xArgs);
-  ListExpr arg7 = nl->Nth(7,in_xArgs);
 
 
-  if(!IsRelDescription(arg1)){
-      string msg =  "first argument muse be a relation";
-      ErrorReporter::ReportError(msg);
-      return nl->TypeError();
-  }
-
-  CHECK_COND(listutils::isBTreeDescription(arg2),
-      "second argument muse be an btree");
-
-
-  ListExpr relAttrList = nl->Second(nl->Second(arg1));
-  ListExpr btreeAttrList1 = nl->Second(nl->Second(arg2));
-
-  if(!nl->Equal(relAttrList,btreeAttrList1)){
-    ErrorReporter::ReportError(err);
-    return nl->TypeError();
-  }
-
-
-  if(!IsRelDescription(arg4)){
-      string msg =  "fifth argument must be a relation";
+  if(!IsRelDescription(arg2)){
+      string msg =  "second argument must be a relation";
       ErrorReporter::ReportError(msg);
       return nl->TypeError();
   }
 
   int j1,j2;
   ListExpr attrType;
-  j1 = FindAttribute(nl->Second(nl->Second(arg4)),
-                   nl->SymbolValue(arg5),attrType);
+  j1 = FindAttribute(nl->Second(nl->Second(arg2)),
+                   nl->SymbolValue(arg3),attrType);
 
   CHECK_COND( j1 > 0 && (nl->IsEqual(attrType,"int")),
              "the sixth attribute should be of type int");
 
-  j2 = FindAttribute(nl->Second(nl->Second(arg4)),
-                   nl->SymbolValue(arg6),attrType);
+  j2 = FindAttribute(nl->Second(nl->Second(arg2)),
+                   nl->SymbolValue(arg4),attrType);
 
   CHECK_COND( j1 > 0 && (nl->IsEqual(attrType,"duration")),
              "the seventh attribute should be of type duration");
 
-  if(!nl->IsEqual(arg7,"instant")){
+  if(!nl->IsEqual(arg5,"instant")){
       string msg = "eighth argument must be an instant";
       ErrorReporter::ReportError(msg);
       return nl->TypeError();
   }
 
-  if(nl->IsAtom(arg3) && nl->AtomType(arg3) == SymbolType &&
-     nl->SymbolValue(arg3) == "busnetwork"){
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "busnetwork"){
 //    return nl->SymbolAtom("mpoint");
     ListExpr res = nl->SymbolAtom("mpoint");
     return nl->ThreeElemList(

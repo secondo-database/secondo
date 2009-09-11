@@ -135,10 +135,8 @@ public:
   void Optimize2(priority_queue<Elem>& q_list,priority_queue<Elem>& temp_list,
                 list<Elem>& end_node_edge,double&);
   //input relation and b-tree, optimize-1,3
-  bool FindPath4(int id1,int id2,vector<int>& path,
-                Relation*,BTree*,Instant&,double&);
-  void FindPath_T_4(MPoint* result,Relation* query,Relation*,BTree*,
-                    int,int,Instant&);
+  bool FindPath4(int id1,int id2,vector<Elem>& path,Instant&,double&);
+  void FindPath_T_4(MPoint* result,Relation* query,int,int,Instant&);
 
   void TestFunction(Relation*,BTree*);
   //optimize-2
