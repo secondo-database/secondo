@@ -528,16 +528,53 @@ Tuple* SortAlgorithm::nextResultTuple(vector<SortedRun*>& arr)
 template<int firstArg, bool param>
 int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
 {
+  // Operator sort2 (firstArg = 1, param = false)
   // args[0] : stream
-  // args[1] : ignored
+  // args[1] : the number of sort attributes
+  // args[3] : the index of the first sort attribute
+  // args[4] : a boolean which indicates if sortorder should
+  //           be asc (true) or desc (false)
+  // args[5] : Same as 3 but for the second sort attribute
+  // args[6] : Same as 4 but for the second sort attribute
+  // ....
+
+  // Operator sort2with (firstArg = 4, param = true)
+  // args[0] : stream
+  // args[1] : operator's main memory in bytes
+  // args[2] : maximum fan-in of merge phase
+  // args[3] : I/O buffer size in bytes
+  // args[4] : the number of sort attributes
+  // args[5] : the index of the first sort attribute
+  // args[6] : a boolean which indicates if sortorder should
+  //           be asc (true) or desc (false)
+  // args[7] : Same as 3 but for the second sort attribute
+  // args[8] : Same as 4 but for the second sort attribute
+  // ....
+
+  // Operator sortby2 (firstArg = 2, param = false)
+  // args[0] : stream
+  // args[1] : sort attributes specification as list (ignored)
   // args[2] : the number of sort attributes
   // args[3] : the index of the first sort attribute
   // args[4] : a boolean which indicates if sortorder should
-  //           be asc or desc.
+  //           be asc (true) or desc (false)
   // args[5] : Same as 3 but for the second sort attribute
-  // args[6] : Same as 4
+  // args[6] : Same as 4 but for the second sort attribute
   // ....
-  //
+
+  // Operator sortby2with (firstArg = 5, param = true)
+  // args[0] : stream
+  // args[1] : sort attributes specification as list (ignored)
+  // args[2] : operator's main memory in bytes
+  // args[3] : maximum fan-in of merge phase
+  // args[4] : I/O buffer size in bytes
+  // args[5] : the number of sort attributes
+  // args[6] : the index of the first sort attribute
+  // args[7] : a boolean which indicates if sortorder should
+  //           be asc (true) or desc (false)
+  // args[8] : Same as 3 but for the second sort attribute
+  // args[9] : Same as 4 but for the second sort attribute
+  // ....
 
   SortLocalInfo* li;
   li = static_cast<SortLocalInfo*>( local.addr );
@@ -584,16 +621,26 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
         //a problem for progress estimation
         if ( param )
         {
-          int idx = firstArg - 2;
+          int idx = firstArg - 3;
           int maxMemSize = StdTypes::GetInt( args[idx] );
           int maxFanIn = StdTypes::GetInt( args[idx+1] );
+          int ioBufferSize = StdTypes::GetInt( args[idx+2] );
 
-          li->ptr = new SortAlgorithm( args[0], new TupleCompareBy(spec), li,
+          // set I/O buffer size in bytes
+          if ( ioBufferSize >= 0 && ioBufferSize <= 16384 )
+          {
+            li->oldIoBufferSize = TupleBuffer::GetIoBufferSize();
+            TupleBuffer::SetIoBufferSize((size_t)ioBufferSize);
+          }
+
+          li->ptr = new SortAlgorithm( args[0],
+                                       new TupleCompareBy(spec), li,
                                        maxFanIn, maxMemSize);
         }
         else
         {
-          li->ptr = new SortAlgorithm(args[0], new TupleCompareBy(spec), li);
+          li->ptr = new SortAlgorithm( args[0],
+                                       new TupleCompareBy(spec), li);
         }
       }
 
@@ -617,6 +664,11 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       if (li)
       {
+        // restore old I/O buffer size if necessary
+        if ( li->oldIoBufferSize != UINT_MAX )
+        {
+          TupleBuffer::SetIoBufferSize(li->oldIoBufferSize);
+        }
         delete li;
         local.addr = 0;
       }
@@ -698,11 +750,11 @@ int SortValueMap<2, false >( Word* args, Word& result,
                               int message, Word& local, Supplier s );
 
 template
-int SortValueMap<3, true>( Word* args, Word& result,
+int SortValueMap<4, true>( Word* args, Word& result,
                             int message, Word& local, Supplier s );
 
 template
-int SortValueMap<4, true>( Word* args, Word& result,
+int SortValueMap<5, true>( Word* args, Word& result,
                             int message, Word& local, Supplier s );
 
 } // end of namespace extrel2

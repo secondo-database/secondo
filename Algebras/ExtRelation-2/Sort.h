@@ -380,7 +380,11 @@ class SortLocalInfo: public SortProgressLocalInfo
 {
   public:
 
-    SortLocalInfo() : SortProgressLocalInfo(), ptr(0) {}
+    SortLocalInfo()
+    : SortProgressLocalInfo()
+    , ptr(0)
+    , oldIoBufferSize(UINT_MAX)
+    {}
 /*
 The constructor. Construct an empty instance.
 
@@ -397,6 +401,12 @@ The destructor. Frees the sort algorithm object.
 Pointer to sort algorithm
 
 */
+
+    size_t oldIoBufferSize;
+/*
+Old I/O buffer size for read/write operations to disc
+
+*/
 };
 
 /*
@@ -411,9 +421,10 @@ to the argument list. The only difference is the argument index of the
 first sort order specification argument, as ~sort2~ has no additional
 arguments besides the stream. ~sortby2~ has a nested list of sort order
 arguments as second argument. The template parameter ~param~ is used
-to specify whether the operator receives two additional arguments. The
-first one is the operators main memory size in KBytes and the second
-one the maximum fan-in for a merge phase.
+to specify whether the operator receives three additional arguments. The
+first one is the operators main memory size in KBytes, the second
+one the maximum fan-in for a merge phase and the third one the I/O
+buffer size for read/write operations to disc.
 
 */
   template<int firstArg, bool param>

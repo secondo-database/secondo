@@ -409,8 +409,8 @@ ListExpr JoinTypeMap( ListExpr args )
   NList type(args);
 
   const char* op[] = { "hybridhashjoin",
-                        "hybridhashjoinP",
-                        "sortmergejoin2" };
+                       "hybridhashjoinP",
+                       "sortmergejoin2" };
 
   const char* ex[] = { "five", "eight", "four" };
 
@@ -1175,18 +1175,20 @@ Operator tuplebuffertest (
 4.7 Operator ~sort2With~
 
 This operator is used to simplify the testing of the new
-~sort2~ operator implementation. The operator takes two additional
+~sort2~ operator implementation. The operator takes three additional
 parameters, the second argument specifies the used operators main
-memory in KBytes and the third argument the maximum fan-in of a merge
+memory in bytes, the third argument the maximum fan-in of a merge
 phase respectively the maximum number of temporary open tuple
-files.
+files and the fourth argument specifies the size of the
+I/O buffer for read/write operations on disc.
 
 4.7.1 Type mapping function of Operator ~sort2With~
 
 Type mapping for operator ~sort2With~ is
 
-----  ((stream (tuple ((x1 t1)...(xn tn)))) int int)  ->
-      (stream (tuple ((x1 t1)...(xn tn))))
+----  ((stream (tuple ((x1 t1)...(xn tn)))) int int int)  ->
+      (stream (tuple ((x1 t1)...(xn tn))) int int int
+      APPEND (n i1 true i2 true ... in true))
 ----
 
 */
@@ -1195,10 +1197,10 @@ ListExpr Sort2WithTypeMap(ListExpr args)
   NList type(args);
 
   // check list length
-  if ( !type.hasLength(3) )
+  if ( !type.hasLength(4) )
   {
     return NList::typeError(
-        "Operator sort2With expects a list of length three.");
+        "Operator sort2With expects a list of length four.");
   }
 
   // check if first argument is a tuple stream
@@ -1242,7 +1244,8 @@ ListExpr Sort2WithTypeMap(ListExpr args)
   if ( type.second() != INT )
   {
     return NList::typeError(
-        "Operator sort2With: second argument must be an integer!"
+        "Operator sort2With: second argument (operator memory) "
+        "must be an integer!"
         "Operator received: " + type.second().convertToString() );
   }
 
@@ -1250,8 +1253,18 @@ ListExpr Sort2WithTypeMap(ListExpr args)
   if ( type.third() != INT )
   {
     return NList::typeError(
-        "Operator sort2With: third argument must be an integer!"
+        "Operator sort2With: third argument (maximum fan-in merge-phase)"
+        " must be an integer!"
         "Operator received: " + type.third().convertToString() );
+  }
+
+  // check if fourth argument is an integer (I/O buffer size)
+  if ( type.fourth() != INT )
+  {
+    return NList::typeError(
+        "Operator sort2With: fourth argument ('I/O buffer size') "
+        "must be an integer!"
+        "Operator received: " + type.fourth().convertToString() );
   }
 
   return NList(NList(APPEND), sortDesc, type.first()).listExpr();
@@ -1273,10 +1286,10 @@ int Sort2WithValueMap( Word* args, Word& result,
 const string Sort2WithSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
                             "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                            "))) int int) -> "
+                            "))) int int int) -> "
                             "(stream (tuple([a1:d1, ... ,an:dn])))"
                             "</text--->"
-                            "<text>_ sort2With[_, _]</text--->"
+                            "<text>_ sort2With[_, _, _]</text--->"
                             "<text>This operator is used to simplify the "
                             "testing of "
                             "the new sort2 operator implementation. The "
@@ -1299,7 +1312,7 @@ const string Sort2WithSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 Operator extrelsort2with(
          "sort2with",             // name
          Sort2WithSpec,           // specification
-         SortValueMap<3, true>,   // value mapping
+         SortValueMap<4, true>,   // value mapping
          Operator::SimpleSelect,  // trivial selection function
          Sort2WithTypeMap         // type mapping
 );
@@ -1308,19 +1321,20 @@ Operator extrelsort2with(
 4.8 Operator ~sortby2With~
 
 This operator is used to simplify the testing of the new
-~sortby2~ operator implementation. The operator takes two additional
-parameters, the second argument specifies the used operators main
-memory in KBytes and the third argument the maximum fan-in of a merge
+~sortby2~ operator implementation. The operator takes three additional
+parameters, the first one specifies the useable main memory
+memory in Bytes, the second one the maximum fan-in of a merge
 phase respectively the maximum number of temporary open tuple
-files.
+files and the third one specifies the I/O buffer size in bytes
+for read/write operations on disc.
 
 4.8.1 Type mapping function of Operator ~sortby2with~
 
 Type mapping for ~sortby2with~ is
 
 ----  ((stream (tuple ((x1 t1)...(xn tn))))
-                      ((xi1 asc/desc) ... (xij asc/desc)) int int)
-              -> ((stream (tuple ((x1 t1)...(xn tn)))) int int
+                      ((xi1 asc/desc) ... (xij asc/desc)) int int int)
+              -> ((stream (tuple ((x1 t1)...(xn tn)))) int int int
                   APPEND (j i1 asc/desc i2 asc/desc ... ij asc/desc))
 ----
 
@@ -1331,11 +1345,11 @@ ListExpr SortBy2WithTypeMap( ListExpr args )
   NList type(args);
 
   // check list length
-  if ( !type.hasLength(4) )
+  if ( !type.hasLength(5) )
   {
     return NList::typeError(
         "Operator sortby2with expects a list of "
-        "length four.");
+        "length five.");
   }
 
   NList streamDesc = type.first();
@@ -1457,27 +1471,38 @@ ListExpr SortBy2WithTypeMap( ListExpr args )
     }
   }
 
-  // check if second argument is an integer (operator memory)
+  // check if third argument is an integer (operator memory)
   if ( type.third() != INT )
   {
     return NList::typeError(
-        "Operator sortby2with: third argument must be an integer!"
+        "Operator sortby2with: third argument (operator memory) "
+        "must be an integer!"
         "Operator received: " + type.third().convertToString() );
   }
 
-  // check if third argument is an integer (maximum fan-in merge-phase)
+  // check if fourth argument is an integer (maximum fan-in merge-phase)
   if ( type.fourth() != INT )
   {
     return NList::typeError(
-        "Operator sortby2with: fourth argument must be an integer!"
+        "Operator sortby2with: fourth argument (maximum fan-in merge-phase) "
+        "must be an integer!"
         "Operator received: " + type.fourth().convertToString() );
+  }
+
+  // check if fifth argument is an integer (I/O buffer size)
+  if ( type.fifth() != INT )
+  {
+    return NList::typeError(
+        "Operator sortby2with: fifth argument ('I/O buffer size') "
+        "must be an integer!"
+        "Operator received: " + type.fifth().convertToString() );
   }
 
   return NList(NList("APPEND"), sortDesc, type.first()).listExpr();
 }
 
 /*
-4.8.2 Value mapping function of operator ~sort2With~
+4.8.2 Value mapping function of operator ~sortby2with~
 
 */
 
@@ -1485,7 +1510,7 @@ int SortBy2WithValueMap( Word* args, Word& result,
                            int message, Word& local, Supplier s );
 
 /*
-4.8.3 Specification of operator ~sort2With~
+4.8.3 Specification of operator ~sortby2with~
 
 */
 
@@ -1495,31 +1520,34 @@ const string SortBy2WithSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "))) int int) -> "
                             "(stream (tuple([a1:d1, ... ,an:dn])))"
                             "</text--->"
-                            "<text>_ sort2With[list; _, _]</text--->"
+                            "<text>_ sort2With[list; _, _, _]</text--->"
                             "<text>This operator is used to simplify the "
                             "testing of the new sortby2 operator "
-                            "implementation. The operator takes two "
-                            "additional parameters, the first one specifies "
-                            "the usable main memory in KBytes and the second "
+                            "implementation. The operator takes three "
+                            "additional parameters. The first one specifies "
+                            "the usable main memory in bytes, the second "
                             "one the maximum fan-in of a merge phase "
                             "respectively the maximum number of temporary "
-                            "open tuple files. Usable memory size must be "
-                            "between 1-65536 KByte. The maximum fan-in is "
-                            "limited by 2-1000. If these limits are exceeded "
+                            "open tuple files and the third one the size of"
+                            "the I/O buffer in bytes. Usable memory size "
+                            "must be between 1-65536 KByte. The maximum "
+                            "fan-in is limited by 2-1000. The size of the"
+                            "I/O buffer is limited by 0-16384 bytes."
+                            "If these limits are exceeded "
                             "default values will be used instead.</text--->"
                             "<text>query plz feed sortby2With"
-                            "[Ort asc, PLZ asc; 16386, 50] consume</text--->"
-                            ") )";
+                            "[Ort asc, PLZ asc; 16386, 50, 4096] "
+                            "consume</text--->) )";
 
 /*
-4.8.4 Definition of operator ~sort2With~
+4.8.4 Definition of operator ~sortby2with~
 
 */
 
 Operator extrelsortby2with(
          "sortby2with",           // name
          SortBy2WithSpec,         // specification
-         SortValueMap<4, true>,   // value mapping
+         SortValueMap<5, true>,   // value mapping
          Operator::SimpleSelect,  // trivial selection function
          SortBy2WithTypeMap       // type mapping
 );

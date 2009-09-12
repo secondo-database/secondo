@@ -33,14 +33,14 @@ Result   : 10052
 
 Operator : sort2with
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sort2with[16384,50] count
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) int int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query Staedte feed sort2with[16384,50,4096] count
 Result   : 58
 
 Operator : sortby2with
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc)) int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sortby2with[Bev desc;16384,50] head[3] count
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc)) int int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query Staedte feed sortby2with[Bev desc;16384,50,4096] head[3] count
 Result   : 3
 
 Operator : heapstl
