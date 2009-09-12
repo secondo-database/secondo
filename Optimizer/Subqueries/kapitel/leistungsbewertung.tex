@@ -88,8 +88,8 @@ select
 	[pspartkey_ps, 
 	min(pssupplycost_ps) as var1]
 from
-	[txxrel1, 
-	txxrel2]
+	[trelxx1, 
+	trelxx2]
 where 
 	[ppartkey = pspartkey_ps]
 groupby 
@@ -105,7 +105,7 @@ select
 from
 	[part, supplier, 
 	partsupp, nation, 
-	region, txxrel3 as txxrel4]
+	region, trelxx3 as alias1]
 where
 	[ppartkey = pspartkey, 
 	ssuppkey = pssuppkey, 
@@ -114,8 +114,8 @@ where
 	snationkey = nnationkey, 
 	nregionkey = rregionkey, 
 	rname = "EUROPE", 
-	ppartkey = txxrel4:pspartkey_ps, 
-	pssupplycost = txxrel4:var1]
+	ppartkey = alias1:pspartkey_ps, 
+	pssupplycost = alias1:var1]
 orderby
 	[sacctbal desc, 
 	nname, 
@@ -142,7 +142,7 @@ pssupplycost = (
 	 )
 \end{lstlisting}
 
-wurde durch die zwei Prädikate \sql{pssupplycost = txxrel4:var1} und \sql{ppartkey = txxrel4:pspartkey\_ps} ersetzt. Das erste der beiden Prädikate ergibt sich direkt aus dem geschachtelten Prädikat, während das zweite Prädikat die Korrelation abbildet. Zusätzlich wurde die neue Relation txxrel3 in die FROM-Klausel aufgenommen. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate.
+wurde durch die zwei Prädikate \sql{pssupplycost = trelxx4:var1} und \sql{ppartkey = trelxx4:pspartkey\_ps} ersetzt. Das erste der beiden Prädikate ergibt sich direkt aus dem geschachtelten Prädikat, während das zweite Prädikat die Korrelation abbildet. Zusätzlich wurde die neue Relation trelxx3 in die FROM-Klausel aufgenommen. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate.
 
 \subsection{TPC-D Q4}
 Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. Es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf.
@@ -201,8 +201,8 @@ where
 
 Full-Outerjoin zwischen den temporären Relationen. Das \texttt{ifthenelse} Konstrukt ist notwendig, da \textsc{Secondo} nur die zeilenbasierte Semantik des \texttt{count}-Operators unterstützt. 
 \begin{lstlisting}[caption=TempRel3]
-txxrel1  feed 
-txxrel2  feed  
+trelxx1  feed 
+trelxx2  feed  
 smouterjoin[oORDERKEY,lORDERKEY] 
 extend[var1: ifthenelse(isempty(.lORDERKEY), 0, 1)] 
 sortby[oORDERKEY asc] 
@@ -217,7 +217,7 @@ select
 	count(*) as ordercount] 
 from 
 	[orders, 
-	txxrel3 as txxrel5] 
+	trelxx3 as alias1] 
 where 
 	[oorderdate>=instant("1993-07-01"), 
 	oorderdate<theInstant(
@@ -225,8 +225,8 @@ where
 		month_of(instant("1993-07-01")) + 3, 
 		day_of(instant("1993-07-01"))
 	), 
-	oorderkey = txxrel5:lorderkey, 
-	0 < txxrel5:var1] 
+	oorderkey = alias1:lorderkey, 
+	0 < alias1:var1] 
 groupby 
 	[oorderpriority] 
 orderby 
@@ -314,7 +314,7 @@ select
 	lyear, 
 	sum(volume)as revenue]
 from 
-	txxrel1 
+	trelxx1 
 groupby 
 	[supp_nation, 
 	cust_nation, 
@@ -386,7 +386,7 @@ select
 	oyear, 
 	sum(amount)as sumprofit]
 from 
-	txxrel1 
+	trelxx1 
 groupby 
 	[nation, 
 	oyear]
@@ -529,8 +529,8 @@ select
 	[lpartkey_l1, 
 	avg(0.2*lquantity_l1)as var1]
 from
-	[txxrel1, 
-	txxrel2]
+	[trelxx1, 
+	trelxx2]
 where
 	[lpartkey_l1 = ppartkey]
 groupby 
@@ -543,16 +543,17 @@ select
 from
 	[lineitem, 
 	part, 
-	txxrel3 as txxrel4]
+	trelxx3 as alias1]
 where
 	[ppartkey = lpartkey, 
 	pbrand = "Brand#23", 
 	pcontainerv = "MED BOX", 
-	ppartkey = txxrel4:lpartkey_l1, 
-	lquantity < txxrel4:var1]
+	ppartkey = alias1:lpartkey_l1, 
+	lquantity < alias1:var1]
 groupby
 	[]
 \end{lstlisting}
+
 \subsection{TPC-D Q20}
 Identifiziert Liefereanten, die einen Überschuss an bestimmten Teilen haben. Überschuss ist hier definiert als mehr als 50\% der von einem Lieferanten versandten Teile über ein Jahr. Nur Teile mit einem vorgegebenen Namensbestandteil werden betrachtet.
 \begin{lstlisting}[caption=Abfrage Q20]
@@ -616,8 +617,8 @@ select
 	[lpartkey, 
 	sum(lquantity*0.5)as var2]
 from
-	[txxrel1, 
-	txxrel2]
+	[trelxx1, 
+	trelxx2]
 where
 	[lpartkey = pspartkey]
 groupby 
@@ -633,13 +634,13 @@ from
 	nation, 
 	partsupp, 
 	part, 
-	txxrel5 as txxrel6]
+	trelxx5 as alias1]
 where
 	[ssuppkey = pssuppkey, 
 	pspartkey = ppartkey, 
 	tostring(pname) starts "forest", 
-	pspartkey = txxrel6:lpartkey, 
-	psavailqty > txxrel6:var1, 
+	pspartkey = alias1:lpartkey, 
+	psavailqty > alias1:var1, 
 	snationkey = nnationkey, 
 	nname = "CANADA"]
 orderby
@@ -699,8 +700,8 @@ where
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3]
-txxrel1  feed 
-txxrel2  feed  
+trelxx1  feed 
+trelxx2  feed  
 smouterjoin[lORDERKEY_l1,lORDERKEY_l2] 
 extend[var1: ifthenelse(isempty(.lORDERKEY_l2), 0, 1)] 
 sortby[lORDERKEY_l1 asc] 
@@ -727,8 +728,8 @@ where
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3 die zweite]
-txxrel1  feed 
-txxrel5  feed 
+trelxx1  feed 
+trelxx5  feed 
 smouterjoin[lORDERKEY_l1,lORDERKEY_l3] 
 extend[var1: ifthenelse(isempty(.lORDERKEY_l3), 0, 1)] 
 sortby[lORDERKEY_l1 asc] 
@@ -746,17 +747,17 @@ from
 	lineitem as l1, 
 	orders, 
 	nation, 
-	txxrel3 as txxrel8, 
-	txxrel9 as txxrel10]
+	trelxx3 as alias1, 
+	trelxx9 as alias2]
 where
 	[ssuppkey = l1:lsuppkey, 
 	oorderkey = l1:lorderkey, 
 	oorderstatus="F", 
 	l1:lreceiptdate > l1:lcommitdate, 
-	l1:lorderkey = txxrel8:lorderkey_l2, 
-	0 < txxrel8:var1, 
-	l1:lorderkey = txxrel10:lorderkey_l3, 
-	0 = txxrel10:var2, 
+	l1:lorderkey = alias1:lorderkey_l2, 
+	0 < alias1:var1, 
+	l1:lorderkey = alias2:lorderkey_l3, 
+	0 = alias2:var2, 
 	snationkey = nnationkey, 
 	nname = "SAUDI ARABIA"]
 groupby
@@ -823,8 +824,8 @@ where
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3]
-txxrel1  feed 
-txxrel2  feed 
+trelxx1  feed 
+trelxx2  feed 
 smouterjoin[cCUSTKEY,oCUSTKEY] 
 extend[var1: ifthenelse(isempty(.oCUSTKEY), 0, 1)] 
 sortby[cCUSTKEY asc] 
@@ -841,12 +842,12 @@ select
 	cacctbal]
 from
 	[customer, 
-	txxrel3 as txxrel4]
+	trelxx3 as alias1]
 where
 	[substr(cphone, 1, 2) in ("13","35","31","23","29","30","18"), 
 	cacctbal > 5527.01, 
-	ccustkey = txxrel4:ocustkey, 
-	0 = txxrel4:var1]
+	ccustkey = alias1:ocustkey, 
+	0 = alias1:var1]
 \end{lstlisting}
 
 \begin{lstlisting}[caption=Entschachtelte Variante von Q22]
@@ -855,7 +856,7 @@ select
 	count(*)as numcust, 
 	sum(cacctbal)as totacctbal]
 from 
-	txxrel5 
+	trelxx5 
 groupby
 	[cntrycode]
 orderby
@@ -904,9 +905,10 @@ Q22 & 2.308& 0.938\\
   \label{tab_runtime}
 \end{table}
 
-\subsection{Fazit}
-Bis auf wenige Ausnahmen (Q17 und Q21) ist die entschachtelte Ausführung der iterativen Ausführung in den betrachteten Abfragen überlegen.
-\subsection{Ausblick}
+\section{Fazit}
+Bis auf wenige Ausnahmen (Q17 und Q21) ist die entschachtelte Ausführung der iterativen Ausführung in den betrachteten Abfragen überlegen. 
+
+\section{Ausblick}
 Um die Entschachtelung zu vervollständigen sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden. Auch ein allgemeiner Full-Outerjoin-Operator auf Basis von Symmjoin. Unterstützung von \textbf{GROUPBY...HAVING}-Klauseln inkl. Subqueries. Geschachtelte Prädikate in Disjunktionen. Allgemeiner \sql{in}-Operator für Konstanten, möglicherweise auf der Basis des bestehenden \sql{in}-Operators der \algebra{Collection-Algebra}. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen. Weitere Formen von geschachtelten Abfragen, die noch nicht optimiert werden können: korrelierte Abfragen in der SELECT-Klausel und der FROM-Klausel, geschachtelte Abfragen in Disjunktionen, geschachtelte Abfragen, die mehrere Schachtelungsebenen überspringen.
 
 %

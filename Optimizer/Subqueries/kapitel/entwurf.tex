@@ -57,8 +57,9 @@ WHERE §$R_i.C_h <> R_j.C_m$§
 Die Optimierung von geschachtelten Abfragen die in dieser Arbeit implementiert wurden unterliegen aufgrund der verwendeten Algorithmen einigen Einschränkungen. Geschachtelte Abfragen dürfen im inneren Abfrageblock keine \sql{group by/having}-Klausel aufweisen (vgl. \cite{671658}). In korrelierten Abfragen dürfen nur Attribute der Relationen des den Abfrageblock direkt umgebenden Abfrageblocks verwendet werden. D.h. auf Schachtelungsebene n dürfen nur Relationen des inneren Abfrageblocks und Relationen der Schachtelungsebene n-1 verwendet werden. Tritt ein geschachteltes Prädikat in einem Disjunktionsterm auf, so ist es einer Optimierung mit den hier implementierten Algorithmen ebenfalls nicht zugänglich. Algorithmen zur Optimierung geschachtelter Abfragen in Disjunktionen wurden aber z.B. in \cite{Brantner2007} vorgestellt. Korrelierte Abfragen in der \sql{select}- und \sql{from}-Klausel können nicht mit einfachen temporären Relationen ersetzt werden. In dieser Arbeit wurde daher nur die Behandlung nicht korrelierter Abfragen in der \sql{select}- und \sql{from}-Klausel implementiert. Geschachtelte Abfragen, die nicht durch Entschachtelungs- und Transformationsalgorithmen optimiert werden können, werden in geschachtelte, iterative Ausdrücke übersetzt. 
 
 \section{Ein Full-Outer-Join-Operator für SECONDO}
-\textsc{Secondo} enthält bereits mehrere Join-Operatoren. Als Vorlage für die Implementierung des Full-Outer-Join-Operators wurde der Operator \secondo{sortmergejoin} ausgewählt, da sich der zugrunde liegende Algorithmus mit wenigen Änderungen in einen Full-Outer-Join umbauen lässt. Sort-Merge-Join ist ein Algorithmus zur Berechnung von Equi-Joins. Voraussetzung ist die Sortierung der Relationen bzw. Ströme bezüglich der Join-Attribute. Diese Anforderung kann durch das vorhergehende Sortieren der Relationen erfüllt werden. In \textsc{Secondo} erfolgt dies Sortierung innerhalb des Operators \secondo{sortmergejoin}.
+\textsc{Secondo} enthält bereits mehrere Join-Operatoren. Als Vorlage für die Implementierung des Full-Outer-Join-Operators wurde der Operator \secondo{sortmergejoin} ausgewählt, da sich der zugrunde liegende Algorithmus mit wenigen Änderungen in einen Full-Outer-Join umbauen lässt. Sort-Merge-Join ist ein Algorithmus zur Berechnung von Equi-Joins. Daher wird auch nur der Full-Outer-Join für Equi-Join berechnet. Voraussetzung ist die Sortierung der Relationen bzw. Ströme bezüglich der Join-Attribute. Diese Anforderung kann durch das vorhergehende Sortieren der Relationen erfüllt werden. In \textsc{Secondo} erfolgt diese Sortierung durch den Operator \secondo{sortmergejoin}.
 
+Mithilfe zweier Zeiger werden die sortiert vorliegenden Ströme durchlaufen.
 Zu Beginn des Algorithmus zeigen die beiden Zeiger auf den Anfang jeder Relation. 
 \begin{enumerate}
 \item Jetzt werden alle Tupel der ersten Relation mit übereinstimmenden Wert im Join-Attribut in einen Puffer gelesen und der Zeiger jeweils auf das aktuell gelesene Tupel gesetzt. 
@@ -69,7 +70,7 @@ Zu Beginn des Algorithmus zeigen die beiden Zeiger auf den Anfang jeder Relation
 \item Ist eine der beiden Relationen erschöpft, ist der Algorithmus beendet.
 \end{enumerate}
 
-Dieser Algorithmus lässt sich auf folgende Art und Weise zum Full-Outer-Join ausbauen. Bei jedem Vergleichsschritt wird jetzt ein Tupel der Ausgaberelation erzeugt. Ist der Wert im ersten Puffer größer als im zweiten, so besteht das Tupel der Ergebnismenge aus einer Verkettung des Tupels aus dem Puffer und einem mit NULL-Werten gefüllten Tupel der zweiten Relation. Auf die gleiche Art wird mit jedem Tupel des Puffers verfahren. Ist der Attribut-Wert gleich, so wird wie beim Sort-Merge-Join verfahren. Ist der Wert größer, so wird für jedes Tupel im zweiten Puffer ein Ausgabe-Tupel erzeugt, dass aus einer Aneinanderreihung eines NULL-Tupels der ersten Relation und dem Tupel aus dem Puffer besteht. Damit wird für jedes Tupel, das nicht im Join-Ergebnis enthalten wäre ein Ausgabetupel erzeugt, dessen Attributwerte für die Attribute der jeweils anderen Relation mit NULL-Werten gefüllt sind.
+Dieser Algorithmus lässt sich auf folgende Art und Weise zum Full-Outer-Join ausbauen. Bei jedem Vergleichsschritt wird jetzt ein Tupel der Ausgaberelation erzeugt. Ist der Wert im ersten Puffer größer als im zweiten, so besteht das Tupel der Ergebnismenge aus einer Verkettung des Tupels aus dem Puffer und einem mit NULL-Werten gefüllten Tupel der zweiten Relation. Auf die gleiche Art wird mit jedem Tupel des Puffers verfahren. Ist der Attribut-Wert gleich, so wird wie beim Sort-Merge-Join verfahren. Ist der Wert größer, so wird für jedes Tupel im zweiten Puffer ein Ausgabe-Tupel erzeugt, dass aus einer Aneinanderreihung eines NULL-Tupels der ersten Relation und dem Tupel aus dem Puffer besteht. Damit wird für jedes Tupel, das nicht im Join-Ergebnis enthalten wäre ein Ausgabetupel erzeugt, dessen Attributwerte für die Attribute der jeweils anderen Relation mit NULL-Werten gefüllt sind. 
 
 \begin{itemize}
 	\item Beschreibung Sortmergejoin
@@ -83,7 +84,7 @@ Basis ist sortmergejoin, nicht \enquote{matchende} Tupel wird mit NULL-Werten au
 Ausblick: Full-Outer-Join auf Basis von Symmjoin. Die Tupel der beiden Ströme werden um ein Attribut TupelID erweitert. Zu jedem Tupel, das über den Symmjoin-Algorithmus einen Partner gefunden hat, wird die TupelID in einer Hash-Tabelle gespeichert. Dabei werden die TupelIDs für jeden Strom in einer eigenen Hash-Tabelle abgelegt. Nach Beendigung des Symmjoin-Algorithmus wird jeder Tupelpuffer ein zweites Mal durchlaufen. Ist die TupelID eines Tupels nicht in der entsprechenden Hash-Tabelle enthalten, so wird ein Ergebnistupel erzeugt, das die Werte aus dem betrachteten Tupel übernimmt und für die zusätzlichen Spalten mit NULL-Werten aufgefüllt wird. zwei Hash-Tabelle mit TupelIds für alle gefundenen Tupel, Tupelbuffer durchlaufen und ein mit NULL-Werten aufgefülltes Tupel erzeugen für alle nicht gematchten Tupel
 
 \section{Behandlung quantifizierter Prädikate}\label{sct:Behandlung quantifizierter Prädikate}
-Prädikate mit den Operatoren \sql{exists}, \sql{all} oder \sql{any} können in ein inhaltlich äquivalentes Prädikat mit Aggregationsfunktion transformiert werden. 
+Prädikate mit den Operatoren \sql{exists}, \sql{all} oder \sql{any} können in ein inhaltlich äquivalentes Prädikat mit Aggregationsfunktion transformiert werden, sofern keine NULL-Werte in den Unterabfragen enthalten sind. 
 
 Das Prädikate \sql{exists(Q)}  ist genau dann wahr, wenn die Ergebnisrelation des Abfrageblocks  Q mindestens ein Tupel enthält. Ist \lstinline[mathescape=true]{Q = select $C_n$ from $R_m$ where P}, so lässt sich aber auch als \lstinline[mathescape=true]{0 < (select count($C_n$) from $R_m$ where P)} ausdrücken. Analog dazu kann \lstinline[mathescape=true]{not exists(select $C_n$ from $R_m$ where P)} in \lstinline[mathescape=true]{0 = (select count($C_n$) from $R_m$ where P)} überführt werden. Um die Berechnung der Aggregation zu beschleunigen, kann die Abfrage mit dem Ausdruck \secondo{first 1} noch auf das erste Tupel der Unterabfrage beschränkt werden. Dies verhindert das teure Operatoren auf allen Tupeln der Unterabfrage ausgeführt werden müssen. 
 
@@ -132,7 +133,8 @@ Ein Prädikat \lstinline[mathescape=true]{$C_n$ = all(select $C_m$ from $R_i$ whe
 Mit diesen Transformationen lassen sich auch quantifizierte Prädikate als Prädikate der Typen J, N, A oder JA betrachten. Dies hat zur Folge, dass sich die im folgenden beschriebenen Optimierungsalgorithmen auch auf diese Prädikate anwenden lassen. Außerdem sind die Prädikate einer Übersetzung in ausführbare \textsc{Secondo}-Syntax besser zugänglich, da die Aggregation bereits durch Standard-Operatoren implementiert ist. Eine Einführung weiterer Operatoren zur Übersetzung quantifizierter Prädikate ist hierdurch nicht notwendig.
 
 
-\section{Algorithmus \textbf{NEST-N-J}}\label{sct:Algorithmus NEST-N-J}
+\section{Entschachtelungsalgorithmen}\label{sct:Entschachtelungsalgorithmen}
+\subsection{Algorithmus \textbf{NEST-N-J}}\label{sct:Algorithmus NEST-N-J}
 Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine inhaltlich identische entschachtelte Form zu überführen. Basis der Transformation ist die Beobachtung, dass das Ergebnis einer geschachtelten Abfrage vom Typ N oder J und einer Abfrage über allen verwendeten Relationen mit einem zusätzlichen Join-Prädikat identisch ist. Da die Join-Operation in SQL Multimengen-Semantik hat, müssen bei Operatoren mit strenger Mengen-Semantik z.B. \sql{in} die inneren Relationen vor der Verwendung in der entschachtelten Variante auf ihre Join-Spalten projiziert und durch die Prädikate der Unterabfrage eingeschränkt werden. Da das Ergebnis der Projektion und Selektion maximal die gleiche Mächtigkeit hat, wie die Ursprungsrelationen, wirkt sich diese zusätzliche Operation in den meisten Fällen eher positiv auf die Anzahl der I/O-Operationen aus (siehe auch \cite{319745}).
 
 \begin{algorithm}
@@ -146,6 +148,7 @@ Algorithmus NEST-N-J
 \end{algorithm}
 
 Die \sql{from}-Klausel der entschachtelten Abfrage setzt sich aus der Vereinigung der \sql{from}-Klauseln des äußeren und inneren Abfrageblocks zusammen. Für die \sql{where}-Klausel wird die Konjunktion der \sql{where}-Klauseln gebildet. Zusätzlich wird diese um ein Join-Prädikat ergänzt, das aus dem ursprünglich geschachtelten Prädikat abgeleitet ist. Das Prädikat ist der Vergleich des im geschachtelten Prädikat auf der linken Seite auftretenden Attributs mit dem Attribut der \sql{select}-Klausel des inneren Abfrageblocks. Der Vergleichsoperator des neuen Prädikats ist nur für die Operatoren \sql{in} und \sql{not in} abweichend von dem im geschachtelten Prädikat verwendeten Operator. Ist \sql{in} der Operator des geschachtelten Prädikats, so wird der Equi-Join benötigt; der Operator des neuen Join-Prädikats ist dann \enquote{=}. Beim Operator \sql{not in} ist ein Anti-Join notwendig. Eine entsprechende Syntax existiert im SQL-Standard nicht. Die \sql{select}-Klausel der geschachtelten Abfrage bleibt unverändert. 
+
 Alle FROM-Klausel kombinieren. Die resultierende FROM-Klausel umfasst alle Relationen des inneren und des äußeren Abfrageblocks\\
 Die Konjunktion der \sql{where}-Klauseln bilden.\\
 Das geschachtelte Prädikat \begin{math}[R_i.C_h \operatorname{op}\ (\texttt{SELECT} R_j.C_m \dots)]\end{math} ersetzen durch ein neues Join-Prädikat \begin{math}[R_i.C_h \operatorname{\emph{new-op}} R_j.C_m]\end{math}, das mit der restlichen \sql{where}-Klausel per Konjunktion verbunden ist\\
@@ -192,7 +195,7 @@ $\triangleright$ entspricht hier dem Anti-Join-Operator
 
 Der Beweis für die Korrektheit wird in \cite{319745} geführt. Aus der im SQL Standard definierten Semantik für geschachtelte Abfragen, ergibt sich, dass für jedes betrachtete Tupel der äußeren Abfrage die innere Abfrage ausgewertet werden kann. Für den Operator \sql{in} bedeutet dies, dass das geschachtelte Prädikat \sql{WAHR} ist, wenn der Wert $X$ im Ergebnis der inneren Abfrage enthalten ist. Das Join-Prädikat der entschachtelten Abfrage ist genau dann \sql{WAHR}, wenn das geschachtelte Prädikat wahr ist.
 
-\section{Algorithmus \textbf{NEST-JA2}}\label{sct:Algorithmus NEST-JA2}
+\subsection{Algorithmus \textbf{NEST-JA2}}\label{sct:Algorithmus NEST-JA2}
 Der Algorithmus basiert auf der Idee, die Aggregation für alle benötigten Gruppen im Voraus zu berechnen. 
 Um die Auswertung der Aggregation nicht bei jedem Tupel der äußeren Relation durchführen zu müssen, wird mit temporären Tabellen gearbeitet. Es wird die Aggregation über die inneren Relationen gruppiert nach Werten des Join-Attributs der äußeren Spalte vorausberechnet. Da die temporären Relationen persistent abgelegt werden, fällt der Aufwand für ihr Anlegen nur einmal an. Ab der zweiten Ausführung kann auf die bestehenden temporären Relationen zugegriffen werden. 
 
@@ -305,7 +308,7 @@ wobei
 
 \begin{math}\theta \in\{=,\not=,>,\geq,<,\leq\}\end{math}
 
-\section{Algorithmus NEST-G}\label{sct:Algorithmus NEST-G}
+\subsection{Algorithmus NEST-G}\label{sct:Algorithmus NEST-G}
 Ganski/Wong stellen in \cite{38723} ihren allgemeinen Algorithmus zur Optimierung geschachtelter Abfragen vor. Dieser wendet rekursiv je nach Schachtelungstyp die oben vorgestellten Algorithmen auf geschachtelte Prädikate an. 
 
 \begin{algorithm}
