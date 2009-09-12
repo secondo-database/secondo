@@ -48,7 +48,7 @@ implement the new hash-join operator ~hybridhashjoin~.
 
 #include "RelationAlgebra.h"
 #include "Progress.h"
-#include "HashTable.h"
+#include "HybridHashJoinHashTable.h"
 #include "Partition.h"
 
 #define HYBRIDHASHJOIN_MINIMUM_BUCKETS      3

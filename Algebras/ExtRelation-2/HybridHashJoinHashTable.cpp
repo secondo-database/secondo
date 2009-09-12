@@ -31,7 +31,7 @@ June 2009, Sven Jungnickel. Initial version
 #include "stdlib.h"
 
 #include "LogMsg.h"
-#include "HashTable.h"
+#include "HybridHashJoinHashTable.h"
 
 /*
 3 Implementation of class ~Bucket~

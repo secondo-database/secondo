@@ -33,7 +33,7 @@ June 2009, Sven Jungnickel. Initial version
 
 #include "RelationAlgebra.h"
 #include "TupleBuffer.h"
-#include "HashTable.h"
+#include "HybridHashJoinHashTable.h"
 
 #define HEADLINE_PHISTOGRAM "-------------------- " \
                              "PartitionHistogram -----------------"
