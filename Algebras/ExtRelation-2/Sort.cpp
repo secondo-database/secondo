@@ -144,9 +144,9 @@ SortAlgorithm::SortAlgorithm( Word stream,
     {
       curRun->AppendToMemory(t);
       usedMemory += s;
-      cmsg.info() << "Progress->read: " << progress->read
-                  << "(UsedMem: " << usedMemory << endl;
-      cmsg.send();
+      //cmsg.info() << "Progress->read: " << progress->read
+                  //<< "(UsedMem: " << usedMemory << endl;
+      //cmsg.send();
     }
     else
     {

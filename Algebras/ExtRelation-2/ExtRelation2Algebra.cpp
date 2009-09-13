@@ -293,7 +293,8 @@ ListExpr SortByTypeMap( ListExpr args )
         return NList::typeError(
             "Operator sortby2 expects as second argument a list"
             " of (attrname [asc, desc])|attrname .\n"
-            "Operator sortby2 gets a list '" + attrDesc.str() + "'.");
+            "Operator sortby2 gets a list '"
+            + attrDesc.convertToString() + "'.");
       }
       attrName = attrElem.first().str();
     }
@@ -305,7 +306,8 @@ ListExpr SortByTypeMap( ListExpr args )
         return NList::typeError(
             "Operator sortby2 expects as second argument a list"
             " of (attrname [asc, desc])|attrname .\n"
-            "Operator sortby2 gets a list '" + attrDesc.str() + "'.");
+            "Operator sortby2 gets a list '"
+            + attrDesc.convertToString() + "'.");
       }
       attrName = attrElem.str();
     }
@@ -327,7 +329,7 @@ ListExpr SortByTypeMap( ListExpr args )
            return NList::typeError(
                "Operator sortby2 sorting criteria must "
                "be asc or desc, not '"
-               + attrElem.second().str() + "'!");
+               + attrElem.second().convertToString() + "'!");
          }
          isAscending = attrElem.second().str() == "asc" ? true : false;
       }
@@ -1419,7 +1421,8 @@ ListExpr SortBy2WithTypeMap( ListExpr args )
         return NList::typeError(
             "Operator sortby2with expects as second argument a list"
             " of (attrname [asc, desc])|attrname .\n"
-            "Operator sortby2with gets a list '" + attrDesc.str() + "'.");
+            "Operator sortby2with gets a list '"
+            + attrDesc.convertToString() + "'.");
       }
       attrName = attrElem.first().str();
     }
@@ -1431,7 +1434,8 @@ ListExpr SortBy2WithTypeMap( ListExpr args )
         return NList::typeError(
             "Operator sortby2with expects as second argument a list"
             " of (attrname [asc, desc])|attrname .\n"
-            "Operator sortby2with gets a list '" + attrDesc.str() + "'.");
+            "Operator sortby2with gets a list '"
+            + attrDesc.convertToString() + "'.");
       }
       attrName = attrElem.str();
     }

@@ -1,0 +1,296 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2009, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# An example test spec for the Secondo TestRunner
+# run it with : 
+#
+#  TestRunner -i example.test
+#
+# By default a temporary database directory will be created. If you
+# want to use existing databases run
+#
+#  TestRunner --no-tmp -i <file>
+#
+# If one of your tests (say number N ) reports an error you can run
+# it directly by
+#
+# TestRunner -i <file> -num N 
+#
+# this is useful for debugging
+
+
+##############################################################################
+# Setup
+##############################################################################
+
+#setup ExtRelation2test StandardAlgebra RelationAlgebra ExtRelation2Algebra
+
+create database sort_test;
+open database sort_test;
+restore plz from '$(HOME)/secondo-data/Objects/plz';
+restore thousand from '$(HOME)/secondo-data/Objects/thousand';
+
+##############################################################################
+# TestCases
+##############################################################################
+
+#testcase teststep_1
+#yields success
+query plz feed sort2 count;
+
+#--------------------------------------------------  
+
+#testcase teststep_2
+#yields success
+query plz feed sort2 consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_3
+#yields (int 100)
+query plz feed sort2 head[100] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_4
+#yields success
+query plz feed sort2 head[100] consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_5
+#yields error
+query plz feed sort2[PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_6_create_result
+#yields successv
+let sort_result1 = plz feed sort consume;
+
+#testcase teststep_6_compare_result
+#yields *sort_result1
+query plz feed sort2 consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_7
+#yields success
+query plz feed sortby2[PLZ asc, Ort asc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_8
+#yields success
+query plz feed sortby2[PLZ desc, Ort desc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_9
+#yields success
+query plz feed sortby2[PLZ desc, Ort asc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_10
+#yields success
+query plz feed sortby2[PLZ asc, Ort desc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_11
+#yields success
+query plz feed sortby2[PLZ, Ort desc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_12
+#yields success
+query plz feed sortby2[PLZ asc, Ort] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_13
+#yields success
+query plz feed sortby2[PLZ, Ort] count;
+
+#--------------------------------------------------  
+
+#testcase teststeP_14
+#yields success
+query plz feed sortby2[PLZ] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_15_create_result
+#yields successv
+let sortby_result1 = plz feed sortby[PLZ asc, Ort asc] consume;
+
+#testcase teststep_15_compare_result
+#yields *sortby_result1
+query plz feed sortby2[PLZ asc, Ort asc] consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_16_create_result
+#yields successv
+let sortby_result2 = plz feed sortby[PLZ asc, Ort desc] consume;
+
+#testcase teststep_16_compare_result
+#yields *sortby_result2
+query plz feed sortby2[PLZ asc, Ort desc] consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_17_create_result
+#yields successv
+let sortby_result3 = plz feed sortby[PLZ desc, Ort asc] consume;
+
+#testcase teststep_17_compare_result
+#yields *sortby_result3
+query plz feed sortby2[PLZ desc, Ort asc] consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_18_create_result
+#yields successv
+let sortby_result4 = plz feed sortby[PLZ desc, Ort desc] consume;
+
+#testcase teststep_18_compare_result
+#yields *sortby_result4
+query plz feed sortby2[PLZ desc, Ort desc] consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_19_create_result
+#yields successv
+let sortby_result5 = plz feed sortby[Ort asc, PLZ asc] consume;
+
+#testcase teststep_19_compare_result
+#yields *sortby_result5
+query plz feed sortby2[Ort asc, PLZ asc] consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_20_create_result
+#yields success
+let sortby_result6 = plz feed sortby[Ort asc, PLZ desc] consume;
+
+#testcase teststep_20_compare_result
+#yields *sortby_result6
+query plz feed sortby2[Ort asc, PLZ desc] consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_21_create_result
+#yields success
+let sortby_result7 = plz feed sortby[Ort desc, PLZ asc] consume;
+
+#testcase teststep_21_compare_result
+#yields *sortby_result7
+query plz feed sortby2[Ort desc, PLZ asc] consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_22_create_result
+#yields success
+let sortby_result8 = plz feed sortby[Ort desc, PLZ desc] consume;
+
+#testcase teststep_22_compare_result
+#yields *sortby_result8
+query plz feed sortby2[Ort desc, PLZ desc] consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_23
+#yields error
+query plz feed sortby2[PL asc, Ort desc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_24
+#yields error
+query plz feed sortby2[PLZ ascd, Ort desc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_25
+#yields error
+query plz feed sortby2[PLZ asc, Ot desc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_26
+#yields error
+query plz feed sortby2[PLZ asc, Ort dsc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_27
+#yields error
+query plz sortby2[PLZ asc, Ort desc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_28
+#yields error
+query plz feed sortby2[plz asc, Ort desc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_29
+#yields error
+query plz feed sortby2[PLZ asc, ort desc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_30
+#yields error
+query plz feed sortby2[plz asc, ort desc] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_31_create_result
+#yields success
+let plz_result = plz feed consume;
+
+#testcase teststep_31_compare_result
+#yields *plz_result
+query plz feed tuplefile consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_32
+#yields *plz_result
+query plz feed tuplebuffer[1024] consume;
+
+#--------------------------------------------------  
+
+#testcase teststep_33
+#yields error
+query plz feed tuplebuffer consume;
+
+
+##############################################################################
+# TearDown
+##############################################################################
+
+#teardown
+close database;
+delete database sort_test;
