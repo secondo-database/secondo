@@ -41,10 +41,15 @@
 
 #setup ExtRelation2test StandardAlgebra RelationAlgebra ExtRelation2Algebra
 
+open database opt;
+save plz to '$(HOME)/plz
+save thousand to '$(HOME)/thousand
+close database
+
 create database sort_test;
 open database sort_test;
-restore plz from '$(HOME)/secondo-data/Objects/plz';
-restore thousand from '$(HOME)/secondo-data/Objects/thousand';
+restore plz from '$(HOME)/plz';
+restore thousand from '$(HOME)/thousand';
 
 ##############################################################################
 # TestCases
