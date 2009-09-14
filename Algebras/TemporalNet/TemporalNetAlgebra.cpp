@@ -7791,6 +7791,68 @@ Operator tempnetstartunitinst("startunitinst",
                         Operator::SimpleSelect,
                         OpEndStartunitinstTypeMap);
 
+/*
+5.34 Operator ~ugpoint2mgpoint~
+
+Builds a ~MGPoint~ from a single ~UGPoint~
+
+*/
+
+ListExpr OpUgpoint2mgpointTypeMap(ListExpr in_xArgs)
+{
+  if( nl->ListLength(in_xArgs) != 1 )
+    return (nl->SymbolAtom( "typeerror" ));
+
+  ListExpr xMGPointDesc = nl->First(in_xArgs);
+
+  if( (!nl->IsAtom( xMGPointDesc )) ||
+        nl->AtomType( xMGPointDesc ) != SymbolType ||
+        nl->SymbolValue( xMGPointDesc ) != "ugpoint")
+  {
+    return (nl->SymbolAtom( "typeerror" ));
+  }
+  return nl->SymbolAtom("mgpoint");
+}
+
+int OpUgpoint2mgpointValueMapping(Word* args,
+                              Word& result,
+                              int message,
+                              Word& local,
+                              Supplier in_xSupplier)
+{
+  // Get (empty) return value
+  MGPoint* pResult = (MGPoint*)qp->ResultStorage(in_xSupplier).addr;
+  result = SetWord( pResult);
+  // Get input values
+  UGPoint *pUGP = (UGPoint*)args[0].addr;
+  if(pUGP == NULL || !pUGP->IsDefined()) {
+    cerr << "UGPoint not Defined" << endl;
+    pResult->SetDefined(false);
+    return 0;
+  }
+  pResult->Clear();
+  pResult->StartBulkLoad();
+  pResult->Add(*pUGP);
+  pResult->EndBulkLoad();
+  pResult->SetTrajectoryDefined(false);
+  pResult->m_trajectory.TrimToSize();
+  pResult->SetBoundingBoxDefined(false);
+  return 0;
+};
+
+const string OpUgpoint2mgpointSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>ugpoint -> mgpoint" "</text--->"
+    "<text>upgoint2mgpoint (_)</text--->"
+    "<text>Constructs a mgpoint consisting of the single ugpoint.</text--->"
+    "<text>ugpoint2mgpoint(UGPOINT)</text--->"
+    ") )";
+
+Operator tempnetugpoint2mgpoint("ugpoint2mgpoint",
+                            OpUgpoint2mgpointSpec,
+                            OpUgpoint2mgpointValueMapping,
+                            Operator::SimpleSelect,
+                            OpUgpoint2mgpointTypeMap);
 
 /*
 6 Creating the Algebra
@@ -7847,6 +7909,7 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetunion);
     AddOperator(&tempnetstartunitinst);
     AddOperator(&tempnetendunitinst);
+    AddOperator(&tempnetugpoint2mgpoint);
   }
 
 

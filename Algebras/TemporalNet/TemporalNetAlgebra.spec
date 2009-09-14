@@ -31,3 +31,4 @@ operator distance alias DISTANCE pattern op ( _ , _ )
 operator union alias UNION pattern _ infixop _
 operator startunitinst alias STARTUNITINST pattern op ( _ )
 operator endunitinst alias STARTUNITINST pattern op ( _ )
+operator ugpoint2mgpoint alias UGPOINT2MGPOINT pattern op ( _ )
