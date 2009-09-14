@@ -224,6 +224,10 @@ const ListExpr in_xTypeInfo)
   adjacencylist_index.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
   adjacencylist.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
 
+  ///////////////////////path adjacency list ///////////////////////////
+//  adj_path_index.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
+//  adj_path.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
+
   return true;
 }
 
@@ -759,6 +763,29 @@ void BusNetwork::FillBusEdge(const Relation* in_busRoute)
 store the adjacency list, for each edge it records which edge comes after it
 
 */
+struct SmallEdge{
+  int e_tid;
+  Interval<Instant> interval;
+  int pid;
+  int rid;
+  int end_node_id;
+  SmallEdge(int tid,Interval<Instant> interv,int pathid,int routeid,int e_node)
+  :e_tid(tid),interval(interv),pid(pathid),rid(routeid),end_node_id(e_node){}
+  SmallEdge(const SmallEdge& se)
+  :e_tid(se.e_tid),interval(se.interval),
+   pid(se.pid),rid(se.rid),end_node_id(se.end_node_id){}
+  SmallEdge& operator=(const SmallEdge& se)
+  {
+    e_tid = se.e_tid;
+    interval = se.interval;
+    pid = se.pid;
+    rid = se.rid;
+    end_node_id = se.end_node_id;
+    return *this;
+  }
+};
+
+
 void BusNetwork::FillAdjacency()
 {
   cout<<"build adjacency list..."<<endl;
@@ -770,20 +797,50 @@ void BusNetwork::FillAdjacency()
     const Interval<Instant>* interval;
     def_t->Get(0,interval);
 
-
     BTreeIterator* btree_iter = btree_bus_edge_v1->ExactMatch(end_node);
     int start = adjacencylist.Size();
     int end = 0;
+    vector<SmallEdge> temp;
     while(btree_iter->Next()){
       Tuple* edge_tuple = bus_edge->GetTuple(btree_iter->GetId());
 
       Periods* def_t_next = (Periods*)edge_tuple->GetAttribute(DEF_T);
       const Interval<Instant>* interval_next;
       def_t_next->Get(0,interval_next);
-      if(interval->end < interval_next->start)
-        adjacencylist.Append(btree_iter->GetId());
+      CcInt* rid = (CcInt*)edge_tuple->GetAttribute(PID);
+      CcInt* pathid = (CcInt*)edge_tuple->GetAttribute(RPID);
+      CcInt* v2 = (CcInt*)edge_tuple->GetAttribute(V2);
+      if(interval->end < interval_next->start){
+//////////////////////////////////////////////////////////////////////////////
+      SmallEdge smalledge(btree_iter->GetId(),*interval_next,
+                          pathid->GetIntval(),rid->GetIntval(),v2->GetIntval());
+        if(temp.size() == 0){
+          temp.push_back(smalledge);
+        }
+        else{
+            unsigned int i = 0;
+            for(;i < temp.size();i++){
+              if(temp[i].rid == smalledge.rid &&
+                  temp[i].end_node_id == smalledge.end_node_id){
+                if(temp[i].interval.start > smalledge.interval.start)
+                  temp[i] = smalledge;
+                break;
+              }
+            }
+            if(i == temp.size())
+              temp.push_back(smalledge);
+          }
+//////////////////////////////////////////////////////////////////////////////
+
+//        adjacencylist.Append(btree_iter->GetId());
+      }
       edge_tuple->DeleteIfAllowed();
-    }
+    }//end while
+  //////////////////////////////
+      for(unsigned int i = 0;i < temp.size();i++)
+            adjacencylist.Append(temp[i].e_tid);
+    temp.clear();
+  /////////////////////////////
     end = adjacencylist.Size();
 //    cout<<"start "<<start<<" end "<<end<<endl;
     //[start,end)
@@ -793,6 +850,95 @@ void BusNetwork::FillAdjacency()
     t->DeleteIfAllowed();
   }
   cout<<"adjacency list is created"<<endl;
+//  cout<<adjacencylist.Size()<<endl;
+}
+/*
+store the adjacency list, for each path, it records which path it can swith to
+
+*/
+struct SubEdge{
+  int e_tid1; //edge id1
+  Interval<Instant> interval1;
+  int e_tid2; //edge id2
+  Interval<Instant> interval2;
+  SubEdge(){}
+  SubEdge(int id1, Interval<Instant> interv1,
+  int id2, Interval<Instant> interv2):e_tid1(id1),interval1(interv1),
+  e_tid2(id2),interval2(interv2){}
+  SubEdge(const SubEdge& subedge):e_tid1(subedge.e_tid1),
+  interval1(subedge.interval1),e_tid2(subedge.e_tid2),
+  interval2(subedge.interval2){}
+  SubEdge& operator=(const SubEdge& subedge)
+  {
+    e_tid1 = subedge.e_tid1;
+    interval1 = subedge.interval1;
+    e_tid2 = subedge.e_tid2;
+    interval2 = subedge.interval2;
+    return *this;
+  }
+  /*order edge by start time in descending order*/
+  bool operator<(const SubEdge& subedge)const
+  {
+    if(interval2.start > subedge.interval2.start)
+      return false;
+    if(interval2.start == subedge.interval2.start)
+      if(interval2.end > subedge.interval2.end)
+        return false;
+    return true;
+  }
+  void Print()
+  {
+    cout<<"eid1 "<<e_tid1<<" interval "<<interval1<<
+        " eid2 "<<e_tid2<<" interval "<<interval2<<endl;
+  }
+};
+void BusNetwork::FillAdjacencyPath()
+{
+    //DBArray<ListEntry> adj_path_index;
+    //DBArray<SwithEntry> adj_path;
+    for(int i = 1;i <= bus_route->GetNoTuples();i++){
+        CcInt* id = new CcInt(true,i);
+        BTreeIterator* btreeiter1 = btree_bus_edge_v2->ExactMatch(id);
+        priority_queue<SubEdge> edges;
+        while(btreeiter1->Next()){
+          //get edge, time interval and end node
+          Tuple* tuple1 = bus_edge->GetTuple(btreeiter1->GetId());
+          Periods* peri1 = (Periods*)tuple1->GetAttribute(DEF_T);
+          CcInt* end_node = (CcInt*)tuple1->GetAttribute(V2);
+          CcInt* pathid1 = (CcInt*)tuple1->GetAttribute(RPID);
+          const Interval<Instant>* interval1;
+          peri1->Get(0,interval1);
+//          edges.push(SubEdge(tuple->GetTupleId(),*interval));
+          BTreeIterator* btreeiter2 = btree_bus_edge_v1->ExactMatch(end_node);
+          while(btreeiter2->Next()){
+            Tuple* tuple2 = bus_edge->GetTuple(btreeiter2->GetId());
+            Periods* peri2 = (Periods*)tuple2->GetAttribute(DEF_T);
+            const Interval<Instant>* interval2;
+            peri2->Get(0,interval2);
+            CcInt* pathid2 = (CcInt*)tuple2->GetAttribute(RPID);
+            if(interval1->end < interval2->start &&
+              pathid1->GetIntval() != pathid2->GetIntval()){
+              edges.push(SubEdge(tuple1->GetTupleId(),*interval1,
+                                 tuple2->GetTupleId(),*interval2));
+            }
+          }
+          delete btreeiter2;
+
+          tuple1->DeleteIfAllowed();
+        }
+//        int start = adj_path.Size();
+//        int end = 0;
+          cout<<"pathid "<<i<<" queue size "<<edges.size()<<endl;
+          while(edges.empty() == false){
+            SubEdge top = edges.top();
+            edges.pop();
+//            top.Print();
+          }
+
+        delete id;
+        delete btreeiter1;
+
+    }
 }
 
 void BusNetwork::Load(int in_iId,const Relation* in_busRoute)
@@ -816,6 +962,7 @@ bus_node(NULL),btree_bus_node(NULL),rtree_bus_node(NULL),bus_edge(NULL),
 btree_bus_edge(NULL),btree_bus_edge_v1(NULL),btree_bus_edge_v2(NULL),
 btree_bus_edge_path(NULL),maxspeed(0),
 adjacencylist_index(0),adjacencylist(0)
+//adj_path_index(0),adj_path(0)
 {
 
 }
@@ -1091,6 +1238,8 @@ const ListExpr in_xTypeInfo)
   adjacencylist_index.OpenFromRecord(in_xValueRecord, inout_iOffset);
   adjacencylist.OpenFromRecord(in_xValueRecord, inout_iOffset);
 
+//  adj_path_index.OpenFromRecord(in_xValueRecord, inout_iOffset);
+//  adj_path.OpenFromRecord(in_xValueRecord, inout_iOffset);
   bus_def = true;
 //  cout<<"maxspeed "<<maxspeed<<endl;
 }
@@ -2164,7 +2313,6 @@ Instant& queryinstant,double& wait_time)
            break;
         }
 
-
       if(interval->start > queryinstant){
         Elem e(bt_iter_edge_v1->GetId(),*interval,
                   start_node->GetIntval());
@@ -2901,6 +3049,8 @@ input edge relation and b-tree
 void BusNetwork::FindPath_T_5(MPoint* mp,Relation* query,
 int attrpos1,int attrpos2,Instant& queryinstant)
 {
+//  FillAdjacencyPath();
+
   if(query->GetNoTuples() < 2){
     cout<<"there is only start location, please give destination"<<endl;
     return;

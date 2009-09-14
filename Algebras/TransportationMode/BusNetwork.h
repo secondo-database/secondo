@@ -66,6 +66,15 @@ struct ListEntry{
   int low;
   int high;
 };
+/*path1(e1) switch to path2(e2)*/
+struct SwithEntry{
+  SwithEntry(){}
+  SwithEntry(int a,int b):e1(a),e2(b){}
+  SwithEntry(const SwithEntry& le):e1(le.e1),e2(le.e2){}
+  int e1; //TupleId
+  int e2; //TupleId
+};
+
 
 class BusNetwork{
 public:
@@ -84,7 +93,6 @@ public:
 /*new schema for bus stop*/
   static string newbusstopTypeInfo; //relation description for bus stop
   enum newBusStopInfo{NEWSID=0,NEWLOC,TIMEONSTOP};
-
 
 /*function for type constructor*/
   static ListExpr BusNetworkProp();
@@ -113,7 +121,8 @@ public:
   void FillBusNode(const Relation*);
   void FillBusEdge(const Relation*);
   void FillAdjacency();
-  void  Destory();
+  void FillAdjacencyPath();
+  void Destory();
   void CalculateMaxSpeed();
 /*Interface function and Application function*/
   Relation* GetRelBus_Node(){return bus_node;}
@@ -167,6 +176,10 @@ private:
   //3-- get the edge tuple id
   DBArray<ListEntry> adjacencylist_index;
   DBArray<int> adjacencylist;
+
+  //path adjacency, for each path, which paths it can switch to and how
+//  DBArray<ListEntry> adj_path_index;
+//  DBArray<SwithEntry> adj_path;
 
 };
 double difftimeb(struct timeb* t1,struct timeb* t2);
