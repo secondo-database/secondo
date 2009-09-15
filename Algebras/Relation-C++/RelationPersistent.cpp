@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004-2008, University in Hagen, Faculty for Mathematics
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics
 and Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -75,6 +75,10 @@ May 2007, M. Spiekermann. From now on the function TupleBuffer::Clear()
 deletes a the pointer to a relation object and marks the buffer's state
 as memory only.
 
+June 2009, S.Jungnickel. Added implementation for classes ~TupleFile~ and
+~TupleFileIterator~. Added implementation for new methods ~Save~ and ~Open~ 
+of class ~Tuple~.
+
 [TOC]
 
 1 Overview
@@ -112,6 +116,7 @@ storing tuples and LOBs respectively.
 #include "Symbols.h"
 #include "StandardTypes.h"
 #include "Serialize.h"
+#include "FileSystem.h"
 
 using namespace std;
 using namespace symbols;
@@ -266,8 +271,8 @@ void Tuple::Save( SmiRecordFile *tuplefile,
 
   size_t extensionSize
              = CalculateBlockSize( coreSize, extSize,
-			           size, attrExtSize,
-				   attrSize, ignorePersistentLOBs );
+                                   size, attrExtSize,
+                                   attrSize, ignorePersistentLOBs );
 
   lobFileId = this->lobFileId;
 
@@ -299,6 +304,34 @@ void Tuple::Save( SmiRecordFile *tuplefile,
 
 #endif
 
+void Tuple::Save(TupleFile& tuplefile)
+{
+  double extSize = 0;
+  double size = 0;
+  vector<double> attrExtSize(tupleType->GetNoAttributes());
+  vector<double> attrSize(tupleType->GetNoAttributes());
+
+  // Calculate the size of the small FLOB data which will be
+  // saved together with the tuple attributes and save the LOBs
+  // in the lobFile.
+  extSize += tupleType->GetCoreSize();
+  size += tupleType->GetCoreSize();
+  size_t coreSize = 0;
+  size_t extensionSize = CalculateBlockSize( coreSize, extSize,
+                                             size, attrExtSize,
+                                             attrSize, true );
+
+  // Put core and extension part into a single memory block
+  // Note: this memory block contains already the block size
+  // as uint16_t value
+  char* data = WriteToBlock(coreSize, extensionSize);
+
+  // Append data to temporary tuple file
+  tuplefile.Append(data, coreSize, extensionSize);
+
+  // Free the allocated memory block
+  free(data);
+}
 
 
 /*
@@ -316,7 +349,7 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
 
     size_t extensionSize
                 = CalculateBlockSize( attrSizes, extSize,
-				      size, attrExtSize, attrSize );
+                                      size, attrExtSize, attrSize );
 
     char* data = WriteToBlock( attrSizes, extensionSize );
 
@@ -382,7 +415,7 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
 #ifdef USE_SERIALIZATION
 
 char* Tuple::WriteToBlock( size_t coreSize,
-		           size_t extensionSize )
+                           size_t extensionSize )
 
 {
   // create a single block able to pick up the roots of the
@@ -441,24 +474,24 @@ char* Tuple::WriteToBlock( size_t coreSize,
           WriteVar<uint32_t>( extOffset, data, offset );
           char *extensionPtr = &data[extOffset];
 
-	  FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-	  size_t offset2 = tmpFLOB->SerializeFD(extensionPtr);
-	  extOffset += offset2;
-	  DEBUG(this, "offset2-FD = " << offset2)
+          FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+          size_t offset2 = tmpFLOB->SerializeFD(extensionPtr);
+          extOffset += offset2;
+          DEBUG(this, "offset2-FD = " << offset2)
 
-	  extensionPtr += offset2;
-	  if( !tmpFLOB->IsLob() )
-	  {
-	    offset2 = tmpFLOB->WriteTo(extensionPtr);
-	    DEBUG(this, "offset2-WriteTo = " << offset2)
-	    extOffset += offset2;
-	    extensionPtr += offset2;
-	  }
+          extensionPtr += offset2;
+          if( !tmpFLOB->IsLob() )
+          {
+            offset2 = tmpFLOB->WriteTo(extensionPtr);
+            DEBUG(this, "offset2-WriteTo = " << offset2)
+            extOffset += offset2;
+            extensionPtr += offset2;
+          }
 
-	  DEBUG(this, "offset = " << offset)
-	  DEBUG(this, "extOffset = " << extOffset)
-	  //DEBUG(this, "extensionPtr = " << (void*)extensionPtr)
-	  //DEBUG(this, "&data[extOffset] = " << (void*)&data[extOffset])
+          DEBUG(this, "offset = " << offset)
+          DEBUG(this, "extOffset = " << extOffset)
+          //DEBUG(this, "extensionPtr = " << (void*)extensionPtr)
+          //DEBUG(this, "&data[extOffset] = " << (void*)&data[extOffset])
 
       }
 
@@ -483,7 +516,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
     }
     else {
       cerr << "ERROR: unknown storage type for attribute No "
-	   << i << endl;
+           << i << endl;
       assert(false);
     }
 
@@ -552,7 +585,7 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
     }
     else {
       cerr << "ERROR: unknown storage type for attribute No "
-	   << i << endl;
+           << i << endl;
       assert(false);
     }
 
@@ -586,7 +619,7 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
         //lobCtr++;
 
         /* Note: lobFileId is a class member which is *
-	 * passed by reference to SaveToLob(...)      */
+         * passed by reference to SaveToLob(...)      */
 
         if(ignorePersistentLOBs) {
           if (!tmpFLOB->IsPersistentLob()){
@@ -669,6 +702,26 @@ bool Tuple::Open( SmiRecordFile* tuplefile,
   }
 
   return ReadFrom( *record );
+}
+
+bool Tuple::Open(TupleFileIterator *iter)
+{
+  if ( iter->MoreTuples() )
+  {
+    size_t rootSize;
+
+    char* data = iter->ReadNextTuple(rootSize);
+
+    if (data)
+    {
+      assert(rootSize < MAX_TUPLESIZE);
+      InitializeAttributes(data, rootSize);
+      free(data);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 
@@ -757,7 +810,7 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
     // create an instance of the specified type, which gives
     // us an instance of a subclass of class Attribute.
     Attribute* attr =
-	      static_cast<Attribute*>( am->CreateObj(algId, typeId)(0).addr );
+              static_cast<Attribute*>( am->CreateObj(algId, typeId)(0).addr );
 
     if ( attr->GetStorageType() == Attribute::Extension )
     {
@@ -765,7 +818,7 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
       ReadVar<uint32_t>( attrExtOffset, src, offset );
       DEBUG(this, "attrExtOffset = " << attrExtOffset)
       attributes[i] = Attribute::Create( attr, &src[attrExtOffset],
-		                                            0, algId, typeId);
+                                                            0, algId, typeId);
 
       DEBUG(this, "Attr(" << i << ")" << *attributes[i])
       //extOffset += attrExtOffset;
@@ -790,33 +843,33 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
       {
         uint32_t flobOffset = 0;
         ReadVar<uint32_t>( flobOffset, src, offset );
-	//extOffset += flobOffset;
-	//DEBUG(this, "extOffset = " << extOffset)
-	DEBUG(this, "flobOffset = " << flobOffset)
+        //extOffset += flobOffset;
+        //DEBUG(this, "extOffset = " << extOffset)
+        DEBUG(this, "flobOffset = " << flobOffset)
 
-	FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
-	//cerr <<"data = " << Array2HexStr(data, 12, offset) << endl;
-	/*offset += */ tmpFLOB->RestoreFD(&src[flobOffset]);
-	//cerr << "offset-FD = " << offset << endl;
-	//
-	if( !tmpFLOB->IsLob()){
+        FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+        //cerr <<"data = " << Array2HexStr(data, 12, offset) << endl;
+        /*offset += */ tmpFLOB->RestoreFD(&src[flobOffset]);
+        //cerr << "offset-FD = " << offset << endl;
+        //
+        if( !tmpFLOB->IsLob()){
 
-	  int size = tmpFLOB->Size();
+          int size = tmpFLOB->Size();
 
-	    DEBUG( this, "not tmpFlob[" << i << ","  << j << "].IsLob()" )
-	    DEBUG(this, "tmpFLOB.size = " << size)
+            DEBUG( this, "not tmpFlob[" << i << ","  << j << "].IsLob()" )
+            DEBUG(this, "tmpFLOB.size = " << size)
 
-	  void* ptr = tmpFLOB->Malloc();
-	  if(ptr){
-	     memcpy( ptr, &src[flobOffset], size );
+          void* ptr = tmpFLOB->Malloc();
+          if(ptr){
+             memcpy( ptr, &src[flobOffset], size );
 
-	     //offset += size;
-	     //cerr << "offset-memcpy = " << offset << endl;
-	  }
-	} else{
-	  DEBUG( this, "tmpFlob[" << i << ","  << j << "].IsLob()" )
-	  //tmpFLOB->SetLobFileId( lobFileId );
-	}
+             //offset += size;
+             //cerr << "offset-memcpy = " << offset << endl;
+          }
+        } else{
+          DEBUG( this, "tmpFlob[" << i << ","  << j << "].IsLob()" )
+          //tmpFLOB->SetLobFileId( lobFileId );
+        }
       }
 
       DEBUG(this, "Attr(" << i << ")" << *attributes[i])
@@ -843,7 +896,7 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
 }
 
 void Tuple::InitializeSomeAttributes( const list<int>& aIds,
-		                      char* src, uint16_t rootSize )
+                                      char* src, uint16_t rootSize )
 {
   TRACE_ENTER
   DEBUG(this, "rootSize = " << rootSize)
@@ -865,7 +918,7 @@ void Tuple::InitializeSomeAttributes( const list<int>& aIds,
     // create an instance of the specified type, which gives
     // us an instance of a subclass of class Attribute.
     Attribute* attr =
-	      static_cast<Attribute*>( am->CreateObj(algId, typeId)(0).addr );
+              static_cast<Attribute*>( am->CreateObj(algId, typeId)(0).addr );
 
     if ( attr->GetStorageType() == Attribute::Extension )
     {
@@ -875,7 +928,7 @@ void Tuple::InitializeSomeAttributes( const list<int>& aIds,
            DEBUG(this, "attrExtOffset = " << attrExtOffset)
 
       attributes[i] = Attribute::Create( attr, &src[attrExtOffset],
-		                                            0, algId, typeId);
+                                                            0, algId, typeId);
     }
     else
     {
@@ -901,29 +954,29 @@ void Tuple::InitializeSomeAttributes( const list<int>& aIds,
         uint32_t flobOffset = 0;
         ReadVar<uint32_t>( flobOffset, src, offset );
 
-	FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+        FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
 
-	    DEBUG(this, "flobOffset = " << flobOffset)
-	    //cerr <<"data = " << Array2HexStr(data, 12, offset) << endl;
+            DEBUG(this, "flobOffset = " << flobOffset)
+            //cerr <<"data = " << Array2HexStr(data, 12, offset) << endl;
 
-	tmpFLOB->RestoreFD( &src[flobOffset] );
-	if( !tmpFLOB->IsLob() )
-	{
-	  int size = tmpFLOB->Size();
+        tmpFLOB->RestoreFD( &src[flobOffset] );
+        if( !tmpFLOB->IsLob() )
+        {
+          int size = tmpFLOB->Size();
 
-	      DEBUG( this, "not tmpFlob[" << i << ","  << j << "].IsLob()" )
-	      DEBUG(this, "tmpFLOB.size = " << size)
+              DEBUG( this, "not tmpFlob[" << i << ","  << j << "].IsLob()" )
+              DEBUG(this, "tmpFLOB.size = " << size)
 
-	  void* ptr = tmpFLOB->Malloc();
-	  if( ptr ){
-	    memcpy( ptr, &src[flobOffset], size );
-	  }
-	}
-	else
-	{
-	  DEBUG( this, "tmpFlob[" << i << ","  << j << "].IsLob()" )
-	  //tmpFLOB->SetLobFileId( lobFileId );
-	}
+          void* ptr = tmpFLOB->Malloc();
+          if( ptr ){
+            memcpy( ptr, &src[flobOffset], size );
+          }
+        }
+        else
+        {
+          DEBUG( this, "tmpFlob[" << i << ","  << j << "].IsLob()" )
+          //tmpFLOB->SetLobFileId( lobFileId );
+        }
       }
     }
 
@@ -973,7 +1026,7 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
 
 
 bool Tuple::OpenPartial( TupleType* newtype, const list<int>& attrIdList,
-		         SmiRecordFile *tuplefile,
+                         SmiRecordFile *tuplefile,
                          SmiFileId lobfileId,
                          PrefetchingIterator *iter )
 {
@@ -1093,6 +1146,280 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
 }
 
 
+
+TupleFileIterator::TupleFileIterator(TupleFile& f)
+: tupleFile(f)
+, data(0)
+, size(0)
+{
+  // First close stream if it still open
+  tupleFile.Close();
+
+  // Open stream for reading
+  tupleFile.stream = fopen((char*)tupleFile.pathName.c_str(), "rb");
+
+  if( !tupleFile.stream )
+  {
+    cerr << "TupleFileIterator: Cannot open file '" 
+         << tupleFile.pathName << "' for binary reading!\n" << endl;
+    return;
+  }
+
+  if ( tupleFile.traceMode )
+  {
+    cmsg.info() << "TupleFile " << tupleFile.pathName 
+                << " opened for reading." << endl;
+    cmsg.send();
+  }
+
+  // Read data of first tuple
+  data = readData(size);
+}
+
+TupleFileIterator::~TupleFileIterator()
+{
+  tupleFile.Close();
+}
+
+Tuple* TupleFileIterator::GetNextTuple()
+{
+  if ( data )
+  {
+    Tuple* t = new Tuple((TupleType*)tupleFile.tupleType);
+
+    // Read tuple data from disk buffer
+    if ( t->Open(this) )
+    {
+      return t;
+    }
+    else
+    {
+      delete t;
+      return 0;
+    }
+  }
+
+  return 0;
+}
+
+char* TupleFileIterator::ReadNextTuple(size_t& size)
+{
+  if ( data )
+  {
+    char* tmp = data;
+
+    size = this->size;
+
+    // Read data of next tuple
+    data = readData(this->size);
+
+    return tmp;
+  }
+  else
+  {
+    size = 0;
+    return 0;
+  }
+}
+
+char* TupleFileIterator::readData(size_t& size)
+{
+  if ( tupleFile.stream )
+  {
+    uint16_t blockSize;
+
+    // Read the size of the next data block
+    size_t rc = fread(&blockSize, 1, sizeof(blockSize), tupleFile.stream);
+
+    if ( feof(tupleFile.stream) )
+    {
+      size = 0;
+      return 0;
+    }
+    else if ( rc < sizeof(blockSize) )
+    {
+      cerr << "TupleFileIterator::ReadNextTuple: error "
+           << "reading data block size in file '"
+           << tupleFile.pathName << "'!\n" << endl;
+      size = 0;
+      return 0;
+    }
+
+    size = sizeof(blockSize) + blockSize;
+
+    // Allocate a single memory block for data block size and tuple data
+    char* data = (char*)malloc(size);
+
+    // Store block size in memory block
+    *((uint16_t*)data) = blockSize;
+
+    // Read tuple data into memory block
+    rc = fread(data + sizeof(blockSize), 1, blockSize, tupleFile.stream);
+
+    if ( rc < blockSize )
+    {
+      cerr << "TupleFileIterator::ReadNextTuple: error "
+           << "reading tuple data block in file '"
+           << tupleFile.pathName << "'!\n" << endl;
+      size = 0;
+      return 0;
+    }
+
+    return data;
+  }
+  else
+  {
+    size = 0;
+    return 0;
+  }
+}
+
+bool TupleFile::traceMode = false;
+
+TupleFile::TupleFile( TupleType* tupleType,
+                      const size_t bufferSize )
+: tupleType(tupleType)
+, bufferSize(bufferSize)
+, stream(0)
+, tupleCount(0)
+, totalSize(0)
+, totalExtSize(0)
+{
+  this->tupleType->IncReference();
+
+  // create a unique temporary filename
+  string str = FileSystem::GetCurrentFolder();
+  FileSystem::AppendItem(str, "tmp");
+  FileSystem::AppendItem(str, "TF");
+  pathName = FileSystem::MakeTemp(str);
+
+  if ( traceMode )
+  {
+    cmsg.info() << "TupleFile " << pathName << " created." << endl;
+    cmsg.send();
+  }
+}
+
+TupleFile::TupleFile( TupleType* tupleType,
+                      string pathName,
+                      const size_t bufferSize )
+: tupleType(tupleType)
+, pathName(pathName)
+, bufferSize(bufferSize)
+, stream(0)
+, tupleCount(0)
+, totalSize(0)
+, totalExtSize(0)
+{
+  this->tupleType->IncReference();
+
+  if ( traceMode )
+  {
+    cmsg.info() << "TupleFile " << pathName << " created." << endl;
+    cmsg.send();
+  }
+}
+
+TupleFile::~TupleFile()
+{
+  // close stream if still open
+  Close();
+
+  // delete reference to tuple type
+  tupleType->DeleteIfAllowed();
+
+  // delete temporary disk file
+  FileSystem::DeleteFileOrFolder(pathName);
+
+  if ( traceMode )
+  {
+    cmsg.info() << "TupleFile " << pathName << " deleted." << endl;
+    cmsg.send();
+  }
+}
+
+bool TupleFile::Open()
+{
+  // Open binary stream
+  stream = fopen(pathName.c_str(), "a+b" );
+
+  if( !stream )
+  {
+    cerr << "TupleFile::Open(): Cannot open file '" 
+         << pathName << "'!\n" << endl;
+    return false;
+  }
+
+  // Set stream buffer size
+  if ( setvbuf(stream, 0, bufferSize >= 2 ? _IOFBF : _IONBF, bufferSize) != 0 )
+  {
+    cerr << "TupleFile::Open(): illegal buffer type or size specified '" 
+         << bufferSize << "'!\n" << endl;
+    return false;
+  }
+
+  if ( traceMode )
+  {
+    cmsg.info() << "TupleFile " << pathName << " opened for writing." << endl;
+    cmsg.send();
+  }
+
+  return true;
+}
+
+void TupleFile::Close()
+{
+  if ( stream != 0 )
+  {
+    if ( fclose(stream) == EOF )
+    {
+      cerr << "TupleFile::Close(): error while closing file '" 
+           << pathName << "'!\n" << endl;
+    }
+    stream = 0;
+
+    if ( traceMode )
+    {
+      cmsg.info() << "TupleFile " << pathName << " closed." << endl;
+      cmsg.send();
+    }
+  }
+}
+
+void TupleFile::Append(Tuple* t)
+{
+  t->Save(*this);
+}
+
+void TupleFile::Append(char *data, size_t core, size_t ext)
+{
+  if ( stream )
+  {
+    uint16_t size = core + ext;
+
+    // append data block to file
+    size_t rc = fwrite(data, 1, sizeof(size) + size, stream);
+
+    // check the number of written
+    if ( rc < sizeof(size) + size )
+    {
+      cerr << "TupleFile::Append(): error writing to file '" 
+           << pathName << "'!\n" << endl;
+      cerr << "(" << sizeof(size) + size 
+           << ") bytes should be written, but only ("
+           << rc << ") bytes were written" "!\n" << endl;
+      return;
+    }
+    tupleCount++;
+    totalSize += size;
+    totalExtSize += ext;
+  }
+}
+
+TupleFileIterator* TupleFile::MakeScan()
+{
+  return new TupleFileIterator(*this);
+}
 
 /*
 3.9 Class ~TupleBuffer~
@@ -2086,7 +2413,7 @@ Tuple* RelationIterator::GetNextTuple( const list<int>& attrList )
 
 
   result->OpenPartial( outtype, attrList,
-		       &relation.privateRelation->tupleFile,
+                       &relation.privateRelation->tupleFile,
                        relation.privateRelation->relDesc.lobFileId,
                        iterator );
 
@@ -2463,7 +2790,7 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
         //lobCtr++;
 
         /* Note: lobFileId is a class member which is *
-	 * passed by reference to SaveToLob(...)      */
+         * passed by reference to SaveToLob(...)      */
 
         if(ignorePersistentLOBs) {
           if (!tmpFLOB->IsPersistentLob()){

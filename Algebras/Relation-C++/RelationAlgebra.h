@@ -2,8 +2,8 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
-Database Systems for New Applications.
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics 
+and Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -62,6 +62,10 @@ of this algebmain memory implementation
 of this algebra module.
 
 September 2007, M. Spiekermann. Dependencies to algebra OldRelationAlgebra removed.
+
+June 2009, S.Jungnickel. Added classes ~TupleFile~ and ~TupleFileIterator~.
+New methods ~Save~ and ~Open~ in class ~Tuple~ to save and restore tuples to/from
+a ~TupleFile~.
 
 [TOC]
 
@@ -187,11 +191,11 @@ This constructor should not be used.
 */
   AttributeType( int in_algId,
                  int in_typeId,
-		 int in_numOfFlobs,
-		 int in_size,
-		 int in_coreSize,
-		 bool in_extStorage,
-		 size_t in_offset = 0 ):
+                 int in_numOfFlobs,
+                 int in_size,
+                 int in_coreSize,
+                 bool in_extStorage,
+                 size_t in_offset = 0 ):
     algId( in_algId ),
     typeId( in_typeId ),
     numOfFlobs( in_numOfFlobs ),
@@ -644,6 +648,14 @@ A flag telling whether the relation is temporary.
 };
 
 
+class TupleFile;
+class TupleFileIterator;
+
+/*
+Necessary forward declarations for class ~Tuple~.
+
+*/
+
 /*
 3.5 Class ~Tuple~
 
@@ -846,7 +858,7 @@ Returns the size of attribute i including its extension part.
       tupleSize = 0;
       for( int i = 0; i < noAttributes; i++)
       {
-	tupleSize += GetSize(i);
+        tupleSize += GetSize(i);
       }
       recomputeSize = false;
       return tupleSize;
@@ -977,6 +989,13 @@ sizes of the tuple saved.
              bool ignorePersistentLOBs=false );
 
 /*
+Saves a tuple into a temporary ~tuplefile~.
+
+*/
+
+  void Save( TupleFile& tuplefile );
+
+/*
 Saves a tuple with updated attributes and reuses the old
 record.
 
@@ -1012,9 +1031,16 @@ current record of ~iter~.
              PrefetchingIterator *iter );
 
   bool OpenPartial( TupleType* newtype, const list<int>& attrList,
-		    SmiRecordFile *tuplefile,
-		    SmiFileId lobfileId,
+                    SmiRecordFile *tuplefile,
+                    SmiFileId lobfileId,
                     PrefetchingIterator *iter );
+
+/*
+Opens a tuple from a temporary ~TupleFile~ reading the
+current record of ~iter~.
+
+*/
+  bool Open( TupleFileIterator *iter );
 
 
   private:
@@ -1069,20 +1095,20 @@ Initializes a tuple.
 */
     void ChangeTupleType(TupleType* newtype, const list<int>& attrIds) {
 
-	tupleType->DeleteIfAllowed();
+        tupleType->DeleteIfAllowed();
         newtype->IncReference();
         tupleType = newtype;
 
         recomputeExtSize = true;
         recomputeSize = true;
 
-	// save the current addresses stored in attributes
+        // save the current addresses stored in attributes
         Attribute** tmp_attributes = new Attribute*[noAttributes];
         for (int i = 0; i<noAttributes; i++) {
            tmp_attributes[i] = attributes[i];
         }
 
-	// free old attribute array if necessary
+        // free old attribute array if necessary
         if (noAttributes > MAX_NUM_OF_ATTR){
           delete [] attributes;
         }
@@ -1096,13 +1122,13 @@ Initializes a tuple.
         }
 
         // copy the old addresses in the given order into the
-	// new attribute array
-	int i = 0;
+        // new attribute array
+        int i = 0;
         list<int>::const_iterator iter = attrIds.begin();
         while ( iter != attrIds.end() ) {
            attributes[i] = tmp_attributes[*iter];
-	   iter++;
-	   i++;
+           iter++;
+           i++;
         }
 
         delete [] tmp_attributes;
@@ -1166,15 +1192,15 @@ to ~defAttributes~, otherwise it is dinamically constructed.
   static char tupleData[MAX_TUPLESIZE];
 
   char* WriteToBlock( size_t attrSizes,
-		      size_t extensionSize );
+                      size_t extensionSize );
 
 
   size_t CalculateBlockSize( size_t& attrSizes,
-		             double& extSize,
-			     double& size,
+                             double& extSize,
+                             double& size,
                              vector<double>& attrExtSize,
                              vector<double>& attrSize,
-			     bool ignorePersLOBs = false );
+                             bool ignorePersLOBs = false );
 
 
   char* GetSMIBufferData(SmiRecord& r, uint16_t& rootSize);
@@ -1182,7 +1208,7 @@ to ~defAttributes~, otherwise it is dinamically constructed.
 
   void InitializeAttributes(char* src, uint16_t rootSize);
   void InitializeSomeAttributes( const list<int>& attrList,
-		                 char* src, uint16_t rootSize );
+                                 char* src, uint16_t rootSize );
 
 
 /*
@@ -1466,6 +1492,249 @@ class TupleCompareByAlmost
     SortOrderSpecification spec;
     const size_t len;
 };
+
+
+class TupleFile;
+
+/*
+3.5 Class ~TupleFileIterator~
+
+This class implements a sequential iterator for a ~TupleFile~.
+
+*/
+
+class TupleFileIterator
+{
+public:
+
+  TupleFileIterator(TupleFile& f);
+/*
+The constructor. Opens the tuple file ~f~ for reading and
+initializes a sequential scan of ~f~.
+
+*/
+
+  ~TupleFileIterator();
+/*
+The destructor. Closes the tuple file.
+
+*/
+
+  inline bool MoreTuples() { return ( data != 0 ); }
+/*
+Test if the are more tuples to read in the corresponding ~TupleFile~.
+
+*/
+
+  Tuple* GetNextTuple();
+/*
+Returns the next tuple from the corresponding ~TupleFile~. If all
+tuples have been read the method returns 0;
+
+*/
+
+  friend class Tuple;
+/*
+Class ~Tuple~ already implements an internal method for
+unpacking a tuple and its attributes from a memory block.
+In order to reuse this code class ~Tuple~ is declared as a friend
+class of ~TupleFileIterator~. ~TupleFileIterator~ simply reads
+the next memory block from the ~TupleFile~ and delegates the
+unpacking to class ~Tuple~.
+
+*/
+
+protected:
+
+  char* ReadNextTuple(size_t& size);
+/*
+Returns a pointer to the current data block and its ~size~ and
+prefetches the next tuple data block.
+
+*/
+
+  char* readData(size_t& size);
+/*
+Reads the next tuple data block into memory. Returns a pointer
+and the ~size~ of the data block. Used to prefetch the next
+data block.
+
+*/
+
+private:
+
+  TupleFile& tupleFile;
+/*
+Reference to a tuple file.
+
+*/
+  char* data;
+/*
+Pointer to the current data block.
+
+*/
+
+  size_t size;
+/*
+Size of the current data block.
+
+*/
+
+};
+
+/*
+3.5 Class ~TupleFile~
+
+This class implements a temporary operating system file used
+to collect tuples from temporary relations.
+
+*/
+
+class TupleFile
+{
+public:
+
+  TupleFile(TupleType* tupleType, const size_t bufferSize);
+/*
+First constructor. Creates a ~TupleFile~ for tuple type ~tupleType~
+and sets the I/O Buffer to ~bufferSize~. The filename is created
+automatically from the current working directory. The file is stored
+in subfolder /tmp and starts with prefix ~TF~.
+
+*/
+
+  TupleFile(TupleType* tupleType, string pathName, const size_t bufferSize);
+/*
+Second constructor. Creates a ~TupleFile~ for tuple type ~tupleType~
+with the specified filename ~pathName~ and sets the I/O Buffer
+to ~bufferSize~.
+
+*/
+
+  ~TupleFile();
+/*
+The destructor. Closes and deletes the tuple file if necessary.
+
+*/
+
+  bool Open();
+/*
+Opens the tuple file for writing.
+
+*/
+
+  void Close();
+/*
+Closes the tuple file.
+
+*/
+
+  void Append(Tuple* t);
+/*
+Appends a tuple to the tuple file.
+
+*/
+
+  inline int GetNoTuples() const { return tupleCount; }
+/*
+Returns the number of tuples stored in the file.
+
+*/
+
+  inline size_t GetTotalExtSize() const { return totalExtSize; }
+/*
+Returns the total size of the extension part (including
+small FLOBs) of all tuples stored in the file.
+
+*/
+
+  inline size_t GetTotalSize() const { return totalSize; }
+/*
+Returns the total size of all tuples stored in the file.
+
+*/
+
+  inline const string GetPathName() const { return pathName; }
+/*
+Returns the file path of the tuple file.
+
+*/
+
+  TupleFileIterator* MakeScan();
+/*
+Starts a sequential scan of the tuples stored in the tuple file.
+Returns a pointer to a ~TupleFileIterator~.
+
+*/
+
+  friend class Tuple;
+  friend class TupleFileIterator;
+/*
+Class ~Tuple~ already implements an internal method for
+packing a tuple and its attributes into a memory block.
+In order to reuse this code class ~Tuple~ is declared as a friend
+class of ~TupleFile~. ~TupleFile~ delegates calls to Append() to
+~Tuple~. ~TupleFileIterator~ gains in this way access to
+the internal stream object ~stream~.
+
+*/
+
+protected:
+
+  void Append(char *data, size_t core, size_t ext);
+/*
+Appends the tuple data block ~data~ to the end of the tuple file.
+The sizes ~core~ and ~ext~ are used to calculate the total
+memory block size. The total size is prepended to the written
+data block. This method is called from class ~Tuple~ after
+the tuple and its attributes have been packed into a
+memory block.
+
+*/
+
+private:
+
+  TupleType* tupleType;
+/*
+Tuple type of this temporary file.
+
+*/
+
+  string pathName;
+/*
+File path.
+
+*/
+
+  const size_t bufferSize;
+/*
+I/O Buffer Size for read and write operations.
+
+*/
+
+  FILE* stream;
+/*
+Stream object.
+
+*/
+
+  size_t tupleCount;
+  size_t totalSize;
+  size_t totalExtSize;
+/*
+Some statistics about number of tuples and tuple sizes.
+
+*/
+
+  static bool traceMode;
+/*
+Flag to control the trace mode. If set to true, some log
+messages on the standard output will be produced.
+
+*/
+
+};
+
 
 /*
 3.10 Class ~GenericRelationIterator~
