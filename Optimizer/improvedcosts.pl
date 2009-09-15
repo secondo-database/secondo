@@ -367,6 +367,20 @@ cost(exactmatch(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   Cost is   U
           + V * ResCard,!.
 
+cost(exactmatchS(dbObject(Index), _KeyValue), Sel, _Pred, ResAttrList,
+     ResTupleSize, ResCard, Cost)
+  :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
+  ResAttrList = [[tid, tid, sizeTerm(MemSize, MemSize, 0)]],
+  secDatatype(tid, MemSize, _, _, _, _),
+  ResTupleSize = sizeTerm(MemSize,MemSize,0),
+  costConst(btreelookup, msPerSearch, U),
+  costConst(btreelookup, msPerResultTuple, V),
+  ResCard is ResCard1 * Sel,
+  Cost is   U
+          + V * ResCard * 0.25 ,!. % balance is 75% cost for gettuple
+
 cost(leftrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   :-
   cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
@@ -375,6 +389,20 @@ cost(leftrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   ResCard is ResCard1 * Sel,
   Cost is   U
           + V * ResCard,!.
+
+cost(leftrangeS(dbObject(Index), _KeyValue), Sel, _Pred, ResAttrList,
+     ResTupleSize, ResCard, Cost)
+  :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
+  ResAttrList = [[tid, tid, sizeTerm(MemSize, MemSize, 0)]],
+  secDatatype(tid, MemSize, _, _, _, _),
+  ResTupleSize = sizeTerm(MemSize,MemSize,0),
+  costConst(btreelookup, msPerSearch, U),
+  costConst(btreelookup, msPerResultTuple, V),
+  ResCard is ResCard1 * Sel,
+  Cost is   U
+          + V * ResCard * 0.25 ,!. % balance is 75% cost for gettuple
 
 cost(rightrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   :-
@@ -385,6 +413,20 @@ cost(rightrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   Cost is   U
           + V * ResCard,!.
 
+cost(rightrangeS(dbObject(Index), _KeyValue), Sel, _Pred, ResAttrList,
+     ResTupleSize, ResCard, Cost)
+  :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
+  ResAttrList = [[tid, tid, sizeTerm(MemSize, MemSize, 0)]],
+  secDatatype(tid, MemSize, _, _, _, _),
+  ResTupleSize = sizeTerm(MemSize,MemSize,0),
+  costConst(btreelookup, msPerSearch, U),
+  costConst(btreelookup, msPerResultTuple, V),
+  ResCard is ResCard1 * Sel,
+  Cost is   U
+          + V * ResCard * 0.25 ,!. % balance is 75% cost for gettuple
+
 cost(range(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
   costConst(btreelookup, msPerSearch, U),
@@ -393,11 +435,19 @@ cost(range(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   Cost is   U
           + V * ResCard,!.
 
-%% Missing:
-% exactmatchS
-% leftrangeS
-% rightrangeS
-% rangeS
+cost(rangeS(dbObject(Index), _KeyValue), Sel, _Pred, ResAttrList,
+     ResTupleSize, ResCard, Cost)
+  :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
+  ResAttrList = [[tid, tid, sizeTerm(MemSize, MemSize, 0)]],
+  secDatatype(tid, MemSize, _, _, _, _),
+  ResTupleSize = sizeTerm(MemSize,MemSize,0),
+  costConst(btreelookup, msPerSearch, U),
+  costConst(btreelookup, msPerResultTuple, V),
+  ResCard is ResCard1 * Sel,
+  Cost is   U
+          + V * ResCard * 0.25 ,!. % balance is 75% cost for gettuple
 
 cost(loopjoin(X, Y), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   ( (ground(ResAttrList), ResAttrList = ignore)
@@ -732,6 +782,8 @@ cost(rdup(X), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   Cost is   Cost1
           + ResCard1 * (U + V),!. %% ToDo: Cost function looks strange...
 
+cost(krdup(X,_AttrList), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
+  cost(rdup(X), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost), !.
 
 cost(windowintersects(dbobject(_/* Index */), Rel, _/* QueryObj */), Sel, Pred,
                   ResAttrList, ResTupleSize, ResCard, Cost) :-

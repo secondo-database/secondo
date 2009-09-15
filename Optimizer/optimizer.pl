@@ -4072,11 +4072,38 @@ cost(leftrange(_, Rel, _), Sel, P, Size, Cost) :-
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
 
+cost(leftrangeS(dbobject(Index), _KeyValue), Sel, _P, Size, Cost) :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, RelSize),
+  leftrangeTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
+
 cost(rightrange(_, Rel, _), Sel, P, Size, Cost) :-
   cost(Rel, 1, P, RelSize, _),
   leftrangeTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
+
+cost(rightrangeS(dbobject(Index), _KeyValue), Sel, _P, Size, Cost) :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, RelSize),
+  leftrangeTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
+
+cost(range(_, Rel, _), Sel, P, Size, Cost) :-
+  cost(Rel, 1, P, RelSize, _),
+  exactmatchTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C.
+
+cost(rangeS(dbobject(Index), _KeyValue), Sel, _P, Size, Cost) :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, RelSize),
+  exactmatchTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
 
 /*
 
@@ -4116,6 +4143,13 @@ cost(exactmatch(_, Rel, _), Sel, P, Size, Cost) :-
   exactmatchTC(C),
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
+
+cost(exactmatchS(dbobject(Index), _KeyValue), Sel, _P, Size, Cost) :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, RelSize),
+  exactmatchTC(C),
+  Size is Sel * RelSize,
+  Cost is Sel * RelSize * C * 0.25 . % balance of 75% is for gettuples
 
 cost(loopjoin(X, Y), Sel, P, S, Cost) :-
   cost(X, 1, P, SizeX, CostX),
@@ -4257,6 +4291,14 @@ cost(project(X, _), Sel, P, S, C) :-
   projectTC(A),
   C is C1 + A * S.
 
+cost(projectextend(X, ProjectionList, ExtensionList), Sel, P, S, C) :-
+  cost(X, Sel, P, S, C1),
+  length(ProjectionList, PL),
+  length(ExtensionList, EL),
+  extendTC(EC),
+  projectTC(PC),
+  C is C1 + (PC * PL + EC * EL) * S.
+
 cost(rename(X, _), Sel, P, S, C) :-
   cost(X, Sel, P, S, C1),
   renameTC(A),
@@ -4268,7 +4310,9 @@ cost(rdup(X), Sel, P, S, C) :-
   sortmergejoinTC(A, _),
   C is C1 + A * S.
 
-
+% Xris: Added, costfactors not verified
+cost(krdup(X,_AttrList), Sel, P, S, C) :-
+  cost(rdup(X), Sel, P, S, C).
 
 %fapra1590
 cost(windowintersects(_, Rel, _), Sel, P, Size, Cost) :-
@@ -4295,6 +4339,9 @@ cost(gettuples(X, _), Sel, P, Size, Cost) :-
   windowintersectsTC(C),
   Cost is   CostX            % expected to include cost of 'windowintersectsS'
           + Size * C * 0.75. % other 0.25 applied in 'windowintersectsS'
+
+cost(gettuples2(X, Rel, _IdAttrName), Sel, P, Size, Cost) :-
+  cost(gettuples(X, Rel), Sel, P, Size, Cost).
 
 /*
 For distance-queries
