@@ -624,27 +624,27 @@ OpNode(OpNodeType type = Operator) :
     stringstream ss;
     ss << id;
     return ss.str();
-  }    
+  }
 
   string nodeLabelStr() const {
-  stringstream ss;	  
+  stringstream ss;
   switch ( nodetype )
   {
-    case Object : { 
+    case Object : {
 	if (u.dobj.isConstant) // todo list rep of value
-	  ss << id << ": const"; 
+	  ss << id << ": const";
 	else
-	  ss << id << ": " << symbol(); 
-	break; 
+	  ss << id << ": " << symbol();
+	break;
     }
     case Pointer :        { ss << id << ": pointer "; break; }
-    case IndirectObject : { ss << id << ": #fun = " 
+    case IndirectObject : { ss << id << ": #fun = "
 			       << u.iobj.funNumber; break; }
     case Operator :       { ss << id << ": " << symbol(); break; }
     default :
     { assert( false ); }
   }
-  return ss.str();  
+  return ss.str();
   }
 
   string nodeTypeStr() const {
@@ -652,9 +652,9 @@ OpNode(OpNodeType type = Operator) :
   switch ( nodetype )
   {
     case Object :         { if (u.dobj.isConstant) return "const";
-			    return "obj"; } 
+			    return "obj"; }
     case Pointer :        { return "ptr"; }
-    case IndirectObject : { return "indObj"; } 
+    case IndirectObject : { return "indObj"; }
     case Operator :       { return "op"; }
     default :
     { assert( false ); }
@@ -936,19 +936,19 @@ ostream& operator<<(ostream& os, const OpNode& node) {
     if ( tree == 0 ) {
       return;
     }
-    
+
     dot.addNode( tree->nodeTypeStr(), tree->nodeIdStr(), tree->nodeLabelStr() );
-   
+
     if (tree->nodetype != Operator) {
       return;
-    }  
-     
+    }
+
     if ( tree->u.op.noSons > 0)
     {
       int i = 0;
       for ( i = 0; i < tree->u.op.noSons; i++ )
       {
-	dot.addEdge( tree->nodeIdStr(), 
+	dot.addEdge( tree->nodeIdStr(),
            static_cast<OpNode*>( tree->u.op.sons[i].addr )->nodeIdStr() );
 	BuildDotDescr( tree->u.op.sons[i].addr, dot );
       }
@@ -2635,7 +2635,7 @@ QueryProcessor::SubtreeX( const ListExpr expr )
     }
   }
 
- 
+
   bool first = true;
   OpTree resultTree = Subtree( expr, first );
 
@@ -2644,22 +2644,22 @@ QueryProcessor::SubtreeX( const ListExpr expr )
     const char* cfp = "optree_cur.gv";
     const char* ofp = "optree_old.gv";
 
-    DotSpec dot("optree"); 
-    	  
+    DotSpec dot("optree");
+
     dot.addNodeType("op",     "[ shape=\"circle\" ]");
     dot.addNodeType("obj",    "[ shape=\"box\" ]");
     dot.addNodeType("ptr",    "[ shape=\"triangle\" ]");
     dot.addNodeType("indObj", "[ shape=\"polygon\" ]");
     dot.addNodeType("const",  "[ shape=\"diamond\" ]");
 
-    // rename current to old;	    
+    // rename current to old;
     rename(cfp, ofp);
     ofstream of;
     of.open(cfp, ios::trunc);
     BuildDotDescr( resultTree, dot );
     dot.buildGraph(of);
     of.close();
-  }	  
+  }
 
   if ( debugMode )
   {
@@ -2812,9 +2812,8 @@ QueryProcessor::Subtree( const ListExpr expr,
       node->u.op.isStream = false;
       node->u.op.resultAlgId = 0;
       node->u.op.counterNo = 0;
-      node->u.op.supportsProgress =
-      algebraManager->getOperator(algebraId, opId)->SupportsProgress();
-
+      node->u.op.supportsProgress = !RTFlag::isActive("QP:ProgDisable") &&
+              algebraManager->getOperator(algebraId, opId)->SupportsProgress();
       if (traceNodes)
       {
         cout << "QP_OPERATOR:" << endl;
@@ -3133,7 +3132,7 @@ the function in a database object.
   if ( nl->ListLength( list ) < 2 ) {
     DestroyValuesArray();
     throw ERR_IN_QUERY_EXPR;
-  }	  
+  }
 
   resultType = nl->Second( list );
   if ( TypeOfSymbol(resultType) == QP_TYPEERROR )
@@ -3184,7 +3183,7 @@ the function in a database object.
 
   if (!evaluable && !isFunction) {
     throw ERR_EXPR_NOT_EVALUABLE;
-  }	
+  }
 
 }
 
@@ -3218,7 +3217,7 @@ Deletes an operator tree object.
       case Operator:
       {
         if(tree->u.op.supportsProgress){
-          CloseProgress(tree); 
+          CloseProgress(tree);
         }
         for ( int i = 0; i < tree->u.op.noSons; i++ )
         {
@@ -3596,12 +3595,12 @@ Then call the operator's value mapping function.
 }
 
 
-void 
+void
 QueryProcessor::CheckProgress()
 {
 
 /*
-Interrupts the evaluation of the query tree in order to propagate a progress 
+Interrupts the evaluation of the query tree in order to propagate a progress
 message. For timer based interrupts we will use the clock() function
 which returns an approximation of CPU time used by this program.
 On a multitasking system with much CPU load the time may be
@@ -3937,7 +3936,7 @@ bool
 QueryProcessor::IsFunctionNode( const Supplier s ) const
 {
   OpTree tree = static_cast<OpTree>( s );
-  return (tree->nodetype == Operator) 
+  return (tree->nodetype == Operator)
 	   && ((tree->u.op.resultAlgId == 0) || (tree->u.op.isFun));
 }
 
@@ -4083,21 +4082,21 @@ QueryProcessor::ReInitResultStorage( const Supplier s )
   if ( (algId == 0) && (typeId == 0) )
   {
      ListExpr tmp = numType;
-     while(nl->AtomType(nl->First(tmp))!=IntType ){ 
+     while(nl->AtomType(nl->First(tmp))!=IntType ){
        tmp = nl->First(tmp);
      }
      algId = nl->IntValue( nl->First(tmp) );
      typeId = nl->IntValue( nl->Second(tmp) );
   }
-  
+
   //cerr << nl->ToString(numType) << endl;
   //cerr << "algId = " <<  algId << endl;
   //cerr << "typeId = " <<  typeId << endl;
-	
 
-  tree->u.op.resultWord =	  
+
+  tree->u.op.resultWord =
       algebraManager->CreateObj( algId, typeId )( numType );
-    
+
 }
 
 /*

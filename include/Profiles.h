@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -39,7 +39,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[#]  [\neq]
 //[tilde] [\verb|~|]
 
-1 Header File: Profiles 
+1 Header File: Profiles
 
 January 2002 Ulrich Telle
 
@@ -50,7 +50,7 @@ be overruled by environment variables named SECONDO\_PARAM\_~keyname~.
 
 Applications often need a mechanism for providing configuration parameters.
 One way to supply those parameters is a profile. A profile is a text file
-consisting of one ore more named sections which contain one or more named 
+consisting of one ore more named sections which contain one or more named
 parameters and their values, respectively. Each line in the profile is
 either a section heading, a key/value pair or a comment. A section heading
 is enclosed in square brackets; key name and key value are separated by an
@@ -98,13 +98,16 @@ class SMI_EXPORT SmiProfile
 {
  public:
   static string GetParameter( const string& sectionName,
-                              const string& keyName, 
+                              const string& keyName,
                               const string& defaultValue,
                               const string& fileName );
 /*
 Searches the profile ~fileName~ for the key ~keyName~ under the section heading
-~sectionName~. If found, the associated string is returned, else the 
+~sectionName~. If found, the associated string is returned, else the
 default value is returned.
+
+If ~sectionName~ is the empty string, it will be ignored. i.e. ALL sections are
+searched.
 
 */
 
@@ -118,11 +121,14 @@ Searches the profile ~fileName~ for the key ~keyName~ under the section heading
 
   * ~zero~ -- if the key value is not an integer,
 
-  * ~actual value~ -- if it is possible to interpret the key value as an 
+  * ~actual value~ -- if it is possible to interpret the key value as an
 integer (Note that only the beginning of the key value is interpreted, i.e.
 "key=345abc"[4] returns "345"[4])
 
   * ~default value~ -- if key or section not found
+
+If ~sectionName~ is the empty string, it will be ignored. i.e. ALL sections are
+searched.
 
 */
   static bool   SetParameter( const string& sectionName,

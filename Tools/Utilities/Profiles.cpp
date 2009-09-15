@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,7 +45,7 @@ static string::size_type CmpKey( const string& line, const string& keyName );
 
 // --- GetParameter : Gets a string parameter from a profile
 
-string SmiProfile::GetParameter( const string& sectionName, 
+string SmiProfile::GetParameter( const string& sectionName,
                                  const string& keyName,
                                  const string& defaultValue,
                                  const string& fileName )
@@ -68,15 +68,15 @@ string SmiProfile::GetParameter( const string& sectionName,
           valuePos = CmpKey( line, keyName );
           if ( valuePos != string::npos )
           {
-            if ( line.find("+=") != string::npos ) { 
+            if ( line.find("+=") != string::npos ) {
               resultString += ',';
-            } 
-            resultString += 
-              line.substr( valuePos, 
+            }
+            resultString +=
+              line.substr( valuePos,
                            line.find_last_not_of( " \t\r\n" )-valuePos+1 );
           }
         }
-        break;
+        if (sectionName!="") { break; }
       }
     }
   }
@@ -270,6 +270,9 @@ static bool CmpSec( const string& line, const string& name )
   int i = 0;
   int n = 0;
   bool ok = false;
+
+  if (name=="")
+    { return true; }
 
   if (line[i++] == '[')
   {

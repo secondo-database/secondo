@@ -179,7 +179,11 @@ RTFlags += DEBUG:DemangleStackTrace
 
 
 # --- ProgressEstimation Section ---
+
 [ProgressEstimation]
+
+# Disable progress estimation
+#RTFlags += QP:ProgDisable
 
 # ProgNorm normalizes the progressbar to n points
 # Example: ProgNorm=50
