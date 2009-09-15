@@ -124,6 +124,15 @@ class DisplayTTY
 Initializes the display function mapping.
 
 */
+
+ static void Finish();
+/*
+Removes the instance for displaying objects. 
+
+*/
+
+  
+
   void DisplayResult( ListExpr type, ListExpr value );
 /*
 Displays a ~value~ of ~type~ using the defined display functions. Both

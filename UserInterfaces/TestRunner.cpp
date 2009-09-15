@@ -1512,6 +1512,8 @@ TestRunner::Execute()
           cout.rdbuf( oldOutputBuffer );
         }
       }
+      DisplayTTY::Finish();
+
     } else {
        cout << "Error in initialization of secondo: " 
             << errorMsg << endl;

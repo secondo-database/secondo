@@ -711,8 +711,10 @@ SecondoTTY::Execute()
       ProcessFile(iFileName);  
     } 
 
-    if ( useOutputFile )
+    if ( useOutputFile ){
       cout.rdbuf( oldOutputBuffer );
+    }
+    DisplayTTY::Finish();
   } else {
     cerr << "Error in initializing the secondo system: " 
          << errorMsg << endl; 

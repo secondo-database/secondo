@@ -131,7 +131,10 @@ DisplayTTY*            DisplayTTY::dtty = 0;
 DisplayTTY::~DisplayTTY() 
 {
  DisplayMap::iterator it = displayFunctions.begin();
- for (; it != displayFunctions.end(); it++) delete it->second;
+ for (; it != displayFunctions.end(); it++){
+     delete it->second;
+     it->second=0;
+ }
 }
 
 
@@ -186,7 +189,11 @@ void DisplayTTY::Insert( const string& name, DisplayFunction* df )
   si->GetTypeId( name, algebraId, typeId );
   ostringstream osId;
   osId << "[" << algebraId << "|" << typeId << "]";
-  displayFunctions[osId.str()] = df;
+  if(algebraId>0){ // otherwise the corresponding algebra is not included
+    displayFunctions[osId.str()] = df;
+  } else {
+    delete df;
+  }
 }
 
 /*
@@ -2461,4 +2468,16 @@ DisplayTTY::Initialize()
 #endif
 
  }
+
+/*
+Removes the existing instance 
+
+*/
+ void DisplayTTY::Finish(){
+   if(dtty){
+     delete dtty;
+     dtty = 0;
+   }
+ }
+
 
