@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics and Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -26,8 +26,11 @@ May 2002 Ulrich Telle
 
 Sept 2004 M. Spiekermann. Bugs in ~GetparentFolder~ and ~AppendSlash~ corrected.
 
-Sept 2006 M. Spiekermann. When windows.h is included many WIN-API functions like
-~CopyFile~ are defined as a macro and mapped to ~CopyFileA~ or ~CopyFileB~. This is very awful (stupid windows) since code parts using the same name like class member functions are also renamed which causes strange linker errors!
+Sept 2006 M. Spiekermann. When windows.h is included many WIN-API functions
+like ~CopyFile~ are defined as a macro and mapped to ~CopyFileA~ or
+~CopyFileB~. This is very awful since code parts using the
+same name like class member functions are also renamed which causes strange
+linker errors!
 
 June 2009 Sven Jungnickel new function MakeTemp() added.
 
@@ -54,6 +57,7 @@ June 2009 Sven Jungnickel new function MakeTemp() added.
 #include <cstring>
 
 #include <sstream>
+#include <stdexcept>
 
 using namespace std;
 
@@ -595,32 +599,13 @@ FileSystem::SearchPath( const string& fileName, string& foundFile )
 string
 FileSystem::MakeTemp(const string& templ)
 {
-  const size_t bufferSize = 256;
-  char buffer[bufferSize];
-  string pathName;
-
-  stringstream ss;
-
+  static int ctr = 0;	
   // append CPU clock and placeholder for mktemp function
-  ss << templ << clock() << "XXXXXX";
-  pathName = ss.str();
+  
+  stringstream ss;
+  ss << templ << clock() << "-" << ctr++;
 
-  // copy string to buffer and terminate it
-  if ( pathName.size() < bufferSize )
-  {
-    strncpy(buffer, pathName.c_str(), pathName.size());
-    buffer[pathName.size()] = '\0';
-  }
-  else
-  {
-    strncpy(buffer, pathName.c_str(), bufferSize-1);
-    buffer[bufferSize-1] = '\0';
-  }
-
-  // make unique filename
-  pathName = mktemp(buffer);
-
-  return pathName;
+  return ss.str();
 }
 
 void

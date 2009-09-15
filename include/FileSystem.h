@@ -262,8 +262,7 @@ the file is returned in ~foundFile~.
 /*
 Creates a unique temporary file name. The argument ~templ~ is used as a prefix
 and normally contains the directory and a filename prefix. ~MakeTemp~ appends
-current CPU clock time and a unique six character string. The maximum path
-length is limited to 255 characters.
+current CPU clock time and a unique number. 
 
 */
 
