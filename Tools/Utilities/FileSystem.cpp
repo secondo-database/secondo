@@ -29,6 +29,8 @@ Sept 2004 M. Spiekermann. Bugs in ~GetparentFolder~ and ~AppendSlash~ corrected.
 Sept 2006 M. Spiekermann. When windows.h is included many WIN-API functions like
 ~CopyFile~ are defined as a macro and mapped to ~CopyFileA~ or ~CopyFileB~. This is very awful (stupid windows) since code parts using the same name like class member functions are also renamed which causes strange linker errors!
 
+June 2009 Sven Jungnickel new function MakeTemp() added.
+
 */
 
 
@@ -588,6 +590,37 @@ FileSystem::SearchPath( const string& fileName, string& foundFile )
     foundFile = "";
   }
   return (ok);
+}
+
+string
+FileSystem::MakeTemp(const string& templ)
+{
+  const size_t bufferSize = 256;
+  char buffer[bufferSize];
+  string pathName;
+
+  stringstream ss;
+
+  // append CPU clock and placeholder for mktemp function
+  ss << templ << clock() << "XXXXXX";
+  pathName = ss.str();
+
+  // copy string to buffer and terminate it
+  if ( pathName.size() < bufferSize )
+  {
+    strncpy(buffer, pathName.c_str(), pathName.size());
+    buffer[pathName.size()] = '\0';
+  }
+  else
+  {
+    strncpy(buffer, pathName.c_str(), bufferSize-1);
+    buffer[bufferSize-1] = '\0';
+  }
+
+  // make unique filename
+  pathName = mktemp(buffer);
+
+  return pathName;
 }
 
 void

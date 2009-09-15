@@ -43,7 +43,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 May 2002 Ulrich Telle
 
-October 20003 M. Spiekermann new function GetParentFolder() added.
+October 2003 M. Spiekermann new function GetParentFolder() added.
+
+June 2009 Sven Jungnickel new function MakeTemp() added.
 
 1.1 Overview
 
@@ -63,6 +65,7 @@ The class ~SmiEnvironment~ provides the following methods:
         CreateFolder     & DeleteFileOrFolder & SetFileAttributes \\
         EraseFolder      & FileSearch         &      \\
         GetParentFolder  & AppendSlash        &      \\
+                         & MakeTemp           &      \\
 
 1.4 Imports, Constants, Types
 
@@ -254,6 +257,16 @@ found, otherweise "false"[4]. If the file was found the complete pathname of
 the file is returned in ~foundFile~.
 
 */
+
+  static string MakeTemp(const string& templ);
+/*
+Creates a unique temporary file name. The argument ~templ~ is used as a prefix
+and normally contains the directory and a filename prefix. ~MakeTemp~ appends
+current CPU clock time and a unique six character string. The maximum path
+length is limited to 255 characters.
+
+*/
+
   static void AppendSlash( string& pathName );
   static void AppendItem( string& pathName, const string& item);
 
@@ -264,6 +277,7 @@ slash, depending on the operating system used. The second form also adds the giv
 subitem.
 
 */
+
  protected:
  private:
 #ifdef SECONDO_WIN32
