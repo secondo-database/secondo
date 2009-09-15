@@ -1,6 +1,16 @@
 #!/bin/sh
 #
 
-#We start the program with absolute path information
-cmd="$(which SecondoBDB)"
-$cmd $*
+if [ "$1" == "--valgrind" ]; then
+  shift
+  runner="valgrind --num-callers=25  $(which SecondoBDB)"
+else 
+if [ "$1" == "--valgrindlc" ]; then
+  shift
+  runner="valgrind --num-callers=25 --leak-check=full $(which SecondoBDB)"
+else  
+  runner="$(which SecondoBDB)"
+fi
+fi  
+
+$runner $*
