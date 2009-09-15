@@ -6,10 +6,15 @@
 
 if [ "$1" == "--valgrind" ]; then
   shift
-  runner="valgrind --num-callers=25 $(which SecondoBDB) -test"
-else
+  runner="valgrind --num-callers=25  $(which SecondoBDB) -test"
+else 
+if [ "$1" == "--valgrindlc" ]; then
+  shift
+  runner="valgrind --num-callers=25 --leak-check=full $(which SecondoBDB) -test"
+else  
   runner="$(which SecondoBDB) -test"
 fi
+fi  
 
 if [ "$1" != "--no-tmp" ]; then
 
