@@ -1183,7 +1183,7 @@ each join, the sets of attributes from both argument streams get merged.
 All predicates within the plan are analyzed, whether they contain CSEs identified in section 14.4.
 If a CSE is detected, the set of available attributes is checked to determine, whether the
 corresponding virtual attributes is available. If it is available, the CSE is replaced directly with the
-virtual attribute. Otherwise, it is tried to extended as many virtual attributes occuring in the
+virtual attribute. Otherwise, it is tried to extend as many virtual attributes occuring in the
 compacted CSE as possible to the tuple (last including the virtual attribute for the CSE itself).
 The set of available attributes to be passed upward is adjusted to the extends.
 
@@ -1283,7 +1283,8 @@ registerCSEs :-
   findall(Label,storedExpressionLabel(_,Label,_,_),CSE_list),
   registerCSE(CSE_list,_), !.
 
-% Working version - registerCSE(+InList,-DoneList)
+% Working version:
+% --- registerCSE(+InList,-DoneList)
 registerCSE([],[]).
 
 registerCSE([Label|Others],Done) :-
@@ -1308,6 +1309,7 @@ registerCSE([Label|Others],Done) :-
        )
   ), !.
 
+% --- registerCSE1(+VirtAttr, -VirtAttrTerm, +RelsBefore, -RelsAfter)
 registerCSE1(VirtualAttr, attr(VirtualAttr, 1, u), RelsBefore, RelsAfter) :-
   virt_attr(VirtualAttr, _, _, _, Base_relations), % already stored virt attr
   mergeRelations(RelsBefore, Base_relations, RelsAfter, 0, _), !.
@@ -1345,6 +1347,7 @@ registerCSE1(Term, Term, Rels, Rels) :-
 
 registerCSE1(Term, Term, Rels, Rels).
 
+% --- registerCSE2(+VirtAttrList, -VirtAttrTermList, +RelsBefore, -RelsAfter).
 registerCSE2([], [], RelsBefore, RelsBefore).
 
 registerCSE2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
@@ -1434,10 +1437,6 @@ attributes.
 % Section:Start:insertExtend_4_b
 % Section:End:insertExtend_4_b
 
-
-% Case: remove (Can be ignored, as (so far) only used as extend-join-remove
-% Case: extend (Can be ignored, as (so far) only used as extend-join-remove
-
 % Case: special rule for handling input of incomplete subplans
 % Simply pass up the set of attributes that has been declared available at label
 % ''incomplete_subplan''
@@ -1449,6 +1448,16 @@ insertExtend(feed(rel(Name,Alias)), feed(rel(Name,Alias)),
   relation(Name,AttrsOutL),
   list_to_set(AttrsOutL,AttrsOut),
   dm(insertExtend,['insertExtend - avail attrs: feed(rel)) = ',AttrsOut,'\n']),
+  !.
+
+% Case: feedproject(rel(Anme,Alias),AttrList)
+insertExtend(feedproject(X, Fields),
+             feedproject(X2, Fields2),
+             AttrsIn, AttrsOut) :-
+  insertExtend(project(feed(X,Fields)),
+               project(feed(X2,Fields2)),
+               AttrsIn, AttrsOut),
+  dm(insertExtend,['insertExtend - avail attrs: feedproject = ',AttrsOut,'\n']),
   !.
 
 % Case: rename
@@ -1471,12 +1480,30 @@ insertExtend(exactmatch(Index, Rel, X),
   dm(insertExtend,['insertExtend - avail attrs: exactmatch = ',AttrsOut,'\n']),
   !.
 
+insertExtend(exactmatchS(Index, X),
+             exactmatchS(Index, X),
+             _AttrsIn,
+             AttrsOut) :-
+  AttrsOut = [id],
+  % produces a stream of tuple identifiers (attr name = 'id')
+  dm(insertExtend,['insertExtend - avail attrs: exactmatchS = ',AttrsOut,'\n']),
+  !.
+
 insertExtend(leftrange(Index, Rel, X),
              leftrange(Index, Rel, X),
              AttrsIn,
              AttrsOut) :-
   insertExtend(feed(Rel),_,AttrsIn,AttrsOut),
   dm(insertExtend,['insertExtend - avail attrs: leftrange = ',AttrsOut,'\n']),
+  !.
+
+insertExtend(leftrangeS(Index, X),
+             leftrangeS(Index, X),
+             _AttrsIn,
+             AttrsOut) :-
+  AttrsOut = [id],
+  % produces a stream of tuple identifiers (attr name = 'id')
+  dm(insertExtend,['insertExtend - avail attrs: leftrangeS = ',AttrsOut,'\n']),
   !.
 
 insertExtend(rightrange(Index, Rel, X),
@@ -1486,6 +1513,33 @@ insertExtend(rightrange(Index, Rel, X),
   insertExtend(feed(Rel),_,AttrsIn,AttrsOut),
   dm(insertExtend,['insertExtend - avail attrs: rightrange = ',AttrsOut,'\n']),
   !.
+
+insertExtend(rightrangeS(Index, X),
+             rightrangeS(Index, X),
+             _AttrsIn,
+             AttrsOut) :-
+  AttrsOut = [id],
+  % produces a stream of tuple identifiers (attr name = 'id')
+  dm(insertExtend,['insertExtend - avail attrs: rightrangeS = ',AttrsOut,'\n']),
+  !.
+
+insertExtend(range(Index, Rel, X),
+             range(Index, Rel, X),
+             AttrsIn,
+             AttrsOut) :-
+  insertExtend(feed(Rel),_,AttrsIn,AttrsOut),
+  dm(insertExtend,['insertExtend - avail attrs: range = ',AttrsOut,'\n']),
+  !.
+
+insertExtend(rangeS(Index, X),
+             rangeS(Index, X),
+             _AttrsIn,
+             AttrsOut) :-
+  AttrsOut = [id],
+  % produces a stream of tuple identifiers (attr name = 'id')
+  dm(insertExtend,['insertExtend - avail attrs: rangeS = ',AttrsOut,'\n']),
+  !.
+
 
 insertExtend(windowintersects(Index, Rel, X),
              windowintersects(Index, Rel, X),
@@ -1497,7 +1551,7 @@ insertExtend(windowintersects(Index, Rel, X),
 
 insertExtend(windowintersectsS(Index, X),
              windowintersectsS(Index, X),
-             _,
+             _AttrsIn,
              AttrsOut) :-
   AttrsOut = [id], % produces a stream of tuple identifiers (attr name = 'id')
   dm(insertExtend,['insertExtend - avail attrs: windowintersectsS = ',AttrsOut,'\n']),
@@ -1507,19 +1561,46 @@ insertExtend(gettuples(X, Rel),
              gettuples(X2, Rel),
              AttrsIn,
              AttrsOut) :-
-  % expects a stream of tuple identifiers (attr name 'id')
-  % returns tuples from relation Rel with all of its base attrs
-  insertExtend(X, X2, AttrsIn, _),
-  insertExtend(feed(Rel),_,AttrsIn,AttrsOut),
+  % expects a stream containing tuple identifier attribute (attr name = 'id')
+  % joins with tuples from relation Rel with all of its base attrs
+  % removes 'id'.
+  insertExtend(X, X2, AttrsIn, StreamAttrs),
+  select(id,StreamAttrs,RemainingSTreamAttrs),
+  insertExtend(feed(Rel),_,RemainingSTreamAttrs,AttrsOut),
+  dm(insertExtend,['insertExtend - avail attrs: gettuples = ',AttrsOut,'\n']),
+  !.
+
+insertExtend(gettuples2(X, Rel, IdAttr),
+             gettuples2(X2, Rel, IdAttr),
+             AttrsIn,
+             AttrsOut) :-
+  % expects a stream of tuple identifiers (attr name <IdAttr>)
+  % joins with tuples from relation Rel with all of its base attrs
+  insertExtend(X, X2, AttrsIn, StreamAttrs),
+  IdAttr = attrname(attr(Attr,_,_)),
+  ( atomic(Attr)
+    -> downcase_atom(Attr,FlatAttr)
+    ;  ( Attr = Alias:Attr2,
+         downcase_atom(Alias,AliasF),
+         downcase_atom(Attr2,Attr2F),
+         FlatAttr = AliasF:Attr2F
+       )
+  ),
+  select(FlatAttr,StreamAttrs,RemainingStreamAttrs),
+  insertExtend(feed(Rel),_,_,RelAttrs),
+  append(RemainingStreamAttrs,RelAttrs,AttrsOut),
   dm(insertExtend,['insertExtend - avail attrs: gettuples = ',AttrsOut,'\n']),
   !.
 
 % Case: project (Recurse for argument and return set of projection attributes)
+%      Available virtual attributes are added to the projection list!
 insertExtend(project(Stream, AttrNames),
-             project(Stream2, AttrNames),
+             project(Stream2, AttrNamesOut),
              AttrsIn,
              AttrsOut) :-
   dm(rewrite,['--->',insertExtend(project(Stream, AttrNames)),'\n\t']),
+  insertExtend(Stream,Stream2,AttrsIn,AttrsStream),
+  % Extract projection attribute names
   findall( FlatAttr,
            ( member(X,AttrNames),
              X = attrname(attr(Attr,_,_)),
@@ -1532,13 +1613,147 @@ insertExtend(project(Stream, AttrNames),
                   )
              )
            ),
-           AttrsOutL
+           ProjAttrsL
          ),
-  list_to_set(AttrsOutL,AttrsOut),
-  insertExtend(Stream,Stream2,AttrsIn,AttrsStream),
+  list_to_set(ProjAttrsL,ProjAttrsSet),
+  % get available virtual attributes
+  splitVirtualAttributes(AttrsStream,VirtualStreamAttrs,_),
+  list_to_set(VirtualStreamAttrs,VirtualStreamAttrsSet),
+  createAttrNameList(VirtualStreamAttrsSet,VirtualStreamAttrNames),
+  % extend the projection list
+  append(AttrNames,VirtualStreamAttrNames,AttrNamesOut),
+  union(ProjAttrsSet,VirtualStreamAttrsSet,AttrsOut),
   dm(insertExtend,['insertExtend - avail attrs: ',project(AttrsStream,AttrsOut),
                   ' = ', AttrsOut,'\n']),
   !.
+
+% Case: remove (Recurse for argument and subtract set of attributes to remove)
+insertExtend(remove(Stream, AttrNames),
+             remove(Stream2, AttrNames),
+             AttrsIn,
+             AttrsOut) :-
+  dm(rewrite,['--->',insertExtend(remove(Stream, AttrNames)),'\n\t']),
+  findall( FlatAttr,
+           ( member(X,AttrNames),
+             X = attrname(attr(Attr,_,_)),
+             ( atomic(Attr)
+               -> downcase_atom(Attr,FlatAttr)
+               ;  ( Attr = Alias:Attr2,
+                    downcase_atom(Alias,AliasF),
+                    downcase_atom(Attr2,Attr2F),
+                    FlatAttr = AliasF:Attr2F
+                  )
+             )
+           ),
+           RemoveAttrsL
+         ),
+  list_to_set(RemoveAttrsL,RemoveAttrs),
+  insertExtend(Stream,Stream2,AttrsIn,AttrsStream),
+  list_to_set(AttrsStream,AttrsStreamL),
+  subtract(AttrsStreamL,RemoveAttrs,AttrsOut),
+  dm(insertExtend,['insertExtend - avail attrs: ',remove(AttrsStream,AttrsOut),
+                  ' = ', AttrsOut,'\n']),
+  !.
+
+% Case: extend (Recurse. Then extend CSE-attribues first, extension list second)
+%                        Add virtual attributes and extension attributes to list
+insertExtend(extend(Stream, Fields),
+             extend(StreamOut, FieldsOut),
+             AttrsIn,
+             AttrsOut) :-
+  insertExtend(Stream,Stream2,AttrsIn,StreamAttrsL),
+  % create modified extension formulas, extract extension terms
+  findall([newattr(AttrName,ExprOut), ExtTerm],
+          ( member(newattr(AttrName,ExprIn),Fields),
+            modifyPredicate(ExprIn, ExprOut, AttrsIn, [], ExtTerm, _, _)
+          ),
+          ExtensionList
+         ),
+  % extract modified extension list:
+  findall(newattr(AttrName,ExprOut),
+          member([newattr(AttrName,ExprOut), _], ExtensionList),
+          FieldsOut
+         ),
+  % extract terms to extend:
+  findall(ExtTerm, member([_, ExtTerm], ExtensionList), ExtendTerms
+         ),
+  flatten(ExtendTerms,ExtendTermsFlat),
+  extendPhrase(Stream2, ExtendTermsFlat, StreamOut),
+  list_to_set(ExtendTermsSet),
+  % extract new attrnames from Fields
+  findall(FlatAttr,
+          ( member(newattr(attrname(Attr),_),Fields),
+            ( atomic(Attr)
+              -> downcase_atom(Attr,FlatAttr)
+              ;  ( Attr = Alias:Attr2,
+                   downcase_atom(Alias,AliasF),
+                   downcase_atom(Attr2,Attr2F),
+                   FlatAttr = AliasF:Attr2F
+                 )
+            )
+          ),
+          NewAttrsL),
+  list_to_set(StreamAttrsL,StreamAttrsSet),
+  list_to_set(NewAttrsL,NewAttrsSet),
+  union(StreamAttrsSet,NewAttrsSet,AttrsOut1Set),
+  union(AttrsOut1Set, ExtendTermsSet, AttrsOut),
+  dm(insertExtend,['insertExtend - avail attrs: ',extend(Stream, Fields),
+                  ' = ', AttrsOut,'\n']),
+  !.
+
+% Case: projectextend --- XRIS: Extend required?
+%                         add virtual attributes to projection list?
+%      Available virtual attributes are added to the projection list!
+insertExtend(projectextend(Stream, ProjAttrs, Fields),
+             projectextend(Stream2, NewProjAttrs, Fields),
+             AttrsIn,
+             AttrsOut) :-
+  % recurse into 1st argument
+  insertExtend(Stream,Stream2,AttrsIn,StreamAttrsL),
+  list_to_set(StreamAttrsL,StreamAttrsS),
+  % extract projection attributes (2nd argument)
+  findall( FlatAttr,
+           ( member(attrname(attr(Attr,_,_)),ProjAttrs),
+             ( atomic(Attr)
+               -> downcase_atom(Attr,FlatAttr)
+               ;  ( Attr = Alias:Attr2,
+                    downcase_atom(Alias,AliasF),
+                    downcase_atom(Attr2,Attr2F),
+                    FlatAttr = AliasF:Attr2F
+                  )
+             )
+           ),
+           ProjAttrsL
+         ),
+  list_to_set(ProjAttrsL,ProjAttrsS),
+  % extract new attrnames from Fields (3rd argument)
+  findall(FlatAttr,
+          ( member(newattr(attrname(Attr),_),Fields),
+            ( atomic(Attr)
+              -> downcase_atom(Attr,FlatAttr)
+              ;  ( Attr = Alias:Attr2,
+                   downcase_atom(Alias,AliasF),
+                   downcase_atom(Attr2,Attr2F),
+                   FlatAttr = AliasF:Attr2F
+                 )
+            )
+          ),
+          NewAttrsL),
+  list_to_set(NewAttrsL,NewAttrsS),
+  % construct result list
+  union(ProjAttrsS,NewAttrsS,AttrsOut1),  % projection + extension = AttrsOut1
+  splitVirtualAttributes(StreamAttrsS,VirtualAttrList,_),
+  append(ProjAttrs,VirtualAttrNameTermList,NewProjAttrs), % append virtual attrs
+  createAttrNameList(VirtualAttrList,VirtualAttrNameTermList),
+  union(AttrsOut1,VirtualAttrList,AttrsOut), % append virtual attrs to attr list
+  dm(insertExtend,['insertExtend - avail attrs: ',
+                   projectextend(Stream, ProjAttrs, Fields),
+                  ' = ', AttrsOut,'\n']),
+  !.
+
+% Case: extendstream           --- not used by now
+% Case: projectextendstream    --- not used by now
+% Case: loopsel                --- not used by now
 
 
 % Case: symmjoin. This is the only join operator that allows for generic
@@ -1629,6 +1844,45 @@ insertExtend(PlanIn, PlanOut, AttrsIn, AttrsOut) :-
 Axiliary predicates to insertExtend
 
 */
+
+/*
+---- splitVirtualAttributes(+AttrList,-VirtualAttrList,-NormalAttrList)
+----
+
+Splits a list of attributes into a list ~VirtualAttrList~ with all contained
+virtual attributes, and a list ~NormalAttrList~ with all other attributes.
+
+*/
+
+splitVirtualAttributes([],[],[]) :- !.
+splitVirtualAttributes([A|Rest],[A|AVRest],NormRest) :-
+  virt_attr(A, _, _, _, _),
+  splitVirtualAttributes(Rest,AVRest,NormRest), !.
+splitVirtualAttributes([A|Rest],AVRest,[A|NormRest]) :-
+  not(virt_attr(A, _, _, _, _)),
+  splitVirtualAttributes(Rest,AVRest,NormRest), !.
+splitVirtualAttributes(A,B,C) :-
+  throw(error_Internal(rewriting_splitVirtualAttributes(A,B,C)):unknown),
+  fail, !.
+
+
+/*
+---- createAttrNameList(+VirtualAttrList,-VirtualAttrNameTermList)
+----
+
+Creates a list ~VirtualAttrNameTermList~ of terms representing the names passed
+in ~VirtualAttrList~ in the internal notation.
+
+*/
+
+createAttrNameList([],[]) :-!.
+createAttrNameList([A|ARest],[attrname(attr(A,1,u))|ANRest]) :-
+  virt_attr(A, _, _, _, _),
+  createAttrNameList(ARest,ANRest), !.
+createAttrNameList(A,B) :-
+  throw(error_Internal(rewriting_createAttrNameList(A,B) ):unknown),
+  fail, !.
+
 
 /*
 ---- modifyPredicate(+PredIn,       -PredOut,
@@ -2032,9 +2286,48 @@ removeUnusedAttrs(project(Arg,AttrList),project(ArgE,AttrList),_) :-
   usedAttributes(project(Arg,AttrList),UsedAttrs),
   removeUnusedAttrs(Arg, ArgE, UsedAttrs), !.
 
-% Case: gettuples. Remove nothing, but replace SeenAttrs by id
-removeUnusedAttrs(gettuples(Arg,Rel), gettuples(ArgE,Rel), _) :-
-  removeUnusedAttrs(Arg,ArgE,[id]).
+% Case: extend. --- Remove extension attributes from SeenAttrs.
+%                   Remove new attributes
+removeUnusedAttrs(extend(Arg,EList),PlanOut,SeenAttrs) :-
+  usedAttributes(extend(Arg,EList),UsedAttrs),
+  findall(Attr, member(newattr(attrname(Attr),_),EList), EAttrs1),
+  list_to_set(EAttrs1,NewAttrs),
+  subtract(UsedAttrs,NewAttrs,RequiredInFuns),
+  subtract(SeenAttrs,NewAttrs,SeenNewAttrs1),
+  union(RequiredInFuns,SeenNewAttrs1,SeenAttrsNew),
+  removeUnusedAttrs(Arg, ArgE, SeenAttrsNew),
+  subtract(UsedAttrs,SeenAttrs,RemoveAttrs),
+  removePhrase(extend(ArgE,EList), PlanOut, RemoveAttrs), !.
+
+% Case: projectextend.
+%       Replace SeenAttrs by UsedAttrs
+%       Remove ((ProjAttrs + ExtAttrs) - SeenAttrs)
+removeUnusedAttrs(projectextend(Arg,PList,EList),
+                  PlanOut,
+                  SeenAttrs) :-
+  usedAttributes(projectextend(Arg,PList,EList),UsedAttrs),
+  removeUnusedAttrs(Arg, ArgE, UsedAttrs),
+  usedAttributes(PList,PAttrs),
+  findall(Attr, member(newattr(attrname(Attr),_),EList), EAttrs1),
+  list_to_set(EAttrs1,EAttrs2),
+  usedAttrs(EAttrs2,EAttrs),
+  union(PAttrs,EAttrs,ResultAttrs),
+  subtract(ResultAttrs,SeenAttrs,RemoveAttrs),
+  removePhrase(projectextend(ArgE,PList,EList), PlanOut, RemoveAttrs), !.
+
+% Case: gettuples. Remove nothing, but add [id] to SeenAttrs
+removeUnusedAttrs(gettuples(Arg,Rel), gettuples(ArgE,Rel), SeenAttrs) :-
+  union(SeenAttrs,[id],SeenAttrsNew),
+  removeUnusedAttrs(Arg,ArgE,SeenAttrsNew), !.
+
+% Case: gettuples2. Remove nothing, but add [IdAttrName] to SeenAttrs
+removeUnusedAttrs(gettuples2(Arg,Rel,IdAttr),
+                  gettuples2(ArgE,Rel,IdAttr), SeenAttrs) :-
+  usedAttributes(IdAttr,IdAttrName),
+  union(SeenAttrs,IdAttrName,SeenAttrsNew),
+  removeUnusedAttrs(Arg,ArgE,SeenAttrsNew), !.
+
+% Case: krdup. --- handled by rule for (generic linear operator).
 
 % Case: (generic linear operator). Add UsedAttrs to SeenAttrs, Remove New Attrs
 removeUnusedAttrs(PlanIn,PlanOut,SeenAttrs) :-
@@ -2145,11 +2438,20 @@ usedAttributes(a(A:N,_,_),[A1:N1]) :-
   downcase_atom(N,N1), !.
 usedAttributes(a(A,_,_),[A1]) :- downcase_atom(A,A1), !.
 
+% attrname(...) done by the generic case (last clause)
+% newattr(...) done by the generic case (last clause)
+
 usedAttributes(remove(_,AttrList),Attrs) :-
   usedAttributes(AttrList,Attrs), !.
 usedAttributes(extend(_,AttrList),Attrs) :-
   usedAttributes(AttrList,Attrs), !.
 usedAttributes(project(_,AttrList),Attrs) :-
+  usedAttributes(AttrList,Attrs), !.
+usedAttributes(projectextend(_,AttrList1,AttrList2),Attrs) :-
+  usedAttributes(AttrList1,Attrs1),
+  usedAttributes(AttrList2,Attrs2),
+  union(Attrs1,Attrs2,Attrs), !.
+usedAttributes(feedproject(_,AttrList),Attrs) :-
   usedAttributes(AttrList,Attrs), !.
 usedAttributes(rename(_,_),[]) :- !.
 usedAttributes(counter(_,_),[]) :- !.
@@ -2170,9 +2472,19 @@ usedAttributes(symmjoin(_,_,Pred),Attrs) :-
 usedAttributes(product(_,_),[]).
 usedAttributes(leftrange(_, _, Pred),Attrs) :-
   usedAttributes(Pred,Attrs), !.
+usedAttributes(leftrangeS(_, Pred),Attrs) :-
+  usedAttributes(Pred,Attrs), !.
 usedAttributes(rightrange(_, _, Pred),Attrs) :-
   usedAttributes(Pred,Attrs), !.
+usedAttributes(rightrangeS(_, Pred),Attrs) :-
+  usedAttributes(Pred,Attrs), !.
 usedAttributes(exactmatch(_, _, Pred), Attrs) :-
+  usedAttributes(Pred,Attrs), !.
+usedAttributes(exactmatchS(_, Pred), Attrs) :-
+  usedAttributes(Pred,Attrs), !.
+usedAttributes(range(_, _, Pred), Attrs) :-
+  usedAttributes(Pred,Attrs), !.
+usedAttributes(rangeS(_, Pred), Attrs) :-
   usedAttributes(Pred,Attrs), !.
 usedAttributes(windowintersects(_, _, Pred), Attrs) :-
   usedAttributes(Pred,Attrs), !.
@@ -2181,9 +2493,12 @@ usedAttributes(windowintersectsS(_, Pred), Attrs) :-
 usedAttributes(filter(_,Pred),Attrs) :-
   usedAttributes(Pred,Attrs), !.
 usedAttributes(gettuples(_,_), [id]) :- !.
-
+usedAttributes(gettuples2(_,_,IdAttr), IdAttr2) :-
+  usedAttributes(IdAttr,IdAttr2), !.
 usedAttributes(sort(_),[]) :- !. % XRIS: Perhaps, to be handeled separately?
 usedAttributes(rdup(_),[]) :- !.
+usedAttributes(krdup(_,AttrList),Attrs) :-
+  usedAttributes(AttrList,Attrs), !.
 
 % Section:Start:usedAttributes_2_m
 % Section:End:usedAttributes_2_m
