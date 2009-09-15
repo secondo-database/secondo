@@ -59,6 +59,6 @@ optimizerOptionInfo(entropy, none, yes,
 
 
 :- assert(
-optimizerOptionInfo(rewriteNonempty, rewriteInference,
+optimizerOptionInfo(rewriteNonempty, rewriteInference, no,
                     'Handle \'nonempty\' in select statements.',
                     true, true)).
