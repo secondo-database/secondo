@@ -1134,7 +1134,15 @@ In the target language, we use the following operators:
 ----
 
 In PROLOG, all expressions involving such operators are written in prefix
-notation.
+notation. Otherwise, the sequence of parameters of the internal plan
+representation terms should be the same as in the target language.
+
+Some predicates of the optimizer can handle stream operators automatically, if
+operators working on a single stream (like filter, sort, rdup) have the stream
+as their first argument. Join operators should habe the stream arguments at
+positions 1 and 2.
+
+Otherwise, you need to provide specialized rules to handle the operator!
 
 Parameter functions are written as
 

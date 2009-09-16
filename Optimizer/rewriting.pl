@@ -1448,12 +1448,20 @@ attributes.
 % ''incomplete_subplan''
 insertExtend(incomplete_subplan, incomplete_subplan, AttrsIn, AttrsIn).
 
-% Case: feed(rel(Name,Alias))
-insertExtend(feed(rel(Name,Alias)), feed(rel(Name,Alias)),
-             _, AttrsOut) :-
+% Case: rel(_,_).
+insertExtend(rel(Name,Alias), rel(Name,Alias),
+             _AttrsIn, AttrsOut) :-
   relation(Name,AttrsOutL),
   list_to_set(AttrsOutL,AttrsOut),
-  dm(insertExtend,['insertExtend - avail attrs: feed(rel)) = ',AttrsOut,'\n']),
+  dm(insertExtend,['insertExtend - avail attrs: rel(Name,Alias) = ',
+                   AttrsOut,'\n']),
+  !.
+
+% Case: feed(X)
+insertExtend(feed(Xin), feed(Xout),
+             AttrsIn, AttrsOut) :-
+  insertExtend(Xin, Xout, AttrsIn, AttrsOut),
+  dm(insertExtend,['insertExtend - avail attrs: feed(X) = ',AttrsOut,'\n']),
   !.
 
 % Case: feedproject(rel(Anme,Alias),AttrList)
@@ -2281,6 +2289,9 @@ removeUnusedAttrs(PlanIn,PlanIn, _) :-
 % Section:Start:removeUnusedAttrs_3_b
 % Section:End:removeUnusedAttrs_3_b
 
+% Case: relation. Do nothing.
+removeUnusedAttrs(rel(A,B), rel(A,B), _SeenAttrs) :- !.
+
 % Case: remove. Remove nothing, but add UsedAttrs to SeenAttrs
 removeUnusedAttrs(remove(Arg,AttrList), remove(ArgE,AttrList), SeenAttrs) :-
   usedAttributes(remove(Arg,AttrList),UsedAttrs),
@@ -2290,6 +2301,11 @@ removeUnusedAttrs(remove(Arg,AttrList), remove(ArgE,AttrList), SeenAttrs) :-
 % Case: project. Replace SeenAttrs by UsedAttrs. Remove nothing.
 removeUnusedAttrs(project(Arg,AttrList),project(ArgE,AttrList),_) :-
   usedAttributes(project(Arg,AttrList),UsedAttrs),
+  removeUnusedAttrs(Arg, ArgE, UsedAttrs), !.
+
+% Case: feedproject. Replace SeenAttrs by UsedAttrs. Remove nothing.
+removeUnusedAttrs(feedproject(Arg,AttrList),feedproject(ArgE,AttrList),_) :-
+  usedAttributes(project(feed(Arg),AttrList),UsedAttrs),
   removeUnusedAttrs(Arg, ArgE, UsedAttrs), !.
 
 % Case: extend. --- Remove extension attributes from SeenAttrs.
@@ -2334,8 +2350,6 @@ removeUnusedAttrs(gettuples2(Arg,Rel,IdAttr),
   removeUnusedAttrs(Arg,ArgE,SeenAttrsNew), !.
 
 % Case: krdup. --- handled by rule for (generic linear operator).
-
-% Case: predinfo. --- handled by rule for (generic linear operator).
 
 % Case: (generic linear operator). Add UsedAttrs to SeenAttrs, Remove New Attrs
 removeUnusedAttrs(PlanIn,PlanOut,SeenAttrs) :-
