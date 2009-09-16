@@ -1571,7 +1571,7 @@ plan_to_atom(rename(X, Y), Result) :-
   !.
 
 
-plan_to_atom(predinfo(Sel, Cost, X), Result) :-
+plan_to_atom(predinfo(X, Sel, Cost), Result) :-
   plan_to_atom(X, XAtom),
   concat_atom([XAtom, '{', Sel, ', ', Cost, '} '], '', Result),
   !.
@@ -4836,7 +4836,7 @@ markupProgress(rename(Stream, Var), Sel, BBoxSel, ExpPET,
 % filter - windowintersects combinations
 
 markupProgress(filter(Stream, Pred), Sel, BBoxSel, ExpPET,
-    predinfo(Sel2, ExpPET, filter(Stream2, Pred))) :-
+    predinfo(filter(Stream2, Pred), Sel2, ExpPET)) :-
   BBoxSel \= noBBox,
   Sel2 is (Sel / BBoxSel) * 0.999,			%must be real
   markupProgressBBoxIndex(Stream, BBoxSel, Stream2),
@@ -4853,14 +4853,14 @@ markupProgress(loopjoin(Stream, Expr), Sel, BBoxSel, ExpPET,
 % loopjoin with filter - windowintersects
 
 markupProgress(filter(loopjoin(Stream, Expr), Pred), Sel, BBoxSel, ExpPET,
-    predinfo(Sel2, ExpPET, filter(loopjoin(Stream, Expr2), Pred))) :-
+    predinfo(filter(loopjoin(Stream, Expr2), Pred), Sel2, ExpPET)) :-
   BBoxSel \= noBBox,
   Sel2 is (Sel / BBoxSel) * 0.999,
   markupProgressBBoxIndex(Expr, BBoxSel, Expr2),
   !.
 
 
-markupProgress(Stream, Sel, _, ExpPET, predinfo(Sel2, ExpPET, Stream)) :-
+markupProgress(Stream, Sel, _, ExpPET, predinfo(Stream, Sel2, ExpPET)) :-
   Sel2 is Sel * 0.999.              %must be real
 
 
@@ -4879,7 +4879,7 @@ markupProgressBBoxIndex(rename(Stream, Var), Sel, rename(Stream2, Var)) :-
   !.
 
 markupProgressBBoxIndex(windowintersects(Index, Rel, Arg), Sel,
-  predinfo(Sel, 0.01, windowintersects(Index, Rel, Arg)) ).
+  predinfo(windowintersects(Index, Rel, Arg), Sel, 0.01) ).
 
 
 

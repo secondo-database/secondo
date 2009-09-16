@@ -908,6 +908,12 @@ cost(ksmallest(X, K), Sel, Pred,
     B * S * log(ResCard + 1).
 
 
+% predinfo inflicts no cost, it only annotates estimated selectivity and PET
+% for progress estimation by the Secondo kernel
+cost(predinfo(X, _piSel, _piPET), Sel, Pred,
+     ResAttrList, ResTupleSize, ResCard, C) :-
+  cost(X,Sel, Pred, ResAttrList, ResTupleSize, ResCard, C), !.
+
 % Failed to compute the cost -- throw an exception!
 cost(T, S, P, A, TS, RC, Cost) :-
   concat_atom(['Calculation of cost failed.'],'',ErrMsg),

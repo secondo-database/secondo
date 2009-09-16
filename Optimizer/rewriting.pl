@@ -722,12 +722,16 @@ rewriteQueryForCSE(Query, Query) :-
 rewriteQueryForCSE(QueryIn, QueryIn) :-
   optimizerOption(rewriteCSE),
   retractExpressionLabels,          % delete old data
+  dm(rewriteCSE,['Expression Labels after retractExpressionLabels']),
   dc(rewriteCSE,showExpressionLabels),   % output debugging info
   findCSEs(QueryIn, expensive, _),  % find all expensive subexpressions
+  dm(rewriteCSE,['Expression Labels after findCSEs']),
   dc(rewriteCSE,showExpressionLabels),   % output debugging info
   retractNonCSEs,                   % delete expressions used less than twice
+  dm(rewriteCSE,['Expression Labels after retractNonCSEs']),
   dc(rewriteCSE,showExpressionLabels),   % output debugging info
   replaceAllCSEs,                   % nest CSEs but also save flat CSE expression
+  dm(rewriteCSE,['Expression Labels after replaceAllCSEs']),
   dc(rewriteCSE,showExpressionLabels),   % output debugging info
 %  compactCSEs(QueryIn, QueryOut, _), % replace CSEs by virtual attributes
 %  dm(rewriteCSE,['\nREWRITING: Substitute Common Subexpressions\n\tIn:  ',
@@ -1245,7 +1249,9 @@ rewritePlanforCSE(PlanIn, PlanOut, SelectIn, SelectOut) :-
                   wp(PlanOut),nl,nl)),
   !.
 
-rewritePlanforCSE(Plan, Plan, Select, Select).
+rewritePlanforCSE(Plan, Plan, Select, Select) :-
+  dm(rewritePlan,['\n\nrewritePlanforCSE: Fallback case reached ',
+                  '--- No rewriting occured!\n']), !.
 
 /*
 15.1.1 Register Virtual Attributes for CSE Substitution
@@ -2328,6 +2334,8 @@ removeUnusedAttrs(gettuples2(Arg,Rel,IdAttr),
   removeUnusedAttrs(Arg,ArgE,SeenAttrsNew), !.
 
 % Case: krdup. --- handled by rule for (generic linear operator).
+
+% Case: predinfo. --- handled by rule for (generic linear operator).
 
 % Case: (generic linear operator). Add UsedAttrs to SeenAttrs, Remove New Attrs
 removeUnusedAttrs(PlanIn,PlanOut,SeenAttrs) :-
