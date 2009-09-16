@@ -4,13 +4,14 @@
 %
 
 \chapter{Implementierung}
+Die Beschreibung Umsetzung der in Kapitel \ref{cpt:Entwurf} vorgestellten Überlegungen in diesem Kapitel folgt der Reihenfolge der im Optimierer durchlaufenen Schritte bei der Optimierung einer Abfrage. Nach einem kurzen Exkurs zur Umsetzung des Full-Outer-Join-Operators im \textsc{Secondo}-Kernels werden die einzelnen Optimierungsschritte bei einer geschachtelten Abfrage beschrieben und anhand einiger Beispiele erläutert. 
 Die in diesem Kapitel dargestellten Beispiele beziehen sich auf die Relationen \secondo{Staedte}, \secondo{PLZ} und \secondo{Orte} der Datenbank \secondo{opt}. Diese ist standardmäßig in \textsc{Secondo} enthalten. Die Relationen haben folgende Schemata:
 
 \begin{algorithmic}
 \STATE Staedte(Kennzeichen, Vorwahl, PLZ, Bev, SName)
 \STATE PLZ(Ort, PLZ)
 \STATE Orte(Bevt, Vorwahl, Ort, Kennzeichen)
-\end{algorithmic}
+\end{algorithmic}.
 
 \begin{algorithmic}
 \STATE Supplier(sno, sname, status, city)
@@ -25,11 +26,15 @@ Mit folgenden Inhalten:
 Grundlage für die Implementierung des Operators \secondo{smouterjoin} ist der Operator \secondo{sortmergejoin} der \algebra{ExtRelation-C++}-Algebra. Type-Mapping-Funktion und die Grundstruktur des Algorithmus konnten übernommen werden. Aus Gründen der Wartbarkeit wurde auf eine gemeinsame Implementierung der Value-Mapping-Funktion mit Hilfe von C++-Templates für \secondo{sortmergejoin} und \secondo{smouterjoin} verzichtet. Eine prototypische Implementierung führte zu unübersichtlichem Quellcode und Leistungseinbußen beim \secondo{sortmergejoin}. Daher wurde auf der Basis der \secondo{sortmergejoin}-Implementierung eine eigenständige Implementierung des Operators \secondo{smouterjoin} erstellt. 
 
 \section{Umschreiben quantifizierter Prädikate}
-Prädikate mit den quantifizierenden Operatoren \sql{EXISTS, NOT EXISTS, ANY} und \sql{ALL} werden in äquivalente Prädikate mit Aggregationen überführt. Damit sind sie den in \ref{chp:Entwurf} beschriebenen Algorithmen zur Entschachtelung zugänglich. Exists und Not-Exists werden in einen Vergleich der Anzahl Tupel mit 0 transformiert. Also \sql{exists(select $C_n$ from $R_m$ where P)} in \sql{0 < (select count($C_n$) from $R_m$ where P)} und \sql{not exists(select $C_n$ from $R_m$ where P)} in \sql{0 = (select count($C_n$) from $R_m$ where P)}. Dieser Schritt erfolgt bei jedem geschachtelten Prädikat, unabhängig davon, ob eine weitere Entschachtelung möglich ist. Eine direkte Übersetzung der quantifizierenden Operatoren in die ausführbare Syntax des \textsc{Secondo}-Kernels wurde nicht implementiert. 
+Prädikate mit den quantifizierenden Operatoren \sql{exists, not exists, any} und \sql{all} werden in äquivalente Prädikate mit Aggregationen überführt. Damit sind sie den in \ref{chp:Entwurf} beschriebenen Algorithmen zur Entschachtelung zugänglich. Exists und Not-Exists werden in einen Vergleich der Anzahl Tupel mit 0 transformiert. Also \sql{exists(select $C_n$ from $R_m$ where P)} in \sql{0 < (select count(*) from $R_m$ where P)} und \sql{not exists(select $C_n$ from $R_m$ where P)} in \sql{0 = (select count(*) from $R_m$ where P)}. Dieser Schritt erfolgt bei jedem geschachtelten Prädikat, unabhängig davon, ob eine weitere Entschachtelung möglich ist. Eine direkte Übersetzung der quantifizierenden Operatoren in die ausführbare Syntax des \textsc{Secondo}-Kernels wurde nicht implementiert. 
 
 \section{Entschachtelung}
-Die Entschachtelung einer Abfrage erfolgt in mehreren Schritten. In jedem Schritt wird ein Entschachtelungsalgorithmus auf einen Teilausdruck der Abfrage angewandt. Bei Unterabfragen in der \sql{select}- und der \sql{from}-Klausel werden im Moment nur nicht-korrelierte Unterabfragen unterstützt. Die Reihenfolge der auf eine Abfrage angewandten Entschachtelungsalgorithmen ist: Entschachtelung von nicht korrelierten Unterabfragen in der \sql{select}-Klausel, Entschachtelung von nicht korrelierten Unterabfragen in der \sql{from}-Klausel und Entschachtelung von Unterabfragen in der \sql{where}-Klausel. Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong. Rekursive Entschachtelung von Abfragen. Dabei werden die oben beschriebenen Schachtelungstypen unterschieden. Je nach Schachtelungstyp wird der entsprechende Entschachtelungsalgorithmus angewendet. \enquote{Temporäre Relationen} werden für die Entschachtelung korrelierter Abfragen mit Aggregationsfunktion benötigt. Um die Geschwindigkeit bei wiederholtem Ausführen der Abfragen zu beschleunigen, werden die zum Entschachteln eines Prädikats notwendigen temporären Relationen zur Laufzeit in einem Prolog-Fakt gespeichert. Beim Schließen der Datenbank werden alle temporären Relationen gelöscht, um in jeder neuen Sitzung eine saubere Datenbankumgebung bereitzustellen. Die Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski/Wong wurde mit dem Prädikat \prolog{transformNestedPredicates/6} realisiert. Je nach Schachtelungstyp des Prädikats wird der entsprechende Entschachtelungsalgorithmus angewandt. Da SQL beliebig tief geschachtelte Abfragen zulässt, wird der Algorithmus rekursiv auf das Ergebnis der Entschachtelung angewandt, bis das Ergebnis durch die implementierten Algorithmen nicht weiter entschachtelt werden kann. 
+Nach der Vorabtransformation quantifizierter Prädikate wird durch die Anwendung des in \ref{cpt:Entwurf} beschriebenen Algorithmus NEST-G versucht, die Abfrage in ihre kanonische Form, d.h. eine Form ohne geschachtelte Prädikate zu überführen. Die Entschachtelung einer Abfrage erfolgt in mehreren Schritten. In jedem Schritt wird ein Entschachtelungsalgorithmus auf einen Teilausdruck der Abfrage angewandt. Bei Unterabfragen in der \sql{select}- und der \sql{from}-Klausel werden im Moment nur nicht-korrelierte Unterabfragen unterstützt. Die Reihenfolge der auf eine Abfrage angewandten Entschachtelungsalgorithmen ist: Entschachtelung von nicht korrelierten Unterabfragen in der \sql{select}-Klausel, Entschachtelung von nicht korrelierten Unterabfragen in der \sql{from}-Klausel und Entschachtelung von Unterabfragen in der \sql{where}-Klausel. Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski,Wong. Rekursive Entschachtelung von Abfragen. Dabei werden die oben beschriebenen Schachtelungstypen unterschieden. Je nach Schachtelungstyp wird der entsprechende Entschachtelungsalgorithmus angewendet. \enquote{Temporäre Relationen} werden für die Entschachtelung korrelierter Abfragen mit Aggregationsfunktion benötigt. Um die Geschwindigkeit bei wiederholtem Ausführen der Abfragen zu beschleunigen, werden die zum Entschachteln eines Prädikats notwendigen temporären Relationen zur Laufzeit in einem Prolog-Fakt gespeichert. Beim Schließen der Datenbank werden alle temporären Relationen gelöscht, um in jeder neuen Sitzung eine saubere Datenbankumgebung bereitzustellen. Die Implementierung des allgemeinen Entschachtelungsalgorithmus nach Kim/Ganski/Wong wurde mit dem Prädikat \prolog{transformNestedPredicates/6} realisiert. Je nach Schachtelungstyp des Prädikats wird der entsprechende Entschachtelungsalgorithmus angewandt. Da SQL beliebig tief geschachtelte Abfragen zulässt, wird der Algorithmus rekursiv auf das Ergebnis der Entschachtelung angewandt, bis das Ergebnis durch die implementierten Algorithmen nicht weiter entschachtelt werden kann. 
 
+\subsection{Unterabfragen in der \sql{select}-Klausel}
+\subsection{Unterabfragen in der \sql{from}-Klausel}
+
+\subsection{Geschachtelte Prädikate}
 Über die Erkennung des Schachtelungstyps wird der Algorithmus ausgewählt, der auf das Prädikat angewandt wird. Hierfür wird das SQL-Prädikat in Teilausdrücke zerlegt. Dabei wird unterschieden zwischen geschachtelten Ausdrücken mit unärem Operator wie z.B. \sql{exists} und binären Operatoren. Binäre Operatoren sind z.B. die skalaren Vergleichsoperatoren, aber auch der Mengenoperator \sql{in}. Die Unterabfrage wird auf Aggregationsfunktionen untersucht; sind keine vorhanden, so kann der Typ der Abfrage nur noch J oder N sein. Im zweiten Schritt wird ein Schema-Lookup für die Unterabfrage durchgeführt. Dieser ist nur bei nicht-korrelierten Abfragen erfolgreich. Aus der Kombination dieser beiden Ergebnisse kann der Typ der Unterabfrage und damit des geschachtelten Prädikats ermittelt werden.
 
 \begin{table}[h]
@@ -64,6 +69,8 @@ select ort from plz where [plz = 99998]
 
 Die Umsetzung von Algorithmus NEST-N-J (siehe Abschnitt \ref{sct:Algorithmus NEST-N-J}) ist trivial. Die Anwendung erfolgt auf Prädikate, die als Typ J oder N erkannt werden. Da die Relationen der \sql{from}-Klausel bereits als Liste vorliegen, müssen nur die Listen der Unterabfrage und der äußeren Abfrage vereinigt werden. Ist der verwendete Operator \sql{in}, so muss eine temporäre Relation erzeugt werden, die die Projektion der inneren Relation auf die Join-Spalten ist. Hierdurch werden unerwünschte Duplikate entfernt. Damit wird die Mengensemantik des Operators \sql{in} auch für das Join-Prädikat erhalten. Auch die Prädikate liegen als Liste von Konjunktionstermen vor, und können über das Prädikat \prolog{append} zu einer Liste zusammengeführt werden. Im letzten Schritt des Algorithmus wird das zusätzliche Join-Prädikat erzeugt. Der Operator des neuen Prädikats ist =, falls das geschachtelte Prädikat den Operator \sql{in} beinhaltete, andernfalls wird der ursprüngliche Operator beibehalten. Die Entschachtelung von Abfragen vom Typ N oder J mit dem \sql{not in}-Operator erfolgt hier nicht. Eine Erweiterung des Algorithmus nach der Implementierung eines Anti-Join Operators ist aber ohne weiteres möglich.
 
+Die Typ-N Abfrage 
+
 \begin{lstlisting}
 select sname 
 from staedte
@@ -76,9 +83,11 @@ wird transformiert in
 select sname 
 from [staedte, plz] 
 where [sname = ort, plz > 5000]
-\end{lstlisting}
+\end{lstlisting}.
 
-und 
+Die Bedingungen aus dem geschachtelten Prädikat und dem Prädikat der Unterabfrage werden in Form der zwei Prädikate \lstinline{sname = ort} und \lstinline{plz > 5000} in die entschachtelte Variante übernommen.
+
+Eine Typ-J Abfrage unterscheidet sich nur darin, dass das korrelierte Prädikat der Unterabfrage zu einem Join-Prädikat der entschachtelten Abfrage wird, wie man an der Transformation von 
 
 \begin{lstlisting}
 select sname
@@ -93,6 +102,8 @@ select sname
 from [staedte, plz] 
 where [sname = ort, plz < bev]
 \end{lstlisting}
+
+sehen kann. Hier wird das Prädikat \lstinline{plz < bev}, das sich in der ursprünglichen Abfrage auf Relation \lstinline{staedte} des äußeren und Relation \lstinline{plz} des inneren Abfrageblocks bezieht, zu einem Join-Prädikat der optimierten Abfrage.
 
 Die komplexeste Behandlung erfordert Algorithmus NEST-JA2 (siehe Abschnitt \ref{sct:Algorithmus NEST-JA2}). Im ersten Schritt werden die Prädikate der Unterabfrage in einfache Prädikate, Join-Prädikate der inneren Abfrage und korrelierte Prädikate partitioniert. Danach werden die drei oben beschriebenen temporären Relationen erzeugt. Für die Projektion der äußeren Relationen auf die Join-Attribute müssen diese aus den korrelierten Prädikaten der Unterabfrage ermittelt werden. Hierzu werden die in den korrelierten Prädikaten verwendeten Attribute gegen die Metadaten der Relationen der Unterabfrage geprüft. Die Attribute, die nicht in den Relationen definiert sind, sind Attribute des äußeren Abfrageblocks. Tritt bei der Erstellung einer dieser Relationen ein Fehler auf wird die Verarbeitung mit einer Exception abgebrochen. Aus der dritten temporären Relation und der ursprünglichen Abfrage wird im nächsten Schritt die entschachtelte Variante aufgebaut. Die Syntax für die Umbenennung von Relationen und Attributen im Optimierer deckt sich nicht mit der entsprechenden Syntax im \textsc{Secondo}-Kernel. Daher muss bei der Erstellung der entschachtelten Variante eine Umsetzung dieser Syntax erfolgen, um korrekt auf die Attribute der dritten temporären Relation zugreifen zu können. Die Syntax im Optimierer ist Name:Attribut, während im \textsc{Secondo}-Kernel Attribut\_Name verwendet wird. Jede Verwendung von Name:Attribut muss nun in Attribut\_Name geändert werden, sofern sie sich auf ein Attribut der dritten temporären Relation bezieht. Um sicherzustellen, dass es keine Namenskonflikte durch die neu erstellte Relation gibt, wird diese mit einer Umbenennung in die entschachtelte Abfrage aufgenommen. Dafür müssen alle Attributausdrücke, die Attribute der temporären Relation verwenden, an die Umbenennung angepasst werden.
 
@@ -262,7 +273,7 @@ Um die weitere Verarbeitung geschachtelter Abfragen zu ermöglichen, müssen in de
 
 Die Ermittlung der Selektivität erfolgt für Join-Prädikate mit einem Nested-Loop-Join. Um die Eindeutigkeit der Attributnamen sicherzustellen, wird automatisch eine Umbenennung der inneren Relation des Nested-Loop-Join vorgenommen. Alle Verweise im geschachtelten Prädikat müssen ebenfalls entsprechend umbenannt werden. Die Umbenennung bei nicht geschachtelten Prädikaten erfolgt über die Angabe der Position der umbenannten Relation. Durch Zerlegung und rekursiven Anwendung des Umbenennungsprädikats erfolgt diese Umbenennung auf beliebigen Ausdrücken. Da die im Fakt \secondo{attr(Attributname, No, Case)} angegebene Position bei Attributen in korrelierten Prädikaten nicht zwingend deckungsgleich ist mit der Position der Relation im geschachtelten Prädikat, wird diese Zuordnung über alle Anwendungen des Umbenennungsprädikats in einem Kellerspeicher festgehalten.
 
-\begin{lstlisting}
+\begin{lstlisting}[caption=Abfrage mit Metadaten]
 select attr(ort, 0, u) 
 from [rel(plz, *)] 
 where 
@@ -277,7 +288,7 @@ where
 \end{itemize}
 
 \section{Ermittlung des Ausführungsplans}
-Der Ausführungsplan für eine geschachtelte Abfrage wird in folgenden Schritten ermittelt. Handelt es sich um eine Abfrage vom Typ N/J oder vom Typ A so kann die Ermittlung direkt über den Optimierer erfolgen, da die Abfrage keine korrelierten Prädikate enthält. Hierzu wird das Optimierungprädikat \prolog{optimize/3} aufgerufen. Das Ergebnis ist ein Ausführungsplan, der aber immer noch einen Prolog-Term darstellt. Für die Planermittlung bei korrelierten Unterabfragen muss die Abfrage erst einmal von den korrelierten Prädikaten befreit werden. Die nicht-korrelierte Abfrage kann dann wieder vom Optimierer bearbeitet werden. Der daraus resultierende Plan wird nun um die korrelierten Prädikate erweitert. Hierbei werden diese in Form von \secondo{filter}-Ausdrücken an den Plan angefügt. Der \textsc{Secondo}-Operator \secondo{filter} erwartet als Argumente einen Tupelstrom (gegeben durch den Teilplan) und ein Prädikat, das auf eben diesem Strom angewandt wird. Dabei werden Prädikate mit niedriger Selektivität zuerst angewandt, um die Anzahl der zu verarbeitenden Ergebnistupel zu minimieren. Da der Optimierer nach dem gleichen Prinzip arbeitet, sollte diese Vorgehensweise eine positive Auswirkung auf die Laufzeit geschachtelter Abfragen gegenüber der wahlfreien Ausführung dieser Selektionen haben. Die Implementierung in Prolog, die die Prädikate in der entsprechenden Reihenfolge ermittelt, erlaubt auch die Erweiterung um die Einbeziehung der Ausführungskosten der Prädikate, um eine bessere Abschätzung der minimalen Laufzeit zu erhalten. Grundsätzlich wäre auch eine Erweiterung des Optimierungsalgorithmus denkbar, bei der die korrelierten Prädikate mit in die Optimierung einbezogen werden. Damit wäre es möglich eine optimale Reihenfolge für die Ausführung der Prädikate zu ermitteln. 
+Der Ausführungsplan für eine geschachtelte Abfrage wird in folgenden Schritten ermittelt. Handelt es sich um eine Abfrage vom Typ N/J oder vom Typ A so kann die Ermittlung direkt über den Optimierer erfolgen, da die Abfrage keine korrelierten Prädikate enthält. Hierzu wird das Optimierungprädikat \prolog{optimize/3} aufgerufen. Das Ergebnis ist ein Ausführungsplan, der aber immer noch einen Prolog-Term darstellt. Für die Planermittlung bei korrelierten Unterabfragen muss die Abfrage erst einmal von den korrelierten Prädikaten befreit werden. Die nicht-korrelierte Abfrage kann dann wieder vom Optimierer bearbeitet werden. Der daraus resultierende Plan wird nun um die korrelierten Prädikate erweitert. Hierbei werden diese in Form von \secondo{filter}-Ausdrücken an den Plan angefügt. Der \textsc{Secondo}-Operator \secondo{filter} erwartet als Argumente einen Tupelstrom (gegeben durch den Teilplan) und ein Prädikat, das auf eben diesem Strom angewandt wird. Dabei werden Prädikate mit niedriger Selektivität zuerst angewandt, um die Anzahl der zu verarbeitenden Ergebnistupel zu minimieren. Da der Optimierer nach dem gleichen Prinzip arbeitet, sollte diese Vorgehensweise eine positive Auswirkung auf die Laufzeit geschachtelter Abfragen gegenüber der wahlfreien Ausführung dieser Selektionen haben. Die Implementierung in Prolog, die die Prädikate in der entsprechenden Reihenfolge ermittelt, erlaubt auch die Erweiterung um die Einbeziehung der Ausführungskosten der Prädikate, um eine bessere Abschätzung der minimalen Laufzeit zu erhalten. Grundsätzlich wäre auch eine Erweiterung des Optimierungsalgorithmus denkbar, bei der die korrelierten Prädikate mit in die Optimierung einbezogen werden. Damit wäre es möglich eine optimale Reihenfolge für die Ausführung der Prädikate zu ermitteln. Die Übersetzung geschachtelter Abfragen erfolgt Top-Down, damit zum Übersetzungszeitpunkt die Entscheidungen des Optimierers bekannt sind, mit welchen Konstrukten das geschachtelte Prädikat übersetzt wird. Dies ist notwendig um das Prädikat in einen passenden Ausdruck zu übersetzen und z.B. Mapping-Funktionen richtig zu gestalten.
 
 \begin{lstlisting}
 consume(
@@ -295,7 +306,7 @@ consume(
 				= 
 				subquery(
 					select max(attr(p:pLZ, 0, u))	from rel(plz, p), 
-					[rel(plz, *)]
+				  [rel(plz, *)]
 				)
 			)
 		), 

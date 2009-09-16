@@ -130,12 +130,12 @@ transformiert.
 
 Ein Prädikat \lstinline[mathescape=true]{$C_n$ = all(select $C_m$ from $R_i$ where P)} hat keine sinnvolle Semantik mehr, sobald die geschachtelte Abfrage mehr als einen Wert für $C_m$ liefert. Die Verwendung von = all(Q) wird daher nicht unterstützt.
 
-Mit diesen Transformationen lassen sich auch quantifizierte Prädikate als Prädikate der Typen J, N, A oder JA betrachten. Dies hat zur Folge, dass sich die im Folgenden beschriebenen Optimierungsalgorithmen auch auf diese Prädikate anwenden lassen. Außerdem sind die Prädikate einer Übersetzung in ausführbare \textsc{Secondo}-Syntax besser zugänglich, da die Aggregation bereits durch Standard-Operatoren implementiert ist. Eine Einführung weiterer Operatoren zur Übersetzung quantifizierter Prädikate ist hierdurch nicht notwendig. 
+Mit diesen Transformationen lassen sich auch quantifizierte Prädikate als Prädikate der Typen J oder JA betrachten. Dies hat zur Folge, dass sich die im Folgenden beschriebenen Optimierungsalgorithmen auch auf diese Prädikate anwenden lassen. Außerdem sind die Prädikate einer Übersetzung in ausführbare \textsc{Secondo}-Syntax besser zugänglich, da die Aggregation bereits durch Standard-Operatoren implementiert ist. Eine Einführung weiterer Operatoren zur Übersetzung quantifizierter Prädikate ist hierdurch nicht notwendig. 
 
 
 \section{Entschachtelungsalgorithmen}\label{sct:Entschachtelungsalgorithmen}
 \subsection{Algorithmus \textbf{NEST-N-J}}\label{sct:Algorithmus NEST-N-J}
-Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine inhaltlich identische entschachtelte Form zu überführen. Basis der Transformation ist die Beobachtung, dass das Ergebnis einer geschachtelten Abfrage vom Typ N oder J und einer Abfrage über allen verwendeten Relationen mit einem zusätzlichen Join-Prädikat identisch ist. Da die Join-Operation in SQL Multimengen-Semantik hat, müssen bei Operatoren mit strenger Mengen-Semantik z.B. \sql{in} die inneren Relationen vor der Verwendung in der entschachtelten Variante auf ihre Join-Spalten projiziert und durch die Prädikate der Unterabfrage eingeschränkt werden. Da das Ergebnis der Projektion und Selektion maximal die gleiche Mächtigkeit hat, wie die Ursprungsrelationen, wirkt sich diese zusätzliche Operation in den meisten Fällen eher positiv auf die Anzahl der I/O-Operationen aus (siehe auch \cite{319745}).
+Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine inhaltlich identische entschachtelte Form zu überführen. Basis der Transformation ist die Beobachtung, dass das Ergebnis einer geschachtelten Abfrage vom Typ N oder J und einer Abfrage über allen verwendeten Relationen mit einem zusätzlichen Join-Prädikat identisch ist. Die Entschachtelung entspricht dabei der Verschmelzung der Abfrageblöcke, jede Relation des äußeren und des inneren Abfrageblocks wird erhalten. Die entschachtelte Abfrage enthält alle Prädikate der beiden Abfrageblöcke. Das neue Join-Prädikat hält die Vergleichsbedingung zwischen Attributausdruck des äußeren Abfrageblocks mit den Spalten des innneren Abfrageblocks fest. Da die Join-Operation in SQL Multimengen-Semantik hat, müssen bei Operatoren mit strenger Mengensemantik z.B. \sql{in} die inneren Relationen vor der Verwendung in der entschachtelten Variante auf ihre Join-Spalten projiziert und durch die Prädikate der Unterabfrage eingeschränkt werden. Andernfalls liefert das neue Join-Prädikat durch Duplikate möglicherweise falsche Ergebnisse. Da das Ergebnis der Projektion und Selektion maximal die gleiche Mächtigkeit hat, wie die Ursprungsrelationen, wirkt sich diese zusätzliche Operation in den meisten Fällen eher positiv auf die Anzahl der I/O-Operationen aus (siehe auch \cite{319745}).
 
 \begin{algorithm}
 Algorithmus NEST-N-J
@@ -196,7 +196,7 @@ $\triangleright$ entspricht hier dem Anti-Join-Operator
 Der Beweis für die Korrektheit wird in \cite{319745} geführt. Aus der im SQL Standard definierten Semantik für geschachtelte Abfragen, ergibt sich, dass für jedes betrachtete Tupel der äußeren Abfrage die innere Abfrage ausgewertet werden kann. Für den Operator \sql{in} bedeutet dies, dass das geschachtelte Prädikat \sql{WAHR} ist, wenn der Wert $X$ im Ergebnis der inneren Abfrage enthalten ist. Das Join-Prädikat der entschachtelten Abfrage ist genau dann \sql{WAHR}, wenn das geschachtelte Prädikat wahr ist.
 
 \subsection{Algorithmus \textbf{NEST-JA2}}\label{sct:Algorithmus NEST-JA2}
-Der Algorithmus basiert auf der Idee, die Aggregation für alle benötigten Gruppen im Voraus zu berechnen. 
+Der Algorithmus basiert auf der Idee, die benötigten Aggregationswerte jeweils nur einmal zu berechnen. 
 Um die Auswertung der Aggregation nicht bei jedem Tupel der äußeren Relation durchführen zu müssen, wird mit temporären Tabellen gearbeitet. Es wird die Aggregation über die inneren Relationen gruppiert nach Werten des Join-Attributs der äußeren Spalte vorausberechnet. Da die temporären Relationen persistent abgelegt werden, fällt der Aufwand für ihr Anlegen nur einmal an. Ab der zweiten Ausführung kann auf die bestehenden temporären Relationen zugegriffen werden. 
 
 \begin{algorithm}
@@ -225,88 +225,93 @@ Im ersten Schritt werden die benötigten äußeren Relationen auf die in der Untera
 Der Algorithmus und die einzelnen Zwischenschritte werden hier in SQL-Syntax dargestellt. Die ursprüngliche Abfrage hat die allgemeine Form:
 
 \begin{lstlisting}
-select §$A_1,\dots,A_n$§
-from §$R_1,\dots,R_m$§
-where §$P_1 (R_1 ),\dots,P_k (R_1 )$§,
-	§$P_1 ,\ldots,P_l,$§,
+select §$A_1, \dots, A_n$§
+from §$R_1, \dots, R_m$§
+where §$P_1 (R_1 ), \dots, P_k (R_1 )$§,
+	§$P_1 , \ldots, P_l,$§,
 	§$R_i.X \operatorname{\theta}\ ($§
 		select §$\operatorname{AGGR}(T_j.A)$§
-		from §$T_1 ,\dots,T_s$§			
-		where §$Q_1 ,\dots,Q_r$§,
+		from §$T_1 , \dots, T_s$§			
+		where §$Q_1, \dots, Q_r$§,
 			pred§$[R_1.Y \operatorname{op} T_1.Z]$§
 	§$)$§
-\end{lstlisting}
+\end{lstlisting}.
 
-Die erste temporäre Relation ist die Projektion der äußeren Relation auf die Join-Spalte des korrelierten Prädikats. Sie ergibt sich aus der Abfrage als
+Die $A_1, \dots, A_n$ sind Attributausdrücke über den Schemata der Relationen $R_1, \dots, R_m$. Die Prädikate $P_1(R_1), \dots, P_k(R_1)$ sind auschließlich über Attributen der Relation $R_1$ formuliert, sind also \emph{einfache} Prädikate über $R_1$. Die Prädikate $P_1, \dots, P_l$ sind allgemeine Prädikate über Attributen einer oder mehrerer beliebigen Relationen aus $R_1, \dots, R_m$.
+
+Die erste temporäre Relation ist die Projektion der äußeren Relation auf die Join-Spalte des korrelierten Prädikats. Es werden bereits alle \emph{einfachen} Prädikate angewandt, da diese auschließlich über Attributen von $R_1$ definiert sind. Die Anwendung der Prädikate bereits zu diesem Zeitpunkt führt zu einer garantiert nicht größeren temporären Relation, da die Selektions-Operation das Ergebnis eines relationalen Ausdrucks nur verkleinern kann. Die temporäre Relation ergibt sich aus der Abfrage als
 
 \begin{lstlisting}
 §$Rt_1$§ = (
 	select distinct §$R_1.Y$§
 	from §$R_1$§
-	where	§$P_1(R_1),\dots,P_k(R_1)$§
+	where	§$P_1(R_1), \dots, P_k(R_1)$§
 	)
-\end{lstlisting}
+\end{lstlisting}.
 
-Für die zweite temporäre Relation werden die inneren Relationen auf die Join-Spalten projiziert und durch die einfachen Prädikate eingeschränkt.
+Für die zweite temporäre Relation werden die inneren Relationen auf die Join-Spalten projiziert und durch die \emph{einfachen} Prädikate eingeschränkt. Es ergibt sich aus der obigen Abfrage folgender Ausdruck:
 
 \begin{lstlisting}
 §$Rt_2$§ = (
-	select §$T_j.A,T_1.Z$§
-	from §$T_1,\dots,T_s$§
-	where §$Q_1,\dots,Q_r$§
+	select §$T_j.A, T_1.Z$§
+	from §$T_1, \dots, T_s$§
+	where §$Q_1, \dots, Q_r$§
 	)
-\end{lstlisting}
+\end{lstlisting}.
 
-Für Aggregationsfunktionen ungleich \sql{count} ergibt sich folgender Ausdruck für die dritte temporäre Relation.
+Für Aggregationsfunktionen ungleich \sql{count} ergibt sich folgender Ausdruck für die dritte temporäre Relation:
 
 \begin{lstlisting}
 §$Rt_3$§ = (
-	select §$T_1.Y,\operatorname{AGGR}(T_j.A)$§ as AggrResult
-  from TEMP1, TEMP2
-  where pred§$[R_1.Y \operatorname{op} T_1.Z]$§
+	select §$Rt_1.Y,\operatorname{AGGR}(Rt_2.A)$§ as AggrResult
+  from $Rt_1, Rt_2$
+  where pred§$[Rt_1.Y \operatorname{op} Rt_2.Z]$§
   group by
-  	§$T_1.Y$§
+  	§$Rt_2.Y$§
   §$)$§
-\end{lstlisting}
+\end{lstlisting}.
+Die Aggregation für also für jeden unterschiedlichen Wert von $Rt_2.Y$ genau einmal berechnet.
 
 Ist die Aggregationsfunktion \sql{count}, so muss stattdessen der Full-Outer-Join berechnet werden. Die hier angegebene Syntax für den Outer-Join entspricht der Syntax des SQL-Standards. Die momentan im Optimierer implementierte Struktur von SQL-Abfragen lässt eine einfache Erweiterung um diese Outer-Join-Syntax nicht zu. Erschwerend kommt hinzu, dass Join- und Outer-Join-Operationen nur unter eingeschränkten Bedingungen in ihrer Reihenfolge vertauscht werden können. Die Integration in den zentralen Optimierungsalgorithmus würde daher umfangreiche Veränderungen voraussetzen, um diese Randbendingungen während der Optimierung überprüfen zu können. Daher wurde auf die Integration des Outer-Join-Operators in die SQL-Syntax des Optimierers verzichtet. Die Erzeugung der entsprechenden temporären Relation erfolgt direkt in ausführbarer Syntax. 
 
 \begin{lstlisting}
 §$Rt_3$§ = (
-	select §$T_1.Y,\operatorname{AGGR}(T_j.A)$§ as AggrResult
+	select §$Rt_1.Y,\operatorname{AGGR}(Rt_2.A)$§ as AggrResult
   from §$Rt_1$§ full outer join §$Rt_2$§
-    on pred§$[R_1.Y \operatorname{op} T_1.Z]$§
+    on pred§$[Rt_1.Y \operatorname{op} Rt_2.Z]$§
   group by
-  	§$T_1.Y$§
+  	§$Rt_1.Y$§
   §$)$§
 \end{lstlisting}
 
-Die gleiche Definition in ausführbarer Syntax
+Für den in dieser Arbeit umgesetzten Operator \secondo{smouterjoin} ergibt sich damit in ausführbarer Syntax
 
 \begin{lstlisting}
 §$Rt_3$§ = 
 query 
 	§$Rt_1$§ feed 
 	§$Rt_2$§ feed 
-	smouterjoin[pred§$[R_1.Y \operatorname{op} T_1.Z]]$§
-	groupby[§$AggrResult: group feed \operatorname{AGGR}(T_j.A)$§]
-	project[§$T_1.Y, AggrResult$§]
+	smouterjoin[Rt_1.Y, Rt_2.Z]
+	groupby[AggrResult: group feed §$\operatorname{AGGR}(Rt_2.A)$§]
+	project[§$Rt_1.Y$§, AggrResult]
 	consume
-\end{lstlisting}
+\end{lstlisting}.
+
+Hierbei gilt allerdings die oben beschriebene Einschränkung, dass das Prädikat pred$[Rt_1.Y \operatorname{op} Rt_2.Z]$ die Form $Rt_1.Y = Rt_2.Z$ haben muss.
 
 Nach der Berechnung der temporären Tabellen vereinfacht sich die ursprüngliche Abfrage zu 
 
 \begin{lstlisting}
-select §$A_1,\dots,A_n$§
-from §$R_1,\dots,R_m$§,TEMP3
-where §$P_1,\dots,P_l,$§
-	§$R_i.X \operatorname{\theta}$§ TEMP3.AggrResult, 
-	§$R_1.Y=$§Temp3.Z
+select §$A_1, \dots, A_n$§
+from §$R_1, \dots, R_m, Rt_3$§,
+where §$P_1, \dots, P_l,$§
+	§$R_i.X \operatorname{\theta} Rt_4$§.AggrResult, 
+	§$R_1.Y = Rt_3.Z$§
 \end{lstlisting}
 
-wobei
+wobei für den Operator $\theta$ gelten muss
 
-\begin{math}\theta \in\{=,\not=,>,\geq,<,\leq\}\end{math}
+\begin{math}\theta \in\{=,\not=,>,\geq,<,\leq\}\end{math}.
 
 \subsection{Algorithmus NEST-G}\label{sct:Algorithmus NEST-G}
 Ganski/Wong stellen in \cite{38723} ihren allgemeinen Algorithmus zur Optimierung geschachtelter Abfragen vor. Dieser wendet rekursiv je nach Schachtelungstyp die oben vorgestellten Algorithmen auf geschachtelte Prädikate an. 
