@@ -1,0 +1,217 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# An example test spec for the Secondo TestRunner
+# run it with : 
+#
+#  TestRunner -i example.test
+#
+# By default a temporary database directory will be created. If you
+# want to use existing databases run
+#
+#  TestRunner --no-tmp -i <file>
+#
+# If one of your tests (say number N ) reports an error you can run
+# it directly by
+#
+# TestRunner -i <file> -num N 
+#
+# this is useful for debugging
+
+# A test specification consists of initial commands, a section of commands
+# setting up the test, a sequence of test cases, and a section of commands
+# cleaning up. The TestRunner uses directives to specify these sections.
+# directives are specified in comment lines, all comment lines beginning with a
+# directive are interpreted as commands to the TestRunner, non-comment lines are
+# passed to Secondo. The possible directives are SETUP, TESTCASE, YIELDS and
+# TEARDOWN (here i have written the directives in upper case to avoid confusion,
+# the real directives must be written in lower case). The meanings of those
+# directives are explained the following commented examples.
+
+
+# before the SETUP directive one can place Secondo commands
+# which may or may not succeed
+
+# the SETUP directive may specify the name of the test and a
+# some algebra modules which are needed for it.
+# the SETUP directive must appear exactly once in a test spec
+
+#setup iobuffertest StandardAlgebra RelationAlgebra ExtRelation2Algebra
+
+# if a command between the SETUP directive and the first
+# TESTCASE directive fails, then the whole test has failed 
+# and we immediately skip to the teardown
+# (the whole test does not make sense anymore if the 
+# SETUP has failed)
+
+##############################################################################
+# Setup
+##############################################################################
+
+#setup ExtRelation2test StandardAlgebra RelationAlgebra ExtRelation2Algebra
+
+# Create objects opt and thousand
+restore database opt from '$(SECONDO_BUILD_DIR)/bin/opt';
+save plz to '$(SECONDO_BUILD_DIR)/bin/tmp/plz';
+save thousand to '$(SECONDO_BUILD_DIR)/bin/tmp/thousand';
+close database;
+
+# Create db_R1G_T512B
+create database db_R1G_T512B;
+open database db_R1G_T512B;
+restore plz from '$(SECONDO_BUILD_DIR)/bin/tmp/plz';
+restore thousand '$(SECONDO_BUILD_DIR)/bin/tmp/thousand';
+restore largetext '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/Tests/objects/largetext';
+let R1G_T512B = plz feed project[PLZ] thousand feed head[51] product head[2097152] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,447), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+# Create db_R1G_T8KB
+create database db_R1G_T8KB;
+open database db_R1G_T8KB;
+restore plz from '$(SECONDO_BUILD_DIR)/bin/tmp/plz';
+restore thousand '$(SECONDO_BUILD_DIR)/bin/tmp/thousand';
+restore largetext '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/Tests/objects/largetext';
+let R1G_T8KB = plz feed project[PLZ] thousand feed head[4] product head[131072] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,8127), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+# Create db_R1G_T64KB
+create database db_R1G_T64KB;
+open database db_R1G_T64KB;
+restore plz from '$(SECONDO_BUILD_DIR)/bin/tmp/plz';
+restore thousand '$(SECONDO_BUILD_DIR)/bin/tmp/thousand';
+restore largetext '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/Tests/objects/largetext';
+let R1G_T64KB = plz feed project[PLZ] thousand feed head[1] product head[16384] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,65469), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+##############################################################################
+# TestCases
+##############################################################################
+
+#testcase small_tuplesize_1
+#yields success
+query R1G_T512B feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,0];
+
+#--------------------------------------------------  
+
+#testcase small_tuplesize_2
+#yields success
+query R1G_T512B feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,1024];
+
+#--------------------------------------------------  
+
+#testcase small_tuplesize_3
+#yields success
+query R1G_T512B feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,2048];
+
+#--------------------------------------------------  
+
+#testcase small_tuplesize_4
+#yields success
+query R1G_T512B feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,4096];
+
+#--------------------------------------------------  
+
+#testcase small_tuplesize_5
+#yields success
+query R1G_T512B feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,8192];
+
+#--------------------------------------------------  
+
+#testcase small_tuplesize_6
+#yields success
+query R1G_T512B feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,16384];
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_1
+#yields success
+query R1G_T8KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,0];
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_2
+#yields success
+query R1G_T8KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,1024];
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_3
+#yields success
+query R1G_T8KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,2048];
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_4
+#yields success
+query R1G_T8KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,4096];
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_5
+#yields success
+query R1G_T8KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,8192];
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_6
+#yields success
+query R1G_T8KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,16384];
+
+#--------------------------------------------------  
+
+#testcase big_tuplesize_1
+#yields success
+query R1G_T64KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,0];
+
+#--------------------------------------------------  
+
+#testcase big_tuplesize_2
+#yields success
+query R1G_T64KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,1024];
+
+#--------------------------------------------------  
+
+#testcase big_tuplesize_3
+#yields success
+query R1G_T64KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,2048];
+
+#--------------------------------------------------  
+
+#testcase big_tuplesize_4
+#yields success
+query R1G_T64KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,4096];
+
+#--------------------------------------------------  
+
+#testcase big_tuplesize_5
+#yields success
+query R1G_T64KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,8192];
+
+#--------------------------------------------------  
+
+#testcase big_tuplesize_6
+#yields success
+query R1G_T64KB feed sortby2with[textval asc, PLZ asc;16*1024*1024,50,16384];
+
+##############################################################################
+# TearDown
+##############################################################################
+
+#teardown
+close database;
+delete database R1G_T512B;
+delete database R1G_T8KB;
+delete database R1G_T64KB;
