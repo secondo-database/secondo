@@ -74,7 +74,7 @@ parameter is this value in nested list format.
 
 struct DisplayFunction {
 
-  DisplayFunction() {}
+  DisplayFunction() : maxIndent(0) {}
   virtual ~DisplayFunction() {} 
 
   virtual void Display( ListExpr type,
@@ -93,6 +93,8 @@ struct DisplayFunction {
   static SecondoInterface* si; // Ref. to Secondo interface
   static NestedList*       nl; // Ref. to nested list container
 
+  int MaxAttributLength( ListExpr type );
+  int maxIndent;
 };
 
 /*

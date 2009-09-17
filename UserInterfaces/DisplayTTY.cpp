@@ -80,6 +80,13 @@ which will be read.
 #include "Base64.h"
 #include "CharTransform.h"
 
+
+/*
+Auxiliary global variables and functions
+
+*/
+
+
 #define LINELENGTH 80
 
 using namespace std;
@@ -120,6 +127,22 @@ DisplayFunction::DisplayResult( ListExpr type, ListExpr value )
   DisplayTTY::GetInstance().DisplayResult(type, value);
 } 
 
+ int DisplayFunction::MaxAttributLength( ListExpr type )
+  {
+    int max=0, len=0;
+    string s="";
+    while (!nl->IsEmpty( type ))
+    {
+      s = nl->ToString( nl->First( nl->First( type ) ) );
+      len = s.length();
+      if ( len > max )
+      {
+        max = len;
+      }
+      type = nl->Rest( type );
+    }
+    return (max);
+  }
 
 
 SecondoInterface*      DisplayTTY::si = 0;
@@ -528,9 +551,7 @@ struct DisplayRelation : DisplayFunction {
 
 struct DisplayTuples : DisplayFunction {
         
-
-  int maxIndent;
-  DisplayTuples() : DisplayFunction(), maxIndent(0) {}
+  DisplayTuples() : DisplayFunction() {}
 
   virtual void Display( ListExpr type, ListExpr numType, ListExpr value )
   {
@@ -579,24 +600,33 @@ struct DisplayTuples : DisplayFunction {
 
   }
 
-  int MaxAttributLength( ListExpr type )
-  {
-    int max=0, len=0;
-    string s="";
-    while (!nl->IsEmpty( type ))
-    {
-      s = nl->ToString( nl->First( nl->First( type ) ) );
-      len = s.length();
-      if ( len > max )
-      {
-        max = len;
-      }
-      type = nl->Rest( type );
-    }
-    return (max);
-  }
-
+ 
 };
+
+
+
+struct DisplayAttributeRelation : DisplayFunction
+{
+  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
+  {	
+    int maxAttribNameLen = 
+             MaxAttributLength( nl->Second ( nl->Second( numType ) ) );
+    if (maxAttribNameLen < maxIndent - 3)
+      maxAttribNameLen = maxIndent - 3;
+    maxAttribNameLen += 2;
+    while (!nl->IsEmpty( value ))
+    {
+      DisplayTuples().DisplayTuple( nl->Second( nl->Second( type ) ), 
+	                           nl->Second( nl->Second( numType ) ),
+		                   nl->First( value ), maxAttribNameLen );
+      value = nl->Rest( value );
+      cout << endl;
+    }
+  }  
+};    
+
+
+
 
 struct DisplayInt : DisplayFunction {
         
@@ -2422,6 +2452,8 @@ DisplayTTY::Initialize()
   d.Insert( "rel",     new DisplayRelation() );
   d.Insert( "trel",    new DisplayRelation() );
   d.Insert( "mrel",    new DisplayRelation() );
+  d.Insert( "nrel",    new DisplayRelation() );
+  d.Insert( "arel",    new DisplayAttributeRelation() );
   d.Insert( "tuple",   new DisplayTuples() );
   d.Insert( "mtuple",  new DisplayTuples() );
   d.Insert( "map",     new DisplayFun() );
