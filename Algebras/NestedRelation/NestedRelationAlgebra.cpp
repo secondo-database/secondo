@@ -179,7 +179,7 @@ AttributeRelation *AttributeRelation::Clone() const
       this->tupleIds.Get(i, tid);
       arel->Append(*tid);
   }
-  return arel;
+  return arel;          
 }
 
 bool AttributeRelation::IsDefined() const
@@ -196,11 +196,26 @@ size_t AttributeRelation::Sizeof() const
   return sizeof( *this );
 }
 
+void AttributeRelation::CopyFrom(const StandardAttribute* right)
+{
+  AttributeRelation* arel = (AttributeRelation*) right;
+  Relation* relOld = Relation::GetRelation(arel->getFileId());
+  setFileId(relOld->GetPrivateRelation()->tupleFile.GetFileId());
+  ownRelation = false;
+  DBArray<TupleId>* tids = arel->getTupleIds(); 
+  const TupleId* tid;
+  for (int i = 0; i < tids->Size(); i++)
+  {
+    tids->Get(i, tid);  
+    Append(*tid);
+  }
+}
+    
 /*
 3.4 The mandatory set of algebra support functions
 
 3.4.1 In-function 
-
+ 
 */
 Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr value, 
                            const int errorPos, ListExpr& errorInfo, 
@@ -329,7 +344,8 @@ void AttributeRelation::Delete( const ListExpr typeInfo, Word& w )
      AttributeRelation* arel = (AttributeRelation*) w.addr;
      if (arel->hasOwnRelation())
      {
-        arel->rel->Delete();
+        if (!(arel->rel == 0))
+          arel->rel->Delete();
      }
      arel->rel = 0;
      arel->Destroy();
@@ -344,6 +360,11 @@ void AttributeRelation::Delete( const ListExpr typeInfo, Word& w )
 void AttributeRelation::Close( const ListExpr typeInfo, Word& w )
 {
      AttributeRelation* arel = static_cast<AttributeRelation *> (w.addr); 
+     if (arel->hasOwnRelation())
+     {
+       if (!(arel->rel == 0))
+         arel->rel->Close();
+     }
      arel->rel = 0;
      delete arel;
      w.addr = 0;
@@ -1077,7 +1098,7 @@ struct nestedRelationInfo : ConstructorInfo {
   }
 };
 
-struct nestedRelationFunctions : ConstructorFunctions<AttributeRelation> {
+struct nestedRelationFunctions : ConstructorFunctions<NestedRelation> {
 
   nestedRelationFunctions()
   {
@@ -1102,24 +1123,24 @@ TypeConstructor nestedRelationTC( nri, nrf );
 /*
 5 Operators
 
-5.1 Operator ~nfeed~ for nrel. 
+5.1 Operator ~feed~ for nrel. 
 
 Creates a stream of tuples from nrel:
 
 ----    (nrel x)                -> (stream  x) 
 ----
 
-5.1.1 Type Map for ~nfeed~
+5.1.1 Type Map for ~feed~
 
 */
 
-ListExpr nFeedTypeMap(ListExpr args)
+ListExpr feedTypeMap(ListExpr args)
 {
   ListExpr first;
   string argstr;
 
   CHECK_COND(nl->ListLength(args) == 1,
-    "Operator nfeed expects a list of length one.");
+    "Operator feed expects a list of length one.");
 
   first = nl->First(args);
   nl->WriteToString(argstr, first);
@@ -1129,20 +1150,20 @@ ListExpr nFeedTypeMap(ListExpr args)
     nl->SymbolValue(nl->First(first)) == "nrel" )
     && ( !(nl->IsAtom(nl->Second(first)) || nl->IsEmpty(nl->Second(first)))
     && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) ),
-  "Operator nfeed expects an argument of type nested relation, "
+  "Operator feed expects an argument of type nested relation, "
   "(nrel(tuple((a1 t1)...(an tn)))).\n"
-  "Operator nfeed gets an argument of type '" + argstr + "'."
+  "Operator feed gets an argument of type '" + argstr + "'."
   " Nested relation name not known in the database ?");
 
   return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
 }
 /*
-5.1.2 Value mapping function of operator ~nfeed~
+5.1.2 Value mapping function of operator ~feed~
 
 */
 
 int
-nFeed(Word* args, Word& result, int message, Word& local, Supplier s)
+feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   NestedRelation* nr;
   Relation* r;
@@ -1181,42 +1202,42 @@ nFeed(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 /*
-5.1.3 Specification of operator ~nfeed~
+5.1.3 Specification of operator ~feed~
 
 */
-struct nFeedInfo : OperatorInfo {
+struct feedInfo : OperatorInfo {
 
-  nFeedInfo() : OperatorInfo()
+  feedInfo() : OperatorInfo()
   {
-    name =      "nfeed";
+    name =      "feed";
     signature = "(nrel x) -> (stream x)";
-    syntax =    "_ nfeed";
+    syntax =    "_ feed";
     meaning =   "Produces a stream from a nested relation by "
                 "scanning the nested relation tuple by tuple.";
-    example =   "query authors nfeed nconsume";
+    example =   "query authors feed consume";
   }
 };
 
 /*
-5.2 Operator ~nconsume~
+5.2 Operator ~consume~
 
 Collects objects from a stream into a nested relation.
 
-5.2.1 Type mapping function of operator ~nconsume~
+5.2.1 Type mapping function of operator ~consume~
 
-Operator ~nconsume~ accepts a stream of tuples and returns a nested relation.
+Operator ~consume~ accepts a stream of tuples and returns a nested relation.
 
 ----    (stream  x)                 -> ( nrel x)
 ----
 
 */
-ListExpr nConsumeTypeMap(ListExpr args)
+ListExpr consumeTypeMap(ListExpr args)
 {
-  ListExpr first ;
+  ListExpr first, tup, tupFirst, type ;
   string argstr;
 
   CHECK_COND(nl->ListLength(args) == 1,
-  "Operator nconsume expects a list of length one.");
+  "Operator consume expects a list of length one.");
 
   first = nl->First(args);
   nl->WriteToString(argstr, first);
@@ -1226,19 +1247,35 @@ ListExpr nConsumeTypeMap(ListExpr args)
     (!(nl->IsAtom(nl->Second(first)) ||
        nl->IsEmpty(nl->Second(first))) &&
     (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
-  "Operator nconsume expects an argument of type (stream(tuple"
+  "Operator consume expects an argument of type (stream(tuple"
   "((a1 t1)...(an tn)))).\n"
-  "Operator nconsume gets an argument of type '" + argstr + "'.");
-
+  "Operator consume gets an argument of type '" + argstr + "'.");
+  
+  tup = nl->Second(nl->Second(first));
+  bool containsArel = false;
+  while (!(nl->IsEmpty(tup)) && !containsArel)
+  {
+    tupFirst = nl->First(tup);
+    type = nl->Second(tupFirst);
+    if (!(nl->IsAtom(type)))
+    {
+      type = nl->First(type); 
+      if (nl->IsAtom(type))
+        if(nl->SymbolValue(type) == "arel")
+          containsArel = true;
+    }
+    tup = nl->Rest(tup);
+  }
+  CHECK_COND(containsArel, " ");
   return nl->Cons(nl->SymbolAtom("nrel"), nl->Rest(first));
 }
 
 
 
 /*
-5.2.2 Value mapping function of operator ~nconsume~
+5.2.2 Value mapping function of operator ~consume~
 
-5.2.2.1 Auxiliary function storeSubRel for value map of nconsume
+5.2.2.1 Auxiliary function storeSubRel for value map of consume
 
 */
 AttributeRelation* storeSubRel(AttributeRelation* a, int& i, 
@@ -1285,11 +1322,11 @@ AttributeRelation* storeSubRel(AttributeRelation* a, int& i,
 }
 
 /*
-5.2.2.2 Main value mapping function for operator ~nconsume~
+5.2.2.2 Main value mapping function for operator ~consume~
 
 */
 int
-nConsume(Word* args, Word& result, int message,
+consume(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
   
@@ -1342,18 +1379,18 @@ nConsume(Word* args, Word& result, int message,
 }
 
 /*
-5.2.3 Specification of operator ~nconsume~
+5.2.3 Specification of operator ~consume~
 
 */
-struct nConsumeInfo : OperatorInfo {
+struct consumeInfo : OperatorInfo {
 
-  nConsumeInfo() : OperatorInfo()
+  consumeInfo() : OperatorInfo()
   {
-    name =      "nconsume";
+    name =      "consume";
     signature = "(stream x) -> (nrel x)";
-    syntax =    "_ nconsume";
+    syntax =    "_ consume";
     meaning =   "Collects objects from a stream into a nested relation.";
-    example =   "query books nfeed nconsume";
+    example =   "query books feed consume";
   }
 
 };
@@ -1455,8 +1492,8 @@ struct aFeedInfo : OperatorInfo {
     signature = "(arel x) -> (stream x)";
     syntax =    "_ afeed";
     meaning =   "Produces a stream from an attribute relation.";
-    example =   "query authors nfeed extend [no_papers: .papers afeed" 
-                "count] nconsume";
+    example =   "query authors feed extend [no_papers: .papers afeed" 
+                "count] consume";
   }
 };
 
@@ -1551,8 +1588,8 @@ struct aConsumeInfo : OperatorInfo {
     signature = "(stream x) -> (arel x)";
     syntax =    "_ aconsume";
     meaning =   "Collects objects from a stream.";
-    example =   "query papers nfeed extend [authors_new: .authors afeed "
-                "aconsume] nconsume";
+    example =   "query papers feed extend [authors_new: .authors afeed "
+                "aconsume] consume";
   }
 };
 /*
@@ -1592,6 +1629,7 @@ ListExpr nestTypeMap( ListExpr args )
    third = argList.third();
    CHECK_COND(third.isSymbol(), 
    "Operator nest expects a valid attribute name as third argument."); 
+  
    nl->WriteToString(argstr, first.listExpr());
    CHECK_COND(nl->ListLength(first.listExpr()) == 2  &&
              (TypeOfRelAlgSymbol(nl->First(first.listExpr())) == stream) &&
@@ -1604,11 +1642,24 @@ ListExpr nestTypeMap( ListExpr args )
      "(stream (tuple ((a1 t1)...(an tn))))\n"
      "Operator nest gets as first argument '" + argstr + "'." );
 
+   string arelName = third.str();
+   NList unnested(nl->Second(NestedRelation::unnestedList(
+                        first.second().listExpr())));
+   bool unique = true;
+   while (!(unnested.isEmpty()) && unique)
+   {
+     if (arelName == unnested.first().first().str())
+       unique = false;
+     unnested.rest();
+   }
+   CHECK_COND(unique, "The name for the new arel-Attribute " 
+                      + arelName + " is already assigned to another attribute. "
+                      "Please choose a new name and try again.");        
    CHECK_COND((nl->ListLength(second.listExpr()) > 0), 
    "Operator nest: Second argument list may not be empty" );
   
    //check that all attributes named in second argument appear in
-   //the first argument, collect attributes in primary of second 
+   //the first argument, collect attributes of second 
    //argument in primary 
    int j;
    rest = second;
@@ -1703,7 +1754,6 @@ ListExpr nestTypeMap( ListExpr args )
 */
 struct NestInfo
 {
-  int index;
   bool endOfStream;
   SmiFileId fileId;
   Tuple* lastTuple;
@@ -1861,13 +1911,11 @@ nestValueMap(Word* args, Word& result, int message,
              }
              else
              {
-                
                 info->endOfStream = true;
                 result.setAddr(tuple);
                 return YIELD;
              }
            }
-           
            info->lastTuple->DeleteIfAllowed();
            info->lastTuple = current;
            result.setAddr(tuple);
@@ -1893,6 +1941,7 @@ nestValueMap(Word* args, Word& result, int message,
          if (info->lastTuple)
            info->lastTuple->DeleteIfAllowed();
          info->tupleType->DeleteIfAllowed();
+         info->subTupleType->DeleteIfAllowed();
          info->subrel->Delete();
          delete info;
          local.setAddr(0);
@@ -2049,7 +2098,7 @@ unnestValueMap(Word* args, Word& result, int message,
     }
     case REQUEST :
     {
-      Word elem1, elem2;
+      Word elem1;
       const TupleId* tid;
       Tuple* current;
       int arelIndex = (((CcInt*)args[2].addr)->GetIntval()) - 1;
@@ -2179,7 +2228,7 @@ struct unnestOperatorInfo : OperatorInfo {
     signature = "(stream x) -> (stream y)";
     syntax =    "_ unnest [xi] (where xi is of type arel)";
     meaning =   "Unnests an attribute relation.";
-    example =   "query books feed unnest [authors] nconsume";
+    example =   "query books feed unnest [authors] consume";
   }
 };
 
@@ -2194,8 +2243,8 @@ class NestedRelationAlgebra : public Algebra
     {
       AddTypeConstructor( &attributeRelationTC );
       AddTypeConstructor( &nestedRelationTC );
-      AddOperator (nFeedInfo(), nFeed, nFeedTypeMap);
-      AddOperator (nConsumeInfo(), nConsume, nConsumeTypeMap);
+      AddOperator (feedInfo(), feed, feedTypeMap);
+      AddOperator (consumeInfo(), consume, consumeTypeMap);
       AddOperator (aFeedInfo(), aFeed, aFeedTypeMap);
       AddOperator (aConsumeInfo(), aConsume, aConsumeTypeMap);
       AddOperator (nestInfo(), nestValueMap, nestTypeMap);

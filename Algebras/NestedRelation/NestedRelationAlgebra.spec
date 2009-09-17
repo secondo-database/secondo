@@ -17,9 +17,10 @@
 #along with SECONDO; if not, write to the Free Software
 #Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-operator nfeed alias NFEED pattern _ op
-operator nconsume alias NCONSUME pattern _ op
+operator feed alias FEED pattern _ op
+operator consume alias CONSUME pattern _ op
 operator afeed alias AFEED pattern _ op
 operator aconsume alias ACONSUME pattern _ op
 operator nest alias NEST pattern _ op [ list; _ ]
 operator unnest alias UNNEST pattern _ op [ _ ]
+ 
