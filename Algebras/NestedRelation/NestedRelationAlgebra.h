@@ -27,7 +27,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] Header file of the Nested Relation Algebra
 
 August 2009 Klaus Teufel
-
+ 
 [TOC]
 
 
