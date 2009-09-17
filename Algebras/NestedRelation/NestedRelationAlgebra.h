@@ -103,7 +103,7 @@ that can be used as an attribute within a nested relation.
 
 */
 
-class AttributeRelation : public Attribute
+class AttributeRelation : public StandardAttribute
 {
    public:
         AttributeRelation( const ListExpr typeInfo, bool ownRelation );
@@ -115,8 +115,8 @@ metadata passed in typeInfo.
         
         AttributeRelation( const SmiFileId fileId );
 /*
-The second constructor. Sets pointer to the relation used for storing tuples to the
-relation with tupleFileId fileId. 
+The second constructor. Sets pointer to the relation used for storing tuples to 
+the relation with tupleFileId fileId. 
         
 */
         
@@ -160,8 +160,8 @@ Appends a tupleId to the DBArray tupleIds.
         
         void setFileId(SmiFileId id);
 /*
-Sets tupleFile to if and rel to the relation with this SmiFileId, if such a relation
-is currently open.
+Sets tupleFile to if and rel to the relation with this SmiFileId, if such a 
+relation is currently open.
         
 */
         
@@ -211,6 +211,10 @@ Destroys the DBArray tupleIds
         
         size_t Sizeof() const;
         
+        size_t HashValue() const {return 0;}
+  
+        void CopyFrom(const StandardAttribute* right);
+        
         static Word     In( const ListExpr typeInfo, const ListExpr value,
                         const int errorPos, ListExpr& errorInfo, 
                         bool& correct );
@@ -240,7 +244,7 @@ Destroys the DBArray tupleIds
        
    private:        
         friend class ConstructorFunctions<AttributeRelation>; 
-        DBArray<TupleId> tupleIds;              
+        DBArray<TupleId> tupleIds;
 /*
 Saves the TupleIds of the tuples pertaining to this instance
 of AttributeRelation
@@ -299,7 +303,8 @@ an nrel-type.
 struct SubRelation
 {
        
-       SubRelation(Relation* ptr, const string n, SmiFileId id, ListExpr tI):
+       SubRelation::SubRelation(Relation* ptr, const string n, SmiFileId id, 
+                                ListExpr tI):
                              name(n),
                              typeInfo(tI),
                              rel(ptr),
@@ -343,6 +348,12 @@ from the meta-data passed in typeInfo
 The second constructor, used in the Open-function.
           
 */
+           NestedRelation(){}
+/*
+The empty constructor.
+
+*/
+          
           ~NestedRelation() {};
 /*
 The destructor
@@ -474,7 +485,6 @@ Returns a pointer to subrels.
           static bool     KindCheck( ListExpr type, ListExpr& errorInfo ); 
           
    private:
-        NestedRelation(){}
         Relation* primary;
         vector<SubRelation*> subRels;
         ListExpr tupleTypeInfo;
