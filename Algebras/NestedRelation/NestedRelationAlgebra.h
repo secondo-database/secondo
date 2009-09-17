@@ -103,7 +103,7 @@ that can be used as an attribute within a nested relation.
 
 */
 
-class AttributeRelation : public Attribute
+class AttributeRelation : public StandardAttribute
 {
    public:
         AttributeRelation( const ListExpr typeInfo, bool ownRelation );
@@ -210,6 +210,10 @@ Destroys the DBArray tupleIds
         void SetDefined( bool defined );
         
         size_t Sizeof() const;
+        
+        size_t HashValue() const {return 0;}
+  
+        void CopyFrom(const StandardAttribute* right);
         
         static Word     In( const ListExpr typeInfo, const ListExpr value,
                         const int errorPos, ListExpr& errorInfo, 
@@ -343,6 +347,12 @@ from the meta-data passed in typeInfo
 The second constructor, used in the Open-function.
           
 */
+           NestedRelation(){}
+/*
+The empty constructor.
+
+*/
+          
           ~NestedRelation() {};
 /*
 The destructor
@@ -474,7 +484,6 @@ Returns a pointer to subrels.
           static bool     KindCheck( ListExpr type, ListExpr& errorInfo ); 
           
    private:
-        NestedRelation(){}
         Relation* primary;
         vector<SubRelation*> subRels;
         ListExpr tupleTypeInfo;
