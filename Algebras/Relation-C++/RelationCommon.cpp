@@ -644,6 +644,7 @@ Checks wether two ListExpressions are of the form
 and wether the ai and the bi are disjoint.
 
 */
+
 bool AttributesAreDisjoint(ListExpr a, ListExpr b)
 {
   set<string> aNames;
@@ -657,8 +658,11 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b)
     if((nl->ListLength(current) == 2)
       && (nl->IsAtom(nl->First(current)))
       && (nl->AtomType(nl->First(current)) == SymbolType)
-      && (nl->IsAtom(nl->Second(current)))
+      && (((nl->IsAtom(nl->Second(current)))
       && (nl->AtomType(nl->Second(current)) == SymbolType))
+      || (((nl->IsAtom(nl->First(nl->Second(current))))
+      && (nl->AtomType(nl->First(nl->Second(current))) == SymbolType))
+      && (nl->SymbolValue(nl->First(nl->Second(current))) == "arel"))))
       aNames.insert(nl->SymbolValue(nl->First(current)));
     else
       return false;
@@ -671,8 +675,11 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b)
     if((nl->ListLength(current) == 2)
       && (nl->IsAtom(nl->First(current)))
       && (nl->AtomType(nl->First(current)) == SymbolType)
-      && (nl->IsAtom(nl->Second(current)))
+      && (((nl->IsAtom(nl->Second(current)))
       && (nl->AtomType(nl->Second(current)) == SymbolType))
+      || (((nl->IsAtom(nl->First(nl->Second(current))))
+      && (nl->AtomType(nl->First(nl->Second(current))) == SymbolType))
+      && (nl->SymbolValue(nl->First(nl->Second(current))) == "arel"))))
     {
       if(aNames.find(nl->SymbolValue(nl->First(current))) !=
          aNames.end())
@@ -683,6 +690,7 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b)
   }
   return true;
 }
+
 
 /*
 6.6 Function ~CompareNames~
@@ -918,4 +926,5 @@ bool CompareSchemas( ListExpr r1, ListExpr r2 )
   }
   return true;
 }
+
 

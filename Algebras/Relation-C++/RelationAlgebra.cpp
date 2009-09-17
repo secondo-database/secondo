@@ -1563,9 +1563,10 @@ Operator ~consume~ accepts a stream of tuples and returns a relation.
 ----
 
 */
+
 ListExpr ConsumeTypeMap(ListExpr args)
 {
-  ListExpr first ;
+  ListExpr first, tup, tupFirst, type ;
   string argstr;
 
   CHECK_COND(nl->ListLength(args) == 1,
@@ -1582,11 +1583,22 @@ ListExpr ConsumeTypeMap(ListExpr args)
   "Operator consume expects an argument of type (stream(tuple"
   "((a1 t1)...(an tn)))).\n"
   "Operator consume gets an argument of type '" + argstr + "'.");
-
+  tup = nl->Second(nl->Second(first));
+  while (!(nl->IsEmpty(tup)))
+  {
+    tupFirst = nl->First(tup);
+    type = nl->Second(tupFirst);
+    if (!(nl->IsAtom(type)))
+    {
+      type = nl->First(type);
+      if (nl->IsAtom(type))
+        CHECK_COND( (!(nl->SymbolValue(type) == "arel")),
+           " ");
+    }
+    tup = nl->Rest(tup);
+  }
   return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
 }
-
-
 
 /*
 5.6.2 Value mapping function of operator ~consume~
