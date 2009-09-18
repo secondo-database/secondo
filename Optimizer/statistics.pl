@@ -2070,6 +2070,34 @@ getTypeTree(newattr(AttrExpr,ValExpr),Rels,[newattr,
     ;  true
   ), !.
 
+% Expression is a null-ary operator using a defined operator signature
+% Needs special treatment since PROLOG does not allow for empty parameter lists
+getTypeTree(Expr,_Rels,[Op,[],TypeDC]) :-
+  atom(Op),
+  secondoOp(Op, prefix, 0),
+  systemIdentifier(Op, _),
+  (   opSignature(Op,_,[],TypeDC,_)
+    ; queriedOpSignature(Op,[],TypeDC,_)
+  ),
+  assert(tmpStoredTypeTree(Expr,[Op,[],TypeDC])),
+  !.
+
+% Expression is a null-ary operator using unknown operator signature
+% Needs special treatment since PROLOG does not allow for empty parameter lists
+getTypeTree(Op,_Rels,[Op,[],TypeDC]) :-
+  atom(Op),
+  secondoOp(Op, prefix, 0),
+  systemIdentifier(Op, _),
+  plan_to_atom(getTypeNL(Op),NullQueryAtom),
+  concat_atom(['query ',NullQueryAtom],'',Query),
+%   dm(selectivity,['getTypeNL-Query = ',Query]),nl,
+  secondo(Query,[text,TypeDC]),
+     % store signature in fact base
+  assert(queriedOpSignature(Op,[],TypeDC,[])),
+%   dm(selectivity,['$$$ getTypeTree: ',Expr,': ',TypeDC]),nl,
+  assert(tmpStoredTypeTree(Op,[Op,[],TypeDC])),
+  !.
+
 % Expression using defined operator signature
 getTypeTree(Expr,Rels,[Op,ArgTree,TypeDC]) :-
   compound(Expr),

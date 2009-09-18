@@ -698,8 +698,12 @@ extended attribute.
 */
 
 /*
+
 ---- rewriteQueryForCSE(+Query,-RewrittenQuery)
 ----
+
+~rewriteQueryForCSE/2~ is currently not used. Instead, the query is optimized
+as usual and the resulting plan is rewritten using ~rewritePlanforCSE/2~.
 
 Prepares ~Query~ such that the optimizer will avoid repetitive evaluation of
 ~expensive~ common subexpressions (CSEs). A CSE is expensive, if it contains at
@@ -1150,6 +1154,15 @@ rewritingCSEExpensiveOP(trajectory).
 rewritingCSEExpensiveOP(distance).
 rewritingCSEExpensiveOP(attached).
 rewritingCSEExpensiveOP(commonborderscan).
+% The following rule declares all bbox-operatos being expensive.
+% It would be better (and possible) to detremine the exact signature force
+% polymorphic operators and differentiate between them, of course:
+%    tmpStoredTypeTree(+Expression,-Type)
+%    getTypeTree/3
+rewritingCSEExpensiveOP(Op) :-
+  (   (optimizerOption(determinePredSig), isBBoxOperator(Op,_ArgsTypeList,_Dim))
+    ; (not(optimizerOption(determinePredSig)), isBBoxOperator(Op))
+  ), !.
 
 /*
 15 rewritePlan - Rewriting the Query Plan
@@ -1683,17 +1696,17 @@ insertExtend(extend(Stream, Fields),
           ),
           ExtensionList
          ),
-  % extract modified extension list:
+  % extract modified extension function list (using virtual attributes):
   findall(newattr(AttrName,ExprOut),
           member([newattr(AttrName,ExprOut), _], ExtensionList),
           FieldsOut
          ),
-  % extract terms to extend:
+  % extract terms to extend (the virtual attributes to extend in the streamarg):
   findall(ExtTerm, member([_, ExtTerm], ExtensionList), ExtendTerms
          ),
-  flatten(ExtendTerms,ExtendTermsFlat),
-  extendPhrase(Stream2, ExtendTermsFlat, StreamOut),
-  list_to_set(ExtendTermsSet),
+  flatten(ExtendTerms,ExtendTermsFlat), % list of virtual attributes to extend
+  extendPhrase(Stream2, ExtendTermsFlat, StreamOut), % extend them to streamarg
+  list_to_set(ExtendTermsFlat,ExtendTermsSet), % get their names
   % extract new attrnames from Fields
   findall(FlatAttr,
           ( member(newattr(attrname(Attr),_),Fields),
@@ -2699,6 +2712,16 @@ where [t1:trip passes mehringdamm,
             - inst(initial(t1:trip at mehringdamm))) / oneminute) >= 2,
        t1:line # t2:line
       ].
+
+testCSE3berlin :- optimize(
+      select count(*)
+      from trains
+      where pattern( [  trip inside msnow as a,
+                        trip inside msnow as b
+                     ],
+                     [stconstraint("a","b",vec("aabb"))]
+                   )
+   ).
 
 :- secondo('close database'),
    open 'database berlin',

@@ -239,6 +239,8 @@ i-th mapping.
 
    * itract: ~Op~ is interactive, e.g. waiting for external events, like user interaction, network events, etc.
 
+   * exp: ~Op~ is expensive. Only operations with a result from kind DATA may be marked as being expensive!
+
    * (list may be extended as required)
 
 2.7.1 StandardAlgebra
@@ -382,11 +384,11 @@ opSignature((contains), ftext, [text,text],bool,[]).
 opSignature(length, ftext, [text],int,[]).
 opSignature(keywords, ftext, [text],[stream,string],[]).
 opSignature(sentences, ftext, [text],[stream,text],[]).
-opSignature(dice, ftext, [int,text,text],real,[]).
+opSignature(dice, ftext, [int,text,text],real,[xexp]).
 opSignature(getcatalog, ftext, [],
       [stream,[tuple,[[objectname,string],[type,string],[typeexpr,text]]]],[]).
-opSignature(substr, ftext, [text,int,int],string,[]).
-opSignature(subtext, ftext, [text,int,int],text,[]).
+opSignature(substr, ftext, [text,int,int],string,[exp]).
+opSignature(subtext, ftext, [text,int,int],text,[exp]).
 
 opSignature(find, ftext, [text,text],[stream,int],[]).
 opSignature(find, ftext, [text,string],[stream,int],[]).
@@ -431,34 +433,34 @@ opSignature(evaluate, ftext, [text,bool],[stream,[tuple,[[cmdstr,text],
         [resulttype,text],[result,text],[errormessage,text],
         [elapsedtimereal,real],[elapsedtimecpu,real]]]],[sidefx]).
 
-opSignature(replace, ftext, [text,text,text],text,[]).
-opSignature(replace, ftext, [text,text,string],text,[]).
-opSignature(replace, ftext, [text,string,text],text,[]).
-opSignature(replace, ftext, [text,string,string],text,[]).
-opSignature(replace, ftext, [string,text,text],text,[]).
-opSignature(replace, ftext, [string,text,string],text,[]).
-opSignature(replace, ftext, [string,string,text],text,[]).
-opSignature(replace, ftext, [string,string,string],text,[]).
+opSignature(replace, ftext, [text,text,text],text,[exp]).
+opSignature(replace, ftext, [text,text,string],text,[exp]).
+opSignature(replace, ftext, [text,string,text],text,[exp]).
+opSignature(replace, ftext, [text,string,string],text,[exp]).
+opSignature(replace, ftext, [string,text,text],text,[exp]).
+opSignature(replace, ftext, [string,text,string],text,[exp]).
+opSignature(replace, ftext, [string,string,text],text,[exp]).
+opSignature(replace, ftext, [string,string,string],text,[exp]).
 
-opSignature(replace, ftext, [text,int,int,text],text,[]).
-opSignature(replace, ftext, [text,int,int,string],text,[]).
-opSignature(replace, ftext, [string,int,int,text],text,[]).
-opSignature(replace, ftext, [string,int,int,string],text,[]).
+opSignature(replace, ftext, [text,int,int,text],text,[exp]).
+opSignature(replace, ftext, [text,int,int,string],text,[exp]).
+opSignature(replace, ftext, [string,int,int,text],text,[exp]).
+opSignature(replace, ftext, [string,int,int,string],text,[exp]).
 
 opSignature(toupper, ftext, [text],text,[]).
 opSignature(tolower, ftext, [text],text,[]).
 opSignature(tostring, ftext, [text],string,[]).
 opSignature(totext, ftext, [string],text,[]).
 opSignature(isDBObject, ftext, [string],bool,[]).
-opSignature(getTypeNL, ftext, [_],text,[]).
+opSignature(getTypeNL, ftext, [_],text,[exp]).
 
-opSignature(getValueNL, ftext, [[stream,T]],[stream,text],[]) :- isData(T).
-opSignature(getValueNL, ftext, [[stream,[tuple,T]]],[stream,text],[]) :-
+opSignature(getValueNL, ftext, [[stream,T]],[stream,text],[exp]) :- isData(T).
+opSignature(getValueNL, ftext, [[stream,[tuple,T]]],[stream,text],[exp]) :-
         isData(T).
-opSignature(getValueNL, ftext, [_],text,[]).
+opSignature(getValueNL, ftext, [_],text,[exp]).
 
-opSignature(toobject, ftext, [text,T],T,[]) :- isData(T).
-opSignature(toobject, ftext, [string,T],T,[]) :- isData(T).
+opSignature(toobject, ftext, [text,T],T,[exp]) :- isData(T).
+opSignature(toobject, ftext, [string,T],T,[exp]) :- isData(T).
 
 opSignature(chartext, ftext, [int],text,[]).
 
@@ -500,8 +502,8 @@ opSignature(receivetextstreamUDP, ftext, [text,text,real,real],[stream,[tuple,[
         [ok,bool],[msg,text],[errmsg,string],[senderip,string],
         [senderport,string],[senderipversion,string]]]],[itract]).
 
-opSignature(svg2text, ftext, [svg], text,[]).
-opSignature(text2svg, ftext, [text], svg,[]).
+opSignature(svg2text, ftext, [svg], text,[exp]).
+opSignature(text2svg, ftext, [text], svg,[exp]).
 
 opSignature(crypt, ftext, [string], text,[]).
 opSignature(crypt, ftext, [string,string], text,[]).
@@ -630,10 +632,10 @@ opSignature(rotate, spatial, [T,real,real,real],T,[]) :-
   memberchk(T,[point,points,line,region]),!.
 opSignature(center, spatial, [points],point,[]).
 opSignature(convexhull, spatial, [points],region,[]).
-opSignature(windowclippingin, spatial, [line,rect],line,[]).
-opSignature(windowclippingin, spatial, [region,rect],region,[]).
-opSignature(windowclippingout, spatial, [line,rect],line,[]).
-opSignature(windowclippingout, spatial, [region,rect],region,[]).
+opSignature(windowclippingin, spatial, [line,rect],line,[exp]).
+opSignature(windowclippingin, spatial, [region,rect],region,[exp]).
+opSignature(windowclippingout, spatial, [line,rect],line,[exp]).
+opSignature(windowclippingout, spatial, [region,rect],region,[exp]).
 opSignature(components, spatial, [points],[stream,point],[]).
 opSignature(components, spatial, [region],[stream,region],[]).
 opSignature(components, spatial, [line],[stream,line],[]).
@@ -665,15 +667,15 @@ opSignature(makeline, spatial, [point,point],line,[]).
 opSignature(union2, spatial, [line,line],line,[comm,ass]).
 opSignature(union2, spatial, [line,region],region,[comm,ass]).
 opSignature(union2, spatial, [region,line],region,[comm,ass]).
-opSignature(union2, spatial, [region,region],region,[comm,ass]).
+opSignature(union2, spatial, [region,region],region,[comm,ass,exp]).
 opSignature(intersection2, spatial, [line,line],line,[comm,ass]).
 opSignature(intersection2, spatial, [line,region],line,[comm]).
 opSignature(intersection2, spatial, [region,line],line,[comm]).
-opSignature(intersection2, spatial, [region,region],region,[comm,ass]).
+opSignature(intersection2, spatial, [region,region],region,[comm,ass,exp]).
 opSignature(difference2, spatial, [line,line],line,[]).
 opSignature(difference2, spatial, [line,region],line,[]).
 opSignature(difference2, spatial, [region,line],region,[]).
-opSignature(difference2, spatial, [region,region],region,[]).
+opSignature(difference2, spatial, [region,region],region,[exp]).
 opSignature(commonborder2, spatial, [region,region],line,[comm,ass]).
 opSignature(toline, spatial, [sline],line,[]).
 opSignature(fromline, spatial, [line],sline,[]).
@@ -729,11 +731,11 @@ opSignature(before, temporal, [rstring,rstring],bool,[]).
 opSignature(before, temporal, [instant,periods],bool,[]).
 opSignature(before, temporal, [periods,instant],bool,[]).
 opSignature(before, temporal, [periods,periods],bool,[]).
-opSignature(intersection, temporal, [T,T],T,[comm,ass]) :-
+opSignature(intersection, temporal, [T,T],T,[comm,ass,exp]) :-
   memberchk(T,[rbool,rint,rreal,rstring,periods]), !.
-opSignature(union, temporal, [T,T],T,[comm,ass]) :-
+opSignature(union, temporal, [T,T],T,[comm,ass,exp]) :-
   memberchk(T,[rbool,rint,rreal,rstring,periods]), !.
-opSignature(minus, temporal, [T,T],T,[]) :-
+opSignature(minus, temporal, [T,T],T,[exp]) :-
   memberchk(T,[rbool,rint,rreal,rstring,periods]), !.
 opSignature(minimum, temporal, [rbool],bool,[]).
 opSignature(minimum, temporal, [rint],int,[]).
@@ -759,17 +761,17 @@ opSignature(val, temporal, [intimeregion],region,[]).
 opSignature(atinstant, temporal, [T1,instant],T2,[]) :-
   memberchk((T1,T2),[(mbool,ibool),(mint,iint),(mreal,ireal),(mstring,istring),
                      (mpoint,ipoint),(movingregion,intimeregion)]),!.
-opSignature(atperiods, temporal, [T,periods],T,[]) :-
+opSignature(atperiods, temporal, [T,periods],T,[exp]) :-
   memberchk(T,[mbool,mint,mreal,mstring,mpoint,movingregion]),!.
-opSignature(deftime, temporal, [T],periods,[]) :-
+opSignature(deftime, temporal, [T],periods,[exp]) :-
   memberchk(T,[mbool,mint,mreal,mstring,mpoint,movingregion]),!.
-opSignature(trajectory, temporal, [mpoint],line,[]).
+opSignature(trajectory, temporal, [mpoint],line,[exp]).
 opSignature(present, temporal, [T1,T2],bool,[bbox(3)]) :-
   memberchk(T2,[instant,periods]),
   memberchk(T1,[mbool,mint,mreal,mstring,mpoint,movingregion]),!.
-opSignature(passes, temporal, [T1,T2],bool,[bbox(2)]) :-
+opSignature(passes, temporal, [T1,T2],bool,[bbox(2),exp]) :-
   memberchk((T1,T2),[(mpoint,point),(mpoint,region),(mpoint,rect)]),!.
-opSignature(passes, temporal, [T1,T2],bool,[]) :-
+opSignature(passes, temporal, [T1,T2],bool,[exp]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mreal,real),(mstring,string)]),!.
 opSignature(initial, temporal, [T1],T2,[]) :-
   memberchk((T1,T2),[(mpoint,ipoint),(movingregion,intimeregion),(mint,iint),
@@ -783,7 +785,7 @@ opSignature(units, temporal, [T],[stream,UT],[]) :-
 opSignature(bbox, temporal, [T],rect3,[]) :-
   memberchk(T,[mpoint,movingregion,upoint,uregion,
                ipoint,intimeregion,instant,periods]),!.
-opSignature(mbrange, temporal, [T],T,[]) :-
+opSignature(mbrange, temporal, [T],T,[exp]) :-
   memberchk(T,[periods,rreal,rint,rbool,rstring]).
 opSignature(bbox2d, temporal, [T],rect,[]) :-
   memberchk(T,[mpoint,upoint,ipoint,movingregion,intimeregion,uregion]),!.
@@ -791,13 +793,13 @@ opSignature(bboxold, temporal, [T],rect3,[]) :-
   memberchk(T,[mpoint,upoint,ipoint,movingregion,intimeregion,uregion]),!.
 opSignature(bboxold, temporal, [T],T,[]) :-
   memberchk(T,[periods,rreal,rint,rbool,rstring]).
-opSignature(at, temporal, [T1,T2],T1,[]) :-
+opSignature(at, temporal, [T1,T2],T1,[exp]) :-
   memberchk((T1,T2),[(mpoint,point),(movingregion,region),(mint,int),
                      (mreal,real),(mbool,bool),(mstring,string)]),!.
-opSignature(distance, temporal, [mpoint,point],mreal,[]).
-opSignature(simplify, temporal, [mpoint,real],mpoint,[]).
-opSignature(simplify, temporal, [mpoint,real,duration],mpoint,[]).
-opSignature(simplify, temporal, [mreal,real],mreal,[]).
+opSignature(distance, temporal, [mpoint,point],mreal,[exp]).
+opSignature(simplify, temporal, [mpoint,real],mpoint,[exp]).
+opSignature(simplify, temporal, [mpoint,real,duration],mpoint,[exp]).
+opSignature(simplify, temporal, [mreal,real],mreal,[exp]).
 opSignature(integrate, temporal, [ureal],real,[]).
 opSignature(integrate, temporal, [mreal],real,[]).
 opSignature(linearize, temporal, [ureal],ureal,[]).
@@ -805,18 +807,18 @@ opSignature(linearize, temporal, [mreal],mreal,[]).
 opSignature(linearize2, temporal, [mreal],mreal,[]).
 opSignature(linearize2, temporal, [ureal],ureal,[]).
 opSignature(approximate,temporal,[[stream,[tuple,AttrList]],TimeAttr,ValAttr],
-        T,[]):-
+        T,[exp]):-
   is_list(AttrList),
   member([TimeAttr,instant],AttrList),
   memberchk([ValAttr,T],AttrList),
   (T = real ; T = point ).
-opSignature(minimum, temporal, [T1],T2,[]) :-
+opSignature(minimum, temporal, [T1],T2,[exp]) :-
   memberchk((T1,T2),[(rint,int),(rbool,bool),(rreal,real),
                      (rstring,string),(periods,instant)]),!.
-opSignature(maximum, temporal, [T1],T2,[]) :-
+opSignature(maximum, temporal, [T1],T2,[exp]) :-
   memberchk((T1,T2),[(rint,int),(rbool,bool),(rreal,real),
                      (rstring,string),(periods,instant)]),!.
-opSignature(breakpoints, temporal, [mpoint,duration],points,[]).
+opSignature(breakpoints, temporal, [mpoint,duration],points,[exp]).
 opSignature(translate, temporal, [mpoint,duration,real,real],mpoint,[]).
 opSignature(theyear, temporal, [int],periods,[]).
 opSignature(themonth, temporal, [int,int],periods,[]).
@@ -835,103 +837,103 @@ opSignature(box2d, temporal, [rect3],rect,[]).
 opSignature(mbool2mint, temporal, [mbool],mint,[]).
 opSignature(extdeftime, temporal, [T1,T2],T1,[]) :-
   memberchk((T1,T2),[(mbool,ubool),(mint,uint)]),!.
-opSignature(translateappend, temporal, [mpoint,mpoint,duration],mpoint,[]).
+opSignature(translateappend, temporal, [mpoint,mpoint,duration],mpoint,[exp]).
 opSignature(translateappendS, temporal,
-        [[stream,[tuple,AttrList]],Attr,duration],mpoint,[]) :-
+        [[stream,[tuple,AttrList]],Attr,duration],mpoint,[exp]) :-
   is_list(AttrList), memberchk([Attr,mpoint]), !.
-opSignature(reverse, temporal, [mpoint],mpoint,[idem]).
-opSignature(samplempoint, temporal, [mpoint,duration],mpoint,[]).
-opSignature(samplempoint, temporal, [mpoint,duration,bool],mpoint,[]).
-opSignature(samplempoint, temporal, [mpoint,duration,bool,bool],mpoint,[]).
+opSignature(reverse, temporal, [mpoint],mpoint,[idem,exp]).
+opSignature(samplempoint, temporal, [mpoint,duration],mpoint,[exp]).
+opSignature(samplempoint, temporal, [mpoint,duration,bool],mpoint,[exp]).
+opSignature(samplempoint, temporal, [mpoint,duration,bool,bool],mpoint,[exp]).
 %opSignature(gps, temporal, [mpoint,duration],
 %    [stream,tuple([(Time,instant),(Position,point)]),[]].
-opSignature(disturb, temporal, [mpoint,real,real],mpoint,[]).
-opSignature(length, temporal, [mpoint],real,[]).
-opSignature(hat, temporal, [mint],mint,[]).
-opSignature(restrict, temporal, [mint],mint,[]).
-opSignature(restrict, temporal, [mint,int],mint,[]).
+opSignature(disturb, temporal, [mpoint,real,real],mpoint,[exp]).
+opSignature(length, temporal, [mpoint],real,[exp]).
+opSignature(hat, temporal, [mint],mint,[exp]).
+opSignature(restrict, temporal, [mint],mint,[exp]).
+opSignature(restrict, temporal, [mint,int],mint,[exp]).
 opSignature(speedup, temporal, [mpoint,real],mpoint,[]).
 opSignature(avespeed, temporal, [mpoint],real,[]).
-opSignature(submove, temporal, [mpoint,real],mpoint,[]).
+opSignature(submove, temporal, [mpoint,real],mpoint,[exp]).
 opSignature(uval, temporal, [uint], int,[]).
 
 /*
 2.7.5 TemporalExtAlgebra
 
 */
-opSignature(at, temporalext, [T1,T2],T1,[]) :-
+opSignature(at, temporalext, [T1,T2],T1,[exp]) :-
   memberchk((T1,T2),[(mint,rint),(mbool,rbool),(mreal,rreal),
   (mstring,rstring)]), !.
-opSignature(at, temporalext, [mpoint,points],mpoint,[bbox(2)]).
-opSignature(at, temporalext, [mpoint,line],mpoint,[bbox(2)]).
-opSignature(passes, temporalext, [mpoint,points],bool,[bbox(2)]).
-opSignature(passes, temporalext, [mpoint,line],bool,[bbox(2)]).
-opSignature(passes, temporalext, [movingregion,point],bool,[bbox(2)]).
-opSignature(passes, temporalext, [movingregion,points],bool,[bbox(2)]).
+opSignature(at, temporalext, [mpoint,points],mpoint,[bbox(2),exp]).
+opSignature(at, temporalext, [mpoint,line],mpoint,[bbox(2),exp]).
+opSignature(passes, temporalext, [mpoint,points],bool,[bbox(2),exp]).
+opSignature(passes, temporalext, [mpoint,line],bool,[bbox(2),exp]).
+opSignature(passes, temporalext, [movingregion,point],bool,[bbox(2),exp]).
+opSignature(passes, temporalext, [movingregion,points],bool,[bbox(2),exp]).
 opSignature(val, temporal, [istring],string,[]).
 opSignature(derivative_new, temporalext, [mreal],mreal,[]).
 opSignature(derivable_new, temporalext, [mreal],mbool,[]).
 opSignature(speed_new, temporalext, [mpoint],mreal,[]).
 opSignature(velocity_new, temporalext, [mpoint],mpoint,[]).
 opSignature(mdirection, temporalext, [mpoint],mreal,[]).
-opSignature(locations, temporalext, [mpoint],points,[]).
-opSignature(atmin, temporalext, [T],T,[]) :-
+opSignature(locations, temporalext, [mpoint],points,[exp]).
+opSignature(atmin, temporalext, [T],T,[exp]) :-
   memberchk(T,[mint,mbool,mreal,mstring]),!.
-opSignature(atmax, temporalext, [T],T,[]) :-
+opSignature(atmax, temporalext, [T],T,[exp]) :-
   memberchk(T,[mint,mbool,mreal,mstring]),!.
-opSignature(rangevalues, temporalext, [T1],T2,[]) :-
+opSignature(rangevalues, temporalext, [T1],T2,[exp]) :-
   memberchk((T1,T2),[(mint,rint),(mreal,rreal),
                      (mbool,rbool),(mstring,rstring)]),!.
-opSignature(sometimes, temporalext, [mbool],bool,[]).
-opSignature(always, temporalext, [mbool],bool,[]).
-opSignature(never, temporalext, [mbool],bool,[]).
+opSignature(sometimes, temporalext, [mbool],bool,[exp]).
+opSignature(always, temporalext, [mbool],bool,[exp]).
+opSignature(never, temporalext, [mbool],bool,[exp]).
 opSignature(setunitoftime, temporalext, [real],real,[sidefx]).
 opSignature(setunitofdistance, temporalext, [real],real,[sidefx]).
-opSignature(concatS, temporalext, [[stream,mpoint]],mpoint,[aggr]).
-opSignature(concatS2, temporalext, [[stream,mpoint],int],mpoint,[aggr]).
-opSignature(everNearerThan, temporalext, [mpoint,mpoint,real],bool,[]).
-opSignature(everNearerThan, temporalext, [mpoint,point,real],bool,[]).
-opSignature(everNearerThan, temporalext, [point,mpoint,real],bool,[]).
+opSignature(concatS, temporalext, [[stream,mpoint]],mpoint,[aggr,exp]).
+opSignature(concatS2, temporalext, [[stream,mpoint],int],mpoint,[aggr,exp]).
+opSignature(everNearerThan, temporalext, [mpoint,mpoint,real],bool,[exp]).
+opSignature(everNearerThan, temporalext, [mpoint,point,real],bool,[exp]).
+opSignature(everNearerThan, temporalext, [point,mpoint,real],bool,[exp]).
 
 /*
 2.7.6 TemporalLiftedAlgebra
 
 */
-opSignature((=), temporallifted, [T,T],mbool,[comm]) :-
+opSignature((=), temporallifted, [T,T],mbool,[comm,exp]) :-
   memberchk(T,[mbool,mint,mstring,mreal,mpoint,movingregion]),!.
-opSignature((=), temporallifted, [T1,T2],mbool,[comm]) :-
+opSignature((=), temporallifted, [T1,T2],mbool,[comm,exp]) :-
   (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real),(mpoint,point),(movingregion,region)])
     ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real),(mpoint,point),(movingregion,region)])
   ),!.
-opSignature((#), temporallifted, [T,T],mbool,[comm]) :-
+opSignature((#), temporallifted, [T,T],mbool,[comm,exp]) :-
   memberchk(T,[mbool,mint,mstring,mreal,mpoint,movingregion]),!.
-opSignature((#), temporallifted, [T1,T2],mbool,[comm]) :-
+opSignature((#), temporallifted, [T1,T2],mbool,[comm,exp]) :-
   (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real),(mpoint,point),(movingregion,region)])
     ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real),(mpoint,point),(movingregion,region)])
   ),!.
-opSignature((<), temporallifted, [T1,T2],mbool,[]) :-
+opSignature((<), temporallifted, [T1,T2],mbool,[exp]) :-
   (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
     ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
   ),!.
-opSignature((<=), temporallifted, [T1,T2],mbool,[]) :-
+opSignature((<=), temporallifted, [T1,T2],mbool,[exp]) :-
   (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
     ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
   ),!.
-opSignature((>), temporallifted, [T1,T2],mbool,[]) :-
+opSignature((>), temporallifted, [T1,T2],mbool,[exp]) :-
   (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
     ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
   ),!.
-opSignature((>=), temporallifted, [T1,T2],mbool,[]) :-
+opSignature((>=), temporallifted, [T1,T2],mbool,[exp]) :-
   (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
     ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
@@ -939,69 +941,69 @@ opSignature((>=), temporallifted, [T1,T2],mbool,[]) :-
   ),!.
 opSignature(isempty, temporallifted, [T],mbool,[]) :-
   memberchk(T,[mbool, mint, mstring, mreal, mpoint, mregion]),!.
-opSignature(inside, temporallifted, [mpoint,points],mbool,[]).
-opSignature(inside, temporallifted, [mpoint,line],mbool,[]).
-opSignature(inside, temporallifted, [movingregion,points],mbool,[]).
-opSignature(inside, temporallifted, [movingregion,line],mbool,[]).
-opSignature(intersection, temporallifted, [T,T],T,[comm,ass]) :-
+opSignature(inside, temporallifted, [mpoint,points],mbool,[exp]).
+opSignature(inside, temporallifted, [mpoint,line],mbool,[exp]).
+opSignature(inside, temporallifted, [movingregion,points],mbool,[exp]).
+opSignature(inside, temporallifted, [movingregion,line],mbool,[exp]).
+opSignature(intersection, temporallifted, [T,T],T,[comm,ass,exp]) :-
   memberchk(T,[mbool, mint, mstring, mreal]),!.
-opSignature(intersection, temporallifted, [T1,T2],T1,[comm]) :-
+opSignature(intersection, temporallifted, [T1,T2],T1,[comm,exp]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),(mreal,real)]),!.
-opSignature(intersection, temporallifted, [T1,T2],T2,[comm]) :-
+opSignature(intersection, temporallifted, [T1,T2],T2,[comm,exp]) :-
   memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),(real,mreal)]),!.
-opSignature(intersection, temporallifted, [mpoint,mpoint],mpoint,[comm,ass]).
-opSignature(intersection, temporallifted, [T,mpoint],mpoint,[comm]) :-
+opSignature(intersection, temporallifted, [mpoint,mpoint],mpoint,[comm,ass,exp]).
+opSignature(intersection, temporallifted, [T,mpoint],mpoint,[comm,exp]) :-
   memberchk(T,[line,points]),!.
-opSignature(intersection, temporallifted, [mpoint,T],mpoint,[comm]) :-
+opSignature(intersection, temporallifted, [mpoint,T],mpoint,[comm,exp]) :-
   memberchk(T,[line,points]),!.
 opSignature(union, temporallifted, [mpoint,region],movingregion,[]).
 opSignature(union, temporallifted, [mpoint,movingregion],movingregion,[]).
 opSignature(union, temporallifted, [point,movingregion],movingregion,[]).
 
-opSignature(minus, temporallifted, [T,T],T,[]) :-
+opSignature(minus, temporallifted, [T,T],T,[exp]) :-
   memberchk(T,[mbool,mint,mstring,mreal]),!.
-opSignature(minus, temporallifted, [T1,T2],T1,[]) :-
+opSignature(minus, temporallifted, [T1,T2],T1,[exp]) :-
   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),(mreal,real)]),!.
-opSignature(minus, temporallifted, [T1,T2],T2,[]) :-
+opSignature(minus, temporallifted, [T1,T2],T2,[exp]) :-
   memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),(real,mreal)]),!.
 opSignature(minus, temporallifted, [region,mpoint],movingregion,[]).
 opSignature(minus, temporallifted, [movingregion,point],movingregion,[]).
 opSignature(minus, temporallifted, [movingregion,mpoint],movingregion,[]).
 opSignature(minus, temporallifted, [movingregion,points],movingregion,[]).
 opSignature(minus, temporallifted, [movingregion,line],movingregion,[]).
-opSignature(rough_center, temporallifted, [movingregion],mpoint,[]).
-opSignature(no_components, temporallifted, [movingregion],mint,[]).
-opSignature(perimeter, temporallifted, [movingregion],mreal,[]).
-opSignature(area, temporallifted, [movingregion],mreal,[]).
-opSignature(distance, temporallifted, [mpoint,mpoint],mreal,[comm]).
-opSignature(distance, temporallifted, [mreal,mreal],mreal,[comm]).
-opSignature(distance, temporallifted, [mreal,real],mreal,[comm]).
-opSignature(distance, temporallifted, [real,mreal],mreal,[comm]).
-opSignature(and, temporallifted, [bool,mbool],mbool,[comm]).
-opSignature(and, temporallifted, [mbool,mbool],mbool,[comm,ass]).
-opSignature(and, temporallifted, [mbool,bool],mbool,[comm]).
-opSignature(or, temporallifted, [bool,mbool],mbool,[comm]).
-opSignature(or, temporallifted, [mbool,mbool],mbool,[comm,ass]).
-opSignature(or, temporallifted, [mbool,bool],mbool,[comm]).
-opSignature(not, temporallifted, [mbool],mbool,[idem]).
+opSignature(rough_center, temporallifted, [movingregion],mpoint,[exp]).
+opSignature(no_components, temporallifted, [movingregion],mint,[exp]).
+opSignature(perimeter, temporallifted, [movingregion],mreal,[exp]).
+opSignature(area, temporallifted, [movingregion],mreal,[exp]).
+opSignature(distance, temporallifted, [mpoint,mpoint],mreal,[comm,exp]).
+opSignature(distance, temporallifted, [mreal,mreal],mreal,[comm,exp]).
+opSignature(distance, temporallifted, [mreal,real],mreal,[comm,exp]).
+opSignature(distance, temporallifted, [real,mreal],mreal,[comm,exp]).
+opSignature(and, temporallifted, [bool,mbool],mbool,[comm,exp]).
+opSignature(and, temporallifted, [mbool,mbool],mbool,[comm,ass,exp]).
+opSignature(and, temporallifted, [mbool,bool],mbool,[comm,exp]).
+opSignature(or, temporallifted, [bool,mbool],mbool,[comm,exp]).
+opSignature(or, temporallifted, [mbool,mbool],mbool,[comm,ass,exp]).
+opSignature(or, temporallifted, [mbool,bool],mbool,[comm,exp]).
+opSignature(not, temporallifted, [mbool],mbool,[idem,exp]).
 opSignature(zero, temporallifted, [],mint,[]).
-opSignature(periods2mint, temporallifted, [periods],mint,[comm]).
-opSignature((+), temporallifted, [mint,mint],mint,[comm,ass]).
-opSignature(eplus, temporallifted, [mint,mint],mint,[comm,ass]).
-opSignature(concat, temporallifted, [mpoint,mpoint],mpoint,[]).
-opSignature(abs, temporallifted, [mreal],mreal,[]).
+opSignature(periods2mint, temporallifted, [periods],mint,[comm,exp]).
+opSignature((+), temporallifted, [mint,mint],mint,[comm,ass,exp]).
+opSignature(eplus, temporallifted, [mint,mint],mint,[comm,ass,exp]).
+opSignature(concat, temporallifted, [mpoint,mpoint],mpoint,[exp]).
+opSignature(abs, temporallifted, [mreal],mreal,[exp]).
 
 /*
 2.7.7 TemporalUnitAlgebra
 
 */
 opSignature(makemvalue, temporalunit, [[stream,[tuple,AttrList]],Attr],T2,
-        [block,aggr]) :-
+        [block,aggr,exp]) :-
   is_list(AttrList),
   member([Attr,T1],AttrList),
   member((T1,T2),[(upoint,mpoint),(ubool,mbool),(uint,mint),(ureal,mreal),
                   (ustring,mstring),(uregion,movingregion)]),!.
-opSignature(the_mvalue, temporalunit, [[stream,T1]],T2,[block,aggr]) :-
+opSignature(the_mvalue, temporalunit, [[stream,T1]],T2,[block,aggr,exp]) :-
   memberchk((T1,T2),[(upoint,mpoint),(ubool,mbool),(uint,mint),(ureal,mreal),
                      (ustring,mstring),(uregion,movingregion)]),!.
 opSignature(queryrect2d, temporalunit, [instant],rect,[]).
@@ -1087,11 +1089,11 @@ opSignature(or, temporalunit, [ubool,ubool],ubool,[comm,ass]).
 opSignature(or, temporalunit, [bool,ubool],ubool,[comm]).
 opSignature(or, temporalunit, [ubool,bool],ubool,[comm]).
 opSignature(sometimes, temporalunit, [ubool],bool,[]).
-opSignature(sometimes, temporalunit, [[stream,ubool]],bool,[block,aggr]).
+opSignature(sometimes, temporalunit, [[stream,ubool]],bool,[block,aggr,exp]).
 opSignature(never, temporalunit, [ubool],bool,[]).
-opSignature(never, temporalunit, [[stream,ubool]],bool,[block,aggr]).
+opSignature(never, temporalunit, [[stream,ubool]],bool,[block,aggr,exp]).
 opSignature(always, temporalunit, [ubool],bool,[]).
-opSignature(always, temporalunit, [[stream,ubool]],bool,[block,aggr]).
+opSignature(always, temporalunit, [[stream,ubool]],bool,[block,aggr,exp]).
 opSignature(==, temporalunit, [T,T],bool,[comm]) :-
   memberchk(T,[ubool,uint,ureal,upoint,ustring,uregion]), !.
 opSignature((##), temporalunit, [T,T],bool,[comm]) :-
@@ -1153,19 +1155,19 @@ opSignature(val, movingregion, [intimeregion],region,[]).
 opSignature(deftime, movingregion, [movingregion],periods,[]).
 opSignature(present, movingregion, [movingregion,instant],bool,[bbox(3)]).
 opSignature(present, movingregion, [movingregion,periods],bool,[bbox(3)]).
-opSignature(intersection, movingregion, [mpoint,movingregion],mpoint,[]).
-opSignature(inside, movingregion, [mpoint,movingregion],mbool,[]).
-opSignature(at, movingregion, [mpoint,region],mpoint,[]).
-opSignature(at, movingregion, [movingregion,point],mpoint,[]).
+opSignature(intersection, movingregion, [mpoint,movingregion],mpoint,[exp]).
+opSignature(inside, movingregion, [mpoint,movingregion],mbool,[exp]).
+opSignature(at, movingregion, [mpoint,region],mpoint,[exp]).
+opSignature(at, movingregion, [movingregion,point],mpoint,[exp]).
 opSignature(bbox, movingregion, [uregion],rect3,[]).
 opSignature(bbox, movingregion, [intimeregion],rect3,[]).
 opSignature(bbox, movingregion, [movingregion],rect3,[]).
 opSignature(bbox2d, uregion, [uregion],rect,[]).
 opSignature(bbox2d, intimeregion, [uregion],rect,[]).
 opSignature(bbox2d, movingregion, [uregion],rect,[]).
-opSignature(move, movingregion, [mpoint,region],movingregion,[]).
+opSignature(move, movingregion, [mpoint,region],movingregion,[exp]).
 opSignature(vertextrajectory, movingregion, [uregion],line,[]).
-opSignature(vertextrajectory, movingregion, [movingregion],line,[]).
+opSignature(vertextrajectory, movingregion, [movingregion],line,[exp]).
 opSignature(units, movingregion, [movingregion],[stream,uregion],[]).
 
 
@@ -1230,7 +1232,7 @@ opSignature(scalerect, rectangle, [T|FactorList],T,[]) :-
 2.7.10 StreamAlgebra
 
 */
-opSignature(count, stream, [[stream,T]],int,[block]) :- isData(T), !.
+opSignature(count, stream, [[stream,T]],int,[block,exp]) :- isData(T), !.
 opSignature(printstream, stream, [[stream,T]],[stream,T],[sidefx]) :-
   (isData(T) ; T = [tuple,_]), !.
 opSignature(transformstream,stream,[[stream,T]],[stream,[tuple,[[elem,T]]]],
@@ -1265,10 +1267,10 @@ opSignature(use2, stream, [[stream,T1],T2,[map,T1,T2,T3]],[stream,T3],[]) :-
   isData(T1),isData(T2),isData(T3),!.
 opSignature(use2,stream,[[stream,T1],T2,[map,T1,T2,[stream,T3]]],[stream,T3],[])
         :- isData(T1),isData(T2),isData(T3),!.
-opSignature(aggregateS,stream,[[stream,T],[map,T,T,T],T],T,[block,aggr]) :-
+opSignature(aggregateS,stream,[[stream,T],[map,T,T,T],T],T,[block,aggr,exp]) :-
   isData(T),!.
 opSignature(filter,stream,[[stream,T],[map,T,bool]],[stream,T],[]):-isData(T),!.
-opSignature(ensure, stream, [[stream,T],int],bool,[block,aggr]) :- isData(T).
+opSignature(ensure, stream, [[stream,T],int],bool,[block,aggr,exp]) :- isData(T).
 opSignature(echo,stream,[[stream,T],string],[stream,T],[sidefx]):-isData(T),!.
 opSignature(echo,stream,[[stream,T],bool,string],[stream,T],[sidefx])
           :-isData(T),!.
@@ -1443,7 +1445,7 @@ opSignature(entries, rtree, [[RTreeType|_]],
         [stream,[tuple,[[nodeid,int],[mbr,MBRType],[tupleid,tid]]]],[]) :-
   memberchk((MBRType,RTreeType),[(rect,rtree),(rect3,rtree3),(rect4,rtree4),
                                  (rect8,rtree8)]),!.
-opSignature(getFileInfo, rtree, [[RTreeType|_]],text,[]) :-
+opSignature(getFileInfo, rtree, [[RTreeType|_]],text,[exp]) :-
   memberchk(RTreeType,[rtree,rtree3,rtree4,rtree8]), !.
 
 
@@ -1465,40 +1467,40 @@ opSignature(whiledo, function, [T,[map,T,bool],[map,T,T],bool],[stream,T],[]) :-
 2.7.14 CollectionAlgebra
 
 */
-opSignature(contains, collection, [[vector,T],T],bool,[]) :- isData(T), !.
-opSignature(contains, collection, [[set,T],T],bool,[]) :- isData(T), !.
-opSignature(contains, collection, [[multiset,T],T],int,[]) :- isData(T), !.
-opSignature(in, collection, [T,[vector,T]],bool,[]) :- isData(T), !.
-opSignature(in, collection, [T,[set,T]],bool,[]) :- isData(T), !.
-opSignature(in, collection, [T,[multiset,T]],bool,[]) :- isData(T), !.
-opSignature(insert, collection, [[set,T],T],[set,T],[]) :- isData(T), !.
-opSignature(insert, collection, [[multiset,T],T],[set,T],[]) :- isData(T), !.
-opSignature((+), collection, [[vector,T],T],[vector,T],[]) :- isData(T), !.
-opSignature(collect_set, collection, [[stream,T]],[set,T],[block,aggr]) :-
+opSignature(contains, collection, [[vector,T],T],bool,[exp]) :- isData(T), !.
+opSignature(contains, collection, [[set,T],T],bool,[exp]) :- isData(T), !.
+opSignature(contains, collection, [[multiset,T],T],int,[exp]) :- isData(T), !.
+opSignature(in, collection, [T,[vector,T]],bool,[exp]) :- isData(T), !.
+opSignature(in, collection, [T,[set,T]],bool,[exp]) :- isData(T), !.
+opSignature(in, collection, [T,[multiset,T]],bool,[exp]) :- isData(T), !.
+opSignature(insert, collection, [[set,T],T],[set,T],[exp]) :- isData(T), !.
+opSignature(insert, collection, [[multiset,T],T],[set,T],[exp]) :- isData(T), !.
+opSignature((+), collection, [[vector,T],T],[vector,T],[exp]) :- isData(T), !.
+opSignature(collect_set, collection, [[stream,T]],[set,T],[block,aggr,exp]) :-
   isData(T), !.
-opSignature(collect_multiset,collection,[[stream,T]],[multiset,T],[block,aggr])
+opSignature(collect_multiset,collection,[[stream,T]],[multiset,T],[block,aggr,exp])
         :-isData(T),!.
-opSignature(collect_vector,collection,[[stream,T]],[vector,T],[block,aggr])
+opSignature(collect_vector,collection,[[stream,T]],[vector,T],[block,aggr,exp])
         :-isData(T), !.
 opSignature(components, collection, [[vector,T]],[stream,T],[]) :- isData(T), !.
 opSignature(components, collection, [[set,T]],[stream,T],[]) :- isData(T), !.
 opSignature(components, collection, [[multiset,T]],[stream,T],[]):-isData(T), !.
-opSignature(get, collection, [[vector,T],int],T,[]) :- isData(T), !.
-opSignature(deleteelem, collection, [[set,T],T],[set,T],[]) :- isData(T), !.
-opSignature(deleteelem,collection,[[multiset,T],T],[multiset,T],[])
+opSignature(get, collection, [[vector,T],int],T,[exp]) :- isData(T), !.
+opSignature(deleteelem, collection, [[set,T],T],[set,T],[exp]) :- isData(T), !.
+opSignature(deleteelem,collection,[[multiset,T],T],[multiset,T],[exp])
         :- isData(T),!.
-opSignature(concat,collection,[[vector,T],[vector,T]],[vector,T],[ass])
+opSignature(concat,collection,[[vector,T],[vector,T]],[vector,T],[ass,exp])
         :- isData(T),!.
-opSignature(union, collection, [[set,T],[set,T]],[set,T],[comm,ass])
+opSignature(union, collection, [[set,T],[set,T]],[set,T],[comm,ass,exp])
         :- isData(T),!.
 opSignature(union, collection, [[multiset,T],[multiset,T]],[multiset,T],
-        [comm,ass]) :- isData(T),!.
-opSignature(intersection,collection,[[set,T],[set,T]],[set,T],[comm,ass])
+        [comm,ass,exp]) :- isData(T),!.
+opSignature(intersection,collection,[[set,T],[set,T]],[set,T],[comm,ass,exp])
         :- isData(T),!.
 opSignature(intersection,collection,[[multiset,T],[multiset,T]],[multiset,T],
-        [comm,ass]) :- isData(T),!.
-opSignature(difference, collection, [[set,T],[set,T]],[set,T],[]):- isData(T),!.
-opSignature(difference, collection, [[multiset,T],[multiset,T]],[multiset,T],[])
+        [comm,ass,exp]) :- isData(T),!.
+opSignature(difference, collection, [[set,T],[set,T]],[set,T],[exp]):- isData(T),!.
+opSignature(difference, collection, [[multiset,T],[multiset,T]],[multiset,T],[exp])
         :- isData(T),!.
 opSignature(size, collection, [[set,T]],int,[]) :- isData(T),!.
 opSignature(size, collection, [[multiset,T]],int,[]) :- isData(T),!.
@@ -1632,11 +1634,11 @@ opSignature(saveto, binaryfile, [binfile,string],bool,[sidefx]).
 
 */
 opSignature(createbtree, btree, [[rel,[tuple,AttrList]],Key],
-                                 [btree,[tuple,AttrList],KeyType],[block]) :-
+                                 [btree,[tuple,AttrList],KeyType],[block,exp]) :-
   memberchk([Key,KeyType],AttrList),
   (memberchk(KeyType,[int,real,text]);isKind(KeyType,indexable)),!.
 opSignature(createbtree, btree, [[stream,[tuple,AttrList]],Key],
-                                 [btree,[tuple,AttrList2],KeyType],[block]) :-
+                                 [btree,[tuple,AttrList2],KeyType],[block,exp]) :-
   select([_,tid],AttrList,AttrList2),
   memberchk([Key,KeyType],AttrList2),
   (memberchk(KeyType,[int,real,text]);isKind(KeyType,indexable)),!.
@@ -1737,7 +1739,7 @@ opSignature(reduce, relation, [[stream,[tuple,X]],[map,[stream,[tuple,X]],bool],
         int],[stream,[tuple,X]],[]).
 opSignature(tconsume, relation, [[stream,[tuple,X]]],[trel,[tuple,X]],[block]).
 opSignature(countboth, relation, [[stream,[tuple,_]],[stream,[tuple,_]]],int,
-        [block]).
+        [block,exp]).
 
 
 /*
@@ -1750,7 +1752,7 @@ opSignature(sample, extrelation, [[rel,[tuple,X]],int,real,int],
         [stream,[tuple,X]],[sidefx]).
 % Typemapoperator GROUP omitted
 opSignature(cancel, extrelation, [[stream,X],[map,X,bool]],[stream,X],[]).
-opSignature(extract, extrelation, [[stream,[tuple,AL]],Attr],AType,[aggr]) :-
+opSignature(extract, extrelation, [[stream,[tuple,AL]],Attr],AType,[aggr,exp]) :-
   is_list(AL), memberchk([Attr,AType],AL),!.
 opSignature(extend,extrelation,[[stream,[tuple,AL]],ExtL],[stream,[tuple,RL]],
         []):-
@@ -1759,15 +1761,15 @@ opSignature(extend,extrelation,[[stream,[tuple,AL]],ExtL],[stream,[tuple,RL]],
   append(AL,EL,RL), !.
 opSignature(concat, extrelation, [[stream,[tuple,X]],[stream,[tuple,X]]],
             [stream,[tuple,X]],[]).
-opSignature(min, extrelation, [[stream,[tuple,AL]],Attr],Type,[block,aggr]) :-
+opSignature(min, extrelation, [[stream,[tuple,AL]],Attr],Type,[block,aggr,exp]) :-
   memberchk([Attr,Type],AL),!.
-opSignature(max, extrelation, [[stream,[tuple,AL]],Attr],Type,[block,aggr]) :-
+opSignature(max, extrelation, [[stream,[tuple,AL]],Attr],Type,[block,aggr,exp]) :-
   memberchk([Attr,Type],AL),!.
-opSignature(avg, extrelation, [[stream,[tuple,AL]],Attr],real,[block,aggr]) :-
+opSignature(avg, extrelation, [[stream,[tuple,AL]],Attr],real,[block,aggr,exp]) :-
   memberchk([Attr,Type],AL),memberchk(Type,[int,real]),!.
-opSignature(sum, extrelation, [[stream,[tuple,AL]],Attr],Type,[block,aggr]) :-
+opSignature(sum, extrelation, [[stream,[tuple,AL]],Attr],Type,[block,aggr,exp]) :-
   memberchk([Attr,Type],AL),memberchk(Type,[int,real]),!.
-opSignature(var, extrelation, [[stream,[tuple,AL]],Attr],real,[block,aggr]) :-
+opSignature(var, extrelation, [[stream,[tuple,AL]],Attr],real,[block,aggr,exp]) :-
   memberchk([Attr,Type],AL),memberchk(Type,[int,real]),!.
 opSignature(stats, extrelation, [[stream,[tuple,AL]],A1,A2],[stream,[tuple,
     [(countx,int),(minx,real),(maxx,real),(sumx,real),(avgx,real),(varx,real),
@@ -1820,10 +1822,10 @@ opSignature(groupby,extrelation,[[stream,[tuple,A]],GL,FL],[stream,[tuple,R]],
   findall([EA,ET],(member([EA,[map,[rel,[tuple,A]],ET]],FL)),R2),
   append(R1,R2,R), !.
 opSignature(aggregate, extrelation,[[stream,[tuple,A]],Attr,[map,T,T,T],T],T,
-        [block,aggr]):-
+        [block,aggr,exp]):-
   memberchk([Attr,T],A),!.
 opSignature(aggregateB,extrelation,[[stream,[tuple,A]],Attr,[map,T,T,T],T],T,
-        [block,aggr]):-
+        [block,aggr,exp]):-
   memberchk([Attr,T],A),!.
 opSignature(symmjoin, extrelation, [[stream,[tuple,A1]],[stream,[tuple,A2]],
         [map,[tuple,A1],[tuple,A2],bool]],[stream,[tuple,R]],[]) :-
@@ -1873,30 +1875,30 @@ opSignature(spatialjoin, plugjoin, [[stream,[tuple,X]],[stream,[tuple,Y]],AX,AY]
 2.7.23 PlaneSweepAlgebra
 
 */
-opSignature(realm, planesweep, [line,line],line,[]).
+opSignature(realm, planesweep, [line,line],line,[exp]).
 opSignature(realm, planesweep, [line,region],region,[]).
 opSignature(realm, planesweep, [region,line],region,[]).
-opSignature(realm, planesweep, [region,region],region,[]).
-opSignature(intersection_new, planesweep, [line,line],line,[comm,ass]).
-opSignature(intersection_new, planesweep, [line,region],line,[comm,ass]).
-opSignature(intersection_new, planesweep, [region,line],line,[comm,ass]).
-opSignature(intersection_new, planesweep, [region,region],region,[]).
-opSignature(union_new, planesweep, [line,line],line,[comm,ass]).
+opSignature(realm, planesweep, [region,region],region,[exp]).
+opSignature(intersection_new, planesweep, [line,line],line,[comm,ass,exp]).
+opSignature(intersection_new, planesweep, [line,region],line,[comm,ass,exp]).
+opSignature(intersection_new, planesweep, [region,line],line,[comm,ass,exp]).
+opSignature(intersection_new, planesweep, [region,region],region,[exp]).
+opSignature(union_new, planesweep, [line,line],line,[comm,ass,exp]).
 opSignature(union_new, planesweep, [line,region],region,[comm,ass]).
 opSignature(union_new, planesweep, [region,line],region,[comm,ass]).
-opSignature(union_new, planesweep, [region,region],region,[comm,ass]).
-opSignature(minus_new, planesweep, [line,line],line,[]).
+opSignature(union_new, planesweep, [region,region],region,[comm,ass,exp]).
+opSignature(minus_new, planesweep, [line,line],line,[exp]).
 opSignature(minus_new, planesweep, [line,region],line,[]).
 opSignature(minus_new, planesweep, [region,line],region,[]).
-opSignature(minus_new, planesweep, [region,region],region,[]).
-opSignature(p_intersects, planesweep, [line,line],bool,[comm,bbox(2)]).
-opSignature(p_intersects, planesweep, [line,region],bool,[comm,bbox(2)]).
-opSignature(p_intersects, planesweep, [region,line],bool,[comm,bbox(2)]).
-opSignature(p_intersects, planesweep, [region,region],bool,[comm,bbox(2)]).
-opSignature(intersects_new, planesweep, [line,line],bool,[comm,bbox(2)]).
-opSignature(intersects_new, planesweep, [line,region],bool,[comm,bbox(2)]).
-opSignature(intersects_new, planesweep, [region,line],bool,[comm,bbox(2)]).
-opSignature(intersects_new, planesweep, [region,region],bool,[comm,bbox(2)]).
+opSignature(minus_new, planesweep, [region,region],region,[exp]).
+opSignature(p_intersects, planesweep, [line,line],bool,[comm,bbox(2),exp]).
+opSignature(p_intersects, planesweep, [line,region],bool,[comm,bbox(2),exp]).
+opSignature(p_intersects, planesweep, [region,line],bool,[comm,bbox(2),exp]).
+opSignature(p_intersects, planesweep, [region,region],bool,[comm,bbox(2),exp]).
+opSignature(intersects_new, planesweep, [line,line],bool,[comm,bbox(2),exp]).
+opSignature(intersects_new, planesweep, [line,region],bool,[comm,bbox(2),exp]).
+opSignature(intersects_new, planesweep, [region,line],bool,[comm,bbox(2),exp]).
+opSignature(intersects_new, planesweep, [region,region],bool,[comm,bbox(2),exp]).
 
 
 /*
@@ -1906,37 +1908,37 @@ opSignature(intersects_new, planesweep, [region,region],bool,[comm,bbox(2)]).
 opSignature(thevertex, graph, [graph,int],vertex,[]).
 opSignature(maxdegree, graph, [graph,bool],int,[]).
 opSignature(mindegree, graph, [graph,bool],int,[]).
-opSignature(circle, graph, [graph,vertex,float],graph,[]).
+opSignature(circle, graph, [graph,vertex,float],graph,[exp]).
 opSignature(connectedcomponents, graph, [graph],
         [stream,[tuple,[[graph,graph]]]],[]).
-opSignature(shortestpath, graph, [graph,vertex,vertex],path,[]).
-opSignature(shortestpath, graph, [graph,vertex,int],path,[]).
-opSignature(shortestpath, graph, [graph,int,vertex],path,[]).
-opSignature(shortestpath, graph, [graph,int,int],path,[]).
+opSignature(shortestpath, graph, [graph,vertex,vertex],path,[exp]).
+opSignature(shortestpath, graph, [graph,vertex,int],path,[exp]).
+opSignature(shortestpath, graph, [graph,int,vertex],path,[exp]).
+opSignature(shortestpath, graph, [graph,int,int],path,[exp]).
 opSignature(edges, graph, [path],[stream,[tuple,[[edge,edge]]]],[]).
 opSignature(edges, graph, [graph],[stream,[tuple,[[edge,edge]]]],[]).
 opSignature(vertices, graph, [path],[stream,[tuple,[[vertex,vertex]]]],[]).
 opSignature(vertices, graph, [graph],[stream,[tuple,[[vertex,vertex]]]],[]).
-opSignature(partof, graph, [graph,graph],bool,[]).
+opSignature(partof, graph, [graph,graph],bool,[exp]).
 opSignature(key, graph, [vertex],int,[]).
 opSignature(pos, graph, [vertex],point,[]).
 opSignature(source, graph, [edge],int,[]).
 opSignature(target, graph, [edge],int,[]).
 opSignature(cost, graph, [edge],real,[]).
-opSignature(placenodes, graph, [graph],graph,[]).
-opSignature(merge, graph, [graph,graph],graph,[]).
+opSignature(placenodes, graph, [graph],graph,[exp]).
+opSignature(merge, graph, [graph,graph],graph,[exp]).
 opSignature(constgraph, graph, [[stream,[tuple,X]],A1,A2,
-        [map,[tuple,X],real]],graph,[block,aggr]) :-
+        [map,[tuple,X],real]],graph,[block,aggr,exp]) :-
   memberchk([A1,int],X),memberchk([A2,int],X),!.
 opSignature(constgraphpoints, graph, [[stream,[tuple,X]],A1,A2,[map,[tuple,X],
-        real],P1,P2],graph,[block,aggr]) :-
+        real],P1,P2],graph,[block,aggr,exp]) :-
   memberchk([A1,int],X),memberchk([A2,int],X),
   memberchk([P1,point],X),memberchk([P2,point],X),!.
 opSignature((=), graph, [vertex,vertex],bool,[comm]).
 opSignature((=), graph, [edge,edge],bool,[comm]).
 opSignature((=), graph, [path,path],bool,[comm]).
-opSignature((=), graph, [graph,graph],bool,[comm]).
-opSignature(equalway, graph, [path,path],bool,[comm]).
+opSignature((=), graph, [graph,graph],bool,[comm,exp]).
+opSignature(equalway, graph, [path,path],bool,[comm,exp]).
 
 
 /*
@@ -2043,17 +2045,17 @@ opSignature(isgrayscale, picture, [picture],bool,[]).
 opSignature(filename, picture, [picture],string,[]).
 opSignature(category, picture, [picture],string,[]).
 opSignature(picturedate, picture, [picture],instant,[]).
-opSignature(isportrait, picture, [picture],bool,[]).
-opSignature(colordist, picture, [picture,int],histogram,[]).
-opSignature(equals, picture, [picture,picture,int,int],real,[]).
-opSignature(contains, picture, [picture,picture],bool,[]).
-opSignature(simpleequals, picture, [picture,picture],bool,[]).
-opSignature(like, picture, [picture,int,int,int,int],bool,[]).
-opSignature(like, picture, [picture,real,real,int,int],bool,[]).
-opSignature(scale, picture, [picture,int,int,int,int],picture,[]).
-opSignature(cut, picture, [picture,int,int,int,int],picture,[]).
-opSignature(flipleft, picture, [picture,int],picture,[]).
-opSignature(mirror, picture, [picture,bool],picture,[]).
+opSignature(isportrait, picture, [picture],bool,[exp]).
+opSignature(colordist, picture, [picture,int],histogram,[exp]).
+opSignature(equals, picture, [picture,picture,int,int],real,[exp]).
+opSignature(contains, picture, [picture,picture],bool,[exp]).
+opSignature(simpleequals, picture, [picture,picture],bool,[exp]).
+opSignature(like, picture, [picture,int,int,int,int],bool,[exp]).
+opSignature(like, picture, [picture,real,real,int,int],bool,[exp]).
+opSignature(scale, picture, [picture,int,int,int,int],picture,[exp]).
+opSignature(cut, picture, [picture,int,int,int,int],picture,[exp]).
+opSignature(flipleft, picture, [picture,int],picture,[exp]).
+opSignature(mirror, picture, [picture,bool],picture,[exp]).
 opSignature(display, picture, [picture],bool,[sidefx]).
 opSignature(export, picture, [picture,text],bool,[sidefx]).
 
@@ -2144,7 +2146,7 @@ opSignature(updatehash, hash, [[stream,[tuple,AttrList1]],
                                  [hash,[tuple,AttrList2],KeyType],Key],
                                  [stream,[tuple,AttrList1]],[sidefx]) :-
   select([_,tid],AttrList1,AttrList2), memberchk([Key,KeyType],AttrList1), !.
-opSignature(getFileInfo, hash, [[hash,_,_]],text,[]).
+opSignature(getFileInfo, hash, [[hash,_,_]],text,[exp]).
 
 
 /*

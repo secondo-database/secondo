@@ -203,6 +203,30 @@ for sample relation objects.
 
 The ~sample~ and ~small~ objects are usually used to determine selectivities.
 
+1.1.3 Using Null-ary Operators (with implicit arguments)
+
+The Secondo kernel supports some prefix operators with arity 0. This kind of
+operators uses some internal parameters, as system time, catalog data, etc.
+
+In the Secondo kernel, these operators are used like this: ~opname()~. Prolog
+forbids empty parameter lists. Therefor, this functions are used without
+the empty round pranatheses within the optimizer. Thus, it is possible to query
+
+---- sql select [no, now as currenttime] from ten
+----
+
+In this query ~now~ is the secondo function
+
+---- now: --> instant
+----
+
+that is used like in
+
+---- query ten feed extend[currenttime: now()] project[no, currenttime] consume
+----
+
+Other examples for null-ary prefix operators are ~seqnext~, ~randmax~,
+~minInstant~, ~maxInstant~, ~today~, or ~rng\_int~.
 
 1.2 Spelling of Identifiers within the Optimizer
 
@@ -1671,10 +1695,16 @@ plan_to_atom(false, Result) :-
   concat_atom(['FALSE'], '', Result),
   !.
 
-plan_to_atom(now, Result) :-
-  concat_atom(['now()'], '', Result),
-  !.
+% plan_to_atom(now, Result) :-
+%   concat_atom(['now()'], '', Result),
+%   !.
 
+plan_to_atom(Op, Result) :-
+  atom(Op),
+  secondoOp(Op, prefix, 0),
+  systemIdentifier(Op, _), !,
+  concat_atom([Op, '() '], '', Result),
+  !.
 
 /*
 Integrating counters into query plans
@@ -1901,11 +1931,19 @@ file ~opsyntax~. There are rules for
 
   * postfix followed by arguments in square brackets
 
-  * prefix, 2 arguments
+  * prefix, 0, 2 arguments
 
 Other syntax, if not default (see below) needs to be coded explicitly.
 
 */
+
+% prefix must be defined above. We repeat the code here for explenatory reasons:
+% plan_to_atom(Op, Result) :-
+%   atom(Op),
+%   secondoOp(Op, prefix, 0),
+%   systemIdentifier(Op, _), !,
+%   concat_atom([Op, '() '], '', Result),
+%   !.
 
 plan_to_atom(Term, Result) :-
   functor(Term, Op, 1),
@@ -5792,6 +5830,13 @@ lookupAttr(Term, Term2) :-
 lookupAttr(true, true) :- !.
 lookupAttr(false, false) :- !.
 
+% null-ary operator
+lookupAttr(Op, Op) :-
+  atom(Op),
+  secondoOp(Op, prefix, 0),
+  systemIdentifier(Op, _),
+  !.
+
 lookupAttr(Term, dbobject(TermDC)) :-
   atom(Term),
   dcName2externalName(TermDC,Term),
@@ -5982,6 +6027,13 @@ lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-  %if placed before lookupPred
   not(isSubqueryPred1(Term)),
   lookupPred2(Args, Args2, RelsBefore, RelsAfter),
   Term2 =.. [Op|Args2],
+  !.
+
+% null-ary operator
+lookupPred1(Op, Op, Rels, Rels) :-
+  atom(Op),
+  secondoOp(Op, prefix, 0),
+  systemIdentifier(Op, _),
   !.
 
 lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
