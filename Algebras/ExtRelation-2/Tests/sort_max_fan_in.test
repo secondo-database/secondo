@@ -16,33 +16,6 @@
 # You should have received a copy of the GNU General Public License
 # along with SECONDO; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-#
-# An example test spec for the Secondo TestRunner
-# run it with : 
-#
-#  TestRunner -i example.test
-#
-# By default a temporary database directory will be created. If you
-# want to use existing databases run
-#
-#  TestRunner --no-tmp -i <file>
-#
-# If one of your tests (say number N ) reports an error you can run
-# it directly by
-#
-# TestRunner -i <file> -num N 
-#
-# this is useful for debugging
-
-# A test specification consists of initial commands, a section of commands
-# setting up the test, a sequence of test cases, and a section of commands
-# cleaning up. The TestRunner uses directives to specify these sections.
-# directives are specified in comment lines, all comment lines beginning with a
-# directive are interpreted as commands to the TestRunner, non-comment lines are
-# passed to Secondo. The possible directives are SETUP, TESTCASE, YIELDS and
-# TEARDOWN (here i have written the directives in upper case to avoid confusion,
-# the real directives must be written in lower case). The meanings of those
-# directives are explained the following commented examples.
 
 set "ERA:TraceSort" = TRUE;
 
@@ -64,79 +37,117 @@ open database db_R1G_T1KB;
 restore plz from '$(SECONDO_BUILD_DIR)/bin/tmp/plz';
 restore thousand from '$(SECONDO_BUILD_DIR)/bin/tmp/thousand';
 restore largetext from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/Tests/objects/largetext';
-let R1G_T1KB = plz feed project[PLZ] thousand feed head[26] product head[1048576] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,959), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+let R1G_T1KB = plz feed project[PLZ] thousand feed product head[1048576] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,959), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
 
 ##############################################################################
 # TestCases
 ##############################################################################
 
+#testcase tuplesize_R1G_T1KB
+#yields (int 1024)
+query R1G_T1KB feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
 #testcase fan_in_600
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,600,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,600,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_500
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,500,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,500,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_400
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,400,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,400,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_300
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,300,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,300,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_200
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,200,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,200,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_100
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,100,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,100,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_90
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,90,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,90,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_80
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,80,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,80,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_70
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,70,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,70,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_60
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,60,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,60,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_50
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,50,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,50,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_40
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,40,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,40,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_30
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,30,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,30,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_20
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,20,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,20,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_10
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,10,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,10,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_5
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,5,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,5,4096] count;
+
+#--------------------------------------------------  
 
 #testcase fan_in_2
 #yields success
-query R1G_T1KB feed sortby2with[textval asc, PLZ asc; 1024*1024,2,4096] count;
+query R1G_T1KB feed head[100] sortby2with[textval asc, PLZ asc; 1024*1024,2,4096] count;
 
 ##############################################################################
 # TearDown
