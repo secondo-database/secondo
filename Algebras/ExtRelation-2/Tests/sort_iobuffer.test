@@ -25,155 +25,160 @@ set "ERA:TraceSort" = TRUE;
 
 #setup sort_iobuffer_test StandardAlgebra RelationAlgebra ExtRelation2Algebra
 
+#--------------------------------------------------  
 # Create objects opt and thousand
-restore database opt from './../bin/opt';
-save plz to './../bin/tmp/plz';
-save thousand to './../bin/tmp/thousand';
+restore database opt from '$(SECONDO_BUILD_DIR)/bin/opt';
+save plz to '$(SECONDO_BUILD_DIR)/bin/tmp/plz';
+save thousand to '$(SECONDO_BUILD_DIR)/bin/tmp/thousand';
 close database;
 
+#--------------------------------------------------  
 # Create db_R1G
 create database db_R1G;
 open database db_R1G;
-restore plz from './../bin/tmp/plz';
-restore thousand from './../bin/tmp/thousand';
-restore largetext from './../Algebras/ExtRelation-2/Tests/objects/largetext';
+restore plz from '$(SECONDO_BUILD_DIR)/bin/tmp/plz';
+restore thousand from '$(SECONDO_BUILD_DIR)/bin/tmp/thousand';
+restore largetext from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/Tests/objects/largetext';
 
+#--------------------------------------------------  
 # Create relation with 1 GB data and 512 Byte tuples
-let R1G_T512B = plz feed project[PLZ] thousand feed product head[2097152] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,447), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+let R1G_T512B = plz feed project[PLZ] thousand feed product head[2097152] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,447), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
 
+#--------------------------------------------------  
 # Create relation with 1 GB data and 8 KByte tuples
-let R1G_T8KB = plz feed project[PLZ] thousand feed product head[131072] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,8127), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+let R1G_T8KB = plz feed project[PLZ] thousand feed product head[131072] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,8127), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
 
+#--------------------------------------------------  
 # Create relation with 1 GB data and 64 KByte tuples
-let R1G_T64KB = plz feed project[PLZ] thousand feed product head[16384] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,65469), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+let R1G_T64KB = plz feed project[PLZ] thousand feed product head[16384] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,65471), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
 
 ##############################################################################
 # TestCases
 ##############################################################################
 
 #testcase tuplesize_R1G_T512B
-#yields (int 512)
+#yields (real 512.0)
 query R1G_T512B feed head[1] tuplesize;
 
 #--------------------------------------------------  
 
 #testcase tuplesize_R1G_T8KB
-#yields (int 8192)
-query R1G_T8KBfeed head[1] tuplesize;
+#yields (real 8192.0)
+query R1G_T8KB feed head[1] tuplesize;
 
 #--------------------------------------------------  
 
 #testcase tuplesize_R1G_T64KB
-#yields (int 16384)
+#yields (real 65536.0)
 query R1G_T64KB feed head[1] tuplesize;
 
 #--------------------------------------------------  
 
 #testcase small_tuplesize_1
 #yields success
-query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,0];
+query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,0] count;
 
 #--------------------------------------------------  
 
 #testcase small_tuplesize_2
 #yields success
-query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,1024];
+query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,1024] count;
 
 #--------------------------------------------------  
 
 #testcase small_tuplesize_3
 #yields success
-query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,2048];
+query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,2048] count;
 
 #--------------------------------------------------  
 
 #testcase small_tuplesize_4
 #yields success
-query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,4096];
+query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,4096] count;
 
 #--------------------------------------------------  
 
 #testcase small_tuplesize_5
 #yields success
-query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,8192];
+query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,8192] count;
 
 #--------------------------------------------------  
 
 #testcase small_tuplesize_6
 #yields success
-query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,16384];
+query R1G_T512B feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,16384] count;
 
 #--------------------------------------------------  
 
 #testcase medium_tuplesize_1
 #yields success
-query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,0];
+query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,0] count;
 
 #--------------------------------------------------  
 
 #testcase medium_tuplesize_2
 #yields success
-query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,1024];
+query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,1024] count;
 
 #--------------------------------------------------  
 
 #testcase medium_tuplesize_3
 #yields success
-query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,2048];
+query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,2048] count;
 
 #--------------------------------------------------  
 
 #testcase medium_tuplesize_4
 #yields success
-query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,4096];
+query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,4096] count;
 
 #--------------------------------------------------  
 
 #testcase medium_tuplesize_5
 #yields success
-query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,8192];
+query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,8192] count;
 
 #--------------------------------------------------  
 
 #testcase medium_tuplesize_6
 #yields success
-query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,16384];
+query R1G_T8KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,16384] count;
 
 #--------------------------------------------------  
 
 #testcase big_tuplesize_1
 #yields success
-query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,0];
+query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,0] count;
 
 #--------------------------------------------------  
 
 #testcase big_tuplesize_2
 #yields success
-query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,1024];
+query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,1024] count;
 
 #--------------------------------------------------  
 
 #testcase big_tuplesize_3
 #yields success
-query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,2048];
+query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,2048] count;
 
 #--------------------------------------------------  
 
 #testcase big_tuplesize_4
 #yields success
-query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,4096];
+query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,4096] count;
 
 #--------------------------------------------------  
 
 #testcase big_tuplesize_5
 #yields success
-query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,8192];
+query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,8192] count;
 
 #--------------------------------------------------  
 
 #testcase big_tuplesize_6
 #yields success
-query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,16384];
+query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,16384] count;
 
 ##############################################################################
 # TearDown
@@ -181,4 +186,4 @@ query R1G_T64KB feed head[100] sortby2with[textval asc, PLZ asc;16*1024*1024,50,
 
 #teardown
 close database;
-delete database R1G;
+delete database db_R1G;

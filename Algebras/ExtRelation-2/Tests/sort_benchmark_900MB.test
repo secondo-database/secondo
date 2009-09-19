@@ -1,0 +1,307 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+set "ERA:TraceSort" = TRUE;
+
+##############################################################################
+# Setup
+##############################################################################
+
+#setup sort_benchmark_900MB_test StandardAlgebra RelationAlgebra ExtRelation2Algebra
+
+#--------------------------------------------------  
+# Create objects opt and thousand
+
+restore database opt from '$(SECONDO_BUILD_DIR)/bin/opt';
+save plz to '$(SECONDO_BUILD_DIR)/bin/tmp/plz';
+save thousand to '$(SECONDO_BUILD_DIR)/bin/tmp/thousand';
+close database;
+
+#--------------------------------------------------  
+# Create database 
+
+create database db_R900MB;
+open database db_R900MB;
+restore plz from '$(SECONDO_BUILD_DIR)/bin/tmp/plz';
+restore thousand from '$(SECONDO_BUILD_DIR)/bin/tmp/thousand';
+restore largetext from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/Tests/objects/largetext';
+
+#--------------------------------------------------  
+# Create relation with 900 MB data and tuplesize 64 Byte
+
+let R900MB_T64B = plz feed project[PLZ] thousand feed product head[14745600] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, textval: subtext(largetext,1,11), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+#--------------------------------------------------  
+# Create relation with 900 MB data and tuplesize 128 Byte
+
+let R900MB_T128B = plz feed project[PLZ] thousand feed product head[7372800] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,63), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+#--------------------------------------------------  
+# Create relation with 900MB data and tuplesize 256 Byte
+
+let R900MB_T256B = plz feed project[PLZ] thousand feed product head[3686400] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,191), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+#--------------------------------------------------  
+# Create relation with 900MB data and tuplesize 512 Byte
+
+let R900MB_T512B = plz feed project[PLZ] thousand feed product head[1843200] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,447), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+#--------------------------------------------------  
+# Create relation with 900MB data and tuplesize 1 KByte
+
+let R900MB_T1KB = plz feed project[PLZ] thousand feed product head[921600] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,959), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+#--------------------------------------------------  
+# Create relation with 900MB data and tuplesize 2 KByte
+
+let R900MB_T2KB = plz feed project[PLZ] thousand feed product head[460800] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,1983), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+#--------------------------------------------------  
+# Create relation with 900MB data and tuplesize 4 KByte
+
+let R900MB_T4KB = plz feed project[PLZ] thousand feed product head[230400] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,4031), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+#--------------------------------------------------  
+# Create relation with 900MB data and tuplesize 8 KByte
+
+let R900MB_T8KB = plz feed project[PLZ] thousand feed product head[115200] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,8127), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+#--------------------------------------------------  
+# Create relation with 900MB data and tuplesize 16 KByte
+
+let R900MB_T16KB = plz feed project[PLZ] thousand feed product head[57600] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,16319), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+#--------------------------------------------------  
+# Create relation with 900MB data and tuplesize 32 KByte
+
+let R900MB_T32KB = plz feed project[PLZ] thousand feed product head[28800] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,32703), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+#--------------------------------------------------  
+# Create relation with 900MB data and tuplesize 64 KByte
+
+let R900MB_T64KB = plz feed project[PLZ] thousand feed product head[14400] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,65471), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+##############################################################################
+# TestCases
+##############################################################################
+
+#testcase tuplesize_R900MB_T64B
+#yields (real 64.0)
+query R900MB_T64B feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase tuplesize_R900MB_T128B
+#yields (real 128.0)
+query R900MB_T128B feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase tuplesize_R900MB_T256B
+#yields (real 256.0)
+query R900MB_T256B feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase tuplesize_R900MB_T512B
+#yields (real 512.0)
+query R900MB_T512B feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase tuplesize_R900MB_T1KB
+#yields (real 1024.0)
+query R900MB_T1KB feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase tuplesize_R900MB_T2KB
+#yields (real 2048.0)
+query R900MB_T2KB feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase tuplesize_R900MB_T4KB
+#yields (real 4096.0)
+query R900MB_T4KB feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase tuplesize_R900MB_T8KB
+#yields (real 8192.0)
+query R900MB_T8KB feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase tuplesize_R900MB_T16KB
+#yields (real 16384.0)
+query R900MB_T16KB feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase tuplesize_R900MB_T32KB
+#yields (real 32768.0)
+query R900MB_T32KB feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase tuplesize_R900MB_T64KB
+#yields (real 65536.0)
+query R900MB_T64KB feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase sortby_T64B
+#yields success
+query R900MB_T64B feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T64B
+#yields success
+query R900MB_T64B feed head[100] sortby2[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby_T128B
+#yields success
+query R900MB_T128B feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T128B
+#yields success
+query R900MB_T128B feed head[100] sortby2[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby_T256B
+#yields success
+query R900MB_T256B feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T256B
+#yields success
+query R900MB_T256B feed head[100] sortby2[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby_T512B
+#yields success
+query R900MB_T512B feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T512B
+#yields success
+query R900MB_T512B feed head[100] sortby2[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby_T1KB
+#yields success
+query R900MB_T1KB feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T1KB
+#yields success
+query R900MB_T1KB feed head[100] sortby2[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby_T2KB
+#yields success
+query R900MB_T2KB feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T2KB
+#yields success
+query R900MB_T2KB feed head[100] sortby2[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby_T4KB
+#yields success
+query R900MB_T4KB feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T4KB
+#yields success
+query R900MB_T4KB feed head[100] sortby2[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby_T8KB
+#yields success
+query R900MB_T8KB feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T8KB
+#yields success
+query R900MB_T8KB feed head[100] sortby2[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby_T16KB
+#yields success
+query R900MB_T16KB feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T16KB
+#yields success
+query R900MB_T16KB feed head[100] sortby2[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby_T32KB
+#yields success
+query R900MB_T32KB feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T32KB
+#yields success
+query R900MB_T32KB feed head[100] sortby2[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby_T64KB
+#yields success
+query R900MB_T64KB feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T64KB
+#yields success
+query R900MB_T64KB feed head[100] sortby2[textval asc, PLZ asc] count;
+
+
+##############################################################################
+# TearDown
+##############################################################################
+
+#teardown
+close database;
+delete database db_R900MB;

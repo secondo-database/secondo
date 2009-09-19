@@ -1,0 +1,77 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+set "ERA:TraceSort" = TRUE;
+
+##############################################################################
+# Setup
+##############################################################################
+
+#setup sort_benchmark_105G_test StandardAlgebra RelationAlgebra ExtRelation2Algebra
+
+#--------------------------------------------------  
+# Create objects opt and thousand
+
+restore database opt from '$(SECONDO_BUILD_DIR)/bin/opt';
+save plz to '$(SECONDO_BUILD_DIR)/bin/tmp/plz';
+save thousand to '$(SECONDO_BUILD_DIR)/bin/tmp/thousand';
+close database;
+
+#--------------------------------------------------  
+# Create database 
+
+create database db_R10G;
+open database db_R10G;
+restore plz from '$(SECONDO_BUILD_DIR)/bin/tmp/plz';
+restore thousand from '$(SECONDO_BUILD_DIR)/bin/tmp/thousand';
+restore largetext from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/Tests/objects/largetext';
+
+#--------------------------------------------------  
+# Create relation with 5 GB data and tuplesize 4 KByte
+
+let R10G_T4KB = plz feed project[PLZ] thousand feed product head[26214400] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,4031), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+
+##############################################################################
+# TestCases
+##############################################################################
+
+#testcase R10G_T4KB
+#yields (real 4096.0)
+query R10G_T4KB feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase sortby_T4KB
+#yields success
+query R10G_T4KB feed head[100] sortby[textval asc, PLZ asc] count;
+
+#--------------------------------------------------  
+
+#testcase sortby2_T4KB
+#yields success
+query R10G_T4KB feed head[100] sortby2[textval asc, PLZ asc] count;
+
+
+##############################################################################
+# TearDown
+##############################################################################
+
+#teardown
+close database;
+delete database db_R10G;
