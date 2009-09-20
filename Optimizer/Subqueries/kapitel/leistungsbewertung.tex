@@ -870,16 +870,16 @@ orderby
 \begin{tabular}{@{}lrr@{}} \toprule
 & \multicolumn{2}{c}{Laufzeit in s} \\ \cmidrule(l){2-3}
 Abfrage Nr. & iterativ & entschachtelt\\ \midrule
-Q2 & & \\
-Q4 & & \\
-Q7 & & \\
-Q9 & & \\
-Q15 & & \\
-Q16 & & ---\\
-Q17 & & \\
-Q20 & & \\
-Q21 & & \\
-Q22 & & \\ 
+Q2 & 11,469 & 3,064\\
+Q4 & 6,200 & 11,892\\
+Q7 & 1,389 & 1,605\\
+Q9 & 6,623 & 7,264\\
+Q15 & 4,853 & 19,666\\
+Q16 & 1,1936 & ---\\
+Q17 & 0,265 & 6,575\\
+Q20 & 1,233 & 14,346\\
+Q21 & 1,606 & 10,726\\
+Q22 & 1,425 & 3,712\\ 
 \bottomrule\end{tabular}
   \caption{Laufzeit \enquote{kalt}}
   \label{tab_runtime_with_selectivity}
@@ -887,19 +887,19 @@ Q22 & & \\
 
 \begin{table}[h]
 \centering
-\begin{tabular}{@{}crr@{}} \toprule
+\begin{tabular}{@{}lrr@{}} \toprule
 & \multicolumn{2}{c}{Laufzeit in s} \\ \cmidrule(l){2-3}
 Abfrage Nr. & iterativ & entschachtelt\\ \midrule
-Q2 & 5.347& 3.070\\
-Q4 & 133.000& 0.643\\
-Q7 & 2.759& 0.099\\
-Q9 & & \\
-Q15 & & \\
-Q16 & 1.788& ---\\
-Q17 & 0.588& 21.382\\
-Q20 & 1.297& 0.506\\
-Q21 & 1.381& 3.220\\
-Q22 & 2.308& 0.938\\ 
+Q2 & 11,382 & 2,685\\
+Q4 & 5,339 & 10,119\\
+Q7 & 1,268 & 0,805\\
+Q9 & 6,534 & 0,745\\
+Q15 & 4,190 & 7,670\\
+Q16 & 1,897 & ---\\
+Q17 & 0,985 & 1,430\\
+Q20 & 1,305 & 1,531\\
+Q21 & 1,548 & 2,681\\
+Q22 & 1,327 & 1,593\\ 
 \bottomrule\end{tabular} 
 	\caption{Laufzeit \enquote{warm}}
   \label{tab_runtime}
