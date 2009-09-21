@@ -54,7 +54,7 @@ WHERE §$R_i.C_h <> R_j.C_m$§
 
 übersetzen, da die Semantik und das Ergebnis der beiden Abfragen nicht übereinstimmen. In der geschachtelten Abfrage werden als Ergebnis alle Tupel der äußeren Relation erwartet, zu denen es keine Entsprechung in der inneren Relation gibt. Das Ergebnis der zweiten Abfrage ist die Teilmenge des Kreuzprodukts der beiden Relationen, die in den Werten $C_h$ und $C_m$ nicht übereinstimmen. Die benötigte Operation der Relationenalgebra ist der Anti-Join. In den für \textsc{Secondo} implementierten Algebramodulen für die Relationenalgebra, \algebra{Relation-C++}- und \algebra{ExtRelation-C++}-Algebra ist kein entsprechender Operator enthalten. Eine Implementierung im Rahmen dieser Diplomarbeit erfolgte aus den oben genannten Gründen nicht. 
 
-Die Optimierung von geschachtelten Abfragen die in dieser Arbeit implementiert wurden unterliegen aufgrund der verwendeten Algorithmen einigen Einschränkungen. Geschachtelte Abfragen dürfen im inneren Abfrageblock keine \sql{group by/having}-Klausel aufweisen (vgl. \cite{671658}). In korrelierten Abfragen dürfen nur Attribute der Relationen des den Abfrageblock direkt umgebenden Abfrageblocks verwendet werden. D.h. auf Schachtelungsebene n dürfen nur Relationen des inneren Abfrageblocks und Relationen der Schachtelungsebene n-1 verwendet werden. Tritt ein geschachteltes Prädikat in einem Disjunktionsterm auf, so ist es einer Optimierung mit den hier implementierten Algorithmen ebenfalls nicht zugänglich. Algorithmen zur Optimierung geschachtelter Abfragen in Disjunktionen wurden aber z.B. in \cite{Brantner2007} vorgestellt. Korrelierte Abfragen in der \sql{select}- und \sql{from}-Klausel können nicht mit einfachen temporären Relationen ersetzt werden. In dieser Arbeit wurde daher nur die Behandlung nicht korrelierter Abfragen in der \sql{select}- und \sql{from}-Klausel implementiert. Geschachtelte Abfragen, die nicht durch Entschachtelungs- und Transformationsalgorithmen optimiert werden können, werden in geschachtelte, iterative Ausdrücke übersetzt. 
+Die Optimierung von geschachtelten Abfragen die in dieser Arbeit implementiert wurden unterliegen aufgrund der verwendeten Algorithmen einigen Einschränkungen. Geschachtelte Abfragen dürfen im inneren Abfrageblock keine \sql{group by/having}-Klausel aufweisen (vgl. \cite{671658}). In korrelierten Abfragen dürfen nur Attribute der Relationen des den Abfrageblock direkt umgebenden Abfrageblocks verwendet werden. D.h. auf Schachtelungsebene n dürfen nur Relationen des inneren Abfrageblocks und Relationen der Schachtelungsebene n-1 verwendet werden. Tritt ein geschachteltes Prädikat in einem Disjunktionsterm auf, so ist es einer Optimierung mit den hier implementierten Algorithmen ebenfalls nicht zugänglich. Algorithmen zur Optimierung geschachtelter Abfragen in Disjunktionen wurden aber z.B. in \cite{Brantner2007} vorgestellt. Bei einer Erweiterung des Optimierers um die Optimierung disjunktiver Terme kann eine entsprechende Optimierung für geschachtelte Abfragen vorgesehen werden. Korrelierte Abfragen in der \sql{select}- und \sql{from}-Klausel können nicht mit einfachen temporären Relationen ersetzt werden. In dieser Arbeit wurde daher nur die Behandlung nicht korrelierter Abfragen in der \sql{select}- und \sql{from}-Klausel implementiert. Geschachtelte Abfragen, die nicht durch Entschachtelungs- und Transformationsalgorithmen optimiert werden können, werden in geschachtelte, iterative Ausdrücke übersetzt. 
 
 \section{Ein Full-Outer-Join-Operator für SECONDO}
 \textsc{Secondo} enthält bereits mehrere Join-Operatoren. Als Vorlage für die Implementierung des Full-Outer-Join-Operators wurde der Operator \secondo{sortmergejoin} ausgewählt, da sich der zugrunde liegende Algorithmus mit wenigen Änderungen in einen Full-Outer-Join umbauen lässt. Sort-Merge-Join ist ein Algorithmus zur Berechnung von Equi-Joins. Daher wird auch nur der Full-Outer-Join für Equi-Join berechnet. Voraussetzung ist die Sortierung der Relationen bzw. Ströme bezüglich der Join-Attribute. Diese Anforderung kann durch das vorhergehende Sortieren der Relationen erfüllt werden. In \textsc{Secondo} erfolgt diese Sortierung durch den Operator \secondo{sortmergejoin}.
@@ -203,17 +203,17 @@ Um die Auswertung der Aggregation nicht bei jedem Tupel der äußeren Relation dur
 Algorithmus NEST-JA2
 \begin{algorithmic}
 \STATE \textbf{procedure} $nest\_ja2(Q)$
-\STATE $temp1 = project\_outer\_relations(Q)$
-\STATE $temp2 = project\_and\_restrict\_inner\_relations(Q)$
+\STATE $Rt_1 = project\_outer\_relations(Q)$
+\STATE $Rt_2 = project\_and\_restrict\_inner\_relations(Q)$
 \IF{Aggregationsfunktion ist COUNT}
 \IF{COUNT(*)}
 \STATE \textit{Ersetze * durch Join-Attribut}
 \ENDIF
-\STATE $temp3 = outerjoin\_and\_aggregate(temp1, temp2)$
+\STATE $Rt_3 = outerjoin\_and\_aggregate(Rt_1, Rt_2)$
 \ELSE
-\STATE $temp3 = join\_and\_aggregate(temp1, temp2)$
+\STATE $Rt_3 = join\_and\_aggregate(Rt_1, Rt_2)$
 \ENDIF
-\STATE $equi\_join(outer\_relations, temp3)$
+\STATE $equi\_join(outer\_relations, Rt_3)$
 \end{algorithmic}
 \end{algorithm}
 
