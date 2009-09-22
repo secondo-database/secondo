@@ -192,12 +192,12 @@ class SortByLocalInfo
           c++; // tuple counter;
           Tuple* t = static_cast<Tuple*>( wTuple.addr );
           TupleAndRelPos nextTuple(t, tupleCmpBy); 
-          if( MAX_MEMORY > (size_t)t->GetSize() )
+          if( MAX_MEMORY > (size_t)t->GetExtSize() )
           {
             nextTuple.tuple->IncReference();
             currentRun->push(nextTuple);
             i++; // increment Tuples in memory counter
-            MAX_MEMORY -= t->GetSize();
+            MAX_MEMORY -= t->GetExtSize();
           }
           else 
           { // memory is completely used 
@@ -547,12 +547,12 @@ class SortByLocalInfo : protected ProgressWrapper
           c++; // tuple counter;
           Tuple *t = static_cast<Tuple*>( wTuple.addr );
           TupleAndRelPos nextTuple(t, tupleCmpBy);
-          if( MAX_MEMORY > (size_t)t->GetSize() )
+          if( MAX_MEMORY > (size_t)t->GetExtSize() )
           {
             //nextTuple.tuple->IncReference();
             currentRun->push(nextTuple);
             i++; // increment Tuples in memory counter
-            MAX_MEMORY -= t->GetSize();
+            MAX_MEMORY -= t->GetExtSize();
           }
           else
           { // memory is completely used
