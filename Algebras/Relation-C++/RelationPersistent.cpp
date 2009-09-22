@@ -301,7 +301,7 @@ void Tuple::Save( SmiRecordFile *tuplefile,
   free(data);
   TRACE_LEAVE
 }
-
+ 
 #endif
 
 void Tuple::Save(TupleFile& tuplefile)
@@ -552,7 +552,6 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
   assert( attrExtSize.size() == attrSize.size() );
   assert( (size_t)tupleType->GetNoAttributes() >= attrSize.size() );
 
-  //cerr << "this->lobFileId = " << this->lobFileId << endl;
 
 
   coreSize = tupleType->GetCoreSize();
@@ -621,6 +620,7 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
         /* Note: lobFileId is a class member which is *
          * passed by reference to SaveToLob(...)      */
 
+	SmiFileId lid = lobFileId;
         if(ignorePersistentLOBs) {
           if (!tmpFLOB->IsPersistentLob()){
             tmpFLOB->SaveToLob( lobFileId );
@@ -629,6 +629,16 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
            tmpFLOB->SaveToLob( lobFileId );
         }
         extensionSize += tmpFLOB->MetaSize();
+
+	if (RTFlag::isActive("TUPLE:lobFileId"))
+        {
+	  if (lid != lobFileId) {	
+	    cmsg.info()
+              << "Tuple::lobFileId changed " << lid 
+	      << " -> " << lobFileId << endl;
+	    cmsg.send();
+	  }  
+	}  
       }
     }
   }
@@ -1603,6 +1613,7 @@ void TupleBuffer::Clear()
 void TupleBuffer::AppendTuple( Tuple *t )
 {
 
+  static long& appendCalls = Counter::getRef("RA:TupleBuf:diskBufferAppend");
   if( inMemory )
   {
     if( totalMemSize + t->GetMemSize() <=
@@ -1631,6 +1642,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
       {
         Tuple* tuple = *iter;
         diskBuffer->AppendTupleNoLOBs( tuple );
+	appendCalls++;
         tuple->DeleteIfAllowed();
         iter++;
       }
@@ -1639,6 +1651,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
       totalExtSize = 0;
       totalSize = 0;
       diskBuffer->AppendTupleNoLOBs( t );
+      appendCalls++;
       inMemory = false;
     }
   }
@@ -2080,9 +2093,12 @@ void Relation::DeleteAndTruncate()
   privateRelation->tupleFile.Remove();
   privateRelation->tupleFile.Drop();
 
-  SecondoSystem::GetFLOBCache()->Drop(
-    privateRelation->relDesc.lobFileId,
-    privateRelation->isTemp );
+  SmiFileId lobId = privateRelation->relDesc.lobFileId;
+  if (lobId != 0) {
+    SecondoSystem::GetFLOBCache()->Drop( lobId, false );
+  } else {
+    cerr << "Relation has no LOB-file!" << endl;	  
+  }	  
 
   ErasePointer();
 
