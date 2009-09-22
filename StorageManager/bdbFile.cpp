@@ -300,9 +300,7 @@ SmiFile::Create( const string& context /* = "Default" */ )
       {
         ctrCreate++;
         ctrOpen++;
-        SmiDropFilesEntry entry;
-        entry.fileId = fileId;
-        entry.dropOnCommit = false;
+        SmiDropFilesEntry entry(fileId, false);
         SmiEnvironment::instance.impl->bdbFilesToDrop.push( entry );
         opened      = true;
         fileName    = bdbName;
@@ -476,9 +474,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
         {
           // --- Register newly created file, since it has to be dropped
           // --- when the enclosing transaction is aborted
-          SmiDropFilesEntry dropEntry;
-          dropEntry.fileId = fileId;
-          dropEntry.dropOnCommit = false;
+          SmiDropFilesEntry dropEntry(fileId, false);
           SmiEnvironment::instance.impl->bdbFilesToDrop.push( dropEntry );
           SmiCatalogFilesEntry catalogEntry;
           BdbInitCatalogEntry( catalogEntry.entry );
@@ -571,7 +567,11 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
       int alreadyExist = 
           SmiEnvironment::Implementation::FindOpen(bdbName,flags);
       if(alreadyExist>=0){
-         DbHandleIndex old = impl->bdbHandle;
+
+         if (trace)
+           cerr << "File id =" << fileid << "already exists." << endl;
+         
+	 DbHandleIndex old = impl->bdbHandle;
          if(!impl->noHandle){
              SmiEnvironment::Implementation::SetUnUsed(old);
          }
@@ -581,6 +581,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
          SmiEnvironment::Implementation::SetUsed(impl->bdbHandle);
          opened = true;
          impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
+	 fileId = fileid;
          return true;
       } 
       impl->CheckDbHandles();
@@ -725,9 +726,7 @@ SmiFile::Drop()
   {
     // --- Register SmiFile for real dropping after
     // --- successfully committing the enclosing transaction
-    SmiDropFilesEntry dropEntry;
-    dropEntry.fileId = fileId;
-    dropEntry.dropOnCommit = true;
+    SmiDropFilesEntry dropEntry(fileId, true);
     SmiEnvironment::instance.impl->bdbFilesToDrop.push( dropEntry );
 
     /* FIXME : commented out because the persistent version

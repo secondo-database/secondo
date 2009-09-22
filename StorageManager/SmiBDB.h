@@ -138,6 +138,7 @@ All other implementation classes provide only data members.
 #include <queue>
 #include <map>
 #include <vector>
+#include <assert.h>
 
 #include <db_cxx.h>
 
@@ -306,6 +307,10 @@ named ~SmiFile~.
 
 struct SmiDropFilesEntry
 {
+  SmiDropFilesEntry(SmiFileId id, bool b) : fileId(id), dropOnCommit(b)
+  {
+    assert(fileId != 0);	  
+  }	  
   SmiFileId fileId;
   bool      dropOnCommit;
 };

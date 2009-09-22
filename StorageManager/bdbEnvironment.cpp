@@ -616,25 +616,38 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit )
 
   int    rc = 0;
   DbEnv* dbenv = instance.impl->bdbEnv;
-  SmiDropFilesEntry entry;
 
+  // SPM: For being able to finish a query without
+  // SMI-errors we will keep track of the already removed files.
+  // The real source of trouble is why some files are added more than once.
+  // However, in the future one should extend bdbFileToDrop to a class which
+  // alerts when multiple inserts of the same file are done!
+  map<SmiFileId, bool> removed;
   while ( !instance.impl->bdbFilesToDrop.empty() )
   {
-    entry = instance.impl->bdbFilesToDrop.front();
-    if ( ( onCommit &&  entry.dropOnCommit) ||
-         (!onCommit && !entry.dropOnCommit) )
-    {
-      Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-      
-      string file = ConstructFileName( entry.fileId );
-      //cerr << "Erasing file " << file << endl;
-      //cerr << "onCommit:" << onCommit << endl;
-      //cerr << "entry:" << entry.dropOnCommit << endl;
-      rc = dbp->remove( file.c_str(), 0, 0 );
-      
-      SetBDBError(rc);
-      delete dbp;
-    }
+    SmiDropFilesEntry entry = instance.impl->bdbFilesToDrop.front();
+
+    if ( removed.find(entry.fileId) == removed.end() ) {
+
+      if ( ( onCommit &&  entry.dropOnCommit) ||
+	   (!onCommit && !entry.dropOnCommit) )
+      {
+	Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
+	
+	string file = ConstructFileName( entry.fileId );
+	//cerr << "Erasing file " << file << endl;
+	//cerr << "onCommit:" << onCommit << endl;
+	//cerr << "entry:" << entry.dropOnCommit << endl;
+	rc = dbp->remove( file.c_str(), 0, 0 );
+	SetBDBError(rc);
+	removed[entry.fileId] = true;
+	delete dbp;
+      }
+
+    } else {
+     //cerr << "Warning: File id = " 
+     //     << entry.fileId << " already removed!" << endl; 
+    }	    
     instance.impl->bdbFilesToDrop.pop();
   }
   return (rc == 0);
@@ -681,6 +694,8 @@ string
 SmiEnvironment::Implementation::ConstructFileName( SmiFileId fileId,
                                                    const bool isTemporary )
 {
+  assert( fileId != 0);
+
   ostringstream os;
   if ( !isTemporary )
   {
