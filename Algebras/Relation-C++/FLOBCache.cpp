@@ -32,14 +32,26 @@ Victor Almeida, 08/12/2005.
 1 Includes
 
 */
+
+#include <cassert>
+#include <exception>
+#include <sstream>
+
+
 #include "Counter.h"
 #include "FLOB.h"
 #include "FLOBCache.h"
-#include <cassert>
+#include "Trace.h"
+
 
 using namespace std;
 
 // #define __NEW_FLOB__
+
+
+
+ostream& operator<<(ostream& os, const FLOBKey& fk) { return fk.out(os); }
+
 
 /*
 2 Implementation of class LRUTable
@@ -114,14 +126,15 @@ void LRUTable::Clear()
   {
     FLOBCacheElement *aux = e;
     e = e->next;
-    if( aux->refs > 0 )
-      cout << "FLOBCache ERROR: Key ("
+    if( aux->refs != 0 ) {
+      stringstream err;
+      err  <<   "Key ("
            << aux->key.fileId << ", "
            << aux->key.recordId << ", "
            << aux->key.pageno << ") still has "
-           << aux->refs << " references while cleaning the cache."
-           << endl;
-    assert( aux->refs == 0 );
+           << aux->refs << " references while cleaning the cache.";
+      throw FLOBCache_error(err.str());	    
+    }  
     free( aux->flob );
     delete aux;
   }
@@ -134,37 +147,37 @@ void LRUTable::Clear()
 */
 FLOBCache::~FLOBCache()
 {
+  trace.enter(__FUNCTION__);
   Clean();
 }
 
 char *FLOBCache::Lookup( const FLOBKey key, bool inc )
 {
-//  cout << "Lookup" << endl;
+  trace.enter(__FUNCTION__);
 
-  map< FLOBKey, FLOBCacheElement* >::iterator iter =
-    mapTable.find( key );
+  FLOBTable::iterator iter = mapTable.find( key );
 
   if( iter == mapTable.end() )
   {
-//    cout << "Entry (" << key.fileId << ", "
-//         << key.recordId << ", " << key.pageno << ") not found" << endl;
+    trace.add() << "Entry (" << key << ") not found";
+    trace.flush(5);
     return NULL;
   }
 
   FLOBCacheElement *e = iter->second;
   lruTable.Promote( e, inc );
 
-//  cout << "Entry (" << key.fileId << ", "
-//       << key.recordId << ", " << key.pageno << ") found, now with "
-//       << e->refs << " references" << endl;
+   trace.add() << "Entry (" << key << ") found, now with " 
+	       << e->refs << " references";
+   trace.flush(5);
 
-  return e->flob;
+   return e->flob;
 }
 
 bool FLOBCache::Insert( const FLOBKey key, char *flob )
 {
-//  cout << "FLOBCache::Insert (" << key.fileId << ", "
-//       << key.recordId << ", " << key.pageno << ")" << endl;
+  trace.enter(__FUNCTION__);
+  trace.show(VAL(key));
 
   assert( mapTable.find( key ) == mapTable.end() );
 
@@ -180,23 +193,24 @@ bool FLOBCache::Insert( const FLOBKey key, char *flob )
     mapTable[key] = e;
     lruTable.Insert( e );
 
-//    cout << "Entry inserted into the cache with "
-//         << e->refs << " references" << endl;
+    trace.add() << "Entry inserted into the cache with "
+                << e->refs << " references";
+    trace.flush(5);
 
     return true;
   }
 
   Counter::getRef("RA:FLOBCacheFull")++;
 
-//  cout << "Cache full of entries with at least 1 reference" << endl;
-
+  trace.out("Cache full of entries with at least 1 reference", 5);
+  
   return false;
 }
 
 void FLOBCache::Remove( const FLOBKey key )
 {
-  map< FLOBKey, FLOBCacheElement* >::iterator iter =
-    mapTable.find( key );
+  trace.enter(__FUNCTION__);
+  FLOBTable::iterator iter = mapTable.find( key );
 
   if( iter != mapTable.end() )
   {
@@ -210,10 +224,10 @@ void FLOBCache::Remove( const FLOBKey key )
 
 bool FLOBCache::RemoveLast( FLOBKey& key )
 {
+  trace.enter(__FUNCTION__);
   if( lruTable.RemoveLast( key ) )
   {
-    map< FLOBKey, FLOBCacheElement* >::iterator iter =
-      mapTable.find( key );
+    FLOBTable::iterator iter = mapTable.find( key );
 
     free( iter->second->flob );
     delete iter->second;
@@ -227,6 +241,7 @@ bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
                          long pageno, size_t size, bool isTempFile,
                          const char *&flob )
 {
+  trace.enter(__FUNCTION__);
   assert( fileId != 0 && lobId != 0 );
 
   FLOBKey key( fileId, lobId, pageno, size, isTempFile );
@@ -236,18 +251,7 @@ bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
     char *buf = (char*) malloc( key.size );
     flob = buf;
 
-    map< SmiFileId, SmiRecordFile* >::iterator iter =
-      files.find( key.fileId );
-
-    SmiRecordFile *file;
-    if( iter == files.end() )
-    {
-      file = new SmiRecordFile( false, 0, isTempFile );
-      file->Open( key.fileId );
-      files.insert( make_pair( key.fileId, file ) );
-    }
-    else
-      file = iter->second;
+    SmiRecordFile *file = LookUpFile(key.fileId, isTempFile);
 
     SmiRecord record;
     file->SelectRecord( key.recordId, record );
@@ -280,13 +284,19 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
                          long pageno, size_t size, bool isTempFile,
                          const char *flob )
 {
+  trace.enter(__FUNCTION__);
+
 
   SmiRecordFile *file;
-  if( fileId == 0 )
+  if( fileId == 0 ) // assign a lob file id
   {
     assert( lobId == 0 );
-    file = new SmiRecordFile( false, 0, isTempFile );
 
+    if (lobFile == 0) { // no lobFile present, create one
+      
+      lobFile = new SmiRecordFile( false, 0, isTempFile );
+    
+    file = lobFile;
     if( !file->Create() )
     {
       string error;
@@ -294,28 +304,25 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
       cout << error << endl;
       assert( false );
     }
-    fileId = file->GetFileId();
-    files.insert( make_pair( fileId, file ) );
-  }
-  else
-  {
-    map< SmiFileId, SmiRecordFile* >::iterator iter =
-      files.find( fileId );
 
-    if( iter == files.end() )
-    {
-      file = new SmiRecordFile( false, 0, isTempFile );
-      file->Open( fileId );
-      files.insert( make_pair( fileId, file ) );
+    fileId = file->GetFileId();
+    lobFileId = fileId;
+  
+    traceFile(fileId, isTempFile);
+  
+    files.insert( make_pair( fileId, file ) );
     }
-    else
-      file = iter->second;
+    file = lobFile;    
+    fileId = lobFileId;
   }
+
+  file = LookUpFile(fileId, isTempFile);
 
   SmiRecord record;
-  bool append = lobId == 0;
+  bool append = (lobId == 0);
 
-  if( pageno == -1 )
+
+  if( pageno == -1 ) // ignore page number
   {
     if( append )
     {
@@ -330,7 +337,7 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
     }
     record.Write( flob, size, 0 );
   }
-  else
+  else // use page information
   {
     if( append )
     {
@@ -352,6 +359,7 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
 
 void FLOBCache::Clear()
 {
+  trace.enter(__FUNCTION__);
   sizeLeft = maxSize;
   mapTable.clear();
   lruTable.Clear();
@@ -359,8 +367,9 @@ void FLOBCache::Clear()
 
 void FLOBCache::Clean()
 {
+  trace.enter(__FUNCTION__);
   Clear();
-  for( map< SmiFileId, SmiRecordFile* >::iterator i = files.begin();
+  for( FileTable::iterator i = files.begin();
        i != files.end();
        i++ )
   {
@@ -368,11 +377,13 @@ void FLOBCache::Clean()
     delete i->second;
   }
   files.clear();
+  lobFile = 0;
+  lobFileId = 0;
 }
 
 void FLOBCache::Release( SmiFileId fileId, SmiRecordId lobId, long pageno )
 {
-//  cout << "FLOBCache::Release" << endl;
+  trace.enter(__FUNCTION__);
   FLOBKey key( fileId, lobId, pageno, 0 );
   DecReference( key );
 }
@@ -380,8 +391,7 @@ void FLOBCache::Release( SmiFileId fileId, SmiRecordId lobId, long pageno )
 void FLOBCache::Destroy( SmiFileId fileId, SmiRecordId lobId )
 {
   FLOBKey key( fileId, lobId, -1, 0 );
-  map< FLOBKey, FLOBCacheElement* >::iterator iter =
-    mapTable.find( key );
+  FLOBTable::iterator iter = mapTable.find( key );
 
   if( iter != mapTable.end() )
   {
@@ -397,62 +407,79 @@ void FLOBCache::Destroy( SmiFileId fileId, SmiRecordId lobId )
 
 void FLOBCache::Truncate( SmiFileId fileId, bool isTemp, bool paged )
 {
+  trace.enter(__FUNCTION__);
   if( fileId != 0 )
   {
-    SmiRecordFile *file;
-    map< SmiFileId, SmiRecordFile* >::iterator iter =
-      files.find( fileId );
-
-    if( iter == files.end() )
-    {
-      file = new SmiRecordFile( false, 0, isTemp );
-      file->Open( fileId );
-    }
-    else
-      file = iter->second;
+    SmiRecordFile* file = LookUpFile(fileId, isTemp);
     file->Truncate();
   }
 }
 
 void FLOBCache::Drop( SmiFileId fileId, bool isTemp, bool paged )
 {
+  trace.enter(__FUNCTION__);
+
   if( fileId != 0 )
   {
-    SmiRecordFile *file;
-    map< SmiFileId, SmiRecordFile* >::iterator iter =
-      files.find( fileId );
-
-    if( iter == files.end() )
-    {
-      file = new SmiRecordFile( false, 0, isTemp );
-      bool t1 = file->Open(fileId);
-      assert( t1 );
-    }
-    else
-    {
-      file = iter->second;
-      files.erase( iter );
-    }
-
+    trace.show(VAL(fileId));	  
+    SmiRecordFile* file = LookUpFile(fileId, isTemp);
+    trace.show(VAL(file->GetFileId()));	  
     file->Close();
+    trace.show(VAL(file->GetFileId()));	  
     file->Drop();
+    RemoveFile( fileId);
     delete file;
   }
-
-
 }
+
+
+SmiRecordFile* 
+FLOBCache::LookUpFile( SmiFileId id, bool tmp ) {
+   
+   trace.enter(__FUNCTION__);
+
+   SmiRecordFile* file = 0;
+   FileTable::iterator iter = files.find( id );
+
+   if( iter == files.end() ) // file not in the file table, try to open
+   {
+     file = new SmiRecordFile( false, 0, tmp );
+     bool ok = file->Open(id); 
+     assert(ok);
+     traceFile(id, tmp, "open");
+     files.insert( make_pair( id, file ) );
+   }	   
+   else
+   {
+     file = iter->second;
+   }
+   
+   return file;
+}	
+
+void
+FLOBCache::RemoveFile( SmiFileId id ) {
+  
+  trace.enter(__FUNCTION__);
+
+  FileTable::iterator iter = files.find( id );
+  assert( iter != files.end() );
+  files.erase(iter);
+}     	
+
+
 
 void FLOBCache::DecReference( const FLOBKey key )
 {
-  map< FLOBKey, FLOBCacheElement* >::iterator iter =
-    mapTable.find( key );
+  trace.enter(__FUNCTION__);
+  FLOBTable::iterator iter = mapTable.find( key );
 
   assert( iter != mapTable.end() );
   assert( iter->second->refs > 0 );
   iter->second->refs--;
 
-//  cout << "Reference decreased (" << key.fileId << ", "
-//       << key.recordId << ", " << key.pageno << ") to "
-//       << iter->second->refs << endl;
+  trace.add() << "Reference decreased (" << key << ") to "
+              << iter->second->refs << endl;
+  trace.flush(5);
 }
 

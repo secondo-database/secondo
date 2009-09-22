@@ -42,6 +42,37 @@ Victor Almeida, 08/12/2005.
 
 */
 #include <map>
+#include <iostream>
+#include <exception>
+#include <string>
+
+#include "Trace.h"
+
+using std::string;
+using std::exception;
+using std::cerr;
+
+class FLOBCache_error : public exception {
+
+  public: 	
+
+  FLOBCache_error() : exception(), msg("unknown error!") {}
+  FLOBCache_error(const string& reason) : exception(), msg(reason) {}
+  FLOBCache_error(const FLOBCache_error& rhs) : exception(), msg(rhs.msg) {}
+
+  virtual ~FLOBCache_error() throw() {}
+
+  virtual const char* what() const throw() {
+
+	  return ("FLOBCache:" + msg).c_str();   	  
+  }	  
+
+  private:
+  const string msg;
+};
+
+
+
 
 /*
 3 Struct FLOBKey
@@ -77,12 +108,25 @@ struct FLOBKey
                (recordId == key.recordId && pageno < key.pageno )));
   }
     
+  
+  inline ostream& out(ostream& os) const {
+
+    os << "fileId = " << fileId;	  
+    os << ", recordId = " << recordId;
+    os << ", pageno = " << pageno;
+    os << ", size = " << size; 
+    return os;
+  }	  
+
   SmiFileId fileId;
   SmiRecordId recordId;
   long pageno;
   int size;
   bool isTempFile;
 };
+
+
+ostream& operator<<(ostream& os, const FLOBKey& fk);
 
 /*
 3 Struct FLOBCacheElement
@@ -138,8 +182,15 @@ class FLOBCache
   public:
     inline FLOBCache( long size ):
     maxSize( size ),
-    sizeLeft( size )
-    {}
+    sizeLeft( size ),
+    lobFile(0),
+    lobFileId(0),
+    trace("FLOBCache", cerr)	
+    {
+      if (RTFlag::isActive("FLOBCache:trace")) {	    
+        trace.on();
+      }
+    }
 
     ~FLOBCache();
 
@@ -163,12 +214,34 @@ class FLOBCache
     void Remove( const FLOBKey key );
     bool RemoveLast( FLOBKey& key );
     void DecReference( const FLOBKey key );
+    
+  
 
   private:
     long maxSize, sizeLeft;
-    map< FLOBKey, FLOBCacheElement* > mapTable;
+    typedef map< FLOBKey, FLOBCacheElement* > FLOBTable;
+    FLOBTable mapTable;
     LRUTable lruTable;
-    map< SmiFileId, SmiRecordFile* > files;
+    typedef map< SmiFileId, SmiRecordFile* > FileTable;
+    FileTable files;
+    SmiRecordFile* lobFile;
+    SmiFileId lobFileId;
+
+    SmiRecordFile* LookUpFile( SmiFileId id, bool tmp );
+    void RemoveFile( SmiFileId id );
+
+
+    Trace trace;
+
+    void traceFile( SmiFileId id, 
+		    bool b, const string& act = "created")
+    {
+      trace.add() << "New LOB-file: action = " << act 
+	          << ", fileId = " << id 
+		  << ", isTempFile = " << b;
+      trace.flush();
+    }
+
 };
 
 #endif
