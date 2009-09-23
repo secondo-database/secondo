@@ -70,7 +70,7 @@ SortAlgorithm::SortAlgorithm( Word stream,
 : F0(0)
 , W(0)
 , nextRunNumber(1)
-, checkProgressAfter(1)
+, checkProgressAfter(10)
 , stream(stream)
 , cmpObj(cmpObj)
 , usedMemory(0)
@@ -133,7 +133,7 @@ SortAlgorithm::SortAlgorithm( Word stream,
   {
     progress->read++;
     Tuple *t = static_cast<Tuple*>( wTuple.addr );
-    size_t s = (int)t->GetSize();
+    size_t s = (int)t->GetExtSize();
 
     if ( traceMode )
     {

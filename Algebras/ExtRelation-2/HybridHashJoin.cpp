@@ -464,7 +464,7 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
       else // bucket completely processed
       {
         // if partition 0 overflows store tuple
-        if ( finishedPartitionB )
+        if ( !finishedPartitionB )
         {
           pmA->Insert(tupleA);
         }

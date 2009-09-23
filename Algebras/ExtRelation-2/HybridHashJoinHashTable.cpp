@@ -153,7 +153,7 @@ int HashTable::ReadFromStream(Word stream, size_t maxSize, bool& finished)
     read++;
     Tuple *t = static_cast<Tuple*>( wTuple.addr );
 
-    bytes += t->GetSize();
+    bytes += t->GetExtSize();
 
     this->Insert(t);
 
