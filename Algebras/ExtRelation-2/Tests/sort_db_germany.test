@@ -97,26 +97,26 @@ query Kreis feed tuplefile consume;
 
 #testcase teststep_5
 #yields success
-query Kreis feed thousand feed head[43] product tuplebuffer[0] consume;
+query Kreis feed thousand feed head[43] head[1] product tuplebuffer[0] consume;
 
 #--------------------------------------------------  
 
 #testcase teststep_6
 #yields success
-query Kreis feed thousand feed head[43] product tuplefile consume;
+query Kreis feed thousand feed head[43] head[1] product tuplefile consume;
 
 #--------------------------------------------------  
 
 #testcase teststep_7
 #yields success
-query Kreis feed thousand feed head[10] product sortby[Gebiet asc] count;
+query Kreis feed thousand feed head[43] head[1] product sortby[Gebiet asc] count;
 
 #--------------------------------------------------  
 # Crash
 
 #testcase teststep_8
 #yields success
-query Kreis feed thousand feed head[10] product sortby2[Gebiet asc] count;
+query Kreis feed thousand feed head[43] head[1] product sortby2[Gebiet asc] count;
 
 
 ##############################################################################

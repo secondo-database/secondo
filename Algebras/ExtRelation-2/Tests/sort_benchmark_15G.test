@@ -45,7 +45,7 @@ restore largetext from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/Tests/object
 #--------------------------------------------------  
 # Create relation with 1 GB data and tuplesize 4 KByte
 
-let R15G_T4KB = plz feed project[PLZ] thousand feed product head[3932160] head[100] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,4031), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
+let R15G_T4KB = plz feed project[PLZ] thousand feed product head[3932160] extend[ival: randint(9), rval: randint(100) * 0.1, bval: TRUE, textval: subtext(largetext,1,4031), ran: randint(100000)] sortby[ran asc] remove[ran] consume;
 
 ##############################################################################
 # TestCases
@@ -59,13 +59,13 @@ query R15G_T4KB feed head[1] tuplesize;
 
 #testcase sortby_T4KB
 #yields success
-query R15G_T4KB feed head[100] sortby[textval asc, PLZ asc] count;
+query R15G_T4KB feed sortby[textval asc, PLZ asc] count;
 
 #--------------------------------------------------  
 
 #testcase sortby2_T4KB
 #yields success
-query R15G_T4KB feed head[100] sortby2[textval asc, PLZ asc] count;
+query R15G_T4KB feed sortby2[textval asc, PLZ asc] count;
 
 
 ##############################################################################
