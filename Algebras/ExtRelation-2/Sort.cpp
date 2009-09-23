@@ -133,17 +133,17 @@ SortAlgorithm::SortAlgorithm( Word stream,
   {
     progress->read++;
     Tuple *t = static_cast<Tuple*>( wTuple.addr );
-    size_t s = (int)t->GetExtSize();
+    size_t extSize = t->GetExtSize();
 
     if ( traceMode )
     {
-      info->UpdateStatistics(s);
+      info->UpdateStatistics(t->GetSize());
     }
 
-    if( usedMemory + s <= MAX_MEMORY )
+    if( usedMemory + extSize <= MAX_MEMORY )
     {
       curRun->AppendToMemory(t);
-      usedMemory += s;
+      usedMemory += extSize;
       //cmsg.info() << "Progress->read: " << progress->read
                   //<< "(UsedMem: " << usedMemory << endl;
       //cmsg.send();
