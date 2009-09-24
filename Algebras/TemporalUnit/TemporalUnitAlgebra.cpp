@@ -190,17 +190,17 @@ Key to STATE of implementation:
     ? : It is unclear, whether it exists or not
 
 ----
-
 */
 
 /*
-
 August 2006, Christian D[ue]ntgen: Added missing checks for ~undefined~
 argument values to all value mapping functions. The functions will now
 return ~undefined~ result values for these cases.
 
 Changed structure of the file to become ordered by operators rather than by
 typemapping, valuemapping etc. This makes the file easier to extend.
+
+September 2009 Simone Jandt: Changed TU\_VM\_ComparePredicateValue\_UReal to use new member function CompUReal of UReal.
 
 */
 
@@ -2853,7 +2853,7 @@ TypeMapMakepoint( ListExpr args )
 */
 int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
 {
-  CcInt* value1, *value2;
+  CcInt* value1=0, *value2=0;
   CcReal* value3, *value4;
   bool paramtype;
 
@@ -9055,7 +9055,7 @@ template <int opcode, int unit_arg>
       localinfo->intersectionBool = new MBool(5);
       local.setAddr(localinfo);
 
-      if ( !u1->IsDefined() || !u2->IsDefined() )
+      if ( !u1->IsDefined()) // || !u2->IsDefined() )
       {
 //           cerr << "Undef input" << endl;
         return 0;
@@ -9159,7 +9159,79 @@ template <int opcode, int unit_arg>
   return -1; // should not be reached
 }
 
+/*
+Implementation changed after ~CompUReal~ becames memberfunction of UReal.
+Simone
 
+*/
+template<int opcode>
+    int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
+                                          int message, Word& local, Supplier s)
+{
+  UReal *u1  = (UReal*) args[0].addr;
+  UReal *u2  = (UReal*) args[1].addr;
+  TUCompareValueLocalInfo *localinfo;
+  const UBool *cu;
+  vector<UBool> res;
+  switch (message)
+  {
+    case OPEN:
+      localinfo = new TUCompareValueLocalInfo;
+      local.setAddr(localinfo);
+      localinfo->finished = true;
+      localinfo->NoOfResults = 0;
+      localinfo->NoOfResultsDelivered = 0;
+      localinfo->intersectionBool = new MBool(5);
+      localinfo->intersectionBool->Clear();
+      if ( !u1->IsDefined() ||
+            !u2->IsDefined() ||
+            !u1->timeInterval.Intersects(u2->timeInterval) )
+      { // no result
+//      cout << "TU_VM_ComparePredicateValue_UReal: No Result." << endl;
+        return 0;
+      }
+      // common deftime --> some result exists
+      
+      u1->CompUReal(*u2, opcode, res);
+      localinfo->intersectionBool->StartBulkLoad();
+      for (size_t i = 0;i < res.size();i++)
+      {
+        localinfo->intersectionBool->MergeAdd(res[i]);
+      }
+      res.clear();
+      localinfo->intersectionBool->EndBulkLoad(true);
+      localinfo->NoOfResults = localinfo->intersectionBool->GetNoComponents();
+      localinfo->finished = ( localinfo->NoOfResults <= 0 );
+      return 0;
+
+  case REQUEST:
+    if (local.addr == 0)
+      return CANCEL;
+    localinfo = (TUCompareValueLocalInfo*) local.addr;
+    if (localinfo->finished)
+      return CANCEL;
+    if (localinfo->NoOfResultsDelivered >= localinfo->NoOfResults)
+    {
+      localinfo->finished = true;
+      return CANCEL;
+    }
+    localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
+    result.setAddr( cu->Clone() );
+    localinfo->NoOfResultsDelivered++;
+    return YIELD;
+
+  case CLOSE:
+    if( local.addr != 0 )
+    {
+      localinfo = (TUCompareValueLocalInfo*) local.addr;
+      delete localinfo->intersectionBool;
+      delete localinfo;
+      local.setAddr(0);
+    }
+  }
+  return -1;
+}
+        /*
 template<int opcode>
 int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
                                       int message, Word& local, Supplier s)
@@ -9374,6 +9446,7 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
   }
   return -1;
 }
+      */
 
 template<int opcode, int unit_arg>
     int TU_VM_ComparePredicateValue_UReal_CcReal(Word* args, Word& result,

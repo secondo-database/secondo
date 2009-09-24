@@ -1523,13 +1523,13 @@ bool UPoint::Passes( const Rectangle<2> &rect  ) const
     Point rP3(true, rect.MinD(0), rect.MaxD(1));
 
     HalfSegment hs(true, rP0, rP1);
-    if( hs.Intersects( uHs ) )	return true;
+    if( hs.Intersects( uHs ) ) return true;
     hs.Set(true, rP1, rP2);
-    if( hs.Intersects( uHs ) )	return true;
+    if( hs.Intersects( uHs ) ) return true;
     hs.Set(true, rP2, rP3);
-    if( hs.Intersects( uHs ) )	return true;
+    if( hs.Intersects( uHs ) ) return true;
     hs.Set(true, rP3, rP1);
-    if( hs.Intersects( uHs ) )	return true;
+    if( hs.Intersects( uHs ) ) return true;
   }
   return false;
 }

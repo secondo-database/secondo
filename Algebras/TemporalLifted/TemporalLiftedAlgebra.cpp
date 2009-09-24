@@ -34,6 +34,8 @@ December 2006: Christian D[ue]ntgen corrected code for ~SolvePoly(...)~
 and separated the solver methods to its own header file called
 ~PolySolver.h~ within the SECONDO ~include~ directory.
 
+September 2009 Simone Jandt: Changed TU\_VM\_ComparePredicateValue\_UReal to use new member function ~CompUReal~ of ~UReal~.
+
 1 Overview
 
 This implementation offers a subset of operators of the ~TemporalAlgebra~,
@@ -679,7 +681,80 @@ static void MRealDistanceMM(MReal& op1, MReal& op2, MReal& result)
 Returns true if the value of these two mReals holds the comparison.
 The comparisons are -3: \#; -2: <; -1: <=; 0: =; 1: >=; 2: >.
 
+Implemetation changed because of missing implementation parts. Now we use
+new UReal::CompUReal -Member function for computing.
+
+The opcodes have to be mapped to the enumeration of that memberfunction,
+which uses different opcode 
+opcode == 0 =
+opcode == 1 \#
+opcode == 2 <
+opcode == 3 >
+opcode == 4 <=
+opcode == 5 >=
+
+Because the function is called from many other parts we have to map the opcodes
+inside the function instead of changing all calling parts.
+
 */
+static void MovingRealCompareMM2(MReal& op1, MReal& op2, MBool&
+    result, int op)
+{
+  int opcode = 0;
+  switch(op)
+  {
+    case -3:
+      opcode = 1;
+      break;
+    case -2:
+      opcode = 2;
+      break;
+    case -1:
+      opcode = 4;
+      break;
+    case 0:
+      opcode = 0;
+      break;
+    case 1:
+      opcode = 5;
+      break;
+    case 2:
+      opcode = 3;
+      break;
+    default: break; //should never been reached
+  }
+  RefinementPartition<MReal, MReal, UReal, UReal> rp(op1, op2);
+  result.Clear();
+  result.Resize(rp.Size());
+  result.StartBulkLoad();
+  for(unsigned int i = 0; i < rp.Size(); i++)
+  {
+    vector<UBool> uv;
+    uv.clear();
+    Interval<Instant>* iv;
+    int u1Pos;
+    int u2Pos;
+    const UReal *u1transfer;
+    const UReal *u2transfer;
+    rp.Get(i, iv, u1Pos, u2Pos);
+    if (u1Pos == -1 || u2Pos == -1)
+      continue;
+    op1.Get(u1Pos, u1transfer);
+    op2.Get(u2Pos, u2transfer);
+    UReal u2 = (UReal) (*u2transfer);
+    UReal u1 = (UReal)(*u1transfer);
+    if(!(u1transfer->IsDefined() && u2transfer->IsDefined()))
+      continue;
+    u1.CompUReal(u2, opcode, uv);
+    for (size_t i = 0;i < uv.size();i++)
+    {
+      result.MergeAdd(uv[i]);
+    }
+    uv.clear();
+  }
+  result.EndBulkLoad(false);
+}
+    /*
 static void MovingRealCompareMM2(MReal& op1, MReal& op2, MBool&
  result, int op)
 {
@@ -845,6 +920,8 @@ static void MovingRealCompareMM2(MReal& op1, MReal& op2, MBool&
   }
   result.EndBulkLoad(false);
 }
+
+      */
 
 /*
 1.1 Method ~MovingRealCompareMM~
