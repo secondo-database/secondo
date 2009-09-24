@@ -5401,7 +5401,10 @@ void MPoint::gk(MPoint& result) const{
   }
   result.EndBulkLoad();
 }
+/*
+Private helper function for the delay operator
 
+*/ 
 
 /*
 4 Type Constructors
@@ -7526,6 +7529,31 @@ ListExpr MovingTypeMapgk(ListExpr args){
    ErrorReporter::ReportError("mpoint  expected");
    return nl->TypeError();
 }
+
+ListExpr DelayOperatorTypeMapping( ListExpr typeList )
+{
+	if(nl->ListLength(typeList) == 2 &&
+			nl->IsAtom(nl->First(typeList)) && 
+			  (nl->SymbolValue(nl->First(typeList))== "mpoint") &&
+			nl->IsAtom(nl->Second(typeList)) && 
+			  (nl->SymbolValue(nl->Second(typeList))== "mpoint"))
+		return (nl->SymbolAtom("mreal"));
+
+/*
+Not implemented: 
+1- Check that the two moving points have the same trajectory.
+2- Check the the trajectory is continuos on the spatial space 
+      (necessary to compute the distance traversed)
+
+*/
+	string argstr;
+	nl->WriteToString(argstr, typeList);
+	cmsg.typeError("delay operator expects a list with structure "
+			"(mpoint mpoint), but got " + argstr);
+	return nl->GetErrorList();
+	
+}
+
 /*
 16.1.12 Type mapping for the ~vertices~  operator
 
@@ -10005,6 +10033,64 @@ int Vertices(Word* args, Word& result,
 }
 
 /*
+16.3.30 Value mapping function for the operator ~delay~
+
+*/
+int DelayOperatorValueMapping( ArgVector args, Word& result,
+		int msg, Word& local, Supplier s )
+{
+	bool debugme=false;
+	MPoint *pActual = static_cast<MPoint*>( args[0].addr );
+	MPoint *pScheduled = static_cast<MPoint*>( args[1].addr );
+
+	MReal* delay= (MReal*) qp->ResultStorage(s).addr;
+	MReal* tmp= pScheduled->DelayOperator(pActual);
+	delay->CopyFrom(tmp);
+	delete tmp;
+	result= SetWord(delay);
+	if(debugme)
+	{
+		cout.flush();
+		delay->Print(cout);
+		cout.flush();
+	}
+	return 0;
+//	result = qp->ResultStorage(s);
+//	result.addr=  pScheduled->DelayOperator(pActual);
+//	return 0;
+}
+
+/*
+16.3.30 Value mapping function for the operator ~distancetraversed~
+
+*/
+
+int DistanceTraversedOperatorValueMapping( ArgVector args, Word& result,
+		int msg, Word& local, Supplier s )
+{
+	bool debugme=false;
+	MPoint *p = static_cast<MPoint*>( args[0].addr );
+
+
+	MPoint* dist= (MPoint*) qp->ResultStorage(s).addr;
+
+	MReal* tmp= p->DistanceTraversed();
+	dist->CopyFrom(tmp);
+	delete tmp;
+	result= SetWord(dist);
+	if(debugme)
+	{
+		cout.flush();
+		dist->Print(cout);
+		cout.flush();
+	}
+	return 0;
+//	result = qp->ResultStorage(s);
+//	result.addr=  pScheduled->DelayOperator(pActual);
+//	return 0;
+}
+
+/*
 16.3.31 Value mapping functions of operator ~bbox~
 
 */
@@ -12411,6 +12497,21 @@ const string TemporalSpecP2Mp  =
   "theInstant(2003,11,20,7),100)</text--->"
   ") )";
 
+OperatorInfo DelayOperatorInfo( "delay",
+  "mpoint x mpoint -> mreal",
+  "delay(schedule, actual movement)",
+  "at every time instance the result will reflect"
+  " how many seconds is the actual movement delayed"
+  " from the scheduled movement",
+  "");
+
+OperatorInfo DistanceTraversedOperatorInfo( "distancetraversed",
+  "mpoint -> mreal",
+  "distancetraversed(schedule)",
+  "Given a mpoint that moves continuously in space the operator will return "
+  "a moving real indicating the total distance traversed so far "
+  "by the moving point",
+  "");
 
 
 /*
@@ -12903,6 +13004,13 @@ Operator p2mp( "p2mp",
                       Operator::SimpleSelect,
                       P2MpTypeMap );
 
+Operator delayoperator(  DelayOperatorInfo,
+		   DelayOperatorValueMapping,
+		   DelayOperatorTypeMapping );
+
+Operator distancetraversedoperator( DistanceTraversedOperatorInfo,
+		   DistanceTraversedOperatorValueMapping,
+		   DistanceTraversedOperatorTypeMapping );
 
 /*
 6 Creating the Algebra
@@ -13044,6 +13152,9 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporaluval);
     AddOperator(&mp2onemp);
     AddOperator(&p2mp);
+    AddOperator(&delayoperator);
+    AddOperator(&distancetraversedoperator);
+
   }
   ~TemporalAlgebra() {};
 };
