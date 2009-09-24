@@ -70,6 +70,16 @@ Checks for a rectangle type
  
   }
 
+/*
+Check for map
+
+*/
+  bool isMap(ListExpr map){
+    return nl->ListLength(map)==3 &&
+           nl->AtomType(nl->First(map))==SymbolType &&
+           nl->SymbolValue(nl->First(map)) == "map";
+  }
+
 
 /*
 Creates a list "typeerror".

@@ -58,9 +58,15 @@ Check for rect, rect3, rect4, rect8
   bool isRectangle(ListExpr args);
 
 
+/*
+Check for map
+
+*/
+  bool isMap(ListExpr args);
+
 
 /*
-Returns tzhe symol typeerror.
+Returns the symbol typeerror.
 
 */
   ListExpr typeError();
