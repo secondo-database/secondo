@@ -551,6 +551,19 @@ Example   : query deftime(mp2onemp ( train1 ,minimum(deftime(train1)),maximum(de
 Result    : (periods (("2003-11-20-06:03" "2003-11-20-06:43" TRUE FALSE)))
 
 
+Operator  : delay
+Number    : 1
+Signature : mpoint x mpoint -> mreal
+Example   : query val(initial(delay(train7, train7)))
+Result    : 0.0
+
+Operator  : distancetraversed
+Number    : 1
+Signature : mpoint -> mreal
+Example   : query val(final(distancetraversed(train7)))
+Result    : 31662.126
+
+
 
 
 

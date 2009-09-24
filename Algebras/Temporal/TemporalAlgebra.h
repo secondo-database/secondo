@@ -2993,7 +2993,24 @@ void EqualizeUnitsSpatial(const double epsilon,
     return "mpoint";
   }
 
+/*
+3.10.5.11 ~Delay Operator~
+Considering this MPoint instance as the schedule, and a given MPoint as the 
+actual movement, the goal is to compute the continuous delay between the two
+MPoints (i.e. How many seconds is the actual movement delayed from the 
+schedule).
+ 
+*/
+    MReal* DelayOperator(const MPoint *actual);
+    MReal* DistanceTraversed(double* ) const;
+    MReal* DistanceTraversed( ) const;
+    
+    
 private:
+   int IntervalRelation(Interval<Instant> &int_a_b, 
+		   Interval<Instant> &int_c_d  ) const;
+   double* MergePartitions(double* first, int firstSize, 
+		   double* second, int secondSize, int& count );
    void Simplify(const int min, const int max,
                  bool* useleft, bool* useright,
                  const double epsilon) const;
