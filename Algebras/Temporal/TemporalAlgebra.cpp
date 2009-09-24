@@ -4208,8 +4208,8 @@ double qdist(const Point& p1, const Point& p2){
 /*
 ~qdist~
 
-This function returns teh square of the distance of the points defined by (~x1~, ~y1~)
-and (~x2~, ~y2~).
+This function returns teh square of the distance of the points defined by 
+(~x1~, ~y1~) and (~x2~, ~y2~).
 
 */
 
@@ -5405,7 +5405,561 @@ void MPoint::gk(MPoint& result) const{
 Private helper function for the delay operator
 
 */ 
+double* MPoint::MergePartitions(double* first, int firstSize, double* second, 
+		int secondSize, int& count )
+{
+	double* res= new double[firstSize + secondSize ];
+	count=0;
+	int index1=0, index2=0;
+	double candidate,last=-1;
+	while(index1 < firstSize && index2< secondSize)
+	{
+		if (first[index1] < second[index2])
+			candidate= first[index1++];
+		else if(first[index1] > second[index2])
+			candidate= second[index2++];
+		else
+		{
+			candidate= second[index2++];
+			index1++;
+		}
+		if(!AlmostEqual(candidate , last))
+			last= res[count++]= candidate;
 
+	}
+	while(index1< firstSize)
+		if( !AlmostEqual((candidate = first[index1++]) , last))
+			last=res[count++]=candidate;
+	while(index2<secondSize)
+		if( !AlmostEqual((candidate = second[index2++]) , last))
+			last=res[count++]=candidate;
+	return res;
+}
+
+/*
+Private helper function for the delay operator
+
+*/ 
+
+int MPoint::IntervalRelation(Interval<Instant> &int_a_b, 
+		Interval<Instant> &int_c_d  ) const
+{
+	double a= int_a_b.start.ToDouble();
+	double b= int_a_b.end.ToDouble();
+	double c= int_c_d.start.ToDouble();
+	double d= int_c_d.end.ToDouble();
+	assert(a < b && c < d );  
+/*
+The assertion will fail in case of numerical instability (i.e: rounding error)
+
+*/
+	if(b < c)  // a----b----c----d
+		return 1;
+	if(a > d)  // c----d----a----b
+		return 2;
+	if(b == c) // a----bc----d
+		return 3;
+	if(d == a) // c----da----b
+		return 4;
+	if(a < c && c < b && b < d) //a----c----b----d
+		return 5;
+	if(c < a && a < d && d < b) //c----a----d----b
+		return 6;
+	if(a==c && b==d) //ac----bd
+		return 7;
+	if(a==c && b< d) //ac----b----d
+		return 8;
+	if(a==c && d< b) //ac----d----b
+		return 9;
+	if(c< a && b==d) //c----a----bd
+		return 10;
+	if(a <c && b==d) //a----c----bd
+		return 11;
+	if(c <a && b <d) //c----a----b----d
+		return 12;
+	if(a <c && d <b) //a----c----d----b
+		return 13;
+	assert(false); //can not be other value
+}
+
+/*
+Helper function for the delay operator
+
+*/ 
+int AtValue(const UReal* unit, double val, Instant& inst, 
+		Interval<Instant>& intr,bool ignorelimits)
+{
+	if(AlmostEqual(unit->b,0))
+	{
+		if(AlmostEqual(unit->c, val))
+		{
+			intr= unit->timeInterval;
+			return 2; //result is the whole unit interval
+		}
+		else
+		{
+			return 0; //result is outside the unit interval
+		}
+	}
+	inst= unit->timeInterval.start;
+	double fraction=  (val - unit->c)/unit->b;
+	Instant at(durationtype);
+	at.ReadFrom(fraction);
+	inst+= at;
+	if( !ignorelimits && ((inst == unit->timeInterval.start && 
+       !unit->timeInterval.lc)  || (inst == unit->timeInterval.end && 
+					!unit->timeInterval.rc)))
+		return 0;
+	if(inst < unit->timeInterval.start  || inst > unit->timeInterval.end)
+		return 0; //result is outside the unit interval
+	return 1; // result is a certain time instant within the unit interval
+}
+/*
+The following macros help make the code of the ~MPoint::DelayOperator~ more 
+readable. They are common code snippets that appear several times within the
+operator. The ~\_startunit~ macro does the necessary variable settings for 
+starting a new delay unit. The ~\_endunit~ macro does the necessary variable 
+settings for closing a new delay unit. The ~\_createunit~ macro uses the 
+local variables to generate a delay unit and appends it to the result. The 
+~\_createunitpar~ macro, creates a delay unit from the parameters and appends 
+it to the result.
+
+*/
+
+#define _startunit(val , t) \
+	delayValueAtUnitStartTime = val; \
+	delayUnitStartTime = t; \
+	atUnitStart = false; \
+	if(debugme) cout<<"\n\t\tStartUnit ("<<val<<" @ "<< t.Print(cout)<<" )";
+
+#define _endunit(val, t) \
+	delayValueAtUnitEndTime=val; \
+	delayUnitEndTime=t; \
+	atUnitStart = true; \
+	if(debugme) cout<<"\n\t\tEndUnit ("<<val<<" @ "<< t.Print(cout)<<" )";
+
+#define _createunitpar(val1, t1, val2, t2) \
+	intr.start=t1; intr.end=t2; \
+	runit= new UReal(intr, val1 * 86400, val2 * 86400); \
+	delayRes->Add(*runit); \
+	delete runit; \
+	if(debugme) cout<<"\n\t\tCreateUnit" ;
+
+#define _createunit \
+	intr.start= delayUnitStartTime; intr.end=delayUnitEndTime; \
+	runit= new UReal(intr, delayValueAtUnitStartTime * 86400, \
+			delayValueAtUnitEndTime * 86400); \
+	delayRes->Add(*runit); \
+	if(debugme) cout<<"\n\t\tCreateIntermediateUnit (" \
+			<< runit->Print(cout)<<" )"; \
+	delete runit;
+
+MReal* MPoint::DelayOperator(const MPoint* actual)
+{
+	bool debugme=false;
+	if(this->GetNoComponents()<1 || actual->GetNoComponents()<1) 
+		return new MReal(0);
+	if( !this->IsDefined() || !actual->IsDefined())
+      { MReal* res= new MReal(0);  res->SetDefined(false); return res;}
+
+	double* partitionActual=new double[actual->GetNoComponents()+1];
+	double* partitionSchedule=new double[this->GetNoComponents()+1];
+	MReal* DTActual= actual->DistanceTraversed(partitionActual);
+	MReal* DTSchedule= this->DistanceTraversed(partitionSchedule);
+	if(!DTActual->IsDefined() || !DTSchedule->IsDefined())
+      { MReal* res= new MReal(0);  res->SetDefined(false); return res;}
+	
+	int DTActualSize= DTActual->GetNoComponents();
+	int DTScheduleSize= DTSchedule->GetNoComponents();
+	int partitionSize;
+	double* partition= 
+        MergePartitions(partitionActual,DTActualSize+1,partitionSchedule, 
+				DTScheduleSize+1,partitionSize);
+
+	if(debugme)
+	{
+		cout.flush();
+		cout<<"\n ActualPartition: ";
+		for(int i=0; i<= DTActualSize; i++)
+			cout<<partitionActual[i]<<"  ";
+		cout<<"\n SchedulePartition: ";
+		for(int i=0; i<= DTScheduleSize; i++)
+			cout<<partitionSchedule[i]<<"  ";
+		cout<<"\n MergedPartition: ";
+		for(int i=0; i< partitionSize; i++)
+			cout<<partition[i]<<"  ";
+		cout.flush();
+	}
+
+	const UReal* actualScanUnit, *scheduleScanUnit;
+	UReal* runit;
+	int actualScanIndex=0, scheduleScanIndex=0;
+	DTActual->Get(actualScanIndex, actualScanUnit);
+	DTSchedule->Get(scheduleScanIndex,scheduleScanUnit);
+
+	MReal* delayRes= new MReal(partitionSize);
+	Intime<CcReal> temp;
+	DTActual->Initial(temp);
+	Instant delayUnitStartTime(temp.instant);
+	Instant delayUnitEndTime(instanttype);
+	Instant scheduledTime(instanttype),actualTime(instanttype);
+	Interval<Instant> scheduledInterval, actualInterval, intr;
+	double delayValueAtUnitStartTime, delayValueAtUnitEndTime;
+	bool atUnitStart=true, isInstantActual=true, isInstantSchedule=true;
+	double distVal;
+	int test;
+	intr.lc=true;
+	intr.rc=false;
+	for(int i=0; i<partitionSize; i++)
+	{
+		distVal=partition[i];
+/*
+The coming steps assumes that DistanceTraversed return an 
+MReal satisfying the minimal presentation condition
+
+*/
+		if(scheduleScanIndex < DTScheduleSize -1)
+          test = AtValue(scheduleScanUnit, distVal, scheduledTime, 
+					scheduledInterval,false);
+		else
+          test = AtValue(scheduleScanUnit, distVal, scheduledTime, 
+					scheduledInterval,true);
+		while( test==0 )
+		{
+			scheduleScanIndex++;
+            assert(scheduleScanIndex < DTSchedule->GetNoComponents());
+			DTSchedule->Get(scheduleScanIndex,scheduleScanUnit);
+			if(scheduleScanIndex < DTScheduleSize -1)
+              test = AtValue(scheduleScanUnit, distVal, scheduledTime, 
+						scheduledInterval,false);
+			else
+              test = AtValue(scheduleScanUnit, distVal, scheduledTime, 
+						scheduledInterval,true);
+
+		}
+		isInstantSchedule = (test==1)? true : false;
+		if(actualScanIndex < DTActualSize -1)
+			test = AtValue(actualScanUnit, distVal, actualTime, 
+					actualInterval,false);
+		else
+			test = AtValue(actualScanUnit, distVal, actualTime, 
+					actualInterval,true);
+		while( test==0 )
+		{
+			actualScanIndex++;
+			assert(actualScanIndex < DTActual->GetNoComponents());
+			DTActual->Get(actualScanIndex,actualScanUnit);
+			if(actualScanIndex < DTActualSize -1)
+               test = AtValue(actualScanUnit, distVal, actualTime, 
+						actualInterval,false);
+			else
+               test = AtValue(actualScanUnit, distVal, actualTime, 
+						actualInterval,true);
+
+		}
+		isInstantActual = (test==1)? true : false;
+
+		if(debugme)
+		{
+			cout<<endl;
+            cout<<"At iteration: "<<i<<" traversed distance: "<< distVal;
+			cout<<"\n\tActual traversed this distance at: ";
+			if(isInstantActual) actualTime.Print(cout); 
+			else actualInterval.Print(cout);
+			cout<<"\n\tSchedule traversed this distance at: ";
+			if(isInstantSchedule) scheduledTime.Print(cout); 
+			else scheduledInterval.Print(cout);
+			cout<<endl<<"\tActions taken:";
+		}
+		
+		if(isInstantActual && isInstantSchedule)
+		{
+			if(atUnitStart)
+			{
+               _startunit( (actualTime - scheduledTime).ToDouble(), 
+						actualTime );
+			}
+			else
+			{
+               _endunit( (actualTime - scheduledTime).ToDouble(), actualTime );
+				_createunit;
+               _startunit(delayValueAtUnitEndTime, delayUnitEndTime);
+			}
+		}
+		else if (isInstantActual && !isInstantSchedule)
+		{
+			if(atUnitStart) 
+/*
+Can happen only if the schedule started with immobile units (distVal==0)
+
+*/
+			{
+				assert(distVal==0);
+                _startunit( (actualTime - scheduledInterval.end).ToDouble() , 
+						actualTime);
+			}
+			else
+			{
+               _endunit((actualTime - scheduledInterval.start).ToDouble() , 
+						actualTime);
+				_createunit;
+               _startunit( (actualTime - scheduledInterval.end).ToDouble() , 
+						actualTime);
+			}
+		}
+		else if (!isInstantActual && isInstantSchedule)
+		{
+			if(atUnitStart) 
+/*
+Can happen only if the actual started with immobile units
+
+*/
+			{
+				assert(distVal==0);
+                //add a delay unit corresponding to the immobile unit
+				_createunitpar( 
+                        (actualInterval.start - scheduledTime).ToDouble(),
+						actualInterval.start,
+                        (actualInterval.end - scheduledTime).ToDouble(),
+						actualInterval.end);
+				//start the next unit
+                _startunit((actualInterval.end - scheduledTime).ToDouble(),
+						actualInterval.end);
+			}
+			else
+			{
+				//close the current unit
+                _endunit((actualInterval.start - scheduledTime).ToDouble(),
+						actualInterval.start);
+				_createunit;
+                //add a delay unit corresponding to the immobile unit
+				_createunitpar( 
+                        (actualInterval.start - scheduledTime).ToDouble(),
+						actualInterval.start,
+                        (actualInterval.end - scheduledTime).ToDouble(),
+						actualInterval.end);
+				//start the next unit
+                _startunit((actualInterval.end - scheduledTime).ToDouble(),
+						actualInterval.end);
+			}
+		}
+		else if(!isInstantActual && !isInstantSchedule)
+		{
+			int intervalRelation= IntervalRelation(actualInterval, 
+					scheduledInterval);
+			Instant a(actualInterval.start), b(actualInterval.end);
+            Instant c(scheduledInterval.start), d(scheduledInterval.end);
+			switch(intervalRelation)
+			{
+			case 1:
+			case 3:
+			{
+                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+                _createunitpar((a-c).ToDouble(),a,(b-c).ToDouble(),b);
+				_startunit((b-d).ToDouble(),b);
+				break;
+			}
+			case 2:
+			case 4:
+			{
+                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+                _createunitpar((a-d).ToDouble(),a,(b-d).ToDouble(),b);
+				_startunit((b-d).ToDouble(),b);
+				break;
+			}
+			case 5:
+			{
+                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+                _createunitpar((a-c).ToDouble(), a, 0, c);
+				_createunitpar(0, c, 0, b);
+				_startunit((b-d).ToDouble(),b);
+				break;
+			}
+			case 6:
+			{
+                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+				_createunitpar(0, a, 0, d);
+                _createunitpar(0, d, (b-d).ToDouble(), b);
+				_startunit((b-d).ToDouble(),b);
+				break;
+			}
+			case 7:
+			{
+                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+                _createunitpar((a-c).ToDouble(),a,(b-d).ToDouble(),b);
+				_startunit((b-d).ToDouble(),b);
+				break;
+			}
+			case 8:
+			{
+                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+                _createunitpar((a-c).ToDouble(), a, 0, b);
+				_startunit((b-d).ToDouble(),b);
+				break;
+			}
+			case 9:
+			{
+                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+                _createunitpar((a-c).ToDouble(), a, 0, d);
+				_createunitpar(0, d, (b-d).ToDouble(), b);
+				_startunit((b-d).ToDouble(),b);
+				break;
+			}
+			case 10:
+			{
+                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+				_createunitpar(0, a, (b-d).ToDouble(),b);
+				_startunit((b-d).ToDouble(),b);
+				break;
+			}
+			case 11:
+			{
+                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+				_createunitpar((a-c).ToDouble(), a, 0, c);
+				_createunitpar(0, c, (b-d).ToDouble(), b);
+				_startunit((b-d).ToDouble(),b);
+				break;
+			}
+			case 12:
+			{
+                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+				_createunitpar(0, a, 0 ,b);
+				_startunit((b-d).ToDouble(),b);
+				break;
+			}
+			case 13:
+			{
+                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+				_createunitpar((a-c).ToDouble(), a, 0, c);
+				_createunitpar(0, c, 0, d);
+				_createunitpar(0, d, (b-d).ToDouble(), b);
+				_startunit((b-d).ToDouble(),b);
+				break;
+			}
+			default:
+				assert(false);
+			}
+		}
+
+	}
+	delete[] partitionActual;
+	delete[] partitionSchedule;
+	delete DTActual;
+	delete DTSchedule;
+	delete[] partition;
+  	return delayRes;
+}
+MReal* MPoint::DistanceTraversed( ) const
+{
+	double * p= new double[GetNoComponents()+1];
+	MReal* res= DistanceTraversed(p);
+	delete[] p;
+	return res;
+}
+
+MReal* MPoint::DistanceTraversed(double* partition ) const
+{
+	bool debugme= false;
+	const UPoint *uPoint;
+	Point last;
+	MReal* dist= new MReal(GetNoComponents());
+	double dist1=0, dist2=0, unitstart=0, unitend=0,lastslope=0,curslope=0;
+	Interval<Instant> interval;
+	UReal* unit=0;
+	int partitionIndex=0;
+
+/*
+The movement must be continuous in time (i.e. without intervals of undefined),
+otherwise, the result is undefined
+
+*/ 
+	Periods defTime( 0 );
+	DefTime( defTime );
+	if(defTime.GetNoComponents()>1 )
+	{
+		MReal* notdef= new MReal(0);
+		notdef->SetDefined(false);
+		return notdef;
+	}
+	
+	try
+	{
+		Get( 0, uPoint );
+		dist1=0;
+		dist2= uPoint->p0.Distance(uPoint->p1);
+		last= uPoint->p1;
+		lastslope= (dist2-dist1)/((uPoint->timeInterval.end - 
+				uPoint->timeInterval.start).ToDouble()* 8640);
+		unitstart = dist1;
+		unitend= dist2;
+		interval=uPoint->timeInterval;
+
+		for( int i = 1; i < GetNoComponents(); i++ )
+		{
+			Get( i, uPoint );
+			if(last != uPoint->p0)
+				throw(1); // The trajectory is not continuous
+			dist1= dist2;
+			dist2= dist1 + uPoint->p0.Distance(uPoint->p1);
+			last= uPoint->p1;
+
+
+			//Assure minimal representation
+			curslope= (dist2-dist1)/((uPoint->timeInterval.end - 
+                uPoint->timeInterval.start).ToDouble()* 8640);
+			if(debugme)
+			{
+				cout.flush();
+                cout<<"\nlastSlope: " <<lastslope << "    curSlope:"<<curslope;
+				cout.flush();
+			}
+			if(curslope != lastslope)
+			{
+				unit = new UReal(interval, unitstart, unitend);
+				if(debugme)
+				{
+					cout.flush();
+					cout<<"\nAdding new UReal";
+//					cout<<"\n\tAt time "<<
+//                    unit->timeInterval.start.GetAllMilliSeconds();
+//                  cout<<" the distance traversed is "<< unit->Min(dummy);
+//					cout<<"\n\tAt time "<<
+//                    unit->timeInterval.end.GetAllMilliSeconds();
+//                  cout<<" the distance traversed is "<< unit->Max(dummy);
+					cout.flush();
+				}
+				dist->Add(*unit);
+				delete unit;
+				partition[partitionIndex]= unitstart;
+				partitionIndex++;
+				unitstart = dist1;
+				unitend= dist2;
+				interval=uPoint->timeInterval;
+				lastslope= curslope;
+			}
+			else
+			{
+				interval.end= uPoint->timeInterval.end;
+				unitend= dist2;
+			}
+		}
+		unit = new UReal(interval, unitstart, unitend);
+		dist->Add(*unit);
+		delete unit;
+
+		partition[partitionIndex]= unitstart;
+		partitionIndex++;
+		partition[partitionIndex]= unitend;
+		dist->TrimToSize();
+		return dist;
+	}
+	catch(int i)
+	{
+		dist->TrimToSize();
+		dist->SetDefined(false);
+		return dist;
+	}
+}
 /*
 4 Type Constructors
 
@@ -6342,7 +6896,7 @@ ListExpr OutUPoint( ListExpr typeInfo, Word value )
 /*
 4.9.5 ~In~-function
 
-The Nested list form is like this:  ( ( 6.37  9.9  TRUE FALSE)   (1.0 2.3 4.1 2.1) )
+The Nested list form is like this:( ( 6.37  9.9  TRUE FALSE) (1.0 2.3 4.1 2.1) )
 
 */
 Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
@@ -7785,8 +8339,8 @@ ListExpr TypeMapApproximate(ListExpr args){
 /*
 16.1.13 Type mapping function ~IntSetTypeMapPeriods~
 
-It is used for the operators ~theyear~, ~themonth~, ~theday~, ~thehour~, ~theminute~,
-~thesecond~
+It is used for the operators ~theyear~, ~themonth~, ~theday~, ~thehour~, 
+~theminute~,~thesecond~
 
 */
 ListExpr
@@ -8553,7 +9107,33 @@ ListExpr P2MpTypeMap(ListExpr args){
   return nl->TypeError();
 }
 
+/*
+~DistanceTraversedTypeMap~
 
+signatures:
+  mpoint -> mreal
+
+*/
+
+ListExpr DistanceTraversedOperatorTypeMapping( ListExpr typeList )
+{
+	if(nl->ListLength(typeList) == 1 &&
+			nl->IsAtom(nl->First(typeList)) && 
+			(nl->SymbolValue(nl->First(typeList))== "mpoint") )
+		return (nl->SymbolAtom("mreal"));
+
+/*
+Not implemented: 
+1- Check the the trajectory is continuos on the spatial space 
+      (necessary to compute the distance traversed)
+
+*/
+		string argstr;
+		nl->WriteToString(argstr, typeList);
+		cmsg.typeError("distancetraversed operator expects a list with "
+				"structure (mpoint), but got " + argstr);
+		return nl->GetErrorList();
+}
 
 /*
 16.2 Selection function
