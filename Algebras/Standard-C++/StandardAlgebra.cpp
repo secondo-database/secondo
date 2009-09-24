@@ -240,6 +240,7 @@ using namespace std;
 #include "NList.h"
 #include "RelationAlgebra.h"
 #include "GenOps.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -1406,20 +1407,18 @@ Type mapping for ~hashvalue~ is
 ListExpr
 CcHashValueTypeMap( ListExpr args )
 {
-  ListExpr arg1, arg2,
-           errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("DATA x int expected");
+    return nl->TypeError();
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
 
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator hasvalue expects a list of length two.");
-
-  arg1 = nl->First( args );
-  arg2 = nl->Second( args );
-
-  CHECK_COND(am->CheckKind("DATA", arg1, errorInfo),
-  "Object type of first argument does not belong to kind DATA!");
-
-  CHECK_COND(nl->SymbolValue( arg2 ) == INT,
-  "Object type of second argument must be int!");
+  if(!listutils::isDATA(arg1) ||
+     !nl->IsEqual(arg2,INT)){
+    ErrorReporter::ReportError("DATA x int expected");
+    return nl->TypeError();
+  }
 
   return (nl->SymbolAtom( "int" ));
 }

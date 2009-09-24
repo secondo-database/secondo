@@ -131,6 +131,7 @@ This file contains the implementation of the stream operators.
 #include "SecondoSystem.h"
 #include "Symbols.h"
 #include "NList.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -3544,51 +3545,29 @@ struct ensure_Info : OperatorInfo {
 /*
 6.3.2 Type mapping of operator ~ensure~
 
+   stream(DATA) x int -> bool
+   stream(tuple(...) x int -> bool
+
 */
 
 ListExpr ensure_tm( ListExpr args )
 {
-  ListExpr first, second, errorInfo;
-  string argstr;
-
-  errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
-
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator head expects a list of length two.");
-
-  first = nl->First(args);
-  second = nl->Second(args);
-
-  // check for first arg == stream of something
-  nl->WriteToString(argstr, first);
-  CHECK_COND( ( nl->ListLength(first) == 2 ) &&
-              ( TypeOfRelAlgSymbol( nl->First(first) ) == stream ),
-    "Operator head expects as first argument a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn)))) or "
-    "(stream T), where T in kind DATA.\n"
-    "Operator head gets as first argument '" + argstr + "'." );
-
-  // check for second argument type == int
-  nl->WriteToString(argstr, second);
-  CHECK_COND((nl->IsAtom(second)) &&
-             (nl->AtomType(second) == SymbolType) &&
-       (nl->SymbolValue(second) == "int"),
-    "Operator head expects a second argument of type integer.\n"
-    "Operator head gets '" + argstr + "'.");
-
-
-  // check for correct stream input type
-  nl->WriteToString(argstr, first);
-  CHECK_COND(
-    ( ( nl->ListLength( nl->Second(first) ) == 2) &&
-      ( TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)) ||
-    ( (nl->IsAtom(nl->Second(first))) &&
-      (am->CheckKind("DATA", nl->Second(first), errorInfo))),
-    "Operator head expects as first argument a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn)))) or "
-    "(stream T), where T in kind DATA.\n"
-    "Operator head gets as first argument '" + argstr + "'." );
-
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two arguments expected");
+    return nl->TypeError();
+  }
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
+  if(!nl->IsEqual(second,"int")){
+    ErrorReporter::ReportError("second argument must be of type int");
+    return nl->TypeError();
+  }
+  if(!listutils::isDATAStream(first) &&
+     !listutils::isTupleStream(first)){
+    ErrorReporter::ReportError("first argument must be of type"
+                               " stream(tuple(...)) or stream(DATA)");
+    return nl->TypeError();
+  }
   return nl->SymbolAtom(BOOL);
 }
 

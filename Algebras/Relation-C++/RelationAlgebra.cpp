@@ -76,6 +76,7 @@ RelationAlgebra.h header file.
 
 #include "LogMsg.h"
 #include "NList.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -848,26 +849,17 @@ first argument.
 */
 ListExpr TUPLETypeMap(ListExpr args)
 {
-  ListExpr first;
-  string argstr;
-
-  CHECK_COND(!nl->IsAtom(args) && !nl->IsEmpty(args),
-  "Type operator TUPLE expects a list and not an atom.");
-
-  first = nl->First(args);
-  nl->WriteToString(argstr, first);
-  CHECK_COND(
-    nl->ListLength(first) == 2 &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == rel ||
-     TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-    "Type operator TUPLE expects as argument a list with "
-    "structure, (rel(tuple((a1 t1)...(an tn)))) or "
-    "(stream(tuple((a1 t1)...(an tn)))).\n"
-    "Type operator TUPLE gets an argument '" + argstr + "'." );
-
-  return nl->Second(first);
+  if(nl->ListLength(args)<1){
+    ErrorReporter::ReportError("One argument expected");
+    return nl->TypeError();
+  }
+  ListExpr first = nl->First(args);
+  if(listutils::isTupleStream(first) || 
+     listutils::isRelDescription(first)){
+    return nl->Second(first);
+  }
+  ErrorReporter::ReportError("rel(tuple(...)) or stream(tuple(...))) expected");
+  return nl->TypeError();
 }
 /*
 
@@ -978,26 +970,17 @@ Result type of feed operation.
 */
 ListExpr FeedTypeMap(ListExpr args)
 {
-  ListExpr first;
-  string argstr;
-
-  CHECK_COND(nl->ListLength(args) == 1,
-    "Operator feed expects a list of length one.");
-
-  first = nl->First(args);
-  nl->WriteToString(argstr, first);
-  CHECK_COND(
-    nl->ListLength(first) == 2
-      && ( TypeOfRelAlgSymbol(nl->First(first)) == rel
-           || TypeOfRelAlgSymbol(nl->First(first)) == trel )
-      && ( !(nl->IsAtom(nl->Second(first)) || nl->IsEmpty(nl->Second(first)))
-      && (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) ),
-  "Operator feed expects an argument of type relation, "
-  "(rel(tuple((a1 t1)...(an tn)))).\n"
-  "Operator feed gets an argument of type '" + argstr + "'."
-  " Relation name not known in the database ?");
-
-  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("one argument expected");
+    return nl->TypeError();
+  }
+  ListExpr first = nl->First(args);
+  if(listutils::isRelDescription(first,true)||
+     listutils::isRelDescription(first,false)){
+    return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
+  }
+  ErrorReporter::ReportError("rel(tuple(...)) or trel(tuple(...)) expected");
+  return nl->TypeError();
 }
 /*
 
@@ -1566,37 +1549,34 @@ Operator ~consume~ accepts a stream of tuples and returns a relation.
 
 ListExpr ConsumeTypeMap(ListExpr args)
 {
-  ListExpr first, tup, tupFirst, type ;
-  string argstr;
-
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator consume expects a list of length one.");
-
-  first = nl->First(args);
-  nl->WriteToString(argstr, first);
-  CHECK_COND(
-    ((nl->ListLength(first) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
-    (!(nl->IsAtom(nl->Second(first)) ||
-       nl->IsEmpty(nl->Second(first))) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
-  "Operator consume expects an argument of type (stream(tuple"
-  "((a1 t1)...(an tn)))).\n"
-  "Operator consume gets an argument of type '" + argstr + "'.");
-  tup = nl->Second(nl->Second(first));
-  while (!(nl->IsEmpty(tup)))
-  {
-    tupFirst = nl->First(tup);
-    type = nl->Second(tupFirst);
-    if (!(nl->IsAtom(type)))
-    {
-      type = nl->First(type);
-      if (nl->IsAtom(type))
-        CHECK_COND( (!(nl->SymbolValue(type) == "arel")),
-           " ");
-    }
-    tup = nl->Rest(tup);
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("one argument expected");
+    return nl->TypeError();
   }
+
+  ListExpr first = nl->First(args);
+
+  if(!listutils::isTupleStream(first)){
+    ErrorReporter::ReportError("stream(tuple(...)) expected");
+    return nl->TypeError();
+  }
+
+  ListExpr attrlist = nl->Second(nl->Second(first));
+
+  // do not allow an arel  attribute for standard consume
+  while(!nl->IsEmpty(attrlist)){
+    ListExpr attr = nl->First(attrlist);
+    attrlist = nl->Rest(attrlist);
+    ListExpr type = nl->Second(attr);
+    if( (nl->ListLength(type)==2) &&
+        (nl->IsAtom(nl->First(type))) &&
+        ( (nl->SymbolValue(nl->First(type))) == "arel")){
+      ErrorReporter::ReportError("arel attributes cannot be processed"
+                                  " with standard consume");
+      return nl->TypeError();
+    }
+  }
+
   return nl->Cons(nl->SymbolAtom("rel"), nl->Rest(first));
 }
 
@@ -1827,44 +1807,32 @@ use "string" as the result type of the ~attr~ operation.
 */
 ListExpr AttrTypeMap(ListExpr args)
 {
-  ListExpr first, second, attrtype;
-  string  attrname, argstr;
-  int j;
-
-  nl->WriteToString(argstr, args);
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator attr expects a list of length two. But got " + argstr + "!");
-
-  first = nl->First(args);
-  nl->WriteToString(argstr, first);
-  CHECK_COND( (nl->ListLength(first) == 2) &&
-              (TypeOfRelAlgSymbol(nl->First(first)) == tuple),
-  "Operator attr expects as first argument a list with structure "
-  "(tuple ((a1 t1)...(an tn)))\n"
-  "Operator attr gets a list with structure '" + argstr + "'.");
-
-  second  = nl->Second(args);
-  nl->WriteToString(argstr, second);
-  CHECK_COND( nl->IsAtom(second) &&
-              nl->AtomType(second) == SymbolType,
-  "Operator attr expects as second argument a symbol atom "
-  "(attributename).\n"
-  "Operator attr gets '" + argstr + "'.");
-
-  attrname = nl->SymbolValue(second);
-  j = FindAttribute(nl->Second(first), attrname, attrtype);
-  if (j)
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-           nl->OneElemList(nl->IntAtom(j)), attrtype);
-  else
-  {
-    nl->WriteToString( argstr, nl->Second(first) );
-    ErrorReporter::ReportError(
-    "Attribute name '" + attrname + "' is not known in the tuple.\n"
-    "Known Attribute(s): " + argstr);
-
-    return nl->SymbolAtom("typeerror");
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two arguments expected");
+    return nl->TypeError();
   }
+  ListExpr first = nl->First(args);
+  if(!listutils::isTupleDescription(first)){
+    ErrorReporter::ReportError("First arguments must be  tuple(...)");
+    return nl->TypeError();
+  }
+  ListExpr second = nl->Second(args);
+  if(nl->AtomType(second)!=SymbolType){
+    ErrorReporter::ReportError("second arguments ust be an attribute name");
+    return nl->TypeError();
+  }
+
+  string name = nl->SymbolValue(second);
+  ListExpr attrtype;
+  int j = listutils::findAttribute(nl->Second(first),name,attrtype);
+  if(j==0){
+    ErrorReporter::ReportError("Attr name " + name + 
+                               " not found in attribute list");
+    return nl->TypeError();
+  }
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+                           nl->OneElemList(nl->IntAtom(j)), 
+                           attrtype);
 }
 /*
 5.7.2 Value mapping function of operator ~attr~
@@ -1934,38 +1902,34 @@ Result type of filter operation.
 */
 ListExpr FilterTypeMap(ListExpr args)
 {
-  ListExpr first, second;
-  string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator filter expects a list of length two.");
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two arguments expected");
+    return nl->TypeError();
+  }
+  if(!listutils::isTupleStream(nl->First(args))){
+    ErrorReporter::ReportError("first argument must be a stream of tuples");
+    return nl->TypeError();
+  }
 
-  first = nl->First(args);
-  second  = nl->Second(args);
+  ListExpr map = nl->Second(args);
+  if(!listutils::isMap(map)){
+     ErrorReporter::ReportError("map expected as the second argument");
+     return nl->TypeError(); 
+  }     
 
-  nl->WriteToString(argstr, first);
-  CHECK_COND(
-    nl->ListLength(first) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-    "Operator filter expects as first argument a list with "
-    "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator filter gets a list with structure '" + argstr + "'.");
+  ListExpr mapres = nl->Third(map);
+  if(!nl->IsEqual(mapres,"bool")){
+    ErrorReporter::ReportError("map is not a predicate");
+    return nl->TypeError();
+  }
 
-  nl->WriteToString(argstr, second);
-  CHECK_COND(nl->ListLength(second) == 3 &&
-             TypeOfRelAlgSymbol(nl->First(second)) == ccmap &&
-             TypeOfRelAlgSymbol(nl->Third(second)) == ccbool,
-    "Operator filter expects a list with structure "
-    "(map (tuple ((a1 t1)...(an tn))) bool)\n"
-    "Operator filter gets a list with structure '" + argstr + "'.");
+  if(!nl->Equal(nl->Second(nl->First(args)),nl->Second(map))){
+    ErrorReporter::ReportError("map and tuple type are not consistent");
+    return nl->TypeError();
+  }
+  return nl->First(args);
 
-  CHECK_COND(nl->Equal(nl->Second(first),nl->Second(second)),
-    "Tuple type in stream is not equal to tuple type "
-    "in the function.");
-
-  return first;
 }
 
 /*
@@ -2253,40 +2217,39 @@ struct ReduceInfo : OperatorInfo {
 
 ListExpr reduce_tm(ListExpr args)
 {
-  string argstr="";
 
-  CHECK_COND(nl->ListLength(args) == 3,
-  "Operator filter expects a list of length three.");
-
+  if(nl->ListLength(args)!=3){
+    ErrorReporter::ReportError("three arguments expected");
+    return nl->TypeError();
+  }
   ListExpr first = nl->First(args);
   ListExpr second  = nl->Second(args);
   ListExpr third  = nl->Third(args);
 
-  nl->WriteToString(argstr, first);
-  CHECK_COND(
-    nl->ListLength(first) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-    "Operator filter expects as first argument a list with "
-    "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator filter gets a list with structure '" + argstr + "'.");
+  if(!listutils::isTupleStream(first)){
+    ErrorReporter::ReportError("first arguments must be a tuple stream");
+    return nl->TypeError();
+  }
+  
+  if(!listutils::isMap(second)){
+    ErrorReporter::ReportError("second argument must be a map");
+    return nl->TypeError();
+  }
+  
+  if(!nl->IsEqual(nl->Third(second),"bool")){
+    ErrorReporter::ReportError("resulttype of the map (2. arg) must be bool");
+    return nl->TypeError();
+  }
+  
+  if(!nl->Equal(nl->Second(first), nl->Second(second))){
+    ErrorReporter::ReportError("different typle types in stream and map");
+    return nl->TypeError(); 
+  }
 
-  nl->WriteToString(argstr, second);
-  CHECK_COND(nl->ListLength(second) == 3 &&
-             TypeOfRelAlgSymbol(nl->First(second)) == ccmap &&
-             TypeOfRelAlgSymbol(nl->Third(second)) == ccbool,
-    "Operator filter expects a list with structure "
-    "(map (tuple ((a1 t1)...(an tn))) bool)\n"
-    "Operator filter gets a list with structure '" + argstr + "'.");
-
-  CHECK_COND(nl->Equal(nl->Second(first),nl->Second(second)),
-    "Tuple type in stream is not equal to tuple type "
-    "in the function.");
-
-  CHECK_COND( (nl->AtomType(third) == SymbolType)
-               && nl->SymbolValue(third) == "int",
-               "Third argument is not of type int." );
+  if(!nl->IsEqual(third,"int")){
+    ErrorReporter::ReportError("third argument must be of type int");
+    return nl->TypeError();
+  }
 
   return first;
 }
@@ -2436,29 +2399,24 @@ ListExpr ProjectTypeMap(ListExpr args)
            numberList=first, outlist=first;
   string attrname="", argstr="";
 
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator project expects a list of length two.");
-
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("tuplestream x arglist expected");
+    return nl->TypeError();
+  }
   first = nl->First(args);
+
+  if(!listutils::isTupleStream(first)){
+    ErrorReporter::ReportError("first argument has to be a tuple stream");
+    return nl->TypeError();
+  }
+
   second = nl->Second(args);
 
-  nl->WriteToString(argstr, first);
-  CHECK_COND(
-    nl->ListLength(first) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-    "Operator project expects a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator project gets a list with structure '" + argstr + "'.");
-
-  nl->WriteToString(argstr, second);
-  CHECK_COND(
-    nl->ListLength(second) > 0 &&
-    !nl->IsAtom(second),
-    "Operator project expects a list with attributenames "
-    "(ai...aj)\n"
-    "Operator project gets a list '" + argstr + "'.");
+  if(nl->ListLength(second)<=0){
+    ErrorReporter::ReportError("non empty attribute name list"
+                               " expected as second argument");
+    return nl->TypeError();
+  } 
 
   noAttrs = nl->ListLength(second);
   set<string> attrNames;
@@ -2484,7 +2442,7 @@ ListExpr ProjectTypeMap(ListExpr args)
        attrNames.insert(attrname);
     }
 
-    j = FindAttribute(nl->Second(nl->Second(first)),
+    j = listutils::findAttribute(nl->Second(nl->Second(first)),
                       attrname, attrtype);
     if (j)
     {
@@ -2835,27 +2793,25 @@ ListExpr RemoveTypeMap(ListExpr args)
   set<int> removeSet;
   removeSet.clear();
 
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator remove expects a list of length two.");
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("tuple stream x attrlist expected");
+    return nl->TypeError();
+  }
 
   first = nl->First(args);
   second = nl->Second(args);
+   
+  if(!listutils::isTupleStream(first)){
+    ErrorReporter::ReportError("first argument is not a tuple stream");
+    return nl->TypeError();
+  }
 
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-             (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-             (nl->ListLength(nl->Second(first)) == 2) &&
-             (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple),
-    "Operator remove expects as first argument a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator remove gets as first argument '" + argstr + "'.");
+  if(nl->ListLength(second)<=0){
+    ErrorReporter::ReportError("non empty attr list "
+                              "expected as second argumnet");
+    return nl->TypeError();
+  }
 
-  nl->WriteToString(argstr, second);
-  CHECK_COND((!nl->IsAtom(second)) &&
-             (nl->ListLength(second) > 0),
-    "Operator remove expects as second argument a list with attribute names "
-    "(ai ... ak), not a single atom and not an empty list.\n"
-    "Operator remove gets '" + argstr + "'.");
 
   while (!(nl->IsEmpty(second)))
   {
@@ -2875,7 +2831,8 @@ ListExpr RemoveTypeMap(ListExpr args)
       return nl->SymbolAtom("typeerror");
     }
 
-    j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
+    j = listutils::findAttribute(nl->Second(nl->Second(first)), 
+                                 attrname, attrtype);
     if (j)  removeSet.insert(j);
     else
     {
@@ -2992,52 +2949,33 @@ The right argument stream will be materialized.
 */
 ListExpr ProductTypeMap(ListExpr args)
 {
-  ListExpr first, second, list, list1, list2, outlist;
-  string argstr;
-
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator product expects a list of length two.");
-
-  first = nl->First(args); second = nl->Second(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-    "Operator product expects a first list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator product gets a first list with structure '" +
-    argstr + "'.");
-
-  list1 = nl->Second(nl->Second(first));
-
-  nl->WriteToString(argstr, second);
-  CHECK_COND(nl->ListLength(second) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(second)) == stream &&
-    nl->ListLength(nl->Second(second)) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple,
-    "Operator product expects a second list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator product gets a second list with structure '" +
-    argstr + "'.");
-
-  list2 = nl->Second(nl->Second(second));
-  list = ConcatLists(list1, list2);
-    // Check whether all new attribute names are distinct
-    // - not yet implemented
-  if ( CompareNames(list) )
-  {
-    outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
-    nl->TwoElemList(nl->SymbolAtom("tuple"), list));
-    return outlist;
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("tweo arguments expected");
+    return nl->TypeError();
   }
-  else
-  {
-    ErrorReporter::ReportError("Operator product: found doubly "
-      "defined attributenames in concatenated list.\n");
-    return nl->SymbolAtom("typeerror");
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
+
+  if(!listutils::isTupleStream(first) ||
+     !listutils::isTupleStream(second)){
+    ErrorReporter::ReportError(" stream(tuple(...)) x "
+                               "stream(tuple(...)) expected");
+    return nl->TypeError();
   }
+
+  ListExpr list1 = nl->Second(nl->Second(first));
+  ListExpr list2 = nl->Second(nl->Second(second));
+ 
+  ListExpr list = ConcatLists(list1, list2);
+  
+  if(!listutils::isAttrList(list)){
+    ErrorReporter::ReportError("name conflict in concatenated tuples");
+    return nl->TypeError();
+  }
+  ListExpr  outlist = nl->TwoElemList(nl->SymbolAtom("stream"),
+                                      nl->TwoElemList(nl->SymbolAtom("tuple"),
+                                                      list));
+  return outlist;
 }
 
 /*
@@ -3476,26 +3414,19 @@ Operator ~count~ accepts a stream of tuples and returns an integer.
 ListExpr
 TCountTypeMap(ListExpr args)
 {
-  ListExpr first;
-  string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator count expects a list of length one.");
-
-  first = nl->First(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND( nl->ListLength(first) == 2 &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    ( TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-      TypeOfRelAlgSymbol(nl->First(first)) == rel ||
-      TypeOfRelAlgSymbol(nl->First(first)) == trel )  &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator count expects a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn)))) or "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator count gets a list with structure '" + argstr + "'.");
-
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("one argument expected");
+    return nl->TypeError();
+  }
+  ListExpr arg = nl->First(args);
+  if(!listutils::isRelDescription(arg,true) &&
+     !listutils::isRelDescription(arg,false) &&
+     !listutils::isTupleStream(arg)){
+    ErrorReporter::ReportError( "rel(tuple(...)) or (trel(tuple(...))"
+                                " or stream(tuple(...)) expected");
+    return nl->TypeError();
+  }
   return nl->SymbolAtom("int");
 }
 
@@ -3520,17 +3451,18 @@ struct CountBothInfo : OperatorInfo {
 ListExpr
 countboth_tm(ListExpr args)
 {
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator countboth expects a list of length two.");
-
-  bool ok = IsStreamDescription( nl->First(args) );
-  ok = ok && IsStreamDescription( nl->Second(args) );
-
-  if (ok) {
-    return nl->SymbolAtom("int");
-  } else {
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two arguments expected");
     return nl->TypeError();
   }
+
+  if(!listutils::isTupleStream(nl->First(args)) ||
+     !listutils::isTupleStream(nl->Second(args))){
+    ErrorReporter::ReportError(" two tuple stream expected");
+    return nl->TypeError();
+  }
+
+  return nl->SymbolAtom("int");
 }
 
 
@@ -3856,26 +3788,17 @@ returns an integer.
 ListExpr
 RootTupleSizeTypeMap(ListExpr args)
 {
-  ListExpr first;
-  string argstr;
-
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator tuplesize expects a list of length one.");
-
-  first = nl->First(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND( nl->ListLength(first) == 2 &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-    TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator roottuplesize expects a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn)))) or "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator roottuplesize gets a list with structure '" +
-    argstr + "'.");
-
+ 
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("one argument expected");
+    return nl->TypeError();
+  }
+  ListExpr first = nl->First(args);
+  if(!listutils::isTupleStream(first) &&
+     !listutils::isRelDescription(first)){
+    ErrorReporter::ReportError("tuple stream or relation expected");
+    return nl->TypeError();
+  }
   return nl->SymbolAtom("int");
 }
 
@@ -3984,26 +3907,16 @@ and returns a real.
 ListExpr
 ExtTupleSizeTypeMap(ListExpr args)
 {
-  ListExpr first;
-  string argstr;
-
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator exttuplesize expects a list of length one.");
-
-  first = nl->First(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND( nl->ListLength(first) == 2 &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-    TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator exttuplesize expects a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn)))) or "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator exttuplesize gets a list with structure '" +
-    argstr + "'.");
-
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("one argument expected");
+    return nl->TypeError();
+  }
+  ListExpr first = nl->First(args);
+  if(!listutils::isTupleStream(first) &&
+     !listutils::isRelDescription(first)){
+    ErrorReporter::ReportError("tuple stream or relation expected");
+    return nl->TypeError();
+  }
   return nl->SymbolAtom("real");
 }
 
@@ -4104,7 +4017,7 @@ is useful for the optimizer, but it is usable as an operator itself.
 Operator ~tuplesize~ accepts a stream of tuples and returns a
 real.
 
-----    (real    (tuple x))                 -> real
+----    (rel    (tuple x))                 -> real
         (stream  (tuple x))                 -> real
 ----
 
@@ -4112,27 +4025,17 @@ real.
 ListExpr
 TupleSizeTypeMap(ListExpr args)
 {
-  ListExpr first;
-  string argstr;
-
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator tuplesize expects a list of length one.");
-
-  first = nl->First(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND( nl->ListLength(first) == 2 &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-    ((TypeOfRelAlgSymbol(nl->First(first)) == rel)
-     || TypeOfRelAlgSymbol(nl->First(first)) == trel)) &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator tuplesize expects a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn)))) or "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator tuplesize gets a list with structure '" +
-    argstr + "'.");
-
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("one argument expected");
+    return nl->TypeError();
+  }
+  ListExpr first = nl->First(args);
+  if(!listutils::isTupleStream(first) &&
+     !listutils::isRelDescription(first,false) &&
+     !listutils::isRelDescription(first,true)){
+    ErrorReporter::ReportError("tuple stream or relation expected");
+    return nl->TypeError();
+  }
   return nl->SymbolAtom("real");
 }
 
@@ -4241,56 +4144,37 @@ an attribute name identifier and returns an integer.
 ListExpr
 RootAttrSizeTypeMap(ListExpr args)
 {
-  ListExpr first, second, attrtype;
-  string argstr, attrname;
+  
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two arguments expected");
+    return nl->TypeError();
+  } 
 
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator tuplesize expects a list of length two.");
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
 
-  first = nl->First(args);
-  second = nl->Second(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND( nl->ListLength(first) == 2 &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-    TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator rootattrsize expects as first argument "
-    "a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn)))) or "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator rootattrsize gets as first argument "
-    "a list with structure '" +
-    argstr + "'.");
-
-  nl->WriteToString(argstr, second);
-  CHECK_COND(
-    nl->IsAtom(second),
-    "Operator rootattrsize expects as second argument an attribute name\n"
-    "Operator rootattrsize gets a list '" + argstr + "'.");
-
-  if (nl->AtomType(second) == SymbolType)
-    attrname = nl->SymbolValue(second);
-  else
-  {
-    ErrorReporter::ReportError(
-      "Attribute name in the list is not of symbol type.");
-    return nl->SymbolAtom("typeerror");
+  if(!listutils::isRelDescription(first) &&
+     !listutils::isTupleStream(first)){
+   ErrorReporter::ReportError("rel(tuple(...)) or stream(tuple(...))" 
+                              " x ident expected");
+   return nl->TypeError();
   }
 
-  int j = FindAttribute(nl->Second(nl->Second(first)),
-                        attrname, attrtype);
+  if(nl->AtomType(second)!=SymbolType){
+    ErrorReporter::ReportError("invalid attribut name as second arg");
+    return nl->TypeError();
+  } 
+  string attrname = nl->SymbolValue(second);
+  ListExpr attrtype;
+  int j = listutils::findAttribute(nl->Second(nl->Second(first)), 
+                                   attrname, attrtype);
   if (!j)
   {
     ErrorReporter::ReportError(
       "Operator rootattrsize: Attribute name '" + attrname +
-      "' is not a known attribute name in the tuple stream.");
-        return nl->SymbolAtom("typeerror");
+      "' is not a known attribute name in the attribute list.");
+     return nl->TypeError();
   }
-
-  // Check whether all new attribute names are distinct
-  // - not yet implemented
 
   return
     nl->ThreeElemList(
@@ -4406,56 +4290,36 @@ an attribute name identifier and returns a real.
 ListExpr
 ExtAttrSizeTypeMap(ListExpr args)
 {
-  ListExpr first, second, attrtype;
-  string argstr, attrname;
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two arguments expected");
+    return nl->TypeError();
+  } 
 
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator tuplesize expects a list of length two.");
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
 
-  first = nl->First(args);
-  second = nl->Second(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND( nl->ListLength(first) == 2 &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-    TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator extattrsize expects as first argument "
-    "a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn)))) or "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator extattrsize gets as first argument "
-    "a list with structure '" +
-    argstr + "'.");
-
-  nl->WriteToString(argstr, second);
-  CHECK_COND(
-    nl->IsAtom(second),
-    "Operator extattrsize expects as second argument an attribute name\n"
-    "Operator extattrsize gets a list '" + argstr + "'.");
-
-  if (nl->AtomType(second) == SymbolType)
-    attrname = nl->SymbolValue(second);
-  else
-  {
-    ErrorReporter::ReportError(
-      "Attribute name in the list is not of symbol type.");
-    return nl->SymbolAtom("typeerror");
+  if(!listutils::isRelDescription(first) &&
+     !listutils::isTupleStream(first)){
+   ErrorReporter::ReportError("rel(tuple(...)) or stream(tuple(...))" 
+                              " x ident expected");
+   return nl->TypeError();
   }
 
-  int j = FindAttribute(nl->Second(nl->Second(first)),
-                        attrname, attrtype);
+  if(nl->AtomType(second)!=SymbolType){
+    ErrorReporter::ReportError("invalid attribut name as second arg");
+    return nl->TypeError();
+  } 
+  string attrname = nl->SymbolValue(second);
+  ListExpr attrtype;
+  int j = listutils::findAttribute(nl->Second(nl->Second(first)), 
+                                   attrname, attrtype);
   if (!j)
   {
     ErrorReporter::ReportError(
-      "Operator extattrsize: Attribute name '" + attrname +
-      "' is not a known attribute name in the tuple stream.");
-        return nl->SymbolAtom("typeerror");
+      "Operator rootattrsize: Attribute name '" + attrname +
+      "' is not a known attribute name in the attribute list.");
+     return nl->TypeError();
   }
-
-  // Check whether all new attribute names are distinct
-  // - not yet implemented
 
   return
     nl->ThreeElemList(
@@ -4572,62 +4436,43 @@ an attribute name identifier and returns a real.
 ListExpr
 AttrSizeTypeMap(ListExpr args)
 {
-  ListExpr first, second, attrtype;
-  string argstr, attrname;
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two arguments expected");
+    return nl->TypeError();
+  } 
 
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator tuplesize expects a list of length two.");
+  ListExpr first = nl->First(args);
+  ListExpr second = nl->Second(args);
 
-  first = nl->First(args);
-  second = nl->Second(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND( nl->ListLength(first) == 2 &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream ||
-    TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple ,
-    "Operator attrsize expects as first argument "
-    "a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn)))) or "
-    "(rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator attrsize gets as first argument "
-    "a list with structure '" +
-    argstr + "'.");
-
-  nl->WriteToString(argstr, second);
-  CHECK_COND(
-    nl->IsAtom(second),
-    "Operator attrsize expects as second argument an attribute name\n"
-    "Operator attrsize gets a list '" + argstr + "'.");
-
-  if (nl->AtomType(second) == SymbolType)
-    attrname = nl->SymbolValue(second);
-  else
-  {
-    ErrorReporter::ReportError(
-      "Attribute name in the list is not of symbol type.");
-    return nl->SymbolAtom("typeerror");
+  if(!listutils::isRelDescription(first) &&
+     !listutils::isTupleStream(first)){
+   ErrorReporter::ReportError("rel(tuple(...)) or stream(tuple(...))" 
+                              " x ident expected");
+   return nl->TypeError();
   }
 
-  int j = FindAttribute(nl->Second(nl->Second(first)),
-                        attrname, attrtype);
+  if(nl->AtomType(second)!=SymbolType){
+    ErrorReporter::ReportError("invalid attribut name as second arg");
+    return nl->TypeError();
+  } 
+  string attrname = nl->SymbolValue(second);
+  ListExpr attrtype;
+  int j = listutils::findAttribute(nl->Second(nl->Second(first)), 
+                                   attrname, attrtype);
   if (!j)
   {
     ErrorReporter::ReportError(
-      "Operator attrsize: Attribute name '" + attrname +
-      "' is not a known attribute name in the tuple stream.");
-        return nl->SymbolAtom("typeerror");
+      "Operator rootattrsize: Attribute name '" + attrname +
+      "' is not a known attribute name in the attribute list.");
+     return nl->TypeError();
   }
-
-  // Check whether all new attribute names are distinct
-  // - not yet implemented
 
   return
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
       nl->OneElemList(nl->IntAtom(j)),
       nl->SymbolAtom("real"));
+
 }
 
 /*
@@ -5125,25 +4970,17 @@ struct TConsumeInfo : OperatorInfo {
 
 ListExpr tconsume_tm(ListExpr args)
 {
-  ListExpr first ;
-  string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator tconsume expects a list of length one.");
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("one argument expected");
+    return nl->TypeError();
+  }
+  if(!listutils::isTupleStream(nl->First(args))){
+    ErrorReporter::ReportError("stream(tuple(...)) expecetd");
+    return nl->TypeError();
+  }
 
-  first = nl->First(args);
-  nl->WriteToString(argstr, first);
-  CHECK_COND(
-    ((nl->ListLength(first) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream)) &&
-    (!(nl->IsAtom(nl->Second(first)) ||
-       nl->IsEmpty(nl->Second(first))) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple)),
-  "Operator tconsume expects an argument of type (stream(tuple"
-  "((a1 t1)...(an tn)))).\n"
-  "Operator tconsume gets an argument of type '" + argstr + "'.");
-
-  return nl->Cons(nl->SymbolAtom("trel"), nl->Rest(first));
+  return nl->Cons(nl->SymbolAtom("trel"), nl->Rest(nl->First(args)));
 }
 
 /*
@@ -5197,44 +5034,42 @@ Type mapping for ~rename~ is
 ListExpr
 RenameTypeMap( ListExpr args )
 {
-  ListExpr first=nl->TheEmptyList();
-  ListExpr first2=first, second=first, rest=first,
-           listn=first, lastlistn=first;
-  string  attrname="", argstr="";
-  string  attrnamen="";
-  bool firstcall = true;
-
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator rename expects a list of length two.");
-
-  first = nl->First(args);
-  second  = nl->Second(args);
-
-  nl->WriteToString(argstr, first);
-  if (!IsStreamDescription(first)) {
-    ErrorReporter::ReportError(
-    "Operator rename expects a valid tuple stream "
-    "Operator rename gets a list with structure '" + argstr + "'.");
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("two arguments expected");
+    return nl->TypeError();
+  }
+  
+  ListExpr first = nl->First(args);
+  ListExpr second  = nl->Second(args);
+  if(!listutils::isTupleStream(first)){
+    ErrorReporter::ReportError("valid tuple stream expected as first arg");
     return nl->TypeError();
   }
 
-  nl->WriteToString(argstr, second);
-  CHECK_COND( nl->IsAtom(second) &&
-    nl->AtomType(second) == SymbolType,
-    "Operator rename expects as second argument a symbol "
-    "atom (attribute suffix) "
-    "Operator rename gets '" + argstr + "'.");
+  if(nl->AtomType(second)!=SymbolType){
+    ErrorReporter::ReportError("second argument must be a symbol");
+    return nl->TypeError();
+  }
 
-  rest = nl->Second(nl->Second(first));
+  ListExpr rest = nl->Second(nl->Second(first));
+  string  attrnamen = nl->SymbolValue(second);
+  bool firstcall=true;
+  ListExpr first2;
+  ListExpr  listn;
+  ListExpr lastlistn;
   while (!(nl->IsEmpty(rest)))
   {
     first2 = nl->First(rest);
     rest = nl->Rest(rest);
     nl->SymbolValue(nl->First(first));
-    attrname = nl->SymbolValue(nl->First(first2));
-    attrnamen = nl->SymbolValue(second);
+    string attrname = nl->SymbolValue(nl->First(first2));
     attrname.append("_");
     attrname.append(attrnamen);
+    if(attrname.length()>MAX_STRINGSIZE){
+      ErrorReporter::ReportError("new attribute name ("+ attrname +
+                                 ") exceeds maximum string size");
+      return nl->TypeError();
+    }
 
     if (!firstcall)
     {
