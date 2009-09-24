@@ -1869,6 +1869,18 @@ Creates the distance to an other UReal value.
      extremum.
    */
 
+    void CompUReal(UReal& ur2, int opcode, vector<UBool>& res);
+    /*
+    Computes for two given ~ureal~ values the resulting ~ubool~ values,
+    sorted by their time intervals, depending on the compare result for
+    ~opcode~. Possible opcode values are:
+    opcode == 0 =
+    opcode == 1 #
+    opcode == 2 <
+    opcode == 3 >
+    opcode == 4 <=
+    opcode == 5 >=
+    */
 
 /*
 3.7.5 Attributes
@@ -4434,7 +4446,7 @@ void Range<Alpha>::Minus( const Range<Alpha>& r, Range<Alpha>& result ) const
         }
         else if( interval->start.Compare( &thisInterval->start ) == 0 )
         {
-          assert( start == NULL & end == NULL );
+          assert( (start == NULL) & (end == NULL) );
 
           if( thisInterval->lc && !interval->lc )
           {

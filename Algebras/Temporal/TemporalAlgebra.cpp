@@ -63,6 +63,8 @@ Sept 2006 Christian D[ue]ntgen implemented ~defined~ flag for unit types
 Febr 2007 Christian D[ue]ntgen implemented ~bbox~ for mpoint and ipoint.
           Added operator ~bbox2d~ to save time when creating spatial indexes
 
+September 2009 Simone Jandt: UReal new Member CompUReal implemented.
+
 [TOC]
 
 1 Overview
@@ -489,7 +491,8 @@ double UReal::Min(bool& correct) const{
   if(!AlmostEqual(a,0)){
      double ts = (-1.0*b)/(2.0*a);
      if( (ts>0) && (ts < t)){
-         v3 = a*ts*ts + b*ts + c;
+        // v3 = a*ts*ts + b*ts + c;
+        v3 = -0.25*b*b/a + c;
      }
   }
   // debug
@@ -506,6 +509,9 @@ double UReal::Min(bool& correct) const{
      min = v3;
   }
   if(r){
+    if(min<0){
+       return 0;
+    }
     return sqrt(min);
   } else {
     return min;
@@ -513,7 +519,8 @@ double UReal::Min(bool& correct) const{
 }
 
 /*
-Replaces this uReal by a linear approximation between the value at the start and the end.
+Replaces this uReal by a linear approximation between the value at the start
+and the end.
 
 */
 void UReal::Linearize(UReal& result) const{
@@ -1274,6 +1281,135 @@ int UReal::Distance(const UReal& other, vector<UReal>& result) const
   return result.size();
 }
 
+    void UReal::CompUReal(UReal& ur2, int opcode, vector<UBool>& res)
+{
+  UReal *u1  = this;
+  UReal *u2  = &ur2;
+  res.clear();
+  if ( !u1->IsDefined() ||!u2->IsDefined() ||
+       !u1->timeInterval.Intersects(u2->timeInterval))
+  {
+    return ;
+  }
+  // common deftime --> some result exists
+  UReal un1(true), un2(true);
+  UBool newunit(true);
+  Interval<Instant>
+    iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
+    ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
+  bool compresult, lc;
+  u1->timeInterval.Intersection(u2->timeInterval, iv);
+  u1->AtInterval(iv, un1);
+  u2->AtInterval(iv, un2);
+  if ( un1.r == un2.r &&
+       AlmostEqual(un1.a, un2.a) &&
+       AlmostEqual(un1.b, un2.b) &&
+       AlmostEqual(un1.c, un2.c))
+  { // equal ureals return single unit: TRUE for =, <=, >=; FALSE otherwise
+    compresult = (opcode == 0 || opcode == 4 || opcode == 5);
+    newunit = UBool(iv, CcBool(true, compresult));
+    res.push_back(newunit);
+    return ;
+  }
+  Periods *eqPeriods = new Periods(4);
+  const Interval<Instant> *actIntv;
+  Instant start(instanttype), end(instanttype), testInst(instanttype);
+  int i, numEq, cmpres;
+  CcReal fccr1(true, 0.0), fccr2(true,0.0);
+  un1.PeriodsAtEqual(un2, *eqPeriods); // only intervals of length
+  numEq = eqPeriods->GetNoComponents();// 1 instant herein (start==end)
+  if ( numEq == 0 )
+  { // special case: no equality -> only one result unit
+    testInst = iv.start + ((iv.end - iv.start) / 2);
+    un1.TemporalFunction(testInst, fccr1, false);
+    un2.TemporalFunction(testInst, fccr2, false);
+    cmpres = fccr1.Compare( &fccr2 );
+    compresult = ( (opcode == 0 && cmpres == 0) ||   // ==
+                   (opcode == 1 && cmpres != 0) ||   // #
+                   (opcode == 2 && cmpres  < 0) ||   // <
+                   (opcode == 3 && cmpres  > 0) ||   // >
+                   (opcode == 4 && cmpres <= 0) ||   // <=
+                   (opcode == 5 && cmpres >= 0)    );// >=
+    newunit = UBool(iv, CcBool(true, compresult));
+    res.push_back(newunit);
+    delete eqPeriods;
+    return ;
+  }
+  // case: numEq > 0, at least one instant of equality
+  // iterate the Periods and create result units
+  start = iv.start;   // the ending instant for the next interval
+  lc = iv.lc;
+  i = 0;              // counter for instants of equality
+  eqPeriods->Get(i, actIntv);
+  // handle special case: first equality in first instant
+  if (start == actIntv->start)
+  {
+    if (iv.lc)
+    {
+      un1.TemporalFunction(un1.timeInterval.start, fccr1, false);
+      un2.TemporalFunction(un2.timeInterval.start, fccr2, false);
+      cmpres = fccr1.Compare( &fccr2 );
+      compresult = ( (opcode == 0 && cmpres == 0) ||
+                     (opcode == 1 && cmpres != 0) ||
+                     (opcode == 2 && cmpres  < 0) ||
+                     (opcode == 3 && cmpres  > 0) ||
+                     (opcode == 4 && cmpres <= 0) ||
+                     (opcode == 5 && cmpres >= 0)    );
+      ivnew = Interval<Instant>(start, start, true, true);
+      newunit = UBool(ivnew, CcBool(true, compresult));
+      res.push_back(newunit);
+      lc = false;
+    } // else: equal instant not in interval!
+    i++;
+  }
+  while ( i < numEq )
+  {
+    eqPeriods->Get(i, actIntv);
+    end = actIntv->start;
+    ivnew = Interval<Instant>(start, end, lc, false);
+    testInst = start + ((end - start) / 2);
+    un1.TemporalFunction(testInst, fccr1, false);
+    un2.TemporalFunction(testInst, fccr2, false);
+    cmpres = fccr1.Compare( &fccr2 );
+    compresult = ( (opcode == 0 && cmpres == 0) ||
+                   (opcode == 1 && cmpres != 0) ||
+                   (opcode == 2 && cmpres  < 0) ||
+                   (opcode == 3 && cmpres  > 0) ||
+                   (opcode == 4 && cmpres <= 0) ||
+                   (opcode == 5 && cmpres >= 0)    );
+    newunit = UBool(ivnew, CcBool(true, compresult));
+    res.push_back(newunit);
+    if ( !(end == iv.end) || iv.rc )
+    {
+      ivnew = Interval<Instant>(end, end, true, true);
+      compresult = (opcode == 0 || opcode == 4 || opcode == 5);
+      newunit = UBool(ivnew, CcBool(true, compresult));
+      res.push_back(newunit);
+    }
+    start = end;
+    i++;
+    lc = false;
+  }
+  if ( start < iv.end )
+  { // handle teq[numEq-1] < iv.end
+    ivnew = Interval<Instant>(start, iv.end, false, iv.rc);
+    testInst = start + ((iv.end - start) / 2);
+    un1.TemporalFunction(testInst, fccr1, false);
+    un2.TemporalFunction(testInst, fccr2, false);
+    cmpres = fccr1.Compare( &fccr2 );
+    compresult = ( (opcode == 0 && cmpres == 0) ||
+                   (opcode == 1 && cmpres != 0) ||
+                   (opcode == 2 && cmpres  < 0) ||
+                   (opcode == 3 && cmpres  > 0) ||
+                   (opcode == 4 && cmpres <= 0) ||
+                   (opcode == 5 && cmpres >= 0)    );
+    newunit = UBool(ivnew, CcBool(true, compresult));
+    res.push_back(newunit);
+  }
+  delete eqPeriods;
+  return ;
+}
+
 
 /*
 3.1 Class ~UPoint~
@@ -1329,8 +1465,8 @@ would then be very hard to return a true for this function.
   assert( p.IsDefined() );
   assert( IsDefined() );
 
-  if( timeInterval.lc && AlmostEqual( p, p0 ) ||
-      timeInterval.rc && AlmostEqual( p, p1 ) )
+  if( (timeInterval.lc && AlmostEqual( p, p0 )) ||
+      (timeInterval.rc && AlmostEqual( p, p1 )) )
     return true;
 
   if( AlmostEqual( p0.GetX(), p1.GetX() ) &&
@@ -1374,28 +1510,28 @@ bool UPoint::Passes( const Region& r ) const
 
 bool UPoint::Passes( const Rectangle<2> &rect  ) const
 {
-	if( AlmostEqual( p0, p1 ) )
-		return p0.Inside(rect);
-	HalfSegment uHs( true, p0, p1 );
-	if( rect.Intersects( uHs.BoundingBox() ) )
-	{
-		if( p0.Inside(rect) || p1.Inside( rect) )
-			return true;
-		Point rP0(true, rect.MinD(0), rect.MinD(1));
-		Point rP1(true, rect.MaxD(0), rect.MinD(1));
-		Point rP2(true, rect.MaxD(0), rect.MaxD(1));
-		Point rP3(true, rect.MinD(0), rect.MaxD(1));
+  if( AlmostEqual( p0, p1 ) )
+    return p0.Inside(rect);
+  HalfSegment uHs( true, p0, p1 );
+  if( rect.Intersects( uHs.BoundingBox() ) )
+  {
+    if( p0.Inside(rect) || p1.Inside( rect) )
+      return true;
+    Point rP0(true, rect.MinD(0), rect.MinD(1));
+    Point rP1(true, rect.MaxD(0), rect.MinD(1));
+    Point rP2(true, rect.MaxD(0), rect.MaxD(1));
+    Point rP3(true, rect.MinD(0), rect.MaxD(1));
 
-		HalfSegment hs(true, rP0, rP1);
-		if( hs.Intersects( uHs ) )	return true;
-		hs.Set(true, rP1, rP2);
-		if( hs.Intersects( uHs ) )	return true;
-		hs.Set(true, rP2, rP3);
-		if( hs.Intersects( uHs ) )	return true;
-		hs.Set(true, rP3, rP1);
-		if( hs.Intersects( uHs ) )	return true;
-	}
-	return false;
+    HalfSegment hs(true, rP0, rP1);
+    if( hs.Intersects( uHs ) )	return true;
+    hs.Set(true, rP1, rP2);
+    if( hs.Intersects( uHs ) )	return true;
+    hs.Set(true, rP2, rP3);
+    if( hs.Intersects( uHs ) )	return true;
+    hs.Set(true, rP3, rP1);
+    if( hs.Intersects( uHs ) )	return true;
+  }
+  return false;
 }
 
 bool UPoint::At( const Point& p, TemporalUnit<Point>& result ) const
