@@ -28,6 +28,7 @@ import java.util.*;
 import sj.lang.*;
 import communication.optimizer.*;
 import tools.Reporter;
+import java.io.File;
 
 /**
  * The command area is a component of the GUI. Here the user
@@ -59,6 +60,8 @@ public class CommandPanel extends JScrollPane {
   private OptimizerSettingsDialog OptSet = new OptimizerSettingsDialog(null);
   private Object SyncObj = new Object();
   private boolean ignoreCaretUpdate=false;
+
+  private StoredQueriesDialog favouredQueries = new StoredQueriesDialog(null);
 
   /**
    * The constructor sets up the internal textarea.
@@ -1162,6 +1165,58 @@ public class CommandPanel extends JScrollPane {
     }
   }
 
+
+  /** Saves all favoured queries into a file **/
+  public void saveQueries(File f){
+    saveQueries(f.getAbsolutePath());
+  }
+
+  public void saveQueries(String f){
+    if(! favouredQueries.saveToFile(f)){
+        Reporter.showError("Cannot save favoured queries");
+    } 
+  }
+
+  public void loadQueries(File f){
+    loadQueries(f.getAbsolutePath());
+  }
+
+  public void loadQueries(String f){
+    if(favouredQueries.readFromFile(f)>0){
+     Reporter.showError("Errors in loading favoured queries");
+    }
+  }
+
+  public String getLastCommand(){
+    return (String)History.get(History.size()-1);
+  }
+
+  public void addLastQuery(){
+    if(History.size()==0){
+      Reporter.showError("no last query exists");
+      return;
+    }
+    String name = JOptionPane.showInputDialog("Please enter a name for that query");
+    if(name==null){
+       return;
+    }
+    if(favouredQueries.contains(name)){
+       if(JOptionPane.showConfirmDialog(this,"name already exists,\n overwrite command?")== JOptionPane.YES_OPTION){
+          favouredQueries.remove(name);
+          favouredQueries.add(name,getLastCommand());
+       }
+    } else {
+       favouredQueries.add(name,getLastCommand());
+    }
+  }
+
+  public void showQueries(){
+    String q = favouredQueries.showQueries();
+    if(q!=null){
+      showPrompt();
+      appendText(q);
+    }
+  }
 
   class ReturnKeyAdapter extends KeyAdapter {
     int HistoryPos;

@@ -37,6 +37,7 @@ public class MainWindow extends JFrame implements ResultProcessor,ViewerControl,
 
 public final static String CONFIGURATION_FILE="gui.cfg";
 public final static String AUTO_HISTORY_FILE=".gui_history";
+public final static String AUTO_QUERY_FILE=".gui_queries";
 // the last ... entries of the history are stored
 public final static int AUTO_HISTORY_LENGTH=100;
 public final static int MIN_FONTSIZE = 6;
@@ -89,6 +90,10 @@ private JMenuItem MI_SaveHistory;
 private JMenuItem MI_ClearHistory;
 private JMenuItem MI_ExtendHistory;
 private JMenuItem MI_ReplaceHistory;
+private JMenuItem MI_AddLastQuery;
+private JMenuItem MI_ShowQueries;
+private JMenuItem MI_SaveQueries;
+private JMenuItem MI_LoadQueries;
 private JMenuItem MI_Close;
 private JMenuItem MI_Snapshot;
 
@@ -182,6 +187,7 @@ private ProgressTimer progressTimer;
 
 
 private JFileChooser FC_History = new JFileChooser(".");
+private JFileChooser FC_Queries = new JFileChooser(".");
 private JFileChooser FC_ExecuteFile = new JFileChooser(".");
 private JFileChooser FC_Database = new JFileChooser(".");
 private JFileChooser FC_Snapshot = new JFileChooser(".");
@@ -250,6 +256,7 @@ public MainWindow(String Title,String user,String passwd){
           ComPanel.disableOptimizer();
 	  ComPanel.disconnect();
 	  saveHistory(new File(AUTO_HISTORY_FILE),false,AUTO_HISTORY_LENGTH);
+    ComPanel.saveQueries(new File(AUTO_QUERY_FILE));
 	  System.exit(0);
        }
   });
@@ -538,6 +545,7 @@ public MainWindow(String Title,String user,String passwd){
 
    String SecondoHomeDir = Config.getProperty("SECONDO_HOME_DIR");
    String HistoryDirectory="";
+   String QueryDirectory="";
    String DatabaseDirectory="";
    String SnapshotDirectory="";
 
@@ -598,6 +606,7 @@ public MainWindow(String Title,String user,String passwd){
    if(SecondoHomeDir!=null){
       ObjectDirectory = SecondoHomeDir+FS+"Data"+FS+"GuiData"+FS+"gui"+FS+"objects";
       HistoryDirectory = SecondoHomeDir+FS+"Data"+FS+"GuiData"+FS+"gui"+FS+"histories";
+      QueryDirectory = SecondoHomeDir+FS+"Data"+FS+ "GuiData"+FS+"gui"+FS+"queries"; 
       DatabaseDirectory = SecondoHomeDir+FS+"Data"+FS+"Databases";
       SnapshotDirectory = SecondoHomeDir+FS+"Data"+FS+"GuiData"+FS+"gui"+FS+"snapshots";
    }
@@ -617,17 +626,24 @@ public MainWindow(String Title,String user,String passwd){
    if(TMPHistoryDirectory!=null)
         HistoryDirectory = TMPHistoryDirectory;
 
+   String TMPQueryDirectory = Config.getProperty("QUERY_DIRECTORY");
+   if(TMPQueryDirectory!=null){
+       QueryDirectory = TMPQueryDirectory;
+   }
+
    String TMPSnapshotDirectory= Config.getProperty("SNAPSHOT_DIRECTORY");
    if(TMPSnapshotDirectory!=null)
         SnapshotDirectory = TMPSnapshotDirectory;
 
    Reporter.writeInfo("set objectdirectory to "+ObjectDirectory);
    Reporter.writeInfo("set historydirectory to "+HistoryDirectory);
+   Reporter.writeInfo("set querydirectory to "+QueryDirectory);
    Reporter.writeInfo("set databasedirectory to "+DatabaseDirectory);
    Reporter.writeInfo("set snapshotdirectory to "+SnapshotDirectory);
 
    OList.setObjectDirectory(new File(ObjectDirectory));
    FC_History.setCurrentDirectory(new File(HistoryDirectory));
+   FC_Queries.setCurrentDirectory(new File(QueryDirectory));
    FC_Database.setCurrentDirectory(new File(DatabaseDirectory));
    FC_Snapshot.setCurrentDirectory(new File(SnapshotDirectory));
    pngFilter = new FileFilter(){
@@ -759,6 +775,8 @@ public MainWindow(String Title,String user,String passwd){
 
     // load the last history
     loadHistory(new File(AUTO_HISTORY_FILE),false,false);
+    // load the queries
+    ComPanel.loadQueries(AUTO_QUERY_FILE);
 
 
     // we create a global keylistener for making screenshots
@@ -2396,8 +2414,7 @@ private void createMenuBar(){
    HistoryMenu.add(LoadHistoryMenu);
    MI_ExtendHistory = LoadHistoryMenu.add("Append");
    MI_ReplaceHistory = LoadHistoryMenu.add("Replace");
-
-
+   
    ActionListener HistoryListener = new ActionListener(){
        public void actionPerformed(ActionEvent evt){
           Object Source = evt.getSource();
@@ -2411,11 +2428,43 @@ private void createMenuBar(){
              loadHistory(true);
        }
    };
-
+   
    MI_SaveHistory.addActionListener(HistoryListener);
    MI_ClearHistory.addActionListener(HistoryListener);
    MI_ExtendHistory.addActionListener(HistoryListener);
    MI_ReplaceHistory.addActionListener(HistoryListener);
+
+
+   JMenu QueryMenu = new JMenu("Favoured Queries");
+   ProgramMenu.add(QueryMenu);
+   MI_AddLastQuery = new JMenuItem("Add Last Query");
+   MI_ShowQueries = new JMenuItem("Show");
+   MI_SaveQueries = new JMenuItem("Save");
+   MI_LoadQueries = new JMenuItem("Load");
+   QueryMenu.add(MI_AddLastQuery);
+   QueryMenu.add(MI_ShowQueries);
+   QueryMenu.add(MI_SaveQueries);
+   QueryMenu.add(MI_LoadQueries);
+
+   ActionListener QueryListener = new ActionListener(){
+     public void actionPerformed(ActionEvent evt){
+        Object source = evt.getSource();
+        if(source.equals(MI_AddLastQuery)){
+          MainWindow.this.addLastQuery();
+        } else if(source.equals(MI_ShowQueries)){
+          MainWindow.this.showQueries();
+        } else if (source.equals(MI_SaveQueries)){
+          MainWindow.this.saveQueries();
+        } else if(source.equals(MI_LoadQueries)){
+          MainWindow.this.loadQueries();
+        }
+     }
+   };
+
+   MI_AddLastQuery.addActionListener(QueryListener);
+   MI_ShowQueries.addActionListener(QueryListener);
+   MI_SaveQueries.addActionListener(QueryListener);
+   MI_LoadQueries.addActionListener(QueryListener);
    
    MI_Snapshot = ProgramMenu.add("Snapshot");
    MI_Snapshot.setAccelerator(KeyStroke.getKeyStroke("alt C"));
@@ -2440,8 +2489,9 @@ private void createMenuBar(){
    MI_Close.addActionListener( new ActionListener(){
      public void actionPerformed(ActionEvent E){
         ComPanel.disconnect();
-	ComPanel.disableOptimizer();
-	saveHistory(new File(AUTO_HISTORY_FILE),false,AUTO_HISTORY_LENGTH);
+        ComPanel.disableOptimizer();
+        saveHistory(new File(AUTO_HISTORY_FILE),false,AUTO_HISTORY_LENGTH);
+        ComPanel.saveQueries(AUTO_QUERY_FILE);
         System.exit(0);
      }});
 
@@ -2858,6 +2908,30 @@ private void loadHistory(File F,boolean replace,boolean showMessage){
         for(int i=0;i<TMP.size();i++)
            ComPanel.addToHistory((String)TMP.get(i));
       }
+}
+
+/** adds the last command to be a favoured query **/
+public void addLastQuery(){
+   ComPanel.addLastQuery();
+}
+
+/** Opens the dialog to select an of the favoured queries **/
+public void showQueries(){
+   ComPanel.showQueries();
+}
+
+/** Saves all favoured quries into a file **/
+public void saveQueries(){
+  if(FC_Queries.showOpenDialog(this)==JFileChooser.APPROVE_OPTION){
+      ComPanel.saveQueries(FC_Queries.getSelectedFile());
+  }
+}
+
+/** loads the favoured queries from afile **/
+public void loadQueries(){
+  if(FC_Queries.showSaveDialog(this)==JFileChooser.APPROVE_OPTION){
+    ComPanel.saveQueries(FC_Queries.getSelectedFile());
+  }
 }
 
 
