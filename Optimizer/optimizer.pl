@@ -1331,6 +1331,9 @@ plan_to_atom(isknn(TID, K, QueryObj, Rel_Attr), Result):-
   !.
 
 
+% special rule to handle special attribute ~rowid~
+plan_to_atom(rowid,' tupleid(.)' ) :- !.
+
 plan_to_atom(A,A) :-
   string(A),
   !.
@@ -1730,10 +1733,7 @@ plan_to_atom(false, Result) :-
   concat_atom(['FALSE'], '', Result),
   !.
 
-% plan_to_atom(now, Result) :-
-%   concat_atom(['now()'], '', Result),
-%   !.
-
+% rule to handle null-ary operators like now(), today(), seqnext()
 plan_to_atom(Op, Result) :-
   atom(Op),
   secondoOp(Op, prefix, 0),
@@ -2431,8 +2431,14 @@ indexselect(arg(N), pr(Pred, _)) =>
 indexselect(arg(N), pr(Pred, Rel)) => X :-
   Pred =.. [OP, Y, attr(AttrName, Arg, Case)],
   not(isSubquery(Y)),
-  isBBoxPredicate(OP),
-  isCommutativeOP(OP),
+  ( optimizerOption(determinePredSig)
+    -> ( checkOpProperty(Pred,comm),
+         isBBoxPredicate(Pred,_Dim)
+       )
+    ;  ( isBBoxPredicate(OP),
+         isCommutativeOP(OP)
+       )
+  ),
   Pred2 =.. [OP, attr(AttrName, Arg, Case), Y],
   indexselect(arg(N), pr(Pred2, Rel)) => X.
 
@@ -2999,7 +3005,14 @@ this section, and it worked. There seems to exist a critical cut somewhere...
 
 join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
   Pred =.. [Op, X, Y],
-  isBBoxPredicate(Op),
+  ( optimizerOption(determinePredSig)
+    -> ( checkOpProperty(Pred,comm),
+         isBBoxPredicate(Pred,_Dim)
+       )
+    ; (isBBoxPredicate(Op),
+       isCommutativeOP(Op)
+      )
+  ),
   X = attr(_, _, _),
   Y = attr(_, _, _), !, % perhaps, this cut is the reason to the ^^^problem
   Arg1 => Arg1S,
@@ -3011,7 +3024,14 @@ join(Arg1, Arg2, pr(Pred, R1, R2)) => JoinPlan :-
 join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S,
   Arg2S, attrname(Attr1), attrname(Attr2)), Pred2) :-
   Pred =.. [Op, X, Y],
-  isBBoxPredicate(Op),
+  ( optimizerOption(determinePredSig)
+    -> ( checkOpProperty(Pred,comm),
+         isBBoxPredicate(Pred,_Dim)
+       )
+    ; (isBBoxPredicate(OP),
+       isCommutativeOP(OP)
+      )
+  ),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y),
   Pred2 =.. [Op, Attr1, Attr2].
@@ -3020,8 +3040,14 @@ join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg1S,
 join00(Arg1S, Arg2S, pr(Pred, _, _)) => filter(spatialjoin(Arg2S,
   Arg1S, attrname(Attr2), attrname(Attr1)), Pred2) :-
   Pred =.. [Op, Y, X],
-  isCommutativeOP(Op),
-  isBBoxPredicate(Op),
+  ( optimizerOption(determinePredSig)
+    -> ( checkOpProperty(Pred,comm),
+         isBBoxPredicate(Pred,_Dim)
+       )
+    ;  ( isBBoxPredicate(OP),
+         isCommutativeOP(OP)
+       )
+  ),
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, Y, X),
   Pred2 =.. [Op, Attr1, Attr2].
@@ -5336,6 +5362,9 @@ Currently only this basic part of SQL has been implemented.
 
 We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 
+(Here, only SQL keywords should be defined.
+ Operator syntax is defined in file ~opsyntax.pl~!)
+
 */
 
 
@@ -5798,6 +5827,9 @@ lookupAttr(*, *) :- assert(isStarQuery), !.
 lookupAttr(count(T), count(T2)) :-
   lookupAttr(T, T2), !.
 
+% special clause for rowid
+lookupAttr(rowid, rowid) :- !.
+
 /*
 Special clause for ~aggregate~
 Here, only descend into the aggregation attribute/expression (1st argument)
@@ -6056,6 +6088,9 @@ lookupPred1(patternex(Preds,C, F), patternex(Res,C1, F1), RelsBefore, RelsAfter)
   !.
 
 % Section:End:lookupPred1_2_m
+
+% special case for rowid
+lookupPred1(rowid, rowid, RelsBefore, RelsBefore) :- !.
 
 lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-  %if placed before lookupPred1(pattern*), pattern query crash
   compound(Term),
@@ -7694,7 +7729,7 @@ Examples 14 - 22:
 
 */
 
-
+% Example: test standard-optimization
 sqlExample( 14,
 
   select *
@@ -7726,6 +7761,7 @@ which initializes the local stack to 4 MB.
 Example 17 is too complex for the interesting Orders extension (even with 64M stacks):
 
 */
+
 sqlExample( 17,
   select *
   from [staedte, plz as p1, plz as p2, plz as p3]
@@ -7742,7 +7778,6 @@ sqlExample( 17,
     p3:ort starts "M"]
   ).
 
-
 sqlExample( 18,
   select *
   from [staedte, plz as p1]
@@ -7756,7 +7791,6 @@ sqlExample( 18,
     p1:ort contains "burg",
     p1:ort starts "M"]
   ).
-
 
 sqlExample( 19,
   select *
@@ -7773,7 +7807,6 @@ sqlExample( 19,
     p1:ort starts "M"]
   ).
 
-
 sqlExample( 20,
   select *
   from [staedte as s, plz as p]
@@ -7783,7 +7816,6 @@ sqlExample( 20,
     s:bev > 300000]
   ).
 
-
 sqlExample( 21,
   select *
   from [staedte, plz as p1, plz as p2, plz as p3]
@@ -7791,6 +7823,28 @@ sqlExample( 21,
     sname = p1:ort,
     p1:plz = p2:plz + 1,
     p2:plz = p3:plz * 5]
+  ).
+
+
+% Example: test reserved pseudo-attribute 'rowid', which is translated to
+%          'tupleid(.)'
+sqlExample( 51,
+  select [no, rowid as ii]
+  from ten
+  ).
+
+sqlExample( 52,
+  select [no, tid2int(rowid) as id]
+  from ten
+  where (tid2int(rowid) < 6) and (no = no)
+  ).
+
+% Example: test null-ary function with implicit parameter, as 'today,
+%          randmax, now'
+sqlExample( 53,
+  select [no, now as time, today as date]
+  from ten
+  where (no > 5)
   ).
 
 % Example: user defined aggregation with grouping

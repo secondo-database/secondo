@@ -616,9 +616,12 @@ ppCostFactor(1) :- !.
 
 
 showDebugLevel :-
-  findall(X,optDebugLevel(X),List),
-  write('\tDebug levels: '),
-  write(List), nl.
+  findall(X,optActiveDebugLevel(X),AList),
+  findall(X,optDebugLevel(X),DList),
+  write('\tAvailable Debug levels: '),
+  write(DList), nl,
+  write('\tActive Debug levels: '),
+  write(AList), nl.
 
 toggleDebug :-
   optimizerOption(debug),
@@ -637,17 +640,68 @@ toggleDebug :-
   !.
 
 debugLevel(Mode) :-
-  \+(optDebugLevel(Mode)) -> assert(optDebugLevel(Mode)),
+  ( Mode = all ; optDebugLevel(Mode) ),
+  ( optActiveDebugLevel(Mode)
+      -> write_list(['Debug Level \'',Mode,'\' is already active.\n'])
+      ;  assert(optActiveDebugLevel(Mode))
+  ),
   showDebugLevel,
-  nl.
+  nl, !.
+
+debugLevel(Mode) :-
+  Mode \= all ,
+  not(optDebugLevel(Mode)),
+  findall(X,optDebugLevel(X), L),
+  findall(X,optActiveDebugLevel(X),A),
+  write_list(['DebugLevel \'',Mode,'\' is unknown.\n\n',
+              'Available debugLevels are:\n',L,'.\n\n',
+              'Active debugLevels are:\n',A,'.\n']),
+  !.
 
 nodebugLevel(Mode) :-
-  optDebugLevel(Mode) -> retractall(optDebugLevel(Mode)),
+  ( Mode = all ; optDebugLevel(Mode) ),
+  ( optActiveDebugLevel(Mode)
+      -> retractall(optActiveDebugLevel(Mode))
+      ;  write_list(['Debug Level \'',Mode,'\' is not active.\n'])
+  ),
   showDebugLevel,
-  nl.
+  nl, !.
+
+nodebugLevel(Mode) :-
+  Mode \= all,
+  not(optDebugLevel(Mode)),
+  findall(X,optDebugLevel(X), L),
+  findall(X,optActiveDebugLevel(X),A),
+  write_list(['DebugLevel \'',Mode,'\' is unknown.\n\n',
+              'Available debugLevels are:\n',L,'.\n\n',
+              'Active debugLevels are:\n',A,'.\n']),
+  !.
 
 /*
-3.2 Switching between optimization module options
+3.2 Registering Debug Levels
+
+Each debug level is required to be registered by a fact ~optDebugLevel/1~ here:
+
+*/
+
+optDebugLevel(bestPlan).         % Prompting best plan generated
+optDebugLevel(costFunctions).    % Tracing some cost function calls
+optDebugLevel(dbhandling).       % Processing database object metadata
+optDebugLevel(immPath).          % Monitoring immediate path generation
+optDebugLevel(insertExtend).     % Tracing insertExtend during plan rewriting
+optDebugLevel(intOrders).        % Monitoring interesting orders extension
+optDebugLevel(pog).              % Printing info on pog
+optDebugLevel(rewrite).          % General info on rewriting
+optDebugLevel(rewriteCSE).       % Tracing CSE rewriting
+optDebugLevel(rewriteMacros).    % Macro expansion during query rewriting
+optDebugLevel(rewritePlan).      % Plan rewriting
+optDebugLevel(subqueryUnnesting).
+optDebugLevel(subqueryDebug).
+optDebugLevel(temprels).
+optDebugLevel(selectivity).      % Details on selectivity queries
+
+/*
+3.3 Switching between optimization module options
 
 */
 
@@ -734,8 +788,8 @@ Print debugging information
 Predicate ~dm/1~ can be used as ~write~/1. Output is printed when optimizer option
 debug is defined (see file operators.pl).
 
-Predicate ~dm(mode,message)~ writes ~message~ if ~optDebugLevel(mode)~
-or ~optDebugLevel(all)~ is defined.
+Predicate ~dm(mode,message)~ writes ~message~ if ~optActiveDebugLevel(mode)~
+or ~optActiveDebugLevel(all)~ is defined.
 
 */
 
@@ -751,8 +805,17 @@ dm(X) :-
 dm(_) :- !.
 
 dm(Level, X) :-
-  ( optDebugLevel(Level) ; optDebugLevel(all) ), !,
-  dm(X).
+  ( ( optActiveDebugLevel(Level) ; optActiveDebugLevel(all) )
+    -> dm(X)
+    ;  ( optDebugLevel(Level)
+           -> true
+           ;  ( write_list(['\nERROR:\tdebugLevel \'',Level,'\' is unknown!\n',
+                    '\tplease register it with a fact optDebugLevel/1 in file',
+                    '\n\tcalloptimizer.pl.\n\n']),
+                dm(X)
+              )
+       )
+  ), !.
 
 dm(_,_) :- !.
 
@@ -770,8 +833,15 @@ dc(Command) :-
 dc(_) :- !.
 
 dc(Level, Command) :-
-  ( optDebugLevel(Level) ; optDebugLevel(all) ), !,
-  dc(Command).
+  ( optDebugLevel(Level)
+    -> ( ( optActiveDebugLevel(Level) ; optActiveDebugLevel(all) ),
+           !,
+           dc(Command)
+       )
+    ;  write_list(['\nERROR:\tdebugLevel \'',Level,'\' is unknown!\n',
+                   '\tplease register it with a fact optDebugLevel/1 in file',
+                   '\tcalloptimizer.pl.\n\n'])
+  ), !.
 
 dc(_,_) :- !.
 
@@ -830,7 +900,7 @@ defaultOptions :-
 
 loadOptions :-
   delAllOptions,
-  retractall(optDebugLevel(_)),
+  retractall(optActiveDebugLevel(_)),
   consult('config_optimizer.pl').
 
 saveSingleOption(Stream) :-
@@ -840,7 +910,7 @@ saveSingleOption(Stream) :-
   write(Stream, '.\n').
 
 saveSingleDebugLevel(Stream) :-
-  optDebugLevel(X),
+  optActiveDebugLevel(X),
   write(Stream, ':- '),
   write(Stream, debugLevel(X)),
   write(Stream, '.\n').

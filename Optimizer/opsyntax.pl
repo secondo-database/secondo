@@ -56,71 +56,63 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-:- op(200, xfx, :).
-
-:- op(800, xfx, =>).
-:- op(800, xfx, <=).
-:- op(800, xfx, #).
-:- op(800, xfx, div).
-:- op(800, xfx, mod).
-:- op(800, xfx, and).
-:- op(800, xfx, starts).
-:- op(800, xfx, contains).
-
-:- op(800, xfx, ==).
-:- op(800, xfx, ##).
-:- op(800, xfx, <<).
-:- op(800, xfx, >>).
-:- op(800, xfx, <<==).
-:- op(800, xfx, >>==).
 :- op(800, xf , ++).
+:- op(200, xfx, :).
+:- op(800, xfx, =>).
+:- op(800, xfx, ==).
+:- op(800, xfx, <=).
+:- op(800, xfx, <<).
+:- op(800, xfx, <<==).
+:- op(800, xfx, >>).
+:- op(800, xfx, >>==).
+:- op(800, xfx, #).
+:- op(800, xfx, ##).
+:- op(800, xfx, adjacent).
+:- op(800, xfx, always).
+:- op(800, xfx, and).
+:- op(800, xfx, at).
+:- op(800, xfx, atinstant).
+:- op(800, xfx, atperiods).
+:- op(800, xfx, attached).
+:- op(800, xfx, before).
 :- op(800, xf , category).
-
+:- op(800, xfx, commonborder).
+:- op(800, xfx, commonborderscan).
+:- op(800, xfx, contains).
+:- op(800, xfx, div).
+:- op(800, xfx, eplus).
+:- op(800, xfx, equalway).
+:- op(800, xfx, ininterior).
+:- op(800, xfx, inside).
+:- op(800, xfx, insideold).
+:- op(800, xfx, intersection).
+:- op(800, xfx, intersects).
+:- op(800, xfx, intersects_new).
 :- op(800, xf , isgrayscale).
 :- op(800, xf , isportrait).
 :- op(800, xf , height).
 :- op(800, xf , leapyear).
 :- op(800, xf , line2region).
+:- op(800, xfx, mod).
+:- op(800, xfx, never).
+:- op(800,  fx, not).
+:- op(800, xfx, onborder).
+:- op(800, xfx, overlaps).
+:- op(800, xfx, or).
+:- op(800, xfx, p_intersects).
+:- op(800, xfx, passes).
 :- op(800, xf , picturedate).
+:- op(800, xfx, present).
 :- op(800, xf , rect2region).
 :- op(800, xf , relcount).
 :- op(800, xf , relcount2).
-
-:- op(800, xfx, inside).
-:- op(800, xfx, insideold).
-:- op(800, xfx, intersects).
-:- op(800, xfx, adjacent).
-:- op(800, xfx, attached).
-:- op(800, xfx, overlaps).
-:- op(800, xfx, onborder).
-:- op(800, xfx, ininterior).
-:- op(800, xfx, touchpoints).
-:- op(800, xfx, intersection).
-:- op(800, xfx, commonborder).
-:- op(800, xfx, commonborderscan).
-
-:- op(800, xfx, or).
-:- op(800,  fx, not).
-
-:- op(800, xfx, before).
-:- op(800, xfx, present).
-:- op(800, xfx, passes).
-:- op(800, xfx, atinstant).
-:- op(800, xfx, atperiods).
-:- op(800, xfx, at).
-
 :- op(800, xfx, satisfies).
-:- op(800, xfx, when).
-:- op(800, xfx, sometimes).
-:- op(800, xfx, never).
-:- op(800, xfx, always).
-:- op(800, xfx, eplus).
-
 :- op(800, xfx, simpleequals).
-
-:- op(800, xfx, intersects_new).
-:- op(800, xfx, p_intersects).
-:- op(800, xfx, equalway).
+:- op(800, xfx, sometimes).
+:- op(800, xfx, starts).
+:- op(800, xfx, touchpoints).
+:- op(800, xfx, union).
+:- op(800, xfx, when).
 
 % Section:Start:opSyntaxPreference_3_e
 % Section:End:opSyntaxPreference_3_e

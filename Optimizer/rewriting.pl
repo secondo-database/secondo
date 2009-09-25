@@ -81,7 +81,7 @@ macros within ~QueryIn~ and unifies rewritten query with ~QueryOut~.
 */
 
 rewriteQueryForMacros(QueryIn,QueryIn) :-
-  not(optimizerOption(rewriteMacros)), !.
+  \+ optimizerOption(rewriteMacros), !.
 
 rewriteQueryForMacros(QueryIn,QueryOut) :-
   extractMacros(QueryIn, QueryTmp),
@@ -145,7 +145,7 @@ extractMacros1(Macro as Mnemo) :-
   fail.
 
 extractMacros1(X as Mnemo) :-
-  not(atom(Mnemo)),
+  \+ atom(Mnemo),
   concat_atom(['Right side of a macro declaration \'<macro> as <mnemo>\' ',
                'must be an identifier.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
@@ -155,8 +155,8 @@ extractMacros1(X as Mnemo) :-
   fail.
 
 extractMacros1(Macro as Mnemo) :-
-  not(isUsedMnemo(Mnemo)),
-  not(isCyclicMacro(Mnemo)),
+  \+ isUsedMnemo(Mnemo),
+  \+ isCyclicMacro(Mnemo),
   asserta(storedMacro(Mnemo, Macro)), % bring later macros to front
   !.
 
@@ -236,7 +236,7 @@ flattenMacros :-
   flattenMacro(Mnemo),
   fail.
 
-flattenAllMacros :- not(flattenMacros).
+flattenAllMacros :- \+ flattenMacros.
 
 
 /*
@@ -246,7 +246,7 @@ flattenAllMacros :- not(flattenMacros).
 */
 
 rewriteQueryForInferenceOfPredicates(Query, Query) :-
-  not(optimizerOption(rewriteInference)), !.
+  \+ optimizerOption(rewriteInference), !.
 
 rewriteQueryForInferenceOfPredicates(Query, RewrittenQuery) :-
   optimizerOption(rewriteInference),
@@ -318,7 +318,7 @@ to suppress empty data within the result of the query.
 
 % Skip, if optimizerOption(rewriteNonempty) undefined
 rewriteQueryForNonempty(Query, Query) :-
-  not(optimizerOption(rewriteNonempty)), !.
+  \+ optimizerOption(rewriteNonempty), !.
 
 % Normal query (without nonempty)
 rewriteQueryForNonempty(Query, Query) :-
@@ -702,13 +702,19 @@ extended attribute.
 ---- rewriteQueryForCSE(+Query,-RewrittenQuery)
 ----
 
-~rewriteQueryForCSE/2~ is currently not used. Instead, the query is optimized
-as usual and the resulting plan is rewritten using ~rewritePlanforCSE/2~.
+As the last step of Query Rewriting, ~rewriteQueryForCSE/2~ is callsed to mark
+up all expensive CSEs. Now, during plan rewriting, this information is used by
+~rewritePlanforCSE/2~ and its auxiliary predicates to avoid repeated calculation
+of CSEs.
 
-Prepares ~Query~ such that the optimizer will avoid repetitive evaluation of
-~expensive~ common subexpressions (CSEs). A CSE is expensive, if it contains at
-least one operator labeled by ~rewritingCSEExpensiveOP/1~. The definitions of
-~rewritingCSEExpensiveOP/1~ should be moved to file operators.pl later.
+The predicate prepares ~Query~ such that the optimizer will avoid repetitive e
+valuation of ~expensive~ common subexpressions (CSEs). If type inference is not
+used, a CSE is expensive, if it contains at least one operator labeled by
+~rewritingCSEExpensiveOP/1~. If type inference is used, an operator is expensive,
+if the operator flag ~exp~ is defined for a given signature.
+
+The definitions of ~rewritingCSEExpensiveOP/1~ should be moved to file
+~operators.pl~ later.
 
 The processing scheme for CSEs will optimize the unchanged query, but replace
 CSEs within the plan later on by virtual attributes. To continue the use of
@@ -721,25 +727,26 @@ allow the (re-) use of virtual attributes within the select-clause.
 */
 
 rewriteQueryForCSE(Query, Query) :-
-  not(optimizerOption(rewriteCSE)), !.
+  \+ optimizerOption(rewriteCSE), !.
 
 rewriteQueryForCSE(QueryIn, QueryIn) :-
   optimizerOption(rewriteCSE),
   retractExpressionLabels,          % delete old data
   dm(rewriteCSE,['Expression Labels after retractExpressionLabels']),
   dc(rewriteCSE,showExpressionLabels),   % output debugging info
-  findCSEs(QueryIn, expensive, _),  % find all expensive subexpressions
+  findCSEs(QueryIn, all, _),  % find all subexpressions
+%  findCSEs(QueryIn, expensive, _),  % find all expensive subexpressions
   dm(rewriteCSE,['Expression Labels after findCSEs']),
   dc(rewriteCSE,showExpressionLabels),   % output debugging info
   retractNonCSEs,                   % delete expressions used less than twice
   dm(rewriteCSE,['Expression Labels after retractNonCSEs']),
   dc(rewriteCSE,showExpressionLabels),   % output debugging info
-  replaceAllCSEs,                   % nest CSEs but also save flat CSE expression
-  dm(rewriteCSE,['Expression Labels after replaceAllCSEs']),
-  dc(rewriteCSE,showExpressionLabels),   % output debugging info
-%  compactCSEs(QueryIn, QueryOut, _), % replace CSEs by virtual attributes
-%  dm(rewriteCSE,['\nREWRITING: Substitute Common Subexpressions\n\tIn:  ',
-%              QueryIn,'\n\tOut: ',QueryOut,'\n\n']),
+%  replaceAllCSEs,                   % nest CSEs but also save flat CSE expression
+%  dm(rewriteCSE,['Expression Labels after replaceAllCSEs']),
+%  dc(rewriteCSE,showExpressionLabels),   % output debugging info
+%%  compactCSEs(QueryIn, QueryOut, _), % replace CSEs by virtual attributes
+%%  dm(rewriteCSE,['\nREWRITING: Substitute Common Subexpressions\n\tIn:  ',
+%%              QueryIn,'\n\tOut: ',QueryOut,'\n\n']),
   !.
 
 
@@ -799,21 +806,21 @@ replace_term(Term, SubExpr, _, Term) :-
   Term \= SubExpr.
 
 /*
----- findCSEs(+Node, +Mode, -Expensive)
+---- findCSEs(+Node, +Mode, -IsExpensive)
 ----
 
 Creates a dynamic table ~storedExpressionLabel(FlatExpr,Label,NoOccurences,CompactExp)~ by
-parsing the operator tree for term ~node~.
+parsing the operator tree for term ~Node~.
 
 Depending on ~Mode~, either all subexpressions are idexed (Mode = all), or only
-expensive subexpressions (Mode \= all) are indexed.
+expensive subexpressions (Mode \= expensive) are indexed.
 
 Each sub-expression ~FlatExpr~ is labeled with an unique identifier ~label~ and the
 number of encountered occurrences ~NoOccurences~ of ~FlatExpr~.
 
 If a term contains an expensive operator (as indicated by a defined fact
-~rewritingCSEExpensiveOP(OP)~), ~Expensive~ will be 1, 0
-otherwise.
+~rewritingCSEExpensiveOP(OP)~, or by an operator flag ~exp~ when type inference
+is used), ~IsExpensive~ will be 1, 0 otherwise.
 
 If a complete CSE has an alias (like `CSE as Alias'), its label is Alias rather
 than the canonical label cse\_N.
@@ -856,22 +863,22 @@ getExpressionLabel(Node, Label) :-
 
 getExpressionLabel(Node, Label) :-
   var(Label),
-  not(storedExpressionLabel(Node, _, _, _)),
+  \+ storedExpressionLabel(Node, _, _, _),
   gensym(cse_, Label),
   !,
   assert(storedExpressionLabel(Node, Label, 1, *)).
 
 getExpressionLabel(Node, Label) :- % case: Label unknown, Node unknown
   nonvar(Label),
-  not(storedExpressionLabel(_, Label, _, _)),
-  not(storedExpressionLabel(Node, _, _, _)),
+  \+ storedExpressionLabel(_, Label, _, _),
+  \+ storedExpressionLabel(Node, _, _, _),
   !,
   assert(storedExpressionLabel(Node, Label, 1, *)).
 
 getExpressionLabel(Node, Label) :-
 % case: Label unknown, Node known - Change Label if OldLabel is canonical
   nonvar(Label),
-  not(storedExpressionLabel(_, Label, _, _)),
+  \+ storedExpressionLabel(_, Label, _, _),
   storedExpressionLabel(Node, OldLabel, NoOcc, X),
   sub_atom(OldLabel, 0, _, _, cse_),
   NoOcc1 is NoOcc + 1,
@@ -886,9 +893,9 @@ getExpressionLabel(Node, Label) :-
 % This can happen if a column is multiplied in the output
 % (e.g. select[Expr as n1, Expr as n2]...)
   nonvar(Label),
-  not(storedExpressionLabel(_, Label, _, _)),
+  \+ storedExpressionLabel(_, Label, _, _),
   storedExpressionLabel(Node, OldLabel, NoOcc, X),
-  not(sub_atom(OldLabel, 0, _, _, cse_)),
+  \+ sub_atom(OldLabel, 0, _, _, cse_),
   NoOcc1 is NoOcc + 1,
   !,
   retractall(storedExpressionLabel(Node, OldLabel, NoOcc, X)),
@@ -919,28 +926,32 @@ getExpressionLabel(Node, Label) :- % case: Label known, Node conflicts - Error
 
 
 % find all CSEs
-findCSEs1([], _, 0).      % nothing to do
-findCSEs1([Me|Others],Mode,Expense) :-
+% ---- findCSEs1(+Term, +Mode, -IsExpensive) ----
+
+% process a single list:
+findCSEs1([], _, 0).                         % empty list: nothing to do
+findCSEs1([Me|Others],Mode,Expense) :-       % nonempty list: recurse into all
   findCSEs1(Others, Mode, OthersExpense),
   findCSEs(Me, Mode, MyExpense),
   Expense is MyExpense \/ OthersExpense, !.
 
 findCSEs(Node, _, 0) :-   % Node is a leaf. No label is assigned to leaves.
-  ( atomic(Node) ; Node = :(_,_) ), !.
+  ( atomic(Node) ; Node = :(_,_) ), !. % example: no, ten:no
 
+% list of arguments
 findCSEs(NodeList, Mode, Expense) :-
   is_list(NodeList),
   findCSEs1(NodeList, Mode, Expense), !.
 
 findCSEs(Node, Mode, 1) :- % Don't recurse into term, if term is already known
-  not(optimizerOption(rewriteCSEall)),
+  \+ optimizerOption(rewriteCSEall),
   Mode \= all,
   storedExpressionLabel(Node, _, _, _),
   getExpressionLabel(Node, _), !.
 
 findCSEs(Node, Mode, Expense) :-
   compound(Node),                      % Node is an inner node.
-  not(is_list(Node)),
+  \+ is_list(Node),
   Node =.. [as, Arg, Alias],           % special case: renaming
   findCSEs_alias_case(Arg, Mode, Alias, Expense), % use specialized predicate
   ((Mode = all ; Expense = 1)          % check if Node should be indexed
@@ -949,30 +960,34 @@ findCSEs(Node, Mode, Expense) :-
   ), !.
 
 findCSEs(Node, Mode, Expense) :-
-  compound(Node),             % Node is an inner node.
-  not(is_list(Node)),
-  Node =.. [Me|MyArgs],       % decompose node
-  findCSEs1(MyArgs, Mode, ArgsExpense),
-  (rewritingCSEExpensiveOP(Me)
-   -> Expense is 1
-    ; Expense is ArgsExpense
+  compound(Node),                   % Node is an inner node.
+  \+ is_list(Node),
+  Node =.. [Op|Args],               % decompose node
+  findCSEs1(Args, Mode, ArgsExpense),
+  ( rewritingCSEExpensiveOP(Op)
+    -> ( Expense is 1,
+         dm(rewriteCSE,['\n',findCSEs(Node, Mode, Expense),': FOUND!\n'])
+       )
+    ;  Expense is ArgsExpense
   ),
-  ((Mode = all ; Expense = 1)  % check if Node should be indexed
-    -> getExpressionLabel(Node,_)   % handle only expensive CSEs
-     ; true
+  ( (Mode = all ; Expense = 1)      % check if Node should be indexed
+    *-> getExpressionLabel(Node,_)   % handle only expensive CSEs
+     ;  true
   ), !.
 
 % like findCSEs(Node, Mode, Expense), but use Alias as potential label
 findCSEs_alias_case(Node, Mode, Alias, Expense) :-
   compound(Node),             % Node is an inner node.
-  not(is_list(Node)),
-  Node =.. [Me|MyArgs],       % decompose node
-  findCSEs1(MyArgs, Mode, ArgsExpense),
-  (rewritingCSEExpensiveOP(Me)
-   -> Expense is 1
-    ; Expense is ArgsExpense
+  \+ is_list(Node),
+  Node =.. [Op|Args],         % decompose node
+  findCSEs1(Args, Mode, ArgsExpense),
+  ( rewritingCSEExpensiveOP(Op)
+    -> ( Expense is 1,
+         dm(rewriteCSE,['\n',findCSEs(Node, Mode, Expense),': FOUND!\n'])
+       )
+    ;  (Expense is ArgsExpense)
   ),
-  ((Mode = all ; Expense = 1)  % check if Node should be indexed
+  ((Mode = all ; Expense = 1)           % check if Node should be indexed
     -> getExpressionLabel(Node,Alias)   % handle only expensive CSEs
      ; true
   ), !.
@@ -992,7 +1007,7 @@ and also return a list ~Used~ of all applied CSE-labels.
 % Starting rules to avoid replacement of X by X
 compactCSEs(Node, NodeMarked, Used) :-
   compound(Node),
-  not(is_list(Node)),
+  \+ is_list(Node),
   Node =.. [Me|MyArgs],
   compactCSEs_1(MyArgs, MyArgsMarked, MyArgsUsed),
   NodeMarked =.. [Me|MyArgsMarked],
@@ -1021,14 +1036,14 @@ compactCSEs_(NodeList, MarkedNodeList, Used) :-
 
 compactCSEs_(Node, NodeMarked, Used) :- % Node is a CSE
   compound(Node),
-  not(is_list(Node)),
+  \+ is_list(Node),
   storedExpressionLabel(Node, MyLabel, _, _),
   NodeMarked = MyLabel,
   Used = [MyLabel], !.
 
 compactCSEs_(Node, NodeMarked, Used) :- % Node is not a CSE
   compound(Node),
-  not(is_list(Node)),
+  \+ is_list(Node),
   Node =.. [Me|MyArgs],
   compactCSEs_1(MyArgs, MyArgsMarked, MyArgsUsed),
   ( (Me = as, MyArgsMarked = [Alias,Alias])
@@ -1064,6 +1079,7 @@ replaceSingleCSEList([Me|Others]) :-
 /*
 ---- retractNonCSE/0
 ----
+
 Remove non-CSE entries from the expression table.
 
 */
@@ -1074,7 +1090,114 @@ retractNonCSE :-
   retractall(storedExpressionLabel(_,Label,_,_)),
   fail.
 
-retractNonCSEs :- not(retractNonCSE).
+retractNonCSEs :- \+ retractNonCSE.
+
+/*
+---- retractInexpensiveCSE/0
+----
+
+Remove inexpensive CSEs from the expression table.
+
+*/
+retractInexpensiveCSE :-
+  storedExpressionLabel(TermFlat,Label,Occ,C),
+  registerCSE1(TermFlat, TermCompact, [], _),
+%  \+ isExpensive(TermCompact),
+  \+ isExpensive_debug(TermCompact),
+  retractall(storedExpressionLabel(_,Label,_,_)),
+  dm(rewriteCSE,['\nDEBUG: retractInexpensiveCSE --- dropped: ',
+                 storedExpressionLabel(TermFlat,Label,Occ,C),'!\n']),
+  fail.
+
+retractInexpensiveCSEs :- \+ retractInexpensiveCSE.
+
+/*
+----
+getAllUsedRelations(-RelList)
+----
+
+Retrieve all used relations from ~queryRel/2~ and ~variable/2~ and store,
+combine them with each possible argument number (1, 2) and store the pairs in
+~RelList~.
+
+*/
+
+getAllUsedRelations(RelList) :-
+  findall(rel(X,Y),queryRel(_,rel(X,Y)),L1).
+
+/*
+----
+isExpensive(+TermCompact)
+----
+
+Succeeds, iff ~TermCompact~ (provided in full internal representation, using ~attr/3~
+contains an expensive operator.
+
+*/
+
+isExpensive_debug(X) :-
+  dm(rewriteCSE,['\nDEBUG: ',isExpensive(X), ' called...\n']),
+  ( isExpensive(X)
+    -> dm(rewriteCSE,['\nDEBUG: ',isExpensive(X), ' succeeds.\n'])
+    ;  ( dm(rewriteCSE,['\nDEBUG: ',isExpensive(X), ' fails.\n']), fail )
+  ).
+
+% argument list
+isExpensive(arglist([])) :- !, fail.
+
+isExpensive(arglist([X])) :-
+  is_list(X),
+  catch((string_to_list(_,X), Test=ok),_,Test=failed), Test=failed, !, fail.
+
+isExpensive(arglist([X])) :- isExpensive_debug(X), !.
+
+isExpensive(arglist([X|R])) :-
+  is_list(X),
+  catch((string_to_list(_,X), Test=ok),_,Test=failed), Test=failed,
+  ( isExpensive_debug(arglist(X)) ; isExpensive_debug(arglist(R)) ), !.
+
+isExpensive(arglist([X|R])) :-
+  ( isExpensive(X) ; isExpensive_debug(arglist(R)) ), !.
+
+% attribute
+isExpensive(attr(_,_,_)) :- !, fail.
+
+% int, real, bool, type, null-ary operator
+isExpensive(X) :- atomic(X), !, fail.
+
+% string-atom
+isExpensive(TextAtom) :-
+  is_list(TextAtom), TextAtom = [First | _], atomic(First), !,
+  string_to_list(_,TextAtom), !, fail.
+
+% relation-descriptor
+isExpensive(rel(_, _)) :- !, fail.
+
+% type-descriptor
+isExpensive(DCType) :-
+  secDatatype(DCType, _, _, _, _, _), !, fail.
+
+% object descriptor
+isExpensive(object(_)) :- !, fail.
+
+isExpensive(Term) :-
+  compound(Term),
+  \+ is_list(Term),
+  Term =.. [Op|Args], !,
+  (   ( optimizerOption(determinePredSig)
+        *-> ( getTypeTree(Term,TermTree),
+              dm(rewriteCSE,['\nDEBUG: Type tree is ',TermTree,'\n']),
+              checkOpProperty(Term,exp),
+              dm(rewriteCSE,['\nDEBUG: ',Op, ' is expensive.\n'])
+            )
+        ;   ( rewritingCSEExpensiveOP(Op),
+              dm(rewriteCSE,['\nDEBUG: ',Op, ' is expensive.\n'])
+            )
+      )
+    ; ( dm(rewriteCSE,['\nDEBUG: ',Op, ' is inexpensive.\n']),
+        isExpensive_debug(arglist(Args))
+      )
+  ), !.
 
 /*
 ---- replaceAllFlatCSEs/0
@@ -1091,7 +1214,7 @@ isFlatCSE(Expr) :- storedFlatCSE(Expr), !.
 
 isFlatCSE(Expr) :-
   storedExpressionLabel(Expr, _, _, _),
-  not(isUnflatCSE(Expr)),
+  \+ isUnflatCSE(Expr),
   assert(storedFlatCSE(Expr)), !.
 
 isUnflatCSE(Expr) :-
@@ -1139,7 +1262,7 @@ analyseCSE(TermIn,TermOut) :-
 
   compactCSEs_(TermIn, TermOut, _).
 
-% examples for expensive operators
+% examples for expensive operators (only used if type inference is deactivated)
 rewritingCSEExpensiveOP(*). % XRIS: for testing only
 rewritingCSEExpensiveOP(intersection).
 rewritingCSEExpensiveOP(minus).
@@ -1154,15 +1277,7 @@ rewritingCSEExpensiveOP(trajectory).
 rewritingCSEExpensiveOP(distance).
 rewritingCSEExpensiveOP(attached).
 rewritingCSEExpensiveOP(commonborderscan).
-% The following rule declares all bbox-operatos being expensive.
-% It would be better (and possible) to detremine the exact signature force
-% polymorphic operators and differentiate between them, of course:
-%    tmpStoredTypeTree(+Expression,-Type)
-%    getTypeTree/3
-rewritingCSEExpensiveOP(Op) :-
-  (   (optimizerOption(determinePredSig), isBBoxOperator(Op,_ArgsTypeList,_Dim))
-    ; (not(optimizerOption(determinePredSig)), isBBoxOperator(Op))
-  ), !.
+rewritingCSEExpensiveOP(inside).
 
 /*
 15 rewritePlan - Rewriting the Query Plan
@@ -1238,27 +1353,33 @@ Called by predicate ~translate~.
 rewritePlanforCSE(PlanIn, PlanOut, SelectIn, SelectOut) :-
   optimizerOption(rewriteCSE),
   retractall(rewritePlanInsertedAttribute(_)),
+  retractInexpensiveCSEs,          % retract inexpensive CSEs
+  dm(rewriteCSE,['Expression Labels after retractInexpensiveCSEs']),
+  dc(rewriteCSE,showExpressionLabels),   % output debugging info
+  replaceAllCSEs,                  % nest expensive CSEs, also save flat CSEs
+  dm(rewriteCSE,['Expression Labels after replaceAllCSEs']),
+  dc(rewriteCSE,showExpressionLabels),   % output debugging info
   registerCSEs,
   insertExtend(PlanIn, Plan2, [], AvailAttrs),
-  dm(rewritePlan,['\n\nrewritePlanforCSE: Attrs avail after conj query: ',
+  dm(rewriteCSE,['\n\nrewritePlanforCSE: Attrs avail after conj query: ',
                    AvailAttrs,'.\n']),
   lookupCSESelect(SelectIn,SelectOut,AvailAttrs,ExtensionSequence,SelectAttrs),
-  dm(rewritePlan,['\nrewritePlanforCSE: \n   Original Select: ',SelectIn,
+  dm(rewriteCSE,['\nrewritePlanforCSE: \n   Original Select: ',SelectIn,
                   '\n   Rewritten Select:',SelectOut,'.\n']),
-  dm(rewritePlan,['rewritePlanforCSE: Attrs needed in Select clause: ',
+  dm(rewriteCSE,['rewritePlanforCSE: Attrs needed in Select clause: ',
                   SelectAttrs,'.\n']),
-  dm(rewritePlan,['rewritePlanforCSE: ExtensionSequence', ExtensionSequence, '\n']),
+  dm(rewriteCSE,['rewritePlanforCSE: ExtensionSequence', ExtensionSequence, '\n']),
   removeUnusedAttrs(Plan2,Plan3,SelectAttrs),
   removeDublets(ExtensionSequence,AvailAttrs,ExtensionSequence2),
-  dm(rewritePlan,['rewritePlanforCSE: Extend with virt attrs ',
+  dm(rewriteCSE,['rewritePlanforCSE: Extend with virt attrs ',
                   ExtensionSequence2,'.\n']),
   extendPhrase(Plan3, ExtensionSequence2, PlanOut),
   union(ExtensionSequence2,SelectAttrs,AllAvailAttrs),
-  dm(rewritePlan,['rewritePlanforCSE: Available attrs for Select: ',
+  dm(rewriteCSE,['rewritePlanforCSE: Available attrs for Select: ',
                   AllAvailAttrs,'.\n']),
   retractall(storedAvailStreamAttributes(_)),
   assert(storedAvailStreamAttributes(AllAvailAttrs)),
-  dc(rewritePlan,(write('rewritePlanforCSE: Rewritten plan:\n\n'),
+  dc(rewriteCSE,(write('rewritePlanforCSE: Rewritten plan:\n\n'),
                   wp(PlanOut),nl,nl)),
   !.
 
@@ -1299,8 +1420,12 @@ Virtual attributes to replace CSEs are stored in a table
 
 registerCSEs :-
   retractall(virt_attr(_,_,_,_,_)),
+
   findall(Label,storedExpressionLabel(_,Label,_,_),CSE_list),
   registerCSE(CSE_list,_), !.
+
+
+
 
 % Working version:
 % --- registerCSE(+InList,-DoneList)
@@ -1308,7 +1433,7 @@ registerCSE([],[]).
 
 registerCSE([Label|Others],Done) :-
   storedExpressionLabel(ExprFlat, Label, _, ExprCompact),
-  ( not(virt_attr(Label, _, _, _, _))
+  ( (\+ virt_attr(Label, _, _, _, _))
     -> ( registerCSE1(ExprFlat, ExprFlattened, [], UsedRels),
          directAttributes(ExprCompact, BaseAttrs, VirtAttrsComp),
          registerCSE(VirtAttrsComp, Done1), % first register needed CSEs
@@ -1328,7 +1453,15 @@ registerCSE([Label|Others],Done) :-
        )
   ), !.
 
-% --- registerCSE1(+VirtAttr, -VirtAttrTerm, +RelsBefore, -RelsAfter)
+% --- registerCSE1(+TermFlat, -TermCompact, +RelsBefore, -RelsAfter)
+% Construct the compact internal representation (using attr/3) ~TermCompact~ of
+% a ~FlatTerm~ including the use of other virtual attributes. Adds all relations
+% required to calculate the result to ~RelsBefore~ and returns the union as
+% ~RelsAfter~.
+
+% Is also used to translate a term in simple flat representation (attrname,
+% rel:attrname) to internal flat representation (using ~attr/3~).
+
 registerCSE1(VirtualAttr, attr(VirtualAttr, 1, u), RelsBefore, RelsAfter) :-
   virt_attr(VirtualAttr, _, _, _, Base_relations), % already stored virt attr
   mergeRelations(RelsBefore, Base_relations, RelsAfter, 0, _), !.
@@ -1360,13 +1493,14 @@ registerCSE1(Term, Term2, RelsBefore, RelsAfter) :-
 
 registerCSE1(Term, Term, Rels, Rels) :-
   atom(Term),
-  not(is_list(Term)),
+  \+ is_list(Term),
   write('Symbol \''), write(Term),
   write('\' not recognized, supposed to be a Secondo object.'), nl, !.
 
 registerCSE1(Term, Term, Rels, Rels).
 
 % --- registerCSE2(+VirtAttrList, -VirtAttrTermList, +RelsBefore, -RelsAfter).
+% Handle arguments lists for registerCSE1/4
 registerCSE2([], [], RelsBefore, RelsBefore).
 
 registerCSE2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
@@ -1400,7 +1534,7 @@ directAttributes(Var:Attr,[Var:Attr],[]) :- !.
 
 directAttributes(Term,BaseAttrs,VirtAttrs) :-
   compound(Term),
-  not(is_list(Term)),
+  \+ is_list(Term),
   Term =.. [_|Args],
   directAttributes(Args,BaseAttrs,VirtAttrs), !.
 
@@ -1425,7 +1559,7 @@ initialized to 0.
 
 mergeRelations(Before, [], Before, IndexIn, IndexIn) :- !.
 mergeRelations(Before, [First|Rest], After, IndexIn, IndexOut) :-
-  ( not(memberchk(First,Before))
+  ( (\+ memberchk(First,Before))
       -> append(Before,[First],Intermediate)
        ; Intermediate = Before
   ),
@@ -1858,7 +1992,7 @@ insertExtend(PlanIn, PlanOut, AttrsIn, AttrsOut) :-
 insertExtend(PlanIn, PlanOut, AttrsIn, AttrsOut) :-
   compound(PlanIn),
   PlanIn =.. [OP,StreamArg|OtherArgs],
-  not(isJoinOP(OP)),
+  \+ isJoinOP(OP),
   insertExtend(StreamArg, StreamArg2, AttrsIn, AttrsOut),
   PlanOut =.. [OP,StreamArg2|OtherArgs],
   dm(insertExtend,['insertExtend - avail attrs: ',OP,'(',
@@ -1886,7 +2020,7 @@ splitVirtualAttributes([A|Rest],[A|AVRest],NormRest) :-
   virt_attr(A, _, _, _, _),
   splitVirtualAttributes(Rest,AVRest,NormRest), !.
 splitVirtualAttributes([A|Rest],AVRest,[A|NormRest]) :-
-  not(virt_attr(A, _, _, _, _)),
+  \+ virt_attr(A, _, _, _, _),
   splitVirtualAttributes(Rest,AVRest,NormRest), !.
 splitVirtualAttributes(A,B,C) :-
   throw(error_Internal(rewriting_splitVirtualAttributes(A,B,C)):unknown),
@@ -1981,7 +2115,7 @@ modifyPredicate2(Term, Term2, Arg1, Arg2, Left, Right, Result) :-
 
 modifyPredicate2(Term, Term2, Arg1, Arg2, Left, Right, Result) :-
   compound(Term),
-  not(is_list(Term)),
+  \+ is_list(Term),
   Term =.. [OP|Args],
   modifyPredicate2(Args, ArgsM, Arg1, Arg2, Left, Right, Result),
   Term2 =.. [OP|ArgsM], !.
@@ -2054,7 +2188,7 @@ simpleExpr(Expr,Expr) :-
   atomic(Expr).
 simpleExpr(Expr,Result) :-
   compound(Expr),
-  not(is_list(Expr)),
+  \+ is_list(Expr),
   Expr =.. [OP|Args],
   simpleExpr(Args, ResultList),
   Result =.. [OP|ResultList], !.
@@ -2167,7 +2301,7 @@ lookupCSESelect(Expr as attr(Name,X,Y), attr(Name,X,Y), AttrsIn, [], [Name]) :-
 % Extension attribute that is not also a virtual attribute
 lookupCSESelect(Expr as attr(Name,X,Y), ExprE as attr(Name,X,Y),
                 AttrsIn, AttrsExt, AttrsUsed) :-
-  not(virt_attr(Name,_,_,_,_)),
+  \+ virt_attr(Name,_,_,_,_),
   lookupCSESelect(Expr, ExprE, AttrsIn, AttrsExt, AttrsUsedE),
   union([Name],AttrsUsedE,AttrsUsed),
   dm(rewritePlan,['\n  lookupCSESelect 3(',Expr as attr(Name,X,Y),','
@@ -2179,7 +2313,7 @@ lookupCSESelect(Expr as attr(Name,X,Y), ExprE as attr(Name,X,Y),
 lookupCSESelect(Expr as attr(Name,X,Y), attr(Name,X,Y),
                 AttrsIn, AttrsExt, AttrsUsed) :-
   virt_attr(Name,_,_,_,_),
-  not(member(Name,AttrsIn)),
+  \+ member(Name,AttrsIn),
   extendable([Name], AttrsIn, ExtendSequence),
   removeDublets(ExtendSequence,AttrsIn,AttrsExt),
   findall( X,            % get all needed attributes to extend
@@ -2219,7 +2353,7 @@ lookupCSESelect(Term, attr(Label,0,u), AttrsIn, AttrsExt, AttrsUsed) :-
 % Handle all other compound expressions
 lookupCSESelect(Term, Term2, AttrsIn, AttrsExt, AttrsUsed) :-
   compound(Term),
-  not(is_list(Term)),
+  \+ is_list(Term),
   Term =.. [OP|Args],
   lookupCSESelect(Args,Args2,AttrsIn,AttrsExt,AttrsUsed),
   Term2 =.. [OP|Args2],
@@ -2252,7 +2386,7 @@ rewritePlanRemoveInsertedAttributes(StreamIn, StreamOut) :-
   findall(X,
           ( rewritePlanInsertedAttribute(X),
             X = attr(Name, _, Case),
-            not(queryAttr(attr(Name, _, Case)))
+            \+ queryAttr(attr(Name, _, Case))
           ),
           AttrsL),
   list_to_set(AttrsL,AttrsS),
@@ -2294,7 +2428,7 @@ attributes passed in ~ExceptionList~. Pass the result as ~PlanOut~.
 */
 
 removeUnusedAttrs(PlanIn,PlanIn, _) :-
-  not(optimizerOption(rewriteRemove)), !.
+  \+ optimizerOption(rewriteRemove), !.
 
 removeUnusedAttrs(PlanIn,PlanIn, _) :-
   atomic(PlanIn), !.
@@ -2367,9 +2501,9 @@ removeUnusedAttrs(gettuples2(Arg,Rel,IdAttr),
 % Case: (generic linear operator). Add UsedAttrs to SeenAttrs, Remove New Attrs
 removeUnusedAttrs(PlanIn,PlanOut,SeenAttrs) :-
   compound(PlanIn),
-  not(is_list(PlanIn)),
+  \+ is_list(PlanIn),
   PlanIn =.. [OP,Arg1|Args], % assuming one single stream argument only
-  ( not(isJoinOP(OP)), OP \= symmjoin ),
+  ( \+ isJoinOP(OP), OP \= symmjoin ),
   usedAttributes(PlanIn,UsedAttrs),
   union(UsedAttrs,SeenAttrs,NewSeenAttrs),
   removeUnusedAttrs(Arg1,Arg1E,NewSeenAttrs),
@@ -2380,7 +2514,7 @@ removeUnusedAttrs(PlanIn,PlanOut,SeenAttrs) :-
 % Case: (generic join operator). Add UsedAttrs to SeenAttrs, Remove New Attrs
 removeUnusedAttrs(PlanIn,PlanOut,SeenAttrs) :-
   compound(PlanIn),
-  not(is_list(PlanIn)),
+  \+ is_list(PlanIn),
   PlanIn =.. [OP,Arg1,Arg2|Args], % assuming two argument streams
   ( isJoinOP(OP) ; OP = symmjoin ),
   usedAttributes(PlanIn,UsedAttrs),
@@ -2540,14 +2674,14 @@ usedAttributes(krdup(_,AttrList),Attrs) :-
 
 usedAttributes(Term,Attrs) :-
   compound(Term),
-  not(is_list(Term)),
+  \+ is_list(Term),
   Term =.. [OP,_,_|Args],
   isJoinOP(OP),
   usedAttributes(Args,Attrs), !.
 
 usedAttributes(Term,Attrs) :-
   compound(Term),
-  not(is_list(Term)),
+  \+ is_list(Term),
   Term =.. [_|Args],
   usedAttributes(Args,Attrs), !.
 

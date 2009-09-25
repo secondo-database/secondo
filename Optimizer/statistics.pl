@@ -58,13 +58,15 @@ commute(Term,ResList,Commuted) :-
   getTypeTree(Term,ResList,[_,Args,_]),
   trav(Args,ArgTypes),
 %findall(T,member([_,_,T],Args),ArgTypes),
-  isCommutativeOP(Op,ArgTypes),
+  checkOpProperty(Op,ArgTypes,comm), % is commutative op
   Commuted =.. [Op, Arg2, Arg1], !.
 % old rule - still using old ~isCommutativeOP/1~-facts
 commute(Pred1, _, Pred2) :-
   not(optimizerOption(determinePredSig)),
   Pred1 =.. [OP, Arg1, Arg2],
-  isCommutativeOP(OP),
+  (   (optimizerOption(determinePredSig), checkOpProperty(Pred1,comm))
+    ; isCommutativeOP(OP)
+  ),
   Pred2 =.. [OP, Arg2, Arg1], !.
 
 % binary version - extracting rellist from predicate descriptor
@@ -1871,7 +1873,7 @@ dynamic predicate
 ----
 
 
-The type trees of all analysed expressions are kept within a temporal facts
+The type trees of all analysed expressions are kept within temporary facts
 
 ---- tmpStoredExprTypeTree(+P,(-Op, -TypeTreeList, -ResType))
 ----
@@ -1949,6 +1951,11 @@ getTypeTree(arglist([X|R]),Rels,[X1|R1]) :-
   getTypeTree(X,Rels,X1),
   getTypeTree(arglist(R),Rels,R1),
 %   dm(selectivity,['$$$ getTypeTree: []: []']),nl,
+  !.
+
+% Special case: pseudo attribute 'rowid'
+getTypeTree(rowid,_,[rowid,rowid,tid]) :-
+  assert(tmpStoredTypeTree(rowid,[rowid,rowid,tid])),
   !.
 
 % Primitive: int-atom

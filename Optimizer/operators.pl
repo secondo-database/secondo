@@ -147,7 +147,7 @@ Each implemented signature for an operator should have a rule here. This helps
 much to avoid the overhead of sending data type queries to Secondo to infer the
 type of expressions
 
----- opSignature(+Operator, +Algebra, +ArgTypeList, -Resulttype, -Flags).
+---- opSignature(+Operator, ?Algebra, +ArgTypeList, -Resulttype, -Flags).
 ----
 
 Basically, these clauses do the same as the ~type mapping fubctions~ within the
@@ -221,25 +221,27 @@ i-th mapping.
 
 ~Flags~ is a list of flags indicating that the operator has specific properties:
 
-   * comm: ~Op~ is binary and commutative
+   * comm: ~Op~ is binary and commutative. Used to normalize predicates
 
-   * ass: ~Op~ is binary and associative
+   * ass: ~Op~ is binary and associative. Could be used for algebraic simplification.
 
-   * trans: ~Op~ is binary and transitive
+   * trans: ~Op~ is binary and transitive. Could be used for algebraic simplification.
 
-   * idem: ~Op~ is unary and idempotent
+   * idem: ~Op~ is unary and idempotent. Could be used for algebraic simplification.
 
    * bbox(D): ~Op~ implements a predicate (~Resulttype~ is ~bool~) using a filter and refinement approach with D-dimensional MBRs
 
    * block: ~Op~ is a blocking stream operator
 
-   * aggr: ~Op~ somehow aggregates a stream to a scalar object
+   * aggr: ~Op~ somehow aggregates a stream to a scalar object. Used to identify aggregation expressions.
 
    * sidefx: ~Op~ may have side effects (modifies state of pseudo random number generators, creates output on terminal, creates/modifies the filesystem).
 
    * itract: ~Op~ is interactive, e.g. waiting for external events, like user interaction, network events, etc.
 
-   * exp: ~Op~ is expensive. Only operations with a result from kind DATA may be marked as being expensive!
+   * exp: ~Op~ is expensive. Only operations with a result from kind DATA may be marked as being expensive! Used during CSE rewriting.
+
+   * join: ~Op~ is a join operator (joins two streams). Used during CSE rewriting
 
    * (list may be extended as required)
 
@@ -256,10 +258,17 @@ opSignature((-), standard, [int,real],real,[comm]).
 opSignature((-), standard, [real,int],real,[comm]).
 opSignature((-), standard, [real,real],real,[comm]).
 
-opSignature((*), standard, [int,int],int,[comm,ass]).
-opSignature((*), standard, [int,real],real,[comm,ass]).
-opSignature((*), standard, [real,int],real,[comm,ass]).
-opSignature((*), standard, [real,real],real,[comm,ass]).
+% opSignature((*), standard, [int,int],int,[comm,ass]).
+% opSignature((*), standard, [int,real],real,[comm,ass]).
+% opSignature((*), standard, [real,int],real,[comm,ass]).
+% opSignature((*), standard, [real,real],real,[comm,ass]).
+
+%% --- BEGIN alternate definitions to test the CSE extension
+opSignature((*), standard, [int,int],int,[comm,ass,exp]).
+opSignature((*), standard, [int,real],real,[comm,ass,exp]).
+opSignature((*), standard, [real,int],real,[comm,ass,exp]).
+opSignature((*), standard, [real,real],real,[comm,ass,exp]).
+%% --- END alternate definitions to test the CSE extension
 
 opSignature((/), standard, [int,int],real,[]).
 opSignature((/), standard, [int,real],real,[]).
@@ -1224,7 +1233,7 @@ opSignature(size, rectangle, [T],real,[]) :-
   memberchk(T,[rect,rect3,rect4,rect8]),!.
 opSignature(scalerect, rectangle, [T|FactorList],T,[]) :-
   memberchk((T,D),[(rect,2),(rect3,3),(rect4,4),(rect8,8)]),
-  length(FactorList,D),
+  length(FactorList,D), ground([T|FactorList]),
   findall(X,member(X,FactorList),[real]),
   !.
 
@@ -1292,7 +1301,7 @@ opSignature(kinds, stream, [string],[stream,string],[]).
 2.7.11 TupleIdentifierAlgebra
 
 */
-opSignature(tupleid, tupleidentifier, [[tuple,_]],int,[]).
+opSignature(tupleid, tupleidentifier, [[tuple,_]],tid,[]).
 opSignature(addtupleid, tupleidentifier, [[stream,[tuple,AttrList]]],
       [stream,[tuple,AttrList2]],[]) :-
   append(AttrList,[[id,tid]],AttrList2), !.
@@ -1697,13 +1706,15 @@ opSignature(filter, relation, [[stream,[tuple,X]],[map,[tuple,X],bool]],
 opSignature(project, relation, [[stream,[tuple,AttrList1]],ProjList],
           [stream,[tuple,AttrList2]],[]) :-
   is_list(ProjList), is_list(AttrList1),
+  ground([[stream,[tuple,AttrList1]],ProjList]),
   findall([A,T],(member([A,T],AttrList1),member(A,ProjList)),AttrList2),!.
 opSignature(remove, relation, [[stream,[tuple,AttrList1]],RemList],
           [stream,[tuple,AttrList2]],[]) :-
   is_list(RemList), is_list(AttrList1),
+  ground([[stream,[tuple,AttrList1]],RemList]),
   findall([A,T],(member([A,T],AttrList1),not(member(A,RemList))),AttrList2),!.
 opSignature(product, relation, [[stream,[tuple,S1]],[stream,[tuple,S2]]],
-        [stream,[tuple,S3]],[block]) :-
+        [stream,[tuple,S3]],[join,block]) :-
   append(S1,S2,S3), !. % not checking for uniqueness of attrnames!
 opSignature(count, relation, [[rel,[tuple,_]]],int,[]).
 opSignature(count, relation, [[stream,[tuple,_]]],int,[block,aggr]).
@@ -1728,6 +1739,7 @@ opSignature(attrsize, relation, [[rel,[tuple,AttrList]],Attr],real,[]) :-
 opSignature(attrsize, relation, [[stream,[tuple,AttrList]],Attr],real,
         [block,aggr]) :- memberchk([Attr,_],AttrList), !.
 opSignature(rename, relation, [[stream,[tuple,A]],P],[stream,[tuple,R]],[]) :-
+  ground([[stream,[tuple,A]],P]),
   findall([AR,T],(member([AO,T],A),concat_atom([AO,P],'_',AR)),R),!.
 opSignature((!), relation, [[stream,[tuple,X]]],[stream,[tuple,X]],[]).
 opSignature((!), relation, [[stream,T]],[stream,T],[]) :- isData(T),!.
@@ -1758,7 +1770,7 @@ opSignature(extract, extrelation, [[stream,[tuple,AL]],Attr],AType,[aggr,exp]) :
   is_list(AL), memberchk([Attr,AType],AL),!.
 opSignature(extend,extrelation,[[stream,[tuple,AL]],ExtL],[stream,[tuple,RL]],
         []):-
-  is_list(ExtL),
+  is_list(ExtL), ground([[stream,[tuple,AL]],ExtL]),
   findall([EN,ET],(member([EN,[map,[tuple,AL],ET]],ExtL)),EL),
   append(AL,EL,RL), !.
 opSignature(concat, extrelation, [[stream,[tuple,X]],[stream,[tuple,X]]],
@@ -1792,34 +1804,36 @@ opSignature(mergediff, extrelation, [[stream,[tuple,X]],[stream,[tuple,X]]],
 opSignature(mergeunion, extrelation, [[stream,[tuple,X]],[stream,[tuple,X]]],
         [stream,[tuple,X]],[]).
 opSignature(mergejoin,extrelation,[[stream,[tuple,X]],[stream,[tuple,Y]],XA,YA],
-        [stream,[tuple,R]],[]) :-
+        [stream,[tuple,R]],[join]) :-
   memberchk([XA,T],X),memberchk([YA,T],X),append(X,Y,R), !.
 opSignature(sortmergejoin,extrelation,[[stream,[tuple,X]],
-        [stream,[tuple,Y]],XA,YA],[stream,[tuple,R]],[block]) :-
+        [stream,[tuple,Y]],XA,YA],[stream,[tuple,R]],[join,block]) :-
   memberchk([XA,T],X),memberchk([YA,T],X),append(X,Y,R), !.
 opSignature(hashjoin,extrelation,[[stream,[tuple,X]],
-        [stream,[tuple,Y]],XA,YA,int],[stream,[tuple,R]],[block]) :-
+        [stream,[tuple,Y]],XA,YA,int],[stream,[tuple,R]],[join,block]) :-
   memberchk([XA,T],X),memberchk([YA,T],X),append(X,Y,R), !.
 opSignature(loopjoin, extrelation, [[stream,[tuple,X]],
-        [map,[tuple,X],[stream,[tuple,Y]]]],[stream,[tuple,R]],[]) :-
+        [map,[tuple,X],[stream,[tuple,Y]]]],[stream,[tuple,R]],[join]) :-
   append(X,Y,R), !.
 opSignature(extendstream, extrelation, [[stream,[tuple,X]],
         [Name,[map,[tuple,X],[stream,Y]]]],[stream,[tuple,R]],[]) :-
   append(X,[[Name,Y]],R),!.
 opSignature(extendstream,extrelation,[[stream,[tuple,A]],FL],
         [stream,[tuple,R]],[]):-
-  is_list(FL),
+  is_list(FL), ground([[stream,[tuple,A]],FL]),
   findall([EA,ET],(member([EA,[map,[tuple,A],[stream,ET]]],FL)),EAL),
   append(A,EAL,R), !.
 opSignature(projectextendstream, extrelation, [[stream,[tuple,A]],PL,F],
                                                [stream,[tuple,R]],[]):-
   is_list(PL),
   F = [Name,[map,[tuple,A],[stream,ET]]],
+  ground([[stream,[tuple,A]],PL,F]),
   findall([PA,PT],(member([PA,PT],A),member(PA,PL)),R1),
   append(R1,[Name,ET],R), !.
 opSignature(groupby,extrelation,[[stream,[tuple,A]],GL,FL],[stream,[tuple,R]],
         []):-
   is_list(GL),is_list(FL),
+  ground([[stream,[tuple,A]],GL,FL]),
   findall([GA,GT],(member([GA,GT],A),member(GA,GL)),R1),
   findall([EA,ET],(member([EA,[map,[rel,[tuple,A]],ET]],FL)),R2),
   append(R1,R2,R), !.
@@ -1830,26 +1844,27 @@ opSignature(aggregateB,extrelation,[[stream,[tuple,A]],Attr,[map,T,T,T],T],T,
         [block,aggr,exp]):-
   memberchk([Attr,T],A),!.
 opSignature(symmjoin, extrelation, [[stream,[tuple,A1]],[stream,[tuple,A2]],
-        [map,[tuple,A1],[tuple,A2],bool]],[stream,[tuple,R]],[]) :-
+        [map,[tuple,A1],[tuple,A2],bool]],[stream,[tuple,R]],[join]) :-
   append(A1,A2,R), !.
 opSignature(symmproductextend, extrelation, [[stream,[tuple,A1]],
-        [stream,[tuple,A2]],ExtL],[stream,[tuple,R]],[]) :-
-  is_list(ExtL),
+        [stream,[tuple,A2]],ExtL],[stream,[tuple,R]],[join]) :-
+  is_list(ExtL), ground([[stream,[tuple,A1]],[stream,[tuple,A2]],ExtL]),
   findall([EN,ET],(member([EN,[map,[tuple,A1],[tuple,A2],ET]],ExtL)),EL),
   append(A1,A2,R1),
   append(R1,EL,R), !.
 opSignature(symmproduct, extrelation, [[stream,[tuple,A1]],
-        [stream,[tuple,A2]]],[stream,[tuple,R]],[]) :-
+        [stream,[tuple,A2]]],[stream,[tuple,R]],[join]) :-
   append(A1,A2,R), !.
 opSignature(projectextend, extrelation, [[stream,[tuple,A]],PL,FL],
                                                [stream,[tuple,R]],[]) :-
   is_list(PL),is_list(FL),
+  ground([[stream,[tuple,A]],PL,FL]),
   findall([PA,PT],(member([PA,PT],A),member(PA,PL)),R1),
   findall([EA,ET],member([EA,[map,[tuple,A],ET]],FL),R2),
   append(R1,R2,R), !.
 opSignature(krdup, extrelation,[[stream,[tuple,A]]|UList],[stream,[tuple,A]],
         []) :-
-  not(UList = []),
+  not(UList = []), ground([[stream,[tuple,A]]|UList]),
   findall(RA,(member(RA,UList),not(memberchk([RA,_],A))),[]), !.
 opSignature(addcounter,extrelation,[[stream,[tuple,A]],N,int],
         [stream,[tuple,R]],[]) :-
@@ -1868,7 +1883,7 @@ opSignature(kbiggest, extrelation, [[stream,[tuple,A]],int,Attr],
 
 */
 opSignature(spatialjoin, plugjoin, [[stream,[tuple,X]],[stream,[tuple,Y]],AX,AY],
-        [stream,[tuple,R]],[block]) :-
+        [stream,[tuple,R]],[join, block]) :-
   memberchk([AX,_],X), memberchk([AY,_],Y), append(X,Y,R), !. % no type check
 
 
@@ -1949,7 +1964,7 @@ opSignature(equalway, graph, [path,path],bool,[comm,exp]).
 */
 opSignature(predcounts, optaux, [[stream,[tuple,X]],FL],
         [stream,[tuple,[[atom,int],[counter,int]]]],[block]) :-
-  is_list(FL),
+  is_list(FL), ground([[stream,[tuple,X]],FL]),
   findall(F,(member(F,FL),not(F = [_,[map,[tuple,X],bool]])),[]), !.
 
 
@@ -2189,6 +2204,7 @@ opSignature(createdeleterel, updaterelation, [[rel,[tuple,X]]],[rel,[tuple,R]],
         [sidefx]) :- append(X,[[tid,tid]],R),!.
 opSignature(createupdaterel, updaterelation, [[rel,[tuple,X]]],[rel,[tuple,R]],
         [sidefx]) :-
+  ground([[rel,[tuple,X]]]),
   findall([OldName,Type],
           ( member([Name,Type],X),
             atom_concat(Name,'_old',OldName)
@@ -2227,6 +2243,7 @@ opSignature(deletedirectsave,updaterelation,[[stream,[tuple,X]],[rel,[tuple,X]],
 opSignature(updatesearch, updaterelation, [[stream,[tuple,X]],[rel,[tuple,X]],
         FunList],[stream,[tuple,R]],[sidefx]) :-
   is_list(FunList), %% Types in FunList not checked!
+  ground([[stream,[tuple,X]],[rel,[tuple,X]],FunList]),
   findall([OldName,Type],
           ( member([Name,Type],X),
             atom_concat(Name,'_old',OldName)
@@ -2237,6 +2254,7 @@ opSignature(updatesearch, updaterelation, [[stream,[tuple,X]],[rel,[tuple,X]],
 opSignature(updatedirect, updaterelation, [[stream,[tuple,X]],[rel,[tuple,X]],
         FunList],[stream,[tuple,R]],[sidefx]) :-
   is_list(FunList), %% Types in FunList not checked!
+  ground([[stream,[tuple,X]],[rel,[tuple,X]],FunList]),
   findall([OldName,Type],
           ( member([Name,Type],X),
             atom_concat(Name,'_old',OldName)
@@ -2247,6 +2265,7 @@ opSignature(updatedirect, updaterelation, [[stream,[tuple,X]],[rel,[tuple,X]],
 opSignature(updatesearchsave,updaterelation,[[stream,[tuple,X]],[rel,[tuple,X]],
         [rel,[tuple,XI]],FunList],[stream,[tuple,R]],[sidefx]) :-
   is_list(FunList), %% Types in FunList not checked!
+  ground([[stream,[tuple,X]],[rel,[tuple,X]],[rel,[tuple,XI]],FunList]),
   append(X,[[tid,tid]],XI),
   findall([OldName,Type],
           ( member([Name,Type],X),
@@ -2259,6 +2278,7 @@ opSignature(updatedirectsave,updaterelation,[[stream,[tuple,X]],
         [rel,[tuple,XI]],[rel,[tuple,XI]],FunList],[stream,[tuple,R]],
         [sidefx]) :-
   is_list(FunList), %% Types in FunList not checked!
+  ground([[stream,[tuple,X]],[rel,[tuple,XI]],[rel,[tuple,XI]],FunList]),
   append(X,[[tid,tid]],XI),
   findall([OldName,Type],
           ( member([Name,Type],X),
@@ -2275,6 +2295,7 @@ opSignature(deletebyid, updaterelation, [[rel,[tuple,X]],tid],
 opSignature(updatebyid, updaterelation, [[stream,[tuple,X]],[rel,[tuple,X]],tid,
         FunList],[stream,[tuple,R]],[sidefx]) :-
   is_list(FunList), %% Types in FunList not checked!
+  ground([[stream,[tuple,X]],[rel,[tuple,X]],tid,FunList]),
   findall([OldName,Type],
           ( member([Name,Type],X),
             atom_concat(Name,'_old',OldName)
@@ -2292,6 +2313,7 @@ opSignature(deletertree, updaterelation, [[stream,[tuple,XI]],
 
 opSignature(updatertree, updaterelation, [[stream,[tuple,R]],
         [rtree,[tuple,X], _, KeyType],KeyName],[stream,[tuple,XI]],[sidefx]) :-
+  ground([[stream,[tuple,R]],[rtree,[tuple,X], _, KeyType],KeyName]),
   select([KeyName,KeyType],R,X),
   findall([OldName,Type],
           ( member([Name,Type],X),
@@ -2466,8 +2488,48 @@ opSignature(randommbool, stpattern, [instant], mbool,[]).
 2.2 Checking Operators for Certain Properties
 
 The following subsections introduce predicates for checking on whether a
-operator or signature has certain properties (resp. belongs to certain classes
-of operators).
+operator, signature, or outermost operator of a term has certain properties
+(resp. belongs to certain classes of operators).
+
+----
+checkOpProperty( +Op, +ArgTypes, ?Flag)
+checkOpProperty( +Term, ?Flag)
+----
+
+These first predicate succeeds, if operator ~Op~ with signature ~ArgTypes~ has property
+flag ~Flag~ set. Otherwise it fails.
+
+The second predicate does the same, but determines the argument types itself by
+calling ~getTypeTree/2~.
+
+*/
+
+% checkOpProperty(+Op,+ArgsTypeList,?Flag) :-
+checkOpProperty(Op,ArgsTypeList,Flag) :-
+  ground(Op), ground(ArgsTypeList),
+  opSignature(Op, _, ArgsTypeList,_,Flags),
+  member(Flag,Flags).
+
+checkOpProperty(Op,ArgsTypeList,Flag) :-
+  (   not(ground(Op))
+    ; not(ground(ArgsTypeList))
+  ),
+  throw(error_Internal(operators_checkOpProperty(Op,ArgsTypeList,Flag)
+                    :wrongInstantiationPattern)),
+  fail, !.
+
+checkOpProperty(Op,ArgsTypeList,_Flag) :-
+  ground(Op), ground(ArgsTypeList),
+  fail, !.
+
+% The following version takes a term and extracts the types by itself:
+% checkOpProperty(+Term,?Flag) :-
+checkOpProperty(Term,Flag) :-
+  getTypeTree(Term,[Op,ArgsTrees,Type]),
+  findall(Type,member([_,_,Type],ArgsTrees),ArgTypes),
+  checkOpProperty(Op, ArgTypes, Flag), !.
+
+/*
 
 2.2.1 Predicates which can use bboxes
 
@@ -2479,7 +2541,19 @@ in their ~opSignature/5~ description.
 
 */
 
-% old version: if optimizerOption(determinePredSig) is NOT used
+% Replacement for old version: if optimizerOption(determinePredSig) is NOT used
+isBBoxPredicate(Term) :-
+  not(optimizerOption(determinePredSig)),
+  compound(Term), not(is_list(Term)),
+  Term =.. [Op|_],
+  opSignature(Op, _, _ArgsTypeList,bool,Flags),
+  memberchk(bbox(_Dim),Flags),
+  dm(['INFO:\tOperator name matching used to determine ',
+              'isBBoxPredicate(',Op,').\n']),
+  !.
+
+/*
+----
 isBBoxPredicate(intersects).  % but not: rT x rT
 isBBoxPredicate(intersects_new).
 isBBoxPredicate(p_intersects).
@@ -2498,6 +2572,9 @@ isBBoxPredicate(trinside).
 isBBoxPredicate(trcovers).
 isBBoxPredicate(trcoveredby).
 isBBoxPredicate(troverlaps).
+----
+
+*/
 
 % Section:Start:isBBoxPredicate_1_e
 % Section:End:isBBoxPredicate_1_e
@@ -2508,12 +2585,33 @@ isBBoxPredicate(Op,ArgsTypeList,Dim) :-
   opSignature(Op, _, ArgsTypeList,bool,Flags),
   memberchk(bbox(Dim),Flags),!.
 
+% The following version takes a term and extracts the types by itself:
+% --- isBBoxPredicate(+Term,?Dimension)
+isBBoxPredicate(Term,Dim) :-
+  getTypeTree(Term,[Op,ArgsTrees,Type]),
+  findall(Type,member([_,_,Type],ArgsTrees),ArgTypes),
+  isBBoxPredicate(Op,ArgTypes,Dim), !.
+
 % Section:Start:isBBoxLiftedPred_1_e
 % Range Lifted Predicates
 isBBoxLiftedPred(inside).
 % Section:End:isBBoxLiftedPred_1_e
 
 % other operators using bboxes:
+
+% Replacement for old version: if optimizerOption(determinePredSig) is NOT used
+isBBoxOperator(Term) :-
+  not(optimizerOption(determinePredSig)),
+  compound(Term), not(is_list(Term)),
+  Term =.. [Op|_],
+  opSignature(Op, _, _ArgsTypeList,_,Flags),
+  memberchk(bbox(_Dim),Flags),
+  dm(['INFO:\tOperator name matching used to determine ',
+              'isBBoxOperator(',Op,').\n']),
+  !.
+
+/*
+----
 % old version: if optimizerOption(determinePredSig) is NOT used
 isBBoxOperator(touchpoints).
 isBBoxOperator(intersection).
@@ -2521,6 +2619,9 @@ isBBoxOperator(intersection_new).
 isBBoxOperator(commonborder).
 isBBoxOperator(commonborderscan).
 isBBoxOperator(X) :- isBBoxPredicate(X).
+----
+
+*/
 
 % Section:Start:isBBoxOperator_1_e
 % Section:End:isBBoxOperator_1_e
@@ -2540,6 +2641,28 @@ They should be marked with ~comm~ in their property flags within ~opSignature/5~
 
 */
 
+% current version: if optimizerOption(determinePredSig),
+% the predicate can be replaced by
+% --- checkOpProperty(Op,[A1,A2],comm)
+
+isCommutativeOP(Op,ArgsTypeList) :-
+  opSignature(Op, _, ArgsTypeList, _, Flags),
+  memberchk(comm,Flags),!.
+
+isCommutativeOP(Term) :-
+  optimizerOption(determinePredSig),
+  compound(Term), not(is_list(Term)),
+  checkOpProperty(Term,comm), !.
+
+isCommutativeOP(Op) :-
+  atom(Op),
+  opSignature(Op, _, _, _, Flags),
+  dm(['INFO:\tOperator name matching used to determine ',
+              'isCommutativeOP(',Op,').\n']),
+  memberchk(comm,Flags),!.
+
+/*
+----
 % old version: if optimizerOption(determinePredSig) is NOT used
 isCommutativeOP((=)).
 isCommutativeOP((#)).
@@ -2554,28 +2677,39 @@ isCommutativeOP(distance).
 isCommutativeOP(trequal).
 isCommutativeOP(trdisjoint).
 isCommutativeOP(troverlaps).
+----
+
+*/
 
 % Section:Start:isCommutativeOP_1_e
 % Section:End:isCommutativeOP_1_e
-
-% more recent version: if optimizerOption(determinePredSig) is used
-% --- isCommutativeOP(+Op,+ArgTypeList)
-isCommutativeOP(Op,[A1,A2]) :-
-  opSignature(Op, _, [A1,A2], _, Flags),
-  memberchk(comm,Flags),!.
-
 
 /*
 2.2.3 Aggregation operators
 
 These use a common cost function. They can be recognized by predicate
-~isAggregationOP(OP)~.
-
-Aggregation operators should be marked with ~aggr~ in their property flags
-within ~opSignature/5~
+~isAggregationOP(OP)~ if they have been marked with the ~aggr~ flag within
+their operator description ~opSignature/5~.
 
 */
+isAggregationOP(Op,ArgsTypeList) :-
+  opSignature(Op, _, ArgsTypeList, _, Flags),
+  memberchk(aggr,Flags),!.
 
+isAggregationOP(Term) :-
+  optimizerOption(determinePredSig),
+  compound(Term), not(is_list(Term)),
+  checkOpProperty(Term,aggr), !.
+
+isAggregationOP(Op) :-
+  atom(Op),
+  opSignature(Op, _, _, _, Flags),
+  dm(['INFO:\tOperator name matching used to determine ',
+              'isAggregationOP(',Op,').\n']),
+  memberchk(aggr,Flags),!.
+
+/*
+----
 isAggregationOP(count).
 isAggregationOP(min).
 isAggregationOP(max).
@@ -2584,13 +2718,13 @@ isAggregationOP(avg).
 isAggregationOP(extract).
 isAggregationOP(var).
 
-/*
-For later extensions (though needing separate cost functions):
-
-*/
+% For later extensions (though needing separate cost functions):
 isAggregationOP(aggregate).  % the cost of the provided function should be applied, works lineary
 isAggregationOP(aggregateB). % the cost of the provided function should be applied,
                              %   Additionally, the operator works balanced (in log(CX) steps).
+----
+
+*/
 
 % Section:Start:isAggregationOP_1_e
 % Section:End:isAggregationOP_1_e
@@ -2600,14 +2734,43 @@ isAggregationOP(aggregateB). % the cost of the provided function should be appli
 2.2.4 Join Operators
 
 PlanRewriting needs to identify join operators to allow for a generalized handling.
-For each join operator ~j~, a fact ~isJoinOP(j)~ must be defined. Join operators
-are expected to merge the attribute sets of their first two arguments. All other
-operators are expected not to change the attribute set of the manipulated stream.
+For each join operator ~j~, a flag ~join~ must be defined within the operator
+description's ~Flags~ field.
+
+When option ~rewriteCSE~ is enabled, this information is used to handle
+Join operators are expected to merge the attribute sets of their first two
+arguments. All other operators are expected not to change the attribute set of
+the manipulated stream.
 
 Otherwise, a dedicated rule must be added to predicate ~insertExtend/4~ in file
 ~optimizer.pl~.
 
 */
+
+isJoinOP(Op,ArgsTypeList) :-
+  opSignature(Op, _, ArgsTypeList, _, Flags),
+  memberchk(join,Flags),!.
+
+isJoinOP(Term) :-
+  optimizerOption(determinePredSig),
+  compound(Term), not(is_list(Term)),
+  checkOpProperty(Term,join), !.
+
+isJoinOP(Op) :-
+  atom(Op),
+  opSignature(Op, _, _, _, Flags),
+  memberchk(join,Flags),
+  dm(['INFO:\tOperator name matching used to determine ',
+              'isJoinOP(',Op,').\n']),
+  !.
+
+% only required because type mappings for PStreamAlgebra are not provided yet.
+isJoinOP(pjoin) :-
+  dm(['INFO:\tOperator name matching used to determine ',
+              'isJoinOP(',pjoin,').\n']), !.
+
+/*
+----
 isJoinOP(sortmergejoin).
 isJoinOP(mergejoin).
 %isJoinOP(symmjoin). % has a dedicated rule for insertExtend/4
@@ -2618,6 +2781,9 @@ isJoinOP(loopjoin).
 isJoinOP(product).
 isJoinOP(symmproduct).
 isJoinOP(pjoin).
+----
+
+*/
 
 % Section:Start:isJoinOP_1_e
 % Section:End:isJoinOP_1_e
