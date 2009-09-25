@@ -3229,34 +3229,88 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
                       (tinter.ToDouble()-pCurr1->timeInterval.start.ToDouble())
                               / (pCurr1->timeInterval.end.ToDouble() -
                                 pCurr1->timeInterval.start.ToDouble())));
-                    if ((!(fabs(interPosition - pCurr1->p0.GetPosition())<0.01||
+                    if (!(fabs(interPosition - pCurr1->p0.GetPosition())<0.01||
                         fabs(interPosition - pCurr1->p1.GetPosition()) < 0.01 ||
                         fabs(interPosition - pCurr2->p0.GetPosition()) < 0.01 ||
-                       fabs(interPosition - pCurr2->p1.GetPosition()) < 0.01))||
-                       (pCurr1->p0.GetPosition() == pCurr1->p1.GetPosition() &&
-                        (tinter == pCurr1->timeInterval.start &&
-                         pCurr1->timeInterval.lc == true &&
-                         fabs(interPosition - pCurr1->p0.GetPosition())<0.01))||
-                         (pCurr1->p0.GetPosition() == pCurr1->p1.GetPosition()&&
-                         (tinter == pCurr1->timeInterval.end &&
-                          pCurr1->timeInterval.rc == true &&
-                         fabs(interPosition - pCurr1->p0.GetPosition())<0.01))||
-                         (pCurr1->timeInterval.lc == true &&
-                       fabs(interPosition - pCurr1->p0.GetPosition()) < 0.01)||
-                       (pCurr1->timeInterval.rc == true &&
-                       fabs(interPosition - pCurr1->p1.GetPosition()) <0.01))
+                       fabs(interPosition - pCurr2->p1.GetPosition()) < 0.01))
                     {
                       res->Add(UGPoint(Interval<Instant> (tinter, tinter,
-                                                      true, true),
-                                                    pCurr1->p0.GetNetworkId(),
-                                                      pCurr1->p0.GetRouteId(),
-                                                      pCurr1->p0.GetSide(),
-                                                      interPosition,
-                                                      interPosition));
+                               true, true),
+                               pCurr1->p0.GetNetworkId(),
+                                   pCurr1->p0.GetRouteId(),
+                                       pCurr1->p0.GetSide(),
+                                           interPosition,
+                                           interPosition));
+                    }
+                    else
+                    {
+                      if (pCurr1->p0.GetPosition() == pCurr1->p1.GetPosition())
+                      {
+                        if (tinter == pCurr1->timeInterval.start &&
+                            pCurr1->timeInterval.lc == true &&
+                            fabs(interPosition - pCurr1->p0.GetPosition())<0.01)
+                        {
+                          res->Add(UGPoint(Interval<Instant> (tinter, tinter,
+                                   true, true),
+                                   pCurr1->p0.GetNetworkId(),
+                                   pCurr1->p0.GetRouteId(),
+                                   pCurr1->p0.GetSide(),
+                                   interPosition,
+                                   interPosition));
+                        }
+                        else
+                        {
+                          if (tinter == pCurr1->timeInterval.end &&
+                              pCurr1->timeInterval.rc == true &&
+                              fabs(interPosition -
+                                              pCurr1->p0.GetPosition())<0.01)
+                          {
+                            res->Add(UGPoint(Interval<Instant> (tinter, tinter,
+                                     true, true),
+                                     pCurr1->p0.GetNetworkId(),
+                                     pCurr1->p0.GetRouteId(),
+                                     pCurr1->p0.GetSide(),
+                                     interPosition,
+                                     interPosition));
+                          }
+                        }
+                      }
+                      else
+                      {
+                        if (pCurr1->timeInterval.lc == true &&
+                            fabs(interPosition - pCurr1->p0.GetPosition()) <
+                                                                      0.01)
+                        {
+                          res->Add(UGPoint(Interval<Instant> (tinter, tinter,
+                                   true, true),
+                                   pCurr1->p0.GetNetworkId(),
+                                   pCurr1->p0.GetRouteId(),
+                                   pCurr1->p0.GetSide(),
+                                   interPosition,
+                                   interPosition));
+                        }
+                        else
+                        {
+                          if (pCurr1->timeInterval.rc == true &&
+                              fabs(interPosition - pCurr1->p1.GetPosition()) <
+                                                                         0.01)
+                          {
+                            res->Add(UGPoint(Interval<Instant> (tinter, tinter,
+                                     true, true),
+                                     pCurr1->p0.GetNetworkId(),
+                                     pCurr1->p0.GetRouteId(),
+                                     pCurr1->p0.GetSide(),
+                                     interPosition,
+                                     interPosition));
+                          }
+                        }
+                      }
                     }
                   }
                 }
-              } else {
+              }
+              else
+              {
                 CcInt *pRid1 = new CcInt(true,pCurr1->p0.GetRouteId());
                 CcInt *pRid2 = new CcInt(true,pCurr2->p0.GetRouteId());
                 double r1meas = numeric_limits<double>::max();
@@ -3278,24 +3332,48 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
                   pCurr = *pCurr2;
                   tinter2 = pCurr.TimeAtPos(r2meas);
                   if (tinter == tinter2) {
-                    if ((!(fabs(r1meas - pCurr1->p0.GetPosition()) < 0.01||
+                    if (!(fabs(r1meas - pCurr1->p0.GetPosition()) < 0.01||
                           fabs(r1meas - pCurr1->p1.GetPosition()) < 0.01 ||
                           fabs(r2meas - pCurr2->p0.GetPosition()) < 0.01 ||
-                          fabs(r2meas - pCurr2->p1.GetPosition()) < 0.01)) ||
-                          (pCurr1->timeInterval.lc == true &&
-                          (fabs(r1meas - pCurr1->p0.GetPosition()) < 0.01 ||
-                          fabs(r2meas -pCurr2->p0.GetPosition()) < 0.01)) ||
-                          (pCurr1->timeInterval.rc == true &&
-                          (fabs(r1meas - pCurr1->p1.GetPosition()) < 0.01 ||
-                          fabs(r2meas - pCurr2->p1.GetPosition()) < 0.01)))
+                          fabs(r2meas - pCurr2->p1.GetPosition()) < 0.01))
                     {
                       res->Add(UGPoint(Interval<Instant> (tinter, tinter,
-                                                          true, true),
-                                      pCurr1->p0.GetNetworkId(),
-                                      pCurr1->p0.GetRouteId(),
-                                      pCurr1->p0.GetSide(),
-                                      r1meas,
-                                      r1meas));
+                               true, true),
+                               pCurr1->p0.GetNetworkId(),
+                               pCurr1->p0.GetRouteId(),
+                               pCurr1->p0.GetSide(),
+                               r1meas,
+                               r1meas));
+                    }
+                    else
+                    {
+                      if (pCurr1->timeInterval.lc == true &&
+                          (fabs(r1meas - pCurr1->p0.GetPosition()) < 0.01 ||
+                          fabs(r2meas -pCurr2->p0.GetPosition()) < 0.01))
+                      {
+                        res->Add(UGPoint(Interval<Instant> (tinter, tinter,
+                                 true, true),
+                                 pCurr1->p0.GetNetworkId(),
+                                 pCurr1->p0.GetRouteId(),
+                                 pCurr1->p0.GetSide(),
+                                 r1meas,
+                                 r1meas));
+                      }
+                      else
+                      {
+                        if  (pCurr1->timeInterval.rc == true &&
+                             (fabs(r1meas - pCurr1->p1.GetPosition()) < 0.01 ||
+                             fabs(r2meas - pCurr2->p1.GetPosition()) < 0.01))
+                        {
+                          res->Add(UGPoint(Interval<Instant> (tinter, tinter,
+                                   true, true),
+                                   pCurr1->p0.GetNetworkId(),
+                                   pCurr1->p0.GetRouteId(),
+                                   pCurr1->p0.GetSide(),
+                                   r1meas,
+                                   r1meas));
+                        }
+                      }
                     }
                   }
                 }
