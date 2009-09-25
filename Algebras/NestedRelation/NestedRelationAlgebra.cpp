@@ -200,7 +200,7 @@ void AttributeRelation::CopyFrom(const StandardAttribute* right)
 {
   AttributeRelation* arel = (AttributeRelation*) right;
   Relation* relOld = Relation::GetRelation(arel->getFileId());
-  setFileId(relOld->GetPrivateRelation()->tupleFile.GetFileId());
+  setFileId(relOld->GetFileId());
   ownRelation = false;
   DBArray<TupleId>* tids = arel->getTupleIds(); 
   const TupleId* tid;
@@ -558,7 +558,7 @@ void NestedRelation::insertSubRelations( ListExpr typeInfo )
                               nl->Second(first2.listExpr()));
          Relation *subRel = new Relation(subRelInfo);
          SubRelation *s = new SubRelation(subRel, first1.str(), 
-                          subRel->GetPrivateRelation()->tupleFile.GetFileId(), 
+                          subRel->GetFileId(), 
                           subRelInfo);
          append(s);
         
@@ -1285,7 +1285,7 @@ AttributeRelation* storeSubRel(AttributeRelation* a, int& i,
    int arelId = NestedRelation::getTypeId(nrelAlgId, "arel"); 
    Relation* relOld = Relation::GetRelation(a->getFileId());
    SmiFileId fileId = nr->getSubRels()->at(i)->fileId;
-   AttributeRelation* arel = new AttributeRelation (fileId);                     
+   AttributeRelation* arel = new AttributeRelation (fileId); 
    Relation* r = nr->getSubRels()->at(i)->rel;
    int j = i;
    DBArray<TupleId>* tids = a->getTupleIds();
@@ -1552,14 +1552,14 @@ aConsume(Word* args, Word& result, int message,
                       nl->IntAtom(relId)),nl->Second(arel->getArelType())); 
      rel = new Relation(relType);
      arel->setRel(rel);
-     arel->setFileId(rel->GetPrivateRelation()->tupleFile.GetFileId());
+     arel->setFileId(rel->GetFileId());
      arel->setOwnRelation(true);
      local.addr = rel;
   }
   else
   {
       rel = (Relation*)local.addr;
-      arel->setFileId(rel->GetPrivateRelation()->tupleFile.GetFileId());
+      arel->setFileId(rel->GetFileId());
   }   
   Tuple* tuple;
   qp->Open(args[0].addr);
@@ -1798,8 +1798,7 @@ nestValueMap(Word* args, Word& result, int message,
        info->firstCall = true;
        info->endOfStream = false;
        info->subrel = new Relation(info->subTupleType); 
-       info->fileId = info->subrel->GetPrivateRelation()->tupleFile.
-                                                          GetFileId();
+       info->fileId = info->subrel->GetFileId();
        local.addr = info;
        qp->Open(args[0].addr);
        return 0;
@@ -1834,7 +1833,7 @@ nestValueMap(Word* args, Word& result, int message,
            tuple = new Tuple( info->tupleType );
            subtuple = new Tuple (info->subTupleType);      
          }
-         assert( tuple->GetNoAttributes() == info->primaryLength + 1);                    
+         assert( tuple->GetNoAttributes() == info->primaryLength + 1); 
          assert( subtuple->GetNoAttributes() == info->subrelLength);
          for (int i = 0; i < info->primaryLength; i++)
          {
