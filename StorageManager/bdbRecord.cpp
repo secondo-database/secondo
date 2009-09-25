@@ -60,7 +60,7 @@ SmiRecord::Implementation::~Implementation()
 }
 
 SmiRecord::SmiRecord()
-  : smiFile( 0 ), recordKey(), recordSize( 0 ), fixedSize( false ),
+  : smiFile( 0 ), recordKey(), recordSize( 0 ), pos(0), fixedSize( false ),
     initialized( false ), writable( false )
 {
   impl = new Implementation();

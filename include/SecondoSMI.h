@@ -956,6 +956,13 @@ Destroys a record handle.
   SmiSize  Read( void* buffer,
                  const SmiSize numberOfBytes,
                  const SmiSize offset = 0 );
+
+  template <typename T>
+  inline SmiSize Read(T& buffer) {
+    SmiSize n = Read(&buffer, sizeof(T), pos);
+    pos += sizeof(T);
+    return n;
+  } 
 /*
 Reads a sequence of at most ~numberOfBytes~ bytes from the record into the ~buffer~
 provided by the user. Optionally a record ~offset~ can be specified.
@@ -965,6 +972,16 @@ The amount of bytes actually transfered is being returned.
   SmiSize  Write( const void*   buffer,
                   const SmiSize numberOfBytes,
                   const SmiSize offset = 0 );
+
+  template <typename T>
+  inline SmiSize Write(T& buffer) {
+    
+    SmiSize n = Write(&buffer, sizeof(T), pos);
+    pos += sizeof(T);
+    return n;
+  } 
+
+
 /*
 Writes a sequence of at most ~numberOfBytes~ bytes into the record from the ~buffer~
 provided by the user. Optionally a record ~offset~ can be specified.
@@ -972,6 +989,8 @@ The amount of bytes actually transfered is being returned.
 
 */
   SmiSize  Size();
+  void SetPos(SmiSize n) { pos = n; }
+  SmiSize GetPos() { return pos; }
 /*
 Retrieves the total amount of bytes stored within the persistent representation
 of this record.
@@ -1008,6 +1027,7 @@ essential to explicitly call this method.
   SmiFile* smiFile;       // associated SmiFile object
   SmiKey   recordKey;     // Key (or record no.) of this record
   SmiSize  recordSize;    // Total size of the record
+  SmiSize  pos;           // current start position (offset)
   bool     fixedSize;     // Record has fixed length
   bool     initialized;   // Handle is initialized
   bool     writable;      // Record is writable
