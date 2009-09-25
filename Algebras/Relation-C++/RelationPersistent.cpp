@@ -1882,25 +1882,21 @@ Relation::pointerTable;
 void
 Relation::InitFiles( bool open /*= false */) {
 
- bool rc = false;	
- if (open) {
-
+  bool rc = false;	
+  if (open) {
     rc = tupleFile.Open(relDesc.tupleFileId);
-
   } else {
-
     rc = tupleFile.Create();
   }	  
 
-
-      if( !rc )
-      {
-        string error;
-        SmiEnvironment::GetLastErrorCode( error );
-        cerr << error << endl;
-        assert( false );
-      }
-      relDesc.tupleFileId = tupleFile.GetFileId();
+  if( !rc )
+  {
+    string error;
+    SmiEnvironment::GetLastErrorCode( error );
+    cerr << error << endl;
+    assert( false );
+  }
+  relDesc.tupleFileId = tupleFile.GetFileId();
 
       
   if( pointerTable.find( relDesc ) ==
@@ -1909,36 +1905,32 @@ Relation::InitFiles( bool open /*= false */) {
                                     this ) );
 
   // init LOB File
-  if (relDesc.tupleType->NumOfFlobs() > 0 && relDesc.lobFileId == 0) {
-	  
-    cerr << "Creating new Lob-File" << endl;	  
-    SmiRecordFile* rf = SecondoSystem::GetFLOBCache()->CreateFile(isTemp);
+  if (relDesc.tupleType->NumOfFlobs() > 0 && relDesc.lobFileId == 0) 
+  {	  
+    SmiRecordFile* rf = 
+       SecondoSystem::GetFLOBCache()->CreateFile(relDesc.isTemp);
     relDesc.lobFileId = rf->GetFileId();
   }	  
 }	
 
 
 Relation::Relation( const ListExpr typeInfo, bool isTemp ):
-  relDesc( typeInfo ),
-  tupleFile( false, 0, isTemp ),
-  isTemp( isTemp )
+  relDesc( typeInfo, isTemp ),
+  tupleFile( false, 0, isTemp )
 {
   Relation::InitFiles();
 }
 
 Relation::Relation( TupleType *tupleType, bool isTemp ):
-  relDesc( tupleType ),
-  tupleFile( false, 0, isTemp ),
-  isTemp( isTemp )
+  relDesc( tupleType, isTemp ),
+  tupleFile( false, 0, isTemp )
 {
   Relation::InitFiles();
 }
 
-Relation::Relation( const RelationDescriptor& relDesc,
-                    bool isTemp ):
+Relation::Relation( const RelationDescriptor& relDesc ):
   relDesc( relDesc ),
-  tupleFile( false, 0, isTemp ),
-  isTemp( isTemp )
+  tupleFile( false, 0, relDesc.isTemp ) 
 {
   Relation::InitFiles(true);
 }
@@ -2029,36 +2021,29 @@ Relation::Open( SmiRecord& valueRecord, size_t& offset,
 {
   RelationDescriptor relDesc( typeInfo );
 
-  valueRecord.Read( &relDesc.noTuples, sizeof( int ), offset );
-  offset += sizeof( int );
-
-  valueRecord.Read( &relDesc.totalExtSize, sizeof( double ), offset );
-  offset += sizeof( double );
-
-  valueRecord.Read( &relDesc.totalSize, sizeof( double ), offset );
-  offset += sizeof( double );
+  valueRecord.SetPos(offset);
+  valueRecord.Read( relDesc.noTuples );
+  valueRecord.Read( relDesc.totalExtSize );
+  valueRecord.Read( relDesc.totalSize );
 
   for( int i = 0; i < relDesc.tupleType->GetNoAttributes(); i++ )
   {
     double d;
-    valueRecord.Read( &d, sizeof( double ), offset );
+    valueRecord.Read( d );
     relDesc.attrExtSize[i] = d;
-    offset += sizeof( double );
   }
 
   for( int i = 0; i < relDesc.tupleType->GetNoAttributes(); i++ )
   {
     double d;
-    valueRecord.Read( &d, sizeof( double ), offset );
+    valueRecord.Read( d );
     relDesc.attrSize[i] = d;
-    offset += sizeof( double );
   }
 
-  valueRecord.Read( &relDesc.tupleFileId, sizeof( SmiFileId ), offset );
-  offset += sizeof( SmiFileId );
+  valueRecord.Read( relDesc.tupleFileId );
+  valueRecord.Read( relDesc.lobFileId );
 
-  valueRecord.Read( &relDesc.lobFileId, sizeof( SmiFileId ), offset );
-  offset += sizeof( SmiFileId );
+  offset = valueRecord.GetPos();
 
   return new Relation( relDesc );
 }
@@ -2067,35 +2052,25 @@ bool
 Relation::Save( SmiRecord& valueRecord, size_t& offset,
                 const ListExpr typeInfo )
 {
-  //const RelationDescriptor& relDesc = relDesc;
-
-  valueRecord.Write( &relDesc.noTuples, sizeof( int ), offset );
-  offset += sizeof( int );
-
-  valueRecord.Write( &relDesc.totalExtSize, sizeof( double ), offset );
-  offset += sizeof( double );
-
-  valueRecord.Write( &relDesc.totalSize, sizeof( double ), offset );
-  offset += sizeof( double );
+  valueRecord.SetPos(offset);
+  valueRecord.Write( relDesc.noTuples);
+  valueRecord.Write( relDesc.totalExtSize );
+  valueRecord.Write( relDesc.totalSize );
 
   for( int i = 0; i < relDesc.tupleType->GetNoAttributes(); i++ )
   {
-    valueRecord.Write( &relDesc.attrExtSize[i], sizeof( double ), offset );
-    offset += sizeof( double );
+    valueRecord.Write( relDesc.attrExtSize[i] );
   }
 
   for( int i = 0; i < relDesc.tupleType->GetNoAttributes(); i++ )
   {
-    valueRecord.Write( &relDesc.attrSize[i], sizeof( double ), offset );
-    offset += sizeof( double );
+    valueRecord.Write( relDesc.attrSize[i] );
   }
 
-  valueRecord.Write( &relDesc.tupleFileId, sizeof( SmiFileId ), offset );
-  offset += sizeof( SmiFileId );
+  valueRecord.Write( relDesc.tupleFileId );
+  valueRecord.Write( relDesc.lobFileId );
 
-  valueRecord.Write( &relDesc.lobFileId, sizeof( SmiFileId ), offset );
-  offset += sizeof( SmiFileId );
-
+  offset = valueRecord.GetPos();
   return true;
 }
 
@@ -2118,9 +2093,7 @@ void Relation::Delete()
 {
   tupleFile.Close();
   tupleFile.Drop();
-
-  SecondoSystem::GetFLOBCache()->Drop( relDesc.lobFileId, isTemp );
-
+  SecondoSystem::GetFLOBCache()->Drop( relDesc.lobFileId, relDesc.isTemp );
   ErasePointer();
 
   delete this;
@@ -2192,7 +2165,7 @@ void Relation::Clear()
   relDesc.totalExtSize = 0;
   relDesc.totalSize = 0;
   tupleFile.Truncate();
-  SecondoSystem::GetFLOBCache()->Truncate( relDesc.lobFileId, isTemp );
+  SecondoSystem::GetFLOBCache()->Truncate( relDesc.lobFileId, relDesc.isTemp );
 }
 
 Tuple *Relation::GetTuple( const TupleId& id ) const

@@ -63,9 +63,16 @@ of this algebra module.
 
 September 2007, M. Spiekermann. Dependencies to algebra OldRelationAlgebra removed.
 
-June 2009, S.Jungnickel. Added classes ~TupleFile~ and ~TupleFileIterator~.
+June 2009, S. Jungnickel. Added classes ~TupleFile~ and ~TupleFileIterator~.
 New methods ~Save~ and ~Open~ in class ~Tuple~ to save and restore tuples to/from
 a ~TupleFile~.
+
+Sept 2009. M. Spiekermann. Due to problems with too many open files communicated 
+by S. Jungnickel several codelines of the classes FLOBCache, Relation and in the 
+StorageManagement need to be changed. Moreover, the class ~PrivateRelation~ has been
+merged into class Relation. The relation itself will now request the FLOBCache to create
+LOB-files if necessary. Before, files were created on the fly indicated by a zero 
+lobFile-id which was not a satisfying solution for all situations.
 
 [TOC]
 
@@ -373,7 +380,8 @@ struct RelationDescriptor
 {
   friend ostream& operator<<(ostream& o, const RelationDescriptor& rd);
   inline
-  RelationDescriptor( TupleType* tupleType ):
+  RelationDescriptor( TupleType* tupleType, bool b=false ):
+    isTemp(b),	  
     tupleType( tupleType ),
     attrExtSize( tupleType->GetNoAttributes() ),
     attrSize( tupleType->GetNoAttributes() )
@@ -388,7 +396,8 @@ struct RelationDescriptor
     }
 
   inline
-  RelationDescriptor( const ListExpr typeInfo ):
+  RelationDescriptor( const ListExpr typeInfo, bool b=false ):
+    isTemp(b),	  
     tupleType( new TupleType( nl->Second( typeInfo ) ) ),
     attrExtSize( 0 ),
     attrSize( 0 )
@@ -415,6 +424,7 @@ The simple constructors.
                       const vector<double>& attrExtSize,
                       const vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
+    isTemp(false),	  
     tupleType( tupleType ),
     attrExtSize( attrExtSize ),
     attrSize( attrSize )
@@ -430,6 +440,7 @@ The simple constructors.
                       const vector<double>& attrExtSize,
                       const vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
+    isTemp(false),	  
     tupleType( new TupleType( nl->Second( typeInfo ) ) ),
     attrExtSize( attrExtSize ),
     attrSize( attrSize )
@@ -444,6 +455,7 @@ The first constructor.
 */
   inline
   RelationDescriptor( const RelationDescriptor& d ):
+    isTemp( d.isTemp ),	  
     tupleType( d.tupleType ),
     attrExtSize( d.attrExtSize ),
     attrSize( d.attrSize )
@@ -473,9 +485,14 @@ The destructor.
     init(d.noTuples, d.totalExtSize, d.totalSize, d.tupleFileId, d.lobFileId);
     attrExtSize = d.attrExtSize;
     attrSize = d.attrSize;
+    isTemp = d.isTemp;
 
     return *this;
   }
+/*
+Definition of the assignment operator.
+
+*/
 
 
   inline void init(  int in_noTuples = 0,
@@ -490,10 +507,18 @@ The destructor.
     tupleFileId = in_tupleFileId;
     lobFileId = in_lobFileId;
   }
-
-
 /*
-Redefinition of the assignement operator.
+Initialization of some members which are defined in the same way
+for all constructor variants.
+
+*/
+
+
+
+
+  bool isTemp;
+/*
+A flag telling whether the relation is temporary.
 
 */
 
@@ -2145,17 +2170,6 @@ constructor ~rel~.
 
 */
 
-//struct RelationDescriptor;
-//class RelationDescriptorCompare;
-
-
-
-/*
-Forward declaration of the struct ~RelationDescriptor~ and the
-comparison class ~RelationDescriptorCompare~. These classes will
-contain the necessary information for opening a relation.
-
-*/
 
 class Relation : public GenericRelation
 {
@@ -2174,8 +2188,7 @@ The second constructor. It creates an empty relation from a
 relations.
 
 */
-    Relation( const RelationDescriptor& relDesc,
-              bool isTemp = false );
+    Relation( const RelationDescriptor& relDesc);
 /*
 The third constructor. It opens a previously created relation.
 The flag ~isTemporary~ can be used to open temporary created
@@ -2189,14 +2202,18 @@ The destructor. Deletes the memory part of an relation object.
 */
 
     static Relation *GetRelation( const RelationDescriptor& d );
-    // SPM: communicated by K. Teufel
+
     static Relation *GetRelation (const SmiFileId fileId );
+    SmiFileId GetFileId() { return tupleFile.GetFileId(); }
 /*
 
-Given a relation descriptor, finds if there is an opened relation with that
+Given a relation descriptor, ~GetRelation~ finds if there is an opened relation with that
 descriptor and retrieves its memory representation pointer.This function is
 used to avoid opening several times the same relation. A table indexed by
 descriptors containing the relations is used for this purpose.
+
+Instead of the complete descriptor the file id of the tuple file can also be used.
+for this purpose. The file id can be retrieved by ~GetFileId~.
 
 */
     static GenericRelation *In( ListExpr typeInfo, ListExpr value,
@@ -2359,11 +2376,6 @@ Stores the descriptor of the relation.
   mutable SmiRecordFile tupleFile;
 /*
 Stores a handle to the tuple file.
-
-*/
-  bool isTemp;
-/*
-A flag telling whether the relation is temporary.
 
 */
 
