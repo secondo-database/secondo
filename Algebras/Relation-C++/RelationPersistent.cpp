@@ -242,7 +242,7 @@ The destructor.
 
 #ifdef USE_SERIALIZATION
 
-void Tuple::Save( SmiRecordFile *tuplefile,
+void Tuple::Save( SmiRecordFile* tuplefile,
                          SmiFileId& lobFileId,
                          double& extSize, double& size,
                          vector<double>& attrExtSize, vector<double>& attrSize,
@@ -1878,35 +1878,75 @@ constructor ~rel~.
 map<RelationDescriptor, Relation*, RelationDescriptorCompare>
 Relation::pointerTable;
 
-Relation::Relation( const ListExpr typeInfo, bool isTemp ):
-privateRelation( new PrivateRelation( typeInfo, isTemp ) )
-{
-  if( pointerTable.find( privateRelation->relDesc ) ==
+
+void
+Relation::InitFiles( bool open /*= false */) {
+
+ bool rc = false;	
+ if (open) {
+
+    rc = tupleFile.Open(relDesc.tupleFileId);
+
+  } else {
+
+    rc = tupleFile.Create();
+  }	  
+
+
+      if( !rc )
+      {
+        string error;
+        SmiEnvironment::GetLastErrorCode( error );
+        cerr << error << endl;
+        assert( false );
+      }
+      relDesc.tupleFileId = tupleFile.GetFileId();
+
+      
+
+  if( pointerTable.find( relDesc ) ==
                          pointerTable.end() )
-    pointerTable.insert( make_pair( privateRelation->relDesc,
+    pointerTable.insert( make_pair( relDesc,
                                     this ) );
+
+  // init LOB File
+  if (relDesc.tupleType->NumOfFlobs() > 0) {
+	  
+    //SecondoSystem::FLOBCache::CreateFile();
+
+  }	  
+}	
+
+
+Relation::Relation( const ListExpr typeInfo, bool isTemp ):
+  relDesc( typeInfo ),
+  tupleFile( false, 0, isTemp ),
+  isTemp( isTemp )
+{
+  Relation::InitFiles();
 }
 
 Relation::Relation( TupleType *tupleType, bool isTemp ):
-privateRelation( new PrivateRelation( tupleType, isTemp ) )
+  relDesc( tupleType ),
+  tupleFile( false, 0, isTemp ),
+  isTemp( isTemp )
 {
-  if( pointerTable.find( privateRelation->relDesc ) ==
-                         pointerTable.end() )
-    pointerTable.insert( make_pair( privateRelation->relDesc,
-                                    this ) );
+  Relation::InitFiles();
 }
 
 Relation::Relation( const RelationDescriptor& relDesc,
                     bool isTemp ):
-privateRelation( new PrivateRelation( relDesc, isTemp ) )
+  relDesc( relDesc ),
+  tupleFile( false, 0, isTemp ),
+  isTemp( isTemp )
 {
-  if( pointerTable.find( relDesc ) == pointerTable.end() )
-    pointerTable.insert( make_pair( relDesc, this ) );
+  Relation::InitFiles(true);
 }
 
 Relation::~Relation()
 {
-  delete privateRelation;
+  //delete privateRelation;
+  tupleFile.Close();
 }
 
 Relation *Relation::GetRelation( const RelationDescriptor& d )
@@ -1955,30 +1995,30 @@ ListExpr
 Relation::SaveToList( ListExpr typeInfo )
 {
   ListExpr result =
-    nl->OneElemList( nl->IntAtom( privateRelation->relDesc.noTuples ) ),
+    nl->OneElemList( nl->IntAtom( relDesc.noTuples ) ),
            last = result;
 
   last =
-    nl->Append( last, nl->RealAtom( privateRelation->relDesc.totalExtSize ) );
+    nl->Append( last, nl->RealAtom( relDesc.totalExtSize ) );
   last =
-    nl->Append( last, nl->RealAtom( privateRelation->relDesc.totalSize ) );
+    nl->Append( last, nl->RealAtom( relDesc.totalSize ) );
 
   for( int i = 0;
-       i < privateRelation->relDesc.tupleType->GetNoAttributes();
+       i < relDesc.tupleType->GetNoAttributes();
        i++ )
   {
     last =
       nl->Append( last,
-                  nl->RealAtom( privateRelation->relDesc.attrExtSize[i] ) );
+                  nl->RealAtom( relDesc.attrExtSize[i] ) );
     last =
       nl->Append( last,
-                  nl->RealAtom( privateRelation->relDesc.attrSize[i] ) );
+                  nl->RealAtom( relDesc.attrSize[i] ) );
   }
 
   last =
-    nl->Append( last, nl->IntAtom( privateRelation->relDesc.tupleFileId ) );
+    nl->Append( last, nl->IntAtom( relDesc.tupleFileId ) );
   last =
-    nl->Append( last, nl->IntAtom( privateRelation->relDesc.lobFileId ) );
+    nl->Append( last, nl->IntAtom( relDesc.lobFileId ) );
 
   return result;
 }
@@ -2027,7 +2067,7 @@ bool
 Relation::Save( SmiRecord& valueRecord, size_t& offset,
                 const ListExpr typeInfo )
 {
-  const RelationDescriptor& relDesc = privateRelation->relDesc;
+  //const RelationDescriptor& relDesc = relDesc;
 
   valueRecord.Write( &relDesc.noTuples, sizeof( int ), offset );
   offset += sizeof( int );
@@ -2061,10 +2101,10 @@ Relation::Save( SmiRecord& valueRecord, size_t& offset,
 
 void Relation::ErasePointer()
 {
-  if( pointerTable.find( privateRelation->relDesc ) !=
+  if( pointerTable.find( relDesc ) !=
                          pointerTable.end() )
   {
-    pointerTable.erase( privateRelation->relDesc );
+    pointerTable.erase( relDesc );
   }
 }
 
@@ -2076,12 +2116,10 @@ void Relation::Close()
 
 void Relation::Delete()
 {
-  privateRelation->tupleFile.Close();
-  privateRelation->tupleFile.Drop();
+  tupleFile.Close();
+  tupleFile.Drop();
 
-  SecondoSystem::GetFLOBCache()->Drop(
-    privateRelation->relDesc.lobFileId,
-    privateRelation->isTemp );
+  SecondoSystem::GetFLOBCache()->Drop( relDesc.lobFileId, isTemp );
 
   ErasePointer();
 
@@ -2090,10 +2128,10 @@ void Relation::Delete()
 
 void Relation::DeleteAndTruncate()
 {
-  privateRelation->tupleFile.Remove();
-  privateRelation->tupleFile.Drop();
+  tupleFile.Remove();
+  tupleFile.Drop();
 
-  SmiFileId lobId = privateRelation->relDesc.lobFileId;
+  SmiFileId lobId = relDesc.lobFileId;
   if (lobId != 0) {
     SecondoSystem::GetFLOBCache()->Drop( lobId, false );
   } else {
@@ -2109,7 +2147,7 @@ void Relation::DeleteAndTruncate()
 
 Relation *Relation::Clone()
 {
-  Relation *r = new Relation( privateRelation->relDesc.tupleType );
+  Relation *r = new Relation( relDesc.tupleType );
 
   Tuple *t;
   GenericRelationIterator *iter = MakeScan();
@@ -2125,49 +2163,42 @@ Relation *Relation::Clone()
 
 void Relation::AppendTuple( Tuple *tuple )
 {
-  tuple->Save(
-    &privateRelation->tupleFile,
-    privateRelation->relDesc.lobFileId,
-    privateRelation->relDesc.totalExtSize,
-    privateRelation->relDesc.totalSize,
-    privateRelation->relDesc.attrExtSize,
-    privateRelation->relDesc.attrSize );
+  tuple->Save( &tupleFile,
+    relDesc.lobFileId,
+    relDesc.totalExtSize,
+    relDesc.totalSize,
+    relDesc.attrExtSize,
+    relDesc.attrSize );
 
-  privateRelation->relDesc.noTuples += 1;
+  relDesc.noTuples += 1;
 }
 
 
 void Relation::AppendTupleNoLOBs( Tuple *tuple )
 {
-  tuple->Save(
-    &privateRelation->tupleFile,
-    privateRelation->relDesc.lobFileId,
-    privateRelation->relDesc.totalExtSize,
-    privateRelation->relDesc.totalSize,
-    privateRelation->relDesc.attrExtSize,
-    privateRelation->relDesc.attrSize, true );
+  tuple->Save( &tupleFile,
+    relDesc.lobFileId,
+    relDesc.totalExtSize,
+    relDesc.totalSize,
+    relDesc.attrExtSize,
+    relDesc.attrSize, true );
 
-  privateRelation->relDesc.noTuples += 1;
+  relDesc.noTuples += 1;
 }
 
 void Relation::Clear()
 {
-  privateRelation->relDesc.noTuples = 0;
-  privateRelation->relDesc.totalExtSize = 0;
-  privateRelation->relDesc.totalSize = 0;
-  privateRelation->tupleFile.Truncate();
-  SecondoSystem::GetFLOBCache()->Truncate(
-    privateRelation->relDesc.lobFileId,
-    privateRelation->isTemp );
+  relDesc.noTuples = 0;
+  relDesc.totalExtSize = 0;
+  relDesc.totalSize = 0;
+  tupleFile.Truncate();
+  SecondoSystem::GetFLOBCache()->Truncate( relDesc.lobFileId, isTemp );
 }
 
 Tuple *Relation::GetTuple( const TupleId& id ) const
 {
-  Tuple *result = new Tuple( privateRelation->relDesc.tupleType );
-  if( result->Open(
-        &privateRelation->tupleFile,
-        privateRelation->relDesc.lobFileId,
-        id ) )
+  Tuple *result = new Tuple( relDesc.tupleType );
+  if( result->Open( &tupleFile, relDesc.lobFileId, id ) )
     return result;
 
   delete result;
@@ -2186,10 +2217,10 @@ void Relation::UpdateTuple( Tuple *tuple,
 {
   tuple->UpdateAttributes(
     changedIndices, newAttrs,
-    privateRelation->relDesc.totalExtSize,
-    privateRelation->relDesc.totalSize,
-    privateRelation->relDesc.attrExtSize,
-    privateRelation->relDesc.attrSize );
+    relDesc.totalExtSize,
+    relDesc.totalSize,
+    relDesc.attrExtSize,
+    relDesc.attrSize );
 }
 
 /*
@@ -2199,14 +2230,14 @@ and the size of the relation is adjusted.
 */
 bool Relation::DeleteTuple( Tuple *tuple )
 {
-  if( privateRelation->tupleFile.DeleteRecord( tuple->GetTupleId() ) )
+  if( tupleFile.DeleteRecord( tuple->GetTupleId() ) )
   {
     Attribute* nextAttr;
     FLOB* nextFLOB;
 
-    privateRelation->relDesc.noTuples -= 1;
-    privateRelation->relDesc.totalExtSize -= tuple->GetRootSize();
-    privateRelation->relDesc.totalSize -= tuple->GetRootSize();
+    relDesc.noTuples -= 1;
+    relDesc.totalExtSize -= tuple->GetRootSize();
+    relDesc.totalSize -= tuple->GetRootSize();
 
     for (int i = 0; i < tuple->GetNoAttributes(); i++)
     {
@@ -2217,16 +2248,16 @@ bool Relation::DeleteTuple( Tuple *tuple )
         nextFLOB = nextAttr->GetFLOB(j);
 
         assert( i >= 0 &&
-                (size_t)i < privateRelation->relDesc.attrSize.size() );
-        privateRelation->relDesc.attrSize[i] -= nextFLOB->Size();
-        privateRelation->relDesc.totalSize -= nextFLOB->Size();
+                (size_t)i < relDesc.attrSize.size() );
+        relDesc.attrSize[i] -= nextFLOB->Size();
+        relDesc.totalSize -= nextFLOB->Size();
 
         if( !nextFLOB->IsLob() )
         {
           assert( i >= 0 &&
-                  (size_t)i < privateRelation->relDesc.attrExtSize.size() );
-          privateRelation->relDesc.attrExtSize[i] -= nextFLOB->Size();
-          privateRelation->relDesc.totalExtSize -= nextFLOB->Size();
+                  (size_t)i < relDesc.attrExtSize.size() );
+          relDesc.attrExtSize[i] -= nextFLOB->Size();
+          relDesc.totalExtSize -= nextFLOB->Size();
         }
 
         nextFLOB->Destroy();
@@ -2240,48 +2271,48 @@ bool Relation::DeleteTuple( Tuple *tuple )
 
 int Relation::GetNoTuples() const
 {
-  return privateRelation->relDesc.noTuples;
+  return relDesc.noTuples;
 }
 
 TupleType *Relation::GetTupleType() const
 {
-  return privateRelation->relDesc.tupleType;
+  return relDesc.tupleType;
 }
 
 double Relation::GetTotalRootSize() const
 {
-  return privateRelation->relDesc.noTuples *
-         privateRelation->relDesc.tupleType->GetCoreSize();
+  return relDesc.noTuples *
+         relDesc.tupleType->GetCoreSize();
 }
 
 double Relation::GetTotalRootSize( int i ) const
 {
-  return privateRelation->relDesc.noTuples *
-         privateRelation->relDesc.tupleType->GetAttributeType(i).coreSize;
+  return relDesc.noTuples *
+         relDesc.tupleType->GetAttributeType(i).coreSize;
 }
 
 double Relation::GetTotalExtSize() const
 {
-  return privateRelation->relDesc.totalExtSize;
+  return relDesc.totalExtSize;
 }
 
 double Relation::GetTotalExtSize( int i ) const
 {
   assert( i >= 0 &&
-          (size_t)i < privateRelation->relDesc.attrExtSize.size() );
-  return privateRelation->relDesc.attrExtSize[i];
+          (size_t)i < relDesc.attrExtSize.size() );
+  return relDesc.attrExtSize[i];
 }
 
 double Relation::GetTotalSize() const
 {
-  return privateRelation->relDesc.totalSize;
+  return relDesc.totalSize;
 }
 
 double Relation::GetTotalSize( int i ) const
 {
   assert( i >= 0 &&
-          (size_t)i < privateRelation->relDesc.attrSize.size() );
-  return privateRelation->relDesc.attrSize[i];
+          (size_t)i < relDesc.attrSize.size() );
+  return relDesc.attrSize[i];
 }
 
 GenericRelationIterator *Relation::MakeScan() const
@@ -2304,9 +2335,9 @@ RandomRelationIterator *Relation::MakeRandomScan() const
 
 bool Relation::GetTupleFileStats( SmiStatResultType &result )
 {
-  result = privateRelation->tupleFile.GetFileStatistics(SMI_STATS_EAGER);
+  result = tupleFile.GetFileStatistics(SMI_STATS_EAGER);
   std::stringstream fileid;
-  fileid << privateRelation->tupleFile.GetFileId();
+  fileid << tupleFile.GetFileId();
   result.push_back(pair<string,string>("FilePurpose",
             "RelationTupleCoreFile"));
   result.push_back(pair<string,string>("FileId",fileid.str()));
@@ -2318,7 +2349,7 @@ bool Relation::GetLOBFileStats( SmiStatResultType &result )
 {
 //  cerr << "Relation::GetLOBFileStats( SmiStatResultType &result ) still "
 //       << "lacks implementation!" << endl;
-  SmiFileId  lobFileId = privateRelation->relDesc.lobFileId;
+  SmiFileId  lobFileId = relDesc.lobFileId;
   SmiRecordFile lobFile(false);
   if( lobFileId == 0 ){
     return true;
@@ -2363,7 +2394,7 @@ This class is used for scanning (iterating through) relations.
 
 */
 RelationIterator::RelationIterator( const Relation& rel, TupleType* tt /*=0*/ ):
-  iterator( rel.privateRelation->tupleFile.SelectAllPrefetched() ),
+  iterator( rel.tupleFile.SelectAllPrefetched() ),
   relation( rel ),
   endOfScan( false ),
   currentTupleId( -1 ),
@@ -2390,10 +2421,10 @@ Tuple* RelationIterator::GetNextTuple()
     return 0;
   }
 
-  Tuple *result = new Tuple( relation.privateRelation->relDesc.tupleType );
+  Tuple *result = new Tuple( relation.relDesc.tupleType );
 
-  result->Open( &relation.privateRelation->tupleFile,
-                relation.privateRelation->relDesc.lobFileId,
+  result->Open( &relation.tupleFile,
+                relation.relDesc.lobFileId,
                 iterator );
 
   currentTupleId = result->GetTupleId();
@@ -2418,19 +2449,19 @@ Tuple* RelationIterator::GetNextTuple( const list<int>& attrList )
   if (outtype) {
     new Tuple( outtype );
   } else {
-    new Tuple( relation.privateRelation->relDesc.tupleType );
+    new Tuple( relation.relDesc.tupleType );
   } */
 
-  DEBUG2(this, *relation.privateRelation->relDesc.tupleType )
+  DEBUG2(this, *relation.relDesc.tupleType )
   DEBUG2(this, *outtype )
 
-  result = new Tuple( relation.privateRelation->relDesc.tupleType );
+  result = new Tuple( relation.relDesc.tupleType );
 
 
 
   result->OpenPartial( outtype, attrList,
-                       &relation.privateRelation->tupleFile,
-                       relation.privateRelation->relDesc.lobFileId,
+                       &relation.tupleFile,
+                       relation.relDesc.lobFileId,
                        iterator );
 
   currentTupleId = result->GetTupleId();
@@ -2481,10 +2512,10 @@ Tuple* RandomRelationIterator::GetNextTuple(int step/*=1*/)
     }
   }
 
-  Tuple *result = new Tuple( relation.privateRelation->relDesc.tupleType );
+  Tuple *result = new Tuple( relation.relDesc.tupleType );
 
-  result->Open( &relation.privateRelation->tupleFile,
-                relation.privateRelation->relDesc.lobFileId,
+  result->Open( &relation.tupleFile,
+                relation.relDesc.lobFileId,
                 iterator );
 
   currentTupleId = result->GetTupleId();

@@ -324,6 +324,17 @@ Returns the attribute type at ~index~ position.
 Puts the attribute type ~attrType~ in the position ~index~.
 
 */
+    inline int NumOfFlobs() const
+    {
+      int n = 0;	    
+      for(int i = 0; i < noAttributes; i++) {	    
+        n += attrTypeArray[i].numOfFlobs;
+      }
+      return n;      
+    }
+
+
+
   private:
 
     int noAttributes;
@@ -557,94 +568,6 @@ class RelationDescriptorCompare
       else
         return false;
     }
-};
-
-/*
-4.1 Struct ~PrivateRelation~
-
-This struct contains the private attributes of the class ~Relation~.
-
-*/
-struct PrivateRelation
-{
-  PrivateRelation( const ListExpr typeInfo, bool isTemp ):
-    relDesc( typeInfo ),
-    tupleFile( false, 0, isTemp ),
-    isTemp( isTemp )
-    {
-      if( !tupleFile.Create() )
-      {
-        string error;
-        SmiEnvironment::GetLastErrorCode( error );
-        cout << error << endl;
-        assert( false );
-      }
-      relDesc.tupleFileId = tupleFile.GetFileId();
-    }
-/*
-The first constructor. Creates an empty relation from a ~typeInfo~.
-
-*/
-  PrivateRelation( TupleType *tupleType, bool isTemp ):
-    relDesc( tupleType ),
-    tupleFile( false, 0, isTemp ),
-    isTemp( isTemp )
-    {
-      if( !tupleFile.Create() )
-      {
-        string error;
-        SmiEnvironment::GetLastErrorCode( error );
-        cout << error << endl;
-        assert( false );
-      }
-      relDesc.tupleFileId = tupleFile.GetFileId();
-    }
-/*
-The second constructor. Creates an empty relation from a ~tupleType~.
-
-*/
-  PrivateRelation( const RelationDescriptor& relDesc,
-                   bool isTemp ):
-    relDesc( relDesc ),
-    tupleFile( false, 0, isTemp ),
-    isTemp( isTemp )
-    {
-      if( !tupleFile.Open( relDesc.tupleFileId ) )
-      {
-        string error;
-        SmiEnvironment::GetLastErrorCode( error );
-        cout << error << endl;
-        assert( false );
-      }
-      this->relDesc.tupleFileId = tupleFile.GetFileId();
-    }
-/*
-The third constructor. Opens a previously created relation.
-
-*/
-  ~PrivateRelation()
-  {
-    tupleFile.Close();
-  }
-/*
-The destuctor.
-
-*/
-  RelationDescriptor relDesc;
-/*
-Stores the descriptor of the relation.
-
-*/
-  SmiRecordFile tupleFile;
-/*
-Stores a handle to the tuple file.
-
-*/
-  bool isTemp;
-/*
-A flag telling whether the relation is temporary.
-
-*/
 };
 
 
@@ -2222,8 +2145,11 @@ constructor ~rel~.
 
 */
 
-struct RelationDescriptor;
-class RelationDescriptorCompare;
+//struct RelationDescriptor;
+//class RelationDescriptorCompare;
+
+
+
 /*
 Forward declaration of the struct ~RelationDescriptor~ and the
 comparison class ~RelationDescriptorCompare~. These classes will
@@ -2231,12 +2157,6 @@ contain the necessary information for opening a relation.
 
 */
 
-struct PrivateRelation;
-/*
-Forward declaration of the struct ~PrivateRelation~. This struct
-will contain the private attributes of the class ~Relation~.
-
-*/
 class Relation : public GenericRelation
 {
   public:
@@ -2412,10 +2332,7 @@ some tuples in the scan, hence it can iterate faster. It is used by the
 sample operator.
 
 */
-    inline PrivateRelation *GetPrivateRelation()
-    {
-      return privateRelation;
-    }
+    //inline PrivateRelation *GetPrivateRelation() { return privateRelation; }
 /*
 Function to give outside access to the private part of the
 relation class.
@@ -2424,17 +2341,33 @@ relation class.
 
     friend class RelationIterator;
     friend class RandomRelationIterator;
-    friend struct PrivateRelationIterator;
+    ////friend struct PrivateRelationIterator;
 
   private:
-
+    void InitFiles( bool open = false ); 
     void ErasePointer();
 /*
 Removes the current Relation from the table of opened relations.
 
 */
 
-    PrivateRelation *privateRelation;
+  RelationDescriptor relDesc;
+/*
+Stores the descriptor of the relation.
+
+*/
+  mutable SmiRecordFile tupleFile;
+/*
+Stores a handle to the tuple file.
+
+*/
+  bool isTemp;
+/*
+A flag telling whether the relation is temporary.
+
+*/
+
+
 /*
 The private attributes of the class ~Relation~.
 
