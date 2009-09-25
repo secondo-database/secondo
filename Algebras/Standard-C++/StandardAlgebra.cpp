@@ -434,7 +434,7 @@ CastInt( void* addr )
 bool
 CheckInt( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "int" ));
+  return (listutils::isSymbol( type, "int" ));
 }
 
 /*
@@ -577,7 +577,7 @@ CastReal( void* addr )
 bool
 CheckReal( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "real" ));
+  return (listutils::isSymbol( type, "real" ));
 }
 
 
@@ -729,7 +729,7 @@ CastBool( void* addr )
 bool
 CheckBool( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "bool" ));
+  return (listutils::isSymbol( type, "bool" ));
 }
 
 TypeConstructor ccBool( "bool",             CcBoolProperty,
@@ -900,7 +900,7 @@ CastString( void* addr )
 bool
 CheckString( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "string" ));
+  return (listutils::isSymbol( type, "string" ));
 }
 
 TypeConstructor ccString( "string",       CcStringProperty,
@@ -1289,7 +1289,7 @@ keywordsType( ListExpr args ){
   if ( nl->ListLength(args) == 1 )
   {
     arg = nl->First(args);
-    if ( nl->IsEqual(arg, "string") )
+    if ( listutils::isSymbol(arg, "string") )
       return nl->TwoElemList(nl->SymbolAtom("stream"),
         nl->SymbolAtom("string"));
   }
@@ -1317,7 +1317,7 @@ ListExpr ifthenelseType(ListExpr args)
     arg3 = nl->Third( args );
     errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-    if (nl->Equal(arg2, arg3) && nl->IsEqual(arg1,"bool") &&
+    if (nl->Equal(arg2, arg3) && listutils::isSymbol(arg1,"bool") &&
         SecondoSystem::GetAlgebraManager()
                 ->CheckKind("DATA", arg2, errorInfo) &&
         SecondoSystem::GetAlgebraManager()
@@ -1351,7 +1351,7 @@ ListExpr ifthenelse2Type(ListExpr args)
     arg3 = nl->Third( args );
     errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-    if (nl->Equal(arg2, arg3) && nl->IsEqual(arg1,"bool"))
+    if (nl->Equal(arg2, arg3) && listutils::isSymbol(arg1,"bool"))
     {
       if ( IsRelDescription(arg2) || IsRelDescription(arg2, true) )	    
         return arg2;
@@ -1415,7 +1415,7 @@ CcHashValueTypeMap( ListExpr args )
   ListExpr arg2 = nl->Second(args);
 
   if(!listutils::isDATA(arg1) ||
-     !nl->IsEqual(arg2,INT)){
+     !listutils::isSymbol(arg2,INT)){
     ErrorReporter::ReportError("DATA x int expected");
     return nl->TypeError();
   }
