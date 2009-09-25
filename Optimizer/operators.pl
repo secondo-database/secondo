@@ -856,6 +856,8 @@ opSignature(speedup, temporal, [mpoint,real],mpoint,[]).
 opSignature(avespeed, temporal, [mpoint],real,[]).
 opSignature(submove, temporal, [mpoint,real],mpoint,[exp]).
 opSignature(uval, temporal, [uint], int,[]).
+opSignature(distancetraversed, temporal, [mpoint], mreal,[exp]).
+opSignature(delay, temporal, [mpoint, mpoint], mreal,[exp]).
 
 /*
 2.7.5 TemporalExtAlgebra
@@ -2429,6 +2431,14 @@ they are indended to be used with the optimizer.
 
 */
 
+/*
+NearestNeighbor Algebra
+
+*/
+%Faked operator 
+opSignature(isknn, nearestneighbor, [int, int, mpoint, string], mbool, []).
+  
+
 % Section:Start:opSignature_5_e
 /*
 STPatternAlgebra
@@ -2447,6 +2457,9 @@ opSignature(patternex, stpattern, [NamedPredList, ConList, bool], bool,[]):-
   isBoolList(ConList).
 opSignature(as, stpattern, [mbool,X], namedPred,[]):-
   atom(X).
+opSignature(randomdelay, stpattern, [mpoint, duration], mpoint,[]).
+opSignature(passmbool, stpattern, [mbool], mbool,[]).
+opSignature(randommbool, stpattern, [instant], mbool,[]).
 % Section:End:opSignature_5_e
 
 /*
