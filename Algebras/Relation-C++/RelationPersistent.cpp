@@ -1903,17 +1903,17 @@ Relation::InitFiles( bool open /*= false */) {
       relDesc.tupleFileId = tupleFile.GetFileId();
 
       
-
   if( pointerTable.find( relDesc ) ==
                          pointerTable.end() )
     pointerTable.insert( make_pair( relDesc,
                                     this ) );
 
   // init LOB File
-  if (relDesc.tupleType->NumOfFlobs() > 0) {
+  if (relDesc.tupleType->NumOfFlobs() > 0 && relDesc.lobFileId == 0) {
 	  
-    //SecondoSystem::FLOBCache::CreateFile();
-
+    cerr << "Creating new Lob-File" << endl;	  
+    SmiRecordFile* rf = SecondoSystem::GetFLOBCache()->CreateFile(isTemp);
+    relDesc.lobFileId = rf->GetFileId();
   }	  
 }	
 

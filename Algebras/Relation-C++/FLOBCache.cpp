@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics & Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -280,24 +280,13 @@ bool FLOBCache::GetFLOB( SmiFileId fileId, SmiRecordId lobId,
   return true;
 }
 
-void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
-                         long pageno, size_t size, bool isTempFile,
-                         const char *flob )
+
+SmiRecordFile*
+FLOBCache::CreateFile( bool tmp ) 
 {
-  trace.enter(__FUNCTION__);
-
-
-  SmiRecordFile *file;
-  if( fileId == 0 ) // assign a lob file id
-  {
-    assert( lobId == 0 );
-
-    if (lobFile == 0) { // no lobFile present, create one
-      
-      lobFile = new SmiRecordFile( false, 0, isTempFile );
+    SmiRecordFile* rf = new SmiRecordFile( false, 0, tmp);
     
-    file = lobFile;
-    if( !file->Create() )
+    if( !rf->Create() )
     {
       string error;
       SmiEnvironment::GetLastErrorCode( error );
@@ -305,12 +294,28 @@ void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
       assert( false );
     }
 
-    fileId = file->GetFileId();
-    lobFileId = fileId;
-  
-    traceFile(fileId, isTempFile);
-  
-    files.insert( make_pair( fileId, file ) );
+    SmiFileId fileId = rf->GetFileId();
+    traceFile(fileId, tmp);
+    files.insert( make_pair( fileId, rf ) );
+
+    return rf;
+}	
+
+
+void FLOBCache::PutFLOB( SmiFileId& fileId, SmiRecordId& lobId,
+                         long pageno, size_t size, bool isTempFile,
+                         const char *flob )
+{
+  trace.enter(__FUNCTION__);
+
+  SmiRecordFile* file = 0;
+  if( fileId == 0 ) // assign a lob file id
+  {
+    assert( lobId == 0 );
+
+    if (lobFile == 0) { 
+      lobFile = CreateFile(isTempFile);
+      lobFileId = lobFile->GetFileId();
     }
     file = lobFile;    
     fileId = lobFileId;
@@ -437,6 +442,7 @@ SmiRecordFile*
 FLOBCache::LookUpFile( SmiFileId id, bool tmp ) {
    
    trace.enter(__FUNCTION__);
+   trace.show( VAL(id) );
 
    SmiRecordFile* file = 0;
    FileTable::iterator iter = files.find( id );

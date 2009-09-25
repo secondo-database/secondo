@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics & Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -27,7 +27,15 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 [1] Header File of Module FLOB Cache
 
-Victor Almeida, 08/12/2005. 
+08/12/2005: Victor Almeida 
+
+September 2009: M. Spiekermann. The FLOBCache will now create no Files on the
+fly anymore. There is now only one file created for FLOBs with lobFileId = 0.
+In the past the creation of new lob files for every call with lobFileId = 0 
+could cause the creation of too many files. Moreover, the class relation creates
+a lob file if the tuple type contains data with FLOBs. This prevents to call
+~PutFlob~ with lobId = 0.
+
 
 1 Defines
 
@@ -207,6 +215,9 @@ class FLOBCache
                    bool paged = false );
     void Drop( SmiFileId fileId, bool isTemp,
                bool paged = false );
+
+    SmiRecordFile* CreateFile( bool tmp );
+
 
   private:
     char *Lookup( const FLOBKey key, bool inc = false );
