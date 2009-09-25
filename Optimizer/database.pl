@@ -4523,6 +4523,7 @@ readSystemIdentifiers :-
   assert(systemIdentifier(save,save)),
   assert(systemIdentifier(to,to)),
   assert(systemIdentifier(from,from)),
+  assert(systemIdentifier(rowid,rowid)), % reference for gettuple(.)
 % Section:Start:readSystemIdentifiers_0_i
 % Section:End:readSystemIdentifiers_0_i
   write('\nINFO:\tNow retrieving system identifiers...'),nl,
