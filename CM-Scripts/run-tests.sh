@@ -142,10 +142,9 @@ dbFile="$buildDir/bin/$dbTest"
 
 declare -i error=0
 
-testSuites=$(find $buildDir -path "*Tests*.test" -o -path "*bin*.test" -a ! -name "*$dbTest")
+testSuites=$(find $buildDir -path "*Tests*.test" -o -path "*bin*.test" -a ! -path "*Algebras/ExtRelation-2/*" -a ! -name "*$dbTest")
 
-#echo -e "$testSuites"
-#exit 1
+echo -e "$testSuites"
 
 #echo "ldd: "$(ldd $SECONDO_BUILD_DIR/bin/SecondoBDB)
 
