@@ -103,6 +103,8 @@ Checks for a numeric value
 */
  bool isNumeric(const ListExpr num);
 
+ bool isSymbol(const ListExpr list, const string& v);
+
 
 /*
 Returns the numeric value.

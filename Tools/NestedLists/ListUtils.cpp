@@ -192,6 +192,16 @@ Checks for a valid atribute list
     return true;
   }
 
+/*
+Checks whether the list corresponds to a given symbol.
+
+*/  
+ bool isSymbol(const ListExpr list, const string& v){
+   if(nl->AtomType(list)!=SymbolType){
+     return false;
+   }
+   return nl->SymbolValue(list) == v;
+ }
 
 /*
 Returns the keytype fo an rtree description.
