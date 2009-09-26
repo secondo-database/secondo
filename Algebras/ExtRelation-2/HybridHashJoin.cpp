@@ -71,7 +71,10 @@ int HybridHashJoinProgressLocalInfo::CalcProgress( ProgressInfo& p1,
                                                    ProgressInfo* pRes,
                                                    Supplier s )
 {
+  // calculate tuple size of join
   this->SetJoinSizes(p1, p2);
+
+  // copy sizes to result
   pRes->CopySizes(this);
 
   if ( this->state == 1 )
@@ -142,11 +145,119 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
                                                           ProgressInfo* pRes,
                                                           Supplier s )
 {
-  if ( pinfoB.size() > 1 )
+  double sel;
+  double m = (double)this->returned;
+  double k1 = (double)this->readFirst;
+  double k2 = (double)this->readSecond;
+  size_t M = qp->MemoryAvailableForOperator();
+  size_t S2 = (size_t)p2.SizeExt;
+
+  // calculate the maximum amount of tuples of stream B that fit into
+  // the operator's main memory
+  size_t M_S2 = (size_t)floor((double)M / (double)S2);
+
+  // -------------------------------------------
+  // Result cardinality
+  // -------------------------------------------
+
+  // calculate estimated selectivity
+  if ( m > enoughSuccessesJoin )
   {
-    pinfoB[1]->Print( cmsg.info() );
-    cmsg.send();
+    // warm state
+    sel = m / ( k1 * k2 );
   }
+  else
+  {
+    // cold state
+    sel = qp->GetSelectivity(s);
+  }
+
+  // calculate result cardinality
+  pRes->Card = p1.Card * p2.Card * sel;
+
+  // -------------------------------------------
+  // Total time
+  // -------------------------------------------
+
+  // calculate time needed for successors
+  pRes->Time = p1.Time + p2.Time;
+
+  // calculate time for partitioning and processing of stream A
+  for (size_t i = 0; i < pinfoA.size(); i++)
+  {
+    pRes->Time += pinfoA[i]->tuples
+    * ( pinfoA[i]->noOfPasses  * ( t_probe + t_read ) + t_write );
+  }
+  pRes->Time -= pinfoA[0]->tuples * ( t_read + t_write );
+
+  // calculate time for partitioning and processing of stream B
+  pRes->Time += p2.Card * ( t_hash + t_read + t_write )
+                - min(pinfoB[0]->tuples, M_S2) * ( t_read + t_write );
+
+  // calculate time for sub-partitioning of stream B
+  pRes->Time += this->subTotalTuples * ( t_read + t_write );
+
+  // calculate time to create result tuples
+  pRes->Time += pRes->Card * t_result;
+
+  // -------------------------------------------
+  // Total progress
+  // -------------------------------------------
+
+  // calculate current progress of successors
+  pRes->Progress = p1.Progress * p1.Time + p2.Progress * p2.Time;
+
+  // calculate current progress of stream A
+  for (size_t i = 0; i < pinfoA.size(); i++)
+  {
+    pRes->Progress += pinfoA[i]->tuplesProc * ( t_probe + t_read )
+                      + min( pinfoA[i]->tuples,
+                             pinfoA[i]->tuplesProc ) * t_write ;
+  }
+  pRes->Progress -= min( pinfoA[0]->tuples,
+                         pinfoA[0]->tuplesProc ) * ( t_read + t_write );
+
+  // calculate current progress of stream B
+  pRes->Progress += k2 * ( t_hash + t_read + t_write )
+                    - min(pinfoB[0]->tuples, M_S2)* ( t_read +  t_write );
+
+  // calculate current progress for sub-partitioning of stream B
+  pRes->Progress += this->subTuples * ( t_read + t_write );
+
+  // calculate time to create result tuples
+  pRes->Progress += m * t_result;
+
+  // calculate total progress
+  pRes->Progress /= pRes->Time;
+
+  // -------------------------------------------
+  // Blocking time
+  // -------------------------------------------
+
+  // calculate blocking time for successors
+  pRes->BTime = p1.BTime + p2.BTime;
+
+  // calculate time until stream B is partitioned
+  pRes->BTime += p2.Card * ( t_hash + t_read + t_write )
+                  - min(pinfoB[0]->tuples, M_S2) * ( t_read +  t_write )
+                  + this->subTotalTuples  * ( t_read + t_write );
+
+  // -------------------------------------------
+  // Blocking Progress
+  // -------------------------------------------
+
+  // calculate blocking progress for successors
+  pRes->BProgress = p1.BProgress * p1.BTime + p2.BProgress * p2.BTime;
+
+  // calculate progress of partitioning of stream B
+  pRes->BProgress += k2 * ( t_hash + t_read + t_write )
+                     - min(pinfoB[0]->tuplesProc, M_S2) * ( t_read +  t_write )
+                     + this->subTuples  * ( t_read + t_write );
+
+  // calculate blocking progress
+  pRes->BProgress /= pRes->BTime;
+
+  return;
 }
 
 /*
@@ -176,6 +287,7 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
 , pmB(0)
 , tupleA(0)
 , fitsInMemory(false)
+, subpartitioned(false)
 , partitioning(false)
 , curPartition(0)
 , finishedPartitionB(false)
@@ -254,8 +366,9 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
     // partition the rest of stream B
     partitionB();
 
-    // sub-partition with maximum recursion level 3
+    // sub-partition stream B swith maximum recursion level 3
     pmB->Subpartition(MAX_MEMORY, 3);
+    subpartitioned = true;
 
     // create partitions for stream A according to partitioning of stream B
     pmA = new PartitionManager(hashFuncA, *pmB);
@@ -431,15 +544,7 @@ void HybridHashJoinAlgorithm::partitionB()
   while ( ( t = nextTupleB() ) )
   {
     pmB->Insert(t);
-
-    if ( ( progress->readSecond % 200 ) == 0 )
-    {
-      updateProgressInfoB();
-    }
   }
-
-  // final update of progress information
-  updateProgressInfoB();
 
   return;
 }
@@ -459,6 +564,7 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
         // bucket contains match -> build result tuple
         Tuple *result = new Tuple( resultTupleType );
         Concat( tupleA, tupleB, result );
+        progress->returned++;
         return result;
       }
       else // bucket completely processed
@@ -481,19 +587,11 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
       pmA->Insert(tupleA);
     }
 
-    if ( ( progress->readFirst % 200 ) == 0 )
-    {
-      updateProgressInfoA();
-    }
-
     tupleA = nextTupleA();
   }
 
   // change state
   partitioning = false;
-
-  // final update of progress information for stream A
-  updateProgressInfoA();
 
   if ( finishedPartitionB )
   {
@@ -529,6 +627,7 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
       {
         Tuple *result = new Tuple( resultTupleType );
         Concat( tupleA, tupleB, result );
+        progress->returned++;
         return result;
       }
       else
@@ -577,6 +676,7 @@ Tuple* HybridHashJoinAlgorithm::NextResultTuple()
       {
         Tuple *result = new Tuple( resultTupleType );
         Concat( tupleA, tupleB, result );
+        progress->returned++;
         return result;
       }
       else
@@ -600,71 +700,6 @@ Tuple* HybridHashJoinAlgorithm::NextResultTuple()
   return 0;
 }
 
-int simsubpartition( PartitionHistogram ph,
-                      size_t maxSize,
-                      int maxRecursion,
-                      int level )
-{
-  int tuples = 0;
-
-  if ( ph.GetTupleSizes() <= maxSize )
-  {
-    return tuples;
-  }
-
-  // check if maximum recursion level is reached
-  if ( level > maxRecursion )
-  {
-    return tuples;
-  }
-
-  // check if partition contains at least 4 hash function values
-  if ( ph.size() < 4 )
-  {
-    return tuples;
-  }
-
-  // create two new partition histograms with half the size
-  PartitionHistogram ph1, ph2;
-
-  size_t m = ( ph.size() / 2 ) - 1;
-
-  for(size_t i = 0; i < m; i++)
-  {
-    ph1.push_back( ph[i] );
-  }
-
-  for(size_t j = m; j < ph.size(); j++)
-  {
-    ph2.push_back( ph[j] );
-  }
-
-  tuples = ph.GetNoTuples();
-
-  int noTuples1 = ph1.GetNoTuples();
-  int noTuples2 = ph2.GetNoTuples();
-
-  // delete empty partitions, store new ones and subpartition
-  // if necessary (Note: only one partition can be empty)
-  if ( noTuples1 == 0 && noTuples2 > 0 )
-  {
-    tuples += simsubpartition(ph2, maxSize, maxRecursion, ++level);
-  }
-  else if ( noTuples1 > 0 && noTuples2 == 0 )
-  {
-    tuples += simsubpartition(ph1, maxSize, maxRecursion, ++level);
-  }
-  else
-  {
-    size_t level1 = level;
-    size_t level2 = level;
-    tuples += simsubpartition(ph1, maxSize, maxRecursion, ++level1);
-    tuples += simsubpartition(ph2, maxSize, maxRecursion, ++level2);
-  }
-
-  return tuples;
-}
-
 void HybridHashJoinAlgorithm::updateProgressInfoA()
 {
   assert(pmA);
@@ -683,29 +718,18 @@ void HybridHashJoinAlgorithm::updateProgressInfoB()
 
   progress->pinfoB.clear();
 
+  // calculate the necessary number of iterations per partition of stream A
   for (int i = 0; i < pmB->GetNoPartitions(); i++)
   {
-    PartitionInfo* pi = pmB->GetPartitionInfo(i);
+    progress->pinfoB.push_back(pmB->GetPartitionInfo(i));
+  }
 
-    pi->noOfPasses = (double)pi->tupleSizes / (double)this->MAX_MEMORY;
-
-    if ( pi->noOfPasses > 1 )
-    {
-      if ( pi->subpartitioned )
-      {
-        // sub-partitioning is already finished
-        pi->subTotalTuples = 0;
-        pi->subTuples = 0;
-      }
-      else
-      {
-        // estimate number of sub-partitioning phases and involved tuples
-        pi->subTotalTuples =
-          simsubpartition(pi->histogram, this->MAX_MEMORY, 3, 1);
-      }
-    }
-
-    progress->pinfoB.push_back(pi);
+  // estimate number of sub-partitioning phases and involved tuples
+  // if sub-partitioning has no been finished
+  if ( subpartitioned == false )
+  {
+    progress->subTotalTuples = pmB->GetSubTupleTotalCount(this->MAX_MEMORY, 3);
+    progress->subTuples = pmB->GetSubTupleCurCount();
   }
 }
 /*
@@ -715,7 +739,7 @@ void HybridHashJoinAlgorithm::updateProgressInfoB()
 
 template<bool param>
 int HybridHashJoinValueMap( Word* args, Word& result,
-                              int message, Word& local, Supplier s)
+                            int message, Word& local, Supplier s)
 {
   // args[0] : stream A
   // args[1] : stream B
@@ -793,9 +817,7 @@ int HybridHashJoinValueMap( Word* args, Word& result,
       }
 
       HybridHashJoinAlgorithm* algo = li->ptr;
-
       result.setAddr( algo->NextResultTuple() );
-      li->returned++;
       return result.addr != 0 ? YIELD : CANCEL;
     }
 
@@ -833,6 +855,8 @@ int HybridHashJoinValueMap( Word* args, Word& result,
         if ( qp->RequestProgress(args[0].addr, &p1) &&
              qp->RequestProgress(args[1].addr, &p2) )
         {
+          HybridHashJoinAlgorithm* algo = li->ptr;
+          algo->UpdateProgressInfo();
           return li->CalcProgress(p1, p2, pRes, s);
         }
         else

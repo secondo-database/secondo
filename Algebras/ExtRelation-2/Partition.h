@@ -155,28 +155,65 @@ typedef struct PartitionHistogramEntry
 {
   PartitionHistogramEntry()
   : value(0)
-  , tupleCount(0)
-  , tupleSizes(0)
+  , count(0)
+  , totalSize(0)
+  , totalExtSize(0)
   {}
+/*
+The first constructor. Creates an empty instance.
+
+*/
 
   PartitionHistogramEntry( size_t value,
-                             size_t tupleCount,
-                             size_t tupleSizes )
+                           size_t count,
+                           size_t totalSize,
+                           size_t totalExtSize )
   : value(0)
-  , tupleCount(tupleCount)
-  , tupleSizes(tupleSizes)
+  , count(count)
+  , totalSize(totalSize)
+  , totalExtSize(totalExtSize)
   {}
+/*
+The second constructor. Creates an instance with the specified values.
+
+*/
 
   PartitionHistogramEntry(const PartitionHistogramEntry& rhs)
   {
     value = rhs.value;
-    tupleCount = rhs.tupleCount;
-    tupleSizes = rhs.tupleSizes;
+    count = rhs.count;
+    totalSize = rhs.totalSize;
+    totalExtSize = rhs.totalExtSize;
   }
+/*
+Copy constructor.
+
+*/
 
   size_t value;
-  size_t tupleCount;
-  size_t tupleSizes;
+/*
+Hash value
+
+*/
+
+  size_t count;
+/*
+Number of values within a partition.
+
+*/
+
+  size_t totalSize;
+/*
+Total tuple size for a partition including LOBs.
+
+*/
+
+  size_t totalExtSize;
+/*
+Size of all core and extension parts for a partition.
+
+*/
+
 };
 /*
 Type definition of a partition histogram entry.
@@ -194,23 +231,49 @@ class PartitionHistogram :
 
       for(size_t i = 0; i < size(); i++)
       {
-        sum += (*this)[i].tupleCount;
+        sum += (*this)[i].count;
       }
 
       return sum;
     }
+/*
+Returns the number of tuple in a partition histogram.
 
-    int GetTupleSizes()
+*/
+
+    size_t GetTotalSize()
     {
-      int sum = 0;
+      size_t sum = 0;
 
       for(size_t i = 0; i < size(); i++)
       {
-        sum += (*this)[i].tupleSizes;
+        sum += (*this)[i].totalSize;
       }
 
       return sum;
     }
+/*
+Returns the total size of all tuples in a partition histogram
+including LOBs.
+
+*/
+
+    size_t GetTotalExtSize()
+    {
+      size_t sum = 0;
+
+      for(size_t i = 0; i < size(); i++)
+      {
+        sum += (*this)[i].totalExtSize;
+      }
+
+      return sum;
+    }
+/*
+Returns the core and extension part size of all tuples in a
+partition histogram.
+
+*/
 
     ostream& Print(ostream& os)
     {
@@ -219,8 +282,9 @@ class PartitionHistogram :
       for(size_t i = 0; i < this->size(); i++)
       {
         cmsg.info() << "Value: " << (*this)[i].value
-                    << ", Tuples: " << (*this)[i].tupleCount
-                    << ", Sizes: " << (*this)[i].tupleSizes
+                    << ", Tuples: " << (*this)[i].count
+                    << ", totalSize: " << (*this)[i].totalSize
+                    << ", totalExtSize: " << (*this)[i].totalExtSize
                     << endl;
       }
 
@@ -228,6 +292,11 @@ class PartitionHistogram :
 
       return os;
     }
+/*
+Print partition histogram content to a stream (for debugging purposes).
+
+*/
+
 };
 
 /*
@@ -271,13 +340,19 @@ Number of tuples of a partition.
 
 */
 
-    size_t tupleSizes;
+    size_t totalSize;
 /*
-Total size of partition in bytes.
+Total size of all tuples in a partition in bytes.
 
 */
 
-    double noOfPasses;
+    size_t totalExtSize;
+/*
+Total size of all core and extension parts of tuples in a partition in bytes.
+
+*/
+
+    int noOfPasses;
 /*
 Number of passes necessary to process a partition. This field
 is only used for partitions from stream B.
@@ -285,15 +360,9 @@ is only used for partitions from stream B.
 
 */
 
-    size_t subTotalTuples;
+    size_t tuplesProc;
 /*
-Total number of tuples to process during sub-partitioning.
-
-*/
-
-    size_t subTuples;
-/*
-Number of tuples already processed during sub-partitioning.
+Current number of tuples processed during join operation.
 
 */
 
@@ -361,37 +430,34 @@ Returns the number of tuples for a partition.
 
 */
 
-    inline size_t GetSize()
+    inline size_t GetTotalSize()
     {
       return buffer->GetTotalSize();
     }
 /*
-Returns the partition size in bytes.
+Returns the partition size in bytes including LOBs.
 
 */
 
-    inline bool Overflows(size_t maxMemorySize)
+    inline size_t GetTotalExtSize()
     {
-      return ( this->GetSize() > maxMemorySize );
+      return buffer->GetTotalExtSize();
+    }
+/*
+Returns the partition size in bytes including FLOBs.
+
+*/
+
+    inline bool Overflows()
+    {
+      return ( this->GetTotalExtSize() > MAX_MEMORY );
     }
 /*
 Returns true if the partition's size exceeds ~maxMemorySize~.
 
 */
 
-    inline void Insert(Tuple* t, size_t hashFuncValue)
-    {
-      buffer->AppendTuple(t);
-
-      // update partition info
-      size_t s = t->GetSize();
-      pinfo.tuples++;
-      pinfo.tupleSizes += s;
-      int hIndex = hashFuncValue - interval.GetLow();
-      pinfo.histogram[hIndex].value = hashFuncValue;
-      pinfo.histogram[hIndex].tupleCount++;
-      pinfo.histogram[hIndex].tupleSizes += s;
-    }
+    inline void Insert(Tuple* t, size_t hashFuncValue);
 /*
 Insert a tuple into a partition.
 
@@ -455,6 +521,12 @@ Tuple buffer for temporary storage in-memory and on disk.
 /*
 Statistical partition information for a partition. Used for
 debugging and progress estimation.
+
+*/
+
+    size_t MAX_MEMORY;
+/*
+Maximum memory available for operator [bytes]
 
 */
 };
@@ -640,6 +712,21 @@ maximum memory of ~MAX\_MEMORY~ bytes..
 
 */
 
+    int GetSubTupleTotalCount(size_t maxSize, int maxRecursion);
+/*
+Returns the number of tuples that must be processed during sub-partitioning
+when ~maxSize~ memory is available and a maximum recursion level of
+~maxRecursion~ is allowed.
+
+*/
+
+    int GetSubTupleCurCount() { return subTuples; }
+/*
+Returns the current number of tuples that were already processed
+during sub-partitioning.
+
+*/
+
     ostream& Print(ostream& os);
 /*
 Print the partitioning to stream ~os~. This function is used
@@ -650,7 +737,22 @@ for debugging purposes.
   private:
 
     void subpartition( size_t n, size_t maxSize,
-                        int maxRecursion, int level );
+                       int maxRecursion, int level );
+/*
+Sub-partition partition ~n~ into partitions that are maximal
+~maxSize~ bytes big using ~maxRecursion~ levels. ~level~
+is the current recursion level.
+
+*/
+
+    int simsubpartition( PartitionHistogram ph, size_t maxSize,
+                         int maxRecursion, int level );
+/*
+Simulate sub-partitioning for a partition with partition histogram ~ph~
+into partitions that are maximal ~maxSize~ bytes big using
+~maxRecursion~ levels. ~level~ is the current recursion level.
+
+*/
 
     inline Tuple* readFromStream(Word stream)
     {
@@ -730,7 +832,17 @@ Buffer size for partition 0 in bytes.
 
 */
 
+    size_t subTuples;
+/*
+Number of tuples processed during sub-partitioning.
+
+*/
+
     static const bool traceMode = true;
+/*
+Flag to enable trace mode.
+
+*/
 };
 
 /*

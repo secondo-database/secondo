@@ -40,10 +40,10 @@ namespace extrel2
 PartitionInfo::PartitionInfo(size_t n)
 : subpartitioned(false)
 , tuples(0)
-, tupleSizes(0)
+, totalSize(0)
+, totalExtSize(0)
 , noOfPasses(0)
-, subTotalTuples(0)
-, subTuples(0)
+, tuplesProc(0)
 {
   for(size_t i = 0; i < n; i++)
   {
@@ -57,10 +57,10 @@ PartitionInfo::PartitionInfo(PartitionInfo& obj)
     return;
 
   tuples = obj.tuples;
-  tupleSizes = obj.tupleSizes;
+  totalSize = obj.totalSize;
+  totalExtSize = obj.totalExtSize;
   noOfPasses = obj.noOfPasses;
-  subTotalTuples = obj.subTotalTuples;
-  subTuples = obj.subTuples;
+  tuplesProc = obj.tuplesProc;
 
   for(size_t i = 0; i < obj.histogram.size(); i++)
   {
@@ -72,10 +72,10 @@ ostream& PartitionInfo::Print(ostream& os)
 {
   os << "------------ PartitionInfo --------------" << endl
      << "tuples: " << tuples
-     << ", tupleSizes: " << tupleSizes
      << ", noOfPasses: " << noOfPasses << endl
-     << "subTotalTuples: " << subTotalTuples
-     << ", subTuples: " << subTuples << endl;
+     << ", tuplesProc: " << tuplesProc<< endl
+     << "totalSize: " << totalSize
+     << ", totalExtSize: " << totalExtSize << endl;
 
   return os;
 }
@@ -88,6 +88,7 @@ ostream& PartitionInfo::Print(ostream& os)
 Partition::Partition(PInterval i, size_t bufferSize)
 : interval(i)
 , pinfo(i.GetLength())
+, MAX_MEMORY(qp->MemoryAvailableForOperator())
 {
   buffer = new TupleBuffer(bufferSize);
 }
@@ -106,13 +107,36 @@ PartitionIterator* Partition::MakeScan()
   return new PartitionIterator(*this);
 }
 
+void Partition::Insert(Tuple* t, size_t hashFuncValue)
+{
+  int hIndex = hashFuncValue - interval.GetLow();
+
+  size_t size = t->GetSize();
+  size_t extSize = t->GetExtSize();
+
+  pinfo.tuples++;
+  pinfo.totalSize += size;
+  pinfo.totalExtSize += extSize;
+  pinfo.noOfPasses = (int)ceil( (double)pinfo.totalExtSize
+                      / (double)this->MAX_MEMORY );
+
+  // update histogram data
+  pinfo.histogram[hIndex].value = hashFuncValue;
+  pinfo.histogram[hIndex].count++;
+  pinfo.histogram[hIndex].totalSize += size;
+  pinfo.histogram[hIndex].totalExtSize += extSize;
+
+  buffer->AppendTuple(t);
+}
+
 ostream& Partition::Print(ostream& os)
 {
     os << "[" << interval.GetLow() << ", "
        << interval.GetHigh() << "] -> "
        << interval.GetLength() << " bucket numbers, "
        << this->GetNoTuples() << " tuples, "
-       << this->GetSize() << " bytes"
+       << this->GetTotalSize() << " bytes, "
+       << this->GetTotalExtSize() << " bytes"
        << endl;
 
   return os;
@@ -129,6 +153,7 @@ PartitionManager::PartitionManager( HashFunction* h,
 : iter(0)
 , hashFunc(h)
 , p0(p0)
+, subTuples(0)
 {
   // calculate buckets per partition
   size_t step = nBuckets / nPartitions;
@@ -240,12 +265,12 @@ void PartitionManager::Subpartition(size_t maxSize, int maxRecursion)
 }
 
 void PartitionManager::subpartition( size_t n,
-                                        size_t maxSize,
-                                        int maxRecursion,
-                                        int level )
+                                     size_t maxSize,
+                                     int maxRecursion,
+                                     int level )
 {
   // check partition size
-  if ( partitions[n]->GetSize() <= maxSize )
+  if ( partitions[n]->GetTotalExtSize() <= maxSize )
   {
     partitions[n]->GetPartitionInfo().subpartitioned = true;
     return;
@@ -308,7 +333,7 @@ void PartitionManager::subpartition( size_t n,
     }
 
     // update progress information
-    partitions[n]->GetPartitionInfo().subTuples++;
+    subTuples++;
 
     // propagate progress message if necessary
     if ( ( counter++ % 200 ) == 0)
@@ -343,6 +368,85 @@ void PartitionManager::subpartition( size_t n,
     subpartition(n, maxSize, maxRecursion, ++level1);
     subpartition(partitions.size()-1, maxSize, maxRecursion, ++level2);
   }
+}
+
+int PartitionManager::GetSubTupleTotalCount(size_t maxSize, int maxRecursion)
+{
+  int count = 0;
+
+  // Simulate sub-partitioning
+  for(size_t i = 0; i < partitions.size(); i++)
+  {
+    count += simsubpartition( partitions[i]->GetPartitionInfo().histogram,
+                              maxSize, maxRecursion, 1);
+  }
+
+  return count;
+}
+
+int PartitionManager::simsubpartition( PartitionHistogram ph,
+                                       size_t maxSize,
+                                       int maxRecursion,
+                                       int level )
+{
+  int tuples = 0;
+
+  if ( ph.GetTotalExtSize() <= maxSize )
+  {
+    return tuples;
+  }
+
+  // check if maximum recursion level is reached
+  if ( level > maxRecursion )
+  {
+    return tuples;
+  }
+
+  // check if partition contains at least 4 hash function values
+  if ( ph.size() < 4 )
+  {
+    return tuples;
+  }
+
+  // create two new partition histograms with half the size
+  PartitionHistogram ph1, ph2;
+
+  size_t m = ( ph.size() / 2 ) - 1;
+
+  for(size_t i = 0; i < m; i++)
+  {
+    ph1.push_back( ph[i] );
+  }
+
+  for(size_t j = m; j < ph.size(); j++)
+  {
+    ph2.push_back( ph[j] );
+  }
+
+  tuples = ph.GetNoTuples();
+
+  int noTuples1 = ph1.GetNoTuples();
+  int noTuples2 = ph2.GetNoTuples();
+
+  // delete empty partitions, store new ones and subpartition
+  // if necessary (Note: only one partition can be empty)
+  if ( noTuples1 == 0 && noTuples2 > 0 )
+  {
+    tuples += simsubpartition(ph2, maxSize, maxRecursion, ++level);
+  }
+  else if ( noTuples1 > 0 && noTuples2 == 0 )
+  {
+    tuples += simsubpartition(ph1, maxSize, maxRecursion, ++level);
+  }
+  else
+  {
+    size_t level1 = level;
+    size_t level2 = level;
+    tuples += simsubpartition(ph1, maxSize, maxRecursion, ++level1);
+    tuples += simsubpartition(ph2, maxSize, maxRecursion, ++level2);
+  }
+
+  return tuples;
 }
 
 void PartitionManager::InitPartitions(HashTable* h)
@@ -384,7 +488,7 @@ bool PartitionManager::LoadPartition(int n, HashTable* h, size_t maxMemory)
   while( ( t = iter->GetNextTuple() ) != 0 )
   {
     h->Insert(t);
-    maxMemory -= t->GetSize();
+    maxMemory -= t->GetExtSize();
 
     if (maxMemory <= 0 )
     {

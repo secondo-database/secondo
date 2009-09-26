@@ -95,9 +95,9 @@ The constructor.
 */
 
     int CalcProgress( ProgressInfo& p1,
-                       ProgressInfo& p2,
-                       ProgressInfo* pRes,
-                       Supplier s);
+                      ProgressInfo& p2,
+                      ProgressInfo* pRes,
+                      Supplier s);
 /*
 Calculates the progress for the hybrid hash join algorithm.
 
@@ -106,6 +106,12 @@ Calculates the progress for the hybrid hash join algorithm.
     static const double uHashJoin = 0.023;  //millisecs per probe tuple
     static const double vHashJoin = 0.0067;  //millisecs per tuple right
     static const double wHashJoin = 0.0025;  //millisecs per tuple returned
+
+    static const double t_read = 0.023;  //millisecs per probe tuple
+    static const double t_write = 0.0067;  //millisecs per tuple right
+    static const double t_probe = 0.023;  //millisecs per tuple returned
+    static const double t_hash = 0.0025;  //millisecs per tuple returned
+    static const double t_result = 0.0025;  //millisecs per tuple returned
 
     vector<PartitionInfo*> pinfoA;
 /*
@@ -116,6 +122,19 @@ Partition information of partitions from stream A.
     vector<PartitionInfo*> pinfoB;
 /*
 Partition information of partitions from stream B.
+
+*/
+
+
+    size_t subTotalTuples;
+/*
+Total number of tuples to process during sub-partitioning.
+
+*/
+
+    size_t subTuples;
+/*
+Number of tuples already processed during sub-partitioning.
 
 */
 
@@ -176,6 +195,19 @@ The destructor. Frees all resources of the algorithm.
 /*
 Returns the pointer of the next result tuple in sort order. If all tuples
 have been processed the method returns 0.
+
+*/
+
+    void UpdateProgressInfo()
+    {
+      updateProgressInfoA();
+      updateProgressInfoB();
+    }
+/*
+Updates the progress information. Copies the progres information
+collected within the partitions to the HybridHashJoinProgressLocalInfo
+instance. Called from value mapping function, whenever a new
+REQUESTPROGRESS message is received.
 
 */
 
@@ -370,6 +402,13 @@ Flag which indicates if stream B fits completely into the operator's
 main memory. If set to true the operator works like a standard hash join
 operator. If this flag is false the operator performs a hybrid hash join
 operation.
+
+*/
+
+    bool subpartitioned;
+/*
+Flag which indicates if sub-partitioning of stream A has already been
+performed. If set to true sub-partitioning of stream B ha been finished.
 
 */
 

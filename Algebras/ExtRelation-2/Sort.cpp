@@ -693,13 +693,25 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
       {
         if (qp->RequestProgress(args[0].addr, &p1))
         {
+          // -------------------------------------------
+          // Result cardinality
+          // -------------------------------------------
+
           pRes->Card = li->returned == 0 ? p1.Card : li->read;
           pRes->CopySizes(p1);
+
+          // -------------------------------------------
+          // Total time
+          // -------------------------------------------
 
           pRes->Time = p1.Time
                        + pRes->Card * p1.Size * (uSortBy + oSortBy * li->state)
                        + pRes->Card * p1.Size * vSortBy
                        + li->intTuplesTotal * p1.Size * (2 * vSortBy);
+
+          // -------------------------------------------
+          // Total progress
+          // -------------------------------------------
 
           pRes->Progress =
             (p1.Progress * p1.Time
@@ -708,12 +720,19 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
              + li->intTuplesProc * p1.Size * (2 * vSortBy) )
             / pRes->Time;
 
+          // -------------------------------------------
+          // Blocking time
+          // -------------------------------------------
+
           // Estimated time until first result tuple is ready
           pRes->BTime = p1.Time
                         + pRes->Card * p1.Size * (uSortBy + oSortBy * li->state)
                         + li->intTuplesTotal * p1.Size * (2 * vSortBy);
 
-          // Current blocking op progress
+          // -------------------------------------------
+          // Blocking progress
+          // -------------------------------------------
+
           pRes->BProgress =
             (p1.Progress * p1.Time
                 + li->read * p1.Size * (uSortBy + oSortBy * li->state)
