@@ -173,6 +173,30 @@ regression(3) :-
 	transformAttributeExpr(attr(psSUPPLYCOST, 1, l), txx1, 1, Result, []),
 	Result = attribute(txx1, attrname(attr(psSUPPLYCOST, 1, l))),
 	cdb.
+	
+runAnalysis :-
+  ( cdb ; true ),
+	odb(tpcd),
+	setOption(subqueryUnnesting),
+	executeBenchmark(d),
+	executeBenchmark(d),
+	delOption(subqueryUnnesting),
+	executeBenchmark(d),
+	executeBenchmark(d),
+	setOption(subqueryUnnesting),
+	retractall(skipQuery(d, 15)),
+	executeSingleQuery(d, 15),
+	executeSingleQuery(d, 15),
+	delOption(subqueryUnnesting),
+	executeSingleQuery(d, 15),
+	executeSingleQuery(d, 15),
+	assert(skipQuery(d, 15)),
+	get_time(A),
+	convert_time(A, Y, M, D, _, _, _, _),
+	concat_atom(['benchmarkResult feed csvexport[\'Analyse', Y, '-', M, '-', D, '.csv\', FALSE, TRUE, ";"\] count'], Query),
+	write('ExportQuery: '), write(Query), nl,
+	!,
+	query(Query).
 
 /*
 OuterJoinQuery:

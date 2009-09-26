@@ -33,7 +33,7 @@ initialize :-
 								  'QueryToPlan: bool, ',
 								  'planToAtom: bool, ',
 								  'Execute: bool, ',
-								  'Teardown: bool, ',
+								  'Teardown: bool, ',								
 								  'runtime_Rewrite: duration, ',
 								  'runtime_Lookup: duration, ',
 								  'runtime_QueryToPlan: duration, ',
@@ -51,8 +51,10 @@ initialize :-
 time(Begin, Duration) :-
   get_time(End),
   Time is End - Begin,  
-  convert_time(Time, _, _, _, _, Minute, Sec, MilliSec),
-  Duration is Minute * 60000 + Sec*1000 + MilliSec.
+  convert_time(Time, _, _, _, Hour, Minute, Sec, MilliSec),
+	convert_time(0, _, _, _, H, _, _, _),
+	Hour1 is Hour - H,
+  Duration is (Hour1 * 3600000) + (Minute * 60000) + (Sec * 1000) + MilliSec.
    
 tpc(Benchmark, No) :-
   skipQuery(Benchmark, No),
@@ -125,12 +127,22 @@ tpc(Benchmark, No) :-
                 TeardownResult],
                 Result),		
    time(BeginAll, TotalTime),
-   sql update Rel set [runtime_Total = create_duration(0, TotalTime)] where [date = instant(0)],				
+   sql update Rel set [runtime_Total = create_duration(0, TotalTime)] where [date = instant(0), (query) = QueryString],				
    concat_atom([Benchmark, No], Key),
    ( retractall(benchmarkResult(Key, _)) ; true ),
    assert(benchmarkResult(Key, Result)).
 
 tpc(d, No, Query) :- tpcd(No, Query).
+
+executeSingleQuery(Benchmark, No) :-
+  executeQuery(Benchmark, No),
+	resultRelation(Rel),
+	!,
+	let('tempXXXXXXX = now()'),   
+	!,
+	sql update Rel set [date = tempXXXXXXX] where [date = instant(0)],
+	!,
+	delete(tempXXXXXXX).
 
 executeQuery(Benchmark, No) :-
   tpc(Benchmark, No).
@@ -182,10 +194,7 @@ setupQuery(d, 15) :-
 setupQuery(_,_).
 		
 teardownQuery(d, 15) :-
-  catch(drop_relation(revenue), _, true),
-  closeDB,
-  updateDB(tpcd),
-  open database tpcd.
+  catch(drop_relation(revenue), _, true).
   
 teardownQuery(_, _).
 
@@ -682,9 +691,9 @@ select
 		[ssuppkey = supplier_no,
 		total_revenue = (
 			select
-			max(total_revenue)
+			max(r:total_revenue)
 			from
-			revenue/*[STREAMID]*/
+			revenue as r/*[STREAMID]*/
 		)]
 		orderby
 		[ssuppkey])
