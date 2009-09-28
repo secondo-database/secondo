@@ -5,7 +5,7 @@
 
 \chapter{Review}\label{chp:Review}
 \section{Überblick}\label{sct:Überblick}
-Ein Datenbanksystem ist eine Menge zusammenhängender Dateien und Programmen, die es einem Benutzer erlauben auf diese Dateien zuzugreifen und diese zu ändern. Eine Hauptaufgabe eines Datenbanksystems ist es, dem Benutzer eine abstrakte Sicht auf die Daten zu ermöglichen. Die physikalische Ablage und der eigentliche Zugriff auf die Daten werden dabei vor dem Benutzer verborgen. Dabei können drei Abstraktionsebenen unterschieden werden. 
+Ein Datenbanksystem ist eine Sammlung zusammenhängender Dateien und Programmen, die es einem Benutzer erlauben auf diese Dateien zuzugreifen und diese zu ändern. Eine Hauptaufgabe eines Datenbanksystems ist es, dem Benutzer eine abstrakte Sicht auf die Daten zu ermöglichen. Die physikalische Ablage und der eigentliche Zugriff auf die Daten werden dabei vor dem Benutzer verborgen. Dabei können drei Abstraktionsebenen unterschieden werden. 
 
 Die interne Ebene beschreibt, wie die Daten physikalisch abgelegt werden. Mit Hilfe von systemnahen komplexen Datenstrukturen wird die physische Ablage der Daten beschrieben. 
 
@@ -28,7 +28,7 @@ Es seien $E_1$ und $E_2$ Ausdrücke über der Relationenalgebra, dann lassen sich 
 	\item $\rho_x(E_1)$, wobei $x$ ein neuer Name für das Ergebnis von $E_1$ ist.
 \end{itemize}
 
-(Quelle: \cite{DBLP:books/mg/SilberschatzKS01})
+(\cite{DBLP:books/mg/SilberschatzKS01})
 
 Die Vereinigung $\cup$ hat als Ergebnis die Vereinigung der Ergebnisse der beiden Ausdrücke $E_1$ und $E_2$. Voraussetzung für die Vereinigung ist die Übereinstimmung der beiden Ausdrücke in ihrem Relationenschema.
 
@@ -44,27 +44,29 @@ Während Relationen und Attribute über einen Namen spezifiziert sind, sind die Er
 
 \subsection{SQL}
 
-Relationale Datenbanken beruhen auf dem von E.F. Codd vorgeschlagenen Relationenalgebra und dem ebenfalls von Codd vorgestellten Relationenkalkül\cite{DBLP:books/mg/SilberschatzKS01}. Ein grundsätzlicher Vorteil des relationalen Datenbankmodells ist die Möglichkeit, die gewünschten Ergebnisse einer Abfrage auf einem hohen Abstraktionsniveau formulieren zu können. Die Zugriffspfade auf die Daten müssen hier nicht mit angegeben werden. Die Relationenalgebra ist abgeschlossen, d.h. das Ergebnis jedes Ausdrucks ist ebenfalls wieder eine Relation. Da die mathematischen Grundlagen der Relationenalgebra und des Relationenkalküls für nicht-technische Benutzer einer Datenbank nicht einfach zu verstehen sind, wurde viel Arbeit in die Entwicklung einer Datenbanksprache gesteckt, die genauso mächtig wie das Relationenkalkül und die Relationenalgebra ist, sich aber leichter erlernen lässt. Eines der interessantesten Merkmale von SQL ist die Möglichkeit Abfrageblöcke beliebig zu schachteln. Eine geschachtelte Abfrage enthält einen weiteren Abfrageblock als Teilausdruck. Die Syntax für geschachtelte Abfragen wird weiter unten dargestellt. Die Begriffe innerer Abfrageblock und Unterabfrage werden im folgenden Synonym verwendet.
+Relationale Datenbanken beruhen auf dem von E.F. Codd vorgeschlagenen Relationenalgebra und dem ebenfalls von Codd vorgestellten Relationenkalkül\cite{DBLP:books/mg/SilberschatzKS01}. Ein grundsätzlicher Vorteil des relationalen Datenbankmodells ist die Möglichkeit, die gewünschten Ergebnisse einer Abfrage auf einem hohen Abstraktionsniveau formulieren zu können. Die Zugriffspfade auf die Daten müssen hier nicht mit angegeben werden. Die Relationenalgebra ist abgeschlossen, d.h. das Ergebnis jedes Ausdrucks ist ebenfalls wieder eine Relation. Da die mathematischen Grundlagen der Relationenalgebra und des Relationenkalküls für nicht-technische Benutzer einer Datenbank nicht einfach zu verstehen sind, wurde viel Arbeit in die Entwicklung einer Datenbanksprache gesteckt, die genauso mächtig wie das Relationenkalkül und die Relationenalgebra ist, sich aber leichter erlernen lässt. Eines der interessantesten Merkmale von SQL ist die Möglichkeit Abfrageblöcke beliebig zu schachteln. Eine geschachtelte Abfrage enthält einen weiteren Abfrageblock als Teilausdruck. Die Syntax für geschachtelte Abfragen wird weiter unten dargestellt. Die Begriffe innerer Abfrageblock und Unterabfrage werden im folgenden synonym verwendet.
 
 Eine Abfrage ohne geschachtelte Prädikate hat die Schachtelungstiefe 1. Enthält eine Abfrage mindestens einen weiteren Abfrageblock der maximalen Schachtelungstiefe n, so hat sie die Schachtelungstiefe n + 1. Die Schachtelungstiefe gibt also an, auf wievielen Ebenen die Abfrageblöcke geschachtelt sind.
 
 SQL ist eine auf dem relationalen Datenbankmodell beruhende Datenbanksprache. Mit ihr können in relationalen Datenbanken die Metadaten der Relationen angelegt und geändert werden. Außerdem erlaubt sie die Manipulation der Daten. Auch die granulare Vergabe von Berechtigungen wurde in SQL standardisiert.
 
 \begin{itemize}
-	\item Datenbanksprache
-	\subitem Datendefinition (DDL)
-	\subitem Datenmanipulation (DML)
-	\subitem Rechtevergabe (DCL)
+%	\item Datenbanksprache
+%	\subitem Datendefinition (DDL)
+%	\subitem Datenmanipulation (DML)
+%	\subitem Rechtevergabe (DCL)
+
 	\item Ein typischer Abfrageblock hat die Form
 	\begin{lstlisting}
 	select §$A_1,A_2,\cdots,A_n$§
 	from §$r_1,r_2,\cdots,r_m$§
 	where P
 	\end{lstlisting}
-Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln \sql{select}, \sql{from} und \sql{where}. Diese bilden einen sogenannten Abfrageblock. In der \sql{select}-Klausel werden die Attribute der Ergebnisrelation angegeben. Die \sql{from}-Klausel gibt die Quellrelationen an, aus denen das Ergebnis ermittelt wird. Die optionale \sql{where}-Klausel gibt schließlich Einschränkungen an, denen die Ergebnistupel genügen müssen.
+	
+Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln \sql{select}, \sql{from} und \sql{where}. Diese bilden einen sogenannten Abfrageblock. In der \sql{select}-Klausel werden die Attribute der Ergebnisrelation angegeben. Die \sql{from}-Klausel gibt die Quellrelationen an, aus denen das Ergebnis ermittelt wird. Die optionale \sql{where}-Klausel gibt schließlich Einschränkungen an, denen die Ergebnistupel genügen müssen. 
 	\subitem Die \sql{select}-Klausel entspricht der Projektions-Operation der Relationenalgebra. In ihr werden alle Attribute der Ergebnisrelation angegeben. Um alle Attribute der beteiligten Relationen zu erhalten gibt es die spezielle Notation \enquote{*}. Mit Ihr wird also das Schema der Ergebnisrelation festgelegt.
 	\subitem Die \sql{from}-Klausel entspricht dem kartesischen Produkt in der Relationenalgebra. Hier werden alle in der Abfrage verwendeten Relationen aufgeführt.
-	\subitem Die \sql{where}-Klausel entspricht der Selektions-Operation der Relationenalgebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der FROM-Klausel aufgelisteten Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnen Termen von einem Prädikat der Abfrage.
+	\subitem Die \sql{where}-Klausel entspricht der Selektions-Operation der Relationenalgebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der \sql{from}-Klausel angegebenen Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnen Termen von einem Prädikat der Abfrage.
 Es gibt in SQL zwei Konstrukte, die sich nicht mit der Relationenalgebra ausdrücken lassen. D.h. SQL ist echt mächtiger als die Relationenalgebra. Die Konstrukte sind \sql{null}-Werte und Aggregationsfunktionen. 
 \sql{null}-Werte sind spezielle Attributwerte, die die Abwesenheit eines Werts anzeigen. Boolesche-Ausdrücke mit \sql{null}-Werten entsprechen einer dreiwertigen Logik, da als Ergebnis die Werte \sql{true}, \sql{false} und \sql{null} auftreten können.
 	Aggregationsfunktionen berechnen Werte über allen Tupel einer Relation. Die im SQL-Standard definierten Aggregationsfunktionen sind
@@ -240,14 +242,14 @@ Die vom Optimierer unterstützte SQL-Syntax ist in Anhang \ref{apd:Secondo SQL} a
 
 Die grafische Benutzeroberfläche ist in Java implementiert. Mit ihr können Abfragen sowohl an den Optimierer als auch an den Kernel gestellt werden. Zusätzlich ist sie in der Lage z.B. raum-zeitliche Datentypen darzustellen. Es wird eine zweidimensionale Projektion der Daten dargestellt, die über die Zeitachse abgespielt werden kann. Hierbei kann die Geschwindigkeit variiert werden. Durch Erweiterungen kann die GUI um die Darstellung beliebiger Datentypen ergänzt werden. Da die GUI die Möglichkeit bietet, das Ergebnis einer Abfragen in einem eigenen Format zu speichern, kann man ihre Darstellungsmöglichkeiten auch ohne Kernel und Optimierer benutzen. 
 
-\begin{itemize}
-	\item Erweiterbares Datenbanksystem
-	\item Second-Order-Signatures
-	\item Kernel/Algebren
-	\item Optimierer
-	\item GUI
-	\item Client/Server Betrieb
-\end{itemize}
+%\begin{itemize}
+%	\item Erweiterbares Datenbanksystem
+%	\item Second-Order-Signatures
+%	\item Kernel/Algebren
+%	\item Optimierer
+%	\item GUI
+%	\item Client/Server Betrieb
+%\end{itemize}
 
 
 \section{Ausführunsstrategien}
@@ -267,12 +269,12 @@ In \cite{1066180} wird ein Algorithmus zur Optimierung geschachtelter Abfragen a
 
 
 
-\begin{itemize}
-	\item G-Aggregation (Generalized-Aggregation)
-	\item G-Join (Generalized-Join)
-	\item G-Restriction (Generalized-Restriction)
-	\item G-Outerjoin (Generalized-Outer-Join)
-\end{itemize}
+%\begin{itemize}
+%	\item G-Aggregation (Generalized-Aggregation)
+%	\item G-Join (Generalized-Join)
+%	\item G-Restriction (Generalized-Restriction)
+%	\item G-Outerjoin (Generalized-Outer-Join)
+%\end{itemize}
 
 \section{Klassifikation geschachtelter Abfragen}
 SQL Prädikate lassen sich in verschiedene Klassen einteilen. Abhängig von der Semantik der Operation, kann man in \emph{einfache} Prädikate, \emph{Join}-Prädikate, \emph{Divisions}-Prädikate und \emph{geschachtelte} Prädikate unterscheiden.
@@ -294,24 +296,24 @@ entspricht in der Relationenalgebra dem Ausdruck
 
 Divisions-Prädikate berechnen die relationale Division über zwei Relationen. 
 
-Geschachtelte Prädikate enthalten eine Unterabfrage in ihrem Ausdruck. Abhängig von der Ergebnismächtigkeit der Unterabfrage spricht der SQL-Standard von skalaren Unterabfragen, deren Ergebnis genau ein Wert ist; Zeilen-Unterabfragen (row subqueries), Ergebnis dieser Abfragen ist ein Tupel, das aus mehreren Attributen bestehen kann, sowie von Tabellen-Unterabfragen, deren Ergebnis eine Relation ist. Je nach Ergebnistyp ist die Verwendung von Unterabfragen an verschiedenen Stellen eines Abfrageblocks zulässig. Skalare Unterabfragen sind an jeder Stelle zulässig, an der auch Literale erlaubt sind. Zeilen- und Tabellen-Abfragen unterliegen einigen Einschränkungen, was ihre Verwendung in Views betrifft (siehe \cite{ISO:1992:IITa}), können aber an fast jeder Stelle eingesetzt werden, an der ihr Ergebnistyp zulässig ist. Der SQL-Standard erlaubt die Schachtelung von Abfrageblöcken in beliebiger Tiefe. 
+Geschachtelte Prädikate enthalten eine Unterabfrage in ihrem Ausdruck. Abhängig von der Ergebnismächtigkeit der Unterabfrage spricht der SQL-Standard von skalaren Unterabfragen, deren Ergebnis genau ein Wert ist; Zeilen-Unterabfragen (row subqueries), Ergebnis dieser Abfragen ist ein Tupel, das aus mehreren Attributen bestehen kann, sowie von Tabellen-Unterabfragen, deren Ergebnis eine Relation ist. Je nach Ergebnistyp ist die Verwendung von Unterabfragen an verschiedenen Stellen eines Abfrageblocks zulässig. Skalare Unterabfragen sind an jeder Stelle zulässig, an der auch Literale erlaubt sind. Zeilen- und Tabellen-Abfragen unterliegen einigen Einschränkungen, was ihre Verwendung in Views betrifft (siehe \cite{ISO:1992:IITa}), können aber an fast jeder Stelle eingesetzt werden, an der ihr Ergebnistyp zulässig ist. Der SQL-Standard erlaubt die Schachtelung von Abfrageblöcken in beliebiger Tiefe. Tabellen-Unterabfragen können z.B. in der \sql{from}-Klausel eingesetzt werden. 
 
-Klassifikation von Prädikaten in 
-einfache(Vergleich mit Konstante(n)), 
-Nested, 
-Join und 
-Divisionsprädikat,\\
-Einschränkung bei Join-Prädikaten auf =-Operator, \\
-nur eine Spalte in der Select-Klausel erlaubt in Subquery, \\
-keine GROUP BY\dots HAVING-Klausel in Subquery \cite{671658}, \\
-Innerer und und äußerer Abfrageblock, \\
-Klassifikation in 
-N =(kein Join-Prädikat, dass auf Relationen im äußeren Abfrageblock verweist, keine Aggregationsfunktion in  Select-Klausel, ergibt eine Liste von Konstanten), 
-A =(kein Join-Prädikat, dass auf Relationen im äußeren Abfrageblock verweist, Aggregationsfunktion in Select-Klausel, kann vollkommen unabhängig vom äußeren Abfrageblock ausgewertet werden, Ergebnis ist immer eine Konstante, 
-J =(hat Join-Prädikat das die/eine Relation aus dem äußeren Abfrageblock referenziert, keine Aggregationsfunktion in Select-Klausel), 
-JA =(hat Join-Prädikat mit Verweis auf Relation im äußeren Abfrageblock, Aggregationsfunktion), 
-D =(ein Divisions-Prädikat, dass in einer der beiden Abfrageblöcke ein Join-Prädikat mit Verweis auf eine Relation im äußeren Abfrageblock, drückt die relationale Divisionsoperation aus), \\
-\emph{nested-iteration method}, vollständige Auswertung des inneren Abfrageblocks für jedes Tupel des äußeren Blocks
+%Klassifikation von Prädikaten in 
+%einfache(Vergleich mit Konstante(n)), 
+%Nested, 
+%Join und 
+%Divisionsprädikat,\\
+%Einschränkung bei Join-Prädikaten auf =-Operator, \\
+%nur eine Spalte in der Select-Klausel erlaubt in Subquery, \\
+%keine GROUP BY\dots HAVING-Klausel in Subquery \cite{671658}, \\
+%Innerer und und äußerer Abfrageblock, \\
+%Klassifikation in 
+%N =(kein Join-Prädikat, dass auf Relationen im äußeren Abfrageblock verweist, keine Aggregationsfunktion in  Select-Klausel, ergibt eine Liste von Konstanten), 
+%A =(kein Join-Prädikat, dass auf Relationen im äußeren Abfrageblock verweist, Aggregationsfunktion in Select-Klausel, kann vollkommen unabhängig vom äußeren Abfrageblock ausgewertet werden, Ergebnis ist immer eine Konstante, 
+%J =(hat Join-Prädikat das die/eine Relation aus dem äußeren Abfrageblock referenziert, keine Aggregationsfunktion in Select-Klausel), 
+%JA =(hat Join-Prädikat mit Verweis auf Relation im äußeren Abfrageblock, Aggregationsfunktion), 
+%D =(ein Divisions-Prädikat, dass in einer der beiden Abfrageblöcke ein Join-Prädikat mit Verweis auf eine Relation im äußeren Abfrageblock, drückt die relationale Divisionsoperation aus), \\
+%\emph{nested-iteration method}, vollständige Auswertung des inneren Abfrageblocks für jedes Tupel des äußeren Blocks
 
 Grundsätzlich lassen sich geschachtelte Abfragen in unabhängige Abfragen und korrelierte Abfragen unterscheiden. Unabhängige Abfragen lassen sich unabhängig vom äußeren Abfrageblock auswerten. Ist eine unabhängige Auswertung nicht möglich spricht man korrelierten Abfragen, da das Ergebnis der inneren Abfrage vom Wert des Tupels des äußeren Abfrageblocks abhängt. Kim stellt in \cite{319745} eine Klassifikation geschachtelter Abfragen auf, auf deren Basis seine ebendort vorgestellten Entschachtelungsalgorithmen arbeiten. 
 
