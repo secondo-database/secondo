@@ -37,6 +37,10 @@ June 2009, Sven Jungnickel. Initial version
 
 #define HEADLINE_PHISTOGRAM "-------------------- " \
                              "PartitionHistogram -----------------"
+
+#define SUBPARTITION_UPDATE 100
+#define SUBPARTITION_MAX_LEVEL 3
+
 /*
 3 Template class ~Interval~
 
@@ -144,6 +148,12 @@ Upper bound of interval.
 */
 };
 
+typedef Interval<size_t> PInterval;
+/*
+Type definition of a partition interval.
+
+*/
+
 /*
 4 Class ~PartitionInfo~
 
@@ -220,55 +230,61 @@ Type definition of a partition histogram entry.
 
 */
 
-class PartitionHistogram :
-  public std::vector<PartitionHistogramEntry>
+class PartitionHistogram
 {
   public:
 
-    int GetNoTuples()
-    {
-      int sum = 0;
+    PartitionHistogram(PInterval& i);
+/*
+First constructor. Creates a histogram for partition interval i.
 
-      for(size_t i = 0; i < size(); i++)
-      {
-        sum += (*this)[i].count;
-      }
+*/
 
-      return sum;
-    }
+    PartitionHistogram(PartitionHistogram& obj, size_t start, size_t end);
+/*
+Second constructor. Creates a histogram from an existing histogram
+copying the histogram entries between 0-based index ~start~ and ~end~
+
+*/
+
+    void Insert(Tuple* t, size_t hashFuncValue);
+/*
+Insert tuple ~t~ with hash value ~h~ into histogram.
+
+*/
+
+    PInterval& GetInterval() { return interval; }
 /*
 Returns the number of tuple in a partition histogram.
 
 */
 
-    size_t GetTotalSize()
-    {
-      size_t sum = 0;
+    size_t GetSize() { return interval.GetLength(); }
+/*
+Returns the size of a partition histogram.
 
-      for(size_t i = 0; i < size(); i++)
-      {
-        sum += (*this)[i].totalSize;
-      }
+*/
 
-      return sum;
-    }
+    PartitionHistogramEntry& GetHistogramEntry(size_t n);
+/*
+Returns the histogram entry with index ~n~.
+
+*/
+
+    int GetNoTuples() { return tuples; }
+/*
+Returns the number of tuple in a partition histogram.
+
+*/
+
+    size_t GetTotalSize() { return totalSize; }
 /*
 Returns the total size of all tuples in a partition histogram
 including LOBs.
 
 */
 
-    size_t GetTotalExtSize()
-    {
-      size_t sum = 0;
-
-      for(size_t i = 0; i < size(); i++)
-      {
-        sum += (*this)[i].totalExtSize;
-      }
-
-      return sum;
-    }
+    size_t GetTotalExtSize() { return totalExtSize; }
 /*
 Returns the core and extension part size of all tuples in a
 partition histogram.
@@ -279,12 +295,12 @@ partition histogram.
     {
       cmsg.info() << HEADLINE_PHISTOGRAM << endl;
 
-      for(size_t i = 0; i < this->size(); i++)
+      for(size_t i = 0; i < data.size(); i++)
       {
-        cmsg.info() << "Value: " << (*this)[i].value
-                    << ", Tuples: " << (*this)[i].count
-                    << ", totalSize: " << (*this)[i].totalSize
-                    << ", totalExtSize: " << (*this)[i].totalExtSize
+        cmsg.info() << "Value: " << data[i].value
+                    << ", Tuples: " << data[i].count
+                    << ", totalSize: " << data[i].totalSize
+                    << ", totalExtSize: " << data[i].totalExtSize
                     << endl;
       }
 
@@ -296,6 +312,37 @@ partition histogram.
 Print partition histogram content to a stream (for debugging purposes).
 
 */
+  private:
+
+    PInterval interval;
+/*
+Partition interval
+
+*/
+
+    std::vector<PartitionHistogramEntry> data;
+/*
+Histogram data.
+
+*/
+
+    int tuples;
+/*
+Total number of tuples within the histogram.
+
+*/
+
+    size_t totalSize;
+/*
+Size of all tuples in the histogram including FLOBs and LOBs.
+
+*/
+
+    size_t totalExtSize;
+/*
+Size of all tuples in the histogram including only FLOBs (no LOBs).
+
+*/
 
 };
 
@@ -304,33 +351,32 @@ Type definition of a partition histogram.
 
 */
 
-class PartitionInfo
+class PartitionProgressInfo
 {
   public:
 
-    PartitionInfo(size_t n);
+    PartitionProgressInfo()
+    : tuples(0)
+    , tuplesProc(0)
+    , noOfPasses(0)
+    {
+    }
 /*
 The constructor. Creates an empty instance.
 
 */
 
-    PartitionInfo(PartitionInfo& obj);
+    PartitionProgressInfo(const PartitionProgressInfo& obj)
+    {
+      if ( this == &obj )
+        return;
+
+      this->tuples = obj.tuples;
+      this->tuplesProc = obj.tuplesProc;
+      this->noOfPasses = obj.noOfPasses;
+    }
 /*
 Copy constructor.
-
-*/
-
-    ostream& Print(ostream& os);
-/*
-Print partition info to stream ~os~. This function is used
-for debugging purposes only.
-
-*/
-
-    bool subpartitioned;
-/*
-Flag which indicates whether a partition has already gone
-through the sub-partitioning algorithm or not.
 
 */
 
@@ -340,15 +386,9 @@ Number of tuples of a partition.
 
 */
 
-    size_t totalSize;
+    size_t tuplesProc;
 /*
-Total size of all tuples in a partition in bytes.
-
-*/
-
-    size_t totalExtSize;
-/*
-Total size of all core and extension parts of tuples in a partition in bytes.
+Current number of tuples processed during join operation.
 
 */
 
@@ -359,23 +399,47 @@ is only used for partitions from stream B.
 
 
 */
+};
 
-    size_t tuplesProc;
+class PartitionManagerProgressInfo
+{
+  public:
+
+    PartitionManagerProgressInfo()
+    : subTotalTuples(0)
+    , subTuples(0)
+    {
+    }
 /*
-Current number of tuples processed during join operation.
+The constructor. Creates an empty instance.
 
 */
 
-    PartitionHistogram histogram;
+    bool IsValid() { return !partitionProgressInfo.empty(); }
 /*
-Partition histogram of a partition. Contains the distribution of
-the hash function values. This information is necessary for
-progress estimation if sub-partitioning for a partition is necessary.
-If we don't have this information we cannot estimate correctly the
-necessary amount of recursive sub-partitioning phases and the involved
-tuples.
+Returns ~true~ if progress information is available and valid.
+Otherwise ~false~ is returned.
 
 */
+
+    vector<PartitionProgressInfo> partitionProgressInfo;
+/*
+Vector with progress information for each partition
+
+*/
+
+    size_t subTotalTuples;
+/*
+Total number of tuples to process during sub-partitioning.
+
+*/
+
+    size_t subTuples;
+/*
+Number of tuples already processed during sub-partitioning.
+
+*/
+
 };
 
 /*
@@ -395,12 +459,6 @@ that fall into the same hash function value interval.
 class PartitionIterator;
 /*
 Necessary forward declaration for class ~Partition~.
-
-*/
-
-typedef Interval<size_t> PInterval;
-/*
-Type definition of a partition interval.
 
 */
 
@@ -450,7 +508,7 @@ Returns the partition size in bytes including FLOBs.
 
     inline bool Overflows()
     {
-      return ( this->GetTotalExtSize() > MAX_MEMORY );
+      return ( this->GetTotalExtSize() > qp->MemoryAvailableForOperator() );
     }
 /*
 Returns true if the partition's size exceeds ~maxMemorySize~.
@@ -480,9 +538,15 @@ to read the tuples in sequential order.
 
 */
 
-    inline PartitionInfo& GetPartitionInfo()
+    inline void SetSubpartitioned() { subpartitioned = true; }
+/*
+Mark a partition as sub-partitioned.
+
+*/
+
+    inline PartitionHistogram& GetPartitionHistogram()
     {
-      return pinfo;
+      return histogram;
     }
 /*
 Returns the progress information for a partition.
@@ -517,16 +581,17 @@ Tuple buffer for temporary storage in-memory and on disk.
 
 */
 
-    PartitionInfo pinfo;
+    PartitionHistogram histogram;
 /*
 Statistical partition information for a partition. Used for
 debugging and progress estimation.
 
 */
 
-    size_t MAX_MEMORY;
+    bool subpartitioned;
 /*
-Maximum memory available for operator [bytes]
+Flag which indicates whether a partition has already gone
+through the sub-partitioning algorithm or not.
 
 */
 };
@@ -605,7 +670,8 @@ class PartitionManager
     PartitionManager( HashFunction* h,
                       size_t buckets,
                       size_t partitions,
-                      size_t p0 = UINT_MAX );
+                      size_t p0 = UINT_MAX,
+                      PartitionManagerProgressInfo* pInfo = NULL );
 
 /*
 Creates an equal spaced partitioning with ~partitions~ partitions. Each
@@ -618,7 +684,9 @@ buffer size ~p0~ in bytes will be used.
 
 */
 
-    PartitionManager(HashFunction* h, PartitionManager& pm);
+    PartitionManager( HashFunction* h,
+                      PartitionManager& pm,
+                      PartitionManagerProgressInfo* pInfo = NULL );
 
     ~PartitionManager();
 /*
@@ -662,7 +730,7 @@ Return a pointer to partition ~n~.
 
 */
 
-    void Subpartition(size_t maxSize, int maxRecursion);
+    void Subpartition();
 /*
 This methods checks if the size of all partitions is lower or equal to
 ~maxSize~. If any partitions exceeds ~maxSize~ the partition is split
@@ -700,33 +768,6 @@ Returns the number of partitions.
 
 */
 
-    PartitionInfo* GetPartitionInfo(int n)
-    {
-      assert(n >= 0);
-      assert(n < (int)partitions.size() );
-      return &( partitions[n]->GetPartitionInfo() );
-    }
-/*
-Returns progress information for partition ~n~ using
-maximum memory of ~MAX\_MEMORY~ bytes..
-
-*/
-
-    int GetSubTupleTotalCount(size_t maxSize, int maxRecursion);
-/*
-Returns the number of tuples that must be processed during sub-partitioning
-when ~maxSize~ memory is available and a maximum recursion level of
-~maxRecursion~ is allowed.
-
-*/
-
-    int GetSubTupleCurCount() { return subTuples; }
-/*
-Returns the current number of tuples that were already processed
-during sub-partitioning.
-
-*/
-
     ostream& Print(ostream& os);
 /*
 Print the partitioning to stream ~os~. This function is used
@@ -745,7 +786,7 @@ is the current recursion level.
 
 */
 
-    int simsubpartition( PartitionHistogram ph, size_t maxSize,
+    int simsubpartition( PartitionHistogram& ph, size_t maxSize,
                          int maxRecursion, int level );
 /*
 Simulate sub-partitioning for a partition with partition histogram ~ph~
@@ -754,6 +795,13 @@ into partitions that are maximal ~maxSize~ bytes big using
 
 */
 
+    int calcSubpartitionTupleCount(size_t maxSize, int maxRecursion);
+/*
+Returns the number of tuples that must be processed during sub-partitioning
+when ~maxSize~ memory is available and a maximum recursion level of
+~maxRecursion~ is allowed.
+
+*/
     inline Tuple* readFromStream(Word stream)
     {
       Word wTuple(Address(0));
@@ -832,9 +880,24 @@ Buffer size for partition 0 in bytes.
 
 */
 
-    size_t subTuples;
+    size_t tuples;
 /*
-Number of tuples processed during sub-partitioning.
+Tuple counter. Necessary for recalculating the number of tuples
+which must be processed during subpartitioning.
+
+*/
+
+    bool subpartitioned;
+/*
+Flag which indicates if sub-partitioning of stream A has already been
+performed. If set to true sub-partitioning of stream B ha been finished.
+
+*/
+
+    PartitionManagerProgressInfo* progressInfo;
+/*
+Pointer to progress information. If ~progressInfo~ is set to NULL
+no progress information will be collected.
 
 */
 

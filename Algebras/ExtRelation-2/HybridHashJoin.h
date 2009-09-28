@@ -113,28 +113,15 @@ Calculates the progress for the hybrid hash join algorithm.
     static const double t_hash = 0.0025;  //millisecs per tuple returned
     static const double t_result = 0.0025;  //millisecs per tuple returned
 
-    vector<PartitionInfo*> pinfoA;
+    PartitionManagerProgressInfo streamA;
 /*
-Partition information of partitions from stream A.
+Progress information of partitions from stream A.
 
 */
 
-    vector<PartitionInfo*> pinfoB;
+    PartitionManagerProgressInfo streamB;
 /*
-Partition information of partitions from stream B.
-
-*/
-
-
-    size_t subTotalTuples;
-/*
-Total number of tuples to process during sub-partitioning.
-
-*/
-
-    size_t subTuples;
-/*
-Number of tuples already processed during sub-partitioning.
+Progress information of partitions from stream B.
 
 */
 
@@ -198,11 +185,7 @@ have been processed the method returns 0.
 
 */
 
-    void UpdateProgressInfo()
-    {
-      updateProgressInfoA();
-      updateProgressInfoB();
-    }
+    void UpdateProgressInfo();
 /*
 Updates the progress information. Copies the progres information
 collected within the partitions to the HybridHashJoinProgressLocalInfo
@@ -280,20 +263,6 @@ Partitions stream B completely.
 /*
 Processes partitions 1 to N-1 and returns the next result tuple. If 0
 is returned all partitions have been processed.
-
-*/
-
-    void updateProgressInfoA();
-/*
-Updates the progress information of stream A which is necessary to
-calculate the progress estimation for the hybrid hash join..
-
-*/
-
-    void updateProgressInfoB();
-/*
-Updates the progress information of stream B which is necessary to
-calculate the progress estimation for the hybrid hash join..
 
 */
 
@@ -402,13 +371,6 @@ Flag which indicates if stream B fits completely into the operator's
 main memory. If set to true the operator works like a standard hash join
 operator. If this flag is false the operator performs a hybrid hash join
 operation.
-
-*/
-
-    bool subpartitioned;
-/*
-Flag which indicates if sub-partitioning of stream A has already been
-performed. If set to true sub-partitioning of stream B ha been finished.
 
 */
 
