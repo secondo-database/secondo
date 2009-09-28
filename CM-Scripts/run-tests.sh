@@ -142,7 +142,7 @@ dbFile="$buildDir/bin/$dbTest"
 
 declare -i error=0
 
-testSuites=$(find $buildDir -path "*Tests*.test" -o -path "*bin*.test" -a ! -path "*Algebras/ExtRelation-2/*" -a ! -name "*$dbTest")
+testSuites=$(find $buildDir -path "*Tests*.test" -o -path "*bin*.test" -o -wholename "$buildDir/Algebras/ExtRelation-2" -prune -a ! -name "*$dbTest")
 
 echo -e "$testSuites"
 
