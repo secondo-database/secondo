@@ -515,7 +515,7 @@ Returns true if the partition's size exceeds ~maxMemorySize~.
 
 */
 
-    inline void Insert(Tuple* t, size_t hashFuncValue);
+    void Insert(Tuple* t, size_t hashFuncValue);
 /*
 Insert a tuple into a partition.
 

@@ -119,8 +119,10 @@ PartitionIterator* Partition::MakeScan()
 
 void Partition::Insert(Tuple* t, size_t hashFuncValue)
 {
-  buffer->AppendTuple(t);
+  // Important: must be called before AppendTuple()
   histogram.Insert(t, hashFuncValue);
+
+  buffer->AppendTuple(t);
 }
 
 ostream& Partition::Print(ostream& os)

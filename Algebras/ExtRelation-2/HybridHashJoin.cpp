@@ -337,8 +337,10 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
                 << "Memory: \t\t\t" << MAX_MEMORY / 1024 << " KByte" << endl
                 << "I/O Buffer: \t\t\t" << TupleBuffer::GetIoBufferSize()
                 << " Byte" << endl
-                << "Join attribute index A: \t" << indexAttrA << endl
-                << "Join attribute index B: \t" << indexAttrB << endl;
+                << "Join attribute index A: \t" << indexAttrA + 1
+                << " (1 based)" << endl
+                << "Join attribute index B: \t" << indexAttrB + 1
+                << " (1 based)" << endl << endl;
     cmsg.send();
   }
 
@@ -368,6 +370,12 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
 
   if ( !fitsInMemory )
   {
+    if ( traceMode )
+    {
+      cmsg.info() << "Switching to external hash-join algorithm!" << endl;
+      cmsg.send();
+    }
+
     // create partitions for stream B with partition 0 buffered
     pmB = new PartitionManager( hashFuncB, nBuckets, nPartitions,
                                 MAX_MEMORY, &progress->streamB);
@@ -415,31 +423,52 @@ In this case we need to delete also all tuples stored in memory.
 
 HybridHashJoinAlgorithm::~HybridHashJoinAlgorithm()
 {
+  if ( traceMode )
+  {
+    float sel = (float)progress->returned
+        / ( (float)progress->readFirst * (float)progress->readSecond );
+    cmsg.info() << "C1: " << progress->readFirst << endl
+                << "C2: " << progress->readSecond << endl
+                << "m: " << progress->returned << endl
+                << "Selectivity: " << sel << endl;
+    cmsg.send();
+  }
+
   if ( hashTable )
   {
+    cmsg.info() << "Delete hashTable" << endl;
+    cmsg.send();
     delete hashTable;
     hashTable = 0;
   }
 
   if ( iterA )
   {
+    cmsg.info() << "Delete iterA" << endl;
+    cmsg.send();
     delete iterA;
     iterA = 0;
   }
 
   if ( resultTupleType )
   {
+    cmsg.info() << "Delete resultTupleType" << endl;
+    cmsg.send();
     resultTupleType->DeleteIfAllowed();
   }
 
   if ( pmA )
   {
+    cmsg.info() << "Delete pmA" << endl;
+    cmsg.send();
     delete pmA;
     pmA = 0;
   }
 
   if ( pmB )
   {
+    cmsg.info() << "Delete pmB" << endl;
+    cmsg.send();
     delete pmB;
     pmB = 0;
   }
@@ -573,7 +602,10 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
     {
       Tuple* tupleB = hashTable->Probe(tupleA);
 
-      progress->streamA.partitionProgressInfo[0].tuplesProc++;
+      if ( progress->streamA.IsValid() )
+      {
+        progress->streamA.partitionProgressInfo[0].tuplesProc++;
+      }
 
       if ( tupleB )
       {
@@ -639,7 +671,10 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
     {
       Tuple* tupleB = hashTable->Probe(tupleA);
 
-      progress->streamA.partitionProgressInfo[curPartition].tuplesProc++;
+      if ( progress->streamA.IsValid() )
+      {
+        progress->streamA.partitionProgressInfo[curPartition].tuplesProc++;
+      }
 
       if ( tupleB )
       {
@@ -767,8 +802,8 @@ int HybridHashJoinValueMap( Word* args, Word& result,
     {
       if ( li->ptr == 0 )
       {
-        int indexAttrA = StdTypes::GetInt( args[2] );
-        int indexAttrB = StdTypes::GetInt( args[3] );
+        int indexAttrA = StdTypes::GetInt( args[2] ) - 1;
+        int indexAttrB = StdTypes::GetInt( args[3] ) - 1;
         int nBuckets = StdTypes::GetInt( args[4] );
 
         if ( param )
@@ -821,7 +856,11 @@ int HybridHashJoinValueMap( Word* args, Word& result,
     {
       if (li)
       {
+        cmsg.info() << "CLOSEPROGRESS received (1)" << endl;
+        cmsg.send();
         delete li;
+        cmsg.info() << "CLOSEPROGRESS received (2)" << endl;
+        cmsg.send();
         local.addr = 0;
       }
       return 0;
@@ -832,8 +871,13 @@ int HybridHashJoinValueMap( Word* args, Word& result,
       ProgressInfo p1, p2;
       ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
 
+      cmsg.info() << "REQUESTPROGRESS received (1)" << endl;
+      cmsg.send();
+
       if( !li )
       {
+        cmsg.info() << "REQUESTPROGRESS received (2)" << endl;
+        cmsg.send();
          return CANCEL;
       }
       else
@@ -841,15 +885,21 @@ int HybridHashJoinValueMap( Word* args, Word& result,
         if ( qp->RequestProgress(args[0].addr, &p1) &&
              qp->RequestProgress(args[1].addr, &p2) )
         {
+          cmsg.info() << "REQUESTPROGRESS received (3)" << endl;
+          cmsg.send();
           return li->CalcProgress(p1, p2, pRes, s);
         }
         else
         {
+          cmsg.info() << "REQUESTPROGRESS received (4)" << endl;
+          cmsg.send();
           return CANCEL;
         }
       }
     }
   }
+  cmsg.info() << "return" << endl;
+  cmsg.send();
   return 0;
 }
 
