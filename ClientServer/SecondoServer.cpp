@@ -582,9 +582,26 @@ SecondoServer::Execute()
 
 int SecondoServerMode( const int argc, const char* argv[] )
 {
+  const char* fname = "SecondoServer.msg";	
+  ofstream fmsg;
+  fmsg.open(fname, ios::app);
+
+  cout << "Redirecting server output to file " << fname << endl;
+
+  streambuf* backup1 = cout.rdbuf();   // back up cout's streambuf
+  streambuf* backup2 = cerr.rdbuf();   
+
+  cout.rdbuf(fmsg.rdbuf());   // assign streambuf to cout and cerr
+  cerr.rdbuf(fmsg.rdbuf());
+
   SecondoServer* appPointer = new SecondoServer( argc, argv );
   int rc = appPointer->Execute();
   delete appPointer;
+
+  fmsg.close();
+  cout.rdbuf(backup1);
+  cerr.rdbuf(backup2);
+
   return (rc);
 }
 
