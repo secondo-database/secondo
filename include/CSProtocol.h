@@ -424,10 +424,9 @@ struct CSProtocol {
   string line = "";  
   
   //cout << "Begin SendFile()" << endl;
-//  cout << "Transmitting file: " << filename;
+  //cout << "Transmitting file: " << filename;
 
-
-  ifstream restoreFile( filename.c_str() );
+  ifstream restoreFile( filename.c_str(), ios::binary );
   if ( ! restoreFile ){
      iosock <<  sendFileError << endl;
      return false;
@@ -449,20 +448,26 @@ struct CSProtocol {
         read += restoreFile.gcount();
 
       } while ( restoreFile.good() );
+      restoreFile.close();
 
       // send file size
       iosock << read << endl;         
-      cout << " (" << read <<  " bytes)" << endl;
+      cout << "SendFile: file size: " << read <<  " bytes." << endl;
       
-      ifstream restoreFile2( filename.c_str() );
+      ifstream restoreFile2( filename.c_str(), ios::binary );
       
       // send file data
+      int read2 = 0;
       while (!restoreFile2.eof() && !iosock.fail())
       {
         restoreFile2.read(buf, bufSize);
         int read = restoreFile2.gcount();
+	read2 += read;
         iosock.write(buf, read);
       }
+      cout << "SendFile: transmitted " 
+	   << read2 <<  " bytes to the server." << endl;
+
       restoreFile2.close();
       
       cout.flush();
