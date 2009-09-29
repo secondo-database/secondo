@@ -226,6 +226,40 @@ display([Rel, [tuple, Attrs]], Tuples) :-
   max_attr_length(Attrs, AttrLength),
   displayTuples(Attrs, Tuples, AttrLength).
 
+display(duration, [0, MSec]) :-
+  MSec > 3600000,
+  !,	
+  Hour is round(float_integer_part(MSec / 3600000.0)),
+  write(Hour), write('h '),
+  Rest is MSec - (Hour * 3600000),
+  display(duration, [0, Rest]).	
+	
+display(duration, [0, MSec]) :-
+  MSec > 60000,
+  !,
+  Min is round(float_integer_part(MSec / 60000.0)),  
+  write(Min), write('min '), 
+  Rest is MSec - (Min * 60000),
+  display(duration, [0, Rest]).
+
+display(duration, [0, MSec]) :-
+  MSec > 1000,
+  !,
+  Sec is round(float_integer_part(MSec / 1000.0)),
+  write(Sec), write('s '),
+	Rest is MSec - (Sec * 1000),
+	display(duration, [0, Rest]).
+  
+display(duration, [0, MSec]) :-
+  !,
+	MS is round(MSec),
+  write(MSec), write('ms').
+	
+display(duration, [Days, MSec]) :-
+  !,
+  write(Days), write('d '),
+  display(duration, [0, MSec]).	 
+  
 display(Type, Value) :-
   write('There is no specific display function for type '), write(Type),
   write('. '),
@@ -634,14 +668,16 @@ open(Query) :-
   Query =.. [database, DB],
   atom(DB),
   atom_concat('open database ', DB, QueryText), !,
-  secondo(QueryText).
+  secondo(QueryText),
+	dropTempRels.
 
 % the hard way...
 open(Query) :-
   notIsDatabaseOpen,
   atom(Query),
   atom_concat('open ', Query, QueryText), !,
-  secondo(QueryText).
+  secondo(QueryText),
+	dropTempRels.
 
 % the hard way...
 restore(Query) :-
@@ -687,13 +723,14 @@ on streams. Hence we provide ~openDB~ and closeDB to close a database.
 
 cdb :- closeDB.
 closedb :- closeDB.
-closeDB :-
+closeDB :-  
   secondo('close database').
 
 odb(Name) :- openDB(Name).
 openDB(Name) :-
   atom_concat('open database ', Name, Cmd),
-  secondo(Cmd).
+  secondo(Cmd),
+	dropTempRels.
 
 :-assert(helpLine(ldb,0,[],'List available databases.')).
 :-assert(helpLine(listDB,0,[],'List available databases.')).
