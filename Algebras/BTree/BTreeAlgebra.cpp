@@ -1385,9 +1385,17 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 
       switch(operatorId)
       {
-        case EXACTMATCH:
+        case EXACTMATCH: {
+	  SmiKeyRange factors;
+	  SmiKey sk;
+          AttrToKey( key, sk, btree->GetFile()->GetKeyType() );
+	  btree->GetFile()->KeyRange(sk, factors);
+	  cout << "btree.less = " << factors.less << endl;
+	  cout << "btree.equal = " << factors.equal << endl;
+	  cout << "btree.right = " << factors.greater << endl;
           ili->iter = btree->ExactMatch(key);
           break;
+			 }  
         case RANGE:
           ili->iter = btree->Range(key, secondKey);
           break;

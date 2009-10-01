@@ -300,6 +300,30 @@ SmiBtreeFile::SelectAll( SmiKeyedFileIterator& iterator,
   return (rc == 0);
 }
 
+bool
+SmiBtreeFile::KeyRange( const SmiKey& key,
+                        SmiKeyRange& range )
+{
+    int rc = 0;
+
+    Dbt bdb_key( (void *) key.GetAddr(), key.keyLength );
+    DbTxn* tid = !impl->isTemporaryFile ?
+                 SmiEnvironment::instance.impl->usrTxn : 0;
+
+
+    DB_KEY_RANGE* bdb_kr;
+    rc = impl->bdbFile->key_range( tid, &bdb_key, bdb_kr, 0 );
+    SmiEnvironment::SetBDBError( rc );
+
+    range.less = bdb_kr->less; 
+    range.equal = bdb_kr->equal;
+    range.greater = bdb_kr->greater; 
+
+    return (rc == 0);
+}
+
+
+
 PrefetchingIterator* SmiBtreeFile::SelectAllPrefetched()
 {
   int rc = 0;

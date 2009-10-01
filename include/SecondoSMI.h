@@ -447,6 +447,9 @@ Sets the internal key value to the passed key value, setting also the key type.
   friend class PrefetchingIterator;
 };
 
+
+
+
 /**************************************************************************
 1.3 Class "SmiFile"[1]
 
@@ -1127,6 +1130,21 @@ values. For duplicate records no special ordering is supported.
 
 */
 
+struct SmiKeyRange {
+
+  SmiKeyRange() : less(0), equal(0), greater(0) {}
+
+  double less, equal, greater;
+};	
+
+/*
+A structure for storing proportional values of key ranges used in
+method ~KeyRange~.
+
+*/
+
+
+
 class SmiKeyedFileIterator;  // Forward declaration
 
 class SMI_EXPORT SmiKeyedFile : public SmiFile
@@ -1197,6 +1215,7 @@ Deletes all records having the given key.
 The function returns "true"[4] when the records were successfully deleted.
 
 */
+
 };
 
 /**************************************************************************
@@ -1254,6 +1273,19 @@ only one record can be stored. Otherwise duplicate records are allowed.
 Destroys a file handle.
 
 */
+
+  bool KeyRange( const SmiKey& key, SmiKeyRange& range );
+
+/*
+Returns three double values stored in the reference argument range, 
+between [0,1] which represent the proportion of all keys stored in 
+the file having a less, equal or greater key value than the given
+key passed as first argument.
+
+*/
+
+
+
   bool SelectRange( const SmiKey& fromKey, const SmiKey& toKey,
                     SmiKeyedFileIterator& iterator,
                     const SmiFile::AccessType accessType =
