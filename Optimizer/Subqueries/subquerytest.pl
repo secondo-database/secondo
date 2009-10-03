@@ -177,6 +177,7 @@ regression(3) :-
 runAnalysis :-
   ( cdb ; true ),
 	odb(tpcd),
+	sql(delete from benchmarkResult where (query) contains "T"),
 	setOption(subqueryUnnesting),
 	executeBenchmark(d),
 	executeBenchmark(d),
@@ -191,6 +192,7 @@ runAnalysis :-
 	executeSingleQuery(d, 15),
 	executeSingleQuery(d, 15),
 	assert(skipQuery(d, 15)),
+	setOption(subqueryUnnesting),
 	get_time(A),
 	convert_time(A, Y, M, D, _, _, _, _),
 	concat_atom(['benchmarkResult feed csvexport[\'Analyse', Y, '-', M, '-', D, '.csv\', FALSE, TRUE, ";"\] count'], Query),
