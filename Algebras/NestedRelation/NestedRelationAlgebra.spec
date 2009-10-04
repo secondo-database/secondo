@@ -21,7 +21,7 @@ operator feed alias FEED pattern _ op
 operator consume alias CONSUME pattern _ op
 operator afeed alias AFEED pattern _ op 
 operator aconsume alias ACONSUME pattern _ op
-operator nest alias NEST pattern _ op [ list; _ ]
+operator nest alias NEST pattern _ op [ list; _ ] 
 operator unnest alias UNNEST pattern _ op [ _ ]
 operator rename alias RENAME pattern _ op [ _ ]
  
