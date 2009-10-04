@@ -1167,7 +1167,7 @@ upper(Lower, Upper) :-
   atom_codes(Upper, UpperList).*/
 
 wp(Plan) :-
-  call_plan_to_atom(Plan, PlanAtom),
+  plan_to_atom(Plan, PlanAtom),
   write(PlanAtom).
 
 /*
@@ -1270,16 +1270,6 @@ plan_to_atom( patternex(NPredList, ConstraintList, Filter) , Result):-
 plan_to_atom(A,A) :-
   string(A),
   !.
-
-% Special Handling for distance queries using a temporary index
-plan_to_atom(dbobject(tmpindex(Rel, Attr)), Result) :-
-  rel_to_atom(Rel, Rel2),
-  plan_to_atom(attrname(Attr), Attr2),
-  newVariable(IndexName),
-  Result = IndexName,
-  concat_atom([Rel2, ' createbtree[', Attr2, ']'], CreateExpression),
-  assert(planvariable(IndexName, CreateExpression)).
-
 
 plan_to_atom(dbobject(Name),ExtName) :-
   dcName2externalName(DCname, Name),       % convert to DC-spelling
@@ -1888,9 +1878,18 @@ plan_to_atom(distancescan(DCIndex, Rel, X, HeadCount), Result) :-
   rel_to_atom(Rel, Rel2),
   concat_atom([DCIndex, ' ', Rel2, ' distancescan[', X2, ', ', HeadCount,']' ],
 	      Result), !.
+  
+plan_to_atom(varfuncquery(Stream, Var, Expr), Result) :-
+  plan_to_atom(Stream, Stream2),
+  plan_to_atom(Expr, Expr2),
+  concat_atom([Expr2, ' within[fun(', Var, ':ANY) ', Stream2, ']'], 
+	      Result).
 
-
-
+plan_to_atom(createtmpbtree(Rel, Attr), Result) :-
+  rel_to_atom(Rel, Rel2),
+  plan_to_atom(attrname(Attr), Attr2),
+  concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result).
+  
 /*
 Translation of operators driven by predicate ~secondoOp~ in
 file ~opsyntax~. There are rules for
@@ -2054,6 +2053,7 @@ list_to_atom([X | Xs], Result) :-
   list_to_atom(Xs, XsAtom),
   concat_atom([XAtom, ', ', XsAtom], '', Result),
   !.
+	
 /*
 Used within spatiotemporal pattern predicates
 
@@ -2688,24 +2688,30 @@ try to create a temporary one
 
 */
 
+<<<<<<< optimizer.pl
+sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, UpperBound) => 
+=======
 sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) =>
+>>>>>>> 1.27
 	loopjoin(Arg1S, MatchExpr) :-
   isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
   isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
   argument(N, RelDescription),
   not(hasIndex(RelDescription, Attr2, _, btree)),
+  UpperBound >= 99997,
   convertToLfName(Attr2, LfAttr),
   convertToLfName(RelDescription, LfRel),
   keyAttributeTypeMatchesIndexType(LfRel, LfAttr, btree),
   Arg1 => Arg1S,
   exactmatch(tmpindex(RelDescription, Attr2), arg(N), Expr1) => MatchExpr.
 
-sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, _) =>
+sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, UpperBound) =>
 	loopjoin(Arg2S, MatchExpr) :-
   isOfFirst(Attr1, X, Y),
   isNotOfFirst(Expr2, X, Y),
   argument(N, RelDescription),
   not(hasIndex(RelDescription, Attr1, _, btree)),
+  UpperBound >= 99997,
   convertToLfName(Attr1, LfAttr),
   convertToLfName(RelDescription, LfRel),
   keyAttributeTypeMatchesIndexType(LfRel, LfAttr, btree),
@@ -4119,20 +4125,6 @@ cost(exactmatchfun(_, Rel, _), Sel, P, Size, Cost) :-
   Size is Sel * RelSize,
   Cost is Sel * RelSize * C.
 
-/*
-special handling for distance-queries which have to create an
-temporary index
-
-*/
-cost(exactmatch(dbobject(tmpindex(rel(Rel, _), _)), rel(Rel, _), _), Sel, P, S,
-     Cost) :-
-  !,
-  cost(exactmatch(1, rel(Rel, _), _), Sel, P, S, CostX),
-  createbtreeTC(C),
-  card(Rel, RelSize),
-  Cost is C * RelSize + CostX.
-
-
 cost(exactmatch(_, Rel, _), Sel, P, Size, Cost) :-
   cost(Rel, 1, P, RelSize, _),
   exactmatchTC(C),
@@ -4338,8 +4330,20 @@ cost(ksmallest(X, K), Sel, P, S, C) :-
   ksmallestTC(A, B),
   S is min(SizeX, K),
   C is CostX +
-    A * SizeX * log(SizeX + 1) +
-    B * S * log(SizeX + 1).
+    A * SizeX +
+    B * S * log(S + 1).
+
+/*
+special handling for distance-queries which have to create an
+temporary index
+
+*/
+cost(createtmpbtree(rel(Rel, _), _), _, _, RelSize,
+     Cost) :-
+  createbtreeTC(C),
+  card(Rel, RelSize),
+  Cost is C * RelSize.
+
 
 % Section:Start:cost_4_e
 % Section:End:cost_4_e
@@ -5252,10 +5256,10 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(950,  fx,  delete).% for update, insert
 :- op(950,  fx,  update).% for update, insert
 :- op(950, xfx,  values).% for update, insert
-:- op(992,  fx,	 drop).
+:- op(992,  fx,  drop).
 :- op(950,  fx,  table).
 :- op(950,  fx,  index).
-:- op(945,  fx,	 on).
+:- op(945,  fx,  on).
 :- op(940, xfx,  columns).
 :- op(930, xfx,  indextype).
 % Section:Start:opPrologSyntax_3_e
@@ -5996,6 +6000,7 @@ lookupPattern( NPredList , NPredList2, RelsBefore, RelsAfter) :-
 ----
 
 Handles the transformations in an update command
+
 */
 
 %%%% Begin: for update and insert
@@ -6014,6 +6019,7 @@ lookupTransformations(Trans, Trans2) :-
 ----
 
 Handles one transformation in an update command
+
 */
 
 lookupTransformation(Attr = Expr, Attr2 = Expr2) :-
@@ -6026,6 +6032,7 @@ lookupTransformation(Attr = Expr, Attr2 = Expr2) :-
 ----
 
 Handles the expressions in the set-clause of an update command
+
 */
 
 lookupSetExpr([], []) :- !.
@@ -6175,7 +6182,7 @@ translate1(Query, Stream2, Select2, Update, Cost) :-
   !.
 
 %    the main predicate which does the translation of a query
-%    translate(+Query, -Stream, -SelectClause, -Cost).
+%    translate(+Query, -Stream, -SelectClause, -UpdateClause, -Cost).
 %  This version of the predicate is only used while the optimizer option
 %  earlyproject is active.
 % (Clause added by Goehr)
@@ -7023,30 +7030,35 @@ queryToPlan(drop index IndexList, [], 0) :-
   fail.
 
 % case: count query
-queryToPlan(Query, count(Stream), Cost) :-
+queryToPlan(Query, StreamOut, Cost) :-
   countQuery(Query),
-  queryToStream(Query, Stream, Cost), !.
+  queryToStream(Query, Stream, Cost), !,
+  addTmpVariables(count(Stream), StreamOut).
 
 % case: predefined aggregation query (New Method)
-queryToPlan(Query, Stream2, Cost) :-
+queryToPlan(Query, StreamOut, Cost) :-
   aggrQuery(Query, Op, Query1, AggrExpr),
   queryToStream(Query1, Stream, Cost),
-  Stream2 =.. [simpleAggrNoGroupby, Op, Stream, AggrExpr], !.
+  Stream2 =.. [simpleAggrNoGroupby, Op, Stream, AggrExpr], !,
+  addTmpVariables(Stream2, StreamOut).
 
 % case: userdefined aggregation query (New Method)
-queryToPlan(Query, Stream2, Cost) :-
+queryToPlan(Query, StreamOut, Cost) :-
   userDefAggrQuery(Query, Query1, AggrExpr, Fun, Default),
   queryToStream(Query1, Stream, Cost),
-  Stream2 =.. [simpleUserAggrNoGroupby, Stream, AggrExpr, Fun, Default], !.
+  Stream2 =.. [simpleUserAggrNoGroupby, Stream, AggrExpr, Fun, Default], !,
+  addTmpVariables(Stream2, StreamOut).
 
 % case: update query
-queryToPlan(Query, count(Stream), Cost) :-
+queryToPlan(Query, StreamOut, Cost) :-
   updateQuery(Query),
-  queryToStream(Query, Stream, Cost), !.
+  queryToStream(Query, Stream, Cost), !,
+  addTmpVariables(count(Stream), StreamOut).
 
 % case: ordinary consume query
-queryToPlan(Query, consume(Stream), Cost) :-
-  queryToStream(Query, Stream, Cost), !.
+queryToPlan(Query, StreamOut, Cost) :-
+  queryToStream(Query, Stream, Cost), !,
+  addTmpVariables(consume(Stream), StreamOut).
 
 /*
 Check whether ~Query~ is a counting query.
@@ -7479,7 +7491,7 @@ optimize(Query, QueryOut, CostOut) :-
   rewriteQuery(Query, RQuery),
   callLookup(RQuery, Query2), !,
   queryToPlan(Query2, Plan, CostOut), !,
-  call_plan_to_atom(Plan, QueryOut).
+  plan_to_atom(Plan, QueryOut).
 
 /*
 ----    sqlToPlan(QueryText, Plan)
@@ -7788,6 +7800,46 @@ sqlExample( 304,
   where [(t:trip atperiods deftime(train5)) passes s:geodata]
   ).
 
+
+% Example: distance query, no predicate (database berlintest)
+sqlExample( 305,
+  select *
+  from kinos
+  orderby distance(geodata, mehringdamm) first 5
+  ).
+
+% Example: distance query, selection predicate (database berlintest)
+sqlExample( 306,
+  select *
+  from ubahnhof 
+  where typ = "Zone A"
+  orderby distance(geodata, alexanderplatz) first 5
+  ).
+
+% Example: distance query, rtree, no predicate (database berlintest)
+sqlExample( 307,
+  select *
+  from strassen 
+  orderby distance(geodata, mehringdamm) first 5
+  ).
+
+% Example: distance query, rtree, selection predicate (database berlintest)
+sqlExample( 308,
+  select *
+  from strassen 
+  where typ = "Hauptstraﬂe"
+  orderby distance(geodata, alexanderplatz) first 5
+  ).
+
+% Example: distance query, rtree, join predicate (database berlintest)
+sqlExample( 309,
+  select *
+  from [strassen as s, sbahnhof as b] 
+  where s:name = b:name
+  orderby distance(s:geodata, mehringdamm) first 5
+  ).
+
+
 % Section:Start:sqlExample_1_e
 % Section:End:sqlExample_1_e
 
@@ -8051,7 +8103,7 @@ returning a stream.
 streamOptimize(Term, Query, Cost) :-
   callLookup(Term, Term2),
   queryToStream(Term2, Plan, Cost),
-  call_plan_to_atom(Plan,  Query).
+  plan_to_atom(Plan,  Query).
 
 /*
 ----    mOptimize(Term, Query, Cost) :-
@@ -8108,14 +8160,14 @@ Some auxiliary stuff.
 
 bestPlanCount :-
   bestPlan(P, _),
-  call_plan_to_atom(P, S),
+  plan_to_atom(P, S),
   atom_concat(S, ' count', Q),
   nl, write(Q), nl,
   query(Q, _).
 
 bestPlanConsume :-
   bestPlan(P, _),
-  call_plan_to_atom(P, S),
+  plan_to_atom(P, S),
   atom_concat(S, ' consume', Q),
   nl, write(Q), nl,
   query(Q, _).
@@ -8155,7 +8207,7 @@ card(N) :- dijkstra(0, N, Path, _),
   highNode(High),
   N =< High,
   plan(Path, Plan),
-  call_plan_to_atom(Plan, Query),
+  plan_to_atom(Plan, Query),
   atom_concat(Query, ' count', CountQuery),
   atom_concat('query ', CountQuery, FullQuery),
   secondo(FullQuery, [_, Result]),
@@ -8468,6 +8520,12 @@ This is used for distance-queries using temporary indices
 
 addPlanVariables(Result, [], Result) :- !.
 
+<<<<<<< optimizer.pl
+addPlanVariables(ResultIn, [[Var, Expr]|Rest], 
+		 varfuncquery(ResultTmp, Var, Expr)) :-
+  addPlanVariables(ResultIn, Rest, ResultTmp).
+  
+=======
 addPlanVariables(ResultIn, [[Var, Expr]|Rest], ResultOut) :-
   addPlanVariables(ResultIn, Rest, ResultTmp),
   concat_atom([Expr, ' within[fun(', Var, ':ANY) ', ResultTmp, ']'],
@@ -8488,6 +8546,7 @@ call_plan_to_atom(Plan, Result) :-
   addPlanVariables(Result1, L, Result),
   retractall(planvariable(_, _)).
 
+>>>>>>> 1.27
 /*
 ----    assertDistanceRel(+Rels, +DistAttr1, +DistAttr2, +HeadCount)
 ----
@@ -8499,6 +8558,7 @@ Checks whether an rtree-index on ~DistAttr1~ or ~DistAttr2~ exists in ~Rels~
 assertDistanceRel([Rel|_], X, Y, HeadCount) :-
   Rel = rel(_,_),
   X = attr(_, _, _),
+  Y = dbobject(_),
   hasIndex(Rel, X ,DCindex, rtree),
   dcName2externalName(DCindex,IndexName), !,
   assert(distanceRel(Rel, IndexName, Y, HeadCount)).
@@ -8506,6 +8566,7 @@ assertDistanceRel([Rel|_], X, Y, HeadCount) :-
 assertDistanceRel([Rel|_], X, Y, HeadCount) :-
   Rel = rel(_,_),
   Y = attr(_, _, _),
+  X = dbobject(_),
   hasIndex(Rel, Y ,DCindex, rtree),
   dcName2externalName(DCindex,IndexName), !,
   assert(distanceRel(Rel, IndexName, X, HeadCount)).
@@ -8553,11 +8614,64 @@ corrects the cost estimation according to ~HeadCount~
 
 */
 
+<<<<<<< optimizer.pl
+finishDistanceSortRTree(StreamIn, CostIn, 0, 
+			StreamOut, CostOut) :-
+  findTmpIndex(StreamIn, StreamOut, CostTmpIndex),
+  CostOut is CostIn + CostTmpIndex.
+
+finishDistanceSortRTree(StreamIn, CostIn, HeadCount, 
+			StreamOut, CostOut) :-
+  findTmpIndex(head(StreamIn, HeadCount), StreamOut, CostTmpIndex),
+=======
 finishDistanceSortRTree(StreamIn, CostIn, HeadCount,
 			head(StreamIn, HeadCount), CostOut) :-
+>>>>>>> 1.27
   highNode(Node),
   resultSize(Node, Size),
-  CostOut is CostIn * min(HeadCount, Size) / Size.
+  CostOut is CostIn * min(HeadCount, Size) / Size + CostTmpIndex.
+
+/*
+----    findTmpIndex(+Stream, -Stream2, - Cost)
+----
+
+Looks for temporary indexes in ~Stream~, replaces them by a variable and
+stores them in planvariable
+
+*/
+
+findTmpIndex([], [], 0).
+
+findTmpIndex(dbobject(tmpindex(Rel,Attr)), a(IndexName, *, l), Cost) :-
+  newVariable(IndexName),
+  Expr = createtmpbtree(Rel, Attr),
+  assert(planvariable(IndexName, Expr)),
+  cost(Expr, _, _, _, Cost).
+
+findTmpIndex([E|R], [E2|R2], Cost) :-
+  findTmpIndex(E, E2, Cost1),
+  findTmpIndex(R, R2, Cost2),
+  Cost is Cost1 + Cost2.
+
+findTmpIndex(P, P2, Cost) :-
+  P =.. [Op| Params],
+  findTmpIndex(Params, Params2, Cost),
+  P2 =.. [Op| Params2].
+
+/*
+----    addTmpVariables(+Stream, -Stream2)
+----
+
+Adds the planvariables for the temporary indices to the beginning of 
+the stream
+
+*/
+
+addTmpVariables(Stream, StreamOut) :-
+  findall([Variable, Expression], planvariable(Variable, Expression), L),
+  addPlanVariables(Stream, L, StreamOut),
+  retractall(planvariable(_, _)).
+
 
 /*
 ----    chooseFasterSolution(+Stream1, +Select1, +Update1, +Cost1,
@@ -8635,6 +8749,8 @@ Removes the Attributes ~NewAttrs~ from the query
 removeAttrs(StreamIn, [], StreamIn).
 
 removeAttrs(StreamIn, NewAttrs, remove(StreamIn, NewAttrs)).
+<<<<<<< optimizer.pl
+=======
 
 /*
 
@@ -8665,3 +8781,4 @@ sqlExample( 307,
   where name = sname
   orderby distance(geoData, alexanderplatz) first 5
   ).
+>>>>>>> 1.27

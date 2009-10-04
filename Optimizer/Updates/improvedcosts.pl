@@ -339,21 +339,6 @@ overall index join cost.
 
 */
 
-/*
-
-special handling for distancescanqueries which have to create an
-temporary index
-
-*/
-cost(exactmatch(dbobject(tmpindex(rel(Rel, _), _)), rel(Rel, _), _), Sel,
-     Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
-  !,
-  cost(exactmatch(1, rel(Rel, _), _), Sel, Pred, ResAttrList, RestTupleSize,
-      ResCard, CostX),
-  createbtreeTC(C),
-  card(Rel, RelSize),
-  Cost is C * RelSize + CostX.
-
 cost(exactmatchfun(_, Rel, _), Sel, Pred,
                                ResAttrList, ResTupleSize, ResCard, Cost) :-
   cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
@@ -858,8 +843,30 @@ cost(ksmallest(X, K), Sel, Pred,
   ksmallestTC(A, B),
   S is min(ResCard, K),
   C is CostX +
-    A * ResCard * log(ResCard + 1) +
-    B * S * log(ResCard + 1).
+    A * ResCard +
+    B * S * log(S + 1).
+
+cost(createtmpbtree(rel(Rel, _), _), _, _, ResAttrList, ResTupleSize, ResCard,
+     Cost) :-
+  dcName2internalName(RelDC,Rel),
+  ( Rel = RelDC
+    -> true
+    ;  (
+         write('ERROR:\tcost/8 failed due to non-dc relation name.'), nl,
+         write('---> THIS SHOULD BE CORRECTED!'), nl,
+         throw(error_Internal(optimizer_cost(createtmpbtree(Rel, _), _, _,
+                               ResAttrList, ResTupleSize, ResCard, 0)
+              :malformedExpression)),
+         fail
+       )
+  ),
+  ( (ground(ResAttrList), ResAttrList = ignore)
+    -> true ; getRelAttrList(RelDC, ResAttrList, _/*ResTupleSize*/)
+  ),
+  tupleSizeSplit(RelDC,ResTupleSize),
+  card(Rel, ResCard),
+  createbtreeTC(C),
+  Cost is C * ResCard.
 
 % Failed to compute the cost -- throw an exception!
 cost(T, S, P, A, TS, RC, Cost) :-

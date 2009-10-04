@@ -57,7 +57,7 @@ renameTC(0.1).
 windowintersectsTC(0.1).
 spatialjoinTC(20.0, 0.7).
 distancescanTC(0.25).
-ksmallestTC(0.04, 0.26).
+ksmallestTC(0.05, 0.23).
 createbtreeTC(0.12).
 
 % sorttidTC and rdupTC are estimated without experiment
