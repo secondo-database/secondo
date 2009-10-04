@@ -272,7 +272,40 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
   // calculate blocking progress
   pRes->BProgress /= pRes->BTime;
 
+  cmsg.info() << "pRes->Card: " << pRes->Card << endl
+              << "pRes->Time: " << pRes->Time << endl
+              << "pRes->Progress: " << pRes->Progress << endl
+              << "pRes->BTime: " << pRes->BTime << endl
+              << "pRes->BProgress: " << pRes->BProgress << endl;
+  cmsg.send();
+
   return;
+}
+
+ostream& HybridHashJoinProgressLocalInfo::Print(ostream& os)
+{
+  os << "---------- Progress Information -----------"
+     << endl
+     << "k1: " << this->readFirst
+     << ", k2: " << this->readSecond
+     << ", m: " << this->returned << endl;
+
+  if ( state == 1)
+  {
+    if ( streamA.IsValid() )
+    {
+      os << "ProgressInformation - Stream A" << endl;
+      streamA.Print(os);
+    }
+
+    if ( streamB.IsValid() )
+    {
+      os << "ProgressInformation - Stream B" << endl;
+      streamB.Print(os);
+    }
+  }
+
+  return os;
 }
 
 /*
@@ -291,8 +324,8 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
                                             size_t ioBufferSize )
 : streamA(streamA)
 , streamB(streamB)
-, attrIndexA(indexAttrA)
-, attrIndexB(indexAttrB)
+, attrIndexA(indexAttrA-1)
+, attrIndexB(indexAttrB-1)
 , MAX_MEMORY(0)
 , usedMemory(0)
 , resultTupleType(0)
@@ -304,12 +337,12 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
 , fitsInMemory(false)
 , partitioning(false)
 , curPartition(0)
+, bucketProcessed(true)
 , finishedPartitionB(false)
 , iterA(0)
 , hashTable(0)
 , progress(p)
-//, traceMode(RTFlag::isActive("ERA:TraceHybridHashJoin"))
-, traceMode(true)
+, traceMode(RTFlag::isActive("ERA:TraceHybridHashJoin"))
 {
   Word wTuple(Address(0));
 
@@ -335,12 +368,12 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
                 << "Buckets: \t\t\t" << nBuckets << endl
                 << "Partitions: \t\t\t" << nPartitions << endl
                 << "Memory: \t\t\t" << MAX_MEMORY / 1024 << " KByte" << endl
-                << "I/O Buffer: \t\t\t" << TupleBuffer::GetIoBufferSize()
+                << "I/O Buffer: \t\t\t" << TupleBuffer2::GetIoBufferSize()
                 << " Byte" << endl
-                << "Join attribute index A: \t" << indexAttrA + 1
-                << " (1 based)" << endl
-                << "Join attribute index B: \t" << indexAttrB + 1
-                << " (1 based)" << endl << endl;
+                << "Join attribute index A: \t" << attrIndexA
+                << " (0 based)" << endl
+                << "Join attribute index B: \t" << attrIndexB
+                << " (0 based)" << endl << endl;
     cmsg.send();
   }
 
@@ -354,7 +387,7 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
   // create tuple comparison function instance
   JoinTupleCompareFunction* cmp =
     new JoinTupleCompareFunction( this->attrIndexA,
-                                  this->attrIndexB );
+                                  this->attrIndexB);
 
   // create result type
   ListExpr resultType =
@@ -362,7 +395,9 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
   resultTupleType =  new TupleType( nl->Second( resultType ) );
 
   // create hash table
-  hashTable = new HashTable( this->nBuckets, hashFuncB, cmp);
+  hashTable = new HashTable( this->nBuckets,
+                              new HashFunction(*hashFuncB),
+                              cmp);
 
   // Read tuples from stream B until memory is full or stream B is finished
   progress->readSecond +=
@@ -389,7 +424,7 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
     // partition the rest of stream B
     partitionB();
 
-    // sub-partition stream B swith maximum recursion level 3
+    // sub-partition stream B with maximum recursion level 3
     pmB->Subpartition();
 
     // create partitions for stream A according to partitioning of stream B
@@ -404,13 +439,16 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
 
     if ( traceMode )
     {
-      cmsg.info() << "Partitioning of stream B.." << endl << *pmB;
+      cmsg.info() << "Partitioning of stream B.."
+                  << endl << *pmB;
+      cmsg.info() << "Hash Table content:" << endl
+                  << *hashTable << endl;
       cmsg.send();
     }
   }
 
   // read first tuple from stream A
-  tupleA = nextTupleA();
+  tupleA.setTuple(nextTupleA());
 }
 
 /*
@@ -434,41 +472,32 @@ HybridHashJoinAlgorithm::~HybridHashJoinAlgorithm()
     cmsg.send();
   }
 
+
   if ( hashTable )
   {
-    cmsg.info() << "Delete hashTable" << endl;
-    cmsg.send();
     delete hashTable;
     hashTable = 0;
   }
 
   if ( iterA )
   {
-    cmsg.info() << "Delete iterA" << endl;
-    cmsg.send();
     delete iterA;
     iterA = 0;
   }
 
   if ( resultTupleType )
   {
-    cmsg.info() << "Delete resultTupleType" << endl;
-    cmsg.send();
     resultTupleType->DeleteIfAllowed();
   }
 
   if ( pmA )
   {
-    cmsg.info() << "Delete pmA" << endl;
-    cmsg.send();
     delete pmA;
     pmA = 0;
   }
 
   if ( pmB )
   {
-    cmsg.info() << "Delete pmB" << endl;
-    cmsg.send();
     delete pmB;
     pmB = 0;
   }
@@ -479,12 +508,12 @@ void HybridHashJoinAlgorithm::setIoBuffer(size_t bytes)
   if ( bytes == UINT_MAX )
   {
     // set buffer to system's page size
-    TupleBuffer::SetIoBufferSize( WinUnix::getPageSize() );
+    TupleBuffer2::SetIoBufferSize( WinUnix::getPageSize() );
   }
   else
   {
     // set buffer size
-    TupleBuffer::SetIoBufferSize(bytes);
+    TupleBuffer2::SetIoBufferSize(bytes);
   }
 }
 
@@ -559,10 +588,11 @@ Tuple* HybridHashJoinAlgorithm::nextTupleA()
   if ( qp->Received(streamA.addr) )
   {
     progress->readFirst++;
-    return static_cast<Tuple*>( wTuple.addr );
+    Tuple* t = static_cast<Tuple*>( wTuple.addr );
+    return t;
   }
 
-  return 0;
+  return NULL;
 }
 
 Tuple* HybridHashJoinAlgorithm::nextTupleB()
@@ -574,10 +604,11 @@ Tuple* HybridHashJoinAlgorithm::nextTupleB()
   if ( qp->Received(streamB.addr) )
   {
     progress->readSecond++;
-    return static_cast<Tuple*>( wTuple.addr );
+    Tuple* t = static_cast<Tuple*>( wTuple.addr );
+    return t;
   }
 
-  return 0;
+  return NULL;
 }
 
 void HybridHashJoinAlgorithm::partitionB()
@@ -594,48 +625,51 @@ void HybridHashJoinAlgorithm::partitionB()
 
 Tuple* HybridHashJoinAlgorithm::partitionA()
 {
-  while ( tupleA )
+  while ( tupleA.tuple )
   {
     size_t p;
 
-    if ( ( p = pmA->FindPartition(tupleA) ) == 0 )
+    if ( ( p = pmA->FindPartition(tupleA.tuple) ) == 0 )
     {
-      Tuple* tupleB = hashTable->Probe(tupleA);
+      Tuple* tupleB = hashTable->Probe(tupleA.tuple);
 
-      if ( progress->streamA.IsValid() )
+      if ( progress->streamA.IsValid() && bucketProcessed == true )
       {
-        progress->streamA.partitionProgressInfo[0].tuplesProc++;
+        progress->streamA.partitionProgressInfo[0].tuples++;
       }
 
       if ( tupleB )
       {
         // bucket contains match -> build result tuple
         Tuple *result = new Tuple( resultTupleType );
-        Concat( tupleA, tupleB, result );
+        Concat( tupleA.tuple, tupleB, result );
         progress->returned++;
+        bucketProcessed = false;
         return result;
       }
       else // bucket completely processed
       {
+        bucketProcessed = true;
+
+        if ( progress->streamA.IsValid() )
+        {
+          progress->streamA.partitionProgressInfo[0].tuplesProc++;
+        }
+
         // if partition 0 overflows store tuple
         if ( !finishedPartitionB )
         {
-          pmA->Insert(tupleA);
-        }
-        else
-        {
-          // otherwise release current tuple
-          tupleA->DeleteIfAllowed();
+          pmA->Insert(tupleA.tuple);
         }
       }
     }
     else
     {
       // insert tuple into partition p
-      pmA->Insert(tupleA);
+      pmA->Insert(tupleA.tuple);
     }
 
-    tupleA = nextTupleA();
+    tupleA.setTuple(nextTupleA());
   }
 
   // change state
@@ -649,16 +683,21 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
   // load next partition into memory
   finishedPartitionB = pmB->LoadPartition(curPartition, hashTable, MAX_MEMORY);
 
+  if ( traceMode )
+  {
+    cmsg.info() << "Hash table content" << *hashTable << endl;
+    cmsg.info() << "Partitioning of stream A.." << endl << *pmA;
+    cmsg.send();
+  }
+
+  cmsg.info() << "After partitioning of Stream A" << endl;
+  progress->Print(cmsg.info());
+  cmsg.send();
+
   // start scan of corresponding partition A
   iterA = pmA->GetPartition(curPartition)->MakeScan();
 
   tupleA = iterA->GetNextTuple();
-
-  if ( traceMode )
-  {
-    cmsg.info() << "Partitioning of stream A.." << endl << *pmA;
-    cmsg.send();
-  }
 
   return processPartitions();
 }
@@ -667,28 +706,21 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
 {
   while ( (int)curPartition < pmB->GetNoPartitions() )
   {
-    while ( tupleA )
+    while ( tupleA.tuple )
     {
-      Tuple* tupleB = hashTable->Probe(tupleA);
-
-      if ( progress->streamA.IsValid() )
-      {
-        progress->streamA.partitionProgressInfo[curPartition].tuplesProc++;
-      }
+      Tuple* tupleB = hashTable->Probe(tupleA.tuple);
 
       if ( tupleB )
       {
         Tuple *result = new Tuple( resultTupleType );
-        Concat( tupleA, tupleB, result );
+        Concat( tupleA.tuple, tupleB, result );
         progress->returned++;
         return result;
       }
-      else
+
+      if ( progress->streamA.IsValid() )
       {
-        if ( finishedPartitionB )
-        {
-          tupleA->DeleteIfAllowed();
-        }
+        progress->streamA.partitionProgressInfo[curPartition].tuplesProc++;
       }
 
       tupleA = iterA->GetNextTuple();
@@ -714,6 +746,10 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
     }
   }
 
+  cmsg.info() << "After Stream A has been processed" << endl;
+  progress->Print(cmsg.info());
+  cmsg.send();
+
   return 0;
 }
 Tuple* HybridHashJoinAlgorithm::NextResultTuple()
@@ -721,21 +757,20 @@ Tuple* HybridHashJoinAlgorithm::NextResultTuple()
   if ( fitsInMemory )
   {
     // Standard in-memory hash-join
-    while ( tupleA )
+    while ( tupleA.tuple )
     {
-      Tuple* tupleB = hashTable->Probe(tupleA);
+      Tuple* tupleB = hashTable->Probe(tupleA.tuple);
 
       if ( tupleB )
       {
         Tuple *result = new Tuple( resultTupleType );
-        Concat( tupleA, tupleB, result );
+        Concat( tupleA.tuple, tupleB, result );
         progress->returned++;
         return result;
       }
       else
       {
-        tupleA->DeleteIfAllowed();
-        tupleA = nextTupleA();
+        tupleA.setTuple(nextTupleA());
       }
     }
 
@@ -762,14 +797,26 @@ template<bool param>
 int HybridHashJoinValueMap( Word* args, Word& result,
                             int message, Word& local, Supplier s)
 {
+  // if ( param = false )
   // args[0] : stream A
   // args[1] : stream B
-  // args[2] : attribute index of join attribute for stream A
-  // args[3] : attribute index of join attribute for stream B
+  // args[2] : attribute name of join attribute for stream A
+  // args[3] : attribute name join attribute for stream B
+  // args[4] : number of buckets
+  // args[5] : attribute index of join attribute for stream A
+  // args[6] : attribute index of join attribute for stream B
+
+  // if ( param = true )
+  // args[0] : stream A
+  // args[1] : stream B
+  // args[2] : attribute name of join attribute for stream A
+  // args[3] : attribute name join attribute for stream B
   // args[4] : number of buckets
   // args[5] : number of partitions (only if param is true)
   // args[6] : usable main memory in bytes (only if param is true)
   // args[7] : I/O buffer size in bytes (only if param is true)
+  // args[8] : attribute index of join attribute for stream A
+  // args[9] : attribute index of join attribute for stream B
 
   HybridHashJoinLocalInfo* li;
   li = static_cast<HybridHashJoinLocalInfo*>( local.addr );
@@ -802,8 +849,6 @@ int HybridHashJoinValueMap( Word* args, Word& result,
     {
       if ( li->ptr == 0 )
       {
-        int indexAttrA = StdTypes::GetInt( args[2] ) - 1;
-        int indexAttrB = StdTypes::GetInt( args[3] ) - 1;
         int nBuckets = StdTypes::GetInt( args[4] );
 
         if ( param )
@@ -811,6 +856,8 @@ int HybridHashJoinValueMap( Word* args, Word& result,
           int nPartitions = StdTypes::GetInt( args[5] );
           int maxMem = StdTypes::GetInt( args[6] );
           int ioBufferSize = StdTypes::GetInt( args[7] );
+          int indexAttrA = StdTypes::GetInt( args[8] );
+          int indexAttrB = StdTypes::GetInt( args[9] );
 
           li->ptr = new HybridHashJoinAlgorithm( args[0],
                                                  indexAttrA,
@@ -826,6 +873,9 @@ int HybridHashJoinValueMap( Word* args, Word& result,
         }
         else
         {
+          int indexAttrA = StdTypes::GetInt( args[5] );
+          int indexAttrB = StdTypes::GetInt( args[6] );
+
           li->ptr = new HybridHashJoinAlgorithm( args[0],
                                                  indexAttrA,
                                                  args[1],
@@ -856,11 +906,7 @@ int HybridHashJoinValueMap( Word* args, Word& result,
     {
       if (li)
       {
-        cmsg.info() << "CLOSEPROGRESS received (1)" << endl;
-        cmsg.send();
         delete li;
-        cmsg.info() << "CLOSEPROGRESS received (2)" << endl;
-        cmsg.send();
         local.addr = 0;
       }
       return 0;
@@ -871,13 +917,8 @@ int HybridHashJoinValueMap( Word* args, Word& result,
       ProgressInfo p1, p2;
       ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
 
-      cmsg.info() << "REQUESTPROGRESS received (1)" << endl;
-      cmsg.send();
-
       if( !li )
       {
-        cmsg.info() << "REQUESTPROGRESS received (2)" << endl;
-        cmsg.send();
          return CANCEL;
       }
       else
@@ -885,21 +926,15 @@ int HybridHashJoinValueMap( Word* args, Word& result,
         if ( qp->RequestProgress(args[0].addr, &p1) &&
              qp->RequestProgress(args[1].addr, &p2) )
         {
-          cmsg.info() << "REQUESTPROGRESS received (3)" << endl;
-          cmsg.send();
           return li->CalcProgress(p1, p2, pRes, s);
         }
         else
         {
-          cmsg.info() << "REQUESTPROGRESS received (4)" << endl;
-          cmsg.send();
           return CANCEL;
         }
       }
     }
   }
-  cmsg.info() << "return" << endl;
-  cmsg.send();
   return 0;
 }
 

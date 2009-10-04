@@ -49,7 +49,7 @@ algorithm implemented by operator ~sort2~.
 
 #include "RelationAlgebra.h"
 #include "Progress.h"
-#include "TupleBuffer.h"
+#include "TupleBuffer2.h"
 #include "Sort.h"
 
 
@@ -212,7 +212,7 @@ If all tuples have been processed the method returns 0.
     size_t MAX_TUPLES_IN_MEMORY;
 
     // buffer related members
-    TupleBuffer *grpB;
+    TupleBuffer2 *grpB;
     GenericRelationIterator *iter;
 
     // members needed for sorting the input streams

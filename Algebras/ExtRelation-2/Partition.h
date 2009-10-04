@@ -32,7 +32,7 @@ June 2009, Sven Jungnickel. Initial version
 #define EXTREl2_PARTITION_H_
 
 #include "RelationAlgebra.h"
-#include "TupleBuffer.h"
+#include "TupleBuffer2.h"
 #include "HybridHashJoinHashTable.h"
 
 #define HEADLINE_PHISTOGRAM "-------------------- " \
@@ -380,6 +380,21 @@ Copy constructor.
 
 */
 
+    ostream& Print(ostream& os)
+    {
+      os << "Tuples: " << tuples
+         << ", TuplesProc: " << tuplesProc
+         << ", noOfPasses: " << noOfPasses
+         << endl;
+
+      return os;
+    }
+/*
+Print to stream ~os~. This function is used
+for debugging purposes.
+
+*/
+
     size_t tuples;
 /*
 Number of tuples of a partition.
@@ -419,6 +434,28 @@ The constructor. Creates an empty instance.
 /*
 Returns ~true~ if progress information is available and valid.
 Otherwise ~false~ is returned.
+
+*/
+
+    ostream& Print(ostream& os)
+    {
+      os << "PartitionManagerProgressInfo" << endl
+         << "subTotalTuples: " << subTotalTuples
+         << ", subTuples: " << subTuples
+         << endl;
+
+      for (size_t i = 0; i < partitionProgressInfo.size(); i++)
+      {
+        os << "Partition: " << i << " - ";
+        partitionProgressInfo[i].Print(os);
+      }
+
+      return os;
+    }
+
+/*
+Print to stream ~os~. This function is used
+for debugging purposes.
 
 */
 
@@ -575,7 +612,7 @@ Interval of hash function values.
 
 */
 
-    TupleBuffer* buffer;
+    TupleBuffer2* buffer;
 /*
 Tuple buffer for temporary storage in-memory and on disk.
 
@@ -638,7 +675,7 @@ tuples have been processed 0 is returned.
 
   private:
 
-    TupleBufferIterator* iter;
+    TupleBuffer2Iterator* iter;
 /*
 Iterator for the internal buffer of a partition.
 
@@ -668,10 +705,10 @@ class PartitionManager
   public:
 
     PartitionManager( HashFunction* h,
-                      size_t buckets,
-                      size_t partitions,
-                      size_t p0 = UINT_MAX,
-                      PartitionManagerProgressInfo* pInfo = NULL );
+                       size_t buckets,
+                       size_t partitions,
+                       size_t p0 = UINT_MAX,
+                       PartitionManagerProgressInfo* pInfo = NULL );
 
 /*
 Creates an equal spaced partitioning with ~partitions~ partitions. Each
@@ -685,8 +722,8 @@ buffer size ~p0~ in bytes will be used.
 */
 
     PartitionManager( HashFunction* h,
-                      PartitionManager& pm,
-                      PartitionManagerProgressInfo* pInfo = NULL );
+                       PartitionManager& pm,
+                       PartitionManagerProgressInfo* pInfo = NULL );
 
     ~PartitionManager();
 /*

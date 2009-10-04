@@ -20,17 +20,18 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-1 Header File TupleBuffer.h
+1 Header File TupleBuffer2.h
 
 June 2009, Sven Jungnickel. Initial version.
 
 2 Overview
 
-Class ~extrel2::TupleBuffer~ is a replacement for the class
-~TupleBuffer~. As the former ~TupleBuffer~ has been implemented
-as a subclass of ~GenericRelation~, which also allows random access,
-we have decided to implement the ~TupleBuffer~ class as a separate
-new class. The main differences are
+Class ~extrel2::TupleBuffer2~ is a replacement for the class
+~TupleBuffer~ in RelationAlgebra. As the former ~TupleBuffer~
+has been implemented as a subclass of ~GenericRelation~, which
+also allows random access, we have decided to implement the
+~TupleBuffer2~ class as a separate new class. The main
+differences are
 
   * Allows only sequential access
 
@@ -44,38 +45,39 @@ RelationAlgebra.h for details)
 3 Defines, includes, and constants
 
 */
-#ifndef TUPLEBUFFER_H_
-#define TUPLEBUFFER_H_
+#ifndef TUPLEBUFFER2_H_
+#define TUPLEBUFFER2_H_
 
 #include <queue>
 #include "RelationAlgebra.h"
+#include "RTuple.h"
 
 using namespace std;
 
 /*
 In order to avoid name conflicts and to simplify replacement
-~TupleBuffer~ has been placed in the namespace ~extrel2~.
+~TupleBuffer2~ has been placed in the namespace ~extrel2~.
 
 */
 namespace extrel2
 {
-  class TupleBuffer;
+  class TupleBuffer2;
 /*
-Necessary forward declaration for class ~TupleBufferIterator~.
+Necessary forward declaration for class ~TupleBuffer2Iterator~.
 
 */
 
 /*
-4 Class ~TupleBufferIterator~
+4 Class ~TupleBuffer2Iterator~
 
-~TupleBufferIterator~ is used to scan a ~TupleBuffer~ instance
+~TupleBuffer2Iterator~ is used to scan a ~TupleBuffer2~ instance
 sequentially.
 
 */
-  class TupleBufferIterator
+  class TupleBuffer2Iterator
   {
   public:
-    TupleBufferIterator(TupleBuffer& buffer);
+    TupleBuffer2Iterator(TupleBuffer2& buffer);
 /*
 The constructor. Initializes a sequential scan of ~buffer~.
 A scan always starts with the tuples located on disk and then
@@ -83,7 +85,7 @@ proceeds through the in-memory tuples.
 
 */
 
-    ~TupleBufferIterator();
+    ~TupleBuffer2Iterator();
 /*
 The destructor.
 
@@ -91,16 +93,16 @@ The destructor.
 
     Tuple* GetNextTuple();
 /*
-Returns a pointer to the next tuple from the ~TupleBuffer~.
+Returns a pointer to the next tuple from the ~TupleBuffer2~.
 If all tuples have been processed 0 is returned.
 
 */
 
   private:
 
-    TupleBuffer& tupleBuffer;
+    TupleBuffer2& tupleBuffer;
 /*
-Constant reference to ~TupleBuffer~ instance.
+Constant reference to ~TupleBuffer2~ instance.
 
 */
 
@@ -110,32 +112,32 @@ Constant reference to ~TupleBuffer~ instance.
 
 */
 
-    vector<Tuple*>::iterator iterMemoryBuffer;
+    vector<RTuple>::iterator iterMemoryBuffer;
 /*
 Iterator for in-memory array ~memoryBufferCopy~.
 
 */
 
-    vector<Tuple*> memoryBufferCopy;
+    vector<RTuple> memoryBufferCopy;
 /*
-Copy of the FIFO queue content of the ~TupleBuffer~
+Copy of the FIFO queue content of the ~TupleBuffer2~
 instance. The copy is made when the Iterator is
 constructed. The copy is necessary because the
-used queue implementation by ~TupleBuffer~ is based
+used queue implementation by ~TupleBuffer2~ is based
 on a STL queue, which does not support iteration.
 
 */
   };
 
 /*
-5 Class ~TupleBuffer~
+5 Class ~TupleBuffer2~
 
 */
-  class TupleBuffer
+  class TupleBuffer2
   {
   public:
 
-    TupleBuffer( const size_t maxMemorySize = 16 * 1024 * 1024 );
+    TupleBuffer2( const size_t maxMemorySize = 16 * 1024 * 1024 );
 /*
 First constructor. Constructs an instance with ~maxMemorySize~ Bytes of
 internal memory. The filename for the ~diskBuffer~ will be generated
@@ -143,8 +145,8 @@ automatically.
 
 */
 
-    TupleBuffer( const string& pathName,
-                  const size_t maxMemorySize = 16 * 1024 * 1024 );
+    TupleBuffer2( const string& pathName,
+                   const size_t maxMemorySize = 16 * 1024 * 1024 );
 /*
 Second constructor. Constructs an instance with a specific filename
 ~pathName~ for the external buffer and ~maxMemorySize~ Bytes of
@@ -152,7 +154,7 @@ internal memory.
 
 */
 
-    ~TupleBuffer();
+    ~TupleBuffer2();
 /*
 The destructor.
 
@@ -206,7 +208,7 @@ Append tuple ~t~ to the buffer.
 
 */
 
-    TupleBufferIterator* MakeScan();
+    TupleBuffer2Iterator* MakeScan();
 /*
 Start a sequential scan of the tuples in the buffer.
 
@@ -245,52 +247,19 @@ Sets the size of the used I/O Buffer in bytes.
 
 */
 
-    friend class TupleBufferIterator;
+    ostream& Print(ostream& os);
 /*
-~TupleBufferIterator~ is declared as friend class, so that it
+Print the tuple buffer to stream ~os~. This function is used
+for debugging purposes.
+
+*/
+
+    friend class TupleBuffer2Iterator;
+/*
+~TupleBuffer2Iterator~ is declared as friend class, so that it
 gains access to the internal and external buffers.
 
 */
-
-  protected:
-
-/*
-Takes the front tuple from the internal memory queue and
-write it to the disk buffer.
-
-*/
-    inline void oneToDisk()
-    {
-      // Take the front tuple from the queue and append
-      // it to the disk buffer
-      Tuple* t = memoryBuffer.front();
-      diskBuffer->Append(t);
-
-      // discard the front tuple from the queue
-      memoryBuffer.pop();
-      t->DeleteIfAllowed();
-    }
-
-/*
-Puts tuple ~t~ into the internal memory queue.
-
-*/
-    inline void intoQueue(Tuple* t)
-    {
-      memoryBuffer.push(t);
-      t->IncReference();
-    }
-
-/*
-Update the size internal statistics.
-
-*/
-    inline void updateSizes(Tuple* t)
-    {
-      totalMemSize += t->GetMemSize();
-      totalSize += t->GetSize();
-      totalExtSize += t->GetExtSize();
-    }
 
   private:
 
@@ -313,7 +282,7 @@ Filename for the external buffer of type ~TupleFile~.
 
 */
 
-  queue<Tuple*> memoryBuffer;
+  queue<RTuple> memoryBuffer;
 /*
 Internal memory buffer (FIFO)
 
@@ -360,4 +329,4 @@ Internal tuple size statistics
   };
 }
 
-#endif /* TUPLEBUFFER_H_ */
+#endif /* TUPLEBUFFER2_H_ */

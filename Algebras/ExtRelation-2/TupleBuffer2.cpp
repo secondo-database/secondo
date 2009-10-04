@@ -20,7 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-1 Implementation File TupleBuffer.cpp
+1 Implementation File TupleBuffer2.cpp
 
 June 2009, Sven Jungnickel. Initial version.
 
@@ -28,18 +28,19 @@ June 2009, Sven Jungnickel. Initial version.
 
 */
 
-#include "TupleBuffer.h"
+#include "TupleBuffer2.h"
 #include "FileSystem.h"
 #include "WinUnix.h"
 #include "Profiles.h"
 #include "CharTransform.h"
 
 /*
-3 Implementation of class ~TupleBufferIterator~
+3 Implementation of class ~TupleBuffer2Iterator~
 
 */
 
-extrel2::TupleBufferIterator::TupleBufferIterator(extrel2::TupleBuffer& buffer)
+extrel2::TupleBuffer2Iterator::TupleBuffer2Iterator
+(extrel2::TupleBuffer2& buffer)
 : tupleBuffer(buffer)
 , iterDiskBuffer(0)
 {
@@ -59,16 +60,16 @@ extrel2::TupleBufferIterator::TupleBufferIterator(extrel2::TupleBuffer& buffer)
   // pointer into the array
   for (int i = 0; i < nTuples; i++)
   {
-    Tuple* t = tupleBuffer.memoryBuffer.front();
+    RTuple ref = tupleBuffer.memoryBuffer.front();
     tupleBuffer.memoryBuffer.pop();
-    tupleBuffer.memoryBuffer.push(t);
-    memoryBufferCopy[i] = t;
+    tupleBuffer.memoryBuffer.push(ref);
+    memoryBufferCopy[i] = ref;
   }
 
   iterMemoryBuffer = memoryBufferCopy.begin();
 }
 
-extrel2::TupleBufferIterator::~TupleBufferIterator()
+extrel2::TupleBuffer2Iterator::~TupleBuffer2Iterator()
 {
   if ( iterDiskBuffer != 0 )
   {
@@ -78,7 +79,7 @@ extrel2::TupleBufferIterator::~TupleBufferIterator()
   memoryBufferCopy.clear();
 }
 
-Tuple* extrel2::TupleBufferIterator::GetNextTuple()
+Tuple* extrel2::TupleBuffer2Iterator::GetNextTuple()
 {
   if ( !tupleBuffer.inMemory && iterDiskBuffer->MoreTuples() == true )
   {
@@ -88,9 +89,9 @@ Tuple* extrel2::TupleBufferIterator::GetNextTuple()
   {
     if ( iterMemoryBuffer != memoryBufferCopy.end() )
     {
-      Tuple* t = *iterMemoryBuffer;
+      RTuple ref = *iterMemoryBuffer;
       iterMemoryBuffer++;
-      return t;
+      return ref.tuple;
     }
     else
     {
@@ -100,16 +101,16 @@ Tuple* extrel2::TupleBufferIterator::GetNextTuple()
 }
 
 /*
-4 Implementation of class ~TupleBuffer~
+4 Implementation of class ~TupleBuffer2~
 
 */
 
-//size_t extrel2::TupleBuffer::IO_BUFFER_SIZE =
+//size_t extrel2::TupleBuffer2::IO_BUFFER_SIZE =
 //  WinUnix::getPageSize();
 
 size_t
-extrel2::TupleBuffer::IO_BUFFER_SIZE =
-  SmiProfile::GetParameter( "TupleBuffer",
+extrel2::TupleBuffer2::IO_BUFFER_SIZE =
+  SmiProfile::GetParameter( "TupleBuffer2",
                             "IOBuffer",
                             WinUnix::getPageSize(),
                             expandVar("$(SECONDO_CONFIG)") );
@@ -119,13 +120,13 @@ operating system.
 
 */
 
-bool extrel2::TupleBuffer::traceMode = false;
+bool extrel2::TupleBuffer2::traceMode = false;
 /*
 Initialize the trace mode
 
 */
 
-extrel2::TupleBuffer::TupleBuffer(const size_t maxMemorySize)
+extrel2::TupleBuffer2::TupleBuffer2(const size_t maxMemorySize)
 : MAX_MEMORY_SIZE(maxMemorySize)
 , pathName("")
 , diskBuffer(0)
@@ -136,14 +137,14 @@ extrel2::TupleBuffer::TupleBuffer(const size_t maxMemorySize)
 {
   if ( traceMode )
   {
-    cmsg.info() << "TupleBuffer created (BufferSize: "
+    cmsg.info() << "TupleBuffer2 created (BufferSize: "
                 << ( maxMemorySize / 1024 ) << " Kbyte)" << endl;
     cmsg.send();
   }
 }
 
-extrel2::TupleBuffer::TupleBuffer( const string& pathName,
-                                      const size_t maxMemorySize )
+extrel2::TupleBuffer2::TupleBuffer2( const string& pathName,
+                                        const size_t maxMemorySize )
 : MAX_MEMORY_SIZE(maxMemorySize)
 , pathName(pathName)
 , diskBuffer(0)
@@ -154,25 +155,23 @@ extrel2::TupleBuffer::TupleBuffer( const string& pathName,
 {
   if ( traceMode )
   {
-    cmsg.info() << "TupleBuffer created (File: " << pathName
+    cmsg.info() << "TupleBuffer2 created (File: " << pathName
                 << ", BufferSize: " << ( maxMemorySize / 1024 )
                 << " Kbyte)" << endl;
     cmsg.send();
   }
 }
 
-extrel2::TupleBuffer::~TupleBuffer()
+extrel2::TupleBuffer2::~TupleBuffer2()
 {
   Clear();
 }
 
-void extrel2::TupleBuffer::Clear()
+void extrel2::TupleBuffer2::Clear()
 {
   while( !memoryBuffer.empty() )
   {
-    Tuple* t = memoryBuffer.front();
     memoryBuffer.pop();
-    t->DeleteIfAllowed();
   }
 
   if ( diskBuffer )
@@ -187,20 +186,25 @@ void extrel2::TupleBuffer::Clear()
 
   if ( traceMode )
   {
-    cmsg.info() << "TupleBuffer cleared" << endl;
+    cmsg.info() << "TupleBuffer2 cleared" << endl;
     cmsg.send();
   }
 }
 
-void extrel2::TupleBuffer::AppendTuple(Tuple* t)
+void extrel2::TupleBuffer2::AppendTuple(Tuple* t)
 {
+  totalMemSize += t->GetMemSize();
+  totalSize += t->GetSize();
+  totalExtSize += t->GetExtSize();
+
   if( inMemory )
   {
-    if( totalMemSize + t->GetMemSize() <= MAX_MEMORY_SIZE )
+    if( totalExtSize + t->GetExtSize() <= MAX_MEMORY_SIZE )
     {
       // insert new tuple at back of FIFO queue
-      intoQueue(t);
-      updateSizes(t);
+      RTuple ref;
+      ref.setTuple(t);
+      memoryBuffer.push(ref);
     }
     else
     {
@@ -227,19 +231,20 @@ void extrel2::TupleBuffer::AppendTuple(Tuple* t)
 
       if ( !memoryBuffer.empty() )
       {
-        updateSizes(t);
-
         // write front tuple of FIFO queue to disk
-        oneToDisk();
+        diskBuffer->Append(memoryBuffer.front().tuple);
+
+        // discard the front tuple from the queue
+        memoryBuffer.pop();
 
         // insert new tuple at back of FIFO queue
-        intoQueue(t);
+        RTuple ref;
+        ref.setTuple(t);
+        memoryBuffer.push(ref);
       }
       else
       {
-        updateSizes(t);
         diskBuffer->Append(t);
-        t->DeleteIfAllowed();
       }
 
       // Memory is now completely used
@@ -250,30 +255,30 @@ void extrel2::TupleBuffer::AppendTuple(Tuple* t)
   {
     if ( !memoryBuffer.empty() )
     {
-      updateSizes(t);
-
       // write front tuple of FIFO queue to disk
-      oneToDisk();
+      diskBuffer->Append(memoryBuffer.front().tuple);
+
+      // discard the front tuple from the queue
+      memoryBuffer.pop();
 
       // insert new tuple at back of FIFO queue
-      intoQueue(t);
+      RTuple ref;
+      ref.setTuple(t);
+      memoryBuffer.push(ref);
     }
     else
     {
-
-      updateSizes(t);
       diskBuffer->Append(t);
-      t->DeleteIfAllowed();
     }
   }
 }
 
-extrel2::TupleBufferIterator* extrel2::TupleBuffer::MakeScan()
+extrel2::TupleBuffer2Iterator* extrel2::TupleBuffer2::MakeScan()
 {
-  return new extrel2::TupleBufferIterator(*this);
+  return new extrel2::TupleBuffer2Iterator(*this);
 }
 
-void extrel2::TupleBuffer::CloseDiskBuffer()
+void extrel2::TupleBuffer2::CloseDiskBuffer()
 {
   if ( diskBuffer )
   {
@@ -287,3 +292,42 @@ void extrel2::TupleBuffer::CloseDiskBuffer()
   }
 }
 
+ostream& extrel2::TupleBuffer2::Print(ostream& os)
+{
+  Tuple* t;
+
+  os << "---------- TupleBuffer2 content ----------" << endl
+     << "Tuples in memory: " << this->memoryBuffer.size() << endl
+     << "Tuples on disk: "
+     << ( this->diskBuffer ? this->diskBuffer->GetNoTuples() : 0 )
+     << endl;
+
+  for (size_t i = 0; i < this->memoryBuffer.size(); i++)
+  {
+    RTuple ref = memoryBuffer.front();
+    memoryBuffer.pop();
+    memoryBuffer.push(ref);
+    t = ref.tuple;
+    os << "Mem: " << *t << "Refs: "
+       << t->GetNumOfRefs()
+       << " Nr: " << i << endl;
+  }
+
+  if ( diskBuffer )
+  {
+    TupleFileIterator* iter = this->diskBuffer->MakeScan();
+
+    int counter = 0;
+    while ( ( t = iter->GetNextTuple() ) != 0 )
+    {
+      os << "Hdd: " << *t
+         << "Refs: " << t->GetNumOfRefs()
+         << " Nr: " << counter++ << endl;
+      t->DeleteIfAllowed();
+    }
+
+    delete iter;
+  }
+
+  return os;
+}

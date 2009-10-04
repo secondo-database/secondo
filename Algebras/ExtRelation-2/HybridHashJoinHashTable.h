@@ -119,7 +119,17 @@ class HashFunction
 /*
 The constructor. Creates an instance, sets the number of
 buckets to ~nBuckets~ and sets the attribute index of the
-attribute for which the hash value shall be calculated..
+attribute for which the hash value is calculated.
+
+*/
+
+    HashFunction(const HashFunction& func)
+    : nBuckets(func.nBuckets)
+    , attrIndex(func.attrIndex)
+    {
+    }
+/*
+Copy constructor.
 
 */
 
@@ -245,8 +255,11 @@ destructor call of the ~RTuple~ instances.
 
     inline void Insert(Tuple* t)
     {
+      assert(t->GetNumOfRefs() == 1);
+      RTuple ref;
+      ref.setTuple(t);
       totalSize += t->GetSize();
-      tupleRefs.push_back(RTuple(t));
+      tupleRefs.push_back(ref);
     }
 /*
 Insert a tuple into a bucket. The reference counter

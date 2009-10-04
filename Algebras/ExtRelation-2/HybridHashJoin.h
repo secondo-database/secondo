@@ -113,6 +113,13 @@ Calculates the progress for the hybrid hash join algorithm.
     static const double t_hash = 0.0025;  //millisecs per tuple returned
     static const double t_result = 0.0025;  //millisecs per tuple returned
 
+    ostream& Print(ostream& os);
+/*
+Print to stream ~os~. This function is used
+for debugging purposes.
+
+*/
+
     PartitionManagerProgressInfo streamA;
 /*
 Progress information of partitions from stream A.
@@ -359,7 +366,7 @@ Partition manager for stream B. Contains the partitioning of stream B.
 
 */
 
-    Tuple* tupleA;
+    RTuple tupleA;
 /*
 Pointer to last tuple from stream A.
 
@@ -384,6 +391,12 @@ the partitioning of stream A has not yet been finished.
     size_t curPartition;
 /*
 Number of the current processed partition.
+
+*/
+    bool bucketProcessed;
+/*
+Flag that indicates if a bucket of the hash table has been
+processed completely for a tuple from stream A.
 
 */
     bool finishedPartitionB;
@@ -439,7 +452,14 @@ The constructor. Construct an empty instance.
 
 */
 
-    ~HybridHashJoinLocalInfo() { if (ptr) delete ptr; }
+    ~HybridHashJoinLocalInfo()
+    {
+      if (ptr)
+      {
+        delete ptr;
+        ptr = 0;
+      }
+    }
 /*
 The destructor. Frees the hybrid hash-join algorithm instance.
 

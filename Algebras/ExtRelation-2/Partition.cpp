@@ -100,7 +100,7 @@ Partition::Partition(PInterval i, size_t bufferSize)
 , histogram(i)
 , subpartitioned(false)
 {
-  buffer = new TupleBuffer(bufferSize);
+  buffer = new TupleBuffer2(bufferSize);
 }
 
 Partition::~Partition()
@@ -133,7 +133,10 @@ ostream& Partition::Print(ostream& os)
        << this->GetNoTuples() << " tuples, "
        << this->GetTotalSize() << " bytes (Size), "
        << this->GetTotalExtSize() << " bytes (ExtSize)"
+       << "InMemory: " << this->buffer->InMemory()
        << endl;
+
+  this->buffer->Print(os);
 
   return os;
 }
@@ -193,8 +196,8 @@ PartitionManager::PartitionManager( HashFunction* h,
 }
 
 PartitionManager::PartitionManager( HashFunction* h,
-                                    PartitionManager& pm,
-                                    PartitionManagerProgressInfo* pInfo )
+                                       PartitionManager& pm,
+                                       PartitionManagerProgressInfo* pInfo )
 : iter(0)
 , hashFunc(h)
 , p0(0)
@@ -219,17 +222,18 @@ PartitionManager::~PartitionManager()
   {
     delete partitions[i];
   }
-
   partitions.clear();
 
-  if ( iter != NULL )
+  if ( iter )
   {
     delete iter;
+    iter = 0;
   }
 
-  if ( hashFunc != NULL )
+  if ( hashFunc )
   {
     delete hashFunc;
+    hashFunc = 0;
   }
 
   progressInfo = 0;
@@ -318,9 +322,9 @@ void PartitionManager::Subpartition()
 }
 
 void PartitionManager::subpartition( size_t n,
-                                     size_t maxSize,
-                                     int maxRecursion,
-                                     int level )
+                                        size_t maxSize,
+                                        int maxRecursion,
+                                        int level )
 {
   // check partition size
   if ( partitions[n]->GetTotalExtSize() <= maxSize )
@@ -384,6 +388,8 @@ void PartitionManager::subpartition( size_t n,
     {
       s2->Insert(t,h);
     }
+
+    t->DeleteIfAllowed();
 
     // update progress information if necessary
     if ( progressInfo != 0 )
@@ -532,27 +538,19 @@ int PartitionManager::simsubpartition( PartitionHistogram& ph,
 
 void PartitionManager::InitPartitions(HashTable* h)
 {
-  size_t p = 0;
-
   for(size_t i = 0; i < h->GetNoBuckets(); i++)
   {
-    if ( !partitions[p]->GetInterval().IsAt(i) )
-    {
-      p++;
-    }
-
     vector<Tuple*> arr = h->GetTuples(i);
 
     for(size_t j = 0; j < arr.size(); j++)
     {
-      partitions[p]->Insert(arr[j],i);
-
-      if ( progressInfo != 0 )
-      {
-        progressInfo->partitionProgressInfo[p].tuplesProc++;
-      }
+      arr[j]->IncReference();
+      this->Insert(arr[j]);
     }
   }
+
+  // empty buckets of hash table
+  h->Clear();
 }
 
 bool PartitionManager::LoadPartition( int n,
@@ -575,9 +573,13 @@ bool PartitionManager::LoadPartition( int n,
 
   while( ( t = iter->GetNextTuple() ) != 0 )
   {
+    // insert tuple into hash table
     h->Insert(t);
+
+    // update remaining memory
     maxMemory -= t->GetExtSize();
 
+    // update processed tuples of partition
     if ( progressInfo != 0 )
     {
       progressInfo->partitionProgressInfo[n].tuplesProc++;

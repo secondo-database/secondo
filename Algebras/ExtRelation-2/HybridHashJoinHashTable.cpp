@@ -42,7 +42,8 @@ namespace extrel2
 
 ostream& Bucket::Print(ostream& os)
 {
-  os << "Bucket " << number << endl;
+  os << "Bucket " << number << " ("
+     << tupleRefs.size() << " tuples)" << endl;
 
   for(size_t i = 0; i < tupleRefs.size(); i++)
   {
@@ -107,11 +108,17 @@ HashTable::~HashTable()
     iter = 0;
   }
 
-  delete hashFunc;
-  hashFunc = 0;
+  if ( hashFunc )
+  {
+    delete hashFunc;
+    hashFunc = 0;
+  }
 
-  delete cmpFunc;
-  cmpFunc = 0;
+  if ( cmpFunc )
+  {
+    delete cmpFunc;
+    cmpFunc = 0;
+  }
 }
 
 void HashTable::Clear()
@@ -155,6 +162,7 @@ int HashTable::ReadFromStream(Word stream, size_t maxSize, bool& finished)
 
     bytes += t->GetExtSize();
 
+    // insert tuple into hash table
     this->Insert(t);
 
     if ( bytes > maxSize )
@@ -187,6 +195,7 @@ Tuple* HashTable::Probe(Tuple* t)
     {
       cmsg.info() << "Start scanning bucket "
                   << h << ".." << endl;
+      cmsg.send();
     }
   }
   else
@@ -195,6 +204,7 @@ Tuple* HashTable::Probe(Tuple* t)
     {
       cmsg.info() << "Proceeding scanning bucket "
                   << h << ".." << endl;
+      cmsg.send();
     }
   }
 
@@ -203,6 +213,7 @@ Tuple* HashTable::Probe(Tuple* t)
     if ( traceMode )
     {
       cmsg.info() << "Comparing :" << *t << " and " << *nextTuple;
+      cmsg.send();
     }
 
     if ( cmpFunc->Compare(t, nextTuple) == 0 )
@@ -210,6 +221,7 @@ Tuple* HashTable::Probe(Tuple* t)
       if ( traceMode )
       {
         cmsg.info() << " -> Match!" << endl;
+        cmsg.send();
       }
       return nextTuple;
     }
@@ -217,6 +229,7 @@ Tuple* HashTable::Probe(Tuple* t)
     if ( traceMode )
     {
       cmsg.info() << ".." << endl;
+      cmsg.send();
     }
   }
 
@@ -227,6 +240,7 @@ Tuple* HashTable::Probe(Tuple* t)
   {
     cmsg.info() << "End of scan bucket "
                 << h << ".." << endl;
+    cmsg.send();
   }
 
   return 0;

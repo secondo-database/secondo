@@ -35,7 +35,7 @@ May 2009. S. Jungnickel. Initial version.
 
 #include "SortInfo.h"
 #include "StopWatch.h"
-#include "TupleBuffer.h"
+#include "TupleBuffer2.h"
 
 using namespace std;
 
@@ -108,7 +108,7 @@ ostream& extrel2::operator<<(ostream& stream, SortedRunInfo& info)
 
 extrel2::SortInfo::SortInfo(size_t bufferSize) :
   BufferSize(bufferSize),
-  IOBufferSize(TupleBuffer::GetIoBufferSize()),
+  IOBufferSize(TupleBuffer2::GetIoBufferSize()),
   MaxMergeFanIn(0),
   F0(0),
   W(0),

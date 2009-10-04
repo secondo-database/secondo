@@ -34,7 +34,7 @@ May 2009. S. Jungnickel. Initial version.
 #include "Progress.h"
 #include "TupleQueue.h"
 #include "SortInfo.h"
-#include "TupleBuffer.h"
+#include "TupleBuffer2.h"
 
 /*
 3 Class SortedRun
@@ -325,10 +325,10 @@ Otherwise 0 is returned.
     extrel2::TupleQueue* heap;
 
     // Tuple Buffer
-    extrel2::TupleBuffer buffer;
+    extrel2::TupleBuffer2 buffer;
 
     // Iterator for scan
-    extrel2::TupleBufferIterator* iter;
+    extrel2::TupleBuffer2Iterator* iter;
 
     // Statistical information
     extrel2::SortedRunInfo* info;

@@ -95,7 +95,7 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word _streamA,
 //
 //  MAX_MEMORY = qp->MemoryAvailableForOperator();
 //
-//  grpB = new TupleBuffer( MAX_MEMORY );
+//  grpB = new TupleBuffer2( MAX_MEMORY );
 //
 //  cmsg.info("ERA:ShowMemInfo")
 //    << "SortMergeJoin2.MAX_MEMORY ("

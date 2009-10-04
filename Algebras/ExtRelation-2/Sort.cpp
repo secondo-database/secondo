@@ -629,8 +629,8 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
           // set I/O buffer size in bytes
           if ( ioBufferSize >= 0 && ioBufferSize <= 16384 )
           {
-            li->oldIoBufferSize = TupleBuffer::GetIoBufferSize();
-            TupleBuffer::SetIoBufferSize((size_t)ioBufferSize);
+            li->oldIoBufferSize = TupleBuffer2::GetIoBufferSize();
+            TupleBuffer2::SetIoBufferSize((size_t)ioBufferSize);
           }
 
           li->ptr = new SortAlgorithm( args[0],
@@ -667,7 +667,7 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
         // restore old I/O buffer size if necessary
         if ( li->oldIoBufferSize != UINT_MAX )
         {
-          TupleBuffer::SetIoBufferSize(li->oldIoBufferSize);
+          TupleBuffer2::SetIoBufferSize(li->oldIoBufferSize);
         }
         delete li;
         local.addr = 0;

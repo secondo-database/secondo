@@ -50,7 +50,7 @@ implement the new sort algorithm for operators ~sort2~ and ~sortby2~.
 #include "Progress.h"
 #include "TupleQueue.h"
 #include "SortInfo.h"
-#include "TupleBuffer.h"
+#include "TupleBuffer2.h"
 #include "SortedRun.h"
 
 using namespace symbols;

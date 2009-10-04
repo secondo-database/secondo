@@ -41,7 +41,7 @@ during development to test and benchmark the algebra.
 #include "SecondoInterface.h"
 #include "WinUnix.h"
 #include "FileSystem.h"
-#include "TupleBuffer.h"
+#include "TupleBuffer2.h"
 #include "TupleQueue.h"
 #include "PriorityQueue.h"
 
@@ -193,9 +193,6 @@ int TupleFileValueMap( Word* args, Word& result,
         // append tuple to tuple file on disk
         li->file->Append(t);
 
-        // delete tuple
-        t->DeleteIfAllowed();
-
         qp->Request(args[0].addr, wTuple);
       }
 
@@ -274,8 +271,8 @@ public:
     }
   }
 
-  extrel2::TupleBuffer* buffer;
-  extrel2::TupleBufferIterator* iter;
+  extrel2::TupleBuffer2* buffer;
+  extrel2::TupleBuffer2Iterator* iter;
 };
 
 /*
@@ -315,7 +312,7 @@ int TupleBufferValueMap( Word* args, Word& result,
         // create tuple file
         if ( li->buffer == 0 )
         {
-          li->buffer = new extrel2::TupleBuffer(bufferSize*1024);
+          li->buffer = new extrel2::TupleBuffer2(bufferSize*1024);
         }
 
         // append tuple to buffer
