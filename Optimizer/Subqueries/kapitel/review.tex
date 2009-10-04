@@ -67,6 +67,7 @@ Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln \sql{select}, \sql{
 	\subitem Die \sql{select}-Klausel entspricht der Projektions-Operation der Relationenalgebra. In ihr werden alle Attribute der Ergebnisrelation angegeben. Um alle Attribute der beteiligten Relationen zu erhalten gibt es die spezielle Notation \enquote{*}. Mit Ihr wird also das Schema der Ergebnisrelation festgelegt.
 	\subitem Die \sql{from}-Klausel entspricht dem kartesischen Produkt in der Relationenalgebra. Hier werden alle in der Abfrage verwendeten Relationen aufgeführt.
 	\subitem Die \sql{where}-Klausel entspricht der Selektions-Operation der Relationenalgebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der \sql{from}-Klausel angegebenen Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnen Termen von einem Prädikat der Abfrage.
+	
 Es gibt in SQL zwei Konstrukte, die sich nicht mit der Relationenalgebra ausdrücken lassen. D.h. SQL ist echt mächtiger als die Relationenalgebra. Die Konstrukte sind \sql{null}-Werte und Aggregationsfunktionen. 
 \sql{null}-Werte sind spezielle Attributwerte, die die Abwesenheit eines Werts anzeigen. Boolesche-Ausdrücke mit \sql{null}-Werten entsprechen einer dreiwertigen Logik, da als Ergebnis die Werte \sql{true}, \sql{false} und \sql{null} auftreten können.
 	Aggregationsfunktionen berechnen Werte über allen Tupel einer Relation. Die im SQL-Standard definierten Aggregationsfunktionen sind
