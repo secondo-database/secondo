@@ -1889,7 +1889,7 @@ plan_to_atom(createtmpbtree(Rel, Attr), Result) :-
   rel_to_atom(Rel, Rel2),
   plan_to_atom(attrname(Attr), Attr2),
   concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result).
-  
+	  
 /*
 Translation of operators driven by predicate ~secondoOp~ in
 file ~opsyntax~. There are rules for
@@ -2688,11 +2688,7 @@ try to create a temporary one
 
 */
 
-<<<<<<< optimizer.pl
 sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, UpperBound) => 
-=======
-sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) =>
->>>>>>> 1.27
 	loopjoin(Arg1S, MatchExpr) :-
   isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
   isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
@@ -8520,33 +8516,11 @@ This is used for distance-queries using temporary indices
 
 addPlanVariables(Result, [], Result) :- !.
 
-<<<<<<< optimizer.pl
 addPlanVariables(ResultIn, [[Var, Expr]|Rest], 
 		 varfuncquery(ResultTmp, Var, Expr)) :-
   addPlanVariables(ResultIn, Rest, ResultTmp).
   
-=======
-addPlanVariables(ResultIn, [[Var, Expr]|Rest], ResultOut) :-
-  addPlanVariables(ResultIn, Rest, ResultTmp),
-  concat_atom([Expr, ' within[fun(', Var, ':ANY) ', ResultTmp, ']'],
-	      ResultOut).
 
-/*
-----    call_plan_to_atom(+Plan, -Result)
-----
-
-Converts ~Plan~ to a SECONDO-Term and adds the variables needed
-for temporary indices to the beginning of ~Result~
-
-*/
-
-call_plan_to_atom(Plan, Result) :-
-  plan_to_atom(Plan, Result1),
-  findall([Variable, Expression], planvariable(Variable, Expression), L),
-  addPlanVariables(Result1, L, Result),
-  retractall(planvariable(_, _)).
-
->>>>>>> 1.27
 /*
 ----    assertDistanceRel(+Rels, +DistAttr1, +DistAttr2, +HeadCount)
 ----
@@ -8614,7 +8588,6 @@ corrects the cost estimation according to ~HeadCount~
 
 */
 
-<<<<<<< optimizer.pl
 finishDistanceSortRTree(StreamIn, CostIn, 0, 
 			StreamOut, CostOut) :-
   findTmpIndex(StreamIn, StreamOut, CostTmpIndex),
@@ -8623,10 +8596,6 @@ finishDistanceSortRTree(StreamIn, CostIn, 0,
 finishDistanceSortRTree(StreamIn, CostIn, HeadCount, 
 			StreamOut, CostOut) :-
   findTmpIndex(head(StreamIn, HeadCount), StreamOut, CostTmpIndex),
-=======
-finishDistanceSortRTree(StreamIn, CostIn, HeadCount,
-			head(StreamIn, HeadCount), CostOut) :-
->>>>>>> 1.27
   highNode(Node),
   resultSize(Node, Size),
   CostOut is CostIn * min(HeadCount, Size) / Size + CostTmpIndex.
@@ -8749,36 +8718,3 @@ Removes the Attributes ~NewAttrs~ from the query
 removeAttrs(StreamIn, [], StreamIn).
 
 removeAttrs(StreamIn, NewAttrs, remove(StreamIn, NewAttrs)).
-<<<<<<< optimizer.pl
-=======
-
-/*
-
-/*
-
-examples
-
-*/
-% Example: distance query, no predicate (database berlintest)
-sqlExample( 305,
-  select *
-  from kinos
-  orderby distance(geoData, mehringdamm) first 5
-  ).
-
-% Example: distance query, selection predicate (database berlintest)
-sqlExample( 306,
-  select *
-  from ubahnhof
-  where typ = "Zone A"
-  orderby distance(geoData, alexanderplatz) first 5
-  ).
-
-% Example: distance query, join predicate (database berlintest)
-sqlExample( 307,
-  select *
-  from [orte2, staedte]
-  where name = sname
-  orderby distance(geoData, alexanderplatz) first 5
-  ).
->>>>>>> 1.27
