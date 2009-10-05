@@ -83,7 +83,7 @@ public class SecondoExtension{
       String fold = getFolderString(); // global folder in zip file
       for(int i=0;i<files.size();i++){
          StringTriple t = files.get(i);
-         String middle = t.second==null?"":t.second.replaceAll("/",File.separator)+File.separator;
+         String middle = t.second==null?"":t.second.replace('/',File.separatorChar)+File.separator;
          String filename = baseDir + middle+t.first;
          if(!copyZipEntryToFile(new File(filename), zipFile, zipFile.getEntry(getEntryName(t)))){
            return false;
