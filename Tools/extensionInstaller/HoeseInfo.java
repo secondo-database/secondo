@@ -165,6 +165,7 @@ public class HoeseInfo extends JavaExtension{
     // first names of the display classes  must be disjoint
     TreeSet<String> files = new TreeSet<String>();
     String s = File.separator;
+    char sc = File.separatorChar;
     String mainDir = secondoDir+s+"Javagui"+s;
     String algDir = mainDir+"viewer"+s+"hoese"+s+"algebras"+s;
     for(int i=0;i<infos.size();i++){
@@ -181,7 +182,7 @@ public class HoeseInfo extends JavaExtension{
        // files
        for(int j=0;j<info.files.size();j++){
           StringTriple triple = info.files.get(j);
-          String middle = triple.second==null?"":triple.second.replaceAll("/",s)+s;
+          String middle = triple.second==null?"":triple.second.replace('/',sc)+s;
           fn = algDir+middle + triple.first; 
           if(files.contains(fn)){
             System.err.println("Conflict: File " + fn + " found twice");
@@ -193,7 +194,7 @@ public class HoeseInfo extends JavaExtension{
        for(int j=0;j<info.libDeps.size();j++){
          StringBoolPair e = info.libDeps.get(j);
          if(e.firstB){ // lib provided by the module
-            fn = mainDir + "lib" + s + e.secondS.replaceAll("/",s) + s +  e.firstS;
+            fn = mainDir + "lib" + s + e.secondS.replace('/',sc) + s +  e.firstS;
             if(files.contains(fn)){
               System.err.println("Conflict: File " + fn + " found twice");
               return false;
@@ -235,6 +236,7 @@ public class HoeseInfo extends JavaExtension{
 
      }
      String s = File.separator;
+     char sc = File.separatorChar;
      String mainDir = secondoDir+s+"Javagui"+s;
      for(int i=0;i<infos.size();i++){
         HoeseInfo info = infos.get(i);
@@ -242,7 +244,7 @@ public class HoeseInfo extends JavaExtension{
         for(int j=0;j<info.libDeps.size();j++){
            StringBoolPair e = info.libDeps.get(j);
            if(!e.firstB && !providedLibs.contains(e.firstS)){ // dependency to a non provided lib
-              String fn = mainDir + "lib" + s + e.secondS.replaceAll("/",s) + s +  e.firstS;
+              String fn = mainDir + "lib" + s + e.secondS.replace('/',sc) + s +  e.firstS;
               File f = new File(fn);
               if(f.exists()){
                 System.err.println("DisplayClass "+ info.mainClass +" tries to install the file "
@@ -450,6 +452,7 @@ public class HoeseInfo extends JavaExtension{
     // copy the files
      ZipFile f = null;
      String s = File.separator;
+     char sc = File.separatorChar;
      String guiDir = secondoDir + s + "Javagui"+ s;
      String algDir = guiDir+"viewer"+s+"hoese"+s+"algebras"+s;
      String libDir = guiDir+"lib"+s;
@@ -461,15 +464,15 @@ public class HoeseInfo extends JavaExtension{
        // copy Files
        for(int i=0; i< files.size(); i++){
          StringTriple triple = files.get(i);
-         fn = algDir + getTargetName(triple).replaceAll("/",s);
+         fn = algDir + getTargetName(triple).replace('/',sc);
          copyZipEntryToFile(new File(fn), f, f.getEntry(getEntryName(triple)));
        }
        // copy libraries
        for(int i=0;i<libDeps.size();i++){
           StringBoolPair ld = libDeps.get(i);
           if(ld.firstB){ // lib provided in zip file
-            fn = libDir + ld.secondS.replaceAll("/",s) + s +  ld.firstS; 
-            String fold = folder==null?"":folder.replaceAll("/",s);
+            fn = libDir + ld.secondS.replace('/',sc) + s +  ld.firstS; 
+            String fold = folder==null?"":folder.replace('/',sc);
             String libEntry = fold+ld.firstS;
             copyZipEntryToFile(new File(fn), f, f.getEntry(libEntry));
           }
@@ -481,7 +484,7 @@ public class HoeseInfo extends JavaExtension{
        }
 
        if(!modifyMakeFileInc(secondoDir)){
-          System.err.println("pronblem in updating file makefile.inc");
+          System.err.println("problem in updating file makefile.inc");
           return false;
        }
 

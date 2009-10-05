@@ -103,11 +103,12 @@ public class JavaExtension extends SecondoExtension{
   /** Checks whether the libraries are present or provided by the extension **/
   protected boolean checkLibDeps(String secondoDir){
      String s = File.separator;
+     char sc = File.separatorChar;
      String libDir = secondoDir+s+"lib"+s;
      for(int i=0;i<libDeps.size();i++){
         StringBoolPair e = libDeps.get(i);
         if(!e.firstB){ // dependency to a non provided lib
-           String fn = libDir + e.secondS.replaceAll("/",s) + s +  e.firstS;
+           String fn = libDir + e.secondS.replace('/',sc) + s +  e.firstS;
            File f = new File(fn);
            if(f.exists()){
               System.err.println("lib " + fn +" required but not found");

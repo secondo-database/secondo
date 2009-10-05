@@ -175,6 +175,7 @@ public class ViewerInfo extends JavaExtension{
     TreeSet<String> names = new TreeSet<String>();
     TreeSet<String> files = new TreeSet<String>();
     String s = File.separator;
+    char sc = File.separatorChar;
     String mainDir = secondoDir+s+"Javagui"+s;
     for(int i=0;i<infos.size();i++){
        ViewerInfo info = infos.get(i);
@@ -191,7 +192,7 @@ public class ViewerInfo extends JavaExtension{
        // files
        for(int j=0;j<info.files.size();j++){
           StringTriple triple = info.files.get(j);
-          String middle = triple.second==null?"":triple.second.replaceAll("/",s)+s;
+          String middle = triple.second==null?"":triple.second.replace('/',sc)+s;
           fn = mainDir +"viewer"+s+middle + triple.first; 
           if(files.contains(fn)){
             System.err.println("Conflict: File " + fn + " found twice");
@@ -203,7 +204,7 @@ public class ViewerInfo extends JavaExtension{
        for(int j=0;j<info.libDeps.size();j++){
          StringBoolPair e = info.libDeps.get(j);
          if(e.firstB){ // lib provided by the module
-            fn = mainDir + "lib" + s + e.secondS.replaceAll("/",s) + s +  e.firstS;
+            fn = mainDir + "lib" + s + e.secondS.replace('/',sc) + s +  e.firstS;
             if(files.contains(fn)){
               System.err.println("Conflict: File " + fn + " found twice");
               return false;
@@ -464,6 +465,7 @@ public class ViewerInfo extends JavaExtension{
      // copy the files
      ZipFile f = null;
      String s = File.separator;
+     char sc = File.separatorChar;
      String guiDir = secondoDir + s + "Javagui"+ s;
      String viewerDir = guiDir+"viewer"+s;
      String libDir = guiDir+"lib"+s;
@@ -476,7 +478,7 @@ public class ViewerInfo extends JavaExtension{
        // copy Files
        for(int i=0; i< files.size(); i++){
          StringTriple triple = files.get(i);
-         String middle = triple.second==null?"":triple.second.replaceAll("/",s)+s;
+         String middle = triple.second==null?"":triple.second.replace('/',sc)+s;
          fn = viewerDir + middle + triple.first;
          copyZipEntryToFile(new File(fn), f, f.getEntry(getEntryName(triple)));
        }
@@ -484,7 +486,7 @@ public class ViewerInfo extends JavaExtension{
        for(int i=0;i<libDeps.size();i++){
           StringBoolPair ld = libDeps.get(i);
           if(ld.firstB){ // lib provided in zip file
-            fn = libDir + ld.secondS.replaceAll("/",s) + s +  ld.firstS; 
+            fn = libDir + ld.secondS.replace('/',sc) + s +  ld.firstS; 
             fold = folder==null?"":folder+"/";
             copyZipEntryToFile(new File(fn), f, f.getEntry(fold + ld.firstS));
           }
