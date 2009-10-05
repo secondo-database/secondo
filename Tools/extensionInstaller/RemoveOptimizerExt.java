@@ -40,7 +40,7 @@ public static void main(String[] args){
      if(!f.exists()){
         System.err.println("file " + f + " does not exist");
      } else {
-        String content = "";
+        StringBuffer content = new StringBuffer(262144);
         BufferedReader in = null;
         PrintWriter out  = null;
         try{
@@ -60,7 +60,7 @@ public static void main(String[] args){
                     System.err.println("section " + name + "found twice");
                     throw new Exception("twice name found: "+ name);
                  } else {
-                   content += line +"\n";
+                   content.append(line +"\n");
                    currentSection = name;
                    names.add(name);
                  }
@@ -76,12 +76,12 @@ public static void main(String[] args){
                                         "but section " + currentSection + " is active");
                      throw new Exception("conflicting names");
                  }else {
-                    content += line + "\n";
+                    content.append(line + "\n");
                     currentSection = null;
                  }
               } else { // a normal line
                  if(currentSection==null){
-                     content += line + "\n";
+                     content.append(line + "\n");
                  }
               }
            }

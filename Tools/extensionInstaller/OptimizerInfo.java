@@ -396,7 +396,7 @@ public class OptimizerInfo extends SecondoExtension{
          return true;
       }
       // read the complete file into a string
-      String content = "";
+      StringBuffer contentb = new StringBuffer(262144);
       BufferedReader in = null;
       boolean ok = true;
       String s = File.separator;
@@ -405,7 +405,7 @@ public class OptimizerInfo extends SecondoExtension{
       try{
         in = new BufferedReader(new FileReader(f));
         while(in.ready()){
-           content += in.readLine()+"\n";
+           contentb.append(in.readLine()+"\n");
         }
       } catch(Exception e){
         System.err.println("Error while reading file " + f);
@@ -416,6 +416,8 @@ public class OptimizerInfo extends SecondoExtension{
       if(!ok){
          return false;
       }
+
+      String content = contentb.toString();
       // insert block content into file content 
       if(!b.first){ // insert at the end of the section
          String[] parts = content.split("\n"+b.getSectionEndTemplate()+"\n");
