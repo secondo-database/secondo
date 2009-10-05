@@ -215,6 +215,7 @@ public class OptimizerInfo extends SecondoExtension{
       TreeSet<String> names = new TreeSet<String>();
       TreeSet<String> fnames = new TreeSet<String>();
       String s = File.separator;
+      char sc = File.separatorChar;
       String mainDir = secondoDir+s+"Optimizer"+s;
 
       for(int i=0;i<infos.size();i++){
@@ -226,7 +227,7 @@ public class OptimizerInfo extends SecondoExtension{
          names.add(info.name);
          for(int j=0;j<info.files.size();j++){
             StringTriple triple  = info.files.get(j);
-            String start = triple.second==null?"":triple.second.replaceAll("/",s) + s;
+            String start = triple.second==null?"":triple.second.replace('/',sc) + s;
             String fn = start + triple.first;
             if(fnames.contains(fn)){
                System.err.println("File " + mainDir+fn+" is tried to copy twice");
@@ -256,7 +257,7 @@ public class OptimizerInfo extends SecondoExtension{
          TreeSet<String> filesToModify = new TreeSet<String>();
          for(int j=0;j<blocks.size();j++){ 
             Block b = blocks.get(j);
-            String fn = mainDir + b.file.replaceAll("/",s);
+            String fn = mainDir + b.file.replace('/',sc);
             File f = new File(fn);
             if(!f.exists()){
               System.err.println("Try to modify the non-existent file " + f);
@@ -325,7 +326,7 @@ public class OptimizerInfo extends SecondoExtension{
          // checks whether all new files are not present
          for(int j=0;j<info.files.size();j++){
            StringTriple t = info.files.get(j);
-           String middle = t.second==null?"":t.second.replaceAll("/",s)+s;
+           String middle = t.second==null?"":t.second.replace('/',sc)+s;
            File f = new File(mainDir + middle+t.first);
            if(f.exists()){
              System.err.println("Try to install file " + f+" which is already present");
@@ -368,11 +369,12 @@ public class OptimizerInfo extends SecondoExtension{
   /** installs the extension **/
   boolean install(String secondoDir, ZipFile f){
      String s = File.separator;
+     char sc = File.separatorChar;
      String mainDir = secondoDir+s+"Optimizer"+s;
      // copy files
      for(int i=0;i<files.size();i++){
        StringTriple t = files.get(i);
-       String middle = t.second==null?"":t.second.replaceAll("/",s)+s;
+       String middle = t.second==null?"":t.second.replace('/',sc)+s;
        String fn = mainDir+middle+t.first;
        System.out.println("Copy to File " + fn);
        if(!SecondoExtension.copyZipEntryToFile(new File(fn), f, f.getEntry(getEntryName(t)))){
