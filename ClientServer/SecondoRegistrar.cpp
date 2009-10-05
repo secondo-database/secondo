@@ -2,8 +2,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics & 
+Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,7 +20,11 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+M. Spiekermann: Trace messages and error messages added. Some critical
+C++ code re-implemented. Bug fix for command UNREGISTER.
+
 */
+
 #include <string>
 #include <algorithm>
 #include <map>
@@ -31,22 +35,21 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "SocketIO.h"
 #include "Profiles.h"
 #include "CharTransform.h"
+#include "LogMsg.h"
+#include "Trace.h"
 
 using namespace std;
 
-const int EXIT_REGISTRAR_OK       = 0;
-const int EXIT_REGISTRAR_NOQUEUE  = 1;
-const int EXIT_REGISTRAR_ABORT    = 2;
-
-
-class SecondoRegistrar;
-typedef void (SecondoRegistrar::*ExecCommand)();
 
 class SecondoRegistrar : public Application
 {
  public:
   SecondoRegistrar( const int argc, const char** argv ) : 
-    Application( argc, argv ) 
+    Application( argc, argv ),  
+    trace("REGISTRAR"), 
+    EXIT_REGISTRAR_OK( 0 ),
+    EXIT_REGISTRAR_NOQUEUE( 1 ),
+    EXIT_REGISTRAR_ABORT( 2 )
   {};
   virtual ~SecondoRegistrar() {};
   int Execute();
@@ -70,7 +73,18 @@ class SecondoRegistrar : public Application
   multimap<string,ProcessId> dbUsers;
   multimap<string,string>    dbRegister;
   map<string,string>         dbLocks;
-  std::queue<string>              logMsgs;
+  std::queue<string>         logMsgs;
+
+  Trace trace;
+
+  const int EXIT_REGISTRAR_OK;
+  const int EXIT_REGISTRAR_NOQUEUE;
+  const int EXIT_REGISTRAR_ABORT;
+
+  typedef enum {  REGISTER, UNREGISTER, 
+	  LOCK, UNLOCK, 
+	  LOGIN, LOGOUT, LOGMSG, 
+	  SHOWMSGS, SHOWUSERS, SHOWLOCKS, SHOWDATABASES } cmdTok;	
 };
 
 bool
@@ -119,6 +133,7 @@ SecondoRegistrar::ExecUnregister()
     {
       dbRegister.erase( pos );
       found = true;
+      break;
     }
   }
   if ( found )
@@ -247,7 +262,7 @@ void
 SecondoRegistrar::ExecShowUsers()
 {
   iostream& ss = request->GetSocketStream();
-  ss << "1 Registrar: " << dbUsers.size() << " messages" << endl;
+  ss << "1 Registrar: " << dbUsers.size() << " users" << endl;
   multimap<string,ProcessId>::iterator posUser;
   for ( posUser  = dbUsers.begin();
         posUser != dbUsers.end(); posUser++ )
@@ -261,7 +276,7 @@ void
 SecondoRegistrar::ExecShowLocks()
 {
   iostream& ss = request->GetSocketStream();
-  ss << "1 Registrar: " << dbLocks.size() << " messages" << endl;
+  ss << "1 Registrar: " << dbLocks.size() << " locks" << endl;
   map<string,string>::iterator pos;
   for ( pos  = dbLocks.begin();
         pos != dbLocks.end(); pos++ )
@@ -275,7 +290,7 @@ void
 SecondoRegistrar::ExecShowDatabases()
 {
   iostream& ss = request->GetSocketStream();
-  ss << "1 Registrar: " << dbRegister.size() << " messages" << endl;
+  ss << "1 Registrar: " << dbRegister.size() << " databases" << endl;
   multimap<string,string>::iterator pos;
   for ( pos  = dbRegister.begin();
         pos != dbRegister.end(); pos++ )
@@ -288,19 +303,21 @@ SecondoRegistrar::ExecShowDatabases()
 int
 SecondoRegistrar::ProcessCommands()
 {
-  map<string,ExecCommand> commandTable;
-  map<string,ExecCommand>::iterator cmdPos;
-  commandTable["REGISTER"]      = &SecondoRegistrar::ExecRegister;
-  commandTable["UNREGISTER"]    = &SecondoRegistrar::ExecUnregister;
-  commandTable["LOCK"]          = &SecondoRegistrar::ExecLock;
-  commandTable["UNLOCK"]        = &SecondoRegistrar::ExecUnlock;
-  commandTable["LOGIN"]         = &SecondoRegistrar::ExecLogin;
-  commandTable["LOGOUT"]        = &SecondoRegistrar::ExecLogout;
-  commandTable["LOGMSG"]        = &SecondoRegistrar::ExecLogMsg;
-  commandTable["SHOWMSGS"]      = &SecondoRegistrar::ExecShowMsgs;
-  commandTable["SHOWUSERS"]     = &SecondoRegistrar::ExecShowUsers;
-  commandTable["SHOWLOCKS"]     = &SecondoRegistrar::ExecShowLocks;
-  commandTable["SHOWDATABASES"] = &SecondoRegistrar::ExecShowDatabases;
+  trace.enter(__FUNCTION__);
+
+  map<string,cmdTok> commandTable;
+  map<string,cmdTok>::iterator cmdPos;
+  commandTable["REGISTER"]      = REGISTER; 
+  commandTable["UNREGISTER"]    = UNREGISTER;
+  commandTable["LOCK"]          = LOCK;
+  commandTable["UNLOCK"]        = UNLOCK;
+  commandTable["LOGIN"]         = LOGIN;
+  commandTable["LOGOUT"]        = LOGOUT;
+  commandTable["LOGMSG"]        = LOGMSG;
+  commandTable["SHOWMSGS"]      = SHOWMSGS;
+  commandTable["SHOWUSERS"]     = SHOWUSERS;
+  commandTable["SHOWLOCKS"]     = SHOWLOCKS;
+  commandTable["SHOWDATABASES"] = SHOWDATABASES;
 
   int rc = 0;
   while (rc == 0)
@@ -311,15 +328,46 @@ SecondoRegistrar::ProcessCommands()
       iostream& ss = request->GetSocketStream();
       string cmd;
       ss >> cmd;
+      trace.out(cmd);	    
       transform( cmd.begin(), cmd.end(), cmd.begin(), ToUpperProperFunction );
       cmdPos = commandTable.find( cmd );
+          
       if ( cmdPos != commandTable.end() )
       {
-        (*this.*(cmdPos->second))();
+        switch (cmdPos->second) {
+
+          case REGISTER:   ExecRegister(); break;
+
+          case UNREGISTER: ExecUnregister(); break;
+
+	  case LOCK:       ExecLock(); break;
+
+	  case UNLOCK:     ExecUnlock(); break;
+
+	  case LOGIN:      ExecLogin(); break;
+
+	  case LOGOUT:     ExecLogout(); break;
+
+	  case LOGMSG:     ExecLogMsg(); break;
+
+	  case SHOWMSGS:   ExecShowMsgs(); break;
+
+	  case SHOWUSERS:  ExecShowUsers(); break;
+
+	  case SHOWLOCKS:  ExecShowLocks(); break;
+
+	  case SHOWDATABASES: ExecShowDatabases(); break;
+
+          default:
+	    trace.out("Invalid Command");      
+            ss << "-2 Registrar: Invalid Command " << cmd << endl;
+	}	
+
       }
       else
       {
-        ss << "-2 Registrar: Invalid Command" << endl;
+	trace.out("Invalid Command");      
+        ss << "-2 Registrar: Invalid Command " << cmd << endl;
       }
 
     }
@@ -340,6 +388,9 @@ int
 SecondoRegistrar::Execute()
 {
   SetAbortMode( true );
+  if (RTFlag::isActive("Registar:trace")) {
+    trace.on();
+  }  
   int rc = EXIT_REGISTRAR_NOQUEUE;
   string parmFile;
   if ( GetArgCount() > 1 )
@@ -350,14 +401,24 @@ SecondoRegistrar::Execute()
   {
     parmFile = "SecondoConfig.ini";
   }
+  trace.show( VAL(parmFile) );
   string msgQueue = SmiProfile::GetParameter( "Environment", "RegistrarName", 
                                               "SECONDO_REGISTRAR", parmFile   );
+
+  trace.show( VAL(msgQueue) );
   msgSocket = Socket::CreateLocal( msgQueue );
+  trace.out("local socket created!");
   if ( msgSocket->IsOk() )
   {
+    trace.out("local socket is ok!");
     rc = ProcessCommands();
   }
+  else
+  {
+    cerr << "REGISTRAR: Error! local socket is *not* ok." << endl;
+  }	  
   delete msgSocket;
+  cerr << "REGISTRAR is going down with rc = " << rc << endl;
   return (rc);
 }
 
