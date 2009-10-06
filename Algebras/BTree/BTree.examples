@@ -104,3 +104,9 @@ Number   : 1
 Signature: (btree(tuple(x) ti) xi) -> text
 Example  : query isdefined(getFileInfo(staedte_SName))
 Result   : TRUE
+
+Operator : keyrange 
+Number   : 1
+Signature: (btree(tuple(x) rel(tuple(x) key) -> stream(tuple((Less real)(Equal Real)(Greater real)(NumOfKeys int))) 
+Example  : query staedte_SName Staedte keyrange["Dortmund"] extend[All: .Less + .Equal + .Greater] extract[All]
+Result   : 1.0

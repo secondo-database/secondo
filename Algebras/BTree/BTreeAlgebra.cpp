@@ -35,7 +35,16 @@ level remains. Models are also removed from type constructors.
 1 Includes and Defines
 
 */
-using namespace std;
+#include <iostream>
+#include <string>
+#include <deque>
+#include <set>
+#include <algorithm>
+#include <cstdlib>
+#include <unistd.h>
+#include <errno.h>
+#include <sstream>
+#include <typeinfo>
 
 #include "Algebra.h"
 #include "SecondoSystem.h"
@@ -51,17 +60,9 @@ using namespace std;
 #include "TupleIdentifier.h"
 #include "Progress.h"
 #include "FTextAlgebra.h"
+#include "NList.h"
 
-#include <iostream>
-#include <string>
-#include <deque>
-#include <set>
-#include <algorithm>
-#include <cstdlib>
-#include <unistd.h>
-#include <errno.h>
-#include <sstream>
-#include <typeinfo>
+using namespace std;
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -1369,17 +1370,6 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 
         ili->relation = (Relation*)args[1].addr;
         local = SetWord(ili);
-
-          // experimental only - will be removed soon
-          btree = (BTree*)args[0].addr;
-          key = (StandardAttribute*)args[2].addr;
-	  SmiKeyRange factors;
-	  SmiKey sk;
-          AttrToKey( key, sk, btree->GetFile()->GetKeyType() );
-	  btree->GetFile()->KeyRange(sk, factors);
-	  cout << "btree.less = " << factors.less << endl;
-	  cout << "btree.equal = " << factors.equal << endl;
-	  cout << "btree.right = " << factors.greater << endl;
       }
 
       btree = (BTree*)args[0].addr;
@@ -2668,6 +2658,204 @@ Operator getfileinfobtree (
          getFileInfoBtreeTypeMap     // type mapping
 );
 
+
+
+/*
+6.7.5 Definition of operator ~keyrange~
+
+*/
+
+ListExpr keyrange_tm(ListExpr args)
+{
+  char* errmsg = "Excpecting a list of type ((btree) (rel) key-atom)!";
+
+  CHECK_COND(!nl->IsEmpty(args), errmsg);
+  CHECK_COND(!nl->IsAtom(args), errmsg);
+  CHECK_COND(nl->ListLength(args) == 3, errmsg);
+
+  /* Split argument in three parts */
+  ListExpr btreeDescription = nl->First(args);
+  ListExpr relDescription = nl->Second(args);
+  ListExpr keyDescription = nl->Third(args);
+
+
+  /* find out type of key */
+  CHECK_COND(nl->IsAtom(keyDescription), errmsg);
+  CHECK_COND(nl->AtomType(keyDescription) == SymbolType, errmsg);
+
+  /* handle btree part of argument */
+  CHECK_COND(!nl->IsEmpty(btreeDescription), errmsg);
+  CHECK_COND(!nl->IsAtom(btreeDescription), errmsg);
+  CHECK_COND(nl->ListLength(btreeDescription) == 3, errmsg);
+
+  ListExpr btreeSymbol = nl->First(btreeDescription);;
+  ListExpr btreeTupleDescription = nl->Second(btreeDescription);
+  ListExpr btreeKeyType = nl->Third(btreeDescription);
+
+  /* check that the type of given key equals the btree key type */
+  CHECK_COND(nl->Equal(keyDescription, btreeKeyType), errmsg);
+
+  /* handle btree type constructor */
+  CHECK_COND(nl->IsAtom(btreeSymbol), errmsg);
+  CHECK_COND(nl->AtomType(btreeSymbol) == SymbolType, errmsg);
+  CHECK_COND(nl->SymbolValue(btreeSymbol) == "btree", errmsg);
+
+  CHECK_COND(!nl->IsEmpty(btreeTupleDescription), errmsg);
+  CHECK_COND(!nl->IsAtom(btreeTupleDescription), errmsg);
+  CHECK_COND(nl->ListLength(btreeTupleDescription) == 2, errmsg);
+  ListExpr btreeTupleSymbol = nl->First(btreeTupleDescription);;
+  ListExpr btreeAttrList = nl->Second(btreeTupleDescription);
+
+  CHECK_COND(nl->IsAtom(btreeTupleSymbol), errmsg);
+  CHECK_COND(nl->AtomType(btreeTupleSymbol) == SymbolType, errmsg);
+  CHECK_COND(nl->SymbolValue(btreeTupleSymbol) == "tuple", errmsg);
+  CHECK_COND(IsTupleDescription(btreeAttrList), errmsg);
+
+  /* handle rel part of argument */
+  CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
+  CHECK_COND(!nl->IsAtom(relDescription), errmsg);
+  CHECK_COND(nl->ListLength(relDescription) == 2, errmsg);
+
+  ListExpr relSymbol = nl->First(relDescription);;
+  ListExpr tupleDescription = nl->Second(relDescription);
+
+  CHECK_COND(nl->IsAtom(relSymbol), errmsg);
+  CHECK_COND(nl->AtomType(relSymbol) == SymbolType, errmsg);
+  CHECK_COND(nl->SymbolValue(relSymbol) == "rel", errmsg);
+
+  CHECK_COND(!nl->IsEmpty(tupleDescription), errmsg);
+  CHECK_COND(!nl->IsAtom(tupleDescription), errmsg);
+  CHECK_COND(nl->ListLength(tupleDescription) == 2, errmsg);
+  ListExpr tupleSymbol = nl->First(tupleDescription);
+  ListExpr attrList = nl->Second(tupleDescription);
+
+  CHECK_COND(nl->IsAtom(tupleSymbol), errmsg);
+  CHECK_COND(nl->AtomType(tupleSymbol) == SymbolType, errmsg);
+  CHECK_COND(nl->SymbolValue(tupleSymbol) == "tuple", errmsg);
+  CHECK_COND(IsTupleDescription(attrList), errmsg);
+
+  /* check that btree and rel have the same associated tuple type */
+  CHECK_COND(nl->Equal(attrList, btreeAttrList), errmsg);
+
+  // BUG 
+  //NList attr;
+  //attr.append(NList("int", "Less"));
+  //cout << "****" << attr << endl;
+
+  NList a1(NList("Less"), NList("real"));
+  NList a2(NList("Equal"), NList("real"));
+  NList a3(NList("Greater"), NList("real"));
+  NList a4(NList("NumOfKeys"), NList("int"));
+
+  NList result(NList("stream"), NList(NList("tuple"), NList(a1,a2,a3,a4)));
+
+  return result.listExpr();
+}
+
+
+
+template <typename T>
+void init_ptr(T*& p, Word& w) 
+{ assert(w.addr != 0); p = static_cast<T*>(w.addr); }
+
+template <typename T>
+void del_ptr(Word& w) 
+{ assert(w.addr != 0); delete static_cast<T*>(w.addr); w.addr = 0; }
+
+template <typename T>
+void set_val(Word& w, const T& val) 
+{ (*static_cast<T*>(w.addr)) = val; }
+
+
+int
+keyrange_vm(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+
+  switch (message)
+  {
+    case OPEN : {
+
+      local.addr = new int;
+      set_val(local, 1);
+      return 0;
+
+    }  
+    case REQUEST : {
+
+      int* k;
+      init_ptr(k, local);      
+      if(*k == 1)
+      {
+
+        BTree* btree;
+        Relation* relation;
+        StandardAttribute* key;
+
+        init_ptr(btree, args[0]);
+        init_ptr(relation, args[1]);
+        init_ptr(key, args[2]);
+
+        SmiKeyRange factors;
+	SmiKey sk;
+        AttrToKey( key, sk, btree->GetFile()->GetKeyType() );
+	btree->GetFile()->KeyRange(sk, factors);
+	int n = relation->GetNoTuples();  
+
+	  /*
+	  cout << "btree.less = " << factors.less << endl;
+	  cout << "btree.equal = " << factors.equal << endl;
+	  cout << "btree.right = " << factors.greater << endl;
+	  cout << "relation.tuples = " << n << endl;
+	  */
+
+	CcReal* lt = new CcReal(factors.less);
+	CcReal* eq = new CcReal(factors.equal);
+	CcReal* gt = new CcReal(factors.greater);
+	CcInt* nk = new CcInt(n);
+
+	Tuple* t = new Tuple( nl->Second(GetTupleResultType(s)) );
+	t->PutAttribute(0, lt);
+	t->PutAttribute(1, eq);
+	t->PutAttribute(2, gt);
+	t->PutAttribute(3, nk);
+
+        result.addr = t;
+	*k = 0;
+        return YIELD;
+      }
+      else
+      {
+	result.addr = 0;
+        return CANCEL;
+      }
+    }
+    case CLOSE : {
+
+      del_ptr<int>(local);			 
+      local.addr = 0;
+      return 0;
+    }  
+  }
+  return 0;
+}
+
+
+struct keyrangeInfo : OperatorInfo {
+
+  keyrangeInfo()
+  {
+    name      = "keyrange"; 
+
+    signature = "(btree t) x (rel t) x key " 
+	        " -> " "stream(tuple((Less real)(Equal real)"
+		"(Greater real)(NumOfKeys int)";
+    syntax    = "_ _ keyrange(_)";
+    meaning   = "Retrieves an estimate for the number of tuples which are"
+	        " less, equal or grater than the given value";
+  }
+};  
+
+
 /*
 
 7 Definition and initialization of btree algebra
@@ -2680,38 +2868,26 @@ class BTreeAlgebra : public Algebra
   {
     AddTypeConstructor( &cppbtree );
 
+    AddOperator(&createbtree);
+    AddOperator(&exactmatch);   
+    AddOperator(&leftrange);   
+    AddOperator(&rightrange); 
+    AddOperator(&cpprange);  
+    AddOperator(&exactmatchs);
+    AddOperator(&leftranges);
+    AddOperator(&rightranges);
+    AddOperator(&cppranges);
+    AddOperator(&insertbtree);
+    AddOperator(&deletebtree);
+    AddOperator(&updatebtree);
+    AddOperator(&getfileinfobtree);
+    AddOperator(keyrangeInfo(), keyrange_vm, keyrange_tm);
+
 #ifndef USE_PROGRESS
-
-    AddOperator(&createbtree);
-    AddOperator(&exactmatch);
-    AddOperator(&leftrange);
-    AddOperator(&rightrange);
-    AddOperator(&cpprange);
-    AddOperator(&exactmatchs);
-    AddOperator(&leftranges);
-    AddOperator(&rightranges);
-    AddOperator(&cppranges);
-    AddOperator(&insertbtree);
-    AddOperator(&deletebtree);
-    AddOperator(&updatebtree);
-    AddOperator(&getfileinfobtree);
-
-#else
-
-    AddOperator(&createbtree);
-    AddOperator(&exactmatch);   exactmatch.EnableProgress();
-    AddOperator(&leftrange);    leftrange.EnableProgress();
-    AddOperator(&rightrange);   rightrange.EnableProgress();
-    AddOperator(&cpprange);     cpprange.EnableProgress();
-    AddOperator(&exactmatchs);
-    AddOperator(&leftranges);
-    AddOperator(&rightranges);
-    AddOperator(&cppranges);
-    AddOperator(&insertbtree);
-    AddOperator(&deletebtree);
-    AddOperator(&updatebtree);
-    AddOperator(&getfileinfobtree);
-
+    exactmatch.EnableProgress();
+    leftrange.EnableProgress();
+    rightrange.EnableProgress();
+    cpprange.EnableProgress();
 #endif
   }
   ~BTreeAlgebra() {};

@@ -30,3 +30,4 @@ operator leftrangeS alias LEFTRANGES pattern _ op [ _ ]
 operator rightrangeS alias RIGHTRANGES pattern _ op [ _ ]
 operator rangeS alias RANGES pattern _ op [ _, _ ]
 operator getFileInfo alias GETFILEINFO pattern op ( _ )
+operator keyrange alias KEYRANGE pattern _ _ op [ _ ]
