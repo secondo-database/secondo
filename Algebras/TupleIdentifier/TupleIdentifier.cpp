@@ -45,6 +45,7 @@ using namespace std;
 
 #include "RelationAlgebra.h"
 #include "TupleIdentifier.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -254,22 +255,14 @@ Operator ~tupleid~ accepts a tuple and returns an integer.
 ListExpr
 TupleIdTypeMap(ListExpr args)
 {
-  ListExpr first;
-  string argstr;
+  if(nl->ListLength(args)!=1){
+   return listutils::typeError("one argument expected");
+  }
 
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator tupleid expects a list of length one.");
-
-  first = nl->First(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND(  nl->ListLength(first) == 2 &&
-               TypeOfRelAlgSymbol(nl->First(first)) == tuple &&
-               IsTupleDescription(nl->Second(first)),
-  "Operator tupleid expects a list with structure "
-  "(tuple ((a1 t1)...(an tn)))\n"
-  "Operator tupleid gets a list with structure '" + argstr + "'.");
-
+  ListExpr tuple = nl->First(args);
+  if(!listutils::isTupleDescription(tuple)){
+    return listutils::typeError("tuple expected");
+  }
   return nl->SymbolAtom("tid");
 }
 
@@ -333,54 +326,37 @@ with the tuple identifier attribute in the end.
 ListExpr
 AddTupleIdTypeMap(ListExpr args)
 {
-  ListExpr first;
-  string argstr;
-
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator addtupleid expects a list of length one.");
-
-  first = nl->First(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND(  nl->ListLength(first) == 2 &&
-               TypeOfRelAlgSymbol(nl->First(first)) == stream &&
-               TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple &&
-               IsTupleDescription(nl->Second(nl->Second(first))),
-  "Operator addtupleid expects a list with structure "
-  "(stream (tuple ((a1 t1)...(an tn))))\n"
-  "Operator addtupleid gets a list with structure '" + argstr + "'.");
-
-  ListExpr rest = nl->Second(nl->Second(first));
-  ListExpr newAttrList = nl->TheEmptyList();
-  ListExpr lastNewAttrList = nl->TheEmptyList();
-  bool firstcall = true;
-
-  while (!nl->IsEmpty(rest))
-  {
-    first = nl->First(rest);
-    rest = nl->Rest(rest);
-
-    if (firstcall)
-    {
-      firstcall = false;
-      newAttrList = nl->OneElemList(first);
-      lastNewAttrList = newAttrList;
-    }
-    else
-    {
-      lastNewAttrList = nl->Append(lastNewAttrList, first);
-    }
+  if(nl->ListLength(args)!=1){
+    return listutils::typeError("One argument expected");
   }
-  lastNewAttrList = nl->Append(lastNewAttrList,
-                               nl->TwoElemList(
-                                 nl->SymbolAtom("id"),
-                                 nl->SymbolAtom("tid")));
 
-  return nl->TwoElemList(
-           nl->SymbolAtom("stream"),
-           nl->TwoElemList(
-             nl->SymbolAtom("tuple"),
-             newAttrList));
+  ListExpr stream = nl->First(args);
+  if(!listutils::isTupleStream(stream)){
+   return listutils::typeError("stream(tuple(...)) expected");
+  }
+
+  set<string> names;
+  ListExpr rest = nl->Second(nl->Second(stream));
+  ListExpr head = nl->OneElemList(nl->First(rest));
+  names.insert(nl->SymbolValue(nl->First(nl->First(rest))));
+  ListExpr last = head;
+  rest = nl->Rest(rest);
+  while(!nl->IsEmpty(rest)){
+    last = nl->Append(last, nl->First(rest));
+    names.insert(nl->SymbolValue(nl->First(nl->First(rest))));
+    rest = nl->Rest(rest);
+  }
+
+  if(names.find("id")!=names.end()){
+   return listutils::typeError("Attr name 'id' already exists");
+  }
+  last = nl->Append(last, nl->TwoElemList(nl->SymbolAtom("id"),
+                                          nl->SymbolAtom("tid")));
+
+  return nl->TwoElemList(nl->SymbolAtom("stream"),
+                         nl->TwoElemList(nl->SymbolAtom("tuple"),
+                                         head));  
+
 }
 
 ListExpr TIDtid2intTypeMap (ListExpr args)
@@ -504,26 +480,17 @@ Compares two TupleIdentifiers and returns TRUE, iff they are equal.
 ListExpr
 EqualTupleIdTypeMap(ListExpr args)
 {
-  ListExpr first;
-  ListExpr second;
-  string argstr;
+  if(nl->ListLength(args)!=2){
+   return listutils::typeError("two arguments expected");
+  }
 
-  CHECK_COND(nl->ListLength(args) == 2,
-  "Operator '=' expects a list of length two.");
-
-  first = nl->First(args);
-  second = nl->Second(args);
-
-  nl->WriteToString(argstr, args);
-  CHECK_COND(  nl->AtomType( first ) == SymbolType &&
-               nl->SymbolValue( first ) == "tid" &&
-               nl->AtomType( second ) == SymbolType &&
-               nl->SymbolValue( second ) == "tid",
-               "Operators '=' and '#' expect a list with structure "
-               "(tid tid)\n"
-               "Operator '='/'#' gets a list with structure '" + argstr + "'.");
+  if(!listutils::isSymbol(nl->First(args),"tid") ||
+     !listutils::isSymbol(nl->Second(args),"tid")){
+    return listutils::typeError("tid x tid expected");
+  }
 
   return nl->SymbolAtom("bool");
+
 }
 
 
