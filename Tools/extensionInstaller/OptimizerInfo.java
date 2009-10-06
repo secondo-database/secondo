@@ -338,14 +338,16 @@ public class OptimizerInfo extends SecondoExtension{
 
   /** checks whether all dependencies are fullfilled **/
   static  boolean checkDependencies(String secondoDir, Vector<OptimizerInfo> infos){
-     Version ver = readSecondoVersion(secondoDir);
-     if(ver==null){
+     Version iver = readSecondoVersion(secondoDir);
+     if(iver==null){
        return false;
      }
      // check for correct Secondo version
      for(int i=0;i<infos.size();i++){
         OptimizerInfo info = infos.get(i);
-        if(!ver.isSmallerOrEqual(info.secondo_Major_Version, info.secondo_Minor_Version, info.secondo_SubMinor_Version)){
+	Version rver = new Version(info.secondo_Major_Version, info.secondo_Minor_Version, 
+			           info.secondo_SubMinor_Version);
+        if(!rver.isSmallerOrEqual(iver)){
             System.err.println("Installed Secondo version is too old for the extension");
             return false;
         }  

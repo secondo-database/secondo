@@ -30,6 +30,17 @@ public class Version{
   int minor;
   int subminor;
 
+  public Version(){
+     major = 0;
+     minor = 0;
+     subminor = 0;
+  }	  
+
+  public Version(int major, int minor, int subminor){
+     this.major = major;
+     this.minor = minor;
+     this.subminor = subminor;
+  }	  
 
   /** checks whether the versions are equal **/
   public boolean isVersion(int major, int minor, int subminor){
@@ -46,4 +57,12 @@ public class Version{
             (this.major==major && this.minor==minor && this.subminor<=subminor);
   }
 
+  public boolean isSmallerOrEqual(Version v){
+     return isSmallerOrEqual(v.major, v.minor, v.subminor);
+  }	  
+  
+
+  public String toString(){
+    return ""+major+"."+minor+"."+subminor;
+  }	  
 }
