@@ -42,14 +42,12 @@ namespace extrel2
 
 ostream& Bucket::Print(ostream& os)
 {
-  os << "Bucket " << number << " ("
-     << tupleRefs.size() << " tuples)" << endl;
+  os << "Bucket " << number << " (" << tuples.size() << " tuples)" << endl;
 
-  for(size_t i = 0; i < tupleRefs.size(); i++)
+  for(size_t i = 0; i < tuples.size(); i++)
   {
-    os << *(tupleRefs[i].tuple) << "(Refs: "
-       << tupleRefs[i].tuple->GetNumOfRefs()
-       << ")" << endl;
+    Tuple* t = tuples[i];
+    os << *t << "(Refs: " << t->GetNumOfRefs() << ")" << endl;
   }
 
   return os;
@@ -62,14 +60,14 @@ ostream& Bucket::Print(ostream& os)
 BucketIterator::BucketIterator(Bucket& b)
 : bucket(b)
 {
-  iter = bucket.tupleRefs.begin();
+  iter = bucket.tuples.begin();
 }
 
 Tuple* BucketIterator::GetNextTuple()
 {
-  if ( iter != bucket.tupleRefs.end() )
+  if ( iter != bucket.tuples.end() )
   {
-    Tuple* t = (*iter).tuple;
+    Tuple* t = *iter;
     iter++;
     return t;
   }

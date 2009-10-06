@@ -112,13 +112,13 @@ Constant reference to ~TupleBuffer2~ instance.
 
 */
 
-    vector<RTuple>::iterator iterMemoryBuffer;
+    vector<Tuple*>::iterator iterMemoryBuffer;
 /*
 Iterator for in-memory array ~memoryBufferCopy~.
 
 */
 
-    vector<RTuple> memoryBufferCopy;
+    vector<Tuple*> memoryBufferCopy;
 /*
 Copy of the FIFO queue content of the ~TupleBuffer2~
 instance. The copy is made when the Iterator is
@@ -202,9 +202,10 @@ external buffers.
 
 */
 
-    void   AppendTuple( Tuple *t );
+    void AppendTuple( Tuple *t );
 /*
-Append tuple ~t~ to the buffer.
+Append tuple ~t~ to the buffer. Returns ~true~ if tuple is stored
+in memory buffer or ~false~ when tuple has been written to disk.
 
 */
 
@@ -282,7 +283,7 @@ Filename for the external buffer of type ~TupleFile~.
 
 */
 
-  queue<RTuple> memoryBuffer;
+  queue<Tuple*> memoryBuffer;
 /*
 Internal memory buffer (FIFO)
 

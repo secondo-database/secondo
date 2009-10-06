@@ -60,10 +60,10 @@ extrel2::TupleBuffer2Iterator::TupleBuffer2Iterator
   // pointer into the array
   for (int i = 0; i < nTuples; i++)
   {
-    RTuple ref = tupleBuffer.memoryBuffer.front();
+    Tuple* t = tupleBuffer.memoryBuffer.front();
     tupleBuffer.memoryBuffer.pop();
-    tupleBuffer.memoryBuffer.push(ref);
-    memoryBufferCopy[i] = ref;
+    tupleBuffer.memoryBuffer.push(t);
+    memoryBufferCopy[i] = t;
   }
 
   iterMemoryBuffer = memoryBufferCopy.begin();
@@ -89,9 +89,9 @@ Tuple* extrel2::TupleBuffer2Iterator::GetNextTuple()
   {
     if ( iterMemoryBuffer != memoryBufferCopy.end() )
     {
-      RTuple ref = *iterMemoryBuffer;
+      Tuple* t = *iterMemoryBuffer;
       iterMemoryBuffer++;
-      return ref.tuple;
+      return t;
     }
     else
     {
@@ -202,9 +202,7 @@ void extrel2::TupleBuffer2::AppendTuple(Tuple* t)
     if( totalExtSize + t->GetExtSize() <= MAX_MEMORY_SIZE )
     {
       // insert new tuple at back of FIFO queue
-      RTuple ref;
-      ref.setTuple(t);
-      memoryBuffer.push(ref);
+      memoryBuffer.push(t);
     }
     else
     {
@@ -232,15 +230,13 @@ void extrel2::TupleBuffer2::AppendTuple(Tuple* t)
       if ( !memoryBuffer.empty() )
       {
         // write front tuple of FIFO queue to disk
-        diskBuffer->Append(memoryBuffer.front().tuple);
+        diskBuffer->Append(memoryBuffer.front());
 
         // discard the front tuple from the queue
         memoryBuffer.pop();
 
         // insert new tuple at back of FIFO queue
-        RTuple ref;
-        ref.setTuple(t);
-        memoryBuffer.push(ref);
+        memoryBuffer.push(t);
       }
       else
       {
@@ -256,21 +252,21 @@ void extrel2::TupleBuffer2::AppendTuple(Tuple* t)
     if ( !memoryBuffer.empty() )
     {
       // write front tuple of FIFO queue to disk
-      diskBuffer->Append(memoryBuffer.front().tuple);
+      diskBuffer->Append(memoryBuffer.front());
 
       // discard the front tuple from the queue
       memoryBuffer.pop();
 
       // insert new tuple at back of FIFO queue
-      RTuple ref;
-      ref.setTuple(t);
-      memoryBuffer.push(ref);
+      memoryBuffer.push(t);
     }
     else
     {
       diskBuffer->Append(t);
     }
   }
+
+  return;
 }
 
 extrel2::TupleBuffer2Iterator* extrel2::TupleBuffer2::MakeScan()
@@ -304,12 +300,11 @@ ostream& extrel2::TupleBuffer2::Print(ostream& os)
 
   for (size_t i = 0; i < this->memoryBuffer.size(); i++)
   {
-    RTuple ref = memoryBuffer.front();
+    Tuple* t = memoryBuffer.front();
     memoryBuffer.pop();
-    memoryBuffer.push(ref);
-    t = ref.tuple;
-    os << "Mem: " << *t << "Refs: "
-       << t->GetNumOfRefs()
+    memoryBuffer.push(t);
+    os << "Mem: " << *t
+       << " Refs: " << t->GetNumOfRefs()
        << " Nr: " << i << endl;
   }
 
@@ -321,7 +316,7 @@ ostream& extrel2::TupleBuffer2::Print(ostream& os)
     while ( ( t = iter->GetNextTuple() ) != 0 )
     {
       os << "Hdd: " << *t
-         << "Refs: " << t->GetNumOfRefs()
+         << " Refs: " << t->GetNumOfRefs() - 1
          << " Nr: " << counter++ << endl;
       t->DeleteIfAllowed();
     }

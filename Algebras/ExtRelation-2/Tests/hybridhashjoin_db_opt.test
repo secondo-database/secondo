@@ -51,15 +51,16 @@ restore database tmp_opt from '$(SECONDO_BUILD_DIR)/bin/opt'
 #yields success
 let hashjoin_result1 = Orte feed {o} plz feed {p} hashjoin[Ort_o, Ort_p, 1000] sort consume;
 
-#testcase teststep1_compare_result
+#testcase teststep1_compare_result1
 #yields *hashjoin_result1
-query Orte feed {o} plz feed {p} hashjoin[Ort_o, Ort_p, 1000] sort consume;
+query Orte feed {o} plz feed {p} hybridhashjoin[Ort_o, Ort_p, 1000] sort consume;
+
+#testcase teststep1_compare_result2
+#yields *hashjoin_result1
+query Orte feed {o} plz feed {p} hybridhashjoinP[Ort_o, Ort_p, 1000, 16, 256*1024, 4096] sort consume;
 
 #--------------------------------------------------  
 
-#testcase teststep1_compare_result
-#yields *hashjoin_result1
-query Orte feed {o} plz feed {p} hybridhashjoinP[Ort_o, Ort_p, 1000, 16, 256*1024, 4096] sort consume;
 
 ##############################################################################
 # TearDown

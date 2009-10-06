@@ -339,6 +339,18 @@ The tuple type for result tuples.
 
 */
 
+    TupleType* tupleTypeA;
+/*
+The tuple type of stream A
+
+*/
+
+    TupleType* tupleTypeB;
+/*
+The tuple type of stream A
+
+*/
+
     size_t nBuckets;
 /*
 The number of buckets for a hash table. The minimum number of buckets is 3.
@@ -366,7 +378,7 @@ Partition manager for stream B. Contains the partitioning of stream B.
 
 */
 
-    RTuple tupleA;
+    Tuple* tupleA;
 /*
 Pointer to last tuple from stream A.
 

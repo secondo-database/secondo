@@ -329,6 +329,8 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
 , MAX_MEMORY(0)
 , usedMemory(0)
 , resultTupleType(0)
+, tupleTypeA(0)
+, tupleTypeB(0)
 , nBuckets(0)
 , nPartitions(0)
 , pmA(0)
@@ -448,7 +450,7 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
   }
 
   // read first tuple from stream A
-  tupleA.setTuple(nextTupleA());
+  tupleA = nextTupleA();
 }
 
 /*
@@ -488,6 +490,19 @@ HybridHashJoinAlgorithm::~HybridHashJoinAlgorithm()
   if ( resultTupleType )
   {
     resultTupleType->DeleteIfAllowed();
+    resultTupleType = 0;
+  }
+
+  if ( tupleTypeA )
+  {
+    tupleTypeA->DeleteIfAllowed();
+    tupleTypeA = 0;
+  }
+
+  if ( tupleTypeB )
+  {
+    tupleTypeB->DeleteIfAllowed();
+    tupleTypeB = 0;
   }
 
   if ( pmA )
@@ -589,6 +604,13 @@ Tuple* HybridHashJoinAlgorithm::nextTupleA()
   {
     progress->readFirst++;
     Tuple* t = static_cast<Tuple*>( wTuple.addr );
+
+    if ( tupleTypeA == 0 )
+    {
+      tupleTypeA = t->GetTupleType();
+      tupleTypeA->IncReference();
+    }
+
     return t;
   }
 
@@ -605,6 +627,13 @@ Tuple* HybridHashJoinAlgorithm::nextTupleB()
   {
     progress->readSecond++;
     Tuple* t = static_cast<Tuple*>( wTuple.addr );
+
+    if ( tupleTypeB == 0 )
+    {
+      tupleTypeB = t->GetTupleType();
+      tupleTypeB->IncReference();
+    }
+
     return t;
   }
 
@@ -625,13 +654,13 @@ void HybridHashJoinAlgorithm::partitionB()
 
 Tuple* HybridHashJoinAlgorithm::partitionA()
 {
-  while ( tupleA.tuple )
+  while ( tupleA )
   {
     size_t p;
 
-    if ( ( p = pmA->FindPartition(tupleA.tuple) ) == 0 )
+    if ( ( p = pmA->FindPartition(tupleA) ) == 0 )
     {
-      Tuple* tupleB = hashTable->Probe(tupleA.tuple);
+      Tuple* tupleB = hashTable->Probe(tupleA);
 
       if ( progress->streamA.IsValid() && bucketProcessed == true )
       {
@@ -642,7 +671,7 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
       {
         // bucket contains match -> build result tuple
         Tuple *result = new Tuple( resultTupleType );
-        Concat( tupleA.tuple, tupleB, result );
+        Concat( tupleA, tupleB, result );
         progress->returned++;
         bucketProcessed = false;
         return result;
@@ -659,17 +688,20 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
         // if partition 0 overflows store tuple
         if ( !finishedPartitionB )
         {
-          pmA->Insert(tupleA.tuple);
+          tupleA->IncReference();
+          pmA->Insert(tupleA);
         }
       }
     }
     else
     {
       // insert tuple into partition p
-      pmA->Insert(tupleA.tuple);
+      tupleA->IncReference();
+      pmA->Insert(tupleA);
     }
 
-    tupleA.setTuple(nextTupleA());
+    tupleA->DeleteIfAllowed();
+    tupleA = nextTupleA();
   }
 
   // change state
@@ -690,10 +722,6 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
     cmsg.send();
   }
 
-  cmsg.info() << "After partitioning of Stream A" << endl;
-  progress->Print(cmsg.info());
-  cmsg.send();
-
   // start scan of corresponding partition A
   iterA = pmA->GetPartition(curPartition)->MakeScan();
 
@@ -706,14 +734,14 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
 {
   while ( (int)curPartition < pmB->GetNoPartitions() )
   {
-    while ( tupleA.tuple )
+    while ( tupleA )
     {
-      Tuple* tupleB = hashTable->Probe(tupleA.tuple);
+      Tuple* tupleB = hashTable->Probe(tupleA);
 
       if ( tupleB )
       {
         Tuple *result = new Tuple( resultTupleType );
-        Concat( tupleA.tuple, tupleB, result );
+        Concat(tupleA, tupleB, result);
         progress->returned++;
         return result;
       }
@@ -723,6 +751,7 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
         progress->streamA.partitionProgressInfo[curPartition].tuplesProc++;
       }
 
+      tupleA->DeleteIfAllowed();
       tupleA = iterA->GetNextTuple();
     }
 
@@ -742,13 +771,10 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
       iterA = pmA->GetPartition(curPartition)->MakeScan();
 
       // Read first tuple from A(i)
+      tupleA->DeleteIfAllowed();
       tupleA = iterA->GetNextTuple();
     }
   }
-
-  cmsg.info() << "After Stream A has been processed" << endl;
-  progress->Print(cmsg.info());
-  cmsg.send();
 
   return 0;
 }
@@ -757,20 +783,21 @@ Tuple* HybridHashJoinAlgorithm::NextResultTuple()
   if ( fitsInMemory )
   {
     // Standard in-memory hash-join
-    while ( tupleA.tuple )
+    while ( tupleA )
     {
-      Tuple* tupleB = hashTable->Probe(tupleA.tuple);
+      Tuple* tupleB = hashTable->Probe(tupleA);
 
       if ( tupleB )
       {
         Tuple *result = new Tuple( resultTupleType );
-        Concat( tupleA.tuple, tupleB, result );
+        Concat(tupleA, tupleB, result);
         progress->returned++;
         return result;
       }
       else
       {
-        tupleA.setTuple(nextTupleA());
+        tupleA->DeleteIfAllowed();
+        tupleA = nextTupleA();
       }
     }
 

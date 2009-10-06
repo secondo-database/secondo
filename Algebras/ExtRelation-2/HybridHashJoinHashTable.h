@@ -208,7 +208,7 @@ Reference to bucket on which the instance iterates.
 
 */
 
-    vector<RTuple>::iterator iter;
+    vector<Tuple*>::iterator iter;
 /*
 Iterator for internal bucket tuple buffer.
 
@@ -243,7 +243,13 @@ The destructor.
 
     inline void Clear()
     {
-      tupleRefs.clear();
+      for (size_t i = 0; i < tuples.size(); i++)
+      {
+        Tuple* t = tuples[i];
+        t->DeleteIfAllowed();
+      }
+
+      tuples.clear();
       totalSize = 0;
     }
 /*
@@ -255,11 +261,8 @@ destructor call of the ~RTuple~ instances.
 
     inline void Insert(Tuple* t)
     {
-      assert(t->GetNumOfRefs() == 1);
-      RTuple ref;
-      ref.setTuple(t);
       totalSize += t->GetSize();
-      tupleRefs.push_back(ref);
+      tuples.push_back(t);
     }
 /*
 Insert a tuple into a bucket. The reference counter
@@ -274,7 +277,7 @@ Returns the size of all tuples in a bucket in bytes.
 
 */
 
-    inline int GetNoTuples() { return (int)tupleRefs.size(); }
+    inline int GetNoTuples() { return (int)tuples.size(); }
 /*
 Returns the number of tuples in a bucket.
 
@@ -315,7 +318,7 @@ Total size in bytes of all tuples in a bucket.
 
 */
 
-    vector<RTuple> tupleRefs;
+    vector<Tuple*> tuples;
 /*
 Array with tuple references of all tuples in a bucket.
 

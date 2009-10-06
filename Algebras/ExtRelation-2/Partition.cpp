@@ -119,9 +119,10 @@ PartitionIterator* Partition::MakeScan()
 
 void Partition::Insert(Tuple* t, size_t hashFuncValue)
 {
-  // Important: must be called before AppendTuple()
+  // Insert tuple into partition histogram
   histogram.Insert(t, hashFuncValue);
 
+  // Append tuple to buffer
   buffer->AppendTuple(t);
 }
 
@@ -239,7 +240,7 @@ PartitionManager::~PartitionManager()
   progressInfo = 0;
 }
 
-void PartitionManager::Insert(Tuple* t)
+size_t PartitionManager::Insert(Tuple* t)
 {
   // calculate bucket number
   size_t b = hashFunc->Value(t);
@@ -266,6 +267,8 @@ void PartitionManager::Insert(Tuple* t)
                                   SUBPARTITION_MAX_LEVEL );
     }
   }
+
+  return p;
 }
 
 size_t PartitionManager::PartitionStream(Word stream)
@@ -388,8 +391,6 @@ void PartitionManager::subpartition( size_t n,
     {
       s2->Insert(t,h);
     }
-
-    t->DeleteIfAllowed();
 
     // update progress information if necessary
     if ( progressInfo != 0 )
@@ -544,12 +545,19 @@ void PartitionManager::InitPartitions(HashTable* h)
 
     for(size_t j = 0; j < arr.size(); j++)
     {
-      arr[j]->IncReference();
-      this->Insert(arr[j]);
+      Tuple* t = arr[j];
+
+      // Increment reference for tuples of partition 0
+      // which stay in memory
+      t->IncReference();
+
+      // reference counter for tuples that are stored
+      // on disk is decremented by one
+      this->Insert(t);
     }
   }
 
-  // empty buckets of hash table
+  // free all tuples that were stored on disk
   h->Clear();
 }
 

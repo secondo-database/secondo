@@ -738,11 +738,12 @@ of processed tuples.
 
 */
 
-    void Insert(Tuple* t);
+    size_t Insert(Tuple* t);
 /*
 Inserts tuple ~t~ into the partitioning. The corresponding partition
 is automatically determined by the partition manager. This method
-is used if the partition is not known.
+is used if the partition is not known. The number of the partition is
+returned as result.
 
 */
 
