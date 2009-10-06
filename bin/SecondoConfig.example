@@ -38,7 +38,7 @@ SecondoHome=/home/databases1
 AlgebraLevel=Executable
 
 # Name of the local socket of the Secondo registrar
-RegistrarName=SECONDO_REGISTRAR
+RegistrarName=SECREGIS
 
 # Name of the executable of the Secondo registrar program
 RegistrarProgram=SecondoRegistrar
