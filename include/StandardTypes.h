@@ -104,12 +104,18 @@ class CcInt : public StandardAttribute
     intsCreated++; 
   }
  
-  inline CcInt( bool d, int v = 0 )
+  inline CcInt( bool d, int v = 0 ) : intval(v)
   { 
-    SetDefined(d); intval = v;  
+    SetDefined(d); 
     intsCreated++; 
   }
  
+  inline CcInt( int v, bool d=true ) : intval(v)
+  { 
+    SetDefined(d); 
+    intsCreated++; 
+  }
+
   inline ~CcInt()
   {
     intsDeleted++;
@@ -351,10 +357,15 @@ class CcReal : public StandardAttribute
      realsCreated++; 
   }
 
-  inline CcReal( bool d, SEC_STD_REAL v = 0.0 ) 
+  inline CcReal( bool d, SEC_STD_REAL v = 0.0 ) : realval(v) 
   { 
     SetDefined(d); 
-    realval = v; 
+    realsCreated++; 
+  }
+
+  inline CcReal( SEC_STD_REAL v, bool d=true ) : realval(v) 
+  { 
+    SetDefined(d); 
     realsCreated++; 
   }
 
@@ -559,10 +570,9 @@ class CcBool : public StandardAttribute
     boolsCreated++; 
   }
 
-  inline CcBool( bool d, int v = false )
+  inline CcBool( bool d, int v = false ) : boolval(v)
   { 
     SetDefined(d); 
-    boolval = v; 
     boolsCreated++; 
   }
 
@@ -941,6 +951,12 @@ class CcString : public StandardAttribute
   inline CcString( const bool d, const string& v )
   {
     Set(d, v);
+    stringsCreated++;
+  }
+
+  inline CcString( const string& v)
+  {
+    Set(true, v);
     stringsCreated++;
   }
 
