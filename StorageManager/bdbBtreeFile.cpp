@@ -311,13 +311,13 @@ SmiBtreeFile::KeyRange( const SmiKey& key,
                  SmiEnvironment::instance.impl->usrTxn : 0;
 
 
-    DB_KEY_RANGE* bdb_kr;
-    rc = impl->bdbFile->key_range( tid, &bdb_key, bdb_kr, 0 );
+    DB_KEY_RANGE bdb_kr;
+    rc = impl->bdbFile->key_range( tid, &bdb_key, &bdb_kr, 0 );
     SmiEnvironment::SetBDBError( rc );
 
-    range.less = bdb_kr->less; 
-    range.equal = bdb_kr->equal;
-    range.greater = bdb_kr->greater; 
+    range.less = bdb_kr.less; 
+    range.equal = bdb_kr.equal;
+    range.greater = bdb_kr.greater; 
 
     return (rc == 0);
 }
