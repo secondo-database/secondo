@@ -900,6 +900,13 @@ or if the application runs in single user mode.
 Translate an SMI error code into a message!
 
 */
+  static bool CallRegistrar( const string& dbname, 
+		             const string& cmd, string& answer );
+
+/*
+Auxiliary function to handle communication with the registrar process
+
+*/
 
   static SmiEnvironment instance;    // Instance of environment
   static SmiError       lastError;   // Last error code

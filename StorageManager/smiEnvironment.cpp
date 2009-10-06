@@ -188,127 +188,76 @@ SmiEnvironment::SetUser( const string& userId )
 }
 
 bool
-SmiEnvironment::RegisterDatabase( const string& dbname )
+SmiEnvironment::CallRegistrar( const string& dbname, 
+		               const string& cmd,
+	                       string& answer	       )
 {
   bool ok = true;
   if ( !singleUserMode )
   {
+    
+    string blank(" ");
+    string user("-UNKNOWN-");
+    if ( uid != "" ) { 
+      user = uid;	    
+    }
+
     Messenger messenger( registrar );
-    string answer;
-    string msg = string( "REGISTER " ) + dbname;
-    if ( uid != "" )
-    {
-      msg += string( " " ) + uid;
-    }
-    else
-    {
-      msg += string( " -UNKNOWN-" );
-    }
+    string answer("");
+    string msg = cmd + blank + dbname + blank + user;
     ok = messenger.Send( msg, answer );
+
     if ( ok && answer.length() > 0 && answer[0] == '0' )
     {
       SetError( E_SMI_OK );
     }
     else
     {
-      SetError2( E_SMI_DB_REGISTER, answer );
       ok = false;
     }
   }
   return (ok);
 }
+
+bool
+SmiEnvironment::RegisterDatabase( const string& dbname )
+{
+  string answer("");	
+  bool ok = CallRegistrar(dbname, "REGISTER", answer);
+  if (!ok)
+    SetError2( E_SMI_DB_REGISTER, answer );
+  return ok;
+}  
+
 
 bool
 SmiEnvironment::UnregisterDatabase( const string& dbname )
 {
-  bool ok = true;
-  if ( !singleUserMode )
-  {
-    Messenger messenger( registrar );
-    string answer;
-    string msg = string( "UNREGISTER " ) + dbname;
-    if ( uid != "" )
-    {
-      msg += string( " " ) + uid;
-    }
-    else
-    {
-      msg += string( " -UNKNOWN-" );
-    }
-    ok = messenger.Send( msg, answer );
-    if ( ok && answer.length() > 0 && answer[0] == '0' )
-    {
-      SetError( E_SMI_OK );
-    }
-    else
-    {
-      SetError2( E_SMI_DB_UNREGISTER, answer );
-      ok = false;
-    }
-  }
-  return (ok);
-}
+  string answer("");	
+  bool ok = CallRegistrar(dbname, "UNREGISTER", answer);
+  if (!ok)
+    SetError2( E_SMI_DB_UNREGISTER, answer );
+  return ok;
+}  
 
 bool
 SmiEnvironment::LockDatabase( const string& dbname )
 {
-  bool ok = true;
-  if ( !singleUserMode )
-  {
-    Messenger messenger( registrar );
-    string answer;
-    string msg = string( "LOCK " ) + dbname;
-    if ( uid != "" )
-    { 
-      msg += string( " " ) + uid;
-    }
-    else
-    {
-      msg += string( " -UNKNOWN-" );
-    }
-    ok = messenger.Send( msg, answer );
-    if ( ok && answer.length() > 0 && answer[0] == '0' )
-    {
-      SetError( E_SMI_OK );
-    }
-    else
-    {
-      SetError2( E_SMI_DB_LOCK, answer );
-      ok = false;
-    }
-  }
-  return (ok);
-}
+  string answer("");	
+  bool ok = CallRegistrar(dbname, "LOCK", answer);
+  if (!ok)
+    SetError2( E_SMI_DB_LOCK, answer );
+  return ok;
+}  
 
 bool
 SmiEnvironment::UnlockDatabase( const string& dbname )
 {
-  bool ok = true;
-  if ( !singleUserMode )
-  {
-    Messenger messenger( registrar );
-    string answer;
-    string msg = string( "LOCK " ) + dbname;
-    if ( uid != "" )
-    {
-      msg += string( " " ) + uid;
-    }
-    else
-    {
-      msg += string( " -UNKNOWN-" );
-    }
-    ok = messenger.Send( msg, answer );
-    if ( ok && answer.length() > 0 && answer[0] == '0' )
-    {
-      SetError( E_SMI_OK );
-    }
-    else
-    {
-      SetError2( E_SMI_DB_UNLOCK, answer );
-      ok = false;
-    }
-  }
-  return (ok);
+  string answer("");	
+  bool ok = CallRegistrar(dbname, "UNLOCK", answer);
+  if (!ok)
+    SetError2( E_SMI_DB_UNLOCK, answer );
+  return ok;
 }
 
 /*
