@@ -20,6 +20,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//[&] [\&]
 
 */
 
@@ -70,15 +71,6 @@ Checks for a rectangle type
  
   }
 
-/*
-Check for map
-
-*/
-  bool isMap(ListExpr map){
-    return nl->ListLength(map)==3 &&
-           nl->AtomType(nl->First(map))==SymbolType &&
-           nl->SymbolValue(nl->First(map)) == "map";
-  }
 
 
 /*
@@ -88,6 +80,17 @@ Creates a list "typeerror".
   ListExpr typeError(){
      return nl->TypeError();
   } 
+
+/* 
+Writes a message to the errorreporter and returns
+"typeerror".
+
+*/
+  ListExpr typeError(string message){
+    ErrorReporter::ReportError(message);
+    return nl->TypeError();
+  }
+
 
 /*
 Checks for a valid description of an rtree.
@@ -188,6 +191,32 @@ Checks for a valid atribute list
       if(!am->CheckKind("DATA", attrType, errorInfo)){
          return false;
       }
+    }
+    return true;
+  }
+
+/*
+Checks for disjoint attribute lists.
+
+Precondition isAttrList(l1) [&]  isAttrList(l2)
+
+*/
+  bool disjointAttrNames(ListExpr l1, ListExpr l2){
+    assert(isAttrList(l1));
+    assert(isAttrList(l2));
+    set<string> names;
+    ListExpr rest = l1;
+    while(!nl->IsEmpty(rest)){
+      names.insert(nl->SymbolValue(nl->First(nl->First(rest))));
+      rest = nl->Rest(rest);
+    }
+    rest = l2;
+    while(!nl->IsEmpty(rest)){
+      string name = nl->SymbolValue(nl->First(nl->First(rest)));
+      if(names.find(name)!=names.end()){
+        return false;
+      }
+      rest = nl->Rest(rest);
     }
     return true;
   }

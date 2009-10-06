@@ -21,6 +21,7 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//[&] [\&]
 
 */
 
@@ -32,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 using namespace std;
+extern NestedList* nl;
 
 namespace listutils{
 
@@ -62,7 +64,17 @@ Check for rect, rect3, rect4, rect8
 Check for map
 
 */
-  bool isMap(ListExpr args);
+  template<int noArgs>
+  bool isMap(ListExpr map){
+
+    int a = noArgs+2;
+    
+
+    return nl->ListLength(map)==a &&
+           nl->AtomType(nl->First(map))==SymbolType &&
+           nl->SymbolValue(nl->First(map)) == "map";
+
+  }
 
 
 /*
@@ -70,6 +82,14 @@ Returns the symbol typeerror.
 
 */
   ListExpr typeError();
+
+/*
+Writes the message to the errorReporter and returns the
+symbol typeerror.
+
+*/
+  ListExpr typeError(string message);
+
 
 /*
 Checks for a valid rtree description.
@@ -124,6 +144,15 @@ bool isNumericType(const ListExpr n);
 
 */
   bool isAttrList(ListExpr attrList);
+
+
+/*
+Checks for disjoint attribute lists.
+
+Precondition isAttrList(l1) [&]  isAttrList(l2)
+
+*/
+  bool disjointAttrNames(ListExpr l1, ListExpr l2);
 
 
 

@@ -1913,7 +1913,7 @@ ListExpr FilterTypeMap(ListExpr args)
   }
 
   ListExpr map = nl->Second(args);
-  if(!listutils::isMap(map)){
+  if(!listutils::isMap<1>(map)){
      ErrorReporter::ReportError("map expected as the second argument");
      return nl->TypeError(); 
   }     
@@ -2231,7 +2231,7 @@ ListExpr reduce_tm(ListExpr args)
     return nl->TypeError();
   }
   
-  if(!listutils::isMap(second)){
+  if(!listutils::isMap<1>(second)){
     ErrorReporter::ReportError("second argument must be a map");
     return nl->TypeError();
   }
