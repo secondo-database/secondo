@@ -1369,6 +1369,17 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 
         ili->relation = (Relation*)args[1].addr;
         local = SetWord(ili);
+
+          // experimental only - will be removed soon
+          btree = (BTree*)args[0].addr;
+          key = (StandardAttribute*)args[2].addr;
+	  SmiKeyRange factors;
+	  SmiKey sk;
+          AttrToKey( key, sk, btree->GetFile()->GetKeyType() );
+	  btree->GetFile()->KeyRange(sk, factors);
+	  cout << "btree.less = " << factors.less << endl;
+	  cout << "btree.equal = " << factors.equal << endl;
+	  cout << "btree.right = " << factors.greater << endl;
       }
 
       btree = (BTree*)args[0].addr;
@@ -1386,13 +1397,6 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       switch(operatorId)
       {
         case EXACTMATCH: {
-	  SmiKeyRange factors;
-	  SmiKey sk;
-          AttrToKey( key, sk, btree->GetFile()->GetKeyType() );
-	  btree->GetFile()->KeyRange(sk, factors);
-	  cout << "btree.less = " << factors.less << endl;
-	  cout << "btree.equal = " << factors.equal << endl;
-	  cout << "btree.right = " << factors.greater << endl;
           ili->iter = btree->ExactMatch(key);
           break;
 			 }  
