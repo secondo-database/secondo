@@ -64,8 +64,8 @@ namespace extrel2
 class SortMergeJoinLocalInfo : protected ProgressWrapper
 {
   public:
-    SortMergeJoinLocalInfo( Word _streamA, Word wAttrIndexA,
-                            Word _streamB, Word wAttrIndexB,
+    SortMergeJoinLocalInfo( Word streamA, int attrIndexA,
+                            Word streamB, int attrIndexB,
                             Supplier s, ProgressLocalInfo* p );
 /*
 The constructor. Consumes all tuples of the tuple stream ~stream~
@@ -213,13 +213,13 @@ If all tuples have been processed the method returns 0.
 
     // buffer related members
     TupleBuffer2 *grpB;
-    GenericRelationIterator *iter;
+    TupleBuffer2Iterator *iter;
 
     // members needed for sorting the input streams
-    LocalInfo<SortAlgorithm>* liA;
+    SortProgressLocalInfo* liA;
     SortAlgorithm* sliA;
 
-    LocalInfo<SortAlgorithm>* liB;
+    SortProgressLocalInfo* liB;
     SortAlgorithm* sliB;
 
     Word streamA;

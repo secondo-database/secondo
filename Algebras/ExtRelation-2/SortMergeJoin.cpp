@@ -50,373 +50,390 @@ extern QueryProcessor* qp;
 */
 namespace extrel2
 {
-SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word _streamA,
-                                                Word wAttrIndexA,
-                                                Word _streamB,
-                                                Word wAttrIndexB,
+SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
+                                                int attrIndexA,
+                                                Word streamB,
+                                                int attrIndexB,
                                                 Supplier s,
                                                 ProgressLocalInfo* p )
 : ProgressWrapper(p)
-, traceFlag( RTFlag::isActive("ERA:TraceMergeJoin") )
-//, streamA(_streamA)
-//, streamB(_streamB)
-//, tmpB(0)
-//, cmp(0)
-//, continueMerge(false)
+, streamA(streamA)
+, streamB(streamB)
+, tmpB(0)
+, cmp(0)
+, attrIndexA(attrIndexA)
+, attrIndexB(attrIndexB)
+, traceFlag(RTFlag::isActive("ERA:TraceMergeJoin"))
+, continueMerge(false)
 {
-//  attrIndexA = StdTypes::GetInt( wAttrIndexA ) - 1;
-//  attrIndexB = StdTypes::GetInt( wAttrIndexB ) - 1;
-//
-//  // sort the input streams
-//  SortOrderSpecification specA;
-//  SortOrderSpecification specB;
-//
-//  specA.push_back( pair<int, bool>(attrIndexA + 1, true) );
-//  specB.push_back( pair<int, bool>(attrIndexB + 1, true) );
-//
-//  void* tupleCmpA = new TupleCompareBy( specA );
-//  void* tupleCmpB = new TupleCompareBy( specB );
-//
-//  liA = new LocalInfo<SortAlgorithm>();
-//  progress->firstLocalInfo = liA;
-//  sliA = new SortAlgorithm(streamA, tupleCmpA, liA);
-//
-//  liB = new LocalInfo<SortAlgorithm>();
-//  progress->secondLocalInfo = liB;
-//  sliB = new SortAlgorithm(streamB, tupleCmpB, liB);
-//
-//  ListExpr resultType =
-//              SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
-//  resultTupleType = new TupleType( nl->Second( resultType ) );
-//
-//  // read in the first tuple of both input streams
-//  ptA.setTuple( NextTupleA() );
-//  ptB.setTuple( NextTupleB() );
-//
-//  MAX_MEMORY = qp->MemoryAvailableForOperator();
-//
-//  grpB = new TupleBuffer2( MAX_MEMORY );
-//
-//  cmsg.info("ERA:ShowMemInfo")
-//    << "SortMergeJoin2.MAX_MEMORY ("
-//    << MAX_MEMORY/1024 << " kb)" << endl;
-//  cmsg.send();
-//
+  // sort the input streams
+  SortOrderSpecification specA;
+  SortOrderSpecification specB;
+
+  specA.push_back( pair<int, bool>(attrIndexA, true) );
+  specB.push_back( pair<int, bool>(attrIndexB, true) );
+
+  liA = new SortProgressLocalInfo();
+  progress->firstLocalInfo = liA;
+  sliA = new SortAlgorithm(streamA, new TupleCompareBy(specA), liA);
+
+  liB = new SortProgressLocalInfo();
+  progress->secondLocalInfo = liB;
+  sliB = new SortAlgorithm(streamB, new TupleCompareBy(specB), liB);
+
+  ListExpr resultType =
+              SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
+  resultTupleType = new TupleType( nl->Second( resultType ) );
+
+  // read in the first tuple of both input streams
+  ptA.setTuple( NextTupleA() );
+  ptB.setTuple( NextTupleB() );
+
+  MAX_MEMORY = qp->MemoryAvailableForOperator();
+
+  grpB = new TupleBuffer2( MAX_MEMORY );
+
+  cmsg.info("ERA:ShowMemInfo")
+    << "SortMergeJoin2.MAX_MEMORY ("
+    << MAX_MEMORY/1024 << " kb)" << endl;
+  cmsg.send();
+
 }
 
 SortMergeJoinLocalInfo::~SortMergeJoinLocalInfo()
 {
-//  delete sliA;
-//  sliA = 0;
-//
-//  delete sliB;
-//  sliB = 0;
-//
-//  delete liA;
-//  liA = 0;
-//
-//  delete liB;
-//  liB = 0;
-//
-//  delete grpB;
-//  grpB = 0;
-//
-//  resultTupleType->DeleteIfAllowed();
+  if ( sliA )
+  {
+    delete sliA;
+    sliA = 0;
+  }
+
+  if ( sliA )
+  {
+    delete sliB;
+    sliB = 0;
+  }
+
+  if ( sliA )
+  {
+    delete liA;
+    liA = 0;
+  }
+
+  if ( sliA )
+  {
+    delete liB;
+    liB = 0;
+  }
+
+  if ( sliA )
+  {
+    delete grpB;
+    grpB = 0;
+  }
+
+  resultTupleType->DeleteIfAllowed();
 }
 
 
 Tuple* SortMergeJoinLocalInfo::NextResultTuple()
 {
-//  Tuple* resultTuple = 0;
-//
-//  if ( !continueMerge && ptB == 0)
-//    return 0;
-//
-//  while( ptA != 0 )
-//  {
-//    if (!continueMerge && ptB != 0)
-//    {
-//      //save ptB in tmpB
-//      tmpB = ptB;
-//
-//      grpB->AppendTuple(tmpB.tuple);
-//
-//      // advance the tuple pointer
-//      ptB.setTuple( NextTupleB() );
-//
-//      // collect a group of tuples from B which
-//      // have the same attribute value
-//      bool done = false;
-//      while ( !done && ptB != 0 )
-//      {
-//        int cmp = CompareTuplesB( tmpB.tuple, ptB.tuple );
-//
-//        if ( cmp == 0)
-//        {
-//          // append equal tuples to group
-//          grpB->AppendTuple(ptB.tuple);
-//
-//          // release tuple of input B
-//          ptB.setTuple( NextTupleB() );
-//        }
-//        else
-//        {
-//          done = true;
-//        }
-//      } // end collect group
-//
-//      cmp = CompareTuples( ptA.tuple, tmpB.tuple );
-//
-//      while ( ptA != 0 && cmp < 0 )
-//      {
-//        // skip tuples from A while they are smaller than the
-//        // value of the tuples in grpB
-//        ptA.setTuple( NextTupleA() );
-//
-//        if (ptA != 0)
-//        {
-//          cmp = CompareTuples( ptA.tuple, tmpB.tuple );
-//        }
-//      }
-//    }
-//
-//    // continue or start a merge with grpB
-//    while ( ptA != 0 && cmp == 0 )
-//    {
-//      // join ptA with grpB
-//      if (!continueMerge)
-//      {
-//        iter = grpB->MakeScan();
-//        continueMerge = true;
-//        resultTuple = NextConcat();
-//        if (resultTuple)
-//        {
-//          return resultTuple;
-//        }
-//      }
-//      else
-//      {
-//        // continue merging, create the next result tuple
-//        resultTuple = NextConcat();
-//        if (resultTuple)
-//        {
-//          return resultTuple;
-//        }
-//        else
-//        {
-//          // Iteration over the group finished.
-//          // Continue with the next tuple of argument A
-//          continueMerge = false;
-//          delete iter;
-//          iter = 0;
-//
-//          ptA.setTuple( NextTupleA() );
-//          if (ptA != 0)
-//          {
-//            cmp = CompareTuples( ptA.tuple, tmpB.tuple );
-//          }
-//        }
-//      }
-//    }
-//
-//    grpB->Clear();
-//
-//    // tpA > tmpB
-//    if ( ptB == 0 )
-//    {
-//      // short exit
-//      return 0;
-//    }
-//
-//  } // end of main loop
-//
+  Tuple* resultTuple = 0;
+
+  if ( !continueMerge && ptB == 0 )
+  {
+    return 0;
+  }
+
+  while( ptA != 0 )
+  {
+    if ( !continueMerge && ptB != 0 )
+    {
+      //save ptB in tmpB
+      tmpB = ptB;
+
+      grpB->AppendTuple(tmpB.tuple);
+
+      // advance the tuple pointer
+      ptB.setTuple( NextTupleB() );
+
+      // collect a group of tuples from B which
+      // have the same attribute value
+      bool done = false;
+      while ( !done && ptB != 0 )
+      {
+        int cmp = CompareTuplesB( tmpB.tuple, ptB.tuple );
+
+        if ( cmp == 0)
+        {
+          // append equal tuples to group
+          grpB->AppendTuple(ptB.tuple);
+
+          // release tuple of input B
+          ptB.setTuple( NextTupleB() );
+        }
+        else
+        {
+          done = true;
+        }
+      } // end collect group
+
+      cmp = CompareTuples( ptA.tuple, tmpB.tuple );
+
+      while ( ptA != 0 && cmp < 0 )
+      {
+        // skip tuples from A while they are smaller than the
+        // value of the tuples in grpB
+        ptA.setTuple( NextTupleA() );
+
+        if (ptA != 0)
+        {
+          cmp = CompareTuples( ptA.tuple, tmpB.tuple );
+        }
+      }
+    }
+
+    // continue or start a merge with grpB
+    while ( ptA != 0 && cmp == 0 )
+    {
+      // join ptA with grpB
+      if (!continueMerge)
+      {
+        iter = grpB->MakeScan();
+        continueMerge = true;
+        resultTuple = NextConcat();
+        if (resultTuple)
+        {
+          return resultTuple;
+        }
+      }
+      else
+      {
+        // continue merging, create the next result tuple
+        resultTuple = NextConcat();
+        if (resultTuple)
+        {
+          return resultTuple;
+        }
+        else
+        {
+          // Iteration over the group finished.
+          // Continue with the next tuple of argument A
+          continueMerge = false;
+          delete iter;
+          iter = 0;
+
+          ptA.setTuple( NextTupleA() );
+          if (ptA != 0)
+          {
+            cmp = CompareTuples( ptA.tuple, tmpB.tuple );
+          }
+        }
+      }
+    }
+
+    grpB->Clear();
+
+    // tpA > tmpB
+    if ( ptB == 0 )
+    {
+      // short exit
+      return 0;
+    }
+
+  } // end of main loop
+
   return 0;
 }
 
 
 /*
-2.2.2 Value mapping function of operator ~mergejoin~
+2.2.2 Value mapping function of operator ~sortmergejoin2~
 
 */
 
-
-//CPUTimeMeasurer mergeMeasurer;
-
 int
 SortMergeJoinValueMap( Word* args, Word& result,
-                         int message, Word& local, Supplier s )
+                       int message, Word& local, Supplier s )
 {
-  return CANCEL;
-//  typedef LocalInfo<SortMergeJoinLocalInfo> LocalType;
-//  LocalType* li = static_cast<LocalType*>( local.addr );
-//
-//  switch(message)
-//  {
-//    case OPEN:
-//    {
-//
-//      if ( li )
-//      {
-//        delete li;
-//      }
-//      li = new LocalType();
-//      local.addr = li;
-//
-//      qp->Open(args[0].addr);
-//      qp->Open(args[1].addr);
-//
-//      li->ptr = 0;
-//
-//      return 0;
-//    }
-//
-//    case REQUEST:
-//    {
-//
-//      if ( li->ptr == 0 ) //first request;
-//        //constructor put here to avoid delays in OPEN
-//        //which are a problem for progress estimation
-//      {
-//        li->ptr = new SortMergeJoinLocalInfo(args[0], args[4],
-//                                             args[1], args[5],
-//                                             s, li);
-//      }
-//
-//      SortMergeJoinLocalInfo* mli = li->ptr;
-//      result.addr = mli->NextResultTuple();
-//      li->returned++;
-//
-//      return result.addr != 0 ? YIELD : CANCEL;
-//    }
-//
-//    case CLOSE:
-//    {
-//      qp->Close(args[0].addr);
-//      qp->Close(args[1].addr);
-//
-//      //nothing is deleted on close because the substructures are still
-//      //needed for progress estimation. Instead, everything is deleted on
-//      //(repeated) OPEN and on CLOSEPROGRESS
-//
-//      return 0;
-//    }
-//
-//    case CLOSEPROGRESS:
-//    {
-//      if (li)
-//      {
-//        delete li;
-//        local.addr = 0;
-//      }
-//
-//      return 0;
-//
-//
-//    case REQUESTPROGRESS:
-//    {
-//      ProgressInfo p1, p2;
-//      ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
-//
-//      const double uSortBy = 0.00043;   //millisecs per byte read in sort step
-//
-//      const double uMergeJoin = 0.0008077;  //millisecs per tuple read
-//                                        //in merge step (merge)
-//
-//      const double wMergeJoin = 0.0001738; //millisecs per byte read in
-//                                          //merge step (sortmerge)
-//
-//      const double xMergeJoin = 0.0012058; //millisecs per result tuple in
-//                                          //merge step
-//
-//      const double yMergeJoin = 0.0001072; //millisecs per result attribute in
-//                                          //merge step
-//
-//                                      //see file ConstantsSortmergejoin.txt
-//
-//
-//      LocalInfo<SortByLocalInfo>* liFirst;
-//      LocalInfo<SortByLocalInfo>* liSecond;
-//
-//      if( !li )
-//      {
-//        return CANCEL;
-//      }
-//      else
-//      {
-//
-//        liFirst = static_cast<LocalInfo<SortByLocalInfo>*>
-//    (li->firstLocalInfo);
-//        liSecond = static_cast<LocalInfo<SortByLocalInfo>*>
-//    (li->secondLocalInfo);
-//
-//        if (qp->RequestProgress(args[0].addr, &p1)
-//         && qp->RequestProgress(args[1].addr, &p2))
-//        {
-//    li->SetJoinSizes(p1, p2);
-//
-//    pRes->CopySizes(li);
-//
-//        double factor = (double) li->readFirst / p1.Card;
-//
-//        if ( (qp->GetSelectivity(s) != 0.1) &&
-//              (li->returned > enoughSuccessesJoin) )
-//        pRes->Card = factor * ((double) li->returned) * p1.Card
-//        / ((double) li->readFirst) +
-//        (1.0 - factor) * p1.Card * p2.Card
-//          * qp->GetSelectivity(s);
-//      else
-//
-//          if ( li->returned > enoughSuccessesJoin )   // stable state
-//          {
-//            pRes->Card = ((double) li->returned) * p1.Card
-//            /  ((double) li->readFirst);
-//          }
-//          else
-//          {
-//            pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
-//          }
-//
-//
-//            pRes->Time =
-//              p1.Time +
-//        p2.Time +
-//              p1.Card * p1.Size * uSortBy +
-//              p2.Card * p2.Size * uSortBy +
-//              (p1.Card * p1.Size + p2.Card * p2.Size) * wMergeJoin +
-//              pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
-//
-//            long readFirst = (liFirst ? liFirst->read : 0);
-//            long readSecond = (liSecond ? liSecond->read : 0);
-//
-//            pRes->Progress =
-//              (p1.Progress * p1.Time +
-//              p2.Progress * p2.Time +
-//              ((double) readFirst) * p1.Size * uSortBy +
-//              ((double) readSecond) * p2.Size * uSortBy +
-//              (((double) li->readFirst) * p1.Size +
-//               ((double) li->readSecond) * p2.Size) * wMergeJoin +
-//              ((double) li->returned)
-//                * (xMergeJoin + pRes->noAttrs * yMergeJoin))
-//              / pRes->Time;
-//
-//            pRes->BTime = p1.Time + p2.Time
-//        + p1.Card * p1.Size * uSortBy
-//              + p2.Card * p2.Size * uSortBy;
-//
-//      pRes->BProgress =
-//        (p1.Progress * p1.Time + p2.Progress * p2.Time
-//              + ((double) readFirst) * p1.Size * uSortBy
-//              + ((double) readSecond) * p2.Size * uSortBy)
-//        / pRes->BTime;
-//
-//          return YIELD;
-//        }
-//        else return CANCEL;
-//
-//      }
-//    }
-//  }
-//  return 0;
+  typedef LocalInfo<SortMergeJoinLocalInfo> LocalType;
+  LocalType* li = static_cast<LocalType*>( local.addr );
+
+  switch(message)
+  {
+    case OPEN:
+    {
+
+      if ( li )
+      {
+        delete li;
+      }
+      li = new LocalType();
+      local.addr = li;
+
+      qp->Open(args[0].addr);
+      qp->Open(args[1].addr);
+
+      li->ptr = 0;
+
+      return 0;
+    }
+
+    case REQUEST:
+    {
+
+      if ( li->ptr == 0 ) //first request;
+        //constructor put here to avoid delays in OPEN
+        //which are a problem for progress estimation
+      {
+        int attrIndexA = StdTypes::GetInt( args[4] );
+        int attrIndexB = StdTypes::GetInt( args[5] );
+
+        li->ptr = new SortMergeJoinLocalInfo( args[0], attrIndexA,
+                                              args[1], attrIndexB,
+                                              s, li );
+      }
+
+      SortMergeJoinLocalInfo* mli = li->ptr;
+      result.addr = mli->NextResultTuple();
+      li->returned++;
+
+      return result.addr != 0 ? YIELD : CANCEL;
+    }
+
+    case CLOSE:
+    {
+      qp->Close(args[0].addr);
+      qp->Close(args[1].addr);
+
+      //nothing is deleted on close because the substructures are still
+      //needed for progress estimation. Instead, everything is deleted on
+      //(repeated) OPEN and on CLOSEPROGRESS
+
+      return 0;
+    }
+
+    case CLOSEPROGRESS:
+    {
+      if (li)
+      {
+        delete li;
+        local.addr = 0;
+      }
+
+      return 0;
+    }
+
+    case REQUESTPROGRESS:
+    {
+      ProgressInfo p1, p2;
+      ProgressInfo* pRes = static_cast<ProgressInfo*>( result.addr );
+
+      const double uSortBy = 0.00043;   //millisecs per byte read in sort step
+
+      const double uMergeJoin = 0.0008077;  //millisecs per tuple read
+                                        //in merge step (merge)
+
+      const double wMergeJoin = 0.0001738; //millisecs per byte read in
+                                          //merge step (sortmerge)
+
+      const double xMergeJoin = 0.0012058; //millisecs per result tuple in
+                                          //merge step
+
+      const double yMergeJoin = 0.0001072; //millisecs per result attribute in
+                                          //merge step
+
+                                      //see file ConstantsSortmergejoin.txt
+
+
+      SortProgressLocalInfo* liFirst;
+      SortProgressLocalInfo* liSecond;
+
+      if( !li )
+      {
+        return CANCEL;
+      }
+      else
+      {
+
+        liFirst = static_cast<SortProgressLocalInfo*>
+                    (li->firstLocalInfo);
+        liSecond = static_cast<SortProgressLocalInfo*>
+                    (li->secondLocalInfo);
+
+        if (qp->RequestProgress(args[0].addr, &p1)
+         && qp->RequestProgress(args[1].addr, &p2))
+        {
+          li->SetJoinSizes(p1, p2);
+
+          pRes->CopySizes(li);
+
+          double factor = (double) li->readFirst / p1.Card;
+
+          if ( (qp->GetSelectivity(s) != 0.1) &&
+               (li->returned > enoughSuccessesJoin) )
+          {
+            pRes->Card = factor * ((double) li->returned) * p1.Card
+                        / ((double) li->readFirst) +
+                            (1.0 - factor) * p1.Card * p2.Card
+                             * qp->GetSelectivity(s);
+          }
+          else
+          {
+            if ( li->returned > enoughSuccessesJoin )   // stable state
+            {
+              pRes->Card = ((double) li->returned) * p1.Card
+              /  ((double) li->readFirst);
+            }
+            else
+            {
+              pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
+            }
+          }
+
+          pRes->Time = p1.Time + p2.Time +
+                       + p1.Card * p1.Size * uSortBy +
+                       + p2.Card * p2.Size * uSortBy +
+                       + (p1.Card * p1.Size + p2.Card * p2.Size)
+                         * wMergeJoin
+                       + pRes->Card * (xMergeJoin + pRes->noAttrs
+                         * yMergeJoin);
+
+          long readFirst = (liFirst ? liFirst->read : 0);
+          long readSecond = (liSecond ? liSecond->read : 0);
+
+          pRes->Progress = ( p1.Progress * p1.Time
+                              + p2.Progress * p2.Time
+                              + ((double) readFirst) * p1.Size * uSortBy
+                              + ((double) readSecond) * p2.Size * uSortBy
+                              + (((double) li->readFirst) * p1.Size
+                              + ((double) li->readSecond) * p2.Size)
+                                * wMergeJoin
+                              + ((double) li->returned)
+                                * (xMergeJoin + pRes->noAttrs * yMergeJoin) )
+                              / pRes->Time;
+
+          pRes->BTime = p1.Time + p2.Time
+                        + p1.Card * p1.Size * uSortBy
+                        + p2.Card * p2.Size * uSortBy;
+
+          pRes->BProgress = ( p1.Progress * p1.Time
+                              + p2.Progress * p2.Time
+                              + ((double) readFirst) * p1.Size * uSortBy
+                              + ((double) readSecond) * p2.Size * uSortBy )
+                              / pRes->BTime;
+
+          return YIELD;
+        }
+        else
+        {
+          return CANCEL;
+        }
+      }
+    }
+  }
+
+  return 0;
 }
 
 } // end of namespace extrel2
