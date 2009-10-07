@@ -79,6 +79,11 @@ June 2009, S.Jungnickel. Added implementation for classes ~TupleFile~ and
 ~TupleFileIterator~. Added implementation for new methods ~Save~ and ~Open~ 
 of class ~Tuple~.
 
+October 2009, S.Jungnickel. ~TupleFile::Append()~ now destroys a tuple when
+writing it to disk. Constructor of TupleFileIterator now rewinds read/write
+position of a TupleFile. Solved some problems when temporary closing and
+reopening a ~TupleFile~.
+
 [TOC]
 
 1 Overview
@@ -620,7 +625,7 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
         /* Note: lobFileId is a class member which is *
          * passed by reference to SaveToLob(...)      */
 
-	SmiFileId lid = lobFileId;
+        SmiFileId lid = lobFileId;
         if(ignorePersistentLOBs) {
           if (!tmpFLOB->IsPersistentLob()){
             tmpFLOB->SaveToLob( lobFileId );
@@ -630,15 +635,15 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
         }
         extensionSize += tmpFLOB->MetaSize();
 
-	if (RTFlag::isActive("TUPLE:lobFileId"))
+        if (RTFlag::isActive("TUPLE:lobFileId"))
         {
-	  if (lid != lobFileId) {	
-	    cmsg.info()
+          if (lid != lobFileId) {       
+            cmsg.info()
               << "Tuple::lobFileId changed " << lid 
-	      << " -> " << lobFileId << endl;
-	    cmsg.send();
-	  }  
-	}  
+              << " -> " << lobFileId << endl;
+            cmsg.send();
+          }  
+        }  
       }
     }
   }
@@ -1175,6 +1180,9 @@ TupleFileIterator::TupleFileIterator(TupleFile& f)
     return;
   }
 
+  // reposition stream to beginning of file
+  rewind(tupleFile.stream);
+
   if ( tupleFile.traceMode )
   {
     cmsg.info() << "TupleFile " << tupleFile.pathName 
@@ -1287,7 +1295,7 @@ char* TupleFileIterator::readData(size_t& size)
 bool TupleFile::traceMode = false;
 
 TupleFile::TupleFile( TupleType* tupleType,
-                      const size_t bufferSize )
+                        const size_t bufferSize )
 : tupleType(tupleType)
 , bufferSize(bufferSize)
 , stream(0)
@@ -1311,8 +1319,8 @@ TupleFile::TupleFile( TupleType* tupleType,
 }
 
 TupleFile::TupleFile( TupleType* tupleType,
-                      string pathName,
-                      const size_t bufferSize )
+                        string pathName,
+                        const size_t bufferSize )
 : tupleType(tupleType)
 , pathName(pathName)
 , bufferSize(bufferSize)
@@ -1322,6 +1330,15 @@ TupleFile::TupleFile( TupleType* tupleType,
 , totalExtSize(0)
 {
   this->tupleType->IncReference();
+
+  if ( pathName == "" )
+  {
+    // create a unique temporary filename
+    string str = FileSystem::GetCurrentFolder();
+    FileSystem::AppendItem(str, "tmp");
+    FileSystem::AppendItem(str, "TF");
+    pathName = FileSystem::MakeTemp(str);
+  }
 
   if ( traceMode )
   {
@@ -1350,8 +1367,28 @@ TupleFile::~TupleFile()
 
 bool TupleFile::Open()
 {
-  // Open binary stream
-  stream = fopen(pathName.c_str(), "a+b" );
+  if ( tupleCount == 0 )
+  {
+    // Open fresh binary stream
+    stream = fopen(pathName.c_str(), "w+b" );
+
+    if ( traceMode )
+    {
+      cmsg.info() << "TupleFile opened (w+b)." << endl;
+      cmsg.send();
+    }
+  }
+  else
+  {
+    // Append to existing file if tupleCount > 0
+    stream = fopen(pathName.c_str(), "a+b" );
+
+    if ( traceMode )
+    {
+      cmsg.info() << "TupleFile opened (a+b)" << endl;
+      cmsg.send();
+    }
+  }
 
   if( !stream )
   {
@@ -1399,31 +1436,37 @@ void TupleFile::Close()
 void TupleFile::Append(Tuple* t)
 {
   t->Save(*this);
+  t->DeleteIfAllowed();
 }
 
 void TupleFile::Append(char *data, size_t core, size_t ext)
 {
-  if ( stream )
+  if ( stream == 0 )
   {
-    uint16_t size = core + ext;
-
-    // append data block to file
-    size_t rc = fwrite(data, 1, sizeof(size) + size, stream);
-
-    // check the number of written
-    if ( rc < sizeof(size) + size )
-    {
-      cerr << "TupleFile::Append(): error writing to file '" 
-           << pathName << "'!\n" << endl;
-      cerr << "(" << sizeof(size) + size 
-           << ") bytes should be written, but only ("
-           << rc << ") bytes were written" "!\n" << endl;
-      return;
-    }
-    tupleCount++;
-    totalSize += size;
-    totalExtSize += ext;
+    this->Open();
   }
+
+  uint16_t size = core + ext;
+
+  // append data block to file
+  size_t rc = fwrite(data, 1, sizeof(size) + size, stream);
+
+  // check the number of written
+  if ( rc < sizeof(size) + size )
+  {
+    cerr << "TupleFile::Append(): error writing to file '"
+         << pathName << "'!\n" << endl;
+    cerr << "(" << sizeof(size) + size
+         << ") bytes should be written, but only ("
+         << rc << ") bytes were written" "!\n" << endl;
+    return;
+  }
+
+  tupleCount++;
+  totalSize += size;
+  totalExtSize += ext;
+
+  return;
 }
 
 TupleFileIterator* TupleFile::MakeScan()
@@ -1642,7 +1685,7 @@ void TupleBuffer::AppendTuple( Tuple *t )
       {
         Tuple* tuple = *iter;
         diskBuffer->AppendTupleNoLOBs( tuple );
-	appendCalls++;
+        appendCalls++;
         tuple->DeleteIfAllowed();
         iter++;
       }
@@ -1882,12 +1925,12 @@ Relation::pointerTable;
 void
 Relation::InitFiles( bool open /*= false */) {
 
-  bool rc = false;	
+  bool rc = false;      
   if (open) {
     rc = tupleFile.Open(relDesc.tupleFileId);
   } else {
     rc = tupleFile.Create();
-  }	  
+  }       
 
   if( !rc )
   {
@@ -1906,12 +1949,12 @@ Relation::InitFiles( bool open /*= false */) {
 
   // init LOB File
   if (relDesc.tupleType->NumOfFlobs() > 0 && relDesc.lobFileId == 0) 
-  {	  
+  {       
     SmiRecordFile* rf = 
        SecondoSystem::GetFLOBCache()->CreateFile(relDesc.isTemp);
     relDesc.lobFileId = rf->GetFileId();
-  }	  
-}	
+  }       
+}       
 
 
 Relation::Relation( const ListExpr typeInfo, bool isTemp ):
@@ -2108,8 +2151,8 @@ void Relation::DeleteAndTruncate()
   if (lobId != 0) {
     SecondoSystem::GetFLOBCache()->Drop( lobId, false );
   } else {
-    cerr << "Relation has no LOB-file!" << endl;	  
-  }	  
+    cerr << "Relation has no LOB-file!" << endl;
+  }       
 
   ErasePointer();
 
