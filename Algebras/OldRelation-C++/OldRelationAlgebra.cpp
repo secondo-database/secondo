@@ -63,6 +63,7 @@ of these symbols, then the value ~error~ is returned.
 #include "CPUTimeMeasurer.h"
 #include "QueryProcessor.h"
 #include "LogMsg.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -456,16 +457,14 @@ Result type of feed operation.
 */
 static ListExpr CcFeedTypeMap(ListExpr args)
 {
-  ListExpr first ;
-
-  CHECK_COND(nl->ListLength(args) == 1,
-    "Operator feed expects a list of length one.");
-  first = nl->First(args);
-  CHECK_COND(nl->ListLength(first) == 2,
-    "Operator feed expects an argument of type mrel(...)");
-  CHECK_COND(CcTypeOfRelAlgSymbol(nl->First(first)) == mrel,
-    "Operator feed expects an argument of type mrel");
-  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
+  if(nl->ListLength(args)!=1){
+    return listutils::typeError("One argument expected");
+  } 
+  ListExpr mrel = nl->First(args);
+  if(!listutils::isRelDescription2(mrel, "mrel")){
+    return listutils::typeError("mrel(x) expected");
+  } 
+  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(mrel));
 }
 /*
 
@@ -648,36 +647,21 @@ Result type of feed operation.
 */
 static ListExpr CcSampleTypeMap(ListExpr args)
 {
-  ListExpr first ;
-  ListExpr minSampleSizeLE;
-  ListExpr minSampleRateLE;
 
-  CHECK_COND(nl->ListLength(args) == 3,
-    "Operator sample expects a list of length three.");
+  if(nl->ListLength(args)!=3){
+    return listutils::typeError("three arguments expected");
+  }
 
-  first = nl->First(args);
-  minSampleSizeLE = nl->Second(args);
-  minSampleRateLE = nl->Third(args);
+  ListExpr stream = nl->First(args) ;
+  ListExpr minSampleSizeLE = nl->Second(args);
+  ListExpr minSampleRateLE = nl->Third(args);
 
-  CHECK_COND(nl->ListLength(first) == 2,
-    "Operator sample expects a relation as first argument.");
-  CHECK_COND(CcTypeOfRelAlgSymbol(nl->First(first)) == mrel,
-    "Operator sample expects a relation as first argument.");
-
-  CHECK_COND(nl->IsAtom(minSampleSizeLE),
-    "Operator sample expects an int as second argument.")
-  CHECK_COND(nl->AtomType(minSampleSizeLE) == SymbolType,
-    "Operator sample expects an int as second argument.")
-  CHECK_COND(nl->SymbolValue(minSampleSizeLE) == "int",
-    "Operator sample expects an int as second argument.");
-  CHECK_COND(nl->IsAtom(minSampleRateLE),
-    "Operator sample expects a real as third argument.")
-  CHECK_COND(nl->AtomType(minSampleRateLE) == SymbolType,
-    "Operator sample expects a real as third argument.")
-  CHECK_COND(nl->SymbolValue(minSampleRateLE) == "real",
-    "Operator sample expects a real as third argument.");
-
-  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
+  if(!listutils::isRelDescription2(stream,"mrel") ||
+     !listutils::isSymbol(minSampleSizeLE,"int") ||
+     !listutils::isSymbol(minSampleRateLE,"real")){
+    return listutils::typeError("mrel x int x real expected");
+  }
+  return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(stream));
 }
 /*
 
@@ -5758,21 +5742,14 @@ main memory relation.
 */
 ListExpr MConsumeTypeMap(ListExpr args)
 {
-  ListExpr first;
-  string argstr;
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator mconsume expects a list of length one.");
 
-  first = nl->First(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND( nl->ListLength(first) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(first) == stream) &&
-    nl->ListLength(nl->Second(first)) == 2 &&
-    TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple,
-  "Operator mconsume expects as argument a list with structure "
-  "(stream (tuple ((a1 t1)...(an tn))))\n"
-  "Operator mconsume gets a list with structure '" + argstr + "'.");
+  if(nl->ListLength(args)!=1){
+    return listutils::typeError("one argument expected");
+  }
+  ListExpr first = nl->First(args);
+  if(!listutils::isTupleStream(nl->First(args))){
+    return listutils::typeError(" stream(tuple(x)) expected");
+  }
 
   return nl->TwoElemList(
            nl->SymbolAtom("mrel"),
