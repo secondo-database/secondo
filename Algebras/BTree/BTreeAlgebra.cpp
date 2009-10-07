@@ -1055,10 +1055,11 @@ const int LEFTRANGE = 0;
 const int RIGHTRANGE = 1;
 const int RANGE = 2;
 const int EXACTMATCH = 3;
+const int KEYRANGE = 4;
 
 int nKeyArguments(int opid)
 {
-  assert(opid >= LEFTRANGE && opid <= EXACTMATCH);
+  assert(opid >= LEFTRANGE && opid <= KEYRANGE);
   return opid == RANGE ? 2 : 1;
 }
 
@@ -1118,6 +1119,17 @@ ListExpr IndexQueryTypeMap(ListExpr args)
   ListExpr rtree = nl->Second(btreeDescription);
   if(!nl->Equal(trel, rtree)){
     return listutils::typeError("different types for relation and btree");
+  }
+
+  if (operatorId == KEYRANGE) {
+    NList a1(NList("Less"), NList("real"));
+    NList a2(NList("Equal"), NList("real"));
+    NList a3(NList("Greater"), NList("real"));
+    NList a4(NList("NumOfKeys"), NList("int"));
+
+    NList result(NList("stream"), NList(NList("tuple"), NList(a1,a2,a3,a4)));
+
+    return result.listExpr();
   }
 
   ListExpr resultType =
@@ -2497,94 +2509,6 @@ Operator getfileinfobtree (
 
 */
 
-ListExpr keyrange_tm(ListExpr args)
-{
-  char* errmsg = "Excpecting a list of type ((btree) (rel) key-atom)!";
-
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 3, errmsg);
-
-  /* Split argument in three parts */
-  ListExpr btreeDescription = nl->First(args);
-  ListExpr relDescription = nl->Second(args);
-  ListExpr keyDescription = nl->Third(args);
-
-
-  /* find out type of key */
-  CHECK_COND(nl->IsAtom(keyDescription), errmsg);
-  CHECK_COND(nl->AtomType(keyDescription) == SymbolType, errmsg);
-
-  /* handle btree part of argument */
-  CHECK_COND(!nl->IsEmpty(btreeDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(btreeDescription), errmsg);
-  CHECK_COND(nl->ListLength(btreeDescription) == 3, errmsg);
-
-  ListExpr btreeSymbol = nl->First(btreeDescription);;
-  ListExpr btreeTupleDescription = nl->Second(btreeDescription);
-  ListExpr btreeKeyType = nl->Third(btreeDescription);
-
-  /* check that the type of given key equals the btree key type */
-  CHECK_COND(nl->Equal(keyDescription, btreeKeyType), errmsg);
-
-  /* handle btree type constructor */
-  CHECK_COND(nl->IsAtom(btreeSymbol), errmsg);
-  CHECK_COND(nl->AtomType(btreeSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(btreeSymbol) == "btree", errmsg);
-
-  CHECK_COND(!nl->IsEmpty(btreeTupleDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(btreeTupleDescription), errmsg);
-  CHECK_COND(nl->ListLength(btreeTupleDescription) == 2, errmsg);
-  ListExpr btreeTupleSymbol = nl->First(btreeTupleDescription);;
-  ListExpr btreeAttrList = nl->Second(btreeTupleDescription);
-
-  CHECK_COND(nl->IsAtom(btreeTupleSymbol), errmsg);
-  CHECK_COND(nl->AtomType(btreeTupleSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(btreeTupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(btreeAttrList), errmsg);
-
-  /* handle rel part of argument */
-  CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(relDescription), errmsg);
-  CHECK_COND(nl->ListLength(relDescription) == 2, errmsg);
-
-  ListExpr relSymbol = nl->First(relDescription);;
-  ListExpr tupleDescription = nl->Second(relDescription);
-
-  CHECK_COND(nl->IsAtom(relSymbol), errmsg);
-  CHECK_COND(nl->AtomType(relSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(relSymbol) == "rel", errmsg);
-
-  CHECK_COND(!nl->IsEmpty(tupleDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(tupleDescription), errmsg);
-  CHECK_COND(nl->ListLength(tupleDescription) == 2, errmsg);
-  ListExpr tupleSymbol = nl->First(tupleDescription);
-  ListExpr attrList = nl->Second(tupleDescription);
-
-  CHECK_COND(nl->IsAtom(tupleSymbol), errmsg);
-  CHECK_COND(nl->AtomType(tupleSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(tupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(attrList), errmsg);
-
-  /* check that btree and rel have the same associated tuple type */
-  CHECK_COND(nl->Equal(attrList, btreeAttrList), errmsg);
-
-  // BUG 
-  //NList attr;
-  //attr.append(NList("int", "Less"));
-  //cout << "****" << attr << endl;
-
-  NList a1(NList("Less"), NList("real"));
-  NList a2(NList("Equal"), NList("real"));
-  NList a3(NList("Greater"), NList("real"));
-  NList a4(NList("NumOfKeys"), NList("int"));
-
-  NList result(NList("stream"), NList(NList("tuple"), NList(a1,a2,a3,a4)));
-
-  return result.listExpr();
-}
-
-
 
 template <typename T>
 void init_ptr(T*& p, Word& w) 
@@ -2713,7 +2637,7 @@ class BTreeAlgebra : public Algebra
     AddOperator(&deletebtree);
     AddOperator(&updatebtree);
     AddOperator(&getfileinfobtree);
-    AddOperator(keyrangeInfo(), keyrange_vm, keyrange_tm);
+    AddOperator(keyrangeInfo(), keyrange_vm, IndexQueryTypeMap<KEYRANGE> );
 
 #ifndef USE_PROGRESS
     exactmatch.EnableProgress();
