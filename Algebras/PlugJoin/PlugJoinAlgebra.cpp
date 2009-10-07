@@ -52,7 +52,9 @@ relations.
 using namespace std;
 
 #include <string.h>
+#include <set>
 #include "PlugJoinAlgebra.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -63,12 +65,7 @@ extern QueryProcessor* qp;
 #define DOUBLE_MAX (1.7E308)
 #endif
 
-#define CHECK_COND(cond, msg) \
-  if(!(cond)) \
-  {\
-    ErrorReporter::ReportError(msg);\
-    return nl->SymbolAtom("typeerror");\
-  };
+#undef CHECK_COND
 
 /*
 If ~PLUGJOIN\_VERBOSE\_MODE~ is set, some interesting things are reported.
@@ -167,196 +164,81 @@ A query-example is: query Rel1 feed Rel2 feed spatialjoin [attrNameRel1, attrNam
 
 ListExpr spatialjoinTypeMap(ListExpr args)
 {
-  char* errmsg = "Incorrect input for operator spatialjoin.";
-  string relDescStrS, relDescStrR;
+ string err = "stream(tuple) x stream(tuple) x name1 x name2 expected"; 
+ if(nl->ListLength(args)!=4){
+   return listutils::typeError(err);
+ }
+ ListExpr stream1 = nl->First(args);
+ ListExpr stream2 = nl->Second(args);
+ ListExpr nameL1 = nl->Third(args);
+ ListExpr nameL2 = nl->Fourth(args);
+ if(!listutils::isTupleStream(stream1) ||
+    !listutils::isTupleStream(stream2) ||
+    !listutils::isSymbol(nameL1) ||
+    !listutils::isSymbol(nameL2)){
+   return listutils::typeError(err);
+ }
 
-  CHECK_COND(!nl->IsEmpty(args),
-   "Operator spatialjoin expects a list of length four.");
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 4,
-   "Operator spatialjoin expects a list of length four.");
+ ListExpr al1 = nl->Second(nl->Second(stream1));
+ ListExpr al2 = nl->Second(nl->Second(stream2));
 
-  /* Split argument in four parts */
-  ListExpr relDescriptionS = nl->First(args);      //outerRelation
-  ListExpr relDescriptionR = nl->Second(args);     //innerRelation
-  nl->WriteToString (relDescStrS, relDescriptionS); //for error message
-  nl->WriteToString (relDescStrR, relDescriptionR); //for error message
+ if(!listutils::disjointAttrNames(al1, al2)){
+   return listutils::typeError("conflicting type names");
+ }
 
-  ListExpr attrNameS_LE = nl->Third(args);         //attrName of outerRel
-  ListExpr attrNameR_LE = nl->Fourth(args);        //attrName of innerRelation
+ ListExpr type1;
+ string name1 = nl->SymbolValue(nameL1); 
+ int index1 = listutils::findAttribute(al1,name1,type1);
+ if(index1==0){
+   return listutils::typeError("attribute " + name1 + "not found");
+ }
 
-  /* handle stream part of outerRelation */
+ ListExpr type2;
+ string name2 = nl->SymbolValue(nameL2);
+ int index2 = listutils::findAttribute(al2,name2,type2);
+ if(index2==0){
+   return listutils::typeError("attribute " + name2 + "not found");
+ }
 
-  CHECK_COND(nl->ListLength(relDescriptionS) == 2 &&
-             !nl->IsEmpty(relDescriptionS) &&
-             !nl->IsAtom(relDescriptionS)  ,
-    "Operator spatialjoin expects a first list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a first list with structure "+relDescStrS+".");
+ // check for rect, rect3, rect4
+ set<string> r;
+ r.insert("rect");
+ r.insert("rect3");
+ r.insert("rect4");
 
-  ListExpr relSymbolS = nl->First(relDescriptionS);;
-  ListExpr tupleDescriptionS = nl->Second(relDescriptionS);
+ if(!listutils::isASymbolIn(type1,r) &&
+    !listutils::isKind(type1,"SPATIAL2D")){
+   return listutils::typeError("attribute " + name1 + 
+                               " not supported by spatial join");
+ }
+ if(!listutils::isASymbolIn(type2,r) &&
+    !listutils::isKind(type1,"SPATIAL2D")){
+   return listutils::typeError("attribute " + name2 + " not supported");
+ }
 
-  CHECK_COND(nl->IsAtom(relSymbolS) &&
-             nl->AtomType(relSymbolS) == SymbolType &&
-             nl->SymbolValue(relSymbolS) == "stream",
-    "Operator spatialjoin expects a first list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a first list with structure "+relDescStrS+".");
+ if(!listutils::isSymbol(type1) ||
+    !listutils::isSymbol(type2)){
+   return listutils::typeError("composite types not supported");
+ }
+ if(!nl->Equal(type1,type2)){
+   return listutils::typeError("different types");
+ }
 
-  ListExpr tupleSymbolS = nl->First(tupleDescriptionS);
-  ListExpr attrListS = nl->Second(tupleDescriptionS);
-  CHECK_COND(nl->IsAtom(tupleSymbolS) &&
-             nl->AtomType(tupleSymbolS) == SymbolType &&
-             nl->SymbolValue(tupleSymbolS) == "tuple" &&
-             IsTupleDescription(attrListS) &&
-             !nl->IsEmpty(tupleDescriptionS) &&
-             !nl->IsAtom(tupleDescriptionS) &&
-             nl->ListLength(tupleDescriptionS) == 2,
-    "Operator spatialjoin expects a first list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a first list with structure "+relDescStrS+".");
+ ListExpr attrlist = listutils::concat(al1, al2);
 
-  /* handle attrName of outerRelation */
-  int attrIndexS;
-  ListExpr attrTypeS;
-  string attrNameS = nl->SymbolValue(attrNameS_LE);
-  CHECK_COND((attrIndexS = FindAttribute(attrListS, attrNameS, attrTypeS)) > 0,
-    "Operator spatialjoin expects an attributename "
-    +attrNameS+" in first list\n"
-    "but gets a first list with structure '"+relDescStrS+"'.");
 
-  AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-
-/*
-CAUTION: Adjust the following check, if new types are introduced to join.
-
-*/
-  CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrTypeS, errorInfo) ||
-             nl->IsEqual(attrTypeS, "rect")||
-             nl->IsEqual(attrTypeS, "rect3")||
-             nl->IsEqual(attrTypeS, "rect4"),
-    "Operator spatialjoin expects that attribute "+attrNameS+"\n"
-    "is of TYPE rect, rect3, rect4, point, points, line or region.");
-
-  /* handle stream part of innerRelation */
-  CHECK_COND(nl->ListLength(relDescriptionR) == 2 &&
-             !nl->IsEmpty(relDescriptionR) &&
-             !nl->IsAtom(relDescriptionR),
-    "Operator spatialjoin expects a second list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a second list with structure '"+relDescStrR+"'.");
-
-  ListExpr relSymbolR = nl->First(relDescriptionR);;
-  ListExpr tupleDescriptionR = nl->Second(relDescriptionR);
-
-  CHECK_COND(nl->IsAtom(relSymbolR) &&
-             nl->AtomType(relSymbolR) == SymbolType &&
-             nl->SymbolValue(relSymbolR) == "stream",
-    "Operator spatialjoin expects a second list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a second list with structure '"+relDescStrR+"'.");
-
-  CHECK_COND(!nl->IsEmpty(tupleDescriptionR), errmsg);
-  CHECK_COND(!nl->IsAtom(tupleDescriptionR), errmsg);
-  CHECK_COND(nl->ListLength(tupleDescriptionR) == 2, errmsg);
-
-  ListExpr tupleSymbolR = nl->First(tupleDescriptionR);
-  ListExpr attrListR = nl->Second(tupleDescriptionR);
-  CHECK_COND(nl->IsAtom(tupleSymbolR) &&
-             nl->AtomType(tupleSymbolR) == SymbolType &&
-             nl->SymbolValue(tupleSymbolR) == "tuple" &&
-             IsTupleDescription(attrListR) &&
-             !nl->IsEmpty(tupleDescriptionR) &&
-             !nl->IsAtom(tupleDescriptionR) &&
-             nl->ListLength(tupleDescriptionR) == 2,
-    "Operator spatialjoin expects a second list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a second list with structure '"+relDescStrR+"'.");
-
-  /* handle attrName of innerRelation */
-  int attrIndexR;
-  ListExpr attrTypeR;
-  string attrNameR = nl->SymbolValue(attrNameR_LE);
-  CHECK_COND((attrIndexR = FindAttribute(attrListR, attrNameR, attrTypeR)) > 0,
-    "Operator spatialjoin expects an attributename "
-    +attrNameR+" in second list\n"
-    "but gets a second list with structure '"+relDescStrR+"'.");
-
-/*
-CAUTION: Adjust the following check, if new types are introduced to join.
-
-*/
-  CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrTypeR, errorInfo) ||
-             nl->IsEqual(attrTypeR, "rect")||
-             nl->IsEqual(attrTypeR, "rect3")||
-             nl->IsEqual(attrTypeR, "rect4"),
-    "Operator spatialjoin expects that attribute "+attrNameR+"\n"
-    "is of TYPE rect, rect3, rect4, point, points, line or region.");
-
-/*
-Check, if the joining attributes are of the same dimension. At this time the
-following types are known in Secondo:
-
-CAUTION: Further new types, providing a k-dimensional BoundingBox will cause
-adjusting this typemapping-method at this point.
-
-  * Two-dimenionale types are: ~rect~ and all types of ~SpatialKind~
-
-  * Three-dimensional types are: ~rect3~
-
-  * Four-dimensional types are: ~rect4~
-
-*/
-  string attrTypeR_str, attrTypeS_str;
-  nl->WriteToString (attrTypeS_str, attrTypeS); //left stream
-  nl->WriteToString (attrTypeR_str, attrTypeR); //right stream
-
-  CHECK_COND( ( algMgr->CheckKind("SPATIAL2D", attrTypeR, errorInfo) &&
-                algMgr->CheckKind("SPATIAL2D", attrTypeS, errorInfo) ) ||
-              ( algMgr->CheckKind("SPATIAL2D", attrTypeR, errorInfo ) &&
-                nl->IsEqual(attrTypeS, "rect") ) ||
-              ( algMgr->CheckKind("SPATIAL2D", attrTypeS, errorInfo ) &&
-                nl->IsEqual(attrTypeR, "rect") ) ||
-              ( nl->IsEqual(attrTypeR, "rect") &&
-                nl->IsEqual(attrTypeS, "rect") ) ||
-              ( nl->IsEqual(attrTypeR, "rect3") &&
-                nl->IsEqual(attrTypeS, "rect3") ) ||
-              ( nl->IsEqual(attrTypeR, "rect4") &&
-                nl->IsEqual(attrTypeS, "rect4") ),
-    "Operator spatialjoin expects joining attributes of same dimension.\n"
-    "But gets "+attrTypeS_str+" as left type and "
-    +attrTypeR_str+" as right type.\n");
-
-  /* check if all new attribute names are ditinct */
-  ListExpr attrOutlist = ConcatLists(attrListS, attrListR);
-
-  if ( CompareNames(attrOutlist) )
-  {
-    /* Creating the resulting ListExpr */
-    ListExpr resultList =
-      nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->ThreeElemList(
-            nl->IntAtom(attrIndexS),
-            nl->IntAtom(attrIndexR),
-            nl->StringAtom(nl->SymbolValue(attrTypeS))),
-        nl->TwoElemList(
-            nl->SymbolAtom("stream"),
+ return nl->ThreeElemList(
+            nl->SymbolAtom("APPEND"),
+            nl->ThreeElemList(
+                nl->IntAtom(index1),
+                nl->IntAtom(index2),
+                nl->StringAtom(nl->SymbolValue(type1))),
             nl->TwoElemList(
-                nl->SymbolAtom("tuple"),
-                attrOutlist)));
+                nl->SymbolAtom("stream"),
+                nl->TwoElemList(
+                    nl->SymbolAtom("tuple"),
+                    attrlist)));
 
-    return resultList;
-
-  }
-  else
-  {
-    ErrorReporter::ReportError("Operator spatialloopjoin: Attribute names of "
-      "result tuples are not distinct.\n");
-    return nl->SymbolAtom("typeerror");
-  }
 
 }
 
