@@ -65,6 +65,9 @@ Febr 2007 Christian D[ue]ntgen implemented ~bbox~ for mpoint and ipoint.
 
 September 2009 Simone Jandt: UReal new Member CompUReal implemented.
 
+29.09.2009 Mahmoud Sakr: Added the operators: delay, distancetraversed, and
+mint2mbool
+
 [TOC]
 
 1 Overview
@@ -2235,6 +2238,31 @@ void MInt::ReadFrom(const MBool& arg){
     Add(unit);
   }
   EndBulkLoad(false);
+}
+void MInt::WriteTo(MBool& arg){
+  // remove all units
+  arg.Clear();
+  if(!IsDefined()){
+    arg.SetDefined(false);
+    return;
+  }
+  arg.SetDefined(true);
+  int size = GetNoComponents();
+  if(size>0){
+     arg.Resize(size);
+  }
+  const UInt* uint;
+  //arg.StartBulkLoad();
+  CcBool currentValue;
+  for(int i=0;i<size;i++){
+    Get(i,uint);
+    int v;
+    v = uint->constValue.GetIntval();
+    currentValue.Set(true,(v==0)?false:true);
+    UBool unit(uint->timeInterval,currentValue);
+    arg.Add(unit);
+  }
+  //EndBulkLoad(false);
 }
 bool compareuint(const UInt& u1,const UInt& u2)
 {
@@ -7462,6 +7490,22 @@ ListExpr TemporalMBool2MInt(ListExpr args){
   if(nl->IsEqual(nl->First(args),"mbool")){
     return   nl->SymbolAtom("mint");
   }
+  ErrorReporter::ReportError("mbool expected");
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+Type Mapping for the mint2mbool function
+
+*/
+ListExpr TemporalMInt2MBool(ListExpr args){
+  if(nl->ListLength(args)!=1){
+    ErrorReporter::ReportError("Single argument expected");
+    return nl->SymbolAtom( "typeerror" );
+  }
+  if(nl->IsEqual(nl->First(args),"mint")){
+    return   nl->SymbolAtom("mbool");
+  }
   ErrorReporter::ReportError("mint expected");
   return nl->SymbolAtom( "typeerror" );
 }
@@ -10264,6 +10308,14 @@ int MBool2MInt( Word* args, Word& result, int message, Word&
  return 0;
 
 }
+
+int MInt2MBool( Word* args, Word& result, int message, Word&
+ local, Supplier s ){
+ result = qp->ResultStorage(s);
+ ((MInt*) args[0].addr)->WriteTo(*((MBool*) result.addr));
+ return 0;
+
+}
 /*
 16.3.29 Value mapping functions of operator ~distance~
 
@@ -12905,6 +12957,16 @@ const string TemporalMBool2MIntSpec =
   "<text>mbool2mint(mb1)</text--->"
   ") )";
 
+const string TemporalMInt2MBoolSpec =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+  "( <text>mint -> mbool </text--->"
+  "<text>mint2mbool( _ ) </text--->"
+  "<text>Converts the mint value into a mbool value. Zero units converts into "
+  "False units, otherwise, True units."
+  "</text--->"
+  "<text>mint2mbool(zero())</text--->"
+  ") )";
+
 const string TemporalExtDeftimeSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mT x uT -> mT with T in {bool, int}  </text--->"
@@ -13498,6 +13560,12 @@ Operator mbool2mint( "mbool2mint",
                        Operator::SimpleSelect,
                        TemporalMBool2MInt );
 
+Operator mint2mbool( "mint2mbool",
+                       TemporalMInt2MBoolSpec,
+                       MInt2MBool,
+                       Operator::SimpleSelect,
+                       TemporalMInt2MBool );
+
 Operator extdeftime( "extdeftime",
                       TemporalExtDeftimeSpec,
                       2,
@@ -13715,6 +13783,7 @@ class TemporalAlgebra : public Algebra
     AddOperator(&temporalbox3d);
     AddOperator(&temporalbox2d);
     AddOperator(&mbool2mint);
+    AddOperator(&mint2mbool);
     AddOperator(&extdeftime);
     AddOperator(&temporaltranslateappend);
     AddOperator(&temporaltranslateappendS);

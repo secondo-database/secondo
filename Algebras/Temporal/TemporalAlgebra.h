@@ -49,6 +49,9 @@ Dec 2006 Christian D[ue]ntgen: Moved RefimentPartition from MovingRegionAlgebra
 here and replaced the error-prone implementation in TemporalLiftedAlgbra by
 this version.
 
+29.09.2009 Mahmoud Sakr: Added the operators: delay, distancetraversed, and
+mint2mbool
+
 1 Overview
 
 The type system of the Temporal Algebra can be seen below.
@@ -2603,7 +2606,19 @@ representing the  value 1 over their interval.
 */
    void ReadFrom(const MBool& arg);
 
+/*
+~WriteTo~
 
+Writes the value of this moving(int) into the value
+of the result moving(bool). The temporal structure of
+the result is equal to the temporal structure of this 
+moving(int). A unit holding the value zero is converted 
+to a unit with value false. Otherwise true.
+
+*/
+  void WriteTo(MBool& arg);
+
+   
    static const string BasicType(){
       return "mint";
    }
