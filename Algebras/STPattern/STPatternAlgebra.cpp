@@ -182,7 +182,7 @@ bool STVector::ApplySimple(Interval<CcReal>& p1, Interval<CcReal>& p2,
     int simple)
 { 
   double  a=p1.start.GetRealval(),   A=p1.end.GetRealval(),
-          b=p2.start.GetRealval(),   B=p2.end.GetRealval();
+  b=p2.start.GetRealval(),   B=p2.end.GetRealval();
   switch(simple)
   {
   case   aabb:
@@ -399,7 +399,7 @@ The MBool2Vec function is called first thing within the extend function. It
 converts the time intervals for the true units from Interval<Instant> into
 Interval<CcReal>. This is done for the sake of performance since the Instant 
 comparisons are more expensive than the Real comparisons. 
- 
+
 */
 int CSP::MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec)
 {
@@ -420,13 +420,13 @@ int CSP::MBool2Vec(const MBool* mb, vector<Interval<CcReal> >& vec)
 
 /*
 The Extend function distinguishes between two cases:
-  
-  * If the variable given is the first variable to be consumed, 
+
+ * If the variable given is the first variable to be consumed, 
     the SA is intialized.
-  
-  * Else, the function creates and checks (on the fly) the Cartesean product
+
+ * Else, the function creates and checks (on the fly) the Cartesean product
     of SA and the domain of the variable.     
- 
+
 */
 int CSP::Extend(int index, vector<Interval<CcReal> >& domain )
 {
@@ -465,7 +465,7 @@ The function IsSupported searches the ConstraintGraph for the constraints that
 involve the given variable and check their fulfillment. It is modified to check
 only the constraints related to the newly evaluated variable instead of 
 re-checking all the constraints. 
- 
+
 */
 bool CSP::IsSupported(vector<Interval<CcReal> > sa, int index)
 {
@@ -529,7 +529,7 @@ For every variable v
    if x is not in the Agenda rank+=1
   }
 }
- 
+
 */
 int CSP::PickVariable()
 {
@@ -620,7 +620,7 @@ int CSP::AddConstraint(string alias1, string alias2, Supplier handle)
   ConstraintGraph[index1][index2].push_back(handle);
   return 0;
 }
-  
+
 bool CSP::Solve()
 {
   bool debugme=false;
@@ -649,7 +649,7 @@ bool CSP::MoveNext()
     return false;
   return true;
 }
- 
+
 bool CSP::GetStart(string alias, Instant& result)
 {
   map<string, int>::iterator it;
@@ -661,7 +661,7 @@ bool CSP::GetStart(string alias, Instant& result)
   result.ReadFrom(SA[iterator][index].start.GetRealval());
   return true;
 }
-  
+
 bool CSP::GetEnd(string alias, Instant& result)
 {
   map<string, int>::iterator it;
@@ -673,7 +673,7 @@ bool CSP::GetEnd(string alias, Instant& result)
   result.ReadFrom(SA[iterator][index].end.GetRealval());
   return true;
 }
-  
+
 void CSP::Print()
 {
   cout<< "\n==========================\nSA.size() = "<< SA.size()<< endl;
@@ -702,6 +702,70 @@ int CSP::Clear()
 }
 
 /*
+Auxiliary functions 
+
+*/
+void RandomDelay(const MPoint* actual, const Instant* threshold, MPoint& res)
+{
+  bool debugme= false;
+
+  MPoint delayed(actual->GetNoComponents());
+  const UPoint *first, *next;
+  UPoint *shifted,*temp, *cur;
+  int rmillisec=0, rday=0;
+  actual->Get( 0, first );
+  cur=new UPoint(*first);
+  for( int i = 1; i < actual->GetNoComponents(); i++ )
+  {
+    actual->Get( i, next );
+
+    rmillisec= rand()% threshold->GetAllMilliSeconds();
+    rday=0;
+    if(threshold->GetDay()> 0) rday = rand()% threshold->GetDay();
+    DateTime delta(rday,rmillisec,durationtype) ;
+
+    shifted= new UPoint(*cur);
+    delete cur;
+    temp= new UPoint(*next);
+    if(rmillisec > rand()%24000 )
+    {
+      if((shifted->timeInterval.end + delta) <  next->timeInterval.end )
+      {
+        shifted->timeInterval.end += delta ;
+        temp->timeInterval.start= shifted->timeInterval.end;
+      }
+    }
+    else
+    {
+      if((shifted->timeInterval.end - delta) >shifted->timeInterval.start)
+      {
+        shifted->timeInterval.end -= delta ;
+        temp->timeInterval.start= shifted->timeInterval.end;
+      }
+    }
+    cur=temp;
+    if(debugme)
+    {
+      cout.flush();
+      cout<<"\n original "; cur->Print(cout);
+      cout<<"\n shifted " ; shifted->Print(cout);
+      cout.flush();
+    }
+    delayed.Add(*shifted);
+    delete shifted;
+  }
+  delayed.Add(*temp);
+  delete temp;
+  res.CopyFrom(&delayed);
+  if(debugme)
+  {
+    res.Print(cout);
+    cout.flush();
+  }
+  return;
+}
+
+/*
 4 Algebra Types and Operators 
 
 
@@ -723,7 +787,7 @@ TypeConstructor stvectorTC(
 
 ListExpr CreateSTVectorTM(ListExpr args)
 {
-//  bool debugme= false;
+  //  bool debugme= false;
   string argstr;
   ListExpr rest= args, first;
   while (!nl->IsEmpty(rest)) 
@@ -948,37 +1012,57 @@ ListExpr StartEndTM(ListExpr args)
 }
 
 /*
- 
+
 The randommbool operator is used for experimental evaluation. We use it to 
 generate the random mbool values that are used in the first experiment in the
 technical report.
- 
+
 */
 ListExpr RandomMBoolTM(ListExpr args)
 {
-	//cout<<nl->ToString(args);
-	CHECK_COND( nl->ListLength(args) == 1 &&
-		nl->IsAtom(nl->First(args)) && 
-		(nl->SymbolValue(nl->First(args))== "instant") ,
-		"Operator randommbool expects one parameter.");
-	return nl->SymbolAtom("mbool");
+  //cout<<nl->ToString(args);
+  CHECK_COND( nl->ListLength(args) == 1 &&
+      nl->IsAtom(nl->First(args)) && 
+      (nl->SymbolValue(nl->First(args))== "instant") ,
+  "Operator randommbool expects one parameter.");
+  return nl->SymbolAtom("mbool");
 }
 
 /*
- 
+
 The passmbool operator is used for experimental evaluation. We use it to 
 mimic lifted predicates in the first experiment in the technical report.
- 
+
 */
 ListExpr PassMBoolTM(ListExpr args)
 {
-	//cout<<nl->ToString(args);
-	CHECK_COND( nl->ListLength(args) == 1 &&
-		nl->IsAtom(nl->First(args)) && 
-		(nl->SymbolValue(nl->First(args))== "mbool") ,
-		"Operator passmbool expects one parameter.");
-	return nl->SymbolAtom("mbool");
+  //cout<<nl->ToString(args);
+  CHECK_COND( nl->ListLength(args) == 1 &&
+      nl->IsAtom(nl->First(args)) && 
+      (nl->SymbolValue(nl->First(args))== "mbool") ,
+  "Operator passmbool expects one parameter.");
+  return nl->SymbolAtom("mbool");
 }
+
+/*
+The randomdelay operator is used to enrich the examples. It adds random 
+time delays to the moving point within a given delay threshold   
+
+*/
+
+ListExpr RandomDelayTM( ListExpr typeList )
+{
+  CHECK_COND(nl->ListLength(typeList) == 2 &&
+      nl->IsAtom(nl->First(typeList)) &&
+      (nl->SymbolValue(nl->First(typeList))== "mpoint") &&
+      nl->IsAtom(nl->Second(typeList)) &&
+      (nl->SymbolValue(nl->Second(typeList))== "duration"),
+      "randomdelay operator expects (mpoint duration) but got "
+      + nl->ToString(typeList))
+
+      return (nl->SymbolAtom("mpoint"));
+}
+
 
 
 int CreateSTVectorVM 
@@ -1040,7 +1124,7 @@ int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
     csp.AddConstraint(alias1str,alias2str, stvector);
   }
 
-  
+
   bool hasSolution=csp.Solve();
   ((CcBool*)result.addr)->Set(true,hasSolution);
 
@@ -1051,7 +1135,7 @@ int STPatternVM(Word* args, Word& result, int message, Word& local, Supplier s)
     csp.Print();
     cout.flush();
   }
-  
+
   return 0;
 }
 
@@ -1166,7 +1250,7 @@ template <bool leftbound> int StartEndVM
     found=csp.GetStart(lbl, res);
   else
     found=csp.GetEnd(lbl, res);
-  
+
   if(debugme)
   {
     cout<<endl<<"Value is "; if(found) cout<<"found"; else cout<<"Not found";
@@ -1181,51 +1265,97 @@ template <bool leftbound> int StartEndVM
 
 void CreateRandomMBool(Instant starttime, MBool& result)
 {
-	bool debugme=false,bval=false;
-	result.Clear();
-	int rnd,i=0,n;
-	UBool unit(true);
-	Interval<Instant> intr(starttime, starttime, true, false);
+  bool debugme=false,bval=false;
+  result.Clear();
+  int rnd,i=0,n;
+  UBool unit(true);
+  Interval<Instant> intr(starttime, starttime, true, false);
 
-	rnd=rand()%20;  //deciding the number of units in the mbool value
-	n=++rnd;
-	bval= ((rand()%2)==1); //deciding the bool value of the first unit
-	while(i++<n)
-	{
-		rnd=rand()%50000; //deciding the duration of a unit
-		while(rnd<2)
-			rnd=rand()%50000;
-		intr.end.Set(intr.start.GetYear(), intr.start.GetMonth(),
+  rnd=rand()%20;  //deciding the number of units in the mbool value
+  n=++rnd;
+  bval= ((rand()%2)==1); //deciding the bool value of the first unit
+  while(i++<n)
+  {
+    rnd=rand()%50000; //deciding the duration of a unit
+    while(rnd<2)
+      rnd=rand()%50000;
+    intr.end.Set(intr.start.GetYear(), intr.start.GetMonth(),
         intr.start.GetGregDay(), intr.start.GetHour(),intr.start.GetMinute(),
         intr.start.GetSecond(),intr.start.GetMillisecond()+rnd); 
-		unit.constValue.Set(true, bval);
-		unit.timeInterval= intr;
-		result.Add(unit);
-		intr.start= intr.end;
-		bval=!bval;
-	}
-	if(debugme)
-		result.Print(cout);
+    unit.constValue.Set(true, bval);
+    unit.timeInterval= intr;
+    result.Add(unit);
+    intr.start= intr.end;
+    bval=!bval;
+  }
+  if(debugme)
+    result.Print(cout);
 }
 
 int 
 RandomMBoolVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-	   result = qp->ResultStorage(s);
-	   MBool* res = (MBool*) result.addr;
-	   DateTime* tstart = (DateTime*) args[0].addr;
-	   CreateRandomMBool(*tstart,*res);
-	   return 0;
+  result = qp->ResultStorage(s);
+  MBool* res = (MBool*) result.addr;
+  DateTime* tstart = (DateTime*) args[0].addr;
+  CreateRandomMBool(*tstart,*res);
+  return 0;
 }
 
 int PassMBoolVM(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-	   result = qp->ResultStorage(s);
-	   MBool* res = (MBool*) result.addr;
-	   MBool* inp = (MBool*) args[0].addr;
-	   res->CopyFrom(inp);
-	   return 0;
+  result = qp->ResultStorage(s);
+  MBool* res = (MBool*) result.addr;
+  MBool* inp = (MBool*) args[0].addr;
+  res->CopyFrom(inp);
+  return 0;
 }
+
+//int RandomDelayVM(ArgVector args, Word& res,
+//		int msg, Word& local, Supplier s )
+//{
+//	bool debugme=true;
+//	MPoint *pActual = static_cast<MPoint*>( args[0].addr );
+//	Instant *threshold = static_cast<Instant*>(args[1].addr ); 
+//
+//	//MPoint* result = (MPoint*) qp->ResultStorage(s).addr;
+//	MPoint* result = (MPoint*) res.addr;
+//	//result->Clear();
+//	if(pActual->GetNoComponents()<2 || !pActual->IsDefined())
+//		result->CopyFrom(pActual);
+//	else
+//		RandomDelay(pActual, threshold, *result);
+//	
+//	if(debugme)
+//	{
+//		result->Print(cout);
+//		cout.flush();
+//	}
+//	return 0;
+//}
+
+int RandomDelayVM(ArgVector args, Word& result,
+    int msg, Word& local, Supplier s )
+{
+  MPoint *pActual = static_cast<MPoint*>( args[0].addr );
+  Instant *threshold = static_cast<Instant*>(args[1].addr );
+
+  MPoint* shifted = (MPoint*) qp->ResultStorage(s).addr;
+
+  if(pActual->GetNoComponents()<2 || !pActual->IsDefined())
+    shifted->CopyFrom(pActual);
+    else
+    {
+      RandomDelay(pActual, threshold, *shifted);
+    }
+  result= SetWord(shifted); 
+  //This looks redundant but it is really necessary. After 2 hours of 
+  //debugging, it seems that the "result" word is not correctly set 
+  //by the query processor to point to the results.
+
+  return 0;
+}
+
 const string CreateSTVectorSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" ) "
   "( <text>(stringlist) -> stvector</text--->"
@@ -1256,7 +1386,7 @@ const string STPatternExSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "b: distance(.Trip, mehringdamm)<10.0, c: speed(.Trip)>8.0 ;  "
   "stconstraint(\"a\",\"b\",vec(\"aabb\")),  "
   "stconstraint(\"b\",\"c\",vec(\"bbaa\"));  (end(\"b\") - start(\"a\")) < "
-      "[const duration value (1 0)] ]] count  </text--->"
+  "[const duration value (1 0)] ]] count  </text--->"
   ") )";
 
 const string STConstraintSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -1310,6 +1440,18 @@ const string PassMBoolSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "used for testing purposes.</text--->"
   "<text>let mb2= passmbool(mb1)</text--->"
   ") )";
+
+const string RandomDelaySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>mpoint x duration -> mpoint</text--->"
+  "<text>randomdelay(schedule, delay_threshold)</text--->"
+  "<text>Given an mpoint and a duration value, the operator randomly shift the" 
+  "start and end intstants of every unit in the mpoint. This gives the "
+  "effect of having positive and negative delays in the movement. The " 
+  "random shift value is bound by the given threshold.</text--->"
+  "<text>query randomdelay(train7)</text--->"
+  ") )";
+
 
 Operator createstvector (
     "vec",    //name
@@ -1375,6 +1517,16 @@ Operator passmbool (
     PassMBoolTM          // type mapping
 );
 
+Operator randomdelay (
+    "randomdelay",               // name
+    RandomDelaySpec,             // specification
+    RandomDelayVM,                 // value mapping
+    Operator::SimpleSelect, // trivial selection function
+    RandomDelayTM          // type mapping
+);
+
+
+
 class STPatternAlgebra : public Algebra
 {
 public:
@@ -1396,7 +1548,8 @@ The spattern and stpatternex operators are registered as lazy variables.
     AddOperator(&STP::start);
     AddOperator(&STP::end);
     AddOperator(&randommbool);
-   	AddOperator(&passmbool);
+    AddOperator(&passmbool);
+    AddOperator(&randomdelay);
   }
   ~STPatternAlgebra() {};
 };
