@@ -112,6 +112,7 @@ The names of existing databases are stored in a list ~DBTable~.
 #include "ExampleReader.h"
 #include "SecParser.h"
 #include "TypeConstructor.h"
+#include "Environment.h"
 
 
 using namespace std;
@@ -2093,6 +2094,8 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
     string fileName = "";
     // dummy initialization! will be overwritten later
     ExampleReader examples(fileName, "");
+    string bdir = Environment::getInstance().getString("SECONDO_BUILD_DIR");
+;
 
     if (!skipExamples) 
     {
@@ -2100,7 +2103,7 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
       cout << " (" << n << " operators)" << endl;
       string algShort = algName; 
       removeSuffix("Algebra", algShort);
-      fileName = "tmp/"+algShort+".examples";
+      fileName = bdir+"/bin/tmp/"+algShort+".examples";
       CFile expectedFile(fileName);
 
       if (!expectedFile.exists()) 
@@ -2156,9 +2159,25 @@ SecondoCatalog::Initialize(OperatorInfoRel* r)
           specFound = examples.find(oi.name, ex2);
 
         if ( !specFound ) {
-          cerr << "  Missing spec for operator " << oi.name << endl;
+          cerr << "  * excluding operator " << oi.name 
+	       << " since it provides no example!" << endl;
+
           // to do: punishment, e.g. removing the operator from the
           // algebra manager.
+	   LocalOperatorCatalog::iterator pos = operators.find( oi.name );
+
+            if (  pos != operators.end() )
+            {
+              CatalogEntrySet *operatorSet = pos->second;
+              CatalogEntrySet::iterator it = operatorSet->begin();
+	      for ( ; it!= operatorSet->end(); it++) {
+               if( algId == it->algebraId && opId == it->entryId ) {
+	         operatorSet->erase(it);
+		 break;
+	       }	 
+              }	       
+	    }  
+
         }
         else {
 
@@ -2391,20 +2410,27 @@ Precondition: ~IsOperatorName( opName)~ delivers TRUE.
     CatalogEntrySet *operatorSet = pos->second;
     CatalogEntrySet::iterator operatorSetIterator = operatorSet->begin();
 
-    opList = nl->OneElemList(
-               nl->TwoElemList( 
-                 nl->IntAtom( operatorSetIterator->algebraId ), 
-                   nl->IntAtom( operatorSetIterator->entryId ) ) );
-    ListExpr last = opList;
+    if (operatorSetIterator != operatorSet->end()) {
+      opList = nl->OneElemList(
+		 nl->TwoElemList( 
+		   nl->IntAtom( operatorSetIterator->algebraId ), 
+		     nl->IntAtom( operatorSetIterator->entryId ) ) );
+      ListExpr last = opList;
 
-    while ( ++operatorSetIterator != operatorSet->end() )
-    {
-      last = nl->Append( last,
-               nl->TwoElemList( 
-                 nl->IntAtom( operatorSetIterator->algebraId ), 
-                    nl->IntAtom( operatorSetIterator->entryId ) ) );
+      while ( ++operatorSetIterator != operatorSet->end() ) 
+      {
+	int algId = operatorSetIterator->algebraId;
+	int opId =  operatorSetIterator->entryId;      
+	last = nl->Append( last,
+		 nl->TwoElemList( 
+		   nl->IntAtom( algId ), 
+		      nl->IntAtom( opId ) ) );
+      }
+      return opList;
     }
-    return opList;
+    else {
+      return nl->Empty();	    
+    }	    
   }
   else
   {
