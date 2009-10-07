@@ -232,6 +232,10 @@ Checks whether the list corresponds to a given symbol.
    return nl->SymbolValue(list) == v;
  }
 
+ bool isSymbol(const ListExpr list){
+   return nl->IsAtom(list) && (nl->AtomType(list)==SymbolType);
+ }
+
 /*
 Returns the keytype fo an rtree description.
 
@@ -297,6 +301,17 @@ bool isDATA(ListExpr type){
 
 
 /*
+CHecks whether this list corresponds to a type in given kind
+
+*/
+  bool isKind(ListExpr type, const string& kind){
+    AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
+    ListExpr errorInfo = emptyErrorInfo();
+    return algMgr->CheckKind(kind, type, errorInfo);
+  }
+
+
+/*
  Checks for a numeric type
 
 */
@@ -358,7 +373,7 @@ Checks for a stream of kind DATA
   }
 
   int findType(ListExpr attrList, const ListExpr type, 
-                string& name, int start/*=1*/){
+                string& name, const int start/*=1*/){
     assert(isAttrList(attrList));
     ListExpr rest = attrList;
     int j = 0;
@@ -376,4 +391,35 @@ Checks for a stream of kind DATA
     return 0;
 
   }
+
+  int removeAttributes(ListExpr list, const set<string>& names,
+                       ListExpr& head, ListExpr& last){
+     assert(isAttrList(list));
+     bool firstCall = true;
+     int count = 0;
+     while(!nl->IsEmpty(list)){
+       ListExpr pair = nl->First(list);
+       list = nl->Rest(list);
+       string name = nl->SymbolValue(nl->First(pair));
+       if(names.find(name)==names.end()){
+         if(firstCall){
+           firstCall=false;
+           head = nl->OneElemList(pair);
+           last = head;
+         } else {
+           last = nl->Append(last, pair);
+         } 
+       } else {
+         count++;
+       }
+
+     }
+     if(firstCall){
+      head = nl->TheEmptyList();
+      last = head;
+     }
+     return count;
+  }
+
+
 } // end of namespace listutils

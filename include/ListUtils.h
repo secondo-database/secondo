@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 #include "NestedList.h"
+#include <set>
 
 
 using namespace std;
@@ -51,6 +52,13 @@ Permforms a kind check for SPATIAL?D
 
 */
   bool isSpatialType(ListExpr arg);
+
+/*
+CHecks whether this list corresponds to a type in given kind
+
+*/
+  bool isKind(ListExpr t, const string& kind);
+
 
 
 /*
@@ -122,8 +130,12 @@ Checks for a numeric value
 
 */
  bool isNumeric(const ListExpr num);
+ 
+
+bool isSymbol(const ListExpr list);
 
  bool isSymbol(const ListExpr list, const string& v);
+
 
 
 /*
@@ -196,7 +208,20 @@ name of the attribute. Otherwise, 0 is returned.
 
 */
   int findType(ListExpr attrList, const ListExpr type, 
-                string& name, int start=1);
+               string& name, const int start=1);
+
+
+/*
+Removes all attributes with names in __names__ from the list. It returns the
+number of removed entries as well as the begin and the end of the resulting 
+list.
+
+Precondition: isAttrList(list)
+
+*/
+  int removeAttributes(ListExpr list, const set<string>& names, 
+                       ListExpr& head, ListExpr& last);
+
 
 
 } // end of namespace
