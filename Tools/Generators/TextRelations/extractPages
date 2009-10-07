@@ -1,4 +1,3 @@
-# !/bin/bash
 #
 # This script converts a given pdf file into a set of 
 # textfiles
@@ -28,6 +27,13 @@ if [ -z $1  ]; then
   echo "missing filename" >&2
   showUsage
   exit 1
+fi
+
+
+GS=gs
+
+if [ $SECONDO_PLATFORM == "win32" ]; then
+  GS=gswin32c.exe
 fi
 
 SECONDO="false"
@@ -76,7 +82,7 @@ while [ "$PAGE" -le "$PAGENUMBER" ]; do
   else
       FILENAME="$BASEFILE""_P_""$PAGE"".pdf"
      # ectract single page as pdf
-      psselect -p$PAGE $PSFILE | gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -sOutputFile=$FILENAME -q -     
+      psselect -p$PAGE $PSFILE | $GS -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -sOutputFile=$FILENAME -q -     
       echo "(" # begin tuple
       echo " \"$INFILE\" " # name of the file
       echo " FALSE "       # not a double page
@@ -99,7 +105,7 @@ while [ "$PAGE" -le "$PAGENUMBER" ]; do
       pdftotext -f $PAGE -l $PAGE2 $INFILE -enc Latin1 -nopgbrk "$BASEFILE""_DP_""$PAGE""_""$PAGE2"".txt"
   else
       FILENAME="$BASEFILE""_DP_""$PAGE""_""$PAGE2"".pdf"
-      psselect -p"$PAGE""-""$PAGE2" $PSFILE | gs -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -sOutputFile=$FILENAME -q -     
+      psselect -p"$PAGE""-""$PAGE2" $PSFILE | $GS -sDEVICE=pdfwrite -dNOPAUSE -dBATCH -sOutputFile=$FILENAME -q -     
       echo "(" # begin tuple
       echo " \"$INFILE\" " # name of the file
       echo " TRUE "       # not a double page
