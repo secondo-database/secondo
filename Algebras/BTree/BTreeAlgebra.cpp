@@ -60,6 +60,7 @@ level remains. Models are also removed from type constructors.
 #include "TupleIdentifier.h"
 #include "Progress.h"
 #include "FTextAlgebra.h"
+#include "ListUtils.h"
 #include "NList.h"
 
 using namespace std;
@@ -827,116 +828,77 @@ cppbtree( "btree",         BTreeProp,
 */
 ListExpr CreateBTreeTypeMap(ListExpr args)
 {
-  string argstr;
-
-  CHECK_COND(nl->ListLength(args) == 2,
-             "Operator createbtree expects a list of length two");
-
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError("two arguments expected");
+  }
   ListExpr first = nl->First(args);
-
-  nl->WriteToString(argstr, first);
-  CHECK_COND( (   (!nl->IsAtom(first) &&
-             nl->IsEqual(nl->First(first), "rel") &&
-             IsRelDescription(first)
-                  )
-                ||
-      (!nl->IsAtom(first) &&
-             nl->IsEqual(nl->First(first), "stream") &&
-             (nl->ListLength(first) == 2) &&
-                   !nl->IsAtom(nl->Second(first)) &&
-       (nl->ListLength(nl->Second(first)) == 2) &&
-       nl->IsEqual(nl->First(nl->Second(first)), "tuple") &&
-             IsTupleDescription(nl->Second(nl->Second(first)))
-                  )
-              ),
-    "Operator createbtree expects as first argument a list with structure\n"
-    "rel(tuple ((a1 t1)...(an tn))) or stream (tuple ((a1 t1)...(an tn)))\n"
-    "Operator createbtree gets a list with structure '" + argstr + "'.");
-
   ListExpr second = nl->Second(args);
-  nl->WriteToString(argstr, second);
+  if(!listutils::isRelDescription(first) &&
+     !listutils::isTupleStream(first)){
+     return listutils::typeError("first arg is not a rel or a tuple stream");
+  }
 
-  CHECK_COND(nl->IsAtom(second) && nl->AtomType(second) == SymbolType,
-    "Operator createbtree expects as second argument an attribute name\n"
-    "bug gets '" + argstr + "'.");
+  if(nl->AtomType(second)!=SymbolType){
+    return listutils::typeError("second argument is not a valid attr name");
+  }
 
-  string attrName = nl->SymbolValue(second);
-  ListExpr tupleDescription = nl->Second(first),
-           attrList = nl->Second(tupleDescription);
+  string name = nl->SymbolValue(second);
 
-  nl->WriteToString(argstr, attrList);
   int attrIndex;
   ListExpr attrType;
-  CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType)) > 0,
-    "Operator createbtree expects as a second argument an attribute name\n"
-    "Attribute name '" + attrName + "' is not known.\n"
-    "Known Attribute(s): " + argstr);
-
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  nl->WriteToString(argstr, attrType);
-  CHECK_COND(nl->SymbolValue(attrType) == "string" ||
-             nl->SymbolValue(attrType) == "int" ||
-             nl->SymbolValue(attrType) == "real" ||
-             am->CheckKind("INDEXABLE", attrType, errorInfo),
-    "Operator createbtree expects as a second argument an attribute of types\n"
-    "int, real, string, or any attribute that implements the kind INDEXABLE\n"
-    "but gets '" + argstr + "'.");
-
-  if( nl->IsEqual(nl->First(first), "rel") )
-  {
-    return nl->ThreeElemList(
-        nl->SymbolAtom("APPEND"),
-        nl->OneElemList(
-          nl->IntAtom(attrIndex)),
-        nl->ThreeElemList(
-          nl->SymbolAtom("btree"),
-          tupleDescription,
-          attrType));
+  attrIndex = listutils::findAttribute(nl->Second(nl->Second(first)),
+                                       name,attrType);
+  if(attrIndex==0){
+    return listutils::typeError("attr name " + name + "not found in attr list");
   }
-  else // nl->IsEqual(nl->First(first), "stream")
-  {
+  
+  if(!listutils::isSymbol(attrType,"string") &&
+     !listutils::isSymbol(attrType,"int") &&
+     !listutils::isSymbol(attrType,"real") &&
+     !listutils::isKind(attrType,"INDEXABLE")){
+    return listutils::typeError("selected attribut not in kind INDEXABLE");
+  }
+
+  ListExpr tupleDescription = nl->Second(first);
+
+
+  if( listutils::isSymbol(nl->First(first),"rel") ) {
+    return nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+                              nl->OneElemList( nl->IntAtom(attrIndex)),
+                              nl->ThreeElemList( nl->SymbolAtom("btree"),
+                              tupleDescription,
+                              attrType));
+  } else { // nl->IsEqual(nl->First(first), "stream")
     // Find the attribute with type tid
-    ListExpr first, rest, newAttrList, lastNewAttrList;
-    int j, tidIndex = 0;
-    string type;
-    bool firstcall = true;
-
-    rest = attrList;
-    j = 1;
-    while (!nl->IsEmpty(rest))
-    {
-      first = nl->First(rest);
-      rest = nl->Rest(rest);
-
-      type = nl->SymbolValue(nl->Second(first));
-      if (type == "tid")
-      {
-        nl->WriteToString(argstr, attrList);
-        CHECK_COND(tidIndex == 0,
-          "Operator createbtree expects as first argument a stream with\n"
-          "one and only one attribute of type tid but gets\n'" + argstr + "'.");
-        tidIndex = j;
-      }
-      else
-      {
-        if (firstcall)
-        {
-          firstcall = false;
-          newAttrList = nl->OneElemList(first);
-          lastNewAttrList = newAttrList;
-        }
-        else
-        {
-          lastNewAttrList = nl->Append(lastNewAttrList, first);
-        }
-      }
-      j++;
+    string name;
+    
+    int tidIndex =listutils::findType(nl->Second(tupleDescription), 
+                                    nl->SymbolAtom("tid"),
+                                    name);
+    if(tidIndex ==0){
+     return listutils::typeError("attr list does not contain a tid attribute");
     }
-    CHECK_COND( tidIndex != 0,
-      "Operator createbtree expects as first argument a stream with\n"
-      "one and only one attribute of type tid but gets\n'" + argstr + "'.");
+    string name2;
+    if(listutils::findType(nl->Second(tupleDescription),
+                           nl->SymbolAtom("tid"),
+                           name2,
+                           tidIndex+1)>0){
+      return listutils::typeError("multiple tid attributes found");
+    }
+    set<string> a;
+    a.insert(name);
+    ListExpr newAttrList;
+    ListExpr lastAttrList;
+    if(listutils::removeAttributes(nl->Second(tupleDescription),
+                                   a, newAttrList, lastAttrList)!=1){
+     return listutils::typeError("problem in removing attribute " + name);
+    }
 
-    return nl->ThreeElemList(
+    if(nl->IsEmpty(newAttrList)){
+      return listutils::typeError("the resulting attr list would be empty");
+    }
+
+    ListExpr res =  nl->ThreeElemList(
         nl->SymbolAtom("APPEND"),
         nl->TwoElemList(
           nl->IntAtom(attrIndex),
@@ -947,6 +909,8 @@ ListExpr CreateBTreeTypeMap(ListExpr args)
             nl->SymbolAtom("tuple"),
             newAttrList),
           attrType));
+    cout << "out = " << nl->ToString(res) << endl;
+    return res; 
   }
 }
 
@@ -1098,12 +1062,6 @@ int nKeyArguments(int opid)
   return opid == RANGE ? 2 : 1;
 }
 
-char* errorMessages[] =
-  { "Incorrect input for operator leftrange.",
-    "Incorrect input for operator rightrange.",
-    "Incorrect input for operator range.",
-    "Incorrect input for operator exactmatch." };
-
 /*
 6.2.1 Type mapping function of operators ~range~, ~leftrange~,
 ~rightrange~ and ~exactmatch~
@@ -1112,18 +1070,16 @@ char* errorMessages[] =
 template<int operatorId>
 ListExpr IndexQueryTypeMap(ListExpr args)
 {
-  char* errmsg = errorMessages[operatorId];
   int nKeys = nKeyArguments(operatorId);
 
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == nKeys + 2, errmsg);
-
+  int expLen = nKeys +2;
+  if(nl->ListLength(args)!=expLen){
+    return listutils::typeError("wrong number of arguments");
+  }
   /* Split argument in three parts */
   ListExpr btreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
   ListExpr keyDescription = nl->Third(args);
-
   ListExpr secondKeyDescription = nl->TheEmptyList();
   if(nKeys == 2)
   {
@@ -1131,75 +1087,43 @@ ListExpr IndexQueryTypeMap(ListExpr args)
   }
 
   /* find out type of key */
-  CHECK_COND(nl->IsAtom(keyDescription), errmsg);
-  CHECK_COND(nl->AtomType(keyDescription) == SymbolType, errmsg);
-
+  if(!listutils::isSymbol(keyDescription)){
+    return listutils::typeError("invalid key");
+  }
   /* find out type of second key (if any) */
-  if(nKeys == 2)
-  {
-    CHECK_COND(nl->IsAtom(secondKeyDescription), errmsg);
-    CHECK_COND(nl->AtomType(secondKeyDescription) == SymbolType, errmsg);
-    CHECK_COND(nl->Equal(keyDescription, secondKeyDescription), errmsg);
+  if(nKeys == 2) {
+    if(!nl->Equal(keyDescription, secondKeyDescription)){
+       return listutils::typeError("different key types"); 
+    }
   }
 
   /* handle btree part of argument */
-  CHECK_COND(!nl->IsEmpty(btreeDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(btreeDescription), errmsg);
-  CHECK_COND(nl->ListLength(btreeDescription) == 3, errmsg);
+  if(!listutils::isBTreeDescription(btreeDescription)){
+    return listutils::typeError("not a btree");
+  } 
 
-  ListExpr btreeSymbol = nl->First(btreeDescription);;
-  ListExpr btreeTupleDescription = nl->Second(btreeDescription);
   ListExpr btreeKeyType = nl->Third(btreeDescription);
 
   /* check that the type of given key equals the btree key type */
-  CHECK_COND(nl->Equal(keyDescription, btreeKeyType), errmsg);
-
-  /* handle btree type constructor */
-  CHECK_COND(nl->IsAtom(btreeSymbol), errmsg);
-  CHECK_COND(nl->AtomType(btreeSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(btreeSymbol) == "btree", errmsg);
-
-  CHECK_COND(!nl->IsEmpty(btreeTupleDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(btreeTupleDescription), errmsg);
-  CHECK_COND(nl->ListLength(btreeTupleDescription) == 2, errmsg);
-  ListExpr btreeTupleSymbol = nl->First(btreeTupleDescription);;
-  ListExpr btreeAttrList = nl->Second(btreeTupleDescription);
-
-  CHECK_COND(nl->IsAtom(btreeTupleSymbol), errmsg);
-  CHECK_COND(nl->AtomType(btreeTupleSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(btreeTupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(btreeAttrList), errmsg);
-
-  /* handle rel part of argument */
-  CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(relDescription), errmsg);
-  CHECK_COND(nl->ListLength(relDescription) == 2, errmsg);
-
-  ListExpr relSymbol = nl->First(relDescription);;
-  ListExpr tupleDescription = nl->Second(relDescription);
-
-  CHECK_COND(nl->IsAtom(relSymbol), errmsg);
-  CHECK_COND(nl->AtomType(relSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(relSymbol) == "rel", errmsg);
-
-  CHECK_COND(!nl->IsEmpty(tupleDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(tupleDescription), errmsg);
-  CHECK_COND(nl->ListLength(tupleDescription) == 2, errmsg);
-  ListExpr tupleSymbol = nl->First(tupleDescription);
-  ListExpr attrList = nl->Second(tupleDescription);
-
-  CHECK_COND(nl->IsAtom(tupleSymbol), errmsg);
-  CHECK_COND(nl->AtomType(tupleSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(tupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(attrList), errmsg);
+  if(!nl->Equal(keyDescription, btreeKeyType)){
+    return listutils::typeError("key and btree key are different");
+  }
+  
+  if(!listutils::isRelDescription(relDescription)){
+    return listutils::typeError("not a relation");
+  }
 
   /* check that btree and rel have the same associated tuple type */
-  CHECK_COND(nl->Equal(attrList, btreeAttrList), errmsg);
+  ListExpr trel = nl->Second(relDescription);
+  ListExpr rtree = nl->Second(btreeDescription);
+  if(!nl->Equal(trel, rtree)){
+    return listutils::typeError("different types for relation and btree");
+  }
 
   ListExpr resultType =
     nl->TwoElemList(
       nl->SymbolAtom("stream"),
-      tupleDescription);
+      trel);
 
   return resultType;
 }
@@ -1689,11 +1613,6 @@ Therefore, they do not need a relation argument.
 
 */
 
-char* errorMessagesS[] =
-  { "Incorrect input for operator leftrangeS",
-    "Incorrect input for operator rightrangeS",
-    "Incorrect input for operator rangeS",
-    "Incorrect input for operator exactmatchS" };
 
 /*
 6.3.1 Type mapping function of operators ~rangeS~, ~leftrangeS~,
@@ -1703,17 +1622,15 @@ char* errorMessagesS[] =
 template<int operatorId>
 ListExpr IndexQuerySTypeMap(ListExpr args)
 {
-  char* errmsg = errorMessagesS[operatorId];
   int nKeys = nKeyArguments(operatorId);
-
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == nKeys + 1, errmsg);
-
+  int expLength = nKeys + 1;
+  if(nl->ListLength(args)!=expLength){
+    return listutils::typeError("wrong number of arguments");
+  }
+  
   /* Split argument in two/three parts */
   ListExpr btreeDescription = nl->First(args);
   ListExpr keyDescription = nl->Second(args);
-
   ListExpr secondKeyDescription = nl->TheEmptyList();
   if(nKeys == 2)
   {
@@ -1721,44 +1638,30 @@ ListExpr IndexQuerySTypeMap(ListExpr args)
   }
 
   /* find out type of key */
-  CHECK_COND(nl->IsAtom(keyDescription), errmsg);
-  CHECK_COND(nl->AtomType(keyDescription) == SymbolType, errmsg);
+  if(!listutils::isSymbol(keyDescription)){
+    return listutils::typeError("invalid key");
+  }
 
   /* find out type of second key (if any) */
   if(nKeys == 2)
   {
-    CHECK_COND(nl->IsAtom(secondKeyDescription), errmsg);
-    CHECK_COND(nl->AtomType(secondKeyDescription) == SymbolType, errmsg);
-    CHECK_COND(nl->Equal(keyDescription, secondKeyDescription), errmsg);
+    if(!listutils::isSymbol(secondKeyDescription)){
+      return listutils::typeError("second key is invalid");
+    }
+    if(!nl->Equal(keyDescription, secondKeyDescription)){
+      return listutils::typeError("different keys found");
+    }
   }
 
   /* handle btree part of argument */
-  CHECK_COND(!nl->IsEmpty(btreeDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(btreeDescription), errmsg);
-  CHECK_COND(nl->ListLength(btreeDescription) == 3, errmsg);
-
-  ListExpr btreeSymbol = nl->First(btreeDescription);;
-  ListExpr btreeTupleDescription = nl->Second(btreeDescription);
+  if(!listutils::isBTreeDescription(btreeDescription)){
+    return listutils::typeError("firts argument is not a btree");
+  }
   ListExpr btreeKeyType = nl->Third(btreeDescription);
 
-  /* check that the type of given key equals the btree key type */
-  CHECK_COND(nl->Equal(keyDescription, btreeKeyType), errmsg);
-
-  /* handle btree type constructor */
-  CHECK_COND(nl->IsAtom(btreeSymbol), errmsg);
-  CHECK_COND(nl->AtomType(btreeSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(btreeSymbol) == "btree", errmsg);
-
-  CHECK_COND(!nl->IsEmpty(btreeTupleDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(btreeTupleDescription), errmsg);
-  CHECK_COND(nl->ListLength(btreeTupleDescription) == 2, errmsg);
-  ListExpr btreeTupleSymbol = nl->First(btreeTupleDescription);;
-  ListExpr btreeAttrList = nl->Second(btreeTupleDescription);
-
-  CHECK_COND(nl->IsAtom(btreeTupleSymbol), errmsg);
-  CHECK_COND(nl->AtomType(btreeTupleSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(btreeTupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(btreeAttrList), errmsg);
+  if(!nl->Equal(btreeKeyType, keyDescription)){
+    return listutils::typeError("btree has another keytype than given");
+  }
 
   /* return result type */
 
@@ -2049,122 +1952,54 @@ Type mapping ~updatebtree~
 
 ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName )
 {
-  ListExpr rest,next,listn,lastlistn,restBTreeAttrs,oldAttribute,outList;
-  string argstr, argstr2, oldName;
-
 
   /* Split argument in three parts */
   ListExpr streamDescription = nl->First(args);
   ListExpr btreeDescription = nl->Second(args);
   ListExpr nameOfKeyAttribute = nl->Third(args);
 
-  // Test stream
-  nl->WriteToString(argstr, streamDescription);
-        CHECK_COND(nl->ListLength(streamDescription) == 2  &&
-          (TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream) &&
-          (nl->ListLength(nl->Second(streamDescription)) == 2) &&
-          (TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription)))==tuple)
-          &&
-          (nl->ListLength(nl->Second(streamDescription)) == 2) &&
-          (IsTupleDescription(nl->Second(nl->Second(streamDescription)))),
-          "Operator " + opName +
-          " expects as first argument a list with structure "
-          "(stream (tuple ((a1 t1)...(an tn)(TID tid)))\n "
-          "Operator " + opName + " gets as first argument '" + argstr + "'.");
+  
+  if(!listutils::isTupleStream(streamDescription)){
+   return listutils::typeError("first arguments must be a tuple stream");
+  }
 
   // Proceed to last attribute of stream-tuples
-  rest = nl->Second(nl->Second(streamDescription));
+  ListExpr rest = nl->Second(nl->Second(streamDescription));
+  ListExpr next;
   while (!(nl->IsEmpty(rest)))
   {
     next = nl->First(rest);
     rest = nl->Rest(rest);
   }
 
-  CHECK_COND(!(nl->IsAtom(next)) &&
-             (nl->IsAtom(nl->Second(next)))&&
-             (nl->AtomType(nl->Second(next)) == SymbolType) &&
-              (nl->SymbolValue(nl->Second(next)) == "tid") ,
-      "Operator " + opName +
-          ": Type of last attribute of tuples of the inputstream must be tid");
-  // Test btree
+  if(!listutils::isSymbol(nl->Second(next),"tid")){
+   return listutils::typeError("last attribut must be of type tid");
+  } 
 
-  /* handle btree part of argument */
-  CHECK_COND(!nl->IsEmpty(btreeDescription),
-          "Operator " + opName +
-          ": Description for the btree may not be empty");
-  CHECK_COND(!nl->IsAtom(btreeDescription),
-          "Operator " + opName +
-          ": Description for the btree may not be an atom");
-  CHECK_COND(nl->ListLength(btreeDescription) == 3,
-          "Operator " + opName +
-          ": Description for the btree must consist of three parts");
+  if(!listutils::isBTreeDescription(btreeDescription)){
+    return listutils::typeError("second argument is not a valid btree");
+  }
 
-  ListExpr btreeSymbol = nl->First(btreeDescription);;
-  ListExpr btreeTupleDescription = nl->Second(btreeDescription);
-  ListExpr btreeKeyType = nl->Third(btreeDescription);
+  if(!listutils::isSymbol(nl->Third(btreeDescription))){
+    return listutils::typeError("invalid key Type in btree");
+  }
 
-  /* handle btree type constructor */
-  CHECK_COND(nl->IsAtom(btreeSymbol),
-          "Operator " + opName +
-          ": First part of the btree-description has to be 'btree'");
-  CHECK_COND(nl->AtomType(btreeSymbol) == SymbolType,
-          "Operator " + opName +
-          ": First part of the btree-description has to be 'btree' ");
-  CHECK_COND(nl->SymbolValue(btreeSymbol) == "btree",
-          "Operator " + opName +
-          ": First part of the btree-description has to be 'btree' ");
+  if(!listutils::isSymbol(nameOfKeyAttribute)){
+    return listutils::typeError("invalid attribute name");
+  }
 
-  /* handle btree tuple description */
-  CHECK_COND(!nl->IsEmpty(btreeTupleDescription),
-          "Operator " + opName + ": Second part of the "
-          "btree-description has to be a tuple-description ");
-  CHECK_COND(!nl->IsAtom(btreeTupleDescription),
-          "Operator " + opName + ": Second part of the "
-          "btree-description has to be a tuple-description ");
-  CHECK_COND(nl->ListLength(btreeTupleDescription) == 2,
-          "Operator " + opName + ": Second part of the "
-          "btree-description has to be a tuple-description ");
-  ListExpr btreeTupleSymbol = nl->First(btreeTupleDescription);;
-  ListExpr btreeAttrList = nl->Second(btreeTupleDescription);
 
-  CHECK_COND(nl->IsAtom(btreeTupleSymbol),
-          "Operator " + opName + ": Second part of the "
-          "btree-description has to be a tuple-description ");
-  CHECK_COND(nl->AtomType(btreeTupleSymbol) == SymbolType,
-          "Operator " + opName + ": Second part of the "
-          "btree-description has to be a tuple-description ");
-  CHECK_COND(nl->SymbolValue(btreeTupleSymbol) == "tuple",
-           "Operator " + opName + ": Second part of the "
-           "btree-description has to be a tuple-description ");
-  CHECK_COND(IsTupleDescription(btreeAttrList),
-           "Operator " + opName + ": Second part of the "
-           "btree-description has to be a tuple-description ");
+  rest = nl->Second(nl->Second(streamDescription)); // get attrlist
 
-  /* Handle key-part of btreedescription */
-  CHECK_COND(nl->IsAtom(btreeKeyType),
-           "Operator " + opName + ": Key of the btree has to be an atom");
-  CHECK_COND(nl->AtomType(btreeKeyType) == SymbolType,
-           "Operator " + opName + ": Key of the btree has to be an atom");
+  if(nl->ListLength(rest)<2){
+    return listutils::typeError("stream must contains at least 2 attributes");
+  }
 
-  // Handle third argument which shall be the name of the attribute of
-  // the streamtuples that serves as the key for the btree
-  // Later on it is checked if this name is an attributename of the
-  // inputtuples
-  CHECK_COND(nl->IsAtom(nameOfKeyAttribute),
-           "Operator " + opName + ": Name of the "
-           "key-attribute of the streamtuples has to be an atom");
-  CHECK_COND(nl->AtomType(nameOfKeyAttribute) == SymbolType,
-           "Operator " + opName + ": Name of the key-attribute "
-           "of the streamtuples has to be an atom");
+  ListExpr btreeAttrList = nl->Second(nl->Second(btreeDescription));
 
-  //Test if stream-tupledescription fits to btree-tupledescription
-  rest = nl->Second(nl->Second(streamDescription));
-  CHECK_COND(nl->ListLength(rest) > 1 ,
-           "Operator " + opName + ": There must be at least two "
-           "attributes in the tuples of the tuple-stream");
-  // For updates the inputtuples need to carry the old attributevalues
-  // after the new values but their names with an additional _old at
-  // the end
+  ListExpr listn;
+  ListExpr lastlistn;
+  ListExpr restBTreeAttrs;
   if (opName == "updatebtree")
   {
     listn = nl->OneElemList(nl->First(rest));
@@ -2176,25 +2011,25 @@ ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName )
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    CHECK_COND(nl->Equal(listn,btreeAttrList),
-                  "Operator " + opName + ":  First part of the "
-                  "tupledescription of the stream has to be the same as the "
-                  "tupledescription of the btree");
-    // Compare second part of the streamdescription
+    if(!nl->Equal(listn, btreeAttrList)){
+      return listutils::typeError("diffent type in btree and tuple stream");
+    }
+
     restBTreeAttrs = btreeAttrList;
-    while (nl->ListLength(rest) >  1)
-    {
+    while (nl->ListLength(rest) >  1) {
+      string oldName;
       nl->WriteToString(oldName,
                         nl->First(nl->First(restBTreeAttrs)));
       oldName += "_old";
-      oldAttribute = nl->TwoElemList(nl->SymbolAtom(oldName),
+      ListExpr oldAttribute = nl->TwoElemList(nl->SymbolAtom(oldName),
                                      nl->Second(nl->First(restBTreeAttrs)));
-      CHECK_COND(nl->Equal(oldAttribute,nl->First(rest)),
-        "Operator " + opName + ":  Second part of the "
-        "tupledescription of the stream without the last "
-        "attribute has to be the same as the tuple"
-        "description of the btree except for that the "
-        "attributenames carry an additional '_old.'");
+      if(!nl->Equal(oldAttribute, nl->First(rest))){
+         return listutils::typeError("Second part of the "
+                   "tupledescription of the stream without the last "
+                   "attribute has to be the same as the tuple"
+                   "description of the btree except for that the "
+                   "attributenames carry an additional '_old.'");
+      }
       rest = nl->Rest(rest);
       restBTreeAttrs = nl->Rest(restBTreeAttrs);
     }
@@ -2202,20 +2037,20 @@ ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName )
   // For insert and delete check whether tupledescription of the stream
   // without the last attribute is the same as the tupledescription
   // of the btree
-  else
-  {
+  else {
     listn = nl->OneElemList(nl->First(rest));
     lastlistn = listn;
     rest = nl->Rest(rest);
-    while (nl->ListLength(rest) > 1)
-    {
+    while (nl->ListLength(rest) > 1) {
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    CHECK_COND(nl->Equal(listn,btreeAttrList),
-                  "Operator " + opName + ": tupledescription of the stream "
-                  "without the last attribute has to be the same as the "
-                  "tupledescription of the btree");
+    if(!nl->Equal(listn, btreeAttrList)){
+      return listutils::typeError( "tupledescription of the stream "
+                   "without the last attribute has to be the same as the "
+                   "tupledescription of the btree");
+
+    }
   }
 
 
@@ -2223,19 +2058,16 @@ ListExpr allUpdatesBTreeTypeMap( const ListExpr& args, string opName )
   // attributlist of the streamtuples
   string attrname = nl->SymbolValue(nameOfKeyAttribute);
   ListExpr attrtype;
-  int j = FindAttribute(listn,attrname,attrtype);
-  CHECK_COND(j != 0, "Operator " + opName +
-          ": Name of the attribute that shall contain the keyvalue for the"
-          "btree was not found as a name of the attributes of the tuples of "
-          "the inputstream");
-  //Test if type of the attriubte which shall be taken as a key is the
-  //same as the keytype of the btree
-  CHECK_COND(nl->Equal(attrtype,btreeKeyType), "Operator " + opName +
-          ": Type of the attribute that shall contain the keyvalue for the"
-          "btree is not the same as the keytype of the btree");
-  //Append the index of the attribute over which the btree is built to
-  //the resultlist.
-  outList = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  int j = listutils::findAttribute(listn,attrname,attrtype);
+  if(j==0){
+    return listutils::typeError("attribute name not found");
+  }
+  ListExpr btreeKeyType = nl->Third(btreeDescription);
+  if(!nl->Equal(attrtype, btreeKeyType)){
+    return listutils::typeError("key attribute type "
+                                "different from indexed type");
+  }
+  ListExpr outList = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                           nl->OneElemList(nl->IntAtom(j)),streamDescription);
   return outList;
 }
