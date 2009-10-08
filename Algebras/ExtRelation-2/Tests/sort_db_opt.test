@@ -42,9 +42,9 @@
 #setup ExtRelation2test StandardAlgebra RelationAlgebra ExtRelation2Algebra
 
 open database opt;
-save plz to '$(HOME)/plz
-save thousand to '$(HOME)/thousand
-close database
+save plz to '$(HOME)/plz';
+save thousand to '$(HOME)/thousand';
+close database;
 
 create database sort_test;
 open database sort_test;
