@@ -516,6 +516,12 @@ HybridHashJoinAlgorithm::~HybridHashJoinAlgorithm()
     delete pmB;
     pmB = 0;
   }
+
+  if ( tupleA )
+  {
+    tupleA->DeleteIfAllowed();
+    tupleA = 0;
+  }
 }
 
 void HybridHashJoinAlgorithm::setIoBuffer(size_t bytes)
