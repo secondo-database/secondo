@@ -1658,6 +1658,7 @@ class ExtRelation2Algebra : public Algebra
    extrel2::extrelsortby2with.EnableProgress();
    extrel2::extrelhybridhashjoin.EnableProgress();
    extrel2::extrelhybridhashjoinP.EnableProgress();
+   extrel2::extrelsortmergejoin2.EnableProgress();
 #endif
   }
 
