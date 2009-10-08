@@ -140,17 +140,27 @@ bool isBTreeDescription(ListExpr btree){
          isDATA(nl->Third(btree));
 }
 
+  bool isHashDescription(ListExpr hash){
+    if(nl->ListLength(hash)!=3){
+      return false;
+    }
+    return isSymbol(nl->First(hash),"hash") &&
+         isTupleDescription(nl->Second(hash)) &&
+         isDATA(nl->Third(hash));
+  }
+
 
 /*
 Checks for valid description of a tuple.
 
 */ 
 
-  bool isTupleDescription(ListExpr tuple){
+  bool isTupleDescription(ListExpr tuple, const bool ismtuple /*=false*/){
     if(nl->ListLength(tuple)!=2){
        return false;
     }
-    if(!nl->IsEqual(nl->First(tuple),"tuple")){
+    string tuplesym = ismtuple?"mtuple":"tuple";
+    if(!isSymbol(nl->First(tuple),tuplesym)){
        return false;
     }
     return isAttrList(nl->Second(tuple));
@@ -236,6 +246,42 @@ Checks whether the list corresponds to a given symbol.
    return nl->IsAtom(list) && (nl->AtomType(list)==SymbolType);
  }
 
+ bool isASymbolIn(const ListExpr list, const set<string>& s){
+   if(!isSymbol(list)){
+     return false;
+   }
+   string v = nl->SymbolValue(list);
+   return s.find(v)!=s.end();
+ }
+
+/*
+Concatenates l1 and l2.
+
+*/
+ ListExpr concat(ListExpr l1, ListExpr l2){
+   assert(nl->AtomType(l1) == NoAtom);
+   assert(nl->AtomType(l2) == NoAtom);
+   if(nl->IsEmpty(l1)){
+     return l2;
+   }
+   ListExpr res = nl->OneElemList(nl->First(l1));
+   l1 = nl->Rest(l1);
+   ListExpr last = res;
+   while(!nl->IsEmpty(l1)){
+     last = nl->Append(last, nl->First(l1));
+     l1 = nl->Rest(l1);
+   }
+   while(!nl->IsEmpty(l2)){
+     last = nl->Append(last, nl->First(l2));
+     l2 = nl->Rest(l2);
+   }
+   return res;
+ }
+
+ 
+
+
+
 /*
 Returns the keytype fo an rtree description.
 
@@ -265,15 +311,22 @@ Checks for a valid relation description.
 
 */
   bool isRelDescription(ListExpr rel, const bool trel /*=false*/){
+    string relsymb = trel?"trel":"rel";
+    return isRelDescription2(rel, relsymb);
+  }
+
+
+  bool isRelDescription2(ListExpr rel, const string& relsymb){
     if(nl->ListLength(rel)!=2){
        return false;
     }
-    string relsymb = trel?"trel":"rel";
-    if(!nl->IsEqual(nl->First(rel),relsymb)){
+    if(!isSymbol(nl->First(rel),relsymb)){
        return false;
     }
-    return isTupleDescription(nl->Second(rel));   
+    bool mtuple = relsymb=="mrel";
+    return isTupleDescription(nl->Second(rel),mtuple);   
   }
+
 
 /*
 Checks for a tuple stream

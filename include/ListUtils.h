@@ -112,10 +112,16 @@ Checks for a valid btree description.
   bool isBTreeDescription(ListExpr btree);
 
 /*
+ Checks for a valid hash table
+
+*/
+  bool isHashDescription(ListExpr hash);
+
+/*
 Checks for a valid tuple description
 
 */
-  bool isTupleDescription(ListExpr tuple);
+  bool isTupleDescription(ListExpr tuple, const bool isMtuple = false);
 
 
 /*
@@ -132,9 +138,11 @@ Checks for a numeric value
  bool isNumeric(const ListExpr num);
  
 
-bool isSymbol(const ListExpr list);
+ bool isSymbol(const ListExpr list);
 
  bool isSymbol(const ListExpr list, const string& v);
+
+ bool isASymbolIn(const ListExpr list, const set<string>& s);
 
 
 
@@ -176,6 +184,9 @@ Checks for a valid description of a relation
 
 */
   bool isRelDescription(ListExpr rel, const bool trel =false);
+
+  bool isRelDescription2(ListExpr rel, const string& reltype);
+
 
 /*
 Checks for a tuple stream
@@ -222,6 +233,9 @@ Precondition: isAttrList(list)
   int removeAttributes(ListExpr list, const set<string>& names, 
                        ListExpr& head, ListExpr& last);
 
+
+
+  ListExpr concat(ListExpr l1, ListExpr l2);
 
 
 } // end of namespace
