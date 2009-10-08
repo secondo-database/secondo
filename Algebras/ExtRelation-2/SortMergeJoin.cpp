@@ -108,28 +108,34 @@ SortMergeJoinLocalInfo::~SortMergeJoinLocalInfo()
     sliA = 0;
   }
 
-  if ( sliA )
+  if ( sliB )
   {
     delete sliB;
     sliB = 0;
   }
 
-  if ( sliA )
+  if ( liA )
   {
     delete liA;
     liA = 0;
   }
 
-  if ( sliA )
+  if ( liB )
   {
     delete liB;
     liB = 0;
   }
 
-  if ( sliA )
+  if ( grpB )
   {
     delete grpB;
     grpB = 0;
+  }
+
+  if ( iter )
+  {
+    delete iter;
+    iter = 0;
   }
 
   resultTupleType->DeleteIfAllowed();

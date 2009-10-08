@@ -103,7 +103,6 @@ have been processed the method returns 0.
       {
         Tuple* result = new Tuple( resultTupleType );
         Concat( ptA.tuple, t, result );
-        t->DeleteIfAllowed();
 
         return result;
       }
@@ -124,16 +123,16 @@ have been processed the method returns 0.
       if (BOTH_B)
       {
         a = static_cast<Attribute*>
-              ( t1->GetAttribute(attrIndexB) );
+              ( t1->GetAttribute(attrIndexB-1) );
       }
       else
       {
         a = static_cast<Attribute*>
-              ( t1->GetAttribute(attrIndexA) );
+              ( t1->GetAttribute(attrIndexA-1) );
       }
 
       Attribute* b = static_cast<Attribute*>
-                        ( t2->GetAttribute(attrIndexB) );
+                        ( t2->GetAttribute(attrIndexB-1) );
 
       /* tuples with NULL-Values in the join attributes
          are never matched with other tuples. */
@@ -152,8 +151,10 @@ have been processed the method returns 0.
         cmsg.info()
           << "CompareTuples:" << endl
           << "  BOTH_B = " << BOTH_B << endl
-          << "  tuple_1  = " << *t1 << endl
-          << "  tuple_2  = " << *t2 << endl
+          << "  tuple_1  = " << *t1 << " (Ref: "
+          << t1->GetNumOfRefs() << ")" << endl
+          << "  tuple_2  = " << *t2 << " (Ref: "
+          << t2->GetNumOfRefs() << "(" << endl
           << "  cmp(t1,t2) = " << cmp << endl;
         cmsg.send();
       }
