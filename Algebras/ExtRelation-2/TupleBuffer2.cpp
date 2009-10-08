@@ -171,6 +171,8 @@ void extrel2::TupleBuffer2::Clear()
 {
   while( !memoryBuffer.empty() )
   {
+    Tuple* t = memoryBuffer.front();
+    t->DeleteIfAllowed();
     memoryBuffer.pop();
   }
 
@@ -202,6 +204,7 @@ void extrel2::TupleBuffer2::AppendTuple(Tuple* t)
     if( totalExtSize + t->GetExtSize() <= MAX_MEMORY_SIZE )
     {
       // insert new tuple at back of FIFO queue
+      t->IncReference();
       memoryBuffer.push(t);
     }
     else
@@ -236,6 +239,7 @@ void extrel2::TupleBuffer2::AppendTuple(Tuple* t)
         memoryBuffer.pop();
 
         // insert new tuple at back of FIFO queue
+        t->IncReference();
         memoryBuffer.push(t);
       }
       else
@@ -258,6 +262,7 @@ void extrel2::TupleBuffer2::AppendTuple(Tuple* t)
       memoryBuffer.pop();
 
       // insert new tuple at back of FIFO queue
+      t->IncReference();
       memoryBuffer.push(t);
     }
     else
