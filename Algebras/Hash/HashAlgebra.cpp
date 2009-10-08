@@ -51,6 +51,7 @@ using namespace std;
 #include "Progress.h"
 #include "../BTree/BTreeAlgebra.h"
 #include "FTextAlgebra.h"
+#include "ListUtils.h"
 
 #include <iostream>
 #include <string>
@@ -512,63 +513,43 @@ cpphash( "hash",         HashProp,
 */
 ListExpr CreateHashTypeMap(ListExpr args)
 {
-  string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 2,
-             "Operator createhash expects a list of length two");
+  string err = "rel(tuple) x attr_name or stream(tuple) x attr_name expected";
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError(err + "( wrong number of arguments)");
+  }
 
   ListExpr first = nl->First(args);
+  ListExpr nameL = nl->Second(args);
+  if(!listutils::isRelDescription(first) &&
+     !listutils::isTupleStream(first)){
+    return listutils::typeError(err);
+  }
+  if(!listutils::isSymbol(nameL)){
+    return listutils::typeError(err + "( invalid attr name)");
+  }  
 
-  nl->WriteToString(argstr, first);
-  CHECK_COND( (   (!nl->IsAtom(first) &&
-             nl->IsEqual(nl->First(first), "rel") &&
-             IsRelDescription(first)
-                  )
-                ||
-      (!nl->IsAtom(first) &&
-             nl->IsEqual(nl->First(first), "stream") &&
-             (nl->ListLength(first) == 2) &&
-                   !nl->IsAtom(nl->Second(first)) &&
-       (nl->ListLength(nl->Second(first)) == 2) &&
-       nl->IsEqual(nl->First(nl->Second(first)), "tuple") &&
-             IsTupleDescription(nl->Second(nl->Second(first)))
-                  )
-              ),
-    "Operator createhash expects as first argument a list with structure\n"
-    "rel(tuple ((a1 t1)...(an tn))) or stream (tuple ((a1 t1)...(an tn)))\n"
-    "Operator createhash gets a list with structure '" + argstr + "'.");
-
-  ListExpr second = nl->Second(args);
-  nl->WriteToString(argstr, second);
-
-  CHECK_COND(nl->IsAtom(second) && nl->AtomType(second) == SymbolType,
-    "Operator createhash expects as second argument an attribute name\n"
-    "bug gets '" + argstr + "'.");
-
-  string attrName = nl->SymbolValue(second);
-  ListExpr tupleDescription = nl->Second(first),
-           attrList = nl->Second(tupleDescription);
-
-  nl->WriteToString(argstr, attrList);
-  int attrIndex;
+  string attrName = nl->SymbolValue(nameL);
+  ListExpr tupleDescription = nl->Second(first);
+  ListExpr attrlist = nl->Second(tupleDescription);
+  
   ListExpr attrType;
-  CHECK_COND((attrIndex = FindAttribute(attrList, attrName, attrType)) > 0,
-    "Operator createhash expects as a second argument an attribute name\n"
-    "Attribute name '" + attrName + "' is not known.\n"
-    "Known Attribute(s): " + argstr);
+  int attrIndex = listutils::findAttribute(attrlist, attrName, attrType);
+  if(attrIndex==0){
+   return listutils::typeError(err + "( attribute not found )");
+  }
+ 
+  set<string> s;
+  s.insert("string");
+  s.insert("int");
+  s.insert("real");
 
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-  nl->WriteToString(argstr, attrType);
-  CHECK_COND(nl->SymbolValue(attrType) == "string" ||
-             nl->SymbolValue(attrType) == "int" ||
-             nl->SymbolValue(attrType) == "real" ||
-             am->CheckKind("INDEXABLE", attrType, errorInfo),
-    "Operator createhash expects as a second argument an attribute of types\n"
-    "int, real, string, or any attribute that implements the kind INDEXABLE\n"
-    "but gets '" + argstr + "'.");
+  if(!listutils::isASymbolIn(attrType,s) &&
+     !listutils::isKind(attrType,"INDEXABLE")){
+    return listutils::typeError(" attribute not indexable");
+  } 
 
-  if( nl->IsEqual(nl->First(first), "rel") )
-  {
+  if( nl->IsEqual(nl->First(first), "rel") ) {
     return nl->ThreeElemList(
         nl->SymbolAtom("APPEND"),
         nl->OneElemList(
@@ -577,50 +558,25 @@ ListExpr CreateHashTypeMap(ListExpr args)
           nl->SymbolAtom("hash"),
           tupleDescription,
           attrType));
-  }
-  else // nl->IsEqual(nl->First(first), "stream")
-  {
-    // Find the attribute with type tid
-    ListExpr first, rest, newAttrList, lastNewAttrList;
-    int j, tidIndex = 0;
-    string type;
-    bool firstcall = true;
-
-    rest = attrList;
-    j = 1;
-    while (!nl->IsEmpty(rest))
-    {
-      first = nl->First(rest);
-      rest = nl->Rest(rest);
-
-      type = nl->SymbolValue(nl->Second(first));
-      if (type == "tid")
-      {
-        nl->WriteToString(argstr, attrList);
-        CHECK_COND(tidIndex == 0,
-          "Operator createhash expects as first argument a stream with\n"
-          "one and only one attribute of type tid but gets\n'" + argstr + "'.");
-        tidIndex = j;
-      }
-      else
-      {
-        if (firstcall)
-        {
-          firstcall = false;
-          newAttrList = nl->OneElemList(first);
-          lastNewAttrList = newAttrList;
-        }
-        else
-        {
-          lastNewAttrList = nl->Append(lastNewAttrList, first);
-        }
-      }
-      j++;
+  } else { // nl->IsEqual(nl->First(first), "stream")
+    string name;
+    int tidIndex = listutils::findType(attrlist, nl->SymbolAtom("tid"), name);
+    if(tidIndex==0){
+      return listutils::typeError("stream must contain a tid attribute");
     }
-    CHECK_COND( tidIndex != 0,
-      "Operator createhash expects as first argument a stream with\n"
-      "one and only one attribute of type tid but gets\n'" + argstr + "'.");
-
+    string name2;
+    int tidpos2 = listutils::findType(attrlist, nl->SymbolAtom("tid"),
+                                      name, tidIndex+1);
+    if(tidpos2!=0){
+      return listutils::typeError("multiple tid attributes found ");
+    }
+    set<string> k;
+    k.insert(name);
+    ListExpr newAttrList;
+    ListExpr last;
+    if(listutils::removeAttributes(attrlist, k, newAttrList,last)!=1){
+      return listutils::typeError("error in removing tid attribute");
+    }
     return nl->ThreeElemList(
         nl->SymbolAtom("APPEND"),
         nl->TwoElemList(
@@ -775,75 +731,31 @@ Operator createhash (
 */
 ListExpr HashExactMatchTypeMap(ListExpr args)
 {
-  const string errmsg = "Incorrect input for operator exactmatch.";
-  int nKeys = 1;
-
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == nKeys + 2, errmsg);
-
-  /* Split argument in three parts */
+  if(nl->ListLength(args)!=3){
+    return listutils::typeError("three arguments expected");
+  }
   ListExpr hashDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
   ListExpr keyDescription = nl->Third(args);
 
-  /* find out type of key */
-  CHECK_COND(nl->IsAtom(keyDescription), errmsg);
-  CHECK_COND(nl->AtomType(keyDescription) == SymbolType, errmsg);
+  string err = "hash x rel x key expected";
+  if(!listutils::isHashDescription(hashDescription) ||
+     !listutils::isRelDescription(relDescription) ||
+     !listutils::isSymbol(keyDescription)){
+    return listutils::typeError(err);
+  }
 
-  /* handle hash part of argument */
-  CHECK_COND(!nl->IsEmpty(hashDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(hashDescription), errmsg);
-  CHECK_COND(nl->ListLength(hashDescription) == 3, errmsg);
-
-  ListExpr hashSymbol = nl->First(hashDescription);;
-  ListExpr hashTupleDescription = nl->Second(hashDescription);
   ListExpr hashKeyType = nl->Third(hashDescription);
+  if(!nl->Equal(hashKeyType, keyDescription)){
+    return listutils::typeError("type conflict between keys");
+  }
 
-  /* check that the type of given key equals the hash key type */
-  CHECK_COND(nl->Equal(keyDescription, hashKeyType), errmsg);
-
-  /* handle hash type constructor */
-  CHECK_COND(nl->IsAtom(hashSymbol), errmsg);
-  CHECK_COND(nl->AtomType(hashSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(hashSymbol) == "hash", errmsg);
-
-  CHECK_COND(!nl->IsEmpty(hashTupleDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(hashTupleDescription), errmsg);
-  CHECK_COND(nl->ListLength(hashTupleDescription) == 2, errmsg);
-  ListExpr hashTupleSymbol = nl->First(hashTupleDescription);;
-  ListExpr hashAttrList = nl->Second(hashTupleDescription);
-
-  CHECK_COND(nl->IsAtom(hashTupleSymbol), errmsg);
-  CHECK_COND(nl->AtomType(hashTupleSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(hashTupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(hashAttrList), errmsg);
-
-  /* handle rel part of argument */
-  CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(relDescription), errmsg);
-  CHECK_COND(nl->ListLength(relDescription) == 2, errmsg);
-
-  ListExpr relSymbol = nl->First(relDescription);;
   ListExpr tupleDescription = nl->Second(relDescription);
-
-  CHECK_COND(nl->IsAtom(relSymbol), errmsg);
-  CHECK_COND(nl->AtomType(relSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(relSymbol) == "rel", errmsg);
-
-  CHECK_COND(!nl->IsEmpty(tupleDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(tupleDescription), errmsg);
-  CHECK_COND(nl->ListLength(tupleDescription) == 2, errmsg);
-  ListExpr tupleSymbol = nl->First(tupleDescription);
-  ListExpr attrList = nl->Second(tupleDescription);
-
-  CHECK_COND(nl->IsAtom(tupleSymbol), errmsg);
-  CHECK_COND(nl->AtomType(tupleSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(tupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(attrList), errmsg);
-
-  /* check that hash and rel have the same associated tuple type */
-  CHECK_COND(nl->Equal(attrList, hashAttrList), errmsg);
+  ListExpr relAttrList = nl->Second(nl->Second(relDescription));
+  ListExpr hashAttrList = nl->Second(nl->Second(hashDescription));
+  if(!nl->Equal(relAttrList, hashAttrList)){
+    return listutils::typeError("type conflicts between hash and relation");
+  }
 
   ListExpr resultType =
     nl->TwoElemList(
@@ -1160,50 +1072,25 @@ Operator hashexactmatch (
 */
 ListExpr HashExactMatchSTypeMap(ListExpr args)
 {
-  string errmsg = "Incorrect input for operator exactmatch.";
-  int nKeys = 1;
 
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == nKeys + 1, errmsg);
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError("tweo arguments expected");
+  }
+  string err = "hash x key expected";
+  ListExpr hash = nl->First(args);
+  ListExpr key = nl->Second(args);
 
-  /* Split argument in two/three parts */
-  ListExpr hashDescription = nl->First(args);
-  ListExpr keyDescription = nl->Second(args);
+  if(!listutils::isSymbol(key)){
+    return listutils::typeError(err + ": invalid key type");
+  }  
 
-  /* find out type of key */
-  CHECK_COND(nl->IsAtom(keyDescription), errmsg);
-  CHECK_COND(nl->AtomType(keyDescription) == SymbolType, errmsg);
+  if(!listutils::isHashDescription(hash)){
+    return listutils::typeError(err);
+  }
 
-  /* handle hash part of argument */
-  CHECK_COND(!nl->IsEmpty(hashDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(hashDescription), errmsg);
-  CHECK_COND(nl->ListLength(hashDescription) == 3, errmsg);
-
-  ListExpr hashSymbol = nl->First(hashDescription);;
-  ListExpr hashTupleDescription = nl->Second(hashDescription);
-  ListExpr hashKeyType = nl->Third(hashDescription);
-
-  /* check that the type of given key equals the hash key type */
-  CHECK_COND(nl->Equal(keyDescription, hashKeyType), errmsg);
-
-  /* handle hash type constructor */
-  CHECK_COND(nl->IsAtom(hashSymbol), errmsg);
-  CHECK_COND(nl->AtomType(hashSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(hashSymbol) == "hash", errmsg);
-
-  CHECK_COND(!nl->IsEmpty(hashTupleDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(hashTupleDescription), errmsg);
-  CHECK_COND(nl->ListLength(hashTupleDescription) == 2, errmsg);
-  ListExpr hashTupleSymbol = nl->First(hashTupleDescription);;
-  ListExpr hashAttrList = nl->Second(hashTupleDescription);
-
-  CHECK_COND(nl->IsAtom(hashTupleSymbol), errmsg);
-  CHECK_COND(nl->AtomType(hashTupleSymbol) == SymbolType, errmsg);
-  CHECK_COND(nl->SymbolValue(hashTupleSymbol) == "tuple", errmsg);
-  CHECK_COND(IsTupleDescription(hashAttrList), errmsg);
-
-  /* return result type */
+  if(!nl->Equal(nl->Third(hash),key)){
+   return listutils::typeError("type mismatch");
+  }
 
   return nl->TwoElemList(
           nl->SymbolAtom("stream"),
@@ -1359,124 +1246,53 @@ Type mapping ~updatehash~
 
 ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
 {
-  ListExpr rest,next,listn,lastlistn,restHashAttrs,oldAttribute,outList;
-  string argstr, argstr2, oldName;
-
+  if(nl->ListLength(args)!=3){
+    return listutils::typeError("three arguments expected");
+  }
 
   /* Split argument in three parts */
   ListExpr streamDescription = nl->First(args);
   ListExpr hashDescription = nl->Second(args);
   ListExpr nameOfKeyAttribute = nl->Third(args);
 
-  // Test stream
-  nl->WriteToString(argstr, streamDescription);
-        CHECK_COND(nl->ListLength(streamDescription) == 2  &&
-          (TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream) &&
-          (nl->ListLength(nl->Second(streamDescription)) == 2) &&
-          (TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription)))==tuple)
-          &&
-          (nl->ListLength(nl->Second(streamDescription)) == 2) &&
-          (IsTupleDescription(nl->Second(nl->Second(streamDescription)))),
-          "Operator " + opName +
-          " expects as first argument a list with structure "
-          "(stream (tuple ((a1 t1)...(an tn)(TID tid)))\n "
-          "Operator " + opName + " gets as first argument '" + argstr + "'.");
+  string err = "stream(tuple) x hash x attrname expected";
+
+  if(!listutils::isTupleStream(streamDescription) ||
+     !listutils::isHashDescription(hashDescription) ||
+     !listutils::isSymbol(nameOfKeyAttribute)){
+    return listutils::typeError(err);
+  }
 
   // Proceed to last attribute of stream-tuples
-  rest = nl->Second(nl->Second(streamDescription));
+  ListExpr next;
+  ListExpr rest = nl->Second(nl->Second(streamDescription));
   while (!(nl->IsEmpty(rest)))
   {
     next = nl->First(rest);
     rest = nl->Rest(rest);
   }
 
-  CHECK_COND(!(nl->IsAtom(next)) &&
-             (nl->IsAtom(nl->Second(next)))&&
-             (nl->AtomType(nl->Second(next)) == SymbolType) &&
-              (nl->SymbolValue(nl->Second(next)) == "tid") ,
-      "Operator " + opName +
-          ": Type of last attribute of tuples of the inputstream must be tid");
-  // Test hash
+  if(!listutils::isSymbol(nl->Second(next),"tid")){
+    return listutils::typeError("last attribute must be of type tid");
+  }
 
-  /* handle hash part of argument */
-  CHECK_COND(!nl->IsEmpty(hashDescription),
-          "Operator " + opName +
-          ": Description for the hash may not be empty");
-  CHECK_COND(!nl->IsAtom(hashDescription),
-          "Operator " + opName +
-          ": Description for the hash may not be an atom");
-  CHECK_COND(nl->ListLength(hashDescription) == 3,
-          "Operator " + opName +
-          ": Description for the hash must consist of three parts");
-
-  ListExpr hashSymbol = nl->First(hashDescription);
-  ListExpr hashTupleDescription = nl->Second(hashDescription);
-  ListExpr hashKeyType = nl->Third(hashDescription);
-
-  /* handle hash type constructor */
-  CHECK_COND(nl->IsAtom(hashSymbol),
-          "Operator " + opName +
-          ": First part of the hash-description has to be 'hash'");
-  CHECK_COND(nl->AtomType(hashSymbol) == SymbolType,
-          "Operator " + opName +
-          ": First part of the hash-description has to be 'bree' ");
-  CHECK_COND(nl->SymbolValue(hashSymbol) == "hash",
-          "Operator " + opName +
-          ": First part of the hash-description has to be 'bree' ");
-
-  /* handle hash tuple description */
-  CHECK_COND(!nl->IsEmpty(hashTupleDescription),
-          "Operator " + opName + ": Second part of the "
-          "hash-description has to be a tuple-description ");
-  CHECK_COND(!nl->IsAtom(hashTupleDescription),
-          "Operator " + opName + ": Second part of the "
-          "hash-description has to be a tuple-description ");
-  CHECK_COND(nl->ListLength(hashTupleDescription) == 2,
-          "Operator " + opName + ": Second part of the "
-          "hash-description has to be a tuple-description ");
-  ListExpr hashTupleSymbol = nl->First(hashTupleDescription);;
-  ListExpr hashAttrList = nl->Second(hashTupleDescription);
-
-  CHECK_COND(nl->IsAtom(hashTupleSymbol),
-          "Operator " + opName + ": Second part of the "
-          "hash-description has to be a tuple-description ");
-  CHECK_COND(nl->AtomType(hashTupleSymbol) == SymbolType,
-          "Operator " + opName + ": Second part of the "
-          "hash-description has to be a tuple-description ");
-  CHECK_COND(nl->SymbolValue(hashTupleSymbol) == "tuple",
-           "Operator " + opName + ": Second part of the "
-           "hash-description has to be a tuple-description ");
-  CHECK_COND(IsTupleDescription(hashAttrList),
-           "Operator " + opName + ": Second part of the "
-           "hash-description has to be a tuple-description ");
-
-  /* Handle key-part of hashdescription */
-  CHECK_COND(nl->IsAtom(hashKeyType),
-           "Operator " + opName + ": Key of the hash has to be an atom");
-  CHECK_COND(nl->AtomType(hashKeyType) == SymbolType,
-           "Operator " + opName + ": Key of the hash has to be an atom");
-
-  // Handle third argument which shall be the name of the attribute of
-  // the streamtuples that serves as the key for the hash
-  // Later on it is checked if this name is an attributename of the
-  // inputtuples
-  CHECK_COND(nl->IsAtom(nameOfKeyAttribute),
-           "Operator " + opName + ": Name of the "
-           "key-attribute of the streamtuples has to be an atom");
-  CHECK_COND(nl->AtomType(nameOfKeyAttribute) == SymbolType,
-           "Operator " + opName + ": Name of the key-attribute "
-           "of the streamtuples has to be an atom");
+  if(!listutils::isSymbol(nl->Third(hashDescription))){
+    return listutils::typeError("key of hash must be an atom");
+  }
 
   //Test if stream-tupledescription fits to hash-tupledescription
   rest = nl->Second(nl->Second(streamDescription));
-  CHECK_COND(nl->ListLength(rest) > 1 ,
-           "Operator " + opName + ": There must be at least two "
-           "attributes in the tuples of the tuple-stream");
-  // For updates the inputtuples need to carry the old attributevalues
-  // after the new values but their names with an additional _old at
-  // the end
-  if (opName == "updatehash")
-  {
+  ListExpr hashAttrList = nl->Second(nl->Second(hashDescription));
+
+  if(nl->ListLength(rest) < 2){
+    return listutils::typeError("tuple stream must have at leat 2 attributes");
+  }
+
+
+  ListExpr listn;
+  ListExpr lastlistn;
+  ListExpr restHashAttrs;
+  if (opName == "updatehash") {
     listn = nl->OneElemList(nl->First(rest));
     lastlistn = listn;
     rest = nl->Rest(rest);
@@ -1486,34 +1302,33 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    CHECK_COND(nl->Equal(listn,hashAttrList),
-                  "Operator " + opName + ":  First part of the "
-                  "tupledescription of the stream has to be the same as the "
-                  "tupledescription of the hash");
+    if(!nl->Equal(listn, hashAttrList)){
+       return listutils::typeError("hash attr list and "
+                                   "tuple attr list differ");
+    }
+
     // Compare second part of the streamdescription
     restHashAttrs = hashAttrList;
     while (nl->ListLength(rest) >  1)
     {
-      nl->WriteToString(oldName,
-                        nl->First(nl->First(restHashAttrs)));
+      string oldName = nl->SymbolValue(nl->First(nl->First(restHashAttrs)));
       oldName += "_old";
-      oldAttribute = nl->TwoElemList(nl->SymbolAtom(oldName),
+      ListExpr oldAttribute = nl->TwoElemList(nl->SymbolAtom(oldName),
                                      nl->Second(nl->First(restHashAttrs)));
-      CHECK_COND(nl->Equal(oldAttribute,nl->First(rest)),
-        "Operator " + opName + ":  Second part of the "
-        "tupledescription of the stream without the last "
-        "attribute has to be the same as the tuple"
-        "description of the hash except for that the "
-        "attributenames carry an additional '_old.'");
+      if(!nl->Equal(oldAttribute, nl->First(rest))){
+         return listutils::typeError("Second part of the "
+                 "tupledescription of the stream without the last "
+                 "attribute has to be the same as the tuple"
+                 "description of the hash except for that the "
+                 "attributenames carry an additional '_old.'");
+      }
       rest = nl->Rest(rest);
       restHashAttrs = nl->Rest(restHashAttrs);
     }
-  }
-  // For insert and delete check whether tupledescription of the stream
-  // without the last attribute is the same as the tupledescription
-  // of the hash
-  else
-  {
+  } else {
+    // For insert and delete check whether tupledescription of the stream
+    // without the last attribute is the same as the tupledescription
+    // of the hash
     listn = nl->OneElemList(nl->First(rest));
     lastlistn = listn;
     rest = nl->Rest(rest);
@@ -1522,10 +1337,9 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    CHECK_COND(nl->Equal(listn,hashAttrList),
-                  "Operator " + opName + ": tupledescription of the stream "
-                  "without the last attribute has to be the same as the "
-                  "tupledescription of the hash");
+    if(!nl->Equal(listn, hashAttrList)){
+       return listutils::typeError("types of hash and tuple differ");
+    }
   }
 
 
@@ -1533,21 +1347,19 @@ ListExpr allUpdatesHashTypeMap( const ListExpr& args, string opName )
   // attributlist of the streamtuples
   string attrname = nl->SymbolValue(nameOfKeyAttribute);
   ListExpr attrtype;
-  int j = FindAttribute(listn,attrname,attrtype);
-  CHECK_COND(j != 0, "Operator " + opName +
-          ": Name of the attribute that shall contain the keyvalue for the"
-          "hash was not found as a name of the attributes of the tuples of "
-          "the inputstream");
-  //Test if type of the attriubte which shall be taken as a key is the
-  //same as the keytype of the hash
-  CHECK_COND(nl->Equal(attrtype,hashKeyType), "Operator " + opName +
-          ": Type of the attribute that shall contain the keyvalue for the"
-          "hash is not the same as the keytype of the hash");
+  int j = listutils::findAttribute(listn,attrname,attrtype);
+  if(j==0){
+    return listutils::typeError("key " + attrname + "not found in attrlist");
+  }
+  ListExpr hashKeyType = nl->Third(hashDescription);
+  if(!nl->Equal(attrtype, hashKeyType)){
+    return listutils::typeError("types for hash key and given key differ");
+  }
+
   //Append the index of the attribute over which the hash is built to
   //the resultlist.
-  outList = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                           nl->OneElemList(nl->IntAtom(j)),streamDescription);
-  return outList;
 }
 
 /*
