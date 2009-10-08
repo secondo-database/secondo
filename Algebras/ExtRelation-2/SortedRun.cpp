@@ -88,6 +88,7 @@ extrel2::SortedRun::~SortedRun()
 
   while ( !heap->Empty() )
   {
+    heap->Top()->DeleteIfAllowed();
     heap->Pop();
   }
   delete heap;

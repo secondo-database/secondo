@@ -255,6 +255,7 @@ SortAlgorithm::~SortAlgorithm()
 
   while( !mergeQueue->Empty() )
   {
+    mergeQueue->Top().tuple()->DeleteIfAllowed();
     mergeQueue->Pop();
   }
   delete mergeQueue;
