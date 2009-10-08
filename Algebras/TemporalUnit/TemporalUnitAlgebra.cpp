@@ -252,6 +252,7 @@ helping operators for indexing instant values in R-trees.
 #include "MovingRegionAlgebra.h"
 #include "RectangleAlgebra.h"
 #include "PolySolver.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -964,14 +965,15 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   string argstr, argstr2, attrname, inputtype, inputname, fulllist;
 
   //check the list length.
-  CHECK_COND(nl->ListLength(args) == 2,
-             "Operator makemvalue expects a list of length two.");
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError("two arguments expected");
+  }
 
   first = nl->First(args);
   nl->WriteToString(argstr, first);
 
   // check the structure of the list.
-  if( !IsStreamDescription(first) )
+  if( !listutils::isTupleStream(first) )
   {
     ErrorReporter::ReportError("Operator makemvalue expects as first argument "
       "a tuplestream, but gets '" + argstr + "'.");
@@ -981,8 +983,9 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   // check the given parameter
   second  = nl->Second(args);
   nl->WriteToString(argstr, second);
-  CHECK_COND(argstr != "typeerror",
-  "Operator makemvalue expects a name of a attribute and not a type.");
+  if(argstr == "typeerror"){
+    return listutils::typeError("invalid attrname" + argstr);
+  }
 
   // inputname represented the name of the given attribute
   nl->WriteToString(inputname, second);
@@ -1022,22 +1025,19 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   listfull = listn;
   nl->WriteToString(fulllist, listfull);
 
-
-  CHECK_COND(!(inputtype == "") ,
-             "Operator makemvalue: Attribute name '"+ inputname+
-             "' is not known.\n"+
-             "Known Attribute(s): " + fulllist);
-
-  CHECK_COND( (inputtype == "ubool"
-               || inputtype == "uint"
-               || inputtype == "ureal"
-               || inputtype == "upoint"
-               || inputtype == "ustring"
-//             || inputtype == "uregion"
-              ),
-              "Attribute type is not of type ubool, uint, ustring, ureal"
-              "or upoint (uregion: not yet available).");
-
+  
+  if(inputtype==""){
+    return listutils::typeError("attrbute not found");
+  } 
+ 
+  if((inputtype != "ubool") &&
+     (inputtype != "uint") &&
+     (inputtype != "ureal") &&
+     (inputtype != "upoint") &&
+     (inputtype != "ustring") ){
+    return listutils::typeError("attr type not in {ubool, uint,"
+                                " ustring, ureal, upoint");
+  }
   attrname = nl->SymbolValue(second);
   j = FindAttribute(nl->Second(nl->Second(first)), attrname, attrtype);
 
