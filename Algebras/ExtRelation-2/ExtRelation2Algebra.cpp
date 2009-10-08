@@ -536,7 +536,7 @@ ListExpr JoinTypeMap( ListExpr args )
 
   }
 
-  if( n == 1 || n == 2 )
+  if( n == 0 || n == 1 )
   {
     if ( type.fifth().str() != "int" )
     {
@@ -547,7 +547,7 @@ ListExpr JoinTypeMap( ListExpr args )
     }
   }
 
-  if( n == 2 )
+  if( n == 1 )
   {
     if ( type.elem(6).str() != "int" )
     {
@@ -585,13 +585,13 @@ outside of the implementation file.
 */
 
 template ListExpr
+JoinTypeMap<0>(ListExpr args);
+
+template ListExpr
 JoinTypeMap<1>(ListExpr args);
 
 template ListExpr
 JoinTypeMap<2>(ListExpr args);
-
-template ListExpr
-JoinTypeMap<3>(ListExpr args);
 
 /*
 3.3.2 Value mapping function of operator ~sortmergejoin2~
