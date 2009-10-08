@@ -5488,15 +5488,10 @@ operator knearestfilter
 ListExpr
 knearestFilterTypeMap( ListExpr args )
 {
-  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
-  char* errmsg = "Incorrect input for operator knearestfilter.";
-  string rtreeDescriptionStr, relDescriptionStr;
-  string argstr, argstr2;
-
-  CHECK_COND(nl->ListLength(args) == 7,
-    "Operator knearest expects a list of length four.");
+  if(nl->ListLength(args) != 7){
+    return listutils::typeError("7 arguments expected");
+  }
 
   ListExpr rtreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
@@ -5506,125 +5501,53 @@ knearestFilterTypeMap( ListExpr args )
   ListExpr queryobject = nl->Sixth(args);
   ListExpr quantity = nl->Nth(7,args);
 
-  CHECK_COND(listutils::isRTreeDescription(rtreeDescription),
-             "first argument must be an rtree");
+  string err = "rtree x rel x btree x attrname x mpoint x int expected";
 
-  CHECK_COND (listutils::isRelDescription(relDescription),
-             "Second argument must be a relation");
+  if( !listutils::isRTreeDescription(rtreeDescription) ||
+      !listutils::isRelDescription(relDescription) ||
+      !listutils::isBTreeDescription(btreeDescription) ||
+      !listutils::isRelDescription(brelDescription) ||
+      !listutils::isSymbol(attrName) ||
+      !listutils::isSymbol(queryobject,"mpoint") ||
+      !listutils::isSymbol(quantity,"int")){
+    return listutils::typeError(err);
+  } 
 
-  CHECK_COND(listutils::isBTreeDescription(btreeDescription),
-             "third argument must be an btree");
-
-  CHECK_COND(listutils::isRelDescription(brelDescription),
-             "fourth argument must be a relation");
-
-  CHECK_COND(nl->AtomType(attrName)==SymbolType,
-             "fifth argument must be an attribute name");
-
-  CHECK_COND(nl->IsEqual(queryobject,"mpoint"),
-             "sixth argument must be of type mpoint");
-
-  CHECK_COND(nl->IsEqual(quantity,"int"),
-             "seventh argument must be of type int");
-
-  int j;
   ListExpr attrType;
-  j = FindAttribute(nl->Second(nl->Second(relDescription)),
-      nl->SymbolValue(attrName),attrType);
-  CHECK_COND( (j>0) && (nl->IsEqual( attrType, "upoint" )),
-  "Operator knearestfilter expects as a fifth argument an attribute"
-  "name, where the attribute is of type upoint\n"
-  "operator knearestfilter gets '" + argstr + "'.");
+  string aname = nl->SymbolValue(attrName);
+  int j = listutils::findAttribute(nl->Second(nl->Second(relDescription)),
+                                   aname,attrType);
+  if(j==0 || !listutils::isSymbol(attrType,"upoint")){
+    return listutils::typeError("attr name " + aname + "  not found "
+                                "or not of type upoint");
+  }
 
-  ListExpr rtreeSymbol = nl->First(rtreeDescription),
-           rtreeTupleDescription = nl->Second(rtreeDescription),
-           rtreeKeyType = nl->Third(rtreeDescription),
-           rtreeTwoLayer = nl->Fourth(rtreeDescription);
+  ListExpr rtreeSymbol = nl->First(rtreeDescription);
+  ListExpr rtreeKeyType = nl->Third(rtreeDescription);
 
-  CHECK_COND(nl->IsAtom(rtreeKeyType) &&
-    nl->AtomType(rtreeKeyType) == SymbolType &&
-    (algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
-     nl->IsEqual(rtreeKeyType, "rect3")),
-   "Operator knearestfilter expects a R-Tree with key type\n"
-   "of kind SPATIAL3D\n"
-   "or rect3.");
+  if(!listutils::isSymbol(rtreeKeyType)){
+    return listutils::typeError("rtree key type must be atomic");
+  }
+  if(!listutils::isKind(rtreeKeyType,"SPATIAL3D") &&
+     !listutils::isSymbol(rtreeKeyType,"rect3")){
+   return listutils::typeError("rtree key type must in kind "
+                               "SPATIAL3D or be  a rect3");
+  }
 
-  /* handle rtree type constructor */
-  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
-    nl->AtomType(rtreeSymbol) == SymbolType &&
-     nl->SymbolValue(rtreeSymbol) == "rtree3" ,
-   "Operator knearestfilter expects a R-Tree \n"
-   "of type rtree3.");
-
-  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
-    !nl->IsAtom(rtreeTupleDescription) &&
-    nl->ListLength(rtreeTupleDescription) == 2,
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
-    "bool)\nbut gets a first list with wrong tuple description in "
-    "structure \n'"+rtreeDescriptionStr+"'.");
-
-  ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);
-  ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeTupleSymbol) &&
-    nl->AtomType(rtreeTupleSymbol) == SymbolType &&
-    nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
-    IsTupleDescription(rtreeAttrList),
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
-    "bool)\nbut gets a first list with wrong tuple description in "
-    "structure \n'"+rtreeDescriptionStr+"'.");
-
-  CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
-    nl->AtomType(rtreeTwoLayer) == BoolType,
-   "Operator distancescan expects a R-Tree with structure "
-   "(rtree3 (tuple ((a1 t1)...(an tn))) attrtype "
-   "bool)\nbut gets a first list with wrong tuple description in "
-   "structure \n'"+rtreeDescriptionStr+"'.");
-
-  /* handle rel part of argument */
-  nl->WriteToString (relDescriptionStr, relDescription);
-  CHECK_COND(!nl->IsEmpty(relDescription), errmsg);
-  CHECK_COND(!nl->IsAtom(relDescription), errmsg);
-  CHECK_COND(nl->ListLength(relDescription) == 2, errmsg);
-
-  ListExpr relSymbol = nl->First(relDescription);;
-  ListExpr tupleDescription = nl->Second(relDescription);
-
-  CHECK_COND(nl->IsAtom(relSymbol) &&
-    nl->AtomType(relSymbol) == SymbolType &&
-    nl->SymbolValue(relSymbol) == "rel" &&
-    !nl->IsEmpty(tupleDescription) &&
-    !nl->IsAtom(tupleDescription) &&
-    nl->ListLength(tupleDescription) == 2,
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
-    "but gets a relation list with structure \n"
-    "'"+relDescriptionStr+"'.");
-
-  ListExpr tupleSymbol = nl->First(tupleDescription);
-  ListExpr attrList = nl->Second(tupleDescription);
-
-  CHECK_COND(nl->IsAtom(tupleSymbol) &&
-    nl->AtomType(tupleSymbol) == SymbolType &&
-    nl->SymbolValue(tupleSymbol) == "tuple" &&
-    IsTupleDescription(attrList),
-    "Operator knearestfilter expects a R-Tree with structure "
-    "(rel (tuple ((a1 t1)...(an tn)))) as relation description\n"
-    "but gets a relation list with structure \n"
-    "'"+relDescriptionStr+"'.");
+  if(!listutils::isSymbol(rtreeSymbol,"rtree3")){
+    return listutils::typeError("type of rtree is not rtree3");
+  }
 
   /* check that rtree and rel have the same associated tuple type */
-  CHECK_COND(nl->Equal(attrList, rtreeAttrList),
-   "Operator knearestfilter: The tuple type of the R-tree\n"
-   "differs from the tuple type of the relation.");
-
-
+  ListExpr attrList = nl->Second(nl->Second(relDescription));
+  ListExpr rtreeAttrList = nl->Second(nl->Second(rtreeDescription));
+  if(!nl->Equal(attrList, rtreeAttrList)){
+    return listutils::typeError("types of relation and rtree differ");
+  }
 
   ListExpr res = nl->TwoElemList(
       nl->SymbolAtom("stream"),
-      tupleDescription);
+      nl->Second(relDescription));
 
   return  nl->ThreeElemList(
              nl->SymbolAtom("APPEND"),
@@ -8772,11 +8695,12 @@ ListExpr ChinaknearestTypeMap( ListExpr args )
     ErrorReporter::ReportError(errmsg);
     return nl->TypeError();
   }
-  int j;
   ListExpr attrType;
-  j = FindAttribute(nl->Second(nl->Second(relDescription)),
+  int j = listutils::findAttribute(nl->Second(nl->Second(relDescription)),
       nl->SymbolValue(attrName),attrType);
-  CHECK_COND((j > 0) && (nl->IsEqual(attrType,"upoint")),"expect upoint");
+  if(j==0 || !listutils::isSymbol(attrType,"upoint")){
+     return listutils::typeError("upoint expected");
+  }
   ListExpr res = nl->TwoElemList(
       nl->SymbolAtom("stream"),
       nl->Second(nl->Second(args)));
@@ -8836,11 +8760,12 @@ ListExpr GreeceknearestTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  int j;
   ListExpr attrType;
-  j = FindAttribute(nl->Second(nl->Second(relDescription)),
+  int j = FindAttribute(nl->Second(nl->Second(relDescription)),
       nl->SymbolValue(attrName),attrType);
-  CHECK_COND((j > 0) && (nl->IsEqual(attrType,"upoint")),"expect upoint");
+  if(j==0 || !listutils::isSymbol(attrType,"upoint")){
+    return listutils::typeError("upoint expected");
+  }
   ListExpr res = nl->TwoElemList(
       nl->SymbolAtom("stream"),
       nl->Second(nl->Second(args)));
@@ -8907,13 +8832,15 @@ ListExpr CellIndexTypeMap( ListExpr args )
 
 
 
-  ListExpr rtsymbol = nl->First(rtree);
 
   ListExpr cellnumber = nl->Second(args);
   ListExpr MBR_ATOM;
 
-  CHECK_COND(listutils::isRTreeDescription(rtree),
-            "first argument must be an rtree");
+  if(!listutils::isRTreeDescription(rtree)){
+    return listutils::typeError("first argument must be an rtree");
+  }
+  ListExpr rtsymbol = nl->First(rtree);
+
 
   if(nl->IsAtom(rtsymbol) &&
     nl->AtomType(rtsymbol) == SymbolType &&
@@ -9457,11 +9384,12 @@ ListExpr KclosestpairTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  int j;
   ListExpr attrType;
-  j = FindAttribute(nl->Second(nl->Second(relDescription)),
+  int j = FindAttribute(nl->Second(nl->Second(relDescription)),
       nl->SymbolValue(attrName),attrType);
-  CHECK_COND((j > 0) && (nl->IsEqual(attrType,"upoint")),"expect upoint");
+  if(j==0 || !listutils::isSymbol(attrType,"upoint")){
+    return listutils::typeError("upoint expected");
+  }
 
 
   ListExpr res = nl->TwoElemList(
@@ -9607,26 +9535,20 @@ ListExpr CellPartitionTypeMap( ListExpr args )
     return nl->TypeError();
   }
 
-  CHECK_COND(nl->IsEqual(threedbox,"rect3"),
-            "second argument must be a 3D box");
+  if( !listutils::isSymbol(threedbox,"rect3") ||
+      !listutils::isSymbol(attrName) ||
+      !listutils::isSymbol(cellno1,"int") ||
+      !listutils::isSymbol(cellno2,"int") ||
+      !listutils::isSymbol(cellno3, "int")){
+    return listutils::typeError(errmsg);
+  } 
 
-  CHECK_COND(nl->AtomType(attrName) == SymbolType,
-            "third argument must be an attribute name");
-
-  CHECK_COND(nl->IsEqual(cellno1,"int"),
-            "fourth argument must be of type int");
-
-  CHECK_COND(nl->IsEqual(cellno2,"int"),
-            "fifth argument must be of type int");
-
-  CHECK_COND(nl->IsEqual(cellno3,"int"),
-            "sixth argument must be of type int");
-
-  int j;
   ListExpr attrType;
-  j = FindAttribute(nl->Second(nl->Second(stream)),
+  int j = FindAttribute(nl->Second(nl->Second(stream)),
       nl->SymbolValue(attrName),attrType);
-  CHECK_COND((j > 0) && (nl->IsEqual(attrType,"upoint")),"expect upoint");
+  if(j==0 || !listutils::isSymbol(attrType,"upoint")){
+    return listutils::typeError("upoint expected");
+  }
 
 
   ListExpr res = nl->TwoElemList(
