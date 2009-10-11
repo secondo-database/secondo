@@ -4,11 +4,11 @@
 %
 
 \chapter{Entwurf}\label{chp:Entwurf}
-Der von Kim bzw. Ganski/Wong vorgestellten Algorithmen zur Optimierung geschachtelter Abfragen hat für die Implementierung in \textsc{Secondo} den Vorteil, dass er sich mit der Einführung weniger weiterer Operatoren in die bestehende \textsc{Secondo}-Implementierung integrieren lässt. Zur Umsetzung der Algorithmen sind die vorhandenen Stan\-dard-Ope\-ra\-ti\-on\-en Projektion und Selektion sowie die Operationen Anti-Join und Full-Outer-Join notwendig. Im Rahmen dieser Arbeit wurde ein Full-Outer-Join-Operator für den Fall der Attribut-Gleichheit implementiert. Da sich keiner der vorhandenen Join-Algorithmen zur Umsetzung eines effizienten Anti-Join-Algorithmus eignet, wurde auf die Implementierung eines entsprechenden Algorithmus verzichtet. 
+Die von Kim bzw. Ganski/Wong vorgestellten Algorithmen zur Optimierung geschachtelter Abfragen haben für die Implementierung in \textsc{Secondo} den Vorteil, dass sie sich mit der Einführung weniger weiterer Operatoren in die bestehende \textsc{Secondo}-Implementierung integrieren lassen. Zur Umsetzung der Algorithmen sind die vorhandenen Stan\-dard-Ope\-ra\-ti\-on\-en Projektion und Selektion sowie die Operationen Anti-Join und Full-Outer-Join notwendig. Im Rahmen dieser Arbeit wurde ein Full-Outer-Join-Operator für den Fall der Attribut-Gleichheit implementiert. 
 
-Geschachtelte Abfragen mit dem Operator \sql{not in} werden zwar übersetzt, die entsprechenden Prädikate sind aber keiner weiteren Optimierung zugänglich. D.h. eine Optimierung über Entschachtelung ist in diesem Spezialfall nicht möglich. Nach der Implementierung eines Anti-Join-Operators sollte die Implementierung eines Prädikats zur Entschachtelung mit dem in \cite{319745} vorgestellten Algorithmus möglich sein. Zusätzlich ist die Erweiterung des Optimierers um die Verarbeitung von allgemeinen Join-Prädikaten notwendig, die nicht der Kombination von Kreuzprodukt und Selektion entsprechen. Hierbei sind vorallem der Outer-Join und der Anti-Join für die Optimierung von geschachtelten Abfragen von Bedeutung. Da eine beliebige Vertauschung der Reihenfolge von Outer-Join- und Join-Prädikaten nicht zulässig ist, müssen die hinreichenden Bedingungen beim Aufbau des Predicate-Order-Graphen berücksichtigt werden.
+Da sich keiner der vorhandenen Join-Algorithmen zur Umsetzung eines effizienten Anti-Join-Algorithmus eignet, wurde auf die Implementierung eines entsprechenden Algorithmus verzichtet. Abfragen mit dem Operator \sql{not in} können mit den ausgewählten Algorithmen nur mit einem Anti-Join-Operator entschachtelt werden. Diese werden daher zwar übersetzt, die entsprechenden Prädikate sind aber keiner weiteren Optimierung zugänglich. D.h. eine Optimierung über Entschachtelung ist in diesem Spezialfall nicht möglich. Nach der Implementierung eines Anti-Join-Operators sollte die Implementierung eines Prädikats zur Entschachtelung mit dem in \cite{319745} vorgestellten Algorithmus möglich sein. Zusätzlich ist die Erweiterung des Optimierers um die Verarbeitung von allgemeinen Join-Prädikaten notwendig, die nicht der Kombination von Kreuzprodukt und Selektion entsprechen. Hierbei sind vor allem der Outer-Join und der Anti-Join für die Optimierung von geschachtelten Abfragen von Bedeutung. Da eine beliebige Vertauschung der Reihenfolge von Outer-Join- und Join-Prädikaten nicht zulässig ist, müssen die für die Vertauschung hinreichenden Bedingungen beim Aufbau des Predicate-Order-Graphen berücksichtigt werden \cite{244812}.
 
-Bei der Analyse des Problems wurde klar, das eine echte Optimierung, d.h. ein Vergleich der geschachtelten und der nicht geschachtelten Ausführungsvariante einer Abfrage umfangreiche Berechnungen und Simulationen erfordern würde. Um die Kosten der entschachtelten Abfrage ermitteln zu können, müssen die Selektivitäten der Prädikate ermittelt werden. Dies erfolgt durch Auswertung jedes einzelnen Prädikats über Stichproben-Relationen, die aus den eigentlichen Relationen abgeleitet werden. Bei Selektions-Prä\-di\-ka\-ten wird hier nur eine Stichprobenrelation benötigt, bei Join-Prädikaten dementsprechend zwei. Die Stichprobenrelationen werden automatisch erzeugt, sobald sie das erste Mal benötigt werden. Um die Stichprobenrelationen für temporäre Relationen zu erzeugen, müssen die temporären Relationen materialisiert werden. D.h. das Ergebnis der ihnen zugrundeliegenden Abfrage muss vollständig ermittelt werden. Die Erzeugung der temporären Relationen zu diesem Zeitpunkt würde die Laufzeitkosten hierfür aber bei beiden Ausführungsstrategien erhöhen. Ein sinnvoller Vergleich wäre nicht mehr gegeben, da gerade die Erzeugung der temporären Relationen zu einer längeren Laufzeit bei entschachtelter Ausführung führen kann. Da die Prädikate der entschachtelten Abfrage möglicherweise auf temporäre Relationen bezugnehmen, müsste hier die entsprechende Selektivität simuliert werden. Eine Simulation der Selektivitätsbestimmung setzt komplexe statistische  Berechnungen voraus, um Selektivität und Kardinalität abzuschätzen. Um an dieser Stelle verlässliche Daten zu erhalten, wäre der Nachbau eines großen Teils der Metadaten-Ermittlung des Optimierers notwendig gewesen. So ist zwar die Abschätzung der Kardinalität einer Ergebnisrelation mit Hilfe der Kardinalitäten der verwendeten Relationen und den Selektivitäten der Prädikate möglich. Aussagen über die Selektivität eines Prädikats über dieser Relation lassen sich jedoch nicht ohne weiteres treffen. Da diese Simulationen den Rahmen dieser Diplomarbeit sprengen würde, wurde auf die Implementierung verzichtet.
+Bei der Analyse des Problems wurde klar, dass eine echte Optimierung, d.h. ein Vergleich der geschachtelten und der nicht geschachtelten Ausführungsvariante einer Abfrage umfangreiche Berechnungen und Simulationen erfordern würde. Um die Kosten der entschachtelten Abfrage ermitteln zu können, müssen die Selektivitäten der Prädikate ermittelt werden. Dies erfolgt durch Auswertung jedes einzelnen Prädikats über Stichproben-Relationen, die aus den eigentlichen Relationen abgeleitet werden. Bei Selektions-Prä\-di\-ka\-ten wird hier nur eine Stichprobenrelation benötigt, bei Join-Prädikaten dementsprechend zwei. Die Stichprobenrelationen werden automatisch erzeugt, sobald sie das erste Mal benötigt werden. Um die Stichprobenrelationen für temporäre Relationen zu erzeugen, müssen die temporären Relationen materialisiert werden. D.h. das Ergebnis der ihnen zugrundeliegenden Abfrage muss vollständig ermittelt werden. Die Erzeugung der temporären Relationen zu diesem Zeitpunkt würden die Laufzeitkosten hierfür aber bei beiden Ausführungsstrategien erhöhen. Ein sinnvoller Vergleich wäre nicht mehr gegeben, da gerade die Erzeugung der temporären Relationen zu einer längeren Laufzeit bei entschachtelter Ausführung führen kann. Da die Prädikate der entschachtelten Abfrage möglicherweise auf temporäre Relationen bezugnehmen, müsste hier die entsprechende Selektivität simuliert werden. Eine Simulation der Selektivitätsbestimmung setzt komplexe statistische  Berechnungen voraus, um Selektivität und Kardinalität abzuschätzen. Um an dieser Stelle verlässliche Daten zu erhalten, wäre der Nachbau eines großen Teils der Metadaten-Ermittlung des Optimierers notwendig gewesen. So ist zwar die Abschätzung der Kardinalität einer Ergebnisrelation mit Hilfe der Kardinalitäten der verwendeten Relationen und den Selektivitäten der Prädikate möglich. Aussagen über die Selektivität eines Prädikats über dieser Relation lassen sich jedoch nicht ohne weiteres treffen. Da diese Simulationen den Rahmen dieser Diplomarbeit sprengen würde, wurde auf die Implementierung verzichtet.
 
 Zur Veranschaulichung der Algorithmen wird in \cite{319745} eine graphische Repräsentation geschachtelter Abfragen eingeführt. Abfragen werden in Form vom Abfragegraphen dargestellt. Jeder Abfrageblock stellt einen Knoten dar. Jeder Knoten wird mit den zur Auswertung notwendigen Relationen markiert. Es gibt zwei Arten von Kanten, die den für die Auswertung notwendigen Informationsfluss darstellen. Gerade Kanten stellen einen Informationsfluss von der Unterabfrage zur äußeren Abfrage dar. D.h. Für die Auswertung des äußeren Abfrageblocks sind Informationen aus der Unterabfrage notwendig. Geschwungene Kanten stellen einen Informationsfluss von der äußeren zur inneren Abfrage dar, sie treten somit bei korrelierten geschachtelten Abfragen auf. Die Kanten werden abhängig von der Klassifikation der Schachtelung mit verschiedenen Markierungen versehen. Ein Prädikat vom Typ-A erzeugt eine gerade Kante, die mit \sql{$A(C_k$} versehen wird. \sql{$C_k$} ist die Projektionsspalte der Unterabfrage. 
 
@@ -76,52 +76,7 @@ Ein Schritt im Optimierungsalgorithmus entspricht immer der Entfernung einer Kan
 %	\subitem inkl. Selektivitäten
 %	\item \textbf{IN} ohne Subquery -> Übersetzung in geschachtelte \textbf{OR} Prädikate
 %\end{itemize}
-In \cite{319745} wird gezeigt, dass eine Abfrage der Form 
-\begin{lstlisting}
-SELECT §$R_i.C_k$§
-FROM §$R_i$§
-WHERE §$R_i.C_h$§ IN (SELECT §$R_j.C_m$§	FROM §$R_j$§ WHERE P)
-\end{lstlisting}
-
-\begin{tikzpicture}[grow=right]
-\path 
-	(0,0) node[place] (Ri) {$R_i$}
-	(2.5,0) node[place,draw](Rj) {$R_j$};
-	\draw[-] (Ri) -- node[mylabel] {$N(C_m)$} (Rj);
-\end{tikzpicture}
-
-
-
-inhaltlich äquivalent zu einer Abfrage 
-
-\begin{lstlisting}
-SELECT §$R_i.C_k$§
-FROM §$R_i, R_j$§
-WHERE §$R_i.C_h = R_j.C_m$§ AND P
-\end{lstlisting}
-
-ist.
-
-Dabei wird die mengenbasierte Semantik des IN-Operators nur dann erhalten, wenn $R_j$ bezüglich der Spalte $C_m$ duplikatfrei ist. Dies kann aber jederzeit erreicht werden, indem $R_j$ durch eine temporäre Relation $R_{j}^{'}$ ersetzt wird. $R_{j}^{'}$ erhält man, indem $R_j$ auf die Spalte $C_m$ eingeschränkt und projiziert wird. Für skalare Vergleichsoperatoren gilt die Äquivalenz ohne diese Einschränkung.  Skalare Vergleichsoperatoren sind nicht \enquote{duplikats-entfernend}. 
-
-\begin{lstlisting}
-SELECT §$R_i.C_k$§
-FROM §$R_i$§
-WHERE §$R_i.C_h$§ NOT IN (SELECT §$R_j.C_m$§
-											FROM §$R_j$§);
-\end{lstlisting}
-
-lässt sich dagegen nicht mit 
-
-\begin{lstlisting}
-SELECT §$R_i.C_k$§
-FROM §$R_i, R_j$§
-WHERE §$R_i.C_h <> R_j.C_m$§
-\end{lstlisting}
-
-übersetzen, da die Semantik und das Ergebnis der beiden Abfragen nicht übereinstimmen. In der geschachtelten Abfrage werden als Ergebnis alle Tupel der äußeren Relation erwartet, zu denen es keine Entsprechung in der inneren Relation gibt. Das Ergebnis der zweiten Abfrage ist die Teilmenge des Kreuzprodukts der beiden Relationen, die in den Werten $C_h$ und $C_m$ nicht übereinstimmen. Die benötigte Operation der Relationenalgebra ist der Anti-Join. In den für \textsc{Secondo} implementierten Algebramodulen für die Relationenalgebra, \algebra{Relation-C++}- und \algebra{ExtRelation-C++}-Algebra ist kein entsprechender Operator enthalten. Eine Implementierung im Rahmen dieser Diplomarbeit erfolgte aus den oben genannten Gründen nicht. 
-
-Die Optimierung von geschachtelten Abfragen die in dieser Arbeit implementiert wurden unterliegen aufgrund der verwendeten Algorithmen einigen Einschränkungen. Geschachtelte Abfragen dürfen im inneren Abfrageblock keine \sql{group by/having}-Klausel aufweisen (vgl. \cite{671658}). In korrelierten Abfragen dürfen nur Attribute der Relationen des den Abfrageblock direkt umgebenden Abfrageblocks verwendet werden. D.h. auf Schachtelungsebene n dürfen nur Relationen des inneren Abfrageblocks und Relationen der Schachtelungsebene n-1 verwendet werden. Tritt ein geschachteltes Prädikat in einem Disjunktionsterm auf, so ist es einer Optimierung mit den hier implementierten Algorithmen ebenfalls nicht zugänglich. Algorithmen zur Optimierung geschachtelter Abfragen in Disjunktionen wurden aber z.B. in \cite{Brantner2007} vorgestellt. Bei einer Erweiterung des Optimierers um die Optimierung disjunktiver Terme kann eine entsprechende Optimierung für geschachtelte Abfragen vorgesehen werden. Korrelierte Abfragen in der \sql{select}- und \sql{from}-Klausel können nicht mit einfachen temporären Relationen ersetzt werden. In dieser Arbeit wurde daher nur die Behandlung nicht korrelierter Abfragen in der \sql{select}- und \sql{from}-Klausel implementiert. Geschachtelte Abfragen, die nicht durch Entschachtelungs- und Transformationsalgorithmen optimiert werden können, werden in geschachtelte, iterative Ausdrücke übersetzt. 
+Die Optimierungen von geschachtelten Abfragen, die in dieser Arbeit implementiert wurden, unterliegen aufgrund der verwendeten Algorithmen einigen Einschränkungen. Geschachtelte Abfragen dürfen im inneren Abfrageblock keine \sql{group by/having}-Klausel aufweisen (vgl. \cite{671658}). In korrelierten Abfragen dürfen nur Attribute der Relationen des den Abfrageblock direkt umgebenden Abfrageblocks verwendet werden. D.h. auf Schachtelungsebene n dürfen nur Relationen des inneren Abfrageblocks und Relationen der Schachtelungsebene n-1 verwendet werden. Tritt ein geschachteltes Prädikat in einem Disjunktionsterm auf, so ist es einer Optimierung mit den hier implementierten Algorithmen ebenfalls nicht zugänglich. Algorithmen zur Optimierung geschachtelter Abfragen in Disjunktionen wurden aber z.B. in \cite{Brantner2007} vorgestellt. Bei einer Erweiterung des Optimierers um die Optimierung disjunktiver Terme kann eine entsprechende Optimierung für geschachtelte Abfragen vorgesehen werden. Korrelierte Abfragen in der \sql{select}- und \sql{from}-Klausel können nicht mit einfachen temporären Relationen ersetzt werden. In dieser Arbeit wurde daher nur die Behandlung nicht korrelierter Abfragen in der \sql{select}- und \sql{from}-Klausel implementiert. Geschachtelte Abfragen, die nicht durch Entschachtelungs- und Transformationsalgorithmen optimiert werden können, werden in geschachtelte, iterative Ausdrücke übersetzt. 
 
 \section{Ein Full-Outer-Join-Operator für SECONDO}
 \textsc{Secondo} enthält bereits mehrere Join-Operatoren. Als Vorlage für die Implementierung des Full-Outer-Join-Operators wurde der Operator \secondo{sortmergejoin} ausgewählt, da sich der zugrunde liegende Algorithmus mit wenigen Änderungen in einen Full-Outer-Join umbauen lässt. Sort-Merge-Join ist ein Algorithmus zur Berechnung von Equi-Joins. Daher wird auch nur der Full-Outer-Join für Equi-Join berechnet. Voraussetzung ist die Sortierung der Relationen bzw. Ströme bezüglich der Join-Attribute. Diese Anforderung kann durch das vorhergehende Sortieren der Relationen erfüllt werden. In \textsc{Secondo} erfolgt diese Sortierung innerhalb des Operators \secondo{sortmergejoin}.
@@ -153,7 +108,7 @@ Dieser Algorithmus lässt sich auf folgende Art und Weise zum Full-Outer-Join aus
 \section{Behandlung quantifizierter Prädikate}\label{sct:Behandlung quantifizierter Prädikate}
 Prädikate mit den Operatoren \sql{exists}, \sql{all} oder \sql{any} können in ein inhaltlich äquivalentes Prädikat mit Aggregationsfunktion transformiert werden, sofern keine NULL-Werte in den Unterabfragen enthalten sind. 
 
-Das Prädikate \sql{exists(Q)}  ist genau dann wahr, wenn die Ergebnisrelation des Abfrageblocks  Q mindestens ein Tupel enthält. Ist \lstinline[mathescape=true]{Q = select $C_n$ from $R_m$ where P}, so lässt sich aber auch als \lstinline[mathescape=true]{0 < (select count(*) from $R_m$ where P)} ausdrücken. Analog dazu kann \lstinline[mathescape=true]{not exists(select $C_n$ from $R_m$ where P)} in \lstinline[mathescape=true]{0 = (select count(*) from $R_m$ where P)} überführt werden. Da die Aggregation über die ursprüngliche Ergebnisspalte $C_n$ bei \sql{null}-Werten zu falschen Ergebnissen führt, müssen hier alle Tupel gezählt werden. Um die Berechnung der Aggregation zu beschleunigen, kann die Abfrage mit dem Ausdruck \secondo{first 1} noch auf das erste Tupel der Unterabfrage beschränkt werden. Dies verhindert das teure Operatoren auf allen Tupeln der Unterabfrage ausgeführt werden müssen. 
+Das Prädikat \sql{exists(Q)}  ist genau dann wahr, wenn die Ergebnisrelation des Abfrageblocks  Q mindestens ein Tupel enthält. Ist \lstinline[mathescape=true]{Q = select $C_n$ from $R_m$ where P}, so lässt sich aber auch als \lstinline[mathescape=true]{0 < (select count(*) from $R_m$ where P)} ausdrücken. Analog dazu kann \lstinline[mathescape=true]{not exists(select $C_n$ from $R_m$ where P)} in \lstinline[mathescape=true]{0 = (select count(*) from $R_m$ where P)} überführt werden. Da die Aggregation über die ursprüngliche Ergebnisspalte $C_n$ bei \sql{null}-Werten zu falschen Ergebnissen führt, müssen hier alle Tupel gezählt werden. Um die Berechnung der Aggregation zu beschleunigen, kann die Abfrage mit dem Ausdruck \secondo{first 1} noch auf das erste Tupel der Unterabfrage beschränkt werden. Dies verhindert das teure Operatoren auf allen Tupeln der Unterabfrage ausgeführt werden müssen. 
 
 Das Ergebnis von Abfragen mit den Operatoren \sql{all} und \sql{any} bleibt ebenfalls erhalten, wenn man Prädikate mit den beiden Operatoren in Prädikate umwandelt, die einen Vergleich mit dem Maximum bzw. Minimum der Unterabfrage darstellen.
 
@@ -203,14 +158,61 @@ wird in
 
 transformiert.
 
-Ein Prädikat \lstinline[mathescape=true]{$C_n$ = all(select $C_m$ from $R_i$ where P)} hat keine sinnvolle Semantik mehr, sobald die geschachtelte Abfrage mehr als einen Wert für $C_m$ liefert. Die Verwendung von = all(Q) wird daher nicht unterstützt.
+Ein Prädikat \lstinline[mathescape=true]{$C_n$ = all(select $C_m$ from $R_i$ where P)} hat keine sinnvolle Semantik mehr, sobald die geschachtelte Abfrage mehr als einen Wert für $C_m$ liefert. Die Verwendung von = all(Q) wird in diesem Fall nicht unterstützt.
 
 Mit diesen Transformationen lassen sich auch quantifizierte Prädikate als Prädikate der Typen J oder JA betrachten. Dies hat zur Folge, dass sich die im Folgenden beschriebenen Optimierungsalgorithmen auch auf diese Prädikate anwenden lassen. Außerdem sind die Prädikate einer Übersetzung in ausführbare \textsc{Secondo}-Syntax besser zugänglich, da die Aggregation bereits durch Standard-Operatoren implementiert ist. Eine Einführung weiterer Operatoren zur Übersetzung quantifizierter Prädikate ist hierdurch nicht notwendig. 
 
 
 \section{Entschachtelungsalgorithmen}\label{sct:Entschachtelungsalgorithmen}
 \subsection{Algorithmus \textbf{NEST-N-J}}\label{sct:Algorithmus NEST-N-J}
-Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine inhaltlich identische entschachtelte Form zu überführen. Basis der Transformation ist die Beobachtung, dass das Ergebnis einer geschachtelten Abfrage vom Typ N oder J und einer Abfrage über allen verwendeten Relationen mit einem zusätzlichen Join-Prädikat identisch ist. Die Entschachtelung entspricht dabei der Verschmelzung der Abfrageblöcke, jede Relation des äußeren und des inneren Abfrageblocks wird erhalten. Die entschachtelte Abfrage enthält alle Prädikate der beiden Abfrageblöcke. Das neue Join-Prädikat hält die Vergleichsbedingung zwischen Attributausdruck des äußeren Abfrageblocks mit den Spalten des innneren Abfrageblocks fest. Da die Join-Operation in SQL Multimengen-Semantik hat, müssen bei Operatoren mit strenger Mengensemantik z.B. \sql{in} die inneren Relationen vor der Verwendung in der entschachtelten Variante auf ihre Join-Spalten projiziert und durch die Prädikate der Unterabfrage eingeschränkt werden. Andernfalls liefert das neue Join-Prädikat durch Duplikate möglicherweise falsche Ergebnisse. Da das Ergebnis der Projektion und Selektion maximal die gleiche Mächtigkeit hat, wie die Ursprungsrelationen, wirkt sich diese zusätzliche Operation in den meisten Fällen eher positiv auf die Anzahl der I/O-Operationen aus (siehe auch \cite{319745}). Die Durchführung des Algorithmus entspricht im Abfragegraphen der Entfernung einer geraden Kante mit der Markierung $N(C_k)$. Grundsätzlich kann mit dem hier beschriebenen Algorithmus auch ein gerade Kante mit der Markierung $Nx(C_k)$, d.h. ein geschachteltes Prädikat mit dem \sql{not in}-Operator aufgelöst werden. Der hierfür notwendige Anti-Join-Operator und die für diesen Operator notwendige Sonderbehandlung im Optimierer bleiben aber einer zukünftigen Erweiterung des Optimierers vorbehalten.
+In \cite{319745} wird gezeigt, dass eine Abfrage der Form 
+\begin{lstlisting}
+SELECT §$R_i.C_k$§
+FROM §$R_i$§
+WHERE §$R_i.C_h$§ IN (SELECT §$R_j.C_m$§	FROM §$R_j$§ WHERE P)
+\end{lstlisting}
+
+\begin{tikzpicture}[grow=right]
+\path 
+	(0,0) node[place] (Ri) {$R_i$}
+	(2.5,0) node[place,draw](Rj) {$R_j$};
+	\draw[-] (Ri) -- node[mylabel] {$N(C_m)$} (Rj);
+\end{tikzpicture}
+
+
+
+inhaltlich äquivalent zu einer Abfrage 
+
+\begin{lstlisting}
+SELECT §$R_i.C_k$§
+FROM §$R_i, R_j$§
+WHERE §$R_i.C_h = R_j.C_m$§ AND P
+\end{lstlisting}
+
+ist.
+
+Dabei wird die mengenbasierte Semantik des IN-Operators nur dann erhalten, wenn $R_j$ bezüglich der Spalte $C_m$ duplikatfrei ist. Dies kann aber jederzeit erreicht werden, indem $R_j$ durch eine temporäre Relation $R_{j}^{'}$ ersetzt wird. $R_{j}^{'}$ erhält man, indem $R_j$ auf die Spalte $C_m$ eingeschränkt und projiziert wird. Für skalare Vergleichsoperatoren gilt die Äquivalenz ohne diese Einschränkung.  
+
+%Skalare Vergleichsoperatoren sind nicht \enquote{duplikats-entfernend}. 
+
+\begin{lstlisting}
+SELECT §$R_i.C_k$§
+FROM §$R_i$§
+WHERE §$R_i.C_h$§ NOT IN (SELECT §$R_j.C_m$§
+											FROM §$R_j$§);
+\end{lstlisting}
+
+lässt sich dagegen nicht mit 
+
+\begin{lstlisting}
+SELECT §$R_i.C_k$§
+FROM §$R_i, R_j$§
+WHERE §$R_i.C_h <> R_j.C_m$§
+\end{lstlisting}
+
+übersetzen, da die Semantik und das Ergebnis der beiden Abfragen nicht übereinstimmen. In der geschachtelten Abfrage werden als Ergebnis alle Tupel der äußeren Relation erwartet, zu denen es keine Entsprechung in der inneren Relation gibt. Das Ergebnis der zweiten Abfrage ist die Teilmenge des Kreuzprodukts der beiden Relationen, die in den Werten $C_h$ und $C_m$ nicht übereinstimmen. Die benötigte Operation der Relationenalgebra ist der Anti-Join. In den für \textsc{Secondo} implementierten Algebramodulen für die Relationenalgebra, \algebra{Relation-C++}- und \algebra{ExtRelation-C++}-Algebra ist kein entsprechender Operator enthalten. Eine Implementierung im Rahmen dieser Diplomarbeit erfolgte aus den oben genannten Gründen nicht. 
+
+Ziel des Algorithmus ist es, ein geschachteltes Prädikat in eine inhaltlich identische entschachtelte Form zu überführen. Basis der Transformation ist die Beobachtung, dass das Ergebnis einer geschachtelten Abfrage vom Typ N oder J und einer Abfrage über allen verwendeten Relationen mit einem zusätzlichen Join-Prädikat identisch ist. Die Entschachtelung entspricht dabei der Verschmelzung der Abfrageblöcke, jede Relation des äußeren und des inneren Abfrageblocks wird erhalten. Die entschachtelte Abfrage enthält alle Prädikate der beiden Abfrageblöcke. Das neue Join-Prädikat hält die Vergleichsbedingung zwischen Attributausdruck des äußeren Abfrageblocks mit den Spalten des inneren Abfrageblocks fest. Da die Join-Operation in SQL Multimengen-Semantik hat, müssen bei Operatoren mit strenger Mengensemantik z.B. \sql{in} die inneren Relationen vor der Verwendung in der entschachtelten Variante auf ihre Join-Spalten projiziert und durch die Prädikate der Unterabfrage eingeschränkt werden. Andernfalls liefert das neue Join-Prädikat durch Duplikate möglicherweise falsche Ergebnisse. Da das Ergebnis der Projektion und Selektion maximal die gleiche Mächtigkeit hat, wie die Ursprungsrelationen, wirkt sich diese zusätzliche Operation in den meisten Fällen eher positiv auf die Anzahl der I/O-Operationen aus (siehe auch \cite{319745}). Die Durchführung des Algorithmus entspricht im Abfragegraphen der Entfernung einer geraden Kante mit der Markierung $N(C_k)$. Grundsätzlich kann mit dem hier beschriebenen Algorithmus auch eine gerade Kante mit der Markierung $Nx(C_k)$, d.h. ein geschachteltes Prädikat mit dem \sql{not in}-Operator aufgelöst werden. Der hierfür notwendige Anti-Join-Operator und die für diesen Operator notwendige Sonderbehandlung im Optimierer bleiben aber einer zukünftigen Erweiterung des Optimierers vorbehalten.
 
 \begin{algorithm}
 Algorithmus NEST-N-J
@@ -268,8 +270,7 @@ $\triangleright$ entspricht hier dem Anti-Join-Operator
 Der Beweis für die Korrektheit wird in \cite{319745} geführt. Aus der im SQL Standard definierten Semantik für geschachtelte Abfragen, ergibt sich, dass für jedes betrachtete Tupel der äußeren Abfrage die innere Abfrage ausgewertet werden kann. Für den Operator \sql{in} bedeutet dies, dass das geschachtelte Prädikat \sql{WAHR} ist, wenn der Wert $X$ im Ergebnis der inneren Abfrage enthalten ist. Das Join-Prädikat der entschachtelten Abfrage ist genau dann \sql{WAHR}, wenn das geschachtelte Prädikat wahr ist.
 
 \subsection{Algorithmus \textbf{NEST-JA2}}\label{sct:Algorithmus NEST-JA2}
-Der Algorithmus basiert auf der Idee, die benötigten Aggregationswerte jeweils nur einmal zu berechnen. 
-Um die Auswertung der Aggregation nicht bei jedem Tupel der äußeren Relation durchführen zu müssen, wird mit temporären Tabellen gearbeitet. Es wird die Aggregation über die inneren Relationen gruppiert nach Werten des Join-Attributs der äußeren Spalte vorausberechnet. Da die temporären Relationen persistent abgelegt werden, fällt der Aufwand für ihr Anlegen nur einmal an. Wird die Abfrage während einer Sitzung erneut aufgerufen, so kann auf die bestehenden temporären Relationen zugegriffen werden. D.h. die Laufzeitkosten für die Erstellung der temporären Relationen fällt während einer Sitzung nur einmal an.
+Der Algorithmus basiert auf der Idee, die benötigten Aggregationswerte für jede Auspräfung der Selektion, d.h. für jede Belegung der Attribute der \sql{where}-Klausel nur einmal zu berechnen. Um die Auswertung der Aggregation nicht bei jedem Tupel der äußeren Relation durchführen zu müssen, wird mit temporären Tabellen gearbeitet. Es wird die Aggregation über die inneren Relationen gruppiert nach Werten des Join-Attributs der äußeren Spalte vorausberechnet. Da die temporären Relationen persistent abgelegt werden, fällt der Aufwand für ihr Anlegen nur einmal an. Wird die Abfrage während einer Sitzung erneut aufgerufen, so kann auf die bestehenden temporären Relationen zugegriffen werden. D.h. die Laufzeitkosten für die Erstellung der temporären Relationen fallen während einer Sitzung nur einmal an.
 
 \begin{algorithm}
 Algorithmus NEST-JA2
@@ -289,7 +290,7 @@ Algorithmus NEST-JA2
 \end{algorithmic}
 \end{algorithm}
 
-Im ersten Schritt werden die benötigten äußeren Relationen auf die in der Unterabfrage verwendeten Attributspalten projiziert und durch den Zusatz \sql{distinct} um Duplikate bereinigt. Hiermit erhält man die erste temporäre Relation $Rt_1$. Die zweite temporäre Relation $Rt_2$ ist die Projektion der inneren Relationen auf die Attribute der korrelierten Prädikate und Restriktion durch alle einfachen Prädikate der Unterabfrage. Die dritte temporäre Relation $Rt_3$ ist ein Join aus den beiden vorhergehenden temporären Relationen. Hierbei wird die Aggregation vorausberechnet und nach den Join-Attributen der äußeren Relationen gruppiert. Handelt es sich bei der Aggregationsfunktion um \sql{count}, so muss ein Full-Outer-Join ausgeführt werden, da hier \sql{null}-Werte das Ergebnis der Aggregation beeinflussen. Wird \sql{count} in der ursprünglichen Abfrage auf Tupelebene ausgeführt (\sql{select count(*)}), so muss die Aggregation bei der Erstellung der temporären Relation auf eine der Join-Spalten geändert werden, um das Ergebnis nicht zu verfälschen. Es dürfen nur die Tupel gezählt werden, die für Spalten die aus den inneren Relationen stammen keine \sql{null}-Werte annehmen. Die Projektion der Relation $Rt_3$ erfolgt auf die entsprechenden Attribute der äußeren Relationen, gegebenenfalls müssen die Attribute in der \sql{select}-Klausel umgesetzt werden. Die entschachtelte Version der Abfrage wird gebildet, indem die ursprüngliche \sql{from}-Klausel um die temporäre Relation $Rt_3$ erweitert wrid. Das geschachtelte Prädikat der \sql{where}-Klausel wird durch ein neues Join-Prädikat ersetzt, welches auf Übereinstimmung der ursprünglichen linken Seite des geschachtelten Prädikats mit der Aggregationsspalte von $Rt_3$ prüft. Der Algorithmus entspricht der Entfernung einer gebogenen Kante und einer geraden Kante zwischen zwei Knoten im Abfragegraphen.
+Im ersten Schritt werden die benötigten äußeren Relationen auf die in der Unterabfrage verwendeten Attributspalten projiziert und durch den Zusatz \sql{distinct} um Duplikate bereinigt. Hiermit erhält man die erste temporäre Relation $Rt_1$. Die zweite temporäre Relation $Rt_2$ ist die Projektion der inneren Relationen auf die Attribute der korrelierten Prädikate und Restriktion durch alle einfachen Prädikate der Unterabfrage. Die dritte temporäre Relation $Rt_3$ ist ein Join aus den beiden vorhergehenden temporären Relationen. Hierbei wird die Aggregation vorausberechnet und nach den Join-Attributen der äußeren Relationen gruppiert. Handelt es sich bei der Aggregationsfunktion um \sql{count}, so muss ein Full-Outer-Join ausgeführt werden, da hier \sql{null}-Werte das Ergebnis der Aggregation beeinflussen. Wird \sql{count} in der ursprünglichen Abfrage auf Tupelebene ausgeführt (\sql{select count(*)}), so muss die Aggregation bei der Erstellung der temporären Relation auf eine der Join-Spalten geändert werden, um das Ergebnis nicht zu verfälschen. Es dürfen nur die Tupel gezählt werden, die für Spalten die aus den inneren Relationen stammen keine \sql{null}-Werte annehmen. Die Projektion der Relation $Rt_3$ erfolgt auf die entsprechenden Attribute der äußeren Relationen, gegebenenfalls müssen die Attribute in der \sql{select}-Klausel umgesetzt werden. Die entschachtelte Version der Abfrage wird gebildet, indem die ursprüngliche \sql{from}-Klausel um die temporäre Relation $Rt_3$ erweitert wird. Das geschachtelte Prädikat der \sql{where}-Klausel wird durch ein neues Join-Prädikat ersetzt, welches auf Übereinstimmung der ursprünglichen linken Seite des geschachtelten Prädikats mit der Aggregationsspalte von $Rt_3$ prüft. Der Algorithmus entspricht der Entfernung einer gebogenen Kante und einer geraden Kante zwischen zwei Knoten im Abfragegraphen.
 
 
 %1. temporäre Relation = Projektion der äußeren Relation(en) auf die Join-Spalten und Restriktion durch \emph{simple} Prädikate, die in der äußeren \sql{where}-Klausel enthalten sind\\
@@ -310,7 +311,7 @@ where §$P_1 (R_1 ), \dots, P_k (R_1 )$§,
 	§$)$§
 \end{lstlisting}.
 
-Die $A_1, \dots, A_n$ sind Attributausdrücke über den Schemata der Relationen $R_1, \dots, R_m$. Die Prädikate $P_1(R_1), \dots, P_k(R_1)$ sind auschließlich über Attributen der Relation $R_1$ formuliert, sind also \emph{einfache} Prädikate über $R_1$. Die Prädikate $P_1, \dots, P_l$ sind allgemeine Prädikate über Attributen einer oder mehrerer beliebigen Relationen aus $R_1, \dots, R_m$.
+Die $A_1, \dots, A_n$ sind Attributausdrücke über den Schemata der Relationen $R_1, \dots, R_m$. Die Prädikate $P_1(R_1), \dots, P_k(R_1)$ sind ausschließlich über Attributen der Relation $R_1$ formuliert, sind also \emph{einfache} Prädikate über $R_1$. Die Prädikate $P_1, \dots, P_l$ sind allgemeine Prädikate über Attributen einer oder mehrerer beliebiger Relationen aus $R_1, \dots, R_m$.
 
 Die erste temporäre Relation ist die Projektion der äußeren Relation auf die Join-Spalte des korrelierten Prädikats. Es werden bereits alle \emph{einfachen} Prädikate angewandt, da diese auschließlich über Attributen von $R_1$ definiert sind. Die Anwendung der Prädikate bereits zu diesem Zeitpunkt führt zu einer garantiert nicht größeren temporären Relation, da die Selektions-Operation das Ergebnis eines relationalen Ausdrucks nur verkleinern kann. Die temporäre Relation ergibt sich aus der Abfrage als
 
@@ -342,7 +343,7 @@ Für Aggregationsfunktionen ungleich \sql{count} ergibt sich folgender Ausdruck f
 \end{lstlisting}.
 Die Aggregation wird also für jeden unterschiedlichen Wert von $Rt_2.Y$ genau einmal berechnet.
 
-Ist die Aggregationsfunktion \sql{count}, so muss stattdessen der Full-Outer-Join berechnet werden. Die hier angegebene Syntax für den Outer-Join entspricht der Syntax des SQL-Standards. Die momentan im Optimierer implementierte Struktur von SQL-Abfragen lässt eine einfache Erweiterung um diese Outer-Join-Syntax nicht zu. Erschwerend kommt hinzu, dass Join- und Outer-Join-Operationen nur unter eingeschränkten Bedingungen in ihrer Reihenfolge vertauscht werden können. Die Integration in den zentralen Optimierungsalgorithmus würde daher umfangreiche Veränderungen voraussetzen, um diese Randbendingungen während der Optimierung überprüfen zu können. Daher wurde auf die Integration des Outer-Join-Operators in die SQL-Syntax des Optimierers verzichtet. Die Erzeugung der entsprechenden temporären Relation erfolgt direkt in ausführbarer Syntax. 
+Ist die Aggregationsfunktion \sql{count}, so muss abweichend hiervon der Full-Outer-Join berechnet werden. Die hier angegebene Syntax für den Outer-Join entspricht der Syntax des SQL-Standards. Die momentan im Optimierer implementierte Struktur von SQL-Abfragen lässt eine einfache Erweiterung um diese Outer-Join-Syntax nicht zu. Erschwerend kommt hinzu, dass Join- und Outer-Join-Operationen nur unter eingeschränkten Bedingungen in ihrer Reihenfolge vertauscht werden können \cite{244812}. Die Integration in den zentralen Optimierungsalgorithmus würde daher umfangreiche Veränderungen voraussetzen, um diese Randbendingungen während der Optimierung überprüfen zu können. Daher wurde auf die Integration des Outer-Join-Operators in die SQL-Syntax des Optimierers verzichtet. Die Erzeugung der entsprechenden temporären Relation erfolgt direkt in ausführbarer Syntax. 
 
 \begin{lstlisting}
 §$Rt_3$§ = (
@@ -384,7 +385,7 @@ wobei für den Operator $\theta$ gelten muss
 \begin{math}\theta \in\{=,\not=,>,\geq,<,\leq\}\end{math}.
 
 \subsection{Algorithmus NEST-G}\label{sct:Algorithmus NEST-G}
-Ganski/Wong stellen in \cite{38723} ihren allgemeinen Algorithmus zur Optimierung geschachtelter Abfragen vor. Dieser wendet rekursiv je nach Schachtelungstyp die oben vorgestellten Algorithmen auf geschachtelte Prädikate an. 
+Ganski/Wong stellen in \cite{38723} ihren allgemeinen Algorithmus zur Optimierung geschachtelter Abfragen vor. Dieser wendet rekursiv je nach Schachtelungstyp die oben vorgestellten Algorithmen auf geschachtelte Prädikate an. Geschachtelte Prädikate, die keiner der vier Klassen entsprechen, werden wie gewöhnliche Join- oder Selektions-Prädikate behandelt.
 
 \begin{algorithm}
 \caption{Algorithmus NEST-G}
@@ -405,42 +406,43 @@ Ganski/Wong stellen in \cite{38723} ihren allgemeinen Algorithmus zur Optimierun
 \end{algorithmic}
 \end{algorithm}
 
+
 Der Algorithmus NEST-A wandelt ein geschachteltes Prädikat einer Abfrage in ein einfaches Prädikat um. Mit Algorithmus NEST-JA2 wird ein geschachteltes Prädikat vom Typ-JA in ein geschachteltes Prädikat vom Typ-J umgewandelt. Durch die Anwendung von Algorithmus NEST-N-J nach NEST-JA2 wird dieses Prädikat in ein einfaches Join-Prädikat transformiert. Damit entfernen die beiden Algorithmen NEST-A und NEST-N-J eine Schachtelungsbene aus einem Prädikat. Da NEST-G rekursiv auf die Unterabfragen angewandt wird wird in jedem Schleifendurchlauf des Algorithmus die Schachtelungstiefe eines Prädikats um eins erniedrigt. Da geschachtelte Prädikate eine Schachtelungstiefe $>= 1$ haben, ist sichergestellt, dass der Algorithmus terminiert. Nach Beendigung des Algorithmus enthält die transformierte Version von Q keine geschachtelten Prädikate der Typen A, N-J oder JA. 
 
 
-allgemeiner Algorithmus zur Entschachtelung mit temporären Tabellen, auf der Basis von Join- und Outerjoin-Operatoren und temporären Tabellen,
-
-
-Begriffserklärung Schachtelunsgtiefe
-
-Schritte des Optimierers
-\begin{itemize}
-	\item Query-Rewriting
-	\item Schema-Lookup
-	\item Abfrageplan-Ermittlung 
-	\item Übersetzung Plan in ausführbare Syntax
-\end{itemize}
-
-
-durch vorhanden Operatoren in \textsc{Secondo} fast vollständig umsetzbar, nur Erweiterung um Full-Outerjoin-Operator notwendig\\
-Vergleich nested-iteration/dekorrelierter Plan wird \underline{nicht} implementiert:\\
-Für den Vergleich der Kosten müsste die komplette Selektivitäts- und Kostenbestimmung für die notwendigen temporären Relationen simuliert werden (**ausführlicher beschreiben**)\\
-kann nicht für alle Formen von Subqueries genutzt werden (Beispiele)\\
-Ergebnis sollte eine Abfrage der Schachtelungstiefe 0 sein. Der Optimierer 
-
-\begin{enumerate}
-	\item Jedes Typ-A Prädikat wird in ein einfaches Prädikat umgewandelt, indem es vollständig ausgewertet wird. Falls das Prädikat ebenfalls geschachtelt ist, wird Algorithmus NEST-G rekursiv angewandt, bis das Prädikat nicht weiter entschachtelt werden kann.
-	\item Jedes Typ-JA Prädikat wird mit dem Algorithmus NEST-JA(G) in eine semantisch äquivalente Abfrage vom Typ-N oder -J umgewandelt.
-	\item \emph{In dieser Arbeit nicht implementiert}: Prädikate vom Typ-D werden in ihre kanonische Form transformiert. 
-	\item Die aus den bisherigen Schritten des Algorithmus resultierende Abfrage hat nur noch Prädikate vom Typ-N oder Typ-J. Diese wird mit dem Algorithmus NEST-N-J in ihre kanonische Form überführt.
-\end{enumerate}
+%allgemeiner Algorithmus zur Entschachtelung mit temporären Tabellen, auf der Basis von Join- und Outerjoin-Operatoren und temporären Tabellen,
+%
+%
+%Begriffserklärung Schachtelunsgtiefe
+%
+%Schritte des Optimierers
+%\begin{itemize}
+%	\item Query-Rewriting
+%	\item Schema-Lookup
+%	\item Abfrageplan-Ermittlung 
+%	\item Übersetzung Plan in ausführbare Syntax
+%\end{itemize}
+%
+%
+%durch vorhanden Operatoren in \textsc{Secondo} fast vollständig umsetzbar, nur Erweiterung um Full-Outerjoin-Operator notwendig\\
+%Vergleich nested-iteration/dekorrelierter Plan wird \underline{nicht} implementiert:\\
+%Für den Vergleich der Kosten müsste die komplette Selektivitäts- und Kostenbestimmung für die notwendigen temporären Relationen simuliert werden (**ausführlicher beschreiben**)\\
+%kann nicht für alle Formen von Subqueries genutzt werden (Beispiele)\\
+%Ergebnis sollte eine Abfrage der Schachtelungstiefe 0 sein. Der Optimierer 
+%
+%\begin{enumerate}
+%	\item Jedes Typ-A Prädikat wird in ein einfaches Prädikat umgewandelt, indem es vollständig ausgewertet wird. Falls das Prädikat ebenfalls geschachtelt ist, wird Algorithmus NEST-G rekursiv angewandt, bis das Prädikat nicht weiter entschachtelt werden kann.
+%	\item Jedes Typ-JA Prädikat wird mit dem Algorithmus NEST-JA(G) in eine semantisch äquivalente Abfrage vom Typ-N oder -J umgewandelt.
+%	\item \emph{In dieser Arbeit nicht implementiert}: Prädikate vom Typ-D werden in ihre kanonische Form transformiert. 
+%	\item Die aus den bisherigen Schritten des Algorithmus resultierende Abfrage hat nur noch Prädikate vom Typ-N oder Typ-J. Diese wird mit dem Algorithmus NEST-N-J in ihre kanonische Form überführt.
+%\end{enumerate}
 
 \section{Übersetzung in ausführbare Syntax}
 \subsection{IN Operator}
 Die \algebra{Collection}-Algebra stellt mit dem Operator \algebra{in} einen mengenbasierten Operator bereit, der die Semantik des SQL-Operators \sql{in} implementiert. Da der Typ-Konstruktor für \algebra{set} (entspricht einer Menge) über beliebigen Datentypen aus der \emph{Kind} \algebra{DATA} definiert ist, steht die \sql{in}-Operation für beliebige Attributausdrücke zur Verfügung, da Attribute ebenfalls über \algebra{DATA} definiert sind. Daher wurde dieser Operator für die Übersetzung von Prädikaten mit dem \sql{in}-Operator ausgewählt.  
 
 \subsection{geschachtelte Iteration}
-Geschachtelte Prädikate die nicht durch die oben beschriebenen Algorithmen in flache Abfragen überführt werden können, sollen dennoch vom Optimierer ausgeführt werden können. Die geschachtelte Iteration ist die triviale Umsetzung der Semantik geschachtelter Prädikate. Die Übersetzung der Unterabfragen soll hierbei soweit wie möglich mit den bereits vorhandenen Verfahren des Optimierers erfolgen, um eine effiziente Übersetzung zu gewährleisten. Korrelierte Prädikate können nicht direkt in die Übersetzung der Unterabfrage einbezogen werden. Daher werden die korrelierten Prädikate für die Übersetzung von der Unterabfrage entfernt. Die so entstandene, einfache Abfrage wird mit dem Optimierungsalgorithmus in einen Plan übersetzt. Die korrelierten Prädikate werden dann auf diesen Plan als Selektionsprädikate angewandt. 
+Geschachtelte Prädikate die nicht durch die oben beschriebenen Algorithmen in flache Abfragen überführt werden können, sollen dennoch vom Optimierer ausgeführt werden können. Die geschachtelte Iteration ist die triviale Umsetzung der Semantik geschachtelter Prädikate. Die Übersetzung der Unterabfragen soll hierbei soweit wie möglich mit den bereits vorhandenen Verfahren des Optimierers erfolgen, um eine effiziente Übersetzung zu gewährleisten. Korrelierte Prädikate können nicht direkt in die Übersetzung der Unterabfrage einbezogen werden. Daher werden die korrelierten Prädikate für die Übersetzung von der Unterabfrage entfernt. Die so entstandene, einfache Abfrage wird mit dem Optimierungsalgorithmus in einen Plan übersetzt. Die korrelierten Prädikate werden dann auf diesen Plan als Selektionsprädikate angewandt. D.h. es werden erst alle einfachen und alle Join-Prädikate ausgeführt und auf deren Ergebnis die korrelierten Prädikate als Selektion ausgeführt. Sind mehr als ein korreliertes Prädikat vorhanden, so werden die Prädikate in der Reihenfolge ihrer Selektivität ausgeführt. Prädikate mit hoher Selektivität werden zu erst ausgeführt, um das noch weiterzuverarbeitende Ergebnis zu minimieren.
 
 
 %

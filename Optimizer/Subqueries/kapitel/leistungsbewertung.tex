@@ -67,60 +67,33 @@ from
 Die zweite temporäre Relation ist die Einschränkung der inneren Relation durch alle \emph{einfachen} Prädikaten.
 
 \begin{lstlisting}[caption=TempRel2]
-select
-	*
-from
-	[partsupp as ps, 
-	supplier as s, 
-	nation as n, 
-	region as r]
-where
-	[s:ssuppkey = ps:pssuppkey, 
-	s:snationkey = n:nnationkey, 
-	n:nregionkey = r:rregionkey, 
-	r:rname = "EUROPE"]
+select [ps:pspartkey, ps:pssupplycost]
+from [partsupp as ps, supplier as s, nation as n, region as r]
+where [s:ssuppkey = ps:pssuppkey, s:snationkey = n:nnationkey, n:nregionkey = r:rregionkey, r:rname = "EUROPE"]
 \end{lstlisting}
 
 Die dritte temporäre Relation wird aus dem Equi-Join der ersten und zweiten temporären Relationen und Berechnung der Aggregation gebildet. Man beachte die Attributnamen mit \enquote{\_ps}. Diese sind notwendig, da sich Optimierer und \textsc{Secondo} in der Syntax für umbenannte Tupel unterscheiden. Es muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden. 
 
 \begin{lstlisting}[caption=TempRel3]
-select
-	[pspartkey_ps, 
-	min(pssupplycost_ps) as var1]
-from
-	[trelxx1, 
-	trelxx2]
-where 
-	[ppartkey = pspartkey_ps]
-groupby 
-	pspartkey_ps
+select [pspartkey_ps, min(pssupplycost_ps)as var1] 
+from [trelxx1, trelxx2] 
+where [ppartkey = pspartkey_ps] groupby pspartkey_ps
 \end{lstlisting}
 
 \begin{lstlisting}[caption=Entschachtelte Variante von Abfrage Q2]
-select
-	[sacctbal, sname, 
-	nname, ppartkey, 
-	pmfgr, saddress, 
-	sphone, scomment]
-from
-	[part, supplier, 
-	partsupp, nation, 
-	region, trelxx3 as alias1]
-where
+select [sacctbal, sname, nname, ppartkey, pmfgr, saddress, sphone, scomment]
+from [part, supplier, partsupp, nation, region, trelxx3 as alias1]
+where 
 	[ppartkey = pspartkey, 
 	ssuppkey = pssuppkey, 
 	psize = 15, 
-	ptype contains "BRASS", 
+	ptype contains[66, 82, 65, 83, 83], 
 	snationkey = nnationkey, 
 	nregionkey = rregionkey, 
-	rname = "EUROPE", 
+	rname = [69, 85, 82, 79, 80, 69], 
 	ppartkey = alias1:pspartkey_ps, 
 	pssupplycost = alias1:var1]
-orderby
-	[sacctbal desc, 
-	nname, 
-	sname, 
-	ppartkey]
+orderby [sacctbal desc, nname, sname, ppartkey]
 first 100
 \end{lstlisting}
 
@@ -143,6 +116,47 @@ pssupplycost = (
 \end{lstlisting}
 
 wurde durch die zwei Prädikate \sql{pssupplycost = trelxx4:var1} und \sql{ppartkey = trelxx4:pspartkey\_ps} ersetzt. Das erste der beiden Prädikate ergibt sich direkt aus dem geschachtelten Prädikat, während das zweite Prädikat die Korrelation abbildet. Zusätzlich wurde die neue Relation trelxx3 in die FROM-Klausel aufgenommen. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate.
+
+\pgfplotsset{every x tick label/.style={below, yshift=-0.25em, rotate=30, xshift=-2em}}
+
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+%axis y line=left,
+ylabel=Sekunden,
+xticklabels={A kalt,A warm,B kalt,B warm},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar stacked,
+]
+\addplot coordinates {(0,	1.129	)(1,	0.001	)(2,	0.001	)(3,	0.001	)};
+\addplot coordinates {(0,	0.004	)(1,	0.004	)(2,	0.221	)(3,	0.155	)};
+\addplot coordinates {(0,	1.179	)(1,	0.581	)(2,	0.298	)(3,	0.31	)};
+\addplot coordinates {(0,	1.179	)(1,	1.219	)(2,	10.609	)(3,	10.61	)};
+\legend{Rewrite,Lookup,QueryToPlan,Execute}
+\end{axis}
+\begin{axis}[
+scale only axis,
+xmin=0,xmax=3,
+ymin=-9.8,ymax=109.8,
+xshift=0.65em,
+height=5.7cm,
+%yshift=1.2em,
+enlargelimits=0.10,
+yticklabel=
+{$\pgfmathprintnumber{\tick}$\%},
+axis y line=right,
+axis x line=none,
+%y label style={yshift=},
+ylabel=percent]
+\end{axis}
+\end{tikzpicture}
+
+A = entschachtelte Ausführung, B ist iterativ geschachtelte Ausführung. Wie man der Graphik entnehmen kann, 
 
 \subsection{TPC-D Q4}
 Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. Es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf.
@@ -182,20 +196,15 @@ Die Abfrage ist vom Typ J, da das geschachtelte Prädikat keine Aggregation enthä
 
 Die Projektion der äußeren Relation auf die Join-Spalte ergibt
 \begin{lstlisting}[caption=TempRel1]
-select 
-	distinct[oorderkey] 
-from 
-	orders
+select distinct[oorderkey] 
+from orders
 \end{lstlisting}
 
 Einschränkung der inneren Relation mit allen \emph{einfachen} Prädikate.
 \begin{lstlisting}[caption=TempRel2]
-select 
-	* 
-from 
-	lineitem 
-where
-	[lcommitdate < lreceiptdate]
+select [lorderkey]
+from [lineitem]
+where [lcommitdate < lreceiptdate]
 \end{lstlisting}
 
 
@@ -203,21 +212,16 @@ Full-Outerjoin zwischen den temporären Relationen. Das \texttt{ifthenelse} Konst
 \begin{lstlisting}[caption=TempRel3]
 trelxx1  feed 
 trelxx2  feed  
-smouterjoin[oORDERKEY,lORDERKEY] 
-extend[var1: ifthenelse(isempty(.lORDERKEY), 0, 1)] 
+smouterjoin[oORDERKEY, lORDERKEY] 
 sortby[oORDERKEY asc] 
-groupby[oORDERKEY;Var1: group feed sum[var1]] 
+groupby[oORDERKEY;Var1: group feed filter[not(isempty(.lORDERKEY))] count] 
 projectextend[Var1; lORDERKEY: .oORDERKEY] 
 consume
 \end{lstlisting}
 
 \begin{lstlisting}[caption=Entschachtelte Variante von Q4]
-select 
-	[oorderpriority, 
-	count(*) as ordercount] 
-from 
-	[orders, 
-	trelxx3 as alias1] 
+select [oorderpriority, count(*) as ordercount] 
+from [orders, trelxx3 as alias1] 
 where 
 	[oorderdate>=instant("1993-07-01"), 
 	oorderdate<theInstant(
@@ -227,22 +231,16 @@ where
 	), 
 	oorderkey = alias1:lorderkey, 
 	0 < alias1:var1] 
-groupby 
-	[oorderpriority] 
-orderby 
-	[oorderpriority]
+groupby [oorderpriority] 
+orderby [oorderpriority]
 \end{lstlisting}
 
 \subsection{TPC-D Q7}
 Diese Abfrage listet für zwei gewählte Länder den Wert der versandten Waren. Es wird Wert der Waren der zwischen Lieferanten und Kunden länderübergreifend versandt wurde ausgegeben, gruppiert nach Land des Lieferanten, Land des Kunden und Jahr. 
 \begin{lstlisting}[caption=Abfrage Q7]
-select
-	[supp_nation,
-	 cust_nation,
-	 lyear, 
-	 sum(volume) as revenue]
-from (
-	select
+select [supp_nation, cust_nation, lyear, sum(volume) as revenue]
+from ( 
+	select 
 		[n1:nname as supp_nation,
 		 n2:nname as cust_nation,
 		 year_of(lshipdate) as lyear,
@@ -906,10 +904,10 @@ Q22 & 1,327 & 1,593\\
 \end{table}
 
 \section{Fazit}
-Bis auf wenige Ausnahmen (Q17 und Q21) ist die entschachtelte Ausführung der iterativen Ausführung in den betrachteten Abfragen überlegen. 
+Die Laufzeiten der Abfragen ergeben ein uneinheitliches Bild. Die Abfragen Q2 und Q4 erfahren durch die Entschachtelung eine deutliche Beschleunigung der Laufzeit. Sogar dann, wenn die temporären Relationen neu erzeugt werden müssen. Die Laufzeit der entschachtelten Abfrage ist im zweiten Durchlauf bis auf Abfrage Q21 vergleichbar oder besser der Ausführung mit geschachtelter Iteration. Bei den Abfragen Q17, Q20, Q21 und Q22 ist der Aufwand für die Erzeugung der temporären Relationen ein vielfaches der Ausführungszeit der geschachtelten Ausführung. Durch die Implementierung der beschriebenen Erweiterungen ist der Optimierer in der Lage, die oben beschriebenen Abfragen ausführen zu können. Um den Benchmark vollständig ausführen zu können, muss der Optimierer noch um einige Konstrukte erweitert werden. Die Abfragen Q18 und Q11 des Benchmarks benötigen die Unterstützung der \sql{having}-Klausel. Diese entspricht einer Selektionsoperation auf dem Ergebnis einer Aggregation. Für die Abfragen Q8 und Q14 ist die Übersetzung von Ausdrücken über Aggregationsergebnissen erforderlich. 
 
 \section{Ausblick}
-Um die Entschachtelung zu vervollständigen sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden. Auch ein allgemeiner Full-Outerjoin-Operator auf Basis von Symmjoin. Unterstützung von \textbf{GROUPBY...HAVING}-Klauseln inkl. Subqueries. Geschachtelte Prädikate in Disjunktionen. Allgemeiner \sql{in}-Operator für Konstanten, möglicherweise auf der Basis des bestehenden \sql{in}-Operators der \algebra{Collection-Algebra}. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen. Weitere Formen von geschachtelten Abfragen, die noch nicht optimiert werden können: korrelierte Abfragen in der SELECT-Klausel und der FROM-Klausel, geschachtelte Abfragen in Disjunktionen, geschachtelte Abfragen, die mehrere Schachtelungsebenen überspringen.
+Um die Entschachtelung zu vervollständigen sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden. Auch ein allgemeiner Full-Outerjoin-Operator auf Basis von Symmjoin. Unterstützung von \textbf{GROUPBY...HAVING}-Klauseln inkl. Subqueries. Die Erweiterung der Optimierung um den Kostenvergleich zwischen geschachtelter und entschachtelter Ausführung auf der Basis statistisch modellierter Daten stellt mit Sicherheit eine Herausforderung dar. Geschachtelte Prädikate in Disjunktionen. Allgemeiner \sql{in}-Operator für Konstanten, möglicherweise auf der Basis des bestehenden \sql{in}-Operators der \algebra{Collection-Algebra}. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen. Weitere Formen von geschachtelten Abfragen, die noch nicht optimiert werden können: korrelierte Abfragen in der SELECT-Klausel und der FROM-Klausel, geschachtelte Abfragen in Disjunktionen, geschachtelte Abfragen, die mehrere Schachtelungsebenen überspringen.
 
 %
 % EOF
