@@ -866,7 +866,7 @@ cost(createtmpbtree(rel(Rel, _), _), _, _, ResAttrList, ResTupleSize, ResCard,
   tupleSizeSplit(RelDC,ResTupleSize),
   card(Rel, ResCard),
   createbtreeTC(C),
-  Cost is C * ResCard.
+  Cost is C * ResCard * log(ResCard).
 
 % Failed to compute the cost -- throw an exception!
 cost(T, S, P, A, TS, RC, Cost) :-

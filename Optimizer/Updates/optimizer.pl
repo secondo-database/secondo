@@ -710,8 +710,10 @@ newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
 
 /*
 Special handling for distance-queries:
-If a distancescan query is used, only joins keeping the order
-are allowed
+If a distancescan query is used, only joins keeping the order are
+allowed, so ~sortedjoin~ is used instead of ~join~. The additional
+parameters for ~sortedjoin~ are the sorted argument and the maximum
+number of tuples, the other argument can contain
 
 */
 
@@ -4338,7 +4340,7 @@ cost(createtmpbtree(rel(Rel, _), _), _, _, RelSize,
      Cost) :-
   createbtreeTC(C),
   card(Rel, RelSize),
-  Cost is C * RelSize.
+  Cost is C * RelSize * log(RelSize + 1).
 
 
 % Section:Start:cost_4_e
@@ -6027,7 +6029,8 @@ lookupTransformation(Attr = Expr, Attr2 = Expr2) :-
 ----    lookupSetExpr(+Expr, -Expr2)
 ----
 
-Handles the expressions in the set-clause of an update command
+Handles the expressions in the set-clause of an update command. Scans
+the term for attributes and looks for these attributes in the database
 
 */
 
@@ -6901,7 +6904,8 @@ translateType(Type, Type) :- !.
 
 Translates a query which is ordered by the distance between ~DistAttr1~
 and ~DistAttr2~. ~HeadCount~ is the number of object to look for in the
-distance query
+distance query. ~assertDistanceRel~ is used to check for an
+R-Tree-Index.
 
 */
 
@@ -6911,6 +6915,16 @@ translateDistanceQuery(Select from Rel, X, Y, HeadCount,
   assertDistanceRel([Rel], X, Y, HeadCount), !,
   translate1(Select from [Rel], StreamOut, SelectOut, Update, Cost),
   retractall(distanceRel(Rel, _, _, HeadCount)).
+
+/*
+
+If the query has a where-clause and an R-Tree-Index can be used, the POG
+is calculated twice: One version using the index and one version not
+using the index. The costs of these two solutions are compared in
+~chooseFasterSolution~ and the faster one is returned
+
+  
+*/
 
 translateDistanceQuery(Select from Rels where Condition, X, Y,
 		       HeadCount, StreamOut, SelectOut, Update, Cost) :-
@@ -6932,6 +6946,13 @@ translateDistanceQuery(Select from Rels where Condition, X, Y,
   chooseFasterSolution(StreamOut1, SelectOut1, Update1, Cost1, StreamOut2,
 		       SelectOut2, Update2, Cost2, StreamOut, SelectOut,
 		       Update, Cost).
+
+/*
+
+If the query can't use an R-Tree-Index, use ~sortby~ or ~ksmallest~
+(dependent on the value of ~HeadCount~)
+  
+*/
 
 translateDistanceQuery(Query, X, Y, 0, StreamOut,
 		       Select, Update, Cost) :-
@@ -8398,7 +8419,7 @@ updateTypedIndex(drop, _, IndexName, _, StreamIn,
 ----    splitSelect(+Clause, -SelectClause, -UpdateClause)
 ----
 
-Splits ~Clause~ into ~SelectClause~ and ~UpdateCluase~
+Splits ~Clause~ into ~SelectClause~ and ~UpdateClause~
 
 */
 
@@ -8584,7 +8605,8 @@ finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
 ----
 
 Adds the commands for a distancescanquery which are not set by the POG and
-corrects the cost estimation according to ~HeadCount~
+corrects the cost estimation according to ~HeadCount~ and the costs for 
+temporary indices
 
 */
 
@@ -8665,7 +8687,9 @@ chooseFasterSolution(_, _, _, _, StreamOut2, SelectOut2, Update2, Cost2,
      -NewAttrs) :-
 ----
 
-Transform the distance operator in the orderby-clause.
+Transform the distance operator in the orderby-clause. ~NewAttrs~
+returns the temporary attributes, which were added to contain the 
+distance. These attributes have to be removed later.
 
 */
 
