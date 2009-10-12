@@ -243,6 +243,8 @@ i-th mapping.
 
    * join: ~Op~ is a join operator (joins two streams). Used during CSE rewriting
 
+   * typemapop: ~Op~ is a type mapping operator.
+
    * (list may be extended as required)
 
 2.7.1 StandardAlgebra
@@ -1010,7 +1012,7 @@ opSignature(abs, temporallifted, [mreal],mreal,[exp]).
 */
 opSignature(makemvalue, temporalunit, [[stream,[tuple,AttrList]],Attr],T2,
         [block,aggr,exp]) :-
-  is_list(AttrList),
+  ( not(optimizerOption(determinePredSig)) ; is_list(AttrList)),
   member([Attr,T1],AttrList),
   member((T1,T2),[(upoint,mpoint),(ubool,mbool),(uint,mint),(ureal,mreal),
                   (ustring,mstring),(uregion,movingregion)]),!.
@@ -1286,8 +1288,10 @@ opSignature(echo,stream,[[stream,T],string],[stream,T],[sidefx]):-isData(T),!.
 opSignature(echo,stream,[[stream,T],bool,string],[stream,T],[sidefx])
           :-isData(T),!.
 opSignature(realstream, stream, [real,real,real],[stream,real],[]).
-% omitting typemap operator STREAMELEM
-% omitting typemap operator STREAMELEM2
+opSignature(streamelem, stream, [[stream,T]|_],T,[typemapop]) :- !.
+opSignature(streamelem, stream, [T|_],T,[typemapop]).
+opSignature(streamelem2, stream, [_,[stream,T]|_],T,[typemapop]) :- !.
+opSignature(streamelem2, stream, [_,T|_],T,[typemapop]).
 opSignature(tail, stream, [[stream,T],int],[stream,T],[block]) :- isData(T).
 opSignature(tail, stream,[[stream,[tuple,AttrList]],int],
         [stream,[tuple,AttrList]],[block]).
@@ -1464,8 +1468,8 @@ opSignature(getFileInfo, rtree, [[RTreeType|_]],text,[exp]) :-
 2.7.13 FunctionAlgebra
 
 */
-% Typemap operator 'ANY' omitted
-% Typemap operator 'ANY2' omitted
+opSignature(any, function, [T|_],T,[typemapop]).
+opSignature(any2, function, [_, T |_],T,[typemapop]).
 opSignature(within, function, [T1,[map,T1,[stream,T2]]],[stream,T2],[]).
 opSignature(within, function, [T1,[map,T1,T2]],T2,[]).
 opSignature(within2, function, [T1,T2,[map,T1,T2,[stream,T3]]],[stream,T3],[]).
@@ -1630,8 +1634,8 @@ opSignature(partjoinselect, array,[[array,[rel,T]], [array,[rel,U]],
                                    FunList,int,real],[array,R],[]):-
   ground(FunList),is_list(FunList),
   setof(Sig,member([_,Sig],FunList),[[map,[rel,T],[rel,U],R]]), !.
-% Typemapoperator 'ELEMENT' omitted
-% Typemapoperator 'ELEMENT2' omitted
+opSignature(element, array, [[array, T]|_],T,[typemapop]).
+opSignature(element2, array, [[array, _],[array, T]|_],T,[typemapop]).
 
 
 /*
@@ -1697,8 +1701,12 @@ opSignature(getFileInfo, btree, [[btree,_,_]],text,[]).
 */
 opSignature(feed, relation, [[rel,[tuple,X]]],[stream,[tuple,X]],[]).
 opSignature(consume, relation, [[stream,[tuple,X]]],[rel,[tuple,X]],[block]).
-% Typemapoperator 'TUPLE' omitted
-% Typemapoperator 'TUPLE2' omitted
+opSignature(tuple, relation, [[stream,[tuple,X]]|_],[tuple,X],[typemapop]).
+opSignature(tuple, relation, [[rel,[tuple,X]]|_],[tuple,X],[typemapop]).
+opSignature(tuple2, relation, [[stream,[tuple,_]],[stream,[tuple,X]]|_],
+                                 [tuple,X],[typemapop]).
+opSignature(tuple2, relation, [[rel,[tuple,_]],[rel,[tuple,X]]|_],
+                                [tuple,X],[typemapop]).
 opSignature(attr, relation, [[tuple,AttrList],Attr],T,[]) :-
   memberchk([Attr,T],AttrList),!.
 opSignature(filter, relation, [[stream,[tuple,X]],[map,[tuple,X],bool]],
@@ -1764,10 +1772,11 @@ opSignature(sample, extrelation, [[rel,[tuple,X]],int,real],[stream,[tuple,X]],
         [sidefx]).
 opSignature(sample, extrelation, [[rel,[tuple,X]],int,real,int],
         [stream,[tuple,X]],[sidefx]).
-% Typemapoperator GROUP omitted
+opSignature(group, extrelation, [[stream, X]],[rel,X],[typemapop]).
 opSignature(cancel, extrelation, [[stream,X],[map,X,bool]],[stream,X],[]).
 opSignature(extract, extrelation, [[stream,[tuple,AL]],Attr],AType,[aggr,exp]) :-
-  is_list(AL), memberchk([Attr,AType],AL),!.
+  ( not(optimizerOption(determinePredSig)) ; is_list(AL)),
+  memberchk([Attr,AType],AL),!.
 opSignature(extend,extrelation,[[stream,[tuple,AL]],ExtL],[stream,[tuple,RL]],
         []):-
   is_list(ExtL), ground([[stream,[tuple,AL]],ExtL]),
@@ -2457,9 +2466,9 @@ they are indended to be used with the optimizer.
 NearestNeighbor Algebra
 
 */
-%Faked operator 
+%Faked operator
 opSignature(isknn, nearestneighbor, [int, int, mpoint, string], mbool, []).
-  
+
 
 % Section:Start:opSignature_5_e
 /*
