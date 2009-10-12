@@ -85,6 +85,7 @@ in SECONDO to get more informations about these operators.
 
 #include "GraphAlgebra.h"
 #include "RelationAlgebra.h"
+#include "ListUtils.h"
 #include "tree.cpp"
 #include "vertex.cpp"
 #include "edge.cpp"
@@ -366,23 +367,26 @@ ListExpr constGraphTypeMap( ListExpr args )
   switch (characteristic)
   {
     case 0:
-      CHECK_COND(nl->ListLength(args) == 3,
-      "Operator constGraph expects a list of length three.");
+      if(nl->ListLength(args)!=3){
+        return listutils::typeError("3 arguments expected");
+      }
       inTuple = nl->First(args);
       attidx1  = nl->Second(args);
       attidx2  = nl->Third(args);
       break;
   case 1:
-      CHECK_COND(nl->ListLength(args) == 4,
-      "Operator constGraph expects a list of length four.");
+      if(nl->ListLength(args)!=4){
+        return listutils::typeError("4 arguments expected");
+      }
       inTuple = nl->First(args);
       attidx1  = nl->Second(args);
       attidx2  = nl->Third(args);
        func  = nl->Fourth(args);
        break;
     case 2:
-      CHECK_COND(nl->ListLength(args) == 5,
-      "Operator constGraph expects a list of length five.");
+      if(nl->ListLength(args)!=5){
+        return listutils::typeError("5 arguments expected");
+      }
       inTuple = nl->First(args);
       attidx1  = nl->Second(args);
       attidx2  = nl->Third(args);
@@ -390,8 +394,9 @@ ListExpr constGraphTypeMap( ListExpr args )
        pointidx2  = nl->Fifth(args);
        break;
     case 3:
-      CHECK_COND(nl->ListLength(args) == 6,
-      "Operator constGraph expects a list of length six.");
+      if(nl->ListLength(args)!=6){
+        return listutils::typeError("6 arguments expected");
+      }
       inTuple = nl->First(args);
       attidx1  = nl->Second(args);
       attidx2  = nl->Third(args);
@@ -400,71 +405,60 @@ ListExpr constGraphTypeMap( ListExpr args )
        pointidx2= nl->Sixth(args);
        break;
     }
-  nl->WriteToString(argstr, inTuple);
-  CHECK_COND(nl->ListLength(inTuple) == 2  &&
-         (TypeOfRelAlgSymbol(nl->First(inTuple)) == stream) &&
-    (nl->ListLength(nl->Second(inTuple)) == 2) &&
-        (TypeOfRelAlgSymbol(nl->First(nl->Second(inTuple))) == tuple) &&
-         (nl->ListLength(nl->Second(inTuple)) == 2) &&
-         (IsTupleDescription(nl->Second(nl->Second(inTuple)))),
-      "Operator constGraph expects as first argument a list with structure "
-      "(stream (tuple ((a1 t1)...(an tn))))\n"
-      "Operator constgraph gets as first argument '" + argstr + "'." );
 
+  if(!listutils::isTupleStream(inTuple)){
+    return listutils::typeError("first argument must be a tuple stream");
+  }
 
   nl->WriteToString(argstr, attidx1);
-    nl->WriteToString(argstr2, attidx2);
-    if (nl->AtomType(attidx1) == SymbolType&&
-        nl->AtomType(attidx2) == SymbolType)
-    {
-      attrname1 = nl->SymbolValue(attidx1);
-        attrname2 = nl->SymbolValue(attidx2);
+  nl->WriteToString(argstr2, attidx2);
+  if (nl->AtomType(attidx1) == SymbolType&&
+      nl->AtomType(attidx2) == SymbolType)
+  {
+    attrname1 = nl->SymbolValue(attidx1);
+    attrname2 = nl->SymbolValue(attidx2);
+  }
+  else
+  {
+    nl->WriteToString(argstr, attidx1);
+    ErrorReporter::ReportError("Operator constGraph gets '" +
+            argstr +", "+argstr2+ "' as attributenames.\n"
+            "Atrribute name may not be the name of a Secondo object!");
+    return nl->SymbolAtom("typeerror");
+  }
+  j = listutils::findAttribute(nl->Second(nl->Second(inTuple)), 
+                                attrname1, attrtype);
+  if (j) {
+    if(!listutils::isSymbol(attrtype,"int")){
+      return listutils::typeError("Attribute " + attrname1 + 
+                                  " must be of type int");
     }
-    else
-    {
-        nl->WriteToString(argstr, attidx1);
-        ErrorReporter::ReportError("Operator constGraph gets '" +
-          argstr +", "+argstr2+
-          "' as attributenames.\n"
-          "Atrribute name may not be the name of a Secondo object!");
-        return nl->SymbolAtom("typeerror");
-    }
-    j = FindAttribute(nl->Second(nl->Second(inTuple)), attrname1, attrtype);
-    if (j)
-    {
-      nl->WriteToString(argstr, attrtype);
-      CHECK_COND(argstr=="int",
-        "Attribute "+attrname1+" is of type "+argstr+" but schould be int.");
-    }
-    else
-    {
-        nl->WriteToString( argstr, nl->Second(nl->Second(inTuple)) );
-        ErrorReporter::ReportError(
-          "Attributename '" + attrname1 + "' is not known.\n"
-          "Known Attribute(s): " + argstr);
-        return nl->SymbolAtom("typeerror");
-    }
-     k = FindAttribute(nl->Second(nl->Second(inTuple)), attrname2, attrtype);
-    if (k)
-    {
-      nl->WriteToString(argstr, attrtype);
-      CHECK_COND(argstr=="int",
-        "Attribute "+attrname1+" is of type "+argstr+" but schould be int.");
-    }
-    else
-    {
-        nl->WriteToString( argstr, nl->Second(nl->Second(inTuple)) );
-        ErrorReporter::ReportError(
-          "Attributename '" + attrname2 + "' is not known.\n"
-          "Known Attribute(s): " + argstr);
-        return nl->SymbolAtom("typeerror");
-    }
-    if(characteristic==1||characteristic==3)
-    {
-      if ( nl->IsAtom(func)
-          || !nl->ListLength(func) == 3
-           || !nl->IsEqual(nl->First(func), "map")
-           || !nl->IsEqual(nl->Third(func), "real") )
+  }
+  else
+  {
+    return listutils::typeError("Attribute " + attrname1 +
+                                " not found in tuple");
+  }
+  k = listutils::findAttribute(nl->Second(nl->Second(inTuple)), 
+                               attrname2, attrtype);
+ if (k)
+ {
+   if(!listutils::isSymbol(attrtype,"int")){
+     return listutils::typeError("Attribute " + attrname1 + 
+                                 " must be of type int");
+   }
+ }
+ else
+ {
+   return listutils::typeError("Attribute " + attrname2 + 
+                               " not known in the tuple");
+ }
+ if(characteristic==1||characteristic==3)
+ {
+   if ( nl->IsAtom(func)
+        || !nl->ListLength(func) == 3
+        || !nl->IsEqual(nl->First(func), "map")
+        || !nl->IsEqual(nl->Third(func), "real") )
       {
           nl->WriteToString(argstr, func);
           ErrorReporter::ReportError("Operator filter expects a "
@@ -495,10 +489,10 @@ ListExpr constGraphTypeMap( ListExpr args )
       l = FindAttribute(nl->Second(nl->Second(inTuple)), attrname1, attrtype);
       if (l)
       {
-         nl->WriteToString(argstr, attrtype);
-         CHECK_COND(argstr=="point",
-          "Attribute "+attrname1+" is of type "+
-           argstr+" but schould be point.");
+        if(!listutils::isSymbol(attrtype,"point")){
+          return listutils::typeError(" Attribute " + attrname1 +
+                                      " must be of type point");
+        }
       }
       else
       {
@@ -511,10 +505,10 @@ ListExpr constGraphTypeMap( ListExpr args )
        m = FindAttribute(nl->Second(nl->Second(inTuple)), attrname2, attrtype);
       if (m)
       {
-        nl->WriteToString(argstr, attrtype);
-         CHECK_COND(argstr=="point",
-          "Attribute "+attrname1+" is of type "+argstr+
-          " but schould be point.");
+        if(!listutils::isSymbol(attrtype,"point")){
+          return listutils::typeError("Attribute " + attrname2 + 
+                                      " must be of type point");
+        }
       }
       else
       {
