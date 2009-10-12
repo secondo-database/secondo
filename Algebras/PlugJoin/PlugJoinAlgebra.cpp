@@ -65,7 +65,6 @@ extern QueryProcessor* qp;
 #define DOUBLE_MAX (1.7E308)
 #endif
 
-#undef CHECK_COND
 
 /*
 If ~PLUGJOIN\_VERBOSE\_MODE~ is set, some interesting things are reported.
