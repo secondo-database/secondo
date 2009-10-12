@@ -639,6 +639,12 @@ toggleDebug :-
   write('\tLevel \'all\' will output messages from all levels.\n'),
   !.
 
+% handle more than a single mode
+debugLevel([]).
+debugLevel([Mode|Modes]) :-
+  ( debugLevel(Mode) ; true ),
+  debugLevel(Modes).
+
 debugLevel(Mode) :-
   ( Mode = all ; optDebugLevel(Mode) ),
   ( optActiveDebugLevel(Mode)
@@ -657,6 +663,12 @@ debugLevel(Mode) :-
               'Available debugLevels are:\n',L,'.\n\n',
               'Active debugLevels are:\n',A,'.\n']),
   !.
+
+% handle more than a single mode
+nodebugLevel([]).
+nodebugLevel([Mode|Modes]) :-
+  ( nodebugLevel(Mode) ; true ),
+  nodebugLevel(Modes).
 
 nodebugLevel(Mode) :-
   ( Mode = all ; optDebugLevel(Mode) ),
@@ -687,6 +699,7 @@ Each debug level is required to be registered by a fact ~optDebugLevel/1~ here:
 optDebugLevel(bestPlan).         % Prompting best plan generated
 optDebugLevel(costFunctions).    % Tracing some cost function calls
 optDebugLevel(dbhandling).       % Processing database object metadata
+optDebugLevel(gettypetree).      % Tracing calls to getTypeTree
 optDebugLevel(immPath).          % Monitoring immediate path generation
 optDebugLevel(insertExtend).     % Tracing insertExtend during plan rewriting
 optDebugLevel(intOrders).        % Monitoring interesting orders extension
