@@ -926,7 +926,10 @@ ListExpr gdistance_TM(ListExpr args)
 
     string errmsg;
     errmsg = "Expecting two data attributes of the same type!";
-    CHECK_COND(data1_NL == data2_NL, errmsg);
+    if(!(data1_NL == data2_NL)){
+      ErrorReporter::ReportError(errmsg);
+      return nl->TypeError();
+    }
 
     string typeName = data1_NL.str();
 
