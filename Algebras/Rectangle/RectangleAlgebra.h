@@ -989,6 +989,8 @@ class RectangleSet
       return *this;
     }
 
+    virtual ~RectangleSet(){}
+
     inline virtual bool Intersects( const Rectangle<dim>& r ) const
     {
       if( set.empty() )
