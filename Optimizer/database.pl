@@ -3970,7 +3970,7 @@ projectAttrList(W,X,Y,Z) :-
 ---- createExtendAttrList( +ExtendFields, +RelList, -ExtendAttrs, -ExtendAttrSize )
 ----
 
-For a given list of extension fileds, return a list with attribute-descriptors
+For a given list of extension fields, return a list with attribute-descriptors
 and a sizeTerm with the according aggregated sizes.
 
 ~ExtendFields~ has format list of field(attr(Name,Arg,Case),Expr)
@@ -3991,13 +3991,17 @@ createExtendAttrList([Field|MoreFields],
                      [[AttrName,AttrType,AttrSize]|MoreAttrs],
                      TotalAttrSize) :-
   Field = newattr(attrname(attr(Name, _, _)), Expr),
+%   write_list(['createExtendAttrList: Called with ',[Field|MoreFields],'.\n']),
   ( Name = Attr:Suffix
     -> ( concat_atom([Attr,Suffix],'_',Renamed),
          downcase_atom(Renamed,AttrName)
        )
     ; downcase_atom(Name,AttrName)
   ),
+%   write_list(['createExtendAttrList: Dealing with attribute ',AttrName,'.\n']),
+%   write_list(['createExtendAttrList: recursing into ',MoreFields,'.\n']),
   createExtendAttrList(MoreFields, RelInfoList, MoreAttrs, MoreAttrsSize),
+%   write_list(['createExtendAttrList: returned from recursion into ',MoreFields,'.\n']),
   ( getTypeTree(Expr,RelInfoList,[_,_,ExprType])
     -> AttrType = ExprType  % use inferred type
     ;  ( AttrType = int,
@@ -4006,9 +4010,14 @@ createExtendAttrList([Field|MoreFields],
                      '!\n\t\tUsing \'int\' as a fallback.']),nl)
         % using 'int' as a fallback
   ),
+%   write_list(['createExtendAttrList: after getTypeTree. Type is ',AttrType,'.\n']),
   secDatatype(AttrType, MemSize, _ /* NoFlobs */, _ /* PersistencyMode */,_,_),
+%   write_list(['createExtendAttrList: MemSize is ',MemSize,'.\n']),
   AttrSize = sizeTerm(MemSize,MemSize /* Core */ , 0 /* Lob */),
-  addSizeTerms([AttrSize,MoreAttrsSize],TotalAttrSize), !.
+%   write_list(['createExtendAttrList: AttrSize is ',AttrSize,'.\n']),
+  addSizeTerms([AttrSize,MoreAttrsSize],TotalAttrSize),
+%   write_list(['createExtendAttrList: finished. TotalAttrSize = ',TotalAttrSize,'\n']),
+  !.
 createExtendAttrList(W,X,Y,Z) :-
   concat_atom(['Unknown error.'],'',ErrMsg),
   throw(error_Internal(database_createExtendAttrList(W,X,Y,Z)#ErrMsg)),
