@@ -562,12 +562,13 @@ Number    : 1
 Signature : mpoint -> mreal
 Example   : query val(final(distancetraversed(train7)))
 Result    : 31662.126
+Tolerance : 0.001
 
 Operator  : mint2mbool
 Number    : 1
 Signature : mint -> mbool
 Example   : query mint2mbool(zero())
-Result    : file
+Result    : (mbool ( ( ("begin of time" "end of time" TRUE TRUE) FALSE)))
 
 
 
