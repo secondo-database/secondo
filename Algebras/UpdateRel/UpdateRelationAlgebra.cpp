@@ -52,6 +52,7 @@ searched on can be hold in an random memory based hash table.
 #include "TupleIdentifier.h"
 #include "LogMsg.h"
 #include "RTreeAlgebra.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -100,29 +101,15 @@ ListExpr createAuxiliaryRelTypeMap( const ListExpr& args,
   string oldName;
   string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 1,
-  "Operator " + opName +" expects a list of length one.");
-
-
+  if(nl->ListLength(args)!=1){
+    return listutils::typeError("one argument expected");
+  }
   first = nl->First(args);
 
-  CHECK_COND(!(nl->IsAtom(first)) &&
-             (nl->ListLength(first) > 0),
-   "Operator " + opName + ": First argument  may not be empty or "
-   "an atom" );
+  if(!listutils::isRelDescription(first)){
+    return listutils::typeError("relation expected");
+  }
 
-   // Argument has to be a relation
-   nl->WriteToString(argstr, first);
-   CHECK_COND(nl->ListLength(first) == 2  &&
-     (TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-     (nl->ListLength(nl->Second(first)) == 2) &&
-     (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-     (nl->ListLength(nl->Second(first)) == 2) &&
-     (IsTupleDescription(nl->Second(nl->Second(first)))),
-     "Operator " + opName + " expects as first argument a list "
-     "with structure (rel(tuple ((a1 t1)...(an tn))))\n"
-     "Operator " + opName + " gets as first argument '" +
-     argstr + "'." );
 
   // build first part of the result-tupletype
   rest = nl->Second(nl->Second(first));
@@ -306,49 +293,25 @@ ListExpr insertDeleteRelTypeMap( ListExpr& args, string opName )
   ListExpr first, second, rest,listn,lastlistn, outList;
   string argstr, argstr2;
 
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator " + opName +" expects a list of length two.");
-
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError("two arguments expected");
+  }
 
   first = nl->First(args);
   second  = nl->Second(args);
 
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator " + opName +" expects as first argument a list with "
-    "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName +" gets as first argument '" +
-    argstr + "'." );
+  if(!listutils::isTupleStream(first)){
+   return listutils::typeError("first argument must be a tuple stream");
+  }
 
-  CHECK_COND(!(nl->IsAtom(second)) &&
-    (nl->ListLength(second) > 0),
-    "Operator " + opName +": Second argument list may not "
-    "be empty or an atom" );
+  if(!listutils::isRelDescription(second)){
+   return listutils::typeError("second argument must be of type relation");
+  }
 
-  nl->WriteToString(argstr2, second);
-  CHECK_COND(nl->ListLength(second) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(second)) == rel) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(second)))),
-    "Operator " + opName +" expects as second argument a list with "
-    "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName +" gets as second argument '" +
-    argstr2 + "'." );
+  if(!nl->Equal(nl->Second(first),nl->Second(second))){
+   return listutils::typeError("tuple types must be equal");
+  }
 
-  nl->WriteToString(argstr, nl->Second(first));
-  nl->WriteToString(argstr2, nl->Second(second));
-  CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second))),
-    "Operator " + opName +": Tuple type in the argumentstream '" +
-    argstr +
-    "' is different from the tuple type '" + argstr2 +
-    "' in the relation" );
 
   // build resutllist
   rest = nl->Second(nl->Second(second));
@@ -500,60 +463,30 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
   ListExpr first, second, third,rest,listn,lastlistn, outList;
   string argstr, argstr2;
 
-  CHECK_COND(nl->ListLength(args) == 3,
-    "Operator insertsave expects a list of length three.");
+  if(nl->ListLength(args)!=3){
+    return listutils::typeError("three arguments expected");
+  }
 
   first = nl->First(args);
   second  = nl->Second(args);
   third  = nl->Third(args);
 
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator insertsave expects as first argument a list with "
-    "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator insertsave gets as first argument '" +
-    argstr + "'." );
+  if(!listutils::isTupleStream(first)){
+    return listutils::typeError("first argument must be a tuple stream");
+  }
 
-  CHECK_COND(!(nl->IsAtom(second)) &&
-    (nl->ListLength(second) > 0),
-    "Operator insertsave: Second argument list may not be "
-    "empty or an atom" );
+  if(!listutils::isRelDescription(second)){
+    return listutils::typeError("second argument must be a relation");
+  }
 
-  nl->WriteToString(argstr2, second);
-  CHECK_COND(nl->ListLength(second) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(second)) == rel) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(second)))),
-    "Operator insertsave expects as second argument a list with "
-    "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator insertsave gets as second argument '" +
-    argstr2 + "'." );
+  if(!listutils::isRelDescription(third)){
+    return listutils::typeError("third arguments muts be a relation");
+  }
 
-  nl->WriteToString(argstr2, third);
-  CHECK_COND(nl->ListLength(third) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(third)) == rel) &&
-    (nl->ListLength(nl->Second(third)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(third))) == tuple) &&
-    (nl->ListLength(nl->Second(third)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(third)))),
-    "Operator insertsave expects as third argument a list with "
-    "structure (rel(tuple ((a1 t1)...(an tn)(TID tid)))\n"
-    "Operator insertsave gets as third argument '" +
-    argstr2 + "'." );
-
-  nl->WriteToString(argstr, nl->Second(first));
-  nl->WriteToString(argstr2, nl->Second(second));
-  CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second))),
-    "Operator insertsave: Tuple type in the argumentstream '" +
-    argstr + "' is different from the tuple type '" +
-    argstr2 + "' in the relation" );
+  if(!nl->Equal(nl->Second(first),nl->Second(second))){
+    return listutils::typeError("tuple types of the first and "
+                                "second argument have to be equal");
+  }
 
   // build resutllist
   rest = nl->Second(nl->Second(second));
@@ -571,10 +504,13 @@ ListExpr insertSaveRelTypeMap( ListExpr args )
                           nl->SymbolAtom("tid")));
   nl->WriteToString(argstr, listn);
   nl->WriteToString(argstr2, nl->Second(nl->Second(third)));
-  CHECK_COND( (nl->Equal(listn,nl->Second(nl->Second(third)))),
-    "Operator insertsave: Tuple type of the resultstream '" +
-    argstr + "' is different from the tuple type '" + argstr2 +
-    "' in the auxiliary-relation" );
+  
+  if(!nl->Equal(listn, nl->Second(nl->Second(third)))){
+    return listutils::typeError("tuple type of the third argument must equal "
+              "to the tuple type of the first arguments with an additional "
+              " tid as last attribute");
+        
+  }
   outList = nl->TwoElemList(nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
   return outList;
@@ -1044,63 +980,31 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
   ListExpr first, second, third, rest,listn,lastlistn, outList;
   string argstr, argstr2;
 
-  CHECK_COND(nl->ListLength(args) == 3,
-    "Operator " + opName + " expects a list of length three.");
-
+  if(nl->ListLength(args)!=3){
+    return listutils::typeError("three arguments expected");
+  }
   // Check inputstream
   first = nl->First(args);
   second  = nl->Second(args);
   third  = nl->Third(args);
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator " + opName + " expects as first argument a list with "
-    "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as first argument '" +
-    argstr + "'." );
-  // Check updaterelation
-  CHECK_COND(!(nl->IsAtom(second)) &&
-    (nl->ListLength(second) > 0),
-    "Operator " + opName + ": Second argument list may not be "
-    "empty or an atom" );
 
-  nl->WriteToString(argstr2, second);
-  CHECK_COND(nl->ListLength(second) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(second)) == rel) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(second)))),
-    "Operator " + opName + " expects as second argument a list with "
-    "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as second argument '" +
-    argstr2 + "'." );
-  // Check auxiliary relation
-  nl->WriteToString(argstr2, third);
-  CHECK_COND(nl->ListLength(third) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(third)) == rel) &&
-    (nl->ListLength(nl->Second(third)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(third))) == tuple) &&
-    (nl->ListLength(nl->Second(third)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(third)))),
-    "Operator " + opName + " expects as third argument a list with "
-    "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as third argument '" +
-    argstr2 + "'." );
+  if(!listutils::isTupleStream(first)){
+   return listutils::typeError("first argument has to be a tuple stream");
+  }
 
-  // Compare tupletype of the inputstream with tupletype of the
-  // updaterelation
-  nl->WriteToString(argstr, nl->Second(first));
-  nl->WriteToString(argstr2, nl->Second(second));
-  CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second))),
-    "Operator " + opName + ": Tuple type in the argumentstream '" +
-    argstr + "' is different from the tuple type '" + argstr2 +
-    "' in the relation" );
-  // build resultlist
+  if(!listutils::isRelDescription(second)){
+    return listutils::typeError("second argument has to be of type rel");
+  }
+  
+  if(!listutils::isRelDescription(third)){
+    return listutils::typeError("third argument must be a relation");
+  }
+
+  if(!nl->Equal(nl->Second(first),nl->Second(second))){
+   return listutils::typeError("tuple types of the firrst two "
+                               "arguments must be equal");
+  }
+
   rest = nl->Second(nl->Second(second));
   listn = nl->OneElemList(nl->First(rest));
   lastlistn = listn;
@@ -1114,14 +1018,13 @@ ListExpr deleteSaveRelTypeMap( ListExpr& args, string opName )
                          nl->TwoElemList(
                            nl->SymbolAtom("TID"),
                            nl->SymbolAtom("tid")));
-  // Compare tupletype of resulttuples with tupletype of auxiliary
-  // relation
-  nl->WriteToString(argstr, listn);
-  nl->WriteToString(argstr2, nl->Second(nl->Second(third)));
-  CHECK_COND( (nl->Equal(listn,nl->Second(nl->Second(third)))),
-    "Operator " + opName + ": Tuple type of the resultstream '" +
-    argstr + "' is different from the tuple type '" + argstr2 +
-    "' in the auxiliary-relation" );
+  
+  if(!nl->Equal(listn,nl->Second(nl->Second(third)))){
+    return listutils::typeError("attribute list of the third argument "
+            "must be equal to the attribute list of the first element "
+            " with an additional tid attribute");
+  }
+
   outList = nl->TwoElemList(nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
   return outList;
@@ -1500,47 +1403,32 @@ ListExpr insertTupleTypeMap(ListExpr args)
   ListExpr first,second, rest, rest2, listn, lastlistn, outList;
   string argstr="",valueString;
 
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator inserttuple expects a list of length two.");
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError("two arguments expected");
+  }
 
   first = nl->First(args);
   second = nl->Second(args);
-  // Check relation
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator inserttuple expects as first argument a list with "
-    "structure (rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator inserttuple gets as first argument '" +
-    argstr + "'." );
-  // Check second argument
-  nl->WriteToString(argstr, second);
-  CHECK_COND(nl->ListLength(second) > 0 &&
-    !nl->IsAtom(second),
-    "Operator inserttuple expects a list of attributetypes "
-    "(t1...tn)\n"
-    "Operator inserttuple gets a list '" + argstr + "'.");
-  // Check if there are as many values in the second argument as
-  // attributes in the tuples of the relation
-  CHECK_COND(nl->ListLength(second) ==
-             nl->ListLength(nl->Second(nl->Second(first))),
-    "Operator inserttuple expects the same nuber of attributetypes "
-    "than attributes in the tupletype of the relation");
-  // Check if types of the new tuplevalues and types of the tuples
-  // of the relation at the same position are the same
+  
+  if(!listutils::isRelDescription(first)){
+    return listutils::typeError("relation as first arg expected");
+  }
+
+  if(nl->AtomType(second)!=NoAtom){
+    return listutils::typeError("list as second arg expected");
+  }
+  if(nl->ListLength(nl->Second(nl->Second(first)))!=nl->ListLength(second)){
+    return listutils::typeError("different lengths in tuple and update");
+  } 
+ 
   rest = nl->Second(nl->Second(first));
   rest2 = second;
   while (!(nl->IsEmpty(rest)))
   {
-    CHECK_COND(nl->Equal(nl->Second(nl->First(rest)),
-                         nl->First(rest2)),
-      "Operator inserttuple: types of attributevalues at each "
-      "position of the new tuple have to be the same as the"
-      " types at the same position in the tuples of the relation");
+    if(!nl->Equal(nl->Second(nl->First(rest)),nl->First(rest2))){
+      return listutils::typeError("type mismatch in attribute "
+                                  "list and update list");
+    }
     rest = nl->Rest(rest);
     rest2 = nl->Rest(rest2);
   }
@@ -1694,61 +1582,36 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
            lastlistn, outList;
   string argstr="",valueString, argstr2;
 
-  CHECK_COND(nl->ListLength(args) == 3,
-    "Operator inserttuplesave expects a list of length three.");
-
+  if(nl->ListLength(args)!=3){
+    return listutils::typeError("three arguments expecetd");
+  }
   first = nl->First(args);
   second = nl->Second(args);
   third= nl->Third(args);
-  // Check updaterelation
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator inserttuplesave expects as first argument a list with "
-    "structure (rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator inserttuplesave gets as first argument '" +
-    argstr + "'." );
-  // Check value-list
-  nl->WriteToString(argstr, third);
-  CHECK_COND(nl->ListLength(third) > 0 &&
-    !nl->IsAtom(third),
-    "Operator inserttuplesave expects a list of attributetypes "
-    "(t1...tn)\n"
-    "Operator inserttuplesave gets a list '" + argstr + "'.");
-  // Check if there are as many new values as attributes in the
-  // tuples of the updaterelation
-  CHECK_COND(nl->ListLength(third) ==
-             nl->ListLength(nl->Second(nl->Second(first))),
-    "Operator inserttuplesave expects the same nuber of attribute "
-    "types than attributes in the tupletype of the relation");
-  // Check auxiliary relation
-  nl->WriteToString(argstr2, second);
-  CHECK_COND(nl->ListLength(second) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(second)) == rel) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(second)))),
-    "Operator inserttuplesave expects as second argument a list "
-    "with structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator inserttuplesave gets as second argument '" +
-    argstr2 + "'." );
 
-   // Check if types of new values and types of the tuples of the
-   // updatrelation at the same positions are the same
-   rest = nl->Second(nl->Second(first));
-   rest2 = third;
-   while (!(nl->IsEmpty(rest)))
-   {
-     CHECK_COND(nl->Equal(nl->Second(nl->First(rest)),
-                          nl->First(rest2)),
-       "Operator inserttuplesave: types of attributevalues at each "
-       "position of the new tuple have to be the same as the types "
-       "at the same position in the tuples of the relation");
+  if(!listutils::isRelDescription(first)){
+    return listutils::typeError("first argument must be a relation");
+  }
+
+  if(nl->ListLength(nl->Second(nl->Second(first)))!=nl->ListLength(third)){
+    return listutils::typeError("number of attributes differs from number "
+           "of update value");
+  }
+
+  if(!listutils::isRelDescription(second)){
+    return listutils::typeError("second argument must be a relation");
+  }
+
+
+  // updatrelation at the same positions are the same
+  rest = nl->Second(nl->Second(first));
+  rest2 = third;
+  while (!(nl->IsEmpty(rest)))
+  {
+    if(!nl->Equal(nl->Second(nl->First(rest)),nl->First(rest2))){
+      return listutils::typeError("type mismatch in attribute list"
+                                  " and update list");
+    }
      rest = nl->Rest(rest);
      rest2 = nl->Rest(rest2);
    }
@@ -1770,10 +1633,13 @@ ListExpr insertTupleSaveTypeMap(ListExpr args)
   // are the same
   nl->WriteToString(argstr, listn);
   nl->WriteToString(argstr2, nl->Second(nl->Second(second)));
-  CHECK_COND( (nl->Equal(listn,nl->Second(nl->Second(second)))),
-    "Operator inserttuplesave: Tuple type of the resultstream '" +
-    argstr + "' is different from the tuple type '" + argstr2 +
-    "' in the auxiliary-relation" );
+
+  if(!nl->Equal(listn, nl->Second(nl->Second(second)))){
+    return listutils::typeError("second argument must be a relation having "
+              " the same attributes as the first relation and an additional "
+              " tid attribute ");
+                                 
+  }
   outList = nl->TwoElemList(nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
   return outList;
@@ -1919,55 +1785,30 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
   algMgr = SecondoSystem::GetAlgebraManager();
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-  CHECK_COND(nl->ListLength(args) == 3,
-    "Operator " + opName + " expects a list of length three.");
+  if(nl->ListLength(args)!=3){
+    return listutils::typeError("three arguments expected");
+  }
 
   first = nl->First(args);
   second  = nl->Second(args);
   third = nl->Third(args);
-  // Check inputstream
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator " + opName + " expects as first argument a list with "
-    "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as first argument '" +
-    argstr + "'." );
-  // Check update-relation
-  CHECK_COND(!(nl->IsAtom(second)) &&
-    (nl->ListLength(second) > 0),
-    "Operator " + opName + ": Second argument list may not be "
-    "empty or an atom" );
 
-  nl->WriteToString(argstr2, second);
-  CHECK_COND(nl->ListLength(second) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(second)) == rel) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(second)))),
-    "Operator " + opName + " expects as second argument a list with "
-    "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as second argument '" +
-    argstr2 + "'." );
+  if(!listutils::isTupleStream(first)){
+    return listutils::typeError("tuple stream expected");
+  }
+  
+  if(!listutils::isRelDescription(second)){
+    return listutils::typeError("second argument must be a relation");
+  }
 
-  // Check if tuples of the inputstream and of the relation have
-  // the same schema
-  nl->WriteToString(argstr, nl->Second(first));
-  nl->WriteToString(argstr2, nl->Second(second));
-  CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second))),
-    "Operator " + opName + ": Tuple type in the argumentstream '" +
-    argstr + "' is different from the tuple type '" + argstr2 +
-    "' in the relation" );
-  // Check function-argumentlist
-  CHECK_COND(!(nl->IsAtom(third)) &&
-    (nl->ListLength(third) > 0),
-    "Operator " + opName + ": Third argument list may not be "
-    "empty or an atom" );
+  if(!nl->Equal(nl->Second(nl->Second(first)), 
+                nl->Second(nl->Second(second)))){
+    return listutils::typeError("tuple types of first and second arg  differ");
+  }
+
+  if(nl->ListLength(third<1)){
+    return listutils::typeError("third arg must be a list of maps");
+  }
 
   rest = third;
   noAttrs = nl->ListLength(third);
@@ -1980,47 +1821,29 @@ ListExpr updateTypeMap( ListExpr& args, string opName )
     second2 = nl->Second(firstr);
 
     // Is it a function?
-    nl->WriteToString(argstr, second2);
-    CHECK_COND( (nl->ListLength(second2) == 3) &&
-      (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
-      (algMgr->CheckKind("DATA", nl->Third(second2), errorInfo)),
-      "Operator " + opName + " expects a mapping function with list "
-      "structure "
-      "(<attrname> (map (tuple ( (a1 t1)...(an tn) )) ti) )\n."
-      "Operator" + opName + " gets a list '" + argstr + "'.\n" );
-    // Check if functions have argumenttuples of the same type as
-    //those ones from the inputstream
-    nl->WriteToString(argstr, nl->Second(first));
-    nl->WriteToString(argstr2, second2);
-    CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second2))),
-      "Operator " + opName + ": Tuple type in first argument '" +
-      argstr + "' is different from the argument tuple type '" +
-      argstr2 + "' in the mapping function" );
+    if(!listutils::isMap<1>(second2)){
+      return listutils::typeError("not a map found");
+    }
+    if(!nl->Equal(nl->Second(first),nl->Second(second2))){
+      return listutils::typeError("argument of map is wrong");
+    }
+
     // Is the name of the attribute that shall be computed by the
     // function a valid name
+    if(!listutils::isSymbol(first2)){
+      return listutils::typeError("not a valid attribute name:" + 
+                                  nl->ToString(first2));
+    }
     nl->WriteToString(argstr, first2);
-    CHECK_COND( (nl->IsAtom(first2)) &&
-      (nl->AtomType(first2) == SymbolType),
-      "Operator " + opName + ": Attribute name '" + argstr +
-      "' is not an atom or not of type SymbolType" );
-    // Is the name of the attribute of the function an
-    // attributename of the tuples of the inputstream
-    attrIndex = FindAttribute(nl->Second(nl->Second(first)),
+    attrIndex = listutils::findAttribute(nl->Second(nl->Second(first)),
                               argstr, attrType);
-    CHECK_COND( attrIndex != 0 ,
-     "Operator " + opName + ": Attribute name '" + argstr +
-     "' of the mapping-functions"
-     " is not an attributename of the tuples of the relation" );
-    // Is the type of the attribute of the function the same as the
-    // type of the attribute of the tuples of the inputstream
-    nl->WriteToString(argstr2, attrType);
-    nl->WriteToString(argstr3, nl->Third(second2));
-    CHECK_COND( nl->Equal(attrType, nl->Third(second2)),
-      "Operator " + opName + ": Attribute type '" + argstr3 +
-      "' of the mapping-functions is not the type " + argstr2 +
-      " of attributename '" + argstr +
-      "' of the tuples of the relation" );
-
+    if(attrIndex==0){
+      return listutils::typeError("attribute " + argstr + " not known");
+    }
+    if(!nl->Equal(attrType, nl->Third(second2))){
+      return listutils::typeError("result of the map and attribute"
+                                  " type differ");
+    }
     // Construct a list with all indices of the changed attributes
     // in the inputstream to be appended to the resultstream
     if (firstcall)
@@ -2524,72 +2347,37 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
   algMgr = SecondoSystem::GetAlgebraManager();
   string argstr, argstr2,argstr3,oldName;
 
-  CHECK_COND(nl->ListLength(args) == 4,
-    "Operator " + opName + " expects a list of length four.");
+  if(nl->ListLength(args)!=4){
+    return listutils::typeError("four arguments expected");
+  }
 
   first = nl->First(args);
   second  = nl->Second(args);
   third = nl->Third(args);
   fourth = nl->Fourth(args);
   // Check inputstream
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator " + opName +
-    " expects as first argument a list with structure "
-    "(stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as first argument '" +
-    argstr + "'." );
-  // Check updaterelation
-  CHECK_COND(!(nl->IsAtom(second)) &&
-    (nl->ListLength(second) > 0),
-    "Operator " + opName + ": Second argument list may not be "
-    "empty or an atom" );
+  if(!listutils::isTupleStream(first)){
+    return listutils::typeError("first argument must be a tuple stream");
+  }
+  if(!listutils::isRelDescription(second)){
+    return listutils::typeError("second argument must be a relation");
+  }
+  if(!nl->Equal(nl->Second(first),nl->Second(second))){
+    return listutils::typeError("tuple type of first and"
+                                " second argument differ");
+  }
 
-  nl->WriteToString(argstr2, second);
-  CHECK_COND(nl->ListLength(second) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(second)) == rel) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(second))) == tuple) &&
-    (nl->ListLength(nl->Second(second)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(second)))),
-    "Operator " + opName + " expects as second argument a list with "
-    "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as second argument '" +
-    argstr2 + "'." );
+  if(!listutils::isRelDescription(third)){
+    return listutils::typeError("third argument must be a relation");
+  }
 
-  // Check if tupletype of the tuples of the inputstream is the
-  // same as the one of the tuples of the update-relation
-  nl->WriteToString(argstr, nl->Second(first));
-  nl->WriteToString(argstr2, nl->Second(second));
-  CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second))),
-    "Operator " + opName + ": Tuple type in the argumentstream '" +
-    argstr + "' is different from the tuple type '" + argstr2 +
-    "' in the relation" );
-  // Check auxiliary relation
-  nl->WriteToString(argstr2, third);
-  CHECK_COND(nl->ListLength(third) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(third)) == rel) &&
-    (nl->ListLength(nl->Second(third)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(third))) == tuple) &&
-    (nl->ListLength(nl->Second(third)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(third)))),
-    "Operator " + opName + " expects as third argument a list with "
-    "structure (rel(tuple ((a1 t1)...(an tn))))\n"
-    "Operator " + opName + " gets as third argument '" +
-    argstr2 + "'." );
-  // Check functionlist for updating
-  CHECK_COND(!(nl->IsAtom(fourth)) &&
-    (nl->ListLength(fourth) > 0),
-    "Operator " + opName + ": Fourth argument list may not be "
-    "empty or an atom" );
-
+  if(nl->ListLength(fourth)<1){
+    return listutils::typeError("fourth argument must be a function list");
+  }
   rest = fourth;
   noAttrs = nl->ListLength(fourth);
+
+
   // Check each update-function
   while (!(nl->IsEmpty(rest)))
   {
@@ -2598,45 +2386,29 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
     first2 = nl->First(firstr);
     second2 = nl->Second(firstr);
 
-    // Is it a correct function
-    nl->WriteToString(argstr, second2);
-    CHECK_COND( (nl->ListLength(second2) == 3) &&
-      (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
-      (algMgr->CheckKind("DATA", nl->Third(second2), errorInfo)),
-      "Operator " + opName + " expects a mapping function with list "
-      "structure"
-      " (<attrname> (map (tuple ( (a1 t1)...(an tn) )) ti) )\n."
-      "Operator" + opName + " gets a list '" + argstr + "'.\n" );
-    // Is the type of the argumentuples of the function the same
-    // tupletype as in the updaterelation?
-    nl->WriteToString(argstr, nl->Second(first));
-    nl->WriteToString(argstr2, second2);
-    CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second2))),
-      "Operator " + opName + ": Tuple type in first argument '" +
-      argstr + "' is different from the argument tuple type '" +
-      argstr2 + "' in the mapping function" );
+    if(!listutils::isMap<1>(second2)){
+      return listutils::typeError("found a non function in function list");
+    }
+    if(!nl->Equal(nl->Second(first), nl->Second(second2))){
+       return listutils::typeError("tuple type and result type of a"
+                                   " function differ");
+    }
+    if(!listutils::isSymbol(first2)){
+      return listutils::typeError("invalid attribute name found");
+    }
     // Is the function attributename a valid name?
     nl->WriteToString(argstr, first2);
-    CHECK_COND( (nl->IsAtom(first2)) &&
-      (nl->AtomType(first2) == SymbolType),
-      "Operator " + opName + ": Attribute name '" + argstr +
-      "' is not an atom or not of type SymbolType" );
-    // Is the attributname of the function an attributename in the
-    // tuples of the update-relation?
-    attrIndex = FindAttribute(nl->Second(nl->Second(first)),
-                              argstr, attrType);
-    CHECK_COND( attrIndex != 0 ,
-      "Operator " + opName + ": Attribute name '" +
-      argstr + "' of the mapping-functions"
-      " is not an attributename of the tuples of the relation" );
-    // Are the types of those attributes the same?
+    attrIndex = listutils::findAttribute(nl->Second(nl->Second(first)),
+                                         argstr, attrType);
+    if(attrIndex==0){
+      return listutils::typeError("attribute " + argstr + " unknown");
+    }
     nl->WriteToString(argstr2, attrType);
     nl->WriteToString(argstr3, nl->Third(second2));
-    CHECK_COND( nl->Equal(attrType, nl->Third(second2)),
-      "Operator " + opName + ": Attribute type '" +
-      argstr3 + "' of the mapping-functions"
-      " is not the type " + argstr2 + " of attributename '" +
-      argstr + "' of the tuples of the relation" );
+    if(!nl->Equal(attrType, nl->Third(second2))){
+      return  listutils::typeError("result type of function differs from"
+                                   " corresponding attribute type");
+    }
     // build a list with all indices of the updated attributes in
     // the update-relation to be appended to the resultstream
     if (firstcall)
@@ -2694,7 +2466,7 @@ ListExpr updateSaveTypeMap( ListExpr& args, string opName )
                   nl->SymbolAtom("tuple"),
                   listn)));
 
-  cout << "typemap-result:" << nl->ToString(outlist) << endl;
+  // cout << "typemap-result:" << nl->ToString(outlist) << endl;
 
   return outlist;
 }
@@ -3226,24 +2998,17 @@ ListExpr appendIdentifierTypeMap (ListExpr args)
   ListExpr first, rest,listn,lastlistn, outList;
     string argstr;
 
-  CHECK_COND(nl->ListLength(args) == 1,
-    "Operator 'addid' expects a list of length one.");
+  if(nl->ListLength(args)!=1){
+   return listutils::typeError("one argument expected");
+  }
 
   first = nl->First(args);
 
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == stream) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator 'addid' expects as first argument a list with "
-    "structure (stream (tuple ((a1 t1)...(an tn))))\n"
-    "Operator 'addid' gets as first argument '" + argstr + "'." );
+  if(!listutils::isTupleStream(first)){
+    return  listutils::typeError("tuple stream expected");
+  }
 
-
-  // build resutllist
+  // build resultlist
   rest = nl->Second(nl->Second(first));
   listn = nl->OneElemList(nl->First(rest));
   lastlistn = listn;
@@ -3373,29 +3138,19 @@ ListExpr deleteByIdTypeMap(ListExpr args)
   ListExpr first,second, rest, listn, lastlistn, outList;
   string argstr="",valueString;
 
-  CHECK_COND(nl->ListLength(args) == 2,
-    "Operator deletebyid expects a list of length two.");
+  if(nl->ListLength(args)!=2){
+    return listutils::typeError("two arguments expected");
+  }
 
   first = nl->First(args);
   second = nl->Second(args);
-  // Check relation
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator deletebyid expects as first argument a list with "
-    "structure (rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator deletebyid gets as first argument '" +
-    argstr + "'." );
-  // Check secondo argument
-  nl->WriteToString(argstr, second);
-  CHECK_COND(nl->IsAtom(second) &&
-    nl->SymbolValue(second) == "tid",
-    "Operator deletebyid expects as second argument a tuple id "
-    "Operator deletebyid gets as second argument'" + argstr + "'.");
+
+  if(!listutils::isRelDescription(first)){
+    return listutils::typeError("first argument must be a relation");
+  }
+  if(!listutils::isSymbol(second,"tid")){
+    return listutils::typeError("second argument must be a tid");
+  }
   // build resultlist
   rest = nl->Second(nl->Second(first));
   listn = nl->OneElemList(nl->First(rest));
@@ -3547,35 +3302,27 @@ ListExpr updateByIdTypeMap(ListExpr args)
   algMgr = SecondoSystem::GetAlgebraManager();
   errorInfo = nl->OneElemList(nl->SymbolAtom("ERROR"));
 
-  CHECK_COND(nl->ListLength(args) == 3,
-    "Operator updatebyid expects a list of length three.");
+  if(nl->ListLength(args)!=3){
+    return listutils::typeError("three arguments expected");
+  }
 
   first = nl->First(args);
   second = nl->Second(args);
   third = nl->Third(args);
-  // Check relation
-  nl->WriteToString(argstr, first);
-  CHECK_COND(nl->ListLength(first) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(first)) == rel) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(first))) == tuple) &&
-    (nl->ListLength(nl->Second(first)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(first)))),
-    "Operator updatebyid expects as first argument a list with "
-    "structure (rel (tuple ((a1 t1)...(an tn))))\n"
-    "Operator updatebyid gets as first argument '" + argstr + "'." );
-  // Check second argument
-  nl->WriteToString(argstr, second);
-  CHECK_COND(nl->IsAtom(second) &&
-    nl->SymbolValue(second) == "tid",
-    "Operator updatebyid expects as second argument a tuple id "
-    "Operator updatebyid gets as second argument'" + argstr + "'.");
-  // Check function-argumentlist
-  CHECK_COND(!(nl->IsAtom(third)) &&
-    (nl->ListLength(third) > 0),
-    "Operator updatebyid: Third argument list may not be empty "
-    "or an atom" );
 
+  // Check relationa
+  if(!listutils::isRelDescription(first)){
+    return listutils::typeError("relation as first arg expected");
+  }
+  // Check second argument
+  if(!listutils::isSymbol(second,"tid")){
+    return listutils::typeError("second argument should be tid");
+  }
+
+  if(nl->ListLength(third<1)){
+   return listutils::typeError("non-empty function list expected " 
+                               "as third arg");
+  }
   rest = third;
   noAttrs = nl->ListLength(third);
   // Go through all functions
@@ -3588,46 +3335,28 @@ ListExpr updateByIdTypeMap(ListExpr args)
 
     // Is it a function?
     nl->WriteToString(argstr, second2);
-    CHECK_COND( (nl->ListLength(second2) == 3) &&
-      (TypeOfRelAlgSymbol(nl->First(second2)) == ccmap) &&
-      (algMgr->CheckKind("DATA", nl->Third(second2), errorInfo)),
-      "Operator updatebyid expects a mapping function with list "
-      "structure"
-      " (<attrname> (map (tuple ( (a1 t1)...(an tn) )) ti) )\n."
-      "Operator updatebyid gets a list '" + argstr + "'.\n" );
-    // Check if functions have argumenttuples of the same type as
-    // those ones from the relation
-    nl->WriteToString(argstr, nl->Second(first));
-    nl->WriteToString(argstr2, second2);
-    CHECK_COND( (nl->Equal(nl->Second(first),nl->Second(second2))),
-      "Operator updatebyid: Tuple type in first argument '" +
-      argstr + "' is different from the argument tuple type '" +
-      argstr2 + "' in the mapping function" );
-    // Is the name of the attribute that shall be computed by the
-    // function a valid name
-    nl->WriteToString(argstr, first2);
-    CHECK_COND( (nl->IsAtom(first2)) &&
-      (nl->AtomType(first2) == SymbolType),
-      "Operator updatebyid: Attribute name '" + argstr +
-      "' is not an atom or not of type SymbolType" );
-    // Is the name of the attribute of the function an attributename
-    // of the tuples of the relation
-    attrIndex = FindAttribute(nl->Second(nl->Second(first)),
-                              argstr, attrType);
-    CHECK_COND( attrIndex != 0 ,
-     "Operator updatebyid: Attribute name '" + argstr +
-     "' of the mapping-functions"
-     " is not an attributename of the tuples of the relation" );
-    // Is the type of the attribute of the function the same as the
-    // type of the attribute of the tuples of the relation
-    nl->WriteToString(argstr2, attrType);
-    nl->WriteToString(argstr3, nl->Third(second2));
-    CHECK_COND( nl->Equal(attrType, nl->Third(second2)),
-      "Operator updatebyid: Attribute type '" + argstr3 +
-      "' of the mapping-functions"
-      " is not the type " + argstr2 + " of attributename '" +
-      argstr + "' of the tuples of the relation" );
+    if(!listutils::isMap<1>(second2)){
+      return listutils::typeError("invalid function definition found");
+    }
+    if(!nl->Equal(nl->Second(first),nl->Second(second2))){
+     return listutils::typeError("argument of the function differs "
+                "from the corresponding attribute");
+    }
 
+    if(!listutils::isSymbol(first2)){
+      return listutils::typeError("invalid attribute name " + 
+                                  nl->ToString(first2));
+    }
+    nl->WriteToString(argstr, first2);
+    attrIndex = listutils::findAttribute(nl->Second(nl->Second(first)),
+                              argstr, attrType);
+    if(attrIndex==0){
+      return listutils::typeError("attribute " + argstr + " not known");
+    } 
+    if(!nl->Equal(attrType,nl->Third(second2))){
+      return listutils::typeError("attribute type and result type"
+                                  " of the function differ");
+    }
     // Construct a list with all indices of the changed attributes
     // in the inputstream to be appended to the resultstream
     if (firstcall)
@@ -3861,31 +3590,26 @@ Type mapping ~updatertree~ on a rtree
 
 ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
 {
-  ListExpr rest,next,listn,lastlistn,restRTreeAttrs,
+  
+
+   ListExpr rest,next,listn,lastlistn,restRTreeAttrs,
            oldAttribute,outList;
   string argstr, argstr2, oldName;
   AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
   ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
 
+  if(nl->ListLength(args)!=3){
+    return listutils::typeError("three arguments expected");
+  }
 
   /* Split argument in three parts */
   ListExpr streamDescription = nl->First(args);
   ListExpr rtreeDescription = nl->Second(args);
   ListExpr nameOfKeyAttribute = nl->Third(args);
 
-  // Test stream
-  nl->WriteToString(argstr, streamDescription);
-  CHECK_COND(nl->ListLength(streamDescription) == 2  &&
-    (TypeOfRelAlgSymbol(nl->First(streamDescription)) == stream) &&
-    (nl->ListLength(nl->Second(streamDescription)) == 2) &&
-    (TypeOfRelAlgSymbol(nl->First(nl->Second(streamDescription))) ==
-      tuple) &&
-    (nl->ListLength(nl->Second(streamDescription)) == 2) &&
-    (IsTupleDescription(nl->Second(nl->Second(streamDescription)))),
-    "Operator " + opName + " expects as first argument a list with "
-    "structure (stream (tuple ((a1 t1)...(an tn)(tid real)))\n"
-    "Operator " + opName + " gets as first argument '" +
-    argstr + "'." );
+  if(!listutils::isTupleStream(streamDescription)){
+   return listutils::typeError("first argument is not a tuple stream");
+  }
   // Test if last attribute is of type 'tid'
   rest = nl->Second(nl->Second(streamDescription));
   while (!(nl->IsEmpty(rest)))
@@ -3893,107 +3617,50 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
     next = nl->First(rest);
     rest = nl->Rest(rest);
   }
-  CHECK_COND(!(nl->IsAtom(next)) &&
-    (nl->IsAtom(nl->Second(next)))&&
-    (nl->AtomType(nl->Second(next)) == SymbolType)&&
-    (nl->SymbolValue(nl->Second(next)) == "tid"),
-    "Operator " + opName +
-    ": Type of last attribute of tuples of the inputstream "
-    "must be tid" );
-  // Test rtree
+  if(!listutils::isSymbol(nl->Second(next),"tid")){
+    return listutils::typeError("last attribute in the tuple must be a tid");
+  }  
 
-  /* handle rtree part of argument */
-  CHECK_COND(!nl->IsEmpty(rtreeDescription),
-    "Operator " + opName +
-    ": Description for the rtree may not be empty");
-  CHECK_COND(!nl->IsAtom(rtreeDescription),
-    "Operator " + opName +
-    ": Description for the rtree may not be an atom");
-  CHECK_COND(nl->ListLength(rtreeDescription) == 4,
-    "Operator " + opName +
-    ": Description for the rtree must consist of four parts");
+  if(!listutils::isRTreeDescription(rtreeDescription)){
+    return listutils::typeError("second argument is not an rtree");
+  }
+
+  // Test rtree
 
   ListExpr rtreeSymbol = nl->First(rtreeDescription);;
   ListExpr rtreeTupleDescription = nl->Second(rtreeDescription);
   ListExpr rtreeKeyType = nl->Third(rtreeDescription);
   ListExpr rtreeType = nl->Fourth(rtreeDescription);
-
-  /* handle rtree type constructor */
-  CHECK_COND(nl->IsAtom(rtreeSymbol),
-    "Operator " + opName +
-    ": First part of the rtree-description has to be 'rtree'");
-  CHECK_COND(nl->AtomType(rtreeSymbol) == SymbolType,
-    "Operator " + opName +
-    ": First part of the rtree-description has to be 'rtree' ");
-  CHECK_COND((nl->SymbolValue(rtreeSymbol) == "rtree")
-	|| (nl->SymbolValue(rtreeSymbol) == "rtree3"),
-    "Operator " + opName +
-    ": First part of the rtree-description has to be 'rtree' or 'rtree3' ");
-  /* handle btree tuple description */
-  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription),
-    "Operator " + opName +
-    ": Second part of the rtree-description has to be a "
-    "tuple-description ");
-  CHECK_COND(!nl->IsAtom(rtreeTupleDescription),
-    "Operator " + opName +
-    ": Second part of the rtree-description has to be a "
-    "tuple-description ");
-  CHECK_COND(nl->ListLength(rtreeTupleDescription) == 2,
-    "Operator " + opName +
-    ": Second part of the rtree-description has to be a "
-    "tuple-description ");
-  ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);;
+  
   ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
 
-  CHECK_COND(nl->IsAtom(rtreeTupleSymbol),
-    "Operator " + opName +
-    ": Second part of the rtree-description has to be a "
-    "tuple-description ");
-  CHECK_COND(nl->AtomType(rtreeTupleSymbol) == SymbolType,
-    "Operator " + opName +
-    ": Second part of the rtree-description has to be a "
-    "tuple-description ");
-  CHECK_COND(nl->SymbolValue(rtreeTupleSymbol) == "tuple",
-    "Operator " + opName +
-    ": Second part of the rtree-description has to be a "
-    "tuple-description ");
-  CHECK_COND(IsTupleDescription(rtreeAttrList),
-    "Operator " + opName +
-    ": Second part of the rtree-description has to be a "
-    "tuple-description ");
+  /* handle rtree type constructor */
+  if(!listutils::isSymbol(rtreeSymbol,"rtree") &&
+     !listutils::isSymbol(rtreeSymbol,"rtree3")){
+    return listutils::typeError("rtree or rtree3 expected as third argument");
+  }
 
-  /* Handle key-part of rtreedescription */
-  CHECK_COND(nl->IsAtom(rtreeKeyType),
-    "Operator " + opName +
-    ": Key of the rtree has to be an atom");
-  CHECK_COND(nl->AtomType(rtreeKeyType) == SymbolType,
-    "Operator " + opName + ": Key of the rtree has to be an atom");
+  if(!listutils::isDATA(rtreeKeyType)){
+    return listutils::typeError("the rtree does not index a relation");
+  }
 
-  CHECK_COND(nl->IsAtom(rtreeType) &&
-    nl->AtomType(rtreeType) == BoolType &&
-    nl->BoolValue(rtreeType) == false,
-    "Updates are not available for double index R-Trees");
+  if( nl->BoolValue(rtreeType)){
+     return listutils::typeError("double indexing not supported");
+  }
 
-  // Handle third argument which shall be the name of the attribute
-  // of the streamtuples that serves as the key for the rtree
-  // Later on it is checked if this name is an attributename of the
-  // inputtuples
-  CHECK_COND(nl->IsAtom(nameOfKeyAttribute),
-    "Operator " + opName +
-    ": Name of the key-attribute of the streamtuples has to "
-    "be an atom");
-  CHECK_COND(nl->AtomType(nameOfKeyAttribute) == SymbolType,
-    "Operator " + opName +
-    ": Name of the key-attribute of the streamtuples has to "
-    "be an atom");
+
+  if(!listutils::isSymbol(nameOfKeyAttribute)){
+    return listutils::typeError("key attribute in rtree is not a valid name");
+  }
 
   // Check whether tupledescription of the stream without the last
   // attribute is the same as the tupledescription of the rtree
   rest = nl->Second(nl->Second(streamDescription));
-  CHECK_COND(nl->ListLength(rest) > 1 ,
-    "Operator " + opName +
-    ": There must be at least two attributes in the tuples of "
-    "the tuple-stram");
+  if(nl->ListLength(rest)<2){
+    return listutils::typeError("at least two attributes"
+                                " required in tuple stream");
+  }
+  
   //Test if stream-tupledescription fits to btree-tupledescription
   listn = nl->OneElemList(nl->First(rest));
   lastlistn = listn;
@@ -4009,10 +3676,10 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    CHECK_COND(nl->Equal(listn,rtreeAttrList),
-      "Operator " + opName +
-      ": First part of the tupledescription of the stream "
-      "has to be the same as the tupledescription of the rtree");
+    
+    if(!nl->Equal(listn,rtreeAttrList)){
+      return listutils::typeError("tuple descriprions differ");
+    }
     // Compare second part of the streamdescription
     restRTreeAttrs = rtreeAttrList;
     while (nl->ListLength(rest) >  1)
@@ -4024,12 +3691,13 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
         nl->TwoElemList(
           nl->SymbolAtom(oldName),
           nl->Second(nl->First(restRTreeAttrs)));
-      CHECK_COND(nl->Equal(oldAttribute,nl->First(rest)),
-        "Operator " + opName +
-        ": Second part of the tupledescription of the stream "
-        "without the last attribute has to be the same as the "
-        "tupledescription of the rtree except for that"
-        " the attributenames carry an additional '_old.'");
+      if(!nl->Equal(oldAttribute,nl->First(rest))){
+        return listutils::typeError(
+                   "Second part of the tupledescription of the stream "
+                   "without the last attribute has to be the same as the "
+                   "tupledescription of the rtree except for that"
+                   " the attributenames carry an additional '_old.'");
+      }
       rest = nl->Rest(rest);
       restRTreeAttrs = nl->Rest(restRTreeAttrs);
     }
@@ -4045,40 +3713,41 @@ ListExpr allUpdatesRTreeTypeMap( ListExpr& args, string opName )
       lastlistn = nl->Append(lastlistn,nl->First(rest));
       rest = nl->Rest(rest);
     }
-    CHECK_COND(nl->Equal(listn,rtreeAttrList),
-      "Operator " + opName +
-      ": tupledescription of the stream without the"
-      "last attribute has to be the same as the "
-      "tupledescription of the rtree");
+    if(!nl->Equal(listn,rtreeAttrList)){
+      return listutils::typeError( 
+                        " tupledescription of the stream without the"
+                        "last attribute has to be the same as the "
+                        "tupledescription of the rtree");
+    }
   }
 
   // Test if attributename of the third argument exists as a name
   // in the attributlist of the streamtuples
   string attrname = nl->SymbolValue(nameOfKeyAttribute);
   ListExpr attrType;
-  int j = FindAttribute(listn,attrname,attrType);
-  CHECK_COND(j != 0,
-    "Operator " + opName +
-    ": Name of the attribute that shall contain the keyvalue for the"
-    "rtree was not found as a name of the attributes of the "
-    "tuples of the inputstream");
+  int j = listutils::findAttribute(listn,attrname,attrType);
+  if(j==0){
+    return listutils::typeError("attribute " + attrname + " not known");
+  }
   //Test if type of the attriubte which shall be taken as a key is
   // the same as the keytype of the rtree
-  CHECK_COND(nl->Equal(attrType,rtreeKeyType),
-    "Operator " + opName +
-    ": Type of the attribute that shall contain the keyvalue for the"
-    "rtree is not the same as the keytype of the rtree");
+  if(!nl->Equal(attrType,rtreeKeyType)){
+    return listutils::typeError("attribute type in rtree and relation differ");
+  }
+  
   // Check if indexed attribute has a spatial-type
-  CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrType, errorInfo)||
-    algMgr->CheckKind("SPATIAL3D", attrType, errorInfo)||
-    algMgr->CheckKind("SPATIAL4D", attrType, errorInfo)||
-    nl->IsEqual(attrType, "rect")||
-    nl->IsEqual(attrType, "rect3")||
-    nl->IsEqual(attrType, "rect4"),
-    "Operator " + opName + " expects that attribute "+attrname+"\n"
-    "belongs to kinds SPATIAL2D, SPATIAL3D, or SPATIAL4D\n"
-    "or rect, rect3, and rect4.");
-  // Extract dimension and spatianltype to append them to the
+  if( !listutils::isKind(attrType,"SPATIAL2D") &&
+      !listutils::isKind(attrType,"SPATIAL3D") &&
+      !listutils::isKind(attrType,"SPATIAL4D") &&
+      !listutils::isSymbol(attrType,"rect") &&
+      !listutils::isSymbol(attrType,"rect3") &&
+      !listutils::isSymbol(attrType,"rect4") ){
+    return listutils::typeError("indexed type not supported"
+                                " (not in SPATIAL2D, SPATOIAL3D, SPATIAL4D,"
+                                " rect, rect3, rect4}");
+  }
+
+   // Extract dimension and spatianltype to append them to the
   // resultlist
   int dim = 0;
   int spatial = 0;
