@@ -46,11 +46,304 @@ June 2009, Sven Jungnickel. Initial version
 extern QueryProcessor* qp;
 
 /*
-4 Implementation of class ~SortProgressLocalInfo~
+4 Implementation of class ~SortedRunInfo~
 
 */
 namespace extrel2
 {
+
+SortedRunInfo::SortedRunInfo(int no)
+: No(no)
+, RunLength(0)
+, RunSize(0)
+, MinimumRunLength(0)
+, AdditionalRunLength(0)
+, TuplesPassedToNextRun(0)
+, TuplesInMemory(0)
+, TuplesOnDisk(0)
+, RunRatio(0)
+{
+}
+
+SortedRunInfo::SortedRunInfo(extrel2::SortedRunInfo& info)
+{
+  No = info.No;
+  RunLength = info.RunLength;
+  RunSize = info.RunSize;
+  MinimumRunLength = info.MinimumRunLength;
+  AdditionalRunLength = info.AdditionalRunLength;
+  TuplesPassedToNextRun = info.TuplesPassedToNextRun;
+  TuplesInMemory = info.TuplesInMemory;
+  TuplesOnDisk = info.TuplesOnDisk;
+  RunRatio = info.RunRatio;
+}
+
+SortedRunInfo::~SortedRunInfo()
+{
+}
+
+float SortedRunInfo::Ratio()
+{
+  return (float)RunLength / (float)MinimumRunLength;
+}
+
+float SortedRunInfo::Size()
+{
+  return (float)RunSize / (float)( 1024 * 1024 );
+}
+
+ostream& operator<<(ostream& stream, SortedRunInfo& info)
+{
+  stream << setw(2) << info.No << ": " << info.RunLength
+         << " Tuples / " << info.Size() << " MB "
+         << "(Minimum: " << info.MinimumRunLength
+         << ", Added: " << info.AdditionalRunLength << ")"
+         << " => Ratio: " << info.Ratio() << endl
+         << "    TuplesPassedToNextRun: " << info.TuplesPassedToNextRun
+         << " TuplesInMemory: " << info.TuplesInMemory
+         << " TuplesOnDisk: " << info.TuplesOnDisk << endl;
+
+  return stream;
+}
+
+
+/*
+4 Implementation of class ~SortInfo~
+
+*/
+
+SortInfo::SortInfo(size_t bufferSize, size_t ioBufferSize) :
+  BufferSize(bufferSize),
+  IOBufferSize(ioBufferSize),
+  MaxMergeFanIn(0),
+  F0(0),
+  W(0),
+  IntermediateTuples(0),
+  InitialRunsCount(0),
+  TotalTupleCount(0),
+  TotalTupleSize(0),
+  MinTupleSize(INT_MAX),
+  MaxTupleSize(0),
+  AvgTupleSize(0),
+  TotalComparisons(0),
+  TimeRunPhase(""),
+  TimeMergePhase(""),
+  TimeTotal(""),
+  RunStatistics(true)
+{
+}
+
+SortInfo::~SortInfo()
+{
+  clearAll();
+}
+
+SortedRunInfo* extrel2::SortInfo::CurrentRun()
+{
+  return this->InitialRunInfo[this->InitialRunsCount-1];
+}
+
+void SortInfo::NewRun()
+{
+  this->InitialRunsCount++;
+  this->InitialRunInfo.push_back(new SortedRunInfo(this->InitialRunsCount));
+}
+
+void SortInfo::clearAll()
+{
+  BufferSize = 0;
+  IOBufferSize = 0;
+  MaxMergeFanIn = 0;
+  F0 = 0;
+  W = 0;
+  IntermediateTuples = 0;
+  InitialRunsCount = 0;
+  TotalTupleCount = 0;
+  TotalTupleSize = 0;
+  MinTupleSize = INT_MAX;
+  MaxTupleSize = 0;
+  AvgTupleSize = 0;
+  TotalComparisons = 0;
+  TimeRunPhase = "";
+  TimeMergePhase = "";
+  TimeTotal = "";
+
+  vector<SortedRunInfo*>::iterator iter;
+
+  for( iter = InitialRunInfo.begin(); iter != InitialRunInfo.end(); iter++ )
+  {
+    delete *iter;
+  }
+  InitialRunInfo.clear();
+
+  for( iter = FinalRunInfo.begin(); iter != FinalRunInfo.end(); iter++ )
+  {
+    delete *iter;
+  }
+  FinalRunInfo.clear();
+}
+
+void SortInfo::UpdateStatistics(size_t s)
+{
+  int n = (int)s;
+  this->TotalTupleCount++;
+  this->TotalTupleSize += n;
+  this->MinTupleSize = n < this->MinTupleSize ? n : this->MinTupleSize;
+  this->MaxTupleSize = n > this->MaxTupleSize ? n : this->MaxTupleSize;
+}
+
+void SortInfo::RunBuildPhase()
+{
+  this->StopWatchTotal.start();
+}
+
+void SortInfo::MergePhase()
+{
+  this->AvgTupleSize += (float)this->TotalTupleSize /
+                        (float)this->TotalTupleCount;
+  this->TimeRunPhase = StopWatchTotal.diffTimes();
+  this->StopWatchMerge.start();
+}
+
+void SortInfo::Finished()
+{
+  this->TimeMergePhase = StopWatchMerge.diffTimes();
+  this->TimeTotal = StopWatchTotal.diffTimes();
+}
+
+ostream& operator<<(ostream& stream, SortInfo& info)
+{
+  float totalTupleSizeMB = (float)info.TotalTupleSize /
+                           (float)(1024.0 * 1024.0);
+
+  stream << endl
+         << HLINE << endl
+         << "Sort-Operation Statistics" << endl
+         << HLINE << endl
+         << "BufferSize: \t\t" << info.BufferSize << " ( "
+         << info.BufferSize/1024 << " KByte)" << endl
+         << "I/O-BufferSize: \t" << info.IOBufferSize << " ( "
+         << info.IOBufferSize/1024 << " KByte)" << endl
+         << "MaxMergeFanIn: \t\t" << info.MaxMergeFanIn << endl
+         << "FirstMergeFanIn: \t" << info.F0 << endl
+         << "Intermediate Merges: \t" << info.W+1 << endl
+         << "Intermediate Tuples: \t" << info.IntermediateTuples << endl
+         << "InitialRunsCount: \t" << info.InitialRunsCount << endl
+         << "TotalTupleCount: \t" << info.TotalTupleCount << endl
+         << "TotalSize: \t\t" << info.TotalTupleSize << " Byte ( "
+         << totalTupleSizeMB << " MByte)" << endl
+         << "MinTupleSize: \t\t" << info.MinTupleSize << " Byte" << endl
+         << "MaxTupleSize: \t\t" << info.MaxTupleSize << " Byte" << endl
+         << "AvgTupleSize: \t\t" << info.AvgTupleSize << " Byte" << endl
+         << "TotalComparisons: \t" << info.TotalComparisons << endl
+         << "TimeRunPhase: \t\t" << info.TimeRunPhase << endl
+         << "TimeMergePhase: \t" << info.TimeMergePhase << endl
+         << "TimeTotal: \t\t" << info.TimeTotal << endl;
+
+  if ( info.RunStatistics == true )
+  {
+
+  stream << HLINE << endl
+         << "Initial run statistics (1-" << info.InitialRunsCount << ")" << endl
+         << HLINE << endl;
+
+          for (size_t i = 0; i < info.InitialRunInfo.size(); i++)
+          {
+            stream << *(info.InitialRunInfo[i]);
+          }
+  }
+
+  if ( info.RunStatistics == true && !info.FinalRunInfo.empty() )
+  {
+
+  stream  << HLINE << endl
+          << "Final run statistics" << endl
+          << HLINE << endl;
+
+           for (size_t i = 0; i < info.FinalRunInfo.size(); i++)
+           {
+             stream << *(info.FinalRunInfo[i]);
+           }
+  }
+
+  stream << endl;
+
+  return stream;
+}
+
+ostream& operator<<(ostream& os, SortedRun& run)
+{
+  Tuple* t;
+
+  os << "-------------------- Run "
+     << run.GetRunNumber()
+     << " -----------------" << endl;
+
+  while ( ( t = run.GetNextTuple() ) != 0 )
+  {
+    os << *t << endl;
+  }
+
+  return os;
+}
+
+/*
+5 Implementation of class ~SortedRun~
+
+*/
+SortedRun::SortedRun( int runNumber,
+                        TupleCompareBy* cmp,
+                        size_t ioBufferSize )
+: runNumber(runNumber)
+, cmp(cmp)
+, runLength(0)
+, tupleCount(0)
+, minTupleSize(UINT_MAX)
+, maxTupleSize(0)
+, buffer(0, ioBufferSize)
+, iter(0)
+, traceMode(RTFlag::isActive("ERA:TraceSort"))
+{
+  heap = new TupleQueue(cmp);
+
+  if( traceMode )
+  {
+    info = new SortedRunInfo(runNumber);
+  }
+}
+
+SortedRun::~SortedRun()
+{
+  if ( iter != 0 )
+  {
+    delete iter;
+    iter = 0;
+  }
+
+  if ( traceMode )
+  {
+    // delete info;
+    // Delete is handled in SortInfo Destructor
+    info = 0;
+  }
+
+  while ( !heap->Empty() )
+  {
+    heap->Top()->DeleteIfAllowed();
+    heap->Pop();
+  }
+  delete heap;
+  heap = 0;
+
+  lastTuple.setTuple(0);
+
+  cmp = 0;
+}
+
+/*
+6 Implementation of class ~SortProgressLocalInfo~
+
+*/
 SortProgressLocalInfo::SortProgressLocalInfo()
 : ProgressLocalInfo()
 , intTuplesTotal(0)
@@ -59,14 +352,15 @@ SortProgressLocalInfo::SortProgressLocalInfo()
 }
 
 /*
-4 Implementation of class ~SortAlgorithm~
+7 Implementation of class ~SortAlgorithm~
 
 */
 SortAlgorithm::SortAlgorithm( Word stream,
                               TupleCompareBy* cmpObj,
                               SortProgressLocalInfo* p,
                               int maxFanIn,
-                              size_t maxMemSize )
+                              size_t maxMemSize,
+                              size_t ioBufferSize )
 : F0(0)
 , W(0)
 , nextRunNumber(1)
@@ -79,50 +373,26 @@ SortAlgorithm::SortAlgorithm( Word stream,
 , progress(p)
 {
   Word wTuple(Address(0));
-  bool intermediate = false;
 
   // Check specified fan-in for a merge phase
-  if ( maxFanIn < SORT_MINIMUM_FAN_IN )
-  {
-    FMAX = SORT_MINIMUM_FAN_IN;
-  }
-  else if ( maxFanIn > SORT_MAXIMUM_FAN_IN )
-  {
-    FMAX = SORT_MAXIMUM_FAN_IN;
-  }
-  else
-  {
-    FMAX = maxFanIn;
-  }
+  setMaxFanIn(maxFanIn);
 
   // Check specified main memory for this operation
-  if ( maxMemSize == UINT_MAX )
-  {
-    MAX_MEMORY = qp->MemoryAvailableForOperator();
-  }
-  else if ( maxMemSize < SORT_MINIMUM_MEMORY )
-  {
-    MAX_MEMORY = SORT_MINIMUM_MEMORY;
-  }
-  else if ( maxMemSize > SORT_MAXIMUM_MEMORY )
-  {
-    MAX_MEMORY = SORT_MAXIMUM_MEMORY;
-  }
-  else
-  {
-    MAX_MEMORY = maxMemSize;
-  }
+  setMemory(maxMemSize);
+
+  // Check I/O buffer size for this operation
+  setIoBuffer(ioBufferSize);
 
   if ( traceMode )
   {
-    info = new SortInfo(MAX_MEMORY);
+    info = new SortInfo(MAX_MEMORY, IO_BUFFER_SIZE);
     info->RunBuildPhase();
     info->MaxMergeFanIn = FMAX;
     TupleCompare::ResetComparisonCounter();
   }
 
   // Create current run
-  SortedRun* curRun = new SortedRun(nextRunNumber++, cmpObj);
+  SortedRun* curRun = new SortedRun(nextRunNumber++, cmpObj, IO_BUFFER_SIZE);
   SortedRun* nextRun = 0;
   runs.push_back(curRun);
 
@@ -144,9 +414,6 @@ SortAlgorithm::SortAlgorithm( Word stream,
     {
       curRun->AppendToMemory(t);
       usedMemory += extSize;
-      //cmsg.info() << "Progress->read: " << progress->read
-                  //<< "(UsedMem: " << usedMemory << endl;
-      //cmsg.send();
     }
     else
     {
@@ -173,9 +440,9 @@ SortAlgorithm::SortAlgorithm( Word stream,
           // create next run if necessary
           if ( nextRun == 0 )
           {
-            nextRun = new SortedRun(nextRunNumber++, cmpObj);
+            nextRun = new SortedRun(nextRunNumber++, cmpObj, IO_BUFFER_SIZE);
             runs.push_back(nextRun);
-            intermediate = updateIntermediateMerges();
+            updateIntermediateMergeCost();
           }
 
           // next tuple is smaller, save it for the next relation
@@ -200,12 +467,6 @@ SortAlgorithm::SortAlgorithm( Word stream,
           }
         }
       }
-    }
-
-    // update intermediate merge cost every 500 tuples
-    if ( intermediate == true && !progress->read % 500 )
-    {
-      progress->intTuplesTotal = calcIntermediateMergeCost();
     }
 
     qp->Request(stream.addr, wTuple);
@@ -272,7 +533,55 @@ SortAlgorithm::~SortAlgorithm()
   cmpObj = 0;
 }
 
-bool SortAlgorithm::updateIntermediateMerges()
+void SortAlgorithm::setMemory(size_t maxMemory)
+{
+  if ( maxMemory == UINT_MAX )
+  {
+    MAX_MEMORY = qp->MemoryAvailableForOperator();
+  }
+  else if ( maxMemory < SORT_MINIMUM_MEMORY )
+  {
+    MAX_MEMORY = SORT_MINIMUM_MEMORY;
+  }
+  else if ( maxMemory > SORT_MAXIMUM_MEMORY )
+  {
+    MAX_MEMORY = SORT_MAXIMUM_MEMORY;
+  }
+  else
+  {
+    MAX_MEMORY = maxMemory;
+  }
+}
+
+void SortAlgorithm::setIoBuffer(size_t size)
+{
+  if ( size == UINT_MAX && size > 16384 )
+  {
+    IO_BUFFER_SIZE = WinUnix::getPageSize();
+  }
+  else
+  {
+    IO_BUFFER_SIZE = size;
+  }
+}
+
+void SortAlgorithm::setMaxFanIn(size_t f)
+{
+  if ( f < SORT_MINIMUM_FAN_IN )
+  {
+    FMAX = SORT_MINIMUM_FAN_IN;
+  }
+  else if ( f > SORT_MAXIMUM_FAN_IN )
+  {
+    FMAX = SORT_MAXIMUM_FAN_IN;
+  }
+  else
+  {
+    FMAX = f;
+  }
+}
+
+bool SortAlgorithm::updateIntermediateMergeCost()
 {
   int N = (int)runs.size();
 
@@ -291,6 +600,8 @@ bool SortAlgorithm::updateIntermediateMerges()
       info->F0 = F0;
       info->W = W;
     }
+
+    progress->intTuplesTotal = calcIntermediateMergeCost();
 
     return true;
   }
@@ -365,8 +676,11 @@ int SortAlgorithm::sumLastN(vector<int>& arr, int n)
 
 void SortAlgorithm::mergeInit()
 {
-  // final update of intermediate merge costs
-  progress->intTuplesTotal = calcIntermediateMergeCost();
+  if ( F0 > 0 )
+  {
+    // final update of intermediate merge costs
+    progress->intTuplesTotal = calcIntermediateMergeCost();
+  }
 
   if ( traceMode )
   {
@@ -426,7 +740,7 @@ void SortAlgorithm::mergeNShortest(int n)
   }
 
   // create the sorted run for merging
-  SortedRun* result = new SortedRun(nextRunNumber++, cmpObj);
+  SortedRun* result = new SortedRun(nextRunNumber++, cmpObj, IO_BUFFER_SIZE);
   runs.push_back(result);
 
   if ( traceModeExtended )
@@ -522,13 +836,15 @@ Tuple* SortAlgorithm::nextResultTuple(vector<SortedRun*>& arr)
 }
 
 /*
-3 Implementation of value mapping function of operator ~sort2~ and ~sortby2~
+8 Implementation of value mapping function of operator ~sort2~ and ~sortby2~
 
 */
 
 template<int firstArg, bool param>
 int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
 {
+  bool traceProgress = false;
+
   // Operator sort2 (firstArg = 1, param = false)
   // args[0] : stream
   // args[1] : the number of sort attributes
@@ -539,7 +855,7 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
   // args[6] : Same as 4 but for the second sort attribute
   // ....
 
-  // Operator sort2with (firstArg = 4, param = true)
+  // Operator sort2Param (firstArg = 4, param = true)
   // args[0] : stream
   // args[1] : operator's main memory in bytes
   // args[2] : maximum fan-in of merge phase
@@ -563,7 +879,7 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
   // args[6] : Same as 4 but for the second sort attribute
   // ....
 
-  // Operator sortby2with (firstArg = 5, param = true)
+  // Operator sortby2Param (firstArg = 5, param = true)
   // args[0] : stream
   // args[1] : sort attributes specification as list (ignored)
   // args[2] : operator's main memory in bytes
@@ -626,17 +942,11 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
           int maxMemSize = StdTypes::GetInt( args[idx] );
           int maxFanIn = StdTypes::GetInt( args[idx+1] );
           int ioBufferSize = StdTypes::GetInt( args[idx+2] );
-
-          // set I/O buffer size in bytes
-          if ( ioBufferSize >= 0 && ioBufferSize <= 16384 )
-          {
-            li->oldIoBufferSize = TupleBuffer2::GetIoBufferSize();
-            TupleBuffer2::SetIoBufferSize((size_t)ioBufferSize);
-          }
+          size_t s = ioBufferSize < 0 ? UINT_MAX : (size_t)ioBufferSize;
 
           li->ptr = new SortAlgorithm( args[0],
                                        new TupleCompareBy(spec), li,
-                                       maxFanIn, maxMemSize);
+                                       maxFanIn, maxMemSize, s);
         }
         else
         {
@@ -654,9 +964,8 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE:
     {
-      qp->Close(args[0].addr);
-
       // Note: object deletion is handled in OPEN and CLOSEPROGRESS
+      qp->Close(args[0].addr);
       return 0;
     }
 
@@ -665,11 +974,6 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
     {
       if (li)
       {
-        // restore old I/O buffer size if necessary
-        if ( li->oldIoBufferSize != UINT_MAX )
-        {
-          TupleBuffer2::SetIoBufferSize(li->oldIoBufferSize);
-        }
         delete li;
         local.addr = 0;
       }
@@ -740,6 +1044,21 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
                 + li->intTuplesProc * p1.Size * (2 * vSortBy))
                 / pRes->BTime;
 
+          if ( traceProgress )
+          {
+            cmsg.info() << "p1->Card: " << p1.Card
+                        << ", p1.Time: " << p1.Time
+                        << ", p1.Progress: " << p1.Progress
+                        << endl
+                        << "pRes->Time: " << pRes->Time
+                        << ", pRes->Progress: " << pRes->Progress
+                        << endl
+                        << ", intTuples: " << li->intTuplesProc
+                        << "/" << li->intTuplesTotal
+                        << endl;
+            cmsg.send();
+          }
+
           return YIELD;
         }
         else
@@ -753,7 +1072,7 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
 }
 
 /*
-3 Instantiation of Template Functions
+9 Instantiation of Template Functions
 
 For some reasons the compiler cannot expand these template functions in
 the file ~ExtRelation2Algebra.cpp~, thus the value mapping functions
