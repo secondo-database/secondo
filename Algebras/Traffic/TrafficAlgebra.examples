@@ -1,0 +1,8 @@
+Database: networktest
+Restore : yes
+
+Operator : secunitstream
+Number   : 1
+Signature: network x rel x a_i x real -> stream(mgpsecunit)
+Example  : query B_NETWORK dataSNcar secunitstream [Trip, 5000.0] count;
+Result   : 4
