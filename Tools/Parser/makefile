@@ -88,8 +88,14 @@ $(SPECFILE): $(SPECPARSER) $(SPECFILES)
 SecLex.cpp: SecLex.l
 	$(LEX) -d -+ -o$@ -Pxx $<
 
+# For some reasons bison may fail, even if it
+# computed some output. This may cause a subsequent
+# make to finish without errors creating an unusable
+# Secondo Parser. To avoid such situations SecParser.tab.cpp
+# will be deleted if any kind of error occurred.
 SecParser.tab.cpp SecParser.tab.hpp: SecParser.y
-	$(YACC) -d -p xx -o $@ $<
+	$(YACC) -d -p xx -o $@ $<; \
+	if [ $$? -ne 0 ]; then rm $@; exit 1; fi 
 
 SecLex.l: SecLex.l.1 lexrules SecLex.l.2
 	cat $^ > $@
