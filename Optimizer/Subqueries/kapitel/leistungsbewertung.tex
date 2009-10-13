@@ -4,10 +4,12 @@
 %
 
 \chapter{Leistungsbewertung}\label{chp:Leistungsbewertung}
-Um die Vorteile der Entschachtelung bei vielen Abfragen zu demonstrieren, soll in diesem Kapitel anhand der geschachtelten Abfragen aus dem TPC-D Benchmark demonstriert werden, welche Laufzeitunterschiede sich zwischen geschachtelter und entschachtelter Ausführung ergeben. 
+Die geschachtelten Abfragen des TPC-D Benchmarks, die mit den in dieser Arbeit implementierten Algorithmen übersetzt werden können, dienen in diesem Kapitel als Beispiel, um die einzelnen Transformationsschritte bei der Entschachtelung darzustellen. Am Vergleich der Laufzeiten der einzelnen Phasen des Optimierers lässt sich erkennen, in welchen Fällen eine entschachtelte Ausführung der iterativ geschachtelten über- bzw. unterlegen ist. Die Abfragen werden auf einer Datenbank ausgeführt, die über ein Generierungsskript erzeugt werden kann. Um die Größe der Datenbank zu beeinflussen existiert ein Skalierungsfaktor, der bei der Erzeugung der Datenbank angegeben werden muss. Jede Abfrage wurde auf Datenbanken mit dem Skalierungsfaktoren 0.0001, 0.001 und 0.01 ausgeführt. Wie an den Laufzeiten zu sehen ist, ist der Vor- bzw. Nachteil der Entschachtelung auch abhängig von der Größe der zugrunde liegenden Datenbank. 
+%Um die Vorteile der Entschachtelung bei vielen Abfragen zu demonstrieren, soll in diesem Kapitel anhand der geschachtelten Abfragen aus dem TPC-D Benchmark demonstriert werden, welche Laufzeitunterschiede sich zwischen geschachtelter und entschachtelter Ausführung ergeben. 
+
 \section{Laufzeit- und Strukturvergleich}
 \subsection{TPC-D Q2}
-Findet den günstigsten Lieferanten für ein gegebenes Bauteil in einer Region. Für ein Bauteil einer bestimmten Art und Größe wird der Lieferant ermittelt, der dieses zu den günstigsten Konditionen anbietet. Gibt es mehrere Lieferanten in der gewählten Region, die das gewünschte Teil zu den günstigsten Konditionen anbieten, so werden die 100 Lieferanten mit dem höchsten Kontostand angezeigt. Von jedem Lieferanten werden der Kontostand, der Name und das Land, die Teilenummer und der Hersteller, die Lieferantenadresse, Telefonnummer und ein Kommentar angezeigt. Als Werte der Parameter SIZE, TYPE und REGION wurden die Werte aus der Abfrageüberprüfung des Benchmarks gewählt.
+Findet den günstigsten Lieferanten für ein gegebenes Bauteil in einer Region. Für ein Bauteil einer bestimmten Art und Größe wird der Lieferant ermittelt, der dieses zu den günstigsten Konditionen anbietet. Gibt es mehrere Lieferanten in der gewählten Region, die das gewünschte Teil zu den günstigsten Konditionen anbieten, so werden die 100 Lieferanten mit dem höchsten Kontostand angezeigt. Von jedem Lieferanten werden der Kontostand, der Name und das Land, die Teilenummer und der Hersteller, die Lieferantenadresse, Telefonnummer und eine Bemerkung angezeigt. Als Werte der Parameter SIZE, TYPE und REGION wurden die Werte aus der Abfrageüberprüfung des Benchmarks gewählt.
 
 \begin{itemize}
 	\item SIZE = 15
@@ -15,7 +17,7 @@ Findet den günstigsten Lieferanten für ein gegebenes Bauteil in einer Region. Fü
 	\item REGION = EUROPE
 \end{itemize}
 
-\begin{lstlisting}[caption=Abfrage Q2]
+\begin{lstlisting}[caption=Abfrage Q2,label=Q2:nested]
 select
 	[sacctbal, sname,
 	 nname, ppartkey,
@@ -55,7 +57,8 @@ first 100
 
 Die innere Abfrage ist vom Typ JA, da eine Aggregation (das Minimum) berechnet wird und sie ein Prädikat \sql{ppartkey = ps:ppartkey} enthält, das auf die Relation \emph{pssupplycost} des äußeren Abfrageblocks zugreift. Der Optimierer wendet also den in \ref{sct:Algorithmus NEST-JA2} beschriebenen Algorithmus an. Hierzu werden insgesamt drei temporäre Tabellen benötigt. Die erste temporäre Relation ist die Restriktion der im inneren Abfrageblock verwendeten Relationen des äußeren Blocks auf die benötigten Attribute.
 
-\begin{lstlisting}[caption=TempRel1]
+\begin{lstlisting}[caption=erste temporäre Relation zu Q2,label=Q2:trelxx1]
+trelxx1 = 
 select distinct
 	[ppartkey, 
 	pspartkey] 
@@ -66,34 +69,49 @@ from
 
 Die zweite temporäre Relation ist die Einschränkung der inneren Relation durch alle \emph{einfachen} Prädikaten.
 
-\begin{lstlisting}[caption=TempRel2]
+\begin{lstlisting}[caption=zweite temporäre Relation zu Q2,label=Q2:trelxx2]
+trelxx2 =
 select [ps:pspartkey, ps:pssupplycost]
-from [partsupp as ps, supplier as s, nation as n, region as r]
-where [s:ssuppkey = ps:pssuppkey, s:snationkey = n:nnationkey, n:nregionkey = r:rregionkey, r:rname = "EUROPE"]
+from 
+	[partsupp as ps, supplier as s, 
+	nation as n, region as r]
+where 
+	[s:ssuppkey = ps:pssuppkey, 
+	s:snationkey = n:nnationkey, 
+	n:nregionkey = r:rregionkey, 
+	r:rname = "EUROPE"]
 \end{lstlisting}
 
 Die dritte temporäre Relation wird aus dem Equi-Join der ersten und zweiten temporären Relationen und Berechnung der Aggregation gebildet. Man beachte die Attributnamen mit \enquote{\_ps}. Diese sind notwendig, da sich Optimierer und \textsc{Secondo} in der Syntax für umbenannte Tupel unterscheiden. Es muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden. 
 
-\begin{lstlisting}[caption=TempRel3]
-select [pspartkey_ps, min(pssupplycost_ps)as var1] 
+\begin{lstlisting}[caption=dritte temporäre Relation zu Q2,label=Q2:trelxx3]
+select [pspartkey_ps, min(pssupplycost_ps) as var1] 
 from [trelxx1, trelxx2] 
-where [ppartkey = pspartkey_ps] groupby pspartkey_ps
+where [ppartkey = pspartkey_ps] 
+groupby pspartkey_ps
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Entschachtelte Variante von Abfrage Q2]
-select [sacctbal, sname, nname, ppartkey, pmfgr, saddress, sphone, scomment]
-from [part, supplier, partsupp, nation, region, trelxx3 as alias1]
+\begin{lstlisting}[caption=Entschachtelte Variante von Abfrage Q2,label=Q2:unnested]
+select 
+	[sacctbal, sname, nname, 
+	ppartkey, pmfgr, saddress, 
+	sphone, scomment]
+from 
+	[part, supplier, partsupp, 
+	nation, region, trelxx3 as alias1]
 where 
 	[ppartkey = pspartkey, 
 	ssuppkey = pssuppkey, 
 	psize = 15, 
-	ptype contains[66, 82, 65, 83, 83], 
+	ptype contains["BRASS"], 
 	snationkey = nnationkey, 
 	nregionkey = rregionkey, 
-	rname = [69, 85, 82, 79, 80, 69], 
+	rname = ["EUROPE"], 
 	ppartkey = alias1:pspartkey_ps, 
 	pssupplycost = alias1:var1]
-orderby [sacctbal desc, nname, sname, ppartkey]
+orderby 
+	[sacctbal desc, nname, 
+	sname, ppartkey]
 first 100
 \end{lstlisting}
 
@@ -115,7 +133,9 @@ pssupplycost = (
 	 )
 \end{lstlisting}
 
-wurde durch die zwei Prädikate \sql{pssupplycost = trelxx4:var1} und \sql{ppartkey = trelxx4:pspartkey\_ps} ersetzt. Das erste der beiden Prädikate ergibt sich direkt aus dem geschachtelten Prädikat, während das zweite Prädikat die Korrelation abbildet. Zusätzlich wurde die neue Relation trelxx3 in die FROM-Klausel aufgenommen. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate.
+wurde durch die zwei Prädikate \sql{pssupplycost = trelxx4:var1} und \sql{ppartkey = trelxx4:pspartkey\_ps} ersetzt. Das erste der beiden Prädikate ergibt sich direkt aus dem geschachtelten Prädikat, während das zweite Prädikat die Übernahme des korrelierten Prädikats in die endgültige Abfrage darstellt. Zusätzlich wurde die neue Relation trelxx3 in die FROM-Klausel aufgenommen. Alle nicht korrelierten Prädikate der Unterabfrage wurden bereits bei der Erstellung der Relation trelxx3 berücksichtigt. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate. 
+
+Der Optimierer berechnet für Skalierungsfaktor 0,0001 Kosten von 528,18 für die entschachtelte Ausführung und 481,189. Dies entspricht auch den tatsächlichen Laufzeiten. Die erneute Ausführung der entschachtelten Variante ist wie man sehen kann schneller, da hier die bereits erstellten temporären Relationen wiederverwendet werden. Die Laufzeit für deren Erstellung entfällt hier also, was sich auch an den Laufzeiten ablesen lässt. Bei der iterativen Ausführung entfallen bei der zweiten Ausführung nur die Ermittlung der Selektivitäten, was sich an der kürzeren Laufzeit der Lookup-Phase erkennen lässt.
 
 \pgfplotsset{every x tick label/.style={below, yshift=-0.25em, rotate=30, xshift=-2em}}
 
@@ -133,43 +153,41 @@ area legend,
 anchor=east,legend columns=1},
 ybar stacked,
 ]
-\addplot coordinates {(0,	1.129	)(1,	0.001	)(2,	0.001	)(3,	0.001	)};
-\addplot coordinates {(0,	0.004	)(1,	0.004	)(2,	0.221	)(3,	0.155	)};
-\addplot coordinates {(0,	1.179	)(1,	0.581	)(2,	0.298	)(3,	0.31	)};
-\addplot coordinates {(0,	1.179	)(1,	1.219	)(2,	10.609	)(3,	10.61	)};
+\addplot coordinates {(0,	1138	)(1,	1	)(2,	1	)(3,	1	)};
+\addplot coordinates {(0,	3	)(1,	3	)(2,	275	)(3,	38	)};
+\addplot coordinates {(0,	903	)(1,	937	)(2,	371	)(3,	398	)};
+\addplot coordinates {(0,	390	)(1,	401	)(2,	1440	)(3,	1480	)};
 \legend{Rewrite,Lookup,QueryToPlan,Execute}
-\end{axis}
-\begin{axis}[
-scale only axis,
-xmin=0,xmax=3,
-ymin=-9.8,ymax=109.8,
-xshift=0.65em,
-height=5.7cm,
-%yshift=1.2em,
-enlargelimits=0.10,
-yticklabel=
-{$\pgfmathprintnumber{\tick}$\%},
-axis y line=right,
-axis x line=none,
-%y label style={yshift=},
-ylabel=percent]
 \end{axis}
 \end{tikzpicture}
 
 A = entschachtelte Ausführung, B ist iterativ geschachtelte Ausführung. Wie man der Graphik entnehmen kann, 
 
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lrrrr@{}} \toprule
+& \multicolumn{4}{c}{Laufzeit in ms} \\ \cmidrule(l){2-5}
+& \multicolumn{2}{c}{iterativ} & \multicolumn{2}{c}{entschachtelt} \\ 
+Phase & \multicolumn{1}{c}{kalt} & warm & \multicolumn{1}{c}{kalt} & warm\\ \midrule
+Rewrite & 1 & 1 & 1138 & 1 \\
+Lookup & 275 & 38 & 3 & 3 \\
+QueryToPlan & 371 & 398 & 903 & 937 \\
+Execute & 1440 & 1480 & 390 & 401 \\
+\cmidrule(l){1-5} 
+Total & 2087 & 1917 & 2434 & 1342 \\
+\bottomrule\end{tabular}
+  \caption{Laufzeit Q2 bei Skalierungsfaktor = 0.0001 der DB}
+  \label{tab_runtime_with_selectivity}
+\end{table}
+
 \subsection{TPC-D Q4}
 Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. Es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf.
-Als Parameter DATE wurde der Wert aus der Abfrage-Überprüfung gewählt
-\begin{itemize}
-	\item DATE = 1993-07-01
-\end{itemize}
+Als Parameter DATE wurde der Wert \enquote{1993-07-01} aus der Abfrage-Überprüfung gewählt
+
 \begin{lstlisting}[caption=Abfrage Q4]
 select
-	[oorderpriority,
-	 count(*) as ordercount]
-from 
-	orders
+	[oorderpriority, count(*) as ordercount]
+from orders
 where		
 	[oorderdate >= instant("1993-07-01"),		
 	oorderdate < theInstant(
@@ -178,18 +196,14 @@ where
 	 	day_of(instant("1993-07-01"))
 	),
 	exists(
-	 	select 
-	 		*
-		from 
-			lineitem
+	 	select *
+		from lineitem
 		where
 			[lorderkey = oorderkey, 
 			lcommitdate < lreceiptdate]
 	)]
-groupby 
-	[oorderpriority]
-orderby	
-	[oorderpriority]
+groupby [oorderpriority]
+orderby	[oorderpriority]
 \end{lstlisting}
 
 Die Abfrage ist vom Typ J, da das geschachtelte Prädikat keine Aggregation enthält, aber über das Prädikat \sql{lorderkey = oorderkey} mit dem äußeren Abfrageblock korreliert ist.
@@ -235,6 +249,28 @@ groupby [oorderpriority]
 orderby [oorderpriority]
 \end{lstlisting}
 
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Millisekunden,
+scaled ticks=base 10:0,
+xticklabels={A kalt,A warm,B kalt,B warm},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar stacked,
+]
+\addplot coordinates {(0,	1222	)(1,	1	)(2,	1	)(3,	2	)};
+\addplot coordinates {(0,	2	)(1,	2	)(2,	169	)(3,	2	)};
+\addplot coordinates {(0,	387	)(1,	9	)(2,	4	)(3,	4	)};
+\addplot coordinates {(0,	9597	)(1,	9638	)(2,	4710	)(3,	4703	)};
+\legend{Rewrite,Lookup,QueryToPlan,Execute}
+\end{axis}
+\end{tikzpicture}
+
 \subsection{TPC-D Q7}
 Diese Abfrage listet für zwei gewählte Länder den Wert der versandten Waren. Es wird Wert der Waren der zwischen Lieferanten und Kunden länderübergreifend versandt wurde ausgegeben, gruppiert nach Land des Lieferanten, Land des Kunden und Jahr. 
 \begin{lstlisting}[caption=Abfrage Q7]
@@ -246,12 +282,8 @@ from (
 		 year_of(lshipdate) as lyear,
 		 lextendedprice * (1 - ldiscount) as volume]
 	from
-		[supplier, 
-		lineitem,
-		orders, 
-		customer,
-		nation as n1, 
-		nation as n2]
+		[supplier, lineitem, orders, 
+		customer,	nation as n1, nation as n2]
 	where
 		[ssuppkey = lsuppkey,
 		oorderkey = lorderkey,
@@ -266,14 +298,8 @@ from (
 			instant2real(instant("1996-12-31"))
 		)]
 	) as shipping
-groupby	
-	[supp_nation, 
-	cust_nation, 
-	lyear]
-orderby	
-	[supp_nation, 
-	cust_nation, 
-	lyear]
+groupby	[supp_nation, cust_nation, lyear]
+orderby	[supp_nation, cust_nation, lyear]
 \end{lstlisting}
 
 Ermittlung der Grunddaten, über die selektiert wird.
@@ -284,12 +310,8 @@ select
 	year_of(lshipdate)as lyear, 
 	lextendedprice* (1-ldiscount)as volume]
 from 
-	[supplier, 
-	lineitem, 
-	orders, 
-	customer, 
-	nation as n1, 
-	nation as n2]
+	[supplier, lineitem, orders, 
+	customer, nation as n1, nation as n2]
 where 
 	[ssuppkey = lsuppkey, 
 	oorderkey = lorderkey, 
@@ -307,29 +329,39 @@ where
 
 \begin{lstlisting}[caption=Entschachtelte Variante von Q7]
 select 
-	[supp_nation, 
-	cust_nation, 
-	lyear, 
-	sum(volume)as revenue]
-from 
-	trelxx1 
-groupby 
-	[supp_nation, 
-	cust_nation, 
-	lyear]
-orderby 
-	[supp_nation, 
-	cust_nation, 
-	lyear]
+	[supp_nation, cust_nation, 
+	lyear, sum(volume)as revenue]
+from trelxx1 
+groupby [supp_nation, cust_nation, lyear]
+orderby [supp_nation, cust_nation, lyear]
 \end{lstlisting}
+
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Millisekunden,
+scaled ticks=base 10:0,
+xticklabels={A kalt,A warm,B kalt,B warm},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar stacked,
+]
+\addplot coordinates {(0,	962	)(1,	1	)(2,	1	)(3,	1	)};
+\addplot coordinates {(0,	0	)(1,	0	)(2,	7	)(3,	5	)};
+\addplot coordinates {(0,	0	)(1,	0	)(2,	279	)(3,	266	)};
+\addplot coordinates {(0,	103	)(1,	100	)(2,	495	)(3,	510	)};
+\legend{Rewrite,Lookup,QueryToPlan,Execute}
+\end{axis}
+\end{tikzpicture}
 
 \subsection{TPC-D Q9}
 Ermittelt den Gewinn, der mit bestimmten Teilen gemacht wurde, gruppiert nach Land und Jahr. Gewinn ist hier definiert als rabattierter Verkaufspreis - Einkaufspreis * Anzahl.
 \begin{lstlisting}[caption=Abfrage Q9]
-select
-	[nation,
-	 oyear,
-	 sum(amount) as sumprofit]
+select [nation, oyear, sum(amount) as sumprofit]
 from (
 	select
 		[nname as nation,
@@ -348,12 +380,8 @@ from (
 		 snationkey = nnationkey,
 		 pname contains "green"]
 	)  as profit
-groupby
-	[nation, 
-	oyear]
-orderby
-	[nation, 
-	oyear desc]
+groupby	[nation, oyear]
+orderby [nation, oyear desc]
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel1]
@@ -362,12 +390,8 @@ select
 	year_of(oorderdate)as oyear, 
 	lextendedprice * (1 - ldiscount) - pssupplycost * lquantity as amount]
 from 
-	[part, 
-	supplier, 
-	lineitem, 
-	partsupp, 
-	orders, 
-	nation]
+	[part, supplier, lineitem, 
+	partsupp, orders, nation]
 where 
 	[ssuppkey = lsuppkey, 
 	pssuppkey = lsuppkey, 
@@ -379,32 +403,41 @@ where
 \end{lstlisting}
 
 \begin{lstlisting}[caption=Entschachtelte Variante von Q9]
-select 
-	[nation, 
-	oyear, 
-	sum(amount)as sumprofit]
-from 
-	trelxx1 
-groupby 
-	[nation, 
-	oyear]
-orderby 
-	[nation, 
-	oyear desc]
+select [nation, oyear, sum(amount)as sumprofit]
+from trelxx1 
+groupby [nation, oyear]
+orderby [nation, oyear desc]
 \end{lstlisting}
+
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Millisekunden,
+scaled ticks=base 10:0,
+xticklabels={A kalt,A warm,B kalt,B warm},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar stacked,
+]
+\addplot coordinates {(0,	6154	)(1,	1	)(2,	1	)(3,	1	)};
+\addplot coordinates {(0,	0	)(1,	0	)(2,	3	)(3,	3	)};
+\addplot coordinates {(0,	0	)(1,	1	)(2,	231	)(3,	239	)};
+\addplot coordinates {(0,	112	)(1,	114	)(2,	5515	)(3,	5510	)};
+\legend{Rewrite,Lookup,QueryToPlan,Execute}
+\end{axis}
+\end{tikzpicture}
 
 \subsection{TPC-D Q15}
 Diese Abfrage ermittelt den Top-Lieferanten. Es wird der Lieferant ermittelt, der das meiste zum Umsatz im gewählten Quartal beigetragen hat, gibt es mehrere, so werden sie nach Lieferantennummer geordnet angezeigt.
 \begin{lstlisting}[caption=Abfrage Q15] 
 select
-	[ssuppkey, 
-	sname,
-	saddress, 
-	sphone,
-	total_revenue]
-from
-	[supplier, 
-	revenue]
+	[ssuppkey, sname, saddress, 
+	sphone, total_revenue]
+from [supplier, revenue]
 where
 	[ssuppkey = supplier_no,
 	total_revenue = (select max(total_revenue) from revenue)]
@@ -425,8 +458,7 @@ where
 		month_of(instant("1996-01-01"))+3, 
 		day_of(instant("1996-01-01"))
 	)]
-groupby
-	[lsuppkey]
+groupby	[lsuppkey]
 \end{lstlisting}
 
 \begin{lstlisting}[caption=Entschachtelte Variante von Q15]
@@ -436,15 +468,34 @@ select
 	saddress, 
 	sphone, 
 	total_revenue]
-from
-	[supplier, 
-	revenue]
+from [supplier, revenue]
 where
 	[ssuppkey=supplier_no, 
 	total_revenue=678596.0]
-orderby
-	[ssuppkey]
+orderby	[ssuppkey]
 \end{lstlisting}
+
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Millisekunden,
+scaled ticks=base 10:0,
+xticklabels={A kalt,A warm,B kalt,B warm},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar stacked,
+]
+\addplot coordinates {(0,	62	)(1,	1	)(2,	1	)(3,	1	)};
+\addplot coordinates {(0,	0	)(1,	0	)(2,	378	)(3,	376	)};
+\addplot coordinates {(0,	721	)(1,	347	)(2,	3	)(3,	3	)};
+\addplot coordinates {(0,	107	)(1,	86	)(2,	98	)(3,	123	)};
+\legend{Rewrite,Lookup,QueryToPlan,Execute}
+\end{axis}
+\end{tikzpicture}
 
 \subsection{TPC-D Q16}
 Mit dieser Abfrage wird die Anzahl der Lieferanten für bestimmte Teile ermittelt. Die Teile dürfen nicht von einem bestimmten Typ sein, nicht von einer bestimmten Marke und es darf keine Kundenbeschwerden über den Lieferanten geben.
@@ -454,9 +505,7 @@ select
 	ptype, 
 	psize,
 	count(distinct pssuppkey) as suppliercnt]
-from
-	[partsupp, 
-	part]
+from [partsupp, part]
 where
 	[ppartkey = pspartkey,
 	not(pbrand = "Brand#45"),
@@ -471,16 +520,33 @@ where
     	[scomment contains "Customer",
 			 scomment contains "Complaints"]
 		)]
-groupby
-	[pbrand, 
-	ptype, 
-	psize]
-orderby
+groupby [pbrand, ptype, psize]
+orderby	
 	[suppliercnt desc, 
-	pbrand, 
-	ptype, 
-	psize]
+	pbrand, ptype, psize]
 \end{lstlisting}
+
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Millisekunden,
+scaled ticks=base 10:0,
+xticklabels={A kalt,A warm,B kalt,B warm},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar stacked,
+]
+\addplot coordinates {(0,	2	)(1,	1	)(2,	2	)(3,	2	)};
+\addplot coordinates {(0,	3	)(1,	3	)(2,	3	)(3,	3	)};
+\addplot coordinates {(0,	23	)(1,	24	)(2,	29	)(3,	23	)};
+\addplot coordinates {(0,	1111	)(1,	1107	)(2,	1141	)(3,	1119	)};
+\legend{Rewrite,Lookup,QueryToPlan,Execute}
+\end{axis}
+\end{tikzpicture}
 
 \subsection{TPC-D Q17}
 Diese Abfrage beantwortet, wieviel Umsatz verloren ginge, falls Bestellungen über kleine Mengen bestimmter Teile nicht mehr ausgeführt würden.
@@ -514,12 +580,8 @@ from
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel2]
-select
-	*
-from
-	[lineitem as l1]
-where
-	[]
+select [l1:lpartkey, l1:lquantity]
+from [lineitem as l1]
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3]
@@ -548,30 +610,45 @@ where
 	pcontainerv = "MED BOX", 
 	ppartkey = alias1:lpartkey_l1, 
 	lquantity < alias1:var1]
-groupby
-	[]
+groupby []
 \end{lstlisting}
 
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Millisekunden,
+scaled ticks=base 10:0,
+xticklabels={A kalt,A warm,B kalt,B warm},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar stacked,
+]
+\addplot coordinates {(0,	5943	)(1,	1	)(2,	1	)(3,	1	)};
+\addplot coordinates {(0,	2	)(1,	2	)(2,	190	)(3,	2	)};
+\addplot coordinates {(0,	1085	)(1,	22	)(2,	8	)(3,	8	)};
+\addplot coordinates {(0,	266	)(1,	264	)(2,	283	)(3,	268	)};
+\legend{Rewrite,Lookup,QueryToPlan,Execute}
+\end{axis}
+\end{tikzpicture}
+
 \subsection{TPC-D Q20}
-Identifiziert Liefereanten, die einen Überschuss an bestimmten Teilen haben. Überschuss ist hier definiert als mehr als 50\% der von einem Lieferanten versandten Teile über ein Jahr. Nur Teile mit einem vorgegebenen Namensbestandteil werden betrachtet.
+Identifiziert Lieferanten, die einen Überschuss an bestimmten Teilen haben. Überschuss ist hier definiert als mehr als 50\% der von einem Lieferanten versandten Teile über ein Jahr. Nur Teile mit einem vorgegebenen Namensbestandteil werden betrachtet.
 \begin{lstlisting}[caption=Abfrage Q20]
-select
-	[sname,
-	 saddress]
-from
-	[supplier, nation]
+select [sname, saddress]
+from [supplier, nation]
 where
 	[ssuppkey in (
-		select
-			[pssuppkey]
-		from
-			[partsupp]
+		select [pssuppkey]
+		from [partsupp]
 		where
 			[pspartkey in (
 				select ppartkey
 				from part
-				where
-					tostring(pname) starts "forest"
+				where tostring(pname) starts "forest"
 			),
 			psavailqty > (
 				select sum(lquantity * 0.5)
@@ -589,50 +666,34 @@ where
 		),
 	 snationkey = nnationkey,
 	 nname = "CANADA"]
-orderby	
-	[sname]
+orderby	[sname]
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel1]
-select distinct
-	[pspartkey, 
-	pssuppkey]
-from 
-	partsupp
+select distinct [pspartkey, pssuppkey]
+from partsupp
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel2]
-select
-	*
-from 
-	lineitem 
-where
-	[]
+select [lpartkey, lquantity, lshipdate, lsuppkey]
+from lineitem
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3]
 select
 	[lpartkey, 
 	sum(lquantity*0.5)as var2]
-from
-	[trelxx1, 
-	trelxx2]
-where
-	[lpartkey = pspartkey]
-groupby 
-	lpartkey
+from [trelxx1, trelxx2]
+where [lpartkey = pspartkey]
+groupby lpartkey
 \end{lstlisting}
 
 \begin{lstlisting}[caption=Entschachtelte Variante von Abfrage Q20]
-select
-	[sname, 
-	saddress]
+select [sname, saddress]
 from
-	[supplier, 
-	nation, 
-	partsupp, 
-	part, 
-	trelxx5 as alias1]
+	[supplier, nation, 
+	partsupp, part, 
+	trelxx3 as alias1]
 where
 	[ssuppkey = pssuppkey, 
 	pspartkey = ppartkey, 
@@ -641,16 +702,36 @@ where
 	psavailqty > alias1:var1, 
 	snationkey = nnationkey, 
 	nname = "CANADA"]
-orderby
-	[sname]
+orderby [sname]
 \end{lstlisting}
+
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Millisekunden,
+scaled ticks=base 10:0,
+xticklabels={A kalt,A warm,B kalt,B warm},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar stacked,
+]
+\addplot coordinates {(0,	19534	)(1,	1	)(2,	4	)(3,	5	)};
+\addplot coordinates {(0,	2	)(1,	0	)(2,	1784	)(3,	6	)};
+\addplot coordinates {(0,	1297	)(1,	150	)(2,	8	)(3,	8	)};
+\addplot coordinates {(0,	228	)(1,	216	)(2,	366	)(3,	280	)};
+\legend{Rewrite,Lookup,QueryToPlan,Execute}
+\end{axis}
+\end{tikzpicture}
 
 \subsection{TPC-D Q21}
 Diese Abfrage ermittelt Lieferanten die bei einer Mehr-Lieferanten Bestellung nicht pünktlich geliefert haben.
 \begin{lstlisting}[caption=Abfrage Q21]
-select
-	[sname, count(*) as numwait]
-from
+select [sname, count(*) as numwait]
+from 
 	[supplier, lineitem as l1,
 	 orders, nation]
 where
@@ -681,20 +762,13 @@ first 100
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel1]
-select distinct
-	[l1:lorderkey, 
-	l1:lsuppkey]
-from 
-	lineitem as l1
+select distinct [l1:lorderkey, l1:lsuppkey]
+from lineitem as l1
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel2]
-select
-	*
-from 
-	lineitem as l2 
-where
-	[]
+select [l2:lorderkey, l2:lsuppkey]
+from lineitem as l2
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3]
@@ -708,26 +782,15 @@ projectextend[Var1; lORDERKEY_l2: .lORDERKEY_l1]
 consume
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel1 die zweite]
-select distinct
-	[l1:lorderkey, 
-	l1:lsuppkey]
-from 
-	lineitem as l1
-\end{lstlisting}
-
 \begin{lstlisting}[caption=TempRel2 die zweite]
-select
-	*
-from 
-	lineitem as l3 
-where
-	[l3:lreceiptdate > l3:lcommitdate]
+select [l3:lorderkey, l3:lsuppkey]
+from [lineitem as l3]
+where [l3:lreceiptdate > l3:lcommitdate]
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3 die zweite]
 trelxx1  feed 
-trelxx5  feed 
+trelxx4  feed 
 smouterjoin[lORDERKEY_l1,lORDERKEY_l3] 
 extend[var1: ifthenelse(isempty(.lORDERKEY_l3), 0, 1)] 
 sortby[lORDERKEY_l1 asc] 
@@ -737,16 +800,12 @@ consume
 \end{lstlisting}
 
 \begin{lstlisting}[caption=Entschachtelte Variante von Q21]
-select
-	[sname, 
-	count(*)as numwait]
+select [sname, count(*)as numwait]
 from
-	[supplier, 
-	lineitem as l1, 
-	orders, 
-	nation, 
+	[supplier, lineitem as l1, 
+	orders, nation, 
 	trelxx3 as alias1, 
-	trelxx9 as alias2]
+	trelxx5 as alias2]
 where
 	[ssuppkey = l1:lsuppkey, 
 	oorderkey = l1:lorderkey, 
@@ -758,14 +817,32 @@ where
 	0 = alias2:var2, 
 	snationkey = nnationkey, 
 	nname = "SAUDI ARABIA"]
-groupby
-	[sname]
-orderby
-	[numwait desc, 
-	sname]
-first 
-	100
+groupby	[sname]
+orderby [numwait desc, sname]
+first 100
 \end{lstlisting}
+
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Millisekunden,
+scaled ticks=base 10:0,
+xticklabels={A kalt,A warm,B kalt,B warm},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar stacked,
+]
+\addplot coordinates {(0,	2662	)(1,	1	)(2,	2	)(3,	1	)};
+\addplot coordinates {(0,	2	)(1,	2	)(2,	358	)(3,	2	)};
+\addplot coordinates {(0,	3858	)(1,	1730	)(2,	421	)(3,	449	)};
+\addplot coordinates {(0,	478	)(1,	475	)(2,	451	)(3,	503	)};
+\legend{Rewrite,Lookup,QueryToPlan,Execute}
+\end{axis}
+\end{tikzpicture}
 
 \subsection{TPC-D Q22}
 Diese Abfrage ermittelt, wieviele Kunden in den letzten 7 Jahren keine Bestellung getätigt haben, aber dennoch einen überdurchschnittlichen Umsatz auf ihrem Konto. Gruppiert nach \enquote{Länderschlüssel}, wobei Länderschlüssel als die ersten zwei Ziffern der Telefonnummer definiert ist.
@@ -782,43 +859,30 @@ from (
 	where
 		[substr(cphone, 1, 2) in ("13","35","31","23","29","30","18"),
 		cacctbal > (
-			select 
-				avg(c1:cacctbal)
-			from 
-				customer as c1
+			select avg(c1:cacctbal)
+			from customer as c1
 			where
 				[c1:cacctbal > 0.00,
 				substr(c1:cphone, 1, 2) in ("13","35","31","23","29","30","18")]
 		),
 		not( exists(
-			select 
-				*
-			from 
-				orders
-			where	
-				ocustkey = ccustkey
+			select *
+			from orders
+			where	ocustkey = ccustkey
 		))]
 	) as custsale
-groupby	
-	[cntrycode]
-orderby	
-	[cntrycode]
+groupby	[cntrycode]
+orderby	[cntrycode]
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel1]
-select distinct
-	[ccustkey]
-from
-	customer
+select distinct [ccustkey]
+from customer
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel2]
-select
-	*
-from 
-	orders 
-where
-	[]
+select [ocustkey]
+from orders
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3]
@@ -838,9 +902,7 @@ Da es sich bei der inneren Abfrage in dem ersten geschachtelten Prädikat um eine
 select
 	[substr(cphone, 1, 2)as cntrycode, 
 	cacctbal]
-from
-	[customer, 
-	trelxx3 as alias1]
+from [customer, trelxx3 as alias1]
 where
 	[substr(cphone, 1, 2) in ("13","35","31","23","29","30","18"), 
 	cacctbal > 5527.01, 
@@ -853,13 +915,32 @@ select
 	[cntrycode, 
 	count(*)as numcust, 
 	sum(cacctbal)as totacctbal]
-from 
-	trelxx5 
-groupby
-	[cntrycode]
-orderby
-	[cntrycode]
+from trelxx4 
+groupby	[cntrycode]
+orderby	[cntrycode]
 \end{lstlisting}
+
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Millisekunden,
+scaled ticks=base 10:0,
+xticklabels={A kalt,A warm,B kalt,B warm},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar stacked,
+]
+\addplot coordinates {(0,	2556	)(1,	1	)(2,	1	)(3,	1	)};
+\addplot coordinates {(0,	0	)(1,	0	)(2,	320	)(3,	2	)};
+\addplot coordinates {(0,	0	)(1,	0	)(2,	5	)(3,	5	)};
+\addplot coordinates {(0,	106	)(1,	106	)(2,	588	)(3,	599	)};
+\legend{Rewrite,Lookup,QueryToPlan,Execute}
+\end{axis}
+\end{tikzpicture}
 
 \subsection{Laufzeit Übersicht}
 
@@ -868,16 +949,16 @@ orderby
 \begin{tabular}{@{}lrr@{}} \toprule
 & \multicolumn{2}{c}{Laufzeit in s} \\ \cmidrule(l){2-3}
 Abfrage Nr. & iterativ & entschachtelt\\ \midrule
-Q2 & 11,469 & 3,064\\
-Q4 & 6,200 & 11,892\\
-Q7 & 1,389 & 1,605\\
-Q9 & 6,623 & 7,264\\
-Q15 & 4,853 & 19,666\\
-Q16 & 1,1936 & ---\\
-Q17 & 0,265 & 6,575\\
-Q20 & 1,233 & 14,346\\
-Q21 & 1,606 & 10,726\\
-Q22 & 1,425 & 3,712\\ 
+Q2	&	3327	&	2863	\\
+Q4	&	11947	&	5595	\\
+Q7	&	1854	&	1538	\\
+Q9	&	7055	&	6464	\\
+Q15	&	2778	&	2051	\\
+Q16	&	1880	&	1879	\\
+Q17	&	8054	&	1172	\\
+Q20	&	21834	&	2867	\\
+Q21	&	8095	&	1973	\\
+Q22	&	3404	&	1605	\\
 \bottomrule\end{tabular}
   \caption{Laufzeit \enquote{kalt}}
   \label{tab_runtime_with_selectivity}
@@ -888,16 +969,16 @@ Q22 & 1,425 & 3,712\\
 \begin{tabular}{@{}lrr@{}} \toprule
 & \multicolumn{2}{c}{Laufzeit in s} \\ \cmidrule(l){2-3}
 Abfrage Nr. & iterativ & entschachtelt\\ \midrule
-Q2 & 11,382 & 2,685\\
-Q4 & 5,339 & 10,119\\
-Q7 & 1,268 & 0,805\\
-Q9 & 6,534 & 0,745\\
-Q15 & 4,190 & 7,670\\
-Q16 & 1,897 & ---\\
-Q17 & 0,985 & 1,430\\
-Q20 & 1,305 & 1,531\\
-Q21 & 1,548 & 2,681\\
-Q22 & 1,327 & 1,593\\ 
+Q2	&	2172	&	2702	\\
+Q4	&	10343	&	5425	\\
+Q7	&	804	&	1538	\\
+Q9	&	790	&	6478	\\
+Q15	&	2023	&	2093	\\
+Q16	&	1808	&	1858	\\
+Q17	&	971	&	963	\\
+Q20	&	1067	&	942	\\
+Q21	&	3234	&	1707	\\
+Q22	&	809	&	1285	\\
 \bottomrule\end{tabular} 
 	\caption{Laufzeit \enquote{warm}}
   \label{tab_runtime}
