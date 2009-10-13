@@ -229,8 +229,8 @@ ALGEBRAS     += CollectionAlgebra
 ALGEBRA_DIRS += Hash 
 ALGEBRAS     += HashAlgebra
 
-ALGEBRA_DIRS += ExtRelation-2
-ALGEBRAS     += ExtRelation2Algebra
+#ALGEBRA_DIRS += ExtRelation-2
+#ALGEBRAS     += ExtRelation2Algebra
 
 
 # Under Construction: Some bug fixing needed
