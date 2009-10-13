@@ -1,42 +1,42 @@
 Database : research
 Restore  : NO
 
-Operator : NFEED
+Operator : feed
 Number   : 1
 Signature: nrel(tuple(x)) -> stream(tuple(x))
-Example  : query Papers nfeed filter[.no_authors > 1] count
+Example  : query Papers feed filter[.no_authors > 1] count
 Result   : 150966
 
-Operator : NCONSUME
+Operator : consume
 Number   : 1
 Signature: (stream(tuple(x)) -> nrel(tuple(x))
-Example  : query Authors nfeed filter[.name contains "A"] nconsume
+Example  : query Authors feed filter[.name contains "A"] consume
 Result   : 
 
 
 Operator : afeed
 Number   : 1
 Signature: arel(tuple(x)) -> stream(tuple(x))
-Example  : query Authors nfeed filter [.publications afeed count > 3] count
+Example  : query Authors feed filter [.publications afeed count > 3] count
 Result   : 31623
 
 
 Operator : aconsume
 Number   : 1
 Signature: stream(tuple(x))  -> arel(tuple(x))
-Example  : query Authors nfeed extend [publications_with_B: .publications afeed filter [.title contains "B"] aconsume] nconsume
+Example  : query Authors feed extend [publications_with_B: .publications afeed filter [.title contains "B"] aconsume] consume
 Result   : 
 
 
 Operator : nest
 Number   : 1
 Signature: stream(tuple(x)) x (attribute_name)* x attribute_name -> stream(tuple(y))
-Example  : query Publishers nfeed nest [no_publications; details] count 
+Example  : query Publishers feed nest [no_publications; details] count 
 Result   : 54
 
 
 Operator : unnest
 Number   : 1
 Signature: stream(tuple(x)) x attribute-> stream(tuple(y))
-Example  : query Publishers nfeed unnest [publications] count
+Example  : query Publishers feed unnest [publications] count
 Result   : 1319
