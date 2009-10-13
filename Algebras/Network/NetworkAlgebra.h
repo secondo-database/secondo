@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define __NETWORK_ALGEBRA_H__
 
 #include "NestedList.h"
+#include "TupleIdentifier.h"
 #include "RelationAlgebra.h"
 #include "BTreeAlgebra.h"
 #include "DBArray.h"
@@ -179,7 +180,7 @@ End position on route.
 3.1 enumeration of side
 
 Attention in the original paper the enumeration of the side value is given by
-Up, Down, None!!!
+Down, Up, None!!!
 
 */
 enum Side { Down, Up, None };

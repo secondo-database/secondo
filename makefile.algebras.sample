@@ -237,6 +237,9 @@ ALGEBRAS     += ExtRelation2Algebra
 #ALGEBRA_DIRS += MONTree 
 #ALGEBRAS     += MONTreeAlgebra
 
+#ALGEBRA_DIRS += Traffic
+#ALGEBRAS     += TrafficAlgebra
+
 # JNI Algebras - Java code will be called from C++ code.
 
 #JNI_ALGEBRA_DIRS := Fuzzy
