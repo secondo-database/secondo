@@ -33,7 +33,7 @@ June 2009, Sven Jungnickel. Initial version
 
 #include "RelationAlgebra.h"
 #include "TupleBuffer2.h"
-#include "HybridHashJoinHashTable.h"
+//#include "HybridHashJoinHashTable.h"
 
 #define HEADLINE_PHISTOGRAM "-------------------- " \
                              "PartitionHistogram -----------------"
@@ -102,20 +102,14 @@ Assignment operator.
 
 */
 
-    inline bool IsAt(T n)
-    {
-      return ( low <= n && n <= high );
-    }
+    inline bool IsAt(T n) { return ( low <= n && n <= high ); }
 /*
 Returns true if value ~n~ lies inside the interval.
 Otherwise false is returned.
 
 */
 
-    inline T GetLength()
-    {
-      return ((high - low) + 1);
-    }
+    inline T GetLength() { return ((high - low) + 1); }
 /*
 Get length of interval.
 
@@ -155,7 +149,7 @@ Type definition of a partition interval.
 */
 
 /*
-4 Class ~PartitionInfo~
+4 Class ~PartitionHistogram~
 
 Statistical information for a partition.
 
@@ -236,14 +230,14 @@ class PartitionHistogram
 
     PartitionHistogram(PInterval& i);
 /*
-First constructor. Creates a histogram for partition interval i.
+First constructor. Creates a histogram for partition with interval ~i~.
 
 */
 
     PartitionHistogram(PartitionHistogram& obj, size_t start, size_t end);
 /*
 Second constructor. Creates a histogram from an existing histogram
-copying the histogram entries between 0-based index ~start~ and ~end~
+copying the histogram entries between 0-based index ~start~ and ~end~.
 
 */
 
@@ -503,10 +497,11 @@ class Partition
 {
   public:
 
-    Partition(PInterval i, size_t bufferSize);
+    Partition(PInterval i, size_t bufferSize, size_t ioBufferSize);
 /*
 The constructor. Creates a new partition with interval ~i~
-and with an internal memory buffer of ~bufferSize~ bytes.
+and an internal memory buffer of ~bufferSize~ bytes. For read/write
+operations on disk an I/O buffer of ~ioBufferSize~ in bytes is used.
 
 */
 
@@ -813,6 +808,18 @@ for debugging purposes.
 
 */
 
+    static void SetIOBufferSize(size_t size) { IO_BUFFER_SIZE = size; }
+/*
+Sets the I/O buffer size used for read/write operations on disk.
+
+*/
+
+    static size_t GetIOBufferSize() { return IO_BUFFER_SIZE; }
+/*
+Returns the I/O buffer size used for read/write operations on disk.
+
+*/
+
   private:
 
     void subpartition( size_t n, size_t maxSize,
@@ -942,6 +949,12 @@ no progress information will be collected.
     static const bool traceMode = true;
 /*
 Flag to enable trace mode.
+
+*/
+
+    static size_t IO_BUFFER_SIZE;
+/*
+I/O Buffer size in bytes used for read/write operations on disk.
 
 */
 };

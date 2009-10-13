@@ -95,12 +95,12 @@ PartitionHistogramEntry& PartitionHistogram::GetHistogramEntry(size_t n)
 
 */
 
-Partition::Partition(PInterval i, size_t bufferSize)
+Partition::Partition(PInterval i, size_t bufferSize, size_t ioBufferSize)
 : interval(i)
 , histogram(i)
 , subpartitioned(false)
 {
-  buffer = new TupleBuffer2(bufferSize);
+  buffer = new TupleBuffer2(bufferSize, ioBufferSize);
 }
 
 Partition::~Partition()
@@ -146,6 +146,9 @@ ostream& Partition::Print(ostream& os)
 5 Implementation of class ~PartitionManager~
 
 */
+
+size_t PartitionManager::IO_BUFFER_SIZE = WinUnix::getPageSize();
+
 PartitionManager::PartitionManager( HashFunction* h,
                                     size_t nBuckets,
                                     size_t nPartitions,
@@ -187,7 +190,9 @@ PartitionManager::PartitionManager( HashFunction* h,
       bufferSize = p0;
     }
 
-    partitions.push_back( new Partition(interval, bufferSize) );
+    partitions.push_back( new Partition( interval,
+                                          bufferSize,
+                                          IO_BUFFER_SIZE) );
 
     if ( progressInfo != 0 )
     {
@@ -208,7 +213,8 @@ PartitionManager::PartitionManager( HashFunction* h,
   // create partitions with intervals from pm
   for(size_t i = 0; i < pm.partitions.size(); i++)
   {
-    partitions.push_back( new Partition(pm.partitions[i]->GetInterval(), 0) );
+    partitions.push_back( new Partition( pm.partitions[i]->GetInterval(),
+                                         0, IO_BUFFER_SIZE) );
 
     if ( progressInfo != 0 )
     {
@@ -358,8 +364,9 @@ void PartitionManager::subpartition( size_t n,
   PInterval i1 = PInterval(low, m);
   PInterval i2 = PInterval(m+1, high);
 
-  Partition* s1 = new Partition(i1, ( n == 0 && p0 > 0 ) ? p0 : 0 );
-  Partition* s2 = new Partition(i2, 0);
+  Partition* s1 = new Partition( i1, ( n == 0 && p0 > 0 ) ? p0 : 0,
+                                 IO_BUFFER_SIZE );
+  Partition* s2 = new Partition(i2, 0, IO_BUFFER_SIZE);
 
   if ( traceMode )
   {
