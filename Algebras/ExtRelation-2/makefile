@@ -48,3 +48,28 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
+	rm ./*.aux 
+	rm ./*.dvi
+	rm ./*.log
+	rm ./*.ps
+	rm ./*.pdf
+
+# files for documentation
+DOCU_OBJ = Sort.h Sort.cpp \
+		   TupleBuffer2.h TupleBuffer2.cpp \
+		   TupleQueue.h TupleQueue.cpp
+		   
+DOCU_OBJ_PDF = $(DOCU_OBJ:%=%.pdf)
+
+# generic rule for creating documentation	
+.PHONY: docu
+docu: 
+	for i in $(DOCU_OBJ); do pd2pdf $$i; done
+	gs -q -sPAPERSIZE=a4 -dNOPAUSE -dBATCH \
+	   -sDEVICE=pdfwrite -sOutputFile=ExtRelation2Algebra.pdf $(DOCU_OBJ_PDF)
+	pdftops ExtRelation2Algebra.pdf tmp.ps    
+	psnup -2 tmp.ps ExtRelation2Algebra.ps
+	ps2pdf ExtRelation2Algebra.ps ExtRelation2Algebra.pdf
+	
+	
+	
