@@ -160,14 +160,14 @@ Appends a tupleId to the DBArray tupleIds.
         
 */
         
-        void setFileId(SmiFileId id);
+        void setRelId(SmiFileId id);
 /*
 Sets tupleFile to if and rel to the relation with this SmiFileId, if such a relation
 is currently open.
         
 */
         
-        SmiFileId getFileId() const;
+        SmiFileId getRelId() const;
 /*
 Returns the value of tupleFile.
         
@@ -283,17 +283,11 @@ means, that the relation should not be deleted, as it was created by a
 corresponding nrel instance. 
 
 */
-   
-        bool tupleFileSet;
-/*
-True means that the SmiFileId tupleFile is set, false means that is not
-yet set.
-        
-*/  
       
-        SmiFileId tupleFile; 
+        SmiFileId relId; 
 /*
-The SmiFileId of the relation which is used to save tuples.
+The SmiFileId of the relation which is used to save tuples. relId is used
+by arel to identify its relation among all open relations.
         
 */
         
