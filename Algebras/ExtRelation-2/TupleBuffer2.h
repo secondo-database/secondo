@@ -26,7 +26,7 @@ June 2009, Sven Jungnickel. Initial version.
 
 2 Overview
 
-Class ~extrel2::TupleBuffer2~ is a replacement for the class
+Class ~TupleBuffer2~ is a replacement for the class
 ~TupleBuffer~ in RelationAlgebra. As the former ~TupleBuffer~
 has been implemented as a subclass of ~GenericRelation~, which
 also allows random access, we have decided to implement the
@@ -93,7 +93,7 @@ The destructor.
 
     Tuple* GetNextTuple();
 /*
-Returns a pointer to the next tuple from the ~TupleBuffer2~.
+Returns a pointer to the next tuple from the ~TupleBuffer2~ instance.
 If all tuples have been processed 0 is returned.
 
 */
@@ -102,7 +102,7 @@ If all tuples have been processed 0 is returned.
 
     TupleBuffer2& tupleBuffer;
 /*
-Constant reference to ~TupleBuffer2~ instance.
+Reference to ~TupleBuffer2~ instance.
 
 */
 
@@ -137,20 +137,24 @@ on a STL queue, which does not support iteration.
   {
   public:
 
-    TupleBuffer2( const size_t maxMemorySize = 16 * 1024 * 1024 );
+    TupleBuffer2( const size_t maxMemorySize = 16 * 1024 * 1024,
+                  const size_t ioBufferSize = WinUnix::getPageSize() );
 /*
-First constructor. Constructs an instance with ~maxMemorySize~ Bytes of
-internal memory. The filename for the ~diskBuffer~ will be generated
-automatically.
+First constructor. Constructs an instance with ~maxMemorySize~ bytes of
+internal memory. The I/O buffer size for read/write operations on
+disk is set to ~ioBufferSize~. The filename for the ~diskBuffer~ will
+be generated automatically.
 
 */
 
     TupleBuffer2( const string& pathName,
-                   const size_t maxMemorySize = 16 * 1024 * 1024 );
+                  const size_t maxMemorySize = 16 * 1024 * 1024,
+                  const size_t ioBufferSize = WinUnix::getPageSize() );
 /*
 Second constructor. Constructs an instance with a specific filename
-~pathName~ for the external buffer and ~maxMemorySize~ Bytes of
-internal memory.
+~pathName~ for the external buffer and ~maxMemorySize~ bytes of
+internal memory. The I/O buffer size for read/write operations on
+disk is set to ~ioBufferSize~.
 
 */
 
@@ -204,8 +208,7 @@ external buffers.
 
     void AppendTuple( Tuple *t );
 /*
-Append tuple ~t~ to the buffer. Returns ~true~ if tuple is stored
-in memory buffer or ~false~ when tuple has been written to disk.
+Append tuple ~t~ to the buffer.
 
 */
 
@@ -234,17 +237,10 @@ Returns true if all tuples are in the internal memory buffer.
 
 */
 
-    static size_t GetIoBufferSize() { return IO_BUFFER_SIZE; }
+    size_t GetIoBufferSize() { return ioBufferSize; }
 /*
-Returns the size of the used I/O Buffer in bytes.
-The I/O Buffer size is by default set to the
-page size of the system.
-
-*/
-
-    static void SetIoBufferSize(size_t s) { IO_BUFFER_SIZE = s; }
-/*
-Sets the size of the used I/O Buffer in bytes.
+Returns the size of the used I/O Buffer in bytes. The I/O Buffer size
+is by default set to the page size of the system.
 
 */
 
@@ -264,70 +260,70 @@ gains access to the internal and external buffers.
 
   private:
 
-  const size_t MAX_MEMORY_SIZE;
+    const size_t MAX_MEMORY_SIZE;
 /*
 Maximum size in bytes of the internal memory buffer.
 
 */
 
-  static size_t IO_BUFFER_SIZE;
+    const size_t ioBufferSize;
 /*
-I/O Buffer size for read/write operations. By default
+I/O Buffer size for read/write operations on disk in bytes. By default
 this value is set to the page size of the operating system.
 
 */
 
-  const string pathName;
+    const string pathName;
 /*
 Filename for the external buffer of type ~TupleFile~.
 
 */
 
-  queue<Tuple*> memoryBuffer;
+    queue<Tuple*> memoryBuffer;
 /*
 Internal memory buffer (FIFO)
 
 */
 
-  TupleFile* diskBuffer;
+    TupleFile* diskBuffer;
 /*
 External buffer
 
 */
 
-  TupleType *tupleType;
+    TupleType *tupleType;
 /*
 ~TupleType~ for the buffer.
 
 */
 
-  bool inMemory;
+    bool inMemory;
 /*
 Flag which is true if all tuples are kept in internal memory.
 The flag is set to false when the first tuple is moved to disk.
 
 */
 
-  static bool traceMode;
+    static bool traceMode;
 /*
 Flag to control the trace mode. If set to true log messages
 will be produced on the standard output.
 
 */
 
-  size_t totalMemSize;
+    size_t totalExtSize;
 /*
-Used internal memory in bytes.
+Total size of the extension part of all tuples within the internal
+and external buffers.
 
 */
 
-  size_t totalExtSize;
-  size_t totalSize;
+    size_t totalSize;
 /*
-Internal tuple size statistics
+Total size of all tuples within the internal and external buffers.
 
 */
   };
-}
+} // end of namespace extrel2
 
 #endif /* TUPLEBUFFER2_H_ */

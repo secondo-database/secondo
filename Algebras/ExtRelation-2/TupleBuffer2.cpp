@@ -38,8 +38,10 @@ June 2009, Sven Jungnickel. Initial version.
 3 Implementation of class ~TupleBuffer2Iterator~
 
 */
+namespace extrel2
+{
 
-extrel2::TupleBuffer2Iterator::TupleBuffer2Iterator
+TupleBuffer2Iterator::TupleBuffer2Iterator
 (extrel2::TupleBuffer2& buffer)
 : tupleBuffer(buffer)
 , iterDiskBuffer(0)
@@ -69,7 +71,7 @@ extrel2::TupleBuffer2Iterator::TupleBuffer2Iterator
   iterMemoryBuffer = memoryBufferCopy.begin();
 }
 
-extrel2::TupleBuffer2Iterator::~TupleBuffer2Iterator()
+TupleBuffer2Iterator::~TupleBuffer2Iterator()
 {
   if ( iterDiskBuffer != 0 )
   {
@@ -79,7 +81,7 @@ extrel2::TupleBuffer2Iterator::~TupleBuffer2Iterator()
   memoryBufferCopy.clear();
 }
 
-Tuple* extrel2::TupleBuffer2Iterator::GetNextTuple()
+Tuple* TupleBuffer2Iterator::GetNextTuple()
 {
   if ( !tupleBuffer.inMemory && iterDiskBuffer->MoreTuples() == true )
   {
@@ -105,69 +107,57 @@ Tuple* extrel2::TupleBuffer2Iterator::GetNextTuple()
 
 */
 
-//size_t extrel2::TupleBuffer2::IO_BUFFER_SIZE =
-//  WinUnix::getPageSize();
-
-size_t
-extrel2::TupleBuffer2::IO_BUFFER_SIZE =
-  SmiProfile::GetParameter( "TupleBuffer2",
-                            "IOBuffer",
-                            WinUnix::getPageSize(),
-                            expandVar("$(SECONDO_CONFIG)") );
-/*
-Set the I/O Buffer size by default to the page size of the
-operating system.
-
-*/
-
 bool extrel2::TupleBuffer2::traceMode = false;
 /*
 Initialize the trace mode
 
 */
 
-extrel2::TupleBuffer2::TupleBuffer2(const size_t maxMemorySize)
+TupleBuffer2::TupleBuffer2( const size_t maxMemorySize,
+                              const size_t ioBufferSize )
 : MAX_MEMORY_SIZE(maxMemorySize)
+, ioBufferSize(ioBufferSize)
 , pathName("")
 , diskBuffer(0)
 , inMemory(true)
-, totalMemSize(0)
 , totalExtSize(0)
 , totalSize(0)
 {
   if ( traceMode )
   {
     cmsg.info() << "TupleBuffer2 created (BufferSize: "
-                << ( maxMemorySize / 1024 ) << " Kbyte)" << endl;
+                << ( maxMemorySize / 1024 ) << " Kbyte, I/O Buffer: "
+                << ioBufferSize << " byte)" << endl;
     cmsg.send();
   }
 }
 
-extrel2::TupleBuffer2::TupleBuffer2( const string& pathName,
-                                        const size_t maxMemorySize )
+TupleBuffer2::TupleBuffer2( const string& pathName,
+                              const size_t maxMemorySize,
+                              const size_t ioBufferSize )
 : MAX_MEMORY_SIZE(maxMemorySize)
+, ioBufferSize(ioBufferSize)
 , pathName(pathName)
 , diskBuffer(0)
 , inMemory(true)
-, totalMemSize(0)
 , totalExtSize(0)
 , totalSize(0)
 {
   if ( traceMode )
   {
-    cmsg.info() << "TupleBuffer2 created (File: " << pathName
-                << ", BufferSize: " << ( maxMemorySize / 1024 )
-                << " Kbyte)" << endl;
+    cmsg.info() << "TupleBuffer2 created (BufferSize: "
+                << ( maxMemorySize / 1024 ) << " Kbyte, I/O Buffer: "
+                << ioBufferSize << " byte)" << endl;
     cmsg.send();
   }
 }
 
-extrel2::TupleBuffer2::~TupleBuffer2()
+TupleBuffer2::~TupleBuffer2()
 {
   Clear();
 }
 
-void extrel2::TupleBuffer2::Clear()
+void TupleBuffer2::Clear()
 {
   while( !memoryBuffer.empty() )
   {
@@ -181,7 +171,6 @@ void extrel2::TupleBuffer2::Clear()
     delete diskBuffer;
   }
 
-  totalMemSize = 0;
   totalSize = 0;
   totalExtSize = 0;
   inMemory = true;
@@ -193,9 +182,8 @@ void extrel2::TupleBuffer2::Clear()
   }
 }
 
-void extrel2::TupleBuffer2::AppendTuple(Tuple* t)
+void TupleBuffer2::AppendTuple(Tuple* t)
 {
-  totalMemSize += t->GetMemSize();
   totalSize += t->GetSize();
   totalExtSize += t->GetExtSize();
 
@@ -212,12 +200,12 @@ void extrel2::TupleBuffer2::AppendTuple(Tuple* t)
       if ( pathName == "" )
       {
         diskBuffer = new TupleFile( t->GetTupleType(),
-                                    IO_BUFFER_SIZE );
+                                    ioBufferSize );
       }
       else
       {
         diskBuffer = new TupleFile( t->GetTupleType(),
-                                    pathName, IO_BUFFER_SIZE);
+                                    pathName, ioBufferSize );
       }
 
       if ( traceMode )
@@ -274,12 +262,12 @@ void extrel2::TupleBuffer2::AppendTuple(Tuple* t)
   return;
 }
 
-extrel2::TupleBuffer2Iterator* extrel2::TupleBuffer2::MakeScan()
+TupleBuffer2Iterator* extrel2::TupleBuffer2::MakeScan()
 {
-  return new extrel2::TupleBuffer2Iterator(*this);
+  return new TupleBuffer2Iterator(*this);
 }
 
-void extrel2::TupleBuffer2::CloseDiskBuffer()
+void TupleBuffer2::CloseDiskBuffer()
 {
   if ( diskBuffer )
   {
@@ -293,7 +281,7 @@ void extrel2::TupleBuffer2::CloseDiskBuffer()
   }
 }
 
-ostream& extrel2::TupleBuffer2::Print(ostream& os)
+ostream& TupleBuffer2::Print(ostream& os)
 {
   Tuple* t;
 
@@ -331,3 +319,5 @@ ostream& extrel2::TupleBuffer2::Print(ostream& os)
 
   return os;
 }
+
+} // end of namespace extrel2

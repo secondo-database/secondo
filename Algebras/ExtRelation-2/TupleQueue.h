@@ -73,13 +73,6 @@ increments the create counter by one.
 
 */
 
-    ~TupleAndRelPos()
-    {}
-/*
-The destructor.
-
-*/
-
     TupleAndRelPos(Tuple* newTuple, int newPos = 0)
     : ref( newTuple )
     , pos(newPos)
@@ -89,6 +82,13 @@ The destructor.
 /*
 Second constructor. Assigns ~newTuple~ with its array index ~newPos~
 to this instance and increments the create counter by one.
+
+*/
+
+    ~TupleAndRelPos()
+    {}
+/*
+The destructor.
 
 */
 
@@ -191,29 +191,29 @@ Resets the assignment counter to 0.
 
     Tuple* ref;
 /*
-Pointer to referenced tuple
+Pointer to referenced tuple.
 
 */
     int pos;
 /*
-Array index of the sorted run from which the tuple comes
+Array index of the sorted run from which the tuple comes.
 
 */
 
     static size_t createCounter;
 /*
-Static class counter which counts the number of created instances
+Static class counter which counts the number of created instances.
 
 */
 
     static size_t copyCounter;
 /*
-Static class counter which counts the calls of the copy constructor
+Static class counter which counts the calls of the copy constructor.
 
 */
     static size_t assignCounter;
 /*
-Static class counter which counts calls of the assignment operator
+Static class counter which counts calls of the assignment operator.
 
 */
   };
@@ -226,7 +226,7 @@ Derived functional STL object used to compare two tuple references
 
 */
 
-  class TupleCompare: public binary_function<RTuple, RTuple, bool >
+  class TupleCompare: public binary_function<RTuple, RTuple, bool>
   {
     public:
 
@@ -264,12 +264,12 @@ Resets the comparison counter to 0.
     protected:
     TupleCompareBy* cmp;
 /*
-Pointer to compare object for tuple comparisons
+Pointer to compare object for tuple comparisons.
 
 */
     static size_t comparisonCounter;
 /*
-Static class counter which counts the number of comparison operations
+Static class counter which counts the number of comparison operations.
 
 */
 };
@@ -291,7 +291,7 @@ template class priority\_queue.
     TupleCompareAsc(TupleCompareBy* cmp) : TupleCompare(cmp) {}
 /*
 The constructor. Constructs an instance and assigns ~cmp~ as its
-compare object for tuple comparisons
+compare object for tuple comparisons.
 
 */
 
@@ -325,7 +325,7 @@ template class priority\_queue.
       TupleCompareDesc(TupleCompareBy* cmp) : TupleCompare(cmp) {}
 /*
 The constructor. Constructs an instance and assigns ~cmp~ as its
-compare object for tuple comparisons
+compare object for tuple comparisons.
 
 */
 
@@ -361,7 +361,7 @@ the STL template class priority\_queue.
       TupleAndRelPosCompare(TupleCompareBy* cmp) { this->cmp = cmp; }
 /*
 The constructor. Constructs an instance and assigns ~cmp~ as its
-compare object for tuple comparisons
+compare object for tuple comparisons.
 
 */
 
@@ -374,7 +374,7 @@ The destructor.
     protected:
     TupleCompareBy* cmp;
 /*
-Pointer to compare object for tuple comparisons
+Pointer to compare object for tuple comparisons.
 
 */
   };
@@ -397,7 +397,7 @@ the STL template class priority\_queue.
       : TupleAndRelPosCompare(cmp) {}
 /*
 The constructor. Constructs an instance and assigns ~cmp~ as its
-compare object for tuple comparisons
+compare object for tuple comparisons.
 
 */
 
@@ -431,7 +431,7 @@ the STL template class priority\_queue.
       : TupleAndRelPosCompare(cmp) {}
 /*
 The constructor. Constructs an instance and assigns ~cmp~ as its
-compare object for tuple comparisons
+compare object for tuple comparisons.
 
 */
 
@@ -448,7 +448,7 @@ and ~y~ are in ascending sort order. Otherwise false is returned and
 };
 
 /*
-6 Class ~Queue~
+10 Class ~Queue~
 
 Template class that implements a STL priority\_queue of
 type ~T~ using a specific functional STL object of type
@@ -474,11 +474,17 @@ object of type ~CompareObj~.
 
     virtual ~Queue()
     {
-      delete pQueue;
-      pQueue = 0;
+      if ( pQueue )
+      {
+        delete pQueue;
+        pQueue = 0;
+      }
 
-      delete pComparer;
-      pComparer = 0;
+      if ( pComparer )
+      {
+        delete pComparer;
+        pComparer = 0;
+      }
     }
 /*
 Virtual destructor. Deletes the priority queue and the
@@ -541,7 +547,7 @@ Pointer to heap instance.
   };
 
 /*
-7 Class ~TupleQueue~
+11 Class ~TupleQueue~
 
 This class implements a priority queue for tuples (minimum heap).
 Internally the tuples are stored using tuple references implemented
@@ -577,11 +583,17 @@ object of type ~TupleCompare~.
 
     ~TupleQueue()
     {
-      delete pQueue;
-      pQueue = 0;
+      if ( pQueue )
+      {
+        delete pQueue;
+        pQueue = 0;
+      }
 
-      delete pComparer;
-      pComparer = 0;
+      if ( pComparer )
+      {
+        delete pComparer;
+        pComparer = 0;
+      }
     }
 /*
 The destructor. Deletes the priority queue and the
@@ -645,25 +657,25 @@ Type definition of minimum heap.
 
     TupleCompareDesc* pComparer;
 /*
-Functional STL object for comparison
+Functional STL object for comparison.
 
 */
 
     MinHeap* pQueue;
 /*
-Minimum heap
+Minimum heap.
 
 */
 
     size_t totalByteSize;
 /*
-Total tuple sizes in bytes
+Total tuple sizes in bytes.
 
 */
   };
 
 /*
-8 Class ~TupleAndRelPosQueue~
+12 Class ~TupleAndRelPosQueue~
 
 This class implements a priority queue for ~TupleAndRelPos~ objects.
 Object comparison is handled by a functional STL object of type
