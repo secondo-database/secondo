@@ -25,22 +25,22 @@ Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (
 Example  : query Orte feed {o} plz feed {p} hybridhashjoin[Ort_o, Ort_p, 1000] count
 Result   : 10052
 
-Operator : hybridhashjoinP
+Operator : hybridhashjoinParam
 Number   : 1
 Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj nbuckets npartitions memSize ioBufSize) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
-Example  : query Orte feed {o} plz feed {p} hybridhashjoinP[Ort_o, Ort_p, 1000, 50, 16*1024*1024, 4096] count
+Example  : query Orte feed {o} plz feed {p} hybridhashjoinParam[Ort_o, Ort_p, 1000, 50, 16*1024*1024, 4096] count
 Result   : 10052
 
-Operator : sort2with
+Operator : sort2Param
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) int int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sort2with[16384,50,4096] count
+Example  : query Staedte feed sort2Param[16384,50,4096] count
 Result   : 58
 
-Operator : sortby2with
+Operator : sortby2Param
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc)) int int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
-Example  : query Staedte feed sortby2with[Bev desc;16384,50,4096] head[3] count
+Example  : query Staedte feed sortby2Param[Bev desc;16384,50,4096] head[3] count
 Result   : 3
 
 Operator : heapstl
