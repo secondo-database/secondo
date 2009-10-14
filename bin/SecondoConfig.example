@@ -134,6 +134,11 @@ RTFlags +=  Server:BinaryTransfer
 # id or construnction of a filename
 #RTFlags += SMI:LogFileCreation
 
+# trace activity of the FLOB Cache
+#
+#RTFlags += FlobCache:trace 
+
+
 ###
 ### ALGEBRA SPECIFIC SWITCHES
 ###
