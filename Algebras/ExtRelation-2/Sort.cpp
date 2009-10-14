@@ -138,7 +138,7 @@ SortInfo::~SortInfo()
   clearAll();
 }
 
-SortedRunInfo* extrel2::SortInfo::CurrentRun()
+SortedRunInfo* SortInfo::CurrentRun()
 {
   return this->InitialRunInfo[this->InitialRunsCount-1];
 }
