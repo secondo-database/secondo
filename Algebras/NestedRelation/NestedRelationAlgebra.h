@@ -106,17 +106,17 @@ that can be used as an attribute within a nested relation.
 class AttributeRelation : public StandardAttribute
 {
    public:
-        AttributeRelation( const ListExpr typeInfo, bool ownRelation );
+        AttributeRelation( const ListExpr typeInfo, bool nrel );
 /*
 The first constructor. Constructs an empty AttributeRelation from the 
 metadata passed in typeInfo. 
-       
+        
 */
         
         AttributeRelation( const SmiFileId fileId );
 /*
-The second constructor. Sets pointer to the relation used for storing tuples to 
-the relation with tupleFileId fileId. 
+The second constructor. Sets pointer to the relation used for storing tuples 
+to the relation with tupleFileId fileId. 
         
 */
         
@@ -132,17 +132,19 @@ Returns the type information of this arel-type
         
 */
         
-        void setOwnRelation(bool b);
+        void setPartOfNrel(bool b);
 /*
-Sets the value of ownRelation to b. True means that the relation
-used for saving tuples is created by AttributeRelation. False means
-that the relation was created by NestedRelation.
+Sets the value of partOfNrel to b. True means that this arel-instance was 
+created as an attribute of an nrel-instance. False means
+that this arel-instance was created independently of nrel.
         
 */
+
+        void setRelDelete(bool b);
         
-        bool hasOwnRelation();
+        bool isPartOfNrel();
 /*
-Returns the value of ownRelation.
+Returns the value of partOfNrel.
         
 */
         
@@ -158,20 +160,20 @@ Appends a tupleId to the DBArray tupleIds.
         
 */
         
-        void setFileId(SmiFileId id);
+        void setRelId(SmiFileId id);
 /*
 Sets tupleFile to if and rel to the relation with this SmiFileId, if such a 
 relation is currently open.
         
 */
         
-        SmiFileId getFileId();
+        SmiFileId getRelId() const;
 /*
 Returns the value of tupleFile.
         
 */   
         
-        DBArray<TupleId>* getTupleIds(); 
+         DBArray<TupleId>* getTupleIds(); 
 /*
 Returns a pointer to DBArray fileIds.
         
@@ -211,7 +213,7 @@ Destroys the DBArray tupleIds
         
         size_t Sizeof() const;
         
-        size_t HashValue() const {return 0;}
+        size_t HashValue() const;
   
         void CopyFrom(const StandardAttribute* right);
         
@@ -244,7 +246,7 @@ Destroys the DBArray tupleIds
        
    private:        
         friend class ConstructorFunctions<AttributeRelation>; 
-        DBArray<TupleId> tupleIds;
+        DBArray<TupleId> tupleIds;              
 /*
 Saves the TupleIds of the tuples pertaining to this instance
 of AttributeRelation
@@ -264,24 +266,28 @@ The type information for AttributeRelation.
         
 */
     
-        bool ownRelation;
+        bool partOfNrel;
 /*
-True means that the relation used for saving tuples was created
-by AttributeRelation. False means that the relation was created by 
-NestedRelation.
+True means that the arel-instance was created within the context of an nrel-
+instance. False means that the arel-instance was created independently of
+an nrel-instance.
         
 */
-   
-        bool tupleFileSet;
+
+        bool relDelete;
 /*
-True means that the SmiFileId tupleFile is set, false means that is not
-yet set.
-        
-*/  
+True means that the relation used for saving tuples should be deleted when
+closing or deleting the arel instance. This is the case, if the relation for 
+saving tuples was created by arel and not by the corresponding nrel. False 
+means, that the relation should not be deleted, as it was created by a 
+corresponding nrel instance. 
+
+*/
       
-        SmiFileId tupleFile; 
+        SmiFileId relId; 
 /*
-The SmiFileId of the relation which is used to save tuples.
+The SmiFileId of the relation which is used to save tuples. relId is used
+by arel to identify its relation among all open relations.
         
 */
         
@@ -303,7 +309,7 @@ an nrel-type.
 struct SubRelation
 {
        
-       SubRelation(Relation* ptr, const string n, SmiFileId id, 
+       SubRelation::SubRelation(Relation* ptr, const string n, SmiFileId id, 
                                 ListExpr tI):
                              name(n),
                              typeInfo(tI),
@@ -354,7 +360,7 @@ The empty constructor.
 
 */
           
-          ~NestedRelation() {};
+          ~NestedRelation() {}
 /*
 The destructor
           
@@ -400,6 +406,13 @@ returns a pointer to the Subrelation with Name name, if such a Relation exists,
 nil otherwise.
           
 */
+
+          int getSubRelIndex(string name);
+/*
+returns a the index of the Subrelation with Name name, if such a Relation 
+exists, -1 otherwise.
+          
+*/
           
           ListExpr getTupleType();
 /*
@@ -414,7 +427,7 @@ id algId
           
 */
       
-          static bool namesUnique(ListExpr type);
+          static bool namesUnique(ListExpr type, string& s);
 /*
 Returns true, if all attribute names in the type are unique, false
 otherwise.
