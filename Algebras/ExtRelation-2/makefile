@@ -55,18 +55,28 @@ clean:
 	rm ./*.pdf
 
 # files for documentation
-DOCU_OBJ = Sort.h Sort.cpp \
+DOCU_OBJ = ExtRelation2Algebra.cpp \
+		   ExtRelation2AlgebraTest.cpp \
+		   HybridHashJoin.h HybridHashJoin.cpp \
+		   Sort.h Sort.cpp \
+		   SortMergeJoin.h SortMergeJoin.cpp \
 		   TupleBuffer2.h TupleBuffer2.cpp \
 		   TupleQueue.h TupleQueue.cpp
 		   
+DOCU_OBJ2 = ExtRelation2Algebra.spec \
+			ExtRelation2.examples \
+			makefile
+
 DOCU_OBJ_PDF = $(DOCU_OBJ:%=%.pdf)
+DOCU_OBJ2_PDF = $(DOCU_OBJ2:%=%.pdf)
 
 # generic rule for creating documentation	
 .PHONY: docu
 docu: 
 	for i in $(DOCU_OBJ); do pd2pdf $$i; done
+	for i in $(DOCU_OBJ2); do a2ps $$i -1 --borders=no --output=$$i.ps; ps2pdf $$i.ps; done
 	gs -q -sPAPERSIZE=a4 -dNOPAUSE -dBATCH \
-	   -sDEVICE=pdfwrite -sOutputFile=ExtRelation2Algebra.pdf $(DOCU_OBJ_PDF)
+	   -sDEVICE=pdfwrite -sOutputFile=ExtRelation2Algebra.pdf $(DOCU_OBJ_PDF) $(DOCU_OBJ2_PDF)
 	pdftops ExtRelation2Algebra.pdf tmp.ps    
 	psnup -2 tmp.ps ExtRelation2Algebra.ps
 	ps2pdf ExtRelation2Algebra.ps ExtRelation2Algebra.pdf
