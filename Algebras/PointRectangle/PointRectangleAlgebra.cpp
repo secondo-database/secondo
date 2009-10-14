@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -31,13 +31,13 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 July 2002, R. H. G[ue]ting
 
-2003 - 2006, V. Almeida. Code changes due to interface changes. 
+2003 - 2006, V. Almeida. Code changes due to interface changes.
 
 Oct. 2006, M. Spiekermann. Introduction of a namespace, string constants and
 usage of the "static_cast<>" templates. Additionally, more comments and hints
  were given.
 
-Sept. 2007, M. Spiekermann. Many code changes to demonstrate new programming interfaces. 
+Sept. 2007, M. Spiekermann. Many code changes to demonstrate new programming interfaces.
 
 Oct. 2007 RHG Revision of text.
 
@@ -46,10 +46,10 @@ Oct. 2007 RHG Revision of text.
 0 Overview
 
 This little example algebra provides two type constructors ~xpoint~ and
-~xrectangle~ and two operators: 
+~xrectangle~ and two operators:
 
-  1. ~inside~, which checks whether either a point or a rectangle is 
-     within a rectangle, and 
+  1. ~inside~, which checks whether either a point or a rectangle is
+     within a rectangle, and
 
   2. ~intersects~, which checks two rectangles for intersection.
 
@@ -61,10 +61,10 @@ This little example algebra provides two type constructors ~xpoint~ and
 
 #include "Algebra.h"
 #include "NestedList.h"
-#include "NList.h" 
+#include "NList.h"
 #include "LogMsg.h"
 #include "QueryProcessor.h"
-#include "ConstructorTemplates.h" 
+#include "ConstructorTemplates.h"
 #include "StandardTypes.h"
 
 /*
@@ -75,9 +75,9 @@ algebra, too, and "NestedList.h" is needed for this purpose. The result of an
 operation is passed directly to the query processor. An instance of
 "QueryProcessor" serves for this. Secondo provides some standard data types, e.g.
 "CcInt", "CcReal", "CcString", "CcBool", which is needed as the result type of the
-implemented operations. To use them "StandardTypes.h" needs to be included. 
-   
-*/  
+implemented operations. To use them "StandardTypes.h" needs to be included.
+
+*/
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -109,8 +109,8 @@ using namespace std;
 /*
 The implementation of the algebra is embedded into
 a namespace ~prt~ in order to avoid name conflicts with other modules.
-   
-*/   
+
+*/
 
 namespace prt {
 
@@ -125,10 +125,10 @@ recent alternatives are presented in the next section.
 
 */
 
- 
+
 class XPoint
 {
- public:  
+ public:
 /*
 Constructors and destructor:
 
@@ -136,7 +136,7 @@ Constructors and destructor:
   XPoint( int x, int y );
   XPoint(const XPoint& rhs);
   ~XPoint();
-  
+
   int  GetX() const;
   int  GetY() const;
   void SetX( int x );
@@ -145,13 +145,13 @@ Constructors and destructor:
   XPoint* Clone();
 
 /*
-Below the mandatory set of algebra support functions is declared. 
-Note that these functions need to be static member functions of the class. 
+Below the mandatory set of algebra support functions is declared.
+Note that these functions need to be static member functions of the class.
 Their implementations do nothing which depends on the state of an instance.
 
-*/  
+*/
   static Word     In( const ListExpr typeInfo, const ListExpr instance,
-                        const int errorPos, ListExpr& errorInfo, 
+                        const int errorPos, ListExpr& errorInfo,
                         bool& correct );
 
   static ListExpr Out( ListExpr typeInfo, Word value );
@@ -166,27 +166,27 @@ Their implementations do nothing which depends on the state of an instance.
 
   static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
 
-  static int      SizeOfObj();  
-  
+  static int      SizeOfObj();
+
   static ListExpr Property();
- 
+
  private:
   inline XPoint() {}
-/* 
+/*
 Warning: Never do initializations in the default constructor!
 It will be used in a special way in the cast function which is needed
 for making a class persistent when acting as an attribute in a tuple.
 In order to guarantee this, we make this constructor private.
-One always needs to provide at least a second constructor, here 
-"XPoint( int x, int y )" in order to construct an instance. 
+One always needs to provide at least a second constructor, here
+"XPoint( int x, int y )" in order to construct an instance.
 
-Moreover, 
+Moreover,
 avoid declarations like "XPoint p1;" since these will create an uninitialized
-class instance. Instead you should use only properly initialized variables 
+class instance. Instead you should use only properly initialized variables
 like "XPoint(0,0) p1;"
 
 */
-  
+
   int x;
   int y;
 
@@ -205,7 +205,7 @@ XPoint::XPoint(int X, int Y) : x(X), y(Y) {}
 
 XPoint::XPoint(const XPoint& rhs) : x(rhs.x), y(rhs.y) {}
 
-XPoint::~XPoint() {} 
+XPoint::~XPoint() {}
 
 
 int XPoint::GetX() const { return x; }
@@ -232,14 +232,14 @@ instance of class ~NestedList~.  This class provides a set of functions which
 can investigate and manipulate nested lists. For details refer to the file
 "NestedList.h".
 
-The parameter "errorInfo" can be used to return specific 
+The parameter "errorInfo" can be used to return specific
 error information if the retrieved list is not correct. In the latter case,
 the boolean parameter "correct" needs to be set to false.
 
 The return value of the function is of type ~Word~ which can simply be
 regarded as a pointer. The query processor operates with this type-less
 abstraction for objects. If all integrity checks are correct we will return
-a pointer to a new instance of class ~XPoint~. 
+a pointer to a new instance of class ~XPoint~.
 
 */
 
@@ -274,7 +274,7 @@ a type cast in order to tell the compiler about the object's type.
 Note: At this point we can be sure that it is a pointer to type ~XPoint~, hence
 it is safe to do it. But in general, type casts can be a source for ~strange~
 errors, e.g. segmentation faults, if you cast to a type which is not compatible
-to the object that the pointer belongs to. 
+to the object that the pointer belongs to.
 
 */
 
@@ -303,7 +303,7 @@ XPoint::Create( const ListExpr typeInfo )
 
 void
 XPoint::Delete( const ListExpr typeInfo, Word& w )
-{ 
+{
   delete static_cast<XPoint*>( w.addr );
   w.addr = 0;
 }
@@ -427,12 +427,12 @@ class XRectangle
   XRectangle( int XLeft, int XRight, int YBottom, int YTop );
   XRectangle( const XRectangle& rhs );
   ~XRectangle() {}
-  
+
   int GetXLeft()   const;
   int GetXRight()  const;
   int GetYBottom() const;
-  int GetYTop()    const;  
-  
+  int GetYTop()    const;
+
   bool intersects( const XRectangle& r) const;
 
 /*
@@ -440,7 +440,7 @@ Here we will only implement the following three support functions, since the oth
 have default implementations which can be generated at compile time using C++ template
 functionality.
 
-*/  
+*/
   static Word     In( const ListExpr typeInfo, const ListExpr instance,
                       const int errorPos, ListExpr& errorInfo, bool& correct );
 
@@ -453,20 +453,20 @@ functionality.
 In contrast to the example above, we will implement specific ~open~ and ~save~
 functions instead of using the generic persistent mechanism.
 
-*/  
+*/
 
-  static bool     Open( SmiRecord& valueRecord, 
-                        size_t& offset, const ListExpr typeInfo, 
+  static bool     Open( SmiRecord& valueRecord,
+                        size_t& offset, const ListExpr typeInfo,
                         Word& value );
 
-  static bool     Save( SmiRecord& valueRecord, size_t& offset, 
+  static bool     Save( SmiRecord& valueRecord, size_t& offset,
                         const ListExpr typeInfo, Word& w );
 
  private:
   XRectangle() {}
   // Since we want to use some default implementations we need
   // to allow access to private members for the class below.
-  friend class ConstructorFunctions<XRectangle>; 
+  friend class ConstructorFunctions<XRectangle>;
 
   int xl;
   int xr;
@@ -483,13 +483,13 @@ XRectangle::XRectangle( int XLeft, int XRight, int YBottom, int YTop )
 XRectangle::XRectangle( const XRectangle& rhs )
 {
   xl = rhs.xl; xr = rhs.xr; yb = rhs.yb; yt = rhs.yt;
-}	
+}
 
 int XRectangle::GetXLeft()   const { return xl; }
 int XRectangle::GetXRight()  const { return xr; }
 int XRectangle::GetYBottom() const { return yb; }
 int XRectangle::GetYTop()    const { return yt; }
-  
+
 /*
 3.2 Auxiliary Functions for Operations
 
@@ -500,9 +500,9 @@ tests if two intervals overlap.
 
 bool overlap ( int low1, int high1, int low2, int high2 )
 {
-  if ( high1 < low2 || high2 < low1 ) 
-    return false; 
-  else 
+  if ( high1 < low2 || high2 < low1 )
+    return false;
+  else
     return true;
 }
 
@@ -553,13 +553,13 @@ XRectangle::In( const ListExpr typeInfo, const ListExpr instance,
   if ( list.length() != 4 ) {
     cmsg.inFunError(errMsg);
     return result;
-  }  
+  }
 
   NList First = list.first();
   NList Second = list.second();
   NList Third = list.third();
   NList Fourth = list.fourth();
-     
+
   if ( First.isInt() && Second.isInt()
            && Third.isInt() && Fourth.isInt() )
   {
@@ -567,8 +567,8 @@ XRectangle::In( const ListExpr typeInfo, const ListExpr instance,
     int xr = Second.intval();
     int yb = Third.intval();
     int yt = Fourth.intval();
-    
-    if ( xl < xr && yb < yt )     
+
+    if ( xl < xr && yb < yt )
     {
       correct = true;
       XRectangle* r = new XRectangle(xl, xr, yb, yt);
@@ -576,9 +576,9 @@ XRectangle::In( const ListExpr typeInfo, const ListExpr instance,
     }
   }
   else
-  {	  
+  {
     cmsg.inFunError(errMsg);
-  }  
+  }
   return result;
 }
 
@@ -600,57 +600,57 @@ XRectangle::Out( ListExpr typeInfo, Word value )
 
 The ~open~ and ~save~ functions need an ~SmiRecord~ as argument which contains the
 binary representation of the type, starting at the position indicated by ~offset~. The
-implementor has to read out or write in data there and adjust the offset. The argument 
+implementor has to read out or write in data there and adjust the offset. The argument
 ~typeinfo~ is needed only for complex types whose constructors can be parameterized,
-e.g. rel(tuple(...)). 
+e.g. rel(tuple(...)).
 
 */
 
 bool
-XRectangle::Open( SmiRecord& valueRecord, 
-                  size_t& offset, const ListExpr typeInfo, 
-                  Word& value ) 
+XRectangle::Open( SmiRecord& valueRecord,
+                  size_t& offset, const ListExpr typeInfo,
+                  Word& value )
 {
-  //cerr << "OPEN XRectangle" << endl;	
-  size_t size = sizeof(int); 	
+  //cerr << "OPEN XRectangle" << endl;
+  size_t size = sizeof(int);
   int xl = 0, xr = 0, yb = 0, yt = 0;
 
   bool ok = true;
   ok = ok && valueRecord.Read( &xl, size, offset );
-  offset += size;  
+  offset += size;
   ok = ok && valueRecord.Read( &xr, size, offset );
-  offset += size;  
+  offset += size;
   ok = ok && valueRecord.Read( &yb, size, offset );
-  offset += size;  
+  offset += size;
   ok = ok && valueRecord.Read( &yt, size, offset );
-  offset += size;  
+  offset += size;
 
-  value.addr = new XRectangle(xl, xr, yb, yt); 
+  value.addr = new XRectangle(xl, xr, yb, yt);
 
   return ok;
-}	
+}
 
 
-bool      
-XRectangle::Save( SmiRecord& valueRecord, size_t& offset, 
+bool
+XRectangle::Save( SmiRecord& valueRecord, size_t& offset,
                   const ListExpr typeInfo, Word& value )
 {
-  //cerr << "SAVE XRectangle" << endl;	
-  XRectangle* r = static_cast<XRectangle*>( value.addr );	
-  size_t size = sizeof(int); 	
+  //cerr << "SAVE XRectangle" << endl;
+  XRectangle* r = static_cast<XRectangle*>( value.addr );
+  size_t size = sizeof(int);
 
   bool ok = true;
   ok = ok && valueRecord.Write( &r->xl, size, offset );
-  offset += size;  
-  ok = ok && valueRecord.Write( &r->xr, size, offset );	
-  offset += size;  
-  ok = ok && valueRecord.Write( &r->yb, size, offset );	
-  offset += size;  
-  ok = ok && valueRecord.Write( &r->yt, size, offset );	
-  offset += size;  
+  offset += size;
+  ok = ok && valueRecord.Write( &r->xr, size, offset );
+  offset += size;
+  ok = ok && valueRecord.Write( &r->yb, size, offset );
+  offset += size;
+  ok = ok && valueRecord.Write( &r->yt, size, offset );
+  offset += size;
 
   return ok;
-}	
+}
 
 
 Word
@@ -664,10 +664,10 @@ XRectangle::Create( const ListExpr typeInfo )
 4.5 Type Description
 
 The property function is deprecated. Instead
-this is done by implementing a subclass of ~ConstructorInfo~. 
+this is done by implementing a subclass of ~ConstructorInfo~.
 
 */
-  
+
 struct xrectangleInfo : ConstructorInfo {
 
   xrectangleInfo() {
@@ -676,7 +676,7 @@ struct xrectangleInfo : ConstructorInfo {
     signature    = "-> " + SIMPLE;
     typeExample  = XRECTANGLE;
     listRep      =  "(<xleft> <xright> <ybottom> <ytop>)";
-    valueExample = "(4 12 8 2)";
+    valueExample = "(4 12 2 8)";
     remarks      = "all coordinates must be of type int.";
   }
 };
@@ -705,14 +705,14 @@ struct xrectangleFunctions : ConstructorFunctions<XRectangle> {
     in = XRectangle::In;
     out = XRectangle::Out;
 
-    // the default implementations for open and save are only 
+    // the default implementations for open and save are only
     // suitable for a class which is derived from class ~Attribute~, hence
     // open and save functions must be overwritten here.
- 
+
     open = XRectangle::Open;
     save = XRectangle::Save;
-  }  
-};    
+  }
+};
 
 xrectangleInfo xri;
 xrectangleFunctions xrf;
@@ -736,11 +736,11 @@ manipulating list expressions.
 
 ListExpr
 RectRectBool( ListExpr args )
-{	
+{
   NList type(args);
   if ( type != NList(XRECTANGLE, XRECTANGLE) ) {
     return NList::typeError("Expecting two rectangles");
-  }  
+  }
 
   return NList(BOOL).listExpr();
 }
@@ -755,13 +755,13 @@ insideTypeMap( ListExpr args )
   // first alternative: xpoint x xrectangle -> bool
   if ( type == NList(XPOINT, XRECTANGLE) ) {
     return NList(BOOL).listExpr();
-  }  
-  
+  }
+
   // second alternative: xrectangle x xrectangle -> bool
   if ( type == NList(XRECTANGLE, XRECTANGLE) ) {
     return NList(BOOL).listExpr();
-  }  
-  
+  }
+
   return NList::typeError(errMsg);
 }
 
@@ -774,7 +774,7 @@ mapping function being able to deal with the respective combination of
 input parameter types.
 
 Note that a selection function does not need to check the correctness of
-argument types; this has already been checked by the type mapping function. 
+argument types; this has already been checked by the type mapping function.
 A selection function is only called if the type mapping was successful. This
 makes programming easier as one can rely on a correct structure of the list
 ~args~.
@@ -789,7 +789,7 @@ insideSelect( ListExpr args )
     return 1;
   else
     return 0;
-}  
+}
 
 
 
@@ -800,13 +800,13 @@ insideSelect( ListExpr args )
 
 */
 int
-intersectsFun (Word* args, Word& result, int message, 
+intersectsFun (Word* args, Word& result, int message,
               Word& local, Supplier s)
 {
   XRectangle *r1 = static_cast<XRectangle*>( args[0].addr );
   XRectangle *r2 = static_cast<XRectangle*>( args[1].addr );
 
-  result = qp->ResultStorage(s);  
+  result = qp->ResultStorage(s);
                                 //query processor has provided
                                 //a CcBool instance for the result
 
@@ -823,22 +823,22 @@ intersectsFun (Word* args, Word& result, int message,
 
 */
 int
-insideFun_PR (Word* args, Word& result, int message, 
+insideFun_PR (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   //cout << "insideFun_PR" << endl;
   XPoint* p = static_cast<XPoint*>( args[0].addr );
   XRectangle* r = static_cast<XRectangle*>( args[1].addr );
 
-  result = qp->ResultStorage(s);   
+  result = qp->ResultStorage(s);
                                 //query processor has provided
                                 //a CcBool instance for the result
 
   CcBool* b = static_cast<CcBool*>( result.addr );
-  
-  bool res = ( p->GetX() >= r->GetXLeft() 
+
+  bool res = ( p->GetX() >= r->GetXLeft()
             && p->GetX() <= r->GetXRight()
-            && p->GetY() >= r->GetYBottom() 
+            && p->GetY() >= r->GetYBottom()
             && p->GetY() <= r->GetYTop() );
 
   b->Set(true, res); //the first argument says the boolean
@@ -852,31 +852,31 @@ insideFun_PR (Word* args, Word& result, int message,
 
 */
 int
-insideFun_RR (Word* args, Word& result, int message, 
+insideFun_RR (Word* args, Word& result, int message,
              Word& local, Supplier s)
 {
   //cout << "insideFun_RR" << endl;
   XRectangle* r1 = static_cast<XRectangle*>( args[0].addr );
   XRectangle* r2 = static_cast<XRectangle*>( args[1].addr );
 
-  result = qp->ResultStorage(s);   
+  result = qp->ResultStorage(s);
                                 //query processor has provided
                                 //a CcBool instance for the result
 
   CcBool* b = static_cast<CcBool*>( result.addr );
-  
+
   bool res = true;
-  res = res && r1->GetXLeft() >= r2->GetXLeft(); 
-  res = res && r1->GetXLeft() <= r2->GetXRight(); 
-  
-  res = res && r1->GetXRight() >= r2->GetXLeft(); 
-  res = res && r1->GetXRight() <= r2->GetXRight(); 
-  
-  res = res && r1->GetYBottom() >= r2->GetYBottom(); 
-  res = res && r1->GetYBottom() <= r2->GetYTop(); 
-  
-  res = res && r1->GetYTop() >= r2->GetYBottom(); 
-  res = res && r1->GetYTop() <= r2->GetYTop(); 
+  res = res && r1->GetXLeft() >= r2->GetXLeft();
+  res = res && r1->GetXLeft() <= r2->GetXRight();
+
+  res = res && r1->GetXRight() >= r2->GetXLeft();
+  res = res && r1->GetXRight() <= r2->GetXRight();
+
+  res = res && r1->GetYBottom() >= r2->GetYBottom();
+  res = res && r1->GetYBottom() <= r2->GetYTop();
+
+  res = res && r1->GetYTop() >= r2->GetYBottom();
+  res = res && r1->GetYTop() <= r2->GetYTop();
 
   b->Set(true, res); //the first argument says the boolean
                      //value is defined, the second is the
@@ -904,7 +904,7 @@ struct intersectsInfo : OperatorInfo {
     meaning   = "Intersection predicate for two xrectangles.";
   }
 
-}; // Don't forget the semicolon here. Otherwise the compiler 
+}; // Don't forget the semicolon here. Otherwise the compiler
    // returns strange error messages
 
 
@@ -912,17 +912,17 @@ struct insideInfo : OperatorInfo {
 
   insideInfo()
   {
-    name      = INSIDE; 
+    name      = INSIDE;
 
     signature = XPOINT + " x " + XRECTANGLE + " -> " + BOOL;
-    // since this is an overloaded operator we append 
+    // since this is an overloaded operator we append
     // an alternative signature here
-    appendSignature( XRECTANGLE + " x " + XRECTANGLE 
+    appendSignature( XRECTANGLE + " x " + XRECTANGLE
                                               + " -> " + BOOL );
     syntax    = "_" + INSIDE + "_";
     meaning   = "Inside predicate.";
   }
-};  
+};
 
 
 /*
@@ -943,24 +943,24 @@ class PointRectangleAlgebra : public Algebra
 5.2 Registration of Types
 
 
-*/    
-    
+*/
+
     AddTypeConstructor( &xpointTC );
     AddTypeConstructor( &xrectangleTC );
 
     //the lines below define that xpoint and xrectangle
     //can be used in places where types of kind SIMPLE are expected
     xpointTC.AssociateKind( SIMPLE );
-    xrectangleTC.AssociateKind( SIMPLE );   
+    xrectangleTC.AssociateKind( SIMPLE );
 
-/*   
+/*
 5.3 Registration of Operators
 
 */
 
     AddOperator( intersectsInfo(), intersectsFun, RectRectBool );
-    
-    // the overloaded inside operator needs an array of function pointers 
+
+    // the overloaded inside operator needs an array of function pointers
     // which must be null terminated!
     ValueMapping insideFuns[] = { insideFun_PR, insideFun_RR, 0 };
 
@@ -985,9 +985,9 @@ and to the query processor.
 The function has a C interface to make it possible to load the algebra
 dynamically at runtime (if it is built as a dynamic link library). The name
 of the initialization function defines the name of the algebra module. By
-convention it must start with "Initialize<AlgebraName>". 
+convention it must start with "Initialize<AlgebraName>".
 
-To link the algebra together with the system you must create an 
+To link the algebra together with the system you must create an
 entry in the file "makefile.algebra" and to define an algebra ID in the
 file "Algebras/Management/AlgebraList.i.cfg".
 
@@ -997,11 +997,11 @@ file "Algebras/Management/AlgebraList.i.cfg".
 
 extern "C"
 Algebra*
-InitializePointRectangleAlgebra( NestedList* nlRef, 
+InitializePointRectangleAlgebra( NestedList* nlRef,
                                QueryProcessor* qpRef )
 {
-  // The C++ scope-operator :: must be used to qualify the full name 
-  return new prt::PointRectangleAlgebra; 
+  // The C++ scope-operator :: must be used to qualify the full name
+  return new prt::PointRectangleAlgebra;
 }
 
 /*
@@ -1012,15 +1012,15 @@ This allows one to verify that the examples are running and to provide a coarse
 regression test for all algebra modules. The command "Selftest <file>" will
 execute the examples. Without any arguments, the examples for all active
 algebras are executed. This helps to detect side effects, if you have touched
-central parts of Secondo or existing types and operators. 
+central parts of Secondo or existing types and operators.
 
 In order to setup more comprehensive automated test procedures one can write a
 test specification for the ~TestRunner~ application. You will find the file
 "example.test" in directory "bin" and others in the directory "Tests/Testspecs".
-There is also one for this algebra. 
+There is also one for this algebra.
 
 Accurate testing is often treated as an unpopular daunting task. But it is
-absolutely inevitable if you want to provide a reliable algebra module. 
+absolutely inevitable if you want to provide a reliable algebra module.
 
 Try to write tests covering every signature of your operators and consider
 special cases, as undefined arguments, illegal argument values and critical
