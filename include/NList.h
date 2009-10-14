@@ -37,7 +37,6 @@ April 2006, M. Spiekermann. Helpful functions for type mappings added.
 
 #include "NestedList.h"
 #include "LogMsg.h"
-#include "NList.h"
 
 
 /*
@@ -484,6 +483,11 @@ Functions applicable for ~symbol/string/text~ atoms.
   inline int intval() const
   {
     return nl->IntValue(l);
+  }
+
+  inline double realval() const
+  {
+    return nl->RealValue(l);
   }
 
   inline int boolval() const
