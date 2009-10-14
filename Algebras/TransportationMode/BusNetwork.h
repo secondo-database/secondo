@@ -122,7 +122,7 @@ public:
   void FillBusEdge(const Relation*);
   void FillAdjacency();
   void FillAdjacencyPath();
-  void Destory();
+  void Destroy();
   void CalculateMaxSpeed();
 /*Interface function and Application function*/
   Relation* GetRelBus_Node(){return bus_node;}

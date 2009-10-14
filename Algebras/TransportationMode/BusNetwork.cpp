@@ -89,7 +89,7 @@ void BusNetwork::DeleteBusNetwork(const ListExpr typeInfo,Word& w)
 {
   cout<<"DeleteBusNetwork"<<endl;
   BusNetwork* p = (BusNetwork*)w.addr;
-  p->Destory();
+  p->Destroy();
   delete p;
 }
 
@@ -967,7 +967,7 @@ adjacencylist_index(0),adjacencylist(0)
 
 }
 
-void BusNetwork::Destory()
+void BusNetwork::Destroy()
 {
   cout<<"destory"<<endl;
   //bus route
