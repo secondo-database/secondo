@@ -23,7 +23,7 @@ Operator : thenetwork
 Number   : 1
 Signature: rel x rel -> network
 Example  : query thenetwork(1, B_ROUTES, B_JUNCTIONS);
-Result   : file
+Result   : file_platform
 
 Operator : shortest_path
 Number   : 1
