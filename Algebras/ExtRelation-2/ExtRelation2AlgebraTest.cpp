@@ -26,8 +26,8 @@ June 2009, Sven Jungnickel. Initial version.
 
 2 Overview
 
-Within this file different test operators have been implemented that were used
-during development to test and benchmark the algebra.
+This file contains the implementation of different test operators
+which were used to test and benchmark the algebra.
 
 3 Includes
 
@@ -70,7 +70,7 @@ during development to test and benchmark the algebra.
 
 
 /*
-4 External linking
+5 External linking
 
 */
 extern NestedList* nl;
@@ -78,7 +78,7 @@ extern QueryProcessor* qp;
 extern AlgebraManager* am;
 
 /*
-5 Utility functions
+6 Utility functions
 
 */
 
@@ -99,9 +99,9 @@ TupleCompareBy* createTupleCompareBy(Tuple* t)
 }
 
 /*
-5 Operator ~tuplefiletest~
+7 Operator ~tuplefiletest~
 
-5.1 LocalInfo class for operator ~tuplefiletest~
+7.1 LocalInfo class for operator ~tuplefiletest~
 
 */
 namespace extrel2
@@ -153,7 +153,7 @@ Pointer to ~TupleFileIterator~ instance
 
 /*
 
-5.2 Value mapping function of operator ~tuplefile~
+7.2 Value mapping function of operator ~tuplefile~
 
 The argument vector ~args~ contains in the first slot ~args[0]~ the
 stream. The value mapping function creates a tuple file when the
@@ -244,9 +244,9 @@ int TupleFileValueMap( Word* args, Word& result,
 }
 
 /*
-5 Operator ~tuplebuffer~
+8 Operator ~tuplebuffer~
 
-5.1 LocalInfo class for operator ~tuplebuffer~
+8.1 LocalInfo class for operator ~tuplebuffer~
 
 */
 
@@ -277,7 +277,7 @@ public:
 
 /*
 
-5.2 Value mapping function of operator ~tuplebuffer~
+8.2 Value mapping function of operator ~tuplebuffer~
 
 The argument vector ~args~ contains in the first slot ~args[0]~
 the stream. The value mapping function creates a tuple buffer of
@@ -369,9 +369,9 @@ int TupleBufferValueMap( Word* args, Word& result,
 }
 
 /*
-6 Operator ~tuplecomp~
+9 Operator ~tuplecomp~
 
-6.1 Value mapping function of operator ~tuplecomp~
+9.1 Value mapping function of operator ~tuplecomp~
 
 The argument vector ~args~ contains in the first slot ~args[0]~
 the stream. The value mapping function consumes all tuples
@@ -450,9 +450,9 @@ int TupleCompValueMap( Word* args, Word& result,
 }
 
 /*
-6 Operator ~heapstl~
+10 Operator ~heapstl~
 
-6.1 Value mapping function of operator ~heapstl~
+10.1 Value mapping function of operator ~heapstl~
 
 */
 
@@ -542,9 +542,9 @@ int HeapStlValueMap( Word* args, Word& result,
 }
 
 /*
-6 Operator ~heapstd~
+11 Operator ~heapstd~
 
-6.1 Value mapping function of operator ~heapstd~
+11.1 Value mapping function of operator ~heapstd~
 
 */
 
@@ -636,9 +636,9 @@ int HeapStdValueMap( Word* args, Word& result,
 }
 
 /*
-6 Operator ~heapbup~
+12 Operator ~heapbup~
 
-6.1 Value mapping function of operator ~heapbup~
+12.1 Value mapping function of operator ~heapbup~
 
 */
 
@@ -728,9 +728,9 @@ int HeapBupValueMap( Word* args, Word& result,
 }
 
 /*
-6 Operator ~heapbup2~
+13 Operator ~heapbup2~
 
-6.1 Value mapping function of operator ~heapbup2~
+13.1 Value mapping function of operator ~heapbup2~
 
 */
 
@@ -823,9 +823,9 @@ int HeapBup2ValueMap( Word* args, Word& result,
 }
 
 /*
-6 Operator ~heapmdr~
+14 Operator ~heapmdr~
 
-6.1 Value mapping function of operator ~heapmdr~
+14.1 Value mapping function of operator ~heapmdr~
 
 */
 
