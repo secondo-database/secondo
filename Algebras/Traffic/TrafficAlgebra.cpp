@@ -52,9 +52,11 @@ MGPSecUnit::MGPSecUnit():StandardAttribute()
 {
 }
 
-MGPSecUnit::MGPSecUnit(int secId, int direct, Interval<Instant>
-timeInterval):m_secId(secId),
+MGPSecUnit::MGPSecUnit(int secId, int direct, double sp,
+                       Interval<Instant> timeInterval):
+              m_secId(secId),
               m_direct(direct),
+              m_speed(sp),
               m_time(timeInterval)
 {
   del.refs=1;
@@ -64,6 +66,7 @@ timeInterval):m_secId(secId),
 MGPSecUnit::MGPSecUnit( const MGPSecUnit& in_xOther):
                         m_secId(in_xOther.GetSecId()),
                         m_direct(in_xOther.GetDirect()),
+                        m_speed(in_xOther.GetSpeed()),
                         m_time(in_xOther.GetTimeInterval())
 {
   del.refs=1;
@@ -82,6 +85,11 @@ int MGPSecUnit::GetDirect() const
   return m_direct;
 }
 
+double MGPSecUnit::GetSpeed() const
+{
+  return m_speed;
+}
+
 Interval<Instant> MGPSecUnit::GetTimeInterval() const
 {
   return m_time;
@@ -97,6 +105,11 @@ void MGPSecUnit::SetDirect(int dir)
   m_direct = dir;
 }
 
+void MGPSecUnit::SetSpeed(double x)
+{
+  m_speed = x;
+}
+
 void MGPSecUnit::SetTimeInterval(Interval<Instant> time)
 {
   m_time = time;
@@ -109,7 +122,8 @@ size_t MGPSecUnit::Sizeof() const
 
 size_t MGPSecUnit::HashValue() const
 {
-  size_t hash = m_secId + m_direct + (int) m_time.start.ToDouble() +
+  size_t hash = m_secId + m_direct + (int) m_speed +
+                (int) m_time.start.ToDouble() +
                 (int) m_time.end.ToDouble();
   return hash;
 }
@@ -138,7 +152,11 @@ int MGPSecUnit::Compare( const Attribute* arg ) const
               if (m_time.end < p->GetTimeInterval().end) return -1;
               else
                 if (m_time.end > p->GetTimeInterval().end) return 1;
-                else return 0;
+                else
+                  if (m_speed < p->GetSpeed()) return -1;
+                  else
+                    if (m_speed > p->GetSpeed()) return 1;
+                    else return 0;
 }
 
 bool MGPSecUnit::Adjacent( const Attribute *arg ) const
@@ -164,8 +182,9 @@ ListExpr MGPSecUnit::Out(ListExpr typeInfo, Word value)
 {
   MGPSecUnit* msec = static_cast<MGPSecUnit*> (value.addr);
   if (msec->IsDefined())
-    return nl->ThreeElemList(nl->IntAtom(msec->GetSecId()),
+    return nl->FourElemList(nl->IntAtom(msec->GetSecId()),
                              nl->IntAtom(msec->GetDirect()),
+                             nl->RealAtom(msec->GetSpeed()),
                              nl->FourElemList(OutDateTime(nl->TheEmptyList(),
                                                   SetWord(&msec->m_time.start)),
                                               OutDateTime(nl->TheEmptyList(),
@@ -179,13 +198,14 @@ Word MGPSecUnit::In(const ListExpr typeInfo, const ListExpr instance,
                     const int errorPos, ListExpr& errorInfo, bool& correct)
 {
   NList  list(instance);
-  if (list.length() == 3)
+  if (list.length() == 4)
   {
     NList seclist = list.first();
     NList dirlist = list.second();
-    if (seclist.isInt() && dirlist.isInt())
+    NList speedlist = list.third();
+    if (seclist.isInt() && dirlist.isInt() && speedlist.isReal())
     {
-      NList timelist = list.third();
+      NList timelist = list.fourth();
       if (timelist.length() == 4)
       {
         NList stinst = timelist.first();
@@ -210,6 +230,7 @@ Word MGPSecUnit::In(const ListExpr typeInfo, const ListExpr instance,
             if (correct)
             {
               Word w = new MGPSecUnit(seclist.intval(), dirlist.intval(),
+                                      nl->RealValue(speedlist.listExpr()),
                                       Interval<Instant> (*start, *end,
                                                         lclist.boolval(),
                                                         rclist.boolval()));
@@ -221,7 +242,7 @@ Word MGPSecUnit::In(const ListExpr typeInfo, const ListExpr instance,
     }
   }
   errorInfo = nl->Append(errorInfo, nl->StringAtom(
-                         "Expected 2 x int and a timeInterval."));
+                         "Expected 2 int a real and a timeInterval."));
   correct = false;
   return SetWord(Address(0));
 }
@@ -231,6 +252,20 @@ bool MGPSecUnit::CheckKind( ListExpr type, ListExpr& errorInfo )
   return (nl->IsEqual( type, "mgpsecunit" ));
 }
 
+int MGPSecUnit::NumOfFLOBs()const
+{
+  return 0;
+}
+
+FLOB* MGPSecUnit::GetFLOB(const int i)
+{
+  return 0;
+}
+
+/*
+Type Constructor for ~mgpsecunit~
+
+*/
 struct mgpsecFunctions:ConstructorFunctions<MGPSecUnit>
 {
   mgpsecFunctions()
@@ -248,9 +283,9 @@ struct mgpsecInfo:ConstructorInfo
     name = "mgpsecunit";
     signature = "-> DATA";
     typeExample = "mgpsecunit";
-    listRep = "(<secId> <direction> (<timeinterval>))";
-    valueExample = "(15 1 (\"2000-01-01\" \"2000-01-02\" TRUE FALSE))";
-    remarks = "direction down=0,up=1,none=2.";
+    listRep = "(<secId> <direction> <speed>(<timeinterval>))";
+    valueExample = "(15 1 3.5 (\"2000-01-01\" \"2000-01-02\" TRUE FALSE))";
+    remarks = "direction:down=0,up=1,none=2. Speed: m/s";
   }
 };
 

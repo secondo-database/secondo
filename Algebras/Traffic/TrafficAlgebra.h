@@ -49,7 +49,8 @@ class MGPSecUnit : public StandardAttribute
 
     MGPSecUnit();
 
-    MGPSecUnit(int secId, int direct, Interval<Instant> timeInterval);
+    MGPSecUnit(int secId, int direct, double sp,
+               Interval<Instant> timeInterval);
 
     MGPSecUnit( const MGPSecUnit& in_xOther );
 
@@ -66,11 +67,15 @@ Get and Set private attributes.
 
     int GetDirect() const;
 
+    double GetSpeed()const;
+
     Interval<Instant> GetTimeInterval() const;
 
     void SetSecId(int secId);
 
     void SetDirect(int dir);
+
+    void SetSpeed(double x);
 
     void SetTimeInterval(Interval<Instant> time);
 
@@ -99,10 +104,16 @@ Functions for Secondo integration.
 
     static bool CheckKind( ListExpr type, ListExpr& errorInfo );
 
+    int NumOfFLOBs() const;
+    
+    FLOB* GetFLOB(const int i);
+
+
   private:
 
     int m_secId;
     int m_direct;
+    double m_speed;
     Interval<Instant> m_time;
 
 };
