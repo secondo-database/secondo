@@ -57,7 +57,833 @@ double log2(double n)
 }
 
 /*
-5 Implementation of class ~HybridHashJoinProgressLocalInfo~
+5 Implementation of class ~Bucket~
+
+*/
+
+ostream& Bucket::Print(ostream& os)
+{
+  os << "Bucket " << number << " (" << tuples.size() << " tuples)" << endl;
+
+  for(size_t i = 0; i < tuples.size(); i++)
+  {
+    Tuple* t = tuples[i];
+    os << *t << "(Refs: " << t->GetNumOfRefs() << ")" << endl;
+  }
+
+  return os;
+}
+
+/*
+6 Implementation of class ~BucketIterator~
+
+*/
+BucketIterator::BucketIterator(Bucket& b)
+: bucket(b)
+{
+  iter = bucket.tuples.begin();
+}
+
+Tuple* BucketIterator::GetNextTuple()
+{
+  if ( iter != bucket.tuples.end() )
+  {
+    Tuple* t = *iter;
+    iter++;
+    return t;
+  }
+
+  return 0;
+}
+
+/*
+7 Implementation of class ~HashTable~
+
+*/
+HashTable::HashTable( size_t nBuckets,
+                      HashFunction* f,
+                      JoinTupleCompareFunction* cmp )
+: iter(0)
+, hashFunc(f)
+, cmpFunc(cmp)
+{
+  for(size_t i = 0; i < nBuckets; i++)
+  {
+    buckets.push_back( new Bucket(i) );
+  }
+}
+
+HashTable::~HashTable()
+{
+  for(size_t i = 0; i < buckets.size(); i++)
+  {
+    delete buckets[i];
+  }
+  buckets.clear();
+
+  if ( iter )
+  {
+    delete iter;
+    iter = 0;
+  }
+
+  if ( hashFunc )
+  {
+    delete hashFunc;
+    hashFunc = 0;
+  }
+
+  if ( cmpFunc )
+  {
+    delete cmpFunc;
+    cmpFunc = 0;
+  }
+}
+
+void HashTable::Clear()
+{
+  // reset iterator
+  if ( iter )
+  {
+    delete iter;
+    iter = 0;
+  }
+
+  // clear buckets
+  for(size_t i = 0; i < buckets.size(); i++)
+  {
+    buckets[i]->Clear();
+  }
+}
+
+void HashTable::Insert(Tuple* t)
+{
+  // calculate bucket number
+  size_t h = hashFunc->Value(t);
+
+  // insert tuple into bucket
+  buckets[h]->Insert(t);
+}
+
+int HashTable::ReadFromStream(Word stream, size_t maxSize, bool& finished)
+{
+  int read = 0;
+  size_t bytes = 0;
+  Word wTuple(Address(0));
+
+  // Request first tuple
+  qp->Request(stream.addr, wTuple);
+
+  while( qp->Received(stream.addr) )
+  {
+    read++;
+    Tuple *t = static_cast<Tuple*>( wTuple.addr );
+
+    bytes += t->GetExtSize();
+
+    // insert tuple into hash table
+    this->Insert(t);
+
+    if ( bytes > maxSize )
+    {
+      finished = false;
+      return read;
+    }
+
+    qp->Request(stream.addr, wTuple);
+  }
+
+  finished = true;
+
+  return read;
+}
+
+Tuple* HashTable::Probe(Tuple* t)
+{
+  Tuple* nextTuple = 0;
+
+  // calculate bucket number
+  size_t h = hashFunc->Value(t);
+
+  if ( iter == 0 )
+  {
+    // start bucket scan
+    iter = buckets[h]->MakeScan();
+
+    if ( traceMode )
+    {
+      cmsg.info() << "Start scanning bucket "
+                  << h << ".." << endl;
+      cmsg.send();
+    }
+  }
+  else
+  {
+    if ( traceMode )
+    {
+      cmsg.info() << "Proceeding scanning bucket "
+                  << h << ".." << endl;
+      cmsg.send();
+    }
+  }
+
+  while ( (nextTuple = iter->GetNextTuple() ) != 0 )
+  {
+    if ( traceMode )
+    {
+      cmsg.info() << "Comparing :" << *t << " and " << *nextTuple;
+      cmsg.send();
+    }
+
+    if ( cmpFunc->Compare(t, nextTuple) == 0 )
+    {
+      if ( traceMode )
+      {
+        cmsg.info() << " -> Match!" << endl;
+        cmsg.send();
+      }
+      return nextTuple;
+    }
+
+    if ( traceMode )
+    {
+      cmsg.info() << ".." << endl;
+      cmsg.send();
+    }
+  }
+
+  delete iter;
+  iter = 0;
+
+  if ( traceMode )
+  {
+    cmsg.info() << "End of scan bucket "
+                << h << ".." << endl;
+    cmsg.send();
+  }
+
+  return 0;
+}
+
+vector<Tuple*> HashTable::GetTuples(int bucket)
+{
+  Tuple* t;
+  vector<Tuple*> arr;
+
+  BucketIterator* iter = buckets[bucket]->MakeScan();
+
+  while ( ( t = iter->GetNextTuple() ) != 0 )
+  {
+    arr.push_back(t);
+  }
+
+  return arr;
+}
+
+ostream& HashTable::Print(ostream& os)
+{
+  os << "------------- Hash-Table content --------------" << endl;
+
+  for(size_t i = 0; i < buckets.size(); i++)
+  {
+    buckets[i]->Print(os);
+  }
+
+  return os;
+}
+
+/*
+8 Implementation of class ~PartitionHistogram~
+
+*/
+
+PartitionHistogram::PartitionHistogram(PInterval& i)
+: interval(i)
+, data(i.GetLength())
+, tuples(0)
+, totalSize(0)
+, totalExtSize(0)
+{
+}
+
+PartitionHistogram::PartitionHistogram( PartitionHistogram& obj,
+                                        size_t start, size_t end )
+: interval( obj.GetInterval().GetLow() + start,
+            obj.GetInterval().GetLow() + end )
+, data(interval.GetLength())
+{
+  assert( (end - start) < obj.GetInterval().GetLength() );
+
+  for ( size_t i = 0, j = start;
+        j <= end;
+        i++, j++ )
+  {
+    this->data[i] = obj.data[j];
+    tuples += obj.data[j].count;
+    totalSize += obj.data[j].totalSize;
+    totalExtSize += obj.data[j].totalExtSize;
+  }
+}
+
+void PartitionHistogram::Insert(Tuple* t, size_t hashFuncValue)
+{
+  assert(interval.IsAt(hashFuncValue));
+
+  int hIndex = hashFuncValue - interval.GetLow();
+
+  data[hIndex].value = hashFuncValue;
+  data[hIndex].count++;
+  data[hIndex].totalSize += t->GetSize();
+  data[hIndex].totalExtSize += t->GetExtSize();
+
+  return;
+}
+
+PartitionHistogramEntry& PartitionHistogram::GetHistogramEntry(size_t n)
+{
+  assert(n < data.size());
+  return data[n];
+}
+
+/*
+9 Implementation of class ~Partition~
+
+*/
+
+Partition::Partition(PInterval i, size_t bufferSize, size_t ioBufferSize)
+: interval(i)
+, histogram(i)
+, subpartitioned(false)
+{
+  buffer = new TupleBuffer2(bufferSize, ioBufferSize);
+}
+
+Partition::~Partition()
+{
+  if ( buffer )
+  {
+    delete buffer;
+    buffer = 0;
+  }
+}
+
+PartitionIterator* Partition::MakeScan()
+{
+  return new PartitionIterator(*this);
+}
+
+void Partition::Insert(Tuple* t, size_t hashFuncValue)
+{
+  // Insert tuple into partition histogram
+  histogram.Insert(t, hashFuncValue);
+
+  // Append tuple to buffer
+  buffer->AppendTuple(t);
+}
+
+ostream& Partition::Print(ostream& os)
+{
+    os << "[" << this->interval.GetLow() << ", "
+       << this->interval.GetHigh() << "] -> "
+       << this->interval.GetLength() << " bucket numbers, "
+       << this->GetNoTuples() << " tuples, "
+       << this->GetTotalSize() << " bytes (Size), "
+       << this->GetTotalExtSize() << " bytes (ExtSize)"
+       << "InMemory: " << this->buffer->InMemory()
+       << endl;
+
+  this->buffer->Print(os);
+
+  return os;
+}
+
+/*
+10 Implementation of class ~PartitionManager~
+
+*/
+
+size_t PartitionManager::IO_BUFFER_SIZE = WinUnix::getPageSize();
+
+PartitionManager::PartitionManager( HashFunction* h,
+                                    size_t nBuckets,
+                                    size_t nPartitions,
+                                    size_t p0,
+                                    PartitionManagerProgressInfo* pInfo )
+: iter(0)
+, hashFunc(h)
+, p0(p0)
+, tuples(0)
+, subpartitioned(false)
+, progressInfo(pInfo)
+{
+  // calculate buckets per partition
+  size_t step = nBuckets / nPartitions;
+  size_t rest = nBuckets % nPartitions;
+  size_t low = 0;
+
+  // create partitions
+  for(size_t i = 0; i < nPartitions; i++)
+  {
+    PInterval interval;
+
+    if ( rest != 0 && i >= ( nPartitions - rest ))
+    {
+      interval = PInterval(low, low + step);
+      low += step + 1;
+    }
+    else
+    {
+      interval = PInterval(low, low + (step-1));
+      low += step;
+    }
+
+    size_t bufferSize = 0;
+
+    // set buffer size of partition 0
+    if ( i == 0 && p0 != UINT_MAX )
+    {
+      bufferSize = p0;
+    }
+
+    partitions.push_back( new Partition( interval,
+                                          bufferSize,
+                                          IO_BUFFER_SIZE) );
+
+    if ( progressInfo != 0 )
+    {
+      progressInfo->partitionProgressInfo.push_back(PartitionProgressInfo());
+    }
+  }
+}
+
+PartitionManager::PartitionManager( HashFunction* h,
+                                       PartitionManager& pm,
+                                       PartitionManagerProgressInfo* pInfo )
+: iter(0)
+, hashFunc(h)
+, p0(0)
+, subpartitioned(false)
+, progressInfo(pInfo)
+{
+  // create partitions with intervals from pm
+  for(size_t i = 0; i < pm.partitions.size(); i++)
+  {
+    partitions.push_back( new Partition( pm.partitions[i]->GetInterval(),
+                                         0, IO_BUFFER_SIZE) );
+
+    if ( progressInfo != 0 )
+    {
+      progressInfo->partitionProgressInfo.push_back(PartitionProgressInfo());
+    }
+  }
+}
+
+PartitionManager::~PartitionManager()
+{
+  for(size_t i = 0; i < partitions.size(); i++)
+  {
+    delete partitions[i];
+  }
+  partitions.clear();
+
+  if ( iter )
+  {
+    delete iter;
+    iter = 0;
+  }
+
+  if ( hashFunc )
+  {
+    delete hashFunc;
+    hashFunc = 0;
+  }
+
+  progressInfo = 0;
+}
+
+size_t PartitionManager::Insert(Tuple* t)
+{
+  // calculate bucket number
+  size_t b = hashFunc->Value(t);
+
+  // find partition index
+  size_t p = findPartition(b);
+
+  // insert tuple into partition
+  partitions[p]->Insert(t,b);
+
+  tuples++;
+
+  // update progress info if necessary
+  if ( progressInfo != 0 )
+  {
+    progressInfo->partitionProgressInfo[p].tuples++;
+    progressInfo->partitionProgressInfo[p].noOfPasses =
+      (int)ceil( (double)partitions[p]->GetTotalExtSize()
+          / (double)qp->MemoryAvailableForOperator() );
+
+    if ( subpartitioned = false && ( tuples % SUBPARTITION_UPDATE ) == 0 )
+    {
+      calcSubpartitionTupleCount( qp->MemoryAvailableForOperator(),
+                                  SUBPARTITION_MAX_LEVEL );
+    }
+  }
+
+  return p;
+}
+
+size_t PartitionManager::PartitionStream(Word stream)
+{
+  Tuple* t;
+  size_t b, last, read = 0;
+  size_t p = UINT_MAX;
+
+  while ( ( t = readFromStream(stream) ) )
+  {
+    read++;
+
+    // calculate bucket number
+    b = hashFunc->Value(t);
+
+    // determine partition if necessary
+    if ( last != b || p == UINT_MAX )
+    {
+      p = findPartition(b);
+    }
+
+    // insert tuple into partition
+    partitions[p]->Insert(t,b);
+
+    if ( progressInfo != 0 )
+    {
+      progressInfo->partitionProgressInfo[p].tuples++;
+      progressInfo->partitionProgressInfo[p].noOfPasses =
+        (int)ceil( (double)partitions[p]->GetTotalExtSize()
+            / (double)qp->MemoryAvailableForOperator() );
+    }
+
+    // save last bucket number
+    last = b;
+  }
+
+  return read;
+}
+
+void PartitionManager::Subpartition()
+{
+  // Subpartition if necessary
+  for(size_t i = 0; i < partitions.size(); i++)
+  {
+    subpartition( i, qp->MemoryAvailableForOperator(),
+                  SUBPARTITION_MAX_LEVEL, 1);
+  }
+
+  // Sort partitions array
+  PartitionCompareLesser cmp;
+  sort(partitions.begin(), partitions.end(), cmp);
+
+  subpartitioned = true;
+}
+
+void PartitionManager::subpartition( size_t n,
+                                        size_t maxSize,
+                                        int maxRecursion,
+                                        int level )
+{
+  // check partition size
+  if ( partitions[n]->GetTotalExtSize() <= maxSize )
+  {
+    partitions[n]->SetSubpartitioned();
+    return;
+  }
+
+  // check if maximum recursion level is reached
+  if ( level > maxRecursion )
+  {
+    partitions[n]->SetSubpartitioned();
+    return;
+  }
+
+  // check if partition contains at least 4 buckets
+  if ( partitions[n]->GetInterval().GetLength() < 4 )
+  {
+    partitions[n]->SetSubpartitioned();
+    return;
+  }
+
+  // create two new partitions with half the interval size
+  size_t low = partitions[n]->GetInterval().GetLow();
+  size_t high = partitions[n]->GetInterval().GetHigh();
+  size_t m = low + partitions[n]->GetInterval().GetLength() / 2 - 1;
+
+  PInterval i1 = PInterval(low, m);
+  PInterval i2 = PInterval(m+1, high);
+
+  Partition* s1 = new Partition( i1, ( n == 0 && p0 > 0 ) ? p0 : 0,
+                                 IO_BUFFER_SIZE );
+  Partition* s2 = new Partition(i2, 0, IO_BUFFER_SIZE);
+
+  if ( traceMode )
+  {
+    cmsg.info() << "Subpartition of partition " << n << endl;
+    cmsg.info() << n << ": ";
+    partitions[n]->Print(cmsg.info());
+    cmsg.info() << "New partitions " << n << endl;
+    cmsg.info() << "s1: ";
+    s1->Print(cmsg.info());
+    cmsg.info() << "s2: ";
+    s2->Print(cmsg.info());
+    cmsg.send();
+  }
+
+  // scan partition and put tuples in s1 or s2
+  PartitionIterator* iter = partitions[n]->MakeScan();
+
+  Tuple* t;
+  size_t counter = 0;
+  while( ( t = iter->GetNextTuple() ) != 0 )
+  {
+    size_t h = hashFunc->Value(t);
+
+    if ( i1.IsAt(h) )
+    {
+      s1->Insert(t,h);
+    }
+    else
+    {
+      s2->Insert(t,h);
+    }
+
+    // update progress information if necessary
+    if ( progressInfo != 0 )
+    {
+      progressInfo->subTuples++;
+
+      // propagate progress message if necessary
+      if ( ( counter++ % 200 ) == 0)
+      {
+        qp->CheckProgress();
+      }
+    }
+  }
+
+  // delete empty partitions, store new ones and subpartition
+  // if necessary (Note: only one partition can be empty)
+  if ( s1->GetNoTuples() == 0 && s2->GetNoTuples() > 0 )
+  {
+    delete s1;
+    delete partitions[n];
+    partitions[n] = s2;
+
+    if ( progressInfo != 0 )
+    {
+      progressInfo->partitionProgressInfo[n].tuples = s2->GetNoTuples();
+      progressInfo->partitionProgressInfo[n].noOfPasses =
+        (int)ceil( (double)s2->GetTotalExtSize()
+            / (double)qp->MemoryAvailableForOperator() );
+    }
+
+    subpartition(n, maxSize, maxRecursion, ++level);
+  }
+  else if ( s1->GetNoTuples() > 0 && s2->GetNoTuples() == 0 )
+  {
+    delete s2;
+    delete partitions[n];
+    partitions[n] = s1;
+
+    if ( progressInfo != 0 )
+    {
+      progressInfo->partitionProgressInfo[n].tuples = s1->GetNoTuples();
+      progressInfo->partitionProgressInfo[n].noOfPasses =
+        (int)ceil( (double)s1->GetTotalExtSize()
+            / (double)qp->MemoryAvailableForOperator() );
+    }
+
+    subpartition(n, maxSize, maxRecursion, ++level);
+  }
+  else
+  {
+    delete partitions[n];
+    partitions[n] = s1;
+    partitions.push_back(s2);
+    size_t level1 = level;
+    size_t level2 = level;
+    size_t m = partitions.size()-1;
+
+    if ( progressInfo != 0 )
+    {
+      progressInfo->partitionProgressInfo[n].tuples = s1->GetNoTuples();
+      progressInfo->partitionProgressInfo[n].noOfPasses =
+        (int)ceil( (double)s1->GetTotalExtSize()
+            / (double)qp->MemoryAvailableForOperator() );
+
+      progressInfo->partitionProgressInfo[m].tuples = s2->GetNoTuples();
+      progressInfo->partitionProgressInfo[m].noOfPasses =
+        (int)ceil( (double)s2->GetTotalExtSize()
+            / (double)qp->MemoryAvailableForOperator() );
+    }
+
+    subpartition(n, maxSize, maxRecursion, ++level1);
+    subpartition(m, maxSize, maxRecursion, ++level2);
+  }
+}
+
+int PartitionManager::calcSubpartitionTupleCount( size_t maxSize,
+                                                  int maxRecursion )
+{
+  int count = 0;
+
+  // Simulate sub-partitioning
+  for(size_t i = 0; i < partitions.size(); i++)
+  {
+    count += simsubpartition( partitions[i]->GetPartitionHistogram(),
+                              maxSize, maxRecursion, 1);
+  }
+
+  return count;
+}
+
+int PartitionManager::simsubpartition( PartitionHistogram& ph,
+                                       size_t maxSize,
+                                       int maxRecursion,
+                                       int level )
+{
+  int tuples = 0;
+
+  if ( ph.GetTotalExtSize() <= maxSize )
+  {
+    return tuples;
+  }
+
+  // check if maximum recursion level is reached
+  if ( level > maxRecursion )
+  {
+    return tuples;
+  }
+
+  // check if partition contains at least 4 hash function values
+  if ( ph.GetInterval().GetLength() < 4 )
+  {
+    return tuples;
+  }
+
+  size_t m = ( ph.GetSize() / 2 ) - 1;
+
+  // create two new partition histograms with half the size
+  PartitionHistogram ph1(ph, 0, m);
+  PartitionHistogram ph2(ph, m+1, ph.GetSize() - 1);
+
+  tuples = ph.GetNoTuples();
+
+  int noTuples1 = ph1.GetNoTuples();
+  int noTuples2 = ph2.GetNoTuples();
+
+  // delete empty partitions, store new ones and subpartition
+  // if necessary (Note: only one partition can be empty)
+  if ( noTuples1 == 0 && noTuples2 > 0 )
+  {
+    tuples += simsubpartition(ph2, maxSize, maxRecursion, ++level);
+  }
+  else if ( noTuples1 > 0 && noTuples2 == 0 )
+  {
+    tuples += simsubpartition(ph1, maxSize, maxRecursion, ++level);
+  }
+  else
+  {
+    size_t level1 = level;
+    size_t level2 = level;
+    tuples += simsubpartition(ph1, maxSize, maxRecursion, ++level1);
+    tuples += simsubpartition(ph2, maxSize, maxRecursion, ++level2);
+  }
+
+  return tuples;
+}
+
+void PartitionManager::InitPartitions(HashTable* h)
+{
+  for(size_t i = 0; i < h->GetNoBuckets(); i++)
+  {
+    vector<Tuple*> arr = h->GetTuples(i);
+
+    for(size_t j = 0; j < arr.size(); j++)
+    {
+      Tuple* t = arr[j];
+
+      // Increment reference for tuples of partition 0
+      // which stay in memory
+      t->IncReference();
+
+      // reference counter for tuples that are stored
+      // on disk is decremented by one
+      this->Insert(t);
+    }
+  }
+
+  // free all tuples that were stored on disk
+  h->Clear();
+}
+
+bool PartitionManager::LoadPartition( int n,
+                                      HashTable* h,
+                                      size_t maxMemory )
+{
+  assert(h);
+  assert(n < (int)partitions.size());
+
+  Tuple* t;
+
+  // Clear hash table
+  h->Clear();
+
+  if ( iter == 0 )
+  {
+    // start new partition scan
+    iter = partitions[n]->MakeScan();
+  }
+
+  while( ( t = iter->GetNextTuple() ) != 0 )
+  {
+    // insert tuple into hash table
+    h->Insert(t);
+
+    // update remaining memory
+    maxMemory -= t->GetExtSize();
+
+    // update processed tuples of partition
+    if ( progressInfo != 0 )
+    {
+      progressInfo->partitionProgressInfo[n].tuplesProc++;
+    }
+
+    if (maxMemory <= 0 )
+    {
+      // memory is filled but partition is not finished
+      return false;
+    }
+  }
+
+  delete iter;
+  iter = 0;
+
+  // partition is finished and fits into memory
+  return true;
+}
+
+ostream& PartitionManager::Print(ostream& os)
+{
+  os << "-------------------- Partitioning -----------------------" << endl;
+
+  for(size_t i = 0; i < partitions.size(); i++)
+  {
+    os << "Partition: " << i ;
+    partitions[i]->Print(os);
+  }
+
+  return os;
+}
+
+/*
+11 Implementation of class ~HybridHashJoinProgressLocalInfo~
 
 */
 
@@ -309,7 +1135,7 @@ ostream& HybridHashJoinProgressLocalInfo::Print(ostream& os)
 }
 
 /*
-6 Implementation of class ~HybridHashJoinAlgorithm~
+12 Implementation of class ~HybridHashJoinAlgorithm~
 
 */
 HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
@@ -370,7 +1196,7 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
                 << "Buckets: \t\t\t" << nBuckets << endl
                 << "Partitions: \t\t\t" << nPartitions << endl
                 << "Memory: \t\t\t" << MAX_MEMORY / 1024 << " KByte" << endl
-                << "I/O Buffer: \t\t\t" << TupleBuffer2::GetIoBufferSize()
+                << "I/O Buffer: \t\t\t" << PartitionManager::GetIOBufferSize()
                 << " Byte" << endl
                 << "Join attribute index A: \t" << attrIndexA
                 << " (0 based)" << endl
@@ -529,12 +1355,12 @@ void HybridHashJoinAlgorithm::setIoBuffer(size_t bytes)
   if ( bytes == UINT_MAX )
   {
     // set buffer to system's page size
-    TupleBuffer2::SetIoBufferSize( WinUnix::getPageSize() );
+    PartitionManager::SetIOBufferSize( WinUnix::getPageSize() );
   }
   else
   {
     // set buffer size
-    TupleBuffer2::SetIoBufferSize(bytes);
+    PartitionManager::SetIOBufferSize(bytes);
   }
 }
 
@@ -822,7 +1648,7 @@ Tuple* HybridHashJoinAlgorithm::NextResultTuple()
 }
 
 /*
-7 Implementation of value mapping function of operator ~hybridhashjoin~
+13 Implementation of value mapping function of operator ~hybridhashjoin~
 
 */
 
@@ -972,7 +1798,7 @@ int HybridHashJoinValueMap( Word* args, Word& result,
 }
 
 /*
-8 Instantiation of Template Functions
+14 Instantiation of Template Functions
 
 For some reasons the compiler cannot expand these template functions in
 the file ~ExtRelation2Algebra.cpp~, thus the value mapping functions
