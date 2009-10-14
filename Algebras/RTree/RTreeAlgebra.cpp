@@ -80,6 +80,7 @@ using namespace std;
 #include "Messages.h"
 #include "Progress.h"
 #include "FTextAlgebra.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1917,115 +1918,79 @@ Operator windowintersectsS (
 */
 ListExpr GetTuplesTypeMap(ListExpr args)
 {
-  string errmsg = "Incorrect input for operator gettuples.";
   AlgebraManager *algMgr;
   algMgr = SecondoSystem::GetAlgebraManager();
 
-  string argStr;
-  nl->WriteToString(argStr, args);
-
-  CHECK_COND(!nl->IsEmpty(args) &&
-             !nl->IsAtom(args) &&
-             nl->ListLength(args) == 2,
-    errmsg +
-    "\nOperator gettuples expects two arguments, but gets '" +
-    argStr + "'.");
+  // check for correct parameter list
+  if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 2){
+    return listutils::typeError(
+      "\nExpects exactly 2 arguments.");
+  }
 
   // Split arguments into two parts
   ListExpr streamDescription = nl->First(args),
            relDescription = nl->Second(args);
-  string streamDescriptionStr, relDescriptionStr;
 
   // Handle the stream part of arguments
-  nl->WriteToString (streamDescriptionStr, streamDescription);
-  if( !IsStreamDescription(streamDescription) )
-  {
-    ErrorReporter::ReportError("\nOperator 'gettuples' expects a valid "
-        "tuplestream as its first argument, but gets '"
-        + streamDescriptionStr + "'.");
-    return nl->TypeError();
+  if(!listutils::isTupleStream(streamDescription)){
+    return listutils::typeError("Expects a valid tuplestream as 1st argument.");
   }
-
   // Handle the rel part of arguments
-  nl->WriteToString (relDescriptionStr, relDescription);
-  if( !IsRelDescription(relDescription) )
-  {
-    ErrorReporter::ReportError("\nOperator 'gettuples' expects a valid "
-        "relation as its second argument, but gets '"
-        + relDescriptionStr + "'.");
-    return nl->TypeError();
+  if( !listutils::isRelDescription(relDescription) ){
+    return listutils::typeError("Expects a valid relation as 2nd argument.");
   }
 
-  ListExpr sTupleDescription = nl->Second(streamDescription),
-           sAttrList = nl->Second(sTupleDescription),
-           rTupleDescription = nl->Second(relDescription),
-           rAttrList = nl->Second(rTupleDescription);
-
-  // Find the attribute with type tid
-  ListExpr first, rest, newAttrList, lastNewAttrList;
-  int j, tidIndex = 0;
-  string type;
-  bool firstcall = true;
-
-  rest = sAttrList;
-  j = 1;
-  while (!nl->IsEmpty(rest))
-  {
-    first = nl->First(rest);
-    rest = nl->Rest(rest);
-
-    type = nl->SymbolValue(nl->Second(first));
-    if (type == "tid")
-    {
-      CHECK_COND(tidIndex == 0,
-       "Operator gettuples expects as first argument a stream with\n"
-       "one and only one attribute of type 'tid' but gets\n'" +
-       streamDescriptionStr + "'.");
-      tidIndex = j;
-    }
-    else
-    {
-      if (firstcall)
-      {
-        firstcall = false;
-        newAttrList = nl->OneElemList(first);
-        lastNewAttrList = newAttrList;
-      }
-      else
-        lastNewAttrList = nl->Append(lastNewAttrList, first);
-    }
-    j++;
+  // Check for existence of a single tid-attribute
+  int tidIndex = 0;
+  string tidAttrName = "";
+  tidIndex = listutils::findType(nl->Second(nl->Second(streamDescription)),
+                                 nl->SymbolAtom("tid"),
+                                 tidAttrName);
+  if( tidIndex <= 0 ){
+    return listutils::typeError("Stream must contain an attribute of type "
+                                "'tid'.");
+  }
+  else if( tidIndex > 0 ){
+     int tidIndex2 = 0;
+     string tidAttrName2 = "";
+     tidIndex2 = listutils::findType(nl->Second(nl->Second(streamDescription)),
+                                     nl->SymbolAtom("tid"),
+                                     tidAttrName2,
+                                     tidIndex+1);
+     if (tidIndex2 != 0) {
+         return listutils::typeError("Stream must contain at most one attribute"
+                                     " of type 'tid'.");
+     }
   }
 
-  rest = rAttrList;
-  while(!nl->IsEmpty(rest))
-  {
-    first = nl->First(rest);
-    rest = nl->Rest(rest);
-
-    if (firstcall)
-    {
-      firstcall = false;
-      newAttrList = nl->OneElemList(first);
-      lastNewAttrList = newAttrList;
-    }
-    else
-      lastNewAttrList = nl->Append(lastNewAttrList, first);
+  // remove tid-attribute from stream-attrlist
+  set<string> k;
+  k.insert(tidAttrName);
+  ListExpr tmp, tmpL;
+  int noRemovedAttrs = 0;
+  noRemovedAttrs =
+      listutils::removeAttributes(nl->Second(nl->Second(streamDescription)),
+                                  k,
+                                  tmp,
+                                  tmpL);
+  if(noRemovedAttrs != 1){
+    return listutils::typeError("Stream must contain at most one attribute of "
+                                "type 'tid'.");
   }
 
-  CHECK_COND( tidIndex != 0,
-    "Operator gettuples expects as first argument a stream with\n"
-    "one and only one attribute of type 'tid' but gets\n'" +
-    streamDescriptionStr + "'.");
+  // append rel-attrlist to modified stream-attrlist
+  ListExpr newAttrList =
+     listutils::concat(tmp, nl->Second(nl->Second(relDescription)));
 
-  if( !IsTupleDescription(newAttrList) ){
-    ErrorReporter::ReportError("Result after merging tuples is not a "
+  // check whether result attrlist is valid
+  if (!listutils::isAttrList(newAttrList)){
+    return listutils::typeError("Result after merging tuples is not a "
                                "valid attribute list (Possible reasons: "
                                "duplicate attribute names or an attribute "
-                               "type is not of kind DATA)");
-    return nl->TypeError();
+                               "type is not of kind DATA).");
   }
 
+  // return resulttype and APPEND tid-attr index in stream-attrlist
   return
     nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
@@ -2152,7 +2117,7 @@ const string gettuplesSpec  =
       "The result tuple type is a concatenation of both types "
       "without the 'tid' attribute.</text--->"
       "<text>query citiesInd windowintersectsS[r] cities gettuples; "
-      "where citiesInd is e.g. created with 'let citiesInd = "
+      "where citiesInd is e.g. created with 'letidAttrName2t citiesInd = "
       "cities creatertree [pos]'</text--->"
       ") )";
 
@@ -2176,144 +2141,81 @@ Operator gettuples (
 */
 ListExpr GetTuples2TypeMap(ListExpr args)
 {
-  string errmsg = "Incorrect input for operator gettuples2. ";
   AlgebraManager *algMgr;
   algMgr = SecondoSystem::GetAlgebraManager();
 
-  string argStr;
-  nl->WriteToString(argStr, args);
+  // check for correct parameter list
+  if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 3){
+    return listutils::typeError(
+      "\nExpects exactly 3 arguments.");
+  }
 
-  CHECK_COND(!nl->IsEmpty(args) &&
-      !nl->IsAtom(args) &&
-      nl->ListLength(args) == 3,
-  errmsg +
-      "\nOperator gettuples2 expects three arguments, but gets '" +
-      argStr + "'.");
-
-  // Get all three arguments
-  ListExpr
-      streamDescription = nl->First(args),
-      relDescription = nl->Second(args),
-      tidArg = nl->Third(args);
-  string streamDescriptionStr, relDescriptionStr, TidArgStr;
+  // Split arguments into three parts
+  ListExpr streamDescription = nl->First(args),
+           relDescription = nl->Second(args),
+           tidArg = nl->Third(args);
 
   // Handle the stream part of arguments
-  nl->WriteToString (streamDescriptionStr, streamDescription);
-  CHECK_COND(IsStreamDescription(streamDescription),
-             errmsg +
-             "\nOperator gettuples2 expects a first argument with structure "
-             "(stream (tuple ((id tid) (a1 t1)...(an tn))))\n"
-             "but gets it with structure '" + streamDescriptionStr + "'.");
-  //cerr << "GetTuples2TypeMap: Stream type is: " << streamDescriptionStr
-  //     << endl;
-
+  if(!listutils::isTupleStream(streamDescription)){
+    return listutils::typeError("Expects a valid tuplestream as 1st argument.");
+  }
   // Handle the rel part of arguments
-  nl->WriteToString (relDescriptionStr, relDescription);
-  CHECK_COND(IsRelDescription(relDescription),
-             errmsg +
-             "\nOperator gettuples2 expects a second argument with structure "
-             "(rel (tuple ((a1 t1)...(an tn))))\n"
-             "but gets it with structure '" + relDescriptionStr + "'.");
-  // cerr << "GetTuples2TypeMap: Relation type is: " << relDescriptionStr
-  //      << endl;
-
-  ListExpr sTupleDescription = nl->Second(streamDescription),
-  sAttrList = nl->Second(sTupleDescription),
-  rTupleDescription = nl->Second(relDescription),
-  rAttrList = nl->Second(rTupleDescription);
+  if( !listutils::isRelDescription(relDescription) ){
+    return listutils::typeError("Expects a valid relation as 2nd argument.");
+  }
 
   // Check type of third argument (attribute name)
-  nl->WriteToString(TidArgStr, tidArg);
-  CHECK_COND(nl->IsAtom(tidArg) &&
-      nl->AtomType(tidArg) == SymbolType,
-  errmsg + "\nOperator gettuples2: The third argument must be the name of "
-      "an attribute holding the tuple identifier, but is '"+TidArgStr+"'.");
-  string attrName = nl->SymbolValue(tidArg);
-
-  // Create result tuple type
-  ListExpr attrList = nl->Second(sTupleDescription);
-  int attrIndex = 0;
+  if( !nl->IsAtom(tidArg) || !(nl->AtomType(tidArg) == SymbolType) ){
+    return listutils::typeError("Expects attribute name as 3rd argument.");
+  }
+  string tidAttrName = nl->SymbolValue(tidArg);
+  int tidIndex = 0;
   ListExpr attrType;
-
-  CHECK_COND(
-      (attrIndex = FindAttribute(attrList, attrName, attrType)) > 0,
-      errmsg +
-      "\nOperator gettuples2 expects the attribute " +
-      attrName + "\npassed as third argument to be part of "
-      "the stream description\n'" +
-      relDescriptionStr + "'.");
-
-  string type = nl->SymbolValue(attrType);
-  CHECK_COND((type == "tid"),
-      errmsg +
-      "\nOperator gettuples2 expects the attribute " +
-      attrName + "\npassed as third argument to be of type "
-      "'tid', but it is '"+ +"'.\n'" + type + "'.");
-
-  ListExpr first, rest, newAttrList, lastNewAttrList;
-
-  rest = sAttrList;
-  int j = 1;
-  bool firstcall = true;
-  // copy attrs from stream (skipping the tid)
-  while (!nl->IsEmpty(rest))
-  {
-    first = nl->First(rest);
-    rest = nl->Rest(rest);
-    if (j != attrIndex)
-    {
-      if ( firstcall )
-      {
-        firstcall = false;
-        newAttrList = nl->OneElemList(first);
-        lastNewAttrList = newAttrList;
-      }
-      else
-        lastNewAttrList = nl->Append(lastNewAttrList, first);
-    }
-    j++;
-  }
-  // copy attrs from relation
-  rest = rAttrList;
-  while(!nl->IsEmpty(rest))
-  {
-    first = nl->First(rest);
-    rest = nl->Rest(rest);
-
-    if (firstcall)
-    {
-      firstcall = false;
-      newAttrList = nl->OneElemList(first);
-      lastNewAttrList = newAttrList;
-    }
-    else
-      lastNewAttrList = nl->Append(lastNewAttrList, first);
+  tidIndex = listutils::findAttribute(nl->Second(nl->Second(streamDescription)),
+                                      tidAttrName,
+                                      attrType);
+  if(!listutils::isSymbol(attrType, "tid")){
+    return listutils::typeError("Expects attribute to be of type 'tid'.");
   }
 
-  if( !IsTupleDescription(newAttrList) ){
-    ErrorReporter::ReportError("Result after merging tuples is not a "
+  // remove tid-attribute from stream-attrlist
+  set<string> k;
+  k.insert(tidAttrName);
+  ListExpr tmp, tmpL;
+  int noRemovedAttrs = 0;
+  noRemovedAttrs =
+      listutils::removeAttributes(nl->Second(nl->Second(streamDescription)),
+                                  k,
+                                  tmp,
+                                  tmpL);
+  if(noRemovedAttrs != 1){
+    return listutils::typeError("Stream must contain at most one attribute of "
+                                "type 'tid'.");
+  }
+
+  // append rel-attrlist to modified stream-attrlist
+  ListExpr newAttrList =
+     listutils::concat(tmp, nl->Second(nl->Second(relDescription)));
+
+  // check whether result attrlist is valid
+  if (!listutils::isAttrList(newAttrList)){
+    return listutils::typeError("Result after merging tuples is not a "
                                "valid attribute list (Possible reasons: "
                                "duplicate attribute names or an attribute "
-                               "type is not of kind DATA)");
-    return nl->TypeError();
+                               "type is not of kind DATA).");
   }
 
-  ListExpr restype =
+  // return resulttype and APPEND tid-attr index in stream-attrlist
+  return
       nl->ThreeElemList(
       nl->SymbolAtom("APPEND"),
   nl->OneElemList(
-      nl->IntAtom(attrIndex)),
+      nl->IntAtom(tidIndex)),
   nl->TwoElemList(
       nl->SymbolAtom("stream"),
   nl->TwoElemList(
       nl->SymbolAtom("tuple"),
   newAttrList)));
-
-  string restypeStr;
-  nl->WriteToString(restypeStr, restype);
-  // cerr << "GetTuples2TypeMap returns '" << restypeStr << "'." << endl;
-
-  return restype;
 }
 
 /*
