@@ -1702,8 +1702,9 @@ aConsume(Word* args, Word& result, int message,
     int relId = NestedRelation::getTypeId(relAlgId, "rel");
     if (!local.addr)
     {
-       ListExpr relType = nl->TwoElemList(nl->TwoElemList(nl->IntAtom(relAlgId),
-                      nl->IntAtom(relId)),nl->Second(arel->getArelType())); 
+       ListExpr relType = nl->TwoElemList(nl->TwoElemList(
+                            nl->IntAtom(relAlgId), nl->IntAtom(relId)),
+                            nl->Second(arel->getArelType())); 
        acon = new AconInfo;
        acon->set = true;
        rel = new Relation(relType);
@@ -1848,8 +1849,8 @@ ListExpr nestTypeMap( ListExpr args )
      unnested.rest();
    }
    CHECK_COND(unique, "The name for the new arel-Attribute " 
-                      + arelName + " is already assigned to another attribute. "
-                      "Please choose a new name and try again.");        
+                      + arelName + " is already assigned to another attribute."
+                      " Please choose a new name and try again.");        
    CHECK_COND((nl->ListLength(second.listExpr()) > 0), 
    "Operator nest: Second argument list may not be empty" );
   
@@ -1903,13 +1904,13 @@ ListExpr nestTypeMap( ListExpr args )
    if (allArel)
    {
       ErrorReporter::ReportError(
-          "Operator nest: There must be at least one attribute other than arel "
-          "in the first argument list.");
+          "Operator nest: There must be at least one attribute other than "
+          "arel in the first argument list.");
          return nl->SymbolAtom("typeerror");
    }
    CHECK_COND (!(primary.length() == first.second().second().length()),
-     "Operator nest: there must be at least one attribute that should be nested"
-     " in a subrelation.");    
+     "Operator nest: there must be at least one attribute that should be "
+     "nested in a subrelation.");    
    //check, if attributes in first argument exist in primary.
    //if not append to subrel
    rest = first.second().second();
@@ -2176,9 +2177,9 @@ struct nestInfo : OperatorInfo {
     name =      "nest";
     signature = "(stream x) -> (stream y)";
     syntax =    "_ nest [xi1,..., xij; x0]";
-    meaning =   "Creates a nested tuple stream from a tuple stream. The stream "
-                "should be sorted by the attributes that are to appear in the "
-                "primary relation." ;
+    meaning =   "Creates a nested tuple stream from a tuple stream. The "
+                "stream should be sorted by the attributes that are "
+                "to appear in the primary relation." ;
     example =   "query documents feed sortby [publisher] nest[publisher; "
                 "publications]";
   }

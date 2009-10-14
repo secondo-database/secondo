@@ -115,8 +115,8 @@ metadata passed in typeInfo.
         
         AttributeRelation( const SmiFileId fileId );
 /*
-The second constructor. Sets pointer to the relation used for storing tuples to the
-relation with tupleFileId fileId. 
+The second constructor. Sets pointer to the relation used for storing tuples 
+to the relation with tupleFileId fileId. 
         
 */
         
@@ -162,8 +162,8 @@ Appends a tupleId to the DBArray tupleIds.
         
         void setRelId(SmiFileId id);
 /*
-Sets tupleFile to if and rel to the relation with this SmiFileId, if such a relation
-is currently open.
+Sets tupleFile to if and rel to the relation with this SmiFileId, if such a 
+relation is currently open.
         
 */
         
@@ -309,7 +309,8 @@ an nrel-type.
 struct SubRelation
 {
        
-       SubRelation::SubRelation(Relation* ptr, const string n, SmiFileId id, ListExpr tI):
+       SubRelation::SubRelation(Relation* ptr, const string n, SmiFileId id, 
+                                ListExpr tI):
                              name(n),
                              typeInfo(tI),
                              rel(ptr),
