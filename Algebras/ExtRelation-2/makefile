@@ -87,6 +87,7 @@ docu:
 	psnup -2 tmp.ps ExtRelation2Algebra.ps
 	ps2pdf ExtRelation2Algebra.ps ExtRelation2Algebra.pdf
 	for i in $(DOCU_PDF); do rm -f $$i; done
+	for i in $(DOCU_FILES2); do rm -f $$i; done
 	$(RM) ./*.toc 
 	$(RM) ./*.aux 
 	$(RM) ./*.dvi
