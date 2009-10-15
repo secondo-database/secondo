@@ -48,38 +48,52 @@ $(LIBOBJ): $(OBJECTS)
 .PHONY: clean
 clean:
 	$(clean-algebra)
-	rm ./*.aux 
-	rm ./*.dvi
-	rm ./*.log
-	rm ./*.ps
-	rm ./*.pdf
 
-# files for documentation
-DOCU_OBJ = ExtRelation2Algebra.cpp \
-		   ExtRelation2AlgebraTest.cpp \
-		   HybridHashJoin.h HybridHashJoin.cpp \
-		   Sort.h Sort.cpp \
-		   SortMergeJoin.h SortMergeJoin.cpp \
-		   TupleBuffer2.h TupleBuffer2.cpp \
-		   TupleQueue.h TupleQueue.cpp
-		   
-DOCU_OBJ2 = ExtRelation2Algebra.spec \
-			ExtRelation2.examples \
-			makefile
+# local files for documentation
+DOCU_FILES = ExtRelation2Algebra.cpp \
+		     ExtRelation2AlgebraTest.cpp \
+		     HybridHashJoin.h HybridHashJoin.cpp \
+		     Sort.h Sort.cpp \
+		     SortMergeJoin.h SortMergeJoin.cpp \
+		     TupleBuffer2.h TupleBuffer2.cpp \
+		     TupleQueue.h TupleQueue.cpp 
+		
+# non-local files for documentation located in ./docu
+DOCU_FILES2 = FileSystem.h \
+			  FileSystem.cpp \
+		      RelationAlgebra.h \
+		      RelationPersistent.cpp
 
-DOCU_OBJ_PDF = $(DOCU_OBJ:%=%.pdf)
-DOCU_OBJ2_PDF = $(DOCU_OBJ2:%=%.pdf)
+# special local files which cannot be processed by PD-System		   
+DOCU_FILES3 = ExtRelation2Algebra.spec \
+			  ExtRelation2.examples \
+			  makefile
+
+DOCU_PDF1 = $(DOCU_FILES:%=%.pdf)
+DOCU_PDF2 = $(DOCU_FILES2:%=%.pdf)
+DOCU_PDF3 = $(DOCU_FILES3:%=%.pdf)
+DOCU_PDF = $(DOCU_PDF1) $(DOCU_PDF2) $(DOCU_PDF3)
 
 # generic rule for creating documentation	
 .PHONY: docu
 docu: 
-	for i in $(DOCU_OBJ); do pd2pdf $$i; done
-	for i in $(DOCU_OBJ2); do a2ps $$i -1 --borders=no --output=$$i.ps; ps2pdf $$i.ps; done
+	for i in $(DOCU_FILES); do pd2pdf $$i; done
+	for i in $(DOCU_FILES2); do cp ./docu/$$i $$i; done
+	for i in $(DOCU_FILES2); do pd2pdf $$i; done
+	for i in $(DOCU_FILES3); do a2ps $$i -1 --borders=no --output=$$i.ps; ps2pdf $$i.ps; done
 	gs -q -sPAPERSIZE=a4 -dNOPAUSE -dBATCH \
-	   -sDEVICE=pdfwrite -sOutputFile=ExtRelation2Algebra.pdf $(DOCU_OBJ_PDF) $(DOCU_OBJ2_PDF)
+	   -sDEVICE=pdfwrite -sOutputFile=ExtRelation2Algebra.pdf $(DOCU_PDF)
 	pdftops ExtRelation2Algebra.pdf tmp.ps    
 	psnup -2 tmp.ps ExtRelation2Algebra.ps
 	ps2pdf ExtRelation2Algebra.ps ExtRelation2Algebra.pdf
-	
+	for i in $(DOCU_PDF); do rm -f $$i; done
+	$(RM) ./*.toc 
+	$(RM) ./*.aux 
+	$(RM) ./*.dvi
+	$(RM) ./*.log
+	$(RM) ./*.ps
+	$(RM) ./*.tex
+
+
 	
 	
