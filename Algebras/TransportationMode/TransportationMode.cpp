@@ -100,6 +100,16 @@ const string OpBusEdgeSpec =
   "<text>query busedge(busroutes) count</text--->"
   "))";
 
+const string OpBusEdgeNewSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>busnetwork -> a relation</text--->"
+  "<text>busedgenew(_)</text--->"
+  "<text>returns the relation for edges.</text--->"
+  "<text>query busedgenew(busroutes) count</text--->"
+  "))";
+
+
 const string OpBusMoveSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
@@ -352,6 +362,19 @@ int OpBusEdgeValueMapping(Word* args, Word& result,
   qp->ChangeResultStorage(s,result);
   return 0;
 }
+
+int OpBusEdgeNewValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  BusNetwork* busnet = (BusNetwork*)args[0].addr;
+  Relation* busedge = busnet->GetRelBus_EdgeNew();
+  result = SetWord(busedge->Clone());
+  Relation* resultSt = (Relation*)qp->ResultStorage(s).addr;
+  resultSt->Close();
+  qp->ChangeResultStorage(s,result);
+  return 0;
+}
+
 /*
 Display the bus movement.
 
@@ -952,6 +975,15 @@ Operator busedge(
   OpBusEdgeTypeMap
 );
 
+Operator busedgenew(
+  "busedgenew", //name
+  OpBusEdgeNewSpec,
+  OpBusEdgeNewValueMapping,
+  Operator::SimpleSelect,
+  OpBusEdgeTypeMap
+);
+
+
 Operator busmove(
   "busmove", //name
   OpBusMoveSpec,
@@ -1017,6 +1049,7 @@ class TransportationModeAlgebra : public Algebra
    AddOperator(&busnode);//display bus stop
    AddOperator(&busnodenew);
    AddOperator(&busedge); //display the trajectory of a bus
+   AddOperator(&busedgenew); //display the trajectory of a bus
    AddOperator(&busmove);//display bus movement
    //middle stop with no temporal property, no user defined time instant
    AddOperator(&find_path_t_1);//minimum total time cost

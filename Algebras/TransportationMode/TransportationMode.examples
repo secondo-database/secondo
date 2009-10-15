@@ -28,6 +28,12 @@ Example  : query busedge(berlintrains) count;
 Result   : 11372
 
 
+Operator : busedgenew
+Number   : 1
+Signature: busnetwork -> int
+Example  : query busedgenew(berlintrains) count;
+Result   : 11372
+
 Operator : busmove
 Number   : 1
 Signature: busnetwork -> int

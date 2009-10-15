@@ -94,6 +94,7 @@ public:
 /*new schema for bus stop*/
   static string newbusstopTypeInfo; //relation description for bus stop
   enum newBusStopInfo{NEWSID=0,NEWLOC,BUSPATH,POS};
+  static string newbtreebusstopTypeInfo;
 
 /*function for type constructor*/
   static ListExpr BusNetworkProp();
@@ -122,6 +123,7 @@ public:
   void FillBusNode(const Relation*);
   void FillBusNode_New(const Relation*);
   void FillBusEdge(const Relation*);
+  void FillBusEdge_New(const Relation*);
   void FillAdjacency();
   void FillAdjacencyPath();
   void Destroy();
@@ -131,7 +133,9 @@ public:
   Relation* GetRelBus_Route(){return bus_route;}
   Relation* GetRelBus_Edge(){return bus_edge;}
   Relation* GetRelBus_NodeNew(){return bus_node_new;}
+  Relation* GetRelBus_EdgeNew(){return bus_edge_new;}
   TupleId FindPointTid(Point& p);
+  TupleId FindPointTidNew(int pathid,Point& p);
   void FindPath_T_1(MPoint* result,Relation* query,int attrpos,Instant*);
   void FindPath1(int id1,int id2,vector<int>& path,Instant*);
   //more efficient
@@ -183,7 +187,10 @@ private:
   //path adjacency, for each path, which paths it can switch to and how
 //  DBArray<ListEntry> adj_path_index;
 //  DBArray<SwithEntry> adj_path;
-  Relation* bus_node_new; //
+  Relation* bus_node_new;
+  BTree* btree_bus_node_new;
+  Relation* bus_edge_new;//relation storing edge
+  BTree* btree_bus_edge_path_new; //b-tree on edge pid, path
 
 };
 double difftimeb(struct timeb* t1,struct timeb* t2);
