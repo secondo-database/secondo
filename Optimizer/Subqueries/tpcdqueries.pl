@@ -1,8 +1,67 @@
-% tpc(d, No) :- tpcd(No, Query), setupQuery(d, No), sql(Query), teardownQuery(d, No).
+/*
 
+----
+This file is part of SECONDO.
+
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+August 2008, Burkart Poneleit. Initial Version
+
+This file provides a framework to execute TPC-Benchmarks. All queries for the benchmark
+should be asserted as facts tpc(Benchmark, QueryDefinition). Currently this file contains
+the definition of all TPC-D queries. 
+
+Before executing a benchmark, the predicate initialize has to be called exactly once to
+create the result relation. The result relation will contain the runtime of all intermediate 
+steps of the optimizer, total runtime for the query and flags, which indicate whether the 
+step of the optimizer succeeded or failed. 
+
+Executing a benchmark is as simple as calling the predicate
+---- executeBenchmark(Benchmark)
+----
+
+where Benchmark is d, h or whatever TPC-Benchmark you want to run. On finishing the 
+benchmark run an additional entry is created in the result relation to give you the total
+runtime for the benchmark run.
+
+To just run a single query and still get the corresponding results such as runtime for the
+intermediate steps of the optimizer, you can use the predicate 
+---- executeSingleQuery(Benchmark, QueryNumber)
+----
+
+
+
+*/
 :- dynamic(queryValidation/0).
 
 :- assert(queryValidation).
+
+/*
+
+To skip certain queries when executing a benchmark, a fact 
+
+---- skipQuery(Benchmark, QueryNumber) 
+----
+
+can be asserted. 
+
+*/
 
 :- dynamic(skipQuery/2).
 
@@ -20,6 +79,15 @@
    assert(skipQuery(d, 18)),
    assert(skipQuery(d, 19)).
    
+/*
+
+Results of the benchmark runs are kept in a relation in the database. Standard name for this 
+relation is benchmarkResult. This can be changed by retracting the fact resultRelation and 
+reasserting it with a different name. To create the relation the predicate initialize has to 
+be called. It creates the relation and inserts a "Dummy" entry, as correct handling of empty relation
+in Secondo optimizer is still wonting.
+
+*/
 :- dynamic(resultRelation/1).
 
 :- assert(resultRelation(benchmarkResult)).
@@ -178,6 +246,60 @@ executeBenchmark(Benchmark) :-
 	findall(Result, benchmarkResult(_, Result), L),	
 	nl,
     write_list(L).
+		
+/* 
+
+Run Tpcd Queries and export Benchmark results to csv. 
+
+*/
+	
+runAnalysis(Database) :-
+  ( cdb ; true ),
+	odb(Database),
+	( initialize ; true ),
+	sql(delete from benchmarkResult where (query) contains "T"),
+	( delete(tempXXXXXXX) ; true ),
+	!,
+	setOption(subqueryUnnesting),
+	executeBenchmark(d),
+	!,
+	executeBenchmark(d),
+	!,
+	delOption(subqueryUnnesting),
+	executeBenchmark(d),
+	!,
+	executeBenchmark(d),
+	!,
+	setOption(subqueryUnnesting),
+	retractall(skipQuery(d, 15)),
+	executeSingleQuery(d, 15),
+	!,
+	executeSingleQuery(d, 15),
+	!,
+	delOption(subqueryUnnesting),
+	executeSingleQuery(d, 15),
+	!,
+	executeSingleQuery(d, 15),
+	!,
+	assert(skipQuery(d, 15)),
+	setOption(subqueryUnnesting),
+	get_time(A),
+	convert_time(A, Y, M, D, _, _, _, _),
+	concat_atom(['benchmarkResult feed csvexport[\'Analyse ', Database, '-', Y, '-', M, '-', D, '.csv\', FALSE, TRUE, ";"\] count'], Query),
+	write('ExportQuery: '), write(Query), nl,
+	!,
+	query(Query).		
+	
+/* 
+
+Any operations which must happen before a query is run should be coded as a predicate. 
+The predicate is automatically called when using executeSingleQuery/2 or runBenchmark/1.
+Currently used to emulate views for Query 15 of TPC-D benchmark.
+
+---- setupQuery(Benchmark, QueryNumber)
+----
+
+*/
 	
 setupQuery(d, 15) :-
     let(revenue, select
@@ -192,11 +314,30 @@ setupQuery(d, 15) :-
 		[lsuppkey]).
 		
 setupQuery(_,_).
+
+/*
+
+Any operations to clean up after a query should be coded as a predicate.
+Currently used to emulate views for Query 15 of TPC-D benchmark.
+
+---- teardownQuery(Benchmark, QueryNumber)
+----
+
+*/
 		
 teardownQuery(d, 15) :-
   catch(drop_relation(revenue), _, true).
   
 teardownQuery(_, _).
+
+/*
+
+The idea behind setupBenchmark/1 is to assert all facts for substitution parameters
+and to determine the substitution parameters at runtime iff queryValidation is asserted.
+If queryValidation is asserted the substitution parameters are the values for query
+validation according to the benchmark.
+
+*/
 
 setupBenchmark(d) :-
   not(queryValidation),
@@ -227,6 +368,12 @@ setupBenchmark(d) :-
   assert(typeSyllable3(4, "COPPER")).
   
 setupBenchmark(_).
+
+/* 
+
+The Queries defined for TPC-D Benchmark. Queries with syntax currently not understood are commented out. 
+
+*/
   
 tpcd(1, select
 			[lreturnflag,
@@ -448,6 +595,12 @@ tpcd(7, select
 		cust_nation,
 		lyear]).
 		
+/*
+
+Q8 does not work, arbitrary expressions over aggregations cannot be translated at the moment.
+
+*/
+		
 tpcd(8, select
 		[oyear,
 /*		sum(case
@@ -556,6 +709,12 @@ tpcd(10, select
 		orderby
 		[revenue desc] first 20).
 		
+/*
+
+Q11 is only partially working, implementation for the  having clause is still missing.
+
+*/
+
 tpcd(11, select
 		[pspartkey,
 		(sum(pssupplycost * psavailqty)) as value]
@@ -627,6 +786,12 @@ tpcd(12, select
 		[lshipmode]).
 		
 
+/*
+
+Q13 does not work, no implementation of left outerjoin
+
+*/
+
 tpcd(13, _).		
 /* 
 tpcd(13, select
@@ -648,6 +813,13 @@ tpcd(13, select
 		[custdist desc,
 		ccount desc]). 
 */
+
+/*
+
+Does not work, arbitrary expressions over aggregation aren't translated
+
+*/
+
 		
 tpcd(14, select
 /*		[100.00 * sum(case
@@ -666,6 +838,12 @@ tpcd(14, select
 		lshipdate < theInstant(year_of(instant("1995-09-01")), month_of(instant("1995-09-01")) + 1, day_of(instant("1995-09-01")))]
 		groupby[]).
 		
+/*
+
+Implementation only partially correct. The view is emulated by a temporary relation.
+
+*/
+
 tpcd(15, % Query) :-
 /*  create view revenue[STREAM_ID] (supplier_no, total_revenue) as
 select
@@ -753,7 +931,13 @@ tpcd(17, select
 			[l1:lpartkey = ppartkey]
 		)]
 		groupby
-		[]).		
+		[]).	
+
+/*
+
+Q18 is only partially working, implementation of the having clause is still missing.
+
+*/		
 		
 tpcd(18, select
 		[cname,
