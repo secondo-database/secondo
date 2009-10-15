@@ -90,9 +90,10 @@ public:
   enum BusEdgeInfo{EID=0,V1,V2,DEF_T,LINE,FEE,PID,MOVE,RPID,P1,P2};
   static string btreebusedgeTypeInfo; //b-tree on edge id
 
+
 /*new schema for bus stop*/
   static string newbusstopTypeInfo; //relation description for bus stop
-  enum newBusStopInfo{NEWSID=0,NEWLOC,TIMEONSTOP};
+  enum newBusStopInfo{NEWSID=0,NEWLOC,BUSPATH,POS};
 
 /*function for type constructor*/
   static ListExpr BusNetworkProp();
@@ -119,6 +120,7 @@ public:
   ~BusNetwork();
   BusNetwork(SmiRecord&,size_t&,const ListExpr);
   void FillBusNode(const Relation*);
+  void FillBusNode_New(const Relation*);
   void FillBusEdge(const Relation*);
   void FillAdjacency();
   void FillAdjacencyPath();
@@ -128,6 +130,7 @@ public:
   Relation* GetRelBus_Node(){return bus_node;}
   Relation* GetRelBus_Route(){return bus_route;}
   Relation* GetRelBus_Edge(){return bus_edge;}
+  Relation* GetRelBus_NodeNew(){return bus_node_new;}
   TupleId FindPointTid(Point& p);
   void FindPath_T_1(MPoint* result,Relation* query,int attrpos,Instant*);
   void FindPath1(int id1,int id2,vector<int>& path,Instant*);
@@ -165,7 +168,7 @@ private:
   BTree* btree_bus_edge; //b-tree on edge
   BTree* btree_bus_edge_v1; //b-tree on edge start node id
   BTree* btree_bus_edge_v2; //b-tree on edge end node id
-  BTree* btree_bus_edge_path; //b-tree on edge pid
+  BTree* btree_bus_edge_path; //b-tree on edge pid, path
   double maxspeed;
   //similar network adjacency
   //record the start and end index for each edge in adjacencylist
@@ -180,6 +183,7 @@ private:
   //path adjacency, for each path, which paths it can switch to and how
 //  DBArray<ListEntry> adj_path_index;
 //  DBArray<SwithEntry> adj_path;
+  Relation* bus_node_new; //
 
 };
 double difftimeb(struct timeb* t1,struct timeb* t2);

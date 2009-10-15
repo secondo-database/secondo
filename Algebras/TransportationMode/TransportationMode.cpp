@@ -80,6 +80,17 @@ const string OpBusNodeSpec =
   "<text>query busnode(busroutes) count</text--->"
   "))";
 
+const string OpBusNodeNewSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>busnetwork -> stream(tuple([nid:int,loc:point,path:int,post:int]))"
+   "</text--->"
+  "<text>busnodenew(_)</text--->"
+  "<text>returns a stream of tuple where each corresponds to a bus stop."
+  "</text--->"
+  "<text>query busnodenew(busroutes) count</text--->"
+  "))";
+
 const string OpBusEdgeSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
@@ -188,8 +199,21 @@ struct DisplBusStop:public DisplBus{
     no_stop = busstop->GetNoTuples();
     bus_stop_count = 1;
   }
-
 };
+
+/*structure for displaying bus stop*/
+struct DisplBusStopNew:public DisplBus{
+  int no_stop;
+  int bus_stop_count;
+  Relation* busstopnew;
+  DisplBusStopNew(BusNetwork* p):DisplBus(p){
+    busstopnew = busnet->GetRelBus_NodeNew();
+    no_stop = busstopnew->GetNoTuples();
+    bus_stop_count = 1;
+  }
+};
+
+
 /*structure for displaying bus edge*/
 struct DisplBusEdge:public DisplBus{
   int no_edge;
@@ -257,6 +281,54 @@ int OpBusNodeValueMapping(Word* args, Word& result,
     }
     case CLOSE:{
         localInfo = (DisplBusStop*)local.addr;
+        delete localInfo;
+        return 0;
+    }
+  }
+  return 0;
+}
+
+
+/*
+Return all bus stops new.
+
+*/
+int OpBusNodeNewValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  DisplBusStopNew* localInfo;
+  switch(message){
+    case OPEN:{
+        localInfo = new DisplBusStopNew((BusNetwork*)args[0].addr);
+        localInfo->resulttype =
+              new TupleType(nl->Second(GetTupleResultType(s)));
+        local = SetWord(localInfo);
+        return 0;
+    }
+    case REQUEST:{
+        localInfo = (DisplBusStopNew*)local.addr;
+        if(localInfo->bus_stop_count > localInfo->no_stop)
+          return CANCEL;
+        Tuple* tuple = new Tuple(localInfo->resulttype);
+        Tuple* temp_tuple =
+                localInfo->busstopnew->GetTuple(localInfo->bus_stop_count);
+        CcInt* id = (CcInt*)temp_tuple->GetAttribute(BusNetwork::NEWSID);
+        Point* location = (Point*)temp_tuple->GetAttribute(BusNetwork::NEWLOC);
+        CcInt* path = (CcInt*)temp_tuple->GetAttribute(BusNetwork::BUSPATH);
+        CcInt* pos = (CcInt*)temp_tuple->GetAttribute(BusNetwork::POS);
+
+        tuple->PutAttribute(BusNetwork::NEWSID,new CcInt(*id));
+        tuple->PutAttribute(BusNetwork::NEWLOC,new Point(*location));
+        tuple->PutAttribute(BusNetwork::BUSPATH,new CcInt(*path));
+        tuple->PutAttribute(BusNetwork::POS,new CcInt(*pos));
+
+        result.setAddr(tuple);
+        temp_tuple->DeleteIfAllowed();
+        localInfo->bus_stop_count++;
+        return YIELD;
+    }
+    case CLOSE:{
+        localInfo = (DisplBusStopNew*)local.addr;
         delete localInfo;
         return 0;
     }
@@ -484,6 +556,35 @@ ListExpr OpBusNodeTypeMap(ListExpr in_xArgs)
   return nl->SymbolAtom("typeerror");
 
 }
+
+/*
+Operator ~busnewnode~
+
+*/
+ListExpr OpBusNodeNewTypeMap(ListExpr in_xArgs)
+{
+  if(nl->ListLength(in_xArgs) != 1)
+    return (nl->SymbolAtom("typeerror"));
+
+  ListExpr arg = nl->First(in_xArgs);
+  if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
+     nl->SymbolValue(arg) == "busnetwork"){
+    return nl->TwoElemList(
+          nl->SymbolAtom("stream"),
+            nl->TwoElemList(nl->SymbolAtom("tuple"),
+              nl->FourElemList(
+               nl->TwoElemList(nl->SymbolAtom("id"),nl->SymbolAtom("int")),
+               nl->TwoElemList(nl->SymbolAtom("loc"),nl->SymbolAtom("point")),
+               nl->TwoElemList(nl->SymbolAtom("buspath"),nl->SymbolAtom("int")),
+               nl->TwoElemList(nl->SymbolAtom("pos"),nl->SymbolAtom("int"))
+              )
+            )
+          );
+  }
+  return nl->SymbolAtom("typeerror");
+
+}
+
 /*
 Operator ~busedge~
 
@@ -834,6 +935,15 @@ Operator busnode(
   OpBusNodeTypeMap
 );
 
+Operator busnodenew(
+  "busnodenew", //name
+  OpBusNodeNewSpec,
+  OpBusNodeNewValueMapping,
+  Operator::SimpleSelect,
+  OpBusNodeNewTypeMap
+);
+
+
 Operator busedge(
   "busedge", //name
   OpBusEdgeSpec,
@@ -905,6 +1015,7 @@ class TransportationModeAlgebra : public Algebra
 
    AddOperator(&thebusnetwork);//construct bus network
    AddOperator(&busnode);//display bus stop
+   AddOperator(&busnodenew);
    AddOperator(&busedge); //display the trajectory of a bus
    AddOperator(&busmove);//display bus movement
    //middle stop with no temporal property, no user defined time instant
