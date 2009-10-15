@@ -113,3 +113,9 @@ Signature: rtree(tuple ((x1 t1)...(xn tn)) ti) x cellno -> (stream (tuple ((x1 t
 Example  : query cellindex(kinosrtree,10) count
 Result   : 0
 
+
+Operator : isknn
+Number   : 1
+Signature: v in {int | string} x string x string x string x string -> mbool
+Example  : query trainsnn feedproject[Tripid]  filter[sometimes(isknn(.Tripid,"trainsnnTriptrain75NN" , "trainsnnTriptrain75NN_Tripid_btree" , "MBoolRes" , "Tripid"))] project[Tripid]  count
+Result   : 0

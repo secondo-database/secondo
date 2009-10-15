@@ -39,3 +39,4 @@ operator cellindex alias CELLINDEX pattern op(_,_)
 operator cellpartition alias CELLPARTITION pattern _op[_,_,_,_,_]
 operator gnuplotnode alias GNUPLOTNODE pattern _ op[_,_]
 operator kclosestpair alias KCLOSESTPAIR pattern _ _ op[_,_,_]
+operator isknn alias ISKNN pattern op(_,_,_,_,_)

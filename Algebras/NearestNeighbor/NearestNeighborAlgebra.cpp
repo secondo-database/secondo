@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 [1] NearestNeighbor Algebra
 
 November 2008, A. Braese
+15 October 2009 Mahmoud Sakr: Added the isknn operator
 
 [toc]
 
@@ -621,6 +622,57 @@ ListExpr rect2periodsTypeMap(ListExpr args){
     return nl->TypeError();
   }
   return nl->SymbolAtom("periods");
+}
+
+/*
+2.1.11 isknn TypeMap
+
+v in {int | string} x string(rel) x string(btree) x 
+    string(MBool) x string(ID) -> APPEND v mbool
+
+*/
+ListExpr isknnTypeMap(ListExpr args){
+  string idtype="";
+  if(nl->ListLength(args)!=5){
+    ErrorReporter::ReportError("isknn: Invalid number of arguments");
+    return nl->TypeError();
+  }
+  ListExpr arg1 = nl->First(args);
+  idtype = nl->ToString(arg1);
+  if(!nl->IsEqual(arg1,"int") && !nl->IsEqual(arg1,"string") ){
+    ErrorReporter::ReportError("isknn: expected int or string identifier");
+    return nl->TypeError();
+  }
+  
+  ListExpr arg2 = nl->Second(args);
+  if(!nl->IsEqual(arg2,"string")){
+    ErrorReporter::ReportError("isknn: expected relation name");
+    return nl->TypeError();
+  }
+  
+  ListExpr arg3 = nl->Third(args);
+  if(!nl->IsEqual(arg3,"string")){
+    ErrorReporter::ReportError("isknn: expected btree name");
+    return nl->TypeError();
+  }
+  
+  ListExpr arg4 = nl->Fourth(args);
+  if(!nl->IsEqual(arg4,"string")){
+    ErrorReporter::ReportError("isknn: expected a valid mpoint attribute name");
+    return nl->TypeError();
+  }
+  
+  ListExpr arg5 = nl->Fifth(args);
+  if(!nl->IsEqual(arg5,"string")){
+    ErrorReporter::ReportError("isknn: expected a valid id attribute name");
+    return nl->TypeError();
+  }
+  
+  ListExpr res= nl->ThreeElemList( nl->SymbolAtom("APPEND"),  
+      nl->OneElemList(nl->StringAtom(idtype)) , nl->SymbolAtom("mbool"));
+  cout<< nl->ToString(res);
+  cout.flush();
+  return res;
 }
 
 
@@ -4753,6 +4805,61 @@ int coverage2Fun (Word* args, Word& result, int message,
   }
 }
 
+int isknnFun (Word* args, Word& result, int message,
+             Word& local, Supplier s){
+  bool debugme= false;
+  
+  string rel= ((CcString*)args[1].addr)->GetValue();
+  string btree= ((CcString*)args[2].addr)->GetValue();
+  string mboolAttr= ((CcString*)args[3].addr)->GetValue();
+  string idAttr= ((CcString*)args[4].addr)->GetValue();
+  string idType= ((CcString*)args[5].addr)->GetValue();
+  string id="";
+  //qp->Request(args[0].addr, idWord); //Strangely causes the program to crash 
+  Word idWord;
+  Supplier arg0= qp->GetSupplierSon(s, 0);
+  qp->Request(arg0, idWord);
+  if(idType == "string")
+    id= ((CcString*) idWord.addr)->GetValue() ;
+  else if(idType == "int")
+    id= int2string( ((CcInt*) idWord.addr)->GetValue());
+  
+  if(debugme)
+  {
+    cout<<endl<<id<<endl<<rel<<endl<<btree<<
+        endl<<mboolAttr<<endl<<idAttr<<endl<<idType;
+    cout.flush();
+  }
+  
+  string queryListStr=
+    " (ifthenelse"
+    "  (="
+    "   (count"
+    "       (exactmatch " + btree + " " + rel + " " + id + "))"
+    "   0)"
+    "  (mbool"
+    "   ("
+    "       ("
+    "           (\"begin of time\" \"end of time\" FALSE FALSE)"
+    "           FALSE)))"
+    "  (extract"
+    "   (exactmatch " + btree + " " + rel + " " + id + ")" +
+        mboolAttr + "))";  
+  if(debugme)
+  {
+    cout<<endl<<queryListStr;
+    cout.flush();
+  }
+  
+  Word queryResult;
+  QueryProcessor::ExecuteQuery( queryListStr, queryResult);
+  
+  result = qp->ResultStorage( s );
+  ((MBool*)result.addr)->CopyFrom((MBool*)queryResult.addr);
+  ((MBool*)queryResult.addr)->DeleteIfAllowed();
+  return 0;
+}
+
 Operator coverageop (
          "coverage",        // name
          coverageSpec,      // specification
@@ -4982,6 +5089,18 @@ const string rect2periodsSpec  =
       "  <text>query rect2periods(rect1) </text--->"
       ") )";
 
+const string isknnSpec  =
+      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+      "( <text>v in {int | string} x string(rel) x string(btree) x "
+      "string(MBool) x string(ID) -> APPEND v mbool"
+      "  <text> isknn(_, _, _,_,_)</text--->"
+      "  <text> This operator is implemented only in SQL. Unless you are"
+      " sure of what you are doing, do not use it. </text--->"
+      "  <text>isknn(.Tripid,\"trainsnnTriptrain75NN\" , "
+      "\"trainsnnTriptrain75NN_Tripid_btree\" , \"MBoolRes\" "
+      ", \"Tripid\")]  </text--->"
+      ") )";
+
 /*
 2.6 Definition of operators
 
@@ -5055,6 +5174,14 @@ Operator rect2periods (
          rect2periodsFun,           // value mapping
          Operator::SimpleSelect, // trivial selection function
          rect2periodsTypeMap        // type mapping
+);
+
+Operator isknn (
+         "isknn",            // name
+         isknnSpec,          // specification
+         isknnFun,           // value mapping
+         Operator::SimpleSelect, // trivial selection function
+         isknnTypeMap        // type mapping
 );
 
 /*
@@ -9953,6 +10080,7 @@ class NearestNeighborAlgebra : public Algebra
 //    AddOperator( &gnuplotnode);
 //    AddOperator( &kclosestpair);
 //    AddOperator( &cellpartition);
+    AddOperator( &isknn);
   }
   ~NearestNeighborAlgebra() {};
 };
