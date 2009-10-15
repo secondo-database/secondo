@@ -292,8 +292,6 @@ secondoOp( inserttuplesave,   postfixbrackets2, 3). % also postfixbrackets1, 4+
 secondoOp( insertsave,        postfix, 3).
 secondoOp( intersection_new,  prefix, 2).
 secondoOp( intersection,      prefix, 2).
-secondoOp( intervalend  ,     prefix, 1).
-secondoOp( intervalstart,     prefix, 1).
 secondoOp( insertbtree,       postfixbrackets2, 3).
 secondoOp( inserthash,        postfixbrackets2, 3).
 secondoOp( invert,            prefix, 2).
