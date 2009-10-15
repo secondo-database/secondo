@@ -1299,36 +1299,22 @@ The iskNN faked operator
 
 */
 
-plan_to_atom(isknn(TID, K, QueryObj, Rel_Attr), Result):-
+plan_to_atom(isknn(TID, K, dbobject(QueryObj), Rel1, MPointAttr1, IDAttr1, RebuildIndexes), Result):- !,
   plan_to_atom(TID, ExtTID),
-  ( (integer(K), K >0 )
-    -> true
-    ; ( write_list(['\nERROR:\tThe k parameter in the iskNN predicate is expected to be an Integer > 0\t but got: ', K]),
-        throw(error_Internal(optimizer_plan_to_atom(isknn(TID, K, QueryObj, Rel_Attr), Result):missingData)),
-        fail
-      )
-  ),
-  ( QueryObj= dbobject(QueryObjName)
-    -> true
-    ; ( write_list(['\nERROR:\tThe QueryObject parameter in the iskNN predicate is expected to be a database object\t but got: ', QueryObj]),
-        throw(error_Internal(optimizer_plan_to_atom(isknn(TID, K, QueryObj, Rel_Attr), Result):missingData)),
-        fail
-      )
-  ),
-  ( ( splitString(Rel_Attr, ":", [RelationName, AttrName]),
-      atom_chars(Rel, RelationName), atom_chars(Attr, AttrName),
-      relation(Rel, Attrs),
-      memberchk(Attr, Attrs),
-      attrType(Rel:Attr, mpoint))
-    -> knearest(K, QueryObj, Rel, Attr, ResultRelationName)
-    ; ( write_list(['\nERROR:\tThe Relation:Attribute parameter in the iskNN predicate is expected to encode an exisiting Relation and Attribute names\t but got: ',
-                    Rel_Attr]),
-        throw(error_Internal(optimizer_plan_to_atom(isknn(TID, K, QueryObj, Rel_Attr), Result):missingData)),
-        fail
-      )
-  ),
-  concat_atom([' isknn[', ExtTID, ',', ResultRelationName, '] '], '', Result),
-  !.
+  atom_chars(Rel, Rel1), 
+  atom_chars(MPointAttr, MPointAttr1), 
+  atom_chars(IDAttr, IDAttr1),
+  validate_isknn_input(K, dbobject(QueryObj), Rel, MPointAttr, IDAttr, RebuildIndexes),
+  
+  getknnDCNames(K, QueryObj, Rel, MPointAttr, IDAttr, 
+    DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, _, _, _, _, _),
+  knearest(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, RebuildIndexes),
+
+  getknnExtNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, 
+    _, _, _, ExtIDAttr, _, _, ExtResultRel, ExtMBoolAttr, ExtBtree),
+
+  concat_atom(['isknn(', ExtTID, ',"', ExtResultRel, '" , "', ExtBtree, '" , "', ExtMBoolAttr, '" , "', ExtIDAttr, '")'] , '', Result)
+  .
 
 
 % special rule to handle special attribute ~rowid~
@@ -8892,72 +8878,7 @@ removeAttrs(StreamIn, NewAttrs, remove(StreamIn, NewAttrs)).
 writeDebug(Text) :-
   write(Text), nl.
 
-/*
-
-Faked operators
-
-*/
-
-knearest(K, dbobject(QueryDBObject), Rel, Attr, ResultRelationName):-
-  getUnitRelationName(Rel, UnitRel),
-  (relation(UnitRel, _) 
-     -> runknearest(UnitRel, Attr, dbobject(QueryDBObject), K, ResultRelationName)
-     ;  (createUnitRelation(Rel, Attr),
-        runknearest(UnitRel, Attr, dbobject(QueryDBObject), K, ResultRelationName)) 
-  ).
-  
-
-runknearest(UnitRel, Attr, dbobject(QueryDBObject), K, ResultRelationName):-
-  getUnitAttrName(Attr, UnitAttr),
-  dcName2externalName(UnitRel, ExtUnitRel),
-  dcName2externalName(UnitRel:UnitAttr, ExtUnitAttr),
-  dcName2externalName(QueryDBObject, ExtQueryDBObject),
-  getkNNRelationName(ExtUnitRel, ExtUnitAttr, ExtQueryDBObject, K, ExtResultRelationName),
-  downcase_atom(ExtResultRelationName, ResultRelationName),
-  (relation(ResultRelationName, _) 
-  ;(concat_atom(['let', ResultRelationName, '=', ExtUnitRel, 'feed knearest[', 
-                ExtUnitAttr, ',', ExtQueryDBObject, ',', K, '] consume'], ' ', Query),
-   secondo(Query))).
-
-createUnitRelation(Rel, Attr):-
-  dcName2externalName(Rel, ExtRel),
-  dcName2externalName(Rel:Attr, ExtAttr),
-  getExtUnitRelationName(Rel, ExtUnitRel),
-  getExtUnitAttrName(Rel:Attr, ExtUnitAttr),
-  downcase_atom(ExtUnitRel, UnitRel),
-  not(relation(UnitRel, _)),   
-  concat_atom(['let ', ExtUnitRel, ' = ', ExtRel, ' feed extend[tupid: tupleid(.)] projectextendstream[tupid; ', 
-              ExtUnitAttr, ': units( .', ExtAttr, ')] consume'], '', Query),
-  secondo(Query).
-
-getExtUnitRelationName(Rel, UnitRel):-
-  dcName2externalName(Rel, ExtRel),
-  concat_atom(['Unit', ExtRel], '', UnitRel).
-getUnitRelationName(Rel, UnitRel):-
-  concat_atom(['unit', Rel], '', UnitRel).
-getExtUnitAttrName(Attr, UnitAttr):-
-  dcName2externalName(Attr, ExtUnitAttr),
-  concat_atom(['U', ExtUnitAttr], '', UnitAttr).
-getUnitAttrName(Attr, UnitAttr):-
-  concat_atom(['u', Attr], '', UnitAttr).
-getkNNRelationName(UnitRel, UnitAttr, QueryDBObject, K, ResultRelationName):-
-  concat_atom([UnitRel, UnitAttr, QueryDBObject, K, 'NN'], '_', ResultRelationName).
-
-splitString(String, CharDelimiters, Result) :-
-  real_split(String, CharDelimiters, Result).
-
-real_split(String, CharDelimiters, Result) :-
-  (   append(Substring, [Delimiter|Rest], String),
-      memberchk(Delimiter, CharDelimiters)
-      ->  Result = [Substring|Substrings],
-          real_split(Rest, CharDelimiters, Substrings)
-      ;   Result = [String]
-  ).
-
-     
-
-
-
+:- [fakedoperators].
 
 /*
 End of file ~optimizer.pl~
