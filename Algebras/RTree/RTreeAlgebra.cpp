@@ -37,8 +37,10 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 level remains. Models are also removed from type constructors.
 
 February 2007, Christian Duentgen added operator for bulk loading
-R-trees.
+R-trees. Also added several operators for rtree insprospection.
 
+October 2009, Christian Duentgen corrected type mapping for ~gettuples~ and
+~gettuples2~ and replaced weird 'CHECK\_COND' macro in all type mappings.
 
 [TOC]
 
@@ -86,13 +88,6 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 #define BBox Rectangle
-
-#define CHECK_COND(cond, msg) \
-  if(!(cond)) \
-  {\
-    ErrorReporter::ReportError(msg);\
-    return nl->SymbolAtom("typeerror");\
-  };
 
 /*
 Implementation of Functions and Procedures
@@ -417,73 +412,56 @@ The attribute name is specified as argument of the operator.
 */
 ListExpr CreateRTreeTypeMap(ListExpr args)
 {
-  string attrName, relDescriptionStr, argstr;
-  string errmsg = "Incorrect input for operator creatertree.";
-  int attrIndex;
-  ListExpr attrType;
-  AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-
-  CHECK_COND(!nl->IsEmpty(args) &&
-    nl->ListLength(args) == 2,
-    errmsg + "\nOperator creatertree expects two arguments.");
-
+  // Check for correct general argument list format
+  if(nl->IsEmpty(args) || !(nl->ListLength(args) == 2)){
+    return listutils::typeError("Expects exactly 2 arguments.");
+  }
   ListExpr relDescription = nl->First(args),
            attrNameLE = nl->Second(args);
 
-  CHECK_COND(nl->IsAtom(attrNameLE) &&
-    nl->AtomType(attrNameLE) == SymbolType,
-    errmsg + "\nThe second argument must be the name of "
-    "the attribute to index.");
-  attrName = nl->SymbolValue(attrNameLE);
+  if(!listutils::isSymbol(attrNameLE)){
+    return listutils::typeError("Expects key attribute name as 2nd argument.");
+  }
+  string attrName = (nl->SymbolValue(attrNameLE));
 
   // Check for relation or tuplestream as first argument
-  if( !IsRelDescription(relDescription) &&
-      !IsStreamDescription(relDescription) )
-  {
-    nl->WriteToString (relDescriptionStr, relDescription);
-    ErrorReporter::ReportError( "\nOperator creatertree expects a relation or "
-        " tuplestream as its first argument, but gets '"
-        + relDescriptionStr + "'.");
-    return nl->TypeError();
+  if( !(    listutils::isRelDescription(relDescription)
+         || listutils::isTupleStream(relDescription)
+       )
+    ){
+    return listutils::typeError("Expects a relation or tulestream as 1st "
+                                "argument.");
   }
+
   // Test for index attribute
   ListExpr tupleDescription = nl->Second(relDescription);
   ListExpr attrList = nl->Second(tupleDescription);
-  CHECK_COND(
-    (attrIndex = FindAttribute(attrList, attrName, attrType)) > 0,
-    errmsg +
-    "\nOperator creatertree expects the attribute " +
-    attrName + "\npassed as second argument to be part of "
-    "the relation or stream description\n'" +
-    relDescriptionStr + "'.");
-
-  CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrType, errorInfo)||
-    algMgr->CheckKind("SPATIAL3D", attrType, errorInfo)||
-    algMgr->CheckKind("SPATIAL4D", attrType, errorInfo)||
-    algMgr->CheckKind("SPATIAL8D", attrType, errorInfo)||
-    nl->IsEqual(attrType, "rect")||
-    nl->IsEqual(attrType, "rect3")||
-    nl->IsEqual(attrType, "rect4")||
-    nl->IsEqual(attrType, "rect8"),
-    errmsg +
-    "\nOperator creatertree expects that attribute "+attrName+"\n"
-    "belongs to kinds SPATIAL2D, SPATIAL3D, Spatial4D or SPATIAL8D\n"
-    "or rect, rect3, rect4 and rect8.");
-
+  ListExpr attrType;
+  int attrIndex = listutils::findAttribute(attrList, attrName, attrType);
+  if(attrIndex <= 0){
+    return listutils::typeError("Expects key attribute (2nd argument) to be a "
+      "member of the relation/ stream (1st argument).");
+  }
+  if( !(    listutils::isSpatialType(attrType)
+         || listutils::isRectangle(attrType)
+       )
+    ){
+    return listutils::typeError("Expects key attribute to be of kind SPATIAL,"
+        "SPATIAL3D, SPATIAL4D, SPATIAL8D, or have type rect, rect3, rect4, or "
+        "rect8");
+  }
   string rtreetype;
-
-  if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) ||
-       nl->IsEqual( attrType, "rect" ) )
+  if (    listutils::isKind(attrType, "SPATIAL2D")
+       || listutils::isSymbol(attrType, "rect"))
     rtreetype = "rtree";
-  else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) ||
-            nl->IsEqual( attrType, "rect3" ) )
+  else if (    listutils::isKind(attrType, "SPATIAL3D")
+            || listutils::isSymbol(attrType, "rect3"))
     rtreetype = "rtree3";
-  else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) ||
-       nl->IsEqual( attrType, "rect4" ) )
+  else if (    listutils::isKind(attrType, "SPATIAL4D")
+            || listutils::isSymbol(attrType, "rect4"))
     rtreetype = "rtree4";
-  else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) ||
-       nl->IsEqual( attrType, "rect8" ) )
+  else if (    listutils::isKind(attrType, "SPATIAL8D")
+            || listutils::isSymbol(attrType, "rect8"))
     rtreetype = "rtree8";
   if( nl->IsEqual(nl->First(relDescription), "rel") )
   {
@@ -534,11 +512,10 @@ and high parameters these two last integer numbers.
       type = nl->SymbolValue(nl->Second(first));
       if (type == "tid")
       {
-        CHECK_COND( tidIndex == 0,
-          "Operator creatertree expects as first argument a stream "
-          "with\none and only one attribute of type 'tid'\n'"
-          "but gets\n'" + relDescriptionStr + "'.");
-
+        if(tidIndex == 0){
+          return listutils::typeError("Expects exactly one arribute of type "
+                                      "'tid' within the 1st argument.");
+        }
         tidIndex = j;
       }
       else if( j == nAttrs - 1 && type == "int" &&
@@ -562,10 +539,10 @@ and high parameters these two last integer numbers.
       }
       j++;
     }
-    CHECK_COND( tidIndex != 0,
-      "Operator creatertree expects as first argument a stream "
-      "with\none and only one attribute of type 'tid'\n'"
-      "but gets\n'" + relDescriptionStr + "'.");
+    if(tidIndex <= 0){
+      return listutils::typeError("Expects exactly 1 attrubte of type 'tid' "
+                                  "within 1st argument.");
+    }
 
     return
       nl->ThreeElemList(
@@ -978,157 +955,72 @@ Operator creatertree (
 */
 ListExpr WindowIntersectsTypeMap(ListExpr args)
 {
-  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-
-  string errmsg = "Incorrect input for operator windowintersects.";
-  string rtreeDescriptionStr, relDescriptionStr;
-
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 3, errmsg);
-
+  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 3){
+    return listutils::typeError("Expects exactly 3 arguments.");
+  }
   /* Split argument in three parts */
   ListExpr rtreeDescription = nl->First(args);
   ListExpr relDescription = nl->Second(args);
   ListExpr searchWindow = nl->Third(args);
-
-  /* Query window: find out type of key */
-  CHECK_COND(nl->IsAtom(searchWindow) &&
-    nl->AtomType(searchWindow) == SymbolType &&
-    (algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo)||
-     algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo)||
-     algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo)||
-     algMgr->CheckKind("SPATIAL8D", searchWindow, errorInfo)||
-     nl->SymbolValue(searchWindow) == "rect"  ||
-     nl->SymbolValue(searchWindow) == "rect3" ||
-     nl->SymbolValue(searchWindow) == "rect4" ||
-     nl->SymbolValue(searchWindow) == "rect8" ),
-    "Operator windowintersects expects that the search window\n"
-    "is of TYPE rect, rect3, rect4, rect8 or "
-    "of kind SPATIAL2D, SPATIAL3D, SPATIAL4D, SPATIAL8D.");
-
-  /* handle rtree part of argument */
-  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
-  CHECK_COND(!nl->IsEmpty(rtreeDescription) &&
-    !nl->IsAtom(rtreeDescription) &&
-    nl->ListLength(rtreeDescription) == 4,
-    "Operator windowintersects expects a R-Tree with structure "
-    "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
-    "bool)\nbut gets a R-Tree list with structure '"
-    +rtreeDescriptionStr+"'.");
-
-  ListExpr rtreeSymbol = nl->First(rtreeDescription),
-           rtreeTupleDescription = nl->Second(rtreeDescription),
-           rtreeKeyType = nl->Third(rtreeDescription),
-           rtreeTwoLayer = nl->Fourth(rtreeDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeKeyType) &&
-    nl->AtomType(rtreeKeyType) == SymbolType &&
-    (algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo)||
-     algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
-     algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo)||
-     algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo)||
-     nl->IsEqual(rtreeKeyType, "rect")||
-     nl->IsEqual(rtreeKeyType, "rect3")||
-     nl->IsEqual(rtreeKeyType, "rect4")||
-     nl->IsEqual(rtreeKeyType, "rect8")),
-   "Operator windowintersects expects a R-Tree with key type\n"
-   "of kind SPATIAL2D, SPATIAL3D, SPATIAL4D, SPATIAL8D\n"
-   "or rect, rect3, rect4, rect8.");
-
-  /* handle rtree type constructor */
-  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
-    nl->AtomType(rtreeSymbol) == SymbolType &&
-    (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
-     nl->SymbolValue(rtreeSymbol) == "rtree3" ||
-     nl->SymbolValue(rtreeSymbol) == "rtree4" ||
-     nl->SymbolValue(rtreeSymbol) == "rtree8") ,
-   "Operator windowintersects expects a R-Tree \n"
-   "of type rtree, rtree3, rtree4,  or rtree8.");
-
-  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
-    !nl->IsAtom(rtreeTupleDescription) &&
-    nl->ListLength(rtreeTupleDescription) == 2,
-    "Operator windowintersects expects a R-Tree with structure "
-    "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
-    "bool)\nbut gets a first list with wrong tuple description in "
-    "structure \n'"+rtreeDescriptionStr+"'.");
-
-  ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);
-  ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeTupleSymbol) &&
-    nl->AtomType(rtreeTupleSymbol) == SymbolType &&
-    nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
-    IsTupleDescription(rtreeAttrList),
-    "Operator windowintersects expects a R-Tree with structure "
-    "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
-    "bool)\nbut gets a first list with wrong tuple description in "
-    "structure \n'"+rtreeDescriptionStr+"'.");
-
-  CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
-    nl->AtomType(rtreeTwoLayer) == BoolType,
-   "Operator windowintersects expects a R-Tree with structure "
-   "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
-   "bool)\nbut gets a first list with wrong tuple description in "
-   "structure \n'"+rtreeDescriptionStr+"'.");
-
-  /* handle rel part of argument */
-  nl->WriteToString (relDescriptionStr, relDescription);
-  if( !IsRelDescription(relDescription) ){
-    nl->WriteToString (relDescriptionStr, relDescription);
-    ErrorReporter::ReportError( "\nOperator windowintersects expects a "
-        "relation as its first argument, but gets '"
-        + relDescriptionStr + "'.");
-    return nl->TypeError();
+  // first must be an rtree<dim>
+  if(!listutils::isRTreeDescription(rtreeDescription)){
+    return listutils::typeError("Expects 1st argument to be of type "
+                                "'rtree<dim>(<tuple-type>,bool)'.");
   }
-
-  ListExpr tupleDescription = nl->Second(relDescription);
-  //ListExpr attrList = nl->Second(tupleDescription);
-
-  /* check that rtree and rel have the same associated tuple type */
-  //
+  // second a relation
+  if(!listutils::isRelDescription(relDescription)){
+    return listutils::typeError("Expects 2nd argument to be of type "
+                                "'rel(<tuple-type>)'.");
+  }
+  // third a type with an MBR
+  if(!(    listutils::isSpatialType(searchWindow)
+        || listutils::isRectangle(searchWindow))){
+    return listutils::typeError("Expects 3nd argument to be of a type of kind "
+      "SPATIAL, SPATIAL3D, SPATIAL4D, SPATIAL8D; or of type 'rect', 'rect3', "
+      "'rect4', or 'rect8'.");
+  }
+  // check that rtree and rel have the same associated tuple type
+  ListExpr tupleDescription = nl->Second(relDescription),
+           rtreeKeyType = nl->Third(rtreeDescription);
+  if(!(    listutils::isSpatialType(rtreeKeyType)
+        || listutils::isRectangle(rtreeKeyType))){
+    return listutils::typeError("Expects key type of the rtree<dim> passed as "
+      "1st argument to to be of a type of kind "
+      "SPATIAL, SPATIAL3D, SPATIAL4D, SPATIAL8D; or of type 'rect', 'rect3', "
+      "'rect4', or 'rect8'.");
+  }
   // This test is omitted so that an R-tree built by bulk load
   // can be used with this operator. (RHG 13.6.2008)
-  //
-  //CHECK_COND(nl->Equal(attrList, rtreeAttrList),
-  // "Operator windowintersects: The tuple type of the R-tree\n"
-  // "differs from the tuple type of the relation.");
-
-  string attrTypeRtree_str, attrTypeWindow_str;
-  nl->WriteToString (attrTypeRtree_str, rtreeKeyType);
-  nl->WriteToString (attrTypeWindow_str, searchWindow);
-
-  CHECK_COND(
-    ( algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo) &&
-      nl->IsEqual(searchWindow, "rect") ) ||
-    ( algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo) &&
-      algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo) ) ||
-    ( nl->IsEqual(rtreeKeyType, "rect") &&
-      nl->IsEqual(searchWindow, "rect") ) ||
-    ( algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo) &&
-      nl->IsEqual(searchWindow, "rect3") ) ||
-    ( algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo) &&
-      algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo) ) ||
-    ( nl->IsEqual(rtreeKeyType, "rect3") &&
-      nl->IsEqual(searchWindow, "rect3") ) ||
-    ( algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo) &&
-      nl->IsEqual(searchWindow, "rect4") ) ||
-    ( algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo) &&
-      algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo) ) ||
-    ( nl->IsEqual(rtreeKeyType, "rect4") &&
-      nl->IsEqual(searchWindow, "rect4") ) ||
-    ( algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo) &&
-      nl->IsEqual(searchWindow, "rect8") ) ||
-    ( algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo) &&
-      algMgr->CheckKind("SPATIAL8D", searchWindow, errorInfo) ) ||
-    ( nl->IsEqual(rtreeKeyType, "rect8") &&
-      nl->IsEqual(searchWindow, "rect8") ),
-    "Operator windowintersects expects joining attributes of same "
-    "dimension.\nBut gets "+attrTypeRtree_str+
-    " as left type and "+attrTypeWindow_str+" as right type.\n");
-
+  // ListExpr rtreeTupleDescription = nl->Second(rtreeDescription):
+  //if(!(nl->Equal(rtreeTupleDescription, rtreeAttrList))){
+  // return listutils::typeError("Expects matching tuple-types for 1st and "
+  //                             "2nd argument.");
+  //}
+  // Check whether key type and rtree dimension match
+  if( !(   (listutils::isKind(rtreeKeyType, "SPATIAL2D")
+             && listutils::isSymbol(searchWindow, "rect"))
+         || (listutils::isKind(rtreeKeyType, "SPATIAL2D")
+             && listutils::isKind(searchWindow, "SPATIAL2D"))
+       ) &&
+      !(   (listutils::isKind(rtreeKeyType, "SPATIAL3D")
+             && listutils::isSymbol(searchWindow, "rect3"))
+         || (listutils::isKind(rtreeKeyType, "SPATIAL3D")
+             && listutils::isKind(searchWindow, "SPATIAL3D"))
+       ) &&
+      !(   (listutils::isKind(rtreeKeyType, "SPATIAL4D")
+             && listutils::isSymbol(searchWindow, "rect4"))
+         || (listutils::isKind(rtreeKeyType, "SPATIAL4D")
+             && listutils::isKind(searchWindow, "SPATIAL4D"))
+       ) &&
+      !(   (listutils::isKind(rtreeKeyType, "SPATIAL8D")
+             && listutils::isSymbol(searchWindow, "rect8"))
+         || (listutils::isKind(rtreeKeyType, "SPATIAL8D")
+             && listutils::isKind(searchWindow, "SPATIAL8D"))
+       )
+    ){
+    return listutils::typeError("Expects same dimensions for the rtree-type "
+                        "(1st argument) and for the key type (3rd argument).");
+  }
   return
     nl->TwoElemList(
       nl->SymbolAtom("stream"),
@@ -1494,137 +1386,60 @@ Operator windowintersects (
 */
 ListExpr WindowIntersectsSTypeMap(ListExpr args)
 {
-  AlgebraManager *algMgr;
-  algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-
-  string errmsg = "Incorrect input for operator windowintersectsS.";
-  string rtreeDescriptionStr;
-
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 2, errmsg);
-
-  /* Split argument into two parts */
-  ListExpr rtreeDescription = nl->First(args),
-           searchWindow = nl->Second(args);
-
-  /* Query window: find out type of key */
-  CHECK_COND(nl->IsAtom(searchWindow) &&
-    nl->AtomType(searchWindow) == SymbolType &&
-    (algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo)||
-     algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo)||
-     algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo)||
-     algMgr->CheckKind("SPATIAL8D", searchWindow, errorInfo)||
-     nl->SymbolValue(searchWindow) == "rect"  ||
-     nl->SymbolValue(searchWindow) == "rect3" ||
-     nl->SymbolValue(searchWindow) == "rect4" ||
-     nl->SymbolValue(searchWindow) == "rect8"),
-    "Operator windowintersectsS expects that the search window\n"
-    "is of TYPE rect, rect3, rect4, rect8 or "
-    "of kind SPATIAL2D, SPATIAL3D, SPATIAL4D, SPATIAL8D.");
-
-  /* handle rtree part of argument */
-  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
-  CHECK_COND(!nl->IsEmpty(rtreeDescription) &&
-             !nl->IsAtom(rtreeDescription) &&
-             nl->ListLength(rtreeDescription) == 4,
-    "Operator windowintersectsS expects a R-Tree with structure "
-    "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a R-Tree list with structure '"+
-    rtreeDescriptionStr+"'.");
-
-  ListExpr rtreeSymbol = nl->First(rtreeDescription),
-           rtreeTupleDescription = nl->Second(rtreeDescription),
-           rtreeKeyType = nl->Third(rtreeDescription),
-           rtreeTwoLayer = nl->Fourth(rtreeDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeKeyType) &&
-    nl->AtomType(rtreeKeyType) == SymbolType &&
-    (algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo)||
-     algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
-     algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo)||
-     algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo)||
-     nl->IsEqual(rtreeKeyType, "rect")||
-     nl->IsEqual(rtreeKeyType, "rect3")||
-     nl->IsEqual(rtreeKeyType, "rect4")||
-     nl->IsEqual(rtreeKeyType, "rect8")),
-   "Operator windowintersectsS expects a R-Tree with key type\n"
-   "of kind SPATIAL2D, SPATIAL3D, SPATIAL4D, SPATIAL8D\n"
-   "or rect, rect3, rect4, rect8.");
-
-  /* handle rtree type constructor */
-  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
-    nl->AtomType(rtreeSymbol) == SymbolType &&
-    (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
-     nl->SymbolValue(rtreeSymbol) == "rtree3" ||
-     nl->SymbolValue(rtreeSymbol) == "rtree4" ||
-     nl->SymbolValue(rtreeSymbol) == "rtree8"
-    ) ,
-   "Operator windowintersectsS expects a R-Tree \n"
-   "of type rtree, rtree3, rtree4 or rtree8.");
-
-  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
-    !nl->IsAtom(rtreeTupleDescription) &&
-    nl->ListLength(rtreeTupleDescription) == 2,
-    "Operator windowintersectsS expects a R-Tree with structure "
-    "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a first list with wrong tuple description in "
-    "structure \n'"+rtreeDescriptionStr+"'.");
-
-  ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);
-  ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeTupleSymbol) &&
-    nl->AtomType(rtreeTupleSymbol) == SymbolType &&
-    nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
-    IsTupleDescription(rtreeAttrList),
-    "Operator windowintersectsS expects a R-Tree with structure "
-    "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))))\n"
-    "but gets a first list with wrong tuple description in "
-    "structure \n'"+rtreeDescriptionStr+"'.");
-
-  string attrTypeRtree_str, attrTypeWindow_str;
-  nl->WriteToString (attrTypeRtree_str, rtreeKeyType);
-  nl->WriteToString (attrTypeWindow_str, searchWindow);
-
-  CHECK_COND(
-    ( algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo) &&
-      nl->IsEqual(searchWindow, "rect") ) ||
-    ( algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo) &&
-      algMgr->CheckKind("SPATIAL2D", searchWindow, errorInfo) ) ||
-    ( nl->IsEqual(rtreeKeyType, "rect") &&
-      nl->IsEqual(searchWindow, "rect") ) ||
-    ( algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo) &&
-      nl->IsEqual(searchWindow, "rect3") ) ||
-    ( algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo) &&
-      algMgr->CheckKind("SPATIAL3D", searchWindow, errorInfo) ) ||
-    ( nl->IsEqual(rtreeKeyType, "rect3") &&
-      nl->IsEqual(searchWindow, "rect3") ) ||
-    ( algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo) &&
-      nl->IsEqual(searchWindow, "rect4") ) ||
-    ( algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo) &&
-      algMgr->CheckKind("SPATIAL4D", searchWindow, errorInfo) ) ||
-    ( nl->IsEqual(rtreeKeyType, "rect4") &&
-      nl->IsEqual(searchWindow, "rect4") ) ||
-    ( algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo) &&
-      nl->IsEqual(searchWindow, "rect8") ) ||
-    ( algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo) &&
-      algMgr->CheckKind("SPATIAL8D", searchWindow, errorInfo) ) ||
-    ( nl->IsEqual(rtreeKeyType, "rect8") &&
-      nl->IsEqual(searchWindow, "rect8") ),
-    "Operator windowintersectsS expects joining attributes of "
-    "same dimension.\nBut gets "+attrTypeRtree_str+
-    " as left type and "+attrTypeWindow_str+" as right type.\n");
-
-  CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
-             nl->AtomType(rtreeTwoLayer) == BoolType,
-   "Operator windowintersectsS expects a R-Tree with structure "
-   "(rtree||rtree3||rtree4||rtree8 (tuple ((a1 t1)...(an tn))) attrtype "
-    "bool)\nbut gets a first list with wrong tuple description in "
-    "structure \n'"+rtreeDescriptionStr+"'.");
-
-  if( nl->BoolValue(rtreeTwoLayer) == true )
+  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 2){
+    return listutils::typeError("Expects exactly 2 arguments.");
+  }
+  /* Split argument in two parts */
+  ListExpr rtreeDescription = nl->First(args);
+  ListExpr searchWindow = nl->Second(args);
+  // first must be an rtree<dim>
+  if(!listutils::isRTreeDescription(rtreeDescription)){
+    return listutils::typeError("Expects 1st argument to be of type "
+                                "'rtree<dim>(<tuple-type>,bool)'.");
+  }
+  // second a type with an MBR
+  if(!(    listutils::isSpatialType(searchWindow)
+        || listutils::isRectangle(searchWindow))){
+    return listutils::typeError("Expects 2nd argument to be of a type of kind "
+      "SPATIAL, SPATIAL3D, SPATIAL4D, SPATIAL8D; or of type 'rect', 'rect3', "
+      "'rect4', or 'rect8'.");
+  }
+  // check for supported rtree dimensionality
+  ListExpr rtreeKeyType = nl->Third(rtreeDescription);
+  if(!(    listutils::isSpatialType(rtreeKeyType)
+        || listutils::isRectangle(rtreeKeyType))){
+    return listutils::typeError("Expects key type of the rtree<dim> passed as "
+      "1st argument to to be of a type of kind "
+      "SPATIAL, SPATIAL3D, SPATIAL4D, SPATIAL8D; or of type 'rect', 'rect3', "
+      "'rect4', or 'rect8'.");
+  }
+  // Check whether key type and rtree dimension match
+  if( !(   (listutils::isKind(rtreeKeyType, "SPATIAL2D")
+             && listutils::isSymbol(searchWindow, "rect"))
+         || (listutils::isKind(rtreeKeyType, "SPATIAL2D")
+             && listutils::isKind(searchWindow, "SPATIAL2D"))
+       ) &&
+      !(   (listutils::isKind(rtreeKeyType, "SPATIAL3D")
+             && listutils::isSymbol(searchWindow, "rect3"))
+         || (listutils::isKind(rtreeKeyType, "SPATIAL3D")
+             && listutils::isKind(searchWindow, "SPATIAL3D"))
+       ) &&
+      !(   (listutils::isKind(rtreeKeyType, "SPATIAL4D")
+             && listutils::isSymbol(searchWindow, "rect4"))
+         || (listutils::isKind(rtreeKeyType, "SPATIAL4D")
+             && listutils::isKind(searchWindow, "SPATIAL4D"))
+       ) &&
+      !(   (listutils::isKind(rtreeKeyType, "SPATIAL8D")
+             && listutils::isSymbol(searchWindow, "rect8"))
+         || (listutils::isKind(rtreeKeyType, "SPATIAL8D")
+             && listutils::isKind(searchWindow, "SPATIAL8D"))
+       )
+    ){
+    return listutils::typeError("Expects same dimensions for the rtree-type "
+                        "(1st argument) and for the key type (2nd argument).");
+  }
+  // construct return type
+  if( nl->BoolValue(nl->Fourth(rtreeDescription)) )
     return
       nl->TwoElemList(
         nl->SymbolAtom("stream"),
@@ -2266,71 +2081,40 @@ Operator gettuples2 (
 */
 ListExpr GetTuplesDblTypeMap(ListExpr args)
 {
-  string errmsg = "Incorrect input for operator gettuplesdbl.";
-  AlgebraManager *algMgr;
-  algMgr = SecondoSystem::GetAlgebraManager();
-
-  string argStr;
-  nl->WriteToString(argStr, args);
-
-  CHECK_COND(!nl->IsEmpty(args) &&
-             !nl->IsAtom(args) &&
-             nl->ListLength(args) == 3,
-    errmsg +
-    "\nOperator gettuplesdbl expects three arguments, but gets '" +
-    argStr + "'.");
-
+  // check argument list length
+  if(nl->IsEmpty(args) || nl->IsAtom(args) || !(nl->ListLength(args) == 3)){
+    return listutils::typeError("Expects exactly 3 arguments.");
+  }
   // Split arguments into three parts
   ListExpr streamDescription = nl->First(args),
            relDescription = nl->Second(args),
            attrnameDescription = nl->Third(args);
-  string streamDescriptionStr, relDescriptionStr, attrnameDescriptionStr;
-
   // Handle the stream part of arguments
-  nl->WriteToString (streamDescriptionStr, streamDescription);
-  if ( !IsStreamDescription(streamDescription) )
+  if ( !listutils::isTupleStream(streamDescription) )
   {
-    ErrorReporter::ReportError( "\nOperator gettuplesdbl expects a valid "
-        "tuplestream as its first argument, but gets '"
-        + streamDescriptionStr + "'." );
-    return nl->TypeError();
+    return listutils::typeError("Expects a valid tuplestream as 1st argument.");
   }
-
   // Handle the rel part of arguments
-  nl->WriteToString (relDescriptionStr, relDescription);
-  if ( !IsRelDescription(relDescription) )
+  if ( !listutils::isRelDescription(relDescription) )
   {
-    ErrorReporter::ReportError( "\nOperator gettuplesdbl expects a valid "
-        "relation as its second argument, but gets '"
-        + relDescriptionStr + "'." );
-        return nl->TypeError();
+    return listutils::typeError("Expects a valid relation as 2nd argument.");
   }
-
   ListExpr sTupleDescription = nl->Second(streamDescription),
            sAttrList = nl->Second(sTupleDescription),
            rTupleDescription = nl->Second(relDescription),
            rAttrList = nl->Second(rTupleDescription);
-
-  nl->WriteToString (attrnameDescriptionStr, attrnameDescription);
-
-  CHECK_COND(nl->IsAtom(attrnameDescription) &&
-    nl->AtomType(attrnameDescription) == SymbolType,
-    errmsg + "\nOperator gettuplesdbl expects as third argument the name "
-    "of the indexed attribute but gets '" + attrnameDescriptionStr + "'" );
-
+  // handle attribute name
+  if(!listutils::isSymbol(attrnameDescription)){
+    return listutils::typeError("Expects the indexed attribute's name as 3rd "
+                                "argument.");
+  }
   string attrName = nl->SymbolValue(attrnameDescription);
-
-  int attrIndex;
   ListExpr attrType;
-
-  CHECK_COND(
-    (attrIndex = FindAttribute(rAttrList, attrName, attrType)) > 0,
-    errmsg +
-    "\nOperator gettuplesdbl expects that the attribute " +
-    attrName + "\npassed as third argument to be part of "
-    "the relation passed as second\n'" +
-    relDescriptionStr + "'.");
-
+  int  attrIndex = listutils::findAttribute(rAttrList, attrName, attrType);
+  if( attrIndex <= 0){
+    return listutils::typeError("Expects the attribute named by the 3rd "
+              "argument being part of the relation passed as 2nd argument.");
+  }
   // Find the attribute with type tid
   ListExpr first, rest, newAttrList, lastNewAttrList;
   int j, tidIndex = 0;
@@ -2349,10 +2133,10 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
     type = nl->SymbolValue(nl->Second(first));
     if (type == "tid")
     {
-      CHECK_COND(tidIndex == 0,
-       "Operator gettuplesdbl expects as first argument a stream with\n"
-       "one and only one attribute of type tid but gets\n'" +
-       streamDescriptionStr + "'.");
+      if( tidIndex != 0){
+        return listutils::typeError("Expects exactly one attribute of type "
+                                    "'tid' in 1st argument.");
+      }
       tidIndex = j;
     }
     else if( type == "int" &&
@@ -2396,17 +2180,16 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
       lastNewAttrList = nl->Append(lastNewAttrList, first);
   }
 
-  CHECK_COND( tidIndex != 0,
-    "Operator gettuplesdbl expects as first argument a stream with\n"
-    "one and only one attribute of type tid but gets\n'" +
-    streamDescriptionStr + "'.");
+  if( tidIndex == 0 ){
+    return listutils::typeError("Expects a stream with one and only one "
+                                "attribute of type tid as 1st argument.");
+  }
 
-  if( !IsTupleDescription(newAttrList) ){
-    ErrorReporter::ReportError("Result after merging tuples is not a "
-                               "valid attribute list (Possible reasons: "
-                               "duplicate attribute names or an attribute "
-                               "type is not of kind DATA)");
-    return nl->TypeError();
+  if( !listutils::isAttrList(newAttrList) ){
+    return listutils::typeError("Result after merging tuples is not a "
+                                "valid attribute list (Possible reasons: "
+                                "duplicate attribute names or an attribute "
+                                "type is not of kind DATA).");
   }
 
   return
@@ -2638,72 +2421,47 @@ Signature is
 */
 ListExpr CreateRTreeBulkLoadTypeMap(ListExpr args)
 {
-  string attrName, relDescriptionStr, argstr;
-  string errmsg = "Incorrect input for operator creatertree_bulkload.";
-  int attrIndex;
-  ListExpr attrType;
-  AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-
-  CHECK_COND(!nl->IsEmpty(args) &&
-      nl->ListLength(args) == 2,
-  errmsg + "\nOperator creatertree_bulkload expects two arguments.");
-
-  ListExpr relDescription = nl->First(args),
-  attrNameLE = nl->Second(args);
-
-  CHECK_COND(nl->IsAtom(attrNameLE) &&
-      nl->AtomType(attrNameLE) == SymbolType,
-  errmsg + "\nThe second argument for operator creatertree_bulkload must be "
-      "the name of the attribute to index.");
-  attrName = nl->SymbolValue(attrNameLE);
-
-  nl->WriteToString (relDescriptionStr, relDescription);
-  if( !IsStreamDescription(relDescription) )
-  {
-    ErrorReporter::ReportError("\nOperator creatertree_bulkload expects a "
-        "valid tuplestream as its first argument, but gets '"
-        + relDescriptionStr + "'.");
-    return nl->TypeError();
+  // check number of parameters
+  if( nl->IsEmpty(args) || nl->ListLength(args) != 2){
+    return listutils::typeError("Expecting exactly 2 arguments.");
   }
-
-  ListExpr tupleDescription = nl->Second(relDescription);
-  ListExpr attrList = nl->Second(tupleDescription);
-  CHECK_COND(
-      (attrIndex = FindAttribute(attrList, attrName, attrType)) > 0,
-  errmsg +
-      "\nOperator creatertree_bulkload expects the attribute " +
-      attrName + "\npassed as second argument to be part of "
-      "the stream description\n'" +
-      relDescriptionStr + "'.");
-
-  CHECK_COND(algMgr->CheckKind("SPATIAL2D", attrType, errorInfo)||
-      algMgr->CheckKind("SPATIAL3D", attrType, errorInfo)||
-      algMgr->CheckKind("SPATIAL4D", attrType, errorInfo)||
-      algMgr->CheckKind("SPATIAL8D", attrType, errorInfo)||
-      nl->IsEqual(attrType, "rect")||
-      nl->IsEqual(attrType, "rect3")||
-      nl->IsEqual(attrType, "rect4")||
-      nl->IsEqual(attrType, "rect8"),
-  errmsg +
-      "\nOperator creatertree_bulkload expects that attribute "+attrName+"\n"
-      "belongs to kinds SPATIAL2D, SPATIAL3D, Spatial4D or SPATIAL8D\n"
-      "or rect, rect3, rect4 and rect8.");
-
+  // split to parameters
+  ListExpr tupleStream = nl->First(args),
+           attrNameLE = nl->Second(args);
+  // check stream
+  if(!listutils::isTupleStream(tupleStream)){
+    return listutils::typeError("Expecting a tuplestream as 1st argument.");
+  }
+  // check key attribute name
+  if(!listutils::isSymbol(attrNameLE)){
+    return listutils::typeError("Expecting an attribute name as 2nd argument.");
+  }
+  string attrName = nl->SymbolValue(attrNameLE);
+  // check if key attribute is from stream
+  ListExpr attrList = nl->Second(nl->Second(tupleStream));
+  ListExpr attrType;
+  int attrIndex = listutils::findAttribute(attrList, attrName, attrType);
+  if(attrIndex <= 0){
+    return listutils::typeError("Expecting the attribute (2nd argument) being "
+                                "part of the tuplestream (1st argument).");
+  }
+  // check for type of key attribute
+  if( !(listutils::isSpatialType(attrType) || listutils::isRectangle(attrType)))
+  {
+      return listutils::typeError("Expecting the key attribute (2nd argument) "
+            "being of kind SPATIAL2D, SPATIAL3D, Spatial4D or SPATIAL8D, of of "
+            "type rect, rect3, rect4, or rect8.");
+  }
   string rtreetype;
-
-  if ( algMgr->CheckKind("SPATIAL2D", attrType, errorInfo) ||
-       nl->IsEqual( attrType, "rect" ) )
-    rtreetype = "rtree";
-  else if ( algMgr->CheckKind("SPATIAL3D", attrType, errorInfo) ||
-            nl->IsEqual( attrType, "rect3" ) )
-    rtreetype = "rtree3";
-  else if ( algMgr->CheckKind("SPATIAL4D", attrType, errorInfo) ||
-            nl->IsEqual( attrType, "rect4" ) )
-    rtreetype = "rtree4";
-  else if ( algMgr->CheckKind("SPATIAL8D", attrType, errorInfo) ||
-            nl->IsEqual( attrType, "rect8" ) )
-    rtreetype = "rtree8";
+  if(    listutils::isKind(attrType, "SPATIAL2D")
+      || listutils::isSymbol(attrType, "rect")){ rtreetype = "rtree"; }
+  else if(    listutils::isKind(attrType, "SPATIAL3D")
+      || listutils::isSymbol(attrType, "rect3")){ rtreetype = "rtree3"; }
+  else if(    listutils::isKind(attrType, "SPATIAL4D")
+      || listutils::isSymbol(attrType, "rect4")){ rtreetype = "rtree4"; }
+  else if(    listutils::isKind(attrType, "SPATIAL8D")
+      || listutils::isSymbol(attrType, "rect8")){ rtreetype = "rtree8"; }
+  else  return listutils::typeError("Unsupported key type.");
 
 /*
 Now we have two possibilities:
@@ -2740,12 +2498,10 @@ and high parameters these two last integer numbers.
       type = nl->SymbolValue(nl->Second(first));
       if (type == "tid")
       {
-        CHECK_COND( tidIndex == 0,
-                    "Operator creatertree_bulkload expects as first "
-                    "argument a stream "
-                    "with\none and only one attribute of type 'tid'\n'"
-                    "but gets\n'" + relDescriptionStr + "'.");
-
+        if( tidIndex != 0 ){
+          return listutils::typeError("Expecting exactly one attribute of type "
+                                      "'tid' in the 1st argument.");
+        }
         tidIndex = j;
       }
       else if( j == nAttrs - 1 && type == "int" &&
@@ -2769,11 +2525,10 @@ and high parameters these two last integer numbers.
       }
       j++;
     }
-    CHECK_COND( tidIndex != 0,
-                "Operator creatertree_bulkload expects as first "
-                "argument a stream "
-                "with\none and only one attribute of type 'tid'\n'"
-                "but gets\n'" + relDescriptionStr + "'.");
+    if( tidIndex == 0 ){
+      return listutils::typeError("Expecting exactly one attribute of type "
+                                  "'tid' in the 1st argument.");
+    }
 
     return
         nl->ThreeElemList(
@@ -3209,117 +2964,62 @@ This operators can be used to inquire some basic R-tree statistics.
 */
 
 /*
-5.9.1 Type Mapping Functions for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+5.9.1 Type Mapping Function for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
 
 */
 ListExpr RTree2IntTypeMap(ListExpr args)
 {
-  string rtreeDescriptionStr, argstr;
-  nl->WriteToString (argstr, args);
-  string errmsg = "Incorrect input '" + argstr +
-                  "' for rtree inquiry operator.";
-
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 1, errmsg);
-
+  if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 1){
+    return listutils::typeError("Expected exactly 1 argument.");
+  }
   ListExpr rtreeDescription = nl->First(args);
-  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
-
-  CHECK_COND(!nl->IsEmpty(rtreeDescription), errmsg); // X
-  CHECK_COND(!nl->IsAtom(rtreeDescription), errmsg);  // X
-  ListExpr rtreeSymbol = nl->First(rtreeDescription);
-
-  /* handle rtree type constructor */
-  CHECK_COND(
-      nl->IsAtom(rtreeSymbol) &&
-      nl->AtomType(rtreeSymbol) == SymbolType &&
-      (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
-      nl->SymbolValue(rtreeSymbol) == "rtree3" ||
-      nl->SymbolValue(rtreeSymbol) == "rtree4" ||
-      nl->SymbolValue(rtreeSymbol) == "rtree8") ,
-  "Rtree inquiry operator expects a R-Tree \n"
-      "of type rtree, rtree3, rtree4 or rtree8.");
-
+  if( !listutils::isRTreeDescription(rtreeDescription ) ){
+    return listutils::typeError("Expected rtree<dim> as 1st argument.");
+  }
   return nl->SymbolAtom("int");
 }
 
 /*
-5.9.1 Type Mapping Functions for ~treeheight~, ~no\_nodes~, ~no\_entries~, ~bbox~
+5.9.1 Type Mapping Function for ~getFileInfo~
 
 */
 ListExpr RTree2TextTypeMap(ListExpr args)
 {
-  string rtreeDescriptionStr, argstr;
-  nl->WriteToString (argstr, args);
-  string errmsg = "Incorrect input '" + argstr +
-                  "' for rtree inquiry operator.";
-
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 1, errmsg);
-
+  if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 1){
+    return listutils::typeError("Expected exactly 1 argument.");
+  };
   ListExpr rtreeDescription = nl->First(args);
-  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
-
-  CHECK_COND(!nl->IsEmpty(rtreeDescription), errmsg); // X
-  CHECK_COND(!nl->IsAtom(rtreeDescription), errmsg);  // X
-  ListExpr rtreeSymbol = nl->First(rtreeDescription);
-
-  /* handle rtree type constructor */
-  CHECK_COND(
-      nl->IsAtom(rtreeSymbol) &&
-      nl->AtomType(rtreeSymbol) == SymbolType &&
-      (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
-      nl->SymbolValue(rtreeSymbol) == "rtree3" ||
-      nl->SymbolValue(rtreeSymbol) == "rtree4" ||
-      nl->SymbolValue(rtreeSymbol) == "rtree8") ,
-  "Rtree inquiry operator expects a R-Tree \n"
-      "of type rtree, rtree3, rtree4 or rtree8.");
-
+  if( !listutils::isRTreeDescription(rtreeDescription ) ){
+    return listutils::typeError("Expected rtree<dim> as 1st argument.");
+  }
   return nl->SymbolAtom("text");
 }
 
 
+/*
+5.9.1 Type Mapping Function for ~bbox~
+
+*/
 ListExpr RTree2RectTypeMap(ListExpr args)
 {
-  string rtreeDescriptionStr, argstr;
-  nl->WriteToString (argstr, args);
-  string errmsg = "Incorrect input '" + argstr +
-      "' for rtree inquiry operator.";
-
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 1, errmsg);
-
+  if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 1){
+    return listutils::typeError("Expected exactly 1 argument.");
+  };
   ListExpr rtreeDescription = nl->First(args);
-  CHECK_COND(nl->ListLength(rtreeDescription) == 4, errmsg);
-  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
-
-  CHECK_COND(!nl->IsEmpty(rtreeDescription), errmsg); // X
-  CHECK_COND(!nl->IsAtom(rtreeDescription), errmsg);  // X
+  if( !listutils::isRTreeDescription(rtreeDescription ) ){
+    return listutils::typeError("Expected rtree<dim> as 1st argument.");
+  }
   ListExpr rtreeSymbol = nl->First(rtreeDescription);
-
-  /* handle rtree type constructor */
-  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
-      nl->AtomType(rtreeSymbol) == SymbolType &&
-      (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
-      nl->SymbolValue(rtreeSymbol) == "rtree3" ||
-      nl->SymbolValue(rtreeSymbol) == "rtree4" ||
-      nl->SymbolValue(rtreeSymbol) == "rtree8") ,
-  "Rtree inquiry operator expects a R-Tree \n"
-      "of type rtree, rtree3, rtree4 or rtree8.");
-
   if(nl->SymbolValue(rtreeSymbol) == "rtree")
     return nl->SymbolAtom("rect");
-  if(nl->SymbolValue(rtreeSymbol) == "rtree3")
+  else if(nl->SymbolValue(rtreeSymbol) == "rtree3")
     return nl->SymbolAtom("rect3");
-  if(nl->SymbolValue(rtreeSymbol) == "rtree4")
+  else if(nl->SymbolValue(rtreeSymbol) == "rtree4")
     return nl->SymbolAtom("rect4");
-  if(nl->SymbolValue(rtreeSymbol) == "rtree8")
+  else if(nl->SymbolValue(rtreeSymbol) == "rtree8")
     return nl->SymbolAtom("rect8");
-
-  return nl->SymbolAtom("typeerror");
+  else
+    return listutils::typeError("Unsupported rtee-type.");
 }
 
 /*
@@ -3560,93 +3260,28 @@ Signature is
 
 ListExpr RTreeNodesTypeMap(ListExpr args)
 {
-  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-
-  string errmsg = "Incorrect input for operator nodes.";
-  string rtreeDescriptionStr;
-
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 1, errmsg);
-
-  /* handle rtree part of argument */
+  if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 1){
+    return listutils::typeError("Expected exactly 1 argument.");
+  };
   ListExpr rtreeDescription = nl->First(args);
-  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
-  CHECK_COND(!nl->IsEmpty(rtreeDescription) &&
-      !nl->IsAtom(rtreeDescription) &&
-      nl->ListLength(rtreeDescription) == 4,
-  "Operator nodes expects a R-Tree with structure "
-      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
-      "bool)\nbut gets a R-Tree list with structure '"
-      +rtreeDescriptionStr+"'.");
-
-  ListExpr rtreeSymbol = nl->First(rtreeDescription),
-  rtreeTupleDescription = nl->Second(rtreeDescription),
-  rtreeKeyType = nl->Third(rtreeDescription),
-  rtreeTwoLayer = nl->Fourth(rtreeDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeKeyType) &&
-      nl->AtomType(rtreeKeyType) == SymbolType &&
-      (algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo)||
-      algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
-      algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo)||
-      nl->IsEqual(rtreeKeyType, "rect")||
-      nl->IsEqual(rtreeKeyType, "rect3")||
-      nl->IsEqual(rtreeKeyType, "rect4")),
-  "Operator nodes expects a R-Tree with key type\n"
-      "of kind SPATIAL2D, SPATIAL3D, and SPATIAL4D\n"
-      "or rect, rect3, and rect4.");
-
+  if( !listutils::isRTreeDescription(rtreeDescription ) ){
+    return listutils::typeError("Expected rtree<dim> as 1st argument.");
+  }
+  ListExpr rtreeKeyType = nl->Third(rtreeDescription);
   ListExpr MBR_ATOM;
-  if(         nl->IsEqual(rtreeKeyType, "rect")
-           || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
-    MBR_ATOM = nl->SymbolAtom("rect");
-  else if(    nl->IsEqual(rtreeKeyType, "rect3")
-           || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
-    MBR_ATOM = nl->SymbolAtom("rect3");
-  else if(    nl->IsEqual(rtreeKeyType, "rect4")
-           || algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo))
-    MBR_ATOM = nl->SymbolAtom("rect4");
-  else if(    nl->IsEqual(rtreeKeyType, "rect8")
-           || algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo))
-    MBR_ATOM = nl->SymbolAtom("rect8");
-
-  /* handle rtree type constructor */
-  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
-      nl->AtomType(rtreeSymbol) == SymbolType &&
-      (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
-      nl->SymbolValue(rtreeSymbol) == "rtree3" ||
-      nl->SymbolValue(rtreeSymbol) == "rtree4") ,
-  "Operator nodes expects a R-Tree \n"
-      "of type rtree, rtree3 or rtree4.");
-
-  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
-      !nl->IsAtom(rtreeTupleDescription) &&
-      nl->ListLength(rtreeTupleDescription) == 2,
-  "Operator nodes expects a R-Tree with structure "
-      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
-      "bool)\nbut gets a first list with wrong tuple description in "
-      "structure \n'"+rtreeDescriptionStr+"'.");
-
-  ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);
-  ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeTupleSymbol) &&
-      nl->AtomType(rtreeTupleSymbol) == SymbolType &&
-      nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
-      IsTupleDescription(rtreeAttrList),
-  "Operator nodes expects a R-Tree with structure "
-      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
-      "bool)\nbut gets a first list with wrong tuple description in "
-      "structure \n'"+rtreeDescriptionStr+"'.");
-
-  CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
-      nl->AtomType(rtreeTwoLayer) == BoolType,
-  "Operator nodes expects a R-Tree with structure "
-      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
-      "bool)\nbut gets a first list with wrong tuple description in "
-      "structure \n'"+rtreeDescriptionStr+"'.");
+  if(    listutils::isKind(rtreeKeyType, "SPATIAL2D")
+      || listutils::isSymbol(rtreeKeyType, "rect") ){
+      MBR_ATOM = nl->SymbolAtom("rect"); }
+  else if(    listutils::isKind(rtreeKeyType, "SPATIAL3D")
+      || listutils::isSymbol(rtreeKeyType, "rect3") ){
+      MBR_ATOM = nl->SymbolAtom("rect3"); }
+  else if(    listutils::isKind(rtreeKeyType, "SPATIAL4D")
+      || listutils::isSymbol(rtreeKeyType, "rect4") ){
+      MBR_ATOM = nl->SymbolAtom("rect4"); }
+  else if(    listutils::isKind(rtreeKeyType, "SPATIAL8D")
+      || listutils::isSymbol(rtreeKeyType, "rect8") ){
+      MBR_ATOM = nl->SymbolAtom("rect8"); }
+  else return listutils::typeError("Unsupported rtree-type.");
 
   ListExpr reslist =
    nl->TwoElemList(
@@ -3669,9 +3304,6 @@ ListExpr RTreeNodesTypeMap(ListExpr args)
      )
     )
    );
-//   string resstring;
-//   nl->WriteToString (resstring, reslist);
-//   cout << "RTreeNodesTypeMap(): reslist = " << resstring << endl;
   return reslist;
 }
 
@@ -3958,93 +3590,28 @@ int RTreeEntriesSelect (ListExpr args)
 
 ListExpr RTreeEntriesTypeMap(ListExpr args)
 {
-  AlgebraManager *algMgr = SecondoSystem::GetAlgebraManager();
-  ListExpr errorInfo = nl->OneElemList( nl->SymbolAtom( "ERRORS" ) );
-
-  string errmsg = "Incorrect input for operator entries.";
-  string rtreeDescriptionStr;
-
-  CHECK_COND(!nl->IsEmpty(args), errmsg);
-  CHECK_COND(!nl->IsAtom(args), errmsg);
-  CHECK_COND(nl->ListLength(args) == 1, errmsg);
-
-  /* handle rtree part of argument */
+  if(nl->IsEmpty(args) || nl->IsAtom(args) || nl->ListLength(args) != 1){
+    return listutils::typeError("Expected exactly 1 argument.");
+  };
   ListExpr rtreeDescription = nl->First(args);
-  nl->WriteToString (rtreeDescriptionStr, rtreeDescription);
-  CHECK_COND(!nl->IsEmpty(rtreeDescription) &&
-      !nl->IsAtom(rtreeDescription) &&
-      nl->ListLength(rtreeDescription) == 4,
-  "Operator entries expects a R-Tree with structure "
-      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
-      "bool)\nbut gets a R-Tree list with structure '"
-      +rtreeDescriptionStr+"'.");
-
-  ListExpr rtreeSymbol = nl->First(rtreeDescription),
-  rtreeTupleDescription = nl->Second(rtreeDescription),
-  rtreeKeyType = nl->Third(rtreeDescription),
-  rtreeTwoLayer = nl->Fourth(rtreeDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeKeyType) &&
-      nl->AtomType(rtreeKeyType) == SymbolType &&
-      (algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo)||
-      algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo)||
-      algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo)||
-      nl->IsEqual(rtreeKeyType, "rect")||
-      nl->IsEqual(rtreeKeyType, "rect3")||
-      nl->IsEqual(rtreeKeyType, "rect4")),
-  "Operator entries expects a R-Tree with key type\n"
-      "of kind SPATIAL2D, SPATIAL3D, and SPATIAL4D\n"
-      "or rect, rect3, and rect4.");
-
+  if( !listutils::isRTreeDescription(rtreeDescription ) ){
+    return listutils::typeError("Expected rtree<dim> as 1st argument.");
+  }
+  ListExpr rtreeKeyType = nl->Third(rtreeDescription);
   ListExpr MBR_ATOM;
-  if(         nl->IsEqual(rtreeKeyType, "rect")
-           || algMgr->CheckKind("SPATIAL2D", rtreeKeyType, errorInfo))
-    MBR_ATOM = nl->SymbolAtom("rect");
-  else if(    nl->IsEqual(rtreeKeyType, "rect3")
-           || algMgr->CheckKind("SPATIAL3D", rtreeKeyType, errorInfo))
-    MBR_ATOM = nl->SymbolAtom("rect3");
-  else if(    nl->IsEqual(rtreeKeyType, "rect4")
-           || algMgr->CheckKind("SPATIAL4D", rtreeKeyType, errorInfo))
-    MBR_ATOM = nl->SymbolAtom("rect4");
-  else if(    nl->IsEqual(rtreeKeyType, "rect8")
-           || algMgr->CheckKind("SPATIAL8D", rtreeKeyType, errorInfo))
-    MBR_ATOM = nl->SymbolAtom("rect8");
-
-  /* handle rtree type constructor */
-  CHECK_COND(nl->IsAtom(rtreeSymbol) &&
-      nl->AtomType(rtreeSymbol) == SymbolType &&
-      (nl->SymbolValue(rtreeSymbol) == "rtree"  ||
-      nl->SymbolValue(rtreeSymbol) == "rtree3" ||
-      nl->SymbolValue(rtreeSymbol) == "rtree4") ,
-  "Operator entries expects a R-Tree \n"
-      "of type rtree, rtree3 or rtree4.");
-
-  CHECK_COND(!nl->IsEmpty(rtreeTupleDescription) &&
-      !nl->IsAtom(rtreeTupleDescription) &&
-      nl->ListLength(rtreeTupleDescription) == 2,
-  "Operator entries expects a R-Tree with structure "
-      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
-      "bool)\nbut gets a first list with wrong tuple description in "
-      "structure \n'"+rtreeDescriptionStr+"'.");
-
-  ListExpr rtreeTupleSymbol = nl->First(rtreeTupleDescription);
-  ListExpr rtreeAttrList = nl->Second(rtreeTupleDescription);
-
-  CHECK_COND(nl->IsAtom(rtreeTupleSymbol) &&
-      nl->AtomType(rtreeTupleSymbol) == SymbolType &&
-      nl->SymbolValue(rtreeTupleSymbol) == "tuple" &&
-      IsTupleDescription(rtreeAttrList),
-  "Operator entries expects a R-Tree with structure "
-      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
-      "bool)\nbut gets a first list with wrong tuple description in "
-      "structure \n'"+rtreeDescriptionStr+"'.");
-
-  CHECK_COND(nl->IsAtom(rtreeTwoLayer) &&
-      nl->AtomType(rtreeTwoLayer) == BoolType,
-  "Operator entries expects a R-Tree with structure "
-      "(rtree||rtree3||rtree4 (tuple ((a1 t1)...(an tn))) attrtype "
-      "bool)\nbut gets a first list with wrong tuple description in "
-      "structure \n'"+rtreeDescriptionStr+"'.");
+  if(    listutils::isKind(rtreeKeyType, "SPATIAL2D")
+      || listutils::isSymbol(rtreeKeyType, "rect") ){
+      MBR_ATOM = nl->SymbolAtom("rect"); }
+  else if(    listutils::isKind(rtreeKeyType, "SPATIAL3D")
+      || listutils::isSymbol(rtreeKeyType, "rect3") ){
+      MBR_ATOM = nl->SymbolAtom("rect3"); }
+  else if(    listutils::isKind(rtreeKeyType, "SPATIAL4D")
+      || listutils::isSymbol(rtreeKeyType, "rect4") ){
+      MBR_ATOM = nl->SymbolAtom("rect4"); }
+  else if(    listutils::isKind(rtreeKeyType, "SPATIAL8D")
+      || listutils::isSymbol(rtreeKeyType, "rect8") ){
+      MBR_ATOM = nl->SymbolAtom("rect8"); }
+  else return listutils::typeError("Unsupported rtree-type.");
 
   ListExpr reslist =
    nl->TwoElemList(
