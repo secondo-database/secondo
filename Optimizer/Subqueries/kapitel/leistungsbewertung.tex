@@ -85,6 +85,7 @@ where
 Die dritte temporäre Relation wird aus dem Equi-Join der ersten und zweiten temporären Relationen und Berechnung der Aggregation gebildet. Man beachte die Attributnamen mit \enquote{\_ps}. Diese sind notwendig, da sich Optimierer und \textsc{Secondo} in der Syntax für umbenannte Tupel unterscheiden. Es muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden. 
 
 \begin{lstlisting}[caption=dritte temporäre Relation zu Q2,label=Q2:trelxx3]
+trelxx3 = 
 select [pspartkey_ps, min(pssupplycost_ps) as var1] 
 from [trelxx1, trelxx2] 
 where [ppartkey = pspartkey_ps] 
@@ -135,9 +136,26 @@ pssupplycost = (
 
 wurde durch die zwei Prädikate \sql{pssupplycost = trelxx4:var1} und \sql{ppartkey = trelxx4:pspartkey\_ps} ersetzt. Das erste der beiden Prädikate ergibt sich direkt aus dem geschachtelten Prädikat, während das zweite Prädikat die Übernahme des korrelierten Prädikats in die endgültige Abfrage darstellt. Zusätzlich wurde die neue Relation trelxx3 in die FROM-Klausel aufgenommen. Alle nicht korrelierten Prädikate der Unterabfrage wurden bereits bei der Erstellung der Relation trelxx3 berücksichtigt. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate. 
 
-Der Optimierer berechnet für Skalierungsfaktor 0,0001 Kosten von 528,18 für die entschachtelte Ausführung und 481,189. Dies entspricht auch den tatsächlichen Laufzeiten. Die erneute Ausführung der entschachtelten Variante ist wie man sehen kann schneller, da hier die bereits erstellten temporären Relationen wiederverwendet werden. Die Laufzeit für deren Erstellung entfällt hier also, was sich auch an den Laufzeiten ablesen lässt. Bei der iterativen Ausführung entfallen bei der zweiten Ausführung nur die Ermittlung der Selektivitäten, was sich an der kürzeren Laufzeit der Lookup-Phase erkennen lässt.
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}lrrrr@{}} \toprule
+& \multicolumn{4}{c}{Laufzeit in ms} \\ \cmidrule(l){2-5}
+& \multicolumn{2}{c}{iterativ} & \multicolumn{2}{c}{entschachtelt} \\ 
+Phase & \multicolumn{1}{c}{kalt} & warm & \multicolumn{1}{c}{kalt} & warm\\ \midrule
+Rewrite & 1 & 1 & 1138 & 1 \\
+Lookup & 275 & 38 & 3 & 3 \\
+QueryToPlan & 371 & 398 & 903 & 937 \\
+Execute & 1440 & 1480 & 390 & 401 \\
+\cmidrule(l){1-5} 
+Total & 2087 & 1917 & 2434 & 1342 \\
+\bottomrule\end{tabular}
+  \caption{Detaillierte Aufschlüsselung der Laufzeit von Q2 bei Skalierungsfaktor = 0.0001 der DB}
+  \label{tab:Q2 Laufzeit}
+\end{table}
 
-\pgfplotsset{every x tick label/.style={below, yshift=-0.25em, rotate=30, xshift=-2em}}
+Der Optimierer berechnet für Skalierungsfaktor 0,0001 Kosten von 528,18 für die entschachtelte und 481,189 für die iterative Ausführung. Dies entspricht in etwa dem tatsächlichen Verhältnis der Laufzeiten, wie man Tabelle \ref{tab:Q2 Laufzeit} entnehmen kann. Die erneute Ausführung der entschachtelten Variante ist wie man sehen kann schneller, da hier die bereits erstellten temporären Relationen wiederverwendet werden. Die Laufzeit für deren Erstellung entfällt hier also, was sich auch an den Laufzeiten ablesen lässt. Bei der iterativen Ausführung entfallen bei der zweiten Ausführung nur die Ermittlung der Selektivitäten, was sich an der kürzeren Laufzeit der Lookup-Phase erkennen lässt.
+
+\pgfplotsset{every x tick label/.style={below, yshift=-0.25em, rotate=30, xshift=-1.5em}}
 
 \begin{tikzpicture}
 \begin{axis}[
@@ -161,24 +179,41 @@ ybar stacked,
 \end{axis}
 \end{tikzpicture}
 
-A = entschachtelte Ausführung, B ist iterativ geschachtelte Ausführung. Wie man der Graphik entnehmen kann, 
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+%axis y line=left,
+ylabel=Sekunden,
+xlabel=Skalierungsfaktor,
+xlabel style={yshift=-2.5em},
+xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},%0.0001,0.0002,0.0004,0.0008,0.0016,0.0032,0.0064},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+%area legend,
+anchor=east,legend columns=1},
+scaled x ticks=base 10:0,
+%ybar stacked,
+sharp plot
+]
 
-\begin{table}[h]
-\centering
-\begin{tabular}{@{}lrrrr@{}} \toprule
-& \multicolumn{4}{c}{Laufzeit in ms} \\ \cmidrule(l){2-5}
-& \multicolumn{2}{c}{iterativ} & \multicolumn{2}{c}{entschachtelt} \\ 
-Phase & \multicolumn{1}{c}{kalt} & warm & \multicolumn{1}{c}{kalt} & warm\\ \midrule
-Rewrite & 1 & 1 & 1138 & 1 \\
-Lookup & 275 & 38 & 3 & 3 \\
-QueryToPlan & 371 & 398 & 903 & 937 \\
-Execute & 1440 & 1480 & 390 & 401 \\
-\cmidrule(l){1-5} 
-Total & 2087 & 1917 & 2434 & 1342 \\
-\bottomrule\end{tabular}
-  \caption{Laufzeit Q2 bei Skalierungsfaktor = 0.0001 der DB}
-  \label{tab_runtime_with_selectivity}
-\end{table}
+\addplot coordinates {
+(0.0001,	3.952	)(0.0002,	2.313	)(0.0004,	18.851	)(0.0008,	8.664	)(0.0016,	9.729	)(0.0032,	14.456	)(0.0064,	22.018	)(0.0128,	64.024	)};
+\addplot coordinates {
+(0.0001,	0.278	)(0.0002,	0.282	)(0.0004,	0.274	)(0.0008,	2.368	)(0.0016,	3.255	)(0.0032,	6.822	)(0.0064,	9.666	)(0.0128,	33.945	)};
+\addplot coordinates {(0.0001,	2.011	)(0.0002,	2.125	)(0.0004,	2.084	)(0.0008,	9.129	)(0.0016,	6.241	)(0.0032,	35.086	)(0.0064,	308.269	)(0.0128,	2588.051	)};
+\addplot coordinates {(0.0001,	1.680	)(0.0002,	1.644	)(0.0004,	1.722	)(0.0008,	8.590	)(0.0016,	5.993	)(0.0032,	35.228	)(0.0064,	306.023	)(0.0128,	2528.331	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+\end{axis}
+\end{tikzpicture}
+\caption{Laufzeit von Q2 für die Ausführungstrategien nach Skalierungsfaktor}
+\label{plot:Q2 line}
+\end{figure}
+
+Während die Laufzeit für die entschachtelte Ausführung nur linear ansteigt, wächst die Laufzeit für die iterative Ausführung exponentiell. Schon bei einem Skalierungsfaktor von 0.0064 verringert sich die Laufzeit der Abfrage durch Entschachtelung um eine Größenordnung. Bei 
+
 
 \subsection{TPC-D Q4}
 Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. Es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf.
@@ -270,6 +305,37 @@ ybar stacked,
 \legend{Rewrite,Lookup,QueryToPlan,Execute}
 \end{axis}
 \end{tikzpicture}
+
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Sekunden,
+xlabel=Skalierungsfaktor,
+xlabel style={yshift=-2.5em},
+xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+anchor=east,legend columns=1},
+scaled x ticks=base 10:0,
+sharp plot
+]
+\addplot coordinates {
+(0.0001,	4.739	)(0.0002,	4.235	)(0.0004,	6.775	)(0.0008,	11.343	)(0.0016,	29.67	)(0.0032,	9.826	)(0.0064,	22.889	)(0.0128,	70.272	)};
+\addplot coordinates {
+(0.0001,	0.967	)(0.0002,	1.279	)(0.0004,	2.654	)(0.0008,	6.953	)(0.0016,	25.047	)(0.0032,	4.656	)(0.0064,	16.461	)(0.0128,	62.472	)};
+\addplot coordinates {
+(0.0001,	1.027	)(0.0002,	1.168	)(0.0004,	1.826	)(0.0008,	4.129	)(0.0016,	12.055	)(0.0032,	51.161	)(0.0064,	215.78	)(0.0128,	879.534	)};
+\addplot coordinates {
+(0.0001,	0.963	)(0.0002,	1.078	)(0.0004,	1.728	)(0.0008,	3.965	)(0.0016,	11.935	)(0.0032,	51.666	)(0.0064,	215.237	)(0.0128,	847.093	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+\end{axis}
+\end{tikzpicture}
+\caption{Laufzeit von Q4 für die Ausführungstrategien nach Skalierungsfaktor}
+\label{plot:Q4 line}
+\end{figure}
 
 \subsection{TPC-D Q7}
 Diese Abfrage listet für zwei gewählte Länder den Wert der versandten Waren. Es wird Wert der Waren der zwischen Lieferanten und Kunden länderübergreifend versandt wurde ausgegeben, gruppiert nach Land des Lieferanten, Land des Kunden und Jahr. 
