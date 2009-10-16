@@ -941,20 +941,22 @@ areAttributesOf(Attr, Rels) :-
 areAttributesOf([ Attr | Rest ], Rels) :-
   isAttributeOf(Attr, Rels),
   areAttributesOf(Rest, Rels).
+	
+isAttributeOf(Alias:Attr, Rel as Alias) :-
+  relation(Rel, List),
+  downcase_atom(Attr, DCAttr),	
+  member(DCAttr, List).	
 
 isAttributeOf(Attr, Rel) :-
-  not(is_list(Rel)),
-  relation(Rel, List),
-  downcase_atom(Attr, DCAttr),
-  member(DCAttr, List).
-
-isAttributeOf(Alias:Attr, Rel as Alias) :-
+  atomic(Attr),
+  not(is_list(Rel)),	
   relation(Rel, List),
   downcase_atom(Attr, DCAttr),
   member(DCAttr, List).
 
 isAttributeOf(Attr, [ Rel | Rest ]) :-
   (( relation(Rel, List),
+	atomic(Attr),
   downcase_atom(Attr, DCAttr),
   member(DCAttr, List)) ;
   isAttributeOf(Attr, Rest)).
@@ -962,6 +964,7 @@ isAttributeOf(Attr, [ Rel | Rest ]) :-
 isAttributeOf(Attr, [ Rel as Alias | Rest ]) :-
   (( relation(Rel, List),
   alias(Alias, UnaliasedAttr, Attr),
+	atomic(UnaliasedAttr),
   downcase_atom(UnaliasedAttr, DCAttr),
   member(DCAttr, List)) ;
   isAttributeOf(Attr, Rest)).
