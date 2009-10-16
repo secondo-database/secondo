@@ -1245,7 +1245,7 @@ opSignature(scalerect, rectangle, [T|FactorList],T,[]) :-
 2.7.10 StreamAlgebra
 
 */
-opSignature(count, stream, [[stream,T]],int,[block,exp]) :- isData(T), !.
+opSignature(count, stream, [[stream,T]],int,[block,exp,aggr]) :- isData(T), !.
 opSignature(printstream, stream, [[stream,T]],[stream,T],[sidefx]) :-
   (isData(T) ; T = [tuple,_]), !.
 opSignature(transformstream,stream,[[stream,T]],[stream,[tuple,[[elem,T]]]],
