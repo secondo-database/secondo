@@ -1279,7 +1279,8 @@ the stpattern predicate
 */
 plan_to_atom( pattern(NPredList, ConstraintList) , Result):-
 	namedPredList_to_atom(NPredList, NPredList2),
-	list_to_atom(ConstraintList, ConstraintList2),
+	((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
+        (plan_to_atom(ConstraintList, ConstraintList2))),
 	concat_atom(['. stpattern[', NPredList2, '; ', ConstraintList2, ']'],'',  Result),
 	!.
 
