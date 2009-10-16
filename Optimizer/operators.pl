@@ -1775,8 +1775,9 @@ opSignature(sample, extrelation, [[rel,[tuple,X]],int,real,int],
 opSignature(group, extrelation, [[stream, X]],[rel,X],[typemapop]).
 opSignature(cancel, extrelation, [[stream,X],[map,X,bool]],[stream,X],[]).
 opSignature(extract, extrelation, [[stream,[tuple,AL]],Attr],AType,[aggr,exp]) :-
-  ( not(optimizerOption(determinePredSig)) ; is_list(AL)),
+  (not(optimizerOption(determinePredSig)); is_list(AL)), 
   memberchk([Attr,AType],AL),!.
+
 opSignature(extend,extrelation,[[stream,[tuple,AL]],ExtL],[stream,[tuple,RL]],
         []):-
   is_list(ExtL), ground([[stream,[tuple,AL]],ExtL]),
@@ -2466,8 +2467,10 @@ they are indended to be used with the optimizer.
 NearestNeighbor Algebra
 
 */
-%Faked operator
-opSignature(isknn, nearestneighbor, [int, int, mpoint, string], mbool, []).
+
+%Faked operator 
+opSignature(isknn, nearestneighbor, [IDType, int, mpoint, string, string, string, int], mbool, []):-
+  memberchk(IDType,[int, real, string]), !.
 
 
 % Section:Start:opSignature_5_e
