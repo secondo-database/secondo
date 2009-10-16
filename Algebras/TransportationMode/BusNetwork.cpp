@@ -2855,6 +2855,22 @@ Instant& queryinstant,double& wait_time)
   //find all edges start from node id1, if time interval is given, filter
   //all edges start time earlier than it, no heuristic value
 
+
+//get the end point
+  /*Point end_point;
+  CcInt* end_node_id = new CcInt(true,id2);
+  BTreeIterator* bt_iter_edge = btree_bus_edge_v2->ExactMatch(end_node_id);
+  while(bt_iter_edge->Next()){
+    Tuple* edge_tuple = bus_edge->GetTuple(bt_iter_edge->GetId());
+    Point* end_p = (Point*)edge_tuple->GetAttribute(P2);
+    end_point = *end_p;
+    edge_tuple->DeleteIfAllowed();
+    break;
+  }
+  delete end_node_id;
+  delete bt_iter_edge;*/
+
+
   //to control that one edge is not expanded more than once
   vector<bool> edge_flag;
 //  for(int i = 0; i < busedge->GetNoTuples() + 1;i++)
@@ -2881,6 +2897,8 @@ Instant& queryinstant,double& wait_time)
     Periods* peri = (Periods*)t->GetAttribute(DEF_T);
     CcInt* rpid = (CcInt*)t->GetAttribute(RPID);
     CcInt* rid = (CcInt*)t->GetAttribute(PID);
+    Point* endp = (Point*)t->GetAttribute(P2);
+
     const Interval<Instant>* interval;
     peri->Get(0,interval);
     if(path.size() != 0){ //middle stop
@@ -2909,6 +2927,10 @@ Instant& queryinstant,double& wait_time)
             Elem e(bt_iter_edge_v1->GetId(),*interval,
                    start_node->GetIntval());
             e.delta_t = (interval->end-interval_cur->end).ToDouble();
+/////////////////////////
+//            e.delta_t_pre = e.delta_t;
+//            e.delta_t += endp->Distance(end_point)/maxspeed;
+/////////////////
             e.e_node_id = end_node->GetIntval();//end node id
             e.pre_edge_tid = 0;
             e.rpid = rpid->GetIntval();
@@ -2916,7 +2938,6 @@ Instant& queryinstant,double& wait_time)
             if(edge_flag[bt_iter_edge_v1->GetId()]){
               tmp_list.push(e);
               edge_flag[bt_iter_edge_v1->GetId()] = false;
-//              e.Print2();
             }
 
         }
@@ -2934,6 +2955,10 @@ Instant& queryinstant,double& wait_time)
                   start_node->GetIntval());
 
         e.delta_t = (interval->end-queryinstant).ToDouble();
+///////////
+//        e.delta_t_pre = e.delta_t;
+//        e.delta_t += endp->Distance(end_point)/maxspeed;
+/////////
         e.e_node_id = end_node->GetIntval();//end node id
         e.pre_edge_tid = 0;
         e.rpid = rpid->GetIntval();
@@ -3015,6 +3040,8 @@ Instant& queryinstant,double& wait_time)
       Periods* next_def_t = (Periods*)t->GetAttribute(DEF_T);
       CcInt* rpid = (CcInt*)t->GetAttribute(RPID);
       CcInt* rid = (CcInt*)t->GetAttribute(PID);
+      Point* endp = (Point*)t->GetAttribute(P2);
+
       const Interval<Instant>* interval_next;
       next_def_t->Get(0,interval_next);
      //optimize-3  filter edge by their start time
@@ -3033,6 +3060,14 @@ Instant& queryinstant,double& wait_time)
             e.pre_eid = expansion_count - 1;
             e.delta_t = top.delta_t +
                           (interval_next->end-interval_cur->end).ToDouble();
+
+////////////////////////////////
+//            e.delta_t = top.delta_t_pre +
+//                         (interval_next->end-interval_cur->end).ToDouble();
+//            e.delta_t_pre = e.delta_t;
+//            e.delta_t += endp->Distance(end_point)/maxspeed;
+////////////////////////////////////
+
             e.rid = rid->GetIntval();
             e.e_node_id = end_node_next->GetIntval();
             e.pre_edge_tid = top.edge_tuple_id;
