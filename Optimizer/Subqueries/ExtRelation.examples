@@ -172,6 +172,13 @@ Example  : query plz sample[500, 0.0001] count
 Result   : 500
 
 
+Operator : sample
+Number   : 2
+Signature: (rel x) int real int -> (stream x)
+Example  : query plz sample[500, 0.0001, 3] count
+Result   : 500
+
+
 Operator : sort
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> (stream (tuple([a1:d1, ... ,an:dn])))
@@ -196,7 +203,7 @@ Operator : smouterjoin
 Number   : 1
 Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
 Example  : query Orte feed {o} plz feed {p} smouterjoin[Ort_o, Ort_p] count
-Result   : 10052
+Result   : 41472
 
 Operator : sum
 Number   : 1
@@ -232,16 +239,16 @@ Example  : query ten feed {a} ten feed {b} symmproductextend[prod: .no_a * ..no_
 Result   : file
 
 
-Operator : krdup 
+Operator : krdup
 Number   : 1
-Signature: stream(tuple((a1 t1)(a2 t2)...(an tn))) x ai1 x ai2 x ... -> stream(tuple((a1 t1)...(an tn))) 
+Signature: stream(tuple((a1 t1)(a2 t2)...(an tn))) x ai1 x ai2 x ... -> stream(tuple((a1 t1)...(an tn)))
 Example  : query plz feed sortby[Ort] krdup[Ort] count
 Result   : 16788
 
 
-Operator : addcounter 
+Operator : addcounter
 Number   : 1
-Signature: stream(tuple((a1 t1)..(an tn))) x id x int -> stream(tuple((a1 t1)...(an tn)(id int))) 
+Signature: stream(tuple((a1 t1)..(an tn))) x id x int -> stream(tuple((a1 t1)...(an tn)(id int)))
 Example  : query ten feed addcounter[ Cnt , 1] consume
 Result   : file
 
@@ -289,15 +296,20 @@ Result   : ((rel (tuple ((CountX int) (MinX real) (MaxX real) (SumX real) (AvgX 
 
 
 
-Operator : ksmallest 
+Operator : ksmallest
 Number   : 1
-Signature: stream(tuple((a1 t1)...(an tn)(id int))) x int x a_k_1 x ... a_k_m -> stream(tuple(...)) 
+Signature: stream(tuple((a1 t1)...(an tn)(id int))) x int x a_k_1 x ... a_k_m -> stream(tuple(...))
 Example  : query (plz feed sortby[Ort] head [10] project[Ort]) (plz feed ksmallest[10;Ort] project[Ort]) mergediff count
 Result   : (int 0)
 
-Operator : kbiggest 
+Operator : kbiggest
 Number   : 1
-Signature: stream(tuple((a1 t1)...(an tn)(id int))) x int x a_k_1 x ... a_k_m -> stream(tuple(...)) 
+Signature: stream(tuple((a1 t1)...(an tn)(id int))) x int x a_k_1 x ... a_k_m -> stream(tuple(...))
 Example  : query (plz feed sortby[Ort desc] head [10] project[Ort]) (plz feed kbiggest[10;Ort] project[Ort]) mergediff count
 Result   : (int 0)
 
+Operator : printrefs 
+Number   : 1
+Signature: stream(tuple((a1 t1)..(an tn))) -> stream(tuple((a1 t1)...(an tn)(id int)))
+Example  : query ten feed printrefs count;
+Result   : (int 10)

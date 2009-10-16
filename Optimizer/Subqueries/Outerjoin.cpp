@@ -43,12 +43,17 @@ January 2008, B. Poneleit
 
 */
 
+
 #include <vector>
 #include <list>
 #include <set>
 #include <queue>
 
+//#define TRACE_ON
+#undef TRACE_ON
 #include "LogMsg.h"
+#define TRACE_OFF
+
 #include "StandardTypes.h"
 #include "RelationAlgebra.h"
 #include "CPUTimeMeasurer.h"
@@ -59,9 +64,10 @@ January 2008, B. Poneleit
 #include "Progress.h"
 #include "RTuple.h"
 #include "Tupleorder.h"
+#include "ListUtils.h"
 
 extern NestedList* nl;
-extern QueryProcessor* qp;
+extern QueryProcessor* qp;						
 
 #ifndef USE_PROGRESS
 
