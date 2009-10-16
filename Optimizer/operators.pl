@@ -331,7 +331,7 @@ opSignature((#), standard, [string,string],bool,[comm]).
 
 opSignature(starts,   standard, [string,string],bool,[]).
 opSignature(contains, standard, [string,string],bool,[]).
-opSignature(substr,   standard, [string,int,int],bool,[]).
+opSignature(substr,   standard, [string,int,int],string,[]).
 opSignature(not,      standard, [bool],bool,[idem]).
 opSignature(and,      standard, [bool,bool],bool,[]).
 opSignature(or,       standard, [bool,bool],bool,[]).
@@ -385,6 +385,8 @@ opSignature(setoption, standard, [string,int],bool,[sidefx]).
 
 opSignature(abs, standard, [int],int,[]).
 opSignature(abs, standard, [real],real,[]).
+
+opSignature((,), standard, [T,T],[T,[set,T]],[]). % op provided by Poneleit
 
 /*
 2.7.2 FTextAlgebra
@@ -1775,7 +1777,7 @@ opSignature(sample, extrelation, [[rel,[tuple,X]],int,real,int],
 opSignature(group, extrelation, [[stream, X]],[rel,X],[typemapop]).
 opSignature(cancel, extrelation, [[stream,X],[map,X,bool]],[stream,X],[]).
 opSignature(extract, extrelation, [[stream,[tuple,AL]],Attr],AType,[aggr,exp]) :-
-  (not(optimizerOption(determinePredSig)); is_list(AL)), 
+  (not(optimizerOption(determinePredSig)); is_list(AL)),
   memberchk([Attr,AType],AL),!.
 
 opSignature(extend,extrelation,[[stream,[tuple,AL]],ExtL],[stream,[tuple,RL]],
@@ -2468,7 +2470,7 @@ NearestNeighbor Algebra
 
 */
 
-%Faked operator 
+%Faked operator
 opSignature(isknn, nearestneighbor, [IDType, int, mpoint, string, string, string, int], mbool, []):-
   memberchk(IDType,[int, real, string]), !.
 
