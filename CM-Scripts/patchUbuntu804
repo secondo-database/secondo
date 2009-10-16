@@ -1,0 +1,54 @@
+#
+# this script patches two SECONDO files to be able to
+# use SECONDO in an UBUNTU 8.04 environment
+# 
+# the first file is $SECONDO_BUILD_DIR/Jpl/src/makefile
+# here its required that the rt library is linked to libjpl.so
+# to do that, the LINK_FLAGS are extended by an appropriate entry 
+# if the patch is not already present
+#
+
+if [ ! -n "$SECONDO_BUILD_DIR" ]; then
+  echo "SECONDO_BUILD_DIR not defined, exit"
+  exit 1
+fi
+
+FILE1=$SECONDO_BUILD_DIR/Jpl/src/makefile
+FILE2=$SECONDO_BUILD_DIR/Optimizer/StartOptServer
+
+if [ !  -f $FILE1  ]; then
+  echo "FILE $FILE1 not present, please check your SECONDO installation";
+  exit 1;
+fi
+
+if [ ! -f $FILE2 ]; then
+  echo "FILE $FILE2 not present, please check your SECONDO installation";
+  exit 1;
+fi
+
+
+
+# change required 
+LINE=$(grep "LINK_FLAGS.*-lrt" $FILE1)
+
+if [ ! -n "$LINE" ]; then
+  # in this case the -lrt flag is not already present
+  sed  -i "s/^LINK_FLAGS *:=.*/& -lrt/g" $FILE1
+fi 
+
+# the second file is $SECONDO_BUILD_DIR/Optimizer/StartOptServer
+# in some linux distributions, the variable SWI_HOME_DIR
+# cannot be set for starting the optimizer server
+# but on UBUNTU 8.04 this variable must point to the correct directory
+# so, we have to comment out the erasing of that variable on UBUNTU platforms
+#
+
+LINE=$(grep -e "^[ \t]*unset [ \t]*SWI_HOME_DIR" $FILE2)
+
+if [ -n "$LINE" ]; then
+  sed -i "s/^[ \t]*unset [ \t]*SWI_HOME_DIR/   echo\"\"  #&/g" $FILE2
+fi
+
+
+
+
