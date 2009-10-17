@@ -641,10 +641,77 @@ ListExpr ConcatLists( ListExpr list1, ListExpr list2)
 
 Checks wether two ListExpressions are of the form
 ((a1 t1) ... (ai ti)) and ((b1 d1) ... (bj dj))
-and wether the ai and the bi are disjoint.
+and whether the ai and the bi are disjoint.
 
 */
 
+bool insertArelNames (set<string>& aNames, ListExpr a)
+{
+  ListExpr rest = nl->Second(nl->Second(a));
+  ListExpr current;
+  while(!nl->IsEmpty(rest))
+  {
+    current = nl->First(rest);
+    rest = nl->Rest(rest);
+    if((nl->ListLength(current) == 2))
+    {
+      if ((nl->IsAtom(nl->First(current)))
+           && (nl->AtomType(nl->First(current)) == SymbolType)
+           && (((nl->IsAtom(nl->Second(current)))
+           && (nl->AtomType(nl->Second(current)) == SymbolType))))
+        aNames.insert(nl->SymbolValue(nl->First(current)));
+      else if (((nl->IsAtom(nl->First(nl->Second(current))))
+          && (nl->AtomType(nl->First(nl->Second(current))) == SymbolType))
+          && (nl->SymbolValue(nl->First(nl->Second(current))) == "arel"))
+        
+      {
+        aNames.insert(nl->SymbolValue(nl->First(current)));
+        if (!insertArelNames ( aNames, nl->Second(current)))
+          return false;
+      }    
+    }  
+    else
+      return false;
+  }
+  return true;
+}
+
+bool checkArelNames (set<string>& aNames, ListExpr b)
+{
+  ListExpr rest = nl->Second(nl->Second(b));   
+  ListExpr current;
+  while(!nl->IsEmpty(rest))
+  {
+    current = nl->First(rest);
+    rest = nl->Rest(rest);
+    if((nl->ListLength(current) == 2)
+      && (nl->IsAtom(nl->First(current)))
+      && (nl->AtomType(nl->First(current)) == SymbolType))
+    {
+      if ((nl->IsAtom(nl->Second(current)))
+      && (nl->AtomType(nl->Second(current)) == SymbolType))
+      { 
+        if(aNames.find(nl->SymbolValue(nl->First(current))) !=
+         aNames.end())
+           return false;
+      }
+      else if ((nl->IsAtom(nl->First(nl->Second(current))))
+          && (nl->AtomType(nl->First(nl->Second(current))) == SymbolType)
+          && (nl->SymbolValue(nl->First(nl->Second(current))) == "arel"))
+      {
+        if(aNames.find(nl->SymbolValue(nl->First(current))) !=
+           aNames.end())
+          return false;
+        if(!checkArelNames(aNames, nl->Second(current)))
+          return false;
+      }
+    } 
+    else
+      return false;
+  }
+  return true;
+}    
+  
 bool AttributesAreDisjoint(ListExpr a, ListExpr b)
 {
   set<string> aNames;
@@ -655,15 +722,21 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b)
   {
     current = nl->First(rest);
     rest = nl->Rest(rest);
-    if((nl->ListLength(current) == 2)
-      && (nl->IsAtom(nl->First(current)))
-      && (nl->AtomType(nl->First(current)) == SymbolType)
-      && (((nl->IsAtom(nl->Second(current)))
-      && (nl->AtomType(nl->Second(current)) == SymbolType))
-      || (((nl->IsAtom(nl->First(nl->Second(current))))
-      && (nl->AtomType(nl->First(nl->Second(current))) == SymbolType))
-      && (nl->SymbolValue(nl->First(nl->Second(current))) == "arel"))))
-      aNames.insert(nl->SymbolValue(nl->First(current)));
+    if((nl->ListLength(current) == 2) && (nl->IsAtom(nl->First(current)))
+           && (nl->AtomType(nl->First(current)) == SymbolType))
+    {
+      if ((nl->IsAtom(nl->Second(current)))
+           && (nl->AtomType(nl->Second(current)) == SymbolType))
+        aNames.insert(nl->SymbolValue(nl->First(current)));
+      else if ((nl->IsAtom(nl->First(nl->Second(current))))
+          && (nl->AtomType(nl->First(nl->Second(current))) == SymbolType)
+          && (nl->SymbolValue(nl->First(nl->Second(current))) == "arel"))
+      {
+        aNames.insert(nl->SymbolValue(nl->First(current)));
+        if (!insertArelNames ( aNames, nl->Second(current)))
+          return false;
+      }    
+    }  
     else
       return false;
   }
@@ -674,16 +747,25 @@ bool AttributesAreDisjoint(ListExpr a, ListExpr b)
     rest = nl->Rest(rest);
     if((nl->ListLength(current) == 2)
       && (nl->IsAtom(nl->First(current)))
-      && (nl->AtomType(nl->First(current)) == SymbolType)
-      && (((nl->IsAtom(nl->Second(current)))
-      && (nl->AtomType(nl->Second(current)) == SymbolType))
-      || (((nl->IsAtom(nl->First(nl->Second(current))))
-      && (nl->AtomType(nl->First(nl->Second(current))) == SymbolType))
-      && (nl->SymbolValue(nl->First(nl->Second(current))) == "arel"))))
+      && (nl->AtomType(nl->First(current)) == SymbolType))
     {
-      if(aNames.find(nl->SymbolValue(nl->First(current))) !=
+      if ((nl->IsAtom(nl->Second(current)))
+      && (nl->AtomType(nl->Second(current)) == SymbolType))
+      { 
+        if(aNames.find(nl->SymbolValue(nl->First(current))) !=
          aNames.end())
-        return false;
+           return false;
+      }
+      else if ((nl->IsAtom(nl->First(nl->Second(current))))
+          && (nl->AtomType(nl->First(nl->Second(current))) == SymbolType)
+          && (nl->SymbolValue(nl->First(nl->Second(current))) == "arel"))
+      {
+        if(aNames.find(nl->SymbolValue(nl->First(current))) !=
+           aNames.end())
+          return false;
+        if(!checkArelNames(aNames, nl->Second(current)))
+          return false;
+      }
     }
     else
       return false;

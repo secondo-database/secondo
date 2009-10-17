@@ -69,11 +69,20 @@ const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
     {
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-
-      int algId = nl->IntValue( nl->First( typeInfo ) ),
-          typeId = nl->IntValue( nl->Second( typeInfo ) ),
+      int algId, typeId, size;
+      if (!nl->IsAtom(nl->First(typeInfo)))
+      {
+        ListExpr type = nl->First(typeInfo);
+        algId = nl->IntValue( nl->First( type ) );
+          typeId = nl->IntValue( nl->Second( type ) );
           size = (algMgr->SizeOfObj(algId, typeId))();
-      
+          }
+      else
+       {
+           algId = nl->IntValue( nl->First( typeInfo ) );
+          typeId = nl->IntValue( nl->Second( typeInfo ) );
+          size = (algMgr->SizeOfObj(algId, typeId))();
+          }
       // Write the element
       valueRecord.Write( elem, size, offset );
       offset += size;
@@ -95,9 +104,21 @@ Default save function.
     {
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-      int algId = nl->IntValue( nl->First( typeInfo ) ),
+      int algId, typeId;
+      size_t size;
+      if (!nl->IsAtom(nl->First(typeInfo)))
+      {
+        ListExpr type = nl->First(typeInfo);
+        algId = nl->IntValue( nl->First( type ) );
+          typeId = nl->IntValue( nl->Second( type ) );
+          size = (algMgr->SizeOfObj(algId, typeId))();
+          }
+      else
+       {
+           algId = nl->IntValue( nl->First( typeInfo ) );
           typeId = nl->IntValue( nl->Second( typeInfo ) );
-      size_t size = (algMgr->SizeOfObj(algId, typeId))();
+          size = (algMgr->SizeOfObj(algId, typeId))();
+          }
 
       Attribute*
         elem = (Attribute*)(algMgr->CreateObj(algId, typeId))( typeInfo ).addr;
@@ -121,6 +142,7 @@ Default save function.
 Default open function.
 
 */
+
     bool Attribute::DeleteIfAllowed()
     {
       assert( del.refs > 0 );

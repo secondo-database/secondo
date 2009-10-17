@@ -91,6 +91,7 @@ Auxiliary global variables and functions
 
 using namespace std;
 
+int DisplayTTY::indent = 0;
 
 const string stdErrMsg = "Incorrect Data Format!";
 
@@ -605,25 +606,151 @@ struct DisplayTuples : DisplayFunction {
 
 
 
-struct DisplayAttributeRelation : DisplayFunction
+struct DisplayNestedRelation : DisplayFunction
 {
-  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value )
-  {	
-    int maxAttribNameLen = 
-             MaxAttributLength( nl->Second ( nl->Second( numType ) ) );
-    if (maxAttribNameLen < maxIndent - 3)
-      maxAttribNameLen = maxIndent - 3;
-    maxAttribNameLen += 2;
+  virtual void Display( ListExpr type,
+                                 ListExpr numType, ListExpr value )
+  {
+    type = nl->Second( type );
+    numType = nl->Second( numType );
+    DisplayNestedTuples ( type, numType, value );
+  }
+  
+  void DisplayNestedTuples( ListExpr type, ListExpr numType, ListExpr value )
+  {
+    int maxAttribNameLen = MaxAttributLength( nl->Second( numType ) );
     while (!nl->IsEmpty( value ))
     {
-      DisplayTuples().DisplayTuple( nl->Second( nl->Second( type ) ), 
-	                           nl->Second( nl->Second( numType ) ),
-		                   nl->First( value ), maxAttribNameLen );
+      DisplayTuple( nl->Second( type ), nl->Second( numType ),
+                  nl->First( value ), maxAttribNameLen );
       value = nl->Rest( value );
+      cout << "------------" << endl << endl;
+    }
+  }
+  
+  void DisplayTuple( ListExpr type, ListExpr numType,
+                                ListExpr value, const int maxNameLen )
+  {
+    while (!nl->IsEmpty( value ))
+    {
       cout << endl;
+      string s = nl->ToString( nl->First( nl->First( numType ) ) );
+      string attr =  s + string( maxNameLen-s.length() , ' ' ) + string(" : ");
+      cout << attr;
+      maxIndent = attr.length();
+      DisplayTTY::indent = maxIndent;
+      if( nl->IsAtom( nl->First( nl->Second( nl->First( numType ) ) ) ) )
+      {
+         CallDisplayFunction( nl->Second( nl->First( numType ) ),
+                        nl->Second( nl->First( type ) ),
+                        nl->Second( nl->First( numType ) ),
+                        nl->First( value ) );
+      }
+      else
+      {
+         CallDisplayFunction( 
+                        nl->First( nl->Second( nl->First( numType ) ) ),
+                        nl->Second( nl->First( type ) ),
+                        nl->Second( nl->First( numType ) ),
+                        nl->First( value ) );
+      }
+      maxIndent = 0;
+      DisplayTTY::indent = maxIndent;
+      type    = nl->Rest( type );
+      numType = nl->Rest( numType );
+      value   = nl->Rest( value );
+    }
+  }
+};    
+
+
+struct DisplayAttributeRelation : DisplayFunction
+{
+  DisplayAttributeRelation() : DisplayFunction() {}
+  
+  virtual void Display( ListExpr type, ListExpr numType, 
+                                          ListExpr value)
+  {
+    int select = nl->IntValue(nl->First(value));
+    value = nl->Rest(value);
+    if (select == 0)//means that this arel is an attribute of a nested relation
+    {
+      attrIndent += 4;
+      int maxAttribNameLen = MaxAttributLength( nl->Second 
+                                              ( nl->Second( numType ) ) );
+      int ind;
+      if (maxAttribNameLen >= (DisplayTTY::indent - 3))
+        ind = attrIndent;
+      else
+        ind = DisplayTTY::indent - 3 - maxAttribNameLen + 4;
+      cout << endl;
+      while (!nl->IsEmpty( value ))
+      {
+        DisplayArelTuple( nl->Second( nl->Second( type ) ), nl->Second 
+                    ( nl->Second( numType ) ), nl->First( value ), 
+                      maxAttribNameLen, ind );
+        value = nl->Rest( value );
+        if (!nl->IsEmpty(value))
+          cout << endl;
+      }
+      attrIndent = 0;
+      maxIndent = 0;
+      DisplayTTY::indent = maxIndent;
+    }
+    else
+    {
+      NList val(value);
+      long tid;
+      cout << endl << "Saved TupleIds: " << endl << endl;
+      int i = 1;
+      while (!val.isEmpty())
+      {
+        tid = val.first().intval();
+        cout << "TupleId no. " << i << ": " << tid << endl;
+        val.rest();
+        i++; 
+      }
     }
   }  
-};    
+
+  void DisplayArelTuple( ListExpr type, ListExpr numType,
+                              ListExpr value, const int maxNameLen,
+                              int ind )
+  {
+    
+    while (!nl->IsEmpty( value ))
+    {
+      string s = nl->ToString( nl->First( nl->First( numType ) ) );
+      int i = maxNameLen - s.length();
+      if ( i < 0)
+        i = 0;
+      string attr = string(ind , ' ') + s + 
+                  string( i , ' ') + string(" : ");
+      cout << attr;
+      maxIndent = attr.length();
+      DisplayTTY::indent = maxIndent;
+      if( nl->IsAtom( nl->First( nl->Second( nl->First( numType ) ) ) ) )
+      {
+        CallDisplayFunction( nl->Second( nl->First( numType ) ),
+                           nl->Second( nl->First( type ) ),
+                           nl->Second( nl->First( numType ) ),
+                           nl->First( value ) );
+      }
+      else
+      {
+        CallDisplayFunction( nl->First( nl->Second( nl->First( numType ) ) ),
+                           nl->Second( nl->First( type ) ),
+                           nl->Second( nl->First( numType ) ),
+                           nl->First( value ) );
+      }
+      cout << endl;
+      type    = nl->Rest( type );
+      numType = nl->Rest( numType );
+      value   = nl->Rest( value );
+    }
+  }
+};
+   
 
 
 
@@ -723,7 +850,7 @@ struct DisplayText : DisplayFunction {
     {
       string printstr="";
       nl->Text2String(value, printstr);
-      cout << wordWrap(0, 0, LINELENGTH, printstr);
+      cout << wordWrap(0, DisplayTTY::indent, LINELENGTH, printstr);
     }
   }
 };
@@ -2452,7 +2579,7 @@ DisplayTTY::Initialize()
   d.Insert( "rel",     new DisplayRelation() );
   d.Insert( "trel",    new DisplayRelation() );
   d.Insert( "mrel",    new DisplayRelation() );
-  d.Insert( "nrel",    new DisplayRelation() );
+  d.Insert( "nrel",    new DisplayNestedRelation() );
   d.Insert( "arel",    new DisplayAttributeRelation() );
   d.Insert( "tuple",   new DisplayTuples() );
   d.Insert( "mtuple",  new DisplayTuples() );

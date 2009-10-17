@@ -5031,45 +5031,62 @@ Type mapping for ~rename~ is
 ----
 
 */
+
 ListExpr
 RenameTypeMap( ListExpr args )
 {
-  if(nl->ListLength(args)!=2){
-    ErrorReporter::ReportError("two arguments expected");
+  ListExpr first=nl->TheEmptyList();
+  ListExpr first2=first, second=first, rest=first,
+           listn=first, lastlistn=first, tup, tupFirst, type;
+  string  attrname="", argstr="";
+  string  attrnamen="";
+  bool firstcall = true;
+
+  CHECK_COND(nl->ListLength(args) == 2,
+  "Operator rename expects a list of length two.");
+
+  first = nl->First(args);
+  second  = nl->Second(args);
+
+  nl->WriteToString(argstr, first);
+  if (!IsStreamDescription(first)) {
+    ErrorReporter::ReportError(
+    "Operator rename expects a valid tuple stream "
+    "Operator rename gets a list with structure '" + argstr + "'.");
     return nl->TypeError();
+  }
+
+  nl->WriteToString(argstr, second);
+  CHECK_COND( nl->IsAtom(second) &&
+    nl->AtomType(second) == SymbolType,
+    "Operator rename expects as second argument a symbol "
+    "atom (attribute suffix) "
+    "Operator rename gets '" + argstr + "'.");
+
+  tup = nl->Second(nl->Second(first));
+  while (!(nl->IsEmpty(tup)))
+  {
+    tupFirst = nl->First(tup);
+    type = nl->Second(tupFirst);
+    if (!(nl->IsAtom(type)))
+    {
+      type = nl->First(type);
+      if (nl->IsAtom(type)&&(nl->SymbolValue(type) == "arel"))
+          return nl->SymbolAtom("typeerror");
+    }
+    tup = nl->Rest(tup); 
   }
   
-  ListExpr first = nl->First(args);
-  ListExpr second  = nl->Second(args);
-  if(!listutils::isTupleStream(first)){
-    ErrorReporter::ReportError("valid tuple stream expected as first arg");
-    return nl->TypeError();
-  }
-
-  if(nl->AtomType(second)!=SymbolType){
-    ErrorReporter::ReportError("second argument must be a symbol");
-    return nl->TypeError();
-  }
-
-  ListExpr rest = nl->Second(nl->Second(first));
-  string  attrnamen = nl->SymbolValue(second);
-  bool firstcall=true;
-  ListExpr first2;
-  ListExpr  listn;
-  ListExpr lastlistn;
+  rest = nl->Second(nl->Second(first));
   while (!(nl->IsEmpty(rest)))
   {
     first2 = nl->First(rest);
     rest = nl->Rest(rest);
     nl->SymbolValue(nl->First(first));
-    string attrname = nl->SymbolValue(nl->First(first2));
+    attrname = nl->SymbolValue(nl->First(first2));
+    attrnamen = nl->SymbolValue(second);
     attrname.append("_");
     attrname.append(attrnamen);
-    if(attrname.length()>MAX_STRINGSIZE){
-      ErrorReporter::ReportError("new attribute name ("+ attrname +
-                                 ") exceeds maximum string size");
-      return nl->TypeError();
-    }
 
     if (!firstcall)
     {
@@ -5089,6 +5106,7 @@ RenameTypeMap( ListExpr args )
     nl->TwoElemList(nl->SymbolAtom("stream"),
     nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
 }
+
 /*
 
 5.12.2 Value mapping function of operator ~rename~

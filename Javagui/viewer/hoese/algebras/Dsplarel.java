@@ -7,22 +7,39 @@ import viewer.hoese.*;
 
 public class Dsplarel extends DsplGeneric{
 	String entry;
-        static final int INDENT = 4;		
-	public void init (String name, int nameWidth, int indent,  ListExpr type, ListExpr value, QueryResult qr) {
-		String T = name;
-	    T = extendString(T, nameWidth, indent);
-	    entry=(T + " :");
-		qr.addEntry(this);
-		int maxAttribNameLen = maxAttributLength(type.second().second());
-		if (nameWidth > maxAttribNameLen)
-			maxAttribNameLen = nameWidth;
-		while (!value.isEmpty()) {
-			displayArelTuple(type.second().second(), value.first(), maxAttribNameLen, indent, qr);
-		    value = value.rest();
-		    if (!value.isEmpty())
-		    	qr.addEntry(new Dsplend(indent + INDENT));
+    static final int INDENT = 4;		
+    public void init (String name, int nameWidth, int indent,  ListExpr type, ListExpr value, QueryResult qr) {
+		int select = value.first().intValue();
+		value = value.rest();
+		if (select == 0)
+		{	
+			String T = name;
+			T = extendString(T, nameWidth, indent);
+			entry=(T + " :");
+			qr.addEntry(this);
+			int maxAttribNameLen = maxAttributLength(type.second().second());
+			if (nameWidth > maxAttribNameLen)
+				maxAttribNameLen = nameWidth;
+			while (!value.isEmpty()) {
+				displayArelTuple(type.second().second(), value.first(), maxAttribNameLen, indent, qr);
+				value = value.rest();
+				if (!value.isEmpty())
+					qr.addEntry(new Dsplend(indent + INDENT));
 		    }
-		    return;
+		}
+		else
+		{
+			entry = "Saved TupleIds are:";
+			qr.addEntry(entry);
+			int i = 1;
+			while (!value.isEmpty()){
+				entry = "    TupleId no. " + i + ": " + value.first().intValue();
+				qr.addEntry(entry);
+				value = value.rest();
+				i++;
+			}
+		}	
+		return;
 	}
 	/**
 	* A method which create an instance of each displayclass that appears as attribute-type, 
@@ -47,13 +64,13 @@ public class Dsplarel extends DsplGeneric{
 	    subType = type.first().second();
 	     
 	    dg.init(name, maxNameLen, indent +INDENT, subType, value.first(), qr);
-      int newnum = qr.getModel().getSize();
-      int diff = newnum-oldnum;
-      if(diff<1){
-         tools.Reporter.writeError("missing entry for attribute "+s);
-         tools.Reporter.writeError("check the implementation of the class " + dg.getClass());
-         qr.addEntry("error");
-      }
+        int newnum = qr.getModel().getSize();
+        int diff = newnum-oldnum;
+        if(diff<1){
+        	tools.Reporter.writeError("missing entry for attribute "+s);
+        	tools.Reporter.writeError("check the implementation of the class " + dg.getClass());
+        	qr.addEntry("error");
+        }
       if (!(typeName.equals("arel"))){
     	  if(diff>1){
     		  tools.Reporter.writeError("to many entries for attribute "+s+
