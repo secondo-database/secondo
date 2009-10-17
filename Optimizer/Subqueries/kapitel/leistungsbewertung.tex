@@ -155,14 +155,13 @@ Total & 2087 & 1917 & 2434 & 1342 \\
 
 Der Optimierer berechnet für Skalierungsfaktor 0,0001 Kosten von 528,18 für die entschachtelte und 481,189 für die iterative Ausführung. Dies entspricht in etwa dem tatsächlichen Verhältnis der Laufzeiten, wie man Tabelle \ref{tab:Q2 Laufzeit} entnehmen kann. Die erneute Ausführung der entschachtelten Variante ist wie man sehen kann schneller, da hier die bereits erstellten temporären Relationen wiederverwendet werden. Die Laufzeit für deren Erstellung entfällt hier also, was sich auch an den Laufzeiten ablesen lässt. Bei der iterativen Ausführung entfallen bei der zweiten Ausführung nur die Ermittlung der Selektivitäten, was sich an der kürzeren Laufzeit der Lookup-Phase erkennen lässt.
 
-\pgfplotsset{every x tick label/.style={below, yshift=-0.25em, rotate=30, xshift=-1.5em}}
+\pgfplotsset{every x tick label/.style={below, yshift=-0.25em, rotate=30, xshift=-1.5em}, every y tick label/.style={/pgf/number format/1000 sep={.}}}
 
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
 /pgf/number format/1000 sep=},
 xtick=data,
-%axis y line=left,
 ylabel=Sekunden,
 xticklabels={A kalt,A warm,B kalt,B warm},
 enlargelimits=0.10,
@@ -424,6 +423,38 @@ ybar stacked,
 \end{axis}
 \end{tikzpicture}
 
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Sekunden,
+xlabel=Skalierungsfaktor,
+xlabel style={yshift=-2.5em},
+xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+anchor=east,legend columns=1},
+scaled x ticks=base 10:0,
+sharp plot
+]
+\addplot coordinates {
+(0.0001,	3.558	)(0.0002,	2.596	)(0.0004,	3.669	)(0.0008,	3.61	)(0.0016,	3.822	)(0.0032,	34.209	)(0.0064,	101.393	)(0.0128,	403.634	)};
+\addplot coordinates {
+(0.0001,	0.782	)(0.0002,	0.858	)(0.0004,	0.857	)(0.0008,	0.833	)(0.0016,	0.841	)(0.0032,	0.864	)(0.0064,	0.831	)(0.0128,	0.828	)};
+\addplot coordinates {
+(0.0001,	1.395	)(0.0002,	1.422	)(0.0004,	1.624	)(0.0008,	1.592	)(0.0016,	1.604	)(0.0032,	32.298	)(0.0064,	99.585	)(0.0128,	422.645	)};
+\addplot coordinates {
+(0.0001,	1.368	)(0.0002,	1.435	)(0.0004,	1.589	)(0.0008,	1.541	)(0.0016,	1.63	)(0.0032,	31.603	)(0.0064,	98.686	)(0.0128,	398.219	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+\end{axis}
+\end{tikzpicture}
+\caption{Laufzeit von Q7 für die Ausführungstrategien nach Skalierungsfaktor}
+\label{plot:Q7 line}
+\end{figure}
+
+
 \subsection{TPC-D Q9}
 Ermittelt den Gewinn, der mit bestimmten Teilen gemacht wurde, gruppiert nach Land und Jahr. Gewinn ist hier definiert als rabattierter Verkaufspreis - Einkaufspreis * Anzahl.
 \begin{lstlisting}[caption=Abfrage Q9]
@@ -497,6 +528,39 @@ ybar stacked,
 \end{axis}
 \end{tikzpicture}
 
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Sekunden,
+xlabel=Skalierungsfaktor,
+xlabel style={yshift=-2.5em},
+xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+anchor=east,legend columns=1},
+scaled x ticks=base 10:0,
+sharp plot
+]
+%\addplot coordinates {(0,	3,075	)(1,	0,773	)(2,	1,348	)(3,	1,4	)};
+
+\addplot coordinates {
+(0.0001,	3.075	)(0.0002,	2.596	)(0.0004,	3.669	)(0.0008,	3.61	)(0.0016,	3.822	)(0.0032,	34.209	)(0.0064,	101.393	)(0.0128,	403.634	)};
+\addplot coordinates {
+(0.0001,	0.773	)(0.0002,	0.858	)(0.0004,	0.857	)(0.0008,	0.833	)(0.0016,	0.841	)(0.0032,	0.864	)(0.0064,	0.831	)(0.0128,	0.828	)};
+\addplot coordinates {
+(0.0001,	1.348	)(0.0002,	1.422	)(0.0004,	1.624	)(0.0008,	1.592	)(0.0016,	1.604	)(0.0032,	32.298	)(0.0064,	99.585	)(0.0128,	422.645	)};
+\addplot coordinates {
+(0.0001,	1.4	)(0.0002,	1.435	)(0.0004,	1.589	)(0.0008,	1.541	)(0.0016,	1.63	)(0.0032,	31.603	)(0.0064,	98.686	)(0.0128,	398.219	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+\end{axis}
+\end{tikzpicture}
+\caption{Laufzeit von Q9 für die Ausführungstrategien nach Skalierungsfaktor}
+\label{plot:Q9 line}
+\end{figure}
+
 \subsection{TPC-D Q15}
 Diese Abfrage ermittelt den Top-Lieferanten. Es wird der Lieferant ermittelt, der das meiste zum Umsatz im gewählten Quartal beigetragen hat, gibt es mehrere, so werden sie nach Lieferantennummer geordnet angezeigt.
 \begin{lstlisting}[caption=Abfrage Q15] 
@@ -563,6 +627,39 @@ ybar stacked,
 \end{axis}
 \end{tikzpicture}
 
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Sekunden,
+xlabel=Skalierungsfaktor,
+xlabel style={yshift=-2.5em},
+xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+anchor=east,legend columns=1},
+scaled x ticks=base 10:0,
+sharp plot
+]
+%\addplot cooTdinates {(0,	3,984	)(1,	3,241	)(2,	6,979	)(3,	3,305	)};
+
+\addplot coordinates {
+(0.0001,	2.676	)(0.0002,	2.898	)(0.0004,	2.859	)(0.0008,	2.984	)(0.0016,	2.931	)(0.0032,	3.086	)(0.0064,	3.534	)(0.0128,	3.984	)};
+\addplot coordinates {
+(0.0001,	2.018	)(0.0002,	2.089	)(0.0004,	2.188	)(0.0008,	2.207	)(0.0016,	2.301	)(0.0032,	2.432	)(0.0064,	2.789	)(0.0128,	3.241	)};
+\addplot coordinates {
+(0.0001,	2.027	)(0.0002,	2.167	)(0.0004,	2.24	)(0.0008,	2.227	)(0.0016,	2.345	)(0.0032,	2.491	)(0.0064,	2.809	)(0.0128,	6.979	)};
+\addplot coordinates {
+(0.0001,	2.051	)(0.0002,	2.165	)(0.0004,	2.316	)(0.0008,	2.228	)(0.0016,	2.345	)(0.0032,	2.486	)(0.0064,	2.827	)(0.0128,	3.305	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+\end{axis}
+\end{tikzpicture}
+\caption{Laufzeit von Q15 für die Ausführungstrategien nach Skalierungsfaktor}
+\label{plot:Q15 line}
+\end{figure}
+
 \subsection{TPC-D Q16}
 Mit dieser Abfrage wird die Anzahl der Lieferanten für bestimmte Teile ermittelt. Die Teile dürfen nicht von einem bestimmten Typ sein, nicht von einer bestimmten Marke und es darf keine Kundenbeschwerden über den Lieferanten geben.
 \begin{lstlisting}[caption=Abfrage Q16]
@@ -613,6 +710,39 @@ ybar stacked,
 \legend{Rewrite,Lookup,QueryToPlan,Execute}
 \end{axis}
 \end{tikzpicture}
+
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Sekunden,
+xlabel=Skalierungsfaktor,
+xlabel style={yshift=-2.5em},
+xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+anchor=east,legend columns=1},
+scaled x ticks=base 10:0,
+sharp plot
+]
+%\addplot coordinates {(0,	20,003	)(1,	19,595	)(2,	19,851	)(3,	19,339	)};
+
+\addplot coordinates {
+(0.0001,	1.534	)(0.0002,	1.891	)(0.0004,	1.766	)(0.0008,	2.068	)(0.0016,	3.619	)(0.0032,	9.639	)(0.0064,	6.679	)(0.0128,	20.003	)};
+\addplot coordinates {
+(0.0001,	0.967	)(0.0002,	1.039	)(0.0004,	1.198	)(0.0008,	1.56	)(0.0016,	3.094	)(0.0032,	9.223	)(0.0064,	6.25	)(0.0128,	19.595	)};
+\addplot coordinates {
+(0.0001,	0.972	)(0.0002,	1.074	)(0.0004,	1.259	)(0.0008,	1.619	)(0.0016,	3.144	)(0.0032,	9.044	)(0.0064,	6.275	)(0.0128,	19.851	)};
+\addplot coordinates {
+(0.0001,	0.981	)(0.0002,	1.053	)(0.0004,	1.265	)(0.0008,	1.61	)(0.0016,	3.165	)(0.0032,	9.004	)(0.0064,	6.24	)(0.0128,	19.339	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+\end{axis}
+\end{tikzpicture}
+\caption{Laufzeit von Q16 für die Ausführungstrategien nach Skalierungsfaktor}
+\label{plot:Q16 line}
+\end{figure}
 
 \subsection{TPC-D Q17}
 Diese Abfrage beantwortet, wieviel Umsatz verloren ginge, falls Bestellungen über kleine Mengen bestimmter Teile nicht mehr ausgeführt würden.
@@ -700,6 +830,39 @@ ybar stacked,
 \legend{Rewrite,Lookup,QueryToPlan,Execute}
 \end{axis}
 \end{tikzpicture}
+
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Sekunden,
+xlabel=Skalierungsfaktor,
+xlabel style={yshift=-2.5em},
+xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+anchor=east,legend columns=1},
+scaled x ticks=base 10:0,
+sharp plot
+]
+%\addplot coordinates {(0,	850,913	)(1,	29,744	)(2,	69,269	)(3,	67,449	)};
+
+\addplot coordinates {
+(0.0001,	2.849	)(0.0002,	3.386	)(0.0004,	3.915	)(0.0008,	6.47	)(0.0016,	16.784	)(0.0032,	57.945	)(0.0064,	219.616	)(0.0128,	850.913	)};
+\addplot coordinates {
+(0.0001,	0.906	)(0.0002,	0.904	)(0.0004,	1.002	)(0.0008,	3.837	)(0.0016,	1.499	)(0.0032,	2.975	)(0.0064,	8.296	)(0.0128,	29.744	)};
+\addplot coordinates {
+(0.0001,	1.029	)(0.0002,	1.033	)(0.0004,	1.14	)(0.0008,	1.142	)(0.0016,	1.273	)(0.0032,	1.352	)(0.0064,	1.574	)(0.0128,	69.269	)};
+\addplot coordinates {
+(0.0001,	0.91	)(0.0002,	0.926	)(0.0004,	0.979	)(0.0008,	0.987	)(0.0016,	1.072	)(0.0032,	1.19	)(0.0064,	1.33	)(0.0128,	67.449	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+\end{axis}
+\end{tikzpicture}
+\caption{Laufzeit von Q17 für die Ausführungstrategien nach Skalierungsfaktor}
+\label{plot:Q17 line}
+\end{figure}
 
 \subsection{TPC-D Q20}
 Identifiziert Lieferanten, die einen Überschuss an bestimmten Teilen haben. Überschuss ist hier definiert als mehr als 50\% der von einem Lieferanten versandten Teile über ein Jahr. Nur Teile mit einem vorgegebenen Namensbestandteil werden betrachtet.
@@ -792,6 +955,39 @@ ybar stacked,
 \legend{Rewrite,Lookup,QueryToPlan,Execute}
 \end{axis}
 \end{tikzpicture}
+
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Sekunden,
+xlabel=Skalierungsfaktor,
+xlabel style={yshift=-2.5em},
+xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+anchor=east,legend columns=1},
+scaled x ticks=base 10:0,
+sharp plot
+]
+%\addplot coordinates {(0,	2385,128	)(1,	6,642	)(2,	1623,744	)(3,	1589,511	)};
+
+\addplot coordinates {
+(0.0001,	4.47	)(0.0002,	5.105	)(0.0004,	7.047	)(0.0008,	15.817	)(0.0016,	53.337	)(0.0032,	208.089	)(0.0064,	589.144	)(0.0128,	2385.128	)};
+\addplot coordinates {
+(0.0001,	1.076	)(0.0002,	1.124	)(0.0004,	1.111	)(0.0008,	1.941	)(0.0016,	1.398	)(0.0032,	2.102	)(0.0064,	3.076	)(0.0128,	6.642	)};
+\addplot coordinates {
+(0.0001,	1.315	)(0.0002,	1.318	)(0.0004,	1.435	)(0.0008,	1.397	)(0.0016,	9.217	)(0.0032,	59.861	)(0.0064,	260.916	)(0.0128,	1623.744	)};
+\addplot coordinates {
+(0.0001,	1.063	)(0.0002,	1.066	)(0.0004,	1.126	)(0.0008,	1.1157	)(0.0016,	8.967	)(0.0032,	59.654	)(0.0064,	261.438	)(0.0128,	1589.511	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+\end{axis}
+\end{tikzpicture}
+\caption{Laufzeit von Q20 für die Ausführungstrategien nach Skalierungsfaktor}
+\label{plot:Q20 line}
+\end{figure}
 
 \subsection{TPC-D Q21}
 Diese Abfrage ermittelt Lieferanten die bei einer Mehr-Lieferanten Bestellung nicht pünktlich geliefert haben.
@@ -910,6 +1106,39 @@ ybar stacked,
 \end{axis}
 \end{tikzpicture}
 
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Sekunden,
+xlabel=Skalierungsfaktor,
+xlabel style={yshift=-2.5em},
+xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+anchor=east,legend columns=1},
+scaled x ticks=base 10:0,
+sharp plot
+]
+%\\addplot coordinates {(0,	86,414	)(1,	65,047	)(2,	1573,465	)(3,	1565,82	)};
+
+\addplot coordinates {
+(0.0001,	1.893	)(0.0002,	8.978	)(0.0004,	9.225	)(0.0008,	9.743	)(0.0016,	10.684	)(0.0032,	12.824	)(0.0064,	17.493	)(0.0128,	86.414	)};
+\addplot coordinates {
+(0.0001,	0.198	)(0.0002,	3.321	)(0.0004,	3.355	)(0.0008,	4.219	)(0.0016,	3.372	)(0.0032,	3.527	)(0.0064,	3.841	)(0.0128,	65.047	)};
+\addplot coordinates {
+(0.0001,	2.185	)(0.0002,	1.863	)(0.0004,	1.979	)(0.0008,	1.94	)(0.0016,	2.064	)(0.0032,	2.215	)(0.0064,	2.434	)(0.0128,	1573.465	)};
+\addplot coordinates {
+(0.0001,	1.628	)(0.0002,	1.683	)(0.0004,	1.758	)(0.0008,	1.74	)(0.0016,	1.825	)(0.0032,	1.959	)(0.0064,	2.228	)(0.0128,	1565.82	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+\end{axis}
+\end{tikzpicture}
+\caption{Laufzeit von Q21 für die Ausführungstrategien nach Skalierungsfaktor}
+\label{plot:Q21 line}
+\end{figure}
+
 \subsection{TPC-D Q22}
 Diese Abfrage ermittelt, wieviele Kunden in den letzten 7 Jahren keine Bestellung getätigt haben, aber dennoch einen überdurchschnittlichen Umsatz auf ihrem Konto. Gruppiert nach \enquote{Länderschlüssel}, wobei Länderschlüssel als die ersten zwei Ziffern der Telefonnummer definiert ist.
 \begin{lstlisting}[caption=Abfrage Q22]
@@ -1008,7 +1237,63 @@ ybar stacked,
 \end{axis}
 \end{tikzpicture}
 
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+/pgf/number format/1000 sep=},
+xtick=data,
+ylabel=Sekunden,
+xlabel=Skalierungsfaktor,
+xlabel style={yshift=-2.5em},
+xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+anchor=east,legend columns=1},
+scaled x ticks=base 10:0,
+sharp plot
+]
+%\addplot coordinates {(0,	20,768	)(1,	0,831	)(2,	47,191	)(3,	49,138	)};
+
+\addplot coordinates {
+(0.0001,	4.062	)(0.0002,	4.454	)(0.0004,	4.307	)(0.0008,	4.3	)(0.0016,	4.564	)(0.0032,	5.547	)(0.0064,	8.87	)(0.0128,	20.768	)};
+\addplot coordinates {
+(0.0001,	0.772	)(0.0002,	0.798	)(0.0004,	0.827	)(0.0008,	1.463	)(0.0016,	0.811	)(0.0032,	0.816	)(0.0064,	0.813	)(0.0128,	0.831	)};
+\addplot coordinates {
+(0.0001,	1.199	)(0.0002,	1.209	)(0.0004,	1.33	)(0.0008,	1.452	)(0.0016,	2.091	)(0.0032,	3.898	)(0.0064,	13.425	)(0.0128,	47.191	)};
+\addplot coordinates {
+(0.0001,	0.987	)(0.0002,	1.053	)(0.0004,	1.117	)(0.0008,	1.272	)(0.0016,	1.875	)(0.0032,	3.662	)(0.0064,	13.275	)(0.0128,	49.138	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+\end{axis}
+\end{tikzpicture}
+\caption{Laufzeit von Q22 für die Ausführungstrategien nach Skalierungsfaktor}
+\label{plot:Q22 line}
+\end{figure}
+
 \subsection{Laufzeit Übersicht}
+
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+xshift=1.4em, font=\footnotesize},
+xtick=data,
+ylabel=Sekunden,
+xticklabels={Q2,Q4,Q7,Q9,Q15,Q16,Q17,Q20,Q21,Q22},
+scaled ticks=base 10:0,
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar,
+ybar interval=0.7,
+]
+\addplot coordinates {(0,	64.024	)(1,	70.272	)(2,	403.634	)(3,	1288.545	)(4,	3.984	)(5,	20.003	)(6,	850.913	)(7,	2385.128	)(8,	86.414	)(9,	20.768	)};
+\addplot coordinates {(0,	33.945	)(1,	62.472	)(2,	0.828	)(3,	0.884	)(4,	3.241	)(5,	19.595	)(6,	29.744	)(7,	6.642	)(8,	65.047	)(9,	0.831	)};
+\addplot coordinates {(0,	2588.051	)(1,	879.534	)(2,	422.645	)(3,	1305.035	)(4,	6.979	)(5,	19.851	)(6,	69.269	)(7,	1623.744	)(8,	1573.465	)(9,	47.191	)};
+\addplot coordinates {(0,	2528.331	)(1,	847.093	)(2,	398.219	)(3,	1276.784	)(4,	3.305	)(5,	19.339	)(6,	67.449	)(7,	1589.511	)(8,	1565.82	)(9,	49.138	)};
+\legend{entschachtelt kalt,entschachtelt warm,iterativ kalt,iterativ warm}
+\end{axis}
+\end{tikzpicture}
 
 \begin{table}[h]
 \centering
