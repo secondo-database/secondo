@@ -159,6 +159,11 @@ TupleBuffer2::~TupleBuffer2()
 
 void TupleBuffer2::Clear()
 {
+  if ( memoryBuffer.empty() && diskBuffer == 0)
+  {
+    return;
+  }
+
   while( !memoryBuffer.empty() )
   {
     Tuple* t = memoryBuffer.front();
@@ -169,6 +174,7 @@ void TupleBuffer2::Clear()
   if ( diskBuffer )
   {
     delete diskBuffer;
+    diskBuffer = 0;
   }
 
   totalSize = 0;
