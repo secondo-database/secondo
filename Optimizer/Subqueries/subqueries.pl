@@ -493,9 +493,9 @@ transformNestedAttributes(Attr, Attr2, Rels, Rels2) :-
   transformNestedAttribute(Attr, Attr2, Rels, Rels2).
 
 transformNestedAttributes([ Attr | Rest ],
-	[ Attr2 | Rest2 ], Rels, Rels2) :-
+	[ Attr2 | Rest2 ], Rels, Rels3) :-
   transformNestedAttribute(Attr, Attr2, Rels, Rels2),
-  transformNestedAttributes(Rest, Rest2, Rels, Rels2).
+  transformNestedAttributes(Rest, Rest2, Rels2, Rels3).
 
 /*
 
@@ -532,10 +532,10 @@ transformNestedRelations(Attrs, Attrs2, Rel, Rel2) :-
   not(is_list(Rel)),
   transformNestedRelation(Attrs, Attrs2, Rel, Rel2).
 
-transformNestedRelations(Attrs, Attrs2,
+transformNestedRelations(Attrs, Attrs3,
 	[ Rel | Rest ], [ Rel2 | Rest2]) :-
   transformNestedRelation(Attrs, Attrs2, Rel, Rel2),
-  transformNestedRelations(Attrs, Attrs2, Rest, Rest2).
+  transformNestedRelations(Attrs2, Attrs3, Rest, Rest2).
 
 
 transformNestedRelation(Attrs, Attrs, Query, NewRel) :-
@@ -576,7 +576,7 @@ transformNestedPredicates(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   not(is_list(Pred)),
   transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2).
 
-transformNestedPredicates(Attrs, Attrs2, Rels, Rels3,
+transformNestedPredicates(Attrs, Attrs3, Rels, Rels3,
 	[ Pred | Rest ], [ Pred2 | Rest2 ]) :-
   transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2),
   dc(subqueryUnnesting, ( not(Pred = Pred2)
@@ -584,7 +584,7 @@ transformNestedPredicates(Attrs, Attrs2, Rels, Rels3,
 		['\nPredicate: ', Pred, '\nTransformedPredicate: ', Pred2])
 	  ; true
 	 )),
-  transformNestedPredicates(Attrs, Attrs2, Rels2, Rels3, Rest, Rest2).
+  transformNestedPredicates(Attrs2, Attrs3, Rels2, Rels3, Rest, Rest2).
 
 transformNestedPredicate(Attrs, Attrs, Rels, Rels, Pred, Pred) :-
   not(isSubqueryPred(Pred)).
