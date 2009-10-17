@@ -19,6 +19,12 @@ Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (
 Example  : query Orte feed {o} plz feed {p} sortmergejoin[Ort_o, Ort_p] count
 Result   : 10052
 
+Operator : sortmergejoin2Param
+Number   : 1
+Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
+Example  : query Orte feed {o} plz feed {p} sortmergejoinParam[Ort_o, Ort_p, 16*1024*1024] count
+Result   : 10052
+
 Operator : hybridhashjoin
 Number   : 1
 Signature: ((stream (tuple ((x1 t1) ... (xn tn)))) (stream (tuple ((y1 d1) ... (ym dm)))) xi yj nbuckets) -> (stream (tuple ((x1 t1) ... (xn tn) (y1 d1) ... (ym dm))))
