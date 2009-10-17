@@ -75,7 +75,7 @@ Testqueries over relation of database opt
 
 */
 
-% test program courtesy of Prof. Güting
+% test program courtesy of Prof. Gueting
 testSQ(N) :- N > 47.
 
 testSQ(N) :-
