@@ -184,7 +184,7 @@ const string SortSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                          ")))) -> (stream (tuple([a1:d1, ... ,an:dn])))"
                          "</text--->"
                          "<text>_ sort2</text--->"
-                         "<text>Sorts input stream lexicographically."
+                         "<text>Sorts an input stream lexicographically."
                          "</text--->"
                          "<text>query cities feed sort2 consume</text--->"
                          ") )";
@@ -371,9 +371,11 @@ const string SortBySpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                            " ((xi1 asc/desc) ... (xij [asc/desc]))) -> "
                            "(stream (tuple([a1:d1, ... ,an:dn])))</text--->"
                            "<text>_ sortby2 [list]</text--->"
-                           "<text>Sorts input stream according to a list "
-                           "of attributes ai1 ... aij. If no order is "
-                           "specified, ascending is assumed.</text--->"
+                           "<text>Sorts an input stream according to a list "
+                           "of attributes ai1 ... aij. For each attribute one "
+                           "may specify the sorting order (asc/desc). If no "
+                           "order is specified, ascending is assumed."
+                           "</text--->"
                            "<text>query employee feed sortby2[DeptNo asc] "
                            "consume</text--->"
                               ") )";
@@ -422,10 +424,11 @@ ListExpr JoinTypeMap( ListExpr args )
   NList type(args);
 
   const char* op[] = { "hybridhashjoin",
-                       "hybridhashjoinP",
-                       "sortmergejoin2" };
+                       "hybridhashjoinParam",
+                       "sortmergejoin2",
+                       "sortmergejoin2Param"};
 
-  const char* ex[] = { "five", "eight", "four" };
+  const char* ex[] = { "five", "eight", "four", "five" };
 
   int expected;
 
@@ -434,6 +437,7 @@ ListExpr JoinTypeMap( ListExpr args )
     case 0: expected = 5; break;
     case 1: expected = 8; break;
     case 2: expected = 4; break;
+    case 3: expected = 5; break;
     default: assert(0); break;
   }
 
@@ -558,6 +562,17 @@ ListExpr JoinTypeMap( ListExpr args )
     }
   }
 
+  if( n == 3 )
+  {
+    if ( type.fifth().str() != "int" )
+    {
+      return NList::typeError(
+            "Operator " + string(op[n]) +
+            ": Parameter 'maximum operator memory' "
+            "must be of type int.\n");
+    }
+  }
+
   if( n == 1 )
   {
     if ( type.elem(6).str() != "int" )
@@ -604,18 +619,48 @@ JoinTypeMap<1>(ListExpr args);
 template ListExpr
 JoinTypeMap<2>(ListExpr args);
 
+template ListExpr
+JoinTypeMap<3>(ListExpr args);
+
 /*
 3.3.2 Value mapping function of operator ~sortmergejoin2~
 
-The argument vector ~args~ contains in the first slot ~args[0]~ stream A,
-in the second slot ~args[1] stream B, in the third slot args[2] the name
-of the join attribute from stream A, in the fourth slot ~args[3] the name
-of the join attribute from stream B, in the fifth slot ~args[4]~ the attribute
-index of the join attribute from stream A and in the sixth slot ~args[5]~
-the attribute index of the join attribute from stream B.
+This value mapping function is used by both operators ~sortmergejoin2~ and
+~sortmergejoin2Param~. According to the value of the template parameter
+~param~ the argument vector ~args~ contains the following values. If ~param~
+is set to false ~args~ contains.
+
+  * args[0] : stream A
+
+  * args[1] : stream B
+
+  * args[2] : attribute name of join attribute for stream A
+
+  * args[3] : attribute name join attribute for stream B
+
+  * args[4] : attribute index of the join attribute from stream A
+
+  * args[5] : attribute index of the join attribute from stream B
+
+If ~param~ is set to true ~args~ contains.
+
+  * args[0] : stream A
+
+  * args[1] : stream B
+
+  * args[2] : attribute name of join attribute for stream A
+
+  * args[3] : attribute name join attribute for stream B
+
+  * args[4] : usable main memory in bytes
+
+  * args[5] : attribute index of the join attribute from stream A
+
+  * args[6] : attribute index of the join attribute from stream B
+
 
 */
-
+template<bool param>
 int SortMergeJoinValueMap( Word* args, Word& result,
                              int message, Word& local, Supplier s);
 
@@ -644,18 +689,17 @@ const string SortMergeJoinSpec  = "( ( \"Signature\" \"Syntax\" "
 
 */
 Operator extrelsortmergejoin2 (
-         "sortmergejoin2",        // name
-         SortMergeJoinSpec,       // specification
-         SortMergeJoinValueMap,   // value mapping - first argument
-                                  // of sort order spec is 1
-         Operator::SimpleSelect,  // trivial selection function
-         JoinTypeMap<2>           // type mapping
+         "sortmergejoin2",              // name
+         SortMergeJoinSpec,             // specification
+         SortMergeJoinValueMap<false>,  // value mapping
+         Operator::SimpleSelect,        // trivial selection function
+         JoinTypeMap<2>                 // type mapping
 );
 
 /*
 3.4 Operator ~hybridhashjoin~
 
-This computes the equijoin of tweo input streams making use of the
+This computes the equijoin of two input streams making use of the
 hybrid hash join algorithm.
 
 3.4.2 Value mapping function of operator ~hybridhashjoin~
@@ -721,11 +765,16 @@ const string HybridHashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
                                    "<text>_ _ hybridhashjoin [ _ , _ , _]"
                                    "</text--->"
                                    "<text>Computes the equijoin of two "
-                                   "streams using using the hybrid hash-join"
-                                   "algorithm.</text--->"
+                                   "streams using using the hybrid hash-join "
+                                   "algorithm. The third and fourth parameter "
+                                   "contain the attribute names of the join "
+                                   "attributes. The fifth argument specifies "
+                                   "the number of buckets used by the "
+                                   "algorithm. The number of used partitions "
+                                   "used is computed automatically.</text--->"
                                    "<text>query duplicates feed ten feed "
-                                   "hybridhashjoin[no, nr] consume</text--->"
-                                   ") )";
+                                   "hybridhashjoin[no, nr, 1000] consume "
+                                   "</text--->) )";
 
 /*
 3.1.4 Definition of operator ~hybridhashjoin~
@@ -1354,14 +1403,14 @@ const string Sort2ParamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "<text>This operator is used to simplify the "
                             "testing of "
                             "the new sort2 operator implementation. The "
-                            "operator takes three additional parameters, "
-                            "the first one specifies the usable main "
-                            "memory in Bytes, the second one the maximum "
+                            "operator takes three additional parameters. "
+                            "The first one specifies the usable main "
+                            "memory in bytes. The second one the maximum "
                             "fan-in for the merge phase respectively the "
-                            "maximum number of temporary open tuple files "
-                            "and the third parameter specifies the I/O buffer "
-                            "size for read/write operations on disk. Usable "
-                            "memory size must be between 1-65536 KByte. "
+                            "maximum number of temporary open tuple files. "
+                            "The third parameter specifies the I/O buffer "
+                            "size for read/write operations on disc. Usable "
+                            "main memory size must be between 1-65536 KByte. "
                             "The maximum fan-in is limited by 2-1000. "
                             "The maximum size of the I/O buffer is 16384 "
                             "Bytes. If these limits are exceeded default "
@@ -1596,7 +1645,7 @@ const string SortBy2ParamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "fan-in for the merge phase respectively the "
                             "maximum number of temporary open tuple files "
                             "and the third parameter specifies the I/O buffer "
-                            "size for read/write operations on disk. Usable "
+                            "size for read/write operations on disc. Usable "
                             "memory size must be between 1-65536 KByte. "
                             "The maximum fan-in is limited by 2-1000. "
                             "The maximum size of the I/O buffer is 16384 "
@@ -1676,6 +1725,52 @@ Operator extrelhybridhashjoinParam(
          JoinTypeMap<1>                 // type mapping
 );
 
+/*
+4.10 Operator ~sortmergejoin2Param~
+
+This operator computes the equijoin of two streams. This is
+a parameter-driven version of the ~sortmergejoin2~
+operator. As an additional parameter the main memory size
+for the operator may be specified in bytes.
+
+4.10.1 Specification of operator ~sortmergejoin2Param~
+
+*/
+const string SortMergeJoin2ParamSpec  = "( ( \"Signature\" \"Syntax\" "
+                                   "\"Meaning\" \"Example\" ) "
+                                   "( <text>((stream (tuple ((x1 t1) ... "
+                                   "(xn tn)))) (stream (tuple ((y1 d1) ..."
+                                   " (ym dm)))) xi yj) -> (stream (tuple "
+                                   "((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)"
+                                   ")))</text--->"
+                                   "<text>_ _ sortmergejoin2Param [ _ , _ , _ ]"
+                                   "</text--->"
+                                   "<text>Computes the equijoin of two "
+                                   "streams using the new sort2 operator "
+                                   "implementation. "
+                                   "This is the parameter-driven version "
+                                   "of the sortmergjoin2 operator. This "
+                                   "operator provides an additional "
+                                   "attribute mem which specifies the "
+                                   "usable main memory of the operator in "
+                                   "bytes.</text--->"
+                                   "<text>query duplicates feed ten feed "
+                                   "sortmergejoin2[no, nr, 16*1024*1024] "
+                                   "consume</text--->"
+                                   ") )";
+
+/*
+4.10.2 Definition of operator ~sortmergejoin2Param~
+
+*/
+Operator extrelsortmergejoin2Param (
+         "sortmergejoin2Param",       // name
+         SortMergeJoin2ParamSpec,     // specification
+         SortMergeJoinValueMap<true>, // value mapping
+         Operator::SimpleSelect,      // trivial selection function
+         JoinTypeMap<3>               // type mapping
+);
+
 } // end of namespace extrel2
 
 /*
@@ -1698,32 +1793,40 @@ class ExtRelation2Algebra : public Algebra
  public:
    ExtRelation2Algebra() : Algebra()
   {
-    AddOperator(&extrel2::extrelsortby);
     AddOperator(&extrel2::extrelsort);
-    AddOperator(&extrel2::extrelsortmergejoin2);
-    AddOperator(&extrel2::extrelhybridhashjoin);
-
-    AddOperator(&extrel2::extrelhybridhashjoinParam);
     AddOperator(&extrel2::extrelsort2Param);
+
+    AddOperator(&extrel2::extrelsortby);
     AddOperator(&extrel2::extrelsortby2Param);
+
+    AddOperator(&extrel2::extrelhybridhashjoin);
+    AddOperator(&extrel2::extrelhybridhashjoinParam);
+
+    AddOperator(&extrel2::extrelsortmergejoin2);
+    AddOperator(&extrel2::extrelsortmergejoin2Param);
+
     AddOperator(&extrel2::tuplefiletest);
     AddOperator(&extrel2::tuplebuffertest);
+    AddOperator(&extrel2::extreltuplecomp);
     AddOperator(&extrel2::extrelheapstl);
     AddOperator(&extrel2::extrelheapstd);
     AddOperator(&extrel2::extrelheapbup);
     AddOperator(&extrel2::extrelheapbup2);
     AddOperator(&extrel2::extrelheapmdr);
-    AddOperator(&extrel2::extreltuplecomp);
 
 #ifdef USE_PROGRESS
 // support for progress queries
-   extrel2::extrelsortby.EnableProgress();
    extrel2::extrelsort.EnableProgress();
    extrel2::extrelsort2Param.EnableProgress();
+
+   extrel2::extrelsortby.EnableProgress();
    extrel2::extrelsortby2Param.EnableProgress();
+
    extrel2::extrelhybridhashjoin.EnableProgress();
    extrel2::extrelhybridhashjoinParam.EnableProgress();
+
    extrel2::extrelsortmergejoin2.EnableProgress();
+   extrel2::extrelsortmergejoin2Param.EnableProgress();
 #endif
   }
 
