@@ -109,12 +109,15 @@ variance on a stream.
 #include "RTuple.h"
 #include "Symbols.h"
 #include "ListUtils.h"
+#include "Outerjoin.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
+extern Operator extrelsmouterjoin;
 
 using namespace symbols;
+using namespace listutils;
 
 /*
 2 Operators
@@ -8922,7 +8925,8 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelmergejoin);
 
     AddOperator(&extrelsortmergejoin);
-     AddOperator(&extrelhashjoin);
+	AddOperator(&extrelsmouterjoin);
+	AddOperator(&extrelhashjoin);
     AddOperator(&extrelloopjoin);
     AddOperator(&extrelextendstream);
     AddOperator(&extrelprojectextendstream);
@@ -8948,6 +8952,7 @@ class ExtRelationAlgebra : public Algebra
    extrelrdup.EnableProgress();
    extrelmergejoin.EnableProgress();
    extrelsortmergejoin.EnableProgress();
+   extrelsmouterjoin.EnableProgress();
    extrelhashjoin.EnableProgress();
    extrelloopjoin.EnableProgress();
    extrelgroupby.EnableProgress();
