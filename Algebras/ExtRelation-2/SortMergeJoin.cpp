@@ -45,7 +45,7 @@ June 2009, Sven Jungnickel. Initial version
 extern QueryProcessor* qp;
 
 /*
-4 Implementation of class ~SortProgressLocalInfo~
+4 Implementation of class ~SortMergeJoinLocalInfo~
 
 */
 namespace extrel2
@@ -55,7 +55,8 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
                                                 Word streamB,
                                                 int attrIndexB,
                                                 Supplier s,
-                                                ProgressLocalInfo* p )
+                                                ProgressLocalInfo* p,
+                                                size_t maxMemSize )
 : ProgressWrapper(p)
 , streamA(streamA)
 , streamB(streamB)
@@ -63,7 +64,7 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
 , cmp(0)
 , attrIndexA(attrIndexA)
 , attrIndexB(attrIndexB)
-, traceFlag(RTFlag::isActive("ERA:TraceMergeJoin"))
+, traceMode(RTFlag::isActive("ERA:TraceMergeJoin"))
 , continueMerge(false)
 {
   // sort the input streams
@@ -89,15 +90,18 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
   ptA.setTuple( NextTupleA() );
   ptB.setTuple( NextTupleB() );
 
-  MAX_MEMORY = qp->MemoryAvailableForOperator();
+  // set available main memory (MAX_MEMORY)
+  setMemory(maxMemSize);
 
   grpB = new TupleBuffer2( MAX_MEMORY );
 
-  cmsg.info("ERA:ShowMemInfo")
-    << "SortMergeJoin2.MAX_MEMORY ("
-    << MAX_MEMORY/1024 << " kb)" << endl;
-  cmsg.send();
-
+  if ( traceMode )
+  {
+    cmsg.info() << "-------------------- SortMerge-Join2 ------------------"
+                << endl
+                << "Memory: \t" << MAX_MEMORY / 1024 << " KByte" << endl;
+    cmsg.send();
+  }
 }
 
 SortMergeJoinLocalInfo::~SortMergeJoinLocalInfo()
@@ -141,6 +145,25 @@ SortMergeJoinLocalInfo::~SortMergeJoinLocalInfo()
   resultTupleType->DeleteIfAllowed();
 }
 
+void SortMergeJoinLocalInfo::setMemory(size_t maxMemory)
+{
+  if ( maxMemory == UINT_MAX )
+  {
+    MAX_MEMORY = qp->MemoryAvailableForOperator();
+  }
+  else if ( maxMemory < MIN_USER_DEF_MEMORY )
+  {
+    MAX_MEMORY = MIN_USER_DEF_MEMORY;
+  }
+  else if ( maxMemory > MAX_USER_DEF_MEMORY )
+  {
+    MAX_MEMORY = MAX_USER_DEF_MEMORY;
+  }
+  else
+  {
+    MAX_MEMORY = maxMemory;
+  }
+}
 
 Tuple* SortMergeJoinLocalInfo::NextResultTuple()
 {
@@ -254,14 +277,31 @@ Tuple* SortMergeJoinLocalInfo::NextResultTuple()
 
 
 /*
-2.2.2 Value mapping function of operator ~sortmergejoin2~
+5 Value mapping function of operator ~sortmergejoin2~
 
 */
 
-int
-SortMergeJoinValueMap( Word* args, Word& result,
-                       int message, Word& local, Supplier s )
+template<bool param>
+int SortMergeJoinValueMap( Word* args, Word& result,
+                             int message, Word& local, Supplier s )
 {
+  // if ( param = false )
+  // args[0] : stream A
+  // args[1] : stream B
+  // args[2] : attribute name of join attribute for stream A
+  // args[3] : attribute name join attribute for stream B
+  // args[4] : attribute index of join attribute for stream A
+  // args[5] : attribute index of join attribute for stream B
+
+  // if ( param = true )
+  // args[0] : stream A
+  // args[1] : stream B
+  // args[2] : attribute name of join attribute for stream A
+  // args[3] : attribute name join attribute for stream B
+  // args[4] : usable main memory in bytes (only if param is true)
+  // args[5] : attribute index of join attribute for stream A
+  // args[6] : attribute index of join attribute for stream B
+
   typedef LocalInfo<SortMergeJoinLocalInfo> LocalType;
   LocalType* li = static_cast<LocalType*>( local.addr );
 
@@ -292,12 +332,25 @@ SortMergeJoinValueMap( Word* args, Word& result,
         //constructor put here to avoid delays in OPEN
         //which are a problem for progress estimation
       {
-        int attrIndexA = StdTypes::GetInt( args[4] );
-        int attrIndexB = StdTypes::GetInt( args[5] );
+        if ( param )
+        {
+          size_t maxMemSize = (size_t)StdTypes::GetInt( args[4] );
+          int attrIndexA = StdTypes::GetInt( args[5] );
+          int attrIndexB = StdTypes::GetInt( args[6] );
 
-        li->ptr = new SortMergeJoinLocalInfo( args[0], attrIndexA,
-                                              args[1], attrIndexB,
-                                              s, li );
+          li->ptr = new SortMergeJoinLocalInfo( args[0], attrIndexA,
+                                                args[1], attrIndexB,
+                                                s, li, maxMemSize );
+        }
+        else
+        {
+          int attrIndexA = StdTypes::GetInt( args[4] );
+          int attrIndexB = StdTypes::GetInt( args[5] );
+
+          li->ptr = new SortMergeJoinLocalInfo( args[0], attrIndexA,
+                                                args[1], attrIndexB,
+                                                s, li );
+        }
       }
 
       SortMergeJoinLocalInfo* mli = li->ptr;
@@ -441,5 +494,22 @@ SortMergeJoinValueMap( Word* args, Word& result,
 
   return 0;
 }
+
+/*
+6 Instantiation of Template Functions
+
+For some reasons the compiler cannot expand these template functions in
+the file ~ExtRelation2Algebra.cpp~, thus the value mapping functions
+are instantiated here.
+
+*/
+
+template
+int SortMergeJoinValueMap<false>( Word* args, Word& result,
+                                   int message, Word& local, Supplier s );
+
+template
+int SortMergeJoinValueMap<true>( Word* args, Word& result,
+                                  int message, Word& local, Supplier s);
 
 } // end of namespace extrel2

@@ -20,19 +20,9 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
-//paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
-//paragraph [10] Footnote: [{\footnote{] [}}]
-//[TOC] [\tableofcontents]
-//[_] [\_]
-//[x] [\ensuremath{\times}]
-//[->] [\ensuremath{\rightarrow}]
-//[>] [\ensuremath{>}]
-//[<] [\ensuremath{<}]
-
-
 1 Header File SortMergeJoin.h
 
-June 2009, Sven Jungnickel. Initial version
+Sept 2009, Sven Jungnickel. Initial version
 
 2 Overview
 
@@ -52,7 +42,6 @@ algorithm implemented by operator ~sort2~.
 #include "TupleBuffer2.h"
 #include "Sort.h"
 
-
 /*
 3 Class ~SortMergeJoinLocalInfo~
 
@@ -65,8 +54,9 @@ class SortMergeJoinLocalInfo : protected ProgressWrapper
 {
   public:
     SortMergeJoinLocalInfo( Word streamA, int attrIndexA,
-                            Word streamB, int attrIndexB,
-                            Supplier s, ProgressLocalInfo* p );
+                              Word streamB, int attrIndexB,
+                              Supplier s, ProgressLocalInfo* p,
+                              size_t maxMemSize = UINT_MAX );
 /*
 The constructor. Consumes all tuples of the tuple stream ~stream~
 immediately into sorted runs of approximately two times the size of the
@@ -91,10 +81,12 @@ The destructor. Frees all resources of the algorithm.
 
     Tuple* NextResultTuple();
 /*
-Returns the pointer of the next result tuple in sort order. If all tuples
+Returns the pointer of the next result tuple. If all tuples
 have been processed the method returns 0.
 
 */
+
+  private:
 
     inline Tuple* NextConcat()
     {
@@ -113,8 +105,6 @@ Returns the pointer of the next result tuple in sort order. If all tuples
 have been processed the method returns 0.
 
 */
-
-  private:
 
     template<bool BOTH_B>
     int CompareTuples(Tuple* t1, Tuple* t2)
@@ -146,7 +136,8 @@ have been processed the method returns 0.
       }
 
       int cmp = a->Compare(b);
-      if (traceFlag)
+
+      if (traceMode)
       {
         cmsg.info()
           << "CompareTuples:" << endl
@@ -208,6 +199,26 @@ If all tuples have been processed the method returns 0.
 
 */
 
+    void setMemory(size_t maxMemory);
+/*
+Sets the usable main memory for the operator in bytes. If ~maxMemory~
+has value ~UINT\_MAX~ the usable main memory is requested from the
+query processor.
+
+*/
+
+    static const size_t MIN_USER_DEF_MEMORY = 1024;
+/*
+Minimum amount of user defined memory for the operator.
+
+*/
+
+    static const size_t MAX_USER_DEF_MEMORY = ( 64 * 1024 * 1024 );
+/*
+Maximum amount of user defined memory for the operator.
+
+*/
+
     // buffer limits
     size_t MAX_MEMORY;
     size_t MAX_TUPLES_IN_MEMORY;
@@ -245,7 +256,7 @@ If all tuples have been processed the method returns 0.
     TupleType *resultTupleType;
 
     // switch trace messages on/off
-    const bool traceFlag;
+    const bool traceMode;
 
     // a flag needed in function NextTuple which tells
     // if the merge with grpB has been finished
