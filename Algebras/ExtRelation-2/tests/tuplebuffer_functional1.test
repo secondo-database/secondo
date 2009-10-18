@@ -34,6 +34,12 @@
 #
 # this is useful for debugging
 
+set "SI:PrintCounters" = TRUE;
+set "SI:PrintCmdTimes" = TRUE;
+set "SI:NoQueryTimers" = TRUE;
+set "SI:NoCommandEcho" = TRUE;
+set "SI:RelStatistics" = TRUE;
+
 ##############################################################################
 # Setup
 ##############################################################################

@@ -34,6 +34,12 @@
 #
 # this is useful for debugging
 
+set "SI:PrintCounters" = TRUE;
+set "SI:PrintCmdTimes" = TRUE;
+set "SI:NoQueryTimers" = TRUE;
+set "SI:NoCommandEcho" = TRUE;
+set "SI:RelStatistics" = TRUE;
+
 ##############################################################################
 # Setup
 ##############################################################################
@@ -63,7 +69,8 @@ delete result1;
 
 #--------------------------------------------------  
 # tuplebuffer - (mixed case, 16 MB buffer size)
-# relation Kreis has about 24 MB size
+# relation Kreis has about 24 MB size, 439 tuples
+# with extSize ~88 Byte => 38632 bytes extSize
 # => 16 MB stored in memory, 8 MB stored on disc
 
 #testcase teststep_2_create_result
@@ -72,7 +79,7 @@ let result2 = Kreis feed consume;
 
 #testcase teststep_2_compare_result
 #yields *result2
-query Kreis feed tuplebuffer[16*1024] consume;
+query Kreis feed tuplebuffer[32] consume;
 
 #testcase teststep_2_delete_result
 #yields success
