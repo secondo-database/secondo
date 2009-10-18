@@ -21,6 +21,28 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+//paragraph [10] title: [{\Large \bf ]  [}]
+//characters [1] formula:       [$]     [$]
+//[ae] [\"{a}]
+//[oe] [\"{o}]
+//[ue] [\"{u}]
+//[ss] [{\ss}]
+//[Ae] [\"{A}]
+//[Oe] [\"{O}]
+//[Ue] [\"{U}]
+//[**] [$**$]
+//[star] [$*$]
+//[->] [$\rightarrow$]
+//[toc] [\tableofcontents]
+//[=>] [\verb+=>+]
+//[:Section Translation] [\label{sec:translation}]
+//[Section Translation] [Section~\ref{sec:translation}]
+//[:Section 4.1.1] [\label{sec:4.1.1}]
+//[Section 4.1.1] [Section~\ref{sec:4.1.1}]
+//[Figure pog1] [Figure~\ref{fig:pog1.eps}]
+//[Figure pog2] [Figure~\ref{fig:pog2.eps}]
+//[newpage] [\newpage]
+
 August 2008, Burkart Poneleit. Initial Version
 
 18 Transforming nested queries to their canonical form
@@ -790,7 +812,7 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   
 /*
 
-Project the query result to columns of the given relations, if select-clause is ~*~.
+Project the query result to columns of the given relations, if select-clause is [star].
 
 */
 	
@@ -816,7 +838,7 @@ projectIfNeeded(Attrs, _, Attrs).
 /* 
 
 Translate between optimizer syntax for renaming (using operator ~:~) and 
-executable syntax, which uses operator ~_~ and postfix notation.
+executable syntax, which uses operator ~\_~ and postfix notation.
 
 */	
 
@@ -1095,7 +1117,7 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2,
   callLookup(RQuery, Query2), !,
   queryToPlan(Query2, Plan, _), !,
   dm(subqueryDebug, ['\nPlan: ', Plan]),
-  findJoinAttrs(Plan, JoinAttr1, JoinAttr2),
+  findJoinAttrs(Plan, JoinAttr1, JoinAttr2, _),
   dm(subqueryDebug, ['\nJoinAttr1: ', JoinAttr1, '\nJoinAttr2: ', JoinAttr2]),
   ( isAttributeOf(JoinAttr1, TempRel1)
     -> ( NewJoinAttr1 = JoinAttr1, NewJoinAttr2 = JoinAttr2 )
@@ -1107,7 +1129,7 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2,
   dm(subqueryUnnesting, ['\nTemporaryRel3: ', TemporaryRel3]),  
   newTempRel(TemporaryRel3, TempRel3).   
   
-  
+% case aggregation function = count  
 tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2, 
 	JoinPreds, TempRel3, NewColumn, NewJoinAttr1, NewJoinAttr2) :-
   AggregatedAttr =.. [AggrOp, Attr],
@@ -1138,18 +1160,17 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2,
 	append([TempRel1], TR2List, Rels),
   TemporaryRel3 =.. [groupby, from(select AttrList, where(Rels, JoinPreds2)), JoinAttrs2],
   dm(subqueryDebug, ['\nTemporaryRel3: ', TemporaryRel3]), 
-%  optimize(TempRelation3, Plan, _), 
   rewriteQuery(TemporaryRel3, RQuery),
   callLookup(RQuery, Query2), !,
   queryToPlan(Query2, Plan, _), !,
   dm(subqueryDebug, ['\nPlan: ', Plan]),
-  findJoinAttrs(Plan, JoinAttr1, JoinAttr2),
+  findJoinAttrs(Plan, JoinAttr1, JoinAttr2, Op),
   dm(subqueryDebug, ['\nJoinAttr1: ', JoinAttr1, '\nJoinAttr2: ', JoinAttr2]),
   ( isAttributeOf(JoinAttr1, TempRel1)
-    -> OuterJoinPred = outerjoin(JoinAttr1, JoinAttr2)
-	;  OuterJoinPred = outerjoin(JoinAttr2, JoinAttr1)
+    -> OuterJoinPred = outerjoin(Op, attrname(JoinAttr1), attrname(JoinAttr2))
+	;  OuterJoinPred = outerjoin(Op, attrname(JoinAttr2), attrname(JoinAttr1))
   ),
-  OuterJoinPred =.. [outerjoin, NewJoinAttr1, NewJoinAttr2],
+  OuterJoinPred =.. [outerjoin, Op, attrname(NewJoinAttr1), attrname(NewJoinAttr2)],
   dm(subqueryDebug, ['\nOuterJoinPred: ', OuterJoinPred]),
   newQuery,
   lookupRel(TempRel1, IntTempRel1),
@@ -1158,26 +1179,31 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2,
   dm(subqueryDebug, ['\nIntTempRel2: ', IntTempRel2]),
   lookupAttr(JoinAttr1 as NewColumn, _ as IntNewColumn),
   dm(subqueryDebug, ['\nIntNewColumn: ', IntNewColumn]),
-  lookupPred(OuterJoinPred,
-	pr(outerjoin(IntJoinAttr1, IntJoinAttr2), _, _)),
-  dm(subqueryDebug, ['\nIntJoinAttr1: ', IntJoinAttr1]),
-  dm(subqueryDebug, ['\nIntJoinAttr2: ', IntJoinAttr2]),
+  % lookupPred(OuterJoinPred,
+	% pr(outerjoin(IntJoinAttr1, IntJoinAttr2), _, _)),
+  % dm(subqueryDebug, ['\nIntJoinAttr1: ', IntJoinAttr1]),
+  % dm(subqueryDebug, ['\nIntJoinAttr2: ', IntJoinAttr2]),
+	lookupPred(OuterJoinPred, pr(IntOuterJoinPred, _, _)),
+	IntOuterJoinPred =.. [outerjoin, Op, IntJoinAttr1, IntJoinAttr2],
 	makeStream(IntTempRel1, IntStreamRel1),
   plan_to_atom(IntStreamRel1, ExtTempRel1),
   dm(subqueryDebug, ['\nExtTempRel1: ', ExtTempRel1]),
 	makeStream(IntTempRel2, IntStreamRel2),
   plan_to_atom(IntStreamRel2, ExtTempRel2),
   dm(subqueryDebug, ['\nExtTempRel2: ', ExtTempRel2]),
-  plan_to_atom(attrname(IntJoinAttr1), ExtJoinAttr1),
+  plan_to_atom(IntJoinAttr1, ExtJoinAttr1),
   dm(subqueryDebug, ['\nExtJoinAttr1: ', ExtJoinAttr1]),
-  plan_to_atom(attrname(IntJoinAttr2), ExtJoinAttr2),
+  plan_to_atom(IntJoinAttr2, ExtJoinAttr2),
   dm(subqueryDebug, ['\nExtJoinAttr2: ', ExtJoinAttr2]),
   plan_to_atom(attrname(IntNewColumn), ExtNewColumn),
   dm(subqueryDebug, ['\nExtNewColumn: ', ExtNewColumn]),  
+	plan_to_atom(IntOuterJoinPred, ExtOuterJoinPred),
+	dm(subqueryDebug, ['\nExtOuterJoinPred: ', ExtOuterJoinPred]),
   concat_atom([
 	   ExtTempRel1,  
 	   ExtTempRel2, 
-	   ' smouterjoin[',ExtJoinAttr1, ',', ExtJoinAttr2, ']',		
+%	   ' smouterjoin[',ExtJoinAttr1, ',', ExtJoinAttr2, ']',	
+     ExtOuterJoinPred,
 	   ' sortby[', ExtJoinAttr1, ' asc]', 
 	   ' groupby[', ExtJoinAttr1, ';', ExtNewColumn, ': group feed filter[not(isempty(.', ExtJoinAttr2, ' ))] count]',	
 	   ' projectextend[', ExtNewColumn, '; ', ExtJoinAttr2 , ': .', ExtJoinAttr1, ']',			   
@@ -1221,11 +1247,11 @@ aggregationAttrs1(Term, _, []) :-
 
 */
 
-findJoinAttrs(Plan, JoinAttr1, JoinAttr2) :-
+findJoinAttrs(Plan, JoinAttr1, JoinAttr2, Op) :-
   Plan =.. [symmjoin | Args], !,
   nth1(3, Args, Pred),
   dm(subqueryDebug, ['\nPred: ', Pred]),
-  Pred =.. [_, attr(Attr1, _, _), attr(Attr2, _, _)],
+  Pred =.. [Op, attr(Attr1, _, _), attr(Attr2, _, _)],
 	( Attr1 = Var1:AttrName1 ; Attr1 = AttrName1 ),
 	( Attr2 = Var2:AttrName2 ; Attr2 = AttrName2 ),
   dcName2externalName(JoinAttrName1, AttrName1),
@@ -1236,7 +1262,7 @@ findJoinAttrs(Plan, JoinAttr1, JoinAttr2) :-
 	  ; JoinAttr2 = JoinAttrName2 ).	
   
   
-findJoinAttrs(Plan, JoinAttr1, JoinAttr2) :-
+findJoinAttrs(Plan, JoinAttr1, JoinAttr2, =) :-
   Plan =.. [Op | Args],
   atom_concat(_, 'join', Op), !,
   nth1(3, Args, attrname(attr(Attr1, _, _))),
@@ -1250,19 +1276,19 @@ findJoinAttrs(Plan, JoinAttr1, JoinAttr2) :-
  ( (ground(Var2), JoinAttr2 = Var2:JoinAttrName2) 
 	  ; JoinAttr2 = JoinAttrName2 ).		  	  	
   
-findJoinAttrs(Plan, JoinAttr1, JoinAttr2) :-
+findJoinAttrs(Plan, JoinAttr1, JoinAttr2, Op) :-
   not(is_list(Plan)),
   compound(Plan),
   Plan =.. [_ | Args],
-  findJoinAttrs(Args, JoinAttr1, JoinAttr2).
+  findJoinAttrs(Args, JoinAttr1, JoinAttr2, Op).
 
-findJoinAttrs([ Arg ], JoinAttr1, JoinAttr2) :-
-  findJoinAttrs(Arg, JoinAttr1, JoinAttr2).
+findJoinAttrs([ Arg ], JoinAttr1, JoinAttr2, Op) :-
+  findJoinAttrs(Arg, JoinAttr1, JoinAttr2, Op).
 
-findJoinAttrs([ Arg | Rest ], JoinAttr1, JoinAttr2) :-
-  ( findJoinAttrs(Arg, JoinAttr1, JoinAttr2) ;
+findJoinAttrs([ Arg | Rest ], JoinAttr1, JoinAttr2, Op) :-
+  ( findJoinAttrs(Arg, JoinAttr1, JoinAttr2, Op) ;
     ( not(Rest = []),
-    findJoinAttrs(Rest, JoinAttr1, JoinAttr2) )).
+    findJoinAttrs(Rest, JoinAttr1, JoinAttr2, Op) )).
 		
 aliasExternal(Expr, Expr, TempRel2) :-
   is_list(TempRel2).
@@ -1637,6 +1663,10 @@ relsAfter(_, _, _) :-
 %  retractall(currentRels(_)),
   fail.
 
+lookupSubqueryPred(outerjoin(Op, A1, A2), outerjoin(Op, Attr1, Attr2), RelsBefore, RelsAfter) :-
+  lookupPred1(A1, Attr1, RelsBefore, Attr1RelsAfter),
+	lookupPred1(A2, Attr2, Attr1RelsAfter, RelsAfter),
+	!.
 
 lookupSubqueryPred(Pred, Pred2, RelsBefore, RelsAfter) :-
   isSubqueryPred1(Pred),
@@ -2322,7 +2352,7 @@ selectivityRel :-
 Apply the sample sizes calculated to the selectivity query. Maximum cardinality 
 for a selectivity query is ~maxSelCard(selCard)~, maximum cardinality for a sample
 relation is ~maxSampleCard(sampleCard)~. The cardinality used for sampling is 
-calculated as \sqrt[N]{selCard}, where N is the number of relations used in the 
+calculated as $\sqrt[N]{selCard}$, where N is the number of relations used in the 
 selectivity query.
 
 */
@@ -2570,27 +2600,26 @@ secondo_list_to_atom(X, Result) :-
 	
 secondo_list_to_atom([], '') :- !.
 
-% subquery_plan_to_atom(in(Attr, collect_set(ValueList)), Result) :-
-  % plan_to_atom(Attr, AttrAtom),
-	% plan_to_atom(collect_set(ValueList), VLAtom),
-	% concat_atom([AttrAtom, ' in ', VLAtom], Result),
-	% !.
-
 subquery_plan_to_atom(in(Attr, ValueList), Result) :-
-  ValueList =.. [(,) | R],
-%	write('ValueList: '), write(ValueList), nl,
-%	write('R '), write(R), nl,
+  ValueList =.. [(,) | _],
   constantType(Attr, Type),
   plan_to_atom(Attr, AttrAtom),
 	secondo_list_to_atom(ValueList, VLAtom),
 	concat_atom([AttrAtom, ' in [const set(', Type, ') value (', VLAtom, ')]'], Result),
-%	write('Result: '), write(Result), nl,
 	!.
-  
-% subquery_plan_to_atom(in(Attr, ValueList), Result) :-
-  % not(nth1(1, ValueList, const)), !,
-  % in2or(Attr, ValueList, Pred),
-  % plan_to_atom(Pred, Result).
+	
+subquery_plan_to_atom(outerjoin(=, JoinAttr1, JoinAttr2), Result) :-
+  plan_to_atom(JoinAttr1, AAtom1),
+	plan_to_atom(JoinAttr2, AAtom2),
+	concat_atom([' smouterjoin[', AAtom1, ',', AAtom2, ']'], Result),
+	!.
+	
+subquery_plan_to_atom(outerjoin(Op, attrname(JoinAttr1), attrname(JoinAttr2)), Result) :-
+  Pred =.. [Op, JoinAttr1, JoinAttr2],
+	consider_Arg2(Pred, Pred2),    % transform second arg/3 to arg2/3
+	plan_to_atom(Pred2, PAtom),
+	concat_atom([' symmouterjoin[', PAtom, ']'], Result),
+  !.	
 
 % case nested predicate is join predicate
 subquery_plan_to_atom(Pred, Result) :-
@@ -2639,8 +2668,7 @@ subquery_plan_to_atom(Pred, Result) :-
   dm(subqueryDebug, ['\n',
 					 '\nisJoinPred\n\n\t']),
   dc(subqueryDebug, write_canonical(Pred)),
-  dm(subqueryDebug, ['\nOp: ', Op,
-					 '\nAttr: ', Attr,
+  dm(subqueryDebug, ['\nAttr: ', Attr,
 					 '\nQuery: ', Query1]),
   newTempRel(T1),
   streamName(T1),

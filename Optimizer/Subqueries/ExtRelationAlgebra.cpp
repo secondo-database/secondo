@@ -115,6 +115,7 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 extern AlgebraManager* am;
 extern Operator extrelsmouterjoin;
+extern Operator extrelsymmouterjoin;
 
 using namespace symbols;
 using namespace listutils;
@@ -8935,6 +8936,7 @@ class ExtRelationAlgebra : public Algebra
     AddOperator(&extrelaggregate);
     AddOperator(&extrelaggregateB);
     AddOperator(&extrelsymmjoin);
+		AddOperator(&extrelsymmouterjoin);
     AddOperator(&extrelsymmproductextend);
     AddOperator(&extrelsymmproduct);
     AddOperator(&extrelprojectextend);
@@ -8953,6 +8955,7 @@ class ExtRelationAlgebra : public Algebra
    extrelmergejoin.EnableProgress();
    extrelsortmergejoin.EnableProgress();
 	 extrelsmouterjoin.EnableProgress();
+	 extrelsymmouterjoin.EnableProgress();
    extrelhashjoin.EnableProgress();
    extrelloopjoin.EnableProgress();
    extrelgroupby.EnableProgress();

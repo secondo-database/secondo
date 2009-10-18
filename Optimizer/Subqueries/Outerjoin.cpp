@@ -65,9 +65,10 @@ January 2008, B. Poneleit
 #include "RTuple.h"
 #include "Tupleorder.h"
 #include "ListUtils.h"
+#include "HashAlgebra.h"
 
 extern NestedList* nl;
-extern QueryProcessor* qp;						
+extern QueryProcessor* qp;            
 
 #ifndef USE_PROGRESS
 
@@ -77,8 +78,8 @@ class SortByLocalInfo
 {
   public:
     SortByLocalInfo( Word stream, 
-		     const bool lexicographic, 
-		     void *tupleCmp ):
+         const bool lexicographic, 
+         void *tupleCmp ):
       stream( stream ),
       currentIndex( 0 ),
       lexiTupleCmp( lexicographic ? 
@@ -324,13 +325,13 @@ In this case we need to delete also all tuples stored in memory.
   private:
 
     void ShowPartitionInfo( int c, int a, int n, 
-		            int m, int r, GenericRelation* rel ) 
+                int m, int r, GenericRelation* rel ) 
     {
       int rs = (rel != 0) ? rel->GetNoTuples() : 0; 
       if ( RTFlag::isActive("ERA:Sort:PartitionInfo") ) 
       {
         cmsg.info() << "Current run finished: " 
-		    << "  processed tuples=" << c 
+        << "  processed tuples=" << c 
                     << ", append minimum=" << m 
                     << ", append next=" << n << endl
                     << "  materialized runs=" << r
@@ -370,7 +371,7 @@ class SortByLocalInfo : protected ProgressWrapper
 {
   public:
     SortByLocalInfo( Word stream, const bool lexicographic,
-		     void *tupleCmp, ProgressLocalInfo* p            ):
+         void *tupleCmp, ProgressLocalInfo* p            ):
       ProgressWrapper(p),
       stream( stream ),
       currentIndex( 0 ),
@@ -617,13 +618,13 @@ In this case we need to delete also all tuples stored in memory.
   private:
 
     void ShowPartitionInfo( int c, int a, int n,
-		            int m, int r, GenericRelation* rel )
+                int m, int r, GenericRelation* rel )
     {
       int rs = (rel != 0) ? rel->GetNoTuples() : 0;
       if ( RTFlag::isActive("ERA:Sort:PartitionInfo") )
       {
         cmsg.info() << "Current run finished: "
-		    << "  processed tuples=" << c
+        << "  processed tuples=" << c
                     << ", append minimum=" << m
                     << ", append next=" << n << endl
                     << "  materialized runs=" << r
@@ -681,7 +682,7 @@ class MergeOuterjoinLocalInfo
 {
 private:
 
-  // buffer limits	
+  // buffer limits  
   size_t MAX_MEMORY;
   size_t MAX_TUPLES_IN_MEMORY;
 
@@ -731,7 +732,7 @@ private:
   int CompareTuples(Tuple* t1, Tuple* t2)
   {
 
-    Attribute* a = 0; 	  
+    Attribute* a = 0;     
     if (BOTH_B)    
       a = static_cast<Attribute*>( t1->GetAttribute(attrIndexB) );
     else
@@ -755,7 +756,7 @@ private:
     { 
           cmsg.info() 
             << "CompareTuples:" << endl
-	    << "  BOTH_B = " << BOTH_B << endl
+      << "  BOTH_B = " << BOTH_B << endl
             << "  tuple_1  = " << *t1 << endl
             << "  tuple_2  = " << *t2 << endl 
             << "  cmp(t1,t2) = " << cmp << endl; 
@@ -791,7 +792,7 @@ private:
     }
     else
     {
-      result.addr = 0;	    
+      result.addr = 0;      
       return static_cast<Tuple*>( result.addr );
     }
   }
@@ -816,7 +817,7 @@ inline Tuple* NextUndefinedA()
     ListExpr valueExpr = 0;
     bool correct;
     int errorPos;
-    ListExpr errorInfo;	
+    ListExpr errorInfo;  
     progress->readFirst++;
     if (undefA == 0) {
         // create tuple with undefined values
@@ -858,7 +859,7 @@ inline Tuple* NextUndefinedB()
     ListExpr valueExpr = 0;
     bool correct;
     int errorPos;
-    ListExpr errorInfo;	
+    ListExpr errorInfo;  
     progress->readSecond++;
     if (undefB == 0)  {
         // create tuple with undefined values
@@ -912,7 +913,7 @@ public:
 
       SortOrderSpecification specA;
       SortOrderSpecification specB;
-	 
+   
       specA.push_back( pair<int, bool>(attrIndexA + 1, true) ); 
       specB.push_back( pair<int, bool>(attrIndexB + 1, true) ); 
 
@@ -921,12 +922,12 @@ public:
       void* tupleCmpB = new TupleCompareBy( specB );
 
       sliA = new SortByLocalInfo( streamA, 
-				  false,  
-				  tupleCmpA );
+          false,  
+          tupleCmpA );
 
       sliB = new SortByLocalInfo( streamB, 
-				  false,  
-				  tupleCmpB );
+          false,  
+          tupleCmpB );
 
     }
 
@@ -968,10 +969,10 @@ public:
 
   Tuple* NextResultTuple()
   {
-      Tuple* resultTuple = 0;	
+      Tuple* resultTuple = 0;  
 
-      while ( ptA != 0 || ptB != 0 ) {		
-          if (ptA != 0 && (ptB != 0 || tmpB != 0)) {			
+      while ( ptA != 0 || ptB != 0 ) {    
+          if (ptA != 0 && (ptB != 0 || tmpB != 0)) {      
               if (tmpB != 0) {
                   cmp = CompareTuples( ptA.tuple, tmpB.tuple );
               }
@@ -981,7 +982,7 @@ public:
               /*if ( !outerJoin && tmpB == 0 ) {
                   // create initial group for inner join
                   if (!continueMerge && ptB != 0) {
-                      //save ptB in tmpB	
+                      //save ptB in tmpB  
                       tmpB = ptB;
 
                       grpB->AppendTuple(tmpB.tuple);
@@ -995,16 +996,16 @@ public:
                       while ( !done && ptB != 0 ) {
                           int cmp = CompareTuplesB( tmpB.tuple, ptB.tuple );
 
-                          if ( cmp == 0) 	{
-                              // append equal tuples to group	
+                          if ( cmp == 0)   {
+                              // append equal tuples to group  
                               grpB->AppendTuple(ptB.tuple);
 
                               // release tuple of input B
                               ptB.setTuple( NextTupleB() );
                           }
-                          else		{
+                          else    {
                               done = true;
-                          }	
+                          }  
                       } // end collect group
 
                       cmp = CompareTuples( ptA.tuple, tmpB.tuple );
@@ -1062,7 +1063,7 @@ public:
                           }
                           else  {
                               done = true;
-                          }	
+                          }  
                       } // end collect group
                   }
 
@@ -1103,7 +1104,7 @@ public:
                   ptB.setTuple( NextTupleB() );
                   if (resultTuple) {
                       return resultTuple;
-                  }		
+                  }    
               }
               /*else {
                   if ( ptB == 0 )
@@ -1120,7 +1121,7 @@ public:
               ptA.setTuple( NextTupleA() );
               if (resultTuple) {
                   return resultTuple;
-              }	
+              }  
           }
           else /*if ( outerJoin ) / * ptB != 0 */{
               // ptA == 0
@@ -1128,7 +1129,7 @@ public:
               ptB.setTuple( NextTupleB() );
               if (resultTuple) {
                   return resultTuple;
-              }	
+              }  
           }
           else {
               // short exit
@@ -1159,7 +1160,7 @@ public:
   }
 
   inline Tuple* NextConcatA()
-  {	
+  {  
       Tuple* result = new Tuple( resultTupleType );
       Concat( NextUndefinedA(), ptB.tuple, result );
       return result;
@@ -1222,7 +1223,7 @@ class MergeOuterjoinLocalInfo: protected ProgressWrapper
 {
 private:
 
-  // buffer limits	
+  // buffer limits  
   size_t MAX_MEMORY;
   size_t MAX_TUPLES_IN_MEMORY;
 
@@ -1281,7 +1282,7 @@ private:
   int CompareTuples(Tuple* t1, Tuple* t2)
   {
 
-    Attribute* a = 0; 	
+    Attribute* a = 0;   
     if (BOTH_B)
       a = static_cast<Attribute*>( t1->GetAttribute(attrIndexB) );
     else
@@ -1341,7 +1342,7 @@ private:
     }
     else
     {
-      result.addr = 0;	
+      result.addr = 0;  
       return static_cast<Tuple*>( result.addr );
     }
   }
@@ -1367,7 +1368,7 @@ inline Tuple* NextUndefinedA()
     ListExpr valueExpr = 0;
     bool correct;
     int errorPos;
-    ListExpr errorInfo;	
+    ListExpr errorInfo;  
     progress->readFirst++;
     if (undefA == 0) {
         // create tuple with undefined values
@@ -1409,7 +1410,7 @@ inline Tuple* NextUndefinedB()
     ListExpr valueExpr = 0;
     bool correct;
     int errorPos;
-    ListExpr errorInfo;	
+    ListExpr errorInfo;  
     progress->readSecond++;
     if (undefB == 0)  {
         // create tuple with undefined values
@@ -1549,10 +1550,10 @@ public:
 
   Tuple* NextResultTuple()
   {
-      Tuple* resultTuple = 0;	
+      Tuple* resultTuple = 0;  
 
-      while ( ptA != 0 || ptB != 0 ) {		
-          if (ptA != 0 && (ptB != 0 || tmpB != 0)) {			
+      while ( ptA != 0 || ptB != 0 ) {    
+          if (ptA != 0 && (ptB != 0 || tmpB != 0)) {      
               if (tmpB != 0) {
                   cmp = CompareTuples( ptA.tuple, tmpB.tuple );
               }
@@ -1562,7 +1563,7 @@ public:
               /*if ( !outerJoin && tmpB == 0 ) {
                   // create initial group for inner join
                   if (!continueMerge && ptB != 0) {
-                      //save ptB in tmpB	
+                      //save ptB in tmpB  
                       tmpB = ptB;
 
                       grpB->AppendTuple(tmpB.tuple);
@@ -1576,16 +1577,16 @@ public:
                       while ( !done && ptB != 0 ) {
                           int cmp = CompareTuplesB( tmpB.tuple, ptB.tuple );
 
-                          if ( cmp == 0) 	{
-                              // append equal tuples to group	
+                          if ( cmp == 0)   {
+                              // append equal tuples to group  
                               grpB->AppendTuple(ptB.tuple);
 
                               // release tuple of input B
                               ptB.setTuple( NextTupleB() );
                           }
-                          else		{
+                          else    {
                               done = true;
-                          }	
+                          }  
                       } // end collect group
 
                       cmp = CompareTuples( ptA.tuple, tmpB.tuple );
@@ -1643,7 +1644,7 @@ public:
                           }
                           else  {
                               done = true;
-                          }	
+                          }  
                       } // end collect group
                   }
 
@@ -1684,7 +1685,7 @@ public:
                   ptB.setTuple( NextTupleB() );
                   if (resultTuple) {
                       return resultTuple;
-                  }		
+                  }    
               }
               /*else {
                   if ( ptB == 0 )
@@ -1701,7 +1702,7 @@ public:
               ptA.setTuple( NextTupleA() );
               if (resultTuple) {
                   return resultTuple;
-              }	
+              }  
           }
           else /*if ( outerJoin ) / * ptB != 0 */{
               // ptA == 0
@@ -1709,7 +1710,7 @@ public:
               ptB.setTuple( NextTupleB() );
               if (resultTuple) {
                   return resultTuple;
-              }	
+              }  
           }
           /*else {
               // short exit
@@ -1740,7 +1741,7 @@ public:
   }
 
   inline Tuple* NextConcatA()
-  {	
+  {  
       Tuple* result = new Tuple( resultTupleType );
       Concat( NextUndefinedA(), ptB.tuple, result );
       return result;
@@ -1783,9 +1784,9 @@ smouterjoin_vm(Word* args, Word& result,
     case REQUEST: {
       //mergeMeasurer.Enter();
 
-      if ( li->ptr == 0 )	//first request;
-				//constructor put here to avoid delays in OPEN
-				//which are a problem for progress estimation
+      if ( li->ptr == 0 )  //first request;
+        //constructor put here to avoid delays in OPEN
+        //which are a problem for progress estimation
       {
         li->ptr = new MergeOuterjoinLocalInfo
           (args[0], args[4], args[1], args[5], expectSorted, s, li);
@@ -1816,7 +1817,7 @@ smouterjoin_vm(Word* args, Word& result,
     case CLOSEPROGRESS:
       if (li) {
         delete li;
-	local.addr = 0;
+  local.addr = 0;
       }
 
       return 0;
@@ -1852,18 +1853,18 @@ smouterjoin_vm(Word* args, Word& result,
       {
 
         liFirst = static_cast<LocalInfo<SortByLocalInfo>*> 
-	  (li->firstLocalInfo);
+    (li->firstLocalInfo);
         liSecond = static_cast<LocalInfo<SortByLocalInfo>*> 
-	  (li->secondLocalInfo);
+    (li->secondLocalInfo);
 
         if (qp->RequestProgress(args[0].addr, &p1)
          && qp->RequestProgress(args[1].addr, &p2))
         {
-	  li->SetJoinSizes(p1, p2);
+    li->SetJoinSizes(p1, p2);
 
-	  pRes->CopySizes(li);
+    pRes->CopySizes(li);
 
-          if (li->returned > enoughSuccessesJoin ) 	// stable state 
+          if (li->returned > enoughSuccessesJoin )   // stable state 
           {
             pRes->Card = ((double) li->returned) * p1.Card
             /  ((double) li->readFirst);
@@ -1888,13 +1889,13 @@ smouterjoin_vm(Word* args, Word& result,
                 * (xMergeOuterjoin + pRes->noAttrs * yMergeOuterjoin))
               / pRes->Time;
 
-	    pRes->CopyBlocking(p1, p2);	   //non-blocking in this case
+      pRes->CopyBlocking(p1, p2);     //non-blocking in this case
           }
           else
           {
             pRes->Time =
               p1.Time + 
-	      p2.Time +
+        p2.Time +
               p1.Card * p1.Size * uSortBy + 
               p2.Card * p2.Size * uSortBy +
               (p1.Card * p1.Size + p2.Card * p2.Size) * wMergeOuterjoin +
@@ -1915,14 +1916,14 @@ smouterjoin_vm(Word* args, Word& result,
               / pRes->Time;
 
             pRes->BTime = p1.Time + p2.Time               
-	      + p1.Card * p1.Size * uSortBy 
+        + p1.Card * p1.Size * uSortBy 
               + p2.Card * p2.Size * uSortBy;
 
-	    pRes->BProgress = 
-	      (p1.Progress * p1.Time + p2.Progress * p2.Time 
+      pRes->BProgress = 
+        (p1.Progress * p1.Time + p2.Progress * p2.Time 
               + ((double) readFirst) * p1.Size * uSortBy
               + ((double) readSecond) * p2.Size * uSortBy)
-	      / pRes->BTime;
+        / pRes->BTime;
           }
        
           return YIELD;
@@ -1939,6 +1940,861 @@ smouterjoin_vm(Word* args, Word& result,
 
 #endif
 
+
+#ifndef USE_PROGRESS
+
+// standard version
+
+
+struct SymmOuterJoinLocalInfo
+{
+  TupleType *resultTupleType;
+
+  TupleBuffer *rightRel;
+  GenericRelationIterator *rightIter;
+  TupleBuffer *leftRel;
+  GenericRelationIterator *leftIter;
+  bool right;
+  Tuple *currTuple;
+  bool rightFinished;
+  bool leftFinished;
+  Hash *rightHash;
+  Hash *leftHash;
+};
+
+template<int dummy>
+int
+symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word r, l;
+  SymmOuterJoinLocalInfo* pli;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      cmsg.info("ERA:ShowMemInfo") << "SymmOuterJoin.MAX_MEMORY ("
+                                   << MAX_MEMORY/1024 << " MB): " << endl;
+      cmsg.send();
+      pli = new SymmOuterJoinLocalInfo;
+      pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
+      pli->rightIter = 0;
+      pli->leftRel = new TupleBuffer( MAX_MEMORY / 2 );
+      pli->leftIter = 0;
+      pli->right = true;
+      pli->currTuple = 0;
+      pli->rightFinished = false;
+      pli->leftFinished = false;
+      pli->rightHash = new Hash( INT, true );
+      pli->leftHash = new Hash( INT, true );
+
+      ListExpr resultType = GetTupleResultType( s );
+      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+
+      qp->Open(args[0].addr);
+      qp->Open(args[1].addr);
+
+      local.setAddr(pli);
+      return 0;
+    }
+    case REQUEST :
+    {
+      pli = (SymmOuterJoinLocalInfo*)local.addr;
+
+      while( 1 )
+        // This loop will end in some of the returns.
+      {
+        if( pli->right )
+          // Get the tuple from the right stream and match it with the
+          // left stored buffer
+        {
+          if( pli->currTuple == 0 )
+          {
+            qp->Request(args[0].addr, r);
+            if( qp->Received( args[0].addr ) )
+            {
+              pli->currTuple = (Tuple*)r.addr;
+              pli->leftIter = pli->leftRel->MakeScan();
+            }
+            else
+            {
+              pli->rightFinished = true;
+              if( pli->leftFinished )
+                return CANCEL;
+              else
+              {
+                pli->right = false;
+                continue; // Go back to the loop
+              }
+            }
+          }
+
+          // Now we have a tuple from the right stream in currTuple
+          // and an open iterator on the left stored buffer.
+          Tuple *leftTuple = pli->leftIter->GetNextTuple();
+
+          if( leftTuple == 0 )
+            // There are no more tuples in the left iterator. We then
+            // store the current tuple in the right buffer and close the
+            // left iterator.
+          {
+            if( !pli->leftFinished )
+              // We only need to keep track of the right tuples if the
+              // left stream is not finished.
+            {
+              pli->rightRel->AppendTuple( pli->currTuple );
+              pli->right = false;
+            }
+
+            pli->currTuple->DeleteIfAllowed();
+            pli->currTuple = 0;
+
+            delete pli->leftIter;
+            pli->leftIter = 0;
+
+            continue; // Go back to the loop
+          }
+          else
+            // We match the tuples.
+          {
+            ArgVectorPointer funArgs = qp->Argument(args[2].addr);
+            ((*funArgs)[0]).setAddr( pli->currTuple );
+            ((*funArgs)[1]).setAddr( leftTuple );
+            Word funResult;
+            qp->Request(args[2].addr, funResult);
+            CcBool *boolFunResult = (CcBool*)funResult.addr;
+
+            if( boolFunResult->IsDefined() &&
+                boolFunResult->GetBoolval() )
+            {
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
+              Concat( pli->currTuple, leftTuple, resultTuple );
+              leftTuple->DeleteIfAllowed();
+              leftTuple = 0;
+              result.setAddr( resultTuple );
+              return YIELD;
+            }
+            else
+            {
+              cout << "Left Tuple " << leftTuple->GetTupleId() << "\n";
+              pli->leftHash->Append( leftTuple->GetTupleId(), leftTuple );
+              leftTuple->DeleteIfAllowed();
+              leftTuple = 0;
+              continue; // Go back to the loop
+            }
+          }
+        }
+        else
+          // Get the tuple from the left stream and match it with the
+          // right stored buffer
+        {
+          if( pli->currTuple == 0 )
+          {
+            qp->Request(args[1].addr, l);
+            if( qp->Received( args[1].addr ) )
+            {
+              pli->currTuple = (Tuple*)l.addr;
+              pli->rightIter = pli->rightRel->MakeScan();
+            }
+            else
+            {
+              pli->leftFinished = true;
+              if( pli->rightFinished )
+                return CANCEL;
+              else
+              {
+                pli->right = true;
+                continue; // Go back to the loop
+              }
+            }
+          }
+
+          // Now we have a tuple from the left stream in currTuple and
+          // an open iterator on the right stored buffer.
+          Tuple *rightTuple = pli->rightIter->GetNextTuple();
+
+          if( rightTuple == 0 )
+            // There are no more tuples in the right iterator. We then
+            // store the current tuple in the left buffer and close
+            // the right iterator.
+          {
+            if( !pli->rightFinished )
+              // We only need to keep track of the left tuples if the
+              // right stream is not finished.
+            {
+              pli->leftRel->AppendTuple( pli->currTuple );
+              pli->right = true;
+            }
+
+            pli->currTuple->DeleteIfAllowed();
+            pli->currTuple = 0;
+
+            delete pli->rightIter;
+            pli->rightIter = 0;
+
+            continue; // Go back to the loop
+          }
+          else
+            // We match the tuples.
+          {
+            ArgVectorPointer funArgs = qp->Argument(args[2].addr);
+            ((*funArgs)[0]).setAddr( rightTuple );
+            ((*funArgs)[1]).setAddr( pli->currTuple );
+            Word funResult;
+            qp->Request(args[2].addr, funResult);
+            CcBool *boolFunResult = (CcBool*)funResult.addr;
+
+            if( boolFunResult->IsDefined() &&
+                boolFunResult->GetBoolval() )
+            {
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
+              Concat( rightTuple, pli->currTuple, resultTuple );
+              rightTuple->DeleteIfAllowed();
+              rightTuple = 0;
+              result.setAddr( resultTuple );
+              return YIELD;
+            }
+            else
+            {
+              cout << "Right Tuple " << rightTuple->GetTupleId() << "\n";
+              pli->rightHash->Append( rightTuple->GetTupleId(), rightTuple );
+              rightTuple->DeleteIfAllowed();
+              rightTuple = 0;
+              continue; // Go back to the loop
+            }
+          }
+        }
+      }
+    }
+    case CLOSE :
+    {
+      pli = (SymmOuterJoinLocalInfo*)local.addr;
+      if(pli)
+      {
+         if( pli->currTuple != 0 )
+           pli->currTuple->DeleteIfAllowed();
+
+         delete pli->leftIter;
+         delete pli->rightIter;
+         if( pli->resultTupleType != 0 )
+           pli->resultTupleType->DeleteIfAllowed();
+
+         if( pli->rightRel != 0 )
+         {
+           pli->rightRel->Clear();
+           delete pli->rightRel;
+         }
+
+         if( pli->leftRel != 0 )
+         {
+           pli->leftRel->Clear();
+           delete pli->leftRel;
+         }
+
+         delete pli;
+         local.setAddr(0);
+      }
+
+      qp->Close(args[0].addr);
+      qp->Close(args[1].addr);
+
+      return 0;
+    }
+  }
+  return 0;
+}
+
+
+#else
+
+// with support for progress queries
+
+class SymmOuterJoinLocalInfo: public ProgressLocalInfo
+{
+public:
+  SymmOuterJoinLocalInfo(Word _streamRight, Word _streamLeft) 
+  {
+      streamRight = _streamRight;
+      streamLeft  = _streamLeft;
+      
+      ListExpr typeRight =
+        SecondoSystem::GetCatalog()->NumericType(
+          qp->GetType( streamRight.addr ) );
+      tupleTypeRight = new TupleType( nl->Second( typeRight ) );
+      ListExpr typeLeft =
+        SecondoSystem::GetCatalog()->NumericType(
+          qp->GetType( streamLeft.addr ) );
+      tupleTypeLeft = new TupleType( nl->Second( typeLeft ) );
+
+      undefRight = 0;
+      undefLeft = 0;
+  }
+  
+  Word streamRight;
+  Word streamLeft;
+  
+  TupleType *resultTupleType;
+  TupleType *tupleTypeRight;
+  TupleType *tupleTypeLeft;
+  
+  TupleBuffer *rightRel;
+  GenericRelationIterator *rightIter;
+  TupleBuffer *leftRel;
+  GenericRelationIterator *leftIter;
+  bool right;
+  Tuple *currTuple;
+  bool rightFinished;
+  bool leftFinished;
+  
+  Hash *rightHash;
+  Hash *leftHash;
+  bool nullTuples;
+  
+  SmiKeyedFileIterator *smiIter;
+  TupleBuffer *rightRel2;
+  TupleBuffer *leftRel2;  
+  
+  Tuple *undefRight;
+  Tuple *undefLeft;
+
+  
+  inline Tuple* NextUndefinedRight()
+  {
+      Tuple* result = 0;
+      Tuple* r = 0;
+
+      AttributeType attrType;
+      ListExpr valueExpr = 0;
+      bool correct;
+      int errorPos;
+      ListExpr errorInfo;  
+      readFirst++;
+      if (undefRight == 0)  {
+          // create tuple with undefined values
+          ListExpr tupleType =
+          nl->Second(SecondoSystem::GetCatalog()->NumericType(
+              qp->GetType( streamRight.addr )) );
+          result = new Tuple( tupleTypeRight );
+          for (int i = 0; i < result->GetNoAttributes(); i++)
+          {
+              attrType = tupleTypeRight->GetAttributeType( i );
+              string typeName =
+                SecondoSystem::GetCatalog()->GetTypeName(
+                  attrType.algId, attrType.typeId );
+              if ( valueExpr == 0 )
+              valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
+              else {
+              valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
+              }
+          }
+          ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
+          r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
+          undefRight = r;
+          result->DeleteIfAllowed();
+      }
+      else {
+      r = undefRight;
+      }
+      return r;
+  }  
+
+  inline Tuple* NextUndefinedLeft()
+  {
+      Tuple* result = 0;
+      Tuple* r = 0;
+
+      AttributeType attrType;
+      ListExpr valueExpr = 0;
+      bool correct;
+      int errorPos;
+      ListExpr errorInfo;  
+      readSecond++;
+      if (undefLeft == 0)  {
+          // create tuple with undefined values
+          ListExpr tupleType =
+          nl->Second(SecondoSystem::GetCatalog()->NumericType(
+              qp->GetType( streamLeft.addr )) );
+          result = new Tuple( tupleTypeLeft );
+          for (int i = 0; i < result->GetNoAttributes(); i++)
+          {
+              attrType = tupleTypeLeft->GetAttributeType( i );
+              string typeName =
+                SecondoSystem::GetCatalog()->GetTypeName(
+                  attrType.algId, attrType.typeId );
+              if ( valueExpr == 0 )
+              valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
+              else {
+              valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
+              }
+          }
+          ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
+          r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
+          undefLeft = r;
+          result->DeleteIfAllowed();
+      }
+      else {
+      r = undefLeft;
+      }
+      return r;
+  }  
+};
+
+template<int dummy>
+int
+symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  Word r, l;
+  SymmOuterJoinLocalInfo* pli;
+
+  pli = (SymmOuterJoinLocalInfo*) local.addr;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+
+      long MAX_MEMORY = qp->MemoryAvailableForOperator();
+      cmsg.info("ERA:ShowMemInfo") << "SymmOuterJoin.MAX_MEMORY ("
+                                   << MAX_MEMORY/1024 << " MB): " << endl;
+      cmsg.send();
+
+
+      if ( pli ) delete pli;
+
+      pli = new SymmOuterJoinLocalInfo(args[0], args[1]);
+      pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
+      pli->rightIter = 0;
+      pli->leftRel = new TupleBuffer( MAX_MEMORY / 2 );
+      pli->leftIter = 0;
+      pli->right = true;
+      pli->currTuple = 0;
+      pli->rightFinished = false;
+      pli->leftFinished = false;
+      pli->rightHash = new Hash( SmiKey::Integer, true );
+      pli->leftHash = new Hash( SmiKey::Integer, true );
+      pli->nullTuples = false;
+      pli->smiIter = new SmiKeyedFileIterator( true );    
+      pli->rightRel2 = new TupleBuffer( MAX_MEMORY / 2 );
+      pli->leftRel2 = new TupleBuffer( MAX_MEMORY / 2 );
+
+      ListExpr resultType = GetTupleResultType( s );
+      pli->resultTupleType = new TupleType( nl->Second( resultType ) );
+
+      qp->Open(args[0].addr);
+      qp->Open(args[1].addr);
+
+      pli->readFirst = 0;
+      pli->readSecond = 0;
+      pli->returned = 0;
+
+      local.setAddr(pli);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      while( 1 )
+        // This loop will end in some of the returns.
+      {
+          if ( pli->nullTuples )
+          {  
+          // find all unmatched tuples from right relation
+          if ( pli->rightIter == 0 ) 
+          {          
+            pli->rightIter = pli->rightRel2->MakeScan();
+          }
+          
+          Tuple *rightOuterTuple = pli->rightIter->GetNextTuple();
+          
+          if ( rightOuterTuple != 0 )
+          {
+            SmiKeyedFile *file = pli->rightHash->GetFile();
+            SmiRecord* record = new SmiRecord();            
+            
+            while ( rightOuterTuple != 0 && 
+              file->SelectRecord( 
+                SmiKey((long)rightOuterTuple->GetTupleId()), *record ))
+            {
+              // if we find the tupleid in the hash file, 
+              //the tuple is already matched,
+              // so we can ignore it.
+              // curiosly, record size is 0 when we find the tuple 
+              //id in the hashfile
+              if ( record->Size() == 0 ) {                
+                rightOuterTuple->DeleteIfAllowed();
+                rightOuterTuple = 0;                  
+                rightOuterTuple = pli->rightIter->GetNextTuple();
+              }
+              else
+                break;
+            }
+            
+            // create a tuple with undefined values for the 
+            // attributes of the left relation
+            if ( rightOuterTuple != 0 )
+            {
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
+              Concat( rightOuterTuple, pli->NextUndefinedLeft(), resultTuple );
+              rightOuterTuple->DeleteIfAllowed();
+              rightOuterTuple = 0;  
+              result.setAddr( resultTuple );
+              pli->returned++;            
+              return YIELD;
+            }                  
+          }              
+          
+          if ( pli->leftIter == 0 )
+          {
+            pli->leftIter = pli->leftRel2->MakeScan();
+          }            
+          
+          Tuple *leftOuterTuple = pli->leftIter->GetNextTuple();
+          
+          if ( leftOuterTuple != 0 )
+          {
+            SmiKeyedFile *file = pli->leftHash->GetFile();
+            SmiRecord* record = new SmiRecord();
+            
+            while ( leftOuterTuple != 0 && 
+              file->SelectRecord( 
+                SmiKey((long)leftOuterTuple->GetTupleId()), *record ))
+            {
+              // if we find the tupleid in the hash file, 
+              // the tuple is already matched,
+              // so we can ignore it.
+              // curiosly, record size is 0 when we find 
+              // the tuple id in the hashfile            
+              if ( record->Size() == 0 ) {                
+                leftOuterTuple->DeleteIfAllowed();
+                leftOuterTuple = 0;                  
+                leftOuterTuple = pli->leftIter->GetNextTuple(); 
+              }   
+              else
+                break;
+            }
+            
+            // create a tuple with undefined values for the 
+            //attributes of the right relation
+            if ( leftOuterTuple != 0 )
+            {
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
+              Concat( pli->NextUndefinedRight(), leftOuterTuple, resultTuple );
+              leftOuterTuple->DeleteIfAllowed();
+              leftOuterTuple = 0;  
+              result.setAddr( resultTuple );
+              pli->returned++;            
+              return YIELD;
+            }      
+            
+          }  
+          // we're finished
+          return CANCEL;
+        }
+        if( pli->right )
+          // Get the tuple from the right stream and match it with the
+          // left stored buffer
+        {
+          if( pli->currTuple == 0 )
+          {
+            qp->Request(args[0].addr, r);
+            if( qp->Received( args[0].addr ) )
+            {
+              pli->currTuple = (Tuple*)r.addr;
+              pli->leftIter = pli->leftRel->MakeScan();
+              pli->readFirst++;              
+              pli->rightRel2->AppendTuple( pli->currTuple );
+            }
+            else
+            {
+              pli->rightFinished = true;
+              if( pli->leftFinished ) 
+              {
+                pli->nullTuples = true;
+                continue;                
+              }
+              else
+              {
+                pli->right = false;
+                continue; // Go back to the loop
+              }
+            }
+          }
+
+          // Now we have a tuple from the right stream in currTuple
+          // and an open iterator on the left stored buffer.
+          Tuple *leftTuple = pli->leftIter->GetNextTuple();
+
+          if( leftTuple == 0 )
+            // There are no more tuples in the left iterator. We then
+            // store the current tuple in the right buffer and close the
+            // left iterator.
+          {
+            if( !pli->leftFinished )
+              // We only need to keep track of the right tuples if the
+              // left stream is not finished.
+            {
+              pli->rightRel->AppendTuple( pli->currTuple );
+              pli->right = false;
+            }
+
+            pli->currTuple->DeleteIfAllowed();
+            pli->currTuple = 0;
+
+            delete pli->leftIter;
+            pli->leftIter = 0;
+
+            continue; // Go back to the loop
+          }
+          else
+            // We match the tuples.
+          {
+            ArgVectorPointer funArgs = qp->Argument(args[2].addr);
+            ((*funArgs)[0]).setAddr( pli->currTuple );
+            ((*funArgs)[1]).setAddr( leftTuple );
+            Word funResult;
+            qp->Request(args[2].addr, funResult);
+            CcBool *boolFunResult = (CcBool*)funResult.addr;
+
+            if( boolFunResult->IsDefined() &&
+                boolFunResult->GetBoolval() )
+            {
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
+              Concat( pli->currTuple, leftTuple, resultTuple );
+              pli->leftHash->Append( SmiKey((long)leftTuple->GetTupleId()), 
+                (SmiRecordId)leftTuple->GetTupleId());
+              pli->rightHash->Append( 
+                SmiKey((long)pli->currTuple->GetTupleId()), 
+                (SmiRecordId)pli->currTuple->GetTupleId() );
+              leftTuple->DeleteIfAllowed();
+              leftTuple = 0;
+              result.setAddr( resultTuple );
+              pli->returned++;            
+              return YIELD;
+            }
+            else
+            {        
+              leftTuple->DeleteIfAllowed();
+              leftTuple = 0;
+              continue; // Go back to the loop
+            }
+          }
+        }
+        else
+          // Get the tuple from the left stream and match it with the
+          // right stored buffer
+        {
+          if( pli->currTuple == 0 )
+          {
+            qp->Request(args[1].addr, l);
+            if( qp->Received( args[1].addr ) )
+            {
+              pli->currTuple = (Tuple*)l.addr;
+              pli->rightIter = pli->rightRel->MakeScan();
+              pli->readSecond++;
+              pli->leftRel2->AppendTuple( pli->currTuple );
+            }
+            else
+            {
+              pli->leftFinished = true;
+              if( pli->rightFinished ) 
+              { 
+                pli->nullTuples = true;
+                continue;
+              }
+              else
+              {
+                pli->right = true;
+                continue; // Go back to the loop
+              }
+            }
+          }
+
+          // Now we have a tuple from the left stream in currTuple and
+          // an open iterator on the right stored buffer.
+          Tuple *rightTuple = pli->rightIter->GetNextTuple();
+
+          if( rightTuple == 0 )
+            // There are no more tuples in the right iterator. We then
+            // store the current tuple in the left buffer and close
+            // the right iterator.
+          {
+            if( !pli->rightFinished )
+              // We only need to keep track of the left tuples if the
+              // right stream is not finished.
+            {
+              pli->leftRel->AppendTuple( pli->currTuple );
+              pli->right = true;
+            }
+
+            pli->currTuple->DeleteIfAllowed();
+            pli->currTuple = 0;
+
+            delete pli->rightIter;
+            pli->rightIter = 0;
+
+            continue; // Go back to the loop
+          }
+          else
+            // We match the tuples.
+          {
+            ArgVectorPointer funArgs = qp->Argument(args[2].addr);
+            ((*funArgs)[0]).setAddr( rightTuple );
+            ((*funArgs)[1]).setAddr( pli->currTuple );
+            Word funResult;
+            qp->Request(args[2].addr, funResult);
+            CcBool *boolFunResult = (CcBool*)funResult.addr;
+
+            if( boolFunResult->IsDefined() &&
+                boolFunResult->GetBoolval() )
+            {
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
+              Concat( rightTuple, pli->currTuple, resultTuple );
+              pli->rightHash->Append( SmiKey((long)rightTuple->GetTupleId()), 
+                (SmiRecordId)rightTuple->GetTupleId() );
+              pli->leftHash->Append( 
+                SmiKey((long)pli->currTuple->GetTupleId()), 
+                (SmiRecordId)pli->currTuple->GetTupleId() );
+              rightTuple->DeleteIfAllowed();
+              rightTuple = 0;
+              result.setAddr( resultTuple );
+              pli->returned++;                
+              return YIELD;
+            }
+            else
+            {        
+              rightTuple->DeleteIfAllowed();
+              rightTuple = 0;
+              continue; // Go back to the loop
+            }
+          }
+        }
+      }
+    }
+    case CLOSE :
+    {
+      if(pli)
+      {
+        if( pli->currTuple != 0 ){
+          pli->currTuple->DeleteIfAllowed();
+          pli->currTuple=0;
+        }
+
+        delete pli->leftIter;
+        delete pli->rightIter;
+        if( pli->resultTupleType != 0 ){
+          pli->resultTupleType->DeleteIfAllowed();
+          pli->resultTupleType=0;
+        }
+
+        if( pli->rightRel != 0 )
+        {
+          pli->rightRel->Clear();
+          delete pli->rightRel;
+          pli->rightRel=0;
+        }
+
+        if( pli->leftRel != 0 )
+        {
+          pli->leftRel->Clear();
+          delete pli->leftRel;
+          pli->leftRel=0;
+        }
+        
+        if ( pli->rightHash != 0 )
+        { 
+          pli->rightHash->DeleteFile();
+          delete pli->rightHash;
+          pli->rightHash = 0;
+        }
+        
+        if ( pli->leftHash != 0 )
+        {           
+          pli->leftHash->DeleteFile();
+          delete pli->leftHash;
+          pli->leftHash = 0;
+        }        
+      }
+
+      qp->Close(args[0].addr);
+      qp->Close(args[1].addr);
+
+      return 0;
+    }
+
+
+    case CLOSEPROGRESS:
+      if ( pli )
+      {
+         delete pli;
+         local.setAddr(0);
+      }
+      return 0;
+
+
+    case REQUESTPROGRESS :
+    {
+      ProgressInfo p1, p2;
+      ProgressInfo *pRes;
+      const double uSymmOuterJoin = 0.2;  //millisecs per tuple pair
+
+
+      pRes = (ProgressInfo*) result.addr;
+
+      if (!pli) return CANCEL;
+
+      if (qp->RequestProgress(args[0].addr, &p1)
+       && qp->RequestProgress(args[1].addr, &p2))
+      {
+        pli->SetJoinSizes(p1, p2);
+
+        pRes->CopySizes(pli);
+
+        double predCost =
+          (qp->GetPredCost(s) == 0.1 ? 0.004 : qp->GetPredCost(s));
+
+        //the default value of 0.1 is only suitable for selections
+
+        pRes->Time = p1.Time + p2.Time +
+          p1.Card * p2.Card * predCost * uSymmOuterJoin;
+
+        pRes->Progress =
+          (p1.Progress * p1.Time + p2.Progress * p2.Time +
+          pli->readFirst * pli->readSecond *
+          predCost * uSymmOuterJoin)
+          / pRes->Time;
+
+        if (pli->returned > enoughSuccessesJoin )   // stable state assumed now
+        {
+          pRes->Card = p1.Card * p2.Card *
+            ((double) pli->returned /
+              (double) (pli->readFirst * pli->readSecond));
+        }
+        else
+        {
+          pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
+        }
+
+        pRes->CopyBlocking(p1, p2);  //non-blocking oprator
+
+        return YIELD;
+      }
+      else
+      {
+        return CANCEL;
+      }
+    }
+  }
+  return 0;
+}
+
+#endif
+
+
 template int
 smouterjoin_vm<false>(Word* args, Word& result, int message, 
                  Word& local, Supplier s);
+                 
+template int
+symmouterjoin_vm<1>(Word* args, Word& result, int message, 
+                 Word& local, Supplier s);                 
