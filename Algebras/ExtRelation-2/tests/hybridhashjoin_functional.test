@@ -1,0 +1,98 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2009, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# An example test spec for the Secondo TestRunner
+# run it with : 
+#
+#  TestRunner -i example.test
+#
+# By default a temporary database directory will be created. If you
+# want to use existing databases run
+#
+#  TestRunner --no-tmp -i <file>
+#
+# If one of your tests (say number N ) reports an error you can run
+# it directly by
+#
+# TestRunner -i <file> -num N 
+#
+# this is useful for debugging
+
+
+##############################################################################
+# Setup
+##############################################################################
+
+#setup hybridhashjoinTest StandardAlgebra RelationAlgebra ExtRelation2Algebra
+
+restore database tmp_opt from '$(SECONDO_BUILD_DIR)/bin/opt'
+
+save plz to '$(SECONDO_BUILD_DIR)/bin/tmp/plz'
+
+save thousand to '$(SECONDO_BUILD_DIR)/bin/tmp/thousand'
+
+close database
+
+restore database tmp_germany from '$(HOME)/secondo-data/Databases/germany' 
+
+restore plz from '$(SECONDO_BUILD_DIR)/bin/tmp/plz' 
+
+restore thousand from '$(SECONDO_BUILD_DIR)/bin/tmp/thousand' 
+
+close database
+
+open database tmp_opt
+
+##############################################################################
+# TestCases
+##############################################################################
+
+#testcase teststep_1
+#yields success
+query plz feed {a} Orte feed {b} hybridhashjoin[Ort_a, Ort_b, 1000] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_2
+#yields success
+query plz feed {a} Orte feed {b} hybridhashjoinP[Ort_a, Ort_b, 1000, 16, 256*1024,4096] count;
+
+#--------------------------------------------------  
+
+#testcase teststep_3_create_result
+#yields success
+let hashjoin_result1 = plz feed {a} Orte feed {b} hashjoin[Ort_a, Ort_b, 1000] consume;
+
+#testcase teststep_3_compare_result1
+#yields *hashjoin_result1
+query plz feed {a} Orte feed {b} hybridhashjoin[Ort_a, Ort_b, 1000] consume;
+
+#testcase teststep_3_compare_result2
+#yields *hashjoin_result1
+query plz feed {a} Orte feed {b} hybridhashjoinP[Ort_a, Ort_b, 1000, 16, 256*1024,4096] consume;
+
+##############################################################################
+# TearDown
+##############################################################################
+
+#teardown
+close database;
+delete database tmp_opt;
+delete database tmp_germany;
+
