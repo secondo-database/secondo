@@ -1266,8 +1266,8 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
     {
       cmsg.info() << "Partitioning of stream B.."
                   << endl << *pmB;
-      cmsg.info() << "Hash Table content:" << endl
-                  << *hashTable << endl;
+      //cmsg.info() << "Hash Table content:" << endl
+                  //<< *hashTable << endl;
       cmsg.send();
     }
   }
@@ -1548,7 +1548,7 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
 
   if ( traceMode )
   {
-    cmsg.info() << "Hash table content" << *hashTable << endl;
+    //cmsg.info() << "Hash table content" << *hashTable << endl;
     cmsg.info() << "Partitioning of stream A.." << endl << *pmA;
     cmsg.send();
   }
