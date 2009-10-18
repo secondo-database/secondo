@@ -392,7 +392,7 @@ ostream& Partition::Print(ostream& os)
        << "InMemory: " << this->buffer->InMemory()
        << endl;
 
-  this->buffer->Print(os);
+  //this->buffer->Print(os);
 
   return os;
 }
@@ -405,12 +405,15 @@ ostream& Partition::Print(ostream& os)
 size_t PartitionManager::IO_BUFFER_SIZE = WinUnix::getPageSize();
 
 PartitionManager::PartitionManager( HashFunction* h,
+                                    size_t opMem,
                                     size_t nBuckets,
                                     size_t nPartitions,
                                     size_t p0,
                                     PartitionManagerProgressInfo* pInfo )
 : iter(0)
 , hashFunc(h)
+, maxOperatorMemory(opMem)
+, checkProgressAfter(50)
 , p0(p0)
 , tuples(0)
 , subpartitioned(false)
@@ -445,14 +448,7 @@ PartitionManager::PartitionManager( HashFunction* h,
       bufferSize = p0;
     }
 
-    partitions.push_back( new Partition( interval,
-                                          bufferSize,
-                                          IO_BUFFER_SIZE) );
-
-    if ( progressInfo != 0 )
-    {
-      progressInfo->partitionProgressInfo.push_back(PartitionProgressInfo());
-    }
+    insertPartition(interval, bufferSize, IO_BUFFER_SIZE);
   }
 }
 
@@ -461,6 +457,8 @@ PartitionManager::PartitionManager( HashFunction* h,
                                        PartitionManagerProgressInfo* pInfo )
 : iter(0)
 , hashFunc(h)
+, maxOperatorMemory(pm.maxOperatorMemory)
+, checkProgressAfter(pm.checkProgressAfter)
 , p0(0)
 , subpartitioned(false)
 , progressInfo(pInfo)
@@ -468,13 +466,7 @@ PartitionManager::PartitionManager( HashFunction* h,
   // create partitions with intervals from pm
   for(size_t i = 0; i < pm.partitions.size(); i++)
   {
-    partitions.push_back( new Partition( pm.partitions[i]->GetInterval(),
-                                         0, IO_BUFFER_SIZE) );
-
-    if ( progressInfo != 0 )
-    {
-      progressInfo->partitionProgressInfo.push_back(PartitionProgressInfo());
-    }
+    insertPartition(pm.partitions[i]->GetInterval(), 0, IO_BUFFER_SIZE);
   }
 }
 
@@ -510,6 +502,14 @@ size_t PartitionManager::Insert(Tuple* t)
   size_t p = findPartition(b);
 
   // insert tuple into partition
+  this->Insert(t,p,b);
+
+  return p;
+}
+
+void PartitionManager::Insert(Tuple* t, size_t p, size_t b)
+{
+  // insert tuple into partition
   partitions[p]->Insert(t,b);
 
   tuples++;
@@ -520,16 +520,13 @@ size_t PartitionManager::Insert(Tuple* t)
     progressInfo->partitionProgressInfo[p].tuples++;
     progressInfo->partitionProgressInfo[p].noOfPasses =
       (int)ceil( (double)partitions[p]->GetTotalExtSize()
-          / (double)qp->MemoryAvailableForOperator() );
+          / (double)maxOperatorMemory );
 
     if ( subpartitioned = false && ( tuples % SUBPARTITION_UPDATE ) == 0 )
     {
-      calcSubpartitionTupleCount( qp->MemoryAvailableForOperator(),
-                                  SUBPARTITION_MAX_LEVEL );
+      calcSubpartitionTupleCount(maxOperatorMemory, SUBPARTITION_MAX_LEVEL);
     }
   }
-
-  return p;
 }
 
 size_t PartitionManager::PartitionStream(Word stream)
@@ -559,7 +556,7 @@ size_t PartitionManager::PartitionStream(Word stream)
       progressInfo->partitionProgressInfo[p].tuples++;
       progressInfo->partitionProgressInfo[p].noOfPasses =
         (int)ceil( (double)partitions[p]->GetTotalExtSize()
-            / (double)qp->MemoryAvailableForOperator() );
+            / (double)maxOperatorMemory );
     }
 
     // save last bucket number
@@ -574,8 +571,7 @@ void PartitionManager::Subpartition()
   // Subpartition if necessary
   for(size_t i = 0; i < partitions.size(); i++)
   {
-    subpartition( i, qp->MemoryAvailableForOperator(),
-                  SUBPARTITION_MAX_LEVEL, 1);
+    subpartition(i, maxOperatorMemory, SUBPARTITION_MAX_LEVEL, 1);
   }
 
   // Sort partitions array
@@ -583,6 +579,33 @@ void PartitionManager::Subpartition()
   sort(partitions.begin(), partitions.end(), cmp);
 
   subpartitioned = true;
+}
+
+size_t PartitionManager::insertPartition ( PInterval interval,
+                                            size_t buffer,
+                                            size_t io,
+                                            int index )
+{
+  assert(progressInfo != 0);
+
+  size_t result;
+
+  if ( index < 0 )
+  {
+    partitions.push_back( new Partition(interval, buffer, io) );
+    progressInfo->partitionProgressInfo.push_back(PartitionProgressInfo());
+    result = partitions.size() - 1;
+  }
+  else
+  {
+    assert( index < (int)partitions.size() );
+    partitions[index] = new Partition(interval, buffer, io);
+    progressInfo->partitionProgressInfo[index] = PartitionProgressInfo();
+    result = index;
+  }
+
+  // return 0-based partition index
+  return result;
 }
 
 void PartitionManager::subpartition( size_t n,
@@ -593,6 +616,14 @@ void PartitionManager::subpartition( size_t n,
   // check partition size
   if ( partitions[n]->GetTotalExtSize() <= maxSize )
   {
+    if ( traceMode )
+    {
+      cmsg.info() << "Partition (" << n
+                  << ") is smaller than available memory"
+                  << ", no subpartitioning necessary"
+                  << endl;
+      cmsg.send();
+    }
     partitions[n]->SetSubpartitioned();
     return;
   }
@@ -600,6 +631,14 @@ void PartitionManager::subpartition( size_t n,
   // check if maximum recursion level is reached
   if ( level > maxRecursion )
   {
+    if ( traceMode )
+    {
+      cmsg.info() << "Maximum recursion level ("
+                  << maxRecursion << ") reached "
+                  << "- subpartitioning stopped!"
+                  << endl;
+      cmsg.send();
+    }
     partitions[n]->SetSubpartitioned();
     return;
   }
@@ -607,52 +646,45 @@ void PartitionManager::subpartition( size_t n,
   // check if partition contains at least 4 buckets
   if ( partitions[n]->GetInterval().GetLength() < 4 )
   {
+    if ( traceMode )
+    {
+      cmsg.info() << "Partition (" << n
+                  << ") contains only "
+                  << partitions[n]->GetInterval().GetLength()
+                  << " buckets, minimum is 4!"
+                  << endl;
+      cmsg.send();
+    }
     partitions[n]->SetSubpartitioned();
     return;
   }
 
+  // store partition which is split locally
+  Partition* p = partitions[n];
+
   // create two new partitions with half the interval size
-  size_t low = partitions[n]->GetInterval().GetLow();
-  size_t high = partitions[n]->GetInterval().GetHigh();
-  size_t m = low + partitions[n]->GetInterval().GetLength() / 2 - 1;
+  size_t low = p->GetInterval().GetLow();
+  size_t high = p->GetInterval().GetHigh();
+  size_t m = low + p->GetInterval().GetLength() / 2 - 1;
 
-  PInterval i1 = PInterval(low, m);
-  PInterval i2 = PInterval(m+1, high);
+  size_t bufSize = ( n == 0 && p0 > 0 ) ? p0 : 0;
 
-  Partition* s1 = new Partition( i1, ( n == 0 && p0 > 0 ) ? p0 : 0,
-                                 IO_BUFFER_SIZE );
-  Partition* s2 = new Partition(i2, 0, IO_BUFFER_SIZE);
+  PInterval i1(low, m);
+  PInterval i2(m+1, high);
 
-  if ( traceMode )
-  {
-    cmsg.info() << "Subpartition of partition " << n << endl;
-    cmsg.info() << n << ": ";
-    partitions[n]->Print(cmsg.info());
-    cmsg.info() << "New partitions " << n << endl;
-    cmsg.info() << "s1: ";
-    s1->Print(cmsg.info());
-    cmsg.info() << "s2: ";
-    s2->Print(cmsg.info());
-    cmsg.send();
-  }
+  size_t k = insertPartition(i1, bufSize, IO_BUFFER_SIZE, n);
+  size_t l = insertPartition(i2, 0, IO_BUFFER_SIZE);
 
   // scan partition and put tuples in s1 or s2
-  PartitionIterator* iter = partitions[n]->MakeScan();
-
   Tuple* t;
   size_t counter = 0;
+  PartitionIterator* iter = p->MakeScan();
+
   while( ( t = iter->GetNextTuple() ) != 0 )
   {
-    size_t h = hashFunc->Value(t);
+    size_t b = hashFunc->Value(t);
 
-    if ( i1.IsAt(h) )
-    {
-      s1->Insert(t,h);
-    }
-    else
-    {
-      s2->Insert(t,h);
-    }
+    this->Insert(t, i1.IsAt(b) ? k : l, b);
 
     // update progress information if necessary
     if ( progressInfo != 0 )
@@ -667,65 +699,28 @@ void PartitionManager::subpartition( size_t n,
     }
   }
 
-  // delete empty partitions, store new ones and subpartition
-  // if necessary (Note: only one partition can be empty)
-  if ( s1->GetNoTuples() == 0 && s2->GetNoTuples() > 0 )
+  if ( traceMode )
   {
-    delete s1;
-    delete partitions[n];
-    partitions[n] = s2;
-
-    if ( progressInfo != 0 )
-    {
-      progressInfo->partitionProgressInfo[n].tuples = s2->GetNoTuples();
-      progressInfo->partitionProgressInfo[n].noOfPasses =
-        (int)ceil( (double)s2->GetTotalExtSize()
-            / (double)qp->MemoryAvailableForOperator() );
-    }
-
-    subpartition(n, maxSize, maxRecursion, ++level);
+    cmsg.info() << "Partition " << n << " is split into" << endl;
+    cmsg.info() << n << ": ";
+    p->Print(cmsg.info());
+    cmsg.info() << k << ": ";
+    partitions[k]->Print(cmsg.info());
+    cmsg.info() << l << ": ";
+    partitions[l]->Print(cmsg.info());
+    cmsg.send();
   }
-  else if ( s1->GetNoTuples() > 0 && s2->GetNoTuples() == 0 )
-  {
-    delete s2;
-    delete partitions[n];
-    partitions[n] = s1;
 
-    if ( progressInfo != 0 )
-    {
-      progressInfo->partitionProgressInfo[n].tuples = s1->GetNoTuples();
-      progressInfo->partitionProgressInfo[n].noOfPasses =
-        (int)ceil( (double)s1->GetTotalExtSize()
-            / (double)qp->MemoryAvailableForOperator() );
-    }
+  // free iterator and partition
+  delete iter;
+  delete p;
 
-    subpartition(n, maxSize, maxRecursion, ++level);
-  }
-  else
-  {
-    delete partitions[n];
-    partitions[n] = s1;
-    partitions.push_back(s2);
-    size_t level1 = level;
-    size_t level2 = level;
-    size_t m = partitions.size()-1;
+  // recursive subpartitioning
+  size_t level1 = level;
+  size_t level2 = level;
 
-    if ( progressInfo != 0 )
-    {
-      progressInfo->partitionProgressInfo[n].tuples = s1->GetNoTuples();
-      progressInfo->partitionProgressInfo[n].noOfPasses =
-        (int)ceil( (double)s1->GetTotalExtSize()
-            / (double)qp->MemoryAvailableForOperator() );
-
-      progressInfo->partitionProgressInfo[m].tuples = s2->GetNoTuples();
-      progressInfo->partitionProgressInfo[m].noOfPasses =
-        (int)ceil( (double)s2->GetTotalExtSize()
-            / (double)qp->MemoryAvailableForOperator() );
-    }
-
-    subpartition(n, maxSize, maxRecursion, ++level1);
-    subpartition(m, maxSize, maxRecursion, ++level2);
-  }
+  subpartition(k, maxSize, maxRecursion, ++level1);
+  subpartition(l, maxSize, maxRecursion, ++level2);
 }
 
 int PartitionManager::calcSubpartitionTupleCount( size_t maxSize,
@@ -889,6 +884,7 @@ ostream& PartitionManager::Print(ostream& os)
 
 HybridHashJoinProgressLocalInfo::HybridHashJoinProgressLocalInfo()
 : ProgressLocalInfo()
+, maxOperatorMemory(qp->MemoryAvailableForOperator())
 {
 }
 
@@ -975,7 +971,7 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
   double m = (double)this->returned;
   double k1 = (double)this->readFirst;
   double k2 = (double)this->readSecond;
-  size_t M = qp->MemoryAvailableForOperator();
+  size_t M = this->maxOperatorMemory;
   size_t S2 = (size_t)p2.SizeExt;
 
   // calculate the maximum amount of tuples of stream B that fit into
@@ -1008,7 +1004,7 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
   // calculate time needed for successors
   pRes->Time = p1.Time + p2.Time;
 
-  // calculate time for partitioning and processing of stream A
+  // calculate time for partitMioning and processing of stream A
   if ( streamA.IsValid() )
   {
     for (size_t i = 0; i < streamA.partitionProgressInfo.size(); i++)
@@ -1240,7 +1236,8 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
     }
 
     // create partitions for stream B with partition 0 buffered
-    pmB = new PartitionManager( hashFuncB, nBuckets, nPartitions,
+    pmB = new PartitionManager( hashFuncB, MAX_MEMORY,
+                                nBuckets, nPartitions,
                                 MAX_MEMORY, &progress->streamB);
 
     // now we are in external mode
@@ -1382,6 +1379,8 @@ void HybridHashJoinAlgorithm::setMemory(size_t maxMemory)
   {
     MAX_MEMORY = maxMemory;
   }
+
+  progress->maxOperatorMemory = MAX_MEMORY;
 }
 
 void HybridHashJoinAlgorithm::setBuckets(size_t maxMemory, size_t n)
@@ -1603,7 +1602,7 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
       iterA = pmA->GetPartition(curPartition)->MakeScan();
 
       // Read first tuple from A(i)
-      tupleA->DeleteIfAllowed();
+      //tupleA->DeleteIfAllowed();
       tupleA = iterA->GetNextTuple();
     }
   }

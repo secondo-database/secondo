@@ -1233,6 +1233,7 @@ class PartitionManager
   public:
 
     PartitionManager( HashFunction* h,
+                       size_t opMem,
                        size_t buckets,
                        size_t partitions,
                        size_t p0 = UINT_MAX,
@@ -1272,6 +1273,13 @@ Inserts tuple ~t~ into the partitioning. The corresponding partition
 is automatically determined by the partition manager. This method
 is used if the partition is not known. The number of the partition is
 returned as result.
+
+*/
+
+    void Insert(Tuple* t, size_t p, size_t b);
+/*
+Inserts tuple ~t~ into partition ~p~ and bucket ~b~.
+This method is used if the partition is known.
 
 */
 
@@ -1354,6 +1362,20 @@ Returns the I/O buffer size used for read/write operations on disk.
 */
 
   private:
+
+    size_t insertPartition( PInterval interval,
+                             size_t buffer,
+                             size_t io,
+                             int index = -1 );
+/*
+Insert a new partition with partition interval ~interval~, internal
+buffer size of ~buffer~ bytes and an I/O buffer size of ~io~ bytes.
+If ~index~ is smaller than 0 the partition is appended to the end of the
+partition array. If a value greater than 0 is specified the
+corresponding array entry will be overwritten. Method returns
+the 0-based partition index of the new partition
+
+*/
 
     void subpartition( size_t n, size_t maxSize,
                        int maxRecursion, int level );
@@ -1443,6 +1465,23 @@ be loaded into memory at once.
     HashFunction* hashFunc;
 /*
 Hash function which is used to calculate the bucket number.
+
+*/
+
+    size_t maxOperatorMemory;
+/*
+Maximum available memory for operator in bytes. This information
+is necessary for subpartitioning in order to decide whether
+a partition needs to be subpartitioned.
+
+*/
+
+    int checkProgressAfter;
+/*
+During subpartitioning after ~checkProgressAfter~ tuples
+have been processed a progress message will be propagated by the
+query processor (but only if enough time since the last progress
+message has passed by, the query processor will insure this)
 
 */
 
@@ -1552,6 +1591,12 @@ Calculates the progress for the hybrid hash join algorithm.
 /*
 Print to stream ~os~. This function is used
 for debugging purposes.
+
+*/
+
+    size_t maxOperatorMemory;
+/*
+Maximum available operator memory in bytes.
 
 */
 
