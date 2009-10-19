@@ -1,4 +1,5 @@
 /*
+
 ----
 This file is part of SECONDO.
 
@@ -31,13 +32,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-[1] Definition of Outerjoin for Module Extended Relation Algebra
+1.1 Definition of Outerjoin for Module Extended Relation Algebra
 
-[1] Using Storage Manager Berkeley DB
+Using Storage Manager Berkeley DB
 
 January 2009, B. Poneleit 
 
-[TOC]
 
 This file contains the definition of ~Operator~ instances for outerjoin 
 operators. To include an additional outerjoin operator you have to add 
@@ -50,7 +50,7 @@ and a call to AddOperator in the constructor of the algebra.
 
 Implementation of the operators is in Outerjoin.cpp
 
-1 Includes and defines
+1.1.1 Includes and defines
 
 */
 
@@ -82,11 +82,11 @@ symmouterjoin_vm( Word* args, Word& result,
                   int message, Word& local, Supplier s );                      
                   
 /*
-2.16 Operator ~smouterjoin~
+2.16.1 Operator ~smouterjoin~
 
 This operator sorts two input streams and computes their full outerjoin.
 
-2.16.1 Specification of operator ~smouterjoin~
+2.16.1.1 Specification of operator ~smouterjoin~
 
 */
 const string SortMergeOuterJoinSpec  = "( ( \"Signature\" \"Syntax\" "
@@ -169,7 +169,7 @@ template ListExpr
 OuterjoinTypeMap<1>(ListExpr args);
 
 /*
-2.16.2 Definition of operator ~smouterjoin~
+2.16.2.1 Definition of operator ~smouterjoin~
 
 */
 Operator extrelsmouterjoin(
@@ -218,7 +218,7 @@ ListExpr SymmOuterJoinTypeMap(ListExpr args)
 
 /*
 
-5.10.3 Specification of operator ~SymmOuterJoin~
+5.10.3.1 Specification of operator ~SymmOuterJoin~
 
 */
 const string SymmOuterJoinSpec  =
@@ -238,7 +238,7 @@ const string SymmOuterJoinSpec  =
 
 /*
 
-5.10.4 Definition of operator ~SymmOuterJoin~
+5.10.4.1 Definition of operator ~SymmOuterJoin~
 
 */
 Operator extrelsymmouterjoin (
