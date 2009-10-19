@@ -225,6 +225,13 @@ Example  : query Flaechen feed {f} WFlaechen feed {w} symmjoin[.geoData_f adjace
 Result   : file
 
 
+Operator : symmouterjoin
+Number   : 1
+Signature: ((stream (tuple (x1 ... xn))) (stream (tuple (y1 ... ym)))) (map (tuple (x1 ... xn)) (tuple (y1 ... ym)) -> bool) -> (stream (tuple (x1 ... xn y1 ... ym)))
+Example  : query Flaechen feed {f} WFlaechen feed {w} symmouterjoin[.geoData_f adjacent ..geoData_w] consume
+Result   : file
+
+
 Operator : symmproduct
 Number   : 1
 Signature: (stream (tuple(X))) (stream (tuple(Y)))  -> (stream (tuple(X*Y))) ))
