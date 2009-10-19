@@ -38,6 +38,10 @@ ALGEBRAS     += StreamAlgebra
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     += FunctionAlgebra
 
+# required by outerjoin operators in the ExtRelationAlgebra:
+ALGEBRA_DIRS += Hash
+ALGEBRAS     += HashAlgebra
+
 # comment out or add new algebras in this file.
 # You have to define an algebra name and a directory
 # name which contains the algebras source code.
@@ -225,9 +229,6 @@ ALGEBRAS     += CollectionAlgebra
 
 #ALGEBRA_DIRS += UGrid 
 #ALGEBRAS     += UGridAlgebra
-
-ALGEBRA_DIRS += Hash 
-ALGEBRAS     += HashAlgebra
 
 #ALGEBRA_DIRS += ExtRelation-2
 #ALGEBRAS     += ExtRelation2Algebra
