@@ -693,7 +693,8 @@ opSignature(commonborder2, spatial, [region,region],line,[comm,ass]).
 opSignature(toline, spatial, [sline],line,[]).
 opSignature(fromline, spatial, [line],sline,[]).
 opSignature(iscycle, spatial, [sline],bool,[]).
-
+opSignature(bbox, spatial, [T], rect, []):-
+  memberchk(T, [region, point, line, points, sline]),!.
 
 /*
 2.7.5 TemporalAlgebra
@@ -846,7 +847,8 @@ opSignature(box3d, temporal, [T],rect3,[]) :-
   memberchk(T,[rect,instant,periods]), !.
 opSignature(box3d, temporal, [rect,T],rect3,[]) :-
   memberchk(T,[instant,periods]), !.
-opSignature(box2d, temporal, [rect3],rect,[]).
+opSignature(box2d, temporal, [T],rect,[]):-
+  memberchk(T,[rect, rect3, rect4, rect8]), !.
 opSignature(mbool2mint, temporal, [mbool],mint,[]).
 opSignature(extdeftime, temporal, [T1,T2],T1,[]) :-
   memberchk((T1,T2),[(mbool,ubool),(mint,uint)]),!.
