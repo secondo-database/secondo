@@ -44,6 +44,10 @@ which were used to test and benchmark the algebra.
 #include "TupleBuffer2.h"
 #include "TupleQueue.h"
 #include "PriorityQueue.h"
+#include "Counter.h"
+#include "Symbols.h"
+
+using namespace symbols;
 
 /*
 4 Defines
@@ -181,7 +185,7 @@ int TupleFileValueMap( Word* args, Word& result,
 
       while( qp->Received(args[0].addr) )
       {
-        Tuple *t = static_cast<Tuple*>( wTuple.addr );
+        Tuple* t = static_cast<Tuple*>( wTuple.addr );
 
         // create tuple file
         if ( li->file == 0 )
@@ -192,6 +196,7 @@ int TupleFileValueMap( Word* args, Word& result,
 
         // append tuple to tuple file on disk
         li->file->Append(t);
+        t->DeleteIfAllowed();
 
         qp->Request(args[0].addr, wTuple);
       }
@@ -307,7 +312,7 @@ int TupleBufferValueMap( Word* args, Word& result,
 
       while( qp->Received(args[0].addr) )
       {
-        Tuple *t = static_cast<Tuple*>( wTuple.addr );
+        Tuple* t = static_cast<Tuple*>( wTuple.addr );
 
         // create tuple file
         if ( li->buffer == 0 )
@@ -317,6 +322,7 @@ int TupleBufferValueMap( Word* args, Word& result,
 
         // append tuple to buffer
         li->buffer->AppendTuple(t);
+        t->DeleteIfAllowed();
 
         qp->Request(args[0].addr, wTuple);
       }
