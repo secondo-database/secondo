@@ -53,6 +53,7 @@ August, 2009 Jianqiu Xu
 #include "RelationAlgebra.h"
 #include <list>
 #include <sys/timeb.h>
+#include <bitset>
 
 /*
 Subclass for manage bus network
@@ -93,7 +94,7 @@ public:
 
 /*new schema for bus stop*/
   static string newbusstopTypeInfo; //relation description for bus stop
-  enum newBusStopInfo{NEWSID=0,NEWLOC,BUSPATH,POS};
+  enum newBusStopInfo{NEWSID=0,NEWLOC,BUSPATH,POS,ZVAL};
   static string newbtreebusstopTypeInfo;
 
 /*function for type constructor*/
@@ -121,13 +122,16 @@ public:
   ~BusNetwork();
   BusNetwork(SmiRecord&,size_t&,const ListExpr);
   void FillBusNode(const Relation*);
-  void FillBusNode_New(const Relation*);
   void FillBusEdge(const Relation*);
-  void FillBusEdge_New(const Relation*);
   void FillAdjacency();
   void FillAdjacencyPath();
   void Destroy();
   void CalculateMaxSpeed();
+
+  void FillBusNode_New(const Relation*);
+  void FillBusEdge_New(const Relation*);
+  inline double ZValue(Point& p);
+  void ConstructBusNodeTree();
 /*Interface function and Application function*/
   Relation* GetRelBus_Node(){return bus_node;}
   Relation* GetRelBus_Route(){return bus_route;}
@@ -194,5 +198,7 @@ private:
 
 };
 double difftimeb(struct timeb* t1,struct timeb* t2);
+//#define graph_model //old representation
+
 #endif
 

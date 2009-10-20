@@ -15,23 +15,10 @@ Signature: busnetwork -> int
 Example  : query busnode(berlintrains) count;
 Result   : 173
 
-Operator : busnodenew
-Number   : 1
-Signature: busnetwork -> int
-Example  : query busnodenew(berlintrains) count;
-Result   : 11934
-
 Operator : busedge
 Number   : 1
 Signature: busnetwork -> int
 Example  : query busedge(berlintrains) count;
-Result   : 11372
-
-
-Operator : busedgenew
-Number   : 1
-Signature: busnetwork -> int
-Example  : query busedgenew(berlintrains) count;
 Result   : 11372
 
 Operator : busmove

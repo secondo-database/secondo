@@ -80,16 +80,6 @@ const string OpBusNodeSpec =
   "<text>query busnode(busroutes) count</text--->"
   "))";
 
-const string OpBusNodeNewSpec =
- "((\"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\") "
-  "(<text>busnetwork -> stream(tuple([nid:int,loc:point,path:int,post:int]))"
-   "</text--->"
-  "<text>busnodenew(_)</text--->"
-  "<text>returns a stream of tuple where each corresponds to a bus stop."
-  "</text--->"
-  "<text>query busnodenew(busroutes) count</text--->"
-  "))";
 
 const string OpBusEdgeSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
@@ -98,15 +88,6 @@ const string OpBusEdgeSpec =
   "<text>busedge(_)</text--->"
   "<text>returns the relation for edges.</text--->"
   "<text>query busedge(busroutes) count</text--->"
-  "))";
-
-const string OpBusEdgeNewSpec =
- "((\"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\") "
-  "(<text>busnetwork -> a relation</text--->"
-  "<text>busedgenew(_)</text--->"
-  "<text>returns the relation for edges.</text--->"
-  "<text>query busedgenew(busroutes) count</text--->"
   "))";
 
 
@@ -264,6 +245,7 @@ Return all bus stops.
 int OpBusNodeValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
+#ifdef graph_model
   DisplBusStop* localInfo;
   switch(message){
     case OPEN:{
@@ -295,17 +277,7 @@ int OpBusNodeValueMapping(Word* args, Word& result,
         return 0;
     }
   }
-  return 0;
-}
-
-
-/*
-Return all bus stops new.
-
-*/
-int OpBusNodeNewValueMapping(Word* args, Word& result,
-                               int message, Word& local, Supplier s)
-{
+#else
   DisplBusStopNew* localInfo;
   switch(message){
     case OPEN:{
@@ -326,11 +298,13 @@ int OpBusNodeNewValueMapping(Word* args, Word& result,
         Point* location = (Point*)temp_tuple->GetAttribute(BusNetwork::NEWLOC);
         CcInt* path = (CcInt*)temp_tuple->GetAttribute(BusNetwork::BUSPATH);
         CcInt* pos = (CcInt*)temp_tuple->GetAttribute(BusNetwork::POS);
+        CcReal* zval = (CcReal*)temp_tuple->GetAttribute(BusNetwork::ZVAL);
 
         tuple->PutAttribute(BusNetwork::NEWSID,new CcInt(*id));
         tuple->PutAttribute(BusNetwork::NEWLOC,new Point(*location));
         tuple->PutAttribute(BusNetwork::BUSPATH,new CcInt(*path));
         tuple->PutAttribute(BusNetwork::POS,new CcInt(*pos));
+        tuple->PutAttribute(BusNetwork::ZVAL,new CcReal(*zval));
 
         result.setAddr(tuple);
         temp_tuple->DeleteIfAllowed();
@@ -343,8 +317,11 @@ int OpBusNodeNewValueMapping(Word* args, Word& result,
         return 0;
     }
   }
+#endif
   return 0;
 }
+
+
 
 /*
 Display the edge
@@ -355,7 +332,11 @@ int OpBusEdgeValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
   BusNetwork* busnet = (BusNetwork*)args[0].addr;
+#ifdef graph_model
   Relation* busedge = busnet->GetRelBus_Edge();
+#else
+  Relation* busedge = busnet->GetRelBus_EdgeNew();
+#endif
   result = SetWord(busedge->Clone());
   Relation* resultSt = (Relation*)qp->ResultStorage(s).addr;
   resultSt->Close();
@@ -363,17 +344,6 @@ int OpBusEdgeValueMapping(Word* args, Word& result,
   return 0;
 }
 
-int OpBusEdgeNewValueMapping(Word* args, Word& result,
-                               int message, Word& local, Supplier s)
-{
-  BusNetwork* busnet = (BusNetwork*)args[0].addr;
-  Relation* busedge = busnet->GetRelBus_EdgeNew();
-  result = SetWord(busedge->Clone());
-  Relation* resultSt = (Relation*)qp->ResultStorage(s).addr;
-  resultSt->Close();
-  qp->ChangeResultStorage(s,result);
-  return 0;
-}
 
 /*
 Display the bus movement.
@@ -563,6 +533,7 @@ ListExpr OpBusNodeTypeMap(ListExpr in_xArgs)
   if(nl->ListLength(in_xArgs) != 1)
     return (nl->SymbolAtom("typeerror"));
 
+#ifdef graph_model
   ListExpr arg = nl->First(in_xArgs);
   if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
      nl->SymbolValue(arg) == "busnetwork"){
@@ -577,36 +548,27 @@ ListExpr OpBusNodeTypeMap(ListExpr in_xArgs)
           );
   }
   return nl->SymbolAtom("typeerror");
-
-}
-
-/*
-Operator ~busnewnode~
-
-*/
-ListExpr OpBusNodeNewTypeMap(ListExpr in_xArgs)
-{
-  if(nl->ListLength(in_xArgs) != 1)
-    return (nl->SymbolAtom("typeerror"));
-
+#else
   ListExpr arg = nl->First(in_xArgs);
   if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
      nl->SymbolValue(arg) == "busnetwork"){
     return nl->TwoElemList(
           nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),
-              nl->FourElemList(
+              nl->FiveElemList(
                nl->TwoElemList(nl->SymbolAtom("id"),nl->SymbolAtom("int")),
                nl->TwoElemList(nl->SymbolAtom("loc"),nl->SymbolAtom("point")),
                nl->TwoElemList(nl->SymbolAtom("buspath"),nl->SymbolAtom("int")),
-               nl->TwoElemList(nl->SymbolAtom("pos"),nl->SymbolAtom("int"))
+               nl->TwoElemList(nl->SymbolAtom("pos"),nl->SymbolAtom("int")),
+               nl->TwoElemList(nl->SymbolAtom("zval"),nl->SymbolAtom("real"))
               )
             )
           );
   }
-  return nl->SymbolAtom("typeerror");
 
+#endif
 }
+
 
 /*
 Operator ~busedge~
@@ -625,6 +587,7 @@ ListExpr OpBusEdgeTypeMap(ListExpr in_xArgs)
       return xType;
   }
   return nl->SymbolAtom("typeerror");
+
 
 }
 
@@ -958,15 +921,6 @@ Operator busnode(
   OpBusNodeTypeMap
 );
 
-Operator busnodenew(
-  "busnodenew", //name
-  OpBusNodeNewSpec,
-  OpBusNodeNewValueMapping,
-  Operator::SimpleSelect,
-  OpBusNodeNewTypeMap
-);
-
-
 Operator busedge(
   "busedge", //name
   OpBusEdgeSpec,
@@ -974,15 +928,6 @@ Operator busedge(
   Operator::SimpleSelect,
   OpBusEdgeTypeMap
 );
-
-Operator busedgenew(
-  "busedgenew", //name
-  OpBusEdgeNewSpec,
-  OpBusEdgeNewValueMapping,
-  Operator::SimpleSelect,
-  OpBusEdgeTypeMap
-);
-
 
 Operator busmove(
   "busmove", //name
@@ -1047,9 +992,9 @@ class TransportationModeAlgebra : public Algebra
 
    AddOperator(&thebusnetwork);//construct bus network
    AddOperator(&busnode);//display bus stop
-   AddOperator(&busnodenew);
+
    AddOperator(&busedge); //display the trajectory of a bus
-   AddOperator(&busedgenew); //display the trajectory of a bus
+
    AddOperator(&busmove);//display bus movement
    //middle stop with no temporal property, no user defined time instant
    AddOperator(&find_path_t_1);//minimum total time cost
