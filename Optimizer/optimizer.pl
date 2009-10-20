@@ -1290,8 +1290,9 @@ the stpatternex predicate
 */
 plan_to_atom( patternex(NPredList, ConstraintList, Filter) , Result):-
 	namedPredList_to_atom(NPredList, NPredList2),
-	list_to_atom(ConstraintList, ConstraintList2),
-	plan_to_atom(Filter, Filter2),
+	((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
+        (plan_to_atom(ConstraintList, ConstraintList2))),
+        plan_to_atom(Filter, Filter2),
 	concat_atom(['. stpatternex[', NPredList2, '; ', ConstraintList2, '; ', Filter2, ']'],'',  Result),
 	!.
 % Section:End:plan_to_atom_2_b
@@ -5834,9 +5835,10 @@ lookupAttr(Term, Result) :-
 lookupAttr(T, T2) :-
   compound(T),
   T =.. [Op, Expr],
-  isAggregationOP(Op),
   lookupAttr(Expr, Expr2),
-  T2 =.. [Op, Expr2], !.
+  T2 =.. [Op, Expr2],
+  isAggregationOP(T2),
+  !.
 
 lookupAttr(Expr as Name, Expr2 as attr(Name, 0, u)) :-
   lookupAttr(Expr, Expr2),
@@ -8133,6 +8135,9 @@ deleteHistory :-
 storeHistory :-
   saveRel('SqlHistory').
 
+
+sql create X by Term :- let(X, Term).
+
 % special handling for create query
 sql create Term :- !, sqlNoQuery(create Term).
 
@@ -8149,7 +8154,7 @@ sql Term :- defaultExceptionHandler((
   appendToRel('SqlHistory', Term, Query, Cost, PlanBuild, PlanExec)
  )).
 
-sql create X by Term :- let(X, Term).
+
 
 sql(Term, SecondoQueryRest) :- defaultExceptionHandler((
   isDatabaseOpen,
