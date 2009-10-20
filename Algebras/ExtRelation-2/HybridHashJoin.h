@@ -313,7 +313,7 @@ Reference to bucket on which the instance iterates.
 
 */
 
-    vector<Tuple*>::iterator iter;
+    vector<RTuple>::iterator iter;
 /*
 Iterator for internal bucket tuple buffer.
 
@@ -348,12 +348,6 @@ The destructor.
 
     inline void Clear()
     {
-      for (size_t i = 0; i < tuples.size(); i++)
-      {
-        Tuple* t = tuples[i];
-        t->DeleteIfAllowed();
-      }
-
       tuples.clear();
       totalSize = 0;
     }
@@ -423,7 +417,7 @@ Total size in bytes of all tuples in a bucket.
 
 */
 
-    vector<Tuple*> tuples;
+    vector<RTuple> tuples;
 /*
 Array with tuple references of all tuples in a bucket.
 
@@ -1858,9 +1852,9 @@ Partition manager for stream B. Contains the partitioning of stream B.
 
 */
 
-    Tuple* tupleA;
+    RTuple tupleA;
 /*
-Pointer to last tuple from stream A.
+Reference to last tuple from stream A.
 
 */
 
