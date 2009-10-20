@@ -81,21 +81,33 @@ Ein Schritt im Optimierungsalgorithmus entspricht immer der Entfernung einer Kan
 %\end{itemize}
 Die Optimierungen von geschachtelten Abfragen, die in dieser Arbeit implementiert wurden, unterliegen aufgrund der verwendeten Algorithmen einigen Einschränkungen. Geschachtelte Abfragen dürfen im inneren Abfrageblock keine \sql{group by/having}-Klausel aufweisen (vgl. \cite{671658}). In korrelierten Abfragen dürfen nur Attribute der Relationen des den Abfrageblock direkt umgebenden Abfrageblocks verwendet werden. D.h. auf Schachtelungsebene n dürfen nur Relationen des inneren Abfrageblocks und Relationen der Schachtelungsebene n-1 verwendet werden. Tritt ein geschachteltes Prädikat in einem Disjunktionsterm auf, so ist es einer Optimierung mit den hier implementierten Algorithmen ebenfalls nicht zugänglich. Algorithmen zur Optimierung geschachtelter Abfragen in Disjunktionen wurden aber z.B. in \cite{Brantner2007} vorgestellt. Bei einer Erweiterung des Optimierers um die Optimierung disjunktiver Terme kann eine entsprechende Optimierung für geschachtelte Abfragen vorgesehen werden. Korrelierte Abfragen in der \sql{select}- und \sql{from}-Klausel können nicht mit einfachen temporären Relationen ersetzt werden. In dieser Arbeit wurde daher nur die Behandlung nicht korrelierter Abfragen in der \sql{select}- und \sql{from}-Klausel implementiert. Geschachtelte Abfragen, die nicht durch Entschachtelungs- und Transformationsalgorithmen optimiert werden können, werden in geschachtelte, iterative Ausdrücke übersetzt. 
 
-\section{Ein Full-Outer-Join-Operator für SECONDO}
-\textsc{Secondo} enthält bereits mehrere Join-Operatoren. Als Vorlage für die Implementierung des Full-Outer-Join-Operators wurde der Operator \secondo{sortmergejoin} ausgewählt, da sich der zugrunde liegende Algorithmus mit wenigen Änderungen in einen Full-Outer-Join umbauen lässt. Sort-Merge-Join ist ein Algorithmus zur Berechnung von Equi-Joins. Daher wird auch nur der Full-Outer-Join für Equi-Join berechnet. Voraussetzung ist die Sortierung der Relationen bzw. Ströme bezüglich der Join-Attribute. Diese Anforderung kann durch das vorhergehende Sortieren der Relationen erfüllt werden. In \textsc{Secondo} erfolgt diese Sortierung innerhalb des Operators \secondo{sortmergejoin}.
+\section{Full-Outer-Join-Operatoren für SECONDO}
+Um die korrekte Umsetzung der Korrekturen zu gewährleisten, die Ganski/Wong an den Algorithmen aus \cite{319745} vorgenommen haben, ist die Full-Outer-Join-Operation notwendig. \textsc{Secondo} kann diese Operation bereits ausführen, da sich der Full-Outer-Join durch andere, bereits implementierte Operatoren darstellen lässt. Die effiziente Berechnung des Full-Outer-Join ist hiermit jedoch nicht möglich, der Full-Outer-Join wird hierbei durch komplexe Verknüpfung von Join, Kreuzprodukt und Mengendifferenz bzw. Mengenvereinigung berechnet wird. Daher war es notwendig eine effiziente Implementierung zu erstellen. \textsc{Secondo} enthält bereits mehrere Join-Operatoren. Als Vorlage für die Implementierung der Full-Outer-Join-Operatoren wurden die Operatoren \secondo{sortmergejoin} und \secondo{symmjoin} ausgewählt, da sich die zugrunde liegenden Algorithmen mit wenigen Änderungen in einen Full-Outer-Join umbauen lassen. 
 
-Mithilfe zweier Zeiger werden die sortiert vorliegenden Ströme durchlaufen.
-Zu Beginn des Algorithmus zeigen die beiden Zeiger auf den Anfang jeder Relation. 
+\subsection{Sort-Merge-Outer-Join}
+Sort-Merge-Join ist ein Algorithmus zur Berechnung von Equi-Joins. Daher wird auch nur der Full-Outer-Join für Equi-Join berechnet. Voraussetzung ist die Sortierung der Relationen bzw. Ströme bezüglich der Join-Attribute. Diese Anforderung kann durch das vorhergehende Sortieren der Relationen erfüllt werden. In \textsc{Secondo} erfolgt diese Sortierung innerhalb des Operators \secondo{sortmergejoin}.
+
+Mithilfe zweier Zeiger und eines Puffers werden die sortiert vorliegenden Ströme durchlaufen. 
+Zu Beginn des Algorithmus zeigen die beiden Zeiger auf das erste Tupel der jeweiligen Relation und der Puffer ist leer.
 \begin{enumerate}
-\item Jetzt werden alle Tupel der ersten Relation mit übereinstimmendem Wert im Join-Attribut in einen Puffer gelesen und der Zeiger jeweils auf das aktuell gelesene Tupel gesetzt. 
-\item Im nächsten Schritt werden alle Tupel der zweiten Relation in einen Puffer gelesen, die bezüglich ihres Join-Attribut-Werts übereinstimmen. 
-\subitem Ist der Wert des Join-Attributs kleiner, als der des Tupels im ersten Puffer, wird der Zeiger in der zweiten Relation um eine Position erhöht. 
-\subitem Besteht Gleichheit im Wert des Join-Attributs, so wird ein Tupel der Ergebnisrelation erzeugt, das aus der Aneinanderreihung der Tupel der Eingaberelationen besteht, für jedes Tupel das im ersten Puffer steht. Anschließend wird das Tupel aus dem zweiten Puffer gelöscht und mit dem nächsten Tupel aus diesem Puffer fortgefahren. Ist der zweite Puffer erschöpft, wird auch der erste Puffer geleert und mit dem ersten Schritt fortgefahren. 
-\subitem Ist der Wert des Join-Attributs im zweiten Puffer größer, als im ersten, so wird der Zeiger in der ersten Relation solange erhöht, bis einer der oben genannten Fälle eintritt. 
+\item Jetzt werden alle Tupel der zweiten Relation mit übereinstimmendem Wert im Join-Attribut in den Puffer gelesen und der Zeiger jeweils auf das aktuell gelesene Tupel gesetzt. 
+\item Im nächsten Schritt wird das aktuelle Tupel der ersten Relation mit dem aktuellen Tupel der zweiten Relation verglichen.
+\subitem Solange der Wert des Join-Attributs des Tupels der ersten Relation kleiner ist, als der Wert des Join-Attributs des Tupels im Puffer, wird der Zeiger in der ersten Relation um eine Position erhöht.
+\subitem Besteht Gleichheit im Wert des Join-Attributs, so wird ein Tupel der Ergebnisrelation erzeugt, das aus der Aneinanderreihung des Tupels  der ersten Relation und des ersten Tupels des Puffers besteht. Anschließend wird das Tupel aus dem Puffer gelöscht. Ist der Puffer erschöpft, wird der Zeiger in der ersten Relation erhöht und mit dem ersten Schritt fortgefahren. Enthält der Puffer noch Tupel, so wird die Erzeugung eines Ergebnistupels mit dem neuen ersten Tupel des Puffers wie gerade beschrieben durchgeführt.
+\subitem Ist der Wert des Join-Attributs des aktuellen Tupels der ersten Relation größer, als der entsprechende Wert des ersten Tupels im Puffer, so werden alle Tupel aus dem Puffer gelöscht, der Zeiger in der zweiten Relation erhöht und mit dem ersten Schritt fortgefahren.
 \item Ist eine der beiden Relationen erschöpft, ist der Algorithmus beendet.
 \end{enumerate}
 
 Dieser Algorithmus lässt sich auf folgende Art und Weise zum Full-Outer-Join ausbauen. Bei jedem Vergleichsschritt wird jetzt ein Tupel der Ausgaberelation erzeugt. Ist der Wert im ersten Puffer größer als im zweiten, so besteht das Tupel der Ergebnismenge aus einer Verkettung des Tupels aus dem Puffer und einem mit NULL-Werten gefüllten Tupel der zweiten Relation. Auf die gleiche Art wird mit jedem Tupel des Puffers verfahren. Ist der Attribut-Wert gleich, so wird wie beim Sort-Merge-Join verfahren. Ist der Wert kleiner, so wird für jedes Tupel im zweiten Puffer ein Ausgabe-Tupel erzeugt, dass aus einer Aneinanderreihung eines NULL-Tupels der ersten Relation und dem Tupel aus dem Puffer besteht. Damit wird für jedes Tupel, das nicht im Join-Ergebnis enthalten wäre ein Ausgabetupel erzeugt, dessen Attributwerte für die Attribute der jeweils anderen Relation mit NULL-Werten gefüllt sind. 
+
+\subsection{Symm-Outer-Join}
+Der Algorithmus des Operators \secondo{symmjoin} erlaubt die Berechnung der Join-Operation mit beliebigen Bedingungen. Er ist aufgrund der Verzahnung der Selektions- und Kreuzprodukt-Operation effizienter als die Verknüpfung dieser beiden Operationen. Die Bedingung wird wie in \textsc{Secondo} üblich durch eine Funktion dargestellt, die zwei Tupel auf einen booleschen Wert abbildet.
+
+Die Relationen werden bei diesem Algorithmus mithilfe zweier Zeiger, zweier Puffer und eines Zeigers auf das aktuell betrachtete Tupel durchlaufen.
+Zu Beginn des Algorithmus sind beide Puffer leer und die Zeiger zeigen auf das jeweils erste Tupel der Relationen. Das aktuell betrachtete Tupel ist das erste Tupel der ersten Relation.
+\begin{enumerate}
+	\item Das aktuelle Tupel wird mit dem ersten Tupel des zweiten Puffers verglichen. 
+\end{enumerate}
 
 %\begin{itemize}
 %	\item Beschreibung Sortmergejoin
