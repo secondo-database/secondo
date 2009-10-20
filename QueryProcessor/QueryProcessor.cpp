@@ -207,8 +207,7 @@ to determine selectivities of predicates while processing a query. Furthermore s
 1.1 Imports
 
 */
-
-using namespace std;
+#include <stdexcept>
 
 #include "NameIndex.h"
 #include "NestedList.h"
@@ -226,9 +225,24 @@ using namespace std;
 #include "Progress.h"
 #include "Operator.h"
 #include "stdio.h"
-#include <stdexcept>
 #include "DotSpec.h"
 
+// force a failed assertion. This will imply to print a stack trace
+#define qp_assert if( RTFlag::isActive("QP:assert") ) assert(false)
+
+// define a runtime exception
+#define qp_error(msg) runtime_error( \
+		          ErrorStr(msg, __FILE__, __LINE__) ); qp_assert
+
+using namespace std;
+
+string 
+ErrorStr(const string& msg, const string& file, const int& line)
+{
+  stringstream err;
+  err << file << "@" << line << ": " << msg;
+  return err.str();  
+}	
 
 /**************************************************************************
 1.2 Constants, Types, Global Data Structures
@@ -1072,7 +1086,9 @@ bool IsRootObject( OpTree tree )
 {
   if( tree->nodetype == Object || tree->nodetype == Pointer )
   {
-    assert( tree->isRoot == true );
+    if( tree->isRoot != true ) {
+      throw qp_error("The given tree is not the root");	    
+    }	    
     return true;
   }
   return false;
@@ -1089,9 +1105,9 @@ constant value.
 */
 bool IsConstantObject( OpTree tree )
 {
-  assert( IsRootObject( tree ) == true );
-  assert( tree->nodetype == Object );
-  assert( tree->isRoot == true );
+  if( IsRootObject( tree ) != true ) {
+    throw qp_error("The given tree is not a root object");	  
+  }	  
 
   return( tree->u.dobj.isConstant );
 }
@@ -2015,7 +2031,12 @@ will be processed.
                 cout << "Case 1: An annotated Operator." << endl;
               string operatorStr = nl->SymbolValue(nl->First(first));
               ListExpr opList = nl->Third( first );
-              assert( nl->ListLength( opList ) > 0 );
+
+              if ( !nl->HasLength(opList,1)  ) {
+		stringstream err; 
+		err << "Expecting a list but got " << nl->ToString(opList);
+	        throw qp_error( err.str() );
+              }		      
 
               rest = nl->Rest( list );
               typeList = nl->Rest( typeList );
@@ -2075,7 +2096,8 @@ will be processed.
 
               if (traceMode)
                 cout << "Case 2: An annotated function." << endl;
-              assert( false );
+	      throw qp_error( "unexpected function annotation!" );
+           
 
               signature = nl->Rest(nl->Second(nl->First(list)));
               typeList = nl->Rest( typeList );
@@ -2997,7 +3019,7 @@ QueryProcessor::Subtree( const ListExpr expr,
     case QP_FUNCTION:
     {
       // spm: should never be reached!
-      assert(false);
+      throw qp_error( "Unexpected function subtree" );
       OpTree subNode = Subtree( nl->Third( nl->First( expr ) ),
                                 first, node);
       if (traceNodes)
@@ -3127,7 +3149,16 @@ the function in a database object.
   isFunction = false;
 
   ListExpr list = nl->TheEmptyList();
-  list = AnnotateX( expr, defined );
+
+  try 
+  {
+    list = AnnotateX( expr, defined );
+  }
+  catch (runtime_error r) 
+  {
+    cmsg.error() << r.what() << endl;
+    cmsg.send();    
+  }
 
   if ( nl->ListLength( list ) < 2 ) {
     DestroyValuesArray();
@@ -3333,7 +3364,16 @@ QueryProcessor::EvalP( void* node,
 {
   progressView = new ProgressView();
   allowProgress = true;
-  Eval( node, result, 1 );
+  try 
+  {
+    Eval( node, result, 1 );
+  }  
+  catch (runtime_error r) 
+  {
+    cmsg.error() << r.what() << endl;
+    cmsg.send();    
+  }
+
   allowProgress = false;
   progressView->FinishProgressView();
   delete progressView;
@@ -3347,7 +3387,16 @@ QueryProcessor::EvalS( void* node,
 {
   progressView = 0;
   allowProgress = false;
-  Eval( node, result, 1 );
+
+  try 
+  {
+    Eval( node, result, 1 );
+  }  
+  catch (runtime_error r) 
+  {
+    cmsg.error() << r.what() << endl;
+    cmsg.send();    
+  }
 }
 
 
@@ -3674,7 +3723,9 @@ void
 QueryProcessor::SetupStreamArg( const Supplier funNode,
                                 const int num, Supplier opNode )
 {
-   assert( (0 < num) && (num < MAXARG/2) );
+   if( !((0 < num) && (num < MAXARG/2)) ) {
+     throw qp_error("num out of range!");	   
+   }	   
 
    ArgVectorPointer funargs = Argument(funNode);
    (*funargs)[MAXARG-num] = SetWord(opNode);
@@ -3704,7 +3755,9 @@ QueryProcessor::Request( const Supplier s, Word& result )
     if ( tree->u.received && counterIndex )
     {
       // increment counter
-      assert ( (counterIndex > 0) || (counterIndex < NO_COUNTERS) );
+      if(  !( (counterIndex > 0) || (counterIndex < NO_COUNTERS) ) ) {
+        throw qp_error("counterIndex out of range");	      
+      }	      
       counter[counterIndex]++;
     }
   }
@@ -3995,7 +4048,9 @@ Word
 QueryProcessor::ResultStorage( const Supplier s )
 {
   OpTree tree = (OpTree) s;
-  assert (tree->nodetype == Operator);
+  if (tree->nodetype != Operator) {
+    throw qp_error("Nodetype != Operator");
+  }	  
 
   return (tree->u.op.resultWord);
 }
@@ -4016,7 +4071,9 @@ void
 QueryProcessor::ChangeResultStorage( const Supplier s, const Word w )
 {
   OpTree tree = (OpTree) s;
-  assert (tree->nodetype == Operator);
+  if (tree->nodetype != Operator) {
+    throw qp_error("Nodetype != Operator");
+  }	  
 
   tree->u.op.resultWord.setAddr(w.addr);
 }
@@ -4026,7 +4083,9 @@ QueryProcessor::SetDeleteFunction( const Supplier s,
                                    const ObjectDeletion f )
 {
   OpTree tree = (OpTree) s;
-  assert (tree->nodetype == Operator);
+  if (tree->nodetype != Operator) {
+    throw qp_error("Nodetype != Operator");
+  }	  
 
   tree->u.op.deleteFun = f;
 }
@@ -4038,7 +4097,9 @@ void
 QueryProcessor::DeleteResultStorage( const Supplier s )
 {
   OpTree tree = (OpTree) s;
-  assert (tree->nodetype == Operator);
+  if (tree->nodetype != Operator) {
+    throw qp_error("Nodetype != Operator");
+  }	  
 
   int algId = tree->u.op.resultAlgId;
   int typeId = tree->u.op.resultTypeId;
@@ -4065,7 +4126,9 @@ QueryProcessor::ReInitResultStorage( const Supplier s )
 {
 
   OpTree tree = (OpTree) s;
-  assert (tree->nodetype == Operator);
+  if (tree->nodetype != Operator) {
+    throw qp_error("Nodetype != Operator");
+  }	  
 
   //cerr << "u.op.isFun = " << tree->u.op.isFun << endl;
   ListExpr type = (tree->u.op.isFun) ? nl->Third(tree->typeExpr)
@@ -4128,16 +4191,15 @@ Supplier
 QueryProcessor::GetSon( const Supplier s, int i )
 {
   OpTree tree = (OpTree) s;
-  if ( tree->nodetype == Operator )
+  if ( tree->nodetype != Operator )
   {
-    assert( i >= 0 && i < tree->u.op.noSons );
-    return tree->u.op.sons[i].addr;
-  }
-  else
-  {
-    cerr << "Error - GetSon: not an operator node. " << endl;
-    exit ( 0 );
-  }
+    throw qp_error("The given supplier s is no operator node");	    
+  }	  
+  
+  if ( !( i >= 0 && i < tree->u.op.noSons ) ) {
+    throw qp_error("son number i is out of range");	    
+  }	    
+  return tree->u.op.sons[i].addr;
 }
 
 /*
@@ -4192,7 +4254,9 @@ void
 QueryProcessor::SetModified( const Supplier s )
 {
   OpTree tree = (OpTree) s;
-  assert( tree->nodetype == Object );
+  if( tree->nodetype != Object ) {
+   throw qp_error("Supplier s is not an object");	  
+  }	  
   tree->u.dobj.isModified = true;
 }
 
@@ -4210,7 +4274,9 @@ QueryProcessor::ResetCounters()
 int
 QueryProcessor::GetCounter(const int index)
 {
-  assert( (index > 0) && (index < NO_COUNTERS) );
+  if( !((index > 0) && (index < NO_COUNTERS)) ) {
+    throw qp_error("Counter index out of range");	  
+  }	  
   return counter[index];
 }
 
