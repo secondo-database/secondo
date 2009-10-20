@@ -229,8 +229,8 @@ Necessary to difference between an empty and an undefined collection.
 */
 
 
-// #define DEBUG
-// #define DEBUGHEAD
+#define DEBUG
+#define DEBUGHEAD
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -1887,7 +1887,7 @@ cout << "  Statusbericht CreateTypeMap:" << endl
     int length = nl->ListLength(args);
     if(length==0) {
       ErrorReporter::ReportError("Operator " + opName + " needs at least one "
-          + "element to insert to get to know the type of the elements.");
+          + "element to insert to know the type of the elements.");
       return nl->TypeError();
     }
     ListExpr type = nl->First(args);
@@ -2063,7 +2063,7 @@ cout << "CollectValueMap" << endl;
     {
       name      = COLLECT_SET;
       signature = STREAM + "(t) -> " + SET + "(t)";
-      syntax    = "_" + COLLECT_SET;
+      syntax    = "_ " + COLLECT_SET;
       meaning   = "Collects the stream elements into a new set";
     }
 
@@ -2075,7 +2075,7 @@ cout << "CollectValueMap" << endl;
     {
       name      = COLLECT_MULTISET;
       signature = STREAM + "(t) -> " + COLLECT_MULTISET + "(t)";
-      syntax    = "_" + COLLECT_MULTISET;
+      syntax    = "_ " + COLLECT_MULTISET;
       meaning   = "Collects the stream elements into a new multiset";
     }
 
@@ -2087,7 +2087,7 @@ cout << "CollectValueMap" << endl;
     {
       name      = COLLECT_VECTOR;
       signature = STREAM + "(t) -> " + VECTOR + "(t)";
-      syntax    = "_" + COLLECT_VECTOR;
+      syntax    = "_ " + COLLECT_VECTOR;
       meaning   = "Collects the stream elements into a new vector";
     }
 
@@ -3161,7 +3161,7 @@ struct isdefInfo : OperatorInfo {
     signature = SET +  " -> " + BOOL;
     appendSignature(MULTISET + " -> " + BOOL);
     appendSignature(VECTOR + " -> " + BOOL);
-    syntax    = " _ " + ISDEF + " _ ";
+    syntax    = " _ " + ISDEF;
     meaning   = "isdefined wird abgefragt";
   }
 
