@@ -27,7 +27,7 @@ verwendet. Der Inhalt dieser Relationen wird vor der Verwendung in einem Beispie
 
 
 \section{Sort-Merge-Outer-Join}
-Grundlage für die Implementierung des Operators \secondo{smouterjoin} ist der Operator \secondo{sortmergejoin} der \algebra{ExtRelation-C++}-Algebra. Type-Mapping-Funktion und die Grundstruktur des Algorithmus konnten übernommen werden. Aus Gründen der Wartbarkeit wurde auf eine gemeinsame Implementierung der Value-Mapping-Funktion mit Hilfe von C++-Templates für \secondo{sortmergejoin} und \secondo{smouterjoin} verzichtet. Eine prototypische Implementierung führte zu unübersichtlichem Quellcode und Leistungseinbußen beim \secondo{sortmergejoin}. Daher wurde auf der Basis der \secondo{sortmergejoin}-Implementierung eine eigenständige Implementierung des Operators \secondo{smouterjoin} erstellt. 
+Grundlage für die Implementierung des Operators \secondo{smouterjoin} ist der Operator \\\secondo{sortmergejoin} der \algebra{ExtRelation-C++}-Algebra. Type-Mapping-Funktion und die Grundstruktur des Algorithmus konnten übernommen werden. Aus Gründen der Wartbarkeit wurde auf eine gemeinsame Implementierung der Value"=Map\-ping"=Funk\-tion mit Hilfe von C++"=Temp\-lates für \secondo{sortmergejoin} und \secondo{smouterjoin} verzichtet. Eine prototypische Implementierung führte zu unübersichtlichem Quellcode und Leistungseinbußen beim \secondo{sortmergejoin}. Daher wurde auf der Basis der \secondo{sortmergejoin}-Implementierung eine eigenständige Implementierung des Operators \secondo{smouterjoin} erstellt. 
 
 \section{Umschreiben quantifizierter Prädikate}
 Prädikate mit den quantifizierenden Operatoren \sql{exists, not exists, any} und \sql{all} werden in äquivalente Prädikate mit Aggregationen überführt. Damit sind sie den in \ref{chp:Entwurf} beschriebenen Algorithmen zur Entschachtelung zugänglich. \sql{exists} und \sql{not exists} werden in eine Prüfung transformiert, ob das Ergebnis mehr als 0 Tupel bzw. genau 0 Tupel enthält. 
@@ -353,7 +353,7 @@ consume(
 
 \begin{itemize}
 	\item korrelierte Prädikate der Subquery entfernen. Hierzu werden die Prädikate untersucht, ob sie Attribute aus Relationen des äußeren Abfrageblocks verwenden.
-	\item Plan für Subquery ohne korrelierte Prädikate ermitteln. Unterabfragen ohne korrelierten Prädikate werden durch die Standardmechanismen des \textsc{Secondo}-Optimierers übersetzt, um einen möglichst effizienten Ausführungsplan zu ermitteln. 
+	\item Plan für Subquery ohne korrelierte Prädikate ermitteln. Unterabfragen ohne korrelierten Prädikate werden durch die Standardmechanismen des \textsc{Secondo}-Op\-ti\-mie\-rers übersetzt, um einen möglichst effizienten Ausführungsplan zu ermitteln. 
 	\item korrelierte Prädikate mit aufsteigender Selektivität an Plan \enquote{anflanschen}. 
 \end{itemize}
 
@@ -376,7 +376,7 @@ wird in
 
 \secondo{$stream(tuple((a_1 t_1)\cdots(a_n t_n)))\times a_n$ $\rightarrow$ $(stream\; t_n)$} 
 
-und wandelt einen Tupel-Strom in einen Strom von Werten um. Hierbei wird das Selektions-Attribute der geschachtelten Abfrage als zu wählender Parameter mitgegeben. Der Strom wird dann mit dem Operator \secondo{collect\_set} in eine Menge umgewandelt und für jedes Tupel des äußeren Stroms wird mit \secondo{in} geprüft, ob der entsprechende Attributwert enthalten ist. D.h. es wird genau die mengenbasierte Semantik des \sql{in}-Operators erreicht.
+und wandelt einen Tupel-Strom in einen Strom von Werten um. Hierbei wird das Se\-lek\-tions\-at\-tri\-but der geschachtelten Abfrage als zu wählender Parameter mitgegeben. Der Strom wird dann mit dem Operator \secondo{collect\_set} in eine Menge umgewandelt und für jedes Tupel des äußeren Stroms wird mit \secondo{in} geprüft, ob der entsprechende Attributwert enthalten ist. D.h. es wird genau die mengenbasierte Semantik des \sql{in}-Operators erreicht.
 
 Ein Prädikat 
 

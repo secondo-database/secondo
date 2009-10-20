@@ -121,7 +121,7 @@ Der \sql{all}-Operator wertet zu \sql{TRUE} aus, wenn der Vergleich für alle Erg
 \end{lstlisting}
 
 
-	\subitem \textbf{(GROUP BY\dots HAVING-Klausel)} Auch in den Prädikaten der HAVING-Klausel kann auf Unterabfragen zurückgegriffen werden. Allerdings kann nur auf die Attribute der Ergebnisrelation der zuvorstehenden Abfrage zugegriffen werden. D.h. die Ausdrücke in einem Prädikat beziehen sich auf ein \sql{group by}-Attribut oder ein Aggregationsergebnis.
+	\subitem \textbf{(GROUP BY\dots HAVING-Klausel)} Auch in den Prädikaten der \sql{having}"=Klau"-sel kann auf Unterabfragen zurückgegriffen werden. Allerdings kann nur auf die Attribute der Ergebnisrelation der zuvorstehenden Abfrage zugegriffen werden. D.h. die Ausdrücke in einem Prädikat beziehen sich auf ein \sql{group by}-Attribut oder ein Aggregationsergebnis.
 	
 \begin{lstlisting}
    select §$A_i$§, §$avg(A_j)$§

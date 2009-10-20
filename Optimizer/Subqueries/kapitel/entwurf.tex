@@ -4,13 +4,16 @@
 %
 
 \chapter{Entwurf}\label{chp:Entwurf}
-Die von Kim bzw. Ganski/Wong vorgestellten Algorithmen zur Optimierung geschachtelter Abfragen haben für die Implementierung in \textsc{Secondo} den Vorteil, dass sie sich mit der Einführung weniger weiterer Operatoren in die bestehende \textsc{Secondo}-Implementierung integrieren lassen. Zur Umsetzung der Algorithmen sind die vorhandenen Stan\-dard-Ope\-ra\-ti\-on\-en Projektion und Selektion sowie die Operationen Anti-Join und Full-Outer-Join notwendig. Im Rahmen dieser Arbeit wurde ein Full-Outer-Join-Operator für den Fall der Attribut-Gleichheit implementiert. 
+In diesem Kapitel werden die Entscheidungen erläutert, die für die Implementierung getroffen werden mussten. 
+
+\section{Überblick}
+Die von Kim bzw. Ganski/Wong vorgestellten Algorithmen zur Optimierung geschachtelter Abfragen haben für die Implementierung in \textsc{Secondo} den Vorteil, dass sie sich mit der Einführung weniger weiterer Operatoren in die bestehende \textsc{Secondo}"=Im\-ple\-men\-tie\-rung integrieren lassen. Zur Umsetzung der Algorithmen sind die vorhandenen Stan\-dard-Ope\-ra\-ti\-on\-en Projektion und Selektion sowie die Operationen Anti-Join und Full-Outer-Join notwendig. Im Rahmen dieser Arbeit wurde ein Full-Outer-Join-Operator für den Fall der Attribut-Gleichheit implementiert. 
 
 Da sich keiner der vorhandenen Join-Algorithmen zur Umsetzung eines effizienten Anti-Join-Algorithmus eignet, wurde auf die Implementierung eines entsprechenden Algorithmus verzichtet. Abfragen mit dem Operator \sql{not in} können mit den ausgewählten Algorithmen nur mit einem Anti-Join-Operator entschachtelt werden. Diese werden daher zwar übersetzt, die entsprechenden Prädikate sind aber keiner weiteren Optimierung zugänglich. D.h. eine Optimierung über Entschachtelung ist in diesem Spezialfall nicht möglich. Nach der Implementierung eines Anti-Join-Operators sollte die Implementierung eines Prädikats zur Entschachtelung mit dem in \cite{319745} vorgestellten Algorithmus möglich sein. Zusätzlich ist die Erweiterung des Optimierers um die Verarbeitung von allgemeinen Join-Prädikaten notwendig, die nicht der Kombination von Kreuzprodukt und Selektion entsprechen. Hierbei sind vor allem der Outer-Join und der Anti-Join für die Optimierung von geschachtelten Abfragen von Bedeutung. Da eine beliebige Vertauschung der Reihenfolge von Outer-Join- und Join-Prädikaten nicht zulässig ist, müssen die für die Vertauschung hinreichenden Bedingungen beim Aufbau des Predicate-Order-Graphen berücksichtigt werden \cite{244812}.
 
 Bei der Analyse des Problems wurde klar, dass eine echte Optimierung, d.h. ein Vergleich der geschachtelten und der nicht geschachtelten Ausführungsvariante einer Abfrage umfangreiche Berechnungen und Simulationen erfordern würde. Um die Kosten der entschachtelten Abfrage ermitteln zu können, müssen die Selektivitäten der Prädikate ermittelt werden. Dies erfolgt durch Auswertung jedes einzelnen Prädikats über Stichproben-Relationen, die aus den eigentlichen Relationen abgeleitet werden. Bei Selektions-Prä\-di\-ka\-ten wird hier nur eine Stichprobenrelation benötigt, bei Join-Prädikaten dementsprechend zwei. Die Stichprobenrelationen werden automatisch erzeugt, sobald sie das erste Mal benötigt werden. Um die Stichprobenrelationen für temporäre Relationen zu erzeugen, müssen die temporären Relationen materialisiert werden. D.h. das Ergebnis der ihnen zugrundeliegenden Abfrage muss vollständig ermittelt werden. Die Erzeugung der temporären Relationen zu diesem Zeitpunkt würden die Laufzeitkosten hierfür aber bei beiden Ausführungsstrategien erhöhen. Ein sinnvoller Vergleich wäre nicht mehr gegeben, da gerade die Erzeugung der temporären Relationen zu einer längeren Laufzeit bei entschachtelter Ausführung führen kann. Da die Prädikate der entschachtelten Abfrage möglicherweise auf temporäre Relationen bezugnehmen, müsste hier die entsprechende Selektivität simuliert werden. Eine Simulation der Selektivitätsbestimmung setzt komplexe statistische  Berechnungen voraus, um Selektivität und Kardinalität abzuschätzen. Um an dieser Stelle verlässliche Daten zu erhalten, wäre der Nachbau eines großen Teils der Metadaten-Ermittlung des Optimierers notwendig gewesen. So ist zwar die Abschätzung der Kardinalität einer Ergebnisrelation mit Hilfe der Kardinalitäten der verwendeten Relationen und den Selektivitäten der Prädikate möglich. Aussagen über die Selektivität eines Prädikats über dieser Relation lassen sich jedoch nicht ohne weiteres treffen. Da diese Simulationen den Rahmen dieser Diplomarbeit sprengen würde, wurde auf die Implementierung verzichtet.
 
-Zur Veranschaulichung der Algorithmen wird in \cite{319745} eine graphische Repräsentation geschachtelter Abfragen eingeführt. Abfragen werden in Form vom Abfragegraphen dargestellt. Jeder Abfrageblock stellt einen Knoten dar. Jeder Knoten wird mit den zur Auswertung notwendigen Relationen markiert. Es gibt zwei Arten von Kanten, die den für die Auswertung notwendigen Informationsfluss darstellen. Gerade Kanten stellen einen Informationsfluss von der Unterabfrage zur äußeren Abfrage dar. D.h. Für die Auswertung des äußeren Abfrageblocks sind Informationen aus der Unterabfrage notwendig. Geschwungene Kanten stellen einen Informationsfluss von der äußeren zur inneren Abfrage dar, sie treten somit bei korrelierten geschachtelten Abfragen auf. Die Kanten werden abhängig von der Klassifikation der Schachtelung mit verschiedenen Markierungen versehen. Ein Prädikat vom Typ-A erzeugt eine gerade Kante, die mit \sql{$A(C_k$} versehen wird. \sql{$C_k$} ist die Projektionsspalte der Unterabfrage. 
+Zur Veranschaulichung der Algorithmen wird in \cite{319745} eine graphische Repräsentation geschachtelter Abfragen eingeführt. Abfragen werden in Form von Abfragegraphen dargestellt. Jeder Abfrageblock stellt einen Knoten dar. Jeder Knoten wird mit den zur Auswertung notwendigen Relationen markiert. Es gibt zwei Arten von Kanten, die den für die Auswertung notwendigen Informationsfluss darstellen. Gerade Kanten stellen einen Informationsfluss von der Unterabfrage zur äußeren Abfrage dar. D.h. für die Auswertung des äußeren Abfrageblocks sind Informationen aus der Unterabfrage notwendig. Geschwungene Kanten stellen einen Informationsfluss von der äußeren zur inneren Abfrage dar, sie treten somit bei korrelierten geschachtelten Abfragen auf. Die Kanten werden abhängig von der Klassifikation der Schachtelung mit verschiedenen Markierungen versehen. Ein Prädikat vom Typ-A erzeugt eine gerade Kante, die mit \sql{$A(C_k)$} versehen wird. \sql{$C_k$} ist die Projektionsspalte der Unterabfrage. 
 
 \tikzstyle{place}=[circle,draw=black,thick,inner sep=0pt,minimum size=6mm]
 \tikzstyle{mylabel}=[above,font=\footnotesize]
@@ -35,7 +38,7 @@ Prädikate vom Typ-N erzeugen eine gerade Kante mit der Markierung \sql{$N(C_k)$}
 	\draw[-] (Ri) -- node[mylabel] {$Nx(C_k)$} (Rj);
 \end{tikzpicture}
 
-Prädikate vom Typ-J erzeugen zwei Kanten. Eine gerade Kante mit Markierung \sql{$N(C_k)$} bzw. \sql{$Nx(C_k$)} und eine geschwungene Kante, die mit dem korrelierten Prädikat der Unterabfrage markiert wird, also allgemein mit der Markierung \sql{$R_i.C_n \theta R_j.C_m$}. Analog dazu werden bei Prädikaten vom Typ-JA zwei Kanten erzeugt. Die erste Kante ist mit der Markierung \sql{$A(C_k$} versehen, die zweite, geschwungene Kante wird ebenfalls mit dem korrelierten Prädikat markiert.
+Prädikate vom Typ-J erzeugen zwei Kanten. Eine gerade Kante mit Markierung \sql{$N(C_k)$} bzw. \sql{$Nx(C_k$)} und eine geschwungene Kante, die mit dem korrelierten Prädikat der Unterabfrage markiert wird, also allgemein mit der Markierung \sql{$R_i.C_n \theta R_j.C_m$}. Analog dazu werden bei Prädikaten vom Typ-JA zwei Kanten erzeugt. Die erste Kante ist mit der Markierung \sql{$A(C_k)$} versehen, die zweite, geschwungene Kante wird ebenfalls mit dem korrelierten Prädikat markiert.
 
 \begin{tikzpicture}[grow=right]
 \path 
@@ -84,7 +87,7 @@ Die Optimierungen von geschachtelten Abfragen, die in dieser Arbeit implementier
 Mithilfe zweier Zeiger werden die sortiert vorliegenden Ströme durchlaufen.
 Zu Beginn des Algorithmus zeigen die beiden Zeiger auf den Anfang jeder Relation. 
 \begin{enumerate}
-\item Jetzt werden alle Tupel der ersten Relation mit übereinstimmenden Wert im Join-Attribut in einen Puffer gelesen und der Zeiger jeweils auf das aktuell gelesene Tupel gesetzt. 
+\item Jetzt werden alle Tupel der ersten Relation mit übereinstimmendem Wert im Join-Attribut in einen Puffer gelesen und der Zeiger jeweils auf das aktuell gelesene Tupel gesetzt. 
 \item Im nächsten Schritt werden alle Tupel der zweiten Relation in einen Puffer gelesen, die bezüglich ihres Join-Attribut-Werts übereinstimmen. 
 \subitem Ist der Wert des Join-Attributs kleiner, als der des Tupels im ersten Puffer, wird der Zeiger in der zweiten Relation um eine Position erhöht. 
 \subitem Besteht Gleichheit im Wert des Join-Attributs, so wird ein Tupel der Ergebnisrelation erzeugt, das aus der Aneinanderreihung der Tupel der Eingaberelationen besteht, für jedes Tupel das im ersten Puffer steht. Anschließend wird das Tupel aus dem zweiten Puffer gelöscht und mit dem nächsten Tupel aus diesem Puffer fortgefahren. Ist der zweite Puffer erschöpft, wird auch der erste Puffer geleert und mit dem ersten Schritt fortgefahren. 
@@ -92,7 +95,7 @@ Zu Beginn des Algorithmus zeigen die beiden Zeiger auf den Anfang jeder Relation
 \item Ist eine der beiden Relationen erschöpft, ist der Algorithmus beendet.
 \end{enumerate}
 
-Dieser Algorithmus lässt sich auf folgende Art und Weise zum Full-Outer-Join ausbauen. Bei jedem Vergleichsschritt wird jetzt ein Tupel der Ausgaberelation erzeugt. Ist der Wert im ersten Puffer größer als im zweiten, so besteht das Tupel der Ergebnismenge aus einer Verkettung des Tupels aus dem Puffer und einem mit NULL-Werten gefüllten Tupel der zweiten Relation. Auf die gleiche Art wird mit jedem Tupel des Puffers verfahren. Ist der Attribut-Wert gleich, so wird wie beim Sort-Merge-Join verfahren. Ist der Wert größer, so wird für jedes Tupel im zweiten Puffer ein Ausgabe-Tupel erzeugt, dass aus einer Aneinanderreihung eines NULL-Tupels der ersten Relation und dem Tupel aus dem Puffer besteht. Damit wird für jedes Tupel, das nicht im Join-Ergebnis enthalten wäre ein Ausgabetupel erzeugt, dessen Attributwerte für die Attribute der jeweils anderen Relation mit NULL-Werten gefüllt sind. 
+Dieser Algorithmus lässt sich auf folgende Art und Weise zum Full-Outer-Join ausbauen. Bei jedem Vergleichsschritt wird jetzt ein Tupel der Ausgaberelation erzeugt. Ist der Wert im ersten Puffer größer als im zweiten, so besteht das Tupel der Ergebnismenge aus einer Verkettung des Tupels aus dem Puffer und einem mit NULL-Werten gefüllten Tupel der zweiten Relation. Auf die gleiche Art wird mit jedem Tupel des Puffers verfahren. Ist der Attribut-Wert gleich, so wird wie beim Sort-Merge-Join verfahren. Ist der Wert kleiner, so wird für jedes Tupel im zweiten Puffer ein Ausgabe-Tupel erzeugt, dass aus einer Aneinanderreihung eines NULL-Tupels der ersten Relation und dem Tupel aus dem Puffer besteht. Damit wird für jedes Tupel, das nicht im Join-Ergebnis enthalten wäre ein Ausgabetupel erzeugt, dessen Attributwerte für die Attribute der jeweils anderen Relation mit NULL-Werten gefüllt sind. 
 
 %\begin{itemize}
 %	\item Beschreibung Sortmergejoin
@@ -108,7 +111,7 @@ Dieser Algorithmus lässt sich auf folgende Art und Weise zum Full-Outer-Join aus
 \section{Behandlung quantifizierter Prädikate}\label{sct:Behandlung quantifizierter Prädikate}
 Prädikate mit den Operatoren \sql{exists}, \sql{all} oder \sql{any} können in ein inhaltlich äquivalentes Prädikat mit Aggregationsfunktion transformiert werden, sofern keine NULL-Werte in den Unterabfragen enthalten sind. 
 
-Das Prädikat \sql{exists(Q)}  ist genau dann wahr, wenn die Ergebnisrelation des Abfrageblocks  Q mindestens ein Tupel enthält. Ist \lstinline[mathescape=true]{Q = select $C_n$ from $R_m$ where P}, so lässt sich aber auch als \lstinline[mathescape=true]{0 < (select count(*) from $R_m$ where P)} ausdrücken. Analog dazu kann \lstinline[mathescape=true]{not exists(select $C_n$ from $R_m$ where P)} in \lstinline[mathescape=true]{0 = (select count(*) from $R_m$ where P)} überführt werden. Da die Aggregation über die ursprüngliche Ergebnisspalte $C_n$ bei \sql{null}-Werten zu falschen Ergebnissen führt, müssen hier alle Tupel gezählt werden. Um die Berechnung der Aggregation zu beschleunigen, kann die Abfrage mit dem Ausdruck \secondo{first 1} noch auf das erste Tupel der Unterabfrage beschränkt werden. Dies verhindert das teure Operatoren auf allen Tupeln der Unterabfrage ausgeführt werden müssen. 
+Das Prädikat \sql{exists(Q)}  ist genau dann wahr, wenn die Ergebnisrelation des Abfrageblocks  Q mindestens ein Tupel enthält. Ist \lstinline[mathescape=true]{Q = select $C_n$ from $R_m$ where P}, so lässt sich aber auch als \lstinline[mathescape=true]{0 < (select count(*) $\ $from $R_m$ where P)} ausdrücken. Analog dazu kann \lstinline[mathescape=true]{not exists(select $C_n$ from $R_m$ where P)} in \lstinline[mathescape=true]{0 = (select count(*) $\ $from $R_m$ where P)} überführt werden. Da die Aggregation über die ursprüngliche Ergebnisspalte $C_n$ bei \sql{null}-Werten zu falschen Ergebnissen führt, müssen hier alle Tupel gezählt werden. Um die Berechnung der Aggregation zu beschleunigen, kann die Abfrage mit dem Ausdruck \secondo{first 1} noch auf das erste Tupel der Unterabfrage beschränkt werden. Dies verhindert das teure Operatoren auf allen Tupeln der Unterabfrage ausgeführt werden müssen. 
 
 Das Ergebnis von Abfragen mit den Operatoren \sql{all} und \sql{any} bleibt ebenfalls erhalten, wenn man Prädikate mit den beiden Operatoren in Prädikate umwandelt, die einen Vergleich mit dem Maximum bzw. Minimum der Unterabfrage darstellen.
 
@@ -139,7 +142,9 @@ Im Spezialfall \lstinline[mathescape=true]{$C_n$ = any(select $C_m$ from $R_i$ w
 
 \lstinline[mathescape=true]{$C_n$ $\theta$ all(select $C_m$ from $R_i$ where P)} wird für $\theta \in {<,<=,>,>=}$ transformiert in 
 
-\lstinline[mathescape=true]{$C_n$ $\theta$ (select AGGR($C_n$) from $R_i$ where P)}. Wobei hier gilt
+\lstinline[mathescape=true]{$C_n$ $\theta$ (select AGGR($C_n$) from $R_i$ where P)}. 
+
+Wobei hier gilt
 \begin{math}
 AGGR = 
 \begin{cases}
@@ -158,7 +163,7 @@ wird in
 
 transformiert.
 
-Ein Prädikat \lstinline[mathescape=true]{$C_n$ = all(select $C_m$ from $R_i$ where P)} hat keine sinnvolle Semantik mehr, sobald die geschachtelte Abfrage mehr als einen Wert für $C_m$ liefert. Die Verwendung von = all(Q) wird in diesem Fall nicht unterstützt.
+Ein Prädikat \lstinline[mathescape=true]{$C_n$ = all(select $C_m$ from $R_i$ where P)} hat keine sinnvolle Semantik, mehr, sobald die geschachtelte Abfrage mehr als einen Wert für $C_m$ liefert. Die Verwendung von = all(Q) wird in diesem Fall nicht unterstützt.
 
 Mit diesen Transformationen lassen sich auch quantifizierte Prädikate als Prädikate der Typen J oder JA betrachten. Dies hat zur Folge, dass sich die im Folgenden beschriebenen Optimierungsalgorithmen auch auf diese Prädikate anwenden lassen. Außerdem sind die Prädikate einer Übersetzung in ausführbare \textsc{Secondo}-Syntax besser zugänglich, da die Aggregation bereits durch Standard-Operatoren implementiert ist. Eine Einführung weiterer Operatoren zur Übersetzung quantifizierter Prädikate ist hierdurch nicht notwendig. 
 
@@ -368,7 +373,7 @@ query
 	consume
 \end{lstlisting}.
 
-Hierbei gilt allerdings die oben beschriebene Einschränkung, dass das Prädikat pred$[Rt_1.Y \operatorname{op} Rt_2.Z]$ die Form $Rt_1.Y = Rt_2.Z$ haben muss.
+Hierbei gilt allerdings die oben beschriebene Einschränkung, dass das Prädikat \\pred$[Rt_1.Y \operatorname{op} Rt_2.Z]$ die Form $Rt_1.Y = Rt_2.Z$ haben muss.
 
 Nach der Berechnung der temporären Tabellen vereinfacht sich die ursprüngliche Abfrage zu 
 

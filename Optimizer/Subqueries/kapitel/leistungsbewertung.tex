@@ -4,12 +4,11 @@
 %
 
 \chapter{Leistungsbewertung}\label{chp:Leistungsbewertung}
-Die geschachtelten Abfragen des TPC-D Benchmarks, die mit den in dieser Arbeit implementierten Algorithmen übersetzt werden können, dienen in diesem Kapitel als Beispiel, um die einzelnen Transformationsschritte bei der Entschachtelung darzustellen. Am Vergleich der Laufzeiten der einzelnen Phasen des Optimierers lässt sich erkennen, in welchen Fällen eine entschachtelte Ausführung der iterativ geschachtelten über- bzw. unterlegen ist. Die Abfragen werden auf einer Datenbank ausgeführt, die über ein Generierungsskript erzeugt werden kann. Um die Größe der Datenbank zu beeinflussen existiert ein Skalierungsfaktor, der bei der Erzeugung der Datenbank angegeben werden muss. Jede Abfrage wurde auf Datenbanken mit dem Skalierungsfaktoren 0.0001, 0.001 und 0.01 ausgeführt. Wie an den Laufzeiten zu sehen ist, ist der Vor- bzw. Nachteil der Entschachtelung auch abhängig von der Größe der zugrunde liegenden Datenbank. 
-%Um die Vorteile der Entschachtelung bei vielen Abfragen zu demonstrieren, soll in diesem Kapitel anhand der geschachtelten Abfragen aus dem TPC-D Benchmark demonstriert werden, welche Laufzeitunterschiede sich zwischen geschachtelter und entschachtelter Ausführung ergeben. 
+Die geschachtelten Abfragen des TPC-D Benchmarks, die mit den in dieser Arbeit implementierten Algorithmen übersetzt werden können, dienen in diesem Kapitel als Beispiel, um die einzelnen Transformationsschritte bei der Entschachtelung darzustellen. Am Vergleich der Laufzeiten der einzelnen Phasen des Optimierers lässt sich erkennen, in welchen Fällen eine entschachtelte Ausführung der iterativ geschachtelten über- bzw. unterlegen ist. Die Abfragen werden auf einer Datenbank ausgeführt, die über ein Generierungsskript erzeugt werden kann. Um die Größe der Datenbank zu beeinflussen existiert ein Skalierungsfaktor, der bei der Erzeugung der Datenbank angegeben werden muss. Jede Abfrage wurde auf Datenbanken mit Skalierungsfaktor \begin{math} s \in \left\{ 2{^n}*10^{-4} | n >= 0 \wedge n <= 7 \right\}\end{math} ausgeführt. Wie an den Laufzeiten zu sehen ist, ist der Vor- bzw. Nachteil der Entschachtelung auch abhängig von der Größe der zugrunde liegenden Datenbank. 
 
-\section{Laufzeit- und Strukturvergleich}
+\section{Laufzeit- und Strukturvergleich}\label{sct:Laufzeit- und Strukturvergleich}
 \subsection{TPC-D Q2}
-Findet den günstigsten Lieferanten für ein gegebenes Bauteil in einer Region. Für ein Bauteil einer bestimmten Art und Größe wird der Lieferant ermittelt, der dieses zu den günstigsten Konditionen anbietet. Gibt es mehrere Lieferanten in der gewählten Region, die das gewünschte Teil zu den günstigsten Konditionen anbieten, so werden die 100 Lieferanten mit dem höchsten Kontostand angezeigt. Von jedem Lieferanten werden der Kontostand, der Name und das Land, die Teilenummer und der Hersteller, die Lieferantenadresse, Telefonnummer und eine Bemerkung angezeigt. Als Werte der Parameter SIZE, TYPE und REGION wurden die Werte aus der Abfrageüberprüfung des Benchmarks gewählt.
+Diese Abfrage dient der Ermittlung des günstigsten Lieferanten für ein gegebenes Bauteil in einer Region. Für ein Bauteil einer bestimmten Art und Größe wird der Lieferant ermittelt, der dieses zu den günstigsten Konditionen anbietet. Gibt es mehrere Lieferanten in der gewählten Region, die das gewünschte Teil zu den günstigsten Konditionen anbieten, so werden die 100 Lieferanten mit dem höchsten Kontostand angezeigt. Von jedem Lieferanten werden der Kontostand, der Name und das Land, die Teilenummer und der Hersteller, die Lieferantenadresse, Telefonnummer und eine Bemerkung angezeigt. Als Werte der Parameter SIZE, TYPE und REGION wurden die Werte aus der Abfrageüberprüfung des Benchmarks gewählt.
 
 \begin{itemize}
 	\item SIZE = 15
@@ -82,7 +81,7 @@ where
 	r:rname = "EUROPE"]
 \end{lstlisting}
 
-Die dritte temporäre Relation wird aus dem Equi-Join der ersten und zweiten temporären Relationen und Berechnung der Aggregation gebildet. Man beachte die Attributnamen mit \enquote{\_ps}. Diese sind notwendig, da sich Optimierer und \textsc{Secondo} in der Syntax für umbenannte Tupel unterscheiden. Es muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden. 
+Die dritte temporäre Relation wird aus dem Equi-Join der ersten und zweiten temporären Relationen unter Berechnung der Aggregation gebildet. Man beachte die Attributnamen mit \enquote{\_ps}. Diese sind notwendig, da sich Optimierer und \textsc{Secondo} in der Syntax für umbenannte Tupel unterscheiden. Es muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden. 
 
 \begin{lstlisting}[caption=dritte temporäre Relation zu Q2,label=Q2:trelxx3]
 trelxx3 = 
@@ -149,7 +148,7 @@ Execute & 1440 & 1480 & 390 & 401 \\
 \cmidrule(l){1-5} 
 Total & 2087 & 1917 & 2434 & 1342 \\
 \bottomrule\end{tabular}
-  \caption{Detaillierte Aufschlüsselung der Laufzeit von Q2 bei Skalierungsfaktor = 0.0001 der DB}
+  \caption{Detaillierte Laufzeiten von Q2 bei Skalierungsfaktor = 0.0001 der DB}
   \label{tab:Q2 Laufzeit}
 \end{table}
 
@@ -256,7 +255,7 @@ where [lcommitdate < lreceiptdate]
 \end{lstlisting}
 
 
-Full-Outerjoin zwischen den temporären Relationen. Das \texttt{ifthenelse} Konstrukt ist notwendig, da \textsc{Secondo} nur die zeilenbasierte Semantik des \texttt{count}-Operators unterstützt. 
+Full-Outerjoin zwischen den temporären Relationen. 
 \begin{lstlisting}[caption=TempRel3]
 trelxx1  feed 
 trelxx2  feed  
@@ -643,8 +642,6 @@ anchor=east,legend columns=1},
 scaled x ticks=base 10:0,
 sharp plot
 ]
-%\addplot cooTdinates {(0,	3,984	)(1,	3,241	)(2,	6,979	)(3,	3,305	)};
-
 \addplot coordinates {
 (0.0001,	2.676	)(0.0002,	2.898	)(0.0004,	2.859	)(0.0008,	2.984	)(0.0016,	2.931	)(0.0032,	3.086	)(0.0064,	3.534	)(0.0128,	3.984	)};
 \addplot coordinates {
