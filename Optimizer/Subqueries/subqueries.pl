@@ -1203,7 +1203,9 @@ tempRel3(AggregatedAttr, JoinAttrs, TempRel1, TempRel2,
   dm(subqueryDebug, ['\nJoinAttr1: ', JoinAttr1, '\nJoinAttr2: ', JoinAttr2]),
   ( isAttributeOf(JoinAttr1, TempRel1)
     -> OuterJoinPred = outerjoin(Op, attrname(JoinAttr1), attrname(JoinAttr2))
-	;  OuterJoinPred = outerjoin(Op, attrname(JoinAttr2), attrname(JoinAttr1))
+	;  ( OuterJoinPred = outerjoin(Op, attrname(JoinAttr2), attrname(JoinAttr1)),
+			 retractall(outerjoinCommuted),
+			 assert(outerjoinCommuted))
   ),
   OuterJoinPred =.. [outerjoin, Op, attrname(NewJoinAttr1), attrname(NewJoinAttr2)],
   dm(subqueryDebug, ['\nOuterJoinPred: ', OuterJoinPred]),
@@ -1677,6 +1679,7 @@ lookupRelNoDblCheck(Rel as Var, rel(RelDC, Var)) :-
 :- dynamic(sampleSize/1).
 :- dynamic(maxSampleCard/1).
 :- dynamic(maxSelCard/1).
+:- dynamic(outerjoinCommuted/0).
 
 
 subquerySelectivity(Pred, [Rel]) :-
@@ -2751,7 +2754,10 @@ subquery_plan_to_atom(outerjoin(=, JoinAttr1, JoinAttr2), Result) :-
 
 % outerjoin, general case	
 subquery_plan_to_atom(outerjoin(Op, attrname(JoinAttr1), attrname(JoinAttr2)), Result) :-
-  Pred =.. [Op, JoinAttr1, JoinAttr2],
+	( outerjoinCommuted 
+		-> Pred =.. [Op, JoinAttr2, JoinAttr1]
+		; Pred =.. [Op, JoinAttr1, JoinAttr2] ),
+	retractall(outerjoinCommuted),
 	consider_Arg2(Pred, Pred2),    % transform second arg/3 to arg2/3
 	plan_to_atom(Pred2, PAtom),
 	concat_atom([' symmouterjoin[', PAtom, ']'], Result),
