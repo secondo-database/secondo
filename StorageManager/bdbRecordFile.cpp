@@ -53,7 +53,7 @@ using namespace std;
 SmiRecordFile::SmiRecordFile( bool hasFixedLengthRecords,
                               SmiSize recordLength /* = 0 */,
                               const bool isTemporary /* = false */ )
-  : SmiFile( isTemporary )
+  : SmiCachedFile( isTemporary )
 {
   opened = false;
   if ( hasFixedLengthRecords )

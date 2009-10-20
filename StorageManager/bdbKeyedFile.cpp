@@ -56,7 +56,7 @@ SmiKeyedFile::SmiKeyedFile( const SmiFile::FileType fileType,
                             const SmiKey::KeyDataType keyType,
                             const bool hasUniqueKeys /* = true */,
                             const bool isTemporary /* = false */ )
-  : SmiFile( isTemporary )
+  : SmiCachedFile( isTemporary )
 {
   this->fileType = fileType;
   keyDataType = keyType;

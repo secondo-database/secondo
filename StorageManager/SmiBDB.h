@@ -508,6 +508,7 @@ Closes all handles in the handle array which are not in use anymore.
 
   friend class SmiEnvironment;
   friend class SmiFile;
+  friend class SmiCachedFile;
   friend class SmiRecordFile;
   friend class SmiKeyedFile;
   friend class SmiBtreeFile;
@@ -547,6 +548,7 @@ catalog files should not be protected by transactions.
 
 */
   friend class SmiFile;
+  friend class SmiCachedFile;
   friend class SmiFileIterator;
   friend class SmiRecordFile;
   friend class SmiKeyedFile;

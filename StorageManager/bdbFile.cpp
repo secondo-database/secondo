@@ -163,8 +163,13 @@ SmiFile::Implementation::CheckDbHandles() {
 
 
 SmiFile::SmiFile( const bool isTemporary /* = false */)
-  : opened( false ), fileContext( "" ), fileName( "" ), fileId( 0 ),
-    fixedRecordLength( 0 ), uniqueKeys( true ), keyDataType( SmiKey::Unknown )
+  : opened( false ), 
+    fileContext( "" ), 
+    fileName( "" ), 
+    fileId( 0 ),
+    fixedRecordLength( 0 ), 
+    uniqueKeys( true ), 
+    keyDataType( SmiKey::Unknown )
 {
   trace = RTFlag::isActive("SMI:traceHandles") ? true : false;
   useTxn = SmiEnvironment::useTransactions;
@@ -177,6 +182,35 @@ SmiFile::SmiFile( const bool isTemporary /* = false */)
     impl = new Implementation( true );
   }
 }
+
+SmiFile::SmiFile( const SmiFile& f) 
+  : opened( f.opened ), 
+    fileContext( f.fileContext ), 
+    fileName( f.fileName ), 
+    fileId( f.fileId ),
+    fixedRecordLength( f.fixedRecordLength ), 
+    uniqueKeys( f.uniqueKeys ), 
+    keyDataType( f.keyDataType )
+{
+  trace = RTFlag::isActive("SMI:traceHandles") ? true : false;
+  useTxn = SmiEnvironment::useTransactions;
+
+  // SPM: What should we do here deep copy or copy by
+  // reference?
+  impl = f.impl;
+  
+  /*
+  if ( !isTemporary )
+  {
+    impl = new Implementation();
+  }
+  else
+  {
+    impl = new Implementation( true );
+  }
+  */
+}
+
 
 SmiFile::~SmiFile()
 {
@@ -205,7 +239,8 @@ SmiFile::CheckName( const string& name )
 }
 
 bool
-SmiFile::Create( const string& context /* = "Default" */ )
+SmiFile::Create( const string& context /* = "Default" */, 
+		 const uint16_t ps /* = 0 */ )
 {
   static long& ctrCreate = Counter::getRef("SmiFile::Create");
   static long& ctrOpen = Counter::getRef("SmiFile::Open");
@@ -270,17 +305,23 @@ SmiFile::Create( const string& context /* = "Default" */ )
 
       // --- Set Berkeley DB page size
 
-      u_int32_t pagesize =
-        SmiProfile::GetParameter( context, "PageSize", 0,
-                                  SmiEnvironment::configFile );
+      u_int32_t pagesize = 0;
+      if (ps > 0) {
+	pagesize = ps;
+      } else {	  
+        pagesize = SmiProfile::GetParameter( context, "PageSize", 0,
+                                             SmiEnvironment::configFile );
+      } 	
+
       if ( pagesize > 0 )
       {
-        rc = impl->bdbFile->set_pagesize( pagesize );
-        SmiEnvironment::SetBDBError(rc);
+          rc = impl->bdbFile->set_pagesize( pagesize );
+          SmiEnvironment::SetBDBError(rc);
 
-        cout << "Setting page size for SmiFile to "
-             << pagesize << " !" << endl;
+          cout << "Setting page size for SmiFile to "
+               << pagesize << " !" << endl;
       }
+     
 
       // --- Open Berkeley DB file
 
@@ -796,13 +837,15 @@ SmiFile::GetFileId()
   return (fileId);
 }
 
-SmiSize 
-SmiFile::GetPageSize()
+uint16_t 
+SmiFile::GetPageSize() const
 {
-  u_int32_t pageSize;
-  impl->bdbFile->get_pagesize( &pageSize ); 
-  return (SmiSize)pageSize;
+  SmiSize pageSize;
+  int rc = impl->bdbFile->get_pagesize( &pageSize ); 
+  SmiEnvironment::SetError(rc);
+  return pageSize;
 }
+
 
 bool
 SmiFile::IsOpen()

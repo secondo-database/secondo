@@ -329,8 +329,8 @@ enum SMI_STATS_MODE {SMI_STATS_EAGER, SMI_STATS_LAZY};
 The class ~SmiKey~ is used to store key values of different types in a
 consistent manner. Key values are restricted in length to at most
 "SMI\_MAX\_KEYLEN"[4] bytes. If the length of the key value is less than
-"SMI\_MAX\_KEYLEN\_LOCAL"[4] the key value ist stored within the class instance,
-otherwise memory is allocated.
+"SMI\_MAX\_KEYLEN\_LOCAL"[4] the key value ist stored within the class
+instance, otherwise memory is allocated.
 
 */
 
@@ -487,10 +487,12 @@ the contents or the size of a record are not permitted.
   * *Update* -- Records are selected for read and/or write access.
 
 */
-  bool Create( const string& context = "Default" );
+  bool Create( const string& context = "Default", uint16_t pageSize = 0 );
 /*
 Creates a new anonymous ~SmiFile~.
-Optionally a ~context~ can be specified.
+Optionally a ~context~ can be specified. If pageSize equals 0, the size
+configured in SecondoConfig.ini will be used otherwise a system dependent
+default value is used.
 
 */
   bool Open( const SmiFileId id,
@@ -553,12 +555,13 @@ Returns the unique ~SmiFile~ identifier.
 /*
 Returns the length of fixed Records. In the case of variable record length 0 is returned.
 
-*/
-  SmiSize GetPageSize();
+*/  
+  uint16_t GetPageSize() const;
 /*
-Returns the page size of the file.
+Returns  the page size of the file.
 
 */
+
   bool   IsOpen();
 /*
 Returns whether the ~SmiFile~ handle is open and can be used to access the
@@ -584,9 +587,10 @@ Different SmiFile types may return different sets of keys as results.
 
 */
 
+
  protected:
   SmiFile( const bool isTemporary = false);
-  SmiFile( SmiFile &smiFile );
+  SmiFile( const SmiFile& smiFile );
   ~SmiFile();
   bool CheckName( const string& name );
   bool useTxn;
@@ -612,12 +616,46 @@ Checks whether the given name ~name~ is valid.
  private:
   bool trace;
 
+
   friend class SmiEnvironment;
   friend class SmiFileIterator;
   friend class SmiRecord;
 };
 
 ostream& operator<<(const ostream& os, const SmiFile& f);
+
+
+
+class SMI_EXPORT SmiCachedFile : public SmiFile
+{
+
+  protected:
+  SmiCachedFile( const bool isTemporary, 
+		 const uint64_t cache_sz = 0 );
+
+  SmiCachedFile( const SmiCachedFile& f );
+  ~SmiCachedFile();
+
+
+
+  uint64_t GetCacheSize() const;
+/*
+Returns the cache size of the file.
+
+*/
+
+  private:
+  uint64_t cacheSize; 
+
+
+  friend class SmiEnvironment;
+  friend class SmiFileIterator;
+  friend class SmiRecord;
+
+};
+
+
+
 
 /**************************************************************************
 1.3 Class "SmiEnvironment"[1]
@@ -1064,12 +1102,13 @@ The records are obtained in the order they were appended to the file.
 
 class SmiRecordFileIterator;  // Forward declaration
 
-class SMI_EXPORT SmiRecordFile : public SmiFile
+class SMI_EXPORT SmiRecordFile : public SmiCachedFile
 {
  public:
   SmiRecordFile( const bool hasFixedLengthRecords,
                  const SmiSize recordLength = 0,
                  const bool isTemporary = false );
+
 /*
 Creates a handle for an ~SmiRecordFile~. The handle is associated with an
 ~SmiFile~ by means of the ~Create~ or ~Open~ method.
@@ -1154,7 +1193,7 @@ method ~KeyRange~.
 
 class SmiKeyedFileIterator;  // Forward declaration
 
-class SMI_EXPORT SmiKeyedFile : public SmiFile
+class SMI_EXPORT SmiKeyedFile : public SmiCachedFile
 {
  public:
   SmiKeyedFile( const SmiFile::FileType fileType,
