@@ -120,6 +120,7 @@ clean:
 
 CCFLAGS += $(DEFAULTCCFLAGS)
 
+MainTTYCS.$(OBJEXT): MainTTY.$(OBJEXT)
 MainTTYCS.$(OBJEXT): MainTTY.cpp
 	$(CC) -c -o $@ $< $(CCFLAGS) -DSEC_TTYCS 
 
