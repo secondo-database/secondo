@@ -512,7 +512,7 @@ and high parameters these two last integer numbers.
       type = nl->SymbolValue(nl->Second(first));
       if (type == "tid")
       {
-        if(tidIndex == 0){
+        if(tidIndex != 0){
           return listutils::typeError("Expects exactly one arribute of type "
                                       "'tid' within the 1st argument.");
         }
