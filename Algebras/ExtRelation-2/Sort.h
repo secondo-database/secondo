@@ -463,6 +463,7 @@ is the first tuple written to disk. Otherwise the method returns false.
   {
     lastTuple = heap->Top();
     buffer.AppendTuple( lastTuple.tuple );
+    lastTuple.tuple->DeleteIfAllowed();
     heap->Pop();
 
     if ( traceMode )
@@ -481,6 +482,7 @@ Appends the minimum tuple from the internal heap to disk.
     heap->Push(t);
     lastTuple = heap->Top();
     buffer.AppendTuple( lastTuple.tuple );
+    lastTuple.tuple->DeleteIfAllowed();
     heap->Pop();
 
     size_t s = t->GetSize();
