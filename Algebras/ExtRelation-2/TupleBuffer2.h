@@ -112,13 +112,13 @@ Reference to ~TupleBuffer2~ instance.
 
 */
 
-    vector<Tuple*>::iterator iterMemoryBuffer;
+    vector<RTuple>::iterator iterMemoryBuffer;
 /*
 Iterator for in-memory array ~memoryBufferCopy~.
 
 */
 
-    vector<Tuple*> memoryBufferCopy;
+    vector<RTuple> memoryBufferCopy;
 /*
 Copy of the FIFO queue content of the ~TupleBuffer2~
 instance. The copy is made when the Iterator is
@@ -279,7 +279,7 @@ Filename for the external buffer of type ~TupleFile~.
 
 */
 
-    queue<Tuple*> memoryBuffer;
+    queue<RTuple> memoryBuffer;
 /*
 Internal memory buffer (FIFO)
 

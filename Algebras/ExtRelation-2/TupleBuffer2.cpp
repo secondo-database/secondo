@@ -62,10 +62,10 @@ TupleBuffer2Iterator::TupleBuffer2Iterator
   // pointer into the array
   for (int i = 0; i < nTuples; i++)
   {
-    Tuple* t = tupleBuffer.memoryBuffer.front();
+    RTuple ref = tupleBuffer.memoryBuffer.front();
     tupleBuffer.memoryBuffer.pop();
-    tupleBuffer.memoryBuffer.push(t);
-    memoryBufferCopy[i] = t;
+    tupleBuffer.memoryBuffer.push(ref);
+    memoryBufferCopy[i] = ref;
   }
 
   iterMemoryBuffer = memoryBufferCopy.begin();
@@ -91,7 +91,8 @@ Tuple* TupleBuffer2Iterator::GetNextTuple()
   {
     if ( iterMemoryBuffer != memoryBufferCopy.end() )
     {
-      Tuple* t = *iterMemoryBuffer;
+      Tuple* t = (*iterMemoryBuffer).tuple;
+      t->IncReference();
       iterMemoryBuffer++;
       return t;
     }
@@ -164,10 +165,9 @@ void TupleBuffer2::Clear()
     return;
   }
 
+  int counter = 0;
   while( !memoryBuffer.empty() )
   {
-    Tuple* t = memoryBuffer.front();
-    t->DeleteIfAllowed();
     memoryBuffer.pop();
   }
 
@@ -198,7 +198,6 @@ void TupleBuffer2::AppendTuple(Tuple* t)
     if( totalExtSize + t->GetExtSize() <= MAX_MEMORY_SIZE )
     {
       // insert new tuple at back of FIFO queue
-      t->IncReference();
       memoryBuffer.push(t);
     }
     else
@@ -227,13 +226,12 @@ void TupleBuffer2::AppendTuple(Tuple* t)
       if ( !memoryBuffer.empty() )
       {
         // write front tuple of FIFO queue to disk
-        diskBuffer->Append(memoryBuffer.front());
+        diskBuffer->Append(memoryBuffer.front().tuple);
 
         // discard the front tuple from the queue
         memoryBuffer.pop();
 
         // insert new tuple at back of FIFO queue
-        t->IncReference();
         memoryBuffer.push(t);
       }
       else
@@ -250,13 +248,12 @@ void TupleBuffer2::AppendTuple(Tuple* t)
     if ( !memoryBuffer.empty() )
     {
       // write front tuple of FIFO queue to disk
-      diskBuffer->Append(memoryBuffer.front());
+      diskBuffer->Append(memoryBuffer.front().tuple);
 
       // discard the front tuple from the queue
       memoryBuffer.pop();
 
       // insert new tuple at back of FIFO queue
-      t->IncReference();
       memoryBuffer.push(t);
     }
     else
@@ -299,11 +296,11 @@ ostream& TupleBuffer2::Print(ostream& os)
 
   for (size_t i = 0; i < this->memoryBuffer.size(); i++)
   {
-    Tuple* t = memoryBuffer.front();
+    RTuple ref = memoryBuffer.front();
     memoryBuffer.pop();
-    memoryBuffer.push(t);
-    os << "Mem: " << *t
-       << " Refs: " << t->GetNumOfRefs()
+    memoryBuffer.push(ref);
+    os << "Mem: " << *(ref.tuple)
+       << " Refs: " << ref.tuple->GetNumOfRefs()
        << " Nr: " << i << endl;
   }
 
