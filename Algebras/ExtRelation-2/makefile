@@ -59,10 +59,10 @@ DOCU_FILES = ExtRelation2Algebra.cpp \
 		     TupleQueue.h TupleQueue.cpp 
 		
 # non-local files for documentation located in ./docu
-DOCU_FILES2 = FileSystem.h \
-			  FileSystem.cpp \
-		      RelationAlgebra.h \
-		      RelationPersistent.cpp
+DOCU_FILES2 = FileSystem.h.txt \
+			  FileSystem.cpp.txt \
+		      RelationAlgebra.h.txt \
+		      RelationPersistent.cpp.txt
 
 # special local files which cannot be processed by PD-System		   
 DOCU_FILES3 = ExtRelation2Algebra.spec \
