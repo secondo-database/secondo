@@ -227,7 +227,7 @@ let result22 = Orte feed {a} plz feed {b} hashjoin[Ort_a, Ort_b, 1000] sort cons
 
 #testcase teststep_22_compare_result
 #yields *result22
-query Orte feed {a} plz feed {b} hybridhashjoinParam[Ort_a, Ort_b, 256, 16, 256*1024, 4096] sort consume
+query Orte feed {a} plz feed {b} hybridhashjoinParam[Ort_a, Ort_b, 256, 16, 256*1024, 4096] sort consume;
 
 #testcase teststep_22_delete_result
 #yields success
@@ -248,7 +248,7 @@ let result23 = Orte feed {a} plz feed {b} hashjoin[Ort_a, Ort_b, 1000] sort cons
 
 #testcase teststep_23_compare_result
 #yields *result23
-query Orte feed {a} plz feed {b} hybridhashjoinParam[Ort_a, Ort_b, 16, 8, 16*1024, 4096] sort consume
+query Orte feed {a} plz feed {b} hybridhashjoinParam[Ort_a, Ort_b, 16, 8, 16*1024, 4096] sort consume;
 
 #testcase teststep_23_delete_result
 #yields success
@@ -271,7 +271,7 @@ let result24 = Orte feed {a} data24 feed {b} hashjoin[Ort_a, Ort_b, 1000] sort c
 
 #testcase teststep_24_compare_result
 #yields *result24
-query Orte feed {a} data24 feed {b} hybridhashjoinParam[Ort_a, Ort_b, 256, 16, 256*1024, 4096] sort consume
+query Orte feed {a} data24 feed {b} hybridhashjoinParam[Ort_a, Ort_b, 256, 16, 256*1024, 4096] sort consume;
 
 #testcase teststep_24_delete_result
 #yields success
