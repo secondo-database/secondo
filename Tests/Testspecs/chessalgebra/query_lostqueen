@@ -3,4 +3,4 @@ query wjc2 feed filter[ fun(t: TUPLE)
   and ( attr(t,Match) getposition[ . moveNo ]  
   piececount["Queen"] ) 
   < ( attr(t, Match) getposition[ (. moveNo + 10) ]  
-    piececount["queen"] ) ] ensure[1] ] count
+    piececount["queen"] ) ] ensure[1] ] project[No] consume
