@@ -198,7 +198,7 @@ testQuery(36, select * from orte as o
   where o:bevt > any(select bev from staedte where o:ort > sname) first 10).
 testQuery(37, select * from [orte as o, plz as p] 
   where o:bevt = (select max(bev*1000) from staedte
-  w  here [o:ort > sname, p:ort = sname]) first 10).
+    where [o:ort > sname, p:ort = sname]) first 10).
 testQuery(38, select * from orte as o 
   where o:bevt = (select max(bev/1000) from staedte where plz > 8699) first 10).
 testQuery(39, select * from orte as o 
