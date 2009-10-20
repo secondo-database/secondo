@@ -566,7 +566,8 @@ void MPointExt::MDirection( MReal* result) const
         uresult.timeInterval = unitin->timeInterval;
         uresult.c = AngleToXAxis( &(unitin->p0), &(unitin->p1), defined );
         uresult.SetDefined( defined );
-        result->Add( uresult );
+        if(defined)
+          result->Add( uresult );
     }
     result->EndBulkLoad( false );
 }
