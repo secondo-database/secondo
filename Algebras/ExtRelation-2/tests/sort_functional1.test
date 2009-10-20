@@ -438,11 +438,11 @@ delete data44;
 
 #testcase teststep_45_create_result
 #yields success
-let result45 = plz feed sortby[PLZ] consume;
+let result45 = plz feed sortby[Ort,PLZ] consume;
 
 #testcase teststep_45_compare_result
 #yields *result45
-query plz feed sortby2[PLZ] consume;
+query plz feed sortby2[Ort,PLZ] consume;
 
 #testcase teststep_45_delete_data
 #yields success
@@ -462,11 +462,11 @@ let data46 = plz feed extend[ran: randint(10000)] sortby[ran] remove[ran] consum
 
 #testcase teststep_46_create_result
 #yields success
-let result46 = plz feed sortby[PLZ,Ort] consume;
+let result46 = plz feed sortby[Ort,PLZ] consume;
 
 #testcase teststep_46_compare_result
 #yields *result46
-query data46 feed sortby2Param[PLZ,Ort;10240,50,4096] consume;
+query data46 feed sortby2Param[Ort,PLZ;10240,50,4096] consume;
 
 #testcase teststep_46_delete_result
 #yields success
@@ -490,16 +490,53 @@ let data47 = plz feed extend[ran: randint(10000)] sortby[ran] remove[ran] consum
 
 #testcase teststep_47_create_result
 #yields success
-let result47 = data47 feed sortby[PLZ,Ort] consume;
+let result47 = data47 feed sortby[Ort,PLZ] consume;
 
 #testcase teststep_47_compare_result
 #yields *result47
-query data47 feed sortby2Param[PLZ,Ort;1024,50,4096] consume;
+query data47 feed sortby2Param[Ort,PLZ;1024,50,4096] consume;
+
+#testcase teststep_47_delete_result
+#yields success
+delete result47;
 
 #testcase teststep_47_delete_data
 #yields success
 delete data47;
 
+#--------------------------------------------------  
+# sortby2 - comparison with sortby (internal case)
+
+#testcase teststep_48_create_result
+#yields success
+let result48 = plz feed sortby[Ort,PLZ] consume;
+
+#testcase teststep_48_compare_result
+#yields *result48
+query plz feed sortby[Ort desc,PLZ desc] sortby2[Ort,PLZ] consume;
+
+#testcase teststep_48_delete_result
+#yields success
+delete result48;
+
+#--------------------------------------------------  
+# sortby2 - comparison with sortby (internal case)
+
+#testcase teststep_49_create_data
+#yields success
+let data47 = plz feed extend[ran: randint(10000)] sortby[ran] remove[ran] project[Ort] consume;
+
+#testcase teststep_49_create_result
+#yields success
+let result49 = plz feed sortby[Ort] consume;
+
+#testcase teststep_49_compare_result
+#yields *result49
+query plz feed sortby2[Ort] consume;
+
+#testcase teststep_49_delete_result
+#yields success
+delete result49;
 
 ##############################################################################
 # TearDown
