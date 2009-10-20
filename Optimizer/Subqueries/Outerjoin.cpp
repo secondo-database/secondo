@@ -811,84 +811,59 @@ private:
 inline Tuple* NextUndefinedA()
 {
     Tuple* result = 0;
-    Tuple* r = 0;
-
-    AttributeType attrType;
-    ListExpr valueExpr = 0;
-    bool correct;
-    int errorPos;
-    ListExpr errorInfo;  
     progress->readFirst++;
     if (undefA == 0) {
-        // create tuple with undefined values
-        ListExpr tupleType =
-        nl->Second(SecondoSystem::GetCatalog()->NumericType(
-            qp->GetType(streamA.addr)));
+        // create tuple with undefined values        
         result = new Tuple( tupleTypeA );
         for (int i = 0; i < result->GetNoAttributes(); i++)
         {
-            attrType = tupleTypeA->GetAttributeType( i );
-            string typeName =
-            SecondoSystem::GetCatalog()->GetTypeName(
-                attrType.algId, attrType.typeId );
+          int algId = tupleTypeA->GetAttributeType(i).algId;
+          int typeId = tupleTypeA->GetAttributeType(i).typeId;            
 
-            if ( valueExpr == 0 )
-            valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-            else {
-            valueExpr= nl->Cons(nl->SymbolAtom("undef"),valueExpr );
-            }
+          // create an instance of the specified type, which gives
+          // us an instance of a subclass of class Attribute.
+          Attribute* attr =
+            static_cast<Attribute*>( 
+              am->CreateObj(algId, typeId)(0).addr );        
+          attr->SetDefined( false );
+          result->PutAttribute( i, attr );
         }
-        ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-        r =
-        result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-        undefA = r;
-        result->DeleteIfAllowed();
+        undefA = result;
     }
     else {
-    r = undefA;
+    result = undefA;
     }
-    return r;
+    return result;
 }
 
 inline Tuple* NextUndefinedB()
 {
     Tuple* result = 0;
-    Tuple* r = 0;
 
-    AttributeType attrType;
-    ListExpr valueExpr = 0;
-    bool correct;
-    int errorPos;
-    ListExpr errorInfo;  
     progress->readSecond++;
     if (undefB == 0)  {
         // create tuple with undefined values
-        ListExpr tupleType =
-        nl->Second(SecondoSystem::GetCatalog()->NumericType(
-            qp->GetType( streamB.addr )) );
         result = new Tuple( tupleTypeB );
         for (int i = 0; i < result->GetNoAttributes(); i++)
         {
-            attrType = tupleTypeB->GetAttributeType( i );
-            string typeName =
-              SecondoSystem::GetCatalog()->GetTypeName(
-                attrType.algId, attrType.typeId );
-            if ( valueExpr == 0 )
-            valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-            else {
-            valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
-            }
+          int algId = tupleTypeB->GetAttributeType(i).algId;
+          int typeId = tupleTypeB->GetAttributeType(i).typeId;            
+
+          // create an instance of the specified type, which gives
+          // us an instance of a subclass of class Attribute.
+          Attribute* attr =
+            static_cast<Attribute*>( 
+              am->CreateObj(algId, typeId)(0).addr );        
+          attr->SetDefined( false );
+          result->PutAttribute( i, attr );
         }
-        ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-        r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-        undefB = r;
-        result->DeleteIfAllowed();
+        undefB = result;        
     }
     else {
-    r = undefB;
+    result = undefB;
     }
-    return r;
-}  
+    return result;
+}
 
 
 public:
@@ -1362,83 +1337,58 @@ private:
 inline Tuple* NextUndefinedA()
 {
     Tuple* result = 0;
-    Tuple* r = 0;
-
-    AttributeType attrType;
-    ListExpr valueExpr = 0;
-    bool correct;
-    int errorPos;
-    ListExpr errorInfo;  
     progress->readFirst++;
     if (undefA == 0) {
-        // create tuple with undefined values
-        ListExpr tupleType =
-        nl->Second(SecondoSystem::GetCatalog()->NumericType(
-            qp->GetType(streamA.addr)));
+        // create tuple with undefined values        
         result = new Tuple( tupleTypeA );
         for (int i = 0; i < result->GetNoAttributes(); i++)
         {
-            attrType = tupleTypeA->GetAttributeType( i );
-            string typeName =
-            SecondoSystem::GetCatalog()->GetTypeName(
-                attrType.algId, attrType.typeId );
+          int algId = tupleTypeA->GetAttributeType(i).algId;
+          int typeId = tupleTypeA->GetAttributeType(i).typeId;            
 
-            if ( valueExpr == 0 )
-            valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-            else {
-            valueExpr= nl->Cons(nl->SymbolAtom("undef"),valueExpr );
-            }
+          // create an instance of the specified type, which gives
+          // us an instance of a subclass of class Attribute.
+          Attribute* attr =
+            static_cast<Attribute*>( 
+              am->CreateObj(algId, typeId)(0).addr );        
+          attr->SetDefined( false );
+          result->PutAttribute( i, attr );
         }
-        ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-        r =
-        result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-        undefA = r;
-        result->DeleteIfAllowed();
+        undefA = result;
     }
     else {
-    r = undefA;
+    result = undefA;
     }
-    return r;
+    return result;
 }
 
 inline Tuple* NextUndefinedB()
 {
     Tuple* result = 0;
-    Tuple* r = 0;
 
-    AttributeType attrType;
-    ListExpr valueExpr = 0;
-    bool correct;
-    int errorPos;
-    ListExpr errorInfo;  
     progress->readSecond++;
     if (undefB == 0)  {
         // create tuple with undefined values
-        ListExpr tupleType =
-        nl->Second(SecondoSystem::GetCatalog()->NumericType(
-            qp->GetType( streamB.addr )) );
         result = new Tuple( tupleTypeB );
         for (int i = 0; i < result->GetNoAttributes(); i++)
         {
-            attrType = tupleTypeB->GetAttributeType( i );
-            string typeName =
-              SecondoSystem::GetCatalog()->GetTypeName(
-                attrType.algId, attrType.typeId );
-            if ( valueExpr == 0 )
-            valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-            else {
-            valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
-            }
+          int algId = tupleTypeB->GetAttributeType(i).algId;
+          int typeId = tupleTypeB->GetAttributeType(i).typeId;            
+
+          // create an instance of the specified type, which gives
+          // us an instance of a subclass of class Attribute.
+          Attribute* attr =
+            static_cast<Attribute*>( 
+              am->CreateObj(algId, typeId)(0).addr );        
+          attr->SetDefined( false );
+          result->PutAttribute( i, attr );
         }
-        ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-        r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-        undefB = r;
-        result->DeleteIfAllowed();
+        undefB = result;        
     }
     else {
-    r = undefB;
+    result = undefB;
     }
-    return r;
+    return result;
 }
 
 
@@ -2001,80 +1951,59 @@ struct SymmOuterJoinLocalInfo
   inline Tuple* NextUndefinedRight()
   {
       Tuple* result = 0;
-      Tuple* r = 0;
-
-      AttributeType attrType;
-      ListExpr valueExpr = 0;
-      bool correct;
-      int errorPos;
-      ListExpr errorInfo;  
-      if (undefRight == 0)  {
-          // create tuple with undefined values
-          ListExpr tupleType =
-          nl->Second(SecondoSystem::GetCatalog()->NumericType(
-              qp->GetType( streamRight.addr )) );
+      readFirst++;
+      if (undefRight == 0) {
+          // create tuple with undefined values        
           result = new Tuple( tupleTypeRight );
           for (int i = 0; i < result->GetNoAttributes(); i++)
           {
-              attrType = tupleTypeRight->GetAttributeType( i );
-              string typeName =
-                SecondoSystem::GetCatalog()->GetTypeName(
-                  attrType.algId, attrType.typeId );
-              if ( valueExpr == 0 )
-              valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-              else {
-              valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
-              }
+            int algId = tupleTypeRight->GetAttributeType(i).algId;
+            int typeId = tupleTypeRight->GetAttributeType(i).typeId;            
+
+            // create an instance of the specified type, which gives
+            // us an instance of a subclass of class Attribute.
+            Attribute* attr =
+              static_cast<Attribute*>( 
+                am->CreateObj(algId, typeId)(0).addr );        
+            attr->SetDefined( false );
+            result->PutAttribute( i, attr );
           }
-          ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-          r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-          undefRight = r;
-          result->DeleteIfAllowed();
+          undefRight = result;
       }
       else {
-      r = undefRight;
+      result = undefRight;
       }
-      return r;
-  }  
+      return result;
+  }
 
   inline Tuple* NextUndefinedLeft()
   {
       Tuple* result = 0;
-      Tuple* r = 0;
 
-      AttributeType attrType;
-      ListExpr valueExpr = 0;
-      bool correct;
-      int errorPos;
-      ListExpr errorInfo;  
+      readSecond++;
       if (undefLeft == 0)  {
           // create tuple with undefined values
-          ListExpr tupleType =
-          nl->Second(SecondoSystem::GetCatalog()->NumericType(
-              qp->GetType( streamLeft.addr )) );
           result = new Tuple( tupleTypeLeft );
           for (int i = 0; i < result->GetNoAttributes(); i++)
           {
-              attrType = tupleTypeLeft->GetAttributeType( i );
-              string typeName =
-                SecondoSystem::GetCatalog()->GetTypeName(
-                  attrType.algId, attrType.typeId );
-              if ( valueExpr == 0 )
-              valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-              else {
-              valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
-              }
+            int algId = tupleTypeLeft->GetAttributeType(i).algId;
+            int typeId = tupleTypeLeft->GetAttributeType(i).typeId;            
+
+            // create an instance of the specified type, which gives
+            // us an instance of a subclass of class Attribute.
+            Attribute* attr =
+              static_cast<Attribute*>( 
+                am->CreateObj(algId, typeId)(0).addr );        
+            attr->SetDefined( false );
+            result->PutAttribute( i, attr );
           }
-          ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-          r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-          undefLeft = r;
-          result->DeleteIfAllowed();
+          undefLeft = result;        
       }
       else {
-      r = undefLeft;
+      result = undefLeft;
       }
-      return r;
-  }  
+      return result;
+  }
 };
 
 template<int dummy>
@@ -2516,82 +2445,59 @@ public:
   inline Tuple* NextUndefinedRight()
   {
       Tuple* result = 0;
-      Tuple* r = 0;
-
-      AttributeType attrType;
-      ListExpr valueExpr = 0;
-      bool correct;
-      int errorPos;
-      ListExpr errorInfo;  
       readFirst++;
-      if (undefRight == 0)  {
-          // create tuple with undefined values
-          ListExpr tupleType =
-          nl->Second(SecondoSystem::GetCatalog()->NumericType(
-              qp->GetType( streamRight.addr )) );
+      if (undefRight == 0) {
+          // create tuple with undefined values        
           result = new Tuple( tupleTypeRight );
           for (int i = 0; i < result->GetNoAttributes(); i++)
           {
-              attrType = tupleTypeRight->GetAttributeType( i );
-              string typeName =
-                SecondoSystem::GetCatalog()->GetTypeName(
-                  attrType.algId, attrType.typeId );
-              if ( valueExpr == 0 )
-              valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-              else {
-              valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
-              }
+            int algId = tupleTypeRight->GetAttributeType(i).algId;
+            int typeId = tupleTypeRight->GetAttributeType(i).typeId;            
+
+            // create an instance of the specified type, which gives
+            // us an instance of a subclass of class Attribute.
+            Attribute* attr =
+              static_cast<Attribute*>( 
+                am->CreateObj(algId, typeId)(0).addr );        
+            attr->SetDefined( false );
+            result->PutAttribute( i, attr );
           }
-          ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-          r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-          undefRight = r;
-          result->DeleteIfAllowed();
+          undefRight = result;
       }
       else {
-      r = undefRight;
+      result = undefRight;
       }
-      return r;
-  }  
+      return result;
+  }
 
   inline Tuple* NextUndefinedLeft()
   {
       Tuple* result = 0;
-      Tuple* r = 0;
 
-      AttributeType attrType;
-      ListExpr valueExpr = 0;
-      bool correct;
-      int errorPos;
-      ListExpr errorInfo;  
       readSecond++;
       if (undefLeft == 0)  {
           // create tuple with undefined values
-          ListExpr tupleType =
-          nl->Second(SecondoSystem::GetCatalog()->NumericType(
-              qp->GetType( streamLeft.addr )) );
           result = new Tuple( tupleTypeLeft );
           for (int i = 0; i < result->GetNoAttributes(); i++)
           {
-              attrType = tupleTypeLeft->GetAttributeType( i );
-              string typeName =
-                SecondoSystem::GetCatalog()->GetTypeName(
-                  attrType.algId, attrType.typeId );
-              if ( valueExpr == 0 )
-              valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-              else {
-              valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
-              }
+            int algId = tupleTypeLeft->GetAttributeType(i).algId;
+            int typeId = tupleTypeLeft->GetAttributeType(i).typeId;            
+
+            // create an instance of the specified type, which gives
+            // us an instance of a subclass of class Attribute.
+            Attribute* attr =
+              static_cast<Attribute*>( 
+                am->CreateObj(algId, typeId)(0).addr );        
+            attr->SetDefined( false );
+            result->PutAttribute( i, attr );
           }
-          ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-          r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-          undefLeft = r;
-          result->DeleteIfAllowed();
+          undefLeft = result;        
       }
       else {
-      r = undefLeft;
+      result = undefLeft;
       }
-      return r;
-  }  
+      return result;
+  }
 };
 
 template<int dummy>
@@ -2672,16 +2578,10 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               // if we find the tupleid in the hash file, 
               //the tuple is already matched,
-              // so we can ignore it.
-              // curiosly, record size is 0 when we find the tuple 
-              //id in the hashfile
-              if ( record->Size() == 0 ) {                
+              // so we can ignore it.                
                 rightOuterTuple->DeleteIfAllowed();
                 rightOuterTuple = 0;                  
                 rightOuterTuple = pli->rightIter->GetNextTuple();
-              }
-              else
-                break;
             }
             
             // create a tuple with undefined values for the 
@@ -2716,16 +2616,10 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               // if we find the tupleid in the hash file, 
               // the tuple is already matched,
-              // so we can ignore it.
-              // curiosly, record size is 0 when we find 
-              // the tuple id in the hashfile            
-              if ( record->Size() == 0 ) {                
+              // so we can ignore it.       
                 leftOuterTuple->DeleteIfAllowed();
                 leftOuterTuple = 0;                  
                 leftOuterTuple = pli->leftIter->GetNextTuple(); 
-              }   
-              else
-                break;
             }
             
             // create a tuple with undefined values for the 
