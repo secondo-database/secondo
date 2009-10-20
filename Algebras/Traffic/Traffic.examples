@@ -1,0 +1,8 @@
+Database: networktest
+Restore : yes
+
+Operator : mgp2mgpsecunits
+Number   : 1
+Signature: rel(tuple((ai xi))) x ai x network x real -> stream(mgpsecunit)
+Example  : query dataSNcar mgp2mgpsecunit [Trip, B_NETWORK, 20000.0] count;
+Result   : crashes
