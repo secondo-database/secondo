@@ -62,7 +62,7 @@ Dictionary-operations will be done in logarithmic time with this implementation.
 #include <map>
 
 typedef unsigned long Cardinal;
-typedef map<string,Cardinal> NameIndex;
+typedef std::map<std::string, Cardinal> NameIndex;
 
 #endif
 
