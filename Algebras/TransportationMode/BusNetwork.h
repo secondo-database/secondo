@@ -95,7 +95,8 @@ public:
 /*new schema for bus stop*/
   static string newbusstopTypeInfo; //relation description for bus stop
   enum newBusStopInfo{NEWSID=0,NEWLOC,BUSPATH,POS,ZVAL};
-  static string newbtreebusstopTypeInfo;
+  static string newbtreebusstopTypeInfo1;
+  static string newbtreebusstopTypeInfo2;
 
 /*function for type constructor*/
   static ListExpr BusNetworkProp();
@@ -192,7 +193,8 @@ private:
 //  DBArray<ListEntry> adj_path_index;
 //  DBArray<SwithEntry> adj_path;
   Relation* bus_node_new;
-  BTree* btree_bus_node_new;
+  BTree* btree_bus_node_new1;//on attribute path
+  BTree* btree_bus_node_new2;//on attribute zval
   Relation* bus_edge_new;//relation storing edge
   BTree* btree_bus_edge_path_new; //b-tree on edge pid, path
 
