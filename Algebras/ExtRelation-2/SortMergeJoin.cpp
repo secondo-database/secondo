@@ -178,13 +178,35 @@ Tuple* SortMergeJoinLocalInfo::NextResultTuple()
   {
     if ( !continueMerge && ptB != 0 )
     {
-      //save ptB in tmpB
+      // ptB(1) => ptB(2), tmpB(2)
       tmpB = ptB;
+//      cmsg.info() << "tmpB = ptB" << endl;
+//      cmsg.info() << "ptA: " << ptA.tuple->GetNumOfRefs()
+//                  << ", ptB: " << ptB.tuple->GetNumOfRefs()
+//                  << ", tmpB: " << tmpB.tuple->GetNumOfRefs()
+//                  << endl;
+//      cmsg.send();
 
+      // mem: tmpB(2), ptB(2) => tmpB(3), ptB(3)
+      // disc: tmpB(2), ptB(2) => tmpB(2), ptB(2)
       grpB->AppendTuple(tmpB.tuple);
+//      cmsg.info() << "grpB->AppendTuple(tmpB.tuple)" << endl;
+//      cmsg.info() << "ptA: " << ptA.tuple->GetNumOfRefs()
+//                  << ", ptB: " << ptB.tuple->GetNumOfRefs()
+//                  << ", tmpB: " << tmpB.tuple->GetNumOfRefs()
+//                  << endl;
+//      cmsg.send();
 
       // advance the tuple pointer
+      // mem: tmpB(3), ptB(3) => tmpB(2), ptB(1)
+      // disc: tmpB(2), ptB(2) => tmpB(1), ptB(1)
       ptB.setTuple( NextTupleB() );
+//      cmsg.info() << "ptB.setTuple( NextTupleB() )" << endl;
+//      cmsg.info() << "ptA: " << ptA.tuple->GetNumOfRefs()
+//                  << ", ptB: " << ptB.tuple->GetNumOfRefs()
+//                  << ", tmpB: " << tmpB.tuple->GetNumOfRefs()
+//                  << endl;
+//      cmsg.send();
 
       // collect a group of tuples from B which
       // have the same attribute value
@@ -197,6 +219,12 @@ Tuple* SortMergeJoinLocalInfo::NextResultTuple()
         {
           // append equal tuples to group
           grpB->AppendTuple(ptB.tuple);
+//          cmsg.info() << "grpB->AppendTuple(ptB.tuple)" << endl;
+//          cmsg.info() << "ptA: " << ptA.tuple->GetNumOfRefs()
+//                      << ", ptB: " << ptB.tuple->GetNumOfRefs()
+//                      << ", tmpB: " << tmpB.tuple->GetNumOfRefs()
+//                      << endl;
+//          cmsg.send();
 
           // release tuple of input B
           ptB.setTuple( NextTupleB() );

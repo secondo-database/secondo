@@ -95,6 +95,7 @@ have been processed the method returns 0.
       {
         Tuple* result = new Tuple( resultTupleType );
         Concat( ptA.tuple, t, result );
+        t->DeleteIfAllowed();
 
         return result;
       }
