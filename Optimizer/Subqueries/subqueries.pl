@@ -2729,6 +2729,11 @@ secondo_list_to_atom(X, Result) :-
   
 secondo_list_to_atom([], '') :- !.
 
+% floating point constants
+subquery_plan_to_atom(Data, Result) :-
+  float(Data),
+	format(atom(Result), '~10f~n', Data).
+
 % in expression with constant list
 subquery_plan_to_atom(in(Attr, ValueList), Result) :-
   ValueList =.. [(,) | _],
