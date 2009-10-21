@@ -1,4 +1,5 @@
 /*
+
 ----
 This file is part of SECONDO.
 
@@ -31,15 +32,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 
 
-[1] Implementation of Outerjoin for Module Extended Relation Algebra
+1.1 Implementation of Outerjoin for Module Extended Relation Algebra
 
-[1] Using Storage Manager Berkeley DB
+1.1 Using Storage Manager Berkeley DB
 
 January 2008, B. Poneleit 
 
-[TOC]
 
-1 Includes and defines
+1.1.1 Includes and defines
 
 */
 
@@ -660,19 +660,19 @@ In this case we need to delete also all tuples stored in memory.
 #endif
 
 /*
-2.2 Operator ~smouterjoin~
+2.2.1 Operator ~smouterjoin~
 
 This operator computes the equijoin of two streams. It uses a text book
 algorithm as outlined in A. Silberschatz, H. F. Korth, S. Sudarshan,
 McGraw-Hill, 3rd. Edition, 1997.
 
-2.2.1 Auxiliary definitions for value mapping function of operator ~smouterjoin~
+2.2.1.1 Auxiliary definitions for value mapping function of operator ~smouterjoin~
 
 */
 
 #ifndef USE_PROGRESS
 /*
-2.2.2 Value mapping function of operator ~mergejoin~
+2.2.2.1 Value mapping function of operator ~mergeouterjoin~
 
 */
 
@@ -811,84 +811,59 @@ private:
 inline Tuple* NextUndefinedA()
 {
     Tuple* result = 0;
-    Tuple* r = 0;
-
-    AttributeType attrType;
-    ListExpr valueExpr = 0;
-    bool correct;
-    int errorPos;
-    ListExpr errorInfo;  
     progress->readFirst++;
     if (undefA == 0) {
-        // create tuple with undefined values
-        ListExpr tupleType =
-        nl->Second(SecondoSystem::GetCatalog()->NumericType(
-            qp->GetType(streamA.addr)));
+        // create tuple with undefined values        
         result = new Tuple( tupleTypeA );
         for (int i = 0; i < result->GetNoAttributes(); i++)
         {
-            attrType = tupleTypeA->GetAttributeType( i );
-            string typeName =
-            SecondoSystem::GetCatalog()->GetTypeName(
-                attrType.algId, attrType.typeId );
+          int algId = tupleTypeA->GetAttributeType(i).algId;
+          int typeId = tupleTypeA->GetAttributeType(i).typeId;            
 
-            if ( valueExpr == 0 )
-            valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-            else {
-            valueExpr= nl->Cons(nl->SymbolAtom("undef"),valueExpr );
-            }
+          // create an instance of the specified type, which gives
+          // us an instance of a subclass of class Attribute.
+          Attribute* attr =
+            static_cast<Attribute*>( 
+              am->CreateObj(algId, typeId)(0).addr );        
+          attr->SetDefined( false );
+          result->PutAttribute( i, attr );
         }
-        ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-        r =
-        result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-        undefA = r;
-        result->DeleteIfAllowed();
+        undefA = result;
     }
     else {
-    r = undefA;
+    result = undefA;
     }
-    return r;
+    return result;
 }
 
 inline Tuple* NextUndefinedB()
 {
     Tuple* result = 0;
-    Tuple* r = 0;
 
-    AttributeType attrType;
-    ListExpr valueExpr = 0;
-    bool correct;
-    int errorPos;
-    ListExpr errorInfo;  
     progress->readSecond++;
     if (undefB == 0)  {
         // create tuple with undefined values
-        ListExpr tupleType =
-        nl->Second(SecondoSystem::GetCatalog()->NumericType(
-            qp->GetType( streamB.addr )) );
         result = new Tuple( tupleTypeB );
         for (int i = 0; i < result->GetNoAttributes(); i++)
         {
-            attrType = tupleTypeB->GetAttributeType( i );
-            string typeName =
-              SecondoSystem::GetCatalog()->GetTypeName(
-                attrType.algId, attrType.typeId );
-            if ( valueExpr == 0 )
-            valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-            else {
-            valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
-            }
+          int algId = tupleTypeB->GetAttributeType(i).algId;
+          int typeId = tupleTypeB->GetAttributeType(i).typeId;            
+
+          // create an instance of the specified type, which gives
+          // us an instance of a subclass of class Attribute.
+          Attribute* attr =
+            static_cast<Attribute*>( 
+              am->CreateObj(algId, typeId)(0).addr );        
+          attr->SetDefined( false );
+          result->PutAttribute( i, attr );
         }
-        ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-        r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-        undefB = r;
-        result->DeleteIfAllowed();
+        undefB = result;        
     }
     else {
-    r = undefB;
+    result = undefB;
     }
-    return r;
-}  
+    return result;
+}
 
 
 public:
@@ -1362,83 +1337,58 @@ private:
 inline Tuple* NextUndefinedA()
 {
     Tuple* result = 0;
-    Tuple* r = 0;
-
-    AttributeType attrType;
-    ListExpr valueExpr = 0;
-    bool correct;
-    int errorPos;
-    ListExpr errorInfo;  
     progress->readFirst++;
     if (undefA == 0) {
-        // create tuple with undefined values
-        ListExpr tupleType =
-        nl->Second(SecondoSystem::GetCatalog()->NumericType(
-            qp->GetType(streamA.addr)));
+        // create tuple with undefined values        
         result = new Tuple( tupleTypeA );
         for (int i = 0; i < result->GetNoAttributes(); i++)
         {
-            attrType = tupleTypeA->GetAttributeType( i );
-            string typeName =
-            SecondoSystem::GetCatalog()->GetTypeName(
-                attrType.algId, attrType.typeId );
+          int algId = tupleTypeA->GetAttributeType(i).algId;
+          int typeId = tupleTypeA->GetAttributeType(i).typeId;            
 
-            if ( valueExpr == 0 )
-            valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-            else {
-            valueExpr= nl->Cons(nl->SymbolAtom("undef"),valueExpr );
-            }
+          // create an instance of the specified type, which gives
+          // us an instance of a subclass of class Attribute.
+          Attribute* attr =
+            static_cast<Attribute*>( 
+              am->CreateObj(algId, typeId)(0).addr );        
+          attr->SetDefined( false );
+          result->PutAttribute( i, attr );
         }
-        ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-        r =
-        result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-        undefA = r;
-        result->DeleteIfAllowed();
+        undefA = result;
     }
     else {
-    r = undefA;
+    result = undefA;
     }
-    return r;
+    return result;
 }
 
 inline Tuple* NextUndefinedB()
 {
     Tuple* result = 0;
-    Tuple* r = 0;
 
-    AttributeType attrType;
-    ListExpr valueExpr = 0;
-    bool correct;
-    int errorPos;
-    ListExpr errorInfo;  
     progress->readSecond++;
     if (undefB == 0)  {
         // create tuple with undefined values
-        ListExpr tupleType =
-        nl->Second(SecondoSystem::GetCatalog()->NumericType(
-            qp->GetType( streamB.addr )) );
         result = new Tuple( tupleTypeB );
         for (int i = 0; i < result->GetNoAttributes(); i++)
         {
-            attrType = tupleTypeB->GetAttributeType( i );
-            string typeName =
-              SecondoSystem::GetCatalog()->GetTypeName(
-                attrType.algId, attrType.typeId );
-            if ( valueExpr == 0 )
-            valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-            else {
-            valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
-            }
+          int algId = tupleTypeB->GetAttributeType(i).algId;
+          int typeId = tupleTypeB->GetAttributeType(i).typeId;            
+
+          // create an instance of the specified type, which gives
+          // us an instance of a subclass of class Attribute.
+          Attribute* attr =
+            static_cast<Attribute*>( 
+              am->CreateObj(algId, typeId)(0).addr );        
+          attr->SetDefined( false );
+          result->PutAttribute( i, attr );
         }
-        ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-        r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-        undefB = r;
-        result->DeleteIfAllowed();
+        undefB = result;        
     }
     else {
-    r = undefB;
+    result = undefB;
     }
-    return r;
+    return result;
 }
 
 
@@ -1942,12 +1892,33 @@ smouterjoin_vm(Word* args, Word& result,
 
 
 #ifndef USE_PROGRESS
+/*
+2.2.2.1 Value mapping function of operator ~symmouterjoin~
 
+*/
 // standard version
 
 
 struct SymmOuterJoinLocalInfo
 {
+ SymmOuterJoinLocalInfo(Word _streamRight, Word _streamLeft) 
+  {
+      streamRight = _streamRight;
+      streamLeft  = _streamLeft;
+      
+      ListExpr typeRight =
+        SecondoSystem::GetCatalog()->NumericType(
+          qp->GetType( streamRight.addr ) );
+      tupleTypeRight = new TupleType( nl->Second( typeRight ) );
+      ListExpr typeLeft =
+        SecondoSystem::GetCatalog()->NumericType(
+          qp->GetType( streamLeft.addr ) );
+      tupleTypeLeft = new TupleType( nl->Second( typeLeft ) );
+
+      undefRight = 0;
+      undefLeft = 0;
+  }
+  
   TupleType *resultTupleType;
 
   TupleBuffer *rightRel;
@@ -1959,7 +1930,80 @@ struct SymmOuterJoinLocalInfo
   bool rightFinished;
   bool leftFinished;
   Hash *rightHash;
-  Hash *leftHash;
+  Hash *leftHash;  
+  
+  Word streamRight;
+  Word streamLeft;
+  
+  TupleType *tupleTypeRight;
+  TupleType *tupleTypeLeft;
+  
+  bool nullTuples;
+  
+  SmiKeyedFileIterator *smiIter;
+  TupleBuffer *rightRel2;
+  TupleBuffer *leftRel2;  
+  
+  Tuple *undefRight;
+  Tuple *undefLeft;
+
+  
+  inline Tuple* NextUndefinedRight()
+  {
+      Tuple* result = 0;
+      readFirst++;
+      if (undefRight == 0) {
+          // create tuple with undefined values        
+          result = new Tuple( tupleTypeRight );
+          for (int i = 0; i < result->GetNoAttributes(); i++)
+          {
+            int algId = tupleTypeRight->GetAttributeType(i).algId;
+            int typeId = tupleTypeRight->GetAttributeType(i).typeId;            
+
+            // create an instance of the specified type, which gives
+            // us an instance of a subclass of class Attribute.
+            Attribute* attr =
+              static_cast<Attribute*>( 
+                am->CreateObj(algId, typeId)(0).addr );        
+            attr->SetDefined( false );
+            result->PutAttribute( i, attr );
+          }
+          undefRight = result;
+      }
+      else {
+      result = undefRight;
+      }
+      return result;
+  }
+
+  inline Tuple* NextUndefinedLeft()
+  {
+      Tuple* result = 0;
+
+      readSecond++;
+      if (undefLeft == 0)  {
+          // create tuple with undefined values
+          result = new Tuple( tupleTypeLeft );
+          for (int i = 0; i < result->GetNoAttributes(); i++)
+          {
+            int algId = tupleTypeLeft->GetAttributeType(i).algId;
+            int typeId = tupleTypeLeft->GetAttributeType(i).typeId;            
+
+            // create an instance of the specified type, which gives
+            // us an instance of a subclass of class Attribute.
+            Attribute* attr =
+              static_cast<Attribute*>( 
+                am->CreateObj(algId, typeId)(0).addr );        
+            attr->SetDefined( false );
+            result->PutAttribute( i, attr );
+          }
+          undefLeft = result;        
+      }
+      else {
+      result = undefLeft;
+      }
+      return result;
+  }
 };
 
 template<int dummy>
@@ -1977,7 +2021,7 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       cmsg.info("ERA:ShowMemInfo") << "SymmOuterJoin.MAX_MEMORY ("
                                    << MAX_MEMORY/1024 << " MB): " << endl;
       cmsg.send();
-      pli = new SymmOuterJoinLocalInfo;
+      pli = new SymmOuterJoinLocalInfo(args[0],args[1]);
       pli->rightRel = new TupleBuffer( MAX_MEMORY / 2 );
       pli->rightIter = 0;
       pli->leftRel = new TupleBuffer( MAX_MEMORY / 2 );
@@ -1988,6 +2032,11 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       pli->leftFinished = false;
       pli->rightHash = new Hash( INT, true );
       pli->leftHash = new Hash( INT, true );
+      
+      pli->nullTuples = false;
+      pli->smiIter = new SmiKeyedFileIterator( true );    
+      pli->rightRel2 = new TupleBuffer( MAX_MEMORY / 2 );
+      pli->leftRel2 = new TupleBuffer( MAX_MEMORY / 2 );  
 
       ListExpr resultType = GetTupleResultType( s );
       pli->resultTupleType = new TupleType( nl->Second( resultType ) );
@@ -2005,6 +2054,98 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
       while( 1 )
         // This loop will end in some of the returns.
       {
+          if ( pli->nullTuples )
+          {  
+          // find all unmatched tuples from right relation
+          if ( pli->rightIter == 0 ) 
+          {          
+            pli->rightIter = pli->rightRel2->MakeScan();
+          }
+          
+          Tuple *rightOuterTuple = pli->rightIter->GetNextTuple();
+          
+          if ( rightOuterTuple != 0 )
+          {
+            SmiKeyedFile *file = pli->rightHash->GetFile();
+            SmiRecord* record = new SmiRecord();            
+            
+            while ( rightOuterTuple != 0 && 
+              file->SelectRecord( 
+                SmiKey((long)rightOuterTuple->GetTupleId()), *record ))
+            {
+              // if we find the tupleid in the hash file, 
+              //the tuple is already matched,
+              // so we can ignore it.
+              // curiosly, record size is 0 when we find the tuple 
+              //id in the hashfile
+              if ( record->Size() == 0 ) {                
+                rightOuterTuple->DeleteIfAllowed();
+                rightOuterTuple = 0;                  
+                rightOuterTuple = pli->rightIter->GetNextTuple();
+              }
+              else
+                break;
+            }
+            
+            // create a tuple with undefined values for the 
+            // attributes of the left relation
+            if ( rightOuterTuple != 0 )
+            {
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
+              Concat( rightOuterTuple, pli->NextUndefinedLeft(), resultTuple );
+              rightOuterTuple->DeleteIfAllowed();
+              rightOuterTuple = 0;  
+              result.setAddr( resultTuple );         
+              return YIELD;
+            }                  
+          }              
+          
+          if ( pli->leftIter == 0 )
+          {
+            pli->leftIter = pli->leftRel2->MakeScan();
+          }            
+          
+          Tuple *leftOuterTuple = pli->leftIter->GetNextTuple();
+          
+          if ( leftOuterTuple != 0 )
+          {
+            SmiKeyedFile *file = pli->leftHash->GetFile();
+            SmiRecord* record = new SmiRecord();
+            
+            while ( leftOuterTuple != 0 && 
+              file->SelectRecord( 
+                SmiKey((long)leftOuterTuple->GetTupleId()), *record ))
+            {
+              // if we find the tupleid in the hash file, 
+              // the tuple is already matched,
+              // so we can ignore it.
+              // curiosly, record size is 0 when we find 
+              // the tuple id in the hashfile            
+              if ( record->Size() == 0 ) {                
+                leftOuterTuple->DeleteIfAllowed();
+                leftOuterTuple = 0;                  
+                leftOuterTuple = pli->leftIter->GetNextTuple(); 
+              }   
+              else
+                break;
+            }
+            
+            // create a tuple with undefined values for the 
+            //attributes of the right relation
+            if ( leftOuterTuple != 0 )
+            {
+              Tuple *resultTuple = new Tuple( pli->resultTupleType );
+              Concat( pli->NextUndefinedRight(), leftOuterTuple, resultTuple );
+              leftOuterTuple->DeleteIfAllowed();
+              leftOuterTuple = 0;  
+              result.setAddr( resultTuple );                     
+              return YIELD;
+            }      
+            
+          }  
+          // we're finished
+          return CANCEL;
+        }      
         if( pli->right )
           // Get the tuple from the right stream and match it with the
           // left stored buffer
@@ -2016,12 +2157,16 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               pli->currTuple = (Tuple*)r.addr;
               pli->leftIter = pli->leftRel->MakeScan();
+              pli->rightRel2->AppendTuple( pli->currTuple );
             }
             else
             {
               pli->rightFinished = true;
               if( pli->leftFinished )
-                return CANCEL;
+              {
+                pli->nullTuples = true; // output null-tuples
+                continue; 
+              }
               else
               {
                 pli->right = false;
@@ -2070,15 +2215,18 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               Tuple *resultTuple = new Tuple( pli->resultTupleType );
               Concat( pli->currTuple, leftTuple, resultTuple );
+              pli->leftHash->Append( SmiKey((long)leftTuple->GetTupleId()), 
+                (SmiRecordId)leftTuple->GetTupleId());
+              pli->rightHash->Append( 
+                SmiKey((long)pli->currTuple->GetTupleId()), 
+                (SmiRecordId)pli->currTuple->GetTupleId() );              
               leftTuple->DeleteIfAllowed();
               leftTuple = 0;
               result.setAddr( resultTuple );
               return YIELD;
             }
             else
-            {
-              cout << "Left Tuple " << leftTuple->GetTupleId() << "\n";
-              pli->leftHash->Append( leftTuple->GetTupleId(), leftTuple );
+            {                            
               leftTuple->DeleteIfAllowed();
               leftTuple = 0;
               continue; // Go back to the loop
@@ -2096,12 +2244,16 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               pli->currTuple = (Tuple*)l.addr;
               pli->rightIter = pli->rightRel->MakeScan();
+              pli->leftRel2->AppendTuple( pli->currTuple );
             }
             else
             {
               pli->leftFinished = true;
               if( pli->rightFinished )
-                return CANCEL;
+              {
+                pli->nullTuples = true;
+                continue;
+              }
               else
               {
                 pli->right = true;
@@ -2150,6 +2302,11 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               Tuple *resultTuple = new Tuple( pli->resultTupleType );
               Concat( rightTuple, pli->currTuple, resultTuple );
+              pli->rightHash->Append( SmiKey((long)rightTuple->GetTupleId()), 
+                (SmiRecordId)rightTuple->GetTupleId() );
+              pli->leftHash->Append( 
+                SmiKey((long)pli->currTuple->GetTupleId()), 
+                (SmiRecordId)pli->currTuple->GetTupleId() );              
               rightTuple->DeleteIfAllowed();
               rightTuple = 0;
               result.setAddr( resultTuple );
@@ -2157,8 +2314,6 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             }
             else
             {
-              cout << "Right Tuple " << rightTuple->GetTupleId() << "\n";
-              pli->rightHash->Append( rightTuple->GetTupleId(), rightTuple );
               rightTuple->DeleteIfAllowed();
               rightTuple = 0;
               continue; // Go back to the loop
@@ -2191,6 +2346,34 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
            pli->leftRel->Clear();
            delete pli->leftRel;
          }
+         
+        if ( pli->rightHash != 0 )
+        { 
+          pli->rightHash->DeleteFile();
+          delete pli->rightHash;
+          pli->rightHash = 0;
+        }
+        
+        if ( pli->leftHash != 0 )
+        {           
+          pli->leftHash->DeleteFile();
+          delete pli->leftHash;
+          pli->leftHash = 0;
+        }  
+
+        if( pli->rightRel2 != 0 )
+        {
+          pli->rightRel2->Clear();
+          delete pli->rightRel2;
+          pli->rightRel2=0;
+        }
+
+        if( pli->leftRel2 != 0 )
+        {
+          pli->leftRel2->Clear();
+          delete pli->leftRel2;
+          pli->leftRel2=0;
+        }             
 
          delete pli;
          local.setAddr(0);
@@ -2262,82 +2445,59 @@ public:
   inline Tuple* NextUndefinedRight()
   {
       Tuple* result = 0;
-      Tuple* r = 0;
-
-      AttributeType attrType;
-      ListExpr valueExpr = 0;
-      bool correct;
-      int errorPos;
-      ListExpr errorInfo;  
       readFirst++;
-      if (undefRight == 0)  {
-          // create tuple with undefined values
-          ListExpr tupleType =
-          nl->Second(SecondoSystem::GetCatalog()->NumericType(
-              qp->GetType( streamRight.addr )) );
+      if (undefRight == 0) {
+          // create tuple with undefined values        
           result = new Tuple( tupleTypeRight );
           for (int i = 0; i < result->GetNoAttributes(); i++)
           {
-              attrType = tupleTypeRight->GetAttributeType( i );
-              string typeName =
-                SecondoSystem::GetCatalog()->GetTypeName(
-                  attrType.algId, attrType.typeId );
-              if ( valueExpr == 0 )
-              valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-              else {
-              valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
-              }
+            int algId = tupleTypeRight->GetAttributeType(i).algId;
+            int typeId = tupleTypeRight->GetAttributeType(i).typeId;            
+
+            // create an instance of the specified type, which gives
+            // us an instance of a subclass of class Attribute.
+            Attribute* attr =
+              static_cast<Attribute*>( 
+                am->CreateObj(algId, typeId)(0).addr );        
+            attr->SetDefined( false );
+            result->PutAttribute( i, attr );
           }
-          ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-          r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-          undefRight = r;
-          result->DeleteIfAllowed();
+          undefRight = result;
       }
       else {
-      r = undefRight;
+      result = undefRight;
       }
-      return r;
-  }  
+      return result;
+  }
 
   inline Tuple* NextUndefinedLeft()
   {
       Tuple* result = 0;
-      Tuple* r = 0;
 
-      AttributeType attrType;
-      ListExpr valueExpr = 0;
-      bool correct;
-      int errorPos;
-      ListExpr errorInfo;  
       readSecond++;
       if (undefLeft == 0)  {
           // create tuple with undefined values
-          ListExpr tupleType =
-          nl->Second(SecondoSystem::GetCatalog()->NumericType(
-              qp->GetType( streamLeft.addr )) );
           result = new Tuple( tupleTypeLeft );
           for (int i = 0; i < result->GetNoAttributes(); i++)
           {
-              attrType = tupleTypeLeft->GetAttributeType( i );
-              string typeName =
-                SecondoSystem::GetCatalog()->GetTypeName(
-                  attrType.algId, attrType.typeId );
-              if ( valueExpr == 0 )
-              valueExpr = nl->OneElemList(nl->SymbolAtom("undef"));
-              else {
-              valueExpr = nl->Cons( nl->SymbolAtom("undef"),valueExpr);
-              }
+            int algId = tupleTypeLeft->GetAttributeType(i).algId;
+            int typeId = tupleTypeLeft->GetAttributeType(i).typeId;            
+
+            // create an instance of the specified type, which gives
+            // us an instance of a subclass of class Attribute.
+            Attribute* attr =
+              static_cast<Attribute*>( 
+                am->CreateObj(algId, typeId)(0).addr );        
+            attr->SetDefined( false );
+            result->PutAttribute( i, attr );
           }
-          ListExpr typeInfo = nl->TwoElemList( tupleType, valueExpr );
-          r = result->In(typeInfo,valueExpr,errorPos,errorInfo,correct);
-          undefLeft = r;
-          result->DeleteIfAllowed();
+          undefLeft = result;        
       }
       else {
-      r = undefLeft;
+      result = undefLeft;
       }
-      return r;
-  }  
+      return result;
+  }
 };
 
 template<int dummy>
@@ -2418,16 +2578,10 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               // if we find the tupleid in the hash file, 
               //the tuple is already matched,
-              // so we can ignore it.
-              // curiosly, record size is 0 when we find the tuple 
-              //id in the hashfile
-              if ( record->Size() == 0 ) {                
+              // so we can ignore it.                
                 rightOuterTuple->DeleteIfAllowed();
                 rightOuterTuple = 0;                  
                 rightOuterTuple = pli->rightIter->GetNextTuple();
-              }
-              else
-                break;
             }
             
             // create a tuple with undefined values for the 
@@ -2462,16 +2616,10 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
             {
               // if we find the tupleid in the hash file, 
               // the tuple is already matched,
-              // so we can ignore it.
-              // curiosly, record size is 0 when we find 
-              // the tuple id in the hashfile            
-              if ( record->Size() == 0 ) {                
+              // so we can ignore it.       
                 leftOuterTuple->DeleteIfAllowed();
                 leftOuterTuple = 0;                  
                 leftOuterTuple = pli->leftIter->GetNextTuple(); 
-              }   
-              else
-                break;
             }
             
             // create a tuple with undefined values for the 
@@ -2713,6 +2861,20 @@ symmouterjoin_vm(Word* args, Word& result, int message, Word& local, Supplier s)
           pli->leftHash->DeleteFile();
           delete pli->leftHash;
           pli->leftHash = 0;
+        }  
+
+        if( pli->rightRel2 != 0 )
+        {
+          pli->rightRel2->Clear();
+          delete pli->rightRel2;
+          pli->rightRel2=0;
+        }
+
+        if( pli->leftRel2 != 0 )
+        {
+          pli->leftRel2->Clear();
+          delete pli->leftRel2;
+          pli->leftRel2=0;
         }        
       }
 
