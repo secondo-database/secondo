@@ -79,10 +79,10 @@ June 2009, S.Jungnickel. Added implementation for classes ~TupleFile~ and
 ~TupleFileIterator~. Added implementation for new methods ~Save~ and ~Open~ 
 of class ~Tuple~.
 
-October 2009, S.Jungnickel. ~TupleFile::Append()~ now destroys a tuple when
-writing it to disk. Constructor of TupleFileIterator now rewinds read/write
-position of a TupleFile. Solved some problems when temporary closing and
-reopening a ~TupleFile~.
+October 2009, S.Jungnickel. Constructor of TupleFileIterator now rewinds
+read/write position of a TupleFile. Solved some problems when temporary closing
+and reopening a ~TupleFile~.
+
 
 [TOC]
 
@@ -1436,7 +1436,6 @@ void TupleFile::Close()
 void TupleFile::Append(Tuple* t)
 {
   t->Save(*this);
-  t->DeleteIfAllowed();
 }
 
 void TupleFile::Append(char *data, size_t core, size_t ext)
