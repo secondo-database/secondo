@@ -85,7 +85,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     {
       del.refs=1;
       del.isDelete=true;
-      TemporalUnit<GPoint>::defined = is_defined;
+      del.isDefined = is_defined;
     };
 
   UGPoint( const Interval<Instant>& interval,
@@ -119,7 +119,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     {
       del.refs=1;
       del.isDelete=true;
-      TemporalUnit<GPoint>::defined=true;
+      del.isDefined=true;
     }
 
     UGPoint( const Interval<Instant>& interval,
@@ -155,7 +155,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     {
       del.refs=1;
       del.isDelete=true;
-      TemporalUnit<GPoint>::defined=true;
+      del.isDefined=true;
     }
 
   UGPoint(const UGPoint(&source)){
@@ -164,7 +164,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
     p1=source.p1;
     del.refs=1;
     del.isDelete=true;
-    TemporalUnit<GPoint>::defined = source.defined;
+    del.isDefined = source.del.isDefined;
   }
 
   ostream& Print( ostream &os ) const
@@ -186,7 +186,7 @@ Redefinition of the copy operator ~=~.
     *((TemporalUnit<GPoint>*)this) = *((TemporalUnit<GPoint>*)&i);
     p0 = i.p0;
     p1 = i.p1;
-   TemporalUnit<GPoint>::defined=i.defined;
+    del.isDefined=i.del.isDefined;
     return *this;
   }
 
@@ -232,7 +232,7 @@ Functions to be part of relations
   {
     const UGPoint* i = (const UGPoint*)right;
 
-    if(i->defined)
+    if(i->del.isDefined)
       {
         timeInterval.CopyFrom( i->timeInterval );
         p0 = i->p0;

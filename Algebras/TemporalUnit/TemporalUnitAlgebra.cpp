@@ -1779,7 +1779,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
   AtPeriodsLocalInfo *localinfo;
   const Interval<Instant> *interval;
   Alpha* unit;
-  Alpha r;
+  Alpha r(true);
   Periods* periods;
 
   switch( message )
@@ -1934,7 +1934,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
 {
   AtPeriodsLocalInfoUS *localinfo;
   Alpha *unit, *aux;
-  Alpha resultUnit;
+  Alpha resultUnit(true);
   Periods *periods;
   const Interval<Instant> *interval;
   bool foundUnit = false;

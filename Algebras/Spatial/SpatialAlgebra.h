@@ -493,11 +493,6 @@ as an attribute.
 4.5 Attributes
 
 */
-    //bool defined;
-/*
-A flag that tells if the point is defined or not.
-
-*/
     Coord x;
 /*
 The ~x~ coordinate.
@@ -1013,8 +1008,6 @@ as an attribute.
 */
     inline int NumOfFLOBs() const;
     inline FLOB *GetFLOB( const int i );
-    inline bool IsDefined() const;
-    inline void SetDefined( bool Defined );
     inline size_t Sizeof() const;
     size_t HashValue() const;
     void CopyFrom( const StandardAttribute* right );
@@ -2039,14 +2032,6 @@ as an attribute.
         return &line;
     }
 
-    inline bool IsDefined() const
-    {
-      return true;
-    }
-
-    inline void SetDefined( bool Defined )
-    {}
-
     inline size_t Sizeof() const
     {
       return sizeof( *this );
@@ -2382,7 +2367,7 @@ Checks wether this line has no geometry.
 
 */
   inline bool IsEmpty() const{
-    return segments.Size() == 0;
+    return !IsDefined() || (segments.Size() == 0);
   }
 
 /*
@@ -2542,13 +2527,6 @@ The following functions are needed to act as an attribute type.
     return &lrsArray;
   }
 
-  //inline bool IsDefined() const{
-  //  return isIsDefined();
-  //}
-
-  //inline void SetDefined(bool IsDefined()){
-  //   isIsDefined() = IsDefined();
-  //}
 
   inline size_t Sizeof() const{
      return sizeof(*this);
@@ -2635,7 +2613,6 @@ The following functions are needed to act as an attribute type.
   private:
     DBArray<HalfSegment> segments;
     DBArray<LRS> lrsArray;
-    //bool isIsDefined();
     bool startSmaller;
     bool isCycle;
     bool isOrdered;
@@ -2779,11 +2756,6 @@ class Region : public StandardSpatialAttribute<2>
 7.1 Constructors and Destructor
 
 */
-    inline Region() {}
-/*
-This constructor should not be used.
-
-*/
     inline Region( const int n );
 /*
 Constructs an empty region allocating space for ~n~ half segments.
@@ -2856,6 +2828,9 @@ Sets the new capacity of the halfsegment array to the
 amount really required.
 
 */
+   static void* Cast(void* addr) {
+     return (new (addr) Region());
+   }
 
 
 /*
@@ -2877,7 +2852,7 @@ Returns the bounding box of the region.
 */
     inline bool IsEmpty() const
     {
-      return Size() == 0;
+      return !IsDefined() || (Size() == 0);
     }
 /*
 Returns whether the ~region~ value is empty.
@@ -3311,19 +3286,14 @@ as an attribute.
     }
 
 
-    // SPM: ??? why is a region always defined
 
-    inline bool IsDefined() const
-    {
-      return true;
-    }
 
     inline void SetDefined( bool defined )
     {
         if(!defined){
           Clear();
         }
-	Attribute::SetDefined( defined );
+	      Attribute::SetDefined( defined );
     }
 
     inline size_t Sizeof() const
@@ -3646,7 +3616,16 @@ The region must be defined!
     return symbols::REGION;
   }
 
+   inline Region() {}
+/*
+This constructor should not be used.
+
+*/
+
   private:
+
+  
+    
 /*
 7.17 Private member functions
 
@@ -4096,6 +4075,7 @@ bbox( false ),
 ordered( true )
 { del.refs=1;
   del.isDelete=true;
+  del.isDefined=true;
 }
 
 inline Points::Points( const Points& ps ) :
@@ -4113,6 +4093,7 @@ ordered( true )
   }
   del.refs=1;
   del.isDelete=true;
+  del.isDefined = ps.del.isDefined;
 }
 
 inline const Rectangle<2> Points::BoundingBox() const
@@ -4132,7 +4113,7 @@ inline int Points::Size() const
 
 inline bool Points::IsEmpty() const
 {
-  return points.Size() == 0;
+  return !IsDefined() || (points.Size() == 0);
 }
 
 inline bool Points::IsOrdered() const
@@ -4151,15 +4132,6 @@ inline FLOB *Points::GetFLOB(const int i)
   return &points;
 }
 
-inline bool Points::IsDefined() const
-{
-  return true;
-}
-
-inline void Points::SetDefined( bool defined )
-// since every points is defined, this function does nothing
-{
-}
 
 inline size_t Points::Sizeof() const
 {
@@ -4372,6 +4344,7 @@ length( 0.0 ),
 currentHS( -1 )
 { del.refs=1;
   del.isDelete=true;
+del.isDefined=true;
 }
 
 inline Line::Line( const Line& cl ) :
@@ -4392,6 +4365,7 @@ currentHS ( cl.currentHS)
   }
   del.refs=1;
   del.isDelete=true;
+  del.isDefined = cl.IsDefined();
 }
 
 inline void Line::Destroy()
@@ -4443,7 +4417,7 @@ inline bool Line::IsOrdered() const
 
 inline bool Line::IsEmpty() const
 {
-  return (line.Size() == 0);
+  return !IsDefined() || (line.Size() == 0);
 }
 
 inline int Line::Size() const

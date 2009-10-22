@@ -245,6 +245,7 @@ bool UReal::At( const CcReal& val, TemporalUnit<CcReal>& result ) const
 void UReal::AtInterval( const Interval<Instant>& i,
  TemporalUnit<CcReal>& result ) const
 {
+  
   TemporalUnit<CcReal>::AtInterval( i, result );
 
   UReal *pResult = (UReal*)&result;
@@ -252,7 +253,7 @@ void UReal::AtInterval( const Interval<Instant>& i,
   pResult->b = b;
   pResult->c = c;
   pResult->r = r;
-  pResult->StandardTemporalUnit<CcReal>::SetDefined(true);
+  pResult->SetDefined(true);
 
   // Now, we need to translate the result to the starting instant
   DateTime tmp = pResult->timeInterval.start;
@@ -1793,6 +1794,7 @@ void UPoint::AtInterval( const Interval<Instant>& i,
   assert( IsDefined() );
   assert( i.IsValid() );
 
+
   TemporalUnit<Point>::AtInterval( i, result );
   UPoint *pResult = (UPoint*)&result;
 
@@ -2306,8 +2308,8 @@ void MInt::Hat(MInt& mint)
    string starttime = upi->timeInterval.start.ToString();
    Get(GetNoComponents() - 1,upi);
    string endtime = upi->timeInterval.end.ToString();
-   unsigned int nocomponents;
-   unsigned int i;
+   int nocomponents;
+   int i;
    bool defstart;
    if(starttime == "begin of time" && endtime == "end of time"){
     i = 1;
@@ -2397,7 +2399,7 @@ void MInt::Hat(MInt& mint)
        begin.timeInterval.end = curuint.timeInterval.start;
        begin.timeInterval.rc = false;
        int value = upi->constValue.GetValue();
-       unsigned int i;
+       int i;
        for(i = 1;i < nocomponents;i++){
         Get(i,upi);
         if(upi->timeInterval.start >= curuint.timeInterval.start)
@@ -3456,6 +3458,18 @@ void MPoint::EndBulkLoad(const bool sort)
 bool MPoint::operator==( const MPoint& r ) const
 {
   assert( IsOrdered() && r.IsOrdered() );
+  if(!IsDefined()){
+     return !r.IsDefined();
+  } 
+  if(!r.IsDefined()){
+     return false;
+  }
+  if(IsEmpty()){
+    return r.IsEmpty();
+  }
+  if(r.IsEmpty()){
+    return false;
+  }
 
   if(bbox != r.bbox)
     return false;
@@ -3636,7 +3650,7 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
           }
           else
           { // we have overlapping intervals, now
-            UPoint r;
+            UPoint r(1);
             unit->AtInterval( *interval, r );
             assert( r.IsDefined() );
             assert( r.IsValid()   );
@@ -11677,9 +11691,9 @@ class GPSLI{
             ListExpr tupleType){
 
          if(!mp->IsDefined() || !duration->IsDefined()){
-             tupleType=0;
-             size=0;
-             unit=0;
+             this->tupleType=0;
+             this->size=0;
+             this->unit=0;
          } else {
             this->theMPoint = mp;
             this->duration = duration;
@@ -11701,7 +11715,7 @@ class GPSLI{
 
       ~GPSLI(){
          if(tupleType){
-           delete tupleType;
+           tupleType->DeleteIfAllowed();
          }
          tupleType=0;
       }
@@ -11865,7 +11879,7 @@ int MPointPresent_i( Word* args, Word& result,
   MPoint *m = ((MPoint*)args[0].addr);
   Instant* inst = ((Instant*)args[1].addr);
 
-  if( !inst->IsDefined() )
+  if( !inst->IsDefined() || !m->IsDefined())
     ((CcBool *)result.addr)->Set( false, false );
   else if( m->Present( *inst ) )
     ((CcBool *)result.addr)->Set( true, true );

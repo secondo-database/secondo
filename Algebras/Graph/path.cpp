@@ -78,29 +78,19 @@ Path::Path()
 }
 
 Path::Path(bool bDefined)
-    : myPath(0), cost(0.0), defined(bDefined)
-{
+    : myPath(0), cost(0.0)
+{ SetDefined(bDefined);
 }
 
 Path::~Path()
 {
 }
 
-void Path::SetDefined(bool def)
-{
-    defined=def;
-}
-
-
-bool Path::IsDefined()const
-{
-    return(defined);
-}
 
         
 float Path::GetCost() const 
 { 
-    if (!defined || (myPath.Size() == 0)) 
+    if (!IsDefined() || (myPath.Size() == 0)) 
         return -1.0f; 
 
     const pathStruct* s; 
@@ -112,7 +102,7 @@ float Path::GetCost() const
 
 Path* Path::Clone() const 
 { 
-    Path* p = new Path(defined);
+    Path* p = new Path(IsDefined());
     for (int i = 0; i < GetNoPathStructs(); ++i)
     {
         p->Append(*GetPathStruct(i));
@@ -162,7 +152,7 @@ void Path::EqualWay(const Path* p, CcBool& result) const{
 int Path::Compare(const Attribute* arg) const
 { 
     Path const * p = dynamic_cast<Path const *>(arg);
-    if(!defined || !p->defined){
+    if(!IsDefined() || !p->IsDefined()){
       return -1; 
     }
     // first criterion is the length of the path
@@ -220,7 +210,7 @@ bool Path::Adjacent(const Attribute*) const
 size_t Path::HashValue() const
 {
     size_t nRet = 0;
-    if (defined)
+    if (IsDefined())
     {
         int nCount = GetNoPathStructs();
         for (int i = 0; i < nCount; ++i)
@@ -243,7 +233,7 @@ void Path::CopyFrom(const StandardAttribute* arg)
         Append(*pArg->GetPathStruct(i));
     }
         cost = pArg->cost;
-        defined = pArg->IsDefined(); 
+        SetDefined(pArg->IsDefined()); 
 }
 
 

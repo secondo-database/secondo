@@ -71,7 +71,7 @@ class Vertex: public StandardAttribute
 
 */        
         Vertex();
-        Vertex(bool d) : defined(d) {}
+        Vertex(bool d)  { SetDefined(d);}
         Vertex(int nKey, Point const & pntPos);
         Vertex(int nKey, Coord coordX, Coord coordY);
         ~Vertex();
@@ -113,8 +113,6 @@ as an attribute.
 
 */        
           Vertex* Clone() const;
-          bool IsDefined() const;
-          void SetDefined(bool);
           int Compare(const Attribute*) const;
           bool Adjacent(const Attribute*) const;
           size_t Sizeof() const;
@@ -123,7 +121,7 @@ as an attribute.
           void CopyFrom(const StandardAttribute* arg);
           inline virtual ostream& Print( ostream& os ) const
           {
-            if( defined )
+            if( IsDefined() )
             {
               os << "Vertex: ( " << key << " @"; pos.Print(os); os << " )";
             }
@@ -141,7 +139,6 @@ as an attribute.
 
 */
         int key;
-        bool defined;
         Point pos;
 };
 
@@ -157,7 +154,7 @@ class Edge: public StandardAttribute
 
 */
                 Edge();
-        Edge(bool d) : defined(d) {}
+        Edge(bool d)  { SetDefined(d);}
                 Edge(int nSource, int nTarget, float fCost);
         ~Edge();
 /*
@@ -204,8 +201,6 @@ as an attribute.
 */
         //Implementations from Attribute:        
         Edge* Clone() const;
-        bool IsDefined() const;
-        void SetDefined(bool);
         int Compare(const Attribute*) const;
         bool Adjacent(const Attribute*) const;
         size_t Sizeof() const;
@@ -213,7 +208,7 @@ as an attribute.
         void CopyFrom(const StandardAttribute* arg);
         inline virtual ostream& Print( ostream& os ) const
         {
-          if(defined)
+          if(IsDefined())
              os << "Edge: ( " << source << " --> "
                 << target <<", " << cost << " )";
           else
@@ -230,7 +225,6 @@ as an attribute.
         int source;
         int target;
         float cost;
-        bool defined;
 };
 
 /*
@@ -280,7 +274,7 @@ This function removes all vertices from the path.
   void Clear(){ 
       myPath.Clear(); 
       cost = 0.0;
-      defined = true;
+      SetDefined(true);
   }
 
 /*
@@ -345,8 +339,6 @@ as an attribute.
         int NumOfFLOBs() const;
         FLOB *GetFLOB(const int i);
         Path* Clone() const;
-        bool IsDefined() const;
-        void SetDefined(bool);
         int Compare(const Attribute*) const;
         bool Adjacent(const Attribute*) const;
         size_t Sizeof() const;
@@ -356,7 +348,7 @@ as an attribute.
         inline virtual ostream& Print( ostream& os ) const
         {
           os << "Path: ( ";
-          if (defined)
+          if (IsDefined())
           {
             os << endl;
             for( int i = 0; i < myPath.Size(); i++)
@@ -382,7 +374,6 @@ as an attribute.
 */    
         DBArray<pathStruct> myPath;
         float cost;
-        bool defined;
 };
     
 
@@ -1382,8 +1373,6 @@ as an attribute.
 
 */
      Graph* Clone() const;
-     bool IsDefined() const;
-     void SetDefined(bool);
      int Compare(const Attribute*) const;
      bool Adjacent(const Attribute*) const;
      size_t Sizeof() const;
@@ -1424,7 +1413,6 @@ The number of vertices in the graph.
 The number of edges in the graph.
 
 */        
-     bool defined;
 /*
 A flag that tells whether the graph is defined or not.
 

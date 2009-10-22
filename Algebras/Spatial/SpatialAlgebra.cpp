@@ -3707,6 +3707,7 @@ Line& Line::operator=( const Line& l )
   noComponents = l.noComponents;
   ordered = true;
   currentHS = l.currentHS;
+  this->SetDefined(l.IsDefined());
 
   return *this;
 }
@@ -4277,6 +4278,7 @@ void Line::Transform( Region& result ) const
   result.SetNoComponents( NoComponents() );
   //result.EndBulkLoad( false, false, false, false );
   result.EndBulkLoad();
+  result.SetDefined(IsDefined());
 }
 
 
@@ -4569,6 +4571,7 @@ void Line::Boundary(Points* result) const{
      result->SetDefined(false);
      return;
   }
+  result->SetDefined(true);
   if(IsEmpty()){
     return;
   }
@@ -5104,6 +5107,7 @@ void Line::Clear()
   pos = -1;
   ordered = true;
   bbox.SetDefined( false );
+  SetDefined(true);
 }
 
 void Line::CopyFrom( const StandardAttribute* right )
@@ -7453,6 +7457,7 @@ Region& Region::operator=( const Region& r )
   noComponents = r.noComponents;
   del.refs=1;
   del.isDelete=true;
+  del.isDefined = r.del.isDefined;
   return *this;
 }
 
@@ -9042,6 +9047,7 @@ void Region::SetEmpty()
   pos = -1;
   ordered = true;
   bbox.SetDefined(false);
+  SetDefined(true);
 }
 
 
@@ -13241,14 +13247,6 @@ CheckRegion( ListExpr type, ListExpr& errorInfo )
   return (nl->IsEqual( type, "region" ));
 }
 
-/*
-8.13 ~Cast~-function
-
-*/
-void* CastRegion(void* addr)
-{
-  return (new (addr) Region);
-}
 
 /*
 8.14 Creation of the type constructor instance
@@ -13262,7 +13260,7 @@ TypeConstructor region(
         CreateRegion,   DeleteRegion,   //object creation and deletion
         OpenRegion,     SaveRegion,     // object open and save
         CloseRegion,    CloneRegion,    //object close and clone
-        CastRegion,                     //cast function
+        Region::Cast,                     //cast function
         SizeOfRegion,                   //sizeof function
         CheckRegion );                  //kind checking function
 

@@ -57,6 +57,7 @@ These six transition functions are implemented in the ~polygon~ algebra by the f
 #include "SecondoSystem.h"
 #include "DBArray.h"
 #include "Attribute.h"
+#include "StandardAttribute.h"
 
 /*
 GNU gcc 3.2 includes the header 'windows.h' from standard headers.
@@ -124,20 +125,21 @@ enum PolygonState { partial, complete };
 2.3 Class Polygon
 
 */
-class Polygon : public Attribute
+class Polygon : public StandardAttribute
 {
 
   public:
     Polygon( const int n, const int *X = 0, const int *Y = 0 );
     ~Polygon();
 
+    Polygon(const Polygon& src);
+    Polygon& operator=(const Polygon& src);
+
     int NumOfFLOBs() const;
     FLOB *GetFLOB(const int i);
     int Compare(const Attribute*) const;
     bool Adjacent(const Attribute*) const;
     Polygon *Clone() const;
-    bool IsDefined() const;
-    void SetDefined( bool defined );
     size_t Sizeof() const;
     ostream& Print( ostream& os ) const;
 
@@ -151,6 +153,8 @@ class Polygon : public Attribute
     const Vertex *GetVertex( int i ) const;
     string GetState() const;
     const bool IsEmpty() const;
+    void CopyFrom(const StandardAttribute* right);
+    size_t HashValue() const;
 
     friend ostream& operator <<( ostream& os, const Polygon& p );
 
@@ -173,6 +177,7 @@ class Polygon : public Attribute
                           const ListExpr typeInfo, Word& value    );
 
     static Word     Clone( const ListExpr typeInfo, const Word& w );
+
 
     static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
 
@@ -222,6 +227,7 @@ Polygon::Polygon( const int n, const int *X, const int *Y ) :
   vertices( n ),
   state( partial )
 {
+  SetDefined(true);
   if( n > 0 )
   {
     for( int i = 0; i < n; i++ )
@@ -234,6 +240,20 @@ Polygon::Polygon( const int n, const int *X, const int *Y ) :
 }
 
 /*
+2.3.2 Copy Constructor
+
+*/
+Polygon::Polygon(const Polygon& src):
+  vertices(src.vertices.Size()),state(src.state){
+  this->del.isDefined = src.del.isDefined;
+  const Vertex* v;
+  for(int i=0;i<src.vertices.Size();i++){
+     src.vertices.Get(i,v);
+     vertices.Append(*v);
+  }
+}
+
+/*
 
 2.3.2 Destructor.
 
@@ -242,10 +262,27 @@ Polygon::~Polygon()
 {
 }
 
+Polygon& Polygon::operator=(const Polygon& src){
+  this->state = src.state;
+  this->del.isDefined = src.del.isDefined;
+  if(src.vertices.Size()>0){
+     this->vertices.Resize(src.vertices.Size());
+  } else {
+     this->vertices.Clear();
+  }
+  const Vertex* v;
+  for(int i=0;i<src.vertices.Size();i++){
+     src.vertices.Get(i,v);
+     vertices.Append(*v);
+  }
+  return *this;
+}
+
+
+
 /*
 2.3.3 NumOfFLOBs.
 
-Not yet implemented. Needed to be a tuple attribute.
 
 */
 int Polygon::NumOfFLOBs() const
@@ -256,7 +293,6 @@ int Polygon::NumOfFLOBs() const
 /*
 2.3.4 GetFLOB
 
-Not yet implemented. Needed to be a tuple attribute.
 
 */
 FLOB *Polygon::GetFLOB(const int i)
@@ -275,6 +311,17 @@ int Polygon::Compare(const Attribute*) const
 {
   return 0;
 }
+
+/*
+2.3.6 HashValue
+
+Because Compare returns alway 0, we can only return a constant hash value.
+
+*/
+size_t Polygon::HashValue() const{
+  return  1;
+}
+
 
 /*
 2.3.5 Adjacent
@@ -304,21 +351,8 @@ Polygon *Polygon::Clone() const
   return p;
 }
 
-/*
-2.3.8 IsDefined
-
-*/
-bool Polygon::IsDefined() const
-{
-  return true;
-}
-
-/*
-2.3.8 SetDefined
-
-*/
-void Polygon::SetDefined( bool defined )
-{
+void Polygon::CopyFrom(const StandardAttribute* right){
+  *this = *( (Polygon*) right);
 }
 
 /*

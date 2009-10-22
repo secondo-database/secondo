@@ -48,13 +48,15 @@ Vertex::Vertex()
 }
 
 Vertex::Vertex(int nKey, Point const & pntPos) : 
-    key(nKey), defined(true), pos(pntPos)
+    key(nKey),  pos(pntPos)
 {
+  SetDefined(true);
 }
 
 Vertex::Vertex(int nKey, Coord coordX, Coord coordY) : 
-    key(nKey), defined(true), pos(true, coordX, coordY)
+    key(nKey),  pos(true, coordX, coordY)
 {
+  SetDefined(true);
 }
 
 Vertex::~Vertex()
@@ -62,29 +64,18 @@ Vertex::~Vertex()
     
 }
 
-void Vertex::SetDefined(bool def)
-{    
-    defined = def;
-}
-
-
-bool Vertex::IsDefined() const
-{    
-    return (defined);
-}
-
 
 Vertex* Vertex::Clone() const 
 { 
     Vertex* pRet;
-    if (defined)
+    if (IsDefined())
     {
         pRet = new Vertex(key, pos);
     }
     else
     {
         pRet = new Vertex;
-        pRet->SetDefined(defined);
+        pRet->SetDefined(false);
     }
     return pRet;    
 }
@@ -102,7 +93,7 @@ int Vertex::Compare(const Attribute* pAttr) const
     {
         if (pVertex->IsDefined())
         {
-            if (!defined)
+            if (!IsDefined())
             {
                 nRet = -1;
             }
@@ -115,7 +106,7 @@ int Vertex::Compare(const Attribute* pAttr) const
                 nRet = -1;
             }
         }
-        else if (defined)
+        else if (IsDefined())
         {
             nRet = 1;
         }
@@ -142,7 +133,7 @@ bool Vertex::Adjacent(const Attribute* pAttr) const
 size_t Vertex::HashValue() const
 {
     size_t nRet = 0;
-    if (defined)
+    if (IsDefined())
     {
         nRet = key;
     }
@@ -154,7 +145,7 @@ void Vertex::CopyFrom( const StandardAttribute* arg)
     Vertex const * pVertex = dynamic_cast<Vertex const *>(arg);
     if (pVertex != NULL)
     {
-        defined = pVertex->IsDefined();
+        SetDefined(pVertex->IsDefined());
         key = pVertex->GetKey();
         pos = pVertex->GetPos();
     }

@@ -82,6 +82,7 @@ The type system of the Temporal Algebra can be seen below.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
+#include "Attribute.h"
 #include "StandardAttribute.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
@@ -405,8 +406,6 @@ Remove all intervals in the range.
 3.3.4 Functions to be part of relations
 
 */
-    inline bool IsDefined() const;
-    inline void SetDefined( bool Defined );
     inline size_t Sizeof() const;
     inline int Compare( const Attribute* arg ) const;
     inline bool Adjacent( const Attribute* arg ) const;
@@ -662,11 +661,10 @@ The simple constructor.
 */
 
   Intime( const Instant& instant, const Alpha& alpha ):
-    instant( instant ),
-    value(),
-    defined( true )
+    instant( instant )
   {
     value.CopyFrom( &alpha );
+    this->del.isDefined = true;
   }
 /*
 The first constructor.
@@ -674,12 +672,14 @@ The first constructor.
 */
 
   Intime( const Intime<Alpha>& intime ):
-    instant( intime.instant ),
-    value(),
-    defined( intime.defined )
+    instant( intime.instant )
   {
-    if( defined )
+    if( intime.IsDefined() ){
       value.CopyFrom( &intime.value );
+      this->del.isDefined=true;
+    } else {
+      this->del.isDefined = false;
+    }
   }
 /*
 The second constructor.
@@ -687,16 +687,6 @@ The second constructor.
 3.4.2 Functions to be part of relations
 
 */
-  bool IsDefined() const
-  {
-    return defined;
-  }
-
-  void SetDefined( bool defined )
-  {
-    this->defined = defined;
-  }
-
   size_t Sizeof() const
   {
     return sizeof( *this );
@@ -732,7 +722,7 @@ The second constructor.
   ostream& Print( ostream &os ) const
   {
     os << "intime: (";
-    if ( defined )
+    if ( IsDefined() )
     {
       instant.Print(os);
       os << ", ";
@@ -755,8 +745,8 @@ The second constructor.
   {
     const Intime<Alpha>* i = (const Intime<Alpha>*)right;
 
-    defined = i->defined;
-    if( defined )
+    this->SetDefined(i->IsDefined());
+    if( IsDefined() )
     {
       instant.Equalize(&(i->instant));
       value.CopyFrom( &i->value );
@@ -788,11 +778,6 @@ The time instant associated.
 The $\alpha$ value.
 
 */
-  bool defined;
-/*
-The flag that indicates if the value is defined or not.
-
-*/
 
 };
 
@@ -820,7 +805,6 @@ The simple constructor. This constructor should not be used.
 
 */
 
-  TemporalUnit( bool is_defined ):defined(is_defined) {}
 
 /*
 Use this constructor when declaring temporal object variables etc.
@@ -828,9 +812,8 @@ Use this constructor when declaring temporal object variables etc.
 */
 
   TemporalUnit( const Interval<Instant>& interval ):
-    timeInterval( interval ),
-    defined( true )
-    {}
+    timeInterval( interval )
+    { }
 /*
 This constructor sets the time interval of the temporal unit.
 
@@ -962,8 +945,6 @@ to ~val~.
   virtual void AtInterval( const Interval<Instant>& i,
                            TemporalUnit<Alpha>& result ) const
   {
-    result.defined = defined;
-    if(defined)
       timeInterval.Intersection( i, result.timeInterval );
   }
 
@@ -996,15 +977,6 @@ The time interval of the temporal unit.
 
 */
 
-  protected:
-
-  bool defined;
-
-/*
-A Flag indicating whether the unit is defined or not.
-
-*/
-
 };
 
 /*
@@ -1029,7 +1001,7 @@ The simple constructor. This constructor should not be used.
 
 */
 
-    StandardTemporalUnit( bool is_defined):TemporalUnit<Alpha>(is_defined) {}
+    StandardTemporalUnit( bool is_defined){ del.isDefined=is_defined;}
 
 /*
 Use this constructor when declaring temporal object variables etc.
@@ -1041,6 +1013,7 @@ Use this constructor when declaring temporal object variables etc.
       {
         del.refs=1;
         del.isDelete=true;
+        del.isDefined=true;
       }
 /*
 This constructor sets the time interval of the temporal unit.
@@ -1056,16 +1029,6 @@ The destructor.
 3.6.4.1 Functions to be part of relations
 
 */
-    virtual bool IsDefined() const
-    {
-      return TemporalUnit<Alpha>::defined;
-    }
-
-    virtual void SetDefined( bool Defined )
-    {
-      TemporalUnit<Alpha>::defined = Defined;
-    }
-
     virtual int Compare( const Attribute* arg ) const
     {
       return 0;
@@ -1135,8 +1098,9 @@ The simple constructor. This constructor should not be used.
 
 */
 
-    SpatialTemporalUnit( bool is_defined ):TemporalUnit<Alpha>(is_defined)
-    {}
+    SpatialTemporalUnit( bool is_defined ){
+      this->del.isDefined=is_defined;
+    }
 
 /*
 Use this constructor when declaring temporal object variables etc.
@@ -1145,7 +1109,9 @@ Use this constructor when declaring temporal object variables etc.
 
     SpatialTemporalUnit( const Interval<Instant>& interval ):
       TemporalUnit<Alpha>( interval )
-      {}
+      {
+        this->del.isDefined = true;
+      }
 /*
 This constructor sets the time interval of the temporal unit.
 
@@ -1160,16 +1126,6 @@ The destructor.
 3.6.4.1 Functions to be part of relations
 
 */
-    virtual bool IsDefined() const
-    {
-      return TemporalUnit<Alpha>::defined;
-    }
-
-    virtual void SetDefined( bool Defined )
-    {
-      TemporalUnit<Alpha>::defined = Defined;
-    }
-
     virtual int Compare( const Attribute* arg ) const
     {
       return 0;
@@ -1182,7 +1138,7 @@ The destructor.
 
     virtual ostream& Print( ostream &os ) const
     {
-      if( IsDefined() )
+      if( this->del.isDefined )
         {
           os << "SpatialTemporalUnit: " << "( ";
           TemporalUnit<Alpha>::timeInterval.Print(os);
@@ -1265,18 +1221,20 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
 */
   ConstTemporalUnit() {}
 
-  ConstTemporalUnit(bool is_defined):StandardTemporalUnit<Alpha>(is_defined)
-  {}
+  ConstTemporalUnit(bool is_defined)
+  { this->del.isDefined = is_defined;}
 
   ConstTemporalUnit( const Interval<Instant>& interval, const Alpha& a ):
     StandardTemporalUnit<Alpha>( interval )
   {
+    this->del.isDefined = true;
     constValue.CopyFrom( &a );
   }
 
   ConstTemporalUnit( const ConstTemporalUnit<Alpha>& u ):
     StandardTemporalUnit<Alpha>( u.timeInterval )
   {
+    this->del.isDefined = u.del.isDefined;
     constValue.CopyFrom( &u.constValue );
   }
 
@@ -1289,6 +1247,7 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
   operator=( const ConstTemporalUnit<Alpha>& i )
   {
     *((TemporalUnit<Alpha>*)this) = *((TemporalUnit<Alpha>*)&i);
+    this->del.isDefined = i.del.isDefined;
     constValue.CopyFrom( &i.constValue );
     return *this;
   }
@@ -1386,11 +1345,11 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
     // SPM: this pointer added since my windows gcc (v3.4.2) reports:
     // 'timeInterval' undeclared (first use this function) which
     // seems to be a compiler bug!
-    if (TemporalUnit<Alpha>::defined && !ctu->defined)
+    if (this->IsDefined() && !ctu->IsDefined())
       return 0;
-    if (!TemporalUnit<Alpha>::defined)
+    if (!this->IsDefined())
       return -1;
-    if (!ctu->defined)
+    if (!ctu->IsDefined())
       return 1;
 
     int cmp = this->timeInterval.CompareTo(ctu->timeInterval);
@@ -1407,7 +1366,7 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
 
   virtual ostream& Print( ostream &os ) const
   {
-    if( StandardTemporalUnit<Alpha>::IsDefined() )
+    if( this->IsDefined() )
       {
         os << "ConstUnit: ( ";
         TemporalUnit<Alpha>::timeInterval.Print(os);
@@ -1429,7 +1388,7 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
   {
     ConstTemporalUnit<Alpha> *res;
     res = new ConstTemporalUnit<Alpha>( this->timeInterval, constValue);
-    res->SetDefined(TemporalUnit<Alpha>::defined);
+    res->SetDefined(this->IsDefined());
     return res;
   }
 
@@ -1437,7 +1396,7 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
   {
     const ConstTemporalUnit<Alpha>* i = (const ConstTemporalUnit<Alpha>*)right;
 
-    TemporalUnit<Alpha>::defined = i->defined;
+    this->SetDefined(i->IsDefined());
     this->timeInterval.CopyFrom( i->timeInterval );
     constValue.CopyFrom( &i->constValue );
   }
@@ -1481,10 +1440,11 @@ struct UReal : public StandardTemporalUnit<CcReal>
 */
   UReal() {};
 
-  UReal(bool is_defined):StandardTemporalUnit<CcReal>(is_defined)
+  UReal(bool is_defined)
   {
     del.refs=1;
     del.isDelete=true;
+    del.isDefined=is_defined;
   };
 
   UReal( const Interval<Instant>& interval,
@@ -1498,6 +1458,7 @@ struct UReal : public StandardTemporalUnit<CcReal>
     {
       del.refs=1;
       del.isDelete=true;
+      del.isDefined=true;
     }
 
   // linear approximation between v1 and v2
@@ -1516,6 +1477,7 @@ struct UReal : public StandardTemporalUnit<CcReal>
        b = (v2-v1) / diff.ToDouble();
        del.refs=1;
        del.isDelete=true;
+       del.isDefined = true;
   }
 
 /*
@@ -1530,8 +1492,7 @@ struct UReal : public StandardTemporalUnit<CcReal>
     b = i.b;
     c = i.c;
     r = i.r;
-    del.refs=1;
-    del.isDelete=true;
+    del.isDefined = i.del.isDefined;
     return *this;
   }
 /*
@@ -1595,20 +1556,6 @@ Equality is calculated with respect to temporal evolution.
 /*
 3.7.3 Functions to be part of relations
 
-*/
-/*
-
-----
-  virtual bool IsDefined() const
-  {
-    return true;
-  }
-
-  virtual void SetDefined( bool Defined )
-  {
-  }
-
-----
 
 */
 
@@ -1677,7 +1624,7 @@ Equality is calculated with respect to temporal evolution.
   {
     UReal *res;
     res = new UReal( timeInterval, a, b, c, r);
-    res->defined = TemporalUnit<CcReal>::defined;
+    res->del.isDefined = del.isDefined;
     return res;
   }
 
@@ -1685,8 +1632,8 @@ Equality is calculated with respect to temporal evolution.
   {
     const UReal* i = (const UReal*)right;
 
-    TemporalUnit<CcReal>::defined = i->defined;
-    if(i->defined)
+    del.isDefined = i->del.isDefined;
+    if(i->IsDefined())
       {
         timeInterval.CopyFrom(i->timeInterval);
         a = i->a;
@@ -1908,10 +1855,10 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
 */
   UPoint() {};
 
-  UPoint(bool is_defined):SpatialTemporalUnit<Point, 3>(is_defined) {
+  UPoint(bool is_defined){
     del.refs=1;
     del.isDelete=true;
-    TemporalUnit<Point>::defined = is_defined;
+    del.isDefined = is_defined;
   };
 
   UPoint( const Interval<Instant>& interval,
@@ -1922,7 +1869,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
     p1( true, x1, y1 )
     { del.refs=1;
       del.isDelete=true;
-      TemporalUnit<Point>::defined = true;
+      del.isDefined = true;
     }
 
   UPoint( const Interval<Instant>& interval,
@@ -1932,7 +1879,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
     p1( p1 )
     { del.refs=1;
       del.isDelete=true;
-      TemporalUnit<Point>::defined = true;
+      del.isDefined = true;
     }
 
   UPoint(const UPoint& source){
@@ -1941,7 +1888,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
      p1 = source.p1;
      del.refs=1;
      del.isDelete=true;
-     TemporalUnit<Point>::defined = source.defined;
+     del.isDefined = source.del.isDefined;
   }
 
 /*
@@ -1954,8 +1901,7 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
     *((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&i);
     p0 = i.p0;
     p1 = i.p1;
-    TemporalUnit<Point>::defined = i.defined;
-
+    del.isDefined = i.del.isDefined;
     return *this;
   }
 /*
@@ -2087,7 +2033,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   {
     UPoint *res;
     res = new UPoint( timeInterval, p0, p1 );
-    res->defined = TemporalUnit<Point>::defined;
+    res->del.isDefined = del.isDefined;
     return res;
   }
 
@@ -2095,7 +2041,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
   {
     const UPoint* i = (const UPoint*)right;
 
-    if(i->defined)
+    if(i->del.isDefined)
       {
         timeInterval.CopyFrom( i->timeInterval );
         p0 = i->p0;
@@ -2107,7 +2053,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
         p0 = Point( false, 0.0, 0.0);
         p1 = Point( false, 0.0, 0.0);
       }
-    TemporalUnit<Point>::defined = i->defined;
+    del.isDefined = i->del.isDefined;
   }
 
   virtual const Rectangle<3> BoundingBox() const
@@ -2315,8 +2261,6 @@ purposes only. The ~mapping~ is valid, if the following conditions are true:
 3.10.4 Functions to be part of relations
 
 */
-    inline bool IsDefined() const;
-    inline void SetDefined( bool Defined );
     inline virtual size_t Sizeof() const;
     inline virtual int Compare( const Attribute* arg ) const;
     inline bool Adjacent( const Attribute* arg ) const;
@@ -2663,6 +2607,7 @@ public:
       {
         del.refs=1;
         del.isDelete=true;
+        del.isDefined = true;
       }
 
 /*
@@ -2774,6 +2719,7 @@ The simple constructor. This constructor should not be used.
       {
         del.refs=1;
         del.isDelete=true;
+        del.isDefined = true;
         bbox = Rectangle<3>(false, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
       }
 /*
@@ -2818,6 +2764,7 @@ using a check on bbox.
       result->Add( *unit );
     }
     result->EndBulkLoad( false );
+    result->SetDefined(this->IsDefined());
     return (Attribute*) result;
   }
 
@@ -2834,6 +2781,7 @@ using a check on bbox.
       Add( *unit );
     }
     EndBulkLoad( false );
+    this->SetDefined(r->IsDefined());
   }
 
 /*
@@ -3374,6 +3322,7 @@ intervals( n )
 {
   del.refs=1;
   del.isDelete=true;
+  del.isDefined=true;
 }
 
 template <class Alpha>
@@ -3472,16 +3421,6 @@ void Range<Alpha>::Clear()
 4.2.3 Functions to be part of relations
 
 */
-template <class Alpha>
-inline bool Range<Alpha>::IsDefined() const
-{
-  return true;
-}
-
-template <class Alpha>
-inline void Range<Alpha>::SetDefined( bool Defined )
-{
-}
 
 template <class Alpha>
 inline size_t Range<Alpha>::Sizeof() const
@@ -3529,9 +3468,11 @@ template <class Alpha>
 inline Range<Alpha>* Range<Alpha>::Clone() const
 {
   assert( IsOrdered() );
+ 
 
   Range *result = new Range( GetNoComponents() );
 
+  result->del.isDefined = this->del.isDefined;
   result->StartBulkLoad();
   const Interval<Alpha> *interval;
   for( int i = 0; i < GetNoComponents(); i++ )
@@ -3563,6 +3504,7 @@ inline void Range<Alpha>::CopyFrom( const StandardAttribute* right )
   assert( r->IsOrdered() );
 
   Clear();
+  this->SetDefined(r->IsDefined());
 
   StartBulkLoad();
   const Interval<Alpha> *interval;
@@ -4787,24 +4729,16 @@ template <class Alpha>
 TemporalUnit<Alpha>&
 TemporalUnit<Alpha>::operator=( const TemporalUnit<Alpha>& i )
 {
-  defined = i.defined;
-  if(defined)
-    {
-      assert( i.timeInterval.IsValid() );
-      timeInterval = i.timeInterval;
-    }
+  assert( i.timeInterval.IsValid() );
+  timeInterval = i.timeInterval;
   return *this;
 }
 
 template <class Alpha>
 bool TemporalUnit<Alpha>::operator==( const TemporalUnit<Alpha>& i ) const
 {
-  if(defined && i.defined)
-    {
-      assert( timeInterval.IsValid() && i.timeInterval.IsValid() );
-      return( timeInterval == i.timeInterval);
-    }
-  return (defined == i.defined);
+  assert( timeInterval.IsValid() && i.timeInterval.IsValid() );
+  return( timeInterval == i.timeInterval);
 }
 
 template <class Alpha>
@@ -4903,6 +4837,7 @@ units( n )
 {
   del.refs=1;
   del.isDelete=true;
+  del.isDefined = true;
 }
 
 template <class Unit, class Alpha>
@@ -4963,20 +4898,13 @@ void Mapping<Unit, Alpha>::EndBulkLoad( const bool sort )
 template <class Unit, class Alpha>
 bool Mapping<Unit, Alpha>::IsEmpty() const
 {
-  return units.Size() == 0;
+  return !IsDefined() || (units.Size() == 0);
 }
 
 template <class Unit, class Alpha>
 void Mapping<Unit, Alpha>::Get( const int i, const Unit*& unit ) const
 {
   units.Get( i, unit );
-  if ( !unit->IsDefined() )
-  {
-    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
-         << " Get(" << i << ", Unit): Unit is undefined:";
-    unit->Print(cout); cout << endl;
-    assert( false );
-  }
   if ( !unit->IsValid() )
   {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
@@ -4989,13 +4917,6 @@ void Mapping<Unit, Alpha>::Get( const int i, const Unit*& unit ) const
 template <class Unit, class Alpha>
 void Mapping<Unit, Alpha>::Add( const Unit& unit )
 {
-  if ( !unit.IsDefined() )
-  {
-    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
-      << " Add(Unit): Unit is undefined:";
-    unit.Print(cout); cout << endl;
-    assert( false );
-  }
   if ( !unit.IsValid() )
   {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
@@ -5012,14 +4933,6 @@ void Mapping<Unit, Alpha>::MergeAdd( Unit& unit )
   Unit lastunit;
   const Unit *u1transfer;
   int size = units.Size();
-
-  if ( !unit.IsDefined() )
-  {
-    cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
-         << " MergeAdd(Unit): Unit is undefined:";
-    unit.Print(cout); cout << endl;
-    assert( false );
-  }
   if ( !unit.IsValid() )
   {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
@@ -5036,13 +4949,6 @@ void Mapping<Unit, Alpha>::MergeAdd( Unit& unit )
       (lastunit.timeInterval.rc || unit.timeInterval.lc)) {
           lastunit.timeInterval.end = unit.timeInterval.end;
           lastunit.timeInterval.rc = unit.timeInterval.rc;
-          if ( !lastunit.IsDefined() )
-          {
-            cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
-              << "\nMapping::MergeAdd(): lastunit is undefined:";
-            lastunit.Print(cout); cout << endl;
-            assert( false );
-          }
           if ( !lastunit.IsValid() )
           {
             cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
@@ -5066,22 +4972,13 @@ void Mapping<Unit, Alpha>::Clear()
 {
   ordered = true;
   units.Clear();
+  this->del.isDefined = true;
 }
 
 /*
 4.4.3 Functions to be part of relations
 
 */
-template <class Unit, class Alpha>
-inline bool Mapping<Unit, Alpha>::IsDefined() const
-{
-  return true;
-}
-
-template <class Unit, class Alpha>
-inline void Mapping<Unit, Alpha>::SetDefined( bool Defined )
-{
-}
 
 template <class Unit, class Alpha>
 inline size_t Mapping<Unit, Alpha>::Sizeof() const
@@ -5131,6 +5028,8 @@ inline Attribute* Mapping<Unit, Alpha>::Clone() const
   assert( IsOrdered() );
 
   Mapping<Unit, Alpha> *result = new Mapping<Unit, Alpha>( GetNoComponents() );
+
+  result->SetDefined(this->IsDefined());
 
 
   if(GetNoComponents()>0){
@@ -5189,6 +5088,7 @@ inline void Mapping<Unit, Alpha>::CopyFrom( const StandardAttribute* right )
     Add( *unit );
   }
   EndBulkLoad( false );
+  this->SetDefined(r->IsDefined());
 }
 
 template <class Unit, class Alpha>
@@ -5400,7 +5300,7 @@ void Mapping<Unit, Alpha>::AtPeriods( const Periods& periods,
     }
     else
     {
-      Unit r;
+      Unit r(1);
       unit->AtInterval( *interval, r );
       result.Add( r );
 
@@ -5974,7 +5874,7 @@ template <class Alpha>
 Word CloneIntime( const ListExpr typeInfo, const Word& w )
 {
   Intime<Alpha> *intime = (Intime<Alpha> *)w.addr;
-  return SetWord( new Intime<Alpha>( *intime ) );
+  return intime->Clone();
 }
 
 /*

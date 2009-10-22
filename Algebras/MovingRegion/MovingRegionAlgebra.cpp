@@ -2659,13 +2659,14 @@ no better solution right now to assure that ~value~ has a valid DBArray.
     memcpy(&value, tmp, sizeof(*tmp));
     delete(tmp);*/
     value.SetEmpty();
+    SetDefined(true);
 }
 
 IRegion::IRegion(const IRegion& ir) {
     if (MRA_DEBUG) cerr << "IRegion::IRegion() #2 called" << endl;
 
     instant = ir.instant;
-    defined = ir.defined;
+    del.isDefined = ir.del.isDefined;
 
 /*
 This is quite ugly and may not work with other compilers than gcc.
@@ -2678,7 +2679,7 @@ no better solution right now to assure that ~value~ has a valid DBArray.
     memcpy(&value, tmp, sizeof(*tmp));
     delete(tmp);*/
     value.SetEmpty();
-    if (ir.defined) value.CopyFrom(&ir.value);
+    if (ir.del.isDefined) value.CopyFrom(&ir.value);
 }
 
 /*
@@ -2792,7 +2793,6 @@ The class definition has been moved to ~MovingRegionAlgebra.h~.
 URegionEmb::URegionEmb( const bool Defined ) :
     segmentsStartPos(0),
     segmentsNum(0),
-    defined(Defined),
     bbox(false)
     {
       if (MRA_DEBUG)
@@ -2804,10 +2804,8 @@ URegionEmb::URegionEmb(const Interval<Instant>& tiv,
                        unsigned int pos) :
     segmentsStartPos(pos),
     segmentsNum(0),
-    defined(true),
     bbox(false),
     timeInterval(tiv) {
-
     if (MRA_DEBUG)
         cerr << "URegionEmb::URegionEmb() #2 called"
              << endl;
@@ -2822,7 +2820,6 @@ URegionEmb::URegionEmb(
     unsigned int pos) :
     segmentsStartPos(pos),
     segmentsNum(0),
-    defined(true),
     timeInterval(tiv) {
 
     if (MRA_DEBUG)
@@ -2983,8 +2980,7 @@ bool URegionEmb::TU_Adjacent(const URegionEmb& ur) const {
 
 */
 bool URegionEmb::operator==(const URegionEmb& ur) const {
-    return (!defined && !ur.defined) ||
-           (defined && ur.defined && timeInterval == ur.timeInterval);
+    return (timeInterval == ur.timeInterval);
 
 }
 
@@ -5773,7 +5769,7 @@ The class definition has been moved to ~MovingRegionAlgebra.h~.
 URegion::URegion(unsigned int n) :
     SpatialTemporalUnit<Region, 3>(true),
     segments(n) {
-
+    SetDefined(true);
     if (MRA_DEBUG)
         cerr << "URegion::URegion() #1 called"
              << endl;
@@ -6188,7 +6184,6 @@ URegion::URegion(int i, MRegion& mr) {
 URegionEmb& URegionEmb::operator=(const URegionEmb& U) {
   segmentsStartPos = U.segmentsStartPos;
   segmentsNum = U.segmentsNum;
-  defined = U.defined;
   bbox = U.bbox;
   timeInterval = U.timeInterval;
   return *this;
@@ -6258,7 +6253,7 @@ URegion* URegion::Clone(void) const {
 
     URegion* res = new URegion( (unsigned int)0 );
     res->CopyFrom(this);
-    res->SetDefined( TemporalUnit<Region>::defined );
+    res->SetDefined( this->del.isDefined );
     return res;
 }
 
@@ -6292,7 +6287,7 @@ Assignment operator
    timeInterval = U.timeInterval; // copy units copy of deftime!
    uremb = U.uremb;      // copy bbox, timeInterval, segmentsNum
    uremb.SetStartPos(0); // set uremb.segmentsStartPos = 0
-   defined = U.defined;
+   del.isDefined = U.del.isDefined;
 
    int start = U.uremb.GetStartPos();
    int numsegs = U.uremb.GetSegmentsNum();
@@ -6845,6 +6840,7 @@ MRegion::MRegion(const int n) :
         cerr << "MRegion::MRegion(int) called" << endl;
     del.refs=1;
     del.isDelete=true;
+    del.isDefined=true;
 }
 
 //MRegion::MRegion(MPoint& mp, Region& r) :
@@ -6893,6 +6889,7 @@ MRegion::MRegion(MPoint& mp, Region r) :
     }
     del.refs=1;
     del.isDelete=true;
+    del.isDefined=true;
 }
 
 MRegion::MRegion(MPoint& mp, Region& r,int dummy) :
@@ -6957,6 +6954,7 @@ MRegion::MRegion(MPoint& mp, Region& r,int dummy) :
     }
     del.refs=1;
     del.isDelete=true;
+    del.isDefined=true;
 }
 
 /*
@@ -7353,10 +7351,9 @@ void MRegion::AtInstant(Instant& t, Intime<Region>& result) {
     else {
         const URegionEmb* posUnit;
         Get(pos, posUnit);
-
+        result.SetDefined(true);
         posUnit->TemporalFunction(&msegmentdata, t, result.value);
         result.instant.CopyFrom(&t);
-        result.SetDefined(result.value.Size() > 0);
   }
 }
 

@@ -56,9 +56,10 @@ Read GraphAlgebra.h for more informations about the member functions.
 Graph::Graph() { }
 
 
-Graph::Graph(const bool Defined) : vertices(0), adjlist(0), defined(Defined) {
+Graph::Graph(const bool Defined) : vertices(0), adjlist(0){
+   SetDefined(Defined);
    
-   if (defined)
+   if (IsDefined())
      Clear();
 }
 
@@ -84,7 +85,7 @@ inline void Graph::Clear() {
 
 bool Graph::EqualsWith(const Graph* other) const
 {
-        assert(defined && other->defined);    
+        assert(IsDefined() && other->IsDefined());    
 
     if(this->GetNumEdges()!=other->GetNumEdges())
         return false;
@@ -124,7 +125,7 @@ bool Graph::EqualsWith(const Graph* other) const
 
 inline int Graph::GetNumVertices() const {
 
-   assert(defined);
+   assert(IsDefined());
      
    return numVertices;
 }
@@ -132,7 +133,7 @@ inline int Graph::GetNumVertices() const {
 
 inline int Graph::GetNumEdges() const {
    
-   assert(defined);
+   assert(IsDefined());
      
    return numEdges;
 }
@@ -140,7 +141,7 @@ inline int Graph::GetNumEdges() const {
 
 inline bool Graph::IsEmpty() const {
    
-   assert(defined);
+   assert(IsDefined());
      
    return (numVertices == 0);
 }
@@ -148,7 +149,7 @@ inline bool Graph::IsEmpty() const {
 
 void Graph::Add(const Graph& g) {
 
-   assert(defined && g.IsDefined());
+   assert(IsDefined() && g.IsDefined());
   
    vector<Vertex>* v = g.GetVertices(true);
      
@@ -178,7 +179,7 @@ void Graph::Add(const Graph& g) {
 
 bool Graph::AddVertex (const int key, const Point &pos) {
 
-   assert(defined);
+   assert(IsDefined());
    
    // key already exists?
    if (HasVertex(key))
@@ -217,7 +218,7 @@ inline bool Graph::Add(const Edge& e) {
 
 inline bool Graph::HasEdge(const int sourceKey, const int targetKey) const {
 
-   assert(defined);
+   assert(IsDefined());
      
    AVLNode<verticesStruct> node;
    
@@ -232,7 +233,7 @@ inline bool Graph::HasEdge(const int sourceKey, const int targetKey) const {
 
 inline bool Graph::HasVertex(const int key) const {
 
-   assert(defined);
+   assert(IsDefined());
    
    return AVLTree<verticesStruct>::HasKey(vertices,key,verticesRoot);
 }
@@ -240,7 +241,7 @@ inline bool Graph::HasVertex(const int key) const {
 
 vector<Vertex>* Graph::GetSuccFrom(const int key) const {
    
-   assert(defined);
+   assert(IsDefined());
    
    AVLNode<verticesStruct> n;
    
@@ -266,7 +267,7 @@ vector<Vertex>* Graph::GetSuccFrom(const int key) const {
 
 vector<int>* Graph::GetSuccKeysFrom(const int key) const {
 
-   assert(defined);
+   assert(IsDefined());
    
    AVLNode<verticesStruct> node;
    
@@ -283,7 +284,7 @@ vector<int>* Graph::GetSuccKeysFrom(const int key) const {
 
 vector<Edge>* Graph::GetSuccEdgesFrom(const int key) const {
 
-   assert(defined);
+   assert(IsDefined());
    
    AVLNode<verticesStruct> n;
    
@@ -306,7 +307,7 @@ vector<Edge>* Graph::GetSuccEdgesFrom(const int key) const {
           
 vector<Edge>* Graph::GetPredEdgesFrom(const int key) const {
 
-   assert(defined);
+   assert(IsDefined());
 
    // key does not exist?
    if (!AVLTree<verticesStruct>::HasKey(vertices,key,verticesRoot))
@@ -329,7 +330,7 @@ vector<Edge>* Graph::GetPredEdgesFrom(const int key) const {
 
 vector<Vertex>* Graph::GetPredFrom(const int key) const {
    
-   assert(defined);
+   assert(IsDefined());
    
    // key does not exist?
    if (!AVLTree<verticesStruct>::HasKey(vertices,key,verticesRoot))
@@ -351,7 +352,7 @@ vector<Vertex>* Graph::GetPredFrom(const int key) const {
 
 vector<int>* Graph::GetPredKeysFrom(const int key) const {
 
-   assert(defined);
+   assert(IsDefined());
       
    // key does not exist?
    if (!AVLTree<verticesStruct>::HasKey(vertices,key,verticesRoot))
@@ -373,7 +374,7 @@ vector<int>* Graph::GetPredKeysFrom(const int key) const {
 
 bool Graph::DeleteVertex (const int key) {
    
-   assert(defined);
+   assert(IsDefined());
      
    AVLNode<verticesStruct> node;
    
@@ -430,7 +431,7 @@ inline bool Graph::Delete(const Edge& e) {
           
 vector<Vertex>* Graph::GetVertices(const bool opt) const {
    
-   assert(defined);
+   assert(IsDefined());
      
    vector<Vertex>* v = new vector<Vertex>(0);
    vector<AVLNode<verticesStruct> > n(0);
@@ -451,7 +452,7 @@ vector<Vertex>* Graph::GetVertices(const bool opt) const {
 
 vector<Edge>* Graph::GetEdges(const bool opt) const {
    
-   assert(defined);
+   assert(IsDefined());
    
    vector<Edge>* v = new vector<Edge>(0);
    vector<AVLNode<verticesStruct> > n(0);
@@ -483,7 +484,7 @@ vector<Edge>* Graph::GetEdges(const bool opt) const {
 
 inline int Graph::GetInDegFrom(const int key) const {
 
-   assert(defined);
+   assert(IsDefined());
    
    AVLNode<verticesStruct> node;
    
@@ -497,7 +498,7 @@ inline int Graph::GetInDegFrom(const int key) const {
 
 inline int Graph::GetOutDegFrom(const int key) const {
 
-   assert(defined);
+   assert(IsDefined());
    
    AVLNode<verticesStruct> node;
    
@@ -511,7 +512,7 @@ inline int Graph::GetOutDegFrom(const int key) const {
 
 inline int Graph::GetMaxDeg(const bool out) const {
 
-   assert(defined);
+   assert(IsDefined());
    
    vector<AVLNode<verticesStruct> > nodes;
    int n = AVLTree<verticesStruct>::ReadNodes(vertices,nodes,verticesRoot);
@@ -529,7 +530,7 @@ inline int Graph::GetMaxDeg(const bool out) const {
 
 inline int Graph::GetMinDeg(const bool out) const {
 
-   assert(defined);
+   assert(IsDefined());
    
    vector<AVLNode<verticesStruct> > nodes;
    int n = AVLTree<verticesStruct>::ReadNodes(vertices,nodes,verticesRoot);
@@ -549,7 +550,7 @@ inline bool Graph::SetCost(const int sourceKey,
                            const int targetKey, 
                            const float cost) {
 
-   assert(defined);
+   assert(IsDefined());
    
    AVLNode<verticesStruct> n;
    
@@ -574,7 +575,7 @@ inline bool Graph::SetCost(const int sourceKey,
 
 bool Graph::SetPos(const int key, const Point& pos) {
 
-   assert(defined);
+   assert(IsDefined());
    
    AVLNode<verticesStruct> node;
    
@@ -606,7 +607,7 @@ inline bool Graph::Update(const Edge& e) {
 
 inline Vertex Graph::GetVertex(const int key) const {
 
-   assert(defined);
+   assert(IsDefined());
    
    AVLNode<verticesStruct> v;
    
@@ -619,7 +620,7 @@ inline Vertex Graph::GetVertex(const int key) const {
 
 inline Edge Graph::GetEdge(const int sourceKey, const int targetKey) const {
 
-   assert(defined);
+   assert(IsDefined());
    
    AVLNode<verticesStruct> v;
    
@@ -641,7 +642,7 @@ bool Graph::AddEdge (const int sourceKey,
                      const int targetKey, 
                      const float cost) {
 
-   assert(defined);
+   assert(IsDefined());
    
    AVLNode<verticesStruct> source;
    int srcIndex = AVLTree<verticesStruct>::ReadNode(vertices,source,
@@ -693,7 +694,7 @@ bool Graph::AddEdge (const int sourceKey,
 
 bool Graph::DeleteEdge (const int sourceKey, const int targetKey ) {
 
-   assert(defined);
+   assert(IsDefined());
 
    AVLNode<verticesStruct> source;
    int srcIndex = AVLTree<verticesStruct>::ReadNode(vertices,source,
@@ -741,7 +742,7 @@ bool Graph::DeleteEdge (const int sourceKey, const int targetKey ) {
 
 Graph* Graph::GetMappedGraph(vector<int>& map) const {
 
-   assert(defined);
+   assert(IsDefined());
    
    Graph* g = new Graph(true);
    
@@ -831,7 +832,7 @@ void GraphCircle(circleEnv& env, const int key, const float dist) {
 
 Graph* Graph::GetCircle(const int startKey, const float maxDist) const {
    
-   assert(defined && (maxDist >= 0.0f));
+   assert(IsDefined() && (maxDist >= 0.0f));
    
    circleEnv env;
    env.maxDist = maxDist;
@@ -937,7 +938,7 @@ void Tarjan(const int index, tarjanEnv& env  ) {
 
 vector<Graph*> Graph::GetStronglyConnectedComponents() const {
 
-   assert(defined);
+   assert(IsDefined());
    
    tarjanEnv env;
    env.SCC.clear();
@@ -1297,7 +1298,7 @@ bool Graph::PartOf(const Graph* part) const {
 
 inline void Graph::Minimize() {
    
-   assert(defined);
+   assert(IsDefined());
    
    // empty space in DBArrays?
    if ((vertices.Size() > numVertices) || (adjlist.Size() > numEdges)) {
@@ -1311,16 +1312,6 @@ inline void Graph::Minimize() {
 }
 
 
-void Graph::SetDefined(bool def) {
-   
-   defined=def;
-}
-
-
-bool Graph::IsDefined() const {
-   
-   return defined;
-}
 
 
 Graph* Graph::Clone() const { 
@@ -1371,7 +1362,7 @@ void Graph::CopyFrom(const StandardAttribute* arg) {
      adjlist.Append(*a);
    }
       
-   defined = g->defined;
+   SetDefined(g->IsDefined());
    numVertices = g->numVertices;
    numEdges = g->numEdges;
    verticesRoot = g->verticesRoot;

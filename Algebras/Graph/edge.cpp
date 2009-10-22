@@ -48,8 +48,9 @@ Edge::Edge()
 }
 
 Edge::Edge(int nSource, int nTarget, float fCost) : 
-  source(nSource), target(nTarget), cost(fCost), defined(true)
+  source(nSource), target(nTarget), cost(fCost)
 {
+  SetDefined(true);
 }
 
 
@@ -58,22 +59,11 @@ Edge::~Edge()
   
 }
 
-void Edge::SetDefined(bool def)
-{  
-  defined=def;
-}
-
-
-bool Edge::IsDefined()const
-{  
-  return(defined);
-}
-
 
 Edge* Edge::Clone()const 
 { 
   Edge* pRet;
-  if (defined)
+  if (IsDefined())
   {
     pRet = new Edge(source, target, cost);
   }
@@ -98,7 +88,7 @@ int Edge::Compare(const Attribute* pAttr) const
   {
     if (pEdge->IsDefined())
     {
-      if (!defined)
+      if (!IsDefined())
       {
         nRet = -1;
       }
@@ -119,7 +109,7 @@ int Edge::Compare(const Attribute* pAttr) const
         nRet = -1;
       }
     }
-    else if (defined)
+    else if (IsDefined())
     {
       nRet = 1;
     }
@@ -140,7 +130,7 @@ bool Edge::Adjacent(const Attribute*) const
 size_t Edge::HashValue() const
 {
   size_t nRet = 0;
-  if (defined)
+  if (IsDefined())
     nRet = source + target + *reinterpret_cast<size_t const *>(&cost);
   return nRet;
 }
@@ -150,7 +140,7 @@ void Edge::CopyFrom(const StandardAttribute* arg)
   Edge const * pEdge = dynamic_cast<Edge const *>(arg);
   if (pEdge != NULL)
   {
-    defined = pEdge->IsDefined();
+    SetDefined(pEdge->IsDefined());
     source = pEdge->GetSource();
     target = pEdge->GetTarget();
     cost = pEdge->GetCost();

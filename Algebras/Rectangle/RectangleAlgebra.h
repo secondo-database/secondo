@@ -121,7 +121,7 @@ Checks if the rectangle is defined.
 */
     inline bool IsEmpty() const
     {
-      return !(StandardSpatialAttribute<dim>::IsDefined());
+      return !(this->IsDefined());
     };
 /*
 Checks if the rectangle is defined (For conformity with other spatial types)
@@ -255,10 +255,10 @@ of the rectangle.
       unsigned thismin[dim], rmin[dim];
 
       const Rectangle<dim>* r = (const Rectangle<dim>*)arg;
-      if(!(StandardSpatialAttribute<dim>::del.isDefined)
+      if(!(this->IsDefined())
            && !r->IsDefined())
         return 0;
-      if(!(StandardSpatialAttribute<dim>::del.isDefined))
+      if(!(this->IsDefined()))
         return -1;
       if(!r->IsDefined())
         return 1;
@@ -365,7 +365,7 @@ changes the ~this~ object and returns it.
 
     inline double Size() const
       {
-        if(!StandardSpatialAttribute<dim>::del.isDefined) return -1.0;
+        if(!this->IsDefined()) return -1.0;
         double accu = +0.0;
         try{
           accu = (max[0] - min[0]);
@@ -410,7 +410,7 @@ the coordinates can be set.
 template <unsigned dim>
 inline Rectangle<dim>::Rectangle( const bool defined, ... )
 {
-  StandardSpatialAttribute<dim>::del.isDefined = defined;
+  this->del.isDefined = defined;
   va_list ap;
   va_start( ap, defined );
   for( unsigned i = 0; i < dim; i++ )
@@ -428,7 +428,7 @@ inline Rectangle<dim>::Rectangle( const bool defined, ... )
     NList msgList( NList("simple"),
                    NList("Rectangle built with invalid dimensions!") );
     msg->Send(msgList);
-    StandardSpatialAttribute<dim>::del.isDefined = false;
+    this->del.isDefined = false;
   }
 }
 
@@ -451,7 +451,7 @@ The copy constructor.
 template <unsigned dim>
 inline Rectangle<dim>::Rectangle( const Rectangle<dim>& r )
 {
-  StandardSpatialAttribute<dim>::del.isDefined = r.IsDefined();
+  this->del.isDefined = r.IsDefined();
   for( unsigned i = 0; i < dim; i++ )
   {
     min[i] = r.min[i];
@@ -467,7 +467,7 @@ Sets the values of this rectangle.
 template <unsigned dim>
 inline void Rectangle<dim>::Set(const bool defined, const double *min,
                            const double *max){
-  StandardSpatialAttribute<dim>::del.isDefined = defined;
+  this->del.isDefined = defined;
   for( unsigned i = 0; i < dim; i++ )
   {
     this->min[i] = min[i];
@@ -479,7 +479,7 @@ inline void Rectangle<dim>::Set(const bool defined, const double *min,
     NList msgList( NList("simple"),
                    NList("Rectangle built with invalid dimensions!") );
     msg->Send(msgList);
-    StandardSpatialAttribute<dim>::SetDefined(false);
+    this->SetDefined(false);
   }
 }
 
@@ -491,8 +491,8 @@ Redefinition of operator ~=~.
 template <unsigned dim>
 inline Rectangle<dim>& Rectangle<dim>::operator = ( const Rectangle<dim>& r )
 {
-  StandardSpatialAttribute<dim>::del.isDefined = r.IsDefined();
-  if( (StandardSpatialAttribute<dim>::del.isDefined) )
+  this->del.isDefined = r.IsDefined();
+  if( (this->del.isDefined) )
   {
     for( unsigned i = 0; i < dim; i++ )
     {
@@ -511,7 +511,7 @@ Checks if the rectangle contains the rectangle ~r~.
 template <unsigned dim>
 inline bool Rectangle<dim>::Contains( const Rectangle<dim>& r ) const
 {
-  assert( (StandardSpatialAttribute<dim>::del.isDefined) && r.IsDefined() );
+  assert( (this->del.isDefined) && r.IsDefined() );
 
   for( unsigned i = 0; i < dim; i++ )
     if( min[i] > r.min[i] || max[i] < r.max[i] )
@@ -527,7 +527,7 @@ Checks if the rectangle intersects with rectangle ~r~.
 template <unsigned dim>
 inline bool Rectangle<dim>::Intersects( const Rectangle<dim>& r ) const
 {
-  assert( (StandardSpatialAttribute<dim>::del.isDefined) && r.IsDefined() );
+  assert( (this->del.isDefined) && r.IsDefined() );
 
   for( unsigned i = 0; i < dim; i++ )
     if( max[i] < r.min[i] || r.max[i] < min[i] )
@@ -540,7 +540,7 @@ inline bool Rectangle<dim>::Intersects( const Rectangle<dim>& r ) const
 template <unsigned dim>
 inline bool Rectangle<dim>::IntersectsUD( const Rectangle<dim>& r ) const
 {
-  if(!( (StandardSpatialAttribute<dim>::del.isDefined) && r.IsDefined() )){
+  if(!( (this->del.isDefined) && r.IsDefined() )){
       return false;
   }
 
@@ -558,7 +558,8 @@ Redefinition of operator ~==~.
 template <unsigned dim>
 inline bool Rectangle<dim>::operator == ( const Rectangle<dim>& r ) const
 {
-  assert( StandardSpatialAttribute<dim>::del.isDefined && r.IsDefined() );
+  assert( this->IsDefined());
+  assert( r.IsDefined() );
 
   for( unsigned i = 0; i < dim; i++ )
     if( min[i] != r.min[i] || max[i] != r.max[i] )
@@ -574,9 +575,9 @@ Fuzzy check for equality.
 template <unsigned dim>
 inline bool Rectangle<dim>::AlmostEqual( const Rectangle<dim>& r ) const
 {
-  if(!(StandardSpatialAttribute<dim>::del.isDefined) && !r.IsDefined()){
+  if(!(this->del.isDefined) && !r.IsDefined()){
      return true;
-  } else if(!(StandardSpatialAttribute<dim>::del.isDefined) || !r.IsDefined()){
+  } else if(!(this->del.isDefined) || !r.IsDefined()){
      return false;
   }
   for( unsigned i = 0; i < dim; i++ ){
@@ -604,7 +605,7 @@ Returns the area of a rectangle.
 template <unsigned dim>
 inline double Rectangle<dim>::Area() const
 {
-  if( !(StandardSpatialAttribute<dim>::del.isDefined) )
+  if( !(this->del.isDefined) )
     return 0.0;
 
   double area = 1.0;
@@ -620,7 +621,7 @@ Returns the perimeter of a rectangle.
 template <unsigned dim>
 inline double Rectangle<dim>::Perimeter () const
 {
-  if( !(StandardSpatialAttribute<dim>::del.isDefined) )
+  if( !(this->del.isDefined) )
     return 0.0;
 
   double perimeter = 0.0;
@@ -658,7 +659,7 @@ Returns the bounding box that contains both this and the rectangle ~r~.
 template <unsigned dim>
 inline Rectangle<dim> Rectangle<dim>::Union( const Rectangle<dim>& r ) const
 {
-  if( !(StandardSpatialAttribute<dim>::del.isDefined) || !r.IsDefined() )
+  if( !(this->del.isDefined) || !r.IsDefined() )
     return Rectangle<dim>( false );
 
   double auxmin[dim], auxmax[dim];
@@ -677,7 +678,7 @@ Translates the rectangle given the translate vector ~t~.
 template <unsigned dim>
 inline Rectangle<dim>& Rectangle<dim>::Translate( const double t[dim] )
 {
-  if( (StandardSpatialAttribute<dim>::del.isDefined) )
+  if( (this->del.isDefined) )
   {
     for( unsigned i = 0; i < dim; i++ )
     {
@@ -707,7 +708,7 @@ of the rectangle.
 template <unsigned dim>
 inline const Rectangle<dim> Rectangle<dim>::BoundingBox() const
 {
-  if( (StandardSpatialAttribute<dim>::del.isDefined) )
+  if( (this->del.isDefined) )
     return Rectangle<dim>( *this );
   else
     return Rectangle<dim>( false );
@@ -721,7 +722,7 @@ template <unsigned dim>
 inline Rectangle<dim>
       Rectangle<dim>::Intersection( const Rectangle<dim>& r ) const
 {
-  if( !(StandardSpatialAttribute<dim>::del.isDefined)
+  if( !(this->del.isDefined)
         || !r.IsDefined() || !Intersects( r ) )
     return Rectangle<dim>( false );
 
@@ -742,7 +743,7 @@ represent an empty set.
 template <unsigned dim>
 inline bool Rectangle<dim>::Proper() const
 {
-  if( (StandardSpatialAttribute<dim>::del.isDefined) )
+  if( (this->del.isDefined) )
   {
     for( unsigned i = 0; i < dim; i++ )
       if( min[i] > max[i] )
@@ -760,7 +761,7 @@ Distance: returns the Euclidean distance between two rectangles
 template <unsigned dim>
 inline double Rectangle<dim>::Distance(const Rectangle<dim>& r) const
 {
-  assert(StandardSpatialAttribute<dim>::del.isDefined);
+  assert(this->del.isDefined);
   assert(r.del.isDefined );
   double sum = 0;
 

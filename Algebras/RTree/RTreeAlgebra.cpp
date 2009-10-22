@@ -540,8 +540,8 @@ and high parameters these two last integer numbers.
       j++;
     }
     if(tidIndex <= 0){
-      return listutils::typeError("Expects exactly 1 attrubte of type 'tid' "
-                                  "within 1st argument.");
+      return listutils::typeError("Exects exactly one attribute of type 'tid'"
+                                  " within 1st argument.");
     }
 
     return

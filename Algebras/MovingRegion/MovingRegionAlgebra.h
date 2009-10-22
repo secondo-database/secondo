@@ -405,7 +405,6 @@ private:
 */
     unsigned int segmentsStartPos;
     unsigned int segmentsNum;
-    bool defined;
 
     Rectangle<3> bbox;
 
@@ -542,7 +541,7 @@ The default constructor does nothing.
     URegionEmb() { };
 
 
-    URegionEmb( const bool Defined );
+    URegionEmb( const bool dummy );
 /*
 Constructor, which creates an empty unit for the specified interval.
 The ~URegionEmb~ instance will store its segments starting at ~pos~
@@ -719,21 +718,6 @@ The assignment operator
       return os;
     };
 
-    bool IsDefined() const
-    {
-      return defined;
-    }
-
-    void SetDefined( const bool Defined )
-    {
-      defined = Defined;
-    }
-
-    bool GetDefined() const
-    {
-      return defined;
-    }
-
 };
 
 
@@ -838,7 +822,7 @@ This constructor creates a URegion by a given list of MSegments. The MSegments a
 
 	
 
-    URegion(bool is_defined):SpatialTemporalUnit<Region, 3>(is_defined) { }
+    URegion(bool is_defined){ SetDefined(is_defined); }
 
 /*
 Constructor, which creates an region unit with ~segments~ prepared for ~n~
@@ -862,7 +846,7 @@ Set and get the ~uremb~ attribute. Required for function ~InURegion()~.
 */
     void SetEmbedded(const URegionEmb* p) {
       uremb = *p;
-      SetDefined( p->IsDefined() );
+      SetDefined( true );
     }
     URegionEmb* GetEmbedded(void) { return &uremb; }
 
@@ -932,8 +916,7 @@ Returns the ~sizeof~ of a ~URegion~ instance.
 
     virtual void SetDefined( bool Defined )
     {
-      defined = Defined;
-      uremb.SetDefined(Defined);
+      this->del.isDefined = Defined;
     }
 
 /*
@@ -1000,7 +983,7 @@ The assignment operator
    }
 
    virtual bool IsEmpty() const{
-     return IsDefined();
+     return !IsDefined();
    }
 
 };
