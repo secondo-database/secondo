@@ -4,6 +4,9 @@
 %
 
 \chapter{Review}\label{chp:Review}
+Dieses Kapitel gibt einen Überblick über die für die Umsetzung dieser Arbeit verwendeten Technologien und deren theoretischen Grundlagen. Anschließend werden die in der Literatur bekannten Ansätze zur Optimierung geschachtelter Abfragen dargestellt.
+
+
 \section{Überblick}\label{sct:Überblick}
 Ein Datenbanksystem ist eine Sammlung zusammenhängender Dateien und Programmen, die es einem Benutzer erlauben auf diese Dateien zuzugreifen und diese zu ändern. Eine Hauptaufgabe eines Datenbanksystems ist es, dem Benutzer eine abstrakte Sicht auf die Daten zu ermöglichen. Die physikalische Ablage und der eigentliche Zugriff auf die Daten werden dabei vor dem Benutzer verborgen. Dabei können drei Abstraktionsebenen unterschieden werden. 
 
@@ -140,7 +143,7 @@ TPC \footnote{TPC = Transaction Processing Performance Council} ist eine Vereini
 \subsection{Beschreibung SECONDO}\label{sct:Beschreibung SECONDO}
 \textsc{Secondo} ist ein modular aufgebautes, erweiterbares Datenbanksystem. Es können sowohl das zugrundeliegende Datenmodell, als auch die verfügbaren Datentypen und Operatoren beliebig erweitert und ausgebaut werden.
 
-Über den Formalismus der Signaturen zweiter Ordnung (\textbf{SECOND} \textbf{O}rder Signatures) lassen sich die Datentypen und Operationen auf den Datentypen beschreiben. Signaturen zweiter Ordnung sind zwei gekoppelte Signaturen. Die Sorten der ersten Signatur werden \enquote{Kinds} genannt, die Operationen Typ-Konstruktoren. Die im System verfügbaren Datentypen sind genau die Ausdrücke dieser Signatur. Die zweite Signatur beschreibt Operationen auf diesen Datentypen. Über die Implementierung von Algebramodulen lässt sich \textsc{Secondo} um beliebige Datentypen und Operationen auf diesen Datentypen erweitern. 
+Über den Formalismus der Signaturen zweiter Ordnung (\textbf{SECOND} \textbf{O}rder Signatures) lassen sich die Datentypen und Operationen auf den Datentypen beschreiben. Signaturen zweiter Ordnung sind zwei gekoppelte Signaturen. Die Sorten der ersten Signatur werden \secondo{KIND} genannt, die Operationen Typ-Konstruktoren. Die im System verfügbaren Datentypen sind genau die Ausdrücke dieser Signatur. Die zweite Signatur beschreibt Operationen auf diesen Datentypen. Über die Implementierung von Algebramodulen lässt sich \textsc{Secondo} um beliebige Datentypen und Operationen auf diesen Datentypen erweitern. 
 
 \textsc{Secondo} besteht aus den drei Komponenten Kernel, Optimierer und grafischer Benutzeroberfläche (GUI). Diese drei Komponenten können getrennt, aber auch im Zusammenspiel genutzt werden. 
 
