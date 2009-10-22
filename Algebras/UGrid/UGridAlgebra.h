@@ -343,12 +343,12 @@ class UpdateUnit//: public StandardAttribute
 class CurrentUnit
 {
  public:
-  CurrentUnit( int CId, Interval<Instant> CTimeInterval, 
+  CurrentUnit( size_t CId, Interval<Instant> CTimeInterval, 
 	           MobPos Cpos, MobPos Npos);  
   CurrentUnit( const CurrentUnit& cu );
   ~CurrentUnit() {}
   
-  int GetCId()   const;
+  size_t GetCId()   const;
   MobPos GetCPos() const;
   MobPos GetNPos() const;
   double GetCXPos() const;
@@ -416,7 +416,7 @@ class CurrentUnit
 
   friend class ConstructorFunctions<CurrentUnit>;  
   //currentmap theCurrentUnit;
-  int    cid;
+  size_t cid;
   long   timestamp;
   Interval<Instant> cTimeInterval;
   MobPos cpos;

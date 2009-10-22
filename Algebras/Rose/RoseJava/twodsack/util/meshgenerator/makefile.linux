@@ -5,7 +5,7 @@ include ../../../../makefile.inc
 all: Triangle/triangle.o MeshGenerator.h libMeshGenerator.so libMeshGeneratorNetGen.so 
 
 Triangle/triangle.o: Triangle/triangle.c
-	cd Triangle;gcc -ggdb -O -c triangle.c -DTRILIBRARY -LINUX -DNO_TIMER
+	cd Triangle;gcc -fPIC -ggdb -O -c triangle.c -DTRILIBRARY -LINUX -DNO_TIMER
 
 libMeshGenerator.so: MeshGenerator.o
 	gcc -ggdb -shared -o libMeshGenerator.so MeshGenerator.o Triangle/triangle.o

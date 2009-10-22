@@ -943,7 +943,7 @@ TypeConstructor updateunitTC(
 2.4.2         Constructors and destructor
 
 */
-CurrentUnit::CurrentUnit( int CId, Interval<Instant> CTimeInterval,
+CurrentUnit::CurrentUnit( size_t CId, Interval<Instant> CTimeInterval,
 						  MobPos Cpos, MobPos Npos)
 {
   cid = CId; 
@@ -965,7 +965,7 @@ CurrentUnit::CurrentUnit( const CurrentUnit& cu )
 2.4.3         methods
 
 */
-int CurrentUnit::GetCId()   const { return cid; }
+size_t CurrentUnit::GetCId()   const { return cid; }
 
 MobPos CurrentUnit::GetCPos() const 
 { 
@@ -5779,9 +5779,9 @@ int InsertStreamOpVM(Word* args, Word& result, int message,
   CurrentUnit *cu = (CurrentUnit*)qp->ResultStorage(s).addr;
   //result.setAddr( cu );
 
-  int id = (int)args[0].addr;
+  size_t id = (size_t)args[0].addr;
   double* x1 = static_cast<double*>(args[1].addr);
-  double* y1 = (double*)(args[2].addr);
+  double* y1 = static_cast<double*>(args[2].addr);
   MobPos pos;
   //UpdateUnit* upunit;
   pos.x = *x1;
@@ -5970,6 +5970,7 @@ long Winintersecttime (UGrid* ugrid, int index, UGridArea area)
   {
      return 0; 
   }
+  return 0;
 }
 
 /*

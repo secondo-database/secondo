@@ -1047,7 +1047,10 @@ public:
   /* This constructor takes the nested list representation
      of CcPoints and recovers the underlying java object with
      help of this data. */
-  CcPoints(const ListExpr &le);
+  CcPoints(const ListExpr &le, bool isList);
+  // SPM: added an addtional parameter since size_t and ListExpr are ambigous
+  // on 64 bit systems.
+  
   /* This constructor takes a pointer to a java object which is
      already created. */
   CcPoints(const jobject jobj);
@@ -1191,7 +1194,7 @@ CcPoints::CcPoints(size_t size):objectData(size),canDelete(false) {
 
 */
  
-CcPoints::CcPoints(const ListExpr &le):objectData(1) {
+CcPoints::CcPoints(const ListExpr &le, bool isList):objectData(1) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = Convert_CToJava_Points(le);
   canDelete = false;
@@ -1613,7 +1616,7 @@ public:
   /* This constructor takes the nested list representation
      of CcLines and recovers the underlying java object with
      help of this data. */
-  CcLines(const ListExpr &le);
+  CcLines(const ListExpr &le, bool isList);
   /* This constructor takes a pointer to a java object which is
      already created. */
   CcLines(const jobject jobj);
@@ -1760,7 +1763,7 @@ CcLines::CcLines(size_t size):objectData(size),canDelete(false) {
 
 */
 
-CcLines::CcLines(const ListExpr &le):objectData(1) {
+CcLines::CcLines(const ListExpr &le, bool isList):objectData(1) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = Convert_CToJava_Lines(le);
   canDelete = false;
@@ -2179,7 +2182,7 @@ public:
   /* This constructor takes the nested list representation
      of CcRegions and recovers the underlying java object with
      help of this data. */
-  CcRegions(const ListExpr &le);
+  CcRegions(const ListExpr &le, bool isList);
   /* This constructor takes a pointer to a java object which is
      already created. */
   CcRegions(const jobject jobj);
@@ -2321,7 +2324,7 @@ CcRegions::CcRegions(size_t size):objectData(size),canDelete(false) {
 
 */
 
-CcRegions::CcRegions(const ListExpr &le):objectData(1) {
+CcRegions::CcRegions(const ListExpr &le, bool isList):objectData(1) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   obj = Convert_CToJava_Regions(le);
   canDelete = false;

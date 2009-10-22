@@ -93,8 +93,9 @@ TRILIBDEFS = -DTRILIBRARY
 RM = /bin/rm
 
 # The action starts here.
-
-all: $(BIN)triangle $(BIN)showme
+#
+# $(BIN)showme removed from all
+all: $(BIN)triangle $(BIN)showme 
 
 trilibrary: $(BIN)triangle.o $(BIN)tricall
 
@@ -106,7 +107,7 @@ $(BIN)tricall: $(BIN)tricall.c $(BIN)triangle.o
 		$(BIN)triangle.o -lm
 
 $(BIN)triangle.o: $(SRC)triangle.c $(SRC)triangle.h
-	$(CC) $(CSWITCHES) $(TRILIBDEFS) -c -o $(BIN)triangle.o \
+	$(CC) $(CSWITCHES) -fPIC $(TRILIBDEFS) -c -o $(BIN)triangle.o \
 		$(SRC)triangle.c
 
 $(BIN)showme: $(SRC)showme.c

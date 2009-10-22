@@ -112,6 +112,7 @@
 /* exit() may or may not already be defined at this point.  I declare these  */
 /* functions explicitly because some non-ANSI C compilers lack stdlib.h.     */
 
+/*
 #ifndef _STDLIB_H_
 extern char *malloc();
 extern void free();
@@ -119,6 +120,7 @@ extern void exit();
 extern double strtod();
 extern long strtol();
 #endif
+*/
 
 /* A necessary forward declaration.                                          */
 
