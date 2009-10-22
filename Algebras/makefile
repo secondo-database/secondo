@@ -25,7 +25,7 @@
 
 include ../makefile.env
 
-ALL_ALGEBRA_DIRS := $(shell find $(BUILDDIR)/Algebras -maxdepth 1 -type d ! -name "Algebras" ! -name "Management" ! -name "CVS" -printf "%f ")
+ALL_ALGEBRA_DIRS := $(shell find $(BUILDDIR)/Algebras -maxdepth 1 -type d $(EXCLUDE_ALGEBRA_DIRS) ! -name "Algebras" ! -name "Management" ! -name "CVS" -printf "%f ")
 
 ifdef SECONDO_ACTIVATE_ALL_ALGEBRAS
 $(warning Activating all Algebras!)

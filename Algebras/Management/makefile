@@ -49,7 +49,7 @@ AlgebraList.i: AlgebraList.i.cfg
 ifndef SECONDO_ACTIVATE_ALL_ALGEBRAS
 	chmod 755 ./alg.bash && ./alg.bash $< $(ALGEBRAS) $(JNI_ALGEBRAS) > $@
 else
-	sed -e "s#ALGEBRA(#ALGEBRA_INCLUDE(#" $< > $@
+	sed -e "s#ALGEBRA(#ALGEBRA_INCLUDE(#; $(EXCLUDE_ALGEBRAS)" $< > $@
 endif
 
 AlgebraList.cpp : AlgebraList.i
