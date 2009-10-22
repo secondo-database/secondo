@@ -5,7 +5,33 @@
 ################################
 
 # Master switch to use all algebras
-#SECONDO_ACTIVATE_ALL_ALGEBRAS := true
+# SECONDO_ACTIVATE_ALL_ALGEBRAS := true
+
+ifdef SECONDO_ACTIVATE_ALL_ALGEBRAS
+
+# For several reasons, e.g. missing 3rd party libraries, one
+# needs to exclude some algebras.
+# Therefore one needs to define them a syntax suitible for
+# sed and find commands
+#
+EXCLUDE_ALGEBRAS := /GraphViz/d;
+EXCLUDE_ALGEBRA_DIRS := ! -name "GraphViz"
+
+#
+# Below all 3rd party libraries which are needed by
+# any of the algebra modules must be listed here again.
+# Sorry for the inconvenience but the whole algebra 
+# registration in the system needs to be re-designed in
+# order to be more user/programmer friendly.
+#
+
+#ALGEBRA_DEP_DIRS += /usr/lib/graphviz
+#ALGEBRA_DEPS += gvc
+
+ALGEBRA_DEPS += gsl gslcblas
+ALGEBRA_DEPS += jpeg
+
+endif
 
 # Master switch to compile the minimal set
 # of interdependet algebras.
@@ -66,12 +92,7 @@ ALGEBRAS     += HashAlgebra
 # librares, e.g. the jpeg algebra depends on libjpeg, put these libraries
 # and its directory into the variable ALGEBRA_DEPS and ALGEBRA_DEP_DIRS.
 
-ifdef SECONDO_ACTIVATE_ALL_ALGEBRAS
-ALGEBRA_DEPS += jpeg
-ALGEBRA_DEPS += gvc
-ALGEBRA_DEP_DIRS += /usr/lib/graphviz
-ALGEBRA_DEPS += gsl gslcblas
-endif
+
 
 ifndef SECONDO_MIN_ALGEBRA_SET
 
