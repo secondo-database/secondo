@@ -408,8 +408,8 @@ for (int i = 0; i < numElements; i++)
   rasterSignature = new Raster4CRS(1, cmin, cmax, cellSize, dx, dy, filling, 
            signatureType);
   
-  long totalCells = (this->BoundingBox().MaxD(0) - minXcell + 1) 
-           * (this->BoundingBox().MaxD(1) - minYcell + 1);
+  long totalCells = (long)((this->BoundingBox().MaxD(0) - minXcell + 1) 
+           * (this->BoundingBox().MaxD(1) - minYcell + 1));
 
   for( long i=minXcell; i <= this->BoundingBox().MaxD(0); i+=cellSize)
     for(long j=minYcell; j <= this->BoundingBox().MaxD(1); j+=cellSize)

@@ -394,12 +394,12 @@ int mLineRep :: findIndex(PointWNL *p1, PointWNL *p2, int facenr, int cyclenr)
       //cout<<"Vergleich ("<<q1x<<"; "<<q1y<<")("<<q2x<<"; "<<q2y<<endl;
       if((AlmostEqual(p1->getX(), q1x) && AlmostEqual(p1->getY(), q1y) && 
           AlmostEqual(p2->getX(), q2x) && AlmostEqual(p2->getY(), q2y) && 
-          facenr == triangles[i].GetFaceNo() && 
-          cyclenr == triangles[i].GetCycleNo()) ||
+          facenr == (int)triangles[i].GetFaceNo() && 
+          cyclenr == (int)triangles[i].GetCycleNo()) ||
          (AlmostEqual(p2->getX(), q1x) && AlmostEqual(p2->getY(), q1y) && 
          AlmostEqual(p1->getX(), q2x) && AlmostEqual(p1->getY(), q2y) && 
-         facenr == triangles[i].GetFaceNo() && 
-         cyclenr == triangles[i].GetCycleNo()))           
+         facenr == (int)triangles[i].GetFaceNo() && 
+         cyclenr == (int)triangles[i].GetCycleNo()))           
          return(i);
       //cout<<"Daneben"<<endl;   
     }
@@ -456,6 +456,10 @@ void mLineRep :: removeTrapezoid(PointWNL *p1, PointWNL *p2, PointWNL *p3,
 1.1 rotaring\_pane()
 
 */
+
+ostream& operator<<(ostream& o, vector<LineWA> v);
+
+
 void mLineRep :: rotaring_pane(ConvexHullTreeNode *chtn1, 
        ConvexHullTreeNode *chtn2, int time1, int time2, int facenr, int cyclenr)
 {
@@ -469,8 +473,8 @@ void mLineRep :: rotaring_pane(ConvexHullTreeNode *chtn1,
     sort(s1.begin(), s1.end());
     sort(s2.begin(), s2.end());
 #ifdef MLR_DEBUG
-    cout<<s1;
-    cout<<s2;
+    cout << s1;
+    cout << s2;
 #endif
     int jj = 0;
     for(unsigned int i = 0; i < s1.size(); i++)

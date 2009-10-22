@@ -31,6 +31,12 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 
 #include "ClipCel.h"
 #include "TurningPoint.cpp"
+
+#ifdef SECONDO_WIN32
+#define Rectangle SecondoRectangle
+#endif
+
+
 //#include "Secondo.cpp"
 //#include "../../Spatial/SpatialAlgebra.h"
 
@@ -263,7 +269,7 @@ void ClipCel::WindowClippingIn(Segment &s,Segment &sInside,bool &inside,
   maxPoint[0] = this->max.x;
   maxPoint[1] = this->max.y;
 
-  SecondoRectangle<2> *box = new SecondoRectangle<2>(true, minPoint, maxPoint);
+  Rectangle<2> *box = new Rectangle<2>(true, minPoint, maxPoint);
   HalfSegment hs;
   hs.CohenSutherlandLineClipping(*box, x0, y0, x1, y1, inside);
   isIntersectionPoint=false;

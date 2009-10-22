@@ -32,6 +32,10 @@ This construtor sets the sourceregion, the targetregion , the name and a short d
 */       
          Match(RegionForInterpolation *source, 
             RegionForInterpolation *target, string name, string description);
+
+
+         virtual ~Match(){}
+
 /*
            
 1.1.1 Get functions

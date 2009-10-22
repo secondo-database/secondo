@@ -2135,10 +2135,11 @@ as an attribute.
       return symbols::LINE;
    }
 
-  private:
-
+ protected:
    inline Line() {} // This constructor should only be used
                     // within the Cast function.
+  private:
+
 /*
 6.10 Private member functions
 

@@ -121,8 +121,8 @@ class Signature4CRS
     //--- Atributos -----------------------------------------------------
     //const RasterMap4CRS::Header& map;
     RasterMap4CRS::Header* map;
-    const long sizeOfBlock;
-      // the size of the block.
+    long sizeOfBlock;
+    // the size of the block.
 
     //--- Constructors and Destructors --------------------------------------
     Signature4CRS( ){};

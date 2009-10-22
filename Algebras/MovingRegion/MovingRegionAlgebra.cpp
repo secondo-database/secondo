@@ -2659,6 +2659,7 @@ no better solution right now to assure that ~value~ has a valid DBArray.
     memcpy(&value, tmp, sizeof(*tmp));
     delete(tmp);*/
     value.SetEmpty();
+    value.SetDefined(true);
     SetDefined(true);
 }
 
