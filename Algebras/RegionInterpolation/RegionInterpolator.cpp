@@ -169,7 +169,7 @@ InitializeRegionInterpolationAlgebra(NestedList *nlRef, QueryProcessor *qpRef)
 {  
   nl = nlRef;
   qp = qpRef;
-  return (&regionInterpolationAlgebra);
+  return (new RegionInterpolationAlgebra());
 }
 
 }

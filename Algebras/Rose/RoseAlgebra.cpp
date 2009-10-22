@@ -7658,5 +7658,5 @@ InitializeRoseAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   nl = nlRef;
   qp = qpRef;
 
-  return (&roseAlgebra);
+  return (new RoseAlgebra());
 }
