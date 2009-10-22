@@ -68,6 +68,9 @@ ALGEBRAS     += HashAlgebra
 
 ifdef SECONDO_ACTIVATE_ALL_ALGEBRAS
 ALGEBRA_DEPS += jpeg
+ALGEBRA_DEPS += gvc
+ALGEBRA_DEP_DIRS += /usr/lib/graphviz
+ALGEBRA_DEPS += gsl gslcblas
 endif
 
 ifndef SECONDO_MIN_ALGEBRA_SET
