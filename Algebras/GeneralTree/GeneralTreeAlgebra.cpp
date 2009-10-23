@@ -412,15 +412,19 @@ TypeConstructor hrect_tc(
 ********************************************************************/
 static ListExpr DistDataProp()
 {
-    ListExpr examplelist = nl->TextAtom();
-    nl->AppendText(examplelist, "getdistdata(<attr>)");
-    return
-        nl->TwoElemList(
-            nl->TwoElemList(
-                nl->StringAtom("Creation"),
-                nl->StringAtom("Example Creation")),
-            nl->TwoElemList(examplelist,
-                nl->TextAtom("let dd = getdistdata(5)")));
+    return (nl->TwoElemList(
+            nl->FourElemList(nl->StringAtom("Signature"),
+                             nl->StringAtom("Example Type List"),
+                             nl->StringAtom("List Rep"),
+                             nl->StringAtom("Example List")),
+            nl->FourElemList(nl->StringAtom("-> DATA"),
+                             nl->StringAtom("distdata"),
+                             nl->StringAtom("no list, use operator"
+                                            " getdistdata"),
+                             nl->StringAtom("---"))));
+
+
+
 }
 
 ListExpr OutDistData(ListExpr type_Info, Word value)
