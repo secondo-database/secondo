@@ -158,7 +158,7 @@ class UGPoint : public SpatialTemporalUnit<GPoint, 3>
       del.isDefined=true;
     }
 
-  UGPoint(const UGPoint(&source)){
+  UGPoint(const UGPoint &source){
     *((TemporalUnit<GPoint>*)this)=*((TemporalUnit<GPoint>*)&source);
     p0=source.p0;
     p1=source.p1;
@@ -327,71 +327,86 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
 
   */
 
-  inline int GetUnitRid()
+  inline int GetUnitRid() const
   {
     return p0.GetRouteId();
   };
 
-  inline double GetUnitStartPos()
+  inline double GetUnitStartPos() const
   {
     return p0.GetPosition();
   };
 
-  inline double GetUnitEndPos()
+  inline double GetUnitEndPos() const
   {
     return p1.GetPosition();
   };
 
-  inline Side GetUnitSide()
+  inline Side GetUnitSide() const
   {
     return p0.GetSide();
   };
 
-  inline Interval<Instant> GetUnitTimeInterval()
+  inline Interval<Instant> GetUnitTimeInterval() const
   {
     return timeInterval;
   };
 
-  inline Instant GetUnitStartTime()
+  inline Instant GetUnitStartTime() const 
   {
     return timeInterval.start;
   };
 
-  inline Instant GetUnitEndTime()
+  inline Instant GetUnitEndTime() const
   {
     return timeInterval.end;
   };
 
-  inline bool GetUnitStartTimeBool()
+  inline bool GetUnitStartTimeBool() const
   {
     return timeInterval.lc;
   };
 
-  inline bool GetUnitEndTimeBool()
+  inline bool GetUnitEndTimeBool() const
   {
     return timeInterval.rc;
   };
 
-  inline double GetDoubleUnitStartTime()
+  inline double GetDoubleUnitStartTime() const
   {
     return timeInterval.start.ToDouble();
   };
 
-  inline double GetDoubleUnitEndTime()
+  inline double GetDoubleUnitEndTime() const
   { 
     return timeInterval.end.ToDouble();
   };
 
-  inline double Duration()
+  inline double Duration() const //miliseconds
   {
     return (timeInterval.end.ToDouble() - timeInterval.start.ToDouble());
   }
 
-  inline double Speed()
+  inline double DurationSeconds() const//seconds
   {
-    return (Length() / Duration());
+    return (Duration()/0.00001157);
   }
 
+  inline double Speed() const// in m/s
+  {
+    return (Length() / DurationSeconds());
+  }
+
+  inline Side MovingDirection() const
+  {
+    if (p0.GetPosition() < p1.GetPosition()) return Up;
+    else
+      if (p0.GetPosition() > p1.GetPosition()) return Down;
+      else return None;
+  }
+
+  void GetPassedSections(Network* pNet, vector<TupleId>& pS) const;
+  
 /*
 SetMethoden f[ue]r ~ugpoint~
 
@@ -458,7 +473,7 @@ SetMethoden f[ue]r ~ugpoint~
 
   */
 
-  Instant TimeAtPos(double pos);
+  Instant TimeAtPos(double pos) const;
 
 
   /*

@@ -28,7 +28,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 May 2007 - October 2007 Martin Scheppokat
 
-February 2008 - January 2009 Simone Jandt
+February 2008 - Simone Jandt
 
 Defines, includes, and constants
 
@@ -350,7 +350,7 @@ bool checkPointN (SimpleLine route, Point point, bool startSmaller,
             fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
             fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
             fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
-            (y > yr || fabs(y-yr)<0.01)))) 
+            (y > yr || fabs(y-yr)<0.01))))
           result = true;
         else result = false;
       }
@@ -5289,7 +5289,7 @@ void UGPoint::Deftime(Periods &per){
   } else per.SetDefined(false);
 }
 
-Instant UGPoint::TimeAtPos(double pos){
+Instant UGPoint::TimeAtPos(double pos) const{
   double factor = fabs(pos - p0.GetPosition())/
                   fabs(p1.GetPosition() - p0.GetPosition());
   return (timeInterval.end - timeInterval.start) * factor + timeInterval.start;
@@ -5406,7 +5406,13 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
    } else {
      return BoundingBox().Distance(rect);
    }
+ }
 
+ void UGPoint::GetPassedSections(Network* pNet, vector<TupleId>& pS) const
+ {
+   const RouteInterval *ri = new RouteInterval(p0.GetRouteId(),p0.GetPosition(),
+                                               p1.GetPosition());
+   pNet->GetSectionsOfRoutInterval(ri,pS);
  }
 
   Rectangle<3> UGPoint::BoundingBox(Network*& pNetwork)const{
@@ -5607,7 +5613,7 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
   delete ri;
   /*
   Continue with translation of all other units.
-  
+
   */
   while (++i < pMPoint->GetNoComponents())
   {
@@ -5623,8 +5629,8 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
             (!bMovingUp && aktUGPoint.GetUnitEndPos() >= dNewEndPos)) &&
           (fabs(aktUGPoint.Speed() -
             ((fabs(aktUGPoint.GetUnitEndPos() - dNewEndPos))/
-              (pUPoint->timeInterval.end.ToDouble()-
-                pUPoint->timeInterval.start.ToDouble()))) < 0.01))
+             ((pUPoint->timeInterval.end -
+            pUPoint->timeInterval.start).ToDouble()/0.00001157) < 0.6))))
       {
         /*
         Unit moves same direction and speed like previous units.
@@ -5694,7 +5700,7 @@ int OpMPoint2MGPointValueMappingNeu(Word* args,
           /*
           Calculate shortest path between last known network position and
           new network position. Fill in ugpoint units for the shortest path
-          route intervals. For the time interval between network lost and 
+          route intervals. For the time interval between network lost and
           network found again.
 
           */
