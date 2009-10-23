@@ -229,8 +229,8 @@ Necessary to difference between an empty and an undefined collection.
 */
 
 
-#define DEBUG
-#define DEBUGHEAD
+//#define DEBUG
+//#define DEBUGHEAD
 
 #include "Algebra.h"
 #include "NestedList.h"
