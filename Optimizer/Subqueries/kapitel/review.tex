@@ -53,13 +53,13 @@ Eine Abfrage ohne geschachtelte Prädikate hat die Schachtelungstiefe 1. Enthält 
 
 SQL ist eine auf dem relationalen Datenbankmodell beruhende Datenbanksprache. Mit ihr können in relationalen Datenbanken die Metadaten der Relationen angelegt und geändert werden. Außerdem erlaubt sie die Manipulation der Daten. Auch die granulare Vergabe von Berechtigungen wurde in SQL standardisiert.
 
-\begin{itemize}
+%\begin{itemize}
 %	\item Datenbanksprache
 %	\subitem Datendefinition (DDL)
 %	\subitem Datenmanipulation (DML)
 %	\subitem Rechtevergabe (DCL)
 
-	\item Ein typischer Abfrageblock hat die Form
+	Ein typischer Abfrageblock hat die Form
 	\begin{lstlisting}
 	select §$A_1,A_2,\cdots,A_n$§
 	from §$r_1,r_2,\cdots,r_m$§
@@ -67,23 +67,43 @@ SQL ist eine auf dem relationalen Datenbankmodell beruhende Datenbanksprache. Mi
 	\end{lstlisting}
 	
 Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln \sql{select}, \sql{from} und \sql{where}. Diese bilden einen sogenannten Abfrageblock. In der \sql{select}-Klausel werden die Attribute der Ergebnisrelation angegeben. Die \sql{from}-Klausel gibt die Quellrelationen an, aus denen das Ergebnis ermittelt wird. Die optionale \sql{where}-Klausel gibt schließlich Einschränkungen an, denen die Ergebnistupel genügen müssen. 
-	\subitem Die \sql{select}-Klausel entspricht der Projektions-Operation der Relationenalgebra. In ihr werden alle Attribute der Ergebnisrelation angegeben. Um alle Attribute der beteiligten Relationen zu erhalten gibt es die spezielle Notation \enquote{*}. Mit Ihr wird also das Schema der Ergebnisrelation festgelegt.
-	\subitem Die \sql{from}-Klausel entspricht dem kartesischen Produkt in der Relationenalgebra. Hier werden alle in der Abfrage verwendeten Relationen aufgeführt.
-	\subitem Die \sql{where}-Klausel entspricht der Selektions-Operation der Relationenalgebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der \sql{from}-Klausel angegebenen Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnen Termen von einem Prädikat der Abfrage.
+
+
+Die \sql{select}-Klausel entspricht der Projektions-Operation der Relationenalgebra. In ihr werden alle Attribute der Ergebnisrelation angegeben. Um alle Attribute der beteiligten Relationen zu erhalten gibt es die spezielle Notation \enquote{*}. Mit Ihr wird also das Schema der Ergebnisrelation festgelegt.
+
+
+Die \sql{from}-Klausel entspricht dem kartesischen Produkt in der Relationenalgebra. Hier werden alle in der Abfrage verwendeten Relationen aufgeführt.
+
+
+Die \sql{where}-Klausel entspricht der Selektions-Operation der Relationenalgebra. Das Prädikat P ist ein boolescher Ausdruck über den Attributen der in der \sql{from}-Klausel angegebenen Relationen. Ist der Ausdruck die Konjunktion mehrerer Terme, so spricht man auch bei den einzelnen Termen von einem Prädikat der Abfrage.
 	
 Es gibt in SQL zwei Konstrukte, die sich nicht mit der Relationenalgebra ausdrücken lassen. D.h. SQL ist echt mächtiger als die Relationenalgebra. Die Konstrukte sind \sql{null}-Werte und Aggregationsfunktionen. 
 \sql{null}-Werte sind spezielle Attributwerte, die die Abwesenheit eines Werts anzeigen. Boolesche-Ausdrücke mit \sql{null}-Werten entsprechen einer dreiwertigen Logik, da als Ergebnis die Werte \sql{true}, \sql{false} und \sql{null} auftreten können.
-	Aggregationsfunktionen berechnen Werte über allen Tupel einer Relation. Die im SQL-Standard definierten Aggregationsfunktionen sind
-	\sql{count}, \sql{sum}, \sql{avg}, \sql{min} und \sql{max}. Als Parameter wird eine Spalte angegeben, über deren Werten die Aggregation berechnet wird. Dabei kann jede der Aggregationsfunktionen in einer mengenbasierten und einer multimengenbasierten Variante aufgerufen werden. Mit dem Zusatz \sql{distinct} wird die strikt mengenbasierte Variante gewählt, mit dem impliziten Parameter \sql{all} die multimengenbasierte. Implizit bedeutet in diesem Fall, ein Aggregationsausdruck ohne Zusatz wird berechnet wie ein Ausdruck, bei dem \sql{all} explizit angegeben wurde. Ein \sql{count}-Ausdruck hat z.B. die Form \sql{count(distinct $C$)} bzw. \sql{count($C$)} für die multimengenbasierte Semantik. Der Operator \sql{count} existiert auch noch in einer tupelbasierten Variante: \sql{count(*)}. Diese unterscheidet sich nur in Bezug auf die Behandlung von \sql{null}-Werten vom spaltenbasierten Operator.
-	\subitem \sql{group by\dots having}-Klausel Die Eingabemenge der Aggregationsfunktion wird in \enquote{Gruppen} mit gleichen Attributwerten in den angegebenen Attributen partitioniert; die Aggregationsfunktion wird dann jeweils separat für jede Gruppe berechnet. Die optionale \sql{having}-Klausel erlaubt die Selektions-Operation auf den Ergebnissen der Aggregationsfunktion(en). Hierzu wird ein Prädikat angegeben, dass auf das Ergebnis der Aggregation angewandt wird. Nur Ergebnistupel, für die dieses Prädikat zu \sql{true} auswertet, werden in die Ergebnisrelation übernommen.
-	\subitem In der \sql{order by}-Klausel werden die Ergebnis Attribute angegeben, nach welchen das Ergebnis sortiert werden soll. Mit dem Zusatz ASC bzw. DESC hinter dem Attributnamen kann zwischen auf- und absteigender Sortierung für das entsprechende Attribut gewählt werden. Die Reihenfolge der Attribute in der \sql{order by}-Klausel gibt die Rangfolge bei der Sortierung an.	
-	\item geschachtelte Abfragen
 	
-	\subitem in der SELECT-Klausel. 
-	\subitem in der FROM-Klausel 
-	\subitem in der WHERE Klausel
-	\subitem in der GROUP BY\dots HAVING-Klausel (nicht implementiert) Die GROUP BY\dots HAVING-Klausel erlaubt die Angabe eines Prädikats, das auf das Ergebnis einer Aggregation angewandt wird.
-\end{itemize}
+Aggregationsfunktionen berechnen Werte über allen Tupel einer Relation. Die im SQL-Standard definierten Aggregationsfunktionen sind
+
+\begin{itemize}
+	\item \sql{count} -- Anzahl der Tupel
+	\item \sql{sum} -- Summe eines Attributwerts
+	\item \sql{avg} -- Durchschnitt eines Attributwerts
+	\item \sql{min} -- Minimum eines Attributwerts
+	\item \sql{max} -- Maximum eines Attributwerts
+\end{itemize}. 
+
+Als Parameter wird ein Attribut angegeben, über dessen Werten die Aggregation berechnet wird. Dabei kann jede der Aggregationsfunktionen in einer mengenbasierten und einer multimengenbasierten Variante aufgerufen werden. Mit dem Zusatz \sql{distinct} wird die strikt mengenbasierte Variante gewählt, mit dem impliziten Parameter \sql{all} die multimengenbasierte. Implizit bedeutet in diesem Fall, ein Aggregationsausdruck ohne Zusatz wird berechnet wie ein Ausdruck, bei dem \sql{all} explizit angegeben wurde. Ein \sql{count}-Ausdruck hat z.B. die Form \sql{count(distinct $C$)} bzw. \sql{count($C$)} für die multimengenbasierte Semantik. Der Operator \sql{count} existiert auch noch in einer tupelbasierten Variante: \sql{count(*)}. Diese unterscheidet sich nur in Bezug auf die Behandlung von \sql{null}-Werten vom spaltenbasierten Operator.
+	
+\sql{group by\dots having}-Klausel. Die Eingabemenge der Aggregationsfunktion wird in Gruppen mit gleichen Attributwerten in den angegebenen Attributen partitioniert; die Aggregationsfunktion wird dann jeweils separat für jede Gruppe berechnet. Die optionale \sql{having}-Klausel erlaubt die Selektions-Operation auf den Ergebnissen der Aggregationsfunktion(en). Hierzu wird ein Prädikat angegeben, dass auf das Ergebnis der Aggregation angewandt wird. Nur Ergebnistupel, für die dieses Prädikat zu \sql{true} auswertet, werden in die Ergebnisrelation übernommen.
+
+
+In der \sql{order by}-Klausel werden die Ergebnis Attribute angegeben, nach welchen das Ergebnis sortiert werden soll. Mit dem Zusatz \sql{asc} bzw. \sql{desc} hinter dem Attributnamen kann zwischen auf- und absteigender Sortierung für das entsprechende Attribut gewählt werden. Die Reihenfolge der Attribute in der \sql{order by}-Klausel gibt die Rangfolge bei der Sortierung an.	
+
+%	\item geschachtelte Abfragen
+%	
+%	\subitem in der \sql{select}-Klausel. 
+%	\subitem in der \sql{from}-Klausel 
+%	\subitem in der WHERE Klausel
+%	\subitem in der \sql{group by}\dots \sql{having}-Klausel (nicht implementiert) Die \sql{group by}\dots \sql{having}-Klausel erlaubt die Angabe eines Prädikats, das auf das Ergebnis einer Aggregation angewandt wird.
+
 \begin{itemize}
 	\item SQL-Standard unterscheidet in
 	\subitem \enquote{scalar subqueries} (Ergebnis der Abfrage ist ein einzelner Wert). Diese Form der Unterabfrage darf an jeder Stelle in einem Abfrageblock verwendet werden, an dem auch eine skalare Konstante zulässig wäre.
@@ -95,9 +115,14 @@ Es gibt in SQL zwei Konstrukte, die sich nicht mit der Relationenalgebra ausdrüc
 	\subsubitem ohne Aggregation
 	\subsubitem mit Aggregation
 	\item Ort des Auftretens
-	\subitem \textbf{SELECT-Klausel} das Ergebnis der Auswertung der geschachtelten Abfrage wird in die Ergebnisrelation aufgenommen. In der SELECT-Klausel sind nur skalare Unterabfragen zulässig. 
-	\subitem \textbf{FROM-Klausel} komplexe Abfragen über mehrere Relationen lassen sich oft verständlicher formulieren, wenn in einem ersten Schritt die notwendigen Daten zu einer Relation zusammengefasst werden. Im darauf folgenden Schritt wird dann die eigentliche Abfrage über dieser neuen Relation formuliert. Diese Form der Strukturierung lässt sich durch Unterabfragen in der FROM-Klausel bewerkstelligen. Die Unterabfrage liefert die Zusammenfassung der Daten, auf deren Basis die Abfrage formuliert wird. 
-	\subitem \textbf{\sql{where}-Klausel} geschachtelte Abfragen in der \sql{where}-Klausel bieten die Möglichkeit, das Ergebnis einer Abfrage in einer Bedingung zu verwenden. Hierzu können die Operatoren \sql{in}, \sql{exists}, \sql{all}, \sql{any} und skalare Vergleichsoperatoren benutzt werden. Die Semantik dieser Operatoren wird im nächsten Absatz kurz skizziert.
+\end{itemize}
+
+\sql{select}-Klausel das Ergebnis der Auswertung der geschachtelten Abfrage wird in die Ergebnisrelation aufgenommen. In der \sql{select}-Klausel sind nur skalare Unterabfragen zulässig. 
+
+\sql{from}-Klausel komplexe Abfragen über mehrere Relationen lassen sich oft verständlicher formulieren, wenn in einem ersten Schritt die notwendigen Daten zu einer Relation zusammengefasst werden. Im darauf folgenden Schritt wird dann die eigentliche Abfrage über dieser neuen Relation formuliert. Diese Form der Strukturierung lässt sich durch Unterabfragen in der \sql{from}-Klausel bewerkstelligen. Die Unterabfrage liefert die Zusammenfassung der Daten, auf deren Basis die Abfrage formuliert wird. 
+
+\sql{where}-Klausel geschachtelte Abfragen in der \sql{where}-Klausel bieten die Möglichkeit, das Ergebnis einer Abfrage in einer Bedingung zu verwenden. Hierzu können die Operatoren \sql{in}, \sql{exists}, \sql{all}, \sql{any} und skalare Vergleichsoperatoren benutzt werden. Die Semantik dieser Operatoren wird im nächsten Absatz kurz skizziert.
+
 	
 Der \sql{in}-Operator prüft das Enthaltensein eines Werts in einer Menge. Die Menge kann durch Auflistung oder durch eine Abfrage spezifiziert werden. Ein geschachteltes Prädikat mit dem \sql{in}-Operator ist genau dann wahr, wenn der Wert auf der linken Seite (Attribut oder Zeile) im Ergebnis der Unterabfrage enthalten ist. 
 
@@ -124,7 +149,7 @@ Der \sql{all}-Operator wertet zu \sql{TRUE} aus, wenn der Vergleich für alle Erg
 \end{lstlisting}
 
 
-	\subitem \textbf{(GROUP BY\dots HAVING-Klausel)} Auch in den Prädikaten der \sql{having}"=Klau"-sel kann auf Unterabfragen zurückgegriffen werden. Allerdings kann nur auf die Attribute der Ergebnisrelation der zuvorstehenden Abfrage zugegriffen werden. D.h. die Ausdrücke in einem Prädikat beziehen sich auf ein \sql{group by}-Attribut oder ein Aggregationsergebnis.
+(\sql{group by}\dots \sql{having}-Klausel) Auch in den Prädikaten der \sql{having}"=Klau"-sel kann auf Unterabfragen zurückgegriffen werden. Allerdings kann nur auf die Attribute der Ergebnisrelation der zuvorstehenden Abfrage zugegriffen werden. D.h. die Ausdrücke in einem Prädikat beziehen sich auf ein \sql{group by}-Attribut oder ein Aggregationsergebnis.
 	
 \begin{lstlisting}
    select §$A_i$§, §$avg(A_j)$§
@@ -135,7 +160,6 @@ Der \sql{all}-Operator wertet zu \sql{TRUE} aus, wenn der Vergleich für alle Erg
           from §$R_n$§
           where §$R.A_i$§ = §$A_i$§)
 \end{lstlisting}
-\end{itemize}
 
 \subsection{TPC-D Benchmark}
 TPC \footnote{TPC = Transaction Processing Performance Council} ist eine Vereinigung von IT-Unternehmen. Ziel des TPC ist es, standardisierte Benchmarks zur Bewertung von Transaktionssystemen zur Verfügung zu stellen. Mit diesen Benchmarks können herstellerunabhängig Datenbanksysteme verglichen werden. Je nach Anwendungsgebiet werden verschiedene Metriken zum Vergleich von real verfügbaren Systemen bereitgestellt. Der in dieser Arbeit für den Vergleich herangezogene Benchmark TPC-D ist ein Entscheidungshilfe-Benchmark. In dem Benchmark sind 22 Abfragen zusammengefasst, die Antworten auf betriebswirtschaftliche Fragestellungen geben. Insgesamt 10 dieser Abfragen haben geschachtelte Abfrageblöcke und eignen sich daher als Anschauungsobjekt für die Optimierung geschachtelter Anfragen. In Kapitel \ref{chp:Leistungsbewertung} findet sich eine Gegenüberstellung der geschachtelten und der optimierten Ausführung dieser Abfragen. Ziel des Benchmarks ist der Vergleich von Datenbanksystemen über Metriken, die sowohl die Performance, gemessen über die Antwortzeiten der Abfragen, als auch die Kosten für die verwendete Hardware mit einbeziehen. Die Ergebnisse eines solchen Benchmarks können nach einer Überprüfung durch den TPC auf der Website \url{http://www.tpc.org/} veröffentlicht werden.
@@ -265,8 +289,9 @@ Die Semantik der Auswertung von geschachtelten Abfragen wird im SQL-Standard \ci
 \subsection{Entschachtelung}
 Es wurde schon früh beobachtet, dass es zu bestimmten geschachtelten Abfragen inhaltlich äquivalente Abfragen gibt, die ohne Schachtelung auskommen. In \cite{319745} wurde erstmals die Formalisierung dieser Äquivalenz untersucht, um geschachtelte Abfragen durch Optimierung der Ausführungspläne beschleunigen zu können. Ebd. wird ein Verfahren vorgestellt, eine geschachtelte Abfrage durch Transformation in eine inhaltlich äquivalente, nicht geschachtelte Abfrage zu optimieren. Die dort vorgestellten Algorithmen benötigen nur die erweiterten Standard-Operationen der Relationenalgebra. Ziel der Entschachtelungen ist die Überführung geschachtelter Abfrageblöcke in eine inhaltlich äquivalente Form. Zwei Abfrageblöcke sind inhaltlich äquivalent, wenn für jede beliebige Interpretation (Belegung mit Werten) der Variablen (in diesem Fall Relationen, Attribute und Konstanten), das Ergebnis der Abfrage übereinstimmt. Grundsätzlich haben die Entschachtelungsansätze gemeinsam, dass Äquivalenzen aufgestellt werden, die die Transformation einer Abfrage in eine strukturell anders aufgebaute Abfrage erlauben. Dabei unterscheiden sich die verschiedenen Ansätze in der für die Optimierung genutzten Notation der Abfrage. Die Relationenalgebra wird je nach Ansatz um verschiedene Operatoren erweitert. Dabei wird die Relationenalgebra zwar funktional erweitert, es findet jedoch keine Erweiterung der Ausdruchsstärke statt. D.h. die eingeführten Operatoren lassen sich grundsätzlich durch komplexe Ausdrücke über den Standardoperatoren darstellen. Vorteil der Einführung der neuen Operatoren ist die Möglichkeit, mit Hilfe dieser Operatoren Transformationen zu formulieren, die eine optimierte Formulierung einer geschachtelten Abfrage zulassen. Dienen die Operatoren nur der algebraischen Optimierung und können sie durch algebraische Transformationen immer aus einem Ausdruck entfernt werden, so ist keine Implementierung notwendig. Andernfalls ist eine effiziente Implementierung erforderlich. Während in \cite{319745,38723,671634} die Abfrage in SQL-Notation transformiert wird, wird die Abfrage in \cite{375748,756653} Ausdrücke einer erweiterten Relationenalgebra übersetzt und algebraisch transformiert. 
 
-In \cite{375748} wird die SQL-Abfrage erst einmal in eine algebraische Darstellung übersetzt. Um die Transformationen leisten zu können, wird die relationale Algebra um einige Operatoren erweitert, mit deren Hilfe sich der Term, der durch die Übersetzung entsteht, in eine entschachtelte Variante überführen lässt. 
-\cite{375748} werden die Ansätze zur Entschachtelung korrelierter Unterabfragen mit Aggregationsfunktion in die Vorgehensweisen Nested-Iteration, erst Outer-Join, dann Aggregation, erst Aggregation, dann Outer-Join und in orthogonale Optimierung unterschieden. Die orthogonale Optimierung geht in folgenden Schritten vor: Zerlegung der Abfrage in einen Operatorbaum auf der Basis des \sql{apply}-Operators. \sql{apply} ist ein relationaler Operator zweiter Ordnung, der die parametrierte Ausführung von Teilausdrücken abstrahiert. Im zweiten Schritt wird \sql{apply} in andere Operatoren umgeschrieben wie z.B. \sql{outer join}. Die Vorgehensweise zur Entfernung der Korrelation beruht auf den gleichen Mechanismen wie in \cite{671634}. Anschließend wird sofern möglich der Outer-Join noch vereinfacht. So lässt sich Outer-Join in Gegenwart von \sql{NULL}-verwerfenden Prädikaten in Join umwandeln. Zusätzlich werden \sql{group-by}-Ausdrücke möglichst spät ausgewertet. Nachteil dieser Vorgehensweise ist die mögliche Einführung gemeinsamer Teilausdrücke (CSEs) bei der Entschachtelung. Apply ist eine Ausprägung des Generalized-Projection Operators wie er z.B. in \cite{DBLP:books/mg/SilberschatzKS01} für die erweiterte Relationenalgebra vorgestellt wird. Der Generalized-Projection-Operator erlaubt nicht nur die Projektion auf Attribute der Ursprungsrelation, sondern auch auf Funktionsergebnisse die über den Attributen dieser Relation formuliert werden. SegmentApply ist eine Variante des Apply-Operators, die nicht auf einzelne Zeilen sondern auf Gruppen von Zeilen angewandt wird. NULL-rejecting Outer-Join Ein Outer-Join heißt NULL-verwerfend, wenn das Join-Prädikat NULL-verwerfend ist und die Menge A der Attribute Teilmenge des Schemas der zweiten Relation. Ist ein Outer-Join-Prädikat NULL-verwerfend, so ist es äquivalent zu einem Join-Prädikat mit der gleichen Join-Bedingung. Diese Äquivalenz ermöglicht die Ausführungsreihenfolge zumindest für gewisse Outer-Joins und Joins zu vertauschen.
+In \cite{375748} wird die SQL-Abfrage erst einmal in eine algebraische Darstellung übersetzt. Um die Transformationen leisten zu können, wird die relationale Algebra um einige Operatoren erweitert, mit deren Hilfe sich der Term, der durch die Übersetzung entsteht, in eine entschachtelte Variante überführen lässt. Die Ansätze zur Entschachtelung korrelierter Unterabfragen mit Aggregationsfunktion werden in die Vorgehensweisen Nested-Iteration, erst Outer-Join, dann Aggregation, erst Aggregation, dann Outer-Join und in orthogonale Optimierung unterschieden. Die orthogonale Optimierung geht in folgenden Schritten vor: Zerlegung der Abfrage in einen Operatorbaum auf der Basis des \sql{apply}-Operators. \sql{apply} ist ein relationaler Operator zweiter Ordnung, der die parametrierte Ausführung von Teilausdrücken abstrahiert. Im zweiten Schritt wird \sql{apply} in andere Operatoren umgeschrieben wie z.B. \sql{outer join}. Die Vorgehensweise zur Entfernung der Korrelation beruht auf den gleichen Mechanismen wie in \cite{671634}. Anschließend wird sofern möglich der Outer-Join noch vereinfacht. So lässt sich Outer-Join in Gegenwart von \sql{null}-verwerfenden Prädikaten in Join umwandeln. Zusätzlich werden \sql{group-by}-Ausdrücke möglichst spät ausgewertet. Nachteil dieser Vorgehensweise ist die mögliche Einführung gemeinsamer Teilausdrücke (CSEs) bei der Entschachtelung. 
+
+Apply ist eine Ausprägung des Generalized-Projection Operators wie er z.B. in \cite{DBLP:books/mg/SilberschatzKS01} für die erweiterte Relationenalgebra vorgestellt wird. Der Generalized-Projection-Operator erlaubt nicht nur die Projektion auf Attribute der Ursprungsrelation, sondern auch auf Funktionsergebnisse die über den Attributen dieser Relation formuliert werden. SegmentApply ist eine Variante des Apply-Operators, die nicht auf einzelne Zeilen sondern auf Gruppen von Zeilen angewandt wird. \sql{null}-rejecting Outer-Join Ein Outer-Join heißt \sql{null}-verwerfend, wenn das Join-Prädikat \sql{null}-verwerfend ist und die Menge A der Attribute Teilmenge des Schemas der zweiten Relation. Ist ein Outer-Join-Prädikat \sql{null}-verwerfend, so ist es äquivalent zu einem Join-Prädikat mit der gleichen Join-Bedingung. Diese Äquivalenz ermöglicht die Ausführungsreihenfolge zumindest für gewisse Outer-Joins und Joins zu vertauschen.
 
 In \cite{1066180} wird ein Algorithmus zur Optimierung geschachtelter Abfragen auf der Basis einer geschachtelten Relationenalgebra vorgestellt. Der vorgestellte Algorithmus ist jedoch nur für geschachtelte Abfragen ohne Aggregationsfunktion zulässig. Eine geschachtelte Relationenalgebra ist die konsequente Erweiterung der Relationenalgebra um die Zulässigkeit von Relationen als Attributwerte. D.h. eine Relation kann ihrerseits bereits geschachtelt sein. Die Grundoperationen der relationalen Algebra werden um zwei Operatoren erweitert. Die Operatoren nest und unnest überführen eine Menge von Relationen in eine geschachtelte Relation respektive entfernen die Schachtelung aus einer geschachtelten Relation. Prädikate die in der geschachtelten Relationenalgebra Schachtelungsebenen verbinden werden \emph{linking} (verbindende) Prädikate genannt. Es wird ein Operator \emph{linking selection} eingeführt, dieser erweitert die Selektionsoperation der Relationenalgebra, die ja nur auf flachen Relationen definiert ist. Die Selektion mit einem \emph{linking} Prädikat entspricht daher der \emph{linking selection}. Der Algorithmus zur Entschachtelung baut in einer depth-first Vorgehensweise eine flache Relation aus der geschachtelten Abfrage mit Hilfe von Join und Outer-Join auf. In einer optimierten Variant wird die Entschachtelung durch Pipelining, d.h. die Verzahnung der Rechenschritte der einzelnen Entschachtelungen noch einmal beschleunigt. Bei einer prototypischen Implementierung in einem kommerziellen DBMS mit gespeicherten Prozeduren wurden zum Teil Beschleunigungen um mehrere Größenordnungen erreicht.
 
@@ -308,7 +333,7 @@ Geschachtelte Prädikate enthalten eine Unterabfrage in ihrem Ausdruck. Abhängig 
 %Divisionsprädikat,\\
 %Einschränkung bei Join-Prädikaten auf =-Operator, \\
 %nur eine Spalte in der Select-Klausel erlaubt in Subquery, \\
-%keine GROUP BY\dots HAVING-Klausel in Subquery \cite{671658}, \\
+%keine \sql{group by}\dots \sql{having}-Klausel in Subquery \cite{671658}, \\
 %Innerer und und äußerer Abfrageblock, \\
 %Klassifikation in 
 %N =(kein Join-Prädikat, dass auf Relationen im äußeren Abfrageblock verweist, keine Aggregationsfunktion in  Select-Klausel, ergibt eine Liste von Konstanten), 
@@ -338,7 +363,7 @@ where sname in (select ort from plz where plz > 5000)
 \end{lstlisting}
 
 \subsection{Typ J}
-Eine Abfrage hat den Typ J, wenn mindestens ein Attribut der äußeren Relation im Prädikat verwendet wird, aber keine Aggregationsfunktion in der SELECT-Klausel vorkommt. Beispiel: Finde alle Städte, deren Bevölkerung größer als die Postleitzahl ist. 
+Eine Abfrage hat den Typ J, wenn mindestens ein Attribut der äußeren Relation im Prädikat verwendet wird, aber keine Aggregationsfunktion in der \sql{select}-Klausel vorkommt. Beispiel: Finde alle Städte, deren Bevölkerung größer als die Postleitzahl ist. 
 \begin{lstlisting}
 select sname
 from staedte
@@ -346,7 +371,7 @@ where sname in (select ort from plz where plz < bev)
 \end{lstlisting}
 
 \subsection{Typ JA}
-Korrelierte Abfragen mit Aggregationsfunktion in der SELECT-Klausel heißen vom Typ JA. Das Ergebnis der Unterabfrage hängt vom Wert eines Attributs der äußeren Relationen ab. Beispiel: Alle Orte mit ihrer maximalen Postleitzahl. Der Wert des Maximums ist vom gerade betrachteten Ort abhängig.
+Korrelierte Abfragen mit Aggregationsfunktion in der \sql{select}-Klausel heißen vom Typ JA. Das Ergebnis der Unterabfrage hängt vom Wert eines Attributs der äußeren Relationen ab. Beispiel: Alle Orte mit ihrer maximalen Postleitzahl. Der Wert des Maximums ist vom gerade betrachteten Ort abhängig.
 \begin{lstlisting}
 select ort 
 from plz

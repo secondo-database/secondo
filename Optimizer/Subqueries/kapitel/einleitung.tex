@@ -6,9 +6,20 @@
 \chapter{Einleitung}\label{chp:Einleitung}
 \pagenumbering{arabic}
 
+
 \section{Problembeschreibung}\label{sct:Problembeschreibung}
+SQL ist eine mächtige Abfragesprache, mit deren Hilfe sich viele Fragestellungen, die an relationale Daten gestellt werden können, formulieren lassen. Da SQL nach dem Vorbild der englischen Sprache entworfen wurde, erleichtert die Syntax die formale Darstellung in Umgangssprache vorliegender Informationsanforderungen. Einer der großen Vorteile von SQL ist die Möglichkeit Abfragen geschachtelt zu formulieren. So lässt sich die Fragestellung \enquote{Gib mir alle Lieferanten, deren Umsatz dem maximalen Umsatz aller Lieferanten entspricht} unter der Annahme, dass es eine Relation \enquote{Lieferanten} mit dem Schema (Name, Umsatz) gibt, formulieren als \sql{select * from lieferanten where umsatz = (select max(umsatz) from lieferanten)}. Die in einem Nebensatz formulierte Bedingung \enquote{deren Umsatz dem maximalen Umsatz aller Lieferanten entspricht} kann hier direkt als Abfrage formuliert werden. Der \textsc{Secondo}-Optimierer versteht bereits einen SQL-Dialekt, kann aber noch nicht mit geschachtelten Abfragen umgehen. Ziel dieser Arbeit war es, den Optimierer in die Lage zu versetzen, geschachtelte Abfragen übersetzen zu können und eine möglichst effiziente Ausführungsstrategie hierfür auszuwählen.
 
 \section{Aufbau der Arbeit}\label{sct:Aufbau der Arbeit}
+Die Arbeit besteht aus vier Teilen.
+
+Im ersten Teil (Kapitel \ref{chp:Review}, ab Seite \pageref{chp:Review}) werden die technologischen und theoretischen Grundlagen dargelegt, mit denen sich geschachtelte Abfragen optimieren lassen. 
+
+Der zweite Teil widmet sich der Problemanalyse und der ausführlichen Darstellung der ausgewählten Algorithmen und wird in Kapitel \ref{chp:Entwurf} ab Seite \pageref{chp:Entwurf} dargestellt.
+
+Die Implementierung und technische Umsetzung der Algorithmen wird im dritten Teil, Kapitel \ref{chp:Implementierung} Seite \pageref{chp:Implementierung} geschildert.
+
+Im vierten Teil werden zwei mögliche Ausführungsstrategien für die Übersetzung geschachtelter Abfragen anhand von geschachtelten Abfragen aus dem TPC-D Benchmark quantitativ und strukturell verglichen.
 
 %
 % EOF
