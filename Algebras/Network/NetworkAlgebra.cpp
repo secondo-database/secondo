@@ -57,6 +57,7 @@ October 2008 - Jianqiu Xu
 extern NestedList* nl;
 extern QueryProcessor* qp;
 static map<int,string> *netList;
+
 /*
 1 Helping structs, methods and classes
 
@@ -3089,6 +3090,37 @@ void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
   delete pSectionIter;
 };
 
+void Network::GetSectionsOfRoutInterval(const RouteInterval *ri,
+                               vector<TupleId> &res)
+{
+  res.clear();
+  double ristart = min(ri->GetStartPos(), ri->GetEndPos());
+  double riend = max(ri->GetStartPos(), ri->GetEndPos());
+  CcInt* ciRouteId = new CcInt(true, ri->GetRouteId());
+  BTreeIterator* pSectionIter =
+      m_pBTreeSectionsByRoute->ExactMatch(ciRouteId);
+  delete ciRouteId;
+  Tuple *actSect;
+  TupleId actSectTID;
+  //bool bsectstart = true;
+  //bool bsectend = true;
+  while (pSectionIter->Next()) {
+    actSectTID = pSectionIter->GetId();
+    actSect = m_pSections->GetTuple(actSectTID);
+    assert(actSect != 0);
+    double start =
+          ((CcReal*) actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+    double end =
+          ((CcReal*) actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+    if ((ristart <= start && riend >= end) ||
+         (start <= ristart && end >= ristart) ||
+         (start <= riend && end >= riend))
+      res.push_back(actSectTID);
+    actSect->DeleteIfAllowed();
+  }
+  delete pSectionIter;
+}
+
 /*
 Returns the spatial position of the gpoint.
 
@@ -3134,26 +3166,29 @@ void Network::GetAdjacentSections(TupleId in_iSectionTId,
                                   vector<DirectedSection> &inout_xSections)
 {
   Tuple *pSect = GetSection(in_iSectionTId);
-  int iSectionId = ((CcInt*)pSect->GetAttribute(SECTION_SID))->GetIntval();
-  pSect->DeleteIfAllowed();
-  int iIndex = 2 * (iSectionId-1)  + (in_bUpDown ? 1 : 0);
-  const AdjacencyListEntry* xEntry = 0;
-  m_xAdjacencyList.Get(iIndex, xEntry);
-  if(xEntry->m_iHigh != -1)
+  if (pSect != 0)
   {
-    int iLow = xEntry->m_iLow;
-    int iHigh = xEntry->m_iHigh;
-
-    for (int i = iLow; i <= iHigh; i++)
+    int iSectionId = ((CcInt*)pSect->GetAttribute(SECTION_SID))->GetIntval();
+    pSect->DeleteIfAllowed();
+    int iIndex = 2 * (iSectionId-1)  + (in_bUpDown ? 1 : 0);
+    const AdjacencyListEntry* xEntry = 0;
+    m_xAdjacencyList.Get(iIndex, xEntry);
+    if(xEntry->m_iHigh != -1)
     {
-      const DirectedSection* xSection;
-      m_xSubAdjacencyList.Get(i, xSection);
+      int iLow = xEntry->m_iLow;
+      int iHigh = xEntry->m_iHigh;
 
-      bool bUpDownFlag = ((DirectedSection*)xSection)->GetUpDownFlag();
-      TupleId iSectionTid = ((DirectedSection*)xSection)->GetSectionTid();
-      inout_xSections.push_back(DirectedSection(iSectionTid,
-      bUpDownFlag));
+      for (int i = iLow; i <= iHigh; i++)
+      {
+        const DirectedSection* xSection;
+        m_xSubAdjacencyList.Get(i, xSection);
 
+        bool bUpDownFlag = ((DirectedSection*)xSection)->GetUpDownFlag();
+        TupleId iSectionTid = ((DirectedSection*)xSection)->GetSectionTid();
+        inout_xSections.push_back(DirectedSection(iSectionTid,
+        bUpDownFlag));
+
+      }
     }
   }
 }

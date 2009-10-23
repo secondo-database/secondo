@@ -1402,6 +1402,9 @@ Returns a set of sections which are covered by the given ~RouteInterval~
     void GetSectionsOfRouteInterval(const RouteInterval *in_ri,
                                     DBArray<SectTreeEntry> *io_SectionIds);
 
+    void GetSectionsOfRoutInterval(const RouteInterval *in_ri,
+                                  vector<TupleId> &res);
+
 /*
 Get Routeinterval for Halfsegment defined by point interval. Used to translate
 spatial 2D values into network values.
