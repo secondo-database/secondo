@@ -667,8 +667,8 @@ Statistical information for a partition.
 
 typedef struct PartitionHistogramEntry
 {
-  PartitionHistogramEntry()
-  : value(0)
+  PartitionHistogramEntry(size_t value)
+  : value(value)
   , count(0)
   , totalSize(0)
   , totalExtSize(0)
@@ -679,9 +679,9 @@ The first constructor. Creates an empty instance.
 */
 
   PartitionHistogramEntry( size_t value,
-                           size_t count,
-                           size_t totalSize,
-                           size_t totalExtSize )
+                             size_t count,
+                             size_t totalSize,
+                             size_t totalExtSize )
   : value(0)
   , count(count)
   , totalSize(totalSize)
@@ -738,9 +738,9 @@ class PartitionHistogram
 {
   public:
 
-    PartitionHistogram(PInterval& i);
+    PartitionHistogram(PInterval& intv);
 /*
-First constructor. Creates a histogram for partition with interval ~i~.
+First constructor. Creates a histogram for partition with interval ~intv~.
 
 */
 
@@ -797,7 +797,11 @@ partition histogram.
 
     ostream& Print(ostream& os)
     {
-      cmsg.info() << HEADLINE_PHISTOGRAM << endl;
+      cmsg.info() << HEADLINE_PHISTOGRAM << endl
+                  << "tuples: " << tuples
+                  << ", totalSize: " << totalSize
+                  << ", totalExtSize: " << totalExtSize
+                  << endl;
 
       for(size_t i = 0; i < data.size(); i++)
       {
@@ -866,10 +870,12 @@ class PartitionProgressInfo
 {
   public:
 
-    PartitionProgressInfo()
-    : tuples(0)
+    PartitionProgressInfo(PInterval& intv)
+    : interval(intv)
+    , tuples(0)
     , tuplesProc(0)
     , noOfPasses(0)
+    , curPassNo(1)
     {
     }
 /*
@@ -882,9 +888,11 @@ The constructor. Creates an empty instance.
       if ( this == &obj )
         return;
 
+      this->interval = obj.interval;
       this->tuples = obj.tuples;
       this->tuplesProc = obj.tuplesProc;
       this->noOfPasses = obj.noOfPasses;
+      this->curPassNo = obj.curPassNo;
     }
 /*
 Copy constructor.
@@ -893,9 +901,12 @@ Copy constructor.
 
     ostream& Print(ostream& os)
     {
-      os << "Tuples: " << tuples
+      os << "Interval [" << interval.GetLow()
+         << ", " << interval.GetHigh() << "]"
+         << ", tuples: " << tuples
          << ", TuplesProc: " << tuplesProc
          << ", noOfPasses: " << noOfPasses
+         << ", curPassNo: " << curPassNo
          << endl;
 
       return os;
@@ -903,6 +914,13 @@ Copy constructor.
 /*
 Print to stream ~os~. This function is used
 for debugging purposes.
+
+*/
+
+    PInterval interval;
+/*
+Partition interval. Necessary for sorting the progress information
+in the same way as the partitions are sorted.
 
 */
 
@@ -923,12 +941,37 @@ Current number of tuples processed during join operation.
 Number of passes necessary to process a partition. This field
 is only used for partitions from stream B.
 
+*/
+
+    int curPassNo;
+/*
+Current pass number. This field is only used for partitions from stream A.
 
 */
 };
 
 /*
-13 Class ~PartitionManagerProgressInfo~
+13 Class ~PartitionCompareLesser~
+
+Class for comparing two partitions according to the lower boundary of
+their partition intervals.
+
+*/
+
+class PartitionProgressInfoCompareLesser :
+  binary_function<PartitionProgressInfo, PartitionProgressInfo, bool>
+{
+  public:
+
+    inline bool operator()(PartitionProgressInfo a, PartitionProgressInfo b)
+    {
+      return ( a.interval.GetLow() < b.interval.GetLow() );
+    }
+};
+
+
+/*
+14 Class ~PartitionManagerProgressInfo~
 
 Progress information for a partition manager instance.
 
@@ -945,6 +988,22 @@ class PartitionManagerProgressInfo
     }
 /*
 The constructor. Creates an empty instance.
+
+*/
+
+    size_t GetTotalProcessedTuples()
+    {
+      size_t result = 0;
+
+      for (size_t i = 0; i < partitionProgressInfo.size(); i++)
+      {
+        result += partitionProgressInfo[i].tuplesProc;
+      }
+
+      return result;
+    }
+/*
+Returns the total number of processed tuples of all partitions..
 
 */
 
@@ -998,7 +1057,7 @@ Number of tuples already processed during sub-partitioning.
 };
 
 /*
-14 Class ~Partition~
+15 Class ~Partition~
 
 This class represents a partition of the hybrid hash join algorithm.
 Each partition
@@ -1148,7 +1207,7 @@ through the sub-partitioning algorithm or not.
 };
 
 /*
-15 Class ~PartitionIterator~
+16 Class ~PartitionIterator~
 
 Iterator class used for a sequential scan of a partition's
 tuples.
@@ -1197,7 +1256,7 @@ Iterator for the internal buffer of a partition.
 };
 
 /*
-16 Class ~PartitionCompareLesser~
+17 Class ~PartitionCompareLesser~
 
 Class for comparing two partitions according to the lower boundary of
 their partition intervals.
@@ -1217,7 +1276,7 @@ class PartitionCompareLesser :
 };
 
 /*
-17 Class ~PartitionManager~
+18 Class ~PartitionManager~
 
 Class which represents the partitioning of a complete stream.
 
@@ -1357,12 +1416,12 @@ Returns the I/O buffer size used for read/write operations on disk.
 
   private:
 
-    size_t insertPartition( PInterval interval,
+    size_t insertPartition( PInterval intv,
                              size_t buffer,
                              size_t io,
                              int index = -1 );
 /*
-Insert a new partition with partition interval ~interval~, internal
+Insert a new partition with partition interval ~intv~, internal
 buffer size of ~buffer~ bytes and an I/O buffer size of ~io~ bytes.
 If ~index~ is smaller than 0 the partition is appended to the end of the
 partition array. If a value greater than 0 is specified the
@@ -1449,6 +1508,21 @@ containing ~bucket~
 
 */
 
+    void printPartitionHistograms()
+    {
+      for(size_t i = 0; i < partitions.size(); i++)
+      {
+        cmsg.info() << "Partition => " << i << endl;
+        partitions[i]->GetPartitionHistogram().Print(cmsg.info());
+        cmsg.send();
+      }
+    }
+/*
+Prints the partition histograms of all partitions. Used for debugging
+purposes only.
+
+*/
+
     PartitionIterator* iter;
 /*
 Partition iterator which is used when a partition cannot
@@ -1498,10 +1572,10 @@ which must be processed during subpartitioning.
 
 */
 
-    bool subpartitioned;
+    bool simSubpartitioning;
 /*
-Flag which indicates if sub-partitioning of stream A has already been
-performed. If set to true sub-partitioning of stream B ha been finished.
+Flag which indicates if progress information for sub-partitioning
+shall be generated.
 
 */
 
@@ -1536,7 +1610,7 @@ is only used for debugging purposes.
 */
 
 /*
-18 Class ~HybridHashJoinProgressLocalInfo~
+19 Class ~HybridHashJoinProgressLocalInfo~
 
 All classes and functions have been put into the namespace
 ~extrel2~ to avoid name conflicts with existing implementations and
@@ -1575,11 +1649,11 @@ Calculates the progress for the hybrid hash join algorithm.
     static const double vHashJoin = 0.0067;  //millisecs per tuple right
     static const double wHashJoin = 0.0025;  //millisecs per tuple returned
 
-    static const double t_read = 0.023;  //millisecs per probe tuple
-    static const double t_write = 0.0067;  //millisecs per tuple right
-    static const double t_probe = 0.023;  //millisecs per tuple returned
-    static const double t_hash = 0.0025;  //millisecs per tuple returned
-    static const double t_result = 0.0025;  //millisecs per tuple returned
+    static const double t_read = 0.001;  //millisecs per probe tuple
+    static const double t_write = 0.001;  //millisecs per tuple right
+    static const double t_probe = 0.001;  //millisecs per tuple returned
+    static const double t_hash = 0.001;  //millisecs per tuple returned
+    static const double t_result = 0.001;  //millisecs per tuple returned
 
     ostream& Print(ostream& os);
 /*
@@ -1626,10 +1700,18 @@ Calculates the progress for the hybrid hash-join algorithm making use
 of the partition information in ~pinfoA~ and ~pinfoB~.
 
 */
+
+
+    bool traceMode;
+/*
+Flag which decides if tracing information is generated on standard output
+
+*/
+
 };
 
 /*
-19 Class ~HybridHashJoinAlgorithm~
+20 Class ~HybridHashJoinAlgorithm~
 
 */
 
@@ -1879,12 +1961,14 @@ the partitioning of stream A has not yet been finished.
 Number of the current processed partition.
 
 */
-    bool bucketProcessed;
+    bool firstPassPartition;
 /*
-Flag that indicates if a bucket of the hash table has been
-processed completely for a tuple from stream A.
+Flag that indicates if the we are in the first pass of partition
+a scan for stream B. Flag is used to decide whether tuples of
+partition 0 from stream A have to be stored on disc.
 
 */
+
     bool finishedPartitionB;
 /*
 Flag that indicates that stream B has been processed completely.
@@ -1919,7 +2003,7 @@ set the flag ~RTF::ERA:TraceHybridHashJoin~ in SecondoConfig.ini.
 };
 
 /*
-20 Class ~HybridHashJoinLocalInfo~
+21 Class ~HybridHashJoinLocalInfo~
 
 An instance of this class is used in the value mapping function to save
 the state of the hybrid hash-join algorithm between multiple message calls.

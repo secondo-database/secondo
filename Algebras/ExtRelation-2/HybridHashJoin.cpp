@@ -56,6 +56,22 @@ double log2(double n)
   return ( log(n) / log(2.0) );
 }
 
+
+ostream& PrintProgressInfo(ostream& os, ProgressInfo& info)
+{
+  cmsg.info() << "Card: " << info.Card
+              << ", Time: " << info.Time
+              << ", Progress: " << info.Progress << endl
+              << "BTime: " << info.BTime
+              << ", BProgress: " << info.BProgress
+              << ", Size: " << info.Size
+              << ", SizeExt: " << info.SizeExt << endl;
+  cmsg.send();
+
+  return os;
+}
+
+
 /*
 5 Implementation of class ~Bucket~
 
@@ -303,31 +319,43 @@ ostream& HashTable::Print(ostream& os)
 
 */
 
-PartitionHistogram::PartitionHistogram(PInterval& i)
-: interval(i)
-, data(i.GetLength())
+PartitionHistogram::PartitionHistogram(PInterval& intv)
+: interval(intv)
 , tuples(0)
 , totalSize(0)
 , totalExtSize(0)
 {
+  // create entries
+  for (size_t j = 0; j < intv.GetLength(); j++)
+  {
+    data.push_back( PartitionHistogramEntry(intv.GetLow() + j) );
+  }
 }
 
 PartitionHistogram::PartitionHistogram( PartitionHistogram& obj,
                                         size_t start, size_t end )
-: interval( obj.GetInterval().GetLow() + start,
-            obj.GetInterval().GetLow() + end )
-, data(interval.GetLength())
+: tuples(0)
+, totalSize(0)
+, totalExtSize(0)
 {
-  assert( (end - start) < obj.GetInterval().GetLength() );
+  PInterval& intv = obj.GetInterval();
 
-  for ( size_t i = 0, j = start;
-        j <= end;
-        i++, j++ )
+  assert( (end - start) < intv.GetLength() );
+
+  interval = PInterval(intv.GetLow() + start, intv.GetLow() + end);
+
+  // create entries
+  for (size_t i = 0, j = start; i < interval.GetLength(); i++, j++)
   {
-    this->data[i] = obj.data[j];
-    tuples += obj.data[j].count;
-    totalSize += obj.data[j].totalSize;
-    totalExtSize += obj.data[j].totalExtSize;
+    data.push_back( PartitionHistogramEntry( obj.data[j] ) );
+  }
+
+  // update counters
+  for ( size_t i = 0; i < data.size(); i++ )
+  {
+    tuples += data[i].count;
+    totalSize += data[i].totalSize;
+    totalExtSize += data[i].totalExtSize;
   }
 }
 
@@ -335,12 +363,18 @@ void PartitionHistogram::Insert(Tuple* t, size_t hashFuncValue)
 {
   assert(interval.IsAt(hashFuncValue));
 
+  size_t s = t->GetSize();
+  size_t sExt = t->GetExtSize();
+
+  tuples++;
+  totalSize += s;
+  totalExtSize += sExt;
+
   int hIndex = hashFuncValue - interval.GetLow();
 
-  data[hIndex].value = hashFuncValue;
   data[hIndex].count++;
-  data[hIndex].totalSize += t->GetSize();
-  data[hIndex].totalExtSize += t->GetExtSize();
+  data[hIndex].totalSize += s;
+  data[hIndex].totalExtSize += sExt;
 
   return;
 }
@@ -422,7 +456,7 @@ PartitionManager::PartitionManager( HashFunction* h,
 , checkProgressAfter(50)
 , p0(p0)
 , tuples(0)
-, subpartitioned(false)
+, simSubpartitioning(true)
 , progressInfo(pInfo)
 {
   // calculate buckets per partition
@@ -466,7 +500,7 @@ PartitionManager::PartitionManager( HashFunction* h,
 , maxOperatorMemory(pm.maxOperatorMemory)
 , checkProgressAfter(pm.checkProgressAfter)
 , p0(0)
-, subpartitioned(false)
+, simSubpartitioning(false)
 , progressInfo(pInfo)
 {
   // create partitions with intervals from pm
@@ -528,9 +562,11 @@ void PartitionManager::Insert(Tuple* t, size_t p, size_t b)
       (int)ceil( (double)partitions[p]->GetTotalExtSize()
           / (double)maxOperatorMemory );
 
-    if ( subpartitioned = false && ( tuples % SUBPARTITION_UPDATE ) == 0 )
+    if ( simSubpartitioning == true && ( tuples % SUBPARTITION_UPDATE ) == 0 )
     {
-      calcSubpartitionTupleCount(maxOperatorMemory, SUBPARTITION_MAX_LEVEL);
+      progressInfo->subTotalTuples =
+          calcSubpartitionTupleCount( maxOperatorMemory,
+                                      SUBPARTITION_MAX_LEVEL );
     }
   }
 }
@@ -574,6 +610,9 @@ size_t PartitionManager::PartitionStream(Word stream)
 
 void PartitionManager::Subpartition()
 {
+  // stop recalculation of sub-partitioning progress information
+  simSubpartitioning = false;
+
   // Subpartition if necessary
   for(size_t i = 0; i < partitions.size(); i++)
   {
@@ -581,13 +620,16 @@ void PartitionManager::Subpartition()
   }
 
   // Sort partitions array
-  PartitionCompareLesser cmp;
-  sort(partitions.begin(), partitions.end(), cmp);
+  PartitionCompareLesser cmp1;
+  sort(partitions.begin(), partitions.end(), cmp1);
 
-  subpartitioned = true;
+  // Sort partitions progress info array
+  PartitionProgressInfoCompareLesser cmp2;
+  sort( progressInfo->partitionProgressInfo.begin(),
+        progressInfo->partitionProgressInfo.end(), cmp2 );
 }
 
-size_t PartitionManager::insertPartition ( PInterval interval,
+size_t PartitionManager::insertPartition ( PInterval intv,
                                             size_t buffer,
                                             size_t io,
                                             int index )
@@ -598,15 +640,15 @@ size_t PartitionManager::insertPartition ( PInterval interval,
 
   if ( index < 0 )
   {
-    partitions.push_back( new Partition(interval, buffer, io) );
-    progressInfo->partitionProgressInfo.push_back(PartitionProgressInfo());
+    partitions.push_back( new Partition(intv, buffer, io) );
+    progressInfo->partitionProgressInfo.push_back(PartitionProgressInfo(intv));
     result = partitions.size() - 1;
   }
   else
   {
     assert( index < (int)partitions.size() );
-    partitions[index] = new Partition(interval, buffer, io);
-    progressInfo->partitionProgressInfo[index] = PartitionProgressInfo();
+    partitions[index] = new Partition(intv, buffer, io);
+    progressInfo->partitionProgressInfo[index] = PartitionProgressInfo(intv);
     result = index;
   }
 
@@ -698,8 +740,8 @@ void PartitionManager::subpartition( size_t n,
     {
       progressInfo->subTuples++;
 
-      // propagate progress message if necessary
-      if ( ( counter++ % 200 ) == 0)
+      // propagate progress message ilevelf necessary
+      if ( ( ++counter % SUBPARTITION_UPDATE ) == 0)
       {
         qp->CheckProgress();
       }
@@ -750,23 +792,23 @@ int PartitionManager::simsubpartition( PartitionHistogram& ph,
                                        int maxRecursion,
                                        int level )
 {
-  int tuples = 0;
+  int counter = 0;
 
   if ( ph.GetTotalExtSize() <= maxSize )
   {
-    return tuples;
+    return counter;
   }
 
   // check if maximum recursion level is reached
   if ( level > maxRecursion )
   {
-    return tuples;
+    return counter;
   }
 
   // check if partition contains at least 4 hash function values
   if ( ph.GetInterval().GetLength() < 4 )
   {
-    return tuples;
+    return counter;
   }
 
   size_t m = ( ph.GetSize() / 2 ) - 1;
@@ -775,30 +817,15 @@ int PartitionManager::simsubpartition( PartitionHistogram& ph,
   PartitionHistogram ph1(ph, 0, m);
   PartitionHistogram ph2(ph, m+1, ph.GetSize() - 1);
 
-  tuples = ph.GetNoTuples();
+  counter = ph.GetNoTuples();
 
-  int noTuples1 = ph1.GetNoTuples();
-  int noTuples2 = ph2.GetNoTuples();
+  size_t level1 = level;
+  size_t level2 = level;
 
-  // delete empty partitions, store new ones and subpartition
-  // if necessary (Note: only one partition can be empty)
-  if ( noTuples1 == 0 && noTuples2 > 0 )
-  {
-    tuples += simsubpartition(ph2, maxSize, maxRecursion, ++level);
-  }
-  else if ( noTuples1 > 0 && noTuples2 == 0 )
-  {
-    tuples += simsubpartition(ph1, maxSize, maxRecursion, ++level);
-  }
-  else
-  {
-    size_t level1 = level;
-    size_t level2 = level;
-    tuples += simsubpartition(ph1, maxSize, maxRecursion, ++level1);
-    tuples += simsubpartition(ph2, maxSize, maxRecursion, ++level2);
-  }
+  counter += simsubpartition(ph1, maxSize, maxRecursion, ++level1);
+  counter += simsubpartition(ph1, maxSize, maxRecursion, ++level2);
 
-  return tuples;
+  return counter;
 }
 
 void PartitionManager::InitPartitions(HashTable* h)
@@ -828,6 +855,7 @@ bool PartitionManager::LoadPartition( int n,
   assert(n < (int)partitions.size());
 
   Tuple* t;
+  size_t usedMemory = 0;
 
   // Clear hash table
   h->Clear();
@@ -838,14 +866,18 @@ bool PartitionManager::LoadPartition( int n,
     iter = partitions[n]->MakeScan();
   }
 
+  static int counter = 0;
+
   while( ( t = iter->GetNextTuple() ) != 0 )
   {
     // insert tuple into hash table
     h->Insert(t);
     t->DeleteIfAllowed();
 
-    // update remaining memory
-    maxMemory -= t->GetExtSize();
+    // update used memory
+    usedMemory += t->GetExtSize();
+
+    counter++;
 
     // update processed tuples of partition
     if ( progressInfo != 0 )
@@ -853,13 +885,31 @@ bool PartitionManager::LoadPartition( int n,
       progressInfo->partitionProgressInfo[n].tuplesProc++;
     }
 
-    if (maxMemory <= 0 )
+    if ( usedMemory > maxMemory )
     {
       // memory is filled but partition is not finished
+      if ( traceMode )
+      {
+        cmsg.info() << "LoadPartition(" << n << "): " << counter << " / "
+                    << progressInfo->partitionProgressInfo[n].tuples
+                    << " tuples"
+                    << endl;
+        cmsg.send();
+      }
       return false;
     }
   }
 
+  if ( traceMode )
+  {
+    cmsg.info() << "LoadPartition(" << n << "): " << counter << " / "
+                << progressInfo->partitionProgressInfo[n].tuples
+                << " tuples"
+                << endl;
+    cmsg.send();
+  }
+
+  counter = 0;
   delete iter;
   iter = 0;
 
@@ -888,6 +938,7 @@ ostream& PartitionManager::Print(ostream& os)
 HybridHashJoinProgressLocalInfo::HybridHashJoinProgressLocalInfo()
 : ProgressLocalInfo()
 , maxOperatorMemory(qp->MemoryAvailableForOperator())
+, traceMode(false)
 {
 }
 
@@ -904,10 +955,22 @@ int HybridHashJoinProgressLocalInfo::CalcProgress( ProgressInfo& p1,
 
   if ( this->state == 1 )
   {
+    if ( traceMode )
+    {
+      cmsg.info() << "-----------------------------------------------" << endl;
+      cmsg.info() << "calcProgressHybrid()" << endl;
+      cmsg.send();
+    }
     calcProgressHybrid(p1, p2, pRes, s);
   }
   else if ( state == 0  )
   {
+    if ( traceMode )
+    {
+      cmsg.info() << "-----------------------------------------------" << endl;
+      cmsg.info() << "calcProgressStd()" << endl;
+      cmsg.send();
+    }
     calcProgressStd(p1, p2, pRes, s);
   }
   else
@@ -963,6 +1026,16 @@ void HybridHashJoinProgressLocalInfo::calcProgressStd( ProgressInfo& p1,
   pRes->BProgress = ( p1.BProgress * p1.BTime + p2.BProgress * p2.BTime
                       + this->readSecond * vHashJoin ) / pRes->BTime;
 
+  if ( traceMode )
+  {
+    cmsg.info() << "p1" << endl;
+    PrintProgressInfo(cmsg.info(), p1);
+    cmsg.info() << "p2" << endl;
+    PrintProgressInfo(cmsg.info(), p2);
+    cmsg.info() << "pRes" << endl;
+    PrintProgressInfo(cmsg.info(), *pRes);
+    cmsg.send();
+  }
 }
 
 void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
@@ -989,12 +1062,33 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
   if ( m > enoughSuccessesJoin )
   {
     // warm state
-    sel = m / ( k1 * k2 );
+    sel = m / ( k1 * streamB.GetTotalProcessedTuples() );
+
+    if ( traceMode )
+    {
+      cmsg.info() << "WARM state => "
+                  << ", m:" << m
+                  << ", k1:" << k1
+                  << ", streamB.GetTotalProcessedTuples():"
+                  << streamB.GetTotalProcessedTuples()
+                  << ", sel: "<< sel << endl;
+      cmsg.send();
+    }
   }
   else
   {
     // cold state
     sel = qp->GetSelectivity(s);
+
+    if ( traceMode )
+    {
+      cmsg.info() << "COLD state => "
+                  << ", m:" << m
+                  << ", k1:" << k1
+                  << ", k2:" << k2
+                  << ", sel: "<< sel << endl;
+      cmsg.send();
+    }
   }
 
   // calculate result cardinality
@@ -1005,68 +1099,185 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
   // -------------------------------------------
 
   // calculate time needed for successors
-  pRes->Time = p1.Time + p2.Time;
+  double t1 = p1.Time + p2.Time;
 
-  // calculate time for partitMioning and processing of stream A
+  if ( traceMode )
+  {
+    cmsg.info() << "1: t1 => " << t1 << endl;
+    cmsg.send();
+  }
+
+  // calculate time for partitioning and processing of stream A
+  double t2 = p1.Card * ( t_probe + t_read + t_write );
+
+  if ( traceMode )
+  {
+    cmsg.info() << "2: t2 => " << t2 << endl;
+    cmsg.send();
+  }
+
+  double t3 = 0;
+
   if ( streamA.IsValid() )
   {
+    size_t card0 = streamA.partitionProgressInfo[0].tuples;
+
     for (size_t i = 0; i < streamA.partitionProgressInfo.size(); i++)
     {
-      pRes->Time += streamA.partitionProgressInfo[i].tuples
-                    * ( streamA.partitionProgressInfo[i].noOfPasses
-                        * ( t_probe + t_read ) + t_write );
+      // cardinality of partition from A
+      size_t cardA = streamA.partitionProgressInfo[i].tuples;
+
+      // number of passes of the corresponding partition B
+      size_t passesB = streamB.partitionProgressInfo[i].noOfPasses;
+
+      if ( passesB > 1 )
+      {
+        t3 += cardA * ( passesB - 1 ) * ( t_probe + t_read );
+      }
     }
-    pRes->Time -= streamA.partitionProgressInfo[0].tuples
-                  * ( t_read + t_write );
+    t3 -= card0 * ( t_read + t_write );
+
+    if ( traceMode )
+    {
+      cmsg.info() << "3: t3 => " << t3 << endl;
+      cmsg.send();
+    }
   }
 
   // calculate time for partitioning and processing of stream B
-  pRes->Time += p2.Card * ( t_hash + t_read + t_write )
-                - min(streamB.partitionProgressInfo[0].tuples, M_S2)
-                  * ( t_read + t_write );
+  double t4 = p2.Card * ( t_hash + t_read + t_write )
+               - min(streamB.partitionProgressInfo[0].tuples, M_S2)
+                 * ( t_read + t_write );
+  if ( traceMode )
+  {
+    cmsg.info() << "4: t4 => " << t4 << endl;
+    cmsg.send();
+  }
 
   // calculate time for sub-partitioning of stream B
-  pRes->Time += streamB.subTotalTuples * ( t_read + t_write );
+  double t5 = streamB.subTotalTuples * ( t_read + t_write );
+
+  if ( traceMode )
+  {
+    cmsg.info() << "5: t5 => " << t5 << endl;
+    cmsg.send();
+  }
 
   // calculate time to create result tuples
-  pRes->Time += pRes->Card * t_result;
+  double t6 = pRes->Card * t_result;
+
+  if ( traceMode )
+  {
+    cmsg.info() << "6: t6 => " << t6 << endl;
+    cmsg.send();
+  }
+
+  pRes->Time = t1 + t2 + t3 + t4 + t5 + t6;
+
+  if ( traceMode )
+  {
+    cmsg.info() << "7: pRes->Time => " << pRes->Time << endl;
+    cmsg.send();
+  }
 
   // -------------------------------------------
   // Total progress
   // -------------------------------------------
 
   // calculate current progress of successors
-  pRes->Progress = p1.Progress * p1.Time + p2.Progress * p2.Time;
+  double prog1 = p1.Progress * p1.Time + p2.Progress * p2.Time;
+
+  if ( traceMode )
+  {
+    cmsg.info() << "1: prog1 => " << prog1 << endl;
+    cmsg.send();
+  }
 
   // calculate current progress of stream A
+  double prog2 = k1 * ( t_probe + t_read + t_write );
+
+  if ( traceMode )
+  {
+    cmsg.info() << "2: prog2 => " << prog2 << endl;
+    cmsg.send();
+  }
+
+  double prog3 = 0;
+
   if ( streamA.IsValid() )
   {
+    size_t card0 = streamA.partitionProgressInfo[0].tuples;
+    size_t proc0 = streamA.partitionProgressInfo[0].tuplesProc;
+
     for (size_t i = 0; i < streamA.partitionProgressInfo.size(); i++)
     {
-      pRes->Progress += streamA.partitionProgressInfo[i].tuplesProc
-                        * ( t_probe + t_read )
-                        + min( streamA.partitionProgressInfo[i].tuples,
-                               streamA.partitionProgressInfo[i].tuplesProc )
-                               * t_write ;
+      // cardinality of partition from A
+      size_t cardA = streamA.partitionProgressInfo[i].tuples;
+
+      // number of passes of the corresponding partition of B
+      size_t passesB = streamB.partitionProgressInfo[i].noOfPasses;
+
+      // number of processed tuples of partition from A
+      size_t procA = streamA.partitionProgressInfo[i].tuplesProc;
+
+      if ( passesB > 1 && procA > cardA )
+      {
+        prog3 += ( procA - cardA ) * ( t_probe + t_read );
+      }
     }
-    pRes->Progress -= min( streamA.partitionProgressInfo[0].tuples,
-                           streamA.partitionProgressInfo[0].tuplesProc )
-                      * ( t_read + t_write );
+
+    prog3 -= min(proc0, card0) * ( t_read + t_write );
+
+    if ( traceMode )
+    {
+      cmsg.info() << "3: prog3 => " << prog3 << endl;
+      cmsg.send();
+    }
   }
 
   // calculate current progress of stream B
-  pRes->Progress += k2 * ( t_hash + t_read + t_write )
-                    - min(streamB.partitionProgressInfo[0].tuples, M_S2)
+  double prog4 = streamB.GetTotalProcessedTuples()
+                    * ( t_hash + t_read + t_write )
+                  - min(streamB.partitionProgressInfo[0].tuples, M_S2)
                     * ( t_read +  t_write );
 
+  if ( traceMode )
+  {
+    cmsg.info() << "4: prog4 => " << prog4 << endl;
+    cmsg.send();
+  }
+
   // calculate current progress for sub-partitioning of stream B
-  pRes->Progress += streamB.subTuples * ( t_read + t_write );
+  double prog5 = streamB.subTuples * ( t_read + t_write );
+
+  if ( traceMode )
+  {
+    cmsg.info() << "5: prog5 => " << prog5 << endl;
+    cmsg.send();
+  }
 
   // calculate time to create result tuples
-  pRes->Progress += m * t_result;
+  double prog6 = m * t_result;
+
+  if ( traceMode )
+  {
+    cmsg.info() << "6: prog6 => " << prog6 << endl;
+    cmsg.send();
+  }
 
   // calculate total progress
-  pRes->Progress /= pRes->Time;
+  pRes->Progress = ( prog1 + prog2 + prog3 + prog4 + prog5 + prog6 )
+                      / pRes->Time;
+  if ( traceMode )
+  {
+    cmsg.info() << "7: pRes->Progress => "
+                << pRes->Progress << endl
+                << "8: streamB.subTotalTuples => "
+                << streamB.subTotalTuples << endl
+                << "9: streamB.subTuples => "
+                << streamB.subTuples << endl;
+    cmsg.send();
+  }
 
   // -------------------------------------------
   // Blocking time
@@ -1097,12 +1308,16 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
   // calculate blocking progress
   pRes->BProgress /= pRes->BTime;
 
-  cmsg.info() << "pRes->Card: " << pRes->Card << endl
-              << "pRes->Time: " << pRes->Time << endl
-              << "pRes->Progress: " << pRes->Progress << endl
-              << "pRes->BTime: " << pRes->BTime << endl
-              << "pRes->BProgress: " << pRes->BProgress << endl;
-  cmsg.send();
+  if ( traceMode )
+  {
+    cmsg.info() << "p1" << endl;
+    PrintProgressInfo(cmsg.info(), p1);
+    cmsg.info() << "p2" << endl;
+    PrintProgressInfo(cmsg.info(), p2);
+    cmsg.info() << "pRes" << endl;
+    PrintProgressInfo(cmsg.info(), *pRes);
+    cmsg.send();
+  }
 
   return;
 }
@@ -1164,7 +1379,7 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
 , fitsInMemory(false)
 , partitioning(false)
 , curPartition(0)
-, bucketProcessed(true)
+, firstPassPartition(true)
 , finishedPartitionB(false)
 , iterA(0)
 , hashTable(0)
@@ -1489,12 +1704,8 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
 
     if ( ( p = pmA->FindPartition(tupleA.tuple) ) == 0 )
     {
+      // Immediately process partition 0
       Tuple* tupleB = hashTable->Probe(tupleA.tuple);
-
-      if ( progress->streamA.IsValid() && bucketProcessed == true )
-      {
-        progress->streamA.partitionProgressInfo[0].tuples++;
-      }
 
       if ( tupleB )
       {
@@ -1502,30 +1713,41 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
         Tuple *result = new Tuple( resultTupleType );
         Concat( tupleA.tuple, tupleB, result );
         progress->returned++;
-        bucketProcessed = false;
         return result;
       }
       else // bucket completely processed
       {
-        bucketProcessed = true;
-
-        if ( progress->streamA.IsValid() )
-        {
-          progress->streamA.partitionProgressInfo[0].tuplesProc++;
-        }
-
-        // if partition 0 overflows store tuple
+        // if partition 0 overflows store tuple on disc
         if ( !finishedPartitionB )
         {
-          //tupleA->IncReference();
           pmA->Insert(tupleA.tuple);
+
+          //if ( progress->streamA.IsValid() )
+          {
+            progress->streamA.partitionProgressInfo[0].tuplesProc++;
+          }
+        }
+        else
+        {
+          //if ( progress->streamA.IsValid() )
+          {
+            progress->streamA.partitionProgressInfo[0].tuples++;
+            progress->streamA.partitionProgressInfo[0].tuplesProc++;
+          }
+        }
+
+        //if ( progress->streamA.IsValid() )
+        {
+          PartitionProgressInfo& pinfo =
+              progress->streamA.partitionProgressInfo[0];
+          pinfo.curPassNo =
+              (int)ceil( (double)pinfo.tuplesProc / (double)pinfo.tuples );
         }
       }
     }
     else
     {
-      // insert tuple into partition p
-      //tupleA->IncReference();
+      // insert tuple into partition p ( p > 0 )
       pmA->Insert(tupleA.tuple);
     }
 
@@ -1539,6 +1761,10 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
   {
     curPartition++;
   }
+  else
+  {
+    firstPassPartition = false;
+  }
 
   // load next partition into memory
   finishedPartitionB = pmB->LoadPartition(curPartition, hashTable, MAX_MEMORY);
@@ -1546,7 +1772,9 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
   if ( traceMode )
   {
     //cmsg.info() << "Hash table content" << *hashTable << endl;
-    cmsg.info() << "Partitioning of stream A.." << endl << *pmA;
+    cmsg.info() << "Partitioning of stream A.." << endl << *pmA
+                << "finishedPartitionB" << finishedPartitionB
+                << endl;
     cmsg.send();
   }
 
@@ -1574,9 +1802,15 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
         return result;
       }
 
-      if ( progress->streamA.IsValid() )
+//      if ( progress->streamA.IsValid() )
       {
-        progress->streamA.partitionProgressInfo[curPartition].tuplesProc++;
+        PartitionProgressInfo& pinfo =
+            progress->streamA.partitionProgressInfo[curPartition];
+
+        pinfo.tuplesProc++;
+
+        pinfo.curPassNo =
+            (int)ceil( (double)pinfo.tuplesProc / (double) pinfo.tuples);
       }
 
       tupleA.setTuple( iterA->GetNextTuple() );
