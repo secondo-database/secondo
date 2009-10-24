@@ -178,35 +178,12 @@ Tuple* SortMergeJoinLocalInfo::NextResultTuple()
   {
     if ( !continueMerge && ptB != 0 )
     {
-      // ptB(1) => ptB(2), tmpB(2)
       tmpB = ptB;
-//      cmsg.info() << "tmpB = ptB" << endl;
-//      cmsg.info() << "ptA: " << ptA.tuple->GetNumOfRefs()
-//                  << ", ptB: " << ptB.tuple->GetNumOfRefs()
-//                  << ", tmpB: " << tmpB.tuple->GetNumOfRefs()
-//                  << endl;
-//      cmsg.send();
 
-      // mem: tmpB(2), ptB(2) => tmpB(3), ptB(3)
-      // disc: tmpB(2), ptB(2) => tmpB(2), ptB(2)
       grpB->AppendTuple(tmpB.tuple);
-//      cmsg.info() << "grpB->AppendTuple(tmpB.tuple)" << endl;
-//      cmsg.info() << "ptA: " << ptA.tuple->GetNumOfRefs()
-//                  << ", ptB: " << ptB.tuple->GetNumOfRefs()
-//                  << ", tmpB: " << tmpB.tuple->GetNumOfRefs()
-//                  << endl;
-//      cmsg.send();
 
       // advance the tuple pointer
-      // mem: tmpB(3), ptB(3) => tmpB(2), ptB(1)
-      // disc: tmpB(2), ptB(2) => tmpB(1), ptB(1)
       ptB.setTuple( NextTupleB() );
-//      cmsg.info() << "ptB.setTuple( NextTupleB() )" << endl;
-//      cmsg.info() << "ptA: " << ptA.tuple->GetNumOfRefs()
-//                  << ", ptB: " << ptB.tuple->GetNumOfRefs()
-//                  << ", tmpB: " << tmpB.tuple->GetNumOfRefs()
-//                  << endl;
-//      cmsg.send();
 
       // collect a group of tuples from B which
       // have the same attribute value
@@ -219,12 +196,6 @@ Tuple* SortMergeJoinLocalInfo::NextResultTuple()
         {
           // append equal tuples to group
           grpB->AppendTuple(ptB.tuple);
-//          cmsg.info() << "grpB->AppendTuple(ptB.tuple)" << endl;
-//          cmsg.info() << "ptA: " << ptA.tuple->GetNumOfRefs()
-//                      << ", ptB: " << ptB.tuple->GetNumOfRefs()
-//                      << ", tmpB: " << tmpB.tuple->GetNumOfRefs()
-//                      << endl;
-//          cmsg.send();
 
           // release tuple of input B
           ptB.setTuple( NextTupleB() );
@@ -457,58 +428,73 @@ int SortMergeJoinValueMap( Word* args, Word& result,
 
           double factor = (double) li->readFirst / p1.Card;
 
-          if ( (qp->GetSelectivity(s) != 0.1) &&
-               (li->returned > enoughSuccessesJoin) )
+          // Calculate result cardinality
+          if ( li->returned > enoughSuccessesJoin )
           {
-            pRes->Card = factor * ((double) li->returned) * p1.Card
-                        / ((double) li->readFirst) +
-                            (1.0 - factor) * p1.Card * p2.Card
-                             * qp->GetSelectivity(s);
-          }
-          else
-          {
-            if ( li->returned > enoughSuccessesJoin )   // stable state
+            double m = (double)li->returned;
+            double k1 = (double)li->readFirst;
+            double k2 = (double)li->readSecond;
+
+            // estimated selectivity
+            double sel = m / ( k1 * k2 );
+
+            // warm state
+            if ( qp->GetSelectivity(s) != 0.1 )
             {
-              pRes->Card = ((double) li->returned) * p1.Card
-              /  ((double) li->readFirst);
+              // estimated selectivity from optimizer is used
+              // as more tuples are processed the weight of the
+              // optimizer estimation is reduced
+              pRes->Card = ( p1.Card * p2.Card ) *
+                           ( factor * sel +
+                             ( 1.0 - factor ) * qp->GetSelectivity(s) );
             }
             else
             {
-              pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
+              // if optimizer is not used use only estimation
+              pRes->Card = sel * p1.Card * p2.Card;
             }
           }
+          else
+          {
+            // cold state
+            pRes->Card = p1.Card * p2.Card * qp->GetSelectivity(s);
+          }
 
+          // total time
           pRes->Time = p1.Time + p2.Time +
-                       + p1.Card * p1.Size * uSortBy +
-                       + p2.Card * p2.Size * uSortBy +
-                       + (p1.Card * p1.Size + p2.Card * p2.Size)
-                         * wMergeJoin
-                       + pRes->Card * (xMergeJoin + pRes->noAttrs
-                         * yMergeJoin);
+                     + p1.Card * p1.Size * uSortBy +
+                     + p2.Card * p2.Size * uSortBy +
+                     + (p1.Card * p1.Size + p2.Card * p2.Size) * wMergeJoin
+                     + pRes->Card * (xMergeJoin + pRes->noAttrs * yMergeJoin);
 
           long readFirst = (liFirst ? liFirst->read : 0);
           long readSecond = (liSecond ? liSecond->read : 0);
 
-          pRes->Progress = ( p1.Progress * p1.Time
-                              + p2.Progress * p2.Time
-                              + ((double) readFirst) * p1.Size * uSortBy
-                              + ((double) readSecond) * p2.Size * uSortBy
-                              + (((double) li->readFirst) * p1.Size
-                              + ((double) li->readSecond) * p2.Size)
-                                * wMergeJoin
-                              + ((double) li->returned)
-                                * (xMergeJoin + pRes->noAttrs * yMergeJoin) )
-                              / pRes->Time;
+          pRes->Progress = (   p1.Progress * p1.Time
+                             + p2.Progress * p2.Time
+                             + ((double) readFirst) * p1.Size * uSortBy
+                             + ((double) readSecond) * p2.Size * uSortBy
+                             + (((double) li->readFirst) * p1.Size
+                             + ((double) li->readSecond) * p2.Size)
+                               * wMergeJoin
+                             + ((double) li->returned)
+                               * (xMergeJoin + pRes->noAttrs * yMergeJoin) )
+                           / pRes->Time;
 
-          pRes->BTime = p1.Time + p2.Time
+          // first result tuple is possible after both input streams
+          // deliver the first tuples and both sort algorithm have
+          // consumed their streams completely
+          pRes->BTime =   p1.BTime
+                        + p2.BTime
                         + p1.Card * p1.Size * uSortBy
                         + p2.Card * p2.Size * uSortBy;
 
-          pRes->BProgress = ( p1.Progress * p1.Time
-                              + p2.Progress * p2.Time
+          // blocking progress
+          pRes->BProgress = (   p1.BProgress * p1.BTime
+                              + p2.BProgress * p2.BTime
                               + ((double) readFirst) * p1.Size * uSortBy
                               + ((double) readSecond) * p2.Size * uSortBy )
-                              / pRes->BTime;
+                            / pRes->BTime;
 
           return YIELD;
         }
