@@ -4,17 +4,11 @@
 %
 
 \chapter{Leistungsbewertung}\label{chp:Leistungsbewertung}
-Die geschachtelten Abfragen des TPC-D Benchmarks, die mit den in dieser Arbeit implementierten Algorithmen übersetzt werden können, dienen in diesem Kapitel als Beispiel, um die einzelnen Transformationsschritte bei der Entschachtelung darzustellen. Am Vergleich der Laufzeiten der einzelnen Phasen des Optimierers lässt sich erkennen, in welchen Fällen eine entschachtelte Ausführung der iterativ geschachtelten über- bzw. unterlegen ist. Die Abfragen werden auf einer Datenbank ausgeführt, die über ein Generierungsskript erzeugt werden kann. Um die Größe der Datenbank zu beeinflussen existiert ein Skalierungsfaktor, der bei der Erzeugung der Datenbank angegeben werden muss. Jede Abfrage wurde auf Datenbanken mit Skalierungsfaktor \begin{math} s \in \left\{ 2{^n}*10^{-4} | n >= 0 \wedge n <= 7 \right\}\end{math} ausgeführt. Die Darstellung der unterschiedlichen Laufzeiten für die einzelnen Phasen des Optimierers wurde anhand der Laufzeiten der Datenbank mit Skalierungsfaktor 0,0001 vorgenommen. Bei dieser Datenbankgröße unterscheiden sich die Laufzeiten der einzelnen Phasen nur um wenige Größenordnungen, so dass die graphische Darstellung der Aufteilung der Gesamtlaufzeit sinnvoll möglich ist.
+Die geschachtelten Abfragen des TPC-D Benchmarks, die mit den in dieser Arbeit implementierten Algorithmen übersetzt werden können, dienen in diesem Kapitel als Beispiel, um die einzelnen Transformationsschritte bei der Entschachtelung darzustellen. Am Vergleich der Laufzeiten der einzelnen Phasen des Optimierers lässt sich erkennen, in welchen Fällen eine entschachtelte Ausführung der iterativ geschachtelten über- bzw. unterlegen ist. Die Abfragen werden auf einer Datenbank ausgeführt, die über ein Generierungsskript erzeugt werden kann. Um die Größe der Datenbank zu beeinflussen existiert ein Skalierungsfaktor, der bei der Erzeugung der Datenbank angegeben werden muss. Jede Abfrage wurde auf Datenbanken mit verschiedenen Skalierungsfaktoren durchgeführt. Die Darstellung der unterschiedlichen Laufzeiten für die einzelnen Phasen des Optimierers wurde anhand der Laufzeiten der Datenbank mit Skalierungsfaktor 0,0008 vorgenommen. Bei dieser Datenbankgröße unterscheiden sich die Laufzeiten der einzelnen Phasen nur um wenige Größenordnungen, so dass die graphische Darstellung der Aufteilung der Gesamtlaufzeit sinnvoll möglich ist. Bei kleineren Skalierungsfaktoren kann es zu Fehlverhalten des Optimierers kommen, da die temporären Relationen unter Umständen leer sind. Die Berechnung der Selektivität von Join-Prädikaten, die auf leere Relationen verweisen, ist momentan fehlerhaft implementiert. 
 
 \section{Laufzeit- und Strukturvergleich}\label{sct:Laufzeit- und Strukturvergleich}
 \subsection{TPC-D Q2}
-Diese Abfrage dient der Ermittlung des günstigsten Lieferanten für ein gegebenes Bauteil in einer Region. Für ein Bauteil einer bestimmten Art und Größe wird der Lieferant ermittelt, der dieses zu den günstigsten Konditionen anbietet. Gibt es mehrere Lieferanten in der gewählten Region, die das gewünschte Teil zu den günstigsten Konditionen anbieten, so werden die 100 Lieferanten mit dem höchsten Kontostand angezeigt. Von jedem Lieferanten werden der Kontostand, der Name und das Land, die Teilenummer und der Hersteller, die Lieferantenadresse, Telefonnummer und eine Bemerkung angezeigt. Als Werte der Parameter SIZE, TYPE und REGION wurden die Werte aus der Abfrageüberprüfung des Benchmarks gewählt.
-
-\begin{itemize}
-	\item SIZE = 15
-	\item TYPE = BRASS
-	\item REGION = EUROPE
-\end{itemize}
+Diese Abfrage dient der Ermittlung des günstigsten Lieferanten für ein gegebenes Bauteil in einer Region. Für ein Bauteil einer bestimmten Art und Größe wird der Lieferant ermittelt, der dieses zu den günstigsten Konditionen anbietet. Gibt es mehrere Lieferanten in der gewählten Region, die das gewünschte Teil zu den günstigsten Konditionen anbieten, so werden die 100 Lieferanten mit dem höchsten Kontostand angezeigt. Von jedem Lieferanten werden der Kontostand, der Name und das Land, die Teilenummer und der Hersteller, die Lieferantenadresse, Telefonnummer und eine Bemerkung angezeigt. Als Werte der Parameter SIZE, TYPE und REGION wurden die Werte aus der Abfrageüberprüfung des Benchmarks gewählt. D.h. SIZE = \enquote{15}, TYPE = \enquote{BRASS} und REGION = \enquote{EUROPE}.
 
 \begin{lstlisting}[caption=Abfrage Q2,label=Q2:nested]
 select
@@ -32,7 +26,7 @@ where
 	ptype contains "BRASS",
 	snationkey = nnationkey,
 	nregionkey = rregionkey,	
-  rname = "EUROPE",
+ rname = "EUROPE",
 	pssupplycost = (
 		select
 			min(ps:pssupplycost)
@@ -54,21 +48,17 @@ orderby
 first 100
 \end{lstlisting}
 
-Die innere Abfrage ist vom Typ JA, da eine Aggregation (das Minimum) berechnet wird und sie ein Prädikat \sql{ppartkey = ps:ppartkey} enthält, das auf die Relation \emph{pssupplycost} des äußeren Abfrageblocks zugreift. Der Optimierer wendet also den in \ref{sct:Algorithmus NEST-JA2} beschriebenen Algorithmus an. Hierzu werden insgesamt drei temporäre Tabellen benötigt. Die erste temporäre Relation ist die Restriktion der im inneren Abfrageblock verwendeten Relationen des äußeren Blocks auf die benötigten Attribute.
+Die innere Abfrage ist vom Typ JA, da eine Aggregation (das Minimum) berechnet wird und sie ein Prädikat \sql{ppartkey = ps:ppartkey} enthält, das auf die Relation \sql{pssupplycost} des äußeren Abfrageblocks zugreift. Der Optimierer wendet also den in \ref{sct:Algorithmus NEST-JA2} beschriebenen Algorithmus an. Hierzu werden insgesamt drei temporäre Tabellen benötigt. Die erste temporäre Relation ist die Restriktion der im inneren Abfrageblock verwendeten Relationen des äußeren Blocks auf die benötigten Attribute.
 
-\begin{lstlisting}[caption=erste temporäre Relation zu Q2,label=Q2:trelxx1]
+\begin{lstlisting}[caption=Abfrage Q2{,} Definition trelxx1,label=Q2:trelxx1]
 trelxx1 = 
-select distinct
-	[ppartkey, 
-	pspartkey] 
-from 
-	[part, 
-	partsupp]
+select distinct [ppartkey, pspartkey] 
+from [part, partsupp]
 \end{lstlisting}
 
 Die zweite temporäre Relation ist die Einschränkung der inneren Relation durch alle \emph{einfachen} Prädikaten.
 
-\begin{lstlisting}[caption=zweite temporäre Relation zu Q2,label=Q2:trelxx2]
+\begin{lstlisting}[caption=Abfrage Q2{,} Definition trelxx2,label=Q2:trelxx2]
 trelxx2 =
 select [ps:pspartkey, ps:pssupplycost]
 from 
@@ -83,7 +73,7 @@ where
 
 Die dritte temporäre Relation wird aus dem Equi-Join der ersten und zweiten temporären Relationen unter Berechnung der Aggregation gebildet. Man beachte die Attributnamen mit \enquote{\_ps}. Diese sind notwendig, da sich Optimierer und \textsc{Secondo} in der Syntax für umbenannte Tupel unterscheiden. Es muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden. 
 
-\begin{lstlisting}[caption=dritte temporäre Relation zu Q2,label=Q2:trelxx3]
+\begin{lstlisting}[caption=Abfrage Q2{,} Definition trelxx3,label=Q2:trelxx3]
 trelxx3 = 
 select [pspartkey_ps, min(pssupplycost_ps) as var1] 
 from [trelxx1, trelxx2] 
@@ -91,7 +81,9 @@ where [ppartkey = pspartkey_ps]
 groupby pspartkey_ps
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Entschachtelte Variante von Abfrage Q2,label=Q2:unnested]
+Mit Algorithmus \textbf{NEST-G} ergibt sich 
+
+\begin{lstlisting}[caption=Abfrage Q2 in SQL-Syntax{,} entschachtelt,label=Q2:unnested]
 select 
 	[sacctbal, sname, nname, 
 	ppartkey, pmfgr, saddress, 
@@ -115,71 +107,12 @@ orderby
 first 100
 \end{lstlisting}
 
-\begin{lstlisting}[language=secondoscript,caption=Ausführbare Syntax der entschachtelten Variante von Q2,label=Q2:excutable_unnested]
-PART feedproject[pMFGR, pPARTKEY, pSIZE, pTYPE] 
-SUPPLIER feedproject[sACCTBAL, sADDRESS, sCOMMENT, sNAME, sNATIONKEY, sPHONE, sSUPPKEY]  
-NATION feedproject[nNAME, nNATIONKEY, nREGIONKEY]  
-REGION feedproject[rNAME, rREGIONKEY]  
-sortmergejoin[nREGIONKEY , rREGIONKEY] {0.007992, 0.808}  
-sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.5} 
-PARTSUPP feedproject[psPARTKEY, psSUPPKEY, psSUPPLYCOST] 
-symmjoin[(.sSUPPKEY = ..psSUPPKEY)] {0.00024975, 0.02525} 
-symmjoin[(.pPARTKEY = ..psPARTKEY)] {1.24875e-05, 0.001275} 
-trelxx3 feedproject[psPARTKEY_ps, Var1] {alias1}
-symmjoin[(.psSUPPLYCOST = ..Var1_alias1)] {2.93824e-05, 0.00302941}
-filter[(.pPARTKEY = .psPARTKEY_ps_alias1)] {9.18199e-05, 0.0102022}  
-filter[(.pTYPE contains "BRASS")] {0.00624375, 0.625}  
-filter[(.pSIZE = 15)] {0.00624375, 0.60625}  
-filter[(.rNAME = "EUROPE")] {0.1998, 19.4} 
-project[sACCTBAL, sNAME, nNAME, pPARTKEY, pMFGR, sADDRESS, sPHONE, sCOMMENT]  
-sortby[sACCTBAL desc, nNAME asc, sNAME asc, pPARTKEY asc]  
-head[100]  
-consume
-\end{lstlisting}
+als inhaltlich äquivalente Abfrage. Das geschachtelte Prädikat 
 
-\begin{lstlisting}[caption=Ausführbare Syntax Q2 ohne Entschachtelung,label=Q2:executable]
-PART feedproject[pMFGR, pPARTKEY, pSIZE, pTYPE] 
-SUPPLIER feedproject[sACCTBAL, sADDRESS, sCOMMENT, sNAME, sNATIONKEY, sPHONE, sSUPPKEY]  
-NATION feedproject[nNAME, nNATIONKEY, nREGIONKEY]  REGION feedproject[rNAME, rREGIONKEY]  
-sortmergejoin[nREGIONKEY , rREGIONKEY] {0.007992, 0.808}  
-sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.5} 
-PARTSUPP feedproject[psPARTKEY, psSUPPKEY, psSUPPLYCOST] 
-symmjoin[(.sSUPPKEY = ..psSUPPKEY)] {0.00024975, 0.02525} 
-symmjoin[(.pPARTKEY = ..psPARTKEY)] {1.24875e-05, 0.001275}  
-\textbf{
-filter[
-	fun (alias3: TUPLE) 
-	(
-		attr(alias3, psSUPPLYCOST) 
-		= 
-		SUPPLIER feedproject[sNATIONKEY, sSUPPKEY] {s}  
-		NATION feedproject[nNATIONKEY, nREGIONKEY] {n}  
-		REGION feedproject[rNAME, rREGIONKEY] {r}  
-		sortmergejoin[nREGIONKEY_n , rREGIONKEY_r] {0.007992, 0.8}  
-		sortmergejoin[sNATIONKEY_s , nNATIONKEY_n] {0.004995, 0.505}  
-		filter[(.rNAME_r = "EUROPE")] {0.1998, 19.4} 
-		PARTSUPP feedproject[psPARTKEY, psSUPPKEY, psSUPPLYCOST] {ps} 
-		symmjoin[(.sSUPPKEY_s = ..psSUPPKEY_ps)] {0.00024975, 0.026}  
-		filter[(attr(alias3, pPARTKEY) = .psPARTKEY_ps)]  
-		min[psSUPPLYCOST_ps] 
-	)] {1.24875e-05, 0.001675}  
-}
-filter[(.pSIZE = 15)] {0.00624375, 0.60625}  
-filter[(.pTYPE contains "BRASS")] {0.00624375, 0.625}  
-filter[(.rNAME = "EUROPE")] {0.1998, 19.4} 
-project[sACCTBAL, sNAME, nNAME, pPARTKEY, pMFGR, sADDRESS, sPHONE, sCOMMENT]  
-sortby[sACCTBAL desc, nNAME asc, sNAME asc, pPARTKEY asc]  
-head[100]  
-consume
-\end{lstlisting}
-
-Das geschachtelte Prädikat 
-
-\begin{lstlisting}[caption=geschachteltes Prädikat]
+\begin{lstlisting}[caption=Abfrage Q2{,} geschachteltes Prädikat,label=Q2:nested_predicate]
 pssupplycost = (
-		select
-			min(ps:pssupplycost)
-		from
+		select min(ps:pssupplycost)
+		from 
 			[partsupp as ps, supplier as s,
 			nation as n, region as r]
 		where
@@ -191,7 +124,70 @@ pssupplycost = (
 	 )
 \end{lstlisting}
 
-wurde durch die zwei Prädikate \sql{pssupplycost = trelxx4:var1} und \sql{ppartkey = trelxx4:pspartkey\_ps} ersetzt. Das erste der beiden Prädikate ergibt sich direkt aus dem geschachtelten Prädikat, während das zweite Prädikat die Übernahme des korrelierten Prädikats in die endgültige Abfrage darstellt. Zusätzlich wurde die neue Relation trelxx3 in die FROM-Klausel aufgenommen. Alle nicht korrelierten Prädikate der Unterabfrage wurden bereits bei der Erstellung der Relation trelxx3 berücksichtigt. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate. 
+wurde durch die zwei Prädikate \sql{pssupplycost = alias1:var1} und \sql{ppartkey = alias1:pspartkey\_ps} ersetzt. Das erste der beiden Prädikate ergibt sich direkt aus dem geschachtelten Prädikat, während das zweite Prädikat die Übernahme des korrelierten Prädikats in die endgültige Abfrage darstellt. Zusätzlich wurde die neue Relation trelxx3 in die FROM-Klausel aufgenommen. Alle nicht korrelierten Prädikate der Unterabfrage wurden bereits bei der Erstellung der Relation trelxx3 berücksichtigt. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate. 
+
+Wird die Abfrage ohne die Anwendung von Entschachtelungsalgorithmen übersetzt, so ergibt sich in ausführbarer Syntax folgender Ausdruck:
+
+\begin{lstlisting}[caption=Abfrage Q2 in ausführbarer Syntax{,} geschachtelt,label=Q2:executable]
+PART feedproject[pMFGR, pPARTKEY, pSIZE, pTYPE] 
+SUPPLIER feedproject[sACCTBAL, sADDRESS, sCOMMENT, sNAME, sNATIONKEY, sPHONE, sSUPPKEY] 
+NATION feedproject[nNAME, nNATIONKEY, nREGIONKEY] 
+REGION feedproject[rNAME, rREGIONKEY] 
+sortmergejoin[nREGIONKEY , rREGIONKEY] {0.007992, 0.808} 
+sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.5} 
+PARTSUPP feedproject[psPARTKEY, psSUPPKEY, psSUPPLYCOST] 
+symmjoin[(.sSUPPKEY = ..psSUPPKEY)] {0.00024975, 0.02525} 
+symmjoin[(.pPARTKEY = ..psPARTKEY)] {1.24875e-05, 0.001275} 
+filter[
+	fun (alias3: TUPLE) 
+	(
+		attr(alias3, psSUPPLYCOST) 
+		= 
+		SUPPLIER feedproject[sNATIONKEY, sSUPPKEY] {s} 
+		NATION feedproject[nNATIONKEY, nREGIONKEY] {n} 
+		REGION feedproject[rNAME, rREGIONKEY] {r} 
+		sortmergejoin[nREGIONKEY_n , rREGIONKEY_r] {0.007992, 0.8} 
+		sortmergejoin[sNATIONKEY_s , nNATIONKEY_n] {0.004995, 0.505} 
+		filter[(.rNAME_r = "EUROPE")] {0.1998, 19.4} 
+		PARTSUPP feedproject[psPARTKEY, psSUPPKEY, psSUPPLYCOST] {ps} 
+		symmjoin[(.sSUPPKEY_s = ..psSUPPKEY_ps)] {0.00024975, 0.026} 
+		filter[(attr(alias3, pPARTKEY) = .psPARTKEY_ps)] 
+		min[psSUPPLYCOST_ps] 
+	)] {1.24875e-05, 0.001675} 
+filter[(.pSIZE = 15)] {0.00624375, 0.60625} 
+filter[(.pTYPE contains "BRASS")] {0.00624375, 0.625} 
+filter[(.rNAME = "EUROPE")] {0.1998, 19.4} 
+project[sACCTBAL, sNAME, nNAME, pPARTKEY, pMFGR, sADDRESS, sPHONE, sCOMMENT] 
+sortby[sACCTBAL desc, nNAME asc, sNAME asc, pPARTKEY asc] 
+head[100] 
+consume
+\end{lstlisting}
+
+Das geschachtelte Prädikat (Listing \ref{Q2:nested_predicate}) ist mit einem komplexen \secondo{filter}-Ausdruck übersetzt worden. Die Unterabfrage wurde wie eine flache Abfrage übersetzt. Die einzige Besonderheit ist das Prädikate \secondo{filter[(attr(alias3, pPARTKEY) = .psPARTKEY\_ps)]} in dem das Attribut \secondo{pPARTKEY} der äußeren Relation \secondo{PART} referenziert wird.
+
+Die Übersetzung der entschachtelten Abfrage entspricht der iterativ-geschachtelten Übersetzung, mit Ausnahme des geschachtelten \secondo{filter}-Ausdrucks. Dieser wird durch den Join mit der Relation \secondo{trelxx3} und die beiden Prädikate \secondo{symmjoin[(.psSUPPLYCOST = ..Var1\_alias1)]} und \secondo{filter[(.pPARTKEY = .psPARTKEY\_ps\_alias1)]} ersetzt. Dies entspricht gerade den durch den Algorithmus \textbf{NEST-G} vorgenommenen Änderungen an der Abfrage.
+
+\begin{lstlisting}[language=secondoscript,caption=Abfrage Q2 in ausführbarer Syntax{,} entschachtelt,label=Q2:executable_unnested]
+PART feedproject[pMFGR, pPARTKEY, pSIZE, pTYPE] 
+SUPPLIER feedproject[sACCTBAL, sADDRESS, sCOMMENT, sNAME, sNATIONKEY, sPHONE, sSUPPKEY] 
+NATION feedproject[nNAME, nNATIONKEY, nREGIONKEY] 
+REGION feedproject[rNAME, rREGIONKEY] 
+sortmergejoin[nREGIONKEY , rREGIONKEY] {0.007992, 0.808} 
+sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.5} 
+PARTSUPP feedproject[psPARTKEY, psSUPPKEY, psSUPPLYCOST] 
+symmjoin[(.sSUPPKEY = ..psSUPPKEY)] {0.00024975, 0.02525} 
+symmjoin[(.pPARTKEY = ..psPARTKEY)] {1.24875e-05, 0.001275} 
+trelxx3 feedproject[psPARTKEY_ps, Var1] {alias1}
+symmjoin[(.psSUPPLYCOST = ..Var1_alias1)] {2.93824e-05, 0.00302941}
+filter[(.pPARTKEY = .psPARTKEY_ps_alias1)] {9.18199e-05, 0.0102022} 
+filter[(.pTYPE contains "BRASS")] {0.00624375, 0.625} 
+filter[(.pSIZE = 15)] {0.00624375, 0.60625} 
+filter[(.rNAME = "EUROPE")] {0.1998, 19.4} 
+project[sACCTBAL, sNAME, nNAME, pPARTKEY, pMFGR, sADDRESS, sPHONE, sCOMMENT] 
+sortby[sACCTBAL desc, nNAME asc, sNAME asc, pPARTKEY asc] 
+head[100] 
+consume
+\end{lstlisting}
 
 \begin{table}[h]
 \centering
@@ -199,43 +195,54 @@ wurde durch die zwei Prädikate \sql{pssupplycost = trelxx4:var1} und \sql{ppartk
 & \multicolumn{4}{c}{Laufzeit in ms} \\ \cmidrule(l){2-5}
 & \multicolumn{2}{c}{iterativ} & \multicolumn{2}{c}{entschachtelt} \\ 
 Phase & \multicolumn{1}{c}{kalt} & warm & \multicolumn{1}{c}{kalt} & warm\\ \midrule
-Rewrite & 1 & 1 & 1138 & 1 \\
-Lookup & 275 & 38 & 3 & 3 \\
-QueryToPlan & 371 & 398 & 903 & 937 \\
-Execute & 1440 & 1480 & 390 & 401 \\
+Rewrite & 0 & 0 & 549 & 0 \\
+Lookup & 92 & 44 & 3 & 3 \\
+QueryToPlan & 236 & 275 & 678 & 508 \\
+Execute & 7673 & 7658 & 298 & 307 \\
 \cmidrule(l){1-5} 
-Total & 2087 & 1917 & 2434 & 1342 \\
+Total & 8241 & 8213 & 1790 & 1063 \\
 \bottomrule\end{tabular}
-  \caption{Detaillierte Laufzeiten von Q2 bei Skalierungsfaktor = 0.0001 der DB}
-  \label{tab:Q2 Laufzeit}
+ \caption{Detaillierte Laufzeiten von Q2 bei Skalierungsfaktor = 0,0008 der DB}
+ \label{tab:Q2 Laufzeit}
 \end{table}
 
-Der Optimierer berechnet für Skalierungsfaktor 0,0001 Kosten von 528,18 für die entschachtelte und 481,189 für die iterative Ausführung. Dies entspricht in etwa dem tatsächlichen Verhältnis der Laufzeiten, wie man Tabelle \ref{tab:Q2 Laufzeit} entnehmen kann. Die erneute Ausführung der entschachtelten Variante ist wie man sehen kann schneller, da hier die bereits erstellten temporären Relationen wiederverwendet werden. Die Laufzeit für deren Erstellung entfällt hier also, was sich auch an den Laufzeiten ablesen lässt. Bei der iterativen Ausführung entfallen bei der zweiten Ausführung nur die Ermittlung der Selektivitäten, was sich an der kürzeren Laufzeit der Lookup-Phase erkennen lässt.
+Der Optimierer berechnet für den Skalierungsfaktor 0,0008 Kosten von 411,18 für die entschachtelte und 377,18 für die iterative Ausführung. Dies widerspricht den tatsächlichen Laufzeiten, wie man Tabelle \ref{tab:Q2 Laufzeit} entnehmen kann. Auch für den Skalierungsfaktor 0,0032 sehen die berechneten Kosten (1657,95 für die entschachtelte Ausführung, 1610,28 für die iterative Ausführung) ähnlich aus. Der Optimierer würde also bei einem Vergleich der Ausführungsstrategien die iterative Ausführung wählen. Wie der Abbildung \ref{plot:Q2 line} zu entnehmen ist, wäre diese Auswahl ungünstig. Möglicherweise werden die Ausführungskosten für geschachtelte Prädikate noch falsch eingeschätzt.
 
 \pgfplotsset{every x tick label/.style={below, yshift=-0.25em, rotate=30, xshift=-1.5em}, every y tick label/.style={/pgf/number format/1000 sep={.}}}
 
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
-/pgf/number format/1000 sep=},
+/pgf/number format/1000 sep=,font=\footnotesize},
 xtick=data,
 ylabel=Sekunden,
-xticklabels={A kalt,A warm,B kalt,B warm},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 area legend,
 anchor=east,legend columns=1},
 ybar stacked,
+xticklabels={1,2,3,4},
+xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
 ]
-\addplot coordinates {(0,	1138	)(1,	1	)(2,	1	)(3,	1	)};
-\addplot coordinates {(0,	3	)(1,	3	)(2,	275	)(3,	38	)};
-\addplot coordinates {(0,	903	)(1,	937	)(2,	371	)(3,	398	)};
-\addplot coordinates {(0,	390	)(1,	401	)(2,	1440	)(3,	1480	)};
+\addplot coordinates {(0,	0. 549	)(1,	0	)(2, 	0	)(3,	0	)};
+\addplot coordinates {(0,	0.003	)(1,	0.003	)(2,	0.092	)(3,	0.044	)};
+\addplot coordinates {(0,	0.678	)(1,	0.508	)(2,	0.236	)(3,	0.275	)};
+\addplot coordinates {(0,	0.298	)(1,	0.307	)(2,	7.673	)(3,	7.658	)};
 \legend{Rewrite,Lookup,QueryToPlan,Execute}
 \end{axis}
 \end{tikzpicture}
+\caption{Abfrage Q2, detaillierte Laufzeit in Sekunden}
+\label{Q2:plot bars}
+\end{figure}
+\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+\stepcounter{footnote}\footnotetext{iterativ, kalt}
+\stepcounter{footnote}\footnotetext{iterativ, warm}
 
-\begin{figure}
+Wie Abbildung \ref{Q2:plot bars} zu entnehmen ist, verkürzt sich die Laufzeit für die entschachtelte Ausführung bei mehrfacher Ausführung um die Laufzeit der Umschreibungsphase. Bei der iterativen Ausführung kann dagegen nur die Ermittlung der Selektivitäten eingespart werden. Da die Selektivitäten gespeichert werden, stehen diese auch unabhängig von einer Datenbanksitzung zur Verfügung. 
+
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
@@ -262,15 +269,14 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q2 für die Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q2 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q2 line}
 \end{figure}
 
-Während die Laufzeit für die entschachtelte Ausführung nur linear ansteigt, wächst die Laufzeit für die iterative Ausführung exponentiell. Schon bei einem Skalierungsfaktor von 0.0064 verringert sich die Laufzeit der Abfrage durch Entschachtelung um eine Größenordnung. Bei 
-
+Während die Laufzeit für die entschachtelte Ausführung nur langsam ansteigt, wächst die Laufzeit für die iterative Ausführung exponentiell. Schon bei einem Skalierungsfaktor von 0.0064 verringert sich die Laufzeit der Abfrage durch Entschachtelung um eine Größenordnung. Eine entschachtelte Ausfürhung ist bei Abfrage Q2 also vorteilhaft. 
 
 \subsection{TPC-D Q4}
-Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. Es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf.
+Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. Es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf. 
 Als Parameter DATE wurde der Wert \enquote{1993-07-01} aus der Abfrage-Überprüfung gewählt
 
 \begin{lstlisting}[caption=Abfrage Q4]
@@ -298,23 +304,21 @@ orderby	[oorderpriority]
 Die Abfrage ist vom Typ J, da das geschachtelte Prädikat keine Aggregation enthält, aber über das Prädikat \sql{lorderkey = oorderkey} mit dem äußeren Abfrageblock korreliert ist.
 
 Die Projektion der äußeren Relation auf die Join-Spalte ergibt
-\begin{lstlisting}[caption=TempRel1]
-select distinct[oorderkey] 
-from orders
+\begin{lstlisting}[caption=Abfrage Q4{,} Definition trelxx1]
+trelxx1 = select distinct[oorderkey] from orders
 \end{lstlisting}
 
 Einschränkung der inneren Relation mit allen \emph{einfachen} Prädikate.
-\begin{lstlisting}[caption=TempRel2]
-select [lorderkey]
-from [lineitem]
-where [lcommitdate < lreceiptdate]
+\begin{lstlisting}[caption=Abfrage Q4{,} Definition trelxx2]
+trelxx2 = select [lorderkey] from [lineitem] where [lcommitdate < lreceiptdate]
 \end{lstlisting}
 
 
-Als dritte temporäre Relation muss daher der Full-Outer-Join zwischen den temporären Relationen trelxx1 und trelxx2 berechnet werden.
-\begin{lstlisting}[caption=TempRel3]
-trelxx1  feed 
-trelxx2  feed  
+Als dritte temporäre Relation muss daher der Full-Outer-Join zwischen den temporären Relationen trelxx1 und trelxx2 berechnet werden. Da hier der Full-Outer-Join berechnet wird, ist die Definition in ausführbarer Syntax angegeben. Auch der Optimierer erzeugt diese Definition \emph{direkt} in ausführbarer Syntax.
+\begin{lstlisting}[caption=Abfrage Q4{,} Definition trelxx3]
+trelxx3 = 
+trelxx1 feed 
+trelxx2 feed 
 smouterjoin[oORDERKEY, lORDERKEY] 
 sortby[oORDERKEY asc] 
 groupby[oORDERKEY;Var1: group feed filter[not(isempty(.lORDERKEY))] count] 
@@ -322,7 +326,8 @@ projectextend[Var1; lORDERKEY: .oORDERKEY]
 consume
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Entschachtelte Variante von Q4]
+Die \sql{exists}-Konstruktion aus der Abfrage vereinfacht sich nach der Optimierung zu einem Join mit der neuen Tabelle \secondo{trelxx3} und einer Selektion von Einträgen dieser Tabelle, die der Bedingung \secondo{0 < var1} genügen. Aus Gründen der Eindeutigkeit der Attributnamen wird die neue Relation unter dem Namen \secondo{alias1} eingebunden.
+\begin{lstlisting}[caption=Abfrage Q4 in SQL-Syntax{,} entschachtelt]
 select [oorderpriority, count(*) as ordercount] 
 from [orders, trelxx3 as alias1] 
 where 
@@ -338,71 +343,85 @@ groupby [oorderpriority]
 orderby [oorderpriority]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q4 ausführbare Syntax entschachtelte Version]
-ORDERS feedproject[oORDERDATE, oORDERKEY, oORDERPRIORITY]  
+Die Übersetzung der entschachtelten Form von Abfrage Q4 erzeugt folgenden Ausdruck in ausführbarer Syntax
+
+\begin{lstlisting}[caption=Abfrage Q4 in ausführbarer Syntax{,} entschachtelt]
+ORDERS feedproject[oORDERDATE, oORDERKEY, oORDERPRIORITY] 
 filter[(.oORDERDATE < theInstant(
 	year_of(instant("1993-07-01")), 
 	(month_of(instant("1993-07-01")) + 3), 
 	day_of(instant("1993-07-01")))
-)] {0.001665, 0.0841667}  
+)] {0.001665, 0.0841667} 
 filter[(.oORDERDATE >= instant("1993-07-01"))] {0.0058275, 0.0833333} 
 trelxx3 feedproject[lORDERKEY, Var1] {alias1} 
-symmjoin[(.oORDERKEY = ..lORDERKEY_alias1)] {0.000803196, 0.007608}  
-filter[(0 < .Var1_alias1)] {0.373792, 0.0875}  
+symmjoin[(.oORDERKEY = ..lORDERKEY_alias1)] {0.000803196, 0.007608} 
+filter[(0 < .Var1_alias1)] {0.373792, 0.0875} 
 sortby[oORDERPRIORITY asc] 
-groupby[oORDERPRIORITY; Ordercount: group feed  count ]
-project[oORDERPRIORITY, Ordercount]  
-sortby[oORDERPRIORITY asc]  
+groupby[oORDERPRIORITY; Ordercount: group feed count ]
+project[oORDERPRIORITY, Ordercount] 
+sortby[oORDERPRIORITY asc] 
 consume
-\end{lstlisting}
+\end{lstlisting}.
 
-\begin{lstlisting}[caption=Q4 ausführbare Syntax geschachtelte Version]
-ORDERS feedproject[oORDERDATE, oORDERKEY, oORDERPRIORITY]  
+Dieser unterscheidet sich von der Übersetzung der Abfrage ohne Entschachtelung lediglich in der Übersetzung des geschachtelten Prädikats. In der entschahtelten Abfrage wird dieses durch einen Join mit Relation \secondo{trelxx3} über die Attribute \secondo{oORDERKEY} und \secondo{lORDERKEY} sowie das Selektions-Prädikat \secondo{filter[(0 < .Var1\_alias1)]} übersetzt. Die iterative Variante enthält dagegen die triviale Übersetzung mit einem \secondo{filter}-Ausdruck.
+
+\begin{lstlisting}[caption=Abfrage Q4 in ausführbarer Syntax{,} geschachtelt]
+ORDERS feedproject[oORDERDATE, oORDERKEY, oORDERPRIORITY] 
 filter[(.oORDERDATE < theInstant(
 	year_of(instant("1993-07-01")), 
 	(month_of(instant("1993-07-01")) + 3), 
 	day_of(instant("1993-07-01"))))
-]  {0.001665, 0.0841667}  
-filter[(.oORDERDATE >= instant("1993-07-01"))] {0.0058275, 0.0833333}  
+] {0.001665, 0.0841667} 
+filter[(.oORDERDATE >= instant("1993-07-01"))] {0.0058275, 0.0833333} 
 filter[
 	fun (alias2: TUPLE) (
 		0 
 		< 
-		LINEITEM feedproject[lCOMMITDATE, lORDERKEY, lRECEIPTDATE]  
-		filter[(.lCOMMITDATE < .lRECEIPTDATE)] {0.0034965, 0.059}  
-		filter[(.lORDERKEY = attr(alias2, oORDERKEY))]  
+		LINEITEM feedproject[lCOMMITDATE, lORDERKEY, lRECEIPTDATE] 
+		filter[(.lCOMMITDATE < .lRECEIPTDATE)] {0.0034965, 0.059} 
+		filter[(.lORDERKEY = attr(alias2, oORDERKEY))] 
 		count 
-	)] {0.0008325, 0.0925}  
+	)] {0.0008325, 0.0925} 
 sortby[oORDERPRIORITY asc] 
-groupby[oORDERPRIORITY; Ordercount: group feed  count ]
-project[oORDERPRIORITY, Ordercount]  
-sortby[oORDERPRIORITY asc]  
+groupby[oORDERPRIORITY; Ordercount: group feed count ]
+project[oORDERPRIORITY, Ordercount] 
+sortby[oORDERPRIORITY asc] 
 consume
 \end{lstlisting}
 
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
 /pgf/number format/1000 sep=},
 xtick=data,
-ylabel=Millisekunden,
+ylabel=Sekunden,
 scaled ticks=base 10:0,
-xticklabels={A kalt,A warm,B kalt,B warm},
+xticklabels={1,2,3,4},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 area legend,
 anchor=east,legend columns=1},
 ybar stacked,
+xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
 ]
-\addplot coordinates {(0,	1222	)(1,	1	)(2,	1	)(3,	2	)};
-\addplot coordinates {(0,	2	)(1,	2	)(2,	169	)(3,	2	)};
-\addplot coordinates {(0,	387	)(1,	9	)(2,	4	)(3,	4	)};
-\addplot coordinates {(0,	9597	)(1,	9638	)(2,	4710	)(3,	4703	)};
+\addplot coordinates {(0,	0.645	)(1,	0	)(2,	0	)(3,	0	)};
+\addplot coordinates {(0,	0.002	)(1,	0.002	)(2,	0.026	)(3,	0.002	)};
+\addplot coordinates {(0,	0.002	)(1,	0.002	)(2,	0.002	)(3,	0.003	)};
+\addplot coordinates {(0,	5.986	)(1,	6.054	)(2,	3.093	)(3,	3.098	)};
 \legend{Rewrite,Lookup,QueryToPlan,Execute}
 \end{axis}
 \end{tikzpicture}
+\caption{Abfrage Q4, detaillierte Laufzeit in Sekunden}
+\end{figure}
+\setcounter{footnote}{0}
+\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+\stepcounter{footnote}\footnotetext{iterativ, kalt}
+\stepcounter{footnote}\footnotetext{iterativ, warm}
 
-\begin{figure}
+
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
@@ -420,17 +439,18 @@ sharp plot
 ]
 \addplot coordinates {(0.0002,	0.067	)(0.0004,	0.489	)(0.0008,	7.03	)(0.0016,	25.483	)(0.0032,	98.154	)(0.0064,	383.557	)};
 \addplot coordinates {(0.0002,	0.058	)(0.0004,	0.076	)(0.0008,	6.277	)(0.0016,	24.222	)(0.0032,	95.008	)(0.0064,	382.824	)};
-\addplot coordinates {(0.0002,	0.504	)(0.0004,	0.684	)(0.0008,	3.313	)(0.0016,	88.478	)(0.0032,	354.426	)(0.0064,	1442.454  )};
-\addplot coordinates {(0.0002,	0.434	)(0.0004,	0.643	)(0.0008,	3.297	)(0.0016,	88.188	)(0.0032,	353.111	)(0.0064,	1439.432  )};
+\addplot coordinates {(0.0002,	0.504	)(0.0004,	0.684	)(0.0008,	3.313	)(0.0016,	88.478	)(0.0032,	354.426	)(0.0064,	1442.454 )};
+\addplot coordinates {(0.0002,	0.434	)(0.0004,	0.643	)(0.0008,	3.297	)(0.0016,	88.188	)(0.0032,	353.111	)(0.0064,	1439.432 )};
 \legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q4 für die Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q4 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q4 line}
 \end{figure}
 
 \subsection{TPC-D Q7}
-Diese Abfrage listet für zwei gewählte Länder den Wert der versandten Waren. Es wird Wert der Waren der zwischen Lieferanten und Kunden länderübergreifend versandt wurde ausgegeben, gruppiert nach Land des Lieferanten, Land des Kunden und Jahr. 
+Diese Abfrage listet für zwei gewählte Länder den Wert der versandten Waren. Es wird Wert der Waren, die zwischen Lieferanten und Kunden länderübergreifend versandt wurden, ausgegeben, gruppiert nach Land des Lieferanten, Land des Kunden und Jahr. Als Werte für die Parameter NATION1 und NATION2 wurden die Werte aus der Abfrageüberprüfung, NATION1 = \enquote{FRANCE} und NATION2 = \enquote{GERMANY} ausgewählt.
+
 \begin{lstlisting}[caption=Abfrage Q7]
 select [supp_nation, cust_nation, lyear, sum(volume) as revenue]
 from ( 
@@ -460,9 +480,10 @@ groupby	[supp_nation, cust_nation, lyear]
 orderby	[supp_nation, cust_nation, lyear]
 \end{lstlisting}
 
-Ermittlung der Grunddaten, über die selektiert wird.
-\begin{lstlisting}[caption=TempRel1]
-select 
+Da es sich um eine Abfrage mit einer geschachtelten \sql{from}-Klausel handelt, muss diese im ersten Schritt durch ihre Auswertung in Form einer temporären Relation ersetzt werden. Die definierende Abfrage der \sql{from}-Klausel ist eine flache Abfrage, daher müssen keine weiteren Entschachtelungsalgorithmen angewandt werden.
+
+\begin{lstlisting}[caption=Abfrage Q7{,} Definition trelxx1]
+trelxx1 = select 
 	[n1:nname as supp_nation, 
 	n2:nname as cust_nation, 
 	year_of(lshipdate)as lyear, 
@@ -485,7 +506,8 @@ where
 	)]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Entschachtelte Variante von Q7]
+Die entschachtelte Version von Abfrage Q7 stellt nur noch eine einfache Aggregationsberechnung über der neuen temporären Relation dar.
+\begin{lstlisting}[caption=Abfrage Q7 in SQL-Syntax{,} entschachtelt]
 select 
 	[supp_nation, cust_nation, 
 	lyear, sum(volume)as revenue]
@@ -494,49 +516,67 @@ groupby [supp_nation, cust_nation, lyear]
 orderby [supp_nation, cust_nation, lyear]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q7 ausführbar entschachtelt]
-trelxx4  feed  
+Damit ist auch die Übersetzung der entschachtelten Version trivial.
+
+\begin{lstlisting}[caption=Abfrage Q7 in ausführbarer Syntax{,} entschachtelt]
+trelxx1 feed 
 sortby[Supp_nation asc, Cust_nation asc, Lyear asc] 
-groupby[Supp_nation, Cust_nation, Lyear; Revenue: group feed  sum[Volume] ]
-project[Supp_nation, Cust_nation, Lyear, Revenue]  
-sortby[Supp_nation asc, Cust_nation asc, Lyear asc]  
+groupby[Supp_nation, Cust_nation, Lyear; Revenue: group feed sum[Volume] ]
+project[Supp_nation, Cust_nation, Lyear, Revenue] 
+sortby[Supp_nation asc, Cust_nation asc, Lyear asc] 
 consume
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q7 ausführbar geschachtelt]
+Die Übersetzung der Abfrage erfolgt, wie in Abschnitt \ref{ssct:from-Klausel} beschrieben. Die innere Abfrage wird in einen Strom übersetzt, auf den dann Selektion und Projektion der äußeren Abfrage angewandt werden. Wie man sehen kann, stimmen die entschachtelte Variante und die iterative Übersetzung ab dem Ausdruck \secondo{sortby[Supp\_nation asc, Cust\_nation asc, Lyear asc]} vollkommen überein.
+
+\begin{lstlisting}[caption=Abfrage Q7 in ausführbarer Syntax{,} geschachtelt]
 CUSTOMER feedproject[cCUSTKEY, cNATIONKEY] 
-SUPPLIER feedproject[sNATIONKEY, sSUPPKEY]  
-NATION feedproject[nNAME, nNATIONKEY] {n1}  
+SUPPLIER feedproject[sNATIONKEY, sSUPPKEY] 
+NATION feedproject[nNAME, nNATIONKEY] {n1} 
 sortmergejoin[sNATIONKEY , nNATIONKEY_n1] {0.004995, 0.505} 
 NATION feedproject[nNAME, nNATIONKEY] {n2} 
-symmjoin[(((.nNAME_n1 = "FRANCE") and (..nNAME_n2 = "GERMANY")) or ((.nNAME_n1 = "GERMANY") and (..nNAME_n2 = "FRANCE")))] {0.0015984, 0.1696}
+symmjoin[(
+	((.nNAME_n1 = "FRANCE") and (..nNAME_n2 = "GERMANY")) 
+	or 
+	((.nNAME_n1 = "GERMANY") and (..nNAME_n2 = "FRANCE"))
+)] {0.0015984, 0.1696}
 symmjoin[(.cNATIONKEY = ..nNATIONKEY_n2)] {0.001665, 0.0336667} 
 ORDERS feedproject[oCUSTKEY, oORDERKEY] 
 symmjoin[(.cCUSTKEY = ..oCUSTKEY)] {0.001998, 0.00526667} 
 LINEITEM feedproject[lDISCOUNT, lEXTENDEDPRICE, lORDERKEY, lSHIPDATE, lSUPPKEY] 
-symmjoin[(.oORDERKEY = ..lORDERKEY)] {3.996e-06, 0.00042}  
-filter[(.sSUPPKEY = .lSUPPKEY)] {0.001998, 0.026}  
-filter[instant2real(.lSHIPDATE) between[instant2real(instant("1995-01-01")) , instant2real(instant("1996-12-31"))] ] {0.0004995, 0.0505}  extend[Supp_nation: .nNAME_n1, Cust_nation: .nNAME_n2, Lyear: year_of(.lSHIPDATE), Volume: (.lEXTENDEDPRICE * (1 - .lDISCOUNT))] project[Supp_nation, Cust_nation, Lyear, Volume]  
+symmjoin[(.oORDERKEY = ..lORDERKEY)] {3.996e-06, 0.00042} 
+filter[(.sSUPPKEY = .lSUPPKEY)] {0.001998, 0.026} 
+filter[
+	instant2real(.lSHIPDATE) 
+	between[instant2real(instant("1995-01-01")) , instant2real(instant("1996-12-31"))] 
+] {0.0004995, 0.0505} 
+extend[
+	Supp_nation: .nNAME_n1, Cust_nation: .nNAME_n2, Lyear: year_of(.lSHIPDATE), 
+	Volume: (.lEXTENDEDPRICE * (1 - .lDISCOUNT)
+)]
+project[Supp_nation, Cust_nation, Lyear, Volume] 
 sortby[Supp_nation asc, Cust_nation asc, Lyear asc] 
-groupby[Supp_nation, Cust_nation, Lyear; Revenue: group feed  sum[Volume] ]
-project[Supp_nation, Cust_nation, Lyear, Revenue]  
-sortby[Supp_nation asc, Cust_nation asc, Lyear asc]  
+groupby[Supp_nation, Cust_nation, Lyear; Revenue: group feed sum[Volume] ]
+project[Supp_nation, Cust_nation, Lyear, Revenue] 
+sortby[Supp_nation asc, Cust_nation asc, Lyear asc] 
 consume
 \end{lstlisting}
 
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
 /pgf/number format/1000 sep=},
 xtick=data,
-ylabel=Millisekunden,
+ylabel=Sekunden,
 scaled ticks=base 10:0,
-xticklabels={A kalt,A warm,B kalt,B warm},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 area legend,
 anchor=east,legend columns=1},
 ybar stacked,
+xticklabels={1,2,3,4},
+xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
 ]
 \addplot coordinates {(0,	962	)(1,	1	)(2,	1	)(3,	1	)};
 \addplot coordinates {(0,	0	)(1,	0	)(2,	7	)(3,	5	)};
@@ -545,8 +585,15 @@ ybar stacked,
 \legend{Rewrite,Lookup,QueryToPlan,Execute}
 \end{axis}
 \end{tikzpicture}
+\caption{Laufzeit der einzelnen Phasen von Abfrage Q7}
+\end{figure}
+\setcounter{footnote}{0}
+\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+\stepcounter{footnote}\footnotetext{iterativ, kalt}
+\stepcounter{footnote}\footnotetext{iterativ, warm}
 
-\begin{figure}
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
@@ -569,13 +616,16 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q7 für die Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q7 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q7 line}
 \end{figure}
 
+Wie man an der Entwicklung der Laufzeiten in Abbildung \ref{plot:Q7 line} sehen kann, ergeben sich durch die Entschachtelung bei einmaliger Ausführung weder vor noch Nachteile. Dies ist auch nicht anders zu erwarten, da sich die beiden Ausführungsstrategien nur hinsichtlich der Persistenz des Stroms der inneren Abfrage unterscheiden. Bei mehrfacher Ausführung ist die entschachtelte Ausführung klar überlegen, da hierbei die Auswertung der inneren Abfrage komplett entfallen kann.
+
 
 \subsection{TPC-D Q9}
-Ermittelt den Gewinn, der mit bestimmten Teilen gemacht wurde, gruppiert nach Land und Jahr. Gewinn ist hier definiert als rabattierter Verkaufspreis - Einkaufspreis * Anzahl.
+Ermittelt den Gewinn, der mit bestimmten Teilen gemacht wurde, gruppiert nach Land und Jahr. Gewinn ist hier definiert als rabattierter Verkaufspreis - Einkaufspreis * Anzahl. Für die Parameter COLOR, DATE und NATION wurden die Werte aus der Abfrageüberprüfung des Benchmarks, COLOR = forest, DATE = 01.01.1994 und NATION = CANADA, gewählt.
+
 \begin{lstlisting}[caption=Abfrage Q9]
 select [nation, oyear, sum(amount) as sumprofit]
 from (
@@ -595,12 +645,14 @@ from (
 		 oorderkey = lorderkey,
 		 snationkey = nnationkey,
 		 pname contains "green"]
-	)  as profit
+	) as profit
 groupby	[nation, oyear]
 orderby [nation, oyear desc]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel1]
+Die Abfrage enthält eine Unterabfrage in der \sql{from}-Klausel. Daher muss diese durch eine temporäre Relation ersetzt werden. Diese ergibt sich aus der Auswertung der Unterabfrage. Da die innere Abfrage flach ist, d.h. keine Unterabfragen enthält, müssen keine weiteren Entschachtelungsalgorithmen angewandt werden.
+
+\begin{lstlisting}[caption=Abfrage Q9{,} Definition trelxx1]
 select 
 	[nname as nation, 
 	year_of(oorderdate)as oyear, 
@@ -618,21 +670,57 @@ where
 	pname contains "green"]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Entschachtelte Variante von Q9]
+Die entschachtelte Version ist eine einfache Abfrage, ohne weitere Prädikate.
+
+\begin{lstlisting}[caption=Abfrage Q9 in SQL-Syntax{,} entschachtelt]
 select [nation, oyear, sum(amount)as sumprofit]
 from trelxx1 
 groupby [nation, oyear]
 orderby [nation, oyear desc]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q9 ausführbare Syntax entschachtelt]
- trelxx5  feed  sortby[Nation asc, Oyear asc] groupby[Nation, Oyear; Sumprofit: group feed  sum[Amount] ]project[Nation, Oyear, Sumprofit]  sortby[Nation asc, Oyear desc]  consume
-\end{lstlisting}
+Damit ist auch die Übersetzung in ausführbare Syntax trivial:
 
-\begin{lstlisting}[caption=Q9 ausführbare Syntax geschachtelt]
-ORDERS feedproject[oORDERDATE, oORDERKEY] PARTSUPP feedproject[psPARTKEY, psSUPPKEY, psSUPPLYCOST] PART feedproject[pNAME, pPARTKEY] SUPPLIER feedproject[sNATIONKEY, sSUPPKEY]  NATION feedproject[nNAME, nNATIONKEY]  sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.495} LINEITEM feedproject[lDISCOUNT, lEXTENDEDPRICE, lORDERKEY, lPARTKEY, lQUANTITY, lSUPPKEY] symmjoin[(.sSUPPKEY = ..lSUPPKEY)] {0.001998, 0.026} symmjoin[(.pPARTKEY = ..lPARTKEY)] {1.24875e-05, 0.0012875} symmjoin[(.psPARTKEY = ..lPARTKEY)] {3.996e-06, 0.000412} symmjoin[(.oORDERKEY = ..lORDERKEY)] {3.996e-06, 0.00042}  filter[(.psSUPPKEY = .lSUPPKEY)] {2.3976e-05, 0.000416}  filter[(.pNAME contains "green")] {0.00624375, 0.6375}  extend[Nation: .nNAME, Oyear: year_of(.oORDERDATE), Amount: ((.lEXTENDEDPRICE * (1 - .lDISCOUNT)) - (.psSUPPLYCOST * .lQUANTITY))] project[Nation, Oyear, Amount]  sortby[Nation asc, Oyear asc] groupby[Nation, Oyear; Sumprofit: group feed  sum[Amount] ]project[Nation, Oyear, Sumprofit]  sortby[Nation asc, Oyear desc]  consume
-\end{lstlisting}
+\begin{lstlisting}[caption=Abfrage Q9 in ausführbarer Syntax{,} entschachtelt]
+trelxx1 feed 
+sortby[Nation asc, Oyear asc] 
+groupby[Nation, Oyear; Sumprofit: group feed sum[Amount] ]
+project[Nation, Oyear, Sumprofit] 
+sortby[Nation asc, Oyear desc] 
+consume
+\end{lstlisting}.
 
+Die iterative Übersetzung der Abfrage ergibt folgenden Ausdruck in ausführbarer Syntax:
+
+\begin{lstlisting}[caption=Abfrage Q9 in ausführbarer Syntax{,} geschachtelt]
+ORDERS feedproject[oORDERDATE, oORDERKEY] 
+PARTSUPP feedproject[psPARTKEY, psSUPPKEY, psSUPPLYCOST] 
+PART feedproject[pNAME, pPARTKEY] 
+SUPPLIER feedproject[sNATIONKEY, sSUPPKEY] 
+NATION feedproject[nNAME, nNATIONKEY] 
+sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.495} 
+LINEITEM feedproject[lDISCOUNT,lEXTENDEDPRICE,lORDERKEY,lPARTKEY,lQUANTITY,lSUPPKEY] 
+symmjoin[(.sSUPPKEY = ..lSUPPKEY)] {0.001998, 0.026} 
+symmjoin[(.pPARTKEY = ..lPARTKEY)] {1.24875e-05, 0.0012875} 
+symmjoin[(.psPARTKEY = ..lPARTKEY)] {3.996e-06, 0.000412} 
+symmjoin[(.oORDERKEY = ..lORDERKEY)] {3.996e-06, 0.00042} 
+filter[(.psSUPPKEY = .lSUPPKEY)] {2.3976e-05, 0.000416} 
+filter[(.pNAME contains "green")] {0.00624375, 0.6375} 
+extend[
+	Nation: .nNAME, Oyear: year_of(.oORDERDATE), 
+	Amount: ((.lEXTENDEDPRICE * (1 - .lDISCOUNT)) - (.psSUPPLYCOST * .lQUANTITY))
+] 
+project[Nation, Oyear, Amount] 
+sortby[Nation asc, Oyear asc] 
+groupby[Nation, Oyear; Sumprofit: group feed sum[Amount]]
+project[Nation, Oyear, Sumprofit] 
+sortby[Nation asc, Oyear desc] 
+consume
+\end{lstlisting}.
+
+Diese Übersetzung entspricht ab dem Term \secondo{sortby[Nation asc, Oyear asc]} der entschachtelten Abfrage. Der erste Teil entspricht hierbei genau der Übersetzung, die für die temporäre Abfrage erzeugt wurde.
+
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
@@ -640,7 +728,7 @@ x tick label style={
 xtick=data,
 ylabel=Millisekunden,
 scaled ticks=base 10:0,
-xticklabels={A kalt,A warm,B kalt,B warm},
+xticklabels={1,2,3,4},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 area legend,
@@ -654,8 +742,15 @@ ybar stacked,
 \legend{Rewrite,Lookup,QueryToPlan,Execute}
 \end{axis}
 \end{tikzpicture}
+\caption{Laufzeit der einzelnen Phasen von Abfrage Q9}
+\end{figure}
+\setcounter{footnote}{0}
+\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+\stepcounter{footnote}\footnotetext{iterativ, kalt}
+\stepcounter{footnote}\footnotetext{iterativ, warm}
 
-\begin{figure}
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
@@ -664,7 +759,7 @@ xtick=data,
 ylabel=Sekunden,
 xlabel=Skalierungsfaktor,
 xlabel style={yshift=-2.5em},
-%xticklabels={0.00},
+xticklabels={0{,}0008,0{,}0016,0{,}0032,0{,}0064},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 anchor=east,legend columns=1},
@@ -678,12 +773,15 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q9 für die Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q9 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q9 line}
 \end{figure}
 
+Auch bei dieser Abfrage zeigt sich der Vorteil der Entschachtelung erst bei mehrmaliger Ausführung. Wie man Abbildung \ref{plot:Q9 line} entnehmen kann, unterscheidet sich die Laufzeit für die entschachtelte Variante im ersten Durchlauf nicht von der iterativen Ausführung.
+
 \subsection{TPC-D Q15}
-Diese Abfrage ermittelt den Top-Lieferanten. Es wird der Lieferant ermittelt, der das meiste zum Umsatz im gewählten Quartal beigetragen hat, gibt es mehrere, so werden sie nach Lieferantennummer geordnet angezeigt.
+Diese Abfrage ermittelt den Top-Lieferanten. Es wird der Lieferant ermittelt, der das meiste zum Umsatz im gewählten Quartal beigetragen hat, gibt es mehrere, so werden sie nach Lieferantennummer geordnet angezeigt. 
+
 \begin{lstlisting}[caption=Abfrage Q15] 
 select
 	[ssuppkey, sname, saddress, 
@@ -695,8 +793,10 @@ where
 orderby [ssuppkey]
 \end{lstlisting}
 
-Da \textsc{Secondo} keine Views unterstützt, wird hier eine temporäre Tabelle angelegt.
-\begin{lstlisting}[caption=Definition von revenue]
+
+Die Abfrage ist im Benchmark über einem View definiert. Da \textsc{Secondo} keine Views unterstützt, wird hierfür eine temporäre Tabelle angelegt.
+
+\begin{lstlisting}[caption=Abfrage Q15{,} Definition von revenue]
 select
 	[lsuppkey as supplier_no, 
 	sum(lextendedprice* (1-ldiscount))as total_revenue]
@@ -712,7 +812,9 @@ where
 groupby	[lsuppkey]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Entschachtelte Variante von Q15]
+Die Abfrage ist vom Typ A, da es sich bei der Unterabfrage um eine Aggregationsberechnung handelt. Es sind keine korrelierten Prädikate vorhanden, die Transformation erfolgt daher durch Auswertung der Unterabfrage. 
+
+\begin{lstlisting}[caption=Abfrage Q15 in SQL-Syntax{,} entschachtelt]
 select
 	[ssuppkey, 
 	sname, 
@@ -722,19 +824,41 @@ select
 from [supplier, revenue]
 where
 	[ssuppkey=supplier_no, 
-	total_revenue=678596.0]
+	total_revenue=645989.2892999999]
 orderby	[ssuppkey]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q15 ausführbare Syntax entschachtelt]
-SUPPLIER feedproject[sADDRESS, sNAME, sPHONE, sSUPPKEY]  revenue feedproject[Supplier_no, Total_revenue]  filter[(.Total_revenue = 645989.2892999999
-)] {0.124875, 12.125}  sortmergejoin[sSUPPKEY , Supplier_no] {0.124875, 1.57812} project[sSUPPKEY, sNAME, sADDRESS, sPHONE, Total_revenue]  sortby[sSUPPKEY asc]  consume
+Die Übersetzung der entschachtelten Abfrage in ausführbare Syntax ist daher trivial.
+
+\begin{lstlisting}[caption=Abfrage Q15 in ausführbarer Syntax{,} entschachtelt]
+SUPPLIER feedproject[sADDRESS, sNAME, sPHONE, sSUPPKEY] 
+revenue feedproject[Supplier_no, Total_revenue] 
+filter[(.Total_revenue = 645989.2892999999)] {0.124875, 12.125} 
+sortmergejoin[sSUPPKEY , Supplier_no] {0.124875, 1.57812} 
+project[sSUPPKEY, sNAME, sADDRESS, sPHONE, Total_revenue] 
+sortby[sSUPPKEY asc] 
+consume
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q15 ausführbare Syntax geschachtelt]
-SUPPLIER feedproject[sADDRESS, sNAME, sPHONE, sSUPPKEY]  revenue feedproject[Supplier_no, Total_revenue]  filter[fun (alias5: TUPLE) (attr(alias5, Total_revenue) = revenue  feed {r}  max[Total_revenue_r] )] {0.124875, 13}  sortmergejoin[sSUPPKEY , Supplier_no] {0.124875, 1.57812} project[sSUPPKEY, sNAME, sADDRESS, sPHONE, Total_revenue]  sortby[sSUPPKEY asc]  consume
+Bei der iterativen Übersetzung wird die Unterabfrage für jedes Tupel des Stroms erneut ausgewertet.
+
+\begin{lstlisting}[caption=Abfrage Q15 in ausführbarer Syntax{,} geschachtelt]
+SUPPLIER feedproject[sADDRESS, sNAME, sPHONE, sSUPPKEY] 
+revenue feedproject[Supplier_no, Total_revenue] 
+filter[
+	fun (alias5: TUPLE) (
+		attr(alias5, Total_revenue) 
+		= 
+		revenue feed {r} 
+		max[Total_revenue_r] 
+	)] {0.124875, 13} 
+sortmergejoin[sSUPPKEY , Supplier_no] {0.124875, 1.57812} 
+project[sSUPPKEY, sNAME, sADDRESS, sPHONE, Total_revenue] 
+sortby[sSUPPKEY asc] 
+consume
 \end{lstlisting}
 
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
@@ -742,7 +866,7 @@ x tick label style={
 xtick=data,
 ylabel=Millisekunden,
 scaled ticks=base 10:0,
-xticklabels={A kalt,A warm,B kalt,B warm},
+xticklabels={1,2,3,4},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 area legend,
@@ -756,8 +880,15 @@ ybar stacked,
 \legend{Rewrite,Lookup,QueryToPlan,Execute}
 \end{axis}
 \end{tikzpicture}
+\caption{Laufzeit der einzelnen Phasen von Abfrage Q15}
+\end{figure}
+\setcounter{footnote}{0}
+\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+\stepcounter{footnote}\footnotetext{iterativ, kalt}
+\stepcounter{footnote}\footnotetext{iterativ, warm}
 
-\begin{figure}
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
@@ -781,12 +912,15 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q15 für die Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q15 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q15 line}
 \end{figure}
 
+Die Laufzeiten der Ausführungsstrategien unterscheiden sich auch bei steigendem Skalierungsfaktor nur gering. Den größten Teil der Laufzeit nimmt die Erzeugung des Views ein. Da diese Laufzeitkosten bei beiden Ausführungsstrategien zu Buche schlagen, wurden sie hier nicht gesondert gemessen. Auch bei einer Steigerung des Skalierungsfaktors um mehrere Größenordnungen bewegen sich die Laufzeiten immer noch im zweistelligen Sekundenbereich. Die Beschränkung des Skalierungsfaktors war bei dieser Abfrage durch die Laufzeit der View-Erzeugung gegeben.
+
 \subsection{TPC-D Q16}
-Mit dieser Abfrage wird die Anzahl der Lieferanten für bestimmte Teile ermittelt. Die Teile dürfen nicht von einem bestimmten Typ sein, nicht von einer bestimmten Marke und es darf keine Kundenbeschwerden über den Lieferanten geben.
+Mit dieser Abfrage wird die Anzahl der Lieferanten für bestimmte Teile ermittelt. Die Teile dürfen nicht von einem bestimmten Typ sein, nicht von einer bestimmten Marke und es darf keine Kundenbeschwerden über den Lieferanten geben. Als Werte für die Parameter BRAND, TYPE, SIZE{1-8} wurden die Werte der Abfrageüberprüfung ausgwählt. (BRAND = \enquote{Brand\#45}, TYPE = \enquote{MEDIUM POLISHED}, SIZE1 = \enquote{49}, SIZE2 = \enquote{14}, SIZE3 = \enquote{23}, SIZE4 = \enquote{45}, SIZE5 = \enquote{19}, SIZE6 = \enquote{3}, SIZE7 = \enquote{36} und SIZE8 = \enquote{9})
+
 \begin{lstlisting}[caption=Abfrage Q16]
 select
 	[pbrand, 
@@ -805,7 +939,7 @@ where
 		from 
 			supplier
 		where
-    	[scomment contains "Customer",
+  	[scomment contains "Customer",
 			 scomment contains "Complaints"]
 		)]
 groupby [pbrand, ptype, psize]
@@ -814,58 +948,40 @@ orderby
 	pbrand, ptype, psize]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q16 ausführbare Syntax]
-PART feedproject[pBRAND, pPARTKEY, pSIZE, pTYPE] PARTSUPP feedproject[psPARTKEY, psSUPPKEY] symmjoin[(.pPARTKEY = ..psPARTKEY)] {2.4975e-05, 0.0012875}  filter[fun (alias7: TUPLE) not((attr(alias7, psSUPPKEY) in SUPPLIER feedproject[sCOMMENT, sSUPPKEY]  filter[(.sCOMMENT contains "Complaints")] {0.124875, 12.25}  filter[(.sCOMMENT contains "Customer")] {0.124875, 12.75}  projecttransformstream[sSUPPKEY]  collect_set ))] {0.0124875, 0.175}  filter[.pSIZE in [const set(int) value (49 14 23 45 19 3 36 9)]] {0.00624375, 0.61875}  filter[not((.pBRAND = "Brand#45"))] {0.04995, 0.61875}  filter[not((.pTYPE starts "MEDIUM POLISHED"))] {0.04995, 0.6625}  sortby[pBRAND asc, pTYPE asc, pSIZE asc] groupby[pBRAND, pTYPE, pSIZE; Suppliercnt: group feed  filter[not(isempty(.psSUPPKEY))] project[psSUPPKEY]  sort  rdup  count ]project[pBRAND, pTYPE, pSIZE, Suppliercnt]  sortby[Suppliercnt desc, pBRAND asc, pTYPE asc, pSIZE asc]  consume
+Abfrage Q16 ist vom Typ J, da kein korreliertes Prädikat in der Unterabfrage auftritt. Da es sich bei dem Operator des geschachtelten Prädikats um den Operator \sql{not in} handelt, ist momentan keine Entschachtelung möglich. Ein Vergleich der Ausführungsstrategien für diese Abfrage ist daher nicht machbar.
+
+\begin{lstlisting}[caption=Abfrage Q16 in ausführbarer Syntax]
+PART feedproject[pBRAND, pPARTKEY, pSIZE, pTYPE] 
+PARTSUPP feedproject[psPARTKEY, psSUPPKEY] 
+symmjoin[(.pPARTKEY = ..psPARTKEY)] {2.4975e-05, 0.0012875} 
+filter[
+	fun (alias7: TUPLE) not((
+		attr(alias7, psSUPPKEY) 
+		in 
+		SUPPLIER feedproject[sCOMMENT, sSUPPKEY] 
+		filter[(.sCOMMENT contains "Complaints")] {0.124875, 12.25} 
+		filter[(.sCOMMENT contains "Customer")] {0.124875, 12.75} 
+		projecttransformstream[sSUPPKEY] 
+		collect_set 
+	))] {0.0124875, 0.175} 
+filter[.pSIZE in [const set(int) value (49 14 23 45 19 3 36 9)]] {0.00624375, 0.61875} 
+filter[not((.pBRAND = "Brand#45"))] {0.04995, 0.61875} 
+filter[not((.pTYPE starts "MEDIUM POLISHED"))] {0.04995, 0.6625} 
+sortby[pBRAND asc, pTYPE asc, pSIZE asc] 
+groupby[pBRAND, pTYPE, pSIZE; 
+	Suppliercnt: group feed 
+	filter[not(isempty(.psSUPPKEY))] 
+	project[psSUPPKEY] 
+	sort 
+	rdup 
+	count 
+]
+project[pBRAND, pTYPE, pSIZE, Suppliercnt] 
+sortby[Suppliercnt desc, pBRAND asc, pTYPE asc, pSIZE asc] 
+consume
 \end{lstlisting}
 
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-/pgf/number format/1000 sep=},
-xtick=data,
-ylabel=Millisekunden,
-scaled ticks=base 10:0,
-xticklabels={A kalt,A warm,B kalt,B warm},
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-area legend,
-anchor=east,legend columns=1},
-ybar stacked,
-]
-\addplot coordinates {(0,	2	)(1,	1	)(2,	2	)(3,	2	)};
-\addplot coordinates {(0,	3	)(1,	3	)(2,	3	)(3,	3	)};
-\addplot coordinates {(0,	23	)(1,	24	)(2,	29	)(3,	23	)};
-\addplot coordinates {(0,	1111	)(1,	1107	)(2,	1141	)(3,	1119	)};
-\legend{Rewrite,Lookup,QueryToPlan,Execute}
-\end{axis}
-\end{tikzpicture}
-
-\begin{figure}
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-/pgf/number format/1000 sep=},
-xtick=data,
-ylabel=Sekunden,
-xlabel=Skalierungsfaktor,
-xlabel style={yshift=-2.5em},
-xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-anchor=east,legend columns=1},
-scaled x ticks=base 10:0,
-sharp plot
-]
-\addplot coordinates {(0.0004,	0.432	)(0.0008,	0.856	)(0.0016,	2.43	)(0.0032,	8.245	)(0.0064,	28.507	)(0.0128,	110.925	)};
-\addplot coordinates {(0.0004,	0.441	)(0.0008,	0.808	)(0.0016,	2.344	)(0.0032,	8.153	)(0.0064,	28.099	)(0.0128,	111.069	)};
-\addplot coordinates {(0.0004,	0.439	)(0.0008,	0.787	)(0.0016,	2.327	)(0.0032,	8.164	)(0.0064,	28.144	)(0.0128,	110.699	)};
-\addplot coordinates {(0.0004,	0.461	)(0.0008,	0.804	)(0.0016,	2.347	)(0.0032,	8.123	)(0.0064,	27.917	)(0.0128,	110.679	)};
-\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
-\end{axis}
-\end{tikzpicture}
-\caption{Laufzeit von Q16 für die Ausführungstrategien nach Skalierungsfaktor}
-\label{plot:Q16 line}
-\end{figure}
+Die Übersetzung erfolgt mit einem geschachtelten \secondo{filter}-Ausdruck und den Operatoren \secondo{in} und \secondo{transformstream}. 
 
 \subsection{TPC-D Q17}
 Diese Abfrage beantwortet, wieviel Umsatz verloren ginge, falls Bestellungen über kleine Mengen bestimmter Teile nicht mehr ausgeführt würden.
@@ -889,7 +1005,8 @@ where
 groupby	[]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel1]
+\begin{lstlisting}[caption=Abfrage Q17{,} Definition von trelxx1]
+trelxx1 = 
 select distinct
 	[lpartkey, 
 	ppartkey]
@@ -898,12 +1015,12 @@ from
 	part]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel2]
-select [l1:lpartkey, l1:lquantity]
-from [lineitem as l1]
+\begin{lstlisting}[caption=Abfrage Q17{,} Definition von trelxx2]
+trelxx2 = 
+select [l1:lpartkey, l1:lquantity] from [lineitem as l1]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel3]
+\begin{lstlisting}[caption=Abfrage Q17{,} Definition von trelxx3]
 select
 	[lpartkey_l1, 
 	avg(0.2*lquantity_l1)as var1]
@@ -916,7 +1033,7 @@ groupby
 	lpartkey_l1
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Entschachtelte Variante von Q17]
+\begin{lstlisting}[caption=Abfrage Q17 in SQL-Syntax{,} entschachtelt]
 select
 	[sum(lextendedprice/7.0)as avg_yearly]
 from
@@ -932,15 +1049,44 @@ where
 groupby []
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q17 ausführbare Syntax entschachtelt]
-PART feedproject[pBRAND, pCONTAINER, pPARTKEY] trelxx8 feedproject[lPARTKEY_l1, Var1] {alias8} symmjoin[(.pPARTKEY = ..lPARTKEY_l1_alias8)] {3.90234e-05, 0.00453125}  filter[(.pBRAND = "Brand#23")] {0.00624375, 0.6125}  filter[(.pCONTAINER = "MED BOX")] {0.00624375, 0.64375} LINEITEM feedproject[lEXTENDEDPRICE, lPARTKEY, lQUANTITY] symmjoin[(.pPARTKEY = ..lPARTKEY)] {1.24875e-05, 0.0012875}  filter[(.lQUANTITY < .Var1_alias8)] {0.00014985, 0.0013} groupby[; Avg_yearly: group feed  extend[Var1: (.lEXTENDEDPRICE / 7.0000000000
-)]  sum[Var1] ]project[Avg_yearly]  consume
+\begin{lstlisting}[caption=Abfrage Q17 in ausführbarer Syntax{,} entschachtelt]
+PART feedproject[pBRAND, pCONTAINER, pPARTKEY] 
+trelxx3 feedproject[lPARTKEY_l1, Var1] {alias1} 
+symmjoin[(.pPARTKEY = ..lPARTKEY_l1_alias1)] {3.90234e-05, 0.00453125} 
+filter[(.pBRAND = "Brand#23")] {0.00624375, 0.6125} 
+filter[(.pCONTAINER = "MED BOX")] {0.00624375, 0.64375} 
+LINEITEM feedproject[lEXTENDEDPRICE, lPARTKEY, lQUANTITY] 
+symmjoin[(.pPARTKEY = ..lPARTKEY)] {1.24875e-05, 0.0012875} 
+filter[(.lQUANTITY < .Var1_alias1)] {0.00014985, 0.0013} 
+groupby[; Avg_yearly: group feed 
+	extend[Var1: (.lEXTENDEDPRICE / 7.0000000000)] 
+	sum[Var1]
+]
+project[Avg_yearly] 
+consume
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q17 ausführbare Syntax geschachtelt]
- PART feedproject[pBRAND, pCONTAINER, pPARTKEY]  filter[(.pBRAND = "Brand#23")] {0.00624375, 0.6125}  filter[(.pCONTAINER = "MED BOX")] {0.00624375, 0.64375} LINEITEM feedproject[lEXTENDEDPRICE, lPARTKEY, lQUANTITY] symmjoin[(.pPARTKEY = ..lPARTKEY)] {1.24875e-05, 0.0012875}  filter[fun (alias10: TUPLE) (attr(alias10, lQUANTITY) < LINEITEM  feed {l1}  filter[(.lPARTKEY_l1 = attr(alias10, pPARTKEY))]  extend[var1: (0.2000000000
- * .lQUANTITY_l1)]  avg[var1] )] {1.24875e-05, 0.00185} groupby[; Avg_yearly: group feed  extend[Var1: (.lEXTENDEDPRICE / 7.0000000000
-)]  sum[Var1] ]project[Avg_yearly]  consume
+\begin{lstlisting}[caption=Abfrage Q17 in ausführbarer Syntax{,} geschachtelt]
+PART feedproject[pBRAND, pCONTAINER, pPARTKEY] 
+filter[(.pBRAND = "Brand#23")] {0.00624375, 0.6125} 
+filter[(.pCONTAINER = "MED BOX")] {0.00624375, 0.64375} 
+LINEITEM feedproject[lEXTENDEDPRICE, lPARTKEY, lQUANTITY] 
+symmjoin[(.pPARTKEY = ..lPARTKEY)] {1.24875e-05, 0.0012875} 
+filter[
+	fun (alias1: TUPLE) (
+		attr(alias1, lQUANTITY) 
+		< 
+		LINEITEM feed {l1} 
+		filter[(.lPARTKEY_l1 = attr(alias1, pPARTKEY))] 
+		extend[var1: (0.2000000000 * .lQUANTITY_l1)] 
+		avg[var1] 
+	)] {1.24875e-05, 0.00185} 
+groupby[; Avg_yearly: group feed 
+	extend[Var1: (.lEXTENDEDPRICE / 7.0000000000)] 
+	sum[Var1] 
+]
+project[Avg_yearly] 
+consume
 \end{lstlisting}
 
 \begin{tikzpicture}
@@ -988,7 +1134,7 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q17 für die Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q17 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q17 line}
 \end{figure}
 
@@ -1027,13 +1173,11 @@ orderby	[sname]
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel1]
-select distinct [pspartkey, pssuppkey]
-from partsupp
+select distinct [pspartkey, pssuppkey] from partsupp
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel2]
-select [lpartkey, lquantity, lshipdate, lsuppkey]
-from lineitem
+select [lpartkey, lquantity, lshipdate, lsuppkey] from lineitem
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3]
@@ -1062,13 +1206,65 @@ where
 orderby [sname]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q20 ausführbare Syntax entschachtelt]
-SUPPLIER feedproject[sADDRESS, sNAME, sNATIONKEY, sSUPPKEY]  NATION feedproject[nNAME, nNATIONKEY]  sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.495}  filter[(.nNAME = "CANADA")] {0.03996, 4.04} PARTSUPP feedproject[psAVAILQTY, psPARTKEY, psSUPPKEY] symmjoin[(.sSUPPKEY = ..psSUPPKEY)] {0.001998, 0.02875} PART feedproject[pNAME, pPARTKEY] symmjoin[(.psPARTKEY = ..pPARTKEY)] {1.24875e-05, 0.0013125} trelxx11 feedproject[lPARTKEY, Var2] {alias13} symmjoin[(.psPARTKEY = ..lPARTKEY_alias13)] {1.24875e-05, 0.001325}  filter[(.psAVAILQTY > .Var2_alias13)] {0.000786713, 0.0014125}  filter[(tostring(.pNAME) starts "forest")] {0.00624375, 0.68125} project[sNAME, sADDRESS]  sortby[sNAME asc]  consume
+\begin{lstlisting}[caption=Abfrage Q20 in ausführbarer Syntax{,} entschachtelt]
+SUPPLIER feedproject[sADDRESS, sNAME, sNATIONKEY, sSUPPKEY] 
+NATION feedproject[nNAME, nNATIONKEY] 
+sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.495} 
+filter[(.nNAME = "CANADA")] {0.03996, 4.04} 
+PARTSUPP feedproject[psAVAILQTY, psPARTKEY, psSUPPKEY] 
+symmjoin[(.sSUPPKEY = ..psSUPPKEY)] {0.001998, 0.02875} 
+PART feedproject[pNAME, pPARTKEY] 
+symmjoin[(.psPARTKEY = ..pPARTKEY)] {1.24875e-05, 0.0013125} 
+trelxx3 feedproject[lPARTKEY, Var1] {alias1} 
+symmjoin[(.psPARTKEY = ..lPARTKEY_alias1)] {1.24875e-05, 0.001325} 
+filter[(.psAVAILQTY > .Var1_alias13)] {0.000786713, 0.0014125} 
+filter[(tostring(.pNAME) starts "forest")] {0.00624375, 0.68125} 
+project[sNAME, sADDRESS] 
+sortby[sNAME asc] 
+consume
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q20 ausführbare Syntax geschachtetl]
-SUPPLIER feedproject[sADDRESS, sNAME, sNATIONKEY, sSUPPKEY]  NATION feedproject[nNAME, nNATIONKEY]  sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.495}  filter[(.nNAME = "CANADA")] {0.03996, 4.04}  filter[fun (alias17: TUPLE) (attr(alias17, sSUPPKEY) in PARTSUPP feedproject[psAVAILQTY, psPARTKEY, psSUPPKEY]  filter[fun (alias18: TUPLE) (attr(alias18, psPARTKEY) in PART feedproject[pNAME, pPARTKEY]  filter[(tostring(.pNAME) starts "forest")] {0.00624375, 0.68125}  projecttransformstream[pPARTKEY]  collect_set )] {0.00156094, 0.173437}  filter[fun (alias19: TUPLE) (attr(alias19, psAVAILQTY) > LINEITEM feedproject[lPARTKEY, lQUANTITY, lSHIPDATE, lSUPPKEY]  filter[(.lSHIPDATE >= instant("1994-01-01"))] {0.002997, 0.0525}  filter[(.lSHIPDATE < theInstant((year_of(instant("1994-01-01")) + 1), month_of(instant("1994-01-01")), day_of(instant("1994-01-01"))))] {0.0024975, 0.0555}  filter[(.lPARTKEY = attr(alias19, psPARTKEY))]  filter[(.lSUPPKEY = attr(alias19, psSUPPKEY))]  extend[var1: (.lQUANTITY * 0.5000000000
-)]  sum[var1] )] {0.0124875, 0.184375}  projecttransformstream[psSUPPKEY]  collect_set )] {0.124875, 19.5} project[sNAME, sADDRESS]  sortby[sNAME asc]  consume
+\begin{lstlisting}[caption=Abfrage Q20 ausführbare Syntax geschachtetl]
+SUPPLIER feedproject[sADDRESS, sNAME, sNATIONKEY, sSUPPKEY] 
+NATION feedproject[nNAME, nNATIONKEY] 
+sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.495} 
+filter[(.nNAME = "CANADA")] {0.03996, 4.04} 
+filter[
+	fun (alias1: TUPLE) (
+		attr(alias1, sSUPPKEY) 
+		in 
+		PARTSUPP feedproject[psAVAILQTY, psPARTKEY, psSUPPKEY] 
+		filter[
+			fun (alias2: TUPLE) (
+				attr(alias2, psPARTKEY) 
+				in 
+				PART feedproject[pNAME, pPARTKEY] 
+				filter[(tostring(.pNAME) starts "forest")] {0.00624375, 0.68125} 
+				projecttransformstream[pPARTKEY] 
+				collect_set 
+			)] {0.00156094, 0.173437} 
+		filter[
+			fun (alias3: TUPLE) (
+				attr(alias3, psAVAILQTY) 
+				> 
+				LINEITEM feedproject[lPARTKEY, lQUANTITY, lSHIPDATE, lSUPPKEY] 
+				filter[(.lSHIPDATE >= instant("1994-01-01"))] {0.002997, 0.0525} 
+				filter[(.lSHIPDATE < theInstant((
+					year_of(instant("1994-01-01")) + 1), 
+					month_of(instant("1994-01-01")), 
+					day_of(instant("1994-01-01")))
+				)] {0.0024975, 0.0555} 
+				filter[(.lPARTKEY = attr(alias3, psPARTKEY))] 
+				filter[(.lSUPPKEY = attr(alias3, psSUPPKEY))] 
+				extend[var1: (.lQUANTITY * 0.5000000000)] 
+				sum[var1] 
+			)] {0.0124875, 0.184375} 
+		projecttransformstream[psSUPPKEY] 
+		collect_set 
+	)] {0.124875, 19.5} 
+project[sNAME, sADDRESS] 
+sortby[sNAME asc] 
+consume
 \end{lstlisting}
 
 \begin{tikzpicture}
@@ -1116,7 +1312,7 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q20 für die Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q20 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q20 line}
 \end{figure}
 
@@ -1165,8 +1361,8 @@ from lineitem as l2
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3]
-trelxx1  feed 
-trelxx2  feed  
+trelxx1 feed 
+trelxx2 feed 
 smouterjoin[lORDERKEY_l1,lORDERKEY_l2] 
 extend[var1: ifthenelse(isempty(.lORDERKEY_l2), 0, 1)] 
 sortby[lORDERKEY_l1 asc] 
@@ -1182,8 +1378,8 @@ where [l3:lreceiptdate > l3:lcommitdate]
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3 die zweite]
-trelxx1  feed 
-trelxx4  feed 
+trelxx1 feed 
+trelxx4 feed 
 smouterjoin[lORDERKEY_l1,lORDERKEY_l3] 
 extend[var1: ifthenelse(isempty(.lORDERKEY_l3), 0, 1)] 
 sortby[lORDERKEY_l1 asc] 
@@ -1215,12 +1411,67 @@ orderby [numwait desc, sname]
 first 100
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q21 ausführbare Syntax entschachtelt]
-ORDERS feedproject[oORDERKEY, oORDERSTATUS] SUPPLIER feedproject[sNAME, sNATIONKEY, sSUPPKEY]  NATION feedproject[nNAME, nNATIONKEY]  sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.495}  filter[(.nNAME = "SAUDI ARABIA")] {0.03996, 4.2} LINEITEM feedproject[lCOMMITDATE, lORDERKEY, lRECEIPTDATE, lSUPPKEY] {l1} symmjoin[(.sSUPPKEY = ..lSUPPKEY_l1)] {0.001998, 0.04175} trelxx16 feedproject[lORDERKEY_l3, Var1] {alias21} symmjoin[(.lORDERKEY_l1 = ..lORDERKEY_l3_alias21)] {3.996e-06, 0.000448} symmjoin[(.oORDERKEY = ..lORDERKEY_l1)] {3.996e-06, 0.00048} trelxx14 feedproject[lORDERKEY_l2, Var2] {alias20} symmjoin[(.lORDERKEY_l1 = ..lORDERKEY_l2_alias20)] {3.996e-06, 0.000496}  filter[(.lRECEIPTDATE_l1 > .lCOMMITDATE_l1)] {0.0034965, 0.059}  filter[(.oORDERSTATUS = "F")] {0.00333, 0.0833333}  filter[(0 = .Var1_alias21)] {0.000835983, 0.0878661}  filter[(0 < .Var2_alias20)] {0.00668787, 0.0979079}  sortby[sNAME asc] groupby[sNAME; Numwait: group feed  count ]project[sNAME, Numwait]  sortby[Numwait desc, sNAME asc]  head[100]  consume
+\begin{lstlisting}[caption=Abfrage Q21 in ausführbarer Syntax{,} entschachtelt]
+ORDERS feedproject[oORDERKEY, oORDERSTATUS] 
+SUPPLIER feedproject[sNAME, sNATIONKEY, sSUPPKEY] 
+NATION feedproject[nNAME, nNATIONKEY] 
+sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.495} 
+filter[(.nNAME = "SAUDI ARABIA")] {0.03996, 4.2} 
+LINEITEM feedproject[lCOMMITDATE, lORDERKEY, lRECEIPTDATE, lSUPPKEY] {l1} 
+symmjoin[(.sSUPPKEY = ..lSUPPKEY_l1)] {0.001998, 0.04175} 
+trelxx3 feedproject[lORDERKEY_l3, Var1] {alias1} 
+symmjoin[(.lORDERKEY_l1 = ..lORDERKEY_l3_alias1)] {3.996e-06, 0.000448} 
+symmjoin[(.oORDERKEY = ..lORDERKEY_l1)] {3.996e-06, 0.00048} 
+trelxx5 feedproject[lORDERKEY_l2, Var2] {alias2} 
+symmjoin[(.lORDERKEY_l1 = ..lORDERKEY_l2_alias2)] {3.996e-06, 0.000496} 
+filter[(.lRECEIPTDATE_l1 > .lCOMMITDATE_l1)] {0.0034965, 0.059} 
+filter[(.oORDERSTATUS = "F")] {0.00333, 0.0833333} 
+filter[(0 = .Var1_alias1)] {0.000835983, 0.0878661} 
+filter[(0 < .Var2_alias2)] {0.00668787, 0.0979079} 
+sortby[sNAME asc] 
+groupby[sNAME; Numwait: group feed count ]
+project[sNAME, Numwait] 
+sortby[Numwait desc, sNAME asc] 
+head[100] 
+consume
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q21 ausführbare Syntax geschachtelt]
- ORDERS feedproject[oORDERKEY, oORDERSTATUS] SUPPLIER feedproject[sNAME, sNATIONKEY, sSUPPKEY]  NATION feedproject[nNAME, nNATIONKEY]  sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.495}  filter[(.nNAME = "SAUDI ARABIA")] {0.03996, 4.2} LINEITEM feedproject[lCOMMITDATE, lORDERKEY, lRECEIPTDATE, lSUPPKEY] {l1} symmjoin[(.sSUPPKEY = ..lSUPPKEY_l1)] {0.001998, 0.04175} symmjoin[(.oORDERKEY = ..lORDERKEY_l1)] {3.996e-06, 0.00048}  filter[(.lRECEIPTDATE_l1 > .lCOMMITDATE_l1)] {0.0034965, 0.059}  filter[fun (alias24: TUPLE) (0 < LINEITEM  feed {l2}  filter[(.lORDERKEY_l2 = attr(alias24, lORDERKEY_l1))]  filter[not((.lSUPPKEY_l2 = attr(alias24, lSUPPKEY_l1)))]  count )] {0.0004995, 0.0645}  filter[fun (alias25: TUPLE) (0 = LINEITEM feedproject[lCOMMITDATE, lORDERKEY, lRECEIPTDATE, lSUPPKEY] {l3}  filter[(.lRECEIPTDATE_l3 > .lCOMMITDATE_l3)] {0.0034965, 0.059}  filter[(.lORDERKEY_l3 = attr(alias25, lORDERKEY_l1))]  filter[not((.lSUPPKEY_l3 = attr(alias25, lSUPPKEY_l1)))]  count )] {0.003996, 0.061}  filter[(.oORDERSTATUS = "F")] {0.00333, 0.0833333}  sortby[sNAME asc] groupby[sNAME; Numwait: group feed  count ]project[sNAME, Numwait]  sortby[Numwait desc, sNAME asc]  head[100]  consume
+\begin{lstlisting}[caption=Abfrage Q21 in ausführbarer Syntax{,} geschachtelt]
+ORDERS feedproject[oORDERKEY, oORDERSTATUS] 
+SUPPLIER feedproject[sNAME, sNATIONKEY, sSUPPKEY] 
+NATION feedproject[nNAME, nNATIONKEY] 
+sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.495} 
+filter[(.nNAME = "SAUDI ARABIA")] {0.03996, 4.2} 
+LINEITEM feedproject[lCOMMITDATE, lORDERKEY, lRECEIPTDATE, lSUPPKEY] {l1} 
+symmjoin[(.sSUPPKEY = ..lSUPPKEY_l1)] {0.001998, 0.04175} 
+symmjoin[(.oORDERKEY = ..lORDERKEY_l1)] {3.996e-06, 0.00048} 
+filter[(.lRECEIPTDATE_l1 > .lCOMMITDATE_l1)] {0.0034965, 0.059} 
+filter[
+	fun (alias1: TUPLE) (
+		0 
+		< 
+		LINEITEM feed {l2} 
+		filter[(.lORDERKEY_l2 = attr(alias1, lORDERKEY_l1))] 
+		filter[not((.lSUPPKEY_l2 = attr(alias1, lSUPPKEY_l1)))] 
+		count 
+	)] {0.0004995, 0.0645} 
+filter[
+	fun (alias2: TUPLE) (
+		0 
+		= 
+		LINEITEM feedproject[lCOMMITDATE, lORDERKEY, lRECEIPTDATE, lSUPPKEY] {l3} 
+		filter[(.lRECEIPTDATE_l3 > .lCOMMITDATE_l3)] {0.0034965, 0.059} 
+		filter[(.lORDERKEY_l3 = attr(alias2, lORDERKEY_l1))] 
+		filter[not((.lSUPPKEY_l3 = attr(alias2, lSUPPKEY_l1)))] 
+		count 
+	)] {0.003996, 0.061} 
+filter[(.oORDERSTATUS = "F")] {0.00333, 0.0833333} 
+sortby[sNAME asc] 
+groupby[sNAME; Numwait: group feed count ]
+project[sNAME, Numwait] 
+sortby[Numwait desc, sNAME asc] 
+head[100] 
+consume
 \end{lstlisting}
 
 \begin{tikzpicture}
@@ -1268,7 +1519,7 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q21 für die Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q21 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q21 line}
 \end{figure}
 
@@ -1304,18 +1555,16 @@ orderby	[cntrycode]
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel1]
-select distinct [ccustkey]
-from customer
+select distinct [ccustkey] from customer
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel2]
-select [ocustkey]
-from orders
+select [ocustkey] from orders
 \end{lstlisting}
 
 \begin{lstlisting}[caption=TempRel3]
-trelxx1  feed 
-trelxx2  feed 
+trelxx1 feed 
+trelxx2 feed 
 smouterjoin[cCUSTKEY,oCUSTKEY] 
 extend[var1: ifthenelse(isempty(.oCUSTKEY), 0, 1)] 
 sortby[cCUSTKEY asc] 
@@ -1348,40 +1597,49 @@ groupby	[cntrycode]
 orderby	[cntrycode]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q22 ausführbare Syntax entschachtelt]
-trelxx20  feed  
+\begin{lstlisting}[caption=Abfrage Q22 in ausführbarer Syntax{,} entschachtelt]
+trelxx4 feed 
 sortby[Cntrycode asc] 
-groupby[Cntrycode; Numcust: group feed  count , Totacctbal: group feed  sum[cACCTBAL] ]
-project[Cntrycode, Numcust, Totacctbal]  
-sortby[Cntrycode asc]  
+groupby[Cntrycode; Numcust: group feed count , Totacctbal: group feed sum[cACCTBAL] ]
+project[Cntrycode, Numcust, Totacctbal] 
+sortby[Cntrycode asc] 
 consume
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Q22 ausführbare Syntax geschachtelt]
-CUSTOMER  feed  
-filter[substr(.cPHONE, 1, 2) in [const set(string) value ("13" "35" "31" "23" "29" "30" "18")]] {0.01665, 0.883333}  
+\begin{lstlisting}[caption=Abfrage Q22 in ausführbarer Syntax{,} geschachtelt]
+CUSTOMER feed 
 filter[
-	fun (alias29: TUPLE) (
-		attr(alias29, cACCTBAL) 
+	substr(.cPHONE, 1, 2) 
+	in 
+	[const set(string) value ("13" "35" "31" "23" "29" "30" "18")]
+] {0.01665, 0.883333} 
+filter[
+	fun (alias1: TUPLE) (
+		attr(alias1, cACCTBAL) 
 		> 
-		CUSTOMER  feed {c1}  
-		filter[substr(.cPHONE_c1, 1, 2) in [const set(string) value ("13" "35" "31" "23" "29" "30" "18")]] {0.01665, 0.883333}  
-		filter[(.cACCTBAL_c1 > 0.0000000000)] {0.04995, 0.875}  
+		CUSTOMER feed {c1} 
+		filter[
+			substr(.cPHONE_c1, 1, 2) 
+			in 
+			[const set(string) value ("13" "35" "31" "23" "29" "30" "18")]
+		] {0.01665, 0.883333} 
+		filter[(.cACCTBAL_c1 > 0.0000000000)] {0.04995, 0.875} 
 		avg[cACCTBAL_c1] 
-	)] {0.0333, 0.941667}  
+	)] {0.0333, 0.941667} 
 filter[
-	fun (alias30: TUPLE) 
+	fun (alias2: TUPLE) 
 	not((
-		ORDERS  feed  
-		filter[(.oCUSTKEY = attr(alias30, cCUSTKEY))]  
-		head[1]  
-		count  = 1)
-	)] {0.058275, 0.958333}  
+		ORDERS feed 
+		filter[(.oCUSTKEY = attr(alias2, cCUSTKEY))] 
+		head[1] 
+		count = 1)
+	)] {0.058275, 0.958333} 
 extend[Cntrycode: substr(.cPHONE, 1, 2)] 
-project[Cntrycode, cACCTBAL]  
+project[Cntrycode, cACCTBAL] 
 sortby[Cntrycode asc] 
-groupby[Cntrycode; Numcust: group feed  count , Totacctbal: group feed  sum[cACCTBAL] ]
-project[Cntrycode, Numcust, Totacctbal]  sortby[Cntrycode asc]  
+groupby[Cntrycode; Numcust: group feed count , Totacctbal: group feed sum[cACCTBAL] ]
+project[Cntrycode, Numcust, Totacctbal] 
+sortby[Cntrycode asc] 
 consume
 \end{lstlisting}
 
@@ -1430,12 +1688,13 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q22 für die Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q22 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q22 line}
 \end{figure}
 
 \subsection{Laufzeit Übersicht}
 
+\begin{figure}
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
@@ -1468,25 +1727,56 @@ ybar interval=0.7,
 \legend{entschachtelt kalt,entschachtelt warm,iterativ kalt,iterativ warm}
 \end{axis}
 \end{tikzpicture}
+\caption{Gesamtlaufzeit bei Skalierungsfaktor 0,0008, ohne Q9}
+\label{plot:Alle Laufzeit}
+\end{figure}
+
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+x tick label style={
+xshift=1.4em, font=\footnotesize},
+xtick=data,
+ylabel=Sekunden,
+xticklabels={Q9},
+scaled ticks=base 10:0,
+enlargelimits=0.10,
+legend style={at={(1.65,0.5)},
+area legend,
+anchor=east,legend columns=1},
+ybar,
+%ybar interval=0.7,
+x tick label style={rotate=-30},
+]
+\addplot coordinates {(1,	112.071	)};
+\addplot coordinates {(1,	0.227	)};
+\addplot coordinates {(1,	111.962	)};
+\addplot coordinates {(1,	111.574	)};
+\legend{entschachtelt kalt,entschachtelt warm,iterativ kalt,iterativ warm}
+\end{axis}
+\end{tikzpicture}
+\caption{Abfrage Q9, Laufzeit bei Skalierungsfaktor 0,0008}
+\label{plot:Q9 Gesamtlaufzeit}
+\end{figure}
 
 \begin{table}[h]
 \centering
 \begin{tabular}{@{}lrr@{}} \toprule
 & \multicolumn{2}{c}{Laufzeit in s} \\ \cmidrule(l){2-3}
 Abfrage Nr. & iterativ & entschachtelt\\ \midrule
-Q2	&	3327	&	2863	\\
-Q4	&	11947	&	5595	\\
-Q7	&	1854	&	1538	\\
-Q9	&	7055	&	6464	\\
-Q15	&	2778	&	2051	\\
-Q16	&	1880	&	1879	\\
-Q17	&	8054	&	1172	\\
-Q20	&	21834	&	2867	\\
-Q21	&	8095	&	1973	\\
-Q22	&	3404	&	1605	\\
+Q2	&	15,645	&	302,276	\\
+Q4	&	383,557	&	1442,454	\\
+Q7	&	134,078	&	133,863	\\
+Q9	&	7127,544	&	7148,13	\\
+Q15	&	2,038	&	1,262	\\
+Q16	&	28,507	&	28,144	\\
+Q17	&	218,186	&	0,850	\\
+Q20	&	811,211	&	266,071	\\
+Q21	&	11,843	&	1,393	\\
+Q22	&	5,788	&	11,423	\\
 \bottomrule\end{tabular}
-  \caption{Laufzeit \enquote{kalt}}
-  \label{tab_runtime_with_selectivity}
+ \caption{Laufzeit bei Skalierungsfaktor 0,0064, \enquote{kalt}}
+ \label{tab:Alle Laufzeit kalt}
 \end{table}
 
 \begin{table}[h]
@@ -1494,19 +1784,19 @@ Q22	&	3404	&	1605	\\
 \begin{tabular}{@{}lrr@{}} \toprule
 & \multicolumn{2}{c}{Laufzeit in s} \\ \cmidrule(l){2-3}
 Abfrage Nr. & iterativ & entschachtelt\\ \midrule
-Q2	&	2172	&	2702	\\
-Q4	&	10343	&	5425	\\
-Q7	&	804	&	1538	\\
-Q9	&	790	&	6478	\\
-Q15	&	2023	&	2093	\\
-Q16	&	1808	&	1858	\\
-Q17	&	971	&	963	\\
-Q20	&	1067	&	942	\\
-Q21	&	3234	&	1707	\\
-Q22	&	809	&	1285	\\
+Q2	&	8,094	&	300,085	\\
+Q4	&	382,824	&	1439,432	\\
+Q7	&	0,285	&	133,109	\\
+Q9	&	0,313	&	7055,378	\\
+Q15	&	1,247	&	1,279	\\
+Q16	&	28,099	&	27,917	\\
+Q17	&	7,384	&	0,657	\\
+Q20	&	1,433	&	263,667	\\
+Q21	&	2,142	&	1,320	\\
+Q22	&	0,266	&	10,525	\\
 \bottomrule\end{tabular} 
-	\caption{Laufzeit \enquote{warm}}
-  \label{tab_runtime}
+	\caption{Laufzeit bei Skalierungsfaktor 0,0064, \enquote{warm}}
+ \label{tab:Alle Laufzeit warm}
 \end{table}
 
 \section{Fazit}
@@ -1515,7 +1805,7 @@ Die Laufzeiten der Abfragen ergeben ein uneinheitliches Bild. Die Abfragen Q2 un
 Bis auf die in Kapitel \ref{chp:Entwurf} beschriebenen Einschränkungen lassen sich geschachtelte Abfragen mit dem Optimierer übersetzen. Das Ziel, die Entscheidung der Ausführungsstrategie dem Optimierer zu überlassen, musste jedoch schon während der Analyse des Problems fallgelassen werden. Die hierfür notwendige Infrastruktur zu erstellen und die notwendigen mathematischen Grundlagen zu erarbeiten hätten den Rahmen dieser Arbeit gesprengt.
 
 \section{Ausblick}
-Um die Entschachtelung zu vervollständigen sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden. Auch ein allgemeiner Full-Outerjoin-Operator auf Basis von Symmjoin. Unterstützung von \textbf{GROUPBY...HAVING}-Klauseln inkl. Subqueries. Die Erweiterung der Optimierung um den Kostenvergleich zwischen geschachtelter und entschachtelter Ausführung auf der Basis statistisch modellierter Daten stellt mit Sicherheit eine Herausforderung dar. Geschachtelte Prädikate in Disjunktionen. Allgemeiner \sql{in}-Operator für Konstanten, möglicherweise auf der Basis des bestehenden \sql{in}-Operators der \algebra{Collection-Algebra}. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen. Weitere Formen von geschachtelten Abfragen, die noch nicht optimiert werden können: korrelierte Abfragen in der SELECT-Klausel und der FROM-Klausel, geschachtelte Abfragen in Disjunktionen, geschachtelte Abfragen, die mehrere Schachtelungsebenen überspringen.
+Um die Entschachtelung zu vervollständigen sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden. Auch ein allgemeiner Full-Outerjoin-Operator auf Basis von Symmjoin. Unterstützung von \textbf{GROUPBY...HAVING}-Klauseln inkl. Subqueries. Die Erweiterung der Optimierung um den Kostenvergleich zwischen geschachtelter und entschachtelter Ausführung auf der Basis statistisch modellierter Daten stellt mit Sicherheit eine Herausforderung dar. Geschachtelte Prädikate in Disjunktionen. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen. Weitere Formen von geschachtelten Abfragen, die noch nicht optimiert werden können: korrelierte Abfragen in der \sql{select}-Klausel und der \sql{from}-Klausel, geschachtelte Abfragen in Disjunktionen, geschachtelte Abfragen, die mehrere Schachtelungsebenen überspringen. 
 
 %
 % EOF
