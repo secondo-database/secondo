@@ -104,8 +104,10 @@ that can be used as an attribute within a nested relation.
 */
 
 class NestedRelation;
+
 /*
 Forward declaration of class NestedRelation.
+
 */
 
 class AttributeRelation : public StandardAttribute
