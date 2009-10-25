@@ -18,11 +18,13 @@
 
 \setcounter{page}{1}
 
-%\include{kapitel/abstract}
-
-%\input{kapitel/danksagung}
+\input{kapitel/danksagung}
+\input{kapitel/eidesstattliche_erklaerung}
 
 \tableofcontents
+
+\newcounter{danksagung_seitenzahl}
+\setcounter{danksagung_seitenzahl}{\value{page}}
 
 \input{kapitel/einleitung}
 		
@@ -36,18 +38,20 @@
 
 \newpage
 
+
+\listoffigures
+\addcontentsline{toc}{chapter}{Abbildungsverzeichnis}
 \pagenumbering{roman}
+%\setcounter{page}{5}
+\addtocounter{danksagung_seitenzahl}{1}
+\setcounter{page}{\value{danksagung_seitenzahl}}
 
-%\input{kapitel/eidesstattliche_erklaerung}
 
-%\listoffigures
-
-%\listoftables
-
-\renewcommand{\glossaryname}{Glossar}
-\printglossary
-
-\newpage
+\listoftables
+\addcontentsline{toc}{chapter}{Tabellenverzeichnis}
+%\renewcommand{\glossaryname}{Glossar}
+%\printglossary
+%
 \addcontentsline{toc}{chapter}{Literaturverzeichnis}
 \bibliography{referenzen}
 \bibliographystyle{geralpha}
@@ -55,6 +59,8 @@
 \appendix
 
 \input{kapitel/anhang}
+
+
 
 \end{document}
 
