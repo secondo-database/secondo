@@ -244,10 +244,24 @@ constantType(attr(Attr,_ , _), Type) :-
   isAttributeOf(Attr, Rel),
   dcName2internalName(AttrName, Attr),
   attrType(Rel:AttrName, Type).
+	
+constantType(attr2(Var:Attr, _, _), Type) :-
+  isAttributeOf(Var:Attr, Rel as Var),
+  dcName2internalName(AttrName, Attr),
+  attrType(Rel:AttrName, Type).
+
+constantType(attr2(Attr,_ , _), Type) :-
+  isAttributeOf(Attr, Rel),
+  dcName2internalName(AttrName, Attr),
+  attrType(Rel:AttrName, Type).
   
 constantType([Arg | Rest], Type) :-
   not(Rest = []),
   (constantType(Arg, Type) ; constantType(Rest, Type)).
+	
+constantType([Arg], Type) :-
+  not(is_list(Arg)),
+	constantType(Arg, Type).
   
 constantType(AttrExpr, Type) :-
   not(is_list(AttrExpr)),
@@ -1507,6 +1521,8 @@ on opening a database to provide a clean execution environment.
 */
   
 dropTempRels :-
+  retractall(temporaryRelation(_)),
+  retractall(temporaryRelation(_, _)),
   retractall(rewriteCache(_, _)),
   findall(Rel, ( databaseName(DB),
                  storedRel(DB, Rel, _), 
@@ -2735,7 +2751,8 @@ subquery_plan_to_atom(Data, Result) :-
 	format(atom(Result), '~10f~n', Data).
 
 % in expression with constant list
-subquery_plan_to_atom(in(Attr, ValueList), Result) :-
+subquery_plan_to_atom(X, Result) :-
+  X =.. [in, Attr, ValueList],
   ValueList =.. [(,) | _],
   constantType(Attr, Type),
   plan_to_atom(Attr, AttrAtom),
