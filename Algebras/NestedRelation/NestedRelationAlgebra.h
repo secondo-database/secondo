@@ -103,6 +103,13 @@ that can be used as an attribute within a nested relation.
 
 */
 
+class NestedRelation;
+
+/*
+Forward declaration of class NestedRelation.
+
+*/
+
 class AttributeRelation : public StandardAttribute
 {
    public:
@@ -113,7 +120,7 @@ metadata passed in typeInfo.
         
 */
         
-        AttributeRelation( const SmiFileId fileId );
+        AttributeRelation( const SmiFileId fileId, const ListExpr typeInfo );
 /*
 The second constructor. Sets pointer to the relation used for storing tuples 
 to the relation with tupleFileId fileId. 
@@ -139,9 +146,7 @@ created as an attribute of an nrel-instance. False means
 that this arel-instance was created independently of nrel.
         
 */
-
-        void setRelDelete(bool b);
-        
+       
         bool isPartOfNrel();
 /*
 Returns the value of partOfNrel.
@@ -195,6 +200,20 @@ Sets rel to r.
 /*
 Destroys the DBArray tupleIds
         
+*/
+
+
+        void CopyTuplesToRel(Relation* r);
+/*
+Appends the tuples, the Ids of which are saved in tupleIds, to rel.
+Precondition is that the tuples are not nested.
+
+*/
+
+        void CopyTuplesToNrel(NestedRelation* nrel);
+/*
+Appends the tuples, the Ids of which are saved in tupleIds, to nrel.
+
 */
         
         int NumOfFLOBs() const;
@@ -309,7 +328,7 @@ an nrel-type.
 struct SubRelation
 {
        
-       SubRelation(Relation* ptr, const string n, SmiFileId id, 
+       SubRelation::SubRelation(Relation* ptr, const string n, SmiFileId id, 
                                 ListExpr tI):
                              name(n),
                              typeInfo(tI),
@@ -472,8 +491,29 @@ Used to clone a nested relation
 Returns a pointer to subrels.
           
 */
+        
+          AttributeRelation* storeSubRel(AttributeRelation* a, int& i);
+/*
+Auxiliary function for AppendTuples. It receives as first argument an 
+AttributeRelation ~a~, the tuples of which are to be copied to a new 
+AttributeRelation-instance ~arel~. The second argument is an integer ~i~, 
+which denotes the index of the SubRelation in vector ~subRels~, that 
+corresponds to the newly created AttributeRelation ~arel~. The function 
+retrieves the tuples, the ids of which are saved in the DBArray of ~a~. Those 
+tuplesare then appended to the SubRelation pointed to by ~i~, and the tupleIds 
+are appended to ~arel~. The function returns the new AttributeRelation ~arel~.
+
+*/
+
+          void AppendTuple(Tuple* tuple);
+/*
+Appends nested tuples to the nested relation. The top level tuple is saved in
+primary, the subtuples in the corresponding subrelation. Precondition is that
+the type of tuple corresponds to the type of the primary relation.
+
+*/
           
-                    
+            
           static Word     In( const ListExpr typeInfo, const ListExpr instance,
                           const int errorPos, ListExpr& errorInfo, 
                           bool& correct );

@@ -7,7 +7,7 @@ Signature: nrel(tuple(x)) -> stream(tuple(x))
 Example  : query Papers feed filter[.no_authors > 1] count
 Result   : 150966
 
-Operator : consume
+Operator : consume 
 Number   : 1
 Signature: (stream(tuple(x)) -> nrel(tuple(x))
 Example  : query Authors feed filter[.name contains "A"] consume

@@ -44,6 +44,7 @@ types and functions implemented by the Relation Algebra module.
 */
 
 #include "NestedRelationAlgebra.h"
+#include "ListUtils.h"
 /*
 
 3 Implementation of class AttributeRelation
@@ -67,9 +68,10 @@ AttributeRelation::AttributeRelation( ListExpr typeInfo, bool nrel):
    }
 }
 
-AttributeRelation::AttributeRelation( const SmiFileId relId):
+AttributeRelation::AttributeRelation( const SmiFileId relId, const ListExpr
+                                      typeInfo) :
    tupleIds( 0 ),
-   arelType( 0 ),
+   arelType( typeInfo ),
    partOfNrel( true ),
    relDelete( false )
 {
@@ -103,11 +105,6 @@ void AttributeRelation::setPartOfNrel(bool b)
 {
      partOfNrel = b;
      relDelete = !b;
-}
-
-void AttributeRelation::setRelDelete(bool b)
-{
-     relDelete = b;
 }
 
 bool AttributeRelation::isPartOfNrel()
@@ -160,8 +157,36 @@ void AttributeRelation::Destroy()
   tupleIds.Destroy();
 }
 
+void AttributeRelation::CopyTuplesToRel(Relation* r)
+{
+  Relation* temp = Relation::GetRelation(relId);
+  Tuple* t;
+  const TupleId* tid;
+  for (int i = 0; i < tupleIds.Size(); i++)  
+    {
+      tupleIds.Get(i, tid);  
+      t = temp->GetTuple(*tid);
+      r->AppendTuple(t);
+      t->DeleteIfAllowed();
+    }
+}
+
+void AttributeRelation::CopyTuplesToNrel(NestedRelation* nrel)
+{
+  Relation* temp = Relation::GetRelation(relId);
+  Tuple* t;
+  const TupleId* tid;
+  for (int i = 0; i < tupleIds.Size(); i++)  
+    {
+      tupleIds.Get(i, tid);  
+      t = temp->GetTuple(*tid);
+      nrel->AppendTuple(t);
+      t->DeleteIfAllowed();
+    }
+}
+
 /*
-3.3 Functions implementing virtual functions from class Attribute 
+3.3 Functions implementing virtual functions from class StandardAttribute 
 
 */
 int AttributeRelation::NumOfFLOBs() const
@@ -326,7 +351,7 @@ Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr
           (nl->IntAtom(relAlgId), nl->IntAtom(relId)),
            nl->Second(typeInfo)); 
       rel = new Relation( relType );
-      arel = new AttributeRelation (rel->GetFileId());
+      arel = new AttributeRelation (rel->GetFileId(), typeInfo);
       arel->setPartOfNrel(false);
    }
    else
@@ -421,12 +446,12 @@ ListExpr AttributeRelation::Out( ListExpr typeInfo, Word value )
       t = rel->GetTuple(*tid);
       tlist = t->Out(tupleTypeInfo);
       lastElem = nl->Append(lastElem, tlist);
+      t->DeleteIfAllowed();
     }
     return l;
   }
   else
   {
-    arel->setRel(0);
     NList outlist;
     outlist.append(nl->IntAtom(1));
     ListExpr val;
@@ -910,27 +935,12 @@ NestedRelation *NestedRelation::Clone(ListExpr typeInfo)
    NestedRelation *nrel = new NestedRelation( typeInfo );
    Tuple* t;
    GenericRelationIterator *iter = primary->MakeScan();
-   Relation* primaryClone = nrel->getPrimary();
    while( (t = iter->GetNextTuple()) != 0 )
       {
-         primaryClone->AppendTuple( t );
+         nrel->AppendTuple( t );
          t->DeleteIfAllowed();
       }
    delete iter;
-   
-   vector<SubRelation*>* srels = nrel->getSubRels();
-   for ( unsigned int i = 0; i < subRels.size(); i++ )
-   {
-      SubRelation* srel = subRels[i];
-      SubRelation* srelClone = srels->at(i);
-      iter = srel->rel->MakeScan();
-      while( (t = iter->GetNextTuple()) != 0 )
-      {
-         srelClone->rel->AppendTuple( t );
-         t->DeleteIfAllowed();
-      }
-      delete iter;
-   }
    return nrel;
 }
 
@@ -938,7 +948,84 @@ NestedRelation *NestedRelation::Clone(ListExpr typeInfo)
 vector<SubRelation*>* NestedRelation::getSubRels()
 {
    return &subRels;
-}                   
+} 
+
+
+AttributeRelation* NestedRelation::storeSubRel(AttributeRelation* a, int& i)
+{
+   int nrelAlgId = am->GetAlgebraId("NestedRelationAlgebra");
+   int arelId = NestedRelation::getTypeId(nrelAlgId, "arel"); 
+   Relation* relOld = Relation::GetRelation(a->getRelId());
+   SmiFileId fileId = getSubRels()->at(i)->fileId;
+   AttributeRelation* arel = new AttributeRelation (fileId, a->getArelType());
+   arel->setPartOfNrel(true);
+   Relation* r = getSubRels()->at(i)->rel;
+   int j = i;
+   DBArray<TupleId>* tids = a->getTupleIds();
+   const TupleId* tid;
+   for (int i1 = 0; i1 < tids->Size(); i1++)
+   {   
+      i = j;
+      Tuple* t = 0;
+      Tuple* newTuple;
+      tids->Get(i1, tid);  
+      t = relOld->GetTuple(*tid);
+      newTuple = new Tuple(t->GetTupleType());
+      for (int i2 = 0; i2 < t->GetTupleType()->GetNoAttributes(); 
+           i2++)
+      {
+         if (t->GetTupleType()->GetAttributeType(i2).algId ==  
+         nrelAlgId && t->GetTupleType()->
+         GetAttributeType(i2).typeId == arelId)
+         {
+            i = i + 1;
+            AttributeRelation* ar = (AttributeRelation*)
+                                   (t->GetAttribute(i2));
+            AttributeRelation* b = storeSubRel(ar, i);
+            newTuple->PutAttribute(i2, b);        
+         }
+         else
+         {
+              newTuple->CopyAttribute( i2, t, i2 );
+         }
+      }
+      r->AppendTuple(newTuple);
+      arel->Append(newTuple->GetTupleId());
+      t->DeleteIfAllowed();
+      newTuple->DeleteIfAllowed();
+   }   
+   return arel;          
+}
+
+
+void NestedRelation::AppendTuple(Tuple* tuple)
+{
+  int nrelAlgId = am->GetAlgebraId("NestedRelationAlgebra");
+  int arelId = NestedRelation::getTypeId(nrelAlgId, "arel"); 
+  int i = -1;
+  Tuple* newTuple = new Tuple(tuple->GetTupleType());
+  for (int i2 = 0; i2 < tuple->GetTupleType()->
+        GetNoAttributes(); i2++)
+  {
+    if (tuple->GetTupleType()->GetAttributeType(i2).algId == 
+        nrelAlgId && tuple->GetTupleType()->GetAttributeType(i2)
+        .typeId == arelId)
+    {
+      i = i + 1;
+      AttributeRelation* temp1 = (AttributeRelation*)
+                                       (tuple->GetAttribute(i2));
+      AttributeRelation* b = storeSubRel(temp1, i);
+      newTuple->PutAttribute(i2, b);
+    } 
+    else
+      {
+        newTuple->CopyAttribute(i2, tuple, i2);
+      }
+  }
+  primary->AppendTuple(newTuple);
+  newTuple->DeleteIfAllowed();
+}
+                  
     
 /*
 4.3 The mandatory set of algebra support functions
@@ -1273,7 +1360,6 @@ Creates a stream of tuples from nrel:
 5.1.1 Type Map for ~feed~
 
 */
-
 ListExpr feedTypeMap(ListExpr args)
 {
   ListExpr first;
@@ -1298,11 +1384,11 @@ ListExpr feedTypeMap(ListExpr args)
 
   return nl->Cons(nl->SymbolAtom("stream"), nl->Rest(first));
 }
+
 /*
 5.1.2 Value mapping function of operator ~feed~
 
 */
-
 int
 feed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
@@ -1342,6 +1428,7 @@ feed(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
+
 /*
 5.1.3 Specification of operator ~feed~
 
@@ -1408,7 +1495,8 @@ ListExpr consumeTypeMap(ListExpr args)
     }
     tup = nl->Rest(tup);
   }
-  CHECK_COND(containsArel, " ");
+  CHECK_COND(containsArel, "Operator consume of nrel expects nested tuples as"
+                           " arguments.");
   
   ListExpr temp = NestedRelation::unnestedList(nl->Second(first));
   string s;
@@ -1419,63 +1507,8 @@ ListExpr consumeTypeMap(ListExpr args)
   return nl->Cons(nl->SymbolAtom("nrel"), nl->Rest(first));
 }
 
-
-
 /*
 5.2.2 Value mapping function of operator ~consume~
-
-5.2.2.1 Auxiliary function storeSubRel for value map of consume
-
-*/
-AttributeRelation* storeSubRel(AttributeRelation* a, int& i, 
-                               NestedRelation* nr)
-{
-   int nrelAlgId = am->GetAlgebraId("NestedRelationAlgebra");
-   int arelId = NestedRelation::getTypeId(nrelAlgId, "arel"); 
-   Relation* relOld = Relation::GetRelation(a->getRelId());
-   SmiFileId fileId = nr->getSubRels()->at(i)->fileId;
-   AttributeRelation* arel = new AttributeRelation (fileId);
-   arel->setPartOfNrel(true);
-   Relation* r = nr->getSubRels()->at(i)->rel;
-   int j = i;
-   DBArray<TupleId>* tids = a->getTupleIds();
-   const TupleId* tid;
-   for (int i1 = 0; i1 < tids->Size(); i1++)
-   {   
-      i = j;
-      Tuple* t = 0;
-      Tuple* newTuple;
-      tids->Get(i1, tid);  
-      t = relOld->GetTuple(*tid);
-      newTuple = new Tuple(t->GetTupleType());
-      for (int i2 = 0; i2 < t->GetTupleType()->GetNoAttributes(); 
-           i2++)
-      {
-         if (t->GetTupleType()->GetAttributeType(i2).algId ==  
-         nrelAlgId && t->GetTupleType()->
-         GetAttributeType(i2).typeId == arelId)
-         {
-            i = i + 1;
-            AttributeRelation* ar = (AttributeRelation*)
-                                   (t->GetAttribute(i2));
-            AttributeRelation* b = storeSubRel(ar, i, nr);
-            newTuple->PutAttribute(i2, b);        
-         }
-         else
-         {
-              newTuple->CopyAttribute( i2, t, i2 );
-         }
-      }
-      r->AppendTuple(newTuple);
-      arel->Append(newTuple->GetTupleId());
-      t->DeleteIfAllowed();
-      newTuple->DeleteIfAllowed();
-   }   
-   return arel;          
-}
-
-/*
-5.2.2.2 Main value mapping function for operator ~consume~
 
 */
 int
@@ -1483,8 +1516,6 @@ consume(Word* args, Word& result, int message,
         Word& local, Supplier s)
 {
   
-  int nrelAlgId = am->GetAlgebraId("NestedRelationAlgebra");
-  int arelId = NestedRelation::getTypeId(nrelAlgId, "arel"); 
   Word actual;
   NestedRelation* nrel = (NestedRelation*)(qp->ResultStorage(s).addr);
   Relation* rel = nrel->getPrimary();
@@ -1500,32 +1531,12 @@ consume(Word* args, Word& result, int message,
   }
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
+  Tuple* tuple;
   while (qp->Received(args[0].addr))
-  {
-     int i = -1;
-     Tuple* tuple = (Tuple*)actual.addr;
-     Tuple* newTuple = new Tuple(tuple->GetTupleType());
-     for (int i2 = 0; i2 < tuple->GetTupleType()->
-          GetNoAttributes(); i2++)
-     {
-        if (tuple->GetTupleType()->GetAttributeType(i2).algId == 
-        nrelAlgId && tuple->GetTupleType()->GetAttributeType(i2)
-        .typeId == arelId)
-        {
-           i = i + 1;
-           AttributeRelation* temp1 = (AttributeRelation*)
-                                       (tuple->GetAttribute(i2));
-           AttributeRelation* b = storeSubRel(temp1, i, nrel);
-           newTuple->PutAttribute(i2, b);
-        } 
-        else
-        {
-            newTuple->CopyAttribute(i2, tuple, i2);
-        }
-     }
-     rel->AppendTuple(newTuple);
+  {     
+     tuple = (Tuple*)actual.addr;
+     nrel->AppendTuple(tuple);
      tuple->DeleteIfAllowed();
-     newTuple->DeleteIfAllowed();
      qp->Request(args[0].addr, actual); 
   }
   result.setAddr(nrel);
@@ -1585,6 +1596,7 @@ ListExpr aFeedTypeMap(ListExpr args)
 
   return nl->Cons(nl->SymbolAtom("stream"),nl->Rest(first));
 }
+
 /*
 5.3.2 Value mapping function of operator ~afeed~
 
@@ -1646,6 +1658,7 @@ aFeed(Word* args, Word& result, int message, Word& local, Supplier s)
   }
   return 0;
 }
+
 /*
 5.3.3 Specification of operator ~afeed~
 
@@ -1662,7 +1675,6 @@ struct aFeedInfo : OperatorInfo {
                 "count] consume";
   }
 };
-
 
 /*
 5.4 Operator ~aconsume~
@@ -1703,6 +1715,7 @@ ListExpr aConsumeTypeMap(ListExpr args)
               "Please make sure that there are no duplicates.");   
   return nl->Cons(nl->SymbolAtom("arel"), nl->Rest(first));
 }
+
 /*
 5.4.2 Value mapping function of operator ~aconsume~
 
@@ -1797,6 +1810,7 @@ aConsume(Word* args, Word& result, int message,
 
   return 0;
 }
+
 /*
 5.4.3 Specification of operator ~aconsume~
 
@@ -1815,6 +1829,7 @@ struct aConsumeInfo : OperatorInfo {
 };
 
 Operator aconsume (aConsumeInfo(), aConsume, aConsumeTypeMap);
+
 /*
 5.5 Operator ~nest~
 
@@ -1972,6 +1987,7 @@ ListExpr nestTypeMap( ListExpr args )
      streamdescription);   
    return outlist;
 }
+
 /*
 5.5.2 Auxiliary struct for function ~nest~
 
@@ -1989,7 +2005,9 @@ struct NestInfo
   TupleType* tupleType;
   AttributeRelation* arel;
   ListExpr relInfo;
+  ListExpr arelInfo;
 };
+
 /*
 5.5.3 Value mapping function of operator ~nest~
 
@@ -2021,6 +2039,7 @@ nestValueMap(Word* args, Word& result, int message,
          NList rest = NList(nl->Second(nl->Second(resultType)));
          for (int i = 0; i < info->primaryLength; i++)
            rest.rest();
+         info->arelInfo = rest.first().second().listExpr();
          info->subTupleType = new TupleType(
                                 rest.first().second().second().listExpr());
          info->subrelLength =  ((CcInt*)args[4].addr)->GetIntval();  
@@ -2048,7 +2067,7 @@ nestValueMap(Word* args, Word& result, int message,
              current = (Tuple*)elem1.addr;
              info->lastTuple =(Tuple*)elem1.addr;
              info->firstCall = false;
-             info->arel = new AttributeRelation(info->fileId);
+             info->arel = new AttributeRelation(info->fileId, info->arelInfo);
              tuple = new Tuple( info->tupleType );
              subtuple = new Tuple (info->subTupleType);  
            }
@@ -2059,7 +2078,7 @@ nestValueMap(Word* args, Word& result, int message,
          }    
          else
          {
-           info->arel = new AttributeRelation(info->fileId);
+           info->arel = new AttributeRelation(info->fileId, info->arelInfo);
            current = info->lastTuple; 
            tuple = new Tuple( info->tupleType );
            subtuple = new Tuple (info->subTupleType);      
@@ -2194,6 +2213,7 @@ nestValueMap(Word* args, Word& result, int message,
    }
 return 0;  
 }
+
 /*
 5.5.4 Specification of operator ~nest~
 
@@ -2214,6 +2234,7 @@ struct nestInfo : OperatorInfo {
 };
 
 Operator nest (nestInfo(), nestValueMap, nestTypeMap);
+
 /*
 5.6 Operator ~unnest~
 
@@ -2326,6 +2347,7 @@ struct UnnestInfo
   AttributeRelation* arel;
   TupleType *tupleType;
 };
+
 /*
 5.6.2 Value mapping for ~unnest~
 
@@ -2384,6 +2406,7 @@ unnestValueMap(Word* args, Word& result, int message,
           info->lastTuple = current;
           info->index = 1;
           result.setAddr(tuple);
+          arelTuple->DeleteIfAllowed();
           return YIELD;
         }
         else
@@ -2413,6 +2436,7 @@ unnestValueMap(Word* args, Word& result, int message,
           for (int i = 0; i < noAttrArel; i++)
             tuple->CopyAttribute(i, arelTuple, i + noOfAttrs - 1);       
           result.setAddr(tuple);
+          arelTuple->DeleteIfAllowed();
           return YIELD;
         }
         else
@@ -2441,6 +2465,7 @@ unnestValueMap(Word* args, Word& result, int message,
             info->lastTuple = current;
             info->index = 1;
             result.setAddr(tuple);
+            arelTuple->DeleteIfAllowed();
             return YIELD;
           }
           else
@@ -2560,7 +2585,7 @@ renameArelAttrs( ListExpr first, string& attrnamen)
 }  
 
 ListExpr
-NestedRenameTypeMap( ListExpr args )
+nestedRenameTypeMap( ListExpr args )
 {
   ListExpr first=nl->TheEmptyList();
   ListExpr first2=first, second=first, 
@@ -2657,13 +2682,13 @@ NestedRenameTypeMap( ListExpr args )
     nl->TwoElemList(nl->SymbolAtom("stream"),
     nl->TwoElemList(nl->SymbolAtom("tuple"),listn));
 }
-/*
 
-5.12.2 Value mapping function of operator ~rename~
+/*
+5.7.2 Value mapping function of operator ~rename~
 
 */
 int
-NestedRename(Word* args, Word& result, int message,
+nestedRename(Word* args, Word& result, int message,
        Word& local, Supplier s)
 {
   Word t;
@@ -2695,41 +2720,192 @@ NestedRename(Word* args, Word& result, int message,
   }
   return 0;
 }
-/*
-
-5.12.3 Specification of operator ~rename~
-
-*/
-const string RenameSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>((stream (tuple([a1:d1, ... ,"
-  "an:dn)))ar) -> (stream (tuple([a1ar:d1, "
-  "... ,anar:dn)))</text--->"
-  "<text>_ rename [ _ ] or just _ { _ }"
-  "</text--->"
-  "<text>Renames all attribute names by adding"
-  " them with the postfix passed as parameter. "
-  "NOTE: parameter must be of symbol type."
-  "</text--->"
-  "<text>query ten feed rename [ r1 ] consume "
-  "or query ten feed {r1} consume, the result "
-  "has format e.g. n_r1</text--->"
-  ") )";
 
 /*
-
-5.12.4 Definition of operator ~rename~
+5.7.3 Definition of operator ~rename~
 
 */
-Operator nrelalgrename (
-         "rename",               // name
-         RenameSpec,             // specification
-         NestedRename,                 // value mapping
-         Operator::SimpleSelect, // trivial selection function
-         NestedRenameTypeMap           // type mapping
-);
+struct nestedRenameInfo : OperatorInfo {
 
+  nestedRenameInfo() : OperatorInfo()
+  {
+    name =      "rename";
+    signature = "(stream x) -> (stream y)";
+    syntax =    "_ rename [ _ ]";
+    meaning =   "Renames all attribute names by adding"
+                " them with the postfix passed as parameter. ";
+    example =   "query publishers feed {s} consume";
+  }
+
+};
+
+
+/*
+5.8 Operator ~extract~
+
+This operator has a stream of tuples and the name of an arel-attribute 
+as input. It returns either a nested relation or a relation containing all 
+the tuples saved in the arel-Attribute of the first tuple of the input stream. 
+
+5.8.1 Type mapping function of operator ~extract~
+
+Type mapping for ~extract~ is
+
+----  ((stream (tuple ((x1 t1)...(xn tn))) xi)  -> rel(tup)
+              APPEND (i) ti 1)
+       or
+       
+      ((stream (tuple ((x1 t1)...(xn tn))) xi)  -> nrel(tup)
+              APPEND (i) ti 0) 
+      
+      whith ti of the form:
+            
+            arel(tup)
+      
+      
+----
+
+*/
+ListExpr extractTypeMap( ListExpr args )
+{
+  if(nl->ListLength(args)!=2)
+  {
+    return listutils::typeError("two arguments expected");
+  }
+
+  ListExpr stream = nl->First(args);
+  ListExpr attrname = nl->Second(args);
+  string err = "(stream( tuple[ a1 : t1, .., an : tn ])) x a_i expected";
+  if(!listutils::isTupleStream(stream) ||
+     nl->AtomType(attrname)!=SymbolType)
+  {
+    return listutils::typeError(err);
+  }
+
+  string attr = nl->SymbolValue(attrname); 
+  ListExpr attrList = nl->Second(nl->Second(stream));
+  ListExpr attrType;
+  int j = listutils::findAttribute(attrList, attr, attrType);
+  if (j) 
+  {
+    if (!(nl->ListLength(attrType) == 2 && nl->SymbolValue
+          (nl->First(attrType)) == "arel"))
+    {
+      return listutils::typeError("Operator extract only defined for"
+                                  " attribute-type arel.");
+    }
+    else
+    {
+      bool containsArel = false;
+      NList attr (nl->Second(nl->Second(attrType)));
+      NList first;
+      while (!attr.isEmpty())
+      {
+            first = attr.first().second();
+            attr.rest();
+            if (first.hasLength(2) && first.first().str() == "arel")
+              containsArel = true;
+      }        
+      if (containsArel)
+      {
+        //0 as third argument means, that the result type is nrel
+        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+           nl->TwoElemList(nl->IntAtom(j), nl->IntAtom(0)), 
+             nl->TwoElemList(nl->SymbolAtom("nrel"), nl->Second(attrType)));
+      }
+      else
+      {
+        //1 as third argument means, that the result type rel
+        return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+           nl->TwoElemList(nl->IntAtom(j), nl->IntAtom(1)), 
+              nl->TwoElemList(nl->SymbolAtom("rel"), nl->Second(attrType)));   
+      }
+    }  
+  } 
+  else 
+  {
+    return listutils::typeError("Attribute name " + attr + 
+                                " not known in the tuple");
+  }
+}
+
+
+/*
+
+5.8.2 Value mapping function of operator ~extract~
+
+The argument vector ~args~ contains in the first slot ~args[0]~ the tuple,
+in ~args[2]~ the position of the attribute as a number and in ~args[3]~ an 
+integer value (0 indicates that the result type is nrel, 1 indicates that
+the result type is rel). Returns as ~result~ a relation or a nested relation.
+
+*/
+int extractValueMap(Word* args, Word& result, int message, Word& local, 
+                 Supplier s)
+{
+  Word t;
+  Tuple* tupleptr;
+  int index;
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr,t);
+  int i = ((CcInt*)args[3].addr)->GetIntval();
+  if (i == 1)
+  {
+    Relation* res = (Relation*)((qp->ResultStorage(s)).addr);
+    if (qp->Received(args[0].addr))
+    {
+      tupleptr = (Tuple*)t.addr;
+      index = ((CcInt*)args[2].addr)->GetIntval();
+      AttributeRelation* arel = 
+              (AttributeRelation*)tupleptr->GetAttribute(index - 1);
+      arel->CopyTuplesToRel(res);  
+      tupleptr->DeleteIfAllowed(); 
+      result.setAddr(res);
+    }
+    else
+    {
+      result.setAddr (0);
+    }
+  }  
+  else
+  {
+    NestedRelation* res = (NestedRelation*)((qp->ResultStorage(s)).addr);
+    if (qp->Received(args[0].addr)) 
+    {
+      tupleptr = (Tuple*)t.addr;
+      index = ((CcInt*)args[2].addr)->GetIntval();
+      AttributeRelation* arel = 
+              (AttributeRelation*)tupleptr->GetAttribute(index - 1);
+      arel->CopyTuplesToNrel(res);  
+      tupleptr->DeleteIfAllowed(); 
+      result.setAddr(res);
+    }
+    else
+    {
+      result.setAddr (0);
+    }
+  }
+  qp->Close(args[0].addr);
+  return 0;
+}
+
+/*
+5.8.3 Specification of operator ~extract~
+
+*/
+
+struct extractInfo : OperatorInfo {
+
+  extractInfo() : OperatorInfo()
+  {
+    name =      "extract";
+    signature = "stream(x) -> rel(y)";
+    appendSignature ("stream(x) -> nrel(y)"); 
+    syntax =    "_ extract [xi] (where xi is of type arel)";
+    meaning =   "Unnests an attribute relation in a tuple stream.";
+    example =   "query publishers feed extract [publications]";
+  }
+};
 
 /*
 6 NestedRelationAlgebra
@@ -2748,7 +2924,8 @@ class NestedRelationAlgebra : public Algebra
       AddOperator (&aconsume);
       AddOperator (&nest);
       AddOperator (unnestOperatorInfo(), unnestValueMap, unnestTypeMap);
-      AddOperator(&nrelalgrename);
+      AddOperator (nestedRenameInfo(), nestedRename, nestedRenameTypeMap);
+      AddOperator (extractInfo(), extractValueMap, extractTypeMap); 
       attributeRelationTC.AssociateKind( "DATA" );
 #ifdef USE_PROGRESS
       nest.EnableProgress();
