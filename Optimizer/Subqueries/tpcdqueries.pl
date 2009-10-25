@@ -41,13 +41,11 @@ where Benchmark is d, h or whatever TPC-Benchmark you want to run. On finishing 
 benchmark run an additional entry is created in the result relation to give you the total
 runtime for the benchmark run.
 
-To just run a single query and still get the corresponding results such as runtime for the
-intermediate steps of the optimizer, you can use the predicate 
-
 ---- executeSingleQuery(Benchmark, QueryNumber)
 ----
 
-
+To just run a single query and still get the corresponding results such as runtime for the
+intermediate steps of the optimizer, you can use the predicate executeSingleQuery/2
 
 */
 :- dynamic(queryValidation/0).
@@ -93,7 +91,9 @@ in Secondo optimizer is still wonting.
 :- dynamic(resultRelation/1).
 
 :- assert(resultRelation(benchmarkResult)).
-  
+
+:- dynamic(maxRunTime/1).
+
 initialize :-
   resultRelation(Rel),
   concat_atom([Rel, ' = [const rel(tuple([Query: string,', 
@@ -239,11 +239,11 @@ executeQueries(_, []).
 
 executeQueries(Benchmark, [[No, _] | Rest]) :-
   executeQuery(Benchmark, No),
-  dc(tpcd, (
-  N is No + 1,
-  write_list(['\nExecute next Query (', N, ')? y/n']),
-  get_single_char(Answer),
-  Answer = 121 )),
+  % dc(tpcd, (
+  % N is No + 1,
+  % write_list(['\nExecute next Query (', N, ')? y/n']),
+  % get_single_char(Answer),
+  % Answer = 121 )),
   executeQueries(Benchmark, Rest).
   
 executeBenchmark(Benchmark) :- 
@@ -328,6 +328,7 @@ Currently used to emulate views for Query 15 of TPC-D benchmark.
 */
   
 setupQuery(d, 15) :-
+    ( teardownQuery(d, 15) ; true ),
     let(revenue, select
     [lsuppkey as supplier_no,
     sum(lextendedprice * (1 - ldiscount)) as total_revenue]
@@ -1146,7 +1147,7 @@ tpcd(20, select
         from
         part
         where
-%        pname like ’[COLOR]%’
+%        pname like '[COLOR]%'
 % substitution parameter
         tostring(pname) starts "forest"
       ),
