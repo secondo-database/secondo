@@ -16,7 +16,7 @@ Die konzeptuelle Ebene umfasst die Beschreibung der Art der Daten und der Bezieh
 
 Auf der höchsten Abstraktionsebene, der externen Ebene wird nur ein Teil der Datenbank beschrieben. Obwohl die konzeptuelle Ebene mit einfacheren Strukturen arbeitet, bleibt eine gewisse Komplexität wegen der Unterschiedlichkeit der in einer großen Datenbank gespeicherten Informationen. Viele Benutzer eines Datenbanksystems benötigen nicht alle Informationen; stattdessen brauchen sie nur einen Teil der Datenbank. Die externe Ebene dient der Vereinfachung beim Zugriff auf das System. Es können beliebig viele Sichten auf eine Datenbank existieren.
 
-Jedem Datenbanksystem liegt ein Datenmodell zugrunde. Das Datenmodell beschreibt die konzeptionellen Einheiten und Werkzeuge um Daten, Beziehungen zwischen den Daten, die Semantik der Daten und Konsistenzeinschränkungen zu beschreiben. Verbreitete Datenmodelle für Datenbanken sind das relationale und das objektorientierte Datenbankmodell. 
+Jedem Datenbanksystem liegt ein Datenmodell zugrunde. Das Datenmodell beschreibt die konzeptuellen Einheiten und Werkzeuge um Daten, Beziehungen zwischen den Daten, die Semantik der Daten und Konsistenzeinschränkungen zu beschreiben. Verbreitete Datenmodelle für Datenbanken sind das relationale und das objektorientierte Datenbankmodell. 
 
 Die Grundelemente des relationalen Datenmodells sind Attribute, Tupel und Relationen. Eine Relation wird durch ihr Relationenschema eindeutig beschrieben. Ein Relationenschema ist eine Menge von Attributen. Durch einen zugeordneten Datentyp und einen Namen bestimmt ein Attribut die möglichen Werte, die die Ausprägungen des Attributs annehmen können. Ein Tupel ist eine konkrete Ausprägung, d.h. eine Zeile einer Relation (Tabelle). Damit ist eine Relation eine Menge von Tupeln.
 
@@ -33,15 +33,15 @@ Es seien $E_1$ und $E_2$ Ausdrücke über der Relationenalgebra, dann lassen sich 
 
 (\cite{DBLP:books/mg/SilberschatzKS01})
 
-Die Vereinigung $\cup$ hat als Ergebnis die Vereinigung der Ergebnisse der beiden Ausdrücke $E_1$ und $E_2$. Voraussetzung für die Vereinigung ist die Übereinstimmung der beiden Ausdrücke in ihrem Relationenschema.
+Die Vereinigung ($\cup$) hat als Ergebnis die Vereinigung der Ergebnisse der beiden Ausdrücke $E_1$ und $E_2$. Voraussetzung für die Vereinigung ist die Übereinstimmung der beiden Ausdrücke in ihrem Relationenschema.
 
-Die Mengendifferenz - ermittelt alle Tupel, die im ersten Ausdruck enthalten sind, nicht aber im zweiten.
+Die Mengendifferenz (-) ermittelt alle Tupel, die im ersten Ausdruck enthalten sind, nicht aber im zweiten.
 
-Das Kreuzprodukt zweier relationaler Ausdrücke, bezeichnet mit $\times$, liefert die Verkettung jedes Tupels des ersten Ausdrucks mit jedem Tupel des zweiten Ausdrucks. Hat $E_1$ $n_1$ Tupel und $E_2$ $n_2$ Tupel, so hat das Kreuzprodukt $n_1 * n_2$ Tupel.
+Das Kreuzprodukt zweier relationaler Ausdrücke, bezeichnet mit ($\times$), liefert die Verkettung jedes Tupels des ersten Ausdrucks mit jedem Tupel des zweiten Ausdrucks. Hat $E_1$ $n_1$ Tupel und $E_2$ $n_2$ Tupel, so hat das Kreuzprodukt $n_1 * n_2$ Tupel.
 
 Mit der Selektionsoperation ($\sigma$) werden nur die Tupel ermittelt, die das angegebene Prädikat erfüllen.
 
-Die Projektion (Operator $\pi$) schränkt das Ergebnisschema auf die angegebenen Attribute ein.
+Die Projektion ($\pi$) schränkt das Ergebnisschema auf die angegebenen Attribute ein.
 
 Während Relationen und Attribute über einen Namen spezifiziert sind, sind die Ergebnisse relationaler Ausdrücke ohne Bezeichnung. Mit der Umbenennungsoperation ($\rho$) wird dem Ergebnis eines relationalen Ausdrucks eine Bezeichnung zugeordnet. Dies kann auf Relationenebene geschehen, d.h. das Ergebnis bekommt einen Namen zugeordnet. Es ist aber auch möglich die Attribute des Ergebnisses umzubenennen.
 
@@ -67,7 +67,6 @@ SQL ist eine auf dem relationalen Datenbankmodell beruhende Datenbanksprache. Mi
 	\end{lstlisting}
 	
 Grundsätzlich besteht eine SQL-Abfrage aus den drei Klauseln \sql{select}, \sql{from} und \sql{where}. Diese bilden einen sogenannten Abfrageblock. In der \sql{select}-Klausel werden die Attribute der Ergebnisrelation angegeben. Die \sql{from}-Klausel gibt die Quellrelationen an, aus denen das Ergebnis ermittelt wird. Die optionale \sql{where}-Klausel gibt schließlich Einschränkungen an, denen die Ergebnistupel genügen müssen. 
-
 
 Die \sql{select}-Klausel entspricht der Projektions-Operation der Relationenalgebra. In ihr werden alle Attribute der Ergebnisrelation angegeben. Um alle Attribute der beteiligten Relationen zu erhalten gibt es die spezielle Notation \enquote{*}. Mit Ihr wird also das Schema der Ergebnisrelation festgelegt.
 
@@ -103,26 +102,48 @@ In der \sql{order by}-Klausel werden die Ergebnis Attribute angegeben, nach welc
 %	\subitem in der \sql{from}-Klausel 
 %	\subitem in der WHERE Klausel
 %	\subitem in der \sql{group by}\dots \sql{having}-Klausel (nicht implementiert) Die \sql{group by}\dots \sql{having}-Klausel erlaubt die Angabe eines Prädikats, das auf das Ergebnis einer Aggregation angewandt wird.
+Der SQL-Standard unterscheidet in 
 
-\begin{itemize}
-	\item SQL-Standard unterscheidet in
-	\subitem \enquote{scalar subqueries} (Ergebnis der Abfrage ist ein einzelner Wert). Diese Form der Unterabfrage darf an jeder Stelle in einem Abfrageblock verwendet werden, an dem auch eine skalare Konstante zulässig wäre.
-	\subitem \enquote{row subqueries} (Ergebnis der Abfrage ist eine Liste/Menge von Werten)
-	\subitem \enquote{table subqueries} (Ergebnis der Abfrage ist eine Relation) 
-	\item nach Korrelation
-	\subitem nicht-korreliert (trivial, Ergebnis ist Konstante/Liste von Konstanten)
-	\subitem korrelierte geschachtelte Abfrage
-	\subsubitem ohne Aggregation
-	\subsubitem mit Aggregation
-	\item Ort des Auftretens
-\end{itemize}
+\begin{enumerate}
+	\item scalar subqueries -- Ergebnis der Abfrage ist ein einzelner Wert. Diese Form der Unterabfrage darf an jeder Stelle in einem Abfrageblock verwendet werden, an dem auch eine skalare Konstante zulässig wäre.
+	\item row subqueries -- Ergebnis der Abfrage ist eine Liste bzw. Menge von Werten.
+	\item table subqueries -- Ergebnis der Abfrage ist eine Relation.
+\end{enumerate}.
 
-\sql{select}-Klausel das Ergebnis der Auswertung der geschachtelten Abfrage wird in die Ergebnisrelation aufgenommen. In der \sql{select}-Klausel sind nur skalare Unterabfragen zulässig. 
+Zusätzlich kann man die Unterabfrage nach dem Ort ihres Auftretens unterscheiden. 
 
-\sql{from}-Klausel komplexe Abfragen über mehrere Relationen lassen sich oft verständlicher formulieren, wenn in einem ersten Schritt die notwendigen Daten zu einer Relation zusammengefasst werden. Im darauf folgenden Schritt wird dann die eigentliche Abfrage über dieser neuen Relation formuliert. Diese Form der Strukturierung lässt sich durch Unterabfragen in der \sql{from}-Klausel bewerkstelligen. Die Unterabfrage liefert die Zusammenfassung der Daten, auf deren Basis die Abfrage formuliert wird. 
+%\begin{itemize}
+%	\item SQL-Standard unterscheidet in
+%	\subitem \enquote{scalar subqueries} (Ergebnis der Abfrage ist ein einzelner Wert). Diese Form der Unterabfrage darf an jeder Stelle in einem Abfrageblock verwendet werden, an dem auch eine skalare Konstante zulässig wäre.
+%	\subitem \enquote{row subqueries} (Ergebnis der Abfrage ist eine Liste/Menge von Werten)
+%	\subitem \enquote{table subqueries} (Ergebnis der Abfrage ist eine Relation) 
+%	\item nach Korrelation
+%	\subitem nicht-korreliert (trivial, Ergebnis ist Konstante/Liste von Konstanten)
+%	\subitem korrelierte geschachtelte Abfrage
+%	\subsubitem ohne Aggregation
+%	\subsubitem mit Aggregation
+%	\item Ort des Auftretens
+%\end{itemize}
+\begin{enumerate}
 
-\sql{where}-Klausel geschachtelte Abfragen in der \sql{where}-Klausel bieten die Möglichkeit, das Ergebnis einer Abfrage in einer Bedingung zu verwenden. Hierzu können die Operatoren \sql{in}, \sql{exists}, \sql{all}, \sql{any} und skalare Vergleichsoperatoren benutzt werden. Die Semantik dieser Operatoren wird im nächsten Absatz kurz skizziert.
+\item In der \sql{select}-Klausel -- Das Ergebnis der Auswertung der geschachtelten Abfrage wird in die Ergebnisrelation aufgenommen. In der \sql{select}-Klausel sind nur skalare Unterabfragen zulässig. 
 
+\item In der \sql{from}-Klausel -- Komplexe Abfragen über mehrere Relationen lassen sich oft verständlicher formulieren, wenn in einem ersten Schritt die notwendigen Daten zu einer Relation zusammengefasst werden. Im darauf folgenden Schritt wird dann die eigentliche Abfrage über dieser neuen Relation formuliert. Diese Form der Strukturierung lässt sich durch Unterabfragen in der \sql{from}-Klausel bewerkstelligen. Die Unterabfrage liefert die Zusammenfassung der Daten, auf deren Basis die Abfrage formuliert wird. 
+
+\item In der \sql{where}-Klausel -- Geschachtelte Abfragen in der \sql{where}-Klausel bieten die Möglichkeit, das Ergebnis einer Abfrage in einer Bedingung zu verwenden. Hierzu können die Operatoren \sql{in}, \sql{exists}, \sql{all}, \sql{any} und skalare Vergleichsoperatoren benutzt werden. Die Semantik dieser Operatoren wird in den nachfolgenden Absätzen kurz skizziert.
+
+\item In der \sql{group by}\dots \sql{having}-Klausel -- Auch in den Prädikaten der \sql{having}"=Klau"-sel kann auf Unterabfragen zurückgegriffen werden. Allerdings kann nur auf die Attribute der Ergebnisrelation der zuvorstehenden Abfrage zugegriffen werden. D.h. die Ausdrücke in einem Prädikat beziehen sich auf ein \sql{group by}-Attribut oder ein Aggregationsergebnis.
+	
+\begin{lstlisting}
+   select §$A_i$§, §$avg(A_j)$§
+   from §$R_n$§ as R
+   group by §$A_i$§
+   having §$avg(A_j)$§ >
+         (select §$avg(A_j)$§
+          from §$R_n$§
+          where §$R.A_i$§ = §$A_i$§)
+\end{lstlisting}
+\end{enumerate}
 	
 Der \sql{in}-Operator prüft das Enthaltensein eines Werts in einer Menge. Die Menge kann durch Auflistung oder durch eine Abfrage spezifiziert werden. Ein geschachteltes Prädikat mit dem \sql{in}-Operator ist genau dann wahr, wenn der Wert auf der linken Seite (Attribut oder Zeile) im Ergebnis der Unterabfrage enthalten ist. 
 
@@ -149,20 +170,8 @@ Der \sql{all}-Operator wertet zu \sql{TRUE} aus, wenn der Vergleich für alle Erg
 \end{lstlisting}
 
 
-(\sql{group by}\dots \sql{having}-Klausel) Auch in den Prädikaten der \sql{having}"=Klau"-sel kann auf Unterabfragen zurückgegriffen werden. Allerdings kann nur auf die Attribute der Ergebnisrelation der zuvorstehenden Abfrage zugegriffen werden. D.h. die Ausdrücke in einem Prädikat beziehen sich auf ein \sql{group by}-Attribut oder ein Aggregationsergebnis.
-	
-\begin{lstlisting}
-   select §$A_i$§, §$avg(A_j)$§
-   from §$R_n$§ as R
-   group by §$A_i$§
-   having §$avg(A_j)$§ >
-         (select §$avg(A_j)$§
-          from §$R_n$§
-          where §$R.A_i$§ = §$A_i$§)
-\end{lstlisting}
-
 \subsection{TPC-D Benchmark}
-TPC \footnote{TPC = Transaction Processing Performance Council} ist eine Vereinigung von IT-Unternehmen. Ziel des TPC ist es, standardisierte Benchmarks zur Bewertung von Transaktionssystemen zur Verfügung zu stellen. Mit diesen Benchmarks können herstellerunabhängig Datenbanksysteme verglichen werden. Je nach Anwendungsgebiet werden verschiedene Metriken zum Vergleich von real verfügbaren Systemen bereitgestellt. Der in dieser Arbeit für den Vergleich herangezogene Benchmark TPC-D ist ein Entscheidungshilfe-Benchmark. In dem Benchmark sind 22 Abfragen zusammengefasst, die Antworten auf betriebswirtschaftliche Fragestellungen geben. Insgesamt 10 dieser Abfragen haben geschachtelte Abfrageblöcke und eignen sich daher als Anschauungsobjekt für die Optimierung geschachtelter Anfragen. In Kapitel \ref{chp:Leistungsbewertung} findet sich eine Gegenüberstellung der geschachtelten und der optimierten Ausführung dieser Abfragen. Ziel des Benchmarks ist der Vergleich von Datenbanksystemen über Metriken, die sowohl die Performance, gemessen über die Antwortzeiten der Abfragen, als auch die Kosten für die verwendete Hardware mit einbeziehen. Die Ergebnisse eines solchen Benchmarks können nach einer Überprüfung durch den TPC auf der Website \url{http://www.tpc.org/} veröffentlicht werden.
+TPC \footnote{TPC = Transaction Processing Performance Council} ist eine Vereinigung von IT-Unternehmen. Ziel des TPC ist es, standardisierte Benchmarks zur Bewertung von Transaktionssystemen zur Verfügung zu stellen. Mit diesen Benchmarks können herstellerunabhängig Datenbanksysteme verglichen werden. Je nach Anwendungsgebiet werden verschiedene Metriken zum Vergleich von real verfügbaren Systemen bereitgestellt. Der in dieser Arbeit für den Vergleich herangezogene Benchmark TPC-D ist ein Entscheidungshilfe-Benchmark. In dem Benchmark sind 22 Abfragen zusammengefasst, die Antworten auf betriebswirtschaftliche Fragestellungen geben. Insgesamt 14 dieser Abfragen haben geschachtelte Abfrageblöcke und eignen sich daher als Anschauungsobjekt für die Optimierung geschachtelter Anfragen. In Kapitel \ref{chp:Leistungsbewertung} findet sich eine Gegenüberstellung der geschachtelten und der optimierten Ausführung dieser Abfragen. Ziel des Benchmarks ist der Vergleich von Datenbanksystemen über Metriken, die sowohl die Performance, gemessen über die Antwortzeiten der Abfragen, als auch die Kosten für die verwendete Hardware mit einbeziehen. Die Ergebnisse eines solchen Benchmarks können nach einer Überprüfung durch den TPC auf der Website \url{http://www.tpc.org/} veröffentlicht werden.
 
 \subsection{Beschreibung SECONDO}\label{sct:Beschreibung SECONDO}
 \textsc{Secondo} ist ein modular aufgebautes, erweiterbares Datenbanksystem. Es können sowohl das zugrundeliegende Datenmodell, als auch die verfügbaren Datentypen und Operatoren beliebig erweitert und ausgebaut werden.
@@ -282,18 +291,18 @@ Die grafische Benutzeroberfläche ist in Java implementiert. Mit ihr können Abfra
 
 \section{Ausführunsstrategien}
 \subsection{Geschachtelte Iteration}
-\cite{375748,1247598,ISO:1992:IITa} 
-Die Semantik der Auswertung von geschachtelten Abfragen wird im SQL-Standard \cite{ISO:1992:IITa} definiert. Das Ergebnis einer geschachtelten Abfrage erhält man, indem der innere Abfrageblock für jedes Tupel des äußeren Abfrageblocks ausgewertet wird. Enthält die Unterabfrage korrelierte Prädikate, d.h. Prädikate, die sich auf Attribute der Relationen des äußeren Abfrageblocks beziehen, so werden die entsprechenden Werte aus dem Tupel des äußeren Abfrageblocks als Konstanten in die Prädikate der Unterabfrage übernommen. Diese Form der Auswertung ist für große äußere Relationen nicht sehr performant. Bei Unterabfragen mit Aggregationsfunktion muss die Aggregation für jedes Tupel der äußeren Relation neu berechnet werden. In \cite{319745, 38723} werden Kostenberechnungen für Beispiele durchgeführt, die eine Verbesserung der notwendigen I/O-Operationen für eine Abfrage um ein bis zwei Größenordnung zeigen. 
+%\cite{375748,1247598,ISO:1992:IITa} 
+Die Semantik der Auswertung von geschachtelten Abfragen wird im SQL-Standard \cite{ISO:1992:IITa} definiert. Das Ergebnis einer geschachtelten Abfrage erhält man, indem der innere Abfrageblock für jedes Tupel des äußeren Abfrageblocks ausgewertet wird. Enthält die Unterabfrage korrelierte Prädikate, d.h. Prädikate, die sich auf Attribute der Relationen des äußeren Abfrageblocks beziehen, so werden die entsprechenden Werte aus dem Tupel des äußeren Abfrageblocks als Konstanten in die Prädikate der Unterabfrage übernommen. Diese Form der Auswertung ist für große äußere Relationen nicht sehr performant. Bei Unterabfragen mit Aggregationsfunktion muss die Aggregation für jedes Tupel der äußeren Relation neu berechnet werden. In \cite{319745, 38723} werden Kostenberechnungen für Beispiele durchgeführt, die eine Verbesserung der notwendigen I/O-Operationen für eine Abfrage um ein bis zwei Größenordnungen zeigen. 
 
 
 \subsection{Entschachtelung}
-Es wurde schon früh beobachtet, dass es zu bestimmten geschachtelten Abfragen inhaltlich äquivalente Abfragen gibt, die ohne Schachtelung auskommen. In \cite{319745} wurde erstmals die Formalisierung dieser Äquivalenz untersucht, um geschachtelte Abfragen durch Optimierung der Ausführungspläne beschleunigen zu können. Ebd. wird ein Verfahren vorgestellt, eine geschachtelte Abfrage durch Transformation in eine inhaltlich äquivalente, nicht geschachtelte Abfrage zu optimieren. Die dort vorgestellten Algorithmen benötigen nur die erweiterten Standard-Operationen der Relationenalgebra. Ziel der Entschachtelungen ist die Überführung geschachtelter Abfrageblöcke in eine inhaltlich äquivalente Form. Zwei Abfrageblöcke sind inhaltlich äquivalent, wenn für jede beliebige Interpretation (Belegung mit Werten) der Variablen (in diesem Fall Relationen, Attribute und Konstanten), das Ergebnis der Abfrage übereinstimmt. Grundsätzlich haben die Entschachtelungsansätze gemeinsam, dass Äquivalenzen aufgestellt werden, die die Transformation einer Abfrage in eine strukturell anders aufgebaute Abfrage erlauben. Dabei unterscheiden sich die verschiedenen Ansätze in der für die Optimierung genutzten Notation der Abfrage. Die Relationenalgebra wird je nach Ansatz um verschiedene Operatoren erweitert. Dabei wird die Relationenalgebra zwar funktional erweitert, es findet jedoch keine Erweiterung der Ausdruchsstärke statt. D.h. die eingeführten Operatoren lassen sich grundsätzlich durch komplexe Ausdrücke über den Standardoperatoren darstellen. Vorteil der Einführung der neuen Operatoren ist die Möglichkeit, mit Hilfe dieser Operatoren Transformationen zu formulieren, die eine optimierte Formulierung einer geschachtelten Abfrage zulassen. Dienen die Operatoren nur der algebraischen Optimierung und können sie durch algebraische Transformationen immer aus einem Ausdruck entfernt werden, so ist keine Implementierung notwendig. Andernfalls ist eine effiziente Implementierung erforderlich. Während in \cite{319745,38723,671634} die Abfrage in SQL-Notation transformiert wird, wird die Abfrage in \cite{375748,756653} Ausdrücke einer erweiterten Relationenalgebra übersetzt und algebraisch transformiert. 
+Es wurde schon früh beobachtet, dass es zu bestimmten geschachtelten Abfragen inhaltlich äquivalente Abfragen gibt, die ohne Schachtelung auskommen. In \cite{319745} wurde erstmals die Formalisierung dieser Äquivalenz untersucht, um geschachtelte Abfragen durch Optimierung der Ausführungspläne beschleunigen zu können. Ebd. wird ein Verfahren vorgestellt, eine geschachtelte Abfrage durch Transformation in eine inhaltlich äquivalente, nicht geschachtelte Abfrage zu optimieren. Die dort vorgestellten Algorithmen benötigen nur die erweiterten Standard-Operationen der Relationenalgebra. Ziel der Entschachtelungen ist die Überführung geschachtelter Abfrageblöcke in eine inhaltlich äquivalente Form. Zwei Abfrageblöcke sind inhaltlich äquivalent, wenn für jede beliebige Interpretation (Belegung mit Werten) der Variablen (in diesem Fall Relationen, Attribute und Konstanten), das Ergebnis der Abfrage übereinstimmt. Grundsätzlich haben die Entschachtelungsansätze gemeinsam, dass Äquivalenzen aufgestellt werden, die die Transformation einer Abfrage in eine strukturell anders aufgebaute Abfrage erlauben. Dabei unterscheiden sich die verschiedenen Ansätze in der für die Optimierung genutzten Notation der Abfrage. Die Relationenalgebra wird je nach Ansatz um verschiedene Operatoren erweitert. Dabei wird die Relationenalgebra zwar funktional erweitert, es findet jedoch keine Erweiterung der Ausdrucksstärke statt. D.h. die eingeführten Operatoren lassen sich grundsätzlich durch komplexe Ausdrücke über den Standardoperatoren darstellen. Vorteil der Einführung der neuen Operatoren ist die Möglichkeit, mit Hilfe dieser Operatoren Transformationen zu formulieren, die eine optimierte Formulierung einer geschachtelten Abfrage zulassen. Dienen die Operatoren nur der algebraischen Optimierung und können sie durch algebraische Transformationen immer aus einem Ausdruck entfernt werden, so ist keine Implementierung notwendig. Andernfalls ist eine effiziente Implementierung erforderlich. Während in \cite{319745,38723,671634} die Abfrage in SQL-Notation transformiert wird, wird die Abfrage in \cite{375748,756653} Ausdrücke einer erweiterten Relationenalgebra übersetzt und algebraisch transformiert. 
 
 In \cite{375748} wird die SQL-Abfrage erst einmal in eine algebraische Darstellung übersetzt. Um die Transformationen leisten zu können, wird die relationale Algebra um einige Operatoren erweitert, mit deren Hilfe sich der Term, der durch die Übersetzung entsteht, in eine entschachtelte Variante überführen lässt. Die Ansätze zur Entschachtelung korrelierter Unterabfragen mit Aggregationsfunktion werden in die Vorgehensweisen Nested-Iteration, erst Outer-Join, dann Aggregation, erst Aggregation, dann Outer-Join und in orthogonale Optimierung unterschieden. Die orthogonale Optimierung geht in folgenden Schritten vor: Zerlegung der Abfrage in einen Operatorbaum auf der Basis des \sql{apply}-Operators. \sql{apply} ist ein relationaler Operator zweiter Ordnung, der die parametrierte Ausführung von Teilausdrücken abstrahiert. Im zweiten Schritt wird \sql{apply} in andere Operatoren umgeschrieben wie z.B. \sql{outer join}. Die Vorgehensweise zur Entfernung der Korrelation beruht auf den gleichen Mechanismen wie in \cite{671634}. Anschließend wird sofern möglich der Outer-Join noch vereinfacht. So lässt sich Outer-Join in Gegenwart von \sql{null}-verwerfenden Prädikaten in Join umwandeln. Zusätzlich werden \sql{group-by}-Ausdrücke möglichst spät ausgewertet. Nachteil dieser Vorgehensweise ist die mögliche Einführung gemeinsamer Teilausdrücke (CSEs) bei der Entschachtelung. 
 
 Apply ist eine Ausprägung des Generalized-Projection Operators wie er z.B. in \cite{DBLP:books/mg/SilberschatzKS01} für die erweiterte Relationenalgebra vorgestellt wird. Der Generalized-Projection-Operator erlaubt nicht nur die Projektion auf Attribute der Ursprungsrelation, sondern auch auf Funktionsergebnisse die über den Attributen dieser Relation formuliert werden. SegmentApply ist eine Variante des Apply-Operators, die nicht auf einzelne Zeilen sondern auf Gruppen von Zeilen angewandt wird. \sql{null}-rejecting Outer-Join Ein Outer-Join heißt \sql{null}-verwerfend, wenn das Join-Prädikat \sql{null}-verwerfend ist und die Menge A der Attribute Teilmenge des Schemas der zweiten Relation. Ist ein Outer-Join-Prädikat \sql{null}-verwerfend, so ist es äquivalent zu einem Join-Prädikat mit der gleichen Join-Bedingung. Diese Äquivalenz ermöglicht die Ausführungsreihenfolge zumindest für gewisse Outer-Joins und Joins zu vertauschen.
 
-In \cite{1066180} wird ein Algorithmus zur Optimierung geschachtelter Abfragen auf der Basis einer geschachtelten Relationenalgebra vorgestellt. Der vorgestellte Algorithmus ist jedoch nur für geschachtelte Abfragen ohne Aggregationsfunktion zulässig. Eine geschachtelte Relationenalgebra ist die konsequente Erweiterung der Relationenalgebra um die Zulässigkeit von Relationen als Attributwerte. D.h. eine Relation kann ihrerseits bereits geschachtelt sein. Die Grundoperationen der relationalen Algebra werden um zwei Operatoren erweitert. Die Operatoren nest und unnest überführen eine Menge von Relationen in eine geschachtelte Relation respektive entfernen die Schachtelung aus einer geschachtelten Relation. Prädikate die in der geschachtelten Relationenalgebra Schachtelungsebenen verbinden werden \emph{linking} (verbindende) Prädikate genannt. Es wird ein Operator \emph{linking selection} eingeführt, dieser erweitert die Selektionsoperation der Relationenalgebra, die ja nur auf flachen Relationen definiert ist. Die Selektion mit einem \emph{linking} Prädikat entspricht daher der \emph{linking selection}. Der Algorithmus zur Entschachtelung baut in einer depth-first Vorgehensweise eine flache Relation aus der geschachtelten Abfrage mit Hilfe von Join und Outer-Join auf. In einer optimierten Variant wird die Entschachtelung durch Pipelining, d.h. die Verzahnung der Rechenschritte der einzelnen Entschachtelungen noch einmal beschleunigt. Bei einer prototypischen Implementierung in einem kommerziellen DBMS mit gespeicherten Prozeduren wurden zum Teil Beschleunigungen um mehrere Größenordnungen erreicht.
+In \cite{1066180} wird ein Algorithmus zur Optimierung geschachtelter Abfragen auf der Basis einer geschachtelten Relationenalgebra vorgestellt. Der vorgestellte Algorithmus ist jedoch nur für geschachtelte Abfragen ohne Aggregationsfunktion zulässig. Eine geschachtelte Relationenalgebra ist die konsequente Erweiterung der Relationenalgebra um die Zulässigkeit von Relationen als Attributwerte. D.h. eine Relation kann ihrerseits bereits geschachtelt sein. Die Grundoperationen der relationalen Algebra werden um zwei Operatoren erweitert. Die Operatoren nest und unnest überführen eine Menge von Relationen in eine geschachtelte Relation respektive entfernen die Schachtelung aus einer geschachtelten Relation. Prädikate die in der geschachtelten Relationenalgebra Schachtelungsebenen verbinden werden \emph{linking} (verbindende) Prädikate genannt. Es wird ein Operator \emph{linking selection} eingeführt, dieser erweitert die Selektionsoperation der Relationenalgebra, die ja nur auf flachen Relationen definiert ist. Die Selektion mit einem \emph{linking} Prädikat entspricht daher der \emph{linking selection}. Der Algorithmus zur Entschachtelung baut in einer depth-first Vorgehensweise eine flache Relation aus der geschachtelten Abfrage mit Hilfe von Join und Outer-Join auf. In einer optimierten Variante wird die Entschachtelung durch Pipelining, d.h. die Verzahnung der Rechenschritte der einzelnen Entschachtelungen noch einmal beschleunigt. Bei einer prototypischen Implementierung in einem kommerziellen DBMS\footnote{Database Management System = Datenbankverwaltungssystem} mit gespeicherten Prozeduren wurden zum Teil Beschleunigungen um mehrere Größenordnungen erreicht.
 
 
 
@@ -305,11 +314,11 @@ In \cite{1066180} wird ein Algorithmus zur Optimierung geschachtelter Abfragen a
 %\end{itemize}
 
 \section{Klassifikation geschachtelter Abfragen}
-SQL Prädikate lassen sich in verschiedene Klassen einteilen. Abhängig von der Semantik der Operation, kann man in \emph{einfache} Prädikate, \emph{Join}-Prädikate, \emph{Divisions}-Prädikate und \emph{geschachtelte} Prädikate unterscheiden.
+SQL Prädikate lassen sich in verschiedene Klassen einteilen. Abhängig von der Semantik der Operation, kann man in \emph{einfache} Prädikate, \emph{Join}-Prädikate und \emph{geschachtelte} Prädikate unterscheiden.
 
-Einfache Prädikate sind solche Prädikate, die zu ihrer Berechnung nur auf Konstanten und Attribute einer Relation zugreifen. Ein Beispiel für ein solches Prädikat ist \textbf{$C_m = 10$}. Die entsprechende Operation der Relationenalgebra ist die Selektion.
+\emph{Einfache} Prädikate sind solche Prädikate, die zu ihrer Berechnung nur auf Konstanten und Attribute einer Relation zugreifen. Ein Beispiel für ein solches Prädikat ist \textbf{$C_m = 10$}. Die entsprechende Operation der Relationenalgebra ist die Selektion.
  
- Join-Prädikate benötigen zu ihrer Berechnung Attribute aus zwei oder mehr Relationen. Sie \emph{verbinden} (to join -- engl. verbinden) die verwendeten Relationen. In der Relationenalgebra entspricht diese Operation der Kombination von Kreuzprodukt und Selektion. 
+\emph{Join}-Prädikate benötigen zu ihrer Berechnung Attribute aus zwei oder mehr Relationen. Sie \emph{verbinden} (to join -- engl. verbinden) die verwendeten Relationen. In der Relationenalgebra entspricht diese Operation der Kombination von Kreuzprodukt und Selektion. 
 
 \begin{lstlisting} 
 select * from §$R_i, R_j$§ where §$R_i.C_n=R_j.C_m$§ 
@@ -321,10 +330,7 @@ entspricht in der Relationenalgebra dem Ausdruck
 	\sigma_{R_i.C_n=R_j.C_m}(R_i \times R_j)
 \end{math}
 
-
-Divisions-Prädikate berechnen die relationale Division über zwei Relationen. 
-
-Geschachtelte Prädikate enthalten eine Unterabfrage in ihrem Ausdruck. Abhängig von der Ergebnismächtigkeit der Unterabfrage spricht der SQL-Standard von skalaren Unterabfragen, deren Ergebnis genau ein Wert ist; Zeilen-Unterabfragen (row subqueries), Ergebnis dieser Abfragen ist ein Tupel, das aus mehreren Attributen bestehen kann, sowie von Tabellen-Unterabfragen, deren Ergebnis eine Relation ist. Je nach Ergebnistyp ist die Verwendung von Unterabfragen an verschiedenen Stellen eines Abfrageblocks zulässig. Skalare Unterabfragen sind an jeder Stelle zulässig, an der auch Literale erlaubt sind. Zeilen- und Tabellen-Abfragen unterliegen einigen Einschränkungen, was ihre Verwendung in Views betrifft (siehe \cite{ISO:1992:IITa}), können aber an fast jeder Stelle eingesetzt werden, an der ihr Ergebnistyp zulässig ist. Der SQL-Standard erlaubt die Schachtelung von Abfrageblöcken in beliebiger Tiefe. Tabellen-Unterabfragen können z.B. in der \sql{from}-Klausel eingesetzt werden. 
+\emph{Geschachtelte} Prädikate enthalten eine Unterabfrage in ihrem Ausdruck. Abhängig von der Ergebnismächtigkeit der Unterabfrage spricht der SQL-Standard von skalaren Unterabfragen, deren Ergebnis genau ein Wert ist; Zeilen-Unterabfragen (row subqueries), Ergebnis dieser Abfragen ist ein Tupel, das aus mehreren Attributen bestehen kann, sowie von Tabellen-Unterabfragen, deren Ergebnis eine Relation ist. Je nach Ergebnistyp ist die Verwendung von Unterabfragen an verschiedenen Stellen eines Abfrageblocks zulässig. Skalare Unterabfragen sind an jeder Stelle zulässig, an der auch Literale erlaubt sind. Zeilen- und Tabellen-Abfragen unterliegen einigen Einschränkungen, was ihre Verwendung in Views betrifft (siehe \cite{ISO:1992:IITa}), können aber an fast jeder Stelle eingesetzt werden, an der ihr Ergebnistyp zulässig ist. Der SQL-Standard erlaubt die Schachtelung von Abfrageblöcken in beliebiger Tiefe. Tabellen-Unterabfragen können z.B. in der \sql{from}-Klausel eingesetzt werden. 
 
 %Klassifikation von Prädikaten in 
 %einfache(Vergleich mit Konstante(n)), 
@@ -343,10 +349,10 @@ Geschachtelte Prädikate enthalten eine Unterabfrage in ihrem Ausdruck. Abhängig 
 %D =(ein Divisions-Prädikat, dass in einer der beiden Abfrageblöcke ein Join-Prädikat mit Verweis auf eine Relation im äußeren Abfrageblock, drückt die relationale Divisionsoperation aus), \\
 %\emph{nested-iteration method}, vollständige Auswertung des inneren Abfrageblocks für jedes Tupel des äußeren Blocks
 
-Grundsätzlich lassen sich geschachtelte Abfragen in unabhängige Abfragen und korrelierte Abfragen unterscheiden. Unabhängige Abfragen lassen sich unabhängig vom äußeren Abfrageblock auswerten. Ist eine unabhängige Auswertung nicht möglich spricht man korrelierten Abfragen, da das Ergebnis der inneren Abfrage vom Wert des Tupels des äußeren Abfrageblocks abhängt. Kim stellt in \cite{319745} eine Klassifikation geschachtelter Abfragen auf, auf deren Basis seine ebendort vorgestellten Entschachtelungsalgorithmen arbeiten. 
+Grundsätzlich lassen sich geschachtelte Abfragen in unabhängige Abfragen und korrelierte Abfragen unterscheiden. Unabhängige Abfragen lassen sich unabhängig vom äußeren Abfrageblock auswerten. Ist eine unabhängige Auswertung nicht möglich spricht man von korrelierten Abfragen, da das Ergebnis der inneren Abfrage vom Wert des Tupels des äußeren Abfrageblocks abhängt. Kim stellt in \cite{319745} eine Klassifikation geschachtelter Abfragen auf, auf deren Basis seine ebendort vorgestellten Entschachtelungsalgorithmen arbeiten. 
 
 \subsection{Typ A}
-geschachtelte Abfrage mit Aggregationsfunktion, ohne Prädikate die Attribute aus den äußeren Relationen verwenden, kann unabhängig vom äußeren Abfrageblock ausgewertet werden, hat einen Wert als Ergebnis, nicht Liste wg. Aggregationsfunktion. Beispiel: Den Ort mit der höchsten Postleitzahl aus der Relation PLZ
+Eine geschachtelte Abfrage mit Aggregationsfunktion, die keine Attribute aus den äußeren Relationen referenziert heißt vom Typ A. Solche Abfragen können unabhängig vom äußeren Abfrageblock ausgewertet werden. Ihr Ergebnis ist ein skalarer Wert. Beispiel: Den Ort mit der höchsten Postleitzahl aus der Relation PLZ
 \begin{lstlisting}
 select ort 
 from plz

@@ -4,7 +4,26 @@
 %
 
 \chapter{Leistungsbewertung}\label{chp:Leistungsbewertung}
-Die geschachtelten Abfragen des TPC-D Benchmarks, die mit den in dieser Arbeit implementierten Algorithmen übersetzt werden können, dienen in diesem Kapitel als Beispiel, um die einzelnen Transformationsschritte bei der Entschachtelung darzustellen. Am Vergleich der Laufzeiten der einzelnen Phasen des Optimierers lässt sich erkennen, in welchen Fällen eine entschachtelte Ausführung der iterativ geschachtelten über- bzw. unterlegen ist. Die Abfragen werden auf einer Datenbank ausgeführt, die über ein Generierungsskript erzeugt werden kann. Um die Größe der Datenbank zu beeinflussen existiert ein Skalierungsfaktor, der bei der Erzeugung der Datenbank angegeben werden muss. Jede Abfrage wurde auf Datenbanken mit verschiedenen Skalierungsfaktoren durchgeführt. Die Darstellung der unterschiedlichen Laufzeiten für die einzelnen Phasen des Optimierers wurde anhand der Laufzeiten der Datenbank mit Skalierungsfaktor 0,0008 vorgenommen. Bei dieser Datenbankgröße unterscheiden sich die Laufzeiten der einzelnen Phasen nur um wenige Größenordnungen, so dass die graphische Darstellung der Aufteilung der Gesamtlaufzeit sinnvoll möglich ist. Bei kleineren Skalierungsfaktoren kann es zu Fehlverhalten des Optimierers kommen, da die temporären Relationen unter Umständen leer sind. Die Berechnung der Selektivität von Join-Prädikaten, die auf leere Relationen verweisen, ist momentan fehlerhaft implementiert. 
+Die geschachtelten Abfragen des TPC-D Benchmarks, die mit den in dieser Arbeit implementierten Algorithmen übersetzt werden können, dienen in diesem Kapitel als Beispiel, um die einzelnen Transformationsschritte bei der Entschachtelung darzustellen. Die Abfragen Q8, Q11, Q13 und Q18 lassen sich mit der vom Optimierer momentan erkannten Syntax nicht übersetzen. Sie verwenden in der \sql{select}-Klausel Ausdrücke über Aggregationsergebnissen (Q8), die \sql{having}-Klausel (Q11, Q18) oder benötigen einen Left-Outer-Join-Operator. Eine Erweiterung des Optimierers um diese Funktionalität war nicht Teil dieser Arbeit. 
+
+Die Abfragen sind über folgenden Relationen definiert:
+
+\begin{itemize}
+	\item PART -- Teile
+	\item SUPPLIER -- Lieferanten
+	\item PARTSUPP -- Verknüpfungstabelle zwischen Teilen und Lieferant
+	\item CUSTOMER -- Kunden
+	\item ORDERS -- Bestellungen
+	\item LINEITEM -- Bestellpositionen
+	\item NATION -- Länder
+	\item REGION -- Regionen
+\end{itemize}.
+
+Eine genaue Aufstellung der Schemata der Tabellen findet sich in \cite{TPC-D}.
+
+Am Vergleich der Laufzeiten der einzelnen Phasen des Optimierers lässt sich erkennen, in welchen Fällen eine entschachtelte Ausführung der iterativ geschachtelten über- bzw. unterlegen ist. Die Abfragen werden auf einer Datenbank ausgeführt, die über ein Generierungsskript erzeugt werden kann. Um die Größe der Datenbank zu beeinflussen existiert ein Skalierungsfaktor, der bei der Erzeugung der Datenbank angegeben werden muss. Jede Abfrage wurde auf Datenbanken mit verschiedenen Skalierungsfaktoren durchgeführt. Bei kleineren Skalierungsfaktoren kann es zu Fehlverhalten des Optimierers kommen, da die temporären Relationen unter Umständen leer sind. Die Berechnung der Selektivität von Join-Prädikaten, die auf leere Relationen verweisen, ist momentan fehlerhaft implementiert. 
+
+Vor der Ausführung der Abfragen wurden alle vorhandenen Metainformationen zu Prädikaten und Relationen gelöscht. Die Laufzeit für die Ermittlung der Selektivitäten fließt also in die hier dargestellten Laufzeiten mit ein. Da die Optimierer über einen Query-Cache verfügt, in dem die entschachtelte Variante einer Abfrage abgespeichert wird, ist jede weitere Ausführung der gleichen Abfrage deutlich schneller. Der Query-Cache wird bei der ersten Ausführung als \enquote{kalt}, bei den darauf folgenden Ausführungen als \enquote{warm} bezeichnet. Ausführungszeiten, die bei der Entschachtelung ohne bzw. mit Ausnutzung des Query-Cache, d.h. \enquote{kalt} bzw. \enquote{warm} erzielt wurden, werden in den dargestellten Grafiken kurz mit \enquote{entschachtelt, kalt} bzw. \enquote{entschachtelt, warm} bezeichnet.
 
 \section{Laufzeit- und Strukturvergleich}\label{sct:Laufzeit- und Strukturvergleich}
 \subsection{TPC-D Q2}
@@ -163,7 +182,7 @@ head[100]
 consume
 \end{lstlisting}
 
-Das geschachtelte Prädikat (Listing \ref{Q2:nested_predicate}) ist mit einem komplexen \secondo{filter}-Ausdruck übersetzt worden. Die Unterabfrage wurde wie eine flache Abfrage übersetzt. Die einzige Besonderheit ist das Prädikate \secondo{filter[(attr(alias3, pPARTKEY) = .psPARTKEY\_ps)]} in dem das Attribut \secondo{pPARTKEY} der äußeren Relation \secondo{PART} referenziert wird.
+Das geschachtelte Prädikat (Listing \ref{Q2:nested_predicate}) ist mit einem komplexen \secondo{filter}-Ausdruck übersetzt worden. Die Unterabfrage wurde wie eine flache Abfrage übersetzt. Die einzige Besonderheit ist das Prädikat \secondo{filter[(attr(alias3, pPARTKEY) = .psPARTKEY\_ps)]} in dem das Attribut \secondo{pPARTKEY} der äußeren Relation \secondo{PART} referenziert wird.
 
 Die Übersetzung der entschachtelten Abfrage entspricht der iterativ-geschachtelten Übersetzung, mit Ausnahme des geschachtelten \secondo{filter}-Ausdrucks. Dieser wird durch den Join mit der Relation \secondo{trelxx3} und die beiden Prädikate \secondo{symmjoin[(.psSUPPLYCOST = ..Var1\_alias1)]} und \secondo{filter[(.pPARTKEY = .psPARTKEY\_ps\_alias1)]} ersetzt. Dies entspricht gerade den durch den Algorithmus \textbf{NEST-G} vorgenommenen Änderungen an der Abfrage.
 
@@ -208,39 +227,37 @@ Total & 8241 & 8213 & 1790 & 1063 \\
 
 Der Optimierer berechnet für den Skalierungsfaktor 0,0008 Kosten von 411,18 für die entschachtelte und 377,18 für die iterative Ausführung. Dies widerspricht den tatsächlichen Laufzeiten, wie man Tabelle \ref{tab:Q2 Laufzeit} entnehmen kann. Auch für den Skalierungsfaktor 0,0032 sehen die berechneten Kosten (1657,95 für die entschachtelte Ausführung, 1610,28 für die iterative Ausführung) ähnlich aus. Der Optimierer würde also bei einem Vergleich der Ausführungsstrategien die iterative Ausführung wählen. Wie der Abbildung \ref{plot:Q2 line} zu entnehmen ist, wäre diese Auswahl ungünstig. Möglicherweise werden die Ausführungskosten für geschachtelte Prädikate noch falsch eingeschätzt.
 
-\pgfplotsset{every x tick label/.style={below, yshift=-0.25em, rotate=30, xshift=-1.5em}, every y tick label/.style={/pgf/number format/1000 sep={.}}}
+%\pgfplotsset{every x tick label/.style={below, yshift=-0.25em, rotate=90, xshift=-1.5em}, every y tick label/.style={/pgf/number format/1000 sep={.}}}
+\pgfplotsset{every x tick label/.style={below}, every y tick label/.style={/pgf/number format/1000 sep={.}}}
 
-\begin{figure}[h]
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-/pgf/number format/1000 sep=,font=\footnotesize},
-xtick=data,
-ylabel=Sekunden,
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-area legend,
-anchor=east,legend columns=1},
-ybar stacked,
-xticklabels={1,2,3,4},
-xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
-]
-\addplot coordinates {(0,	0. 549	)(1,	0	)(2, 	0	)(3,	0	)};
-\addplot coordinates {(0,	0.003	)(1,	0.003	)(2,	0.092	)(3,	0.044	)};
-\addplot coordinates {(0,	0.678	)(1,	0.508	)(2,	0.236	)(3,	0.275	)};
-\addplot coordinates {(0,	0.298	)(1,	0.307	)(2,	7.673	)(3,	7.658	)};
-\legend{Rewrite,Lookup,QueryToPlan,Execute}
-\end{axis}
-\end{tikzpicture}
-\caption{Abfrage Q2, detaillierte Laufzeit in Sekunden}
-\label{Q2:plot bars}
-\end{figure}
-\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
-\stepcounter{footnote}\footnotetext{entschachtelt, warm}
-\stepcounter{footnote}\footnotetext{iterativ, kalt}
-\stepcounter{footnote}\footnotetext{iterativ, warm}
-
-Wie Abbildung \ref{Q2:plot bars} zu entnehmen ist, verkürzt sich die Laufzeit für die entschachtelte Ausführung bei mehrfacher Ausführung um die Laufzeit der Umschreibungsphase. Bei der iterativen Ausführung kann dagegen nur die Ermittlung der Selektivitäten eingespart werden. Da die Selektivitäten gespeichert werden, stehen diese auch unabhängig von einer Datenbanksitzung zur Verfügung. 
+%\begin{figure}[h]
+%\begin{tikzpicture}
+%\begin{axis}[
+%x tick label style={
+%/pgf/number format/1000 sep=,font=\footnotesize},
+%xtick=data,
+%ylabel=Sekunden,
+%enlargelimits=0.10,
+%legend style={at={(1.65,0.5)},
+%area legend,
+%anchor=east,legend columns=1},
+%ybar stacked,
+%xticklabels={1,2,3},
+%]
+%\addplot coordinates {(0,	0. 549	)(1,	0	)(2, 	0	)};
+%\addplot coordinates {(0,	0.003	)(1,	0.003	)(2,	0.092	)};
+%\addplot coordinates {(0,	0.678	)(1,	0.508	)(2,	0.236	)};
+%\addplot coordinates {(0,	0.298	)(1,	0.307	)(2,	7.673	)};
+%\legend{Rewrite,Lookup,QueryToPlan,Execute}
+%\end{axis}
+%\end{tikzpicture}
+%\caption{Abfrage Q2, detaillierte Laufzeit in Sekunden}
+%\label{Q2:plot bars}
+%\end{figure}
+%\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+%\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+%\stepcounter{footnote}\footnotetext{iterativ}
+%%\stepcounter{footnote}\footnotetext{iterativ, warm}
 
 \begin{figure}[h]
 \begin{tikzpicture}
@@ -252,12 +269,12 @@ xtick=data,
 ylabel=Sekunden,
 xlabel=Skalierungsfaktor,
 xlabel style={yshift=-2.5em},
-xticklabels={,0.0016,0.0032,0.0064,0.0128},%0.0001,0.0002,0.0004,0.0008,0.0016,0.0032,0.0064},
+%xticklabels={,0.0016,0.0032,0.0064,0.0128},%0.0001,0.0002,0.0004,0.0008,0.0016,0.0032,0.0064},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 %area legend,
 anchor=east,legend columns=1},
-scaled x ticks=base 10:0,
+scaled x ticks=base 10:4,
 %ybar stacked,
 sharp plot
 ]
@@ -265,15 +282,13 @@ sharp plot
 \addplot coordinates {(0.0008,	1.79	)(0.0016,	2.975	)(0.0032,	7.381	)(0.0064,	15.645	)(0.0128,	57.756	)};
 \addplot coordinates {(0.0008,	1.063	)(0.0016,	1.887	)(0.0032,	5.095	)(0.0064,	8.094	)(0.0128,	31.848	)};
 \addplot coordinates {(0.0008,	8.241	)(0.0016,	4.882	)(0.0032,	33.689	)(0.0064,	302.276	)(0.0128,	2568.521	)};
-\addplot coordinates {(0.0008,	8.213	)(0.0016,	4.813	)(0.0032,	33.764	)(0.0064,	300.085	)(0.0128,	2525.131	)};
-\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+%\addplot coordinates {(0.0008,	8.213	)(0.0016,	4.813	)(0.0032,	33.764	)(0.0064,	300.085	)(0.0128,	2525.131	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
 \caption{Laufzeit von Q2 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q2 line}
 \end{figure}
-
-Während die Laufzeit für die entschachtelte Ausführung nur langsam ansteigt, wächst die Laufzeit für die iterative Ausführung exponentiell. Schon bei einem Skalierungsfaktor von 0.0064 verringert sich die Laufzeit der Abfrage durch Entschachtelung um eine Größenordnung. Eine entschachtelte Ausfürhung ist bei Abfrage Q2 also vorteilhaft. 
 
 \subsection{TPC-D Q4}
 Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. Es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf. 
@@ -389,36 +404,36 @@ sortby[oORDERPRIORITY asc]
 consume
 \end{lstlisting}
 
-\begin{figure}[h]
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-/pgf/number format/1000 sep=},
-xtick=data,
-ylabel=Sekunden,
-scaled ticks=base 10:0,
-xticklabels={1,2,3,4},
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-area legend,
-anchor=east,legend columns=1},
-ybar stacked,
-xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
-]
-\addplot coordinates {(0,	0.645	)(1,	0	)(2,	0	)(3,	0	)};
-\addplot coordinates {(0,	0.002	)(1,	0.002	)(2,	0.026	)(3,	0.002	)};
-\addplot coordinates {(0,	0.002	)(1,	0.002	)(2,	0.002	)(3,	0.003	)};
-\addplot coordinates {(0,	5.986	)(1,	6.054	)(2,	3.093	)(3,	3.098	)};
-\legend{Rewrite,Lookup,QueryToPlan,Execute}
-\end{axis}
-\end{tikzpicture}
-\caption{Abfrage Q4, detaillierte Laufzeit in Sekunden}
-\end{figure}
-\setcounter{footnote}{0}
-\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
-\stepcounter{footnote}\footnotetext{entschachtelt, warm}
-\stepcounter{footnote}\footnotetext{iterativ, kalt}
-\stepcounter{footnote}\footnotetext{iterativ, warm}
+%\begin{figure}[h]
+%\begin{tikzpicture}
+%\begin{axis}[
+%x tick label style={
+%/pgf/number format/1000 sep=},
+%xtick=data,
+%ylabel=Sekunden,
+%scaled ticks=base 10:0,
+%xticklabels={1,2,3,4},
+%enlargelimits=0.10,
+%legend style={at={(1.65,0.5)},
+%area legend,
+%anchor=east,legend columns=1},
+%ybar stacked,
+%%xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
+%]
+%\addplot coordinates {(0,	0.645	)(1,	0	)(2,	0	)};
+%\addplot coordinates {(0,	0.002	)(1,	0.002	)(2,	0.026	)};
+%\addplot coordinates {(0,	0.002	)(1,	0.002	)(2,	0.002	)};
+%\addplot coordinates {(0,	5.986	)(1,	6.054	)(2,	3.093	)};
+%\legend{Rewrite,Lookup,QueryToPlan,Execute}
+%\end{axis}
+%\end{tikzpicture}
+%\caption{Abfrage Q4, detaillierte Laufzeit in Sekunden}
+%\end{figure}
+%\setcounter{footnote}{0}
+%\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+%\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+%\stepcounter{footnote}\footnotetext{iterativ}
+%%\stepcounter{footnote}\footnotetext{iterativ, warm}
 
 
 \begin{figure}[h]
@@ -430,18 +445,18 @@ xtick=data,
 ylabel=Sekunden,
 xlabel=Skalierungsfaktor,
 xlabel style={yshift=-2.5em},
-xticklabels={,,,0.0016,0.0032,0.0064},
+%xticklabels={,,,0.0016,0.0032,0.0064},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 anchor=east,legend columns=1},
-scaled x ticks=base 10:0,
+scaled x ticks=base 10:4,
 sharp plot
 ]
 \addplot coordinates {(0.0002,	0.067	)(0.0004,	0.489	)(0.0008,	7.03	)(0.0016,	25.483	)(0.0032,	98.154	)(0.0064,	383.557	)};
 \addplot coordinates {(0.0002,	0.058	)(0.0004,	0.076	)(0.0008,	6.277	)(0.0016,	24.222	)(0.0032,	95.008	)(0.0064,	382.824	)};
 \addplot coordinates {(0.0002,	0.504	)(0.0004,	0.684	)(0.0008,	3.313	)(0.0016,	88.478	)(0.0032,	354.426	)(0.0064,	1442.454 )};
-\addplot coordinates {(0.0002,	0.434	)(0.0004,	0.643	)(0.0008,	3.297	)(0.0016,	88.188	)(0.0032,	353.111	)(0.0064,	1439.432 )};
-\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+%\addplot coordinates {(0.0002,	0.434	)(0.0004,	0.643	)(0.0008,	3.297	)(0.0016,	88.188	)(0.0032,	353.111	)(0.0064,	1439.432 )};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ}
 \end{axis}
 \end{tikzpicture}
 \caption{Laufzeit von Q4 für die beiden Ausführungstrategien nach Skalierungsfaktor}
@@ -562,36 +577,36 @@ sortby[Supp_nation asc, Cust_nation asc, Lyear asc]
 consume
 \end{lstlisting}
 
-\begin{figure}[h]
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-/pgf/number format/1000 sep=},
-xtick=data,
-ylabel=Sekunden,
-scaled ticks=base 10:0,
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-area legend,
-anchor=east,legend columns=1},
-ybar stacked,
-xticklabels={1,2,3,4},
-xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
-]
-\addplot coordinates {(0,	962	)(1,	1	)(2,	1	)(3,	1	)};
-\addplot coordinates {(0,	0	)(1,	0	)(2,	7	)(3,	5	)};
-\addplot coordinates {(0,	0	)(1,	0	)(2,	279	)(3,	266	)};
-\addplot coordinates {(0,	103	)(1,	100	)(2,	495	)(3,	510	)};
-\legend{Rewrite,Lookup,QueryToPlan,Execute}
-\end{axis}
-\end{tikzpicture}
-\caption{Laufzeit der einzelnen Phasen von Abfrage Q7}
-\end{figure}
-\setcounter{footnote}{0}
-\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
-\stepcounter{footnote}\footnotetext{entschachtelt, warm}
-\stepcounter{footnote}\footnotetext{iterativ, kalt}
-\stepcounter{footnote}\footnotetext{iterativ, warm}
+%\begin{figure}[h]
+%\begin{tikzpicture}
+%\begin{axis}[
+%x tick label style={
+%/pgf/number format/1000 sep=},
+%xtick=data,
+%ylabel=Sekunden,
+%scaled ticks=base 10:0,
+%enlargelimits=0.10,
+%legend style={at={(1.65,0.5)},
+%area legend,
+%anchor=east,legend columns=1},
+%ybar stacked,
+%xticklabels={1,2,3,4},
+%xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
+%]
+%\addplot coordinates {(0,	962	)(1,	1	)(2,	1	)};
+%\addplot coordinates {(0,	0	)(1,	0	)(2,	7	)};
+%\addplot coordinates {(0,	0	)(1,	0	)(2,	279	)};
+%\addplot coordinates {(0,	103	)(1,	100	)(2,	495	)};
+%\legend{Rewrite,Lookup,QueryToPlan,Execute}
+%\end{axis}
+%\end{tikzpicture}
+%\caption{Laufzeit der einzelnen Phasen von Abfrage Q7}
+%\end{figure}
+%\setcounter{footnote}{0}
+%\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+%\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+%\stepcounter{footnote}\footnotetext{iterativ}
+%%\stepcounter{footnote}\footnotetext{iterativ, warm}
 
 \begin{figure}[h]
 \begin{tikzpicture}
@@ -602,18 +617,18 @@ xtick=data,
 ylabel=Sekunden,
 xlabel=Skalierungsfaktor,
 xlabel style={yshift=-2.5em},
-xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+%xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 anchor=east,legend columns=1},
-scaled x ticks=base 10:0,
+scaled x ticks=base 10:4,
 sharp plot
 ]
 \addplot coordinates {(0.0001,	0.608	)(0.0002,	0.101	)(0.0004,	2.292	)(0.0008,	0.622	)(0.0016,	6.499	)(0.0032,	1.826	)(0.0064,	134.078	)(0.0128,	1896.151	)};
 \addplot coordinates {(0.0001,	0.225	)(0.0002,	0.08	)(0.0004,	1.79	)(0.0008,	0.204	)(0.0016,	0.245	)(0.0032,	0.257	)(0.0064,	0.285	)(0.0128,	0.445	)};
 \addplot coordinates {(0.0001,	0.453	)(0.0002,	2.369	)(0.0004,	1.07	)(0.0008,	0.497	)(0.0016,	6.447	)(0.0032,	1.52	)(0.0064,	133.863	)(0.0128,	1894.486	)};
-\addplot coordinates {(0.0001,	0.445	)(0.0002,	2.269	)(0.0004,	1.064	)(0.0008,	0.508	)(0.0016,	6.364	)(0.0032,	1.543	)(0.0064,	133.109	)(0.0128,	1892.116	)};
-\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+%\addplot coordinates {(0.0001,	0.445	)(0.0002,	2.269	)(0.0004,	1.064	)(0.0008,	0.508	)(0.0016,	6.364	)(0.0032,	1.543	)(0.0064,	133.109	)(0.0128,	1892.116	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
 \caption{Laufzeit von Q7 für die beiden Ausführungstrategien nach Skalierungsfaktor}
@@ -624,7 +639,7 @@ Wie man an der Entwicklung der Laufzeiten in Abbildung \ref{plot:Q7 line} sehen 
 
 
 \subsection{TPC-D Q9}
-Ermittelt den Gewinn, der mit bestimmten Teilen gemacht wurde, gruppiert nach Land und Jahr. Gewinn ist hier definiert als rabattierter Verkaufspreis - Einkaufspreis * Anzahl. Für die Parameter COLOR, DATE und NATION wurden die Werte aus der Abfrageüberprüfung des Benchmarks, COLOR = forest, DATE = 01.01.1994 und NATION = CANADA, gewählt.
+Ermittelt den Gewinn, der mit bestimmten Teilen gemacht wurde, gruppiert nach Land und Jahr. Gewinn ist hier definiert als rabattierter Verkaufspreis - Einkaufspreis * Anzahl. Für die Parameter COLOR, DATE und NATION wurden die Werte aus der Abfrageüberprüfung des Benchmarks, COLOR = forest, DATE = 01.01.1994 und NATION = \enquote{CANADA}, gewählt.
 
 \begin{lstlisting}[caption=Abfrage Q9]
 select [nation, oyear, sum(amount) as sumprofit]
@@ -720,35 +735,37 @@ consume
 
 Diese Übersetzung entspricht ab dem Term \secondo{sortby[Nation asc, Oyear asc]} der entschachtelten Abfrage. Der erste Teil entspricht hierbei genau der Übersetzung, die für die temporäre Abfrage erzeugt wurde.
 
-\begin{figure}[h]
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-/pgf/number format/1000 sep=},
-xtick=data,
-ylabel=Millisekunden,
-scaled ticks=base 10:0,
-xticklabels={1,2,3,4},
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-area legend,
-anchor=east,legend columns=1},
-ybar stacked,
-]
-\addplot coordinates {(0,	6154	)(1,	1	)(2,	1	)(3,	1	)};
-\addplot coordinates {(0,	0	)(1,	0	)(2,	3	)(3,	3	)};
-\addplot coordinates {(0,	0	)(1,	1	)(2,	231	)(3,	239	)};
-\addplot coordinates {(0,	112	)(1,	114	)(2,	5515	)(3,	5510	)};
-\legend{Rewrite,Lookup,QueryToPlan,Execute}
-\end{axis}
-\end{tikzpicture}
-\caption{Laufzeit der einzelnen Phasen von Abfrage Q9}
-\end{figure}
-\setcounter{footnote}{0}
-\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
-\stepcounter{footnote}\footnotetext{entschachtelt, warm}
-\stepcounter{footnote}\footnotetext{iterativ, kalt}
-\stepcounter{footnote}\footnotetext{iterativ, warm}
+%\begin{figure}[h]
+%\begin{tikzpicture}
+%\begin{axis}[
+%x tick label style={
+%/pgf/number format/1000 sep=},
+%xtick=data,
+%ylabel=Millisekunden,
+%scaled ticks=base 10:0,
+%xticklabels={1,2,3,4},
+%enlargelimits=0.10,
+%legend style={at={(1.65,0.5)},
+%area legend,
+%anchor=east,legend columns=1},
+%ybar stacked,
+%xticklabels={1,2,3,4},
+%xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
+%]
+%\addplot coordinates {(0,	6154	)(1,	1	)(2,	1	)};
+%\addplot coordinates {(0,	0	)(1,	0	)(2,	3	)};
+%\addplot coordinates {(0,	0	)(1,	1	)(2,	231	)};
+%\addplot coordinates {(0,	112	)(1,	114	)(2,	5515	)};
+%\legend{Rewrite,Lookup,QueryToPlan,Execute}
+%\end{axis}
+%\end{tikzpicture}
+%\caption{Laufzeit der einzelnen Phasen von Abfrage Q9}
+%\end{figure}
+%\setcounter{footnote}{0}
+%\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+%\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+%\stepcounter{footnote}\footnotetext{iterativ}
+%%\stepcounter{footnote}\footnotetext{iterativ, warm}
 
 \begin{figure}[h]
 \begin{tikzpicture}
@@ -759,18 +776,18 @@ xtick=data,
 ylabel=Sekunden,
 xlabel=Skalierungsfaktor,
 xlabel style={yshift=-2.5em},
-xticklabels={0{,}0008,0{,}0016,0{,}0032,0{,}0064},
+%xticklabels={0{,}0008,0{,}0016,0{,}0032,0{,}0064},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 anchor=east,legend columns=1},
-scaled x ticks=base 10:0,
+scaled x ticks=base 10:4,
 sharp plot
 ]
 \addplot coordinates {(0.0008,	0.856	)(0.0016,	445.54	)(0.0032,	1776.867	)(0.0064,	7127.544	)};
 \addplot coordinates {(0.0008,	0.227	)(0.0016,	0.237	)(0.0032,	0.284	)(0.0064,	0.313	)};
 \addplot coordinates {(0.0008,	111.962	)(0.0016,	443.399	)(0.0032,	1773.326	)(0.0064,	7148.13	)};
-\addplot coordinates {(0.0008,	111.574	)(0.0016,	446.848	)(0.0032,	1777.87	)(0.0064,	7055.378	)};
-\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+%\addplot coordinates {(0.0008,	111.574	)(0.0016,	446.848	)(0.0032,	1777.87	)(0.0064,	7055.378	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
 \caption{Laufzeit von Q9 für die beiden Ausführungstrategien nach Skalierungsfaktor}
@@ -858,35 +875,37 @@ sortby[sSUPPKEY asc]
 consume
 \end{lstlisting}
 
-\begin{figure}[h]
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-/pgf/number format/1000 sep=},
-xtick=data,
-ylabel=Millisekunden,
-scaled ticks=base 10:0,
-xticklabels={1,2,3,4},
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-area legend,
-anchor=east,legend columns=1},
-ybar stacked,
-]
-\addplot coordinates {(0,	62	)(1,	1	)(2,	1	)(3,	1	)};
-\addplot coordinates {(0,	0	)(1,	0	)(2,	378	)(3,	376	)};
-\addplot coordinates {(0,	721	)(1,	347	)(2,	3	)(3,	3	)};
-\addplot coordinates {(0,	107	)(1,	86	)(2,	98	)(3,	123	)};
-\legend{Rewrite,Lookup,QueryToPlan,Execute}
-\end{axis}
-\end{tikzpicture}
-\caption{Laufzeit der einzelnen Phasen von Abfrage Q15}
-\end{figure}
-\setcounter{footnote}{0}
-\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
-\stepcounter{footnote}\footnotetext{entschachtelt, warm}
-\stepcounter{footnote}\footnotetext{iterativ, kalt}
-\stepcounter{footnote}\footnotetext{iterativ, warm}
+%\begin{figure}[h]
+%\begin{tikzpicture}
+%\begin{axis}[
+%x tick label style={
+%/pgf/number format/1000 sep=},
+%xtick=data,
+%ylabel=Millisekunden,
+%scaled ticks=base 10:0,
+%xticklabels={1,2,3,4},
+%enlargelimits=0.10,
+%legend style={at={(1.65,0.5)},
+%area legend,
+%anchor=east,legend columns=1},
+%ybar stacked,
+%xticklabels={1,2,3,4},
+%xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
+%]
+%\addplot coordinates {(0,	62	)(1,	1	)(2,	1	)};
+%\addplot coordinates {(0,	0	)(1,	0	)(2,	378	)};
+%\addplot coordinates {(0,	721	)(1,	347	)(2,	3	)};
+%\addplot coordinates {(0,	107	)(1,	86	)(2,	98	)};
+%\legend{Rewrite,Lookup,QueryToPlan,Execute}
+%\end{axis}
+%\end{tikzpicture}
+%\caption{Laufzeit der einzelnen Phasen von Abfrage Q15}
+%\end{figure}
+%\setcounter{footnote}{0}
+%\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+%\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+%\stepcounter{footnote}\footnotetext{iterativ}
+%%\stepcounter{footnote}\footnotetext{iterativ, warm}
 
 \begin{figure}[h]
 \begin{tikzpicture}
@@ -897,19 +916,19 @@ xtick=data,
 ylabel=Sekunden,
 xlabel=Skalierungsfaktor,
 xlabel style={yshift=-2.5em},
-xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+%xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
 enlargelimits=0.10,
 ymin=0,
 legend style={at={(1.65,0.5)},
 anchor=east,legend columns=1},
-scaled x ticks=base 10:0,
+scaled x ticks=base 10:4,
 sharp plot
 ]
 \addplot coordinates {(0.0008,	0.744	)(0.0016,	0.919	)(0.0032,	1.056	)(0.0064,	2.038	)(0.0128,	5.391	)(0.0256,	9.232	)(0.0512,	9.372	)(0.1024,	23.601	)};
 \addplot coordinates {(0.0008,	0.566	)(0.0016,	0.722	)(0.0032,	0.924	)(0.0064,	1.247	)(0.0128,	2.302	)(0.0256,	5.901	)(0.0512,	9.223	)(0.1024,	18.387	)};
 \addplot coordinates {(0.0008,	0.601	)(0.0016,	0.68	)(0.0032,	0.918	)(0.0064,	1.262	)(0.0128,	2.238	)(0.0256,	5.875	)(0.0512,	9.868	)(0.1024,	20.801	)};
-\addplot coordinates {(0.0008,	0.613	)(0.0016,	0.687	)(0.0032,	0.896	)(0.0064,	1.279	)(0.0128,	2.354	)(0.0256,	5.901	)(0.0512,	9.901	)(0.1024,	20.885	)};
-\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+%\addplot coordinates {(0.0008,	0.613	)(0.0016,	0.687	)(0.0032,	0.896	)(0.0064,	1.279	)(0.0128,	2.354	)(0.0256,	5.901	)(0.0512,	9.901	)(0.1024,	20.885	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
 \caption{Laufzeit von Q15 für die beiden Ausführungstrategien nach Skalierungsfaktor}
@@ -984,7 +1003,7 @@ consume
 Die Übersetzung erfolgt mit einem geschachtelten \secondo{filter}-Ausdruck und den Operatoren \secondo{in} und \secondo{transformstream}. 
 
 \subsection{TPC-D Q17}
-Diese Abfrage beantwortet, wieviel Umsatz verloren ginge, falls Bestellungen über kleine Mengen bestimmter Teile nicht mehr ausgeführt würden.
+Diese Abfrage beantwortet, wieviel Umsatz verloren ginge, falls Bestellungen über kleine Mengen bestimmter Teile nicht mehr ausgeführt würden. Als Werte für die Parameter BRAND und CONTAINER wurden die Werte der Abfrageüberprüfung, BRAND = \enquote{Brand\#23} und CONTAINER = \enquote{MED BOX}, ausgewählt.
 \begin{lstlisting}[caption=Abfrage Q17]
 select
 	[sum(lextendedprice / 7.0) as avg_yearly]		
@@ -1005,22 +1024,26 @@ where
 groupby	[]
 \end{lstlisting}
 
+Es handelt sich um eine Abfrage vom Typ JA, da die Unterabfrage eine Aggregation berechnet. Über das Prädikate \sql{l1:lpartkey = ppartkey} wird das Attribut \sql{ppartkey} der äußeren Relation \sql{part} referenziert. Die Entschachtelung erfolgt daher mit Algorithmus \textbf{NEST-JA2} (siehe Abschnitt \ref{sct:Algorithmus NEST-JA2}).
+
+
+Der erste Schritt besteht in der Projektion der äußeren Relation \sql{part} auf das im geschachtelten Prädikat verwendete Attribut \sql{ppartkey}.
+
 \begin{lstlisting}[caption=Abfrage Q17{,} Definition von trelxx1]
-trelxx1 = 
-select distinct
-	[lpartkey, 
-	ppartkey]
-from
-	[lineitem,
-	part]
+trelxx1 = select distinct ppartkey from part
 \end{lstlisting}
+
+Die zweite temporäre Relation ist die Projektion der inneren Relation auf alle benötigten Attribute.
 
 \begin{lstlisting}[caption=Abfrage Q17{,} Definition von trelxx2]
 trelxx2 = 
 select [l1:lpartkey, l1:lquantity] from [lineitem as l1]
 \end{lstlisting}
 
+Die Berechnung der Aggregation über den beiden temporären Relationen \sql{trelxx1} und \sql{trelxx2} erfolgt über die Ausführung des folgenden SQL-Ausdrucks.
+
 \begin{lstlisting}[caption=Abfrage Q17{,} Definition von trelxx3]
+trelxx3 =
 select
 	[lpartkey_l1, 
 	avg(0.2*lquantity_l1)as var1]
@@ -1033,6 +1056,7 @@ groupby
 	lpartkey_l1
 \end{lstlisting}
 
+Damit ergibt sich als flache Variante von Abfrage Q17 die einfache Aggregationsabfrage
 \begin{lstlisting}[caption=Abfrage Q17 in SQL-Syntax{,} entschachtelt]
 select
 	[sum(lextendedprice/7.0)as avg_yearly]
@@ -1047,7 +1071,9 @@ where
 	ppartkey = alias1:lpartkey_l1, 
 	lquantity < alias1:var1]
 groupby []
-\end{lstlisting}
+\end{lstlisting}.
+
+Die Übersetzung in ausführbare Syntax liefert folgenden \textsc{Secodo}-Ausdruck
 
 \begin{lstlisting}[caption=Abfrage Q17 in ausführbarer Syntax{,} entschachtelt]
 PART feedproject[pBRAND, pCONTAINER, pPARTKEY] 
@@ -1064,7 +1090,9 @@ groupby[; Avg_yearly: group feed
 ]
 project[Avg_yearly] 
 consume
-\end{lstlisting}
+\end{lstlisting}.
+
+Dieser unterscheidet sich von der iterativen Übersetzung 
 
 \begin{lstlisting}[caption=Abfrage Q17 in ausführbarer Syntax{,} geschachtelt]
 PART feedproject[pBRAND, pCONTAINER, pPARTKEY] 
@@ -1089,29 +1117,41 @@ project[Avg_yearly]
 consume
 \end{lstlisting}
 
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-/pgf/number format/1000 sep=},
-xtick=data,
-ylabel=Millisekunden,
-scaled ticks=base 10:0,
-xticklabels={A kalt,A warm,B kalt,B warm},
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-area legend,
-anchor=east,legend columns=1},
-ybar stacked,
-]
-\addplot coordinates {(0,	5943	)(1,	1	)(2,	1	)(3,	1	)};
-\addplot coordinates {(0,	2	)(1,	2	)(2,	190	)(3,	2	)};
-\addplot coordinates {(0,	1085	)(1,	22	)(2,	8	)(3,	8	)};
-\addplot coordinates {(0,	266	)(1,	264	)(2,	283	)(3,	268	)};
-\legend{Rewrite,Lookup,QueryToPlan,Execute}
-\end{axis}
-\end{tikzpicture}
+durch den Join mit der Relation \secondo{trelxx3} über \secondo{symmjoin[(.pPARTKEY = ..lPARTKEY\_l1\_alias1)]} und die Selektion mit dem Prädikat \secondo{filter[(.lQUANTITY < .Var1\_alias1)]}. Diese ersetzen den komplexen \secondo{filter}-Ausdruck, der die triviale Übersetzung der Unterabfrage darstellt.
 
-\begin{figure}
+%\begin{figure}[h]
+%\begin{tikzpicture}
+%\begin{axis}[
+%x tick label style={
+%/pgf/number format/1000 sep=},
+%xtick=data,
+%ylabel=Millisekunden,
+%scaled ticks=base 10:0,
+%xticklabels={1,2,3,4},
+%enlargelimits=0.10,
+%legend style={at={(1.65,0.5)},
+%area legend,
+%anchor=east,legend columns=1},
+%ybar stacked,
+%xticklabels={1,2,3,4},
+%xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
+%]
+%\addplot coordinates {(0,	5943	)(1,	1	)(2,	1	)};
+%\addplot coordinates {(0,	2	)(1,	2	)(2,	190	)};
+%\addplot coordinates {(0,	1085	)(1,	22	)(2,	8	)};
+%\addplot coordinates {(0,	266	)(1,	264	)(2,	283	)};
+%\legend{Rewrite,Lookup,QueryToPlan,Execute}
+%\end{axis}
+%\end{tikzpicture}
+%\caption{Laufzeit der einzelnen Phasen von Abfrage Q17}
+%\end{figure}
+%\setcounter{footnote}{0}
+%\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+%\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+%\stepcounter{footnote}\footnotetext{iterativ}
+%%\stepcounter{footnote}\footnotetext{iterativ, warm}
+
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
@@ -1120,18 +1160,18 @@ xtick=data,
 ylabel=Sekunden,
 xlabel=Skalierungsfaktor,
 xlabel style={yshift=-2.5em},
-xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+%xticklabels={0.0008,0.0016,0.0032,0.0064,0.0128},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 anchor=east,legend columns=1},
-scaled x ticks=base 10:0,
+scaled x ticks=base 10:4,
 sharp plot
 ]
 \addplot coordinates {(0.0008,	10.945	)(0.0016,	20.15	)(0.0032,	54.489	)(0.0064,	218.186	)(0.0128,	842.648	)};
 \addplot coordinates {(0.0008,	1.182	)(0.0016,	1.169	)(0.0032,	2.197	)(0.0064,	7.384	)(0.0128,	28.798	)};
 \addplot coordinates {(0.0008,	1.387	)(0.0016,	1.2	)(0.0032,	0.572	)(0.0064,	0.85	)(0.0128,	68.046	)};
-\addplot coordinates {(0.0008,	1.199	)(0.0016,	1.167	)(0.0032,	0.467	)(0.0064,	0.657	)(0.0128,	67.591	)};
-\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+%\addplot coordinates {(0.0008,	1.199	)(0.0016,	1.167	)(0.0032,	0.467	)(0.0064,	0.657	)(0.0128,	67.591	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
 \caption{Laufzeit von Q17 für die beiden Ausführungstrategien nach Skalierungsfaktor}
@@ -1139,7 +1179,7 @@ sharp plot
 \end{figure}
 
 \subsection{TPC-D Q20}
-Identifiziert Lieferanten, die einen Überschuss an bestimmten Teilen haben. Überschuss ist hier definiert als mehr als 50\% der von einem Lieferanten versandten Teile über ein Jahr. Nur Teile mit einem vorgegebenen Namensbestandteil werden betrachtet.
+Identifiziert Lieferanten, die einen Überschuss an bestimmten Teilen haben. Überschuss ist hier definiert als mehr als 50\% der von einem Lieferanten versandten Teile über ein Jahr. Nur Teile mit einem vorgegebenen Namensbestandteil werden betrachtet. Als Werte für die Parameter COLOR, DATE und NATION wurden die Werte COLOR = \enquote{forest}, DATE = 01.01.1994 und NATION = \enquote{CANADA} der Abfrageüberprüfung ausgewählt.
 \begin{lstlisting}[caption=Abfrage Q20]
 select [sname, saddress]
 from [supplier, nation]
@@ -1172,15 +1212,77 @@ where
 orderby	[sname]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel1]
-select distinct [pspartkey, pssuppkey] from partsupp
+Abfrage Q20 ist mehrfach geschachtelt, die Schachtelungstiefe beträgt 2. Das geschachtelte Prädikate ist vom Typ N, da es sich um eine Unterabfrage ohne Aggregation und ohne Referenzierung äußerer Relationen handelt. Beim ersten inneren geschachtelten Prädikat (siehe Listing \ref{lst:Q20 inner nested 1}) handelt es sich sich ebenfalls um ein Prädikat vom Typ N, es werden ebenfalls keine äußeren Relationen referenziert und die \sql{select}-Klausel enthält keine Aggregationsfunktion. Das zweite innere geschachtelte Prädikat (siehe Listing \ref{lst:Q20 inner nested 2}) ist vom Type JA, da in der Unterabfrage eine Summe berechnet wird und die Relation \sql{partsupp} des direkt umschließenden Abfrageblocks referenziert wird.
+
+\begin{lstlisting}[caption=Abfrage Q20{,} erstes inneres geschachteltes Prädikat,label=lst:Q20 inner nested 1]
+pspartkey in (
+	select ppartkey
+	from part
+	where tostring(pname) starts "forest"
+)
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel2]
-select [lpartkey, lquantity, lshipdate, lsuppkey] from lineitem
+Im ersten Schritt wird also Algorithmus \textbf{NEST-N-J} auf das innere Prädikat mit dem \sql{in}-Operator angewandt. Das Ergebnis ist 
+
+\begin{lstlisting}[caption=Abfrage Q20{,} nach Algorithmus NEST-N-J]
+select [sname, saddress]
+from [supplier, nation]
+where
+	[ssuppkey in (
+		select [pssuppkey]
+		from [partsupp,part]
+		where
+			[pspartkey = ppartkey,
+			tostring(pname) starts "forest",
+			psavailqty > (
+				select sum(lquantity * 0.5)
+				from lineitem
+				where
+					[lpartkey = pspartkey,
+					lsuppkey = pssuppkey,
+					lshipdate >= instant("1994-01-01"),
+					lshipdate < theInstant(
+						year_of(instant("1994-01-01")) + 1, 
+					 	month_of(instant("1994-01-01")), 
+					 	day_of(instant("1994-01-01"))
+					 )]
+			)]
+		),
+	 snationkey = nnationkey,
+	 nname = "CANADA"]
+orderby	[sname]
+\end{lstlisting}.
+
+Im nächsten Schritt wird das verbleibende innere geschachtelte Prädikat mit Algorithmus \textbf{NEST-JA2} in eine kanonische Form überführt. Hierfür wird im ersten Schritt die temporäre Relation \sql{trelxx1} erzeugt, die die Einschränkung der äußeren Relation \sql{partsupp} auf alle benötigten Attribute darstellt (Listing \ref{lst:Q20 trelxx1}).
+
+\begin{lstlisting}[caption=Abfrage Q20{,} zweites inneres geschachteltes Prädikat,label=lst:Q20 inner nested 2]
+psavailqty > (
+select sum(lquantity * 0.5)
+from lineitem
+where
+	[lpartkey = pspartkey,
+	lsuppkey = pssuppkey,
+	lshipdate >= instant("1994-01-01"),
+	lshipdate < theInstant(
+		year_of(instant("1994-01-01")) + 1, 
+	 	month_of(instant("1994-01-01")), 
+	 	day_of(instant("1994-01-01"))
+	 )]
+)
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel3]
+\begin{lstlisting}[caption=Abfrage Q20{,} Definition trelxx1,label=lst:Q20 trelxx1]
+trelxx1 = select distinct [pspartkey, pssuppkey] from partsupp
+\end{lstlisting}
+
+Zusammen mit Relation \sql{trelxx2}, die die Projektion der inneren Relation auf alle benötigten Attribute ist, bildet sie die Grundlage für Relation \sql{trelxx3}.
+
+\begin{lstlisting}[caption=Abfrage Q20{,} Definition trelxx2]
+trelxx2 = select [lpartkey, lquantity, lshipdate, lsuppkey] from lineitem
+\end{lstlisting}
+
+\begin{lstlisting}[caption=Abfrage Q20{,} Definition trelxx3]
+trelxx3 =
 select
 	[lpartkey, 
 	sum(lquantity*0.5)as var2]
@@ -1189,7 +1291,32 @@ where [lpartkey = pspartkey]
 groupby lpartkey
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Entschachtelte Variante von Abfrage Q20]
+Mit der Einführung von Relation \sql{trelxx3} unter dem Namen \sql{alias1} und den ensprechenden Prädikaten \sql{pspartkey = alias1:lpartkey} und \sql{psavailqty > alias1:var1} ,vereinfacht sich Abfrage Q20 zu
+
+\begin{lstlisting}[caption=Abfrage Q20{,} nach Algorithmus NEST-JA2]
+select [sname, saddress]
+from [supplier, nation]
+where
+	[ssuppkey in (
+		select [pssuppkey]
+		from [
+			partsupp,part,
+			trelxx3 as alias1]
+		where
+			[pspartkey = ppartkey,
+			tostring(pname) starts "forest",
+			psavailqty > alias1:var1,
+			pspartkey = alias1:lpartkey]
+			)]
+		),
+	 snationkey = nnationkey,
+	 nname = "CANADA"]
+orderby	[sname]
+\end{lstlisting}.
+
+Diese Abfrage ist vom Typ N und wird mit Algorithmus \textbf{NEST-N-J} in die entschachtelte Form
+
+\begin{lstlisting}[caption=Abfrage Q20 in SQL-Syntax{,} entschachtelt]
 select [sname, saddress]
 from
 	[supplier, nation, 
@@ -1205,6 +1332,10 @@ where
 	nname = "CANADA"]
 orderby [sname]
 \end{lstlisting}
+
+überführt.
+
+Wie man an der Übersetzung der entschachtelten Variante in ausführbare Syntax sehen kann,
 
 \begin{lstlisting}[caption=Abfrage Q20 in ausführbarer Syntax{,} entschachtelt]
 SUPPLIER feedproject[sADDRESS, sNAME, sNATIONKEY, sSUPPKEY] 
@@ -1224,7 +1355,9 @@ sortby[sNAME asc]
 consume
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Abfrage Q20 ausführbare Syntax geschachtetl]
+unterscheidet sich diese von der iterativen Übersetzung durch das Wegfallen des komplexen, mehrfach geschachtelten \secondo{filter}-Ausdrucks.
+
+\begin{lstlisting}[caption=Abfrage Q20 ausführbare Syntax geschachtelt]
 SUPPLIER feedproject[sADDRESS, sNAME, sNATIONKEY, sSUPPKEY] 
 NATION feedproject[nNAME, nNATIONKEY] 
 sortmergejoin[sNATIONKEY , nNATIONKEY] {0.004995, 0.495} 
@@ -1267,29 +1400,40 @@ sortby[sNAME asc]
 consume
 \end{lstlisting}
 
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-/pgf/number format/1000 sep=},
-xtick=data,
-ylabel=Millisekunden,
-scaled ticks=base 10:0,
-xticklabels={A kalt,A warm,B kalt,B warm},
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-area legend,
-anchor=east,legend columns=1},
-ybar stacked,
-]
-\addplot coordinates {(0,	19534	)(1,	1	)(2,	4	)(3,	5	)};
-\addplot coordinates {(0,	2	)(1,	0	)(2,	1784	)(3,	6	)};
-\addplot coordinates {(0,	1297	)(1,	150	)(2,	8	)(3,	8	)};
-\addplot coordinates {(0,	228	)(1,	216	)(2,	366	)(3,	280	)};
-\legend{Rewrite,Lookup,QueryToPlan,Execute}
-\end{axis}
-\end{tikzpicture}
+%\begin{figure}[h]
+%\begin{tikzpicture}
+%\begin{axis}[
+%x tick label style={
+%/pgf/number format/1000 sep=},
+%xtick=data,
+%ylabel=Millisekunden,
+%scaled ticks=base 10:0,
+%xticklabels={1,2,3,4},
+%enlargelimits=0.10,
+%legend style={at={(1.65,0.5)},
+%area legend,
+%anchor=east,legend columns=1},
+%ybar stacked,
+%xticklabels={1,2,3,4},
+%xticklabel style={rotate=-30, yshift=0.25em, xshift=1.5em},
+%]
+%\addplot coordinates {(0,	19534	)(1,	1	)(2,	4	)};
+%\addplot coordinates {(0,	2	)(1,	0	)(2,	1784	)};
+%\addplot coordinates {(0,	1297	)(1,	150	)(2,	8	)};
+%\addplot coordinates {(0,	228	)(1,	216	)(2,	366	)};
+%\legend{Rewrite,Lookup,QueryToPlan,Execute}
+%\end{axis}
+%\end{tikzpicture}
+%\caption{Laufzeit der einzelnen Phasen von Abfrage Q20}
+%\end{figure}
+%\setcounter{footnote}{0}
+%\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+%\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+%\stepcounter{footnote}\footnotetext{iterativ}
+%%\stepcounter{footnote}\footnotetext{iterativ, warm}
 
-\begin{figure}
+
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
@@ -1298,26 +1442,28 @@ xtick=data,
 ylabel=Sekunden,
 xlabel=Skalierungsfaktor,
 xlabel style={yshift=-2.5em},
-xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+%xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 anchor=east,legend columns=1},
-scaled x ticks=base 10:0,
+scaled x ticks=base 10:4,
 sharp plot
 ]
 \addplot coordinates {(0.0008,	12.294	)(0.0016,	50.163	)(0.0032,	200.383	)(0.0064,	811.211	)(0.0128,	3239.196	)};
 \addplot coordinates {(0.0008,	0.348	)(0.0016,	0.594	)(0.0032,	1.289	)(0.0064,	1.433	)(0.0128,	5.977	)};
 \addplot coordinates {(0.0008,	0.326	)(0.0016,	8.267	)(0.0032,	59.713	)(0.0064,	266.071	)(0.0128,	1665.556	)};
-\addplot coordinates {(0.0008,	0.283	)(0.0016,	8.329	)(0.0032,	60.031	)(0.0064,	263.667	)(0.0128,	1684.976	)};
-\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+%\addplot coordinates {(0.0008,	0.283	)(0.0016,	8.329	)(0.0032,	60.031	)(0.0064,	263.667	)(0.0128,	1684.976	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
 \caption{Laufzeit von Q20 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q20 line}
 \end{figure}
 
+Wie man Abbildung \ref{plot:Q20 line} entnehmen kann, ist die Entschachtelung über mehrere Ebenen jedoch so laufzeitaufwändig, dass die iterative Ausführungsstrategie bei allen verwendeten Skalierungsfaktoren der Datenbanken vorteilhafter ist. Lediglich die einfache Ausführung der entschachtelten Variante auf vorhandenen temporären Tabellen ist hier deutlich schneller.
+
 \subsection{TPC-D Q21}
-Diese Abfrage ermittelt Lieferanten die bei einer Mehr-Lieferanten Bestellung nicht pünktlich geliefert haben.
+Diese Abfrage ermittelt Lieferanten die bei einer Mehr-Lieferanten Bestellung nicht pünktlich geliefert haben. Als Wert für den Parameter NATION wurde der Wert NATION = \enquote{SAUDI ARABIA} der Abfrageüberprüfung gewählt.
 \begin{lstlisting}[caption=Abfrage Q21]
 select [sname, count(*) as numwait]
 from 
@@ -1350,17 +1496,55 @@ orderby	[numwait desc, sname]
 first 100
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel1]
-select distinct [l1:lorderkey, l1:lsuppkey]
-from lineitem as l1
+Abfrage Q21 beinhaltet zwei geschachtelte Prädikate mit \sql{exists}- bzw. \sql{not exists}-Operator. Diese werden im ersten Schritt durch ihre Darstellung mit Aggregationsabfragen ersetzt (siehe \ref{sct:Behandlung quantifizierter Prädikate}). Damit ergibt sich als erstes Zwischenergebnis
+
+\begin{lstlisting}[caption=Abfrage Q21{,} ohne quantifizierte Prädikate]
+select [sname, count(*) as numwait]
+from 
+	[supplier, lineitem as l1,
+	 orders, nation]
+where
+	[ssuppkey = l1:lsuppkey,
+	oorderkey = l1:lorderkey,
+	oorderstatus = "F",
+	l1:lreceiptdate > l1:lcommitdate,
+	0 < (
+		select count(*)
+		from lineitem as l2
+		where
+			[l2:lorderkey = l1:lorderkey,
+			not(l2:lsuppkey = l1:lsuppkey)]
+	),
+	0 = (
+		select count(*)
+		from lineitem as l3
+		where
+			[l3:lorderkey = l1:lorderkey,
+			not(l3:lsuppkey = l1:lsuppkey),
+			l3:lreceiptdate > l3:lcommitdate]
+	)),
+	snationkey = nnationkey,
+	nname = "SAUDI ARABIA"]
+groupby	[sname]
+orderby	[numwait desc, sname] 
+first 100
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel2]
-select [l2:lorderkey, l2:lsuppkey]
-from lineitem as l2
+Die beiden geschachtelten Prädikate sind vom Typ JA, sie berechnen eine Aggregation und nehmen Bezug auf die Attribute \sql{l1:lorderkey} und \sql{l1:lsuppkey}. Durch die erste Ausführung wird das erste geschachtelte Prädikat mit Hilfe der Relationen \sql{trelxx1, trelxx2} und \sql{trelxx3} entschachtelt.
+
+Relation \sql{trelxx1} ist die Einschränkung der äußeren Relation auf alle benötigten Attribute.
+\begin{lstlisting}[caption=Abfrage Q21{,} Definition trelxx1]
+trelxx1 = select distinct [l1:lorderkey, l1:lsuppkey] from lineitem as l1
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel3]
+Mit Relation \sql{trelxx2} wird die innere Relation auf alle benötigten Attribute eingeschränkt. Da in der inneren Abfrage keine \emph{einfachen} Prädikate vorkommen, findet hier keine weitere Restriktion statt.
+\begin{lstlisting}[caption=Abfrage Q21{,} Definition trelxx2]
+select [l2:lorderkey, l2:lsuppkey] from lineitem as l2
+\end{lstlisting}
+
+Der Full-Outer-Join über den Relationen \sql{trelxx1} und \sql{trelxx2} ergibt Relation \sql{trelxx3}.
+\begin{lstlisting}[caption=Abfrage Q21{,} Definition trelxx3]
+trelxx3 =
 trelxx1 feed 
 trelxx2 feed 
 smouterjoin[lORDERKEY_l1,lORDERKEY_l2] 
@@ -1371,13 +1555,46 @@ projectextend[Var1; lORDERKEY_l2: .lORDERKEY_l1]
 consume
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel2 die zweite]
+Damit kann das erste geschachtelte Prädikat entschachtelt werden und es ergibt sich folgendes Zwischenergebnis
+\begin{lstlisting}[caption=Abfrage Q21 in SQL-Syntax{,} entschachtelt]
+select [sname, count(*)as numwait]
+from
+	[supplier, lineitem as l1, 
+	orders, nation, 
+	trelxx3 as alias1]
+where
+	[ssuppkey = l1:lsuppkey, 
+	oorderkey = l1:lorderkey, 
+	oorderstatus="F", 
+	l1:lreceiptdate > l1:lcommitdate, 
+	l1:lorderkey = alias1:lorderkey_l2, 
+	0 < alias1:var1, 
+	0 = (
+		select count(*)
+		from lineitem as l3
+		where
+			[l3:lorderkey = l1:lorderkey,
+			not(l3:lsuppkey = l1:lsuppkey),
+			l3:lreceiptdate > l3:lcommitdate]
+	)),	snationkey = nnationkey, 
+	nname = "SAUDI ARABIA"]
+groupby	[sname]
+orderby [numwait desc, sname]
+first 100
+\end{lstlisting}.
+
+Diese Abfrage besitzt nur noch ein geschachteltes Prädikat und kann durch Algorithmus \textbf{NEST-JA2} vollständig entschachtelt werden. Da die verwendeten Attribute der Relation \sql{lineitem as l1} mit den verwendeten Attributen des bereits entschachtelten Prädikats übereinstimmen, kann die temporäre Relation \sql{trelxx1} hier wiederverwendet werden.
+
+Lediglich die Selektion und Projektion der inneren Relation des Prädikats ist neu zu erstellen.
+\begin{lstlisting}[caption=Abfrage Q21{,} Definition trelxx4]
 select [l3:lorderkey, l3:lsuppkey]
 from [lineitem as l3]
 where [l3:lreceiptdate > l3:lcommitdate]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel3 die zweite]
+Die Auflösung des geschachtelten Prädikats erfolgt mit Relation \sql{trelxx5}. Diese ist der Full-Outer-Join über den Relationen \sql{trelxx1} und \sql{trelxx4}.
+\begin{lstlisting}[caption=Abfrage Q21{,} Definition trelxx5]
+trelxx5 = 
 trelxx1 feed 
 trelxx4 feed 
 smouterjoin[lORDERKEY_l1,lORDERKEY_l3] 
@@ -1388,7 +1605,9 @@ projectextend[Var1; lORDERKEY_l3: .lORDERKEY_l1]
 consume
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Entschachtelte Variante von Q21]
+Damit ergibt sich die entschachtelte Variante von Q21 als
+
+\begin{lstlisting}[caption=Abfrage Q21 in SQL-Syntax{,} entschachtelt]
 select [sname, count(*)as numwait]
 from
 	[supplier, lineitem as l1, 
@@ -1409,7 +1628,9 @@ where
 groupby	[sname]
 orderby [numwait desc, sname]
 first 100
-\end{lstlisting}
+\end{lstlisting}.
+
+Die Übersetzung in ausführbare Syntax 
 
 \begin{lstlisting}[caption=Abfrage Q21 in ausführbarer Syntax{,} entschachtelt]
 ORDERS feedproject[oORDERKEY, oORDERSTATUS] 
@@ -1435,6 +1656,8 @@ sortby[Numwait desc, sNAME asc]
 head[100] 
 consume
 \end{lstlisting}
+
+unterscheidet sich von der iterativen Übersetzung durch die fehlenden, komplexen \secondo{filter}-Ausdrücke. An ihrer Stelle finden sich der Join mit den Relationen \secondo{trelxx3} und \secondo{trelxx5} sowie die zugehörigen \secondo{filter}-Ausdrücke.
 
 \begin{lstlisting}[caption=Abfrage Q21 in ausführbarer Syntax{,} geschachtelt]
 ORDERS feedproject[oORDERKEY, oORDERSTATUS] 
@@ -1474,27 +1697,35 @@ head[100]
 consume
 \end{lstlisting}
 
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-/pgf/number format/1000 sep=},
-xtick=data,
-ylabel=Millisekunden,
-scaled ticks=base 10:0,
-xticklabels={A kalt,A warm,B kalt,B warm},
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-area legend,
-anchor=east,legend columns=1},
-ybar stacked,
-]
-\addplot coordinates {(0,	2662	)(1,	1	)(2,	2	)(3,	1	)};
-\addplot coordinates {(0,	2	)(1,	2	)(2,	358	)(3,	2	)};
-\addplot coordinates {(0,	3858	)(1,	1730	)(2,	421	)(3,	449	)};
-\addplot coordinates {(0,	478	)(1,	475	)(2,	451	)(3,	503	)};
-\legend{Rewrite,Lookup,QueryToPlan,Execute}
-\end{axis}
-\end{tikzpicture}
+%\begin{figure}[h]
+%\begin{tikzpicture}
+%\begin{axis}[
+%x tick label style={
+%/pgf/number format/1000 sep=},
+%xtick=data,
+%ylabel=Millisekunden,
+%scaled ticks=base 10:0,
+%xticklabels={A kalt,A warm,B kalt,B warm},
+%enlargelimits=0.10,
+%legend style={at={(1.65,0.5)},
+%area legend,
+%anchor=east,legend columns=1},
+%ybar stacked,
+%]
+%\addplot coordinates {(0,	2662	)(1,	1	)(2,	2	)};
+%\addplot coordinates {(0,	2	)(1,	2	)(2,	358	)};
+%\addplot coordinates {(0,	3858	)(1,	1730	)(2,	421	)};
+%\addplot coordinates {(0,	478	)(1,	475	)(2,	451	)};
+%\legend{Rewrite,Lookup,QueryToPlan,Execute}
+%\end{axis}
+%\end{tikzpicture}
+%\caption{Laufzeit der einzelnen Phasen von Abfrage Q21}
+%\end{figure}
+%\setcounter{footnote}{0}
+%\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+%\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+%\stepcounter{footnote}\footnotetext{iterativ}
+%%\stepcounter{footnote}\footnotetext{iterativ, warm}
 
 \begin{figure}
 \begin{tikzpicture}
@@ -1505,26 +1736,29 @@ xtick=data,
 ylabel=Sekunden,
 xlabel=Skalierungsfaktor,
 xlabel style={yshift=-2.5em},
-xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+%xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 anchor=east,legend columns=1},
-scaled x ticks=base 10:0,
+scaled x ticks=base 10:4,
 sharp plot
 ]
 \addplot coordinates {(0.0008,	3.752	)(0.0016,	5.822	)(0.0032,	7.092	)(0.0064,	11.843	)(0.0128,	81.745	)};
 \addplot coordinates {(0.0008,	1.601	)(0.0016,	1.594	)(0.0032,	1.882	)(0.0064,	2.142	)(0.0128,	62.853	)};
 \addplot coordinates {(0.0008,	0.747	)(0.0016,	0.926	)(0.0032,	0.952	)(0.0064,	1.393	)(0.0128,	957.265	)};
-\addplot coordinates {(0.0008,	0.686	)(0.0016,	0.8	)(0.0032,	0.996	)(0.0064,	1.32	)(0.0128,	960.547	)};
-\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+%\addplot coordinates {(0.0008,	0.686	)(0.0016,	0.8	)(0.0032,	0.996	)(0.0064,	1.32	)(0.0128,	960.547	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
 \caption{Laufzeit von Q21 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q21 line}
 \end{figure}
 
+Die Ausführungszeiten lassen nur begrenzt Rückschlüsse auf die Vorteilhaftigkeit einer Ausführungstrategie zu. Zwar ist die entschachtelte Ausführung bei Skalierungsfaktor 0,0128 sowohl bei der ersten Ausführung als auch bei weiteren Ausführungen um eine Größenordnung schneller. Da sich die Ausführungszeiten bei kleineren Skalierungsfaktoren umgekehrt verhalten, lässt sich daraus noch keine Aussage über Vorteilhaftigkeit der entschachtelten Ausführung bei steigenden Skalierungsfaktoren ableiten.
+
 \subsection{TPC-D Q22}
-Diese Abfrage ermittelt, wieviele Kunden in den letzten 7 Jahren keine Bestellung getätigt haben, aber dennoch einen überdurchschnittlichen Umsatz auf ihrem Konto. Gruppiert nach \enquote{Länderschlüssel}, wobei Länderschlüssel als die ersten zwei Ziffern der Telefonnummer definiert ist.
+Diese Abfrage ermittelt, wieviele Kunden in den letzten 7 Jahren keine Bestellung getätigt haben, aber dennoch einen überdurchschnittlichen Umsatz auf ihrem Konto. Gruppiert nach \enquote{Länderschlüssel}, wobei Länderschlüssel als die ersten zwei Ziffern der Telefonnummer definiert ist. Als Werte für die Parameter I1, I2, I3, I4, I5, I6, I7 und I8 wurden wieder die Werte aus der Abfrageüberprüfung des Benchmark ausgewählt. (I1 = 13,
+I2 = 35, I3 = 31, I4 = 23, I5 = 29, I6 = 30, I7 = 18, I8 = 17).
 \begin{lstlisting}[caption=Abfrage Q22]
 select
 	[cntrycode,
@@ -1554,15 +1788,79 @@ groupby	[cntrycode]
 orderby	[cntrycode]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel1]
-select distinct [ccustkey] from customer
+Die Abfrage hat eine geschachtelte \sql{from}-Klausel, die wiederum geschachtelte Prädikate enthält. Um die \sql{from}-Klausel in eine temporäre Relation zu übersetzen, wird ihre definierende Abfrage mit Algorithmus \textbf{NEST-G} in eine flache Form überführt. Da es sich bei dem zweiten geschachtelten Prädikat um ein quantifiziertes Prädikat handelt, wird dieses im ersten Schritt durch eine äquivalente Formulierung als Aggregationsabfrage ersetzt.
+
+\begin{lstlisting}[caption=Abfrage Q22{,} nach Verarbeitung des quantifizierten Prädikats]
+select
+	[cntrycode,
+	 count(*) as numcust,
+	 sum(cacctbal) as totacctbal]
+from (
+	select
+		[substr(cphone, 1, 2) as cntrycode, 
+		cacctbal]
+	from customer 
+	where
+		[substr(cphone, 1, 2) in ("13","35","31","23","29","30","18"),
+		cacctbal > (
+			select avg(c1:cacctbal)
+			from customer as c1
+			where
+				[c1:cacctbal > 0.00,
+				substr(c1:cphone, 1, 2) in ("13","35","31","23","29","30","18")]
+		),
+		0 = (
+			select count(*)
+			from orders
+			where	ocustkey = ccustkey
+		)]
+	) as custsale
+groupby	[cntrycode]
+orderby	[cntrycode]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel2]
-select [ocustkey] from orders
+Im nächsten Schritt wird das erste geschachtelte Prädikat, welches vom Typ A ist, aufgelöst. D.h. die Unterabfrage wird durch ihr Ergebnis ersetzt.
+
+\begin{lstlisting}[caption=Abfrage Q22{,} nach Auswertung der ersten Unterabfrage]
+select
+	[cntrycode,
+	 count(*) as numcust,
+	 sum(cacctbal) as totacctbal]
+from (
+	select
+		[substr(cphone, 1, 2) as cntrycode, 
+		cacctbal]
+	from customer 
+	where
+		[substr(cphone, 1, 2) in ("13","35","31","23","29","30","18"),
+		cacctbal > 4022.0983333333]
+		),
+		not( exists(
+			select *
+			from orders
+			where	ocustkey = ccustkey
+		))]
+	) as custsale
+groupby	[cntrycode]
+orderby	[cntrycode]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=TempRel3]
+Das verbleibende geschachtelte Prädikat ist vom Typ JA und kann mit Algorithmus \textbf{NEST-JA2} entschachtelt werden. Hierfür wird die Projektion der äußeren Abfrage auf alle in der Unterabfrage verwendeten Attribute als temporäre Relation erzeugt.
+
+\begin{lstlisting}[caption=Abfrage Q22{,} Definition trelxx1]
+trelxx1 = select distinct [ccustkey] from customer
+\end{lstlisting}
+
+Da die Unterabfrage nur das korrelierte Prädikat enthält, ist die zweite temporäre Relation die Projektion der inneren Relation \sql{orders} auf das verwendete Attribut \sql{ocustkey}.
+
+\begin{lstlisting}[caption=Abfrage Q22{,} Definition trelxx2]
+trelxx2 = select [ocustkey] from orders
+\end{lstlisting}
+
+Da die Aggregationsfunktion \sql{count} ist, wird die dritte temporäre Relation als Full-Outer-Join über den temporären Relationen \sql{trelxx1} und \sql{trelxx2} berechnet.
+
+\begin{lstlisting}[caption=Abfrage Q22{,} Definition trelxx3]
+trelxx3 = 
 trelxx1 feed 
 trelxx2 feed 
 smouterjoin[cCUSTKEY,oCUSTKEY] 
@@ -1573,21 +1871,24 @@ projectextend[Var1; oCUSTKEY: .cCUSTKEY]
 consume
 \end{lstlisting}
 
-Da es sich bei der inneren Abfrage in dem ersten geschachtelten Prädikat um eine nicht-korrelierte Abfrage handelt, wird sie in der entschachtelten Variante durch den durch ihre Ausführung erhaltenenen Wert ersetzt.
+Als Ergebnis der Entschachtelung ergibt sich für die definierende Abfrage der \sql{from}-Klausel folgender Ausdruck:
 
-\begin{lstlisting}[caption=FROM Nesting]
+\begin{lstlisting}[caption=Abfrage Q22{,} Definition trelxx4]
+trelxx4 =
 select
 	[substr(cphone, 1, 2)as cntrycode, 
 	cacctbal]
 from [customer, trelxx3 as alias1]
 where
 	[substr(cphone, 1, 2) in ("13","35","31","23","29","30","18"), 
-	cacctbal > 5527.01, 
+	cacctbal > 4022.0983333333, 
 	ccustkey = alias1:ocustkey, 
 	0 = alias1:var1]
 \end{lstlisting}
 
-\begin{lstlisting}[caption=Entschachtelte Variante von Q22]
+Damit vereinfacht sich Abfrage Q22 zu
+
+\begin{lstlisting}[caption=Abfrage Q22 in SQL-Syntax{,} entschachtelt]
 select
 	[cntrycode, 
 	count(*)as numcust, 
@@ -1595,7 +1896,9 @@ select
 from trelxx4 
 groupby	[cntrycode]
 orderby	[cntrycode]
-\end{lstlisting}
+\end{lstlisting}.
+
+Die Übersetzung in ausführbare Syntax ist trivial.
 
 \begin{lstlisting}[caption=Abfrage Q22 in ausführbarer Syntax{,} entschachtelt]
 trelxx4 feed 
@@ -1605,6 +1908,8 @@ project[Cntrycode, Numcust, Totacctbal]
 sortby[Cntrycode asc] 
 consume
 \end{lstlisting}
+
+Die iterative Übersetzung enthält an Stelle von Relation \sql{trelxx4} die Übersetzung der definierenden Abfrage. Ab dem Ausdruck \secondo{sortby[Cntrycode asc]} stimmen beide Übersetzungen wieder überein.
 
 \begin{lstlisting}[caption=Abfrage Q22 in ausführbarer Syntax{,} geschachtelt]
 CUSTOMER feed 
@@ -1643,29 +1948,37 @@ sortby[Cntrycode asc]
 consume
 \end{lstlisting}
 
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-/pgf/number format/1000 sep=},
-xtick=data,
-ylabel=Millisekunden,
-scaled ticks=base 10:0,
-xticklabels={A kalt,A warm,B kalt,B warm},
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-area legend,
-anchor=east,legend columns=1},
-ybar stacked,
-]
-\addplot coordinates {(0,	2556	)(1,	1	)(2,	1	)(3,	1	)};
-\addplot coordinates {(0,	0	)(1,	0	)(2,	320	)(3,	2	)};
-\addplot coordinates {(0,	0	)(1,	0	)(2,	5	)(3,	5	)};
-\addplot coordinates {(0,	106	)(1,	106	)(2,	588	)(3,	599	)};
-\legend{Rewrite,Lookup,QueryToPlan,Execute}
-\end{axis}
-\end{tikzpicture}
+%\begin{figure}[h]
+%\begin{tikzpicture}
+%\begin{axis}[
+%x tick label style={
+%/pgf/number format/1000 sep=},
+%xtick=data,
+%ylabel=Millisekunden,
+%scaled ticks=base 10:0,
+%xticklabels={A kalt,A warm,B kalt,B warm},
+%enlargelimits=0.10,
+%legend style={at={(1.65,0.5)},
+%area legend,
+%anchor=east,legend columns=1},
+%ybar stacked,
+%]
+%\addplot coordinates {(0,	2556	)(1,	1	)(2,	1	)};
+%\addplot coordinates {(0,	0	)(1,	0	)(2,	320	)};
+%\addplot coordinates {(0,	0	)(1,	0	)(2,	5	)};
+%\addplot coordinates {(0,	106	)(1,	106	)(2,	588	)};
+%\legend{Rewrite,Lookup,QueryToPlan,Execute}
+%\end{axis}
+%\end{tikzpicture}
+%\caption{Laufzeit der einzelnen Phasen von Abfrage Q22}
+%\end{figure}
+%\setcounter{footnote}{0}
+%\stepcounter{footnote}\footnotetext{entschachtelt, kalt}
+%\stepcounter{footnote}\footnotetext{entschachtelt, warm}
+%\stepcounter{footnote}\footnotetext{iterativ}
+%%\stepcounter{footnote}\footnotetext{iterativ, warm}
 
-\begin{figure}
+\begin{figure}[h]
 \begin{tikzpicture}
 \begin{axis}[
 x tick label style={
@@ -1674,138 +1987,170 @@ xtick=data,
 ylabel=Sekunden,
 xlabel=Skalierungsfaktor,
 xlabel style={yshift=-2.5em},
-xticklabels={,,,,0.0016,0.0032,0.0064,0.0128},
+%xticklabels={0.0008,0.0016,0.0032,0.0064,0.0128},
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 anchor=east,legend columns=1},
-scaled x ticks=base 10:0,
+scaled x ticks=base 10:4,
 sharp plot
 ]
 \addplot coordinates {(0.0008,	1.171	)(0.0016,	1.859	)(0.0032,	2.663	)(0.0064,	5.788	)(0.0128,	18.018	)};
 \addplot coordinates {(0.0008,	0.204	)(0.0016,	0.221	)(0.0032,	0.27	)(0.0064,	0.266	)(0.0128,	0.353	)};
 \addplot coordinates {(0.0008,	0.476	)(0.0016,	1.001	)(0.0032,	3.803	)(0.0064,	11.423	)(0.0128,	49.657	)};
-\addplot coordinates {(0.0008,	0.435	)(0.0016,	0.981	)(0.0032,	3.71	)(0.0064,	10.525	)(0.0128,	49.663	)};
-\legend{entschachtelt kalt, entschachtelt warm, iterativ kalt, iterativ warm}
+%\addplot coordinates {(0.0008,	0.435	)(0.0016,	0.981	)(0.0032,	3.71	)(0.0064,	10.525	)(0.0128,	49.663	)};
+\legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
 \caption{Laufzeit von Q22 für die beiden Ausführungstrategien nach Skalierungsfaktor}
 \label{plot:Q22 line}
 \end{figure}
 
-\subsection{Laufzeit Übersicht}
+Ab einem Skalierungsfaktor von 0,0032 für die Datenbank ist die Laufzeit der entschachtelten Übersetzung auch ohne Ausnutzung des Query-Caches deutlich kürzer als die iterative Ausführung. Dieser Vorteil tritt mit steigendem Skalierungsfaktor immer deutlicher zu Tage.
 
-\begin{figure}
+\subsection{Laufzeit Übersicht}
+Wie man Abbildung \ref{plot:Alle Laufzeit} und Tabelle \ref{tab:Alle Laufzeit kalt} entnehmen kann, ist die entschachtelte Ausführung bei gefülltem Query-Cache mindestens genauso performant, wie die iterative Ausführung. Nur die Abfragen Q17 und Q21 verhalten sich hier anders. Eindeutige Vorteile hat die entschachtelte Ausführung auch ohne Query-Cache nur bei den Abfragen Q2, Q4 und Q22. Bei den Abfragen Q7 und Q9 unterscheiden sich bei leerem Query-Cache die Laufzeiten für die entschachtelte und die iterative Ausführung nur unwesentlich.
+\begin{figure}[h]
 \begin{tikzpicture}
+%\begin{semilogyaxis}[
 \begin{axis}[
+ybar=0.05em,
 x tick label style={
-xshift=1.4em, font=\footnotesize},
+%xshift=1.4em, 
+font=\footnotesize},
 xtick=data,
 ylabel=Sekunden,
 xticklabels={Q2,Q4,Q7,
-%Q9,
+Q9,
 Q15,Q16,Q17,Q20,Q21,Q22},
 scaled ticks=base 10:0,
 enlargelimits=0.10,
 legend style={at={(1.65,0.5)},
 area legend,
 anchor=east,legend columns=1},
-ybar,
-ybar interval=0.7,
+%ybar interval=0.1,
+bar width=0.45em,
+xmode=normal,ymode=log,
+ymin=0.1,
 ]
-\addplot coordinates {(1,	1.79	)(2,	7.03	)(3,	0.622	)
-%(3,	112.071	)
-(4,	0.744	)(5,	0.856	)(6,	10.945	)(7,	12.294	)(8,	3.752	)(9,	1.171	)};
-\addplot coordinates {(1,	1.063	)(2,	6.277	)(3,	0.204	)
-%(3,	0.227	)
-(4,	0.566	)(5,	0.808	)(6,	1.182	)(7,	0.348	)(8,	1.601	)(9,	0.204	)};
-\addplot coordinates {(1,	8.241	)(2,	3.313	)(3,	0.497	)
-%(3,	111.962	)
-(4,	0.601	)(5,	0.787	)(6,	1.387	)(7,	0.326	)(8,	0.747	)(9,	0.476	)};
-\addplot coordinates {(1,	8.213	)(2,	3.297	)(3,	0.508	)
-%(3,	111.574	)
-(4,	0.613	)(5,	0.804	)(6,	1.199	)(7,	0.283	)(8,	0.686	)(9,	0.435	)};
-\legend{entschachtelt kalt,entschachtelt warm,iterativ kalt,iterativ warm}
+\addplot coordinates { 
+(1, 0.0 )(2,	15.645 )(3,	383.557	)(4,	134.078	)(5,	7127.544	)(6,	2.038	)(7,	0.001	)(8,	218.186	)(9,	811.211	)(10,	11.843 )(11,	5.788	)(12, 0.0 ) 
+};
+\addplot coordinates { 
+(1, 0.0 )(2,	8.094	)(3,	382.824	)(4,	0.285	)(5,	0.313	)(6,	1.247	)(7,	0.001	)(8,	7.384	)(9,	1.433	)(10,	2.142	)(11,	0.266	)(12, 0.0) 
+};
+\addplot coordinates { 
+(1, 0.0)(2,	302.276	)(3,	1442.454	)(4,	133.863	)(5,	7148.13	)(6,	1.262	)(7,	28.144	)(8,	0.85	)(9,	266.071	)(10,	1.393	)(11,	11.423	)(12, 0.0) 
+};
+%\addplot coordinates { 
+%(1, 0.0)(2,	300.085	)(3,	1439.432	)(4,	133.109	)(5,	7055.378	)(6,	1.279	)(7,	27.917	)(8,	0.657	)(9,	263.667	)(10,	1.32	)(11,	10.525	)(12, 0.0) 
+%};
+\legend{entschachtelt kalt,entschachtelt warm,iterativ}
+%\end{semilogyaxis}
 \end{axis}
 \end{tikzpicture}
-\caption{Gesamtlaufzeit bei Skalierungsfaktor 0,0008, ohne Q9}
+\caption{Gesamtlaufzeit bei Skalierungsfaktor 0,0064 mit logarithmischer Zeitachse}
 \label{plot:Alle Laufzeit}
 \end{figure}
 
-\begin{figure}
-\begin{tikzpicture}
-\begin{axis}[
-x tick label style={
-xshift=1.4em, font=\footnotesize},
-xtick=data,
-ylabel=Sekunden,
-xticklabels={Q9},
-scaled ticks=base 10:0,
-enlargelimits=0.10,
-legend style={at={(1.65,0.5)},
-area legend,
-anchor=east,legend columns=1},
-ybar,
-%ybar interval=0.7,
-x tick label style={rotate=-30},
-]
-\addplot coordinates {(1,	112.071	)};
-\addplot coordinates {(1,	0.227	)};
-\addplot coordinates {(1,	111.962	)};
-\addplot coordinates {(1,	111.574	)};
-\legend{entschachtelt kalt,entschachtelt warm,iterativ kalt,iterativ warm}
-\end{axis}
-\end{tikzpicture}
-\caption{Abfrage Q9, Laufzeit bei Skalierungsfaktor 0,0008}
-\label{plot:Q9 Gesamtlaufzeit}
-\end{figure}
+Bei allen anderen Abfragen ist bei einmaliger Ausführung die iterative Ausführung schneller.
+
+%\begin{figure}
+%\begin{tikzpicture}
+%\begin{axis}[
+%x tick label style={
+%xshift=1.4em, font=\footnotesize},
+%xtick=data,
+%ylabel=Sekunden,
+%xticklabels={Q9},
+%scaled ticks=base 10:0,
+%enlargelimits=0.10,
+%legend style={at={(1.65,0.5)},
+%area legend,
+%anchor=east,legend columns=1},
+%ybar,
+%%ybar interval=0.7,
+%x tick label style={rotate=-30},
+%]
+%\addplot coordinates {(1,	112.071	)};
+%\addplot coordinates {(1,	0.227	)};
+%\addplot coordinates {(1,	111.962	)};
+%\addplot coordinates {(1,	111.574	)};
+%\legend{entschachtelt kalt,entschachtelt warm,iterativ kalt,iterativ warm}
+%\end{axis}
+%\end{tikzpicture}
+%\caption{Abfrage Q9, Laufzeit bei Skalierungsfaktor 0,0008}
+%\label{plot:Q9 Gesamtlaufzeit}
+%\end{figure}
 
 \begin{table}[h]
 \centering
-\begin{tabular}{@{}lrr@{}} \toprule
-& \multicolumn{2}{c}{Laufzeit in s} \\ \cmidrule(l){2-3}
-Abfrage Nr. & iterativ & entschachtelt\\ \midrule
-Q2	&	15,645	&	302,276	\\
-Q4	&	383,557	&	1442,454	\\
-Q7	&	134,078	&	133,863	\\
-Q9	&	7127,544	&	7148,13	\\
-Q15	&	2,038	&	1,262	\\
-Q16	&	28,507	&	28,144	\\
-Q17	&	218,186	&	0,850	\\
-Q20	&	811,211	&	266,071	\\
-Q21	&	11,843	&	1,393	\\
-Q22	&	5,788	&	11,423	\\
+\begin{tabular}{@{}lrrr@{}} \toprule
+& \multicolumn{3}{c}{Laufzeit in s} \\ \cmidrule(l){2-4}
+Abfrage Nr. & iterativ & entschachtelt & entschachtelt, warm\\ \midrule
+Q2	&	302,276	&	15,645	&	8,094	\\
+Q4	&	1442,454	&	383,557	&	382,824	\\
+Q7	&	133,863	&	134,078	&	0,285	\\
+Q9	&	7148,130	&	7127,544	&	0,313	\\
+Q15	&	1,262	&	2,038	&	1,247	\\
+Q16	&	28,144	&	---	&	---	\\
+Q17	&	0,850	&	218,186	&	7,384	\\
+Q20	&	266,071	&	811,211	&	1,433	\\
+Q21	&	1,393	&	11,843	&	2,142	\\
+Q22	&	11,423	&	5,788	&	0,266	\\
 \bottomrule\end{tabular}
- \caption{Laufzeit bei Skalierungsfaktor 0,0064, \enquote{kalt}}
+ \caption{Laufzeit bei Skalierungsfaktor 0,0064}
  \label{tab:Alle Laufzeit kalt}
 \end{table}
 
-\begin{table}[h]
-\centering
-\begin{tabular}{@{}lrr@{}} \toprule
-& \multicolumn{2}{c}{Laufzeit in s} \\ \cmidrule(l){2-3}
-Abfrage Nr. & iterativ & entschachtelt\\ \midrule
-Q2	&	8,094	&	300,085	\\
-Q4	&	382,824	&	1439,432	\\
-Q7	&	0,285	&	133,109	\\
-Q9	&	0,313	&	7055,378	\\
-Q15	&	1,247	&	1,279	\\
-Q16	&	28,099	&	27,917	\\
-Q17	&	7,384	&	0,657	\\
-Q20	&	1,433	&	263,667	\\
-Q21	&	2,142	&	1,320	\\
-Q22	&	0,266	&	10,525	\\
-\bottomrule\end{tabular} 
-	\caption{Laufzeit bei Skalierungsfaktor 0,0064, \enquote{warm}}
- \label{tab:Alle Laufzeit warm}
-\end{table}
+%\begin{table}[h]
+%\centering
+%\begin{tabular}{@{}lrr@{}} \toprule
+%& \multicolumn{2}{c}{Laufzeit in s} \\ \cmidrule(l){2-3}
+%Abfrage Nr. & iterativ & entschachtelt\\ \midrule
+%Q2	&	8,094	&	300,085	\\
+%Q4	&	382,824	&	1439,432	\\
+%Q7	&	0,285	&	133,109	\\
+%Q9	&	0,313	&	7055,378	\\
+%Q15	&	1,247	&	1,279	\\
+%Q16	&	28,099	&	27,917	\\
+%Q17	&	7,384	&	0,657	\\
+%Q20	&	1,433	&	263,667	\\
+%Q21	&	2,142	&	1,320	\\
+%Q22	&	0,266	&	10,525	\\
+%\bottomrule\end{tabular} 
+%	\caption{Laufzeit bei Skalierungsfaktor 0,0064, \enquote{warm}}
+% \label{tab:Alle Laufzeit warm}
+%\end{table}
 
-\section{Fazit}
-Die Laufzeiten der Abfragen ergeben ein uneinheitliches Bild. Die Abfragen Q2 und Q4 erfahren durch die Entschachtelung eine deutliche Beschleunigung der Laufzeit. Sogar dann, wenn die temporären Relationen neu erzeugt werden müssen. Die Laufzeit der entschachtelten Abfrage ist im zweiten Durchlauf bis auf Abfrage Q21 vergleichbar oder besser der Ausführung mit geschachtelter Iteration. Bei den Abfragen Q17, Q20, Q21 und Q22 ist der Aufwand für die Erzeugung der temporären Relationen ein vielfaches der Ausführungszeit der geschachtelten Ausführung. Durch die Implementierung der beschriebenen Erweiterungen ist der Optimierer in der Lage, die oben beschriebenen Abfragen ausführen zu können. Um den Benchmark vollständig ausführen zu können, muss der Optimierer noch um einige Konstrukte erweitert werden. Die Abfragen Q18 und Q11 des Benchmarks benötigen die Unterstützung der \sql{having}-Klausel. Diese entspricht einer Selektionsoperation auf dem Ergebnis einer Aggregation. Für die Abfragen Q8 und Q14 ist die Übersetzung von Ausdrücken über Aggregationsergebnissen erforderlich. 
+\section{Fazit}\label{sct:Fazit}
+%Wie Abbildung \ref{Q2:plot bars} zu entnehmen ist, verkürzt sich die Laufzeit für die entschachtelte Ausführung bei mehrfacher Ausführung um die Laufzeit der Umschreibungsphase.  
+%
+%Während die Laufzeit für die entschachtelte Ausführung nur langsam ansteigt, wächst die Laufzeit für die iterative Ausführung exponentiell. Schon bei einem Skalierungsfaktor von 0.0064 verringert sich die Laufzeit der Abfrage durch Entschachtelung um eine Größenordnung. Eine entschachtelte Ausfürhung ist bei Abfrage Q2 also vorteilhaft. 
+%
+%Die Laufzeiten der Abfragen ergeben ein uneinheitliches Bild. Die Abfragen Q2 und Q4 erfahren durch die Entschachtelung eine deutliche Beschleunigung der Laufzeit. Sogar dann, wenn die temporären Relationen neu erzeugt werden müssen. Die Laufzeit der entschachtelten Abfrage ist im zweiten Durchlauf bis auf Abfrage Q21 vergleichbar oder besser der Ausführung mit geschachtelter Iteration. Bei den Abfragen Q17, Q20, Q21 und Q22 ist der Aufwand für die Erzeugung der temporären Relationen ein vielfaches der Ausführungszeit der geschachtelten Ausführung. Durch die Implementierung der beschriebenen Erweiterungen ist der Optimierer in der Lage, die oben beschriebenen Abfragen ausführen zu können. Um den Benchmark vollständig ausführen zu können, muss der Optimierer noch um einige Konstrukte erweitert werden. Die Abfragen Q18 und Q11 des Benchmarks benötigen die Unterstützung der \sql{having}-Klausel. Diese entspricht einer Selektionsoperation auf dem Ergebnis einer Aggregation. Für die Abfragen Q8 und Q14 ist die Übersetzung von Ausdrücken über Aggregationsergebnissen erforderlich. 
 
-Bis auf die in Kapitel \ref{chp:Entwurf} beschriebenen Einschränkungen lassen sich geschachtelte Abfragen mit dem Optimierer übersetzen. Das Ziel, die Entscheidung der Ausführungsstrategie dem Optimierer zu überlassen, musste jedoch schon während der Analyse des Problems fallgelassen werden. Die hierfür notwendige Infrastruktur zu erstellen und die notwendigen mathematischen Grundlagen zu erarbeiten hätten den Rahmen dieser Arbeit gesprengt.
+Bis auf die in Kapitel \ref{chp:Entwurf} beschriebenen Einschränkungen lassen sich geschachtelte Abfragen jetzt mit dem Optimierer übersetzen. Das Ziel, die Auswahl der Ausführungsstrategie dem Optimierer zu überlassen, musste jedoch schon während der Analyse des Problems fallengelassen werden. Die hierfür notwendige Infrastruktur zu erstellen und die notwendigen mathematischen Grundlagen zu erarbeiten hätten den Rahmen dieser Arbeit gesprengt. Aus den ausgeführten Laufzeitvergleichen kann man jedoch schließen, dass die grundsätzliche Auswahl der Entschachtelungsstrategie wohl nur in wenigen Fällen zu einer deutlichen Verschlechterung der Laufzeit gegenüber der iterativen Ausführung führen wird. 
+
+Zehn der 14 geschachtelten Abfragen aus dem TPC-D Benchmark lassen sich jetzt mit dem Optimierer ausführen. Um eine vollständige Ausführung des Benchmarks zu ermöglichen, muss \textsc{Secondo} nur noch um wenige Konstrukte erweitert werden. Hierzu gehören die \sql{having}-Klausel, die die Selektionsoperation auf Aggregationsergebnissen erlaubt, und ein Left-Outer-Join-Operator.
 
 \section{Ausblick}
-Um die Entschachtelung zu vervollständigen sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden. Auch ein allgemeiner Full-Outerjoin-Operator auf Basis von Symmjoin. Unterstützung von \textbf{GROUPBY...HAVING}-Klauseln inkl. Subqueries. Die Erweiterung der Optimierung um den Kostenvergleich zwischen geschachtelter und entschachtelter Ausführung auf der Basis statistisch modellierter Daten stellt mit Sicherheit eine Herausforderung dar. Geschachtelte Prädikate in Disjunktionen. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen. Weitere Formen von geschachtelten Abfragen, die noch nicht optimiert werden können: korrelierte Abfragen in der \sql{select}-Klausel und der \sql{from}-Klausel, geschachtelte Abfragen in Disjunktionen, geschachtelte Abfragen, die mehrere Schachtelungsebenen überspringen. 
+Der \textsc{Secondo}-Optimierer unterstützt bereits einen Großteil der im SQL-Standard definierten Syntax. Zu den wenigen fehlenden Elementen gehören die \sql{having}-Klausel und Left- sowie Right-Outer-Join-Operatoren. Eine Implementierung dieser Syntaxelemente wäre bedenkenswert, da diese Konstrukte in den meisten relationalen Datenbanksystemen verfügbar sind. 
+
+Um die Entschachtelung zu vervollständigen, sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden, da dieser für die Entschachtelung von Ausdrücken mit dem \sql{not in}-Operator notwendig ist. Hierbei muss jedoch beachtet werden, dass mit der Einführung von Anti-Join in die Optimierung beim Aufbau des Predicate-Order-Graphen nicht mehr alle Vertauschungen zulässig sind. Da auch bei den Outer-Join-Operatoren Bedingungen bezüglich der Vertauschung zu prüfen sind, könnte die Umsetzung dieser Maßnahmen möglicherweise gemeinsam erfolgen.
+
+Die Erweiterung der Optimierung um den Kostenvergleich zwischen geschachtelter und entschachtelter Ausführung auf der Basis statistisch modellierter Daten stellt mit Sicherheit eine Herausforderung dar. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen. 
+
+Weitere Formen von geschachtelten Abfragen, die noch nicht optimiert werden können sind: 
+\begin{itemize}
+\item korrelierte Abfragen in der \sql{select}-Klausel und der \sql{from}-Klausel
+\item geschachtelte Abfragen in Disjunktionen
+\item geschachtelte Abfragen, die mehrere Schachtelungsebenen überspringen
+\item geschachtelte Abfragen in der \sql{having}-Klausel
+\end{itemize}.
+
+Eine Ergänzung des Optimierers, die diese Formen geschachtelter Abfragen einer Optimierung zugänglich macht, wäre zu überlegen.
+
+
 
 %
 % EOF

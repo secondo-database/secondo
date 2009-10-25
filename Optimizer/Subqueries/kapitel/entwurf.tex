@@ -108,7 +108,7 @@ Zu Beginn des Algorithmus sind beide Puffer leer und die Zeiger zeigen auf das j
 \begin{enumerate}
   \item Sind beide Relationen erschöpft, so ist der Algorithmus beendet.
 	\item Ist das Flag für die erste Relation gesetzt:
-	\subitem Zeigt der Zeiger für das aktuelle auf 0, so wird der Zeiger auf das nächste Tupel der ersten Relation gesetzt und der Zeiger in der ersten Relation erhöht. Ist die erste Relation erschöpft, wird das Flag auf die zweite Relation gesetzt.
+	\subitem Zeigt der Zeiger für das aktuelle Tupel auf 0, so wird der Zeiger auf das nächste Tupel der ersten Relation gesetzt und der Zeiger in der ersten Relation erhöht. Ist die erste Relation erschöpft, wird das Flag auf die zweite Relation gesetzt.
 	\subitem Wenn der zweite Puffer erschöpft ist, wird das aktuelle Tupel in den ersten Puffer eingefügt. Der Zeiger auf das aktuelle Tupel zeigt auf 0. Das Flag wird auf die zweite Relation geändert. Es wird mit dem ersten Schritt fortgefahren.
 	\subitem Ist der zweite Puffer noch nicht erschöpft, so wird die Bedingung über dem aktuellen Tupel und dem ersten Tupel des zweiten Puffers ausgewertet. Wertet die Bedingung zu \sql{true} aus, so wird ein Ergebnistupel erzeugt, das eine Verkettung des aktuellen Tupels und des ersten Tupels des zweiten Puffers ist. Das verwendete Tupel des zweiten Puffers wird unabhängig vom Ergebnis der Auswertung aus dem Puffer gelöscht. Es wird mit Schritt 1 fortgefahren.
 	\item Ist das Flag für die zweite Relation gesetzt.
@@ -145,8 +145,8 @@ Wobei hier gilt
 \begin{math}
 AGGR = 
 \begin{cases}
-max&\quad\text{falls}\ \theta < oder \leq, \\
-min&\quad\text{falls}\ \theta > oder \geq. 
+max&\quad\text{falls}\ \theta \in {<, \leq}, \\
+min&\quad\text{falls}\ \theta \in {>, \geq}. 
 \end{cases}
 \end{math}
 
@@ -170,8 +170,8 @@ Wobei hier gilt
 \begin{math}
 AGGR = 
 \begin{cases}
-min&\quad\text{falls}\ \theta < oder \leq, \\
-max&\quad\text{falls}\ \theta > oder \geq. 
+min&\quad\text{falls}\ \theta \in {<, \leq}, \\
+max&\quad\text{falls}\ \theta \in {>, \geq}. 
 \end{cases}
 \end{math}
 
