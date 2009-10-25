@@ -40,3 +40,15 @@ Number   : 1
 Signature: stream(tuple(x)) x attribute-> stream(tuple(y))
 Example  : query Publishers feed unnest [publications] count
 Result   : 1319
+
+Operator : rename
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, ... ,anar:dn)))
+Example  : query publishers feed rename[t1] consume
+Result   : 
+         
+Operator : extract
+Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) x ai) -> di
+Example  : query publishers feed extract [publications]
+Result   :
