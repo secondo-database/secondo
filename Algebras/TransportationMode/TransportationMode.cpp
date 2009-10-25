@@ -80,6 +80,16 @@ const string OpBusNodeSpec =
   "<text>query busnode(busroutes) count</text--->"
   "))";
 
+const string OpBusNodeTreeSpec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>busnetwork -> stream(tuple([nid:int,loc:point]))" "</text--->"
+  "<text>busnodetree(_)</text--->"
+  "<text>returns a stream of tuple where each corresponds to a bus stop."
+  "</text--->"
+  "<text>query busnodetree(busroutes) count</text--->"
+  "))";
+
 
 const string OpBusEdgeSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
@@ -149,6 +159,17 @@ const string OpBusFindPath_T_5Spec =
   "<text>_ find_path_t_5[_,_,_,_]</text--->"
   "<text>returns a sequence of movement corresponding to a trip</text--->"
   "<text>query deftime(berlintrains find_path_t_5"
+  "[tq1,id,dur,querytime]);</text--->"
+  "))";
+
+const string OpBusFindPath_BUS_Tree1Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>busnetwork x rel x attribute1 "
+  "x attribute2 x instant-> mpoint</text--->"
+  "<text>_ find_path_bus_tree1[_,_,_,_]</text--->"
+  "<text>returns a sequence of movement corresponding to a trip</text--->"
+  "<text>query deftime(berlintrains find_path_bus_tree1"
   "[tq1,id,dur,querytime]);</text--->"
   "))";
 
@@ -299,12 +320,14 @@ int OpBusNodeValueMapping(Word* args, Word& result,
         CcInt* path = (CcInt*)temp_tuple->GetAttribute(BusNetwork::BUSPATH);
         CcInt* pos = (CcInt*)temp_tuple->GetAttribute(BusNetwork::POS);
         CcReal* zval = (CcReal*)temp_tuple->GetAttribute(BusNetwork::ZVAL);
+        CcReal* atime = (CcReal*)temp_tuple->GetAttribute(BusNetwork::ATIME);
 
         tuple->PutAttribute(BusNetwork::NEWSID,new CcInt(*id));
         tuple->PutAttribute(BusNetwork::NEWLOC,new Point(*location));
         tuple->PutAttribute(BusNetwork::BUSPATH,new CcInt(*path));
         tuple->PutAttribute(BusNetwork::POS,new CcInt(*pos));
         tuple->PutAttribute(BusNetwork::ZVAL,new CcReal(*zval));
+        tuple->PutAttribute(BusNetwork::ATIME,new CcReal(*atime));
 
         result.setAddr(tuple);
         temp_tuple->DeleteIfAllowed();
@@ -320,7 +343,21 @@ int OpBusNodeValueMapping(Word* args, Word& result,
 #endif
   return 0;
 }
+/*
+Display bus node tree
 
+*/
+int OpBusNodeTreeValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  BusNetwork* busnet = (BusNetwork*)args[0].addr;
+  Relation* busnodetree = busnet->GetRelBus_NodeTree();
+  result = SetWord(busnodetree->Clone());
+  Relation* resultSt = (Relation*)qp->ResultStorage(s).addr;
+  resultSt->Close();
+  qp->ChangeResultStorage(s,result);
+  return 0;
+}
 
 
 /*
@@ -493,6 +530,26 @@ int OpBusFindPath_T_5ValueMapping(Word* args, Word& result,
   return 0;
 }
 
+
+int OpBusFindPath_BUS_Tree1ValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  BusNetwork* busnet = (BusNetwork*)args[0].addr;
+
+  Relation* querycond = (Relation*)args[1].addr;
+  Instant* instant = static_cast<Instant*>(args[4].addr);
+
+  int attrpos1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+  int attrpos2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+
+  busnet->FindPath_Bus_Tree1((MPoint*)result.addr,
+                  querycond,attrpos1,attrpos2,*instant);
+
+  return 0;
+}
+
+
 /*
 Operator ~thebusnetwork~
 
@@ -547,7 +604,6 @@ ListExpr OpBusNodeTypeMap(ListExpr in_xArgs)
             )
           );
   }
-  return nl->SymbolAtom("typeerror");
 #else
   ListExpr arg = nl->First(in_xArgs);
   if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
@@ -555,20 +611,38 @@ ListExpr OpBusNodeTypeMap(ListExpr in_xArgs)
     return nl->TwoElemList(
           nl->SymbolAtom("stream"),
             nl->TwoElemList(nl->SymbolAtom("tuple"),
-              nl->FiveElemList(
+              nl->SixElemList(
                nl->TwoElemList(nl->SymbolAtom("id"),nl->SymbolAtom("int")),
                nl->TwoElemList(nl->SymbolAtom("loc"),nl->SymbolAtom("point")),
                nl->TwoElemList(nl->SymbolAtom("buspath"),nl->SymbolAtom("int")),
                nl->TwoElemList(nl->SymbolAtom("pos"),nl->SymbolAtom("int")),
-               nl->TwoElemList(nl->SymbolAtom("zval"),nl->SymbolAtom("real"))
+               nl->TwoElemList(nl->SymbolAtom("zval"),nl->SymbolAtom("real")),
+               nl->TwoElemList(nl->SymbolAtom("atime"),nl->SymbolAtom("real"))
               )
             )
           );
   }
-
 #endif
+    return nl->SymbolAtom("typeerror");
 }
 
+
+ListExpr OpBusNodeTreeTypeMap(ListExpr in_xArgs)
+{
+  if(nl->ListLength(in_xArgs) != 1)
+    return (nl->SymbolAtom("typeerror"));
+
+  ListExpr arg = nl->First(in_xArgs);
+  if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
+     nl->SymbolValue(arg) == "busnetwork"){
+     ListExpr xType;
+     nl->ReadFromString(BusNetwork::busstoptreeTypeInfo,xType);
+     return xType;
+
+  }
+  return nl->SymbolAtom("typeerror");
+
+}
 
 /*
 Operator ~busedge~
@@ -904,6 +978,65 @@ ListExpr OpBusFindPath_T_5TypeMap(ListExpr in_xArgs)
   return nl->TypeError();
 
 }
+
+
+ListExpr OpBusFindPath_BUS_Tree1TypeMap(ListExpr in_xArgs)
+{
+  string s1 = "busnetwork x rel x attribute1";
+  string s2 = "x attribute2 x instant expected";
+  string err = s1 + s2;
+
+  if(nl->ListLength(in_xArgs) != 5){
+      ErrorReporter::ReportError(err);
+      return nl->TypeError();
+  }
+  ListExpr arg1 = nl->First(in_xArgs);
+  ListExpr arg2 = nl->Second(in_xArgs);
+
+  ListExpr arg3 = nl->Third(in_xArgs);
+  ListExpr arg4 = nl->Fourth(in_xArgs);
+  ListExpr arg5 = nl->Fifth(in_xArgs);
+
+
+  if(!IsRelDescription(arg2)){
+      string msg =  "second argument must be a relation";
+      ErrorReporter::ReportError(msg);
+      return nl->TypeError();
+  }
+
+  int j1,j2;
+  ListExpr attrType;
+  j1 = FindAttribute(nl->Second(nl->Second(arg2)),
+                   nl->SymbolValue(arg3),attrType);
+
+  CHECK_COND( j1 > 0 && (nl->IsEqual(attrType,"int")),
+             "the sixth attribute should be of type int");
+
+  j2 = FindAttribute(nl->Second(nl->Second(arg2)),
+                   nl->SymbolValue(arg4),attrType);
+
+  CHECK_COND( j1 > 0 && (nl->IsEqual(attrType,"duration")),
+             "the seventh attribute should be of type duration");
+
+  if(!nl->IsEqual(arg5,"instant")){
+      string msg = "eighth argument must be an instant";
+      ErrorReporter::ReportError(msg);
+      return nl->TypeError();
+  }
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "busnetwork"){
+//    return nl->SymbolAtom("mpoint");
+    ListExpr res = nl->SymbolAtom("mpoint");
+    return nl->ThreeElemList(
+            nl->SymbolAtom("APPEND"),
+            nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),res);
+
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+
+}
 /*****************Operators for Bus Network*************************/
 Operator thebusnetwork(
   "thebusnetwork", //name
@@ -920,6 +1053,15 @@ Operator busnode(
   Operator::SimpleSelect,
   OpBusNodeTypeMap
 );
+
+Operator busnodetree(
+  "busnodetree", //name
+  OpBusNodeTreeSpec,
+  OpBusNodeTreeValueMapping,
+  Operator::SimpleSelect,
+  OpBusNodeTreeTypeMap
+);
+
 
 Operator busedge(
   "busedge", //name
@@ -977,6 +1119,14 @@ Operator find_path_t_5(
   OpBusFindPath_T_5TypeMap
 );
 
+Operator find_path_bus_tree1(
+  "find_path_bus_tree1", //name
+  OpBusFindPath_BUS_Tree1Spec,
+  OpBusFindPath_BUS_Tree1ValueMapping,
+  Operator::SimpleSelect,
+  OpBusFindPath_BUS_Tree1TypeMap
+);
+
 /*
 Main Class for Transportation Mode
 
@@ -992,7 +1142,7 @@ class TransportationModeAlgebra : public Algebra
 
    AddOperator(&thebusnetwork);//construct bus network
    AddOperator(&busnode);//display bus stop
-
+   AddOperator(&busnodetree);//display bus stop
    AddOperator(&busedge); //display the trajectory of a bus
 
    AddOperator(&busmove);//display bus movement
@@ -1004,6 +1154,10 @@ class TransportationModeAlgebra : public Algebra
    //input relation and b-tree
    AddOperator(&find_path_t_4);
    AddOperator(&find_path_t_5);//optimize-4
+
+   //new representation for bus stop
+   AddOperator(&find_path_bus_tree1);
+
   }
   ~TransportationModeAlgebra() {};
  private:

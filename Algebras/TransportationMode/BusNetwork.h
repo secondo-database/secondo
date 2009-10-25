@@ -76,6 +76,24 @@ struct SwithEntry{
   int e2; //TupleId
 };
 
+/*store bus node as a tree structure*/
+struct Node_Tree{
+  int id;
+  int pathid;
+  int pos;
+  double t;
+  Point p;
+  double zorder;
+  int left;
+  int right;
+  Node_Tree(){}
+  Node_Tree(int n_id,int n_pathid,int n_pos,double n_t,Point n_p,
+            double n_zorder,int n_left,int n_right):id(n_id),pathid(n_pathid),
+      pos(n_pos),t(n_t),p(n_p),zorder(n_zorder),left(n_left),right(n_right){}
+  Node_Tree(const Node_Tree& node):id(node.id),pathid(node.pathid),
+    pos(node.pos),t(node.t),p(node.p),zorder(node.zorder),
+    left(node.left),right(node.right){}
+};
 
 class BusNetwork{
 public:
@@ -94,9 +112,12 @@ public:
 
 /*new schema for bus stop*/
   static string newbusstopTypeInfo; //relation description for bus stop
-  enum newBusStopInfo{NEWSID=0,NEWLOC,BUSPATH,POS,ZVAL};
+  enum newBusStopInfo{NEWSID=0,NEWLOC,BUSPATH,POS,ZVAL,ATIME};
   static string newbtreebusstopTypeInfo1;
   static string newbtreebusstopTypeInfo2;
+  static string busstoptreeTypeInfo;
+  enum busstoptreeInfo{NODETID=0,LEFTTID,RIGHTTID};//tid,left,right,arrive-t
+
 
 /*function for type constructor*/
   static ListExpr BusNetworkProp();
@@ -133,12 +154,14 @@ public:
   void FillBusEdge_New(const Relation*);
   inline double ZValue(Point& p);
   void ConstructBusNodeTree();
+  void CreateNodeTreeIndex(vector<bool>&);
 /*Interface function and Application function*/
   Relation* GetRelBus_Node(){return bus_node;}
   Relation* GetRelBus_Route(){return bus_route;}
   Relation* GetRelBus_Edge(){return bus_edge;}
   Relation* GetRelBus_NodeNew(){return bus_node_new;}
   Relation* GetRelBus_EdgeNew(){return bus_edge_new;}
+  Relation* GetRelBus_NodeTree(){return bus_node_tree;}
   TupleId FindPointTid(Point& p);
   TupleId FindPointTidNew(int pathid,Point& p);
   void FindPath_T_1(MPoint* result,Relation* query,int attrpos,Instant*);
@@ -164,7 +187,9 @@ public:
   bool FindPath5(int id1,int id2,vector<Elem>& path,Instant&,double&);
   void FindPath_T_5(MPoint* result,Relation* query,
                     int,int,Instant&);
-
+  ///////////////////// new representation for bus node /////////////////////
+  bool Bus_Tree1(int id1,int id2,vector<Elem>& path,Instant&,double&);
+  void FindPath_Bus_Tree1(MPoint* result,Relation* query,int,int,Instant&);
 private:
   int busnet_id;
   bool bus_def;
@@ -197,6 +222,10 @@ private:
   BTree* btree_bus_node_new2;//on attribute zval
   Relation* bus_edge_new;//relation storing edge
   BTree* btree_bus_edge_path_new; //b-tree on edge pid, path
+
+  Relation* bus_node_tree;//
+  DBArray<Node_Tree> bus_tree;
+  DBArray<double> ps_zval; // point_id --> z-order val
 
 };
 double difftimeb(struct timeb* t1,struct timeb* t2);
