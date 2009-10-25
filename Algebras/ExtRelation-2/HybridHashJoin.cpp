@@ -1108,7 +1108,7 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
   }
 
   // calculate time for partitioning and processing of stream A
-  double t2 = p1.Card * ( t_probe + t_read + t_write );
+  double t2 = p1.Card * ( t_probe + t_hash + t_read + t_write );
 
   if ( traceMode )
   {
@@ -1194,7 +1194,7 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
   }
 
   // calculate current progress of stream A
-  double prog2 = k1 * ( t_probe + t_read + t_write );
+  double prog2 = k1 * ( t_probe + t_hash + t_read + t_write );
 
   if ( traceMode )
   {
