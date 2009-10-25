@@ -410,7 +410,7 @@ SortAlgorithm::SortAlgorithm( Word stream,
       info->UpdateStatistics(t->GetSize());
     }
 
-    if( usedMemory + extSize <= MAX_MEMORY )
+    if( usedMemory <= MAX_MEMORY )
     {
       curRun->AppendToMemory(t);
       usedMemory += extSize;
@@ -726,7 +726,9 @@ void SortAlgorithm::mergeNShortest(int n)
   int counter = 0;
 
   SortedRunCompareLengthGreater comp;
+
   // sort the runs according to their length in bytes
+  // a minimum heap is created
   make_heap(runs.begin(), runs.end(), comp);
 
   // get the n shortest runs
@@ -734,13 +736,21 @@ void SortAlgorithm::mergeNShortest(int n)
 
   for (int i = 0; i < n; i++)
   {
+    // pops first array element and moves it to the end of the array
+    // the heap condition is fullfilled afterwards
     pop_heap(runs.begin(), runs.end(), comp);
+
+    // add the popped run to the merge array
     merge.push_back(runs.back());
+
+    // delete run from runs array
     runs.pop_back();
   }
 
   // create the sorted run for merging
   SortedRun* result = new SortedRun(nextRunNumber++, cmpObj, IO_BUFFER_SIZE);
+
+  // append the sorted run to the end of the runs array
   runs.push_back(result);
 
   if ( traceModeExtended )
