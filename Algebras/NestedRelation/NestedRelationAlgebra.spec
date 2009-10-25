@@ -19,9 +19,10 @@
 
 operator feed alias FEED pattern _ op
 operator consume alias CONSUME pattern _ op
-operator afeed alias AFEED pattern _ op 
+operator rename alias RENAME pattern _ op [ _ ]
+operator extract alias EXTRACT pattern _ op [ _ ]
+operator afeed alias AFEED pattern _ op  
 operator aconsume alias ACONSUME pattern _ op
 operator nest alias NEST pattern _ op [ list; _ ] 
 operator unnest alias UNNEST pattern _ op [ _ ]
-operator rename alias RENAME pattern _ op [ _ ]
- 
+  
