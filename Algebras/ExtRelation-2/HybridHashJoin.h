@@ -1643,17 +1643,59 @@ The constructor.
 /*
 Calculates the progress for the hybrid hash join algorithm.
 
+The following constants were assumed from operator ~hashjoin~.
+
 */
 
-    static const double uHashJoin = 0.023;  //millisecs per probe tuple
-    static const double vHashJoin = 0.0067;  //millisecs per tuple right
-    static const double wHashJoin = 0.0025;  //millisecs per tuple returned
+    static const double uHashJoin = 0.023;
+/*
+Milliseconds per probe tuple.
 
-    static const double t_read = 0.001;  //millisecs per probe tuple
-    static const double t_write = 0.001;  //millisecs per tuple right
-    static const double t_probe = 0.001;  //millisecs per tuple returned
-    static const double t_hash = 0.001;  //millisecs per tuple returned
-    static const double t_result = 0.001;  //millisecs per tuple returned
+*/
+    static const double vHashJoin = 0.0067;
+/*
+Milliseconds per tuple right.
+
+*/
+
+    static const double wHashJoin = 0.0025;
+/*
+Milliseconds per tuple returned.
+
+The following constants were determined experimentally. See file
+ConstantsHybridHashJoin.txt for details.
+
+*/
+
+    static const double t_read = 0.001090;
+/*
+Milliseconds per tuple read from disc.
+
+*/
+
+    static const double t_write = 0.001090;
+/*
+Milliseconds per tuple written to disc.
+
+*/
+
+    static const double t_probe = 0.001557;
+/*
+Milliseconds per probe tuple.
+
+*/
+
+    static const double t_hash = 0.004163;
+/*
+Milliseconds per tuple hashed.
+
+*/
+
+    static const double t_result = 0.0044;
+/*
+Milliseconds per tuple returned.
+
+*/
 
     ostream& Print(ostream& os);
 /*
