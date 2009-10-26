@@ -283,6 +283,12 @@ const ListExpr in_xTypeInfo)
 //  adj_path.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
 
 #else
+
+  nl->ReadFromString(busstopTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  if(!bus_node->Save(in_xValueRecord,inout_iOffset,xNumericType))
+      return false;
+
 /****************************save new nodes*********************************/
   nl->ReadFromString(newbusstopTypeInfo,xType);
   xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
@@ -377,6 +383,8 @@ BusNetwork:: ~BusNetwork()
   adjacencylist_index.Clear();
   adjacencylist.Clear();
 #else
+    if(bus_node != NULL)
+      bus_node->Close();
   //new bus node
   if(bus_node_new != NULL)
     bus_node_new->Close();
@@ -683,13 +691,36 @@ void BusNetwork::FillBusNode_New(const Relation* in_busRoute)
     tuple->DeleteIfAllowed();
   }
   ps->EndBulkLoad(true,true);
+
+
+  ListExpr xTypeInfo_old;
+  nl->ReadFromString(busstopTypeInfo,xTypeInfo_old);
+  ListExpr xNumType_old =
+              SecondoSystem::GetCatalog()->NumericType(xTypeInfo_old);
+  Relation* temp_bus_node_old = new Relation(xNumType_old,true);
+
   //map point to zval
   for(int i = 0;i < ps->Size();i++){
     const Point* elem_p;
     ps->Get(i,elem_p);
     ps_zval.Append(ZValue(*(const_cast<Point*>(elem_p))));
-  }
 
+    Tuple* tuple = new Tuple(nl->Second(xNumType_old));
+    tuple->PutAttribute(SID,new CcInt(true,i+1));
+    tuple->PutAttribute(LOC,new Point(*elem_p));
+    temp_bus_node_old->AppendTuple(tuple);
+    tuple->DeleteIfAllowed();
+  }
+  ostringstream xBusStopPtrStream_old;
+  xBusStopPtrStream_old << (long)temp_bus_node_old;
+  string strQuery_old = "(consume(sort(feed(" + busstopTypeInfo +
+                "(ptr " + xBusStopPtrStream_old.str() + ")))))";
+  Word xResult_old;
+  int QueryExecuted_old =
+              QueryProcessor::ExecuteQuery(strQuery_old,xResult_old);
+  assert(QueryExecuted_old);
+  bus_node = (Relation*)xResult_old.addr;
+  temp_bus_node_old->Delete();
 
 /***************** bus route **************************/
   ostringstream xBusRoutePtrStream;
@@ -2025,7 +2056,7 @@ bus_tree(0),ps_zval(0)
 
 void BusNetwork::Destroy()
 {
-  cout<<"destory"<<endl;
+  cout<<"destroy"<<endl;
   //bus route
   if(bus_route != NULL){
     bus_route->Delete();
@@ -2080,7 +2111,11 @@ void BusNetwork::Destroy()
     btree_bus_edge_path = NULL;
   }
 #else
-//new bus node relation
+  if(bus_node != NULL){
+    bus_node->Delete();
+    bus_node = NULL;
+  }
+  //new bus node relation
   if(bus_node_new != NULL){
     bus_node_new->Delete();
     bus_node_new = NULL;
@@ -2346,6 +2381,15 @@ const ListExpr in_xTypeInfo)
   adjacencylist_index.OpenFromRecord(in_xValueRecord, inout_iOffset);
   adjacencylist.OpenFromRecord(in_xValueRecord, inout_iOffset);
 #else
+
+  nl->ReadFromString(busstopTypeInfo,xType);
+  xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
+  bus_node = Relation::Open(in_xValueRecord,inout_iOffset,xNumericType);
+  if(!bus_node) {
+    bus_route->Delete();
+    delete btree_bus_route;
+    return;
+  }
 
 /*********************Open new bus node relation*************************/
   nl->ReadFromString(newbusstopTypeInfo,xType);

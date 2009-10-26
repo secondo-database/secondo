@@ -267,11 +267,7 @@ int OpBusNodeValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
   BusNetwork* busnet = (BusNetwork*)args[0].addr;
-#ifdef graph_model
   Relation* busnode = busnet->GetRelBus_Node();
-#else
-  Relation* busnode = busnet->GetRelBus_NodeNew();
-#endif
   result = SetWord(busnode->Clone());
   Relation* resultSt = (Relation*)qp->ResultStorage(s).addr;
   resultSt->Close();
@@ -524,24 +520,14 @@ ListExpr OpBusNodeTypeMap(ListExpr in_xArgs)
 {
   if(nl->ListLength(in_xArgs) != 1)
     return (nl->SymbolAtom("typeerror"));
-#ifdef graph_model
-  ListExpr arg = nl->First(in_xArgs);
-  if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
-     nl->SymbolValue(arg) == "busnetwork"){
-      ListExpr xType;
-      nl->ReadFromString(BusNetwork::btreebusstopTypeInfo,xType);
-      return xType;
-  }
-#else
-  ListExpr arg = nl->First(in_xArgs);
-  if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
-     nl->SymbolValue(arg) == "busnetwork"){
-      ListExpr xType;
-      nl->ReadFromString(BusNetwork::newbusstopTypeInfo,xType);
-      return xType;
-  }
 
-#endif
+  ListExpr arg = nl->First(in_xArgs);
+  if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
+     nl->SymbolValue(arg) == "busnetwork"){
+      ListExpr xType;
+      nl->ReadFromString(BusNetwork::busstopTypeInfo,xType);
+      return xType;
+  }
     return nl->SymbolAtom("typeerror");
 }
 
