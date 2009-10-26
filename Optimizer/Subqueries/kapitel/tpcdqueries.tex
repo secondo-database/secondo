@@ -4,7 +4,7 @@
 %
 %
 
-\chapter{TPC-D Abfragen}
+\chapter{Geschachtelte TPC-D Abfragen}
 
 \section*{Q2}
 \label{sec:Q2}
@@ -46,7 +46,7 @@ orderby[sacctbal desc,
 first 100
 \end{lstlisting}
 
-\newpage
+\clearpage
 
 \section*{Q4}
 \label{sec:Q4}
@@ -73,7 +73,7 @@ groupby [oorderpriority]
 orderby	[oorderpriority]
 \end{lstlisting}
 
-\newpage
+\clearpage
 
 \section*{Q7}
 \label{sec:Q7}
@@ -111,7 +111,7 @@ groupby	[supp_nation, cust_nation, lyear]
 orderby	[supp_nation, cust_nation, lyear]
 \end{lstlisting}
 
-\newpage
+\clearpage
 
 \section*{Q8}
 \label{sec:Q8}
@@ -149,7 +149,7 @@ groupby	[oyear]
 orderby	[oyear]
 \end{lstlisting}
 
-\newpage
+\clearpage
 
 \section*{Q9}
 \label{sec:Q9}
@@ -183,7 +183,7 @@ orderby
 	[nation, oyear desc]
 \end{lstlisting}
 
-\newpage
+\clearpage
 
 \section*{Q11}
 \label{sec:Q11}
@@ -212,7 +212,7 @@ having
 orderby [value desc]
 \end{lstlisting}
 
-\newpage
+\clearpage
 
 \section*{Q13}
 \label{sec:Q13}
@@ -236,7 +236,7 @@ groupby	[ccount]
 orderby	[custdist desc,	ccount desc]
 \end{lstlisting}
 
-\newpage
+\clearpage
 
 \section*{Q15}
 \label{sec:Q15}
@@ -254,7 +254,7 @@ where
 orderby [ssuppkey]
 \end{lstlisting}
 
-\newpage
+\clearpage
 
 \section*{Q16}
 \label{sec:Q16}
@@ -283,7 +283,7 @@ orderby
 	[suppliercnt desc, pbrand, ptype, psize]
 \end{lstlisting}
 
-\newpage
+\clearpage
 
 \section*{Q17}
 \label{sec:Q17}
@@ -308,7 +308,35 @@ where
 groupby	[]
 \end{lstlisting}
 
-\newpage
+\clearpage
+
+\section*{Q18}
+\label{sec:Q18}
+
+\begin{lstlisting}
+select
+	[cname, ccustkey,
+	oorderkey, oorderdate,
+	ototalprice, sum(lquantity) as quant]
+from
+	[customer, orders, lineitem]
+where
+	[oorderkey in (
+		select lorderkey
+	  from lineitem
+    groupby [lorderkey] 
+    having [sum(lquantity) > 300] 
+	),
+	ccustkey = ocustkey,
+  oorderkey = lorderkey]
+groupby
+  [cname, ccustkey,
+  oorderkey, oorderdate,
+  ototalprice]
+orderby [ototalprice desc, oorderdate]
+\end{lstlisting}
+
+\clearpage
 
 \section*{Q20}
 \label{sec:Q20}
@@ -351,7 +379,7 @@ where
 orderby	[sname]
 \end{lstlisting}
 
-\newpage
+\clearpage
 
 \section*{Q21}
 \label{sec:Q21}
@@ -389,7 +417,7 @@ orderby	[numwait desc, sname]
 first 100
 \end{lstlisting}
 
-\newpage
+\clearpage
 
 \section*{Q22}
 \label{sec:Q22}

@@ -4,6 +4,7 @@
 %
 
 \chapter{Leistungsbewertung}\label{chp:Leistungsbewertung}
+%\definecolor{ListingBackground}{rgb}{0.92,0.92,0.92}
 Die geschachtelten Abfragen des TPC-D Benchmarks, die mit den in dieser Arbeit implementierten Algorithmen übersetzt werden können, dienen in diesem Kapitel als Beispiel, um die einzelnen Transformationsschritte bei der Entschachtelung darzustellen. Die Abfragen Q8, Q11, Q13 und Q18 lassen sich mit der vom Optimierer momentan erkannten Syntax nicht übersetzen. Sie verwenden in der \sql{select}-Klausel Ausdrücke über Aggregationsergebnissen (Q8), die \sql{having}-Klausel (Q11, Q18) oder benötigen einen Left-Outer-Join-Operator. Eine Erweiterung des Optimierers um diese Funktionalität war nicht Teil dieser Arbeit. 
 
 Die Abfragen sind über folgenden Relationen definiert:
@@ -21,13 +22,13 @@ Die Abfragen sind über folgenden Relationen definiert:
 
 Eine genaue Aufstellung der Schemata der Tabellen findet sich in \cite{TPC-D}.
 
-Am Vergleich der Laufzeiten der einzelnen Phasen des Optimierers lässt sich erkennen, in welchen Fällen eine entschachtelte Ausführung der iterativ geschachtelten über- bzw. unterlegen ist. Die Abfragen werden auf einer Datenbank ausgeführt, die über ein Generierungsskript erzeugt werden kann. Um die Größe der Datenbank zu beeinflussen existiert ein Skalierungsfaktor, der bei der Erzeugung der Datenbank angegeben werden muss. Jede Abfrage wurde auf Datenbanken mit verschiedenen Skalierungsfaktoren durchgeführt. Bei kleineren Skalierungsfaktoren kann es zu Fehlverhalten des Optimierers kommen, da die temporären Relationen unter Umständen leer sind. Die Berechnung der Selektivität von Join-Prädikaten, die auf leere Relationen verweisen, ist momentan fehlerhaft implementiert. 
+Am Vergleich der Laufzeiten der einzelnen Phasen des Optimierers lässt sich erkennen, in welchen Fällen eine entschachtelte Ausführung der iterativ geschachtelten über- bzw. unterlegen ist. Die Abfragen werden auf einer Datenbank ausgeführt, die über ein Generierungsskript erzeugt werden kann. Um die Größe der Datenbank zu beeinflussen, existiert ein Skalierungsfaktor, der bei der Erzeugung der Datenbank angegeben werden muss. Jede Abfrage wurde auf Datenbanken mit verschiedenen Skalierungsfaktoren durchgeführt. Bei kleineren Skalierungsfaktoren kann es zu Fehlverhalten des Optimierers kommen, da die temporären Relationen unter Umständen leer sind. Die Berechnung der Selektivität von Join-Prädikaten, die auf leere Relationen verweisen, ist momentan fehlerhaft implementiert. 
 
-Vor der Ausführung der Abfragen wurden alle vorhandenen Metainformationen zu Prädikaten und Relationen gelöscht. Die Laufzeit für die Ermittlung der Selektivitäten fließt also in die hier dargestellten Laufzeiten mit ein. Da die Optimierer über einen Query-Cache verfügt, in dem die entschachtelte Variante einer Abfrage abgespeichert wird, ist jede weitere Ausführung der gleichen Abfrage deutlich schneller. Der Query-Cache wird bei der ersten Ausführung als \enquote{kalt}, bei den darauf folgenden Ausführungen als \enquote{warm} bezeichnet. Ausführungszeiten, die bei der Entschachtelung ohne bzw. mit Ausnutzung des Query-Cache, d.h. \enquote{kalt} bzw. \enquote{warm} erzielt wurden, werden in den dargestellten Grafiken kurz mit \enquote{entschachtelt, kalt} bzw. \enquote{entschachtelt, warm} bezeichnet.
+Vor der Ausführung der Abfragen wurden alle vorhandenen Metainformationen zu Prädikaten und Relationen gelöscht. Die Laufzeit für die Ermittlung der Selektivitäten fließt also in die hier dargestellten Laufzeiten mit ein. Da der Optimierer über einen Query-Cache verfügt, in dem die entschachtelte Variante einer Abfrage abgespeichert wird, ist jede weitere Ausführung der gleichen Abfrage deutlich schneller. Der Query-Cache wird bei der ersten Ausführung als \enquote{kalt}, bei den darauf folgenden Ausführungen als \enquote{warm} bezeichnet. Ausführungszeiten, die bei der Entschachtelung ohne bzw. mit Ausnutzung des Query-Cache, d.h. \enquote{kalt} bzw. \enquote{warm} erzielt wurden, werden in den dargestellten Grafiken kurz mit \enquote{entschachtelt, kalt} bzw. \enquote{entschachtelt, warm} bezeichnet.
 
 \section{Laufzeit- und Strukturvergleich}\label{sct:Laufzeit- und Strukturvergleich}
 \subsection{TPC-D Q2}
-Diese Abfrage dient der Ermittlung des günstigsten Lieferanten für ein gegebenes Bauteil in einer Region. Für ein Bauteil einer bestimmten Art und Größe wird der Lieferant ermittelt, der dieses zu den günstigsten Konditionen anbietet. Gibt es mehrere Lieferanten in der gewählten Region, die das gewünschte Teil zu den günstigsten Konditionen anbieten, so werden die 100 Lieferanten mit dem höchsten Kontostand angezeigt. Von jedem Lieferanten werden der Kontostand, der Name und das Land, die Teilenummer und der Hersteller, die Lieferantenadresse, Telefonnummer und eine Bemerkung angezeigt. Als Werte der Parameter SIZE, TYPE und REGION wurden die Werte aus der Abfrageüberprüfung des Benchmarks gewählt. D.h. SIZE = \enquote{15}, TYPE = \enquote{BRASS} und REGION = \enquote{EUROPE}.
+Diese Abfrage dient der Ermittlung des günstigsten Lieferanten für ein gegebenes Bauteil in einer Region. Für ein Bauteil einer bestimmten Art und Größe wird der Lieferant ermittelt, der dieses zu den günstigsten Konditionen anbietet. Gibt es mehrere Lieferanten in der gewählten Region, die das gewünschte Teil zu den günstigsten Konditionen anbieten, so werden die 100 Lieferanten mit dem höchsten Kontostand angezeigt. Von jedem Lieferanten werden der Kontostand, der Name und das Land, die Teilenummer und der Hersteller, die Lieferantenadresse, Telefonnummer und eine Bemerkung angezeigt. Als Werte der Parameter SIZE, TYPE und REGION wurden die Werte aus der Abfrageüberprüfung des Benchmarks gewählt, d.h. SIZE = \enquote{15}, TYPE = \enquote{BRASS} und REGION = \enquote{EUROPE}.
 
 \begin{lstlisting}[caption=Abfrage Q2,label=Q2:nested]
 select
@@ -75,7 +76,7 @@ select distinct [ppartkey, pspartkey]
 from [part, partsupp]
 \end{lstlisting}
 
-Die zweite temporäre Relation ist die Einschränkung der inneren Relation durch alle \emph{einfachen} Prädikaten.
+Die zweite temporäre Relation ist die Einschränkung der inneren Relation durch alle \emph{einfachen} Prädikate.
 
 \begin{lstlisting}[caption=Abfrage Q2{,} Definition trelxx2,label=Q2:trelxx2]
 trelxx2 =
@@ -90,7 +91,7 @@ where
 	r:rname = "EUROPE"]
 \end{lstlisting}
 
-Die dritte temporäre Relation wird aus dem Equi-Join der ersten und zweiten temporären Relationen unter Berechnung der Aggregation gebildet. Man beachte die Attributnamen mit \enquote{\_ps}. Diese sind notwendig, da sich Optimierer und \textsc{Secondo} in der Syntax für umbenannte Tupel unterscheiden. Es muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden. 
+Die dritte temporäre Relation wird aus dem Equi-Join der ersten und zweiten temporären Relation unter Berechnung der Aggregation gebildet. Man beachte die Attributnamen mit \enquote{\_ps}. Diese sind notwendig, da sich Optimierer und \textsc{Secondo} in der Syntax für umbenannte Tupel unterscheiden. Es muss hier auf die ausführbare Syntax der Spalten zurück gegriffen werden. 
 
 \begin{lstlisting}[caption=Abfrage Q2{,} Definition trelxx3,label=Q2:trelxx3]
 trelxx3 = 
@@ -126,7 +127,7 @@ orderby
 first 100
 \end{lstlisting}
 
-als inhaltlich äquivalente Abfrage. Das geschachtelte Prädikat 
+als inhaltlich äquivalente Abfrage. Die beiden Prädikate \sql{pssupplycost = alias1:var1} und \sql{ppartkey = alias1:pspartkey\_ps} ersetzen das geschachtelte Prädikat 
 
 \begin{lstlisting}[caption=Abfrage Q2{,} geschachteltes Prädikat,label=Q2:nested_predicate]
 pssupplycost = (
@@ -142,8 +143,9 @@ pssupplycost = (
 		 	r:rname = "EUROPE"]
 	 )
 \end{lstlisting}
+.
 
-wurde durch die zwei Prädikate \sql{pssupplycost = alias1:var1} und \sql{ppartkey = alias1:pspartkey\_ps} ersetzt. Das erste der beiden Prädikate ergibt sich direkt aus dem geschachtelten Prädikat, während das zweite Prädikat die Übernahme des korrelierten Prädikats in die endgültige Abfrage darstellt. Zusätzlich wurde die neue Relation trelxx3 in die FROM-Klausel aufgenommen. Alle nicht korrelierten Prädikate der Unterabfrage wurden bereits bei der Erstellung der Relation trelxx3 berücksichtigt. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate. 
+Das erste der beiden Prädikate ergibt sich direkt aus dem geschachtelten Prädikat, während das zweite Prädikat die Übernahme des korrelierten Prädikats in die endgültige Abfrage darstellt. Zusätzlich wurde die neue Relation trelxx3 in die FROM-Klausel aufgenommen. Alle nicht korrelierten Prädikate der Unterabfrage wurden bereits bei der Erstellung der Relation trelxx3 berücksichtigt. Die Prädikate der entschachtelten Variante sind nur noch einfache und Join-Prädikate. 
 
 Wird die Abfrage ohne die Anwendung von Entschachtelungsalgorithmen übersetzt, so ergibt sich in ausführbarer Syntax folgender Ausdruck:
 
@@ -286,12 +288,12 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q2 für die beiden Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q2 für die beiden Ausführungsstrategien nach Skalierungsfaktor}
 \label{plot:Q2 line}
 \end{figure}
 
 \subsection{TPC-D Q4}
-Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. Es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf. 
+Diese Abfrage ermittelt, wie gut das Bestell-Prioritätssystem funktioniert. D.h. es wird die Anzahl der Bestellungen ermittelt, bei welchen mindestens ein Teil nach dem versprochenen Lieferdatum beim Kunden einging. Die Abfrage führt die Anzahl solcher Bestellungen in der Reihenfolge der Bestellprioritäten auf. 
 Als Parameter DATE wurde der Wert \enquote{1993-07-01} aus der Abfrage-Überprüfung gewählt
 
 \begin{lstlisting}[caption=Abfrage Q4]
@@ -323,7 +325,7 @@ Die Projektion der äußeren Relation auf die Join-Spalte ergibt
 trelxx1 = select distinct[oorderkey] from orders
 \end{lstlisting}
 
-Einschränkung der inneren Relation mit allen \emph{einfachen} Prädikate.
+Einschränkung der inneren Relation mit allen \emph{einfachen} Prädikaten.
 \begin{lstlisting}[caption=Abfrage Q4{,} Definition trelxx2]
 trelxx2 = select [lorderkey] from [lineitem] where [lcommitdate < lreceiptdate]
 \end{lstlisting}
@@ -378,7 +380,7 @@ sortby[oORDERPRIORITY asc]
 consume
 \end{lstlisting}.
 
-Dieser unterscheidet sich von der Übersetzung der Abfrage ohne Entschachtelung lediglich in der Übersetzung des geschachtelten Prädikats. In der entschahtelten Abfrage wird dieses durch einen Join mit Relation \secondo{trelxx3} über die Attribute \secondo{oORDERKEY} und \secondo{lORDERKEY} sowie das Selektions-Prädikat \secondo{filter[(0 < .Var1\_alias1)]} übersetzt. Die iterative Variante enthält dagegen die triviale Übersetzung mit einem \secondo{filter}-Ausdruck.
+Dieser unterscheidet sich von der Übersetzung der Abfrage ohne Entschachtelung lediglich in der Übersetzung des geschachtelten Prädikats. In der entschachtelten Abfrage wird dieses durch einen Join mit Relation \secondo{trelxx3} über die Attribute \secondo{oORDERKEY} und \secondo{lORDERKEY} sowie das Selektions-Prädikat \secondo{filter[(0 < .Var1\_alias1)]} übersetzt. Die iterative Variante enthält dagegen die triviale Übersetzung mit einem \secondo{filter}-Ausdruck.
 
 \begin{lstlisting}[caption=Abfrage Q4 in ausführbarer Syntax{,} geschachtelt]
 ORDERS feedproject[oORDERDATE, oORDERKEY, oORDERPRIORITY] 
@@ -459,12 +461,12 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q4 für die beiden Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q4 für die beiden Ausführungsstrategien nach Skalierungsfaktor}
 \label{plot:Q4 line}
 \end{figure}
 
 \subsection{TPC-D Q7}
-Diese Abfrage listet für zwei gewählte Länder den Wert der versandten Waren. Es wird Wert der Waren, die zwischen Lieferanten und Kunden länderübergreifend versandt wurden, ausgegeben, gruppiert nach Land des Lieferanten, Land des Kunden und Jahr. Als Werte für die Parameter NATION1 und NATION2 wurden die Werte aus der Abfrageüberprüfung, NATION1 = \enquote{FRANCE} und NATION2 = \enquote{GERMANY} ausgewählt.
+Diese Abfrage listet für zwei gewählte Länder den Wert der versandten Waren. Es wird der Wert der Waren, die zwischen Lieferanten und Kunden länderübergreifend versandt wurden, ausgegeben und nach Land des Lieferanten, Land des Kunden und Jahr gruppiert. Als Werte für die Parameter NATION1 und NATION2 wurden die Werte aus der Abfrageüberprüfung, NATION1 = \enquote{FRANCE} und NATION2 = \enquote{GERMANY} ausgewählt.
 
 \begin{lstlisting}[caption=Abfrage Q7]
 select [supp_nation, cust_nation, lyear, sum(volume) as revenue]
@@ -495,7 +497,7 @@ groupby	[supp_nation, cust_nation, lyear]
 orderby	[supp_nation, cust_nation, lyear]
 \end{lstlisting}
 
-Da es sich um eine Abfrage mit einer geschachtelten \sql{from}-Klausel handelt, muss diese im ersten Schritt durch ihre Auswertung in Form einer temporären Relation ersetzt werden. Die definierende Abfrage der \sql{from}-Klausel ist eine flache Abfrage, daher müssen keine weiteren Entschachtelungsalgorithmen angewandt werden.
+Da es sich um eine Abfrage mit einer geschachtelten \sql{from}-Klausel handelt, muss diese im ersten Schritt durch ihre Auswertung in Form einer temporären Relation ersetzt werden. Die definierende Abfrage der \sql{from}-Klausel ist eine flache Abfrage. Daher müssen keine weiteren Entschachtelungsalgorithmen angewandt werden.
 
 \begin{lstlisting}[caption=Abfrage Q7{,} Definition trelxx1]
 trelxx1 = select 
@@ -542,7 +544,7 @@ sortby[Supp_nation asc, Cust_nation asc, Lyear asc]
 consume
 \end{lstlisting}
 
-Die Übersetzung der Abfrage erfolgt, wie in Abschnitt \ref{ssct:from-Klausel} beschrieben. Die innere Abfrage wird in einen Strom übersetzt, auf den dann Selektion und Projektion der äußeren Abfrage angewandt werden. Wie man sehen kann, stimmen die entschachtelte Variante und die iterative Übersetzung ab dem Ausdruck \secondo{sortby[Supp\_nation asc, Cust\_nation asc, Lyear asc]} vollkommen überein.
+Die Übersetzung der Abfrage erfolgt wie in Abschnitt \ref{ssct:from-Klausel} beschrieben. Die innere Abfrage wird in einen Strom übersetzt, auf welchen dann Selektion und Projektion der äußeren Abfrage angewandt werden. Wie man sehen kann, stimmen die entschachtelte Variante und die iterative Übersetzung ab dem Ausdruck \secondo{sortby[Supp\_nation asc, Cust\_nation asc, Lyear asc]} vollkommen überein.
 
 \begin{lstlisting}[caption=Abfrage Q7 in ausführbarer Syntax{,} geschachtelt]
 CUSTOMER feedproject[cCUSTKEY, cNATIONKEY] 
@@ -631,11 +633,11 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q7 für die beiden Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q7 für die beiden Ausführungsstrategien nach Skalierungsfaktor}
 \label{plot:Q7 line}
 \end{figure}
 
-Wie man an der Entwicklung der Laufzeiten in Abbildung \ref{plot:Q7 line} sehen kann, ergeben sich durch die Entschachtelung bei einmaliger Ausführung weder vor noch Nachteile. Dies ist auch nicht anders zu erwarten, da sich die beiden Ausführungsstrategien nur hinsichtlich der Persistenz des Stroms der inneren Abfrage unterscheiden. Bei mehrfacher Ausführung ist die entschachtelte Ausführung klar überlegen, da hierbei die Auswertung der inneren Abfrage komplett entfallen kann.
+Wie man an der Entwicklung der Laufzeiten in Abbildung \ref{plot:Q7 line} sehen kann, ergeben sich durch die Entschachtelung bei einmaliger Ausführung weder Vor- noch Nachteile. Dies ist auch nicht anders zu erwarten, da sich die beiden Ausführungsstrategien nur hinsichtlich der Persistenz des Stroms der inneren Abfrage unterscheiden. Bei mehrfacher Ausführung ist die entschachtelte Ausführung klar überlegen, da hierbei die Auswertung der inneren Abfrage komplett entfallen kann.
 
 
 \subsection{TPC-D Q9}
@@ -790,7 +792,7 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q9 für die beiden Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q9 für die beiden Ausführungsstrategien nach Skalierungsfaktor}
 \label{plot:Q9 line}
 \end{figure}
 
@@ -931,14 +933,14 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q15 für die beiden Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q15 für die beiden Ausführungsstrategien nach Skalierungsfaktor}
 \label{plot:Q15 line}
 \end{figure}
 
 Die Laufzeiten der Ausführungsstrategien unterscheiden sich auch bei steigendem Skalierungsfaktor nur gering. Den größten Teil der Laufzeit nimmt die Erzeugung des Views ein. Da diese Laufzeitkosten bei beiden Ausführungsstrategien zu Buche schlagen, wurden sie hier nicht gesondert gemessen. Auch bei einer Steigerung des Skalierungsfaktors um mehrere Größenordnungen bewegen sich die Laufzeiten immer noch im zweistelligen Sekundenbereich. Die Beschränkung des Skalierungsfaktors war bei dieser Abfrage durch die Laufzeit der View-Erzeugung gegeben.
 
 \subsection{TPC-D Q16}
-Mit dieser Abfrage wird die Anzahl der Lieferanten für bestimmte Teile ermittelt. Die Teile dürfen nicht von einem bestimmten Typ sein, nicht von einer bestimmten Marke und es darf keine Kundenbeschwerden über den Lieferanten geben. Als Werte für die Parameter BRAND, TYPE, SIZE{1-8} wurden die Werte der Abfrageüberprüfung ausgwählt. (BRAND = \enquote{Brand\#45}, TYPE = \enquote{MEDIUM POLISHED}, SIZE1 = \enquote{49}, SIZE2 = \enquote{14}, SIZE3 = \enquote{23}, SIZE4 = \enquote{45}, SIZE5 = \enquote{19}, SIZE6 = \enquote{3}, SIZE7 = \enquote{36} und SIZE8 = \enquote{9})
+Mit dieser Abfrage wird die Anzahl der Lieferanten für bestimmte Teile ermittelt. Die Teile dürfen nicht von einem bestimmten Typ sein, nicht von einer bestimmten Marke und es darf keine Kundenbeschwerden über den Lieferanten geben. Als Werte für die Parameter BRAND, TYPE, SIZE{1-8} wurden die Werte der Abfrageüberprüfung ausgewählt. (BRAND = \enquote{Brand\#45}, TYPE = \enquote{MEDIUM POLISHED}, SIZE1 = \enquote{49}, SIZE2 = \enquote{14}, SIZE3 = \enquote{23}, SIZE4 = \enquote{45}, SIZE5 = \enquote{19}, SIZE6 = \enquote{3}, SIZE7 = \enquote{36} und SIZE8 = \enquote{9})
 
 \begin{lstlisting}[caption=Abfrage Q16]
 select
@@ -1174,12 +1176,12 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q17 für die beiden Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q17 für die beiden Ausführungsstrategien nach Skalierungsfaktor}
 \label{plot:Q17 line}
 \end{figure}
 
 \subsection{TPC-D Q20}
-Identifiziert Lieferanten, die einen Überschuss an bestimmten Teilen haben. Überschuss ist hier definiert als mehr als 50\% der von einem Lieferanten versandten Teile über ein Jahr. Nur Teile mit einem vorgegebenen Namensbestandteil werden betrachtet. Als Werte für die Parameter COLOR, DATE und NATION wurden die Werte COLOR = \enquote{forest}, DATE = 01.01.1994 und NATION = \enquote{CANADA} der Abfrageüberprüfung ausgewählt.
+Dies Abfrage identifiziert Lieferanten, die einen Überschuss an bestimmten Teilen haben. Als Überschuss gilt ein Anteil von mehr als 50\% der von einem Lieferanten versandten Teile über ein Jahr. Nur Teile mit einem vorgegebenen Namensbestandteil werden betrachtet. Als Werte für die Parameter COLOR, DATE und NATION wurden die Werte COLOR = \enquote{forest}, DATE = 01.01.1994 und NATION = \enquote{CANADA} der Abfrageüberprüfung ausgewählt.
 \begin{lstlisting}[caption=Abfrage Q20]
 select [sname, saddress]
 from [supplier, nation]
@@ -1456,14 +1458,14 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q20 für die beiden Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q20 für die beiden Ausführungsstrategien nach Skalierungsfaktor}
 \label{plot:Q20 line}
 \end{figure}
 
 Wie man Abbildung \ref{plot:Q20 line} entnehmen kann, ist die Entschachtelung über mehrere Ebenen jedoch so laufzeitaufwändig, dass die iterative Ausführungsstrategie bei allen verwendeten Skalierungsfaktoren der Datenbanken vorteilhafter ist. Lediglich die einfache Ausführung der entschachtelten Variante auf vorhandenen temporären Tabellen ist hier deutlich schneller.
 
 \subsection{TPC-D Q21}
-Diese Abfrage ermittelt Lieferanten die bei einer Mehr-Lieferanten Bestellung nicht pünktlich geliefert haben. Als Wert für den Parameter NATION wurde der Wert NATION = \enquote{SAUDI ARABIA} der Abfrageüberprüfung gewählt.
+Diese Abfrage ermittelt Lieferanten die bei einer Mehr-Lieferanten-Bestellung nicht pünktlich geliefert haben. Als Wert für den Parameter NATION wurde der Wert NATION = \enquote{SAUDI ARABIA} der Abfrageüberprüfung gewählt.
 \begin{lstlisting}[caption=Abfrage Q21]
 select [sname, count(*) as numwait]
 from 
@@ -1750,14 +1752,14 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q21 für die beiden Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q21 für die beiden Ausführungsstrategien nach Skalierungsfaktor}
 \label{plot:Q21 line}
 \end{figure}
 
 Die Ausführungszeiten lassen nur begrenzt Rückschlüsse auf die Vorteilhaftigkeit einer Ausführungstrategie zu. Zwar ist die entschachtelte Ausführung bei Skalierungsfaktor 0,0128 sowohl bei der ersten Ausführung als auch bei weiteren Ausführungen um eine Größenordnung schneller. Da sich die Ausführungszeiten bei kleineren Skalierungsfaktoren umgekehrt verhalten, lässt sich daraus noch keine Aussage über Vorteilhaftigkeit der entschachtelten Ausführung bei steigenden Skalierungsfaktoren ableiten.
 
 \subsection{TPC-D Q22}
-Diese Abfrage ermittelt, wieviele Kunden in den letzten 7 Jahren keine Bestellung getätigt haben, aber dennoch einen überdurchschnittlichen Umsatz auf ihrem Konto. Gruppiert nach \enquote{Länderschlüssel}, wobei Länderschlüssel als die ersten zwei Ziffern der Telefonnummer definiert ist. Als Werte für die Parameter I1, I2, I3, I4, I5, I6, I7 und I8 wurden wieder die Werte aus der Abfrageüberprüfung des Benchmark ausgewählt. (I1 = 13,
+Diese Abfrage ermittelt, wieviele Kunden in den letzten 7 Jahren keine Bestellung getätigt haben, aber dennoch einen überdurchschnittlichen Umsatz auf ihrem Konto haben. Gruppiert wird nach \enquote{Länderschlüssel}, wobei Länderschlüssel als die ersten zwei Ziffern der Telefonnummer definiert ist. Als Werte für die Parameter I1, I2, I3, I4, I5, I6, I7 und I8 wurden wieder die Werte aus der Abfrageüberprüfung des Benchmark ausgewählt. (I1 = 13,
 I2 = 35, I3 = 31, I4 = 23, I5 = 29, I6 = 30, I7 = 18, I8 = 17).
 \begin{lstlisting}[caption=Abfrage Q22]
 select
@@ -1819,7 +1821,7 @@ groupby	[cntrycode]
 orderby	[cntrycode]
 \end{lstlisting}
 
-Im nächsten Schritt wird das erste geschachtelte Prädikat, welches vom Typ A ist, aufgelöst. D.h. die Unterabfrage wird durch ihr Ergebnis ersetzt.
+Im nächsten Schritt wird das erste geschachtelte Prädikat, welches vom Typ A ist, aufgelöst, d.h. die Unterabfrage wird durch ihr Ergebnis ersetzt.
 
 \begin{lstlisting}[caption=Abfrage Q22{,} nach Auswertung der ersten Unterabfrage]
 select
@@ -2001,7 +2003,7 @@ sharp plot
 \legend{entschachtelt kalt, entschachtelt warm, iterativ}% kalt, iterativ warm}
 \end{axis}
 \end{tikzpicture}
-\caption{Laufzeit von Q22 für die beiden Ausführungstrategien nach Skalierungsfaktor}
+\caption{Laufzeit von Q22 für die beiden Ausführungsstrategien nach Skalierungsfaktor}
 \label{plot:Q22 line}
 \end{figure}
 
@@ -2098,7 +2100,7 @@ Q20	&	266,071	&	811,211	&	1,433	\\
 Q21	&	1,393	&	11,843	&	2,142	\\
 Q22	&	11,423	&	5,788	&	0,266	\\
 \bottomrule\end{tabular}
- \caption{Laufzeit bei Skalierungsfaktor 0,0064}
+ \caption{Laufzeiten bei Skalierungsfaktor 0,0064}
  \label{tab:Alle Laufzeit kalt}
 \end{table}
 
@@ -2128,17 +2130,16 @@ Q22	&	11,423	&	5,788	&	0,266	\\
 %Während die Laufzeit für die entschachtelte Ausführung nur langsam ansteigt, wächst die Laufzeit für die iterative Ausführung exponentiell. Schon bei einem Skalierungsfaktor von 0.0064 verringert sich die Laufzeit der Abfrage durch Entschachtelung um eine Größenordnung. Eine entschachtelte Ausfürhung ist bei Abfrage Q2 also vorteilhaft. 
 %
 %Die Laufzeiten der Abfragen ergeben ein uneinheitliches Bild. Die Abfragen Q2 und Q4 erfahren durch die Entschachtelung eine deutliche Beschleunigung der Laufzeit. Sogar dann, wenn die temporären Relationen neu erzeugt werden müssen. Die Laufzeit der entschachtelten Abfrage ist im zweiten Durchlauf bis auf Abfrage Q21 vergleichbar oder besser der Ausführung mit geschachtelter Iteration. Bei den Abfragen Q17, Q20, Q21 und Q22 ist der Aufwand für die Erzeugung der temporären Relationen ein vielfaches der Ausführungszeit der geschachtelten Ausführung. Durch die Implementierung der beschriebenen Erweiterungen ist der Optimierer in der Lage, die oben beschriebenen Abfragen ausführen zu können. Um den Benchmark vollständig ausführen zu können, muss der Optimierer noch um einige Konstrukte erweitert werden. Die Abfragen Q18 und Q11 des Benchmarks benötigen die Unterstützung der \sql{having}-Klausel. Diese entspricht einer Selektionsoperation auf dem Ergebnis einer Aggregation. Für die Abfragen Q8 und Q14 ist die Übersetzung von Ausdrücken über Aggregationsergebnissen erforderlich. 
+Der Optimierer ist jetzt in der Lage, geschachtelte Abfragen auszuführen. Für eine Teilmenge geschachtelter Abfragen wurden sogar zwei Ausführungsstrategien implementiert, zwischen welchen der Benutzer über Einstellungen im Optimierer wählen kann. Die iterativ-geschachtelte Ausführung ist für Unterabfragen in der \sql{where}-Klausel ohne weitere Einschränkungen verfügbar. Für die Entschachtelung von Unterabfragen gelten lediglich die in Kapitel \ref{chp:Entwurf} Einschränkungen für die Anwendung der Entschachtelungsalgorithmen. Die Übersetzung von Unterabfragen in der \sql{select}- und der \sql{from}-Klausel wurde für den einfachen Fall nicht-korrelierter Abfragen implementiert. 
 
-Bis auf die in Kapitel \ref{chp:Entwurf} beschriebenen Einschränkungen lassen sich geschachtelte Abfragen jetzt mit dem Optimierer übersetzen. Das Ziel, die Auswahl der Ausführungsstrategie dem Optimierer zu überlassen, musste jedoch schon während der Analyse des Problems fallengelassen werden. Die hierfür notwendige Infrastruktur zu erstellen und die notwendigen mathematischen Grundlagen zu erarbeiten hätten den Rahmen dieser Arbeit gesprengt. Aus den ausgeführten Laufzeitvergleichen kann man jedoch schließen, dass die grundsätzliche Auswahl der Entschachtelungsstrategie wohl nur in wenigen Fällen zu einer deutlichen Verschlechterung der Laufzeit gegenüber der iterativen Ausführung führen wird. 
+Aus den ausgeführten Laufzeitvergleichen kann man schließen, dass die grundsätzliche Auswahl der Entschachtelungsstrategie wohl nur in wenigen Fällen zu einer deutlichen Verschlechterung der Laufzeit gegenüber der iterativen Übersetzung führen wird. Die automatische Auswahl der Ausführungsstrategie durch den Optimierer konnte in dieser Arbeit aus Platz- und Zeitgründen (siehe Abschnitt \ref{sct:Überblick2}) nicht mit umgesetzt werden. Dies stellt aber aufgrund des beobachteten Laufzeitverhalten wohl keine große Einschränkung dar. 
 
 Zehn der 14 geschachtelten Abfragen aus dem TPC-D Benchmark lassen sich jetzt mit dem Optimierer ausführen. Um eine vollständige Ausführung des Benchmarks zu ermöglichen, muss \textsc{Secondo} nur noch um wenige Konstrukte erweitert werden. Hierzu gehören die \sql{having}-Klausel, die die Selektionsoperation auf Aggregationsergebnissen erlaubt, und ein Left-Outer-Join-Operator.
 
 \section{Ausblick}
-Der \textsc{Secondo}-Optimierer unterstützt bereits einen Großteil der im SQL-Standard definierten Syntax. Zu den wenigen fehlenden Elementen gehören die \sql{having}-Klausel und Left- sowie Right-Outer-Join-Operatoren. Eine Implementierung dieser Syntaxelemente wäre bedenkenswert, da diese Konstrukte in den meisten relationalen Datenbanksystemen verfügbar sind. 
+Der \textsc{Secondo}-Optimierer unterstützt bereits einen Großteil der im SQL-Standard definierten Syntax. Zu den wenigen fehlenden Elementen gehören die \sql{having}-Klausel und Left- sowie Right-Outer-Join-Operatoren. Eine Implementierung dieser Syntaxelemente wäre wünschenswert, da diese Konstrukte in den meisten relationalen Datenbanksystemen verfügbar sind und die Formulierung bestimmter Abfragen erleichtern.
 
 Um die Entschachtelung zu vervollständigen, sollte über die Implementierung eines Anti-Join-Operators nachgedacht werden, da dieser für die Entschachtelung von Ausdrücken mit dem \sql{not in}-Operator notwendig ist. Hierbei muss jedoch beachtet werden, dass mit der Einführung von Anti-Join in die Optimierung beim Aufbau des Predicate-Order-Graphen nicht mehr alle Vertauschungen zulässig sind. Da auch bei den Outer-Join-Operatoren Bedingungen bezüglich der Vertauschung zu prüfen sind, könnte die Umsetzung dieser Maßnahmen möglicherweise gemeinsam erfolgen.
-
-Die Erweiterung der Optimierung um den Kostenvergleich zwischen geschachtelter und entschachtelter Ausführung auf der Basis statistisch modellierter Daten stellt mit Sicherheit eine Herausforderung dar. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen. 
 
 Weitere Formen von geschachtelten Abfragen, die noch nicht optimiert werden können sind: 
 \begin{itemize}
@@ -2147,9 +2148,10 @@ Weitere Formen von geschachtelten Abfragen, die noch nicht optimiert werden könn
 \item geschachtelte Abfragen, die mehrere Schachtelungsebenen überspringen
 \item geschachtelte Abfragen in der \sql{having}-Klausel
 \end{itemize}.
-
+ 
 Eine Ergänzung des Optimierers, die diese Formen geschachtelter Abfragen einer Optimierung zugänglich macht, wäre zu überlegen.
 
+Die Erweiterung der Optimierung um den Kostenvergleich zwischen geschachtelter und entschachtelter Ausführung auf der Basis statistisch modellierter Daten stellt mit Sicherheit eine Herausforderung dar. Die Kosten- und Selektivitätsberechnung für geschachtelte Prädikate könnte in einer folgenden Arbeit erweitert werden, um bei der Optimierung geschachtelter Abfragen beide Ausführungsstrategien zu vergleichen. 
 
 
 %
