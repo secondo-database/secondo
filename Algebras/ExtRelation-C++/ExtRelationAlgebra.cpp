@@ -690,10 +690,17 @@ ListExpr ExtractTypeMap( ListExpr args )
   string attr = nl->SymbolValue(attrname); 
   ListExpr attrList = nl->Second(nl->Second(stream));
   ListExpr attrType;
-  int j = listutils::findAttribute(attrList, attr,attrType);
+  int j = listutils::findAttribute(attrList, attr, attrType);
   if (j) {
-    return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+    if (nl->ListLength(attrType) == 2 && nl->SymbolValue
+          (nl->First(attrType)) == "arel"){
+      ErrorReporter::ReportError("Standard extract is not defined for arel");
+      return nl->TypeError();
+    }    
+    else{
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
            nl->OneElemList(nl->IntAtom(j)), attrType);
+    }
   } else {
     return listutils::typeError("Attribute name " + attr + 
                                 " not known in the tuple");
@@ -3415,6 +3422,33 @@ Type mapping for ~hashjoin~ is
 
 
 */
+bool arelTypeEqual (NList& t1, NList& t2)
+{
+  NList firstA, firstB;
+  NList attrA = t1.second().second();
+  NList attrB = t2.second().second();
+  if (attrA.length() != attrB.length())
+    return false;
+  else
+  {
+    bool equal = true;
+    while (!attrA.isEmpty() && equal)
+    {
+      firstA = attrA.first().second();
+      firstB = attrB.first().second();
+       if (firstA.hasLength(2) && firstB.hasLength(2) && 
+           firstA.first().isSymbol() && firstB.first().isSymbol() &&
+           firstA.first().str() == "arel" && firstB.first().str() == "arel")
+        equal = arelTypeEqual(firstA, firstB);
+      else
+        equal = nl->Equal(firstA.listExpr(), firstB.listExpr());
+      attrA.rest();
+      attrB.rest();
+    }
+    return equal;
+  }
+}
+
 template<bool expectIntArgument, int dummy>
 ListExpr JoinTypeMap (ListExpr args)
 {
@@ -3475,11 +3509,22 @@ ListExpr JoinTypeMap (ListExpr args)
     return listutils::typeError("Attributename " + attrBName + 
                                 " not found in the second argument");
   }
-   
-  if(!nl->Equal(attrTypeA, attrTypeB)){
+  
+  NList attrA(attrTypeA);
+  NList attrB(attrTypeB);
+  if (attrA.hasLength(2) && attrB.hasLength(2) && 
+      attrA.first().isSymbol() && attrB.first().isSymbol() &&
+      attrA.first().str() == "arel" && attrB.first().str() == "arel")
+  {    
+   if (!arelTypeEqual(attrA, attrB)) 
     return listutils::typeError("different types selected for operation");
+  }
+  else
+  { 
+    if(!nl->Equal(attrTypeA, attrTypeB)){
+      return listutils::typeError("different types selected for operation");  
+    }
   } 
-
 
   ListExpr joinAttrDescription =
     nl->TwoElemList(nl->IntAtom(attrAIndex), nl->IntAtom(attrBIndex));
@@ -5887,13 +5932,15 @@ ListExpr GetAttrTypeList (ListExpr l)
   return olist;
 }
 
+
+
 ListExpr ConcatTypeMap( ListExpr args )
 {
   if(nl->ListLength(args)!=2){
     return listutils::typeError("two tuple streams expected");
   }
   if(!nl->Equal(nl->First(args),nl->Second(args))){
-    return listutils::typeError("both arguments must be of the same type");
+      return listutils::typeError("both arguments must be of the same type");
   }
   if(!listutils::isTupleStream(nl->First(args))){
     return listutils::typeError("arguments are not tuple streams");
