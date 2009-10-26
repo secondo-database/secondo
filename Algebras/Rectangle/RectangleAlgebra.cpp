@@ -722,33 +722,35 @@ ListExpr scalerectTypeMap(ListExpr args){
   }
   string a1 = nl->SymbolValue(arg1);
 
-  if((a1=="rect") && (dim !=2)){
-    ErrorReporter::ReportError(err);
-    return nl->TypeError();
-  }
-  if(a1=="rect3"){
+  if(a1=="rect"){
+    if(dim !=2){
+      ErrorReporter::ReportError("Expected 2 scale factors.");
+      return nl->TypeError();
+    }
+  } else if(a1=="rect3"){
     if(dim!=3){
-      ErrorReporter::ReportError(err);
+      ErrorReporter::ReportError("Expected 3 scale factors.");
       return nl->TypeError();
      }
   } else if(a1=="rect4"){
     if( dim!=4){
-      ErrorReporter::ReportError(err);
+      ErrorReporter::ReportError("Expected 4 scale factors.");
       return nl->TypeError();
     }
   } else if(a1=="rect8"){
     if( dim!=8){
-      ErrorReporter::ReportError(err);
+      ErrorReporter::ReportError("Expected 8 scale factors.");
       return nl->TypeError();
     }
   } else {
-    ErrorReporter::ReportError(err);
+    ErrorReporter::ReportError("The 1st argument must be of one of {rect,rect3,"
+                               "rect4,rect8}.");
     return nl->TypeError();
   }
   ListExpr rest = nl->Rest(args);
   while(!nl->IsEmpty(rest)){
      if(!nl->IsEqual(nl->First(rest),"real")){
-       ErrorReporter::ReportError(err);
+       ErrorReporter::ReportError("Only 'real' allowed as scale factors.");
        return nl->TypeError();
      }
      rest = nl->Rest(rest);
