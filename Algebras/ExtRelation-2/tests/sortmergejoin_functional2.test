@@ -74,26 +74,38 @@ query data1 feed {a} data1 feed {b} sortmergejoin2[Gebiet_a, Gebiet_b] consume;
 delete data1;
 
 #--------------------------------------------------  
-# sortmergejoin2 - comparison hashjoin (internal case)
+# sortmergejoin2 - comparison hashjoin (external case)
 
-# Results must be sorted afterwards because of the
-# different algorithms
+# relation Kreis has 439 tuples, each ~85 Bytes ExtSize => ~36 KByte total
 
-#testcase teststep_2_create_data
+#testcase teststep_2a_create_data
 #yields success
-let data2 = Kreis feed project[Gebiet] consume;
+let data2a = Kreis feed project[Gebiet] consume;
+
+#testcase teststep_2b_create_data
+#yields success
+let data2b = data2a feed head[1] {b} data2a feed {c} product remove[Gebiet_c] consume;
 
 #testcase teststep_2_create_result
 #yields success
-let result2 = data2 feed {a} data2 feed {b} hashjoin[Gebiet_a, Gebiet_b, 1000] sort consume;
+let result2 = data2a feed {a} data2b feed sortmergejoin[Gebiet_a, Gebiet_b] consume;
 
 #testcase teststep_2_compare_result
 #yields *result2
-query data2 feed {a} data2 feed {b} sortmergejoin2[Gebiet_a, Gebiet_b] sort consume;
+query data2a feed {a} data2b feed sortmergejoin2Param[Gebiet_a, Gebiet_b, 32*1024] consume;
 
-#testcase teststep_2_delete_data
+#testcase teststep_2a_delete_data
 #yields success
-delete data2;
+delete data2a;
+
+#testcase teststep_2b_delete_data
+#yields success
+delete data2b;
+
+#testcase teststep_2_delete_result
+#yields success
+delete result2;
+
 
 ##############################################################################
 # TearDown

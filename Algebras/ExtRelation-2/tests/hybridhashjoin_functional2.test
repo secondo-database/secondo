@@ -110,7 +110,7 @@ let data3 = Kreis feed project[Gebiet] consume;
 
 #testcase teststep_3_create_result
 #yields success
-let result3 = data3 feed {a} data3 feed {b} hashjoin[Gebiet_a, Gebiet_b, 1000] sort consume;
+let result3 = data3 feed {a} data3 feed {b} sortmergejoin[Gebiet_a, Gebiet_b] sort consume;
 
 #testcase teststep_3_compare_result
 #yields *result3
