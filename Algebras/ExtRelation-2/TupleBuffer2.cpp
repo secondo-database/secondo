@@ -195,7 +195,7 @@ void TupleBuffer2::AppendTuple(Tuple* t)
 
   if( inMemory )
   {
-    if( totalExtSize + t->GetExtSize() <= MAX_MEMORY_SIZE )
+    if( totalExtSize <= MAX_MEMORY_SIZE )
     {
       // insert new tuple at back of FIFO queue
       memoryBuffer.push(t);
