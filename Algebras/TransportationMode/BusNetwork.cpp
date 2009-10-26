@@ -40,10 +40,18 @@ queries moving objects with transportation modes.
 
 #include "BusNetwork.h"
 
+#ifdef graph_model
 string BusNetwork::busrouteTypeInfo =
                     "(rel(tuple((Id int)(LineNo int)(Trip mpoint))))";
 string BusNetwork::btreebusrouteTypeInfo =
                     "(btree(tuple((Id int)(LineNo int)(Trip mpoint))) int)";
+#else
+string BusNetwork::busrouteTypeInfo =
+                    "(rel(tuple((Id int)(LineNo int)(Up bool)(Trip mpoint))))";
+string BusNetwork::btreebusrouteTypeInfo =
+              "(btree(tuple((Id int)(LineNo int)(Up bool)(Trip mpoint))) int)";
+#endif
+
 string BusNetwork::busstopTypeInfo = "(rel(tuple((Id int)(BusStop point))))";
 string BusNetwork::btreebusstopTypeInfo =
                   "(btree(tuple((Id int)(BusStop point))) int)";
@@ -60,16 +68,16 @@ string bs3 = "(pid int)(p1 point)(p2 point))) int)";
 string BusNetwork::btreebusedgeTypeInfo = bs1+bs2+bs3;
 
 string nbsti1 = "(rel(tuple((Id int)(BusStop point)(path int)(pos int)";
-string nbsti2 = "(zval real)(atime real))))";
+string nbsti2 = "(zval real)(atime real)(Busline int))))";
 string BusNetwork::newbusstopTypeInfo = nbsti1 + nbsti2;
 
 
 string ss1 = "(btree(tuple((Id int)(BusStop point)(path int)(pos int)";
-string ss2 = "(zval real)(atime real))) int)";
+string ss2 = "(zval real)(atime real)(Busline int))) int)";
 string BusNetwork::newbtreebusstopTypeInfo1 = ss1 + ss2;
 
 string bst1 = "(btree(tuple((Id int)(BusStop point)(path int)(pos int)";
-string bst2 = "(zval real)(atime real))) real)";
+string bst2 = "(zval real)(atime real)(Busline int))) real)";
 string BusNetwork::newbtreebusstopTypeInfo2 = bst1 + bst2;
 
 string BusNetwork::busstoptreeTypeInfo =
@@ -366,6 +374,8 @@ BusNetwork:: ~BusNetwork()
     delete btree_bus_edge_path;
   //b-tree on edge path id new
 
+  adjacencylist_index.Clear();
+  adjacencylist.Clear();
 #else
   //new bus node
   if(bus_node_new != NULL)
@@ -388,6 +398,8 @@ BusNetwork:: ~BusNetwork()
   if(bus_node_tree != NULL)
     bus_node_tree->Close();
 
+  bus_tree.Clear();
+  ps_zval.Clear();
 #endif
 }
 
@@ -608,12 +620,13 @@ void BusNetwork::FillBusNode_New(const Relation* in_busRoute)
         tuple1->PutAttribute(POS,new CcInt(true,poscounter));
         tuple1->PutAttribute(ZVAL,new CcReal(true,ZValue(p0)));
         tuple1->PutAttribute(ATIME,new CcReal(true,atime));
+        tuple1->PutAttribute(BUSLINE,new CcInt(true,0));
         temp_bus_node->AppendTuple(tuple1);
 //        cout<<*tuple1<<endl;
         tuple1->DeleteIfAllowed();
         pointcounter++;
         poscounter++;
-
+        *ps += p0;
 ////////////////
         continue;
       }
@@ -626,11 +639,13 @@ void BusNetwork::FillBusNode_New(const Relation* in_busRoute)
         tuple2->PutAttribute(POS,new CcInt(true,poscounter));
         tuple2->PutAttribute(ZVAL,new CcReal(true,ZValue(p1)));
         tuple2->PutAttribute(ATIME,new CcReal(true,atime));
+        tuple2->PutAttribute(BUSLINE,new CcInt(true,0));
         temp_bus_node->AppendTuple(tuple2);
 //        cout<<*tuple2<<endl;
         tuple2->DeleteIfAllowed();
         pointcounter++;
         poscounter++;
+        *ps += p1;
 ////////////////
         continue;
       }
@@ -643,12 +658,13 @@ void BusNetwork::FillBusNode_New(const Relation* in_busRoute)
         tuple3->PutAttribute(POS,new CcInt(true,poscounter));
         tuple3->PutAttribute(ZVAL,new CcReal(true,ZValue(p0)));
         tuple3->PutAttribute(ATIME,new CcReal(true,atime));
-
+        tuple3->PutAttribute(BUSLINE,new CcInt(true,0));
         temp_bus_node->AppendTuple(tuple3);
 //        cout<<*tuple3<<endl;
         tuple3->DeleteIfAllowed();
         pointcounter++;
         poscounter++;
+        *ps += p0;
 ////////////////
       }
     }
@@ -693,7 +709,7 @@ void BusNetwork::FillBusNode_New(const Relation* in_busRoute)
 
   //first sort by z-order, then sort by arrive time in increasing order
   strQuery = "(consume(sortby(feed(" + newbusstopTypeInfo +
-         "(ptr " + xBusStopPtrStream.str() + ")))((zval asc))))";
+         "(ptr " + xBusStopPtrStream.str() + ")))((zval asc)(atime asc))))";
 
 //  string strQuery = "(consume(sortby(feed(" + busedgeTypeInfo +
 //         "(ptr " + xBusEdgePtrStream.str() + ")))((v1 asc))))";
@@ -751,6 +767,7 @@ void BusNetwork::ConstructBusNodeTree()
     Tuple* tuple = new Tuple(nl->Second(xNumType));
     tuple->PutAttribute(NODETID,new CcInt(true,t->GetTupleId()));
 
+//    cout<<i<<" "<<t->GetTupleId()<<endl;
     Point* buspos = (Point*)t->GetAttribute(NEWLOC);
     ///////   Construct Left Child    /////////////
     CcInt* pathid = (CcInt*)t->GetAttribute(BUSPATH);
@@ -804,7 +821,7 @@ void BusNetwork::ConstructBusNodeTree()
     //////////////  DBArray structure /////////////////////
     Node_Tree node(i,pathid->GetIntval(),pos->GetIntval(),
       atime->GetRealval(),*buspos,zval->GetRealval(),
-      left_child-1,right_child-1);
+      left_child,right_child);
     bus_tree.Append(node);
 
 
@@ -817,7 +834,7 @@ void BusNetwork::ConstructBusNodeTree()
   }
 
 //  cout<<temp_bus_node_tree->GetNoTuples()<<endl;
-  cout<<bus_tree.Size()<<endl;
+//  cout<<bus_tree.Size()<<endl;
 
 /***************** bus node tree **************************/
   ostringstream xBusNodePtrStream;
@@ -830,6 +847,19 @@ void BusNetwork::ConstructBusNodeTree()
   bus_node_tree = (Relation*)xResult.addr;
   temp_bus_node_tree->Delete();
 
+
+  bus_tree.TrimToSize();
+  ps_zval.TrimToSize();
+
+/*  for(int i = 1;i <= bus_node_new->GetNoTuples();i++){
+    Tuple* t = bus_node_new->GetTuple(i);
+    cout<<*t<<endl;
+    const Node_Tree* node;
+    bus_tree.Get(i-1,node);
+    (const_cast<Node_Tree*>(node))->Print();
+    cout<<endl;
+    t->DeleteIfAllowed();
+  }*/
 
 // for each root node (without incoming edges), start depth-traversal tree
 //  CreateNodeTreeIndex(node_mark);
@@ -1828,6 +1858,9 @@ void BusNetwork::FillAdjacency()
   }
   cout<<"adjacency list is created"<<endl;
 //  cout<<adjacencylist.Size()<<endl;
+
+  adjacencylist_index.TrimToSize();
+  adjacencylist.TrimToSize();
 }
 /*
 store the adjacency list, for each path, it records which path it can swith to
@@ -3531,7 +3564,7 @@ Instant& queryinstant,double& wait_time)
   while(q_list.empty() == false){
 
     Elem top = q_list.top();
-    printf("top delta_t %.14f\n",top.delta_t);
+//    printf("top delta_t %.14f\n",top.delta_t);
 
     CcInt* start_node = new CcInt(true,top.s_node_id);
     CcInt* end_node = new CcInt(true,top.e_node_id);
@@ -4315,10 +4348,150 @@ int attrpos1,int attrpos2,Instant& queryinstant)
   mp->EndBulkLoad();
 }
 ///////////////////////Bus Node Tree Representation /////////////////////////
+struct E_Node_Tree:public Node_Tree{
+
+  int parent;
+  double cost;
+  double e_cost;
+  E_Node_Tree(){}
+  E_Node_Tree(Node_Tree node):Node_Tree(node),parent(-1),
+      cost(0),e_cost(0){}
+  E_Node_Tree(const E_Node_Tree& enode):Node_Tree(enode),
+              parent(enode.parent),cost(enode.cost),e_cost(enode.e_cost){}
+  bool operator<(const E_Node_Tree& enode)const
+  {
+    if(cost < enode.cost)
+      return false;
+    return true;
+  }
+  E_Node_Tree& operator=(const E_Node_Tree& enode)
+  {
+    Node_Tree::operator=(enode);
+    parent = enode.parent;
+    cost = enode.cost;
+    e_cost = enode.e_cost;
+    return *this;
+  }
+  void E_Print()
+  {
+    Print();
+    cout<<"parent "<<parent<<" cost "<<cost<<endl;
+  }
+
+};
+
 bool BusNetwork::Bus_Tree1(int id1,int id2,vector<Elem>& path,
 Instant& queryinstant,double& wait_time)
 {
+  const double* pszvalue1;
+  const double* pszvalue2;
+  ps_zval.Get(id1-1,pszvalue1);
+  ps_zval.Get(id2-1,pszvalue2);
 
+//  cout<<*pszvalue1<<" "<<*pszvalue2<<endl;
+
+  CcReal* start_tid = new CcReal(true,*pszvalue1);
+  BTreeIterator* bt_iter_v = btree_bus_node_new2->ExactMatch(start_tid);
+  int start_node = -1;
+  while(bt_iter_v->Next()){
+    Tuple* node = bus_node_new->GetTuple(bt_iter_v->GetId());
+    CcReal* atime = (CcReal*)node->GetAttribute(ATIME);
+
+    if(queryinstant.ToDouble() < atime->GetRealval()){
+      start_node = node->GetTupleId();
+      node->DeleteIfAllowed();
+      break;
+    }
+    node->DeleteIfAllowed();
+  }
+  delete start_tid;
+  delete bt_iter_v;
+
+
+  if(start_node == -1){
+      cout<<"no valid start node"<<endl;
+      return false;
+  }
+
+//  Tuple* t = bus_node_new->GetTuple(start_node);
+//  cout<<*t<<endl;
+//  t->DeleteIfAllowed()  ;
+
+
+  CcReal* end_tid = new CcReal(true,*pszvalue2);
+  bt_iter_v = btree_bus_node_new2->ExactMatch(end_tid);
+  Point* endp = NULL;
+  while(bt_iter_v->Next()){
+    Tuple* node = bus_node_new->GetTuple(bt_iter_v->GetId());
+    CcReal* zval = (CcReal*)node->GetAttribute(ZVAL);
+
+    if(AlmostEqual(*pszvalue2,zval->GetRealval())){
+      endp = new Point(*((Point*)node->GetAttribute(NEWLOC)));
+      node->DeleteIfAllowed();
+      break;
+    }
+    node->DeleteIfAllowed();
+  }
+  delete end_tid;
+  delete bt_iter_v;
+  if(endp == NULL){
+    cout<<"end point is not valid"<<endl;
+    return false;
+  }
+
+
+  const Node_Tree* start;
+  bus_tree.Get(start_node-1,start);
+//  (const_cast<Node_Tree*>(start))->Print();
+
+
+  priority_queue<E_Node_Tree> q_list;
+  E_Node_Tree e_node(*(const_cast<Node_Tree*>(start)));
+  e_node.parent = -1;
+  e_node.cost = start->t - queryinstant.ToDouble()+
+                  start->p.Distance(*endp)/maxspeed;
+  e_node.e_cost = start->t - queryinstant.ToDouble();
+
+  q_list.push(e_node);
+  double end_point_zval = ZValue(*endp);
+  while(q_list.empty() == false){
+    E_Node_Tree top = q_list.top();
+    q_list.pop();
+    top.Print();
+    if(AlmostEqual(top.zorder,end_point_zval)){
+      cout<<"find"<<endl;
+      break;
+    }
+    /////////////    left   ///////////////////////////////
+    int left = top.left;
+    if(left != -1){
+      const Node_Tree* l_left_node;
+      bus_tree.Get(left-1,l_left_node);
+      Node_Tree* left_node = const_cast<Node_Tree*>(l_left_node);
+
+      E_Node_Tree l_e_node(*(const_cast<Node_Tree*>(left_node)));
+      l_e_node.parent = top.id;
+      l_e_node.cost = top.cost + (left_node->t - top.t) +
+                  left_node->p.Distance(*endp)/maxspeed;
+      l_e_node.e_cost = l_e_node.cost + (left_node->t - top.t);
+      q_list.push(l_e_node);
+    }
+    ///////////////   right   ////////////////////////////////
+    int right = top.right;
+    if(right != -1){
+      const Node_Tree* r_right_node;
+      bus_tree.Get(right-1,r_right_node);
+      Node_Tree* right_node = const_cast<Node_Tree*>(r_right_node);
+
+      E_Node_Tree r_e_node(*(const_cast<Node_Tree*>(right_node)));
+      r_e_node.parent = top.id;
+      r_e_node.cost = top.cost + (right_node->t - top.t) +
+                  right_node->p.Distance(*endp)/maxspeed;
+      r_e_node.e_cost = r_e_node.cost + (right_node->t - top.t);
+      q_list.push(r_e_node);
+    }
+  }
+  delete endp;
   return true;
 }
 
@@ -4345,9 +4518,10 @@ int attrpos1,int attrpos2,Instant& queryinstant)
     CcInt* id2 = (CcInt*)t2->GetAttribute(attrpos1);
 
     DateTime* timestay = (DateTime*)t1->GetAttribute(attrpos2);
-    cout<<id1->GetIntval()<<" "<<id2->GetIntval()<<endl;
-    cout<<*timestay<<endl;
+    cout<<"start "<<id1->GetIntval()<<" end "<<id2->GetIntval()<<endl;
+//    cout<<*timestay<<endl;
     double waittime = timestay->ToDouble();
+    cout<<"time delay "<<waittime<<endl;
 
     if(Bus_Tree1(id1->GetIntval(),id2->GetIntval(),path,
            queryinstant,waittime)==false){

@@ -73,9 +73,9 @@ const string OpTheBusNetworkSpec =
 const string OpBusNodeSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>busnetwork -> stream(tuple([nid:int,loc:point]))" "</text--->"
+  "(<text>busnetwork -> a relation</text--->"
   "<text>busnode(_)</text--->"
-  "<text>returns a stream of tuple where each corresponds to a bus stop."
+  "<text>returns the relation for nodes."
   "</text--->"
   "<text>query busnode(busroutes) count</text--->"
   "))";
@@ -266,81 +266,16 @@ Return all bus stops.
 int OpBusNodeValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
+  BusNetwork* busnet = (BusNetwork*)args[0].addr;
 #ifdef graph_model
-  DisplBusStop* localInfo;
-  switch(message){
-    case OPEN:{
-        localInfo = new DisplBusStop((BusNetwork*)args[0].addr);
-        localInfo->resulttype =
-              new TupleType(nl->Second(GetTupleResultType(s)));
-        local = SetWord(localInfo);
-        return 0;
-    }
-    case REQUEST:{
-        localInfo = (DisplBusStop*)local.addr;
-        if(localInfo->bus_stop_count > localInfo->no_stop)
-          return CANCEL;
-        Tuple* tuple = new Tuple(localInfo->resulttype);
-        Tuple* temp_tuple =
-                localInfo->busstop->GetTuple(localInfo->bus_stop_count);
-        CcInt* id = (CcInt*)temp_tuple->GetAttribute(BusNetwork::SID);
-        Point* location = (Point*)temp_tuple->GetAttribute(BusNetwork::LOC);
-        tuple->PutAttribute(BusNetwork::SID,new CcInt(*id));
-        tuple->PutAttribute(BusNetwork::LOC,new Point(*location));
-        result.setAddr(tuple);
-        temp_tuple->DeleteIfAllowed();
-        localInfo->bus_stop_count++;
-        return YIELD;
-    }
-    case CLOSE:{
-        localInfo = (DisplBusStop*)local.addr;
-        delete localInfo;
-        return 0;
-    }
-  }
+  Relation* busnode = busnet->GetRelBus_Node();
 #else
-  DisplBusStopNew* localInfo;
-  switch(message){
-    case OPEN:{
-        localInfo = new DisplBusStopNew((BusNetwork*)args[0].addr);
-        localInfo->resulttype =
-              new TupleType(nl->Second(GetTupleResultType(s)));
-        local = SetWord(localInfo);
-        return 0;
-    }
-    case REQUEST:{
-        localInfo = (DisplBusStopNew*)local.addr;
-        if(localInfo->bus_stop_count > localInfo->no_stop)
-          return CANCEL;
-        Tuple* tuple = new Tuple(localInfo->resulttype);
-        Tuple* temp_tuple =
-                localInfo->busstopnew->GetTuple(localInfo->bus_stop_count);
-        CcInt* id = (CcInt*)temp_tuple->GetAttribute(BusNetwork::NEWSID);
-        Point* location = (Point*)temp_tuple->GetAttribute(BusNetwork::NEWLOC);
-        CcInt* path = (CcInt*)temp_tuple->GetAttribute(BusNetwork::BUSPATH);
-        CcInt* pos = (CcInt*)temp_tuple->GetAttribute(BusNetwork::POS);
-        CcReal* zval = (CcReal*)temp_tuple->GetAttribute(BusNetwork::ZVAL);
-        CcReal* atime = (CcReal*)temp_tuple->GetAttribute(BusNetwork::ATIME);
-
-        tuple->PutAttribute(BusNetwork::NEWSID,new CcInt(*id));
-        tuple->PutAttribute(BusNetwork::NEWLOC,new Point(*location));
-        tuple->PutAttribute(BusNetwork::BUSPATH,new CcInt(*path));
-        tuple->PutAttribute(BusNetwork::POS,new CcInt(*pos));
-        tuple->PutAttribute(BusNetwork::ZVAL,new CcReal(*zval));
-        tuple->PutAttribute(BusNetwork::ATIME,new CcReal(*atime));
-
-        result.setAddr(tuple);
-        temp_tuple->DeleteIfAllowed();
-        localInfo->bus_stop_count++;
-        return YIELD;
-    }
-    case CLOSE:{
-        localInfo = (DisplBusStopNew*)local.addr;
-        delete localInfo;
-        return 0;
-    }
-  }
+  Relation* busnode = busnet->GetRelBus_NodeNew();
 #endif
+  result = SetWord(busnode->Clone());
+  Relation* resultSt = (Relation*)qp->ResultStorage(s).addr;
+  resultSt->Close();
+  qp->ChangeResultStorage(s,result);
   return 0;
 }
 /*
@@ -589,39 +524,23 @@ ListExpr OpBusNodeTypeMap(ListExpr in_xArgs)
 {
   if(nl->ListLength(in_xArgs) != 1)
     return (nl->SymbolAtom("typeerror"));
-
 #ifdef graph_model
   ListExpr arg = nl->First(in_xArgs);
   if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
      nl->SymbolValue(arg) == "busnetwork"){
-    return nl->TwoElemList(
-          nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),
-              nl->TwoElemList(
-                nl->TwoElemList(nl->SymbolAtom("id"),nl->SymbolAtom("int")),
-                nl->TwoElemList(nl->SymbolAtom("loc"),nl->SymbolAtom("point"))
-              )
-            )
-          );
+      ListExpr xType;
+      nl->ReadFromString(BusNetwork::btreebusstopTypeInfo,xType);
+      return xType;
   }
 #else
   ListExpr arg = nl->First(in_xArgs);
   if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
      nl->SymbolValue(arg) == "busnetwork"){
-    return nl->TwoElemList(
-          nl->SymbolAtom("stream"),
-            nl->TwoElemList(nl->SymbolAtom("tuple"),
-              nl->SixElemList(
-               nl->TwoElemList(nl->SymbolAtom("id"),nl->SymbolAtom("int")),
-               nl->TwoElemList(nl->SymbolAtom("loc"),nl->SymbolAtom("point")),
-               nl->TwoElemList(nl->SymbolAtom("buspath"),nl->SymbolAtom("int")),
-               nl->TwoElemList(nl->SymbolAtom("pos"),nl->SymbolAtom("int")),
-               nl->TwoElemList(nl->SymbolAtom("zval"),nl->SymbolAtom("real")),
-               nl->TwoElemList(nl->SymbolAtom("atime"),nl->SymbolAtom("real"))
-              )
-            )
-          );
+      ListExpr xType;
+      nl->ReadFromString(BusNetwork::newbusstopTypeInfo,xType);
+      return xType;
   }
+
 #endif
     return nl->SymbolAtom("typeerror");
 }

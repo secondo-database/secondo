@@ -93,14 +93,40 @@ struct Node_Tree{
   Node_Tree(const Node_Tree& node):id(node.id),pathid(node.pathid),
     pos(node.pos),t(node.t),p(node.p),zorder(node.zorder),
     left(node.left),right(node.right){}
+  void Print()
+  {
+    cout<<"id "<<id<<" pathid "<<pathid<<" pos "<<pos<<" zorder "<<zorder
+        <<"left "<<left<<" right "<<right<<endl;
+  }
+  Node_Tree& operator=(const Node_Tree& node)
+  {
+    id = node.id;
+    pathid = node.pathid;
+    pos = node.pos;
+    t = node.t;
+    p = node.p;
+    zorder = node.zorder;
+    left = node.left;
+    right = node.right;
+    return *this;
+  }
 };
+
+//#define graph_model //old representation
+
 
 class BusNetwork{
 public:
 /*data description*/
+
   static string busrouteTypeInfo;//relation description for pre-defined paths
-  enum BusRouteInfo{RID=0,LINENO,TRIP};
   static string btreebusrouteTypeInfo;//b-tree on pre-defined paths
+#ifdef graph_model
+  enum BusRouteInfo{RID=0,LINENO,TRIP};
+#else
+  enum BusRouteInfo{RID=0,LINENO,UP,TRIP};
+#endif
+
   static string busstopTypeInfo; //relation description for bus stop
   enum BusStopInfo{SID=0,LOC};
   static string btreebusstopTypeInfo; //b-tree on bus stop
@@ -112,7 +138,7 @@ public:
 
 /*new schema for bus stop*/
   static string newbusstopTypeInfo; //relation description for bus stop
-  enum newBusStopInfo{NEWSID=0,NEWLOC,BUSPATH,POS,ZVAL,ATIME};
+  enum newBusStopInfo{NEWSID=0,NEWLOC,BUSPATH,POS,ZVAL,ATIME,BUSLINE};
   static string newbtreebusstopTypeInfo1;
   static string newbtreebusstopTypeInfo2;
   static string busstoptreeTypeInfo;
@@ -229,7 +255,7 @@ private:
 
 };
 double difftimeb(struct timeb* t1,struct timeb* t2);
-//#define graph_model //old representation
+
 
 #endif
 
