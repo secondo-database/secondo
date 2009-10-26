@@ -86,17 +86,22 @@ struct Node_Tree{
   double zorder;
   int left;
   int right;
+  unsigned int diff_bus; //number of different bus routes
+  int busline; //bus route
   Node_Tree(){}
   Node_Tree(int n_id,int n_pathid,int n_pos,double n_t,Point n_p,
-            double n_zorder,int n_left,int n_right):id(n_id),pathid(n_pathid),
-      pos(n_pos),t(n_t),p(n_p),zorder(n_zorder),left(n_left),right(n_right){}
+            double n_zorder,int n_left,int n_right,int diff,int bus_line):
+          id(n_id),pathid(n_pathid),pos(n_pos),t(n_t),p(n_p),zorder(n_zorder),
+      left(n_left),right(n_right),diff_bus(diff),busline(bus_line){}
   Node_Tree(const Node_Tree& node):id(node.id),pathid(node.pathid),
     pos(node.pos),t(node.t),p(node.p),zorder(node.zorder),
-    left(node.left),right(node.right){}
+    left(node.left),right(node.right),
+    diff_bus(node.diff_bus),busline(node.busline){}
   void Print()
   {
     cout<<"id "<<id<<" pathid "<<pathid<<" pos "<<pos<<" zorder "<<zorder
-        <<"left "<<left<<" right "<<right<<endl;
+        <<"left "<<left<<" right "<<right<<" loc <"<<p.GetX()
+        <<" "<<p.GetY()<<">"<<endl;
   }
   Node_Tree& operator=(const Node_Tree& node)
   {
@@ -108,10 +113,12 @@ struct Node_Tree{
     zorder = node.zorder;
     left = node.left;
     right = node.right;
+    diff_bus = node.diff_bus;
+    busline = node.busline;
     return *this;
   }
 };
-
+struct E_Node_Tree;
 //#define graph_model //old representation
 
 
@@ -214,7 +221,7 @@ public:
   void FindPath_T_5(MPoint* result,Relation* query,
                     int,int,Instant&);
   ///////////////////// new representation for bus node /////////////////////
-  bool Bus_Tree1(int id1,int id2,vector<Elem>& path,Instant&,double&);
+  bool Bus_Tree1(int id1,int id2,vector<E_Node_Tree>& path,Instant&,double&);
   void FindPath_Bus_Tree1(MPoint* result,Relation* query,int,int,Instant&);
 private:
   int busnet_id;
