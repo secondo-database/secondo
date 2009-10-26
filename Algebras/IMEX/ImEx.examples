@@ -198,13 +198,13 @@ Operator : readFile
 Number   : 1
 Signature: string -> text
 Example  : query length(readFile("ten.csv"))
-Result   : (platform (linux (int 26)) (linux64 (int 26)) (win32 (int 37)))
+Result   : (platform (linux (int 26)) (linux64 (int 26)) (win32 (int 37))(mac_osx (int 26)))
 
 Operator : readFile
 Number   : 2
 Signature: text -> text
 Example  : query length(readFile('ten.csv'))
-Result   : (platform (linux (int 26)) (linux64 (int 26)) (win32 (int 37)))
+Result   : (platform (linux (int 26)) (linux64 (int 26)) (win32 (int 37))(mac_osx (int 26)))
 
 
 Operator : moveFile
