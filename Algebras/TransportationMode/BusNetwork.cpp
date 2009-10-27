@@ -4469,7 +4469,7 @@ Instant& queryinstant,double& wait_time)
   ps_zval.Get(id1-1,pszvalue1);
   ps_zval.Get(id2-1,pszvalue2);
 
-//  cout<<*pszvalue1<<" "<<*pszvalue2<<endl;
+  cout<<*pszvalue1<<" "<<*pszvalue2<<endl;
 
   CcReal* start_tid = new CcReal(true,*pszvalue1);
   BTreeIterator* bt_iter_v = btree_bus_node_new2->ExactMatch(start_tid);
@@ -4682,8 +4682,8 @@ int attrpos1,int attrpos2,Instant& queryinstant)
     int start_index = i;
     int end_index = i;
     while(path[i].pathid == buspath){
-      i++;
       end_index = i;
+      i++;
     }
 
     CcInt* bus_path_id = new CcInt(true,buspath);
@@ -4717,9 +4717,11 @@ int attrpos1,int attrpos2,Instant& queryinstant)
             }
           if(AlmostEqual(up1->p1,path[start_index].p))
             find1 = true;
-          if(AlmostEqual(up1->p1,path[end_index].p))
+          if(AlmostEqual(up1->p1,path[end_index].p)){
+//            cout<<*up1<<endl;
+//            cout<<"break"<<endl;
             break;
-
+          }
         }
         t->DeleteIfAllowed();
     }
