@@ -627,7 +627,7 @@ ListExpr rect2periodsTypeMap(ListExpr args){
 /*
 2.1.11 isknn TypeMap
 
-v in {int | string} x string(rel) x string(btree) x 
+v in {int | string} x string(rel) x string(btree) x
     string(MBool) x string(ID) -> APPEND v mbool
 
 */
@@ -643,32 +643,32 @@ ListExpr isknnTypeMap(ListExpr args){
     ErrorReporter::ReportError("isknn: expected int or string identifier");
     return nl->TypeError();
   }
-  
+
   ListExpr arg2 = nl->Second(args);
   if(!nl->IsEqual(arg2,"string")){
     ErrorReporter::ReportError("isknn: expected relation name");
     return nl->TypeError();
   }
-  
+
   ListExpr arg3 = nl->Third(args);
   if(!nl->IsEqual(arg3,"string")){
     ErrorReporter::ReportError("isknn: expected btree name");
     return nl->TypeError();
   }
-  
+
   ListExpr arg4 = nl->Fourth(args);
   if(!nl->IsEqual(arg4,"string")){
     ErrorReporter::ReportError("isknn: expected a valid mpoint attribute name");
     return nl->TypeError();
   }
-  
+
   ListExpr arg5 = nl->Fifth(args);
   if(!nl->IsEqual(arg5,"string")){
     ErrorReporter::ReportError("isknn: expected a valid id attribute name");
     return nl->TypeError();
   }
-  
-  ListExpr res= nl->ThreeElemList( nl->SymbolAtom("APPEND"),  
+
+  ListExpr res= nl->ThreeElemList( nl->SymbolAtom("APPEND"),
       nl->OneElemList(nl->StringAtom(idtype)) , nl->SymbolAtom("mbool"));
   cout<< nl->ToString(res);
   cout.flush();
@@ -827,6 +827,9 @@ int distanceScanFun (Word* args, Word& result, int message,
 
     case REQUEST :
     {
+      if(!local.addr){
+        return CANCEL;
+      }
       localInfo = (DistanceScanLocalInfo<dim, TupleId>*)local.addr;
       if ( !localInfo->scanFlag )
       {
@@ -854,9 +857,12 @@ int distanceScanFun (Word* args, Word& result, int message,
 
     case CLOSE :
     {
-      localInfo = (DistanceScanLocalInfo<dim, TupleId>*)local.addr;
-      localInfo->rtree->LastDistanceScan();
-      delete localInfo;
+      if(local.addr){
+        localInfo = (DistanceScanLocalInfo<dim, TupleId>*)local.addr;
+        localInfo->rtree->LastDistanceScan();
+        delete localInfo;
+        local.addr = 0;
+      }
       return 0;
     }
   }
@@ -4808,14 +4814,14 @@ int coverage2Fun (Word* args, Word& result, int message,
 int isknnFun (Word* args, Word& result, int message,
              Word& local, Supplier s){
   bool debugme= false;
-  
+
   string rel= ((CcString*)args[1].addr)->GetValue();
   string btree= ((CcString*)args[2].addr)->GetValue();
   string mboolAttr= ((CcString*)args[3].addr)->GetValue();
   string idAttr= ((CcString*)args[4].addr)->GetValue();
   string idType= ((CcString*)args[5].addr)->GetValue();
   string id="";
-  //qp->Request(args[0].addr, idWord); //Strangely causes the program to crash 
+  //qp->Request(args[0].addr, idWord); //Strangely causes the program to crash
   Word idWord;
   Supplier arg0= qp->GetSupplierSon(s, 0);
   qp->Request(arg0, idWord);
@@ -4823,14 +4829,14 @@ int isknnFun (Word* args, Word& result, int message,
     id= ((CcString*) idWord.addr)->GetValue() ;
   else if(idType == "int")
     id= int2string( ((CcInt*) idWord.addr)->GetValue());
-  
+
   if(debugme)
   {
     cout<<endl<<id<<endl<<rel<<endl<<btree<<
         endl<<mboolAttr<<endl<<idAttr<<endl<<idType;
     cout.flush();
   }
-  
+
   string queryListStr=
     " (ifthenelse"
     "  (="
@@ -4844,16 +4850,16 @@ int isknnFun (Word* args, Word& result, int message,
     "           FALSE)))"
     "  (extract"
     "   (exactmatch " + btree + " " + rel + " " + id + ")" +
-        mboolAttr + "))";  
+        mboolAttr + "))";
   if(debugme)
   {
     cout<<endl<<queryListStr;
     cout.flush();
   }
-  
+
   Word queryResult;
   QueryProcessor::ExecuteQuery( queryListStr, queryResult);
-  
+
   result = qp->ResultStorage( s );
   ((MBool*)result.addr)->CopyFrom((MBool*)queryResult.addr);
   ((MBool*)queryResult.addr)->DeleteIfAllowed();
@@ -5638,7 +5644,7 @@ knearestFilterTypeMap( ListExpr args )
       !listutils::isSymbol(queryobject,"mpoint") ||
       !listutils::isSymbol(quantity,"int")){
     return listutils::typeError(err);
-  } 
+  }
 
   ListExpr attrType;
   string aname = nl->SymbolValue(attrName);
@@ -9668,7 +9674,7 @@ ListExpr CellPartitionTypeMap( ListExpr args )
       !listutils::isSymbol(cellno2,"int") ||
       !listutils::isSymbol(cellno3, "int")){
     return listutils::typeError(errmsg);
-  } 
+  }
 
   ListExpr attrType;
   int j = FindAttribute(nl->Second(nl->Second(stream)),
