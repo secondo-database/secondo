@@ -2417,8 +2417,9 @@ bucket that the tuple coming from A hashes is also initialized.
     // delete tuple buffer and its iterator if necessary
     if( !bFitsInMemory )
     {
-      if ( iterTuplesRelA )
+      if ( iterTuplesRelA ){
         delete iterTuplesRelA;
+      }
       relA->Clear();
       delete relA;
     }
@@ -2430,13 +2431,11 @@ bucket that the tuple coming from A hashes is also initialized.
   }
 
   void Close(){
-    if ( !streamAClosed )
-    {
+    if ( !streamAClosed ){
       qp->Close(streamA.addr);
       streamAClosed = true;
     }
-    if ( !streamBClosed )
-    {
+    if ( !streamBClosed ){
       qp->Close(streamB.addr);
       streamBClosed = true;
     }
