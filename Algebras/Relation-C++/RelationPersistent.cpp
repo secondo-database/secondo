@@ -76,7 +76,7 @@ deletes a the pointer to a relation object and marks the buffer's state
 as memory only.
 
 June 2009, S.Jungnickel. Added implementation for classes ~TupleFile~ and
-~TupleFileIterator~. Added implementation for new methods ~Save~ and ~Open~ 
+~TupleFileIterator~. Added implementation for new methods ~Save~ and ~Open~
 of class ~Tuple~.
 
 October 2009, S.Jungnickel. Constructor of TupleFileIterator now rewinds
@@ -306,7 +306,7 @@ void Tuple::Save( SmiRecordFile* tuplefile,
   free(data);
   TRACE_LEAVE
 }
- 
+
 #endif
 
 void Tuple::Save(TupleFile& tuplefile)
@@ -637,13 +637,13 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
 
         if (RTFlag::isActive("TUPLE:lobFileId"))
         {
-          if (lid != lobFileId) {       
+          if (lid != lobFileId) {
             cmsg.info()
-              << "Tuple::lobFileId changed " << lid 
+              << "Tuple::lobFileId changed " << lid
               << " -> " << lobFileId << endl;
             cmsg.send();
-          }  
-        }  
+          }
+        }
       }
     }
   }
@@ -1175,7 +1175,7 @@ TupleFileIterator::TupleFileIterator(TupleFile& f)
 
   if( !tupleFile.stream )
   {
-    cerr << "TupleFileIterator: Cannot open file '" 
+    cerr << "TupleFileIterator: Cannot open file '"
          << tupleFile.pathName << "' for binary reading!\n" << endl;
     return;
   }
@@ -1185,7 +1185,7 @@ TupleFileIterator::TupleFileIterator(TupleFile& f)
 
   if ( tupleFile.traceMode )
   {
-    cmsg.info() << "TupleFile " << tupleFile.pathName 
+    cmsg.info() << "TupleFile " << tupleFile.pathName
                 << " opened for reading." << endl;
     cmsg.send();
   }
@@ -1392,7 +1392,7 @@ bool TupleFile::Open()
 
   if( !stream )
   {
-    cerr << "TupleFile::Open(): Cannot open file '" 
+    cerr << "TupleFile::Open(): Cannot open file '"
          << pathName << "'!\n" << endl;
     return false;
   }
@@ -1400,7 +1400,7 @@ bool TupleFile::Open()
   // Set stream buffer size
   if ( setvbuf(stream, 0, bufferSize >= 2 ? _IOFBF : _IONBF, bufferSize) != 0 )
   {
-    cerr << "TupleFile::Open(): illegal buffer type or size specified '" 
+    cerr << "TupleFile::Open(): illegal buffer type or size specified '"
          << bufferSize << "'!\n" << endl;
     return false;
   }
@@ -1420,7 +1420,7 @@ void TupleFile::Close()
   {
     if ( fclose(stream) == EOF )
     {
-      cerr << "TupleFile::Close(): error while closing file '" 
+      cerr << "TupleFile::Close(): error while closing file '"
            << pathName << "'!\n" << endl;
     }
     stream = 0;
@@ -1924,12 +1924,12 @@ Relation::pointerTable;
 void
 Relation::InitFiles( bool open /*= false */) {
 
-  bool rc = false;      
+  bool rc = false;
   if (open) {
     rc = tupleFile.Open(relDesc.tupleFileId);
   } else {
     rc = tupleFile.Create();
-  }       
+  }
 
   if( !rc )
   {
@@ -1940,20 +1940,20 @@ Relation::InitFiles( bool open /*= false */) {
   }
   relDesc.tupleFileId = tupleFile.GetFileId();
 
-      
+
   if( pointerTable.find( relDesc ) ==
                          pointerTable.end() )
     pointerTable.insert( make_pair( relDesc,
                                     this ) );
 
   // init LOB File
-  if (relDesc.tupleType->NumOfFlobs() > 0 && relDesc.lobFileId == 0) 
-  {       
-    SmiRecordFile* rf = 
+  if (relDesc.tupleType->NumOfFlobs() > 0 && relDesc.lobFileId == 0)
+  {
+    SmiRecordFile* rf =
        SecondoSystem::GetFLOBCache()->CreateFile(relDesc.isTemp);
     relDesc.lobFileId = rf->GetFileId();
-  }       
-}       
+  }
+}
 
 
 Relation::Relation( const ListExpr typeInfo, bool isTemp ):
@@ -1972,7 +1972,7 @@ Relation::Relation( TupleType *tupleType, bool isTemp ):
 
 Relation::Relation( const RelationDescriptor& relDesc ):
   relDesc( relDesc ),
-  tupleFile( false, 0, relDesc.isTemp ) 
+  tupleFile( false, 0, relDesc.isTemp )
 {
   Relation::InitFiles(true);
 }
@@ -2149,9 +2149,10 @@ void Relation::DeleteAndTruncate()
   SmiFileId lobId = relDesc.lobFileId;
   if (lobId != 0) {
     SecondoSystem::GetFLOBCache()->Drop( lobId, false );
-  } else {
-    cerr << "Relation has no LOB-file!" << endl;
-  }       
+  }
+//  else {
+//    cerr << "Relation has no LOB-file!" << endl;
+//  }
 
   ErasePointer();
 
@@ -2389,7 +2390,7 @@ bool Relation::GetLOBFileStats( SmiStatResultType &result )
 
 Relation *Relation::GetRelation (const SmiFileId fileId )
 {
-   
+
    map<RelationDescriptor, Relation*>::iterator it;
    for (it=pointerTable.begin(); it != pointerTable.end(); it++)
    {
