@@ -2,8 +2,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
+Copyright (C) 2004-2009, University in Hagen, Faculty of 
+Mathematics & Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-using namespace std;
 
 #include <cstdlib>
 #include <string>
@@ -36,6 +35,8 @@ using namespace std;
 #include "Profiles.h"
 #include "FileSystem.h"
 #include "CharTransform.h"
+
+using namespace std;
 
 class SecondoMonitor;
 typedef void (SecondoMonitor::*ExecCommand)();
@@ -59,6 +60,8 @@ class SecondoMonitor : public Application
  private:
   SmiEnvironment::SmiType smiType;
   string parmFile;
+  string prompt;
+  string line;
   int  pidRegistrar;
   int  pidCheckpoint;
   int  pidListener;
@@ -75,6 +78,8 @@ SecondoMonitor::SecondoMonitor( const int argc, const char** argv )
 {
   smiType       = SmiEnvironment::GetImplementationType();
   parmFile      = "";
+  prompt        = "SEC_MON> ";
+  line          = "";
   pidRegistrar  = 0;
   pidListener   = 0;
   pidCheckpoint = 0;
@@ -94,8 +99,10 @@ SecondoMonitor::Usage()
   cout 
   << "The following commands are available:" << endl << endl
   << "  ?, HELP        - display this message" << endl
-  << "  STARTUP        - start up the Secondo Listener" << endl
-  << "  SHUTDOWN       - shut down the Secondo Listener" << endl
+  << "  STARTUP        - of Listener, Registrar and CheckPoint processes" 
+  << endl
+  << "  SHUTDOWN       - of Listener, Registrar and Checkpoint processes" 
+  << endl
   << "  SHOW {OPTION}  - show system status information" << endl
   << "                   OPTION = { LOG | USERS | DATABASES | LOCKS }" << endl
   << "                     LOG        - new log file entries" << endl
@@ -157,17 +164,20 @@ SecondoMonitor::ExecShutDown()
 void
 SecondoMonitor::ExecShow()
 {
-  string cmd, cmdword, cmdrest, answer;
-  cin >> cmdword;
-  getline( cin, cmdrest );
+  string cmd(""), cmdword(""), answer("");
+  
+  istringstream in(line);
+  in >> cmdword; // eat up show
+  in >> cmdword;
   transform( cmdword.begin(), cmdword.end(), 
              cmdword.begin(), ToUpperProperFunction );
 
   if ( cmdword != "USERS"     && cmdword != "LOCKS" &&
        cmdword != "DATABASES" && cmdword != "LOG" )
   {
-    cout << "Invalid SHOW option '" << cmdword << "'." << endl
-         << "Valid are: 'LOG', 'USERS', 'DATABASES' and 'LOCKS'." << endl;
+    cout << "show [option]: Invalid option '" << cmdword << "'" << endl
+         << "Valid options are: 'log', 'users', "
+	 << "'databases' and 'locks'." << endl;
     return;
   }
 
@@ -228,14 +238,15 @@ SecondoMonitor::ExecShow()
 void
 SecondoMonitor::ExecQuit()
 {
-  string cmdrest, answer;
-  getline( cin, cmdrest );
   if ( running )
   {
-    cout << "Are you sure you want to shutdown the system and quit? [yes/no]: ";
+    cout << "Really shutdown the system and quit "
+         << "(confirm with 'y' or 'yes')? " << endl
+	 << prompt;
+          
+    string answer("");
     getline( cin, answer );
-    if ( answer == "y" || answer == "yes" ||
-         answer == "Y" || answer == "YES" )
+    if ( answer == "y" || answer == "yes" )
     {
       ExecShutDown();
       quit = true;
@@ -263,28 +274,42 @@ SecondoMonitor::ProcessCommands()
   commandTable["SHOW"]     = &SecondoMonitor::ExecShow;
   commandTable["QUIT"]     = &SecondoMonitor::ExecQuit;
 
-  string cmd, cmdword, cmdrest, answer;
+  string cmd("");
   do
   {
-    cout << "Monitor> ";
-    cin >> cmd;
-    transform( cmd.begin(), cmd.end(), cmd.begin(), ToUpperProperFunction );
-    cmdPos = commandTable.find( cmd );
-    if ( cmdPos != commandTable.end() )
-    {
-        (*this.*(cmdPos->second))();
-    }
-    else
-    {
-      getline( cin, cmdrest );
-      cout << "Unknown Command '" << cmd << "'." << endl
-           << "Enter 'HELP' or '?' to get a list of valid commands." << endl;
-    }
-    if ( Application::Instance()->ShouldAbort() )
-    {
-      cout << "*** Termination signal received, please shutdown "
-           << " and quit immediately!" << endl;
-      ExecQuit();
+    if (!cin.eof()) 
+    {	  
+      line = "";
+      cmd = "";
+      cout << prompt;
+      getline( cin, line );
+      //cout << "line = '" << line << "'" << endl;
+      istringstream in(line);
+      in >> cmd;
+      //cout << "input = '" << cmd << "'" << endl;
+
+      if (cmd != "") 
+      {
+        transform( cmd.begin(), cmd.end(), cmd.begin(), ToUpperProperFunction );
+        cmdPos = commandTable.find( cmd );
+	if ( cmdPos != commandTable.end() )
+	{
+	    (*this.*(cmdPos->second))();
+	}
+	else
+	{
+	  cout << "Unknown Command '" << cmd << "'." << endl
+	       << "Enter 'HELP' or '?' to get a list of "
+	       << "valid commands." << endl;
+	}
+      } 
+
+      if ( Application::Instance()->ShouldAbort() )
+      {
+	cout << "*** Termination signal received, initiating shutdown!" 
+	     << endl;
+	ExecQuit();
+      }
     }
   }
   while (!quit);
@@ -554,14 +579,19 @@ int main( const int argc, const char* argv[] )
         done = true;
         execute = true;
         autostartup = true;
-     }else if(arg=="--help"){
+     } else if(arg=="--help"){
         // list allowed arguments
-        cout << "Usage: " << argv[0] << " [options]" << endl;
+        cout << "Usage: " << argv[0] 
+	     << " [option]. Combinations are not supported!" 
+	     << endl;
         cout << "Options:" << endl;
         cout << "    --help          Display this information and exit"
              << endl;
-        cout << "   -S <startup>    Startup automatically" << endl;
-        cout << "   -V <version>    Display version information and exit"
+        cout << "   -s or -startup  Run Startup command automatically" 
+	     << endl;
+        cout << "   -sc1            Run Startup command and close stdin" 
+	     << endl;
+        cout << "   -V or -version  Display version information and exit"
              << endl;
         done = true;
         execute = false;
