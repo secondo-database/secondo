@@ -119,6 +119,25 @@ struct Node_Tree{
   }
 };
 struct E_Node_Tree;
+struct BusNode{
+  int id;
+  double zval;
+  int diff_bus;
+  BusNode(){}
+  BusNode(int i,double v,int d):id(i),zval(zval),diff_bus(d){}
+  BusNode(const BusNode& node):id(node.id),
+                                zval(node.zval),diff_bus(node.diff_bus){}
+};
+struct BusAdj{
+  int tid;//edge tid
+  double t;//arrive time
+  int busroute;//which bus route
+  int pathid;//path id
+  double cost; //cost of this edge
+  BusAdj(){}
+
+};
+
 //#define graph_model //old representation
 
 
@@ -184,7 +203,7 @@ public:
   void CalculateMaxSpeed();
 
   void FillBusNode_New(const Relation*);
-  void FillBusEdge_New(const Relation*);
+
   inline double ZValue(Point& p);
   void ConstructBusNodeTree();
   void CreateNodeTreeIndex(vector<bool>&);
@@ -193,8 +212,8 @@ public:
   Relation* GetRelBus_Route(){return bus_route;}
   Relation* GetRelBus_Edge(){return bus_edge;}
   Relation* GetRelBus_NodeNew(){return bus_node_new;}
-  Relation* GetRelBus_EdgeNew(){return bus_edge_new;}
-  Relation* GetRelBus_NodeTree(){return bus_node_tree;}
+
+
   TupleId FindPointTid(Point& p);
   TupleId FindPointTidNew(int pathid,Point& p);
   void FindPath_T_1(MPoint* result,Relation* query,int attrpos,Instant*);
@@ -224,6 +243,7 @@ public:
   bool Bus_Tree1(vector<int>& stops,vector<double>& duration,
        vector<E_Node_Tree>& path,Instant&);
   void FindPath_Bus_Tree1(MPoint* result,Relation* query,int,int,Instant&);
+//  inline double Second_Cost(E_Node_Tree& node,Point& p);
 private:
   int busnet_id;
   bool bus_def;
@@ -248,16 +268,17 @@ private:
   DBArray<ListEntry> adjacencylist_index;
   DBArray<int> adjacencylist;
 
+  //DBArray<BusNode> db_bus_node; //id, zval, no_diff_bus
+  //DBArray<> new_adjlist;
+  //DBArray<int> entry_new_adjlist;
+
   //path adjacency, for each path, which paths it can switch to and how
 //  DBArray<ListEntry> adj_path_index;
 //  DBArray<SwithEntry> adj_path;
   Relation* bus_node_new;
   BTree* btree_bus_node_new1;//on attribute path
   BTree* btree_bus_node_new2;//on attribute zval
-  Relation* bus_edge_new;//relation storing edge
-  BTree* btree_bus_edge_path_new; //b-tree on edge pid, path
 
-  Relation* bus_node_tree;//
   DBArray<Node_Tree> bus_tree;
   DBArray<double> ps_zval; // point_id --> z-order val
 

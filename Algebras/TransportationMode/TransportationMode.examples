@@ -16,12 +16,6 @@ Example  : query busnode(berlintrains) count;
 Result   : 173
 
 
-Operator : busnodetree
-Number   : 1
-Signature: busnetwork -> int
-Example  : query busnodetree(berlintrains) count;
-Result   : 11934
-
 
 Operator : busedge
 Number   : 1

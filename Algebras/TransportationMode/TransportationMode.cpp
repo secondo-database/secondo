@@ -80,16 +80,6 @@ const string OpBusNodeSpec =
   "<text>query busnode(busroutes) count</text--->"
   "))";
 
-const string OpBusNodeTreeSpec =
- "((\"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\") "
-  "(<text>busnetwork -> stream(tuple([nid:int,loc:point]))" "</text--->"
-  "<text>busnodetree(_)</text--->"
-  "<text>returns a stream of tuple where each corresponds to a bus stop."
-  "</text--->"
-  "<text>query busnodetree(busroutes) count</text--->"
-  "))";
-
 
 const string OpBusEdgeSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
@@ -274,21 +264,7 @@ int OpBusNodeValueMapping(Word* args, Word& result,
   qp->ChangeResultStorage(s,result);
   return 0;
 }
-/*
-Display bus node tree
 
-*/
-int OpBusNodeTreeValueMapping(Word* args, Word& result,
-                               int message, Word& local, Supplier s)
-{
-  BusNetwork* busnet = (BusNetwork*)args[0].addr;
-  Relation* busnodetree = busnet->GetRelBus_NodeTree();
-  result = SetWord(busnodetree->Clone());
-  Relation* resultSt = (Relation*)qp->ResultStorage(s).addr;
-  resultSt->Close();
-  qp->ChangeResultStorage(s,result);
-  return 0;
-}
 
 
 /*
@@ -300,11 +276,7 @@ int OpBusEdgeValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
 {
   BusNetwork* busnet = (BusNetwork*)args[0].addr;
-#ifdef graph_model
   Relation* busedge = busnet->GetRelBus_Edge();
-#else
-  Relation* busedge = busnet->GetRelBus_EdgeNew();
-#endif
   result = SetWord(busedge->Clone());
   Relation* resultSt = (Relation*)qp->ResultStorage(s).addr;
   resultSt->Close();
@@ -529,24 +501,6 @@ ListExpr OpBusNodeTypeMap(ListExpr in_xArgs)
       return xType;
   }
     return nl->SymbolAtom("typeerror");
-}
-
-
-ListExpr OpBusNodeTreeTypeMap(ListExpr in_xArgs)
-{
-  if(nl->ListLength(in_xArgs) != 1)
-    return (nl->SymbolAtom("typeerror"));
-
-  ListExpr arg = nl->First(in_xArgs);
-  if(nl->IsAtom(arg) && nl->AtomType(arg) == SymbolType &&
-     nl->SymbolValue(arg) == "busnetwork"){
-     ListExpr xType;
-     nl->ReadFromString(BusNetwork::busstoptreeTypeInfo,xType);
-     return xType;
-
-  }
-  return nl->SymbolAtom("typeerror");
-
 }
 
 /*
@@ -959,15 +913,6 @@ Operator busnode(
   OpBusNodeTypeMap
 );
 
-Operator busnodetree(
-  "busnodetree", //name
-  OpBusNodeTreeSpec,
-  OpBusNodeTreeValueMapping,
-  Operator::SimpleSelect,
-  OpBusNodeTreeTypeMap
-);
-
-
 Operator busedge(
   "busedge", //name
   OpBusEdgeSpec,
@@ -1047,8 +992,9 @@ class TransportationModeAlgebra : public Algebra
 
    AddOperator(&thebusnetwork);//construct bus network
    AddOperator(&busnode);//display bus stop
-   AddOperator(&busnodetree);//display bus stop
+   #ifdef graph_model
    AddOperator(&busedge); //display the trajectory of a bus
+   #endif
 
    AddOperator(&busmove);//display bus movement
    //middle stop with no temporal property, no user defined time instant
