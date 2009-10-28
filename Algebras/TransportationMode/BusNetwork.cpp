@@ -4434,11 +4434,13 @@ struct E_Node_Tree:public Node_Tree{
   int parent;
   double cost;
   double e_cost;
+  double last_zval; //zvalue of last node
   E_Node_Tree(){}
   E_Node_Tree(Node_Tree node):Node_Tree(node),parent(-1),
-      cost(0),e_cost(0){}
+      cost(0),e_cost(0),last_zval(0){}
   E_Node_Tree(const E_Node_Tree& enode):Node_Tree(enode),
-              parent(enode.parent),cost(enode.cost),e_cost(enode.e_cost){}
+        parent(enode.parent),cost(enode.cost),
+        e_cost(enode.e_cost),last_zval(enode.last_zval){}
   bool operator<(const E_Node_Tree& enode)const
   {
     if(cost < enode.cost)
@@ -4451,6 +4453,7 @@ struct E_Node_Tree:public Node_Tree{
     parent = enode.parent;
     cost = enode.cost;
     e_cost = enode.e_cost;
+    last_zval = enode.last_zval;
     return *this;
   }
   void E_Print()
@@ -4461,17 +4464,28 @@ struct E_Node_Tree:public Node_Tree{
 
 };
 
-bool BusNetwork::Bus_Tree1(int id1,int id2,vector<E_Node_Tree>& path,
-Instant& queryinstant,double& wait_time)
+bool BusNetwork::Bus_Tree1(vector<int>& stops,vector<double>& duration,
+vector<E_Node_Tree>& path,Instant& queryinstant)
 {
-  const double* pszvalue1;
-  const double* pszvalue2;
-  ps_zval.Get(id1-1,pszvalue1);
-  ps_zval.Get(id2-1,pszvalue2);
 
-  cout<<*pszvalue1<<" "<<*pszvalue2<<endl;
+  if(stops.size() < 2)
+    return false;
 
-  CcReal* start_tid = new CcReal(true,*pszvalue1);
+  const double* pszvalue;
+  vector<double> stops_zval; //zvalue for each bus stop
+  for(unsigned int i = 0;i < stops.size();i++){
+    ps_zval.Get(stops[i]-1,pszvalue);
+    stops_zval.push_back(*pszvalue);
+  }
+  int start_index = 0;//entry for stops and duration
+  int end_index = start_index + 1;//entry for stops and duration
+
+//  for(int i = 0 ;i < stops.size();i++)
+//    cout<<" stop "<<stops[i]<<" "<<" duration "
+//        <<duration[i]<<" zval "<<stops_zval[i]<<endl;
+
+
+  CcReal* start_tid = new CcReal(true,stops_zval[start_index]);
   BTreeIterator* bt_iter_v = btree_bus_node_new2->ExactMatch(start_tid);
   int start_node = -1;
   while(bt_iter_v->Next()){
@@ -4498,27 +4512,33 @@ Instant& queryinstant,double& wait_time)
 //  cout<<*t<<endl;
 //  t->DeleteIfAllowed()  ;
 
+  vector<Point> endps;
+  for(unsigned int j = end_index;j < stops_zval.size();j++){
 
-  CcReal* end_tid = new CcReal(true,*pszvalue2);
-  bt_iter_v = btree_bus_node_new2->ExactMatch(end_tid);
-  Point* endp = NULL;
-  while(bt_iter_v->Next()){
-    Tuple* node = bus_node_new->GetTuple(bt_iter_v->GetId());
-    CcReal* zval = (CcReal*)node->GetAttribute(ZVAL);
+    CcReal* end_tid = new CcReal(true,stops_zval[j]);
+    bt_iter_v = btree_bus_node_new2->ExactMatch(end_tid);
+    while(bt_iter_v->Next()){
+      Tuple* node = bus_node_new->GetTuple(bt_iter_v->GetId());
+      CcReal* zval = (CcReal*)node->GetAttribute(ZVAL);
 
-    if(AlmostEqual(*pszvalue2,zval->GetRealval())){
-      endp = new Point(*((Point*)node->GetAttribute(NEWLOC)));
+      if(AlmostEqual(stops_zval[j],zval->GetRealval())){
+        Point* endp = new Point(*((Point*)node->GetAttribute(NEWLOC)));
+        endps.push_back(*endp);
+        delete endp;
+        node->DeleteIfAllowed();
+        break;
+      }
       node->DeleteIfAllowed();
-      break;
     }
-    node->DeleteIfAllowed();
+    delete end_tid;
+    delete bt_iter_v;
   }
-  delete end_tid;
-  delete bt_iter_v;
-  if(endp == NULL){
+
+  if(endps.empty()){
     cout<<"end point is not valid"<<endl;
     return false;
   }
+  unsigned int endps_index = 0; //start from 0
 
   const Node_Tree* start;
   bus_tree.Get(start_node-1,start);
@@ -4528,11 +4548,12 @@ Instant& queryinstant,double& wait_time)
   E_Node_Tree e_node(*(const_cast<Node_Tree*>(start)));
   e_node.parent = -1;
   e_node.cost = start->t - queryinstant.ToDouble()+
-                  start->p.Distance(*endp)/maxspeed;
+                  start->p.Distance(endps[endps_index])/maxspeed;
   e_node.e_cost = start->t - queryinstant.ToDouble();
-
+  e_node.last_zval = e_node.zorder;
   q_list.push(e_node);
-  double end_point_zval = ZValue(*endp);
+
+//  double end_point_zval = ZValue(*endp);
 
   vector<E_Node_Tree> expansionlist;
   int expansion_counter = 0;
@@ -4541,14 +4562,76 @@ Instant& queryinstant,double& wait_time)
   while(q_list.empty() == false){
     E_Node_Tree top = q_list.top();
 
+//    cout<<"top element "<<endl;
 //    top.Print();
-    if(AlmostEqual(top.zorder,end_point_zval)){
-      cout<<"find"<<endl;
-      break;
+    if(AlmostEqual(top.zorder,stops_zval[end_index])){
+        ////////////  display    /////////////////////
+        /*cout<<"display "<<endl;
+        E_Node_Tree elem = top;
+        elem.E_Print();
+        while(elem.parent != -1){
+          elem = expansionlist[elem.parent];
+          elem.E_Print();
+        }*/
+        /////////////////////////////////////////////
+
+
+//        cout<<"find "<<top.zorder<<endl;
+        endps_index++;
+        if(endps_index == endps.size())
+          break;
+        //deal with next shortest path neighbor
+
+        start_index++;
+        end_index++;
+//        cout<<duration[start_index]<<endl;
+        if(!AlmostEqual(duration[start_index],0.0)){ //duration time
+           CcReal* start_tid = new CcReal(true,stops_zval[start_index]);
+           BTreeIterator* bt_iter_v =
+                              btree_bus_node_new2->ExactMatch(start_tid);
+           int start_node = -1;
+           while(bt_iter_v->Next()){
+             Tuple* node = bus_node_new->GetTuple(bt_iter_v->GetId());
+             CcReal* atime = (CcReal*)node->GetAttribute(ATIME);
+
+             if(atime->GetRealval() >= (top.t + duration[start_index])){
+                start_node = node->GetTupleId();
+                node->DeleteIfAllowed();
+                break;
+             }
+             node->DeleteIfAllowed();
+           }
+           delete start_tid;
+           delete bt_iter_v;
+
+            expansionlist.push_back(top);
+            q_list.pop();
+
+            assert(start_node != -1 && start_node != top.id);
+
+            const Node_Tree* start;
+            bus_tree.Get(start_node-1,start);
+            E_Node_Tree e_node(*(const_cast<Node_Tree*>(start)));
+            e_node.parent = expansion_counter;
+            e_node.cost = top.cost + (start->t - top.t) +
+                  start->p.Distance(endps[endps_index])/maxspeed;
+            e_node.e_cost = top.cost + (start->t - top.t);
+
+            while(q_list.empty() == false)
+              q_list.pop();
+
+
+            q_list.push(e_node);
+            expansion_counter++;
+//            cout<<"new start node "<<endl;
+//            e_node.E_Print();
+            continue;
+
+        }
     }
     expansionlist.push_back(top);
-
     q_list.pop();
+
     /////////////    left   ///////////////////////////////
     int left = top.left;
     if(left != -1){
@@ -4560,16 +4643,18 @@ Instant& queryinstant,double& wait_time)
 //      l_e_node.parent = top.id;
       l_e_node.parent = expansion_counter;
       l_e_node.cost = top.cost + (left_node->t - top.t) +
-                  left_node->p.Distance(*endp)/maxspeed;
+                  left_node->p.Distance(endps[endps_index])/maxspeed;
       l_e_node.e_cost = l_e_node.cost + (left_node->t - top.t);
-      q_list.push(l_e_node);
+      l_e_node.last_zval = top.zorder;
+      if(l_e_node.zorder != top.last_zval)
+          q_list.push(l_e_node);
     }
     ///////////////   right   //////////////////////////////////////////////
     //////   for the node located in the same position in space   //////////
     /////////   go further only once    ///////////////////////////////////
 
     vector<int> bus_line;
-    bus_line.push_back(top.busline);
+//    bus_line.push_back(top.busline);
 
     int right = top.right;
 /*    if(right != -1){
@@ -4591,45 +4676,57 @@ Instant& queryinstant,double& wait_time)
         Node_Tree* right_node = const_cast<Node_Tree*>(r_right_node);
 
         E_Node_Tree r_e_node(*(const_cast<Node_Tree*>(right_node)));
-//        r_e_node.parent = top.id;
         r_e_node.parent = expansion_counter;
         r_e_node.cost = top.cost + (right_node->t - top.t) +
-                  right_node->p.Distance(*endp)/maxspeed;
+                  right_node->p.Distance(endps[endps_index])/maxspeed;
         r_e_node.e_cost = r_e_node.cost + (right_node->t - top.t);
+        r_e_node.last_zval = top.last_zval;
         right = r_e_node.right;
         r_e_node.right = -1;
         unsigned int j = 0;
         for(;j < bus_line.size();j++)
-            if(bus_line[j] == r_e_node.busline)
+            if(bus_line[j] == r_e_node.busline ||
+                top.busline ==  r_e_node.busline)
               break;
         if(j == bus_line.size()){
-          if(r_e_node.busline < maxroute)
-              if(r_e_node.busline != top.busline + maxroute)
-                  q_list.push(r_e_node);
-          else
-              if(top.busline != maxroute + r_e_node.busline)
-                  q_list.push(r_e_node);
-          bus_line.push_back(r_e_node.busline);
+          if(r_e_node.busline < maxroute){
+//              if(r_e_node.busline != top.busline + maxroute)
+                if(r_e_node.busline != top.busline)
+                    q_list.push(r_e_node);
+          }
+          else{
+//              if(top.busline != maxroute + r_e_node.busline)
+                if(r_e_node.busline != top.busline)
+                    q_list.push(r_e_node);
+          }
+          if(r_e_node.busline != top.busline)
+            bus_line.push_back(r_e_node.busline);
         }
     }
     expansion_counter++;
 
   }
-  delete endp;
+//  delete endp;
 
   /// backward and construct the result ///
   stack<E_Node_Tree> temp_path;
   E_Node_Tree top_elem = q_list.top();
+  temp_path.push(top_elem);
+//  top_elem.E_Print();
   while(top_elem.parent != -1){
-//      top_elem.E_Print();
-      temp_path.push(top_elem);
       top_elem = expansionlist[top_elem.parent];
+      temp_path.push(top_elem);
+//      top_elem.E_Print();
   }
   while(temp_path.empty() == false){
     E_Node_Tree elem = temp_path.top();
     temp_path.pop();
     path.push_back(elem);
   }
+
+/*  for(int i = 0;i < path.size();i++)
+    path[i].E_Print();*/
+
   return true;
 }
 
@@ -4647,31 +4744,30 @@ int attrpos1,int attrpos2,Instant& queryinstant)
 
   vector<E_Node_Tree> path; //record edge id
 
+  vector<int> stops;
+  vector<double> duration;
   //searching process
 //  TestFunction(busedge,btree1);
-  for(int i = 1;i <= query->GetNoTuples() - 1;i++){
+  for(int i = 1;i <= query->GetNoTuples();i++){
     Tuple* t1 = query->GetTuple(i);
-    Tuple* t2 = query->GetTuple(i+1);
     CcInt* id1 = (CcInt*)t1->GetAttribute(attrpos1);
-    CcInt* id2 = (CcInt*)t2->GetAttribute(attrpos1);
-
     DateTime* timestay = (DateTime*)t1->GetAttribute(attrpos2);
-    cout<<"start "<<id1->GetIntval()<<" end "<<id2->GetIntval()<<endl;
+
 //    cout<<*timestay<<endl;
     double waittime = timestay->ToDouble();
-    cout<<"time delay "<<waittime<<endl;
+//    cout<<"time delay "<<waittime<<endl;
 
-    if(Bus_Tree1(id1->GetIntval(),id2->GetIntval(),path,
-           queryinstant,waittime)==false){
-        cout<<"such a route is not valid"<<endl;
-        path.clear();
-        t1->DeleteIfAllowed();
-        t2->DeleteIfAllowed();
-        break;
-    }
+    stops.push_back(id1->GetIntval());
+    duration.push_back(waittime);
     t1->DeleteIfAllowed();
-    t2->DeleteIfAllowed();
+
   }
+
+  if(Bus_Tree1(stops,duration,path,queryinstant)==false){
+        cout<<"such a route is not valid"<<endl;
+        return;
+ }
+
 
   UPoint* last = NULL;
   bool first_path = true;
@@ -4697,6 +4793,9 @@ int attrpos1,int attrpos2,Instant& queryinstant)
         bool first_flag = false;
         for(int j = 0;j < trip->GetNoComponents();j++){
           trip->Get(j,up1);
+          if(AlmostEqual(up1->p0,path[start_index].p))
+            find1 = true;
+
           if(find1 == true){
 //             (const_cast<UPoint*>(up1))->Print(cout);
               if(last!= NULL && first_flag == false && first_path == false){
@@ -4708,16 +4807,17 @@ int attrpos1,int attrpos2,Instant& queryinstant)
                 insert_up->timeInterval.lc = true;
                 insert_up->timeInterval.rc = false;
 //                cout<<*insert_up<<endl;
-                mp->Add(*insert_up);
+                if(!AlmostEqual(insert_up->timeInterval.start.ToDouble(),
+                                insert_up->timeInterval.end.ToDouble()))
+                  mp->Add(*insert_up);
                 delete insert_up;
                 first_flag = true;
               }
               mp->Add(*up1);
               last = const_cast<UPoint*>(up1); //last position
             }
-          if(AlmostEqual(up1->p1,path[start_index].p))
-            find1 = true;
-          if(AlmostEqual(up1->p1,path[end_index].p)){
+
+          if(AlmostEqual(up1->p1,path[end_index].p) && find1){
 //            cout<<*up1<<endl;
 //            cout<<"break"<<endl;
             break;

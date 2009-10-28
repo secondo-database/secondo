@@ -221,7 +221,8 @@ public:
   void FindPath_T_5(MPoint* result,Relation* query,
                     int,int,Instant&);
   ///////////////////// new representation for bus node /////////////////////
-  bool Bus_Tree1(int id1,int id2,vector<E_Node_Tree>& path,Instant&,double&);
+  bool Bus_Tree1(vector<int>& stops,vector<double>& duration,
+       vector<E_Node_Tree>& path,Instant&);
   void FindPath_Bus_Tree1(MPoint* result,Relation* query,int,int,Instant&);
 private:
   int busnet_id;
