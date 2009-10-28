@@ -1509,8 +1509,8 @@ Network::~Network()
   delete m_pBTreeJunctionsByRoute2;
 
   delete m_pBTreeSectionsByRoute;
-  
- 
+
+
   m_xSubAdjacencyList.Clear();
 
 
@@ -2111,22 +2111,22 @@ void Network::FillSections()
       }
     }
     pRoute->DeleteIfAllowed();
-  
-    // delete Tuples from xJunctions 
+
+    // delete Tuples from xJunctions
     for(unsigned int i=0;i<xJunctions.size();i++){
       if(xJunctions[i].m_pJunction){
         xJunctions[i].m_pJunction->DeleteIfAllowed();
       }
     }
     xJunctions.clear();
-    // delete Tuples from yJunctions 
+    // delete Tuples from yJunctions
     for(unsigned int i=0;i<yJunctions.size();i++){
       if(yJunctions[i].m_pJunction){
         yJunctions[i].m_pJunction->DeleteIfAllowed();
       }
     }
     yJunctions.clear();
-    
+
   } // End while Routes
   delete pRoutesIt;
 
@@ -2197,7 +2197,7 @@ void Network::FillAdjacencyLists()
         pCurrentJunction->GetAttribute(JUNCTION_SECTION_BUP_RC))->GetTid();
     tidpBDown = ((TupleIdentifier*)
         pCurrentJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC))->GetTid();
-    
+
     /*
     // First section
     Attribute* pAttr = pCurrentJunction->GetAttribute(JUNCTION_SECTION_AUP_RC);
@@ -2983,7 +2983,7 @@ New implementation using sectionsBTree
   return 0;
 
 
-  
+
   vector<JunctionSortEntry> xJunctions;
   CcInt xRouteId(true, in_xGPoint->GetRouteId());
   GetJunctionsOnRoute(&xRouteId,
@@ -5024,24 +5024,28 @@ void GLine::Uniongl(GLine *pgl2, GLine *res){
 }
 
 void GLine::Gline2line(Line* res){
-  if (IsDefined() && NoOfComponents() >0) {
+  res->Clear();
+  if (IsDefined() && NoOfComponents() > 0) {
     //Network* pNetwork = NetworkManager::GetNetwork(GetNetworkId());
     Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
     const RouteInterval *rI;
     Line *l = new Line(0);
-    Line *x = new Line(0);
+    Line *x = l;
     for (int i=0; i < this->NoOfComponents(); i++) {
-      delete l;
-      l = x;
       this->Get(i,rI);
       SimpleLine *pSubline = new SimpleLine(0);
       pNetwork->GetLineValueOfRouteInterval(rI, pSubline);
-      Line *partLine = new Line(0);
-      pSubline->toLine(*partLine);
-      delete pSubline;
-      x = SetOp(*l, *partLine, avlseg::union_op);
-      delete partLine;
+      if (pSubline->IsDefined()) {
+        Line *partLine = new Line(0);
+        pSubline->toLine(*partLine);
+        delete pSubline;
+        x = SetOp(*l, *partLine, avlseg::union_op);
+        delete partLine;
+        delete l;
+        l = x;
+      }
     }
+    l = 0;
     delete l;
     NetworkManager::CloseNetwork(pNetwork);
     (*res) = *x;
@@ -5849,7 +5853,7 @@ stack to turn in right order.
           if(actSection){
             actSection->DeleteIfAllowed();
             actSection = 0;
-          } 
+          }
         }
         // Cleanup and return result
         riStack->StackToGLine(result);
@@ -5862,7 +5866,7 @@ stack to turn in right order.
       if(actSection){
         actSection->DeleteIfAllowed();
         actSection = 0;
-      } 
+      }
     }
     if (visitedSect != 0) visitedSect->Remove();
     prioQ->Destroy();
@@ -7143,7 +7147,7 @@ int OpPoint2GPointValueMapping(Word* args,
   }
   GPoint *res = pNetwork->GetNetworkPosOfPoint(*pPoint);
   pGPoint->CopyFrom(res);
-  delete res; 
+  delete res;
   /*GPoint *res = pNetwork->GetNetworkPosOfPoint(*pPoint);
   qp->ChangeResultStorage(in_xSupplier, res);*/
   return 0;
