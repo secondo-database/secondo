@@ -1,1 +1,1 @@
-operator secunitstream alias SECUNITSTREAM pattern _ _ op [ _, _ ]
+operator mgp2mgpsecunits alias MGPTOMGPSECUNITS pattern _ op [ _ , _ , _ ]

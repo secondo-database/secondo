@@ -23,7 +23,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [1] Title: [{\Large \bf \begin{center}] [\end{center}}]
 //paragraph [10] Footnote: [{\footnote{] [}}]
 
-1.1 Declarations Necessary for Traffic Algebra
+October 2009- Simone Jandt
+
+1 Declarations Necessary for Traffic Algebra
 
 */
 #ifndef __TRAFFIC_ALGEBRA_H__
@@ -31,6 +33,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "StandardAttribute.h"
 #include "TemporalAlgebra.h"
+#include "NetworkAlgebra.h"
 #include "DateTime.h"
 #include "NestedList.h"
 
@@ -49,7 +52,7 @@ class MGPSecUnit : public StandardAttribute
 
     MGPSecUnit();
 
-    MGPSecUnit(int secId, int direct, double sp,
+    MGPSecUnit(int secId,  int part, Side direct, double sp,
                Interval<Instant> timeInterval);
 
     MGPSecUnit( const MGPSecUnit& in_xOther );
@@ -65,7 +68,9 @@ Get and Set private attributes.
 
     int GetSecId() const;
 
-    int GetDirect() const;
+    int GetPart()const;
+
+    Side GetDirect() const;
 
     double GetSpeed()const;
 
@@ -73,11 +78,18 @@ Get and Set private attributes.
 
     void SetSecId(int secId);
 
-    void SetDirect(int dir);
+    void SetPart(int p);
+
+    void SetDirect(Side dir);
 
     void SetSpeed(double x);
 
     void SetTimeInterval(Interval<Instant> time);
+
+/*
+Functions for Secondo integration.
+
+*/
 
     size_t Sizeof() const;
     
@@ -93,10 +105,6 @@ Get and Set private attributes.
 
     ostream& Print( ostream& os ) const;
 
-/*
-Functions for Secondo integration.
-
-*/
     static ListExpr Out(ListExpr typeInfo, Word value);
 
     static Word In(const ListExpr typeInfo, const ListExpr instance,
@@ -108,12 +116,16 @@ Functions for Secondo integration.
     
     FLOB* GetFLOB(const int i);
 
+/*
+Function for Operations.
 
+*/
   private:
 
-    int m_secId;
-    int m_direct;
-    double m_speed;
+    int m_secId; //section id
+    int m_part;  //number of part of section if necessary default = 1
+    Side m_direct; // 0=down, 1=up, 2=none
+    double m_speed; // m/s
     Interval<Instant> m_time;
 
 };
