@@ -4586,7 +4586,7 @@ vector<E_Node_Tree>& path,Instant& queryinstant)
         end_index++;
 //        cout<<duration[start_index]<<endl;
         if(!AlmostEqual(duration[start_index],0.0)){ //duration time
-           CcReal* start_tid = new CcReal(true,stops_zval[start_index]);
+/*CcReal* start_tid = new CcReal(true,stops_zval[start_index]);
            BTreeIterator* bt_iter_v =
                               btree_bus_node_new2->ExactMatch(start_tid);
            int start_node = -1;
@@ -4602,8 +4602,17 @@ vector<E_Node_Tree>& path,Instant& queryinstant)
              node->DeleteIfAllowed();
            }
            delete start_tid;
-           delete bt_iter_v;
+           delete bt_iter_v;*/
 
+            int start_node = top.right;
+            while(start_node != -1){
+              const Node_Tree* r_right_node;
+              bus_tree.Get(start_node-1,r_right_node);
+              if(r_right_node->t >= (top.t + duration[start_index]))
+                break;
+              start_node = r_right_node->right;
+            }
+////////////////////////////////////////////////////////////////////////////
             expansionlist.push_back(top);
             q_list.pop();
 
@@ -4788,7 +4797,6 @@ int attrpos1,int attrpos2,Instant& queryinstant)
         Tuple* t = bus_route->GetTuple(bt_iter->GetId());
         MPoint* trip = (MPoint*)t->GetAttribute(TRIP);
         const UPoint* up1;
-        const UPoint* up2;
         bool find1 = false;
         bool first_flag = false;
         for(int j = 0;j < trip->GetNoComponents();j++){
