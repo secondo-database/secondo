@@ -67,14 +67,7 @@ struct ListEntry{
   int low;
   int high;
 };
-/*path1(e1) switch to path2(e2)*/
-struct SwithEntry{
-  SwithEntry(){}
-  SwithEntry(int a,int b):e1(a),e2(b){}
-  SwithEntry(const SwithEntry& le):e1(le.e1),e2(le.e2){}
-  int e1; //TupleId
-  int e2; //TupleId
-};
+
 
 /*store bus node as a tree structure*/
 struct Node_Tree{
@@ -120,13 +113,11 @@ struct Node_Tree{
 };
 struct E_Node_Tree;
 struct BusNode{
-  int id;
   double zval;
   int diff_bus;
   BusNode(){}
-  BusNode(int i,double v,int d):id(i),zval(zval),diff_bus(d){}
-  BusNode(const BusNode& node):id(node.id),
-                                zval(node.zval),diff_bus(node.diff_bus){}
+  BusNode(double v,int d):zval(zval),diff_bus(d){}
+  BusNode(const BusNode& node):zval(node.zval),diff_bus(node.diff_bus){}
 };
 struct BusAdj{
   int tid;//edge tid
@@ -135,10 +126,19 @@ struct BusAdj{
   int pathid;//path id
   double cost; //cost of this edge
   BusAdj(){}
-
+  BusAdj(int id,double time,int busid,int pid,double c)
+  :tid(id),t(time),busroute(busid),pathid(pid),cost(c){}
+  BusAdj(const BusAdj& baj):tid(baj.tid),
+        t(baj.t),busroute(baj.busroute),pathid(baj.pathid),cost(baj.cost){}
+  bool operator<(const BusAdj& ba)const
+  {
+    if(t < ba.t)
+      return false;
+    return true;
+  }
 };
 
-//#define graph_model //old representation
+#define graph_model //old representation
 
 
 class BusNetwork{
@@ -147,11 +147,7 @@ public:
 
   static string busrouteTypeInfo;//relation description for pre-defined paths
   static string btreebusrouteTypeInfo;//b-tree on pre-defined paths
-#ifdef graph_model
-  enum BusRouteInfo{RID=0,LINENO,TRIP};
-#else
   enum BusRouteInfo{RID=0,LINENO,UP,TRIP};
-#endif
 
   static string busstopTypeInfo; //relation description for bus stop
   enum BusStopInfo{SID=0,LOC};
@@ -198,7 +194,8 @@ public:
   void FillBusNode(const Relation*);
   void FillBusEdge(const Relation*);
   void FillAdjacency();
-  void FillAdjacencyPath();
+
+  void FillAdj();
   void Destroy();
   void CalculateMaxSpeed();
 
@@ -250,13 +247,13 @@ private:
   Relation* bus_route;//relation storing bus route
   BTree* btree_bus_route; //b_tree on bus route
   Relation* bus_node; //relation storing bus stops
-  BTree* btree_bus_node; //b-tree on bus stops
+
   R_Tree<2,TupleId>* rtree_bus_node; //r-tree on bus stops
   Relation* bus_edge;//relation storing edge
-  BTree* btree_bus_edge; //b-tree on edge
+
   BTree* btree_bus_edge_v1; //b-tree on edge start node id
   BTree* btree_bus_edge_v2; //b-tree on edge end node id
-  BTree* btree_bus_edge_path; //b-tree on edge pid, path
+
   double maxspeed;
   //similar network adjacency
   //record the start and end index for each edge in adjacencylist
@@ -268,13 +265,12 @@ private:
   DBArray<ListEntry> adjacencylist_index;
   DBArray<int> adjacencylist;
 
-  //DBArray<BusNode> db_bus_node; //id, zval, no_diff_bus
-  //DBArray<> new_adjlist;
-  //DBArray<int> entry_new_adjlist;
+  DBArray<BusNode> db_bus_node; //id, zval, no_diff_bus
+  DBArray<BusAdj> new_adjlist;
+  DBArray<ListEntry> entry_new_adjlist;
 
-  //path adjacency, for each path, which paths it can switch to and how
-//  DBArray<ListEntry> adj_path_index;
-//  DBArray<SwithEntry> adj_path;
+
+  /////////////    new representation  ////////////////////////////
   Relation* bus_node_new;
   BTree* btree_bus_node_new1;//on attribute path
   BTree* btree_bus_node_new2;//on attribute zval
