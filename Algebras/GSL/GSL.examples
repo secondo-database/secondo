@@ -25,8 +25,8 @@ Result   : "cmrg"
 Operator : rng_NoGenerators
 Number   : 1
 Signature:  -> int
-Example  : query rng_NoGenerators()
-Result   : 61
+Example  : query rng_NoGenerators() >= 61
+Result   : TRUE
 
 
 Operator : rng_init
