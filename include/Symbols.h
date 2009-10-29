@@ -87,8 +87,8 @@ namespace symbols {
  // point rectangle types
 #undef XPOINT
 #undef XRECTANGLE
-#undef SIMPLE 
-#undef INSIDE 
+#undef SIMPLE
+#undef INSIDE
 #undef SIMPLE
  Sym XPOINT("xpoint");
  Sym XRECTANGLE("xrectangle");
@@ -130,18 +130,54 @@ namespace symbols {
  Sym POSITION("position");
 
  // spatial, temporal, temporalunit algebra
-#undef MPOINT
 #undef POINT
 #undef POINTS
 #undef LINE
 #undef REGION
 #undef SLINE
- Sym MPOINT("mpoint");
+
+#undef UPOINT
+#undef UREGION
+#undef UINT
+#undef UREAL
+#undef UBOOL
+#undef USTRING
+
+#undef MPOINT
+#undef MREGION
+#undef MINT
+#undef MREAL
+#undef MBOOL
+#undef MSTRING
+
+#undef PERIODS
+#undef RINT
+#undef RREAL
+#undef RBOOL
+#undef RSTRING
+
  Sym POINT("point");
  Sym REGION("region");
  Sym LINE("line");
  Sym SLINE("sline");
  Sym POINTS("points");
+ Sym UPOINT("upoint");
+ Sym UREGION("uregion");
+ Sym UINT("uint");
+ Sym UREAL("ureal");
+ Sym UBOOL("ubool");
+ Sym USTRING("mstring");
+ Sym MPOINT("mpoint");
+ Sym MREGION("movingregion");
+ Sym MINT("mint");
+ Sym MREAL("mreal");
+ Sym MBOOL("mbool");
+ Sym MSTRING("mstring");
+ Sym PERIODS("periods");
+ Sym RINT("rint");
+ Sym RREAL("rreal");
+ Sym RBOOL("rbool");
+ Sym RSTRING("rstring");
 
 
  // histogram types

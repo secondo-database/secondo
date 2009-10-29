@@ -2607,6 +2607,12 @@ The following functions are needed to act as an attribute type.
     lrsArray.Put(i,lrs);
   }
 
+  inline void Resize(const int newSize){
+    if(newSize>segments.Size()){
+        segments.Resize(newSize);
+    }
+  }
+
   static const string BasicType(){
     return "sline";
   }
@@ -3625,8 +3631,8 @@ This constructor should not be used.
 
   private:
 
-  
-    
+
+
 /*
 7.17 Private member functions
 

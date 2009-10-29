@@ -513,3 +513,56 @@ Example   : query utm([const point value (1.0 1.0)])
 Result    : (point (166946.8305797719 -5919935.736573189))
 Tolerance : 150
 
+
+Operator  : collect_line
+Number    : 1
+Signature : (stream point) -> line
+Example   : query no_segments(Kinos feed projecttransformstream[geoData] collect_line)
+Result    : (int 1119)
+
+
+Operator  : collect_line
+Number    : 2
+Signature : (stream line) -> line
+Example   : query size(strassen feed projecttransformstream[geoData] collect_line)
+Result    : (real 2686760.928958891)
+Tolerance : 0.5
+
+
+Operator  : collect_line
+Number    : 3
+Signature : (stream sline) -> line
+Example   : query size(strassen feed projectextend[;g: fromline(.geoData)] filter[isdefined(.g)] transformstream collect_line)
+Result    : (real 2678603.846277799)
+Tolerance : 0.5
+
+
+Operator  : makesline
+Number    : 3
+Signature : point x point -> sline
+Example   : query makesline(makepoint(0,0),makepoint(100.0,-100.0))
+Result    : (sline ((0.0 0.0 100.0 -100.0)))
+Tolerance : %0.001
+
+
+Operator  : collect_sline
+Number    : 1
+Signature : (stream point) -> line
+Example   : query no_segments(Kinos feed sortby[geoData] projecttransformstream[geoData] collect_sline)
+Result    : (int 81)
+
+
+Operator  : collect_sline
+Number    : 2
+Signature : (stream line) -> line
+Example   : query size(strassen feed sortby[geoData] projecttransformstream[geoData] collect_sline)
+Result    : (real undef)
+Tolerance : 0.5
+
+
+Operator  : collect_sline
+Number    : 3
+Signature : (stream sline) -> line
+Example   : query size(strassen feed sortby[geoData] projectextend[;g: fromline(.geoData)] filter[isdefined(.g)] transformstream collect_sline)
+Result    : (real undef)
+Tolerance : 0.5

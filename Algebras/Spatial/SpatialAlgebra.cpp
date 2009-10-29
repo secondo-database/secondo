@@ -56,6 +56,8 @@ using namespace std;
 
 #include "Algebra.h"
 #include "NestedList.h"
+#include "ListUtils.h"
+#include "Symbols.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
@@ -14668,6 +14670,27 @@ ListExpr MakeLineTypeMap(ListExpr args){
 }
 
 /*
+10.1.14 Type Mapping for the ~makesline~ operator
+
+Signature is point x point -> sline
+
+*/
+ListExpr MakeSLineTypeMap(ListExpr args){
+  int len;
+  if((len = nl->ListLength(args))!=2){
+    ErrorReporter::ReportError("two arguments expected, but got " + len);
+    return nl->TypeError();
+  }
+  if(nl->IsEqual(nl->First(args),"point") &&
+     nl->IsEqual(nl->Second(args),"point")){
+     return nl->SymbolAtom("sline");
+  } else {
+    ErrorReporter::ReportError("point x point expected");
+    return nl->TypeError();
+  }
+}
+
+/*
 ~Union2TypeMap~
 
 Signatures:
@@ -14940,6 +14963,62 @@ ListExpr gkTypeMap(ListExpr args){
   return nl->TypeError();
 }
 
+/*
+Type Mapping for ~collect\_line~ and ~collect\_sline~
+
+----
+  ((stream point)) -> line
+  ((stream sline)) -> line
+  ((stream line))  -> line
+
+
+  ((stream point)) -> sline
+  ((stream sline)) -> sline
+  ((stream line))  -> sline
+----
+
+*/
+ListExpr SpatialCollectLineTypeMap(ListExpr args){
+  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 1){
+    return listutils::typeError("Expects exactly 1 argument.");
+  }
+  ListExpr stream = nl->First(args);
+  if(!listutils::isDATAStream(stream)){
+    return listutils::typeError("Expects a DATA stream.");
+  }
+  ListExpr T = nl->Second(stream);
+  set<string> r;
+  r.insert(symbols::POINT);
+  r.insert(symbols::SLINE);
+  r.insert(symbols::LINE);
+
+  if(!listutils::isASymbolIn(T,r)){
+    return listutils::typeError("Expects stream element type to be one of "
+                                "{point, sline, line}.");
+  }
+  return nl->SymbolAtom(symbols::LINE);
+}
+
+ListExpr SpatialCollectSLineTypeMap(ListExpr args){
+  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 1){
+    return listutils::typeError("Expects exactly 1 argument.");
+  }
+  ListExpr stream = nl->First(args);
+  if(!listutils::isDATAStream(stream)){
+    return listutils::typeError("Expects a DATA stream.");
+  }
+  ListExpr T = nl->Second(stream);
+  set<string> r;
+  r.insert(symbols::POINT);
+  r.insert(symbols::SLINE);
+  r.insert(symbols::LINE);
+
+  if(!listutils::isASymbolIn(T,r)){
+    return listutils::typeError("Expects stream element type to be one of "
+                                "{point, sline, line}.");
+  }
+  return nl->SymbolAtom(symbols::SLINE);
+}
 
 
 /*
@@ -15729,7 +15808,13 @@ static int gkSelect(ListExpr args){
 
 
 
-
+static int SpatialCollectLineSelect(ListExpr args){
+  ListExpr T = nl->Second(nl->First(args));
+  if(listutils::isSymbol(T, symbols::POINT)) return 0;
+  if(listutils::isSymbol(T, symbols::SLINE)) return 1;
+  if(listutils::isSymbol(T, symbols::LINE)) return 2;
+  return -1;
+}
 
 
 /*
@@ -18241,16 +18326,17 @@ int SpatialGet(Word* args, Word& result, int message,
 
 
 /*
-10.4.34 Value Mapping for the ~makeline~ operator
+10.4.34 Value Mapping for the ~makeline~ and ~makesline~ operators
 
 */
+template<class LineType>
 int SpatialMakeLine(Word* args, Word& result, int message,
                     Word& local, Supplier s){
 
   result = qp->ResultStorage(s);
-  Point* p1 = (Point*) args[0].addr;
-  Point* p2 = (Point*) args[1].addr;
-  Line* res = (Line*) result.addr;
+  Point* p1 = static_cast<Point*>(args[0].addr);
+  Point* p2 = static_cast<Point*>(args[1].addr);
+  LineType* res = static_cast<LineType*>(result.addr);
   res->Clear();
   if(!p1->IsDefined() || !p2->IsDefined()){
        res->SetDefined(false);
@@ -18462,6 +18548,104 @@ int gkVM_x(Word* args, Word& result, int message,
    res->EndBulkLoad();
    return 0;
 }
+
+template<class ResLineType>
+int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
+                                     Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  ResLineType* L = static_cast<ResLineType*>(result.addr);
+  Point* P0 = 0;
+  Point* P1 = 0;
+  Word elem;
+  L->Clear();
+
+  qp->Open(args[0].addr);
+
+  qp->Request(args[0].addr, elem);
+  if(!qp->Received(args[0].addr)){
+    return 0;
+  }
+  P0 = static_cast<Point*>(elem.addr);
+  assert( P0 != 0 );
+  if(!P0->IsDefined()){ // found undefined Elem
+    qp->Close(args[0].addr);
+    L->SetDefined(false);
+    if(P0){ P0->DeleteIfAllowed(); }
+    return 0;
+  }
+
+  L->StartBulkLoad();
+  qp->Request(args[0].addr, elem);
+  while ( qp->Received(args[0].addr) ){
+      P1 = static_cast<Point*>(elem.addr);
+      assert( P1 != 0 );
+      if(!P1->IsDefined()){
+        qp->Close(args[0].addr);
+        L->Clear();
+        L->SetDefined(false);
+        if(P0){ P0->DeleteIfAllowed(); P0 = 0; }
+        if(P1){ P1->DeleteIfAllowed(); P1 = 0; }
+        return 0;
+      }
+      if(AlmostEqual(*P0,*P1)){
+        qp->Request(args[0].addr, elem);
+        continue;
+      }
+      HalfSegment hs(true, *P0, *P1); // create halfsegment
+      (*L) += (hs);
+      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() ); // create counter-halfsegment
+      (*L) += (hs);
+      P0->DeleteIfAllowed();
+      P0 = P1; P1 = 0;
+      qp->Request(args[0].addr, elem); // get next Point
+  }
+  L->EndBulkLoad(); // sort and realminize
+
+  qp->Close(args[0].addr);
+  if(P0){ P0->DeleteIfAllowed(); P0 = 0; }
+  return 0;
+}
+
+template <class StreamLineType, class ResLineType>
+int SpatialCollect_lineVMLinestream(Word* args, Word& result, int message,
+                                    Word& local, Supplier s){
+  result = qp->ResultStorage(s);
+  ResLineType* L = static_cast<ResLineType*>(result.addr);
+  StreamLineType* line = 0;
+  Word elem;
+  L->Clear();
+
+  qp->Open(args[0].addr);
+
+  L->StartBulkLoad();
+  qp->Request(args[0].addr, elem);
+  while ( qp->Received(args[0].addr) ){
+    line = static_cast<StreamLineType*>(elem.addr);
+    assert( line != 0 );
+    if(!line->IsDefined()){
+      qp->Close(args[0].addr);
+      L->Clear();
+      L->SetDefined(false);
+      if(line){ line->DeleteIfAllowed(); }
+      return 0;
+    }
+    // copy all halfsegments from line to L
+    L->Resize(L->Size()+line->Size()); // reserve slots for new half segments
+    int size = line->Size();
+    for(int i = 0; i < size; i++){
+      const HalfSegment* hs = 0;
+      line->Get( i, hs );
+      (*L)+=(*hs);
+    }
+    line->DeleteIfAllowed(); line = 0;
+    qp->Request(args[0].addr, elem); // get next line
+  }
+  L->EndBulkLoad(); // sort and realminize
+
+  qp->Close(args[0].addr);
+  return 0;
+}
+
 
 /*
 10.5 Definition of operators
@@ -18710,6 +18894,18 @@ ValueMapping gkVM[] = {
           gkVM_x<Line>,
           gkVM_x<Region>
       };
+
+ValueMapping spatialCollectLineMap[] = {
+  SpatialCollect_lineVMPointstream<Line>,
+  SpatialCollect_lineVMLinestream<SimpleLine,Line>,
+  SpatialCollect_lineVMLinestream<Line,Line>
+};
+
+ValueMapping spatialCollectSLineMap[] = {
+  SpatialCollect_lineVMPointstream<SimpleLine>,
+  SpatialCollect_lineVMLinestream<SimpleLine,SimpleLine>,
+  SpatialCollect_lineVMLinestream<Line,SimpleLine>
+};
 
 /*
 10.5.2 Definition of specification strings
@@ -19121,8 +19317,17 @@ const string SpatialSpecMakeLine  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>point x point  -> line </text--->"
     "<text> makeline( _, _ )  </text--->"
-    "<text>Create a segment from the arguments.</text--->"
+    "<text>Create a one-segment line from the arguments.</text--->"
     "<text>query makeline([const point value (0 0)],"
+           " [ const point value (100 40)])</text--->"
+    ") )";
+
+const string SpatialSpecMakeSLine  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>point x point  -> line </text--->"
+    "<text> makesline( _, _ )  </text--->"
+    "<text>Create a one-segment sline from the arguments.</text--->"
+    "<text>query makesline([const point value (0 0)],"
            " [ const point value (100 40)])</text--->"
     ") )";
 
@@ -19202,6 +19407,33 @@ const string gkSpec  =
    "<text> gk(_)  </text--->"
    "<text>projects the arguments using the Gauss Krueger projection</text--->"
    "<text>query gk([const point value ( 0 0)])</text--->"
+   ") )";
+
+const string SpatialSpecCollectLine  =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text>stream(T) -> line, T in {point, line, sline} </text--->"
+   "<text> _ collect_line</text--->"
+   "<text>Collects a stream of 'line' or 'sline' values into a single 'line' "
+   "value. Creates a 'line' value by consecutively connecting subsequent "
+   "'point' values from the stream by segments. If the stream provides 0 or 1"
+   "Element, the result is defined, but empty.\n"
+   "If any of the stream elemnts is undefined, so is the resulting 'line' "
+   "value.</text--->"
+   "<text>query [const line value ()] feed collect_line)</text--->"
+   ") )";
+
+const string SpatialSpecCollectSLine  =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text>stream(T) -> sline, T in {point, line, sline} </text--->"
+   "<text> _ collect_sline</text--->"
+   "<text>Collects a stream of 'line' or 'sline' values into a single 'line' "
+   "value. Creates a 'line' value by consecutively connecting subsequent "
+   "'point' values from the stream by segments. If the stream provides 0 or 1"
+   "Element, the result is defined, but empty.\n"
+   "If any of the stream elemnts is undefined, so is the resulting 'line' "
+   "value. If any segements cross each other or the segments do not form a "
+   "single curve, the result is undefined.</text--->"
+   "<text>query [const line value ()] feed collect_sline)</text--->"
    ") )";
 
 /*
@@ -19563,9 +19795,16 @@ Operator spatialget (
 Operator makeline (
     "makeline",
   SpatialSpecMakeLine,
-  SpatialMakeLine,
+  SpatialMakeLine<Line>,
   Operator::SimpleSelect,
   MakeLineTypeMap );
+
+Operator makesline (
+    "makesline",
+  SpatialSpecMakeSLine,
+  SpatialMakeLine<SimpleLine>,
+  Operator::SimpleSelect,
+  MakeSLineTypeMap );
 
 Operator realminize(
      "realminize",           //name
@@ -19653,6 +19892,23 @@ Operator gkOp (
    gkSelect,
    gkTypeMap );
 
+
+Operator spatialcollect_line (
+  "collect_line",
+  SpatialSpecCollectLine,
+  3,
+  spatialCollectLineMap,
+  SpatialCollectLineSelect,
+  SpatialCollectLineTypeMap);
+
+Operator spatialcollect_sline (
+  "collect_sline",
+  SpatialSpecCollectSLine,
+  3,
+  spatialCollectSLineMap,
+  SpatialCollectLineSelect,
+  SpatialCollectSLineTypeMap);
+
 /*
 11 Creating the Algebra
 
@@ -19736,6 +19992,7 @@ class SpatialAlgebra : public Algebra
     AddOperator( &spatialsimplify);
     AddOperator( &realminize);
     AddOperator( &makeline);
+    AddOperator( &makesline);
     AddOperator(&union2);
     AddOperator(&intersection2);
     AddOperator(&difference2);
@@ -19745,6 +20002,8 @@ class SpatialAlgebra : public Algebra
     AddOperator(&spatialiscycle);
     AddOperator(&utmOp);
     AddOperator(&gkOp);
+    AddOperator(&spatialcollect_line);
+    AddOperator(&spatialcollect_sline);
   }
   ~SpatialAlgebra() {};
 };

@@ -677,6 +677,7 @@ opSignature(simplify, spatial, [line,real],line,[]).
 opSignature(simplify, spatial, [line,real,points],line,[]).
 opSignature(realminize, spatial, [line],line,[]).
 opSignature(makeline, spatial, [point,point],line,[]).
+opSignature(makesline, spatial, [point,point],sline,[]).
 opSignature(union2, spatial, [line,line],line,[comm,ass]).
 opSignature(union2, spatial, [line,region],region,[comm,ass]).
 opSignature(union2, spatial, [region,line],region,[comm,ass]).
@@ -695,6 +696,12 @@ opSignature(fromline, spatial, [line],sline,[]).
 opSignature(iscycle, spatial, [sline],bool,[]).
 opSignature(bbox, spatial, [T], rect, []):-
   memberchk(T, [region, point, line, points, sline]),!.
+opSignature(collect_line, spatial, [[stream,line]],line,[aggr,block,exp]).
+opSignature(collect_line, spatial, [[stream,sline]],line,[aggr,block,exp]).
+opSignature(collect_line, spatial, [[stream,point]],line,[aggr,block,exp]).
+opSignature(collect_sline, spatial, [[stream,line]],sline,[aggr,block,exp]).
+opSignature(collect_sline, spatial, [[stream,sline]],sline,[aggr,block,exp]).
+opSignature(collect_sline, spatial, [[stream,point]],sline,[aggr,block,exp]).
 
 /*
 2.7.5 TemporalAlgebra
@@ -2541,7 +2548,8 @@ checkOpProperty(Op,ArgsTypeList,_Flag) :-
 % The following version takes a term and extracts the types by itself:
 % checkOpProperty(+Term,?Flag) :-
 checkOpProperty(Term,Flag) :-
-  getTypeTree(Term,[Op,ArgsTrees,Type]),
+  getTypeTree(Term,X),
+  X = [Op,ArgsTrees,Type],
   findall(Type,member([_,_,Type],ArgsTrees),ArgTypes),
   checkOpProperty(Op, ArgTypes, Flag), !.
 
@@ -2564,7 +2572,7 @@ isBBoxPredicate(Term) :-
   Term =.. [Op|_],
   opSignature(Op, _, _ArgsTypeList,bool,Flags),
   memberchk(bbox(_Dim),Flags),
-  dm(['INFO:\tOperator name matching used to determine ',
+  dm(gettypetree,['INFO:\tOperator name matching used to determine ',
               'isBBoxPredicate(',Op,').\n']),
   !.
 
@@ -2604,7 +2612,8 @@ isBBoxPredicate(Op,ArgsTypeList,Dim) :-
 % The following version takes a term and extracts the types by itself:
 % --- isBBoxPredicate(+Term,?Dimension)
 isBBoxPredicate(Term,Dim) :-
-  getTypeTree(Term,[Op,ArgsTrees,Type]),
+  getTypeTree(Term,X),
+  X = [Op,ArgsTrees,Type],
   findall(Type,member([_,_,Type],ArgsTrees),ArgTypes),
   isBBoxPredicate(Op,ArgTypes,Dim), !.
 
@@ -2622,7 +2631,7 @@ isBBoxOperator(Term) :-
   Term =.. [Op|_],
   opSignature(Op, _, _ArgsTypeList,_,Flags),
   memberchk(bbox(_Dim),Flags),
-  dm(['INFO:\tOperator name matching used to determine ',
+  dm(gettypetree,['INFO:\tOperator name matching used to determine ',
               'isBBoxOperator(',Op,').\n']),
   !.
 
@@ -2673,7 +2682,7 @@ isCommutativeOP(Term) :-
 isCommutativeOP(Op) :-
   atom(Op),
   opSignature(Op, _, _, _, Flags),
-  dm(['INFO:\tOperator name matching used to determine ',
+  dm(gettypetree,['INFO:\tOperator name matching used to determine ',
               'isCommutativeOP(',Op,').\n']),
   memberchk(comm,Flags),!.
 
@@ -2720,7 +2729,7 @@ isAggregationOP(Term) :-
 isAggregationOP(Op) :-
   atom(Op),
   opSignature(Op, _, _, _, Flags),
-  dm(['INFO:\tOperator name matching used to determine ',
+  dm(gettypetree,['INFO:\tOperator name matching used to determine ',
               'isAggregationOP(',Op,').\n']),
   memberchk(aggr,Flags),!.
 
@@ -2776,13 +2785,13 @@ isJoinOP(Op) :-
   atom(Op),
   opSignature(Op, _, _, _, Flags),
   memberchk(join,Flags),
-  dm(['INFO:\tOperator name matching used to determine ',
+  dm(gettypetree,['INFO:\tOperator name matching used to determine ',
               'isJoinOP(',Op,').\n']),
   !.
 
 % only required because type mappings for PStreamAlgebra are not provided yet.
 isJoinOP(pjoin) :-
-  dm(['INFO:\tOperator name matching used to determine ',
+  dm(gettypetree,['INFO:\tOperator name matching used to determine ',
               'isJoinOP(',pjoin,').\n']), !.
 
 /*

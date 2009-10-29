@@ -205,7 +205,9 @@ secondoOp( category,          postfix, 1).
 secondoOp( cluster_of,        prefix, 2).
 secondoOp( clustername_of,    prefix, 2).
 secondoOp( colordist,         postfixbrackets1, 2).
+secondoOp( collect_line,      postfix, 1).
 secondoOp( collect_set,       postfix, 1).
+secondoOp( collect_sline,     postfix, 1).
 secondoOp( collect_multiset,  postfix, 1).
 secondoOp( collect_vector,    postfix, 1).
 secondoOp( compare,           prefix, 2).
@@ -320,6 +322,7 @@ secondoOp( loopswitch,        postfixbrackets1, 2).
 secondoOp( loopswitcha,       postfixbrackets2, 3).
 secondoOp( loopswitchb,       postfixbrackets2, 3).
 secondoOp( makeline,          prefix, 2).
+secondoOp( makesline,         prefix, 2).
 secondoOp( makearray,         prefix, 2). % also prefix 1,...,n
 secondoOp( makemvalue,        postfixbrackets1, 2).
 secondoOp( max,               postfixbrackets1, 2).
