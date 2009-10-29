@@ -247,6 +247,9 @@ i-th mapping.
 
    * (list may be extended as required)
 
+% Section:Start:opSignature_5_s
+% Section:End:opSignature_5_s
+
 2.7.1 StandardAlgebra
 
 */
@@ -925,11 +928,15 @@ opSignature(everNearerThan, temporalext, [point,mpoint,real],bool,[exp]).
 */
 opSignature((=), temporallifted, [T,T],mbool,[comm,exp]) :-
   memberchk(T,[mbool,mint,mstring,mreal,mpoint,movingregion]),!.
-opSignature((=), temporallifted, [T1,T2],mbool,[comm,exp]) :-
+opSignature((=), temporallifted, [T1,T2],mbool,[comm,exp,liftedequality]) :-
   (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
-                         (mreal,real),(mpoint,point),(movingregion,region)])
+                         (mreal,real)])
     ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
-                         (mreal,real),(mpoint,point),(movingregion,region)])
+                         (mreal,real)])
+  ),!.
+opSignature((=), temporallifted, [T1,T2],mbool,[comm,exp,liftedspatialrange]) :-
+  (   memberchk((T1,T2),[(mpoint,point),(movingregion,region)])
+    ; memberchk((T2,T1),[(mpoint,point),(movingregion,region)])
   ),!.
 opSignature((#), temporallifted, [T,T],mbool,[comm,exp]) :-
   memberchk(T,[mbool,mint,mstring,mreal,mpoint,movingregion]),!.
@@ -939,36 +946,44 @@ opSignature((#), temporallifted, [T1,T2],mbool,[comm,exp]) :-
     ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real),(mpoint,point),(movingregion,region)])
   ),!.
-opSignature((<), temporallifted, [T1,T2],mbool,[exp]) :-
-  (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
+opSignature((<), temporallifted, [T1,T2],mbool,[exp,liftedleftrange]) :-
+  memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
-    ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
+  ,!.
+opSignature((<), temporallifted, [T1,T2],mbool,[exp,liftedrightrange]) :-
+  memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),
+                         (real,mreal)])
+  ,!.
+opSignature((<=), temporallifted, [T1,T2],mbool,[exp,liftedleftrange]) :-
+  memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
-  ),!.
-opSignature((<=), temporallifted, [T1,T2],mbool,[exp]) :-
-  (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
+  ,!.
+opSignature((<=), temporallifted, [T1,T2],mbool,[exp,liftedrightrange]) :-
+  memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),
+                         (real,mreal)])
+  ,!.
+opSignature((>), temporallifted, [T1,T2],mbool,[exp,liftedrightrange]) :-
+  memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
-    ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
+  ,!.
+opSignature((>), temporallifted, [T1,T2],mbool,[exp,liftedleftrange]) :-
+  memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),
+                         (real,mreal)])
+  ,!.
+opSignature((>=), temporallifted, [T1,T2],mbool,[exp,liftedrightrange]) :-
+  memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
                          (mreal,real)])
-  ),!.
-opSignature((>), temporallifted, [T1,T2],mbool,[exp]) :-
-  (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
-                         (mreal,real)])
-    ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
-                         (mreal,real)])
-  ),!.
-opSignature((>=), temporallifted, [T1,T2],mbool,[exp]) :-
-  (   memberchk((T1,T2),[(mbool,bool),(mint,int),(mstring,string),
-                         (mreal,real)])
-    ; memberchk((T2,T1),[(mbool,bool),(mint,int),(mstring,string),
-                         (mreal,real)])
-  ),!.
+  ,!.
+opSignature((>=), temporallifted, [T1,T2],mbool,[exp,liftedleftrange]) :-
+  memberchk((T1,T2),[(bool,mbool),(int,mint),(string,mstring),
+                         (real,mreal)])
+  ,!.
 opSignature(isempty, temporallifted, [T],mbool,[]) :-
   memberchk(T,[mbool, mint, mstring, mreal, mpoint, mregion]),!.
-opSignature(inside, temporallifted, [mpoint,points],mbool,[exp]).
-opSignature(inside, temporallifted, [mpoint,line],mbool,[exp]).
-opSignature(inside, temporallifted, [movingregion,points],mbool,[exp]).
-opSignature(inside, temporallifted, [movingregion,line],mbool,[exp]).
+opSignature(inside, temporallifted, [mpoint,points],mbool,[exp,liftedspatialrange]).
+opSignature(inside, temporallifted, [mpoint,line],mbool,[exp,liftedspatialrange]).
+opSignature(inside, temporallifted, [movingregion,points],mbool,[exp,liftedspatialrange]).
+opSignature(inside, temporallifted, [movingregion,line],mbool,[exp,liftedspatialrange]).
 opSignature(intersection, temporallifted, [T,T],T,[comm,ass,exp]) :-
   memberchk(T,[mbool, mint, mstring, mreal]),!.
 opSignature(intersection, temporallifted, [T1,T2],T1,[comm,exp]) :-
@@ -2618,8 +2633,6 @@ isBBoxPredicate(Term,Dim) :-
   isBBoxPredicate(Op,ArgTypes,Dim), !.
 
 % Section:Start:isBBoxLiftedPred_1_e
-% Range Lifted Predicates
-isBBoxLiftedPred(inside).
 % Section:End:isBBoxLiftedPred_1_e
 
 % other operators using bboxes:
