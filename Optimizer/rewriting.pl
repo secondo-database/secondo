@@ -581,21 +581,21 @@ inferPredicate(Premises, [X intersects Y]) :-
 
 % Section:Start:inferPredicate_2_e
 /*
-Infering the predicates for spatiotemporal pattern predicte
+Inferring the predicates for spatiotemporal pattern predicate.
 The aliases of the lifted predicates are first removed by
 calling "removeAliases". Then, for every lifted predicate,
-a suitable standard predicate is infered
+a suitable standard predicate is inferred
 
 */
 inferPredicate(Premises, AdditionalConditions):-
   member( Pattern, Premises),
   Pattern=..[pattern|[NamedPredList, _ ]],
   removeAliases(NamedPredList, PredList, _),
-	inferPatternPredicates(PredList, AdditionalConditions),
-	!.
+  inferPatternPredicates(PredList, AdditionalConditions),
+  !.
 
 /*
-Infering the predicates for Extended spatiotemporal pattern predicte
+Inferring the predicates for extended spatiotemporal pattern predicate
 in a similar way as above
 
 */
@@ -603,8 +603,8 @@ inferPredicate(Premises, AdditionalConditions):-
   member( Pattern, Premises),
   Pattern=..[patternex|[NamedPredList, _, _ ]],
   removeAliases(NamedPredList, PredList, _),
-	inferPatternPredicates(PredList, AdditionalConditions),
-	!.
+  inferPatternPredicates(PredList, AdditionalConditions),
+  !.
 % Section:End:inferPredicate_2_e
 
 /*
@@ -1122,7 +1122,7 @@ combine them with each possible argument number (1, 2) and store the pairs in
 
 */
 
-getAllUsedRelations(RelList) :-
+getAllUsedRelations(L1) :-
   findall(rel(X,Y),queryRel(_,rel(X,Y)),L1).
 
 /*
@@ -2697,13 +2697,11 @@ Auxiliary Predicates for Inference of Conditions
 ---- inferPatternPredicates(+Preds,-InferedPreds)
 ----
 
-For every lifted predicate P inside the spatiotemporal
-pattern predicate, a standard predicate is added.
-For range lifted predicates (ex: inside), the "passes"
-predicate is used, otherwise, sometimes(P).
-
+For every lifted predicate P within the spatiotemporal
+pattern predicate, the standard predicate 
+sometimes(P) is added. 
 The dynamic predicate removefilter is used to keep a list
-of the additiotnal standard predicates so that they are removed
+of the additional standard predicates so that they are removed
 from the query before execution.
 
 */
@@ -2711,33 +2709,18 @@ from the query before execution.
 
 :- dynamic removefilter/1.
 inferPatternPredicates([], [] ).
-/*
-If the lifted predicate is a range lifted predicate (i.e. isBBoxLiftedPred),
-the "passes" predicate is the result ofthe inference.
-
-*/
-inferPatternPredicates([Pred|Preds], [passes(P1,box2d(bbox(P2)))|Preds2] ):-
-  Pred=..[F,P1,P2],
-  isBBoxLiftedPred(F),!,
-  assert(removefilter(passes(P1,box2d(bbox(P2))))),
-	inferPatternPredicates(Preds,Preds2).
-
-/*
-Otherwise, the "sometimes" predicate is the result ofthe inference.
-
-*/
 inferPatternPredicates([Pred|Preds], [sometimes(Pred)|Preds2] ):-
   assert(removefilter(sometimes(Pred))),
   inferPatternPredicates(Preds,Preds2).
 
 
 /*
-Auxiliary Predicates for parsing spatiotemporal pattern predicates
+Auxiliary predicates for parsing spatiotemporal pattern predicates
 
 ---- removeAliases(+NamedLiftedPreds,-LiftedPreds, -Aliases)
 ---- parseNPred(+NamedLiftedPred,-LiftedPred, -Alias)
 
-The predicates are used to seperate the predicates and their aliases
+The predicates are used to separate the predicates and their aliases
 for further processing.
 */
 parseNPred(AP , P, A):-
