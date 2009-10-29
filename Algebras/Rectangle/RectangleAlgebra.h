@@ -239,7 +239,7 @@ of the rectangle.
     {
       size_t h = 0;
       for( unsigned i = 0; i < dim; i++ )
-        h += size_t(4 * min[dim] + max[dim]);
+        h += size_t(4 * min[i] + max[i]);
       return h;
     }
 
@@ -966,13 +966,13 @@ InRectangle( const ListExpr typeInfo, const ListExpr instance,
 /*
 4 Class ~RectangleSet~
 
-This class simply contains a set of rectangles. It is used by the 
+This class simply contains a set of rectangles. It is used by the
 MON-Tree to search in an R-Tree using a set of rectangles instead
 of only one.
 
 2.3 Struct ~RectangleSet~
 
-This structure contains a set of rectangles used in the 
+This structure contains a set of rectangles used in the
 MON-Tree search.
 
 */
