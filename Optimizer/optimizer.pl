@@ -177,6 +177,8 @@ By now, we have the following logical index types (and ~LogicalIndexTypeCode~s):
 
   * keyword(btree): keywdb, keyword(hash): keywdh,
 
+  * btree(constunit): constuni
+
 Logical index type are registered in file ~database.pl~ using facts
 ~logicalIndexType/8~.
 
@@ -2310,7 +2312,7 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term = Attr): rangesearch using mtree
 % without rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rangesearch(dbobject(IndexName), rel(Name, *), Y, 0.0)
+  rangesearch(dbobject(IndexName), rel(Name, *), Y, Y)
   :-
   argument(N, rel(Name, *)),
   hasIndex(rel(Name,*),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
@@ -2320,7 +2322,7 @@ indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
 % generic rule for (Term = Attr): rangesearch using mtree
 % with rename
 indexselect(arg(N), pr(Y = attr(AttrName, Arg, AttrCase), _)) =>
-  rename(rangesearch(dbobject(IndexName), rel(Name, Var), Y), Var, 0.0)
+  rename(rangesearch(dbobject(IndexName), rel(Name, Var), Y), Var, Y)
   :-
   argument(N, rel(Name, Var)), Var \= * ,
   hasIndex(rel(Name,Var),attr(AttrName,Arg,AttrCase),DCindex,IndexType),
@@ -3301,65 +3303,241 @@ join00(Arg1S, Arg2S, pr(X = Y, _, _))
 
 % Section:Start:translationRule_2_e
 % translation rule for sometimes(Pred). It is necessary for STPattern
-indexselect(arg(N), pr(Pred, _)) => filter(IS, Pred) :-
-  Pred =.. [sometimes, InnerPred] ,
-  indexselect(arg(N), pr(InnerPred, _)) => Result,
-  Result= filter(IS, InnerPred).
+indexselect(arg(N), pr(sometimes(InnerPred), _)) => filter(ISL, sometimes(InnerPred)) :-
+  indexselectLifted(arg(N), InnerPred)=> ISL.
 
 % special rules for range queries in the form distance(m(x), y) < d
 % 'distance <' with spatial(rtree,object) index
 
-indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(gettuples(windowintersectsS(dbobject(IndexName),
-				enlargeRect(bbox(Y),D,D)),  rel(Name, *)),
-				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+indexselectLifted(arg(N), distance(Y, attr(AttrName, Arg, AttrCase)) < D ) => Res :-
+  indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) => Res.
+
+indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
+  gettuples(windowintersectsS(dbobject(IndexName), enlargeRect(bbox(Y),D,D)),  rel(Name, *))
   :-
-%the translation will work only if Y is of spatial type
-%otherwise it will crash
-%We still need to develop a predicate that will check the type of a param
   argument(N, rel(Name, *)),
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
-           DCindex, spatial(rtree,object)),
+  getTypeTree(Y, rel(Name, *), [_, _, T]),
+  memberchk(T, [point, region]),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
-indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(rename(gettuples(windowintersectsS(dbobject(IndexName),
-				enlargeRect(bbox(Y),D,D)),  rel(Name, *)), RelAlias),
-				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
+  rename(gettuples(windowintersectsS(dbobject(IndexName), 
+  enlargeRect(bbox(Y),D,D)),  rel(Name, *)), RelAlias)
   :-
-%the translation will work only if Y is of spatial type
-%otherwise it will crash
-%We still need to develop a predicate that will check the type of a param
   argument(N, rel(Name, RelAlias)), RelAlias \= *,
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
-           DCindex, spatial(rtree,object)),
+  getTypeTree(Y, rel(Name, RelAlias), [_, _, T]),
+  memberchk(T, [point, region]),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,object)),
   dcName2externalName(DCindex,IndexName).
 
 % 'distance <' with spatial(rtree,unit) index
-indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
-				enlargeRect(bbox(Y),D,D)))),  rel(Name, *)),
-				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
+  gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+  enlargeRect(bbox(Y),D,D)))),  rel(Name, *))
   :-
-%the translation will work only if Y is of spatial type
-%otherwise it will crash
-%We still need to develop a predicate that will check the type of a param
   argument(N, rel(Name, *)),
-  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase),
-           DCindex, spatial(rtree,unit)),
+  getTypeTree(Y, rel(Name, *), [_, _, T]),
+  memberchk(T, [point, region]),
+  hasIndex(rel(Name,_), attr(AttrName,Arg,AttrCase), DCindex, spatial(rtree,unit)),
   dcName2externalName(DCindex,IndexName).
 
-indexselectRT(arg(N), pr(distance(attr(AttrName, Arg, AttrCase), Y)< D , _)) =>
-      filter(rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
-				enlargeRect(bbox(Y),D,D)))),rel(Name, *)), RelAlias),
-				distance(attr(AttrName, Arg, AttrCase), Y)< D)
+indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
+  rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+  enlargeRect(bbox(Y),D,D)))),rel(Name, *)), RelAlias)
   :-
-%the translation will work only if Y is of spatial type
-%otherwise it will crash
-%We still need to develop a predicate that will check the type of a param
   argument(N, rel(Name, RelAlias)), RelAlias \= *,
-  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase),
-           DCindex, spatial(rtree,unit)),
+  getTypeTree(Y, rel(Name, RelAlias), [_, _, T]),
+  memberchk(T, [point, region]),
+  hasIndex(rel(Name, _), attr(AttrName, Arg, AttrCase), DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
+
+
+% general rules for liftedSpatialRangeQueries 
+% spatial(rtree,object) index, no rename
+
+indexselectLifted(arg(N), Pred ) =>
+  gettuples(windowintersectsS(dbobject(IndexName), BBox),  rel(Name, *))
+  :-
+  Pred =..[Op, Arg1, Arg2],
+  ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
+  argument(N, rel(Name, *)),
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  isLiftedSpatialRangePred(Op, [T1,T2]),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
+
+% spatial(rtree,unit) index, no rename
+indexselectLifted(arg(N), Pred ) =>
+  gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))),  rel(Name, *))
+  :-
+  Pred =..[Op, Arg1, Arg2],
+  ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
+  argument(N, rel(Name, *)),
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  isLiftedSpatialRangePred(Op, [T1,T2]),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
+
+% spatial(rtree,object) index, rename
+indexselectLifted(arg(N), Pred ) =>
+  rename(gettuples(windowintersectsS(dbobject(IndexName),
+  BBox),  rel(Name, *)), RelAlias)
+  :-
+  Pred =..[Op, Arg1, Arg2],
+  ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
+  argument(N, rel(Name, RelAlias)), RelAlias \= *,
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  isLiftedSpatialRangePred(Op, [T1,T2]),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,object)),
+  dcName2externalName(DCindex,IndexName).
+
+% spatial(rtree,unit) index, rename
+indexselectLifted(arg(N), Pred ) =>
+  rename(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName),
+  BBox))),  rel(Name, *)), RelAlias)
+  :-
+  Pred =..[Op, Arg1, Arg2],
+  ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
+  argument(N, rel(Name, RelAlias)), RelAlias \= *,
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  isLiftedSpatialRangePred(Op, [T1,T2]),
+  ((memberchk(T1, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg1));
+   (memberchk(T2, [rect, rect2, region, point, line, points, sline]), BBox= bbox(Arg2))),
+  hasIndex(rel(Name, _), Attr, DCindex, spatial(rtree,unit)),
+  dcName2externalName(DCindex,IndexName).
+
+
+% general rules for liftedEqualityQueries 
+% constuni(btree) index, no rename
+indexselectLifted(arg(N), Pred ) =>
+  exactmatch(dbobject(IndexName), rel(Name, *), Y)
+  :-
+  Pred =..[Op, Arg1, Arg2],
+  ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
+  argument(N, rel(Name, *)),
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  isLiftedEqualityPred(Op, [T1,T2]),
+  ((memberchk(T1, [int, string, bool]), Y= Arg1);
+   (memberchk(T2, [int, string, bool]), Y= Arg2)),
+  hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
+  dcName2externalName(DCindex,IndexName).
+
+% constuni(btree) index, rename
+indexselectLifted(arg(N), Pred ) =>
+  rename(exactmatch(dbobject(IndexName), rel(Name, Var), Y), Var)
+  :-
+  Pred =..[Op, Arg1, Arg2],
+  ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
+  argument(N, rel(Name, Var)), Var \= * ,
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  isLiftedEqualityPred(Op, [T1,T2]),
+  ((memberchk(T1, [int, string, bool]), Y= Arg1);
+   (memberchk(T2, [int, string, bool]), Y= Arg2)),
+  hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
+  dcName2externalName(DCindex,IndexName).
+
+% general rules for liftedRangeQueries 
+% constuni(btree) index, no rename
+indexselectLifted(arg(N), Pred ) =>
+  rangesearch(dbobject(IndexName), rel(Name, *), Arg2 , Arg3)
+  :-
+  Pred =..[Op, Arg1, Arg2, Arg3],
+  Arg1 = attr(_, _, _),
+  argument(N, rel(Name, *)),
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  getTypeTree(Arg3, _, [_, _, T3]),
+  isLiftedRangePred(Op, [T1,T2,T3]),
+  hasIndex(rel(Name, _), Arg1, DCindex, constuni(btree)),
+  dcName2externalName(DCindex,IndexName).
+
+% constuni(btree) index, rename
+indexselectLifted(arg(N), Pred ) =>
+  rename(rangesearch(dbobject(IndexName), rel(Name, *), Arg2 , Arg3), Var)
+  :-
+  Pred =..[Op, Arg1, Arg2, Arg3],
+  Arg1 = attr(_, _, _),
+  argument(N, rel(Name, Var)), Var \= * ,
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  getTypeTree(Arg3, _, [_, _, T3]),
+  isLiftedRangePred(Op, [T1,T2,T3]),
+  hasIndex(rel(Name, _), Arg1, DCindex, constuni(btree)),
+  dcName2externalName(DCindex,IndexName).
+
+% general rules for liftedLeftRangeQueries 
+% constuni(btree) index, no rename
+indexselectLifted(arg(N), Pred ) =>
+  leftrange(dbobject(IndexName), rel(Name, *), Y)
+  :-
+  Pred =..[Op, Arg1, Arg2],
+  ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
+  argument(N, rel(Name, *)),
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  isLiftedLeftRangePred(Op, [T1,T2]),
+  ((memberchk(T1, [int, string, bool]), Y= Arg1);
+   (memberchk(T2, [int, string, bool]), Y= Arg2)),
+  hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
+  dcName2externalName(DCindex,IndexName).
+
+% constuni(btree) index, rename
+indexselectLifted(arg(N), Pred ) =>
+  rename(leftrange(dbobject(IndexName), rel(Name, Var), Y), Var)
+  :-
+  Pred =..[Op, Arg1, Arg2],
+  ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
+  argument(N, rel(Name, Var)), Var \= * ,
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  isLiftedLeftRangePred(Op, [T1,T2]),
+  ((memberchk(T1, [int, string, bool]), Y= Arg1);
+   (memberchk(T2, [int, string, bool]), Y= Arg2)),
+  hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
+  dcName2externalName(DCindex,IndexName).
+
+% general rules for liftedRightRangeQueries 
+% constuni(btree) index, no rename
+indexselectLifted(arg(N), Pred ) =>
+  rightrange(dbobject(IndexName), rel(Name, *), Y)
+  :-
+  Pred =..[Op, Arg1, Arg2],
+  ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
+  argument(N, rel(Name, *)),
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  isLiftedRightRangePred(Op, [T1,T2]),
+  ((memberchk(T1, [int, string, bool]), Y= Arg1);
+   (memberchk(T2, [int, string, bool]), Y= Arg2)),
+  hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
+  dcName2externalName(DCindex,IndexName).
+
+% constuni(btree) index, rename
+indexselectLifted(arg(N), Pred ) =>
+  rename(rightrange(dbobject(IndexName), rel(Name, Var), Y), Var)
+  :-
+  Pred =..[Op, Arg1, Arg2],
+  ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
+  argument(N, rel(Name, Var)), Var \= * ,
+  getTypeTree(Arg1, _, [_, _, T1]),
+  getTypeTree(Arg2, _, [_, _, T2]),
+  isLiftedRightRangePred(Op, [T1,T2]),
+  ((memberchk(T1, [int, string, bool]), Y= Arg1);
+   (memberchk(T2, [int, string, bool]), Y= Arg2)),
+  hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
   dcName2externalName(DCindex,IndexName).
 % Section:End:translationRule_2_e
 
@@ -7969,6 +8147,17 @@ sqlExample( 500,
   where pattern([trip inside msnow as preda,
                  distance(trip, mehringdamm)<10.0 as predb],
                 [stconstraint("preda","predb",vec("aabb"))])).
+
+sqlExample( 501,
+  select count(*)
+  from trains
+  where pattern([trip inside sehenswuerdaspoints as preda,
+                 distance(trip, mehringdamm)<10.0 as predb,
+                 trip = mehringdamm as predc 
+                ],
+                [stconstraint("preda","predb",vec("aabb")),
+                 stconstraint("predb","predc",vec("aabb"))
+                ])).
 % Section:End:sqlExample_1_e
 
 example14 :- example(14).
@@ -8357,7 +8546,53 @@ isNamedPredList([namedPred|PredListRest]):-
 	isNamedPredList(PredListRest).
 
 %evalIskNN(K, QueryObj, RelName, AttrName, TupleIDs).
-	
+isLiftedSpatialRangePred(Op, [T1,T2]):-
+  opSignature(Op, _, [T1, T2], _, Flags),
+  memberchk(liftedspatialrange,Flags),!.
+
+isLiftedSpatialRangePred(Term) :-
+  optimizerOption(determinePredSig),
+  compound(Term), not(is_list(Term)),
+  checkOpProperty(Term,liftedspatialrange), !.
+
+
+isLiftedEqualityPred(Op, [T1,T2]):-
+  opSignature(Op, _, [T1, T2], _, Flags),
+  memberchk(liftedequality,Flags),!.
+
+isLiftedEqualityPred(Term) :-
+  optimizerOption(determinePredSig),
+  compound(Term), not(is_list(Term)),
+  checkOpProperty(Term,liftedequality), !.
+
+
+isLiftedRangePred(Op, [T1,T2,T3]):-
+  opSignature(Op, _, [T1, T2, T3], _, Flags),
+  memberchk(liftedrange,Flags),!.
+
+isLiftedRangePred(Term) :-
+  optimizerOption(determinePredSig),
+  compound(Term), not(is_list(Term)),
+  checkOpProperty(Term,liftedrange), !.
+
+isLiftedLeftRangePred(Op, [T1,T2]):-
+  opSignature(Op, _, [T1, T2], _, Flags),
+  memberchk(liftedleftrange,Flags),!.
+
+isLiftedLeftRangePred(Term) :-
+  optimizerOption(determinePredSig),
+  compound(Term), not(is_list(Term)),
+  checkOpProperty(Term,liftedleftrange), !.
+
+isLiftedRightRangePred(Op, [T1,T2]):-
+  opSignature(Op, _, [T1, T2], _, Flags),
+  memberchk(liftedrightrange,Flags),!.
+
+isLiftedRightRangePred(Term) :-
+  optimizerOption(determinePredSig),
+  compound(Term), not(is_list(Term)),
+  checkOpProperty(Term,liftedrightrange), !.
+
 % Section:End:auxiliaryPredicates
 
 /*
