@@ -8,7 +8,7 @@
 #include <boost/lambda/bind.hpp>
 namespace bl = boost::lambda;
 
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "ListStream.hpp"
 #include "Type.hpp"
 
@@ -16,7 +16,7 @@ namespace bl = boost::lambda;
 #include "Board_16x12.hpp"
 #include "Type.hpp"
 
-class Position : public position_t, public StandardAttribute
+class Position : public position_t, public Attribute
 {
 public:
     static const std::string& name()
@@ -30,7 +30,7 @@ public:
         : position_t(EMPTY_POSITION), defined_(def == DEFINED){}
     Position( const position_t& pos ) : position_t(pos), defined_(true){}
 
-    // pure virtual functions of class StandardAttribute
+    // pure virtual functions of class Attribute
     virtual bool Adjacent( const Attribute* ) const { return 0; }
     virtual int Compare( const Attribute* other ) const { return 0; }
     virtual Attribute* Clone() const { return new Position( *this ); }
@@ -81,7 +81,7 @@ public:
         return pos.Print(os);
     }
 
-    virtual void CopyFrom( const StandardAttribute* other )
+    virtual void CopyFrom( const Attribute* other )
     {
         *this = Position( *static_cast< const Position* >( other ) );
     }

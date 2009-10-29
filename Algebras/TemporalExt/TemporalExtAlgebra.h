@@ -47,7 +47,7 @@ named implementations.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
 #include "NestedList.h"

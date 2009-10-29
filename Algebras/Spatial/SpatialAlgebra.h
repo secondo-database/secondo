@@ -56,7 +56,7 @@ shows examples of these spatial data types.
 #include <stack>
 #include <vector>
 #include <queue>
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "DBArray.h"
 #include "RectangleAlgebra.h"
 #include "WinUnix.h"
@@ -388,7 +388,7 @@ as an attribute.
       return (size_t)(5*x + y);
     }
 
-    inline void CopyFrom( const StandardAttribute* right )
+    inline void CopyFrom( const Attribute* right )
     {
       const Point* p = (const Point*)right;
       SetDefined( p->IsDefined() );
@@ -1010,7 +1010,7 @@ as an attribute.
     inline FLOB *GetFLOB( const int i );
     inline size_t Sizeof() const;
     size_t HashValue() const;
-    void CopyFrom( const StandardAttribute* right );
+    void CopyFrom( const Attribute* right );
     int Compare( const Attribute *arg ) const;
     int CompareAlmost( const Attribute *arg ) const;
     bool Adjacent( const Attribute *arg ) const;
@@ -2043,7 +2043,7 @@ as an attribute.
     }
 
     size_t HashValue() const;
-    void CopyFrom( const StandardAttribute* right );
+    void CopyFrom( const Attribute* right );
     int Compare( const Attribute *arg ) const;
 //     int CompareAlmost( const Attribute *arg ) const;
     virtual Line *Clone() const;
@@ -2540,7 +2540,7 @@ The following functions are needed to act as an attribute type.
     return bbox.HashValue() + segments.Size();
   }
 
-  void CopyFrom(const StandardAttribute* right){
+  void CopyFrom(const Attribute* right){
      Equalize(*(static_cast<const SimpleLine*>(right)));
   }
 
@@ -3314,7 +3314,7 @@ as an attribute.
     }
 
     size_t HashValue() const;
-    void CopyFrom( const StandardAttribute* right );
+    void CopyFrom( const Attribute* right );
     int Compare( const Attribute *arg ) const;
 //     int CompareAlmost( const Attribute *arg ) const;
     ostream& Print( ostream &os ) const;

@@ -4731,7 +4731,7 @@ DBArray<RouteInterval>* GLine::GetRouteIntervals(){
   else return 0;
 };
 
-void GLine::CopyFrom(const StandardAttribute* right)
+void GLine::CopyFrom(const Attribute* right)
 {
   *this = *((const GLine*) right);
   //Clear();
@@ -6224,7 +6224,7 @@ size_t GPoints::HashValue()const
   }
   return xHash;
 }
-void GPoints::CopyFrom(const StandardAttribute* right)
+void GPoints::CopyFrom(const Attribute* right)
 {
   *this = *((const GPoints *)right);
 }

@@ -29,10 +29,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #ifndef BINARYFILE_H
 #define BINARYFILE_H
 
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "FLOB.h"
 
-class BinaryFile : public StandardAttribute
+class BinaryFile : public Attribute
 {
   public:
 
@@ -49,7 +49,7 @@ This constructor should not be used.
     inline void SetDefined( bool Defined);
     inline size_t Sizeof() const;
     inline size_t HashValue() const;
-    void CopyFrom(const StandardAttribute* right);
+    void CopyFrom(const Attribute* right);
     inline int Compare(const Attribute * arg) const;
     inline bool Adjacent(const Attribute * arg) const;
     BinaryFile* Clone() const;

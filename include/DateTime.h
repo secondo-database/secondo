@@ -51,7 +51,8 @@ will change the type of the this object to a {\tt duration}.
 #include <string>
 #include <ostream>
 #include "NestedList.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
+#include "IndexableAttribute.h"
 #include "StandardTypes.h"
 #include "BigInt.h"
 
@@ -101,7 +102,7 @@ static const unsigned char DURATION_POS = 4;
 
 */
 
-class DateTime : public IndexableStandardAttribute  {
+class DateTime : public IndexableAttribute  {
   public:
 
 /*
@@ -585,7 +586,7 @@ an attribute of a relation.
      bool Adjacent(const Attribute *arg) const;
      size_t Sizeof() const;
      size_t HashValue() const;
-     void CopyFrom(const StandardAttribute* arg);
+     void CopyFrom(const Attribute* arg);
      DateTime* Clone() const;
      void WriteTo( char *dest ) const;
      void ReadFrom( const char *src );

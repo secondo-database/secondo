@@ -174,25 +174,25 @@ Returns the key data type.
 
 */
 
-    BTreeIterator* ExactMatch( StandardAttribute* key );
+    BTreeIterator* ExactMatch( Attribute* key );
 /*
 Performs the exact match query returning an iterator.
 
 */
 
-    BTreeIterator* LeftRange( StandardAttribute* key );
+    BTreeIterator* LeftRange( Attribute* key );
 /*
 Performs the left range query returning an iterator.
 
 */
 
-    BTreeIterator* RightRange( StandardAttribute* key );
+    BTreeIterator* RightRange( Attribute* key );
 /*
 Performs the right range query returning an iterator.
 
 */
 
-    BTreeIterator* Range( StandardAttribute* left, StandardAttribute* right );
+    BTreeIterator* Range( Attribute* left, Attribute* right );
 /*
 Performs the range query between ~left~ and ~right~ returning an iterator.
 
@@ -224,9 +224,9 @@ Funcion headers
 bool ReadRecordId(SmiRecord& record, SmiRecordId& id);
 bool WriteRecordId(SmiRecord& record, SmiRecordId id);
 SmiKey::KeyDataType ExtractKeyTypeFromTypeInfo( ListExpr typeInfo );
-void KeyToAttr( StandardAttribute* attr, SmiKey& key,
+void KeyToAttr( Attribute* attr, SmiKey& key,
                 SmiKey::KeyDataType keyType);
-void AttrToKey( StandardAttribute* attr, SmiKey& key,
+void AttrToKey( Attribute* attr, SmiKey& key,
                 SmiKey::KeyDataType keyType);
 
 

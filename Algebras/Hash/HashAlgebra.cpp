@@ -245,7 +245,7 @@ SmiKey::KeyDataType Hash::GetKeyType() const
   return this->file->GetKeyType();
 }
 
-HashIterator* Hash::ExactMatch( StandardAttribute* key )
+HashIterator* Hash::ExactMatch( Attribute* key )
 {
   if( !opened )
     return 0;
@@ -631,9 +631,9 @@ CreateHashValueMapping_Rel(Word* args, Word& result, int message,
   {
     SmiKey key;
 
-    if( (StandardAttribute *)tuple->GetAttribute(attrIndex)->IsDefined() )
+    if( (Attribute *)tuple->GetAttribute(attrIndex)->IsDefined() )
     {
-      AttrToKey( (StandardAttribute *)tuple->GetAttribute(attrIndex),
+      AttrToKey( (Attribute *)tuple->GetAttribute(attrIndex),
                  key, hash->GetKeyType() );
       hash->Append( key, iter->GetTupleId() );
     }
@@ -665,10 +665,10 @@ CreateHashValueMapping_Stream(Word* args, Word& result, int message,
   {
     Tuple* tuple = (Tuple*)wTuple.addr;
     SmiKey key;
-    if( (StandardAttribute *)tuple->GetAttribute(attrIndex)->IsDefined() &&
-        (StandardAttribute *)tuple->GetAttribute(tidIndex)->IsDefined() )
+    if( (Attribute *)tuple->GetAttribute(attrIndex)->IsDefined() &&
+        (Attribute *)tuple->GetAttribute(tidIndex)->IsDefined() )
     {
-      AttrToKey( (StandardAttribute *)tuple->GetAttribute(attrIndex),
+      AttrToKey( (Attribute *)tuple->GetAttribute(attrIndex),
                  key, hash->GetKeyType() );
       hash->Append( key,
                  ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->GetTid());
@@ -789,8 +789,8 @@ int
 HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Hash* hash;
-  StandardAttribute* key;
-  StandardAttribute* secondKey;
+  Attribute* key;
+  Attribute* secondKey;
   Tuple* tuple;
   SmiRecordId id;
   HashExactMatchLocalInfo* localInfo;
@@ -801,7 +801,7 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
       localInfo = new HashExactMatchLocalInfo;
       hash = (Hash*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
-      key = (StandardAttribute*)args[2].addr;
+      key = (Attribute*)args[2].addr;
 
       assert(hash != 0);
       assert(localInfo->relation != 0);
@@ -876,7 +876,7 @@ int
 HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Hash* hash;
-  StandardAttribute* key;
+  Attribute* key;
   Tuple* tuple;
   SmiRecordId id;
   HashExactMatchLocalInfo* ili;
@@ -901,7 +901,7 @@ HashExactMatch(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       hash = (Hash*)args[0].addr;
-      key = (StandardAttribute*)args[2].addr;
+      key = (Attribute*)args[2].addr;
 
       assert(hash != 0);
       assert(ili->relation != 0);
@@ -1119,7 +1119,7 @@ int
 HashExactMatchS(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   Hash* hash;
-  StandardAttribute* key;
+  Attribute* key;
   SmiRecordId id;
   HashExactMatchSLocalInfo* localInfo;
 
@@ -1129,7 +1129,7 @@ HashExactMatchS(Word* args, Word& result, int message, Word& local, Supplier s)
       localInfo = new HashExactMatchSLocalInfo;
       hash = (Hash*)args[0].addr;
 
-      key = (StandardAttribute*)args[1].addr;
+      key = (Attribute*)args[1].addr;
 
       assert(hash != 0);
       assert(key != 0);
@@ -1412,7 +1412,7 @@ int insertHashValueMap(Word* args, Word& result, int message,
         keyAttr = tup->GetAttribute(index - 1);
         tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
         oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
-        AttrToKey((StandardAttribute*)keyAttr, key, hash->GetKeyType());
+        AttrToKey((Attribute*)keyAttr, key, hash->GetKeyType());
         hash->Append(key,oldTid);
         result = SetWord(tup);
         return YIELD;
@@ -1514,7 +1514,7 @@ int deleteHashValueMap(Word* args, Word& result, int message,
         keyAttr = tup->GetAttribute(index - 1);
         tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
         oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
-        AttrToKey((StandardAttribute*)keyAttr, key, hash->GetKeyType());
+        AttrToKey((Attribute*)keyAttr, key, hash->GetKeyType());
         hash->Delete(key,oldTid);
         result = SetWord(tup);
         return YIELD;
@@ -1618,8 +1618,8 @@ int updateHashValueMap(Word* args, Word& result, int message,
         oldKeyAttr = tup->GetAttribute((tup->GetNoAttributes()-1)/2+index-1);
         tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
         oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
-        AttrToKey((StandardAttribute*)keyAttr, key, hash->GetKeyType());
-        AttrToKey((StandardAttribute*)oldKeyAttr, oldKey, hash->GetKeyType());
+        AttrToKey((Attribute*)keyAttr, key, hash->GetKeyType());
+        AttrToKey((Attribute*)oldKeyAttr, oldKey, hash->GetKeyType());
         // Only update if key has changed
         if ((key > oldKey) || (oldKey > key))
         {

@@ -31,7 +31,7 @@ October 2009- Simone Jandt
 #ifndef __TRAFFIC_ALGEBRA_H__
 #define __TRAFFIC_ALGEBRA_H__
 
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "TemporalAlgebra.h"
 #include "NetworkAlgebra.h"
 #include "DateTime.h"
@@ -41,7 +41,7 @@ October 2009- Simone Jandt
 2 class MGPSecUnit
 
 */
-class MGPSecUnit : public StandardAttribute
+class MGPSecUnit : public Attribute
 {
   public:
 
@@ -95,7 +95,7 @@ Functions for Secondo integration.
     
     size_t HashValue() const;
     
-    void CopyFrom( const StandardAttribute* right );
+    void CopyFrom( const Attribute* right );
 
     int Compare( const Attribute* arg ) const;
 

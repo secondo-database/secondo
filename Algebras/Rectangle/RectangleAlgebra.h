@@ -53,7 +53,7 @@ using namespace std;
 #include <cmath>
 #include "stdarg.h"
 #include "Attribute.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "Messages.h"
 
 #include <stdio.h>
@@ -69,7 +69,7 @@ template <unsigned dim>
 class Rectangle;
 
 template <unsigned dim>
-class StandardSpatialAttribute : public StandardAttribute
+class StandardSpatialAttribute : public Attribute
 {
   public:
     virtual const Rectangle<dim> BoundingBox() const = 0;
@@ -243,7 +243,7 @@ of the rectangle.
       return h;
     }
 
-    inline void CopyFrom( const StandardAttribute* right )
+    inline void CopyFrom( const Attribute* right )
       { *this = *(const Rectangle<dim>*)right; }
 
 

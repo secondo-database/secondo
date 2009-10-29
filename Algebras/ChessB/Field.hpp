@@ -35,7 +35,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include <string>
 #include <iostream>
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "ListStream.hpp"
 #include "Type.hpp"
 
@@ -50,11 +50,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
     - dump a field object to a string, e.g. a1, a2, ..,h8
     - checking for fields color
     - technical functions to support secondo integration
-      (e.g.  overidden virtual methods of StandardAttribute)
+      (e.g.  overidden virtual methods of Attribute)
 
 */
 
-struct Field : StandardAttribute
+struct Field : Attribute
 {
     static const std::string& name()
     {
@@ -98,7 +98,7 @@ struct Field : StandardAttribute
     bool is_white() const { return row % 2 != file % 2; }
     int index() const { return row * 8 + file; }
 
-    // pure virtual functions of class StandardAttribute
+    // pure virtual functions of class Attribute
     virtual bool Adjacent( const Attribute* other ) const
     {
         const Field& f = *static_cast< const Field* >( other );
@@ -118,7 +118,7 @@ struct Field : StandardAttribute
             << static_cast<char>( row + '1' );
     }
 
-    virtual void CopyFrom( const StandardAttribute* other )
+    virtual void CopyFrom( const Attribute* other )
     {
         *this = Field( *static_cast< const Field* >( other ) );
     }

@@ -713,7 +713,7 @@ int Extract(Word* args, Word& result, int message, Word& local, Supplier s)
   Word t;
   Tuple* tupleptr;
   int index;
-  StandardAttribute* res = (StandardAttribute*)((qp->ResultStorage(s)).addr);
+  Attribute* res = (Attribute*)((qp->ResultStorage(s)).addr);
   result.setAddr(res);
 
   qp->Open(args[0].addr);
@@ -724,7 +724,7 @@ int Extract(Word* args, Word& result, int message, Word& local, Supplier s)
     tupleptr = (Tuple*)t.addr;
     index = ((CcInt*)args[2].addr)->GetIntval();
     res->CopyFrom(
-      (const StandardAttribute*)tupleptr->GetAttribute(index - 1));
+      (const Attribute*)tupleptr->GetAttribute(index - 1));
     tupleptr->DeleteIfAllowed();
   }
   else
@@ -1060,8 +1060,8 @@ MaxMinValueMapping(Word* args, Word& result, int message,
 {
   bool definedValueFound = false;
   Word currentTupleWord;
-  StandardAttribute* extremum =
-    (StandardAttribute*)(qp->ResultStorage(s)).addr;
+  Attribute* extremum =
+    (Attribute*)(qp->ResultStorage(s)).addr;
   extremum->SetDefined(false);
   result.setAddr(extremum);
 
@@ -1072,8 +1072,8 @@ MaxMinValueMapping(Word* args, Word& result, int message,
   while(qp->Received(args[0].addr))
   {
     Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
-    const StandardAttribute* currentAttr =
-      (const StandardAttribute*)currentTuple->GetAttribute(attributeIndex);
+    const Attribute* currentAttr =
+      (const Attribute*)currentTuple->GetAttribute(attributeIndex);
     if(currentAttr->IsDefined())
     {
       if(definedValueFound)
@@ -1871,22 +1871,22 @@ template<class Tx, class Rx, class Ty, class Ry> int
         CCovXY  = new CcReal(false, 0);
         CCorrXY = new CcReal(false, 0);
       }
-      newTuple->PutAttribute(  0,(StandardAttribute*)CCountX);
-      newTuple->PutAttribute(  1,(StandardAttribute*)CMinX);
-      newTuple->PutAttribute(  2,(StandardAttribute*)CMaxX);
-      newTuple->PutAttribute(  3,(StandardAttribute*)CSumX);
-      newTuple->PutAttribute(  4,(StandardAttribute*)CAvgX);
-      newTuple->PutAttribute(  5,(StandardAttribute*)CVarX);
-      newTuple->PutAttribute(  6,(StandardAttribute*)CCountY);
-      newTuple->PutAttribute(  7,(StandardAttribute*)CMinY);
-      newTuple->PutAttribute(  8,(StandardAttribute*)CMaxY);
-      newTuple->PutAttribute(  9,(StandardAttribute*)CSumY);
-      newTuple->PutAttribute( 10,(StandardAttribute*)CAvgY);
-      newTuple->PutAttribute( 11,(StandardAttribute*)CVarY);
-      newTuple->PutAttribute( 12,(StandardAttribute*)CCount);
-      newTuple->PutAttribute( 13,(StandardAttribute*)CCountXY);
-      newTuple->PutAttribute( 14,(StandardAttribute*)CCovXY);
-      newTuple->PutAttribute( 15,(StandardAttribute*)CCorrXY);
+      newTuple->PutAttribute(  0,(Attribute*)CCountX);
+      newTuple->PutAttribute(  1,(Attribute*)CMinX);
+      newTuple->PutAttribute(  2,(Attribute*)CMaxX);
+      newTuple->PutAttribute(  3,(Attribute*)CSumX);
+      newTuple->PutAttribute(  4,(Attribute*)CAvgX);
+      newTuple->PutAttribute(  5,(Attribute*)CVarX);
+      newTuple->PutAttribute(  6,(Attribute*)CCountY);
+      newTuple->PutAttribute(  7,(Attribute*)CMinY);
+      newTuple->PutAttribute(  8,(Attribute*)CMaxY);
+      newTuple->PutAttribute(  9,(Attribute*)CSumY);
+      newTuple->PutAttribute( 10,(Attribute*)CAvgY);
+      newTuple->PutAttribute( 11,(Attribute*)CVarY);
+      newTuple->PutAttribute( 12,(Attribute*)CCount);
+      newTuple->PutAttribute( 13,(Attribute*)CCountXY);
+      newTuple->PutAttribute( 14,(Attribute*)CCovXY);
+      newTuple->PutAttribute( 15,(Attribute*)CCorrXY);
 
       result.setAddr(newTuple);
       resultTupleType->DeleteIfAllowed();
@@ -3811,7 +3811,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           ((*funargs)[0]).setAddr(tup);
           qp->Request(supplier3,value);
           newTuple->PutAttribute( tup->GetNoAttributes()+i,
-                                  ((StandardAttribute*)value.addr)->Clone() );
+                                  ((Attribute*)value.addr)->Clone() );
         }
         tup->DeleteIfAllowed();
         result.setAddr(newTuple);
@@ -3918,7 +3918,7 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
           ((*funargs)[0]).setAddr(tup);
           qp->Request(supplier3,value);
           newTuple->PutAttribute( tup->GetNoAttributes()+i,
-                                  ((StandardAttribute*)value.addr)->Clone() );
+                                  ((Attribute*)value.addr)->Clone() );
 
           if (eli->read <= eli->stableValue)
           {
@@ -4951,7 +4951,7 @@ int ExtendStream(Word* args, Word& result, int message,
         tupleXY->CopyAttribute( i, localinfo->tupleX, i );
 
       tupleXY->PutAttribute( localinfo->tupleX->GetNoAttributes(),
-                             (StandardAttribute*)wValueY.addr );
+                             (Attribute*)wValueY.addr );
 
       // setting the result
       result.setAddr( tupleXY );
@@ -5245,10 +5245,10 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
 //  The original implementation tried to avoid copying the function result,
 //  but somehow, this results in a strongly growing tuplebuffer on disk:
 //           resultTuple->PutAttribute(
-//             noOfAttrs + i, (StandardAttribute*)value.addr );
+//             noOfAttrs + i, (Attribute*)value.addr );
 //           qp->ReInitResultStorage( supplier3 );
           resultTuple->PutAttribute( noOfAttrs + i,
-                ((StandardAttribute*)value.addr)->Clone() );
+                ((Attribute*)value.addr)->Clone() );
         }
         currTuple->DeleteIfAllowed();
         result.setAddr(resultTuple);
@@ -5366,7 +5366,7 @@ ExtProjectExtendValueMap(Word* args, Word& result, int message,
           qp->Request(supplier3,value);              // call extattr mapping
 
           resultTuple->PutAttribute( eli->noOldAttrs + i,
-                ((StandardAttribute*)value.addr)->Clone() );
+                ((Attribute*)value.addr)->Clone() );
 
           if (eli->read <= eli->stableValue)
           {
@@ -5790,7 +5790,7 @@ int ProjectExtendStream(Word* args, Word& result, int message,
       for( i = 0; i < localinfo->attrs.size(); i++ )
         tupleXY->CopyAttribute( localinfo->attrs[i], localinfo->tupleX, i );
 
-      tupleXY->PutAttribute( i, (StandardAttribute*)wValueY.addr );
+      tupleXY->PutAttribute( i, (Attribute*)wValueY.addr );
 
       // setting the result
       result.setAddr( tupleXY );
@@ -6912,8 +6912,8 @@ int Aggregate(Word* args, Word& result, int message, Word& local, Supplier s)
     qp->Request( args[0].addr, t );
   }
 
-  ((StandardAttribute*)result.addr)->
-    CopyFrom( (const StandardAttribute*)tmpres );
+  ((Attribute*)result.addr)->
+    CopyFrom( (const Attribute*)tmpres );
 
   delete tmpres;
   qp->Close(args[0].addr);
@@ -7003,8 +7003,8 @@ int AggregateB(Word* args, Word& result, int message,
   if( !qp->Received( args[0].addr ) ){
     // special case: stream is empty
     // use the third argument as result
-    ((StandardAttribute*)result.addr)->
-      CopyFrom( (const StandardAttribute*)args[3].addr );
+    ((Attribute*)result.addr)->
+      CopyFrom( (const Attribute*)args[3].addr );
 
   } else {
     // nonempty stream, consume it
@@ -7055,8 +7055,8 @@ int AggregateB(Word* args, Word& result, int message,
      tmpResult.value = (Attribute*) resultWord.addr;
      top.destroy();
    }
-   ((StandardAttribute*)result.addr)->
-                          CopyFrom((StandardAttribute*)tmpResult.value);
+   ((Attribute*)result.addr)->
+                          CopyFrom((Attribute*)tmpResult.value);
    tmpResult.destroy();
   }
   // close input stream
@@ -8077,12 +8077,12 @@ SymmProductExtend(Word* args, Word& result,
 //               resultTuple->PutAttribute(
 //                 leftTuple->GetNoAttributes()
 //                 + pli->currTuple->GetNoAttributes()
-//                 + i, (StandardAttribute*)value.addr);
+//                 + i, (Attribute*)value.addr);
 //               qp->ReInitResultStorage( supplier3 );
               resultTuple->PutAttribute(
                 leftTuple->GetNoAttributes()
                 + pli->currTuple->GetNoAttributes()
-                + i, ((StandardAttribute*)value.addr)->Clone() );
+                + i, ((Attribute*)value.addr)->Clone() );
             }
             leftTuple->DeleteIfAllowed();
             leftTuple = 0;
@@ -8163,14 +8163,14 @@ SymmProductExtend(Word* args, Word& result,
 //               resultTuple->PutAttribute(
 //                 pli->currTuple->GetNoAttributes()
 //                 + rightTuple->GetNoAttributes()
-//                 + i, (StandardAttribute*)value.addr);
+//                 + i, (Attribute*)value.addr);
 //               // extend effective left tuple
 //               qp->ReInitResultStorage( supplier3 );
 
               resultTuple->PutAttribute(
                 pli->currTuple->GetNoAttributes()
                 + rightTuple->GetNoAttributes()
-                + i, ((StandardAttribute*)value.addr)->Clone() );
+                + i, ((Attribute*)value.addr)->Clone() );
               // extend effective left tuple
             }
             rightTuple->DeleteIfAllowed();

@@ -102,7 +102,6 @@ today               & [->] instant
 #include "AlgebraManager.h"
 #include "SecondoSystem.h"
 #include "Attribute.h"
-#include "StandardAttribute.h"
 #include "StandardTypes.h"
 #include <math.h>
 #include <time.h>
@@ -1211,7 +1210,7 @@ This Time instance take its value from arg if this function is
 called.
 
 */
-void DateTime::CopyFrom(const StandardAttribute* arg){
+void DateTime::CopyFrom(const Attribute* arg){
    Equalize(((const DateTime*) arg));
 }
 

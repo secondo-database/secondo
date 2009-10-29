@@ -119,7 +119,7 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "FLOB.h"
 #include "Attribute.h"
 #include <jni.h>
@@ -179,7 +179,7 @@ in a FLOB. The counterpart will be computet at the right places.
 2.1 The Declaration of the Class JPoint
 
 */
-class JPoint: public StandardAttribute{
+class JPoint: public Attribute{
    public:
       JPoint();
       JPoint(const jobject jobj);
@@ -190,7 +190,7 @@ class JPoint: public StandardAttribute{
       bool IsDefined() const;
       void SetDefined(bool b);
       size_t HashValue() const;
-      void CopyFrom(const StandardAttribute* right);
+      void CopyFrom(const Attribute* right);
       int Compare(const Attribute *arg) const;
       bool Adjacent(const Attribute *arg) const;
       int NumOfFLOBs() const;
@@ -221,7 +221,7 @@ class JPoint: public StandardAttribute{
 2.1 The Declaration of the Class JBox
 
 */
-class JBox: public StandardAttribute{
+class JBox: public Attribute{
    public:
       JBox();
       JBox(const jobject jobj);
@@ -233,7 +233,7 @@ class JBox: public StandardAttribute{
       bool IsDefined() const;
       void SetDefined(bool b);
       size_t HashValue() const;
-      void CopyFrom(const StandardAttribute* right);
+      void CopyFrom(const Attribute* right);
       int Compare(const Attribute *arg) const;
       bool Adjacent(const Attribute *arg) const;
       int NumOfFLOBs() const;
@@ -445,7 +445,7 @@ This function creates a copy of this JPoint. To realize it,
 the FLOB is copied and the Javaobject is reconstructed from it.
 
 */
-void JPoint::CopyFrom(const StandardAttribute* right){
+void JPoint::CopyFrom(const Attribute* right){
    const JPoint *P = (const JPoint *)right;
    cls = env->FindClass("bbox/Point");
    objectData.Resize(P->objectData.Size());
@@ -778,7 +778,7 @@ This function creates a copy of this JBox. To realize it,
 the FLOB is copied and the Javaobject is reconstructed from it.
 
 */
-void JBox::CopyFrom(const StandardAttribute* right){
+void JBox::CopyFrom(const Attribute* right){
    const JBox *P = (const JBox *)right;
    cls = env->FindClass("bbox/BBox");
    objectData.Resize(P->objectData.Size());

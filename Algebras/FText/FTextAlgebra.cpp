@@ -66,7 +66,7 @@ October 2008, Christian D[ue]ntgen added operators ~sendtextUDP~ and
 #include <functional>
 
 #include "FTextAlgebra.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -162,7 +162,7 @@ size_t FText::HashValue() const
   return size_t(h);
 }
 
-void FText::CopyFrom( const StandardAttribute* right )
+void FText::CopyFrom( const Attribute* right )
 {
   if(traces)
     cout << '\n' << "Start CopyFrom" << '\n';
@@ -1957,9 +1957,9 @@ int ValMapGetCatalog( Word* args, Word& result, int message,
               currentEntry.third().first().convertToString().c_str());
           resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
           newTuple = new Tuple( resultTupleType );
-          newTuple->PutAttribute(  0,(StandardAttribute*)objectNameValue);
-          newTuple->PutAttribute(  1,(StandardAttribute*)typeValue);
-          newTuple->PutAttribute(  2,(StandardAttribute*)typeExprValue);
+          newTuple->PutAttribute(  0,(Attribute*)objectNameValue);
+          newTuple->PutAttribute(  1,(Attribute*)typeValue);
+          newTuple->PutAttribute(  2,(Attribute*)typeExprValue);
           result.setAddr(newTuple);
           resultTupleType->DeleteIfAllowed();
           foundValidEntry = true;
@@ -2883,17 +2883,17 @@ int FTextValueMapEvaluate( Word* args, Word& result, int message,
       CcElapsedTimeReal = new CcReal(true, myTimeReal);
       CcElapsedTimeCPU  = new CcReal(true, myTimeCPU);
 
-      newTuple->PutAttribute(  0,(StandardAttribute*)CcCmdStr);
-      newTuple->PutAttribute(  1,(StandardAttribute*)CcSuccess);
-      newTuple->PutAttribute(  2,(StandardAttribute*)CcCorrect);
-      newTuple->PutAttribute(  3,(StandardAttribute*)CcEvaluable);
-      newTuple->PutAttribute(  4,(StandardAttribute*)CcDefined);
-      newTuple->PutAttribute(  5,(StandardAttribute*)CcIsFunction);
-      newTuple->PutAttribute(  6,(StandardAttribute*)CcResultType);
-      newTuple->PutAttribute(  7,(StandardAttribute*)CcResult);
-      newTuple->PutAttribute(  8,(StandardAttribute*)CcErrorMessage);
-      newTuple->PutAttribute(  9,(StandardAttribute*)CcElapsedTimeReal);
-      newTuple->PutAttribute( 10,(StandardAttribute*)CcElapsedTimeCPU);
+      newTuple->PutAttribute(  0,(Attribute*)CcCmdStr);
+      newTuple->PutAttribute(  1,(Attribute*)CcSuccess);
+      newTuple->PutAttribute(  2,(Attribute*)CcCorrect);
+      newTuple->PutAttribute(  3,(Attribute*)CcEvaluable);
+      newTuple->PutAttribute(  4,(Attribute*)CcDefined);
+      newTuple->PutAttribute(  5,(Attribute*)CcIsFunction);
+      newTuple->PutAttribute(  6,(Attribute*)CcResultType);
+      newTuple->PutAttribute(  7,(Attribute*)CcResult);
+      newTuple->PutAttribute(  8,(Attribute*)CcErrorMessage);
+      newTuple->PutAttribute(  9,(Attribute*)CcElapsedTimeReal);
+      newTuple->PutAttribute( 10,(Attribute*)CcElapsedTimeCPU);
 
       result.setAddr(newTuple);
       resultTupleType->DeleteIfAllowed();
@@ -3075,7 +3075,7 @@ int FTextValueMapGetTypeNL( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   FText* Res = static_cast<FText*>(result.addr);
   FText* myType = static_cast<FText*>(args[1].addr);
-  Res->CopyFrom((StandardAttribute*)myType);
+  Res->CopyFrom((Attribute*)myType);
   return 0;
 }
 
@@ -3892,12 +3892,12 @@ template<class T1, class T2>
                                      senderAddress.getFamily());
       resultTupleType = new TupleType(nl->Second(GetTupleResultType(s)));
       newTuple        = new Tuple( resultTupleType );
-      newTuple->PutAttribute(  0,(StandardAttribute*)ccOk);
-      newTuple->PutAttribute(  1,(StandardAttribute*)ccMsg);
-      newTuple->PutAttribute(  2,(StandardAttribute*)ErrMsg);
-      newTuple->PutAttribute(  3,(StandardAttribute*)SenderIP);
-      newTuple->PutAttribute(  4,(StandardAttribute*)SenderPort);
-      newTuple->PutAttribute(  5,(StandardAttribute*)SenderIPversion);
+      newTuple->PutAttribute(  0,(Attribute*)ccOk);
+      newTuple->PutAttribute(  1,(Attribute*)ccMsg);
+      newTuple->PutAttribute(  2,(Attribute*)ErrMsg);
+      newTuple->PutAttribute(  3,(Attribute*)SenderIP);
+      newTuple->PutAttribute(  4,(Attribute*)SenderPort);
+      newTuple->PutAttribute(  5,(Attribute*)SenderIPversion);
       result.setAddr(newTuple);
       *finished = true;
 
@@ -4140,12 +4140,12 @@ int FTextValueMapReceiveTextStreamUDP( Word* args, Word& result, int message,
       SenderIPversion = new CcString(senderAddress.getFamily() != "",
                                      senderAddress.getFamily());
       newTuple        = new Tuple( li->resultTupleType );
-      newTuple->PutAttribute(  0,(StandardAttribute*)ccOk);
-      newTuple->PutAttribute(  1,(StandardAttribute*)ccMsg);
-      newTuple->PutAttribute(  2,(StandardAttribute*)ErrMsg);
-      newTuple->PutAttribute(  3,(StandardAttribute*)SenderIP);
-      newTuple->PutAttribute(  4,(StandardAttribute*)SenderPort);
-      newTuple->PutAttribute(  5,(StandardAttribute*)SenderIPversion);
+      newTuple->PutAttribute(  0,(Attribute*)ccOk);
+      newTuple->PutAttribute(  1,(Attribute*)ccMsg);
+      newTuple->PutAttribute(  2,(Attribute*)ErrMsg);
+      newTuple->PutAttribute(  3,(Attribute*)SenderIP);
+      newTuple->PutAttribute(  4,(Attribute*)SenderPort);
+      newTuple->PutAttribute(  5,(Attribute*)SenderIPversion);
       result.setAddr(newTuple);
       return YIELD;
     }

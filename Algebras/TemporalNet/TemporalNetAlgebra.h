@@ -228,7 +228,7 @@ Functions to be part of relations
     return new UGPoint(*this);
   }
 
-  inline virtual void CopyFrom( const StandardAttribute* right )
+  inline virtual void CopyFrom( const Attribute* right )
   {
     const UGPoint* i = (const UGPoint*)right;
 
@@ -542,7 +542,7 @@ The simple constructor should not be used.
 
     virtual MGPoint* Clone() const;
 
-    void CopyFrom(const StandardAttribute* right)
+    void CopyFrom(const Attribute* right)
     {
       const MGPoint *src = (const MGPoint*) right;
       Clear();

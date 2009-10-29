@@ -38,7 +38,7 @@ This file implements the "hpoint"[4] (hyper point) and "hrect"[4] (hyper rectang
 #ifndef __GTA_SPATIAL_ATTR_H__
 #define __GTA_SPATIAL_ATTR_H__
 
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "GTA_Spatial.h"
 
 namespace gta {
@@ -48,7 +48,7 @@ namespace gta {
 
 ********************************************************************/
 class HPointAttr
-        : public StandardAttribute
+        : public Attribute
 {
   public:
 /*
@@ -160,7 +160,7 @@ Returns a new "HPoint"[4] object which represents "this"[4].
     }
 
 /********************************************************************
-Implementation of virtual methods from the StandardAttribute class:
+Implementation of virtual methods from the Attribute class:
 
 ********************************************************************/
     inline virtual bool IsDefined() const
@@ -190,7 +190,7 @@ Implementation of virtual methods from the StandardAttribute class:
     virtual size_t HashValue() const
     { return 0; }
 
-    virtual void CopyFrom(const StandardAttribute *rhs)
+    virtual void CopyFrom(const Attribute *rhs)
     {
         const HPointAttr *p = static_cast<const HPointAttr*>(rhs);
 
@@ -228,7 +228,7 @@ Returns the size of the coordinate vector in bytes.
 
 ********************************************************************/
 class HRectAttr
-        : public StandardAttribute
+        : public Attribute
 {
   public:
 /*
@@ -367,7 +367,7 @@ Returns a new "HRect"[4] object which represents "this"[4].
     }
 
 /********************************************************************
-Implementation of virtual methods from the StandardAttribute class:
+Implementation of virtual methods from the Attribute class:
 
 ********************************************************************/
     inline virtual bool IsDefined() const
@@ -402,7 +402,7 @@ Implementation of virtual methods from the StandardAttribute class:
     virtual size_t HashValue() const
     { return 0; }
 
-    virtual void CopyFrom(const StandardAttribute *rhs)
+    virtual void CopyFrom(const Attribute *rhs)
     {
         const HRectAttr *r = static_cast<const HRectAttr*>(rhs);
 

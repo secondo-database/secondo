@@ -67,7 +67,7 @@ by the ~StandardAlgebra~:
 
 #include <string>
 #include <sstream>
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "NestedList.h"
 #include "Counter.h"
 #include "Symbols.h"
@@ -95,7 +95,7 @@ This function removes whitespaces from the start and the end of ~value~.
 
 
 
-class CcInt : public StandardAttribute
+class CcInt : public Attribute
 {
  public:
   
@@ -163,7 +163,7 @@ class CcInt : public StandardAttribute
     return (IsDefined() ? intval : 0); 
   }
   
-  inline void CopyFrom(const StandardAttribute* right)
+  inline void CopyFrom(const Attribute* right)
   {
     const CcInt* r = (const CcInt*)right;
     SetDefined(r->IsDefined());
@@ -349,7 +349,7 @@ class CcInt : public StandardAttribute
 
 
 #define SEC_STD_REAL double
-class CcReal : public StandardAttribute
+class CcReal : public Attribute
 {
  public:
   inline CcReal()
@@ -430,7 +430,7 @@ class CcReal : public StandardAttribute
     return size_t(h);
   }
 
-  inline void CopyFrom(const StandardAttribute* right)
+  inline void CopyFrom(const Attribute* right)
   {
     const CcReal* r = (const CcReal*)right;
     SetDefined(r->IsDefined());
@@ -562,7 +562,7 @@ class CcReal : public StandardAttribute
 
 */
 
-class CcBool : public StandardAttribute
+class CcBool : public Attribute
 {
  public:
   inline CcBool()
@@ -620,7 +620,7 @@ class CcBool : public StandardAttribute
     return (IsDefined() ? boolval : false); 
   }
 
-  inline void CopyFrom(const StandardAttribute* right)
+  inline void CopyFrom(const Attribute* right)
   {
     const CcBool* r = (const CcBool*)right;
     SetDefined(r->IsDefined());
@@ -710,7 +710,7 @@ typedef char STRING_T[MAX_STRINGSIZE+1];
 
 #ifdef COMPILE_CCSTRING_WITH_STDSTRING
 
-class CcString : public StandardAttribute
+class CcString : public Attribute
 {
  public:
   inline CcString() 
@@ -809,7 +809,7 @@ class CcString : public StandardAttribute
     return h;
   }
 
-  inline void CopyFrom(const StandardAttribute* right)
+  inline void CopyFrom(const Attribute* right)
   {
     const CcString* r = (const CcString*)right;
     SetDefined( r->IsDefined() );
@@ -934,7 +934,7 @@ class CcString : public StandardAttribute
 #endif
 
 
-class CcString : public StandardAttribute
+class CcString : public Attribute
 {
  public:
   inline CcString() 
@@ -1034,7 +1034,7 @@ class CcString : public StandardAttribute
     return size_t(h);
   }
 
-  inline void CopyFrom(const StandardAttribute* right)
+  inline void CopyFrom(const Attribute* right)
   {
     const CcString* r = static_cast<const CcString*>( right );
     Set( r->IsDefined(), r->stringval );

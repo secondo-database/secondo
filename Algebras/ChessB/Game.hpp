@@ -37,7 +37,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <utility>
 using std::pair;
 
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "StandardTypes.h"
 #include "ListStream.hpp"
 #include "Type.hpp"
@@ -52,7 +52,7 @@ using std::pair;
 */
 
 
-struct Game : public StandardAttribute
+struct Game : public Attribute
 {
     static TypeConstructor tc;
     static const std::string& name()
@@ -91,7 +91,7 @@ struct Game : public StandardAttribute
         return *s;
     }
 
-    // pure virtual functions of class StandardAttribute
+    // pure virtual functions of class Attribute
     virtual int NumOfFLOBs() const { return 2; }
     virtual FLOB* GetFLOB( const int i )
     {
@@ -116,7 +116,7 @@ struct Game : public StandardAttribute
         return g;
     }
 
-    virtual void CopyFrom( const StandardAttribute* other )
+    virtual void CopyFrom( const Attribute* other )
     {
         const Game* g = dynamic_cast<const Game*>( other );
         for( int i = 0; i < g->tags.Size(); ++i )

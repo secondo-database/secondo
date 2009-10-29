@@ -3040,15 +3040,15 @@ ifthenelseFun(Word* args, Word& result, int message, Word& local, Supplier s)
 
     if ( !arg1->IsDefined() )
     {
-      ((StandardAttribute*)result.addr)->SetDefined( false );
+      ((Attribute*)result.addr)->SetDefined( false );
       return 0;
     }
 
     int index = ( arg1->GetBoolval() ? 1 : 2 );
     qp->Request(args[index].addr, res);
 
-    ((StandardAttribute*)result.addr)->CopyFrom(
-                (StandardAttribute*) res.addr );
+    ((Attribute*)result.addr)->CopyFrom(
+                (Attribute*) res.addr );
 
     return 0;
 }
@@ -3126,12 +3126,12 @@ CcHashValue( Word* args, Word& result, int message, Word& local,
            Supplier s)
 {
   result = qp->ResultStorage( s );
-  if ( ((StandardAttribute*)args[0].addr)->IsDefined() &&
+  if ( ((Attribute*)args[0].addr)->IsDefined() &&
        ((CcInt*)args[1].addr)->IsDefined() &&
        (((CcInt*)args[1].addr)->GetValue() > -1) )
   {
     ((CcInt *)result.addr)->Set( true,
-                                ((StandardAttribute*)args[0].addr)->HashValue()
+                                ((Attribute*)args[0].addr)->HashValue()
                                  % ((CcInt*)args[1].addr)->GetValue() );
   }
   else
@@ -3691,8 +3691,8 @@ int CCgetminmaxvaluemap( Word* args, Word& result, int message,
       resultIndex = i;
     }
   }
-  (static_cast<StandardAttribute*>(result.addr))->
-      CopyFrom(static_cast<StandardAttribute*>(args[resultIndex].addr));
+  (static_cast<Attribute*>(result.addr))->
+      CopyFrom(static_cast<Attribute*>(args[resultIndex].addr));
   return 0;
 }
 

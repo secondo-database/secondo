@@ -112,7 +112,7 @@ void DistDataAttribute::set(
 Method ~DistDataAttribute::CopyFrom~:
 
 */
-void DistDataAttribute::CopyFrom(const StandardAttribute* rhs)
+void DistDataAttribute::CopyFrom(const Attribute* rhs)
 {
     const DistDataAttribute* ddAttr =
             static_cast<const DistDataAttribute*>(rhs);

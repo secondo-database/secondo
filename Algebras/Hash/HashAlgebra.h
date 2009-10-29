@@ -160,7 +160,7 @@ Returns the key data type.
 
 */
 
-    HashIterator* ExactMatch( StandardAttribute* key );
+    HashIterator* ExactMatch( Attribute* key );
 /*
 Performs the exact match query returning an iterator.
 

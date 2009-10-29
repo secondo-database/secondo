@@ -241,8 +241,8 @@ Copy constructor.
     inline size_t Value(Tuple* t)
     {
       assert(t);
-      StandardAttribute* attr;
-      attr = static_cast<StandardAttribute*>(t->GetAttribute(attrIndex));
+      Attribute* attr;
+      attr = static_cast<Attribute*>(t->GetAttribute(attrIndex));
       return ( attr->HashValue() % nBuckets );
     }
 /*

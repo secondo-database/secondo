@@ -57,7 +57,6 @@ These six transition functions are implemented in the ~polygon~ algebra by the f
 #include "SecondoSystem.h"
 #include "DBArray.h"
 #include "Attribute.h"
-#include "StandardAttribute.h"
 
 /*
 GNU gcc 3.2 includes the header 'windows.h' from standard headers.
@@ -125,7 +124,7 @@ enum PolygonState { partial, complete };
 2.3 Class Polygon
 
 */
-class Polygon : public StandardAttribute
+class Polygon : public Attribute
 {
 
   public:
@@ -153,7 +152,7 @@ class Polygon : public StandardAttribute
     const Vertex *GetVertex( int i ) const;
     string GetState() const;
     const bool IsEmpty() const;
-    void CopyFrom(const StandardAttribute* right);
+    void CopyFrom(const Attribute* right);
     size_t HashValue() const;
 
     friend ostream& operator <<( ostream& os, const Polygon& p );
@@ -351,7 +350,7 @@ Polygon *Polygon::Clone() const
   return p;
 }
 
-void Polygon::CopyFrom(const StandardAttribute* right){
+void Polygon::CopyFrom(const Attribute* right){
   *this = *( (Polygon*) right);
 }
 

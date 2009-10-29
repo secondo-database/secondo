@@ -64,7 +64,7 @@ The used design is completely different.
 
 The main class is ~Midi~. It is the only persistent class. ~Midi~ includes infomation about all used types. That means that this class stores information about ~tracks~, ~events~ and ~eventData~ inside separated DBArrays. By that were are able to store Midi files into SECONDO.
 
-The also used classes ~Track~ and ~Event~ are only transient. They are not inherited from ~StandardAttribute~. We use them to follow the object-oriented approach. ~Track~ ( for events ) and ~Event~ ( for event data ) includes their own structures for holding data. These structures are filled on the fly e.g. running SECONDO operators.
+The also used classes ~Track~ and ~Event~ are only transient. They are not inherited from ~Attribute~. We use them to follow the object-oriented approach. ~Track~ ( for events ) and ~Event~ ( for event data ) includes their own structures for holding data. These structures are filled on the fly e.g. running SECONDO operators.
 
 2 Defines and Includes
 
@@ -74,7 +74,7 @@ The also used classes ~Track~ and ~Event~ are only transient. They are not inher
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "FLOB.h"
 #include "Base64.h"
 #include "MidiAlgebra.h"
@@ -535,10 +535,10 @@ size_t Midi::HashValue() const
 /*
 2.1.1 CopyFrom
 
-Takes any object of kind StandardAttribute and copies all information from it
+Takes any object of kind Attribute and copies all information from it
 
 */
-void Midi::CopyFrom(const StandardAttribute* right)
+void Midi::CopyFrom(const Attribute* right)
 {
   const Midi* midi = (const Midi*) right;
   *this = *midi;

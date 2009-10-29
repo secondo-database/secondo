@@ -36,7 +36,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <tr1/array>
 using std::tr1::array;
 
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "ListStream.hpp"
 #include "Type.hpp"
 #include "Piece.hpp"
@@ -47,7 +47,7 @@ using std::tr1::array;
 */
 
 
-struct Material : StandardAttribute
+struct Material : Attribute
 {
     static const std::string& name()
     {
@@ -64,7 +64,7 @@ struct Material : StandardAttribute
         pieces = tmp;
     }
 
-    // pure virtual functions of class StandardAttribute
+    // pure virtual functions of class dAttribute
     virtual bool Adjacent( const Attribute* ) const { return 0; }
 
     virtual int Compare( const Attribute* other ) const
@@ -89,7 +89,7 @@ struct Material : StandardAttribute
         return os;
     }
 
-    virtual void CopyFrom( const StandardAttribute* other )
+    virtual void CopyFrom( const Attribute* other )
     {
         *this = Material( *static_cast< const Material* >( other ) );
     }

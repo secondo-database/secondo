@@ -39,10 +39,10 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
 #include <iostream>
 
-#include "StandardAttribute.h"
+#include "IndexableAttribute.h"
 #include "FLOB.h"
 
-class FText: public IndexableStandardAttribute
+class FText: public IndexableAttribute
 {
 public:
 
@@ -71,7 +71,7 @@ public:
 
   inline size_t Sizeof() const;
   size_t HashValue() const;
-  void CopyFrom(const StandardAttribute* right);
+  void CopyFrom(const Attribute* right);
   int Compare(const Attribute * arg) const;
   inline FText* Clone() const;
   ostream& Print(ostream &os) const;
@@ -83,7 +83,7 @@ public:
 /*************************************************************************
 
   For use with Btree-Indices, we need text to be in kind INDEXABLE.
-  therefore, we need to inherit from IndexableStandardAttribute
+  therefore, we need to inherit from IndexableAttribute
 
 *************************************************************************/
 

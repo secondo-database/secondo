@@ -216,7 +216,7 @@ Histogram::Histogram( double * _histogram,
 
 /*
 
-3.2 ~StandardAttribute~ implementation
+3.2 ~Attribute~ implementation
 
 */
 
@@ -276,7 +276,7 @@ size_t Histogram::HashValue(void) const {
     return h;
 }
 
-void Histogram::CopyFrom(const StandardAttribute* attr) {
+void Histogram::CopyFrom(const Attribute* attr) {
     if (PA_DEBUG) cerr << "Histogram::CopyFrom() called" << endl;
 
     const Histogram* h = (const Histogram*) attr;
@@ -336,7 +336,7 @@ Histogram* Histogram::Clone(void) const {
 
     Histogram * h = new Histogram();
 
-    h->CopyFrom((const StandardAttribute*) this);
+    h->CopyFrom((const Attribute*) this);
 
     return h;
 }

@@ -49,7 +49,7 @@ level remains. Models are also removed from type constructors.
 #include "QueryProcessor.h"
 #include "SecondoSystem.h"
 #include "Attribute.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "StandardTypes.h"
 #include "DBArray.h"
 #include "LogMsg.h"
@@ -312,7 +312,7 @@ size_t Int9M::HashValue() const{
 2.1.12 CopyFrom
 
 */
-void Int9M::CopyFrom(const StandardAttribute* arg){
+void Int9M::CopyFrom(const Attribute* arg){
     Equalize((Int9M*) arg);
 }
 
@@ -942,7 +942,7 @@ size_t Cluster::HashValue() const{
 Reads the value of this cluster from arg.
 
 */
-void Cluster::CopyFrom(const StandardAttribute* arg){
+void Cluster::CopyFrom(const Attribute* arg){
     Equalize( (Cluster*) arg);
 }
 

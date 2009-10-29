@@ -93,11 +93,11 @@ BTreeProp()
 /*
 2.2 Function ~AttrToKey~
 
-Converts a ~StandardAttribute~ to a ~SmiKey~.
+Converts a ~Attribute~ to a ~SmiKey~.
 
 */
 void AttrToKey(
-  StandardAttribute* attr,
+  Attribute* attr,
   SmiKey& key,
   SmiKey::KeyDataType keyType)
 {
@@ -124,7 +124,7 @@ void AttrToKey(
       break;
 
     case SmiKey::Composite:
-      key = SmiKey((IndexableStandardAttribute*)attr);
+      key = SmiKey((IndexableAttribute*)attr);
       break;
 
     default:
@@ -137,11 +137,11 @@ void AttrToKey(
 /*
 2.3 Function ~KeyToAttr~
 
-Converts a ~SmiKey~ to a ~StandardAttribute~.
+Converts a ~SmiKey~ to a ~Attribute~.
 
 */
 void KeyToAttr(
-  StandardAttribute* attr,
+  Attribute* attr,
   SmiKey& key,
   SmiKey::KeyDataType keyType)
 {
@@ -168,7 +168,7 @@ void KeyToAttr(
       break;
 
     case SmiKey::Composite:
-      key.GetKey((IndexableStandardAttribute*)attr);
+      key.GetKey((IndexableAttribute*)attr);
       break;
 
     default:
@@ -456,7 +456,7 @@ SmiKey::KeyDataType BTree::GetKeyType() const
   return this->file->GetKeyType();
 }
 
-BTreeIterator* BTree::ExactMatch( StandardAttribute* key )
+BTreeIterator* BTree::ExactMatch( Attribute* key )
 {
   if( !opened )
     return 0;
@@ -484,7 +484,7 @@ BTreeIterator* BTree::ExactMatch( StandardAttribute* key )
   return new BTreeIterator( iter );
 }
 
-BTreeIterator* BTree::LeftRange( StandardAttribute* key )
+BTreeIterator* BTree::LeftRange( Attribute* key )
 {
   if( !opened )
     return 0;
@@ -511,7 +511,7 @@ BTreeIterator* BTree::LeftRange( StandardAttribute* key )
   return new BTreeIterator( iter );
 }
 
-BTreeIterator* BTree::RightRange( StandardAttribute* key )
+BTreeIterator* BTree::RightRange( Attribute* key )
 {
   if( !opened )
     return 0;
@@ -538,7 +538,7 @@ BTreeIterator* BTree::RightRange( StandardAttribute* key )
   return new BTreeIterator( iter );
 }
 
-BTreeIterator* BTree::Range( StandardAttribute* left, StandardAttribute* right)
+BTreeIterator* BTree::Range( Attribute* left, Attribute* right)
 {
   if( !opened )
     return 0;
@@ -954,9 +954,9 @@ CreateBTreeValueMapping_Rel(Word* args, Word& result, int message,
   {
     SmiKey key;
 
-    if( (StandardAttribute *)tuple->GetAttribute(attrIndex)->IsDefined() )
+    if( (Attribute *)tuple->GetAttribute(attrIndex)->IsDefined() )
     {
-      AttrToKey( (StandardAttribute *)tuple->GetAttribute(attrIndex),
+      AttrToKey( (Attribute *)tuple->GetAttribute(attrIndex),
                  key, btree->GetKeyType() );
       btree->Append( key, iter->GetTupleId() );
     }
@@ -988,10 +988,10 @@ CreateBTreeValueMapping_Stream(Word* args, Word& result, int message,
   {
     Tuple* tuple = (Tuple*)wTuple.addr;
     SmiKey key;
-    if( (StandardAttribute *)tuple->GetAttribute(attrIndex)->IsDefined() &&
-        (StandardAttribute *)tuple->GetAttribute(tidIndex)->IsDefined() )
+    if( (Attribute *)tuple->GetAttribute(attrIndex)->IsDefined() &&
+        (Attribute *)tuple->GetAttribute(tidIndex)->IsDefined() )
     {
-      AttrToKey( (StandardAttribute *)tuple->GetAttribute(attrIndex),
+      AttrToKey( (Attribute *)tuple->GetAttribute(attrIndex),
                  key, btree->GetKeyType() );
       btree->Append( key,
                  ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->GetTid());
@@ -1166,8 +1166,8 @@ int
 IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   BTree* btree;
-  StandardAttribute* key;
-  StandardAttribute* secondKey;
+  Attribute* key;
+  Attribute* secondKey;
   Tuple* tuple;
   SmiRecordId id;
   IndexQueryLocalInfo* localInfo;
@@ -1178,10 +1178,10 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       localInfo = new IndexQueryLocalInfo;
       btree = (BTree*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
-      key = (StandardAttribute*)args[2].addr;
+      key = (Attribute*)args[2].addr;
       if(operatorId == RANGE)
       {
-        secondKey = (StandardAttribute*)args[3].addr;
+        secondKey = (Attribute*)args[3].addr;
         assert(secondKey != 0);
       }
 
@@ -1280,8 +1280,8 @@ int
 IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   BTree* btree;
-  StandardAttribute* key;
-  StandardAttribute* secondKey;
+  Attribute* key;
+  Attribute* secondKey;
   Tuple* tuple;
   SmiRecordId id;
   IndexQueryLocalInfo* ili;
@@ -1309,10 +1309,10 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       }
 
       btree = (BTree*)args[0].addr;
-      key = (StandardAttribute*)args[2].addr;
+      key = (Attribute*)args[2].addr;
       if(operatorId == RANGE)
       {
-        secondKey = (StandardAttribute*)args[3].addr;
+        secondKey = (Attribute*)args[3].addr;
         assert(secondKey != 0);
       }
 
@@ -1706,8 +1706,8 @@ int
 IndexQueryS(Word* args, Word& result, int message, Word& local, Supplier s)
 {
   BTree* btree;
-  StandardAttribute* key;
-  StandardAttribute* secondKey;
+  Attribute* key;
+  Attribute* secondKey;
   SmiRecordId id;
   IndexQuerySLocalInfo* localInfo;
 
@@ -1717,10 +1717,10 @@ IndexQueryS(Word* args, Word& result, int message, Word& local, Supplier s)
       localInfo = new IndexQuerySLocalInfo;
       btree = (BTree*)args[0].addr;
 
-      key = (StandardAttribute*)args[1].addr;
+      key = (Attribute*)args[1].addr;
       if(operatorId == RANGE)
       {
-        secondKey = (StandardAttribute*)args[2].addr;
+        secondKey = (Attribute*)args[2].addr;
         assert(secondKey != 0);
       }
 
@@ -2134,7 +2134,7 @@ int insertBTreeValueMap(Word* args, Word& result, int message,
         keyAttr = tup->GetAttribute(index - 1);
         tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
         oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
-        AttrToKey((StandardAttribute*)keyAttr, key, btree->GetKeyType());
+        AttrToKey((Attribute*)keyAttr, key, btree->GetKeyType());
         btree->Append(key,oldTid);
         result = SetWord(tup);
         return YIELD;
@@ -2237,7 +2237,7 @@ int deleteBTreeValueMap(Word* args, Word& result, int message,
         keyAttr = tup->GetAttribute(index - 1);
         tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
         oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
-        AttrToKey((StandardAttribute*)keyAttr, key, btree->GetKeyType());
+        AttrToKey((Attribute*)keyAttr, key, btree->GetKeyType());
         btree->Delete(key,oldTid);
         result = SetWord(tup);
         return YIELD;
@@ -2342,8 +2342,8 @@ int updateBTreeValueMap(Word* args, Word& result, int message,
         oldKeyAttr = tup->GetAttribute((tup->GetNoAttributes()-1)/2+index-1);
         tidAttr = tup->GetAttribute(tup->GetNoAttributes() - 1);
         oldTid = ((TupleIdentifier*)tidAttr)->GetTid();
-        AttrToKey((StandardAttribute*)keyAttr, key, btree->GetKeyType());
-        AttrToKey((StandardAttribute*)oldKeyAttr, oldKey, btree->GetKeyType());
+        AttrToKey((Attribute*)keyAttr, key, btree->GetKeyType());
+        AttrToKey((Attribute*)oldKeyAttr, oldKey, btree->GetKeyType());
         // Only update if key has changed
         if ((key > oldKey) || (oldKey > key))
         {
@@ -2545,7 +2545,7 @@ keyrange_vm(Word* args, Word& result, int message, Word& local, Supplier s)
 
         BTree* btree;
         Relation* relation;
-        StandardAttribute* key;
+        Attribute* key;
 
         init_ptr(btree, args[0]);
         init_ptr(relation, args[1]);

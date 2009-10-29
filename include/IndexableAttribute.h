@@ -40,7 +40,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[#]  [\neq]
 //[tilde] [\verb|~|]
 
-1 Header File: Standard Attribute
+1 Header File: IndexableAttribute
 
 May 1998 Stefan Dieker
 
@@ -48,37 +48,17 @@ December 1998 Friedhelm Becker
 
 April 2002 Ulrich Telle Adjustments for the new Secondo version
 
-1 Class ~StandardAttribute~
+1 Class ~IndexableAttribute~
 
 */
 
-#ifndef STANDARDATTRIBUTE_H
-#define STANDARDATTRIBUTE_H
+#ifndef INDEXABLEATTRIBUTE_H
+#define INDEXABLEATTRIBUTE_H
 
 #include "Attribute.h"
 
-class StandardAttribute : public Attribute
-{
- public:
-  virtual size_t HashValue() const = 0;
 /*
-The hash function.
-
-*/
-
-  virtual void CopyFrom(const StandardAttribute* right) = 0;
-/*
-Copies the contents of ~right~ into ~this~. Assumes that ~this~ and
-~right~ are of the same type. This can be ensured by the type checking functions
-in the algebras.
-The reference counter if this attribute should not be affected.
-
-*/
- 
-};
-
-/*
-2 Class ~IndexableStandardAttribute~
+2 Class ~IndexableAttribute~
 
 This class is intended to be used for data types that need to be indexed by B-Trees.
 The standard types such as ~int~, ~string~, and ~real~ are directly supported. For
@@ -89,7 +69,7 @@ For an example, see the ~DateTime~ algebra.
 
 */
 
-class IndexableStandardAttribute : public StandardAttribute
+class IndexableAttribute : public Attribute
 {
   public:
 

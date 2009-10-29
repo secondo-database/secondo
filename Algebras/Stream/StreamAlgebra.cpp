@@ -1952,8 +1952,8 @@ int Streamaggregate(Word* args, Word& result, int message,
   if( !qp->Received( args[0].addr ) ){
     // special case: stream is empty
     // use the third argument as result
-    ((StandardAttribute*)result.addr)->
-      CopyFrom( (const StandardAttribute*)args[2].addr );
+    ((Attribute*)result.addr)->
+      CopyFrom( (const Attribute*)args[2].addr );
   } else {
     // nonempty stream, consume it
     stack<AggrStackEntry> theStack;
@@ -2001,8 +2001,8 @@ int Streamaggregate(Word* args, Word& result, int message,
      tmpResult.value = (Attribute*) resultWord.addr;
      top.destroy();
    }
-   ((StandardAttribute*)result.addr)->
-                          CopyFrom((StandardAttribute*)tmpResult.value);
+   ((Attribute*)result.addr)->
+                          CopyFrom((Attribute*)tmpResult.value);
    tmpResult.destroy();
   }
   // close input stream
@@ -3878,7 +3878,7 @@ class DataTailLocalInfo: public TailLocalInfo
     };
 
     // move elem into internal tuplebuffer
-    void AppendElem(StandardAttribute *elem)
+    void AppendElem(Attribute *elem)
     {
       Tuple *tuple = new Tuple(bufferTupleType);
       tuple->PutAttribute( 0, elem );
@@ -3938,7 +3938,7 @@ int StreamTailDataStreamVM(Word* args, Word& result,
       qp->Request(InputStream.addr, elem); // get first stream elem
       while (qp->Received(args[0].addr))
       {
-        StandardAttribute *myObj = static_cast<StandardAttribute*>(elem.addr);
+        Attribute *myObj = static_cast<Attribute*>(elem.addr);
         li->AppendElem(myObj);           // store the tuple in a tuplebuffer
         qp->Request(InputStream.addr, elem); // get next stream elem
       }

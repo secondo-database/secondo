@@ -76,7 +76,6 @@ topological predicates.
 #include "QueryProcessor.h"
 #include "SecondoSystem.h"
 #include "Attribute.h"
-#include "StandardAttribute.h"
 #include "StandardTypes.h"
 #include "DBArray.h"
 #include "RectangleAlgebra.h"
@@ -155,7 +154,7 @@ representing the 9 entries in the matrix.
 
 namespace toprel {
 
-class Int9M:  public  StandardAttribute{
+class Int9M:  public  Attribute{
    public:
 
 /*
@@ -419,7 +418,7 @@ This can be used to detect symmetries between matrices.
 2.1.15 Destroy
 
 This function is needed for using this class as an 
-StandardAttribute.
+Attribute.
 
 */
        void Destroy();
@@ -486,7 +485,7 @@ an attribute type within secondo relations.
        bool IsDefined() const;
        void SetDefined( bool defined );
        size_t HashValue() const;
-       void CopyFrom(const StandardAttribute* arg);
+       void CopyFrom(const Attribute* arg);
        Int9M* Clone() const;
        size_t Sizeof() const { return sizeof(*this); }
 
@@ -578,7 +577,7 @@ bitvector containing 512 elements. A "1" of a specific position means that the
 matrix with the appropriate number is contained in this cluster.
 
 */
-class Cluster: public StandardAttribute{
+class Cluster: public Attribute{
    public:
 
 /*
@@ -965,7 +964,7 @@ cluster acts as an attribute type within relations.
       /* computes a hashvalue for this cluster */
       size_t HashValue() const;
       /* reads the value of this cluster from arg */
-      void CopyFrom(const StandardAttribute* arg);
+      void CopyFrom(const Attribute* arg);
       /* returns a copy of this cluster */
       Cluster* Clone() const;
       size_t Sizeof() const { return sizeof(*this); }
@@ -1146,7 +1145,7 @@ included in the other clusters. For this reason, no cluster with the name
 
 */
 
-class PredicateGroup: public StandardAttribute{
+class PredicateGroup: public Attribute{
 public:
 
 /*
@@ -1242,7 +1241,7 @@ predicate cluster will be the same like this one of the argument.
        return unSpecified.HashValue();
     }
 
-    void CopyFrom(const StandardAttribute* right){
+    void CopyFrom(const Attribute* right){
        Equalize((PredicateGroup*) right);
     }
 

@@ -931,7 +931,7 @@ Copy ~URegion~ instance. Please note that resulting instance will have
 its own moving segments storage, even if the copied instance has not.
 
 */
-    virtual void CopyFrom(const StandardAttribute* right);
+    virtual void CopyFrom(const Attribute* right);
 
 /*
 Print method, primarly used for debugging purposes
@@ -1163,7 +1163,7 @@ Clone ~MRegion~ instance.
 Copy ~MRegion~ instance.
 
 */
-    void CopyFrom(const StandardAttribute* right);
+    void CopyFrom(const Attribute* right);
 
 /*
 1.1 Unit testing

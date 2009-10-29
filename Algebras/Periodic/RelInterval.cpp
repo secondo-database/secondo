@@ -212,7 +212,7 @@ given argument.
 [3] O(1)
 
 */
-void RelInterval::CopyFrom(const StandardAttribute* arg){
+void RelInterval::CopyFrom(const Attribute* arg){
     __TRACE__
   Equalize((RelInterval*)arg);
 }

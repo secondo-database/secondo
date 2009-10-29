@@ -339,7 +339,7 @@ histogram given as parameter.
     bool Adjacent(const Attribute *attrib) const;
     Attribute *Clone() const;
     size_t HashValue() const;
-    void CopyFrom(const StandardAttribute* right);
+    void CopyFrom(const Attribute* right);
     int NumOfFLOBs() const;
     FLOB* GetFLOB( const int i );
     ostream& Print( ostream& os ) const;

@@ -253,7 +253,7 @@ using namespace std;
 
 
 
-class IndexableStandardAttribute;
+class IndexableAttribute;
 
 const string::size_type SMI_MAX_NAMELEN      =   31;
 /*
@@ -363,7 +363,7 @@ is called to unmap the byte string to the user-defined key structure.
   SmiKey( const long key );
   SmiKey( const double key );
   SmiKey( const string& key );
-  SmiKey( const IndexableStandardAttribute* key );
+  SmiKey( const IndexableAttribute* key );
   SmiKey( const SmiKey& other );
 /*
 Creates a key with a type according to the constructor argument.
@@ -386,7 +386,7 @@ Returns the type of the key.
   bool GetKey( long& key );
   bool GetKey( double& key );
   bool GetKey( string& key );
-  bool GetKey( IndexableStandardAttribute* key );
+  bool GetKey( IndexableAttribute* key );
 /*
 Returns the value of the key. The argument type must match the type of the key!
 
@@ -418,7 +418,7 @@ Returns the memory address of the key value.
   void  SetKey( const long key );
   void  SetKey( const double key );
   void  SetKey( const string& key );
-  void  SetKey( const IndexableStandardAttribute* key );
+  void  SetKey( const IndexableAttribute* key );
   void  SetKey( const KeyDataType kdt,
                 const void* key, const SmiSize keyLen );
 /*

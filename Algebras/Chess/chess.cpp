@@ -1959,11 +1959,11 @@ int movingpointsValueMap( Word * args, Word & result,
       tup = new Tuple( resultTupleType );
       strcpy( hilfstr, ( char* ) ( mcp->getKind() ->c_str() ) );
       ki = new CcString( true, &hilfstr );
-      tup->PutAttribute( 0, ( StandardAttribute* ) ki );
+      tup->PutAttribute( 0, ( Attribute* ) ki );
       iw = new CcBool( true, *( mcp->trueIsWhite() ) );
-      tup->PutAttribute( 1, ( StandardAttribute* ) iw );
+      tup->PutAttribute( 1, ( Attribute* ) iw );
       mp = mcp->getMPoint();
-      tup->PutAttribute( 2, ( ( StandardAttribute* ) mp ) ->Clone() );
+      tup->PutAttribute( 2, ( ( Attribute* ) mp ) ->Clone() );
       result = SetWord( tup );
       return YIELD;
 

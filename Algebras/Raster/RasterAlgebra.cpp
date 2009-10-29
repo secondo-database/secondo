@@ -32,7 +32,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"  //needed because we return a CcBool in an op.
 #include <string>
-#include "StandardAttribute.h"
+#include "Attribute.h"
 
 #include "SpatialAlgebra.h"
 //#include "SpatialAlgebra.cpp"

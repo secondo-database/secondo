@@ -380,7 +380,7 @@ int insertRelValueMap(Word* args, Word& result, int message,
           newTuple->CopyAttribute( i, tup, i );
         relation->AppendTuple(tup);
         const TupleId& tid = tup->GetTupleId();
-        StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
+        Attribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr );
         result.setAddr(newTuple);
         tup->DeleteIfAllowed();
@@ -554,7 +554,7 @@ int insertSaveRelValueMap(Word* args, Word& result, int message,
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->CopyAttribute( i, tup, i );
         const TupleId& tid = tup->GetTupleId();
-        StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
+        Attribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr );
         auxRelation->AppendTuple(newTuple);
         result.setAddr(newTuple);
@@ -702,7 +702,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
         hashValue = 0;
         for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
            hashValue +=
-             ((StandardAttribute*)
+             ((Attribute*)
                (nextTup->GetAttribute(i)))->HashValue();
         nextBucket =
           localTransport->hashTable->operator[](hashValue % 256);
@@ -744,7 +744,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
           hashValue = 0;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
             hashValue +=
-              ((StandardAttribute*)
+              ((Attribute*)
                 (tup->GetAttribute(i)))->HashValue();
           SortOrderSpecification full;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
@@ -771,7 +771,7 @@ int deleteSearchRelValueMap(Word* args, Word& result, int message,
                   newTuple->PutAttribute(
                     i, (nextTup->GetAttribute(i))->Clone() );
                 const TupleId& tid = nextTup->GetTupleId();
-                StandardAttribute* tidAttr =
+                Attribute* tidAttr =
                   new TupleIdentifier(true,tid);
                 newTuple->PutAttribute(
                   nextTup->GetNoAttributes(), tidAttr );
@@ -893,7 +893,7 @@ int deleteDirectRelValueMap(Word* args, Word& result, int message,
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
         const TupleId& tid = tup->GetTupleId();
-        StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
+        Attribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute(tup->GetNoAttributes(), tidAttr);
         relation->DeleteTuple(tup);
         tup->DeleteIfAllowed();
@@ -1114,7 +1114,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
         hashValue = 0;
         for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
           hashValue +=
-            ((StandardAttribute*)
+            ((Attribute*)
              (nextTup->GetAttribute(i)))->HashValue();
         nextBucket =
           localTransport->hashTable->operator[](hashValue % 256);
@@ -1157,7 +1157,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
           hashValue = 0;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
             hashValue +=
-              ((StandardAttribute*)
+              ((Attribute*)
                (tup->GetAttribute(i)))->HashValue();
           SortOrderSpecification full;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
@@ -1184,7 +1184,7 @@ int deleteSearchSaveRelValueMap(Word* args, Word& result, int message,
                   newTuple->PutAttribute(
                     i, (nextTup->GetAttribute(i))->Clone() );
                 const TupleId& tid = nextTup->GetTupleId();
-                StandardAttribute* tidAttr =
+                Attribute* tidAttr =
                   new TupleIdentifier(true,tid);
                 newTuple->PutAttribute(
                   nextTup->GetNoAttributes(), tidAttr);
@@ -1319,7 +1319,7 @@ int deleteDirectSaveRelValueMap(Word* args, Word& result,
         for( int i = 0; i < tup->GetNoAttributes(); i++ )
           newTuple->PutAttribute( i, tup->GetAttribute( i )->Clone() );
         const TupleId& tid = tup->GetTupleId();
-        StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
+        Attribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
         relation->DeleteTuple(tup);
         auxRelation->AppendTuple(newTuple);
@@ -1499,7 +1499,7 @@ int insertTupleRelValueMap(Word* args, Word& result, int message,
         }
         relation->AppendTuple(insertTuple);
         const TupleId& tid = insertTuple->GetTupleId();
-        StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
+        Attribute* tidAttr = new TupleIdentifier(true,tid);
         resultTuple->PutAttribute(
           resultTuple->GetNoAttributes() -1, tidAttr);
         result.setAddr(resultTuple);
@@ -1696,7 +1696,7 @@ int insertTupleSaveRelValueMap(Word* args, Word& result,
         }
         relation->AppendTuple(insertTuple);
         const TupleId& tid = insertTuple->GetTupleId();
-        StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
+        Attribute* tidAttr = new TupleIdentifier(true,tid);
         resultTuple->PutAttribute(
           resultTuple->GetNoAttributes() -1, tidAttr);
         auxRelation->AppendTuple(resultTuple);
@@ -1975,14 +1975,14 @@ int UpdateDirect(Word* args, Word& result, int message,
           funargs = qp->Argument(supplier3);
           ((*funargs)[0]).setAddr(tup);
           qp->Request(supplier3,value);
-          newAttribute = ((StandardAttribute*)value.addr)->Clone();
+          newAttribute = ((Attribute*)value.addr)->Clone();
           (*newAttrs)[i-1] = newAttribute;
         }
         relation->UpdateTuple(tup,*changedIndices,*newAttrs);
         for (int i = 0; i < tup->GetNoAttributes(); i++)
           newTuple->CopyAttribute( i, tup, i );
         const TupleId& tid = tup->GetTupleId();
-        StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
+        Attribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute(
           newTuple->GetNoAttributes() - 1, tidAttr );
         delete changedIndices;
@@ -2137,7 +2137,7 @@ int UpdateSearch(Word* args, Word& result, int message,
         hashValue = 0;
         for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
            hashValue +=
-             ((StandardAttribute*)
+             ((Attribute*)
               (nextTup->GetAttribute(i)))->HashValue();
         nextBucket =
           localTransport->hashTable->operator[](hashValue % 256);
@@ -2178,7 +2178,7 @@ int UpdateSearch(Word* args, Word& result, int message,
           hashValue = 0;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
             hashValue +=
-              ((StandardAttribute*)
+              ((Attribute*)
                 (tup->GetAttribute(i)))->HashValue();
           SortOrderSpecification full;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
@@ -2226,7 +2226,7 @@ int UpdateSearch(Word* args, Word& result, int message,
                   ((*funargs)[0]).setAddr(nextTup);
                   qp->Request(supplier3,value);
                   newAttribute =
-                    ((StandardAttribute*)value.addr)->Clone();
+                    ((Attribute*)value.addr)->Clone();
                   (*newAttrs)[i-1] = newAttribute;
                 }
                 relation->UpdateTuple(
@@ -2234,7 +2234,7 @@ int UpdateSearch(Word* args, Word& result, int message,
                 for (int i = 0; i < nextTup->GetNoAttributes(); i++)
                   newTuple->CopyAttribute( i, nextTup, i );
                 const TupleId& tid = nextTup->GetTupleId();
-                StandardAttribute* tidAttr =
+                Attribute* tidAttr =
                   new TupleIdentifier(true,tid);
                 newTuple->PutAttribute(
                   newTuple->GetNoAttributes() - 1, tidAttr );
@@ -2552,7 +2552,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
           funargs = qp->Argument(supplier3);
           ((*funargs)[0]).setAddr(tup);
           qp->Request(supplier3,value);
-          newAttribute = ((StandardAttribute*)value.addr)->Clone();
+          newAttribute = ((Attribute*)value.addr)->Clone();
           (*newAttrs)[i-1] = newAttribute;
 
 	  // store new value in result tuple
@@ -2561,7 +2561,7 @@ int UpdateDirectSave(Word* args, Word& result, int message,
 
 	// store tid in output tuple
         const TupleId& tid = tup->GetTupleId();
-        StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
+        Attribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute(
                         newTuple->GetNoAttributes() - 1, tidAttr);
 
@@ -2782,7 +2782,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
         hashValue = 0;
         for( int i = 0; i < nextTup->GetNoAttributes(); i++ )
           hashValue +=
-            ((StandardAttribute*)
+            ((Attribute*)
               (nextTup->GetAttribute(i)))->HashValue();
         nextBucket =
           localTransport->getBucket(hashValue);
@@ -2829,7 +2829,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
           hashValue = 0;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
             hashValue +=
-              ((StandardAttribute*)
+              ((Attribute*)
                 (tup->GetAttribute(i)))->HashValue();
           SortOrderSpecification full;
           for( int i = 0; i < tup->GetNoAttributes(); i++ )
@@ -2879,7 +2879,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
                   ((*funargs)[0]).setAddr(nextTup);
                   qp->Request(supplier3,value);
                   newAttribute =
-                    ((StandardAttribute*)value.addr)->Clone();
+                    ((Attribute*)value.addr)->Clone();
                   (*newAttrs)[i-1] = newAttribute;
 
 		  // change attribute value for the output tuple
@@ -2890,7 +2890,7 @@ int UpdateSearchSave(Word* args, Word& result, int message,
 
 		// add tid to newTuple
 		const TupleId& tid = nextTup->GetTupleId();
-                StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
+                Attribute* tidAttr = new TupleIdentifier(true,tid);
                 newTuple->PutAttribute(
                   newTuple->GetNoAttributes() - 1, tidAttr);
 
@@ -3066,7 +3066,7 @@ int appendIdentifierValueMap(Word* args, Word& result, int message,
           newTuple->CopyAttribute( i, tup, i );
         const TupleId& tid = tup->GetTupleId();
 //         cout << "TID: " << tid << endl;
-        StandardAttribute* tidAttr = new TupleIdentifier(true,tid);
+        Attribute* tidAttr = new TupleIdentifier(true,tid);
         newTuple->PutAttribute( tup->GetNoAttributes(), tidAttr);
         result.setAddr(newTuple);
         tup->DeleteIfAllowed();

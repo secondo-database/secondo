@@ -77,7 +77,7 @@ and restrict itself to shere commentaries ("how") in the implementation file
 
 namespace hgr {
 
-  class BaseHistogram : public StandardAttribute
+  class BaseHistogram : public Attribute
   {
 public:
   
@@ -228,7 +228,7 @@ to find the right bin for a given value using binary search.
 */
     static int CmpBinSearch(const void* v1, const void* v2);
 
-  }; //  class BaseHistogram : public StandardAttribute
+  }; //  class BaseHistogram : public Attribute
   
 /*    
           

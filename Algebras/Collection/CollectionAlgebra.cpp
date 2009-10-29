@@ -241,7 +241,6 @@ Necessary to difference between an empty and an undefined collection.
 #include "StandardTypes.h"
 #include "DBArray.h"
 #include "Attribute.h"
-#include "StandardAttribute.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -267,7 +266,7 @@ namespace collection {
 3.1 Class header
 
 */
-  class Collection : public StandardAttribute {
+  class Collection : public Attribute {
     public:
 
     Collection(CollectionType type, const ListExpr typeInfo,
@@ -315,7 +314,7 @@ namespace collection {
 
     void Sort();
 
-    void CopyFrom(const StandardAttribute* right);
+    void CopyFrom(const Attribute* right);
 
     bool Adjacent(const Attribute* arg) const;
 
@@ -1005,7 +1004,7 @@ cout << "Sort" << endl;
   }
 
 
-  void Collection::CopyFrom(const StandardAttribute* right) {
+  void Collection::CopyFrom(const Attribute* right) {
 #ifdef DEBUGHEAD
 cout << "CopyFrom" << endl;
 #endif
@@ -1156,14 +1155,14 @@ cout << "Insert" << endl;
         for(int i=0;i<count;i++) {
           elemArrayIndex.Append(index);
         }
-        AddHashValue((static_cast<StandardAttribute*>(elem))->HashValue(),
+        AddHashValue((static_cast<Attribute*>(elem))->HashValue(),
                               count);
       } else if (collType==multiset) {
         const int* cnt;
         elemCount.Get(index, cnt);
         elemCount.Put(index, (*cnt+count));
         size += count;
-        AddHashValue((static_cast<StandardAttribute*>(elem))->HashValue(),
+        AddHashValue((static_cast<Attribute*>(elem))->HashValue(),
                               count);
       }
       //there's nothing to do if we've got a set since in a set
@@ -1461,9 +1460,9 @@ cout << "SaveComponent" << endl;
       }
     }
     if(collType==set) {
-      AddHashValue((static_cast<StandardAttribute*>(elem))->HashValue(), 1);
+      AddHashValue((static_cast<Attribute*>(elem))->HashValue(), 1);
     } else {
-      AddHashValue((static_cast<StandardAttribute*>(elem))->HashValue(), count);
+      AddHashValue((static_cast<Attribute*>(elem))->HashValue(), count);
     }
     InsertIndex(elem, index);
   }
@@ -1509,7 +1508,7 @@ cout << "  size(" << i << "): " << size << endl;
 #ifdef DEBUGHEAD
 cout << "GetIndex" << endl;
 #endif
-    size_t tmp = (static_cast<const StandardAttribute*>(elem))->HashValue();
+    size_t tmp = (static_cast<const Attribute*>(elem))->HashValue();
     int hashsum = (int) tmp;
     hashsum = hashsum % numOfBuckets;
     if(hashsum<0) {
@@ -1545,7 +1544,7 @@ cout << "InsertIndex" << endl;
 #endif
     assert(nextElemHashValue.Size()==index);
       //nextElemHashValue(index) must not exist!
-    int hashsum = (static_cast<const StandardAttribute*>(elem))->HashValue();
+    int hashsum = (static_cast<const Attribute*>(elem))->HashValue();
     hashsum = hashsum % numOfBuckets;
     if(hashsum<0) {
       hashsum += numOfBuckets;

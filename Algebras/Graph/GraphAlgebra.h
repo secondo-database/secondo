@@ -63,7 +63,7 @@ extern QueryProcessor *qp;
 3 Class Vertex
 
 */
-class Vertex: public StandardAttribute
+class Vertex: public Attribute
 {
     public:
 /*
@@ -118,7 +118,7 @@ as an attribute.
           size_t Sizeof() const;
         
           size_t HashValue() const;
-          void CopyFrom(const StandardAttribute* arg);
+          void CopyFrom(const Attribute* arg);
           inline virtual ostream& Print( ostream& os ) const
           {
             if( IsDefined() )
@@ -146,7 +146,7 @@ as an attribute.
 4 Class Edge
 
 */
-class Edge: public StandardAttribute
+class Edge: public Attribute
 {
     public:
 /*
@@ -205,7 +205,7 @@ as an attribute.
         bool Adjacent(const Attribute*) const;
         size_t Sizeof() const;
         size_t HashValue() const;
-        void CopyFrom(const StandardAttribute* arg);
+        void CopyFrom(const Attribute* arg);
         inline virtual ostream& Print( ostream& os ) const
         {
           if(IsDefined())
@@ -246,7 +246,7 @@ struct pathStruct
         }
 };
 
-class Path: public StandardAttribute
+class Path: public Attribute
 {
     public:
 /*
@@ -344,7 +344,7 @@ as an attribute.
         size_t Sizeof() const;
         
         size_t HashValue() const;
-        void CopyFrom(const StandardAttribute* arg);
+        void CopyFrom(const Attribute* arg);
         inline virtual ostream& Print( ostream& os ) const
         {
           os << "Path: ( ";
@@ -784,7 +784,7 @@ After the usage of delete operations on the graph, the Minimize() function shoul
 called to minimize the size of the DBArrays that are used for the AVL trees. 
 
 */
-class Graph: public StandardAttribute
+class Graph: public Attribute
 {
    public:
 /*
@@ -1380,7 +1380,7 @@ as an attribute.
      FLOB *GetFLOB(const int i);
        
      size_t HashValue() const;
-     void CopyFrom(const StandardAttribute* arg);
+     void CopyFrom(const Attribute* arg);
           
    protected:    
 /*

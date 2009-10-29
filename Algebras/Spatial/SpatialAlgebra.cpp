@@ -2107,7 +2107,7 @@ void Points::Clear()
   bbox.SetDefined( false );
 }
 
-void Points::CopyFrom( const StandardAttribute* right )
+void Points::CopyFrom( const Attribute* right )
 {
   const Points *ps = (const Points*)right;
   assert( ps->IsOrdered() );
@@ -5112,7 +5112,7 @@ void Line::Clear()
   SetDefined(true);
 }
 
-void Line::CopyFrom( const StandardAttribute* right )
+void Line::CopyFrom( const Attribute* right )
 {
   Clear();
   *this = *((const Line *)right);
@@ -9053,7 +9053,7 @@ void Region::SetEmpty()
 }
 
 
-void Region::CopyFrom( const StandardAttribute* right )
+void Region::CopyFrom( const Attribute* right )
 {
   *this = *(const Region *)right;
 }

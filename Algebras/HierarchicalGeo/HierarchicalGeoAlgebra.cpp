@@ -3592,7 +3592,7 @@ Attribute* CMPoint::Clone() const
   return (Attribute*) result;
 }
   
-void CMPoint::CopyFrom( const StandardAttribute* right )
+void CMPoint::CopyFrom( const Attribute* right )
 {
   const CMPoint *r = (const CMPoint*)right;
   assert( r->IsOrdered() );
@@ -5660,7 +5660,7 @@ inline Attribute* HCMPoint::Clone() const
   return result;
 }
 
-inline void HCMPoint::CopyFrom( const StandardAttribute* right )
+inline void HCMPoint::CopyFrom( const Attribute* right )
 {
   const HCMPoint *hcmp = dynamic_cast<const HCMPoint*>(right);
   
@@ -7202,7 +7202,7 @@ inline Attribute* HMPoint::Clone() const
   return result;
 }
 
-inline void HMPoint::CopyFrom( const StandardAttribute* right )
+inline void HMPoint::CopyFrom( const Attribute* right )
 {
   const HMPoint *hmp = dynamic_cast<const HMPoint*>(right);
   

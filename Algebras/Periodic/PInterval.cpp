@@ -268,7 +268,7 @@ from the argument.
 [3] O(1)
 
 */
-void PInterval::CopyFrom(const StandardAttribute* arg){
+void PInterval::CopyFrom(const Attribute* arg){
    __TRACE__
   Equalize( (PInterval*) arg);
 }

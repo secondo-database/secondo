@@ -409,7 +409,7 @@ The caller has to ensure that __arg__ is of type PMPoint.
 [3] O(L)
 
 */
-void PMPoint::CopyFrom(const StandardAttribute* arg){
+void PMPoint::CopyFrom(const Attribute* arg){
     __TRACE__
   Equalize(static_cast<const PMPoint*>(arg));
 }

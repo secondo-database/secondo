@@ -245,7 +245,7 @@ size_t Material::HashValue() const
 
 }
 
-void Material::CopyFrom( const StandardAttribute* arg )
+void Material::CopyFrom( const Attribute* arg )
 {
   const Material* mat2 = (Material*) arg;
   defined = mat2->defined;
@@ -494,7 +494,7 @@ size_t Move::HashValue() const
   }
 }
 
-void Move::CopyFrom( const StandardAttribute* arg )
+void Move::CopyFrom( const Attribute* arg )
 {
   const Move* move2 = (Move*) arg;
   defined = move2->defined;
@@ -717,7 +717,7 @@ size_t Position::HashValue() const
     return retval;
 }
 
-void Position::CopyFrom( const StandardAttribute* arg )
+void Position::CopyFrom( const Attribute* arg )
 {
   const Position* pos2 = (Position*) arg;
   defined = pos2->defined;
@@ -1160,7 +1160,7 @@ size_t Chessgame::HashValue() const
     return retval;
 }
 
-void Chessgame::CopyFrom( const StandardAttribute* arg )
+void Chessgame::CopyFrom( const Attribute* arg )
 {
   const Chessgame* game2 = (Chessgame*) arg;
   defined = game2->defined;

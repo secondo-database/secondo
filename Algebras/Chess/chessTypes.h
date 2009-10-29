@@ -40,7 +40,6 @@ The following classes are defined in this file:
 #include "TupleIdentifier.h"
 #include "DBArray.h"
 #include "Attribute.h"
-#include "StandardAttribute.h"
 #include "StandardTypes.h"
 #include <iostream>
 #include <string>
@@ -191,7 +190,7 @@ inline char EncodePosition( char file, char row )
 3.1 Class Material
 
 */
-class Material : public IndexableStandardAttribute
+class Material : public IndexableAttribute
 {
 public:
   Material();
@@ -209,7 +208,7 @@ public:
   void SetDefined( bool defined );
   size_t Sizeof() const;
   size_t HashValue() const;
-  void CopyFrom( const StandardAttribute* arg );
+  void CopyFrom( const Attribute* arg );
   Material* Clone() const;
   void WriteTo( char *dest ) const;
   void ReadFrom( const char *src );
@@ -248,7 +247,7 @@ private:
 3.2 Class Move
 
 */
-class Move : public IndexableStandardAttribute
+class Move : public IndexableAttribute
 {
 public:
   Move();
@@ -270,7 +269,7 @@ public:
   void SetDefined( bool defined );
   size_t Sizeof() const;
   size_t HashValue() const;
-  void CopyFrom( const StandardAttribute* arg );
+  void CopyFrom( const Attribute* arg );
   Move* Clone() const;
   void WriteTo( char *dest ) const;
   void ReadFrom( const char *src );
@@ -352,7 +351,7 @@ private:
 3.3 Class Position
 
 */
-class Position : public IndexableStandardAttribute
+class Position : public IndexableAttribute
 {
 public:
   Position();
@@ -366,7 +365,7 @@ public:
   void SetDefined( bool defined );
   size_t Sizeof() const;
   size_t HashValue() const;
-  void CopyFrom( const StandardAttribute* arg );
+  void CopyFrom( const Attribute* arg );
   Position* Clone() const;
   void WriteTo( char *dest ) const;
   void ReadFrom( const char *src );
@@ -460,7 +459,7 @@ private:
 */
 struct MetainfoEntry;
 struct MoveData;
-class Chessgame : public IndexableStandardAttribute
+class Chessgame : public IndexableAttribute
 {
 public:
   Chessgame();
@@ -473,7 +472,7 @@ public:
   void SetDefined( bool defined );
   size_t Sizeof() const;
   size_t HashValue() const;
-  void CopyFrom( const StandardAttribute* arg );
+  void CopyFrom( const Attribute* arg );
   Chessgame* Clone() const;
   void WriteTo( char *dest ) const;
   void ReadFrom( const char *src );

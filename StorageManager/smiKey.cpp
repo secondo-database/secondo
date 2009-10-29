@@ -35,7 +35,7 @@ using namespace std;
 
 #include "SecondoSMI.h"
 #include "SmiCodes.h"
-#include "StandardAttribute.h"
+#include "IndexableAttribute.h"
 
 SmiKey::SmiKey()
 {
@@ -68,7 +68,7 @@ SmiKey::SmiKey( const string& key )
   SetKey( key );
 }
 
-SmiKey::SmiKey( const IndexableStandardAttribute* key )
+SmiKey::SmiKey( const IndexableAttribute* key )
 {
   keyType = SmiKey::Unknown;
   SetKey( key );
@@ -255,7 +255,7 @@ SmiKey::SetKey( const string& key )
 }
 
 void
-SmiKey::SetKey( const IndexableStandardAttribute* key )
+SmiKey::SetKey( const IndexableAttribute* key )
 {
   static char mapdata[SMI_MAX_KEYLEN];
   char* data;
@@ -384,7 +384,7 @@ SmiKey::GetKey( string& key )
 }
 
 bool
-SmiKey::GetKey( IndexableStandardAttribute* key )
+SmiKey::GetKey( IndexableAttribute* key )
 {
   bool ok = false;
   char* data;

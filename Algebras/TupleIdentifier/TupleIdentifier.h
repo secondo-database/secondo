@@ -59,7 +59,7 @@ typedef long TupleId;
 2.1 Data Structure - Class ~TupleIdentifier~
 
 */
-class TupleIdentifier: public StandardAttribute
+class TupleIdentifier: public Attribute
 {
  public:
   inline TupleIdentifier() {};
@@ -100,7 +100,7 @@ This constructor should not be used.
     return (defined ? tid : 0);
   }
 
-  void CopyFrom(const StandardAttribute* right);
+  void CopyFrom(const Attribute* right);
 
   inline int Compare(const Attribute *arg) const
   {

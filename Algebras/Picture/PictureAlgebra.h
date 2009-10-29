@@ -70,7 +70,7 @@ JPEG images. We suggest to use the ~display~ program from ImageMagick.
 #define __PICTURE_ALGEBRA_H__ 
 
 #include "DateTime.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "StandardTypes.h"
 #include "Algebra.h"
 
@@ -107,12 +107,12 @@ enum HistogramChannel {
 
 /*
 
-As the class ~Picture~ implements ~StandardAttribute~, ~picture~ objects
+As the class ~Picture~ implements ~Attribute~, ~picture~ objects
 can be used in relations.
 
 */
 
-class Histogram : StandardAttribute {
+class Histogram : Attribute {
 
 /*
 
@@ -238,16 +238,16 @@ class to provide their functionality. See the description of class
 
 /*
 
-3.5 Methods required to implement ~StandardAttribute~
+3.5 Methods required to implement ~Attribute~
 
-See the description of ~StandardAttribute~ and the SECONDO Programmer's
+See the description of ~Attribute~ and the SECONDO Programmer's
 Guide for details.
 
 */
     void SetDefined(const bool d) { isDefined = d; }
     size_t Sizeof() const { return sizeof(*this); }
     size_t HashValue(void) const;
-    void CopyFrom(const StandardAttribute*);
+    void CopyFrom(const Attribute*);
     int Compare(const Attribute* a) const;
     bool Adjacent(const Attribute* attr) const { return false; }
     Histogram* Clone(void) const;
@@ -257,12 +257,12 @@ Guide for details.
 
 4 Class ~Picture~
 
-As the class ~Picture~ implements ~StandardAttribute~, ~picture~ objects
+As the class ~Picture~ implements ~Attribute~, ~picture~ objects
 can be used in relations.
 
 */
 
-class Picture : StandardAttribute {
+class Picture : Attribute {
 
 /*
 
@@ -538,14 +538,14 @@ interval $[l, u]$.
     
 /*
 
-4.9 Methods required to implement ~StandardAttribute~
+4.9 Methods required to implement ~Attribute~
 
-See the description of ~StandardAttribute~ and the SECONDO Programmer's
+See the description of ~Attribute~ and the SECONDO Programmer's
 Guide for details.
 
 */
     size_t HashValue(void) const;
-    void CopyFrom(const StandardAttribute*);
+    void CopyFrom(const Attribute*);
     int Compare(const Attribute* a) const; 
     bool Adjacent(const Attribute* attr) const { return false; }
     Picture* Clone(void) const;

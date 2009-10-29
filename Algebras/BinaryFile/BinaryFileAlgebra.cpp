@@ -48,7 +48,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
 #include "StandardTypes.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "FLOB.h"
 #include "Base64.h"
 #include "BinaryFileAlgebra.h"
@@ -101,7 +101,7 @@ inline size_t BinaryFile::HashValue() const
   return 0;
 }
 
-void BinaryFile::CopyFrom(const StandardAttribute* right)
+void BinaryFile::CopyFrom(const Attribute* right)
 {
   const BinaryFile *r = (const BinaryFile *)right;
   binData.Resize( r->binData.Size() );

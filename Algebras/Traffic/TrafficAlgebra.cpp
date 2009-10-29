@@ -55,7 +55,7 @@ extern QueryProcessor* qp;
 2. Implementation of Class ~MGPSecUnit~
 
 */
-MGPSecUnit::MGPSecUnit():StandardAttribute()
+MGPSecUnit::MGPSecUnit():Attribute()
 {
 }
 
@@ -147,7 +147,7 @@ size_t MGPSecUnit::HashValue() const
   return hash;
 }
 
-void MGPSecUnit::CopyFrom( const StandardAttribute* right )
+void MGPSecUnit::CopyFrom( const Attribute* right )
 {
   const MGPSecUnit* gp = (const MGPSecUnit*)right;
   *this = *gp;

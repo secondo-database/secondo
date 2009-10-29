@@ -186,7 +186,7 @@ void AttributeRelation::CopyTuplesToNrel(NestedRelation* nrel)
 }
 
 /*
-3.3 Functions implementing virtual functions from class StandardAttribute 
+3.3 Functions implementing virtual functions from class Attribute 
 
 */
 int AttributeRelation::NumOfFLOBs() const
@@ -285,7 +285,7 @@ size_t AttributeRelation::HashValue() const
 {
   size_t value = 0;
   AttributeType atype;
-  const StandardAttribute* a1;
+  const Attribute* a1;
   Relation* rel1 = Relation::GetRelation(relId);
   TupleType* tt = rel1->GetTupleType();
   tt->IncReference();
@@ -298,7 +298,7 @@ size_t AttributeRelation::HashValue() const
     t1 = rel1->GetTuple(*tid1);
     for (int j = 0; j < tt->GetNoAttributes(); j++)
     {
-      a1 = (StandardAttribute*)t1->GetAttribute(j);
+      a1 = (Attribute*)t1->GetAttribute(j);
       atype = tt->GetAttributeType(j);
       value = a1->HashValue();
     }
@@ -310,7 +310,7 @@ size_t AttributeRelation::HashValue() const
 }
   
 
-void AttributeRelation::CopyFrom(const StandardAttribute* right)
+void AttributeRelation::CopyFrom(const Attribute* right)
 {
   AttributeRelation* arel = (AttributeRelation*) right;
   partOfNrel = false;

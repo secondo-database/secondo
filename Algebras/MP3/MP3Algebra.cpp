@@ -101,7 +101,7 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "FLOB.h"
 #include "DBArray.h"
 #include "Base64.h"
@@ -119,7 +119,7 @@ namespace mp3{
 2.1 Class ~MP3~
 
 */
-class MP3 : public StandardAttribute {
+class MP3 : public Attribute {
   public:
     /* Constructor. Initalizes the DBArray mp3Data. */
     MP3() {};
@@ -135,7 +135,7 @@ class MP3 : public StandardAttribute {
     /* Calcules a hash value for an MP3. */
     size_t HashValue() const;
     /* Copy the data of another MP3 object into this object. */
-    void CopyFrom(const StandardAttribute* right);
+    void CopyFrom(const Attribute* right);
     /* Compare this MP3 with another MP3 object. */
     int Compare(const Attribute * arg) const;
     /* Adjacent is not useful for MP3 */
@@ -299,7 +299,7 @@ size_t MP3::HashValue() const {
 Copy the data of another MP3 object into this object. 
 
 */
-void MP3::CopyFrom(const StandardAttribute* right) {
+void MP3::CopyFrom(const Attribute* right) {
     const MP3 *r = (const MP3 *)right;
 
     if (r->mp3Data.Size() > 0){
@@ -1284,7 +1284,7 @@ part of an MP3 file this algebra provides a seperate storage of
 such ID3 tags.
 
 */
-class ID3 : StandardAttribute {
+class ID3 : Attribute {
 public:
     /* Standard constructor. */
     ID3();
@@ -1297,7 +1297,7 @@ public:
     /* Calcules a hash value for an ID3. */
     size_t HashValue() const;
     /* Copy the data of another ID3 object into this object. */
-    void CopyFrom(const StandardAttribute* right);
+    void CopyFrom(const Attribute* right);
     /* Compare this ID3 with another ID3 object. */
     int Compare(const Attribute * arg) const;
     /* Adjacent is not useful for ID3 */
@@ -1422,7 +1422,7 @@ size_t ID3::HashValue () const {
 Copy the data of another ID3 object into this object. 
 
 */
-void ID3::CopyFrom(const StandardAttribute* right) {
+void ID3::CopyFrom(const Attribute* right) {
     const ID3* id = (const ID3*) right;
     *this = *id;
 }
@@ -2071,7 +2071,7 @@ part of an MP3 file this algebra provides a seperate storage of
 such lyrics lines.
 
 */
-class Lyrics : StandardAttribute {
+class Lyrics : Attribute {
   public:
     /* Constructor */
     Lyrics() {};
@@ -2088,7 +2088,7 @@ class Lyrics : StandardAttribute {
     /* Calcules a hash value for an Lyrics. */
     size_t HashValue() const;
     /* Copy the data of another Lyrics object into this object. */
-    void CopyFrom(const StandardAttribute* right);
+    void CopyFrom(const Attribute* right);
     /* Returns the number of FLOBs : 1 */
     int NumOfFLOBs() const;
     /* Returns the line array. */
@@ -2192,7 +2192,7 @@ size_t Lyrics::HashValue () const {
 Copy the data of another Lyrics object into this object. 
 
 */
-void Lyrics::CopyFrom(const StandardAttribute* right) {
+void Lyrics::CopyFrom(const Attribute* right) {
     const Lyrics* lyrics = (const Lyrics*) right;
     
     for(int i = 0; i < lyrics->NoLines(); i++ ) {

@@ -57,7 +57,7 @@ extern QueryProcessor *qp;
 
 */
 
-void TupleIdentifier::CopyFrom(const StandardAttribute* attr)
+void TupleIdentifier::CopyFrom(const Attribute* attr)
 {
   const TupleIdentifier* tupleI = (const TupleIdentifier*) attr;
   defined = tupleI->IsDefined();

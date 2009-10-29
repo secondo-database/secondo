@@ -6262,7 +6262,7 @@ URegion* URegion::Clone(void) const {
 1.1.1.1 Method ~CopyFrom()~
 
 */
-void URegion::CopyFrom(const StandardAttribute* right) {
+void URegion::CopyFrom(const Attribute* right) {
     if (MRA_DEBUG) cerr << "URegion::CopyFrom() called" << endl;
 
     const URegion* ur = (const URegion*) right;
@@ -7467,7 +7467,7 @@ MRegion* MRegion::Clone(void) const {
 1.1.1.1 Method ~CopyFrom()~
 
 */
-void MRegion::CopyFrom(const StandardAttribute* right) {
+void MRegion::CopyFrom(const Attribute* right) {
     if (MRA_DEBUG)
         cerr << "MRegion::CopyFrom() called, this="
              << this

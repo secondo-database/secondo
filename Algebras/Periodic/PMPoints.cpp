@@ -306,7 +306,7 @@ The PMPoints instances takes its value from the given argument.
 [3] O(L)
 
 */
-void PMPoints::CopyFrom(const StandardAttribute* arg){
+void PMPoints::CopyFrom(const Attribute* arg){
     __TRACE__
   Equalize((PMPoints*)arg);
 }

@@ -1,7 +1,7 @@
 #ifndef SECONDO_ALGEBRAS_CHESS_PLY_HPP
 #define SECONDO_ALGEBRAS_CHESS_PLY_HPP
 
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "ListStream.hpp"
 #include "Type.hpp"
 #include "PlyT.hpp"
@@ -10,7 +10,7 @@ class Ply;
 list_ostream& operator << ( list_ostream&, const Ply& );
 list_istream& operator >> ( list_istream&, Ply& );
 
-class Ply : public PlyT, public StandardAttribute
+class Ply : public PlyT, public Attribute
 {
 public:
     static const std::string& name()
@@ -23,7 +23,7 @@ public:
     Ply( const PlyT& p ) : PlyT(p), defined_(true) {}
     Ply( undef_t undef ) : PlyT(0), defined_(false) {}
 
-    // pure virtual functions of class StandardAttribute
+    // pure virtual functions of class Attribute
     virtual bool Adjacent( const Attribute* ) const { return 0; }
 
     virtual int Compare( const Attribute* other ) const
@@ -54,7 +54,7 @@ public:
         return p.Print(os);
     }
 
-    virtual void CopyFrom( const StandardAttribute* other )
+    virtual void CopyFrom( const Attribute* other )
     {
         *this = Ply( *static_cast< const Ply* >( other ) );
     }

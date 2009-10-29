@@ -145,7 +145,7 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #include <list>
 
 #include "Algebra.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "NestedList.h"
 #include "Counter.h"
 
@@ -834,7 +834,7 @@ into account the FLOBs.
 */
     inline size_t HashValue(int i)
     {
-      return static_cast<StandardAttribute*>( GetAttribute(i) )->HashValue();
+      return static_cast<Attribute*>( GetAttribute(i) )->HashValue();
     }
 
 /*

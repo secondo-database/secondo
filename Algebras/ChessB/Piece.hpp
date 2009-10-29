@@ -8,7 +8,7 @@
 #include <tr1/array>
 using std::tr1::array;
 
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "ListStream.hpp"
 #include "Type.hpp"
 
@@ -54,7 +54,7 @@ enum PIECE { NONE,
              BLACK_KING, WHITE_KING,
              UNDEFINED };
 
-class Piece : public StandardAttribute
+class Piece : public Attribute
 {
 public:
     static const std::string& name()
@@ -153,7 +153,7 @@ public:
         return mapper( agent );
     }
 
-    // pure virtual functions of class StandardAttribute
+    // pure virtual functions of class Attribute
     virtual bool Adjacent( const Attribute* other ) const
     {
         const Piece& p = *static_cast< const Piece* >( other );
@@ -171,7 +171,7 @@ public:
         return os << agent();
     }
 
-    virtual void CopyFrom( const StandardAttribute* other )
+    virtual void CopyFrom( const Attribute* other )
     {
         *this = Piece( *static_cast< const Piece* >( other ) );
     }

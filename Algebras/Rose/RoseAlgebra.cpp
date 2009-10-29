@@ -49,7 +49,7 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"        
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include <stack>
 #include <time.h>
 #include <cmath>
@@ -1004,7 +1004,7 @@ java methods.
 
 */
 
-class CcPoints: public StandardAttribute {
+class CcPoints: public Attribute {
 private:
   jobject obj;
   FLOB objectData;
@@ -1025,7 +1025,7 @@ public:
   Attribute *Clone() const;
   bool IsDefined() const;
   void SetDefined(bool Defined);
-  void CopyFrom(const StandardAttribute* right);
+  void CopyFrom(const Attribute* right);
   void Destroy();
   jobject GetObject() const {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
@@ -1081,7 +1081,7 @@ public:
 };
 
 /*  
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -1092,7 +1092,7 @@ int CcPoints::Compare(const Attribute *attr) const {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -1104,7 +1104,7 @@ Attribute *CcPoints::Clone() const {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -1114,7 +1114,7 @@ bool CcPoints::IsDefined() const {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -1124,11 +1124,11 @@ void CcPoints::SetDefined(bool Defined) {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
-void CcPoints::CopyFrom(const StandardAttribute* right) {
+void CcPoints::CopyFrom(const Attribute* right) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   const CcPoints *P = (const CcPoints *)right;
   objectData.Resize(P->objectData.Size());
@@ -1143,7 +1143,7 @@ void CcPoints::CopyFrom(const StandardAttribute* right) {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -1572,7 +1572,7 @@ java methods.
 
 */
 
-class CcLines: public StandardAttribute {
+class CcLines: public Attribute {
 private:
   jobject obj;
   FLOB objectData;
@@ -1593,7 +1593,7 @@ public:
   Attribute *Clone() const;
   bool IsDefined() const;
   void SetDefined(bool Defined);
-  void CopyFrom(const StandardAttribute* right);
+  void CopyFrom(const Attribute* right);
   void Destroy();
   jobject GetObject() const {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
@@ -1646,7 +1646,7 @@ public:
 };
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -1657,7 +1657,7 @@ int CcLines::Compare(const Attribute *attr) const {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -1669,7 +1669,7 @@ Attribute *CcLines::Clone() const {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -1679,12 +1679,12 @@ bool CcLines::IsDefined() const {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -1694,11 +1694,11 @@ void CcLines::SetDefined(bool Defined) {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
-void CcLines::CopyFrom(const StandardAttribute* right) {
+void CcLines::CopyFrom(const Attribute* right) {
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   const CcLines *L = (const CcLines *)right;
   objectData.Resize(L->objectData.Size());
@@ -1713,7 +1713,7 @@ void CcLines::CopyFrom(const StandardAttribute* right) {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -2138,7 +2138,7 @@ java methods.
 
 */
 
-class CcRegions: public StandardAttribute {
+class CcRegions: public Attribute {
 private:
   jobject obj;
   FLOB objectData;
@@ -2159,7 +2159,7 @@ public:
   Attribute *Clone() const;
   bool IsDefined() const;
   void SetDefined(bool Defined);
-  void CopyFrom(const StandardAttribute* right);
+  void CopyFrom(const Attribute* right);
   void Destroy();
   jobject GetObject() const {
     if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
@@ -2212,7 +2212,7 @@ public:
 };
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -2223,7 +2223,7 @@ int CcRegions::Compare(const Attribute *attr) const {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -2235,7 +2235,7 @@ Attribute *CcRegions::Clone() const {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -2245,7 +2245,7 @@ bool CcRegions::IsDefined() const {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
@@ -2255,11 +2255,11 @@ void CcRegions::SetDefined(bool Defined) {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 
-void CcRegions::CopyFrom(const StandardAttribute* right) { 
+void CcRegions::CopyFrom(const Attribute* right) { 
   if (DEBUG) cout << "entered " << __PRETTY_FUNCTION__ << endl;
   const CcRegions *R = (const CcRegions *)right;
   objectData.Resize(R->objectData.Size());
@@ -2274,7 +2274,7 @@ void CcRegions::CopyFrom(const StandardAttribute* right) {
 }
 
 /* 
- Inherited method of StandardAttribute 
+ Inherited method of Attribute 
 
 */
 

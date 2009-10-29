@@ -140,7 +140,7 @@ size_t Vertex::HashValue() const
     return nRet;
 }
 
-void Vertex::CopyFrom( const StandardAttribute* arg)
+void Vertex::CopyFrom( const Attribute* arg)
 {
     Vertex const * pVertex = dynamic_cast<Vertex const *>(arg);
     if (pVertex != NULL)

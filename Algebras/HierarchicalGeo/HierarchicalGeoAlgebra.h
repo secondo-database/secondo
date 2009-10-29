@@ -47,7 +47,7 @@ The type system of the HierarchicalGeo Algebra can be seen below.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "Algebra.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "StandardTypes.h"
 #include "TemporalAlgebra.h"
 #include "SpatialAlgebra.h"
@@ -540,7 +540,7 @@ the epsilon-value.
     return res;
   }
   
-  virtual void CopyFrom( const StandardAttribute* right )
+  virtual void CopyFrom( const Attribute* right )
   {
     const CUPoint* i = (const CUPoint*)right;
     
@@ -637,7 +637,7 @@ Functions to be part of relations
   
   virtual Attribute* Clone() const;
   
-  void CopyFrom( const StandardAttribute* right );
+  void CopyFrom( const Attribute* right );
   
   inline virtual size_t Sizeof() const
   {
@@ -733,7 +733,7 @@ hierarchical structure.
 
 */
 template <class Alpha>
-class HierarchicalEntity: public StandardAttribute
+class HierarchicalEntity: public Attribute
 {
   public:
 /*
@@ -967,7 +967,7 @@ compared. The order of the contained units is ignored here!
     return 0;
   }
   
-  virtual void CopyFrom( const StandardAttribute* right )
+  virtual void CopyFrom( const Attribute* right )
   {
     const HierarchicalEntity<Alpha>* i =
       (const HierarchicalEntity<Alpha>*)right;
@@ -1042,7 +1042,7 @@ Every uncertain unit point of an upper layer (one of the layers 0 to 4)
 generalizes a number of uncertain unit points within the layer below.
 
 */
-class HCMPoint : public StandardAttribute
+class HCMPoint : public Attribute
 {
   public:
 /*
@@ -1377,7 +1377,7 @@ are true:
     return 0;
   }
   
-  inline void CopyFrom( const StandardAttribute* right );
+  inline void CopyFrom( const Attribute* right );
 
   
   inline int NumOfFLOBs() const
@@ -1583,7 +1583,7 @@ right function GetNoComponents.
   inline Attribute* Clone() const;
 
   
-  inline void CopyFrom( const StandardAttribute* right );
+  inline void CopyFrom( const Attribute* right );
   
   
   inline size_t Sizeof() const

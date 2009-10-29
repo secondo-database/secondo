@@ -103,6 +103,8 @@ This constructor should not be used.
    const PSPoint& GetPSPoint( int i ) const;
    const bool IsEmpty() const;
    void Append( const PSPoint& p);
+   size_t HashValue() const;
+   void CopyFrom(const Attribute* right);
    PointSequence *Clone() const;
 
    friend ostream& operator <<( ostream& os, const PointSequence& ps );
@@ -302,6 +304,19 @@ PointSequence *PointSequence::Clone() const
     ps->Append( this->GetPSPoint( i ) );
   return ps;
 }
+
+void PointSequence::CopyFrom(const Attribute* right){
+    PointSequence* ps = (PointSequence*)right;
+    pspoints.Clear();
+    for( int i = 0; i < ps->GetNoPSPoints(); i++ )
+      this->Append( ps->GetPSPoint( i ) );
+
+}
+
+size_t PointSequence::HashValue() const{
+  return pspoints.Size();
+}
+
 
 /*
 2.2 List Representation

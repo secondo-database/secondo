@@ -1969,7 +1969,7 @@ Filter(Word* args, Word& result, int message,
         tuple = (Tuple*)elem.addr;
         (*funargs)[0] = elem;
         qp->Request(args[1].addr, funresult);
-        if (((StandardAttribute*)funresult.addr)->IsDefined())
+        if (((Attribute*)funresult.addr)->IsDefined())
         {
           found = ((CcBool*)funresult.addr)->GetBoolval();
         }
@@ -2047,7 +2047,7 @@ Filter(Word* args, Word& result, int message,
         tuple = (Tuple*)elem.addr;
         (*funargs)[0] = elem;
         qp->Request(args[1].addr, funresult);
-        if (((StandardAttribute*)funresult.addr)->IsDefined())
+        if (((Attribute*)funresult.addr)->IsDefined())
         {
           found = ((CcBool*)funresult.addr)->GetBoolval();
         }
@@ -2322,7 +2322,7 @@ reduce_vm( Word* args, Word& result, int message,
         qp->Request(args[1].addr, funresult);
 
         bool found=false;
-        if (((StandardAttribute*)funresult.addr)->IsDefined())
+        if (((Attribute*)funresult.addr)->IsDefined())
         {
           found = ((CcBool*)funresult.addr)->GetBoolval();
         }
@@ -5421,8 +5421,8 @@ int Buffer(Word* args, Word& result, int message,
 int Buffer2(Word* args, Word& result, int message,
        Word& local, Supplier s){
    result = qp->ResultStorage(s);
-   StandardAttribute* arg = static_cast<StandardAttribute*>(args[0].addr);
-   StandardAttribute* res = static_cast<StandardAttribute*>(result.addr);
+   Attribute* arg = static_cast<Attribute*>(args[0].addr);
+   Attribute* res = static_cast<Attribute*>(result.addr);
    res->CopyFrom(arg);
    return 0;
 }

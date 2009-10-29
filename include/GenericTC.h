@@ -40,9 +40,9 @@ To use the generic approach, the C++ class representing the corrsponding
 
 1.1 Requirements
 
-1.1.1 ~StandardAttribute~
+1.1.1 ~Attribute~
 
-First of all, the class must be derived from the class __StandardAttribute__ and
+First of all, the class must be derived from the class __Attribute__ and
 implement all functions required by this class.
 
 

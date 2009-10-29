@@ -776,7 +776,7 @@ The algorithm is taken from
     return h;
   }
   
-  void Histogram1d::CopyFrom(const StandardAttribute* right) 
+  void Histogram1d::CopyFrom(const Attribute* right) 
   {
     const Histogram1d* hist = static_cast<const Histogram1d*>(right);
     

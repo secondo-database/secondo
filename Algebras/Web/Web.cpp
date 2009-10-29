@@ -32,7 +32,7 @@ November 2006
 */
 
 
-
+#undef __POS__
 #define __POS__ __FILE__ << ".." << __PRETTY_FUNCTION__ << "@" << __LINE__
 //#define TRACEON
 #ifdef TRACEON
@@ -464,7 +464,7 @@ let url1 = [const url value ("http" <text>//www.google.de</text--->
 ----
 
 */
-class URL : public IndexableStandardAttribute
+class URL : public IndexableAttribute
 {
  public:
   URL();
@@ -499,7 +499,7 @@ class URL : public IndexableStandardAttribute
   void ReadFrom(const char*);
   SmiSize SizeOfChars(void) const;
   size_t HashValue(void) const;
-  void CopyFrom(const StandardAttribute *arg);
+  void CopyFrom(const Attribute *arg);
  private:
    STRING_T protocol;
   FLOB host;
@@ -897,7 +897,7 @@ size_t URL::HashValue(void) const{
   return SizeOfChars();
 }
 
-void URL::CopyFrom(const StandardAttribute *arg){
+void URL::CopyFrom(const Attribute *arg){
   __TRACE__
   URL *url = (URL*) arg;
   setProtocol ( url->getProtocol());
@@ -920,7 +920,7 @@ let html1 = [const html value ((instant (10 10 2006 10 27 18)) <file>/home/sopra
 ----
 
 */
-class HTML : public StandardAttribute
+class HTML : public Attribute
 {
  public:
   HTML(){}
@@ -960,7 +960,7 @@ class HTML : public StandardAttribute
   const DBArray<FlobIndex>* getEmbededURLS() const;
 
   bool IsValid() const;
-  void CopyFrom(const StandardAttribute *arg);
+  void CopyFrom(const Attribute *arg);
   size_t HashValue(void) const;
 
 
@@ -2158,7 +2158,7 @@ bool HTML::IsValid() const{
   return valid;
 }
 
-void HTML::CopyFrom(const StandardAttribute* right)
+void HTML::CopyFrom(const Attribute* right)
 {
   __TRACE__
   const HTML *r = (const HTML *)right;
@@ -2228,7 +2228,7 @@ class Page : public HTML
     size_t SizeOf() const;
     int Compare(const Attribute*) const;
     bool Adjacent (const Attribute*)const;
-    void CopyFrom(const StandardAttribute *arg);
+    void CopyFrom(const Attribute *arg);
     Page* Clone() const;
 
 
@@ -2371,7 +2371,7 @@ Page* Page::Clone() const
   return new Page( *this );
 }
 
-void Page::CopyFrom(const StandardAttribute* right)
+void Page::CopyFrom(const Attribute* right)
 {
   __TRACE__
   const Page *r = (const Page *)right;
@@ -4773,7 +4773,7 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
               Word funresult;
               qp->Request(args[4].addr, funresult);
               bool funerg;
-              if (((StandardAttribute*)funresult.addr)->IsDefined())
+              if (((Attribute*)funresult.addr)->IsDefined())
               {
                 funerg = ((CcBool*)funresult.addr)->GetBoolval();
               }
@@ -4834,7 +4834,7 @@ wgetFun (Word* args, Word& result, int message, Word& local, Supplier s,
           Word funresult;
           qp->Request(args[4].addr, funresult);
           bool funerg;
-          if (((StandardAttribute*)funresult.addr)->IsDefined())
+          if (((Attribute*)funresult.addr)->IsDefined())
           {
             funerg = ((CcBool*)funresult.addr)->GetBoolval();
           }
@@ -5047,7 +5047,7 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
                 Word funresult;
                 qp->Request(args[4].addr, funresult);
                 bool funerg;
-                if (((StandardAttribute*)funresult.addr)->IsDefined())
+                if (((Attribute*)funresult.addr)->IsDefined())
                 {
                   funerg = ((CcBool*)funresult.addr)->GetBoolval();
                 }
@@ -5109,7 +5109,7 @@ pagegetFun (Word* args, Word& result, int message, Word& local, Supplier s,
             Word funresult;
             qp->Request(args[4].addr, funresult);
             bool funerg;
-            if (((StandardAttribute*)funresult.addr)->IsDefined())
+            if (((Attribute*)funresult.addr)->IsDefined())
             {
               funerg = ((CcBool*)funresult.addr)->GetBoolval();
             }

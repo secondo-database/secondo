@@ -133,7 +133,7 @@ This class is the implementation of the minimum bounding box. This class is
 also an algebra class.
 
 */
-class PBBox: public StandardAttribute {
+class PBBox: public Attribute {
  friend ostream& operator<< (ostream&, const PBBox); 
  public:
     PBBox();
@@ -154,7 +154,7 @@ class PBBox: public StandardAttribute {
     void SetDefined( const bool defined );
     void SetEmpty(const bool empty );
     size_t HashValue() const;
-    void CopyFrom(const StandardAttribute* arg);
+    void CopyFrom(const Attribute* arg);
     ListExpr ToListExpr(const ListExpr typeInfo) const;
     bool ReadFrom(const ListExpr LE, const ListExpr typeInfo);
     int  CompareTo(const PBBox* B2)const;
@@ -219,7 +219,7 @@ fixed start point.
 
 */
 
-class RelInterval : public StandardAttribute{
+class RelInterval : public Attribute{
   friend ostream& operator<< (ostream&, const RelInterval); 
   public:
 /*
@@ -333,7 +333,7 @@ an algebra type.
     bool IsDefined() const;
     void SetDefined(bool defined);
     size_t HashValue() const;
-    void CopyFrom(const StandardAttribute* arg);
+    void CopyFrom(const Attribute* arg);
     size_t Sizeof() const;
 
 /*
@@ -515,7 +515,7 @@ This class provides a structure for an interval. In the contrary to
 a RelInterval an Interval has a fixed start time and a fixed end time.
 
 */
-class PInterval : public StandardAttribute{
+class PInterval : public Attribute{
   friend ostream& operator<< (ostream&, const PInterval); 
   public:
     PInterval();
@@ -543,7 +543,7 @@ class PInterval : public StandardAttribute{
     void SetDefined( bool defined);
     size_t HashValue()const;
     size_t Sizeof() const;
-    void CopyFrom(const StandardAttribute* arg);
+    void CopyFrom(const Attribute* arg);
     void Equalize(const PInterval* D2);
     DateTime* GetLength()const;
     void Length(DateTime& res) const; 
@@ -1254,7 +1254,7 @@ bounding box, to the nodes of the repetition tree.
 
 */
 template <class T, class Unit>
-class PMSimple : public StandardAttribute {
+class PMSimple : public Attribute {
   public:
      PMSimple();
      PMSimple(int dummy);
@@ -1280,7 +1280,7 @@ class PMSimple : public StandardAttribute {
      bool IsDefined() const;
      void SetDefined( bool defined );
      size_t HashValue() const;
-     void CopyFrom(const StandardAttribute* arg);
+     void CopyFrom(const Attribute* arg);
      ListExpr ToListExpr(const ListExpr typeInfo)const;
      bool ReadFrom(const ListExpr value,const ListExpr typeInfo);
      bool IsEmpty()const;
@@ -1557,7 +1557,7 @@ public:
 This class represents a single periodic moving point.
 
 */
-class PMPoint : public StandardAttribute {
+class PMPoint : public Attribute {
   friend ostream& operator<< (ostream&, PMPoint);
   public:
      PMPoint();
@@ -1576,7 +1576,7 @@ class PMPoint : public StandardAttribute {
      bool IsDefined() const;
      void SetDefined( bool defined );
      size_t HashValue() const;
-     void CopyFrom(const StandardAttribute* arg);
+     void CopyFrom(const Attribute* arg);
      ListExpr ToListExpr(const bool typeincluded)const;
      ListExpr ToListExpr(const ListExpr typeInfo)const;
      bool ReadFrom(const ListExpr value, const ListExpr typeInfo);
@@ -1703,7 +1703,7 @@ class PMPoint : public StandardAttribute {
 This class represents a set of periodic moving points.
 
 */
-class PMPoints : public StandardAttribute {
+class PMPoints : public Attribute {
   friend ostream& operator<< (ostream& ,class PMPoints&) ;
   public:
      PMPoints();
@@ -1722,7 +1722,7 @@ class PMPoints : public StandardAttribute {
      bool IsDefined() const;
      void SetDefined( bool defined );
      size_t HashValue() const;
-     void CopyFrom(const StandardAttribute* arg);
+     void CopyFrom(const Attribute* arg);
      ListExpr ToListExpr(const bool typeincluded)const;
      ListExpr ToListExpr(const ListExpr typeInfo)const;
      bool ReadFrom(const ListExpr value, const ListExpr typeInfo);

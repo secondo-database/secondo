@@ -372,7 +372,7 @@ void Picture::Set(char* imgdata,
 
 /*
 
-3.5 ~StandardAttribute~ implementation
+3.5 ~Attribute~ implementation
 
 */
 
@@ -401,7 +401,7 @@ size_t Picture::HashValue(void) const {
     return h;
 }
 
-void Picture::CopyFrom(const StandardAttribute* attr) {
+void Picture::CopyFrom(const Attribute* attr) {
     if (PA_DEBUG) cerr << "Picture::CopyFrom() called" << endl;
 
     const Picture* p = (const Picture*) attr;
@@ -470,7 +470,7 @@ Picture* Picture::Clone(void) const {
 
     if (PA_DEBUG) cerr << "Picture::Clone() address is " << (void*) p << endl;
 
-    p->CopyFrom((const StandardAttribute*) this);
+    p->CopyFrom((const Attribute*) this);
 
     return p;
 }

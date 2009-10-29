@@ -1100,7 +1100,7 @@ CcFilter(Word* args, Word& result, int message, Word& local, Supplier s)
         tuple = (CcTuple*)elem.addr;
         (*funargs)[0] = elem;
         qp->Request(args[1].addr, funresult);
-        if (((StandardAttribute*)funresult.addr)->IsDefined())
+        if (((Attribute*)funresult.addr)->IsDefined())
         {
           found = ((CcBool*)funresult.addr)->GetBoolval();
         }
@@ -1306,7 +1306,7 @@ CcProject(Word* args, Word& result, int message, Word& local, Supplier s)
           qp->Request(son, elem2);
           index = ((CcInt*)elem2.addr)->GetIntval();
           attr = ((CcTuple*)elem1.addr)->Get(index-1);
-          t->Put(i-1, ((StandardAttribute*)attr->Clone()));
+          t->Put(i-1, ((Attribute*)attr->Clone()));
         }
         ((CcTuple*)elem1.addr)->DeleteIfAllowed();
         result = SetWord(t);
@@ -1526,7 +1526,7 @@ CcRemove(Word* args, Word& result, int message, Word& local, Supplier s)
           qp->Request(son, elem2);
           index = ((CcInt*)elem2.addr)->GetIntval();
           attr = ((CcTuple*)elem1.addr)->Get(index-1);
-          t->Put(i-1, ((StandardAttribute*)attr->Clone()));
+          t->Put(i-1, ((Attribute*)attr->Clone()));
         }
         ((CcTuple*)elem1.addr)->DeleteIfAllowed();
         result = SetWord(t);
@@ -1601,12 +1601,12 @@ void CcConcat (Word r, Word s, Word& t)
   for (int i = 1; i <= rnoattrs; i++)
   {
     attr = ((CcTuple*)r.addr)->Get(i - 1);
-    ((CcTuple*)t.addr)->Put((i - 1), ((StandardAttribute*)attr)->Clone());
+    ((CcTuple*)t.addr)->Put((i - 1), ((Attribute*)attr)->Clone());
   }
   for (int j = (rnoattrs + 1); j <= tnoattrs; j++)
   {
     attr = ((CcTuple*)s.addr)->Get(j - rnoattrs - 1);
-    ((CcTuple*)t.addr)->Put((j - 1), ((StandardAttribute*)attr)->Clone());
+    ((CcTuple*)t.addr)->Put((j - 1), ((Attribute*)attr)->Clone());
   }
 }
 /*
@@ -2313,7 +2313,7 @@ CcExtract(Word* args, Word& result, int message, Word& local, Supplier s)
   Word t;
   CcTuple* tupleptr;
   int index;
-  StandardAttribute* res = (StandardAttribute*)((qp->ResultStorage(s)).addr);
+  Attribute* res = (Attribute*)((qp->ResultStorage(s)).addr);
   result = SetWord(res);
 
   qp->Open(args[0].addr);
@@ -2324,7 +2324,7 @@ CcExtract(Word* args, Word& result, int message, Word& local, Supplier s)
     tupleptr = (CcTuple*)t.addr;
     index = ((CcInt*)args[2].addr)->GetIntval();
     assert((1 <= index) && (index <= tupleptr->GetNoAttrs()));
-    res->CopyFrom((const StandardAttribute*)tupleptr->Get(index - 1));
+    res->CopyFrom((const Attribute*)tupleptr->Get(index - 1));
     tupleptr->DeleteIfAllowed();
   }
   else
@@ -2563,7 +2563,7 @@ CcMaxMinValueMapping(Word* args, Word& result, int message,
 {
   bool definedValueFound = false;
   Word currentTupleWord;
-  StandardAttribute* extremum = (StandardAttribute*)(qp->ResultStorage(s)).addr;
+  Attribute* extremum = (Attribute*)(qp->ResultStorage(s)).addr;
   extremum->SetDefined(false);
   result = SetWord(extremum);
 
@@ -2575,8 +2575,8 @@ CcMaxMinValueMapping(Word* args, Word& result, int message,
   while(qp->Received(args[0].addr))
   {
     CcTuple* currentTuple = (CcTuple*)currentTupleWord.addr;
-    const StandardAttribute* currentAttr =
-      (const StandardAttribute*)currentTuple->Get(attributeIndex);
+    const Attribute* currentAttr =
+      (const Attribute*)currentTuple->Get(attributeIndex);
     if(currentAttr->IsDefined())
     {
       if(definedValueFound)
@@ -2833,7 +2833,7 @@ CcAvgSumValueMapping(Word* args, Word& result, int message,
   }
   else
   {
-    ((StandardAttribute*)qp->ResultStorage(s).addr)->SetDefined(false);
+    ((Attribute*)qp->ResultStorage(s).addr)->SetDefined(false);
     result = qp->ResultStorage(s);
     return 0;
   }
@@ -4308,7 +4308,7 @@ private:
 
   size_t HashTuple(CcTuple* tuple, int attrIndex)
   {
-    return (((StandardAttribute*)tuple->Get(attrIndex))->
+    return (((Attribute*)tuple->Get(attrIndex))->
       HashValue() % nBuckets);
   }
 
@@ -4640,7 +4640,7 @@ CcExtend(Word* args, Word& result, int message, Word& local, Supplier s)
           funargs = qp->Argument(supplier3);
           (*funargs)[0] = SetWord(tup);
           qp->Request(supplier3,value);
-          tup->Put(noofoldattrs+i,((StandardAttribute*)value.addr)->Clone());
+          tup->Put(noofoldattrs+i,((Attribute*)value.addr)->Clone());
         }
 
         tup->SetNoAttrs(noofoldattrs + nooffun);

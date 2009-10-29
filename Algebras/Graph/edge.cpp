@@ -135,7 +135,7 @@ size_t Edge::HashValue() const
   return nRet;
 }
 
-void Edge::CopyFrom(const StandardAttribute* arg)
+void Edge::CopyFrom(const Attribute* arg)
 {
   Edge const * pEdge = dynamic_cast<Edge const *>(arg);
   if (pEdge != NULL)

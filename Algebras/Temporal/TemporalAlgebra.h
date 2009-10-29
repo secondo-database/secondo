@@ -83,7 +83,6 @@ The type system of the Temporal Algebra can be seen below.
 #include "QueryProcessor.h"
 #include "Algebra.h"
 #include "Attribute.h"
-#include "StandardAttribute.h"
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
 #include "NestedList.h"
@@ -308,7 +307,7 @@ For this implementation, it is used a database array of ordered intervals.
 
 */
 template <class Alpha>
-class Range : public StandardAttribute
+class Range : public Attribute
 {
   public:
 /*
@@ -412,7 +411,7 @@ Remove all intervals in the range.
     inline Range<Alpha>* Clone() const;
     inline ostream& Print( ostream &os ) const;
     inline size_t HashValue() const;
-    inline void CopyFrom( const StandardAttribute* right );
+    inline void CopyFrom( const Attribute* right );
 
     inline int NumOfFLOBs() const;
     inline FLOB *GetFLOB(const int i);
@@ -652,7 +651,7 @@ $\alpha$ into a type that associates instants of time with values of $\alpha$.
 
 */
 template <class Alpha>
-struct Intime: public StandardAttribute
+struct Intime: public Attribute
 {
   Intime() {}
 /*
@@ -741,7 +740,7 @@ The second constructor.
     return 0;
   }
 
-  void CopyFrom( const StandardAttribute* right )
+  void CopyFrom( const Attribute* right )
   {
     const Intime<Alpha>* i = (const Intime<Alpha>*)right;
 
@@ -982,7 +981,7 @@ The time interval of the temporal unit.
 /*
 3.6 StandardTemporalUnit
 
-This class inherits from ~StandardAttribute~ and allows temporal units
+This class inherits from ~Attribute~ and allows temporal units
 of standard types to be part of relations. One should note that it is
 still an abstract class, because the functions ~CopyFrom~ and ~Clone~
 are not implemented.
@@ -990,7 +989,7 @@ are not implemented.
 */
 template<class Alpha>
 class StandardTemporalUnit :
-  public StandardAttribute,
+  public Attribute,
   public TemporalUnit<Alpha>
 {
   public:
@@ -1058,7 +1057,7 @@ The destructor.
     }
 
     virtual StandardTemporalUnit<Alpha>* Clone() const = 0;
-    virtual void CopyFrom( const StandardAttribute* right ) = 0;
+    virtual void CopyFrom( const Attribute* right ) = 0;
     virtual size_t Sizeof() const = 0;
 
 };
@@ -1079,7 +1078,7 @@ ostream& operator<<(ostream& o, const StandardTemporalUnit<Alpha> u)
 /*
 3.7 SpatialTemporalUnit
 
-This class inherits from ~SpatialStandardAttribute~ and allows temporal units
+This class inherits from ~SpatialAttribute~ and allows temporal units
 of spatial types to be part of relations. This class is a template also on the
 dimensionality. One should note that it is still an abstract class, because
 the functions ~CopyFrom~ and ~Clone~
@@ -1157,7 +1156,7 @@ The destructor.
     }
 
     virtual SpatialTemporalUnit<Alpha, dim>* Clone() const = 0;
-    virtual void CopyFrom( const StandardAttribute* right ) = 0;
+    virtual void CopyFrom( const Attribute* right ) = 0;
     virtual size_t Sizeof() const = 0;
     virtual const Rectangle<dim> BoundingBox() const = 0;
 };
@@ -1392,7 +1391,7 @@ Returns ~true~ if the value of this temporal unit is equal to the value of the t
     return res;
   }
 
-  virtual void CopyFrom( const StandardAttribute* right )
+  virtual void CopyFrom( const Attribute* right )
   {
     const ConstTemporalUnit<Alpha>* i = (const ConstTemporalUnit<Alpha>*)right;
 
@@ -1628,7 +1627,7 @@ Equality is calculated with respect to temporal evolution.
     return res;
   }
 
-  virtual void CopyFrom( const StandardAttribute* right )
+  virtual void CopyFrom( const Attribute* right )
   {
     const UReal* i = (const UReal*)right;
 
@@ -2037,7 +2036,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
     return res;
   }
 
-  inline virtual void CopyFrom( const StandardAttribute* right )
+  inline virtual void CopyFrom( const Attribute* right )
   {
     const UPoint* i = (const UPoint*)right;
 
@@ -2136,7 +2135,7 @@ the class ~TemporalUnit~ or ~ConstTemporalUnit~, because functions of these clas
 
 */
 template <class Unit, class Alpha>
-class Mapping : public StandardAttribute
+class Mapping : public Attribute
 {
   public:
 /*
@@ -2267,7 +2266,7 @@ purposes only. The ~mapping~ is valid, if the following conditions are true:
     inline Attribute* Clone() const;
     inline virtual ostream& Print( ostream &os ) const;
     inline size_t HashValue() const;
-    inline virtual void CopyFrom( const StandardAttribute* right );
+    inline virtual void CopyFrom( const Attribute* right );
     inline virtual void Restrict( const vector< pair<int, int> >& intervals );
 
     inline int NumOfFLOBs() const;
@@ -2768,7 +2767,7 @@ using a check on bbox.
     return (Attribute*) result;
   }
 
-  void CopyFrom( const StandardAttribute* right )
+  void CopyFrom( const Attribute* right )
   {
     const MPoint *r = (const MPoint*)right;
     assert( r->IsOrdered() );
@@ -3498,7 +3497,7 @@ inline size_t Range<Alpha>::HashValue() const
 }
 
 template <class Alpha>
-inline void Range<Alpha>::CopyFrom( const StandardAttribute* right )
+inline void Range<Alpha>::CopyFrom( const Attribute* right )
 {
   const Range<Alpha> *r = (const Range<Alpha>*)right;
   assert( r->IsOrdered() );
@@ -5073,7 +5072,7 @@ inline size_t Mapping<Unit, Alpha>::HashValue() const
 }
 
 template <class Unit, class Alpha>
-inline void Mapping<Unit, Alpha>::CopyFrom( const StandardAttribute* right )
+inline void Mapping<Unit, Alpha>::CopyFrom( const Attribute* right )
 {
   const Mapping<Unit, Alpha> *r = (const Mapping<Unit, Alpha>*)right;
   assert( r->IsOrdered() );

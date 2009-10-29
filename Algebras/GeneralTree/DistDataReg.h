@@ -43,7 +43,7 @@ This headerfile declares the following classes:
     This class is used as parameter type for the distance functions, which are defined in the "DistfunReg"[4] class (headerfile "Distfunreg.h"[4]). Objects of this class contain a char array, which stores all neccesary data for distance computations (usually the memory representation of a value (or an array of values), but it could also contain any other data, e.g. the name of a file, from which the distance function should read the data).
 
   * "DistDataAttribute"[4]\\
-    This class is similar to the "DistData"[4] class, but it implemets the "StandardAttribute"[4] class and the data is stored within a "FLOB"[4] instead of a char array. Additionally it stores a "DistDataId"[4] object, which is needed to select the assigned "DistDataInfo"[4] object from the "DistDataReg"[4] class and to test, if "DistDataAttr"[4] objects belong to the same distdata-type.
+    This class is similar to the "DistData"[4] class, but it implemets the "Attribute"[4] class and the data is stored within a "FLOB"[4] instead of a char array. Additionally it stores a "DistDataId"[4] object, which is needed to select the assigned "DistDataInfo"[4] object from the "DistDataReg"[4] class and to test, if "DistDataAttr"[4] objects belong to the same distdata-type.
 
   * "DistDataInfo"[4]\\
     Objects of this class store a function pointer to a getdata-function, which transforms "Attribute"[4] objects into "DistData"[4] objects. Each type constructor could provide several distdata-types, which are distinguished by the name of the assigned type-constructor and the name of the distdata-type (used e.g. for the picture type constructor to create several histogram-types from pictures).
@@ -63,7 +63,7 @@ New distdata-types must be registered in the "DistDataReg::initialize"[4] method
 #include <iostream>
 #include <string>
 #include "StandardTypes.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "Symbols.h"
 #include "TypeConstructor.h"
 
@@ -340,7 +340,7 @@ private:
 1.1.1 Class ~DistDataAttribute~
 
 ********************************************************************/
-class DistDataAttribute : public StandardAttribute
+class DistDataAttribute : public Attribute
 {
 
 public:
@@ -433,7 +433,7 @@ Removes the disc representation of the data FLOB.
     { m_data.Destroy(); }
 
 /////////////////////////////////////////////////////////////////////
-// virtual methods from the StandardAttribute class:
+// virtual methods from the Attribute class:
 /////////////////////////////////////////////////////////////////////
     inline virtual bool IsDefined() const
     { return m_defined; }
@@ -462,7 +462,7 @@ Removes the disc representation of the data FLOB.
     inline virtual size_t HashValue() const
     { return 0; }
 
-    virtual void CopyFrom(const StandardAttribute *rhs);
+    virtual void CopyFrom(const Attribute *rhs);
 
 private:
     FLOB m_data; // contains the data array

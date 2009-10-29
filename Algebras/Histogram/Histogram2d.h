@@ -369,7 +369,7 @@ histogram given as parameter.
       bool Adjacent(const Attribute *attrib) const;
       Attribute *Clone() const;
       size_t HashValue() const;
-      void CopyFrom(const StandardAttribute* right);
+      void CopyFrom(const Attribute* right);
       int NumOfFLOBs() const;
       FLOB* GetFLOB( const int i );   
       ostream& Print( ostream& os ) const;
@@ -385,7 +385,7 @@ histogram given as parameter.
       
       Histogram2d();
       
-  }; // class Histogram2d : public StandardAttribute
+  }; // class Histogram2d : public Attribute
   
   ostream& operator << (ostream& os, const Histogram2d& h);
 

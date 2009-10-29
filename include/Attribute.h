@@ -542,6 +542,22 @@ Print the delete reference info to a string (for debugging)
 
 
   inline virtual StorageType GetStorageType() const { return Default; }
+  
+  virtual size_t HashValue() const = 0;
+/*
+  The hash function.
+
+*/
+
+  virtual void CopyFrom(const Attribute* right) = 0;
+/*
+Copies the contents of ~right~ into ~this~. Assumes that ~this~ and
+~right~ are of the same type. This can be ensured by the type checking functions
+in the algebras.
+The reference counter if this attribute should not be affected.
+
+*/
+ 
 
   protected:
 

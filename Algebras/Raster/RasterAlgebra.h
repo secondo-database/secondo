@@ -31,7 +31,7 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 #include "QueryProcessor.h"
 #include "StandardTypes.h" //needed because we return a CcBool in an op.
 #include <string>
-#include "StandardAttribute.h"
+#include "Attribute.h"
 
 #include "SpatialAlgebra.h"
 #include <fstream>
@@ -47,7 +47,7 @@ May, 2007 Leonardo Azevedo, Rafael Brand
 
 enum RasterType {RT_REGION, RT_LINE, RT_POINTS};
 
-class Raster4CRS: public Signature4CRS, public StandardAttribute
+class Raster4CRS: public Signature4CRS, public Attribute
 {
  public:
   //potency dx dy mbr.min.x mbr.min.y mbr.max.x mbr.max.y signature...   
@@ -98,13 +98,13 @@ class Raster4CRS: public Signature4CRS, public StandardAttribute
 
   Raster4CRS& operator=( Raster4CRS& r );
   
-  //functions from StandardAttribute
+  //functions from Attribute
   bool IsDefined() const {return true;}
   void SetDefined( bool Defined ){}
   size_t Sizeof() const { return sizeof( *this );}
   bool Adjacent( const Attribute* arg ) const {return false;}
   size_t HashValue() const{return (size_t)(5*map->mbr.min.x + map->mbr.max.y);}
-  void CopyFrom( const StandardAttribute* right )
+  void CopyFrom( const Attribute* right )
           {operator=(*((Raster4CRS *)right));}
   int Compare( const Attribute *arg ) const{ return 1;} //still to do
 };

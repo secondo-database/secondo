@@ -34,7 +34,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "RelationAlgebra.h"
 #include "BTreeAlgebra.h"
 #include "DBArray.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "SpatialAlgebra.h"
 #include "RTreeAlgebra.h"
 
@@ -258,11 +258,11 @@ side value
 Represents single positions in the network. Each ~GPoint~ consists of a network
 id the ~gpoint~ belongs to, a ~rloc~ and a boolean defined flag. Because
 ~gpoint~ should be usable in relations the class ~gpoint~ derives from
-class StandardAttribute.
+class Attribute.
 
 */
 
-class GPoint : public StandardAttribute
+class GPoint : public Attribute
 {
   public:
 
@@ -384,7 +384,7 @@ Set Methods of ~gpoint~
       return hash;
     }
 
-    void CopyFrom( const StandardAttribute* right )
+    void CopyFrom( const Attribute* right )
     {
       const GPoint* gp = (const GPoint*)right;
       *this = *gp;
@@ -1710,7 +1710,7 @@ big.
 */
 
 
-class GLine : public StandardAttribute
+class GLine : public Attribute
 {
 /*
 5.1 Constructors and Destructor
@@ -1868,7 +1868,7 @@ Returns the Bounding GPoints of the GLine.
 
     size_t HashValue() const;
 
-    void CopyFrom(const StandardAttribute*);
+    void CopyFrom(const Attribute*);
 
     void TrimToSize()
      {
@@ -2153,7 +2153,7 @@ Deletes the tree.
 
 extern string edistjoinpointlist;
 
-class GPoints: public StandardAttribute{
+class GPoints: public Attribute{
 public:
   GPoints();
   GPoints(int in_iSize);
@@ -2189,7 +2189,7 @@ public:
   bool Adjacent(const Attribute*)const;
   GPoints* Clone()const;
   size_t HashValue()const;
-  void CopyFrom(const StandardAttribute* right);
+  void CopyFrom(const Attribute* right);
   GPoints& operator=(const GPoints& gps);
   void FilterAliasGPoints(Network *pNetwork);
   void TrimToSize () {m_xGPoints.TrimToSize();}

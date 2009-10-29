@@ -866,7 +866,7 @@ size_t SymbolicRelation::Sizeof() const
   return sizeof( *this );
 }
 
-void SymbolicRelation::CopyFrom(const StandardAttribute* right)
+void SymbolicRelation::CopyFrom(const Attribute* right)
 {
   *this = *(const SymbolicRelation*)right;
 }

@@ -1263,7 +1263,7 @@ pages 80-83, Aarhus, Denmark, June 2002.
 6.9 CopyFrom  
   
 */  
-  void Histogram2d::CopyFrom(const StandardAttribute* right) 
+  void Histogram2d::CopyFrom(const Attribute* right) 
   {
     const Histogram2d* hist = static_cast<const Histogram2d*>(right);
     

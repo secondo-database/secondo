@@ -66,7 +66,7 @@ It is usesed to include all other header files.
 #include "TemporalAlgebra.h"
 #include "MovingRegionAlgebra.h"
 #include "DateTime.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 
 #include "Lines.h"
 #include "RegionTreeNode.h"

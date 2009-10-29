@@ -731,7 +731,7 @@ as an attribute.
     void SetDefined(bool Defined);
     size_t HashValue() const;
     size_t Sizeof() const;
-    void CopyFrom(const StandardAttribute* right);
+    void CopyFrom(const Attribute* right);
 
     const Rectangle<2> BoundingBox() const;
 /*

@@ -1934,7 +1934,7 @@ private:
   size_t HashTuple(Tuple* tuple, int attrIndex)
   {
     return
-      (((StandardAttribute*)tuple->GetAttribute(attrIndex))->HashValue() %
+      (((Attribute*)tuple->GetAttribute(attrIndex))->HashValue() %
       nBuckets);
   }
 
@@ -2265,7 +2265,7 @@ private:
   size_t HashTuple(Tuple* tuple, int attrIndex)
   {
     return
-      (((StandardAttribute*)tuple->GetAttribute(attrIndex))->HashValue() %
+      (((Attribute*)tuple->GetAttribute(attrIndex))->HashValue() %
       nBuckets);
   }
 

@@ -52,7 +52,7 @@ This header file essentially contains the definition of the classes ~Midi~, ~Eve
 #ifndef __MIDI_ALGEBRA_H__
 #define __MIDI_ALGEBRA_H__
 
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "DBArray.h"
 #include <string>
 #include <vector>
@@ -159,7 +159,7 @@ the DBArray eventData. The element size represents the entire size of this event
 
 */
 
-class Midi: public StandardAttribute
+class Midi: public Attribute
 {
   public:
 
@@ -315,7 +315,7 @@ There are totally 10 functions which are defined as virtual functions. They need
     bool     IsDefined() const;
     void     SetDefined(bool Defined);
     size_t   HashValue() const;
-    void     CopyFrom(const StandardAttribute* right);
+    void     CopyFrom(const Attribute* right);
     int      Compare(const Attribute * arg) const;
     bool     Adjacent(const Attribute * arg) const;
     Midi*    Clone() const;

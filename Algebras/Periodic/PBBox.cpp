@@ -208,7 +208,7 @@ from the given argument.
 [3] O(1)
 
 */
-void PBBox::CopyFrom(const StandardAttribute* arg){
+void PBBox::CopyFrom(const Attribute* arg){
     __TRACE__
   Equalize((PBBox*) arg);
 }

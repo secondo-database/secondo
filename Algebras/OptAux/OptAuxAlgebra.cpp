@@ -508,7 +508,7 @@ int predcounts_vm(Word* args, Word& result, int message,
             (*(funArguments[predNumber]))[0] = elem;
        Word funResult;
             qp->Request( funStructure[predNumber], funResult);
-            if (((StandardAttribute*)funResult.addr)->IsDefined()) {
+            if (((Attribute*)funResult.addr)->IsDefined()) {
                if (((CcBool*)funResult.addr)->GetBoolval()) {
                   // if the predicate is true for the tuple, 
                   // set the corresponding bit

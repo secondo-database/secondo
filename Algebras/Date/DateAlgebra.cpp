@@ -74,7 +74,7 @@ has 28 days.
 
 */
 
-#include "StandardAttribute.h"
+#include "Attribute.h"
 
 using namespace std;
 
@@ -137,11 +137,11 @@ bool isdate(int  Day, int Month, int Year)
 
 2.1 Data Structure - Class ~Date~
 
-In order to use ~date~ as an attribute type in tuple definitions, we must derive the class ~Date~ from ~StandardAttribute~.
+In order to use ~date~ as an attribute type in tuple definitions, we must derive the class ~Date~ from ~Attribute~.
 
 */
 
-class Date: public StandardAttribute
+class Date: public Attribute
 {
  public:
   Date(bool Defined, int Day, int Month, int Year);
@@ -167,7 +167,7 @@ class Date: public StandardAttribute
   void     SetDefined(bool Defined);
   size_t   Sizeof() const;
   size_t   HashValue() const;
-  void     CopyFrom(const StandardAttribute* right);
+  void     CopyFrom(const Attribute* right);
   int      Compare(const Attribute * arg) const;
   bool     Adjacent(const Attribute * arg) const;
   Date*    Clone() const;
@@ -237,7 +237,7 @@ size_t Date::HashValue() const
   return size_t(h);
 }
 
-void Date::CopyFrom(const StandardAttribute* right)
+void Date::CopyFrom(const Attribute* right)
 {
   const Date * d = (const Date*)right;
   defined = d->defined;

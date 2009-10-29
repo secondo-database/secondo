@@ -309,7 +309,7 @@ not determined and can lead to a crash of [secondo].
 
 */
 template <class T, class Unit>
-void PMSimple<T,Unit>::CopyFrom(const StandardAttribute* arg){
+void PMSimple<T,Unit>::CopyFrom(const Attribute* arg){
     __TRACE__
    Equalize((PMSimple<T,Unit>*) arg);
 }

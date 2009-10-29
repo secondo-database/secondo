@@ -60,7 +60,7 @@ using namespace std;
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "StandardAttribute.h"
+#include "Attribute.h"
 #include "FLOB.h"
 #include "Attribute.h"
 #include <jni.h>
@@ -101,7 +101,7 @@ java methods.
 2.1 The Class CcFPoint
 
 */
-class CcFPoint: public StandardAttribute{
+class CcFPoint: public Attribute{
 public:
    CcFPoint();
    CcFPoint(const jobject jobj);
@@ -112,7 +112,7 @@ public:
    bool IsDefined() const;
    void SetDefined(bool d);
    size_t HashValue() const;
-   void CopyFrom(const StandardAttribute* right);
+   void CopyFrom(const Attribute* right);
    int Compare(const Attribute *arg) const;
    bool Adjacent(const Attribute * arg) const;
    int NumOfFLOBs() const;
@@ -158,7 +158,7 @@ private:
 2.2 The Class CcFLine
 
 */
-class CcFLine : public StandardAttribute{
+class CcFLine : public Attribute{
   public:
      CcFLine();
      CcFLine(int Size);
@@ -169,7 +169,7 @@ class CcFLine : public StandardAttribute{
      bool IsDefined() const;
      void SetDefined(bool d);
      size_t HashValue() const;
-     void CopyFrom(const StandardAttribute* right);
+     void CopyFrom(const Attribute* right);
      int Compare(const Attribute *arg) const;
      bool Adjacent(const Attribute * arg) const;
      int NumOfFLOBs() const;
@@ -218,7 +218,7 @@ class CcFLine : public StandardAttribute{
 2.3 The Class CcFRegion
 
 */
-class CcFRegion: public StandardAttribute{
+class CcFRegion: public Attribute{
 public:
    CcFRegion();
    CcFRegion(int size);
@@ -229,7 +229,7 @@ public:
    bool IsDefined() const;
    void SetDefined(bool d);
    size_t HashValue() const;
-   void CopyFrom(const StandardAttribute* right);
+   void CopyFrom(const Attribute* right);
    int Compare(const Attribute *arg) const;
    bool Adjacent(const Attribute* arg) const;
    int NumOfFLOBs() const;
@@ -446,7 +446,7 @@ The calling instance takes its value from the argument if
 ~CopyFrom~ is called.
 
 */
-void CcFPoint::CopyFrom(const StandardAttribute* right){
+void CcFPoint::CopyFrom(const Attribute* right){
     const CcFPoint *P = (const CcFPoint *)right;
    cls = env->FindClass("fuzzyobjects/composite/FPoint");
    defined = P->defined;
@@ -851,7 +851,7 @@ size_t CcFLine::HashValue() const{
    return (size_t) env->CallIntMethod(obj,mid);
 }
 
-void CcFLine::CopyFrom(const StandardAttribute* right){
+void CcFLine::CopyFrom(const Attribute* right){
   const CcFLine *L = (const CcFLine *) right;
   cls =  env->FindClass("fuzzyobjects/composite/FLine");
   defined = L->defined;
@@ -1447,7 +1447,7 @@ size_t CcFRegion::HashValue() const{
 }
 
 
-void CcFRegion::CopyFrom(const StandardAttribute* right){
+void CcFRegion::CopyFrom(const Attribute* right){
    const CcFRegion* R = (const CcFRegion*) right;
    cls = env->FindClass("fuzzyobjects/composite/FRegion");
    if(cls==0) error(__LINE__);

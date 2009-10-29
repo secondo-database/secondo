@@ -223,7 +223,7 @@ size_t Path::HashValue() const
     return 0;
 }
 
-void Path::CopyFrom(const StandardAttribute* arg)
+void Path::CopyFrom(const Attribute* arg)
 {
     Path const * pArg = dynamic_cast<Path const *>(arg);
     myPath.Clear();

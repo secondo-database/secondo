@@ -258,7 +258,7 @@ class UGridArea
                   the mandatory set of algebra   
 
 */
-class UpdateUnit//: public StandardAttribute  
+class UpdateUnit//: public Attribute  
 {
  public:
   UpdateUnit( const int& Id, const MobPos& pos);

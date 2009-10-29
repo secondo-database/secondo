@@ -110,7 +110,7 @@ Forward declaration of class NestedRelation.
 
 */
 
-class AttributeRelation : public StandardAttribute
+class AttributeRelation : public Attribute
 {
    public:
         AttributeRelation( const ListExpr typeInfo, bool nrel );
@@ -234,7 +234,7 @@ Appends the tuples, the Ids of which are saved in tupleIds, to nrel.
         
         size_t HashValue() const;
   
-        void CopyFrom(const StandardAttribute* right);
+        void CopyFrom(const Attribute* right);
         
         static Word     In( const ListExpr typeInfo, const ListExpr value,
                         const int errorPos, ListExpr& errorInfo, 

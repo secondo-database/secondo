@@ -176,6 +176,7 @@ internally only, the class interface is not described here.
 
 #else
 
+#undef __POS__
 #define __POS__ __FILE__
 #define __UDP_ENTER__
 #define __UDP_EXIT__

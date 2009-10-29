@@ -1344,7 +1344,7 @@ size_t Graph::HashValue() const {
 }
 
 
-void Graph::CopyFrom(const StandardAttribute* arg) {
+void Graph::CopyFrom(const Attribute* arg) {
    
    const Graph* g = (const Graph*)arg;
    
