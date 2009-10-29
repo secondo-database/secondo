@@ -2386,6 +2386,16 @@ logicalIndexType(sptmpuni, spatiotemporal(rtree3, unit), rtree3,
     undefined,
     undefined).
 
+logicalIndexType(constuni, constuni(btree), btree,
+    [uint,ustring,ubool,mint,mstring,mbool],
+    [ '__REL__', ' feed projectextend[ ',
+      '__ATTR__', ' ; TID: tupleid(.)] projectextendstream[TID; ConstUnit: units(.',
+      '__ATTR__', ')] projectextend[TID; ConstVal: val(initial(.ConstUnit))] ',
+      'sortby[ConstVal asc] createbtree[ConstVal]' ],
+    undefined,
+    undefined,
+    undefined).
+
 % Section:Start:logicalIndexType_8_e
 % Section:End:logicalIndexType_8_e
 
