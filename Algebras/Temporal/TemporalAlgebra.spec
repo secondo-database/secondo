@@ -74,7 +74,7 @@ operator hat alias HAT pattern op ( _ )
 operator speedup alias SPEEDUP pattern _ op [_]
 operator avespeed alias AVESPEED pattern op(_)
 operator submove alias SUBMOVE pattern _ op[_]
-operator uval alias VAL pattern op ( _ )
+operator uval alias UVAL pattern op ( _ )
 operator mp2onemp alias MP2ONEMP pattern op(_,_,_)
 operator p2mp alias MP2ONEMP pattern op(_,_,_,_)
 operator delay alias DELAY pattern op(_,_)
