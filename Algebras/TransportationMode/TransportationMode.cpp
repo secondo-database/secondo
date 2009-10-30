@@ -152,6 +152,17 @@ const string OpBusFindPath_T_5Spec =
   "[tq1,id,dur,querytime]);</text--->"
   "))";
 
+const string OpBusFindPath_T_6Spec =
+ "((\"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\") "
+  "(<text>busnetwork x rel x attribute1 "
+  "x attribute2 x instant-> mpoint</text--->"
+  "<text>_ find_path_t_6[_,_,_,_]</text--->"
+  "<text>returns a sequence of movement corresponding to a trip</text--->"
+  "<text>query deftime(berlintrains find_path_t_6"
+  "[tq1,id,dur,querytime]);</text--->"
+  "))";
+
 const string OpBusFindPath_BUS_Tree1Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
@@ -433,6 +444,23 @@ int OpBusFindPath_T_5ValueMapping(Word* args, Word& result,
   return 0;
 }
 
+int OpBusFindPath_T_6ValueMapping(Word* args, Word& result,
+                               int message, Word& local, Supplier s)
+{
+  result = qp->ResultStorage(s);
+  BusNetwork* busnet = (BusNetwork*)args[0].addr;
+
+  Relation* querycond = (Relation*)args[1].addr;
+  Instant* instant = static_cast<Instant*>(args[4].addr);
+
+  int attrpos1 = ((CcInt*)args[5].addr)->GetIntval() - 1;
+  int attrpos2 = ((CcInt*)args[6].addr)->GetIntval() - 1;
+
+  busnet->FindPath_T_6((MPoint*)result.addr,
+                  querycond,attrpos1,attrpos2,*instant);
+
+  return 0;
+}
 
 int OpBusFindPath_BUS_Tree1ValueMapping(Word* args, Word& result,
                                int message, Word& local, Supplier s)
@@ -838,6 +866,63 @@ ListExpr OpBusFindPath_T_5TypeMap(ListExpr in_xArgs)
 
 }
 
+ListExpr OpBusFindPath_T_6TypeMap(ListExpr in_xArgs)
+{
+  string s1 = "busnetwork x rel x attribute1";
+  string s2 = "x attribute2 x instant expected";
+  string err = s1 + s2;
+
+  if(nl->ListLength(in_xArgs) != 5){
+      ErrorReporter::ReportError(err);
+      return nl->TypeError();
+  }
+  ListExpr arg1 = nl->First(in_xArgs);
+  ListExpr arg2 = nl->Second(in_xArgs);
+
+  ListExpr arg3 = nl->Third(in_xArgs);
+  ListExpr arg4 = nl->Fourth(in_xArgs);
+  ListExpr arg5 = nl->Fifth(in_xArgs);
+
+
+  if(!IsRelDescription(arg2)){
+      string msg =  "second argument must be a relation";
+      ErrorReporter::ReportError(msg);
+      return nl->TypeError();
+  }
+
+  int j1,j2;
+  ListExpr attrType;
+  j1 = FindAttribute(nl->Second(nl->Second(arg2)),
+                   nl->SymbolValue(arg3),attrType);
+
+  CHECK_COND( j1 > 0 && (nl->IsEqual(attrType,"int")),
+             "the sixth attribute should be of type int");
+
+  j2 = FindAttribute(nl->Second(nl->Second(arg2)),
+                   nl->SymbolValue(arg4),attrType);
+
+  CHECK_COND( j1 > 0 && (nl->IsEqual(attrType,"duration")),
+             "the seventh attribute should be of type duration");
+
+  if(!nl->IsEqual(arg5,"instant")){
+      string msg = "eighth argument must be an instant";
+      ErrorReporter::ReportError(msg);
+      return nl->TypeError();
+  }
+
+  if(nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
+     nl->SymbolValue(arg1) == "busnetwork"){
+//    return nl->SymbolAtom("mpoint");
+    ListExpr res = nl->SymbolAtom("mpoint");
+    return nl->ThreeElemList(
+            nl->SymbolAtom("APPEND"),
+            nl->TwoElemList(nl->IntAtom(j1),nl->IntAtom(j2)),res);
+
+  }
+  ErrorReporter::ReportError(err);
+  return nl->TypeError();
+
+}
 
 ListExpr OpBusFindPath_BUS_Tree1TypeMap(ListExpr in_xArgs)
 {
@@ -969,6 +1054,15 @@ Operator find_path_t_5(
   OpBusFindPath_T_5TypeMap
 );
 
+Operator find_path_t_6(
+  "find_path_t_6", //name
+  OpBusFindPath_T_6Spec,
+  OpBusFindPath_T_6ValueMapping,
+  Operator::SimpleSelect,
+  OpBusFindPath_T_6TypeMap
+);
+
+
 Operator find_path_bus_tree1(
   "find_path_bus_tree1", //name
   OpBusFindPath_BUS_Tree1Spec,
@@ -1005,7 +1099,7 @@ class TransportationModeAlgebra : public Algebra
    //input relation and b-tree
    AddOperator(&find_path_t_4);
    AddOperator(&find_path_t_5);//optimize-4
-
+   AddOperator(&find_path_t_6);//optimize-4
    //new representation for bus stop
    AddOperator(&find_path_bus_tree1);
 

@@ -11,7 +11,7 @@ Result   : file
 
 Operator : busnode
 Number   : 1
-Signature: busnetwork -> int
+Signature: busnetwork -> rel
 Example  : query busnode(berlintrains) count;
 Result   : 173
 
@@ -19,13 +19,13 @@ Result   : 173
 
 Operator : busedge
 Number   : 1
-Signature: busnetwork -> int
+Signature: busnetwork -> rel
 Example  : query busedge(berlintrains) count;
 Result   : 11372
 
 Operator : busmove
 Number   : 1
-Signature: busnetwork -> int
+Signature: busnetwork -> rel
 Example  : query busmove(berlintrains) count;
 Result   : 562
 
@@ -60,6 +60,14 @@ Number   : 1
 Signature: busnetwork x rel x attribute_name1 x attribute_name2 x instant  -> mpoint
 Example  : query berlintrains find_path_t_5[tq1,id,dur,querytime];
 Result   : file
+
+
+Operator : find_path_t_6
+Number   : 1
+Signature: busnetwork x rel x attribute_name1 x attribute_name2 x instant  -> mpoint
+Example  : query berlintrains find_path_t_6[tq1,id,dur,querytime];
+Result   : file
+
 
 Operator : find_path_bus_tree1
 Number   : 1

@@ -257,8 +257,8 @@ const ListExpr in_xTypeInfo)
 
   ///////////////////////adjacency list /////////////////////////////////
   SmiFileId fileId = 0;
-  adjacencylist_index.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
-  adjacencylist.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
+//  adjacencylist_index.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
+//  adjacencylist.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
 
   db_bus_node.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
   new_adjlist.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
@@ -335,12 +335,12 @@ BusNetwork:: ~BusNetwork()
   if(btree_bus_edge_v2 != NULL)
      delete btree_bus_edge_v2;
 
-
-  adjacencylist_index.Clear();
-  adjacencylist.Clear();
+//  adjacencylist_index.Clear();
+//  adjacencylist.Clear();
   db_bus_node.Clear();
   new_adjlist.Clear();
   entry_new_adjlist.Clear();
+//  cout<<"here"<<endl;
 #else
     if(bus_node != NULL)
       bus_node->Close();
@@ -859,10 +859,6 @@ void BusNetwork::ConstructBusNodeTree()
     t->DeleteIfAllowed();
   }*/
 
-// for each root node (without incoming edges), start depth-traversal tree
-//  CreateNodeTreeIndex(node_mark);
-
-
 }
 /*
 Create index table for bus node relation
@@ -920,177 +916,7 @@ struct Tree_Node{
   }
 };
 
-void BusNetwork::CreateNodeTreeIndex(vector<bool>& node_mark)
-{
-  cout<<"CreateNodeTreeIndex()"<<endl;
-  ofstream outfile("temp_result"); //record info for debug
 
-//////////////////node with no parent///////////////////////////////////////
-/*vector<int> root_node; //node without parent
-  for(int i = 1;i <= bus_node_new->GetNoTuples();i++){
-    if(node_mark[i] == false){
-      cout<<"tid "<<i<<endl;
-      root_node.push_back(i);
-    }
-  }
-  //record whether the node is already visited
-  vector<Tree_Node> visit_record;
-  for(int i = 1;i <= bus_node_tree->GetNoTuples();i++){
-    Tuple* node = bus_node_tree->GetTuple(i);
-    CcInt* tid = (CcInt*)node->GetAttribute(NODETID);
-    CcInt* left_tid = (CcInt*)node->GetAttribute(LEFTTID);
-    CcInt* right_tid = (CcInt*)node->GetAttribute(RIGHTTID);
-    visit_record.push_back(Tree_Node(tid->GetIntval(),left_tid->GetIntval(),
-                          right_tid->GetIntval(),false));
-    node->DeleteIfAllowed();
-//    cout<<i<<" "<<tid->GetIntval()<<endl;
-  }
-
-  //traversal the tree and assign the pre and post order value
-  int counter = 0;
-  for(int i = 0;i < root_node.size();i++){
-    Tuple* node = bus_node_tree->GetTuple(root_node[i]);
-    stack<Index_item> traverse_tree;
-    Index_item item(node->GetTupleId(),counter,-1);
-//    Index_item item(161,counter,-1);
-
-    counter++;
-    traverse_tree.push(item);
-//    cout<<"start elem ";
-//    item.Print();
-
-
-    //depth-traversal tree
-    while(traverse_tree.empty() == false){
-      Index_item& topelem = traverse_tree.top();
-      if(topelem.left && topelem.right){
-        traverse_tree.pop();
-        topelem.post = counter;
-        counter++;
-//        cout<<" pop() ";
-//        topelem.Print();
-
-        visit_record[topelem.tid-1].flag = true; //mark it
-        visit_record[topelem.tid-1].pre = topelem.pre; //mark it
-        visit_record[topelem.tid-1].post = topelem.post; //mark it
-
-        outfile<<topelem.tid<<" "<<topelem.pre<<" "<<topelem.post<<endl;
-
-        continue;
-      }
-
-      Tuple* t = bus_node_tree->GetTuple(topelem.tid);
-      while(traverse_tree.top().left == false){
-        Index_item& top = traverse_tree.top();
-        Tuple* tuple = bus_node_tree->GetTuple(top.tid);
-        CcInt* left_child = (CcInt*)tuple->GetAttribute(LEFTTID);
-
-        if(left_child->GetIntval() != -1){
-
-          if(visit_record[left_child->GetIntval()-1].flag == false){
-            Index_item item(left_child->GetIntval(),counter,-1);
-            traverse_tree.push(item);
-            counter++;
-//            cout<<"left push ";
-//            item.Print();
-          }else{
-            //get and mark all its children nodes
-
-            int entry = left_child->GetIntval()-1;
-            int delta = counter - visit_record[entry].pre;
-            counter += visit_record[entry].post - visit_record[entry].pre;
-            counter++; //later use
-
-            stack<Tree_Node> sub_traverse_tree;
-            sub_traverse_tree.push(visit_record[entry]);
-
-
-            //preorder sub-tree
-            while(sub_traverse_tree.empty() == false){
-                Tree_Node topnode = sub_traverse_tree.top();
-                sub_traverse_tree.pop();
-
-                //output
-                Index_item item;
-                item.tid = topnode.tid;
-                item.pre = topnode.pre + delta;
-                item.post = topnode.post + delta;
-
-//                item.Print();
-
-                outfile<<item.tid<<" "<<item.pre<<" "<<item.post<<endl;
-                if(topnode.r_tid != -1){
-                  sub_traverse_tree.push(visit_record[topnode.r_tid-1]);
-
-                }
-                if(topnode.l_tid != -1)
-                  sub_traverse_tree.push(visit_record[topnode.l_tid-1]);
-            }
-
-          }
-        }
-        top.left = true;
-        tuple->DeleteIfAllowed();
-      }
-
-      if(traverse_tree.top().right == false){
-        Index_item& top = traverse_tree.top();
-        Tuple* tuple = bus_node_tree->GetTuple(top.tid);
-        CcInt* right_child = (CcInt*)tuple->GetAttribute(RIGHTTID);
-        if(right_child->GetIntval() != -1){
-            if(visit_record[right_child->GetIntval()-1].flag == false){
-                Index_item item(right_child->GetIntval(),counter,-1);
-                traverse_tree.push(item);
-                counter++;
-//                cout<<"right push ";
-//                item.Print();
-            }else{
-              //get and mark all its children nodes
-
-               int entry = right_child->GetIntval()-1;
-               int delta = counter - visit_record[entry].pre;
-               counter += visit_record[entry].post - visit_record[entry].pre;
-               counter++; //later use
-
-               stack<Tree_Node> sub_traverse_tree;
-               sub_traverse_tree.push(visit_record[entry]);
-
-               //preorder sub-tree
-               while(sub_traverse_tree.empty() == false){
-                  Tree_Node topnode = sub_traverse_tree.top();
-                  sub_traverse_tree.pop();
-
-                  //output
-                  Index_item item;
-                  item.tid = topnode.tid;
-                  item.pre = topnode.pre + delta;
-                  item.post = topnode.post + delta;
-
-//                  item.Print();
-                  outfile<<item.tid<<" "<<item.pre<<" "<<item.post<<endl;
-
-                  if(topnode.r_tid != -1){
-                    sub_traverse_tree.push(visit_record[topnode.r_tid-1]);
-                  }
-                  if(topnode.l_tid != -1)
-                    sub_traverse_tree.push(visit_record[topnode.l_tid-1]);
-                }
-
-            }
-        }
-        top.right = true;
-        tuple->DeleteIfAllowed();
-      }
-
-      t->DeleteIfAllowed();
-
-    } //end for while
-    node->DeleteIfAllowed();
-    break;
-  }*/
-
-
-}
 
 /*
 Get the node id of a bus stop
@@ -1514,16 +1340,18 @@ void BusNetwork::FillAdj()
     double zval = ZValue(*p);
     BusNode bn(zval,busno.size());
 
+//    printf(" id %d zval %f\n",i,zval);
+
     t->DeleteIfAllowed();
     db_bus_node.Append(bn);
   }
-  db_bus_node.TrimToSize();
+
   //////////////////  Build AdjList   ///////////////////////////////////////
   for(int i = 1;i <= bus_node->GetNoTuples();i++){
     Tuple* t = bus_node->GetTuple(i);
     CcInt* nodeid = (CcInt*)t->GetAttribute(SID);
     int start = new_adjlist.Size();
-
+//    cout<<"node i "<<i<<endl;
     BTreeIterator* btree_iter = btree_bus_edge_v1->ExactMatch(nodeid);
     priority_queue<BusAdj> q_list;
     while(btree_iter->Next()){
@@ -1534,12 +1362,21 @@ void BusNetwork::FillAdj()
       def_t_next->Get(0,interval_next);
       double atime = interval_next->start.ToDouble();
       CcInt* path_id = (CcInt*)edgetuple->GetAttribute(RPID);
+      CcInt* v1 = (CcInt*)edgetuple->GetAttribute(V1);
+      CcInt* v2 = (CcInt*)edgetuple->GetAttribute(V2);
+
+      Tuple* p2_tuple = bus_node->GetTuple(v2->GetIntval());
+      Point* p2 = (Point*)p2_tuple->GetAttribute(LOC);
+
       double cost =
                 interval_next->end.ToDouble() - interval_next->start.ToDouble();
       BusAdj busadj(edgetuple->GetTupleId(),atime,
-                    bus_route_id->GetIntval(),path_id->GetIntval(),cost);
+                    bus_route_id->GetIntval(),path_id->GetIntval(),
+                    cost,v1->GetIntval(),v2->GetIntval(),*p2);
       q_list.push(busadj);
       edgetuple->DeleteIfAllowed();
+      p2_tuple->DeleteIfAllowed();
+//      busadj.Print();
     }
     delete btree_iter;
     while(q_list.empty() == false){
@@ -1552,17 +1389,18 @@ void BusNetwork::FillAdj()
     entry_new_adjlist.Append(ListEntry(start,end));
     t->DeleteIfAllowed();
   }
-  new_adjlist.TrimToSize();
-  entry_new_adjlist.TrimToSize();
-//  coout<<new_adjlist.Size()<<" "<<entry_new_adjlist.Size()<<endl;
+//  db_bus_node.TrimToSize();
+//  new_adjlist.TrimToSize();
+//  entry_new_adjlist.TrimToSize();
+
 }
 
 void BusNetwork::FillAdjacency()
 {
-  cout<<"build adjacency list..."<<endl;
+/*  cout<<"build adjacency list..."<<endl;
   for(int i = 1;i <= bus_edge->GetNoTuples();i++){
     Tuple* t = bus_edge->GetTuple(i);
-//    cout<<"i "<<i<<" tuple id "<<t->GetTupleId()<<endl;
+
     CcInt* end_node = (CcInt*)t->GetAttribute(V2);
     Periods* def_t = (Periods*)t->GetAttribute(DEF_T);
     const Interval<Instant>* interval;
@@ -1624,7 +1462,7 @@ void BusNetwork::FillAdjacency()
 //  cout<<adjacencylist.Size()<<endl;
 
   adjacencylist_index.TrimToSize();
-  adjacencylist.TrimToSize();
+  adjacencylist.TrimToSize();*/
 }
 /*
 store the adjacency list, for each path, it records which path it can swith to
@@ -1693,7 +1531,7 @@ busnet_id(0),bus_def(false),bus_route(NULL),btree_bus_route(NULL),
 bus_node(NULL),rtree_bus_node(NULL),bus_edge(NULL),
 btree_bus_edge_v1(NULL),btree_bus_edge_v2(NULL),
 maxspeed(0),
-adjacencylist_index(0),adjacencylist(0),db_bus_node(0),new_adjlist(0),
+db_bus_node(0),new_adjlist(0),
 entry_new_adjlist(0),
 bus_node_new(NULL),btree_bus_node_new1(NULL),btree_bus_node_new2(NULL),
 bus_tree(0),ps_zval(0)
@@ -1900,11 +1738,13 @@ const ListExpr in_xTypeInfo)
   }*/
 
   ///////////////adjacency list ////////////////////////////////////
-  adjacencylist_index.OpenFromRecord(in_xValueRecord, inout_iOffset);
-  adjacencylist.OpenFromRecord(in_xValueRecord, inout_iOffset);
+//  adjacencylist_index.OpenFromRecord(in_xValueRecord, inout_iOffset);
+//  adjacencylist.OpenFromRecord(in_xValueRecord, inout_iOffset);
   db_bus_node.OpenFromRecord(in_xValueRecord, inout_iOffset);
   new_adjlist.OpenFromRecord(in_xValueRecord, inout_iOffset);
   entry_new_adjlist.OpenFromRecord(in_xValueRecord, inout_iOffset);
+  bus_def = true;
+
 #else
 
   nl->ReadFromString(busstopTypeInfo,xType);
@@ -1989,11 +1829,9 @@ const ListExpr in_xTypeInfo)
 
   bus_tree.OpenFromRecord(in_xValueRecord, inout_iOffset);
   ps_zval.OpenFromRecord(in_xValueRecord, inout_iOffset);
+  bus_def = true;
 #endif
 
-//  adj_path_index.OpenFromRecord(in_xValueRecord, inout_iOffset);
-//  adj_path.OpenFromRecord(in_xValueRecord, inout_iOffset);
-   bus_def = true;
 //  cout<<"maxspeed "<<maxspeed<<endl;
 }
 void BusNetwork::CalculateMaxSpeed()
@@ -2021,7 +1859,7 @@ busnet_id(0),bus_def(false),bus_route(NULL),btree_bus_route(NULL),
 bus_node(NULL),rtree_bus_node(NULL),bus_edge(NULL),
 btree_bus_edge_v1(NULL),btree_bus_edge_v2(NULL),
 maxspeed(0),
-adjacencylist_index(0),adjacencylist(0),db_bus_node(0),
+db_bus_node(0),
 new_adjlist(0),entry_new_adjlist(0),
 bus_node_new(NULL), btree_bus_node_new1(NULL),btree_bus_node_new2(NULL),
 bus_tree(0),ps_zval(0)
@@ -2975,8 +2813,7 @@ Instant& queryinstant,double& wait_time)
 {
 //  struct timeb t1;
 //  struct timeb t2;
-
-  ofstream outfile("temp_result"); //record info for debug
+/*ofstream outfile("temp_result"); //record info for debug
 
   if(id1 < 1 || id1 > bus_node->GetNoTuples()){
     cout<<"bus id is not valid"<<endl;
@@ -3257,7 +3094,8 @@ Instant& queryinstant,double& wait_time)
     }
   }
 
-  return true;
+  return true;*/
+  return false;
 }
 
 /*
@@ -4378,4 +4216,281 @@ int attrpos1,int attrpos2,Instant& queryinstant)
   }
   mp->EndBulkLoad();
 }
+///////////////////////////////////////////////////////////////////////////////
+struct E_BusAdj{
+  int tid; //which edge connects to this point
+  int v;//node id;
+  int parent;
+  double t_cost;
+  double t_e_cost;
+  int last_v;
+  int busroute;
+  double t;//arrive time
+  E_BusAdj(){}
+  E_BusAdj(int ti,int id,int par,double t1,double t2,int lv,
+          int busid,double time):
+    tid(ti),v(id),parent(par),t_cost(t1),t_e_cost(t2),
+    last_v(lv),busroute(busid),t(time){}
+  E_BusAdj(const E_BusAdj& busadj):
+      tid(busadj.tid),v(busadj.v),parent(busadj.parent),t_cost(busadj.t_cost),
+      t_e_cost(busadj.t_e_cost),
+      last_v(busadj.last_v),busroute(busadj.busroute),
+      t(busadj.t){}
+  bool operator<(const E_BusAdj& busadj)const
+  {
+    if(t_cost < busadj.t_cost) return false;
+    return true;
+  }
+  E_BusAdj& operator=(const E_BusAdj& e_busadj)
+  {
+    tid = e_busadj.tid;
+    v = e_busadj.v;
+    parent = e_busadj.parent;
+    t_cost = e_busadj.t_cost;
+    t_e_cost = e_busadj.t_e_cost;
+    last_v = e_busadj.last_v;
+    busroute = e_busadj.busroute;
+    t = e_busadj.t;
 
+    return *this;
+  }
+  void E_Print()
+  {
+
+    cout<<"v "<<v<<" par "<<parent<<" t_cost "<<
+    t_cost<<" lv "<<last_v<<" busid "<<busroute<<" tid "<<tid<<endl;
+  }
+};
+
+bool BusNetwork::FindPath6(vector<int>& stops,vector<double>& duration,
+vector<E_BusAdj>& path,double queryinstant)
+{
+  if(stops.size() < 2){
+    cout<<"no such a route "<<endl;
+    return false;
+  }
+
+  for(unsigned int i = 0;i < stops.size();i++)
+    cout<<"stop "<<stops[i]<<" duration "<<duration[i]<<endl;
+
+  //////////////////////////////////////////////////////////////////
+  vector<double> stops_zval;
+  for(unsigned int i = 0; i < stops.size();i++){
+    const BusNode* bn;
+    db_bus_node.Get(stops[i]-1,bn);
+    stops_zval.push_back(bn->zval);
+  }
+
+  int start_index = 0;
+  int end_index = start_index + 1;
+  //////////////get end point ////////////////////////
+  vector<Point> endps;
+  for(unsigned int i= end_index;i < stops.size();i++){
+    Tuple* t = bus_node->GetTuple(stops[i]);
+    Point* p = (Point*)t->GetAttribute(LOC);
+    endps.push_back(*p);
+//    cout<<*p<<endl;
+    t->DeleteIfAllowed();
+  }
+  unsigned int endps_index = 0;
+
+  int maxroute = bus_route->GetNoTuples();
+  priority_queue<E_BusAdj> q_list;
+  vector<E_BusAdj> expansionlist;
+  int expansioncounter = 0;
+  ////////////  get all edges start from a point ///////////////////////
+  Tuple* start_point = bus_node->GetTuple(stops[start_index]);
+  Point* p = (Point*)start_point->GetAttribute(LOC);
+
+
+  E_BusAdj start_elem;
+  start_elem.tid = 0;
+  start_elem.v = stops[start_index];
+  start_elem.parent = -1;
+  start_elem.t_cost = 0;
+  start_elem.t_e_cost = start_elem.t_cost;
+  start_elem.t_cost += p->Distance(endps[endps_index])/maxspeed;
+  start_elem.last_v = stops[start_index];
+  start_elem.busroute = -1;
+  start_elem.t = queryinstant; //arrive time
+  start_point->DeleteIfAllowed();
+  q_list.push(start_elem);
+
+
+  while(q_list.empty() == false){
+    E_BusAdj top = q_list.top();
+//    top.E_Print();
+
+    if(top.v == stops[end_index]){
+        cout<<"find "<<endl;
+        start_index++;
+        end_index++;
+        endps_index++;
+ //       cout<<endps_index<<" "<<endps.size()<<endl;
+        if(endps_index == endps.size())
+          break;
+        //next start and end point
+
+        top.t_cost += duration[start_index];
+        top.t_e_cost += duration[start_index];
+        top.t += duration[start_index];
+        top.last_v = top.v;
+        while(q_list.empty() == false)
+          q_list.pop();
+
+        q_list.push(top);
+        continue;
+    }
+    ///////////////////find its adjacenct node //////////////////////////////
+    const ListEntry* listentry;
+    entry_new_adjlist.Get(top.v-1,listentry);
+    int low = listentry->low;
+    int high = listentry->high;
+    vector<E_BusAdj> temp_list;
+    const BusNode* busnode;
+    db_bus_node.Get(top.v-1,busnode);
+    while(low < high){
+      const BusAdj* busadj;
+      new_adjlist.Get(low,busadj);
+
+      if(busadj->t >= top.t){ //later than arriving time
+        E_BusAdj temp_elem;
+        temp_elem.tid = busadj->tid;
+        temp_elem.v = busadj->v2;
+        temp_elem.parent = expansioncounter;
+        temp_elem.t_cost = top.t_e_cost + (busadj->t - top.t) + busadj->cost;
+        temp_elem.t = busadj->t + busadj->cost;
+
+        temp_elem.t_e_cost = temp_elem.t_cost;
+//        Tuple* tuple_point = bus_node->GetTuple(busadj->v2);
+//        Point* temp_point = (Point*)tuple_point->GetAttribute(LOC);
+//        temp_elem.t_cost += temp_point->Distance(endps[endps_index])/maxspeed;
+        temp_elem.t_cost += busadj->p2.Distance(endps[endps_index])/maxspeed;
+        temp_elem.last_v = top.v;
+        temp_elem.busroute = busadj->busroute;
+
+//        cout<<*temp_point<<" "<<busadj->p2<<endl;
+        //////////////////////////////////
+//        tuple_point->DeleteIfAllowed();
+
+
+        if(temp_elem.v != top.last_v){
+          unsigned int i = 0;
+          for(;i < temp_list.size();i++)
+            if(temp_list[i].busroute == temp_elem.busroute)
+              break;
+          if(i == temp_list.size()){
+            temp_list.push_back(temp_elem);
+            q_list.push(temp_elem);
+          }
+          if(temp_list.size() == busnode->diff_bus)
+            break;
+        }
+      }
+      low++;
+    }
+    /////////////////////////////////////////////////////////////////////////
+    q_list.pop();
+    expansionlist.push_back(top);
+    expansioncounter++;
+//    cout<<"q size "<<q_list.size()<<endl;
+  }
+
+  /// backward and construct the result ///
+  stack<E_BusAdj> temp_path;
+  E_BusAdj top_elem = q_list.top();
+  temp_path.push(top_elem);
+//  top_elem.E_Print();
+  while(top_elem.parent != -1){
+      top_elem = expansionlist[top_elem.parent];
+      temp_path.push(top_elem);
+//      top_elem.E_Print();
+  }
+  while(temp_path.empty() == false){
+    E_BusAdj elem = temp_path.top();
+    temp_path.pop();
+    path.push_back(elem);
+  }
+
+//  for(int i = 0;i < path.size();i++)
+//   path[i].E_Print();
+
+  return true;
+}
+void BusNetwork::FindPath_T_6(MPoint* mp,Relation* query,
+int attrpos1,int attrpos2,Instant& queryinstant)
+{
+
+  if(query->GetNoTuples() < 2){
+    cout<<"there is only start location, please give destination"<<endl;
+    return;
+  }
+
+  mp->Clear();
+  mp->StartBulkLoad();
+
+//  vector<int> path; //record edge id
+  vector<E_BusAdj> path;
+  //searching process
+
+  vector<int> stops;
+  vector<double> duration;
+  for(int i = 1;i <= query->GetNoTuples();i++){
+    Tuple* t1 = query->GetTuple(i);
+
+    CcInt* id1 = (CcInt*)t1->GetAttribute(attrpos1);
+
+    DateTime* timestay = (DateTime*)t1->GetAttribute(attrpos2);
+//    cout<<id1->GetIntval()<<" "<<id2->GetIntval()<<endl;
+//    cout<<*timestay<<endl;
+    double waittime = timestay->ToDouble();
+//    cout<<waittime<<endl;
+    stops.push_back(id1->GetIntval());
+    duration.push_back(waittime);
+  }
+  if(FindPath6(stops,duration,path,queryinstant.ToDouble())==false){
+        cout<<"such a route is not valid"<<endl;
+        path.clear();
+  }
+
+  UPoint* last = NULL;
+  for(unsigned int i = 1;i < path.size();i++){
+      E_BusAdj cur = path[i];
+        Tuple* edge_tuple = bus_edge->GetTuple(cur.tid);
+//        cout<<*edge_tuple<<endl;
+
+        MPoint* trip = (MPoint*)edge_tuple->GetAttribute(MOVE);
+        for(int j = 0;j < trip->GetNoComponents();j++){
+//            cout<<"j "<<j<<endl;
+            const UPoint* up;
+            trip->Get(j,up);
+            if(last != NULL && j == 0){
+//              cout<<*last<<endl;
+              if(!AlmostEqual(last->timeInterval.end.ToDouble(),
+                              up->timeInterval.start.ToDouble())){
+                UPoint* insert_up = new UPoint(true);
+                insert_up->p0 = up->p0;
+                insert_up->p1 = up->p0;
+                insert_up->timeInterval.start = last->timeInterval.end;
+                insert_up->timeInterval.end = up->timeInterval.start;
+                insert_up->timeInterval.lc = true;
+                insert_up->timeInterval.rc = false;
+//                cout<<*insert_up<<endl;
+                mp->Add(*insert_up);
+                delete insert_up;
+                delete last;
+                last = NULL;
+              }
+            }
+            mp->Add(*up);
+//            cout<<*up<<endl;
+            if(j == trip->GetNoComponents() - 1 && i != path.size() - 1)
+              last = new UPoint(*up);
+        }
+
+        edge_tuple->DeleteIfAllowed();
+
+  }
+
+  mp->EndBulkLoad();
+}

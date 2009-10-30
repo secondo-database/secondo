@@ -114,9 +114,9 @@ struct Node_Tree{
 struct E_Node_Tree;
 struct BusNode{
   double zval;
-  int diff_bus;
+  unsigned int diff_bus;
   BusNode(){}
-  BusNode(double v,int d):zval(zval),diff_bus(d){}
+  BusNode(double v,unsigned int d):zval(v),diff_bus(d){}
   BusNode(const BusNode& node):zval(node.zval),diff_bus(node.diff_bus){}
 };
 struct BusAdj{
@@ -125,18 +125,40 @@ struct BusAdj{
   int busroute;//which bus route
   int pathid;//path id
   double cost; //cost of this edge
+  int v1;
+  int v2;
+  Point p2;
   BusAdj(){}
-  BusAdj(int id,double time,int busid,int pid,double c)
-  :tid(id),t(time),busroute(busid),pathid(pid),cost(c){}
+  BusAdj(int id,double time,int busid,int pid,double c,int s,int e,Point& p)
+  :tid(id),t(time),busroute(busid),pathid(pid),cost(c),v1(s),v2(e),p2(p){}
   BusAdj(const BusAdj& baj):tid(baj.tid),
-        t(baj.t),busroute(baj.busroute),pathid(baj.pathid),cost(baj.cost){}
+        t(baj.t),busroute(baj.busroute),pathid(baj.pathid),
+        cost(baj.cost),v1(baj.v1),v2(baj.v2),p2(baj.p2){}
   bool operator<(const BusAdj& ba)const
   {
     if(t < ba.t)
       return false;
     return true;
   }
+  BusAdj& operator=(const BusAdj& busadj)
+  {
+    tid = busadj.tid;
+    t = busadj.t;
+    busroute = busadj.busroute;
+    pathid = busadj.pathid;
+    cost = busadj.cost;
+    v1 = busadj.v1;
+    v2 = busadj.v2;
+    p2 = busadj.p2;
+    return *this;
+  }
+  void Print()
+  {
+    cout<<" tid "<<tid<<" t "<<t<<" busroute "<<busroute<<" pathid "<<pathid
+    <<"cost edge "<<cost<<endl;
+  }
 };
+struct E_BusAdj;
 
 #define graph_model //old representation
 
@@ -203,7 +225,6 @@ public:
 
   inline double ZValue(Point& p);
   void ConstructBusNodeTree();
-  void CreateNodeTreeIndex(vector<bool>&);
 /*Interface function and Application function*/
   Relation* GetRelBus_Node(){return bus_node;}
   Relation* GetRelBus_Route(){return bus_route;}
@@ -236,6 +257,11 @@ public:
   bool FindPath5(int id1,int id2,vector<Elem>& path,Instant&,double&);
   void FindPath_T_5(MPoint* result,Relation* query,
                     int,int,Instant&);
+
+  bool FindPath6(vector<int>&,vector<double>&,vector<E_BusAdj>& path,double);
+  void FindPath_T_6(MPoint* result,Relation* query,
+                    int,int,Instant&);
+
   ///////////////////// new representation for bus node /////////////////////
   bool Bus_Tree1(vector<int>& stops,vector<double>& duration,
        vector<E_Node_Tree>& path,Instant&);
@@ -262,8 +288,9 @@ private:
   //1-- with edge_tuple_id to access adjacencylist_index
   //2-- get the start and end position in adjacencylist
   //3-- get the edge tuple id
-  DBArray<ListEntry> adjacencylist_index;
-  DBArray<int> adjacencylist;
+
+//  DBArray<ListEntry> adjacencylist_index;
+//  DBArray<int> adjacencylist;
 
   DBArray<BusNode> db_bus_node; //id, zval, no_diff_bus
   DBArray<BusAdj> new_adjlist;
