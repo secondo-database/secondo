@@ -1,5 +1,5 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
 Copyright (C) 2009, University in Hagen, Department of Computer Science, 
@@ -18,6 +18,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
 ----
 
 //paragraph [10] Title: [{\Large \bf \begin {center}] [\end {center}}]
@@ -72,7 +73,7 @@ buffer's content.
 
 #include "FlobId.h"
 #include "FlobManager.h"
-#include "SecondoSMI.h"
+#include "../include/SecondoSMI.h"
 
 class Flob{
   public:
@@ -82,10 +83,10 @@ class Flob{
     }
 
     // copy constructor, copies FLOB, not the data
-    inline Flob(const Flob&) : id(other.id), size( size ) {};
+    inline Flob(const Flob&) : id(other.id), size( other.size ) {};
 
     // construct a native Flob having a given size
-    inline Flob (unint64_t size) id(), size( size_ ){
+    inline Flob (unint64_t size_) id(), size( size_ ){
       FlobManager::getInstance().create(size, *this);
     };
 
