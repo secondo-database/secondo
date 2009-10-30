@@ -77,28 +77,28 @@ buffer's content.
 
 #include "FlobId.h"
 #include "FlobManager.h"
-#include "../include/SecondoSMI.h"
+#include "SecondoSMI.h"
 
 class Flob{
+  friend class FlobManager;
   public:
     // native FLOB with size=0
-    inline Flob() : id(), size( 0 ) {
-      FlobManager::getInstance().create(size, *this);
-    }
+    inline Flob() {}
 
     // copy constructor, copies FLOB, not the data
-    inline Flob(const Flob&) : id(other.id), size( other.size ) {};
+    inline Flob(const Flob& other) : id(other.id), size( other.size ) {};
 
     // construct a native Flob having a given size
-    inline Flob (unint64_t size_) id(), size( size_ ){
+    inline Flob (SmiSize size_): id(), size( size_ ){
       FlobManager::getInstance().create(size, *this);
     };
 
     // restore a Flob from a file/record/offset
-    inline Flob(const FileId fileId,
-                const RecordId recordId,
-                const uint64_t offset) : id(), size( 0 ){
-      FlobManager::getInstance().create(fileId, recordId, offset, *this);
+    inline Flob(const SmiFileId fileId,
+                const SmiRecordId recordId,
+                const SmiSize offset) : id(), size( 0 ){
+         FlobManager::getInstance().create(fileId, recordId, 
+                                           offset, size, *this);
     };
 
     // assign another Flob to this Flob
@@ -112,35 +112,33 @@ class Flob{
     inline ~Flob() {};
 
     // return the Flob's current size   
-    inline unit64_t getSize() const { return size; }; // Size of the FLOB
+    inline SmiSize getSize() const { return size; }; // Size of the FLOB
 
     // just reset size
-    inline void resize(unint64_t newsize) { size = newsize };
+    inline void resize(const SmiSize& newsize) { size = newsize; }
 
     // copy data from a Flob to a provided buffer
     inline void read(char* buffer,
-                     const uint64_t length,
-                     const uint64_t offset) const {
-      FlobManager::getInstance().getData(*this, buffer, offset, length);
+                     const SmiSize length,
+                     const SmiSize offset) const {
+       FlobManager::getInstance().getData(*this, buffer, offset, length);
     };
 
     // write data from a provided buffer to the Flob
     inline void write(const char* buffer,
-                      const uint64_t length,
-                      const uint64_t offset){
-      FlobManager::getInstance().putData(*this; buffer, offset, length);
+                      const SmiSize length,
+                      const SmiSize offset){
+      FlobManager::getInstance().putData(*this, buffer, offset, length);
     }
 
     // copy Flob from another Flob
     inline void copyFrom(const Flob& src){
-      size = src.size;
-      id = src.id;
+      FlobManager::getInstance().copyData(src,*this);
     };
 
     // copy Flob to another Flob
     inline void copyTo(Flob& dest) const {
-      dest.size = size;
-      dest.id = id;
+       FlobManager::getInstance().copyData(*this,dest);
     };
 
     // Save Flob data to a specified file/record/offset.
@@ -150,15 +148,16 @@ class Flob{
     // file to some persistent LOB file, like a relation LOB file or the
     // database LOB file. It can also be used to write the LOB data into a
     // tuple file. In this case, we speak of a FAKED LOB (or FLOB).
-    inline Flob saveToFile(const FileId fid,
-                    const RecordId rid,
-                    const unit64_t offset) const{
-      return FlobManager::getInstance().saveTo(*this, fid, rid, offset);
+    inline bool saveToFile(const SmiFileId fid,
+                          const SmiRecordId rid,
+                          const SmiSize offset,
+                          Flob& result) const{
+      return FlobManager::getInstance().saveTo(*this, fid, rid, offset, result);
     };
 
   private:
-    id   : FlobId;       // encodes fileid, recordid, offset
-    size : unint64_t;    // size of the Flob data segment in Bytes
+    FlobId id;       // encodes fileid, recordid, offset
+    SmiSize size;    // size of the Flob data segment in Bytes
 };
 
 #endif

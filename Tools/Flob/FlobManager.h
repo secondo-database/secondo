@@ -9,6 +9,7 @@ of that class.
 
 */
 
+#include <map>
 #include "SecondoSMI.h"
 
 
@@ -26,7 +27,7 @@ FlobManager instance.
 
 */    
 
-      static const FlobManager& getInstance();	
+      static FlobManager& getInstance() ;	
 
 
 /*
@@ -38,10 +39,10 @@ to that buffer.
 
 */
 	
-      void getData(const Flob& flob,            // Flob containing the data
+      bool getData(const Flob& flob,            // Flob containing the data
                    char* dest,                  // destination buffer
-                   const SmiSize  offset,     // offset within the Flob 
-                   const SmiSize  size) const;  // requested data size
+                   const SmiSize&  offset,     // offset within the Flob 
+                   const SmiSize&  size) ;  // requested data size
 
 
 /*
@@ -51,7 +52,7 @@ Frees all resources occupied by the Flob. After destroying a flob. No data can b
 accessed.
 
 */
-      void destroy(Flob& victim) const;
+      void destroy(Flob& victim);
 
 
 /*
@@ -63,10 +64,11 @@ function.
 
 
 */
-      Flob saveTo(const Flob& src,   // Flob tp save
+      bool saveTo(const Flob& src,   // Flob tp save
                   const SmiFileId fileId,  // target file id
                   const SmiRecordId recordId, // target record id
-                  const SmiSize offset) const;    // offset within the record  
+                  const SmiSize offset,
+                  Flob& result);    // offset within the record  
 
 
 /*
@@ -78,8 +80,9 @@ is the result of this function.
 
 */
 
-      Flob saveTo(const Flob& src,             // flob to save
-                  const SmiFileId fileId) const;  // target file id
+      bool saveTo(const Flob& src,             // flob to save
+                  const SmiFileId fileId,
+                  Flob& result);  // target file id
 
 
 /*
@@ -89,10 +92,10 @@ Puts data into a flob.
 
 */
 
-      void putData(const Flob& dest,         // destination flob
+      bool putData(const Flob& dest,         // destination flob
                          const char* buffer, // source buffer
-                         const SmiSize targetoffset,  // offset within the Flob
-                         const SmiSize length) const;  // data size
+                         const SmiSize& targetoffset,  // offset within the Flob
+                         const SmiSize& length);  // data size
 
 /*
 ~create~
@@ -102,7 +105,7 @@ Creates a new Flob with a given size which is assigned to a temporal file.
 
 */
 
-      Flob create(const SmiSize size) const;  // result flob
+      bool create(const SmiSize& size, Flob& result);  // result flob
 
 /*
 ~create~
@@ -111,10 +114,13 @@ Creates a new flob with given file and position.
 
 */
 
-      Flob create(const SmiFileId fileId,        // target file
-                  const SmiRecordId recordId,    // target record id
-                  const SmiSize offset,      // offset within the record
-                  const SmiSize size);       // initial size of the Flob
+      bool create(const SmiFileId& fileId,        // target file
+                  const SmiRecordId& recordId,    // target record id
+                  const SmiSize& offset,      // offset within the record
+                  const SmiSize& size,
+                  Flob& result);       // initial size of the Flob
+
+      bool copyData(const Flob& src, Flob& dest);
 
 /*
 ~constructor~
@@ -140,8 +146,27 @@ The only instance of the Flobmanager, never use this member directly!
 File id for freshly created Flobs. Only to use by the Flobmanager class itself.
 
 */
-      SmiFileId nativeFLOBS; // for in memory Flobs
+     SmiFileId nativeFlobs; // for in memory Flobs
+     SmiRecordFile* nativeFlobFile;
+
+/*
+~open Files~
+
+*/
+    map<SmiFileId, SmiRecordFile*> openFiles;
+
+/*
+~getFile~
+
+Return the file to a fileid;
+
+*/
+   SmiRecordFile* getFile(const SmiFileId& fileId);
+
+
 
 };
 
+
+FlobManager* FlobManager::instance = 0;
 

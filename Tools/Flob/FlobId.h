@@ -15,6 +15,7 @@ record.
 #define FLOBID_H
 
 #include <stdint.h>
+#include "SecondoSMI.h"
 
 
 
@@ -25,10 +26,31 @@ class FlobManager;
 
 class FlobId{
  friend class FlobManager;
+ public: 
+   FlobId(){} // makes nothing to support cast function
+   ~FlobId(){}
+   FlobId(const FlobId& src): fileId(src.fileId),
+                              recordId(src.recordId), 
+                              offset(src.offset){}
+   FlobId& operator=(const FlobId& src){
+     fileId = src.fileId;
+     recordId = src.recordId;
+     offset = src.offset;
+     return *this;
+   }
  private:
-   uint32_t fileId;  
-   uint32_t recordId;
-   uint32_t offset; 
+   SmiFileId fileId;  
+   SmiRecordId recordId;
+   SmiSize offset;
+
+
+   FlobId(const SmiFileId fid, 
+          const SmiRecordId rid,
+          const SmiSize os) : fileId(fid), recordId(rid), offset(os){}
+
+
+
+ 
 };
 
 #endif
