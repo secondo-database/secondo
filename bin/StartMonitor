@@ -1,0 +1,22 @@
+# Startup script for the Secondo monitor application
+
+if [ "$1" == "-nohup" ]; then
+  shift
+  nohup SecondoMonitor -s $* </dev/null &
+  pid=$!
+  msg="\n SecondoMonitor started in background with process id = $pid.\n"
+  echo -e $msg >> nohup.out
+  date >> nohup.out
+  echo -e $msg
+  echo -e "Use kill -SIGTERM $pid for shoutdown"
+  exit $?
+fi
+
+if [ "$1" == "--help" ]; then
+  ./SecondoMonitor --help
+  echo -e "   -nohup          Runs SecondoMonitor without terminating it after log out"
+  exit $?
+fi
+
+SecondoMonitor $* 
+exit $?
