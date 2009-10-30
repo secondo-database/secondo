@@ -86,12 +86,11 @@ Auxiliary global variables and functions
 
 */
 
-
 #define LINELENGTH 80
 
 using namespace std;
 
-int DisplayTTY::indent = 0;
+int DisplayTTY::maxIndent = 0;
 
 const string stdErrMsg = "Incorrect Data Format!";
 
@@ -575,7 +574,7 @@ struct DisplayTuples : DisplayFunction {
       string s = nl->ToString( nl->First( nl->First( numType ) ) );
       string attr = string( maxNameLen-s.length() , ' ' ) + s + string(" : ");
       cout << attr;
-      maxIndent = attr.length();
+      DisplayTTY::maxIndent = attr.length();
 
       if( nl->IsAtom( nl->First( nl->Second( nl->First( numType ) ) ) ) )
       {
@@ -592,7 +591,7 @@ struct DisplayTuples : DisplayFunction {
                         nl->Second( nl->First( numType ) ),
                         nl->First( value ) );
       }
-      maxIndent = 0;
+      DisplayTTY::maxIndent = 0;
 
       type    = nl->Rest( type );
       numType = nl->Rest( numType );
@@ -637,8 +636,7 @@ struct DisplayNestedRelation : DisplayFunction
       string s = nl->ToString( nl->First( nl->First( numType ) ) );
       string attr =  s + string( maxNameLen-s.length() , ' ' ) + string(" : ");
       cout << attr;
-      maxIndent = attr.length();
-      DisplayTTY::indent = maxIndent;
+      DisplayTTY::maxIndent = attr.length();
       if( nl->IsAtom( nl->First( nl->Second( nl->First( numType ) ) ) ) )
       {
          CallDisplayFunction( nl->Second( nl->First( numType ) ),
@@ -654,8 +652,7 @@ struct DisplayNestedRelation : DisplayFunction
                         nl->Second( nl->First( numType ) ),
                         nl->First( value ) );
       }
-      maxIndent = 0;
-      DisplayTTY::indent = maxIndent;
+      DisplayTTY::maxIndent = 0;
       type    = nl->Rest( type );
       numType = nl->Rest( numType );
       value   = nl->Rest( value );
@@ -675,14 +672,13 @@ struct DisplayAttributeRelation : DisplayFunction
     value = nl->Rest(value);
     if (select == 0)//means that this arel is an attribute of a nested relation
     {
-      attrIndent += 4;
       int maxAttribNameLen = MaxAttributLength( nl->Second 
                                               ( nl->Second( numType ) ) );
       int ind;
-      if (maxAttribNameLen >= (DisplayTTY::indent - 3))
-        ind = attrIndent;
+      if (maxAttribNameLen >= (DisplayTTY::maxIndent - 3))
+        ind = 4;
       else
-        ind = DisplayTTY::indent - 3 - maxAttribNameLen + 4;
+        ind = DisplayTTY::maxIndent - 3 - maxAttribNameLen + 4;
       cout << endl;
       while (!nl->IsEmpty( value ))
       {
@@ -693,9 +689,7 @@ struct DisplayAttributeRelation : DisplayFunction
         if (!nl->IsEmpty(value))
           cout << endl;
       }
-      attrIndent = 0;
-      maxIndent = 0;
-      DisplayTTY::indent = maxIndent;
+      DisplayTTY::maxIndent = 0;
     }
     else
     {
@@ -727,8 +721,7 @@ struct DisplayAttributeRelation : DisplayFunction
       string attr = string(ind , ' ') + s + 
                   string( i , ' ') + string(" : ");
       cout << attr;
-      maxIndent = attr.length();
-      DisplayTTY::indent = maxIndent;
+      DisplayTTY::maxIndent = attr.length();
       if( nl->IsAtom( nl->First( nl->Second( nl->First( numType ) ) ) ) )
       {
         CallDisplayFunction( nl->Second( nl->First( numType ) ),
@@ -850,7 +843,8 @@ struct DisplayText : DisplayFunction {
     {
       string printstr="";
       nl->Text2String(value, printstr);
-      cout << wordWrap(0, DisplayTTY::indent, LINELENGTH, printstr);
+      cout << wordWrap(0, DisplayTTY::maxIndent, LINELENGTH - 
+                       DisplayTTY::maxIndent, printstr);
     }
   }
 };

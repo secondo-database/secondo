@@ -74,7 +74,7 @@ parameter is this value in nested list format.
 
 struct DisplayFunction {
 
-  DisplayFunction() : maxIndent(0), attrIndent(0) {}
+  DisplayFunction() {}
   virtual ~DisplayFunction() {} 
 
   virtual void Display( ListExpr type,
@@ -94,8 +94,6 @@ struct DisplayFunction {
   static NestedList*       nl; // Ref. to nested list container
 
   int MaxAttributLength( ListExpr type );
-  int maxIndent;
-  int attrIndent;
 };
 
 /*
@@ -192,7 +190,7 @@ Create an instance and initialize the dtty pointer if necessary.
      DisplayFunction::nl = NL; 
    }
 
-   static int indent;
+   static int maxIndent;
  protected:
     
            
