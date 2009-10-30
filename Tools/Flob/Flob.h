@@ -33,16 +33,37 @@ October 2009, C. Duentgen Initial revised implementation of Flob.h Flob.cpp
 
 LOB is a shortcut for ~large object~.
 
-Flob is a shortcut for ~faked larged object~ which is a concept for implementing
+FLOB (or Flob) is a shortcut for ~faked larged object~ which is a concept for implementing
 datatypes such as regions which may vary strongly in size. The idea of Flobs has
 been studied in [1] (The current implementation differs in some aspects). The
-basic idea is to store data of an attribute value depending on a threshold size
-either inside the tuple representation or in a separate storage location.  
+basic idea is to store data of an object value depending on a threshold size
+either inside the tuple representation or in a separate storage location.
 
-Flobs can be used in implementations of secondo data types. Therefore typically the
-subclass ~DBArray~ might be used. Since the persistent storage of tuples is organized by
-class tuple this class will allocate memory for inline Flobs. But the memory will be
-released by the Flobs destructor.
+Flobs can be used in implementations of secondo data types. Therefore typically
+the subclass ~DBArray~ might be used. Since the persistent storage of data is
+organized by the class FlobManager (for tuples on behalf of the RelationAlgebra)
+we do not need to deal with it here.
+
+2 Implementation
+
+The class ~Flob~ provides a handle on large objects. The user can use the classe's
+member functions to create new Flobs, to restore Flobs from persistent staorage,
+and to to read or modify the contained data. However, the actual work for all
+these functions is done by the friend class ~FlobManager~, whose member functions
+are called.
+
+Flob objects (instances of this class) have a compact memeory representation and
+can be made persistent using any of Secondo's persistence mechanisms. This of
+course only stores the handle to the object data. The actual object data is
+maintained in some files provided and managed by the singleton instance of class
+FlobManager.
+
+The user may read and change Flob data in buffers. Managing that buffers is up
+to the user. To read a Flob's object data, the read() function is called. It
+copies the requested data to a buffer provided by the user.
+If changes to the Flob object data shall be made, the user must call the write()
+member function, which will overwrite the Flob object data with the provided
+buffer's content.
 
 */
 
@@ -121,11 +142,11 @@ class Flob{
                     const RecordId rid,
                     const unit64_t offset) const{
       return FlobManager::getInstance().saveTo(*this, fid, rid, offset);
-    }
+    };
 
   private:
     id   : FlobId;       // encodes fileid, recordid, offset
     size : unint64_t;
-}
+};
 
 #endif
