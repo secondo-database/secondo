@@ -45,6 +45,10 @@ the subclass ~DBArray~ might be used. Since the persistent storage of data is
 organized by the class FlobManager (for tuples on behalf of the RelationAlgebra)
 we do not need to deal with it here.
 
+A Flob provides the user a segment of memory to store any kind of data. Instead 
+of pointers, addresses relative to the start address of the segment (offsets)
+must be used to dynamic data structures within a Flob data segement.
+
 2 Implementation
 
 The class ~Flob~ provides a handle on large objects. The user can use the classe's
@@ -126,19 +130,26 @@ class Flob{
                       const uint64_t offset){
       FlobManager::getInstance().putData(*this; buffer, offset, length);
     }
- 
-    // copy Flob data from another Flob
+
+    // copy Flob from another Flob
     inline void copyFrom(const Flob& src){
-      // TODO
+      size = src.size;
+      id = src.id;
     };
 
-    // copy Flob data to another Flob
+    // copy Flob to another Flob
     inline void copyTo(Flob& dest) const {
-      // TODO
+      dest.size = size;
+      dest.id = id;
     };
 
     // Save Flob data to a specified file/record/offset.
     // Returns a Flob having a FlobId encoding the file/record/offset
+    // of the persistent Flob data
+    // Can e.g. be used to copy the flob data from the (temporary) native LOB
+    // file to some persistent LOB file, like a relation LOB file or the
+    // database LOB file. It can also be used to write the LOB data into a
+    // tuple file. In this case, we speak of a FAKED LOB (or FLOB).
     inline Flob saveToFile(const FileId fid,
                     const RecordId rid,
                     const unit64_t offset) const{
@@ -147,7 +158,7 @@ class Flob{
 
   private:
     id   : FlobId;       // encodes fileid, recordid, offset
-    size : unint64_t;
+    size : unint64_t;    // size of the Flob data segment in Bytes
 };
 
 #endif
