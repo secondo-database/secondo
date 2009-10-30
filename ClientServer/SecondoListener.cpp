@@ -21,7 +21,6 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
 */
-using namespace std;
 
 #include <string>
 #include <algorithm>
@@ -31,6 +30,7 @@ using namespace std;
 #include "SocketIO.h"
 #include "Profiles.h"
 #include "CharTransform.h"
+#include "WinUnix.h"
 
 const int EXIT_LISTENER_OK       = 0;
 const int EXIT_LISTENER_NOPF     = 1;
@@ -39,6 +39,7 @@ const int EXIT_LISTENER_NOSERVER = 3;
 const int EXIT_LISTENER_NOSOCKET = 4;
 const int EXIT_LISTENER_FAIL     = 5;
 
+using namespace std;
 
 class SecondoListener : public Application
 {
@@ -152,7 +153,7 @@ SecondoListener::Execute()
             delete client;
             LogMessage( "Start of client server failed" );
           }
-          Application::Sleep( 0 );
+          WinUnix::sleep( 0 );
         }
         else
         {

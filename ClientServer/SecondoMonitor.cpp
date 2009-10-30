@@ -20,6 +20,8 @@ along with SECONDO; if not, write to the Free Software
 Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 ----
 
+Oct 2009, M. Spiekermann. Input, command processsing and termination revised
+
 */
 
 #include <cstdlib>
@@ -35,17 +37,18 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "Profiles.h"
 #include "FileSystem.h"
 #include "CharTransform.h"
+#include "WinUnix.h"
 
 using namespace std;
-
-class SecondoMonitor;
-typedef void (SecondoMonitor::*ExecCommand)();
 
 class SecondoMonitor : public Application
 {
  public:
   SecondoMonitor( const int argc, const char** argv );
   virtual ~SecondoMonitor() {};
+  int  Execute(bool autostartup);
+
+ private:
   bool AbortOnSignal( int sig );
   void Usage();
   void ExecStartUp();
@@ -56,8 +59,10 @@ class SecondoMonitor : public Application
   bool Initialize();
   void ProcessCommands();
   void Terminate();
-  int  Execute(bool autostartup);
- private:
+  
+  static SecondoMonitor* p;
+  static void HandleShutDown(int sig);
+
   SmiEnvironment::SmiType smiType;
   string parmFile;
   string prompt;
@@ -67,11 +72,14 @@ class SecondoMonitor : public Application
   int  pidListener;
   bool running;
   bool quit;
+
+  typedef enum {xUsage, xStartUp, xShutDown, xShow, xQuit} cmdTok;	
 };
 
 
 // string defining the version of the SecondoMonitor
-static string VersionInfo ="0.9";
+static string VersionInfo ="1.1";
+
 
 SecondoMonitor::SecondoMonitor( const int argc, const char** argv )
   : Application( argc, argv )
@@ -85,7 +93,37 @@ SecondoMonitor::SecondoMonitor( const int argc, const char** argv )
   pidCheckpoint = 0;
   running       = false;
   quit          = false;
+
+  p = this;
+#ifndef SECONDO_WIN32
+  signal(SIGTERM, HandleShutDown);
+  signal(SIGINT,  HandleShutDown);
+  signal(SIGKILL, HandleShutDown);
+#endif
 }
+
+
+void SecondoMonitor::HandleShutDown(int sig) {
+
+#ifndef SECONDO_WIN32
+  if (sig == SIGTERM || sig == SIGINT || sig == SIGKILL) 
+  {
+    cerr << endl << "SIGTERM, SIGINT or SIGKILL received, "
+	 << "terminating child processes." << endl;
+
+    if (p) {
+      p->ExecShutDown();
+      p->Terminate();
+      p = 0;
+    }  
+  }	    
+  signal(sig, SIG_DFL);
+  raise(sig);	    
+#endif
+
+}	  
+
+SecondoMonitor* SecondoMonitor::p = 0;
 
 bool
 SecondoMonitor::AbortOnSignal( int sig )
@@ -265,14 +303,14 @@ SecondoMonitor::ExecQuit()
 void
 SecondoMonitor::ProcessCommands()
 {
-  map<string,ExecCommand> commandTable;
-  map<string,ExecCommand>::iterator cmdPos;
-  commandTable["?"]        = &SecondoMonitor::Usage;
-  commandTable["HELP"]     = &SecondoMonitor::Usage;
-  commandTable["STARTUP"]  = &SecondoMonitor::ExecStartUp;
-  commandTable["SHUTDOWN"] = &SecondoMonitor::ExecShutDown;
-  commandTable["SHOW"]     = &SecondoMonitor::ExecShow;
-  commandTable["QUIT"]     = &SecondoMonitor::ExecQuit;
+  map<string,cmdTok> commandTable;
+  map<string,cmdTok>::iterator cmdPos;
+  commandTable["?"]        = xUsage;
+  commandTable["HELP"]     = xUsage;
+  commandTable["STARTUP"]  = xStartUp;
+  commandTable["SHUTDOWN"] = xShutDown;
+  commandTable["SHOW"]     = xShow;
+  commandTable["QUIT"]     = xQuit;
 
   string cmd("");
   do
@@ -294,7 +332,22 @@ SecondoMonitor::ProcessCommands()
         cmdPos = commandTable.find( cmd );
 	if ( cmdPos != commandTable.end() )
 	{
-	    (*this.*(cmdPos->second))();
+
+          switch (cmdPos->second) {
+
+          case xUsage:   Usage(); break;  
+
+          case xStartUp: ExecStartUp(); break;
+
+	  case xShutDown: ExecShutDown(); break;
+
+	  case xShow:     ExecShow(); break;
+
+	  case xQuit:     ExecQuit(); break;
+
+          default:
+            cout << "Unkown Command '" << cmd << "'." << endl;
+	  }	
 	}
 	else
 	{
@@ -311,6 +364,11 @@ SecondoMonitor::ProcessCommands()
 	ExecQuit();
       }
     }
+    else
+    {
+      // since input is eof avoid consuming cpu time	    
+      WinUnix::sleep(60);
+    }	    
   }
   while (!quit);
 }
@@ -585,7 +643,7 @@ int main( const int argc, const char* argv[] )
 	     << " [option]. Combinations are not supported!" 
 	     << endl;
         cout << "Options:" << endl;
-        cout << "    --help          Display this information and exit"
+        cout << "   --help          Display this information and exit"
              << endl;
         cout << "   -s or -startup  Run Startup command automatically" 
 	     << endl;

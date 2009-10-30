@@ -30,7 +30,6 @@ time intervals.
 
 */
 
-using namespace std;
 
 #include <db_cxx.h>
 #define DB_FTYPE_SET  -1  // Call pgin/pgout functions
@@ -42,16 +41,21 @@ int __db_pgout(DB_ENV *, db_pgno_t, void *, DBT *);
 #if defined(__cplusplus)
 }
 #endif
+#include <fstream>
+
 
 #include "Application.h"
 #include "Processes.h"
 #include "SocketIO.h"
 #include "Profiles.h"
+#include "WinUnix.h"
 
 const int EXIT_CHECKPOINT_OK    = 0;
 const int EXIT_CHECKPOINT_NOENV = 1;
 const int EXIT_CHECKPOINT_NOPGF = 2;
 const int EXIT_CHECKPOINT_FAIL  = 3;
+
+using namespace std;
 
 class SecondoCheckpoint : public Application
 {
@@ -87,11 +91,16 @@ SecondoCheckpoint::Execute()
 
   // --- Setup of Berkeley DB environment
   DbEnv* bdbEnv = new DbEnv( DB_CXX_NO_EXCEPTIONS );
-  bdbEnv->set_error_stream( &cerr );
+
+  ofstream f;
+  f.open("Checkpoint.msg");
+  bdbEnv->set_error_stream( &f );
   bdbEnv->set_errpfx( "SecondoCheckpoint" );
+  f << "Opening environment " << bdbHome << endl;
   rc = bdbEnv->open( bdbHome.c_str(), DB_JOINENV | DB_USE_ENVIRON, 0 );
   if ( rc != 0 )
   {
+    bdbEnv->err(rc, "%s", "Environment open failed!");
     //rc = bdbEnv->close( 0 );
     delete bdbEnv;
     return (EXIT_CHECKPOINT_NOENV);
@@ -101,7 +110,10 @@ SecondoCheckpoint::Execute()
   rc = bdbEnv->memp_register( DB_FTYPE_SET, __db_pgin, __db_pgout );
   if ( rc != 0 )
   {
+    bdbEnv->err(rc, "%s", "memp_register failed!");
     rc = bdbEnv->close( 0 );
+    if (rc != 0)
+      bdbEnv->err(rc, "%s", "Environment close failed!");
     delete bdbEnv;
     return (EXIT_CHECKPOINT_NOPGF);
   }
@@ -110,18 +122,28 @@ SecondoCheckpoint::Execute()
   while (!ShouldAbort())
   {
     rc = bdbEnv->txn_checkpoint( 0, minutes, 0 );
-    if ( rc != 0 ) break;
+    if ( rc != 0 ) { 
+      bdbEnv->err(rc, "%s", "txn_checkpoint failed!");
+      break;
+    }  
     for ( u_int32_t sec = 0; !ShouldAbort() && sec < seconds; sec += 5 )
     {
-      Application::Sleep( 5 );
+      WinUnix::sleep( 5 );
     }
   }
+
 
   // --- Clean up the environment
   rc = bdbEnv->close( 0 );
   delete bdbEnv;
-  return ((rc == 0) ? EXIT_CHECKPOINT_OK : EXIT_CHECKPOINT_FAIL);
+
+  if (rc != 0) {
+    bdbEnv->err(rc, "%s", "env close failed!");
+    return EXIT_CHECKPOINT_FAIL;
+  }    
+  return EXIT_CHECKPOINT_OK;
 }
+
 
 int main( const int argc, const char* argv[] )
 {
