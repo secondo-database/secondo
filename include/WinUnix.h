@@ -65,6 +65,7 @@ public:
    static inline bool isWin32() { return win32; }
    static inline bool isUnix() { return !win32; }
 
+   static void sleep( const int seconds );
    static string getPlatformStr();
 
    static void writeBigEndian(ostream& o, const uint32_t number);

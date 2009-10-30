@@ -88,6 +88,15 @@ WinUnix::getpid() {
 }
 
 
+void
+WinUnix::sleep( const int seconds )
+{
+#ifdef SECONDO_WIN32
+  ::Sleep( (DWORD) (seconds*1000) );
+#else
+  ::sleep( seconds );
+#endif
+}
 
 
 
