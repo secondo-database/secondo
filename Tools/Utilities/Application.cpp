@@ -2,8 +2,8 @@
 ---- 
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
-Database Systems for New Applications.
+Copyright (C) 2004-2009, University in Hagen, Faculty of Mathematics 
+and Computer Science, Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -46,7 +46,6 @@ command instead of hard coded application name SecondoTTYBDB
 #include <sys/stat.h>
 #include <cstdlib>
 #include <cstring>
-using namespace std;
 
 #include "SecondoConfig.h"
 #include "Application.h"
@@ -70,6 +69,9 @@ MessageCenter* MessageCenter::msg = 0;
 
 Application* 
 Application::appPointer = 0;
+
+
+using namespace std;
 
 map<int, string>
 Application::signalStr;
@@ -252,15 +254,6 @@ Application::~Application()
 #endif
 }
 
-void
-Application::Sleep( const int seconds )
-{
-#ifdef SECONDO_WIN32
-  ::Sleep( (DWORD) (seconds*1000) );
-#else
-  ::sleep( seconds );
-#endif
-}
 
 #ifndef SECONDO_WIN32
 
