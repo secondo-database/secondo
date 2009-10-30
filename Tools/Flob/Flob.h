@@ -1,0 +1,131 @@
+/*
+---- 
+This file is part of SECONDO.
+
+Copyright (C) 2009, University in Hagen, Department of Computer Science, 
+Database Systems for New Applications.
+
+SECONDO is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+SECONDO is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SECONDO; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+----
+
+//paragraph [10] Title: [{\Large \bf \begin {center}] [\end {center}}]
+//[ae] [\"a]
+//[ue] [\"u]
+//[oe] [\"o]
+
+[10] Header File of Module LOB
+
+October 2009, C. Duentgen Initial revised implementation of Flob.h Flob.cpp
+
+1  Overview
+
+LOB is a shortcut for ~large object~.
+
+Flob is a shortcut for ~faked larged object~ which is a concept for implementing
+datatypes such as regions which may vary strongly in size. The idea of Flobs has
+been studied in [1] (The current implementation differs in some aspects). The
+basic idea is to store data of an attribute value depending on a threshold size
+either inside the tuple representation or in a separate storage location.  
+
+Flobs can be used in implementations of secondo data types. Therefore typically the
+subclass ~DBArray~ might be used. Since the persistent storage of tuples is organized by
+class tuple this class will allocate memory for inline Flobs. But the memory will be
+released by the Flobs destructor.
+
+*/
+
+#ifndef FLOB_H
+#define FLOB_H
+
+#include 'FlobId.h'
+#include 'FlobManager.h'
+#include 'SecondoSMI.h'
+
+class Flob{
+  public:
+    // native FLOB with size=0
+    inline Flob() : id(), size( 0 ) {
+      FlobManager::getInstance().create(size, *this);
+    }
+
+    // copy constructor, copies FLOB, not the data
+    inline Flob(const Flob&) : id(other.id), size( size ) {};
+
+    // construct a native Flob having a given size
+    inline Flob (unint64_t size) id(), size( size_ ){
+      FlobManager::getInstance().create(size, *this);
+    };
+
+    // restore a Flob from a file/record/offset
+    inline Flob(const FileId fileId,
+                const RecordId recordId,
+                const uint64_t offset) : id(), size( 0 ){
+      FlobManager::getInstance().create(fileId, recordId, offset, *this);
+    };
+
+    // assign another Flob to this Flob
+    inline Flob& operator=(const Flob& src){
+      size = src.size;
+      id   = src.id;
+      return *this;
+    };
+
+    // Destructor. Does not delete the Flob data.
+    inline ~Flob() {};
+
+    // return the Flob's current size   
+    inline unit64_t getSize() const { return size; }; // Size of the FLOB
+
+    // just reset size
+    inline void resize(unint64_t newsize) { size = newsize };
+
+    // copy data from a Flob to a provided buffer
+    inline void read(char* buffer,
+                     const uint64_t length,
+                     const uint64_t offset) const {
+      FlobManager::getInstance().getData(*this, buffer, offset, length);
+    };
+
+    // write data from a provided buffer to the Flob
+    inline void write(const char* buffer,
+                      const uint64_t length,
+                      const uint64_t offset){
+      FlobManager::getInstance().putData(*this; buffer, offset, length);
+    }
+ 
+    // copy Flob data from another Flob
+    inline void copyFrom(const Flob& src){
+      // TODO
+    };
+
+    // copy Flob data to another Flob
+    inline void copyTo(Flob& dest) const {
+      // TODO
+    };
+
+    // Save Flob data to a specified file/record/offset.
+    // Returns a Flob having a FlobId encoding the file/record/offset
+    inline Flob saveToFile(const FileId fid,
+                    const RecordId rid,
+                    const unit64_t offset) const{
+      return FlobManager::getInstance().saveTo(*this, fid, rid, offset);
+    }
+
+  private:
+    id   : FlobId;       // encodes fileid, recordid, offset
+    size : unint64_t;
+}
+
+#endif
