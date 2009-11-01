@@ -1,0 +1,173 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+#--------------------------------------------------  
+# Enable Flags
+#--------------------------------------------------  
+
+set "ERA:TraceSort" = TRUE;
+#set "SI:PrintCounters" = TRUE;
+set "SI:PrintCmdTimes" = TRUE;
+set "SI:NoQueryTimers" = TRUE;
+set "SI:NoCommandEcho" = TRUE;
+#set "SI:RelStatistics" = TRUE;
+set "SMI:NoTransactions" = TRUE;
+
+#--------------------------------------------------  
+# Create and open database DB_R1G
+#--------------------------------------------------  
+
+#setup sort_max_fan_in StandardAlgebra RelationAlgebra ExtRelation2Algebra
+
+create database db_R1G;
+open database db_R1G;
+
+#--------------------------------------------------  
+# Create relation with 1 GB data and 1 KBytes tuples
+#--------------------------------------------------  
+
+#testcase create relation
+#yields success
+restore R100MB_T1KB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R100MB_T1KB';
+
+#testcase create relation
+#yields success
+let ten = R100MB_T1KB feed head[10] project [Nr] {a} consume; 
+
+#testcase create relation
+#yields success
+let R1G_T1KB = R100MB_T1KB feed ten feed product remove[Nr_a] extend[ran: randint(50000)] sortby2Param[ran asc;64*1024*1024,50,-1] remove[ran] consume;
+
+##############################################################################
+# TestCases
+##############################################################################
+
+#testcase tuplesize_R1G_T1KB
+#yields (real 1024.0)
+query R1G_T1KB feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase fan_in_600
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,600,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_500
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,500,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_400
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,400,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_300
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,300,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_200
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,200,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_100
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,100,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_90
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,90,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_80
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,80,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_70
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,70,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_60
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,60,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_50
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,50,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_40
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,40,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_30
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,30,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_20
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,20,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_10
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,10,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_5
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,5,-1] count;
+
+#--------------------------------------------------  
+
+#testcase fan_in_2
+#yields success
+query R1G_T1KB feed sortby2Param[Flob asc, Nr asc; 1024*1024,2,-1] count;
+
+##############################################################################
+# TearDown
+##############################################################################
+
+#teardown
+close database;
+delete database db_R1G;
