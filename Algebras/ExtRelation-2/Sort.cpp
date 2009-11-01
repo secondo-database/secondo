@@ -358,7 +358,7 @@ SortProgressLocalInfo::SortProgressLocalInfo()
 SortAlgorithm::SortAlgorithm( Word stream,
                               TupleCompareBy* cmpObj,
                               SortProgressLocalInfo* p,
-                              int maxFanIn,
+                              size_t maxFanIn,
                               size_t maxMemSize,
                               size_t ioBufferSize )
 : F0(0)
@@ -567,7 +567,11 @@ void SortAlgorithm::setIoBuffer(size_t size)
 
 void SortAlgorithm::setMaxFanIn(size_t f)
 {
-  if ( f < SORT_MINIMUM_FAN_IN )
+  if ( f == UINT_MAX )
+  {
+    FMAX = SORT_DEFAULT_MAX_FAN_IN;
+  }
+  else if ( f < SORT_MINIMUM_FAN_IN )
   {
     FMAX = SORT_MINIMUM_FAN_IN;
   }
@@ -952,11 +956,14 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
           int maxMemSize = StdTypes::GetInt( args[idx] );
           int maxFanIn = StdTypes::GetInt( args[idx+1] );
           int ioBufferSize = StdTypes::GetInt( args[idx+2] );
-          size_t s = ioBufferSize < 0 ? UINT_MAX : (size_t)ioBufferSize;
+
+          size_t fan = maxFanIn < 0 ? UINT_MAX : (size_t)maxFanIn;
+          size_t mem = maxMemSize < 0 ? UINT_MAX : (size_t)maxMemSize;
+          size_t buf = ioBufferSize < 0 ? UINT_MAX : (size_t)ioBufferSize;
 
           li->ptr = new SortAlgorithm( args[0],
                                        new TupleCompareBy(spec), li,
-                                       maxFanIn, maxMemSize, s);
+                                       fan, mem, buf);
         }
         else
         {

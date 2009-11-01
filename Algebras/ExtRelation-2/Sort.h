@@ -888,7 +888,7 @@ class SortAlgorithm
     SortAlgorithm( Word stream,
                    TupleCompareBy* cmpObj,
                    SortProgressLocalInfo* p,
-                   int maxFanIn = SORT_DEFAULT_MAX_FAN_IN,
+                   size_t maxFanIn = UINT_MAX,
                    size_t maxMemSize = UINT_MAX,
                    size_t ioBufferSize = UINT_MAX );
 /*
@@ -899,8 +899,10 @@ The internal main memory sort routine uses a minimum heap for sorting. For
 tuple comparisons the algorithm uses the compare object ~cmpObj~. All
 progress information will be stored in ~p~. Additionally the constructor
 allows to specify the maximum number of open temporary files during a merge
-phase, the so called maximum fan-in ~maxFanIn~. The main memory that the
-operator uses can be specified by parameter ~maxMemSize~. If ~maxMemSize~
+phase, the so called maximum fan-in ~maxFanIn~. If ~maxFanIn~ is set to
+UINT\_MAX the sort algorithm uses the default value
+SORT\_DEFAULT\_MAX\_FAN\_IN. The main memory that the operator uses can be
+specified by parameter ~maxMemSize~. If ~maxMemSize~
 is set to UINT\_MAX the sort algorithm uses the maximum main memory assigned
 by the query processor. Parameter ~ioBufferSize~ is used to specify the
 I/O buffer size in bytes for read/write operations on disk. If ~ioBufferSize~
