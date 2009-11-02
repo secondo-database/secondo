@@ -274,8 +274,12 @@ must exists.
 
   bool FlobManager::copyData(const Flob& src, Flob& dest){
     char buffer[src.size];
-    getData(src, buffer, 0, src.size);
-    putData(dest,buffer,0,src.size);
+    if(!getData(src, buffer, 0, src.size)){
+      return false;
+    }
+    if(! putData(dest,buffer,0,src.size)){
+      return false;
+    }
     dest.size = src.size;  
     return true;
   }
