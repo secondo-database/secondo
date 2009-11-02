@@ -40,7 +40,7 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 #include <iostream>
 
 #include "IndexableAttribute.h"
-#include "FLOB.h"
+#include "../../Tools/Flob/Flob.h"
 
 class FText: public IndexableAttribute
 {
@@ -78,7 +78,7 @@ public:
   bool Adjacent(const Attribute * arg) const;
 
   inline int NumOfFLOBs() const;
-  inline FLOB* GetFLOB( const int );
+  inline Flob* GetFLOB( const int );
 
 /*************************************************************************
 
@@ -103,7 +103,7 @@ public:
 
 
 private:
-  FLOB theText;
+  Flob theText;
 };
 
 /*
@@ -150,10 +150,12 @@ inline FText::FText( const FText& f ) :
 theText( 0 )
 {
   LOGMSG( "FText:Trace", cout << '\n' <<"Start FText(FText& f)"<<'\n'; )
-  const char *s;
-  f.theText.Get(0, &s);
-  Set( f.IsDefined(), s);
+  //SPM? Assuming Flob fits into memory  
+  //const char* s = new char(f.theText.getSize());
+  theText.copyFrom( f.theText );
+  SetDefined( f.IsDefined() );
   LOGMSG( "FText:Trace",  cout <<"End FText(FText& f)"<<'\n'; )
+
 }
 
 inline FText::~FText()
@@ -164,15 +166,18 @@ inline FText::~FText()
 
 inline void FText::Destroy()
 {
-  theText.Destroy();
+  theText.destroy();
   SetDefined(false);
 }
 
 inline bool FText::SearchString( const char* subString )
 {
-  const char *text = 0;
-  theText.Get(0, &text);
+  SmiSize sz = theText.getSize();	
+  char* text = new char(sz);
+  theText.read(text, sz);
   return strstr( text, subString ) != NULL;
+  //SPM: delete added
+  delete text;
 }
 
 inline void FText::Set( const char *newString )
@@ -194,9 +199,9 @@ inline void FText::Set( bool newDefined, const char *newString )
 
   if( newString != NULL )
   {
-    theText.Clean();
-//     theText.Resize( strlen( newString ) + 1 );
-    theText.Put( 0, strlen( newString ) + 1, newString );
+    theText.clean();
+    //  theText.Resize( strlen( newString ) + 1 );
+    theText.write( newString, strlen( newString ) + 1 );
   }
   SetDefined( newDefined );
 
@@ -208,11 +213,11 @@ inline void FText::Set( bool newDefined, const string& newString )
   LOGMSG( "FText:Trace",
           cout << '\n' << "Start Set with newString='"
               << newString << endl; )
-  theText.Clean();
+  theText.clean();
   if(newDefined)
   {
 //     theText.Resize( newString.length() + 1 );
-    theText.Put( 0, newString.length() + 1, newString.c_str());
+    theText.write( newString.c_str(), newString.length() + 1 );
   }
   SetDefined( newDefined );
   LOGMSG( "FText:Trace", cout <<"End Set"<<'\n'; )
@@ -221,21 +226,26 @@ inline void FText::Set( bool newDefined, const string& newString )
 
 inline int FText::TextLength() const
 {
-  return theText.Size() - 1;
+  return theText.getSize() - 1;
 }
 
+// SPM: caller is responsible for delete
 inline const char *FText::Get() const
 {
-  const char* s = 0;
-  theText.Get(0, &s);
+  SmiSize sz = theText.getSize();	
+  char* s = new char(sz);
+  theText.read(s, sz);
   return s;
 }
 
 inline const string FText::GetValue() const
 {
-  const char* s = 0;
-  theText.Get(0, &s);
-  return string(s);
+  SmiSize sz = theText.getSize();	
+  char* s = new char(sz);
+  theText.read(s, sz);
+  string res(s);
+  delete s;
+  return res;
 }
 
 inline size_t FText::Sizeof() const
@@ -255,7 +265,7 @@ inline int FText::NumOfFLOBs() const
   return 1;
 }
 
-inline FLOB* FText::GetFLOB( const int i )
+inline Flob* FText::GetFLOB( const int i )
 {
   assert( i == 0 );
   return &theText;

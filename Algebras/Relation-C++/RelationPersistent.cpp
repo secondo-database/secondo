@@ -114,8 +114,8 @@ storing tuples and LOBs respectively.
 #include "NestedList.h"
 #include "SecondoSystem.h"
 #include "SecondoSMI.h"
-#include "FLOB.h"
-#include "FLOBCache.h"
+#include "../Tools/Flob/Flob.h"
+//#include "FLOBCache.h"
 #include "RelationAlgebra.h"
 #include "WinUnix.h"
 #include "Symbols.h"
@@ -440,7 +440,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
           DEBUG(this, "blockSize = " << blockSize)
 
   // write data into the memory block
-  size_t offset = 0;
+  SmiSize offset = 0;
   WriteVar<uint16_t>( blockSize, data, offset );
 
 
@@ -448,7 +448,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
   //offset = 0;
 
 
-  uint32_t extOffset = offset + coreSize;
+  SmiSize extOffset = offset + coreSize;
 
      DEBUG(this, "offset = " << offset)
      DEBUG(this, "extOffset = " << extOffset)
@@ -479,15 +479,16 @@ char* Tuple::WriteToBlock( size_t coreSize,
           WriteVar<uint32_t>( extOffset, data, offset );
           char *extensionPtr = &data[extOffset];
 
-          FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-          size_t offset2 = tmpFLOB->SerializeFD(extensionPtr);
-          extOffset += offset2;
+          Flob *tmpFLOB = attributes[i]->GetFLOB(j);
+          size_t offset2 = tmpFLOB->serializeHeader(extensionPtr, extOffset);
           DEBUG(this, "offset2-FD = " << offset2)
 
           extensionPtr += offset2;
-          if( !tmpFLOB->IsLob() )
+	  SmiSize sz = tmpFLOB->getSize(); 
+          if( sz < extensionLimit )
           {
-            offset2 = tmpFLOB->WriteTo(extensionPtr);
+            offset2 = sz;
+	    tmpFLOB->write(extensionPtr, sz);
             DEBUG(this, "offset2-WriteTo = " << offset2)
             extOffset += offset2;
             extensionPtr += offset2;
@@ -552,7 +553,7 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
                                   double& size,
                                   vector<double>& attrExtSize,
                                   vector<double>& attrSize,
-                                  bool ignorePersistentLOBs /*= false*/ )
+                                  bool ignoreLOBs /*= false*/ )
 {
   assert( attrExtSize.size() == attrSize.size() );
   assert( (size_t)tupleType->GetNoAttributes() >= attrSize.size() );
@@ -598,25 +599,29 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
 
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
     {
-      FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
+      Flob* tmpFlob = attributes[i]->GetFLOB(j);
 
       //assert( i >= 0 && (size_t)i < attrSize.size() );
-      const size_t tmpSize = tmpFLOB->Size();
+      const SmiSize tmpSize = tmpFlob->getSize();
 
+ /* NOT needed: offset is stored in FLobId
       attrExtSize[i] += sizeof(uint32_t); // needed in the core part
                                           // to store offset
       attrSize[i] += sizeof(uint32_t);
+ */
       attrSize[i] += tmpSize;
       size += tmpSize;
 
-      if( !tmpFLOB->IsLob() )
+      if( tmpFlob->getSize() >= extensionLimit )
       {
+	/* NOT NEEDED anymore     
         //assert( i >= 0 && (size_t)i < attrExtSize.size() );
         attrExtSize[i] += tmpSize;
         extSize += tmpSize;
 
-        extensionSize += tmpFLOB->MetaSize();
+        extensionSize += tmpFLOB->HeaderSize();
         extensionSize += tmpSize;
+	*/
       }
       else
       {
@@ -625,24 +630,19 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
         /* Note: lobFileId is a class member which is *
          * passed by reference to SaveToLob(...)      */
 
-        SmiFileId lid = lobFileId;
-        if(ignorePersistentLOBs) {
-          if (!tmpFLOB->IsPersistentLob()){
-            tmpFLOB->SaveToLob( lobFileId );
-          }
-        } else {
-           tmpFLOB->SaveToLob( lobFileId );
+        if(!ignoreLOBs) {
+            Flob f2;		
+            tmpFlob->saveToFile( lobFileId, f2 );
+	    //SPM? tmpFlob needs to be serialized Now.
+	    // or the memory pointed to by tmpFlob before
+	    // the tmpFlob call must be overwritten !!!
         }
-        extensionSize += tmpFLOB->MetaSize();
 
         if (RTFlag::isActive("TUPLE:lobFileId"))
         {
-          if (lid != lobFileId) {
             cmsg.info()
-              << "Tuple::lobFileId changed " << lid
-              << " -> " << lobFileId << endl;
+              << "Tuple::lobFileId = " << lobFileId << endl;
             cmsg.send();
-          }
         }
       }
     }
@@ -851,9 +851,7 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
       DEBUG(this, Array2HexStr(src, readData, offset) );
       offset += readData;
 
-      // Read the small FLOBs. The read of LOBs is postponed to its
-      // usage.
-
+      // Restore the Flob headers
       for( int j = 0; j < numFlobs; j++ )
       {
         uint32_t flobOffset = 0;
@@ -862,28 +860,17 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
         //DEBUG(this, "extOffset = " << extOffset)
         DEBUG(this, "flobOffset = " << flobOffset)
 
-        FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+        Flob* tmpFlob = attributes[i]->GetFLOB( j );
         //cerr <<"data = " << Array2HexStr(data, 12, offset) << endl;
-        /*offset += */ tmpFLOB->RestoreFD(&src[flobOffset]);
-        //cerr << "offset-FD = " << offset << endl;
-        //
-        if( !tmpFLOB->IsLob()){
+	SmiSize dummyOffset = 0;
+        /*offset += */ tmpFlob->restoreHeader( &src[flobOffset], 
+			                       dummyOffset );
+        SmiSize size = tmpFlob->getSize();
 
-          int size = tmpFLOB->Size();
-
-            DEBUG( this, "not tmpFlob[" << i << ","  << j << "].IsLob()" )
-            DEBUG(this, "tmpFLOB.size = " << size)
-
-          void* ptr = tmpFLOB->Malloc();
-          if(ptr){
-             memcpy( ptr, &src[flobOffset], size );
-
-             //offset += size;
-             //cerr << "offset-memcpy = " << offset << endl;
-          }
+        if( size < extensionLimit ){
+          DEBUG( this, "small Flob" )
         } else{
-          DEBUG( this, "tmpFlob[" << i << ","  << j << "].IsLob()" )
-          //tmpFLOB->SetLobFileId( lobFileId );
+          DEBUG( this, "large Flob" )
         }
       }
 
@@ -969,29 +956,19 @@ void Tuple::InitializeSomeAttributes( const list<int>& aIds,
         uint32_t flobOffset = 0;
         ReadVar<uint32_t>( flobOffset, src, offset );
 
-        FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+        Flob* tmpFLOB = attributes[i]->GetFLOB( j );
 
             DEBUG(this, "flobOffset = " << flobOffset)
             //cerr <<"data = " << Array2HexStr(data, 12, offset) << endl;
 
-        tmpFLOB->RestoreFD( &src[flobOffset] );
-        if( !tmpFLOB->IsLob() )
-        {
-          int size = tmpFLOB->Size();
+        SmiSize dummyOffset = 0; 		    
+        SmiSize size = tmpFLOB->getSize();
+        tmpFLOB->restoreHeader( &src[flobOffset], dummyOffset );
 
-              DEBUG( this, "not tmpFlob[" << i << ","  << j << "].IsLob()" )
-              DEBUG(this, "tmpFLOB.size = " << size)
-
-          void* ptr = tmpFLOB->Malloc();
-          if( ptr ){
-            memcpy( ptr, &src[flobOffset], size );
-          }
-        }
+        if( size < extensionLimit )
+          DEBUG( this, "small Flob" );
         else
-        {
-          DEBUG( this, "tmpFlob[" << i << ","  << j << "].IsLob()" )
-          //tmpFLOB->SetLobFileId( lobFileId );
-        }
+          DEBUG( this, "large Flob" );
       }
     }
 
@@ -1134,19 +1111,21 @@ void Tuple::UpdateAttributes( const vector<int>& changedIndices,
          j < attributes[index]->NumOfFLOBs();
          j++)
     {
-      FLOB *tmpFLOB = attributes[index]->GetFLOB(j);
+      Flob *tmpFlob = attributes[index]->GetFLOB(j);
 
       assert( index >= 0 && (size_t)index < attrSize.size() );
-      attrSize[index] -= tmpFLOB->Size();
-      size -= tmpFLOB->Size();
+      SmiSize fsz = tmpFlob->getSize();
 
-      if( !tmpFLOB->IsLob() )
+      attrSize[index] -=  fsz;
+      size -= fsz;
+
+      if( fsz < extensionLimit )
       {
         assert( index >= 0 && (size_t)index < attrExtSize.size() );
-        attrExtSize[index] -= tmpFLOB->Size();
-        extSize -= tmpFLOB->Size();
+        attrExtSize[index] -= fsz;
+        extSize -= fsz;
       }
-      tmpFLOB->Destroy();
+      tmpFlob->destroy();
     }
 
     attributes[index]->DeleteIfAllowed();
@@ -2240,7 +2219,7 @@ void Relation::UpdateTuple( Tuple *tuple,
 }
 
 /*
-Deletes the tuple from the relation, FLOBs and SMIRecord are deleted
+Deletes the tuple from the relation, Flobs and SMIRecord are deleted
 and the size of the relation is adjusted.
 
 */
@@ -2248,8 +2227,8 @@ bool Relation::DeleteTuple( Tuple *tuple )
 {
   if( tupleFile.DeleteRecord( tuple->GetTupleId() ) )
   {
-    Attribute* nextAttr;
-    FLOB* nextFLOB;
+    Attribute* nextAttr = 0;
+    Flob* nextFlob = 0;
 
     relDesc.noTuples -= 1;
     relDesc.totalExtSize -= tuple->GetRootSize();
@@ -2261,22 +2240,23 @@ bool Relation::DeleteTuple( Tuple *tuple )
       nextAttr->Finalize();
       for (int j = 0; j < nextAttr->NumOfFLOBs(); j++)
       {
-        nextFLOB = nextAttr->GetFLOB(j);
+        nextFlob = nextAttr->GetFLOB(j);
+        SmiSize fsz = nextFlob->getSize();
 
         assert( i >= 0 &&
                 (size_t)i < relDesc.attrSize.size() );
-        relDesc.attrSize[i] -= nextFLOB->Size();
-        relDesc.totalSize -= nextFLOB->Size();
+        relDesc.attrSize[i] -= fsz;
+        relDesc.totalSize -= fsz;
 
-        if( !nextFLOB->IsLob() )
+        if( fsz < Tuple::extensionLimit )
         {
           assert( i >= 0 &&
                   (size_t)i < relDesc.attrExtSize.size() );
-          relDesc.attrExtSize[i] -= nextFLOB->Size();
-          relDesc.totalExtSize -= nextFLOB->Size();
+          relDesc.attrExtSize[i] -= fsz;
+          relDesc.totalExtSize -= fsz;
         }
 
-        nextFLOB->Destroy();
+        nextFlob->destroy();
       }
     }
     return true;

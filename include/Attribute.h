@@ -57,7 +57,7 @@ derived attribute class must implement.
 #include "QueryProcessor.h"
 #include "Counter.h"
 //#include "AlgebraManager.h"
-#include "FLOB.h"
+#include "../Tools/Flob/Flob.h"
 #include "WinUnix.h"
 #include "SecondoSMI.h"
 
@@ -303,7 +303,7 @@ does not contain FLOBs, it is not necessary to implement this
 function.
 
 */
-    inline virtual FLOB* GetFLOB( const int i )
+    inline virtual Flob* GetFLOB( const int i )
     {
       assert( false );
       return 0;
@@ -397,7 +397,7 @@ the default ~Serialize~ function. The size of the object is  ~sz~
       // call the spezialized Rebuild function, if not implemented, the default
       // above will be called.
       for (int i = 0; i < attr->NumOfFLOBs(); i++) {
-        attr->GetFLOB(i)->DeleteFD();
+        //SPM? attr->GetFLOB(i)->DeleteFD();
       }	      
       attr->Rebuild(state, sz ,am->Cast(algId, typeId));
 

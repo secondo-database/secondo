@@ -57,7 +57,7 @@ derived attribute class must implement.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "AlgebraManager.h"
-#include "FLOB.h"
+#include "../Tools/Flob/Flob.h"
 #include "WinUnix.h"
 #include <limits>
 
@@ -89,9 +89,12 @@ const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
 
       for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
-        FLOB *tmpFLOB = elem->GetFLOB(i);
-        SmiFileId fid = 0;
-        tmpFLOB->SaveToRecord(valueRecord, offset, fid, false);
+        Flob *tmpFlob = elem->GetFLOB(i);
+        SmiFileId fileId = 0; 
+	//SPM? todo: get file from catalog / query processor
+	SmiRecordId lobRecordId = 0; 
+        //SPM? tmpFLOB->SaveToRecord(valueRecord, offset, fid, false);
+	tmpFlob->saveToFile(fileId, lobRecordId, offset, *tmpFlob);
       }
 
     }
@@ -100,12 +103,13 @@ Default save function.
 
 */
     Attribute *Attribute::Open( SmiRecord& valueRecord, 
-                                   size_t& offset, const ListExpr typeInfo )
+                                   SmiSize& offset, const ListExpr typeInfo )
     {
       NestedList *nl = SecondoSystem::GetNestedList();
       AlgebraManager* algMgr = SecondoSystem::GetAlgebraManager();
-      int algId, typeId;
-      size_t size;
+      int algId=0;
+      int typeId=0;
+      size_t size=0;
       if (!nl->IsAtom(nl->First(typeInfo)))
       {
         ListExpr type = nl->First(typeInfo);
@@ -121,20 +125,27 @@ Default save function.
           }
 
       Attribute*
-        elem = (Attribute*)(algMgr->CreateObj(algId, typeId))( typeInfo ).addr;
+        elem = static_cast<Attribute*>( 
+	          (algMgr->CreateObj(algId, typeId))( typeInfo ).addr );
       // Read the element
       valueRecord.Read( elem, size, offset );
-      elem = (Attribute*)(algMgr->Cast(algId, typeId))( elem );
+      elem = static_cast<Attribute*>( 
+	       (algMgr->Cast(algId, typeId))( elem ) );
       elem->del.refs = 1;
       elem->del.isDelete = true;
       offset += size;
 
+ /* NOT NEEDED. By Default persistence a Flob is a member of the Attribute
+ derived class.
+
       // Open the FLOBs
       for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
-        FLOB *tmpFLOB = elem->GetFLOB(i);
-        tmpFLOB->OpenFromRecord(valueRecord, offset, false);
+        Flob *tmpFlob = elem->GetFLOB(i);
+        //SPM: tmpFlob->OpenFromRecord(valueRecord, offset, false);
+	tmpFlob->restoreHeader(valueRecord, offset);
       }
+ */
 
       return elem;
     }
@@ -154,7 +165,7 @@ Default open function.
           delete this;
         else {
           for( int i = 0; i < NumOfFLOBs(); i++) {
-            GetFLOB(i)->Clean();                  
+            GetFLOB(i)->clean();                  
           }               
           free( this );
         }  

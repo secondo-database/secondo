@@ -152,8 +152,9 @@ size_t FText::HashValue() const
     return 0;
 
   unsigned long h = 0;
-  const char* s = 0;
-  theText.Get(0, &s);
+  // Assuming text fits into memory
+  char* s = new char( theText.getSize() );
+  theText.read(s, theText.getSize() );
   while(*s != 0)
   {
     h = 5 * h + *s;
@@ -195,11 +196,16 @@ int FText::Compare( const Attribute *arg ) const
   if ( !f )
     return -2;
 
-  const char *s1 = 0, *s2 = 0;
-  f->theText.Get(0, &s1);
-  this->theText.Get(0, &s2);
+  char* s1 = new char( f->theText.getSize() );
+  char* s2 = new char( this->theText.getSize() );
 
-  return strcmp( s2, s1 );
+  f->theText.read(s1, f->theText.getSize() );
+  this->theText.read(s2, this->theText.getSize() );
+
+  int res = strcmp( s2, s1 );
+  delete [] s1;
+  delete [] s2;
+  return res;
 }
 
 ostream& FText::Print(ostream &os) const
@@ -208,10 +214,11 @@ ostream& FText::Print(ostream &os) const
   {
     return (os << "TEXT: UNDEFINED");
   }
-  const char* t = 0;
-  theText.Get(0, &t);
+  char* t = new char(theText.getSize());
+  theText.read(t, theText.getSize());
+  delete [] t;
   string s(t);
-  size_t len = theText.Size();
+  size_t len = theText.getSize();
   if(TextLength() > 65)
   {
     return (os << "TEXT: (" <<len <<") '" << s.substr(0,60) << " ... '" );
@@ -225,12 +232,16 @@ bool FText::Adjacent(const Attribute *arg) const
   if(traces)
     cout << '\n' << "Start Adjacent" << '\n';
 
-  const char *a = 0, *b = 0;
-  theText.Get(0, &a);
-  ((const FText *)arg)->theText.Get(0, &b);
+  const FText* farg = static_cast<const FText*>(arg);
 
-  if( strcmp( a, b ) == 0 )
-    return 1;
+  char a[ theText.getSize() ];
+  char b[ farg->theText.getSize() ];
+
+  theText.read(a, theText.getSize() );
+  farg->theText.read(b, farg->theText.getSize() );
+
+  if( strcmp( a, b ) == 0 ) 
+    return true;
 
   if( strlen( a ) == strlen( b ) )
   {
@@ -252,7 +263,7 @@ bool FText::Adjacent(const Attribute *arg) const
             ( (b)[strlen(b)-1] == 'a' || (b)[strlen(b)-1] == 'A' ) );
   }
 
-  return 0;
+  return false;
 }
 
 // This function writes the object value to a string ~dest~.

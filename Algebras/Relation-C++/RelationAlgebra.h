@@ -761,9 +761,10 @@ part, i.e. the small FLOBs.
       int attrExtSize = GetRootSize( i );
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
       {
-        FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-        if( !tmpFLOB->IsLob() )
-          attrExtSize += tmpFLOB->Size();
+        Flob *tmpFlob = attributes[i]->GetFLOB(j);
+
+        if( tmpFlob->getSize() < extensionLimit )
+          attrExtSize += tmpFlob->getSize();
       }
 
       if (tupleType->GetAttributeType(i).extStorage) {
@@ -788,10 +789,10 @@ Returns the size of attribute i including its extension part.
    inline size_t  GetMemSize(int i) const {
       size_t attrMemSize = GetRootSize(i);
       for(int j=0; j< attributes[i]->NumOfFLOBs(); j++){
-          FLOB* tmpFLOB = attributes[i]->GetFLOB(j);
-          if(tmpFLOB->IsInMemory()){
-              attrMemSize += tmpFLOB->Size();
-          }
+          //Flob* tmpFlob = attributes[i]->GetFLOB(j);
+          //SPM? not relevant any more if(tmpFlob->IsInMemory()){
+              attrMemSize += sizeof(Flob);
+          //}
       }
       return attrMemSize;
    }
@@ -813,14 +814,14 @@ Returns the size of attribute i including its extension part.
     }
 /*
 Returns the total size of the tuple taking into account the
-the FLOBs.
+all FLOB sizes.
 
 */
     inline int GetSize( int i ) const
     {
       int attrSize = GetRootSize(i);
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-        attrSize += attributes[i]->GetFLOB(j)->Size();
+        attrSize += attributes[i]->GetFLOB(j)->getSize();
 
       if (tupleType->GetAttributeType(i).extStorage) {
         attrSize += attributes[i]->SerializedSize();
@@ -828,8 +829,8 @@ the FLOBs.
       return attrSize;
     }
 /*
-Returns the total size of an attribute of the tuple taking
-into account the FLOBs.
+Returns the total size of attribute i taking
+into account all FLOB sizes.
 
 */
     inline size_t HashValue(int i)
@@ -990,6 +991,12 @@ current record of ~iter~.
 */
   bool Open( TupleFileIterator *iter );
 
+  static const SmiSize extensionLimit;
+/*
+Defines the maximum size used to store Flob data inside
+a tuple
+
+*/
 
   private:
 
@@ -997,10 +1004,13 @@ current record of ~iter~.
     static long tuplesDeleted;
     static long tuplesInMemory;
     static long maximumTuples;
+
 /*
 Some statistics about tuples.
 
 */
+
+
     inline void InitAttrArray()
     {
       for( int i = 0; i < noAttributes; i++ )
