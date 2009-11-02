@@ -78,6 +78,7 @@ buffer's content.
 #include "FlobId.h"
 #include "FlobManager.h"
 #include "SecondoSMI.h"
+#include "Serialize.h"
 
 class Flob{
   friend class FlobManager;
@@ -109,7 +110,7 @@ class Flob{
     };
 
     // Destructor. Does not delete the Flob data.
-    inline ~Flob() {};
+    virtual ~Flob() {};
 
     // return the Flob's current size   
     inline SmiSize getSize() const { return size; }; // Size of the FLOB
@@ -117,17 +118,25 @@ class Flob{
     // just reset size
     inline void resize(const SmiSize& newsize) { size = newsize; }
 
+/*
+~clean~
+
+Cleans the flob. actually only the size is set to be zero.
+
+*/
+    inline void clean(){ size = 0; }
+
     // copy data from a Flob to a provided buffer
     inline void read(char* buffer,
                      const SmiSize length,
-                     const SmiSize offset) const {
+                     const SmiSize offset=0) const {
        FlobManager::getInstance().getData(*this, buffer, offset, length);
     };
 
     // write data from a provided buffer to the Flob
     inline void write(const char* buffer,
                       const SmiSize length,
-                      const SmiSize offset){
+                      const SmiSize offset=0){
       FlobManager::getInstance().putData(*this, buffer, offset, length);
     }
 
@@ -154,6 +163,55 @@ class Flob{
                           Flob& result) const{
       return FlobManager::getInstance().saveTo(*this, fid, rid, offset, result);
     };
+
+/*
+~destroy~
+
+Destroys this; 
+
+*/
+  void destroy(){
+     FlobManager::getInstance().destroy(*this);
+  }
+
+
+
+/*
+~saveHeader~
+
+This function saves the header information of this Flob into a record.
+
+*/
+  virtual void saveHeader(SmiRecord& record, 
+                          SmiSize& offset) const{
+     size_t blocksize = sizeof(FlobId) + sizeof(SmiSize);
+     size_t tmpoffset = 0;
+     char buffer[blocksize];
+     WriteVar<SmiSize>(size, buffer, tmpoffset);
+     WriteVar<FlobId>(id, buffer, tmpoffset);
+     record.Write(buffer, blocksize, offset);
+     offset += blocksize; 
+  } 
+
+/*
+~restoreHeader~
+
+Restores header information.
+
+*/
+  virtual void restoreHeader(SmiRecord& record,
+                             SmiSize& offset) {
+    size_t blocksize = sizeof(FlobId) + sizeof(SmiSize);
+    char buffer[blocksize];
+    record.Read(buffer, blocksize, offset);
+    offset += blocksize;
+    size_t tmpoffset = 0;
+    ReadVar<SmiSize>(size, buffer, tmpoffset);
+    ReadVar<FlobId>(id, buffer, tmpoffset);
+  }
+
+
+
 
   private:
     FlobId id;       // encodes fileid, recordid, offset
