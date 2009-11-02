@@ -277,6 +277,7 @@ must exists.
     getData(src, buffer, 0, src.size);
     putData(dest,buffer,0,src.size);
     dest.size = src.size;  
+    return true;
   }
 
 
