@@ -165,6 +165,19 @@ Cleans the flob. actually only the size is set to be zero.
     };
 
 /*
+~saveToFile~
+
+Saves this Flob to the given file id and returns the new created Flob
+in parameter ~result~. The data is stored in a new record with offset zero.
+
+*/
+    inline bool saveToFile(const SmiFileId fid,
+                          Flob& result) const{
+      return FlobManager::getInstance().saveTo(*this, fid, result);
+    };
+
+
+/*
 ~destroy~
 
 Destroys this; 
@@ -182,15 +195,11 @@ Destroys this;
 This function saves the header information of this Flob into a record.
 
 */
-  virtual void saveHeader(SmiRecord& record, 
-                          SmiSize& offset) const{
-     size_t blocksize = sizeof(FlobId) + sizeof(SmiSize);
-     size_t tmpoffset = 0;
-     char buffer[blocksize];
-     WriteVar<SmiSize>(size, buffer, tmpoffset);
-     WriteVar<FlobId>(id, buffer, tmpoffset);
-     record.Write(buffer, blocksize, offset);
-     offset += blocksize; 
+  virtual size_t serializeHeader(char* buffer, 
+                                 SmiSize& offset) const{
+     WriteVar<SmiSize>(size, buffer, offset);
+     WriteVar<FlobId>(id, buffer, offset);
+     return headerSize();
   } 
 
 /*
@@ -199,18 +208,15 @@ This function saves the header information of this Flob into a record.
 Restores header information.
 
 */
-  virtual void restoreHeader(SmiRecord& record,
+  virtual void restoreHeader(char* buffer,
                              SmiSize& offset) {
-    size_t blocksize = sizeof(FlobId) + sizeof(SmiSize);
-    char buffer[blocksize];
-    record.Read(buffer, blocksize, offset);
-    offset += blocksize;
-    size_t tmpoffset = 0;
-    ReadVar<SmiSize>(size, buffer, tmpoffset);
-    ReadVar<FlobId>(id, buffer, tmpoffset);
+    ReadVar<SmiSize>(size, buffer, offset);
+    ReadVar<FlobId>(id, buffer, offset);
   }
 
-
+  inline static const size_t headerSize() {
+     return sizeof(FlobId) + sizeof(SmiSize);;
+  }	  
 
 
   private:

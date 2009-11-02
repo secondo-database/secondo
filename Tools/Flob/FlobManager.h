@@ -8,6 +8,9 @@ all functions are declared as private and Flob is declared to be a friend
 of that class.
 
 */
+#ifndef SEC_FLOBMGS_H
+#define SEC_FLOBMGR_H
+
 
 #include <map>
 #include "SecondoSMI.h"
@@ -170,3 +173,4 @@ Return the file to a fileid;
 
 FlobManager* FlobManager::instance = 0;
 
+#endif

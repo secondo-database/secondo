@@ -384,33 +384,22 @@ size_t GetCapacity() const {
 Saves  header information (this) to a record.
 
 */
-virtual void saveHeader( SmiRecord& record, SmiSize& offset) const {
+virtual size_t serializeHeader( char* buffer, SmiSize& offset) const {
    // first save the flob
-   Flob::saveHeader(record, offset);  
+   SmiSize sz = Flob::serializeHeader(buffer, offset);
    // append nElements and maxElements
-   size_t mSize =  2 * sizeof(int);
-   char* meta = (char*) malloc( mSize );
-   size_t tmpOffset = 0;
-   WriteVar<int>(nElements, meta, tmpOffset);   
-   WriteVar<int>(maxElements, meta, tmpOffset);
-
-   record.Write(meta, mSize, offset);
-   offset += mSize;
-   free( meta );
+   WriteVar<int>(nElements, buffer, offset);   
+   WriteVar<int>(maxElements, buffer, offset);
+   sz += 2*sizeof(int);
+   return sz;
 }       
 
-virtual void restoreHeader(SmiRecord& record, 
+virtual void restoreHeader(char* buffer, 
                     SmiSize& offset)
 {
-   Flob::restoreHeader(record, offset);
-   size_t mSize =  2 * sizeof(int);
-   char* meta = (char*) malloc( mSize );
-   record.Read(meta, mSize, offset);
-   size_t tmpOffset = 0;
-   ReadVar<int>(nElements, meta, tmpOffset);    
-   ReadVar<int>(maxElements, meta, tmpOffset);
-   free ( meta );
-   offset += mSize;
+   Flob::restoreHeader(buffer, offset);
+   ReadVar<int>(nElements, buffer, offset);    
+   ReadVar<int>(maxElements, buffer, offset);
 }
 
 
