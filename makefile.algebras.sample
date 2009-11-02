@@ -58,8 +58,8 @@ ALGEBRAS     += RelationAlgebra
 ALGEBRA_DIRS += TupleIdentifier
 ALGEBRAS     += TupleIdentifierAlgebra
 
-ALGEBRA_DIRS += Stream
-ALGEBRAS     += StreamAlgebra
+#ALGEBRA_DIRS += Stream
+#ALGEBRAS     += StreamAlgebra
 
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     += FunctionAlgebra
