@@ -2442,14 +2442,18 @@ transformQuery(_, _, _, Q, JS, _) :-
 
 % return JoinSize, which is calculated depending on the 
 % count of relations used in this query
-transformQuery(_, _, _, Query, JoinSize, Query2) :-
+transformQuery(_, _, Pred, Query, JoinSize, Query2) :-
   optimizerOption(subqueries),
   maxSampleCard(C),
   retractall(maxSampleCard(_)),
 	NewSampleCard is min(JoinSize, C),
   assert(maxSampleCard(NewSampleCard)),
   transformPlan(Query, Query2),
-  write_canonical(Query2).
+	sampleSize(S),
+	retractall(realJoinSize(Pred, _)),
+	assert(realJoinSize(Pred, S)).
+	
+:- dynamic(realJoinSize/2).
 
 clearSelectivityQuery(_, Pred) :-
   !,
@@ -2507,12 +2511,7 @@ transformPlan(Plan, Plan2) :-
   B is Max ** A,
   C is min(SampleSize, floor(B)),
   retractall(sampleSize(_)),
-  assert(sampleSize(C)),
-	Plan3 = Plan2 * 500 / C,
-	write('Plan3: '), write(Plan3), nl,
-	!,
-	plan_to_atom(Plan3, At),
-	write('Atom3: '), write(At), nl.
+  assert(sampleSize(C)).	
 
 transformPlan1([], [], _).
 
