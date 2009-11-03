@@ -46,7 +46,7 @@ FlobManager& FlobManager::getInstance(){
   }
 __TRACE_LEAVE__
   return *instance;
-}	
+}
 
 bool FlobManager::destroyInstance(){
   if(!instance){
@@ -112,7 +112,7 @@ The __dest__ buffer must be provided by the caller. The requested content is cop
 to that buffer. 
 
 */
-	
+
 bool FlobManager::getData(
          const Flob& flob,            // Flob containing the data
          char* dest,                  // destination buffer

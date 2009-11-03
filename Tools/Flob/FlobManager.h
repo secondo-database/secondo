@@ -20,8 +20,8 @@ of that class.
 class Flob;
 
 class FlobManager{
-   friend class Flob;	
-   private:	
+   friend class Flob;
+   private:
 /*
  
 The FlobManager is realized to be a singleton. So, not the contructor
@@ -30,7 +30,7 @@ FlobManager instance.
 
 */    
 
-      static FlobManager& getInstance() ;	
+      static FlobManager& getInstance() ;
 
 /*
 ~destroyInstance~
@@ -51,7 +51,7 @@ The __dest__ buffer must be provided by the caller. The requested content is cop
 to that buffer. 
 
 */
-	
+
       bool getData(const Flob& flob,            // Flob containing the data
                    char* dest,                  // destination buffer
                    const SmiSize&  offset,     // offset within the Flob 
