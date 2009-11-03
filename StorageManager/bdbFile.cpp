@@ -68,7 +68,7 @@ using namespace std;
 
 static int  BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 );
 static int  BdbCompareFloat( Db* dbp, const Dbt* key1, const Dbt* key2 );
-static void BdbInitCatalogEntry( SmiCatalogEntry& entry );
+//static void BdbInitCatalogEntry( SmiCatalogEntry& entry );
 
 
 /* --- Implementation of class SmiFile --- */
@@ -368,7 +368,7 @@ SmiFile::Create( const string& context /* = "Default" */,
   return (rc == 0);
 }
 /*
-Opens a file by name.
+Opens a file by name. This should be used only by catalog files!
 
 */
 bool
@@ -390,10 +390,6 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
     SmiCatalogEntry entry;
     string newName = context + '.' + name;
 
-    /* SPM: should never be needed, Morover the implementation
-     * seems to be problematic, since file ids and filenames are
-     * stored in the same bdb file !!! 
-     *
     if ( SmiEnvironment::Implementation::LookUpCatalog( newName, entry ) )
     {	    
       // --- File found in permanent file catalog
@@ -401,7 +397,6 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
       existing = true;
     }
     else
-    */
     {
       // --- Check whether a file with the given name was created
       // --- earlier within the enclosing transaction
@@ -524,7 +519,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
           SmiDropFilesEntry dropEntry(fileId, false);
           SmiEnvironment::instance.impl->bdbFilesToDrop.push( dropEntry );
           SmiCatalogFilesEntry catalogEntry;
-          BdbInitCatalogEntry( catalogEntry.entry );
+          //BdbInitCatalogEntry( catalogEntry.entry );
           catalogEntry.entry.fileId = fileId;
           newName.copy( catalogEntry.entry.fileName, 2*SMI_MAX_NAMELEN+1 );
           catalogEntry.entry.isKeyed = fileType == KeyedBtree ||
@@ -564,6 +559,7 @@ bool
 SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 {
   assert ( !opened );
+  trace = true;
 
   static long& ctr = Counter::getRef("SmiFile::Open");
   TRACE("SmiFile::Open")
@@ -1199,10 +1195,12 @@ static int BdbCompareFloat( Db* dbp, const Dbt* key1, const Dbt* key2 )
 
 // --- Initialize Catalog Entry ---
 
+ /*
 static void BdbInitCatalogEntry( SmiCatalogEntry& entry )
 {
   memset( entry.fileName, 0 , (2*SMI_MAX_NAMELEN+2) );
 }
+  */
 
 // --- Implementation of class SmiFileIterator ---
 

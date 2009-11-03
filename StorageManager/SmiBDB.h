@@ -330,6 +330,7 @@ struct SmiCatalogFilesEntry
 {
   SmiCatalogEntry entry;
   bool            updateOnCommit;
+  SmiCatalogFilesEntry() : entry(), updateOnCommit(false) {}
 };
 /*
 Defines the structure of the elements in the map for file catalog requests.
@@ -356,10 +357,8 @@ class SmiEnvironment::Implementation
 Returns a unique file identifier.
 
 */
-  /* NOT NEEDED
   static bool LookUpCatalog( const string& fileName,
                              SmiCatalogEntry& entry );
-  */
 /*
 Looks up a file named ~fileName~ in the file catalog. If the file was found, the
 function returns "true"[4] and the catalog entry ~entry~ contains information about

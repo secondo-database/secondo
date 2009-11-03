@@ -450,7 +450,11 @@ SmiEnvironment::Implementation::LookUpCatalog( Dbt& key,
   return (rc == 0);
 }
 
- /* NOT needed, and should not work also
+ // SPM dangerous code !!! strings and integers are kept in the
+ // same data structure instance.impl->bdbCatalogIndex;
+ // The integer key should be transformed to a string before inserting
+ // it.
+
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
                                                SmiCatalogEntry& entry )
@@ -458,7 +462,6 @@ SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
   Dbt key( (void*) fileName.c_str(), fileName.length() );
   return LookUpCatalog(key, entry);
 }
- */
 
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const SmiFileId fileId,
@@ -632,15 +635,14 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit )
 
     if ( removed.find(entry.fileId) == removed.end() ) {
 
-      if ( ( onCommit &&  entry.dropOnCommit) ||
-	   (!onCommit && !entry.dropOnCommit) )
+      if ( onCommit && entry.dropOnCommit )
       {
 	Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
 	
 	string file = ConstructFileName( entry.fileId );
-	//cerr << "Erasing file " << file << endl;
-	//cerr << "onCommit:" << onCommit << endl;
-	//cerr << "entry:" << entry.dropOnCommit << endl;
+	cerr << "Erasing file " << file << endl;
+	cerr << "onCommit:" << onCommit << endl;
+	cerr << "entry:" << entry.dropOnCommit << endl;
 	rc = dbp->remove( file.c_str(), 0, 0 );
 	SetBDBError(rc);
 	removed[entry.fileId] = true;
