@@ -2399,8 +2399,12 @@ transformQuery(_, _, Query, Query) :-
 transformQuery(_, Pred, Query, Query2) :-
   optimizerOption(subqueries),
   assert(selectivityQuery(Pred)),
+	isSubqueryPred(Pred),
 %  streamRel(Rel),
   transformPlan(Query, Query2).
+	
+% no transformation for simple predicates
+transformQuery(_, _, Query, Query).
 
 transformQuery(_, _, Q, _) :-
   not(optimizerOption(subqueries)),
