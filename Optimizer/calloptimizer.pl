@@ -819,8 +819,10 @@ write_list([X|Rest]) :-
   write_list(Rest).
 
 dm(X) :-
-  optimizerOption(debug), !,
-  write_list(X).
+  ( optimizerOption(debug)
+    -> write_list(X)
+    ;  true
+  ), !.
 
 dm(_) :- !.
 
@@ -848,24 +850,22 @@ dc works like dm, but calls a goal instead of simply printing messages:
 */
 
 dc(Command) :-
-  optimizerOption(debug), !,
-  call(Command).
-
+  optimizerOption(debug),
+  call(Command),
+  !.
 dc(_) :- !.
 
 dc(Level, Command) :-
-  optimizerOption(debug), !,
-  ( optDebugLevel(Level)
-    -> ( ( optActiveDebugLevel(Level) ; optActiveDebugLevel(all) ),
-           !,
-           dc(Command)
+  ( optimizerOption(debug)
+    -> ( ( optActiveDebugLevel(Level) ; optActiveDebugLevel(all) )
+           -> call(Command)
+           ;  true
        )
     ;  write_list(['\nERROR:\tdebugLevel \'',Level,'\' is unknown!\n',
-                   '\tplease register it with a fact optDebugLevel/1 in file',
-                   '\tcalloptimizer.pl.\n\n'])
+                    '\tplease register it with a fact optDebugLevel/1 in file',
+                    '\tcalloptimizer.pl.\n\n'])
   ), !.
-
-dc(_,_) :- !.
+dc(_, _) :- !.
 
 
 /*

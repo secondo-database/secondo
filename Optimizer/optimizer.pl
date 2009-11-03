@@ -1305,16 +1305,16 @@ The iskNN faked operator
 
 plan_to_atom(isknn(TID, K, dbobject(QueryObj), Rel1, MPointAttr1, IDAttr1, RebuildIndexes), Result):- !,
   plan_to_atom(TID, ExtTID),
-  atom_chars(Rel, Rel1), 
-  atom_chars(MPointAttr, MPointAttr1), 
+  atom_chars(Rel, Rel1),
+  atom_chars(MPointAttr, MPointAttr1),
   atom_chars(IDAttr, IDAttr1),
   validate_isknn_input(K, dbobject(QueryObj), Rel, MPointAttr, IDAttr, RebuildIndexes),
-  
-  getknnDCNames(K, QueryObj, Rel, MPointAttr, IDAttr, 
+
+  getknnDCNames(K, QueryObj, Rel, MPointAttr, IDAttr,
     DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, _, _, _, _, _),
   knearest(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, RebuildIndexes),
 
-  getknnExtNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, 
+  getknnExtNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr,
     _, _, _, ExtIDAttr, _, _, ExtResultRel, ExtMBoolAttr, ExtBtree),
 
   concat_atom(['isknn(', ExtTID, ',"', ExtResultRel, '" , "', ExtBtree, '" , "', ExtMBoolAttr, '" , "', ExtIDAttr, '")'] , '', Result)
@@ -3322,7 +3322,7 @@ indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
-  rename(gettuples(windowintersectsS(dbobject(IndexName), 
+  rename(gettuples(windowintersectsS(dbobject(IndexName),
   enlargeRect(bbox(Y),D,D)),  rel(Name, *)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= *,
@@ -3353,7 +3353,7 @@ indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
   dcName2externalName(DCindex,IndexName).
 
 
-% general rules for liftedSpatialRangeQueries 
+% general rules for liftedSpatialRangeQueries
 % spatial(rtree,object) index, no rename
 
 indexselectLifted(arg(N), Pred ) =>
@@ -3418,7 +3418,7 @@ indexselectLifted(arg(N), Pred ) =>
   dcName2externalName(DCindex,IndexName).
 
 
-% general rules for liftedEqualityQueries 
+% general rules for liftedEqualityQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
   exactmatch(dbobject(IndexName), rel(Name, *), Y)
@@ -3449,7 +3449,7 @@ indexselectLifted(arg(N), Pred ) =>
   hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
   dcName2externalName(DCindex,IndexName).
 
-% general rules for liftedRangeQueries 
+% general rules for liftedRangeQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
   rangesearch(dbobject(IndexName), rel(Name, *), Arg2 , Arg3)
@@ -3478,7 +3478,7 @@ indexselectLifted(arg(N), Pred ) =>
   hasIndex(rel(Name, _), Arg1, DCindex, constuni(btree)),
   dcName2externalName(DCindex,IndexName).
 
-% general rules for liftedLeftRangeQueries 
+% general rules for liftedLeftRangeQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
   leftrange(dbobject(IndexName), rel(Name, *), Y)
@@ -3509,7 +3509,7 @@ indexselectLifted(arg(N), Pred ) =>
   hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
   dcName2externalName(DCindex,IndexName).
 
-% general rules for liftedRightRangeQueries 
+% general rules for liftedRightRangeQueries
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
   rightrange(dbobject(IndexName), rel(Name, *), Y)
@@ -7560,11 +7560,6 @@ queryToStream(Query, Stream, Cost) :-
   subqueryToStream(Query, Stream, Cost),
   !.
 
-queryToStream(Query, Stream, Cost) :-
-  optimizerOption(subqueries),
-  subqueryToStream(Query, Stream, Cost),
-  !.
-
 /*
 ----    finish(+Stream, +Select, +Sort, -Stream2) :-
 ----
@@ -8153,7 +8148,7 @@ sqlExample( 501,
   from trains
   where pattern([trip inside sehenswuerdaspoints as preda,
                  distance(trip, mehringdamm)<10.0 as predb,
-                 trip = mehringdamm as predc 
+                 trip = mehringdamm as predc
                 ],
                 [stconstraint("preda","predb",vec("aabb")),
                  stconstraint("predb","predc",vec("aabb"))

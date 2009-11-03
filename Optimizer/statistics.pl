@@ -150,7 +150,7 @@ simple(Term, _, Term).
 % fallback-clause for calls to old clause
 % ---  simple(+Term,+R1,+R2,-Simple)
 simple(Term,R1,R2,Simple) :-
-  dm(selectivity,['$$$$$$$ Using simple/4 fallback clause! $$$$$$$\n']),
+  dm(gettypetree,['$$$$$$$ Using simple/4 fallback clause! $$$$$$$\n']),
   simple(Term,[(1,R1),(2,R2)],Simple),!.
 
 /*
