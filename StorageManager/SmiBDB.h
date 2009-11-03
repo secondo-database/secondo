@@ -297,6 +297,10 @@ struct SmiCatalogEntry
   char      fileName[2*SMI_MAX_NAMELEN+2];
   bool      isKeyed;
   bool      isFixed;
+  SmiCatalogEntry() : fileId(0), isKeyed(false), isFixed(false)
+  {
+    memset(fileName, 0, 2*SMI_MAX_NAMELEN+2);	  
+  }	  
 };
 /*
 Defines the structure of the entries in the file catalog.
@@ -352,8 +356,10 @@ class SmiEnvironment::Implementation
 Returns a unique file identifier.
 
 */
+  /* NOT NEEDED
   static bool LookUpCatalog( const string& fileName,
                              SmiCatalogEntry& entry );
+  */
 /*
 Looks up a file named ~fileName~ in the file catalog. If the file was found, the
 function returns "true"[4] and the catalog entry ~entry~ contains information about
@@ -374,7 +380,7 @@ the file like the file name.
 Inserts the catalog entry ~entry~ into the file catalog.
 
 */
-  static bool DeleteFromCatalog( const string& fileName,
+  static bool DeleteFromCatalog( const SmiCatalogEntry& entry, 
                                  DbTxn* tid );
 /*
 Deletes the catalog entry ~entry~ from the file catalog.

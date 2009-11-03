@@ -273,6 +273,10 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
   if ( isTemporary )
   {
     newFileId = ++instance.impl->tmpId;
+    //SPM: This implementation will  be sufficient for
+    //a multi user mode since the file name will also
+    //contain the process id
+ 
     if ( RTFlag::isActive("SMI:LogFileCreation") )
     {
 //       // build a two elem list (simple count)
@@ -299,11 +303,7 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
   DbEnv*    dbenv = instance.impl->bdbEnv;
   Db*       dbseq = instance.impl->bdbSeq;
 
-  if ( isTemporary )
-  {
-    newFileId = ++instance.impl->tmpId;
-  }
-  else if ( dbseq )
+  if ( dbseq )
   {
     DbTxn* tid = 0;
     db_recno_t seqno = SMI_SEQUENCE_FILEID;
@@ -450,7 +450,7 @@ SmiEnvironment::Implementation::LookUpCatalog( Dbt& key,
   return (rc == 0);
 }
 
-
+ /* NOT needed, and should not work also
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
                                                SmiCatalogEntry& entry )
@@ -458,6 +458,7 @@ SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
   Dbt key( (void*) fileName.c_str(), fileName.length() );
   return LookUpCatalog(key, entry);
 }
+ */
 
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const SmiFileId fileId,
@@ -512,8 +513,8 @@ SmiEnvironment::Implementation::InsertIntoCatalog(
 }
 
 bool
-SmiEnvironment::Implementation::DeleteFromCatalog( const string& fileName,
-                                                   DbTxn* tid )
+SmiEnvironment::
+Implementation::DeleteFromCatalog( const SmiCatalogEntry& entry, DbTxn* tid )
 {
   if ( !dbOpened )
   {
@@ -526,7 +527,7 @@ SmiEnvironment::Implementation::DeleteFromCatalog( const string& fileName,
 
   if ( dbidx )
   {
-    Dbt key( (void*) fileName.c_str(), fileName.length() );
+    Dbt key( (void*) &entry.fileId, sizeof( entry.fileId ) );
 
     rc = dbidx->del( tid, &key, 0 );
     if ( rc != 0 && rc != DB_NOTFOUND )
@@ -576,7 +577,9 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
       }
       else
       {
-        ok = DeleteFromCatalog( it->first.c_str(), tid );
+        cerr << "SMI: Deleting " 
+	     << it->first.c_str() << " from file Catalog" << endl;     
+        ok = DeleteFromCatalog( it->second.entry, tid );
       }
     }
     instance.impl->bdbFilesToCatalog.clear();
@@ -703,7 +706,7 @@ SmiEnvironment::Implementation::ConstructFileName( SmiFileId fileId,
   }
   else
   {
-    os << "t" << fileId << ".sdb";
+    os << "t." << WinUnix::getpid() << "."<< fileId << ".sdb";
   }
   if ( RTFlag::isActive("SMI:LogFileCreation") )
   {

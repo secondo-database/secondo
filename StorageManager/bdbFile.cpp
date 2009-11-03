@@ -389,13 +389,19 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
   {
     SmiCatalogEntry entry;
     string newName = context + '.' + name;
+
+    /* SPM: should never be needed, Morover the implementation
+     * seems to be problematic, since file ids and filenames are
+     * stored in the same bdb file !!! 
+     *
     if ( SmiEnvironment::Implementation::LookUpCatalog( newName, entry ) )
-    {
+    {	    
       // --- File found in permanent file catalog
       fileId = entry.fileId;
       existing = true;
     }
     else
+    */
     {
       // --- Check whether a file with the given name was created
       // --- earlier within the enclosing transaction
