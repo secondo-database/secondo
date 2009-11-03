@@ -81,6 +81,7 @@ and the nativFlobFile is deleted.
        map<SmiFileId, SmiRecordFile*>::iterator iter;
        for( iter = openFiles.begin(); iter != openFiles.end(); iter++ ) {
          iter->second->Close(); 
+         delete iter->second;
        }
        openFiles.clear();
 
