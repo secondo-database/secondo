@@ -991,7 +991,7 @@ current record of ~iter~.
 */
   bool Open( TupleFileIterator *iter );
 
-  static const SmiSize extensionLimit;
+  static SmiSize extensionLimit;
 /*
 Defines the maximum size used to store Flob data inside
 a tuple

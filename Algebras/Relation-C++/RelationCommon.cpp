@@ -87,6 +87,8 @@ long Tuple::tuplesDeleted = 0;
 long Tuple::maximumTuples = 0;
 long Tuple::tuplesInMemory = 0;
 
+SmiSize Tuple::extensionLimit = 1024;
+
 /*
 These variables are used for tuple statistics.
 
