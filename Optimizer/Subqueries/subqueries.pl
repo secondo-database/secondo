@@ -2424,6 +2424,21 @@ transformQuery(_, _, _, count(filter(counter(loopjoin(Q, Fun), C), P)),
 transformQuery(_, _, _, Q, JS, _) :-
   not(optimizerOption(subqueries)),
   throw(error_Internal(subqueries_transformQuery(Q, JS):notImplemented#_)).
+	
+% case loopsel for nested selection predicates
+transformQuery(_, _, Pred, count(loopsel(Query, Fun)), JoinSize,
+    count(loopsel(head(Query, JoinSize), Fun))) :-
+  not(isSubqueryPred1(Pred)).
+
+% case loopjoin for nested join predicates
+transformQuery(_, _, Pred, count(filter(counter(loopjoin(Q, Fun), C), P)),
+    JoinSize,
+    count(filter(counter(loopjoin(head(Q, JoinSize), Fun), C), P))) :-
+  not(isSubqueryPred1(Pred)).
+
+transformQuery(_, _, _, Q, JS, _) :-
+  not(optimizerOption(subqueries)),
+  throw(error_Internal(subqueries_transformQuery(Q, JS):notImplemented#_)).	
 
 % return JoinSize, which is calculated depending on the 
 % count of relations used in this query
@@ -2431,7 +2446,8 @@ transformQuery(_, _, _, Query, JoinSize, Query2) :-
   optimizerOption(subqueries),
   maxSampleCard(C),
   retractall(maxSampleCard(_)),
-  assert(maxSampleCard(min(JoinSize, C))),
+	NewSampleCard is min(JoinSize, C),
+  assert(maxSampleCard(NewSampleCard)),
   transformPlan(Query, Query2),
   write_canonical(Query2).
 
@@ -2491,7 +2507,12 @@ transformPlan(Plan, Plan2) :-
   B is Max ** A,
   C is min(SampleSize, floor(B)),
   retractall(sampleSize(_)),
-  assert(sampleSize(C)).
+  assert(sampleSize(C)),
+	Plan3 = Plan2 * 500 / C,
+	write('Plan3: '), write(Plan3), nl,
+	!,
+	plan_to_atom(Plan3, At),
+	write('Atom3: '), write(At), nl.
 
 transformPlan1([], [], _).
 
