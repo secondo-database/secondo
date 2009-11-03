@@ -78,6 +78,8 @@ TTY_OBJECTS :=  cmsg.o \
 	        SecondoTTY.o \
 		DisplayTTY.o
 
+FLOB := $(SECONDO_BUILD_DIR)/Tools/Flob/FlobManager.o
+
 CS_OBJECTS :=   MainTTYCS.o SecondoInterfaceCS.o
 
 APP_LIB := ../lib/libappCommon.$(LIBEXT)
@@ -138,8 +140,8 @@ $(APP_LIB): $(TTY_OBJECTS) $(BDB_OBJECTS)
 	$(create-lib)
 
 # SecondoBDB, the stand alone application.
-$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES)
-$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): MainTTY.o $(APP_LIB) $(ALG_LIST) $(PL_OBJECTS)
+$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): $(SECLIBFILES) $(ALGLIBFILES) $(JNILIBFILES) MainTTY.o $(FLOB)
+$(BINDIR)/Secondo$(SMIUP)$(EXEEXT): MainTTY.o $(APP_LIB) $(ALG_LIST) $(FLOB) $(PL_OBJECTS)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(LDJNIFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(LD_LINK_LIBS_ALG) $(RL_LD_FLAG) $(PLLDFLAGS) 
 
 
