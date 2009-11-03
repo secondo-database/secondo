@@ -32,6 +32,16 @@ FlobManager instance.
 
       static FlobManager& getInstance() ;	
 
+/*
+~destroyInstance~
+
+Destroys the only instance of the FlobManager. This function must be called
+before Secondo exits to be sure that the nativ Flob file is closed correctly.
+After calling that function all nativ flobs (flobs not explicitely stored into
+file) are not longer available.
+
+*/
+      static bool destroyInstance();
 
 /*
 ~getData~
@@ -134,6 +144,18 @@ by the FlobManager class itself.
 */
 
       FlobManager();
+
+/*
+~Destructor~
+
+The destructor should never be called from outside. Instead the destroyInstance
+function should be called. By calling the destructor, all open files are closed
+and the nativFlobFile is deleted.
+
+
+*/
+     ~FlobManager();
+
 
 /*
 ~instance~

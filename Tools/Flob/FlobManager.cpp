@@ -48,6 +48,45 @@ __TRACE_LEAVE__
   return *instance;
 }	
 
+bool FlobManager::destroyInstance(){
+  if(!instance){
+    return false;
+  } else {
+    delete instance;
+    instance = 0;
+    return true;
+  }
+}
+
+/*
+~Destructor~
+
+The destructor should never be called from outside. Instead the destroyInstance
+function should be called. By calling the destructor, all open files are closed
+and the nativFlobFile is deleted.
+
+
+*/
+     FlobManager::~FlobManager(){
+       if(!nativeFlobFile->Close()){
+         std::cerr << "Problem in closing nativeFlobFile" << std::endl;
+       }
+       if(!nativeFlobFile->Remove()){
+         std::cerr << "Problem in deleting nativeFlobFile" << std::endl;
+       }
+       delete nativeFlobFile;
+       nativeFlobFile = 0;
+       nativeFlobs = 0;
+       // close all files stored in Map   
+       map<SmiFileId, SmiRecordFile*>::iterator iter;
+       for( iter = openFiles.begin(); iter != openFiles.end(); iter++ ) {
+         iter->second->Close(); 
+       }
+       openFiles.clear();
+
+     }
+
+
 SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId) {
  __TRACE_ENTER__
 
