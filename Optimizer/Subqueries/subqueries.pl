@@ -2399,7 +2399,7 @@ transformQuery(_, _, Query, Query) :-
 transformQuery(_, Pred, Query, Query2) :-
   optimizerOption(subqueries),
   assert(selectivityQuery(Pred)),
-	isSubqueryPred(Pred),
+	isSubqueryPred1(Pred),
 %  streamRel(Rel),
   transformPlan(Query, Query2).
 	
