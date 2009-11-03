@@ -827,13 +827,13 @@ dm(_) :- !.
 dm(Level, X) :-
   optimizerOption(debug), !,
   ( ( optActiveDebugLevel(Level) ; optActiveDebugLevel(all) )
-    -> dm(X)
+    -> write_list(X)
     ;  ( optDebugLevel(Level)
            -> true
            ;  ( write_list(['\nERROR:\tdebugLevel \'',Level,'\' is unknown!\n',
                     '\tplease register it with a fact optDebugLevel/1 in file',
                     '\n\tcalloptimizer.pl.\n\n']),
-                dm(X)
+                write_list(X)
               )
        )
   ), !.
