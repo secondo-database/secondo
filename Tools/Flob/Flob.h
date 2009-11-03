@@ -83,18 +83,41 @@ buffer's content.
 class Flob{
   friend class FlobManager;
   public:
-    // native FLOB with size=0
+
+/*
+~Standard Constructor~
+
+This constructor should only be used within Cast functions.
+
+*/
     inline Flob() {}
 
-    // copy constructor, copies FLOB, not the data
-    inline Flob(const Flob& other) : id(other.id), size( other.size ) {};
+/*
+~Copy Constructor~
 
-    // construct a native Flob having a given size
+Creates a flat copy of the argument. The underlying data are not
+duplicated.
+
+*/   
+  inline Flob(const Flob& other) : id(other.id), size( other.size ) {};
+
+/*
+~Constructor~
+
+This construcvtor create a native flob having a given size.
+
+*/    
     inline Flob (SmiSize size_): id(), size( size_ ){
       FlobManager::getInstance().create(size, *this);
     };
 
-    // restore a Flob from a file/record/offset
+
+/*
+~Constructor~
+
+Constructs a Flob from a given position.
+
+*/
     inline Flob(const SmiFileId fileId,
                 const SmiRecordId recordId,
                 const SmiSize offset) : id(), size( 0 ){
@@ -102,20 +125,40 @@ class Flob{
                                            offset, size, *this);
     };
 
-    // assign another Flob to this Flob
+/*
+~Assignment Operator~
+
+Makes only a flat copy of the source flob.
+
+*/
     inline Flob& operator=(const Flob& src){
       size = src.size;
       id   = src.id;
       return *this;
     };
 
-    // Destructor. Does not delete the Flob data.
+/*
+~Destructor~
+
+Does not destroy the underlying data. Use destroy for it.
+
+*/
     virtual ~Flob() {};
 
-    // return the Flob's current size   
+/*
+~getSize~
+
+Returns the current size of this Flob.
+
+*/
     inline SmiSize getSize() const { return size; }; // Size of the FLOB
 
-    // just reset size
+/*
+~resize~
+
+Changes the size of a flob to the given one.
+
+*/    
     inline void resize(const SmiSize& newsize) { size = newsize; }
 
 /*
@@ -126,37 +169,63 @@ Cleans the flob. actually only the size is set to be zero.
 */
     inline void clean(){ size = 0; }
 
-    // copy data from a Flob to a provided buffer
+/*
+~read~
+
+Reads a part of the data from this Flob. The ~buffer~ must be provided and disposed
+by the caller of the funtion.
+
+*/   
     inline void read(char* buffer,
                      const SmiSize length,
                      const SmiSize offset=0) const {
        FlobManager::getInstance().getData(*this, buffer, offset, length);
     };
 
-    // write data from a provided buffer to the Flob
+/*
+~write~
+
+Puts data providen in ~buffer~ into the Flob at the specified position.
+
+*/
     inline void write(const char* buffer,
                       const SmiSize length,
                       const SmiSize offset=0){
       FlobManager::getInstance().putData(*this, buffer, offset, length);
     }
+/*
+~copyFrom~
 
-    // copy Flob from another Flob
+Copies the content of src to this flob.
+
+*/
     inline void copyFrom(const Flob& src){
       FlobManager::getInstance().copyData(src,*this);
     };
 
-    // copy Flob to another Flob
+/*
+~copyTo~
+
+Copies the content of this flob to ~dest~.
+
+*/
     inline void copyTo(Flob& dest) const {
        FlobManager::getInstance().copyData(*this,dest);
     };
 
-    // Save Flob data to a specified file/record/offset.
-    // Returns a Flob having a FlobId encoding the file/record/offset
-    // of the persistent Flob data
-    // Can e.g. be used to copy the flob data from the (temporary) native LOB
-    // file to some persistent LOB file, like a relation LOB file or the
-    // database LOB file. It can also be used to write the LOB data into a
-    // tuple file. In this case, we speak of a FAKED LOB (or FLOB).
+/*
+
+~saveToFile~
+
+Save Flob data to a specified file/record/offset.
+Returns a Flob having a FlobId encoding the file/record/offset
+of the persistent Flob data
+Can e.g. be used to copy the flob data from the (temporary) native LOB
+file to some persistent LOB file, like a relation LOB file or the
+database LOB file. It can also be used to write the LOB data into a
+tuple file. In this case, we speak of a FAKED LOB (or FLOB).
+
+*/
     inline bool saveToFile(const SmiFileId fid,
                           const SmiRecordId rid,
                           const SmiSize offset,
@@ -214,9 +283,16 @@ Restores header information.
     ReadVar<FlobId>(id, buffer, offset);
   }
 
+/*
+~headerSize~
+
+Returns the amount of data required to save header information.
+
+*/
+
   inline static const size_t headerSize() {
      return sizeof(FlobId) + sizeof(SmiSize);;
-  }	 
+  }
 
 /*
 ~destroyManager~
