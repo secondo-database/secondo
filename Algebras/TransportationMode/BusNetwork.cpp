@@ -82,8 +82,10 @@ string BusNetwork::busstoptreeTypeInfo =
 
 ListExpr BusNetwork::BusNetworkProp()
 {
+  string s1 = "thebusnetwork(<id>,<busroute-relation";
+  string s2 = "(tuple(Id int)(LineNo int)(Up bool)(Trip mpoint))>)";
   ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(examplelist,"thebusnetwork(<id>,<busroute-relation>)");
+  nl->AppendText(examplelist,s1+s2);
 
   return  (nl->TwoElemList(
           nl->TwoElemList(nl->StringAtom("Creation"),

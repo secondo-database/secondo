@@ -64,7 +64,8 @@ TypeConstructor busnetwork( "busnetwork", BusNetwork::BusNetworkProp,
 const string OpTheBusNetworkSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>int x relation -> busnetwork" "</text--->"
+  "(<text>int x a relation (tuple(Id int)(LineNo int)(Up bool)(Trip mpoint))"
+  " -> busnetwork</text--->"
   "<text>thebusnetwork(_, _)</text--->"
   "<text>Creates busnetwork with id and a relation.</text--->"
   "<text>let busnet = thebusnetwork(1, busroutes)</text--->"
@@ -73,9 +74,9 @@ const string OpTheBusNetworkSpec =
 const string OpBusNodeSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>busnetwork -> a relation</text--->"
+  "(<text>busnetwork -> a relation (tuple(Id int)(BusStop point))</text--->"
   "<text>busnode(_)</text--->"
-  "<text>returns the relation for nodes."
+  "<text>returns the relation for bus stops."
   "</text--->"
   "<text>query busnode(busroutes) count</text--->"
   "))";
@@ -84,7 +85,9 @@ const string OpBusNodeSpec =
 const string OpBusEdgeSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>busnetwork -> a relation</text--->"
+  "(<text>busnetwork -> a relation (tuple((eid int)(v1 int)(v2 int)"
+  "(def_t periods)(l line)(fee real)(rid int)(trip mpoint)"
+  "(pid int)(p1 point)(p2 point)))</text--->"
   "<text>busedge(_)</text--->"
   "<text>returns the relation for edges.</text--->"
   "<text>query busedge(busroutes) count</text--->"
@@ -94,7 +97,7 @@ const string OpBusEdgeSpec =
 const string OpBusMoveSpec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
- "(<text>busnetwork -> stream(tuple(([pid:int,rid:int,trip:mpoint])))</text--->"
+ "(<text>busnetwork -> stream(tuple([pid:int,rid:int,trip:mpoint]))</text--->"
   "<text>busmove(_)</text--->"
   "<text>returns a stream of tuple where each corresponds to "
   "the movement of a bus.</text--->"
@@ -104,28 +107,37 @@ const string OpBusMoveSpec =
 const string OpBusFindPath_T_1Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>busnetwork x rel x attribute x instant-> mpoint</text--->"
+  "(<text>busnetwork x rel(tuple((id int)(dur duration))) "
+  "x id x instant-> mpoint</text--->"
   "<text>find_path_t_1(_,_,_,_)</text--->"
-  "<text>returns a sequence of movement corresponding to a trip.</text--->"
+  "<text>returns a sequence of movement corresponding to a trip"
+  " from the start bus stop to the end bus stop identified by rel attribute id."
+  "</text--->"
   "<text>query deftime(find_path_t_1(berlintrains,q1,id,querytime));</text--->"
   "))";
 
 const string OpBusFindPath_T_2Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>busnetwork x rel x attribute x instant-> mpoint</text--->"
+  "(<text>busnetwork x rel(tuple((id int)(dur duration)))"
+  " x id x instant-> mpoint</text--->"
   "<text>find_path_t_2(_,_,_,_)</text--->"
-  "<text>returns a sequence of movement corresponding to a trip.</text--->"
+  "<text>returns a sequence of movement corresponding to a trip"
+  " from the start bus stop to the end bus stop identified by rel attribute id."
+  "</text--->"
   "<text>query deftime(find_path_t_2(berlintrains,q1,id,querytime));</text--->"
   "))";
 
 const string OpBusFindPath_T_3Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>relation x btree1 x busnetwork x rel x attribute1 x attribute2 "
+  "(<text>relation x btree1 x busnetwork x rel(tuple((id int)(dur duration)))"
+  " x id x dur "
   "x instant-> mpoint</text--->"
   "<text>_ _ find_path_t_3[_,_,_,_,_]</text--->"
-  "<text>returns a sequence of movement corresponding to a trip</text--->"
+  "<text>returns a sequence of movement corresponding to a trip"
+  " from the start bus stop to the end bus stop identified by rel attribute id."
+  "</text--->"
   "<text>query deftime(edge_rel btree_edge_v1 find_path_t_3[berlintrains,tq1,"
   "id,dur,querytime]); </text--->"
   "))";
@@ -133,10 +145,12 @@ const string OpBusFindPath_T_3Spec =
 const string OpBusFindPath_T_4Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>busnetwork x rel x attribute1 "
-   " x attribute2 x instant-> mpoint</text--->"
+  "(<text>busnetwork x rel(tuple((id int)(dur duration))) x id "
+   " x dur x instant-> mpoint</text--->"
   "<text>_ find_path_t_4[_,_,_,_]</text--->"
-  "<text>returns a sequence of movement corresponding to a trip</text--->"
+  "<text>returns a sequence of movement corresponding to a trip"
+  " from the start bus stop to the end bus stop identified by rel attribute id."
+  "</text--->"
   "<text>query deftime(berlintrains find_path_t_4"
   "[tq1,id,dur,querytime])</text--->"
   "))";
@@ -144,10 +158,12 @@ const string OpBusFindPath_T_4Spec =
 const string OpBusFindPath_T_5Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>busnetwork x rel x attribute1 "
-  "x attribute2 x instant-> mpoint</text--->"
+  "(<text>busnetwork x rel(tuple((id int)(dur duration))) x id "
+  "x dur x instant-> mpoint</text--->"
   "<text>_ find_path_t_5[_,_,_,_]</text--->"
-  "<text>returns a sequence of movement corresponding to a trip</text--->"
+  "<text>returns a sequence of movement corresponding to a trip"
+  " from the start bus stop to the end bus stop identified by rel attribute id."
+  "</text--->"
   "<text>query deftime(berlintrains find_path_t_5"
   "[tq1,id,dur,querytime]);</text--->"
   "))";
@@ -155,10 +171,12 @@ const string OpBusFindPath_T_5Spec =
 const string OpBusFindPath_T_6Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>busnetwork x rel x attribute1 "
-  "x attribute2 x instant-> mpoint</text--->"
+  "(<text>busnetwork x rel(tuple((id int)(dur duration))) x id "
+  "x dur x instant-> mpoint</text--->"
   "<text>_ find_path_t_6[_,_,_,_]</text--->"
-  "<text>returns a sequence of movement corresponding to a trip</text--->"
+  "<text>returns a sequence of movement corresponding to a trip"
+  " from the start bus stop to the end bus stop identified by rel attribute id."
+  "</text--->"
   "<text>query deftime(berlintrains find_path_t_6"
   "[tq1,id,dur,querytime]);</text--->"
   "))";
@@ -166,10 +184,12 @@ const string OpBusFindPath_T_6Spec =
 const string OpBusFindPath_BUS_Tree1Spec =
  "((\"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\") "
-  "(<text>busnetwork x rel x attribute1 "
-  "x attribute2 x instant-> mpoint</text--->"
+  "(<text>busnetwork x rel(tuple((id int)(dur duration))) x id "
+  "x dur x instant-> mpoint</text--->"
   "<text>_ find_path_bus_tree1[_,_,_,_]</text--->"
-  "<text>returns a sequence of movement corresponding to a trip</text--->"
+  "<text>returns a sequence of movement corresponding to a trip"
+  " from the start bus stop to the end bus stop identified by rel attribute id."
+  "</text--->"
   "<text>query deftime(berlintrains find_path_bus_tree1"
   "[tq1,id,dur,querytime]);</text--->"
   "))";
