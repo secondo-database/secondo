@@ -637,6 +637,7 @@ toggleDebug :-
   write('\tYou can add debug levels by \'debugLevel(level).\'\n'),
   write('\tor drop them by \'nodebugLevel(level).\'.\n'),
   write('\tLevel \'all\' will output messages from all levels.\n'),
+  write('\tLevel \'none\' will deactivate all qualified debugging.\n'),
   !.
 
 % handle more than a single mode
@@ -644,6 +645,10 @@ debugLevel([]).
 debugLevel([Mode|Modes]) :-
   ( debugLevel(Mode) ; true ),
   debugLevel(Modes).
+
+debugLevel(none) :-
+  retractall(optActiveDebugLevel(_)),
+  write_list(['Deactivated all qualified debug levels.\n\n']), !.
 
 debugLevel(Mode) :-
   ( Mode = all ; optDebugLevel(Mode) ),
@@ -654,6 +659,7 @@ debugLevel(Mode) :-
   showDebugLevel,
   nl, !.
 
+
 debugLevel(Mode) :-
   Mode \= all ,
   not(optDebugLevel(Mode)),
@@ -661,7 +667,8 @@ debugLevel(Mode) :-
   findall(X,optActiveDebugLevel(X),A),
   write_list(['DebugLevel \'',Mode,'\' is unknown.\n\n',
               'Available debugLevels are:\n',L,'.\n\n',
-              'Active debugLevels are:\n',A,'.\n']),
+              'Active debugLevels are:\n',A,'.\n',
+              'DebugLevel \'none\' deactivates all qualified debugging.\n\n']),
   !.
 
 % handle more than a single mode
@@ -818,6 +825,7 @@ dm(X) :-
 dm(_) :- !.
 
 dm(Level, X) :-
+  optimizerOption(debug), !,
   ( ( optActiveDebugLevel(Level) ; optActiveDebugLevel(all) )
     -> dm(X)
     ;  ( optDebugLevel(Level)
@@ -846,6 +854,7 @@ dc(Command) :-
 dc(_) :- !.
 
 dc(Level, Command) :-
+  optimizerOption(debug), !,
   ( optDebugLevel(Level)
     -> ( ( optActiveDebugLevel(Level) ; optActiveDebugLevel(all) ),
            !,
