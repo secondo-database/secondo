@@ -211,7 +211,7 @@ where ~Ei~ are the elements of the parameter list
 
 ~Functionlist~ are noted
 
----- [(N1,M1),(N2,M2),...(Nm,Mn)]
+---- [(N1,M1),(N2,M2),...,(Nn,Mn)]
 ----
 
 where ~Ni~ is the name for the i-th component and ~Mi~ is the signature of the
