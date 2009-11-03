@@ -216,8 +216,20 @@ Restores header information.
 
   inline static const size_t headerSize() {
      return sizeof(FlobId) + sizeof(SmiSize);;
-  }	  
+  }	 
 
+/*
+~destroyManager~
+
+This function destroys the FlobManager. It should (and must) only called
+at the end of a secondo session. After calling that function Flob access
+is not longer possible.
+
+*/
+ 
+  inline static bool destroyManager(){
+     return FlobManager::destroyInstance();
+  }
 
   private:
     FlobId id;       // encodes fileid, recordid, offset
