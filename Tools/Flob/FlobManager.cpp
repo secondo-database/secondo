@@ -15,6 +15,7 @@ of that class.
 
 
 
+FlobManager* FlobManager::instance = 0;
 
 /*
  

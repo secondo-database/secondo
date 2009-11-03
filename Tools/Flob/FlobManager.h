@@ -8,7 +8,7 @@ all functions are declared as private and Flob is declared to be a friend
 of that class.
 
 */
-#ifndef SEC_FLOBMGS_H
+#ifndef SEC_FLOBMGR_H
 #define SEC_FLOBMGR_H
 
 
@@ -171,6 +171,5 @@ Return the file to a fileid;
 };
 
 
-FlobManager* FlobManager::instance = 0;
 
 #endif
