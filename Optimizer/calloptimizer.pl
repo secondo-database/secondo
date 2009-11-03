@@ -861,9 +861,12 @@ dc(Level, Command) :-
            -> call(Command)
            ;  true
        )
-    ;  write_list(['\nERROR:\tdebugLevel \'',Level,'\' is unknown!\n',
+    ;  ( optDebugLevel(Level)
+         -> true
+         ;  write_list(['\nERROR:\tdebugLevel \'',Level,'\' is unknown!\n',
                     '\tplease register it with a fact optDebugLevel/1 in file',
                     '\tcalloptimizer.pl.\n\n'])
+       )
   ), !.
 dc(_, _) :- !.
 
