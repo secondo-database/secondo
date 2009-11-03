@@ -12,6 +12,18 @@ of that class.
 #include "SecondoSMI.h"
 #include "Flob.h"
 #include "assert.h"
+#include <iostream>
+
+#undef __TRACE_ENTER__
+#undef __TRACE_LEAVE__
+
+//#define __TRACE_ENTER__
+//#define __TRACE_LEAVE__
+#define __TRACE_ENTER__ std::cerr << "Enter : " << \
+        __PRETTY_FUNCTION__ << std::endl;
+#define __TRACE_LEAVE__ std::cerr << "Leave : " << \
+        __PRETTY_FUNCTION__ << "@" << __LINE__ << std::endl;
+
 
 
 
@@ -23,16 +35,21 @@ The FlobManager is realized to be a singleton. So, not the contructor
 but this getInstance function is to call to get the only one
 FlobManager instance.
 
-*/    
+*/   
+
+
 
 FlobManager& FlobManager::getInstance(){
+ __TRACE_ENTER__
   if(!instance){
     instance = new FlobManager();
   }
+__TRACE_LEAVE__
   return *instance;
 }	
 
 SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId) {
+ __TRACE_ENTER__
 
   SmiRecordFile* file(0);
   map<SmiFileId, SmiRecordFile*>::iterator it = openFiles.find(fileId);
@@ -43,6 +60,7 @@ SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId) {
   } else{
      file = it->second;
   }
+__TRACE_LEAVE__
   return file;
 }
 
@@ -61,6 +79,7 @@ bool FlobManager::getData(
          char* dest,                  // destination buffer
          const SmiSize&  offset,     // offset within the Flob 
          const SmiSize&  size) {  // requested data size
+ __TRACE_ENTER__
 
   FlobId id = flob.id;
   SmiFileId   fileId =  id.fileId;
@@ -71,13 +90,16 @@ bool FlobManager::getData(
   
   bool ok = file->SelectRecord(recordId, record);
   if(!ok){
+    __TRACE_LEAVE__
     return false;
   }
  
   SmiSize read = record.Read(dest,size, floboffset + offset);
   if(read!=size){
+    __TRACE_LEAVE__
     return false;
   } 
+  __TRACE_LEAVE__
   return true;
 }
 
@@ -91,6 +113,7 @@ accessed.
 */
 void FlobManager::destroy(Flob& victim) {
 
+ __TRACE_ENTER__
    FlobId id = victim.id;
    SmiSize size = victim.getSize();
    SmiRecordId recordId = id.recordId;
@@ -101,6 +124,7 @@ void FlobManager::destroy(Flob& victim) {
    SmiRecord record;
    bool ok = file->SelectRecord(recordId, record);  
    if(!ok){ // record not found in file
+     __TRACE_LEAVE__
      return; 
    }
    // check whether the flob occupies the whole record
@@ -124,6 +148,7 @@ void FlobManager::destroy(Flob& victim) {
         file->DeleteRecord(recordId); 
      }
    }
+  __TRACE_LEAVE__
 }
 
 
@@ -144,10 +169,11 @@ bool FlobManager::saveTo(const Flob& src,   // Flob tp save
        const SmiSize offset,
        Flob& result)  {   // offset within the record  
 
+ __TRACE_ENTER__
    SmiRecord record;
    SmiRecordFile* file = getFile(fileId);
-   return false;
    if(!file->SelectRecord(recordId, record)){
+     __TRACE_LEAVE__
      return false;
    }
    char buffer[src.size];
@@ -156,6 +182,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob tp save
    SmiSize wsize = record.Write(buffer, src.size, offset);
    record.Finish();
    if(wsize!=src.size){
+     __TRACE_LEAVE__
      return false;
    }
    FlobId id;
@@ -164,6 +191,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob tp save
    id.offset = offset;
    result.id = id;
    result.size = src.size;   
+   __TRACE_LEAVE__
    return true;
 }
 
@@ -183,10 +211,12 @@ Must be changed to support real large Flobs
              const Flob& src,             // flob to save
              const SmiFileId fileId,      // target file
              Flob& result){         // result
+ __TRACE_ENTER__
     SmiRecordId recId;
     SmiRecord rec;
     SmiRecordFile* file = getFile(fileId);
     if(!file->AppendRecord(recId,rec)){
+      __TRACE_LEAVE__
       return false;
     }
     // write data
@@ -196,6 +226,7 @@ Must be changed to support real large Flobs
     FlobId fid(fileId, recId,0);
     result.id = fid;
     result.size = src.size;
+    __TRACE_LEAVE__
     return true;
  }
 
@@ -211,6 +242,7 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
                           const SmiSize& targetoffset, // offset within the Flob
                           const SmiSize& length) { // data size
 
+ __TRACE_ENTER__
   FlobId id = dest.id;
   SmiFileId   fileId =  id.fileId;
   SmiRecordId recordId = id.recordId;
@@ -219,13 +251,16 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
   SmiRecordFile* file = getFile(fileId);
   bool ok = file->SelectRecord(recordId, record);
   if(!ok){
+    __TRACE_LEAVE__
     return false;
   }
   SmiSize wsize = record.Write(buffer, length, offset + targetoffset);
   if(wsize!=length){
+    __TRACE_LEAVE__
     return false;
   }
   record.Finish();
+  __TRACE_LEAVE__
   return true;
 }
 /*
@@ -237,15 +272,18 @@ Creates a new Flob with a given size which is assigned to a temporal file.
 */
 
  bool FlobManager::create(const SmiSize& size, Flob& result) {  // result flob
+ __TRACE_ENTER__
    SmiRecord rec;
    SmiRecordId recId;
    if(!(nativeFlobFile->AppendRecord(recId,rec))){
+      __TRACE_LEAVE__
       return false;
    }
    rec.Finish();
    FlobId fid(nativeFlobs, recId, 0);
    result.id = fid;
    result.size = size;
+   __TRACE_LEAVE__
    return true;
  }
 
@@ -262,26 +300,33 @@ must exists.
              const SmiSize& size,
              Flob& result){       // initial size of the Flob
 
+ __TRACE_ENTER__
    SmiRecordFile* file = getFile(fileId);
    SmiRecord record;
    if(!file->SelectRecord(recordId,record)){
+     __TRACE_LEAVE__
      return false;
    } 
    FlobId fid(fileId, recordId, offset);
    result.id = fid;
    result.size = size;
+   __TRACE_LEAVE__
    return true; 
 }
 
   bool FlobManager::copyData(const Flob& src, Flob& dest){
+ __TRACE_ENTER__
     char buffer[src.size];
     if(!getData(src, buffer, 0, src.size)){
+      __TRACE_LEAVE__
       return false;
     }
     if(! putData(dest,buffer,0,src.size)){
+      __TRACE_LEAVE__
       return false;
     }
     dest.size = src.size;  
+    __TRACE_LEAVE__
     return true;
   }
 
@@ -295,12 +340,14 @@ by the FlobManager class itself.
 */
 
   FlobManager::FlobManager():openFiles(){
+ __TRACE_ENTER__
     assert(instance==0); // the constructor should only called one time
     // construct the temporarly FlobFile
     nativeFlobFile  = new SmiRecordFile(false,0,true); 
     bool created = nativeFlobFile->Create();
     assert(created);
     nativeFlobs = nativeFlobFile->GetFileId();
+    __TRACE_LEAVE__
   }
 
 
