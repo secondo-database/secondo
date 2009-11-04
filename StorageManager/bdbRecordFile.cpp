@@ -109,9 +109,9 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
 
 // VTA - 15.11.2005 - to compile with the new version of Berkeley DB
 #if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 3)
-  if ( rc == DB_BUFFER_SMALL )
+  if ( rc == DB_BUFFER_SMALL || rc == 0 )
 #else
-  if ( rc == ENOMEM )
+  if ( rc == ENOMEM || rc == 0 )
 #endif
   {
     if ( record.initialized )
@@ -130,8 +130,9 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   }
   else
   {
-    if (rc != DB_NOTFOUND && rc != DB_KEYEMPTY)
+    if (rc != DB_NOTFOUND && rc != DB_KEYEMPTY){
       SmiEnvironment::SetBDBError(rc);
+    } 
     record.initialized     = false;
   }
 
