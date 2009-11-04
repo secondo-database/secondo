@@ -51,7 +51,6 @@ now be more compatible.
 
 */
 
-using namespace std;
 
 #include <string>
 #include <string.h>
@@ -69,6 +68,7 @@ using namespace std;
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
 #include "SmiCodes.h"
+#include "../Tools/Flob/Flob.h"
 #include "Profiles.h"
 #include "FileSystem.h"
 #include "LogMsg.h"
@@ -85,8 +85,9 @@ using namespace std;
 #include "NestedList.h"
 #include "Messages.h"
 
+using namespace std;
 
-static MessageCenter* smi_msg = MessageCenter::GetInstance();
+//static MessageCenter* smi_msg = MessageCenter::GetInstance();
 
 /* --- Prototypes of internal functions --- */
 
@@ -450,24 +451,23 @@ SmiEnvironment::Implementation::LookUpCatalog( Dbt& key,
   return (rc == 0);
 }
 
- // SPM dangerous code !!! strings and integers are kept in the
- // same data structure instance.impl->bdbCatalogIndex;
- // The integer key should be transformed to a string before inserting
- // it.
-
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
                                                SmiCatalogEntry& entry )
 {
+  cout << "Lookup: key = <" << fileName << ">" << endl;
   Dbt key( (void*) fileName.c_str(), fileName.length() );
-  return LookUpCatalog(key, entry);
+  bool rc = LookUpCatalog(key, entry);
+  cout << "rc = " << rc << endl;
+  cout << "fileId = " << entry.fileId << endl;
+  return rc;
 }
 
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const SmiFileId fileId,
                                                SmiCatalogEntry& entry )
-{
-  Dbt key( (void*) &fileId, sizeof( fileId ) );
+{	
+  Dbt key( (void*) &fileId, sizeof(SmiFileId) );
   return LookUpCatalog(key, entry);
 }
 
@@ -480,6 +480,8 @@ SmiEnvironment::Implementation::InsertIntoCatalog(
     SetError( E_SMI_DB_NOTOPEN );
     return (false);
   }
+  cout << "Insert: fileId = " << entry.fileId << endl; 
+  cout << "Insert: fileName = <" << entry.fileName << ">" << endl; 
 
   int    rc = 0;
   Db*    dbctl = instance.impl->bdbCatalog;
@@ -576,7 +578,7 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
     {
       if ( it->second.updateOnCommit )
       {
-        ok = InsertIntoCatalog( it->second.entry, tid );
+        ok = InsertIntoCatalog( it->second.entry, tid );	
       }
       else
       {
@@ -585,7 +587,7 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
         ok = DeleteFromCatalog( it->second.entry, tid );
       }
     }
-    instance.impl->bdbFilesToCatalog.clear();
+    //instance.impl->bdbFilesToCatalog.clear();
     if ( useTransactions )
     {
       if ( ok )
@@ -599,6 +601,32 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
         SetBDBError( rc );
       }
     }
+
+    /*
+    it = instance.impl->bdbFilesToCatalog.begin();
+    ok = true;
+    for ( ; ok && it != instance.impl->bdbFilesToCatalog.end(); ++it )
+    {
+      if ( it->second.updateOnCommit )
+      {
+          SmiCatalogEntry x;
+          const string n(it->second.entry.fileName);
+	  LookUpCatalog(n, x);
+          cout << "Lookup string " << endl;	  
+          cout << "x.fileId = " << x.fileId << endl;	  
+          cout << "x.fileName = <" << x.fileName << ">" << endl;
+
+          SmiCatalogEntry y;		
+	  LookUpCatalog(it->second.entry.fileId, y);
+          cout << "Lookup fileId " << endl;	  
+          cout << "x.fileId = " << x.fileId << endl;	  
+          cout << "y.fileId = " << y.fileId << endl;	  
+          cout << "y.fileName = <" << y.fileName << ">" << endl;
+        		
+      }
+    } */
+    instance.impl->bdbFilesToCatalog.clear();
+
   }
   else
   {
@@ -1198,6 +1226,9 @@ SmiEnvironment::ShutDown()
 
   // --- Current database should be already closed
   assert(!dbOpened);
+
+  // destroy files which have been allocated by the FlobManager 
+  Flob::destroyManager();
 
   DeleteTmpEnvironment();
 

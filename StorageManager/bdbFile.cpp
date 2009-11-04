@@ -238,8 +238,12 @@ SmiFile::CheckName( const string& name )
   return (ok);
 }
 
+
+
+
 bool
-SmiFile::Create( const string& context /* = "Default" */, 
+SmiFile::Create( const string& name,
+		 const string& context /* = "Default" */, 
 		 const uint16_t ps /* = 0 */ )
 {
   static long& ctrCreate = Counter::getRef("SmiFile::Create");
@@ -253,10 +257,12 @@ SmiFile::Create( const string& context /* = "Default" */,
                                                     impl->isTemporaryFile );
     if ( fileId != 0 )
     {
-      string bdbName =
-        SmiEnvironment::Implementation::ConstructFileName(
-                                                      fileId,
-                                                      impl->isTemporaryFile );
+      string bdbName = name;
+      if (name=="") {
+        bdbName = SmiEnvironment::
+	             Implementation::ConstructFileName( fileId,
+                                                        impl->isTemporaryFile );
+      }	
 
       impl->bdbName = bdbName;
       fileName = bdbName;
@@ -367,6 +373,25 @@ SmiFile::Create( const string& context /* = "Default" */,
 
   return (rc == 0);
 }
+
+bool
+SmiFile::CreateWithName( const string& name, 
+		         const string& context /* = "Default" */, 
+		         const uint16_t ps /* = 0 */ )
+{
+  return Create(name, context, ps);
+}
+
+bool
+SmiFile::Create( const string& context /* = "Default" */, 
+		 const uint16_t ps /* = 0 */ )
+{
+  return Create("", context, ps);
+}
+
+
+
+
 /*
 Opens a file by name. This should be used only by catalog files!
 
@@ -576,6 +601,8 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     }
     else if ( SmiEnvironment::Implementation::LookUpCatalog( fileid, entry ) )
     {
+      // SPM: should never work!	    
+      assert(false);	    
       // --- File found in permanent file catalog
       char* point = strchr( entry.fileName, '.' );
       *point = '\0';
@@ -584,6 +611,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     }
     else
     {
+      cerr << "INFO: fileId not found in fileCatalog" << endl; 
       fileContext = context;
       fileName    = "";
     }
@@ -695,6 +723,8 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
         opened = true;
         impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
       }
+      cout << "File:Open; rc = " << rc << endl;
+
     }
     else
     {
