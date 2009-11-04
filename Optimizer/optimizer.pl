@@ -6217,7 +6217,8 @@ lookupPattern predicate.
 
 lookupPred1(pattern(Preds,C), pattern(Res,C1), RelsBefore, RelsAfter) :-
   lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
-  lookupPred1(C, C1, RelsAfterMe, RelsAfter),
+  ((is_list(C), lookupPred2(C, C1, RelsAfterMe, RelsAfter));
+  lookupPred1(C, C1, RelsAfterMe, RelsAfter)),
   !.
 
 /*
@@ -6235,7 +6236,8 @@ lookupPattern predicate.
 lookupPred1(patternex(Preds,C, F), patternex(Res,C1, F1), RelsBefore, RelsAfter) :-
   lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
   lookupPred1(F, F1, RelsAfterMe, RelsAfterMee),
-  lookupPred1(C, C1, RelsAfterMee, RelsAfter),
+  ((is_list(C), lookupPred2(C, C1, RelsAfterMee, RelsAfter));
+  lookupPred1(C, C1, RelsAfterMee, RelsAfter)),
   !.
 
 % Section:End:lookupPred1_2_b
@@ -8556,7 +8558,7 @@ Looks up the aliased lifted predicate list within the
 spatiotemporal pattern predicate.
 
 */
-composeNPredList( [P | PredListRest], [A | AliasListRest], [P as A | NPredListRest]):-
+composeNPredList( [P | PredListRest], [A | AliasListRest], [P as A| NPredListRest]):-
 	composeNPredList(PredListRest, AliasListRest, NPredListRest).
 composeNPredList( [], [], []).
 
