@@ -173,7 +173,7 @@ inline void FText::Destroy()
 inline bool FText::SearchString( const char* subString )
 {
   SmiSize sz = theText.getSize();	
-  char* text = new char(sz);
+  char* text = new char[sz];
   theText.read(text, sz);
   return strstr( text, subString ) != NULL;
   //SPM: delete added
@@ -233,7 +233,7 @@ inline int FText::TextLength() const
 inline const char *FText::Get() const
 {
   SmiSize sz = theText.getSize();	
-  char* s = new char(sz);
+  char* s = new char[sz];
   theText.read(s, sz);
   return s;
 }
@@ -241,7 +241,7 @@ inline const char *FText::Get() const
 inline const string FText::GetValue() const
 {
   SmiSize sz = theText.getSize();	
-  char* s = new char(sz);
+  char* s = new char[sz];
   theText.read(s, sz);
   string res(s);
   delete s;
