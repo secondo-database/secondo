@@ -2680,7 +2680,12 @@ SecondoCatalog::Close()
   if ( objValueFile.IsOpen() )
   {
     ok = ok && objValueFile.Close();
+  } 
+  if ( flobFile.IsOpen() )
+  {
+    ok = ok && flobFile.Close();
   }
+
   types.clear();
   objects.clear();
   return (ok);
