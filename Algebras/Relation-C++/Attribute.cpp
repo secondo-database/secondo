@@ -83,20 +83,20 @@ const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
           typeId = nl->IntValue( nl->Second( typeInfo ) );
           size = (algMgr->SizeOfObj(algId, typeId))();
           }
-      // Write the element
-      valueRecord.Write( elem, size, offset );
-      offset += size;
 
       for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
         Flob *tmpFlob = elem->GetFLOB(i);
-        SmiFileId fileId = 0; 
-	//SPM? todo: get file from catalog / query processor
-	SmiRecordId lobRecordId = 0; 
+	SecondoCatalog* ctlg = SecondoSystem::GetCatalog(); 
+        SmiFileId fileId = ctlg->getFlobFileId();
+	cerr << "FlobFileId = " << fileId << endl; 
         //SPM? tmpFLOB->SaveToRecord(valueRecord, offset, fid, false);
-	tmpFlob->saveToFile(fileId, lobRecordId, offset, *tmpFlob);
+	tmpFlob->saveToFile(fileId, *tmpFlob);
       }
 
+      // Write the element
+      valueRecord.Write( elem, size, offset );
+      offset += size;
     }
 /*
 Default save function.
