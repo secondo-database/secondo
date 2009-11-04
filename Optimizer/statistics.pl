@@ -121,6 +121,8 @@ simple(attr(Attr, ArgNo, _), RelList, Rel2:Attr2) :-
   memberchk((ArgNo,rel(Rel, *)),RelList),
   downcase_atom(Rel,Rel2), downcase_atom(Attr,Attr2), !.
 simple(dbobject(X),_,dbobject(X)) :- !.
+simple(value_expr(Type,Value),_,value_expr(Type,Value)) :- !.
+simple(type_expr(Type),_,type_expr(Type)) :- !.
 
 simple([], _, []) :- !.
 simple([A|Rest], RelList, [Asimple|RestSimple]) :-
@@ -1833,10 +1835,17 @@ signature is already known. If so, we already know the operator result type.
 Otherwise, we need to query Secondo for it.
 
 
----- getTypeTree(+Expr,+RelList,-TypeTree)
 ----
+getTypeTree(+Expr,+RelList,-TypeTree)
+getTypeTree(+Expr,-Result)
+
+----
+
+This predicates never fail, but throw an exception instead!
+
 Retrieves the complete type/operator tree ~TypeTree~ from an expression ~Expr~
-for a given relation list ~RelList~.
+for a given relation list ~RelList~. ~RelList~ may also contain
+~type variable definitions~.
 
 ~Expr~ is an expression in internal format using attribute and relations
 descriptors etc.
@@ -1845,6 +1854,16 @@ descriptors etc.
 corresponding to the ~Arg~ fields used in attribute descriptors within ~Expr~,
 and Rel1,..., RelN are the according relation descriptors.
 
+Additionally, ~RelList~ may contain type variable definitions. These have format
+(typevar,TypeVarName,TypeList), where ~TypeVarName~ is a type variable name and
+TypeList is the according type descriptor. A tuple variable is referenced by
+using the expression ~typevar(TypeVarName)~ or --- within attribute descriptors ---
+in place of the ~ArgNo~ field of attr/3 attribute descriptors:
+~attr(AttrName, TypeVarName, Spell)~.
+This is implemented to support type mapping for operators using parameter functions.
+
+For the variant ~getTypeTree/2~, see below.
+
 ~TypeTree~ has format [~Op~, ~TypeTreeList~, ~ResType~], where
 ~Op~ is the operator symbol,
 ~TypeTreeList~ is a list of entries with format ~TypeTree~, and
@@ -1852,7 +1871,7 @@ and Rel1,..., RelN are the according relation descriptors.
 
 Atomic leaves have special markers instead of an operator symbol:
 integer, real, text and string atoms have ~atom~, attributes have ~attr~,
-attribute names have ~attrname~, database object names have ~dbobject~,
+constants ~constant~, attribute names have ~attrname~, database object names have ~dbobject~,
 type names have ~typename~, relations have ~relation~. In all these cases,
 ~TypeTreeList~ becomes the expression forming the according primitive.
 Newly created (calculated) attributes are marked with ~newattr~.
@@ -1892,17 +1911,18 @@ The type trees of all analysed expressions are kept within temporary facts
 These facts are not made persistent and will be lost whenever a new query is
 started.
 
-----  getTypeTree(+PredExpr,-TypeTree)
+----  getTypeTree(+Expr,-TypeTree)
 ----
 
-This form of the predicate receives one argument ~PredExpr~, that represents
-one of the internal predicate representations: pr(P,A) or pr(P,A,B).
+If this variant of the predicate receives one argument ~Expr~, that represents
+one of the internal predicate representations: pr(P,A) or pr(P,A,B), it can
+automatically create the ~RelList~ and call getTypeTree/3.
 
-It automatically extracts the predicate expression and creates the relation
-argument list and calls ~getTypeTree/3~.
+If ~Expr~ is not a internal predicate term, a ~RelList~ is created from the
+tables created by callLookup. This is implemented by the auxiliary predicate
+getAllUsedRelations/1.
 
 */
-
 :- dynamic(queriedOpSignature/4).% used for new operator signatures
 :- dynamic(tmpStoredTypeTree/2). % used to buffer results of expression analysis
 
@@ -1969,35 +1989,69 @@ getTypeTree(rowid,_,[rowid,rowid,tid]) :-
   assert(tmpStoredTypeTree(rowid,[rowid,rowid,tid])),
   !.
 
-% Primitive: int-atom
+% Primitive: int-atom (old style)
 getTypeTree(IntAtom,_,[atom,IntAtom,int]) :-
   atomic(IntAtom), integer(IntAtom),
 %   dm(selectivity,['$$$ getTypeTree: ',IntAtom,': ',int]),nl,
+  dm(gettypetree,['WARNING:\tUsing old constant rule for int-atom!\n']),
   assert(tmpStoredTypeTree(IntAtom,[atom,IntAtom,int])),
   !.
 
-% Primitive: real-atom
+% Primitive: real-atom (old style)
 getTypeTree(RealAtom,_,[atom,RealAtom,real]) :-
   atomic(RealAtom), float(RealAtom),
 %   dm(selectivity,['$$$ getTypeTree: ',RealAtom,': ',real]),nl,
+  dm(gettypetree,['WARNING:\tUsing old constant rule for real-atom!\n']),
   assert(tmpStoredTypeTree(RealAtom,[atom,RealAtom,real])),
   !.
 
-% Primitive: text-atom
+% Primitive: text-atom (old style)
 getTypeTree(TextAtom,_,[atom,TextAtom,text]) :-
   atom(TextAtom),
   not(is_list(TextAtom)),
   not(opSignature(TextAtom,_,[],_,_)),
 %   dm(selectivity,['$$$ getTypeTree: ',TextAtom,': ',text]),nl,
+  dm(gettypetree,['WARNING:\tUsing old constant rule for text-atom!\n']),
   assert(tmpStoredTypeTree(TextAtom,[atom,TextAtom,text])),
   !.
 
-% Primitive: string-atom
+% Primitive: string-atom (old style)
 getTypeTree(TextAtom,_,[atom,TextAtom,string]) :-
   is_list(TextAtom), TextAtom = [First | _], atomic(First), !,
   string_to_list(_,TextAtom),
 %   dm(selectivity,['$$$ getTypeTree: ',TextAtom,': ',string]),nl,
+  dm(gettypetree,['WARNING:\tUsing old constant rule for string-atom!\n']),
   assert(tmpStoredTypeTree(TextAtom,[atom,TextAtom,string])),
+  !.
+
+% Primitive: type-descriptor (old style)
+getTypeTree(DCType,_,[typename,DCType,DCType]) :-
+  secDatatype(DCType, _, _, _, _, _),
+%   dm(selectivity,['$$$ getTypeTree: ',DCType,': ',DCType]),nl,
+  dm(gettypetree,['WARNING:\tUsing old rule for type-descriptor!\n']),
+  assert(tmpStoredTypeTree(DCType,[typename,DCType,DCType])),
+  !.
+
+% Primitive: type-descriptor (new style)
+getTypeTree(type_expr(Type),_,[typename,Type,Type]) :-
+  ( atom(Type)
+    -> TypeConstructor = Type
+    ;  ( (compound(Type) , \+ is_list(Type) )
+         -> Type =.. [ TypeConstructor | _ ]
+         ;  fail
+       )
+  ),
+  secDatatype(TypeConstructor, _, _, _, _, _),
+  dm(gettypetree,['$$$ getTypeTree: ',type_expr(Type),': ',
+                  TypeConstructor,'\n']),
+  assert(tmpStoredTypeTree(type_expr(Type),[typename,Type,Type])),
+  !.
+
+% Primitive: constant value expression (new style)
+getTypeTree(value_expr(Type,Value),_,[constant,Value,Type]) :-
+  dm(gettypetree,['$$$ getTypeTree: ',value_expr(Type,Value),': ',constant,
+                  '\n']),
+  assert(tmpStoredTypeTree(value_expr(Type,Value),[constant,Value,Type])),
   !.
 
 % Primitive: relation-descriptor
@@ -2010,12 +2064,6 @@ getTypeTree(rel(DCrelName, X),_,[relation,rel(DCrelName, X),tuple(TupleList)]):-
                            [relation,rel(DCrelName, X),tuple(TupleList)])),
   !.
 
-% Primitive: type-descriptor
-getTypeTree(DCType,_,[typename,DCType,DCType]) :-
-  secDatatype(DCType, _, _, _, _, _),
-%   dm(selectivity,['$$$ getTypeTree: ',DCType,': ',DCType]),nl,
-  assert(tmpStoredTypeTree(DCType,[typename,DCType,DCType])),
-  !.
 
 % Primitive: object-descriptor
 getTypeTree(dbobject(NameDC),_,[dbobject,dbobject(NameDC),TypeDC]) :-
@@ -2175,6 +2223,55 @@ dcNList([],[]).
 dcNList([X1|R1],[X2|R2]) :-
   dcNList(X1,X2),
   dcNList(R1,R2),!.
+
+/*
+Auxiliary predicate
+----
+(1) nestedTypeExpr2valueTypeExprAtom(+Type,-TypeAtom)
+(2) valueTypeExpr2valueTypeExprAtom(+Type, -TypeAtom)
+----
+
+(1) transforms a type expression ~Type~ using square brackets and commas as delimiters
+into an atom with the equivalent nested list representation using round parantheses.
+
+(2) transforms a type expression ~Type~ using round brackets and commas as delimiters
+into an atom with the equivalent nested list representation using round parantheses.
+
+*/
+
+
+nestedTypeExpr2valueTypeExprAtom([],'()') :- !.
+
+nestedTypeExpr2valueTypeExprAtom(A,A) :-
+  atom(A), !.
+
+nestedTypeExpr2valueTypeExprAtom(A,Result) :-
+  is_list(A),
+  nestedTypeExpr2valueTypeExprAtom_list(A,AAtom),
+  concat_atom(['(',AAtom,')'],'',Result), !.
+
+nestedTypeExpr2valueTypeExprAtom(A,Result) :-
+  compound(A),
+  A =.. [TC|Arglist],
+  nestedTypeExpr2valueTypeExprAtom_list(Arglist,ArglistAtom),
+  concat_atom([TC,'(',ArglistAtom,')','',Result]), !.
+
+nestedTypeExpr2valueTypeExprAtom_list([A|[]],AAtom) :-
+  nestedTypeExpr2valueTypeExprAtom(A,AAtom), !.
+
+nestedTypeExpr2valueTypeExprAtom_list([A|B],Result) :-
+  nestedTypeExpr2valueTypeExprAtom(A,AAtom),
+  nestedTypeExpr2valueTypeExprAtom_list(B,BAtom),
+  concat_atom([AAtom,BAtom],', ',Result), !.
+
+
+valueTypeExpr2valueTypeExprAtom(Term,Result) :-
+  term_to_atom(Term,TermAtom),
+  ( (compound(Term), functor(Term,(,),_))
+    -> concat_atom(['(',TermAtom,')'],'',Result)
+    ;  Result = TermAtom
+  ),
+  !.
 
 /*
 The following predicate extracts the type information from a ~TypeTree~,

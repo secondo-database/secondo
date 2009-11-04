@@ -702,7 +702,7 @@ extended attribute.
 ---- rewriteQueryForCSE(+Query,-RewrittenQuery)
 ----
 
-As the last step of Query Rewriting, ~rewriteQueryForCSE/2~ is callsed to mark
+As the last step of Query Rewriting, ~rewriteQueryForCSE/2~ is called to mark
 up all expensive CSEs. Now, during plan rewriting, this information is used by
 ~rewritePlanforCSE/2~ and its auxiliary predicates to avoid repeated calculation
 of CSEs.
@@ -1165,6 +1165,7 @@ isExpensive(attr(_,_,_)) :- !, fail.
 % int, real, bool, type, null-ary operator
 isExpensive(X) :- atomic(X), !, fail.
 
+
 % string-atom
 isExpensive(TextAtom) :-
   is_list(TextAtom), TextAtom = [First | _], atomic(First), !,
@@ -1185,8 +1186,11 @@ isExpensive(Term) :-
   \+ is_list(Term),
   Term =.. [Op|Args], !,
   (   ( optimizerOption(determinePredSig)
-        *-> ( getTypeTree(Term,TermTree),
-              dm(rewriteCSE,['\nDEBUG: Type tree is ',TermTree,'\n']),
+        *-> ( dc(rewriteCSE,
+                 ( getTypeTree(Term,TermTree),
+                   write_list(['\nDEBUG: Type tree is ',TermTree,'\n'])
+                 )
+                ),
               checkOpProperty(Term,exp),
               dm(rewriteCSE,['\nDEBUG: ',Op, ' is expensive.\n'])
             )
@@ -1490,6 +1494,14 @@ registerCSE1(Term, Term2, RelsBefore, RelsAfter) :-
   Term =.. [Op|Args],
   registerCSE2(Args, Args2, RelsBefore, RelsAfter),
   Term2 =.. [Op|Args2], !.
+
+registerCSE1(Op, Op, Rels, Rels) :-
+  atom(Op),
+  secondoOp(Op, prefix, 0),
+  systemIdentifier(Op, _),
+  !.
+
+registerCSE1(rowid, rowid, Rels, Rels) :- !.
 
 registerCSE1(Term, Term, Rels, Rels) :-
   atom(Term),
@@ -2698,8 +2710,8 @@ Auxiliary Predicates for Inference of Conditions
 ----
 
 For every lifted predicate P within the spatiotemporal
-pattern predicate, the standard predicate 
-sometimes(P) is added. 
+pattern predicate, the standard predicate
+sometimes(P) is added.
 The dynamic predicate removefilter is used to keep a list
 of the additional standard predicates so that they are removed
 from the query before execution.
@@ -2798,7 +2810,7 @@ testquery9 :- sql select sname
                         kennzeichen starts "B"].
 
 
-testCSEberlin :-
+testCSE1berlin :-
 sql
 select [t1:trip atperiods deftime((distance(t1:trip, t2:trip) < 200.0) at true) as nah1,
         t1:id,

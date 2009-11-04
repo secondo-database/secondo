@@ -386,6 +386,42 @@ the lists of relations and predicates in the form needed for constructing the
 POG, and then invokes step 1 (Section 11).
 
 
+
+1.4 Notion of Constants
+
+In queries, string, text, int and real constants can be noted as used in Secondo, e.g.
+"Hello World!" for a string constant, 'Hello Text' for a text constant, -557 or 56
+for an int constant, and -1.565E-12, -1.5, 5688.45 for real constants.
+
+Bool constants must be noted ~true~ and ~false~ instead of ~TRUE~ and ~FALSE~,
+because Prolog would interpret the correct symbols as variables.
+
+Other constants need to be noted as similar to the way this is done in Secondo:
+as a nested list. Again, we use square brackets to delinit the list and commas to
+separate its elements:
+----
+[const, TYPE, value, VALUE]
+----
+where ~TYPE~ is a type descriptor (a Prolog term, like 'mpoint', 'region',
+'vector(int)', or 'set(vector(real))'; and ~VALUE~ is a nested list using round
+parantheses and commas to separate its elements.
+
+Internally, ALL constants (also int, real, etc.) are noted as terms
+----
+value_expr(Type,Value)
+----
+where ~Type~ is a Prolog term for the type descriptor and ~Value~ is the nested list
+representation of the constant value, both using round parantheses and commas internally.
+
+For the standard type constants, special ~plan\_to\_atom/2~ rules exists, for
+all othertypes, that should not be necessary, they are all handled by a generic
+rule.
+
+PROBLEMS: Using bool-atoms, string-atoms, and text-atoms within nested lists.
+
+
+
+
 2 Data Structures
 
 In the construction of the predicate order graph, the following data structures
@@ -1326,6 +1362,7 @@ plan_to_atom(rowid,' tupleid(.)' ) :- !.
 
 plan_to_atom(A,A) :-
   string(A),
+  write_list(['\nINFO: ',plan_to_atom(A,A),' found a string!\n']),
   !.
 
 % Special Handling for distance queries using a temporary index
@@ -1377,10 +1414,42 @@ plan_to_atom(pr(P,_,_), Result) :-
 
 plan_to_atom([], '').
 
-plan_to_atom(Term, Result) :-
-    is_list(Term), Term = [First | _], atomic(First), !,
+% string atom
+plan_to_atom(value_expr(string,Term), Result) :-
     atom_codes(TermRes, Term),
     concat_atom(['"', TermRes, '"'], '', Result).
+
+% text atom
+plan_to_atom(value_expr(text,Term), Result) :-
+    atom_codes(TermRes, Term),
+    concat_atom(['\'', TermRes, '\''], '', Result).
+
+% int atom
+plan_to_atom(value_expr(int,Result), Result).
+
+% real atom
+plan_to_atom(value_expr(real,Result), Result).
+
+% bool atom
+plan_to_atom(value_expr(bool,Term), Result) :-
+  ( Term = true
+    -> Result = ' TRUE '
+    ;  ( Term = false
+         -> ' FALSE '
+         ;  fail
+       )
+  ).
+
+% constant value expression
+plan_to_atom(value_expr(Type,Value), Result) :-
+  \+ member(Type,[int,real,text,string,bool]), % special rules for these
+  term_to_atom(Type,TypeA),
+  term_to_atom(Value,ValueA),
+  concat_atom(['[const', TypeA, 'value', ValueA, ']'], ' ', Result).
+
+% type expression
+plan_to_atom(type_expr(Term), Result) :-
+  term_to_atom(Term, Result).
 
 /*
 Handle Implicit arguments in parameter functions:
@@ -2826,9 +2895,7 @@ rtSpExpr(IndexName, arg(N), Expr) =>
 
 join(arg(N), Arg2, pr(Pred, _, _))
   => filter(loopjoin(Arg2S, RTSpTmpExpr),Pred) :-
-  makeList2(Pred,PredList),
-  fetchAttributeList(PredList,AttrList),
-  [A,B,C] = AttrList,
+  fetchAttributeList(Pred,[A,B,C]),
   isOfFirst(Attr1,A,B,C),
   areNotOfFirst(Attr2,Attr3,A,B,C),
   argument(N, RelDescription),
@@ -3574,119 +3641,31 @@ areNotOfFirst(Y, Z, _, Y, Z) :-
   Z \= attr(_, 1, _).
 
 /*
-fetchAttributeList/2 eleminates recursivly all items of a given list
-except of attr(\_,\_,\_) predicates. If the item of the list is an
-expressionen, it is splitted up to a list by using the makeList2/2
-predicate.
-
----- fetchAttributeList(+List,-AttributeList)
+----
+fetchAttributeList(+Expr, ?AttrList)
 ----
 
-*/
-fetchAttributeList(List,AttrList) :-
- cutFirstIfAtom(List,TmpList1),
- makeFirstList(TmpList1,TmpList2),
- not(isFirstAttr(TmpList2)),
- fetchAttributeList(TmpList2,AttrList).
-
-fetchAttributeList(List,TmpList2) :-
- cutFirstIfAtom(List,TmpList1),
- makeFirstList(TmpList1,TmpList2),
- isFirstAttr(TmpList2),
- isLastAttr(TmpList2).
-
-fetchAttributeList(List,AttrList) :-
- cutFirstIfAtom(List,TmpList1),
- makeFirstList(TmpList1,TmpList2),
- isFirstAttr(TmpList2),
- not(isLastAttr(TmpList2)),
- cutLastIfNotAttr(TmpList2,TempList3),
- fetchAttributeList(TempList3,AttrList).
-
-/*
-isFirstAttr/1 tests whether the first element of a given list is an
-attribute attr(\_,\_,\_) or not
+Extracts a list of all ~attr/3~ terms occuring in ~Expr~.
+The result list keeps the order of appearance of attr/3 terms
+in ~Expr~.
 
 */
-isFirstAttr(List) :-
- List=[attr(_,_,_)|_].
+fetchAttributeList([],[]) :- !.
 
-/*
-isFirstAttr/1 tests whether the last element of a given list is an
-attribute attr(\_,\_,\_) or not
+fetchAttributeList([X|L],R) :-
+  fetchAttributeList(X,R1),
+  fetchAttributeList(L,R2),
+  append(R1, R2, R), !.
 
-*/
-isLastAttr(List) :-
- reverse(List,RevList),
- RevList=[attr(_,_,_)|_].
+fetchAttributeList(X,[]) :-
+  atom(X), !.
 
-/*
----- cutFirstIfAtom(+List,-NewList)
-----
+fetchAttributeList(attr(A,B,C),[attr(A,B,C)]) :- !.
 
-cutFirstIfAtom/2 will discard the first element of a given list when it is an
-atom.
-
-*/
-cutFirstIfAtom(List,Tail) :-
- List=[Head|Tail],
- atom(Head).
-
-cutFirstIfAtom(List,List) :-
- List=[Head|_],
- not(atom(Head)).
-
-/*
----- cutLastIfNotAttr(+List,-NewList)
-----
-
-cutLastIfNotAttr/2 will discard the first element of a given list when it is
-not an attribute.
-
-*/
-cutLastIfNotAttr(List,NewList) :-
- reverse(List,RevList),
- RevList=[Head|Tail],
- Head \= attr(_,_,_),
- reverse(Tail,NewList).
-
-/*
----- makeList2(+Expr,-List)
-----
-
-makeList2/2 converts an ~Expr~ to a ~List~
-
-*/
-makeList2(Expr,Expr) :-
- is_list(Expr).
-
-makeList2(Expr,NewList) :-
- not(is_list(Expr)),
- Expr =.. NewList.
-
-/*
----- makeFirstList(+List,-NewList)
-----
-
-makeFirstList/2 checks whether the first element of the given ~List~ is an list
-itself or not. If so, it concatenates the list with the rest of the given
-~list~. Otherwise, if the first element of the given ~List~ is an attribute
-attr(\_,\_,\_), it is converted to an list and concatenated with the rest of
-the ~List~.
-
-*/
-makeFirstList([Head|Tail],NewList) :-
- is_list(Head),
- append(Head,Tail,NewList).
-
-makeFirstList([Head|Tail],NewList) :-
- not(is_list(Head)),
- Head \= attr(_,_,_),
- makeList2(Head,NewHead),
- append(NewHead,Tail,NewList).
-
-makeFirstList(List,List) :-
- List=[attr(_,_,_)|_].
+fetchAttributeList(X,R) :-
+  compound(T), not(is_list(T)),
+  X =.. Y,
+  fetchAttributeList(Y,R), !.
 
 /*
 End of Goehr's extension
@@ -5959,6 +5938,25 @@ lookupAttrs(Attr, Attr2) :-
   not(is_list(Attr)),
   lookupAttr(Attr, Attr2).
 
+% complex constant value expression
+lookupAttr([const, Type, value, Value], value_expr(Type,Value)) :-
+  ground(Type), ground(Value),
+  ( atom(Type)
+    -> Op = Type
+    ;  ( (compound(Type), \+ is_list(T))
+         -> T =.. [Op|_]
+         ;  fail
+       )
+  ),
+  downcase_atom(Op,OpDC),
+  secDatatype(OpDC, _, _, _, _, _),
+  !.
+
+lookupAttr([const, Type, value, Value], value_expr(Type,Value)) :-
+  write_list(['ERROR:\tConstant value expression \'',
+              [const, Type, value, Value],'\' could not be parsed!\n']),
+  !, fail.
+
 lookupAttr(Var:Attr, attr(Var:Attr2, 0, Case)) :- !,
   atomic(Var),  %% changed code FIXME
   atomic(Attr), %% changed code FIXME
@@ -6040,16 +6038,11 @@ lookupAttr(Expr as Name, Y) :-
 Generic lookupAttr/2-rule for functors of arbitrary arity using Univ (=../2):
 
 */
-
 lookupAttr(Name, attr(Name, 0, u)) :-
   queryAttr(attr(Name, 0, u)),
   !.
 
-lookupAttr(Term, Term) :-
-  is_list(Term),
-  catch(string_to_list(_, Term), _, fail),
-  !.
-
+% string constant
 lookupAttr(Term, Term) :-
   is_list(Term),
   catch(string_to_list(_, Term), _, fail),
@@ -6062,8 +6055,10 @@ lookupAttr(Term, Term2) :-
   Term2 =.. [Op|Args2],
   !.
 
-lookupAttr(true, true) :- !.
-lookupAttr(false, false) :- !.
+% bool constant
+lookupAttr(true, value_expr(bool,true)) :- !.
+lookupAttr(false, value_expr(bool,false)) :- !.
+
 
 % null-ary operator
 lookupAttr(Op, Op) :-
@@ -6072,11 +6067,36 @@ lookupAttr(Op, Op) :-
   systemIdentifier(Op, _),
   !.
 
+% special clause for string atoms (they regularly cause problems since they
+% are marked up in double quotes, which Prolog handles as strings, that are
+% represented as charactercode lists...
+lookupAttr(Term, value_expr(string,Term)) :-
+  is_list(Term), % list represents a string (list of characters)
+  catch((string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
+  !.
+
+
+% database object
 lookupAttr(Term, dbobject(TermDC)) :-
-  atom(Term),
+  atomic(Term),
+  \+ is_list(Term),
   dcName2externalName(TermDC,Term),
   secondoCatalogInfo(TermDC,_,_,_),
   !.
+
+% Primitive: int-atom
+lookupAttr(IntAtom, value_expr(int,IntAtom)) :-
+  atomic(IntAtom), integer(IntAtom),
+  !.
+
+% Primitive: real-atom
+lookupAttr(RealAtom, value_expr(real,RealAtom)) :-
+  atomic(RealAtom), float(RealAtom),
+  !.
+
+% Primitive: text-atom
+lookupAttr(Term, value_expr(text,Term)) :-
+  atom(Term), !.
 
 lookupAttr(Term, Term) :-
   atom(Term),
@@ -6085,6 +6105,7 @@ lookupAttr(Term, Term) :-
   throw(error_SQL(optimizer_lookupAttr(Term, Term):unknownIdentifier#ErrMsg)),
   fail.
 
+% Fallback clause
 lookupAttr(Term, Term) :- !.
 
 lookupAttr1([],[]) :- !.
@@ -6256,13 +6277,43 @@ lookupPred1(patternex(Preds,C, F), patternex(Res,C1, F1), RelsBefore, RelsAfter)
 
 % Section:End:lookupPred1_2_m
 
+% constant value expression
+lookupPred1([const, Type, value, Value], value_expr(Type,Value),
+            RelsBefore, RelsBefore) :-
+  ground(Type), ground(Value),
+  ( atom(Type)
+    -> Op = Type
+    ;  ( (compound(Type), \+ is_list(T))
+         -> T =.. [Op|_]
+         ;  fail
+       )
+  ),
+  downcase_atom(Op,OpDC),
+  secDatatype(OpDC, _, _, _, _, _),
+  !.
+
+lookupPred1([const, Type, value, Value], value_expr(Type,Value),
+            RelsBefore, RelsBefore) :-
+  write_list(['ERROR:\tConstant value expression \'',
+              [const, Type, value, Value],'\' could not be parsed!\n']),
+  !, fail.
+
+% special clause for string atoms (they regularly cause problems since they
+% are marked up in double quotes, which Prolog handles as strings, that are
+% represented as charactercode lists...
+lookupPred1(Term, value_expr(string,Term), RelsBefore, RelsBefore) :-
+  is_list(Term), % list represents a string (list of characters)
+  catch((string_to_list(_,Term), Test = ok),_,Test = failed), Test = ok,
+  !.
+
 % special case for rowid
 lookupPred1(rowid, rowid, RelsBefore, RelsBefore) :- !.
 
 lookupPred1(Term, Term2, RelsBefore, RelsAfter) :-  %if placed before lookupPred1(pattern*), pattern query crash
   compound(Term),
+  \+ is_list(Term),
   Term =.. [Op|Args],
-  not(isSubqueryPred1(Term)),
+  \+ isSubqueryPred1(Term),
   lookupPred2(Args, Args2, RelsBefore, RelsAfter),
   Term2 =.. [Op|Args2],
   !.
@@ -6274,24 +6325,39 @@ lookupPred1(Op, Op, Rels, Rels) :-
   systemIdentifier(Op, _),
   !.
 
+% database object
 lookupPred1(Term, dbobject(TermDC), Rels, Rels) :-
   atomic(Term),
-  not(is_list(Term)),
+  \+ is_list(Term),
   dcName2externalName(TermDC,Term),
   secondoCatalogInfo(TermDC,_,_,_),
   !.
 
+% Primitive: int-atom
+lookupPred1(IntAtom, value_expr(int,IntAtom), RelsBefore, RelsBefore) :-
+  atomic(IntAtom), integer(IntAtom),
+  !.
+
+% Primitive: real-atom
+lookupPred1(RealAtom, value_expr(real,RealAtom), RelsBefore, RelsBefore) :-
+  atomic(RealAtom), float(RealAtom),
+  !.
+
+% Primitive: text-atom
+lookupPred1(Term, value_expr(text,Term), RelsBefore, RelsBefore) :-
+  atom(Term), !.
 
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
- not(is_list(Term)),
+ \+ is_list(Term),
  concat_atom(['Symbol \'', Term,
             '\' not recognized. It is neither an attribute, nor a Secondo ',
             'object.\n'],'',ErrMsg),
  write_list(['\nERROR:\t',ErrMsg]),
  throw(error_SQL(optimizer_lookupPred1(Term, Term):unknownIdentifier#ErrMsg)).
 
-lookupPred1(Term, Term, Rels, Rels).
+% fallback clause for non-atoms
+lookupPred1(Term, Term, RelsBefore, RelsBefore).
 
 lookupPred2([], [], RelsBefore, RelsBefore).
 
@@ -6315,7 +6381,7 @@ lookupTransformations([T | Ts], [T2 | T2s]) :-
   lookupTransformations(Ts, T2s), !.
 
 lookupTransformations(Trans, Trans2) :-
-  not(is_list(Trans)),
+  \+ is_list(Trans),
   lookupTransformation(Trans, Trans2), !.
 
 /*
@@ -8298,7 +8364,7 @@ defaultExceptionHandler(G) :-
                 write('\nAn ERROR occured, please inspect the output above.'),
                 fail
               )
-           ; throw(X) % other exceptions
+           ; throw(Exception) % other exceptions
          )
        ),
        true.
@@ -9114,6 +9180,10 @@ removeAttrs(StreamIn, NewAttrs, remove(StreamIn, NewAttrs)).
 writeDebug(Text) :-
   write(Text), nl.
 
+/*
+Load Faked operators extension
+
+*/
 :- [fakedoperators].
 
 /*
