@@ -17,13 +17,15 @@ of that class.
 #undef __TRACE_ENTER__
 #undef __TRACE_LEAVE__
 
-//#define __TRACE_ENTER__
-//#define __TRACE_LEAVE__
+#define __TRACE_ENTER__
+#define __TRACE_LEAVE__
+
+ /*
 #define __TRACE_ENTER__ std::cerr << "Enter : " << \
         __PRETTY_FUNCTION__ << std::endl;
 #define __TRACE_LEAVE__ std::cerr << "Leave : " << \
         __PRETTY_FUNCTION__ << "@" << __LINE__ << std::endl;
-
+ */
 
 
 
@@ -79,10 +81,10 @@ and the nativFlobFile is deleted.
        // close all files stored in Map   
        map<SmiFileId, SmiRecordFile*>::iterator iter;
        for( iter = openFiles.begin(); iter != openFiles.end(); iter++ ) {
-	 if(iter->first!=nativeFlobs) {      
+         if(iter->first!=nativeFlobs) {      
            iter->second->Close(); 
            delete iter->second;
-	 }  
+         }  
        }
        nativeFlobs = 0;
        openFiles.clear();
@@ -122,8 +124,6 @@ bool FlobManager::getData(
          const SmiSize&  offset,     // offset within the Flob 
          const SmiSize&  size) {  // requested data size
  __TRACE_ENTER__
-  cout << "flob: " << flob << endl;
-
   FlobId id = flob.id;
   SmiFileId   fileId =  id.fileId;
   SmiRecordId recordId = id.recordId;
@@ -165,7 +165,7 @@ void FlobManager::destroy(Flob& victim) {
 
    SmiRecordFile* file = getFile(id.fileId);
    SmiRecord record;
-   bool ok = file->SelectRecord(recordId, record);  
+   bool ok = file->SelectRecord(recordId, record, SmiFile::Update);  
    if(!ok){ // record not found in file
      __TRACE_LEAVE__
      return; 
@@ -215,7 +215,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob tp save
  __TRACE_ENTER__
    SmiRecord record;
    SmiRecordFile* file = getFile(fileId);
-   if(!file->SelectRecord(recordId, record)){
+   if(!file->SelectRecord(recordId, record, SmiFile::Update)){
      __TRACE_LEAVE__
      return false;
    }
@@ -255,8 +255,6 @@ Must be changed to support real large Flobs
              const SmiFileId fileId,      // target file
              Flob& result){         // result
  __TRACE_ENTER__
-    cout << "src: " << src << endl;
-    cout << "fileId : " << fileId << endl;
     SmiRecordId recId;
     SmiRecord rec;
     SmiRecordFile* file = getFile(fileId);
@@ -268,7 +266,6 @@ Must be changed to support real large Flobs
     char buffer[src.size+1];
     buffer[src.size] = '\0';
     getData(src, buffer, 0, src.size);
-    std::cout << "buffer = <" << buffer << ">" << endl;
     rec.Write(buffer, src.size,0);
     rec.Finish();
     FlobId fid(fileId, recId,0);
@@ -291,25 +288,17 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
                           const SmiSize& length) { // data size
 
  __TRACE_ENTER__
-  cout << "dest = " << dest << endl;
-
   FlobId id = dest.id;
   SmiFileId   fileId =  id.fileId;
   SmiRecordId recordId = id.recordId;
   SmiSize     offset = id.offset;
   SmiRecord record;
   SmiRecordFile* file = getFile(fileId);
-  bool ok = file->SelectRecord(recordId, record);
+  bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
   if(!ok){
     __TRACE_LEAVE__
     return false;
   }
-  char buf2[length+1];
-  memcpy(buf2, buffer, length);
-  buf2[length] = '\0';
-
-  cout << "length = " << length << endl;
-  cout << "buf2 = <" << buf2 << ">" << endl; 
 
   SmiSize wsize = record.Write(buffer, length, offset + targetoffset);
   if(wsize!=length){
@@ -317,6 +306,7 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
     return false;
   }
   record.Finish();
+
   __TRACE_LEAVE__
   return true;
 }
@@ -332,11 +322,12 @@ Creates a new Flob with a given size which is assigned to a temporal file.
  __TRACE_ENTER__
    SmiRecord rec;
    SmiRecordId recId;
+   
    if(!(nativeFlobFile->AppendRecord(recId,rec))){
       __TRACE_LEAVE__
       return false;
    }
-   rec.Finish();
+
    FlobId fid(nativeFlobs, recId, 0);
    result.id = fid;
    result.size = size;
@@ -397,24 +388,28 @@ by the FlobManager class itself.
 */
 
   FlobManager::FlobManager():openFiles(){
- __TRACE_ENTER__
+     __TRACE_ENTER__
     assert(instance==0); // the constructor should only called one time
     // construct the temporarly FlobFile
+    // not fixed size, dummy, temporarly
     nativeFlobFile  = new SmiRecordFile(false,0,true); 
+
     bool created = nativeFlobFile->Create();
+
     assert(created);
+
     nativeFlobs = nativeFlobFile->GetFileId();
-    //bool opened = nativeFlobFile->Open(nativeFlobs);
     openFiles[nativeFlobs] = nativeFlobFile;
+
     __TRACE_LEAVE__
   }
 
 
 ostream& operator<<(ostream& os, const FlobId& fid) {
   return fid.print(os); 
-}	
+}
 
 ostream& operator<<(ostream& os, const Flob& f) {
   return f.print(os);
-}	
+}
 
