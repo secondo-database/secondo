@@ -826,7 +826,7 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
   dm(subqueryDebug, ['\nJoinPreds: ', JoinPreds]),
   dm(subqueryDebug, ['\nOuterJoinAttrs: ', OuterJoinAttrs]),
 % restrict and project outer relation
-  ( tempRel1(OuterJoinAttrs, SimpleOuterPreds, TempRel1)
+  ( tempRel1(OuterJoinAttrs, SimpleOuterPreds, OuterRels, TempRel1)
   ; throw(error_SQL(subqueries_transformNestedPredicate:tRel1Error))),
 % restrict and project inner relation
   ( tempRel2(AggregatedAttr, CanonicalRels, OuterRels, SimpleInnerPreds, JoinPreds, TempRel2)
@@ -1065,7 +1065,9 @@ Create a temporary relation which is a projection of Rels to ~JoinAttr~
 
 */
 % case no predicates to apply
-tempRel1(JoinAttrs, [], TempRel1) :-
+tempRel1(JoinAttrs, [], OuterRels, TempRel1) :-
+  !,
+	subset(NeededRels, OuterRels),
   areAttributesOf(JoinAttrs, NeededRels),  
   dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
   dm(subqueryDebug, ['\nNeededRels: ', NeededRels]),
@@ -1076,7 +1078,9 @@ tempRel1(JoinAttrs, [], TempRel1) :-
   newTempRel(TemporaryRel1, TempRel1).  
 
 % case also apply predicates
-tempRel1(JoinAttrs, Preds, TempRel1) :-
+tempRel1(JoinAttrs, Preds, OuterRels, TempRel1) :-
+  !,
+	subset(NeededRels, OuterRels),
   areAttributesOf(JoinAttrs, NeededRels),
   dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
   dm(subqueryDebug, ['\nNeededRels: ', NeededRels]),
@@ -3226,7 +3230,19 @@ partition_([H|T], Pred, Incl, Excl) :-
       partition_(T, Pred, I, Excl)
   ;   Excl = [H|E],
       partition_(T, Pred, Incl, E)
-  ).
+  ).	
+	
+subset([Head|Tail], List) :-
+	member(Head, List),
+	ground(Tail),
+	subset(Tail, List).
+	
+subset([Value], List) :-
+  member(Value, List).
+	
+subset([], _).
 
+subset(List, List).
+	
 :- [subquerytest].
 :- [tpcdqueries].
