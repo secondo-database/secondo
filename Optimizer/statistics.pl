@@ -590,7 +590,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBox, ResCard) :-
         BBox, ResCard):selectivityQueryFailed)),  fail.
 
 % spatial predicate with bbox-checking
-selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
+selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, BBoxResCard1, FilterResCard1) :-
   Pred =.. [OP, Arg01, Arg02],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
@@ -678,10 +678,16 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBoxResCard, FilterResCard) :-
          fail
        )
   ),
+  ( realJoinSize(Pred, S)
+    -> ( FilterResCard1 is FilterResCard * JoinSize / S,
+         QueryTime1 is QueryTime * JoinSize / S,
+         BBoxResCard1 is BBoxResCard * JoinSize / S,
+         retractall(realJoinSize(Pred, _)) )
+     ; ( FilterResCard1 = FilterResCard, QueryTime1 = QueryTime, BBoxResCard1 = BBoxResCard ) ),
   !.
 
 % normal predicate
-selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
+selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox, ResCard1) :-
   Pred =.. [OP|_],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
@@ -748,6 +754,11 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, noBBox, ResCard) :-
          fail
        )
   ),
+  ( realJoinSize(Pred, S)
+    -> ( ResCard1 is ResCard * JoinSize / S,
+         QueryTime1 is QueryTime * JoinSize / S,
+         retractall(realJoinSize(Pred, _)) )
+     ; ( ResCard1 = ResCard, QueryTime1 = QueryTime ) ),
   dm(selectivity,['Elapsed Time: ', QueryTime, ' ms\n']), !.
 
 selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBox, ResCard) :-
