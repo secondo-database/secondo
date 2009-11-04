@@ -1312,7 +1312,7 @@ rel_to_atom(rel(DCname, _), ExtName) :-
 
 % Section:Start:plan_to_atom_2_b
 /*
-the stpattern predicate
+The stpattern predicate
 
 */
 plan_to_atom( pattern(NPredList, ConstraintList) , Result):-
@@ -1323,7 +1323,7 @@ plan_to_atom( pattern(NPredList, ConstraintList) , Result):-
 	!.
 
 /*
-the stpatternex predicate
+The stpatternex predicate
 
 */
 plan_to_atom( patternex(NPredList, ConstraintList, Filter) , Result):-
@@ -1341,16 +1341,16 @@ The iskNN faked operator
 
 plan_to_atom(isknn(TID, K, dbobject(QueryObj), Rel1, MPointAttr1, IDAttr1, RebuildIndexes), Result):- !,
   plan_to_atom(TID, ExtTID),
-  atom_chars(Rel, Rel1),
-  atom_chars(MPointAttr, MPointAttr1),
+  atom_chars(Rel, Rel1), 
+  atom_chars(MPointAttr, MPointAttr1), 
   atom_chars(IDAttr, IDAttr1),
   validate_isknn_input(K, dbobject(QueryObj), Rel, MPointAttr, IDAttr, RebuildIndexes),
-
-  getknnDCNames(K, QueryObj, Rel, MPointAttr, IDAttr,
+  
+  getknnDCNames(K, QueryObj, Rel, MPointAttr, IDAttr, 
     DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, _, _, _, _, _),
   knearest(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, RebuildIndexes),
 
-  getknnExtNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr,
+  getknnExtNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, 
     _, _, _, ExtIDAttr, _, _, ExtResultRel, ExtMBoolAttr, ExtBtree),
 
   concat_atom(['isknn(', ExtTID, ',"', ExtResultRel, '" , "', ExtBtree, '" , "', ExtMBoolAttr, '" , "', ExtIDAttr, '")'] , '', Result)
@@ -3389,7 +3389,7 @@ indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
   dcName2externalName(DCindex,IndexName).
 
 indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
-  rename(gettuples(windowintersectsS(dbobject(IndexName),
+  rename(gettuples(windowintersectsS(dbobject(IndexName), 
   enlargeRect(bbox(Y),D,D)),  rel(Name, *)), RelAlias)
   :-
   argument(N, rel(Name, RelAlias)), RelAlias \= *,
@@ -3420,7 +3420,7 @@ indexselectLifted(arg(N), distance(attr(AttrName, Arg, AttrCase), Y) < D ) =>
   dcName2externalName(DCindex,IndexName).
 
 
-% general rules for liftedSpatialRangeQueries
+% general rules for liftedSpatialRangeQueries 
 % spatial(rtree,object) index, no rename
 
 indexselectLifted(arg(N), Pred ) =>
@@ -3485,10 +3485,10 @@ indexselectLifted(arg(N), Pred ) =>
   dcName2externalName(DCindex,IndexName).
 
 
-% general rules for liftedEqualityQueries
+% general rules for liftedEqualityQueries 
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  exactmatch(dbobject(IndexName), rel(Name, *), Y)
+  gettuples(rdup(sort(exactmatchS(dbobject(IndexName), rel(Name, *), Y))), rel(Name, *)) 
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3503,7 +3503,7 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename(exactmatch(dbobject(IndexName), rel(Name, Var), Y), Var)
+  rename( gettuples(rdup(sort(exactmatchS(dbobject(IndexName), rel(Name, Var), Y))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3516,10 +3516,10 @@ indexselectLifted(arg(N), Pred ) =>
   hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
   dcName2externalName(DCindex,IndexName).
 
-% general rules for liftedRangeQueries
+% general rules for liftedRangeQueries 
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  rangesearch(dbobject(IndexName), rel(Name, *), Arg2 , Arg3)
+  gettuples(rdup(sort(rangeS(dbobject(IndexName), rel(Name, *), Arg2 , Arg3))), rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2, Arg3],
   Arg1 = attr(_, _, _),
@@ -3533,7 +3533,7 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename(rangesearch(dbobject(IndexName), rel(Name, *), Arg2 , Arg3), Var)
+  rename(gettuples(rdup(sort(rangeS(dbobject(IndexName), rel(Name, Var), Arg2 , Arg3))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2, Arg3],
   Arg1 = attr(_, _, _),
@@ -3545,10 +3545,10 @@ indexselectLifted(arg(N), Pred ) =>
   hasIndex(rel(Name, _), Arg1, DCindex, constuni(btree)),
   dcName2externalName(DCindex,IndexName).
 
-% general rules for liftedLeftRangeQueries
+% general rules for liftedLeftRangeQueries 
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  leftrange(dbobject(IndexName), rel(Name, *), Y)
+  gettuples(rdup(sort(leftrangeS(dbobject(IndexName), rel(Name, *), Y))), rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3563,7 +3563,7 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename(leftrange(dbobject(IndexName), rel(Name, Var), Y), Var)
+  rename(gettuples(rdup(sort(leftrangeS(dbobject(IndexName), rel(Name, Var), Y))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3576,10 +3576,10 @@ indexselectLifted(arg(N), Pred ) =>
   hasIndex(rel(Name, _), Attr, DCindex, constuni(btree)),
   dcName2externalName(DCindex,IndexName).
 
-% general rules for liftedRightRangeQueries
+% general rules for liftedRightRangeQueries 
 % constuni(btree) index, no rename
 indexselectLifted(arg(N), Pred ) =>
-  rightrange(dbobject(IndexName), rel(Name, *), Y)
+  gettuples(rdup(sort(rightrangeS(dbobject(IndexName), rel(Name, *), Y))), rel(Name, *))
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -3594,7 +3594,7 @@ indexselectLifted(arg(N), Pred ) =>
 
 % constuni(btree) index, rename
 indexselectLifted(arg(N), Pred ) =>
-  rename(rightrange(dbobject(IndexName), rel(Name, Var), Y), Var)
+  rename(gettuples(rdup(sort(rightrangeS(dbobject(IndexName), rel(Name, Var), Y))), rel(Name, Var)), Var)
   :-
   Pred =..[Op, Arg1, Arg2],
   ((Arg1 = attr(_, _, _), Attr= Arg1) ; (Arg2 = attr(_, _, _), Attr= Arg2)),
@@ -4292,15 +4292,15 @@ cost(filter(X, _), Sel, P, S, C) :-
   C is CostX + A * SizeX, !.
 
 % Section:Start:cost_5_m
-cost(filter(gettuples(rdup(sort(
-      windowintersectsS(dbobject(IndexName), BBox))), rel(RelName, *)),
-      FilterPred), Sel, _, Size, Cost):-
-  dm(costFunctions,['cost(filter(gettuples(rdup(sort(windowintersectsS(...): ',
-                    'IndexName= ',IndexName,', BBox=',BBox,
-                    ', FilterPred=',FilterPred]),
-  Cost is 0,
-  card(RelName, RelCard),
-  Size is RelCard * Sel,!.
+%cost(filter(gettuples(rdup(sort(
+%      windowintersectsS(dbobject(IndexName), BBox))), rel(RelName, *)),
+%      FilterPred), Sel, _, Size, Cost):-
+%  dm(costFunctions,['cost(filter(gettuples(rdup(sort(windowintersectsS(...): ',
+%                    'IndexName= ',IndexName,', BBox=',BBox,
+%                    ', FilterPred=',FilterPred]),
+%  Cost is 0,
+%  card(RelName, RelCard),
+%  Size is RelCard * Sel,!.
 % Section:End:cost_5_m
 
 cost(filter(X, _), Sel, P, S, C) :- 	% 'normal' filter
@@ -6203,6 +6203,41 @@ The relation list is updated and returned in ~RelsAfter~.
 */
 
 % Section:Start:lookupPred1_2_b
+/*
+Used within the spatiotemporal pattern predicates stpattern.
+The only component of the STPP that need lookup is the
+list of lifted predicates. This special lookupPred1
+predicate separates the lifted predicates and passes them
+to the normal lookupPred1. The constraints are passed as is
+since there is no need to lookup them. The aliases are
+composed back with the looked up lifted predicates by the
+lookupPattern predicate.
+
+*/
+
+lookupPred1(pattern(Preds,C), pattern(Res,C1), RelsBefore, RelsAfter) :-
+  lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
+  lookupPred1(C, C1, RelsAfterMe, RelsAfter),
+  !.
+
+/*
+Used within the extended spatiotemporal pattern predicates stpatternex.
+The components that need lookup are the list of lifted predicates and
+the boolean condition (part2 of the pattern). This special lookupPred1
+predicate separates the lifted predicates and passes them
+to the normal lookupPred1. The boolean condidtion is also
+passed to the normal lookupPred1. The constraints are passed as is
+since there is no need to lookup them. The aliases are
+composed back with the looked up lifted predicates by the
+lookupPattern predicate.
+
+*/
+lookupPred1(patternex(Preds,C, F), patternex(Res,C1, F1), RelsBefore, RelsAfter) :-
+  lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
+  lookupPred1(F, F1, RelsAfterMe, RelsAfterMee),
+  lookupPred1(C, C1, RelsAfterMee, RelsAfter),
+  !.
+
 % Section:End:lookupPred1_2_b
 
 lookupPred1(Pred, Pred2, RelsBefore, RelsAfter) :-
@@ -6240,41 +6275,6 @@ lookupPred1(Attr, attr(Attr2, Index, Case), RelsBefore, RelsAfter) :-
   ), !.
 
 % Section:Start:lookupPred1_2_m
-/*
-Used within the spatiotemporal pattern predicates stpattern.
-The only component of the STPP that need lookup is the
-list of lifted predicates. This special lookupPred1
-predicate seperates the lifted predicates and pass them
-to the normal lookupPred1. The constratins are passed as is
-since there is no need to lookup them. The aliases are
-composed back with the looked up lifted predicates by the
-lookupPattern predicate.
-
-*/
-
-lookupPred1(pattern(Preds,C), pattern(Res,C1), RelsBefore, RelsAfter) :-
-  lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
-  lookupPred1(C, C1, RelsAfterMe, RelsAfter),
-  !.
-
-/*
-Used within the extended spatiotemporal pattern predicates stpatternex.
-The components that need lookup are the list of lifted predicates and
-the boolean condition (part2 of the pattern). This special lookupPred1
-predicate seperates the lifted predicates and pass them
-to the normal lookupPred1. The boolean condidtion is also
-passed to the normal lookupPred1. The constratins are passed as is
-since there is no need to lookup them. The aliases are
-composed back with the looked up lifted predicates by the
-lookupPattern predicate.
-
-*/
-lookupPred1(patternex(Preds,C, F), patternex(Res,C1, F1), RelsBefore, RelsAfter) :-
-  lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
-  lookupPred1(F, F1, RelsAfterMe, RelsAfterMee),
-  lookupPred1(C, C1, RelsAfterMee, RelsAfter),
-  !.
-
 % Section:End:lookupPred1_2_m
 
 % constant value expression
@@ -8214,7 +8214,7 @@ sqlExample( 501,
   from trains
   where pattern([trip inside sehenswuerdaspoints as preda,
                  distance(trip, mehringdamm)<10.0 as predb,
-                 trip = mehringdamm as predc
+                 trip = mehringdamm as predc 
                 ],
                 [stconstraint("preda","predb",vec("aabb")),
                  stconstraint("predb","predc",vec("aabb"))
