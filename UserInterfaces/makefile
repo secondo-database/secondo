@@ -148,8 +148,8 @@ $(BINDIR)/Secondo$(SMIUP)$(EXEEXT): MainTTY.o $(APP_LIB) $(ALG_LIST) $(FLOB) $(P
 # The TTY-Clients, they use special implementations of SecondoInterface and don't
 # need the algebra libs.
 # 
-$(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES)
-$(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PL_OBJECTS)
+$(BINDIR)/SecondoCS$(EXEEXT): $(SECLIBFILES) $(FLOB)
+$(BINDIR)/SecondoCS$(EXEEXT): $(CS_OBJECTS) $(APP_LIB) $(PL_OBJECTS) $(FLOB)
 	$(LD) $(EXEFLAGS) $(LDFLAGS) $(PROFILERFLAGS) -o $@ $(filter %.o, $^) -lappCommon -lsdbutils $(OPTLIB_LIBS) $(LD_LINK_LIBS) $(RL_LD_FLAG) $(PLLDFLAGS)
 
 
