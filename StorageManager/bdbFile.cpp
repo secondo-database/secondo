@@ -399,7 +399,10 @@ Opens a file by name. This should be used only by catalog files!
 bool
 SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 {
-  assert ( !opened );
+  if(opened){
+    cerr << "try to open an open  file: " << (*this) << endl;
+    return true; 
+  }  
   static long& ctr = Counter::getRef("SmiFile::Open");
   int rc = 0;
   bool existing = false;
@@ -583,7 +586,11 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 bool
 SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 {
-  assert ( !opened );
+  if(opened){
+    cerr << "try to open an open file" << (*this) << endl;
+    return true;
+  }
+
   trace = true;
 
   static long& ctr = Counter::getRef("SmiFile::Open");
