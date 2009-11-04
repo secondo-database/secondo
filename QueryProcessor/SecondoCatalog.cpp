@@ -2584,7 +2584,7 @@ SecondoCatalog::ListOperators( int algebraId )
 
 SecondoCatalog::SecondoCatalog()
   : typeCatalogFile( SmiKey::String ), objCatalogFile( SmiKey::String ),
-    objValueFile( false ), testMode( false )
+    objValueFile( false ), flobFile( false ), testMode( false )
 {
   nl = SecondoSystem::GetNestedList();
   am = SecondoSystem::GetAlgebraManager();
@@ -2656,6 +2656,7 @@ SecondoCatalog::Open()
   ok = ok && typeCatalogFile.Open( "Types", "SecondoCatalog" );
   ok = ok && objCatalogFile.Open( "Objects", "SecondoCatalog" );
   ok = ok && objValueFile.Open( "ObjValues", "SecondoCatalog" );
+  ok = ok && flobFile.Open( "largeObjects", "SecondoCatalog" );
   
   if ( !ok )
   {
