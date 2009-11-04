@@ -42,9 +42,10 @@ LIB_SDBUTILS_BASENAMES:=\
 	Tools/Utilities/Base64 \
 	Tools/Utilities/PolySolver \
 	Tools/Utilities/Environment \
-  Tools/Utilities/Crypt \
-  Tools/Utilities/blowfish \
-  Tools/Utilities/md5
+        Tools/Utilities/Crypt \
+        Tools/Utilities/blowfish \
+        Tools/Utilities/md5 \
+        Tools/Flob/FlobManager
 
 # The following libraries have interdependencies to Nested lists
 # and Berkeley-DB thus they are only usable in the framework of 
