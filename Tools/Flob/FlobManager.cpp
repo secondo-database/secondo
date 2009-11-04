@@ -76,13 +76,15 @@ and the nativFlobFile is deleted.
        }
        delete nativeFlobFile;
        nativeFlobFile = 0;
-       nativeFlobs = 0;
        // close all files stored in Map   
        map<SmiFileId, SmiRecordFile*>::iterator iter;
        for( iter = openFiles.begin(); iter != openFiles.end(); iter++ ) {
-         iter->second->Close(); 
-         delete iter->second;
+	 if(iter->first!=nativeFlobs) {      
+           iter->second->Close(); 
+           delete iter->second;
+	 }  
        }
+       nativeFlobs = 0;
        openFiles.clear();
 
      }
@@ -120,6 +122,7 @@ bool FlobManager::getData(
          const SmiSize&  offset,     // offset within the Flob 
          const SmiSize&  size) {  // requested data size
  __TRACE_ENTER__
+  cout << "flob: " << flob << endl;
 
   FlobId id = flob.id;
   SmiFileId   fileId =  id.fileId;
@@ -252,6 +255,8 @@ Must be changed to support real large Flobs
              const SmiFileId fileId,      // target file
              Flob& result){         // result
  __TRACE_ENTER__
+    cout << "src: " << src << endl;
+    cout << "fileId : " << fileId << endl;
     SmiRecordId recId;
     SmiRecord rec;
     SmiRecordFile* file = getFile(fileId);
@@ -260,7 +265,10 @@ Must be changed to support real large Flobs
       return false;
     }
     // write data
-    char buffer[src.size];
+    char buffer[src.size+1];
+    buffer[src.size] = '\0';
+    getData(src, buffer, 0, src.size);
+    std::cout << "buffer = <" << buffer << ">" << endl;
     rec.Write(buffer, src.size,0);
     rec.Finish();
     FlobId fid(fileId, recId,0);
@@ -283,6 +291,8 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
                           const SmiSize& length) { // data size
 
  __TRACE_ENTER__
+  cout << "dest = " << dest << endl;
+
   FlobId id = dest.id;
   SmiFileId   fileId =  id.fileId;
   SmiRecordId recordId = id.recordId;
@@ -294,6 +304,13 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
     __TRACE_LEAVE__
     return false;
   }
+  char buf2[length+1];
+  memcpy(buf2, buffer, length);
+  buf2[length] = '\0';
+
+  cout << "length = " << length << endl;
+  cout << "buf2 = <" << buf2 << ">" << endl; 
+
   SmiSize wsize = record.Write(buffer, length, offset + targetoffset);
   if(wsize!=length){
     __TRACE_LEAVE__
@@ -387,8 +404,17 @@ by the FlobManager class itself.
     bool created = nativeFlobFile->Create();
     assert(created);
     nativeFlobs = nativeFlobFile->GetFileId();
+    //bool opened = nativeFlobFile->Open(nativeFlobs);
+    openFiles[nativeFlobs] = nativeFlobFile;
     __TRACE_LEAVE__
   }
 
 
+ostream& operator<<(ostream& os, const FlobId& fid) {
+  return fid.print(os); 
+}	
+
+ostream& operator<<(ostream& os, const Flob& f) {
+  return f.print(os);
+}	
 

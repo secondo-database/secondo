@@ -75,6 +75,8 @@ buffer's content.
 #ifndef FLOB_H
 #define FLOB_H
 
+#include <ostream>
+
 #include "FlobId.h"
 #include "FlobManager.h"
 #include "SecondoSMI.h"
@@ -108,7 +110,7 @@ This construcvtor create a native flob having a given size.
 
 */    
     inline Flob (SmiSize size_): id(), size( size_ ){
-      FlobManager::getInstance().create(size, *this);
+      FlobManager::getInstance().create(size_, *this);
     };
 
 
@@ -191,6 +193,9 @@ Puts data providen in ~buffer~ into the Flob at the specified position.
     inline void write(const char* buffer,
                       const SmiSize length,
                       const SmiSize offset=0){
+      if(offset+length > size) {
+        size = offset + length;	
+      }	
       FlobManager::getInstance().putData(*this, buffer, offset, length);
     }
 /*
@@ -307,9 +312,15 @@ is not longer possible.
      return FlobManager::destroyInstance();
   }
 
+  ostream& print(ostream& os) const {
+    return os << "id = " << id << ", size = " << size;
+  }
+
   private:
     FlobId id;       // encodes fileid, recordid, offset
     SmiSize size;    // size of the Flob data segment in Bytes
 };
+
+ostream& operator<<(ostream& os, const Flob& f);
 
 #endif

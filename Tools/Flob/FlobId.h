@@ -15,6 +15,7 @@ record.
 #define FLOBID_H
 
 #include <stdint.h>
+#include <ostream>
 #include "SecondoSMI.h"
 
 
@@ -38,6 +39,14 @@ class FlobId{
      offset = src.offset;
      return *this;
    }
+
+   ostream& print(ostream& os) const {
+     os << "fid = " << fileId << ", "
+        << "recId = " << recordId << ", "
+        << "offset = " << offset;
+     return os;
+   }     
+
  private:
    SmiFileId fileId;  
    SmiRecordId recordId;
@@ -53,5 +62,6 @@ class FlobId{
  
 };
 
+ostream& operator<<(ostream& os, const FlobId& fid);
 #endif
 
