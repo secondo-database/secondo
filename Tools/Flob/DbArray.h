@@ -171,7 +171,7 @@ void Put( int index, const DbArrayElement& elem ) {
     }
     Flob::resize( maxElements * sizeof( DbArrayElement ) );
   }
-  Flob::write(&elem,                   // buffer
+  Flob::write((char*)&elem,                   // buffer
               sizeof(DbArrayElement),  // size
               index * sizeof(DbArrayElement)); // offset
 
@@ -188,7 +188,8 @@ within the array.
    assert( index >= 0 );
    assert( index < nElements );
 
-   Flob::read(*elem, sizeof(DbArrayElement), index*sizeof(DbArrayElement));
+   Flob::read((char*)elem, sizeof(DbArrayElement), 
+              index*sizeof(DbArrayElement));
    elem = (new ((void*)elem) DbArrayElement);
  }
 
@@ -303,14 +304,14 @@ Restricts the DBArray to the interval set of indices passed as argument.
 */
 virtual void Restrict( const vector< pair<int, int> >& intervals ) {
   // compute the result size
-  size_t newSize = 0;
+  int newSize = 0;
   for( vector< pair<int, int> >::const_iterator it= intervals.begin();
            it < intervals.end();
            it++ ) {
       assert( it->first <= it->second );
       newSize += ( ( it->second - it->first ) + 1 ) * sizeof( DbArrayElement );
   }
-  assert( newSize <= size );
+  assert( newSize <= nElements );
   if( newSize == 0 ){
     clean();
   } else {
@@ -323,7 +324,6 @@ virtual void Restrict( const vector< pair<int, int> >& intervals ) {
          it++ ) {    
       for( int j = it->first; j <= it->second; j++ ) {
          Get( j, &e );
-         assert( offset + sizeof( DbArrayElement ) <= newSize );
          memcpy( buffer + offset, &e, sizeof( DbArrayElement ) );
          offset += sizeof( DbArrayElement );
       }  
