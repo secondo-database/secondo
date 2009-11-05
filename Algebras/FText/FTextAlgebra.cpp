@@ -153,13 +153,13 @@ size_t FText::HashValue() const
 
   unsigned long h = 0;
   // Assuming text fits into memory
-  char* s = new char( theText.getSize() );
-  theText.read(s, theText.getSize() );
+  char* s = Get();
   while(*s != 0)
   {
     h = 5 * h + *s;
     s++;
   }
+  delete[] s;
   return size_t(h);
 }
 
@@ -196,11 +196,8 @@ int FText::Compare( const Attribute *arg ) const
   if ( !f )
     return -2;
 
-  char* s1 = new char( f->theText.getSize() );
-  char* s2 = new char( this->theText.getSize() );
-
-  f->theText.read(s1, f->theText.getSize() );
-  this->theText.read(s2, this->theText.getSize() );
+  char* s1 =  f->Get();
+  char* s2 =  this->Get();
 
   int res = strcmp( s2, s1 );
   delete [] s1;
@@ -214,10 +211,9 @@ ostream& FText::Print(ostream &os) const
   {
     return (os << "TEXT: UNDEFINED");
   }
-  char* t = new char(theText.getSize());
-  theText.read(t, theText.getSize());
-  delete [] t;
+  char* t = Get();
   string s(t);
+  delete [] t;
   size_t len = theText.getSize();
   if(TextLength() > 65)
   {
@@ -409,11 +405,11 @@ OutFText( ListExpr typeInfo, Word value )
   pftext = (FText*)(value.addr);
 
   if(traces)
-    cout <<"pftext->Get()='"<< pftext->Get() <<"'\n";
+    cout <<"pftext->Get()='"<< pftext->GetValue() <<"'\n";
 
   ListExpr res;
   if(pftext->IsDefined()){
-     res=nl->TextAtom(pftext->Get());
+     res=nl->TextAtom(pftext->GetValue());
   } else {
      res = nl->SymbolAtom("undef");
   }
@@ -1530,7 +1526,7 @@ Value Mapping for the ~contains~ operator with two text operands.
 
   result = qp->ResultStorage(s); //query processor has provided
           //a CcBool instance to take the result
-  ((CcBool*)result.addr)->Set(true, ftext1->SearchString( ftext2->Get() ));
+  ((CcBool*)result.addr)->Set(true, ftext1->SearchString( ftext2->GetValue() ));
           //the first argument says the boolean
           //value is defined, the second is the
           //real boolean value)
@@ -1601,7 +1597,12 @@ The length of a string is three characters or more.
 
 */
 {
-  struct TheText {int start, nochr, strlength; const char* subw;}* thetext;
+  struct TheText {
+     int start, 
+     nochr, 
+     strlength; 
+     char* subw;
+  }* thetext;
 
   int textcursor, stringcursor, state;
   string tmpstr;
@@ -1742,6 +1743,7 @@ The length of a string is three characters or more.
       if(local.addr)
       {
         thetext = ((TheText*) local.addr);
+        delete [] thetext->subw;
         delete thetext;
         local.setAddr(0);
       }
@@ -1755,7 +1757,7 @@ int
 ValMapsentences (Word* args, Word& result, int message,
          Word& local, Supplier s)
 {
-  struct TheText {int start, strlength; const char* subw;}* thetext;
+  struct TheText {int start, strlength; char* subw;}* thetext;
   int textcursor = 0, state = 0;
   string tmpstr = "";
   char c = 0;
@@ -1864,6 +1866,7 @@ ValMapsentences (Word* args, Word& result, int message,
       if(local.addr)
       {
         thetext = ((TheText*) local.addr);
+        delete [] thetext->subw;
         delete thetext;
         local.setAddr(0);
       }
@@ -1887,10 +1890,14 @@ ValMapDice_t_t(Word* args, Word& result, int message,
      n = 1;
   }
   DiceTree* dt = new DiceTree(n);
-  dt->appendText(arg2->Get(),true);
-  dt->appendText(arg3->Get(),false);
+  char* s1 = arg2->Get();
+  char* s2 = arg3->Get();
+  dt->appendText(s1,true);
+  dt->appendText(s2,false);
   double res = dt->getCoeff();
   delete dt;
+  delete[] s2;
+  delete[] s1;
   ((CcReal*)result.addr)->Set(true,res);
   return 0;
 }
@@ -2044,7 +2051,7 @@ int ValMapSubstr( Word* args, Word& result, int message,
   }
   int n = min(min( (end-begin), (txtlen-begin) ),
               static_cast<int>(MAX_STRINGSIZE));
-  string mytxt = static_cast<const char*>( Ctxt->Get() );
+  string mytxt =  Ctxt->GetValue();
 //   cout << "mytxt=\"" << mytxt << "\"" << endl;
   string mysubstring = mytxt.substr(begin-1, n+1);
 //   cout << "mysubstring=\"" << mysubstring << "\"" << endl;

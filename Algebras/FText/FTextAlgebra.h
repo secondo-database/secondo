@@ -53,12 +53,12 @@ public:
   inline ~FText();
   inline void Destroy();
 
-  inline bool  SearchString( const char* subString );
+  inline bool  SearchString( const string subString );
   inline void  Set( const char *newString );
   inline void  Set( bool newDefined, const char *newString );
   inline void  Set( bool newDefined, const string& newString );
   inline int TextLength() const;
-  inline const char *Get() const;
+  inline char *Get() const;
   inline const string GetValue() const;
 
 /*************************************************************************
@@ -170,14 +170,10 @@ inline void FText::Destroy()
   SetDefined(false);
 }
 
-inline bool FText::SearchString( const char* subString )
+inline bool FText::SearchString( string subString )
 {
-  SmiSize sz = theText.getSize();	
-  char* text = new char[sz];
-  theText.read(text, sz);
-  return strstr( text, subString ) != NULL;
-  //SPM: delete added
-  delete text;
+  string s = GetValue();
+  return s.find(subString) != string::npos;
 }
 
 inline void FText::Set( const char *newString )
@@ -230,7 +226,7 @@ inline int FText::TextLength() const
 }
 
 // SPM: caller is responsible for delete
-inline const char *FText::Get() const
+inline char *FText::Get() const
 {
   SmiSize sz = theText.getSize();	
   char* s = new char[sz];
@@ -244,7 +240,7 @@ inline const string FText::GetValue() const
   char* s = new char[sz];
   theText.read(s, sz);
   string res(s);
-  delete s;
+  delete [] s;
   return res;
 }
 
