@@ -3377,6 +3377,7 @@ QueryProcessor::EvalP( void* node,
   allowProgress = false;
   progressView->FinishProgressView();
   delete progressView;
+  progressView=0;
 }
 
 
