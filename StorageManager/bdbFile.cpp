@@ -1758,8 +1758,6 @@ bool PrefetchingIteratorImpl::Next()
     }
     else
     {
-      if (p != 0) // out of range error
-        SmiEnvironment::SetError(E_SMI_PREFETCH_RANGE);
       // end of scan
       return false;
     }
