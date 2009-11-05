@@ -1067,7 +1067,7 @@ Create a temporary relation which is a projection of Rels to ~JoinAttr~
 % case no predicates to apply
 tempRel1(JoinAttrs, [], OuterRels, TempRel1) :-
   !,
-	subset(NeededRels, OuterRels),
+	subset(OuterRels, NeededRels),
   areAttributesOf(JoinAttrs, NeededRels),  
   dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
   dm(subqueryDebug, ['\nNeededRels: ', NeededRels]),
@@ -1080,7 +1080,7 @@ tempRel1(JoinAttrs, [], OuterRels, TempRel1) :-
 % case also apply predicates
 tempRel1(JoinAttrs, Preds, OuterRels, TempRel1) :-
   !,
-	subset(NeededRels, OuterRels),
+	subset(OuterRels, NeededRels),
   areAttributesOf(JoinAttrs, NeededRels),
   dm(subqueryDebug, ['\nJoinAttrs: ', JoinAttrs]),
   dm(subqueryDebug, ['\nNeededRels: ', NeededRels]),
@@ -3232,17 +3232,14 @@ partition_([H|T], Pred, Incl, Excl) :-
       partition_(T, Pred, Incl, E)
   ).	
 	
-subset([Head|Tail], List) :-
-	member(Head, List),
-	ground(Tail),
-	subset(Tail, List).
-	
-subset([Value], List) :-
-  member(Value, List).
-	
-subset([], _).
+subset([], []).
 
-subset(List, List).
+subset([_|Xs], Ys) :-
+  ground(Xs),
+	subset(Xs, Ys).
+
+subset([X|Xs], [X|Ys]) :-
+  subset(Xs, Ys).
 	
 :- [subquerytest].
 :- [tpcdqueries].
