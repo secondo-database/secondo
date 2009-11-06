@@ -206,6 +206,7 @@ Copies the content of src to this flob.
 */
     inline void copyFrom(const Flob& src){
       FlobManager::getInstance().copyData(src,*this);
+      size = src.size;
     };
 
 /*
@@ -216,6 +217,7 @@ Copies the content of this flob to ~dest~.
 */
     inline void copyTo(Flob& dest) const {
        FlobManager::getInstance().copyData(*this,dest);
+       dest.size = size;
     };
 
 /*

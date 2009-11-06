@@ -403,6 +403,18 @@ virtual void restoreHeader(char* buffer,
 }
 
 
+   void copyFrom(const DbArray<DbArrayElement>& src){
+      Flob::copyFrom(src);
+      nElements = src.nElements;
+      maxElements = src.maxElements;
+   }
+
+   void copyTo(DbArray<DbArrayElement>& dest){
+      Flob::copyTo(dest);
+      dest.nElements = nElements;
+      dest.maxElements = maxElements;
+   } 
+
   private:
 
     int nElements;
