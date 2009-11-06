@@ -169,7 +169,7 @@ Changes the size of a flob to the given one.
 Cleans the flob. actually only the size is set to be zero.
 
 */
-    inline void clean(){ size = 0; }
+    virtual void clean(){ size = 0; }
 
 /*
 ~read~

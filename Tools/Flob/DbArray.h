@@ -125,7 +125,7 @@ Changes the capacity of an DbArray.
 
 virtual void resize( const int newSize ){
    if(newSize==0){
-    Clear();
+    clean();
     return;
    }
 
@@ -137,7 +137,7 @@ virtual void resize( const int newSize ){
    Flob::resize( newSize * sizeof( DbArrayElement ) );
 }
 
-inline void Clear() {
+virtual void clean() {
   nElements = 0;
   maxElements = 0;
   Flob::clean();
@@ -188,7 +188,7 @@ within the array.
    assert( index >= 0 );
    assert( index < nElements );
 
-   Flob::read((char*)elem, sizeof(DbArrayElement), 
+   Flob::read((char*)elem, sizeof(DbArrayElement),
               index*sizeof(DbArrayElement));
    elem = (new ((void*)elem) DbArrayElement);
  }
@@ -218,7 +218,7 @@ void TrimToSize() {
          Flob::clean();
      } else {
         Flob::resize(nElements * sizeof(DbArrayElement));
-     }  
+     }
    }
    maxElements = nElements;
 }
