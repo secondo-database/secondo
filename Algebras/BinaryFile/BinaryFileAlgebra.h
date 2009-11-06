@@ -30,23 +30,16 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define BINARYFILE_H
 
 #include "Attribute.h"
-#include "FLOB.h"
+#include "../../Tools/Flob/Flob.h"
 
 class BinaryFile : public Attribute
 {
   public:
 
-    inline BinaryFile() {};
-/*
-This constructor should not be used.
-
-*/
-    BinaryFile( const int size );
+    BinaryFile( const int size, const bool defined=false );
     inline ~BinaryFile();
     inline void Destroy();
 
-    inline bool IsDefined() const;
-    inline void SetDefined( bool Defined);
     inline size_t Sizeof() const;
     inline size_t HashValue() const;
     void CopyFrom(const Attribute* right);
@@ -55,22 +48,27 @@ This constructor should not be used.
     BinaryFile* Clone() const;
     ostream& Print( ostream &os ) const;
     inline int NumOfFLOBs() const;
-    inline FLOB *GetFLOB(const int i);
+    inline Flob *GetFLOB(const int i);
 
     void Encode( string& textBytes ) const;
     void Decode( const string& textBytes );
     bool SaveToFile( const char *fileName ) const;
 
     int GetSize() const;
-    void Get(size_t offset,const char** bytes) const;
+    void Get(const size_t offset, const size_t size, char* bytes) const;
     void Resize(int newSize);
-    void Put(int offset, int size, const char* bytes);
+    void Put(const size_t offset, const size_t size, const char* bytes);
 
-
+    static void* Cast(void* addr);
 
   private:
 
-    FLOB binData;
+    inline BinaryFile() {};
+/*
+This constructor should not be used.
+
+*/
+    Flob binData;
     bool canDelete;
 };
 

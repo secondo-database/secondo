@@ -49,10 +49,11 @@ using namespace std;
 #include "AlgebraManager.h"
 #include "StandardTypes.h"
 #include "Attribute.h"
-#include "FLOB.h"
+#include "../../Tools/Flob/Flob.h"
 #include "Base64.h"
 #include "BinaryFileAlgebra.h"
 #include "FTextAlgebra.h"
+#include <cstdlib>
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -65,93 +66,113 @@ using namespace ftext;
 
 */
 
-inline BinaryFile::BinaryFile( const int size ) :
+inline BinaryFile::BinaryFile( const int size, const bool defined /* =0 */ ) :
 binData( size ),
 canDelete( false )
 {
+  SetDefined( defined );
 }
 
-inline BinaryFile::~BinaryFile()
-{
-  if( canDelete )
-    binData.Destroy();
+inline BinaryFile::~BinaryFile(){
+  if( canDelete ){
+    binData.destroy();
+  }
 }
 
-inline void BinaryFile::Destroy()
-{
+inline void BinaryFile::Destroy(){
   canDelete = true;
 }
 
-inline bool BinaryFile::IsDefined() const
-{
-  return true;
-}
-
-inline void BinaryFile::SetDefined( bool Defined)
-{
-}
-
-inline size_t BinaryFile::Sizeof() const
-{
+inline size_t BinaryFile::Sizeof() const{
   return sizeof( *this );
 }
 
-inline size_t BinaryFile::HashValue() const
-{
+inline size_t BinaryFile::HashValue() const{
+  // somewhat simplistic, but better than always returning '0':
+  if( !IsDefined() ){
+    return 0;
+  }
+  return static_cast<size_t>(binData.getSize()) ;
+}
+
+void BinaryFile::CopyFrom(const Attribute* right){
+  const BinaryFile *r = static_cast<const BinaryFile*>(right);
+  binData.copyFrom( r->binData );
+  canDelete = r->canDelete;
+  SetDefined( r->IsDefined() );
+}
+
+inline int BinaryFile::Compare(const Attribute* arg) const{
+  const BinaryFile* r = static_cast<const BinaryFile*>(arg);
+  if( !IsDefined() ){
+    if(r->IsDefined()){
+      return -1;
+    } else {
+      return 0;
+    }
+  } else if(!r->IsDefined()){
+    return 1;
+  }
+  // both are defined...
+  size_t cmpsize = min(binData.getSize(),r->binData.getSize());
+  if(cmpsize == 0) {
+    return 0;
+  }
+  char me[cmpsize];
+  char other[cmpsize];
+  binData.read(me, cmpsize);
+  r->binData.read(other, cmpsize);
+  int cmpresult = memcmp(me, other, cmpsize);
+  if(cmpresult < 0){
+    return -1;
+  } else if(cmpresult > 0){
+    return 1;
+  }
   return 0;
 }
 
-void BinaryFile::CopyFrom(const Attribute* right)
-{
-  const BinaryFile *r = (const BinaryFile *)right;
-  binData.Resize( r->binData.Size() );
-  const char *bin;
-  r->binData.Get( 0, &bin );
-  binData.Put( 0, r->binData.Size(), bin );
-}
-
-inline int BinaryFile::Compare(const Attribute * arg) const
-{
-  return 0;
-}
-
-inline bool BinaryFile::Adjacent(const Attribute * arg) const
-{
+inline bool BinaryFile::Adjacent(const Attribute * arg) const{
   return false;
 }
 
-BinaryFile* BinaryFile::Clone() const
-{
+BinaryFile* BinaryFile::Clone() const{
   BinaryFile *newBinaryFile = new BinaryFile( 0 );
   newBinaryFile->CopyFrom( this );
   return newBinaryFile;
 }
 
-ostream& BinaryFile::Print( ostream &os ) const
-{
-  return os << "BinaryFile Algebra" << endl;
+ostream& BinaryFile::Print( ostream &os ) const{
+  os << "BinaryFile: ";
+  if( IsDefined() ){
+    os << "DEFINED, size = " << binData.getSize() << endl;
+  } else {
+    os << "UNDEFINED." << endl;
+  }
+  return os;
 }
 
-inline int BinaryFile::NumOfFLOBs() const
-{
+inline int BinaryFile::NumOfFLOBs() const{
   return 1;
 }
 
-inline FLOB *BinaryFile::GetFLOB(const int i)
-{
+inline Flob *BinaryFile::GetFLOB(const int i){
+  assert( i == 0 );
   return &binData;
 }
 
-void BinaryFile::Encode( string& textBytes ) const
-{
+void BinaryFile::Encode( string& textBytes ) const{
   Base64 b;
-  const char *bytes;
-  binData.Get( 0, &bytes );
-  b.encode( bytes, binData.Size(), textBytes );
+  if( !IsDefined() ){
+    textBytes = "";
+    return;
+  }
+  size_t mysize = binData.getSize();
+  char bytes[mysize];
+  binData.read( bytes, mysize, 0 );
+  b.encode( bytes, mysize , textBytes );
 }
 
-void BinaryFile::Decode( const string& textBytes )
-{
+void BinaryFile::Decode( const string& textBytes ){
   Base64 b;
   int sizeDecoded = b.sizeDecoded( textBytes.size() );
   char *bytes = (char *)malloc( sizeDecoded );
@@ -160,48 +181,64 @@ void BinaryFile::Decode( const string& textBytes )
 
   assert( result <= sizeDecoded );
 
-  binData.Resize( result );
-  binData.Put( 0, result, bytes );
+  if( result <= sizeDecoded ){
+    binData.resize( result );
+    binData.write( bytes, result, 0 );
+    SetDefined( true );
+  } else {
+    binData.clean();
+    SetDefined( true );
+  }
   free( bytes );
 }
 
 
 int BinaryFile::GetSize() const{
-   return binData.Size();
+  return binData.getSize();
 }
 
-void BinaryFile::Get(size_t offset,const char** bytes) const{
-   binData.Get(offset,bytes);
+void BinaryFile::Get(const size_t offset, const size_t size,
+                     char* bytes) const{
+  assert( (offset + size) >= binData.getSize() );
+  binData.read(bytes, size, offset);
 }
 
 void BinaryFile::Resize(const int newSize){
     if(newSize<=0){
-        binData.Clean();
+        binData.clean();
     } else {
-        binData.Resize(newSize);
+        binData.resize(newSize);
     }
 }
 
-void BinaryFile::Put(const int offset, int size, const char* bytes){
-   binData.Put(offset,size,bytes);
+void BinaryFile::Put(const size_t offset, const size_t size, const char* bytes){
+  if( offset+size > binData.getSize() ){
+    binData.resize( offset + size );
+  }
+  binData.write( bytes, offset, size );
 }
 
-bool BinaryFile::SaveToFile( const char *fileName ) const
-{
+bool BinaryFile::SaveToFile( const char *fileName ) const{
+  if( !IsDefined() ){ return false; }
+
   FILE *f = fopen( fileName, "wb" );
+  if( f == NULL ) { return false; }
 
-  if( f == NULL )
+  char bytes[binData.getSize()];
+  binData.read( bytes, 0, binData.getSize() );
+
+  if( fwrite( bytes, 1, binData.getSize(), f ) != binData.getSize() ){
     return false;
-
-  const char *bytes;
-  binData.Get( 0, &bytes );
-
-  if( fwrite( bytes, 1, binData.Size(), f ) != binData.Size() )
-    return false;
+  }
 
   fclose( f );
   return true;
 }
+
+void* BinaryFile::Cast(void* addr){
+  return new ( addr ) BinaryFile();
+}
+
 
 /*
 2.2 List Representation
@@ -216,6 +253,11 @@ and
 ----    ( <text>filename</text---> )
 ----
 
+and
+
+----    ( "undef" )
+----
+
 If first representation is used, then the contents of a file is read
 into the second representation. This is done automatically by the
 Secondo parser.
@@ -224,16 +266,18 @@ Secondo parser.
 
 */
 ListExpr
-OutBinaryFile( ListExpr typeInfo, Word value )
-{
-  ListExpr result = nl->TextAtom();
+OutBinaryFile( ListExpr typeInfo, Word value ){
+  ListExpr result;
+  BinaryFile* binFile = static_cast<BinaryFile*>(value.addr);
 
-  BinaryFile *binFile = (BinaryFile *)value.addr;
-  string encoded;
-  binFile->Encode( encoded );
-
-  nl->AppendText( result, encoded );
-
+  if( binFile->IsDefined() ){
+    result = nl->TextAtom();
+    string encoded;
+    binFile->Encode( encoded );
+    nl->AppendText( result, encoded );
+  } else {
+    result = nl->SymbolAtom("undef");
+  }
   return result;
 }
 
@@ -243,13 +287,24 @@ OutBinaryFile( ListExpr typeInfo, Word value )
 */
 Word
 InBinaryFile( const ListExpr typeInfo, const ListExpr instance,
-           const int errorPos, ListExpr& errorInfo, bool& correct )
-{
-  BinaryFile *binFile = new BinaryFile( 0 );
+           const int errorPos, ListExpr& errorInfo, bool& correct ){
+  BinaryFile *binFile = 0;
+  ListExpr First;
+  if (nl->ListLength( instance ) == 1)
+    First = nl->First(instance);
+  else
+    First = instance;
 
-  if( nl->IsAtom( instance ) &&
-      nl->AtomType( instance ) == TextType )
+  if ( nl->IsAtom( First ) && nl->AtomType( First ) == SymbolType
+       && nl->SymbolValue( First ) == "undef" )
   {
+    binFile = new BinaryFile( 0, false );
+    correct = true;
+    return SetWord(binFile);
+  }
+
+  if( nl->IsAtom( First ) && nl->AtomType( First ) == TextType ){
+    binFile = new BinaryFile( 0, true );
     string encoded;
     nl->Text2String( instance, encoded );
     //ofstream f;
@@ -261,6 +316,7 @@ InBinaryFile( const ListExpr typeInfo, const ListExpr instance,
     correct = true;
     return SetWord( binFile );
   }
+
   correct = false;
   return SetWord( Address(0) );
 }
@@ -270,8 +326,7 @@ InBinaryFile( const ListExpr typeInfo, const ListExpr instance,
 
 */
 ListExpr
-BinaryFileProperty()
-{
+BinaryFileProperty(){
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),
@@ -286,8 +341,7 @@ BinaryFileProperty()
 }
 
 ListExpr
-FilePathProperty()
-{
+FilePathProperty(){
   return (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),
@@ -305,9 +359,8 @@ FilePathProperty()
 
 */
 Word
-CreateBinaryFile( const ListExpr typeInfo )
-{
-  return SetWord( new BinaryFile( 0 ) );
+CreateBinaryFile( const ListExpr typeInfo ){
+  return SetWord( new BinaryFile( 0, true ) );
 }
 
 /*
@@ -317,7 +370,7 @@ CreateBinaryFile( const ListExpr typeInfo )
 void
 DeleteBinaryFile( const ListExpr typeInfo, Word& w )
 {
-  BinaryFile *binFile = (BinaryFile *)w.addr;
+  BinaryFile *binFile = static_cast<BinaryFile*>(w.addr);
   binFile->Destroy();
   delete binFile;
   w.addr = 0;
@@ -336,7 +389,7 @@ OpenBinaryFile( SmiRecord& valueRecord,
   // This Open function is implemented in the Attribute class
   // and uses the same method of the Tuple manager to open objects
   BinaryFile *bf =
-    (BinaryFile*)Attribute::Open( valueRecord, offset, typeInfo );
+    static_cast<BinaryFile*>(Attribute::Open( valueRecord, offset, typeInfo ));
   value = SetWord( bf );
   return true;
 }
@@ -351,7 +404,7 @@ SaveBinaryFile( SmiRecord& valueRecord,
                 const ListExpr typeInfo,
                 Word& value )
 {
-  BinaryFile *bf = (BinaryFile *)value.addr;
+  BinaryFile *bf = static_cast<BinaryFile*>(value.addr);
 
   // This Save function is implemented in the Attribute class
   // and uses the same method of the Tuple manager to save objects
@@ -366,7 +419,7 @@ SaveBinaryFile( SmiRecord& valueRecord,
 void
 CloseBinaryFile( const ListExpr typeInfo, Word& w )
 {
-  delete (BinaryFile *)w.addr;
+  delete static_cast<BinaryFile*>(w.addr);
   w.addr = 0;
 }
 
@@ -377,7 +430,7 @@ CloseBinaryFile( const ListExpr typeInfo, Word& w )
 Word
 CloneBinaryFile( const ListExpr typeInfo, const Word& w )
 {
-  return SetWord( ((BinaryFile *)w.addr)->Clone() );
+  return SetWord( (static_cast<BinaryFile*>(w.addr))->Clone() );
 }
 
 /*
@@ -393,11 +446,9 @@ SizeOfBinaryFile()
 /*
 2.13 ~Cast~-function
 
+We use a static cast function here...
+
 */
-void* CastBinaryFile( void* addr )
-{
-  return new (addr) BinaryFile;
-}
 
 /*
 2.14 Kind Checking Function
@@ -429,7 +480,7 @@ TypeConstructor binfile(
   CreateBinaryFile,  DeleteBinaryFile, //object creation and deletion
   OpenBinaryFile,    SaveBinaryFile,   //object open and save
   CloseBinaryFile,   CloneBinaryFile,  //object close and clone
-  CastBinaryFile,                      //cast function
+  BinaryFile::Cast,                    //cast function
   SizeOfBinaryFile,                    //sizeof function
 CheckBinaryFile );                     //kind checking function
 
@@ -479,7 +530,7 @@ SaveToTypeMap( ListExpr args )
 
 /*
 
-4.1.2 Value mapping functions of operator ~saveto~
+4.1.2 Value mapping function of operator ~saveto~
 
 */
 int
@@ -487,13 +538,15 @@ SaveToFun(Word* args, Word& result, int message,
           Word& local, Supplier s)
 {
   result = qp->ResultStorage( s );
-  BinaryFile *binFile = (BinaryFile*)args[0].addr;
-  CcString *fileName = (CcString*)args[1].addr;
+  BinaryFile *binFile = static_cast<BinaryFile*>(args[0].addr);
+  CcString *fileName = static_cast<CcString*>(args[1].addr);
 
-  if( binFile->SaveToFile( *(fileName->GetStringval()) ) )
-    ((CcBool *)result.addr)->Set( true, true );
+  if( !binFile->IsDefined() || !fileName->IsDefined() ){
+    (static_cast<CcBool*>(result.addr))->Set( false, false );
+  } else if( binFile->SaveToFile( *(fileName->GetStringval()) ) )
+    (static_cast<CcBool*>(result.addr))->Set( true, true );
   else
-    ((CcBool *)result.addr)->Set( true, false );
+    (static_cast<CcBool*>(result.addr))->Set( true, false );
 
   return 0;
 }
@@ -510,7 +563,9 @@ const string SaveToSpec  =
   "</text--->"
   "<text>_ saveto _</text--->"
   "<text>Saves the contents of the object into a "
-  "file.</text--->"
+  "file. if either of the objects is undefined, so is the result. Otherwise, "
+  "the result of the save operation is returne (success:TRUE, failure:FALSE)"
+  "</text--->"
   "<text>query bin saveto \"filename.dat\"</text--->"
   ") )";
 
