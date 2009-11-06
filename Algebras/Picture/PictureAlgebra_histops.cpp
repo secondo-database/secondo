@@ -454,9 +454,10 @@ int PictureColordistValueMap(Word* args,
     //
     if ( pic->IsDefined() ) 
     {
-        res->CopyFrom( 
-             (const Attribute *) pic->Colordist(
-                                HistogramChannel(channel->GetIntval())));
+        Histogram* hist = pic->Colordist(
+                                HistogramChannel(channel->GetIntval())); 
+        res->CopyFrom( (const Attribute *) hist);
+        delete hist;
     }
     else
     {

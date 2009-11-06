@@ -69,7 +69,7 @@ Histogram::Histogram( unsigned char * rgbData,
     //
     histogramMaxValue = 0.0;
     channel = HistogramChannel(0);
-    isDefined = false;
+    SetDefined(false);
     for ( int i=0; i<256; i++ ) 
     {
         histogram[i] = 0.0;
@@ -86,8 +86,7 @@ Histogram::Histogram( unsigned char * rgbData,
     }
 
     channel = _channel;
-    isDefined = true;
-
+    SetDefined(true);
 
     unsigned int no;
 
@@ -166,7 +165,7 @@ Histogram::Histogram( double * _histogram,
     //  Initialise the histogram array and the channel !
     //
     channel = HistogramChannel(0);
-    isDefined = false;
+    SetDefined(false);
     for ( int i=0; i<256; i++ )
         histogram[i] = 0.0;
 
@@ -187,7 +186,7 @@ Histogram::Histogram( double * _histogram,
     //
     channel = _channel;
     histogramMaxValue = maxValue;
-    isDefined = true;
+    SetDefined(true);
 
     for ( int i=0; i<256; i++ )
     {
@@ -268,7 +267,7 @@ size_t Histogram::HashValue(void) const {
 
     unsigned long h = 0;
 
-    if ( !isDefined) return 0;
+    if ( !IsDefined()) return 0;
 
     for ( int i=0; i<256; i++ )
         h += ((int) (histogram[i]*100)) * (i+1) + channel;
@@ -284,9 +283,9 @@ void Histogram::CopyFrom(const Attribute* attr) {
     //
     //  copy all attributes
     //
-    isDefined = h->isDefined;
+    SetDefined( h->IsDefined());
 
-    if ( ! isDefined )
+    if ( ! IsDefined() )
         return;
 
     channel   = h->channel;

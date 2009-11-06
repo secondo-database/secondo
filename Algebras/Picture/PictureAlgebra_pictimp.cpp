@@ -52,6 +52,7 @@ using namespace std;
 
 #include "DateTime.h"
 #include "LogMsg.h"
+#include "../../Tools/Flob/Flob.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -104,7 +105,7 @@ Picture::Picture(string imgdataB64,
     strcpy(category, cat.c_str());
     strcpy(date, dt.c_str());
     isPortrait = isp;
-    isDefined = true;
+    SetDefined(true);
 
     if (PA_DEBUG) {
         cerr << "Picture::Picture()-1 imgdataBase64.length()="
@@ -174,7 +175,7 @@ Picture::Picture(string imgdataB64,
 
         delete[] imgdata;
         jpegData = 0;
-        isDefined = false;
+        SetDefined(false);
         return;
     }
 
@@ -191,7 +192,7 @@ Picture::Picture(string imgdataB64,
                      << endl;
             delete[] imgdata;
             jpegData = 0;
-            isDefined = false;
+            SetDefined(false);
             return;
         } else {
             delete[] imgdata;
@@ -210,8 +211,8 @@ Picture::Picture(string imgdataB64,
         delete converter;
     }
 
-    jpegData.Resize(len);
-    jpegData.Put(0, len, imgdata);
+    jpegData.resize(len);
+    jpegData.write(imgdata, len);
 
     //if (PA_DEBUG)
     //  cerr << "Picture::Picture()-1 jpegData="
@@ -317,11 +318,13 @@ string Picture::GetJPEGBase64Data(void) {
     Base64 b64;
 
     unsigned long size;
-    const char* imgdata = GetJPEGData(size);
+    char* imgdata = GetJPEGData(size);
 
     string res;
 
     b64.encode(imgdata, size, res);
+
+    delete [] imgdata;
 
     if (PA_DEBUG) 
         cerr << "Picture::GetJPEGBase64Data() res.length()=" 
@@ -331,12 +334,12 @@ string Picture::GetJPEGBase64Data(void) {
     return res;
 }
 
-const char* Picture::GetJPEGData(unsigned long& size) const {
+char* Picture::GetJPEGData(unsigned long& size) const {
     if (PA_DEBUG) cerr << "Picture::GetJPEGData() called" << endl;
 
-    size = jpegData.Size();
-    const char* buf;
-    jpegData.Get(0, &buf);
+    size = jpegData.getSize();
+    char* buf = new char[size];
+    jpegData.read(buf, size);
     return buf;
 }
 
@@ -358,12 +361,10 @@ void Picture::Set(char* imgdata,
     strcpy(category, cat.c_str());
     strcpy(date, dt.c_str());
     isPortrait = isp;
-    isDefined = true;
+    SetDefined(true);
 
-    //jpegData = new FLOB(size);
-    jpegData = 0;
-    jpegData.Resize(size);
-    jpegData.Put(0, size, imgdata);
+    jpegData.resize(size);
+    jpegData.write(imgdata, size);
 
     createHistograms(imgdata, size);
 
@@ -379,7 +380,7 @@ void Picture::Set(char* imgdata,
 size_t Picture::HashValue(void) const {
     if (PA_DEBUG) cerr << "Picture::HashValue() called" << endl;
 
-    if (!isDefined) return 0;
+    if (!IsDefined()) return 0;
 
     unsigned long h = 0;
 
@@ -395,8 +396,9 @@ size_t Picture::HashValue(void) const {
     h = 5*h+(isPortrait ? 1 : 0);
 
     unsigned long size;
-    const char* buf = GetJPEGData(size);
+    char* buf = GetJPEGData(size);
     for (unsigned int i = 0; i < size; i++) h = 5*h+buf[i];
+    delete [] buf;
 
     return h;
 }
@@ -409,9 +411,9 @@ void Picture::CopyFrom(const Attribute* attr) {
     // copy simple attributes
 
     jpegData = 0;
-    isDefined = p->isDefined;
+    SetDefined( p->IsDefined());
 
-    if (isDefined) {
+    if (IsDefined()) {
         isPortrait = p->isPortrait;
         strcpy(filename, p->filename);
         strcpy(category, p->category);
@@ -420,12 +422,7 @@ void Picture::CopyFrom(const Attribute* attr) {
         if (PA_DEBUG) 
             cerr << "Picture::CopyFrom() filename" << p->filename << endl;
     
-        unsigned long size;
-        const char* buf = p->GetJPEGData(size);
-    
-        jpegData.Resize(size);
-        jpegData.Put(0, size, buf);
-
+        jpegData.copyFrom(p->jpegData);
         memcpy(histogram, p->histogram, sizeof(histogram));
     }
 }
@@ -466,7 +463,7 @@ int Picture::Compare(const Attribute* a) const  {
 Picture* Picture::Clone(void) const {
     if (PA_DEBUG) cerr << "Picture::Clone() called" << endl;
 
-    Picture* p = new Picture;
+    Picture* p = new Picture(0);
 
     if (PA_DEBUG) cerr << "Picture::Clone() address is " << (void*) p << endl;
 
@@ -485,7 +482,7 @@ bool Picture::Export(string filename) {
     if (PA_DEBUG) cerr << "Picture::Export() called" << endl;
 
     unsigned long size;
-    const char* buf = GetJPEGData(size);
+    char* buf = GetJPEGData(size);
 
     ofstream ofs(filename.c_str(), ios::out|ios::trunc|ios::binary);
     if (!ofs) {
@@ -495,7 +492,7 @@ bool Picture::Export(string filename) {
 
     ofs.write(buf, size);
     ofs.close();
-
+    delete[] buf;
     return true;
 }
 
@@ -506,7 +503,7 @@ bool Picture::Display(void) {
 
     static unsigned int fileCtr = 0;
     unsigned long size;
-    const char* buf = GetJPEGData(size);
+    char* buf = GetJPEGData(size);
 
     stringstream fileStr;
     fileStr << "/tmp/SECONDO.PictureAlgebra.";
@@ -520,6 +517,8 @@ bool Picture::Display(void) {
              << "': "
              << endl;
         perror("mkstemp");
+        free(filename);
+        delete[] buf;
         return false;
     }
 
@@ -532,6 +531,8 @@ bool Picture::Display(void) {
              << "': ";
         perror("write");
         unlink(filename);
+        free(filename);
+        delete[] buf;
         return false;
     } else if (len != size) {
         cerr << "Picture::Display() could only partially write to temp file '"
@@ -539,6 +540,8 @@ bool Picture::Display(void) {
              << "'"
              << endl;
         unlink(filename);
+        free(filename);
+        delete[] buf;
         return false;
     }
     
@@ -557,8 +560,13 @@ bool Picture::Display(void) {
              << filename
              << "': ";
         perror("unlink");
+        free(filename);
+        delete[] buf;
         return false;
     }
+
+    free(filename);
+    delete[] buf;
 
 #else
 
@@ -580,14 +588,17 @@ int Picture::SimpleCompare(const Attribute* a) const {
     const Picture* p = (const Picture*) a;
 
     unsigned long size1;
-    const char* buf1 = GetJPEGData(size1);
+    char* buf1 = GetJPEGData(size1);
 
     unsigned long size2;
-    const char* buf2 = p->GetJPEGData(size2);
+    char* buf2 = p->GetJPEGData(size2);
 
     int size = size1 < size2 ? size1 : size2;
 
     int res = memcmp(buf1, buf2, size);
+
+    delete [] buf1;
+    delete [] buf2;
 
     if (res != 0)   
         return res;
@@ -784,158 +795,15 @@ static bool OpenPicture(SmiRecord& rec, size_t& offset,
                         const ListExpr typeInfo,
                         Word& w) {
     if (PA_DEBUG) cerr << "OpenPicture() called" << endl;
-
-    bool isDefined;
-    bool isPortrait;
-    STRING_T filename;
-    STRING_T category;
-    STRING_T date;
-
-    unsigned int pos = 0;
-
-    if (rec.Read(&isDefined, sizeof(bool), pos) != sizeof(bool)) {
-        cerr << "OpenPicture() could not read defined flag" << endl;
-        return false;
-    }
-    if (PA_DEBUG) cerr << "OpenPicture() isDefined=" << isDefined << endl;
-
-    if (!isDefined) {
-        w.addr = new Picture(false);
-        return true;
-    }
-
-    pos += sizeof(bool);
-
-    if (rec.Read(filename, sizeof(STRING_T), pos) != sizeof(STRING_T)) {
-        cerr << "OpenPicture() could not read filename" << endl;
-        return false;
-    }
-    pos += sizeof(STRING_T);
-    if (PA_DEBUG) cerr << "OpenPicture() filename=" << filename << endl;
-
-    if (rec.Read(category, sizeof(STRING_T), pos) != sizeof(STRING_T)) {
-        cerr << "OpenPicture() could not read category" << endl;
-        return false;
-    }
-    pos += sizeof(STRING_T);
-    if (PA_DEBUG) cerr << "OpenPicture() category=" << category << endl;
-
-    if (rec.Read(date, sizeof(STRING_T), pos) != sizeof(STRING_T)) {
-        cerr << "OpenPicture() could not read date" << endl;
-        return false;
-    }
-    pos += sizeof(STRING_T);
-    if (PA_DEBUG) cerr << "OpenPicture() date=" << date << endl;
-
-    if (rec.Read(&isPortrait, sizeof(bool), pos) != sizeof(bool)) {
-        cerr << "OpenPicture() could not read portrait flag" << endl;
-        return false;
-    }
-    pos += sizeof(bool);
-    if (PA_DEBUG) cerr << "OpenPicture() isPortrait=" << isPortrait << endl;
-
-    unsigned int jpegSize;
-
-    if (rec.Read(&jpegSize, sizeof(unsigned int), pos) 
-        != sizeof(unsigned int)) {
-        cerr << "OpenPicture() could not read JPEG data size" << endl;
-        return false;
-    }
-    pos += sizeof(unsigned int);
-    if (PA_DEBUG) cerr << "OpenPicture() jpegSize=" << jpegSize << endl;
-
-    char* jpegData = new char[jpegSize];
-
-    if (rec.Read(jpegData, jpegSize, pos) != jpegSize) {
-        cerr << "OpenPicture() could not read JPEG data" << endl;
-        return false;
-    }
-
-    w.addr = 
-        new Picture(jpegData, jpegSize, filename, category, isPortrait, date);
-           
-    delete[] jpegData;
-
-    return true;
+    
+    return OpenAttribute<Picture>(rec, offset, typeInfo,w);
 }
 
 static bool SavePicture(SmiRecord& rec, size_t& offset,
                         const ListExpr typeInfo,
                         Word& w) {
     if (PA_DEBUG) cerr << "SavePicture() called" << endl;
-
-    Picture* p = (Picture*) w.addr;
-
-    bool isDefined = p->IsDefined();
-
-    unsigned int pos = 0;
-
-    if (rec.Write(&isDefined, sizeof(bool), pos) != sizeof(bool)) {
-        cerr << "SavePicture() could not write defined flag of " 
-             << (void*) p 
-             << endl;
-        return false;
-    }
-
-    if (!isDefined) return true;
-
-    pos += sizeof(bool);
-
-    if (rec.Write(p->GetFilename().c_str(), sizeof(STRING_T), pos) 
-        != sizeof(STRING_T)) {
-        cerr << "SavePicture() could not write filename of " 
-             << (void*) p 
-             << endl;
-        return false;
-    }
-    pos += sizeof(STRING_T);
-    if (rec.Write(p->GetCategory().c_str(), sizeof(STRING_T), pos) 
-        != sizeof(STRING_T)) {
-        cerr << "SavePicture() could not write category of " 
-             << (void*) p 
-             << endl;
-        return false;
-    }
-    pos += sizeof(STRING_T);
-    if (rec.Write(p->GetDate().c_str(), sizeof(STRING_T), pos) 
-        != sizeof(STRING_T)) {
-        cerr << "SavePicture() could not write date of " 
-             << (void*) p 
-             << endl;
-        return false;
-    }
-    pos += sizeof(STRING_T);
-
-    bool isPortrait = p->IsPortrait();
-
-    if (rec.Write(&isPortrait, sizeof(bool), pos) != sizeof(bool)) {
-        cerr << "SavePicture() could not write portrait flag of " 
-             << (void*) p 
-             << endl;
-        return false;
-    }
-    pos += sizeof(bool);
-
-    unsigned long jpegSize;
-    const char* jpegData = p->GetJPEGData(jpegSize);
-
-    if (rec.Write(&jpegSize, sizeof(unsigned int), pos) 
-        != sizeof(unsigned int)) {
-        cerr << "SavePicture() could not write JPEG data size of " 
-             << (void*) p 
-             << endl;
-        return false;
-    }
-    pos += sizeof(unsigned int);
-
-    if (rec.Write(jpegData, jpegSize, pos) != jpegSize) {
-        cerr << "SavePicture() could not write JPEG data of " 
-             << (void*) p 
-             << endl;
-        return false;
-    }
-
-    return true;
+    return SaveAttribute<Picture>(rec, offset, typeInfo, w);
 }
 
 /*
@@ -981,7 +849,6 @@ TypeConstructor* picture = 0;
     0, 0,                                     //SaveToList and RestoreFromList 
                                               //  functions
     CreatePicture, DeletePicture,             //object creation and deletion
-//    0, 0,                                     //object open and save
     OpenPicture, SavePicture,                 //object open and save
     ClosePicture, ClonePicture,               //object close and clone
     CastPicture,                              //cast function

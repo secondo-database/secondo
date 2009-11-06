@@ -18,7 +18,8 @@ M[ue]nx during Prof. G[ue]ting's practical course
 See the documentation of ~PictureAlgebra.h~ for a general introduction to
 the Picture algebra.
 
-This module contains the JPEG memory manager. This manager uses the jpeg lib to compress the
+This module contains the JPEG memory manager. This manager uses the 
+jpeg lib to compress the
 image data and to decompress jpeg data to a given memory buffer.
 
 2 Includes and other preparations
@@ -40,15 +41,15 @@ Expanded data source object for mem input
 
 typedef struct
 {
-	struct jpeg_source_mgr pub;	
-	/*
-	public fields
-	*/
-	unsigned long src_pos;
-	unsigned long src_size;
-	unsigned char *src_buffer;
-	JOCTET * buffer;
-	boolean start_of_file;
+      struct jpeg_source_mgr pub;      
+      /*
+      public fields
+      */
+      unsigned long src_pos;
+      unsigned long src_size;
+      unsigned char *src_buffer;
+      JOCTET * buffer;
+      boolean start_of_file;
 } 
 mem_source_mgr;
 
@@ -64,7 +65,7 @@ typedef mem_source_mgr * mem_src_ptr;
 
 METHODDEF(void) mem_init_source (j_decompress_ptr cinfo)
 {
-	mem_src_ptr src = (mem_src_ptr) cinfo->src;
+      mem_src_ptr src = (mem_src_ptr) cinfo->src;
 
 /*
   We reset the empty-input-file flag for each image,
@@ -72,7 +73,7 @@ METHODDEF(void) mem_init_source (j_decompress_ptr cinfo)
   This is correct behavior for reading a series of images from one source.
 
 */
-	src->start_of_file = TRUE;
+      src->start_of_file = TRUE;
 }
 
 
@@ -83,25 +84,25 @@ METHODDEF(void) mem_init_source (j_decompress_ptr cinfo)
 */
 METHODDEF(boolean) mem_fill_input_buffer (j_decompress_ptr cinfo)
 {
-	mem_src_ptr src = (mem_src_ptr) cinfo->src;
-	size_t nbytes;
+      mem_src_ptr src = (mem_src_ptr) cinfo->src;
+      size_t nbytes;
 
-	nbytes = INPUT_BUF_SIZE;
-	if (src->src_pos + INPUT_BUF_SIZE > src->src_size)
-	{
-		nbytes = src->src_size - src->src_pos;
-	}
+      nbytes = INPUT_BUF_SIZE;
+      if (src->src_pos + INPUT_BUF_SIZE > src->src_size)
+      {
+            nbytes = src->src_size - src->src_pos;
+      }
 
-	memcpy(src->buffer, 
-	       (unsigned char*)((unsigned long)src->src_buffer + src->src_pos),
-	       nbytes);
-	src->src_pos += nbytes;
+      memcpy(src->buffer, 
+             (unsigned char*)((unsigned long)src->src_buffer + src->src_pos),
+             nbytes);
+      src->src_pos += nbytes;
 
-	src->pub.next_input_byte = src->buffer;
-	src->pub.bytes_in_buffer = nbytes;
-	src->start_of_file = FALSE;
+      src->pub.next_input_byte = src->buffer;
+      src->pub.bytes_in_buffer = nbytes;
+      src->start_of_file = FALSE;
 
-	return TRUE;
+      return TRUE;
 }
 
 
@@ -181,10 +182,10 @@ METHODDEF(void) mem_term_source (j_decompress_ptr cinfo)
 */
 
 GLOBAL(void) jpeg_mem_src (j_decompress_ptr cinfo, 
-			   unsigned char *JPEGBuffer, 
-			   unsigned long JPEGBufferSize)
+                     unsigned char *JPEGBuffer, 
+                     unsigned long JPEGBufferSize)
 {
-	mem_src_ptr src;
+      mem_src_ptr src;
 
 /*
   The source object and input buffer are made permanent so that a series
@@ -195,39 +196,39 @@ GLOBAL(void) jpeg_mem_src (j_decompress_ptr cinfo,
   manager serially with the same JPEG object.  Caveat programmer.
 
 */
-	if (cinfo->src == NULL)
-	{	
+      if (cinfo->src == NULL)
+      {      
 /*
   first time for this JPEG object?
 
 */
-		cinfo->src = 
-		    (struct jpeg_source_mgr *)
-		    (*cinfo->mem->alloc_small) (
-			(j_common_ptr) cinfo, 
-			JPOOL_PERMANENT, 
-			SIZEOF(mem_source_mgr));
-		
-		src = (mem_src_ptr) cinfo->src;
-		src->buffer = 
-		    (JOCTET *)
-		    (*cinfo->mem->alloc_small) (
-			(j_common_ptr) cinfo, 
-			JPOOL_PERMANENT, 
-			INPUT_BUF_SIZE * SIZEOF(JOCTET));
-	}
-	
-	src				= (mem_src_ptr) cinfo->src;
-	src->pub.init_source		= mem_init_source;
-	src->pub.fill_input_buffer	= mem_fill_input_buffer;
-	src->pub.skip_input_data	= mem_skip_input_data;
-	src->pub.resync_to_restart	= jpeg_resync_to_restart;
-	src->pub.term_source		= mem_term_source;
-	src->src_buffer			= JPEGBuffer;
-	src->src_size			= JPEGBufferSize;
-	src->src_pos			= 0;
-	src->pub.bytes_in_buffer	= 0;
-	src->pub.next_input_byte	= NULL;
+            cinfo->src = 
+                (struct jpeg_source_mgr *)
+                (*cinfo->mem->alloc_small) (
+                  (j_common_ptr) cinfo, 
+                  JPOOL_PERMANENT, 
+                  SIZEOF(mem_source_mgr));
+            
+            src = (mem_src_ptr) cinfo->src;
+            src->buffer = 
+                (JOCTET *)
+                (*cinfo->mem->alloc_small) (
+                  (j_common_ptr) cinfo, 
+                  JPOOL_PERMANENT, 
+                  INPUT_BUF_SIZE * SIZEOF(JOCTET));
+      }
+      
+      src                        = (mem_src_ptr) cinfo->src;
+      src->pub.init_source            = mem_init_source;
+      src->pub.fill_input_buffer      = mem_fill_input_buffer;
+      src->pub.skip_input_data      = mem_skip_input_data;
+      src->pub.resync_to_restart      = jpeg_resync_to_restart;
+      src->pub.term_source            = mem_term_source;
+      src->src_buffer                  = JPEGBuffer;
+      src->src_size                  = JPEGBufferSize;
+      src->src_pos                  = 0;
+      src->pub.bytes_in_buffer      = 0;
+      src->pub.next_input_byte      = NULL;
 }
 
 /*
@@ -237,14 +238,14 @@ Expanded data destination object for stdio output
 
 typedef struct 
 {
-	struct jpeg_destination_mgr pub;
+      struct jpeg_destination_mgr pub;
 
-	unsigned char *dest_buffer;
-	unsigned long dest_size;
+      unsigned char *dest_buffer;
+      unsigned long dest_size;
 
-	unsigned char **ret_buffer;
-	unsigned long *ret_size;
-	JOCTET * buffer;
+      unsigned char **ret_buffer;
+      unsigned long *ret_size;
+      JOCTET * buffer;
 }
 mem_destination_mgr;
 
@@ -269,7 +270,7 @@ METHODDEF(void) mem_init_destination (j_compress_ptr cinfo)
  */
   dest->buffer = (JOCTET *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
-				  OUTPUT_BUF_SIZE * SIZEOF(JOCTET));
+                          OUTPUT_BUF_SIZE * SIZEOF(JOCTET));
 
   dest->pub.next_output_byte = dest->buffer;
   dest->pub.free_in_buffer = OUTPUT_BUF_SIZE;
@@ -281,7 +282,7 @@ METHODDEF(void) mem_init_destination (j_compress_ptr cinfo)
 
   if (size < OUTPUT_BUF_SIZE)
   {
-	  size = OUTPUT_BUF_SIZE;
+        size = OUTPUT_BUF_SIZE;
   }
   dest->dest_buffer = new unsigned char[size];
   dest->dest_size = 0;
@@ -322,8 +323,8 @@ METHODDEF(boolean) mem_empty_output_buffer (j_compress_ptr cinfo)
 
 */
   memcpy((unsigned char*)((unsigned long)dest->dest_buffer + dest->dest_size), 
-	 dest->buffer, 
-	 OUTPUT_BUF_SIZE);
+       dest->buffer, 
+       OUTPUT_BUF_SIZE);
   dest->dest_size += OUTPUT_BUF_SIZE;
 
   dest->pub.next_output_byte = dest->buffer;
@@ -354,8 +355,9 @@ METHODDEF(void) mem_term_destination (j_compress_ptr cinfo)
 */
   if (datacount > 0)
   {
-	memcpy((unsigned char*)((unsigned long)dest->dest_buffer + dest->dest_size), dest->buffer, datacount);
-	dest->dest_size += datacount;
+      memcpy((unsigned char*)((unsigned long)dest->dest_buffer + 
+             dest->dest_size), dest->buffer, datacount);
+      dest->dest_size += datacount;
   }
 
   *dest->ret_buffer = dest->dest_buffer;
@@ -370,7 +372,9 @@ METHODDEF(void) mem_term_destination (j_compress_ptr cinfo)
 
 */
 
-GLOBAL(void) jpeg_mem_dest (j_compress_ptr cinfo, unsigned char **JPEGBuffer, unsigned long *JPEGBufferSize)
+GLOBAL(void) jpeg_mem_dest (j_compress_ptr cinfo,  
+                            unsigned char **JPEGBuffer, 
+                            unsigned long *JPEGBufferSize)
 {
   mem_dest_ptr dest;
 
@@ -385,7 +389,7 @@ GLOBAL(void) jpeg_mem_dest (j_compress_ptr cinfo, unsigned char **JPEGBuffer, un
   if (cinfo->dest == NULL) {
     cinfo->dest = (struct jpeg_destination_mgr *)
       (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
-				  SIZEOF(mem_destination_mgr));
+                          SIZEOF(mem_destination_mgr));
   }
 
   dest = (mem_dest_ptr) cinfo->dest;
@@ -398,7 +402,7 @@ GLOBAL(void) jpeg_mem_dest (j_compress_ptr cinfo, unsigned char **JPEGBuffer, un
 
 GLOBAL(void) jpeg_finish_mem_dest (j_compress_ptr cinfo)
 {
-	mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
+      mem_dest_ptr dest = (mem_dest_ptr) cinfo->dest;
 
-	delete dest->dest_buffer;
+      delete dest->dest_buffer;
 }

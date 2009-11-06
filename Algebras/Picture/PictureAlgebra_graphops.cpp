@@ -52,15 +52,17 @@ void Picture::Scale(Picture *pic, int w, int h) {
 
     // check for invalid parameters 
     if (w <= 0 || h <= 0) {
-	pic->jpegData = 0;
-	pic->isDefined = false;
-	return;
+       pic->jpegData = 0;
+       pic->SetDefined(false);
+       return;
     }
 
-    unsigned long size	= 0;
-    const char *buffer = GetJPEGData(size);
+    unsigned long size      = 0;
+    char *buffer = GetJPEGData(size);
     // create picture
-    JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
+    JPEGPicture *jpg = new JPEGPicture((unsigned char*)buffer, 
+                                       (unsigned long)size);
+    delete[] buffer;
 
     // scale
     JPEGPicture *scale = jpg->scale(w, h);
@@ -75,11 +77,12 @@ void Picture::Scale(Picture *pic, int w, int h) {
     delete scale;
 
     pic->Set(buf, 
-	     size, 
-	     filename, 
-	     category, 
-	     w > h ? false : true, 
-	     date);
+           size, 
+           filename, 
+           category, 
+           w > h ? false : true, 
+           date);
+    delete[] buf;
 }
 
 void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
@@ -87,17 +90,19 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
 
     // check for invalid parameters (further checks done in jpg->cut() later)
     if (x < 0 || y < 0 || w <= 0 || h <= 0) {
-	if (PA_DEBUG) cerr << "Picture::Cut() error #1" << endl;
+      if (PA_DEBUG) cerr << "Picture::Cut() error #1" << endl;
 
-	pic->jpegData = 0;
-	pic->isDefined = false;
-	return;
+      pic->jpegData = 0;
+      pic->SetDefined(false);
+      return;
     }
 
-    unsigned long size	= 0;
-    const char *buffer	= GetJPEGData(size);
+    unsigned long size      = 0;
+    char* buffer      = GetJPEGData(size);
     // create picture
-    JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
+    JPEGPicture *jpg  = new JPEGPicture((unsigned char*)buffer, 
+                                        (unsigned long)size);
+    delete[] buffer;
 
     // cut the image
     JPEGPicture *cut = jpg->cut(x, y, w, h);
@@ -107,11 +112,11 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
 
     // check for errors
     if (cut == 0) {
-	if (PA_DEBUG) cerr << "Picture::Cut() error #2" << endl;
+      if (PA_DEBUG) cerr << "Picture::Cut() error #2" << endl;
 
-	pic->jpegData = 0;
-	pic->isDefined = false;
-	return;
+      pic->jpegData = 0;
+      pic->SetDefined(false);
+      return;
     }
 
     // generate cutted jpg
@@ -121,11 +126,12 @@ void Picture::Cut(Picture *pic, int x, int y, int w, int h) {
     delete cut;
 
     pic->Set(buf, 
-	     size, 
-	     filename, 
-	     category, 
-	     w > h ? false : true, 
-	     date);
+           size, 
+           filename, 
+           category, 
+           w > h ? false : true, 
+           date);
+     delete[] buf;
 }
 
 void Picture::FlipLeft(Picture *pic, int n) {
@@ -133,16 +139,18 @@ void Picture::FlipLeft(Picture *pic, int n) {
 
     // check for invalid parameters 
     if (n < 0) {
-	pic->jpegData = 0;
-	pic->isDefined = false;
-	return;
+      pic->jpegData = 0;
+      pic->SetDefined(false);
+      return;
     }
 
-    unsigned long size	= 0;
-    const char *buffer	= GetJPEGData(size);
+    unsigned long size      = 0;
+    char *buffer      = GetJPEGData(size);
     // create picture
-     JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
+     JPEGPicture *jpg = new JPEGPicture((unsigned char*)buffer, 
+                                        (unsigned long)size);
 
+     delete[] buffer;
     // flip
     JPEGPicture *flip = jpg->flipleft((unsigned long)n);
 
@@ -156,20 +164,23 @@ void Picture::FlipLeft(Picture *pic, int n) {
     delete flip;
 
     pic->Set(buf, 
-	     size, 
-	     filename, 
-	     category, 
-	     n % 2 == 0 ? isPortrait : !isPortrait, 
-	     date);
+           size, 
+           filename, 
+           category, 
+           n % 2 == 0 ? isPortrait : !isPortrait, 
+           date);
+    delete[] buf;
 }
 
 void Picture::Mirror(Picture *pic, bool dir) {
     if (PA_DEBUG) cerr << "Picture::Mirror() called" << endl;
 
-    unsigned long size	= 0;
-    const char *buffer	= GetJPEGData(size);
+    unsigned long size      = 0;
+    char *buffer      = GetJPEGData(size);
     // create picture
-    JPEGPicture *jpg	= new JPEGPicture((unsigned char*)buffer, (unsigned long)size);
+    JPEGPicture *jpg  = new JPEGPicture((unsigned char*)buffer, 
+                                        (unsigned long)size);
+    delete[] buffer;
 
     // mirror
     JPEGPicture *mirror = jpg->mirror(dir);
@@ -184,6 +195,7 @@ void Picture::Mirror(Picture *pic, bool dir) {
     delete mirror;
 
     pic->Set(buf, size, filename, category, isPortrait, date);
+    delete[] buf;
 }
 
 /*
@@ -202,23 +214,23 @@ ListExpr PictureScaleTypeMap(ListExpr args) {
     {
       if (nl->IsEqual(nl->First(args), "picture") &&
           nl->IsEqual(nl->Second(args), "int") &&
-	  nl->IsEqual(nl->Third(args), "int"))
+        nl->IsEqual(nl->Third(args), "int"))
       {
-	  return nl->SymbolAtom("picture");
+        return nl->SymbolAtom("picture");
       }
       else
       {
-      	string s;
-	nl->WriteToString(s, args);
-	ErrorReporter::ReportError("expected 'picture x [int int]' as argument");
+            string s;
+      nl->WriteToString(s, args);
+      ErrorReporter::ReportError("expected 'picture x [int int]' as argument");
         return nl->SymbolAtom("typeerror");
       }
     }
     else
     {
       ErrorReporter::ReportError(
-	    "expected three arguments but received "
-	    +nl->ListLength(args));
+          "expected three arguments but received "
+          +nl->ListLength(args));
     }
 
     return nl->SymbolAtom("typeerror");
@@ -233,23 +245,24 @@ ListExpr PictureCutTypeMap(ListExpr args) {
           nl->IsEqual(nl->Second(args), "int") &&
           nl->IsEqual(nl->Third(args), "int") &&
           nl->IsEqual(nl->Fourth(args), "int") &&
-	  nl->IsEqual(nl->Fifth(args), "int"))
+        nl->IsEqual(nl->Fifth(args), "int"))
       {
-	  return nl->SymbolAtom("picture");
+        return nl->SymbolAtom("picture");
       }
       else
       {
-      	string s;
-	nl->WriteToString(s, args);
-	ErrorReporter::ReportError("expected 'picture x [int int int int]' as argument");
+            string s;
+      nl->WriteToString(s, args);
+      ErrorReporter::ReportError("expected 'picture x "
+                                 "[int int int int]' as argument");
         return nl->SymbolAtom("typeerror");
       }
     }
     else
     {
       ErrorReporter::ReportError(
-	    "expected five arguments but received "
-	    +nl->ListLength(args));
+          "expected five arguments but received "
+          +nl->ListLength(args));
     }
 
     return nl->SymbolAtom("typeerror");
@@ -261,23 +274,23 @@ ListExpr PictureFlipleftTypeMap(ListExpr args) {
     if ( nl->ListLength(args) == 2 )
     {
       if (nl->IsEqual(nl->First(args), "picture") &&
-	  nl->IsEqual(nl->Second(args), "int"))
+        nl->IsEqual(nl->Second(args), "int"))
       {
-	  return nl->SymbolAtom("picture");
+        return nl->SymbolAtom("picture");
       }
       else
       {
-      	string s;
-	nl->WriteToString(s, args);
-	ErrorReporter::ReportError("expected 'picture x [int]' as argument");
+            string s;
+      nl->WriteToString(s, args);
+      ErrorReporter::ReportError("expected 'picture x [int]' as argument");
         return nl->SymbolAtom("typeerror");
       }
     }
     else
     {
       ErrorReporter::ReportError(
-	    "expected two arguments but received "
-	    +nl->ListLength(args));
+          "expected two arguments but received "
+          +nl->ListLength(args));
     }
 
     return nl->SymbolAtom("typeerror");
@@ -289,23 +302,23 @@ ListExpr PictureMirrorTypeMap(ListExpr args) {
     if ( nl->ListLength(args) == 2 )
     {
       if (nl->IsEqual(nl->First(args), "picture") &&
-	  nl->IsEqual(nl->Second(args), "bool"))
+        nl->IsEqual(nl->Second(args), "bool"))
       {
-	  return nl->SymbolAtom("picture");
+        return nl->SymbolAtom("picture");
       }
       else
       {
-      	string s;
-	nl->WriteToString(s, args);
-	ErrorReporter::ReportError("expected 'picture x [bool]' as argument");
+            string s;
+      nl->WriteToString(s, args);
+      ErrorReporter::ReportError("expected 'picture x [bool]' as argument");
         return nl->SymbolAtom("typeerror");
       }
     }
     else
     {
       ErrorReporter::ReportError(
-	    "expected two arguments but received "
-	    +nl->ListLength(args));
+          "expected two arguments but received "
+          +nl->ListLength(args));
     }
 
     return nl->SymbolAtom("typeerror");
@@ -321,10 +334,10 @@ operators scale, cut, flipleft and mirror.
 */
 
 int PictureCutValueMap(Word* args,
-		       Word& result,
-		       int message,
-		       Word& local,
-		       Supplier s) {
+                   Word& result,
+                   int message,
+                   Word& local,
+                   Supplier s) {
     if (PA_DEBUG) cerr << "PictureCutValueMap() called" << endl;
 
     Picture *pic;
@@ -340,19 +353,19 @@ int PictureCutValueMap(Word* args,
     Picture* res = ((Picture*)result.addr);
 
     if ( pic->IsDefined() )
-    	pic->Cut(res, x->GetIntval(), y->GetIntval(),
-			 w->GetIntval(), h->GetIntval());
+          pic->Cut(res, x->GetIntval(), y->GetIntval(),
+                   w->GetIntval(), h->GetIntval());
     else
-	res->SetDefined( false );
+      res->SetDefined( false );
 
     return 0;
 }
 
 int PictureScaleValueMap(Word* args,
-			 Word& result,
-			 int message,
-			 Word& local,
-			 Supplier s) {
+                   Word& result,
+                   int message,
+                   Word& local,
+                   Supplier s) {
     if (PA_DEBUG) cerr << "PictureScaleValueMap() called" << endl;
 
     Picture *pic;
@@ -366,18 +379,18 @@ int PictureScaleValueMap(Word* args,
     Picture* res = ((Picture*)result.addr);
 
     if ( pic->IsDefined() )
-    	pic->Scale(res, w->GetIntval(), h->GetIntval());
+          pic->Scale(res, w->GetIntval(), h->GetIntval());
     else
-	res->SetDefined( false);
+      res->SetDefined( false);
 
     return 0;
 }
 
 int PictureFlipleftValueMap(Word* args,
-			    Word& result,
-			    int message,
-			    Word& local,
-			    Supplier s) {
+                      Word& result,
+                      int message,
+                      Word& local,
+                      Supplier s) {
     if (PA_DEBUG) cerr << "PictureFlipleftValueMap() called" << endl;
 
     Picture *pic;
@@ -389,18 +402,18 @@ int PictureFlipleftValueMap(Word* args,
     Picture* res = ((Picture*)result.addr);
 
     if ( pic->IsDefined() )
-    	pic->FlipLeft(res, n->GetIntval());
+          pic->FlipLeft(res, n->GetIntval());
     else
-	res->SetDefined( false );
+      res->SetDefined( false );
 
     return 0;
 }
 
 int PictureMirrorValueMap(Word* args,
-			  Word& result,
-			  int message,
-			  Word& local,
-			  Supplier s) {
+                    Word& result,
+                    int message,
+                    Word& local,
+                    Supplier s) {
     if (PA_DEBUG) cerr << "PictureMirrorValueMap() called" << endl;
 
 
@@ -412,9 +425,9 @@ int PictureMirrorValueMap(Word* args,
     result = qp->ResultStorage(s);
     Picture* res = ((Picture*)result.addr);
     if ( pic->IsDefined() )
-    	pic->Mirror(res, dir->GetBoolval());
+       pic->Mirror(res, dir->GetBoolval());
     else
-	res->SetDefined( false );
+      res->SetDefined( false );
     return 0;
 }
 
