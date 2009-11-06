@@ -6345,9 +6345,9 @@ lookupPred1(RealAtom, value_expr(real,RealAtom), RelsBefore, RelsBefore) :-
   atomic(RealAtom), float(RealAtom),
   !.
 
-% Primitive: text-atom
-lookupPred1(Term, value_expr(text,Term), RelsBefore, RelsBefore) :-
-  atom(Term), !.
+%% Primitive: text-atom
+%lookupPred1(Term, value_expr(text,Term), RelsBefore, RelsBefore) :-
+%  atom(Term), !.
 
 lookupPred1(Term, Term, Rels, Rels) :-
  atom(Term),
