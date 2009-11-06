@@ -123,7 +123,7 @@ Changes the capacity of an DbArray.
 
 */
 
-void Resize( const int newSize ){
+virtual void resize( const int newSize ){
    if(newSize==0){
     Clear();
     return;
@@ -330,7 +330,7 @@ virtual void Restrict( const vector< pair<int, int> >& intervals ) {
     }
     nElements = newSize / sizeof( DbArrayElement );
     maxElements = nElements;
-    Resize(nElements);
+    resize(nElements);
     Flob::write(buffer, newSize, 0);
     free(buffer);
   }

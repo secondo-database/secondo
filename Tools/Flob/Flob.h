@@ -161,7 +161,7 @@ Returns the current size of this Flob.
 Changes the size of a flob to the given one.
 
 */    
-    inline void resize(const SmiSize& newsize) { size = newsize; }
+    virtual void resize(const SmiSize& newsize) { size = newsize; }
 
 /*
 ~clean~
