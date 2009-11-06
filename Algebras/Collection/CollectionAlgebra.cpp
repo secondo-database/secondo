@@ -239,8 +239,10 @@ Necessary to difference between an empty and an undefined collection.
 #include "QueryProcessor.h"
 #include "ConstructorTemplates.h"
 #include "StandardTypes.h"
-#include "DBArray.h"
 #include "Attribute.h"
+#include "../../Tools/Flob/Flob.h"
+#include "../../Tools/Flob/DbArray.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -300,7 +302,7 @@ namespace collection {
 
     int NumOfFLOBs() const;
 
-    FLOB* GetFLOB(const int i);
+    Flob* GetFLOB(const int i);
 
     static bool Open(SmiRecord& valueRecord, size_t& offset,
                      const ListExpr typeInfo, Word& value);
@@ -319,10 +321,6 @@ namespace collection {
     bool Adjacent(const Attribute* arg) const;
 
     Collection* Clone() const;
-
-    bool IsDefined() const;
-
-    void SetDefined(const bool defined);
 
     void Finish();
 
@@ -451,7 +449,6 @@ If elem is not saved yet, -1 is returned.
 
     void AddHashValue(const int value, const int count);
 
-    bool defined;
     int elemAlgId, elemTypeId;
     int size;
 /*
@@ -470,21 +467,21 @@ See firstElemHashValue and nextElemHashValue.
     size_t hashValue;
     CollectionType collType;
 
-    DBArray<size_t> elemFLOBDataOffset;
+    DbArray<size_t> elemFLOBDataOffset;
 /*
 We use this DBArray to save the offsets at which the FLOB contents of the
 elements are saved in elementData;
 
 */
 
-    DBArray<int> elemCount;
+    DbArray<int> elemCount;
 /*
 This DBArray is used only, if our collection is a multiset, to save the count
 of every element.
 
 */
 
-    DBArray<int> elemArrayIndex;
+    DbArray<int> elemArrayIndex;
 /*
 Returns the index for every element, where index[*]sizeOfObj is the
 offset of the desired elem in the elements FLOB.
@@ -502,8 +499,8 @@ elemCount(index) (if the collection is a multiset).
 
 */
 
-    DBArray<int> firstElemHashValue;
-    DBArray<int> nextElemHashValue;
+    DbArray<int> firstElemHashValue;
+    DbArray<int> nextElemHashValue;
 /*
 To allow a fast search of an element, we save the index of the first element
 with (hashvalue mod numOfBuckets) in this array at (hashvalue mod
@@ -518,8 +515,8 @@ fast.
 
 */
 
-    FLOB elements;
-    FLOB elementData;
+    Flob elements;
+    Flob elementData;
 /*
 In this FLOB we save the data of our elements.
 
@@ -540,7 +537,7 @@ Create a Collection of type (vector, set, multiset or undef) with typeInfo.
 */
   Collection::Collection(const CollectionType type, const ListExpr typeInfo,
                                 const int buckets /* = 10 */):
-    defined(false), size(0), hashValue(0), collType(type),
+    size(0), hashValue(0), collType(type),
     elemFLOBDataOffset(0), elemCount(0), elemArrayIndex(0),
     firstElemHashValue(0), nextElemHashValue(0),
     elements(0), elementData(0)
@@ -548,6 +545,7 @@ Create a Collection of type (vector, set, multiset or undef) with typeInfo.
 #ifdef DEBUGHEAD
 cout << "Collection(1)" << endl;
 #endif
+    SetDefined(false);
     GetIds(elemAlgId, elemTypeId, typeInfo);
     numOfBuckets = buckets;
     if(buckets < 10) {
@@ -586,46 +584,17 @@ cout << "Collection(2)" << endl;
       hashValue = coll.hashValue;
       numOfBuckets = coll.numOfBuckets;
 
-      for(int i=0;i<coll.elemFLOBDataOffset.Size();i++) {
-        const size_t* offset;
-        coll.elemFLOBDataOffset.Get(i, offset);
-        elemFLOBDataOffset.Append(*offset);
-      }
+      elemFLOBDataOffset.copyFrom(coll.elemFLOBDataOffset);
+      elemCount.copyFrom(coll.elemCount);
+      elemArrayIndex.copyFrom(coll.elemArrayIndex);
+      firstElemHashValue.copyFrom(coll.firstElemHashValue);
+      nextElemHashValue.copyFrom(coll.nextElemHashValue);
 
-      for(int i=0;i<coll.elemCount.Size();i++) {
-        const int* count;
-        coll.elemCount.Get(i, count);
-        elemCount.Append(*count);
+      if(coll.elements.getSize()>0) {
+        elements.copyFrom(coll.elements);
       }
-
-      for(int i=0;i<coll.elemArrayIndex.Size();i++) {
-        const int* index;
-        coll.elemArrayIndex.Get(i, index);
-        elemArrayIndex.Append(*index);
-      }
-
-      for(int i=0;i<coll.firstElemHashValue.Size();i++) {
-        const int* elem;
-        coll.firstElemHashValue.Get(i, elem);
-        firstElemHashValue.Append(*elem);
-      }
-
-      for(int i=0;i<coll.nextElemHashValue.Size();i++) {
-        const int* elem;
-        coll.nextElemHashValue.Get(i, elem);
-        nextElemHashValue.Append(*elem);
-      }
-
-      const char* data;
-      if(coll.elements.Size()>0) {
-        coll.elements.Get(0, &data, false);
-        elements.Resize(coll.elements.Size());
-        elements.Put(0, coll.elements.Size(), data);
-      }
-      if(coll.elementData.Size()>0) {
-        coll.elementData.Get(0, &data, false);
-        elementData.Resize(coll.elementData.Size());
-        elementData.Put(0, coll.elementData.Size(), data);
+      if(coll.elementData.getSize()>0) {
+        elementData.copyFrom(coll.elementData);
       }
     }
   }
@@ -639,7 +608,7 @@ of our subtype there.
 
 */
   Collection::Collection(CollectionType type):
-    defined(false), elemAlgId(0), elemTypeId(0), size(0), numOfBuckets(0),
+    elemAlgId(0), elemTypeId(0), size(0), numOfBuckets(0),
     hashValue(0), collType(type), elemFLOBDataOffset(0),
     elemCount(0), elemArrayIndex(0), firstElemHashValue(0),
     nextElemHashValue(0), elements(0), elementData(0)
@@ -647,6 +616,7 @@ of our subtype there.
 #ifdef DEBUGHEAD
 cout << "Collection(3)" << endl;
 #endif
+    SetDefined(false);
   }
 
 
@@ -879,7 +849,7 @@ cout << "NumOfFLOBs" << endl;
   }
 
 
-  FLOB* Collection::GetFLOB(const int i) {
+  Flob* Collection::GetFLOB(const int i) {
 #ifdef DEBUGHEAD
 cout << "GetFLOB: " << i << endl;
 #endif
@@ -1009,7 +979,7 @@ cout << "Sort" << endl;
 cout << "CopyFrom" << endl;
 #endif
     const Collection* coll = static_cast<const Collection*>(right);
-    this->defined = coll->defined;
+    this->SetDefined( coll->IsDefined() );
     this->elemAlgId = coll->elemAlgId;
     this->elemTypeId = coll->elemTypeId;
     this->size = coll->size;
@@ -1018,70 +988,39 @@ cout << "CopyFrom" << endl;
     this->collType = coll->collType;
 
     if(coll->elemFLOBDataOffset.Size()>0) {
-      this->elemFLOBDataOffset.Resize(coll->elemFLOBDataOffset.Size());
-      for(int i=0;i<coll->elemFLOBDataOffset.Size();i++) {
-        const size_t* fData;
-        coll->elemFLOBDataOffset.Get(i, fData);
-        this->elemFLOBDataOffset.Put(i, *fData);
-      }
+      this->elemFLOBDataOffset.copyFrom(coll->elemFLOBDataOffset);
     } else {
-      this->elemFLOBDataOffset.Clear();
+      this->elemFLOBDataOffset.clean();
     }
     if(coll->elemCount.Size()>0) {
-      this->elemCount.Resize(coll->elemCount.Size());
-      for(int i=0;i<coll->elemCount.Size();i++) {
-        const int* count;
-        coll->elemCount.Get(i, count);
-        this->elemCount.Put(i, *count);
-      }
+      this->elemCount.copyFrom(coll->elemCount);
     } else {
-      this->elemCount.Clear();
+      this->elemCount.clean();
     }
     if(coll->elemArrayIndex.Size()>0) {
-      this->elemArrayIndex.Resize(coll->elemArrayIndex.Size());
-      for(int i=0;i<coll->elemArrayIndex.Size();i++) {
-        const int* index;
-        coll->elemArrayIndex.Get(i, index);
-        this->elemArrayIndex.Put(i, *index);
-      }
+      this->elemArrayIndex.copyFrom(coll->elemArrayIndex);
     } else {
-      this->elemArrayIndex.Clear();
+      this->elemArrayIndex.clean();
     }
     if(coll->firstElemHashValue.Size()>0) {
-      this->firstElemHashValue.Resize(coll->firstElemHashValue.Size());
-      for(int i=0;i<coll->firstElemHashValue.Size();i++) {
-        const int* fValue;
-        coll->firstElemHashValue.Get(i, fValue);
-        this->firstElemHashValue.Put(i, *fValue);
-      }
+      this->firstElemHashValue.copyFrom(coll->firstElemHashValue);
     } else {
-      this->firstElemHashValue.Clear();
+      this->firstElemHashValue.clean();
     }
     if(coll->nextElemHashValue.Size()>0) {
-      this->nextElemHashValue.Resize(coll->nextElemHashValue.Size());
-      for(int i=0;i<coll->nextElemHashValue.Size();i++) {
-        const int* nValue;
-        coll->nextElemHashValue.Get(i, nValue);
-        this->nextElemHashValue.Put(i, *nValue);
-      }
+      this->nextElemHashValue.copyFrom(coll->nextElemHashValue);
     } else {
-      this->nextElemHashValue.Clear();
+      this->nextElemHashValue.clean();
     }
-
-    const char* data;
-    if(coll->elements.Size()>0) {
-      coll->elements.Get(0, &data, false);
-      this->elements.Resize(coll->elements.Size());
-      this->elements.Put(0, coll->elements.Size(), data);
+    if(coll->elements.getSize()>0) {
+      this->elements.copyFrom(coll->elements);
     } else {
-      this->elements.Clean();
+      this->elements.clean();
     }
-    if(coll->elementData.Size()>0) {
-      coll->elementData.Get(0, &data, false);
-      this->elementData.Resize(coll->elementData.Size());
-      this->elementData.Put(0, coll->elementData.Size(), data);
+    if(coll->elementData.getSize()>0) {
+      this->elementData.copyFrom(coll->elementData);
     } else {
-      this->elementData.Clean();
+      this->elementData.clean();
     }
   }
 
@@ -1099,22 +1038,6 @@ cout << "Adjacent" << endl;
 cout << "Clone" << endl;
 #endif
     return new Collection(*this);
-  }
-
-
-  bool Collection::IsDefined() const {
-#ifdef DEBUGHEAD
-cout << "IsDefined" << endl;
-#endif
-    return defined;
-  }
-
-
-  void Collection::SetDefined(const bool defined) {
-#ifdef DEBUGHEAD
-cout << "SetDefined" << endl;
-#endif
-    this->defined = defined;
   }
 
 
@@ -1155,12 +1078,11 @@ cout << "Insert" << endl;
         for(int i=0;i<count;i++) {
           elemArrayIndex.Append(index);
         }
-        AddHashValue((static_cast<Attribute*>(elem))->HashValue(),
-                              count);
+        AddHashValue((static_cast<Attribute*>(elem))->HashValue(),count);
       } else if (collType==multiset) {
-        const int* cnt;
-        elemCount.Get(index, cnt);
-        elemCount.Put(index, (*cnt+count));
+        int cnt;
+        elemCount.Get(index, &cnt);
+        elemCount.Put(index, (cnt+count));
         size += count;
         AddHashValue((static_cast<Attribute*>(elem))->HashValue(),
                               count);
@@ -1188,9 +1110,9 @@ cout << "Contains" << endl;
     int index = GetIndex(elem);
     if(index > -1) {
       if(collType == multiset) {
-        const int* count;
-        elemCount.Get(index, count);
-        return *count;
+        int count;
+        elemCount.Get(index, &count);
+        return count;
       } else {
         return 1;
       }
@@ -1205,9 +1127,9 @@ cout << "GetComponent" << endl;
 #endif
     assert(0<=pos);
     assert(pos<elemArrayIndex.Size());
-    const int* index;
-    elemArrayIndex.Get(pos, index);
-    return RestoreComponent(*index);
+    int index;
+    elemArrayIndex.Get(pos, &index);
+    return RestoreComponent(index);
   }
 
 
@@ -1220,11 +1142,11 @@ cout << "GetComponentCount" << endl;
     if(collType!=multiset) {
       return 1;
     }
-    const int* index;
-    elemArrayIndex.Get(pos, index);
-    const int* count;
-    elemCount.Get(*index, count);
-    return *count;
+    int index;
+    elemArrayIndex.Get(pos, &index);
+    int count;
+    elemCount.Get(index, &count);
+    return count;
   }
 
 
@@ -1343,7 +1265,7 @@ cout << "SortMerge" << endl;
     int pointer1 = start;
     int pointer2 = middle+1;
     int* help = new int[((end-start)+1)];
-    const int* index;
+    int index;
     int pointer3 = 0;
     Attribute* elem1 = GetComponent(pointer1);
     Attribute* elem2 = GetComponent(pointer2);
@@ -1351,7 +1273,7 @@ cout << "SortMerge" << endl;
     while(!finished) {
       int compare = elem1->Compare(elem2);
       if(compare>0) {
-        elemArrayIndex.Get(pointer2, index);
+        elemArrayIndex.Get(pointer2, &index);
         pointer2++;
         if(pointer2<=end) {
           elem2 = GetComponent(pointer2);
@@ -1359,7 +1281,7 @@ cout << "SortMerge" << endl;
           finished = true;
         }
       } else {
-        elemArrayIndex.Get(pointer1, index);
+        elemArrayIndex.Get(pointer1, &index);
         pointer1++;
         if(pointer1<=middle) {
           elem1 = GetComponent(pointer1);
@@ -1367,18 +1289,18 @@ cout << "SortMerge" << endl;
           finished = true;
         }
       }
-      help[pointer3] = *index;
+      help[pointer3] = index;
       pointer3++;
     }
     while(pointer1 <= middle) {
-      elemArrayIndex.Get(pointer1, index);
-      help[pointer3] = *index;
+      elemArrayIndex.Get(pointer1, &index);
+      help[pointer3] = index;
       pointer1++;
       pointer3++;
     }
     while(pointer2 <= end) {
-      elemArrayIndex.Get(pointer2, index);
-      help[pointer3] = *index;
+      elemArrayIndex.Get(pointer2, &index);
+      help[pointer3] = index;
       pointer2++;
       pointer3++;
     }
@@ -1426,24 +1348,24 @@ cout << "SaveComponent" << endl;
     size_t index = elemFLOBDataOffset.Size();
     size_t size = (size_t)(am->SizeOfObj(elemAlgId, elemTypeId))();
     size_t offset = index*size;
-    if(elements.Size()<(offset+size)) {
-      if(elements.Size()<(8*size)) {
-        elements.Resize(8*size);
+    if(elements.getSize()<(offset+size)) {
+      if(elements.getSize()<(8*size)) {
+        elements.resize(8*size);
       } else {
-        elements.Resize(elements.Size()*2);
+        elements.resize(elements.getSize()*2);
       }
     }
-    elements.Put(offset, size, elem);
+    elements.write( (char*)(elem), size, offset );
 
-    offset = elementData.Size();
+    offset = elementData.getSize();
     elemFLOBDataOffset.Append(offset);
     for(int i=0;i<elem->NumOfFLOBs();i++) {
-      FLOB* tempFLOB = elem->GetFLOB(i);
-      size = tempFLOB->Size();
-      elementData.Resize(offset+size);
-      const char* data;
-      tempFLOB->Get(0, &data, false);
-      elementData.Put(offset, size, data);
+      Flob* tempFLOB = elem->GetFLOB(i);
+      size = tempFLOB->getSize();
+      elementData.resize(offset+size);
+      char* data;
+      tempFLOB->read(data, size, 0);
+      elementData.write(data, size, offset);
       offset += size;
     }
 
@@ -1477,27 +1399,26 @@ cout << "RestoreComponent" << endl;
 
     ListExpr typeInfo = nl->TwoElemList(nl->IntAtom(elemAlgId),
                                         nl->IntAtom(elemTypeId));
-    Attribute* elem = (Attribute*)(am->CreateObj(elemAlgId, elemTypeId))
-                                    (typeInfo).addr;
+    Attribute* elem = static_cast<Attribute*>
+          ((am->CreateObj(elemAlgId, elemTypeId))(typeInfo).addr);
 
     size_t offset = (size_t)(pos*(am->SizeOfObj(elemAlgId, elemTypeId))());
-    elements.Get(offset, (const char**)&elem, false);
-    elem = (Attribute*)(am->Cast(elemAlgId, elemTypeId))(elem);
+    elements.read((char*)(elem), elem->Sizeof(), offset);
+    elem = static_cast<Attribute*>((am->Cast(elemAlgId, elemTypeId))(elem));
 
-    const size_t* temp;
-    elemFLOBDataOffset.Get(pos, temp);
-    offset = *temp;
+    size_t temp;
+    elemFLOBDataOffset.Get(pos, &temp);
+    offset = temp;
     for(int i=0;i<elem->NumOfFLOBs();i++) {
-      FLOB* tempFLOB = elem->GetFLOB(i);
-      size_t size = tempFLOB->Size();
+      Flob* tempFLOB = elem->GetFLOB(i);
+      size_t size = tempFLOB->getSize();
 #ifdef DEBUG
 cout << "  size(" << i << "): " << size << endl;
 #endif
-      const char* tempData;
-      elementData.Get(offset, &tempData, false);
-      size_t bytes = tempFLOB->ReadFrom((char*)tempData);
-      assert(size==bytes);
-      offset += bytes;
+      char* tempData;
+      elementData.read(tempData, size, offset);
+      tempFLOB->write(tempData, size, 0);
+      offset += size;
     }
 
     return elem;
@@ -1514,9 +1435,8 @@ cout << "GetIndex" << endl;
     if(hashsum<0) {
       hashsum += numOfBuckets;
     }
-    const int* indexPointer;
-    firstElemHashValue.Get(hashsum, indexPointer);
-    int index = *indexPointer;
+    int index;
+    firstElemHashValue.Get(hashsum, &index);
 #ifdef DEBUG
 cout << "  Statusbericht GetIndex-Funktion:" << endl
      << "    Hashsum: " << hashsum << endl
@@ -1528,8 +1448,7 @@ cout << "  Statusbericht GetIndex-Funktion:" << endl
       if(comp==0) {
         return index;
       }
-      nextElemHashValue.Get(index, indexPointer);
-      index = *indexPointer;
+      nextElemHashValue.Get(index, &index);
 #ifdef DEBUG
 cout << "  Statusbericht GetIndex-Funktion:" << endl
      << "    Index: " << index << endl;
@@ -1549,10 +1468,8 @@ cout << "InsertIndex" << endl;
     if(hashsum<0) {
       hashsum += numOfBuckets;
     }
-    const int* indexPointer;
     int index2;
-    firstElemHashValue.Get(hashsum, indexPointer);
-    index2 = *indexPointer;
+    firstElemHashValue.Get(hashsum, &index2);
 #ifdef DEBUG
 cout << "  Statusbericht InsertIndex-Funktion" << endl
      << "    Hashsum: " << hashsum << endl
@@ -1567,9 +1484,8 @@ cout << "  Statusbericht InsertIndex-Funktion" << endl
 cout << "  Statusbericht InsertIndex-Funktion" << endl
      << "    Index: " << index2 << endl;
 #endif
-        nextElemHashValue.Get(index2, indexPointer);
         indexOld = index2;
-        index2 = *indexPointer;
+        nextElemHashValue.Get(indexOld, &index2);
       }
       nextElemHashValue.Put(indexOld, index);
     }
