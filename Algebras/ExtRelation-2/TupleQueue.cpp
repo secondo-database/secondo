@@ -24,6 +24,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 May 2009, Sven Jungnickel. Initial version.
 
+November 2009, Sven Jungnickel. Added implementation for automatic
+detection of lexicographical sort order (asc/desc) in method
+~analyseSpec~ of class ~TupleQueueCompare~
+
 2 Includes
 
 */
@@ -31,56 +35,110 @@ May 2009, Sven Jungnickel. Initial version.
 #include "TupleQueue.h"
 
 /*
-3 Implementation of class ~TupleAndRelPos~
+3 Implementation of class ~TupleQueueEntry~
 
 */
 
 namespace extrel2
 {
 
-size_t TupleAndRelPos::createCounter = 0;
-size_t TupleAndRelPos::copyCounter = 0;
-size_t TupleAndRelPos::assignCounter = 0;
+size_t TupleQueueEntry::createCounter = 0;
+size_t TupleQueueEntry::copyCounter = 0;
+size_t TupleQueueEntry::assignCounter = 0;
 /*
 Initialization of static class counters.
 
 */
 
 /*
-4 Implementation of class ~TupleCompare~
+4 Implementation of class ~TupleQueueCompare~
 
 */
 
-size_t TupleCompare::comparisonCounter = 0;
+size_t TupleQueueCompare::comparisonCounter = 0;
+
 /*
 Initialization of comparison counter.
 
 */
 
+bool TupleQueueCompare::traceMode = true;
 /*
-5 Implementation of class ~TupleAndRelPosQueue~
+Initialization of tracing flag.
 
 */
 
-TupleAndRelPosQueue::TupleAndRelPosQueue(TupleCompareBy* cmp)
-: Queue<TupleAndRelPosCompareDesc, TupleAndRelPos>(cmp)
-, totalByteSize(0)
+int TupleQueueCompare::analyseSpec(const SortOrderSpecification& spec)
 {
-}
+  assert(spec.size() > 0);
 
-void TupleAndRelPosQueue::Push(TupleAndRelPos& t)
-{
-  t.tuple()->IncReference();
-  pQueue->push(t);
-  totalByteSize += t.tuple()->GetSize();
-}
+  if ( attributes != (int)spec.size() )
+  {
+    if ( traceMode )
+    {
+      cmsg.info() << "spec (length not equal)" << endl
+                  << "attributes" << attributes << endl
+                  << "spec.size()" << spec.size() << endl;
+      cmsg.send();
+    }
 
-void TupleAndRelPosQueue::Pop()
-{
-  Tuple* t = pQueue->top().tuple();
-  totalByteSize -= t->GetSize();
-  t->DeleteIfAllowed();
-  pQueue->pop();
+    return 0;
+  }
+  else
+  {
+    int flags = 0;
+
+    for (size_t i = 0; i < spec.size(); i++)
+    {
+      // test attribute indices
+      if ( (int)i != spec[i].first-1 )
+      {
+        if ( traceMode )
+        {
+          cmsg.info() << "spec (indices mixed)" << endl;
+          cmsg.send();
+        }
+
+        return 0;
+      }
+
+      flags += (spec[i].second << i);
+    }
+
+    // test if all order specifiers are false
+    if ( flags == 0 && spec[0].second == false )
+    {
+      if ( traceMode )
+      {
+        cmsg.info() << "lex desc" << endl;
+        cmsg.send();
+      }
+
+      return -1;
+    }
+
+    // test if all order specifiers are true
+    if ( flags == ( ( 1 << spec.size() ) -1 ) && spec[0].second == true )
+    {
+      if ( traceMode )
+      {
+        cmsg.info() << "lex asc" << endl;
+        cmsg.send();
+      }
+
+      return 1;
+    }
+
+    if ( traceMode )
+    {
+      cmsg.info() << "spec (sort order mixed)" << endl
+                  << "flags: " << flags << endl
+                  << "calc: " << ( ( 1 << spec.size() ) -1 ) << endl;
+      cmsg.send();
+    }
+
+    return 0;
+  }
 }
 
 } // end of namespace extrel2

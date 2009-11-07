@@ -36,10 +36,9 @@ May 2009, Sven Jungnickel. Initial version.
 #include "RTuple.h"
 
 /*
-3 Class ~TupleAndRelPos~
+3 Class ~TupleQueueEntry~
 
-This class is used during the merge phase of the sort
-algorithm. An instance stores a reference to a tuple
+This class is used to store a reference to a tuple
 and the array index of the sorted run. During a merge
 phase the sort algorithm consumes the tuples from different
 runs. If a tuple is consumed the merge queue has to be
@@ -50,18 +49,18 @@ last result tuple.
 The class has been re-implemented here because I wouldn't
 make too much changes within the normal Relation Algebra. So I
 implemented my own version with some static counters
-for benchmarking. To avoid name conflicts it has been placed
-into namespace ~extrel2~.
+for tracing.
 
 */
 
 namespace extrel2
 {
-  class TupleAndRelPos
+
+  class TupleQueueEntry
   {
     public:
 
-    TupleAndRelPos()
+    TupleQueueEntry()
     : ref(0)
     , pos(0)
     {
@@ -73,9 +72,9 @@ increments the create counter by one.
 
 */
 
-    TupleAndRelPos(Tuple* newTuple, int newPos = 0)
-    : ref( newTuple )
-    , pos(newPos)
+    TupleQueueEntry(Tuple* t, int pos = 0)
+    : ref(t)
+    , pos(pos)
     {
       createCounter++;
     }
@@ -85,16 +84,19 @@ to this instance and increments the create counter by one.
 
 */
 
-    ~TupleAndRelPos()
-    {}
+    ~TupleQueueEntry()
+    {
+      ref = 0;
+      pos = 0;
+    }
 /*
 The destructor.
 
 */
 
-    inline TupleAndRelPos(const TupleAndRelPos& rhs)
-    : ref(rhs.ref)
-    , pos(rhs.pos)
+    inline TupleQueueEntry(const TupleQueueEntry& obj)
+    : ref(obj.ref)
+    , pos(obj.pos)
     {
       copyCounter++;
     }
@@ -103,14 +105,16 @@ Copy constructor. Increments the copy constructor counter by one.
 
 */
 
-    inline TupleAndRelPos& operator=(const TupleAndRelPos& rhs)
+    inline TupleQueueEntry& operator=(const TupleQueueEntry& obj)
     {
-      if ( this == &rhs )
+      if ( this == &obj )
         return *this;
 
-      ref = rhs.ref;
-      pos = rhs.pos;
+      ref = obj.ref;
+      pos = obj.pos;
+
       assignCounter++;
+
       return *this;
     }
 /*
@@ -118,9 +122,15 @@ Assignment operator. Increments the assignment counter by one.
 
 */
 
-    inline Tuple* tuple() const { return ref; }
+    inline Tuple* GetTuple() const { return ref; }
 /*
 Returns the pointer to the referenced tuple.
+
+*/
+
+    inline int GetPosition() const { return pos; }
+/*
+Returns the position of the referenced tuple.
 
 */
 
@@ -189,6 +199,8 @@ Resets the assignment counter to 0.
 
 */
 
+    private:
+
     Tuple* ref;
 /*
 Pointer to referenced tuple.
@@ -221,25 +233,87 @@ Static class counter which counts calls of the assignment operator.
 /*
 4 Class ~TupleCompare~
 
-Derived functional STL object used to compare two tuple references
-~RTuple~ using a tuple compare object.
+Derived functional STL object used to compare two tuple queue entries.
 
 */
 
-  class TupleCompare: public binary_function<RTuple, RTuple, bool>
+  class TupleQueueCompare:
+    public binary_function<TupleQueueEntry*, TupleQueueEntry*, bool>
   {
     public:
 
-    TupleCompare(TupleCompareBy* cmp) { this->cmp = cmp; }
+    TupleQueueCompare(const SortOrderSpecification& spec, int attributes)
+    : spec(spec)
+    , specCmp(new TupleCompareBy(spec))
+    , attributes(attributes)
+    {
+      state = analyseSpec(spec);
+    }
 /*
-The constructor. Constructs an instance and assigns ~cmp~ as its
-compare object for tuple comparisons
+The constructor. Constructs an instance and with a specified sort order
+decsription ~spec~. The number of attributes ~attributes~ must be
+specified. so that the compare object is able to decide whether a sort
+order specification is lexicographical ordered or not. The background
+is that the implementation of ~LexicographicalTupleSmaller~ is a little
+bit faster than ~TupleCompareBy~. As the type mapping functions of
+all sort operators now always create a sort order description, I have
+decided that the tuple queue should decide on its own which compare
+operator it uses. This is done by method ~analyseSpec~.
+
 
 */
 
-    ~TupleCompare() { cmp = 0; }
+    ~TupleQueueCompare() {}
 /*
 The destructor.
+
+*/
+
+    inline bool operator()(TupleQueueEntry* x, TupleQueueEntry* y)
+    {
+      comparisonCounter++;
+
+      if ( state > 0 )
+      {
+        return !lexCmp(x->GetTuple(), y->GetTuple());
+      }
+      else if ( state < 0 )
+      {
+        return lexCmp(x->GetTuple(), y->GetTuple());
+      }
+      else
+      {
+        return !(*specCmp)(x->GetTuple(), y->GetTuple());
+      }
+    }
+/*
+Comparison operator for tuple queue entries. Returns true if
+tuple queue entry ~x~ is smaller than entry ~y~.
+
+*/
+
+    inline bool operator()(Tuple* x, Tuple* y)
+    {
+      comparisonCounter++;
+
+      if ( state > 0 )
+      {
+        return !lexCmp(x,y);
+      }
+      else if ( state < 0 )
+      {
+        return lexCmp(x,y);
+      }
+      else
+      {
+        return!(*specCmp)(x,y);
+      }
+    }
+/*
+Comparison operator for tuples. This method is used by method
+~Compare~ of class TupleQueue only, to provide a method for
+tuple comparison. Returns true if tuple ~x~ is smaller than
+tuple ~y~.
 
 */
 
@@ -261,293 +335,69 @@ Resets the comparison counter to 0.
 
 */
 
-    protected:
-    TupleCompareBy* cmp;
+    private:
+
+    int analyseSpec(const SortOrderSpecification& spec);
 /*
-Pointer to compare object for tuple comparisons.
+Analysis if the sort order specification is lexicographical in
+ascending/descending order. Returns -1 if sort order is
+lexicographical in descending order, +1 if sort order is
+lexicographical in ascending order and 0 otherwise.
 
 */
+
+    const SortOrderSpecification& spec;
+/*
+Sort order specification.
+
+*/
+
+    LexicographicalTupleSmaller lexCmp;
+/*
+Comparison object for lexicographical comparison.
+
+*/
+
+    TupleCompareBy* specCmp;
+/*
+Comparison object for comparison according to a sort order specification.
+
+*/
+
+    int attributes;
+/*
+Maximum number of sort attributes.
+
+*/
+
+    int state;
+/*
+State. Decides which comparison operator is used.
+
+  * -1 lexicographical comparison in descending order
+
+  * 0 comparison according to sort order specification
+
+  * +1 lexicographical comparison in ascending order
+
+*/
+
     static size_t comparisonCounter;
 /*
 Static class counter which counts the number of comparison operations.
 
 */
-};
 
+    static bool traceMode;
 /*
-5 Class ~TupleCompareAsc~
-
-Derived functional STL object used to compare two tuple references
-~RTuple~ using a tuple compare object. This class makes it possible to
-build a minimum Heap of ~RTuple~ objects using the STL
-template class priority\_queue.
-
-*/
-
-  class TupleCompareAsc : public TupleCompare
-  {
-    public:
-
-    TupleCompareAsc(TupleCompareBy* cmp) : TupleCompare(cmp) {}
-/*
-The constructor. Constructs an instance and assigns ~cmp~ as its
-compare object for tuple comparisons.
-
-*/
-
-    inline bool operator()(RTuple x, RTuple y)
-    {
-      comparisonCounter++;
-      return (*cmp)(x.tuple, y.tuple);
-    }
-/*
-Comparison operator which returns true if the referenced tuple ~x~
-and ~y~ are in ascending sort order. Otherwise false is returned and
-~x~ and ~y~ are in descending sort order.
-
-*/
-};
-
-/*
-6 Class ~TupleCompareDesc~
-
-Derived functional STL object used to compare two tuple references
-~RTuple~ using a tuple compare object. This class makes it possible to
-build a minimum Heap of ~RTuple~ objects using the STL
-template class priority\_queue.
-
-*/
-
-  class TupleCompareDesc : public TupleCompare
-  {
-    public:
-
-      TupleCompareDesc(TupleCompareBy* cmp) : TupleCompare(cmp) {}
-/*
-The constructor. Constructs an instance and assigns ~cmp~ as its
-compare object for tuple comparisons.
-
-*/
-
-    inline bool operator()(RTuple x, RTuple y)
-    {
-      comparisonCounter++;
-      return !((*cmp)(x.tuple, y.tuple));
-    }
-/*
-Comparison operator which returns true if the referenced tuple ~x~
-and ~y~ are in ascending sort order. Otherwise false is returned and
-~x~ and ~y~ are in descending sort order.
+Flag that enables tracing if set to ~true~.
 
 */
 };
 
 
 /*
-7 Class ~TupleAndRelPosCompare~
-
-Derived functional STL object used to compare two instances of type
-~TupleAndRelPos~ using a tuple compare object. This class makes it
-possible to build a minimum Heap of ~TupleAndRelPos~ objects using
-the STL template class priority\_queue.
-
-*/
-
-  class TupleAndRelPosCompare :
-    public binary_function<TupleAndRelPos, TupleAndRelPos, bool >
-  {
-    public:
-
-      TupleAndRelPosCompare(TupleCompareBy* cmp) { this->cmp = cmp; }
-/*
-The constructor. Constructs an instance and assigns ~cmp~ as its
-compare object for tuple comparisons.
-
-*/
-
-    ~TupleAndRelPosCompare() { cmp = 0; }
-/*
-The destructor.
-
-*/
-
-    protected:
-    TupleCompareBy* cmp;
-/*
-Pointer to compare object for tuple comparisons.
-
-*/
-  };
-
-/*
-8 Class ~TupleAndRelPosCompareAsc~
-
-Derived functional STL object used to compare two instances of type
-~TupleAndRelPos~ using a tuple compare object. This class makes it
-possible to build a minimum Heap of ~TupleAndRelPos~ objects using
-the STL template class priority\_queue.
-
-*/
-
-  class TupleAndRelPosCompareAsc : public TupleAndRelPosCompare
-  {
-    public:
-
-      TupleAndRelPosCompareAsc(TupleCompareBy* cmp)
-      : TupleAndRelPosCompare(cmp) {}
-/*
-The constructor. Constructs an instance and assigns ~cmp~ as its
-compare object for tuple comparisons.
-
-*/
-
-    inline bool operator()(TupleAndRelPos& x, TupleAndRelPos& y)
-    {
-      return (*cmp)(x.tuple(), y.tuple());
-    }
-/*
-Comparison operator which returns true if the referenced tuple ~x~
-and ~y~ are in ascending sort order. Otherwise false is returned and
-~x~ and ~y~ are in descending sort order.
-
-*/
-};
-
-/*
-9 Class ~TupleAndRelPosCompareDesc~
-
-Derived functional STL object used to compare two instances of type
-~TupleAndRelPos~ using a tuple compare object. This class makes it
-possible to build a minimum Heap of ~TupleAndRelPos~ objects using
-the STL template class priority\_queue.
-
-*/
-
-  class TupleAndRelPosCompareDesc : public TupleAndRelPosCompare
-  {
-    public:
-
-      TupleAndRelPosCompareDesc(TupleCompareBy* cmp)
-      : TupleAndRelPosCompare(cmp) {}
-/*
-The constructor. Constructs an instance and assigns ~cmp~ as its
-compare object for tuple comparisons.
-
-*/
-
-    inline bool operator()(TupleAndRelPos& x, TupleAndRelPos& y)
-    {
-      return !((*cmp)(x.tuple(), y.tuple()));
-    }
-/*
-Comparison operator which returns true if the referenced tuple ~x~
-and ~y~ are in ascending sort order. Otherwise false is returned and
-~x~ and ~y~ are in descending sort order.
-
-*/
-};
-
-/*
-10 Class ~Queue~
-
-Template class that implements a STL priority\_queue of
-type ~T~ using a specific functional STL object of type
-~CompareObj~.
-
-*/
-
-  template<typename CompareObj, typename T>
-  class Queue
-  {
-    public:
-
-    Queue(TupleCompareBy* cmp)
-    {
-      pComparer = new CompareObj(cmp);
-      pQueue = new Heap(*pComparer);
-    }
-/*
-The constructor. Constructs a heap with a compare
-object of type ~CompareObj~.
-
-*/
-
-    virtual ~Queue()
-    {
-      if ( pQueue )
-      {
-        delete pQueue;
-        pQueue = 0;
-      }
-
-      if ( pComparer )
-      {
-        delete pComparer;
-        pComparer = 0;
-      }
-    }
-/*
-Virtual destructor. Deletes the priority queue and the
-functional STL compare object.
-
-*/
-
-    virtual T& Top() { return (T&)pQueue->top(); }
-/*
-Returns the top element of the heap.
-
-*/
-
-    virtual void Push(T& t) { pQueue->push(t); }
-/*
-Puts a new element into the heap. Sorting will be done
-by usage of the ~CompareObj~.
-
-*/
-
-    virtual size_t Size() { return pQueue->size(); }
-/*
-Returns the number of elements in the heap.
-
-*/
-
-    virtual bool Empty() { return pQueue->empty(); }
-/*
-Returns true if the heap is empty. Otherwise false is returned.
-
-*/
-
-    virtual void Pop() { pQueue->pop(); };
-/*
-Removes the top element from the heap.
-
-*/
-
-    protected:
-
-    typedef std::priority_queue<T, std::vector<T>, CompareObj> Heap;
-/*
-Type definition of a STL priority\_queue that uses a functional STL
-object of type ~CompareObj~ for element comparison.
-
-*/
-
-    CompareObj* pComparer;
-/*
-Functional object instance for element comparison.
-
-*/
-
-    Heap* pQueue;
-/*
-Pointer to heap instance.
-
-*/
-
-  };
-
-/*
-11 Class ~TupleQueue~
+5 Class ~TupleQueue~
 
 This class implements a priority queue for tuples (minimum heap).
 Internally the tuples are stored using tuple references implemented
@@ -556,24 +406,16 @@ interface to insert and retrieve tuples directly via pointer.
 Object comparison is handled by a functional STL object of type
 ~TupleCompare~. ~TupleCompare~ compares tuple references.
 
-The class hasn't been derived from ~Queue~ because internally
-it makes sense to store tuples as references of type ~RTuple~.
-In the class interface we provide methods to insert retrieve
-tuples using pointers instead. As overloading of the ~Top()~
-method with different return types is not possible the class
-was implemented without inheritance.
-
 */
 
   class TupleQueue
   {
     public:
 
-    TupleQueue(TupleCompareBy* cmp)
+    TupleQueue(const SortOrderSpecification& spec, int attributes)
     : totalByteSize(0)
     {
-      pComparer = new TupleCompareDesc(cmp);
-      pQueue = new MinHeap(*pComparer);
+      pComparer = new TupleQueueCompare(spec, attributes);
     }
 /*
 The constructor. Constructs a minimum heap with a compare
@@ -583,17 +425,19 @@ object of type ~TupleCompare~.
 
     ~TupleQueue()
     {
-      if ( pQueue )
+      for (size_t i = 0; i < container.size(); i++)
       {
-        delete pQueue;
-        pQueue = 0;
+        container[i]->GetTuple()->DeleteIfAllowed();
       }
+      container.clear();
 
       if ( pComparer )
       {
         delete pComparer;
         pComparer = 0;
       }
+
+      totalByteSize = 0;
     }
 /*
 The destructor. Deletes the priority queue and the
@@ -601,28 +445,37 @@ functional STL compare object.
 
 */
 
-    inline Tuple* Top() { return pQueue->top().tuple; }
+    std::vector<TupleQueueEntry*>& GetContainer() { return container; }
+/*
+Clears the content of the tuple queue.
+
+*/
+
+
+    inline TupleQueueEntry* Top() { return container.front(); }
 /*
 Returns the minimum tuple of the heap.
 
 */
 
-    inline size_t Size() { return pQueue->size(); }
+    inline size_t Size() { return container.size(); }
 /*
 Returns the number of tuples in the heap.
 
 */
 
-    inline bool Empty() { return pQueue->empty(); }
+    inline bool Empty() { return container.empty(); }
 /*
 Returns true if the heap is empty. Otherwise false is returned.
 
 */
 
-    inline void Push(Tuple* t)
+    inline void Push(Tuple* t, int pos = 0)
     {
-      pQueue->push(RTuple(t));
+      t->IncReference();
       totalByteSize += t->GetSize();
+      container.push_back(new TupleQueueEntry(t,pos));
+      push_heap (container.begin(),container.end(), *pComparer);
     }
 /*
 Inserts the tuple ~t~ into the heap.
@@ -631,13 +484,20 @@ Inserts the tuple ~t~ into the heap.
 
     inline void Pop()
     {
-      totalByteSize -= pQueue->top().tuple->GetSize();
-      pQueue->pop();
+      pop_heap (container.begin(),container.end(), *pComparer);
+      totalByteSize -= container.back()->GetTuple()->GetSize();
+      container.back()->GetTuple()->DeleteIfAllowed();
+      container.pop_back();
     }
 /*
 Removes the minimum tuple from the heap.
 
 */
+
+    inline bool Compare(Tuple* x, Tuple* y)
+    {
+      return (*pComparer)(x,y);
+    }
 
     inline size_t GetTotalSize() { return totalByteSize; }
 /*
@@ -647,23 +507,15 @@ Returns the total size of all tuples in the heap.
 
     protected:
 
-    typedef std::priority_queue< RTuple,
-                                 std::vector<RTuple>,
-                                 TupleCompareDesc > MinHeap;
+    std::vector<TupleQueueEntry*> container;
 /*
-Type definition of minimum heap.
+Container for tuples.
 
 */
 
-    TupleCompareDesc* pComparer;
+    TupleQueueCompare* pComparer;
 /*
-Functional STL object for comparison.
-
-*/
-
-    MinHeap* pQueue;
-/*
-Minimum heap.
+Functional STL object for tuple comparison in descending order.
 
 */
 
@@ -674,55 +526,6 @@ Total tuple sizes in bytes.
 */
   };
 
-/*
-12 Class ~TupleAndRelPosQueue~
-
-This class implements a priority queue for ~TupleAndRelPos~ objects.
-Object comparison is handled by a functional STL object of type
-~TupleAndRelPosGreaterCompare~.
-
-*/
-
-  class TupleAndRelPosQueue :
-    public Queue<TupleAndRelPosCompareDesc, TupleAndRelPos>
-  {
-    public:
-
-    TupleAndRelPosQueue(TupleCompareBy* cmp);
-/*
-The constructor. Constructs a ~TupleAndRelPosQueue~ instance
-and assign the tuple compare object ~cmp~ to the
-~TupleAndRelPosGreaterCompare~ instance.
-
-*/
-
-    virtual void Push(TupleAndRelPos& t);
-/*
-Puts the element ~t~ into the heap.
-
-*/
-
-    virtual void Pop();
-/*
-Removes the minimum element from the heap. The minimum
-element is the one which contains the reference to the
-minimum tuple.
-
-*/
-
-    inline size_t GetTotalSize() { return totalByteSize; }
-/*
-Returns the total size of all tuples in the heap.
-
-*/
-
-    protected:
-    size_t totalByteSize;
-/*
-Total tuple sizes in bytes
-
-*/
-  };
 }
 
 #endif /* TUPLEQUEUE_H_ */
