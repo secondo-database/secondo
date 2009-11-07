@@ -85,8 +85,7 @@ extern AlgebraManager* am;
 6 Utility functions
 
 */
-
-TupleCompareBy* createTupleCompareBy(Tuple* t)
+extrel2::TupleQueueCompare* createCompareObject(Tuple* t)
 {
   SortOrderSpecification spec;
 
@@ -99,7 +98,7 @@ TupleCompareBy* createTupleCompareBy(Tuple* t)
     spec.push_back(pair<int, bool>(i, true));
   };
 
-  return new TupleCompareBy(spec);
+  return new extrel2::TupleQueueCompare(spec,nAttrCount);
 }
 
 /*
@@ -397,7 +396,7 @@ int TupleCompValueMap( Word* args, Word& result,
     StopWatch stopWatch;
     clock_t clockticks;
     int tuples = 0;
-    std::vector<RTuple> array;
+    std::vector<TupleQueueEntry> array;
 
     // Consume Tuple-Stream into array
     qp->Open(args[0].addr);
@@ -406,25 +405,24 @@ int TupleCompValueMap( Word* args, Word& result,
     {
       tuples++;
       Tuple *t = static_cast<Tuple*>( elem.addr );
-      array.push_back(RTuple(t));
+      array.push_back(TupleQueueEntry(t));
       qp->Request(args[0].addr, elem);
     }
 
     bool test;
 
-    TupleCompareAsc* cmp =
-      new TupleCompareAsc(createTupleCompareBy(array[0].tuple));
-    TupleCompare::ResetComparisonCounter();
+    TupleQueueCompare* cmp = createCompareObject(array[0].GetTuple());
+    TupleQueueCompare::ResetComparisonCounter();
     stopWatch.start();
     clockticks = clock();
 
     // Test-Loop for measurement
     for (size_t i = 0; i < array.size(); i++)
     {
-      test = (*cmp)(array[0], array[i]);
+      test = (*cmp)( &(array[0]), &(array[i]) );
     }
 
-    size_t comp = TupleCompare::GetComparisonCounter();
+    size_t comp = TupleQueueCompare::GetComparisonCounter();
     clockticks = clock() - clockticks;
     double dCPU = stopWatch.diffSecondsCPU();
     double dReal = stopWatch.diffSecondsReal();
@@ -474,7 +472,7 @@ int HeapStlValueMap( Word* args, Word& result,
     clock_t clockPush, clockPop, clockStart;
     int tuples = 0;
 
-    TupleCompare::ResetComparisonCounter();
+    TupleQueueCompare::ResetComparisonCounter();
 
     stopWatchPush.start();
     clockStart = clock();
@@ -491,7 +489,16 @@ int HeapStlValueMap( Word* args, Word& result,
 
       if ( tuples == 0 )
       {
-        q = new TupleQueue(createTupleCompareBy(t));
+        SortOrderSpecification spec;
+
+        int nAttrCount = t->GetNoAttributes();
+
+        for(int i = 1; i <= nAttrCount; i++)
+        {
+          spec.push_back(pair<int, bool>(i, true));
+        };
+
+        q = new TupleQueue(spec,nAttrCount);
       }
 
       q->Push(t);
@@ -499,7 +506,7 @@ int HeapStlValueMap( Word* args, Word& result,
       tuples++;
     }
 
-    size_t comp = TupleCompare::GetComparisonCounter();
+    size_t comp = TupleQueueCompare::GetComparisonCounter();
     clockPush = clock() - clockStart;
     double dPushCPU = stopWatchPush.diffSecondsCPU();
     double dPushReal = stopWatchPush.diffSecondsReal();
@@ -509,15 +516,14 @@ int HeapStlValueMap( Word* args, Word& result,
     // empty queue and delete tuples
     while ( !q->Empty() )
     {
-      Tuple* t = q->Top();
+      q->Top()->GetTuple()->DeleteIfAllowed();
       q->Pop();
-      t->DeleteIfAllowed();
     }
 
     clockPop = clock() - clockStart;
     double dPopCPU = stopWatchPop.diffSecondsCPU();
     double dPopReal = stopWatchPop.diffSecondsReal();
-    size_t tcomp = TupleCompare::GetComparisonCounter();
+    size_t tcomp = TupleQueueCompare::GetComparisonCounter();
 
     cmsg.info() << HEADLINE_HEAPSTL << endl;
     cmsg.info() << "Tuples: " << tuples << endl;
@@ -561,13 +567,13 @@ int HeapStdValueMap( Word* args, Word& result,
   if ( message <= CLOSE )
   {
     Word elem;
-    PriorityQueueStandardHeap<RTuple, TupleCompareAsc>* q;
+    PriorityQueueStandardHeap<TupleQueueEntry*, TupleQueueCompare>* q;
     StopWatch stopWatchPush;
     StopWatch stopWatchPop;
     clock_t clockPush, clockPop, clockStart;
     int tuples = 0;
 
-    TupleCompare::ResetComparisonCounter();
+    TupleQueueCompare::ResetComparisonCounter();
 
     stopWatchPush.start();
     clockStart = clock();
@@ -584,16 +590,17 @@ int HeapStdValueMap( Word* args, Word& result,
 
       if ( tuples == 0 )
       {
-        TupleCompareAsc* cmp = new TupleCompareAsc(createTupleCompareBy(t));
-        q = new PriorityQueueStandardHeap<RTuple, TupleCompareAsc>(cmp);
+        TupleQueueCompare* cmp = createCompareObject(t);
+        q = new PriorityQueueStandardHeap< TupleQueueEntry*,
+                                           TupleQueueCompare>(cmp);
       }
 
-      q->Push(RTuple(t));
+      q->Push(new TupleQueueEntry(t));
       qp->Request(args[0].addr, elem);
       tuples++;
     }
 
-    size_t comp = TupleCompare::GetComparisonCounter();
+    size_t comp = TupleQueueCompare::GetComparisonCounter();
     clockPush = clock() - clockStart;
     double dPushCPU = stopWatchPush.diffSecondsCPU();
     double dPushReal = stopWatchPush.diffSecondsReal();
@@ -603,15 +610,15 @@ int HeapStdValueMap( Word* args, Word& result,
     // empty queue and delete tuples
     while ( !q->IsEmpty() )
     {
-      Tuple* t = q->Top().tuple;
+      q->Top()->GetTuple()->DeleteIfAllowed();
+      delete q->Top();
       q->Pop();
-      t->DeleteIfAllowed();
     }
 
     clockPop = clock() - clockStart;
     double dPopCPU = stopWatchPop.diffSecondsCPU();
     double dPopReal = stopWatchPop.diffSecondsReal();
-    size_t tcomp = TupleCompare::GetComparisonCounter();
+    size_t tcomp = TupleQueueCompare::GetComparisonCounter();
 
     cmsg.info() << HEADLINE_HEAPSTD << endl;
     cmsg.info() << "Tuples: " << tuples << endl;
@@ -654,13 +661,13 @@ int HeapBupValueMap( Word* args, Word& result,
   if ( message <= CLOSE )
   {
     Word elem;
-    PriorityQueueBottomUpHeap<RTuple, TupleCompareAsc>* q;
+    PriorityQueueBottomUpHeap<TupleQueueEntry*, TupleQueueCompare>* q;
     StopWatch stopWatchPush;
     StopWatch stopWatchPop;
     clock_t clockPush, clockPop, clockStart;
     int tuples = 0;
 
-    TupleCompare::ResetComparisonCounter();
+    TupleQueueCompare::ResetComparisonCounter();
 
     stopWatchPush.start();
     clockStart = clock();
@@ -677,16 +684,17 @@ int HeapBupValueMap( Word* args, Word& result,
 
       if ( tuples == 0 )
       {
-        TupleCompareAsc* cmp = new TupleCompareAsc(createTupleCompareBy(t));
-        q = new PriorityQueueBottomUpHeap<RTuple, TupleCompareAsc>(cmp);
+        TupleQueueCompare* cmp = createCompareObject(t);
+        q = new PriorityQueueBottomUpHeap< TupleQueueEntry*,
+                                           TupleQueueCompare>(cmp);
       }
 
-      q->Push(RTuple(t));
+      q->Push(new TupleQueueEntry(t));
       qp->Request(args[0].addr, elem);
       tuples++;
     }
 
-    size_t comp = TupleCompare::GetComparisonCounter();
+    size_t comp = TupleQueueCompare::GetComparisonCounter();
     clockPush = clock() - clockStart;
     double dPushCPU = stopWatchPush.diffSecondsCPU();
     double dPushReal = stopWatchPush.diffSecondsReal();
@@ -696,15 +704,15 @@ int HeapBupValueMap( Word* args, Word& result,
     // empty queue and delete tuples
     while ( !q->IsEmpty() )
     {
-      Tuple* t = q->Top().tuple;
+      q->Top()->GetTuple()->DeleteIfAllowed();
+      delete q->Top();
       q->Pop();
-      t->DeleteIfAllowed();
     }
 
     clockPop = clock() - clockStart;
     double dPopCPU = stopWatchPop.diffSecondsCPU();
     double dPopReal = stopWatchPop.diffSecondsReal();
-    size_t tcomp = TupleCompare::GetComparisonCounter();
+    size_t tcomp = TupleQueueCompare::GetComparisonCounter();
 
     cmsg.info() << HEADLINE_HEAPBUP << endl;
     cmsg.info() << "Tuples: " << tuples << endl;
@@ -746,13 +754,13 @@ int HeapBup2ValueMap( Word* args, Word& result,
   if ( message <= CLOSE )
   {
     Word elem;
-    PriorityQueueBottomUpHeap2<RTuple, TupleCompareAsc>* q;
+    PriorityQueueBottomUpHeap2<TupleQueueEntry*, TupleQueueCompare>* q;
     StopWatch stopWatchPush;
     StopWatch stopWatchPop;
     clock_t clockPush, clockPop, clockStart;
     int tuples = 0;
 
-    TupleCompare::ResetComparisonCounter();
+    TupleQueueCompare::ResetComparisonCounter();
 
     stopWatchPush.start();
     clockStart = clock();
@@ -769,16 +777,17 @@ int HeapBup2ValueMap( Word* args, Word& result,
 
       if ( tuples == 0 )
       {
-        TupleCompareAsc* cmp = new TupleCompareAsc(createTupleCompareBy(t));
-        q = new PriorityQueueBottomUpHeap2<RTuple, TupleCompareAsc>(cmp);
+        TupleQueueCompare* cmp = createCompareObject(t);
+        q = new PriorityQueueBottomUpHeap2< TupleQueueEntry*,
+                                            TupleQueueCompare>(cmp);
       }
 
-      q->Push(RTuple(t));
+      q->Push(new TupleQueueEntry(t));
       qp->Request(args[0].addr, elem);
       tuples++;
     }
 
-    size_t comp = TupleCompare::GetComparisonCounter();
+    size_t comp = TupleQueueCompare::GetComparisonCounter();
     clockPush = clock() - clockStart;
     double dPushCPU = stopWatchPush.diffSecondsCPU();
     double dPushReal = stopWatchPush.diffSecondsReal();
@@ -788,15 +797,15 @@ int HeapBup2ValueMap( Word* args, Word& result,
     // empty queue and delete tuples
     while ( !q->IsEmpty() )
     {
-      Tuple* t = q->Top().tuple;
+      q->Top()->GetTuple()->DeleteIfAllowed();
+      delete q->Top();
       q->Pop();
-      t->DeleteIfAllowed();
     }
 
     clockPop = clock() - clockStart;
     double dPopCPU = stopWatchPop.diffSecondsCPU();
     double dPopReal = stopWatchPop.diffSecondsReal();
-    size_t tcomp = TupleCompare::GetComparisonCounter();
+    size_t tcomp = TupleQueueCompare::GetComparisonCounter();
 
     cmsg.info() << HEADLINE_HEAPBUP2 << endl;
     cmsg.info() << "Tuples: " << tuples << endl;
@@ -841,13 +850,16 @@ int HeapMdrValueMap( Word* args, Word& result,
   if ( message <= CLOSE )
   {
     Word elem;
-    PriorityQueueMDRHeap<RTuple, TupleCompareAsc>* q;
+    PriorityQueueMDRHeap<TupleQueueEntry*, TupleQueueCompare>* q;
     StopWatch stopWatchPush;
     StopWatch stopWatchPop;
     clock_t clockPush, clockPop, clockStart;
     int tuples = 0;
 
-    TupleCompare::ResetComparisonCounter();
+    SortOrderSpecification spec;
+    spec.push_back( pair<int, bool>(1, true) );
+
+    TupleQueueCompare::ResetComparisonCounter();
 
     stopWatchPush.start();
     clockStart = clock();
@@ -864,16 +876,17 @@ int HeapMdrValueMap( Word* args, Word& result,
 
       if ( tuples == 0 )
       {
-        TupleCompareAsc* cmp = new TupleCompareAsc(createTupleCompareBy(t));
-        q = new PriorityQueueMDRHeap<RTuple, TupleCompareAsc>(cmp);
+        TupleQueueCompare* cmp = createCompareObject(t);
+        q = new PriorityQueueMDRHeap< TupleQueueEntry*,
+                                      TupleQueueCompare>(cmp);
       }
 
-      q->Push(RTuple(t));
+      q->Push(new TupleQueueEntry(t));
       qp->Request(args[0].addr, elem);
       tuples++;
     }
 
-    size_t comp = TupleCompare::GetComparisonCounter();
+    size_t comp = TupleQueueCompare::GetComparisonCounter();
     clockPush = clock() - clockStart;
     double dPushCPU = stopWatchPush.diffSecondsCPU();
     double dPushReal = stopWatchPush.diffSecondsReal();
@@ -883,15 +896,15 @@ int HeapMdrValueMap( Word* args, Word& result,
     // empty queue and delete tuples
     while ( !q->IsEmpty() )
     {
-      Tuple* t = q->Top().tuple;
+      q->Top()->GetTuple()->DeleteIfAllowed();
+      delete q->Top();
       q->Pop();
-      t->DeleteIfAllowed();
     }
 
     clockPop = clock() - clockStart;
     double dPopCPU = stopWatchPop.diffSecondsCPU();
     double dPopReal = stopWatchPop.diffSecondsReal();
-    size_t tcomp = TupleCompare::GetComparisonCounter();
+    size_t tcomp = TupleQueueCompare::GetComparisonCounter();
 
     cmsg.info() << HEADLINE_HEAPMDR << endl;
     cmsg.info() << "Tuples: " << tuples << endl;
