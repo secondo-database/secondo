@@ -165,7 +165,6 @@ void TupleBuffer2::Clear()
     return;
   }
 
-  int counter = 0;
   while( !memoryBuffer.empty() )
   {
     memoryBuffer.pop();
