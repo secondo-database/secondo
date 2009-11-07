@@ -34,6 +34,10 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 May 2009, Sven Jungnickel. Initial version
 
+November 2009, Sven Jungnickel. Changed default value for
+default fan-in merge phase to experimentally determined
+value of 65.
+
 2 Overview
 
 This file contains the declaration of all classes and functions that
@@ -64,7 +68,7 @@ are exceeded the fan-in is set to a default value.
 */
 #define SORT_MINIMUM_FAN_IN       2
 #define SORT_MAXIMUM_FAN_IN       1000
-#define SORT_DEFAULT_MAX_FAN_IN   50
+#define SORT_DEFAULT_MAX_FAN_IN   65
 
 /*
 To simplify tests for the new sort operators we can also set the usable
@@ -414,11 +418,16 @@ class SortedRun
 {
 public:
 
-  SortedRun(int runNumber, TupleCompareBy* cmp, size_t ioBufferSize);
+  SortedRun( int runNumber,
+              int attributes,
+              const SortOrderSpecification& spec,
+              size_t ioBufferSize );
 /*
-The constructor. Construct a new sorted run with run number ~runNumber~
-and sets the ~TupleCompareBy~ object pointer to ~cmp~. For read/write
-operations on disk the operator uses an I/O buffer with ~ioBufferSize~ bytes.
+The constructor. Construct a new sorted run with run number ~runNumber~.
+The number of tuple attributes is passed in ~attributes~. The sort order
+specification ~spec~ defines how the tuple comparison is performed.
+For read/write operations on disk the operator uses an I/O buffer with
+~ioBufferSize~ bytes.
 
 */
 
@@ -441,7 +450,7 @@ moved to disk. Otherwise the method returns false.
   inline bool IsInSortOrder(Tuple* t)
   {
     // Compare object returns true if ordering is ascendant
-    return ( (*cmp)(lastTuple.tuple, t) == true );
+    return !(heap->Compare(lastTuple.tuple, t));
   }
 /*
 Returns true if tuple ~t~ is in sort order according to the last tuple
@@ -461,7 +470,7 @@ is the first tuple written to disk. Otherwise the method returns false.
 
   inline void AppendToDisk()
   {
-    lastTuple = heap->Top();
+    lastTuple = heap->Top()->GetTuple();
     buffer.AppendTuple( lastTuple.tuple );
     lastTuple.tuple->DeleteIfAllowed();
     heap->Pop();
@@ -480,7 +489,7 @@ Appends the minimum tuple from the internal heap to disk.
   inline void AppendToDisk(Tuple* t)
   {
     heap->Push(t);
-    lastTuple = heap->Top();
+    lastTuple = heap->Top()->GetTuple();
     buffer.AppendTuple( lastTuple.tuple );
     lastTuple.tuple->DeleteIfAllowed();
     heap->Pop();
@@ -553,7 +562,7 @@ Inserts tuple ~t~ into the minimum heap in memory.
         // tuples on disk finished, proceed with tuples in memory
         if ( !heap->Empty() )
         {
-          t = heap->Top();
+          t = heap->Top()->GetTuple();
           heap->Pop();
         }
       }
@@ -563,7 +572,7 @@ Inserts tuple ~t~ into the minimum heap in memory.
       // all tuples in memory
       if ( !heap->Empty() )
       {
-        t = heap->Top();
+        t = heap->Top()->GetTuple();
         heap->Pop();
       }
     }
@@ -675,12 +684,6 @@ private:
   int runNumber;
 /*
 Run number
-
-*/
-
-  TupleCompareBy* cmp;
-/*
-Tuple Compare Object
 
 */
 
@@ -886,7 +889,7 @@ class SortAlgorithm
   public:
 
     SortAlgorithm( Word stream,
-                   TupleCompareBy* cmpObj,
+                   const SortOrderSpecification& spec,
                    SortProgressLocalInfo* p,
                    size_t maxFanIn = UINT_MAX,
                    size_t maxMemSize = UINT_MAX,
@@ -1058,10 +1061,19 @@ Word which contains the address of the processed tuple stream
 
 */
 
-    TupleCompareBy *cmpObj;
+    int attributes;
 /*
-Compare Object used for tuple comparison. Contains the sort order
-specification (also used for lexicographical comparison).
+Number of attributes of a tuple in the tuple stream. This value is determined
+when the first tuple has been read. This information is needed by class
+~TupleQueue~ to automatically determine whether the the sort order description
+is lexicographical (asc/desc). In this case some performance improvements can
+be made during tuple comparison.
+
+*/
+
+    const SortOrderSpecification& spec;
+/*
+Sort order specification for tuple comparison.
 
 */
 
@@ -1089,7 +1101,7 @@ Array which contains the references to the external runs located on disk
 
 */
 
-    TupleAndRelPosQueue* mergeQueue;
+    TupleQueue* mergeQueue;
 /*
 Priority Queue used to merge the runs in the merge phase
 

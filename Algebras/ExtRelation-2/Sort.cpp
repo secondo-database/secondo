@@ -292,10 +292,10 @@ ostream& operator<<(ostream& os, SortedRun& run)
 
 */
 SortedRun::SortedRun( int runNumber,
-                        TupleCompareBy* cmp,
+                        int attributes,
+                        const SortOrderSpecification& spec,
                         size_t ioBufferSize )
 : runNumber(runNumber)
-, cmp(cmp)
 , runLength(0)
 , tupleCount(0)
 , minTupleSize(UINT_MAX)
@@ -304,7 +304,7 @@ SortedRun::SortedRun( int runNumber,
 , iter(0)
 , traceMode(RTFlag::isActive("ERA:TraceSort"))
 {
-  heap = new TupleQueue(cmp);
+  heap = new TupleQueue(spec, attributes);
 
   if( traceMode )
   {
@@ -327,17 +327,20 @@ SortedRun::~SortedRun()
     info = 0;
   }
 
-  while ( !heap->Empty() )
+  if ( !heap->Empty() )
   {
-    heap->Top()->DeleteIfAllowed();
-    heap->Pop();
+    std::vector<TupleQueueEntry*>& container = heap->GetContainer();
+
+    for(size_t i = 0; i < container.size(); i++)
+    {
+      container[i]->GetTuple()->DeleteIfAllowed();
+    }
   }
+
   delete heap;
   heap = 0;
 
   lastTuple.setTuple(0);
-
-  cmp = 0;
 }
 
 /*
@@ -356,7 +359,7 @@ SortProgressLocalInfo::SortProgressLocalInfo()
 
 */
 SortAlgorithm::SortAlgorithm( Word stream,
-                              TupleCompareBy* cmpObj,
+                              const SortOrderSpecification& spec,
                               SortProgressLocalInfo* p,
                               size_t maxFanIn,
                               size_t maxMemSize,
@@ -366,12 +369,16 @@ SortAlgorithm::SortAlgorithm( Word stream,
 , nextRunNumber(1)
 , checkProgressAfter(10)
 , stream(stream)
-, cmpObj(cmpObj)
+, attributes(-1)
+, spec(spec)
+//, cmpObj(cmpObj)
 , usedMemory(0)
 , traceMode(RTFlag::isActive("ERA:TraceSort"))
 , traceModeExtended(RTFlag::isActive("ERA:TraceSortExtended"))
 , progress(p)
 {
+  SortedRun *curRun = 0, *nextRun = 0;
+
   Word wTuple(Address(0));
 
   // Check specified fan-in for a merge phase
@@ -388,22 +395,27 @@ SortAlgorithm::SortAlgorithm( Word stream,
     info = new SortInfo(MAX_MEMORY, IO_BUFFER_SIZE);
     info->RunBuildPhase();
     info->MaxMergeFanIn = FMAX;
-    TupleCompare::ResetComparisonCounter();
+    TupleQueueCompare::ResetComparisonCounter();
   }
-
-  // Create current run
-  SortedRun* curRun = new SortedRun(nextRunNumber++, cmpObj, IO_BUFFER_SIZE);
-  SortedRun* nextRun = 0;
-  runs.push_back(curRun);
 
   // Request first tuple and consume the stream completely
   qp->Request(stream.addr, wTuple);
 
   while( qp->Received(stream.addr) )
   {
-    progress->read++;
     Tuple *t = static_cast<Tuple*>( wTuple.addr );
+
+    progress->read++;
+
     size_t extSize = t->GetExtSize();
+
+    // Save number of attributes
+    if ( attributes == -1 )
+    {
+      attributes = t->GetNoAttributes();
+      curRun = new SortedRun(nextRunNumber++, attributes, spec, IO_BUFFER_SIZE);
+      runs.push_back(curRun);
+    }
 
     if ( traceMode )
     {
@@ -440,7 +452,8 @@ SortAlgorithm::SortAlgorithm( Word stream,
           // create next run if necessary
           if ( nextRun == 0 )
           {
-            nextRun = new SortedRun(nextRunNumber++, cmpObj, IO_BUFFER_SIZE);
+            nextRun = new SortedRun( nextRunNumber++, attributes,
+                                     spec, IO_BUFFER_SIZE );
             runs.push_back(nextRun);
             updateIntermediateMergeCost();
           }
@@ -497,7 +510,7 @@ SortAlgorithm::~SortAlgorithm()
   if ( traceMode )
   {
     info->Finished();
-    info->TotalComparisons = TupleCompare::GetComparisonCounter();
+    info->TotalComparisons = TupleQueueCompare::GetComparisonCounter();
 
     if ( traceModeExtended )
     {
@@ -516,7 +529,7 @@ SortAlgorithm::~SortAlgorithm()
 
   while( !mergeQueue->Empty() )
   {
-    mergeQueue->Top().tuple()->DeleteIfAllowed();
+    mergeQueue->Top()->GetTuple()->DeleteIfAllowed();
     mergeQueue->Pop();
   }
   delete mergeQueue;
@@ -528,9 +541,6 @@ SortAlgorithm::~SortAlgorithm()
     delete (runs.back());
     runs.pop_back();
   }
-
-  delete cmpObj;
-  cmpObj = 0;
 }
 
 void SortAlgorithm::setMemory(size_t maxMemory)
@@ -693,7 +703,7 @@ void SortAlgorithm::mergeInit()
   }
 
   // create heap for merging runs
-  mergeQueue = new TupleAndRelPosQueue(cmpObj);
+  mergeQueue = new TupleQueue(spec, attributes);
 
   // Check if we need intermediate merge phases
   if ( F0 > 0 )
@@ -712,10 +722,10 @@ void SortAlgorithm::mergeInit()
   for( size_t i = 0; i < runs.size(); i++ )
   {
     Tuple *t = runs[i]->GetNextTuple();
+
     if( t != 0 )
     {
-      TupleAndRelPos p(t,i);
-      mergeQueue->Push(p);
+      mergeQueue->Push(t,i);
     }
   }
 }
@@ -752,7 +762,8 @@ void SortAlgorithm::mergeNShortest(int n)
   }
 
   // create the sorted run for merging
-  SortedRun* result = new SortedRun(nextRunNumber++, cmpObj, IO_BUFFER_SIZE);
+  SortedRun* result = new SortedRun( nextRunNumber++, attributes,
+                                     spec, IO_BUFFER_SIZE );
 
   // append the sorted run to the end of the runs array
   runs.push_back(result);
@@ -770,8 +781,7 @@ void SortAlgorithm::mergeNShortest(int n)
   {
     if( ( t = merge[i]->GetNextTuple() ) != 0 )
     {
-      TupleAndRelPos p(t,i);
-      mergeQueue->Push(p);
+      mergeQueue->Push(t,i);
     }
 
     if ( traceModeExtended )
@@ -829,20 +839,19 @@ Tuple* SortAlgorithm::nextResultTuple(vector<SortedRun*>& arr)
   {
     // Take the next tuple from the merge queue and set
     // it as the result tuple
-    TupleAndRelPos p = mergeQueue->Top();
+    Tuple* result = mergeQueue->Top()->GetTuple();
+    int pos = mergeQueue->Top()->GetPosition();
     mergeQueue->Pop();
-    Tuple* result = p.tuple();
 
     // Refill the merge queue with a tuple from result
     // tuple's queue if there are more
-    Tuple* t = arr[p.pos]->GetNextTuple();
+    Tuple* t = arr[pos]->GetNextTuple();
 
     // Push the found tuple into the merge queue
     if( t != 0 )
     {
       // run not finished
-      p.ref = t;
-      mergeQueue->Push(p);
+      mergeQueue->Push(t, pos);
     }
 
     return result;
@@ -961,14 +970,11 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
           size_t mem = maxMemSize < 0 ? UINT_MAX : (size_t)maxMemSize;
           size_t buf = ioBufferSize < 0 ? UINT_MAX : (size_t)ioBufferSize;
 
-          li->ptr = new SortAlgorithm( args[0],
-                                       new TupleCompareBy(spec), li,
-                                       fan, mem, buf);
+          li->ptr = new SortAlgorithm(args[0], spec, li, fan, mem, buf);
         }
         else
         {
-          li->ptr = new SortAlgorithm( args[0],
-                                       new TupleCompareBy(spec), li);
+          li->ptr = new SortAlgorithm(args[0], spec, li);
         }
       }
 
