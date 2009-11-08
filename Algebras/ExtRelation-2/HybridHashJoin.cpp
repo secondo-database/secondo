@@ -227,22 +227,6 @@ Tuple* HashTable::Probe(Tuple* t)
   {
     // start bucket scan
     iter = buckets[h]->MakeScan();
-
-    if ( traceMode )
-    {
-      cmsg.info() << "Start scanning bucket "
-                  << h << ".." << endl;
-      cmsg.send();
-    }
-  }
-  else
-  {
-    if ( traceMode )
-    {
-      cmsg.info() << "Proceeding scanning bucket "
-                  << h << ".." << endl;
-      cmsg.send();
-    }
   }
 
   while ( (nextTuple = iter->GetNextTuple() ) != 0 )
@@ -251,38 +235,14 @@ Tuple* HashTable::Probe(Tuple* t)
     // tuple stays in hash table
     nextTuple->DeleteIfAllowed();
 
-    if ( traceMode )
-    {
-      cmsg.info() << "Comparing :" << *t << " and " << *nextTuple;
-      cmsg.send();
-    }
-
     if ( cmpFunc->Compare(t, nextTuple) == 0 )
     {
-      if ( traceMode )
-      {
-        cmsg.info() << " -> Match!" << endl;
-        cmsg.send();
-      }
       return nextTuple;
-    }
-
-    if ( traceMode )
-    {
-      cmsg.info() << ".." << endl;
-      cmsg.send();
     }
   }
 
   delete iter;
   iter = 0;
-
-  if ( traceMode )
-  {
-    cmsg.info() << "End of scan bucket "
-                << h << ".." << endl;
-    cmsg.send();
-  }
 
   return 0;
 }
@@ -1484,8 +1444,6 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
     {
       cmsg.info() << "Partitioning of stream B.."
                   << endl << *pmB;
-      //cmsg.info() << "Hash Table content:" << endl
-                  //<< *hashTable << endl;
       cmsg.send();
     }
   }
@@ -1802,16 +1760,13 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
         return result;
       }
 
-//      if ( progress->streamA.IsValid() )
-      {
-        PartitionProgressInfo& pinfo =
-            progress->streamA.partitionProgressInfo[curPartition];
+      PartitionProgressInfo& pinfo =
+          progress->streamA.partitionProgressInfo[curPartition];
 
-        pinfo.tuplesProc++;
+      pinfo.tuplesProc++;
 
-        pinfo.curPassNo =
-            (int)ceil( (double)pinfo.tuplesProc / (double) pinfo.tuples);
-      }
+      pinfo.curPassNo =
+          (int)ceil( (double)pinfo.tuplesProc / (double) pinfo.tuples);
 
       tupleA.setTuple( iterA->GetNextTuple() );
     }
@@ -1945,15 +1900,10 @@ int HybridHashJoinValueMap( Word* args, Word& result,
           int indexAttrA = StdTypes::GetInt( args[8] );
           int indexAttrB = StdTypes::GetInt( args[9] );
 
-          li->ptr = new HybridHashJoinAlgorithm( args[0],
-                                                 indexAttrA,
-                                                 args[1],
-                                                 indexAttrB,
-                                                 nBuckets,
-                                                 s,
-                                                 li,
-                                                 nPartitions,
-                                                 maxMem,
+          li->ptr = new HybridHashJoinAlgorithm( args[0], indexAttrA,
+                                                 args[1], indexAttrB,
+                                                 nBuckets, s, li,
+                                                 nPartitions, maxMem,
                                                  ioBufferSize );
 
         }
@@ -1962,13 +1912,9 @@ int HybridHashJoinValueMap( Word* args, Word& result,
           int indexAttrA = StdTypes::GetInt( args[5] );
           int indexAttrB = StdTypes::GetInt( args[6] );
 
-          li->ptr = new HybridHashJoinAlgorithm( args[0],
-                                                 indexAttrA,
-                                                 args[1],
-                                                 indexAttrB,
-                                                 nBuckets,
-                                                 s,
-                                                 li );
+          li->ptr = new HybridHashJoinAlgorithm( args[0], indexAttrA,
+                                                 args[1], indexAttrB,
+                                                 nBuckets, s, li );
         }
 
       }

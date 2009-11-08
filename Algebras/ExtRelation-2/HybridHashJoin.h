@@ -165,18 +165,6 @@ attributes ~attrIndexA~ and ~attrIndexB~ to the new instance.
 
     inline int Compare(Tuple* a, Tuple* b)
     {
-      /* tuples with NULL-Values in the join attributes
-         are never matched with other tuples. */
-      if(!((Attribute*)a->GetAttribute(attrIndexA))->IsDefined())
-      {
-        return -1;
-      }
-
-      if(!((Attribute*)b->GetAttribute(attrIndexB))->IsDefined())
-      {
-        return 1;
-      }
-
       return ((Attribute*)a->GetAttribute(attrIndexA))->
         Compare((Attribute*)b->GetAttribute(attrIndexB));
     }
@@ -524,7 +512,7 @@ continued by the next ~Probe~ call at the iterator's location.
 
     vector<Bucket*> buckets;
 /*
-Array containing the buckets of the hash tabel.
+Array containing the buckets of the hash table.
 
 */
 
@@ -1586,7 +1574,7 @@ no progress information will be collected.
 
 */
 
-    static const bool traceMode = true;
+    static const bool traceMode = false;
 /*
 Flag to enable trace mode.
 
