@@ -76,11 +76,11 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
 
   liA = new SortProgressLocalInfo();
   progress->firstLocalInfo = liA;
-  sliA = new SortAlgorithm(streamA, new TupleCompareBy(specA), liA);
+  sliA = new SortAlgorithm(streamA, specA, liA);
 
   liB = new SortProgressLocalInfo();
   progress->secondLocalInfo = liB;
-  sliB = new SortAlgorithm(streamB, new TupleCompareBy(specB), liB);
+  sliB = new SortAlgorithm(streamB, specB, liB);
 
   ListExpr resultType =
               SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );
@@ -389,7 +389,7 @@ int SortMergeJoinValueMap( Word* args, Word& result,
 
       const double uSortBy = 0.00043;   //millisecs per byte read in sort step
 
-      const double uMergeJoin = 0.0008077;  //millisecs per tuple read
+      //const double uMergeJoin = 0.0008077;  //millisecs per tuple read
                                         //in merge step (merge)
 
       const double wMergeJoin = 0.0001738; //millisecs per byte read in
