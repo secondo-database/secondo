@@ -62,7 +62,7 @@ Initialization of comparison counter.
 
 */
 
-bool TupleQueueCompare::traceMode = true;
+bool TupleQueueCompare::traceMode = false;
 /*
 Initialization of tracing flag.
 
@@ -77,8 +77,8 @@ int TupleQueueCompare::analyseSpec(const SortOrderSpecification& spec)
     if ( traceMode )
     {
       cmsg.info() << "spec (length not equal)" << endl
-                  << "attributes" << attributes << endl
-                  << "spec.size()" << spec.size() << endl;
+                  << "attributes: " << attributes << endl
+                  << "spec.size(): " << spec.size() << endl;
       cmsg.send();
     }
 
