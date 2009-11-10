@@ -474,6 +474,11 @@ clean_db:
 # Experiments
 # --------------------------------------------
 
+tuplebuffer: clean_db R100MB_T64B R100MB_T256B R100MB_T1KB
+	@echo ""
+	@echo "Running experiment " $@.$(TESTEXT)
+	$(call doTest, $@)
+
 sort_iobuffer: clean_db R100MB_T512B R100MB_T8KB R100MB_T64KB 
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
@@ -483,6 +488,29 @@ sort_max_fan_in: clean_db R100MB_T1KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	$(call doTest, $@)
+
+sort_huge_data: clean_db R100MB_T1KB
+	@echo ""
+	@echo "Running experiment " $@.$(TESTEXT)
+	export SECONDO_PARAMSecondoHome=/home/sven/secondo-databases/extern \
+	$(call doTest, sort_5G)
+	$(call doTest, sort_10G)
+	$(call doTest, sort_15G)
+	$(call doTest, sort_20G)
+
+sort_progress_estimation: clean_db R10MB_T64B
+	@echo ""
+	@echo "Running experiment " $@.$(TESTEXT)
+	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+	$(call doTest, sort_progress_estimation1)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/sort_progress_estimation1_proglogt.csv
+	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+	$(call doTest, sort_progress_estimation2)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/sort_progress_estimation2_proglogt.csv
+	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+	$(call doTest, sort_progress_estimation3)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/sort_progress_estimation3_proglogt.csv
+	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
 
 sort_benchmark_64B: clean_db R1MB_T64B R10MB_T64B R50MB_T64B R100MB_T64B
 	@echo ""
