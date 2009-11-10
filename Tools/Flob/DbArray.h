@@ -193,6 +193,9 @@ within the array.
    elem = (new ((void*)elem) DbArrayElement);
  }
 
+ inline void Get( int index, DbArrayElement& elem ) const{
+   Get(index, &elem);
+ }
 
 /*
 ~Size~
@@ -268,13 +271,13 @@ bool Find( const void *key,
 
   // check if key is smaller than the smallest element
   Get( 0, &elem );
-  if( cmp( key, elem ) < 0 ) {
+  if( cmp( key, &elem ) < 0 ) {
     result = 0;
     return false;
   }
   // check if key is larger than the largest element
   Get( nElements - 1, elem );
-  if( cmp( key, elem ) > 0 ) {
+  if( cmp( key, &elem ) > 0 ) {
      result = nElements;
      return false;
    }
@@ -284,9 +287,9 @@ bool Find( const void *key,
    while (first <= last) {
      mid = ( first + last ) / 2;
      Get( mid, &elem );
-     if( cmp( key, elem ) > 0 ){
+     if( cmp( key, &elem ) > 0 ){
        first = mid + 1;
-     } else if( cmp( key, elem ) < 0 ) {
+     } else if( cmp( key, &elem ) < 0 ) {
        last = mid - 1;
      } else {
        result = mid;
@@ -414,6 +417,18 @@ virtual void restoreHeader(char* buffer,
       dest.nElements = nElements;
       dest.maxElements = maxElements;
    } 
+
+   void copyFrom(const Flob& src){
+     DbArray<DbArrayElement> const* dbsrc = 
+                static_cast<DbArray<DbArrayElement> const* >(&src);
+     copyFrom(*dbsrc);
+   }
+
+   void copyTo(Flob& dest) const{
+     DbArray<DbArrayElement>* dbdest = 
+                      static_cast<DbArray<DbArrayElement>* >(&dest);
+     copyTo(*dbdest);
+   }
 
   private:
 

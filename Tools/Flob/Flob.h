@@ -204,7 +204,7 @@ Puts data providen in ~buffer~ into the Flob at the specified position.
 Copies the content of src to this flob.
 
 */
-    inline void copyFrom(const Flob& src){
+    virtual void copyFrom(const Flob& src){
       FlobManager::getInstance().copyData(src,*this);
       size = src.size;
     };
@@ -215,7 +215,7 @@ Copies the content of src to this flob.
 Copies the content of this flob to ~dest~.
 
 */
-    inline void copyTo(Flob& dest) const {
+    virtual void copyTo(Flob& dest) const {
        FlobManager::getInstance().copyData(*this,dest);
        dest.size = size;
     };
