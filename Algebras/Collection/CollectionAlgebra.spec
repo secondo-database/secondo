@@ -39,5 +39,6 @@ operator < alias LT pattern _ infixop _
 operator <= alias LE pattern _ infixop _
 operator >= alias GE pattern _ infixop _
 operator = alias EQ pattern _ infixop _
+operator # alias NE pattern _ infixop _
 operator is_defined alias ISDEF pattern _ op
 operator size alias SIZE pattern op ( _ )

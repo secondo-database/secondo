@@ -229,8 +229,9 @@ Necessary to difference between an empty and an undefined collection.
 */
 
 
-#define DEBUG
-#define DEBUGHEAD
+//#define DEBUG
+//#define DEBUGHEAD
+
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -572,7 +573,7 @@ Create a Collection by copying all data from coll.
     firstElemHashValue(0), nextElemHashValue(0), elements(0), elementData(0)
   {
 #ifdef DEBUGHEAD
-cout << "Collection(2)" << endl;
+    cout << "Collection(2)" << endl;
 #endif
     size = 0;
     elemAlgId = coll.elemAlgId;
@@ -586,24 +587,19 @@ cout << "Collection(2)" << endl;
         firstElemHashValue.Append(-1);
       }
     } else {
-      SetDefined(coll.IsDefined());
-      hashValue = coll.hashValue;
-      numOfBuckets = coll.numOfBuckets;
-
-      elemFLOBDataOffset.copyFrom(coll.elemFLOBDataOffset);
-      elemCount.copyFrom(coll.elemCount);
-      elemArrayIndex.copyFrom(coll.elemArrayIndex);
-      firstElemHashValue.copyFrom(coll.firstElemHashValue);
-      nextElemHashValue.copyFrom(coll.nextElemHashValue);
-
-      if(coll.elements.getSize()>0) {
+        SetDefined( coll.IsDefined() );
+        hashValue = coll.hashValue;
+        numOfBuckets = coll.numOfBuckets;
+        elemFLOBDataOffset.copyFrom(coll.elemFLOBDataOffset);
+        elemCount.copyFrom(coll.elemCount);
+        elemArrayIndex.copyFrom(coll.elemArrayIndex);
+        firstElemHashValue.copyFrom(coll.firstElemHashValue);
+        nextElemHashValue.copyFrom(coll.nextElemHashValue);
         elements.copyFrom(coll.elements);
-      }
-      if(coll.elementData.getSize()>0) {
         elementData.copyFrom(coll.elementData);
-      }
     }
   }
+
 
 
 /*
@@ -635,19 +631,23 @@ cout << "In" << endl << "    TypeInfo: " << nl->ToString(typeInfo) << endl;
 #endif
     Word w = SetWord(Address(0));
     bool defined = true;
+    correct = true;
     if(nl->IsAtom(typeInfo) || nl->ListLength(typeInfo)!=2) {
       correct = false;
       return w;
     }
     CollectionType collType = GetCollType(nl->First(typeInfo));
-    if((collType == undef) || nl->IsAtom(instance)) {
-      correct = false;
+    if( collType == undef ) {
+        correct = false;
       return w;
     }
 
     if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType
-       && nl->SymbolValue( instance ) == "undef" ){
+         && nl->SymbolValue( instance ) == "undef" ){
       defined = false;
+    } else if( nl->IsAtom(instance) ){
+      correct = false;
+      return w;
     }
 
     Collection* coll = new Collection(collType, typeInfo,
@@ -671,7 +671,7 @@ cout << "In" << endl << "    TypeInfo: " << nl->ToString(typeInfo) << endl;
       first = nl->First(rest);
       rest = nl->Rest(rest);
       if(collType==multiset) {
-        if(nl->ListLength(first)!=2) {
+        if(nl->IsAtom(first) || nl->ListLength(first)!=2) {
           correct = false;
         } else {
           elemList = nl->First(first);
@@ -693,6 +693,8 @@ cout << "In" << endl << "    TypeInfo: " << nl->ToString(typeInfo) << endl;
     if(correct) {
       coll->Finish();
       w.addr = coll;
+    } else {
+      coll->DeleteIfAllowed();
     }
     return w;
   }
@@ -918,8 +920,6 @@ cout << "Save: " << nl->ToString(typeInfo) << endl;
 
 /*NOCH ZU MACHEN:
 
-ostream& Print( ostream& os ) const;
-
 Collection* Delete(Attribute* elem) const;
 
 Collection* Union(Collection* coll) const;
@@ -939,44 +939,47 @@ arg.
 
   int Collection::Compare(const Attribute* arg) const {
 #ifdef DEBUGHEAD
-cout << "Compare" << endl;
+    cout << "Compare" << endl;
 #endif
-  Collection* collToCompare = (Collection*)arg;
+    Collection* collToCompare = (Collection*)arg;
 
-  if(!IsDefined() && !collToCompare->IsDefined()){
-    return 0;
-  }else if(!IsDefined()){
-    return -1;
-  }else if(!collToCompare->IsDefined()){
-    return 1;
-  }
+    assert(collType == collToCompare->collType);
 
-  if(collToCompare->GetNoComponents() != GetNoComponents()){
-    return   collToCompare->GetNoComponents() > GetNoComponents()
-                ? -1 : 1;
-  }else{
-    int countCompareElem = 0;
-    int countOwnElem = 0;
-    int compareResult;
-
-    for(int eCnt = 0; eCnt < GetNoUniqueComponents(); eCnt++){
-        countCompareElem = collToCompare->GetComponentCount(eCnt);
-        countOwnElem = GetComponentCount(eCnt);
-
-        Attribute* elem1 = GetComponent(eCnt);
-        Attribute* elem2 = collToCompare->GetComponent(eCnt);
-        compareResult = elem1->Compare(elem2);
-        elem1->DeleteIfAllowed();
-        elem2->DeleteIfAllowed();
-        if(compareResult != 0){
-            return compareResult;
-        }
-        if(countCompareElem != countOwnElem){
-            return countCompareElem > countOwnElem ? 1 : -1;
-        }
+    if(!IsDefined() && !collToCompare->IsDefined()){
+      return 0;
+    }else if(!IsDefined()){
+      return -1;
+    }else if(!collToCompare->IsDefined()){
+      return 1;
     }
-  }
 
+    if(collToCompare->GetNoComponents() != GetNoComponents()){
+      return   collToCompare->GetNoComponents() > GetNoComponents()
+                  ? -1 : 1;
+    }else if(collToCompare->GetNoUniqueComponents() != GetNoUniqueComponents()){
+      return   collToCompare->GetNoComponents() > GetNoComponents() ? -1 : 1;
+    }else{
+      int countCompareElem = 0;
+      int countOwnElem = 0;
+      int compareResult;
+
+      for(int eCnt = 0; eCnt < GetNoUniqueComponents(); eCnt++){
+          countCompareElem = collToCompare->GetComponentCount(eCnt);
+          countOwnElem = GetComponentCount(eCnt);
+
+          Attribute* elem1 = GetComponent(eCnt);
+          Attribute* elem2 = collToCompare->GetComponent(eCnt);
+          compareResult = elem1->Compare(elem2);
+          elem1->DeleteIfAllowed();
+          elem2->DeleteIfAllowed();
+          if(compareResult != 0){
+              return compareResult;
+          }
+          if(countCompareElem != countOwnElem){
+              return countCompareElem > countOwnElem ? 1 : -1;
+          }
+      }
+    }
     return 0;
   }
 
@@ -1012,41 +1015,13 @@ cout << "CopyFrom" << endl;
       this->size = coll->size;
       this->numOfBuckets = coll->numOfBuckets;
       this->hashValue = coll->hashValue;
-      if(coll->elemFLOBDataOffset.Size()>0) {
-        this->elemFLOBDataOffset.copyFrom(coll->elemFLOBDataOffset);
-      } else {
-        this->elemFLOBDataOffset.clean();
-      }
-      if(coll->elemCount.Size()>0) {
-        this->elemCount.copyFrom(coll->elemCount);
-      } else {
-        this->elemCount.clean();
-      }
-      if(coll->elemArrayIndex.Size()>0) {
-        this->elemArrayIndex.copyFrom(coll->elemArrayIndex);
-      } else {
-        this->elemArrayIndex.clean();
-      }
-      if(coll->firstElemHashValue.Size()>0) {
-        this->firstElemHashValue.copyFrom(coll->firstElemHashValue);
-      } else {
-        this->firstElemHashValue.clean();
-      }
-      if(coll->nextElemHashValue.Size()>0) {
-        this->nextElemHashValue.copyFrom(coll->nextElemHashValue);
-      } else {
-        this->nextElemHashValue.clean();
-      }
-      if(coll->elements.getSize()>0) {
-        this->elements.copyFrom(coll->elements);
-      } else {
-        this->elements.clean();
-      }
-      if(coll->elementData.getSize()>0) {
-        this->elementData.copyFrom(coll->elementData);
-      } else {
-        this->elementData.clean();
-      }
+      this->elemFLOBDataOffset.copyFrom(coll->elemFLOBDataOffset);
+      this->elemCount.copyFrom(coll->elemCount);
+      this->elemArrayIndex.copyFrom(coll->elemArrayIndex);
+      this->firstElemHashValue.copyFrom(coll->firstElemHashValue);
+      this->nextElemHashValue.copyFrom(coll->nextElemHashValue);
+      this->elements.copyFrom(coll->elements);
+      this->elementData.copyFrom(coll->elementData);
     }
   }
 
@@ -1081,6 +1056,55 @@ cout << "Finish" << endl;
   ostream& Collection::Print( ostream& os ) const {
 #ifdef DEBUGHEAD
 cout << "Print" << endl;
+#endif
+    os << "Collection: ";
+    switch(collType){
+      case vector:
+        os << "vector";
+        break;
+      case set:
+        os << "set";
+        break;
+      case multiset:
+        os << "multiset";
+        break;
+      case undef:
+        os << "undef";
+        break;
+      default:
+        os << "ERROR" << endl;
+        return (os);
+    }
+    os << "(" << elemAlgId << "," << elemTypeId << "): ";
+    os << "\t" << (IsDefined() ? "defined." : "UNDEFINED." ) << endl;
+    os << "Number of contained Elements: " << GetNoComponents() << " ("
+       << GetNoUniqueComponents() << " unique)." << endl;
+    os << "--- Elements: begin ---" << endl;
+    Attribute* elem;
+    int times;
+    for(int i=0; i<GetNoUniqueComponents(); i++){
+      elem = GetComponent(i);
+      os << i << ":\t";
+      elem->Print(os);
+      if(collType == multiset){
+        times = GetComponentCount(i);
+        os << "(contained " << times << " times).";
+      }
+      os << endl;
+      elem->DeleteIfAllowed();
+    }
+    os << "--- Elements: end ---" << endl;
+#ifdef DEBUG
+    os << "\tContains size = " << size << " elements." << endl;
+    os << "\tUses numOfBuckets = " << numOfBuckets << " buckets." << endl;
+    os << "\thashValue = " << hashValue << endl;
+    os << "\t\telemCount.Size() = " << elemCount.Size() << endl;
+    os << "\t\telemArrayIndex.Size() = " << elemArrayIndex.Size() << endl;
+    os << "\t\tfirstElemHashValue.Size() = " << firstElemHashValue.Size()<<endl;
+    os << "\t\tnextElemHashValue.Size() = " << nextElemHashValue.Size() << endl;
+    os << "\t\telemFLOBDataOffset.Size() = " <<elemFLOBDataOffset.Size()<< endl;
+    os << "\t\telements.getSize() = " << elements.getSize() << endl;
+    os << "\t\telementData.getSize() = " << elementData.getSize() << endl;
 #endif
     return (os);
   }
@@ -1475,6 +1499,7 @@ cout << "  Statusbericht GetIndex-Funktion:" << endl
     while(index>-1) {
       Attribute* elem2 = RestoreComponent(index);
       int comp = elem->Compare(elem2);
+      elem2->DeleteIfAllowed();
       if(comp==0) {
         return index;
       }
@@ -1796,6 +1821,7 @@ cout << "InsertValueMap" << endl;
 
     result = qp->ResultStorage(s);
     Collection* resColl = static_cast<Collection*>(result.addr);
+
     resColl->CopyFrom(static_cast<Attribute*>(coll));
     resColl->Insert(elem, 1);
     return 0;
@@ -2127,22 +2153,24 @@ cout << "ComponentsValueMap" << endl;
           local = SetWord(linfo);
           return 0;
         case REQUEST:
-          if ( local.addr == 0 )
+          if ( local.addr == 0 ){
+            result.addr = 0;
             return CANCEL;
+          }
 
           linfo = (ComponentsLocalInfo*)local.addr;
           if (linfo->componentCount <= 0){
             if(linfo->componentIndex + 1 >= coll->GetNoUniqueComponents()){
-                return CANCEL;
+              result.addr = 0;
+              return CANCEL;
             }else{
-                linfo->componentIndex++;
-                linfo->componentCount =
+              linfo->componentIndex++;
+              linfo->componentCount =
                             coll->GetComponentCount(linfo->componentIndex);
             }
           }
 
-          result = SetWord((coll->GetComponent(
-                                    linfo->componentIndex))->Clone());
+          result = SetWord(coll->GetComponent(linfo->componentIndex));
           linfo->componentCount--;
           return YIELD;
 
@@ -2299,28 +2327,28 @@ cout << "DeleteTypeMap" << endl;
                        int message, Word& local, Supplier s) {
 
 #ifdef DEBUGHEAD
-cout << "DeleteValueMap" << endl;
+  cout << "DeleteValueMap" << endl;
 #endif
     Collection* sourceColl = static_cast<Collection*>(args[0].addr);
     Attribute* elemToDelete = static_cast<Attribute*>( args[1].addr );
 
     result = qp->ResultStorage( s );
     Collection* resColl = static_cast<Collection*>(result.addr);
-    resColl->CopyFrom(static_cast<Attribute*>(sourceColl));
+    resColl->Clear();
 
     if(!sourceColl->IsDefined()){
       resColl->SetDefined(false);
     }else{
-      for(int eCnt = 0; eCnt < sourceColl->GetNoUniqueComponents(); eCnt++){
-          int componentCount = sourceColl->GetComponentCount(eCnt);
-          Attribute* collElem = sourceColl->GetComponent(eCnt);
-          if(collElem->Compare(elemToDelete) == 0){
-              componentCount--;
-          }
-          if(componentCount > 0){
-              resColl->Insert(collElem, componentCount);
-          }
-          if(collElem) { collElem->DeleteIfAllowed(); }
+      for(int i = 0; i < sourceColl->GetNoUniqueComponents(); i++){
+        int componentCount = sourceColl->GetComponentCount(i);
+        Attribute* elem = sourceColl->GetComponent(i);
+        if(elem->Compare(elemToDelete) == 0){
+          componentCount--;
+        }
+        if(componentCount > 0){
+          resColl->Insert(elem, componentCount);
+        }
+        if(elem) { elem->DeleteIfAllowed(); }
       }
       resColl->Finish();
     }
@@ -2482,7 +2510,7 @@ cout << "MathSetTypeMap" << endl;
   int MathSetOperationValueMap( Word* args, Word& result,
                       int message, Word& local, Supplier s) {
 #ifdef DEBUGHEAD
-cout << "MathSetValueMap" << endl;
+    cout << "MathSetValueMap" << endl;
 #endif
     Collection* coll1 = static_cast<Collection*>(args[0].addr);
     Collection* coll2 = static_cast<Collection*>(args[1].addr);
@@ -2504,107 +2532,116 @@ cout << "MathSetValueMap" << endl;
     int elementIdx1 = 0;
     int elementIdx2 = 0;
 
-    bool coll1Ended = noColl1Components <= elementIdx1;
-    bool coll2Ended = noColl2Components <= elementIdx2;
+    bool coll1Ended = (noColl1Components <= elementIdx1);
+    bool coll2Ended = (noColl2Components <= elementIdx2);
 
-    Attribute* elem1 = coll1->GetComponent(elementIdx1);
-    Attribute* elem2 = coll2->GetComponent(elementIdx2);
+    bool restore1 = !coll1Ended;
+    bool restore2 = !coll2Ended;
+ 
+    Attribute* elem1 = 0;
+    Attribute* elem2 = 0;
     while(!coll1Ended && !coll2Ended){
+      if(restore1) {
+        elem1 = coll1->GetComponent(elementIdx1);
+        restore1 = false;
+      }
+      if(restore2) {
+        elem2 = coll2->GetComponent(elementIdx2);
+        restore2 = false;
+      }
+
       int compareRes = elem1->Compare(elem2);
 
       switch(compareRes){
-      case -1:
-        switch(opType){
-          case unionOp:
-            resColl->Insert(elem1,coll1->GetComponentCount(elementIdx1));
-            break;
-          case differenceOp:
-            resColl->Insert(elem1,coll1->GetComponentCount(elementIdx1));
-            break;
-          default:
-            break;
-        }
-        elem1->DeleteIfAllowed();
-        elementIdx1++;
-        elem1 = coll1->GetComponent(elementIdx1);
-        break;
-      case 0:
-        switch(opType){
-          case unionOp:
-            resColl->Insert(elem1,  coll1->GetComponentCount(elementIdx1)
-                                  + coll2->GetComponentCount(elementIdx2));
-            break;
-          case intersectionOp:
-            insertCnt =
-                  coll1->GetComponentCount(elementIdx1) >
-                            coll2->GetComponentCount(elementIdx2) ?
-                            coll2->GetComponentCount(elementIdx2) :
-                            coll1->GetComponentCount(elementIdx1);
-            resColl->Insert(elem1, insertCnt);
-            break;
-          case differenceOp:
-            insertCnt = coll1->GetComponentCount(elementIdx1) -
-                      coll2->GetComponentCount(elementIdx2);
-            if(insertCnt > 0){
+        case -1:
+          switch(opType){
+            case unionOp:
+              resColl->Insert(elem1,coll1->GetComponentCount(elementIdx1));
+              break;
+            case differenceOp:
+              resColl->Insert(elem1,coll1->GetComponentCount(elementIdx1));
+              break;
+            default:
+              break;
+          }
+          elementIdx1++; restore1 = true;
+          break;
+        case 0:
+          switch(opType){
+            case unionOp:
+              resColl->Insert(elem1,  coll1->GetComponentCount(elementIdx1)
+                                    + coll2->GetComponentCount(elementIdx2));
+              break;
+            case intersectionOp:
+              insertCnt =
+                    coll1->GetComponentCount(elementIdx1) >
+                              coll2->GetComponentCount(elementIdx2) ?
+                              coll2->GetComponentCount(elementIdx2) :
+                              coll1->GetComponentCount(elementIdx1);
               resColl->Insert(elem1, insertCnt);
-            }
-            break;
+              break;
+            case differenceOp:
+              insertCnt = coll1->GetComponentCount(elementIdx1) -
+                        coll2->GetComponentCount(elementIdx2);
+              if(insertCnt > 0){
+                resColl->Insert(elem1, insertCnt);
+              }
+              break;
+            default:
+              break;
+          }
+          elementIdx1++; restore1 = true;
+          elementIdx2++; restore2 = true;
+          break;
+        case 1:
+          switch(opType){
+          case unionOp:
+            resColl->Insert(elem2, coll2->GetComponentCount(elementIdx2));
           default:
             break;
-        }
-        elem1->DeleteIfAllowed();
-        elementIdx1++;
-        elem1 = coll1->GetComponent(elementIdx1);
-        elem2->DeleteIfAllowed();
-        elementIdx2++;
-        elem2 = coll2->GetComponent(elementIdx2);
-        break;
-      case 1:
-        switch(opType){
-        case unionOp:
-          resColl->Insert(elem2, coll2->GetComponentCount(elementIdx2));
+          }
+          elementIdx2++;
+          break;
         default:
           break;
-        }
-        elem2->DeleteIfAllowed();
-        elementIdx2++;
-        elem2 = coll2->GetComponent(elementIdx2);
-        break;
-      default:
-        break;
       }
-
-      coll1Ended = noColl1Components <= elementIdx1;
-      coll2Ended = noColl2Components <= elementIdx2;
+      coll1Ended = (noColl1Components <= elementIdx1);
+      coll2Ended = (noColl2Components <= elementIdx2);
+      if(elem1 && restore1) {
+        elem1->DeleteIfAllowed();
+        elem1 = 0;
+      }
+      if(elem2 && restore2) {
+        elem2->DeleteIfAllowed();
+        elem2 = 0;
+      }
     }
     if(elem1) { elem1->DeleteIfAllowed(); }
     if(elem2) { elem2->DeleteIfAllowed(); }
-
     for(int iCnt1 = elementIdx1;
                             iCnt1 < coll1->GetNoUniqueComponents(); iCnt1++){
-       elem1 = coll1->GetComponent(iCnt1);
-       switch(opType){
+      elem1 = coll1->GetComponent(iCnt1);
+      switch(opType){
         case unionOp:
         case differenceOp:
           resColl->Insert(elem1, coll1->GetComponentCount(iCnt1));
           break;
         default:
           break;
-        }
-       elem1->DeleteIfAllowed();
+      }
+      elem1->DeleteIfAllowed();
     }
-
     for(int iCnt2 = elementIdx2;
                             iCnt2 < coll2->GetNoUniqueComponents(); iCnt2++){
-       elem2 = coll2->GetComponent(iCnt2);
-       switch(opType){
+      elem2 = coll2->GetComponent(iCnt2);
+      switch(opType){
         case unionOp:
           resColl->Insert(elem2, coll2->GetComponentCount(iCnt2));
           break;
         default:
           break;
         }
-       elem2->DeleteIfAllowed();
+      elem2->DeleteIfAllowed();
     }
     resColl->Finish();
     return 0;
@@ -2661,7 +2698,7 @@ cout << "MathSetValueMap" << endl;
 int sizeFun(Word* args, Word& result, int message, Word& local, Supplier s){
   Collection* co = (Collection*)args[0].addr;
   result = qp->ResultStorage(s);
-  ((CcInt*)result.addr)->Set(true, co->GetNoComponents());
+  ((CcInt*)result.addr)->Set(co->IsDefined(), co->GetNoComponents());
 return 0;
 }
 
@@ -2691,7 +2728,7 @@ struct sizeInfo : OperatorInfo {
     appendSignature(MULTISET + " -> " + INT);
     appendSignature(VECTOR + " -> " + INT);
     syntax    = SIZE + "( _ )";
-    meaning   = "Size of Object";
+    meaning   = "Number of contained objects";
   }
 
 };
@@ -2718,22 +2755,22 @@ int ltFun(Word* args, Word& result, int message, Word& local, Supplier s){
   return 0;
 }
 
-ListExpr ltTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
-  {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-
-    if (!nl->IsAtom(arg1) &&
-      ((nl->IsEqual(nl->First(arg1), "set") ||
-      (nl->IsEqual(nl->First(arg1), "multiset")) &&
-      nl->Equal(arg1, arg2)))) {
-      return nl->SymbolAtom("bool");
-    }
+ListExpr compareTypeMap(ListExpr args){
+  if (nl->IsAtom(args) || nl->ListLength(args) != 2){
+    return nl->SymbolAtom("typeerror");
   }
-
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (    !nl->IsAtom(arg1)
+       && (    nl->IsEqual(nl->First(arg1), "set")
+            || nl->IsEqual(nl->First(arg1), "multiset")
+            || nl->IsEqual(nl->First(arg1), "vector")
+          )
+       && nl->Equal(arg1, arg2)
+     ) {
+    return nl->SymbolAtom("bool");
+  }
   return nl->SymbolAtom("typeerror");
-
 }
 
 struct ltInfo : OperatorInfo {
@@ -2743,6 +2780,7 @@ struct ltInfo : OperatorInfo {
     name      = LT;
     signature = SET + " x " + SET + " -> " + BOOL;
     appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
     syntax    = " _ " + LT + " _ ";
     meaning   = "Object 1 Smaller Than Object 2";
   }
@@ -2767,24 +2805,6 @@ int eqFun(Word* args, Word& result, int message, Word& local, Supplier s){
   return 0;
 }
 
-ListExpr eqTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
-  {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-
-    if (!nl->IsAtom(arg1) &&
-      ((nl->IsEqual(nl->First(arg1), "set") ||
-      (nl->IsEqual(nl->First(arg1), "multiset")) &&
-      nl->Equal(arg1, arg2)))) {
-      return nl->SymbolAtom("bool");
-    }
-  }
-
-  return nl->SymbolAtom("typeerror");
-
-}
-
 struct eqInfo : OperatorInfo {
 
   eqInfo() : OperatorInfo()
@@ -2792,8 +2812,39 @@ struct eqInfo : OperatorInfo {
     name      = EQ;
     signature = SET + " x " + SET + " -> " + BOOL;
     appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
     syntax    = " _ " + EQ + " _ ";
     meaning   = "Object 1 equals Object 2";
+  }
+
+};
+
+int neFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  bool r = true;
+  int tmp;
+  Collection* co = (Collection*)args[0].addr;
+  Collection* cl = (Collection*)args[1].addr;
+  result = qp->ResultStorage(s);
+  tmp = co->Compare(cl);
+  if(tmp == 0){
+    r = false;
+  }
+  else
+    r = true;
+  ((CcBool*)result.addr)->Set(true, r);
+  return 0;
+}
+
+struct neInfo : OperatorInfo {
+
+  neInfo() : OperatorInfo()
+  {
+    name      = NE;
+    signature = SET + " x " + SET + " -> " + BOOL;
+    appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
+    syntax    = " _ " + NE + " _ ";
+    meaning   = "Object 1 does not equal Object 2";
   }
 
 };
@@ -2816,24 +2867,6 @@ int gtFun(Word* args, Word& result, int message, Word& local, Supplier s){
   return 0;
 }
 
-ListExpr gtTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
-  {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-
-    if (!nl->IsAtom(arg1) &&
-      ((nl->IsEqual(nl->First(arg1), "set") ||
-      (nl->IsEqual(nl->First(arg1), "multiset")) &&
-      nl->Equal(arg1, arg2)))) {
-      return nl->SymbolAtom("bool");
-    }
-  }
-
-  return nl->SymbolAtom("typeerror");
-
-}
-
 struct gtInfo : OperatorInfo {
 
   gtInfo() : OperatorInfo()
@@ -2841,6 +2874,7 @@ struct gtInfo : OperatorInfo {
     name      = GT;
     signature = SET + " x " + SET + " -> " + BOOL;
     appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
     syntax    = " _ " + GT + " _ ";
     meaning   = "Object 1 Greater Than Object 2";
   }
@@ -2865,24 +2899,6 @@ int leFun(Word* args, Word& result, int message, Word& local, Supplier s){
   return 0;
 }
 
-ListExpr leTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
-  {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-
-    if (!nl->IsAtom(arg1) &&
-      ((nl->IsEqual(nl->First(arg1), "set") ||
-      (nl->IsEqual(nl->First(arg1), "multiset")) &&
-      nl->Equal(arg1, arg2)))) {
-      return nl->SymbolAtom("bool");
-    }
-  }
-
-  return nl->SymbolAtom("typeerror");
-
-}
-
 struct leInfo : OperatorInfo {
 
   leInfo() : OperatorInfo()
@@ -2890,6 +2906,7 @@ struct leInfo : OperatorInfo {
     name      = LE;
     signature = SET + " x " + SET + " -> " + BOOL;
     appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
     syntax    = " _ " + LE + " _ ";
     meaning   = "Object 1 Smaller equal Object 2";
   }
@@ -2915,24 +2932,6 @@ int geFun(Word* args, Word& result, int message, Word& local, Supplier s){
   return 0;
 }
 
-ListExpr geTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
-  {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-
-    if (!nl->IsAtom(arg1) &&
-      ((nl->IsEqual(nl->First(arg1), "set") ||
-      (nl->IsEqual(nl->First(arg1), "multiset")) &&
-      nl->Equal(arg1, arg2)))) {
-      return nl->SymbolAtom("bool");
-    }
-  }
-
-  return nl->SymbolAtom("typeerror");
-
-}
-
 struct geInfo : OperatorInfo {
 
   geInfo() : OperatorInfo()
@@ -2940,6 +2939,7 @@ struct geInfo : OperatorInfo {
     name      = GE;
     signature = SET + " x " + SET + " -> " + BOOL;
     appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
     syntax    = " _ " + GE + " _ ";
     meaning   = "Object 1 Greater equal Object 2";
   }
@@ -3042,12 +3042,13 @@ and operators
                   MathSetOperationTypeMap<intersectionOp>);
       AddOperator(differenceInfo(), MathSetOperationValueMap<differenceOp>,
                   MathSetOperationTypeMap<differenceOp>);
-      AddOperator( sizeInfo(), eqFun, sizeTypeMap );
-      AddOperator( eqInfo(), eqFun, eqTypeMap );
-      AddOperator( gtInfo(), gtFun, gtTypeMap );
-      AddOperator( ltInfo(), ltFun, ltTypeMap );
-      AddOperator( geInfo(), geFun, geTypeMap );
-      AddOperator( leInfo(), leFun, leTypeMap );
+      AddOperator( sizeInfo(), sizeFun, sizeTypeMap );
+      AddOperator( eqInfo(), eqFun, compareTypeMap );
+      AddOperator( gtInfo(), gtFun, compareTypeMap );
+      AddOperator( ltInfo(), ltFun, compareTypeMap );
+      AddOperator( geInfo(), geFun, compareTypeMap );
+      AddOperator( leInfo(), leFun, compareTypeMap );
+      AddOperator( neInfo(), neFun, compareTypeMap );
       AddOperator( isdefInfo(), isdefFun, isdefTypeMap);
 
     }
