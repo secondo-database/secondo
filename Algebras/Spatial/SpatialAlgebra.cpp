@@ -2210,6 +2210,10 @@ ListExpr
 OutPoints( ListExpr typeInfo, Word value )
 {
   Points* points = (Points*)(value.addr);
+  if(!points->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
   if( points->IsEmpty() )
     return nl->TheEmptyList();
 
@@ -2236,7 +2240,20 @@ Word
 InPoints( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
+
   Points* points = new Points( nl->ListLength( instance ) );
+  if(nl->IsEqual(instance,"undef")){
+      points->SetDefined(false);
+      correct=true;
+      return SetWord( Address(points) );
+  }
+  
+  if(nl->AtomType(instance)!=NoAtom){
+    delete points;
+    correct = false;
+    return SetWord( Address(points) );
+  }
+
   points->StartBulkLoad();
 
   ListExpr rest = instance;
@@ -2254,10 +2271,13 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
     }
     else
     {
-      delete p;
+      if(p){ 
+        delete p;
+      }
       delete points;
       return SetWord( Address(0) );
     }
+
   }
   points->EndBulkLoad();
 
@@ -5150,6 +5170,11 @@ OutLine( ListExpr typeInfo, Word value )
   ListExpr halfseg, halfpoints, flatseg;
   Line* l = (Line*)(value.addr);
 
+  if(!l->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
+
   if( l->IsEmpty() )
     return nl->TheEmptyList();
 
@@ -5191,6 +5216,13 @@ InLine( const ListExpr typeInfo, const ListExpr instance,
         const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   Line* l = new Line( 0 );
+
+  if(nl->IsEqual(instance,"undef")){
+    l->SetDefined(false);
+    correct=true;
+    return SetWord(Address(l));
+  }
+
   HalfSegment * hs;
   l->StartBulkLoad();
   ListExpr first, halfseg, halfpoint;
@@ -12574,6 +12606,10 @@ ListExpr
 OutRegion( ListExpr typeInfo, Word value )
 {
   Region* cr = (Region*)(value.addr);
+  if(!cr->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
   if( cr->IsEmpty() )
   {
     return (nl->TheEmptyList());
@@ -12820,6 +12856,12 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
 
   Region* cr = new Region( 0 );
 
+  if(nl->IsEqual(instance,"undef")){
+    cr->SetDefined(0);
+    correct=true;
+    return SetWord(Address(cr));
+  }
+
   cr->StartBulkLoad();
   
 
@@ -13011,7 +13053,6 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
             delete hs;
             rDir->EndBulkLoad(true, false, false, false);
 
-            cout << "rdir = " << (*rDir) << endl;
 
             //To calculate the inside above attribute
             bool direction = rDir->GetCycleDirection();
