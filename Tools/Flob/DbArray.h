@@ -244,6 +244,7 @@ void Sort( int (*cmp)( const void *a, const void *b) ) {
    char buffer[size];
    Flob::read(buffer, size, 0);
    qsort( buffer, nElements, sizeof( DbArrayElement ), cmp );
+   Flob::write(buffer, size, 0);
 }
 
 
