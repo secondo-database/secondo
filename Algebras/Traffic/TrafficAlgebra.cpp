@@ -312,8 +312,8 @@ struct mgpsecInfo:ConstructorInfo
     name = "mgpsecunit";
     signature = "-> DATA";
     typeExample = "mgpsecunit";
-    listRep = "(<secId><part><direction><speed>(<timeinterval>))";
-    valueExample = "(15 1 1 3.5 (\"2000-01-01\" \"2000-01-02\" TRUE FALSE))";
+    listRep = "(<secId><part><dir><speed>(<timeinterval>))";
+    valueExample = "(15 1 1 3.5 <timeinterval>)";
     remarks = "direction:down=0,up=1,none=2. Speed: m/s";
   }
 };
@@ -985,9 +985,9 @@ struct mgp2mgpsecunitsInfo : OperatorInfo {
   mgp2mgpsecunitsInfo()
   {
     name      = "mgp2mgpsecunits";
-    signature = "rel(tuple(a1x1...anxn))xaixnetworkxreal->stream(mgpsecunit)";
+    signature = "rel x attr x net x real->stream(mgpsecunit)";
     syntax    = "_ mgp2mgpsecunits[_,_,_]";
-    meaning   = "Returns the mgpoints of rel as stream of mgpsecunits.";
+    meaning   = "Builds a stream of mgpsecunits from mgpoint.";
   }
 };
 
