@@ -23,9 +23,12 @@ of that class.
  /*
 #define __TRACE_ENTER__ std::cerr << "Enter : " << \
         __PRETTY_FUNCTION__ << std::endl;
-#define __TRACE_LEAVE__ std::cerr << "Leave : " << \
+        */
+        
+/*#define __TRACE_LEAVE__ std::cerr << "Leave : " << \
         __PRETTY_FUNCTION__ << "@" << __LINE__ << std::endl;
- */
+        */
+
 
 
 
@@ -95,6 +98,10 @@ and the nativFlobFile is deleted.
 SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId) {
  __TRACE_ENTER__
 
+   if(fileId==nativeFlobs){
+     return nativeFlobFile;
+   }
+     
   SmiRecordFile* file(0);
   map<SmiFileId, SmiRecordFile*>::iterator it = openFiles.find(fileId);
   if(it == openFiles.end()){
@@ -130,15 +137,18 @@ bool FlobManager::getData(
   SmiSize     floboffset = id.offset;
   SmiRecord record;
   SmiRecordFile* file = getFile(fileId);
-  
+
   bool ok = file->SelectRecord(recordId, record);
   if(!ok){
     __TRACE_LEAVE__
     return false;
   }
- 
-  SmiSize read = record.Read(dest,size, floboffset + offset);
-  if(read!=size){
+
+  SmiSize recOffset = floboffset + offset;
+  SmiSize mySize = min(size, record.Size()-recOffset); // restrict read to the
+                                                       // end of the record
+  SmiSize read = record.Read(dest,mySize, recOffset);
+  if(read!=mySize){
     __TRACE_LEAVE__
     return false;
   } 
@@ -400,6 +410,8 @@ by the FlobManager class itself.
 
     nativeFlobs = nativeFlobFile->GetFileId();
     openFiles[nativeFlobs] = nativeFlobFile;
+
+    cout << "nativeFlobs : " << nativeFlobs << endl;
 
     __TRACE_LEAVE__
   }
