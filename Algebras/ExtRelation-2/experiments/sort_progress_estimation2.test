@@ -1,0 +1,71 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+#--------------------------------------------------  
+# Enable Flags
+#--------------------------------------------------  
+
+set "ERA:TraceSort" = TRUE;
+#set "SI:PrintCounters" = TRUE;
+set "SI:PrintCmdTimes" = TRUE;
+set "SI:NoQueryTimers" = TRUE;
+set "SI:NoCommandEcho" = TRUE;
+#set "SI:RelStatistics" = TRUE;
+set "SMI:NoTransactions" = TRUE;
+
+#--------------------------------------------------  
+# Create and open database DB_R32MB
+#--------------------------------------------------  
+
+#setup sort_iobuffer StandardAlgebra RelationAlgebra ExtRelation2Algebra
+
+create database db_R32MB;
+open database db_R32MB;
+
+#--------------------------------------------------  
+# Create relation with 32 MB data and 64 Byte tuples
+#--------------------------------------------------  
+
+#testcase create_relation
+#yields success
+restore R10MB_T64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T64B';
+
+#testcase create_relation
+#yields success
+let four = R10MB_T64B feed head[4] project [Nr] {a} consume; 
+
+#testcase create_relation
+#yields success
+let R32MB_T64B = R10MB_T64B feed four feed product head[524288] remove[Nr_a] extend[ran: randint(50000)] sortby2Param[ran asc;64*1024*1024,-1,-1] remove[ran] consume;
+
+#--------------------------------------------------  
+# Perform tests on this relation
+#--------------------------------------------------  
+
+#testcase external
+#yields success
+query R32MB_T64B feed sortby2Param[Ival;1024*1024,-1,-1] count;
+
+##############################################################################
+# TearDown
+##############################################################################
+
+#teardown
+close database;
+delete database db_R32MB;

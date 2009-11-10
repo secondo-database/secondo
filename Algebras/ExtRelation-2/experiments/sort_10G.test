@@ -1,0 +1,71 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+#--------------------------------------------------  
+# Enable Flags
+#--------------------------------------------------  
+
+set "ERA:TraceSort" = TRUE;
+#set "SI:PrintCounters" = TRUE;
+set "SI:PrintCmdTimes" = TRUE;
+set "SI:NoQueryTimers" = TRUE;
+set "SI:NoCommandEcho" = TRUE;
+#set "SI:RelStatistics" = TRUE;
+set "SMI:NoTransactions" = TRUE;
+
+#--------------------------------------------------  
+# Create and open database DB_R10G
+#--------------------------------------------------  
+
+#setup sort_5G StandardAlgebra RelationAlgebra ExtRelation2Algebra
+
+create database db_R10G;
+open database db_R10G;
+
+#--------------------------------------------------  
+# Create relation with 10 GB data and 1024 Byte tuples
+#--------------------------------------------------  
+
+#testcase create_relation
+#yields success
+restore R100MB_T1KB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R100MB_T1KB';
+
+#testcase create_relation
+#yields success
+let tmp = R100MB_T1KB feed head[103] project [Nr] {a} consume; 
+
+#testcase create_relation
+#yields success
+let R10G_T1KB = R100MB_T1KB feed tmp feed product head[10485760] remove[Nr_a] consume;
+
+#--------------------------------------------------  
+# Perform tests on this relation
+#--------------------------------------------------  
+
+#testcase sort_10GB
+#yields success
+query R10G_T1KB feed sortby2[Ival] count;
+
+##############################################################################
+# TearDown
+##############################################################################
+
+#teardown
+close database;
+delete database db_R10G;
