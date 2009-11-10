@@ -8165,6 +8165,7 @@ always the right point of the last segment.
   HalfSegment hs1, hs2;
   this->Get(0,hs1);
   this->Get(1,hs2);
+
   assert( hs1.GetLeftPoint()==hs2.GetLeftPoint() );
   pP = hs1.GetLeftPoint();
   // If we have the last half segment connected to the first half
@@ -10058,7 +10059,9 @@ HalfSegment avlseg::AVLSegment::convertToHs(bool lpd,
       insideAbove = owner==first?insideAbove_first
                                   :insideAbove_second;
    }
-   HalfSegment hs(lpd, Point(true,x1,y1), Point(true,x2,y2));
+   Point p1(true,x1,y1);
+   Point p2(true,x2,y2);
+   HalfSegment hs(lpd, p1, p2);
    hs.attr.insideAbove = insideAbove;
    return hs;
 }
@@ -10995,7 +10998,7 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
   int edgeno = 0;
   avlseg::AVLSegment tmpL,tmpR,tmpM;
   while(selectNext(segments,pos,q1,nextHS)!=avlseg::none) {
-      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      avlseg::AVLSegment current(nextHS,avlseg::first);
       member = sss.getMember(current,leftN,rightN);
       if(leftN){
          tmpL = *leftN;
@@ -12808,13 +12811,17 @@ OutRegion( ListExpr typeInfo, Word value )
 8.4 ~In~-function
 
 */
+
+
 Word
 InRegion( const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct )
 {
+
   Region* cr = new Region( 0 );
 
   cr->StartBulkLoad();
+  
 
   ListExpr RegionNL = instance;
   ListExpr FaceNL, CycleNL;
@@ -12889,7 +12896,11 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
 
           currvertex = (Point*) InPoint ( nl->TheEmptyList(),
               firstPoint, 0, errorInfo, correct ).addr;
-          if (!correct) return SetWord( Address(0) );
+          if (!correct) {
+             // todo: delete temp objects
+             return SetWord( Address(0) );
+          }
+
           cyclepoints->StartBulkLoad();
           (*cyclepoints) += (*currvertex);
           p1 = *currvertex;
@@ -12999,6 +13010,9 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
             (*cr) += (*hs);
             delete hs;
             rDir->EndBulkLoad(true, false, false, false);
+
+            cout << "rdir = " << (*rDir) << endl;
+
             //To calculate the inside above attribute
             bool direction = rDir->GetCycleDirection();
             int h = cr->Size() - ( rDir->Size() * 2 );
