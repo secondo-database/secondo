@@ -183,7 +183,7 @@ void FlobManager::destroy(Flob& victim) {
          record.Finish();
       }
    } else {
-     if(recordSize != size){
+     if(recordSize != size && (id.fileId != nativeFlobs) ){
        std::cout << "cannot destroy flob, because after the flob data are"
                     " available" << std::endl;
      } else {
