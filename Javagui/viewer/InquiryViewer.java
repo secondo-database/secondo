@@ -27,6 +27,7 @@ import java.awt.event.*;
 import gui.SecondoObject;
 import sj.lang.*;
 import tools.Reporter;
+import java.io.*;
 
 public class InquiryViewer extends SecondoViewer{
 
@@ -51,6 +52,8 @@ public class InquiryViewer extends SecondoViewer{
  private MenuVector MV = new MenuVector();
  private JTextField SearchField = new JTextField(20);
  private JButton SearchButton = new JButton("Search");
+ private JButton SaveButton = new JButton("Save");
+ private JFileChooser fc = new JFileChooser(".");
  private int LastSearchPos =0;
  private JCheckBox CaseSensitive = new JCheckBox("Case Sensitive");
 
@@ -68,6 +71,10 @@ public class InquiryViewer extends SecondoViewer{
    BottomPanel.add(CaseSensitive);
    BottomPanel.add(SearchField);
    BottomPanel.add(SearchButton);
+   
+   BottomPanel.add(new JLabel("     "));
+   BottomPanel.add(SaveButton);
+   
    add(BottomPanel,BorderLayout.SOUTH);
    CaseSensitive.setSelected(true);
 
@@ -85,6 +92,11 @@ public class InquiryViewer extends SecondoViewer{
     SearchButton.addActionListener(new ActionListener(){
        public void actionPerformed(ActionEvent evt){
            searchText();
+       }});
+    
+    SaveButton.addActionListener(new ActionListener(){
+       public void actionPerformed(ActionEvent evt){
+           savePage();
        }});
 
 
@@ -205,6 +217,24 @@ private void searchText(){
 
 }
 
+private void savePage(){
+  try{
+     String text = HTMLArea.getText();
+     if(fc.showSaveDialog(null)==JFileChooser.APPROVE_OPTION){
+        File f = fc.getSelectedFile();
+        if(f.exists()){
+           Reporter.showError("Cannot overwrite an existing file");
+           return;
+        }
+        PrintWriter out = new PrintWriter(new FileWriter(f));
+        out.write(text);
+        out.close();
+     }
+  } catch(Exception e){
+    Reporter.debug(e);
+    Reporter.showError("error in saving Document");
+ }
+}
 
 
 
