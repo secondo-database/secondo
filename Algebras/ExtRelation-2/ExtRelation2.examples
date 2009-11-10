@@ -51,49 +51,49 @@ Result   : 3
 
 Operator : heapstl
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> int
+Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> int
 Example  : query Staedte feed heapstl
 Result   : 1
 
 Operator : heapstd
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> int
+Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> int
 Example  : query Staedte feed heapstd
 Result   : 1
 
 Operator : heapbup
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> int
+Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> int
 Example  : query Staedte feed heapbup
 Result   : 1
 
 Operator : heapbup2
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> int
+Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> int
 Example  : query Staedte feed heapbup2
 Result   : 1
 
 Operator : heapmdr
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> int
+Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> int
 Example  : query Staedte feed heapmdr
 Result   : 1
 
 Operator : tuplecomp
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> int
+Signature: ((stream (tuple([a1:d1, ... ,an:dn])))) -> int
 Example  : query Staedte feed tuplecomp
 Result   : 1
 
 Operator : tuplefile
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc)))
-Example  : query Staedte feed head[3] tuplefile count
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query Staedte feed head[3] tuplefile[-1] count
 Result   : 3
 
 Operator : tuplebuffer
 Number   : 1
-Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc))) -> ((stream (tuple([a1:d1, ... ,an:dn]))) ((xi1 asc/desc) ... (xij asc/desc)))
-Example  : query Staedte feed head[3] tuplebuffer[1024] count
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query Staedte feed head[3] tuplebuffer[1024,-1] count
 Result   : 3
 
