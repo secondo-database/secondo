@@ -125,14 +125,14 @@ The constructor. Constructs an empty object.
 
   ~TupleFileTestLocalInfo()
   {
-    if ( file )
-    {
-      delete file;
-    }
-
     if ( iter )
     {
       delete iter;
+    }
+
+    if ( file )
+    {
+      delete file;
     }
   }
 /*
@@ -170,6 +170,7 @@ int TupleFileValueMap( Word* args, Word& result,
                         int message, Word& local, Supplier s )
 {
   // args[0] : stream
+  // args[1] : size of I/O buffer in bytes
 
   switch(message)
   {
@@ -182,6 +183,11 @@ int TupleFileValueMap( Word* args, Word& result,
       qp->Open(args[0].addr);
       qp->Request(args[0].addr, wTuple);
 
+      // Set I/O buffer size in bytes
+      int args1 = StdTypes::GetInt( args[1] );
+      size_t pageSize = WinUnix::getPageSize();
+      size_t ioBufferSize = ( args1 == -1 ) ? pageSize : (size_t)args1;
+
       while( qp->Received(args[0].addr) )
       {
         Tuple* t = static_cast<Tuple*>( wTuple.addr );
@@ -189,7 +195,7 @@ int TupleFileValueMap( Word* args, Word& result,
         // create tuple file
         if ( li->file == 0 )
         {
-          li->file = new TupleFile(t->GetTupleType(), 4096);
+          li->file = new TupleFile(t->GetTupleType(), ioBufferSize);
           li->file->Open();
         }
 
@@ -264,14 +270,14 @@ public:
 
   ~TupleBufferTestLocalInfo()
   {
-    if ( buffer )
-    {
-      delete buffer;
-    }
-
     if ( iter )
     {
       delete iter;
+    }
+
+    if ( buffer )
+    {
+      delete buffer;
     }
   }
 
@@ -309,6 +315,11 @@ int TupleBufferValueMap( Word* args, Word& result,
       // Read buffer size in KBytes from second argument
       size_t bufferSize = StdTypes::GetInt( args[1] );
 
+      // Set I/O buffer size in bytes
+      int args2 = StdTypes::GetInt( args[2] );
+      size_t pageSize = WinUnix::getPageSize();
+      size_t ioBufferSize = ( args2 == -1 ) ? pageSize : (size_t)args2;
+
       while( qp->Received(args[0].addr) )
       {
         Tuple* t = static_cast<Tuple*>( wTuple.addr );
@@ -316,7 +327,7 @@ int TupleBufferValueMap( Word* args, Word& result,
         // create tuple file
         if ( li->buffer == 0 )
         {
-          li->buffer = new extrel2::TupleBuffer2(bufferSize*1024);
+          li->buffer = new extrel2::TupleBuffer2(bufferSize*1024, ioBufferSize);
         }
 
         // append tuple to buffer

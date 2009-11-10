@@ -1120,9 +1120,13 @@ successor.
 
 Type mapping for ~tuplefile~ is
 
-----  (stream (tuple ((x1 t1)...(xn tn))))  ->
+----  (stream (tuple ((x1 t1)...(xn tn))) int )  ->
       (stream (tuple ((x1 t1)...(xn tn))))
 ----
+
+The second argument specifies the size of the I/O buffer in bytes.
+If -1 is specified the default value will be used (page size of
+file system).
 
 */
 ListExpr TupleFileTypeMap(ListExpr args)
@@ -1130,10 +1134,10 @@ ListExpr TupleFileTypeMap(ListExpr args)
   NList type(args);
 
   // check list length
-  if ( !type.hasLength(1) )
+  if ( !type.hasLength(2) )
   {
     return NList::typeError(
-        "Operator tuplefile expects a list of length one.");
+        "Operator tuplefile expects a list of length two.");
   }
 
   NList attr;
@@ -1151,6 +1155,13 @@ ListExpr TupleFileTypeMap(ListExpr args)
         "Operator tuplefile: first argument does "
         "not contain a tuple description!"
         "Operator received: " + attr.convertToString() );
+  }
+
+  if ( type.second() != INT )
+  {
+    return NList::typeError(
+        "Operator tuplefile: second argument must be an integer!"
+        "Operator received: " + type.second().convertToString() );
   }
 
   return type.first().listExpr();
@@ -1176,6 +1187,10 @@ const string TupleFileSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "<text>Stores a stream temporarily in a tuple "
                             "file and restores the tuples from file when "
                             "they are requested by the next operator."
+                            "The second argument "
+                            "contains the size of the I/O buffer in bytes. "
+                            "If -1 is specified the default value will be "
+                            "used (page size file system)."
                             "</text---><text>query cities feed "
                             "tuplefile consume</text--->) )";
 
@@ -1202,11 +1217,13 @@ successor.
 
 Type mapping for ~tuplebuffer~ is
 
-----  ((stream (tuple ((x1 t1)...(xn tn)))) int)  ->
+----  ((stream (tuple ((x1 t1)...(xn tn)))) int int)  ->
        (stream (tuple ((x1 t1)...(xn tn))))
 ----
 
-The second argument is the buffer size in KBytes.
+The second argument is the buffer size in KBytes. The third argument
+is the size of the I/O buffer. If -1 is specified the default value
+(page size of file system will be used)
 
 */
 ListExpr TupleBufferTypeMap(ListExpr args)
@@ -1214,10 +1231,10 @@ ListExpr TupleBufferTypeMap(ListExpr args)
   NList type(args);
 
   // check list length
-  if ( !type.hasLength(2) )
+  if ( !type.hasLength(3) )
   {
     return NList::typeError(
-        "Operator tuplebuffer expects a list of length two.");
+        "Operator tuplebuffer expects a list of length three.");
   }
 
   NList attr;
@@ -1244,6 +1261,13 @@ ListExpr TupleBufferTypeMap(ListExpr args)
         "Operator received: " + type.second().convertToString() );
   }
 
+  if ( type.third() != INT )
+  {
+    return NList::typeError(
+        "Operator tuplebuffer: third argument must be an integer!"
+        "Operator received: " + type.third().convertToString() );
+  }
+
   return type.first().listExpr();
 }
 
@@ -1261,16 +1285,20 @@ int TupleBufferValueMap( Word* args, Word& result,
 const string TupleBufferSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
                             "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                            "))) int) -> (stream (tuple([a1:d1, ... ,an:dn])))"
+                            "))) int int) -> "
+                            "(stream (tuple([a1:d1, ... ,an:dn])))"
                             "</text--->"
-                            "<text>_ tuplebuffer[_]</text--->"
+                            "<text>_ tuplebuffer[_, _]</text--->"
                             "<text>Stores a stream temporarily in a tuple "
                             "buffer and restores the tuples when they are "
                             "requested by the next operator. The in-memory "
                             "buffer size is specified in KBytes as an "
-                            "additional argument."
+                            "additional argument. The third argument "
+                            "contains the size of the I/O buffer in bytes. "
+                            "If -1 is specified the default value will be "
+                            "used (page size file system)."
                             "</text---><text>query cities feed "
-                            "tuplebuffer[256] consume</text--->) )";
+                            "tuplebuffer[256,-1] consume</text--->) )";
 
 /*
 4.6.4 Definition of operator ~tuplebuffer~
