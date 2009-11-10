@@ -2241,7 +2241,7 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
 
-  Points* points = new Points( nl->ListLength( instance ) );
+  Points* points = new Points( max(0,nl->ListLength( instance) ) );
   if(nl->IsEqual(instance,"undef")){
       points->SetDefined(false);
       correct=true;
