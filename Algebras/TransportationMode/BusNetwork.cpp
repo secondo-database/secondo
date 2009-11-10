@@ -545,7 +545,7 @@ void BusNetwork::FillBusNode_New(const Relation* in_busRoute)
   ps->StartBulkLoad();
 
   int pointcounter = 1;
-  int maxbusroute = in_busRoute->GetNoTuples();
+
   for(int i = 1; i <=  in_busRoute->GetNoTuples();i++){
     Tuple* tuple = in_busRoute->GetTuple(i);
     MPoint* trip = (MPoint*)tuple->GetAttribute(TRIP);
@@ -555,6 +555,7 @@ void BusNetwork::FillBusNode_New(const Relation* in_busRoute)
 ///////////////////////
     int bus_line_no = 0;
 #ifndef graph_model
+    int maxbusroute = in_busRoute->GetNoTuples();
     CcBool* up_down = (CcBool*)tuple->GetAttribute(UP);
     CcInt* busline = (CcInt*)tuple->GetAttribute(LINENO);
     if(up_down->GetBoolval()) bus_line_no = busline->GetIntval();
@@ -4296,7 +4297,7 @@ vector<E_BusAdj>& path,double queryinstant)
   }
   unsigned int endps_index = 0;
 
-  int maxroute = bus_route->GetNoTuples();
+//  int maxroute = bus_route->GetNoTuples();
   priority_queue<E_BusAdj> q_list;
   vector<E_BusAdj> expansionlist;
   int expansioncounter = 0;
