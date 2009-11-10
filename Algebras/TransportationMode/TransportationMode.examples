@@ -32,45 +32,45 @@ Result   : 562
 Operator : find_path_t_1
 Number   : 1
 Signature: busnetwork x rel x attribute_name x instant -> mpoint
-Example  : query find_path_t_1(berlintrains,q1,id,querytime)
+Example  : query find_path_t_1(berlintrains, q1, id, querytime)
 Result   : file
 
 Operator : find_path_t_2
 Number   : 1
 Signature: busnetwork x rel x attribute_name x instant  -> mpoint
-Example  : query find_path_t_2(berlintrains,q1,id,querytime)
+Example  : query find_path_t_2(berlintrains, q1, id, querytime)
 Result   : file
 
 Operator : find_path_t_3
 Number   : 1
 Signature: rel x btree1 x busnetwork x rel x attribute_name1 x attribute_name2 x instant -> mpoint
-Example  : query edge_rel_order btree_edge_rel_v1 find_path_t_3[berlintrains,tq1,id,dur,querytime]
+Example  : query edge_rel_order btree_edge_rel_v1 find_path_t_3[berlintrains, tq1, id, dur, querytime]
 Result   : file
 
 
 Operator : find_path_t_4
 Number   : 1
 Signature: busnetwork x rel x attribute_name1 x attribute_name2 x instant  -> mpoint
-Example  : query berlintrains find_path_t_4[tq1,id,dur,querytime]
+Example  : query berlintrains find_path_t_4[tq1, id, dur, querytime]
 Result   : file
 
 
 Operator : find_path_t_5
 Number   : 1
 Signature: busnetwork x rel x attribute_name1 x attribute_name2 x instant  -> mpoint
-Example  : query berlintrains find_path_t_5[tq1,id,dur,querytime]
+Example  : query berlintrains find_path_t_5[tq1, id, dur, querytime]
 Result   : file
 
 
 Operator : find_path_t_6
 Number   : 1
 Signature: busnetwork x rel x attribute_name1 x attribute_name2 x instant  -> mpoint
-Example  : query berlintrains find_path_t_6[tq1,id,dur,querytime]
+Example  : query berlintrains find_path_t_6[tq1, id, dur, querytime]
 Result   : file
 
 
 Operator : find_path_bus_tree1
 Number   : 1
 Signature: busnetwork x rel x attribute_name1 x attribute_name2 x instant  -> mpoint
-Example  : query berlintrains find_path_bus_tree1[tq1,id,dur,querytime]
+Example  : query berlintrains find_path_bus_tree1[tq1, id, dur, querytime]
 Result   : file
