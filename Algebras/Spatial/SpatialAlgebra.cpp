@@ -3345,23 +3345,42 @@ double HalfSegment::Distance(const Rectangle<2>& rect) const{
   Point p2(true,x1,y1);
   Point p3(true,x0,y1);
 
-  HalfSegment hs(true,p0,p1);
-  double dist = this->Distance(hs);
+  double dist;
+  HalfSegment hs;
+  if(AlmostEqual(p0,p1)){
+    dist = this->Distance(p0);
+  } else {
+    hs.Set(true,p0,p1);
+    dist = this->Distance(hs);
+  }
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
-  hs.Set(true,p1,p2);
-  dist = MIN( dist, this->Distance(hs));
+  if(AlmostEqual(p1,p2)){
+    dist = MIN( dist, this->Distance(p1));
+  } else {
+    hs.Set(true,p1,p2);
+    dist = MIN( dist, this->Distance(hs));
+  }
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
-  hs.Set(true,p2,p3);
-  dist = MIN( dist, this->Distance(hs));
+ 
+  if(AlmostEqual(p2,p3)){
+    dist = MIN(dist, this->Distance(p2));
+  } else {
+    hs.Set(true,p2,p3);
+    dist = MIN( dist, this->Distance(hs));
+  }
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
-  hs.Set(true,p3,p0);
-  dist = MIN( dist, this->Distance(hs));
+  if(AlmostEqual(p3,p0)){
+    dist = MIN(dist, this->Distance(p3));
+  } else {
+    hs.Set(true,p3,p0);
+    dist = MIN( dist, this->Distance(hs));
+  }
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
@@ -6371,10 +6390,12 @@ Region::Region( const Rectangle<2>& r ):region(8)
           AlmostEqual(v3, v4) ||
           AlmostEqual(v4, v1) )
       { // one interval is (almost) empty, so will be the region
+        Clear();
         SetDefined( true );
         return;
       }
 
+      SetDefined( true );
       StartBulkLoad();
 
       hs.Set(true, v1, v2);
@@ -6418,10 +6439,10 @@ Region::Region( const Rectangle<2>& r ):region(8)
       *this += hs;
 
       EndBulkLoad();
-      SetDefined( true );
     }
-    else
+    else {
       SetDefined( false );
+    }
 }
 
 void Region::StartBulkLoad()
@@ -7432,6 +7453,12 @@ void Region::Boundary( Line* result ) const
 
 Region& Region::operator=( const Region& r )
 {
+  if(!r.IsDefined()){
+     Clear();
+     SetDefined(false);
+     return *this;
+  }
+
   assert( r.IsOrdered() );
 
   region.copyFrom(r.region);
@@ -17251,8 +17278,9 @@ int SpatialRect2Region( Word* args, Word& result, int message,
   Region *res = (Region *)result.addr;
   res->SetDefined(true);
   res->Clear();
-  if(  rect->IsDefined() )
-  *res = Region( *rect );
+  if(  rect->IsDefined() ){
+     *res = Region( *rect );
+  }
   return 0;
 }
 
@@ -17571,27 +17599,33 @@ SpatialComponents_ps( Word* args, Word& result, int message,
 
   switch( message )
   {
-    case OPEN:
-      localInfo = new Points(*((Points*)args[0].addr));
-      localInfo->SelectFirst();
-      local.setAddr(localInfo);
+    case OPEN:{
+      Points* arg = static_cast<Points*>(args[0].addr);
+      if(arg->IsDefined() && arg->Size()>0){
+         localInfo = new Points(*arg);
+         localInfo->SelectFirst();
+         local.setAddr(localInfo);
+      } else {
+         local.setAddr(0);
+      }
       return 0;
-
-    case REQUEST:
-    {
+    }
+    case REQUEST: {
+      if(!local.addr){
+        return CANCEL;
+      }
       localInfo = (Points*)local.addr;
       if(localInfo->EndOfPt() ){
-        return CANCEL;}
+        return CANCEL;
+      }
 
       Point p;
       localInfo->GetPt( p );
       result.addr = new Point( p );
       localInfo->SelectNext();
-      local.setAddr(localInfo);
       return YIELD;
-    }
-
-    case CLOSE:
+    } 
+    case CLOSE: {
       if(local.addr)
       {
         localInfo = (Points*)local.addr;
@@ -17599,6 +17633,7 @@ SpatialComponents_ps( Word* args, Word& result, int message,
         local.setAddr(0);
       }
       return 0;
+    }
   }
   return 0;
 }
@@ -18566,7 +18601,6 @@ int gkVM_x(Word* args, Word& result, int message,
       a->Get(i,hs);
       if(! gk.project(hs,hs2)){
         res->Clear();
-        res->EndBulkLoad();
         res->SetDefined(false);
         return 0;
       }
