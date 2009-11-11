@@ -1,0 +1,1268 @@
+create database st;
+
+open database st;
+
+let p1 = [const point value (1 0)]
+
+let p2 = [const point value ( 2 3)]
+
+let p3 = p1;
+
+let p4 = [const point value undef]
+
+let r1 = [const region value (
+        (
+            (
+                (5100.196593882312 11322.76036344607) 
+                (5623.604386090105 12394.50012844298) 
+                (5698.376927834074 13391.46735169592) 
+                (5748.225288996721 14562.90383901812) 
+                (6271.633081204514 15485.09852052709) 
+                (7418.145387945392 15734.34032634032) 
+                (8788.975319918181 16133.1272156415) 
+                (10209.65361305362 16482.06574378002) 
+                (11605.40772560773 16307.59647971076) 
+                (12702.07167118596 15609.7194234337) 
+                (13699.0388944389 14861.994005994) 
+                (15094.79300699301 13216.99808762665) 
+                (15618.2007992008 12195.10668379239) 
+                (15044.94464583037 10774.42839065696) 
+                (14421.84013129728 9254.053375196227) 
+                (14297.21922839066 8406.631235431229) 
+                (14272.29504780934 7235.194748109027) 
+                (12951.3134769992 6861.332039389176) 
+                (11455.86264211979 6537.317691831971) 
+                (10134.88107130965 6562.241872413295) 
+                (8863.747861662152 7110.573845202411) 
+                (7567.690471433332 7484.436553922262) 
+                (6645.495789924366 7733.678359735497) 
+                (5523.90766376481 7708.754179154174) 
+                (4925.727329813048 7758.60254031682) 
+                (5125.120774463636 8680.797221825787) 
+                (5199.893316207606 9403.598458684168) 
+                (5174.969135626282 10226.09641786784) 
+                (4751.258065743784 11098.44273821416))))];
+
+let r2 = [ const region value (
+        (
+            (
+                (6390.0 12281.0) 
+                (6363.0 12302.0) 
+                (6374.0 12335.0) 
+                (6358.0 12418.0) 
+                (6392.0 12419.0) 
+                (6457.0 12376.0) 
+                (6452.0 12361.0) 
+                (6545.0 12363.0) 
+                (6586.0 12384.0) 
+                (6598.0 12418.0) 
+                (6560.0 12447.0) 
+                (6554.0 12509.0) 
+                (6624.0 12582.0) 
+                (6727.0 12569.0) 
+                (6780.0 12514.0) 
+                (7017.0 12324.0) 
+                (7123.0 12302.0) 
+                (7231.0 12304.0) 
+                (7416.0 12368.0) 
+                (7509.0 12456.0) 
+                (7603.0 12530.0) 
+                (7773.0 12600.0) 
+                (7906.0 12687.0) 
+                (7997.0 12795.0) 
+                (8070.0 12735.0) 
+                (8098.0 12654.0) 
+                (8101.0 12523.0) 
+                (8082.0 12407.0) 
+                (8083.0 12382.0) 
+                (8193.0 12385.0) 
+                (8507.0 12389.0) 
+                (8528.0 12336.0) 
+                (8497.0 12258.0) 
+                (8511.0 12197.0) 
+                (8571.0 12144.0) 
+                (8553.0 11860.0) 
+                (8481.0 11792.0) 
+                (8177.0 11696.0) 
+                (7804.0 11577.0) 
+                (7685.0 11545.0) 
+                (7484.0 11535.0) 
+                (7366.0 11533.0) 
+                (7187.0 11534.0) 
+                (7026.0 11493.0) 
+                (6872.0 11497.0) 
+                (6784.0 11485.0) 
+                (6725.0 11454.0) 
+                (6701.0 11449.0) 
+                (6703.0 11481.0) 
+                (6496.0 11518.0) 
+                (6415.0 11605.0) 
+                (6282.0 11435.0) 
+                (6206.0 11453.0) 
+                (6079.0 11524.0) 
+                (5969.0 11586.0) 
+                (5919.0 11646.0) 
+                (5853.0 11726.0) 
+                (5784.0 11781.0) 
+                (5660.0 11825.0) 
+                (5936.0 11878.0) 
+                (5937.0 11935.0) 
+                (5935.0 12024.0) 
+                (5980.0 12086.0) 
+                (6007.0 12075.0) 
+                (6310.0 12119.0) 
+                (6329.0 12166.0) 
+                (6395.0 12167.0) 
+                (6403.0 12155.0) 
+                (6446.0 12188.0) 
+                (6393.0 12271.0)))) ]
+
+let r3 = r1;
+
+let r4 = [const region value undef]
+
+let r5 = [const region value ()]
+
+
+
+let l1 = boundary(r1)
+
+let l2  = boundary(r2)
+
+let l3 = boundary(r3) 
+
+let l4 = [const line value undef]
+
+let l5 = [const line value ()]
+
+let ps1 = vertices(r1);
+
+let ps2 = vertices(r2);
+
+let ps3 = vertices(r3);
+
+let ps4 = [const points value undef]
+
+let ps5 = [const points value ()]
+
+
+let b1 = bbox(p1);
+let b2 = bbox(p2);
+let b3 = bbox(l1);
+let b4 = bbox(l2);
+let b5 = bbox(r1);
+let b6 = bbox(r2);
+let b7 = bbox(r3);
+let b8 = bbox(r4);
+
+
+
+#first test, querying objects
+
+query p1;
+
+query p2;
+
+query p3;
+
+query p4;
+
+query ps1;
+
+query ps2;
+
+query ps3;
+
+query ps4;
+
+query l1;
+
+query l2;
+
+query l3;
+
+query l4;
+
+query r1;
+
+query r2;
+
+query r3;
+
+query r4;
+
+
+# operator isempty
+
+query isempty(p1);
+
+query isempty(p4);
+
+query isempty(ps1);
+
+query isempty(ps4);
+
+query isempty(ps5);
+
+query isempty(l1);
+
+query isempry(l4);
+
+query isempty(l5);
+
+
+query isempty(r1);
+
+query isempry(r4);
+
+query isempty(r5);
+
+# operator =
+
+query p1 = p3
+
+query p1 = p2;
+
+query p1 = p4
+
+query l1 = l3
+
+query l1 = l2
+
+query l1 = l4
+
+query l1 = l5
+
+
+query r1 = r3
+
+query r1 = r2
+
+query r1 = r4
+
+query r1 = r5
+
+
+# operator #
+
+query p1 # p3
+
+query p1 # p2;
+
+query p1 # p4
+
+query l1 # l3
+
+query l1 # l2
+
+query l1 # l4
+
+query l1 # l5
+
+
+query r1 # r3
+
+query r1 # r2
+
+query r1 # r4
+
+query r1 # r5
+
+#operator intersects
+
+query ps1 intersects ps2
+
+query ps1 intersects ps1
+
+query ps1 intersects ps4
+
+query ps1 intersects ps5
+
+
+query ps1 intersects l1;
+query ps1 intersects l3;
+query ps1 intersects l4;
+query ps1 intersects l5;
+query ps4 intersects l1;
+
+query ps1 intersects r1;
+query ps1 intersects r3;
+query ps1 intersects r4;
+query ps1 intersects r5;
+query ps4 intersects r1;
+
+
+query l1 intersects r1;
+query l1 intersects r3;
+query l1 intersects r4;
+query l1 intersects r5;
+query l4 intersects r1;
+
+
+query r1 intersects r1;
+query r1 intersects r3;
+query r1 intersects r4;
+query r1 intersects r5;
+query r4 intersects r1;
+
+
+
+#operator inside
+
+query ps1 inside ps2
+
+query ps1 inside ps1
+
+query ps1 inside ps4
+
+query ps1 inside ps5
+
+
+query ps1 inside l1;
+query ps1 inside l3;
+query ps1 inside l4;
+query ps1 inside l5;
+query ps4 inside l1;
+
+query ps1 inside r1;
+query ps1 inside r3;
+query ps1 inside r4;
+query ps1 inside r5;
+query ps4 inside r1;
+
+
+query l1 inside r1;
+query l1 inside r3;
+query l1 inside r4;
+query l1 inside r5;
+query l4 inside r1;
+
+
+query r1 inside r1;
+query r1 inside r3;
+query r1 inside r4;
+query r1 inside r5;
+query r4 inside r1;
+
+
+
+#operator adjacent
+
+query ps1 adjacent r1;
+query ps1 adjacent r3;
+query ps1 adjacent r4;
+query ps1 adjacent r5;
+query ps4 adjacent r1;
+
+
+query l1 adjacent r1;
+query l1 adjacent r3;
+query l1 adjacent r4;
+query l1 adjacent r5;
+query l4 adjacent r1;
+
+
+query r1 adjacent r1;
+query r1 adjacent r3;
+query r1 adjacent r4;
+query r1 adjacent r5;
+query r4 adjacent r1;
+
+# operator overlaps
+query r1 overlaps r1;
+query r1 overlaps r2;
+query r1 overlaps r3;
+query r1 overlaps r4;
+query r1 overlaps r5;
+
+
+# operator onborder
+query p1 onborder r1;
+query p1 onborder r2;
+query p1 onborder r3;
+query p1 onborder r4;
+query p2 onborder r5;
+query p4 onborder r1;
+
+# operator ininterior
+query p1 ininterior r1;
+query p1 ininterior r2;
+query p1 ininterior r3;
+query p1 ininterior r4;
+query p2 ininterior r5;
+query p4 ininterior r1;
+
+#operator intersection
+
+query intersection( p1 , p2);
+query intersection( p1 , p1);
+query intersection( p1 , p4);
+
+query intersection( p1 , ps2);
+query intersection( p1 , ps1);
+query intersection( p1 , ps4);
+query intersection( p1 , ps5);
+
+
+query intersection( p1 , l1);
+query intersection( p1 , l3);
+query intersection( p1 , l4);
+query intersection( p1 , l5);
+query intersection( p4 , l1);
+
+query intersection( p1 , r1);
+query intersection( p1 , r3);
+query intersection( p1 , r4);
+query intersection( p1 , r5);
+query intersection( p4 , r1);
+
+
+query intersection( ps1 , ps2);
+query intersection( ps1 , ps1);
+query intersection( ps1 , ps4);
+query intersection( ps1 , ps5);
+
+
+query intersection( ps1 , l1);
+query intersection( ps1 , l3);
+query intersection( ps1 , l4);
+query intersection( ps1 , l5);
+query intersection( ps4 , l1);
+
+query intersection( ps1 , r1);
+query intersection( ps1 , r3);
+query intersection( ps1 , r4);
+query intersection( ps1 , r5);
+query intersection( ps4 , r1);
+
+
+#query intersection( l1 , r1);
+#query intersection( l1 , r3);
+#query intersection( l1 , r4);
+#query intersection( l1 , r5);
+#query intersection( l4 , r1);
+
+
+#query intersection( r1 , r1);
+#query intersection( r1 , r3);
+#query intersection( r1 , r4);
+#query intersection( r1 , r5);
+#query intersection( r4 , r1);
+
+
+
+#operator minus
+
+query p1 minus p2;
+query p1 minus p1;
+query p1 minus p4;
+
+query p1 minus ps2;
+query p1 minus ps1;
+query p1 minus ps4;
+query p1 minus ps5;
+
+
+query p1 minus l1;
+query p1 minus l3;
+query p1 minus l4;
+query p1 minus l5;
+query p4 minus l1;
+
+query p1 minus r1;
+query p1 minus r3;
+query p1 minus r4;
+query p1 minus r5;
+query p4 minus r1;
+
+
+query ps1 minus ps2;
+query ps1 minus ps1;
+query ps1 minus ps4;
+query ps1 minus ps5;
+
+
+query ps1 minus l1;
+query ps1 minus l3;
+query ps1 minus l4;
+query ps1 minus l5;
+query ps4 minus l1;
+
+query ps1 minus r1;
+query ps1 minus r3;
+query ps1 minus r4;
+query ps1 minus r5;
+query ps4 minus r1;
+
+
+#query l1 minus r1;
+#query l1 minus r3;
+#query l1 minus r4;
+#query l1 minus r5;
+#query l4 minus r1;
+
+
+#query r1 minus r1;
+#query r1 minus r3;
+#query r1 minus r4;
+#query r1 minus r5;
+#query r4 minus r1;
+
+
+#operator union
+
+query p1 union ps2;
+query p1 union ps1;
+query p1 union ps4;
+query p1 union ps5;
+
+
+#query p1 union l1;
+#query p1 union l3;
+#query p1 union l4;
+#query p1 union l5;
+#query p4 union l1;
+
+#query p1 union r1;
+#query p1 union r3;
+#query p1 union r4;
+#query p1 union r5;
+#query p4 union r1;
+
+
+query ps1 union ps2;
+query ps1 union ps1;
+query ps1 union ps4;
+query ps1 union ps5;
+
+
+#query ps1 union l1;
+#query ps1 union l3;
+#query ps1 union l4;
+#query ps1 union l5;
+#query ps4 union l1;
+
+#query ps1 union r1;
+#query ps1 union r3;
+#query ps1 union r4;
+#query ps1 union r5;
+#query ps4 union r1;
+
+
+#query l1 union r1;
+#query l1 union r3;
+#query l1 union r4;
+#query l1 union r5;
+#query l4 union r1;
+
+
+#query r1 union r1;
+#query r1 union r3;
+#query r1 union r4;
+#query r1 union r5;
+#query r4 union r1;
+
+# operator crossings
+
+query crossings(l1, l1);
+query crossings(l1, l2);
+query crossings(l1, l3);
+query crossings(l1, l4);
+query crossings(l1, l5);
+
+query crossings(l2, l1);
+query crossings(l2, l2);
+query crossings(l2, l3);
+query crossings(l2, l4);
+query crossings(l2, l5);
+
+query crossings(l3, l1);
+query crossings(l3, l2);
+query crossings(l3, l3);
+query crossings(l3, l4);
+query crossings(l3, l5);
+
+# operator touchpoints
+
+query touchpoints(l1, r1);
+query touchpoints(l1, r2);
+query touchpoints(l1, r3);
+query touchpoints(l1, r4);
+query touchpoints(l1, r5);
+
+query touchpoints(l2, r1);
+query touchpoints(l2, r2);
+query touchpoints(l2, r3);
+query touchpoints(l2, r4);
+query touchpoints(l2, r5);
+
+
+query touchpoints(r1, r1);
+query touchpoints(r1, r2);
+query touchpoints(r1, r3);
+query touchpoints(r1, r4);
+query touchpoints(r1, r5);
+
+
+query touchpoints(r2, r1);
+query touchpoints(r2, r2);
+query touchpoints(r2, r3);
+query touchpoints(r2, r4);
+query touchpoints(r2, r5);
+
+# operator commonborder
+
+
+query commonborder(r1, r1);
+query commonborder(r1, r2);
+query commonborder(r1, r3);
+query commonborder(r1, r4);
+query commonborder(r1, r5);
+
+
+query commonborder(r2, r1);
+query commonborder(r2, r2);
+query commonborder(r2, r3);
+query commonborder(r2, r4);
+query commonborder(r2, r5);
+
+# operator single
+
+query single(ps1);
+query single(ps2);
+query single(ps3);
+query single(ps4);
+query single(ps5);
+
+
+# operator distance
+
+query distance(p1, p1);
+query distance(p1, p2);
+query distance(p1, p3);
+query distance(p1, p4);
+
+query distance(p1, ps1);
+query distance(p1, ps2);
+query distance(p1, ps3);
+query distance(p1, ps4);
+
+query distance(p1, l1);
+query distance(p1, l2);
+query distance(p1, l3);
+query distance(p1, l4);
+
+
+query distance(p1, r1);
+query distance(p1, r2);
+query distance(p1, r3);
+query distance(p1, r4);
+
+
+query distance(p1, b1);
+query distance(p1, b2);
+query distance(p1, b3);
+query distance(p1, b4);
+
+
+query distance(l1, p1);
+query distance(l1, p2);
+query distance(l1, p3);
+query distance(l1, p4);
+
+query distance(l1, ps1);
+query distance(l1, ps2);
+query distance(l1, ps3);
+query distance(l1, ps4);
+
+query distance(l1, l1);
+query distance(l1, l2);
+query distance(l1, l3);
+query distance(l1, l4);
+
+
+#query distance(l1, r1);
+#query distance(l1, r2);
+#query distance(l1, r3);
+#query distance(l1, r4);
+
+
+query distance(l1, b1);
+query distance(l1, b2);
+query distance(l1, b3);
+query distance(l1, b4);
+
+
+query distance(r1, p1);
+query distance(r1, p2);
+query distance(r1, p3);
+query distance(r1, p4);
+
+query distance(r1, ps1);
+query distance(r1, ps2);
+query distance(r1, ps3);
+query distance(r1, ps4);
+
+#query distance(r1, l1);
+#query distance(r1, l2);
+#query distance(r1, l3);
+#query distance(r1, l4);
+
+
+query distance(r1, r1);
+query distance(r1, r2);
+query distance(r1, r3);
+query distance(r1, r4);
+
+
+query distance(r1, b1);
+query distance(r1, b2);
+query distance(r1, b3);
+query distance(r1, b4);
+
+
+query distance(b1, p1);
+query distance(b1, p2);
+query distance(b1, p3);
+query distance(b1, p4);
+
+query distance(b1, ps1);
+query distance(b1, ps2);
+query distance(b1, ps3);
+query distance(b1, ps4);
+
+query distance(b1, l1);
+query distance(b1, l2);
+query distance(b1, l3);
+query distance(b1, l4);
+
+
+query distance(b1, r1);
+query distance(b1, r2);
+query distance(b1, r3);
+query distance(b1, r4);
+
+
+query distance(b1, b1);
+query distance(b1, b2);
+query distance(b1, b3);
+query distance(b1, b4);
+
+# operator direction
+query direction(p1,p1);
+query direction(p1,p2);
+query direction(p1,p3);
+query direction(p1,p4);
+
+query direction(p2,p1);
+query direction(p2,p2);
+query direction(p2,p3);
+query direction(p2,p4);
+
+# operator no_components
+
+query no_components(ps1);
+query no_components(ps2);
+query no_components(ps3);
+query no_components(ps4);
+
+query no_components(l1);
+query no_components(l2);
+query no_components(l3);
+query no_components(l4);
+
+
+query no_components(r1);
+query no_components(r2);
+query no_components(r3);
+query no_components(r4);
+
+
+# operator no_segments
+query no_segments(l1);
+query no_segments(l2);
+query no_segments(l3);
+query no_segments(l3);
+query no_segments(r1);
+query no_segments(r2);
+query no_segments(r3);
+query no_segments(r3);
+
+# operator size
+
+query size(l1);
+query size(l2);
+query size(l3);
+query size(l4);
+
+query size(r1);
+query size(r2);
+query size(r3);
+query size(r4);
+
+# operator bbox
+
+query bbox(p1);
+query bbox(p2);
+query bbox(p3);
+query bbox(p4);
+query bbox(ps1);
+query bbox(ps2);
+query bbox(ps3);
+query bbox(ps4);
+
+query bbox(l1);
+query bbox(l2);
+query bbox(l3);
+query bbox(l4);
+
+query bbox(r1);
+query bbox(r2);
+query bbox(r3);
+query bbox(r4);
+
+# operator translate
+query p1 translate[ 130.0, 90.0];
+query p2 translate[ 130.0, 90.0];
+query p3 translate[ 130.0, 90.0];
+query p4 translate[ 130.0, 90.0];
+query ps1 translate[ 130.0, 90.0];
+query ps2 translate[ 130.0, 90.0];
+query ps3 translate[ 130.0, 90.0];
+query ps4 translate[ 130.0, 90.0];
+query l1 translate[ 130.0, 90.0];
+query l2 translate[ 130.0, 90.0];
+query l3 translate[ 130.0, 90.0];
+query l4 translate[ 130.0, 90.0];
+query r1 translate[ 130.0, 90.0];
+query r2 translate[ 130.0, 90.0];
+query r3 translate[ 130.0, 90.0];
+query r4 translate[ 130.0, 90.0];
+
+# operator rotate
+query p1 rotate[ 20.0 ,60.0, 45.0];
+query p2 rotate[ 20.0 ,60.0, 45.0];
+query p3 rotate[ 20.0 ,60.0, 45.0];
+query p4 rotate[ 20.0, 60.0, 45.0];
+query ps1 rotate[ 20.0, 60.0, 45.0];
+query ps2 rotate[ 20.0, 60.0, 45.0];
+query ps3 rotate[ 20.0, 60.0, 45.0];
+query ps4 rotate[ 20.0, 60.0, 45.0];
+query l1 rotate[ 20.0, 60.0, 45.0];
+query l2 rotate[ 20.0, 60.0, 45.0];
+query l3 rotate[ 20.0, 60.0, 45.0];
+query l4 rotate[ 20.0, 60.0, 45.0];
+query r1 rotate[ 20.0, 60.0, 45.0];
+query r2 rotate[ 20.0, 60.0, 45.0];
+query r3 rotate[ 20.0, 60.0, 45.0];
+query r4 rotate[ 20.0, 60.0, 45.0];
+
+# operator center
+query center(ps1);
+query center(ps2);
+query center(ps3);
+query center(ps4);
+
+# operator convexhull
+
+query convexhull(ps1);
+query convexhull(ps2);
+query convexhull(ps3);
+query convexhull(ps4);
+
+# operator windowclipin
+query windowclipin(l1, b1);
+query windowclipin(l2, b1);
+query windowclipin(l3, b1);
+query windowclipin(l4, b1);
+query windowclipin(l1, b2);
+query windowclipin(l2, b2);
+query windowclipin(l3, b2);
+query windowclipin(l4, b2);
+
+query windowclipin(r1, b1);
+query windowclipin(r2, b1);
+query windowclipin(r3, b1);
+query windowclipin(r4, b1);
+query windowclipin(r1, b2);
+query windowclipin(r2, b2);
+query windowclipin(r3, b2);
+query windowclipin(r4, b2);
+
+# operator windowclipout
+query windowclipout(l1, b1);
+query windowclipout(l2, b1);
+query windowclipout(l3, b1);
+query windowclipout(l4, b1);
+query windowclipout(l1, b2);
+query windowclipout(l2, b2);
+query windowclipout(l3, b2);
+query windowclipout(l4, b2);
+
+query windowclipout(r1, b1);
+query windowclipout(r2, b1);
+query windowclipout(r3, b1);
+query windowclipout(r4, b1);
+query windowclipout(r1, b2);
+query windowclipout(r2, b2);
+query windowclipout(r3, b2);
+query windowclipout(r4, b2);
+
+#operator components
+query components(ps1);
+query components(ps2);
+query components(ps3);
+query components(ps4);
+query components(l1);
+query components(l2);
+query components(l3);
+query components(l4);
+query components(r1);
+query components(r2);
+query components(r3);
+query components(r4);
+
+# operator vertices
+query vertices(l1);
+query vertices(l2);
+query vertices(l3);
+query vertices(l4);
+query vertices(r1);
+query vertices(r2);
+query vertices(r3);
+query vertices(r4);
+
+# operator boundary
+
+query boundary(l1);
+query boundary(l2);
+query boundary(l3);
+query boundary(l4);
+query boundary(r1);
+query boundary(r2);
+query boundary(r3);
+query boundary(r4);
+
+# operator scale
+query p1 scale [8.0];
+query p2 scale [8.0];
+query p3 scale [8.0];
+query p4 scale [8.0];
+query l1 scale [8.0];
+query l2 scale [8.0];
+query l3 scale [8.0];
+query l4 scale [8.0];
+query ps1 scale [8.0];
+query ps2 scale [8.0];
+query ps3 scale [8.0];
+query ps4 scale [8.0];
+query r1 scale [8.0];
+query r2 scale [8.0];
+query r3 scale [8.0];
+query r4 scale [8.0];
+
+#operator atpoint
+# omitted uses sline
+
+#operator atposition
+# omitted uses sline
+
+#operator subline
+# omitted uses sline
+
+# operator +
+query p1 + p1;
+query p1 + p2;
+query p1 + p3;
+
+#operator getx
+query getx(p1);
+query getx(p2);
+query getx(p3);
+query getx(p4);
+
+# operator line2region
+query l1 line2region;
+query l2 line2region;
+query l3 line2region;
+query l4 line2region;
+
+# operator rect2region
+query b1 rect2region;
+query b2 rect2region;
+query b3 rect2region;
+query b4 rect2region;
+
+# operator area
+query area(r1);
+query area(r2);
+query area(r3);
+query area(r4);
+
+# operator polylines
+query l1 polylines [TRUE] count;
+query l2 polylines [TRUE] count;
+query l3 polylines [TRUE] count;
+query l4 polylines [TRUE] count;
+query l1 polylines [FALSE] count;
+query l2 polylines [FALSE] count;
+query l3 polylines [FALSE] count;
+query l4 polylines [FALSE] count;
+query l1 polylines [TRUE, ps1] count;
+query l2 polylines [TRUE, ps1] count;
+query l3 polylines [TRUE, ps1] count;
+query l4 polylines [TRUE, ps1] count;
+query l1 polylines [TRUE, ps2] count;
+query l2 polylines [TRUE, ps2] count;
+query l3 polylines [TRUE, ps2] count;
+query l4 polylines [TRUE, ps2] count;
+query l1 polylines [FALSE, ps1] count;
+query l2 polylines [FALSE, ps1] count;
+query l3 polylines [FALSE, ps1] count;
+query l4 polylines [FALSE, ps1] count;
+query l1 polylines [FALSE, ps2] count;
+query l2 polylines [FALSE, ps2] count;
+query l3 polylines [FALSE, ps2] count;
+query l4 polylines [FALSE, ps2] count;
+
+# operator polylinesC
+query l1 polylinesC [TRUE] count;
+query l2 polylinesC [TRUE] count;
+query l3 polylinesC [TRUE] count;
+query l4 polylinesC [TRUE] count;
+query l1 polylinesC [FALSE] count;
+query l2 polylinesC [FALSE] count;
+query l3 polylinesC [FALSE] count;
+query l4 polylinesC [FALSE] count;
+query l1 polylinesC [TRUE, ps1] count;
+query l2 polylinesC [TRUE, ps1] count;
+query l3 polylinesC [TRUE, ps1] count;
+query l4 polylinesC [TRUE, ps1] count;
+query l1 polylinesC [TRUE, ps2] count;
+query l2 polylinesC [TRUE, ps2] count;
+query l3 polylinesC [TRUE, ps2] count;
+query l4 polylinesC [TRUE, ps2] count;
+query l1 polylinesC [FALSE, ps1] count;
+query l2 polylinesC [FALSE, ps1] count;
+query l3 polylinesC [FALSE, ps1] count;
+query l4 polylinesC [FALSE, ps1] count;
+query l1 polylinesC [FALSE, ps2] count;
+query l2 polylinesC [FALSE, ps2] count;
+query l3 polylinesC [FALSE, ps2] count;
+query l4 polylinesC [FALSE, ps2] count;
+
+
+# operator segments
+query segments(l1) count;
+query segments(l2) count;
+query segments(l3) count;
+query segments(l4) count;
+
+
+# operator get
+query get(ps1, 1);
+query get(ps1, 1000);
+query get(ps2, 1);
+query get(ps2, 1000);
+query get(ps3, 1);
+query get(ps3, 1000);
+query get(ps4, 1);
+query get(ps4, 1000);
+
+# operator simplify
+
+query simplify(l1, 60.0);
+query simplify(l2, 60.0);
+query simplify(l3, 60.0);
+query simplify(l4, 60.0);
+query simplify(l1, 60.0, ps1);
+query simplify(l2, 60.0, ps1);
+query simplify(l3, 60.0, ps1);
+query simplify(l4, 60.0, ps1);
+
+
+# operator realminize
+query realminize(l1);
+query realminize(l2);
+query realminize(l3);
+query realminize(l4);
+
+# operator makeline
+query makeline(p1, p1);
+query makeline(p1, p2);
+query makeline(p1, p3);
+query makeline(p1, p4);
+query makeline(p2, p1);
+query makeline(p2, p2);
+query makeline(p2, p3);
+query makeline(p2, p4);
+
+# operator union2
+query l1 union2 l1;
+query l1 union2 l2;
+query l1 union2 l3;
+query l1 union2 l4;
+query l2 union2 l1;
+query l2 union2 l2;
+query l2 union2 l3;
+query l2 union2 l4;
+
+query r1 union2 l1;
+query r1 union2 l2;
+query r1 union2 l3;
+query r1 union2 l4;
+query r2 union2 l1;
+query r2 union2 l2;
+query r2 union2 l3;
+query r2 union2 l4;
+
+query r1 union2 r1;
+query r1 union2 r2;
+query r1 union2 r3;
+query r1 union2 r4;
+query r2 union2 r1;
+query r2 union2 r2;
+query r2 union2 r3;
+query r2 union2 r4;
+
+# operator intersection2
+
+query l1 intersection2 l1;
+query l1 intersection2 l2;
+query l1 intersection2 l3;
+query l1 intersection2 l4;
+query l2 intersection2 l1;
+query l2 intersection2 l2;
+query l2 intersection2 l3;
+query l2 intersection2 l4;
+
+query r1 intersection2 l1;
+query r1 intersection2 l2;
+query r1 intersection2 l3;
+query r1 intersection2 l4;
+query r2 intersection2 l1;
+query r2 intersection2 l2;
+query r2 intersection2 l3;
+query r2 intersection2 l4;
+
+query r1 intersection2 r1;
+query r1 intersection2 r2;
+query r1 intersection2 r3;
+query r1 intersection2 r4;
+query r2 intersection2 r1;
+query r2 intersection2 r2;
+query r2 intersection2 r3;
+query r2 intersection2 r4;
+
+# operator difference2
+query l1 difference2 l1;
+query l1 difference2 l2;
+query l1 difference2 l3;
+query l1 difference2 l4;
+query l2 difference2 l1;
+query l2 difference2 l2;
+query l2 difference2 l3;
+query l2 difference2 l4;
+
+query r1 difference2 l1;
+query r1 difference2 l2;
+query r1 difference2 l3;
+query r1 difference2 l4;
+query r2 difference2 l1;
+query r2 difference2 l2;
+query r2 difference2 l3;
+query r2 difference2 l4;
+
+query r1 difference2 r1;
+query r1 difference2 r2;
+query r1 difference2 r3;
+query r1 difference2 r4;
+query r2 difference2 r1;
+query r2 difference2 r2;
+query r2 difference2 r3;
+query r2 difference2 r4;
+
+# operator commonborder2
+query r1 commonborder2 r1;
+query r1 commonborder2 r2;
+query r1 commonborder2 r3;
+query r1 commonborder2 r4;
+query r2 commonborder2 r1;
+query r2 commonborder2 r2;
+query r2 commonborder2 r3;
+query r2 commonborder2 r4;
+
+# operator toline, fromline
+query toline(fromline(l1));
+query toline(fromline(l2));
+query toline(fromline(l3));
+query toline(fromline(l4));
+
+# operator iscycle
+query iscycle(fromline(l1));
+query iscycle(fromline(l2));
+query iscycle(fromline(l3));
+query iscycle(fromline(l4));
+
+# operator utm
+query utm(p1);
+query utm(p2);
+query utm(p3);
+query utm(p4);
+query utm(ps1);
+query utm(ps2);
+query utm(ps3);
+query utm(ps4);
+
+# operator gk
+query gk(p1);
+query gk(p2);
+query gk(p3);
+query gk(p4);
+query gk(ps1);
+query gk(ps2);
+query gk(ps3);
+query gk(ps4);
+query gk(l1);
+query gk(l2);
+query gk(l3);
+query gk(l4);
+query gk(r1);
+query gk(r2);
+query gk(r3);
+query gk(r4);
+
+# operator collect_line
+query components(ps1) collect_line;
+query components(ps2) collect_line;
+query components(ps3) collect_line;
+query components(ps4) collect_line;
+query segments(l1) collect_line;
+query segments(l2) collect_line;
+query segments(l3) collect_line;
+query segments(l4) collect_line;
+
+
+# operator collect_sline
+query components(ps1) collect_sline;
+query components(ps2) collect_sline;
+query components(ps3) collect_sline;
+query components(ps4) collect_sline;
+query segments(l1) collect_sline;
+query segments(l2) collect_sline;
+query segments(l3) collect_sline;
+query segments(l4) collect_sline;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
