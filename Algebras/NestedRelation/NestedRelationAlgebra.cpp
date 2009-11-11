@@ -43,6 +43,7 @@ types and functions implemented by the Relation Algebra module.
 
 */
 
+
 #include "NestedRelationAlgebra.h"
 #include "ListUtils.h"
 /*
@@ -52,8 +53,8 @@ types and functions implemented by the Relation Algebra module.
 3.1 Constructors and Destructor
 
 */
-AttributeRelation::AttributeRelation( ListExpr typeInfo, bool nrel):
- tupleIds(0),
+AttributeRelation::AttributeRelation( ListExpr typeInfo, bool nrel, int n):
+ tupleIds( n ),
  arelType( typeInfo ),
  partOfNrel( nrel ),
  relDelete( false )
@@ -68,14 +69,14 @@ AttributeRelation::AttributeRelation( ListExpr typeInfo, bool nrel):
    }
 }
 
-AttributeRelation::AttributeRelation( const SmiFileId relId, const ListExpr
-                                      typeInfo) :
-   tupleIds( 0 ),
+AttributeRelation::AttributeRelation( const SmiFileId id, const ListExpr
+                                      typeInfo, int n) :
+   tupleIds( n ),
    arelType( typeInfo ),
    partOfNrel( true ),
    relDelete( false )
 {
-   setRelId( relId );
+   setRelId(id);
 }
 
 AttributeRelation::~AttributeRelation() 
@@ -124,11 +125,8 @@ void AttributeRelation::Append(const TupleId& tupleId)
 
 void AttributeRelation::setRelId(SmiFileId id)
 {
-   relId = id;
-   if (!(relId == 0))
-   {
-      rel = Relation::GetRelation( relId );
-   } 
+     relId = id;
+     rel = Relation::GetRelation( relId );
 }
 
 SmiFileId AttributeRelation::getRelId() const
@@ -239,9 +237,10 @@ int AttributeRelation::Compare(const Attribute* attr) const
       }
     }
     i++;
+    t1->DeleteIfAllowed();
+    t2->DeleteIfAllowed();
   }
-  t1->DeleteIfAllowed();
-  t2->DeleteIfAllowed();
+  
   if (i < (&tupleIds)->Size())
     return 1;
   if (i < arelTids->Size())
@@ -249,7 +248,7 @@ int AttributeRelation::Compare(const Attribute* attr) const
   return 0;
 }
 
-bool AttributeRelation::Adjacent(const Attribute*) const
+bool AttributeRelation::Adjacent(const Attribute* attr) const
 {
   return 0;
 }
@@ -257,7 +256,7 @@ bool AttributeRelation::Adjacent(const Attribute*) const
 AttributeRelation *AttributeRelation::Clone() const
 {
   AttributeRelation *arel = new AttributeRelation( this->arelType, 
-                                                   false );
+                                                   false, this->tupleIds.Size() );
   arel->setRelId(this->relId);
   const TupleId *tid;
   for (int i = 0; i < this->tupleIds.Size(); i++){
@@ -266,7 +265,7 @@ AttributeRelation *AttributeRelation::Clone() const
   }
   return arel;          
 }
-
+ 
 bool AttributeRelation::IsDefined() const
 {
   return true;
@@ -285,7 +284,7 @@ size_t AttributeRelation::HashValue() const
 {
   size_t value = 0;
   AttributeType atype;
-  const StandardAttribute* a1;
+  const Attribute* a1;
   Relation* rel1 = Relation::GetRelation(relId);
   TupleType* tt = rel1->GetTupleType();
   tt->IncReference();
@@ -298,19 +297,20 @@ size_t AttributeRelation::HashValue() const
     t1 = rel1->GetTuple(*tid1);
     for (int j = 0; j < tt->GetNoAttributes(); j++)
     {
-      a1 = (StandardAttribute*)t1->GetAttribute(j);
+      a1 = (Attribute*)t1->GetAttribute(j);
       atype = tt->GetAttributeType(j);
       value = a1->HashValue();
     }
   i++;
-  }  
   t1->DeleteIfAllowed();
+  }  
+  
   tt->DeleteIfAllowed();    
   return value; 
 }
   
 
-void AttributeRelation::CopyFrom(const StandardAttribute* right)
+void AttributeRelation::CopyFrom(const Attribute* right)
 {
   AttributeRelation* arel = (AttributeRelation*) right;
   partOfNrel = false;
@@ -339,9 +339,9 @@ Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr
 {
    Word result = SetWord( Address(0) );
    correct = true;
-   AttributeRelation* arel;
+   AttributeRelation* arel = 0;
    ListExpr tuplelist, TupleTypeInfo, first;
-   Relation* rel;
+   Relation* rel = 0;
    
    if (!(nl->ListLength( typeInfo ) == 3) ) //no file Id attached
    {
@@ -351,12 +351,12 @@ Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr
           (nl->IntAtom(relAlgId), nl->IntAtom(relId)),
            nl->Second(typeInfo)); 
       rel = new Relation( relType );
-      arel = new AttributeRelation (rel->GetFileId(), typeInfo);
+      arel = new AttributeRelation (rel->GetFileId(), typeInfo, nl->ListLength(value));
       arel->setPartOfNrel(false);
    }
    else
    {
-     arel = new AttributeRelation( typeInfo, true );
+     arel = new AttributeRelation( typeInfo, true, nl->ListLength(value) );
      rel = arel->rel;
    }
    Tuple* tupleaddr;
@@ -433,8 +433,8 @@ ListExpr AttributeRelation::Out( ListExpr typeInfo, Word value )
   const TupleId *tid;
   if (arel->isPartOfNrel())
   {
-    arel->setRel(Relation::GetRelation(arel->getRelId()));
-    Relation* rel = arel->getRel();
+    Relation* rel = Relation::GetRelation(arel->getRelId())
+    arel->setRel(rel); 
     Tuple* t=0;
     ListExpr l= nl->Cons(nl->IntAtom(0), nl->TheEmptyList());
     ListExpr lastElem=l, tlist=l;
@@ -471,8 +471,6 @@ ListExpr AttributeRelation::Out( ListExpr typeInfo, Word value )
 */
 Word AttributeRelation::Create(const ListExpr typeInfo)
 {
-  string s;
-  nl->WriteToString(s, typeInfo);
   return ( SetWord(new AttributeRelation (typeInfo, false) ) );
 }
 
@@ -536,6 +534,7 @@ AttributeRelation::Save( SmiRecord& valueRecord,
     if (!(rel == 0))
     {
       rel->Delete();
+      rel = 0;
     }
   }
   Attribute::Save( valueRecord, offset, typeInfo, arel );
@@ -637,7 +636,7 @@ TypeConstructor attributeRelationTC( ari, arf );
 /*
 4 Implementation of class NestedRelation
 
-4.1 Constructors
+4.1 Constructors and Destructor
 
 */
 
@@ -800,22 +799,6 @@ SubRelation* NestedRelation::getSubRel(string name)
    return 0;
 }
 
-int NestedRelation::getSubRelIndex(string name)
-{
-   for ( unsigned int i = 0; i < subRels.size(); i++ )
-   {
-      SubRelation* srel = subRels[i];
-      if ( srel->name == name )
-         return i; 
-   }
-   return -1;   
-}
-
-ListExpr NestedRelation::getTupleType()
-{
-   return tupleTypeInfo;
-}
-
 int NestedRelation::getTypeId(int algId, string typeName)
 {
     int result = -1;
@@ -890,7 +873,11 @@ bool NestedRelation::saveString( string& s, SmiRecord& valueRecord,
    ok = ok && valueRecord.Write( &size, sizeof( int ), offset);
    offset += sizeof( int );
    for (int i = 0; i < size; i++)
-   {
+   {struct AconInfo 
+{
+  Relation* rel;
+  bool set;
+};
       ok = ok && valueRecord.Write( &s.at(i), sizeof( char ), offset);
       offset += sizeof( char );
    }
@@ -956,10 +943,12 @@ AttributeRelation* NestedRelation::storeSubRel(AttributeRelation* a, int& i)
    int nrelAlgId = am->GetAlgebraId("NestedRelationAlgebra");
    int arelId = NestedRelation::getTypeId(nrelAlgId, "arel"); 
    Relation* relOld = Relation::GetRelation(a->getRelId());
-   SmiFileId fileId = getSubRels()->at(i)->fileId;
-   AttributeRelation* arel = new AttributeRelation (fileId, a->getArelType());
-   arel->setPartOfNrel(true);
+   SmiFileId id = getSubRels()->at(i)->fileId; 
    Relation* r = getSubRels()->at(i)->rel;
+   AttributeRelation* arel = new AttributeRelation (id, a->getArelType(),
+                                                    a->getTupleIds()->Size());
+   arel->setRel(r);
+   arel->setPartOfNrel(true);
    int j = i;
    DBArray<TupleId>* tids = a->getTupleIds();
    const TupleId* tid;
@@ -982,7 +971,7 @@ AttributeRelation* NestedRelation::storeSubRel(AttributeRelation* a, int& i)
             AttributeRelation* ar = (AttributeRelation*)
                                    (t->GetAttribute(i2));
             AttributeRelation* b = storeSubRel(ar, i);
-            newTuple->PutAttribute(i2, b);        
+            newTuple->PutAttribute(i2, b);       
          }
          else
          {
@@ -1058,6 +1047,7 @@ NestedRelation::In( const ListExpr typeInfo, const ListExpr value,
        nl->SymbolAtom("nrel"),
        tuplelist));
       nrel->Delete();
+      delete nrel;
       return result;
    }
    else
@@ -1526,8 +1516,10 @@ consume(Word* args, Word& result, int message,
   vector<SubRelation*>* srels = nrel->getSubRels();
   for (unsigned int k = 0; k < srels->size(); k++)
   {
-     srels->at(k)->rel->Clear();
-     
+    if(srels->at(k)->rel->GetNoTuples() > 0) 
+    {
+      srels->at(k)->rel->Clear();
+    } 
   }
   qp->Open(args[0].addr);
   qp->Request(args[0].addr, actual);
@@ -1601,44 +1593,45 @@ ListExpr aFeedTypeMap(ListExpr args)
 5.3.2 Value mapping function of operator ~afeed~
 
 */
+struct AfInfo 
+{
+  AfInfo (int i) : index(i){}
+  int index;
+};
+
 int
 aFeed(Word* args, Word& result, int message, Word& local, Supplier s)
 {
-  int* index;
+  AfInfo* info;
   AttributeRelation* arel;
   Relation* r;
   Tuple* t;
   switch (message)
   {
     case OPEN :
-      index = new int(0);
-      local.addr = index;
+      info = new AfInfo(0);
+      local.addr = info;
       return 0;
 
     case REQUEST :
-      index = (int*)local.addr;
+      info = (AfInfo*)local.addr;
       arel = (AttributeRelation*) args[0].addr;
       if (!arel->isPartOfNrel())
       {
-        delete index;
+        delete info;
         local.setAddr(0);
         cout << endl << "WARNING: arel is not an attribute "
                         "of a nested relation. Result of operation" 
                         " will be empty" << endl << endl;
         return CANCEL;
       }                         
-      arel->setRelId(arel->getRelId());
-      r = arel->getRel();
+      r = Relation::GetRelation( arel->getRelId() );
       const TupleId* tid;
-      if (*index < arel->getTupleIds()->Size())
+      if (info->index < arel->getTupleIds()->Size())
       { 
-        arel->getTupleIds()->Get(*index, tid); 
+        arel->getTupleIds()->Get(info->index, tid); 
         t = r->GetTuple(*tid);
-        int i = *index;
-        i++;
-        delete index;
-        index = new int(i);
-        local.addr = index;
+        info->index++;
         result.setAddr(t);
         return YIELD;
       }
@@ -1650,8 +1643,8 @@ aFeed(Word* args, Word& result, int message, Word& local, Supplier s)
     case CLOSE :
       if(local.addr)
       {
-         index = (int*)local.addr;
-         delete index;
+         info = (AfInfo*)local.addr;
+         delete info;
          local.addr = 0;
       }
       return 0;
@@ -1732,82 +1725,85 @@ aConsume(Word* args, Word& result, int message,
 {
   Relation* rel; 
   AconInfo* acon;
-  if ( message <= CLOSE ) 
+  switch (message)
   {
-    Word actual;
-    AttributeRelation* arel = (AttributeRelation*)
-                               (qp->ResultStorage(s).addr);
-    arel->getTupleIds()->Clear();
-    int relAlgId = am->GetAlgebraId("RelationAlgebra");
-    int relId = NestedRelation::getTypeId(relAlgId, "rel");
-    if (!local.addr)
+    case REQUESTPROGRESS :
     {
-       ListExpr relType = nl->TwoElemList(nl->TwoElemList(
-                            nl->IntAtom(relAlgId), nl->IntAtom(relId)),
-                            nl->Second(arel->getArelType())); 
-       acon = new AconInfo;
-       acon->set = true;
-       rel = new Relation(relType);
-       acon->rel = rel;
-       arel->setRel(rel);
-       arel->setRelId(rel->GetFileId());
-       local.addr = acon;
+      return CANCEL;      //no progress available
     }
-    else 
-    {
-      acon = (AconInfo*)local.addr;
-      if (acon->set)
-      {
-        rel = acon->rel;
-        arel->setRelId(rel->GetFileId());
-      }
-      else
-      {
-        delete acon;
-        acon = new AconInfo;
-        acon->set = true;
-        ListExpr relType = nl->TwoElemList(nl->TwoElemList(nl->IntAtom
-                                     (relAlgId), nl->IntAtom(relId)),
-                                     nl->Second(arel->getArelType())); 
-        rel = new Relation(relType);
-        acon->rel = rel;
-        arel->setRel(rel);
-        arel->setRelId(rel->GetFileId());
-        local.addr = acon;
-      }
-    }     
-    Tuple* tuple;
-    qp->Open(args[0].addr);
-    qp->Request(args[0].addr, actual);
-    while (qp->Received(args[0].addr))
-    {
-      tuple = (Tuple*)actual.addr;
-      rel->AppendTuple(tuple);
-      arel->Append(tuple->GetTupleId());
-      tuple->DeleteIfAllowed();
-      qp->Request(args[0].addr, actual); 
-    }
-    result.setAddr(arel);
-    qp->Close(args[0].addr);
-    return 0;
-  }
-  else if ( message == REQUESTPROGRESS )
-  {
-    return CANCEL;      //no progress available
-  }
-  else if ( message == CLOSEPROGRESS )
-  {
-    if (local.addr)
-    {
-      acon = (AconInfo*) local.addr;
-      rel = acon->rel;
-      if (rel)
-        rel->Delete();
-      local.setAddr(0);
-    }
-    return 0;
-  }
 
+    case CLOSEPROGRESS :
+    {
+      if (local.addr)
+      {
+        acon = (AconInfo*) local.addr;
+        rel = acon->rel;
+        if (rel)
+          rel->Delete();
+        delete acon;
+        local.setAddr(0);
+      }
+      return 0;
+    }
+  }
+  
+  Word actual;
+  AttributeRelation* arel = (AttributeRelation*)
+                              (qp->ResultStorage(s).addr);
+  arel->getTupleIds()->Clear();
+  int relAlgId = am->GetAlgebraId("RelationAlgebra");
+  int relId = NestedRelation::getTypeId(relAlgId, "rel");
+  if (!local.addr)
+  {
+    ListExpr relType = nl->TwoElemList(nl->TwoElemList(
+                       nl->IntAtom(relAlgId), nl->IntAtom(relId)),
+                       nl->Second(arel->getArelType())); 
+    acon = new AconInfo;
+    acon->set = true;
+    rel = new Relation(relType);
+    acon->rel = rel;
+    arel->setRel(rel);
+    arel->setRelId(rel->GetFileId());
+    local.addr = acon;
+  }
+  else 
+  {
+    acon = (AconInfo*)local.addr;
+    if (acon->set)
+    {
+      rel = acon->rel;
+      arel->setRelId(rel->GetFileId());
+    }
+    else
+    {
+      delete acon;
+      acon = new AconInfo;
+      acon->set = true;
+      ListExpr relType = nl->TwoElemList(nl->TwoElemList(nl->IntAtom
+                         (relAlgId), nl->IntAtom(relId)),
+                           nl->Second(arel->getArelType())); 
+      rel = new Relation(relType);
+      acon->rel = rel;
+      arel->setRel(rel);
+      arel->setRelId(rel->GetFileId());
+      local.addr = acon;
+    }
+  }     
+  Tuple* tuple;
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, actual);
+  while (qp->Received(args[0].addr))
+  {
+    tuple = (Tuple*)actual.addr;
+    rel->AppendTuple(tuple);
+    arel->Append(tuple->GetTupleId());
+    tuple->DeleteIfAllowed();
+    qp->Request(args[0].addr, actual); 
+  }
+  result.setAddr(arel);
+  qp->Close(args[0].addr);
+  return 0;
+  }  
   return 0;
 }
 
@@ -2015,7 +2011,7 @@ struct NestInfo
 int
 nestValueMap(Word* args, Word& result, int message,
         Word& local, Supplier s)
-{
+{ 
    NestInfo* info;
    Supplier son;
    Word elem1, elem2;
@@ -2106,8 +2102,6 @@ nestValueMap(Word* args, Word& result, int message,
          qp->Request(args[0].addr, elem1);
          if (qp->Received(args[0].addr))
          {
-           info->arel = (AttributeRelation*)(tuple->GetAttribute
-                                             (info->primaryLength));
            current = (Tuple*)elem1.addr;
            Attribute* attr1;
            Attribute* attr2;
@@ -2167,6 +2161,7 @@ nestValueMap(Word* args, Word& result, int message,
            }
            info->lastTuple->DeleteIfAllowed();
            info->lastTuple = current;
+           info->arel->getTupleIds()->TrimToSize();
            result.setAddr(tuple);
            return YIELD;
          }
@@ -2395,7 +2390,6 @@ unnestValueMap(Word* args, Word& result, int message,
               if (i > arelIndex)
                 tuple->CopyAttribute(i, current, i - 1);   
           }
-           
           info->arel = (AttributeRelation*)(current->GetAttribute(arelIndex));
           tidArray = info->arel->getTupleIds();
           tidArray->Get(0, tid);
@@ -2470,6 +2464,7 @@ unnestValueMap(Word* args, Word& result, int message,
           }
           else
           {
+            tuple->DeleteIfAllowed();
             info->lastTuple->DeleteIfAllowed();
             info->lastTuple = 0;
             return CANCEL;

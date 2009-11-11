@@ -44,7 +44,7 @@ Result   : 1319
 Operator : rename
 Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn)))ar) -> (stream (tuple([a1ar:d1, ... ,anar:dn)))
-Example  : query publishers feed rename[t1] consume
+Example  : query publishers feed rename [t1] consume
 Result   : 
          
 Operator : extract

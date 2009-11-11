@@ -104,26 +104,24 @@ that can be used as an attribute within a nested relation.
 */
 
 class NestedRelation;
-
 /*
 Forward declaration of class NestedRelation.
-
 */
 
-class AttributeRelation : public StandardAttribute
+class AttributeRelation : public Attribute
 {
    public:
-        AttributeRelation( const ListExpr typeInfo, bool nrel );
+        AttributeRelation( const ListExpr typeInfo, bool nrel, int n = 0 );
 /*
 The first constructor. Constructs an empty AttributeRelation from the 
-metadata passed in typeInfo. 
+metadata passed in typeInfo. The DBArray tupleIds is initialized with size n.
         
 */
         
-        AttributeRelation( const SmiFileId fileId, const ListExpr typeInfo );
+        AttributeRelation( const SmiFileId fileId, const ListExpr typeInfo, int n = 0 );
 /*
 The second constructor. Sets pointer to the relation used for storing tuples 
-to the relation with tupleFileId fileId. 
+to the relation with tupleFileId fileId. The DBArray tupleIds is initialized with size n.
         
 */
         
@@ -202,7 +200,6 @@ Destroys the DBArray tupleIds
         
 */
 
-
         void CopyTuplesToRel(Relation* r);
 /*
 Appends the tuples, the Ids of which are saved in tupleIds, to rel.
@@ -220,9 +217,9 @@ Appends the tuples, the Ids of which are saved in tupleIds, to nrel.
         
         FLOB *GetFLOB(const int i);
         
-        int Compare(const Attribute*) const;
+        int Compare(const Attribute* attr) const;
         
-        bool Adjacent(const Attribute*) const;
+        bool Adjacent(const Attribute* attr) const;
         
         AttributeRelation *Clone() const;
         
@@ -234,7 +231,7 @@ Appends the tuples, the Ids of which are saved in tupleIds, to nrel.
         
         size_t HashValue() const;
   
-        void CopyFrom(const StandardAttribute* right);
+        void CopyFrom(const Attribute* right);
         
         static Word     In( const ListExpr typeInfo, const ListExpr value,
                         const int errorPos, ListExpr& errorInfo, 
@@ -265,20 +262,14 @@ Appends the tuples, the Ids of which are saved in tupleIds, to nrel.
        
    private:        
         friend class ConstructorFunctions<AttributeRelation>; 
+       
         DBArray<TupleId> tupleIds;              
 /*
 Saves the TupleIds of the tuples pertaining to this instance
 of AttributeRelation
         
 */
-        
-        Relation* rel;
-/*
-Pointer to the relation which is used to save the tuples pertaining to
-an instance of AttributeRelation.
-        
-*/
-        
+      
         ListExpr arelType;
 /*
 The type information for AttributeRelation.
@@ -302,6 +293,13 @@ means, that the relation should not be deleted, as it was created by a
 corresponding nrel instance. 
 
 */
+        
+        Relation* rel;
+/*
+Pointer to the relation which is used to save the tuples pertaining to
+an instance of AttributeRelation.
+        
+*/
       
         SmiFileId relId; 
 /*
@@ -309,12 +307,12 @@ The SmiFileId of the relation which is used to save tuples. relId is used
 by arel to identify its relation among all open relations.
         
 */
-        
-        inline AttributeRelation(){};
+
+	AttributeRelation(){}
 /*
-The empty contructor.
-        
-*/       
+The empty constructor.
+
+*/	
 };
 
 /*
@@ -328,7 +326,7 @@ an nrel-type.
 struct SubRelation
 {
        
-       SubRelation::SubRelation(Relation* ptr, const string n, SmiFileId id, 
+       SubRelation(Relation* ptr, const string n, SmiFileId id, 
                                 ListExpr tI):
                              name(n),
                              typeInfo(tI),
@@ -379,9 +377,9 @@ The empty constructor.
 
 */
           
-          ~NestedRelation() {}
+          ~NestedRelation(){}
 /*
-The destructor
+The destructor. 
           
 */
    
@@ -425,19 +423,6 @@ returns a pointer to the Subrelation with Name name, if such a Relation exists,
 nil otherwise.
           
 */
-
-          int getSubRelIndex(string name);
-/*
-returns a the index of the Subrelation with Name name, if such a Relation 
-exists, -1 otherwise.
-          
-*/
-          
-          ListExpr getTupleType();
-/*
-returns a pointer to tupleTypeInfo
-          
-*/
           
           static int getTypeId(int algId, string typeName);
 /*
@@ -473,13 +458,13 @@ Auxiliary function for saving an instance of NestedRelation.
 Auxiliary function for opening an instance of NestedRelation.
           
 */
-          
-          void     Delete ();
+ 
+            void     Delete ();
 /*
 Used to delete the primary relation and all subrelations.
          
-*/          
-        
+*/         
+          
           NestedRelation* Clone(ListExpr typeInfo);
 /*
 Used to clone a nested relation

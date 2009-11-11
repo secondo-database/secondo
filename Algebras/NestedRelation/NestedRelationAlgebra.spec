@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -19,10 +19,9 @@
 
 operator feed alias FEED pattern _ op
 operator consume alias CONSUME pattern _ op
+operator afeed alias AFEED pattern _ op
+operator aconsume alias ACONSUME pattern _ op
+operator nest alias NEST pattern _ op [ list ; _ ]
+operator unnest alias UNNEST pattern _ op [ _ ]
 operator rename alias RENAME pattern _ op [ _ ]
 operator extract alias EXTRACT pattern _ op [ _ ]
-operator afeed alias AFEED pattern _ op  
-operator aconsume alias ACONSUME pattern _ op
-operator nest alias NEST pattern _ op [ list; _ ] 
-operator unnest alias UNNEST pattern _ op [ _ ]
-  
