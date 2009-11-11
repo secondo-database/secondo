@@ -1,9 +1,9 @@
 
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -36,11 +36,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 December 2007, S. H[oe]cher, M. H[oe]ger, A. Belz, B. Poneleit
 
-1 Defines and includes 
+1 Defines and includes
 
-The TEST macro serves to enable and disable test output: To enable test output, 
-uncomment the line "#define TEST(x, y) cerr << x << cerr << y << endl;" 
-and comment the second one. To switch off test output, uncomment the line 
+The TEST macro serves to enable and disable test output: To enable test output,
+uncomment the line "#define TEST(x, y) cerr << x << cerr << y << endl;"
+and comment the second one. To switch off test output, uncomment the line
 "#define TEST(x, y)" und comment the first one.
 
 */
@@ -50,27 +50,28 @@ and comment the second one. To switch off test output, uncomment the line
 
 
 #include "Histogram1d.h"
+#include "ListUtils.h"
 
 using namespace symbols;
 
 namespace hgr
 {
-  
+
 /*
-  
+
 2 Type Constructor
 
-*/  
+*/
   histogram1dInfo h1_i;
   histogram1dFunctions h1_f;
-  TypeConstructor histogram1dTC( h1_i, h1_f );  
+  TypeConstructor histogram1dTC( h1_i, h1_f );
 
 /*
- 
+
 3  Constructors and destructor
- 
-*/  
- 
+
+*/
+
   Histogram1d::Histogram1d()
   {
   }
@@ -80,30 +81,30 @@ namespace hgr
   {
   }
 
-  Histogram1d::Histogram1d(const Histogram1d& rhs) : 
+  Histogram1d::Histogram1d(const Histogram1d& rhs) :
     BaseHistogram(rhs), range(rhs.range.Size())
   {
     for (int i = 0; i < rhs.GetNoRange(); i++)
     {
-      range.Append( *rhs.GetRange(i) );
+      range.Append( rhs.GetRange(i) );
     }
   }
 
   Histogram1d::~Histogram1d()
   {
   }
-  
+
   Histogram1d& Histogram1d::operator = (const Histogram1d& h)
   {
     CopyFrom(&h);
     return *this;
   }
 
-/*  
-  
-3 Helper functions  
+/*
 
-*/  
+3 Helper functions
+
+*/
   void Histogram1d::AppendRange(const HIST_REAL& r)
   {
     range.Append(r);
@@ -111,30 +112,30 @@ namespace hgr
 
   void Histogram1d::Clear()
   {
-    range.Clear();
-    bin.Clear();
+    range.clean();
+    bin.clean();
   }
-  
+
 /*
 
-  "Compare(const BaseHistogram[&] b)": compares two histgram1d objects and 
+  "Compare(const BaseHistogram[&] b)": compares two histgram1d objects and
    returns 0, -1 or 1, according to the result of the comparison:
-   
-  * 0: this == b: both objects are not defined or empty or all bin values 
+
+  * 0: this == b: both objects are not defined or empty or all bin values
                     are equal.
 
-  * -1: this < b: this object is not defined or at least one bin value of this 
-                    object is smaller than the corresponding bin value of 
+  * -1: this < b: this object is not defined or at least one bin value of this
+                    object is smaller than the corresponding bin value of
                     object b.
-    
-  * 1: else: object b is not defined or one object is not consistent or the 
-               number of ranges differs or the first ranges of both objects 
-               differ or at least one range differs or at least one bin value 
-               of this object is greater than the corresponding bin value of 
-               object b. 
+
+  * 1: else: object b is not defined or one object is not consistent or the
+               number of ranges differs or the first ranges of both objects
+               differ or at least one range differs or at least one bin value
+               of this object is greater than the corresponding bin value of
+               object b.
 
 */
-  
+
   int Histogram1d::Compare(const BaseHistogram& b) const
   {
     const Histogram1d* h = static_cast<const Histogram1d*>(&b);
@@ -163,12 +164,12 @@ namespace hgr
 
     // ... and are not empty.
 
-    // Now, comparison starts: first of the first couple of ranges: 
-    if (*GetRange(0) != *h->GetRange(0))
+    // Now, comparison starts: first of the first couple of ranges:
+    if (GetRange(0) != h->GetRange(0))
       return 1;
 
-    // and now of all other couples of ranges and bins: 
-    // (a consistent histogram has at least two range values) 
+    // and now of all other couples of ranges and bins:
+    // (a consistent histogram has at least two range values)
 
     int i = 0;
     bool equalBins = true;
@@ -176,18 +177,18 @@ namespace hgr
 
     while ((equalBins || lessBins) && i < GetNoBin())
     {
-      if (*GetRange(i+1) != *h->GetRange(i+1))
+      if (GetRange(i+1) != h->GetRange(i+1))
         return 1;
 
-      if (*GetBin(i) == *h->GetBin(i))
+      if (GetBin(i) == h->GetBin(i))
       {
         lessBins = false;
       }
-      else if (*GetBin(i) < *h->GetBin(i))
+      else if (GetBin(i) < h->GetBin(i))
       {
         equalBins = false;
       }
-      else // *GetBin(i) > *h->GetBin(i)
+      else // GetBin(i) > h->GetBin(i)
       {
         equalBins = false;
         lessBins = false;
@@ -209,43 +210,43 @@ namespace hgr
   int Histogram1d::CompareAlmost(const BaseHistogram& b) const
   {
     const Histogram1d* h = static_cast<const Histogram1d*>(&b);
-    
+
     if( !IsDefined() && !h->IsDefined() )
       return 0;
     if( !IsDefined() && h->IsDefined() )
       return -1;
     if( IsDefined() && !h->IsDefined() )
       return 1;
-    
+
     // Now, both histograms are defined ...
-    
+
     if (!IsConsistent(false) || !h->IsConsistent(false))
       return 1;
-    
+
     // ... and consistent (without testing the order of ranges) ...
 
     if (GetNoRange() != h->GetNoRange())
       return 1;
-    
+
     // ... and are of equal size ...
-    
+
     if (IsEmpty() && h->IsEmpty())
       return 0;
-    
+
     // ... and are not empty.
-    
-    // Now, comparison starts: first of the first couple of ranges: 
+
+    // Now, comparison starts: first of the first couple of ranges:
     if (!AlmostEqual(GetRange(0), h->GetRange(0)))
       return 1;
-    
-    // and now of all other couples of ranges and bins: 
-    // (a consistent histogram has at least two range values) 
-    
+
+    // and now of all other couples of ranges and bins:
+    // (a consistent histogram has at least two range values)
+
     int cmp;
     int i = 0;
     bool equalBins = true;
     bool lessBins = true;
-    
+
     while ((equalBins || lessBins) && i < GetNoBin())
     {
       if (!AlmostEqual(GetRange(i+1), h->GetRange(i+1)))
@@ -269,7 +270,7 @@ namespace hgr
 
       i++;
     }
-    
+
     if (equalBins)
       return 0;
 
@@ -279,8 +280,8 @@ namespace hgr
     // neither less nor equal:
     return 1;
   }
-  
-  
+
+
   void Histogram1d::Destroy()
   {
     range.Destroy();
@@ -291,54 +292,54 @@ namespace hgr
   {
     if (!IsDefined() || IsEmpty() || !IsConsistent(false))
       return CcReal(false, 0.0);
-    
+
     if (i < 0 || i >= GetNoBin())
       return CcReal(false, 0.0);
-    
-    return CcReal(true, *GetBin(i));
-  }  
-  
+
+    return CcReal(true, GetBin(i));
+  }
+
   int Histogram1d::GetNoRange() const
   {
     return range.Size();
   }
-  
-  const HIST_REAL* Histogram1d::GetRange(int i) const
+
+  HIST_REAL Histogram1d::GetRange(int i) const
   {
     assert( 0 <= i && i < GetNoRange() );
 
-    const HIST_REAL* p;
-    range.Get(i, p);
+    HIST_REAL p;
+    range.Get(i, &p);
     return p;
   }
 
 /*
 
-  "IsConsistent(...)": returns TRUE if the histogram1d is either empty or 
+  "IsConsistent(...)": returns TRUE if the histogram1d is either empty or
    all following conditions are true:
-     
+
   * The number of ranges is 2 or more ( GetNoRange() > 1 ).
 
-  * The number of ranges is one more than the number of bins 
+  * The number of ranges is one more than the number of bins
       ( GetNoRange() == GetNoBin()+1 ).
-    
+
   * The range array is sorted in ascending order.
-    
-  * There are no duplicate ranges.  
+
+  * There are no duplicate ranges.
 
 */
-  
+
   bool Histogram1d::IsConsistent(const bool checkOrder) const
   {
     if (IsEmpty())
       return true;
-    
+
     if (!(GetNoRange() > 1 && GetNoRange() == GetNoBin() + 1))
       return false;
-    
+
     if (checkOrder)
     {
-      const HIST_REAL* min = GetRange(0);
+      HIST_REAL min = GetRange(0);
       for (int i = 1; i < GetNoRange(); i++)
       {
         if (CmpReal(GetRange(i), min) < 1) // GetRange(i) <= min
@@ -347,7 +348,7 @@ namespace hgr
         min = GetRange(i);
       }
     }
-    
+
     return true;
   }
 
@@ -360,15 +361,15 @@ namespace hgr
   {
     if (newSize > 0)
     {
-      range.Clear();
-      range.Resize(newSize);
+      range.clean();
+      range.resize(newSize);
     }
   }
 
   bool Histogram1d::IsRefinement(const BaseHistogram& b) const
   {
     const Histogram1d* h = static_cast<const Histogram1d*>(&b);
-    
+
     if ( !IsDefined() || !h->IsDefined() )
       return false;
 
@@ -383,20 +384,20 @@ namespace hgr
       return false;
 
     // and not empty ...
-    
-    if (!AlmostEqual(GetRange(GetNoRange()-1), 
+
+    if (!AlmostEqual(GetRange(GetNoRange()-1),
                      h->GetRange(h->GetNoRange()-1)))
       return false;
-    
+
     // and have identical ends.
-    
+
     // Now we check each element of the given range array to be also an element
-    // of our own array. If that is the case, our own histogram is a 
+    // of our own array. If that is the case, our own histogram is a
     // refinement of the given one.
-    
+
     int i = 0; // Index of the range arry given as parameter.
     int j = 0; // Index of our own range array.
-    
+
     while (i < h->GetNoRange())
     {
       while (!AlmostEqual(h->GetRange(i), this->GetRange(j)))
@@ -404,19 +405,19 @@ namespace hgr
         if (++j == this->GetNoRange())
           return false;
       }
-      
+
       i++;
     }
-    
+
     return true;
   }
-  
-  
+
+
   bool Histogram1d::operator == (const BaseHistogram& h) const
   {
     return CompareAlmost(h) == 0;
   }
-  
+
   bool Histogram1d::operator < (const BaseHistogram& h) const
   {
     return CompareAlmost(h) == -1;
@@ -426,14 +427,14 @@ namespace hgr
       const int errorPos, ListExpr& errorInfo, bool& correct)
   {
     NList in(instance);
- 
-    if (in.isSymbol("undef") || 
+
+    if (in.isSymbol("undef") ||
        (in.length() == 1 && in.first().isSymbol("undef")))
     {
       correct = true;
       return SetWord(new Histogram1d(false));
     }
-        
+
     Word w = SetWord(Address(0));
     Histogram1d* newHist = new Histogram1d(true);
     newHist->Clear();
@@ -444,31 +445,31 @@ namespace hgr
     HIST_REAL minimum = -1000 * FLT_MAX;
     HIST_REAL currentValue = 0.0;
     HIST_REAL lastValue = minimum;
-  
+
 
       /*  We expect the incoming data to be formatted as follows:
-       * ((range*)(bin*)) 
+       * ((range*)(bin*))
        *  with range a list of (n+1) class limits in ascending order
        *  and  bin a list of (n) values.
        *  All values must be of type real.
        */
-      if (    (nl->IsEmpty(*concise))      // incoming list is empty 
+      if (    (nl->IsEmpty(*concise))      // incoming list is empty
           ||  (nl->ListLength(*concise) != 2)  // or is too short or too long
-          ||  (nl->IsAtom(nl->First(*concise))) //or does not contain two lists 
-          ||  (nl->IsAtom(nl->Second(*concise))) 
-          ||  (nl->ListLength(nl->First(*concise)) //or number of ranges is not 
+          ||  (nl->IsAtom(nl->First(*concise))) //or does not contain two lists
+          ||  (nl->IsAtom(nl->Second(*concise)))
+          ||  (nl->ListLength(nl->First(*concise)) //or number of ranges is not
                 != (nl->ListLength(nl->Second(*concise))+1)))//number of bins +1
       {
         correct = false;
         return SetWord( Address(0) );
       }
-        
+
       rangeList = nl->First(*concise);
       binList = nl->Second(*concise);
-      
+
       // Examine the range list
       restItems = rangeList;
-          
+
       while ( !nl->IsEmpty(restItems) )
       {
         const ListExpr curr = nl->First(restItems);
@@ -481,7 +482,7 @@ namespace hgr
           {
             newHist->AppendRange(currentValue);
             lastValue = currentValue;
-          }  
+          }
           else // if (currentValue > lastValue)
           {
             correct = false;
@@ -492,7 +493,7 @@ namespace hgr
         {
           correct = false;
           return SetWord( Address(0) );
-        } // if(nl->IsAtom(nl->First(rangeList) &&      
+        } // if(nl->IsAtom(nl->First(rangeList) &&
 
       } // while ( !nl->IsEmpty(rest) )
 
@@ -514,32 +515,32 @@ namespace hgr
         {
           correct = false;
           return SetWord( Address(0) );
-        } // if(nl->IsAtom(nl->First(binList) && ...      
+        } // if(nl->IsAtom(nl->First(binList) && ...
       } // while ( !nl->IsEmpty(restItems) )
-      
+
       correct = true;
       return SetWord(newHist);
   } // static Word In (  const ListExpr typeInfo,
 
-  
-  
-  
+
+
+
   ListExpr Histogram1d::Out(ListExpr typeInfo, Word value)
   {
     Histogram1d* hist = static_cast<Histogram1d*>(value.addr);
     const int numberRanges = hist->GetNoRange();
     const int numberBins   = hist->GetNoBin();
-    
+
     if (!hist->IsDefined())
     {
-      NList result = NList("undef");      
+      NList result = NList("undef");
       return result.listExpr();
     }
-    else if(hist->IsEmpty()) 
+    else if(hist->IsEmpty())
     {
       return (nl->TheEmptyList());
     }
-    else // if( newHist->IsEmpty() ) { 
+    else // if( newHist->IsEmpty() ) {
     {
       ListExpr rangeExpr = nl->Empty();
       ListExpr binExpr = nl->Empty();
@@ -548,7 +549,7 @@ namespace hgr
       ListExpr last = rangeExpr;
       for (i=0; i < numberRanges; i++)
       {
-        const ListExpr newElem = nl->RealAtom(*(hist->GetRange(i)));
+        const ListExpr newElem = nl->RealAtom(hist->GetRange(i));
 
         if (nl->IsEmpty(rangeExpr))
         {
@@ -562,8 +563,8 @@ namespace hgr
       last = binExpr;
       for (i=0; i < numberBins; i++)
       {
-        const ListExpr newElem = nl->RealAtom(*(hist->GetBin(i)));
-        
+        const ListExpr newElem = nl->RealAtom(hist->GetBin(i));
+
         if (nl->IsEmpty(binExpr))
         {
           binExpr = nl->OneElemList( newElem);
@@ -572,34 +573,34 @@ namespace hgr
         else
           last = nl->Append( last, newElem);
       }//for
-      
+
       return nl->TwoElemList( rangeExpr, binExpr);
-    } // else { // if( newHist->IsEmpty() ) {  
-      
+    } // else { // if( newHist->IsEmpty() ) {
+
     // will (hopefully) never be reached:
-    return (nl->TheEmptyList());  
-      
-    
+    return (nl->TheEmptyList());
+
+
   } // static ListExpr Out(ListExpr typeInfo, Word value){
-  
+
   //Add val to specified bin
-  void Histogram1d::Insert(const int index, const HIST_REAL& weight) 
+  void Histogram1d::Insert(const int index, const HIST_REAL& weight)
   {
-    const HIST_REAL* oldVal;
-    bin.Get(index, oldVal);
-    const HIST_REAL newVal = weight + *oldVal;
+    HIST_REAL oldVal;
+    bin.Get(index, &oldVal);
+    HIST_REAL newVal = weight + oldVal;
     bin.Put(index, newVal);
   }
-  
+
   /*
    * Increases the content of the corresponding bin with the given weight value.
-   * 
+   *
    * Returns "true" if such a corresponding bin exists, "false" else.
    */
   bool Histogram1d::Insert(const HIST_REAL& value, const HIST_REAL& weight)
   {
     CcInt index = FindBin(value);
-    
+
     if (index.IsDefined())
     {
       Insert(index.GetValue(), weight);
@@ -608,35 +609,35 @@ namespace hgr
     else
       return false;
   }
-  
-  CcInt Histogram1d::FindBin(const HIST_REAL& val) const  
+
+  CcInt Histogram1d::FindBin(const HIST_REAL& val) const
   {
     // Precondition: range is sorted in ascending order.
-    
-    if (!IsDefined() || 
-        !IsConsistent(false) || 
-        val < *GetRange(0) || 
-        val >= *GetRange(GetNoRange() - 1))
+
+    if (!IsDefined() ||
+        !IsConsistent(false) ||
+        val < GetRange(0) ||
+        val >= GetRange(GetNoRange() - 1))
     {
       return CcInt(false, 0);
     }
-    
+
     // Binary search for the corresponding bin:
     int pos;
     range.Find( &val, BaseHistogram::CmpBinSearch, pos);
-    
+
     return CcInt(true, pos - 1);
   }
-  
+
   /*
    * Implementation copied from
    * gsl_histogram_stat.c of
    * the GNU Scientific Library.
    * (gsl-1.9)
-   * 
+   *
    * Author: Simone Piccardi
    * Jan. 2000
-   * 
+   *
    */
   CcReal Histogram1d::Mean() const
   {
@@ -649,12 +650,12 @@ namespace hgr
     /* Compute the bin-weighted arithmetic mean M of a histogram using the
      recurrence relation
 
-     M(n) = M(n-1) + (x[n] - M(n-1)) (w(n)/(W(n-1) + w(n))) 
+     M(n) = M(n-1) + (x[n] - M(n-1)) (w(n)/(W(n-1) + w(n)))
      W(n) = W(n-1) + w(n)
 
      We skip negative values in the bins,
      since those correspond to negative weights (BJG).
-     
+
      */
 
     long double wmean = 0;
@@ -662,8 +663,8 @@ namespace hgr
 
     for (i = 0; i < n; i++)
     {
-      HIST_REAL xi = (*GetRange(i + 1) + *GetRange(i)) / 2;
-      HIST_REAL wi = *GetBin(i);
+      HIST_REAL xi = (GetRange(i + 1) + GetRange(i)) / 2;
+      HIST_REAL wi = GetBin(i);
 
       if (wi > 0)
       {
@@ -680,10 +681,10 @@ namespace hgr
    * gsl_histogram_stat.c of
    * the GNU Scientific Library.
    * (gsl-1.9)
-   * 
+   *
    * Author: Simone Piccardi
    * Jan. 2000
-   * 
+   *
    */
   CcReal Histogram1d::Variance() const
   {
@@ -697,7 +698,7 @@ namespace hgr
     long double wmean = Mean().GetValue();
     long double W = 0;
 
-    /* 
+    /*
      Compute the variance.
      We skip negative values in the bins,
      since those correspond to negative weights (BJG).
@@ -705,8 +706,8 @@ namespace hgr
 
     for (i = 0; i < n; i++)
     {
-      double xi = (*GetRange(i + 1) + *GetRange(i)) / 2;
-      double wi = *GetBin(i);
+      double xi = (GetRange(i + 1) + GetRange(i)) / 2;
+      double wi = GetBin(i);
 
       if (wi > 0)
       {
@@ -718,167 +719,167 @@ namespace hgr
 
     return CcReal(true, wvariance);
   }
-    
+
   size_t Histogram1d::Sizeof() const
   {
     return sizeof(*this);
   }
-  
+
   int Histogram1d::Compare(const Attribute *rhs) const
   {
     return Compare(*(Histogram1d*)rhs);
   }
-  
+
   int Histogram1d::CompareAlmost(const Attribute *rhs) const
   {
     return CompareAlmost(*(Histogram1d*)rhs);
   }
-  
+
   bool Histogram1d::Adjacent(const Attribute *attrib) const
   {
     return false;
   }
-  
-  Attribute* Histogram1d::Clone() const 
+
+  Attribute* Histogram1d::Clone() const
   {
     return new Histogram1d(*this);
   }
-  
+
 /*
 
 1.1 HashValue
 
 The algorithm is taken from
- 
-        John Hamer. Hashing revisited. In ITiCSE2002 Seventh Conference on 
+
+        John Hamer. Hashing revisited. In ITiCSE2002 Seventh Conference on
         Innovation and Technology in Computer Science Education,
         pages 80-83, Aarhus, Denmark, June 2002
-        
+
 */
-  
+
   size_t Histogram1d::HashValue() const
   {
     if (!IsDefined())
       return 0;
-    
+
     size_t h = 0;
-    
+
     for (int i = 0; i < GetNoRange(); i++)
     {
       h = hgr::Rotate(h) ^ hgr::HashValue(GetRange(i));
     }
-    
+
     for (int i = 0; i < GetNoBin(); i++)
     {
       h = hgr::Rotate(h) ^ hgr::HashValue(GetBin(i));
     }
-    
+
     return h;
   }
-  
-  void Histogram1d::CopyFrom(const Attribute* right) 
+
+  void Histogram1d::CopyFrom(const Attribute* right)
   {
     const Histogram1d* hist = static_cast<const Histogram1d*>(right);
-    
+
     SetDefined(hist->IsDefined());
     CopyRangesFrom(hist);
     CopyBinsFrom(hist);
-  }  
-  
+  }
+
   int Histogram1d::NumOfFLOBs() const
   {
     return 2;
   }
-  
-  FLOB* Histogram1d::GetFLOB( const int i )
+
+  Flob* Histogram1d::GetFLOB( const int i )
   {
     assert( i >= 0 && i < NumOfFLOBs() );
-    
+
     if (i == 0)
       return &range;
     else
       return &bin;
   }
-  
+
   void* Histogram1d::Cast(void* addr)
   {
     return (new (addr) Histogram1d);
   }
-    
-  
+
+
   Word Histogram1d::Create( const ListExpr typeInfo )
   {
     return SetWord(new Histogram1d(true));
   }
-  
+
   // the KindCheck or CheckKind function
   bool Histogram1d::KindCheck(ListExpr type, ListExpr& errorInfo)
   {
     return (nl->IsEqual(type, HISTOGRAM1D));
   }
-  
+
   ostream& Histogram1d::Print( ostream& os ) const
   {
     return (os << *this);
   }
-  
+
 /*
 
-1.1 Coarsen   
-   
+1.1 Coarsen
+
 */
   void Histogram1d::Coarsen(const BaseHistogram* b)
   {
     const Histogram1d* pattern = static_cast<const Histogram1d*>(b);
-// Precondition: this->IsRefinement(pattern) == true
-    DBArray<HIST_REAL>* newBin = new DBArray<HIST_REAL>(GetNoBin());
+    // Precondition: this->IsRefinement(pattern) == true
+    DbArray<HIST_REAL>* newBin = new DbArray<HIST_REAL>(GetNoBin());
     HIST_REAL binVal;
     int myRange = 1;
-    
+
     for (int i = 1; i < pattern->GetNoRange(); i++) {
          binVal = 0;
-      
+
       // conflate bins (zusammenfassen)
-      while(myRange < GetNoRange() 
+      while(myRange < GetNoRange()
           && CmpReal(GetRange(myRange), pattern->GetRange(i)) != 1)
       {
-        binVal += *GetBin(myRange - 1);
+        binVal += GetBin(myRange - 1);
         myRange++;
       }
       newBin->Append(binVal);
     } // while(CmpReal(GetRange(myRange), pattern->GetRange(i)) != 1)
-    
+
     // copy new bins and ranges
-    const HIST_REAL* p;
-    
-    range.Clear();
-    bin.Clear();
+    HIST_REAL p;
+
+    range.clean();
+    bin.clean();
     for (int i = 0; i < pattern->GetNoRange(); ++i) {
-      range.Append(*(pattern->GetRange(i)));
+      range.Append(pattern->GetRange(i));
       if (i < newBin->Size())
       {
-        newBin->Get(i, p);
-        bin.Append(*p);
-      }        
-    }    
+        newBin->Get(i, &p);
+        bin.Append(p);
+      }
+    }
     delete newBin;
   }
 
-/*  
-  
-1.1 CopyRangesFrom  
-  
-*/  
+/*
+
+1.1 CopyRangesFrom
+
+*/
   void Histogram1d::CopyRangesFrom(const BaseHistogram* h)
   {
     Histogram1d* src = (Histogram1d*)h;
-    
-    range.Clear();
-    
+
+    range.clean();
+
     for (int i = 0; i < src->GetNoRange(); i++)
-      this->AppendRange(*src->GetRange(i));
+      this->AppendRange(src->GetRange(i));
   }
-  
+
   ostream& operator << (ostream& os, const Histogram1d& h)
   {
     if (!h.IsDefined())
@@ -886,27 +887,27 @@ The algorithm is taken from
       os << "(" << HISTOGRAM1D << " undef)";
       return os;
     }
-    
+
     os << "(" << HISTOGRAM1D << "( ( ";
 
     for (int i = 0; i < h.GetNoRange(); i++)
-      os << *h.GetRange(i) << " ";
+      os << h.GetRange(i) << " ";
 
     os << ") ( ";
 
     for (int i = 0; i < h.GetNoBin(); i++)
-      os << *h.GetBin(i) << " ";
+      os << h.GetBin(i) << " ";
 
     os << ") ))";
 
     return os;
   }
 
-/*  
-  
-1 histogram1dInfo  
-  
-*/  
+/*
+
+1 histogram1dInfo
+
+*/
   histogram1dInfo::histogram1dInfo()
   {
     name        = HISTOGRAM1D;
@@ -916,8 +917,8 @@ The algorithm is taken from
     valueExample= "( (0.0 1.0 2.0 3.0) (2.0 4.8 5.2) )";
     remarks     = "All coordinates must be of type real.";
   } // histogram1dInfo() {
-  
-/* 
+
+/*
 
 1 Creation of the Type Constructor Instance
 
@@ -932,7 +933,7 @@ The algorithm is taken from
     create = Histogram1d::Create;
   } // histogram1dFunctions() {
 
-    
+
 /*
 
 5 Operators
@@ -940,8 +941,8 @@ The algorithm is taken from
 5.1 set[_]histogram1d
 
 5.1.1 Type mapping function
-  
-*/  
+
+*/
   ListExpr SetHistogram1dTypeMap(ListExpr args)
   {
     NList list(args);
@@ -951,9 +952,9 @@ The algorithm is taken from
 
     if (list.length() != 1)
       return list.typeError(errMsg);
-    
+
     list = list.first();
-    
+
     if (list.length() != 2)
       return list.typeError(errMsg);
 
@@ -1041,7 +1042,7 @@ The algorithm is taken from
     }
 
     int noOfBins = resultHg->GetNoRange() - 1;
-    
+
     resultHg->ResizeBin(noOfBins);
 
     for (int i = 0; i < noOfBins; i++)
@@ -1050,14 +1051,14 @@ The algorithm is taken from
     qp->Close(args[0].addr);
     return 0;
   }
-  
+
 /*
 
 5.2 no[_]components
-    
+
 5.2.1 Type mapping
-    
-*/  
+
+*/
   ListExpr NoComponentsTypeMap(ListExpr args)
   {
     NList list(args);
@@ -1075,18 +1076,18 @@ The algorithm is taken from
     return list.typeError(errMsg);
   }
 
-/*  
+/*
 
 5.2.2 Value mapping
 
-*/  
+*/
   int NoComponentsFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
     Histogram1d* h1 = static_cast<Histogram1d*>(args[0].addr);
     result = qp->ResultStorage(s);
     CcInt* i = static_cast<CcInt*>(result.addr);
-    
+
     if (!h1->IsDefined())
     {
       i->Set(false, -1);
@@ -1102,8 +1103,8 @@ The algorithm is taken from
 5.3 binrange[_]min and binrange[_]max
 
 5.3.1 Type mapping
-      
-*/  
+
+*/
   ListExpr binrange_min_maxTypeMap( ListExpr args )
   {
     NList argList = NList(args);
@@ -1153,19 +1154,19 @@ The algorithm is taken from
       return argList.typeError( "Expecting exactly two input parameters: "
         "(1) a histogram1d, (2) an integer value "
         "indicating the bin number.");
-  } // ListExpr binrange_min_maxTypeMap( ListExpr args )  
+  } // ListExpr binrange_min_maxTypeMap( ListExpr args )
 
-/*  
-  
+/*
+
 5.3.2 Value mapping
 
-*/  
+*/
   int binrange_minFun( Word* args, Word& result,
       int message, Word& local, Supplier s )
   {
     Histogram1d *hg = static_cast<Histogram1d*>(args[0].addr);
     CcInt* binNumber = static_cast<CcInt*>(args[1].addr);
-    
+
     result = qp->ResultStorage(s);
     CcReal *r = (CcReal*)result.addr;
 
@@ -1179,9 +1180,9 @@ The algorithm is taken from
     // binNumber i must be in the histogram's size
     if ((i >= 0) && (i < (hg->GetNoRange()) -1 ))
     {
-      r->Set(*(hg->GetRange(i)));
+      r->Set(hg->GetRange(i));
       return 0;
-    } // if ((i >= 0) && (i < hg->GetNoRange()))  
+    } // if ((i >= 0) && (i < hg->GetNoRange()))
 
     else
     {
@@ -1198,7 +1199,7 @@ The algorithm is taken from
   {
     Histogram1d *hg = static_cast<Histogram1d*>(args[0].addr);
     CcInt *binNumber = static_cast<CcInt*>(args[1].addr );
-    
+
     result = qp->ResultStorage(s);
     CcReal *r = (CcReal*)result.addr;
 
@@ -1212,9 +1213,9 @@ The algorithm is taken from
     // binNumber i must be in the histogram's size
     if ((i >= 0) && (i < (hg->GetNoRange() -1 )))
     {
-      r->Set(*(hg->GetRange(i+1)));
+      r->Set(hg->GetRange(i+1));
       return 0;
-    } // if ((i >= 0) && (i < hg->GetNoRange()))  
+    } // if ((i >= 0) && (i < hg->GetNoRange()))
 
     else
     {
@@ -1226,7 +1227,7 @@ The algorithm is taken from
   } // ListExpr binrange_maxFun( Word* args, Word& result, ...
 
 /*
-  
+
 5.4 create[_]histogram1d
 
 5.4.1 Type mapping
@@ -1235,43 +1236,45 @@ The algorithm is taken from
   ListExpr CreateHistogram1dTypeMap(ListExpr args)
   {
     NList argList = NList(args);
-    
+
     TEST("argList: ", argList)
-    
-    CHECK_COND(argList.length() == 3, "Expecting three arguments.");
+
+    if(argList.length() != 3) {
+      return listutils::typeError("Expects 3 arguments.");
+    }
 
     NList stream = argList.first();
     NList attrName = argList.second();
-    NList hist = argList.third(); 
-    
-    TEST("stream: ", stream)    
+    NList hist = argList.third();
+
+    TEST("stream: ", stream)
     TEST("attrName: ", attrName)
     TEST("hist: ", hist)
 
-    CHECK_COND(stream.length() == 2
-        && stream.first().isSymbol(STREAM)
-        && stream.second().length() == 2
-        && stream.second().first().isSymbol(TUPLE)
-        && IsTupleDescription(stream.second().second().listExpr()),
-        "Expecting a stream of tuples.");
-
+    if(stream.length() != 2
+        || !stream.first().isSymbol(STREAM)
+        || stream.second().length() != 2
+        || !stream.second().first().isSymbol(TUPLE)
+        || !IsTupleDescription(stream.second().second().listExpr())) {
+        return listutils::typeError("Expects a tuples stream as 1st argument.");
+    }
     // Check if tuple has supplied attribute
-    NList tupleDescr = stream.second().second();    
+    NList tupleDescr = stream.second().second();
     int len = tupleDescr.length();
     bool found = false;
     NList attrType;
-    
+
     TEST("tupleDesc: ", tupleDescr)
-    
+
     int index = 1;
     for (; index <= len; ++index)
     {
       NList attr = tupleDescr.first();
       tupleDescr.rest();
-      
+
       //cout << "attr" << endl << attr << endl;
       TEST("attr: ", attr)
-      
+
       if (attrName == attr.first())
       {
         found = true;
@@ -1279,38 +1282,44 @@ The algorithm is taken from
         break;
       }
     } // for (; index <= len; ++index)
-    
+
     TEST("attrType: ", attrType)
-    
-    CHECK_COND(found, "Attribute not found");
 
-    CHECK_COND(attrType.isSymbol(REAL), "Attribute not of type real.");
+    if(!found){
+      return listutils::typeError("Attribute not found");
+    }
 
-    CHECK_COND(hist.isSymbol(HISTOGRAM1D), "Histogram1d has wrong type");
+    if(!attrType.isSymbol(REAL)) {
+      return listutils::typeError("Attribute not of type real.");
+    }
+
+    if(!hist.isSymbol(HISTOGRAM1D)) {
+      return listutils::typeError("Histogram1d has wrong type");
+    }
 
     ListExpr result = nl->ThreeElemList( nl->SymbolAtom("APPEND"),
                                          nl->OneElemList(nl->IntAtom(index)),
                                          nl->SymbolAtom(symbols::HISTOGRAM1D));
 
     TEST("Result of type mapping of CreateHistogram1d: ", NList(result))
-    
+
     return result;
-  } // CreateHistogram1dTypeMap(ListExpr args)    
-  
-/*  
-  
-5.4.2 Value mapping 
+  } // CreateHistogram1dTypeMap(ListExpr args)
+
+/*
+
+5.4.2 Value mapping
 
 The function makes use of four arguments:
 
   0. stream of tuples
 
-  1. attribute name   
+  1. attribute name
 
   2. histogram1d
 
   3. attribute index
-  
+
 */
 
   // arg 0 tuple stream, 1 attribute name, 2 histogram1d, 3 index of attribute
@@ -1319,12 +1328,12 @@ The function makes use of four arguments:
   {
     Word elem;
     CcInt bin;
-    HIST_REAL val;    
+    HIST_REAL val;
     CcReal* attrVal;
-    
+
     Histogram1d* hist = (Histogram1d*)args[2].addr;
     CcInt* index = (CcInt*)args[3].addr;
-    
+
     Tuple* currentTuple;
 
     qp->Open(args[0].addr);
@@ -1334,24 +1343,24 @@ The function makes use of four arguments:
     {
       // Find bin for current value of tuple attribute
       currentTuple = (Tuple*)elem.addr;
-      attrVal = (CcReal*)(currentTuple->GetAttribute(index->GetIntval()-1));  
+      attrVal = (CcReal*)(currentTuple->GetAttribute(index->GetIntval()-1));
       val = attrVal->GetRealval();
-      
-      
+
+
       // catch empty (== undefined) histograms
       if (hist->IsDefined())
       {
         bin = hist->FindBin(val);
-        
+
         // increment bin, if it was found
         if (bin.IsDefined())
           hist->Insert(bin.GetIntval());
-        
+
         currentTuple->DeleteIfAllowed();// consume the stream objects
         qp->Request(args[0].addr, elem);
       }
     }
-    
+
     // return filled histogram1d
     result = qp->ResultStorage(s);
     Histogram1d* res = (Histogram1d*)result.addr;
@@ -1363,13 +1372,13 @@ The function makes use of four arguments:
     return 0;
   } // int CreateHistogram1dFun
 
-/*  
-  
+/*
+
 5.5 create[_]histogram1d[_]equiwidth
 
 5.5.1 Type mapping
-  
-*/  
+
+*/
   ListExpr CreateHistogram1dEquiwidthTypeMap(ListExpr args)
   {
     string errorMsg;
@@ -1385,7 +1394,7 @@ The function makes use of four arguments:
     NList arg1 = list.first(); // (stream (tuple ((a1 x1) ... (an xn))))
     NList arg2 = list.second(); // (ai)
     NList arg3 = list.third(); // (n)
-    
+
 
     // Check the first argument:
     // (stream (tuple ((a1 x1) ... (an xn))))
@@ -1396,7 +1405,7 @@ The function makes use of four arguments:
 
     if (!IsStreamDescription(arg1.listExpr()))
       return list.typeError(errorMsg);
-    
+
 
     // Check the second argument (ai):
     errorMsg = "Operator create_histogram1d_equiwidth expects as "
@@ -1412,28 +1421,28 @@ The function makes use of four arguments:
 
     int attrindex = FindAttribute(attrlist, attrname, attrtype);
     //cout << "attrtype = " << NList(attrtype).convertToString() << endl;
-    
+
     errorMsg = "Attribute name '" + attrname + "' is not known.\n"
           "Known Attribute(s): " + NList(attrlist).convertToString();
-    
+
     if (attrindex == 0)
       return list.typeError(errorMsg);
-    
+
     errorMsg = "Operator create_histogram1d_equiwidth expects as "
           "second argument an attribute of type real.";
-    
+
     if (!NList(attrtype).isSymbol(REAL))
       return list.typeError(errorMsg);
-    
-    
-    
+
+
+
     // Check the third argument (int):
     errorMsg = "Operator create_histogram1d_equiwidth expects as "
       "third argument the symbol 'int'.";
 
     if (!arg3.isSymbol(INT))
       return list.typeError(errorMsg);
-    
+
 
     // Everything should be fine.
     // We can build the outlist:
@@ -1444,9 +1453,9 @@ The function makes use of four arguments:
 
     return outlist.listExpr();
   }
-  
 
-    
+
+
 /*
 
 5.5.3 Value mapping
@@ -1594,19 +1603,19 @@ The function makes use of four arguments:
     {
       attrPtr = (CcReal*)(tuplePtr->GetAttribute(attrIndex));
       resultHg->Insert(attrPtr->GetRealval());
-      
+
       //tuplePtr->DecReference();
-      // tuplePtr->DeleteIfAllowed(); // will be deleted 
+      // tuplePtr->DeleteIfAllowed(); // will be deleted
                                       // when  the bufer is destroyed
     }
-    
+
     delete it;
     buffer->Clear();
     delete buffer;
 
     return 0;
-  }  
-  
+  }
+
   /*
    Argument 0 Histogramm, 1 lower bound, 2 upper bound
    */
@@ -1642,9 +1651,9 @@ The function makes use of four arguments:
       return 0;
     }
 
-    if ((low < *hist->GetRange(0) && high < *hist->GetRange(0)) || (low
-            > *hist->GetRange(hist->GetNoRange()-1) && high
-            > *hist->GetRange(hist->GetNoRange()-1)))
+    if ((low < hist->GetRange(0) && high < hist->GetRange(0)) || (low
+            > hist->GetRange(hist->GetNoRange()-1) && high
+            > hist->GetRange(hist->GetNoRange()-1)))
     {
       cout << "Error in operator shrink_x: "
       << "The specified interval is outside the histogram-range."
@@ -1666,7 +1675,7 @@ The function makes use of four arguments:
 
     if (eager)
     {
-      if (lower.IsDefined() && !AlmostEqual(low, *hist->GetRange(lowBin)))
+      if (lower.IsDefined() && !AlmostEqual(low, hist->GetRange(lowBin)))
       {
         // Drop the first bin,
         // if the lower bound is inside the histogram-range and
@@ -1676,7 +1685,7 @@ The function makes use of four arguments:
 
       if (higher.IsDefined())
       {
-        // Drop the last bin, 
+        // Drop the last bin,
         // if the upper bound is inside the histogram-range.
         highBin--;
       }
@@ -1687,10 +1696,10 @@ The function makes use of four arguments:
 
     for (int i = lowBin; i <= highBin; ++i)
     {
-      res->AppendBin(*hist->GetBin(i));
-      res->AppendRange(*hist->GetRange(i));
+      res->AppendBin(hist->GetBin(i));
+      res->AppendRange(hist->GetRange(i));
     }
-    res->AppendRange(*hist->GetRange(highBin+1));
+    res->AppendRange(hist->GetRange(highBin+1));
 
     if (res->IsEmpty() || !res->IsConsistent(false))
     {
@@ -1700,7 +1709,7 @@ The function makes use of four arguments:
 
     return 0;
   }
-  
+
   /*
    Instantiation of Template Functions
 
@@ -1716,27 +1725,29 @@ The function makes use of four arguments:
   template int
   Shrink1dFun<true>(Word* args, Word& result, int message,
       Word& local, Supplier s);
-  
+
   ListExpr Shrink1dTypeMap(ListExpr args)
   {
     NList argList(args);
 
-    CHECK_COND(argList.length() == 3,
-        "Expecting list of length 3");
-
+    if(argList.length() != 3) {
+      return listutils::typeError("Expects 3 arguments");
+    }
     NList hist = argList.first();
     NList lo = argList.second();
     NList hi = argList.third();
 
-    CHECK_COND(hist.isSymbol(HISTOGRAM1D),
-        "Expecting " + HISTOGRAM1D + " as first argument");
+    if(!hist.isSymbol(HISTOGRAM1D)) {
+      return listutils::typeError("Expects "+HISTOGRAM1D+" as 1st argument");
+    }
 
-    CHECK_COND(lo.isSymbol(REAL) && hi.isSymbol(REAL),
-        "Expecting real values for lower an upper bound");
-
+    if(!lo.isSymbol(REAL) || !hi.isSymbol(REAL)) {
+      return listutils::typeError("Expects real values for lower an "
+                                  "upper bound");
+    }
     return hist.listExpr();
   }
-  
+
 
   int Getcount1dFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
@@ -1745,13 +1756,13 @@ The function makes use of four arguments:
     CcInt* binIndex = static_cast<CcInt*>(args[1].addr);
     result = qp->ResultStorage(s);
     CcReal* res = static_cast<CcReal*>(result.addr );
-    
+
     if (!binIndex->IsDefined())
     {
       res->SetDefined(false);
       return 0;
     }
-    
+
     CcReal count = h->GetCount(binIndex->GetValue());
     res->Set(count.IsDefined(), count.GetValue());
     return 0;
@@ -1773,8 +1784,8 @@ The function makes use of four arguments:
       return NList(REAL).listExpr();
 
     return list.typeError(errMsg);
-  }  
-  
+  }
+
   /*
    Argument 0 Histogram1d, 1 Real value
    */
@@ -1784,18 +1795,18 @@ The function makes use of four arguments:
   {
     Histogram1d* h = (Histogram1d*)args[0].addr;
     CcReal* x = (CcReal*)args[1].addr;
-    
+
     // return histogram1d
     result = qp->ResultStorage(s);
     Histogram1d* hist = (Histogram1d*)result.addr;
     hist->Clear();
-    
+
     if (!h->IsDefined() || !x->IsDefined())
     {
       hist->SetDefined(false);
       return 0;
     }
-    
+
     hist->CopyFrom(h);
 
     CcInt bin = hist->FindBin(x->GetRealval());
@@ -1805,13 +1816,13 @@ The function makes use of four arguments:
       if (incValSupplied)
       {
         CcReal* incVal = (CcReal*)args[2].addr;
-        
+
         if (!incVal->IsDefined())
         {
           hist->SetDefined(false);
           return 0;
         }
-        
+
         hist->Insert(bin.GetIntval(), incVal->GetRealval());
       }
       else
@@ -1826,34 +1837,39 @@ The function makes use of four arguments:
   {
     NList argList = NList(args);
 
-    if (incValSupplied)
-    {
-      CHECK_COND(argList.length() == 3, "Expecting List of length 3");
-    }
-    else
-    {
-      CHECK_COND(argList.length() == 2, "Expecting List of length 2");
+    if (incValSupplied) {
+      if(argList.length() != 3) {
+        return listutils::typeError("Expects 3 arguments.");
+      }
+    } else {
+      if(argList.length() != 2) {
+        return listutils::typeError("Expects 2 arguments.");
+      }
     }
 
     NList hist = argList.first();
     NList x = argList.second();
 
-    CHECK_COND(hist.isSymbol(HISTOGRAM1D), "First argument not of type " +
+    if(!hist.isSymbol(HISTOGRAM1D)) {
+      return listutils::typeError("First argument not of type " +
         HISTOGRAM1D);
+    }
 
-    CHECK_COND(x.isSymbol(REAL), "Second argument not of type " +
-        REAL);
+    if(!x.isSymbol(REAL)) {
+      return listutils::typeError("Second argument not of type " + REAL);
+    }
 
-    if (incValSupplied)
-    {
+    if (incValSupplied) {
       NList incVal = argList.third();
-      CHECK_COND(incVal.isSymbol(REAL), "Third argument not of type " + REAL);
+      if(!incVal.isSymbol(REAL)) {
+        return listutils::typeError("Third argument not of type " + REAL);
+      }
     }
 
     NList result = NList(HISTOGRAM1D);
     return result.listExpr();
   }
-  
+
   /*
    Argument 0 Histogram1d, 1 real value
    */
@@ -1862,24 +1878,24 @@ The function makes use of four arguments:
   {
     Histogram1d* hist = (Histogram1d*)args[0].addr;
     CcReal* value = (CcReal*)args[1].addr;
-    
+
     CcInt bin;
-    
+
     result = qp->ResultStorage(s);
-    
-    if (value->IsDefined()) 
+
+    if (value->IsDefined())
     {
-      bin = hist->FindBin(value->GetRealval());    
+      bin = hist->FindBin(value->GetRealval());
     }
-    else 
+    else
     {
       bin = CcInt(false, 0);
     }
-    
+
     ((CcInt*)result.addr)->Set(bin.IsDefined(), bin.GetIntval());
     return 0;
-  }  
-  
+  }
+
   template<bool isMin>
   int FindMinMaxBinFun1d(Word* args, Word& result, int message, Word& local,
       Supplier s)
@@ -1893,20 +1909,20 @@ The function makes use of four arguments:
     switch (message)
     {
     case OPEN:
-      
+
       // Find the first bin with min./max. value,
       // and store it's index and value in local.addr:
-      
+
       if (isMin)
         index = h->GetMinBin();
       else
         index = h->GetMaxBin();
-      
+
       if (index.IsDefined())
-        value = *h->GetBin(index.GetValue());
+        value = h->GetBin(index.GetValue());
       else
         value = -1;
-      
+
       local.addr = new MinMaxBuffer(index, value);
       return 0;
 
@@ -1917,20 +1933,20 @@ The function makes use of four arguments:
       index = buffer->index;
       i = index.GetValue();
       value = buffer->value;
-      
+
       if (!index.IsDefined())
       {
         // We are ready:
         result.addr = 0;
         return CANCEL;
       }
-    
+
       // Create the next stream object;
       result.addr = new CcInt(index);
-      
+
       // Find the next bin with min./max. value:
-      while (++i < h->GetNoBin() && !AlmostEqual(*h->GetBin(i), value));
-      
+      while (++i < h->GetNoBin() && !AlmostEqual(h->GetBin(i), value));
+
       if (i < h->GetNoBin())
       {
         // Store it for the next request:
@@ -1941,23 +1957,23 @@ The function makes use of four arguments:
         // Where is no next bin anymore:
         buffer->index = CcInt(false, -1);
       }
-      
+
       return YIELD;
 
     case CLOSE:
-      
+
       if (local.addr != 0)
       {
         delete (MinMaxBuffer*)local.addr;
         local = SetWord(Address(0));
       }
-      
+
       return 0;
     }
 
     return 1; // This should never happen...
-  }  
-  
+  }
+
   int MeanFun(Word* args, Word& result, int message, Word& local, Supplier s)
   {
     Histogram1d* h = static_cast<Histogram1d*>(args[0].addr );
@@ -1986,10 +2002,10 @@ The function makes use of four arguments:
       return NList(REAL).listExpr();
 
     return list.typeError(errMsg);
-  }  
-  
+  }
+
   static LexicographicalTupleSmaller lexSmaller;
-  
+
   class TupleAndRelPos
   {
   public:
@@ -2014,7 +2030,7 @@ The function makes use of four arguments:
       // we change the result to create a minimum queue.
       // It would be nice to have also an < operator in the class
       // Tuple. Moreover lexicographical comparison should be done by means of
-      // TupleCompareBy and an appropriate sort order specification, 
+      // TupleCompareBy and an appropriate sort order specification,
 
       if (!this->tuple || !ref.tuple)
       {
@@ -2054,13 +2070,13 @@ The function makes use of four arguments:
     count( 0 ),
     MAX_MEMORY(8)
     {
-      // Note: Is is not possible to define a Cmp object using the 
-      // constructor 
-      // mergeTuples( PairTupleCompareBy( tupleCmpBy )). 
-      // It does only work if mergeTuples is a local variable which 
+      // Note: Is is not possible to define a Cmp object using the
+      // constructor
+      // mergeTuples( PairTupleCompareBy( tupleCmpBy )).
+      // It does only work if mergeTuples is a local variable which
       // does not help us in this case. Is it a Compiler bug or C++ feature?
-      // Hence a new class TupleAndRelPos was defined which implements 
-      // the comparison operator '<'. 
+      // Hence a new class TupleAndRelPos was defined which implements
+      // the comparison operator '<'.
       TupleQueue* currentRun = &queue[0];
       TupleQueue* nextRun = &queue[1];
 
@@ -2094,7 +2110,7 @@ The function makes use of four arguments:
           MAX_MEMORY -= t->GetSize();
         }
         else
-        { // memory is completely used 
+        { // memory is completely used
           if ( newRelation )
           { // create new relation
             r++;
@@ -2116,8 +2132,8 @@ The function makes use of four arguments:
           { // check if nextTuple can be saved in current relation
             TupleAndRelPos copyOfLast = lastTuple;
             if ( nextTuple < lastTuple )
-            { // nextTuple is in order              
-              // Push the next tuple int the heap and append the minimum to 
+            { // nextTuple is in order
+              // Push the next tuple int the heap and append the minimum to
               // the current relation and push
               nextTuple.tuple->IncReference();
               currentRun->push(nextTuple);
@@ -2135,7 +2151,7 @@ The function makes use of four arguments:
               n++;
               if ( !currentRun->empty() )
               {
-                // Append the minimum to the current relation    
+                // Append the minimum to the current relation
                 minTuple = currentRun->top();
                 minTuple.tuple->DeleteIfAllowed();
                 rel->AppendTuple( minTuple.tuple );
@@ -2143,7 +2159,7 @@ The function makes use of four arguments:
                 currentRun->pop();
               }
               else
-              { //create a new run 
+              { //create a new run
                 newRelation = true;
 
                 // swap queues
@@ -2155,7 +2171,7 @@ The function makes use of four arguments:
                 a=0;
                 n=0;
                 m=0;
-              } // end new run               
+              } // end new run
             } // end next tuple is smaller
 
             // delete last tuple if saved to relation and
@@ -2182,7 +2198,7 @@ The function makes use of four arguments:
         minTuple.tuple->DeleteIfAllowed();
       }
 
-      // the lastRun and NextRun runs in memory having 
+      // the lastRun and NextRun runs in memory having
       // less than MAX_TUPLE elements
       if( !queue[0].empty() )
       {
@@ -2307,7 +2323,7 @@ The function makes use of four arguments:
 
     size_t count;
 
-    // sorted runs created by in memory heap filtering 
+    // sorted runs created by in memory heap filtering
     size_t MAX_MEMORY;
     typedef pair<TupleBuffer*, GenericRelationIterator*> SortedRun;
     vector< SortedRun > relations;
@@ -2335,9 +2351,9 @@ The function makes use of four arguments:
   };
 
   /*
-   Argument 0 tuple stream, 
-            1 attribute name, 
-            2 maxCategories, 
+   Argument 0 tuple stream,
+            1 attribute name,
+            2 maxCategories,
             3 Index of attribute
    */
   int CreateHistogram1dEquicountFun(Word* args, Word& result, int message,
@@ -2354,7 +2370,7 @@ The function makes use of four arguments:
 
     qp->Open(args[0].addr);
 
-    // number of bins must be a positive integer number, 
+    // number of bins must be a positive integer number,
     // if not, our result is undefined
     if (maxCategories->IsDefined() && maxCategories->GetIntval() > 0)
     {
@@ -2403,7 +2419,7 @@ The function makes use of four arguments:
         currentTuple->DeleteIfAllowed();
 
         // next bin reached?
-        // If we have got a remainder r, 
+        // If we have got a remainder r,
         // the count of the first r bins is = noBins+1
         if ((currentBin >= rest && count % noBins == 0) || (currentBin < rest
                 && count % (noBins + 1) == 0))
@@ -2427,7 +2443,7 @@ The function makes use of four arguments:
             currentBin++;
             count = 0;
           }
-        } // (count % noBins == 0)      
+        } // (count % noBins == 0)
 
         hist->Insert(currentBin);
         count++;
@@ -2474,7 +2490,9 @@ The function makes use of four arguments:
 
     //cout << "argList" << endl << argList << endl;
 
-    CHECK_COND(argList.length() == 3, "Expecting three arguments");
+    if(argList.length() != 3) {
+      return listutils::typeError("Expects 3 arguments.");
+    }
 
     NList stream = argList.first();
     NList attrName = argList.second();
@@ -2484,12 +2502,13 @@ The function makes use of four arguments:
     //cout << "attrName" << endl << attrName << endl;
     //cout << "maxCategories" << endl << maxCategories << endl;
 
-    CHECK_COND(stream.length() == 2
-        && stream.first().isSymbol(STREAM)
-        && stream.second().length() == 2
-        && stream.second().first().isSymbol(TUPLE)
-        && IsTupleDescription(stream.second().second().listExpr()),
-        "Expecting stream of tuples");
+    if(stream.length() != 2
+        || !stream.first().isSymbol(STREAM)
+        || stream.second().length() != 2
+        || !stream.second().first().isSymbol(TUPLE)
+        || IsTupleDescription(stream.second().second().listExpr())) {
+      return listutils::typeError("Expects stream of tuples");
+    }
 
     // Check if tuple has supplied attribute
     NList tupleDescr = stream.second().second();
@@ -2517,13 +2536,17 @@ The function makes use of four arguments:
 
     //cout << "attrType" << endl << attrType << endl;
 
-    CHECK_COND(found, "Attribute not found");
+    if(!found) {
+      return listutils::typeError("Attribute not found");
+    }
 
-    CHECK_COND(attrType.isSymbol(REAL), "Attribute not of type real");
+    if(!attrType.isSymbol(REAL)) {
+      return listutils::typeError("Attribute not of type real");
+    }
 
-    CHECK_COND(maxCategories.isSymbol(INT),
-        "Number of categories is not an int");
-
+    if(!maxCategories.isSymbol(INT)) {
+      return listutils::typeError("Number of categories is not an int");
+    }
 
     ListExpr result = nl->ThreeElemList(nl->SymbolAtom("APPEND"),
                                         nl->OneElemList(nl->IntAtom(index)),
@@ -2531,7 +2554,7 @@ The function makes use of four arguments:
     return result;
 
   } // CreateHistogram1dEquicountTypeMap(ListExpr args)
-  
+
   int VarianceFun(Word* args, Word& result, int message, Word& local,
       Supplier s)
   {
@@ -2544,8 +2567,8 @@ The function makes use of four arguments:
     res->Set(var.IsDefined(), var.GetValue());
 
     return 0;
-  } 
-  
+  }
+
   /*
    Instantiation of Template Functions
 
@@ -2568,12 +2591,12 @@ The function makes use of four arguments:
   template ListExpr
   Insert1dTypeMap<false>(ListExpr args);
 
-  template int 
+  template int
   FindMinMaxBinFun1d<true>(Word* args, Word& result, int message,
       Word& local, Supplier s);
 
-  template int 
+  template int
   FindMinMaxBinFun1d<false>(Word* args, Word& result, int message,
         Word& local, Supplier s);
-  
+
 } // namespace hgr

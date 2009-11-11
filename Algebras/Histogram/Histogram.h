@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -37,10 +37,10 @@ December 2007, S. H[oe]cher, M. H[oe]ger, A. Belz, B. Poneleit
 
 [TOC]
 
-1 Overview 
+1 Overview
 
-The file "Histogram.h" contains only defines and includes that are common 
-to all files of the HistogramAlgebra. 
+The file "Histogram.h" contains only defines and includes that are common
+to all files of the HistogramAlgebra.
 
 2 Defines and includes
 
@@ -58,14 +58,14 @@ extern AlgebraManager* am;
 
 namespace hgr
 {
-  
+
   class HistogramAlgebra : public Algebra
   {
     public :
       HistogramAlgebra();
       ~HistogramAlgebra();
   };
-  
+
 } // namespace hgr
 
 // Operators
