@@ -216,13 +216,18 @@ Initial implementation, should be changed to support Flobs larger than the
 available main memory.
 
 */
-bool FlobManager::saveTo(const Flob& src,   // Flob tp save
+bool FlobManager::saveTo(const Flob& src,   // Flob to save
        const SmiFileId fileId,  // target file id
        const SmiRecordId recordId, // target record id
        const SmiSize offset,
        Flob& result)  {   // offset within the record  
 
  __TRACE_ENTER__
+   if(src.size==0){
+     __TRACE_LEAVE__
+     return false;
+   }
+
    SmiRecord record;
    SmiRecordFile* file = getFile(fileId);
    if(!file->SelectRecord(recordId, record, SmiFile::Update)){
@@ -272,6 +277,12 @@ Must be changed to support real large Flobs
       __TRACE_LEAVE__
       return false;
     }
+    if(src.size==0){ // empty Flob
+       rec.Finish();
+       __TRACE_LEAVE__
+       return true;
+    }
+
     // write data
     char buffer[src.size+1];
     buffer[src.size] = '\0';
