@@ -222,9 +222,12 @@ for(a=0; a < nrows; a++){
 
 // copy x/y from input into cluster array 'cpoints'
 ps->StartBulkLoad();  // relax ordering
-if(ps->IsEmpty())
-  {((Points*)result.addr)->SetDefined(false);
-  return 1; }
+if(ps->IsEmpty()) {
+  ((Points*)result.addr)->SetDefined(false);
+  free(rcpoints);
+  free(cpoints);
+  return 1; 
+}
 
 for(int a = 0; a < ps->Size();a++) // transfer x/y-values
 { Point p;                  // to cluster array
@@ -266,7 +269,7 @@ result 'points' memory location.
 
 */
 cluster.CopyToResult(args,result, message, local, s, cpoints);
-
+free(rcpoints);
 return 0;
 }
 /*
@@ -320,9 +323,12 @@ if ( RTFlag::isActive("ClusterText:B") ) {
 
 // copy x/y from input into cluster array 'cpoints'
 ps->StartBulkLoad();  // relax ordering
-if(ps->IsEmpty())
-  {((Points*)result.addr)->SetDefined(false);
-  return 1;}
+if(ps->IsEmpty()) {
+  ((Points*)result.addr)->SetDefined(false);
+  free(rcpoints);
+  free(cpoints);
+  return 1;
+}
 
 for(int a = 0; a < ps->Size();a++) // transfer x/y-values
 { Point p;                  // to cluster array
@@ -372,7 +378,7 @@ if ( RTFlag::isActive("ClusterText:Trace") ) {cmsg.file() <<
        cmsg.send();}
 
 cluster.CopyToResult(args, result, message, local, s, cpoints);
-
+free(rcpoints);
 return 0;
 }
 
