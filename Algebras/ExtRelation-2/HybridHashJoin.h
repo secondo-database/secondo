@@ -2030,6 +2030,15 @@ Flag which decides if tracing information is generated. To enable tracing
 set the flag ~RTF::ERA:TraceHybridHashJoin~ in SecondoConfig.ini.
 
 */
+
+    bool subpartition;
+/*
+Flag which decides if partitions are sub-partitioned if they don't fit
+into the operator's main memory. Per default this flag is set to true.
+If the flag ~RTF::ERA:HybridHasjJoinNoSubpartitioning~ in SecondoConfig.ini
+is set to true this flag will be set to false.
+
+*/
 };
 
 /*

@@ -1345,6 +1345,7 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
 , hashTable(0)
 , progress(p)
 , traceMode(RTFlag::isActive("ERA:TraceHybridHashJoin"))
+, subpartition(!RTFlag::isActive("ERA:HybridHashJoinNoSubpartitioning"))
 {
   Word wTuple(Address(0));
 
@@ -1428,7 +1429,10 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
     partitionB();
 
     // sub-partition stream B with maximum recursion level 3
-    pmB->Subpartition();
+    if ( subpartition )
+    {
+      pmB->Subpartition();
+    }
 
     // create partitions for stream A according to partitioning of stream B
     pmA = new PartitionManager(hashFuncA, *pmB, &progress->streamA);
