@@ -851,7 +851,10 @@ SmiFile::Remove()
     rc = impl->bdbFile->remove( impl->bdbName.c_str(), 0, 0 );
     SmiEnvironment::SetBDBError(rc);
     if ( rc == 0 ) {
-      impl->bdbFile = 0;
+      if(impl->bdbFile){
+         delete impl->bdbFile;
+         impl->bdbFile = 0;
+      }
     }
   }
   //cerr << endl << "End removing " <<  impl->bdbName << endl;
