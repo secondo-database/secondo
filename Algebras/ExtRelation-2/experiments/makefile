@@ -24,7 +24,8 @@
 # --------------------------------------------
 
 # database directory
-DATABASE_DIR=$(HOME)/secondo-databases/intern
+DATABASE_DIR1=$(HOME)/secondo-databases/intern
+DATABASE_DIR2=$(HOME)/secondo-databases/extern
 
 # test location
 TESTHOME=$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments
@@ -467,8 +468,10 @@ R100MB_T64KB: textgen
 clean_db:
 	@echo ""
 	@echo "Cleaning database directory.."
-	@echo $(DATABASE_DIR)
-	@rm -f -r $(DATABASE_DIR)/*
+	@echo $(DATABASE_DIR1)
+	@rm -f -r $(DATABASE_DIR1)/*
+	@echo $(DATABASE_DIR2)
+	@rm -f -r $(DATABASE_DIR2)/*
 
 # --------------------------------------------
 # Experiments
@@ -584,6 +587,11 @@ test: clean_db
 	$(call doTest, sort_max_fan_in)
 	$(call doTest, sort_max_fan_in)
 
+hashjoin_number_of_partitions: clean_db
+	@echo ""
+	@echo "Running experiment " $@.$(TESTEXT)
+	export SECONDO_PARAMMaxMemPerOperator=1024; \
+	$(call doTest, $@)
 
 dummy: clean_db #R1G_T512B R1G_T8KB R1G_T64KB 
 	@echo ""
