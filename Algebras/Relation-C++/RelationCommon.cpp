@@ -87,7 +87,7 @@ long Tuple::tuplesDeleted = 0;
 long Tuple::maximumTuples = 0;
 long Tuple::tuplesInMemory = 0;
 
-SmiSize Tuple::extensionLimit = 1024;
+SmiSize Tuple::extensionLimit = 128;
 
 /*
 These variables are used for tuple statistics.
@@ -167,12 +167,12 @@ TupleType::TupleType( const ListExpr typeInfo )
       if ( tc->GetStorageType() == Attribute::Extension ) 
       {
         currentCoreSize = sizeof(uint32_t);
-	extStorage = true;
-      }	
+        extStorage = true;
+      } 
       else if ( tc->GetStorageType() == Attribute::Default )
       { 
-	currentCoreSize = ( size + (sizeof(uint32_t) * numOfFlobs) );      
-      }	
+        currentCoreSize = ( size + (sizeof(uint32_t) * numOfFlobs) );      
+      } 
       else 
       {
         currentCoreSize = tc->SerializedFixSize();
@@ -180,8 +180,8 @@ TupleType::TupleType( const ListExpr typeInfo )
       
       totalSize += size;
       attrTypeArray[i++] = AttributeType( algId, typeId, numOfFlobs, 
-		                          size, currentCoreSize, 
-					  extStorage, offset      );
+                                          size, currentCoreSize, 
+                                          extStorage, offset      );
       coreSize += currentCoreSize; 
       offset += currentCoreSize;
     }
