@@ -28,6 +28,7 @@ Sept. 2009, M. Spiekermann, a class for managing trace messages
 #ifndef SEC_TRACE_H
 #define SEC_TRACE_H
 
+#include "TraceMacros.h"
 
 #define VAL(arg) #arg, arg
 
@@ -46,26 +47,26 @@ using std::endl;
 
 class Trace {
 
-  public:	
+  public:
   Trace(const string& s, ostream& os = cerr) : 
     trc(false), 
     prefix(s), 
     dest(os), 
     fn("???"), 
     lmax(1) 
-  {}	
+  {}
 
   void enter(const string& function) { 
-    if (trc) {	  
+    if (trc) {  
       fn = function; 
       pre() << "Start" << endl;
     }  
   }
   void on() { trc = true;
-    dest << "* trace on [" << prefix << "]" << endl; 	  
+    dest << "* trace on [" << prefix << "]" << endl;   
   }
   void off() { trc = false; 
-    dest << "* trace off [" << prefix << "]" << endl; 	  
+    dest << "* trace off [" << prefix << "]" << endl;   
   }
   void level(int n) { lmax = n; }
 
@@ -104,6 +105,26 @@ class Trace {
     string fn;
     stringstream ss;
     int lmax;
-};	
+};
+
+/*
+Auxiliary functions for debugging
+
+*/
+
+string Array2HexStr(const char* data, size_t size, size_t offset = 0);
+string Array2Str(const char* data, size_t size);
+
+/*
+The functions above converts the data behind a char pointer into a string value.
+
+*/
+
+template<class T>
+void ShowMemory(const T& v)
+{
+  Array2HexStr( (char*)&v , sizeof(T), 0 );
+}
+
 
 #endif

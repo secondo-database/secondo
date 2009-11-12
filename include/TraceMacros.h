@@ -28,30 +28,50 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 // some macros which may be useful for tracing the program execution
 #ifdef TRACE_ON
+#undef ETRACE
 #define ETRACE(a) { a }
+
+#undef TRACE_FILE
 #define TRACE_FILE(n) {{ \
   ofstream* traceFilePtr = new ofstream(n, ios_base::out | ios_base::app); \
   traceOS = traceFilePtr; }}
-#define TRACE_OS(os) { traceOS = &os; }                        
+
+#undef TRACE_OS
+#define TRACE_OS(os) { traceOS = &os; }  
+
+#undef TRACE
 #define TRACE(a) {*traceOS << a << endl;}
+
+#undef NTRACE
 #define NTRACE(n,a) { static int ctr=0; ctr++; \
                       if ( (ctr % n)  == 0) \
                        {*traceOS << ctr << " - " << a << endl; }}
+
+#undef SHOW
 #define SHOW(a) {*traceOS << "  " << #a << " = " << a << endl;} 
-#define TRACE_ENTER {*traceOS << "* Entering " << __FUNCTION__ << endl;}
-#define TRACE_LEAVE {*traceOS << "* Leaving  " << __FUNCTION__ << endl;}
 
-#define DEBUG(ptr, msg) { \
-	    cerr << (void*)this \
-	         << " " << __FUNCTION__ << ": " \
-	         << msg << endl; }
+#undef TRACE_ENTER
+#define TRACE_ENTER {*traceOS << "* Entering " \
+                              << __FUNCTION__ << "@" << __LINE__ << endl;}
 
-#define DEBUG2(ptr, var) { \
-	    cerr << (void*)this \
-	         << " " << __FUNCTION__ << ": " \
-	         << #var << " = " << var << endl; }
+#undef TRACE_LEAVE
+#define TRACE_LEAVE {*traceOS << "* Leaving  " \
+                              << __FUNCTION__ << "@" << __LINE__ << endl;}
 
-#define ON_DEBUG(expr) { expr }
+#undef DEBUG_MSG
+#define DEBUG_MSG(msg) { \
+    cerr << (void*)this \
+         << " " << __FUNCTION__ << "@" << __LINE__ << ": " \
+         << msg << endl; }
+
+#undef DEBUG_VAL
+#define DEBUG_VAL(var) { \
+    cerr << (void*)this \
+         << " " << __FUNCTION__ << "@" << __LINE__ << ": " \
+         << #var << " = " << var << endl; }
+
+#undef DEBUG_EXE
+#define DEBUG_EXE(expr) { expr }
 
 #else
 
@@ -64,9 +84,9 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #define TRACE_ENTER
 #define TRACE_LEAVE
 
-#define DEBUG(ptr, msg)
-#define DEBUG2(ptr, var)
-#define ON_DEBUG(expr)
+#define DEBUG_MSG(msg)
+#define DEBUG_VAL(var)
+#define DEBUG_EXE(expr)
 #endif
 
 #endif
