@@ -10718,7 +10718,7 @@ int DistanceTraversedOperatorValueMapping( ArgVector args, Word& result,
 	MPoint *p = static_cast<MPoint*>( args[0].addr );
 
 
-	MPoint* dist= (MPoint*) qp->ResultStorage(s).addr;
+	MReal* dist= (MReal*) qp->ResultStorage(s).addr;
 
 	MReal* tmp= p->DistanceTraversed();
 	dist->CopyFrom(tmp);
@@ -13155,7 +13155,7 @@ const string TemporalSpecP2Mp  =
 
 OperatorInfo DelayOperatorInfo( "delay",
   "mpoint x mpoint -> mreal",
-  "delay(schedule, actual movement)",
+  "delay(actual, schedule movement)",
   "at every time instance the result will reflect"
   " how many seconds is the actual movement delayed"
   " from the scheduled movement",
