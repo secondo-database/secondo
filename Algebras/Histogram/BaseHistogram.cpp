@@ -715,36 +715,35 @@ namespace hgr
    */
   int FoldFun(Word* args, Word& result, int message, Word& local, Supplier s)
   {
-    BaseHistogram* hist = (BaseHistogram*)args[0].addr;
     result = qp->ResultStorage(s);
-    CcReal* res = static_cast<CcReal*>(result.addr);
-    res->CopyFrom(static_cast<CcReal*>(args[2].addr));
+    Attribute* res = static_cast<Attribute*>(result.addr);
+    BaseHistogram* hist = (BaseHistogram*)args[0].addr;    // get histogram
 
-    if (!hist->IsDefined() || !((Attribute*)args[2].addr)->IsDefined())
-    {
-      // result.addr is in kind DATA,
-      // hence we can cast to Attribute:
+    if( !hist->IsDefined() ) {
       res->SetDefined(false);
       return 0;
     }
 
-    Supplier fun = args[1].addr;
-    ArgVectorPointer funargs = qp->Argument(fun);
-    Word value = SetWord(res);
+    Word fctres;
+    // Store initial value to res
+    res->CopyFrom(static_cast<Attribute*>(args[2].addr));
+    // Store initial value to tmpres
+    Attribute* tmpres = (static_cast<Attribute*>(args[2].addr))->Clone();
+    ArgVectorPointer vector = qp->Argument(args[1].addr);
     CcReal* bin = new CcReal(true);
-
-    for (int i = 0; i < hist->GetNoBin(); ++i)
-    {
+    for(int i=0; i < hist->GetNoBin(); i++){
+      tmpres->CopyFrom(res);
       bin->Set(true, hist->GetBin(i));
-      (*funargs)[1] = SetWord(bin);
-      (*funargs)[0] = value;
-      qp->Request(fun, value);
-    } // for (int i = 0; i < hist->GetNoBin(); ++i)
-
+      ((*vector)[0]).setAddr(tmpres);
+      ((*vector)[1]).setAddr(bin);
+      qp->Request(args[1].addr, fctres);
+      res->CopyFrom(static_cast<Attribute*>(fctres.addr));
+    }
     bin->DeleteIfAllowed();
+    tmpres->DeleteIfAllowed();
     return 0;
-  }
 
+  }
   ListExpr FoldTypeMap(ListExpr args)
   {
     NList argList = NList(args);
