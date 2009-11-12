@@ -53,8 +53,8 @@ using namespace std;
 #include <cassert>
 #include <limits.h>
 
-//#define TRACE_ON 1
 #undef TRACE_ON
+#include "Trace.h"
 #include "LogMsg.h"
 
 #include <db_cxx.h>
@@ -591,8 +591,6 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     return true;
   }
 
-  trace = true;
-
   static long& ctr = Counter::getRef("SmiFile::Open");
   TRACE("SmiFile::Open")
   int rc = 0;
@@ -618,7 +616,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     }
     else
     {
-      cerr << "INFO: fileId not found in fileCatalog" << endl; 
+      //cerr << "INFO: fileId not found in fileCatalog" << endl; 
       fileContext = context;
       fileName    = "";
     }
@@ -646,9 +644,10 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
           SmiEnvironment::Implementation::FindOpen(bdbName,flags);
       if(alreadyExist>=0){
 
-         if (trace)
+         if (trace) {
            cerr << "File id =" << fileid << "already exists." << endl;
-         
+          }
+
 	 DbHandleIndex old = impl->bdbHandle;
          if(!impl->noHandle){
              SmiEnvironment::Implementation::SetUnUsed(old);
@@ -722,15 +721,15 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 
       rc = impl->bdbFile->open( tid, bdbName.c_str(), 0, bdbType, flags, 0 );
       fileId = fileid;
-      if (trace)
+      if (trace) {
         cerr << "opening by id =" << fileid << ", "<< *this << endl;
+      }	
       SmiEnvironment::SetBDBError( rc );
       if ( rc == 0 )
       {
         opened = true;
         impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
       }
-      cout << "File:Open; rc = " << rc << endl;
 
     }
     else

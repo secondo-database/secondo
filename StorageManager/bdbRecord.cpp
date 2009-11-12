@@ -41,6 +41,7 @@ using namespace std;
 #include <db_cxx.h>
 
 #undef TRACE_ON 
+#include "Trace.h"
 #include "LogMsg.h"
 #include "SecondoSMI.h"
 #include "SmiBDB.h"

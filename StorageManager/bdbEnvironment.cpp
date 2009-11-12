@@ -61,10 +61,14 @@ now be more compatible.
 #include <map>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 #include <cassert>
 #include <cstring>
-
 #include <db_cxx.h>
+
+#undef TRACE_ON
+#include "Trace.h"
+
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
 #include "SmiCodes.h"
@@ -75,13 +79,13 @@ now be more compatible.
 #include "StopWatch.h"
 #include "CacheInfo.h"
 #include "WinUnix.h"
+
 #ifndef SECONDO_WIN32
 #include <libgen.h>
 #include <unistd.h>
 #endif
 
 /* For sending messages */
-#include<iostream>
 #include "NestedList.h"
 #include "Messages.h"
 
@@ -463,6 +467,13 @@ SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
   return rc;
 }
 
+// SPM: The function below will always fail, since the fileId cannot be used
+// to lookup the index of file names. Here some discussion is needed whether
+// anonymous files need to be inserted into the file catalog, since its
+// file name is determined by the file id. The other way round named files
+// are unique by their names, thus its not necessary to map them to an id
+// as long as they are only used for system purposes. Thus the overall question
+// is: Do we really need a file catalog?
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const SmiFileId fileId,
                                                SmiCatalogEntry& entry )
