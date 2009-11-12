@@ -69,7 +69,7 @@ This file contains the implementation import / export operators.
 #include "SpatialAlgebra.h"
 #include "DateTime.h"
 #include "TopOpsAlgebra.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "Symbols.h"
 #include "FileSystem.h"
 
@@ -2047,23 +2047,23 @@ Builds a region from a set of cycles.
 Sets the partner for the halfsegments if the edegno is set correct.
 
 */
-void SetPartnerNo(DBArray<HalfSegment>& segs){
+void SetPartnerNo(DbArray<HalfSegment>& segs){
   if(segs.Size()==0){
      return;
   }
   int TMP[(segs.Size()+1)/2];
-  const HalfSegment* hs1;
-  const HalfSegment* hs2;
+  HalfSegment hs1;
+  HalfSegment hs2;
   for(int i=0; i<segs.Size(); i++){
-     segs.Get(i,hs1);
-     if(hs1->IsLeftDomPoint()){
-       TMP[hs1->attr.edgeno] = i;
+     segs.Get(i,&hs1);
+     if(hs1.IsLeftDomPoint()){
+       TMP[hs1.attr.edgeno] = i;
      } else {
-       int leftpos = TMP[hs1->attr.edgeno];
-       HalfSegment right = *hs1;
+       int leftpos = TMP[hs1.attr.edgeno];
+       HalfSegment right = hs1;
        right.attr.partnerno = leftpos;
        segs.Get(leftpos,hs2);
-       HalfSegment left = *hs2;
+       HalfSegment left = hs2;
        left.attr.partnerno = i;
        segs.Put(i,right);
        segs.Put(leftpos,left);
@@ -2077,20 +2077,20 @@ void SetPartnerNo(DBArray<HalfSegment>& segs){
 
 Returns the number of halfsegments having the same dominating point
 like the halfsegment at positition pos (exclusive that segment).
-The DBArray has to be sorted.
+The DbArray has to be sorted.
 
 */
-int numOfNeighbours1(const DBArray<HalfSegment>& segs,const int pos){
-   const HalfSegment* hs1;
-   const HalfSegment* hs2;
-   segs.Get(pos,hs1);
-   Point dp(hs1->GetDomPoint());
+int numOfNeighbours1(const DbArray<HalfSegment>& segs,const int pos){
+   HalfSegment hs1;
+   HalfSegment hs2;
+   segs.Get(pos,&hs1);
+   Point dp(hs1.GetDomPoint());
    int num = 0;
    bool done= false;
    int pos2 = pos-1;
    while(pos2>0 && !done){
      segs.Get(pos2,hs2);
-     if(AlmostEqual(dp,hs2->GetDomPoint())){
+     if(AlmostEqual(dp,hs2.GetDomPoint())){
        num++;
        pos2--;
      }else {
@@ -2101,7 +2101,7 @@ int numOfNeighbours1(const DBArray<HalfSegment>& segs,const int pos){
    pos2 = pos+1;
    while(!done && pos2<segs.Size()){
      segs.Get(pos2,hs2);
-     if(AlmostEqual(dp,hs2->GetDomPoint())){
+     if(AlmostEqual(dp,hs2.GetDomPoint())){
        num++;
        pos2++;
      }else {
@@ -2111,22 +2111,22 @@ int numOfNeighbours1(const DBArray<HalfSegment>& segs,const int pos){
    return num;
 }
 // slower implementation
-int numOfNeighbours(const DBArray<HalfSegment>& segs,const int pos){
-   const HalfSegment* hs1;
-   const HalfSegment* hs2;
+int numOfNeighbours(const DbArray<HalfSegment>& segs,const int pos){
+   HalfSegment hs1;
+   HalfSegment hs2;
    segs.Get(pos,hs1);
-   Point dp = hs1->GetDomPoint();
+   Point dp = hs1.GetDomPoint();
    double dpx = dp.GetX();
    int num = 0;
    bool done= false;
    int pos2 = pos-1;
    while(pos2>=0 && !done){
      segs.Get(pos2,hs2);
-     if(AlmostEqual(dp,hs2->GetDomPoint())){
+     if(AlmostEqual(dp,hs2.GetDomPoint())){
        num++;
        pos2--;
      }else {
-       double dpx2 = hs2->GetDomPoint().GetX();
+       double dpx2 = hs2.GetDomPoint().GetX();
        if(AlmostEqual(dpx,dpx2)){
          pos2--;
        }else{
@@ -2138,11 +2138,11 @@ int numOfNeighbours(const DBArray<HalfSegment>& segs,const int pos){
    pos2 = pos+1;
    while(!done && pos2<segs.Size()){
      segs.Get(pos2,hs2);
-     if(AlmostEqual(dp,hs2->GetDomPoint())){
+     if(AlmostEqual(dp,hs2.GetDomPoint())){
        num++;
        pos2++;
      }else {
-       double dpx2 = hs2->GetDomPoint().GetX();
+       double dpx2 = hs2.GetDomPoint().GetX();
        if(AlmostEqual(dpx,dpx2)){
          pos2++;
        } else {
@@ -2161,26 +2161,26 @@ like the halfsegment at positition pos (exclusive that segment).
 The DBArray has to be sorted.
 
 */
-int numOfUnusedNeighbours(const DBArray<HalfSegment>& segs,
+int numOfUnusedNeighbours(const DbArray<HalfSegment>& segs,
                           const int pos,
                           const bool* used){
-   const HalfSegment* hs1;
-   const HalfSegment* hs2;
+   HalfSegment hs1;
+   HalfSegment hs2;
    segs.Get(pos,hs1);
-   Point dp = hs1->GetDomPoint();
+   Point dp = hs1.GetDomPoint();
    double dpx = dp.GetX();
    int num = 0;
    bool done= false;
    int pos2 = pos-1;
    while(pos2>0 && !done){
      segs.Get(pos2,hs2);
-     if(AlmostEqual(dp,hs2->GetDomPoint())){
+     if(AlmostEqual(dp,hs2.GetDomPoint())){
        if(!used[pos2]){
          num++;
        }
        pos2--;
      }else {
-       double dpx2 = hs2->GetDomPoint().GetX();
+       double dpx2 = hs2.GetDomPoint().GetX();
        if(AlmostEqual(dpx,dpx2)){
          pos2--;
        } else {
@@ -2192,13 +2192,13 @@ int numOfUnusedNeighbours(const DBArray<HalfSegment>& segs,
    pos2 = pos+1;
    while(!done && pos2<segs.Size()){
      segs.Get(pos2,hs2);
-     if(AlmostEqual(dp,hs2->GetDomPoint())){
+     if(AlmostEqual(dp,hs2.GetDomPoint())){
        if(!used[pos2]){
          num++;
        }
        pos2++;
      }else {
-       double dpx2 = hs2->GetDomPoint().GetX();
+       double dpx2 = hs2.GetDomPoint().GetX();
        if(AlmostEqual(dpx,dpx2)){
           pos2++;
        } else {
@@ -2217,12 +2217,12 @@ If no such segment exist, -1 is returned.
 
 */
 
-int getUnusedExtension(const DBArray<HalfSegment>& segs,
+int getUnusedExtension(const DbArray<HalfSegment>& segs,
                         const int pos,
                         const bool* used){
-      const HalfSegment* hs;
+      HalfSegment hs;
       segs.Get(pos,hs);
-      Point dp = hs->GetDomPoint();
+      Point dp = hs.GetDomPoint();
       double dpx = dp.GetX();
       bool done = false;
       int pos2=pos-1;
@@ -2231,10 +2231,10 @@ int getUnusedExtension(const DBArray<HalfSegment>& segs,
           pos2--;
         } else {
           segs.Get(pos2,hs);
-          if(AlmostEqual(dp,hs->GetDomPoint())){
+          if(AlmostEqual(dp,hs.GetDomPoint())){
              return pos2;
           } else {
-             double dpx2 = hs->GetDomPoint().GetX();
+             double dpx2 = hs.GetDomPoint().GetX();
              if(AlmostEqual(dpx,dpx2)){
                pos2--;
              } else { // outside the X-Range
@@ -2249,10 +2249,10 @@ int getUnusedExtension(const DBArray<HalfSegment>& segs,
              pos2++;
          }else {
             segs.Get(pos2,hs);
-            if(AlmostEqual(dp,hs->GetDomPoint())){
+            if(AlmostEqual(dp,hs.GetDomPoint())){
               return pos2;
             } else {
-              double dpx2 = hs->GetDomPoint().GetX();
+              double dpx2 = hs.GetDomPoint().GetX();
               if(AlmostEqual(dpx,dpx2)){
                 pos2++;
               }else{
@@ -2265,7 +2265,7 @@ int getUnusedExtension(const DBArray<HalfSegment>& segs,
 }
 
 
-void removeDeadEnd(DBArray<HalfSegment>* segments,
+void removeDeadEnd(DbArray<HalfSegment>* segments,
                    vector<Point>& path, vector<int>& positions,
                    const bool* used){
 
@@ -2354,7 +2354,7 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
   bool isFace = getDir(cycle);
 
   // create a DBArray of halfsegments representing this cycle
-  DBArray<HalfSegment> segments1(0);
+  DbArray<HalfSegment> segments1(0);
 
   for(unsigned int i=0;i<cycle.size()-1;i++){
     Point p1 = cycle[i];
@@ -2388,7 +2388,7 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
   segments1.Sort(HalfSegmentCompare);
 
   // split the segments at crossings and overlappings
-  DBArray<HalfSegment>* segments = Split(segments1);
+  DbArray<HalfSegment>* segments = Split(segments1);
 
 
   SetPartnerNo(*segments);
@@ -2414,11 +2414,11 @@ void addRegion(vector<pair<Region*, bool> >& regs, vector<Point>& cycle){
       bool done = false;
       subcycle = false;
       while(!done){
-        const HalfSegment* hs1=0;
+        HalfSegment hs1;
         segments->Get(pos,hs1);
-        Point dp = hs1->GetDomPoint();
-        Point ndp = hs1->GetSecPoint();
-        int partner = hs1->attr.partnerno;
+        Point dp = hs1.GetDomPoint();
+        Point ndp = hs1.GetSecPoint();
+        int partner = hs1.attr.partnerno;
         path.push_back(dp);
         points.insert(dp);
         used[pos] = true;
