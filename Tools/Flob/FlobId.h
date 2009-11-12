@@ -41,9 +41,9 @@ class FlobId{
    }
 
    ostream& print(ostream& os) const {
-     os << "fid = " << fileId << ", "
-        << "recId = " << recordId << ", "
-        << "offset = " << offset;
+     os << "id(file = "<< fileId << ", "
+        << "rec = " << recordId << ", "
+        << "offset = " << offset << ")";
      return os;
    }     
 
