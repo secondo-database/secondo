@@ -5207,9 +5207,9 @@ line, region.
 
 */
 bool IsSpatialType(ListExpr type);
-avlseg::ownertype selectNext(Region const* const reg1,
+avlseg::ownertype selectNext(const Region& reg1,
                      int& pos1,
-                     Region const* const reg2,
+                     const Region& reg2,
                      int& pos2,
                      priority_queue<HalfSegment,
                                     vector<HalfSegment>,
@@ -5235,9 +5235,9 @@ of the smallest halfSegment.
 
 
 */
-avlseg::ownertype selectNext(Line const* const line1,
+avlseg::ownertype selectNext(const Line& line1,
                      int& pos1,
-                     Line const* const line2,
+                     const Line& line2,
                      int& pos2,
                      priority_queue<HalfSegment,
                                     vector<HalfSegment>,
@@ -5249,9 +5249,9 @@ avlseg::ownertype selectNext(Line const* const line1,
                      int& src
                     );
 
-avlseg::ownertype selectNext(Line const* const line,
+avlseg::ownertype selectNext(const Line& line,
                      int& pos1,
-                     Region const* const region,
+                     const Region& region,
                      int& pos2,
                      priority_queue<HalfSegment,
                                     vector<HalfSegment>,
@@ -5263,22 +5263,22 @@ avlseg::ownertype selectNext(Line const* const line,
                      int& src
                     );
 
-avlseg::ownertype selectNext( Line const* const line,
+avlseg::ownertype selectNext( const Line&  line,
                       priority_queue<HalfSegment,
                                      vector<HalfSegment>,
                                      greater<HalfSegment> >& q,
                       int& posLine,
-                      Points const* const point,
+                      const Points&  point,
                       int& posPoint,
                       HalfSegment& resHs,
                       Point& resPoint);
 
-avlseg::ownertype selectNext( Line const* const line,
+avlseg::ownertype selectNext( const Line& line,
                       priority_queue<HalfSegment,
                                      vector<HalfSegment>,
                                      greater<HalfSegment> >& q,
                       int& posLine,
-                      Point const* const point,
+                      const Point& point,
                       int& posPoint, // >0: point already used
                       HalfSegment& resHs,
                       Point& resPoint);
