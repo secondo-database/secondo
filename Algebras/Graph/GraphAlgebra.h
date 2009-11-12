@@ -48,7 +48,7 @@ using namespace std;
 
 #include <vector>
 #include <iostream>
-#include "DBArray.h"        //needed in graph and path
+#include "../../Tools/Flob/DbArray.h"        //needed in graph and path
 #include "SpatialAlgebra.h"    //needed for Points
 #include "Algebra.h"        //always needed in Algebras
 #include "NestedList.h"        //always needed in Algebras
@@ -71,9 +71,23 @@ class Vertex: public Attribute
 
 */        
         Vertex();
-        Vertex(bool d)  { SetDefined(d);}
-        Vertex(int nKey, Point const & pntPos);
-        Vertex(int nKey, Coord coordX, Coord coordY);
+        Vertex(bool d):key(0),pos(false,0,0) { 
+          SetDefined(d);
+          del.refs=1;
+          del.isDelete=true;
+        }
+        Vertex(int nKey, Point const & pntPos):key(nKey), pos(pntPos){
+           SetDefined(true);
+           del.refs=1;
+           del.isDelete=true;
+        }
+        Vertex(int nKey, Coord coordX, Coord coordY): 
+               key(nKey), pos(true,coordX,coordY){
+           SetDefined(true);
+           del.refs=1;
+           del.isDelete=true;
+        }
+
         ~Vertex();
 /*
 3.2 Get functions
@@ -272,7 +286,7 @@ This function removes all vertices from the path.
 
 */
   void Clear(){ 
-      myPath.Clear(); 
+      myPath.clean(); 
       cost = 0.0;
       SetDefined(true);
   }
@@ -291,7 +305,7 @@ This function removes all vertices from the path.
 5.2.4 GetPathStruct
 
 */
-        pathStruct const * GetPathStruct(int nIndex) const;
+        pathStruct GetPathStruct(int nIndex) const;
 /*
 5.2.5 GetEdges
 
@@ -337,7 +351,7 @@ as an attribute.
       
 */
         int NumOfFLOBs() const;
-        FLOB *GetFLOB(const int i);
+        Flob *GetFLOB(const int i);
         Path* Clone() const;
         int Compare(const Attribute*) const;
         bool Adjacent(const Attribute*) const;
@@ -353,9 +367,9 @@ as an attribute.
             os << endl;
             for( int i = 0; i < myPath.Size(); i++)
             {
-              const pathStruct *ps;
+              pathStruct ps;
               myPath.Get(i, ps);
-              os << "\t\t"; ps->Print(os); os << endl;
+              os << "\t\t"; ps.Print(os); os << endl;
             }
             os << "      Cost = " << cost << " )" << endl;
           }
@@ -372,7 +386,7 @@ as an attribute.
 5.5 Attributes
 
 */    
-        DBArray<pathStruct> myPath;
+        DbArray<pathStruct> myPath;
         float cost;
 };
     
@@ -455,7 +469,7 @@ struct AVLTree
 6.2.1 InsertKey
 
 */        
-     static int InsertKey(DBArray<AVLNode<T> >& tree, 
+     static int InsertKey(DbArray<AVLNode<T> >& tree, 
                    const int key, const T elem, const int index);
 /*
 Insert a new node with key ~key~ and additional informations ~elem~ in the tree with
@@ -470,7 +484,7 @@ The operation fails and returns -1 if there was already a node with that key in 
 6.2.2 UpdateKey
 
 */
-     static bool UpdateKey(DBArray<AVLNode<T> >& tree, 
+     static bool UpdateKey(DbArray<AVLNode<T> >& tree, 
                     const int key, const T elem, const int index);
 /*
 Sets the additional informations of the node with the key ~key~ in the tree with the
@@ -486,7 +500,7 @@ The operation fails if there is no node with that key in the tree.
 6.2.3 ReplaceKey
 
 */
-     static int ReplaceKey(DBArray<AVLNode<T> >& tree, 
+     static int ReplaceKey(DbArray<AVLNode<T> >& tree, 
                   const int key, const int newKey, const int root);
 /*
 Replaces the key of the node with key ~key~ in the tree with the root node at 
@@ -501,7 +515,7 @@ The operation fails and returns -2 if there is no node with this key.
 6.2.4 DeleteKey
 
 */
-     static int DeleteKey(DBArray<AVLNode<T> >& tree, 
+     static int DeleteKey(DbArray<AVLNode<T> >& tree, 
                           const int key, const int index);
 /*
 Deletes the node with the key ~key~ in the tree with the root node at 
@@ -516,7 +530,7 @@ The operation fails and returns -2 if there is no node with this key.
 6.2.5 DeleteMinKey
 
 */
-     static int DeleteMinKey(DBArray<AVLNode<T> >& tree, 
+     static int DeleteMinKey(DbArray<AVLNode<T> >& tree, 
                              const int index, AVLNode<T>& minNode);
 /*
 Deletes the node with the minimum key in the tree starting at DBArray
@@ -531,7 +545,7 @@ that contains the minimum key in ~minNode~.
 6.2.6 DeleteKeys
 
 */
-     static void DeleteKeys(DBArray<AVLNode<T> >& tree, 
+     static void DeleteKeys(DbArray<AVLNode<T> >& tree, 
                             const int index);
 /*
 Deletes all nodes of the tree starting at DBArray position ~index~.
@@ -544,7 +558,7 @@ Deletes all nodes of the tree starting at DBArray position ~index~.
 6.2.7 DeleteNode
 
 */
-     static bool DeleteNode(DBArray<AVLNode<T> >& tree, 
+     static bool DeleteNode(DbArray<AVLNode<T> >& tree, 
                     const int index, const AVLNode<T>* node = 0);
 /*
 Deletes the node at the DBArray position ~index~ and returns if the operation
@@ -560,7 +574,7 @@ The operation fails if the node is already deleted.
 6.2.8 UpdateNode
 
 */
-     static void UpdateNode(DBArray<AVLNode<T> >& tree, 
+     static void UpdateNode(DbArray<AVLNode<T> >& tree, 
                             const int index, const T& elem);
 /*
 Sets the additional informations of the node at DBArray position ~index~ to
@@ -574,7 +588,7 @@ Sets the additional informations of the node at DBArray position ~index~ to
 6.2.9 MapKeys
 
 */
-     static void MapKeys (DBArray<AVLNode<T> >& tree, 
+     static void MapKeys (DbArray<AVLNode<T> >& tree, 
                           int& num, vector<int>& v, const int index);        
         
 /*
@@ -590,7 +604,7 @@ used in the vector ~v~.
 6.2.10 HasKey
 
 */        
-     static bool HasKey(const DBArray<AVLNode<T> >& tree, 
+     static bool HasKey(const DbArray<AVLNode<T> >& tree, 
                         const int key, const int index);
 /*
 Returns whether the tree with the root node at DBArray position ~index~ has a node 
@@ -604,7 +618,7 @@ with the key ~key~ or not.
 6.2.11 ReadKeys
 
 */
-     static int ReadKeys(const DBArray<AVLNode<T> >& tree, 
+     static int ReadKeys(const DbArray<AVLNode<T> >& tree, 
                          vector<int>* v, const int index);
 /*
 Adds all keys from the tree with the root node at DBArray position ~index~ to the
@@ -619,7 +633,7 @@ The keys are sorted in ascending order.
 6.2.12 ReadNodes
 
 */
-     static int ReadNodes(const DBArray<AVLNode<T> >& tree, 
+     static int ReadNodes(const DbArray<AVLNode<T> >& tree, 
                           vector<AVLNode<T> >& v, const int index);
 /*
 Adds all nodes from the tree with the root node at DBArray position ~index~ to the
@@ -634,7 +648,7 @@ The nodes are sorted by their key in ascending order.
 6.2.13 ReadOptNodes
 
 */
-     static int ReadOptNodes(const DBArray<AVLNode<T> >& tree, 
+     static int ReadOptNodes(const DbArray<AVLNode<T> >& tree, 
                    vector<AVLNode<T> >& v, const int root);
 /*
 Adds all nodes from the tree with the root node at DBArray position ~index~ to the
@@ -650,7 +664,7 @@ without rebalancing.
 6.2.14 ReadNode
 
 */
-     static int ReadNode(const DBArray<AVLNode<T> >& tree, 
+     static int ReadNode(const DbArray<AVLNode<T> >& tree, 
                     AVLNode<T>& n, const int key, const int index);
 /*
 Copies the node with key ~key~ of the tree with the root node at DBArray position
@@ -665,7 +679,7 @@ The operation fails and returns -1 if there is no node with this key in the tree
 6.2.15 NumNodes
 
 */
-     static inline int NumNodes(const DBArray<AVLNode<T> >& tree);
+     static inline int NumNodes(const DbArray<AVLNode<T> >& tree);
 /*
 Returns the number of nodes stored in the DBArray.
 
@@ -688,7 +702,7 @@ Returns a new node which is a copy of the node ~n~.
 6.2.17 Private functions
 
 */        
-     static int Rebalance(DBArray<AVLNode<T> >& tree, 
+     static int Rebalance(DbArray<AVLNode<T> >& tree, 
                           const int index);
 /*
 Rebalances the unbalanced node at DBArray position ~index~ and returns the index
@@ -699,7 +713,7 @@ of the new root node.
 *Complexity:* $C(1)$
 
 */
-     static inline int BalancedTree(DBArray<AVLNode<T> >& tree, 
+     static inline int BalancedTree(DbArray<AVLNode<T> >& tree, 
                             const AVLNode<T>& node, const int root);
 /*
 Returns ~root~ if the balance of ~node~ is ok, and otherwise the index of the new
@@ -1377,7 +1391,7 @@ as an attribute.
      bool Adjacent(const Attribute*) const;
      size_t Sizeof() const;
      int NumOfFLOBs() const;
-     FLOB *GetFLOB(const int i);
+     Flob *GetFLOB(const int i);
        
      size_t HashValue() const;
      void CopyFrom(const Attribute* arg);
@@ -1387,12 +1401,12 @@ as an attribute.
 7.5 Attributes
 
 */          
-     DBArray<AVLNode<verticesStruct> > vertices;
+     DbArray<AVLNode<verticesStruct> > vertices;
 /*
 The set of vertices the graph contains. 
 
 */
-     DBArray<AVLNode<adjStruct> > adjlist;
+     DbArray<AVLNode<adjStruct> > adjlist;
 /*
 The adjacent lists of the graph vertices. Each list element represents an edge.
 

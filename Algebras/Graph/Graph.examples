@@ -40,7 +40,7 @@ Result   : file
 Operator : connectedcomponents
 Number   : 1
 Signature: graph -> stream(graph)
-Example  : query connectedcomponents(sightsgraph1) consume
+Example  : query connectedcomponents(sightsgraph1) count
 Result   : file
 
 
@@ -68,14 +68,14 @@ Result   : 2684.77197265625
 Operator : edges
 Number   : 1
 Signature: path -> stream(edge)
-Example  : query edges(shortestpath(sightsgraph1,24,16)) consume
+Example  : query edges(shortestpath(sightsgraph1,24,16)) count
 Result   : file
 
 
 Operator : edges
 Number   : 2
 Signature: graph -> stream(edge)
-Example  : query edges(shortestpath(sightsgraph1,24,16)) consume
+Example  : query edges(shortestpath(sightsgraph1,24,16)) count 
 Result   : file
 
 
@@ -188,13 +188,13 @@ Result   : (vertex (17 (4574.0 8247.0)))
 Operator : vertices
 Number   : 1
 Signature: graph -> stream(vertex)
-Example  : query vertices(sightsgraph1) consume
+Example  : query vertices(sightsgraph1) count
 Result   : file
 
 
 Operator : vertices
 Number   : 2
 Signature: path -> stream(vertex)
-Example  : query vertices(shortestpath(sightsgraph1,24,16)) consume
+Example  : query vertices(shortestpath(sightsgraph1,24,16)) count
 Result   : file
  
