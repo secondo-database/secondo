@@ -1,39 +1,38 @@
 Database: berlintest
 Restore : No
 
-
 Operator : toprel
 Number   : 1
 Signature: point x point -> int9m 
-Example  : query toprel(mehringdamm, mehringdamm) 
+Example  : query toprel([const point value (9396.0 9871.0)], [const point value (9396.0 9871.0)]) 
 Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE TRUE))
 
 
 Operator : toprel
 Number   : 2
 Signature: point x points -> int9m 
-Example  : query toprel(mehringdamm, vertices(thecenter)) 
+Example  : query toprel([const point value (9396.0 9871.0)], vertices(thecenter)) 
 Result   : (int9m (FALSE FALSE TRUE FALSE FALSE FALSE TRUE FALSE TRUE))
 
 
 Operator : toprel
 Number   : 3
 Signature: point x line -> int9m 
-Example  : query toprel(mehringdamm, trajectory(train7)) 
+Example  : query toprel([const point value (9396.0 9871.0)], trajectory(train7)) 
 Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE))
 
 
 Operator : toprel
 Number   : 4
 Signature: point x region -> int9m 
-Example  : query toprel(mehringdamm, thecenter) 
+Example  : query toprel([const point value (9396.0 9871.0)], thecenter) 
 Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE))
 
 
 Operator : toprel
 Number   : 5
 Signature: points x point -> int9m 
-Example  : query toprel(vertices(thecenter),mehringdamm) 
+Example  : query toprel(vertices(thecenter),[const point value (9396.0 9871.0)]) 
 Result   : (int9m (FALSE FALSE TRUE FALSE FALSE FALSE TRUE FALSE TRUE))
 
 
@@ -47,28 +46,28 @@ Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE TRUE))
 Operator : toprel
 Number   : 7
 Signature: points x line -> int9m 
-Example  : query toprel((mehringdamm union [const points value()]), trajectory(train7)) 
+Example  : query toprel(([const point value (9396.0 9871.0)] union [const points value()]), trajectory(train7)) 
 Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE))
 
 
 Operator : toprel
 Number   : 8
 Signature: points x region -> int9m 
-Example  : query toprel(mehringdamm union [const points value()], thecenter) 
+Example  : query toprel([const point value (9396.0 9871.0)] union [const points value()], thecenter) 
 Result   : (int9m (TRUE FALSE FALSE FALSE FALSE FALSE TRUE TRUE TRUE))
 
 
 Operator : toprel
 Number   : 9
 Signature: line x point -> int9m 
-Example  : query toprel(trajectory(train7), mehringdamm) 
+Example  : query toprel(trajectory(train7), [const point value (9396.0 9871.0)]) 
 Result   : (int9m (TRUE FALSE TRUE FALSE FALSE TRUE FALSE FALSE TRUE))
 
 
 Operator : toprel
 Number   : 10
 Signature: line x points -> int9m 
-Example  : query toprel(trajectory(train7), mehringdamm union [const points value ()]) 
+Example  : query toprel(trajectory(train7), [const point value (9396.0 9871.0)] union [const points value ()]) 
 Result   : (int9m (TRUE FALSE TRUE FALSE FALSE TRUE FALSE FALSE TRUE))
 
 
@@ -89,14 +88,14 @@ Result   : (int9m (FALSE TRUE FALSE FALSE FALSE FALSE TRUE FALSE TRUE))
 Operator : toprel
 Number   : 13 
 Signature: region x point -> int9m 
-Example  : query toprel(thecenter, mehringdamm) 
+Example  : query toprel(thecenter, [const point value (9396.0 9871.0)]) 
 Result   : (int9m (TRUE FALSE TRUE FALSE FALSE TRUE FALSE FALSE TRUE))
 
 
 Operator : toprel
 Number   : 14 
 Signature: region x points -> int9m 
-Example  : query toprel(thecenter, mehringdamm union [const points value ()] ) 
+Example  : query toprel(thecenter, [const point value (9396.0 9871.0)] union [const points value ()] ) 
 Result   : (int9m (TRUE FALSE TRUE FALSE FALSE TRUE FALSE FALSE TRUE))
 
 Operator : toprel
@@ -115,26 +114,26 @@ Result   : (int9m (TRUE FALSE FALSE FALSE TRUE FALSE FALSE FALSE TRUE))
 Operator : toppred
 Number   : 1
 Signature: point x point x cluster -> bool
-Example  : query toppred(mehringdamm, mehringdamm, [const cluster value ("t" "ii")])
+Example  : query toppred([const point value (9396.0 9871.0)], [const point value (9396.0 9871.0)], [const cluster value ("t" "ii")])
 Result   : (bool TRUE)
 
 Operator : toppred
 Number   : 2
 Signature: point x points x cluster -> bool
-Example  : query toppred(mehringdamm, (mehringdamm union [const points value ()]), [const cluster value ("t" "ii")])
+Example  : query toppred([const point value (9396.0 9871.0)], ([const point value (9396.0 9871.0)] union [const points value ()]), [const cluster value ("t" "ii")])
 Result   : (bool TRUE)
 
 
 Operator : toppred
 Number   : 3
 Signature: point x line x cluster -> bool
-Example  : query toppred(mehringdamm, trajectory(train7), [const cluster value ("pintersects" "ii")])
+Example  : query toppred([const point value (9396.0 9871.0)], trajectory(train7), [const cluster value ("pintersects" "ii")])
 Result   : (bool TRUE)
 
 Operator : toppred
 Number   : 4
 Signature: point x region x cluster -> bool
-Example  : query toppred(mehringdamm, thecenter, [const cluster value ("pintersects" "ii")])
+Example  : query toppred([const point value (9396.0 9871.0)], thecenter, [const cluster value ("pintersects" "ii")])
 Result   : (bool TRUE)
 
 
@@ -168,7 +167,7 @@ Result   : (bool FALSE)
 Operator : toppred
 Number   : 9
 Signature: line x point  x cluster -> bool
-Example  : query toppred(BGrenzenLine, mehringdamm, [const cluster value ("t" "ii")])
+Example  : query toppred(BGrenzenLine, [const point value (9396.0 9871.0)], [const cluster value ("t" "ii")])
 Result   : (bool FALSE)
 
 Operator : toppred
@@ -195,7 +194,7 @@ Result   : (bool FALSE)
 Operator : toppred
 Number   : 13
 Signature: region x point  x cluster -> bool
-Example  : query toppred(thecenter, mehringdamm, [const cluster value ("t" "ii")])
+Example  : query toppred(thecenter, [const point value (9396.0 9871.0)], [const cluster value ("t" "ii")])
 Result   : (bool TRUE)
 
 Operator : toppred
@@ -222,33 +221,33 @@ Result   : (bool TRUE)
 Operator  : tradjacent 
 Number    : 1
 Signature : point x point -> bool
-Example   : query mehringdamm tradjacent mehringdamm
+Example   : query [const point value (9396.0 9871.0)] tradjacent [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : tradjacent 
 Number    : 2
 Signature : point x points -> bool
-Example   : query mehringdamm tradjacent [const points value ((0 0))] 
+Example   : query [const point value (9396.0 9871.0)] tradjacent [const points value ((0 0))] 
 Result    : (bool FALSE)
 
 Operator  : tradjacent 
 Number    : 3
 Signature : point x line -> bool
-Example   : query mehringdamm tradjacent trajectory(train7) 
+Example   : query [const point value (9396.0 9871.0)] tradjacent trajectory(train7) 
 Result    : (bool FALSE)
 
 
 Operator  : tradjacent 
 Number    : 4
 Signature : point x region -> bool
-Example   : query mehringdamm tradjacent thecenter 
+Example   : query [const point value (9396.0 9871.0)] tradjacent thecenter 
 Result    : (bool FALSE)
 
 
 Operator  : tradjacent 
 Number    : 5
 Signature : points x point -> bool
-Example   : query  [const points value ((0 0 ))] tradjacent mehringdamm
+Example   : query  [const points value ((0 0 ))] tradjacent [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : tradjacent 
@@ -274,7 +273,7 @@ Result    : (bool FALSE)
 Operator  : tradjacent 
 Number    : 9
 Signature : line x point -> bool
-Example   : query  trajectory(train7) tradjacent mehringdamm
+Example   : query  trajectory(train7) tradjacent [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : tradjacent 
@@ -300,7 +299,7 @@ Result    : (bool FALSE)
 Operator  : tradjacent 
 Number    : 13 
 Signature : region x point -> bool
-Example   : query  thecenter tradjacent mehringdamm
+Example   : query  thecenter tradjacent [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : tradjacent 
@@ -326,33 +325,33 @@ Result    : (bool FALSE)
 Operator  : trinside 
 Number    : 1
 Signature : point x point -> bool
-Example   : query mehringdamm trinside mehringdamm
+Example   : query [const point value (9396.0 9871.0)] trinside [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trinside 
 Number    : 2
 Signature : point x points -> bool
-Example   : query mehringdamm trinside [const points value ((0 0))] 
+Example   : query [const point value (9396.0 9871.0)] trinside [const points value ((0 0))] 
 Result    : (bool FALSE)
 
 Operator  : trinside 
 Number    : 3
 Signature : point x line -> bool
-Example   : query mehringdamm trinside trajectory(train7) 
+Example   : query [const point value (9396.0 9871.0)] trinside trajectory(train7) 
 Result    : (bool TRUE)
 
 
 Operator  : trinside 
 Number    : 4
 Signature : point x region -> bool
-Example   : query mehringdamm trinside thecenter 
+Example   : query [const point value (9396.0 9871.0)] trinside thecenter 
 Result    : (bool TRUE)
 
 
 Operator  : trinside 
 Number    : 5
 Signature : points x point -> bool
-Example   : query  [const points value ((0 0 ))] trinside mehringdamm
+Example   : query  [const points value ((0 0 ))] trinside [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trinside 
@@ -378,7 +377,7 @@ Result    : (bool FALSE)
 Operator  : trinside 
 Number    : 9
 Signature : line x point -> bool
-Example   : query  trajectory(train7) trinside mehringdamm
+Example   : query  trajectory(train7) trinside [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trinside 
@@ -404,7 +403,7 @@ Result    : (bool FALSE)
 Operator  : trinside 
 Number    : 13 
 Signature : region x point -> bool
-Example   : query  thecenter trinside mehringdamm
+Example   : query  thecenter trinside [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trinside 
@@ -430,33 +429,33 @@ Result    : (bool FALSE)
 Operator  : trcovers 
 Number    : 1
 Signature : point x point -> bool
-Example   : query mehringdamm trcovers mehringdamm
+Example   : query [const point value (9396.0 9871.0)] trcovers [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trcovers 
 Number    : 2
 Signature : point x points -> bool
-Example   : query mehringdamm trcovers [const points value ((0 0))] 
+Example   : query [const point value (9396.0 9871.0)] trcovers [const points value ((0 0))] 
 Result    : (bool FALSE)
 
 Operator  : trcovers 
 Number    : 3
 Signature : point x line -> bool
-Example   : query mehringdamm trcovers trajectory(train7) 
+Example   : query [const point value (9396.0 9871.0)] trcovers trajectory(train7) 
 Result    : (bool FALSE)
 
 
 Operator  : trcovers 
 Number    : 4
 Signature : point x region -> bool
-Example   : query mehringdamm trcovers thecenter 
+Example   : query [const point value (9396.0 9871.0)] trcovers thecenter 
 Result    : (bool FALSE)
 
 
 Operator  : trcovers 
 Number    : 5
 Signature : points x point -> bool
-Example   : query  [const points value ((0 0 ))] trcovers mehringdamm
+Example   : query  [const points value ((0 0 ))] trcovers [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trcovers 
@@ -482,7 +481,7 @@ Result    : (bool FALSE)
 Operator  : trcovers 
 Number    : 9
 Signature : line x point -> bool
-Example   : query  trajectory(train7) trcovers mehringdamm
+Example   : query  trajectory(train7) trcovers [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trcovers 
@@ -508,7 +507,7 @@ Result    : (bool FALSE)
 Operator  : trcovers 
 Number    : 13 
 Signature : region x point -> bool
-Example   : query  thecenter trcovers mehringdamm
+Example   : query  thecenter trcovers [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trcovers 
@@ -534,33 +533,33 @@ Result    : (bool FALSE)
 Operator  : trcoveredby 
 Number    : 1
 Signature : point x point -> bool
-Example   : query mehringdamm trcoveredby mehringdamm
+Example   : query [const point value (9396.0 9871.0)] trcoveredby [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trcoveredby 
 Number    : 2
 Signature : point x points -> bool
-Example   : query mehringdamm trcoveredby [const points value ((0 0))] 
+Example   : query [const point value (9396.0 9871.0)] trcoveredby [const points value ((0 0))] 
 Result    : (bool FALSE)
 
 Operator  : trcoveredby 
 Number    : 3
 Signature : point x line -> bool
-Example   : query mehringdamm trcoveredby trajectory(train7) 
+Example   : query [const point value (9396.0 9871.0)] trcoveredby trajectory(train7) 
 Result    : (bool FALSE)
 
 
 Operator  : trcoveredby 
 Number    : 4
 Signature : point x region -> bool
-Example   : query mehringdamm trcoveredby thecenter 
+Example   : query [const point value (9396.0 9871.0)] trcoveredby thecenter 
 Result    : (bool FALSE)
 
 
 Operator  : trcoveredby 
 Number    : 5
 Signature : points x point -> bool
-Example   : query  [const points value ((0 0 ))] trcoveredby mehringdamm
+Example   : query  [const points value ((0 0 ))] trcoveredby [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trcoveredby 
@@ -586,7 +585,7 @@ Result    : (bool FALSE)
 Operator  : trcoveredby 
 Number    : 9
 Signature : line x point -> bool
-Example   : query  trajectory(train7) trcoveredby mehringdamm
+Example   : query  trajectory(train7) trcoveredby [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trcoveredby 
@@ -612,7 +611,7 @@ Result    : (bool FALSE)
 Operator  : trcoveredby 
 Number    : 13 
 Signature : region x point -> bool
-Example   : query  thecenter trcoveredby mehringdamm
+Example   : query  thecenter trcoveredby [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trcoveredby 
@@ -638,33 +637,33 @@ Result    : (bool FALSE)
 Operator  : trequal 
 Number    : 1
 Signature : point x point -> bool
-Example   : query mehringdamm trequal mehringdamm
+Example   : query [const point value (9396.0 9871.0)] trequal [const point value (9396.0 9871.0)]
 Result    : (bool TRUE)
 
 Operator  : trequal 
 Number    : 2
 Signature : point x points -> bool
-Example   : query mehringdamm trequal [const points value ((0 0))] 
+Example   : query [const point value (9396.0 9871.0)] trequal [const points value ((0 0))] 
 Result    : (bool FALSE)
 
 Operator  : trequal 
 Number    : 3
 Signature : point x line -> bool
-Example   : query mehringdamm trequal trajectory(train7) 
+Example   : query [const point value (9396.0 9871.0)] trequal trajectory(train7) 
 Result    : (bool FALSE)
 
 
 Operator  : trequal 
 Number    : 4
 Signature : point x region -> bool
-Example   : query mehringdamm trequal thecenter 
+Example   : query [const point value (9396.0 9871.0)] trequal thecenter 
 Result    : (bool FALSE)
 
 
 Operator  : trequal 
 Number    : 5
 Signature : points x point -> bool
-Example   : query  [const points value ((0 0 ))] trequal mehringdamm
+Example   : query  [const points value ((0 0 ))] trequal [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trequal 
@@ -690,7 +689,7 @@ Result    : (bool FALSE)
 Operator  : trequal 
 Number    : 9
 Signature : line x point -> bool
-Example   : query  trajectory(train7) trequal mehringdamm
+Example   : query  trajectory(train7) trequal [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trequal 
@@ -716,7 +715,7 @@ Result    : (bool FALSE)
 Operator  : trequal 
 Number    : 13 
 Signature : region x point -> bool
-Example   : query  thecenter trequal mehringdamm
+Example   : query  thecenter trequal [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trequal 
@@ -742,33 +741,33 @@ Result    : (bool TRUE)
 Operator  : trdisjoint 
 Number    : 1
 Signature : point x point -> bool
-Example   : query mehringdamm trdisjoint mehringdamm
+Example   : query [const point value (9396.0 9871.0)] trdisjoint [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trdisjoint 
 Number    : 2
 Signature : point x points -> bool
-Example   : query mehringdamm trdisjoint [const points value ((0 0))] 
+Example   : query [const point value (9396.0 9871.0)] trdisjoint [const points value ((0 0))] 
 Result    : (bool TRUE)
 
 Operator  : trdisjoint 
 Number    : 3
 Signature : point x line -> bool
-Example   : query mehringdamm trdisjoint trajectory(train7) 
+Example   : query [const point value (9396.0 9871.0)] trdisjoint trajectory(train7) 
 Result    : (bool FALSE)
 
 
 Operator  : trdisjoint 
 Number    : 4
 Signature : point x region -> bool
-Example   : query mehringdamm trdisjoint thecenter 
+Example   : query [const point value (9396.0 9871.0)] trdisjoint thecenter 
 Result    : (bool FALSE)
 
 
 Operator  : trdisjoint 
 Number    : 5
 Signature : points x point -> bool
-Example   : query  [const points value ((0 0 ))] trdisjoint mehringdamm
+Example   : query  [const points value ((0 0 ))] trdisjoint [const point value (9396.0 9871.0)]
 Result    : (bool TRUE)
 
 Operator  : trdisjoint 
@@ -794,7 +793,7 @@ Result    : (bool TRUE)
 Operator  : trdisjoint 
 Number    : 9
 Signature : line x point -> bool
-Example   : query  trajectory(train7) trdisjoint mehringdamm
+Example   : query  trajectory(train7) trdisjoint [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trdisjoint 
@@ -820,7 +819,7 @@ Result    : (bool FALSE)
 Operator  : trdisjoint 
 Number    : 13 
 Signature : region x point -> bool
-Example   : query  thecenter trdisjoint mehringdamm
+Example   : query  thecenter trdisjoint [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trdisjoint 
@@ -845,33 +844,33 @@ Result    : (bool FALSE)
 Operator  : troverlaps 
 Number    : 1
 Signature : point x point -> bool
-Example   : query mehringdamm troverlaps mehringdamm
+Example   : query [const point value (9396.0 9871.0)] troverlaps [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : troverlaps 
 Number    : 2
 Signature : point x points -> bool
-Example   : query mehringdamm troverlaps [const points value ((0 0))] 
+Example   : query [const point value (9396.0 9871.0)] troverlaps [const points value ((0 0))] 
 Result    : (bool FALSE)
 
 Operator  : troverlaps 
 Number    : 3
 Signature : point x line -> bool
-Example   : query mehringdamm troverlaps trajectory(train7) 
+Example   : query [const point value (9396.0 9871.0)] troverlaps trajectory(train7) 
 Result    : (bool FALSE)
 
 
 Operator  : troverlaps 
 Number    : 4
 Signature : point x region -> bool
-Example   : query mehringdamm troverlaps thecenter 
+Example   : query [const point value (9396.0 9871.0)] troverlaps thecenter 
 Result    : (bool FALSE)
 
 
 Operator  : troverlaps 
 Number    : 5
 Signature : points x point -> bool
-Example   : query  [const points value ((0 0 ))] troverlaps mehringdamm
+Example   : query  [const points value ((0 0 ))] troverlaps [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : troverlaps 
@@ -897,7 +896,7 @@ Result    : (bool FALSE)
 Operator  : troverlaps 
 Number    : 9
 Signature : line x point -> bool
-Example   : query  trajectory(train7) troverlaps mehringdamm
+Example   : query  trajectory(train7) troverlaps [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : troverlaps 
@@ -923,7 +922,7 @@ Result    : (bool TRUE)
 Operator  : troverlaps 
 Number    : 13 
 Signature : region x point -> bool
-Example   : query  thecenter troverlaps mehringdamm
+Example   : query  thecenter troverlaps [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : troverlaps 
@@ -949,33 +948,33 @@ Result    : (bool FALSE)
 Operator  : trcontains 
 Number    : 1
 Signature : point x point -> bool
-Example   : query mehringdamm trcontains mehringdamm
+Example   : query [const point value (9396.0 9871.0)] trcontains [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trcontains 
 Number    : 2
 Signature : point x points -> bool
-Example   : query mehringdamm trcontains [const points value ((0 0))] 
+Example   : query [const point value (9396.0 9871.0)] trcontains [const points value ((0 0))] 
 Result    : (bool FALSE)
 
 Operator  : trcontains 
 Number    : 3
 Signature : point x line -> bool
-Example   : query mehringdamm trcontains trajectory(train7) 
+Example   : query [const point value (9396.0 9871.0)] trcontains trajectory(train7) 
 Result    : (bool FALSE)
 
 
 Operator  : trcontains 
 Number    : 4
 Signature : point x region -> bool
-Example   : query mehringdamm trcontains thecenter 
+Example   : query [const point value (9396.0 9871.0)] trcontains thecenter 
 Result    : (bool FALSE)
 
 
 Operator  : trcontains 
 Number    : 5
 Signature : points x point -> bool
-Example   : query  [const points value ((0 0 ))] trcontains mehringdamm
+Example   : query  [const points value ((0 0 ))] trcontains [const point value (9396.0 9871.0)]
 Result    : (bool FALSE)
 
 Operator  : trcontains 
@@ -1001,7 +1000,7 @@ Result    : (bool FALSE)
 Operator  : trcontains 
 Number    : 9
 Signature : line x point -> bool
-Example   : query  trajectory(train7) trcontains mehringdamm
+Example   : query  trajectory(train7) trcontains [const point value (9396.0 9871.0)]
 Result    : (bool TRUE)
 
 Operator  : trcontains 
@@ -1027,7 +1026,7 @@ Result    : (bool FALSE)
 Operator  : trcontains 
 Number    : 13 
 Signature : region x point -> bool
-Example   : query  thecenter trcontains mehringdamm
+Example   : query  thecenter trcontains [const point value (9396.0 9871.0)]
 Result    : (bool TRUE)
 
 Operator  : trcontains 
