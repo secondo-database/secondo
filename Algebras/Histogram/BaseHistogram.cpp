@@ -339,12 +339,9 @@ namespace hgr
     hist->Clear();
     hist->CopyFrom(histBase);
 
-    if (hist->IsRefinement(*histPattern))
-    {
+    if (hist->IsRefinement(*histPattern)) {
       hist->Coarsen(histPattern);
-    }
-    else
-    {
+    } else {
       hist->SetDefined(false);
     }
     return 0;
@@ -389,8 +386,7 @@ namespace hgr
     BaseHistogram* resultHg = (BaseHistogram*)result.addr;
     resultHg->Clear();
 
-    if (!inputHg->IsDefined())
-    {
+    if (!inputHg->IsDefined()) {
       resultHg->SetDefined(false);
       return 0;
     }
@@ -407,15 +403,13 @@ namespace hgr
     Supplier node;
     Word argVal;
 
-    for (int i = 0; i < noOfOptParams; i++)
-    {
+    for (int i = 0; i < noOfOptParams; i++){
       // Get the value of the parameter:
       node = qp->GetSupplier(optParamList, i);
       qp->Request(node, argVal);
 
       // Check, if the parameter is defined:
-      if ( !((Attribute*)argVal.addr)->IsDefined() )
-      {
+      if ( !((Attribute*)argVal.addr)->IsDefined() ){
         resultHg->SetDefined(false);
         return 0;
       }
@@ -425,11 +419,10 @@ namespace hgr
     }
 
     Word funResult;
-    CcReal binVal;
+    CcReal binVal(true, 0.0);
     CcReal* funResultBinVal;
 
-    for (int i = 0; i < inputHg->GetNoBin(); i++)
-    {
+    for (int i = 0; i < inputHg->GetNoBin(); i++){
       // Get the current bin-value from the input-histogram:
       binVal.Set(true, inputHg->GetBin(i));
 
@@ -554,14 +547,19 @@ namespace hgr
       return 0;
     }
 
-    // XRIS: Problem: The arguments are modified here!
-    //       Should use new histigrams instead!
+    BaseHistogram* tmp1 =
+      static_cast<BaseHistogram*>((static_cast<Attribute*>(inputHg1))->Clone());
+    BaseHistogram* tmp2 =
+      static_cast<BaseHistogram*>((static_cast<Attribute*>(inputHg2))->Clone());
+
     if (inputHg1->IsRefinement(*inputHg2)) {
-      inputHg1->Coarsen(inputHg2);
+      tmp1->Coarsen(inputHg2);
     } else if (inputHg2->IsRefinement(*inputHg1)) {
-      inputHg2->Coarsen(inputHg1);
+      tmp2->Coarsen(inputHg1);
     } else {
       resultHg->SetDefined(false);
+      tmp1->DeleteIfAllowed();
+      tmp2->DeleteIfAllowed();
       return 0;
     }
 
@@ -577,16 +575,16 @@ namespace hgr
     Supplier node;
     Word argVal;
 
-    for (int i = 0; i < noOfOptParams; i++)
-    {
+    for (int i = 0; i < noOfOptParams; i++){
       // Get the value of the parameter:
       node = qp->GetSupplier(optParamList, i);
       qp->Request(node, argVal);
 
       // Check, if the parameter is defined:
-      if ( !((Attribute*)argVal.addr)->IsDefined() )
-      {
+      if ( !((Attribute*)argVal.addr)->IsDefined() ){
         resultHg->SetDefined(false);
+        tmp1->DeleteIfAllowed();
+        tmp2->DeleteIfAllowed();
         return 0;
       }
 
@@ -598,11 +596,10 @@ namespace hgr
     CcReal binVal1, binVal2;
     CcReal* funResultBinVal;
 
-    for (int i = 0; i < inputHg1->GetNoBin(); i++)
-    {
-      // Get the current bin-values from the input-histograms:
-      binVal1.Set(true, (inputHg1->GetBin(i)));
-      binVal2.Set(true, (inputHg2->GetBin(i)));
+    for (int i = 0; i < tmp1->GetNoBin(); i++){
+      // Get the current bin-values from the tmp-histograms:
+      binVal1.Set(true, (tmp1->GetBin(i)));
+      binVal2.Set(true, (tmp2->GetBin(i)));
 
       // Pass them as first and second argument to the function and
       // evaluate the function:
@@ -618,7 +615,9 @@ namespace hgr
     }
 
     // Copy the ranges 1:1
-    resultHg->CopyRangesFrom(inputHg1);
+    resultHg->CopyRangesFrom(tmp1);
+    tmp1->DeleteIfAllowed();
+    tmp2->DeleteIfAllowed();
 
     return 0;
   }
@@ -816,19 +815,24 @@ namespace hgr
     // Vergröberung Durchführen und das Quadrat der Flächen- bzw.
     // Volumendifferenzen
 
-    // XRIS: This changes the arguments!
-    //       Should use new histigrams instead!
+    BaseHistogram* tmp1 =
+        static_cast<BaseHistogram*>((static_cast<Attribute*>(hist1))->Clone());
+    BaseHistogram* tmp2 =
+        static_cast<BaseHistogram*>((static_cast<Attribute*>(hist2))->Clone());
+
     if (hist1->IsRefinement(*hist2)) {
-      hist1->Coarsen(hist2);
-      distance->Set(hist1->Distance(hist2));
-    } // if (hist1->IsRefinement(*hist2))
+      tmp1->Coarsen(hist2);
+      distance->Set(tmp1->Distance(hist2));
+    } // if (tmp1->IsRefinement(*tmp2))
     else if (hist2->IsRefinement(*hist1)) {
-      hist2->Coarsen(hist1);
-      distance->Set(hist2->Distance(hist1));
-    } // else if (hist2->IsRefinement(*hist1))
+      tmp2->Coarsen(hist1);
+      distance->Set(tmp2->Distance(hist1));
+    } // else if (tmp2->IsRefinement(*tmp1))
     else  {
       distance->Set(false, 0.0);
     }
+    tmp1->DeleteIfAllowed();
+    tmp2->DeleteIfAllowed();
     return 0;
   }
 

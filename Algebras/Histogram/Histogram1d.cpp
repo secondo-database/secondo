@@ -428,9 +428,9 @@ namespace hgr
   {
     NList in(instance);
 
-    if (in.isSymbol("undef") ||
-       (in.length() == 1 && in.first().isSymbol("undef")))
-    {
+    if (    in.isSymbol("undef")
+         || (in.length() == 1 && in.first().isSymbol("undef"))
+       ){
       correct = true;
       return SetWord(new Histogram1d(false));
     }
@@ -461,6 +461,7 @@ namespace hgr
                 != (nl->ListLength(nl->Second(*concise))+1)))//number of bins +1
       {
         correct = false;
+        newHist->DeleteIfAllowed();
         return SetWord( Address(0) );
       }
 
@@ -486,12 +487,14 @@ namespace hgr
           else // if (currentValue > lastValue)
           {
             correct = false;
+            newHist->DeleteIfAllowed();
             return SetWord( Address(0) );
           } // else // if (currentItem > lastItem)
         } // if(nl->IsAtom(nl->First(rangeList) && ...
         else // if(nl->IsAtom(nl->First(rangeList) && ...
         {
           correct = false;
+          newHist->DeleteIfAllowed();
           return SetWord( Address(0) );
         } // if(nl->IsAtom(nl->First(rangeList) &&
 
@@ -514,6 +517,7 @@ namespace hgr
         else // if(nl->IsAtom(nl->First(rangeList) && ...
         {
           correct = false;
+          newHist->DeleteIfAllowed();
           return SetWord( Address(0) );
         } // if(nl->IsAtom(nl->First(binList) && ...
       } // while ( !nl->IsEmpty(restItems) )

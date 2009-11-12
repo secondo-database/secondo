@@ -307,7 +307,7 @@ is a refinement of the parameter histogram.
 
 */
 
-    void Coarsen(const BaseHistogram* h);
+    virtual void Coarsen(const BaseHistogram* h);
 
 /*
 3.3.7 CopyRangesFrom(BaseHistogram)

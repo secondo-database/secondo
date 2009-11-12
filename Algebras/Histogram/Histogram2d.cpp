@@ -575,9 +575,9 @@ it is either empty or all of the following statements are true:
       const int errorPos, ListExpr& errorInfo, bool& correct)
   {
     NList in(instance);
-    if (in.isSymbol("undef") ||
-       (in.length() == 1 && in.first().isSymbol("undef")))
-    {
+    if (    in.isSymbol("undef")
+         || (in.length() == 1 && in.first().isSymbol("undef"))
+       ){
       correct = true;
       return SetWord(new Histogram2d(false));
     }
@@ -617,9 +617,10 @@ it is either empty or all of the following statements are true:
         //or number of bins is not (number of rangeX -1 )(number of rangeY - 1)
         ||  (nl->ListLength(nl->Third(*concise))
               != (nl->ListLength(nl->First(*concise))-1) //
-                 * (nl->ListLength(nl->Second(*concise))-1)))
-    {
+                 * (nl->ListLength(nl->Second(*concise))-1))
+       ){
       correct = false;
+      newHist->DeleteIfAllowed();
       return SetWord( Address(0) );
     } // if (    (nl->IsEmpty(*concise))      // incoming list is empty
 
@@ -630,27 +631,22 @@ it is either empty or all of the following statements are true:
     // Examine the rangeXList
     restItems = rangeXList;
 
-    while ( !nl->IsEmpty(restItems) )
-    {
+    while ( !nl->IsEmpty(restItems) ){
       const ListExpr curr = nl->First(restItems);
-      if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType))
-      {
+      if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType)){
         currentValue = nl->RealValue(curr);
         restItems = nl->Rest(restItems);
-        if (currentValue > lastValue)
-        {
+        if (currentValue > lastValue){
           newHist->AppendRangeX(currentValue);
           lastValue = currentValue;
-        } // if (currentValue > lastValue)
-        else
-        {
+        } else{// if (currentValue > lastValue)
           correct = false;
+          newHist->DeleteIfAllowed();
           return SetWord( Address(0) );
         } // else // if (currentItem > lastItem)
-      } // if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType))
-      else
-      {
+      } else{// if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType))
         correct = false;
+        newHist->DeleteIfAllowed();
         return SetWord( Address(0) );
       } // else // if(nl->IsAtom(nl->First(rangeList) &&
     } // while ( !nl->IsEmpty(rest) )
@@ -662,27 +658,22 @@ it is either empty or all of the following statements are true:
     // Examine the rangeYList
     restItems = rangeYList;
 
-    while ( !nl->IsEmpty(restItems) )
-    {
+    while ( !nl->IsEmpty(restItems) ){
       const ListExpr curr = nl->First(restItems);
-      if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType))
-      {
+      if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType)){
         currentValue = nl->RealValue(curr);
         restItems = nl->Rest(restItems);
-        if (currentValue > lastValue)
-        {
+        if (currentValue > lastValue){
           newHist->AppendRangeY(currentValue);
           lastValue = currentValue;
-        } // if (currentValue > lastValue)
-        else
-        {
+        } else {// if (currentValue > lastValue)
           correct = false;
+          newHist->DeleteIfAllowed();
           return SetWord( Address(0) );
         } // else // if (currentValue > lastValue)
-      } // if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType))
-      else
-      {
+      } else { // if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType))
         correct = false;
+        newHist->DeleteIfAllowed();
         return SetWord( Address(0) );
       } // else // if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType))
     } // while ( !nl->IsEmpty(rest) )
@@ -691,18 +682,16 @@ it is either empty or all of the following statements are true:
 
     // Now examine the bin list
     restItems = binList;
-    while ( !nl->IsEmpty(restItems) )
-    {
+    while ( !nl->IsEmpty(restItems) ){
       const ListExpr curr = nl->First(restItems);
-      if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType))
-      {
+      if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType)){
         currentValue = nl->RealValue(curr);
         restItems = nl->Rest(restItems);
         newHist->AppendBin(currentValue);
       } // if(nl->IsAtom(curr) && (nl->AtomType(curr) == RealType))
-      else // if(nl->IsAtom(nl->First(rangeList) && ...
-      {
+      else {// if(nl->IsAtom(nl->First(rangeList) && ...
         correct = false;
+        newHist->DeleteIfAllowed();
         return SetWord( Address(0) );
       } // if(nl->IsAtom(nl->First(binList) && ...
     } // while ( !nl->IsEmpty(restItems) )
