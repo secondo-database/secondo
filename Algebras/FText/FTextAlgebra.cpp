@@ -214,6 +214,7 @@ ostream& FText::Print(ostream &os) const
   char* t = Get();
   string s(t);
   delete [] t;
+  SHOW(theText)
   size_t len = theText.getSize();
   if(TextLength() > 65)
   {

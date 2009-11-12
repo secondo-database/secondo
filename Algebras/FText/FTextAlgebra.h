@@ -39,6 +39,9 @@ The algebra ~FText~ provides the type constructor ~text~ and two operators:
 
 #include <iostream>
 
+#undef TRACE_ON
+#include "Trace.h"
+
 #include "IndexableAttribute.h"
 #include "../../Tools/Flob/Flob.h"
 
@@ -196,8 +199,16 @@ inline void FText::Set( bool newDefined, const char *newString )
   if( newString != NULL )
   {
     theText.clean();
-    //  theText.Resize( strlen( newString ) + 1 );
-    theText.write( newString, strlen( newString ) + 1 );
+    SHOW(theText)
+    SmiSize sz = strlen( newString ) + 1; 
+    theText.write( newString, sz);
+    SHOW(theText)
+
+    char buffer[sz];
+    theText.read( buffer, sz);
+
+    SHOW(theText)
+    DEBUG_EXE( cerr << "<" << Array2Str(buffer,sz) << ">" << endl; )
   }
   SetDefined( newDefined );
 
@@ -212,7 +223,6 @@ inline void FText::Set( bool newDefined, const string& newString )
   theText.clean();
   if(newDefined)
   {
-//     theText.Resize( newString.length() + 1 );
     theText.write( newString.c_str(), newString.length() + 1 );
   }
   SetDefined( newDefined );
