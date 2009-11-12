@@ -401,6 +401,27 @@ must exists.
 
 
 /*
+~createFrom~
+
+return a Flob with persistent storage allocated and defined elsewhere
+
+*/      
+
+      Flob FlobManager::createFrom( const SmiFileId& fid,
+		                    const SmiRecordId& rid,
+		                    const SmiSize& offset, 
+		                    const SmiSize& size) {
+
+        Flob flob;
+        FlobId flob_id(fid, rid, offset);
+	flob.id = flob_id;
+        flob.size = size;          
+        return  flob;
+      };
+
+
+
+/*
 ~constructor~
 
 Because Flobmanager is a singleton, the constructor should only be used

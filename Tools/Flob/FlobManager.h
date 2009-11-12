@@ -133,6 +133,19 @@ Creates a new flob with given file and position.
                   const SmiSize& size,
                   Flob& result);       // initial size of the Flob
 
+/*
+~createFrom~
+
+return a Flob with persistent storage allocated and defined elsewhere
+
+*/      
+
+      static Flob createFrom( const SmiFileId& fid,
+                              const SmiRecordId& rid,
+                              const SmiSize& offset, 
+                              const SmiSize& size); 
+
+
       bool copyData(const Flob& src, Flob& dest);
 
 /*

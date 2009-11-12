@@ -194,8 +194,8 @@ Puts data providen in ~buffer~ into the Flob at the specified position.
                       const SmiSize length,
                       const SmiSize offset=0){
       if(offset+length > size) {
-        size = offset + length;	
-      }	
+        size = offset + length; 
+      } 
       FlobManager::getInstance().putData(*this, buffer, offset, length);
     }
 /*
@@ -251,6 +251,24 @@ in parameter ~result~. The data is stored in a new record with offset zero.
                           Flob& result) const{
       return FlobManager::getInstance().saveTo(*this, fid, result);
     };
+
+
+/*
+~createFrom~
+
+creates a Flob which assumes that the persitent storage for it has been
+created and initialized elsewhere. For example class tuple uses this to
+store small data inside a tuple.
+
+*/
+
+    inline static Flob createFrom( const SmiFileId& fid,
+                                   const SmiRecordId& rid,
+                                   const SmiSize& offset, 
+                                   const SmiSize& size    ) {
+      return  FlobManager::getInstance().createFrom(fid, rid, offset, size);
+    };
+
 
 
 /*
@@ -315,7 +333,7 @@ is not longer possible.
   }
 
   ostream& print(ostream& os) const {
-    return os << "id = " << id << ", size = " << size;
+    return os << "[" << id << ", size = " << size << "]";
   }
 
   private:
