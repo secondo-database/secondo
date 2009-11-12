@@ -144,17 +144,16 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #include <map>
 #include <list>
 
+//define macro TRACE_ON if trace outputs are needed
+#undef TRACE_ON
+
+#include "Trace.h"
 #include "Algebra.h"
 #include "Attribute.h"
 #include "NestedList.h"
 #include "Counter.h"
 
 #define MAX_NUM_OF_ATTR 10
-
-//Uncomment next line for tracing tuple operations
-//#define TRACE_ON
-#undef TRACE_ON
-#include "TraceMacros.h"
 
 extern AlgebraManager* am;
 
@@ -333,8 +332,8 @@ Puts the attribute type ~attrType~ in the position ~index~.
 */
     inline int NumOfFlobs() const
     {
-      int n = 0;	    
-      for(int i = 0; i < noAttributes; i++) {	    
+      int n = 0;    
+      for(int i = 0; i < noAttributes; i++) {    
         n += attrTypeArray[i].numOfFlobs;
       }
       return n;      
@@ -381,7 +380,7 @@ struct RelationDescriptor
   friend ostream& operator<<(ostream& o, const RelationDescriptor& rd);
   inline
   RelationDescriptor( TupleType* tupleType, bool b=false ):
-    isTemp(b),	  
+    isTemp(b),  
     tupleType( tupleType ),
     attrExtSize( tupleType->GetNoAttributes() ),
     attrSize( tupleType->GetNoAttributes() )
@@ -397,7 +396,7 @@ struct RelationDescriptor
 
   inline
   RelationDescriptor( const ListExpr typeInfo, bool b=false ):
-    isTemp(b),	  
+    isTemp(b),  
     tupleType( new TupleType( nl->Second( typeInfo ) ) ),
     attrExtSize( 0 ),
     attrSize( 0 )
@@ -424,7 +423,7 @@ The simple constructors.
                       const vector<double>& attrExtSize,
                       const vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
-    isTemp(false),	  
+    isTemp(false),  
     tupleType( tupleType ),
     attrExtSize( attrExtSize ),
     attrSize( attrSize )
@@ -440,7 +439,7 @@ The simple constructors.
                       const vector<double>& attrExtSize,
                       const vector<double>& attrSize,
                       const SmiFileId tId, const SmiFileId lId ):
-    isTemp(false),	  
+    isTemp(false),  
     tupleType( new TupleType( nl->Second( typeInfo ) ) ),
     attrExtSize( attrExtSize ),
     attrSize( attrSize )
@@ -455,7 +454,7 @@ The first constructor.
 */
   inline
   RelationDescriptor( const RelationDescriptor& d ):
-    isTemp( d.isTemp ),	  
+    isTemp( d.isTemp ),  
     tupleType( d.tupleType ),
     attrExtSize( d.attrExtSize ),
     attrSize( d.attrSize )
@@ -627,7 +626,7 @@ class Tuple
     {
       tupleType->IncReference();
       Init( tupleType->GetNoAttributes());
-      DEBUG(this, "Constructor Tuple(TupleType *tupleType) called.")
+      DEBUG_MSG("Constructor Tuple(TupleType *tupleType) called.")
     }
 
 /*
@@ -639,7 +638,7 @@ the ~tupleType~ as argument.
     tupleType( new TupleType( typeInfo ) )
     {
       Init( tupleType->GetNoAttributes());
-      DEBUG(this, "Constructor Tuple(const ListExpr typeInfo) called.")
+      DEBUG_MSG("Constructor Tuple(const ListExpr typeInfo) called.")
     }
 /*
 A similar constructor as the above, but taking a list
@@ -932,7 +931,7 @@ sizes of the tuple saved.
 
 */
 
-  void Save( SmiRecordFile *tuplefile, SmiFileId& lobFileId,
+  void Save( SmiRecordFile *tuplefile, const SmiFileId& lobFileId,
              double& extSize, double& size,
              vector<double>& attrExtSize, vector<double>& attrSize,
              bool ignorePersistentLOBs=false );
@@ -1150,15 +1149,15 @@ to ~defAttributes~, otherwise it is dinamically constructed.
   static char tupleData[MAX_TUPLESIZE];
 
   char* WriteToBlock( size_t attrSizes,
-                      size_t extensionSize );
+                      size_t extensionSize,
+                      bool ignoreLOBs = false );
 
 
   size_t CalculateBlockSize( size_t& attrSizes,
                              double& extSize,
                              double& size,
                              vector<double>& attrExtSize,
-                             vector<double>& attrSize,
-                             bool ignorePersLOBs = false );
+                             vector<double>& attrSize     );
 
 
   char* GetSMIBufferData(SmiRecord& r, uint16_t& rootSize);

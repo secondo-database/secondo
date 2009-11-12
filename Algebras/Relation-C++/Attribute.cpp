@@ -89,8 +89,7 @@ const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
         Flob *tmpFlob = elem->GetFLOB(i);
 	SecondoCatalog* ctlg = SecondoSystem::GetCatalog(); 
         SmiFileId fileId = ctlg->getFlobFileId();
-	cerr << "FlobFileId = " << fileId << endl; 
-        //SPM? tmpFLOB->SaveToRecord(valueRecord, offset, fid, false);
+	//cerr << "FlobFileId = " << fileId << endl; 
 	tmpFlob->saveToFile(fileId, *tmpFlob);
       }
 
@@ -134,18 +133,6 @@ Default save function.
       elem->del.refs = 1;
       elem->del.isDelete = true;
       offset += size;
-
- /* NOT NEEDED. By Default persistence a Flob is a member of the Attribute
- derived class.
-
-      // Open the FLOBs
-      for( int i = 0; i < elem->NumOfFLOBs(); i++ )
-      {
-        Flob *tmpFlob = elem->GetFLOB(i);
-        //SPM: tmpFlob->OpenFromRecord(valueRecord, offset, false);
-	tmpFlob->restoreHeader(valueRecord, offset);
-      }
- */
 
       return elem;
     }
