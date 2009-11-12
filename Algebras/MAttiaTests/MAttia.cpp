@@ -11,6 +11,58 @@
 #include "SecondoInterface.h"
 #include "fstream"
 
+  void NDefUnit(MBool* arg, CcBool* nval, MBool* res)
+  {
+    bool debugme=true;
+    res->Clear();
+    res->StartBulkLoad();
+    const UBool *uarg;
+    UBool uBool(nval->GetBoolval()), uBool2(nval->GetBoolval());
+    uBool.constValue= *nval;
+    if(!arg->IsDefined()||arg->GetNoComponents() == 0)
+    {
+      res->SetDefined(false);
+      return;
+    }
+    arg->Get(0, uarg);
+    uarg->Print(cout);
+    uBool2.CopyFrom(uarg);  
+    res->MergeAdd(uBool2);
+    res->Print(cout);
+    uBool.timeInterval.lc = !uarg->timeInterval.rc;
+    uBool.timeInterval.start = uarg->timeInterval.end;
+    for( int i = 1; i < arg->GetNoComponents(); i++) 
+    {
+      arg->Get(i, uarg);
+
+      uBool.timeInterval.rc = !uarg->timeInterval.lc;
+      uBool.timeInterval.end = uarg->timeInterval.start;
+
+      if(uBool.timeInterval.start < uBool.timeInterval.end
+          || (uBool.timeInterval.start == uBool.timeInterval.end
+              && uBool.timeInterval.lc && uBool.timeInterval.rc))
+      {
+        res->MergeAdd(uBool);
+        res->Print(cout);
+      }
+
+        uBool2.CopyFrom(uarg);  
+        res->MergeAdd(uBool2);
+        res->Print(cout);
+        uBool.timeInterval.lc = !uarg->timeInterval.rc;
+        uBool.timeInterval.start = uarg->timeInterval.end;
+    }
+    res->EndBulkLoad(false);
+    if(debugme)
+    {
+      cout<<"NDefUnit is called";
+      cout<<"\nInput1:"; arg->Print(cout);
+      cout<<"\nInput2:"; nval->Print(cout);
+      cout<<"\nOutput:"; res->Print(cout);
+      cout.flush();
+    }
+  }  
+
 int Randint(int u)//Computes a random integer in the range 0..u-1,
 //for u >= 2
 {
@@ -346,6 +398,26 @@ ListExpr RunSTPQExperiment2QueriesTM(ListExpr args)
   return nl->SymbolAtom("bool");
 }
 
+/*
+~NDefUnitTypeMap~
+
+signatures:
+  mbool x bool -> mbool
+
+*/
+ListExpr NDefUnitTM(ListExpr args){
+  if(nl->ListLength(args)!=2){
+    ErrorReporter::ReportError("Two argument expected");
+    return nl->SymbolAtom( "typeerror" );
+  }
+  if(nl->IsEqual(nl->First(args),"mbool") && 
+      nl->IsEqual(nl->Second(args),"bool")){
+    return   nl->SymbolAtom("mbool");
+  }
+  ErrorReporter::ReportError("mbool x bool expected");
+  return nl->SymbolAtom( "typeerror" );
+}
+
 void CreateRandomMBool(Instant starttime, MBool& result)
 {
   bool debugme=false,bval=false;
@@ -393,7 +465,32 @@ int PassMBool(Word* args, Word& result, int message, Word& local, Supplier s)
   return 0;
 }
 
+/*
+Value mapping function for the operator ~ndefunit~
 
+*/
+int NDefUnitVM( ArgVector args, Word& result,
+    int msg, Word& local, Supplier s )
+{
+  bool debugme=true;
+  MBool *arg = static_cast<MBool*>( args[0].addr );
+  CcBool *ndefval = static_cast<CcBool*>( args[1].addr );
+
+  MBool* tmp=new MBool(0);
+  result= qp->ResultStorage(s);
+  MBool* res= (MBool*) result.addr;
+  NDefUnit(arg, ndefval, res);
+  //res->CopyFrom(tmp);
+  tmp->Destroy();
+  delete tmp;
+  if(debugme)
+  {
+    cout.flush();
+    res->Print(cout);
+    cout.flush();
+  }
+  return 0;
+}
 
 
 
@@ -522,6 +619,15 @@ Operator opRunSTPQExperiment2Queries(
     RunSTPQExperiment2QueriesTM    // type mapping
 );
 
+OperatorInfo NDefUnitOperatorInfo( "ndefunit",
+    "mbool x bool -> mbool",
+    "ndefunit(mdirection(train7) > 90.0, TRUE)",
+    "Replaces the undefined periods within a moving constant with a constant "
+    "unit having the given value",
+"");
+Operator ndefunit( NDefUnitOperatorInfo,
+    NDefUnitVM,
+    NDefUnitTM);
 MAttiaAlgebra::MAttiaAlgebra():Algebra() {
   // TODO Auto-generated constructor stub
 
@@ -541,6 +647,7 @@ MAttiaAlgebra::MAttiaAlgebra():Algebra() {
   //AddOperator(&opdefpassmbool);
   AddOperator(&opRunSTPQExperiment1Queries);
   AddOperator(&opRunSTPQExperiment2Queries);
+  AddOperator(&ndefunit);
 }
 
 MAttiaAlgebra::~MAttiaAlgebra() {
