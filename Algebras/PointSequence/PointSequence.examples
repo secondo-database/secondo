@@ -1,39 +1,41 @@
 Database: berlintest
 Restore : No
 
+
 Operator : c2line
 Number   : 1
 Signature: (pointsequence) -> line
-Example  : query c2line(mypointsequence)
-Result   : crashes
+Example  : query c2line([const pointsequence value ((5660.0 11435.0)(5660.0 12795.0)(8571.0 12795.0)(571.0 11435.0))])
+Result : (line ( (571.0 11435.0 5660.0 12300.13) (5660.0 11435.0 5660.0 12300.13) (5660.0 12300.13 8571.0 12795.0) (5660.0 12300.13 5660.0 12795.0) (5660.0 12795.0 8571.0 12795.0))) 
 
 
 Operator : c2point
 Number   : 1
 Signature: (pointsequence) -> point
-Example  : query c2point(mypointsequence)
-Result   : (point (7136.7330199643875 13075.318405368116))
+Example  : query c2point([const pointsequence value ((5660.0 11435.0)(5660.0 12795.0)(8571.0 12795.0)(571.0 11435.0))])
+Result   : (point (5660.0 11435.0))
 
 
 Operator : c2points
 Number   : 1
 Signature: (pointsequence) -> points
-Example  : query c2points(mypointsequence)
-Result   : file
+Example  : query c2points([const pointsequence value ((5660.0 11435.0)(5660.0 12795.0)(8571.0 12795.0)(571.0 11435.0))])
+Result   : (points ( (571.0 11435.0) (5660.0 11435.0) (5660.0 12795.0) (8571.0 12795.0)))
+
 
 
 Operator : c2rect
 Number   : 1
 Signature: (pointsequence) -> rect
-Example  : query c2rect(mypointsequence2)
-Result   : crashes
+Example  : query c2rect([const pointsequence value ((5660.0 11435.0)(5660.0 12795.0)(8571.0 12795.0)(571.0 11435.0))])
+Result :  (rect (571.0 8571.0 11435.0 12795.0))
 
 
 Operator : c2reg
 Number   : 1
 Signature: (pointsequence) -> region
-Example  : query c2reg(mypointsequence)
-Result   : file
+Example  : query c2reg([const pointsequence value ((5660.0 11435.0)(5660.0 12795.0)(8571.0 12795.0)(571.0 11435.0))])
+Result   : (region ( ( ( (5660.0 11435.0) (5660.0 12795.0) (8571.0 12795.0) (571.0 11435.0))))) 
 
 
 Operator : rect2ps
