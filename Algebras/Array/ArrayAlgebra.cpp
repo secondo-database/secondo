@@ -895,13 +895,22 @@ getFun ( Word* args, Word& result, int message, Word& local, Supplier s )
 
     resultType = sc->NumericType(resultType);
 
-    clonedElement = genericClone(algebraId, typeId, resultType, element);
+  /*
+
+   // test to avoid clone the argument
+
+   clonedElement = genericClone(algebraId, typeId, resultType, element);
+
+   // 
 
     // In the next statement the (by the Query Processor) provided place for
     // the result is not used in order to be flexible with regard to the
     // result type.
 
     result.addr = clonedElement.addr;
+  */
+    result.addr = element.addr;
+
 
     return 0;
   }
