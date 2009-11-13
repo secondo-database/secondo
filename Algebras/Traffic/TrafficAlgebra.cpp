@@ -109,6 +109,12 @@ Interval<Instant> MGPSecUnit::GetTimeInterval() const
   return m_time;
 }
 
+ double MGPSecUnit::GetDurationInSeconds() const
+{
+  return (m_time.end - m_time.start).ToDouble()/0.00001157;
+}
+
+
 void MGPSecUnit::SetSecId(int secId)
 {
   m_secId = secId;
@@ -134,6 +140,16 @@ void MGPSecUnit::SetTimeInterval(Interval<Instant> time)
   m_time = time;
 }
 
+ MGPSecUnit& MGPSecUnit::operator=( const MGPSecUnit& in_xOther )
+{
+  m_secId = in_xOther.GetSecId();
+  m_part = in_xOther.GetPart();
+  m_direct = in_xOther.GetDirect();
+  m_speed = in_xOther.GetSpeed();
+  m_time = in_xOther.GetTimeInterval();
+  return *this;
+}
+
 size_t MGPSecUnit::Sizeof() const
 {
   return sizeof(MGPSecUnit);
@@ -156,6 +172,9 @@ void MGPSecUnit::CopyFrom( const Attribute* right )
 int MGPSecUnit::Compare( const Attribute* arg ) const
 {
   const MGPSecUnit *p = (const MGPSecUnit*) arg;
+  if (!IsDefined() && !p->IsDefined()) return 0;
+  if (!IsDefined() && p->IsDefined()) return -1;
+  if (IsDefined() && !p->IsDefined()) return 1;
   if (m_secId < p->GetSecId()) return -1;
   else
     if (m_secId > p->GetSecId()) return 1;
@@ -198,7 +217,9 @@ ostream& MGPSecUnit::Print( ostream& os ) const
       << ", Part: " << m_part
       << ", Side: " << m_direct
       << ", Speed: " << m_speed
-      << ", Timeinterval: " << m_time.Print(os) << endl;
+      << ", Timeinterval: " ;
+      m_time.Print(os);
+  os << endl;
   return os;
 }
 
@@ -291,6 +312,11 @@ FLOB* MGPSecUnit::GetFLOB(const int i)
   return 0;
 }
 
+void* MGPSecUnit::Cast(void* addr)
+{
+  return new (addr) MGPSecUnit;
+}
+
 /*
 3 Type Constructor for ~mgpsecunit~
 
@@ -302,6 +328,7 @@ struct mgpsecFunctions:ConstructorFunctions<MGPSecUnit>
   in = MGPSecUnit::In;
   out = MGPSecUnit::Out;
   kindCheck = MGPSecUnit::CheckKind;
+  cast = MGPSecUnit::Cast;
   }
 };
 
@@ -344,7 +371,7 @@ ListExpr OpMgp2mgpsecunitsTypeMap(ListExpr in_xArgs)
     NList net = type.third();
     NList length = type.fourth();
     if (net.isEqual("network") && length.isEqual("real")
-        && (!nl->IsAtom(attr) && nl->AtomType(attr) != SymbolType)
+        && (!(nl->IsAtom(attr) && nl->AtomType(attr) != SymbolType))
         && IsRelDescription(rel))
     {
       string attrname = nl->SymbolValue(attr);
@@ -374,83 +401,21 @@ struct OpMgp2mgpsecLocalInfo
   {
     OpMgp2mgpsecLocalInfo()
     {
-      m = 0;
+      vmgpsecunit.clear();
+      pos = 0;
       pNetwork = 0;
-      rel = 0;
       iterRel = 0;
       attrIndex = 0;
-      unitIndex = 0;
-      maxSectLength = 0.0;
-      curSecId = -1;
-      curPart = 0;
-      curDir = None;
-      curLength = 0.0;
-      curTimeSeconds = 0.0;
-      curStartTime = Instant(instanttype);
-      curEndTime = curStartTime;
-      curSecTid = -1;
-      lastUnitParted = false;
-      curSectStartPos = 0.0;
-      curSectLength = 0.0;
-      passedSections.clear();
-      curPassedSectionsPointer = 0;
-      lastUnitDifferentSections = false;
+      maxSectLength = numeric_limits<double>::max();
     }
 
-    MGPoint *m; //current mgpoint
+    vector<MGPSecUnit> vmgpsecunit; // vector mit mgpsecunits
+    size_t pos; //position im Vector
     Network *pNetwork; //networkobject
-    Relation *rel; //input relation
     GenericRelationIterator *iterRel; //pointer to actual tuple of rel
     int attrIndex; //attribute index of mgpoint attribut in rel
-    int unitIndex; //current unit of current mgpoint
     double maxSectLength; //maximum section part length
-    int curSecId; //current section id
-    int curPart; //identifier number of current section part (starting with 1)
-    Side curDir; //moving direction of mgpoint respectively side of section
-    double curLength; //distance on the section passed by the current mgpsecunit
-                      // in meter
-    double curTimeSeconds;//time in seconds used by mgpoint to passe ~curLength~
-    Instant curStartTime;//starttime of current mgpsecunit
-    Instant curEndTime;//endtime of current mgpsecunit
-    TupleId curSecTid;//tupleId of current mgpsecunit
-    bool lastUnitParted;//flag for units parted by parted sections
-    double curSectStartPos;//reminder of section start value
-    double curSectLength; //length of current section
-    vector<TupleId> passedSections;//Contains the tuple identifiers of the
-                                   //sections passed within a single ugpoint
-    size_t curPassedSectionsPointer;//Pointer to current activ element of passed
-                                    //sections
-    bool lastUnitDifferentSections;//flag for units parted by different sections
   };
-
-void ResetLiNewMGP (OpMgp2mgpsecLocalInfo* li)
-{
-  li->unitIndex = 0;
-  li->curSecId = -1;
-  li->curPart = -1;
-  li->curDir = None;
-  li->curLength = 0.0;
-  li->curTimeSeconds = 0.0;
-  li->curStartTime = Instant(instanttype);
-  li->curEndTime = li->curStartTime;
-  li->lastUnitParted = false;
-  li->curSectStartPos = 0.0;
-  li->curSectLength = 0.0;
-  li->passedSections.clear();
-  li->curPassedSectionsPointer = 0;
-  li->lastUnitDifferentSections = false;
-}
-
-bool GetNextMGPoint(OpMgp2mgpsecLocalInfo* li)
-{
-  Tuple *tup = li->iterRel->GetNextTuple();
-  if (!tup) return false;
-  delete li->m;
-  li->m = (MGPoint*) tup->GetAttribute(li->attrIndex);
-  tup->DeleteIfAllowed();
-  ResetLiNewMGP(li);
-  return true;
-}
 
 /*
 Value Mapping
@@ -466,494 +431,48 @@ int OpMgp2mgpsecunitsValueMap(Word* args, Word& result, int message,
     case OPEN:
     {
       li = new OpMgp2mgpsecLocalInfo();
-      li->rel = (Relation*) args[0].addr;
+      GenericRelation *rel = (GenericRelation*) args[0].addr;
       li->pNetwork = (Network*) args[2].addr;
       li->maxSectLength = ((CcReal*) args[3].addr)->GetRealval();
       li->attrIndex = ((CcInt*)args[4].addr)->GetIntval()-1;
-      li->iterRel = li->rel->MakeScan();
+      li->iterRel = rel->MakeScan();
       local.addr = li;
       return 0;
     }
 
     case REQUEST:
     {
-      MGPSecUnit* res = (MGPSecUnit*) ((qp->ResultStorage(s)).addr);
-      result = SetWord(res);
+      result = qp->ResultStorage(s);
       if (local.addr)
         li = (OpMgp2mgpsecLocalInfo*) local.addr;
       else return CANCEL;
-      const UGPoint *unit;
-      //Check first if we have a rest unit from the last unit.
-      if (li->lastUnitParted)
+      if (!li->vmgpsecunit.empty() && li->pos < li->vmgpsecunit.size())
       {
-        //if this is the case it must have been a moving unit
-        li->m->Get(li->unitIndex, unit);
-        if(li->curDir == Up)
-        {
-          //moving up
-          //look if the end point is in the actual part or not
-          if (unit->p1.GetPosition() <=
-              li->curSectStartPos + li->curPart * li->maxSectLength)
-          {
-            //unit endpoint on actual section part
-            //conclude working of this unit. And continue with next unit
-            li->curLength = unit->p1.GetPosition() - li->curSectStartPos
-                           + (li->curPart-1) * li->maxSectLength;
-            li->unitIndex++;
-            li->lastUnitParted = false;
-            if (li->unitIndex >= li->m->GetNoComponents())
-            {
-              //end of mgpoint reached write last mgpsecunit delete mgpoint
-              //and reset values
-              *res = MGPSecUnit(li->curSecId, li->curPart, li->curDir,
-                                li->curLength / li->curTimeSeconds,
-                                Interval<Instant> (li->curStartTime,
-                                                   li->curEndTime,
-                                                   true,false));
-              delete li->m;
-              ResetLiNewMGP(li);
-              return YIELD;
-            } //else continue with next unit
-          }
-          else
-          {
-            //unit endpoint not on actual section part
-            //part the rest of the unit in the part on this section part and
-            //the part not on this section part and write the actual mgpsecunit
-            //to the result.
-            li->curLength = li->maxSectLength;
-            li->curEndTime = unit->TimeAtPos(li->curSectStartPos
-                                              + li->curPart *li->maxSectLength);
-            li->curTimeSeconds = (li->curEndTime - li->curStartTime).ToDouble()
-                                  / 0.00001157;
-            *res = MGPSecUnit(li->curSecId, li->curPart, li->curDir,
-                              li->curLength / li->curTimeSeconds,
-                              Interval<Instant> (li->curStartTime,
-                                                 li->curEndTime,
-                                                 true,false));
-            //save intermediate results and continue working on this unit at
-            //the next system call.
-            li->curStartTime = li->curEndTime;
-            li->curEndTime = unit->timeInterval.end;
-            li->curPart++;
-            li->curLength = 0.0;
-            li->curTimeSeconds =
-                (li->curEndTime - li->curStartTime).ToDouble() /
-                0.00001157;
-            return YIELD;
-          }
-        }
-        else
-        {
-          //moving down
-          //almost equal to moving up but with looking for the parts downwards
-          //instead of upwards.
-          if (unit->p1.GetPosition() >= li->curSectStartPos +
-                                        (li->curPart - 1) * li->maxSectLength)
-          {
-            //unit endpoint on actual section part
-            li->curLength = li->curSectStartPos +
-                      li->curPart * li->maxSectLength - unit->p1.GetPosition();
-            li->unitIndex++;
-            li->lastUnitParted = false;
-            if (li->unitIndex >= li->m->GetNoComponents())
-            {
-              //end of mgpoint reached write last mgpsecunit delete mgpoint
-              //and reset values
-              *res = MGPSecUnit(li->curSecId, li->curPart, li->curDir,
-                                li->curLength / li->curTimeSeconds,
-                                Interval<Instant> (li->curStartTime,
-                                                   li->curEndTime,
-                                                   true,false));
-              delete li->m;
-              ResetLiNewMGP(li);
-              return YIELD;
-            } //else continue with next unit
-          }
-          else
-          {
-            //unit endpoint not on actual section part
-            li->curLength = li->maxSectLength;
-            li->curEndTime = unit->TimeAtPos(li->curSectStartPos +
-                                          (li->curPart-1) * li->maxSectLength);
-            li->curTimeSeconds = (li->curEndTime - li->curStartTime).ToDouble()
-                                  / 0.00001157;
-            *res = MGPSecUnit(li->curSecId, li->curPart, li->curDir,
-                              li->curLength / li->curTimeSeconds,
-                              Interval<Instant> (li->curStartTime,
-                                                 li->curEndTime,
-                                                 true,false));
-            li->curStartTime = li->curEndTime;
-            li->curEndTime = unit->timeInterval.end;
-            li->curPart--;
-            li->curLength = 0.0;
-            li->curTimeSeconds =
-                (li->curEndTime - li->curStartTime).ToDouble() /
-                0.00001157;
-            return YIELD;
-          }
-        }
+        result = SetWord(new MGPSecUnit(li->vmgpsecunit[li->pos++]));
+        return YIELD;
       }
-      //Check if the actual mgpoint is well defined and not transformed
-      //completely. If this is not the case get the next well defined mgpoint
-      //if possible.
-      while (!li->m || !li->m->IsDefined()
-              || li->unitIndex >= li->m->GetNoComponents())
-        if (!GetNextMGPoint(li)) return CANCEL;
-      while (li->unitIndex < li->m->GetNoComponents())
-      {
-        //get next unit of actual mgpoint if defined and compute the passed
-        //sections within this unit.
-        li->m->Get(li->unitIndex, unit);
-        li->passedSections.clear();
-        unit->GetPassedSections(li->pNetwork, li->passedSections);
-        if (li->passedSections.size() > 1)
-        {
-          // unit must be parted to the passed sections.
-          li->lastUnitDifferentSections = true;
-          li->curPassedSectionsPointer = 0;
-          TupleId unitSecTid = li->passedSections[li->curPassedSectionsPointer];
-//to be continued
-
-
-
-        }
-        else
-        {
-          // whole movement in one section
-          TupleId unitSecTid = li->passedSections[0];
-          li->passedSections.clear();
-          if (li->curSecTid == unitSecTid )
-          {
-            //mgpoint stays the on same section it has been before
-            if (li->curSectLength <= li->maxSectLength)
-            {
-              //section is not parted
-              if (li->curDir == unit->MovingDirection() ||
-                  unit->MovingDirection() == None ||
-                  li->curDir == None)
-              {
-                //MovingDirection moves in the same direction than before
-                //or stops respectively comes from a stop. We can expand the
-                //actual mgpsecunit with the values of this unit and get the
-                //next unit to continue computing the current mgpsecunit
-                if (li->curDir == None) li->curDir = unit->MovingDirection();
-                li->curLength += unit->Length();
-                li->curTimeSeconds += unit->DurationSeconds();
-                li->curEndTime = unit->GetUnitEndTime();
-                li->unitIndex++;
-              }
-              else
-              {
-                //change of moving direction
-                //write the current mgpsecunit
-                //and initialize a new mgpsecunit with values of the actual
-                //ugpoint
-                //Return mgpsecunit
-                *res = MGPSecUnit(li->curSecId, li->curPart, li->curDir,
-                                  li->curLength / li->curTimeSeconds,
-                                  Interval<Instant> (li->curStartTime,
-                                      li->curEndTime,
-                                      true,false));
-                li->curDir = unit->MovingDirection();
-                li->curLength = unit->Length();
-                li->curTimeSeconds = unit->DurationSeconds();
-                li->curStartTime = unit->timeInterval.start;
-                li->curEndTime = unit->timeInterval.end;
-                return YIELD;
-              }
-            }
-            else
-            {
-              //section is parted
-              //check actual part for unit start
-              if(!(li->curPart-1)*li->maxSectLength <= unit->p0.GetPosition()
-                && unit->p0.GetPosition() <= li->curPart * li->maxSectLength)
-              {
-                //unit start is not in actual part.
-                //write old mgpsecunit and initalize vakues for new one.
-                *res = MGPSecUnit(li->curSecId, li->curPart, li->curDir,
-                                  li->curLength / li->curTimeSeconds,
-                                  Interval<Instant> (li->curStartTime,
-                                      li->curEndTime,
-                                      true,false));
-                //find section part where the unit starts.
-                int i = 0;
-                while (unit->p0.GetPosition() > li->curSectStartPos +
-                        i * li->maxSectLength)
-                  i++;
-                li->curPart = i;
-                li->curDir = unit->MovingDirection();
-                li->curLength = unit->Length();
-                li->curTimeSeconds = unit->DurationSeconds();
-                li->curStartTime = unit->timeInterval.start;
-                li->curEndTime = unit->timeInterval.end;
-                li->lastUnitParted = true;
-                return YIELD;
-              }
-              else
-              {
-                //unit starts in actual section part.
-                //check end of unit to be in the same section part
-                if (li->curSectStartPos +
-                     (li->curPart - 1) * li->maxSectLength
-                    <= unit->p1.GetPosition() &&
-                    unit->p1.GetPosition() <= li->curSectStartPos +
-                    li->curPart * li->maxSectLength)
-                {
-                  //unit end in same section part
-                  if (li->curDir == unit->MovingDirection() ||
-                      unit->MovingDirection() == None ||
-                      li->curDir == None)
-                  {
-                    //MovingDirection moves in the same direction than before
-                    //or stops respectively comes from a stop. We can expand the
-                    //actual mgpsecunit with the values of this unit and get the
-                    //next unit to continue computing the current mgpsecunit
-                    if (li->curDir == None) li->curDir =unit->MovingDirection();
-                    li->curLength += unit->Length();
-                    li->curTimeSeconds += unit->DurationSeconds();
-                    li->curEndTime = unit->GetUnitEndTime();
-                    li->unitIndex++;
-                  }
-                  else
-                  {
-                    //change of moving direction
-                    //write the current mgpsecunit
-                    //and initialize a new mgpsecunit with values of the actual
-                    //ugpoint
-                    //Return mgpsecunit
-                    *res = MGPSecUnit(li->curSecId, li->curPart, li->curDir,
-                                      li->curLength / li->curTimeSeconds,
-                                      Interval<Instant> (li->curStartTime,
-                                          li->curEndTime,
-                                          true,false));
-                    li->curDir = unit->MovingDirection();
-                    li->curLength = unit->Length();
-                    li->curTimeSeconds = unit->DurationSeconds();
-                    li->curStartTime = unit->timeInterval.start;
-                    li->curEndTime = unit->timeInterval.end;
-                    return YIELD;
-                  }
-                }
-                else
-                {
-                  //unit end in other section part
-                  //split unit into more than one mgpsecunit.
-                  //first mgpsecunit must be returned
-                  //and the values for the next mgpsecunit must be initialized
-                  li->lastUnitParted = true;
-                  if (li->curDir == unit->MovingDirection() ||
-                      unit->MovingDirection() == None ||
-                      li->curDir == None)
-                  {
-                    //moving direction stays same
-                    if (li->curDir == None) li->curDir =unit->MovingDirection();
-                    if(li->curDir == Up)
-                    {
-
-                    }
-                    else
-                    {
-
-                    }
-                  }
-                  else
-                  {
-                    //moving direction changes
-                  }
-
-                  return YIELD;
-                }
-              }
-            }
-          }
-          else
-          {
-            //mgpoint changed section or first unit of mgpoint
-            if (li->curSecTid == -1)
-            {
-              //first unit of mgpoint
-              //set initial mgpsectunit values
-              li->curTimeSeconds = unit->DurationSeconds();
-              li->curStartTime = unit->GetUnitStartTime();
-              li->curEndTime = unit->GetUnitEndTime();
-              li->curSecTid = unitSecTid;
-              li->curDir = unit->MovingDirection();
-              Tuple *pSect = li->pNetwork->GetSection(li->curSecTid);
-              double secMeas1 = ((CcReal*)
-                    pSect->GetAttribute(SECTION_MEAS1))->GetRealval();
-              double secMeas2 = ((CcReal*)
-                    pSect->GetAttribute(SECTION_MEAS2))->GetRealval();
-              li->curSectLength = fabs(secMeas2 -secMeas1);
-              li->curSectStartPos = secMeas1;
-              li->curSecId =
-                  ((CcInt*)pSect->GetAttribute(SECTION_SID))->GetIntval();
-              pSect->DeleteIfAllowed();
-              if (li->curSectLength > li->maxSectLength)
-              {
-                //section is parted
-                // find section part of start point
-                li->curSectStartPos = secMeas1;
-                int i = 1;
-                while (unit->p0.GetPosition() >
-                            (secMeas1 + i * li->maxSectLength))
-                  i++;
-                li->curPart = i;
-                if (li->curDir == None)
-                {
-                    //mgpoint not moving
-                  li->curLength = unit->Length();
-                  li->unitIndex++;
-                }
-                else
-                {
-                  if(li->curDir == Up)
-                  {
-                    //mgpoint moves upwards
-                    if (unit->p1.GetPosition() <=
-                          secMeas1 + i*li->maxSectLength)
-                    {
-                      //unit endpoint on same section part
-                      li->curLength = unit->Length();
-                      li->unitIndex++;
-                    }
-                    else
-                    {
-                      //unit endpoint not on same section part
-                      //unit must be parted into different mgpsecunits
-                      //first mgpsecunit must be returned
-                      //and the values for the next must be initialized
-                      li->lastUnitParted = true;
-                      li->curLength = secMeas1 + i*li->maxSectLength -
-                                          unit->p0.GetPosition();
-                      li->curEndTime =
-                          unit->TimeAtPos(secMeas1 + i * li->maxSectLength);
-                      li->curTimeSeconds =
-                          (li->curEndTime - li->curStartTime).ToDouble() /
-                              0.00001157;
-                      *res = MGPSecUnit(li->curSecId, li->curPart,li->curDir,
-                                        li->curLength / li->curTimeSeconds,
-                                        Interval<Instant> (li->curStartTime,
-                                            li->curEndTime,
-                                            true,false));
-                      li->curPart++;
-                      li->curStartTime = li->curEndTime;
-                      li->curEndTime = unit->timeInterval.end;
-                      li->curLength = 0.0;
-                      li->curTimeSeconds =
-                          (li->curEndTime - li->curStartTime).ToDouble() /
-                              0.00001157;
-                      return YIELD;
-                    }
-                  }
-                  else
-                  {
-                    //mgpoint moves downwards
-                    if (unit->p1.GetPosition() >=
-                        secMeas1 + (i-1)*li->maxSectLength)
-                    {
-                      //unit endpoint on same section part
-                      li->curLength = unit->Length();
-                      li->unitIndex++;
-                    }
-                    else
-                    {
-                      //unit endpoint not on same section part
-                      //unit must be parted into different mgpsecunits
-                      //first mgpsecunit is to be returned and the values must
-                      //be saved for further computation.
-                      li->lastUnitParted = true;
-                      li->curLength = unit->p0.GetPosition() -
-                                            secMeas1 + (i-1)*li->maxSectLength;
-                      li->curEndTime =
-                          unit->TimeAtPos(secMeas1 + (i-1) * li->maxSectLength);
-                      li->curTimeSeconds =
-                          (li->curEndTime - li->curStartTime).ToDouble() /
-                          0.00001157;
-                      *res = MGPSecUnit(li->curSecId, li->curPart,li->curDir,
-                                        li->curLength / li->curTimeSeconds,
-                                        Interval<Instant> (li->curStartTime,
-                                            li->curEndTime,
-                                            true,false));
-                      li->curPart--;
-                      li->curStartTime = li->curEndTime;
-                      li->curEndTime = unit->timeInterval.end;
-                      li->curLength = 0.0;
-                      li->curTimeSeconds =
-                          (li->curEndTime - li->curStartTime).ToDouble() /
-                          0.00001157;
-                      return YIELD;
-                    }
-                  }
-                }
-              }
-              else
-              {
-                //section not parted
-                li->curPart = 1;
-                li->curLength = unit->Length();
-                li->unitIndex++;
-              }
-            }
-            else
-            {
-              //mgpoint changed section
-              //write actual mgpsecunit and initialize new one with the unit
-              //values
-              *res = MGPSecUnit(li->curSecId, li->curPart,li->curDir,
-                                li->curLength / li->curTimeSeconds,
-                                Interval<Instant> (li->curStartTime,
-                                    li->curEndTime,
-                                    true,false));
-              li->curTimeSeconds = unit->DurationSeconds();
-              li->curStartTime = unit->GetUnitStartTime();
-              li->curEndTime = unit->GetUnitEndTime();
-              li->curSecTid = unitSecTid;
-              li->curDir = unit->MovingDirection();
-              Tuple *pSect = li->pNetwork->GetSection(li->curSecTid);
-              double secMeas1 = ((CcReal*)
-                    pSect->GetAttribute(SECTION_MEAS1))->GetRealval();
-              double secMeas2 = ((CcReal*)
-                    pSect->GetAttribute(SECTION_MEAS2))->GetRealval();
-              li->curSectLength = fabs(secMeas2 -secMeas1);
-              li->curSecId =
-                  ((CcInt*)pSect->GetAttribute(SECTION_SID))->GetIntval();
-              pSect->DeleteIfAllowed();
-              if (li->curSectLength > li->maxSectLength)
-              {
-                //section is parted
-                // find section part of start point
-                li->curSectStartPos = secMeas1;
-                int i = 1;
-                while (unit->p0.GetPosition() >
-                       (secMeas1 + i * li->maxSectLength))
-                  i++;
-                li->curPart = i;
-              }
-              else
-                li->curPart = 1;
-              return YIELD;
-            }
-          }
-        }
-      }
-      //end of mgpoint write last ~mgpsecunit~ and get new ~mgpoint~
-      if (li->curStartTime != li->curEndTime)
-        *res = MGPSecUnit(li->curSecId, li->curPart,li->curDir,
-                        li->curLength / li->curTimeSeconds,
-                        Interval<Instant> (li->curStartTime,
-                                            li->curEndTime,
-                                            true,false));
       else
-        *res = MGPSecUnit(li->curSecId, li->curPart, li->curDir,
-                        li->curLength / li->curTimeSeconds,
-                        Interval<Instant> (li->curStartTime,
-                                            li->curEndTime,
-                                            true,true));
-      delete li->m;
-      ResetLiNewMGP(li);
-      return YIELD;
+      {
+        li->vmgpsecunit.clear();
+        Tuple *actTuple = li->iterRel->GetNextTuple() ;
+        if (actTuple != 0)
+        {
+          MGPoint *m = (MGPoint*) actTuple->GetAttribute(li->attrIndex);
+          if (m != 0)
+          {
+            m->GetMGPSecUnits(li->vmgpsecunit, li->maxSectLength, li->pNetwork);
+            if (li->vmgpsecunit.size() > 0)
+            {
+              li->pos = 0;
+              result = SetWord(new MGPSecUnit(li->vmgpsecunit[li->pos++]));
+              actTuple->DeleteIfAllowed();
+              return YIELD;
+            }
+          }
+          actTuple->DeleteIfAllowed();
+        }
+      }
+      return CANCEL;
     }
 
     case CLOSE:
@@ -961,12 +480,13 @@ int OpMgp2mgpsecunitsValueMap(Word* args, Word& result, int message,
       if (local.addr)
       {
         li = (OpMgp2mgpsecLocalInfo*) local.addr;
-        if (li->m) delete li->m;
-        li->m = 0;
-        li->pNetwork = 0; //network
-        li->rel = 0; //relation
+        li->pNetwork = 0;
+        if (li->iterRel)
+          delete li->iterRel;
         li->iterRel = 0;
+        li->vmgpsecunit.clear();
         delete li;
+        li = 0;
         local.addr = 0;
       }
       return 0;

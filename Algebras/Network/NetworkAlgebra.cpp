@@ -3112,10 +3112,21 @@ void Network::GetSectionsOfRoutInterval(const RouteInterval *ri,
           ((CcReal*) actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
     double end =
           ((CcReal*) actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
-    if ((ristart <= start && riend >= end) ||
-         (start <= ristart && end >= ristart) ||
-         (start <= riend && end >= riend))
+    if (fabs(ristart - riend) <= 0.01 &&
+        (fabs(ristart - start) <= 0.01 || fabs(ristart - end) <= 0.01 ))
+    {
       res.push_back(actSectTID);
+      actSect->DeleteIfAllowed();
+      break;
+    }
+    else
+    {
+      if (((ristart <= start && end <= riend) ||
+           (start <= ristart && end > ristart) ||
+           (start < riend && riend <= end)) &&
+          (!(fabs(ristart - end) <= 0.01 || fabs(start - riend) <= 0.01 )))
+        res.push_back(actSectTID);
+    }
     actSect->DeleteIfAllowed();
   }
   delete pSectionIter;

@@ -44,6 +44,7 @@ Defines, includes, and constants
 #include "TemporalAlgebra.h"
 #include "TemporalNetAlgebra.h"
 #include "NetworkManager.h"
+#include "TrafficAlgebra.h"
 
 #include <iostream>
 #include <sstream>
@@ -4579,6 +4580,71 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
   }
 }
 
+void MGPoint::GetMGPSecUnits(vector<MGPSecUnit> &res,
+                             double maxSectLength,
+                            Network *pNet) const
+{
+  res.clear();
+  if (IsDefined() && 0 < GetNoComponents())
+  {
+    const UGPoint *unit;
+    MGPSecUnit actUnit, nextUnit;
+    vector<MGPSecUnit> intermediate;
+    intermediate.clear();
+    Get(0,unit);
+    unit->GetMGPSecUnits(intermediate, maxSectLength, pNet);
+    actUnit = intermediate[0];
+    if (intermediate.size()>1)
+    {
+      for (size_t j = 1; j < intermediate.size() ; j++)
+      {
+        res.push_back(actUnit);
+        actUnit = intermediate[j];
+      }
+    }
+    for (int i = 1; i < GetNoComponents(); i++)
+    {
+      Get(i,unit);
+      intermediate.clear();
+      unit->GetMGPSecUnits(intermediate, maxSectLength, pNet);
+      nextUnit = intermediate[0];
+      if (actUnit.GetSecId() == nextUnit.GetSecId() &&
+          actUnit.GetPart() == nextUnit.GetPart() &&
+          (actUnit.GetDirect() == nextUnit.GetDirect() ||
+           actUnit.GetDirect() == None || nextUnit.GetDirect() == None)&&
+         actUnit.GetTimeInterval().end == nextUnit.GetTimeInterval().start)
+      {
+        if(actUnit.GetDirect() == None) actUnit.SetDirect(nextUnit.GetDirect());
+        double speed = (actUnit.GetDurationInSeconds() * actUnit.GetSpeed() +
+              nextUnit.GetDurationInSeconds() * nextUnit.GetSpeed()) /
+              (actUnit.GetDurationInSeconds() +
+              nextUnit.GetDurationInSeconds());
+        actUnit.SetSpeed(speed);
+        actUnit.SetTimeInterval(Interval<Instant> (
+                                actUnit.GetTimeInterval().start,
+                                nextUnit.GetTimeInterval().end,
+                                actUnit.GetTimeInterval().lc,
+                                nextUnit.GetTimeInterval().rc));
+      }
+      else
+      {
+        res.push_back(actUnit);
+        actUnit = nextUnit;
+      }
+      if (intermediate.size() > 1)
+      {
+        for (size_t j = 1; j < intermediate.size() ; j++)
+        {
+          res.push_back(actUnit);
+          actUnit = intermediate[j];
+        }
+      }
+    }
+    res.push_back(actUnit);
+    intermediate.clear();
+  }
+}
+
  ostream& MGPoint::Print( ostream &os ) const
 {
   if( !IsDefined() )
@@ -5398,7 +5464,253 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
    const RouteInterval *ri = new RouteInterval(p0.GetRouteId(),p0.GetPosition(),
                                                p1.GetPosition());
    pNet->GetSectionsOfRoutInterval(ri,pS);
+   delete ri;
+   if (pS.size() > 1 && MovingDirection() == Down)
+   {
+     vector<TupleId> help;
+     help.clear();
+     for (size_t a = 0; a < pS.size() ; a++)
+     {
+       help.push_back(pS[a]);
+     }
+     pS.clear();
+     size_t b = help.size()-1;
+     while (b > 0)
+     {
+       pS.push_back(help[b]);
+       b--;
+     }
+     pS.push_back(help[b]);
+     help.clear();
+   }
  }
+
+
+ void PartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
+                    double &startPos, int &partNo, double maxSectLength,
+                    int secId, Instant &tStart, Instant &tEnd,
+                    vector<MGPSecUnit> &res)
+{
+  if (unit.MovingDirection() == Up)
+  {
+    double actEndPos = sectMeas1 + partNo * maxSectLength;
+    while (unit.p1.GetPosition() > actEndPos && !(actEndPos > sectMeas2))
+    {
+      tEnd = unit.TimeAtPos(actEndPos);
+      double speed = (actEndPos - startPos)/
+            ((tEnd - tStart).ToDouble()/0.00001157);
+      res.push_back(MGPSecUnit(secId, partNo, Up, speed,
+                    Interval<Instant> (tStart, tEnd, true, false)));
+      tStart = tEnd;
+      startPos = actEndPos;
+      partNo++;
+      actEndPos = sectMeas1 + partNo * maxSectLength;
+    }
+    if (unit.p1.GetPosition() > sectMeas2)
+    {
+      tEnd = unit.TimeAtPos(sectMeas2);
+      double speed = (sectMeas2 - startPos)/
+          ((tEnd-tStart).ToDouble()/0.00001157);
+      res.push_back(MGPSecUnit(secId, partNo, Up, speed,
+                    Interval<Instant> (tStart, tEnd, true, false)));
+      tStart = tEnd;
+      startPos = sectMeas2;
+    }
+    else
+    {
+      double speed = (unit.p1.GetPosition()-startPos)/
+             ((unit.timeInterval.end - tStart).ToDouble()/0.00001157);
+      res.push_back(MGPSecUnit(secId, partNo, Up, speed,
+                    Interval<Instant> (tStart,
+                                       unit.timeInterval.end,
+                                       true, false)));
+      startPos = unit.p1.GetPosition();
+      tStart = unit.timeInterval.end;
+    }
+  }
+  else //MovingDirection == Down
+  {
+    double actEndPos = sectMeas1 + (partNo-1) * maxSectLength;
+    while (unit.p1.GetPosition() < actEndPos && !(actEndPos < sectMeas1) &&
+          partNo > 0)
+    {
+      tEnd = unit.TimeAtPos(actEndPos);
+      double speed = (startPos-actEndPos)/
+            ((tEnd - tStart).ToDouble()/0.00001157);
+      res.push_back(MGPSecUnit(secId, partNo, Down, speed,
+                    Interval<Instant> (tStart, tEnd, true, false)));
+      tStart = tEnd;
+      startPos = actEndPos;
+      partNo--;
+      actEndPos = sectMeas1 + (partNo-1) * maxSectLength;
+    }
+    if (partNo <= 0) partNo = 1;
+    if (unit.p1.GetPosition() < sectMeas1)
+    {
+      tEnd = unit.TimeAtPos(sectMeas1);
+      if (!(tStart == tEnd))
+      {
+        double speed = (startPos - sectMeas1)/
+            ((tEnd-tStart).ToDouble()/0.00001157);
+        res.push_back(MGPSecUnit(secId, partNo, Down, speed,
+                      Interval<Instant> (tStart, tEnd, true, false)));
+      }
+      tStart = tEnd;
+      startPos = sectMeas1;
+    }
+    else
+    {
+      double speed = (startPos - unit.p1.GetPosition())/
+            ((unit.timeInterval.end - tStart).ToDouble()/0.00001157);
+      res.push_back(MGPSecUnit(secId, partNo, Down, speed,
+                      Interval<Instant> (tStart,
+                                        unit.timeInterval.end,
+                                        true, false)));
+      startPos = unit.p1.GetPosition();
+      tStart = unit.timeInterval.end;
+    }
+  }
+}
+
+void NotPartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
+                   double &startPos, int &partNo, double maxSectLength,
+                   int secId, Instant &tStart, Instant &tEnd,
+                   vector<MGPSecUnit> &res)
+{
+  if(unit.MovingDirection() == Up)
+  {
+    if (unit.p1.GetPosition() > sectMeas2)
+    {
+      tEnd = unit.TimeAtPos(sectMeas2);
+      double speed = (sectMeas2 - startPos)/
+            ((tEnd - tStart).ToDouble()/0.00001157);
+      res.push_back(MGPSecUnit(secId, partNo, Up, speed,
+                    Interval<Instant> (tStart, tEnd, true, false)));
+      tStart = tEnd;
+      startPos = sectMeas2;
+    }
+    else
+    {
+      double speed = (unit.p1.GetPosition()-startPos)/
+                      ((unit.timeInterval.end - tStart).ToDouble()/0.00001157);
+      res.push_back(MGPSecUnit(secId, partNo, Up, speed,
+                              Interval<Instant> (tStart,
+                                                unit.timeInterval.end,
+                                                true, false)));
+      tStart = unit.timeInterval.end;
+      startPos = unit.p1.GetPosition();
+    }
+  }
+  else //Moving Down
+  {
+    if(unit.p1.GetPosition() < sectMeas1)
+    {
+      tEnd = unit.TimeAtPos(sectMeas1);
+      double speed = (startPos - sectMeas1)/
+            ((tEnd - tStart).ToDouble()/0.00001157);
+      res.push_back(MGPSecUnit(secId, partNo, Down, speed,
+                  Interval<Instant> (tStart, tEnd, true, false)));
+      tStart = tEnd;
+      startPos = sectMeas1;
+    }
+    else
+    {
+      double speed = (startPos - unit.p1.GetPosition())/
+            ((unit.timeInterval.end - tStart).ToDouble()/0.00001157);
+      res.push_back(MGPSecUnit(secId, partNo, Down, speed,
+                    Interval<Instant> (tStart,
+                                       unit.timeInterval.end,
+                                       true, false)));
+      tStart = unit.timeInterval.end;
+      startPos = unit.p1.GetPosition();
+    }
+  }
+}
+
+ void UGPoint::GetMGPSecUnits(vector<MGPSecUnit>& res,
+                              double maxSectLength,
+                             Network *pNet) const
+ {
+   res.clear();
+   vector<TupleId> passedSections;
+   passedSections.clear();
+   GetPassedSections(pNet, passedSections);
+   bool moreThanOneSection = false;
+   size_t j = 0;
+   if (passedSections.size() > 1) moreThanOneSection = true;
+   TupleId actSectTid = passedSections[j++];
+   Tuple *pActSect = pNet->GetSection(actSectTid);
+   int actSectId = ((CcInt*) pActSect->GetAttribute(SECTION_SID))->GetIntval();
+   double sectMeas1 =
+         ((CcReal*)pActSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+   double sectMeas2 =
+         ((CcReal*)pActSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+   double sectLength = sectMeas2 - sectMeas1;
+   bool sectionParted = false;
+   pActSect->DeleteIfAllowed();
+   if (sectLength > maxSectLength) sectionParted = true;
+   int partNo = 1;
+   if (sectionParted) //find section partition of start gpoint
+   {
+     while (p0.GetPosition() > sectMeas1 + partNo * maxSectLength )
+     {
+       partNo++;
+     }
+   }
+   if ((!sectionParted && !moreThanOneSection) ||
+       (sectionParted && !moreThanOneSection &&
+         (p1.GetPosition() >= sectMeas1 + (partNo-1) * maxSectLength &&
+          p1.GetPosition() <= sectMeas1 + partNo * maxSectLength)))
+   { //whole unit one mgpsecunit
+     res.push_back(MGPSecUnit(actSectId, partNo, MovingDirection(), Speed(),
+                             GetUnitTimeInterval()));
+   }
+   else
+   {
+     Instant tStart = timeInterval.start;
+     Instant tEnd = tStart;
+     double startPos = p0.GetPosition();
+     if (!sectionParted) NotPartedSection(*this, sectMeas1, sectMeas2, startPos,
+                                         partNo, maxSectLength, actSectId,
+                                         tStart, tEnd, res);
+     else PartedSection(*this, sectMeas1, sectMeas2, startPos,
+                        partNo, maxSectLength, actSectId, tStart,
+                        tEnd, res);
+     while (moreThanOneSection && j < passedSections.size())
+     {
+       actSectTid = passedSections[j++];
+       pActSect = pNet->GetSection(actSectTid);
+       actSectId =
+           ((CcInt*) pActSect->GetAttribute(SECTION_SID))->GetIntval();
+       sectMeas1 =
+             ((CcReal*)pActSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+       sectMeas2 =
+             ((CcReal*)pActSect->GetAttribute(SECTION_MEAS2))->GetRealval();
+       sectLength = sectMeas2 - sectMeas1;
+       pActSect->DeleteIfAllowed();
+       sectionParted = false;
+       if (sectLength > maxSectLength) sectionParted = true;
+       partNo = 1;
+       if (sectionParted) //find section partition of start gpoint
+       {
+         while (startPos > sectMeas1 + partNo * maxSectLength )
+         {
+           partNo++;
+         }
+         PartedSection(*this, sectMeas1, sectMeas2, startPos, partNo,
+                        maxSectLength, actSectId, tStart, tEnd, res);
+       }
+       else
+       {
+         NotPartedSection(*this, sectMeas1, sectMeas2, startPos, partNo,
+                            maxSectLength, actSectId, tStart, tEnd, res);
+       }
+     }
+  }
+}
+
+
+
 
   Rectangle<3> UGPoint::BoundingBox(Network*& pNetwork)const{
     if(IsDefined()){

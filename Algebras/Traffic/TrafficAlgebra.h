@@ -76,6 +76,8 @@ Get and Set private attributes.
 
     Interval<Instant> GetTimeInterval() const;
 
+    double GetDurationInSeconds() const;
+
     void SetSecId(int secId);
 
     void SetPart(int p);
@@ -86,15 +88,18 @@ Get and Set private attributes.
 
     void SetTimeInterval(Interval<Instant> time);
 
+    MGPSecUnit& operator=( const MGPSecUnit& in_xOther);
+
+
 /*
 Functions for Secondo integration.
 
 */
 
     size_t Sizeof() const;
-    
+
     size_t HashValue() const;
-    
+
     void CopyFrom( const Attribute* right );
 
     int Compare( const Attribute* arg ) const;
@@ -113,8 +118,11 @@ Functions for Secondo integration.
     static bool CheckKind( ListExpr type, ListExpr& errorInfo );
 
     int NumOfFLOBs() const;
-    
+
     FLOB* GetFLOB(const int i);
+
+    static void* Cast(void* addr);
+
 
 /*
 Function for Operations.

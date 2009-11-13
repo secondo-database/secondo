@@ -40,6 +40,7 @@ February 2008 - June 2008 Simone Jandt
 #include <string>
 #include "NestedList.h"
 #include "QueryProcessor.h"
+#include "TrafficAlgebra.h"
 
 #ifndef __NETWORK_ALGEBRA_H__
 #error NetworkAlgebra.h is needed by TemporalNetAlgebra.h. \
@@ -248,9 +249,9 @@ Functions to be part of relations
 
 /*
 Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
-  
+
 */
-  
+
  virtual const Rectangle<3> BoundingBox() const;
 
  Rectangle<3> BoundingBox(Network* &pNetwork) const;
@@ -303,7 +304,7 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
 
   /*
   Returns true if the ~ugpoint~ passes a given ~gpoint~ false elsewhere.
-  
+
   */
   virtual bool Passes( const GPoint& val ) const;
 
@@ -321,7 +322,7 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
   {
     return fabs(p1.GetPosition() - p0.GetPosition());
   };
-        
+
   /*
   Get Methods of ~ugpoint~
 
@@ -352,7 +353,7 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
     return timeInterval;
   };
 
-  inline Instant GetUnitStartTime() const 
+  inline Instant GetUnitStartTime() const
   {
     return timeInterval.start;
   };
@@ -378,7 +379,7 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
   };
 
   inline double GetDoubleUnitEndTime() const
-  { 
+  {
     return timeInterval.end.ToDouble();
   };
 
@@ -406,7 +407,10 @@ Returns the 3 dimensional spatio-temporal BoundingBox of the ~ugpoint~.
   }
 
   void GetPassedSections(Network* pNet, vector<TupleId>& pS) const;
-  
+
+  void GetMGPSecUnits(vector<MGPSecUnit>& res, double maxSectLength,
+                     Network *pNet) const;
+
 /*
 SetMethoden f[ue]r ~ugpoint~
 
@@ -433,7 +437,7 @@ SetMethoden f[ue]r ~ugpoint~
     p0.SetSide(a);
     p1.SetSide(a);
   };
-  
+
   inline void SetUnitStartTime(Instant time)
   {
     timeInterval.start = time;
@@ -706,7 +710,7 @@ Returns true if the mgpoint passes at least once the gpoint resp. gline.
 Returns the spatiotemporal 3 dimensional bounding box of the ~mgpoint~.
 
 */
- 
+
   Rectangle<3> BoundingBox() const;
 
 /*
@@ -726,16 +730,19 @@ Restricts a ~mgpoint~ to the given unit intervals.
 
   */
   ostream& Print( ostream &os ) const;
-  
+
   bool operator==( const MGPoint& r ) const;
-  
+
   void SetBoundingBoxDefined(bool defined);
-  
+
   void SetBoundingBox(Rectangle<3> mbr);
 
   DBArray<RouteInterval> m_trajectory;
 
   int Position(const Instant &inst, bool atinst=true);
+
+  void GetMGPSecUnits(vector<MGPSecUnit> &res, double maxSectLength,
+                     Network *pNet) const;
 
   private:
 
