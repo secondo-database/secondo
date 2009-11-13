@@ -41,7 +41,7 @@ using std::pair;
 #include "StandardTypes.h"
 #include "ListStream.hpp"
 #include "Type.hpp"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "Position.hpp"
 #include "Piece.hpp"
 #include "Ply.hpp"
@@ -62,8 +62,8 @@ struct Game : public Attribute
     }
 
     typedef pair< CcString, CcString > tag_t;
-    typedef DBArray< tag_t > tags_t;
-    typedef DBArray< Ply > moves_t;
+    typedef DbArray< tag_t > tags_t;
+    typedef DbArray< Ply > moves_t;
 
     Game() {}
     Game( size_t tag_count, size_t move_count )
@@ -72,11 +72,11 @@ struct Game : public Attribute
         : tags(0), moves(0), defined_( def == DEFINED ) {}
 
     tags_t tags;
-    const tag_t& get_tag( int index ) const
+    const tag_t get_tag( int index ) const
     {
-        const tag_t* s;
+        tag_t s;
         tags.Get( index, s );
-        return *s;
+        return s;
     }
     void add_tag( const string& key, const string& value )
     {
@@ -84,18 +84,18 @@ struct Game : public Attribute
     }
 
     moves_t moves;
-    const Ply& get_move( int index ) const
+    const Ply get_move( int index ) const
     {
-        const Ply* s;
+        Ply s;
         moves.Get( index, s );
-        return *s;
+        return s;
     }
 
     // pure virtual functions of class Attribute
     virtual int NumOfFLOBs() const { return 2; }
-    virtual FLOB* GetFLOB( const int i )
+    virtual Flob* GetFLOB( const int i )
     {
-        return 0 == i ? static_cast<FLOB*>(&tags) : static_cast<FLOB*>(&moves);
+        return 0 == i ? static_cast<Flob*>(&tags) : static_cast<Flob*>(&moves);
     }
 
     virtual bool IsDefined() const { return defined_; }

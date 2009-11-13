@@ -54,7 +54,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-struct Field : Attribute
+struct Field : public Attribute
 {
     static const std::string& name()
     {
@@ -65,7 +65,7 @@ struct Field : Attribute
     int file, row;
 
     Field(){}
-    Field( int f, int r ) : file(f), row(r), defined_(true)
+    Field( int f, int r ) : file(f), row(r)
     {
         /*
         if ( file < 0 || file > 7 )
@@ -73,9 +73,17 @@ struct Field : Attribute
         if ( row < 0 || row > 7 )
             throw runtime_error( "Row must be in range '1'-'8'." );
         */
+       del.refs=1;
+       del.isDelete = true;
+       SetDefined(true);
     }
-    Field( undef_t undef ) : file(0), row(0), defined_(false) {}
-    Field( const string& s ) : defined_(true)
+    Field( undef_t undef ) : file(0), row(0)  {
+       del.refs=1;
+       del.isDelete = true;
+       SetDefined(false);
+        
+    }
+    Field( const string& s ) 
     {
         if ( s.length() != 2 )
             throw runtime_error( "Expecting string with length 2!" );
@@ -85,6 +93,10 @@ struct Field : Attribute
             throw runtime_error( "File must be in range 'a'-'h'." );
         if ( row < 0 || row > 7 )
             throw runtime_error( "Row must be in range '1'-'8'." );
+
+        del.refs=1;
+        del.isDelete=true;
+        SetDefined(true);
     }
 
     string to_string() const
@@ -124,8 +136,6 @@ struct Field : Attribute
     }
 
     virtual Attribute* Clone() const { return new Field( *this ); }
-    virtual bool IsDefined() const { return defined_; }
-    virtual void SetDefined( bool def ) { defined_ = def; }
     virtual size_t Sizeof() const { return sizeof( *this ); }
     virtual size_t HashValue() const { return index(); }
 
@@ -176,9 +186,6 @@ struct Field : Attribute
         field = Field( file - 'a', row - '1' );
         return is;
     }
-
-protected:
-    bool defined_;
 };
 
 #endif // SECONDO_ALGEBRAS_CHESS_FIELD_HPP
