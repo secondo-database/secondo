@@ -46,6 +46,7 @@ types and functions implemented by the Relation Algebra module.
 
 #include "NestedRelationAlgebra.h"
 #include "ListUtils.h"
+
 /*
 
 3 Implementation of class AttributeRelation
@@ -543,6 +544,7 @@ AttributeRelation::Save( SmiRecord& valueRecord,
   Attribute::Save( valueRecord, offset, typeInfo, arel );
   return true; 
 }
+
 /*
 3.4.8 Clone-function
 
@@ -2827,7 +2829,6 @@ ListExpr extractTypeMap( ListExpr args )
 
 
 /*
-
 5.8.2 Value mapping function of operator ~extract~
 
 The argument vector ~args~ contains in the first slot ~args[0]~ the tuple,
