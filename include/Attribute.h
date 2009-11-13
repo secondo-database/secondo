@@ -398,7 +398,7 @@ the default ~Serialize~ function. The size of the object is  ~sz~
       // above will be called.
       for (int i = 0; i < attr->NumOfFLOBs(); i++) {
         //SPM? attr->GetFLOB(i)->DeleteFD();
-      }	      
+      }
       attr->Rebuild(state, sz ,am->Cast(algId, typeId));
 
       // Remark: the returned pointer has been created using the new operator!
@@ -542,7 +542,7 @@ Print the delete reference info to a string (for debugging)
 
 
   inline virtual StorageType GetStorageType() const { return Default; }
-  
+
   virtual size_t HashValue() const = 0;
 /*
   The hash function.
@@ -557,7 +557,17 @@ in the algebras.
 The reference counter if this attribute should not be affected.
 
 */
- 
+
+  virtual void DestroyFlobs();
+/*
+Destroys all Flobs of the Attribute, regardless of the reference counter, and
+cleans them.
+
+Call this prior to deletion of an automatic attribute variable.
+Otherwise, the Flobs belonging to the Attribute are not destroyed and may
+persist without being referenced any more.
+
+*/
 
   protected:
 

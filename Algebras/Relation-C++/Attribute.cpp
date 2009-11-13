@@ -1,5 +1,5 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
 Copyright (C) 2004-2007, University in Hagen, Faculty of Mathematics and
@@ -26,8 +26,8 @@ May 1998 Stefan Dieker
 
 April 2002 Ulrich Telle Adjustments for the new Secondo version
 
-Oct 2004 M. Spiekermann. Adding some more detailed documentation and some 
-thoughts about redesign and performance. 
+Oct 2004 M. Spiekermann. Adding some more detailed documentation and some
+thoughts about redesign and performance.
 
 January 2006, M. Spiekermann. Some template functions which could be used as default
 for some type constructor functions were moved to ConstructorTemplates.h
@@ -64,7 +64,7 @@ derived attribute class must implement.
 const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
 
 
-    void Attribute::Save( SmiRecord& valueRecord, size_t& offset, 
+    void Attribute::Save( SmiRecord& valueRecord, size_t& offset,
                              const ListExpr typeInfo, Attribute *elem )
     {
       NestedList *nl = SecondoSystem::GetNestedList();
@@ -87,10 +87,10 @@ const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
       for( int i = 0; i < elem->NumOfFLOBs(); i++ )
       {
         Flob *tmpFlob = elem->GetFLOB(i);
-	SecondoCatalog* ctlg = SecondoSystem::GetCatalog(); 
+        SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
         SmiFileId fileId = ctlg->getFlobFileId();
-	//cerr << "FlobFileId = " << fileId << endl; 
-	tmpFlob->saveToFile(fileId, *tmpFlob);
+        //cerr << "FlobFileId = " << fileId << endl;
+        tmpFlob->saveToFile(fileId, *tmpFlob);
       }
 
       // Write the element
@@ -101,7 +101,7 @@ const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
 Default save function.
 
 */
-    Attribute *Attribute::Open( SmiRecord& valueRecord, 
+    Attribute *Attribute::Open( SmiRecord& valueRecord,
                                    SmiSize& offset, const ListExpr typeInfo )
     {
       NestedList *nl = SecondoSystem::GetNestedList();
@@ -124,11 +124,11 @@ Default save function.
           }
 
       Attribute*
-        elem = static_cast<Attribute*>( 
+        elem = static_cast<Attribute*>(
 	          (algMgr->CreateObj(algId, typeId))( typeInfo ).addr );
       // Read the element
       valueRecord.Read( elem, size, offset );
-      elem = static_cast<Attribute*>( 
+      elem = static_cast<Attribute*>(
 	       (algMgr->Cast(algId, typeId))( elem ) );
       elem->del.refs = 1;
       elem->del.isDelete = true;
@@ -152,10 +152,10 @@ Default open function.
           delete this;
         else {
           for( int i = 0; i < NumOfFLOBs(); i++) {
-            GetFLOB(i)->clean();                  
-          }               
+            GetFLOB(i)->clean();
+          }
           free( this );
-        }  
+        }
         return true;
       }
       return false;
@@ -164,6 +164,22 @@ Default open function.
 Deletes an attribute if allowed, i.e. if ~refs~ = 0.
 
 */
+
+    void Attribute::DestroyFlobs()
+    {
+      for( int i = 0; i < NumOfFLOBs(); i++) {
+        GetFLOB(i)->destroy();
+        GetFLOB(i)->clean();
+      }
+    }
+/*
+Destroys all Flobs of the Attribute, regardless of the reference counter.
+Call this prior to deletion of an automatic attribute variable.
+Otherwise, the Flobs belonging to the Attribute are not destroyed and may
+persist without being referenced any more.
+
+*/
+
     Attribute* Attribute::Copy()
     {
       if( del.refs == numeric_limits<uint16_t>::max() )
@@ -189,7 +205,7 @@ clones it.
       Result += ", del.IsDelete=";
       if (del.isDelete)
         Result += "true";
-      else 
+      else
         Result +="false";
       return Result;
     }
@@ -202,7 +218,7 @@ Print the delete reference info to a string (for debugging)
 ostream& operator<<(ostream& os, const Attribute& attr)
 {
   return attr.Print(os);
-}       
+}
 
 
 /*
