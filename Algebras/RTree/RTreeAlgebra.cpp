@@ -70,7 +70,6 @@ using namespace std;
 
 #include "SpatialAlgebra.h"
 #include "RelationAlgebra.h"
-#include "TemporalAlgebra.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"

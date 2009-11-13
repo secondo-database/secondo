@@ -132,6 +132,7 @@ After these preparations, a [secondo] type constructor is just created by:
 
 #include "Attribute.h"
 #include "NestedList.h"
+#include "../Tools/Flob/Flob.h"
 
 extern NestedList* nl;
 
@@ -191,7 +192,7 @@ void Delete(const ListExpr typeInfo,Word &w){
   T* B = static_cast<T*>(w.addr);
   int nof = B->NumOfFLOBs();
   for(int i=0;i< nof; i++){
-    (B->GetFLOB(i))->Destroy();
+    (B->GetFLOB(i))->destroy();
   }
   delete B;
   B = NULL;

@@ -120,7 +120,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "Attribute.h"
-#include "FLOB.h"
+#include "../../Tools/Flob/Flob.h"
 #include "Attribute.h"
 #include <jni.h>
 #include <JVMInit.h>
@@ -194,7 +194,7 @@ class JPoint: public Attribute{
       int Compare(const Attribute *arg) const;
       bool Adjacent(const Attribute *arg) const;
       int NumOfFLOBs() const;
-      FLOB *GetFLOB(const int i);
+      Flob *GetFLOB(const int i);
       size_t Sizeof() const;
       // will be invoked if the Java object must
       // be reconstructed from a FLOB
@@ -209,7 +209,7 @@ class JPoint: public Attribute{
       jclass cls; // pointer to the Java class Point
       jobject obj; // pointer to the managed instance
       // the byte representation of the Java object
-      FLOB objectData;
+      Flob objectData;
       bool canDelete;
       bool defined;
       // write the Java object in to a FLOB
@@ -237,7 +237,7 @@ class JBox: public Attribute{
       int Compare(const Attribute *arg) const;
       bool Adjacent(const Attribute *arg) const;
       int NumOfFLOBs() const;
-      FLOB *GetFLOB(const int i);
+      Flob *GetFLOB(const int i);
       size_t Sizeof() const;
       // will be invoked if the Java object must be
       // reconstructed from a FLOB
@@ -258,7 +258,7 @@ class JBox: public Attribute{
       jclass cls; // pointer to the Java class Point
       jobject obj; // pointer to the managed instance
       // the byte representation of the Java object
-      FLOB objectData;
+      Flob objectData;
       bool canDelete;
       bool defined;
       // write the Java object in to a FLOB
@@ -326,8 +326,8 @@ void JPoint::RestoreFLOBFromJavaObject(){
   // store the Java result (an array of bytes) in to the FLOB
   int size = env->GetArrayLength(jbytes);
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
-  objectData.Resize(size);
-  objectData.Put(0,size,bytes);
+  objectData.resize(size);
+  objectData.write(bytes, size,0);
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
 }
 
@@ -351,9 +351,9 @@ void JPoint::RestoreJavaObjectFromFLOB(){
       error(__LINE__);
    }
 
-   int size = objectData.Size();
-   const char *bytes;
-   objectData.Get(0,&bytes);
+   int size = objectData.getSize();
+   char bytes[size];
+   objectData.read(bytes, size, 0);
    // copy the data into a Java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -448,10 +448,7 @@ the FLOB is copied and the Javaobject is reconstructed from it.
 void JPoint::CopyFrom(const Attribute* right){
    const JPoint *P = (const JPoint *)right;
    cls = env->FindClass("bbox/Point");
-   objectData.Resize(P->objectData.Size());
-   const char *data;
-   P->objectData.Get(0,&data);
-   objectData.Put(0,P->objectData.Size(),data);
+   objectData.copyFrom(P->objectData);
    RestoreJavaObjectFromFLOB();
 }
 
@@ -504,7 +501,7 @@ First is checked whether the given index is correct. After that the
 contained FLOB is returned.
 
 */
- FLOB* JPoint::GetFLOB(const int i){
+ Flob* JPoint::GetFLOB(const int i){
      assert(i==0);
      return &objectData;
  }
@@ -660,8 +657,8 @@ void JBox::RestoreFLOBFromJavaObject(){
   // store the Java result (an array of bytes) in to the FLOB
   int size = env->GetArrayLength(jbytes);
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
-  objectData.Resize(size);
-  objectData.Put(0,size,bytes);
+  objectData.resize(size);
+  objectData.write(bytes,size,0);
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
 }
 
@@ -685,9 +682,9 @@ void JBox::RestoreJavaObjectFromFLOB(){
       error(__LINE__);
    }
 
-   int size = objectData.Size();
-   const char *bytes;
-   objectData.Get(0,&bytes);
+   int size = objectData.getSize();
+   char bytes[size];
+   objectData.read(bytes, size, 0);
    // copy the data into a Java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -781,10 +778,7 @@ the FLOB is copied and the Javaobject is reconstructed from it.
 void JBox::CopyFrom(const Attribute* right){
    const JBox *P = (const JBox *)right;
    cls = env->FindClass("bbox/BBox");
-   objectData.Resize(P->objectData.Size());
-   const char *data;
-   P->objectData.Get(0,&data);
-   objectData.Put(0,P->objectData.Size(),data);
+   objectData.copyFrom(P->objectData);
    RestoreJavaObjectFromFLOB();
 }
 
@@ -836,7 +830,7 @@ First is checked whether the given index is correct. After that the
 contained FLOB is returned.
 
 */
- FLOB* JBox::GetFLOB(const int i){
+ Flob* JBox::GetFLOB(const int i){
      assert(i==0);
      return &objectData;
  }

@@ -77,7 +77,8 @@ topological predicates.
 #include "SecondoSystem.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
-#include "DBArray.h"
+#include "../Tools/Flob/DbArray.h"
+#include "../Tools/Flob/Flob.h"
 #include "RectangleAlgebra.h"
 #include "GenericTC.h"
 
@@ -592,7 +593,7 @@ This standard constructor should only be used in the cast function.
       Cluster(int dummy){
         memcpy(BitVector,emptyBlock,64);
         memcpy(BitVectorT,emptyBlock,64);
-        strcpy(name,"complete");
+        //strcpy(name,"complete");
         strcpy(name,"empty");
         defined = true;
         updateBoxChecks();
@@ -652,7 +653,7 @@ This function sets a new name for this cluster.
 
 */
       void SetName(const STRING_T* newname){
-           strcpy(name,*newname);
+           strcpy(name,(char*)newname);
       }
 
       void SetName(const string newname){
@@ -1265,7 +1266,7 @@ predicate cluster will be the same like this one of the argument.
        return 1;
     }
 
-    FLOB *GetFLOB(const int i){
+    virtual Flob* GetFLOB( const int i ){
        assert(i==0);
        return &theClusters;
     }
@@ -1349,7 +1350,7 @@ cluster will contain all 512 possible matrices.
 */
     void MakeEmpty(){ 
         unSpecified.MakeFull();
-        theClusters.Clear();
+        theClusters.clean();
         defined=true;
         sorted=true;
     }
@@ -1394,11 +1395,11 @@ function has to destroy this object to avoid memory holes.
           return unSpecified.GetName();
        }
        int s = theClusters.Size();
-       const Cluster *C;
+       Cluster C;
        for(int i=0;i<s;i++){
            theClusters.Get(i,C);
-           if(C->Contains(*Matrix))
-               return C->GetName();
+           if(C.Contains(*Matrix))
+               return C.GetName();
        }
        assert(false); // should never be reached
     }
@@ -1420,11 +1421,11 @@ by this function.
        if(unSpecified.Contains(Matrix))
           return &unSpecified;
        int s = theClusters.Size();
-       const Cluster *C;
+       Cluster C;
        for(int i=0;i<s;i++){
            theClusters.Get(i,C);
-           if(C->Contains(Matrix)){
-               return new Cluster(*C);
+           if(C.Contains(Matrix)){
+               return new Cluster(C);
            }
        }
        assert(false); // should never be reached
@@ -1471,7 +1472,7 @@ void SetToDefault();
    }
 
 private:
-   mutable DBArray<Cluster> theClusters;
+   mutable DbArray<Cluster> theClusters;
    bool defined;
    bool canDelete;
    mutable bool sorted;
