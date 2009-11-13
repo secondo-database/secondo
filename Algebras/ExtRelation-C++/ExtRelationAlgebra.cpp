@@ -3982,6 +3982,12 @@ int Extend(Word* args, Word& result, int message, Word& local, Supplier s)
 
     case CLOSE :
       qp->Close(args[0].addr);
+      if ( eli ){
+         if(eli->resultTupleType){
+            eli->resultTupleType->DeleteIfAllowed();
+            eli->resultTupleType=0;
+         }
+      }
       return 0;
 
 
@@ -4450,6 +4456,14 @@ int Loopjoin(Word* args, Word& result, int message,
 
     case CLOSE:
       qp->Close(args[0].addr);
+      if ( lli )
+      {
+         if( lli->resultTupleType)
+         {
+            lli->resultTupleType->DeleteIfAllowed();
+            lli->resultTupleType = 0;
+         }
+      }
       return 0;
 
     case CLOSEPROGRESS:
