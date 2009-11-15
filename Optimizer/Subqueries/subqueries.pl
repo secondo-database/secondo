@@ -573,8 +573,9 @@ transformNestedAttribute(Subquery as Variable, Value, Rels, Rels) :-
   atom_concat('query ', SecondoQuery, QueryText),
   secondo(QueryText, [_, Result]),
   not(is_list(Result)),
-  atom_concat(Result, ' as ', Temp),
-  atom_concat(Temp, Variable, Value).
+	Value =.. [as, Result, Variable].
+  % atom_concat(Result, ' as ', Temp),
+  % atom_concat(Temp, Variable, Value).
 
 transformNestedAttribute(Attr, Attr, Rels, Rels) :-
   not(isQuery(Attr)).
@@ -777,7 +778,7 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, [JoinPredicate]) :-
   dm(subqueryUnnesting, ['\nNEST-N-J:\n']),
   ( is_list(SubAttr)
    -> nth1(1, SubAttr, CanAttr)
-   ; SubAttr =.. CanAttr
+   ; SubAttr = CanAttr
   ),
   restrict(Attrs, Rels, Attrs2),
   makeList(Rels, RelsList),
@@ -1384,6 +1385,15 @@ aliasExternal(Pred, AliasedPred, T) :-
   aliasExternal(Pred2, AliasedPred2, T),
   AliasedPred =..[UnaryOp, AliasedPred2].    
 
+aliasExternal(Expr, AliasedExpr, T) :-
+  compound(Expr),
+  Expr =.. [Op, Arg1, Arg2, Arg3],
+  not(Op = (:)),
+  aliasExternal(Arg1, AliasedArg1, T),
+  aliasExternal(Arg2, AliasedArg2, T),
+  aliasExternal(Arg3, AliasedArg3, T),
+  AliasedExpr =.. [Op, AliasedArg1, AliasedArg2, AliasedArg3].
+
 /*
 
 Restrict StarQueries to only select attributes of the given relations
@@ -1473,17 +1483,16 @@ Store temporary relation for creation if the optimizer decides on an execution p
    temporaryRelation/2.
   
 newTempRel(Query, TempRelName) :-  
-  dm(temprels, ['\nTempRelName: ', TempRelName, '\n']),
   ( temporaryRelation(TempRelName, Query)
     ; ( newTempRel(TempRelName),
       assert(temporaryRelation(TempRelName, Query)),
         createTempRel(TempRelName)
      )
-  ).
+  ),
+	dm(temprels, ['\nTempRelName: ', TempRelName, '\n']).
 
 % case executable syntax for temprel supplied
 newTempRel_direct(Plan, TempRelName) :-
-  dm(temprels, ['\nTempRelName_direct: ', TempRelName, '\n']),
   ( temporaryRelation(TempRelName, Plan)
      ; (  newTempRel(TempRelName),
         concat_atom([TempRelName, ' = ', Plan], Query),
@@ -1491,7 +1500,8 @@ newTempRel_direct(Plan, TempRelName) :-
       let(Query),
       assert(temporaryRelation(TempRelName, Plan))
     )
-  ).
+  ),
+	dm(temprels, ['\nTempRelName_direct: ', TempRelName, '\n']).
 
 createTempRel(TempRelName) :-
   ground(TempRelName),
