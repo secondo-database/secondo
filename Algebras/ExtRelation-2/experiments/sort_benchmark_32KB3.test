@@ -1,0 +1,135 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+#--------------------------------------------------  
+# Enable Flags
+#--------------------------------------------------  
+
+set "ERA:TraceSort" = TRUE;
+#set "SI:PrintCounters" = TRUE;
+set "SI:PrintCmdTimes" = TRUE;
+set "SI:NoQueryTimers" = TRUE;
+set "SI:NoCommandEcho" = TRUE;
+#set "SI:RelStatistics" = TRUE;
+set "SMI:NoTransactions" = TRUE;
+
+#--------------------------------------------------  
+# Create and open database DB_R1G
+#--------------------------------------------------  
+
+#setup sort_benchmark_32KB StandardAlgebra RelationAlgebra ExtRelation2Algebra
+
+create database db_R1G;
+open database db_R1G;
+
+#--------------------------------------------------  
+# Sort 700 MB data
+#--------------------------------------------------  
+
+#testcase create relation
+#yields success
+restore R100MB_T32KB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R100MB_T32KB';
+
+#testcase create relation
+#yields success
+let R700MB_T32KB = R100MB_T32KB feed R100MB_T32KB feed head[7] project[Nr] {a} product remove[Nr_a] extend[ran: randint(50000)] sortby2Param[ran asc;512*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase Old sort algorithm - time for run generation
+#yields success
+query R700MB_T32KB feed sort head[1] count;
+
+#testcase Old sort algorithm - total time
+#yields success
+query R700MB_T32KB feed sort count;
+
+#testcase New sort2 algorithm
+#yields success
+query R700MB_T32KB feed sort2 count;
+
+#testcase Old sortby algorithm - time for run generation
+#yields success
+query R700MB_T32KB feed sortby[Flob asc, Nr asc] head[1] count;
+
+#testcase Old sortby algorithm - total time
+#yields success
+query R700MB_T32KB feed sortby[Flob asc, Nr asc] count;
+
+#testcase New sortby2 algorithm
+#yields success
+query R700MB_T32KB feed sortby2[Flob asc, Nr asc] count;
+
+#testcase Delete relation
+#yields success
+delete R700MB_T32KB;
+
+#testcase Delete relation
+#yields success
+delete R100MB_T32KB;
+
+#--------------------------------------------------  
+# Sort 800 MB data
+#--------------------------------------------------  
+
+#testcase create relation
+#yields success
+restore R100MB_T32KB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R100MB_T32KB';
+
+#testcase create relation
+#yields success
+let R800MB_T32KB = R100MB_T32KB feed R100MB_T32KB feed head[8] project[Nr] {a} product remove[Nr_a] extend[ran: randint(50000)] sortby2Param[ran asc;512*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase Old sort algorithm - time for run generation
+#yields success
+query R800MB_T32KB feed sort head[1] count;
+
+#testcase Old sort algorithm - total time
+#yields success
+query R800MB_T32KB feed sort count;
+
+#testcase New sort2 algorithm
+#yields success
+query R800MB_T32KB feed sort2 count;
+
+#testcase Old sortby algorithm - time for run generation
+#yields success
+query R800MB_T32KB feed sortby[Flob asc, Nr asc] head[1] count;
+
+#testcase Old sortby algorithm - total time
+#yields success
+query R800MB_T32KB feed sortby[Flob asc, Nr asc] count;
+
+#testcase New sortby2 algorithm
+#yields success
+query R800MB_T32KB feed sortby2[Flob asc, Nr asc] count;
+
+#testcase Delete relation
+#yields success
+delete R800MB_T32KB;
+
+#testcase Delete relation
+#yields success
+delete R100MB_T32KB;
+
+#--------------------------------------------------  
+# Close and delete database
+#--------------------------------------------------  
+
+#teardown
+close database;
+delete database db_R1G;

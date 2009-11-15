@@ -482,11 +482,6 @@ tuplebuffer: clean_db R100MB_T64B R100MB_T256B R100MB_T1KB
 	@echo "Running experiment " $@.$(TESTEXT)
 	$(call doTest, $@)
 
-sort_iobuffer: clean_db R100MB_T512B R100MB_T8KB R100MB_T64KB 
-	@echo ""
-	@echo "Running experiment " $@.$(TESTEXT)
-	$(call doTest, $@)
-
 sort_max_fan_in: clean_db R100MB_T1KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
@@ -496,6 +491,7 @@ sort_huge_data: clean_db R100MB_T1KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	export SECONDO_PARAMSecondoHome=/home/sven/secondo-databases/extern \
+	$(call doTest, sort_1G)
 	$(call doTest, sort_5G)
 	$(call doTest, sort_10G)
 	$(call doTest, sort_15G)
@@ -515,71 +511,145 @@ sort_progress_estimation: clean_db R10MB_T64B
 	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/sort_progress_estimation3_proglogt.csv
 	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
 
+
+.PHONY: sort_benchmark_64B
 sort_benchmark_64B: clean_db R1MB_T64B R10MB_T64B R50MB_T64B R100MB_T64B
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	export SECONDO_PARAMMaxMemPerOperator=1024; \
-	$(call doTest, $@)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
+	$(call doTest, $@1)
+	$(call doTest, $@2)
+	$(call doTest, $@3)
+	$(call doTest, $@4)
 
+.PHONY: sort_benchmark_128B
 sort_benchmark_128B: clean_db R1MB_T128B R10MB_T128B R50MB_T128B R100MB_T128B
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	export SECONDO_PARAMMaxMemPerOperator=1024; \
-	$(call doTest, $@)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
+	$(call doTest, $@1)
+	$(call doTest, $@2)
+	$(call doTest, $@3)
+	$(call doTest, $@4)
 
+.PHONY: sort_benchmark_256B
 sort_benchmark_256B: clean_db R1MB_T256B R10MB_T256B R50MB_T256B R100MB_T256B
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	export SECONDO_PARAMMaxMemPerOperator=1024; \
-	$(call doTest, $@)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
+	$(call doTest, $@1)
+	$(call doTest, $@2)
+	$(call doTest, $@3)
+	$(call doTest, $@4)
 
+.PHONY: sort_benchmark_512B
 sort_benchmark_512B: clean_db R1MB_T512B R10MB_T512B R50MB_T512B R100MB_T512B
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	export SECONDO_PARAMMaxMemPerOperator=1024; \
-	$(call doTest, $@)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
+	$(call doTest, $@1)
+	$(call doTest, $@2)
+	$(call doTest, $@3)
+	$(call doTest, $@4)
 
+.PHONY: sort_benchmark_1KB
 sort_benchmark_1KB: clean_db R1MB_T1KB R10MB_T1KB R50MB_T1KB R100MB_T1KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	export SECONDO_PARAMMaxMemPerOperator=1024; \
-	$(call doTest, $@)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
+	$(call doTest, $@1)
+	$(call doTest, $@2)
+	$(call doTest, $@3)
+	$(call doTest, $@4)
 
 sort_benchmark_2KB: clean_db R1MB_T2KB R10MB_T2KB R50MB_T2KB R100MB_T2KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	export SECONDO_PARAMMaxMemPerOperator=1024; \
-	$(call doTest, $@)
+	$(call doTest, $@1)
+	$(call doTest, $@2)
+	$(call doTest, $@3)
 
 sort_benchmark_4KB: clean_db R1MB_T4KB R10MB_T4KB R50MB_T4KB R100MB_T4KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, $@)
+	$(call doTest, $@1)
+	$(call doTest, $@2)
+	$(call doTest, $@3)
 
 sort_benchmark_8KB: clean_db R1MB_T8KB R10MB_T8KB R50MB_T8KB R100MB_T8KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, $@)
+	$(call doTest, $@1)
+	$(call doTest, $@2)
+	$(call doTest, $@3)
 
 sort_benchmark_16KB: clean_db R1MB_T16KB R10MB_T16KB R50MB_T16KB R100MB_T16KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, $@)
+	$(call doTest, $@1)
+	$(call doTest, $@2)
+	$(call doTest, $@3)
 
 sort_benchmark_32KB: clean_db R1MB_T32KB R10MB_T32KB R50MB_T32KB R100MB_T32KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, $@)
+	$(call doTest, $@1)
+	$(call doTest, $@2)
+	$(call doTest, $@3)
 
 sort_benchmark_64KB: clean_db R1MB_T64KB R10MB_T64KB R50MB_T64KB R100MB_T64KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, $@)
+	$(call doTest, $@1)
+	$(call doTest, $@2)
+	$(call doTest, $@3)
+
+sort_benchmark: clean_db \
+R1MB_T64B R1MB_T128B R1MB_T256B R1MB_T512B R1MB_T1KB R1MB_T2KB R1MB_T4KB R1MB_T8KB R1MB_T16KB  R1MB_T32KB R1MB_T64KB \
+R10MB_T64B R10MB_T128B R10MB_T256B R10MB_T512B R10MB_T1KB R10MB_T2KB R10MB_T4KB R10MB_T8KB R10MB_T16KB  R10MB_T32KB R10MB_T64KB \
+R50MB_T64B R50MB_T128B R50MB_T256B R50MB_T512B R50MB_T1KB R50MB_T2KB R50MB_T4KB R50MB_T8KB R50MB_T16KB  R50MB_T32KB R50MB_T64KB \
+R100MB_T64B R100MB_T128B R100MB_T256B R100MB_T512B R100MB_T1KB R100MB_T2KB R100MB_T4KB R100MB_T8KB R100MB_T16KB  R100MB_T32KB R100MB_T64KB 
+	@echo ""
+	@echo "Running experiment " $@.$(TESTEXT)
+	$(call doTest, $@_64B1)
+	$(call doTest, $@_64B2)
+	$(call doTest, $@_64B3)
+	$(call doTest, $@_128B1)
+	$(call doTest, $@_128B2)
+	$(call doTest, $@_128B3)
+	$(call doTest, $@_256B1)
+	$(call doTest, $@_256B2)
+	$(call doTest, $@_256B3)
+	$(call doTest, $@_512B1)
+	$(call doTest, $@_512B2)
+	$(call doTest, $@_512B3)
+	$(call doTest, $@_1KB1)
+	$(call doTest, $@_1KB2)
+	$(call doTest, $@_1KB3)
+	$(call doTest, $@_2KB1)
+	$(call doTest, $@_2KB2)
+	$(call doTest, $@_2KB3)
+	$(call doTest, $@_4KB1)
+	$(call doTest, $@_4KB2)
+	$(call doTest, $@_4KB3)
+	$(call doTest, $@_8KB1)
+	$(call doTest, $@_8KB2)
+	$(call doTest, $@_8KB3)
+	$(call doTest, $@_16KB1)
+	$(call doTest, $@_16KB2)
+	$(call doTest, $@_16KB3)
+	$(call doTest, $@_32KB1)
+	$(call doTest, $@_32KB2)
+	$(call doTest, $@_32KB3)
+	$(call doTest, $@_64KB1)
+	$(call doTest, $@_64KB2)
+	$(call doTest, $@_64KB3)
 
 test: clean_db 
 	@echo ""
