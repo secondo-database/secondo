@@ -21,7 +21,7 @@
 # Enable Flags
 #--------------------------------------------------  
 
-set "ERA:TraceSort" = TRUE;
+set "ERA:TraceHybridHashJoin" = TRUE;
 #set "SI:PrintCounters" = TRUE;
 set "SI:PrintCmdTimes" = TRUE;
 set "SI:NoQueryTimers" = TRUE;
@@ -30,62 +30,51 @@ set "SI:NoCommandEcho" = TRUE;
 set "SMI:NoTransactions" = TRUE;
 
 #--------------------------------------------------  
-# Create and open database DB_R1G
+# Create and open database DB_TMP
 #--------------------------------------------------  
 
-#setup sort_benchmark_256B StandardAlgebra RelationAlgebra ExtRelation2Algebra
+#setup hashjoin_benchmark StandardAlgebra RelationAlgebra ExtRelation2Algebra
 
-create database db_R1G;
-open database db_R1G;
-
-#--------------------------------------------------  
-# Sort 900 MB data
-#--------------------------------------------------  
-
-#testcase create relation
-#yields success
-restore R100MB_T256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R100MB_T256B';
-
-#testcase create relation
-#yields success
-let R900MB_T256B = R100MB_T256B feed R100MB_T256B feed head[9] project[Nr] {a} product remove[Nr_a] extend[ran: randint(50000)] sortby2Param[ran asc;512*1024*1024,-1,-1] remove[ran] consume;
-
-#testcase Old sort algorithm - time for run generation
-#yields success
-query R900MB_T256B feed sort head[1] count;
-
-#testcase Old sort algorithm - total time
-#yields success
-query R900MB_T256B feed sort count;
-
-#testcase New sort2 algorithm
-#yields success
-query R900MB_T256B feed sort2 count;
-
-#testcase Old sortby algorithm - time for run generation
-#yields success
-query R900MB_T256B feed sortby[Flob asc, Nr asc] head[1] count;
-
-#testcase Old sortby algorithm - total time
-#yields success
-query R900MB_T256B feed sortby[Flob asc, Nr asc] count;
-
-#testcase New sortby2 algorithm
-#yields success
-query R900MB_T256B feed sortby2[Flob asc, Nr asc] count;
-
-#testcase Delete relation
-#yields success
-delete R900MB_T256B;
-
-#testcase Delete relation
-#yields success
-delete R100MB_T256B;
+create database db_tmp;
+open database db_tmp;
 
 #--------------------------------------------------  
-# Close and delete database
+# Hybrid Hash-Join with 100000 Tuple x 10000 Tuple
+# 64 KByte Memory
 #--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T256B';
+
+#testcase create_relation_B
+#yields success
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T256B';
+
+#testcase 100000_join_10000_sortmergejoin
+#yields success
+query relA feed relB feed sortmergejoin[Flob_a,Flob_b] count;
+
+#testcase 100000_join_10000_hashjoin
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 100000_join_10000_hashjoin
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000,-1,64*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete rel_A;
+
+#testcase delete_relation_B
+#yields success
+delete rel_B;
+
+##############################################################################
+# TearDown
+##############################################################################
 
 #teardown
 close database;
-delete database db_R1G;
+delete database db_tmp;

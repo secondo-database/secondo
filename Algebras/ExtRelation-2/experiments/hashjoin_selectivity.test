@@ -33,39 +33,26 @@ set "SMI:NoTransactions" = TRUE;
 # Create and open database DB_TMP
 #--------------------------------------------------  
 
-#setup hashjoin_switch_intern_extern StandardAlgebra RelationAlgebra ExtRelation2Algebra
+#setup hashjoin_subpartitioning StandardAlgebra RelationAlgebra ExtRelation2Algebra
 
 create database db_tmp;
 open database db_tmp;
 
 #--------------------------------------------------  
-# Create relations with 25/32 MB data 
-# and ~25 Byte tuples
-#--------------------------------------------------  
-
-#testcase create_relation
-#yields success
-restore R50MB_T256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T256B';
-
-#--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 10 MB
+# Selectivity 1%
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S1';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[40960] {b} consume; 
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S1';
 
-#testcase 25MB_join_10MB_16_partitions
+#testcase 25MB_join_10_MB_sel1
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_10MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
@@ -76,24 +63,20 @@ delete rel_A;
 delete rel_B;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 12 MB
+# Selectivity 5%
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S5';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[49152] {b} consume; 
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S5';
 
-#testcase 25MB_join_12MB_16_partitions
+#testcase 25MB_join_10_MB_sel5
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_12MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
@@ -104,24 +87,20 @@ delete rel_A;
 delete rel_B;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 14 MB
+# Selectivity 10%
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S10';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[57344] {b} consume; 
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S10';
 
-#testcase 25MB_join_14MB_16_partitions
+#testcase 25MB_join_10_MB_sel10
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_14MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
@@ -132,24 +111,20 @@ delete rel_A;
 delete rel_B;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 16 MB
+# Selectivity 20%
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S20';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[65536] {b} consume; 
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S20';
 
-#testcase 25MB_join_16MB_16_partitions
+#testcase 25MB_join_10_MB_sel20
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_16MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
@@ -160,24 +135,20 @@ delete rel_A;
 delete rel_B;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 18 MB
+# Selectivity 30%
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S30';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[73728] {b} consume; 
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S30';
 
-#testcase 25MB_join_18MB_16_partitions
+#testcase 25MB_join_10_MB_sel30
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_18MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
@@ -188,24 +159,20 @@ delete rel_A;
 delete rel_B;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 20 MB
+# Selectivity 40%
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S40';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[81920] {b} consume; 
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S40';
 
-#testcase 25MB_join_20MB_16_partitions
+#testcase 25MB_join_10_MB_sel40
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_20MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
@@ -216,24 +183,20 @@ delete rel_A;
 delete rel_B;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 22 MB
+# Selectivity 50%
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S50';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[90112] {b} consume; 
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S50';
 
-#testcase 25MB_join_22MB_16_partitions
+#testcase 25MB_join_10_MB_sel50
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_22MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
@@ -244,24 +207,20 @@ delete rel_A;
 delete rel_B;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 24 MB
+# Selectivity 60%
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S60';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[98304] {b} consume; 
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S60';
 
-#testcase 25MB_join_24MB_16_partitions
+#testcase 25MB_join_10_MB_sel60
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_24MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
@@ -272,52 +231,20 @@ delete rel_A;
 delete rel_B;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 26 MB
+# Selectivity 70%
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S70';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[106496] {b} consume; 
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S70';
 
-#testcase 25MB_join_26MB_16_partitions
+#testcase 25MB_join_10_MB_sel70
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_26MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
-
-#testcase delete_relation_A
-#yields success
-delete rel_A;
-49152
-#testcase delete_relation_B
-#yields success
-delete rel_B;
-
-#--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 28 MB
-#--------------------------------------------------  
-
-#testcase create_relation_A
-#yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
-
-#testcase create_relation_B
-#yields success
-let relB = R50MB_T256B feed head[114688] {b} consume; 
-
-#testcase 25MB_join_28MB_16_partitions
-#yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_28MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
@@ -328,24 +255,20 @@ delete rel_A;
 delete rel_B;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 30 MB
+# Selectivity 80%
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S80';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[122880] {b} consume; 
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S80';
 
-#testcase 25MB_join_30MB_16_partitions
+#testcase 25MB_join_10_MB_sel80
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_30MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
@@ -356,24 +279,20 @@ delete rel_A;
 delete rel_B;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 32 MB
+# Selectivity 90%
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S90';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[131072] {b} consume; 
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S90';
 
-#testcase 25MB_join_32MB_16_partitions
+#testcase 25MB_join_10_MB_sel90
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,-1,-1] count;
-
-#testcase 25MB_join_32MB_standard
-#yields success
-query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
@@ -382,6 +301,31 @@ delete rel_A;
 #testcase delete_relation_B
 #yields success
 delete rel_B;
+
+#--------------------------------------------------  
+# Selectivity 100%
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+restore relA from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R25MB_T256B_S100';
+
+#testcase create_relation_B
+#yields success
+restore relB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R10MB_T256B_S100';
+
+#testcase 25MB_join_10_MB_sel100
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete rel_A;
+
+#testcase delete_relation_B
+#yields success
+delete rel_B;
+
 
 ##############################################################################
 # TearDown

@@ -83,50 +83,6 @@ delete R900MB_T64KB;
 delete R100MB_T64KB;
 
 #--------------------------------------------------  
-# Sort 1 GB data
-#--------------------------------------------------  
-
-#testcase create relation
-#yields success
-restore R100MB_T64KB from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R100MB_T64KB';
-
-#testcase create relation
-#yields success
-let R1GB_T64KB = R100MB_T64KB feed R100MB_T64KB feed head[10] project[Nr] {a} product remove[Nr_a] extend[ran: randint(50000)] sortby2Param[ran asc;64*1024*1024,-1,-1] remove[ran] consume;
-
-#testcase Old sort algorithm - time for run generation
-#yields success
-query R1GB_T64KB feed sort head[1] count;
-
-#testcase Old sort algorithm - total time
-#yields success
-query R1GB_T64KB feed sort count;
-
-#testcase New sort2 algorithm
-#yields success
-query R1GB_T64KB feed sort2 count;
-
-#testcase Old sortby algorithm - time for run generation
-#yields success
-query R1GB_T64KB feed sortby[Flob asc, Nr asc] head[1] count;
-
-#testcase Old sortby algorithm - total time
-#yields success
-query R1GB_T64KB feed sortby[Flob asc, Nr asc] count;
-
-#testcase New sortby algorithm
-#yields success
-query R1GB_T64KB feed sortby2[Flob asc, Nr asc] count;
-
-#testcase Delete relation
-#yields success
-delete R1GB_T64KB;
-
-#testcase Delete relation
-#yields success
-delete R100MB_T64KB;
-
-#--------------------------------------------------  
 # Close and delete database
 #--------------------------------------------------  
 
