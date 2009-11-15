@@ -501,14 +501,14 @@ sort_progress_estimation: clean_db R10MB_T64B
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
-	$(call doTest, sort_progress_estimation1)
-	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/sort_progress_estimation1_proglogt.csv
+	$(call doTest, $@1)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@1_proglogt.csv
 	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
-	$(call doTest, sort_progress_estimation2)
-	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/sort_progress_estimation2_proglogt.csv
+	$(call doTest, $@2)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@2_proglogt.csv
 	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
-	$(call doTest, sort_progress_estimation3)
-	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/sort_progress_estimation3_proglogt.csv
+	$(call doTest, $@3)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@3_proglogt.csv
 	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
 
 
@@ -651,17 +651,45 @@ R100MB_T64B R100MB_T128B R100MB_T256B R100MB_T512B R100MB_T1KB R100MB_T2KB R100M
 	$(call doTest, $@_64KB2)
 	$(call doTest, $@_64KB3)
 
-test: clean_db 
-	@echo ""
-	@echo "Running testset"
-	$(call doTest, sort_max_fan_in)
-	$(call doTest, sort_max_fan_in)
-
 hashjoin_number_of_partitions: clean_db
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	export SECONDO_PARAMMaxMemPerOperator=1024; \
 	$(call doTest, $@)
+
+hashjoin_switch_intern_extern: clean_db R50MB_T256B
+	@echo ""
+	@echo "Running experiment " $@.$(TESTEXT)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
+	$(call doTest, $@)
+
+hashjoin_subpartitioning: clean_db R50MB_T256B
+	@echo ""
+	@echo "Running experiment " $@.$(TESTEXT)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
+	$(call doTest, $@)
+
+hashjoin_asymmetric_queries: clean_db R50MB_T256B
+	@echo ""
+	@echo "Running experiment " $@.$(TESTEXT)
+	export SECONDO_PARAMMaxMemPerOperator=1024; \
+	$(call doTest, $@)
+
+hashjoin_progress_estimation: clean_db R50MB_T256B
+	@echo ""
+	@echo "Running experiment " $@.$(TESTEXT)
+	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+	$(call doTest, $@1)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@1_proglogt.csv
+	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+	$(call doTest, $@2)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@2_proglogt.csv
+	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+	$(call doTest, $@3)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@3_proglogt.csv
+	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+	$(call doTest, $@4)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@4_proglogt.csv
 
 dummy: clean_db #R1G_T512B R1G_T8KB R1G_T64KB 
 	@echo ""
