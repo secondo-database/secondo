@@ -604,6 +604,7 @@ sort_benchmark_64B: clean_db R1MB_T64B R10MB_T64B R50MB_T64B R100MB_T64B
 	$(call doTest, $@3)
 	$(call doTest, $@4)
 	$(call doTest, $@5)
+	$(call doTest, $@6)
 
 .PHONY: sort_benchmark_128B
 sort_benchmark_128B: clean_db R1MB_T128B R10MB_T128B R50MB_T128B R100MB_T128B
@@ -615,6 +616,7 @@ sort_benchmark_128B: clean_db R1MB_T128B R10MB_T128B R50MB_T128B R100MB_T128B
 	$(call doTest, $@3)
 	$(call doTest, $@4)
 	$(call doTest, $@5)
+	$(call doTest, $@6)
 
 .PHONY: sort_benchmark_256B
 sort_benchmark_256B: clean_db R1MB_T256B R10MB_T256B R50MB_T256B R100MB_T256B
@@ -626,6 +628,7 @@ sort_benchmark_256B: clean_db R1MB_T256B R10MB_T256B R50MB_T256B R100MB_T256B
 	$(call doTest, $@3)
 	$(call doTest, $@4)
 	$(call doTest, $@5)
+	$(call doTest, $@6)
 
 .PHONY: sort_benchmark_512B
 sort_benchmark_512B: clean_db R1MB_T512B R10MB_T512B R50MB_T512B R100MB_T512B
@@ -637,6 +640,7 @@ sort_benchmark_512B: clean_db R1MB_T512B R10MB_T512B R50MB_T512B R100MB_T512B
 	$(call doTest, $@3)
 	$(call doTest, $@4)
 	$(call doTest, $@5)
+	$(call doTest, $@6)
 
 .PHONY: sort_benchmark_1KB
 sort_benchmark_1KB: clean_db R1MB_T1KB R10MB_T1KB R50MB_T1KB R100MB_T1KB
@@ -648,6 +652,7 @@ sort_benchmark_1KB: clean_db R1MB_T1KB R10MB_T1KB R50MB_T1KB R100MB_T1KB
 	$(call doTest, $@3)
 	$(call doTest, $@4)
 	$(call doTest, $@5)
+	$(call doTest, $@6)
 
 sort_benchmark_2KB: clean_db R1MB_T2KB R10MB_T2KB R50MB_T2KB R100MB_T2KB
 	@echo ""
@@ -658,6 +663,7 @@ sort_benchmark_2KB: clean_db R1MB_T2KB R10MB_T2KB R50MB_T2KB R100MB_T2KB
 	$(call doTest, $@3)
 	$(call doTest, $@4)
 	$(call doTest, $@5)
+	$(call doTest, $@6)
 
 sort_benchmark_4KB: clean_db R1MB_T4KB R10MB_T4KB R50MB_T4KB R100MB_T4KB
 	@echo ""
@@ -668,6 +674,7 @@ sort_benchmark_4KB: clean_db R1MB_T4KB R10MB_T4KB R50MB_T4KB R100MB_T4KB
 	$(call doTest, $@3)
 	$(call doTest, $@4)
 	$(call doTest, $@5)
+	$(call doTest, $@6)
 
 sort_benchmark_8KB: clean_db R1MB_T8KB R10MB_T8KB R50MB_T8KB R100MB_T8KB
 	@echo ""
@@ -678,6 +685,7 @@ sort_benchmark_8KB: clean_db R1MB_T8KB R10MB_T8KB R50MB_T8KB R100MB_T8KB
 	$(call doTest, $@3)
 	$(call doTest, $@4)
 	$(call doTest, $@5)
+	$(call doTest, $@6)
 
 sort_benchmark_16KB: clean_db R1MB_T16KB R10MB_T16KB R50MB_T16KB R100MB_T16KB
 	@echo ""
@@ -688,6 +696,7 @@ sort_benchmark_16KB: clean_db R1MB_T16KB R10MB_T16KB R50MB_T16KB R100MB_T16KB
 	$(call doTest, $@3)
 	$(call doTest, $@4)
 	$(call doTest, $@5)
+	$(call doTest, $@6)
 
 sort_benchmark_32KB: clean_db R1MB_T32KB R10MB_T32KB R50MB_T32KB R100MB_T32KB
 	@echo ""
@@ -698,6 +707,7 @@ sort_benchmark_32KB: clean_db R1MB_T32KB R10MB_T32KB R50MB_T32KB R100MB_T32KB
 	$(call doTest, $@3)
 	$(call doTest, $@4)
 	$(call doTest, $@5)
+	$(call doTest, $@6)
 
 sort_benchmark_64KB: clean_db R1MB_T64KB R10MB_T64KB R50MB_T64KB R100MB_T64KB
 	@echo ""
@@ -708,6 +718,7 @@ sort_benchmark_64KB: clean_db R1MB_T64KB R10MB_T64KB R50MB_T64KB R100MB_T64KB
 	$(call doTest, $@3)
 	$(call doTest, $@4)
 	$(call doTest, $@5)
+	$(call doTest, $@6)
 
 sort_benchmark: clean_db \
 R1MB_T64B R1MB_T128B R1MB_T256B R1MB_T512B R1MB_T1KB R1MB_T2KB R1MB_T4KB R1MB_T8KB R1MB_T16KB  R1MB_T32KB R1MB_T64KB \
@@ -721,56 +732,67 @@ R100MB_T64B R100MB_T128B R100MB_T256B R100MB_T512B R100MB_T1KB R100MB_T2KB R100M
 	$(call doTest, $@_64B3)
 	$(call doTest, $@_64B4)
 	$(call doTest, $@_64B5)
+	$(call doTest, $@_64B6)
 	$(call doTest, $@_128B1)
 	$(call doTest, $@_128B2)
 	$(call doTest, $@_128B3)
 	$(call doTest, $@_128B4)
 	$(call doTest, $@_128B5)
+	$(call doTest, $@_128B6)
 	$(call doTest, $@_256B1)
 	$(call doTest, $@_256B2)
 	$(call doTest, $@_256B3)
 	$(call doTest, $@_256B4)
 	$(call doTest, $@_256B5)
+	$(call doTest, $@_256B6)
 	$(call doTest, $@_512B1)
 	$(call doTest, $@_512B2)
 	$(call doTest, $@_512B3)
 	$(call doTest, $@_512B4)
 	$(call doTest, $@_512B5)
+	$(call doTest, $@_512B6)
 	$(call doTest, $@_1KB1)
 	$(call doTest, $@_1KB2)
 	$(call doTest, $@_1KB3)
 	$(call doTest, $@_1KB4)
 	$(call doTest, $@_1KB5)
+	$(call doTest, $@_1KB6)
 	$(call doTest, $@_2KB1)
 	$(call doTest, $@_2KB2)
 	$(call doTest, $@_2KB3)
 	$(call doTest, $@_2KB4)
 	$(call doTest, $@_2KB5)
+	$(call doTest, $@_2KB6)
 	$(call doTest, $@_4KB1)
 	$(call doTest, $@_4KB2)
 	$(call doTest, $@_4KB3)
 	$(call doTest, $@_4KB4)
 	$(call doTest, $@_4KB5)
+	$(call doTest, $@_4KB6)
 	$(call doTest, $@_8KB1)
 	$(call doTest, $@_8KB2)
 	$(call doTest, $@_8KB3)
 	$(call doTest, $@_8KB4)
 	$(call doTest, $@_8KB5)
+	$(call doTest, $@_8KB6)
 	$(call doTest, $@_16KB1)
 	$(call doTest, $@_16KB2)
 	$(call doTest, $@_16KB3)
 	$(call doTest, $@_16KB4)
 	$(call doTest, $@_16KB5)
+	$(call doTest, $@_16KB6)
 	$(call doTest, $@_32KB1)
 	$(call doTest, $@_32KB2)
 	$(call doTest, $@_32KB3)
 	$(call doTest, $@_32KB4)
 	$(call doTest, $@_32KB5)
+	$(call doTest, $@_32KB6)
 	$(call doTest, $@_64KB1)
 	$(call doTest, $@_64KB2)
 	$(call doTest, $@_64KB3)
 	$(call doTest, $@_64KB4)
 	$(call doTest, $@_64KB5)
+	$(call doTest, $@_64KB6)
 
 hashjoin_number_of_partitions: clean_db
 	@echo ""
@@ -848,10 +870,11 @@ hashjoin_progress_estimation: clean_db R50MB_T256B
 	$(call doTest, $@4)
 	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@4_proglogt.csv
 
-dummy: clean_db #R1G_T512B R1G_T8KB R1G_T64KB 
+dummy: clean_db R100MB_T64B #R1G_T512B R1G_T8KB R1G_T64KB 
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	$(call doTest, dummy)
+	$(call doTest, sort_benchmark_64B5)
+	$(call doTest, sort_benchmark_64B6)
 
 
 

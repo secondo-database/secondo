@@ -62,18 +62,6 @@ query R1GB_T2KB feed sort count;
 #yields success
 query R1GB_T2KB feed sort2 count;
 
-#testcase Old sortby algorithm - time for run generation
-#yields success
-query R1GB_T2KB feed sortby[Flob asc, Nr asc] head[1] count;
-
-#testcase Old sortby algorithm - total time
-#yields success
-query R1GB_T2KB feed sortby[Flob asc, Nr asc] count;
-
-#testcase New sortby algorithm
-#yields success
-query R1GB_T2KB feed sortby2[Flob asc, Nr asc] count;
-
 #testcase Delete relation
 #yields success
 delete R1GB_T2KB;
