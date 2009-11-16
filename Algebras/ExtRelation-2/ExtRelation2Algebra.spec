@@ -21,9 +21,11 @@
 operator sort2 alias SORT2 pattern _ op
 operator sortby2 alias SORTBY2 pattern _ op [list]
 operator sortmergejoin2 alias SORTMERGEJOIN2 pattern _ _ op [_, _] 
+operator gracehashjoin alias GRACEHASHJOIN pattern _ _ op [_, _, _]
 operator hybridhashjoin alias HYBRIDHASHJOIN pattern _ _ op [_, _, _]
 
 operator sortmergejoin2Param alias SORTMERGEJOIN2PARAM pattern _ _ op [_, _, _] 
+operator gracehashjoinParam alias GRACEHASHJOINPARAM pattern _ _ op [_, _, _, _, _, _]
 operator hybridhashjoinParam alias HYBRIDHASHJOINPARAM pattern _ _ op [_, _, _, _, _, _]
 operator sort2Param alias SORT2PARAM pattern _ op[_, _, _]
 operator sortby2Param alias SORTBY2PARAM pattern _ op[list; _, _, _]

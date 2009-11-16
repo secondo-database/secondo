@@ -404,10 +404,11 @@ This operator sorts two input streams and computes their equijoin.
 The type mapping function determines the attribute indices of the given
 join attributes ~xi~ and ~yi~ and appends them to the argument list
 of the value mapping function. This type mapping function is also used
-by the ~hybridhashjoin~ and ~hybridhashjoinParam~ operator.
+by the ~hybridhashjoin~, ~hybridhashjoinParam~, ~gracehashjoin~ and
+~gracehashjoinParam~ operator.
 
-Type mapping for ~sortmergejoin2~, ~hybridhashjoin~ and
-~hybridhashjoinParam~ is
+Type mapping for ~sortmergejoin2~, ~hybridhashjoin~, ~hybridhashjoinParam~,
+~gracehashjoin~ and ~gracehashjoinParam~ is
 
 ----  ((stream (tuple ((x1 t1) ... (xn tn))))
        (stream (tuple ((y1 d1) ... (ym dm)))) xi yj)
@@ -426,9 +427,13 @@ ListExpr JoinTypeMap( ListExpr args )
   const char* op[] = { "hybridhashjoin",
                        "hybridhashjoinParam",
                        "sortmergejoin2",
-                       "sortmergejoin2Param"};
+                       "sortmergejoin2Param",
+                       "gracehashjoin",
+                       "gracehashjoinParam" };
 
-  const char* ex[] = { "five", "eight", "four", "five" };
+  const char* ex[] = { "five", "eight",
+                       "four", "five",
+                       "five", "eight" };
 
   int expected;
 
@@ -438,6 +443,8 @@ ListExpr JoinTypeMap( ListExpr args )
     case 1: expected = 8; break;
     case 2: expected = 4; break;
     case 3: expected = 5; break;
+    case 4: expected = 5; break;
+    case 5: expected = 8; break;
     default: assert(0); break;
   }
 
@@ -622,6 +629,12 @@ JoinTypeMap<2>(ListExpr args);
 template ListExpr
 JoinTypeMap<3>(ListExpr args);
 
+template ListExpr
+JoinTypeMap<4>(ListExpr args);
+
+template ListExpr
+JoinTypeMap<5>(ListExpr args);
+
 /*
 3.3.2 Value mapping function of operator ~sortmergejoin2~
 
@@ -787,6 +800,99 @@ Operator extrelhybridhashjoin(
                                         // argument of sort order spec is 1
          Operator::SimpleSelect,        // trivial selection function
          JoinTypeMap<0>                 // type mapping
+);
+
+/*
+3.4 Operator ~gracehashjoin~
+
+This computes the equijoin of two input streams making use of the
+GRACE hash join algorithm.
+
+3.4.2 Value mapping function of operator ~gracehashjoin~
+
+This value mapping function is used by both operators ~gracehashjoin~ and
+~gracehashjoinParam~. According to the value of the template parameter
+~param~ the argument vector ~args~ contains the following values. If ~param~
+is set to false ~args~ contains.
+
+  * args[0] : stream A
+
+  * args[1] : stream B
+
+  * args[2] : attribute name of join attribute for stream A
+
+  * args[3] : attribute name join attribute for stream B
+
+  * args[4] : number of buckets
+
+  * args[5] : attribute index of join attribute for stream A
+
+  * args[6] : attribute index of join attribute for stream B
+
+If ~param~ is set to true ~args~ contains.
+
+  * args[0] : stream A
+
+  * args[1] : stream B
+
+  * args[2] : attribute name of join attribute for stream A
+
+  * args[3] : attribute name join attribute for stream B
+
+  * args[4] : number of buckets
+
+  * args[5] : number of partitions (only if param is true)
+
+  * args[6] : usable main memory in bytes (only if param is true)
+
+  * args[7] : I/O buffer size in bytes (only if param is true)
+
+  * args[8] : attribute index of join attribute for stream A
+
+  * args[9] : attribute index of join attribute for stream B
+
+
+*/
+template<bool param>
+int GraceHashJoinValueMap( Word* args, Word& result,
+                           int message, Word& local, Supplier s );
+
+/*
+3.1.3 Specification of operator ~gracehashjoin~
+
+*/
+const string GraceHashJoinSpec  = "( ( \"Signature\" \"Syntax\" "
+                                   "\"Meaning\" \"Example\" ) "
+                                   "( <text>((stream (tuple ((x1 t1) ... "
+                                   "(xn tn)))) (stream (tuple ((y1 d1) ..."
+                                   " (ym dm)))) xi yj b) -> (stream (tuple "
+                                   "((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)"
+                                   ")))</text--->"
+                                   "<text>_ _ gracehashjoin [ _ , _ , _]"
+                                   "</text--->"
+                                   "<text>Computes the equijoin of two "
+                                   "streams using using the GRACE hash-join "
+                                   "algorithm. The third and fourth parameter "
+                                   "contain the attribute names of the join "
+                                   "attributes. The fifth argument specifies "
+                                   "the number of buckets used by the "
+                                   "algorithm. The number of used partitions "
+                                   "used is computed automatically.</text--->"
+                                   "<text>query duplicates feed ten feed "
+                                   "gracehashjoin[no, nr, 1000] consume "
+                                   "</text--->) )";
+
+/*
+3.1.4 Definition of operator ~gracehashjoin~
+
+*/
+Operator extrelgracehashjoin(
+         "gracehashjoin",              // name
+         GraceHashJoinSpec,            // specification
+         GraceHashJoinValueMap<false>, // value mapping - first
+                                        // argument of sort order spec is 1
+         Operator::SimpleSelect,        // trivial selection function
+         JoinTypeMap<4>                 // type mapping
 );
 
 /*
@@ -1754,6 +1860,63 @@ Operator extrelhybridhashjoinParam(
 );
 
 /*
+4.9 Operator ~gracehashjoinParam~
+
+This operator computes the equijoin of two stream. This is
+a full parameter-driven version of the ~gracehashjoin~
+operator. In addition to the number of buckets the user
+may specify the number of partitions, the usable main memory
+and the I/O buffer size.
+
+4.9.1 Specification of operator ~gracehashjoinParam~
+
+*/
+const string GraceHashJoinParamSpec  = "( ( \"Signature\" \"Syntax\" "
+                                   "\"Meaning\" \"Example\" ) "
+                                   "( <text>((stream (tuple ((x1 t1) ... "
+                                   "(xn tn)))) (stream (tuple ((y1 d1) ..."
+                                   " (ym dm)))) xi yj b p mem io) -> "
+                                   "(stream (tuple "
+                                   "((x1 t1) ... (xn tn) (y1 d1) ... (ym dm)"
+                                   ")))</text--->"
+                                   "<text>_ _ gracehashjoinParam "
+                                   "[ _ , _ , _, _, _, _]"
+                                   "</text--->"
+                                   "<text>Computes the equijoin of two "
+                                   "streams using the GRACE hash-join "
+                                   "algorithm. "
+                                   "This is the fully parameter-driven version "
+                                   "of the GRACE hash-join operator. This "
+                                   "operator provides three additional "
+                                   "attributes p, mem, io. p specifies the "
+                                   "number of partitions to use "
+                                   "(with 2 <= p <= <Number of buckets>/2). "
+                                   "Paramter mem is "
+                                   "used to specify the amount of usable main "
+                                   "memory for the operator in bytes. "
+                                   "Parameter io specifies the I/O buffer "
+                                   "size in bytes used for read/write "
+                                   "operations to/from disc. This operator is "
+                                   "used to test the operator under different "
+                                   "conditions.</text--->"
+                                   "<text>query duplicates feed ten feed "
+                                   "gracehashjoinParam[no, nr, 1000, 50, "
+                                   "16*1024*1024, 4096] consume</text--->"
+                                   ") )";
+
+/*
+4.9.2 Definition of operator ~gracehashjoinParam~
+
+*/
+Operator extrelgracehashjoinParam(
+         "gracehashjoinParam",         // name
+         GraceHashJoinParamSpec,       // specification
+         GraceHashJoinValueMap<true>,  // value mapping
+         Operator::SimpleSelect,       // trivial selection function
+         JoinTypeMap<5>                // type mapping
+);
+
+/*
 4.10 Operator ~sortmergejoin2Param~
 
 This operator computes the equijoin of two streams. This is
@@ -1830,6 +1993,9 @@ class ExtRelation2Algebra : public Algebra
     AddOperator(&extrel2::extrelhybridhashjoin);
     AddOperator(&extrel2::extrelhybridhashjoinParam);
 
+    AddOperator(&extrel2::extrelgracehashjoin);
+    AddOperator(&extrel2::extrelgracehashjoinParam);
+
     AddOperator(&extrel2::extrelsortmergejoin2);
     AddOperator(&extrel2::extrelsortmergejoin2Param);
 
@@ -1852,6 +2018,9 @@ class ExtRelation2Algebra : public Algebra
 
    extrel2::extrelhybridhashjoin.EnableProgress();
    extrel2::extrelhybridhashjoinParam.EnableProgress();
+
+   extrel2::extrelgracehashjoin.EnableProgress();
+   extrel2::extrelgracehashjoinParam.EnableProgress();
 
    extrel2::extrelsortmergejoin2.EnableProgress();
    extrel2::extrelsortmergejoin2Param.EnableProgress();
