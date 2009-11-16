@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2009, University in Hagen, Department of Computer Science, 
+Copyright (C) 2009, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,7 +45,7 @@ the subclass ~DBArray~ might be used. Since the persistent storage of data is
 organized by the class FlobManager (for tuples on behalf of the RelationAlgebra)
 we do not need to deal with it here.
 
-A Flob provides the user a segment of memory to store any kind of data. Instead 
+A Flob provides the user a segment of memory to store any kind of data. Instead
 of pointers, addresses relative to the start address of the segment (offsets)
 must be used to dynamic data structures within a Flob data segement.
 
@@ -100,7 +100,7 @@ This constructor should only be used within Cast functions.
 Creates a flat copy of the argument. The underlying data are not
 duplicated.
 
-*/   
+*/
   inline Flob(const Flob& other) : id(other.id), size( other.size ) {};
 
 /*
@@ -108,7 +108,7 @@ duplicated.
 
 This construcvtor create a native flob having a given size.
 
-*/    
+*/
     inline Flob (SmiSize size_): id(), size( size_ ){
       FlobManager::getInstance().create(size_, *this);
     };
@@ -123,7 +123,7 @@ Constructs a Flob from a given position.
     inline Flob(const SmiFileId fileId,
                 const SmiRecordId recordId,
                 const SmiSize offset) : id(), size( 0 ){
-         FlobManager::getInstance().create(fileId, recordId, 
+         FlobManager::getInstance().create(fileId, recordId,
                                            offset, size, *this);
     };
 
@@ -160,7 +160,7 @@ Returns the current size of this Flob.
 
 Changes the size of a flob to the given one.
 
-*/    
+*/
     virtual void resize(const SmiSize& newsize) { size = newsize; }
 
 /*
@@ -177,7 +177,7 @@ Cleans the flob. actually only the size is set to be zero.
 Reads a part of the data from this Flob. The ~buffer~ must be provided and disposed
 by the caller of the funtion.
 
-*/   
+*/
     inline void read(char* buffer,
                      const SmiSize length,
                      const SmiSize offset=0) const {
@@ -194,8 +194,8 @@ Puts data providen in ~buffer~ into the Flob at the specified position.
                       const SmiSize length,
                       const SmiSize offset=0){
       if(offset+length > size) {
-        size = offset + length; 
-      } 
+        size = offset + length;
+      }
       FlobManager::getInstance().putData(*this, buffer, offset, length);
     }
 /*
@@ -256,15 +256,17 @@ in parameter ~result~. The data is stored in a new record with offset zero.
 /*
 ~createFrom~
 
-creates a Flob which assumes that the persitent storage for it has been
-created and initialized elsewhere. For example class tuple uses this to
-store small data inside a tuple.
+Creates a Flob referencing a given (FileId/RecordId/Offset). The data is
+expected to be already at the specified location.
+
+For example class tuple uses this to correct the FlobId when persistently storing
+small Flob data within the tuple itself.
 
 */
 
     inline static Flob createFrom( const SmiFileId& fid,
                                    const SmiRecordId& rid,
-                                   const SmiSize& offset, 
+                                   const SmiSize& offset,
                                    const SmiSize& size    ) {
       return  FlobManager::getInstance().createFrom(fid, rid, offset, size);
     };
@@ -274,7 +276,7 @@ store small data inside a tuple.
 /*
 ~destroy~
 
-Destroys this; 
+Destroys this;
 
 */
   void destroy(){
@@ -289,12 +291,12 @@ Destroys this;
 This function saves the header information of this Flob into a record.
 
 */
-  virtual size_t serializeHeader(char* buffer, 
+  virtual size_t serializeHeader(char* buffer,
                                  SmiSize& offset) const{
      WriteVar<SmiSize>(size, buffer, offset);
      WriteVar<FlobId>(id, buffer, offset);
      return headerSize();
-  } 
+  }
 
 /*
 ~restoreHeader~
@@ -327,7 +329,7 @@ at the end of a secondo session. After calling that function Flob access
 is not longer possible.
 
 */
- 
+
   inline static bool destroyManager(){
      return FlobManager::destroyInstance();
   }
