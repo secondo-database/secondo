@@ -52,6 +52,8 @@ clean:
 # local files for documentation
 DOCU_FILES = ExtRelation2Algebra.cpp \
 		     ExtRelation2AlgebraTest.cpp \
+		     HashJoin.h HashJoin.cpp \
+		     GraceHashJoin.h GraceHashJoin.cpp \
 		     HybridHashJoin.h HybridHashJoin.cpp \
 		     Sort.h Sort.cpp \
 		     SortMergeJoin.h SortMergeJoin.cpp \
