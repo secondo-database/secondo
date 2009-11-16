@@ -1,0 +1,169 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2009, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# An example test spec for the Secondo TestRunner
+# run it with : 
+#
+#  TestRunner -i example.test
+#
+# By default a temporary database directory will be created. If you
+# want to use existing databases run
+#
+#  TestRunner --no-tmp -i <file>
+#
+# If one of your tests (say number N ) reports an error you can run
+# it directly by
+#
+# TestRunner -i <file> -num N 
+#
+# this is useful for debugging
+
+set "ERA:TraceGraceHashJoin" = TRUE;
+set "SI:PrintCounters" = TRUE;
+set "SI:PrintCmdTimes" = TRUE;
+set "SI:NoQueryTimers" = TRUE;
+set "SI:NoCommandEcho" = TRUE;
+set "SI:RelStatistics" = TRUE;
+
+##############################################################################
+# Setup
+##############################################################################
+
+#setup gracehashjoin_functional2 StandardAlgebra RelationAlgebra ExtRelation2Algebra
+restore database tmp_germany from '$(HOME)/secondo-data/Databases/germany' 
+
+##############################################################################
+# TestCases
+##############################################################################
+
+#--------------------------------------------------  
+# gracehashjoin- internal case (with LOBs)
+
+#testcase teststep_1_create_data
+#yields success
+let data1 = Kreis feed project[Gebiet] consume;
+
+#testcase teststep_1_create_result
+#yields success
+let result1 = data1 feed {a} data1 feed {b} hashjoin[Gebiet_a, Gebiet_b, 1000] sort consume;
+
+#testcase teststep_1_compare_result
+#yields *result1
+query data1 feed {a} data1 feed {b} gracehashjoin[Gebiet_a, Gebiet_b, 1000] sort consume;
+
+#testcase teststep_1_delete_result
+#yields success
+delete result1;
+
+#testcase teststep_1_delete_data
+#yields success
+delete data1;
+
+#--------------------------------------------------  
+# gracehashjoin- internal case (with LOBs)
+
+#testcase teststep_2_create_data
+#yields success
+let data2 = Kreis feed project[Gebiet] consume;
+
+#testcase teststep_2_create_result
+#yields success
+let result2 = data2 feed {a} data2 feed {b} hashjoin[Gebiet_a, Gebiet_b, 1000] sort consume;
+
+#testcase teststep_2_compare_result
+#yields *result2
+query data2 feed {a} data2 feed {b} gracehashjoinParam[Gebiet_a, Gebiet_b, 1000, 50, 16*1024*1024, 4096] sort consume;
+
+#test256case teststep_2_delete_result
+#yields success
+delete result2;
+
+#testcase teststep_2_delete_data
+#yields success
+delete data2;
+
+#--------------------------------------------------  
+# gracehashjoinParam - external case (wiht LOBs)
+# No subpartitioning
+# No loop processing of partitions of stream B
+# 32 Buckets, 16 Partitions, 32 KByte Memory
+
+#testcase teststep_3_create_data
+#yields success
+let data3 = Kreis feed project[Gebiet] consume;
+
+#testcase teststep_3_create_result
+#yields success
+let result3 = data3 feed {a} data3 feed {b} sortmergejoin[Gebiet_a, Gebiet_b] sort consume;
+
+#testcase teststep_3_compare_result
+#yields *result3
+query data3 feed {a} data3 feed {b} gracehashjoinParam[Gebiet_a, Gebiet_b, 32, 16, 32*1024, 4096] sort consume;
+
+#testcase teststep_3_delete_result
+#yields success
+delete result3;
+
+#testcase teststep_3_delete_data
+#yields success
+delete data3;
+
+#--------------------------------------------------  
+# gracehashjoinParam - external case (wiht LOBs)
+# With Subpartitioning and loop processing of 
+# partitions of stream B
+# 32 Buckets, 2 Partitions, 32 KByte Memory
+# data4 contains only equal tuples with LOB data
+
+#testcase teststep_4_create_data_a
+#yields success
+let data4a = Kreis feed project[Gebiet] consume;
+
+#testcase teststep_4_create_data_b
+#yields success
+let data4b = Kreis feed head[1] Kreis feed project[Bev] {a} product remove[Bev_a] project[Gebiet] consume;
+
+#testcase teststep_4_create_result
+#yields success
+let result4 = data4a feed {a} data4b feed {b} hashjoin[Gebiet_a, Gebiet_b, 1000] sort consume;
+
+#testcase teststep_4_compare_result
+#yields *result4
+query data4a feed {a} data4b feed {b} gracehashjoinParam[Gebiet_a, Gebiet_b, 32, 2, 32*1024, 4096] sort consume;
+
+#testcase teststep_4_delete_result
+#yields success
+delete result4;
+
+#testcase teststep_4_delete_data_a
+#yields success
+delete data4a;
+
+#testcase teststep_4_delete_data_b
+#yields success
+delete data4b;
+
+##############################################################################
+# TearDown
+##############################################################################
+
+#teardown
+close database;
+delete database tmp_germany;
+

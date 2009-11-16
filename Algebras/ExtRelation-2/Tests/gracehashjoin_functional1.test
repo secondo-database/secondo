@@ -1,0 +1,309 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2009, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# An example test spec for the Secondo TestRunner
+# run it with : 
+#
+#  TestRunner -i example.test
+#
+# By default a temporary database directory will be created. If you
+# want to use existing databases run
+#
+#  TestRunner --no-tmp -i <file>
+#
+# If one of your tests (say number N ) reports an error you can run
+# it directly by
+#
+# TestRunner -i <file> -num N 
+#
+# this is useful for debugging
+
+set "ERA:TraceGraceHashJoin" = TRUE;
+set "SI:PrintCounters" = TRUE;
+set "SI:PrintCmdTimes" = TRUE;
+set "SI:NoQueryTimers" = TRUE;
+set "SI:NoCommandEcho" = TRUE;
+set "SI:RelStatistics" = TRUE;
+
+##############################################################################
+# Setup
+##############################################################################
+
+#setup gracehashjoin_functional1 StandardAlgebra RelationAlgebra ExtRelation2Algebra
+restore database tmp_opt from '$(SECONDO_BUILD_DIR)/bin/opt'
+
+##############################################################################
+# TestCases
+##############################################################################
+
+#--------------------------------------------------  
+# gracehashjoin - syntax test
+
+#testcase teststep_1
+#yields success
+query plz feed {a} Orte feed {b} gracehashjoin[Ort_a, Ort_b, 1000] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - syntax test
+
+#testcase teststep_2
+#yields success
+query plz feed {a} Orte feed {b} gracehashjoinParam[Ort_a, Ort_b, 1000, 50, 16*1024*1024, 4096] count;
+
+#--------------------------------------------------  
+# gracehashjoin - syntax error
+
+#testcase teststep_3
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoin count;
+
+#--------------------------------------------------  
+# gracehashjoin - syntax error
+
+#testcase teststep_4
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoin[] count;
+
+#--------------------------------------------------  
+# gracehashjoin - syntax error
+
+#testcase teststep_5
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoin[Ort_a, Ort_b] count;
+
+#--------------------------------------------------  
+# gracehashjoin - syntax error
+
+#testcase teststep_6
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoin[test, Ort_b, 1000] count;
+
+#--------------------------------------------------  
+# gracehashjoin - syntax error
+
+#testcase teststep_7
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoin[Ort_a, test, 1000] count;
+
+#--------------------------------------------------  
+# gracehashjoin - syntax error
+
+#testcase teststep_8
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoin[test1, test2, 1000] count;
+
+#--------------------------------------------------  
+# gracehashjoin - syntax error
+
+#testcase teststep_9
+#yields error
+query plz feed Orte feed gracehashjoin[Ort_a, Ort_b, 1000] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - syntax error
+
+#testcase teststep_10
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoinParam count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - syntax error
+
+#testcase teststep_11
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoinParam[] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - syntax error
+
+#testcase teststep_12
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoinParam[Ort_a, Ort_b] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - syntax error
+
+#testcase teststep_13
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoinParam[Ort_a, Ort_b,1000] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - syntax error
+
+#testcase teststep_14
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoinParam[Ort_a, Ort_b,1000,50] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - syntax error
+
+#testcase teststep_15
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoinParam[Ort_a, Ort_b,1000,50,16*1024*1024] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - syntax error
+
+#testcase teststep_16
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoinParam[test, Ort_b,1000,50,16*1024*1024,4096] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - syntax error
+
+#testcase teststep_17
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoinParam[Ort_a, test,1000,50,16*1024*1024,4096] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - syntax error
+
+#testcase teststep_18
+#yields error
+query plz feed {a} Orte feed {b} gracehashjoinParam[test, test,1000,50,16*1024*1024,4096] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - syntax error
+
+#testcase teststep_19
+#yields error
+query plz feed Orte feed gracehashjoinParam[Ort_a, Ort_b,1000,50,16*1024*1024,4096] count;
+
+#--------------------------------------------------  
+# gracehashjoin - internal case
+
+#testcase teststep_20_create_result
+#yields success
+let result20 = Orte feed {a} plz feed {b} hashjoin[Ort_a, Ort_b, 1000] sort consume;
+
+#testcase teststep_20_compare_result
+#yields *result20
+query Orte feed {a} plz feed {b} gracehashjoin[Ort_a, Ort_b, 1000] sort consume;
+
+#testcase teststep_20_delete_result
+#yields success
+delete result20;
+
+#--------------------------------------------------  
+# gracehashjoinParam - internal case
+
+#testcase teststep_21_create_result
+#yields success
+let result21 = Orte feed {a} plz feed {b} hashjoin[Ort_a, Ort_b, 1000] sort consume;
+
+#testcase teststep_21_compare_result
+#yields *result21
+query Orte feed {a} plz feed {b} gracehashjoinParam[Ort_a, Ort_b, 1000, 50, 16*1024*1024, 4096] sort consume;
+
+#testcase teststep_21_delete_result
+#yields success
+delete result21;
+
+#--------------------------------------------------  
+# gracehashjoinParam - external case 
+# No subpartitioning
+# No loop processing of partitions of stream B
+# 256 Buckets, 16 Partitions, 256 KByte Memory
+
+#testcase teststep_22_create_result
+#yields success
+let result22 = Orte feed {a} plz feed {b} hashjoin[Ort_a, Ort_b, 1000] sort consume;
+
+#testcase teststep_22_compare_result
+#yields *result22
+query Orte feed {a} plz feed {b} gracehashjoinParam[Ort_a, Ort_b, 256, 16, 256*1024, 4096] sort consume;
+
+#testcase teststep_22_delete_result
+#yields success
+delete result22;
+
+#--------------------------------------------------  
+# gracehashjoinParam - external case
+# No subpartitioning
+# But loop processing of some partitions of stream B
+# 16 Buckets, 8 Partitions, 16 KByte Memory
+# 41267 tuples with 20 Bytes => ~806 Kbyte
+# => partition size ~100 Kbyte
+# => each partition from B must be processed ~7 times
+
+#testcase teststep_23_create_result
+#yields success
+let result23 = Orte feed {a} plz feed {b} hashjoin[Ort_a, Ort_b, 1000] sort consume;
+
+#testcase teststep_23_compare_result
+#yields *result23
+query Orte feed {a} plz feed {b} gracehashjoinParam[Ort_a, Ort_b, 16, 8, 16*1024, 4096] sort consume;
+
+#testcase teststep_23_delete_result
+#yields success
+delete result23;
+
+#--------------------------------------------------  
+# gracehashjoinParam - external case (with subpartitioning)
+# With subpartitioning
+# But loop processing of some partitions of stream B
+# 256 Buckets, 16 Partitions, 256 KByte Memory
+# All tuples are mapped to partition 14 (0 based)
+
+#testcase teststep_24_create_data
+#yields success
+let data24 = plz feed head[42] thousand feed product remove[no] consume;
+
+#testcase teststep_24_create_result
+#yields success
+let result24 = Orte feed {a} data24 feed {b} hashjoin[Ort_a, Ort_b, 1000] sort consume;
+
+#testcase teststep_24_compare_result
+#yields *result24
+query Orte feed {a} data24 feed {b} gracehashjoinParam[Ort_a, Ort_b, 256, 16, 256*1024, 4096] sort consume;
+
+#testcase teststep_24_delete_result
+#yields success
+delete result24;
+
+#--------------------------------------------------  
+# gracehashjoin - usage with head operator
+
+#testcase teststep_25
+#yields success
+query plz feed {a} Orte feed {b} gracehashjoin[Ort_a, Ort_b, 1000] head[1000] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - usage with head operator
+
+#testcase teststep_26
+#yields success
+query plz feed {a} Orte feed {b} gracehashjoinParam[Ort_a, Ort_b, 1000, 50, 16*1024*1024, 4096] head[1000] count;
+
+#--------------------------------------------------  
+# gracehashjoinParam - usage with head operator
+
+#testcase teststep_27
+#yields success
+query plz feed {a} Orte feed {b} gracehashjoinParam[Ort_a, Ort_b, 16, 8, 16*1024, 4096] head[1000] count;
+
+
+##############################################################################
+# TearDown
+##############################################################################
+
+#teardown
+close database;
+delete database tmp_opt;
+
