@@ -650,7 +650,10 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
 
       attrSize[i] += tmpFlobSize;
       size += tmpFlobSize;
-      extensionSize += tmpFlobSize;
+
+      if (tmpFlobSize < extensionLimit) {
+        extensionSize += tmpFlobSize;
+      }	
     }
   }
 
