@@ -3040,28 +3040,37 @@ void MReal::AtMax( MReal& result ) const
 // restrict to periods with certain value
 void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
 {
+  assert( IsDefined() );
   assert( ccvalue.IsDefined() );
 
   int noLocalResults = 0;
   UReal actual_ur(false);
   UReal last_ur(false);
-  UReal last_candidate(true);
+  UReal last_candidate(false);
   bool firstCall = true;
   result.Clear();
+  result.SetDefined( true );
   result.StartBulkLoad();
   for(int i=0; i<GetNoComponents(); i++)
   {
 //     cerr << "MReal::AtValue(): Processing unit "
 //          << i << "..." << endl;
     last_ur = actual_ur;
+//    cout << __PRETTY_FUNCTION__ << ": last_ur ="; last_ur.Print(cout);
+//    cout << endl;
     Get( i, actual_ur );
+//    cout << __PRETTY_FUNCTION__ << ": actual_ur ="; actual_ur.Print(cout);
+//    cout << endl;
+    assert( actual_ur.IsDefined() );
     vector<UReal> localResultVec;
     noLocalResults = actual_ur.AtValue( ccvalue, localResultVec );
-//       cerr << "MReal::AtValue(): Unit " << i << " has "
-//            << noLocalResults << " results" << endl;
+//    cerr << "MReal::AtValue(): Unit " << i << " has "
+//         << noLocalResults << " results" << endl;
     for(int j=0; j< noLocalResults; j++)
     {
       UReal candidate = localResultVec[j];
+//      cout << "\t" << __PRETTY_FUNCTION__ << ": candidate=";
+//      candidate.Print(cout); cout << endl;
       // test, whether candidate overlaps last_inserted one
       if( j==0 &&               // check only unit's first local max!
           !firstCall &&         // don't check if there is no last_candidate
@@ -3071,34 +3080,33 @@ void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
           )
         )
       {
-//           cerr << "MReal::AtValue(): unit overlaps last one." << endl;
+//         cerr << "MReal::AtValue(): unit overlaps last one." << endl;
         if( last_candidate.timeInterval.start
             == last_candidate.timeInterval.end )
         { // case 1: drop last_candidate (which is an instant-unit)
-//             cerr << "MReal::AtValue(): drop last unit." << endl;
+//           cerr << "MReal::AtValue(): drop last unit." << endl;
           last_candidate = candidate;
           continue;
         }
         else if( candidate.timeInterval.start
                   == candidate.timeInterval.end )
         { // case 2: drop candidate
-//             cerr << "MReal::AtValue(): drop actual unit." << endl;
+//           cerr << "MReal::AtValue(): drop actual unit." << endl;
           continue;
         }
-        else
-          cerr << "MReal::AtValue(): This should not happen!" << endl;
+        else {
+          cerr << __PRETTY_FUNCTION__ << ": This should not happen!" << endl;
+        }
       }
       else
       { // All is fine. Just insert last_candidate.
-//      cerr << "MReal::AtValue(): unit does not overlap with last." << endl;
-        if(firstCall)
-        {
-//        cerr << "MReal::AtValue(): Skipping insertion of last unit." << endl;
+//         cerr << "MReal::AtValue(): unit does not overlap with last." << endl;
+        if(firstCall) {
+//           cerr << "MReal::AtValue(): Skipping insertion of last unit."
+//                << endl;
           firstCall = false;
-        }
-        else
-        {
-//             cerr << "MReal::AtValue(): Added last unit" << endl;
+        } else {
+//           cerr << "MReal::AtValue(): Adding last unit" << endl;
           result.MergeAdd(last_candidate);
         }
         last_candidate = candidate;
@@ -3110,14 +3118,15 @@ void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
 //            << " does never take the value." << endl;
 //     }
   }
-  if(!firstCall)
-  {
+  if(!firstCall){
     result.MergeAdd(last_candidate);
-//     cerr << "MReal::AtValue(): Added final unit" << endl;
+    cerr << "MReal::AtValue(): Added final unit" << endl;
   }
-//   else
-//     cerr << "MReal::AtValue(): Skipping insertion of final unit." << endl;
+  else{
+    cerr << "MReal::AtValue(): Skipping insertion of final unit." << endl;
+  }
   result.EndBulkLoad();
+  cout << __PRETTY_FUNCTION__ << "result = "; Print(cout); cout << endl << endl;
 }
 
 void MReal::Linearize(MReal& result) const{
@@ -11482,6 +11491,7 @@ int MappingAt_MReal_CcReal( Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   MReal* res = (MReal*) result.addr;
   res->Clear();
+  res->SetDefined( true );
 
   MReal* mr = (MReal*) args[0].addr;
   CcReal* r = (CcReal*) args[1].addr;

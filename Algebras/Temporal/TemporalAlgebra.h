@@ -1259,8 +1259,11 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
   virtual ConstTemporalUnit<Alpha>&
   operator=( const ConstTemporalUnit<Alpha>& i )
   {
-    *((TemporalUnit<Alpha>*)this) = *((TemporalUnit<Alpha>*)&i);
     this->del.isDefined = i.del.isDefined;
+    if( !i.IsDefined() ){
+      return *this;
+    }
+    *((TemporalUnit<Alpha>*)this) = *((TemporalUnit<Alpha>*)&i);
     constValue.CopyFrom( &i.constValue );
     return *this;
   }
@@ -1504,12 +1507,15 @@ struct UReal : public StandardTemporalUnit<CcReal>
 
   virtual UReal& operator=( const UReal& i )
   {
+    del.isDefined = i.del.isDefined;
+    if( !i.IsDefined() ){
+      return *this;
+    }
     *((TemporalUnit<CcReal>*)this) = *((TemporalUnit<CcReal>*)&i);
     a = i.a;
     b = i.b;
     c = i.c;
     r = i.r;
-    del.isDefined = i.del.isDefined;
     return *this;
   }
 /*
@@ -1919,10 +1925,13 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
 
   virtual UPoint& operator=( const UPoint& i )
   {
+    del.isDefined = i.del.isDefined;
+    if( !i.IsDefined() ){
+      return *this;
+    }
     *((TemporalUnit<Point>*)this) = *((TemporalUnit<Point>*)&i);
     p0 = i.p0;
     p1 = i.p1;
-    del.isDefined = i.del.isDefined;
     return *this;
   }
 /*
@@ -3397,19 +3406,12 @@ template <class Alpha>
 void Range<Alpha>::EndBulkLoad( const bool sort )
 {
   assert( !ordered );
-  if( sort )
+  if( !IsDefined() ){
+    intervals.clean();
+  } else if( sort ){
     intervals.Sort( IntervalCompare<Alpha> );
-  ordered = true;
-  //assert( IsValid() );
-  if (!IsValid() )  //do merge first  ????????? I will do it afterwords. DZM
-  {
-   //   Range<Alpha> *copy; //= new Range<Alpha>( 0 );
-   //   copy=this->Clone();
-   //   this->Clear();
-   //   copy->Merge(this);
-   //   cout<<"invalid range found!!!"<<endl;
   }
-  //assert( IsValid() );
+  ordered = true;
   intervals.TrimToSize();
 }
 
@@ -4913,8 +4915,11 @@ template <class Unit, class Alpha>
 void Mapping<Unit, Alpha>::EndBulkLoad( const bool sort )
 {
   assert( !ordered );
-  if( sort )
+  if( !IsDefined() ){
+    units.clean();
+  } else if( sort ){
     units.Sort( UnitCompare<Unit> );
+  }
   ordered = true;
   units.TrimToSize();
   assert( IsValid() );
