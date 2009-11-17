@@ -12127,50 +12127,33 @@ int Mp2OneMpVM( Word* args, Word& result, int message,
    Instant* end = (Instant*)args[2].addr;
 
 
-   if(!arg->IsDefined() || arg->GetNoComponents() == 0){
+   if(    !arg->IsDefined()   || arg->GetNoComponents() == 0
+       || !start->IsDefined() || !end->IsDefined() || (*end < *start) ){
      res->Clear();
      res->SetDefined(false);
      return 0;
    }
    res->Clear();
    res->StartBulkLoad();
-   UPoint up;
-   Line* line = new Line(0);
-   arg->Trajectory(*line);
+
    srand(time(0)+counter);
-
-
    int pos = rand() % arg->GetNoComponents();
-   assert(0<= pos && pos < arg->GetNoComponents());
+   assert( 0<= pos );
+   assert( pos < arg->GetNoComponents() );
+
+   UPoint up;
    arg->Get(pos,up);
-   UPoint* cur = new UPoint(up);
-///
-//   Rectangle<3> xyBox = arg->BoundingBox();
-//   double maxx = xyBox.MaxD(0);
-//   double maxy = xyBox.MaxD(1);
-//   double x = (xyBox.MinD(0)+xyBox.MaxD(0))/2;
-//   double y = (xyBox.MinD(1)+xyBox.MaxD(1))/2;
-//
-//    cout<<pos<<endl;
+   UPoint cur(up);
 
-   double x = (cur->p0.GetX() + counter);
-   double y = (cur->p0.GetY() + counter);
-//   if(x > maxx)
-//      x = (int)(x) % (int)maxx;
-//   if(y > maxy)
-//      x = (int)(x) % (int)maxy;
-//   cout<<x<<" "<<y<<endl;
+   double x = (cur.p0.GetX() + counter); // XRIS: ERROR here!
+   double y = (cur.p0.GetY() + counter); // XRIS: ERROR here!
 
-   Point* p = new Point(true,x,y);
-   cur->p0 = *p;
-   cur->p1 = *p;
-   cur->timeInterval.start = *start;
-   cur->timeInterval.end = *end;
-   cur->p0 = *p;
-   cur->p1 = *p;
-   res->Add(*cur);
-   delete p;
-   delete cur;
+   Point p(true,x,y);
+   cur.timeInterval.start = *start;
+   cur.timeInterval.end = *end;
+   cur.p0 = p;
+   cur.p1 = p;
+   res->Add(cur);
    counter++;
    res->EndBulkLoad(true);
    return 0;
@@ -13134,9 +13117,11 @@ const string submoveSpec =
 
 const string TemporalSpecMp2Onemp  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mpont x starttime x endtime -> x</text--->"
-  "<text>mp2onemp ( _,_,_ )</text--->"
-  "<text>Return an moving point but spatial doesn't change.</text--->"
+  "( <text>mpoint x starttime x endtime -> x</text--->"
+  "<text>mp2onemp ( mp, i1, i2 )</text--->"
+  "<text>WARNING! The implementation does not match this description:\nl"
+  "Return a static moving point with a location from mp, starting at i1, "
+  "and ending at t2.</text--->"
   "<text> query mp2onemp (train1 ,minimum(deftime(train1)),"
   "maximum(deftime(train1)))</text--->"
   ") )";
