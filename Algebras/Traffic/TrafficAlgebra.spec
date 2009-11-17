@@ -1,1 +1,1 @@
-operator mgp2mgpsecunits alias MGPTOMGPSECUNITS pattern _ op [ _ , _ , _ ]
+operator trafficflow alias TRAFFICFLOW pattern _ op

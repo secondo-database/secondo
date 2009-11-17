@@ -352,3 +352,9 @@ Signature: ugpoint -> mgpoint
 Example  : query ugpoint2mgpoint([const ugpoint value( ("2007-01-01-10:10:00.000" "2007-01-01-10:10:01.000" TRUE FALSE)(1 1 1 0.0 84.00595217006948))]);
 Result   : (mgpoint((("2007-01-01-10:10" "2007-01-01-10:10:01" TRUE FALSE) (1 1 1 0.0 84.00595217006948))))
 Tolerance: 0.01%
+
+Operator : mgp2mgpsecunits
+Number   : 1
+Signature: rel(tuple((ai xi))) x ai x network x real -> stream(mgpsecunit)
+Example  : query trains mgp2mgpsecunits [trip, B_NETWORK, 20000.0] transformstream consume;
+Result   : file

@@ -40,7 +40,6 @@ February 2008 - June 2008 Simone Jandt
 #include <string>
 #include "NestedList.h"
 #include "QueryProcessor.h"
-#include "TrafficAlgebra.h"
 
 #ifndef __NETWORK_ALGEBRA_H__
 #error NetworkAlgebra.h is needed by TemporalNetAlgebra.h. \
@@ -66,6 +65,108 @@ used in the ~instant~ type constructor.
 typedef DateTime Instant;
 
 /*
+2 class MGPSecUnit
+
+*/
+
+class MGPSecUnit : public Attribute
+{
+  public:
+
+/*
+2.1 Constructors and Destructor
+
+*/
+
+    MGPSecUnit();
+
+    MGPSecUnit(int secId,  int part, Side direct, double sp,
+               Interval<Instant> timeInterval);
+
+    MGPSecUnit( const MGPSecUnit& in_xOther );
+
+    ~MGPSecUnit();
+
+/*
+2.2 Methods of class ~mgpsecunit~
+
+Get and Set private attributes.
+
+*/
+
+    int GetSecId() const;
+
+    int GetPart()const;
+
+    Side GetDirect() const;
+
+    double GetSpeed()const;
+
+    Interval<Instant> GetTimeInterval() const;
+
+    double GetDurationInSeconds() const;
+
+    void SetSecId(int secId);
+
+    void SetPart(int p);
+
+    void SetDirect(Side dir);
+
+    void SetSpeed(double x);
+
+    void SetTimeInterval(Interval<Instant> time);
+
+    MGPSecUnit& operator=( const MGPSecUnit& in_xOther);
+
+
+/*
+Functions for Secondo integration.
+
+*/
+
+    size_t Sizeof() const;
+
+    size_t HashValue() const;
+
+    void CopyFrom( const Attribute* right );
+
+    int Compare( const Attribute* arg ) const;
+
+    bool Adjacent( const Attribute *arg ) const;
+
+    MGPSecUnit *Clone() const;
+
+    ostream& Print( ostream& os ) const;
+
+    static ListExpr Out(ListExpr typeInfo, Word value);
+
+    static Word In(const ListExpr typeInfo, const ListExpr instance,
+                   const int errorPos, ListExpr& errorInfo, bool& correct);
+
+    static bool CheckKind( ListExpr type, ListExpr& errorInfo );
+
+    int NumOfFLOBs() const;
+
+    FLOB* GetFLOB(const int i);
+
+    static void* Cast(void* addr);
+
+
+/*
+Function for Operations.
+
+*/
+  private:
+
+    int m_secId; //section id
+    int m_part;  //number of part of section if necessary default = 1
+    Side m_direct; // 0=down, 1=up, 2=none
+    double m_speed; // m/s
+    Interval<Instant> m_time;
+
+};
+
+/*
 2 UGPoint
 
 This class will be used in the ~ugpoint~ type constructor, i.e., the type
@@ -73,6 +174,7 @@ constructor for the temporal unit of gpoint values. It inherits from the
 SpatialTemporalUnit class.
 
 */
+
 class UGPoint : public SpatialTemporalUnit<GPoint, 3>
 {
   public:

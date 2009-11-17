@@ -1,8 +1,8 @@
-Database: montest
+Database: networktest
 Restore : no
 
-Operator : mgp2mgpsecunits
+Operator : trafficflow
 Number   : 1
 Signature: rel(tuple((ai xi))) x ai x network x real -> stream(mgpsecunit)
-Example  : query trains mgp2mgpsecunits [trip, net, 20000.0] transformstream consume;
-Result   : file
+Example  : query trains mgp2mgpsecunits [trip, B_NETWORK, 20000.0] trafficflow;
+Result   : crashes
