@@ -56,71 +56,63 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 */
 
-:- op(200, xfx, :).
-
-:- op(800, xfx, =>).
-:- op(800, xfx, <=).
-:- op(800, xfx, #).
-:- op(800, xfx, div).
-:- op(800, xfx, mod).
-:- op(800, xfx, and).
-:- op(800, xfx, starts).
-:- op(800, xfx, contains).
-
-:- op(800, xfx, ==).
-:- op(800, xfx, ##).
-:- op(800, xfx, <<).
-:- op(800, xfx, >>).
-:- op(800, xfx, <<==).
-:- op(800, xfx, >>==).
 :- op(800, xf , ++).
+:- op(200, xfx, :).
+:- op(800, xfx, =>).
+:- op(800, xfx, ==).
+:- op(800, xfx, <=).
+:- op(800, xfx, <<).
+:- op(800, xfx, <<==).
+:- op(800, xfx, >>).
+:- op(800, xfx, >>==).
+:- op(800, xfx, #).
+:- op(800, xfx, ##).
+:- op(800, xfx, adjacent).
+:- op(800, xfx, always).
+:- op(800, xfx, and).
+:- op(800, xfx, at).
+:- op(800, xfx, atinstant).
+:- op(800, xfx, atperiods).
+:- op(800, xfx, attached).
+:- op(800, xfx, before).
 :- op(800, xf , category).
-
+:- op(800, xfx, commonborder).
+:- op(800, xfx, commonborderscan).
+:- op(800, xfx, contains).
+:- op(800, xfx, div).
+:- op(800, xfx, eplus).
+:- op(800, xfx, equalway).
+:- op(800, xfx, ininterior).
+:- op(800, xfx, inside).
+:- op(800, xfx, insideold).
+:- op(800, xfx, intersection).
+:- op(800, xfx, intersects).
+:- op(800, xfx, intersects_new).
 :- op(800, xf , isgrayscale).
 :- op(800, xf , isportrait).
 :- op(800, xf , height).
 :- op(800, xf , leapyear).
 :- op(800, xf , line2region).
+:- op(800, xfx, mod).
+:- op(800, xfx, never).
+:- op(800,  fx, not).
+:- op(800, xfx, onborder).
+:- op(800, xfx, overlaps).
+:- op(800, xfx, or).
+:- op(800, xfx, p_intersects).
+:- op(800, xfx, passes).
 :- op(800, xf , picturedate).
+:- op(800, xfx, present).
 :- op(800, xf , rect2region).
 :- op(800, xf , relcount).
 :- op(800, xf , relcount2).
-
-:- op(800, xfx, inside).
-:- op(800, xfx, insideold).
-:- op(800, xfx, intersects).
-:- op(800, xfx, adjacent).
-:- op(800, xfx, attached).
-:- op(800, xfx, overlaps).
-:- op(800, xfx, onborder).
-:- op(800, xfx, ininterior).
-:- op(800, xfx, touchpoints).
-:- op(800, xfx, intersection).
-:- op(800, xfx, commonborder).
-:- op(800, xfx, commonborderscan).
-
-:- op(800, xfx, or).
-:- op(800,  fx, not).
-
-:- op(800, xfx, before).
-:- op(800, xfx, present).
-:- op(800, xfx, passes).
-:- op(800, xfx, atinstant).
-:- op(800, xfx, atperiods).
-:- op(800, xfx, at).
-
 :- op(800, xfx, satisfies).
-:- op(800, xfx, when).
-:- op(800, xfx, sometimes).
-:- op(800, xfx, never).
-:- op(800, xfx, always).
-:- op(800, xfx, eplus).
-
 :- op(800, xfx, simpleequals).
-
-:- op(800, xfx, intersects_new).
-:- op(800, xfx, p_intersects).
-:- op(800, xfx, equalway).
+:- op(800, xfx, sometimes).
+:- op(800, xfx, starts).
+:- op(800, xfx, touchpoints).
+:- op(800, xfx, union).
+:- op(800, xfx, when).
 
 % Section:Start:opSyntaxPreference_3_e
 % Section:End:opSyntaxPreference_3_e
@@ -149,6 +141,8 @@ Currently implemented:
   * prefix, either 1 or 3 arguments, does not need a rule here, is
 translated by default.
 
+  * prefix, 0 argument: \# ( ), uses implicit argument(s), but no explicit one
+
   * infix, 2 arguments: does not need a rule, translated by default.
 
 For all other forms, a plan\_to\_atom rule has to be programmed explicitly.
@@ -165,6 +159,7 @@ Quick Reference:
 
  OperatorSyntax         |    Use: OperatorType, Arity ( '_' = don't care)
  -----------------------+------------------------------------------------
+ # ()                   |    prefix, 0
  # ( _ )                |    (no explicit specification)
  # ( _, _ )             |    prefix, 2
  # (  _, _, _, ...)     |    (no explicit specification)
@@ -197,7 +192,6 @@ secondoOp( addtupleid,        postfix, 1).
 %secondoOp( aggregateS,       postfixbrackets1, 3). % TODO: special syntax
 secondoOp( approximate,       postfixbrackets1, 3).
 secondoOp( attr,              prefix, 2).
-secondoOp( vec,               prefix, 2).
 secondoOp( attrsize,          postfixbrackets1, 2).
 secondoOp( avg,               postfixbrackets1, 2).
 secondoOp( bbox,              prefix, 1).
@@ -211,7 +205,9 @@ secondoOp( category,          postfix, 1).
 secondoOp( cluster_of,        prefix, 2).
 secondoOp( clustername_of,    prefix, 2).
 secondoOp( colordist,         postfixbrackets1, 2).
+secondoOp( collect_line,      postfix, 1).
 secondoOp( collect_set,       postfix, 1).
+secondoOp( collect_sline,     postfix, 1).
 secondoOp( collect_multiset,  postfix, 1).
 secondoOp( collect_vector,    postfix, 1).
 secondoOp( compare,           prefix, 2).
@@ -278,6 +274,7 @@ secondoOp( filter,            postfixbrackets1, 2).
 secondoOp( find,              prefix, 2).
 secondoOp( flipleft,          postfixbrackets1, 2).
 secondoOp( get,               prefix, 2).
+secondoOp( getcatalog,        prefix, 2).
 secondoOp( getDirectory,      prefix, 2). % also prefix 1
 secondoOp( gettuples,         postfix, 2).
 secondoOp( gettuples2,        postfixbrackets2, 3).
@@ -297,8 +294,6 @@ secondoOp( inserttuplesave,   postfixbrackets2, 3). % also postfixbrackets1, 4+
 secondoOp( insertsave,        postfix, 3).
 secondoOp( intersection_new,  prefix, 2).
 secondoOp( intersection,      prefix, 2).
-secondoOp( intervalend  ,     prefix, 1).
-secondoOp( intervalstart,     prefix, 1).
 secondoOp( insertbtree,       postfixbrackets2, 3).
 secondoOp( inserthash,        postfixbrackets2, 3).
 secondoOp( invert,            prefix, 2).
@@ -327,11 +322,14 @@ secondoOp( loopswitch,        postfixbrackets1, 2).
 secondoOp( loopswitcha,       postfixbrackets2, 3).
 secondoOp( loopswitchb,       postfixbrackets2, 3).
 secondoOp( makeline,          prefix, 2).
+secondoOp( makesline,         prefix, 2).
 secondoOp( makearray,         prefix, 2). % also prefix 1,...,n
 secondoOp( makemvalue,        postfixbrackets1, 2).
 secondoOp( max,               postfixbrackets1, 2).
 secondoOp( maxD,              prefix, 2).
 secondoOp( maxdegree,         prefix, 2).
+secondoOp( maxDuration,       prefix , 0).
+secondoOp( maxInstant,        prefix , 0).
 secondoOp( memshuffle,        postfix, 1).
 secondoOp( merge,             prefix, 2).
 secondoOp( mergediff,         postfix, 2).
@@ -341,11 +339,14 @@ secondoOp( mergeunion,        postfix, 2).
 secondoOp( min,               postfixbrackets1, 2).
 secondoOp( minD,              prefix, 2).
 secondoOp( mindegree,         prefix, 2).
+secondoOp( minDuration,             prefix , 0).
+secondoOp( minInstant,        prefix , 0).
 secondoOp( minus_new,         prefix, 2).
 secondoOp( mirror,            postfixbrackets1, 2).
 secondoOp( move,              prefix, 2).
 secondoOp( multiintersection, prefix, 2). % also prefix 3+
 secondoOp( nanmedtransformstream,postfixbrackets1, 2).
+secondoOp( now,               prefix, 0).
 secondoOp( nnscan,            postfixbrackets2, 3).
 secondoOp( nnsearch,          postfixbrackets2, 4).
 secondoOp( partjoin,          postfixbrackets2, 3).
@@ -366,6 +367,7 @@ secondoOp( product,           postfix, 2).
 secondoOp( projecttransformstream,postfixbrackets1, 2).
 secondoOp( pwdisjoint,        prefix, 2). % also prefix 3+
 secondoOp( puse,              postfixbrackets1, 2).
+secondoOp( randmax,             prefix , 0).
 secondoOp( range,             postfixbrackets2, 4).
 secondoOp( rangeS,            postfixbrackets1, 3).
 secondoOp( rangesearch,       postfixbrackets2, 4).
@@ -384,7 +386,15 @@ secondoOp( rightrangeS,       postfixbrackets1, 2).
 secondoOp( rng_binomial,      prefix, 2).
 secondoOp( rng_flat,          prefix, 2).
 secondoOp( rng_geometric,     prefix, 2).
+secondoOp( rng_getMax,        prefix, 0).
+secondoOp( rng_getMin,        prefix, 0).
+secondoOp( rng_getSeed,       prefix, 0).
+secondoOp( rng_getType,       prefix, 0).
 secondoOp( rng_init,          prefix, 2).
+secondoOp( rng_int,           prefix, 0).
+secondoOp( rng_NoGenerators,  prefix, 0).
+secondoOp( rng_real,          prefix, 0).
+secondoOp( rng_realpos,       prefix, 0).
 secondoOp( rootattrsize,      postfixbrackets1, 2).
 secondoOp( roottuplesize,     postfix, 1).
 secondoOp( rotate,            postfixbrackets1, 4).
@@ -394,6 +404,7 @@ secondoOp( samplempoint,      prefix, 2). % also prefix3, prefix4
 secondoOp( saveObject,        postfixbrackets1, 3).
 secondoOp( scale,             postfixbrackets1, 2). % also postfixbrackets1 3
 secondoOp( sentences,         postfix, 1).
+secondoOp( seqnext,           prefix , 0).
 secondoOp( setoption,         prefix, 2).
 secondoOp( shpexport,         postfixbrackets1, 2). % also 3+4
 secondoOp( shpimport,         postfixbrackets1, 2).
@@ -401,6 +412,7 @@ secondoOp( shuffle3,          postfix, 1).
 secondoOp( sim_create_trip,   postfixbrackets1, 5).
 secondoOp( sim_create_trip,   postfixbrackets1, 6).
 secondoOp( sim_fillup_mpoint, postfixbrackets1, 6).
+secondoOp( sim_print_params,  prefix, 0).
 secondoOp( sim_set_rng,       prefix, 2).
 secondoOp( sim_trips,         postfixbrackets1, 2).
 secondoOp( sim_trips,         postfixbrackets1, 3).
@@ -414,6 +426,7 @@ secondoOp( sortmergejoin_r2,  postfixbrackets2, 4).
 secondoOp( spatialjoin,       postfixbrackets2, 4).
 secondoOp( speedup,           postfixbrackets1, 2).
 secondoOp( stats,             postfixbrackets1, 3).
+secondoOp( stdpgroup,         prefix , 0).
 secondoOp( sum,               postfixbrackets1, 2).
 secondoOp( summarize,         prefix, 1).
 % secondoOp( symmjoin,          postfixbrackets2, 3). % special syntax
@@ -426,6 +439,7 @@ secondoOp( thevertex,         prefix, 2).
 secondoOp( themonth,          prefix, 2).
 secondoOp( theperiod,         prefix, 2).
 secondoOp( tie,               postfixbrackets1, 2).
+secondoOp( today,             prefix, 0).
 secondoOp( toprel,            prefix, 2).
 secondoOp( transformstream,   postfix, 1).
 secondoOp( translate,         postfixbrackets1, 3).
@@ -443,6 +457,7 @@ secondoOp( updatesearchsave,  postfixbrackets3, 4).
 secondoOp( use,               postfixbrackets1, 2).
 secondoOp( use2,              postfixbrackets3, 3).
 secondoOp( var,               postfixbrackets1, 2).
+secondoOp( vec,               prefix, 2).
 secondoOp( width,             postfix, 1).
 secondoOp( windowclippingin,  prefix, 2).
 secondoOp( windowclippingout, prefix, 2).
@@ -452,6 +467,13 @@ secondoOp( within,            postfixbrackets1, 2).
 secondoOp( within2,           postfixbrackets2, 3).
 %secondoOp( whiledo,           postfixbrackets1, 4). % TODO: special syntax
 secondoOp( writeFile,         prefix, 2). % also prefix 3
-
+secondoOp( zero,              prefix , 0).
+secondoOp( delay,             prefix, 2).
 % Section:Start:secondoOp_3_e
+secondoOp( randomdelay,       prefix, 2).
 % Section:End:secondoOp_3_e
+
+/*
+End of file ~opsyntax.pl~
+
+*/

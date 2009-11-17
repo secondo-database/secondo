@@ -51,8 +51,7 @@ can be retrieved by calling
 ----
 
 Operator-related constants used within the cost functions should be
-stored in
-facts
+stored in facts
 
 ---- costConst(+OpName, +ConstName, -Value)
 ----
@@ -198,8 +197,9 @@ reduce the set of possible candidates, so that the cardinality of tuples
 processed by filter will be smaller than the cardinality passed down in the 3rd
 argument of ~cost~. Also, the selectivity passed with the second argument of
 ~cost~ is the ~total~ selectivity. To get the selectivity of the preselection,
-one can analyse the predicate and lookup the table ~storedBBoxSel/3~ for that
-selectivity, which should be passed to the recursive call of ~cost~.
+one can analyse the predicate and lookup the BBox-Selectivity calling
+~getBBoxSel/2~ for that predicate, which should be passed to the recursive call
+of ~cost~.
 
 PROBLEM: What happens with the entropy-optimizer? As for cases 2 + 3, there is
 no problem, as the index is used to create a fresh tuple stream. But, as for
@@ -214,16 +214,13 @@ cost(filter(X, _), Sel, Pred, ResAttrList,
                 ResTupleSize, ResCard, Cost) :-
   isPrefilter(X),     % holds for spatialjoin or loopjoin
   % the prefilter has already reduced the cardinality of candidates
-  simplePred(Pred, PSimple),
-  databaseName(DB),
-  storedBBoxSel(DB, PSimple, BBoxSel),
+  selectivity(Pred, _, BBoxSel, CalcPET, ExpPET),
   ( BBoxSel > 0
     -> RefinementSel is Sel/BBoxSel
     ;  RefinementSel is 1              % if BBoxSel = 0 then ResCard1 is also 0
   ),
   cost(X, BBoxSel, Pred, ResAttrList, ResTupleSize, ResCard1, Cost1),
   costConst(filter, msPerTuple, U),    % ms per tuple
-  storedPET(DB, PSimple, CalcPET, ExpPET),
   ResCard is ResCard1 * RefinementSel,
   Cost is   Cost1
           + ResCard1 * (U + max(CalcPET,ExpPET)),!.
@@ -285,11 +282,9 @@ cost(filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))),
 % rule for standard filter
 cost(filter(X, _), Sel, Pred, ResAttrList,
                 ResTupleSize, ResCard, Cost) :- % 'normal' filter
-  simplePred(Pred, PSimple),
-  databaseName(DB),
   cost(X, Sel, Pred, ResAttrList, ResTupleSize, ResCard1, Cost1),
   costConst(filter, msPerTuple, U),    % ms per tuple
-  storedPET(DB, PSimple, CalcPET, ExpPET),
+  getPET(Pred,CalcPET,ExpPET),
   ResCard is ResCard1 * Sel,
   Cost is   Cost1
           + ResCard1 * (U + max(CalcPET,ExpPET)),!.
@@ -357,6 +352,20 @@ cost(exactmatch(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   Cost is   U
           + V * ResCard,!.
 
+cost(exactmatchS(dbObject(Index), _KeyValue), Sel, _Pred, ResAttrList,
+     ResTupleSize, ResCard, Cost)
+  :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
+  ResAttrList = [[tid, tid, sizeTerm(MemSize, MemSize, 0)]],
+  secDatatype(tid, MemSize, _, _, _, _),
+  ResTupleSize = sizeTerm(MemSize,MemSize,0),
+  costConst(btreelookup, msPerSearch, U),
+  costConst(btreelookup, msPerResultTuple, V),
+  ResCard is ResCard1 * Sel,
+  Cost is   U
+          + V * ResCard * 0.25 ,!. % balance is 75% cost for gettuple
+
 cost(leftrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   :-
   cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
@@ -365,6 +374,20 @@ cost(leftrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   ResCard is ResCard1 * Sel,
   Cost is   U
           + V * ResCard,!.
+
+cost(leftrangeS(dbObject(Index), _KeyValue), Sel, _Pred, ResAttrList,
+     ResTupleSize, ResCard, Cost)
+  :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
+  ResAttrList = [[tid, tid, sizeTerm(MemSize, MemSize, 0)]],
+  secDatatype(tid, MemSize, _, _, _, _),
+  ResTupleSize = sizeTerm(MemSize,MemSize,0),
+  costConst(btreelookup, msPerSearch, U),
+  costConst(btreelookup, msPerResultTuple, V),
+  ResCard is ResCard1 * Sel,
+  Cost is   U
+          + V * ResCard * 0.25 ,!. % balance is 75% cost for gettuple
 
 cost(rightrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   :-
@@ -375,6 +398,20 @@ cost(rightrange(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   Cost is   U
           + V * ResCard,!.
 
+cost(rightrangeS(dbObject(Index), _KeyValue), Sel, _Pred, ResAttrList,
+     ResTupleSize, ResCard, Cost)
+  :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
+  ResAttrList = [[tid, tid, sizeTerm(MemSize, MemSize, 0)]],
+  secDatatype(tid, MemSize, _, _, _, _),
+  ResTupleSize = sizeTerm(MemSize,MemSize,0),
+  costConst(btreelookup, msPerSearch, U),
+  costConst(btreelookup, msPerResultTuple, V),
+  ResCard is ResCard1 * Sel,
+  Cost is   U
+          + V * ResCard * 0.25 ,!. % balance is 75% cost for gettuple
+
 cost(range(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
   costConst(btreelookup, msPerSearch, U),
@@ -383,11 +420,19 @@ cost(range(_, Rel, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   Cost is   U
           + V * ResCard,!.
 
-%% Missing:
-% exactmatchS
-% leftrangeS
-% rightrangeS
-% rangeS
+cost(rangeS(dbObject(Index), _KeyValue), Sel, _Pred, ResAttrList,
+     ResTupleSize, ResCard, Cost)
+  :-
+  dcName2externalName(DcIndexName,Index),
+  getIndexStatistics(DcIndexName, noentries, _DCrelName, ResCard1),
+  ResAttrList = [[tid, tid, sizeTerm(MemSize, MemSize, 0)]],
+  secDatatype(tid, MemSize, _, _, _, _),
+  ResTupleSize = sizeTerm(MemSize,MemSize,0),
+  costConst(btreelookup, msPerSearch, U),
+  costConst(btreelookup, msPerResultTuple, V),
+  ResCard is ResCard1 * Sel,
+  Cost is   U
+          + V * ResCard * 0.25 ,!. % balance is 75% cost for gettuple
 
 cost(loopjoin(X, Y), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   ( (ground(ResAttrList), ResAttrList = ignore)
@@ -449,7 +494,7 @@ cost(sort(X), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   Size is max(Core + Lob, Mem),
   ( (MaxMem / Mem) < ResCard
     -> State is 0
-    ,  State is 1
+    ;  State is 1
   ),
   Cost is   CostX
           + ResCard * Size * (U + O * State)
@@ -478,12 +523,12 @@ cost(mergejoin(X, Y, _, _), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost)
   ),
   ResCard is ResCardX * ResCardY * Sel,
   costConst(mergejoin, msPerTupleRead, U),
-  costConst(mergejoin, msPerResultTuple, X),
-  costConst(mergejoin, msPerResultAttribute, Y),
+  costConst(mergejoin, msPerResultTuple, FX),
+  costConst(mergejoin, msPerResultAttribute, FY),
   length(ResAttrList,NoAttrs),
   Cost is   CostX + CostY
           + (ResCardX + ResCardY) * (ResCardX + ResCardY) * U
-          + ResCard * (X + NoAttrs * Y),!.
+          + ResCard * (FX + NoAttrs * FY),!.
 
 
 cost(sortmergejoin(X, Y, _/*AX*/, _/*AY*/), Sel, Pred,
@@ -715,13 +760,15 @@ cost(rdup(X), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
   costConst(rdup, msPerTuple, U),
   costConst(rdup, msPerComparison, V),
   costConst(rdup, defaultSelectivity, W),
-  Sel1 = Sel/W,  %% claim a fraction of the overall selectivity for rdup
-                 %% rdup filters out an relative amount of (1-W) duplicats
+  Sel1 is Sel/W,  %% claim a fraction of the overall selectivity for rdup
+                  %% rdup filters out an relative amount of (1-W) duplicats
   cost(X, Sel1, Pred, ResAttrList, ResTupleSize, ResCard1, Cost1),
   ResCard is ResCard1 * W,
   Cost is   Cost1
           + ResCard1 * (U + V),!. %% ToDo: Cost function looks strange...
 
+cost(krdup(X,_AttrList), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
+  cost(rdup(X), Sel, Pred, ResAttrList, ResTupleSize, ResCard, Cost), !.
 
 cost(windowintersects(dbobject(_/* Index */), Rel, _/* QueryObj */), Sel, Pred,
                   ResAttrList, ResTupleSize, ResCard, Cost) :-
@@ -755,8 +802,8 @@ cost(windowintersectsS(dbobject(IndexName), _ /* QueryObj */), Sel, Pred,
   ),
   costConst(windowintersects, msPerTuple, U),
   costConst(windowintersects, msPerByte, V),
-  ResTupleSize = sizeTerm(Mem,Core,Lob),
-  SizeE is max(Mem+Lob,Core+Lob), % assuming Rel has only one FLOB
+  ResTupleSize = sizeTerm(TMem,0,0),
+  SizeE is TMem,             % assuming Rel has only one FLOB
   ResCard is ResCard1 * Sel, %% ToDo: Estimate number of results using
                              %%       statistics on Index, Rel, and QueryObj
                              %%       eg. Sel = Keys(Index) * area(bbox(Index))
@@ -778,13 +825,13 @@ cost(gettuples(X, Rel), Sel, Pred,
           addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
     ;  ( delete(ResAttrList1,[_,tid,TidSize],ResAttrList1WOtid), % drop tid-attr
-         negateSizeTerm(TidSize,NegTidSize),                    % adjust size
+         negateSizeTerm(TidSize,NegTidSize),                     % adjust size
          append(ResAttrList1WOtid,ResAttrList2,ResAttrList),     % concat tuples
          addSizeTerms([NegTidSize,ResTupleSize1,ResTupleSize2],ResTupleSize)
        )
   ),
   ResTupleSize2 = sizeTerm(Mem,Core,Lob),
-  SizeE is max(Mem+Lob,Core+Lob), % assuming Rel has only one FLOB
+  SizeE is max(0,max(Mem+Lob,Core+Lob)), % assuming Rel has only one FLOB
   costConst(windowintersects, msPerTuple, U),
   costConst(windowintersects, msPerByte, V),
   Cost is   Cost1           % expected to include cost of 'windowintersectsS'
@@ -867,6 +914,12 @@ cost(createtmpbtree(rel(Rel, _), _), _, _, ResAttrList, ResTupleSize, ResCard,
   card(Rel, ResCard),
   createbtreeTC(C),
   Cost is C * ResCard * log(ResCard).
+
+% predinfo inflicts no cost, it only annotates estimated selectivity and PET
+% for progress estimation by the Secondo kernel
+cost(predinfo(X, _piSel, _piPET), Sel, Pred,
+     ResAttrList, ResTupleSize, ResCard, C) :-
+  cost(X,Sel, Pred, ResAttrList, ResTupleSize, ResCard, C), !.
 
 % Failed to compute the cost -- throw an exception!
 cost(T, S, P, A, TS, RC, Cost) :-
@@ -1012,9 +1065,15 @@ Determine the assessed costs of an input term using rules ~cost/8~.
 
 % costterm(+Term, +Source, +Target, +Result, +Sel, +Pred, -Card, -Cost)
 costterm(Term, Source, Target, Result, Sel, Pred, Card, Cost) :-
-  cost(Term, Sel, Pred, ResAttrList, TupleSize, Card, Cost),
-  setNodeResAttrList(Result, ResAttrList),
-  setNodeTupleSize(Result, TupleSize),
+  ( optimizerOption(improvedcosts)
+   -> ( cost(Term, Sel, Pred, ResAttrList, TupleSize, Card, Cost),
+        setNodeResAttrList(Result, ResAttrList),
+        setNodeTupleSize(Result, TupleSize)
+      )
+   ;  throw(error_Internal(improvedcosts_costterm(Term, Source, Target, Result,
+              Sel, Pred, Card,
+              Cost):should_not_be_called_without_option_improvedcosts))
+  ),
   !.
 
 /*
@@ -1062,11 +1121,16 @@ costConst(sortmergejoin, msPerByteReadSort, 0.00043).
 costConst(symmjoin, msPerTuplePair, 0.2).
 costConst(extend, msPerTuple, 0.0012).
 costConst(extend, msPerTupleAndAttribute, 0.00085).
-costConst(rdup, msPerTuple,0.01).
-costConst(rdup, msPerComparison,0.1).
-costConst(rdup, defaultSelectivity,0.9).
+costConst(rdup, msPerTuple, 0.01).
+costConst(rdup, msPerComparison, 0.1).
+costConst(rdup, defaultSelectivity, 0.9).
 costConst(windowintersects, msPerTuple, 0.00194).
 costConst(windowintersects, msPerByte, 0.0000106).
 
 % Section:Start:costConst_3_e
 % Section:End:costConst_3_e
+
+/*
+End of file ~improvedcosts.pl~
+
+*/
