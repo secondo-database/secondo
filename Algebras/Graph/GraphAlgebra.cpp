@@ -1155,7 +1155,10 @@ int constGraphFun(Word* args, Word& result, int message,
       pointIndex1=((CcInt*)args[8].addr)->GetIntval() - 1;
       pointIndex2=((CcInt*)args[9].addr)->GetIntval() - 1;
     }
-    res =new Graph(true);
+    
+    result = qp->ResultStorage(s);
+    res = (Graph*)(result.addr);
+    res->SetDefined(true);
     qp->Request(args[0].addr,t);
     if(characteristic==1||characteristic==3)
     {
@@ -1189,7 +1192,7 @@ int constGraphFun(Word* args, Word& result, int message,
         res->AddVertex(extIndex1,p1);
         res->AddVertex(extIndex2,p2);
         res->AddEdge(extIndex1,extIndex2,costs);
-    qp->Request(args[0].addr,t);
+        qp->Request(args[0].addr,t);
         tup->DeleteIfAllowed();
   }
     result.setAddr(res);
