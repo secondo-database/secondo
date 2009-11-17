@@ -246,7 +246,6 @@ The destructor.
 
 */
 
-#ifdef USE_SERIALIZATION
 
 void Tuple::Save( SmiRecordFile* file,
                          const SmiFileId& fid,
@@ -262,8 +261,6 @@ void Tuple::Save( SmiRecordFile* file,
 
 #ifdef TRACE_ON
   static   long& saveCtr = Counter::getRef("RA:Tuple::Save");
-  static  long& flobCtr = Counter::getRef("RA:Tuple::Save.FLOBs");
-  static   long& lobCtr  = Counter::getRef("RA:Tuple::Save.LOBs");
   saveCtr++;
 #endif
 
@@ -306,7 +303,6 @@ void Tuple::Save( SmiRecordFile* file,
   TRACE_LEAVE
 }
 
-#endif
 
 void Tuple::Save(TupleFile& tuplefile)
 {
@@ -339,9 +335,7 @@ void Tuple::Save(TupleFile& tuplefile)
 
 
 /*
-
-Saves the updated tuple to disk. Only for the new attributes the real
-LOBs are saved to the lobfile.
+~UpdateSave~ saves updated tuple data to disk.
 
 */
 void Tuple::UpdateSave( const vector<int>& changedIndices,
@@ -349,74 +343,49 @@ void Tuple::UpdateSave( const vector<int>& changedIndices,
                                vector<double>& attrExtSize,
                                vector<double>& attrSize )
 {
-    size_t attrSizes = 0;
+  size_t attrSizes = 0;
+  size_t extensionSize
+	      = CalculateBlockSize( attrSizes, extSize,
+				    size, attrExtSize, attrSize );
 
-    size_t extensionSize
-                = CalculateBlockSize( attrSizes, extSize,
-                                      size, attrExtSize, attrSize );
+  char* data = WriteToBlock( attrSizes, extensionSize );
 
-    char* data = WriteToBlock( attrSizes, extensionSize );
-
-
-    SmiRecord *tupleRecord = new SmiRecord();
-    bool ok = tupleFile->SelectRecord( tupleId, *tupleRecord,
-                                      SmiFile::Update );
-    if (! ok)
-    {
-       DEBUG_MSG("No record found")
-       SHOW(tupleId)
-       assert (false);
-    }
-    int oldRecordSize = tupleRecord->Size();
-
-#ifdef USE_SERIALIZATION
+  SmiRecord *tupleRecord = new SmiRecord();
+  bool ok = tupleFile->SelectRecord( tupleId, *tupleRecord,
+				     SmiFile::Update );
+  if (!ok)
+  {
+     cerr << "Fatal Error: Record for updated tuple not found!" << endl;
+     cerr << "tupleId = " << tupleId << endl;
+     assert (false);
+  }
+  const size_t oldRecordSize = tupleRecord->Size();
 
   uint16_t rootSize = attrSizes + extensionSize;
   const size_t rootSizeLen = sizeof(rootSize);
-
-  int newRecordSize = sizeof(int) + rootSizeLen + rootSize;
+  const size_t bufSize = rootSizeLen + rootSize;
 
   SHOW(rootSize)
-  size_t bufSize = rootSizeLen + rootSize;
-  //char* newBuf = (char*) malloc( bufSize );
-  //memcpy(newBuf, &rootSize, rootSizeLen );
-  //memcpy(newBuf + rootSizeLen, data, rootSize);
+  SHOW(bufSize)
+  SHOW(oldRecordSize)
 
+  // The record must be truncated if its size decreased.
+  if( bufSize < oldRecordSize ){
+    tupleRecord->Truncate( bufSize );
+  }
+
+  // write the new data
   SmiSize len = 0;
   len = tupleRecord->Write(data, bufSize);
   assert(len == bufSize);
 
-  //free( newBuf );
+  tupleRecord->Finish();
+  delete tupleRecord;
 
-#else
-    int newRecordSize = sizeof(int) +
-                      tupleType->GetTotalSize() +
-                      extensionSize;
-
-    // Now write the attributes
-    bool rc = tupleRecord->Write( data,
-                                  tupleType->GetTotalSize() + extensionSize,
-                                  0 );
-
-    assert(rc == true);
-
-#endif
-
-    // The record must be truncated in case the size of a small
-    // FLOB was decreased.
-    SHOW(newRecordSize)
-    SHOW(oldRecordSize)
-    if( newRecordSize < oldRecordSize ){
-      tupleRecord->Truncate( newRecordSize );
-    }
-    tupleRecord->Finish();
-    delete tupleRecord;
-
-    free( data );
+  free( data );
 }
 
 
-#ifdef USE_SERIALIZATION
 
 char* Tuple::WriteToBlock( size_t coreSize,
                            size_t extensionSize,
@@ -434,8 +403,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
   const size_t blockSize = dataSize + recordSizeLen;
 
   char* data = (char*) malloc( blockSize );
-  char* ext  = (char*) malloc( extensionSize );
-  const char* ext_start = ext;
+  char* ext  = data + recordSizeLen + coreSize;
 
           SHOW(recordSizeLen)
           SHOW(coreSize)
@@ -451,7 +419,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
 
   // current position in the extension
   SmiSize extOffset = offset + coreSize;
-  const SmiSize extStart = extOffset;
+  //const SmiSize extStartPos = extOffset;
 
      SHOW(offset)
      SHOW(extOffset)
@@ -496,8 +464,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
           SHOW(*tmpFlob)            
           tmpFlob->read(ext, flobsz);
 
-          
-          DEBUG_EXE( cerr << Array2HexStr(ext, flobsz, 0) << endl; )
+          DEBUG_MSG( Array2HexStr(ext, flobsz) )
             
 
           // adjust the Flobs persistent storage 
@@ -518,6 +485,8 @@ char* Tuple::WriteToBlock( size_t coreSize,
       //Write attribute data        
       currentSize = tupleType->GetAttributeType(i).size;
       SHOW(currentSize)
+       
+      DEBUG_MSG( Array2HexStr( (char*)attributes[i], currentSize) )
       attributes[i]->Serialize( data, currentSize, offset );
       offset += currentSize;
 
@@ -533,6 +502,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
     }
     else if ( st == Attribute::Extension ) {
 
+
       assert( attributes[i]->NumOfFLOBs() == 0 );
 
       currentSize = sizeof(uint32_t);
@@ -542,7 +512,7 @@ char* Tuple::WriteToBlock( size_t coreSize,
 
       currentExtSize = attributes[i]->SerializedSize();
       attributes[i]->Serialize(ext, currentExtSize, 0);
-      DEBUG_EXE( cerr << Array2HexStr(ext, currentExtSize, 0) << endl; )
+      DEBUG_MSG( Array2HexStr(ext, currentExtSize) )
 
       extOffset += currentExtSize;
       ext += currentExtSize;
@@ -561,31 +531,13 @@ char* Tuple::WriteToBlock( size_t coreSize,
 
    }
 
-  char* dest = data + extStart;
   SHOW((void*)data)
-  SHOW((void*)dest)
-  SHOW((void*)ext_start)
-
-  DEBUG_MSG( Array2HexStr(ext_start, extensionSize, 0) )
-
-  memcpy( dest, ext_start, extensionSize); 
-
-#ifdef TRACE_ON
-     //cerr << Array2HexStr((char*)attributes[i], sz, 0) << endl;
-     cerr << Array2HexStr(data, blockSize, 0) << endl;
-#endif
-
-  free( (char*)ext_start ); 
+  DEBUG_MSG( Array2HexStr(data, blockSize) )
 
   TRACE_LEAVE
   return data;
 }
 
-#endif
-
-
-
-#ifdef USE_SERIALIZATION
 
 size_t Tuple::CalculateBlockSize( size_t& coreSize,
                                   double& extSize,
@@ -661,11 +613,6 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
   return extensionSize;
 }
 
-#endif
-
-
-
-#ifdef USE_SERIALIZATION
 
 bool Tuple::ReadFrom(SmiRecord& record) {
 
@@ -683,8 +630,6 @@ bool Tuple::ReadFrom(SmiRecord& record) {
     return false;
   }
 }
-
-#endif
 
 
 
@@ -838,7 +783,7 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
     if ( attr->GetStorageType() == Attribute::Extension )
     {
       // extension serialization
-      // Note: Currently not possible for attribute classes using Flobs 
+      // To do: support for Flob Serialization 
       uint32_t attrExtOffset = 0;
       ReadVar<uint32_t>( attrExtOffset, src, offset );
       SHOW(attrExtOffset)
@@ -858,18 +803,11 @@ void Tuple::InitializeAttributes(char* src, uint16_t rootSize)
 
       SHOW(attributes[i]->NumOfFLOBs())
       SHOW(readData)
-      DEBUG_EXE( cerr << Array2HexStr(src, readData, offset) << endl; );
+      DEBUG_MSG( Array2HexStr(src, readData, offset) );
 
       offset += readData;
 
-      // handle Flobs - currently no special treatment needed
-      /*
-      for( int j = 0; j < numFlobs; j++ )
-      {
-        Flob* tmpFlob = attributes[i]->GetFLOB( j );
-        SHOW(*tmpFlob)
-      }*/
-
+      // Note: No special treatment for Flobs needed!
     }
 
     SHOW(offset)
@@ -899,7 +837,7 @@ void Tuple::InitializeSomeAttributes( const list<int>& aIds,
   for( ; iter != aIds.end(); iter++ )
   {
     int i = *iter;
-    SHOW(i)
+    DEBUG_MSG( "Attribute #" << i << endl )
 
     size_t offset = tupleType->GetAttributeType(i).offset;
     int algId = tupleType->GetAttributeType(i).algId;
@@ -931,41 +869,15 @@ void Tuple::InitializeSomeAttributes( const list<int>& aIds,
       int serialSize = attributes[i]->SerializedSize();
       int readData = (serialSize > 0) ? serialSize : sz;
 
+          SHOW(serialSize)
           SHOW(readData)
-          DEBUG_EXE( cerr << Array2HexStr(src, readData, offset) << endl; )
+          DEBUG_MSG( Array2HexStr(src, readData, offset) )
 
       offset += readData;
 
-      // Read the small FLOBs. The read of LOBs is postponed to its
-      // usage.
-
-      int numFlobs = attributes[i]->NumOfFLOBs();
-
-          SHOW(numFlobs)
-
-      for( int j = 0; j < numFlobs; j++ )
-      {
-        uint32_t flobOffset = 0;
-        ReadVar<uint32_t>( flobOffset, src, offset );
-
-        Flob* tmpFLOB = attributes[i]->GetFLOB( j );
-
-            SHOW(flobOffset)
-            //cerr <<"data = " << Array2HexStr(data, 12, offset) << endl;
-
-        SmiSize dummyOffset = 0;                    
-        SmiSize size = tmpFLOB->getSize();
-        tmpFLOB->restoreHeader( &src[flobOffset], dummyOffset );
-
-        if( size < extensionLimit ) {
-          DEBUG_MSG("small Flob" )
-        } else {
-          DEBUG_MSG("large Flob" )
-        }         
-      }
+      // Note: No special treatment for Flobs needed!
     }
 
-    SHOW( *attributes[i] )
     SHOW( attributes[i]->IsDefined() )
 
     // Call the Initialize function for every attribute
@@ -979,7 +891,6 @@ void Tuple::InitializeSomeAttributes( const list<int>& aIds,
 }
 
 
-#ifdef USE_SERIALIZATION
 
 bool Tuple::Open( SmiRecordFile *tuplefile,
                   SmiFileId lobfileId,
@@ -1007,7 +918,6 @@ bool Tuple::Open( SmiRecordFile *tuplefile,
   TRACE_LEAVE
 }
 
-#endif
 
 
 bool Tuple::OpenPartial( TupleType* newtype, const list<int>& attrIdList,
@@ -2533,366 +2443,4 @@ void Concat( Tuple *r, Tuple *s, Tuple *t )
     t->CopyAttribute( j, s, rnoattrs + j );
   }
 }
-
-
-
-/*
-6 Old Implementation of Tuple Management without Serialization and direct Attribute Access
-
-for an easy comparison of old and new code the old one is kept here, so one can inspect it without
-using CVS to retrieve old code versions.
-
-*/
-
-
-#ifndef USE_SERIALIZATION
-
-void Tuple::Save( SmiRecordFile *tuplefile,
-                         SmiFileId& lobFileId,
-                         double& extSize, double& size,
-                         vector<double>& attrExtSize, vector<double>& attrSize,
-                         bool ignoreLobs /*=false*/)
-{
-  TRACE_ENTER
-
-// static   long& saveCtr = Counter::getRef("RA:Tuple::Save");
-// static  long& flobCtr = Counter::getRef("RA:Tuple::Save.FLOBs");
-// static   long& lobCtr  = Counter::getRef("RA:Tuple::Save.LOBs");
-
-//  saveCtr++;
-
-  // Calculate the size of the small FLOB data which will be
-  // saved together with the tuple attributes and save the LOBs
-  // in the lobFile.
-
-
-  //cerr << "lobFileId = " << lobFileId << endl;
-
-  this->tupleFile = tuplefile;
-  this->lobFileId = lobFileId;
-
-  extSize += tupleType->GetTotalSize();
-  size += tupleType->GetTotalSize();
-
-  size_t attrSizes = tupleType->GetTotalSize();
-  size_t extensionSize
-             = CalculateBlockSize( attrSizes, extSize, size,
-                                   attrExtSize, attrSize);
-
-  lobFileId = this->lobFileId;
-  SHOW(attrSizes)
-  SHOW(extensionSize)
-
-  char* data = WriteToBlock(attrSizes, extensionSize, ignoreLobs);
-
-  // Write the data
-  tupleFile = tuplefile;
-  SmiRecord *tupleRecord = new SmiRecord();
-  tupleId = 0;
-
-  bool rc = tupleFile->AppendRecord( tupleId, *tupleRecord );
-  assert(rc == true);
-  rc = tupleRecord->Write(data, sizeof(uint16_t) + attrSizes + extensionSize,
-                          0);
-  assert(rc == true);
-
-  tupleRecord->Finish();
-  delete tupleRecord;
-
-  free( data );
-
-  TRACE_LEAVE
-}
-
-
-bool Tuple::ReadFrom(SmiRecord& record) {
-
-  size_t offset = 0;
-
-  // we read all attributes within a single block to
-  // avoid frequently fetching small data sizes
-  if( (int)
-      record.Read( tupleData,
-                   tupleType->GetTotalSize(),
-                   offset )                    !=  tupleType->GetTotalSize() )
-  {
-    record.Finish();
-    return false;
-  }
-
-  offset += tupleType->GetTotalSize();
-
-  // Read attribute values from memoryTuple.
-  // Calculate the size of the extension tuple.
-  // Set the lobFile for all LOBs.
-  size_t extensionSize = 0;
-  char *valuePtr = tupleData;
-
-  for( int i = 0; i < noAttributes; i++ )
-  {
-    int algId  = tupleType->GetAttributeType(i).algId;
-    int typeId = tupleType->GetAttributeType(i).typeId;
-    // cast the attribute
-    attributes[i] = (Attribute*)(*(am->Cast(algId, typeId)))(valuePtr);
-
-    attributes[i] = (Attribute*)malloc(tupleType->GetAttributeType(i).size);
-    memcpy(attributes[i], valuePtr, tupleType->GetAttributeType(i).size);
-    attributes[i]->SetFreeAttr();
-    valuePtr += tupleType->GetAttributeType(i).size;
-
-    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
-    {
-      FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
-      if( !tmpFLOB->IsLob() ){
-        extensionSize += tmpFLOB->Size();
-      } else {
-       // tmpFLOB->SetLobFileId( lobFileId );
-      }
-    }
-  }
-
-  // Read the small FLOBs. The read of LOBs is postponed to its usage. As for
-  // the memorytuple read all small FLOBS into a single block and than
-  // distribute them free in memory
-
-  if( extensionSize > 0 )
-  {
-   char* extensionTuple = &tupleData[offset];
-   if( record.Read( extensionTuple, extensionSize,
-                      offset ) != extensionSize )
-    {
-      record.Finish();
-      return false;
-    }
-    char *extensionPtr = extensionTuple;
-    for( int i = 0; i < noAttributes; i++ )
-    {
-      for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
-      {
-        FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
-        if( !tmpFLOB->IsLob() )
-        {
-          tmpFLOB->ReadFrom( extensionPtr );
-          extensionPtr += tmpFLOB->Size();
-        }
-        /*} else {
-          tmpFLOB->SetLobFileId( lobFileId );
-        }*/
-      }
-    }
-  }
-
-  // Call the Initialize function for every attribute
-  // and initialize the reference counter
-  for( int i = 0; i < noAttributes; i++ ){
-    attributes[i]->Initialize();
-    attributes[i]->InitRefs();
-  }
-  return true;
-}
-
-
-bool Tuple::Open( SmiRecordFile *tuplefile,
-                         SmiFileId lobfileId,
-                         PrefetchingIterator *iter )
-{
-  iter->ReadCurrentRecordNumber( tupleId );
-  this->tupleFile = tuplefile;
-  this->lobFileId = lobfileId;
-
-
-  /* In case of the prefetching iterator, we don't need
-   *  to read the data first into a single block.
-   *  Indeed, we can read each attribute by a single call.
-   **/
-
-  size_t offset = 0;
-
-  for( int i = 0; i < noAttributes; i++ )
-  {
-    int algId = tupleType->GetAttributeType(i).algId;
-    int typeId = tupleType->GetAttributeType(i).typeId;
-    int size = tupleType->GetAttributeType(i).size;
-
-    attributes[i] = (Attribute*)malloc(size);
-    if( (int)iter->ReadCurrentData(attributes[i],
-                              size, offset)!=size){
-       // problem in reading, delete all attributes allocated
-       // before
-       for(int k=0;k<=i;k++){
-          free(attributes[k]);
-       }
-       return false;
-    }
-    offset += size;
-    // all fine, cast the attribute
-    attributes[i] = (Attribute*)(*(am->Cast(algId, typeId)))(attributes[i]);
-    attributes[i]->SetFreeAttr();
-
-  }
-
-  // Read the small FLOBs. The read of LOBs is postponed to its
-  // usage.
-
-  for(int i=0; i< noAttributes; i++){
-    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
-    {
-      FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
-      if( !tmpFLOB->IsLob()){
-        void* ptr = tmpFLOB->Malloc();
-        if(ptr){
-           int size = tmpFLOB->Size();
-           if((int)iter->ReadCurrentData( ptr,
-                                          size,
-                                          offset)!=size){
-             // error in getting the data
-             // free all mallocs
-             for(int k=0;k<noAttributes;k++){
-                for(int m=0;m<attributes[i]->NumOfFLOBs();m++){
-                  FLOB* victim = attributes[k]->GetFLOB(m);
-                  if(k<=i || m<=j){ // FLOB buffer already allocated
-                     delete victim;
-                  }
-                }
-                free(attributes[k]);
-             }
-             return false;
-           }
-           offset += size;
-        }
-     } else{
-        //tmpFLOB->SetLobFileId( lobFileId );
-     }
-    }
-  }
-  // Call the Initialize function for every attribute
-  // and initialize the reference counter
-  for( int i = 0; i < noAttributes; i++ ){
-    attributes[i]->Initialize();
-    attributes[i]->InitRefs();
-  }
-
-  return true;
-
-}
-
-
-size_t Tuple::CalculateBlockSize( size_t& coreSize,
-                                  double& extSize,
-                                  double& size,
-                                  vector<double>& attrExtSize,
-                                  vector<double>& attrSize)
-{
-  assert( attrExtSize.size() == attrSize.size() );
-  assert( (size_t)tupleType->GetNoAttributes() >= attrSize.size() );
-
-  //cerr << "this->lobFileId = " << this->lobFileId << endl;
-
-
-  coreSize = tupleType->GetCoreSize();
-  uint32_t extensionSize = 0;
-
-  // Calculate the size of the small FLOB data which will be
-  // saved together with the tuple attributes and save the LOBs
-  // in the lobFile.
-  for( int i = 0; i < tupleType->GetNoAttributes(); i++)
-  {
-    attrExtSize[i] += tupleType->GetAttributeType(i).size;
-    attrSize[i] += tupleType->GetAttributeType(i).size;
-
-    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-    {
-      FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-
-      //assert( i >= 0 && (size_t)i < attrSize.size() );
-      const size_t tmpSize = tmpFLOB->Size();
-
-      attrSize[i] += tmpSize;
-      size += tmpSize;
-
-      if( !tmpFLOB->IsLob() )
-      {
-        //assert( i >= 0 && (size_t)i < attrExtSize.size() );
-        attrExtSize[i] += tmpSize;
-        extSize += tmpSize;
-
-        extensionSize += tmpFLOB->MetaSize();
-        extensionSize += tmpSize;
-      }
-      else
-      {
-        //lobCtr++;
-
-        /* Note: lobFileId is a class member which is *
-         * passed by reference to SaveToLob(...)      */
-
-        if(ignorePersistentLOBs) {
-          if (!tmpFLOB->IsPersistentLob()){
-            tmpFLOB->SaveToLob( lobFileId );
-          }
-        } else {
-           tmpFLOB->SaveToLob( lobFileId );
-        }
-        extensionSize += tmpFLOB->MetaSize();
-      }
-    }
-  }
-
-  return extensionSize;
-}
-
-
-char* Tuple::WriteToBlock(size_t attrSizes, size_t extensionSize) {
-
-  // create a single block able to pick up the roots of the
-  // attributes and all small FLOBs
-
-  size_t blockSize = tupleType->GetTotalSize() + extensionSize;
-
-  assert( blockSize < MAX_TUPLESIZE );
-
-  char* data = (char*) malloc( blockSize );
-
-  int offset = 0;
-
-  // collect all attributes into the memory block
-  for( int i = 0; i < noAttributes; i++)
-  {
-     memcpy( &data[offset], attributes[i],
-              tupleType->GetAttributeType(i).size );
-      offset += tupleType->GetAttributeType(i).size;
-  }
-
-  SHOW( offset )
-  SHOW( tupleType->GetTotalSize() )
-  DEBUG_MSG("Writing tuple to disk!")
-
-
-  // Copy FLOB data to behind the attributes
-  if( extensionSize>0) // there are small FLOBs
-  {
-     char *extensionPtr = &data[offset];
-     for( int i = 0; i < noAttributes; i++)
-     {
-       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
-       {
-         FLOB *tmpFLOB = attributes[i]->GetFLOB(j);
-         if( !tmpFLOB->IsLob() )
-         {
-           extensionPtr += tmpFLOB->WriteTo(extensionPtr);
-         }
-       }
-     }
-     SHOW( (void*)extensionPtr )
-     SHOW( extensionSize )
- }
-
- return data;
-
-}
-
-
-
-#endif
-
 
