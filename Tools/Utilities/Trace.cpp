@@ -34,12 +34,13 @@ string Array2HexStr(const char* data, size_t size, size_t offset /*= 0*/)
   size_t i = 0;
   const size_t k = 16;
   res << endl << "Memory plot of address " << (void*)data << ":" << endl;
+  res << std::hex; 
   while ( i < size )
   {
+    unsigned int val = static_cast<unsigned char>( data[i+offset] ) & 255;  
     res.width(2);
-    res.fill('0');    
-    res << std::hex 
-        << (static_cast<unsigned int>( data[i+offset] ) & 255) << " ";
+    res.fill('0');
+    res << val << " ";
     i++;
     if ( (i % k) == 0) {
       res << endl;

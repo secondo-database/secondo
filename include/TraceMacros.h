@@ -60,14 +60,12 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #undef DEBUG_MSG
 #define DEBUG_MSG(msg) { \
-    cerr << (void*)this \
-         << " " << __FUNCTION__ << "@" << __LINE__ << ": " \
+    cerr << __FUNCTION__ << "@" << __LINE__ << ": " \
          << msg << endl; }
 
 #undef DEBUG_VAL
 #define DEBUG_VAL(var) { \
-    cerr << (void*)this \
-         << " " << __FUNCTION__ << "@" << __LINE__ << ": " \
+    cerr << __FUNCTION__ << "@" << __LINE__ << ": " \
          << #var << " = " << var << endl; }
 
 #undef DEBUG_EXE

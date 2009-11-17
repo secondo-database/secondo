@@ -120,10 +120,10 @@ The functions above converts the data behind a char pointer into a string value.
 
 */
 
-template<class T>
-void ShowMemory(const T& v)
+template<typename T>
+inline string Var2HexStr(const T& v)
 {
-  Array2HexStr( (char*)&v , sizeof(T), 0 );
+  return Array2HexStr( (char*)&v , sizeof(T), 0 );
 }
 
 
