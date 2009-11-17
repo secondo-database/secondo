@@ -117,6 +117,9 @@ class Attribute
 The simple constructor.
 
 */
+    Attribute(void* dummy) : del() {}
+ 
+
     inline virtual ~Attribute()
     {}
 /*
