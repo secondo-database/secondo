@@ -84,6 +84,12 @@ function.
                   Flob& result);    // offset within the record  
 
 
+      bool saveTo(const Flob& src,   // Flob tp save
+                  SmiRecordFile* file,  // target file id
+                  const SmiRecordId& recordId, // target record id
+                  const SmiSize& offset,
+                  Flob& result);    // offset within the record  
+
 /*
 ~saveTo~
 
@@ -97,6 +103,10 @@ is the result of this function.
                   const SmiFileId fileId,
                   Flob& result);  // target file id
 
+      
+     bool saveTo(const Flob& src,             // flob to save
+                 SmiRecordFile* file,  // target file
+                 Flob& result);  // the new flob position
 
 /*
 ~putData~
@@ -157,6 +167,19 @@ by the FlobManager class itself.
 */
 
       FlobManager();
+
+/*
+~dropfile~
+
+If Flob data is stored into a file, the flobmanager will
+create a new File from the file id and keep the open file.
+If the file should be deleted or manipulated by other code,
+the flobmanger has to giv up the control over that file.
+This can be realized by calling the ~dropFile~ function.
+
+*/
+     bool dropFile(const SmiFileId& id);
+
 
 /*
 ~Destructor~

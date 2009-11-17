@@ -115,6 +115,38 @@ __TRACE_LEAVE__
   return file;
 }
 
+/*
+~dropfile~
+
+If Flob data is stored into a file, the flobmanager will
+create a new File from the file id and keep the open file.
+If the file should be deleted or manipulated by other code,
+the flobmanger has to giv up the control over that file.
+This can be realized by calling the ~dropFile~ function.
+
+*/
+  bool FlobManager::dropFile(const SmiFileId& id){
+     __TRACE_ENTER__
+     if(id==nativeFlobs){ // never give up the control of native flobs
+        return false; 
+     }
+     map<SmiFileId, SmiRecordFile*>::iterator it = openFiles.find(id);
+     if(it!= openFiles.end()){
+         SmiRecordFile* file;
+         file  = it->second;
+         file->Close();
+         delete file;
+         openFiles.erase(it);
+         __TRACE_LEAVE__
+         return true;
+      } else{
+        return false; // file  not handled by fm
+        __TRACE_LEAVE__
+      }
+ }
+
+      
+
 
 /*
 ~getData~
@@ -228,8 +260,36 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
      return false;
    }
 
-   SmiRecord record;
    SmiRecordFile* file = getFile(fileId);
+   return saveTo(src, file, recordId, offset, result);
+
+}
+
+
+/*
+~saveTo~
+
+Save the content of a flob into a file at a specific position (given as recordId and 
+offset). This will result in another Flob which is returned as the result of this 
+function. A record with the corresponding id must already exist in the file.
+
+Initial implementation, should be changed to support Flobs larger than the 
+available main memory.
+
+*/
+bool FlobManager::saveTo(const Flob& src,   // Flob to save
+       SmiRecordFile* file,  // target file
+       const SmiRecordId& recordId, // target record id
+       const SmiSize& offset,
+       Flob& result)  {   // offset within the record  
+
+    __TRACE_ENTER__
+   if(src.size==0){
+     __TRACE_LEAVE__
+     return false;
+   }
+
+   SmiRecord record;
    if(!file->SelectRecord(recordId, record, SmiFile::Update)){
      __TRACE_LEAVE__
      return false;
@@ -244,7 +304,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
      return false;
    }
    FlobId id;
-   id.fileId = fileId;
+   id.fileId = file->GetFileId();
    id.recordId = recordId;
    id.offset = offset;
    result.id = id;
@@ -252,6 +312,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
    __TRACE_LEAVE__
    return true;
 }
+
 
 
 /*
@@ -269,10 +330,21 @@ Must be changed to support real large Flobs
              const Flob& src,             // flob to save
              const SmiFileId fileId,      // target file
              Flob& result){         // result
+   
+    SmiRecordFile* file = getFile(fileId);
+    return saveTo(src, file, result);
+}
+
+ bool FlobManager::saveTo(
+             const Flob& src,             // flob to save
+             SmiRecordFile* file,      // target file
+             Flob& result){         // result
+
+
+
  __TRACE_ENTER__
     SmiRecordId recId;
     SmiRecord rec;
-    SmiRecordFile* file = getFile(fileId);
     if(!file->AppendRecord(recId,rec)){
       __TRACE_LEAVE__
       return false;
@@ -289,7 +361,7 @@ Must be changed to support real large Flobs
     getData(src, buffer, 0, src.size);
     rec.Write(buffer, src.size,0);
     rec.Finish();
-    FlobId fid(fileId, recId,0);
+    FlobId fid(file->GetFileId(), recId,0);
     result.id = fid;
     result.size = src.size;
     __TRACE_LEAVE__
@@ -447,6 +519,9 @@ by the FlobManager class itself.
 
     __TRACE_LEAVE__
   }
+
+
+
 
 
 ostream& operator<<(ostream& os, const FlobId& fid) {

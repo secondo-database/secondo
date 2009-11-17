@@ -241,6 +241,27 @@ tuple file. In this case, we speak of a FAKED LOB (or FLOB).
     };
 
 /*
+
+~saveToFile~
+
+Save Flob data to a specified file/record/offset.
+Returns a Flob having a FlobId encoding the file/record/offset
+of the persistent Flob data
+Can e.g. be used to copy the flob data from the (temporary) native LOB
+file to some persistent LOB file, like a relation LOB file or the
+database LOB file. It can also be used to write the LOB data into a
+tuple file. In this case, we speak of a FAKED LOB (or FLOB).
+
+*/
+    inline bool saveToFile(SmiRecordFile* file,
+                          const SmiRecordId rid,
+                          const SmiSize offset,
+                          Flob& result) const{
+      return FlobManager::getInstance().saveTo(*this, file, rid, 
+                                               offset, result);
+    };
+
+/*
 ~saveToFile~
 
 Saves this Flob to the given file id and returns the new created Flob
@@ -250,6 +271,19 @@ in parameter ~result~. The data is stored in a new record with offset zero.
     inline bool saveToFile(const SmiFileId fid,
                           Flob& result) const{
       return FlobManager::getInstance().saveTo(*this, fid, result);
+    };
+
+
+/*
+~saveToFile~
+
+Saves this Flob to the given file and returns the new created Flob
+in parameter ~result~. The data is stored in a new record with offset zero.
+
+*/
+    inline bool saveToFile(SmiRecordFile* file,
+                          Flob& result) const{
+      return FlobManager::getInstance().saveTo(*this, file, result);
     };
 
 
@@ -333,6 +367,18 @@ is not longer possible.
   inline static bool destroyManager(){
      return FlobManager::destroyInstance();
   }
+
+/*
+~dropFile~
+
+Gives up the control of the FlobManager over the specific file.
+
+*/
+  inline static bool dropFile(const SmiFileId& id){
+    return FlobManager::getInstance().dropFile(id);
+  }
+
+
 
   ostream& print(ostream& os) const {
     return os << "[" << id << ", size = " << size << "]";
