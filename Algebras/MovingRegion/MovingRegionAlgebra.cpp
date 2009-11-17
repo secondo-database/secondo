@@ -2448,7 +2448,7 @@ Both segments are not vertical.
             || abs((iey-isy)*(fex-fsx)-(fey-fsy)*(iex-isx))
                  <= eps*epsRelaxFactor;
 
-        if (!collinear) {        	
+        if (!collinear) {
             cerr << setprecision(10)
                  << "parameters for segment orientation comparison:"
                  << endl
@@ -2471,7 +2471,7 @@ Both segments are not vertical.
                  <<"("<<fex<<";"<<fey<<")"
                  <<fno<<" "
                  <<cno<<" "
-                 <<sno              
+                 <<sno
                  << endl;
         }
 
@@ -2705,7 +2705,7 @@ int IRegion::NumOfFLOBs(void) const {
     return 1;
 }
 
-FLOB* IRegion::GetFLOB(const int i) {
+Flob* IRegion::GetFLOB(const int i) {
     if (MRA_DEBUG) cerr << "IRegion::GetFLOB() called" << endl;
 
     assert(i == 0);
@@ -2815,7 +2815,7 @@ URegionEmb::URegionEmb(const Interval<Instant>& tiv,
 
 
 URegionEmb::URegionEmb(
-    DBArray<MSegmentData>* segments,
+    DbArray<MSegmentData>* segments,
     const Interval<Instant>& tiv,
     const Region& region,
     unsigned int pos) :
@@ -2838,13 +2838,13 @@ or counter-clockwise order is maintained within the region unit.
     int cycleStart = 0;
 
     for (int i = 0; i < region.Size(); i += 2) {
-        const HalfSegment *thisHs;
+        HalfSegment thisHs;
         region.Get(i, thisHs);
 
-        const HalfSegment *nextHs;
+        HalfSegment nextHs;
         region.Get(i+2 == region.Size() ? 0 : i+2, nextHs);
 
-        if (thisHs->GetAttr().cycleno != nextHs->GetAttr().cycleno) {
+        if (thisHs.GetAttr().cycleno != nextHs.GetAttr().cycleno) {
             region.Get(cycleStart, nextHs);
             cycleStart = i+2;
         }
@@ -2854,27 +2854,27 @@ or counter-clockwise order is maintained within the region unit.
             cerr << "URegionEmb::URegionEmb() cycleStart="
                  << cycleStart
                  << endl;
-            cerr << "URegionEmb::URegionEmb() thisHs=" << *thisHs << endl;
-            cerr << "URegionEmb::URegionEmb() nextHs=" << *nextHs << endl;
+            cerr << "URegionEmb::URegionEmb() thisHs=" << thisHs << endl;
+            cerr << "URegionEmb::URegionEmb() nextHs=" << nextHs << endl;
         }
 
-        if (thisHs->GetRightPoint() == nextHs->GetLeftPoint()
-            || thisHs->GetRightPoint() == nextHs->GetRightPoint()) {
+        if (thisHs.GetRightPoint() == nextHs.GetLeftPoint()
+            || thisHs.GetRightPoint() == nextHs.GetRightPoint()) {
             if (MRA_DEBUG)
                 cerr << "URegionEmb::URegionEmb() not swapping" << endl;
 
-            MSegmentData dms(thisHs->GetAttr().faceno,
-                             thisHs->GetAttr().cycleno,
-                             thisHs->GetAttr().edgeno,
-                             thisHs->GetAttr().insideAbove,
-                             thisHs->GetLeftPoint().GetX(),
-                             thisHs->GetLeftPoint().GetY(),
-                             thisHs->GetRightPoint().GetX(),
-                             thisHs->GetRightPoint().GetY(),
-                             thisHs->GetLeftPoint().GetX(),
-                             thisHs->GetLeftPoint().GetY(),
-                             thisHs->GetRightPoint().GetX(),
-                             thisHs->GetRightPoint().GetY());
+            MSegmentData dms(thisHs.GetAttr().faceno,
+                             thisHs.GetAttr().cycleno,
+                             thisHs.GetAttr().edgeno,
+                             thisHs.GetAttr().insideAbove,
+                             thisHs.GetLeftPoint().GetX(),
+                             thisHs.GetLeftPoint().GetY(),
+                             thisHs.GetRightPoint().GetX(),
+                             thisHs.GetRightPoint().GetY(),
+                             thisHs.GetLeftPoint().GetX(),
+                             thisHs.GetLeftPoint().GetY(),
+                             thisHs.GetRightPoint().GetX(),
+                             thisHs.GetRightPoint().GetY());
 
             dms.SetDegeneratedInitial(DGM_NONE);
             dms.SetDegeneratedFinal(DGM_NONE);
@@ -2889,18 +2889,18 @@ or counter-clockwise order is maintained within the region unit.
             if (MRA_DEBUG)
                 cerr << "URegionEmb::URegionEmb() swapping" << endl;
 
-            MSegmentData dms(thisHs->GetAttr().faceno,
-                             thisHs->GetAttr().cycleno,
-                             thisHs->GetAttr().edgeno,
-                             thisHs->GetAttr().insideAbove,
-                             thisHs->GetRightPoint().GetX(),
-                             thisHs->GetRightPoint().GetY(),
-                             thisHs->GetLeftPoint().GetX(),
-                             thisHs->GetLeftPoint().GetY(),
-                             thisHs->GetRightPoint().GetX(),
-                             thisHs->GetRightPoint().GetY(),
-                             thisHs->GetLeftPoint().GetX(),
-                             thisHs->GetLeftPoint().GetY());
+            MSegmentData dms(thisHs.GetAttr().faceno,
+                             thisHs.GetAttr().cycleno,
+                             thisHs.GetAttr().edgeno,
+                             thisHs.GetAttr().insideAbove,
+                             thisHs.GetRightPoint().GetX(),
+                             thisHs.GetRightPoint().GetY(),
+                             thisHs.GetLeftPoint().GetX(),
+                             thisHs.GetLeftPoint().GetY(),
+                             thisHs.GetRightPoint().GetX(),
+                             thisHs.GetRightPoint().GetY(),
+                             thisHs.GetLeftPoint().GetX(),
+                             thisHs.GetLeftPoint().GetY());
 
             dms.SetDegeneratedInitial(DGM_NONE);
             dms.SetDegeneratedFinal(DGM_NONE);
@@ -3039,9 +3039,9 @@ const int URegionEmb::GetStartPos() const{
 
 */
 void URegionEmb::GetSegment(
-    const DBArray<MSegmentData>* segments,
+    const DbArray<MSegmentData>* segments,
     int pos,
-    const MSegmentData*& dms) const {
+    MSegmentData& dms) const {
 
     if (MRA_DEBUG)
         cerr << "URegionEmb::GetSegment() called, pos=" << pos
@@ -3049,7 +3049,7 @@ void URegionEmb::GetSegment(
              << segments
              << endl;
 
-    segments->Get(segmentsStartPos+pos, dms);
+    segments->Get(segmentsStartPos+pos, &dms);
 }
 
 /*
@@ -3057,7 +3057,7 @@ void URegionEmb::GetSegment(
 
 */
 void URegionEmb::PutSegment(
-    DBArray<MSegmentData>* segments,
+    DbArray<MSegmentData>* segments,
     int pos,
     const MSegmentData& dms,
     const bool isNew) {
@@ -3076,7 +3076,7 @@ void URegionEmb::PutSegment(
 
 */
 void URegionEmb::SetSegmentInsideAbove(
-    DBArray<MSegmentData>* segments,
+    DbArray<MSegmentData>* segments,
     int pos,
     bool insideAbove) {
 
@@ -3085,9 +3085,9 @@ void URegionEmb::SetSegmentInsideAbove(
              << segments
              << endl;
 
-    const MSegmentData *auxDms;
-    segments->Get(segmentsStartPos+pos, auxDms);
-    MSegmentData dms( *auxDms );
+    MSegmentData auxDms;
+    segments->Get(segmentsStartPos+pos, &auxDms);
+    MSegmentData dms( auxDms );
     dms.SetInsideAbove(insideAbove);
     segments->Put(segmentsStartPos+pos, dms);
 }
@@ -3097,7 +3097,7 @@ void URegionEmb::SetSegmentInsideAbove(
 
 */
 bool URegionEmb::AddSegment(
-    DBArray<MSegmentData>* segments,
+    DbArray<MSegmentData>* segments,
     Region& cr,
     Region& rDir,
     unsigned int faceno,
@@ -3214,10 +3214,10 @@ For each of the already existing segments:
             if (MRA_DEBUG)
                 cerr << "URegionEmb::AddSegment() i=" << i << endl;
 
-            const MSegmentData *auxExistingDms;
+            MSegmentData auxExistingDms;
 
-            segments->Get(segmentsStartPos+i, auxExistingDms);
-            MSegmentData existingDms( *auxExistingDms );
+            segments->Get(segmentsStartPos+i, &auxExistingDms);
+            MSegmentData existingDms( auxExistingDms );
 
 /*
 Check whether the current segment degenerates with this segment in the
@@ -3254,7 +3254,8 @@ using the ~degeneratedInitialNext~ attribute.
                                 existingDms.GetInitialStartX())
                         && nearlyEqual(
                                 dms.GetInitialEndY(),
-                                existingDms.GetInitialStartY())))) {
+                                existingDms.GetInitialStartY()))))
+            {
                 if (MRA_DEBUG)
                     cerr << "URegionEmb::AddSegment() "
                          << "degen'ed initial in " << i
@@ -3527,7 +3528,7 @@ computation.
         }
         cr += hs;
 
-        segments->Resize(segmentsStartPos+segmentsNum+1);
+        segments->resize(segmentsStartPos+segmentsNum+1);
         segments->Put(segmentsStartPos+segmentsNum, dms);
         segmentsNum++;
 
@@ -3589,7 +3590,7 @@ computation.
 
 */
 unsigned int URegionEmb::Plumbline(
-    const DBArray<MSegmentData>* segments,
+    const DbArray<MSegmentData>* segments,
     const UPoint& up,
     const Interval<Instant>& iv) const{
 
@@ -3671,25 +3672,25 @@ Go through all segments...
         if (MRA_DEBUG)
             cerr << "URegionEmb::Plumbline() segment #" << i << endl;
 
-        const MSegmentData *dms;
-        segments->Get(segmentsStartPos+i, dms);
+        MSegmentData dms;
+        segments->Get(segmentsStartPos+i, &dms);
 
 /*
 Calculate position of segment at ~t~.
 
 */
         double p1x =
-            dms->GetInitialStartX()
-            +(dms->GetFinalStartX()-dms->GetInitialStartX())*f;
+            dms.GetInitialStartX()
+            +(dms.GetFinalStartX()-dms.GetInitialStartX())*f;
         double p1y =
-            dms->GetInitialStartY()
-            +(dms->GetFinalStartY()-dms->GetInitialStartY())*f;
+            dms.GetInitialStartY()
+            +(dms.GetFinalStartY()-dms.GetInitialStartY())*f;
         double p2x =
-            dms->GetInitialEndX()
-            +(dms->GetFinalEndX()-dms->GetInitialEndX())*f;
+            dms.GetInitialEndX()
+            +(dms.GetFinalEndX()-dms.GetInitialEndX())*f;
         double p2y =
-            dms->GetInitialEndY()
-            +(dms->GetFinalEndY()-dms->GetInitialEndY())*f;
+            dms.GetInitialEndY()
+            +(dms.GetFinalEndY()-dms.GetInitialEndY())*f;
 
         if (MRA_DEBUG)
             cerr << "URegionEmb::Plumbline() p1x=" << p1x
@@ -4536,7 +4537,7 @@ of the segments.
 */
 
 void URegionEmb::RestrictedIntersectionFind(
-    const DBArray<MSegmentData>* segments,
+    const DbArray<MSegmentData>* segments,
     const UPoint& up,
     const Interval<Instant>& iv,
     vector<TrapeziumSegmentIntersection>& vtsi) const {
@@ -4553,8 +4554,8 @@ sufficient context to understand this method.
     restrictUPointToInterval(up, iv, rUp);
 
     for (unsigned int i = 0; i < segmentsNum; i++) {
-        const MSegmentData *dms;
-        segments->Get(segmentsStartPos+i, dms);
+        MSegmentData dms;
+        segments->Get(segmentsStartPos+i, &dms);
 
         if (MRA_DEBUG) {
             cerr << "URegionEmb::RIF() segment #"
@@ -4566,7 +4567,7 @@ sufficient context to understand this method.
                  << " "
                  << timeInterval.lc << " " << timeInterval.rc
                  << "] "
-                 << dms->ToString()
+                 << dms.ToString()
                  << endl;
             cerr << "URegionEmb::RIF() point is ["
                  << up.timeInterval.start.ToDouble()
@@ -4593,7 +4594,7 @@ sufficient context to understand this method.
         }
 
         MSegmentData rDms;
-        dms->restrictToInterval(timeInterval, iv, rDms);
+        dms.restrictToInterval(timeInterval, iv, rDms);
 
         if (MRA_DEBUG) {
             cerr << "URegionEmb::RIF() segment restricted to iv is "
@@ -4988,7 +4989,7 @@ the interval of the two units (this is not checked and must be assured
 before this method is called!).
 
 */
-void URegionEmb::RestrictedIntersection(const DBArray<MSegmentData>* segments,
+void URegionEmb::RestrictedIntersection(const DbArray<MSegmentData>* segments,
                                         const UPoint& up,
                                         const Interval<Instant>& iv,
                                         MPoint& res,
@@ -5037,7 +5038,7 @@ void URegionEmb::RestrictedIntersection(const DBArray<MSegmentData>* segments,
 
 */
 void URegionEmb::TemporalFunction(
-    const DBArray<MSegmentData>* segments,
+    const DbArray<MSegmentData>* segments,
     const Instant& t,
     Region& res,
     bool ignoreLimits ) const {
@@ -5080,21 +5081,21 @@ are not border of any region, and create region.
                      << ")"
                      << endl;
 
-            const MSegmentData *dms;
-            segments->Get(segmentsStartPos+i, dms);
+            MSegmentData dms;
+            segments->Get(segmentsStartPos+i, &dms);
 
             double xs =
-                dms->GetInitialStartX()
-                +(dms->GetFinalStartX()-dms->GetInitialStartX())*f;
+                dms.GetInitialStartX()
+                +(dms.GetFinalStartX()-dms.GetInitialStartX())*f;
             double ys =
-                dms->GetInitialStartY()
-                +(dms->GetFinalStartY()-dms->GetInitialStartY())*f;
+                dms.GetInitialStartY()
+                +(dms.GetFinalStartY()-dms.GetInitialStartY())*f;
             double xe =
-                dms->GetInitialEndX()
-                +(dms->GetFinalEndX()-dms->GetInitialEndX())*f;
+                dms.GetInitialEndX()
+                +(dms.GetFinalEndX()-dms.GetInitialEndX())*f;
             double ye =
-                dms->GetInitialEndY()
-                +(dms->GetFinalEndY()-dms->GetInitialEndY())*f;
+                dms.GetInitialEndY()
+                +(dms.GetFinalEndY()-dms.GetInitialEndY())*f;
 
             if (MRA_DEBUG)
                 cerr << "URegionEmb::TemporalFunction()   value is "
@@ -5109,13 +5110,13 @@ are not border of any region, and create region.
                 continue;
             }
 
-            assert(dms->GetDegeneratedInitial() != DGM_UNKNOWN);
-            assert(dms->GetDegeneratedFinal() != DGM_UNKNOWN);
+            assert(dms.GetDegeneratedInitial() != DGM_UNKNOWN);
+            assert(dms.GetDegeneratedFinal() != DGM_UNKNOWN);
 
             if ((initialInstant
-                 && dms->GetDegeneratedInitial() == DGM_IGNORE)
+                 && dms.GetDegeneratedInitial() == DGM_IGNORE)
                 || (finalInstant
-                    && dms->GetDegeneratedFinal() == DGM_IGNORE)) {
+                    && dms.GetDegeneratedFinal() == DGM_IGNORE)) {
                 if (MRA_DEBUG)
                     cerr << "URegionEmb::TemporalFunction()   "
                          << "ignored degenerated"
@@ -5133,19 +5134,19 @@ are not border of any region, and create region.
             hs.attr.partnerno = partnerno++;
 
             if (initialInstant
-                 && dms->GetDegeneratedInitial() == DGM_INSIDEABOVE)
+                 && dms.GetDegeneratedInitial() == DGM_INSIDEABOVE)
                 hs.attr.insideAbove = true;
             else if (initialInstant
-                 && dms->GetDegeneratedInitial() == DGM_NOTINSIDEABOVE)
+                 && dms.GetDegeneratedInitial() == DGM_NOTINSIDEABOVE)
                 hs.attr.insideAbove = false;
             else if (finalInstant
-                 && dms->GetDegeneratedFinal() == DGM_INSIDEABOVE)
+                 && dms.GetDegeneratedFinal() == DGM_INSIDEABOVE)
                 hs.attr.insideAbove = true;
             else if (finalInstant
-                 && dms->GetDegeneratedFinal() == DGM_NOTINSIDEABOVE)
+                 && dms.GetDegeneratedFinal() == DGM_NOTINSIDEABOVE)
                 hs.attr.insideAbove = false;
             else
-                hs.attr.insideAbove = dms->GetInsideAbove();
+                hs.attr.insideAbove = dms.GetInsideAbove();
 
             res += hs;
             hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
@@ -5156,31 +5157,31 @@ are not border of any region, and create region.
 
     if (MRA_DEBUG)
         for (int i = 0; i < res.Size(); i++) {
-            const HalfSegment *hs;
+            HalfSegment hs;
             res.Get(i, hs);
 
             cerr << "URegionEmb::TemporalFunction() segment #"
                  << i
                  << " lp=("
-                 << hs->GetLeftPoint().GetX()
+                 << hs.GetLeftPoint().GetX()
                  << ", "
-                 << hs->GetLeftPoint().GetY()
+                 << hs.GetLeftPoint().GetY()
                  << ") rp=("
-                 << hs->GetRightPoint().GetX()
+                 << hs.GetRightPoint().GetX()
                  << ", "
-                 << hs->GetRightPoint().GetY()
+                 << hs.GetRightPoint().GetY()
                  << ") ldp="
-                 << hs->IsLeftDomPoint()
+                 << hs.IsLeftDomPoint()
                  << " attr="
-                 << hs->attr.faceno
+                 << hs.attr.faceno
                  << " "
-                 << hs->attr.cycleno
+                 << hs.attr.cycleno
                  << " "
-                 << hs->attr.edgeno
+                 << hs.attr.edgeno
                  << " "
-                 << hs->attr.partnerno
+                 << hs.attr.partnerno
                  << " "
-                 << hs->attr.insideAbove
+                 << hs.attr.insideAbove
                  << endl;
         }
 }
@@ -5205,7 +5206,7 @@ static URegionEmb* InURegionEmbedded(
     const ListExpr instance,
     const int errorPos,
     ListExpr& errorInfo,
-    DBArray<MSegmentData>* segments,
+    DbArray<MSegmentData>* segments,
     unsigned int segmentsStartPos) {
 
     if (MRA_DEBUG)
@@ -5298,7 +5299,7 @@ any.
 */
     URegionEmb* uregion = new URegionEmb(tinterval, segmentsStartPos);
 
-    
+
     int pointno = -1;
     unsigned int faceno = 0;
     unsigned int partnerno = 0;
@@ -5411,7 +5412,7 @@ any.
             int h = cr.Size()-(rDir.Size()*2);
             int i = initialSegmentsNum;
             while (h < cr.Size()) {
-                const HalfSegment *hsInsideAbove;
+                HalfSegment hsInsideAbove;
                 bool insideAbove;
 
                 cr.Get(h, hsInsideAbove);
@@ -5420,10 +5421,10 @@ any.
                     cerr << "InURegionEmbedded() i="
                          << i
                          << " insideAbove="
-                         << hsInsideAbove->attr.insideAbove
+                         << hsInsideAbove.attr.insideAbove
                          << endl;
 
-                if (direction == hsInsideAbove->attr.insideAbove)
+                if (direction == hsInsideAbove.attr.insideAbove)
                     insideAbove = false;
                 else
                     insideAbove = true;
@@ -5433,7 +5434,7 @@ any.
                 //hsInsideAbove.attr.insideAbove = insideAbove;
                 //cr.UpdateAttr(h, hsInsideAbove.attr);
 
-                //cr.Get(h+1, hsInsideAbove);
+                //cr.Get(h+1, &hsInsideAbove);
                 //hsInsideAbove.attr.insideAbove = insideAbove;
                 //cr.UpdateAttr(h+1, hsInsideAbove.attr);
 
@@ -5459,13 +5460,13 @@ any.
 
     if (MRA_DEBUG)
         for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
-            const MSegmentData *dms;
+            MSegmentData dms;
             uregion->GetSegment(segments, i, dms);
 
             cerr << "InURegionEmbedded() segment #"
                  << i
                  << ": "
-                 << dms->ToString()
+                 << dms.ToString()
                  << endl;
         }
 
@@ -5480,9 +5481,9 @@ and inside below segments, we can ignore the entire list.
 
 */
     for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
-        const MSegmentData *auxDms;
+        MSegmentData auxDms;
         uregion->GetSegment(segments, i, auxDms);
-        MSegmentData dms( *auxDms );
+        MSegmentData dms( auxDms );
 
         if (!dms.GetPointInitial() && dms.GetDegeneratedInitialNext() < 0)
             nonTrivialInitial = true;
@@ -5491,7 +5492,7 @@ and inside below segments, we can ignore the entire list.
 
         if (dms.GetDegeneratedInitial() == DGM_UNKNOWN) {
             if (dms.GetDegeneratedInitialNext() >= 0) {
-                const MSegmentData *auxDegenDms;
+                MSegmentData auxDegenDms;
                 MSegmentData degenDms;
                 unsigned int numInsideAbove = 0;
                 unsigned int numNotInsideAbove = 0;
@@ -5499,7 +5500,7 @@ and inside below segments, we can ignore the entire list.
                      j != 0;
                      j = degenDms.GetDegeneratedInitialNext()) {
                     uregion->GetSegment(segments, j-1, auxDegenDms);
-                    degenDms = *auxDegenDms;
+                    degenDms = auxDegenDms;
                     if (MRA_DEBUG)
                         cerr << "InURegionEmbedded() degen-magic-i "
                              << i
@@ -5552,7 +5553,7 @@ and inside below segments, we can ignore the entire list.
 
         if (dms.GetDegeneratedFinal() == DGM_UNKNOWN) {
             if (dms.GetDegeneratedFinalNext() >= 0) {
-                const MSegmentData *auxDegenDms;
+                MSegmentData auxDegenDms;
                 MSegmentData degenDms;
                 unsigned int numInsideAbove = 0;
                 unsigned int numNotInsideAbove = 0;
@@ -5560,7 +5561,7 @@ and inside below segments, we can ignore the entire list.
                      j != 0;
                      j = degenDms.GetDegeneratedFinalNext()) {
                     uregion->GetSegment(segments, j-1, auxDegenDms);
-                    degenDms = *auxDegenDms;
+                    degenDms = auxDegenDms;
                     if (MRA_DEBUG)
                         cerr << "InURegionEmbedded() degen-magic-f "
                              << i
@@ -5616,14 +5617,14 @@ and inside below segments, we can ignore the entire list.
 
    if (MRA_DEBUG)
         for (int i = 0; i < uregion->GetSegmentsNum(); i++) {
-            const MSegmentData *dms;
+            MSegmentData dms;
 
             uregion->GetSegment(segments, i, dms);
 
             cerr << "InURegionEmbedded() resulting segment #"
                  << i
                  << ": "
-                 << dms->ToString()
+                 << dms.ToString()
                  << endl;
         }
 
@@ -5636,7 +5637,7 @@ and inside below segments, we can ignore the entire list.
 */
 static ListExpr OutURegionEmbedded(
     const URegionEmb* ur,
-    DBArray<MSegmentData>* segments) {
+    DbArray<MSegmentData>* segments) {
 
     if (MRA_DEBUG)
          cerr << "OutURegionEmbedded() called" << endl;
@@ -5662,34 +5663,34 @@ these changes.
         if (MRA_DEBUG)
             cerr << "OutURegionEmbedded() segment #" << i << endl;
 
-        const MSegmentData* dms;
+        MSegmentData dms;
         ur->GetSegment(segments, i, dms);
 
         if (MRA_DEBUG)
-            cerr << "OutURegionEmbedded() returned, dms=" << dms << endl;
+            cerr << "OutURegionEmbedded() returned, dms=" << &dms << endl;
 
         if (MRA_DEBUG)
             cerr << "OutURegionEmbedded() point is "
-                 << dms->GetFaceNo()
+                 << dms.GetFaceNo()
                  << " "
-                 << dms->GetCycleNo()
+                 << dms.GetCycleNo()
                  << " ("
-                 << dms->GetInitialStartX()
+                 << dms.GetInitialStartX()
                  << ", "
-                 << dms->GetInitialStartY()
+                 << dms.GetInitialStartY()
                  << ", "
-                 << dms->GetFinalStartX()
+                 << dms.GetFinalStartX()
                  << ", "
-                 << dms->GetFinalStartY()
+                 << dms.GetFinalStartY()
                  << ")"
                  << endl;
 
         ListExpr p =
             nl->FourElemList(
-                nl->RealAtom(dms->GetInitialStartX()),
-                nl->RealAtom(dms->GetInitialStartY()),
-                nl->RealAtom(dms->GetFinalStartX()),
-                nl->RealAtom(dms->GetFinalStartY()));
+                nl->RealAtom(dms.GetInitialStartX()),
+                nl->RealAtom(dms.GetInitialStartY()),
+                nl->RealAtom(dms.GetFinalStartX()),
+                nl->RealAtom(dms.GetFinalStartY()));
 
         if (cycle == nl->TheEmptyList()) {
             if (MRA_DEBUG) cerr << "OutURegionEmbedded() new cycle" << endl;
@@ -5701,12 +5702,12 @@ these changes.
             cycleLastElem = nl->Append(cycleLastElem, p);
         }
 
-        const MSegmentData *nextDms;
+        MSegmentData nextDms;
         if (i < num-1) ur->GetSegment(segments, i+1, nextDms);
 
         if (i == num-1
-            || dms->GetCycleNo() != nextDms->GetCycleNo()
-            || dms->GetFaceNo() != nextDms->GetFaceNo()) {
+            || dms.GetCycleNo() != nextDms.GetCycleNo()
+            || dms.GetFaceNo() != nextDms.GetFaceNo()) {
             if (MRA_DEBUG)
                 cerr << "OutURegionEmbedded() end of cycle" << endl;
 
@@ -5722,7 +5723,7 @@ these changes.
             }
 
             if (i == num-1
-                || dms->GetFaceNo() != nextDms->GetFaceNo()) {
+                || dms.GetFaceNo() != nextDms.GetFaceNo()) {
                 if (MRA_DEBUG)
                     cerr << "OutURegionEmbedded() end of face" << endl;
                 if (faces == nl->TheEmptyList()) {
@@ -5779,7 +5780,7 @@ URegion::URegion(unsigned int n) :
 URegion :: URegion(vector<MSegmentData> linelist, const Interval<Instant>& tiv):
    SpatialTemporalUnit<Region, 3>(true)
 {
-	segments = DBArray<MSegmentData>(0);
+	segments = DbArray<MSegmentData>(0);
 	Interval<Instant> newTiv;
 	newTiv.CopyFrom(tiv);
   	uremb= URegionEmb(newTiv, 0);
@@ -5788,73 +5789,73 @@ URegion :: URegion(vector<MSegmentData> linelist, const Interval<Instant>& tiv):
 //  	{
 //  		MSegmentData newSeg = MSegmentData(linelist[i]);
 //  		cout<<i<<"  :"<<linelist[i].ToString()<<endl;
-////  		AddSegment(linelist[i]);  		        
+////  		AddSegment(linelist[i]);
 //  	}
 //  	assert(false);
 	while(linelist.size() > 0)
 	{
-		int index = getLeftLower(linelist);		
+		int index = getLeftLower(linelist);
 		MSegmentData first = linelist[index];
-#ifdef MR_DEBUG		
+#ifdef MR_DEBUG
 		cout<<index<<endl;
 		cout<<first.ToString()<<endl;
-#endif					
+#endif
 		int counter = 1;
-		AddSegment(MSegmentData(linelist[index].GetFaceNo(), 
+		AddSegment(MSegmentData(linelist[index].GetFaceNo(),
 		   linelist[index].GetCycleNo(), counter, true,
-		   linelist[index].GetInitialStartX(), 
-		   linelist[index].GetInitialStartY(), 
-		   linelist[index].GetInitialEndX(), 
+		   linelist[index].GetInitialStartX(),
+		   linelist[index].GetInitialStartY(),
+		   linelist[index].GetInitialEndX(),
 		   linelist[index].GetInitialEndY(),
-		   linelist[index].GetFinalStartX(), 
-		   linelist[index].GetFinalStartY(), 
-		   linelist[index].GetFinalEndX(), 
+		   linelist[index].GetFinalStartX(),
+		   linelist[index].GetFinalStartY(),
+		   linelist[index].GetFinalEndX(),
 		   linelist[index].GetFinalEndY()));
 		linelist.erase(linelist.begin() + index);
 		index = findNextToRight(linelist, first);
 		MSegmentData next = linelist[index];
-		AddSegment(next);					
-#ifdef MR_DEBUG								
+		AddSegment(next);
+#ifdef MR_DEBUG
 		cout<<"Next: "<<next.ToString()<<endl;
-#endif					
-		counter = 2;				
-		while(1 == 1)		
-		{	
+#endif
+		counter = 2;
+		while(1 == 1)
+		{
 			MSegmentData nextins;
 			if(matchesLeft(next, linelist[index]) || counter == 1)
-			{				
+			{
                nextins = MSegmentData(linelist[index].GetFaceNo(),
 				   linelist[index].GetCycleNo(), counter, true,
-				   linelist[index].GetInitialStartX(), 
-				   linelist[index].GetInitialStartY(), 
-				   linelist[index].GetInitialEndX(), 
+				   linelist[index].GetInitialStartX(),
+				   linelist[index].GetInitialStartY(),
+				   linelist[index].GetInitialEndX(),
 				   linelist[index].GetInitialEndY(),
-				   linelist[index].GetFinalStartX(), 
-				   linelist[index].GetFinalStartY(), 
-				   linelist[index].GetFinalEndX(), 
+				   linelist[index].GetFinalStartX(),
+				   linelist[index].GetFinalStartY(),
+				   linelist[index].GetFinalEndX(),
 				   linelist[index].GetFinalEndY());
 			}
 			else
 			{
-               nextins = MSegmentData(linelist[index].GetFaceNo(), 
+               nextins = MSegmentData(linelist[index].GetFaceNo(),
 				   linelist[index].GetCycleNo(), counter, false,
-				   linelist[index].GetInitialEndX(), 
-				   linelist[index].GetInitialEndY(), 
-				   linelist[index].GetInitialStartX(), 
+				   linelist[index].GetInitialEndX(),
+				   linelist[index].GetInitialEndY(),
+				   linelist[index].GetInitialStartX(),
 				   linelist[index].GetInitialStartY(),
-				   linelist[index].GetFinalEndX(), 
-				   linelist[index].GetFinalEndY(), 
-				   linelist[index].GetFinalStartX(), 
+				   linelist[index].GetFinalEndX(),
+				   linelist[index].GetFinalEndY(),
+				   linelist[index].GetFinalStartX(),
 				   linelist[index].GetFinalStartY());
 			}
 			next=linelist[index];
-			AddSegment(nextins);			
+			AddSegment(nextins);
 			linelist.erase(linelist.begin() + index);
 			index=findNext(linelist, next);
-#ifdef MR_DEBUG			
+#ifdef MR_DEBUG
 			cout<<index<<endl;
 						cout<<nextins.ToString()<<endl;
-#endif			
+#endif
 			if(matches(first, next) && counter > 2)
 			{
 #ifdef MR_DEBUG
@@ -5868,60 +5869,60 @@ URegion :: URegion(vector<MSegmentData> linelist, const Interval<Instant>& tiv):
 			{
 #ifdef MR_DEBUG
 				cout<<" false"<<endl;
-#endif				
+#endif
 			}
 			if(index == -1)
 			{
-#ifdef MR_DEBUG				
+#ifdef MR_DEBUG
                for(unsigned int i = 0; i < linelist.size(); i++)
-  				{  				
+  				{
                    cout<<i<<"  :"<<linelist[i].ToString()<<endl;
   				}
   				cout<<"gesucht: "<<next.ToString()<<endl;
-#endif  				
+#endif
   				linelist.erase(linelist.begin()+index);
   				break;
 			}
 			counter++;
-		}					
+		}
 	}
-  	SetDefined(true);  	
+  	SetDefined(true);
 }
 
 int URegion :: getLeftLower(const vector<MSegmentData> &linelist)
-{	
+{
 	int res = 0;
 	for(unsigned int i = 1; i < linelist.size(); i++)
 	{
-		Point leftIs = Point(true, linelist[res]. GetInitialStartX(), 
+		Point leftIs = Point(true, linelist[res]. GetInitialStartX(),
 		   linelist[res].GetInitialStartY());
-		Point leftIe = Point(true, linelist[res].GetInitialEndX(), 
+		Point leftIe = Point(true, linelist[res].GetInitialEndX(),
 		   linelist[res].GetInitialEndY());
-		Point leftFs = Point(true, linelist[res].GetFinalStartX(), 
+		Point leftFs = Point(true, linelist[res].GetFinalStartX(),
 		   linelist[res].GetFinalStartY());
-		Point leftFe = Point(true, linelist[res].GetFinalEndX(), 
-		   linelist[res].GetFinalEndY());		
-		Point llIs = Point(true, linelist[i].GetInitialStartX(), 
+		Point leftFe = Point(true, linelist[res].GetFinalEndX(),
+		   linelist[res].GetFinalEndY());
+		Point llIs = Point(true, linelist[i].GetInitialStartX(),
 		   linelist[i].GetInitialStartY());
-		Point llIe = Point(true, linelist[i].GetInitialEndX(), 
+		Point llIe = Point(true, linelist[i].GetInitialEndX(),
 		   linelist[i].GetInitialEndY());
-		Point llFs = Point(true, linelist[i].GetFinalStartX(), 
+		Point llFs = Point(true, linelist[i].GetFinalStartX(),
 		   linelist[i].GetFinalStartY());
-		Point llFe = Point(true, linelist[i].GetFinalEndX(), 
-		   linelist[i].GetFinalEndY());		
+		Point llFe = Point(true, linelist[i].GetFinalEndX(),
+		   linelist[i].GetFinalEndY());
         if(leftIs.GetX()>llIs.GetX() || (AlmostEqual(leftIs.GetX(),llIs.GetX()&&
-		   leftIs.GetY() > llIs.GetY())))		
+		   leftIs.GetY() > llIs.GetY())))
 		{
-			res = i;						
+			res = i;
 			continue;
 		}
 		if(AlmostEqual(leftIs, llIs))
-		{			
-			if((leftIe.GetY() > llIe.GetY()) || 
-			   ((AlmostEqual(leftIe.GetY(), llIe.GetY())) && 
+		{
+			if((leftIe.GetY() > llIe.GetY()) ||
+			   ((AlmostEqual(leftIe.GetY(), llIe.GetY())) &&
 			   (leftIe.GetX() > llIe.GetX())))
 			{
-				res = i;				
+				res = i;
 				continue;
 			}
 			if(AlmostEqual(leftIe, llIe))
@@ -5929,25 +5930,25 @@ int URegion :: getLeftLower(const vector<MSegmentData> &linelist)
 				if(leftFs > llFs)
 				{
 					res = i;
-					continue;	
+					continue;
 				}
 				if(AlmostEqual(leftFs, llFs))
 				{
-					if((leftFe.GetY() > llFe.GetY()) || 
-                       ((AlmostEqual(leftFe.GetY(), llFe.GetY())) && 
+					if((leftFe.GetY() > llFe.GetY()) ||
+                       ((AlmostEqual(leftFe.GetY(), llFe.GetY())) &&
 					   (leftFe.GetX() > llFe.GetX())))
-					{	
+					{
 						res = i;
 						continue;
 					}
 				}
 			}
-		}				
+		}
 	}
 	return(res);
 }
 
-int URegion :: findNext(const vector<MSegmentData> &linelist, 
+int URegion :: findNext(const vector<MSegmentData> &linelist,
    const MSegmentData dms)
 {
 	for(unsigned int i = 0; i < linelist.size(); i++)
@@ -5958,7 +5959,7 @@ int URegion :: findNext(const vector<MSegmentData> &linelist,
 	return(-1);
 }
 
-int URegion :: findNextToRight(const vector<MSegmentData> &linelist, 
+int URegion :: findNextToRight(const vector<MSegmentData> &linelist,
    const MSegmentData dms)
 {
 	for(unsigned int i = 0; i < linelist.size(); i++)
@@ -5971,151 +5972,151 @@ int URegion :: findNextToRight(const vector<MSegmentData> &linelist,
 
 bool URegion :: matches(const MSegmentData &dms1, const MSegmentData &dms2)
 {
-	if(matchesLeft(dms1, dms2) || matchesRight(dms1, dms2))
-		return(true);
-	return(false);
+  if(matchesLeft(dms1, dms2) || matchesRight(dms1, dms2))
+    return(true);
+  return(false);
 }
 
 bool URegion :: matchesLeft(const MSegmentData &dms1, const MSegmentData &dms2)
 {
-	if(dms1.GetFaceNo() != dms2.GetFaceNo())
-		return(false);
-	if(dms1.GetCycleNo() != dms2.GetCycleNo())
-		return(false);		
-	double isx1 = dms1.GetInitialStartX();	
-	double isx2 = dms2.GetInitialStartX();
-	double isy1 = dms1.GetInitialStartY();
-	double isy2 = dms2.GetInitialStartY();
-	double iex1 = dms1.GetInitialEndX();		
-	double iey1 = dms1.GetInitialEndY();
-	double iey2 = dms2.GetInitialEndY();
-	double fsx1 = dms1.GetFinalStartX();
-	double fsx2 = dms2.GetFinalStartX();
-	double fsy1 = dms1.GetFinalStartY();
-	double fsy2 = dms2.GetFinalStartY();
-	double fex1 = dms1.GetFinalEndX();	
-	double fey1 = dms1.GetFinalEndY();
-	double fey2 = dms2.GetFinalEndY();
-	if(AlmostEqual(isx1, isx2) && AlmostEqual(isy1, isy2) && 
-	   AlmostEqual(fsx1, fsx2) && AlmostEqual(fsy1, fsy2) && 
-	 !(AlmostEqual(iex1, iex1) && AlmostEqual(iey1, iey2) && 
-	   AlmostEqual(fex1, fex1) && AlmostEqual(fey1, fey2)))
-	{
-		return(true);
-	}
-	if(AlmostEqual(iex1, isx2) && AlmostEqual(iey1, isy2)  && 
-	   AlmostEqual(fex1, fsx2) &&  AlmostEqual(fey1, fsy2) && 
-	 !(AlmostEqual(isx1, iex1) && AlmostEqual(isy1, iey2)  && 
-	   AlmostEqual(fsx1, fex1) && AlmostEqual(fsy1, fey2)))
-	{
-		return(true);
-	}
-	return(false);	
+  if(dms1.GetFaceNo() != dms2.GetFaceNo())
+    return(false);
+  if(dms1.GetCycleNo() != dms2.GetCycleNo())
+    return(false);
+  double isx1 = dms1.GetInitialStartX();
+  double isx2 = dms2.GetInitialStartX();
+  double isy1 = dms1.GetInitialStartY();
+  double isy2 = dms2.GetInitialStartY();
+  double iex1 = dms1.GetInitialEndX();
+  double iey1 = dms1.GetInitialEndY();
+  double iey2 = dms2.GetInitialEndY();
+  double fsx1 = dms1.GetFinalStartX();
+  double fsx2 = dms2.GetFinalStartX();
+  double fsy1 = dms1.GetFinalStartY();
+  double fsy2 = dms2.GetFinalStartY();
+  double fex1 = dms1.GetFinalEndX();
+  double fey1 = dms1.GetFinalEndY();
+  double fey2 = dms2.GetFinalEndY();
+  if(AlmostEqual(isx1, isx2) && AlmostEqual(isy1, isy2) &&
+     AlmostEqual(fsx1, fsx2) && AlmostEqual(fsy1, fsy2) &&
+     !(AlmostEqual(iex1, iex1) && AlmostEqual(iey1, iey2) &&
+         AlmostEqual(fex1, fex1) && AlmostEqual(fey1, fey2)))
+  {
+    return(true);
+  }
+  if(AlmostEqual(iex1, isx2) && AlmostEqual(iey1, isy2)  &&
+     AlmostEqual(fex1, fsx2) &&  AlmostEqual(fey1, fsy2) &&
+     !(AlmostEqual(isx1, iex1) && AlmostEqual(isy1, iey2)  &&
+         AlmostEqual(fsx1, fex1) && AlmostEqual(fsy1, fey2)))
+  {
+    return(true);
+  }
+  return(false);
 }
 
 bool URegion :: matchesRight(const MSegmentData &dms1, const MSegmentData &dms2)
 {
-	if(dms1.GetFaceNo() != dms2.GetFaceNo())
-		return(false);
-	if(dms1.GetCycleNo() != dms2.GetCycleNo())
-		return(false);
-	double isx1 = dms1.GetInitialStartX();		
-	double isy1=  dms1.GetInitialStartY();
-	double isy2 = dms2.GetInitialStartY();
-	double iex1 = dms1.GetInitialEndX();
-	double iex2 = dms2.GetInitialEndX();		
-	double iey1 = dms1.GetInitialEndY();
-	double iey2 = dms2.GetInitialEndY();
-	double fsx1=  dms1.GetFinalStartX();	
-	double fsy1 = dms1.GetFinalStartY();
-	double fsy2 = dms2.GetFinalStartY();
-	double fex1 = dms1.GetFinalEndX();
-	double fex2 = dms2.GetFinalEndX();		
-	double fey1 = dms1.GetFinalEndY();
-	double fey2 = dms2.GetFinalEndY();
-	if(AlmostEqual(isx1, iex2) && AlmostEqual(isy1, iey2) && 
-	   AlmostEqual(fsx1, fex2) && AlmostEqual(fsy1, fey2) && 
-	 !(AlmostEqual(iex1, isx1) && AlmostEqual(iey1, isy2) && 
-	   AlmostEqual(fex1, fsx1) && AlmostEqual(fey1, fsy2)))
-	{
-		return(true);
-	}
-	if(AlmostEqual(iex1, iex2) && AlmostEqual(iey1, iey2) && 
-	   AlmostEqual(fex1, fex2) && AlmostEqual(fey1, fey2) && 
-	 !(AlmostEqual(isx1, isx1) && AlmostEqual(isy1, isy2) && 
-	   AlmostEqual(fsx1, fsx1) && AlmostEqual(fsy1, fsy2)))
-	{
-		return(true);
-	}
-	return(false);	
+  if(dms1.GetFaceNo() != dms2.GetFaceNo())
+    return(false);
+  if(dms1.GetCycleNo() != dms2.GetCycleNo())
+    return(false);
+  double isx1 = dms1.GetInitialStartX();
+  double isy1=  dms1.GetInitialStartY();
+  double isy2 = dms2.GetInitialStartY();
+  double iex1 = dms1.GetInitialEndX();
+  double iex2 = dms2.GetInitialEndX();
+  double iey1 = dms1.GetInitialEndY();
+  double iey2 = dms2.GetInitialEndY();
+  double fsx1=  dms1.GetFinalStartX();
+  double fsy1 = dms1.GetFinalStartY();
+  double fsy2 = dms2.GetFinalStartY();
+  double fex1 = dms1.GetFinalEndX();
+  double fex2 = dms2.GetFinalEndX();
+  double fey1 = dms1.GetFinalEndY();
+  double fey2 = dms2.GetFinalEndY();
+  if(AlmostEqual(isx1, iex2) && AlmostEqual(isy1, iey2) &&
+     AlmostEqual(fsx1, fex2) && AlmostEqual(fsy1, fey2) &&
+     !(AlmostEqual(iex1, isx1) && AlmostEqual(iey1, isy2) &&
+         AlmostEqual(fex1, fsx1) && AlmostEqual(fey1, fsy2)))
+  {
+    return(true);
+  }
+  if(AlmostEqual(iex1, iex2) && AlmostEqual(iey1, iey2) &&
+     AlmostEqual(fex1, fex2) && AlmostEqual(fey1, fey2) &&
+     !(AlmostEqual(isx1, isx1) && AlmostEqual(isy1, isy2) &&
+         AlmostEqual(fsx1, fsx1) && AlmostEqual(fsy1, fsy2)))
+  {
+    return(true);
+  }
+  return(false);
 }
 
 bool URegion::matchesToRight(const MSegmentData &dms1,const MSegmentData &dms2)
 {
-	if(dms1.GetFaceNo() != dms2.GetFaceNo())
-		return(false);
-	if(dms1.GetCycleNo() != dms2.GetCycleNo())
-		return(false);
-	double isx1 = dms1.GetInitialStartX();	
-	double isx2 = dms2.GetInitialStartX();
-	double isy1 = dms1.GetInitialStartY();
-	double isy2 = dms2.GetInitialStartY();
-	double iex1 = dms1.GetInitialEndX();
-	double iex2 = dms2.GetInitialEndX();		
-	double iey1 = dms1.GetInitialEndY();
-	double iey2 = dms2.GetInitialEndY();
-	double fsx1 = dms1.GetFinalStartX();
-	double fsx2 = dms2.GetFinalStartX();
-	double fsy1 = dms1.GetFinalStartY();
-	double fsy2 = dms2.GetFinalStartY();
-	double fex1 = dms1.GetFinalEndX();
-	double fex2 = dms2.GetFinalEndX();		
-	double fey1 = dms1.GetFinalEndY();
-	double fey2 = dms2.GetFinalEndY();
-	if(AlmostEqual(iex1, isx2) && AlmostEqual(iey1, isy2) && 
-	   AlmostEqual(fex1, fsx2) && AlmostEqual(fey1, fsy2) && 
-	 !(AlmostEqual(isx1, iex1) && AlmostEqual(isy1, iey2) && 
-	   AlmostEqual(fsx1, fex1) && AlmostEqual(fsy1, fey2)))
-	{
-		return(true);
-	}		
-	if(AlmostEqual(iex1, iex2) && AlmostEqual(iey1, iey2) && 
-	   AlmostEqual(fex1, fex2) && AlmostEqual(fey1, fey2) && 
-	 !(AlmostEqual(isx1, isx1) && AlmostEqual(isy1, isy2) && 
-	   AlmostEqual(fsx1, fsx1) && AlmostEqual(fsy1, fsy2)))
-	{
-		return(true);
-	}
-	return(false);	
+  if(dms1.GetFaceNo() != dms2.GetFaceNo())
+    return(false);
+  if(dms1.GetCycleNo() != dms2.GetCycleNo())
+    return(false);
+  double isx1 = dms1.GetInitialStartX();
+  double isx2 = dms2.GetInitialStartX();
+  double isy1 = dms1.GetInitialStartY();
+  double isy2 = dms2.GetInitialStartY();
+  double iex1 = dms1.GetInitialEndX();
+  double iex2 = dms2.GetInitialEndX();
+  double iey1 = dms1.GetInitialEndY();
+  double iey2 = dms2.GetInitialEndY();
+  double fsx1 = dms1.GetFinalStartX();
+  double fsx2 = dms2.GetFinalStartX();
+  double fsy1 = dms1.GetFinalStartY();
+  double fsy2 = dms2.GetFinalStartY();
+  double fex1 = dms1.GetFinalEndX();
+  double fex2 = dms2.GetFinalEndX();
+  double fey1 = dms1.GetFinalEndY();
+  double fey2 = dms2.GetFinalEndY();
+  if(AlmostEqual(iex1, isx2) && AlmostEqual(iey1, isy2) &&
+     AlmostEqual(fex1, fsx2) && AlmostEqual(fey1, fsy2) &&
+     !(AlmostEqual(isx1, iex1) && AlmostEqual(isy1, iey2) &&
+         AlmostEqual(fsx1, fex1) && AlmostEqual(fsy1, fey2)))
+  {
+    return(true);
+  }
+  if(AlmostEqual(iex1, iex2) && AlmostEqual(iey1, iey2) &&
+     AlmostEqual(fex1, fex2) && AlmostEqual(fey1, fey2) &&
+     !(AlmostEqual(isx1, isx1) && AlmostEqual(isy1, isy2) &&
+         AlmostEqual(fsx1, fsx1) && AlmostEqual(fsy1, fsy2)))
+  {
+    return(true);
+  }
+  return(false);
 }
 
 void URegion :: AddURegion(URegion *newRegion)
 {
-	if(timeInterval != newRegion->timeInterval)
-	{
-		throw invalid_argument("Intervals are not equal");
-	}	
-	const DBArray<MSegmentData> *lines = newRegion->GetMSegmentData();
-	for(int i = 0; i < lines->Size(); i++)
-	{
-		const MSegmentData *line;		
-		lines->Get(i, line);
-		AddSegment(*line);
-	}
+  if(timeInterval != newRegion->timeInterval)
+  {
+    throw invalid_argument("Intervals are not equal");
+  }
+  const DbArray<MSegmentData> *lines = newRegion->GetMSegmentData();
+  for(int i = 0; i < lines->Size(); i++)
+  {
+    MSegmentData line;
+    lines->Get(i, line);
+    AddSegment(line);
+  }
 }
 
 void URegion::AddSegment(MSegmentData newSeg)
 {
 	uremb.PutSegment(&segments, segments.Size(), newSeg, true);
-	if (uremb.BoundingBox().IsDefined()) 
+	if (uremb.BoundingBox().IsDefined())
 	{
-        double min[3] = 
-           { uremb.BoundingBox().MinD(0), 
-           	 uremb.BoundingBox().MinD(1), 
+        double min[3] =
+           { uremb.BoundingBox().MinD(0),
+           	 uremb.BoundingBox().MinD(1),
            	 uremb.BoundingBox().MinD(2) };
-        double max[3] = 
-           { uremb.BoundingBox().MaxD(0), 
-           	 uremb.BoundingBox().MaxD(1), 
+        double max[3] =
+           { uremb.BoundingBox().MaxD(0),
+           	 uremb.BoundingBox().MaxD(1),
            	 uremb.BoundingBox().MaxD(2) };
         if (newSeg.GetInitialStartX() < min[0])
             min[0] = newSeg.GetInitialStartX();
@@ -6149,7 +6150,7 @@ void URegion::AddSegment(MSegmentData newSeg)
               ? newSeg.GetInitialStartY() : newSeg.GetFinalStartY(),
               uremb.timeInterval.end.ToDouble() };
         uremb.SetBBox(Rectangle<3>(true, min, max));
-	}	
+	}
 }
 
 URegion::URegion(int i, MRegion& mr) {
@@ -6159,25 +6160,25 @@ URegion::URegion(int i, MRegion& mr) {
   assert( i<mr.GetNoComponents() );
 
   // get the appropriate URegionEmb from MRegion::units
-  const URegionEmb* OrigURemb;
+  URegionEmb OrigURemb;
   mr.Get( i, OrigURemb );
-  uremb = *OrigURemb;
+  uremb = OrigURemb;
   uremb.SetSegmentsNum(0);
   uremb.SetStartPos(0);
-  segments = DBArray<MSegmentData>(0);
+  segments = DbArray<MSegmentData>(0);
 
   // copy timeInterval from URegionEmb to URegion
   timeInterval = uremb.timeInterval;
 
   // copy MSegmentData
-  const int startSeg = OrigURemb->GetStartPos();
-  const int numSegs  = OrigURemb->GetSegmentsNum();
+  const int startSeg = OrigURemb.GetStartPos();
+  const int numSegs  = OrigURemb.GetSegmentsNum();
 
   for(int s=0 ; s<numSegs ; s++)
     {
-      const MSegmentData *segment;
+      MSegmentData segment;
       mr.GetMSegmentData()->Get( s+startSeg, segment );
-      uremb.PutSegment(&segments, s, *segment, true);
+      uremb.PutSegment(&segments, s, segment, true);
     }
   SetDefined( true );
 }
@@ -6188,6 +6189,10 @@ URegionEmb& URegionEmb::operator=(const URegionEmb& U) {
   bbox = U.bbox;
   timeInterval = U.timeInterval;
   return *this;
+}
+
+size_t URegionEmb::HashValue() const{
+  return ( timeInterval.start.HashValue() ^ timeInterval.end.HashValue() );
 }
 
 /*
@@ -6292,13 +6297,13 @@ Assignment operator
 
    int start = U.uremb.GetStartPos();
    int numsegs = U.uremb.GetSegmentsNum();
-   segments.Clear();
-   segments.Resize( U.uremb.GetSegmentsNum() );
+   segments.clean();
+   segments.resize( U.uremb.GetSegmentsNum() );
    for( int i=0 ; i<numsegs ; i++ )
      {// copy single movingsegment
-       const MSegmentData* seg;
-       U.segments.Get(i+start, seg);
-       segments.Put(i, *seg);
+       MSegmentData seg;
+       U.segments.Get(i+start, &seg);
+       segments.Put(i, seg);
      }
    del.refs=1;
    del.isDelete=true;
@@ -6316,7 +6321,7 @@ int URegion::NumOfFLOBs() const {
     return 1;
 }
 
-FLOB* URegion::GetFLOB(const int i) {
+Flob* URegion::GetFLOB(const int i) {
     if (MRA_DEBUG) cerr << "URegion::GetFLOB() called" << endl;
 
     assert(i == 0);
@@ -6343,7 +6348,7 @@ static ListExpr OutURegion(ListExpr typeInfo, Word value) {
     return
         OutURegionEmbedded(
             ur->GetEmbedded(),
-            (DBArray<MSegmentData>*) ur->GetFLOB(0));
+            (DbArray<MSegmentData>*) ur->GetFLOB(0));
 }
 
 /*
@@ -6375,7 +6380,7 @@ static Word InURegion(const ListExpr typeInfo,
             instance,
             errorPos,
             errorInfo,
-            (DBArray<MSegmentData>*) ur->GetFLOB(0),
+            (DbArray<MSegmentData>*) ur->GetFLOB(0),
             0);
 
     if (!uremb) {
@@ -6616,7 +6621,7 @@ and point unit, both restricted to this interval, intersect.
 
 */
     for (unsigned int i = 0; i < rp.Size(); i++) {
-        Interval<Instant>* iv;
+        Interval<Instant> iv;
         int urPos;
         int upPos;
 
@@ -6626,13 +6631,13 @@ and point unit, both restricted to this interval, intersect.
             cerr << "MRegion::IntersectionRP() interval#"
                  << i
                  << ": "
-                 << iv->start.ToDouble()
+                 << iv.start.ToDouble()
                  << " "
-                 << iv->end.ToDouble()
+                 << iv.end.ToDouble()
                  << " "
-                 << iv->lc
+                 << iv.lc
                  << " "
-                 << iv->rc
+                 << iv.rc
                  << " "
                  << urPos
                  << " "
@@ -6641,8 +6646,8 @@ and point unit, both restricted to this interval, intersect.
 
         if (urPos == -1 || upPos == -1) continue;
 
-        const URegionEmb* ur;
-        const UPoint* up;
+        URegionEmb ur;
+        UPoint up;
 
         Get(urPos, ur);
         mp.Get(upPos, up);
@@ -6651,8 +6656,8 @@ and point unit, both restricted to this interval, intersect.
             cerr << "MRegion::IntersectionRP() both elements present"
                  << endl;
 
-        ur->RestrictedIntersection(
-            &msegmentdata, *up, *iv, res, pending, merge);
+        ur.RestrictedIntersection(
+            &msegmentdata, up, iv, res, pending, merge);
     }
 
     if (pending) {
@@ -6859,7 +6864,7 @@ MRegion::MRegion(MPoint& mp, Region r) :
     r.LogicSort();
 
     for (int i = 0; i < mp.GetNoComponents(); i++) {
-        const UPoint *up;
+        UPoint up;
 
         mp.Get(i, up);
 
@@ -6867,23 +6872,23 @@ MRegion::MRegion(MPoint& mp, Region r) :
             cerr << "MRegion::MRegion(MPoint, Region) i="
                  << i
                  << " interval=["
-                 << up->timeInterval.start.ToString()
+                 << up.timeInterval.start.ToString()
                  << " ("
-                 << up->timeInterval.start.ToDouble()
+                 << up.timeInterval.start.ToDouble()
                  << ") "
-                 << up->timeInterval.end.ToString()
+                 << up.timeInterval.end.ToString()
                  << "("
-                 << up->timeInterval.end.ToDouble()
+                 << up.timeInterval.end.ToDouble()
                  << ") "
-                 << up->timeInterval.lc
+                 << up.timeInterval.lc
                  << " "
-                 << up->timeInterval.rc
+                 << up.timeInterval.rc
                  << "]"
                  << endl;
 
         URegionEmb
             ur(&msegmentdata,
-               up->timeInterval,
+               up.timeInterval,
                r,
                msegmentdata.Size());
         Add(ur);
@@ -6905,10 +6910,10 @@ MRegion::MRegion(MPoint& mp, Region& r,int dummy) :
     Coord lastX, lastY;
     Coord firstX, firstY;
     for (int i = 0; i < mp.GetNoComponents(); i++) {
-        const UPoint *up;
+        UPoint up;
         mp.Get(i, up);
-        firstX = up->p0.GetX();
-        firstY = up->p0.GetY();
+        firstX = up.p0.GetX();
+        firstY = up.p0.GetY();
 
         if( ! isFirst &&  (firstX !=lastX || firstY != lastY)){
             r.Translate(firstX-lastX, firstY-lastY);
@@ -6916,12 +6921,12 @@ MRegion::MRegion(MPoint& mp, Region& r,int dummy) :
             isFirst=false;
         }
 
-        lastX = up->p1.GetX();
-        lastY = up->p1.GetY();
+        lastX = up.p1.GetX();
+        lastY = up.p1.GetY();
 
         URegionEmb
             ur(&msegmentdata,
-               up->timeInterval,
+               up.timeInterval,
                r,
                msegmentdata.Size());
         // now ur represents a static region
@@ -6930,10 +6935,10 @@ MRegion::MRegion(MPoint& mp, Region& r,int dummy) :
         Coord ty = lastY-firstY;
         if(tx!=0 || ty!=0){
             size_t usize = ur.GetSegmentsNum();
-            const MSegmentData* mseg;
+            MSegmentData mseg;
             for(size_t i=0;i<usize;i++){
                 ur.GetSegment(&msegmentdata, i, mseg);
-                MSegmentData dms(*mseg);
+                MSegmentData dms(mseg);
                 dms.SetFinalStartX(dms.GetFinalStartX()+tx);
                 dms.SetFinalStartY(dms.GetFinalStartY()+ty);
                 dms.SetFinalEndX(dms.GetFinalEndX()+tx);
@@ -6964,7 +6969,7 @@ MRegion::MRegion(MPoint& mp, Region& r,int dummy) :
 1.1.1.1 Method ~Get()~
 
 */
-void MRegion::Get(const int i, const URegionEmb*& ur) const {
+void MRegion::Get(const int i, URegionEmb& ur) const {
     if (MRA_DEBUG)
         cerr << "MRegion::Get() #2 called i="
              << i
@@ -6980,7 +6985,7 @@ void MRegion::Get(const int i, const URegionEmb*& ur) const {
 1.1.1.1 Method ~GetMSegmentData()~
 
 */
-const DBArray<MSegmentData>* MRegion::GetMSegmentData(void) {
+const DbArray<MSegmentData>* MRegion::GetMSegmentData(void) {
     return &msegmentdata;
 }
 
@@ -7016,9 +7021,9 @@ void MRegion::AddURegion(URegion& U ) {
   // append U.segments to msegmentdata
   for(int i=0 ; i<end ; i++)
     {
-      const MSegmentData* dms;
-      U.segments.Get(i, dms);
-      msegmentdata.Put(i+start, *dms);
+      MSegmentData dms;
+      U.segments.Get(i, &dms);
+      msegmentdata.Put(i+start, dms);
     }
   EndBulkLoad(true);
 }
@@ -7101,7 +7106,7 @@ Pass through all the intervals in ~rp~.
 Get the units for each interval in ~rp~.
 
 */
-        Interval<Instant>* iv;
+        Interval<Instant> iv;
         int urPos;
         int upPos;
 
@@ -7115,10 +7120,10 @@ we skip this interval.
 */
         if (upPos < 0) continue;
 
-        double prevtime = iv->start.ToDouble();
+        double prevtime = iv.start.ToDouble();
         Instant prev(instanttype);
         prev.ReadFrom(prevtime);
-        bool prev_c = !iv->lc;
+        bool prev_c = !iv.lc;
 
 /*
 Check every ~upoint~ instance in the intersection,
@@ -7136,26 +7141,26 @@ the ~for~ loop is left via a ~break~ statement.
 Get the current ~upoint~ instance.
 
 */
-            const UPoint *up;
+            UPoint up;
             resMp.Get(mpPos, up);
 
             if (MRA_DEBUG)
                 cerr << "MRegion::Inside()     rp iv=["
-                     << iv->start.ToString()
+                     << iv.start.ToString()
                      << " "
-                     << iv->end.ToString()
+                     << iv.end.ToString()
                      << " "
-                     << iv->lc
+                     << iv.lc
                      << " "
-                     << iv->rc
+                     << iv.rc
                      << "] up iv=["
-                     << up->timeInterval.start.ToString()
+                     << up.timeInterval.start.ToString()
                      << " "
-                     << up->timeInterval.end.ToString()
+                     << up.timeInterval.end.ToString()
                      << " "
-                     << up->timeInterval.lc
+                     << up.timeInterval.lc
                      << " "
-                     << up->timeInterval.rc
+                     << up.timeInterval.rc
                      << "]"
                      << endl;
 
@@ -7163,10 +7168,10 @@ Get the current ~upoint~ instance.
 Is this ~upoint~ instance really within the current interval?
 
 */
-            if (up->timeInterval.start.Compare(&iv->end) > 0
-                || (up->timeInterval.start.Compare(&iv->end) == 0
-                    && up->timeInterval.lc
-                    && !iv->rc)) {
+            if (up.timeInterval.start.Compare(&iv.end) > 0
+                || (up.timeInterval.start.Compare(&iv.end) == 0
+                    && up.timeInterval.lc
+                    && !iv.rc)) {
 /*
 No, we reached the end of the current interval. We add a ~ubool~ instance
 with value ~false~ to the result, which closes the gap between the previously
@@ -7179,16 +7184,16 @@ applicable).
                     cerr << "MRegion::Inside()     end of unit"
                          << endl;
 
-                if (prev.Compare(&iv->end) < 0) {
+                if (prev.Compare(&iv.end) < 0) {
                     if (MRA_DEBUG)
                         cerr << "MRegion::Inside()     closing gap #2a"
                              << endl;
 
                     InsideAddUBool(res,
                                    prevtime,
-                                   iv->end.ToDouble(),
+                                   iv.end.ToDouble(),
                                    !prev_c,
-                                   iv->rc,
+                                   iv.rc,
                                    false,
                                    prevtime,
                                    prev_c,
@@ -7218,7 +7223,7 @@ the gap by adding an ~ubool~ instance with an appropriate interval
 and value ~false~.
 
 */
-                if (up->timeInterval.start.Compare(&prev) > 0) {
+                if (up.timeInterval.start.Compare(&prev) > 0) {
                     if (MRA_DEBUG)
                         cerr << "MRegion::Inside()     closing gap #1a, prev="
                              << setprecision(20)
@@ -7227,16 +7232,16 @@ and value ~false~.
 
                     InsideAddUBool(res,
                                    prevtime,
-                                   up->timeInterval.start.ToDouble(),
+                                   up.timeInterval.start.ToDouble(),
                                    !prev_c,
-                                   !up->timeInterval.lc,
+                                   !up.timeInterval.lc,
                                    false,
                                    prevtime,
                                    prev_c,
                                    pending);
                     prev.ReadFrom(prevtime);
-                } else if (up->timeInterval.start.Compare(&prev) == 0
-                           && !up->timeInterval.lc
+                } else if (up.timeInterval.start.Compare(&prev) == 0
+                           && !up.timeInterval.lc
                            && prev_c) {
                     if (MRA_DEBUG)
                         cerr << "MRegion::Inside()     closing gap #1b, prev="
@@ -7245,8 +7250,8 @@ and value ~false~.
                              << endl;
 
                     InsideAddUBool(res,
-                                   up->timeInterval.start.ToDouble(),
-                                   up->timeInterval.start.ToDouble(),
+                                   up.timeInterval.start.ToDouble(),
+                                   up.timeInterval.start.ToDouble(),
                                    true,
                                    true,
                                    false,
@@ -7262,10 +7267,10 @@ and value ~true~.
 
 */
                 InsideAddUBool(res,
-                               up->timeInterval.start.ToDouble(),
-                               up->timeInterval.end.ToDouble(),
-                               up->timeInterval.lc,
-                               up->timeInterval.rc,
+                               up.timeInterval.start.ToDouble(),
+                               up.timeInterval.end.ToDouble(),
+                               up.timeInterval.lc,
+                               up.timeInterval.rc,
                                true,
                                prevtime,
                                prev_c,
@@ -7279,31 +7284,31 @@ and value ~true~.
                 cerr << "MRegion::Inside()   end of units reached before"
                      << endl;
 
-            if (prev.Compare(&iv->end) < 0) {
+            if (prev.Compare(&iv.end) < 0) {
                 if (MRA_DEBUG)
                     cerr << "MRegion::Inside()     closing gap #3a"
                          << endl;
 
                 InsideAddUBool(res,
                                prevtime,
-                               iv->end.ToDouble(),
+                               iv.end.ToDouble(),
                                !prev_c,
-                               iv->rc,
+                               iv.rc,
                                false,
                                prevtime,
                                prev_c,
                                pending);
                 prev.ReadFrom(prevtime);
-            } else if (prev.Compare(&iv->end) == 0
+            } else if (prev.Compare(&iv.end) == 0
                        && !prev_c
-                       && iv->rc) {
+                       && iv.rc) {
                 if (MRA_DEBUG)
                     cerr << "MRegion::Inside()     closing gap #3b"
                          << endl;
 
                 InsideAddUBool(res,
-                               iv->end.ToDouble(),
-                               iv->end.ToDouble(),
+                               iv.end.ToDouble(),
+                               iv.end.ToDouble(),
                                true,
                                true,
                                false,
@@ -7350,10 +7355,10 @@ void MRegion::AtInstant(Instant& t, Intime<Region>& result) {
     if( pos == -1 )
         result.SetDefined(false);
     else {
-        const URegionEmb* posUnit;
+        URegionEmb posUnit;
         Get(pos, posUnit);
         result.SetDefined(true);
-        posUnit->TemporalFunction(&msegmentdata, t, result.value);
+        posUnit.TemporalFunction(&msegmentdata, t, result.value);
         result.instant.CopyFrom(&t);
   }
 }
@@ -7376,20 +7381,20 @@ void MRegion::Initial(Intime<Region>& result) {
         return;
     }
 
-    const URegionEmb* unit;
+    URegionEmb unit;
     Get(0, unit);
 
-    if (!unit->timeInterval.lc) {
+    if (!unit.timeInterval.lc) {
         result.SetDefined(false);
         return;
     }
 
     result.SetDefined(true);
-    unit->TemporalFunction(
+    unit.TemporalFunction(
         &msegmentdata,
-        unit->timeInterval.start,
+        unit.timeInterval.start,
         result.value);
-    result.instant.CopyFrom(&unit->timeInterval.start);
+    result.instant.CopyFrom(&unit.timeInterval.start);
     result.SetDefined(result.value.Size() > 0);
 }
 
@@ -7411,20 +7416,20 @@ void MRegion::Final(Intime<Region>& result) {
         return;
     }
 
-    const URegionEmb* unit;
+    URegionEmb unit;
     Get(GetNoComponents()-1, unit);
 
-    if (!unit->timeInterval.rc) {
+    if (!unit.timeInterval.rc) {
         result.SetDefined(false);
         return;
     }
 
     result.SetDefined(true);
-    unit->TemporalFunction(
+    unit.TemporalFunction(
         &msegmentdata,
-        unit->timeInterval.end,
+        unit.timeInterval.end,
         result.value);
-    result.instant.CopyFrom(&unit->timeInterval.end);
+    result.instant.CopyFrom(&unit.timeInterval.end);
     result.SetDefined(result.value.Size() > 0);
 }
 
@@ -7498,9 +7503,9 @@ their moving segments points to this instance's ~DBArray~.
 */
     StartBulkLoad();
     for(int i = 0; i < mr->GetNoComponents(); i++) {
-        const URegionEmb* ur;
-        mr->Get(i, ur);
-        Add(*ur);
+      URegionEmb ur;
+      mr->Get(i, ur);
+      Add(ur);
     }
     EndBulkLoad(false);
 
@@ -7508,30 +7513,30 @@ their moving segments points to this instance's ~DBArray~.
 Copy the moving segments.
 
 */
-    msegmentdata.Clear();
-    if (mr->msegmentdata.Size() > 0) 
-      msegmentdata.Resize(mr->msegmentdata.Size());
+    msegmentdata.clean();
+    if (mr->msegmentdata.Size() > 0)
+      msegmentdata.resize(mr->msegmentdata.Size());
     for (int i = 0; i < mr->msegmentdata.Size(); i++) {
-        const MSegmentData* dms;
+        MSegmentData dms;
         mr->msegmentdata.Get(i, dms);
 
         if (MRA_DEBUG)
             cerr << "MRegion::CopyFrom() segment "
                  << i
                  << ": initial=["
-                 << dms->GetInitialStartX()
-                 << " " << dms->GetInitialStartY()
-                 << " " << dms->GetInitialEndX()
-                 << " " << dms->GetInitialEndY()
+                 << dms.GetInitialStartX()
+                 << " " << dms.GetInitialStartY()
+                 << " " << dms.GetInitialEndX()
+                 << " " << dms.GetInitialEndY()
                  << "] final=["
-                 << dms->GetFinalStartX()
-                 << " " << dms->GetFinalStartY()
-                 << " " << dms->GetFinalEndX()
-                 << " " << dms->GetFinalEndY()
+                 << dms.GetFinalStartX()
+                 << " " << dms.GetFinalStartY()
+                 << " " << dms.GetFinalEndX()
+                 << " " << dms.GetFinalEndY()
                  << "]"
                  << endl;
 
-        msegmentdata.Put(i, *dms);
+        msegmentdata.Put(i, dms);
     }
 }
 
@@ -7546,7 +7551,7 @@ int MRegion::NumOfFLOBs() const {
     return 2;
 }
 
-FLOB* MRegion::GetFLOB(const int i) {
+Flob* MRegion::GetFLOB(const int i) {
     if (MRA_DEBUG) cerr << "MRegion::GetFLOB() called" << endl;
 
     assert(i == 0 || i == 1);
@@ -7572,10 +7577,10 @@ bool MRegion::Unittest2(int pos) {
 
     if (pos < 0 || pos >= msegmentdata.Size()) return -1;
 
-    const MSegmentData *dms;
-    msegmentdata.Get(pos, dms);
+    MSegmentData dms;
+    msegmentdata.Get(pos, &dms);
 
-    return dms->GetInsideAbove();
+    return dms.GetInsideAbove();
 }
 #endif // MRA_UNITTEST
 
@@ -7666,13 +7671,13 @@ static ListExpr OutMRegion(ListExpr typeInfo, Word value) {
         if (MRA_DEBUG)
             cerr << "OutMRegion() i=" << i << endl;
 
-        const URegionEmb* ur;
+        URegionEmb ur;
         mr->Get(i, ur);
 
         ListExpr unitList =
             OutURegionEmbedded(
-                ur,
-                (DBArray<MSegmentData>*) mr->GetFLOB(1));
+                &ur,
+                (DbArray<MSegmentData>*) mr->GetFLOB(1));
 
         if (l == nl->TheEmptyList()) {
             l = nl->Cons(unitList, nl->TheEmptyList());
@@ -7823,11 +7828,11 @@ static MPoint CreateMPointFromPoint(MRegion* mr, Point* p) {
     MPoint mp(0);
 
     for (int i = 0; i < mr->GetNoComponents(); i++) {
-        const URegionEmb* ur;
+        URegionEmb ur;
 
         mr->Get(i, ur);
 
-        UPoint up(ur->timeInterval,
+        UPoint up(ur.timeInterval,
                   p->GetX(), p->GetY(),
                   p->GetX(), p->GetY());
 
@@ -7983,7 +7988,7 @@ static ListExpr PresentTypeMap(ListExpr args) {
 }
 
 /*
- 
+
 Used by ~at~:
 
 */
@@ -8005,7 +8010,7 @@ static ListExpr AtTypeMap(ListExpr args) {
 }
 
 /*
- 
+
 used by addURegion
 
 */
@@ -8679,13 +8684,13 @@ static int BboxValueMapMRegion(Word* args,
     else
     {
       res->SetDefined(true);
-      const URegionEmb *ur;
+      URegionEmb ur;
       mr->Get(0, ur);
-      *res = ur->BoundingBox();
+      *res = ur.BoundingBox();
       for(int i=1; i<mr->GetNoComponents(); i++)
       {
         mr->Get(i, ur);
-        *res = res->Union( ur->BoundingBox() );
+        *res = res->Union( ur.BoundingBox() );
       }
     }
     return (0);
@@ -8754,13 +8759,13 @@ static int Bbox2dValueMapMRegion(Word* args,
     else
     {
       res->SetDefined(true);
-      const URegionEmb *ur;
+      URegionEmb ur;
       mr->Get(0, ur);
-      Rectangle<3> bb3 = ur->BoundingBox();
+      Rectangle<3> bb3 = ur.BoundingBox();
       for(int i=1; i<mr->GetNoComponents(); i++)
       {
         mr->Get(i, ur);
-        bb3 = bb3.Union( ur->BoundingBox() );
+        bb3 = bb3.Union( ur.BoundingBox() );
       }
       double min[2] = {bb3.MinD(0), bb3.MinD(1)};
       double max[2] = {bb3.MaxD(0), bb3.MaxD(1)};
@@ -8925,15 +8930,15 @@ static int Unittest3ValueMap(Word* args,
     res->StartBulkLoad();
 
     for (unsigned int i = 0; i < rp.Size(); i++) {
-        Interval<Instant>* iv;
+        Interval<Instant> iv;
         int urPos;
         int upPos;
 
         rp.Get(i, iv, urPos, upPos);
 
-        CcReal left(true, iv->start.ToDouble());
-        CcReal right(true, iv->end.ToDouble());
-        Interval<CcReal> resIv(left, right, iv->lc, iv->rc);
+        CcReal left(true, iv.start.ToDouble());
+        CcReal right(true, iv.end.ToDouble());
+        Interval<CcReal> resIv(left, right, iv.lc, iv.rc);
 
         res->Add(resIv);
     }
@@ -8952,19 +8957,19 @@ static int VertTrajectory_ValueMap(Word* args,
                                      Supplier s) {
     result = qp->ResultStorage(s);
     T* ur = (T*) args[0].addr;
-    const DBArray<MSegmentData>* segments = ur->GetMSegmentData();
+    const DbArray<MSegmentData>* segments = ur->GetMSegmentData();
     int size = segments->Size();
     Line* L = (Line*) result.addr;
     L->Clear();
     L->StartBulkLoad();
-    const MSegmentData* mseg;
+    MSegmentData mseg;
     cout << " insert " << size << " segments" << endl;
     HalfSegment hs;
     int edgeno = 0;
     for(int i=0;i<size;i++){
-        segments->Get(i,mseg);
-        Point P1(true,mseg->GetInitialStartX(),mseg->GetInitialStartY());
-        Point P2(true,mseg->GetFinalStartX(),mseg->GetFinalStartY());
+        segments->Get(i,&mseg);
+        Point P1(true,mseg.GetInitialStartX(),mseg.GetInitialStartY());
+        Point P2(true,mseg.GetFinalStartX(),mseg.GetFinalStartY());
         hs.Set(true,P1,P2);
         hs.attr.edgeno = edgeno++;
         //cout << "insert " << hs << "to the line" << endl;
@@ -8976,6 +8981,64 @@ static int VertTrajectory_ValueMap(Word* args,
     return 0;
 }
 
+static int addvaluemap(Word* args,
+                       Word& result,
+                       int message,
+                       Word& local,
+                       Supplier s)
+{
+  result = qp->ResultStorage(s);
+  MRegion* mreg1 = (MRegion* ) args[0].addr;
+  URegion* ureg1 = (URegion*) args[1].addr;
+  MRegion* res = mreg1->Clone();
+
+  bool disj=true;
+  for(int i=0;i<mreg1->GetNoComponents();i++)
+  {
+    URegionEmb ur;
+    mreg1->Get(i,ur);
+    if(!ureg1->timeInterval.Disjoint(ur.timeInterval))
+    {
+      disj=false;
+    }
+  }
+  if(disj)
+  {
+    res->AddURegion(*ureg1);
+  }
+  else
+  {
+    res=new MRegion();
+    res->SetDefined(false);
+    cerr<<"Error, Intervals are not disjoint"<<endl;
+  }
+  result.addr=res;
+  return 0;
+}
+
+static int unionvaluemap(Word* args,
+                         Word& result,
+                         int message,
+                         Word& local,
+                         Supplier s)
+{
+  result = qp->ResultStorage(s);
+  URegion* reg1 = (URegion* ) args[0].addr;
+  URegion* reg2 = (URegion*) args[1].addr;
+  URegion* res = reg1->Clone();
+  try
+  {
+    res->AddURegion(reg2);
+  }
+  catch (invalid_argument& e)
+  {
+    res=new URegion(false);
+    cerr<<e.what()<<endl;
+  }
+  result.addr=res;
+  return 0;
+}
+
 /*
 1.1 Value mapping arrays
 
@@ -8984,63 +9047,6 @@ static int VertTrajectory_ValueMap(Word* args,
 static ValueMapping atinstantvaluemap[] =
     { MappingAtInstant<MRegion, Region>,
       AtInstantValueMap_URegion };
-
-static int addvaluemap(Word* args,
-                        Word& result,
-                        int message,
-                        Word& local,
-                        Supplier s) {
-    result = qp->ResultStorage(s);
-    MRegion* mreg1 = (MRegion* ) args[0].addr;
-    URegion* ureg1 = (URegion*) args[1].addr;
-	MRegion* res = mreg1->Clone();
-	
-	bool disj=true;
-	for(int i=0;i<mreg1->GetNoComponents();i++)
-	{
-		const URegionEmb *ur;
-		mreg1->Get(i,ur);
-		if(!ureg1->timeInterval.Disjoint(ur->timeInterval))
-		{
-			disj=false;
-		}
-	}
-	if(disj)
-	{
-		res->AddURegion(*ureg1);
-	}
-	else
-	{
-		res=new MRegion();
-		res->SetDefined(false);
-		cerr<<"Error, Intervals are not disjoint"<<endl;
-	}
-	result.addr=res;   
-    return 0;
-}
-
-static int unionvaluemap(Word* args,
-                        Word& result,
-                        int message,
-                        Word& local,
-                        Supplier s) {
-    result = qp->ResultStorage(s);
-    URegion* reg1 = (URegion* ) args[0].addr;
-    URegion* reg2 = (URegion*) args[1].addr;
-	URegion* res = reg1->Clone();
-	try
-	{
-		res->AddURegion(reg2);
-	}
-	catch (invalid_argument& e) 
-	{
-		res=new URegion(false);
-		cerr<<e.what()<<endl;
-	}
-	result.addr=res;   
-    return 0;
-}
-
 
 static ValueMapping initialvaluemap[] =
     { MappingInitial<MRegion, URegionEmb, Region> };
@@ -9181,21 +9187,21 @@ static const string addspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "  ( <text>(mregion uregion) -> mregion</text--->"
     "    <text>adduregion(_, _)</text--->"
-    "    <text>Add a Uregion to a Movingregion," 
+    "    <text>Add a Uregion to a Movingregion,"
     "if all the periods are disjoint.</text--->"
     "    <text>query adduregion( msnow ,interpolate(thecenter, "
     "thecenter translate[100.0, -1000.0], theRange(theInstant(2003, 11, 20, 9),"
     "theInstant(2003, 11, 20, 11), TRUE, FALSE)))</text---> ) )";
-    
+
 
 static const string unionspec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-    "  ( <text>(uregion uregion) -> uregion </text--->"    
+    "  ( <text>(uregion uregion) -> uregion </text--->"
     "    <text>_ union _</text--->"
-    "    <text>Calculate a URegion by adding one URegion to another." 
+    "    <text>Calculate a URegion by adding one URegion to another."
     "Works only, if the periods are equal</text--->"
     "    <text>uregion1 unit uregion2</text---> ) )";
-    
+
 
 static const string movespec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
@@ -9357,13 +9363,13 @@ static Operator at("at",
                    AtTypeMap);
 
 static Operator addURegion("adduregion",
-                   addspec,                   
+                   addspec,
                    addvaluemap,
                      Operator::SimpleSelect,
                    AddTypeMap);
-                   
+
 static Operator Union("union",
-                   unionspec,                   
+                   unionspec,
                    unionvaluemap,
                      Operator::SimpleSelect,
                    UnionTypeMap);
