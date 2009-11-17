@@ -598,8 +598,8 @@ The function below test if a name is reserved for system use.
     return (GetSystemTable(s) != 0);
   }
 
-  SmiFileId getFlobFileId() {
-    return flobFile.GetFileId();
+  SmiRecordFile* GetFlobFile() {
+    return &flobFile;
   }	  
 
  protected:
