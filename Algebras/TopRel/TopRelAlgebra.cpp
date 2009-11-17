@@ -694,6 +694,7 @@ void Cluster::Equalize(const Cluster& value){
 }
 
 void Cluster::Equalize(const Cluster* value){
+     memset(name,'\0',MAX_STRINGSIZE);
      strcpy(name, (char*)value->name);
      memcpy(BitVector,value->BitVector,64);
      memcpy(BitVectorT,value->BitVectorT,64);
@@ -1311,14 +1312,18 @@ bool PredicateGroup::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
          return  false;
       }
       // check whether name already used
-      const STRING_T* name = CurrentCluster.GetName();
-      for(int i=0;i<pos;i++)
-         if(strcmp(*(AllClusters[i].GetName()),*name)==0){
+      STRING_T name;
+      CurrentCluster.GetName(name);
+      for(int i=0;i<pos;i++){
+         STRING_T name2;
+         AllClusters[i].GetName(name2);
+         if(strcmp(name2,name)==0){
               ErrorReporter::ReportError("non disjoint names found");
               return false;
          }
+      }
           
-      if(strcmp(*name,UNSPECIFIED)==0){ // forbidden name
+      if(strcmp(name,UNSPECIFIED)==0){ // forbidden name
           ErrorReporter::ReportError(" non valid name for cluster");
           return false;
       }
@@ -1352,9 +1357,10 @@ DBArray. Remember to reorder the clusters after calling this function.
 bool PredicateGroup::Add(Cluster* C){
    if(C->IsEmpty())
      return false;
-   const STRING_T* name = C->GetName();
+   STRING_T name;
+   C->GetName(name);
 
-   if(strcmp(*name,UNSPECIFIED)==0){
+   if(strcmp(name,UNSPECIFIED)==0){
       return false;
    }
    if(!unSpecified.Contains(C)){ // overlap with existing clusters
@@ -1364,7 +1370,9 @@ bool PredicateGroup::Add(Cluster* C){
    Cluster tmp;
    for(int i=0;i<theClusters.Size();i++){
         theClusters.Get(i,tmp);
-        if(strcmp(*(tmp.GetName()),*name)==0){
+        STRING_T name2;
+        tmp.GetName(name2);
+        if(strcmp(name2,name)==0){
             return false;
         }
    }
@@ -1394,15 +1402,18 @@ bool PredicateGroup::AddWithPriority(const Cluster *C){
    if(C->IsEmpty()){
        return false;
    }
-   const STRING_T* name = C->GetName();
-   if(strcmp(*name,UNSPECIFIED)==0){ // name conflict
+   STRING_T name;
+   C->GetName(name);
+   if(strcmp(name,UNSPECIFIED)==0){ // name conflict
       return false;
    }
    // check for name conflicts with existing clusters
    Cluster tmp;
    for(int i=0;i<theClusters.Size();i++){
         theClusters.Get(i,tmp);
-        if(strcmp(*(tmp.GetName()),*name)==0){
+        STRING_T name2;
+        tmp.GetName(name2);
+        if(strcmp(name2,name)==0){
             return false;
         }
    }
@@ -1436,9 +1447,9 @@ Cluster* PredicateGroup::GetClusterOf(const STRING_T* name)const{
    Cluster tmp;
    for(int i=0;i<size;i++){
       theClusters.Get(i,tmp);
-      const STRING_T* n;
-      n  = tmp.GetName();
-      if(strcmp(*n,*name)==0){
+      STRING_T n;
+      tmp.GetName(n);
+      if(strcmp(n,*name)==0){
          Cluster* res = new Cluster();
          res->Equalize(&tmp);
          return res;
@@ -2087,7 +2098,9 @@ int NameOf_Fun(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Cluster* a = (Cluster*) args[0].addr;
   CcString* res = (CcString*) result.addr;
-  res->Set(true,a->GetName());
+  STRING_T name;
+  a->GetName(name);
+  res->Set(true,name);
   return 0;
 }
 
@@ -2288,8 +2301,9 @@ int ClusterNameOf_Fun(Word* args, Word& result, int message,
     PredicateGroup* PG = (PredicateGroup*) args[0].addr;
     Int9M* IM = (Int9M*) args[1].addr;
     CcString* res = (CcString*) result.addr;
-    const STRING_T* pname = PG->GetNameOf(IM);
-    res->Set(true, pname);
+    STRING_T name;
+    PG->GetNameOf(IM, name);
+    res->Set(true, name);
     return 0;
 }
 

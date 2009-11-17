@@ -593,6 +593,7 @@ This standard constructor should only be used in the cast function.
       Cluster(int dummy){
         memcpy(BitVector,emptyBlock,64);
         memcpy(BitVectorT,emptyBlock,64);
+        memset(name,'\0',MAX_STRINGSIZE + 1);
         //strcpy(name,"complete");
         strcpy(name,"empty");
         defined = true;
@@ -610,6 +611,7 @@ ignored.
       Cluster(const bool all, const bool updateBC = true){
           //for(int i=0;i<64;i++)
           //    BitVector[i]=0;
+          memset(name,'\0',MAX_STRINGSIZE + 1 );
           if(all){
              memcpy(BitVector,fullBlock,64);
              memcpy(BitVectorT,fullBlock,64);
@@ -996,7 +998,9 @@ the given value.
 This function returns the name of this cluster.
 
 */
-      const STRING_T* GetName() const { return &name; } 
+      void GetName(STRING_T& res) const { 
+           strcpy(res, name);
+      } 
 
 
 /*
@@ -1390,16 +1394,19 @@ Note that this function creates a new STRING object. The caller of this
 function has to destroy this object to avoid memory holes.
 
 */
-   const STRING_T* GetNameOf(Int9M* Matrix) {
+   void GetNameOf(Int9M* Matrix, STRING_T& res) {
        if(unSpecified.Contains(*Matrix)){
-          return unSpecified.GetName();
+          unSpecified.GetName(res);
+          return;
        }
        int s = theClusters.Size();
        Cluster C;
        for(int i=0;i<s;i++){
            theClusters.Get(i,C);
-           if(C.Contains(*Matrix))
-               return C.GetName();
+           if(C.Contains(*Matrix)){
+                C.GetName(res);
+                return;
+           }
        }
        assert(false); // should never be reached
     }
