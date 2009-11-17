@@ -262,8 +262,8 @@ ALGEBRAS     += CollectionAlgebra
 #ALGEBRA_DIRS += MONTree 
 #ALGEBRAS     += MONTreeAlgebra
 
-ALGEBRA_DIRS += Traffic
-ALGEBRAS     += TrafficAlgebra
+#ALGEBRA_DIRS += Traffic
+#ALGEBRAS     += TrafficAlgebra
 
 # JNI Algebras - Java code will be called from C++ code.
 
