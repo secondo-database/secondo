@@ -88,9 +88,9 @@ const double FACTOR = 0.00000001; // Precision factor, used within AlmostEqual
       {
         Flob *tmpFlob = elem->GetFLOB(i);
         SecondoCatalog* ctlg = SecondoSystem::GetCatalog();
-        SmiFileId fileId = ctlg->getFlobFileId();
+        SmiRecordFile* rf = ctlg->GetFlobFile();
         //cerr << "FlobFileId = " << fileId << endl;
-        tmpFlob->saveToFile(fileId, *tmpFlob);
+        tmpFlob->saveToFile(rf, *tmpFlob);
       }
 
       // Write the element
