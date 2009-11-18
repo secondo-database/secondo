@@ -6082,9 +6082,9 @@ mgpsecFunctions mgpfunct;
 TypeConstructor mgpsecunitTC(mgpinfo, mgpfunct);
 
 /*
-4 Operators of the Traffic Algebra
+5 Operators
 
-4.1 ~mgp2mgpsecunit~
+5.0 ~mgp2mgpsecunit~
 
 The operation ~mgp2mgpsecunit~ gets a network and a maximum section
 length and a stream of ~mgpoint~. With this values it computes the
@@ -6244,7 +6244,123 @@ struct mgp2mgpsecunitsInfo : OperatorInfo {
 };
 
 /*
-5 Operators
+5.0.1 ~mgp2mgpsecunit2~
+
+The operation ~mgp2mgpsecunit~ gets a maximum section
+length and a ~mgpoint~. With this values it computes the mgpsecunits of
+the mgpoint.
+
+TypeMapping:
+
+*/
+
+ListExpr OpMgp2mgpsecunits2TypeMap(ListExpr in_xArgs)
+{
+  NList type(in_xArgs);
+  if (type.length() == 2)
+  {
+    NList mgp = type.first();
+    NList length = type.second();
+    if (mgp.isEqual("mgpoint") && length.isEqual("real"))
+    {
+      return nl->TwoElemList(nl->SymbolAtom("stream"),
+                             nl->SymbolAtom("mgpsecunit"));
+    }
+  }
+  return NList::typeError( "Expected <mgpoint>, <real>.");
+}
+
+/*
+Auxilliary Functions
+
+*/
+
+struct OpMgp2mgpsec2LocalInfo
+{
+  OpMgp2mgpsec2LocalInfo()
+  {
+    vmgpsecunit.clear();
+    pos = 0;
+  }
+
+  vector<MGPSecUnit> vmgpsecunit; // vector mit mgpsecunits
+  size_t pos; //position im Vector
+};
+
+/*
+Value Mapping
+
+*/
+
+int OpMgp2mgpsecunits2ValueMap(Word* args, Word& result, int message,
+                              Word& local, Supplier s)
+{
+  OpMgp2mgpsec2LocalInfo* li = 0;
+  switch( message )
+  {
+    case OPEN:
+    {
+      li = new OpMgp2mgpsec2LocalInfo();
+      MGPoint *m = (MGPoint*) args[0].addr;
+      Network *pNetwork = NetworkManager::GetNetworkNew(m->GetNetworkId(),
+                                                        netList);
+      double maxSectLength = ((CcReal*) args[1].addr)->GetRealval();
+      li->vmgpsecunit.clear();
+      m->GetMGPSecUnits(li->vmgpsecunit, maxSectLength, pNetwork);
+      li->pos = 0;
+      NetworkManager::CloseNetwork(pNetwork);
+      local.addr = li;
+      return 0;
+    }
+
+    case REQUEST:
+    {
+      result = qp->ResultStorage(s);
+      if (local.addr)
+        li = (OpMgp2mgpsec2LocalInfo*) local.addr;
+      else return CANCEL;
+      if (!li->vmgpsecunit.empty() && li->pos < li->vmgpsecunit.size())
+      {
+        result = SetWord(new MGPSecUnit(li->vmgpsecunit[li->pos++]));
+        return YIELD;
+      }
+      else return CANCEL;
+    }
+
+    case CLOSE:
+    {
+      if (local.addr)
+      {
+        li = (OpMgp2mgpsec2LocalInfo*) local.addr;
+        li->vmgpsecunit.clear();
+        delete li;
+        li = 0;
+        local.addr = 0;
+      }
+      return 0;
+    }
+    default:
+    {
+      // should not happen
+      return -1;
+    }
+  }
+}
+
+
+struct mgp2mgpsecunits2Info : OperatorInfo {
+
+  mgp2mgpsecunits2Info()
+  {
+    name      = "mgp2mgpsecunits2";
+    signature = "mgpoint x real -> stream(mgpsecunit)";
+    syntax    = "mgp2mgpsecunits2 (_ , _ )";
+    meaning   = "Builds a stream of mgpsecunits from mgpoint.";
+  }
+};
+
+/*
+
 
 5.1 Operator ~mpoint2mgpoint~
 
@@ -8675,6 +8791,8 @@ class TemporalNetAlgebra : public Algebra
     AddOperator(&tempnetugpoint2mgpoint);
     AddOperator(mgp2mgpsecunitsInfo(), OpMgp2mgpsecunitsValueMap,
                 OpMgp2mgpsecunitsTypeMap);
+    AddOperator(mgp2mgpsecunits2Info(), OpMgp2mgpsecunits2ValueMap,
+                OpMgp2mgpsecunits2TypeMap);
   }
 
 

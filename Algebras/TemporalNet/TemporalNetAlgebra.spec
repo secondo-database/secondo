@@ -33,3 +33,4 @@ operator startunitinst alias STARTUNITINST pattern op ( _ )
 operator endunitinst alias STARTUNITINST pattern op ( _ )
 operator ugpoint2mgpoint alias UGPOINT2MGPOINT pattern op ( _ )
 operator mgp2mgpsecunits alias MGPTOMGPSECUNITS pattern _ op [ _ , _ , _ ]
+operator mgp2mgpsecunits2 alias MGPTOMGPSECUNITSTWO pattern op ( _ , _ )

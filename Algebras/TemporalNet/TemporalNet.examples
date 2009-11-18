@@ -358,3 +358,10 @@ Number   : 1
 Signature: rel(tuple((ai xi))) x ai x network x real -> stream(mgpsecunit)
 Example  : query trains mgp2mgpsecunits [trip, B_NETWORK, 20000.0] transformstream consume;
 Result   : file
+
+Operator : mgp2mgpsecunits2
+Number   : 1
+Signature: mgpoint x real -> stream(mgpsecunit)
+Example  : query trains  feed addid projectextendstream[TID; MGPSec: mgp2mgpsecunits2(.trip, 20000.0)] consume;
+Result   : file
+
