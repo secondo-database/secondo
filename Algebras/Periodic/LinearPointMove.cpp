@@ -726,10 +726,8 @@ void LinearPointMove::Toprel(const Points& P,
       R.SetEI(true);
    } else{
      LinearInt9MMove buffer[3];
-     const Point* tP1;
      Point tP2;
-     P.Get(0,tP1);
-     tP2 = (*tP1);
+     P.Get(0,tP2);
      int n = Toprel(tP2,buffer);
      for(int i=0;i<n;i++)
         Result.push_back(buffer[i]);
@@ -765,7 +763,7 @@ void LinearPointMove::Toprel(const Points& P,
       forward = false;
       
 
-   const Point* currentPoint1;
+   Point currentPoint1;
    Point currentPoint2;
    RelInterval lastInterval = interval;
    RelInterval newInterval;
@@ -778,16 +776,16 @@ void LinearPointMove::Toprel(const Points& P,
    for(int i=0;i<size && !done;i++){
       if(forward){
           P.Get(i,currentPoint1);
-          currentPoint2 = (*currentPoint1);
+          currentPoint2 = (currentPoint1);
       }
       else{
           P.Get(size-i-1,currentPoint1);
-          currentPoint2 = (*currentPoint1);
+          currentPoint2 = (currentPoint1);
       }
    
       currentX = currentPoint2.GetX();
-       currentY = currentPoint2.GetY();
-       currentDelta=PointPosOnSegment(lastX1,lastY1,endX,endY,
+      currentY = currentPoint2.GetY();
+      currentDelta=PointPosOnSegment(lastX1,lastY1,endX,endY,
                                       currentX,currentY); 
        if(currentDelta==0){ // split at starting point
          // split the interval at the begin 

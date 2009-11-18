@@ -680,7 +680,7 @@ int RelInterval::NumOfFLOBs() const{
     return 0;
 }
 
-FLOB* RelInterval::GetFLOB(const int i){
+Flob* RelInterval::GetFLOB(const int i){
     assert(false);
 }
 

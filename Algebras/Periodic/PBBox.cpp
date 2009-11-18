@@ -657,7 +657,7 @@ Because the ~NumOfFLOBs~ function returns zero, this
 function should never be called.
 
 */
-FLOB* PBBox::GetFLOB(int i){
+Flob* PBBox::GetFLOB(int i){
    assert(false);
 }
 
