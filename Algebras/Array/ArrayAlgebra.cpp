@@ -1758,13 +1758,22 @@ summarizeFun( Word* args, Word& result, int message, Word& local, Supplier s )
       if (rit)
         delete rit;
 
-      if ( current < array->getSize() )
+      while (current < array->getSize())
       {
-        Relation* r = static_cast<Relation*>( array->getElement(current).addr );
-        current++;
-        rit = r->MakeScan();
-        return true;
+    	Relation* r=static_cast<Relation*>(array->getElement(current).addr);
+    	if (r->GetNoTuples() > 0)
+    	{
+    	  current++;
+		  rit = r->MakeScan();
+		  return true;
+    	}
+    	else
+    	{
+    	  current++;
+    	  continue;
+    	}
       }
+
       rit=0;
       return false;
     }
