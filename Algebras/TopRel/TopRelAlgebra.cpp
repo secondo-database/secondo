@@ -56,6 +56,9 @@ level remains. Models are also removed from type constructors.
 #include "FTextAlgebra.h"
 #include "GenericTC.h"
 
+
+
+
 extern "C"{
 #include "Tree.h"
 }
@@ -546,7 +549,7 @@ contained 9 intersection matrices.
 
 */
 ListExpr Cluster::ToListExpr(const ListExpr TypeInfo)const{
-    if(!defined)
+    if(!IsDefined())
       return nl->SymbolAtom("undefined");
     // check for contained values
 
@@ -660,7 +663,7 @@ bool Cluster::ReadFrom(const ListExpr LE,const ListExpr typeInfo){
    memcpy(BitVector,TMP,64);
    strcpy(name,TMPname);
    Transpose(BitVector,BitVectorT);
-   defined = true;
+   SetDefined(true);
    updateBoxChecks();
    return true;
 }
@@ -698,7 +701,7 @@ void Cluster::Equalize(const Cluster* value){
      strcpy(name, (char*)value->name);
      memcpy(BitVector,value->BitVector,64);
      memcpy(BitVectorT,value->BitVectorT,64);
-     defined = value->defined;
+     SetDefined(value->IsDefined());
      boxchecks = value->boxchecks;
      boxchecksT = value->boxchecksT;
      boxchecksok = value->boxchecksok;
@@ -711,13 +714,13 @@ The Compare function compares two clusters. Needed for to be an attribute of a t
 
 */
 int Cluster::CompareTo(const Cluster* C)const{
-   if(!defined && !C->defined){
+   if(!IsDefined() && !C->IsDefined()){
      return 0;
    }
-   if(!defined){
+   if(!IsDefined()){
       return -1;
    }
-   if(!C->defined){
+   if(!C->IsDefined()){
       return 1;
    }
    for(int i=0;i<64;i++){
@@ -907,21 +910,6 @@ int Cluster::checkBoxes(const Rectangle<2> box1, const bool empty1,
 }
 
 
-
-/*
-2.2.8 Functions for the defined state
-
-With these functions we can query and set the value of the
-defined flag of this cluster.
-
-*/
-bool Cluster::IsDefined() const{
-   return defined;
-}
-
-void Cluster::SetDefined( bool defined ){
-   this->defined = defined;
-}
 
 /*
 2.2.9 The HashValue function
@@ -1402,6 +1390,7 @@ bool PredicateGroup::AddWithPriority(const Cluster *C){
    if(C->IsEmpty()){
        return false;
    }
+
    STRING_T name;
    C->GetName(name);
    if(strcmp(name,UNSPECIFIED)==0){ // name conflict
@@ -1417,8 +1406,10 @@ bool PredicateGroup::AddWithPriority(const Cluster *C){
             return false;
         }
    }
-   Cluster aux(false);
-   aux.Equalize(C);
+
+
+ 
+   Cluster aux(*C);
    aux.Intersection(&unSpecified); // remove overlapping clusters
    if(aux.IsEmpty())
      return false;
@@ -1503,7 +1494,9 @@ void PredicateGroup::SetToDefault(){
                     );
      bool ok; 
      Cluster clEqual(false);
+
      ok = clEqual.ReadFrom(nlEqual,nl->TheEmptyList());
+
      assert(ok);
      Cluster clInside(false);
      ok = clInside.ReadFrom(nlInside,nl->TheEmptyList());
@@ -1526,7 +1519,7 @@ void PredicateGroup::SetToDefault(){
      Cluster clCovers(clCoveredBy);
      clCovers.Transpose();
      clCovers.SetName("covers");
-     
+    
      ok = AddWithPriority(&clEqual);
      if(!ok) {cerr  << "Equal not included" << endl; }
      ok = AddWithPriority(&clInside);

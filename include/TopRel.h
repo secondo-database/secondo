@@ -590,13 +590,11 @@ This standard constructor should only be used in the cast function.
       Cluster(){} 
 
 
-      Cluster(int dummy){
+      Cluster(int dummy) : Attribute(true){
         memcpy(BitVector,emptyBlock,64);
         memcpy(BitVectorT,emptyBlock,64);
         memset(name,'\0',MAX_STRINGSIZE + 1);
-        //strcpy(name,"complete");
         strcpy(name,"empty");
-        defined = true;
         updateBoxChecks();
       }
       
@@ -608,7 +606,7 @@ making this constructor different to the standard constructor and is
 ignored.
 
 */
-      Cluster(const bool all, const bool updateBC = true){
+      Cluster(const bool all, const bool updateBC = true) : Attribute(true){
           //for(int i=0;i<64;i++)
           //    BitVector[i]=0;
           memset(name,'\0',MAX_STRINGSIZE + 1 );
@@ -621,11 +619,12 @@ ignored.
              memcpy(BitVectorT,emptyBlock,64);
              strcpy(name,"complete");
           }
-          defined = true;
           if(updateBC){
               updateBoxChecks();
           } else {
               boxchecksok = false;
+              boxchecks=false;
+              boxchecksT = false;
           }
       }
 
@@ -633,11 +632,11 @@ ignored.
 2.2.3 Copy Constructor 
 
 */
-    Cluster(const Cluster& source){
+    Cluster(const Cluster& source) : Attribute(true){
        Equalize(source);
     }
 
-    Cluster(const Cluster* source){
+    Cluster(const Cluster* source): Attribute(true){
        Equalize(source);
     }
 
@@ -960,10 +959,6 @@ cluster acts as an attribute type within relations.
       }
       /* returns false in each case */
       bool Adjacent(const Attribute*) const;
-      /* returns the defined state of this cluster */
-      bool IsDefined() const;
-      /* sets the defined state of this cluster */
-      void SetDefined( bool defined );
       /* computes a hashvalue for this cluster */
       size_t HashValue() const;
       /* reads the value of this cluster from arg */
@@ -1116,7 +1111,6 @@ clusters.
    private:
       unsigned char BitVector[64];  // the set of matrices
       unsigned char BitVectorT[64]; // set of transposed matrices
-      bool defined;
       STRING_T name;
 
       int boxchecks;  // coded information about this cluster
