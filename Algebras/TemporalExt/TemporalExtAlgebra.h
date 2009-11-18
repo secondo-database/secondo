@@ -51,7 +51,8 @@ named implementations.
 #include "StandardTypes.h"
 #include "SpatialAlgebra.h"
 #include "NestedList.h"
-#include "DBArray.h"
+//#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "RectangleAlgebra.h"
 #include "DateTime.h"
 
@@ -126,7 +127,7 @@ public:
     bool Passes( Points* pts ) const;
 
     bool Passes( Line* ln ) const;
-    
+
     MBool Inside( const Region& r ) const;
 };
 

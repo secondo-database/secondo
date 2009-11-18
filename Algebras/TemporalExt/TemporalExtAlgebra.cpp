@@ -215,36 +215,30 @@ Return:
 bool timeIntervalOfRealInUReal2(double value, const UReal* ur, double& t_value)
 {
   Periods times(2);
-  const Interval<Instant>* invinst;
+  Interval<Instant> invinst;
 
   ur->PeriodsAtVal(value, times);
-  if ( times.GetNoComponents() < 2 )
-  {
+  if ( times.GetNoComponents() < 2 ){
     times.Get(0, invinst);
-    if ( invinst->start == invinst->end )
-    {
-      t_value = invinst->start.ToDouble();
+    if ( invinst.start == invinst.end ){
+      t_value = invinst.start.ToDouble();
       return true;
     }
   }
   return false;
 }
 
-bool timeIntervalOfRealInUReal(
-    double value,
-    const UReal* ur,
-    double& t_value
-)
+bool timeIntervalOfRealInUReal( double value, UReal ur, double& t_value )
 {
     double unit_min, unit_max, ts, te;
     bool lh, rh;
 
-    unit_min = ((URealExt*)ur)->GetUnitMin();
-    unit_max = ((URealExt*)ur)->GetUnitMax();
-    lh = ur->timeInterval.lc;
-    rh = ur->timeInterval.rc;
-    ts = (ur->timeInterval.start).ToDouble();
-    te = (ur->timeInterval.end).ToDouble();
+    unit_min = ((URealExt*)(&ur))->GetUnitMin();
+    unit_max = ((URealExt*)(&ur))->GetUnitMax();
+    lh = ur.timeInterval.lc;
+    rh = ur.timeInterval.rc;
+    ts = (ur.timeInterval.start).ToDouble();
+    te = (ur.timeInterval.end).ToDouble();
     if(0)
     {
         cout << endl << "GetUnitMin(): " << unit_min << endl;
@@ -267,13 +261,13 @@ bool timeIntervalOfRealInUReal(
     }
     else
     {
-        if(ur->a == 0 && ur->b != 0)
+        if(ur.a == 0 && ur.b != 0)
         {
 /*
 Find value in a linear function
 
 */
-            t_value = ((value - ur->c) / ur->b) + ts;
+            t_value = ((value - ur.c) / ur.b) + ts;
             if(0)
             {
                 cout << "---> value in a linear function" << endl;
@@ -281,13 +275,13 @@ Find value in a linear function
         }
         else
         {
-            if(ur->a == 0 && ur->b == 0)
+            if(ur.a == 0 && ur.b == 0)
             {
 /*
 Find value in a constant function
 
 */
-                t_value = ur->c;
+                t_value = ur.c;
                 if(0)
                 {
                     cout << "---> value in a constant function" << endl;
@@ -310,19 +304,19 @@ Find value in a quadratic function with Newtons Method
                 if(0)
                 {
                     cout << "t_newton(Start) = " << t_newton << endl;
-                    cout << "a = " << ur->a << endl;
-                    cout << "b = " << ur->b << endl;
-                    cout << "c = " << ur->c << endl;
+                    cout << "a = " << ur.a << endl;
+                    cout << "b = " << ur.b << endl;
+                    cout << "c = " << ur.c << endl;
                 }
                 do
                 {
                     t_newton_old = t_newton;
                     t_var = t_newton - ts;
-                    if(ur->r)
+                    if(ur.r)
                     {
-                        t = sqrt(pow(t_var, 2)*ur->a + t_var*ur->b
-                            + ur->c - value);
-                        dt = (1/2)*(1/sqrt(t)) + (2*ur->a*t_var + ur->b);
+                        t = sqrt(pow(t_var, 2)*ur.a + t_var*ur.b
+                            + ur.c - value);
+                        dt = (1/2)*(1/sqrt(t)) + (2*ur.a*t_var + ur.b);
                         if(0)
                         {
                             cout << "t = " << t << endl;
@@ -331,8 +325,8 @@ Find value in a quadratic function with Newtons Method
                     }
                     else
                     {
-                        t = pow(t_var, 2)*ur->a + t_var*ur->b + ur->c - value;
-                        dt = 2*ur->a*t_var + ur->b;
+                        t = pow(t_var, 2)*ur.a + t_var*ur.b + ur.c - value;
+                        dt = 2*ur.a*t_var + ur.b;
                         if(0)
                         {
                             cout << "t = " << t << endl;
@@ -503,7 +497,7 @@ and point unit, both restricted to this interval, intersect.
 */
     for (unsigned int i = 0; i < rp.Size(); i++)
     {
-        Interval<Instant>* iv;
+        Interval<Instant> iv;
         int urPos;
         int upPos;
 
@@ -511,14 +505,14 @@ and point unit, both restricted to this interval, intersect.
 
         if (urPos == -1 || upPos == -1) continue;
 
-        const URegionEmb* ur;
-        const UPoint* up;
+        URegionEmb ur;
+        UPoint up;
 
         mreg->Get(urPos, ur);
         mp.Get(upPos, up);
 
-        ur->RestrictedIntersection(
-            mreg->GetMSegmentData(), *up, *iv, res, pending, merge);
+        ur.RestrictedIntersection(
+            mreg->GetMSegmentData(), up, iv, res, pending, merge);
     }
 
     if (pending)
@@ -550,7 +544,7 @@ Return: nothing
 
 void MPointExt::MDirection( MReal* result) const
 {
-    const UPoint* unitin;
+    UPoint unitin;
     UReal uresult(true);
     bool defined;
 
@@ -563,8 +557,8 @@ void MPointExt::MDirection( MReal* result) const
         uresult.b = 0.;
         uresult.c = 0.;
         uresult.r = false;
-        uresult.timeInterval = unitin->timeInterval;
-        uresult.c = AngleToXAxis( &(unitin->p0), &(unitin->p1), defined );
+        uresult.timeInterval = unitin.timeInterval;
+        uresult.c = AngleToXAxis( &(unitin.p0), &(unitin.p1), defined );
         uresult.SetDefined( defined );
         if(defined)
           result->Add( uresult );
@@ -589,7 +583,7 @@ void MPointExt::Locations( Points* result ) const
     {
         cout << "MPointExt::Locations called!" << endl;
     }
-    const UPoint* unitin;
+    UPoint unitin;
     vector<Point> points;
     vector<HalfSegment> hsegments;
     HalfSegment* temp_hs;
@@ -598,13 +592,13 @@ void MPointExt::Locations( Points* result ) const
     for(int i=0;i<GetNoComponents();i++)
     {
         Get(i, unitin);
-        if(unitin->p0 == unitin->p1)
+        if(unitin.p0 == unitin.p1)
         {
-            points.push_back(unitin->p0);
+            points.push_back(unitin.p0);
         }
         else
         {
-            temp_hs = new HalfSegment( false, unitin->p0, unitin->p1);
+            temp_hs = new HalfSegment( false, unitin.p0, unitin.p1);
             hsegments.push_back(*temp_hs);
         }
     }
@@ -657,7 +651,7 @@ Return: nothing
 
 void MPointExt::At( Points* pts, MPoint &result ) const
 {
-    const UPoint* unitin;
+    UPoint unitin;
     clock_t clock1, clock2, clock3, clock4, clock_ges;
     double time1, time2;
 
@@ -669,7 +663,7 @@ void MPointExt::At( Points* pts, MPoint &result ) const
     {
         clock3 = clock();
         Get(i, unitin);
-        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
+        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin.BoundingBox();
         Rectangle<2> unit_pbb;
         const Rectangle<2> obj_pbb = (Rectangle<2>)pts->BoundingBox();
         if(0)
@@ -689,17 +683,17 @@ void MPointExt::At( Points* pts, MPoint &result ) const
         {
             for(int j=0;j<pts->Size();j++)
             {
-                const Point* tmp_pt;
+                Point tmp_pt;
                 pts->Get( j, tmp_pt );
-                if( unitin->Passes( *tmp_pt ) )
+                if( unitin.Passes( tmp_pt ) )
                 {
                     if(0)
                     {
-                        cout << "( " <<  tmp_pt->GetX()
-                            << ", " << tmp_pt->GetY() << " ) ";
+                        cout << "( " <<  tmp_pt.GetX()
+                            << ", " << tmp_pt.GetY() << " ) ";
                     }
                     UPoint uresult(true);
-                    if(unitin->At( *tmp_pt, uresult ))
+                    if(unitin.At( tmp_pt, uresult ))
                         result.Add( uresult );
                 }
             }
@@ -745,7 +739,7 @@ bool checkunits( const UPoint& u1, const UPoint& u2 )
 
 void MPointExt::At( Line* ln, MPoint &result ) const
 {
-  const UPoint* unitin;
+  UPoint unitin;
   UPoint unitincopy, lastunit(true);
   clock_t clock1, clock2, clock3, clock4, clock_ges;
   double time1, time2;
@@ -758,8 +752,8 @@ void MPointExt::At( Line* ln, MPoint &result ) const
   {
     clock3 = clock();
     Get(i, unitin);
-    unitincopy = *unitin;
-    const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
+    unitincopy = unitin;
+    const Rectangle<3> temp_pbb = (Rectangle<3>)unitin.BoundingBox();
     Rectangle<2> unit_pbb;
     const Rectangle<2> obj_pbb = (Rectangle<2>)ln->BoundingBox();
     if(0)
@@ -773,71 +767,72 @@ void MPointExt::At( Line* ln, MPoint &result ) const
     double min[2] = { temp_pbb.MinD(0), temp_pbb.MinD(1) };
     double max[2] = { temp_pbb.MaxD(0), temp_pbb.MaxD(1) };
     unit_pbb.Set(true, min, max);
+
 /*
-Raw intersection with Bounding Boxes
+Raw intersection with Bounding Boxes const
 
 */
     if(unit_pbb.Intersects( obj_pbb ))
     {
       HalfSegment up_chs;
-      if ( unitin->p0 != unitin->p1 )
-        up_chs.Set( false, unitin->p0, unitin->p1 );
+      if ( unitin.p0 != unitin.p1 )
+        up_chs.Set( false, unitin.p0, unitin.p1 );
         if(0)
         {
           cout << "No of HS: " << ln->Size() << endl;
         }
         for(int j=0;j<ln->Size();j++)
         {
-          const HalfSegment* ln_chs;
+          HalfSegment ln_chs;
           ln->Get( j, ln_chs );
 /*
 Scanning of one 1 of 2 HalfSegment
 
 */
-          if( ln_chs->GetRightPoint() == ln_chs->GetDomPoint() )
+          if( ln_chs.GetRightPoint() == ln_chs.GetDomPoint() )
           {
               if(0)
               {
-                cout << "P0.X = " << ln_chs->GetLeftPoint().GetX()
-                     << " P0.Y = " << ln_chs->GetLeftPoint().GetY()
-                     << " P1.X = " << ln_chs->GetRightPoint().GetX()
-                     << " P1.Y = " << ln_chs->GetRightPoint().GetY()
-                     << " D0.X = " << ln_chs->GetDomPoint().GetX()
-                     << " D0.Y = " << ln_chs->GetDomPoint().GetY()
-                     << " S1.X = " << ln_chs->GetSecPoint().GetX()
-                     << " S1.Y = " << ln_chs->GetSecPoint().GetY()
+                cout << "P0.X = " << ln_chs.GetLeftPoint().GetX()
+                     << " P0.Y = " << ln_chs.GetLeftPoint().GetY()
+                     << " P1.X = " << ln_chs.GetRightPoint().GetX()
+                     << " P1.Y = " << ln_chs.GetRightPoint().GetY()
+                     << " D0.X = " << ln_chs.GetDomPoint().GetX()
+                     << " D0.Y = " << ln_chs.GetDomPoint().GetY()
+                     << " S1.X = " << ln_chs.GetSecPoint().GetX()
+                     << " S1.Y = " << ln_chs.GetSecPoint().GetY()
                      << endl;
               }
 /*
 For unit points which do not have any motion
 
 */
-              if( unitin->p0 == unitin->p1 )
+              if( unitin.p0 == unitin.p1 )
               {
-                if( ln_chs->Contains( unitin->p0 ) )
+                if( ln_chs.Contains( unitin.p0 ) )
                 {
                   if(0)
                   {
                     cout << "Intersects up " << i
                          << " as a point at " << j << "!!" << endl
-                         << "HS: ( " << ln_chs->GetLeftPoint().GetX()
-                         << ", " << ln_chs->GetLeftPoint().GetY()
-                         << " ; " << ln_chs->GetRightPoint().GetX()
-                         << ", " << ln_chs->GetRightPoint().GetY()
-                         << "p0: " << unitin->p0 << " p1: " << unitin->p1
+                         << "HS: ( " << ln_chs.GetLeftPoint().GetX()
+                         << ", " << ln_chs.GetLeftPoint().GetY()
+                         << " ; " << ln_chs.GetRightPoint().GetX()
+                         << ", " << ln_chs.GetRightPoint().GetY()
+                         << "p0: " << unitin.p0 << " p1: " << unitin.p1
                          << " unitstart: "
-                         << unitin->timeInterval.start.ToString()
-                         << " unitend: " << unitin->timeInterval.end.ToString()
+                         << unitin.timeInterval.start.ToString()
+                         << " unitend: " << unitin.timeInterval.end.ToString()
                          << " )" << endl;
                   }
                   UPoint res(true);
-                  const UPoint* uttmp;
-                  res.CopyFrom( unitin );
+                  UPoint uttmp;
+                  res.CopyFrom( &unitin );
                   bool unit_present = false;
                   for(int z=0;z<result.GetNoComponents();z++)
                   {
                     result.Get( z, uttmp );
-                    if( res == *uttmp )
+                    if( res == uttmp )
                       unit_present = true;
                   }
                   if( !unit_present )
@@ -867,7 +862,7 @@ For unit points which do not have any motion
               }
               else
               {
-              if( up_chs.Intersects( *ln_chs ) )
+              if( up_chs.Intersects( ln_chs ) )
               {
                 if(0)
                 {
@@ -881,18 +876,18 @@ For unit points which do not have any motion
                        << up_chs.GetRightPoint().GetY()
                        << " )" << endl;
                   cout << "intersects ( "
-                       << ln_chs->GetLeftPoint().GetX()
+                       << ln_chs.GetLeftPoint().GetX()
                        << ", "
-                       << ln_chs->GetLeftPoint().GetY()
+                       << ln_chs.GetLeftPoint().GetY()
                        << "; "
-                       << ln_chs->GetRightPoint().GetX()
+                       << ln_chs.GetRightPoint().GetX()
                        << ", "
-                       << ln_chs->GetRightPoint().GetY()
+                       << ln_chs.GetRightPoint().GetY()
                        << " ) at " << j << endl;
                 }
                 Point inter_p;
                 HalfSegment inter_chs;
-                if( up_chs.Intersection( *ln_chs, inter_chs ) )
+                if( up_chs.Intersection( ln_chs, inter_chs ) )
                 {
                   if(0)
                   {
@@ -910,17 +905,17 @@ For unit points which do not have any motion
                   UPoint trash1(true);
                   UPoint trash2(true);
                   bool tmpunitlc = true;
-                  if ( (AlmostEqual(ln_chs->GetLeftPoint(), unitin->p0) ||
-                        AlmostEqual(ln_chs->GetRightPoint(), unitin->p0))
-                        && !unitin->timeInterval.lc )
+                  if ( (AlmostEqual(ln_chs.GetLeftPoint(), unitin.p0) ||
+                        AlmostEqual(ln_chs.GetRightPoint(), unitin.p0))
+                        && !unitin.timeInterval.lc )
                   {
                     tmpunitlc = false;
                     unitincopy.timeInterval.lc = true;
                   }
                   bool tmpunitrc = true;
-                  if ( (AlmostEqual(ln_chs->GetRightPoint(), unitin->p1) ||
-                        AlmostEqual(ln_chs->GetLeftPoint(), unitin->p1))
-                        && !unitin->timeInterval.rc )
+                  if ( (AlmostEqual(ln_chs.GetRightPoint(), unitin.p1) ||
+                        AlmostEqual(ln_chs.GetLeftPoint(), unitin.p1))
+                        && !unitin.timeInterval.rc )
                   {
                     tmpunitrc = false;
                     unitincopy.timeInterval.rc = true;
@@ -957,10 +952,10 @@ For unit points which do not have any motion
 
                     UPoint* res = new UPoint(
                       *ii,
-                      unitin->p0 > unitin->p1
+                      unitin.p0 > unitin.p1
                       ? inter_chs.GetRightPoint()
                       : inter_chs.GetLeftPoint(),
-                      unitin->p0 > unitin->p1
+                      unitin.p0 > unitin.p1
                       ? inter_chs.GetLeftPoint()
                       : inter_chs.GetRightPoint()
                     );
@@ -1007,21 +1002,21 @@ For unit points which do not have any motion
 Looks for intersections in a point
 
 */
-                  if( up_chs.Intersection( *ln_chs, inter_p ) )
+                  if( up_chs.Intersection( ln_chs, inter_p ) )
                   {
                     if(0)
                     {
                       cout << "Intersection is a point!! " << inter_p << endl;
                     }
                     UPoint res(true);
-                    if ( (AlmostEqual(unitin->p0, inter_p) &&
-                          unitin->timeInterval.lc) ||
-                         (AlmostEqual(unitin->p1, inter_p) &&
-                          unitin->timeInterval.rc) ||
-                         ((inter_p > unitin->p0) && (inter_p < unitin->p1)) ||
-                         ((inter_p < unitin->p0) && (inter_p > unitin->p1)) )
+                    if ( (AlmostEqual(unitin.p0, inter_p) &&
+                          unitin.timeInterval.lc) ||
+                         (AlmostEqual(unitin.p1, inter_p) &&
+                          unitin.timeInterval.rc) ||
+                         ((inter_p > unitin.p0) && (inter_p < unitin.p1)) ||
+                         ((inter_p < unitin.p0) && (inter_p > unitin.p1)) )
                     {
-                      unitin->At( inter_p, res );
+                      unitin.At( inter_p, res );
                       if ( i == 0 )
                       {
                         result.MergeAdd( res );
@@ -1080,7 +1075,7 @@ Return: a boolean
 
 bool MPointExt::Passes( Points* pts ) const
 {
-    const UPoint* unitin;
+    UPoint unitin;
     clock_t clock1, clock2, clock3, clock4, clock_ges;
     double time1, time2;
     bool result = false;
@@ -1092,7 +1087,7 @@ bool MPointExt::Passes( Points* pts ) const
     {
         clock3 = clock();
         Get(i, unitin);
-        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
+        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin.BoundingBox();
         Rectangle<2> unit_pbb;
         const Rectangle<2> obj_pbb = (Rectangle<2>)pts->BoundingBox();
         if(0)
@@ -1113,14 +1108,14 @@ bool MPointExt::Passes( Points* pts ) const
             int j = 0;
             while( !result && j<pts->Size() )
             {
-                const Point* tmp_pt;
+                Point tmp_pt;
                 pts->Get( j, tmp_pt );
-                if( unitin->Passes( *tmp_pt ) )
+                if( unitin.Passes( tmp_pt ) )
                 {
                     if(0)
                     {
-                        cout << "( " <<  tmp_pt->GetX()
-                                << ", " << tmp_pt->GetY() << " ) ";
+                        cout << "( " <<  tmp_pt.GetX()
+                                << ", " << tmp_pt.GetY() << " ) ";
                     }
                     result = true;
                 }
@@ -1154,7 +1149,7 @@ Return: a boolean
 
 bool MPointExt::Passes( Line* ln ) const
 {
-    const UPoint* unitin;
+    UPoint unitin;
 //     clock_t clock1, clock2, clock3, clock4, clock_ges;
 //     double time1, time2;
     bool result = false;
@@ -1166,7 +1161,7 @@ bool MPointExt::Passes( Line* ln ) const
     {
 //         clock3 = clock();
         Get(i, unitin);
-        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin->BoundingBox();
+        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin.BoundingBox();
         Rectangle<2> unit_pbb;
         const Rectangle<2> obj_pbb = (Rectangle<2>)ln->BoundingBox();
         if(0)
@@ -1191,11 +1186,11 @@ Raw intersection with Bounding Boxes ...
             bool isSegment = false;
             HalfSegment up_chs;
             Point       up_point(true);
-            if(!AlmostEqual(unitin->p0, unitin->p1)){
-              up_chs.Set( false, unitin->p0, unitin->p1 );
+            if(!AlmostEqual(unitin.p0, unitin.p1)){
+              up_chs.Set( false, unitin.p0, unitin.p1 );
               isSegment = true;
             } else {
-              up_point = unitin->p0;
+              up_point = unitin.p0;
               isSegment = false;
             }
             if(0)
@@ -1206,24 +1201,24 @@ Raw intersection with Bounding Boxes ...
             int j = 0;
             while( !result && j<ln->Size() )
             {
-                const HalfSegment* ln_chs;
+                HalfSegment ln_chs;
                 ln->Get( j, ln_chs );
 /*
 Scanning of one 1 of 2 HalfSegment
 
 */
-                if( ln_chs->GetRightPoint() == ln_chs->GetDomPoint() )
+                if( ln_chs.GetRightPoint() == ln_chs.GetDomPoint() )
                 {
                     if(0)
                     {
-                        cout << "P0.X = " << ln_chs->GetLeftPoint().GetX()
-                                << " P0.Y = " << ln_chs->GetLeftPoint().GetY()
-                                << " P1.X = " << ln_chs->GetRightPoint().GetX()
-                                << " P1.Y = " << ln_chs->GetRightPoint().GetY()
-                                << " D0.X = " << ln_chs->GetDomPoint().GetX()
-                                << " D0.Y = " << ln_chs->GetDomPoint().GetY()
-                                << " S1.X = " << ln_chs->GetSecPoint().GetX()
-                                << " S1.Y = " << ln_chs->GetSecPoint().GetY()
+                        cout << "P0.X = " << ln_chs.GetLeftPoint().GetX()
+                                << " P0.Y = " << ln_chs.GetLeftPoint().GetY()
+                                << " P1.X = " << ln_chs.GetRightPoint().GetX()
+                                << " P1.Y = " << ln_chs.GetRightPoint().GetY()
+                                << " D0.X = " << ln_chs.GetDomPoint().GetX()
+                                << " D0.Y = " << ln_chs.GetDomPoint().GetY()
+                                << " S1.X = " << ln_chs.GetSecPoint().GetX()
+                                << " S1.Y = " << ln_chs.GetSecPoint().GetY()
                                 << endl;
                     }
 /*
@@ -1232,17 +1227,17 @@ For unit points which do not have any motion
 */
                     if( !isSegment )
                     {
-                        if( ln_chs->Contains( unitin->p0 ) )
+                        if( ln_chs.Contains( unitin.p0 ) )
                         {
                             if(0)
                             {
                                 cout << "Intersects up " << i
                                      << " as a point at " << j << "!!" << endl
                                      << "HS: ( "
-                                     << ln_chs->GetLeftPoint().GetX()
-                                     << ", " << ln_chs->GetLeftPoint().GetY()
-                                     << " ; " << ln_chs->GetRightPoint().GetX()
-                                     << ", " << ln_chs->GetRightPoint().GetY()
+                                     << ln_chs.GetLeftPoint().GetX()
+                                     << ", " << ln_chs.GetLeftPoint().GetY()
+                                     << " ; " << ln_chs.GetRightPoint().GetX()
+                                     << ", " << ln_chs.GetRightPoint().GetY()
                                      << " )" << endl;
                             }
                             result = true;
@@ -1256,7 +1251,7 @@ For unit points which do not have any motion
 Looks for intersections in a point inter\_p
 
 */
-                        if( up_chs.Intersection( *ln_chs, inter_p ) )
+                        if( up_chs.Intersection( ln_chs, inter_p ) )
                         {
                             if(0)
                             {
@@ -1270,13 +1265,13 @@ Looks for intersections in a point inter\_p
                                         << up_chs.GetRightPoint().GetY()
                                         << " )" << endl;
                                 cout << "intersects ( "
-                                        << ln_chs->GetLeftPoint().GetX()
+                                        << ln_chs.GetLeftPoint().GetX()
                                         << ", "
-                                        << ln_chs->GetLeftPoint().GetY()
+                                        << ln_chs.GetLeftPoint().GetY()
                                         << "; "
-                                        << ln_chs->GetRightPoint().GetX()
+                                        << ln_chs.GetRightPoint().GetX()
                                         << ", "
-                                        << ln_chs->GetRightPoint().GetY()
+                                        << ln_chs.GetRightPoint().GetY()
                                         << " ) at " << j << endl;
                             }
                             result = true;
@@ -1313,33 +1308,33 @@ Return: nothing
 template <class Unit, class Alpha>
 void MappingExt<Unit, Alpha>::AtMin( Mapping<Unit, Alpha> &result ) const
 {
-    const Unit* unit;
+    Unit unit;
     int compRes = 0;
-    const Unit *umin;
+    Unit umin;
 
     result.Clear();
     result.StartBulkLoad();
 
     Get(0, unit);
-    result.Add( *unit );
+    result.Add( unit );
     umin = unit;
 
     for(int i=1;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
     {
       Get(i, unit);
-      compRes = (unit->constValue).Compare( &(umin->constValue) );
+      compRes = (unit.constValue).Compare( &(umin.constValue) );
       if(compRes > 0)
         continue;
       if(compRes == 0)
         {
-          result.Add( *unit );
+          result.Add( unit );
           continue;
         }
       if(compRes < 0)
         {
           result.Clear();
           result.StartBulkLoad();
-          result.Add( *unit );
+          result.Add( unit );
           umin = unit;
         }
     }
@@ -1360,33 +1355,33 @@ Return: nothing
 template <class Unit, class Alpha>
 void MappingExt<Unit, Alpha>::AtMax( Mapping<Unit, Alpha> &result ) const
 {
-    const Unit* unit;
+    Unit unit;
     int compRes = 0;
-    const Unit *umin;
+    Unit umin;
 
     result.Clear();
     result.StartBulkLoad();
 
     Get(0, unit);
-    result.Add( *unit );
+    result.Add( unit );
     umin = unit;
 
     for(int i=1;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
     {
       Get(i, unit);
-      compRes = (unit->constValue).Compare( &(umin->constValue) );
+      compRes = (unit.constValue).Compare( &(umin.constValue) );
       if(compRes < 0)
         continue;
       if(compRes == 0)
         {
-          result.Add( *unit );
+          result.Add( unit );
           continue;
         }
       if(compRes > 0)
         {
           result.Clear();
           result.StartBulkLoad();
-          result.Add( *unit );
+          result.Add( unit );
           umin = unit;
         }
     }
@@ -1406,36 +1401,36 @@ Return: nothing
 
 void MRealExt::AtMin( MReal &result ) const
 {
-    const UReal* utemp;
-    const UReal* uresult;
+    UReal utemp;
+    UReal uresult;
     double min;
     int unit_num;
     double unit_min, unit_max;
 
     Get(0, utemp);
-    MinMaxValueFunction(utemp, unit_min, unit_max);
-    ((URealExt*)utemp)->SetUnitMin( unit_min );
-    ((URealExt*)utemp)->SetUnitMax( unit_max );
-    min = ((URealExt*)utemp)->GetUnitMin();
+    MinMaxValueFunction(&utemp, unit_min, unit_max);
+    ((URealExt*)(&utemp))->SetUnitMin( unit_min );
+    ((URealExt*)(&utemp))->SetUnitMax( unit_max );
+    min = ((URealExt*)(&utemp))->GetUnitMin();
     unit_num = 0;
 
     if(0)
-        cout << "GetUnitMin(): " << ((URealExt*)utemp)->GetUnitMin() << endl;
+        cout << "GetUnitMin(): " << ((URealExt*)(&utemp))->GetUnitMin() << endl;
 
     for(int i=1;i<GetNoComponents();i++)
     {
         Get(i, utemp);
-        MinMaxValueFunction(utemp, unit_min, unit_max);
-        ((URealExt*)utemp)->SetUnitMin( unit_min );
-        ((URealExt*)utemp)->SetUnitMax( unit_max );
+        MinMaxValueFunction(&utemp, unit_min, unit_max);
+        ((URealExt*)(&utemp))->SetUnitMin( unit_min );
+        ((URealExt*)(&utemp))->SetUnitMax( unit_max );
         if(0)
         {
-            cout << "GetUnitMin(): " << ((URealExt*)utemp)->GetUnitMin();
+            cout << "GetUnitMin(): " << ((URealExt*)(&utemp))->GetUnitMin();
             cout << endl;
         }
-        if(((URealExt*)utemp)->GetUnitMin() < min)
+        if(((URealExt*)(&utemp))->GetUnitMin() < min)
         {
-            min = ((URealExt*)utemp)->GetUnitMin();
+            min = ((URealExt*)(&utemp))->GetUnitMin();
             unit_num = i;
         }
     }
@@ -1448,7 +1443,7 @@ void MRealExt::AtMin( MReal &result ) const
 
     result.Clear();
     result.StartBulkLoad();
-    result.Add( *uresult );
+    result.Add( uresult );
     result.EndBulkLoad( false );
 }
 
@@ -1465,36 +1460,36 @@ Return: nothing
 
 void MRealExt::AtMax( MReal &result ) const
 {
-    const UReal* utemp;
-    const UReal* uresult;
+    UReal utemp;
+    UReal uresult;
     double max;
     int unit_num;
     double unit_min, unit_max;
 
     Get(0, utemp);
-    MinMaxValueFunction(utemp, unit_min, unit_max);
-    ((URealExt*)utemp)->SetUnitMin( unit_min );
-    ((URealExt*)utemp)->SetUnitMax( unit_max );
-    max = ((URealExt*)utemp)->GetUnitMax();
+    MinMaxValueFunction(&utemp, unit_min, unit_max);
+    ((URealExt*)(&utemp))->SetUnitMin( unit_min );
+    ((URealExt*)(&utemp))->SetUnitMax( unit_max );
+    max = ((URealExt*)(&utemp))->GetUnitMax();
     unit_num = 0;
 
     if(0)
-        cout << "GetUnitMax(): " << ((URealExt*)utemp)->GetUnitMax() << endl;
+        cout << "GetUnitMax(): " << ((URealExt*)(&utemp))->GetUnitMax() << endl;
 
     for(int i=1;i<GetNoComponents();i++)
     {
         Get(i, utemp);
-        MinMaxValueFunction(utemp, unit_min, unit_max);
-        ((URealExt*)utemp)->SetUnitMin( unit_min );
-        ((URealExt*)utemp)->SetUnitMax( unit_max );
+        MinMaxValueFunction(&utemp, unit_min, unit_max);
+        ((URealExt*)(&utemp))->SetUnitMin( unit_min );
+        ((URealExt*)(&utemp))->SetUnitMax( unit_max );
         if(0)
         {
-            cout << "GetUnitMax(): " << ((URealExt*)utemp)->GetUnitMax();
+            cout << "GetUnitMax(): " << ((URealExt*)(&utemp))->GetUnitMax();
             cout << endl;
         }
-        if(((URealExt*)utemp)->GetUnitMax() > max)
+        if(((URealExt*)(&utemp))->GetUnitMax() > max)
         {
-            max = ((URealExt*)utemp)->GetUnitMax();
+            max = ((URealExt*)(&utemp))->GetUnitMax();
             unit_num = i;
         }
     }
@@ -1507,7 +1502,7 @@ void MRealExt::AtMax( MReal &result ) const
 
     result.Clear();
     result.StartBulkLoad();
-    result.Add( *uresult );
+    result.Add( uresult );
     result.EndBulkLoad( false );
 }
 
@@ -1525,7 +1520,7 @@ Return: nothing
 
 void MRealExt::At( CcReal val, MReal &result ) const
 {
-    const UReal* utemp;
+    UReal utemp;
     UReal uresult(true);
     double unit_min, unit_max, time1, time2;
     double value = val.GetRealval();
@@ -1539,23 +1534,23 @@ void MRealExt::At( CcReal val, MReal &result ) const
     {
         clock3 = clock();
         Get(i, utemp);
-        MinMaxValueFunction(utemp, unit_min, unit_max);
-        ((URealExt*)utemp)->SetUnitMin( unit_min );
-        ((URealExt*)utemp)->SetUnitMax( unit_max );
+        MinMaxValueFunction(&utemp, unit_min, unit_max);
+        ((URealExt*)(&utemp))->SetUnitMin( unit_min );
+        ((URealExt*)(&utemp))->SetUnitMax( unit_max );
         double t_value;
-        if(timeIntervalOfRealInUReal(value, utemp, t_value))
+        if(timeIntervalOfRealInUReal(value, &utemp, t_value))
         {
-            uresult.a = utemp->a;
-            uresult.b = utemp->b;
-            uresult.c = utemp->c;
-            uresult.r = utemp->r;
-            if(utemp->a == 0 && utemp->b == 0)
+            uresult.a = utemp.a;
+            uresult.b = utemp.b;
+            uresult.c = utemp.c;
+            uresult.r = utemp.r;
+            if(utemp.a == 0 && utemp.b == 0)
             {
-                uresult.timeInterval = utemp->timeInterval;
+                uresult.timeInterval = utemp.timeInterval;
             }
             else
             {
-                uresult.timeInterval = utemp->timeInterval;
+                uresult.timeInterval = utemp.timeInterval;
                 uresult.timeInterval.start.ReadFrom(
                         (const double)(t_value - 0.0000001) );
                 uresult.timeInterval.end.ReadFrom(
@@ -1587,7 +1582,7 @@ Return: a boolean
 
 bool MRealExt::Passes( CcReal val ) const
 {
-    const UReal* utemp;
+    UReal utemp;
     UReal uresult(true);
     double unit_min, unit_max, time1, time2;
     double value = val.GetRealval();
@@ -1600,11 +1595,11 @@ bool MRealExt::Passes( CcReal val ) const
     {
         clock3 = clock();
         Get(i, utemp);
-        MinMaxValueFunction(utemp, unit_min, unit_max);
-        ((URealExt*)utemp)->SetUnitMin( unit_min );
-        ((URealExt*)utemp)->SetUnitMax( unit_max );
-        bool lh = utemp->timeInterval.lc;
-        bool rh = utemp->timeInterval.rc;
+        MinMaxValueFunction(&utemp, unit_min, unit_max);
+        ((URealExt*)(&utemp))->SetUnitMin( unit_min );
+        ((URealExt*)(&utemp))->SetUnitMax( unit_max );
+        bool lh = utemp.timeInterval.lc;
+        bool rh = utemp.timeInterval.rc;
         if( !((!lh && !rh && ( value <= unit_min || value >= unit_max ) ) ||
             (lh && rh && ( value < unit_min || value > unit_max) ) ||
             (!lh && rh && ( value <= unit_min || value > unit_max ) ) ||
@@ -1644,9 +1639,9 @@ void MappingExt<Unit, Alpha>::At(
     Mapping<Unit, Alpha> &result
 ) const
 {
-    const Unit* utemp;
+    Unit utemp;
     bool is_valid = true;
-    const Interval<Alpha> *lastInterval, *interval;
+    Interval<Alpha> lastInterval, interval;
 
     if( !inv->IsOrdered() )
         is_valid = false;
@@ -1654,7 +1649,7 @@ void MappingExt<Unit, Alpha>::At(
     if( inv->GetNoComponents() == 1 && is_valid)
     {
         inv->Get( 0, interval );
-        is_valid = interval->IsValid();
+        is_valid = interval.IsValid();
     }
     else
     {
@@ -1670,19 +1665,19 @@ causes a unesthetic termination of DB-UI.
             for( int i = 1; i < inv->GetNoComponents(); i++ )
             {
                 inv->Get( i-1, lastInterval );
-                if( !lastInterval->IsValid() )
+                if( !lastInterval.IsValid() )
                 {
                     is_valid = false;
                     break;
                 }
                 inv->Get( i, interval );
-                if( !interval->IsValid() )
+                if( !interval.IsValid() )
                 {
                     is_valid = false;
                     break;
                 }
-                if( (!lastInterval->Disjoint( *interval )) &&
-                    (!lastInterval->Adjacent( *interval )) )
+                if( (!lastInterval.Disjoint( interval )) &&
+                    (!lastInterval.Adjacent( interval )) )
                 {
                     is_valid = false;
                     break;
@@ -1698,8 +1693,8 @@ causes a unesthetic termination of DB-UI.
         for(int i=0;i<Mapping<Unit, Alpha>::GetNoComponents();i++)
         {
             Get(i, utemp);
-            if(inv->Contains(utemp->constValue))
-                result.Add( *utemp );
+            if(inv->Contains(utemp.constValue))
+                result.Add( utemp );
         }
         result.EndBulkLoad( false );
     }
@@ -1722,7 +1717,7 @@ Return: nothing
 
 void MRealExt::At(RReal* inv, MReal &result ) const
 {
-    const UReal* utemp;
+    UReal utemp;
     UReal uresult(true);
     double unit_min, unit_max;
 
@@ -1736,17 +1731,17 @@ void MRealExt::At(RReal* inv, MReal &result ) const
         //mr->Get(i, utemp);
         //cout << "got ureal no " << i << endl;
 
-        //MinMaxValueFunction( utemp, unit_min, unit_max );
-        //((URealExt*)utemp)->SetUnitMin( unit_min );
-        //((URealExt*)utemp)->SetUnitMax( unit_max );
+        //MinMaxValueFunction( &utemp, unit_min, unit_max );
+        //((URealExt*)(&utemp))->SetUnitMin( unit_min );
+        //((URealExt*)(&utemp))->SetUnitMax( unit_max );
 
-        //utemp->AtMin(minintervals);
-        //utemp->AtMax(maxintervals);
-        //cout << "\ta=" << utemp->a << " b=" << utemp->b << " c="
-        //<< utemp->c << " r=" << utemp->r << endl;
+        //utemp.AtMin(minintervals);
+        //utemp.AtMax(maxintervals);
+        //cout << "\ta=" << utemp.a << " b=" << utemp.b << " c="
+        //<< utemp.c << " r=" << utemp.r << endl;
         bool correct = true;
-        unit_min = utemp->Min(correct);
-        unit_max = utemp->Max(correct);
+        unit_min = utemp.Min(correct);
+        unit_max = utemp.Max(correct);
 
         Interval<CcReal> minmax;
         minmax.start.Set( unit_min );
@@ -1758,50 +1753,50 @@ void MRealExt::At(RReal* inv, MReal &result ) const
 
         for(int j=0;j<inv->GetNoComponents();j++)
         {
-            const Interval<CcReal>* inv_tmp;
+            Interval<CcReal> inv_tmp;
             Interval<CcReal> inv_result;
             inv->Get( j, inv_tmp);
-            if(minmax.Intersects( *inv_tmp ))
+            if(minmax.Intersects( inv_tmp ))
             {
-                minmax.Intersection( *inv_tmp, inv_result );
+                minmax.Intersection( inv_tmp, inv_result );
                 if(0)
                 {
                     cout << "(min max)[ " << minmax.start.GetValue()
                         << ", " << minmax.end.GetValue() << " ] "
                         << " intersects "
-                        << "[ " << inv_tmp->start.GetValue()
-                        << ", " << inv_tmp->end.GetValue() << " ]";
+                        << "[ " << inv_tmp.start.GetValue()
+                        << ", " << inv_tmp.end.GetValue() << " ]";
                     cout << " = [ " << inv_result.start.GetValue()
                         << ", " << inv_result.end.GetValue() << " ] " << endl;
                 }
-                //cout << "\ta=" << utemp->a << " b=" << utemp->b << " c="
-                //<< utemp->c << " r=" << utemp->r << endl;
+                //cout << "\ta=" << utemp.a << " b=" << utemp.b << " c="
+                //<< utemp.c << " r=" << utemp.r << endl;
                 double t_value, t_value2;
-                uresult.a = utemp->a;
-                uresult.b = utemp->b;
-                uresult.c = utemp->c;
-                uresult.r = utemp->r;
-                if(utemp->a == 0 && utemp->b == 0)
+                uresult.a = utemp.a;
+                uresult.b = utemp.b;
+                uresult.c = utemp.c;
+                uresult.r = utemp.r;
+                if(utemp.a == 0 && utemp.b == 0)
                 {
-                    uresult.timeInterval = utemp->timeInterval;
+                    uresult.timeInterval = utemp.timeInterval;
                     result.Add( uresult );
                 }
                 else
                 {
-                    //uresult.timeInterval = utemp->timeInterval;
+                    //uresult.timeInterval = utemp.timeInterval;
                     //result.Add( uresult );
 
                     if( timeIntervalOfRealInUReal2(
                         inv_result.start.GetValue(),
-                        utemp,
+                        &utemp,
                         t_value) )
                     {
                         if( timeIntervalOfRealInUReal2(
                             inv_result.end.GetValue(),
-                            utemp,
+                            &utemp,
                             t_value2) )
                         {
-                            uresult.timeInterval = utemp->timeInterval;
+                            uresult.timeInterval = utemp.timeInterval;
                             if( t_value < t_value2 )
                             {
                                 uresult.timeInterval.start.ReadFrom(
@@ -1840,18 +1835,18 @@ NOTE: The declaration of this method is placed on MovingRegion.h
 
 */
 
-void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
+void MRegion::AtPeriods(const Periods* per, MRegion* mregparam)
 {
-    const URegionEmb* utemp;
-    const Interval<Instant>* temp2;
+    URegionEmb utemp;
+    Interval<Instant> temp2;
     Interval<Instant> temp3;
-    const MSegmentData* oldsmg;
+    MSegmentData oldsmg;
     MSegmentData newsmg;
     vector<GroupOfIntervals> temp_intervals;
     GroupOfIntervals inter_temp;
     vector<USegments> tempsgms;
     USegments usegtemp;
-    const DBArray<MSegmentData>* oldsgms;
+    const DbArray<MSegmentData>* oldsgms;
     unsigned int starting_segments_pos;
     URegionEmb* out_ureg;
 
@@ -1861,9 +1856,9 @@ void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
         for(int j=0;j<per->GetNoComponents();j++)
         {
             per->Get(j, temp2);
-            if((utemp->timeInterval).Intersects(*temp2))
+            if((utemp.timeInterval).Intersects(temp2))
             {
-                (utemp->timeInterval).Intersection(*temp2, temp3);
+                (utemp.timeInterval).Intersection(temp2, temp3);
                 inter_temp.unit_nr = i;
                 (inter_temp.str_inst).CopyFrom(temp3);
                 temp_intervals.push_back(inter_temp);
@@ -1890,11 +1885,11 @@ void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
     {
         mregparam->Get(temp_intervals[i].unit_nr, utemp);
         usegtemp.unit_nr = i;
-        for(int k=0;k<utemp->GetSegmentsNum();k++)
+        for(int k=0;k<utemp.GetSegmentsNum();k++)
         {
-            utemp->GetSegment(oldsgms,  k, oldsmg);
-            oldsmg->restrictToInterval(
-                utemp->timeInterval,
+            utemp.GetSegment(oldsgms,  k, oldsmg);
+            oldsmg.restrictToInterval(
+                utemp.timeInterval,
                 temp_intervals[i].str_inst,
                 newsmg
             );
@@ -1903,14 +1898,14 @@ void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
                 cout << endl << "Old Segments: Unit "
                     << temp_intervals[i].unit_nr
                     << ", Segmentnr. " << k << ": ["
-                    << oldsmg->GetInitialStartX() << " , "
-                    << oldsmg->GetInitialStartY() << " ; "
-                    << oldsmg->GetInitialEndX() << " , "
-                    << oldsmg->GetInitialEndY() << " ; "
-                    << oldsmg->GetFinalStartX() << " , "
-                    << oldsmg->GetFinalStartY() << " ; "
-                    << oldsmg->GetFinalEndX() << " , "
-                    << oldsmg->GetFinalEndY()
+                    << oldsmg.GetInitialStartX() << " , "
+                    << oldsmg.GetInitialStartY() << " ; "
+                    << oldsmg.GetInitialEndX() << " , "
+                    << oldsmg.GetInitialEndY() << " ; "
+                    << oldsmg.GetFinalStartX() << " , "
+                    << oldsmg.GetFinalStartY() << " ; "
+                    << oldsmg.GetFinalEndX() << " , "
+                    << oldsmg.GetFinalEndY()
                     << "]" << endl;
             }
             (usegtemp.unit_interval).start =
@@ -2055,26 +2050,26 @@ void MRegion::AtPeriods(Periods* per, MRegion* mregparam)
     }
     EndBulkLoad( false );
 
-    const MSegmentData* tmp_dms;
+    MSegmentData tmp_dms;
     if(0)
     {
-        cout << "Size of DBArray: " << msegmentdata.Size() << endl;
+        cout << "Size of DbArray: " << msegmentdata.Size() << endl;
         for(int i=0;i<msegmentdata.Size();i++)
         {
-            msegmentdata.Get(i, tmp_dms);
+            msegmentdata.Get(i, &tmp_dms);
             cout << endl << i << ": ["
-                << tmp_dms->GetInitialStartX() << " , "
-                << tmp_dms->GetInitialStartY() << " ; "
-                << tmp_dms->GetInitialEndX() << " , "
-                << tmp_dms->GetInitialEndY() << " ; "
-                << tmp_dms->GetFinalStartX() << " , "
-                << tmp_dms->GetFinalStartY() << " ; "
-                << tmp_dms->GetFinalEndX() << " , "
-                << tmp_dms->GetFinalEndY()
+                << tmp_dms.GetInitialStartX() << " , "
+                << tmp_dms.GetInitialStartY() << " ; "
+                << tmp_dms.GetInitialEndX() << " , "
+                << tmp_dms.GetInitialEndY() << " ; "
+                << tmp_dms.GetFinalStartX() << " , "
+                << tmp_dms.GetFinalStartY() << " ; "
+                << tmp_dms.GetFinalEndX() << " , "
+                << tmp_dms.GetFinalEndY()
                 << "]" << endl;
-            cout << "GetFaceNo: " << tmp_dms->GetFaceNo() << endl;
-            cout << "GetCycleNo: " << tmp_dms->GetCycleNo() << endl;
-            cout << "GetSegmentNo: " << tmp_dms->GetSegmentNo() << endl;
+            cout << "GetFaceNo: " << tmp_dms.GetFaceNo() << endl;
+            cout << "GetCycleNo: " << tmp_dms.GetCycleNo() << endl;
+            cout << "GetSegmentNo: " << tmp_dms.GetSegmentNo() << endl;
         }
     }
 }
@@ -2092,35 +2087,35 @@ Return: an mbool
 
 MBool MPointExt::Inside( const Region& r ) const
 {
-	bool debugme=false;
-	MBool res(0);
-	if(IsDefined())
-	{
-		Intime<Point> start, end;
-		Initial(start); Final(end);
-		Interval<Instant> dtime(start.instant, end.instant, true, true);
-		
-		UPoint up(dtime,start.value.GetX(),start.value.GetY(),
-				start.value.GetX(),start.value.GetY());
-		MPoint mp(0);
-		mp.Add(up);
-		
-		
-		MRegion mr(mp, r);
-		mr.Inside( *(MPoint*)this, res);
-		if(debugme)
-		{
-			cout<< "mpoint = "; mp.Print(cout);
-			cout<< "\nmregion = "; mr.Print(cout);
-			cout<< "\nresult = "; res.Print(cout);
-			cout.flush();
-		}
-	}
-	else
-		res.SetDefined(false);
+  bool debugme=false;
+  MBool res(0);
+  if(IsDefined())
+  {
+    Intime<Point> start, end;
+    Initial(start); Final(end);
+    Interval<Instant> dtime(start.instant, end.instant, true, true);
 
-	return res;
-} 
+    UPoint up(dtime,start.value.GetX(),start.value.GetY(),
+              start.value.GetX(),start.value.GetY());
+    MPoint mp(0);
+    mp.Add(up);
+
+
+    MRegion mr(mp, r);
+    mr.Inside( *(MPoint*)this, res);
+    if(debugme)
+    {
+      cout<< "mpoint = "; mp.Print(cout);
+      cout<< "\nmregion = "; mr.Print(cout);
+      cout<< "\nresult = "; res.Print(cout);
+      cout.flush();
+    }
+  }
+  else
+    res.SetDefined(false);
+
+  return res;
+}
 
 /*
 4 Auxiliary Functions
@@ -3340,10 +3335,10 @@ int MappingInitialExt( Word* args,
     Mapping *m = ((Mapping*)args[0].addr);
     Intime<Alpha>* pResult = ((Intime<Alpha>*)result.addr);
 
-    const Unit *unit;
+    Unit unit;
     m->Get( 0, unit );
 
-    if( m->IsDefined() && unit->timeInterval.lc )
+    if( m->IsDefined() && unit.timeInterval.lc )
         m->Initial( *pResult );
     else
         pResult->SetDefined(false);
@@ -3367,10 +3362,10 @@ int MappingFinalExt( Word* args,
     Mapping *m = ((Mapping*)args[0].addr);
     Intime<Alpha>* pResult = ((Intime<Alpha>*)result.addr);
 
-    const Unit *unit;
+    Unit unit;
     m->Get( m->GetNoComponents()-1, unit );
 
-    if( m->IsDefined() && unit->timeInterval.rc )
+    if( m->IsDefined() && unit.timeInterval.rc )
         m->Final( *pResult );
     else
         pResult->SetDefined(false);
@@ -3553,12 +3548,8 @@ int MappingMPointLineAtExt(
     return 0;
 }
 
-int MRegionPointAtExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MRegionPointAtExt(  Word* args, Word& result, int message,
+                        Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     MRegion *m = ((MRegion*)args[0].addr);
@@ -3570,32 +3561,31 @@ int MRegionPointAtExt(
     pResult->Clear();
 
     clock1 = clock();
-    MPoint* tmp = new MPoint(1);
-    const URegionEmb* urtmp1;
-    const URegionEmb* urtmp2;
+    MPoint tmp(1);
+    URegionEmb urtmp1;
+    URegionEmb urtmp2;
     m->Get( 0, urtmp1 );
     m->Get( m->GetNoComponents()-1, urtmp2 );
 
     Interval<Instant> inv_tmp;
-    inv_tmp.start = urtmp1->timeInterval.start;
-    inv_tmp.end = urtmp2->timeInterval.end;
+    inv_tmp.start = urtmp1.timeInterval.start;
+    inv_tmp.end = urtmp2.timeInterval.end;
     inv_tmp.lc = true;
     inv_tmp.rc = true;
 
-    UPoint* utmp = new UPoint(
+    UPoint utmp(
         inv_tmp,
         pt->GetX(),
         pt->GetY(),
         pt->GetX(),
         pt->GetY());
 
-    tmp->Add( *utmp );
+    tmp.Add( utmp );
 
-    m->Intersection( *tmp, *pResult );
+    m->Intersection( tmp, *pResult );
     clock1 = clock();
     time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Total computing time : " << time1 << " ms" << endl;
-
 
     return 0;
 }
@@ -3606,11 +3596,8 @@ int MRegionPointAtExt(
 
 */
 template <class Mapping, class Alpha>
-int MappingPassesExt( Word* args,
-                      Word& result,
-                      int message,
-                      Word& local,
-                      Supplier s )
+int MappingPassesExt( Word* args, Word& result, int message,
+                      Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -3698,12 +3685,8 @@ int MPointLinePassesExt(
     return 0;
 }
 
-int MRegionPointPassesExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MRegionPointPassesExt( Word* args, Word& result, int message,
+    Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     MRegion *m = ((MRegion*)args[0].addr);
@@ -3718,32 +3701,32 @@ int MRegionPointPassesExt(
         pResult->Set( false, false );
     else
     {
-        MPoint* mp = new MPoint(1);
-        const URegionEmb* urtmp1;
-        const URegionEmb* urtmp2;
+        MPoint mp(1);
+        URegionEmb urtmp1;
+        URegionEmb urtmp2;
         m->Get( 0, urtmp1 );
         m->Get( m->GetNoComponents()-1, urtmp2 );
 
         Interval<Instant> inv_tmp;
-        inv_tmp.start = urtmp1->timeInterval.start;
-        inv_tmp.end = urtmp2->timeInterval.end;
+        inv_tmp.start = urtmp1.timeInterval.start;
+        inv_tmp.end = urtmp2.timeInterval.end;
         inv_tmp.lc = true;
         inv_tmp.rc = true;
 
-        UPoint* utmp = new UPoint(
+        UPoint utmp(
             inv_tmp,
             pt->GetX(),
             pt->GetY(),
             pt->GetX(),
             pt->GetY());
 
-        mp->Add( *utmp );
+        mp.Add( utmp );
 
         if(0)
         {
             cout << "timeInterval of utmp: "
-                << utmp->timeInterval.start.ToString()
-                << " " << utmp->timeInterval.end.ToString()
+                << utmp.timeInterval.start.ToString()
+                << " " << utmp.timeInterval.end.ToString()
                 << endl;
         }
 
@@ -3753,10 +3736,10 @@ int MRegionPointPassesExt(
             MRegion,
             MPoint,
             URegionEmb,
-            UPoint> rp(*m, *mp);
+            UPoint> rp(*m, mp);
 
         MPoint resMp;
-        IntersectionRPExt( m, *mp, resMp, rp, false);
+        IntersectionRPExt( m, mp, resMp, rp, false);
 
         int mpPos = 0;
 
@@ -3765,16 +3748,16 @@ int MRegionPointPassesExt(
             cout << "Data for resMp ..." << endl;
             for(int i=0;i<resMp.GetNoComponents();i++)
             {
-                const UPoint* utemp;
-                resMp.Get( i, utemp );
+                UPoint uptemp2;
+                resMp.Get( i, uptemp2 );
                 cout << "timeInterval of up of resMp: "
-                        << utemp->timeInterval.start.ToString()
-                        << " " << utemp->timeInterval.end.ToString()
-                        << endl;
-                cout << "p0.x: " << utemp->p0.GetX()
-                    << "  p0.y: " << utemp->p0.GetY()
-                    << "  p1.x: " << utemp->p1.GetX()
-                    << "  p1.y: " << utemp->p1.GetY() << endl;
+                     << uptemp2.timeInterval.start.ToString()
+                     << " " << uptemp2.timeInterval.end.ToString()
+                     << endl;
+                cout << "p0.x: " << uptemp2.p0.GetX()
+                     << "  p0.y: " << uptemp2.p0.GetY()
+                     << "  p1.x: " << uptemp2.p1.GetX()
+                     << "  p1.y: " << uptemp2.p1.GetY() << endl;
             }
         }
 
@@ -3785,7 +3768,7 @@ int MRegionPointPassesExt(
                         << " mpPos=" << mpPos
                         << endl;
 
-            Interval<Instant>* iv;
+            Interval<Instant> iv;
             int urPos;
             int upPos;
 
@@ -3793,7 +3776,7 @@ int MRegionPointPassesExt(
 
             if (upPos < 0) continue;
 
-            double prevtime = iv->start.ToDouble();
+            double prevtime = iv.start.ToDouble();
             Instant prev(instanttype);
             prev.ReadFrom(prevtime);
 
@@ -3803,28 +3786,28 @@ int MRegionPointPassesExt(
                     cerr << "MRegion::Inside()   mpPos=" << mpPos
                             << endl;
 
-                const UPoint *up;
+                UPoint up;
                 resMp.Get(mpPos, up);
 
                 if(0)
                 {
                     cout << "timeInterval of up: "
-                            << up->timeInterval.start.ToString()
-                            << " " << up->timeInterval.end.ToString()
+                            << up.timeInterval.start.ToString()
+                            << " " << up.timeInterval.end.ToString()
                             << endl;
                     cout << "timeInterval of iv: "
-                            << iv->end.ToString()
+                            << iv.end.ToString()
                             << endl;
-                    cout << "up->timeInterval.start.Compare(&iv->end) > 0"
-                        <<  "|| (up->timeInterval.start.Compare(&iv->end) == 0"
-                        << "&& up->timeInterval.lc"
-                        << "&& !iv->rc))" << endl;
+                    cout << "up.timeInterval.start.Compare(&iv.end) > 0"
+                        <<  "|| (up.timeInterval.start.Compare(&iv.end) == 0"
+                        << "&& up.timeInterval.lc"
+                        << "&& !iv.rc))" << endl;
                 }
 
-                if ( !(up->timeInterval.start.Compare(&iv->end) > 0
-                    || (up->timeInterval.start.Compare(&iv->end) == 0
-                    && up->timeInterval.lc
-                     && !iv->rc)) )
+                if ( !(up.timeInterval.start.Compare(&iv.end) > 0
+                    || (up.timeInterval.start.Compare(&iv.end) == 0
+                    && up.timeInterval.lc
+                     && !iv.rc)) )
                 {
                     result = true;
                     break;
@@ -3844,17 +3827,12 @@ int MRegionPointPassesExt(
     time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
     cout << "Total computing time : " << time1 << " ms" << endl;
 
-
     return 0;
 }
 
 
-int MRegionPointsPassesExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MRegionPointsPassesExt( Word* args, Word& result, int message,
+                            Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     MRegion *m = ((MRegion*)args[0].addr);
@@ -3869,14 +3847,14 @@ int MRegionPointsPassesExt(
         pResult->Set( false, false );
     else
     {
-        MPoint* mp = new MPoint(1);
-        const URegionEmb* urtmp1;
-        const URegionEmb* urtmp2;
+        MPoint mp(1);
+        URegionEmb urtmp1;
+        URegionEmb urtmp2;
         m->Get( 0, urtmp1 );
         m->Get( m->GetNoComponents()-1, urtmp2 );
         Interval<Instant> inv_tmp;
-        inv_tmp.start = urtmp1->timeInterval.start;
-        inv_tmp.end = urtmp2->timeInterval.end;
+        inv_tmp.start = urtmp1.timeInterval.start;
+        inv_tmp.end = urtmp2.timeInterval.end;
         inv_tmp.lc = true;
         inv_tmp.rc = true;
         bool result = false;
@@ -3885,35 +3863,35 @@ int MRegionPointsPassesExt(
 
         for(int i=0;i<pts->Size();i++)
         {
-            const Point* pt;
+            Point pt;
             pts->Get( i, pt );
 
-            UPoint* utmp = new UPoint(
+            UPoint utmp(
                 inv_tmp,
-                pt->GetX(),
-                pt->GetY(),
-                pt->GetX(),
-                pt->GetY());
+                pt.GetX(),
+                pt.GetY(),
+                pt.GetX(),
+                pt.GetY());
 
-            mp->Clear();
-            mp->Add( *utmp );
+            mp.Clear();
+            mp.Add( utmp );
 
             if(0)
             {
                 cout << "timeInterval of utmp: "
-                        << utmp->timeInterval.start.ToString()
-                        << " " << utmp->timeInterval.end.ToString()
+                        << utmp.timeInterval.start.ToString()
+                        << " " << utmp.timeInterval.end.ToString()
                         << endl;
             }
 
             RefinementPartition<
                     MRegion,
-            MPoint,
-            URegionEmb,
-            UPoint> rp(*m, *mp);
+                    MPoint,
+                    URegionEmb,
+                    UPoint> rp(*m, mp);
 
             MPoint resMp;
-            IntersectionRPExt( m, *mp, resMp, rp, false);
+            IntersectionRPExt( m, mp, resMp, rp, false);
 
             int mpPos = 0;
 
@@ -3922,16 +3900,16 @@ int MRegionPointsPassesExt(
                 cout << "Data for resMp ..." << endl;
                 for(int i=0;i<resMp.GetNoComponents();i++)
                 {
-                    const UPoint* utemp;
-                    resMp.Get( i, utemp );
+                    UPoint uptemp;
+                    resMp.Get( i, uptemp );
                     cout << "timeInterval of up of resMp: "
-                            << utemp->timeInterval.start.ToString()
-                            << " " << utemp->timeInterval.end.ToString()
+                         << uptemp.timeInterval.start.ToString()
+                         << " " << uptemp.timeInterval.end.ToString()
                             << endl;
-                    cout << "p0.x: " << utemp->p0.GetX()
-                            << "  p0.y: " << utemp->p0.GetY()
-                            << "  p1.x: " << utemp->p1.GetX()
-                            << "  p1.y: " << utemp->p1.GetY() << endl;
+                    cout << "p0.x: " << uptemp.p0.GetX()
+                         << "  p0.y: " << uptemp.p0.GetY()
+                         << "  p1.x: " << uptemp.p1.GetX()
+                         << "  p1.y: " << uptemp.p1.GetY() << endl;
                 }
             }
 
@@ -3942,7 +3920,7 @@ int MRegionPointsPassesExt(
                             << " mpPos=" << mpPos
                             << endl;
 
-                Interval<Instant>* iv;
+                Interval<Instant> iv;
                 int urPos;
                 int upPos;
 
@@ -3950,7 +3928,7 @@ int MRegionPointsPassesExt(
 
                 if (upPos < 0) continue;
 
-                double prevtime = iv->start.ToDouble();
+                double prevtime = iv.start.ToDouble();
                 Instant prev(instanttype);
                 prev.ReadFrom(prevtime);
 
@@ -3960,28 +3938,28 @@ int MRegionPointsPassesExt(
                         cerr << "MRegion::Inside()   mpPos=" << mpPos
                                 << endl;
 
-                    const UPoint *up;
+                    UPoint up;
                     resMp.Get(mpPos, up);
 
                     if(0)
                     {
                         cout << "timeInterval of up: "
-                                << up->timeInterval.start.ToString()
-                                << " " << up->timeInterval.end.ToString()
+                                << up.timeInterval.start.ToString()
+                                << " " << up.timeInterval.end.ToString()
                                 << endl;
                         cout << "timeInterval of iv: "
-                                << iv->end.ToString()
+                                << iv.end.ToString()
                                 << endl;
-                        cout << "up->timeInterval.start.Compare(&iv->end) > 0"
-                             <<  "|| (up->timeInterval.start.Compare(&iv->end)"
-                                << " == 0 && up->timeInterval.lc"
-                             << "&& !iv->rc))" << endl;
+                        cout << "up.timeInterval.start.Compare(&iv.end) > 0"
+                             <<  "|| (up.timeInterval.start.Compare(&iv.end)"
+                                << " == 0 && up.timeInterval.lc"
+                             << "&& !iv.rc))" << endl;
                     }
 
-                    if ( !(up->timeInterval.start.Compare(&iv->end) > 0
-                           || (up->timeInterval.start.Compare(&iv->end) == 0
-                           && up->timeInterval.lc
-                           && !iv->rc)) )
+                    if ( !(up.timeInterval.start.Compare(&iv.end) > 0
+                           || (up.timeInterval.start.Compare(&iv.end) == 0
+                           && up.timeInterval.lc
+                           && !iv.rc)) )
                     {
                         result = true;
                         break;
@@ -4016,11 +3994,8 @@ int MRegionPointsPassesExt(
 
 */
 template <class Mapping>
-int MappingDefTimeExt( Word* args,
-                       Word& result,
-                       int message,
-                       Word& local,
-                       Supplier s )
+int MappingDefTimeExt( Word* args, Word& result, int message,
+                       Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     ((Mapping*)args[0].addr)->DefTime( *(Periods*)result.addr );
@@ -4032,11 +4007,8 @@ int MappingDefTimeExt( Word* args,
 
 */
 template <class Alpha>
-int IntimeInstExt( Word* args,
-                   Word& result,
-                   int message,
-                   Word& local,
-                   Supplier s )
+int IntimeInstExt( Word* args, Word& result, int message,
+                   Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     Intime<Alpha>* i = (Intime<Alpha>*)args[0].addr;
@@ -4055,11 +4027,8 @@ int IntimeInstExt( Word* args,
 
 */
 template <class Alpha>
-int IntimeValExt( Word* args,
-                  Word& result,
-                  int message,
-                  Word& local,
-                  Supplier s )
+int IntimeValExt( Word* args, Word& result, int message,
+                  Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     Intime<Alpha>* i = (Intime<Alpha>*)args[0].addr;
@@ -4078,18 +4047,14 @@ int IntimeValExt( Word* args,
 
 */
 template <class Mapping>
-int MovingDerivativeExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MovingDerivativeExt( Word* args, Word& result, int message,
+                         Word& local,  Supplier s )
 {
     result = qp->ResultStorage( s );
 
     Mapping* m = ((Mapping*)args[0].addr);
     Mapping* pResult = ((Mapping*)result.addr);
-    const UReal* unitin;
+    UReal unitin;
     UReal unitout(true);
 
     pResult->Clear();
@@ -4097,13 +4062,13 @@ int MovingDerivativeExt(
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, unitin);
-        if(!CheckURealDerivable(unitin))
+        if(!CheckURealDerivable(&unitin))
         {
             unitout.a = 0.;
-            unitout.b = 2*unitin->a;
-            unitout.c = unitin->b;
+            unitout.b = 2*unitin.a;
+            unitout.c = unitin.b;
             unitout.r = false;
-            unitout.timeInterval = unitin->timeInterval;
+            unitout.timeInterval = unitin.timeInterval;
             pResult->MergeAdd(unitout);
         }
     }
@@ -4117,18 +4082,14 @@ int MovingDerivativeExt(
 
 */
 template <class Mapping>
-int MovingDerivableExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MovingDerivableExt( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
     Mapping* m = ((Mapping*)args[0].addr);
     MBool* pResult = ((MBool*)result.addr);
-    const UReal* unitin;
+    UReal unitin;
     UBool unitout(true);
     CcBool myValue;
 
@@ -4143,7 +4104,7 @@ int MovingDerivableExt(
 Steps for the first Unit
 
 */
-            myValue.Set(true, !unitin->r);
+            myValue.Set(true, !unitin.r);
             unitout.SetDefined(true);
             unitout.constValue.CopyFrom(&myValue);
 
@@ -4153,7 +4114,7 @@ Steps for the first Unit
 Only one Unit available
 
 */
-                unitout.timeInterval = unitin->timeInterval;
+                unitout.timeInterval = unitin.timeInterval;
                 pResult->Add(unitout);
             }
             else
@@ -4162,15 +4123,15 @@ Only one Unit available
 Just the first Unit ...
 
 */
-                unitout.timeInterval.start = unitin->timeInterval.start;
-                unitout.timeInterval.end = unitin->timeInterval.end;
-                unitout.timeInterval.lc = unitin->timeInterval.lc;
-                unitout.timeInterval.rc = unitin->timeInterval.rc;
+                unitout.timeInterval.start = unitin.timeInterval.start;
+                unitout.timeInterval.end = unitin.timeInterval.end;
+                unitout.timeInterval.lc = unitin.timeInterval.lc;
+                unitout.timeInterval.rc = unitin.timeInterval.rc;
             }
         }
         else
         {
-            if(!unitin->r == unitout.constValue.GetBoolval())
+            if(!unitin.r == unitout.constValue.GetBoolval())
             {
 /*
 The Unit has the same Bool value as the
@@ -4178,8 +4139,8 @@ previous. So, the time interval of the previous
 Unit will be extended.
 
 */
-                unitout.timeInterval.end = unitin->timeInterval.end;
-                unitout.timeInterval.rc = unitin->timeInterval.rc;
+                unitout.timeInterval.end = unitin.timeInterval.end;
+                unitout.timeInterval.rc = unitin.timeInterval.rc;
             }
             else
             {
@@ -4190,12 +4151,12 @@ values must be assumed from the current Unit.
 
 */
                 pResult->Add(unitout);
-                myValue.Set(true, !unitin->r);
+                myValue.Set(true, !unitin.r);
                 unitout.constValue.CopyFrom(&myValue);
-                unitout.timeInterval.start = unitin->timeInterval.start;
-                unitout.timeInterval.end = unitin->timeInterval.end;
-                unitout.timeInterval.lc = unitin->timeInterval.lc;
-                unitout.timeInterval.rc = unitin->timeInterval.rc;
+                unitout.timeInterval.start = unitin.timeInterval.start;
+                unitout.timeInterval.end = unitin.timeInterval.end;
+                unitout.timeInterval.lc = unitin.timeInterval.lc;
+                unitout.timeInterval.rc = unitin.timeInterval.rc;
             }
             if(i==m->GetNoComponents()-1)
             {
@@ -4217,12 +4178,8 @@ Last Unit must be created.
 
 */
 template <class Mapping>
-int MovingSpeedExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MovingSpeedExt( Word* args, Word& result, int message,
+                    Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -4231,7 +4188,7 @@ int MovingSpeedExt(
 
     double speed, distance, t;
     const Point p0, p1;
-    const UPoint* unitin;
+    UPoint unitin;
     UReal unitout(true);
 
     pResult->Clear();
@@ -4239,9 +4196,9 @@ int MovingSpeedExt(
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, unitin);
-        distance = (unitin->p0.Distance(unitin->p1)) * FactorForUnitOfDistance;
-        t = (((unitin->timeInterval.end) -
-              (unitin->timeInterval.start)).ToDouble()) * FactorForUnitOfTime;
+        distance = (unitin.p0.Distance(unitin.p1)) * FactorForUnitOfDistance;
+        t = (((unitin.timeInterval.end) -
+              (unitin.timeInterval.start)).ToDouble()) * FactorForUnitOfTime;
 
         if (t != 0.0)
         {
@@ -4250,7 +4207,7 @@ int MovingSpeedExt(
           unitout.b = 0.0;
           unitout.c = speed;
           unitout.r = false;
-          unitout.timeInterval = unitin->timeInterval;
+          unitout.timeInterval = unitin.timeInterval;
           unitout.SetDefined(true);
           pResult->Add(unitout);
         }
@@ -4269,31 +4226,27 @@ int MovingSpeedExt(
 9.3.13 Value mapping functions of operator ~rangevalues~
 
 */
-int RangeRangevaluesBoolExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int RangeRangevaluesBoolExt( Word* args, Word& result, int message,
+                             Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
     MBool* m = ((MBool*)args[0].addr);
     RBool* pResult = ((RBool*)result.addr);
 
-    const UBool* utemp;
+    UBool utemp;
     CcBool min, max;
     bool findmin=false, findmax=false, temp;
 
     m->Get(0, utemp);
-    temp = utemp->constValue.GetBoolval();
+    temp = utemp.constValue.GetBoolval();
     min.Set(true, temp);
     max.Set(true, temp);
 
     for(int i=1;i<m->GetNoComponents();i++)
     {
         m->Get(i, utemp);
-        temp = utemp->constValue.GetBoolval();
+        temp = utemp.constValue.GetBoolval();
 
         if(temp)
         {
@@ -4315,19 +4268,15 @@ int RangeRangevaluesBoolExt(
     return 0;
 }
 
-int RangeRangevaluesIntExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int RangeRangevaluesIntExt( Word* args, Word& result, int message,
+                            Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
     MInt* m = ((MInt*)args[0].addr);
     RInt* pResult = ((RInt*)result.addr);
 
-    const UInt* utemp;
+    UInt utemp;
     int temp;
     set<int> BTree;
     clock_t clock1, clock2, clock3, clock4;
@@ -4337,7 +4286,7 @@ int RangeRangevaluesIntExt(
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, utemp);
-        temp = utemp->constValue.GetIntval();
+        temp = utemp.constValue.GetIntval();
         BTree.insert(temp);
     }
     clock2 = clock();
@@ -4398,19 +4347,15 @@ int RangeRangevaluesIntExt(
     return 0;
 }
 
-int RangeRangevaluesStringExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int RangeRangevaluesStringExt( Word* args, Word& result, int message,
+                               Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
     MString* m = ((MString*)args[0].addr);
     RString* pResult = ((RString*)result.addr);
 
-    const UString* utemp;
+    UString utemp;
     set<string> BTree;
     string temp;
     clock_t clock1, clock2, clock3, clock4;
@@ -4420,7 +4365,7 @@ int RangeRangevaluesStringExt(
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, utemp);
-        temp = utemp->constValue.GetValue();
+        temp = utemp.constValue.GetValue();
         BTree.insert(temp);
     }
     clock2 = clock();
@@ -4461,12 +4406,8 @@ int RangeRangevaluesStringExt(
 }
 
 
-int RangeRangevaluesRealExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int RangeRangevaluesRealExt( Word* args, Word& result, int message,
+                             Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -4476,7 +4417,7 @@ int RangeRangevaluesRealExt(
     clock_t clock1, clock2, clock3, clock4;
     double time1, time2;
 
-    const UReal* utemp;
+    UReal utemp;
     double min=0.,max=0.;
     CcReal mincc, maxcc;
     Interval<CcReal> inter;
@@ -4490,10 +4431,10 @@ int RangeRangevaluesRealExt(
         //MinMaxValueFunction(utemp, min, max);
         //yields wrong min and max values
 
-        size_t size = utemp->AtMin(resvector);
+        size_t size = utemp.AtMin(resvector);
         assert(size>0);
         min = resvector[0].c;
-        utemp->AtMax(resvector);
+        utemp.AtMax(resvector);
         max = resvector[0].c;
 
         mincc.Set(true, min);
@@ -4579,24 +4520,20 @@ int RangeRangevaluesRealExt(
 9.3.14 Value mapping functions of operator ~sometimes~
 
 */
-int MovingSometimesExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MovingSometimesExt( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
     MBool* m = ((MBool*)args[0].addr);
 
-    const UBool* utemp;
+    UBool utemp;
     bool temp=false;
 
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, utemp);
-        temp = utemp->constValue.GetBoolval();
+        temp = utemp.constValue.GetBoolval();
         if(temp) break;
     }
 
@@ -4612,24 +4549,20 @@ int MovingSometimesExt(
 9.3.15 Value mapping functions of operator ~always~
 
 */
-int MovingAlwaysExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MovingAlwaysExt( Word* args, Word& result, int message,
+                     Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
     MBool* m = ((MBool*)args[0].addr);
 
-    const UBool* utemp;
+    UBool utemp;
     bool temp=true;
 
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, utemp);
-        temp = utemp->constValue.GetBoolval();
+        temp = utemp.constValue.GetBoolval();
         if(!temp) break;
     }
 
@@ -4645,24 +4578,20 @@ int MovingAlwaysExt(
 9.3.16 Value mapping functions of operator ~never~
 
 */
-int MovingNeverExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MovingNeverExt( Word* args, Word& result, int message,
+                    Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
     MBool* m = ((MBool*)args[0].addr);
 
-    const UBool* utemp;
+    UBool utemp;
     bool temp=true;
 
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, utemp);
-        temp = utemp->constValue.GetBoolval();
+        temp = utemp.constValue.GetBoolval();
         if(temp) break;
     }
 
@@ -4678,19 +4607,14 @@ int MovingNeverExt(
 9.3.17 Value mapping functions of operator ~velocity~
 
 */
-int MovingVelocityExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MovingVelocityExt( Word* args, Word& result, int message,
+                       Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
     MPoint* m = ((MPoint*)args[0].addr);
     MPoint* pResult = ((MPoint*)result.addr);
-    const UPoint* unitin;
-    UPoint* unitout;
+    UPoint unitin;
     double dx, dy, dt;
 
     pResult->Clear();
@@ -4698,16 +4622,16 @@ int MovingVelocityExt(
     for(int i=0;i<m->GetNoComponents();i++)
     {
         m->Get(i, unitin);
-        dx = unitin->p1.GetX()-unitin->p0.GetX();
-        dy = unitin->p1.GetY()-unitin->p0.GetY();
-        dt = ((unitin->timeInterval.end).ToDouble() -
-                (unitin->timeInterval.start).ToDouble()) *
+        dx = unitin.p1.GetX()-unitin.p0.GetX();
+        dy = unitin.p1.GetY()-unitin.p0.GetY();
+        dt = ((unitin.timeInterval.end).ToDouble() -
+                (unitin.timeInterval.start).ToDouble()) *
                 FactorForUnitOfTime;
-        unitout = new UPoint(
-            unitin->timeInterval,
+        UPoint unitout(
+            unitin.timeInterval,
             0, 0, dx/dt, dy/dt
         );
-        pResult->Add(*unitout);
+        pResult->Add(unitout);
     }
     pResult->EndBulkLoad( false );
 
@@ -4718,12 +4642,8 @@ int MovingVelocityExt(
 9.3.18 Value mapping function of operator ~setunitoftime~
 
 */
-int GlobalUnitOfTimeExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int GlobalUnitOfTimeExt( Word* args, Word& result, int message,
+                         Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     CcReal* f = ((CcReal*)args[0].addr);
@@ -4746,12 +4666,8 @@ int GlobalUnitOfTimeExt(
 9.3.19 Value mapping function of operator ~setunitofdistance~
 
 */
-int GlobalUnitOfDistanceExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int GlobalUnitOfDistanceExt( Word* args, Word& result, int message,
+                             Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
     CcReal* f = ((CcReal*)args[0].addr);
@@ -4777,12 +4693,8 @@ int GlobalUnitOfDistanceExt(
 9.3.20 Value mapping function of operator ~mdirection~
 
 */
-int MovingMDirectionExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MovingMDirectionExt( Word* args, Word& result, int message,
+                         Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -4798,12 +4710,8 @@ int MovingMDirectionExt(
 9.3.21 Value mapping function of operator ~locations~
 
 */
-int MovingLocationsExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MovingLocationsExt( Word* args, Word& result, int message,
+                        Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -4822,12 +4730,8 @@ int MovingLocationsExt(
 */
 
 template <class Mapping, class Unit, class Alpha>
-int MappingAtminExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MappingAtminExt( Word* args, Word& result, int message,
+                     Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -4839,12 +4743,8 @@ int MappingAtminExt(
 }
 
 template <class Mapping, class Unit, class Alpha>
-int MappingAtmaxExt(
-    Word* args,
-    Word& result,
-    int message,
-    Word& local,
-    Supplier s )
+int MappingAtmaxExt( Word* args, Word& result, int message,
+                     Word& local, Supplier s )
 {
     result = qp->ResultStorage( s );
 
@@ -4921,11 +4821,11 @@ static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
   unsigned int size = rp.Size();
   unsigned int pos = 0;
   while(pos < size){
-    Interval<Instant>* iv;
+    Interval<Instant> iv;
     int u1Pos;
     int u2Pos;
-    const UPoint *u1transfer;
-    const UPoint *u2transfer;
+    UPoint u1transfer;
+    UPoint u2transfer;
     rp.Get(pos, iv, u1Pos, u2Pos);
     pos++;
     if (u1Pos == -1 || u2Pos == -1){
@@ -4933,8 +4833,8 @@ static bool EverNearerThan(MPoint* arg0, MPoint* arg1, double dist){
     }
     arg0->Get(u1Pos, u1transfer);
     arg1->Get(u2Pos, u2transfer);
-    UPoint u1(*u1transfer);
-    UPoint u2(*u2transfer);
+    UPoint u1(u1transfer);
+    UPoint u2(u2transfer);
     if(u1.IsDefined() && u2.IsDefined())
     { // do not need to test for overlapping deftimes anymore...
       UReal uReal(true);
@@ -4951,10 +4851,10 @@ static bool EverNearerThan(Point* arg0, MPoint* arg1, double dist){
   assert( arg0->IsDefined() );
   assert( arg1->IsDefined() );
   for(int i = 0; i< arg1->GetNoComponents(); i++){
-    const UPoint *upoint;
+    UPoint upoint;
     arg1->Get(i, upoint);
     UReal ureal(false);
-    upoint->Distance(*arg0, ureal);
+    upoint.Distance(*arg0, ureal);
     bool correct = false;
     if( ureal.Min(correct) < dist && correct ){
       return true;
@@ -5002,7 +4902,7 @@ int InsideVM( Word* args, Word& result, int message,
      res->SetDefined(false);
      return 0;
    }
-   res->CopyFrom(&arg1->Inside(*arg2));
+   *res = arg1->Inside(*arg2);
    return 0;
 }
 
