@@ -92,6 +92,9 @@ struct AttrDelete
   // current state!
   {}
 
+  AttrDelete(bool defined): refs(1), isDelete(true), isDefined(defined)
+  { }
+
   uint16_t refs;
   bool isDelete;
   bool isDefined;
@@ -117,7 +120,8 @@ class Attribute
 The simple constructor.
 
 */
-    Attribute(void* dummy) : del() {}
+
+    Attribute(bool defined) : del(defined) {}
  
 
     inline virtual ~Attribute()
