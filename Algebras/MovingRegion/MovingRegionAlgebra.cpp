@@ -242,6 +242,7 @@ Only enable debug output if you know what you are doing!
 
 */
 const bool MRA_DEBUG = false;
+//const bool MRA_DEBUG = true;
 
 /*
 Two floating point numbers are considered equal if their difference is
@@ -2645,7 +2646,7 @@ The class definition has been moved to ~MovingRegionAlgebra.h~.
 1.1.1 Constructors
 
 */
-IRegion::IRegion(bool dummy) {
+IRegion::IRegion(bool dummy): Intime<Region>(0) {
     if (MRA_DEBUG) cerr << "IRegion::IRegion() #2 called" << endl;
 
 /*
@@ -2663,7 +2664,7 @@ no better solution right now to assure that ~value~ has a valid DBArray.
     SetDefined(true);
 }
 
-IRegion::IRegion(const IRegion& ir) {
+IRegion::IRegion(const IRegion& ir) : Intime<Region>(0) {
     if (MRA_DEBUG) cerr << "IRegion::IRegion() #2 called" << endl;
 
     instant = ir.instant;
@@ -5043,9 +5044,9 @@ void URegionEmb::TemporalFunction(
     Region& res,
     bool ignoreLimits ) const {
 
-    if (MRA_DEBUG)
+    if (MRA_DEBUG){
         cerr << "URegionEmb::TemporalFunction() called" << endl;
-
+    }
 /*
 Straightforward again. Calculate segments at specified instant,
 remove degenerated segments of initial or final instant, when they
@@ -5073,14 +5074,16 @@ are not border of any region, and create region.
     res.StartBulkLoad();
 
     for (unsigned int i = 0; i < segmentsNum; i++) {
-            if (MRA_DEBUG)
+            if (MRA_DEBUG){
                 cerr << "URegionEmb::TemporalFunction() segment #"
                      << i
+                     << "/"
+                     << segmentsNum
                      << " ("
                      << segmentsStartPos
                      << ")"
                      << endl;
-
+            }
             MSegmentData dms;
             segments->Get(segmentsStartPos+i, &dms);
 
@@ -5097,16 +5100,17 @@ are not border of any region, and create region.
                 dms.GetInitialEndY()
                 +(dms.GetFinalEndY()-dms.GetInitialEndY())*f;
 
-            if (MRA_DEBUG)
+            if (MRA_DEBUG){
                 cerr << "URegionEmb::TemporalFunction()   value is "
                      << xs << " " << ys << " " << xe << " " << ye
                      << endl;
-
+            }
             if (nearlyEqual(xs, xe) && nearlyEqual(ys, ye)) {
-                if (MRA_DEBUG)
+                if (MRA_DEBUG){
                     cerr << "URegionEmb::TemporalFunction()   "
                          << "reduced to point"
                          << endl;
+                }
                 continue;
             }
 
@@ -5117,10 +5121,11 @@ are not border of any region, and create region.
                  && dms.GetDegeneratedInitial() == DGM_IGNORE)
                 || (finalInstant
                     && dms.GetDegeneratedFinal() == DGM_IGNORE)) {
-                if (MRA_DEBUG)
+                if (MRA_DEBUG){
                     cerr << "URegionEmb::TemporalFunction()   "
                          << "ignored degenerated"
                          << endl;
+                }
                 continue;
             }
 
@@ -5134,28 +5139,41 @@ are not border of any region, and create region.
             hs.attr.partnerno = partnerno++;
 
             if (initialInstant
-                 && dms.GetDegeneratedInitial() == DGM_INSIDEABOVE)
-                hs.attr.insideAbove = true;
-            else if (initialInstant
-                 && dms.GetDegeneratedInitial() == DGM_NOTINSIDEABOVE)
-                hs.attr.insideAbove = false;
-            else if (finalInstant
-                 && dms.GetDegeneratedFinal() == DGM_INSIDEABOVE)
-                hs.attr.insideAbove = true;
-            else if (finalInstant
-                 && dms.GetDegeneratedFinal() == DGM_NOTINSIDEABOVE)
-                hs.attr.insideAbove = false;
-            else
-                hs.attr.insideAbove = dms.GetInsideAbove();
+                 && dms.GetDegeneratedInitial() == DGM_INSIDEABOVE){
+              hs.attr.insideAbove = true;
+            }else if (initialInstant
+                 && dms.GetDegeneratedInitial() == DGM_NOTINSIDEABOVE){
+              hs.attr.insideAbove = false;
+            }else if (finalInstant
+                 && dms.GetDegeneratedFinal() == DGM_INSIDEABOVE){
+              hs.attr.insideAbove = true;
+            }else if (finalInstant
+                 && dms.GetDegeneratedFinal() == DGM_NOTINSIDEABOVE){
+              hs.attr.insideAbove = false;
+            }else{
+              hs.attr.insideAbove = dms.GetInsideAbove();
+            }
 
+            if (MRA_DEBUG){
+              cerr << "URegionEmb::TemporalFunction()   "
+                  << "Adding hs="
+                  << hs
+                  << endl;
+            }
             res += hs;
             hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
+            if (MRA_DEBUG){
+              cerr << "URegionEmb::TemporalFunction()   "
+                  << "Adding hs="
+                  << hs
+                  << endl;
+            }
             res += hs;
     }
 
     res.EndBulkLoad();
 
-    if (MRA_DEBUG)
+    if (MRA_DEBUG){
         for (int i = 0; i < res.Size(); i++) {
             HalfSegment hs;
             res.Get(i, hs);
@@ -5184,6 +5202,7 @@ are not border of any region, and create region.
                  << hs.attr.insideAbove
                  << endl;
         }
+    }
 }
 
 /*
@@ -6596,7 +6615,7 @@ The class definition has been moved to ~MovingRegionAlgebra.h~.
 
 */
 void MRegion::IntersectionRP(
-    MPoint& mp,
+    const MPoint& mp,
     MPoint& res,
     RefinementPartition<
         MRegion,
@@ -6853,7 +6872,7 @@ MRegion::MRegion(const int n) :
 // original signature replaced with
 // 'call by copy' for 2nd arg due to problems when reading r
 // directly from disk ( raised assert( type == InMemory ) ):
-MRegion::MRegion(MPoint& mp, Region r) :
+MRegion::MRegion(const MPoint& mp, Region r) :
     Mapping<URegionEmb, Region>(0),
     msegmentdata(0) {
 
@@ -6898,7 +6917,7 @@ MRegion::MRegion(MPoint& mp, Region r) :
     del.isDefined=true;
 }
 
-MRegion::MRegion(MPoint& mp, Region& r,int dummy) :
+MRegion::MRegion(const MPoint& mp, Region& r, const int dummy) :
     Mapping<URegionEmb, Region>(0),
     msegmentdata(0) {
 
@@ -6995,7 +7014,7 @@ segment is copied to the DBArrays for ~msegmentdata~ and ~units~.
 
 */
 
-void MRegion::AddURegion(URegion& U ) {
+void MRegion::AddURegion( URegion& U ) {
 
 
 #ifdef MR_DEBUG
@@ -7055,7 +7074,7 @@ void MRegion::Intersection(MPoint& mp, MPoint& res) {
 1.1.1.1 Method ~Inside()~
 
 */
-void MRegion::Inside(MPoint& mp, MBool& res) {
+void MRegion::Inside(const MPoint& mp, MBool& res) {
     if (MRA_DEBUG) cerr << "MRegion::Inside() called" << endl;
 
     res.Clear();
@@ -7345,7 +7364,7 @@ does not deal with setting the unit's segment data DBArray.
 
 */
 
-void MRegion::AtInstant(Instant& t, Intime<Region>& result) {
+void MRegion::AtInstant(const Instant& t, Intime<Region>& result) {
     if (MRA_DEBUG) cerr << "MRegion::AtInstant() called" << endl;
 
     assert(IsOrdered() && t.IsDefined());
@@ -7376,9 +7395,9 @@ void MRegion::Initial(Intime<Region>& result) {
 
     assert(IsOrdered());
 
-    if (IsEmpty()) {
-        result.SetDefined(false);
-        return;
+    if ( !IsDefined() || IsEmpty() ) {
+      result.SetDefined(false);
+      return;
     }
 
     URegionEmb unit;
@@ -7389,6 +7408,8 @@ void MRegion::Initial(Intime<Region>& result) {
         return;
     }
 
+    result.value.Clear();
+    result.value.SetDefined(true);
     result.SetDefined(true);
     unit.TemporalFunction(
         &msegmentdata,
@@ -7411,7 +7432,7 @@ void MRegion::Final(Intime<Region>& result) {
 
     assert(IsOrdered());
 
-    if (IsEmpty()) {
+    if ( !IsDefined() || IsEmpty() ) {
         result.SetDefined(false);
         return;
     }
@@ -7424,6 +7445,8 @@ void MRegion::Final(Intime<Region>& result) {
         return;
     }
 
+    result.value.Clear();
+    result.value.SetDefined(true);
     result.SetDefined(true);
     unit.TemporalFunction(
         &msegmentdata,

@@ -661,8 +661,10 @@ The simple constructor.
 
 */
 
-  Intime( const Instant& instant, const Alpha& alpha ):
-    instant( instant )
+  Intime(const int i):instant(i),value(i){}
+
+  Intime( const Instant& _instant, const Alpha& alpha ):
+    instant( _instant )
   {
     value.CopyFrom( &alpha );
     this->del.isDefined = true;
@@ -2255,7 +2257,7 @@ is in bulk loads, i.e., in a non-ordered array.
 
 */
 
-   virtual void MergeAdd( const Unit& upi );
+    virtual void MergeAdd( const Unit& upi );
 /*
 Adds an unit ~upi~ to the mapping. If the new unit and the last
 unit in the Mapping are equalValue it merges the two units.

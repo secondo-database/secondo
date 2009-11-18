@@ -336,7 +336,7 @@ The ~value~ attribute is properly initialized with an empty region, though,
 to assure that its ~DBArray~ is properly initialized.
 
 */
-    IRegion(bool dummy);
+    IRegion(const bool dummy);
 
 /*
 Create a new ~IRegion~ instance and initialize it with the value of ~ir~.
@@ -1019,7 +1019,7 @@ is ~true~, the resulting ~URegion~ instances are merged, if possible.
 
 */
     void IntersectionRP(
-        MPoint& mp,
+        const MPoint& mp,
         MPoint& res,
         RefinementPartition<MRegion,
                                 MPoint,
@@ -1069,15 +1069,21 @@ set each unit to the constant value of ~r~.
 // original signature replaced with
 // 'call by copy' for 2nd arg due to problems when reading r
 // directly from disk ( raised assert( type == InMemory ) ):
-    MRegion(MPoint& mp, Region r);
+    MRegion(const MPoint& mp, Region r);
 
 /*
-Constructs a continuesly moving region from the parameters. ~dummy~ is not
+Constructs a continuously moving region from the parameters. ~dummy~ is not
 used.
 
 */
-    MRegion(MPoint& mp, Region& r,int dummy);
+    MRegion(const MPoint& mp, Region& r, const int dummy);
 
+
+    inline void Clear() {
+      msegmentdata.clean();
+      units.clean();
+      SetDefined( true );
+    };
 /*
 1.1 Attribute access methods
 
@@ -1113,7 +1119,7 @@ Check when ~mp~ is inside this ~MRegion~ instance and create ~res~
 accordingly.
 
 */
-    void Inside(MPoint& mp, MBool& res);
+    void Inside(const MPoint& mp, MBool& res);
 
 
 /*
@@ -1122,7 +1128,7 @@ Reduces this Moving Region to the time given by the periods value.
 Note: The implementation is done in the TemporalExtAlgebra.
 
 */
-    void AtPeriods(Periods* per, MRegion* mregparam );
+    void AtPeriods(const Periods* per, MRegion* mregparam );
 
 
 /*
@@ -1137,7 +1143,7 @@ Calculate region traversed by ~MRegion~ instant in ~res~.
 Get ~Region~ value ~result~ at instant ~t~.
 
 */
-    void AtInstant(Instant& t, Intime<Region>& result);
+    void AtInstant(const Instant& t, Intime<Region>& result);
 
 /*
 Get ~Region~ value ~result~ at initial and final instants.
