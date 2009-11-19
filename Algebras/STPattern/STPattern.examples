@@ -47,11 +47,11 @@ Result   : 10
 Operator : passmbool
 Number   : 1
 Signature: mbool -> mbool
-Example  : query ten feed extend[mb1: randommbool(now()), mb2: randommbool(now())] filter[. stpattern[f1: passmbool(.mb1), f2: passmbool(.mb2); stconstraint("f1","f2",vec("aabb")) ]]  count 
-Result   : n: 10 <= n <= 0 
+Example  : query ten feed extend[mb1: randommbool(now()), mb2: randommbool(now())] filter[. stpattern[f1: passmbool(.mb1), f2: passmbool(.mb2); stconstraint("f1","f2",vec("aabb")) ]]  consume 
+Result   : file 
 
 Operator : randomdelay
 Number   : 1
 Signature: mpoint x duration -> mpoint
 Example  : query randomdelay(train7) 
-Result   : object 
+Result   : file 
