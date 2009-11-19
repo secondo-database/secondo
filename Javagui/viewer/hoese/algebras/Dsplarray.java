@@ -40,8 +40,23 @@ public class Dsplarray extends DsplGeneric {
     }
     ListExpr simpleTypeList =  type.second();
     if(simpleTypeList.atomType()!=ListExpr.SYMBOL_ATOM){
-      qr.addEntry("Error in array type");
-      return;
+    	String complexType = type.second().first().toString();
+    	//display it if its a ~relation~ object
+    	if (complexType.trim().equals("rel")){
+    		int fieldNo = 1;
+        	while (!value.isEmpty()) {
+        		qr.addEntry("Field No." + fieldNo++ + "------------");
+            	LEUtils.analyse(simpleTypeList.toString(), nameWidth, indent, simpleTypeList, value.first(), qr);
+            	value = value.rest();
+            	if (!value.isEmpty())
+            		qr.addEntry("------------");
+        	}
+        	return;
+    	}
+    	else{  	
+    		qr.addEntry("Error in array type");
+    		return;
+    	}
     }
     String simpleType = type.second().symbolValue();
 
