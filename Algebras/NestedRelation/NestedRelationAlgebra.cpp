@@ -1827,7 +1827,6 @@ struct aConsumeInfo : OperatorInfo {
   }
 };
 
-Operator aconsume (aConsumeInfo(), aConsume, aConsumeTypeMap);
 
 /*
 5.5 Operator ~nest~
@@ -2231,7 +2230,6 @@ struct nestInfo : OperatorInfo {
   }
 };
 
-Operator nest (nestInfo(), nestValueMap, nestTypeMap);
 
 /*
 5.6 Operator ~unnest~
@@ -2918,15 +2916,18 @@ class NestedRelationAlgebra : public Algebra
       AddOperator (feedInfo(), feed, feedTypeMap);
       AddOperator (consumeInfo(), consume, consumeTypeMap);
       AddOperator (aFeedInfo(), aFeed, aFeedTypeMap);
-      AddOperator (&aconsume);
-      AddOperator (&nest);
+      Operator* aconsume = new Operator(aConsumeInfo(), 
+		                        aConsume, aConsumeTypeMap);
+      AddOperator (aconsume);
+      Operator* nest = new Operator(nestInfo(), nestValueMap, nestTypeMap);
+      AddOperator (nest);
       AddOperator (unnestOperatorInfo(), unnestValueMap, unnestTypeMap);
       AddOperator (nestedRenameInfo(), nestedRename, nestedRenameTypeMap);
       AddOperator (extractInfo(), extractValueMap, extractTypeMap); 
       attributeRelationTC.AssociateKind( "DATA" );
 #ifdef USE_PROGRESS
-      nest.EnableProgress();
-      aconsume.EnableProgress();
+      nest->EnableProgress();
+      aconsume->EnableProgress();
 #endif      
     }
     ~NestedRelationAlgebra() {};
