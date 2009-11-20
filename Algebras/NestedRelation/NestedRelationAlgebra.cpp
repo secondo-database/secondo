@@ -1,5 +1,5 @@
 /*
-----
+---- 
 This file is part of SECONDO.
 
 Copyright (C) 2004, University in Hagen, Department of Computer Science,
