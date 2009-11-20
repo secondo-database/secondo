@@ -1069,14 +1069,14 @@ set each unit to the constant value of ~r~.
 // original signature replaced with
 // 'call by copy' for 2nd arg due to problems when reading r
 // directly from disk ( raised assert( type == InMemory ) ):
-    MRegion(const MPoint& mp, Region r);
+    MRegion(const MPoint& mp, const Region& r);
 
 /*
 Constructs a continuously moving region from the parameters. ~dummy~ is not
 used.
 
 */
-    MRegion(const MPoint& mp, Region& r, const int dummy);
+    MRegion(const MPoint& mp, const Region& r, const int dummy);
 
 
     inline void Clear() {

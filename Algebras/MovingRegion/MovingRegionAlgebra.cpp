@@ -6872,7 +6872,7 @@ MRegion::MRegion(const int n) :
 // original signature replaced with
 // 'call by copy' for 2nd arg due to problems when reading r
 // directly from disk ( raised assert( type == InMemory ) ):
-MRegion::MRegion(const MPoint& mp, Region r) :
+MRegion::MRegion(const MPoint& mp, const Region& _r) :
     Mapping<URegionEmb, Region>(0),
     msegmentdata(0) {
 
@@ -6880,6 +6880,7 @@ MRegion::MRegion(const MPoint& mp, Region r) :
         cerr << "MRegion::MRegion(MPoint, Region) called"
              << endl;
 
+    Region r(_r);
     r.LogicSort();
 
     for (int i = 0; i < mp.GetNoComponents(); i++) {
@@ -6917,13 +6918,15 @@ MRegion::MRegion(const MPoint& mp, Region r) :
     del.isDefined=true;
 }
 
-MRegion::MRegion(const MPoint& mp, Region& r, const int dummy) :
+MRegion::MRegion(const MPoint& mp, const Region& _r, const int dummy) :
     Mapping<URegionEmb, Region>(0),
     msegmentdata(0) {
 
     if (MRA_DEBUG)
         cerr << "MRegion::MRegion(MPoint, Region,int) called"
              << endl;
+    Region r(_r);
+
     r.LogicSort();
     bool isFirst = true;
     Coord lastX, lastY;
