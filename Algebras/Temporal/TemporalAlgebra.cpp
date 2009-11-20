@@ -3120,13 +3120,13 @@ void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
   }
   if(!firstCall){
     result.MergeAdd(last_candidate);
-    cerr << "MReal::AtValue(): Added final unit" << endl;
+//     cerr << "MReal::AtValue(): Added final unit" << endl;
   }
-  else{
-    cerr << "MReal::AtValue(): Skipping insertion of final unit." << endl;
-  }
+//   else{
+//     cerr << "MReal::AtValue(): Skipping insertion of final unit." << endl;
+//   }
   result.EndBulkLoad();
-  cout << __PRETTY_FUNCTION__ << "result = "; Print(cout); cout << endl << endl;
+//cout << __PRETTY_FUNCTION__ << "result = "; Print(cout); cout << endl << endl;
 }
 
 void MReal::Linearize(MReal& result) const{
