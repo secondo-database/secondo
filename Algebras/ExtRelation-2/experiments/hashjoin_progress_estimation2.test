@@ -39,7 +39,7 @@ create database db_tmp;
 open database db_tmp;
 
 #--------------------------------------------------  
-# Create relations with 25 MB data and 256 Byte tuples
+# Create relations with 50 MB data and 256 Byte tuples
 #--------------------------------------------------  
 
 #testcase create_relation
@@ -47,28 +47,28 @@ open database db_tmp;
 restore R50MB_T256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T256B';
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 10 MB, extern
+# Hybrid Hash-Join with 50 MB x 16 MB, extern
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+let relA = R50MB_T256B feed {a} consume; 
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[40960] {b} consume; 
+let relB = R50MB_T256B feed head[65536] {b} consume; 
 
-#testcase 25MB_join_10_MB_extern
+#testcase 50MB_join_16_MB_extern
 #yields success
-query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,2*1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
-delete rel_A;
+delete relA;
 
 #testcase delete_relation_B
 #yields success
-delete rel_B;
+delete relB;
 
 ##############################################################################
 # TearDown
