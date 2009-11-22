@@ -727,71 +727,137 @@ R50MB_T64B R50MB_T128B R50MB_T256B R50MB_T512B R50MB_T1KB R50MB_T2KB R50MB_T4KB 
 R100MB_T64B R100MB_T128B R100MB_T256B R100MB_T512B R100MB_T1KB R100MB_T2KB R100MB_T4KB R100MB_T8KB R100MB_T16KB  R100MB_T32KB R100MB_T64KB 
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_64B1)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_64B2)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_64B3)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_64B4)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_64B5)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_64B6)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_128B1)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_128B2)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_128B3)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_128B4)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_128B5)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_128B6)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_256B1)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_256B2)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_256B3)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_256B4)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_256B5)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_256B6)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_512B1)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_512B2)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_512B3)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_512B4)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_512B5)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_512B6)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_1KB1)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_1KB2)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_1KB3)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_1KB4)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_1KB5)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@_1KB6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_2KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_2KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_2KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_2KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_2KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_2KB6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_4KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_4KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_4KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_4KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_4KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_4KB6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_8KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_8KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_8KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_8KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_8KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_8KB6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_16KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_16KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_16KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_16KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_16KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_16KB6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_32KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_32KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_32KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_32KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_32KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_32KB6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_64KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_64KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_64KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_64KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_64KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@_64KB6)
 
 hashjoin_number_of_partitions: clean_db
@@ -812,7 +878,7 @@ hashjoin_subpartitioning: clean_db R50MB_T256B
 	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@)
 
-hashjoin_asymmetric_queries: clean_db R50MB_T256B
+hashjoin_asymmetric_queries: clean_db R50MB_T64B R50MB_T256B R50MB_T512B
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	export SECONDO_PARAMMaxMemPerOperator=1024; \
@@ -829,30 +895,54 @@ RELPAIR_S90 RELPAIR_S100
 hashjoin_benchmark: clean_db RELPAIR_S0_001
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	export SECONDO_PARAMMaxMemPerOperator=2560; \
-	$(call doTest, $@1)
-	export SECONDO_PARAMMaxMemPerOperator=2304; \
-	$(call doTest, $@2)
-	export SECONDO_PARAMMaxMemPerOperator=2048; \
-	$(call doTest, $@3)
-	export SECONDO_PARAMMaxMemPerOperator=1792; \
-	$(call doTest, $@4)
-	export SECONDO_PARAMMaxMemPerOperator=1536; \
-	$(call doTest, $@5)
-	export SECONDO_PARAMMaxMemPerOperator=1280; \
-	$(call doTest, $@6)
-	export SECONDO_PARAMMaxMemPerOperator=1024; \
-	$(call doTest, $@7)
-	export SECONDO_PARAMMaxMemPerOperator=768; \
-	$(call doTest, $@8)
-	export SECONDO_PARAMMaxMemPerOperator=512; \
-	$(call doTest, $@9)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, $@10)
-	export SECONDO_PARAMMaxMemPerOperator=128; \
-	$(call doTest, $@11)
 	export SECONDO_PARAMMaxMemPerOperator=64; \
+	$(call doTest, $@1)
+	export SECONDO_PARAMMaxMemPerOperator=128; \
+	$(call doTest, $@2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, $@3)
+	export SECONDO_PARAMMaxMemPerOperator=512; \
+	$(call doTest, $@4)
+	export SECONDO_PARAMMaxMemPerOperator=768; \
+	$(call doTest, $@5)
+	export SECONDO_PARAMMaxMemPerOperator=1024; \
+	$(call doTest, $@6)
+	export SECONDO_PARAMMaxMemPerOperator=1280; \
+	$(call doTest, $@7)
+	export SECONDO_PARAMMaxMemPerOperator=1536; \
+	$(call doTest, $@8)
+	export SECONDO_PARAMMaxMemPerOperator=1792; \
+	$(call doTest, $@9)
+	export SECONDO_PARAMMaxMemPerOperator=2048; \
+	$(call doTest, $@10)
+	export SECONDO_PARAMMaxMemPerOperator=2304; \
+	$(call doTest, $@11)
+	export SECONDO_PARAMMaxMemPerOperator=2560; \
 	$(call doTest, $@12)
+	export SECONDO_PARAMMaxMemPerOperator=2816; \
+	$(call doTest, $@13)
+	export SECONDO_PARAMMaxMemPerOperator=3072; \
+	$(call doTest, $@14)
+	export SECONDO_PARAMMaxMemPerOperator=3328; \
+	$(call doTest, $@15)
+	export SECONDO_PARAMMaxMemPerOperator=3584; \
+	$(call doTest, $@16)
+	export SECONDO_PARAMMaxMemPerOperator=3840; \
+	$(call doTest, $@17)
+	export SECONDO_PARAMMaxMemPerOperator=4096; \
+	$(call doTest, $@18)
+	export SECONDO_PARAMMaxMemPerOperator=4352; \
+	$(call doTest, $@19)
+	export SECONDO_PARAMMaxMemPerOperator=4608; \
+	$(call doTest, $@20)
+	export SECONDO_PARAMMaxMemPerOperator=4864; \
+	$(call doTest, $@21)
+	export SECONDO_PARAMMaxMemPerOperator=5120; \
+	$(call doTest, $@22)
+	export SECONDO_PARAMMaxMemPerOperator=5376; \
+	$(call doTest, $@23)
+	export SECONDO_PARAMMaxMemPerOperator=5632; \
+	$(call doTest, $@24)
 
 hashjoin_progress_estimation: clean_db R50MB_T256B
 	@echo ""
@@ -870,11 +960,85 @@ hashjoin_progress_estimation: clean_db R50MB_T256B
 	$(call doTest, $@4)
 	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@4_proglogt.csv
 
-dummy: clean_db R100MB_T64B #R1G_T512B R1G_T8KB R1G_T64KB 
+dummy: clean_db \
+R1MB_T64B R1MB_T128B R1MB_T256B R1MB_T512B R1MB_T1KB R1MB_T2KB R1MB_T4KB R1MB_T8KB R1MB_T16KB  R1MB_T32KB R1MB_T64KB \
+R10MB_T64B R10MB_T128B R10MB_T256B R10MB_T512B R10MB_T1KB R10MB_T2KB R10MB_T4KB R10MB_T8KB R10MB_T16KB  R10MB_T32KB R10MB_T64KB \
+R50MB_T64B R50MB_T128B R50MB_T256B R50MB_T512B R50MB_T1KB R50MB_T2KB R50MB_T4KB R50MB_T8KB R50MB_T16KB  R50MB_T32KB R50MB_T64KB \
+R100MB_T64B R100MB_T128B R100MB_T256B R100MB_T512B R100MB_T1KB R100MB_T2KB R100MB_T4KB R100MB_T8KB R100MB_T16KB  R100MB_T32KB R100MB_T64KB 
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	$(call doTest, sort_benchmark_64B5)
-	$(call doTest, sort_benchmark_64B6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_2KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_2KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_2KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_2KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_2KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_2KB6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_4KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_4KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_4KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_4KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_4KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_4KB6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_8KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_8KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_8KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_8KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_8KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_8KB6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_16KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_16KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_16KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_16KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_16KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_16KB6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_32KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_32KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_32KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_32KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_32KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_32KB6)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_64KB1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_64KB2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_64KB3)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_64KB4)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_64KB5)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, sort_benchmark_64KB6)
 
 
 
