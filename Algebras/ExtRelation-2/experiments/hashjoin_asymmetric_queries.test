@@ -40,7 +40,323 @@ create database db_tmp;
 open database db_tmp;
 
 #--------------------------------------------------  
-# Create relations with 25 MB data and 256 Byte tuples
+# Create relation with 50 MB data and 512 Byte tuples
+#--------------------------------------------------  
+
+#testcase create_relation
+#yields success
+restore R50MB_T512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T512B';
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 50 MB x 5 MB (512 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T512B feed head[102400] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T512B feed head[10240] {b} consume; 
+
+#testcase 50MB_join_5_MB_standard_512
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 50MB_join_5_MB_hybrid_512
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 45 MB x 10 MB (512 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T512B feed head[92160] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T512B feed head[20480] {b} consume; 
+
+#testcase 45MB_join_10_MB_standard_512
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 45MB_join_10_MB_hybrid_512
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 40 MB x 15 MB (512 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T512B feed head[81920] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T512B feed head[30720] {b} consume; 
+
+#testcase 40MB_join_15_MB_standard_512
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 40MB_join_15_MB_hybrid_512
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 35 MB x 20 MB (512 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T512B feed head[71680] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T512B feed head[40960] {b} consume; 
+
+#testcase 35MB_join_20_MB_standard_512
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 35MB_join_20_MB_hybrid_512
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 30 MB x 25 MB (512 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T512B feed head[61440] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T512B feed head[51200] {b} consume; 
+
+#testcase 30MB_join_25_MB_standard_512
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 30MB_join_25_MB_hybrid_512
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 27,5 MB x 27,5 MB (512 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T512B feed head[56320] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T512B feed head[56320] {b} consume; 
+
+#testcase 27.5MB_join_27.5_MB_standard_512
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 27.5MB_join_27.5_MB_hybrid_512
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 25 MB x 30 MB (512 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T512B feed head[51200] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T512B feed head[61440] {b} consume; 
+
+#testcase 25MB_join_30_MB_standard_512
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 25MB_join_30_MB_hybrid_512
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 20 MB x 35 MB (512 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T512B feed head[40960] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T512B feed head[71680] {b} consume; 
+
+#testcase 20MB_join_35_MB_standard_512
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 20MB_join_35_MB_hybrid_512
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 15 MB x 40 MB (512 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T512B feed head[30720] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T512B feed head[81920] {b} consume; 
+
+#testcase 15MB_join_40_MB_standard_512
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 15MB_join_40_MB_hybrid_512
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 10 MB x 45 MB (512 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T512B feed head[20480] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T512B feed head[92160] {b} consume; 
+
+#testcase 10MB_join_45_MB_standard_512
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 10MB_join_45_MB_hybrid_512
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 5 MB x 50 MB (512 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T512B feed head[10240] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T512B feed head[102400] {b} consume; 
+
+#testcase 5MB_join_50_MB_standard_512
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 5MB_join_50_MB_hybrid_512
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Create relation with 50 MB data and 256 Byte tuples
 #--------------------------------------------------  
 
 #testcase create_relation
@@ -48,7 +364,7 @@ open database db_tmp;
 restore R50MB_T256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T256B';
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 50 MB x 5 MB
+# Hybrid Hash-Join with 50 MB x 5 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
@@ -59,24 +375,24 @@ let relA = R50MB_T256B feed head[204800] {a} consume;
 #yields success
 let relB = R50MB_T256B feed head[20480] {b} consume; 
 
-#testcase 50MB_join_5_MB_standard
+#testcase 50MB_join_5_MB_standard_256
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase 50MB_join_5_MB_hybrid
+#testcase 50MB_join_5_MB_hybrid_256
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
-delete rel_A;
+delete relA;
 
 #testcase delete_relation_B
 #yields success
-delete rel_B;
+delete relB;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 45 MB x 10 MB
+# Hybrid Hash-Join with 45 MB x 10 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
@@ -87,24 +403,24 @@ let relA = R50MB_T256B feed head[184320] {a} consume;
 #yields success
 let relB = R50MB_T256B feed head[40960] {b} consume; 
 
-#testcase 45MB_join_10_MB_standard
+#testcase 45MB_join_10_MB_standard_256
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase 45MB_join_10_MB_hybrid
+#testcase 45MB_join_10_MB_hybrid_256
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
-delete rel_A;
+delete relA;
 
 #testcase delete_relation_B
 #yields success
-delete rel_B;
+delete relB;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 40 MB x 15 MB
+# Hybrid Hash-Join with 40 MB x 15 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
@@ -115,24 +431,24 @@ let relA = R50MB_T256B feed head[163840] {a} consume;
 #yields success
 let relB = R50MB_T256B feed head[61440] {b} consume; 
 
-#testcase 40MB_join_15_MB_standard
+#testcase 40MB_join_15_MB_standard_256
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase 40MB_join_15_MB_hybrid
+#testcase 40MB_join_15_MB_hybrid_256
 #yields success
-query relA feed relB feed hybrstandardidhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
-delete rel_A;
+delete relA;
 
 #testcase delete_relation_B
 #yields success
-delete rel_B;
+delete relB;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 35 MB x 20 MB
+# Hybrid Hash-Join with 35 MB x 20 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
@@ -143,24 +459,24 @@ let relA = R50MB_T256B feed head[143360] {a} consume;
 #yields success
 let relB = R50MB_T256B feed head[81920] {b} consume; 
 
-#testcase 35MB_join_20_MB_standard
+#testcase 35MB_join_20_MB_standard_256
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase 35MB_join_20_MB_hybrid
+#testcase 35MB_join_20_MB_hybrid_256
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
-delete rel_A;
+delete relA;
 
 #testcase delete_relation_B
 #yields success
-delete rel_B;
+delete relB;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 30 MB x 25 MB
+# Hybrid Hash-Join with 30 MB x 25 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
@@ -171,24 +487,52 @@ let relA = R50MB_T256B feed head[122880] {a} consume;
 #yields success
 let relB = R50MB_T256B feed head[102400] {b} consume; 
 
-#testcase 30MB_join_25_MB_standard
+#testcase 30MB_join_25_MB_standard_256
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase 30MB_join_25_MB_hybrid
+#testcase 30MB_join_25_MB_hybrid_256
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
-delete rel_A;
+delete relA;
 
 #testcase delete_relation_B
 #yields success
-delete rel_B;
+delete relB;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 25 MB x 30 MB
+# Hybrid Hash-Join with 27,5 MB x 27,5 MB (256 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T256B feed head[112640] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T256B feed head[112640] {b} consume; 
+
+#testcase 27.5MB_join_27.5_MB_standard_256
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 27.5MB_join_27.5_MB_hybrid_256
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 25 MB x 30 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
@@ -199,24 +543,24 @@ let relA = R50MB_T256B feed head[102400] {a} consume;
 #yields success
 let relB = R50MB_T256B feed head[122880] {b} consume; 
 
-#testcase 25MB_join_30_MB_standard
+#testcase 25MB_join_30_MB_standard_256
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase 25MB_join_30_MB_hybrid
+#testcase 25MB_join_30_MB_hybrid_256
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
-delete rel_A;
+delete relA;
 
 #testcase delete_relation_B
 #yields success
-delete rel_B;
+delete relB;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 20 MB x 35 MB
+# Hybrid Hash-Join with 20 MB x 35 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
@@ -227,24 +571,24 @@ let relA = R50MB_T256B feed head[81920] {a} consume;
 #yields success
 let relB = R50MB_T256B feed head[143360] {b} consume; 
 
-#testcase 20MB_join_35_MB_standard
+#testcase 20MB_join_35_MB_standard_256
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase 20MB_join_35_MB_hybrid
+#testcase 20MB_join_35_MB_hybrid_256
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
-delete rel_A;
+delete relA;
 
 #testcase delete_relation_B
 #yields success
-delete rel_B;
+delete relB;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 15 MB x 40 MB
+# Hybrid Hash-Join with 15 MB x 40 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
@@ -255,24 +599,24 @@ let relA = R50MB_T256B feed head[61440] {a} consume;
 #yields success
 let relB = R50MB_T256B feed head[163840] {b} consume; 
 
-#testcase 15MB_join_40_MB_standard
+#testcase 15MB_join_40_MB_standard_256
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase 15MB_join_40_MB_hybrid
+#testcase 15MB_join_40_MB_hybrid_256
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
-delete rel_A;
+delete relA;
 
 #testcase delete_relation_B
 #yields success
-delete rel_B;
+delete relB;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 10 MB x 45 MB
+# Hybrid Hash-Join with 10 MB x 45 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
@@ -283,24 +627,24 @@ let relA = R50MB_T256B feed head[40960] {a} consume;
 #yields success
 let relB = R50MB_T256B feed head[184320] {b} consume; 
 
-#testcase 10MB_join_45_MB_standard
+#testcase 10MB_join_45_MB_standard_256
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase 10MB_join_45_MB_hybrid
+#testcase 10MB_join_45_MB_hybrid_256
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
-delete rel_A;
+delete relA;
 
 #testcase delete_relation_B
 #yields success
-delete rel_B;
+delete relB;
 
 #--------------------------------------------------  
-# Hybrid Hash-Join with 5 MB x 50 MB
+# Hybrid Hash-Join with 5 MB x 50 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
@@ -311,21 +655,337 @@ let relA = R50MB_T256B feed head[20480] {a} consume;
 #yields success
 let relB = R50MB_T256B feed head[204800] {b} consume; 
 
-#testcase 5MB_join_50_MB_standard
+#testcase 5MB_join_50_MB_standard_256
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase 5MB_join_50_MB_hybrid
+#testcase 5MB_join_50_MB_hybrid_256
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
 
 #testcase delete_relation_A
 #yields success
-delete rel_A;
+delete relA;
 
 #testcase delete_relation_B
 #yields success
-delete rel_B;
+delete relB;
+
+#--------------------------------------------------  
+# Create relation with 50 MB data and 64 Byte tuples
+#--------------------------------------------------  
+
+#testcase create_relation
+#yields success
+restore R50MB_T64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T64B';
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 50 MB x 5 MB (64 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T64B feed head[819200] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T64B feed head[81920] {b} consume; 
+
+#testcase 50MB_join_5_MB_standard_64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 50MB_join_5_MB_hybrid_64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 45 MB x 10 MB (64 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T64B feed head[737280] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T64B feed head[163840] {b} consume; 
+
+#testcase 45MB_join_10_MB_standard_64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 45MB_join_10_MB_hybrid_64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 40 MB x 15 MB (64 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T64B feed head[655360] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T64B feed head[245760] {b} consume; 
+
+#testcase 40MB_join_15_MB_standard_64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 40MB_join_15_MB_hybrid_64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 35 MB x 20 MB (64 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T64B feed head[573440] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T64B feed head[327680] {b} consume; 
+
+#testcase 35MB_join_20_MB_standard_64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 35MB_join_20_MB_hybrid_64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 30 MB x 25 MB (64 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T64B feed head[491520] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T64B feed head[409600] {b} consume; 
+
+#testcase 30MB_join_25_MB_standard_64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 30MB_join_25_MB_hybrid_64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 27,5 MB x 27,5 MB (64 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T64B feed head[450560] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T64B feed head[450560] {b} consume; 
+
+#testcase 27.5MB_join_27.5_MB_standard_64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 27.5MB_join_27.5_MB_hybrid_64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 25 MB x 30 MB (64 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T64B feed head[409600] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T64B feed head[491520] {b} consume; 
+
+#testcase 25MB_join_30_MB_standard_64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 25MB_join_30_MB_hybrid_64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 20 MB x 35 MB (64 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T64B feed head[327680] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T64B feed head[573440] {b} consume; 
+
+#testcase 20MB_join_35_MB_standard_64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 20MB_join_35_MB_hybrid_64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 15 MB x 40 MB (64 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T64B feed head[245760] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T64B feed head[655360] {b} consume; 
+
+#testcase 15MB_join_40_MB_standard_64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 15MB_join_40_MB_hybrid_64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 10 MB x 45 MB (64 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T64B feed head[163840] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T64B feed head[737280] {b} consume; 
+
+#testcase 10MB_join_45_MB_standard_64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 10MB_join_45_MB_hybrid_64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#--------------------------------------------------  
+# Hybrid Hash-Join with 5 MB x 50 MB (64 Byte)
+#--------------------------------------------------  
+
+#testcase create_relation_A
+#yields success
+let relA = R50MB_T64B feed head[81920] {a} consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = R50MB_T64B feed head[819200] {b} consume; 
+
+#testcase 5MB_join_50_MB_standard_64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase 5MB_join_50_MB_hybrid_64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
 
 ##############################################################################
 # TearDown
