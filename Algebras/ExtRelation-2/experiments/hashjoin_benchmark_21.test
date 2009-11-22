@@ -39,7 +39,7 @@ create database db_tmp;
 open database db_tmp;
 
 #--------------------------------------------------  
-# Benchmark with 768 KByte Memory, 64 Byte tuples
+# Benchmark with 4864 KByte Memory, 64 Byte tuples
 #--------------------------------------------------  
 
 #testcase create_relation
@@ -54,23 +54,23 @@ let relA = R50MB_T64B feed {a} consume;
 #yields success
 let relB = R50MB_T64B feed head[81920] {b} consume;
 
-#testcase sortmergejoin_M768_T64
+#testcase sortmergejoin_M4864_T64
 #yields success
 query relA feed relB feed sortmergejoin[Flob_a,Flob_b] count;
 
-#testcase hashjoin_M768_T64
+#testcase hashjoin_M4864_T64
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase sortmergejoin_M768_T64
+#testcase sortmergejoin_M4864_T64
 #yields success
 query relA feed relB feed sortmergejoin2[Flob_a,Flob_b] count;
 
-#testcase gracehashjoin_M768_T64
+#testcase gracehashjoin_M4864_T64
 #yields success
 query relA feed relB feed gracehashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase hybridhashjoin_M768_T64
+#testcase hybridhashjoin_M4864_T64
 #yields success
 query relA feed relB feed hybridhashjoin[Flob_a,Flob_b;1000] count;
 
@@ -87,7 +87,7 @@ delete relB;
 delete R50MB_T64B;
 
 #--------------------------------------------------  
-# Benchmark with 768 KByte Memory, 128 Byte tuples
+# Benchmark with 4864 KByte Memory, 128 Byte tuples
 #--------------------------------------------------  
 
 #testcase create_relation
@@ -102,23 +102,23 @@ let relA = R50MB_T128B feed {a} consume;
 #yields success
 let relB = R50MB_T128B feed head[40960] {b} consume;
 
-#testcase sortmergejoin_M768_T128
+#testcase sortmergejoin_M4864_T128
 #yields success
 query relA feed relB feed sortmergejoin[Flob_a,Flob_b] count;
 
-#testcase hashjoin_M768_T128
+#testcase hashjoin_M4864_T128
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase sortmergejoin_M768_T128
+#testcase sortmergejoin_M4864_T128
 #yields success
 query relA feed relB feed sortmergejoin2[Flob_a,Flob_b] count;
 
-#testcase gracehashjoin_M768_T128
+#testcase gracehashjoin_M4864_T128
 #yields success
 query relA feed relB feed gracehashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase hybridhashjoin_M768_T128
+#testcase hybridhashjoin_M4864_T128
 #yields success
 query relA feed relB feed hybridhashjoin[Flob_a,Flob_b;1000] count;
 
@@ -135,7 +135,7 @@ delete relB;
 delete R50MB_T64B;
 
 #--------------------------------------------------  
-# Benchmark with 768 KByte Memory, 256 Byte tuples
+# Benchmark with 4864 KByte Memory, 256 Byte tuples
 #--------------------------------------------------  
 
 #testcase create_relation
@@ -150,23 +150,23 @@ let relA = R50MB_T256B feed {a} consume;
 #yields success
 let relB = R50MB_T256B feed head[20480] {b} consume;
 
-#testcase sortmergejoin_M768_T256
+#testcase sortmergejoin_M4864_T256
 #yields success
 query relA feed relB feed sortmergejoin[Flob_a,Flob_b] count;
 
-#testcase hashjoin_M768_T256
+#testcase hashjoin_M4864_T256
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase sortmergejoin_M768_T256
+#testcase sortmergejoin_M4864_T256
 #yields success
 query relA feed relB feed sortmergejoin2[Flob_a,Flob_b] count;
 
-#testcase gracehashjoin_M768_T256
+#testcase gracehashjoin_M4864_T256
 #yields success
 query relA feed relB feed gracehashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase hybridhashjoin_M768_T256
+#testcase hybridhashjoin_M4864_T256
 #yields success
 query relA feed relB feed hybridhashjoin[Flob_a,Flob_b;1000] count;
 
@@ -183,7 +183,7 @@ delete relB;
 delete R50MB_T256B;
 
 #--------------------------------------------------  
-# Benchmark with 768 KByte Memory, 512 Byte tuples
+# Benchmark with 4864 KByte Memory, 512 Byte tuples
 #--------------------------------------------------  
 
 #testcase create_relation
@@ -198,23 +198,23 @@ let relA = R50MB_T512B feed {a} consume;
 #yields success
 let relB = R50MB_T512B feed head[10240] {b} consume;
 
-#testcase sortmergejoin_M768_T512
+#testcase sortmergejoin_M4864_T512
 #yields success
 query relA feed relB feed sortmergejoin[Flob_a,Flob_b] count;
 
-#testcase hashjoin_M768_T512
+#testcase hashjoin_M4864_T512
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase sortmergejoin2_M768_T512
+#testcase sortmergejoin2_M4864_T512
 #yields success
 query relA feed relB feed sortmergejoin2[Flob_a,Flob_b] count;
 
-#testcase gracehashjoin_M768_T512
+#testcase gracehashjoin_M4864_T512
 #yields success
 query relA feed relB feed gracehashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase hybridhashjoin_M768_T512
+#testcase hybridhashjoin_M4864_T512
 #yields success
 query relA feed relB feed hybridhashjoin[Flob_a,Flob_b;1000] count;
 
@@ -231,7 +231,7 @@ delete relB;
 delete R50MB_T1KB;
 
 #--------------------------------------------------  
-# Benchmark with 768 KByte Memory, 1024 Byte tuples
+# Benchmark with 4864 KByte Memory, 1024 Byte tuples
 #--------------------------------------------------  
 
 #testcase create_relation
@@ -246,23 +246,23 @@ let relA = R50MB_T1KB feed {a} consume;
 #yields success
 let relB = R50MB_T1KB feed head[5120] {b} consume;
 
-#testcase sortmergejoin_M768_T1024
+#testcase sortmergejoin_M4864_T1024
 #yields success
 query relA feed relB feed sortmergejoin[Flob_a,Flob_b] count;
 
-#testcase hashjoin_M768_T1024
+#testcase hashjoin_M4864_T1024
 #yields success
 query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase sortmergejoin_M768_T1024
+#testcase sortmergejoin_M4864_T1024
 #yields success
 query relA feed relB feed sortmergejoin2[Flob_a,Flob_b] count;
 
-#testcase gracehashjoin_M768_T1024
+#testcase gracehashjoin_M4864_T1024
 #yields success
 query relA feed relB feed gracehashjoin[Flob_a,Flob_b;1000] count;
 
-#testcase hybridhashjoin_M768_T1024
+#testcase hybridhashjoin_M4864_T1024
 #yields success
 query relA feed relB feed hybridhashjoin[Flob_a,Flob_b;1000] count;
 
