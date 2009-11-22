@@ -120,7 +120,7 @@ restore R50MB_T256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiment
 
 #testcase create relation
 #yields success
-let R32MB_T256B = R50MB_T256B feed head[131072];
+let R32MB_T256B = R50MB_T256B feed head[131072] consume;
 
 #testcase Old sort algorithm - time for run generation
 #yields success

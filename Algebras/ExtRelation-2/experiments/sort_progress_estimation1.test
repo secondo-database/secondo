@@ -60,7 +60,7 @@ let R32MB_T64B = R10MB_T64B feed four feed product head[524288] remove[Nr_a] ext
 
 #testcase internal
 #yields success
-query R32MB_T64B feed sortby2Param[Ival;-1,-1,-1] count;
+query R32MB_T64B feed sortby2Param[Ival;32*1024*1024,-1,-1] count;
 
 ##############################################################################
 # TearDown
