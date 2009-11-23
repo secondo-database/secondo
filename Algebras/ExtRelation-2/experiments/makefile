@@ -45,11 +45,20 @@ TEXTGEN_DIR = $(SECONDO_BUILD_DIR)/Tools/Generators/TextRelations
 # random text relation directory
 TEXTGEN = $(TEXTGEN_DIR)/createRandomTextRelation
 
+# random text relation directory
+TEXTGENSEL = $(TEXTGEN_DIR)/createTextRelationsWithSel
+
 # variables which controls relation size (for testing only)
 100MB=104857600
 50MB=52428800
 10MB=10485760
 1MB=1048576
+
+TUPLESIZE_256=256
+TUPLES_256_50MB=204800
+TUPLES_256_25MB=102400
+TUPLES_256_5MB=20480
+
 
 # --------------------------------------------
 # Functions
@@ -465,82 +474,112 @@ R100MB_T64KB: textgen
 # --------------------------------------------
 
 # Selectivity 0,001%
-.PHONY:
+.PHONY: RELPAIR_SEL0_001
 RELPAIR_SEL0_001:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@A
+	$(TEXTGENSEL) 64 $(TUPLES_256_50MB) $(TUPLES_256_5MB) 0.00001 $@A_64 $@B_64
+	$(TEXTGENSEL) 128 $(TUPLES_256_50MB) $(TUPLES_256_5MB) 0.00001 $@A_128 $@B_128
+	$(TEXTGENSEL) 256 $(TUPLES_256_50MB) $(TUPLES_256_5MB) 0.00001 $@A_256 $@B_256
+	$(TEXTGENSEL) 512 $(TUPLES_256_50MB) $(TUPLES_256_5MB) 0.00001 $@A_512 $@B_512
+	$(TEXTGENSEL) 1024 $(TUPLES_256_50MB) $(TUPLES_256_5MB) 0.00001 $@A_1024 $@B_1024
 
 # Selectivity 1%
-.PHONY:
+.PHONY: RELPAIR_SEL1
 RELPAIR_SEL1:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 0.01 $@A $@B
 
 # Selectivity 5%
-.PHONY:
+.PHONY: RELPAIR_SEL5
 RELPAIR_SEL5:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 0.05 $@A $@B
 
 # Selectivity 10%
-.PHONY:
+.PHONY: RELPAIR_SEL10
 RELPAIR_SEL10:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 0.1 $@A $@B
 
 # Selectivity 20%
-.PHONY:
+.PHONY: RELPAIR_SEL20
 RELPAIR_SEL20:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 0.2 $@A $@B
 
 # Selectivity 30%
-.PHONY:
+.PHONY: RELPAIR_SEL30
 RELPAIR_SEL30:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 0.3 $@A $@B
 
 # Selectivity 40%
-.PHONY:
+.PHONY: RELPAIR_SEL40
 RELPAIR_SEL40:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 0.4 $@A $@B
 
 # Selectivity 50%
-.PHONY:
+.PHONY: RELPAIR_SEL50
 RELPAIR_SEL50:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 0.5 $@A $@B
 
 # Selectivity 60%
-.PHONY:
+.PHONY: RELPAIR_SEL60
 RELPAIR_SEL60:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 0.6 $@A $@B
 
 # Selectivity 70%
-.PHONY:
+.PHONY: RELPAIR_SEL70
 RELPAIR_SEL70:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 0.7 $@A $@B
 
 # Selectivity 80%
-.PHONY:
+.PHONY: RELPAIR_SEL80
 RELPAIR_SEL80:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 0.8 $@A $@B
 
 # Selectivity 90%
-.PHONY:
+.PHONY: RELPAIR_SEL90
 RELPAIR_SEL90:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 0.9 $@A $@B
 
 # Selectivity 100%
-.PHONY:
+.PHONY: RELPAIR_SEL100
 RELPAIR_SEL100:
 	@echo ""
 	@echo "Creating relation pair.." $@
+	@rm -f $@A $@B
+	@$(TEXTGENSEL) 256 20480 4096 1 $@A $@B
 
 # --------------------------------------------
 # Cleanup of database directory
@@ -863,6 +902,14 @@ R100MB_T64B R100MB_T128B R100MB_T256B R100MB_T512B R100MB_T1KB R100MB_T2KB R100M
 hashjoin_number_of_partitions: clean_db
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
+	rm -f REL256_A25x* REL256_B25x*
+	$(TEXTGENSEL) 256 102400 8192 0.001 REL256_A25x2 REL256_B25x2
+	$(TEXTGENSEL) 256 102400 20480 0.001 REL256_A25x5 REL256_B25x5
+	$(TEXTGENSEL) 256 102400 40960 0.001 REL256_A25x10 REL256_B25x10
+	$(TEXTGENSEL) 256 102400 61440 0.001 REL256_A25x15 REL256_B25x15
+	$(TEXTGENSEL) 256 102400 81920 0.001 REL256_A25x20 REL256_B25x20
+	$(TEXTGENSEL) 256 102400 102400 0.001 REL256_A25x25 REL256_B25x25
+	$(TEXTGENSEL) 256 102400 122880 0.001 REL256_A25x30 REL256_B25x30
 	export SECONDO_PARAMMaxMemPerOperator=1024; \
 	$(call doTest, $@)
 
@@ -872,11 +919,32 @@ hashjoin_switch_intern_extern: clean_db R50MB_T256B
 	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@)
 
-hashjoin_subpartitioning: clean_db R50MB_T256B
+hashjoin_subpartitioning: clean_db
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
+	rm -f $@_REL256A $@_REL256B
+	$(TEXTGENSEL) 256 102400 102400 0.00001 $@_REL256A $@_REL256B 
 	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@)
+	rm -f $@_REL256A $@_REL256B
+
+hashjoin_hybrid_vs_grace: clean_db
+	@echo ""
+	@echo "Running experiment " $@.$(TESTEXT)
+	rm -f -v $@_A* $@_B*
+	$(TEXTGENSEL) 256 40960 40960 0.00001 $@_A10x10 $@_B10x10
+	$(TEXTGENSEL) 256 81920 40960 0.00001 $@_A20x10 $@_B20x10
+	$(TEXTGENSEL) 256 122880 40960 0.00001 $@_A30x10 $@_B30x10
+	$(TEXTGENSEL) 256 163840 40960 0.00001 $@_A40x10 $@_B40x10
+	$(TEXTGENSEL) 256 204800 40960 0.00001 $@_A50x10 $@_B50x10
+	$(TEXTGENSEL) 256 245760 40960 0.00001 $@_A60x10 $@_B60x10
+	$(TEXTGENSEL) 256 286720 40960 0.00001 $@_A70x10 $@_B70x10
+	$(TEXTGENSEL) 256 327680 40960 0.00001 $@_A80x10 $@_B80x10
+	$(TEXTGENSEL) 256 368640 40960 0.00001 $@_A90x10 $@_B90x10
+	$(TEXTGENSEL) 256 409600 40960 0.00001 $@_A100x10 $@_B100x10
+	export SECONDO_PARAMMaxMemPerOperator=1024; \
+	$(call doTest, $@)
+	rm -f -v $@_A* $@_B*
 
 hashjoin_asymmetric_queries: clean_db R50MB_T64B R50MB_T256B R50MB_T512B
 	@echo ""
@@ -884,65 +952,65 @@ hashjoin_asymmetric_queries: clean_db R50MB_T64B R50MB_T256B R50MB_T512B
 	export SECONDO_PARAMMaxMemPerOperator=1024; \
 	$(call doTest, $@)
 
-hashjoin_selectivity: clean_db RELPAIR_S1 RELPAIR_S5 RELPAIR_S10 RELPAIR_S20 \
-RELPAIR_S30 RELPAIR_S40 RELPAIR_S50 RELPAIR_S60 RELPAIR_S70 RELPAIR_S80 \
-RELPAIR_S90 RELPAIR_S100 
+hashjoin_selectivity: clean_db RELPAIR_SEL1 RELPAIR_SEL5 RELPAIR_SEL10 RELPAIR_SEL20 \
+RELPAIR_SEL30 RELPAIR_SEL40 RELPAIR_SEL50 RELPAIR_SEL60 RELPAIR_SEL70 RELPAIR_SEL80 \
+RELPAIR_SEL90 RELPAIR_SEL100 
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	export SECONDO_PARAMMaxMemPerOperator=1024; \
+	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@)
 
-hashjoin_benchmark: clean_db RELPAIR_S0_001
+hashjoin_benchmark: clean_db RELPAIR_SEL0_001
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	export SECONDO_PARAMMaxMemPerOperator=64; \
-	$(call doTest, $@1)
-	export SECONDO_PARAMMaxMemPerOperator=128; \
-	$(call doTest, $@2)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, $@3)
-	export SECONDO_PARAMMaxMemPerOperator=512; \
-	$(call doTest, $@4)
-	export SECONDO_PARAMMaxMemPerOperator=768; \
-	$(call doTest, $@5)
-	export SECONDO_PARAMMaxMemPerOperator=1024; \
-	$(call doTest, $@6)
-	export SECONDO_PARAMMaxMemPerOperator=1280; \
-	$(call doTest, $@7)
-	export SECONDO_PARAMMaxMemPerOperator=1536; \
-	$(call doTest, $@8)
-	export SECONDO_PARAMMaxMemPerOperator=1792; \
-	$(call doTest, $@9)
-	export SECONDO_PARAMMaxMemPerOperator=2048; \
-	$(call doTest, $@10)
-	export SECONDO_PARAMMaxMemPerOperator=2304; \
-	$(call doTest, $@11)
-	export SECONDO_PARAMMaxMemPerOperator=2560; \
-	$(call doTest, $@12)
-	export SECONDO_PARAMMaxMemPerOperator=2816; \
-	$(call doTest, $@13)
-	export SECONDO_PARAMMaxMemPerOperator=3072; \
-	$(call doTest, $@14)
-	export SECONDO_PARAMMaxMemPerOperator=3328; \
-	$(call doTest, $@15)
-	export SECONDO_PARAMMaxMemPerOperator=3584; \
-	$(call doTest, $@16)
-	export SECONDO_PARAMMaxMemPerOperator=3840; \
-	$(call doTest, $@17)
-	export SECONDO_PARAMMaxMemPerOperator=4096; \
-	$(call doTest, $@18)
-	export SECONDO_PARAMMaxMemPerOperator=4352; \
-	$(call doTest, $@19)
-	export SECONDO_PARAMMaxMemPerOperator=4608; \
-	$(call doTest, $@20)
-	export SECONDO_PARAMMaxMemPerOperator=4864; \
-	$(call doTest, $@21)
-	export SECONDO_PARAMMaxMemPerOperator=5120; \
-	$(call doTest, $@22)
-	export SECONDO_PARAMMaxMemPerOperator=5376; \
-	$(call doTest, $@23)
-	export SECONDO_PARAMMaxMemPerOperator=5632; \
-	$(call doTest, $@24)
+	$(call doTest, $@_1)
+#	export SECONDO_PARAMMaxMemPerOperator=128; \
+#	$(call doTest, $@2)
+#	export SECONDO_PARAMMaxMemPerOperator=256; \
+#	$(call doTest, $@3)
+#	export SECONDO_PARAMMaxMemPerOperator=512; \
+#	$(call doTest, $@4)
+#	export SECONDO_PARAMMaxMemPerOperator=768; \
+#	$(call doTest, $@5)
+#	export SECONDO_PARAMMaxMemPerOperator=1024; \
+#	$(call doTest, $@6)
+#	export SECONDO_PARAMMaxMemPerOperator=1280; \
+#	$(call doTest, $@7)
+#	export SECONDO_PARAMMaxMemPerOperator=1536; \
+#	$(call doTest, $@8)
+#	export SECONDO_PARAMMaxMemPerOperator=1792; \
+#	$(call doTest, $@9)
+#	export SECONDO_PARAMMaxMemPerOperator=2048; \
+#	$(call doTest, $@10)
+#	export SECONDO_PARAMMaxMemPerOperator=2304; \
+#	$(call doTest, $@11)
+#	export SECONDO_PARAMMaxMemPerOperator=2560; \
+#	$(call doTest, $@12)
+#	export SECONDO_PARAMMaxMemPerOperator=2816; \
+#	$(call doTest, $@13)
+#	export SECONDO_PARAMMaxMemPerOperator=3072; \
+#	$(call doTest, $@14)
+#	export SECONDO_PARAMMaxMemPerOperator=3328; \
+#	$(call doTest, $@15)
+#	export SECONDO_PARAMMaxMemPerOperator=3584; \
+#	$(call doTest, $@16)
+#	export SECONDO_PARAMMaxMemPerOperator=3840; \
+#	$(call doTest, $@17)
+#	export SECONDO_PARAMMaxMemPerOperator=4096; \
+#	$(call doTest, $@18)
+#	export SECONDO_PARAMMaxMemPerOperator=4352; \
+#	$(call doTest, $@19)
+#	export SECONDO_PARAMMaxMemPerOperator=4608; \
+#	$(call doTest, $@20)
+#	export SECONDO_PARAMMaxMemPerOperator=4864; \
+#	$(call doTest, $@21)
+#	export SECONDO_PARAMMaxMemPerOperator=5120; \
+#	$(call doTest, $@22)
+#	export SECONDO_PARAMMaxMemPerOperator=5376; \
+#	$(call doTest, $@23)
+#	export SECONDO_PARAMMaxMemPerOperator=5632; \
+#	$(call doTest, $@24)
 
 hashjoin_progress_estimation: clean_db R50MB_T256B
 	@echo ""
