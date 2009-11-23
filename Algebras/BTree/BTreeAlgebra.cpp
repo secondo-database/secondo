@@ -1271,6 +1271,7 @@ public:
   bool first;
   int completeCalls;
   int completeReturned;
+  double less, equal, range, equal2, greater;
 };
 
 
@@ -1285,6 +1286,8 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
   Tuple* tuple;
   SmiRecordId id;
   IndexQueryLocalInfo* ili;
+  SmiKeyRange factors, secondFactors;
+  SmiKey sk;
 
   ili = (IndexQueryLocalInfo*)local.addr;
 
@@ -1320,6 +1323,7 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
       assert(ili->relation != 0);
       assert(key != 0);
 
+      //create iterator
       switch(operatorId)
       {
         case EXACTMATCH: {
@@ -1345,6 +1349,29 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         return -1;
       }
 
+      //determine selectivities for progress estimation, 
+      //but only for single or first call (not many times in loopjoin)
+
+      if ( ili->completeCalls == 0 )
+      {
+
+        AttrToKey( key, sk, btree->GetFile()->GetKeyType() );
+        btree->GetFile()->KeyRange(sk, factors);
+        if(operatorId == RANGE)
+        {
+          AttrToKey( secondKey, sk, btree->GetFile()->GetKeyType() );
+          btree->GetFile()->KeyRange(sk, secondFactors);
+        }
+        ili->less = factors.less;
+        ili->equal = factors.equal;
+        ili->greater = factors.greater;
+        if(operatorId == RANGE)
+        {
+          ili->range = secondFactors.less - (factors.less + factors.equal);
+          ili->equal2 = secondFactors.equal;
+          ili->greater = secondFactors.greater;
+        }
+      }
       return 0;
 
     case REQUEST :
@@ -1443,10 +1470,23 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         }
         else  //single or first call
         {
-          if ( fabs(qp->GetSelectivity(s) - 0.1) < 0.000001 ) // default
-            pRes->Card = (double) ili->defaultValue;
-          else                                              // annotated
-            pRes->Card = ili->total * qp->GetSelectivity(s);
+          switch(operatorId)
+          {
+            case EXACTMATCH: 
+              pRes->Card = ili->total * ili->equal;
+              break;
+            case RANGE:
+              pRes->Card = ili->total * (ili->equal + ili->range + ili->equal2);
+              break;
+            case LEFTRANGE:
+               pRes->Card = ili->total * (ili->less + ili->equal);
+              break;
+            case RIGHTRANGE:
+                pRes->Card = ili->total * (ili->equal + ili->greater);
+              break;
+            default:
+              assert(false);
+          }
 
         if ( (double) ili->returned > pRes->Card )   // there are more tuples
             pRes->Card = (double) ili->returned * 1.1;   // than expected
@@ -2624,11 +2664,13 @@ class BTreeAlgebra : public Algebra
   {
     AddTypeConstructor( &cppbtree );
 
+#ifndef USE_PROGRESS
+
     AddOperator(&createbtree);
-    AddOperator(&exactmatch);   
-    AddOperator(&leftrange);   
-    AddOperator(&rightrange); 
-    AddOperator(&cpprange);  
+    AddOperator(&exactmatch);
+    AddOperator(&leftrange);
+    AddOperator(&rightrange);
+    AddOperator(&cpprange);
     AddOperator(&exactmatchs);
     AddOperator(&leftranges);
     AddOperator(&rightranges);
@@ -2639,12 +2681,26 @@ class BTreeAlgebra : public Algebra
     AddOperator(&getfileinfobtree);
     AddOperator(keyrangeInfo(), keyrange_vm, IndexQueryTypeMap<KEYRANGE> );
 
-#ifndef USE_PROGRESS
-    exactmatch.EnableProgress();
-    leftrange.EnableProgress();
-    rightrange.EnableProgress();
-    cpprange.EnableProgress();
+#else
+
+    AddOperator(&createbtree);
+    AddOperator(&exactmatch);   exactmatch.EnableProgress();
+    AddOperator(&leftrange);    leftrange.EnableProgress();
+    AddOperator(&rightrange);   rightrange.EnableProgress();
+    AddOperator(&cpprange);     cpprange.EnableProgress();
+    AddOperator(&exactmatchs);
+    AddOperator(&leftranges);
+    AddOperator(&rightranges);
+    AddOperator(&cppranges);
+    AddOperator(&insertbtree);
+    AddOperator(&deletebtree);
+    AddOperator(&updatebtree);
+    AddOperator(&getfileinfobtree);
+    AddOperator(keyrangeInfo(), keyrange_vm, IndexQueryTypeMap<KEYRANGE> );
+
 #endif
+
+
   }
   ~BTreeAlgebra() {};
 };
