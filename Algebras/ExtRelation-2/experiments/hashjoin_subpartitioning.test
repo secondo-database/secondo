@@ -39,24 +39,29 @@ create database db_tmp;
 open database db_tmp;
 
 #--------------------------------------------------  
-# Create relations with 25 MB data and 256 Byte tuples
+# Create relations with 25 MB data and 256 Byte 
+# tuples and selectivity 0.001 %
 #--------------------------------------------------  
 
 #testcase create_relation
 #yields success
-restore R50MB_T256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T256B';
+restore REL_256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_subpartitioning_REL256A';
+
+#testcase create_relation
+#yields success
+restore REL_256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_subpartitioning_REL256B';
+
+#testcase create_relation_A
+#yields success
+let relA = REL_256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;-1,64*1024*1024,-1] remove[ran] consume; 
+
+#testcase create_relation_B
+#yields success
+let relB = REL_256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;-1,64*1024*1024,-1] remove[ran] consume; 
 
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 25 MB, 64 KByte Mem
 #--------------------------------------------------  
-
-#testcase create_relation_A
-#yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
-
-#testcase create_relation_B
-#yields success
-let relB = R50MB_T256B feed head[102400] {b} consume; 
 
 #testcase disable_subpartitioning
 #yields success
@@ -74,25 +79,9 @@ set "ERA:HybridHashJoinNoSubpartitioning" = FALSE;
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,64*1024,-1] count;
 
-#testcase delete_relation_A
-#yields success
-delete relA;
-
-#testcase delete_relation_B
-#yields success
-delete relB;
-
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 25 MB, 128 KByte Mem
 #--------------------------------------------------  
-
-#testcase create_relation_A
-#yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
-
-#testcase create_relation_B
-#yields success
-let relB = R50MB_T256B feed head[102400] {b} consume; 
 
 #testcase disable_subpartitioning
 #yields success
@@ -110,25 +99,9 @@ set "ERA:HybridHashJoinNoSubpartitioning" = FALSE;
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,128*1024,-1] count;
 
-#testcase delete_relation_A
-#yields success
-delete relA;
-
-#testcase delete_relation_B
-#yields success
-delete relB;
-
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 25 MB, 256 KByte Mem
 #--------------------------------------------------  
-
-#testcase create_relation_A
-#yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
-
-#testcase create_relation_B
-#yields success
-let relB = R50MB_T256B feed head[102400] {b} consume; 
 
 #testcase disable_subpartitioning
 #yields success
@@ -146,25 +119,9 @@ set "ERA:HybridHashJoinNoSubpartitioning" = FALSE;
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,256*1024,-1] count;
 
-#testcase delete_relation_A
-#yields success
-delete relA;
-
-#testcase delete_relation_B
-#yields success
-delete relB;
-
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 25 MB, 512 KByte Mem
 #--------------------------------------------------  
-
-#testcase create_relation_A
-#yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
-
-#testcase create_relation_B
-#yields success
-let relB = R50MB_T256B feed head[102400] {b} consume; 
 
 #testcase disable_subpartitioning
 #yields success
@@ -182,25 +139,9 @@ set "ERA:HybridHashJoinNoSubpartitioning" = FALSE;
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,512*1024,-1] count;
 
-#testcase delete_relation_A
-#yields success
-delete relA;
-
-#testcase delete_relation_B
-#yields success
-delete relB;
-
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 25 MB, 768 KByte Mem
 #--------------------------------------------------  
-
-#testcase create_relation_A
-#yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
-
-#testcase create_relation_B
-#yields success
-let relB = R50MB_T256B feed head[102400] {b} consume; 
 
 #testcase disable_subpartitioning
 #yields success
@@ -218,25 +159,9 @@ set "ERA:HybridHashJoinNoSubpartitioning" = FALSE;
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,768*1024,-1] count;
 
-#testcase delete_relation_A
-#yields success
-delete relA;
-
-#testcase delete_relation_B
-#yields success
-delete relB;
-
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 25 MB, 1024 KByte Mem
 #--------------------------------------------------  
-
-#testcase create_relation_A
-#yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
-
-#testcase create_relation_B
-#yields success
-let relB = R50MB_T256B feed head[102400] {b} consume; 
 
 #testcase disable_subpartitioning
 #yields success
@@ -253,15 +178,6 @@ set "ERA:HybridHashJoinNoSubpartitioning" = FALSE;
 #testcase 1024_KByte_Memory_with_subpartitioning
 #yields success
 query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
-
-#testcase delete_relation_A
-#yields success
-delete relA;
-
-#testcase delete_relation_B
-#yields success
-delete relB;
-
 
 ##############################################################################
 # TearDown

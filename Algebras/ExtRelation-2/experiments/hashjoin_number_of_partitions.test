@@ -22,7 +22,7 @@
 #--------------------------------------------------  
 
 set "ERA:TraceHybridHashJoin" = TRUE;
-set "ERA:HybridHashJoinNoSubpartitioning" = TRUE;
+#set "ERA:HybridHashJoinNoSubpartitioning" = TRUE;
 #set "SI:PrintCounters" = TRUE;
 set "SI:PrintCmdTimes" = TRUE;
 set "SI:NoQueryTimers" = TRUE;
@@ -36,105 +36,317 @@ set "SMI:NoTransactions" = TRUE;
 
 #setup hashjoin_number_of_partitions StandardAlgebra RelationAlgebra ExtRelation2Algebra
 
-restore database db_tmp from '$(SECONDO_BUILD_DIR)/bin/opt';
+create database db_tmp;
 
-#--------------------------------------------------  
-# Create relations with 25/30 MB data 
-# and ~25 Byte tuples
-#--------------------------------------------------  
-
-#testcase create_relation_A
-#yields success
-let relA = plz feed thousand feed head[26] product head[1048576] extend[ran: randint(50000)] sortby2Param[PLZ;30*1024*1024,-1,-1] remove[ran] {a} consume; 
-
-#testcase create_relation_B
-#yields success
-let relB = plz feed thousand feed head[31] product head[209716] extend[ran: randint(50000)] sortby2Param[PLZ;30*1024*1024,-1,-1] remove[ran] {b} consume; 
+open database db_tmp;
 
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 2 MB
 #--------------------------------------------------  
 
-#testcase 25MB_join_2MB_2_partitions
+#testcase create_relation_A
 #yields success
-query relA feed relB feed head[83887] hybridhashjoinParam[PLZ_a,PLZ_b;1000,2,1024*1024,-1] count;
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_A25x2';
 
-#testcase 25MB_join_2MB_16_partitions
+#testcase create_relation_B
 #yields success
-query relA feed relB feed head[83887] hybridhashjoinParam[PLZ_a,PLZ_b;1000,16,1024*1024,-1] count;
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_B25x2';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase hybridhashjoin_25x2_optimum_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,2,1024*1024,-1] count;
+
+#testcase hybridhashjoin_25x2_16_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#testcase delete_relation
+#yields success
+delete REL256A;
+
+#testcase delete_relation
+#yields success
+delete REL256B;
 
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 5 MB
 #--------------------------------------------------  
 
-#testcase 25MB_join_5MB_2_partitions
+#testcase create_relation_A
 #yields success
-query relA feed relB feed head[209716] hybridhashjoinParam[PLZ_a,PLZ_b;1000,2,1024*1024,-1] count;
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_A25x5';
 
-#testcase 25MB_join_5MB_16_partitions
+#testcase create_relation_B
 #yields success
-query relA feed relB feed head[209716] hybridhashjoinParam[PLZ_a,PLZ_b;1000,16,1024*1024,-1] count;
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_B25x5';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase hybridhashjoin_25x5_optimum_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,5,1024*1024,-1] count;
+
+#testcase hybridhashjoin_25x5_16_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#testcase delete_relation
+#yields success
+delete REL256A;
+
+#testcase delete_relation
+#yields success
+delete REL256B;
 
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 10 MB
 #--------------------------------------------------  
 
-#testcase 25MB_join_5MB_2_partitions
+#testcase create_relation_A
 #yields success
-query relA feed relB feed head[419431] hybridhashjoinParam[PLZ_a,PLZ_b;1000,2,1024*1024,-1] count;
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_A25x10';
 
-#testcase 25MB_join_5MB_16_partitions
+#testcase create_relation_B
 #yields success
-query relA feed relB feed head[419431] hybridhashjoinParam[PLZ_a,PLZ_b;1000,16,1024*1024,-1] count;
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_B25x10';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase hybridhashjoin_25x10_optimum_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,10,1024*1024,-1] count;
+
+#testcase hybridhashjoin_25x10_16_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#testcase delete_relation
+#yields success
+delete REL256A;
+
+#testcase delete_relation
+#yields success
+delete REL256B;
 
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 15 MB
 #--------------------------------------------------  
 
-#testcase 25MB_join_5MB_2_partitions
+#testcase create_relation_A
 #yields success
-query relA feed relB feed head[629146] hybridhashjoinParam[PLZ_a,PLZ_b;1000,2,1024*1024,-1] count;
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_A25x15';
 
-#testcase 25MB_join_5MB_16_partitions
+#testcase create_relation_B
 #yields success
-query relA feed relB feed head[629146] hybridhashjoinParam[PLZ_a,PLZ_b;1000,16,1024*1024,-1] count;
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_B25x15';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase hybridhashjoin_25x15_optimum_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,15,1024*1024,-1] count;
+
+#testcase hybridhashjoin_25x15_16_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#testcase delete_relation
+#yields success
+delete REL256A;
+
+#testcase delete_relation
+#yields success
+delete REL256B;
 
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 20 MB
 #--------------------------------------------------  
 
-#testcase 25MB_join_5MB_2_partitions
+#testcase create_relation_A
 #yields success
-query relA feed relB feed head[838861] hybridhashjoinParam[PLZ_a,PLZ_b;1000,2,1024*1024,-1] count;
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_A25x20';
 
-#testcase 25MB_join_5MB_16_partitions
+#testcase create_relation_B
 #yields success
-query relA feed relB feed head[838861] hybridhashjoinParam[PLZ_a,PLZ_b;1000,16,1024*1024,-1] count;
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_B25x20';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase hybridhashjoin_25x20_optimum_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,20,1024*1024,-1] count;
+
+#testcase hybridhashjoin_25x20_16_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#testcase delete_relation
+#yields success
+delete REL256A;
+
+#testcase delete_relation
+#yields success
+delete REL256B;
 
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 25 MB
 #--------------------------------------------------  
 
-#testcase 25MB_join_5MB_2_partitions
+#testcase create_relation_A
 #yields success
-query relA feed relB feed head[1048576] hybridhashjoinParam[PLZ_a,PLZ_b;1000,2,1024*1024,-1] count;
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_A25x25';
 
-#testcase 25MB_join_5MB_16_partitions
+#testcase create_relation_B
 #yields success
-query relA feed relB feed head[1048576] hybridhashjoinParam[PLZ_a,PLZ_b;1000,16,1024*1024,-1] count;
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_B25x25';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase hybridhashjoin_25x25_optimum_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,25,1024*1024,-1] count;
+
+#testcase hybridhashjoin_25x25_16_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#testcase delete_relation
+#yields success
+delete REL256A;
+
+#testcase delete_relation
+#yields success
+delete REL256B;
 
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 30 MB
 #--------------------------------------------------  
 
-#testcase 25MB_join_5MB_2_partitions
+#testcase create_relation_A
 #yields success
-query relA feed relB feed head[1258292] hybridhashjoinParam[PLZ_a,PLZ_b;1000,2,1024*1024,-1] count;
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_A25x30';
 
-#testcase 25MB_join_5MB_16_partitions
+#testcase create_relation_B
 #yields success
-query relA feed relB feed head[1258292] hybridhashjoinParam[PLZ_a,PLZ_b;1000,16,1024*1024,-1] count;
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/REL256_B25x30';
 
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase hybridhashjoin_25x30_optimum_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,30,1024*1024,-1] count;
+
+#testcase hybridhashjoin_25x30_16_partitions
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,-1,1024*1024,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#testcase delete_relation
+#yields success
+delete REL256A;
+
+#testcase delete_relation
+#yields success
+delete REL256B;
 
 ##############################################################################
 # TearDown
