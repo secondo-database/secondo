@@ -47,6 +47,7 @@ implement the new hash-join operator ~hybridhashjoin~.
 #define HYBRIDHASHJOIN_H_
 
 #include "HashJoin.h"
+#include "StopWatch.h"
 
 /*
 4 Class ~HybridHashJoinProgressLocalInfo~
@@ -488,6 +489,12 @@ Flag which decides if partitions are sub-partitioned if they don't fit
 into the operator's main memory. Per default this flag is set to true.
 If the flag ~RTF::ERA:HybridHasjJoinNoSubpartitioning~ in SecondoConfig.ini
 is set to true this flag will be set to false.
+
+*/
+
+    StopWatch timer;
+/*
+Timer used for tracing.
 
 */
 };

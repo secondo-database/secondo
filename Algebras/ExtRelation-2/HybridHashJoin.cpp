@@ -534,6 +534,8 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
                 << "Join attribute index B: \t" << attrIndexB
                 << " (0 based)" << endl << endl;
     cmsg.send();
+
+    timer.start();
   }
 
   // create hash function instances
@@ -603,6 +605,7 @@ HybridHashJoinAlgorithm::HybridHashJoinAlgorithm( Word streamA,
     if ( traceMode )
     {
       cmsg.info() << "Partitioning of stream B.."
+                  << " (timer: " << timer.diffSecondsReal() << ")"
                   << endl << *pmB;
       cmsg.send();
     }
@@ -890,7 +893,9 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
   if ( traceMode )
   {
     //cmsg.info() << "Hash table content" << *hashTable << endl;
-    cmsg.info() << "Partitioning of stream A.." << endl << *pmA
+    cmsg.info() << "Partitioning of stream A.."
+                << " (timer: " << timer.diffSecondsReal() << ")"
+                << endl << *pmA
                 << "finishedPartitionB" << finishedPartitionB
                 << endl;
     cmsg.send();
