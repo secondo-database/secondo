@@ -222,12 +222,15 @@ SmiRecord::GetKey()
 {
   return recordKey;
 }
-  
-bool
-SmiRecord::Truncate( const SmiSize newSize )
-{
-  int rc = 0;
 
+
+bool SmiRecord::Resize(const SmiSize newSize){
+
+  if(newSize==recordSize){ // no change required
+    return true;
+  }
+
+  int rc = 0;
   if ( initialized && !fixedSize )
   {
     if ( newSize < recordSize )
@@ -257,10 +260,17 @@ SmiRecord::Truncate( const SmiSize newSize )
       {
         recordSize = newSize;
       }
-    }
-    else
-    {
-      SmiEnvironment::SetError( E_SMI_RECORD_TRUNCATE );
+    } else { // enlargement of the record
+        SmiSize addSize = newSize - recordSize;
+        char* buffer = new char[addSize];
+        memset(buffer,'\0',addSize);
+        SmiSize written = Write(buffer,addSize,recordSize);
+        delete[] buffer;
+        if(written!=addSize){
+          return false;
+        } else {
+          recordSize = newSize;
+        }
     }
   }
   else
@@ -270,6 +280,18 @@ SmiRecord::Truncate( const SmiSize newSize )
   }
 
   return (rc == 0);
+
+}
+  
+bool
+SmiRecord::Truncate( const SmiSize newSize )
+{
+   if(newSize >= recordSize){
+     SmiEnvironment::SetError( E_SMI_RECORD_TRUNCATE);
+     return false;
+   } else {
+     return Resize(newSize);
+   }
 }
 
 void

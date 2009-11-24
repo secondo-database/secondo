@@ -211,7 +211,7 @@ The class ~SmiRecord~ provides the following methods:
         [--------]
         SmiRecord        & Read        & Size \\
         [tilde]SmiRecord & Write       &      \\
-        Finish           & Truncate    &      \\
+        Finish           & Truncate    & Resize \\
 
 The classes ~SmiRecordFileIterator~ and ~SmiKeyedFileIterator~ provide the
 following methods:
@@ -1068,6 +1068,16 @@ The function returns "false"[4] if newSize is greater than the current record's
 length.
 
 */
+
+  bool Resize(const SmiSize newSize);
+/*
+ Resizes this Record. In constrast to the Truncate function also enlargements
+ od of the records are possible.
+
+*/
+
+
+
   void Finish();
 /*
 Finishes the operation on the associated record. The record handle may be
