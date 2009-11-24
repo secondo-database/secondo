@@ -1988,7 +1988,7 @@ SecondoInterface::StartCommand()
 bool
 SecondoInterface::FinishCommand( SI_Error& errorCode, string& errMsg )
 {
-
+  Flob::dropFiles();
   if ( !activeTransaction )
   {
     StopWatch commitTime;
