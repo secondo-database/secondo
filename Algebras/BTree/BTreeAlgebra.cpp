@@ -1408,9 +1408,12 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         ili->completeCalls++;
         ili->completeReturned += ili->returned;
         ili->returned = 0;
-        delete ili;
-        local = SetWord(Address(0));
       }
+
+      //Do not delete ili data structure in CLOSE! To be kept over several 
+      //calls for correct progress estimation when embedded in a loopjoin. 
+      //Is deleted at the end of the query in CLOSEPROGRESS.
+
       return 0;
 
 
@@ -1466,7 +1469,6 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
         {
           pRes->Card =
             (double) ili->completeReturned / (double) ili->completeCalls;
-
         }
         else  //single or first call
         {
@@ -1488,17 +1490,16 @@ IndexQuery(Word* args, Word& result, int message, Word& local, Supplier s)
               assert(false);
           }
 
-        if ( (double) ili->returned > pRes->Card )   // there are more tuples
+          if ( (double) ili->returned > pRes->Card )   // there are more tuples
             pRes->Card = (double) ili->returned * 1.1;   // than expected
 
-        if ( !ili->iter )  // btree has been finished
+          if ( !ili->iter )  // btree has been finished
             pRes->Card = (double) ili->returned;
 
-        if ( pRes->Card > (double) ili->total ) // more than all cannot be
+          if ( pRes->Card > (double) ili->total ) // more than all cannot be
             pRes->Card = (double) ili->total;
 
         }
-
 
         pRes->Time = uIndexQuery + pRes->Card * vIndexQuery;
 
