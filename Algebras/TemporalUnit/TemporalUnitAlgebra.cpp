@@ -756,12 +756,12 @@ int Point2d( Word* args, Word& result, int message, Word& local, Supplier s )
       Y = 0;
       if( !range->IsEmpty()  )
         {
-          const Interval<Instant> *intv1, *intv2;
+          Interval<Instant> intv1, intv2;
 
           range->Get( 0, intv1 );
           range->Get( range->GetNoComponents()-1, intv2 );
-          sup = intv1->end;
-          inf = intv2->start;
+          sup = intv1.end;
+          inf = intv2.start;
           Y = sup.ToDouble(); // Derives the maximum of all intervals.
           X = inf.ToDouble(); // Derives the minimum of all intervals.
         }
@@ -855,12 +855,12 @@ int GetDuration( Word* args, Word& result, int message,
       Res->SetDefined(true);
       if( !range->IsEmpty()  )
         {
-          const Interval<Instant> *intv;
+          Interval<Instant> intv;
 
           for( int i = 0; i < range->GetNoComponents(); i++ )
             {
               range->Get( i, intv );
-              *Res += (intv->end - intv->start);
+              *Res += (intv.end - intv.start);
             }
         }
     }
@@ -1025,11 +1025,11 @@ ListExpr MovingTypeMapMakemvalue( ListExpr args )
   listfull = listn;
   nl->WriteToString(fulllist, listfull);
 
-  
+
   if(inputtype==""){
     return listutils::typeError("attrbute not found");
-  } 
- 
+  }
+
   if((inputtype != "ubool") &&
      (inputtype != "uint") &&
      (inputtype != "ureal") &&
@@ -1777,8 +1777,8 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
   AtPeriodsLocalInfo *localinfo;
-  const Interval<Instant> *interval;
-  Alpha* unit;
+  Interval<Instant> interval;
+  Alpha *unit;
   Alpha r(true);
   Periods* periods;
 
@@ -1823,7 +1823,8 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
       {
         result.setAddr(0);
 // #ifdef TUA_DEBUG
-//           cout << "MappingUnitAtPeriods: REQUEST finished: CANCEL (1)"
+//           cout << "Maquery train7 inside train7sectionsppingUnitAtPeriods: "
+//                << "REQUEST finished: CANCEL (1)"
 //                << endl;
 // #endif
         return CANCEL;
@@ -1832,26 +1833,26 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
     localinfo->j++;
 // #ifdef TUA_DEBUG
 //     cout << "   Probing timeInterval p ="
-//          << TUPrintTimeInterval(*interval)
+//          << TUPrintTimeInterval(interval)
 //          << endl;
 // #endif
-    while( interval->Before( unit->timeInterval ) &&
+    while( interval.Before( unit->timeInterval ) &&
            localinfo->j < periods->GetNoComponents() )
     { // forward to first candidate interval
         periods->Get(localinfo->j, interval);
         localinfo->j++;
 // #ifdef TUA_DEBUG
 //         cout << "   Probing timeInterval="
-//             << TUPrintTimeInterval(*interval)
+//             << TUPrintTimeInterval(interval)
 //             << endl;
-//         if (interval->Before( unit->timeInterval ))
+//         if (interval.Before( unit->timeInterval ))
 //           cout << "     p is before u" << endl;
 //         if (localinfo->j < periods->GetNoComponents())
 //           cout << "   j < #Intervals" << endl;
 // #endif
     }
 
-    if( unit->timeInterval.Before( *interval ) )
+    if( unit->timeInterval.Before( interval ) )
       { // interval after unit-deftime --> finished
         result.addr = 0;
 // #ifdef TUA_DEBUG
@@ -1861,10 +1862,10 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
         return CANCEL;
     }
 
-    if(unit->timeInterval.Intersects( *interval ))
+    if(unit->timeInterval.Intersects( interval ))
     { // interval intersectd unit's deftime --> produce result
         // create unit restricted to interval
-        unit->AtInterval( *interval, r );
+        unit->AtInterval( interval, r );
         Alpha* aux = new Alpha( r );
         result.setAddr( aux );
 // #ifdef TUA_DEBUG
@@ -1896,7 +1897,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
     cout << "  Unit's timeInterval = ";
     TUPrintTimeInterval(unit->timeInterval);
     cout << "  Current Period's interval = ";
-    TUPrintTimeInterval(*interval);
+    TUPrintTimeInterval(interval);
     cout << endl;
     assert( false );
     return CANCEL; // should not happen
@@ -1936,7 +1937,7 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
   Alpha *unit, *aux;
   Alpha resultUnit(true);
   Periods *periods;
-  const Interval<Instant> *interval;
+  Interval<Instant> interval;
   bool foundUnit = false;
 
   switch( message )
@@ -1991,26 +1992,26 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
         }
       }
       periods->Get(localinfo->j, interval);       // get an interval
-      if (    !( interval->Before( unit->timeInterval ) )
-                 && !( unit->timeInterval.Before( *interval) ) )
+      if (    !( interval.Before( unit->timeInterval ) )
+                 && !( unit->timeInterval.Before( interval) ) )
         break;                           // found candidate, break while
       localinfo->j++;                             // next interval, loop
     }
 
     // We have an interval overlapping the unit's interval now
     // Return unit restricted to overlapping part of both intervals
-    if (!unit->timeInterval.Intersects( *interval) )
+    if (!unit->timeInterval.Intersects( interval) )
     { // This may not happen!
       cout << __FILE__ << __LINE__ << __PRETTY_FUNCTION__
         << ": Intervals do not overlap, but should do so:" << endl;
       cout << "  Unit's timeInterval = ";
       TUPrintTimeInterval(unit->timeInterval);
       cout << endl << "  Current Period's interval = ";
-      TUPrintTimeInterval(*interval);
+      TUPrintTimeInterval(interval);
       cout << endl;
       assert(false);
     }
-    unit->AtInterval( *interval, resultUnit); // intersect unit and interval
+    unit->AtInterval( interval, resultUnit); // intersect unit and interval
     aux = new Alpha( resultUnit );
     result.setAddr( aux );
     localinfo->j++;                           // increase interval counter
@@ -3070,7 +3071,7 @@ int MPointDerivable( Word* args, Word& result, int message,
   MReal* value = (MReal*)args[0].addr;
   MBool* res = ((MBool*)result.addr);
 
-  const UReal *uReal;
+  UReal uReal;
   CcBool b;
 
   res->Clear();
@@ -3086,12 +3087,12 @@ int MPointDerivable( Word* args, Word& result, int message,
 
           // FALSE means in this case that a real unit describes a quadratic
           // polynomial. A derivation is possible and the operator returns TRUE.
-          if (uReal->r == false)
+          if (uReal.r == false)
             b.Set(true,true);
           else
             b.Set(true,false);
 
-          UBool boolvalue(uReal->timeInterval,b);
+          UBool boolvalue(uReal.timeInterval,b);
           res->MergeAdd( boolvalue );
         }
       res->EndBulkLoad( false );
@@ -3215,7 +3216,7 @@ int MPointDerivative( Word* args, Word& result, int message,
   MReal* value = (MReal*)args[0].addr;
   MReal* res = ((MReal*)result.addr);
 
-  const UReal *Unit;
+  UReal Unit;
   UReal uReal(true);
 
   res->Clear();
@@ -3226,13 +3227,13 @@ int MPointDerivative( Word* args, Word& result, int message,
       for( int i = 0; i < value->GetNoComponents(); i++ )
         { // load a real unit
           value->Get( i, Unit );
-          if (Unit->IsDefined() && !Unit->r)
+          if (Unit.IsDefined() && !Unit.r)
             { // The derivative of this quadratic polynom is 2at + b + 0
-              uReal.timeInterval = Unit->timeInterval;
+              uReal.timeInterval = Unit.timeInterval;
               uReal.a = 0;
-              uReal.b = 2 * Unit->a;
-              uReal.c = Unit->b;
-              uReal.r = Unit->r;
+              uReal.b = 2 * Unit.a;
+              uReal.c = Unit.b;
+              uReal.r = Unit.r;
               uReal.SetDefined(true);
               res->MergeAdd( uReal );
             }
@@ -4993,21 +4994,21 @@ int temporalUnitIntersection_ureal_ureal( Word* args, Word& result, int message,
       for(int i=0; i<localinfo->NoOfResults; i++)
       { // create result vector
         UReal unit(true);
-        const Interval<Instant> *iv;
+        Interval<Instant> iv;
 //      cout << "temporalUnitIntersection_ureal_ureal(): Processing interval "
 //           << i << endl;
         result_times.Get(i, iv);
-        if( iv->start == iv->end )
+        if( iv.start == iv.end )
         { // simplify result to constant
           DateTime T(durationtype);
-          T = iv->start - ureal1->timeInterval.start;
+          T = iv.start - ureal1->timeInterval.start;
           double t = T.ToDouble();
           double value = ureal1->a*t*t + ureal1->b*t + ureal1->c;
           value = ureal1->r ? sqrt(value) : value;
-          unit = UReal(*iv, 0.0, 0.0, value, false);
+          unit = UReal(iv, 0.0, 0.0, value, false);
         }
         else
-          ureal1->AtInterval(*iv, unit);
+          ureal1->AtInterval(iv, unit);
         localinfo->resvector.push_back(unit);
 //         cout << "temporalUnitIntersection_ureal_ureal():  Added unit ";
 //         unit.Print(cout);
@@ -5364,7 +5365,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
 #ifdef TUA_DEBUG
   cout<<"MPointLineInside called"<<endl;
 #endif
-  const HalfSegment *l;
+  HalfSegment l;
 
   const UPoint* up = (UPoint*) u;
   Periods* period = new Periods(0);
@@ -5390,30 +5391,30 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
           <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc
           <<" "<<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()
           <<")->("<<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;
-        cout<<"l      # "<<n<<" ("<<l->GetLeftPoint().GetX()
-          <<" "<<l->GetLeftPoint().GetY()
-          <<" "<<l->GetRightPoint().GetX()<<" "
-          <<l->GetRightPoint().GetY()<<") "<<endl;
+        cout<<"l      # "<<n<<" ("<<l.GetLeftPoint().GetX()
+          <<" "<<l.GetLeftPoint().GetY()
+          <<" "<<l.GetRightPoint().GetX()<<" "
+          <<l.GetRightPoint().GetY()<<") "<<endl;
 #endif
-      if (l->GetRightPoint().GetX() == l->GetDomPoint().GetX()
-       && l->GetRightPoint().GetY() == l->GetDomPoint().GetY()) {
+      if (l.GetRightPoint().GetX() == l.GetDomPoint().GetX()
+       && l.GetRightPoint().GetY() == l.GetDomPoint().GetY()) {
 #ifdef TUA_DEBUG
         cout<<"right point is dominating -> continue"<<endl;
 #endif
         continue;
       }
-      if(( l->GetRightPoint().GetX() < up->p0.GetX()
-       &&  l->GetRightPoint().GetX() < up->p1.GetX())
-       || (l->GetLeftPoint().GetX() > up->p0.GetX()
-       &&  l->GetLeftPoint().GetX() > up->p1.GetX())
-       || (l->GetRightPoint().GetY() < up->p0.GetY()
-       &&  l->GetRightPoint().GetY() < up->p1.GetY()
-       && (l->GetLeftPoint().GetY() < up->p0.GetY()
-       &&  l->GetLeftPoint().GetY() < up->p1.GetY()))
-       || (l->GetRightPoint().GetY() > up->p0.GetY()
-       &&  l->GetRightPoint().GetY() > up->p1.GetY()
-       && (l->GetLeftPoint().GetY() > up->p0.GetY()
-       &&  l->GetLeftPoint().GetY() > up->p1.GetY()))) {
+      if(( l.GetRightPoint().GetX() < up->p0.GetX()
+       &&  l.GetRightPoint().GetX() < up->p1.GetX())
+       || (l.GetLeftPoint().GetX() > up->p0.GetX()
+       &&  l.GetLeftPoint().GetX() > up->p1.GetX())
+       || (l.GetRightPoint().GetY() < up->p0.GetY()
+       &&  l.GetRightPoint().GetY() < up->p1.GetY()
+       && (l.GetLeftPoint().GetY() < up->p0.GetY()
+       &&  l.GetLeftPoint().GetY() < up->p1.GetY()))
+       || (l.GetRightPoint().GetY() > up->p0.GetY()
+       &&  l.GetRightPoint().GetY() > up->p1.GetY()
+       && (l.GetLeftPoint().GetY() > up->p0.GetY()
+       &&  l.GetLeftPoint().GetY() > up->p1.GetY()))) {
 #ifdef TUA_DEBUG
         cout<<"Bounding Boxes not crossing!"<<endl;
 #endif
@@ -5421,11 +5422,11 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
       }
       double al, bl, aup, bup;
       bool vl, vup;
-      vl = l->GetRightPoint().GetX() == l->GetLeftPoint().GetX();
+      vl = l.GetRightPoint().GetX() == l.GetLeftPoint().GetX();
       if(!vl){
-        al = (l->GetRightPoint().GetY() - l->GetLeftPoint().GetY())
-           / (l->GetRightPoint().GetX() - l->GetLeftPoint().GetX());
-        bl =  l->GetLeftPoint().GetY() - l->GetLeftPoint().GetX() * al;
+        al = (l.GetRightPoint().GetY() - l.GetLeftPoint().GetY())
+           / (l.GetRightPoint().GetX() - l.GetLeftPoint().GetX());
+        bl =  l.GetLeftPoint().GetY() - l.GetLeftPoint().GetX() * al;
 #ifdef TUA_DEBUG
         cout<<"al: "<<al<<" bl: "<<bl<<endl;
 #endif
@@ -5451,7 +5452,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
 #ifdef TUA_DEBUG
           cout<<"both elements are vertical!"<<endl;
 #endif
-        if(up->p1.GetX() != l->GetLeftPoint().GetX()){
+        if(up->p1.GetX() != l.GetLeftPoint().GetX()){
 #ifdef TUA_DEBUG
           cout<<"elements are vertical but not at same line"<<endl;
 #endif
@@ -5461,15 +5462,15 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
 #ifdef TUA_DEBUG
           cout<<"elements on same line"<<endl;
 #endif
-          if(up->p1.GetY() < l->GetLeftPoint().GetY()
-           && up->p0.GetY() < l->GetLeftPoint().GetY()){
+          if(up->p1.GetY() < l.GetLeftPoint().GetY()
+           && up->p0.GetY() < l.GetLeftPoint().GetY()){
 #ifdef TUA_DEBUG
             cout<<"uPoint lower as linesegment"<<endl;
 #endif
             continue;
           }
-          else if(up->p1.GetY() > l->GetRightPoint().GetY()
-           && up->p0.GetY() > l->GetRightPoint().GetY()){
+          else if(up->p1.GetY() > l.GetRightPoint().GetY()
+           && up->p0.GetY() > l.GetRightPoint().GetY()){
 #ifdef TUA_DEBUG
             cout<<"uPoint higher as linesegment"<<endl;
 #endif
@@ -5479,12 +5480,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
 #ifdef TUA_DEBUG
             cout<<"uPoint and linesegment partequal"<<endl;
 #endif
-            if (up->p0.GetY() <= l->GetLeftPoint().GetY()
-             && up->p1.GetY() >= l->GetLeftPoint().GetY()){
+            if (up->p0.GetY() <= l.GetLeftPoint().GetY()
+             && up->p1.GetY() >= l.GetLeftPoint().GetY()){
 #ifdef TUA_DEBUG
               cout<<"uPoint starts below linesegemet"<<endl;
 #endif
-              t.ReadFrom((l->GetLeftPoint().GetY() - up->p0.GetY())
+              t.ReadFrom((l.GetLeftPoint().GetY() - up->p0.GetY())
                      / (up->p1.GetY() - up->p0.GetY())
                      * (up->timeInterval.end.ToDouble()
                      -  up->timeInterval.start.ToDouble())
@@ -5497,12 +5498,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
               newper.lc = (up->timeInterval.start == t)
                          ? up->timeInterval.lc : true;
             }
-            if(up->p1.GetY() <= l->GetLeftPoint().GetY()
-             && up->p0.GetY() >= l->GetLeftPoint().GetY()){
+            if(up->p1.GetY() <= l.GetLeftPoint().GetY()
+             && up->p0.GetY() >= l.GetLeftPoint().GetY()){
 #ifdef TUA_DEBUG
               cout<<"uPoint ends below linesegemet"<<endl;
 #endif
-              t.ReadFrom((l->GetLeftPoint().GetY() - up->p0.GetY())
+              t.ReadFrom((l.GetLeftPoint().GetY() - up->p0.GetY())
                       / (up->p1.GetY() - up->p0.GetY())
                       * (up->timeInterval.end.ToDouble()
                       -  up->timeInterval.start.ToDouble())
@@ -5515,12 +5516,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
               newper.rc = (up->timeInterval.end == t)
                          ? up->timeInterval.rc : true;
             }
-            if(up->p0.GetY() <= l->GetRightPoint().GetY()
-             && up->p1.GetY() >= l->GetRightPoint().GetY()){
+            if(up->p0.GetY() <= l.GetRightPoint().GetY()
+             && up->p1.GetY() >= l.GetRightPoint().GetY()){
 #ifdef TUA_DEBUG
               cout<<"uPoint ends above linesegemet"<<endl;
 #endif
-              t.ReadFrom((l->GetRightPoint().GetY() - up->p0.GetY())
+              t.ReadFrom((l.GetRightPoint().GetY() - up->p0.GetY())
                       / (up->p1.GetY() - up->p0.GetY())
                       * (up->timeInterval.end.ToDouble()
                       -  up->timeInterval.start.ToDouble())
@@ -5533,12 +5534,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
               newper.rc = (up->timeInterval.end == t)
                          ? up->timeInterval.rc : true;
             }
-            if(up->p1.GetY() <= l->GetRightPoint().GetY()
-             && up->p0.GetY() >= l->GetRightPoint().GetY()){
+            if(up->p1.GetY() <= l.GetRightPoint().GetY()
+             && up->p0.GetY() >= l.GetRightPoint().GetY()){
 #ifdef TUA_DEBUG
               cout<<"uPoint starts above linesegemet"<<endl;
 #endif
-              t.ReadFrom((l->GetRightPoint().GetY() - up->p0.GetY())
+              t.ReadFrom((l.GetRightPoint().GetY() - up->p0.GetY())
                       / (up->p1.GetY() - up->p0.GetY())
                       * (up->timeInterval.end.ToDouble()
                       - up->timeInterval.start.ToDouble())
@@ -5551,16 +5552,16 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
               newper.lc = (up->timeInterval.start == t)
                          ? up->timeInterval.lc : true;
             }
-            if (up->p0.GetY() <= l->GetRightPoint().GetY()
-             && up->p0.GetY() >= l->GetLeftPoint().GetY()){
+            if (up->p0.GetY() <= l.GetRightPoint().GetY()
+             && up->p0.GetY() >= l.GetLeftPoint().GetY()){
 #ifdef TUA_DEBUG
               cout<<"uPoint starts inside linesegemet"<<endl;
 #endif
               newper.start = up->timeInterval.start;
               newper.lc =    up->timeInterval.lc;
             }
-            if( up->p1.GetY() <= l->GetRightPoint().GetY()
-             && up->p1.GetY() >= l->GetLeftPoint().GetY()){
+            if( up->p1.GetY() <= l.GetRightPoint().GetY()
+             && up->p1.GetY() >= l.GetLeftPoint().GetY()){
 #ifdef TUA_DEBUG
               cout<<"uPoint ends inside linesegemet"<<endl;
 #endif
@@ -5581,7 +5582,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
 #ifdef TUA_DEBUG
         cout<<"vl is vertical vup not"<<endl;
 #endif
-        t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX())
+        t.ReadFrom((l.GetRightPoint().GetX() - up->p0.GetX())
                 / (up->p1.GetX() - up->p0.GetX())
                 * (up->timeInterval.end.ToDouble()
                 -  up->timeInterval.start.ToDouble())
@@ -5601,12 +5602,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
           continue;
         }
         up->TemporalFunction(t, pt);
-        if(  pt.GetX() < l->GetLeftPoint().GetX() ||
-             pt.GetX() > l->GetRightPoint().GetX()
-         || (pt.GetY() < l->GetLeftPoint().GetY() &&
-             pt.GetY() < l->GetRightPoint().GetY())
-         || (pt.GetY() > l->GetLeftPoint().GetY() &&
-             pt.GetY() > l->GetRightPoint().GetY())){
+        if(  pt.GetX() < l.GetLeftPoint().GetX() ||
+             pt.GetX() > l.GetRightPoint().GetX()
+         || (pt.GetY() < l.GetLeftPoint().GetY() &&
+             pt.GetY() < l.GetRightPoint().GetY())
+         || (pt.GetY() > l.GetLeftPoint().GetY() &&
+             pt.GetY() > l.GetRightPoint().GetY())){
 #ifdef TUA_DEBUG
           cout<<"pt outside up!"<<endl;
 #endif
@@ -5647,12 +5648,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
             continue;
           }
           up->TemporalFunction(t, pt);
-          if(  pt.GetX() < l->GetLeftPoint().GetX() ||
-               pt.GetX() > l->GetRightPoint().GetX()
-           || (pt.GetY() < l->GetLeftPoint().GetY() &&
-               pt.GetY() < l->GetRightPoint().GetY())
-           || (pt.GetY() > l->GetLeftPoint().GetY() &&
-               pt.GetY() > l->GetRightPoint().GetY())){
+          if(  pt.GetX() < l.GetLeftPoint().GetX() ||
+               pt.GetX() > l.GetRightPoint().GetX()
+           || (pt.GetY() < l.GetLeftPoint().GetY() &&
+               pt.GetY() < l.GetRightPoint().GetY())
+           || (pt.GetY() > l.GetLeftPoint().GetY() &&
+               pt.GetY() > l.GetRightPoint().GetY())){
 #ifdef TUA_DEBUG
             cout<<"pt outside up!"<<endl;
 #endif
@@ -5692,12 +5693,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
 #endif
           continue;
         }
-         if(up->p0.GetX() <= l->GetLeftPoint().GetX()
-         && up->p1.GetX() >= l->GetLeftPoint().GetX()){
+         if(up->p0.GetX() <= l.GetLeftPoint().GetX()
+         && up->p1.GetX() >= l.GetLeftPoint().GetX()){
 #ifdef TUA_DEBUG
            cout<<"uPoint starts left of linesegemet"<<endl;
 #endif
-           t.ReadFrom((l->GetLeftPoint().GetX() - up->p0.GetX())
+           t.ReadFrom((l.GetLeftPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
@@ -5710,12 +5711,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
            newper.lc = (up->timeInterval.start == t)
                       ? up->timeInterval.lc : true;
         }
-        if(up->p1.GetX() <= l->GetLeftPoint().GetX()
-        && up->p0.GetX() >= l->GetLeftPoint().GetX()){
+        if(up->p1.GetX() <= l.GetLeftPoint().GetX()
+        && up->p0.GetX() >= l.GetLeftPoint().GetX()){
 #ifdef TUA_DEBUG
            cout<<"uPoint ends left of linesegemet"<<endl;
 #endif
-           t.ReadFrom((l->GetLeftPoint().GetX() - up->p0.GetX())
+           t.ReadFrom((l.GetLeftPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
@@ -5728,12 +5729,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
            newper.rc = (up->timeInterval.end == t)
                       ? up->timeInterval.rc : true;
         }
-        if(up->p0.GetX() <= l->GetRightPoint().GetX()
-        && up->p1.GetX() >= l->GetRightPoint().GetX()){
+        if(up->p0.GetX() <= l.GetRightPoint().GetX()
+        && up->p1.GetX() >= l.GetRightPoint().GetX()){
 #ifdef TUA_DEBUG
            cout<<"uPoint ends right of linesegemet"<<endl;
 #endif
-           t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX())
+           t.ReadFrom((l.GetRightPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
@@ -5746,12 +5747,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
            newper.rc = (up->timeInterval.end == t)
                       ? up->timeInterval.rc : true;
         }
-        if(up->p1.GetX() <= l->GetRightPoint().GetX()
-        && up->p0.GetX() >= l->GetRightPoint().GetX()){
+        if(up->p1.GetX() <= l.GetRightPoint().GetX()
+        && up->p0.GetX() >= l.GetRightPoint().GetX()){
 #ifdef TUA_DEBUG
            cout<<"uPoint starts right of linesegemet"<<endl;
 #endif
-           t.ReadFrom((l->GetRightPoint().GetX() - up->p0.GetX())
+           t.ReadFrom((l.GetRightPoint().GetX() - up->p0.GetX())
                    / (up->p1.GetX() - up->p0.GetX())
                    * (up->timeInterval.end.ToDouble()
                    -  up->timeInterval.start.ToDouble())
@@ -5764,16 +5765,16 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
            newper.lc = (up->timeInterval.start == t)
                       ? up->timeInterval.lc : true;
         }
-        if(up->p0.GetX() <= l->GetRightPoint().GetX()
-        && up->p0.GetX() >= l->GetLeftPoint().GetX()){
+        if(up->p0.GetX() <= l.GetRightPoint().GetX()
+        && up->p0.GetX() >= l.GetLeftPoint().GetX()){
 #ifdef TUA_DEBUG
            cout<<"uPoint starts inside linesegemet"<<endl;
 #endif
            newper.start = up->timeInterval.start;
            newper.lc =    up->timeInterval.lc;
         }
-        if(up->p1.GetX() <= l->GetRightPoint().GetX()
-        && up->p1.GetX() >= l->GetLeftPoint().GetX()){
+        if(up->p1.GetX() <= l.GetRightPoint().GetX()
+        && up->p1.GetX() >= l.GetLeftPoint().GetX()){
 #ifdef TUA_DEBUG
            cout<<"uPoint ends inside linesegemet"<<endl;
 #endif
@@ -5813,12 +5814,12 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
           continue;
         }
         up->TemporalFunction(t, pt);
-        if(  pt.GetX() < l->GetLeftPoint().GetX() ||
-             pt.GetX() > l->GetRightPoint().GetX()
-         || (pt.GetY() < l->GetLeftPoint().GetY() &&
-             pt.GetY() < l->GetRightPoint().GetY())
-         || (pt.GetY() > l->GetLeftPoint().GetY() &&
-             pt.GetY() > l->GetRightPoint().GetY())){
+        if(  pt.GetX() < l.GetLeftPoint().GetX() ||
+             pt.GetX() > l.GetRightPoint().GetX()
+         || (pt.GetY() < l.GetLeftPoint().GetY() &&
+             pt.GetY() < l.GetRightPoint().GetY())
+         || (pt.GetY() > l.GetLeftPoint().GetY() &&
+             pt.GetY() > l.GetRightPoint().GetY())){
 #ifdef TUA_DEBUG
           cout<<"pt outside up!"<<endl;
 #endif
@@ -5868,7 +5869,7 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
   const UPoint* up = (UPoint*) u;
   endResult->Clear();
   endResult->StartBulkLoad();
-  const Interval<Instant> *per;
+  Interval<Instant> per;
   UPoint newUp(true);
   Point pt;
   int m = 0;
@@ -5885,8 +5886,8 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
     if(!pfinished) {
       pResult->Get(m, per);
 #ifdef TUA_DEBUG
-      cout<<"per "<<m<<" ["<<per->start.ToString()<<" "
-        <<per->end.ToString()<<" "<<per->lc<<" "<<per->rc<<"]"<<endl;
+      cout<<"per "<<m<<" ["<<per.start.ToString()<<" "
+        <<per.end.ToString()<<" "<<per.lc<<" "<<per.rc<<"]"<<endl;
 #endif
     }
     if(pfinished) {
@@ -5895,19 +5896,19 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
 #endif
       break;
     }
-    if(!(pfinished || up->timeInterval.end < per->start
-     || (up->timeInterval.end == per->start
-     && !up->timeInterval.rc && per->lc))) {
+    if(!(pfinished || up->timeInterval.end < per.start
+     || (up->timeInterval.end == per.start
+     && !up->timeInterval.rc && per.lc))) {
 #ifdef TUA_DEBUG
       cout<<"per not totally after up"<<endl;
 #endif
-      if(up->timeInterval.start < per->start
-       || (up->timeInterval.start == per->start
-       && up->timeInterval.lc && !per->lc)) {
+      if(up->timeInterval.start < per.start
+       || (up->timeInterval.start == per.start
+       && up->timeInterval.lc && !per.lc)) {
 #ifdef TUA_DEBUG
         cout<<"up starts before per"<<endl;
 #endif
-        newUp.timeInterval = *per;
+        newUp.timeInterval = per;
       }
       else {
 #ifdef TUA_DEBUG
@@ -5917,9 +5918,9 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
         newUp.timeInterval.lc = up->timeInterval.lc;
       }
       while(true) {
-        if(up->timeInterval.end < per->end
-         || (up->timeInterval.end == per->end
-         && per->rc && !up->timeInterval.rc)) {
+        if(up->timeInterval.end < per.end
+         || (up->timeInterval.end == per.end
+         && per.rc && !up->timeInterval.rc)) {
 #ifdef TUA_DEBUG
             cout<<"per ends after up (break)"<<endl;
 #endif
@@ -5943,8 +5944,8 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
 #ifdef TUA_DEBUG
           cout<<"per ends inside up"<<endl;
 #endif
-          newUp.timeInterval.end = per->end;
-          newUp.timeInterval.rc = per->rc;
+          newUp.timeInterval.end = per.end;
+          newUp.timeInterval.rc = per.rc;
           up->TemporalFunction(newUp.timeInterval.start, pt, true);
           newUp.p0 = pt;
           up->TemporalFunction(newUp.timeInterval.end, pt, true);
@@ -5967,18 +5968,18 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
         else {
           pResult->Get(++m, per);
 #ifdef TUA_DEBUG
-          cout<<"per "<<m<<" ["<<per->start.ToString()
-            <<" "<<per->end.ToString()<<" "<<per->lc<<" "<<per->rc<<"]"<<endl;
+          cout<<"per "<<m<<" ["<<per.start.ToString()
+            <<" "<<per.end.ToString()<<" "<<per.lc<<" "<<per.rc<<"]"<<endl;
 #endif
         }
-        if(!pfinished && (per->start < up->timeInterval.end
-           || (per->start == up->timeInterval.end
-           && up->timeInterval.rc && per->rc))){
+        if(!pfinished && (per.start < up->timeInterval.end
+           || (per.start == up->timeInterval.end
+           && up->timeInterval.rc && per.rc))){
 #ifdef TUA_DEBUG
           cout<<"next per starts in same up"<<endl;
 #endif
-          newUp.timeInterval.start = per->start;
-          newUp.timeInterval.lc = per->lc;
+          newUp.timeInterval.start = per.start;
+          newUp.timeInterval.lc = per.lc;
         }
         else {
 #ifdef TUA_DEBUG
@@ -6009,7 +6010,7 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
   Line    *l;
   Periods *p;
 
-  const UPoint* cu;
+  UPoint cu;
 
   switch( message )
     {
@@ -6074,7 +6075,7 @@ int temporalUnitIntersection_upoint_line( Word* args, Word& result,
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
           sli->mpoint->Get(sli->NoOfResultsDelivered, cu);
-          result.setAddr( cu->Clone() );
+          result.setAddr( cu.Clone() );
           sli->NoOfResultsDelivered++;
           return YIELD;
         }
@@ -6119,7 +6120,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
   Region  *f = 0;
   MPoint  *mp_tmp;
   MRegion *mr_tmp;
-  const UPoint* cu;
+  UPoint cu;
 
   switch( message )
     {
@@ -6231,7 +6232,7 @@ int temporalUnitIntersection_upoint_uregion( Word* args, Word& result,
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
           sli->mpoint->Get(sli->NoOfResultsDelivered, cu);
-          result.setAddr( cu->Clone() );
+          result.setAddr( cu.Clone() );
           sli->NoOfResultsDelivered++;
 #ifdef TUA_DEBUG
           cerr << "temporalUnitIntersection_upoint_uregion<"
@@ -6496,7 +6497,7 @@ Instead of implementing dedicated value mappings, we use those for operator
 */
 
 
-int AtUpR(Word* args, Word& result, 
+int AtUpR(Word* args, Word& result,
           int message, Word& local, Supplier s) {
 
   result = qp->ResultStorage(s);
@@ -6504,7 +6505,7 @@ int AtUpR(Word* args, Word& result,
   Rectangle<2>* arg2 = static_cast<Rectangle<2>*>(args[1].addr);
   UPoint* res = static_cast<UPoint*>(result.addr);
   arg1->At(*arg2,*res);
-  return 0; 
+  return 0;
 }
 
 
@@ -6565,7 +6566,7 @@ TUSelectAt( ListExpr args )
   if( nl->SymbolValue( arg1 ) == "upoint" &&
       nl->SymbolValue( arg2 ) == "region" )
     return 6;
-  
+
   if( nl->SymbolValue( arg1 ) == "upoint" &&
       nl->SymbolValue( arg2 ) == "rect" )
     return 7;
@@ -7580,7 +7581,7 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
   URegion *r;
   MPoint  mp_tmp(1);
   MRegion mr_tmp(1);
-  const UBool* cu;
+  UBool cu;
 
   switch( message )
     {
@@ -7658,7 +7659,7 @@ int temporalUnitInside_up_ur( Word* args, Word& result, int message,
       if(sli->NoOfResultsDelivered < sli->NoOfResults)
         {
           sli->mbool->Get(sli->NoOfResultsDelivered, cu);
-          result.setAddr( cu->Clone() );
+          result.setAddr( cu.Clone() );
           sli->NoOfResultsDelivered++;
 #ifdef TUA_DEBUG
           cerr << "temporalUnitInside_up_ur: "
@@ -8890,9 +8891,8 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
 
   UPoint *u1  = (UPoint*) args[0].addr;
   UPoint *u2  = (UPoint*) args[1].addr;
-  const UPoint u1i, u2i;
   UPoint uinters(true);
-  const UBool* cu;
+  UBool cu;
   TUCompareValueLocalInfo *localinfo;
   Interval<Instant> iv, ivBefore, ivInters, ivAfter;
   bool compresult = false;
@@ -9001,7 +9001,7 @@ int TU_VM_ComparePredicateValue_UPoint(Word* args, Word& result,
       if ( localinfo->NoOfResultsDelivered >= localinfo->NoOfResults)
         { localinfo->finished = true; return CANCEL; }
       localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
-      result.setAddr( cu->Clone() );
+      result.setAddr( cu.Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
 
@@ -9037,9 +9037,8 @@ template <int opcode, int unit_arg>
     u1  = (UPoint*) args[1].addr;
     p   = (Point*)  args[0].addr;
   }
-  const UPoint u1i, u2i;
   UPoint *u2, uinters(true);
-  const UBool* cu;
+  UBool cu;
   TUCompareValueLocalInfo *localinfo;
   Interval<Instant> iv, ivBefore, ivInters, ivAfter;
   bool compresult = false;
@@ -9142,7 +9141,7 @@ template <int opcode, int unit_arg>
       if ( localinfo->NoOfResultsDelivered >= localinfo->NoOfResults)
       { localinfo->finished = true; return CANCEL; }
       localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
-      result.setAddr( cu->Clone() );
+      result.setAddr( cu.Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
 
@@ -9171,7 +9170,7 @@ template<int opcode>
   UReal *u1  = (UReal*) args[0].addr;
   UReal *u2  = (UReal*) args[1].addr;
   TUCompareValueLocalInfo *localinfo;
-  const UBool *cu;
+  UBool cu;
   vector<UBool> res;
   switch (message)
   {
@@ -9191,7 +9190,7 @@ template<int opcode>
         return 0;
       }
       // common deftime --> some result exists
-      
+
       u1->CompUReal(*u2, opcode, res);
       localinfo->intersectionBool->StartBulkLoad();
       for (size_t i = 0;i < res.size();i++)
@@ -9216,7 +9215,7 @@ template<int opcode>
       return CANCEL;
     }
     localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
-    result.setAddr( cu->Clone() );
+    result.setAddr( cu.Clone() );
     localinfo->NoOfResultsDelivered++;
     return YIELD;
 
@@ -9239,13 +9238,13 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
   UReal *u1  = (UReal*) args[0].addr;
   UReal *u2  = (UReal*) args[1].addr;
   UReal un1(true), un2(true);
-  const UBool* cu;
+  UBool cu;
   UBool newunit(true);
   TUCompareValueLocalInfo *localinfo;
   Interval<Instant>
      iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
      ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
-  const Interval<Instant> *actIntv;
+  Interval<Instant> actIntv;
   Instant
      start(instanttype),
      end(instanttype),
@@ -9332,7 +9331,7 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
       i = 0;              // counter for instants of equality
       eqPeriods->Get(i, actIntv);
       // handle special case: first equality in first instant
-      if (start == actIntv->start)
+      if (start == actIntv.start)
       {
 //      cout << "TU_VM_ComparePredicateValue_UReal: Handling start...";
         if (iv.lc)
@@ -9362,11 +9361,11 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
       {
 //      cout << "TU_VM_ComparePredicateValue_UReal: Pass i=" << i << endl;
         eqPeriods->Get(i, actIntv);
-//      if(actIntv->start != actIntv->end)
+//      if(actIntv.start != actIntv.end)
 //      {
 //        cout << "Something's wrong with actIntv!" << endl;
 //      }
-        end = actIntv->start;
+        end = actIntv.start;
 //      cout << "  start=" << start.ToString()
 //           << "  end="   << end.ToString()   << endl;
         ivnew = Interval<Instant>(start, end, lc, false);
@@ -9431,7 +9430,7 @@ int TU_VM_ComparePredicateValue_UReal(Word* args, Word& result,
         return CANCEL;
       }
       localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
-      result.setAddr( cu->Clone() );
+      result.setAddr( cu.Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
 
@@ -9469,13 +9468,13 @@ template<int opcode, int unit_arg>
     r  = (CcReal*) args[0].addr;
   }
 
-  const UBool* cu;
+  UBool cu;
   UBool newunit(true);
   TUCompareValueLocalInfo *localinfo;
   Interval<Instant>
       iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
   ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
-  const Interval<Instant> *actIntv;
+  Interval<Instant> actIntv;
   Instant
       start(instanttype),
   end(instanttype),
@@ -9543,7 +9542,7 @@ template<int opcode, int unit_arg>
       i = 0;              // counter for instants of equality
       eqPeriods->Get(i, actIntv);
       // handle special case: first equality in first instant
-      if (start == actIntv->start)
+      if (start == actIntv.start)
       {
 //      cout << "TU_VM_ComparePredicateValue_UReal: Handling start...";
         if (iv.lc)
@@ -9576,11 +9575,11 @@ template<int opcode, int unit_arg>
       {
 //      cout << "TU_VM_ComparePredicateValue_UReal: Pass i=" << i << endl;
         eqPeriods->Get(i, actIntv);
-//      if(actIntv->start != actIntv->end)
+//      if(actIntv.start != actIntv.end)
 //      {
 //        cout << "Something's wrong with actIntv!" << endl;
 //      }
-        end = actIntv->start;
+        end = actIntv.start;
 //      cout << "  start=" << start.ToString()
 //           << "  end="   << end.ToString()   << endl;
         ivnew = Interval<Instant>(start, end, lc, false);
@@ -9651,7 +9650,7 @@ template<int opcode, int unit_arg>
         return CANCEL;
       }
       localinfo->intersectionBool->Get(localinfo->NoOfResultsDelivered, cu);
-      result.setAddr( cu->Clone() );
+      result.setAddr( cu.Clone() );
       localinfo->NoOfResultsDelivered++;
       return YIELD;
 
