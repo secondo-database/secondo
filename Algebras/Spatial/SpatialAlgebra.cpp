@@ -3700,13 +3700,9 @@ void Line::EndBulkLoad( bool sort /* = true */,
   if(Size()>0){
      if(realminize){
        DbArray<HalfSegment>* line2 = ::Realminize(line);
-       HalfSegment hs;
        line2->Sort(HalfSegmentCompare);
        line.clean();
-       for(int i=0;i<line2->Size();i++){
-         line2->Get(i,hs);
-         line.Append(hs);
-       }
+       line.copyFrom(*line2);
        line2->Destroy();
        delete line2;
      }
@@ -3787,6 +3783,28 @@ Line& Line::operator+=( const HalfSegment& hs )
   }
   return *this;
 }
+
+Line& Line::operator+=(const Line& l){
+   if(!IsDefined() || !l.IsDefined()){
+     return *this;
+   }
+
+   if(l.line.Size()==0){
+     return *this;
+   }
+
+   assert(!IsOrdered());
+
+   if(IsEmpty()){
+      bbox = l.bbox;
+   } else {
+      bbox = bbox.Union(l.bbox);
+   }
+   
+   line.Append(l.line);   
+   return *this;
+}
+
 
 Line& Line::operator-=( const HalfSegment& hs )
 {
@@ -11034,7 +11052,7 @@ avlseg::ownertype selectNext(const DbArray<HalfSegment>& src, int& pos,
 
 DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
 
-  DbArray<HalfSegment>* res = new DbArray<HalfSegment>(0);
+  DbArray<HalfSegment>* res = new DbArray<HalfSegment>(segments.Size());
 
   if(segments.Size()==0){ // no halfsegments, nothing to realminize
     res->TrimToSize();
@@ -18667,6 +18685,28 @@ int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
   return 0;
 }
 
+void append(Line& l1, const Line& l2){
+  l1 += l2;
+}
+
+void append(SimpleLine& l1, const SimpleLine& l2){
+  int size = l2.Size();
+  HalfSegment hs;
+  for(int i = 0; i < size; i++){
+    l2.Get( i, hs );
+    l1 += hs; 
+  }
+}
+
+void append(Line& l1, const SimpleLine& l2){
+  int size = l2.Size();
+  HalfSegment hs;
+  for(int i = 0; i < size; i++){
+    l2.Get( i, hs );
+    l1 += hs; 
+  }
+}
+
 template <class StreamLineType, class ResLineType>
 int SpatialCollect_lineVMLinestream(Word* args, Word& result, int message,
                                     Word& local, Supplier s){
@@ -18690,14 +18730,7 @@ int SpatialCollect_lineVMLinestream(Word* args, Word& result, int message,
       if(line){ line->DeleteIfAllowed(); }
       return 0;
     }
-    // copy all halfsegments from line to L
-    L->Resize(L->Size()+line->Size()); // reserve slots for new half segments
-    int size = line->Size();
-    HalfSegment hs;
-    for(int i = 0; i < size; i++){
-      line->Get( i, hs );
-      (*L)+=(hs);
-    }
+    append(*L, *line);
     line->DeleteIfAllowed(); line = 0;
     qp->Request(args[0].addr, elem); // get next line
   }

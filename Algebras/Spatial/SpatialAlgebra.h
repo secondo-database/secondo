@@ -1708,6 +1708,17 @@ Assignement operator redefinition.
 
 */
     Line& operator+=( const HalfSegment& hs );
+
+
+/*
+6.4.4 Oeration ~plus~
+
+Appends all halfsegments from l to that line.
+This instance must must be in bulkload mode.
+
+*/
+   Line& operator+=(const Line& l);
+
 /*
 6.4.4 Operation ~minus~
 
