@@ -122,7 +122,7 @@ printschema() {
        ENDINPROCEEDINGS STARTPROCEEDINGS ENDPROCEEDINGS
        STARTBOOK ENDBOOK STARTINCOLLECTION ENDINCOLLECTION
        STARTPHDTHESIS ENDPHDTHESIS STARTMASTERTHESIS
-       ENDMASTERTHESIS STARTWWW ENDWWW EDITOR
+       ENDMASTERTHESIS STARTWWW ENDWWW EDITOR CITE CROSSREF
 
 %token <string> AUTHOR TITLE BOOKTITLE PAGES YEAR
 %token <string> JOURNAL VOLUME NUMBER MONTH URL
@@ -451,6 +451,10 @@ attribute       : AUTHOR                       {
                 | PUBLISHER                    { publisher = $1; }
                                   
                 | ISBN                         { isbn = $1; }
+
+                | CITE                         {}
+                
+                | CROSSREF                     {}
                                   
                 ;
 
@@ -463,6 +467,7 @@ yyerror (const char* msg)
 {
   fprintf(stderr,
             "%s at line %d reading symbol '%s'.\n", msg, yylineno, yytext);
+  exit(3);
 }
 
 int

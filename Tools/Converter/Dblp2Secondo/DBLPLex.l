@@ -69,6 +69,9 @@ isbn                   <isbn>.*<\/isbn>
 chapter                <chapter>.*<\/chapter>
 series                 <series>.*<\/series>
 
+%option yylineno
+
+
 %%
 
 {startarticle}         { return(STARTARTICLE); }
@@ -150,6 +153,10 @@ series                 <series>.*<\/series>
                          yylval.string = strdup(yytext+6);
                          return(ISBN);
                        }
+
+{cite}                 { return CITE; }
+
+{crossref}             { return CROSSREF; }
 
 .|\n                   { ; }
 
