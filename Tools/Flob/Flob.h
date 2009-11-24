@@ -84,6 +84,7 @@ buffer's content.
 
 class Flob{
   friend class FlobManager;
+  friend class FlobCache;
   public:
 
 /*
@@ -140,6 +141,23 @@ Makes only a flat copy of the source flob.
     };
 
 /*
+~Comparison~
+
+*/
+   inline bool operator==(const Flob& f) const{
+     return (id == f.id);
+   }
+
+   inline bool operator>(const Flob& f) const{
+     return id > f.id;
+   }
+
+   inline bool operator<(const Flob& f) const{
+     return id < f.id;
+   }
+
+
+/*
 ~Destructor~
 
 Does not destroy the underlying data. Use destroy for it.
@@ -161,7 +179,10 @@ Returns the current size of this Flob.
 Changes the size of a flob to the given one.
 
 */
-    virtual void resize(const SmiSize& newsize) { size = newsize; }
+    virtual void resize(const SmiSize& newsize) { 
+       FlobManager::getInstance().resize(*this,newsize);
+     }
+
 
 /*
 ~clean~
@@ -169,7 +190,7 @@ Changes the size of a flob to the given one.
 Cleans the flob. actually only the size is set to be zero.
 
 */
-    virtual void clean(){ size = 0; }
+    virtual void clean(){ resize(0); }
 
 /*
 ~read~
@@ -194,7 +215,7 @@ Puts data providen in ~buffer~ into the Flob at the specified position.
                       const SmiSize length,
                       const SmiSize offset=0){
       if(offset+length > size) {
-        size = offset + length;
+        FlobManager::getInstance().resize(*this, offset+length);
       }
       FlobManager::getInstance().putData(*this, buffer, offset, length);
     }
@@ -206,7 +227,7 @@ Copies the content of src to this flob.
 */
     virtual void copyFrom(const Flob& src){
       FlobManager::getInstance().copyData(src,*this);
-      size = src.size;
+      FlobManager::getInstance().resize(*this, src.size);
     };
 
 /*
@@ -217,7 +238,7 @@ Copies the content of this flob to ~dest~.
 */
     virtual void copyTo(Flob& dest) const {
        FlobManager::getInstance().copyData(*this,dest);
-       dest.size = size;
+       FlobManager::getInstance().resize(dest, size);
     };
 
 /*
@@ -378,6 +399,9 @@ Gives up the control of the FlobManager over the specific file.
     return FlobManager::getInstance().dropFile(id);
   }
 
+  inline static bool dropFiles(){
+    return FlobManager::getInstance().dropFiles();
+  }
 
 
   ostream& print(ostream& os) const {

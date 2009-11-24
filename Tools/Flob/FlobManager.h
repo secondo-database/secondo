@@ -12,15 +12,15 @@ of that class.
 #define SEC_FLOBMGR_H
 
 
-#include <map>
 #include "SecondoSMI.h"
 
 
-// forward declaration of the FLOB class
-class Flob;
+class Flob; 
+
 
 class FlobManager{
    friend class Flob;
+   friend class FlobCache;
    private:
 /*
  
@@ -55,7 +55,8 @@ to that buffer.
       bool getData(const Flob& flob,            // Flob containing the data
                    char* dest,                  // destination buffer
                    const SmiSize&  offset,     // offset within the Flob 
-                   const SmiSize&  size) ;  // requested data size
+                   const SmiSize&  size,
+                   const bool ignoreCache = false) ;  // requested data size
 
 
 /*
@@ -118,7 +119,8 @@ Puts data into a flob.
       bool putData(const Flob& dest,         // destination flob
                          const char* buffer, // source buffer
                          const SmiSize& targetoffset,  // offset within the Flob
-                         const SmiSize& length);  // data size
+                         const SmiSize& length,
+                         const bool ignoreCache = false);  // data size
 
 /*
 ~create~
@@ -159,6 +161,16 @@ return a Flob with persistent storage allocated and defined elsewhere
       bool copyData(const Flob& src, Flob& dest);
 
 /*
+~resize~
+
+Changes the size of a given Flob to the specified size.
+
+*/
+     bool resize(Flob& flob, const SmiSize& newSize);
+
+
+
+/*
 ~constructor~
 
 Because Flobmanager is a singleton, the constructor should only be used
@@ -179,6 +191,15 @@ This can be realized by calling the ~dropFile~ function.
 
 */
      bool dropFile(const SmiFileId& id);
+
+/*
+~dropFiles~
+
+Will drop all files except the native flob file.
+
+*/
+     bool dropFiles();
+
 
 
 /*
@@ -217,13 +238,21 @@ File id for freshly created Flobs. Only to use by the Flobmanager class itself.
     map<SmiFileId, SmiRecordFile*> openFiles;
 
 /*
+~changed~
+
+Flag determining whether the openFiles was changed - for debugging only. 
+
+*/
+    bool changed;
+
+
+/*
 ~getFile~
 
 Return the file to a fileid;
 
 */
    SmiRecordFile* getFile(const SmiFileId& fileId);
-
 
 
 };

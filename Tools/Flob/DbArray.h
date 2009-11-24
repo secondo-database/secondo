@@ -149,9 +149,30 @@ inline void Destroy() {
   Flob::destroy();
 }
 
+
+
+
 inline void Append( const DbArrayElement& elem ) {
   Put( nElements, elem );
 }
+
+inline void Append(const DbArray<DbArrayElement>& a){
+  if( a.nElements == 0){ // nothing to do
+    return;
+  }
+  if(nElements + a.nElements > maxElements){
+    // resize of the underlying Flob required
+    resize((nElements + a.nElements)*2);
+  }
+  // copy the FlobData
+  size_t size = a.nElements * sizeof(DbArrayElement);
+  char* buffer = new char[size];
+  a.Flob::read(buffer, size, 0);
+  Flob::write(buffer, size, (nElements)*sizeof(DbArrayElement));
+  delete [] buffer;
+  nElements += a.nElements;
+}
+
 
 
 /*
@@ -162,20 +183,25 @@ large enough, the array is growed automatically.
 
 */
 void Put( int index, const DbArrayElement& elem ) {
-  if(index >= nElements){ // enlarging required
+  if(index >= nElements){ // put a new element
     nElements = index + 1;
-    if(nElements <=9){
-       maxElements = 16;
-    } else {
-       maxElements = nElements * 2;
-    }
-    Flob::resize( maxElements * sizeof( DbArrayElement ) );
+    if(index >= maxElements){  // underlying flob is too small
+       maxElements =  index + 1;
+       if(maxElements <=9){
+          maxElements = 16;
+       } else {
+          maxElements = maxElements * 2;
+       }
+       Flob::resize( maxElements * sizeof( DbArrayElement ) );
+   }
   }
   Flob::write((char*)&elem,                   // buffer
               sizeof(DbArrayElement),  // size
               index * sizeof(DbArrayElement)); // offset
-
  }
+
+
+
 
 /*
 ~Get~

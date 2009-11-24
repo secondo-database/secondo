@@ -27,6 +27,7 @@ class FlobManager;
 
 class FlobId{
  friend class FlobManager;
+ friend class FlobCache;
  public: 
    FlobId(){} // makes nothing to support cast function
    ~FlobId(){}
@@ -45,7 +46,29 @@ class FlobId{
         << "rec = " << recordId << ", "
         << "offset = " << offset << ")";
      return os;
-   }     
+   }    
+
+   inline bool operator==(const FlobId& fid) const{
+     return fileId == fid.fileId &&
+            recordId == fid.recordId &&
+            offset   == fid.offset;
+   } 
+   inline bool operator>(const FlobId& fid) const{
+      if( fileId > fid.fileId) return true;
+      if( fileId < fid.fileId) return false;
+      if( recordId > fid.recordId) return true;
+      if(recordId < fid.recordId) return false;
+      if(offset > fid.offset) return true;
+      return false;
+   } 
+   inline bool operator<(const FlobId& fid) const{
+      if( fileId < fid.fileId) return true;
+      if( fileId > fid.fileId) return false;
+      if( recordId < fid.recordId) return true;
+      if(recordId > fid.recordId) return false;
+      if(offset < fid.offset) return true;
+      return false;
+   } 
 
  private:
    SmiFileId fileId;  

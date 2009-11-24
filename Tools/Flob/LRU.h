@@ -30,6 +30,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include <utility>
 #include <iostream>
 #include <ostream>
+#include <assert.h>
 
 
 /*
@@ -66,6 +67,11 @@ element of the lru structure.
 
 */
     void use(const T& t){
+
+      if(lru.size()>0 && t==first){
+         return;
+      }
+      
       if(lru.size()==0){ // first entry
         lru[t] = std::pair<const T*, const T*>(0 , 0);
         first = t;
@@ -101,6 +107,7 @@ empty, the result will be false;
           return false;
        }
        t = last;
+       assert(lru.find(t) != lru.end());
        return deleteMember(t);
     }
  
@@ -132,6 +139,10 @@ the structuree, the return value will be false.
        connect(p.first, p.second);
        lru.erase(t);
        return true;
+    }
+
+    void clear(){
+      lru.clear();
     }
 
 /*
@@ -206,11 +217,18 @@ structure are changed.
 
 
        if(t2){
+         if(lru.find(*t2) == lru.end()){
+           cerr << "Try to conect an non-existent element" << endl;
+           cerr << "content = " ; print(cerr) << endl;
+           cerr << "Element = " <<  (*t2) << endl;
+           assert(false);
+         }
          lru[*t2] = std::pair<const T*, const T*> (t1, lru[*t2].second);
        } else {
          last = *t1;
        }
        if(t1){
+         assert(lru.find(*t1) != lru.end());
          lru[*t1] = std::pair<const T*, const T*>(lru[*t1].first, t2);
        } else {
          first = *t2;
