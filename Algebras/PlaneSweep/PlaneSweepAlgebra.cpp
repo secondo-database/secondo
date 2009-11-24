@@ -2319,19 +2319,19 @@ void MakeRealm::REALM( const Region* reg1,
    int count = 0;
    // insert all segments of region1 into priority queue
    for (int i=0; i<reg1->Size(); i++)   {
-      const HalfSegment *hs;
+      HalfSegment hs;
       reg1->Get(i,hs);
-      if (hs->IsLeftDomPoint() == true) {
-         PrepareCHS(true, *hs, pqueue, segs, count);
+      if (hs.IsLeftDomPoint() == true) {
+         PrepareCHS(true, hs, pqueue, segs, count);
          count ++;
       }
    }
    // Prepare the second region for PlaneSweep
    for (int i=0; i<reg2->Size(); i++)   {
-      const HalfSegment *hs;
+      HalfSegment hs;
       reg2->Get(i,hs);
-      if (hs->IsLeftDomPoint() == true) {
-         PrepareCHS(false, *hs, pqueue, segs, count);
+      if (hs.IsLeftDomPoint() == true) {
+         PrepareCHS(false, hs, pqueue, segs, count);
          count ++;
       }
    }
@@ -2384,19 +2384,19 @@ void MakeRealm::REALM(const Region* reg1, const Region* reg2,
    int count = 0;
    // insert all segments of region1 into priority queue
    for (int i=0; i<reg1->Size(); i++)   {
-      const HalfSegment *hs;
+      HalfSegment hs;
       reg1->Get(i,hs);
-      if (hs->IsLeftDomPoint() == true) {
-         PrepareCHS(true, *hs, pqueue, segs, count);
+      if (hs.IsLeftDomPoint() == true) {
+         PrepareCHS(true, hs, pqueue, segs, count);
          count ++;
       }
    }
    // Prepare the line for PlaneSweep
    for (int i=0; i<reg2->Size(); i++)   {
-      const HalfSegment *hs;
+      HalfSegment hs;
       reg2->Get(i,hs);
-      if (hs->IsLeftDomPoint() == true) {
-         PrepareCHS(false, *hs, pqueue, segs, count);
+      if (hs.IsLeftDomPoint() == true) {
+         PrepareCHS(false, hs, pqueue, segs, count);
          count ++;
       }
    }
@@ -2441,19 +2441,19 @@ void MakeRealm::REALM(const Line* line1, const Region* reg2,
    int count = 0;
    // insert all segments of region1 into priority queue
    for (int i=0; i<line1->Size(); i++)   {
-      const HalfSegment *hs;
+      HalfSegment hs;
       line1->Get(i,hs);
-      if (hs->IsLeftDomPoint() == true) {
-         PrepareCHS(true, *hs, pqueue, segs, count);
+      if (hs.IsLeftDomPoint() == true) {
+         PrepareCHS(true, hs, pqueue, segs, count);
          count ++;
       }
    }
    // Prepare the region for PlaneSweep
    for (int i=0; i<reg2->Size(); i++)   {
-      const HalfSegment *hs;
+      HalfSegment hs;
       reg2->Get(i,hs);
-      if (hs->IsLeftDomPoint() == true) {
-         PrepareCHS(false, *hs, pqueue, segs, count);
+      if (hs.IsLeftDomPoint() == true) {
+         PrepareCHS(false, hs, pqueue, segs, count);
          count ++;
       }
    }
@@ -2497,20 +2497,20 @@ void MakeRealm::REALM(const Line* line1, const Line* line2,
    int count = 0;
    // insert all segments of line into priority queue
    for (int i=0; i<line1->Size(); i++)   {
-      const HalfSegment *hs;
+      HalfSegment hs;
       line1->Get(i,hs);
-      if (hs->IsLeftDomPoint() == true) {
-         PrepareCHS(true, *hs, pqueue, segs, count);
+      if (hs.IsLeftDomPoint() == true) {
+         PrepareCHS(true, hs, pqueue, segs, count);
          count ++;
       }
    }
 
    // Prepare the second line for PlaneSweep
    for (int i=0; i< line2->Size(); i++)   {
-      const HalfSegment *hs;
+      HalfSegment hs;
       line2->Get(i,hs);
-      if (hs->IsLeftDomPoint() == true) {
-         PrepareCHS(false, *hs, pqueue, segs, count);
+      if (hs.IsLeftDomPoint() == true) {
+         PrepareCHS(false, hs, pqueue, segs, count);
          count ++;
       }
    }
@@ -2552,12 +2552,12 @@ void MakeRealm::REALM(const Line* line1, const Line* line2,
 template<class T> void MakeRealm::readhalfsegments(vector<HalfSegment>& v, 
                                                      const T& obj) const
 {
-  const HalfSegment *hs;
+  HalfSegment hs;
 
   for (int i=0; i<obj->Size(); i++)   
   {
     obj->Get(i,hs);
-    if (hs->IsLeftDomPoint() == true) v.push_back(*hs);
+    if (hs.IsLeftDomPoint() == true) v.push_back(hs);
   }
 }
 
@@ -4254,8 +4254,8 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
    BinTreeNode<SEntry>* oldnode1 = 0;
    BinTreeNode<SEntry>* oldnode2 = 0;
    HalfSegment hsAkt;
-   const HalfSegment *hs1 = 0;
-   const HalfSegment *hs2 = 0;
+   HalfSegment hs1;
+   HalfSegment hs2;
    result->Clear();
    result->StartBulkLoad();
    State status;
@@ -4266,12 +4266,12 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
      // select the first segment
       res1->Get(i,hs1);
       res2->Get(j,hs2);
-      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
-          hs1->GetRightPoint()==hs2->GetRightPoint()){
-         i ++;   j ++;   hsAkt = *hs1;    status = BOTH;
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+          hs1.GetRightPoint()==hs2.GetRightPoint()){
+         i ++;   j ++;   hsAkt = hs1;    status = BOTH;
       }
-      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
-      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
+      else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
+      else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          hsAkt.SetLeftDomPoint(true);
@@ -4313,11 +4313,11 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
          // calculate new segmentclass of new ChalfSegment
          ms = np;    ns = np;
          if (status == FIRST || status == BOTH) {
-            if (hs1->attr.insideAbove == true) ns = ns+1;
+            if (hs1.attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          if (status == SECOND || status == BOTH) {
-            if (hs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2.attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }  // set new segmentclasses in SEntry
          ent.SetU(ms);
@@ -4358,7 +4358,7 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
    int i = 0;
    int j = 0;
    HalfSegment hsAkt;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    result ->Clear();
    result->StartBulkLoad();
    State status;
@@ -4371,11 +4371,11 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
       // select the first segment
       resline->Get(i,hs1);
       resregion->Get(j,hs2);
-      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
-          hs1->GetRightPoint()==hs2->GetRightPoint()){
-         i ++;   j ++;   hsAkt = *hs2;    status = BOTH; }
-      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
-      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+          hs1.GetRightPoint()==hs2.GetRightPoint()){
+         i ++;   j ++;   hsAkt = hs2;    status = BOTH; }
+      else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
+      else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          if (status == SECOND || status == BOTH) {
@@ -4399,7 +4399,7 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
          ms = np;
          ns = np;
          if (status == SECOND || status == BOTH) {
-            if (hs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2.attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
             ent.SetU(ms);
             ent.SetO(ns);
@@ -4429,10 +4429,9 @@ void MakeOp::Intersection(const Region* reg1, const Region* reg2,Region* result)
      halfsegments and correcting the edge numbers.
    */  
    
-    const HalfSegment* hs_oldptr;
+    HalfSegment hs_old;
     for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
-         result->Get(i,hs_oldptr);
-         HalfSegment hs_old(*hs_oldptr);
+         result->Get(i,hs_old);
          hs_old.SetLeftDomPoint(true);
          hs_old.attr.edgeno = i;
          result->Put(i,hs_old);
@@ -4469,7 +4468,7 @@ void MakeOp::Intersection(const Line* line1, const Line* line2, Line* result)
    // initialisations
    int i = 0;
    int j = 0;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    result ->Clear();
    result->StartBulkLoad();
    // execute until one argument is empty
@@ -4479,21 +4478,20 @@ void MakeOp::Intersection(const Line* line1, const Line* line2, Line* result)
       res2->Get(j,hs2);
       // segments, which are the same in both arguments are added
       // in result
-      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
-          hs1->GetRightPoint()==hs2->GetRightPoint())
-         {  i ++;   j ++;   (*result) += *hs1; }
-      else if ( *hs1 < *hs2)  i ++;
-      else if ( *hs1 > *hs2)  j ++;
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+          hs1.GetRightPoint()==hs2.GetRightPoint())
+         {  i ++;   j ++;   (*result) += hs1; }
+      else if ( hs1 < hs2)  i ++;
+      else if ( hs1 > hs2)  j ++;
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    // VTA - I need to come back here -- solved ??
    unsigned int size = result->Size(); 
    result->Resize(size*2);
-    const HalfSegment* hs_oldptr;
+    HalfSegment hs_old;
     for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
-         result->Get(i,hs_oldptr);
-         HalfSegment hs_old(*hs_oldptr);
+         result->Get(i,hs_old);
          hs_old.SetLeftDomPoint(true);
          hs_old.attr.edgeno = i;
          result->Put(i,hs_old);
@@ -4528,7 +4526,7 @@ bool MakeOp::P_Intersects(const Region* reg1, const Region* reg2)
    int i = 0;
    int j = 0;
    HalfSegment hsAkt;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    State status;
    Coord aktSweep;
    Coord oldSweep;
@@ -4540,11 +4538,11 @@ bool MakeOp::P_Intersects(const Region* reg1, const Region* reg2)
      // select_ first
       res1->Get(i,hs1);
       res2->Get(j,hs2);
-      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
-          hs1->GetRightPoint()==hs2->GetRightPoint()){
-         i ++;   j ++;   hsAkt = *hs1;    status = BOTH;      }
-      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
-      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+          hs1.GetRightPoint()==hs2.GetRightPoint()){
+         i ++;   j ++;   hsAkt = hs1;    status = BOTH;      }
+      else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
+      else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          hsAkt.SetLeftDomPoint(true);
@@ -4572,11 +4570,11 @@ bool MakeOp::P_Intersects(const Region* reg1, const Region* reg2)
          ms = np;
          ns = np;
          if (status == FIRST || status == BOTH) {
-            if (hs1->attr.insideAbove == true) ns = ns+1;
+            if (hs1.attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          if (status == SECOND || status == BOTH) {
-            if (hs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2.attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          // if one intersection is found, break and return true
@@ -4621,7 +4619,7 @@ bool MakeOp::P_Intersects(const Region* reg, const Line* line)
    int i = 0;
    int j = 0;
    HalfSegment hsAkt;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    State status;
    Coord aktSweep;
    Coord oldSweep;
@@ -4632,12 +4630,12 @@ bool MakeOp::P_Intersects(const Region* reg, const Line* line)
      // select_ first
       resline->Get(i,hs1);
       resregion->Get(j,hs2);
-      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() &&
-          hs1->GetRightPoint()==hs2->GetRightPoint()){
-         i ++; j ++; hsAkt = *hs2; status = BOTH;
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() &&
+          hs1.GetRightPoint()==hs2.GetRightPoint()){
+         i ++; j ++; hsAkt = hs2; status = BOTH;
       }
-      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
-      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
+      else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
+      else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          if (status == SECOND || status == BOTH) {
@@ -4661,7 +4659,7 @@ bool MakeOp::P_Intersects(const Region* reg, const Line* line)
          ms = np;
          ns = np;
          if (status == SECOND || status == BOTH) {
-            if (hs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2.attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
             ent.SetU(ms);
             ent.SetO(ns);
@@ -4708,18 +4706,18 @@ bool MakeOp::P_Intersects(const Line* line1, const Line* line2)
    // initialisations
    int i = 0;
    int j = 0;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size()) {
      // select_ first
       res1->Get(i,hs1);
       res2->Get(j,hs2);
       // if two segments are the same -> return true
-      if (hs1->GetLeftPoint()== hs2->GetLeftPoint() && 
-          hs1->GetRightPoint()== hs2->GetRightPoint() )
+      if (hs1.GetLeftPoint()== hs2.GetLeftPoint() && 
+          hs1.GetRightPoint()== hs2.GetRightPoint() )
          { return true; }
-      else if ( *hs1 < *hs2)  i ++;
-      else if ( *hs1 > *hs2)   j ++;
+      else if ( hs1 < hs2)  i ++;
+      else if ( hs1 > hs2)   j ++;
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
@@ -4750,7 +4748,7 @@ bool MakeOp::Intersects(const Region* reg1, const Region* reg2)
    int i = 0;
    int j = 0;
    HalfSegment hsAkt;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    State status;
    Coord aktSweep;
    Coord oldSweep;
@@ -4762,16 +4760,16 @@ bool MakeOp::Intersects(const Region* reg1, const Region* reg2)
      // select_ first
       res1->Get(i,hs1);
       res2->Get(j,hs2);
-      if (hs1->GetLeftPoint()==hs2->GetLeftPoint()||
-          hs1->GetLeftPoint()==hs2->GetRightPoint()
-       || hs1->GetRightPoint()==hs2->GetLeftPoint()||
-          hs1->GetRightPoint()==hs2->GetRightPoint() ){
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint()||
+          hs1.GetLeftPoint()==hs2.GetRightPoint()
+       || hs1.GetRightPoint()==hs2.GetLeftPoint()||
+          hs1.GetRightPoint()==hs2.GetRightPoint() ){
          res1->Destroy(); delete res1;
          res2->Destroy(); delete res2;
          return true;
       }
-      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
-      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2;  status = SECOND;}
+      else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
+      else if ( hs1 > hs2) {j ++; hsAkt = hs2;  status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          hsAkt.SetLeftDomPoint(true);
@@ -4840,7 +4838,7 @@ bool MakeOp::Intersects (const Region* reg, const Line* line) {
    int i = 0;
    int j = 0;
    HalfSegment hsAkt;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    State status;
    Coord aktSweep;
    Coord oldSweep;
@@ -4851,16 +4849,16 @@ bool MakeOp::Intersects (const Region* reg, const Line* line) {
      // select_ first
       res1->Get(i,hs1);
       res2->Get(j,hs2);
-      if (hs1->GetLeftPoint()==hs2->GetLeftPoint()||
-          hs1->GetLeftPoint()==hs2->GetRightPoint()||
-          hs1->GetRightPoint()==hs2->GetLeftPoint()||
-          hs1->GetRightPoint()==hs2->GetRightPoint() ){
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint()||
+          hs1.GetLeftPoint()==hs2.GetRightPoint()||
+          hs1.GetRightPoint()==hs2.GetLeftPoint()||
+          hs1.GetRightPoint()==hs2.GetRightPoint() ){
           res1->Destroy(); delete res1;
           res2->Destroy(); delete res2;
           return true;
       }
-      else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
-      else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
+      else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
+      else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if ( hsAkt.IsLeftDomPoint() == false) {
          if (status == FIRST) {  // right end of segment of region
@@ -4885,7 +4883,7 @@ bool MakeOp::Intersects (const Region* reg, const Line* line) {
             // calculate new segmentclass of new ChalfSegment
             ms = np;
             ns = np;
-            if (hs1->attr.insideAbove == true)
+            if (hs1.attr.insideAbove == true)
                { ent.SetU(0); ent.SetO(1); }
             else
                { ent.SetU(1); ent.SetO(0); }
@@ -4931,22 +4929,22 @@ bool MakeOp::Intersects (const Line* line1, const Line* line2)
    // initialisations
    int i = 0;
    int j = 0;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    // execute until one argument is empty
    while ( i < res1->Size() && j < res2->Size()) {
      // select_ first
       res1->Get(i,hs1);
       res2->Get(j,hs2);
-      if (hs1->GetLeftPoint()==hs2->GetLeftPoint() ||
-          hs1->GetLeftPoint()==hs2->GetRightPoint() ||
-          hs1->GetRightPoint()==hs2->GetLeftPoint() ||
-          hs1->GetRightPoint() == hs2->GetRightPoint() ) {
+      if (hs1.GetLeftPoint()==hs2.GetLeftPoint() ||
+          hs1.GetLeftPoint()==hs2.GetRightPoint() ||
+          hs1.GetRightPoint()==hs2.GetLeftPoint() ||
+          hs1.GetRightPoint() == hs2.GetRightPoint() ) {
            res1->Destroy(); delete res1;
            res2->Destroy(); delete res2;
            return true;
       }
-      if ( *hs1 < *hs2)       i ++;
-      else if ( *hs1 > *hs2)  j ++;
+      if ( hs1 < hs2)       i ++;
+      else if ( hs1 > hs2)  j ++;
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
@@ -4966,7 +4964,7 @@ void MakeOp::Union(const Region* reg1, const Region* reg2,
    int j = 0; 
    int counter = 0;
    HalfSegment hsAkt;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    State status;
    Coord aktSweep, oldSweep ;
    SEntry oldEntry1, oldEntry2;
@@ -5004,19 +5002,19 @@ void MakeOp::Union(const Region* reg1, const Region* reg2,
          //cout << "if1" << endl;
          res1->Get(i,hs1);
          res2->Get(j,hs2);
-         if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
-             hs1->GetRightPoint()==hs2->GetRightPoint() ){
-            i ++;   j ++;   hsAkt = *hs1;    status = BOTH; }
-         else if ( *hs1 < *hs2) {i ++; hsAkt = *hs1; status = FIRST;}
-         else if ( *hs1 > *hs2) {j ++; hsAkt = *hs2; status = SECOND;}
+         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+             hs1.GetRightPoint()==hs2.GetRightPoint() ){
+            i ++;   j ++;   hsAkt = hs1;    status = BOTH; }
+         else if ( hs1 < hs2) {i ++; hsAkt = hs1; status = FIRST;}
+         else if ( hs1 > hs2) {j ++; hsAkt = hs2; status = SECOND;}
       }
       else if (i < res1->Size() ) {
          //cout << "if2" << endl;
-         res1->Get(i,hs1);  i ++;   hsAkt = *hs1;  status = FIRST;
+         res1->Get(i,hs1);  i ++;   hsAkt = hs1;  status = FIRST;
       }
       else if ( j < res2->Size() ) {
          //cout << "if3" << endl;
-         res2->Get(j,hs2);  j ++;   hsAkt = *hs2;  status = SECOND;
+         res2->Get(j,hs2);  j ++;   hsAkt = hs2;  status = SECOND;
       }
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) { // right sement choosen
@@ -5066,12 +5064,12 @@ void MakeOp::Union(const Region* reg1, const Region* reg2,
          ns = np;
          if (status == FIRST || status == BOTH) {
             //cout << "if10" << endl;
-            if (hs1->attr.insideAbove == true) ns = ns+1;
+            if (hs1.attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          if (status == SECOND || status == BOTH) {
         //cout << "if11" << endl;
-            if (hs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2.attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          // set new segmentclasses in SEntry
@@ -5111,7 +5109,7 @@ void MakeOp::Union(const Line* line1, const Line* line2,Line* result)
    // initialisations
    int i = 0;
    int j = 0;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    result ->Clear();
    result->StartBulkLoad();
    // while there are segments in the realm-based arguments
@@ -5121,26 +5119,25 @@ void MakeOp::Union(const Line* line1, const Line* line2,Line* result)
          res1->Get(i,hs1);
          res2->Get(j,hs2);
          // add same segments only once
-         if (hs1->GetLeftPoint()== hs2->GetLeftPoint() && 
-             hs1->GetRightPoint()== hs2->GetRightPoint() )
-            {  i ++;   j ++;   (*result) += *hs1; }
-         else if ( *hs1 < *hs2) { i ++;  (*result) += *hs1; }
-         else if ( *hs1 > *hs2)  { j ++;  (*result) += *hs2; }
+         if (hs1.GetLeftPoint()== hs2.GetLeftPoint() && 
+             hs1.GetRightPoint()== hs2.GetRightPoint() )
+            {  i ++;   j ++;   (*result) += hs1; }
+         else if ( hs1 < hs2) { i ++;  (*result) += hs1; }
+         else if ( hs1 > hs2)  { j ++;  (*result) += hs2; }
       }
       else if (i<res1->Size() )
-         { res1->Get(i,hs1);  i ++;  (*result) += *hs1; }
+         { res1->Get(i,hs1);  i ++;  (*result) += hs1; }
       else if ( j < res2->Size() )
-         { res2->Get(j,hs2);  j ++;  (*result) += *hs2; }
+         { res2->Get(j,hs2);  j ++;  (*result) += hs2; }
    } // end while
    res1->Destroy(); delete res1;
    res2->Destroy(); delete res2;
    // VTA - I need to come back here
    unsigned int size = result->Size(); 
    if(size>0) {result->Resize(size*2);}
-    const HalfSegment* hs_oldptr;
+    HalfSegment hs_old;
     for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
-         result->Get(i,hs_oldptr);
-         HalfSegment hs_old(*hs_oldptr);
+         result->Get(i,hs_old);
          hs_old.SetLeftDomPoint(true);
          hs_old.attr.edgeno = i;
          result->Put(i,hs_old);
@@ -5176,7 +5173,7 @@ void MakeOp::Minus(const Region* reg1, const Region* reg2, Region* result)
    SLine sweepline;
    int i = 0;   int j = 0;  int counter = 0;
    HalfSegment hsAkt;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    result ->Clear();
    result->StartBulkLoad();
    State status;
@@ -5190,17 +5187,17 @@ void MakeOp::Minus(const Region* reg1, const Region* reg2, Region* result)
       if (i < res1->Size() && j < res2->Size() ) {
          res1->Get(i,hs1);
          res2->Get(j,hs2);
-         if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
-             hs1->GetRightPoint()==hs2->GetRightPoint() )
-            {i ++; j ++; hsAkt = *hs1;  status = BOTH;    }
-         else if ( *hs1 < *hs2) { i ++; hsAkt = *hs1; status = FIRST; }
-         else if ( *hs1 > *hs2) { j ++; hsAkt = *hs2; status = SECOND; }
+         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+             hs1.GetRightPoint()==hs2.GetRightPoint() )
+            {i ++; j ++; hsAkt = hs1;  status = BOTH;    }
+         else if ( hs1 < hs2) { i ++; hsAkt = hs1; status = FIRST; }
+         else if ( hs1 > hs2) { j ++; hsAkt = hs2; status = SECOND; }
       }
       else if (i < res1->Size() ) {
-         res1->Get(i,hs1);  i ++;   hsAkt = *hs1;  status = FIRST;
+         res1->Get(i,hs1);  i ++;   hsAkt = hs1;  status = FIRST;
       }
       else if ( j < res2->Size() ) {
-         res2->Get(j,hs2);  j ++;   hsAkt = *hs2;  status = SECOND; }
+         res2->Get(j,hs2);  j ++;   hsAkt = hs2;  status = SECOND; }
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // right end of segment
          hsAkt.SetLeftDomPoint(true);
@@ -5253,11 +5250,11 @@ void MakeOp::Minus(const Region* reg1, const Region* reg2, Region* result)
          // calculate new segmentclass of new ChalfSegment
          ms = np;        ns = np;
          if (status == FIRST || status == BOTH) {
-            if (hs1->attr.insideAbove == true) ns = ns+1;
+            if (hs1.attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          if (status == SECOND || status == BOTH) {
-            if (hs2->attr.insideAbove == true) ns = ns+1;
+            if (hs2.attr.insideAbove == true) ns = ns+1;
             else                                ns = ns-1;
          }
          // set new segmentclasses in SEntry
@@ -5295,7 +5292,7 @@ void MakeOp::Minus(const Line* line, const Region* reg,Line* result)
    int i = 0;
    int j = 0;
    HalfSegment hsAkt;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    result ->Clear();
    result->StartBulkLoad();
    State status;
@@ -5309,14 +5306,14 @@ void MakeOp::Minus(const Line* line, const Region* reg,Line* result)
       if (i < resLine -> Size() && j < resReg -> Size() ) {
          resLine -> Get(i,hs1);
          resReg -> Get(j,hs2);
-         if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
-             hs1->GetRightPoint()==hs2->GetRightPoint()){
-            i ++;   j ++;   hsAkt = *hs2;    status = BOTH;  }
-         else if ( *hs1 < *hs2) { i ++; hsAkt = *hs1; status = FIRST;}
-         else if ( *hs1 > *hs2) { j ++; hsAkt = *hs2; status = SECOND;}
+         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+             hs1.GetRightPoint()==hs2.GetRightPoint()){
+            i ++;   j ++;   hsAkt = hs2;    status = BOTH;  }
+         else if ( hs1 < hs2) { i ++; hsAkt = hs1; status = FIRST;}
+         else if ( hs1 > hs2) { j ++; hsAkt = hs2; status = SECOND;}
       }
       else if (i < resLine ->Size() ) {
-         resLine -> Get(i,hs1); i ++; hsAkt = *hs1; status = FIRST;}
+         resLine -> Get(i,hs1); i ++; hsAkt = hs1; status = FIRST;}
       aktSweep = hsAkt.GetDomPoint().GetX();
       if (hsAkt.IsLeftDomPoint() == false) {  // delete right end
          if ( status == SECOND || status == BOTH ) {
@@ -5335,7 +5332,7 @@ void MakeOp::Minus(const Line* line, const Region* reg,Line* result)
          if (status == FIRST ) {
             if (pred == 0 || (pred!=0 && pred->GetEntry().GetO()==0) )
             {
-         HalfSegment auxHs1( *hs1 );
+         HalfSegment auxHs1( hs1 );
                auxHs1.attr.edgeno = counter;
                (*result) += auxHs1;    
                auxHs1.SetLeftDomPoint(false);
@@ -5383,7 +5380,7 @@ void MakeOp::Minus(const Line* line1, const Line* line2,Line* result)
    // initialisations
    int i = 0;
    int j = 0;
-   const HalfSegment *hs1, *hs2;
+   HalfSegment hs1, hs2;
    result ->Clear();
    result->StartBulkLoad();
     // while there are segments in the first arguments
@@ -5392,16 +5389,16 @@ void MakeOp::Minus(const Line* line1, const Line* line2,Line* result)
       if (i < res1->Size() && j < res2->Size() ) {
          res1->Get(i,hs1);
          res2->Get(j,hs2);
-         if (hs1->GetLeftPoint()==hs2->GetLeftPoint() && 
-             hs1->GetRightPoint()==hs2->GetRightPoint() )
+         if (hs1.GetLeftPoint()==hs2.GetLeftPoint() && 
+             hs1.GetRightPoint()==hs2.GetRightPoint() )
             { i ++;  j ++; }
-         else if ( *hs1 < *hs2) { i ++;  (*result) += *hs1;  }
-         else if ( *hs1 > *hs2)  j ++;
+         else if ( hs1 < hs2) { i ++;  (*result) += hs1;  }
+         else if ( hs1 > hs2)  j ++;
       }
       else if (i < res1->Size() ) {
          res1->Get(i,hs1);
          i ++;
-         (*result) += *hs1;
+         (*result) += hs1;
       }
    }
    res1->Destroy(); delete res1;
@@ -5409,10 +5406,9 @@ void MakeOp::Minus(const Line* line1, const Line* line2,Line* result)
    // VTA - I need to come back here
    unsigned int size = result->Size(); 
    result->Resize(size*2);
-    const HalfSegment* hs_oldptr;
+    HalfSegment hs_old;
     for( unsigned int i=0; i< size; i++){ // scan all old halfsegments
-         result->Get(i,hs_oldptr);
-         HalfSegment hs_old(*hs_oldptr);
+         result->Get(i,hs_old);
          hs_old.SetLeftDomPoint(true);
          hs_old.attr.edgeno = i;
          result->Put(i,hs_old);
