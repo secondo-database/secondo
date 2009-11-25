@@ -1948,8 +1948,11 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
     localinfo->j = 0;                              // init interval counter
     qp->Open( args[0].addr );                      // open stream of units
     qp->Request( args[0].addr, localinfo->uWord ); // request first unit
-    if ( !( qp->Received( args[0].addr) ) )
-      {localinfo->uWord.addr = 0; result.addr = 0; return CANCEL; }
+    if ( !( qp->Received( args[0].addr) ) ){
+      localinfo->uWord.addr = 0;
+      result.addr = 0;
+      return CANCEL;
+    }
     local.setAddr(localinfo);                    // pass up link to localinfo
     return 0;
 
@@ -1957,69 +1960,63 @@ int MappingUnitStreamAtPeriods( Word* args, Word& result, int message,
       if ( local.addr == 0 )
         return CANCEL;
       localinfo = (AtPeriodsLocalInfoUS *) local.addr; // restore local data
-      if ( localinfo->uWord.addr == 0 )
-      { result.addr = 0; return CANCEL; }
+      if ( localinfo->uWord.addr == 0 ) { result.addr = 0; return CANCEL; }
       unit = (Alpha *) localinfo->uWord.addr;
-      if ( localinfo->pWord.addr == 0 )
-      { result.addr = 0; return CANCEL; }
+      if ( localinfo->pWord.addr == 0 ) { result.addr = 0; return CANCEL; }
       periods = (Periods *) localinfo->pWord.addr;
 
       if( !periods->IsDefined() ||   // by now, periods cannot be undefined
            periods->IsEmpty()       ) // only empty
         return CANCEL;
 
-    // search for a pair of overlapping unit/interval:
-    while (1)
-    {
-      if ( localinfo->j == periods->GetNoComponents() ) // redo first interval
-      {
-        localinfo->j = 0;
-        unit->DeleteIfAllowed();                // delete original unit?
-        localinfo->uWord.addr = 0;
-        foundUnit = false;
-        while(!foundUnit)
-        {
-          qp->Request(args[0].addr, localinfo->uWord);  // get new unit
-          if( qp->Received( args[0].addr ) )
-            unit = (Alpha *) localinfo->uWord.addr;
-          else
-          {
-            localinfo->uWord.addr = 0;
-            result.addr = 0;
-            return CANCEL;
-          }   // end of unit stream
-          foundUnit = unit->IsDefined();
+      // search for a pair of overlapping unit/interval:
+      while (1){
+        if ( localinfo->j == periods->GetNoComponents() ){// redo first interval
+          localinfo->j = 0;
+          unit->DeleteIfAllowed();                // delete original unit?
+          localinfo->uWord.addr = 0;
+          foundUnit = false;
+          while(!foundUnit){
+            qp->Request(args[0].addr, localinfo->uWord);  // get new unit
+            if( qp->Received( args[0].addr ) )
+              unit = (Alpha *) localinfo->uWord.addr;
+            else {
+              localinfo->uWord.addr = 0;
+              result.addr = 0;
+              return CANCEL;
+            }   // end of unit stream
+            foundUnit = unit->IsDefined();
+          }
         }
+        periods->Get(localinfo->j, interval);       // get an interval
+        if (    !( interval.Before( unit->timeInterval ) )
+                  && !( unit->timeInterval.Before( interval) ) )
+          break;                           // found candidate, break while
+        localinfo->j++;                             // next interval, loop
       }
-      periods->Get(localinfo->j, interval);       // get an interval
-      if (    !( interval.Before( unit->timeInterval ) )
-                 && !( unit->timeInterval.Before( interval) ) )
-        break;                           // found candidate, break while
-      localinfo->j++;                             // next interval, loop
-    }
 
-    // We have an interval overlapping the unit's interval now
-    // Return unit restricted to overlapping part of both intervals
-    if (!unit->timeInterval.Intersects( interval) )
-    { // This may not happen!
-      cout << __FILE__ << __LINE__ << __PRETTY_FUNCTION__
-        << ": Intervals do not overlap, but should do so:" << endl;
-      cout << "  Unit's timeInterval = ";
-      TUPrintTimeInterval(unit->timeInterval);
-      cout << endl << "  Current Period's interval = ";
-      TUPrintTimeInterval(interval);
-      cout << endl;
-      assert(false);
-    }
-    unit->AtInterval( interval, resultUnit); // intersect unit and interval
-    aux = new Alpha( resultUnit );
-    result.setAddr( aux );
-    localinfo->j++;                           // increase interval counter
-    return YIELD;
+      // We have an interval overlapping the unit's interval now
+      // Return unit restricted to overlapping part of both intervals
+      if (!unit->timeInterval.Intersects( interval) ){ // This may not happen!
+        cout << __FILE__ << __LINE__ << __PRETTY_FUNCTION__
+             << ": Intervals do not overlap, but should do so:" << endl;
+        cout << "  Unit's timeInterval = ";
+        TUPrintTimeInterval(unit->timeInterval);
+        cout << endl << "  Current Period's interval = ";
+        TUPrintTimeInterval(interval);
+        cout << endl;
+        assert(false);
+      }
+      unit->AtInterval( interval, resultUnit); // intersect unit and interval
+      aux = new Alpha( resultUnit );
+      result.setAddr( aux );
+      localinfo->j++;                           // increase interval counter
+      return YIELD;
 
   case CLOSE:
     if ( local.addr != 0 )
       {
+        qp->Close( args[0].addr );
         localinfo = (AtPeriodsLocalInfoUS *) local.addr;
         if ( localinfo->uWord.addr != 0 )
           {
@@ -3983,7 +3980,6 @@ int atmaxUReal( Word* args, Word& result, int message,
 {
   AtExtrURealLocalInfo *sli;
   UReal                *ureal;
-  Word    a0;
 
   result = qp->ResultStorage( s );
 
@@ -3991,8 +3987,7 @@ int atmaxUReal( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      a0 = args[0];
-      ureal = (UReal*)(a0.addr);
+      ureal = (UReal*)(args[0].addr);
 #ifdef TUA_DEBUG
         cout << "  Argument ureal value: " << TUPrintUReal(ureal) << endl
              << "  1" << endl;
@@ -4054,11 +4049,13 @@ template<class T>
 int atmaxUConst( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
+  ConstTemporalUnit<T>* arg = static_cast<ConstTemporalUnit<T>*>(args[0].addr);
+  result = qp->ResultStorage( s );
   // This operator is not very interesting. It implements
   // the atmax operator for constant unit types, like uint, ustring or ubool.
   // In fact, it returns just a copy of the argument.
-
-  result.setAddr(((ConstTemporalUnit<T>*)(args[0].addr))->Clone());
+  ConstTemporalUnit<T>* res = static_cast<ConstTemporalUnit<T>*>(result.addr);
+  res->CopyFrom(arg);
   return 0;
 }
 
@@ -4158,7 +4155,6 @@ int atminUReal( Word* args, Word& result, int message,
 {
   AtExtrURealLocalInfo *sli;
   UReal                *ureal;
-  Word    a0;
 
   result = qp->ResultStorage( s );
 
@@ -4166,8 +4162,7 @@ int atminUReal( Word* args, Word& result, int message,
     {
     case OPEN :
 
-      a0 = args[0];
-      ureal = (UReal*)(a0.addr);
+      ureal = (UReal*)(args[0].addr);
 #ifdef TUA_DEBUG
         cout << "  Argument ureal value: " << TUPrintUReal(ureal) << endl
              << "  1" << endl;
@@ -4229,11 +4224,13 @@ template<class T>
 int atminUConst( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
+  ConstTemporalUnit<T>* arg = static_cast<ConstTemporalUnit<T>*>(args[0].addr);
+  result = qp->ResultStorage( s );
   // This operator is not very interesting. It implements
   // the atmin operator for constant unit types, like uint, ustring or ubool.
   // In fact, it returns just a copy of the argument.
-
-  result.setAddr(((ConstTemporalUnit<T>*)(args[0].addr))->Clone());
+  ConstTemporalUnit<T>* res = static_cast<ConstTemporalUnit<T>*>(result.addr);
+  res->CopyFrom(arg);
   return 0;
 }
 
