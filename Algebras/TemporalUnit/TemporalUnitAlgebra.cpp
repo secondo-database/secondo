@@ -526,8 +526,8 @@ int MPointSpeed(Word* args, Word& result, int message, Word& local, Supplier s)
     input->MSpeed( *res );
   else
     {
-      res->Clear();             // using empty mvalue instead
-      //res->SetDefined(false); // of undef mvalue
+      res->Clear();
+      res->SetDefined(false);
     }
   return 0;
 }
@@ -1103,12 +1103,12 @@ int MappingMakemvalue(Word* args,Word& result,int message,
              << endl;
         assert( false );
       }
-      else  if(currentAttr->IsDefined())
+      else if(currentAttr->IsDefined())
       {
         unit = (Unit*) currentAttr;
         m->Add( *unit );
-        currentTuple->DeleteIfAllowed();
       }
+      currentTuple->DeleteIfAllowed();
       qp->Request(args[0].addr, currentTupleWord);
     }
   m->EndBulkLoad( true ); // force Mapping to sort the units
@@ -1134,22 +1134,18 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
   m->Clear();
   m->StartBulkLoad();
 
-  while ( qp->Received(args[0].addr) ) // get all tuples
-    {
+  while ( qp->Received(args[0].addr) ) { // get all tuples
       unit = (Unit*) currentUnit.addr;
-      if(unit == 0)
-      {
+      if(unit == 0) {
         cout << endl << "ERROR in MappingMakemvaluePlain: received Nullpointer!"
              << endl;
         assert( false );
-      }
-      else if(unit->IsDefined())
-      {
+      } else if(unit->IsDefined()) {
         m->Add( *unit );
-        unit->DeleteIfAllowed();
       }
+      unit->DeleteIfAllowed();
       qp->Request(args[0].addr, currentUnit);
-    }
+  }
   m->EndBulkLoad( true ); // force Mapping to sort the units
   qp->Close(args[0].addr);
 
@@ -1184,20 +1180,17 @@ int MappingMakemvalue_movingregion(Word* args,Word& result,int message,
       Attribute* currentAttr = (Attribute*)currentTuple->
         GetAttribute(attributeIndex);
 
-      if(currentAttr == 0)
-      {
+      if(currentAttr == 0) {
         cout << endl << "ERROR in MappingMakemvalue: received Nullpointer!"
              << endl;
         assert( false );
-      }
-      else if(currentAttr->IsDefined())
-        {
+      } else if(currentAttr->IsDefined()) {
           unit = (URegion*) currentAttr;
           cout << "MappingMakemvalue_movingregion: " << endl;
           unit->Print(cout);
           m->AddURegion( *unit );
-          currentTuple->DeleteIfAllowed();
-        }
+      }
+      currentTuple->DeleteIfAllowed();
       qp->Request(args[0].addr, currentTupleWord);
     }
   m->EndBulkLoad( true ); // force Mapping to sort the units
@@ -1225,19 +1218,16 @@ int MappingMakemvalue_movingregionPlain(Word* args,Word& result,int message,
   while ( qp->Received(args[0].addr) ) // get all tuples
     {
       unit = (URegion*) currentUnit.addr;
-      if(unit == 0)
-      {
+      if(unit == 0) {
         cout << endl << "ERROR in MappingMakemvalue_movingregionPlain: "
             "received Nullpointer!" << endl;
         assert( false );
-      }
-      else if(unit->IsDefined())
-        {
+      } else if(unit->IsDefined()) {
           cout << "MappingMakemvalue_movingregion: " << endl;
           unit->Print(cout);
           m->AddURegion( *unit );
-          unit->DeleteIfAllowed();
-        }
+      }
+      unit->DeleteIfAllowed();
       qp->Request(args[0].addr, currentUnit);
     }
   m->EndBulkLoad( true ); // force Mapping to sort the units
@@ -1410,13 +1400,12 @@ int UnitPointTrajectory(Word* args, Word& result, int message,
   UPoint *upoint = ((UPoint*)args[0].addr);
 
   line->Clear();                // clear result
-  if ( upoint->IsDefined() )
+  if ( upoint->IsDefined() ){
+    line->SetDefined( true );
     upoint->UTrajectory( *line );   // call memberfunction
-  else
-    {
-      // line->Clear();             // Use empty value
-      // line->SetDefined( false ); // instead of undef
-    }
+  } else {
+    line->SetDefined( false );
+  }
   return 0;
 }
 
@@ -1430,8 +1419,8 @@ TemporalSpecTrajectory  =
 "( <text>upoint -> line</text--->"
 "<text>trajectory( _ )</text--->"
 "<text>get the trajectory of the corresponding"
-"unit point object. Static or undef upoint objects "
-"yield empty line objects.</text--->"
+"unit point object. Static upoint objects "
+"yield empty line objects, on undef argument, it returns undef.</text--->"
 "<text>trajectory( up1 )</text---> ) )";
 
 /*
@@ -1593,17 +1582,15 @@ int MappingUnitAtInstant( Word* args, Word& result, int message,
   Instant* t = ((Instant*)args[1].addr);
   Instant t1 = *t;
 
-  if ( !t->IsDefined() || !posUnit->IsDefined() )
+  if ( !t->IsDefined() || !posUnit->IsDefined() ) {
     pResult->SetDefined( false );
-  else if( posUnit->timeInterval.Contains(t1) )
-    {
+  } else if( posUnit->timeInterval.Contains(t1) ) {
       posUnit->TemporalFunction( *t, pResult->value );
       pResult->instant = *t;
       pResult->SetDefined( true );
-    }
-  else    // instant not contained by deftime interval
+  } else {    // instant not contained by deftime interval
     pResult->SetDefined( false );
-
+  }
   return 0;
 }
 
@@ -1810,7 +1797,7 @@ int MappingUnitAtPeriods( Word* args, Word& result, int message,
 
     if( !unit->IsDefined()    ||
         !periods->IsDefined() ||   // as a set-valued type, periods cannot be
-        periods->IsEmpty()       ) // undefined, but only empty
+        periods->IsEmpty()       ) // undefined, but empty
     {
       result.setAddr(0);
       return CANCEL;
@@ -2199,13 +2186,10 @@ int MappingUnitStreamInstantFinal( Word* args, Word& result, int message,
                                    Word& local, Supplier s )
 {
   assert(Mode>=0 && Mode<=1);
-
   result = qp->ResultStorage( s );
-
   Word elem;
   Unit *U = 0, *SavedUnit = 0;
   Intime<Alpha> *I = ((Intime<Alpha>*)result.addr);
-
 
   qp->Open(args[0].addr);              // get first elem from stream
   qp->Request(args[0].addr, elem);     // get first elem from stream
@@ -2397,14 +2381,12 @@ int MappingUnitPresent_i( Word* args, Word& result, int message,
                           Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Unit *m = ((Unit*)args[0].addr);
   Instant* inst = ((Instant*)args[1].addr);
   Instant t1 = *inst;
 
   if ( !inst->IsDefined() || !m->IsDefined() )
     ((CcBool *)result.addr)->Set( false, false );
-
   else if( m->timeInterval.Contains(t1) )
     ((CcBool *)result.addr)->Set( true, true );
   else
@@ -2426,7 +2408,7 @@ int MappingUnitPresent_p( Word* args, Word& result, int message,
     ((CcBool *)result.addr)->Set( false, false );
     return 0;
   }
-  else if( periods->IsEmpty() ) // (undef periods are not defined)
+  else if( periods->IsEmpty() )
   {
     ((CcBool *)result.addr)->Set( false, false );
     return 0;
@@ -2461,7 +2443,7 @@ TemporalSpecPresent  =
 "(T in {bool, int, real, string, point, region)</text--->"
 "<text>_ present _ </text--->"
 "<text>whether the moving/unit object is present at the"
-" given instant or period. For an empty periods value, "
+" given instant or period. For an empty or undefines periods value, "
 "the result is undefined.</text--->"
 "<text>mpoint1 present instant1</text---> ) )";
 
@@ -2956,14 +2938,13 @@ int MPointVelocity(Word* args, Word& result, int message,
   MPoint *input = (MPoint*)args[0].addr;
 
   res->Clear();
-  if ( input->IsDefined() )
-    // call member function:
-    input->MVelocity( *res );
-  else
-    {
-      res->Clear();             // use empty value
-      //res->SetDefined(false); // instead of undef value
-    }
+  if ( input->IsDefined() && (input->GetNoComponents() > 0) ){
+      res->SetDefined(true);
+      // call member function:
+      input->MVelocity( *res );
+  } else {
+      res->SetDefined(false);
+  }
   return 0;
 }
 
@@ -2974,10 +2955,11 @@ int UnitPointVelocity(Word* args, Word& result, int message,
   UPoint *input = (UPoint*)args[0].addr;
   UPoint *res   = (UPoint*)result.addr;
 
-  if ( !input->IsDefined() )
+  if ( !input->IsDefined() ){
     res->SetDefined( false );
-  else
+  } else {
     input->UVelocity( *res );
+  }
   return 0;
 }
 
@@ -2993,7 +2975,8 @@ TemporalSpecVelocity=
 "<text>velocity ( _ ) </text--->"
 "<text>describes the vector of the speed "
 "of the given temporal spatial object (i.e. the "
-"coponemtwise speed in unit/s).</text--->"
+"componentwise speed in unit/s). An undefined or empty argument yields an "
+"undefined result value</text--->"
 "<text>velocity (mpoint)</text---> ) )";
 
 /*
@@ -3077,11 +3060,11 @@ int MPointDerivable( Word* args, Word& result, int message,
     res->SetDefined(false);
   else
     {
+      res->SetDefined(true);
       res->StartBulkLoad();
       for( int i = 0; i < value->GetNoComponents(); i++ )
         {
           value->Get( i, uReal ); // Load a real unit.
-
           // FALSE means in this case that a real unit describes a quadratic
           // polynomial. A derivation is possible and the operator returns TRUE.
           if (uReal.r == false)
@@ -3108,6 +3091,7 @@ int UnitPointDerivable( Word* args, Word& result, int message,
 
   if (uReal->IsDefined())
     {
+      res->SetDefined(true);
       res->timeInterval = uReal->timeInterval;
 
       if (uReal->r == false)
@@ -3219,6 +3203,7 @@ int MPointDerivative( Word* args, Word& result, int message,
   res->Clear();
   if ( value->IsDefined() )
     {
+      res->SetDefined(true);
       res->StartBulkLoad();
 
       for( int i = 0; i < value->GetNoComponents(); i++ )
@@ -3479,9 +3464,9 @@ int TUDistance_UPoint_UPoint( Word* args, Word& result, int message,
   else
     { // get intersection of deftime intervals
 #ifdef TUA_DEBUG
-        cout << "TUDistance_UPoint_UPoint:" << endl
-             << "   iv1=" << TUPrintTimeInterval(u1->timeInterval) << endl
-             << "   iv2=" << TUPrintTimeInterval(u2->timeInterval) << endl;
+      cout << "TUDistance_UPoint_UPoint:" << endl
+           << "   iv1=" << TUPrintTimeInterval(u1->timeInterval) << endl
+           << "   iv2=" << TUPrintTimeInterval(u2->timeInterval) << endl;
 #endif
       u1->timeInterval.Intersection( u2->timeInterval, iv );
 #ifdef TUA_DEBUG
@@ -3532,6 +3517,7 @@ int TUDistance_UPoint_Point( Word* args, Word& result, int message,
       cout << "\nWrong argument configuration in "
            << "'TUDistance_UPoint_Point'. argConfDescriptor2="
            << argConfDescriptor2 << endl;
+      assert( false );
       return 0;
     }
 
@@ -6501,7 +6487,11 @@ int AtUpR(Word* args, Word& result,
   UPoint* arg1 = static_cast<UPoint*>(args[0].addr);
   Rectangle<2>* arg2 = static_cast<Rectangle<2>*>(args[1].addr);
   UPoint* res = static_cast<UPoint*>(result.addr);
-  arg1->At(*arg2,*res);
+  if( !arg1->IsDefined() || !arg2->IsDefined() ){
+    res->SetDefined(false);
+  } else {
+    arg1->At(*arg2,*res);
+  }
   return 0;
 }
 
@@ -6647,17 +6637,14 @@ int TUNoComponentsValueMap(Word* args, Word& result,
   UInt  *res   = (UInt*)result.addr;
   T     *input = (T*)args[0].addr;
 
-  if ( input->IsDefined() )
-    {
+  if ( input->IsDefined() ) {
       res->SetDefined(true);
       res->timeInterval.CopyFrom(input->timeInterval);
       res->constValue.Set(true,1);
-    }
-  else
-    {
+  } else {
       res->SetDefined(false);
       res->constValue.Set(true,0);
-    }
+  }
   return 0;
 }
 
@@ -6834,15 +6821,14 @@ int TUNotValueMap(Word* args, Word& result, int message,
   UBool *res = (UBool*) result.addr;
   UBool *input = (UBool*)args[0].addr;
 
-  if(!input->IsDefined())
+  if(!input->IsDefined()){
     res->SetDefined( false );
-  else
-    {
+  } else {
       res->SetDefined( true );
       res->CopyFrom(input);
       res->constValue.Set(res->constValue.IsDefined(),
                           !(res->constValue.GetBoolval()));
-    }
+  }
   return 0;
 }
 /*
