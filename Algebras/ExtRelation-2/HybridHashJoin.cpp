@@ -228,7 +228,8 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
   if ( traceMode )
   {
-    cmsg.info() << "2: t2 => " << t2 << endl;
+    cmsg.info() << "2: t2 => " << t2 << " ("
+                << p1.Card << " tuples)" << endl;
     cmsg.send();
   }
 
@@ -255,7 +256,8 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
     if ( traceMode )
     {
-      cmsg.info() << "3: t3 => " << t3 << endl;
+      cmsg.info() << "3: t3 => " << t3 << " ("
+                  << card0 << " tuples)" << endl;
       cmsg.send();
     }
   }
@@ -266,7 +268,10 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
                  * ( t_read + t_write );
   if ( traceMode )
   {
-    cmsg.info() << "4: t4 => " << t4 << endl;
+    cmsg.info() << "4: t4 => " << t4
+                << " (" << p2.Card << "/"
+                << min(streamB.partitionProgressInfo[0].tuples, M_S2)
+                << " tuples)" << endl;
     cmsg.send();
   }
 
@@ -275,7 +280,8 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
   if ( traceMode )
   {
-    cmsg.info() << "5: t5 => " << t5 << endl;
+    cmsg.info() << "5: t5 => " << t5 << " ("
+                << streamB.subTotalTuples << " tuples)" << endl;
     cmsg.send();
   }
 
@@ -284,7 +290,8 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
   if ( traceMode )
   {
-    cmsg.info() << "6: t6 => " << t6 << endl;
+    cmsg.info() << "6: t6 => " << t6 << " ("
+                << pRes->Card << " tuples)" << endl;
     cmsg.send();
   }
 
@@ -314,7 +321,8 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
   if ( traceMode )
   {
-    cmsg.info() << "2: prog2 => " << prog2 << endl;
+    cmsg.info() << "2: prog2 => " << prog2 << " ("
+                << k1 << " tuples)" << endl;
     cmsg.send();
   }
 
@@ -346,7 +354,8 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
     if ( traceMode )
     {
-      cmsg.info() << "3: prog3 => " << prog3 << endl;
+      cmsg.info() << "3: prog3 => " << prog3 << " ("
+                  << min(proc0,card0) << " tuples)" << endl;
       cmsg.send();
     }
   }
@@ -359,7 +368,10 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
   if ( traceMode )
   {
-    cmsg.info() << "4: prog4 => " << prog4 << endl;
+    cmsg.info() << "4: prog4 => " << prog4 << " ("
+                << streamB.GetTotalProcessedTuples()
+                << "/" <<  min(streamB.partitionProgressInfo[0].tuples, M_S2)
+                << " tuples)" << endl;
     cmsg.send();
   }
 
@@ -368,7 +380,8 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
   if ( traceMode )
   {
-    cmsg.info() << "5: prog5 => " << prog5 << endl;
+    cmsg.info() << "5: prog5 => " << prog5 << " ("
+                << streamB.subTuples << " tuples)"<< endl;
     cmsg.send();
   }
 
@@ -377,7 +390,8 @@ void HybridHashJoinProgressLocalInfo::calcProgressHybrid( ProgressInfo& p1,
 
   if ( traceMode )
   {
-    cmsg.info() << "6: prog6 => " << prog6 << endl;
+    cmsg.info() << "6: prog6 => " << prog6 << " ("
+                << m << " tuples)"<< endl;
     cmsg.send();
   }
 
