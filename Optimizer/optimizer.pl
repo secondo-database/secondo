@@ -2177,17 +2177,26 @@ plan_to_atom_2([InHead|InRest],[OutHead|OutRest]) :-
   plan_to_atom(InHead,OutHead), !,
   plan_to_atom_2(InRest,OutRest).
 
+
 % used within insert and update:
 list_to_atom([X], AtomX) :-
-  plan_to_atom(X, AtomX),
+  listelement_to_atom(X, AtomX),
   !.
 
 % used within insert and update:
 list_to_atom([X | Xs], Result) :-
-  plan_to_atom(X, XAtom),
+  listelement_to_atom(X, XAtom),
   list_to_atom(Xs, XsAtom),
   concat_atom([XAtom, ', ', XsAtom], '', Result),
   !.
+
+listelement_to_atom(Term, Result) :-
+    is_list(Term), Term = [First | _], atomic(First), !,
+    atom_codes(TermRes, Term),
+    concat_atom(['"', TermRes, '"'], '', Result).
+
+listelement_to_atom(Term, Result) :-
+    plan_to_atom(Term, Result).
 
 /*
 Hidden fields have an argument number 100 and can be removed from a projection list by activating the flag ``removeHidenAttributes''. See ~plan\_to\_atom~ for ~project~.
