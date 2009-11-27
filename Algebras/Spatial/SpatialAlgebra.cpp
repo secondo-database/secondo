@@ -2441,8 +2441,8 @@ A ~halfsegment~ value is a pair of points, with a boolean flag indicating the do
 */
 void HalfSegment::Translate( const Coord& x, const Coord& y )
 {
-  lp.Translate( x, y );
-  rp.Translate( x, y );
+   lp = lp.Translate( x, y );
+   rp = rp.Translate( x, y );
 }
 
 
@@ -4235,17 +4235,22 @@ int Line::NoComponents() const
 
 void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
 {
+
   assert( IsOrdered() );
-
-  result = *this;
-
+  result.Clear();
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.SetDefined(true);
+  result.Resize(this->Size());
+  result.bbox = this->bbox;
   HalfSegment hs;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
-
     hs.Translate( x, y );
-    result.Put(i,hs);
+    result.line.Put(i,hs);
   }
 }
 
@@ -10516,8 +10521,8 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
     } else { // forgotten case or overlapping segments (rounding errors)
        if(leftN->overlaps(*rightN)){
          cerr << "Overlapping neighbours found" << endl;
-         cout << "leftN = " << *leftN << endl;
-         cout << "rightN = " << *rightN << endl;
+         cerr << "leftN = " << *leftN << endl;
+         cerr << "rightN = " << *rightN << endl;
          avlseg::AVLSegment left;
          avlseg::AVLSegment common;
          avlseg::AVLSegment right;
@@ -10526,21 +10531,21 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
          sss.remove(*rightN);
          if(parts & avlseg::LEFT){
            if(!left.isPoint()){
-             cout << "insert left part" << left << endl;
+             cerr << "insert left part" << left << endl;
              leftN = sss.insert2(left);
              insertEvents(left,false,true,q1,q2);
            }
          }
          if(parts & avlseg::COMMON){
            if(!common.isPoint()){
-             cout << "insert common part" << common << endl;
+             cerr << "insert common part" << common << endl;
              rightN = sss.insert2(common);
              insertEvents(common,false,true,q1,q2);
            }
          }
          if(parts & avlseg::RIGHT){
            if(!right.isPoint()){
-             cout << "insert events for the right part" << right << endl;;
+             cerr << "insert events for the right part" << right << endl;;
              insertEvents(right,true,true,q1,q2);
            }
          }
@@ -10964,7 +10969,7 @@ void Realminize2(const Line& src, Line& result){
 
 
   while(selectNext(src,pos,q,nextHS)!=avlseg::none) {
-      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      avlseg::AVLSegment current(nextHS,avlseg::first);
       member = sss.getMember(current,leftN,rightN);
       if(leftN){
          tmpL = *leftN;
@@ -11167,7 +11172,7 @@ DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments){
   avlseg::AVLSegment tmpL,tmpR;
 
   while(selectNext(segments,pos,q,nextHS)!=avlseg::none) {
-      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      avlseg::AVLSegment current(nextHS,avlseg::first);
       member = sss.getMember(current,leftN,rightN);
       if(leftN){
          tmpL = *leftN;
@@ -11265,7 +11270,7 @@ bool hasOverlaps(const DbArray<HalfSegment>& segments,
   avlseg::AVLSegment tmpL,tmpR;
 
   while(selectNext(segments,pos,q,nextHS)!=avlseg::none) {
-      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      avlseg::AVLSegment current(nextHS,avlseg::first);
       member = sss.getMember(current,leftN,rightN);
       if(leftN){
          tmpL = *leftN;
@@ -11372,7 +11377,7 @@ void SetOp(const Line& line1,
   while( (owner=selectNext(line1,pos1,
                            line2,pos2,
                            q1,q2,nextHs,src))!=avlseg::none){
-       avlseg::AVLSegment current(&nextHs,owner);
+       avlseg::AVLSegment current(nextHs,owner);
        member = sss.getMember(current,leftN,rightN);
        if(leftN){
          tmpL = *leftN;
@@ -11560,8 +11565,8 @@ void SetOp(const Region& reg1,
   HalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
+  const avlseg::AVLSegment* member = 0;
+  const avlseg::AVLSegment* leftN  = 0;
   const avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1,
@@ -11571,10 +11576,12 @@ void SetOp(const Region& reg1,
   avlseg::AVLSegment tmpL,tmpR;
 
   result.StartBulkLoad();
+
   while( (owner=selectNext(reg1,pos1,
                            reg2,pos2,
                            q1,q2,nextHs,src))!=avlseg::none){
-       avlseg::AVLSegment current(&nextHs,owner);
+
+       avlseg::AVLSegment current(nextHs,owner);
        member = sss.getMember(current,leftN,rightN);
        if(leftN){
           tmpL = *leftN;
@@ -11598,8 +11605,8 @@ void SetOp(const Region& reg1,
                cerr << "current = " << current << endl;
                avlseg::AVLSegment tmp_left, tmp_common, tmp_right;
                member->split(current,tmp_left, tmp_common, tmp_right, false);
-               cout << "The common part is " << tmp_common << endl;
-               cout << "The lenth = " << tmp_common.length() << endl;
+               cerr << "The common part is " << tmp_common << endl;
+               cerr << "The lenth = " << tmp_common.length() << endl;
                assert(false);
             }
             int parts = member->split(current,left1,common1,right1);
@@ -11628,7 +11635,6 @@ void SetOp(const Region& reg1,
             // try to split segments if required
             splitByNeighbour(sss,current,leftN,q1,q2);
             splitByNeighbour(sss,current,rightN,q1,q2);
-
 
             // update coverage numbers
             bool iac = current.getOwner()==avlseg::first
@@ -11660,7 +11666,7 @@ void SetOp(const Region& reg1,
             if(!current.isPoint()){
               sss.insert(current);
               insertEvents(current,false,true,q1,q2);
-            }
+            } 
           }
        } else {  // nextHs.IsRightDomPoint
           if(member && member->exactEqualsTo(current)){
@@ -11747,6 +11753,7 @@ void SetOp(const Region& reg1,
        } // right endpoint
   }
   result.EndBulkLoad();
+  
 } // setOP region x region -> region
 
 Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op){
@@ -11845,7 +11852,7 @@ void SetOp(const Line& line,
                             region,pos2,
                             q1,q2,nextHs,src))!=avlseg::none)
          && ! done){
-     avlseg::AVLSegment current(&nextHs,owner);
+     avlseg::AVLSegment current(nextHs,owner);
      member = sss.getMember(current,leftN,rightN);
      if(leftN){
         tmpL = *leftN;
@@ -12025,7 +12032,7 @@ void CommonBorder(
                             reg2,pos2,
                             q1,q2,nextHs,src))!=avlseg::none)
          && !done  ){
-       avlseg::AVLSegment current(&nextHs,owner);
+       avlseg::AVLSegment current(nextHs,owner);
        member = sss.getMember(current,leftN,rightN);
        if(leftN){
           tmpL = *leftN;
@@ -12704,7 +12711,7 @@ OutRegion( ListExpr typeInfo, Word value )
         }
         else
         {
-          cout<<"wrong data format!"<<endl;
+          cerr << "wrong data format!"<<endl;
           return nl->TheEmptyList();
         }
 
@@ -12735,7 +12742,7 @@ OutRegion( ListExpr typeInfo, Word value )
             }
             else
             {
-              cout<<"wrong data format!"<<endl;
+              cerr <<"wrong data format!"<<endl;
               return nl->TheEmptyList();
             }
 
@@ -12781,7 +12788,7 @@ OutRegion( ListExpr typeInfo, Word value )
             }
             else
             {
-              cout<<"wrong data format!"<<endl;
+              cerr <<"wrong data format!"<<endl;
               return nl->TheEmptyList();
             }
 
@@ -12842,7 +12849,7 @@ OutRegion( ListExpr typeInfo, Word value )
           }
           else
           {
-            cout<<"wrong data format!"<<endl;
+            cerr<<"wrong data format!"<<endl;
             return nl->TheEmptyList();
           }
 
@@ -12955,7 +12962,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
 
         if (nl->ListLength( CycleNL) <3)
         {
-          cout<<"a cycle must have at least 3 edges!"<<endl;
+          cerr<<"a cycle must have at least 3 edges!"<<endl;
           correct=false;
           return SetWord( Address(0) );
         }
@@ -13007,7 +13014,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
 
             if (cyclepoints->Contains(*currvertex))
             {
-              cout<<"the same vertex: "<<(*currvertex)
+              cerr<<"the same vertex: "<<(*currvertex)
               <<" repeated in the cycle!"<<endl;
               correct=false;
               return SetWord( Address(0) );
@@ -18642,6 +18649,7 @@ int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
 
   qp->Request(args[0].addr, elem);
   if(!qp->Received(args[0].addr)){
+    qp->Close(args[0].addr);
     return 0;
   }
   P0 = static_cast<Point*>(elem.addr);
@@ -18649,7 +18657,8 @@ int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
   if(!P0->IsDefined()){ // found undefined Elem
     qp->Close(args[0].addr);
     L->SetDefined(false);
-    if(P0){ P0->DeleteIfAllowed(); }
+    P0->DeleteIfAllowed();
+    qp->Close(args[0].addr);
     return 0;
   }
 
@@ -18664,19 +18673,22 @@ int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
         L->SetDefined(false);
         if(P0){ P0->DeleteIfAllowed(); P0 = 0; }
         if(P1){ P1->DeleteIfAllowed(); P1 = 0; }
+        qp->Close(args[0].addr);
         return 0;
       }
       if(AlmostEqual(*P0,*P1)){
         qp->Request(args[0].addr, elem);
-        continue;
-      }
-      HalfSegment hs(true, *P0, *P1); // create halfsegment
-      (*L) += (hs);
-      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() ); // create counter-halfsegment
-      (*L) += (hs);
-      P0->DeleteIfAllowed();
-      P0 = P1; P1 = 0;
-      qp->Request(args[0].addr, elem); // get next Point
+        P1->DeleteIfAllowed();
+        P1 = 0;
+      } else {
+        HalfSegment hs(true, *P0, *P1); // create halfsegment
+        (*L) += (hs);
+        hs.SetLeftDomPoint( !hs.IsLeftDomPoint() ); //createcounter-halfsegment
+        (*L) += (hs);
+        P0->DeleteIfAllowed();
+        P0 = P1; P1 = 0;
+        qp->Request(args[0].addr, elem); // get next Point
+     }
   }
   L->EndBulkLoad(); // sort and realminize
 
@@ -18686,7 +18698,13 @@ int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
 }
 
 void append(Line& l1, const Line& l2){
-  l1 += l2;
+  // l1 += l2; // runs not correctly
+  int size = l2.Size();
+  HalfSegment hs;
+  for(int i = 0; i < size; i++){
+    l2.Get( i, hs );
+    l1 += hs; 
+  }
 }
 
 void append(SimpleLine& l1, const SimpleLine& l2){
@@ -20003,6 +20021,107 @@ Operator spatialcollect_sline (
   SpatialCollectLineSelect,
   SpatialCollectSLineTypeMap);
 
+
+/*
+5.15 Operator ~makepoint~
+
+5.15.1 Type Mapping for ~makepoint~
+
+*/
+ListExpr
+TypeMapMakepoint( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg1, "int" ) && nl->IsEqual( arg2, "int" ) )
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+               nl->OneElemList(nl->IntAtom(0)), nl->SymbolAtom("point") );
+
+    if( nl->IsEqual( arg1, "real" ) && nl->IsEqual( arg2, "real" ) )
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+               nl->OneElemList(nl->IntAtom(1)), nl->SymbolAtom("point") );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+5.15.2 Value Mapping for ~makepoint~
+
+*/
+int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  CcInt* value1=0, *value2=0;
+  CcReal* value3, *value4;
+  bool paramtype;
+
+  result = qp->ResultStorage( s );
+  if ( ((CcInt*)args[2].addr)->GetIntval() == 0 )
+  {
+    paramtype = false;
+    value1 = (CcInt*)args[0].addr;
+    value2 = (CcInt*)args[1].addr;
+  }
+
+  if ( ((CcInt*)args[2].addr)->GetIntval() == 1 )
+  {
+    paramtype = true;
+    value3 = (CcReal*)args[0].addr;
+    value4 = (CcReal*)args[1].addr;
+  }
+  if (paramtype)
+  {
+   if( !value3->IsDefined() || !value4->IsDefined() )
+    ((Point*)result.addr)->SetDefined( false );
+   else
+     ((Point*)result.addr)->Set(value3->GetRealval(),value4->GetRealval() );
+  }
+  else
+  {
+   if( !value1->IsDefined() || !value2->IsDefined() )
+    ((Point*)result.addr)->SetDefined( false );
+   else
+     ((Point*)result.addr)->Set(value1->GetIntval(),value2->GetIntval() );
+  }
+  return 0;
+}
+
+/*
+5.15.3 Specification for operator ~makepoint~
+
+*/
+const string
+SpatialSpecMakePoint =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>int x int -> point, real x real -> point</text--->"
+"<text>makepoint ( _, _ ) </text--->"
+"<text>create a point from two "
+"given real or integer coordinates.</text--->"
+"<text>makepoint (5.0,5.0)</text---> ) )";
+
+/*
+5.15.4 Selection Function of operator ~makepoint~
+
+Not necessary.
+
+*/
+
+/*
+5.15.5  Definition of operator ~makepoint~
+
+*/
+Operator spatialmakepoint( "makepoint",
+                            SpatialSpecMakePoint,
+                            MakePoint,
+                            Operator::SimpleSelect,
+                            TypeMapMakepoint);
+
+
+
+
 /*
 11 Creating the Algebra
 
@@ -20098,6 +20217,7 @@ class SpatialAlgebra : public Algebra
     AddOperator(&gkOp);
     AddOperator(&spatialcollect_line);
     AddOperator(&spatialcollect_sline);
+    AddOperator( &spatialmakepoint );
   }
   ~SpatialAlgebra() {};
 };

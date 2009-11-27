@@ -60,6 +60,7 @@ operator difference2 alias DIFFERENCE2  pattern _ infixop _
 operator commonborder2 alias COMMONBORDER2  pattern _ infixop _
 operator collect_line alias COLLECTLINE pattern _ op
 operator collect_sline alias COLLECTLINE pattern _ op
+operator makepoint alias MAKEPOINT pattern op ( _  )
 
 
 

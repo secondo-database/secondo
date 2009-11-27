@@ -566,3 +566,19 @@ Signature : (stream sline) -> line
 Example   : query size(strassen feed sortby[geoData] projectextend[;g: fromline(.geoData)] filter[isdefined(.g)] transformstream collect_sline)
 Result    : (real undef)
 Tolerance : 0.5
+
+
+Operator : makepoint
+Number   : 1
+Signature: int x int -> point
+Example  : query makepoint (5,5)
+Result   : (point (5.0 5.0))
+
+
+Operator : makepoint
+Number   : 2
+Signature: real x real -> point
+Example  : query makepoint (5.0,5.0)
+Result   : (point (5.0 5.0))
+
+

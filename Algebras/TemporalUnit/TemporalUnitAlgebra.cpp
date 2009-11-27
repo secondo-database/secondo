@@ -2801,102 +2801,6 @@ Operator temporalcircle( "circle",
                          Operator::SimpleSelect,
                          TypeMapCircle);
 
-/*
-5.15 Operator ~makepoint~
-
-5.15.1 Type Mapping for ~makepoint~
-
-*/
-ListExpr
-TypeMapMakepoint( ListExpr args )
-{
-  ListExpr arg1, arg2;
-  if( nl->ListLength( args ) == 2 )
-  {
-    arg1 = nl->First( args );
-    arg2 = nl->Second( args );
-
-    if( nl->IsEqual( arg1, "int" ) && nl->IsEqual( arg2, "int" ) )
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-               nl->OneElemList(nl->IntAtom(0)), nl->SymbolAtom("point") );
-
-    if( nl->IsEqual( arg1, "real" ) && nl->IsEqual( arg2, "real" ) )
-      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-               nl->OneElemList(nl->IntAtom(1)), nl->SymbolAtom("point") );
-  }
-  return nl->SymbolAtom( "typeerror" );
-}
-
-/*
-5.15.2 Value Mapping for ~makepoint~
-
-*/
-int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
-{
-  CcInt* value1=0, *value2=0;
-  CcReal* value3, *value4;
-  bool paramtype;
-
-  result = qp->ResultStorage( s );
-  if ( ((CcInt*)args[2].addr)->GetIntval() == 0 )
-  {
-    paramtype = false;
-    value1 = (CcInt*)args[0].addr;
-    value2 = (CcInt*)args[1].addr;
-  }
-
-  if ( ((CcInt*)args[2].addr)->GetIntval() == 1 )
-  {
-    paramtype = true;
-    value3 = (CcReal*)args[0].addr;
-    value4 = (CcReal*)args[1].addr;
-  }
-  if (paramtype)
-  {
-   if( !value3->IsDefined() || !value4->IsDefined() )
-    ((Point*)result.addr)->SetDefined( false );
-   else
-     ((Point*)result.addr)->Set(value3->GetRealval(),value4->GetRealval() );
-  }
-  else
-  {
-   if( !value1->IsDefined() || !value2->IsDefined() )
-    ((Point*)result.addr)->SetDefined( false );
-   else
-     ((Point*)result.addr)->Set(value1->GetIntval(),value2->GetIntval() );
-  }
-  return 0;
-}
-
-/*
-5.15.3 Specification for operator ~makepoint~
-
-*/
-const string
-TemporalSpecMakePoint =
-"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-"( <text>int x int -> point, real x real -> point</text--->"
-"<text>makepoint ( _, _ ) </text--->"
-"<text>create a point from two "
-"given real or integer coordinates.</text--->"
-"<text>makepoint (5.0,5.0)</text---> ) )";
-
-/*
-5.15.4 Selection Function of operator ~makepoint~
-
-Not necessary.
-
-*/
-
-/*
-5.15.5  Definition of operator ~makepoint~
-
-*/
-Operator temporalmakepoint( "makepoint",
-                            TemporalSpecMakePoint,
-                            MakePoint,
-                            Operator::SimpleSelect,
-                            TypeMapMakepoint);
 
 /*
 5.16 Operator ~velocity~
@@ -10118,7 +10022,6 @@ public:
     AddOperator( &temporalunitqueryrect2d );
     AddOperator( &temporalunitpoint2d );
     AddOperator( &temporalcircle );
-    AddOperator( &temporalmakepoint );
     AddOperator( &temporalunitisempty );
     AddOperator( &temporalunitdeftime );
     AddOperator( &temporalunitpresent );
