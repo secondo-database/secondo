@@ -592,7 +592,19 @@ public class CommandPanel extends JScrollPane {
       isOptUpdateCommand = true;
    } else if( command.matches("update *[a-z][a-z,A-Z,0-9]* *set.*")){
       isOptUpdateCommand = true;
-   }
+   } else if(command.matches("create *table .*")){
+      isOptUpdateCommand = true;
+   } else if(command.matches("create *index .*")){
+      isOptUpdateCommand = true;
+   } else if(command.matches("drop *table [a-z][a-z,A-Z,0-9]* *")){
+      isOptUpdateCommand = true;
+   } else if(command.matches("drop *index [a-z][a-z,A-Z,0-9]* *")){
+      isOptUpdateCommand = true;
+   } else if(command.startsWith("select ")){
+      isOptUpdateCommand = true;
+   } 
+
+
    if(isOptUpdateCommand){
      if(!useOptimizer()){ // error select clause found but no optimizer enabled
         appendText("optimizer not available");
