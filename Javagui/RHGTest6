@@ -1,0 +1,101 @@
+#Javagui
+
+restore database opt2 from '../bin/opt'
+
+
+# delete
+
+delete from plz where plz = 58084
+
+delete from plz where ort = "Dortmund"
+
+delete from ten
+
+
+
+# insert
+
+insert into plz values [44135, "Dortmund"];
+
+insert into ten select * from thousand
+
+
+
+# update
+
+update ten set [no = no * 5]
+
+update plz set [ort = "Stadt Hagen"] where ort = "Hagen"
+
+
+
+# create
+
+
+create table mitarbeiter columns [nachname: string, vorname: string, telefon: string]
+
+insert into mitarbeiter values ["Behr", "Thomas", 4284];
+insert into mitarbeiter values ["Düntgen", "Christian", 4282];
+
+
+create table plzneu columns [plza: int, ort: string]
+
+insert into plzneu select * from plz
+
+insert into plzneu select * from plz where ort > "M"
+
+select * from plzneu
+
+
+create index on plzneu columns ort
+
+create index on plzneu columns plza indextype btree
+
+
+create table plzneu3 columns [plz: int, ort: string]
+
+insert into plzneu3 select * from plz where plz > 50000
+
+
+
+
+# drop
+
+drop table mitarbeiter
+
+
+drop index on plzneu columns ort
+
+drop index plzneu_plza_btree
+
+create index on plzneu columns ort
+
+drop table plzneu
+
+
+
+drop index plz_ort
+
+drop index on plz columns ort
+
+drop index on plz columns plz
+
+create index on plz columns plz
+
+create index on plz columns ort
+
+drop table plz
+
+
+
+
+
+
+
+
+
+
+
+
+
+
