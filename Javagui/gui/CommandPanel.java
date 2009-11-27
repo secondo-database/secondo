@@ -584,6 +584,8 @@ public class CommandPanel extends JScrollPane {
 
    // look for insert into, delete from and update rename 
    boolean isOptUpdateCommand = false;
+   boolean isSelect = true;
+
    if(command.startsWith("sql ")){
       isOptUpdateCommand = true;
    } else if( command.matches("insert *into.*")){
@@ -594,15 +596,21 @@ public class CommandPanel extends JScrollPane {
       isOptUpdateCommand = true;
    } else if(command.matches("create *table .*")){
       isOptUpdateCommand = true;
+      isSelect = false;
    } else if(command.matches("create *index .*")){
       isOptUpdateCommand = true;
+      isSelect = false;
    } else if(command.matches("drop *table [a-z][a-z,A-Z,0-9]* *")){
       isOptUpdateCommand = true;
+      isSelect = false;
    } else if(command.matches("drop *index [a-z][a-z,A-Z,0-9]* *")){
       isOptUpdateCommand = true;
+      isSelect = false;
    } else if(command.startsWith("select ")){
       isOptUpdateCommand = true;
    } 
+   
+ 
 
 
    if(isOptUpdateCommand){
@@ -622,7 +630,11 @@ public class CommandPanel extends JScrollPane {
         showPrompt();
         return "";
       } else {
-        return "query " + opt;
+        if(isSelect){
+          return "query " + opt;
+        } else {
+          return opt;
+        }
       }
    }
 
