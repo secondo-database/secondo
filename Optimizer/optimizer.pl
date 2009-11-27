@@ -399,22 +399,24 @@ because Prolog would interpret the correct symbols as variables.
 Other constants need to be noted as similar to the way this is done in Secondo:
 as a nested list. Again, we use square brackets to delinit the list and commas to
 separate its elements:
+
+----    [const, TYPE, value, VALUE]
 ----
-[const, TYPE, value, VALUE]
-----
+
 where ~TYPE~ is a type descriptor (a Prolog term, like 'mpoint', 'region',
 'vector(int)', or 'set(vector(real))'; and ~VALUE~ is a nested list using round
-parantheses and commas to separate its elements.
+parentheses and commas to separate its elements.
 
 Internally, ALL constants (also int, real, etc.) are noted as terms
+
+----    value_expr(Type,Value)
 ----
-value_expr(Type,Value)
-----
+
 where ~Type~ is a Prolog term for the type descriptor and ~Value~ is the nested list
 representation of the constant value, both using round parantheses and commas internally.
 
 For the standard type constants, special ~plan\_to\_atom/2~ rules exists, for
-all othertypes, that should not be necessary, they are all handled by a generic
+all other types, that should not be necessary, they are all handled by a generic
 rule.
 
 PROBLEMS: Using bool-atoms, string-atoms, and text-atoms within nested lists.
@@ -6382,6 +6384,7 @@ lookupPred2([Me|Others], [Me2|Others2], RelsBefore, RelsAfter) :-
 ----
 
 Handles the transformations in an update command
+
 */
 
 %%%% Begin: for update and insert
