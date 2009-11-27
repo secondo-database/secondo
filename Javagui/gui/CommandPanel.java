@@ -588,22 +588,19 @@ public class CommandPanel extends JScrollPane {
 
    if(command.startsWith("sql ")){
       isOptUpdateCommand = true;
-   } else if( command.matches("insert *into.*")){
+   } else if( command.matches("insert +into.*")){
       isOptUpdateCommand = true;
-   } else if( command.matches("delete *from.*")){
+   } else if( command.matches("delete +from.*")){
       isOptUpdateCommand = true;
-   } else if( command.matches("update *[a-z][a-z,A-Z,0-9]* *set.*")){
+   } else if( command.matches("update +[a-z][a-z,A-Z,0-9,_]* *set.*")){
       isOptUpdateCommand = true;
-   } else if(command.matches("create *table .*")){
-      isOptUpdateCommand = true;
-      isSelect = false;
-   } else if(command.matches("create *index .*")){
+   } else if(command.matches("create +table .*")){
       isOptUpdateCommand = true;
       isSelect = false;
-   } else if(command.matches("drop *table [a-z][a-z,A-Z,0-9]* *")){
+   } else if(command.matches("create +index .*")){
       isOptUpdateCommand = true;
       isSelect = false;
-   } else if(command.matches("drop *index [a-z][a-z,A-Z,0-9]* *")){
+   } else if(command.startsWith("drop ")){
       isOptUpdateCommand = true;
       isSelect = false;
    } else if(command.startsWith("select ")){
