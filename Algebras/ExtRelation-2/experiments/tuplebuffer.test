@@ -203,6 +203,86 @@ query R1G_T256B feed tuplebuffer[16*1024, 16384] head[1] count;
 query R1G_T256B feed tuplebuffer[16*1024, 16384] count;
 
 #--------------------------------------------------  
+# Create relation with 1 GB data and 512 Byte tuples
+#--------------------------------------------------  
+
+#testcase create_relation
+#yields success
+restore R100MB_T512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R100MB_T512B';
+
+#testcase create_relation
+#yields success
+let R1G_T512B = R100MB_T512B feed ten feed product remove[Nr_a] extend[ran: randint(50000)] sortby2Param[ran asc;512*1024*1024,-1,-1] remove[ran] consume;
+
+#--------------------------------------------------  
+# Perform tests on this relation
+#--------------------------------------------------  
+
+#testcase tuplesize_R1G_T512B
+#yields (real 512.0)
+query R1G_T512B feed head[1] tuplesize;
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_write_1
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 0] head[1] count;
+
+#testcase medium_tuplesize_total_1
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 0] count;
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_write_2
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 1024] head[1] count;
+
+#testcase medium_tuplesize_total_2
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 1024] count;
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_write_3
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 2048] head[1] count;
+
+#testcase medium_tuplesize_total_3
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 2048] count;
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_write_4
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 4096] head[1] count;
+
+#testcase medium_tuplesize_total_4
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 4096] count;
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_write_5
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 8192] head[1] count;
+
+#testcase medium_tuplesize_total_5
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 8192] count;
+
+#--------------------------------------------------  
+
+#testcase medium_tuplesize_write_6
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 16384] head[1] count;
+
+#testcase medium_tuplesize_total_6
+#yields success
+query R1G_T512B feed tuplebuffer[16*1024, 16384] count;
+
+#--------------------------------------------------  
 # Create relation with 1 GB data and 1024 Byte tuples
 #--------------------------------------------------  
 
