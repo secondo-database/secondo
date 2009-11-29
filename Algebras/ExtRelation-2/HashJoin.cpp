@@ -573,8 +573,13 @@ void PartitionManager::Subpartition()
   // stop recalculation of sub-partitioning progress information
   simSubpartitioning = false;
 
+  // determine number of partitions (constant value is needed here
+  // otherwise, subpartitioned partitions will be subpartioned again
+  // with maximum recursion level)
+  const int n = partitions.size();
+
   // Subpartition if necessary
-  for(size_t i = 0; i < partitions.size(); i++)
+  for(size_t i = 0; i < n; i++)
   {
     subpartition(i, maxOperatorMemory, SUBPARTITION_MAX_LEVEL, 1);
   }
@@ -700,7 +705,7 @@ void PartitionManager::subpartition( size_t n,
     {
       progressInfo->subTuples++;
 
-      // propagate progress message ilevelf necessary
+      // propagate progress message if necessary
       if ( ( ++counter % SUBPARTITION_UPDATE ) == 0)
       {
         qp->CheckProgress();
@@ -783,7 +788,7 @@ int PartitionManager::simsubpartition( PartitionHistogram& ph,
   size_t level2 = level;
 
   counter += simsubpartition(ph1, maxSize, maxRecursion, ++level1);
-  counter += simsubpartition(ph1, maxSize, maxRecursion, ++level2);
+  counter += simsubpartition(ph2, maxSize, maxRecursion, ++level2);
 
   return counter;
 }
