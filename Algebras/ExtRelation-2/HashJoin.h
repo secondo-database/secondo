@@ -805,7 +805,9 @@ partition histogram.
     ostream& Print(ostream& os)
     {
       cmsg.info() << HEADLINE_PHISTOGRAM << endl
-                  << "tuples: " << tuples
+                  << "Interval: [" << interval.GetLow() << ","
+                  << interval.GetHigh() << "]"
+                  << ", tuples: " << tuples
                   << ", totalSize: " << totalSize
                   << ", totalExtSize: " << totalExtSize
                   << endl;
