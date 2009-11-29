@@ -848,6 +848,7 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
         Tuple *result = new Tuple( resultTupleType );
         Concat( tupleA.tuple, tupleB, result );
         progress->returned++;
+        timeLastResultTuple.start();
         return result;
       }
       else // bucket completely processed
@@ -920,6 +921,12 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
 
   tupleA.setTuple( iterA->GetNextTuple() );
 
+  // start timer for progress update if no result tuples are produced
+  if ( progress->returned == 0 )
+  {
+    timeLastResultTuple.start();
+  }
+
   return processPartitions();
 }
 
@@ -936,6 +943,7 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
         Tuple *result = new Tuple( resultTupleType );
         Concat(tupleA.tuple, tupleB, result);
         progress->returned++;
+        timeLastResultTuple.start();
         return result;
       }
 
@@ -946,6 +954,12 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
 
       pinfo.curPassNo =
           (int)ceil( (double)pinfo.tuplesProc / (double) pinfo.tuples);
+
+      // initiate progress message if no result tuples were produced for 100 ms
+      if ( timeLastResultTuple.diffSecondsCPU() > 0.1 )
+      {
+        qp->CheckProgress();
+      }
 
       tupleA.setTuple( iterA->GetNextTuple() );
     }

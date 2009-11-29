@@ -576,7 +576,7 @@ void PartitionManager::Subpartition()
   // determine number of partitions (constant value is needed here
   // otherwise, subpartitioned partitions will be subpartioned again
   // with maximum recursion level)
-  const int n = partitions.size();
+  const size_t n = partitions.size();
 
   // Subpartition if necessary
   for(size_t i = 0; i < n; i++)

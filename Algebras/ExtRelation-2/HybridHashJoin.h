@@ -492,6 +492,12 @@ is set to true this flag will be set to false.
 
 */
 
+    StopWatch timeLastResultTuple;
+/*
+Timer used for tracing.
+
+*/
+
     StopWatch timer;
 /*
 Timer used for tracing.

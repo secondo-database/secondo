@@ -835,6 +835,8 @@ Tuple* GraceHashJoinAlgorithm::partitionA()
 
   tupleA.setTuple( iterA->GetNextTuple() );
 
+  timeLastResultTuple.start();
+
   return processPartitions();
 }
 
@@ -851,6 +853,7 @@ Tuple* GraceHashJoinAlgorithm::processPartitions()
         Tuple *result = new Tuple( resultTupleType );
         Concat(tupleA.tuple, tupleB, result);
         progress->returned++;
+        timeLastResultTuple.start();
         return result;
       }
 
@@ -861,6 +864,12 @@ Tuple* GraceHashJoinAlgorithm::processPartitions()
 
       pinfo.curPassNo =
           (int)ceil( (double)pinfo.tuplesProc / (double) pinfo.tuples);
+
+      // initiate progress message if no result tuples were produced for 100 ms
+      if ( timeLastResultTuple.diffSecondsCPU() > 0.1 )
+      {
+        qp->CheckProgress();
+      }
 
       tupleA.setTuple( iterA->GetNextTuple() );
     }
