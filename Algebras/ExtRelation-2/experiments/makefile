@@ -1012,16 +1012,16 @@ hashjoin_progress_estimation: clean_db
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	rm -f -v $@_A* $@_B*
-	$(TEXTGENSEL) 256 204800 65536 0.00001 $@_A50x16 $@_B50x16
-#	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
-#	$(call doTest, $@1)
-#	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@1_proglogt.csv
-#	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
-#	$(call doTest, $@2)
-#	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@2_proglogt.csv
-#	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
-#	$(call doTest, $@3)
-#	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@3_proglogt.csv
+	$(TEXTGEN) 52428800 256 relA > $@_50MB256
+	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+	$(call doTest, $@1)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@1_proglogt.csv
+	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+	$(call doTest, $@2)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@2_proglogt.csv
+	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+	$(call doTest, $@3)
+	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@3_proglogt.csv
 	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
 	$(call doTest, $@4)
 	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@4_proglogt.csv
