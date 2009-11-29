@@ -1,0 +1,216 @@
+# This file is part of SECONDO.
+#
+# Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+# Database Systems for New Applications.
+#
+# SECONDO is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# SECONDO is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with SECONDO; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+#--------------------------------------------------  
+# Enable Flags
+#--------------------------------------------------  
+
+set "ERA:TraceHybridHashJoin" = TRUE;
+#set "SI:PrintCounters" = TRUE;
+set "SI:PrintCmdTimes" = TRUE;
+set "SI:NoQueryTimers" = TRUE;
+set "SI:NoCommandEcho" = TRUE;
+#set "SI:RelStatistics" = TRUE;
+set "SMI:NoTransactions" = TRUE;
+
+#--------------------------------------------------  
+# Create and open database DB_TMP
+#--------------------------------------------------  
+
+#setup hashjoin_benchmark StandardAlgebra RelationAlgebra ExtRelation2Algebra
+
+create database db_tmp;
+
+open database db_tmp;
+
+#--------------------------------------------------  
+# Benchmark with 3328 KByte Memory, 64 Byte tuples
+#--------------------------------------------------  
+
+#testcase create_relation
+#yields success
+restore REL50x5A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_benchmark_64A50x5';
+
+#testcase create_relation
+#yields success
+restore REL50x5B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_benchmark_64B50x5';
+
+#testcase create_relation_A (50 MB)
+#yields success
+let relA = REL50x5A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B (5 MB)
+#yields success
+let relB = REL50x5B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase sortmergejoin_M3328_T64
+#yields success
+query relA feed relB feed sortmergejoin[Flob_a,Flob_b] count;
+
+#testcase hashjoin_M3328_T64
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase sortmergejoin2_M3328_T64
+#yields success
+query relA feed relB feed sortmergejoin2[Flob_a,Flob_b] count;
+
+#testcase gracehashjoin_M3328_T64
+#yields success
+query relA feed relB feed gracehashjoinParam[Flob_a,Flob_b;1000;10,-1,-1] count;
+
+#testcase hybridhashjoin_M3328_T64
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000;10,-1,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#testcase delete_relation
+#yields success
+delete REL50x5A;
+
+#testcase delete_relation
+#yields success
+delete REL50x5B;
+
+#--------------------------------------------------  
+# Benchmark with 3328 KByte Memory, 128 Byte tuples
+#--------------------------------------------------  
+
+#testcase create_relation
+#yields success
+restore REL50x5A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_benchmark_128A50x5';
+
+#testcase create_relation
+#yields success
+restore REL50x5B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_benchmark_128B50x5';
+
+#testcase create_relation_A (50 MB)
+#yields success
+let relA = REL50x5A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B (5 MB)
+#yields success
+let relB = REL50x5B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase sortmergejoin_M3328_T128
+#yields success
+query relA feed relB feed sortmergejoin[Flob_a,Flob_b] count;
+
+#testcase hashjoin_M3328_T128
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase sortmergejoin2_M3328_T128
+#yields success
+query relA feed relB feed sortmergejoin2[Flob_a,Flob_b] count;
+
+#testcase gracehashjoin_M3328_T128
+#yields success
+query relA feed relB feed gracehashjoinParam[Flob_a,Flob_b;1000,10,-1,-1] count;
+
+#testcase hybridhashjoin_M3328_T128
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000,10,-1,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#testcase delete_relation
+#yields success
+delete REL50x5A;
+
+#testcase delete_relation
+#yields success
+delete REL50x5B;
+
+#--------------------------------------------------  
+# Benchmark with 3328 KByte Memory, 256 Byte tuples
+#--------------------------------------------------  
+
+#testcase create_relation
+#yields success
+restore REL50x5A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_benchmark_256A50x5';
+
+#testcase create_relation
+#yields success
+restore REL50x5B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_benchmark_256B50x5';
+
+#testcase create_relation_A (50 MB)
+#yields success
+let relA = REL50x5A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B (5 MB)
+#yields success
+let relB = REL50x5B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase sortmergejoin_M3328_T256
+#yields success
+query relA feed relB feed sortmergejoin[Flob_a,Flob_b] count;
+
+#testcase hashjoin_M3328_T256
+#yields success
+query relA feed relB feed hashjoin[Flob_a,Flob_b;1000] count;
+
+#testcase sortmergejoin2_M3328_T256
+#yields success
+query relA feed relB feed sortmergejoin2[Flob_a,Flob_b] count;
+
+#testcase gracehashjoin_M3328_T256
+#yields success
+query relA feed relB feed gracehashjoinParam[Flob_a,Flob_b;1000;10,-1,-1] count;
+
+#testcase hybridhashjoin_M3328_T256
+#yields success
+query relA feed relB feed hybridhashjoinParam[Flob_a,Flob_b;1000;10,-1,-1] count;
+
+#testcase delete_relation_A
+#yields success
+delete relA;
+
+#testcase delete_relation_B
+#yields success
+delete relB;
+
+#testcase delete_relation
+#yields success
+delete REL50x5A;
+
+#testcase delete_relation
+#yields success
+delete REL50x5B;
+
+##############################################################################
+# TearDown
+##############################################################################
+
+#teardown
+close database;
+delete database db_tmp;
