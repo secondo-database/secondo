@@ -399,22 +399,24 @@ because Prolog would interpret the correct symbols as variables.
 Other constants need to be noted as similar to the way this is done in Secondo:
 as a nested list. Again, we use square brackets to delinit the list and commas to
 separate its elements:
+
+----    [const, TYPE, value, VALUE]
 ----
-[const, TYPE, value, VALUE]
-----
+
 where ~TYPE~ is a type descriptor (a Prolog term, like 'mpoint', 'region',
 'vector(int)', or 'set(vector(real))'; and ~VALUE~ is a nested list using round
-parantheses and commas to separate its elements.
+parentheses and commas to separate its elements.
 
 Internally, ALL constants (also int, real, etc.) are noted as terms
+
+----    value_expr(Type,Value)
 ----
-value_expr(Type,Value)
-----
+
 where ~Type~ is a Prolog term for the type descriptor and ~Value~ is the nested list
 representation of the constant value, both using round parantheses and commas internally.
 
 For the standard type constants, special ~plan\_to\_atom/2~ rules exists, for
-all othertypes, that should not be necessary, they are all handled by a generic
+all other types, that should not be necessary, they are all handled by a generic
 rule.
 
 PROBLEMS: Using bool-atoms, string-atoms, and text-atoms within nested lists.
@@ -1885,12 +1887,6 @@ plan_to_atom(updatedirect(Rel, Transformations, UpdateQuery),Result) :-
 	       Transformations2, ']'], Result),
   !.
 
-plan_to_atom(set(Attr, Term), Result) :-
-  plan_to_atom(attrname(Attr), Attr2),
-  plan_to_atom(Term, Term2),
-  concat_atom([Attr2, ': ', Term2], Result),
-  !.
-
 plan_to_atom(insertbtree(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
@@ -1960,7 +1956,7 @@ Extensions for SQL ~create~ and ~drop~ commands
 */
 
 plan_to_atom(let(VarName, Type),Result) :-
-  plan_to_atom(VarName, VarName2),
+  plan_to_atom(a(VarName, *, u), VarName2),
   plan_to_atom(Type, Type2),
   concat_atom(['let ', VarName2, ' = [const ', Type2, ' value ()]'],
 	      Result),
@@ -1983,7 +1979,8 @@ plan_to_atom(rel(Columns),Result) :-
   !.
 
 plan_to_atom(column(Name, Type),Result) :-
-  concat_atom([Name, ': ', Type], Result),
+  plan_to_atom(a(Name, *, u), Name2),
+  concat_atom([Name2, ': ', Type], Result),
   !.
 
 plan_to_atom(createIndex(Rel, Columns, LogIndexType), Result) :-
@@ -2183,17 +2180,36 @@ plan_to_atom_2([InHead|InRest],[OutHead|OutRest]) :-
   plan_to_atom(InHead,OutHead), !,
   plan_to_atom_2(InRest,OutRest).
 
+
 % used within insert and update:
 list_to_atom([X], AtomX) :-
-  plan_to_atom(X, AtomX),
+  listelement_to_atom(X, AtomX),
   !.
 
 % used within insert and update:
 list_to_atom([X | Xs], Result) :-
-  plan_to_atom(X, XAtom),
+  listelement_to_atom(X, XAtom),
   list_to_atom(Xs, XsAtom),
   concat_atom([XAtom, ', ', XsAtom], '', Result),
   !.
+
+% used within insert and update:
+listelement_to_atom(set(Attr, Term), Result) :-
+  plan_to_atom(attrname(Attr), Attr2),
+  listelement_to_atom(Term, Term2),
+  concat_atom([Attr2, ': ', Term2], Result),
+  !.
+
+% used within insert and update:
+listelement_to_atom(Term, Result) :-
+    is_list(Term), Term = [First | _], atomic(First), !,
+    atom_codes(TermRes, Term),
+    concat_atom(['"', TermRes, '"'], '', Result).
+
+% used within insert and update:
+listelement_to_atom(Term, Result) :-
+    plan_to_atom(Term, Result).
+
 
 /*
 Hidden fields have an argument number 100 and can be removed from a projection list by activating the flag ``removeHidenAttributes''. See ~plan\_to\_atom~ for ~project~.
@@ -7950,7 +7966,6 @@ sqlToPlan2(QueryText, Plan) :-
   term_to_atom(Query, QueryText),
   optimize(Query, Plan, _).
 
-
 sqlToPlan(QueryText, ResultText) :-
   catch( sqlToPlan2(QueryText, ResultText),
          Exc, % catch all exceptions!
@@ -9298,6 +9313,7 @@ Removes the Attributes ~NewAttrs~ from the query
 removeAttrs(StreamIn, [], StreamIn).
 
 removeAttrs(StreamIn, NewAttrs, remove(StreamIn, NewAttrs)).
+
 
 /*
 Load Faked operators extension
