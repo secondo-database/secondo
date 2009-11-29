@@ -52,11 +52,7 @@ restore R50MB_T256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiment
 
 #testcase create_relation
 #yields success
-restore REL50x16A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_progress_estimation_A50x16';
-
-#testcase create_relation
-#yields success
-restore REL50x16B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_progress_estimation_B50x16';
+restore REL50x16A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_progress_estimation_50MB256';
 
 #testcase create_relation_A (50 MB)
 #yields success
@@ -64,7 +60,7 @@ let relA = REL50x16A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*10
 
 #testcase create_relation_B (16 MB)
 #yields success
-let relB = REL50x16B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+let relB = REL50x16A feed head[65536] {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 50MB_join_16_MB_extern
 #yields success
@@ -81,10 +77,6 @@ delete relB;
 #testcase delete_relation_A
 #yields success
 delete REL50x16A;
-
-#testcase delete_relation_B
-#yields success
-delete REL50x16B;
 
 ##############################################################################
 # TearDown
