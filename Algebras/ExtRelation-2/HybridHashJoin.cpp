@@ -54,6 +54,7 @@ namespace extrel2
 HybridHashJoinProgressLocalInfo::HybridHashJoinProgressLocalInfo()
 : ProgressLocalInfo()
 , maxOperatorMemory(qp->MemoryAvailableForOperator())
+, tuplesProcessedSinceLastResult(0)
 , traceMode(false)
 {
 }
@@ -848,7 +849,7 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
         Tuple *result = new Tuple( resultTupleType );
         Concat( tupleA.tuple, tupleB, result );
         progress->returned++;
-        timeLastResultTuple.start();
+        progress->tuplesProcessedSinceLastResult = 0;
         return result;
       }
       else // bucket completely processed
@@ -857,28 +858,18 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
         if ( !finishedPartitionB )
         {
           pmA->Insert(tupleA.tuple);
-
-          //if ( progress->streamA.IsValid() )
-          {
-            progress->streamA.partitionProgressInfo[0].tuplesProc++;
-          }
+          progress->streamA.partitionProgressInfo[0].tuplesProc++;
         }
         else
         {
-          //if ( progress->streamA.IsValid() )
-          {
-            progress->streamA.partitionProgressInfo[0].tuples++;
-            progress->streamA.partitionProgressInfo[0].tuplesProc++;
-          }
+          progress->streamA.partitionProgressInfo[0].tuples++;
+          progress->streamA.partitionProgressInfo[0].tuplesProc++;
         }
 
-        //if ( progress->streamA.IsValid() )
-        {
-          PartitionProgressInfo& pinfo =
-              progress->streamA.partitionProgressInfo[0];
-          pinfo.curPassNo =
-              (int)ceil( (double)pinfo.tuplesProc / (double)pinfo.tuples );
-        }
+        PartitionProgressInfo& pinfo =
+            progress->streamA.partitionProgressInfo[0];
+        pinfo.curPassNo =
+            (int)ceil( (double)pinfo.tuplesProc / (double)pinfo.tuples );
       }
     }
     else
@@ -886,6 +877,10 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
       // insert tuple into partition p ( p > 0 )
       pmA->Insert(tupleA.tuple);
     }
+
+    // initiate progress message if a certain amount of tuples
+    // has been processed since the last result tuple
+    progress->CheckProgressSinceLastResult();
 
     tupleA.setTuple( nextTupleA() );
   }
@@ -907,7 +902,6 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
 
   if ( traceMode )
   {
-    //cmsg.info() << "Hash table content" << *hashTable << endl;
     cmsg.info() << "Partitioning of stream A.."
                 << " (timer: " << timer.diffSecondsReal() << ")"
                 << endl << *pmA
@@ -920,12 +914,6 @@ Tuple* HybridHashJoinAlgorithm::partitionA()
   iterA = pmA->GetPartition(curPartition)->MakeScan();
 
   tupleA.setTuple( iterA->GetNextTuple() );
-
-  // start timer for progress update if no result tuples are produced
-  if ( progress->returned == 0 )
-  {
-    timeLastResultTuple.start();
-  }
 
   return processPartitions();
 }
@@ -940,26 +928,22 @@ Tuple* HybridHashJoinAlgorithm::processPartitions()
 
       if ( tupleB )
       {
-        Tuple *result = new Tuple( resultTupleType );
-        Concat(tupleA.tuple, tupleB, result);
+        Tuple* result = new Tuple( resultTupleType );
+        Concat(tupleA.tuple, tupleB, result );
         progress->returned++;
-        timeLastResultTuple.start();
+        progress->tuplesProcessedSinceLastResult = 0;
         return result;
       }
 
       PartitionProgressInfo& pinfo =
           progress->streamA.partitionProgressInfo[curPartition];
-
       pinfo.tuplesProc++;
-
       pinfo.curPassNo =
           (int)ceil( (double)pinfo.tuplesProc / (double) pinfo.tuples);
 
-      // initiate progress message if no result tuples were produced for 100 ms
-      if ( timeLastResultTuple.diffSecondsCPU() > 0.1 )
-      {
-        qp->CheckProgress();
-      }
+      // initiate progress message if a certain amount of tuples
+      // has been processed since the last result tuple
+      progress->CheckProgressSinceLastResult();
 
       tupleA.setTuple( iterA->GetNextTuple() );
     }
@@ -1000,6 +984,7 @@ Tuple* HybridHashJoinAlgorithm::NextResultTuple()
         Tuple *result = new Tuple( resultTupleType );
         Concat(tupleA.tuple, tupleB, result);
         progress->returned++;
+        progress->tuplesProcessedSinceLastResult = 0;
         return result;
       }
       else

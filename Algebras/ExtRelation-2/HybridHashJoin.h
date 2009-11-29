@@ -76,6 +76,19 @@ The constructor.
 
 */
 
+    inline void CheckProgressSinceLastResult()
+    {
+      if ( ++(tuplesProcessedSinceLastResult) % 1000 )
+      {
+        qp->CheckProgress();
+      }
+    }
+/*
+Initiate a progress message if a certain amount of tuples
+has been processed since the last result tuple.
+
+*/
+
     int CalcProgress( ProgressInfo& p1,
                       ProgressInfo& p2,
                       ProgressInfo* pRes,
@@ -147,6 +160,13 @@ for debugging purposes.
     size_t maxOperatorMemory;
 /*
 Maximum available operator memory in bytes.
+
+*/
+
+    size_t tuplesProcessedSinceLastResult;
+/*
+Number of tuples processed since the last result tuple
+has been produced.
 
 */
 
@@ -489,12 +509,6 @@ Flag which decides if partitions are sub-partitioned if they don't fit
 into the operator's main memory. Per default this flag is set to true.
 If the flag ~RTF::ERA:HybridHasjJoinNoSubpartitioning~ in SecondoConfig.ini
 is set to true this flag will be set to false.
-
-*/
-
-    StopWatch timeLastResultTuple;
-/*
-Timer used for tracing.
 
 */
 
