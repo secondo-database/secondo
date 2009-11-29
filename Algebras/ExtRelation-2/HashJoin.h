@@ -282,55 +282,15 @@ are calculated.
 };
 
 /*
-7 Class ~BucketIterator~
-
-Iterator class which is used to iterate sequentially through all tuples
-of a bucket from a hash table.
-
-*/
-
-class Bucket;
-/*
-Necessary forward declaration for class ~BucketIterator~.
-
-*/
-
-class BucketIterator
-{
-  public:
-
-    BucketIterator(Bucket& b);
-/*
-The constructor. Starts a sequential scan for bucket ~b~.
-
-*/
-
-    Tuple* GetNextTuple();
-/*
-Returns the next tuple in sequential order. If all tuples
-have been processed 0 is returned.
-
-*/
-
-  private:
-
-    Bucket& bucket;
-/*
-Reference to bucket on which the instance iterates.
-
-*/
-
-    vector<RTuple>::iterator iter;
-/*
-Iterator for internal bucket tuple buffer.
-
-*/
-};
-
-/*
-8 Class ~Bucket~
+7 Class ~Bucket~
 
 This class represents a bucket of a hash table.
+
+*/
+
+class BucketIterator;
+/*
+Necessary forward declaration for class ~BucketIterator~.
 
 */
 
@@ -396,7 +356,7 @@ only used for debugging purposes.
 
 */
 
-    inline BucketIterator* MakeScan() { return new BucketIterator(*this); }
+    BucketIterator* MakeScan();
 /*
 Start a sequential scan of all tuples of a bucket. The method returns a
 pointer to a new ~BucketIterator~ instance.
@@ -427,6 +387,57 @@ Total size in bytes of all tuples in a bucket.
     vector<RTuple> tuples;
 /*
 Array with tuple references of all tuples in a bucket.
+
+*/
+};
+
+/*
+8 Class ~BucketIterator~
+
+Iterator class which is used to iterate sequentially through all tuples
+of a bucket from a hash table.
+
+*/
+
+class BucketIterator
+{
+  public:
+
+    BucketIterator(Bucket& b);
+/*
+The constructor. Starts a sequential scan for bucket ~b~.
+
+*/
+
+    inline Tuple* GetNextTuple2()
+    {
+      if ( iter != bucket.tuples.end() )
+      {
+        Tuple* t = (*iter).tuple;
+        iter++;
+        //t->IncReference();
+        return t;
+      }
+
+      return 0;
+    }
+/*
+Returns the next tuple in sequential order. If all tuples
+have been processed 0 is returned.
+
+*/
+
+  private:
+
+    Bucket& bucket;
+/*
+Reference to bucket on which the instance iterates.
+
+*/
+
+    vector<RTuple>::iterator iter;
+/*
+Iterator for internal bucket tuple buffer.
 
 */
 };
@@ -473,7 +484,36 @@ Insert tuple ~t~ into the hash table.
 
 */
 
-    Tuple* Probe(Tuple* t);
+    inline Tuple* Probe(Tuple* t)
+    {
+      Tuple* nextTuple = 0;
+
+      if ( iter == 0 )
+      {
+        // calculate bucket number
+        size_t h = hashFunc->Value(t);
+
+        // start bucket scan
+        iter = buckets[h]->MakeScan();
+      }
+
+      while ( (nextTuple = iter->GetNextTuple2() ) != 0 )
+      {
+        // GetNextTuple() increments reference counter by one, but
+        // tuple stays in hash table
+        //nextTuple->DeleteIfAllowed();
+
+        if ( cmpFunc->Compare(t, nextTuple) == 0 )
+        {
+          return nextTuple;
+        }
+      }
+
+      delete iter;
+      iter = 0;
+
+      return 0;
+    }
 /*
 Check if the hash table contains a tuple which is equal to the given tuple ~t~.
 A match is found using the ~JoinTupleCompareFunction~ ~cmpFunc~ that has been
@@ -1595,7 +1635,7 @@ no progress information will be collected.
 
 */
 
-    static const bool traceMode = false;
+    static const bool traceMode = true;
 /*
 Flag to enable trace mode.
 

@@ -90,6 +90,11 @@ ostream& Bucket::Print(ostream& os)
   return os;
 }
 
+BucketIterator* Bucket::MakeScan()
+{
+  return new BucketIterator(*this);
+}
+
 /*
 6 Implementation of class ~BucketIterator~
 
@@ -98,19 +103,6 @@ BucketIterator::BucketIterator(Bucket& b)
 : bucket(b)
 {
   iter = bucket.tuples.begin();
-}
-
-Tuple* BucketIterator::GetNextTuple()
-{
-  if ( iter != bucket.tuples.end() )
-  {
-    Tuple* t = (*iter).tuple;
-    iter++;
-    t->IncReference();
-    return t;
-  }
-
-  return 0;
 }
 
 /*
@@ -216,37 +208,6 @@ int HashTable::ReadFromStream(Word stream, size_t maxSize, bool& finished)
   return read;
 }
 
-Tuple* HashTable::Probe(Tuple* t)
-{
-  Tuple* nextTuple = 0;
-
-  // calculate bucket number
-  size_t h = hashFunc->Value(t);
-
-  if ( iter == 0 )
-  {
-    // start bucket scan
-    iter = buckets[h]->MakeScan();
-  }
-
-  while ( (nextTuple = iter->GetNextTuple() ) != 0 )
-  {
-    // GetNextTuple() increments reference counter by one, but
-    // tuple stays in hash table
-    nextTuple->DeleteIfAllowed();
-
-    if ( cmpFunc->Compare(t, nextTuple) == 0 )
-    {
-      return nextTuple;
-    }
-  }
-
-  delete iter;
-  iter = 0;
-
-  return 0;
-}
-
 vector<Tuple*> HashTable::GetTuples(int bucket)
 {
   Tuple* t;
@@ -254,8 +215,9 @@ vector<Tuple*> HashTable::GetTuples(int bucket)
 
   BucketIterator* iter = buckets[bucket]->MakeScan();
 
-  while ( ( t = iter->GetNextTuple() ) != 0 )
+  while ( ( t = iter->GetNextTuple2() ) != 0 )
   {
+    t->IncReference();
     arr.push_back(t);
   }
 
