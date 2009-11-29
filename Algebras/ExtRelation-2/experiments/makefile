@@ -470,118 +470,6 @@ R100MB_T64KB: textgen
 	@$(TEXTGEN) $(100MB) 65536 $@ > $@
 
 # --------------------------------------------
-# Relations with specific Selectivity
-# --------------------------------------------
-
-# Selectivity 0,001%
-.PHONY: RELPAIR_SEL0_001
-RELPAIR_SEL0_001:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@A
-	$(TEXTGENSEL) 64 $(TUPLES_256_50MB) $(TUPLES_256_5MB) 0.00001 $@A_64 $@B_64
-	$(TEXTGENSEL) 128 $(TUPLES_256_50MB) $(TUPLES_256_5MB) 0.00001 $@A_128 $@B_128
-	$(TEXTGENSEL) 256 $(TUPLES_256_50MB) $(TUPLES_256_5MB) 0.00001 $@A_256 $@B_256
-	$(TEXTGENSEL) 512 $(TUPLES_256_50MB) $(TUPLES_256_5MB) 0.00001 $@A_512 $@B_512
-	$(TEXTGENSEL) 1024 $(TUPLES_256_50MB) $(TUPLES_256_5MB) 0.00001 $@A_1024 $@B_1024
-
-# Selectivity 1%
-.PHONY: RELPAIR_SEL1
-RELPAIR_SEL1:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 0.01 $@A $@B
-
-# Selectivity 5%
-.PHONY: RELPAIR_SEL5
-RELPAIR_SEL5:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 0.05 $@A $@B
-
-# Selectivity 10%
-.PHONY: RELPAIR_SEL10
-RELPAIR_SEL10:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 0.1 $@A $@B
-
-# Selectivity 20%
-.PHONY: RELPAIR_SEL20
-RELPAIR_SEL20:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 0.2 $@A $@B
-
-# Selectivity 30%
-.PHONY: RELPAIR_SEL30
-RELPAIR_SEL30:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 0.3 $@A $@B
-
-# Selectivity 40%
-.PHONY: RELPAIR_SEL40
-RELPAIR_SEL40:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 0.4 $@A $@B
-
-# Selectivity 50%
-.PHONY: RELPAIR_SEL50
-RELPAIR_SEL50:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 0.5 $@A $@B
-
-# Selectivity 60%
-.PHONY: RELPAIR_SEL60
-RELPAIR_SEL60:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 0.6 $@A $@B
-
-# Selectivity 70%
-.PHONY: RELPAIR_SEL70
-RELPAIR_SEL70:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 0.7 $@A $@B
-
-# Selectivity 80%
-.PHONY: RELPAIR_SEL80
-RELPAIR_SEL80:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 0.8 $@A $@B
-
-# Selectivity 90%
-.PHONY: RELPAIR_SEL90
-RELPAIR_SEL90:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 0.9 $@A $@B
-
-# Selectivity 100%
-.PHONY: RELPAIR_SEL100
-RELPAIR_SEL100:
-	@echo ""
-	@echo "Creating relation pair.." $@
-	@rm -f $@A $@B
-	@$(TEXTGENSEL) 256 20480 4096 1 $@A $@B
-
-# --------------------------------------------
 # Cleanup of database directory
 # --------------------------------------------
 
@@ -598,7 +486,7 @@ clean_db:
 # Experiments
 # --------------------------------------------
 
-tuplebuffer: clean_db R100MB_T64B R100MB_T256B R100MB_T1KB
+tuplebuffer: clean_db R100MB_T64B R100MB_T256B R100MB_T512B R100MB_T1KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	$(call doTest, $@)
@@ -903,21 +791,35 @@ hashjoin_number_of_partitions: clean_db
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	rm -f REL256_A25x* REL256_B25x*
-	$(TEXTGENSEL) 256 102400 8192 0.001 REL256_A25x2 REL256_B25x2
-	$(TEXTGENSEL) 256 102400 20480 0.001 REL256_A25x5 REL256_B25x5
-	$(TEXTGENSEL) 256 102400 40960 0.001 REL256_A25x10 REL256_B25x10
-	$(TEXTGENSEL) 256 102400 61440 0.001 REL256_A25x15 REL256_B25x15
-	$(TEXTGENSEL) 256 102400 81920 0.001 REL256_A25x20 REL256_B25x20
-	$(TEXTGENSEL) 256 102400 102400 0.001 REL256_A25x25 REL256_B25x25
-	$(TEXTGENSEL) 256 102400 122880 0.001 REL256_A25x30 REL256_B25x30
+	$(TEXTGENSEL) 256 102400 8192 0.00001 REL256_A25x2 REL256_B25x2
+	$(TEXTGENSEL) 256 102400 20480 0.00001 REL256_A25x5 REL256_B25x5
+	$(TEXTGENSEL) 256 102400 40960 0.00001 REL256_A25x10 REL256_B25x10
+	$(TEXTGENSEL) 256 102400 61440 0.00001 REL256_A25x15 REL256_B25x15
+	$(TEXTGENSEL) 256 102400 81920 0.00001 REL256_A25x20 REL256_B25x20
+	$(TEXTGENSEL) 256 102400 102400 0.00001 REL256_A25x25 REL256_B25x25
+	$(TEXTGENSEL) 256 102400 122880 0.00001 REL256_A25x30 REL256_B25x30
 	export SECONDO_PARAMMaxMemPerOperator=1024; \
 	$(call doTest, $@)
 
-hashjoin_switch_intern_extern: clean_db R50MB_T256B
+hashjoin_switch_intern_extern: clean_db
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
+	rm -f -v $@_A50x* $@_B50x*
+	$(TEXTGENSEL) 256 204800 40960 0.00001 $@_A50x10 $@_B50x10
+	$(TEXTGENSEL) 256 204800 49152 0.00001 $@_A50x12 $@_B50x12
+	$(TEXTGENSEL) 256 204800 57344 0.00001 $@_A50x14 $@_B50x14
+	$(TEXTGENSEL) 256 204800 65536 0.00001 $@_A50x16 $@_B50x16
+	$(TEXTGENSEL) 256 204800 73728 0.00001 $@_A50x18 $@_B50x18
+	$(TEXTGENSEL) 256 204800 81920 0.00001 $@_A50x20 $@_B50x20
+	$(TEXTGENSEL) 256 204800 90112 0.00001 $@_A50x22 $@_B50x22
+	$(TEXTGENSEL) 256 204800 98304 0.00001 $@_A50x24 $@_B50x24
+	$(TEXTGENSEL) 256 204800 106496 0.00001 $@_A50x26 $@_B50x26
+	$(TEXTGENSEL) 256 204800 114688 0.00001 $@_A50x28 $@_B50x28
+	$(TEXTGENSEL) 256 204800 122880 0.00001 $@_A50x30 $@_B50x30
+	$(TEXTGENSEL) 256 204800 131072 0.00001 $@_A50x32 $@_B50x32
 	export SECONDO_PARAMMaxMemPerOperator=16384; \
 	$(call doTest, $@)
+	rm -f -v $@_A50x* $@_B50x*
 
 hashjoin_subpartitioning: clean_db
 	@echo ""
@@ -946,168 +848,194 @@ hashjoin_hybrid_vs_grace: clean_db
 	$(call doTest, $@)
 	rm -f -v $@_A* $@_B*
 
-hashjoin_asymmetric_queries: clean_db R50MB_T64B R50MB_T256B R50MB_T512B
+hashjoin_asymmetric_queries: clean_db
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
+	rm -f -v $@_* $@_*
+	$(TEXTGENSEL) 64 204800 20480 0.00001 $@_64A50x5 $@_64B50x5
+	$(TEXTGENSEL) 64 184320 40960 0.00001 $@_64A45x10 $@_64B45x10
+	$(TEXTGENSEL) 64 163840 61440 0.00001 $@_64A40x15 $@_64B40x15
+	$(TEXTGENSEL) 64 143360 81920 0.00001 $@_64A35x20 $@_64B35x20
+	$(TEXTGENSEL) 64 122880 102400 0.00001 $@_64A30x25 $@_64B30x25
+	$(TEXTGENSEL) 64 112640 112640 0.00001 $@_64A27.5x27.5 $@_64B27.5x27.5
+	$(TEXTGENSEL) 64 102400 122880 0.00001 $@_64A25x30 $@_64B25x30
+	$(TEXTGENSEL) 64 81920 143360 0.00001 $@_64A20x35 $@_64B20x35
+	$(TEXTGENSEL) 64 61440 163840 0.00001 $@_64A15x40 $@_64B15x40
+	$(TEXTGENSEL) 64 40960 184320 0.00001 $@_64A10x45 $@_64B10x45
+	$(TEXTGENSEL) 64 20480 204800 0.00001 $@_64A5x50 $@_64B5x50
+	$(TEXTGENSEL) 256 204800 20480 0.00001 $@_256A50x5 $@_256B50x5
+	$(TEXTGENSEL) 256 184320 40960 0.00001 $@_256A45x10 $@_256B45x10
+	$(TEXTGENSEL) 256 163840 61440 0.00001 $@_256A40x15 $@_256B40x15
+	$(TEXTGENSEL) 256 143360 81920 0.00001 $@_256A35x20 $@_256B35x20
+	$(TEXTGENSEL) 256 122880 102400 0.00001 $@_256A30x25 $@_256B30x25
+	$(TEXTGENSEL) 256 112640 112640 0.00001 $@_256A27.5x27.5 $@_256B27.5x27.5
+	$(TEXTGENSEL) 256 102400 122880 0.00001 $@_256A25x30 $@_256B25x30
+	$(TEXTGENSEL) 256 81920 143360 0.00001 $@_256A20x35 $@_256B20x35
+	$(TEXTGENSEL) 256 61440 163840 0.00001 $@_256A15x40 $@_256B15x40
+	$(TEXTGENSEL) 256 40960 184320 0.00001 $@_256A10x45 $@_256B10x45
+	$(TEXTGENSEL) 256 20480 204800 0.00001 $@_256A5x50 $@_256B5x50
+	$(TEXTGENSEL) 512 204800 20480 0.00001 $@_512A50x5 $@_512B50x5
+	$(TEXTGENSEL) 512 184320 40960 0.00001 $@_512A45x10 $@_512B45x10
+	$(TEXTGENSEL) 512 163840 61440 0.00001 $@_512A40x15 $@_512B40x15
+	$(TEXTGENSEL) 512 143360 81920 0.00001 $@_512A35x20 $@_512B35x20
+	$(TEXTGENSEL) 512 122880 102400 0.00001 $@_512A30x25 $@_512B30x25
+	$(TEXTGENSEL) 512 112640 112640 0.00001 $@_512A27.5x27.5 $@_512B27.5x27.5
+	$(TEXTGENSEL) 512 102400 122880 0.00001 $@_512A25x30 $@_512B25x30
+	$(TEXTGENSEL) 512 81920 143360 0.00001 $@_512A20x35 $@_512B20x35
+	$(TEXTGENSEL) 512 61440 163840 0.00001 $@_512A15x40 $@_512B15x40
+	$(TEXTGENSEL) 512 40960 184320 0.00001 $@_512A10x45 $@_512B10x45
+	$(TEXTGENSEL) 512 20480 204800 0.00001 $@_512A5x50 $@_512B5x50
 	export SECONDO_PARAMMaxMemPerOperator=1024; \
 	$(call doTest, $@)
+	rm -f -v $@_* $@_*
 
-hashjoin_selectivity: clean_db RELPAIR_SEL1 RELPAIR_SEL5 RELPAIR_SEL10 RELPAIR_SEL20 \
-RELPAIR_SEL30 RELPAIR_SEL40 RELPAIR_SEL50 RELPAIR_SEL60 RELPAIR_SEL70 RELPAIR_SEL80 \
-RELPAIR_SEL90 RELPAIR_SEL100 
+hashjoin_selectivity: clean_db 
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
+	rm -f -v $@_* $@_*
+	$(TEXTGENSEL) 256 20480 4096 0.01 $@A1 $@B1
+	$(TEXTGENSEL) 256 20480 4096 0.05 $@A5 $@B5
+	$(TEXTGENSEL) 256 20480 4096 0.1 $@A10 $@B10
+	$(TEXTGENSEL) 256 20480 4096 0.2 $@A20 $@B20
+	$(TEXTGENSEL) 256 20480 4096 0.3 $@A30 $@B30
+	$(TEXTGENSEL) 256 20480 4096 0.4 $@A40 $@B40
+	$(TEXTGENSEL) 256 20480 4096 0.5 $@A50 $@B50
+	$(TEXTGENSEL) 256 20480 4096 0.6 $@A60 $@B60
+	$(TEXTGENSEL) 256 20480 4096 0.7 $@A70 $@B70
+	$(TEXTGENSEL) 256 20480 4096 0.8 $@A80 $@B80
+	$(TEXTGENSEL) 256 20480 4096 0.9 $@A90 $@B90
+	$(TEXTGENSEL) 256 20480 4096 1 $@A100 $@B100
 	export SECONDO_PARAMMaxMemPerOperator=256; \
 	$(call doTest, $@)
+	rm -f -v $@_* $@_*
 
-hashjoin_benchmark: clean_db RELPAIR_SEL0_001
+hashjoin_benchmark: clean_db 
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
+	rm -f -v $@_*x* $@_*x*
+	$(TEXTGENSEL) 64 819200 81920 0.00001 $@_64A50x5 $@_64B50x5
+	$(TEXTGENSEL) 128 409600 40960 0.00001 $@_128A50x5 $@_128B50x5
+	$(TEXTGENSEL) 256 204800 20480 0.00001 $@_256A50x5 $@_256B50x5
+	$(TEXTGENSEL) 512 102400 10240 0.00001 $@_512A50x5 $@_512B50x5
+	$(TEXTGENSEL) 1024 51200 5120 0.00001 $@_1024A50x5 $@_1024B50x5
 	export SECONDO_PARAMMaxMemPerOperator=64; \
-	$(call doTest, $@_1)
-#	export SECONDO_PARAMMaxMemPerOperator=128; \
-#	$(call doTest, $@2)
-#	export SECONDO_PARAMMaxMemPerOperator=256; \
-#	$(call doTest, $@3)
-#	export SECONDO_PARAMMaxMemPerOperator=512; \
-#	$(call doTest, $@4)
-#	export SECONDO_PARAMMaxMemPerOperator=768; \
-#	$(call doTest, $@5)
-#	export SECONDO_PARAMMaxMemPerOperator=1024; \
-#	$(call doTest, $@6)
-#	export SECONDO_PARAMMaxMemPerOperator=1280; \
-#	$(call doTest, $@7)
-#	export SECONDO_PARAMMaxMemPerOperator=1536; \
-#	$(call doTest, $@8)
-#	export SECONDO_PARAMMaxMemPerOperator=1792; \
-#	$(call doTest, $@9)
-#	export SECONDO_PARAMMaxMemPerOperator=2048; \
-#	$(call doTest, $@10)
-#	export SECONDO_PARAMMaxMemPerOperator=2304; \
-#	$(call doTest, $@11)
-#	export SECONDO_PARAMMaxMemPerOperator=2560; \
-#	$(call doTest, $@12)
-#	export SECONDO_PARAMMaxMemPerOperator=2816; \
-#	$(call doTest, $@13)
-#	export SECONDO_PARAMMaxMemPerOperator=3072; \
-#	$(call doTest, $@14)
-#	export SECONDO_PARAMMaxMemPerOperator=3328; \
-#	$(call doTest, $@15)
-#	export SECONDO_PARAMMaxMemPerOperator=3584; \
-#	$(call doTest, $@16)
-#	export SECONDO_PARAMMaxMemPerOperator=3840; \
-#	$(call doTest, $@17)
-#	export SECONDO_PARAMMaxMemPerOperator=4096; \
-#	$(call doTest, $@18)
-#	export SECONDO_PARAMMaxMemPerOperator=4352; \
-#	$(call doTest, $@19)
-#	export SECONDO_PARAMMaxMemPerOperator=4608; \
-#	$(call doTest, $@20)
-#	export SECONDO_PARAMMaxMemPerOperator=4864; \
-#	$(call doTest, $@21)
-#	export SECONDO_PARAMMaxMemPerOperator=5120; \
-#	$(call doTest, $@22)
-#	export SECONDO_PARAMMaxMemPerOperator=5376; \
-#	$(call doTest, $@23)
-#	export SECONDO_PARAMMaxMemPerOperator=5632; \
-#	$(call doTest, $@24)
+	$(call doTest, $@64-1)
+	export SECONDO_PARAMMaxMemPerOperator=64; \
+	$(call doTest, $@64-2)
+	export SECONDO_PARAMMaxMemPerOperator=128; \
+	$(call doTest, $@128-1)
+	export SECONDO_PARAMMaxMemPerOperator=128; \
+	$(call doTest, $@128-2)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, $@256-1)
+	export SECONDO_PARAMMaxMemPerOperator=256; \
+	$(call doTest, $@256-2)
+	export SECONDO_PARAMMaxMemPerOperator=512; \
+	$(call doTest, $@512-1)
+	export SECONDO_PARAMMaxMemPerOperator=512; \
+	$(call doTest, $@512-2)
+	export SECONDO_PARAMMaxMemPerOperator=768; \
+	$(call doTest, $@768-1)
+	export SECONDO_PARAMMaxMemPerOperator=768; \
+	$(call doTest, $@768-2)
+	export SECONDO_PARAMMaxMemPerOperator=1024; \
+	$(call doTest, $@1024-1)
+	export SECONDO_PARAMMaxMemPerOperator=1024; \
+	$(call doTest, $@1024-2)
+	export SECONDO_PARAMMaxMemPerOperator=1280; \
+	$(call doTest, $@1280-1)
+	export SECONDO_PARAMMaxMemPerOperator=1280; \
+	$(call doTest, $@1280-2)
+	export SECONDO_PARAMMaxMemPerOperator=1536; \
+	$(call doTest, $@1536-1)
+	export SECONDO_PARAMMaxMemPerOperator=1536; \
+	$(call doTest, $@1536-2)
+	export SECONDO_PARAMMaxMemPerOperator=1792; \
+	$(call doTest, $@1792-1)
+	export SECONDO_PARAMMaxMemPerOperator=1792; \
+	$(call doTest, $@1792-2)
+	export SECONDO_PARAMMaxMemPerOperator=2048; \
+	$(call doTest, $@2048-1)
+	export SECONDO_PARAMMaxMemPerOperator=2048; \
+	$(call doTest, $@2048-2)
+	export SECONDO_PARAMMaxMemPerOperator=2304; \
+	$(call doTest, $@2304-1)
+	export SECONDO_PARAMMaxMemPerOperator=2304; \
+	$(call doTest, $@2304-2)
+	export SECONDO_PARAMMaxMemPerOperator=2560; \
+	$(call doTest, $@2560-1)
+	export SECONDO_PARAMMaxMemPerOperator=2560; \
+	$(call doTest, $@2560-2)
+	export SECONDO_PARAMMaxMemPerOperator=2816; \
+	$(call doTest, $@2816-1)
+	export SECONDO_PARAMMaxMemPerOperator=2816; \
+	$(call doTest, $@2816-2)
+	export SECONDO_PARAMMaxMemPerOperator=3072; \
+	$(call doTest, $@3072-1)
+	export SECONDO_PARAMMaxMemPerOperator=3072; \
+	$(call doTest, $@3072-2)
+	export SECONDO_PARAMMaxMemPerOperator=3328; \
+	$(call doTest, $@3328-1)
+	export SECONDO_PARAMMaxMemPerOperator=3328; \
+	$(call doTest, $@3328-2)
+	export SECONDO_PARAMMaxMemPerOperator=3584; \
+	$(call doTest, $@3584-1)
+	export SECONDO_PARAMMaxMemPerOperator=3584; \
+	$(call doTest, $@3584-2)
+	export SECONDO_PARAMMaxMemPerOperator=3840; \
+	$(call doTest, $@3840-1)
+	export SECONDO_PARAMMaxMemPerOperator=3840; \
+	$(call doTest, $@3840-2)
+	export SECONDO_PARAMMaxMemPerOperator=4096; \
+	$(call doTest, $@4096-1)
+	export SECONDO_PARAMMaxMemPerOperator=4096; \
+	$(call doTest, $@4096-2)
+	export SECONDO_PARAMMaxMemPerOperator=4352; \
+	$(call doTest, $@4352-1)
+	export SECONDO_PARAMMaxMemPerOperator=4352; \
+	$(call doTest, $@4352-2)
+	export SECONDO_PARAMMaxMemPerOperator=4608; \
+	$(call doTest, $@4608-1)
+	export SECONDO_PARAMMaxMemPerOperator=4608; \
+	$(call doTest, $@4608-2)
+	export SECONDO_PARAMMaxMemPerOperator=4864; \
+	$(call doTest, $@4864-1)
+	export SECONDO_PARAMMaxMemPerOperator=4864; \
+	$(call doTest, $@4864-2)
+	export SECONDO_PARAMMaxMemPerOperator=5120; \
+	$(call doTest, $@5120-1)
+	export SECONDO_PARAMMaxMemPerOperator=5120; \
+	$(call doTest, $@5120-2)
+	rm -f -v $@_*x* $@_*x*
 
-hashjoin_progress_estimation: clean_db R50MB_T256B
+hashjoin_progress_estimation: clean_db
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
-	$(call doTest, $@1)
-	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@1_proglogt.csv
-	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
-	$(call doTest, $@2)
-	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@2_proglogt.csv
-	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
-	$(call doTest, $@3)
-	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@3_proglogt.csv
+	rm -f -v $@_A* $@_B*
+	$(TEXTGENSEL) 256 204800 65536 0.00001 $@_A50x16 $@_B50x16
+#	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+#	$(call doTest, $@1)
+#	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@1_proglogt.csv
+#	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+#	$(call doTest, $@2)
+#	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@2_proglogt.csv
+#	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
+#	$(call doTest, $@3)
+#	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@3_proglogt.csv
 	rm -f $(SECONDO_BUILD_DIR)/bin/proglogt.csv
 	$(call doTest, $@4)
 	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@4_proglogt.csv
+	rm -f -v $@_A* $@_B*
 
-dummy: clean_db \
-R1MB_T64B R1MB_T128B R1MB_T256B R1MB_T512B R1MB_T1KB R1MB_T2KB R1MB_T4KB R1MB_T8KB R1MB_T16KB  R1MB_T32KB R1MB_T64KB \
-R10MB_T64B R10MB_T128B R10MB_T256B R10MB_T512B R10MB_T1KB R10MB_T2KB R10MB_T4KB R10MB_T8KB R10MB_T16KB  R10MB_T32KB R10MB_T64KB \
-R50MB_T64B R50MB_T128B R50MB_T256B R50MB_T512B R50MB_T1KB R50MB_T2KB R50MB_T4KB R50MB_T8KB R50MB_T16KB  R50MB_T32KB R50MB_T64KB \
-R100MB_T64B R100MB_T128B R100MB_T256B R100MB_T512B R100MB_T1KB R100MB_T2KB R100MB_T4KB R100MB_T8KB R100MB_T16KB  R100MB_T32KB R100MB_T64KB 
+dummy: clean_db 
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_2KB1)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_2KB2)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_2KB3)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_2KB4)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_2KB5)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_2KB6)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_4KB1)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_4KB2)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_4KB3)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_4KB4)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_4KB5)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_4KB6)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_8KB1)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_8KB2)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_8KB3)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_8KB4)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_8KB5)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_8KB6)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_16KB1)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_16KB2)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_16KB3)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_16KB4)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_16KB5)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_16KB6)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_32KB1)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_32KB2)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_32KB3)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_32KB4)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_32KB5)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_32KB6)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_64KB1)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_64KB2)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_64KB3)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_64KB4)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_64KB5)
-	export SECONDO_PARAMMaxMemPerOperator=256; \
-	$(call doTest, sort_benchmark_64KB6)
-
-
-
-
+	rm -f -v $@_*x* $@_*x*
+	$(TEXTGENSEL) 64 819200 81920 0.00001 $@_64A50x5 $@_64B50x5
+	$(TEXTGENSEL) 128 409600 40960 0.00001 $@_128A50x5 $@_128B50x5
+	$(TEXTGENSEL) 256 204800 20480 0.00001 $@_256A50x5 $@_256B50x5
+	$(TEXTGENSEL) 512 102400 10240 0.00001 $@_512A50x5 $@_512B50x5
+	$(TEXTGENSEL) 1024 51200 5120 0.00001 $@_1024A50x5 $@_1024B50x5
+	export SECONDO_PARAMMaxMemPerOperator=64; \
+	$(call doTest, $@)
+	rm -f -v $@_*x* $@_*x*
