@@ -40,24 +40,24 @@ create database db_tmp;
 open database db_tmp;
 
 #--------------------------------------------------  
-# Create relation with 50 MB data and 512 Byte tuples
-#--------------------------------------------------  
-
-#testcase create_relation
-#yields success
-restore R50MB_T512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T512B';
-
-#--------------------------------------------------  
 # Hybrid Hash-Join with 50 MB x 5 MB (512 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T512B feed head[102400] {a} consume; 
+restore REL512A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512A50x5';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T512B feed head[10240] {b} consume; 
+restore REL512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512B50x5';
+
+#testcase create_relation_A
+#yields success
+let relA = REL512A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL512B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 50MB_join_5_MB_standard_512
 #yields success
@@ -75,17 +75,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL512A;
+
+#testcase delete_relation_B
+#yields success
+delete REL512B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 45 MB x 10 MB (512 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T512B feed head[92160] {a} consume; 
+restore REL512A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512A45x10';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T512B feed head[20480] {b} consume; 
+restore REL512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512B45x10';
+
+#testcase create_relation_A
+#yields success
+let relA = REL512A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL512B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 45MB_join_10_MB_standard_512
 #yields success
@@ -103,17 +119,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL512A;
+
+#testcase delete_relation_B
+#yields success
+delete REL512B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 40 MB x 15 MB (512 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T512B feed head[81920] {a} consume; 
+restore REL512A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512A40x15';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T512B feed head[30720] {b} consume; 
+restore REL512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512B40x15';
+
+#testcase create_relation_A
+#yields success
+let relA = REL512A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL512B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 40MB_join_15_MB_standard_512
 #yields success
@@ -131,17 +163,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL512A;
+
+#testcase delete_relation_B
+#yields success
+delete REL512B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 35 MB x 20 MB (512 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T512B feed head[71680] {a} consume; 
+restore REL512A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512A35x20';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T512B feed head[40960] {b} consume; 
+restore REL512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512B35x20';
+
+#testcase create_relation_A
+#yields success
+let relA = REL512A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL512B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 35MB_join_20_MB_standard_512
 #yields success
@@ -159,17 +207,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL512A;
+
+#testcase delete_relation_B
+#yields success
+delete REL512B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 30 MB x 25 MB (512 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T512B feed head[61440] {a} consume; 
+restore REL512A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512A30x25';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T512B feed head[51200] {b} consume; 
+restore REL512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512B30x25';
+
+#testcase create_relation_A
+#yields success
+let relA = REL512A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL512B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 30MB_join_25_MB_standard_512
 #yields success
@@ -187,17 +251,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL512A;
+
+#testcase delete_relation_B
+#yields success
+delete REL512B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 27,5 MB x 27,5 MB (512 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T512B feed head[56320] {a} consume; 
+restore REL512A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512A27.5x27.5';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T512B feed head[56320] {b} consume; 
+restore REL512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512B27.5x27.5';
+
+#testcase create_relation_A
+#yields success
+let relA = REL512A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL512B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 27.5MB_join_27.5_MB_standard_512
 #yields success
@@ -215,17 +295,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL512A;
+
+#testcase delete_relation_B
+#yields success
+delete REL512B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 30 MB (512 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T512B feed head[51200] {a} consume; 
+restore REL512A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512A25x30';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T512B feed head[61440] {b} consume; 
+restore REL512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512B25x30';
+
+#testcase create_relation_A
+#yields success
+let relA = REL512A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL512B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 25MB_join_30_MB_standard_512
 #yields success
@@ -243,17 +339,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL512A;
+
+#testcase delete_relation_B
+#yields success
+delete REL512B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 20 MB x 35 MB (512 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T512B feed head[40960] {a} consume; 
+restore REL512A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512A20x35';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T512B feed head[71680] {b} consume; 
+restore REL512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512B20x35';
+
+#testcase create_relation_A
+#yields success
+let relA = REL512A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL512B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 20MB_join_35_MB_standard_512
 #yields success
@@ -271,17 +383,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL512A;
+
+#testcase delete_relation_B
+#yields success
+delete REL512B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 15 MB x 40 MB (512 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T512B feed head[30720] {a} consume; 
+restore REL512A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512A15x40';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T512B feed head[81920] {b} consume; 
+restore REL512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512B15x40';
+
+#testcase create_relation_A
+#yields success
+let relA = REL512A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL512B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 15MB_join_40_MB_standard_512
 #yields success
@@ -299,17 +427,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL512A;
+
+#testcase delete_relation_B
+#yields success
+delete REL512B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 10 MB x 45 MB (512 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T512B feed head[20480] {a} consume; 
+restore REL512A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512A10x45';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T512B feed head[92160] {b} consume; 
+restore REL512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512B10x45';
+
+#testcase create_relation_A
+#yields success
+let relA = REL512A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL512B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 10MB_join_45_MB_standard_512
 #yields success
@@ -327,17 +471,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL512A;
+
+#testcase delete_relation_B
+#yields success
+delete REL512B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 5 MB x 50 MB (512 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T512B feed head[10240] {a} consume; 
+restore REL512A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512A5x50';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T512B feed head[102400] {b} consume; 
+restore REL512B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_512B5x50';
+
+#testcase create_relation_A
+#yields success
+let relA = REL512A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL512B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 5MB_join_50_MB_standard_512
 #yields success
@@ -355,13 +515,13 @@ delete relA;
 #yields success
 delete relB;
 
-#--------------------------------------------------  
-# Create relation with 50 MB data and 256 Byte tuples
-#--------------------------------------------------  
-
-#testcase create_relation
+#testcase delete_relation_A
 #yields success
-restore R50MB_T256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T256B';
+delete REL512A;
+
+#testcase delete_relation_B
+#yields success
+delete REL512B;
 
 #--------------------------------------------------  
 # Hybrid Hash-Join with 50 MB x 5 MB (256 Byte)
@@ -369,11 +529,19 @@ restore R50MB_T256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiment
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[204800] {a} consume; 
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256A50x5';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[20480] {b} consume; 
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256B50x5';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 50MB_join_5_MB_standard_256
 #yields success
@@ -391,17 +559,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL256A;
+
+#testcase delete_relation_B
+#yields success
+delete REL256B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 45 MB x 10 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[184320] {a} consume; 
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256A45x10';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[40960] {b} consume; 
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256B45x10';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 45MB_join_10_MB_standard_256
 #yields success
@@ -419,17 +603,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL256A;
+
+#testcase delete_relation_B
+#yields success
+delete REL256B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 40 MB x 15 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[163840] {a} consume; 
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256A40x15';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[61440] {b} consume; 
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256B40x15';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 40MB_join_15_MB_standard_256
 #yields success
@@ -447,17 +647,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL256A;
+
+#testcase delete_relation_B
+#yields success
+delete REL256B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 35 MB x 20 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[143360] {a} consume; 
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256A35x20';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[81920] {b} consume; 
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256B35x20';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 35MB_join_20_MB_standard_256
 #yields success
@@ -475,17 +691,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL256A;
+
+#testcase delete_relation_B
+#yields success
+delete REL256B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 30 MB x 25 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[122880] {a} consume; 
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256A30x25';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[102400] {b} consume; 
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256B30x25';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 30MB_join_25_MB_standard_256
 #yields success
@@ -503,17 +735,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL256A;
+
+#testcase delete_relation_B
+#yields success
+delete REL256B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 27,5 MB x 27,5 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[112640] {a} consume; 
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256A27.5x27.5';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[112640] {b} consume; 
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256B27.5x27.5';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 27.5MB_join_27.5_MB_standard_256
 #yields success
@@ -531,17 +779,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL256A;
+
+#testcase delete_relation_B
+#yields success
+delete REL256B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 30 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[102400] {a} consume; 
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256A25x30';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[122880] {b} consume; 
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256B25x30';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 25MB_join_30_MB_standard_256
 #yields success
@@ -559,17 +823,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL256A;
+
+#testcase delete_relation_B
+#yields success
+delete REL256B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 20 MB x 35 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[81920] {a} consume; 
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256A20x35';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[143360] {b} consume; 
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256B20x35';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 20MB_join_35_MB_standard_256
 #yields success
@@ -587,17 +867,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL256A;
+
+#testcase delete_relation_B
+#yields success
+delete REL256B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 15 MB x 40 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[61440] {a} consume; 
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256A15x40';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[163840] {b} consume; 
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256B15x40';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 15MB_join_40_MB_standard_256
 #yields success
@@ -615,17 +911,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL256A;
+
+#testcase delete_relation_B
+#yields success
+delete REL256B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 10 MB x 45 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[40960] {a} consume; 
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256A10x45';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[184320] {b} consume; 
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256B10x45';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 10MB_join_45_MB_standard_256
 #yields success
@@ -643,17 +955,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL256A;
+
+#testcase delete_relation_B
+#yields success
+delete REL256B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 5 MB x 50 MB (256 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T256B feed head[20480] {a} consume; 
+restore REL256A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256A5x50';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T256B feed head[204800] {b} consume; 
+restore REL256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_256B5x50';
+
+#testcase create_relation_A
+#yields success
+let relA = REL256A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL256B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 5MB_join_50_MB_standard_256
 #yields success
@@ -671,13 +999,13 @@ delete relA;
 #yields success
 delete relB;
 
-#--------------------------------------------------  
-# Create relation with 50 MB data and 64 Byte tuples
-#--------------------------------------------------  
-
-#testcase create_relation
+#testcase delete_relation_A
 #yields success
-restore R50MB_T64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T64B';
+delete REL256A;
+
+#testcase delete_relation_B
+#yields success
+delete REL256B;
 
 #--------------------------------------------------  
 # Hybrid Hash-Join with 50 MB x 5 MB (64 Byte)
@@ -685,11 +1013,19 @@ restore R50MB_T64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T64B feed head[819200] {a} consume; 
+restore REL64A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64A50x5';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T64B feed head[81920] {b} consume; 
+restore REL64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64B50x5';
+
+#testcase create_relation_A
+#yields success
+let relA = REL64A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL64B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 50MB_join_5_MB_standard_64
 #yields success
@@ -707,17 +1043,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL64A;
+
+#testcase delete_relation_B
+#yields success
+delete REL64B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 45 MB x 10 MB (64 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T64B feed head[737280] {a} consume; 
+restore REL64A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64A45x10';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T64B feed head[163840] {b} consume; 
+restore REL64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64B45x10';
+
+#testcase create_relation_A
+#yields success
+let relA = REL64A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL64B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 45MB_join_10_MB_standard_64
 #yields success
@@ -735,17 +1087,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL64A;
+
+#testcase delete_relation_B
+#yields success
+delete REL64B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 40 MB x 15 MB (64 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T64B feed head[655360] {a} consume; 
+restore REL64A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64A40x15';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T64B feed head[245760] {b} consume; 
+restore REL64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64B40x15';
+
+#testcase create_relation_A
+#yields success
+let relA = REL64A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL64B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 40MB_join_15_MB_standard_64
 #yields success
@@ -763,17 +1131,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL64A;
+
+#testcase delete_relation_B
+#yields success
+delete REL64B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 35 MB x 20 MB (64 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T64B feed head[573440] {a} consume; 
+restore REL64A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64A35x20';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T64B feed head[327680] {b} consume; 
+restore REL64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64B35x20';
+
+#testcase create_relation_A
+#yields success
+let relA = REL64A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL64B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 35MB_join_20_MB_standard_64
 #yields success
@@ -791,17 +1175,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL64A;
+
+#testcase delete_relation_B
+#yields success
+delete REL64B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 30 MB x 25 MB (64 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T64B feed head[491520] {a} consume; 
+restore REL64A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64A30x25';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T64B feed head[409600] {b} consume; 
+restore REL64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64B30x25';
+
+#testcase create_relation_A
+#yields success
+let relA = REL64A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL64B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 30MB_join_25_MB_standard_64
 #yields success
@@ -819,17 +1219,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL64A;
+
+#testcase delete_relation_B
+#yields success
+delete REL64B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 27,5 MB x 27,5 MB (64 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T64B feed head[450560] {a} consume; 
+restore REL64A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64A27.5x27.5';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T64B feed head[450560] {b} consume; 
+restore REL64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64B27.5x27.5';
+
+#testcase create_relation_A
+#yields success
+let relA = REL64A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL64B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 27.5MB_join_27.5_MB_standard_64
 #yields success
@@ -847,17 +1263,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL64A;
+
+#testcase delete_relation_B
+#yields success
+delete REL64B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 25 MB x 30 MB (64 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T64B feed head[409600] {a} consume; 
+restore REL64A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64A25x30';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T64B feed head[491520] {b} consume; 
+restore REL64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64B25x30';
+
+#testcase create_relation_A
+#yields success
+let relA = REL64A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL64B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 25MB_join_30_MB_standard_64
 #yields success
@@ -875,17 +1307,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL64A;
+
+#testcase delete_relation_B
+#yields success
+delete REL64B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 20 MB x 35 MB (64 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T64B feed head[327680] {a} consume; 
+restore REL64A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64A20x35';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T64B feed head[573440] {b} consume; 
+restore REL64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64B20x35';
+
+#testcase create_relation_A
+#yields success
+let relA = REL64A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL64B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 20MB_join_35_MB_standard_64
 #yields success
@@ -903,17 +1351,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL64A;
+
+#testcase delete_relation_B
+#yields success
+delete REL64B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 15 MB x 40 MB (64 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T64B feed head[245760] {a} consume; 
+restore REL64A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64A15x40';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T64B feed head[655360] {b} consume; 
+restore REL64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64B15x40';
+
+#testcase create_relation_A
+#yields success
+let relA = REL64A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL64B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 15MB_join_40_MB_standard_64
 #yields success
@@ -931,17 +1395,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL64A;
+
+#testcase delete_relation_B
+#yields success
+delete REL64B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 10 MB x 45 MB (64 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T64B feed head[163840] {a} consume; 
+restore REL64A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64A10x45';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T64B feed head[737280] {b} consume; 
+restore REL64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64B10x45';
+
+#testcase create_relation_A
+#yields success
+let relA = REL64A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL64B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 10MB_join_45_MB_standard_64
 #yields success
@@ -959,17 +1439,33 @@ delete relA;
 #yields success
 delete relB;
 
+#testcase delete_relation_A
+#yields success
+delete REL64A;
+
+#testcase delete_relation_B
+#yields success
+delete REL64B;
+
 #--------------------------------------------------  
 # Hybrid Hash-Join with 5 MB x 50 MB (64 Byte)
 #--------------------------------------------------  
 
 #testcase create_relation_A
 #yields success
-let relA = R50MB_T64B feed head[81920] {a} consume; 
+restore REL64A from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64A5x50';
 
 #testcase create_relation_B
 #yields success
-let relB = R50MB_T64B feed head[819200] {b} consume; 
+restore REL64B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/hashjoin_asymmetric_queries_64B5x50';
+
+#testcase create_relation_A
+#yields success
+let relA = REL64A feed {a} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
+
+#testcase create_relation_B
+#yields success
+let relB = REL64B feed {b} extend[ran: randint(50000)] sortby2Param[ran;64*1024*1024,-1,-1] remove[ran] consume;
 
 #testcase 5MB_join_50_MB_standard_64
 #yields success
@@ -986,6 +1482,14 @@ delete relA;
 #testcase delete_relation_B
 #yields success
 delete relB;
+
+#testcase delete_relation_A
+#yields success
+delete REL64A;
+
+#testcase delete_relation_B
+#yields success
+delete REL64B;
 
 ##############################################################################
 # TearDown
