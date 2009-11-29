@@ -20,6 +20,8 @@ TESTS=( "tuplefile_functional1"
 	"sort_functional2" 
 	"sortmergejoin_functional1" 
 	"sortmergejoin_functional2" 
+	"gracehashjoin_functional1"
+	"gracehashjoin_functional2"
 	"hybridhashjoin_functional1"
 	"hybridhashjoin_functional2" )
  
