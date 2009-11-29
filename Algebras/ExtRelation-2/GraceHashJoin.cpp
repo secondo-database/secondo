@@ -59,6 +59,7 @@ namespace extrel2
 GraceHashJoinProgressLocalInfo::GraceHashJoinProgressLocalInfo()
 : ProgressLocalInfo()
 , maxOperatorMemory(qp->MemoryAvailableForOperator())
+, tuplesProcessedSinceLastResult(0)
 , traceMode(false)
 {
 }
@@ -168,12 +169,6 @@ void GraceHashJoinProgressLocalInfo::calcProgressGrace( ProgressInfo& p1,
   double m = (double)this->returned;
   double k1 = (double)this->readFirst;
   double k2 = (double)this->readSecond;
-  size_t M = this->maxOperatorMemory;
-  size_t S2 = (size_t)p2.SizeExt;
-
-  // calculate the maximum amount of tuples of stream B that fit into
-  // the operator's main memory
-  size_t M_S2 = (size_t)floor((double)M / (double)S2);
 
   // -------------------------------------------
   // Result cardinality
@@ -583,10 +578,6 @@ GraceHashJoinAlgorithm::GraceHashJoinAlgorithm( Word streamA,
     // create partitions for stream A according to partitioning of stream B
     pmA = new PartitionManager(hashFuncA, *pmB, &progress->streamA);
 
-    // load partition 0 into hash table
-    finishedPartitionB = pmB->LoadPartition(0, hashTable, MAX_MEMORY);
-    curPartition = 0;
-
     // set current state
     partitioning = true;
 
@@ -835,8 +826,6 @@ Tuple* GraceHashJoinAlgorithm::partitionA()
 
   tupleA.setTuple( iterA->GetNextTuple() );
 
-  timeLastResultTuple.start();
-
   return processPartitions();
 }
 
@@ -853,7 +842,7 @@ Tuple* GraceHashJoinAlgorithm::processPartitions()
         Tuple *result = new Tuple( resultTupleType );
         Concat(tupleA.tuple, tupleB, result);
         progress->returned++;
-        timeLastResultTuple.start();
+        progress->tuplesProcessedSinceLastResult = 0;
         return result;
       }
 
@@ -865,11 +854,7 @@ Tuple* GraceHashJoinAlgorithm::processPartitions()
       pinfo.curPassNo =
           (int)ceil( (double)pinfo.tuplesProc / (double) pinfo.tuples);
 
-      // initiate progress message if no result tuples were produced for 100 ms
-      if ( timeLastResultTuple.diffSecondsCPU() > 0.1 )
-      {
-        qp->CheckProgress();
-      }
+      progress->CheckProgressSinceLastResult();
 
       tupleA.setTuple( iterA->GetNextTuple() );
     }
@@ -910,6 +895,7 @@ Tuple* GraceHashJoinAlgorithm::NextResultTuple()
         Tuple *result = new Tuple( resultTupleType );
         Concat(tupleA.tuple, tupleB, result);
         progress->returned++;
+        progress->tuplesProcessedSinceLastResult = 0;
         return result;
       }
       else
