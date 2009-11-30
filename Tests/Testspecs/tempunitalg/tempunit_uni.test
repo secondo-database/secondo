@@ -336,7 +336,7 @@ query distance(ur3, ur1) count
 #yields (int 0)
 query distance(ur2, ur3) count
 
-#testcase distance_ur_ur radix2 
+#testcase distance_ur_ur radix2
 #yields (int 0)
 query distance(ur6, ur7) count
 
@@ -344,7 +344,7 @@ query distance(ur6, ur7) count
 #yields (int 0)
 query distance(ur7, ur6) count
 
-#testcase distance_ur_ur radix12 
+#testcase distance_ur_ur radix12
 #yields (int 0)
 query distance(ur7, ur7) count
 
@@ -603,7 +603,7 @@ query final(ur3)
 
 
 #testcase trajectory_up undefined
-#yields (line ())
+#yields (line undef)
 query trajectory(up3)
 
 #testcase trajectory_up defined up1
