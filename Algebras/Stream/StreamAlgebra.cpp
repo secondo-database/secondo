@@ -194,7 +194,6 @@ int MappingStreamFeed( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   SFeedLocalInfo *linfo;
-  Word argValue;
 
   switch( message )
     {
@@ -207,18 +206,17 @@ int MappingStreamFeed( Word* args, Word& result, int message,
     case REQUEST:
       if ( local.addr == 0 )
         return CANCEL;
-      linfo = ( SFeedLocalInfo *)local.addr;
+      linfo = static_cast<SFeedLocalInfo*>(local.addr);
       if ( linfo->finished )
         return CANCEL;
-      argValue = args[0];
-      result.setAddr(((Attribute*) (argValue.addr))->Clone());
+      result.setAddr((static_cast<Attribute*>(args[0].addr))->Clone());
       linfo->finished = true;
       return YIELD;
 
     case CLOSE:
       if ( local.addr )
         {
-          linfo = ( SFeedLocalInfo*) local.addr;
+          linfo = static_cast<SFeedLocalInfo*>(local.addr);
           delete linfo;
           local.setAddr(0);
         }
