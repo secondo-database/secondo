@@ -3754,6 +3754,282 @@ Operator getfileinfortree(
         );
 
 
+
+const string UpdatebulkloadrtreeSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" \"Comment\" ) "
+  "(<text>(stream (tuple (x1 t1)...(xn tn) (id tid))) xi)"
+  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false)\n"
+  "((stream (tuple (x1 t1)...(xn tn) "
+  "(id tid)(low int)(high int))) xi)"
+  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true)</text--->"
+  "<text>_ _ updatebulkloadrtree [ _ ]</text--->"
+  "<text>Creates an rtree<D> applying bulk loading. This means, "
+  "the operator expects the input stream of tuples to be ordered "
+  "in some meaningful way in order to reduce overlapping of "
+  "bounding boxes (e.g. a Z-ordering on the bounding boxes). "
+  "The R-Tree is created bottom up by gouping as many entries as "
+  "possible into the leaf nodes and then creating the higher levels. "
+  "The key type ti must be of kind SPATIAL2D, SPATIAL3D, SPATIAL4D "
+  "or Spatial8D, or of type rect, rect2, rect3, rect4 or rect8.</text--->"
+  "<text>let myrtree = Kreis feed projectextend[ ; TID: tupleid(.), "
+  "MBR: bbox(.Gebiet)] sortby[MBR asc] bulkloadrtree[MBR]</text--->"
+  "<text></text--->"
+  ") )";
+
+/*
+UpdateBulkLoad for r-tree
+
+*/
+
+ListExpr UpdateBulkLoadTypeMap(ListExpr args)
+{
+
+//  cout<<"UpdateBulkLoadTypeMap"<<endl;
+// check number of parameters
+  if( nl->IsEmpty(args) || nl->ListLength(args) != 3){
+    return listutils::typeError("Expecting exactly 3 arguments.");
+  }
+
+  // split to parameters
+  ListExpr tupleStream = nl->Second(args),
+           attrNameLE = nl->Third(args);
+
+/////////////////////////////////////////////////////////
+  ListExpr firstpara = nl->First(args);
+  if(nl->ListLength(firstpara) != 4){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(!nl->IsEqual(nl->First(firstpara),"rtree3")){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+///////////////////////////////////////////////////////////
+
+  // check stream
+  if(!listutils::isTupleStream(tupleStream)){
+    return listutils::typeError("Expecting a tuplestream as 1st argument.");
+  }
+  // check key attribute name
+  if(!listutils::isSymbol(attrNameLE)){
+    return listutils::typeError("Expecting an attribute name as 2nd argument.");
+  }
+  string attrName = nl->SymbolValue(attrNameLE);
+  // check if key attribute is from stream
+  ListExpr attrList = nl->Second(nl->Second(tupleStream));
+  ListExpr attrType;
+  int attrIndex = listutils::findAttribute(attrList, attrName, attrType);
+  if(attrIndex <= 0){
+    return listutils::typeError("Expecting the attribute (2nd argument) being "
+                                "part of the tuplestream (1st argument).");
+  }
+  // check for type of key attribute
+  if( !(listutils::isSpatialType(attrType) || listutils::isRectangle(attrType)))
+  {
+      return listutils::typeError("Expecting the key attribute (2nd argument) "
+            "being of kind SPATIAL2D, SPATIAL3D, Spatial4D or SPATIAL8D, of of "
+            "type rect, rect3, rect4, or rect8.");
+  }
+  string rtreetype;
+  if(    listutils::isKind(attrType, "SPATIAL2D")
+      || listutils::isSymbol(attrType, "rect")){ rtreetype = "rtree"; }
+  else if(    listutils::isKind(attrType, "SPATIAL3D")
+      || listutils::isSymbol(attrType, "rect3")){ rtreetype = "rtree3"; }
+  else if(    listutils::isKind(attrType, "SPATIAL4D")
+      || listutils::isSymbol(attrType, "rect4")){ rtreetype = "rtree4"; }
+  else if(    listutils::isKind(attrType, "SPATIAL8D")
+      || listutils::isSymbol(attrType, "rect8")){ rtreetype = "rtree8"; }
+  else  return listutils::typeError("Unsupported key type.");
+
+/*
+Now we have two possibilities:
+
+- multi-entry indexing, or
+- double indexing
+
+For multi-entry indexing, one and only one of the attributes
+must be a tuple identifier. In the latter, together with
+a tuple identifier, the last two attributes must be of
+integer type (~int~).
+
+In the first case, a standard R-Tree is created possibly
+containing several entries to the same tuple identifier, and
+in the latter, a double index R-Tree is created using as low
+and high parameters these two last integer numbers.
+
+*/
+
+    ListExpr first, rest, newAttrList, lastNewAttrList;
+    int tidIndex = 0;
+    string type;
+    bool firstcall = true,
+    doubleIndex = false;
+
+    int nAttrs = nl->ListLength( attrList );
+    rest = attrList;
+    int j = 1;
+    while (!nl->IsEmpty(rest))
+    {
+      first = nl->First(rest);
+      rest = nl->Rest(rest);
+
+      type = nl->SymbolValue(nl->Second(first));
+      if (type == "tid")
+      {
+        if( tidIndex != 0 ){
+          return listutils::typeError("Expecting exactly one attribute of type "
+                                      "'tid' in the 1st argument.");
+        }
+        tidIndex = j;
+      }
+      else if( j == nAttrs - 1 && type == "int" &&
+               nl->SymbolValue(
+               nl->Second(nl->First(rest))) == "int" )
+      { // the last two attributes are integers
+        doubleIndex = true;
+      }
+      else
+      {
+        if (firstcall)
+        {
+          firstcall = false;
+          newAttrList = nl->OneElemList(first);
+          lastNewAttrList = newAttrList;
+        }
+        else
+        {
+          lastNewAttrList = nl->Append(lastNewAttrList, first);
+        }
+      }
+      j++;
+    }
+    if( tidIndex == 0 ){
+      return listutils::typeError("Expecting exactly one attribute of type "
+                                  "'tid' in the 1st argument.");
+    }
+
+    return
+        nl->ThreeElemList(
+        nl->SymbolAtom("APPEND"),
+    nl->TwoElemList(
+        nl->IntAtom(attrIndex),
+    nl->IntAtom(tidIndex)),
+    nl->FourElemList(
+        nl->SymbolAtom(rtreetype),
+    nl->TwoElemList(
+        nl->SymbolAtom("tuple"),
+    newAttrList),
+    attrType,
+    nl->BoolAtom(doubleIndex)));
+
+}
+
+/*
+Bulkload an R-tree with an input R-tree so that they map to the same file
+
+*/
+int UpdateBulkLoadFun(Word* args, Word& result, int message,Word& local,
+Supplier s)
+{
+  const int dim = 3;
+  Word wTuple;
+  R_Tree<3,TupleId>* rtree_in1 = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
+
+  cout<<"headid "<<rtree_in1->HeaderRecordId()<<
+      "rootid "<<rtree_in1->RootRecordId()<<endl;
+
+
+  R_Tree<3,TupleId>* rtree_temp = (R_Tree<3,TupleId>*)qp->ResultStorage(s).addr;
+  rtree_temp->CloseFile();
+
+  rtree_in1->CloseFile();
+
+  R_Tree<dim, TupleId> *rtree = new R_Tree<3,TupleId>(rtree_in1->FileId(),4000);
+
+//  result.setAddr( rtree );
+
+  cout<<"headid "<<rtree->HeaderRecordId()<<
+      "rootid "<<rtree->RootRecordId()<<endl;
+
+  int attrIndex = ((CcInt*)args[3].addr)->GetIntval() - 1,
+  tidIndex = ((CcInt*)args[4].addr)->GetIntval() - 1;
+
+  // Get a reference to the message center
+  static MessageCenter* msg = MessageCenter::GetInstance();
+  int count = 0; // counter for progress indicator
+
+  bool BulkLoadInitialized = rtree->InitializeBulkLoad();
+  assert(BulkLoadInitialized);
+
+  qp->Open(args[1].addr);
+  qp->Request(args[1].addr, wTuple);
+  while (qp->Received(args[1].addr))
+  {
+    if ((count++ % 10000) == 0)
+    {
+      // build a two elem list (simple count)
+      NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call
+      // the registered handlers. Normally the client applications
+      // will register them.
+      msg->Send(msgList);
+    }
+    Tuple* tuple = (Tuple*)wTuple.addr;
+
+    if( ((StandardSpatialAttribute<dim>*)tuple->
+              GetAttribute(attrIndex))->IsDefined() &&
+              ((TupleIdentifier *)tuple->GetAttribute(tidIndex))->
+              IsDefined() )
+    {
+        BBox<dim> box = ((StandardSpatialAttribute<dim>*)tuple->
+              GetAttribute(attrIndex))->BoundingBox();
+
+        R_TreeLeafEntry<dim, TupleId>
+              e( box,
+                 ((TupleIdentifier *)tuple->
+                     GetAttribute(tidIndex))->GetTid() );
+        rtree->MyInsertBulkLoad(e);
+    }
+    tuple->DeleteIfAllowed();
+    qp->Request(args[1].addr, wTuple);
+  }
+  qp->Close(args[1].addr);
+
+  int FinalizedBulkLoad = rtree->FinalizeBulkLoad();
+  assert( FinalizedBulkLoad );
+
+  // build a two elem list (simple count)
+  NList msgList( NList("simple"), NList(count) );
+      // send the message, the message center will call
+      // the registered handlers. Normally the client applications
+      // will register them.
+  msg->Send(msgList);
+
+  cout<<"headid "<<rtree->HeaderRecordId()<<
+      "rootid "<<rtree->RootRecordId()<<endl;
+
+///////////////////////////////
+//  rtree_in1->OpenFile(rtree_in1->FileId());
+  rtree_in1->MergeRtree(rtree);
+//  rtree_in1->CloseFile();
+//  rtree->CloseFile();
+//////////////////////////////////
+
+  result.setAddr(rtree);
+  return 0;
+}
+
+Operator updatebulkloadrtree(
+        "updatebulkloadrtree",
+        UpdatebulkloadrtreeSpec,
+        UpdateBulkLoadFun,
+        Operator::SimpleSelect,
+        UpdateBulkLoadTypeMap
+);
+
 /*
 6 Definition and initialization of RTree Algebra
 
@@ -3784,6 +4060,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreebbox );
     AddOperator( &rtreeentries);
     AddOperator( &getfileinfortree);
+    AddOperator( &updatebulkloadrtree);
 
 #else
 
@@ -3802,6 +4079,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreebbox );
     AddOperator( &rtreeentries);
     AddOperator(&getfileinfortree);
+    AddOperator( &updatebulkloadrtree);
 #endif
 
 
