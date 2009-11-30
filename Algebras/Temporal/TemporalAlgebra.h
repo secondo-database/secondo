@@ -3515,7 +3515,20 @@ inline Range<Alpha>* Range<Alpha>::Clone() const
 template <class Alpha>
 inline ostream& Range<Alpha>::Print( ostream &os ) const
 {
-  return os << "Range Algebra" << endl;
+  os << "Rangetype: ";
+  if( !IsDefined() ){
+    os << "UNDEFINED.";
+  } else {
+    os << " defined, contains " << GetNoComponents() << " intervals: [" << endl;
+    Interval<Alpha> interval;
+    for( int i = 0; i < GetNoComponents(); i++ )
+    {
+      Get( i, interval );
+      os << "\t"; interval.Print( os ); os << endl;
+    }
+    os << "]." << endl;
+  }
+  return os << endl;
 }
 
 template <class Alpha>
@@ -3902,21 +3915,22 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
   result.StartBulkLoad();
   int i = 0, j = 0;
 
-  if( !IsEmpty() )
+  if( !IsEmpty() ) {
     Get( i, thisInterval );
-  if( !r.IsEmpty() )
+  }
+  if( !r.IsEmpty() ) {
     r.Get( j, interval );
+  }
 
-  if( !IsEmpty() && !r.IsEmpty() )
-  {
+  if( !IsEmpty() && !r.IsEmpty() ) {
     Alpha *start = NULL, *end = NULL;
     bool lc = false, rc = false;
 
-    while( i < GetNoComponents() && j < r.GetNoComponents() )
-    {
+    while( i < GetNoComponents() && j < r.GetNoComponents() ) {
       if( thisInterval.start.Compare( &interval.start ) == 0 &&
-          thisInterval.end.Compare( &interval.end ) == 0 )
-      {
+          thisInterval.end.Compare( &interval.end ) == 0 ) {
+//         cout << "<<<< " << __PRETTY_FUNCTION__
+//              << "CASE 1 (equal intervals)" << endl;
         Interval<Alpha> newInterval( thisInterval.start, thisInterval.end,
                                      thisInterval.lc || interval.lc,
                                      thisInterval.rc || interval.rc );
@@ -3927,29 +3941,24 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
 
         if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
-      }
-      else if( interval.Inside( thisInterval ) )
-      {
+      } else if( interval.Inside( thisInterval ) ) {
+//         cout << "<<<< " << __PRETTY_FUNCTION__
+//              << "CASE 2 (iv inside thisiv)" << endl;
         if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
-      }
-      else if( thisInterval.Inside( interval ) )
-      {
+      } else if( thisInterval.Inside( interval ) ) {
+//         cout << "<<<< " << __PRETTY_FUNCTION__
+//              << "CASE 3 (thisiv inside iv" << endl;
         if( ++i < GetNoComponents() )
           Get( i, thisInterval );
-      }
-      else if( !thisInterval.Intersects( interval ) )
-      {
-        if( thisInterval.end.Compare( &interval.start ) < 0 )
-        {
-          if( thisInterval.Adjacent( interval ) )
-          {
-            if( start != NULL && end != NULL )
-            {
+      } else if( !thisInterval.Intersects( interval ) ) {
+//         cout << "<<<< " << __PRETTY_FUNCTION__
+//              << "CASE 4 (no intersection of iv and thisiv)" << endl;
+        if( thisInterval.end.Compare( &interval.start ) < 0 ) {
+          if( thisInterval.Adjacent( interval ) ) {
+            if( start != NULL && end != NULL ) {
               delete end; end = NULL;
-            }
-            else
-            {
+            } else {
               assert( start == NULL );
               start = thisInterval.start.Clone();
               lc = thisInterval.lc;
@@ -3957,36 +3966,26 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
             assert( end == NULL );
             end = interval.end.Clone();
             rc = interval.rc;
-          }
-          else
-          {
-            if( start != NULL && end != NULL )
-            {
+          } else {
+            if( start != NULL && end != NULL ) {
               Interval<Alpha> newInterval( *start, *end, lc, rc );
               result.Add( newInterval );
               delete start; start = NULL;
               delete end; end = NULL;
               lc = false; rc = false;
-            }
-            else
-            {
+            } else {
               result.Add( thisInterval );
             }
           }
 
-          if( ++i < GetNoComponents() )
+          if( ++i < GetNoComponents() ) {
             Get( i, thisInterval );
-        }
-        else if( thisInterval.start.Compare( &interval.end ) > 0 )
-        {
-          if( thisInterval.Adjacent( interval ) )
-          {
-            if( start != NULL && end != NULL )
-            {
+          }
+        } else if( thisInterval.start.Compare( &interval.end ) > 0 ) {
+          if( thisInterval.Adjacent( interval ) ) {
+            if( start != NULL && end != NULL ) {
               delete end;
-            }
-            else
-            {
+            } else {
               assert( start == NULL );
               start = interval.start.Clone();
               lc = interval.lc;
@@ -3994,61 +3993,43 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
             assert( end == NULL );
             end = thisInterval.end.Clone();
             rc = thisInterval.rc;
-          }
-          else
-          {
-            if( start != NULL && end != NULL )
-            {
+          } else {
+            if( start != NULL && end != NULL ) {
               Interval<Alpha> newInterval( *start, *end, lc, rc );
               result.Add( newInterval );
               delete start; start = NULL;
               delete end; end = NULL;
               lc = false; rc = false;
-            }
-            else
-            {
+            } else {
               Interval<Alpha> newInterval( interval );
               result.Add( newInterval );
             }
           }
 
-          if( ++j < r.GetNoComponents() )
+          if( ++j < r.GetNoComponents() ) {
             r.Get( j, interval );
-        }
-        else if( thisInterval.start.Compare( &interval.end ) == 0 )
-        {
-          if( !thisInterval.lc && !interval.rc )
-          {
-            if( start != NULL && end != NULL )
-            {
+          }
+        } else if( thisInterval.start.Compare( &interval.end ) == 0 ) {
+          if( !thisInterval.lc && !interval.rc ) {
+            if( start != NULL && end != NULL ) {
               Interval<Alpha> newInterval( *start, *end, lc, rc );
               result.Add( newInterval );
               delete start; start = NULL;
               delete end; end = NULL;
               lc = false; rc = false;
-            }
-            else
-            {
+            } else {
               result.Add( interval );
             }
-          }
-          else
-          {
-            if( start != NULL && end != NULL )
-            {
-              if( end->Compare( &thisInterval.end ) < 0 )
-              {
+          } else {
+            if( start != NULL && end != NULL ) {
+              if( end->Compare( &thisInterval.end ) < 0 ) {
                 delete end;
                 end = thisInterval.end.Clone();
                 rc = thisInterval.rc;
-              }
-              else if( end->Compare( &thisInterval.end ) == 0 )
-              {
+              } else if( end->Compare( &thisInterval.end ) == 0 ) {
                 rc = rc || thisInterval.rc;
               }
-            }
-            else
-            {
+            } else {
               assert( start == NULL );
               start = interval.start.Clone();
               lc = interval.lc;
@@ -4058,43 +4039,30 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
             }
           }
 
-          if( ++j < r.GetNoComponents() )
+          if( ++j < r.GetNoComponents() ) {
             r.Get( j, interval );
-        }
-        else if( interval.start.Compare( &thisInterval.end ) == 0 )
-        {
-          if( !interval.lc && !thisInterval.rc )
-          {
-            if( start != NULL && end != NULL )
-            {
+          }
+        } else if( interval.start.Compare( &thisInterval.end ) == 0 ) {
+          if( !interval.lc && !thisInterval.rc ) {
+            if( start != NULL && end != NULL ) {
               Interval<Alpha> newInterval( *start, *end, lc, rc );
               result.Add( newInterval );
               delete start; start = NULL;
               delete end; end = NULL;
               lc = false; rc = false;
-            }
-            else
-            {
+            } else {
               result.Add( thisInterval );
             }
-          }
-          else
-          {
-            if( start != NULL && end != NULL )
-            {
-              if( end->Compare( &interval.end ) < 0 )
-              {
+          } else {
+            if( start != NULL && end != NULL ) {
+              if( end->Compare( &interval.end ) < 0 ) {
                 delete end;
                 end = interval.end.Clone();
                 rc = interval.rc;
-              }
-              else if( end->Compare( &interval.end ) == 0 )
-              {
+              } else if( end->Compare( &interval.end ) == 0 ) {
                 rc = rc || interval.rc;
               }
-            }
-            else
-            {
+            } else {
               assert( start == NULL );
               start = thisInterval.start.Clone();
               lc = thisInterval.lc;
@@ -4104,86 +4072,78 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
             }
           }
 
-          if( ++i < GetNoComponents() )
+          if( ++i < GetNoComponents() ) {
             Get( i, thisInterval );
+          }
         }
-      }
-      else if( thisInterval.start.Compare( &interval.start ) < 0 )
-      {
-        if( start == NULL && end == NULL )
-        {
+      } else if( thisInterval.start.Compare( &interval.start ) < 0 ) {
+//         cout << "<<<< " << __PRETTY_FUNCTION__
+//              << "CASE 5 (intersection - thisiv.start < iv.start)" << endl;
+        if( start == NULL && end == NULL ) {
           start = thisInterval.start.Clone();
           lc = thisInterval.lc;
           end = interval.end.Clone();
           rc = interval.rc;
-        }
-        else
-        {
-          if( end->Compare( &interval.end ) < 0 )
-          {
+        } else {
+          if( end->Compare( &interval.end ) < 0 ) {
             assert( end == NULL );
             end = interval.end.Clone();
             rc = interval.rc;
           }
-          if( end->Compare( &interval.end ) == 0 )
-          {
+          if( end->Compare( &interval.end ) == 0 ) {
             rc = rc || interval.rc;
           }
         }
 
-        if( ++i < GetNoComponents() )
+        if( ++i < GetNoComponents() ) {
           Get( i, thisInterval );
-      }
-      else if( interval.start.Compare( &thisInterval.start ) < 0 )
-      {
-        if( start == NULL && end == NULL )
-        {
+        }
+      } else if( interval.start.Compare( &thisInterval.start ) < 0 ) {
+//         cout << "<<<< " << __PRETTY_FUNCTION__
+//              << "CASE 6 (intersection - iv.start < thisiv.start)" << endl;
+        if( start == NULL && end == NULL ) {
           start = interval.start.Clone();
           lc = interval.lc;
           end = thisInterval.end.Clone();
           rc = thisInterval.rc;
-        }
-        else
-        {
-          if( end->Compare( &thisInterval.end ) < 0 )
-          {
+        } else {
+          if( end->Compare( &thisInterval.end ) < 0 ) {
             assert( end == NULL );
             end = thisInterval.end.Clone();
             rc = thisInterval.rc;
           }
-          if( end->Compare( &thisInterval.end ) == 0 )
-          {
+          if( end->Compare( &thisInterval.end ) == 0 ) {
             rc = rc || thisInterval.rc;
           }
         }
 
-        if( ++j < r.GetNoComponents() )
+        if( ++j < r.GetNoComponents() ) {
           r.Get( j, interval );
-      }
-      else if( thisInterval.start.Compare( &interval.start ) == 0 )
-      {
+        }
+      } else if( thisInterval.start.Compare( &interval.start ) == 0 ) {
+//         cout << "<<<< " << __PRETTY_FUNCTION__
+//              << "CASE 7 thisiv.start == iv.start" << endl;
         assert( start == NULL && end == NULL );
         start = thisInterval.start.Clone();
         lc = thisInterval.lc || interval.lc;
-        if( thisInterval.end.Compare( &interval.end ) < 0 )
-        {
+        if( thisInterval.end.Compare( &interval.end ) < 0 ) {
           end = interval.end.Clone();
           rc = interval.rc;
 
-          if( ++i < GetNoComponents() )
+          if( ++i < GetNoComponents() ) {
             Get( i, thisInterval );
-        }
-        else
-        {
+          }
+        } else {
           end = thisInterval.end.Clone();
           rc = thisInterval.rc;
 
-          if( ++j < r.GetNoComponents() )
+          if( ++j < r.GetNoComponents() ) {
             r.Get( j, interval );
+          }
         }
-      }
-      else if( thisInterval.end.Compare( &interval.end ) == 0 )
-      {
+      } else if( thisInterval.end.Compare( &interval.end ) == 0 ) {
+//         cout << "<<<< " << __PRETTY_FUNCTION__
+//              << "CASE 8 (thisiv.end == iv.end)" << endl;
         assert( start != NULL && end != NULL );
         rc = thisInterval.rc || interval.rc;
 
@@ -4193,29 +4153,27 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
         delete end; end = NULL;
         lc = false; rc = false;
 
-        if( ++i < GetNoComponents() )
+        if( ++i < GetNoComponents() ) {
           Get( i, thisInterval );
+        }
 
-        if( ++j < r.GetNoComponents() )
+        if( ++j < r.GetNoComponents() ) {
           r.Get( j, interval );
-      }
-    }
+        }
+      } // end while( i < GetNoComponents() && j < r.GetNoComponents() )
+    } // end if( !IsEmpty() && !r.IsEmpty() )
 
-    if( start != NULL && end != NULL )
-    {
+    if( start != NULL && end != NULL ) {
       Interval<Alpha> newInterval( *start, *end, lc, rc );
       result.Add( newInterval );
       delete start; start = NULL;
       delete end; end = NULL;
       lc = rc = false;
 
-      if( j >= r.GetNoComponents() )
-      {
+      if( j >= r.GetNoComponents() ) {
         if( ++i < GetNoComponents() )
           Get( i, thisInterval );
-      }
-      else if( i >= GetNoComponents() )
-      {
+      } else if( i >= GetNoComponents() ) {
         if( ++j < r.GetNoComponents() )
           r.Get( j, interval );
       }
@@ -4223,20 +4181,21 @@ void Range<Alpha>::Union( const Range<Alpha>& r, Range<Alpha>& result ) const
     assert( start == NULL && end == NULL );
   }
 
-  while( i < GetNoComponents() )
-  {
+  while( i < GetNoComponents() ) {
     result.Add( thisInterval );
 
-    if( ++i < GetNoComponents() )
+    if( ++i < GetNoComponents() ) {
       Get( i, thisInterval );
+    }
   }
 
   while( j < r.GetNoComponents() )
   {
-    result.Add( thisInterval );
+    result.Add( interval );
 
-    if( ++j < r.GetNoComponents() )
+    if( ++j < r.GetNoComponents() ) {
       r.Get( j, interval );
+    }
   }
   result.EndBulkLoad( false );
 }

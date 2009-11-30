@@ -262,7 +262,7 @@ extern AlgebraManager* am;
 #include "DateTime.h"
 using namespace datetime;
 
-//#define TUA_DEBUG
+// #define TUA_DEBUG
 
 /*
 2.1 Definition of some constants and auxiliary functions
@@ -5263,25 +5263,16 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
   pResult.Clear();
 
 #ifdef TUA_DEBUG
-    cout<<"UPoint # "<<" ["<<up->timeInterval.start.ToString()<<" "
-        <<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc<<" "
-        <<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()
-        <<")->("<<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;
+  cout << "up = " << *up << endl;
 #endif
 
-    for( int n = 0; n < ln.Size(); n++)
-    {
+  for( int n = 0; n < ln.Size(); n++)
+  {
       Instant t;
       ln.Get(n, l);
 #ifdef TUA_DEBUG
-        cout<<"UPoint # "<<" ["<<up->timeInterval.start.ToString()
-          <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc
-          <<" "<<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()
-          <<")->("<<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;
-        cout<<"l      # "<<n<<" ("<<l.GetLeftPoint().GetX()
-          <<" "<<l.GetLeftPoint().GetY()
-          <<" "<<l.GetRightPoint().GetX()<<" "
-          <<l.GetRightPoint().GetY()<<") "<<endl;
+        cout << "up = " << *up << endl;
+        cout << "ln: Segment # "<< n << " l = " << l << endl;
 #endif
       if (l.GetRightPoint().GetX() == l.GetDomPoint().GetX()
        && l.GetRightPoint().GetY() == l.GetDomPoint().GetY()) {
@@ -5675,8 +5666,7 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
 #endif
           continue;
         }
-      }
-      else{
+      } else{
 #ifdef TUA_DEBUG
         cout<<"both lines have different gradients"<<endl;
 #endif
@@ -5732,9 +5722,10 @@ static void TUUPointInsideLine(UPoint *u, Line& ln, Periods& pResult)
         pResult.Clear();
         pResult.CopyFrom(between);
       }
-      else
+      else{
         pResult.CopyFrom(period);
-    }
+      }
+  } // end for each segment
   delete between;
   delete period;
 }
@@ -5765,10 +5756,7 @@ static void TUCompletePeriods2MPoint(UPoint* u, Periods* pResult,
     if(!up->IsDefined())
         continue;
 #ifdef TUA_DEBUG
-    cout<<"UPoint # "<<" ["<<up->timeInterval.start.ToString()
-      <<" "<<up->timeInterval.end.ToString()<<" "<<up->timeInterval.lc<<" "
-      <<up->timeInterval.rc<<"] ("<<up->p0.GetX()<<" "<<up->p0.GetY()<<")->("
-      <<up->p1.GetX()<<" "<<up->p1.GetY()<<")"<<endl;
+    cout<<"*up = "<< *up <<endl;
 #endif
     if(!pfinished) {
       pResult->Get(m, per);
