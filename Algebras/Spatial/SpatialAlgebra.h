@@ -3912,14 +3912,10 @@ inline Point::Point( const bool d, const Coord& x, const Coord& y ) :
   del.isDelete=true;
 }
 
-inline Point::Point( const Point& p )
+inline Point::Point( const Point& p ) :
+    x( p.x ), y( p.y )
 {
   SetDefined( p.IsDefined() );
-  if( IsDefined() )
-  {
-    x = p.x;
-    y = p.y;
-  }
   del.refs=1;
   del.isDelete=true;
 }

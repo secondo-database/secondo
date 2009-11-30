@@ -1239,8 +1239,8 @@ struct ConstTemporalUnit : public StandardTemporalUnit<Alpha>
   ConstTemporalUnit(bool is_defined)
   { this->del.isDefined = is_defined;}
 
-  ConstTemporalUnit( const Interval<Instant>& interval, const Alpha& a ):
-    StandardTemporalUnit<Alpha>( interval )
+  ConstTemporalUnit( const Interval<Instant>& _interval, const Alpha& a ):
+    StandardTemporalUnit<Alpha>( _interval )
   {
     this->del.isDefined = true;
     constValue.CopyFrom( &a );
@@ -1469,12 +1469,12 @@ struct UReal : public StandardTemporalUnit<CcReal>
     del.isDefined=is_defined;
   };
 
-  UReal( const Interval<Instant>& interval,
+  UReal( const Interval<Instant>& _interval,
          const double a,
          const double b,
          const double c,
          const bool r ):
-    StandardTemporalUnit<CcReal>( interval ),
+    StandardTemporalUnit<CcReal>( _interval ),
     a( a ), b( b ), c( c ),
     r( r )
     {
@@ -1484,11 +1484,11 @@ struct UReal : public StandardTemporalUnit<CcReal>
     }
 
   // linear approximation between v1 and v2
-  UReal(const Interval<Instant>& interval,
+  UReal(const Interval<Instant>& _interval,
         const double v1,
-        const double v2): StandardTemporalUnit<CcReal>(interval){
+        const double v2): StandardTemporalUnit<CcReal>(_interval){
 
-       Instant diff = interval.end-interval.start;
+       Instant diff = _interval.end - _interval.start;
        a = 0;
        r = false;
        c = v1;
@@ -1890,10 +1890,10 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
     del.isDefined = is_defined;
   };
 
-  UPoint( const Interval<Instant>& interval,
+  UPoint( const Interval<Instant>& _interval,
           const double x0, const double y0,
           const double x1, const double y1 ):
-    SpatialTemporalUnit<Point, 3>( interval ),
+    SpatialTemporalUnit<Point, 3>( _interval ),
     p0( true, x0, y0 ),
     p1( true, x1, y1 )
     { del.refs=1;
@@ -1901,11 +1901,11 @@ struct UPoint : public SpatialTemporalUnit<Point, 3>
       del.isDefined = true;
     }
 
-  UPoint( const Interval<Instant>& interval,
-          const Point& p0, const Point& p1 ):
-    SpatialTemporalUnit<Point, 3>( interval ),
-    p0( p0 ),
-    p1( p1 )
+  UPoint( const Interval<Instant>& _interval,
+          const Point& _p0, const Point& _p1 ):
+    SpatialTemporalUnit<Point, 3>( _interval ),
+    p0( _p0 ),
+    p1( _p1 )
     { del.refs=1;
       del.isDelete=true;
       del.isDefined = true;
@@ -2067,15 +2067,14 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
 
   inline virtual UPoint* Clone() const
   {
-    UPoint *res;
-    res = new UPoint( timeInterval, p0, p1 );
+    UPoint *res = new UPoint( timeInterval, p0, p1 );
     res->del.isDefined = del.isDefined;
     return res;
   }
 
   inline virtual void CopyFrom( const Attribute* right )
   {
-    const UPoint* i = (const UPoint*)right;
+    const UPoint* i = static_cast<const UPoint*>(right);
 
     if(i->del.isDefined)
       {
