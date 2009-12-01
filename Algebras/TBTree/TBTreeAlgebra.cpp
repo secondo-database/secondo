@@ -163,9 +163,78 @@ bool SaveTBTree( SmiRecord& valueRecord,
    return true;
 }
 
+/*
+The procedure is similar as in RTree
+first copy sons of a node, when all entries are written into the file,
+the node is put into the file
+
+*/
+SmiRecordId TBTree::DFVisit_TBtree(TBTree* tbtree_in,
+tbtree::BasicNode<3>* node)
+{
+  if(node->isLeaf()){
+    SmiRecordId recordid;
+    recordid = saveNode(*node);
+    return recordid;
+  }else{
+    tbtree::InnerNode<3,InnerInfo>* innernode =
+        dynamic_cast<InnerNode<3,InnerInfo>*>(node);
+
+    tbtree::InnerNode<3,InnerInfo>* new_n =
+      new tbtree::InnerNode<3,InnerInfo>(innerMin,innerMax);
+
+    for(int i = 0;i < innernode->entryCount();i++){
+      const Entry<3,InnerInfo>* e = innernode->getEntry(i);
+
+      tbtree::BasicNode<3>* n =
+                tbtree_in->getNode(e->getInfo().getPointer());
+      SmiRecordId recid;
+      recid = DFVisit_TBtree(tbtree_in,n);
+      new_n->insert(Entry<3,InnerInfo>(e->getBox(),recid));
+      delete n;
+    }
+    SmiRecordId recordid;
+    recordid = saveNode(*new_n);
+    delete new_n;
+    return recordid;
+  }
+
+}
+
+/*
+Copy the input TBtree to the current one
+
+*/
+
+void TBTree::Clone(TBTree* tbtree_in)
+{
+  SmiRecordId root_id = tbtree_in->getRootId();
+  tbtree::BasicNode<3>* rootnode = tbtree_in->getNode(root_id);
+
+  root_id = DFVisit_TBtree(tbtree_in,rootnode);
+
+  noEntries = tbtree_in->entryCount();
+  noNodes = tbtree_in->nodeCount();
+  level = tbtree_in->getHeight();
+  noLeafNodes = tbtree_in->leafnodeCount();
+  box = tbtree_in->getBox();
+  rootId = root_id;
+  delete rootnode;
+
+}
+/*
+~Clone~-function
+
+*/
 
 Word CloneTBTree( const ListExpr typeInfo, const Word& w ){
-   return SetWord( Address(0) );
+  ////////////new implementation ////////////////////////
+  TBTree* tbtree = static_cast<TBTree*>(w.addr);
+  TBTree* new_tbtree = new TBTree(4000);
+  new_tbtree->Clone(tbtree);
+  return SetWord( new_tbtree);
+///  original implementation ///////////////
+//   return SetWord( Address(0) );
 }
 
 void* CastTBTree( void* addr) {

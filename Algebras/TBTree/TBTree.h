@@ -975,7 +975,6 @@ Returns a clone of this node.
      return new TBLeafNode<Dim, Info>(*this);
   }
 
-
   private:
     SmiRecordId next;
     int trjid;
@@ -1453,6 +1452,10 @@ calculate number of different trajectories in this node
     }
     return count;
   }
+
+  // for CloneTBtree
+  void Clone(TBTree*);
+  SmiRecordId DFVisit_TBtree(TBTree*,tbtree::BasicNode<3>*);
 
   private:
     SmiRecordFile file;
