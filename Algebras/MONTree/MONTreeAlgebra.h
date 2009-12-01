@@ -56,7 +56,7 @@ struct MON_TreeStatistics
     bottomR_TreeAverageHeight( 0 ),
     indexSize( 0 )
     {}
-    
+
   MON_TreeStatistics( const long edgeCount,
                       const long moCount,
                       const int topR_TreeHeight,
@@ -96,10 +96,10 @@ struct MON_TreeStatistics
 /*
 2.2 Struct ~TopR\_TreeLeafInfo~
 
-This structure maintains the information that is 
-stored in the leaf entries of the top R-Tree. 
+This structure maintains the information that is
+stored in the leaf entries of the top R-Tree.
 Basically, pointers to the route in the network
-and to the bottom R-Tree are stored in such 
+and to the bottom R-Tree are stored in such
 entries.
 
 */
@@ -113,7 +113,7 @@ struct TopR_TreeLeafInfo
     childTreeId( 0 )
     {}
 
-  TopR_TreeLeafInfo( const int routeId, 
+  TopR_TreeLeafInfo( const int routeId,
                      const SmiRecordId childTreeId ):
     routeId( routeId ),
     childTreeId( childTreeId )
@@ -157,8 +157,8 @@ The simple constructor
               SmiFileId indexFile,
               SmiFileId hashFile );
 /*
-This constructor opens an existing MON-tree. It 
-receives a relation of routes representing the 
+This constructor opens an existing MON-tree. It
+receives a relation of routes representing the
 network as well as the identifiers for the index
 and the hash files.
 
@@ -176,9 +176,9 @@ Returns statistics from the MON-Tree.
 
 */
 
-    SmiFileId GetIndexFileId() 
+    SmiFileId GetIndexFileId()
     { return index.GetFileId(); }
-    SmiFileId GetHashFileId() 
+    SmiFileId GetHashFileId()
     { return routeHash->GetFileId(); }
 
     void SetNetwork( Network *network );
@@ -188,16 +188,16 @@ Loads the routes from the network into the index.
 
 */
 
-    void Insert( const MGPoint& mgpoint, 
+    void Insert( const MGPoint& mgpoint,
                  const BottomR_TreeLeafInfo& mgpointId );
-    void Insert( const UGPoint& ugpoint, 
+    void Insert( const UGPoint& ugpoint,
                  const BottomR_TreeLeafInfo& ugpointId );
 /*
 Inserts a moving(gpoint) into the MON-Tree.
 
 */
 
-    bool First( const Rectangle<2>& searchRectangle, 
+    bool First( const Rectangle<2>& searchRectangle,
                 const Interval<Instant>& timeInterval,
                 R_TreeLeafEntry<2, BottomR_TreeLeafInfo>& result );
     bool Next( R_TreeLeafEntry<2, BottomR_TreeLeafInfo>& result );
@@ -212,9 +212,9 @@ The search of the MON-Tree.
 Inserts a route in the MON-Tree.
 
 */
-    void CalculateSearchBoxSet( const Rectangle<2>& box, 
-                                const SimpleLine& curve, 
-                                const Interval<Instant>& timeInterval, 
+    void CalculateSearchBoxSet( const Rectangle<2>& box,
+                                const SimpleLine& curve,
+                                const Interval<Instant>& timeInterval,
                                 RectangleSet<2>& result ) const;
 
 /*

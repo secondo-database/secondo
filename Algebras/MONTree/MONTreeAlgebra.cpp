@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -24,7 +24,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //paragraph [10] Footnote: [{\footnote{] [}}]
 //[TOC] [\tableofcontents]
 
-May 2008, Victor Almeida 
+May 2008, Victor Almeida
 
 [1] Implementation of MON-Tree Algebra
 
@@ -91,14 +91,14 @@ MON_Tree<BottomR_TreeLeafInfo>::~MON_Tree()
 }
 
 template<class BottomR_TreeLeafInfo>
-void MON_Tree<BottomR_TreeLeafInfo>::Insert( const int routeId, 
+void MON_Tree<BottomR_TreeLeafInfo>::Insert( const int routeId,
                        const SmiRecordId bottomId )
 {
   routeHash->Append( SmiKey((long)routeId), bottomId );
 }
 
 template<class BottomR_TreeLeafInfo>
-void MON_Tree<BottomR_TreeLeafInfo>::Insert( const MGPoint& mgpoint, 
+void MON_Tree<BottomR_TreeLeafInfo>::Insert( const MGPoint& mgpoint,
                        const BottomR_TreeLeafInfo& info )
 {
   assert( network != NULL );
@@ -112,7 +112,7 @@ void MON_Tree<BottomR_TreeLeafInfo>::Insert( const MGPoint& mgpoint,
 }
 
 template<class BottomR_TreeLeafInfo>
-void MON_Tree<BottomR_TreeLeafInfo>::Insert( const UGPoint& ugpoint, 
+void MON_Tree<BottomR_TreeLeafInfo>::Insert( const UGPoint& ugpoint,
                        const BottomR_TreeLeafInfo& info )
 {
   int routeId = ugpoint.p0.GetRouteId();
@@ -120,11 +120,11 @@ void MON_Tree<BottomR_TreeLeafInfo>::Insert( const UGPoint& ugpoint,
   HashIterator *iter = routeHash->ExactMatch( &key );
 
   Rectangle<3> box3D = ugpoint.NetBoundingBox3d();
-  Rectangle<2> box2D = BBox<2>( true, box3D.MinD(1), box3D.MaxD(1), 
+  Rectangle<2> box2D = BBox<2>( true, box3D.MinD(1), box3D.MaxD(1),
                                       box3D.MinD(2), box3D.MaxD(2) );
   // box is constructed first with the position, then the interval.
-    
-  R_TreeLeafEntry<2, BottomR_TreeLeafInfo> 
+
+  R_TreeLeafEntry<2, BottomR_TreeLeafInfo>
     entry( box2D, info );
 
   if( iter->Next() )
@@ -135,17 +135,17 @@ void MON_Tree<BottomR_TreeLeafInfo>::Insert( const UGPoint& ugpoint,
   else
   {
     Tuple *t = network->GetRoute( routeId );
-    Line *curve = (Line*)t->GetAttribute( ROUTE_CURVE );  
+    Line *curve = (Line*)t->GetAttribute( ROUTE_CURVE );
     Rectangle<2> routeBox = curve->BoundingBox();
 
     assert( bottom_RTree == NULL );
     bottom_RTree = new R_Tree<2, BottomR_TreeLeafInfo>( &index );
-         
-    routeHash->Append( SmiKey( (long)key.GetIntval() ), 
+
+    routeHash->Append( SmiKey( (long)key.GetIntval() ),
                        bottom_RTree->HeaderRecordId() );
 
     TopR_TreeLeafInfo info( routeId, bottom_RTree->HeaderRecordId() );
-    top_RTree->Insert( R_TreeLeafEntry<2, TopR_TreeLeafInfo>( routeBox, 
+    top_RTree->Insert( R_TreeLeafEntry<2, TopR_TreeLeafInfo>( routeBox,
                                                                info ) );
     t->DeleteIfAllowed();
   }
@@ -166,14 +166,14 @@ void MON_Tree<BottomR_TreeLeafInfo>::
 
   if( box.Contains( curve.BoundingBox() ) )
   {
-    result.Add( BBox<2>( true, 
-                         0.0, curve.Length(), 
-                         timeInterval.start.ToDouble(), 
+    result.Add( BBox<2>( true,
+                         0.0, curve.Length(),
+                         timeInterval.start.ToDouble(),
                          timeInterval.end.ToDouble() ) );
   }
   else
   {
-    double p1 = -1, 
+    double p1 = -1,
            p2 = -1;
 
     for( int i = 0; i < curve.Size()/2; i++ )
@@ -193,13 +193,13 @@ void MON_Tree<BottomR_TreeLeafInfo>::
         }
         p2 += hs->Length();
       }
-      else 
+      else
       {
         if( p2 >= 0 )
         {
           assert( p1 >= 0 );
           result.Add( BBox<2>( true,
-                               p1, p2, 
+                               p1, p2,
                                timeInterval.start.ToDouble(),
                                timeInterval.end.ToDouble() ) );
         }
@@ -210,8 +210,8 @@ void MON_Tree<BottomR_TreeLeafInfo>::
     if( p2 >= 0 )
     {
       assert( p1 >= 0 );
-      result.Add( BBox<2>( true, 
-                           p1, p2, 
+      result.Add( BBox<2>( true,
+                           p1, p2,
                            timeInterval.start.ToDouble(),
                            timeInterval.end.ToDouble() ) );
     }
@@ -219,7 +219,7 @@ void MON_Tree<BottomR_TreeLeafInfo>::
 }
 
 template<class BottomR_TreeLeafInfo>
-bool MON_Tree<BottomR_TreeLeafInfo>::First( const Rectangle<2>& box, 
+bool MON_Tree<BottomR_TreeLeafInfo>::First( const Rectangle<2>& box,
                       const Interval<Instant>& timeInterval,
                       R_TreeLeafEntry<2, BottomR_TreeLeafInfo>& result )
 {
@@ -235,15 +235,15 @@ bool MON_Tree<BottomR_TreeLeafInfo>::First( const Rectangle<2>& box,
   begin = true;
   assert( entry.info.childTreeId > 0 );
 
-  bottom_RTree = 
+  bottom_RTree =
     new R_Tree<2, BottomR_TreeLeafInfo>( &index, entry.info.childTreeId );
   Tuple *t = network->GetRoute( entry.info.routeId );
-  SimpleLine *curve = (SimpleLine*)t->GetAttribute( ROUTE_CURVE );  
+  SimpleLine *curve = (SimpleLine*)t->GetAttribute( ROUTE_CURVE );
 
   searchBoxSet.Clear();
-  CalculateSearchBoxSet( searchBox, 
-                         *curve, 
-                         searchTimeInterval, 
+  CalculateSearchBoxSet( searchBox,
+                         *curve,
+                         searchTimeInterval,
                          searchBoxSet );
 
   t->DeleteIfAllowed();
@@ -282,24 +282,24 @@ bool MON_Tree<BottomR_TreeLeafInfo>::
     {
       if( !top_RTree->Next( topEntry ) )
       {
-        delete bottom_RTree; 
+        delete bottom_RTree;
         bottom_RTree = NULL;
         return false;
       }
 
-      delete bottom_RTree; 
+      delete bottom_RTree;
       bottom_RTree = NULL;
       begin = true;
       assert( topEntry.info.childTreeId > 0 );
-      bottom_RTree = 
-        new R_Tree<2, BottomR_TreeLeafInfo>( &index, 
+      bottom_RTree =
+        new R_Tree<2, BottomR_TreeLeafInfo>( &index,
                                              topEntry.info.childTreeId );
       Tuple *t = network->GetRoute( topEntry.info.routeId );
-      SimpleLine *curve = (SimpleLine*)t->GetAttribute( ROUTE_CURVE );  
+      SimpleLine *curve = (SimpleLine*)t->GetAttribute( ROUTE_CURVE );
       searchBoxSet.Clear();
-      CalculateSearchBoxSet( searchBox, 
-                             *curve, 
-                             searchTimeInterval, 
+      CalculateSearchBoxSet( searchBox,
+                             *curve,
+                             searchTimeInterval,
                              searchBoxSet );
       t->DeleteIfAllowed();
     }
@@ -408,13 +408,13 @@ void CloseMON_Tree( const ListExpr typeInfo, Word& w )
 {
   if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
   {
-    MON_Tree<BottomR_TreeLeafInfo> *montree = 
+    MON_Tree<BottomR_TreeLeafInfo> *montree =
       (MON_Tree<BottomR_TreeLeafInfo>*)w.addr;
     delete montree;
   }
   else
   {
-    MON_Tree<SmiRecordId> *montree = 
+    MON_Tree<SmiRecordId> *montree =
       (MON_Tree<SmiRecordId>*)w.addr;
     delete montree;
   }
@@ -439,13 +439,13 @@ void DeleteMON_Tree( const ListExpr typeInfo, Word& w )
 {
   if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
   {
-    MON_Tree<BottomR_TreeLeafInfo> *montree = 
+    MON_Tree<BottomR_TreeLeafInfo> *montree =
       (MON_Tree<BottomR_TreeLeafInfo>*)w.addr;
     delete montree;
   }
   else
   {
-    MON_Tree<SmiRecordId> *montree = 
+    MON_Tree<SmiRecordId> *montree =
       (MON_Tree<SmiRecordId>*)w.addr;
     delete montree;
   }
@@ -480,7 +480,7 @@ bool OpenMON_Tree( SmiRecord& valueRecord,
 
   if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
   {
-    MON_Tree<BottomR_TreeLeafInfo> *montree = 
+    MON_Tree<BottomR_TreeLeafInfo> *montree =
       new MON_Tree<BottomR_TreeLeafInfo>( NULL,
                                           indexFileId,
                                           hashFileId );
@@ -488,7 +488,7 @@ bool OpenMON_Tree( SmiRecord& valueRecord,
   }
   else
   {
-    MON_Tree<SmiRecordId> *montree = 
+    MON_Tree<SmiRecordId> *montree =
       new MON_Tree<SmiRecordId>( NULL,
                                  indexFileId,
                                  hashFileId );
@@ -510,14 +510,14 @@ bool SaveMON_Tree( SmiRecord& valueRecord,
 
   if( nl->BoolValue(nl->Fourth(typeInfo)) == true )
   {
-    MON_Tree<BottomR_TreeLeafInfo> *montree = 
+    MON_Tree<BottomR_TreeLeafInfo> *montree =
       (MON_Tree<BottomR_TreeLeafInfo> *)value.addr;
     indexFileId = montree->GetIndexFileId();
     hashFileId = montree->GetHashFileId();
   }
   else
   {
-    MON_Tree<SmiRecordId> *montree = 
+    MON_Tree<SmiRecordId> *montree =
       (MON_Tree<SmiRecordId> *)value.addr;
     indexFileId = montree->GetIndexFileId();
     hashFileId = montree->GetHashFileId();
@@ -649,7 +649,7 @@ must be a tuple identifier. In the latter, together with
 a tuple identifier, the last two attributes must be of
 integer type (~int~).
 
-In the first case, a standard MON-Tree is created 
+In the first case, a standard MON-Tree is created
 containing several entries to the same tuple identifier, and
 in the latter, a double index MON-Tree is created using as low
 and high parameters these two last integer numbers.
@@ -741,7 +741,7 @@ CreateMONTreeSelect (ListExpr args)
   int doubleUp = 0;
   if(nl->IsEqual(attrType, "ugpoint"))
     doubleUp = 3;
-  
+
   if( nl->SymbolValue(nl->First(relDescription)) == "rel")
     return doubleUp + 0;
   if( nl->SymbolValue(nl->First(relDescription)) == "stream")
@@ -760,7 +760,7 @@ CreateMONTreeSelect (ListExpr args)
       // Multi-entry indexing
       return doubleUp + 1;
   }
-  
+
   return -1;
 }
 
@@ -777,7 +777,7 @@ int CreateMONTreeRelMGPoint(Word* args, Word& result, int message,
   Tuple* tuple;
   Network *network;
 
-  MON_Tree<BottomR_TreeLeafInfo> *montree = 
+  MON_Tree<BottomR_TreeLeafInfo> *montree =
     (MON_Tree<BottomR_TreeLeafInfo> *)qp->ResultStorage(s).addr;
   result.setAddr( montree );
 
@@ -845,7 +845,7 @@ int CreateMONTreeStream(Word* args, Word& result, int message,
                         Word& local, Supplier s)
 {
   Word wTuple;
-  MON_Tree<SmiRecordId> *montree = 
+  MON_Tree<SmiRecordId> *montree =
     (MON_Tree<SmiRecordId> *)qp->ResultStorage(s).addr;
   result.setAddr( montree );
 
@@ -877,7 +877,7 @@ int CreateMONTreeDblStream(Word* args, Word& result, int message,
                            Word& local, Supplier s)
 {
   Word wTuple;
-  MON_Tree<BottomR_TreeLeafInfo> *montree = 
+  MON_Tree<BottomR_TreeLeafInfo> *montree =
     (MON_Tree<BottomR_TreeLeafInfo> *)qp->ResultStorage(s).addr;
   result.setAddr( montree );
 
@@ -890,18 +890,18 @@ int CreateMONTreeDblStream(Word* args, Word& result, int message,
   {
     Tuple* tuple = (Tuple*)wTuple.addr;
     T *t = (T*)tuple->GetAttribute(attrIndex);
-    TupleIdentifier *tupleId = 
-      (TupleIdentifier *)tuple->GetAttribute(tidIndex); 
+    TupleIdentifier *tupleId =
+      (TupleIdentifier *)tuple->GetAttribute(tidIndex);
     CcInt *low = (CcInt*)tuple->GetAttribute(tuple->GetNoAttributes()-2),
           *high = (CcInt*)tuple->GetAttribute(tuple->GetNoAttributes()-1);
 
-    if( t->IsDefined() && 
+    if( t->IsDefined() &&
         tupleId->IsDefined() &&
         low->IsDefined() &&
         high->IsDefined() )
     {
       BottomR_TreeLeafInfo info( tupleId->GetTid(),
-                                 low->GetIntval(), 
+                                 low->GetIntval(),
                                  high->GetIntval() );
       montree->Insert( *t, info );
     }
@@ -984,7 +984,7 @@ ListExpr MON_WindowTimeIntersectsTypeMap(ListExpr args)
   CHECK_COND(nl->IsEqual(networkDescription, "network"),
     "Operator windowtimeintersects expects the first argument\n"
     "to be of type network.");
-    
+
   /* Query window: find out type of key */
   CHECK_COND(nl->IsEqual(searchWindow, "rect"),
     "Operator windowtimeintersects expects that the search window\n"
@@ -1057,11 +1057,11 @@ int MON_WindowTimeIntersects( Word* args, Word& result,
       localInfo->first = true;
 
       localInfo->searchBox = *(BBox<2>*)args[3].addr;
-      localInfo->searchTimeInterval = 
+      localInfo->searchTimeInterval =
         Interval<Instant>( *(Instant*)args[4].addr,
                            *(Instant*)args[5].addr,
-                           true, true ); 
- 
+                           true, true );
+
       assert(localInfo->montree != 0);
       assert(localInfo->relation != 0);
       local.setAddr(localInfo);
@@ -1075,7 +1075,7 @@ int MON_WindowTimeIntersects( Word* args, Word& result,
 
       if ( !localInfo->searchBox.IsDefined() ||
            !localInfo->searchTimeInterval.IsValid() )
-      { 
+      {
         return CANCEL;
       }
       else
@@ -1083,7 +1083,7 @@ int MON_WindowTimeIntersects( Word* args, Word& result,
         if(localInfo->first)
         {
           localInfo->first = false;
-          if( localInfo->montree->First( localInfo->searchBox, 
+          if( localInfo->montree->First( localInfo->searchBox,
                                          localInfo->searchTimeInterval,
                                          e ) )
           {
@@ -1181,7 +1181,7 @@ ListExpr MON_WindowTimeIntersectsSTypeMap(ListExpr args)
   CHECK_COND(nl->IsEqual(networkDescription, "network"),
     "Operator windowtimeintersectsS expects the first argument\n"
     "to be of type network.");
-    
+
   /* Query window: find out type of key */
   CHECK_COND(nl->IsEqual(searchWindow, "rect"),
     "Operator windowtimeintersectsS expects that the search window\n"
@@ -1282,10 +1282,10 @@ int MON_WindowTimeIntersectsS( Word* args, Word& result,
       localInfo->first = true;
 
       localInfo->searchBox = *(BBox<2>*)args[3].addr;
-      localInfo->searchTimeInterval = 
+      localInfo->searchTimeInterval =
         Interval<Instant>( *(Instant*)args[4].addr,
                            *(Instant*)args[5].addr,
-                           true, true ); 
+                           true, true );
       localInfo->resultTupleType =
         new TupleType(nl->Second(GetTupleResultType(s)));
 
@@ -1302,7 +1302,7 @@ int MON_WindowTimeIntersectsS( Word* args, Word& result,
 
       if ( !localInfo->searchBox.IsDefined() ||
            !localInfo->searchTimeInterval.IsValid() )
-      { 
+      {
         return CANCEL;
       }
       else
@@ -1310,7 +1310,7 @@ int MON_WindowTimeIntersectsS( Word* args, Word& result,
         if(localInfo->first)
         {
           localInfo->first = false;
-          if( localInfo->montree->First( localInfo->searchBox, 
+          if( localInfo->montree->First( localInfo->searchBox,
                                          localInfo->searchTimeInterval,
                                          e ) )
           {
@@ -1341,7 +1341,7 @@ int MON_WindowTimeIntersectsS( Word* args, Word& result,
     {
       if(local.addr)
       {
-        localInfo = 
+        localInfo =
           (MON_WindowTimeIntersectsSLocalInfo<SmiRecordId>*)local.addr;
         delete localInfo;
         local.setAddr(Address(0));
@@ -1369,10 +1369,10 @@ int MON_WindowTimeIntersectsSDbl( Word* args, Word& result,
       localInfo->first = true;
 
       localInfo->searchBox = *(BBox<2>*)args[3].addr;
-      localInfo->searchTimeInterval = 
+      localInfo->searchTimeInterval =
         Interval<Instant>( *(Instant*)args[4].addr,
                            *(Instant*)args[5].addr,
-                           true, true ); 
+                           true, true );
       localInfo->resultTupleType =
         new TupleType(nl->Second(GetTupleResultType(s)));
 
@@ -1384,13 +1384,13 @@ int MON_WindowTimeIntersectsSDbl( Word* args, Word& result,
 
     case REQUEST :
     {
-      localInfo = 
+      localInfo =
         (MON_WindowTimeIntersectsSLocalInfo<BottomR_TreeLeafInfo>*)local.addr;
        R_TreeLeafEntry<2, BottomR_TreeLeafInfo> e;
 
       if ( !localInfo->searchBox.IsDefined() ||
            !localInfo->searchTimeInterval.IsValid() )
-      { 
+      {
         return CANCEL;
       }
       else
@@ -1398,7 +1398,7 @@ int MON_WindowTimeIntersectsSDbl( Word* args, Word& result,
         if(localInfo->first)
         {
           localInfo->first = false;
-          if( localInfo->montree->First( localInfo->searchBox, 
+          if( localInfo->montree->First( localInfo->searchBox,
                                          localInfo->searchTimeInterval,
                                          e ) )
           {
@@ -1435,7 +1435,7 @@ int MON_WindowTimeIntersectsSDbl( Word* args, Word& result,
     {
       if(local.addr)
       {
-        localInfo = 
+        localInfo =
           (MON_WindowTimeIntersectsSLocalInfo<BottomR_TreeLeafInfo>*)local.addr;
         delete localInfo;
         local.setAddr(Address(0));
@@ -1491,12 +1491,12 @@ ValueMapping windowtimeintersectss [] = { MON_WindowTimeIntersectsS,
 
 */
 Operator windowtimeintersectsS (
-         "windowtimeintersectsS",        
-         windowtimeintersectsSSpec,      
+         "windowtimeintersectsS",
+         windowtimeintersectsSSpec,
          3,
          windowtimeintersectss,
-         WindowTimeIntersectsSSelection, 
-         MON_WindowTimeIntersectsSTypeMap    
+         WindowTimeIntersectsSSelection,
+         MON_WindowTimeIntersectsSTypeMap
 );
 
 /*
