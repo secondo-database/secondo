@@ -480,12 +480,10 @@ void IntersectionRPExt(
         MPoint,
         URegionEmb,
         UPoint>& rp,
-    bool merge)
+        bool merge)
 {
-
-    res = 0;
-
-    UPoint* pending = 0;
+  res = 0;
+  UPoint* pending = 0;
 
 /*
 
@@ -495,38 +493,34 @@ during this interval and we can skip if. Otherwise, we check if the region
 and point unit, both restricted to this interval, intersect.
 
 */
-    for (unsigned int i = 0; i < rp.Size(); i++)
-    {
-        Interval<Instant> iv;
-        int urPos;
-        int upPos;
+  for (unsigned int i = 0; i < rp.Size(); i++) {
+    Interval<Instant> iv;
+    int urPos;
+    int upPos;
 
-        rp.Get(i, iv, urPos, upPos);
+    rp.Get(i, iv, urPos, upPos);
 
-        if (urPos == -1 || upPos == -1) continue;
+    if (urPos == -1 || upPos == -1) continue;
 
-        URegionEmb ur;
-        UPoint up;
+    URegionEmb ur;
+    UPoint up;
 
-        mreg->Get(urPos, ur);
-        mp.Get(upPos, up);
+    mreg->Get(urPos, ur);
+    mp.Get(upPos, up);
 
-        ur.RestrictedIntersection(
-            mreg->GetMSegmentData(), up, iv, res, pending, merge);
+    ur.RestrictedIntersection(
+        mreg->GetMSegmentData(), up, iv, res, pending, merge);
+  }
+
+  if (pending) {
+    if (!((abs(pending->timeInterval.start.ToDouble()-
+           pending->timeInterval.end.ToDouble()) <= 0.00001)
+           && (!pending->timeInterval.lc
+           || !pending->timeInterval.rc))) {
+      res.Add(*pending);
     }
-
-    if (pending)
-    {
-        if (!((abs(pending->timeInterval.start.ToDouble()-
-                pending->timeInterval.end.ToDouble()) <= 0.00001)
-                && (!pending->timeInterval.lc
-                || !pending->timeInterval.rc)))
-        {
-            res.Add(*pending);
-        }
-
-        delete pending;
-    }
+    delete pending;
+  }
 }
 
 /*
@@ -544,26 +538,25 @@ Return: nothing
 
 void MPointExt::MDirection( MReal* result) const
 {
-    UPoint unitin;
-    UReal uresult(true);
-    bool defined;
+  UPoint unitin;
+  UReal uresult(true);
+  bool defined;
 
-    result->Clear();
-    result->StartBulkLoad();
-    for(int i=0;i<GetNoComponents();i++)
-    {
-        Get(i, unitin);
-        uresult.a = 0.;
-        uresult.b = 0.;
-        uresult.c = 0.;
-        uresult.r = false;
-        uresult.timeInterval = unitin.timeInterval;
-        uresult.c = AngleToXAxis( &(unitin.p0), &(unitin.p1), defined );
-        uresult.SetDefined( defined );
-        if(defined)
-          result->Add( uresult );
-    }
-    result->EndBulkLoad( false );
+  result->Clear();
+  result->StartBulkLoad();
+  for(int i=0;i<GetNoComponents();i++) {
+    Get(i, unitin);
+    uresult.a = 0.;
+    uresult.b = 0.;
+    uresult.c = 0.;
+    uresult.r = false;
+    uresult.timeInterval = unitin.timeInterval;
+    uresult.c = AngleToXAxis( &(unitin.p0), &(unitin.p1), defined );
+    uresult.SetDefined( defined );
+    if(defined)
+      result->Add( uresult );
+  }
+  result->EndBulkLoad( false );
 }
 
 /*
@@ -579,62 +572,48 @@ Return: nothing
 
 void MPointExt::Locations( Points* result ) const
 {
-    if(0)
-    {
-        cout << "MPointExt::Locations called!" << endl;
-    }
-    UPoint unitin;
-    vector<Point> points;
-    vector<HalfSegment> hsegments;
-    HalfSegment* temp_hs;
-    bool contained;
+  if(0) {
+    cout << "MPointExt::Locations called!" << endl;
+  }
+  UPoint unitin;
+  vector<Point> points;
+  vector<HalfSegment> hsegments;
+  bool contained;
 
-    for(int i=0;i<GetNoComponents();i++)
-    {
-        Get(i, unitin);
-        if(unitin.p0 == unitin.p1)
-        {
-            points.push_back(unitin.p0);
-        }
-        else
-        {
-            temp_hs = new HalfSegment( false, unitin.p0, unitin.p1);
-            hsegments.push_back(*temp_hs);
-        }
+  for(int i=0;i<GetNoComponents();i++) {
+    Get(i, unitin);
+    if(unitin.p0 == unitin.p1) {
+      points.push_back(unitin.p0);
+    } else {
+      HalfSegment temp_hs( false, unitin.p0, unitin.p1 );
+      hsegments.push_back(temp_hs);
     }
+  }
 
-    result->Clear();
-    result->StartBulkLoad();
-    for(size_t i=0;i<points.size();i++)
-    {
-        contained = false;
-        for(size_t j=0;j<hsegments.size();j++)
-        {
-            if(hsegments[j].Contains(points[i]))
-                contained = true;
-        }
-        if(!contained)
-        {
-            if(0)
-            {
-                cout << endl << "NOT CONTAINED!!!!!!!!!!!!!!!" << endl;
-                cout << "x=" << points[i].GetX() << endl;
-                cout << "y=" << points[i].GetY() << endl;
-            }
-            *result += points[i];
-        }
-        else
-        {
-            if(0)
-            {
-                cout << endl << "CONTAINED!!!!!!!!!!!!!!!" << endl;
-                cout << "x=" << points[i].GetX() << endl;
-                cout << "y=" << points[i].GetY() << endl;
-            }
-        }
+  result->Clear();
+  result->StartBulkLoad();
+  for(size_t i=0;i<points.size();i++) {
+    contained = false;
+    for(size_t j=0;j<hsegments.size();j++) {
+      if(hsegments[j].Contains(points[i]))
+        contained = true;
     }
-    result->EndBulkLoad( true );
-
+    if(!contained) {
+      if(0) {
+        cout << endl << "NOT CONTAINED!!!!!!!!!!!!!!!" << endl;
+        cout << "x=" << points[i].GetX() << endl;
+        cout << "y=" << points[i].GetY() << endl;
+      }
+      *result += points[i];
+    } else {
+      if(0) {
+        cout << endl << "CONTAINED!!!!!!!!!!!!!!!" << endl;
+        cout << "x=" << points[i].GetX() << endl;
+        cout << "y=" << points[i].GetY() << endl;
+      }
+    }
+  }
+  result->EndBulkLoad( true );
 }
 
 /*
@@ -651,63 +630,56 @@ Return: nothing
 
 void MPointExt::At( Points* pts, MPoint &result ) const
 {
-    UPoint unitin;
-    clock_t clock1, clock2, clock3, clock4, clock_ges;
-    double time1, time2;
+  UPoint unitin;
+  clock_t clock1, clock2, clock3, clock4, clock_ges;
+  double time1, time2;
 
-    result.Clear();
-    result.StartBulkLoad();
-    clock1 = clock();
-    clock_ges = 0;
-    for(int i=0;i<GetNoComponents();i++)
-    {
-        clock3 = clock();
-        Get(i, unitin);
-        const Rectangle<3> temp_pbb = (Rectangle<3>)unitin.BoundingBox();
-        Rectangle<2> unit_pbb;
-        const Rectangle<2> obj_pbb = (Rectangle<2>)pts->BoundingBox();
-        if(0)
-        {
-            cout << "Boundingbox of points: "
-                << "MinD(0): " << obj_pbb.MinD(0)
-                << ", MinD(1): " << obj_pbb.MinD(1)
-                << ", MaxD(0): " << obj_pbb.MaxD(0)
-                << ", MaxD(1): " << obj_pbb.MaxD(1) << endl;
+  result.Clear();
+  result.StartBulkLoad();
+  clock1 = clock();
+  clock_ges = 0;
+  for(int i=0;i<GetNoComponents();i++) {
+    clock3 = clock();
+    Get(i, unitin);
+    const Rectangle<3> temp_pbb = (Rectangle<3>)unitin.BoundingBox();
+    Rectangle<2> unit_pbb;
+    const Rectangle<2> obj_pbb = (Rectangle<2>)pts->BoundingBox();
+    if(0) {
+      cout << "Boundingbox of points: "
+          << "MinD(0): " << obj_pbb.MinD(0)
+          << ", MinD(1): " << obj_pbb.MinD(1)
+          << ", MaxD(0): " << obj_pbb.MaxD(0)
+          << ", MaxD(1): " << obj_pbb.MaxD(1) << endl;
 
-        }
-        double min[2] = { temp_pbb.MinD(0), temp_pbb.MinD(1) };
-        double max[2] = { temp_pbb.MaxD(0), temp_pbb.MaxD(1) };
-
-        unit_pbb.Set(true, min, max);
-        if(unit_pbb.Intersects( obj_pbb ))
-        {
-            for(int j=0;j<pts->Size();j++)
-            {
-                Point tmp_pt;
-                pts->Get( j, tmp_pt );
-                if( unitin.Passes( tmp_pt ) )
-                {
-                    if(0)
-                    {
-                        cout << "( " <<  tmp_pt.GetX()
-                            << ", " << tmp_pt.GetY() << " ) ";
-                    }
-                    UPoint uresult(true);
-                    if(unitin.At( tmp_pt, uresult ))
-                        result.Add( uresult );
-                }
-            }
-        }
-        clock4 = clock();
-        clock_ges = clock_ges + (clock4 - clock3);
     }
-    clock2 = clock();
-    time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
-    time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
-    cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
-    cout << "Total computing time : " << time1 << " ms" << endl;
-    result.EndBulkLoad( false );
+    double min[2] = { temp_pbb.MinD(0), temp_pbb.MinD(1) };
+    double max[2] = { temp_pbb.MaxD(0), temp_pbb.MaxD(1) };
 
+    unit_pbb.Set(true, min, max);
+    if(unit_pbb.Intersects( obj_pbb )) {
+      for(int j=0;j<pts->Size();j++) {
+        Point tmp_pt;
+        pts->Get( j, tmp_pt );
+        if( unitin.Passes( tmp_pt ) ) {
+          if(0) {
+            cout << "( " <<  tmp_pt.GetX()
+                 << ", " << tmp_pt.GetY() << " ) ";
+          }
+          UPoint uresult(true);
+          if(unitin.At( tmp_pt, uresult ))
+            result.Add( uresult );
+        }
+      }
+    }
+    clock4 = clock();
+    clock_ges = clock_ges + (clock4 - clock3);
+  }
+  clock2 = clock();
+  time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+  time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+  cout << "Average computing time per unit: " << time2 << " ms/unit" << endl;
+  cout << "Total computing time : " << time1 << " ms" << endl;
+  result.EndBulkLoad( false );
 }
 
 /*
@@ -748,109 +720,239 @@ void MPointExt::At( Line* ln, MPoint &result ) const
   result.StartBulkLoad();
   clock1 = clock();
   clock_ges = 0;
-  for(int i=0;i<GetNoComponents();i++)
-  {
+  for(int i=0;i<GetNoComponents();i++) {
     clock3 = clock();
     Get(i, unitin);
     unitincopy = unitin;
     const Rectangle<3> temp_pbb = (Rectangle<3>)unitin.BoundingBox();
     Rectangle<2> unit_pbb;
     const Rectangle<2> obj_pbb = (Rectangle<2>)ln->BoundingBox();
-    if(0)
-    {
+    if(0) {
       cout << "Boundingbox of points: "
-           << "MinD(0): " << obj_pbb.MinD(0)
-           << ", MinD(1): " << obj_pbb.MinD(1)
-           << ", MaxD(0): " << obj_pbb.MaxD(0)
-           << ", MaxD(1): " << obj_pbb.MaxD(1) << endl;
-    }
+          << "MinD(0): " << obj_pbb.MinD(0)
+          << ", MinD(1): " << obj_pbb.MinD(1)
+          << ", MaxD(0): " << obj_pbb.MaxD(0)
+          << ", MaxD(1): " << obj_pbb.MaxD(1) << endl;
+    } // end debug
     double min[2] = { temp_pbb.MinD(0), temp_pbb.MinD(1) };
     double max[2] = { temp_pbb.MaxD(0), temp_pbb.MaxD(1) };
     unit_pbb.Set(true, min, max);
 
-/*
-Raw intersection with Bounding Boxes const
+  //Raw intersection with Bounding Boxes const
 
-*/
-    if(unit_pbb.Intersects( obj_pbb ))
-    {
+    if(unit_pbb.Intersects( obj_pbb )) {
       HalfSegment up_chs;
-      if ( unitin.p0 != unitin.p1 )
+      if ( unitin.p0 != unitin.p1 ){
         up_chs.Set( false, unitin.p0, unitin.p1 );
-        if(0)
-        {
-          cout << "No of HS: " << ln->Size() << endl;
-        }
-        for(int j=0;j<ln->Size();j++)
-        {
-          HalfSegment ln_chs;
-          ln->Get( j, ln_chs );
-/*
-Scanning of one 1 of 2 HalfSegment
+      }
+      if(0){
+        cout << "No of HS: " << ln->Size() << endl;
+      } // end debug
+      for(int j=0;j<ln->Size();j++) {
+        HalfSegment ln_chs;
+        ln->Get( j, ln_chs );
 
-*/
-          if( ln_chs.GetRightPoint() == ln_chs.GetDomPoint() )
-          {
-              if(0)
-              {
-                cout << "P0.X = " << ln_chs.GetLeftPoint().GetX()
-                     << " P0.Y = " << ln_chs.GetLeftPoint().GetY()
-                     << " P1.X = " << ln_chs.GetRightPoint().GetX()
-                     << " P1.Y = " << ln_chs.GetRightPoint().GetY()
-                     << " D0.X = " << ln_chs.GetDomPoint().GetX()
-                     << " D0.Y = " << ln_chs.GetDomPoint().GetY()
-                     << " S1.X = " << ln_chs.GetSecPoint().GetX()
-                     << " S1.Y = " << ln_chs.GetSecPoint().GetY()
-                     << endl;
+  // Scanning of one 1 of 2 HalfSegment
+
+        if( ln_chs.GetRightPoint() == ln_chs.GetDomPoint() ) {
+          if(0) {
+            cout << "P0.X = " << ln_chs.GetLeftPoint().GetX()
+                << " P0.Y = " << ln_chs.GetLeftPoint().GetY()
+                << " P1.X = " << ln_chs.GetRightPoint().GetX()
+                << " P1.Y = " << ln_chs.GetRightPoint().GetY()
+                << " D0.X = " << ln_chs.GetDomPoint().GetX()
+                << " D0.Y = " << ln_chs.GetDomPoint().GetY()
+                << " S1.X = " << ln_chs.GetSecPoint().GetX()
+                << " S1.Y = " << ln_chs.GetSecPoint().GetY()
+                << endl;
+          } // end debug
+
+  // For unit points which do not have any motion
+
+          if( unitin.p0 == unitin.p1 ) {
+            if( ln_chs.Contains( unitin.p0 ) ) {
+              if(0) {
+                cout << "Intersects up " << i
+                    << " as a point at " << j << "!!" << endl
+                    << "HS: ( " << ln_chs.GetLeftPoint().GetX()
+                    << ", " << ln_chs.GetLeftPoint().GetY()
+                    << " ; " << ln_chs.GetRightPoint().GetX()
+                    << ", " << ln_chs.GetRightPoint().GetY()
+                    << "p0: " << unitin.p0 << " p1: " << unitin.p1
+                    << " unitstart: "
+                    << unitin.timeInterval.start.ToString()
+                    << " unitend: " << unitin.timeInterval.end.ToString()
+                    << " )" << endl;
+              } // end debug
+              UPoint res(true);
+              UPoint uttmp;
+              res.CopyFrom( &unitin );
+              bool unit_present = false;
+              for(int z=0;z<result.GetNoComponents();z++) {
+                result.Get( z, uttmp );
+                if( res == uttmp )
+                  unit_present = true;
               }
-/*
-For unit points which do not have any motion
+              if( !unit_present ) {
+                if ( i == 0 ) {
+                  result.MergeAdd( res );
+                  lastunit = res;
+                } else {
+                  if ( checkunits(lastunit, res) ) {
+                    if ( (lastunit.timeInterval.end ==
+                          res.timeInterval.start) &&
+                          (res.timeInterval.start < res.timeInterval.end) &&
+                          lastunit.timeInterval.rc && res.timeInterval.lc ) {
+                      res.timeInterval.lc = false;
+                          }
+                          lastunit = res;
+                          result.MergeAdd( res );
+                  }
+                }
+              }
+            }
+          } else {
+            if( up_chs.Intersects( ln_chs ) ) {
+              if(0) {
+                cout << "In unit " << i << " ..." << endl;
+                cout << "( " << up_chs.GetLeftPoint().GetX()
+                    << ", "
+                    << up_chs.GetLeftPoint().GetY()
+                    << "; "
+                    << up_chs.GetRightPoint().GetX()
+                    << ", "
+                    << up_chs.GetRightPoint().GetY()
+                    << " )" << endl;
+                cout << "intersects ( "
+                    << ln_chs.GetLeftPoint().GetX()
+                    << ", "
+                    << ln_chs.GetLeftPoint().GetY()
+                    << "; "
+                    << ln_chs.GetRightPoint().GetX()
+                    << ", "
+                    << ln_chs.GetRightPoint().GetY()
+                    << " ) at " << j << endl;
+              }
+              Point inter_p;
+              HalfSegment inter_chs;
+              if( up_chs.Intersection( ln_chs, inter_chs ) ) {
+                if(0) {
+                  cout << "Intersection is a line!!" << endl
+                      << "2inter_chs: ( "
+                      << inter_chs.GetLeftPoint().GetX()
+                      << ", "
+                      << inter_chs.GetLeftPoint().GetY()
+                      << "; "
+                      << inter_chs.GetRightPoint().GetX()
+                      << ", "
+                      << inter_chs.GetRightPoint().GetY()
+                      << " )" << endl;
+                }
+                UPoint trash1(true);
+                UPoint trash2(true);
+                bool tmpunitlc = true;
+                if ( (AlmostEqual(ln_chs.GetLeftPoint(), unitin.p0) ||
+                      AlmostEqual(ln_chs.GetRightPoint(), unitin.p0))
+                      && !unitin.timeInterval.lc ) {
+                  tmpunitlc = false;
+                  unitincopy.timeInterval.lc = true;
+                }
+                bool tmpunitrc = true;
+                if ( (AlmostEqual(ln_chs.GetRightPoint(), unitin.p1) ||
+                      AlmostEqual(ln_chs.GetLeftPoint(), unitin.p1))
+                      && !unitin.timeInterval.rc ) {
+                  tmpunitrc = false;
+                  unitincopy.timeInterval.rc = true;
+                      }
+                      unitincopy.At( inter_chs.GetLeftPoint(), trash1 );
+                      unitincopy.At( inter_chs.GetRightPoint(), trash2 );
+                      bool inv_def = true, ls = true, rs = true;
 
-*/
-              if( unitin.p0 == unitin.p1 )
-              {
-                if( ln_chs.Contains( unitin.p0 ) )
-                {
-                  if(0)
-                  {
-                    cout << "Intersects up " << i
-                         << " as a point at " << j << "!!" << endl
-                         << "HS: ( " << ln_chs.GetLeftPoint().GetX()
-                         << ", " << ln_chs.GetLeftPoint().GetY()
-                         << " ; " << ln_chs.GetRightPoint().GetX()
-                         << ", " << ln_chs.GetRightPoint().GetY()
-                         << "p0: " << unitin.p0 << " p1: " << unitin.p1
-                         << " unitstart: "
-                         << unitin.timeInterval.start.ToString()
-                         << " unitend: " << unitin.timeInterval.end.ToString()
-                         << " )" << endl;
+                      if(!trash1.timeInterval.lc && !trash1.timeInterval.rc)
+                        inv_def = false;
+
+                      if(!trash2.timeInterval.rc && trash2.timeInterval.lc)
+                        inv_def = false;
+
+                      if(inv_def && trash1.timeInterval.lc &&
+                         trash2.timeInterval.rc) {
+
+                        if(!trash1.timeInterval.lc){
+                          ls = false;
+                        }
+                        if(!trash2.timeInterval.rc) {
+                          rs = false;
+                        }
+
+                        Interval<Instant> ii(
+                            ((trash1.timeInterval.start
+                               > trash2.timeInterval.start)
+                                  ? trash2.timeInterval.start
+                                  : trash1.timeInterval.start
+                            ),
+                            ((trash1.timeInterval.start
+                              > trash2.timeInterval.start)
+                                  ? trash1.timeInterval.start
+                                  : trash2.timeInterval.start
+                            ),
+                            tmpunitlc, tmpunitrc);
+
+                          UPoint res( ii,
+                                      (unitin.p0 > unitin.p1)
+                                        ? inter_chs.GetRightPoint()
+                                        : inter_chs.GetLeftPoint(),
+                                      (unitin.p0 > unitin.p1)
+                                        ? inter_chs.GetLeftPoint()
+                                        : inter_chs.GetRightPoint()
+                                    );
+                        if(0){
+                          cout << "UPoint created: " << res << endl;
+                        }
+                        if ( i == 0 ){
+                          result.MergeAdd( res );
+                          lastunit = res;
+                        } else {
+                          if ( checkunits(lastunit, res) ) {
+                            if ( (lastunit.timeInterval.end ==
+                                  res.timeInterval.start) &&
+                                  (res.timeInterval.start
+                                    < res.timeInterval.end)
+                                  && lastunit.timeInterval.rc &&
+                                  res.timeInterval.lc ) {
+                              res.timeInterval.lc = false;
+                                  }
+                                  lastunit = res;
+                                  result.MergeAdd( res );
+                          }
+                        }
+                      }
+              } else {
+
+  // Looks for intersections in a point
+
+                if( up_chs.Intersection( ln_chs, inter_p ) ) {
+                  if(0) {
+                    cout << "Intersection is a point!! " << inter_p << endl;
                   }
                   UPoint res(true);
-                  UPoint uttmp;
-                  res.CopyFrom( &unitin );
-                  bool unit_present = false;
-                  for(int z=0;z<result.GetNoComponents();z++)
-                  {
-                    result.Get( z, uttmp );
-                    if( res == uttmp )
-                      unit_present = true;
-                  }
-                  if( !unit_present )
-                  {
-                    if ( i == 0 )
-                    {
+                  if ( (AlmostEqual(unitin.p0, inter_p) &&
+                        unitin.timeInterval.lc) ||
+                        (AlmostEqual(unitin.p1, inter_p) &&
+                        unitin.timeInterval.rc) ||
+                        ((inter_p > unitin.p0) && (inter_p < unitin.p1)) ||
+                        ((inter_p < unitin.p0) && (inter_p > unitin.p1)) ) {
+                    unitin.At( inter_p, res );
+                    if ( i == 0 ) {
                       result.MergeAdd( res );
                       lastunit = res;
-                    }
-                    else
-                    {
-                      if ( checkunits(lastunit, res) )
-                      {
+                    } else {
+                      if ( checkunits(lastunit, res) ) {
                         if ( (lastunit.timeInterval.end ==
                               res.timeInterval.start) &&
-                             (res.timeInterval.start < res.timeInterval.end) &&
-                             lastunit.timeInterval.rc && res.timeInterval.lc )
-                        {
+                              (res.timeInterval.start <
+                              res.timeInterval.end) &&
+                              lastunit.timeInterval.rc &&
+                              res.timeInterval.lc ) {
                           res.timeInterval.lc = false;
                         }
                         lastunit = res;
@@ -860,206 +962,23 @@ For unit points which do not have any motion
                   }
                 }
               }
-              else
-              {
-              if( up_chs.Intersects( ln_chs ) )
-              {
-                if(0)
-                {
-                  cout << "In unit " << i << " ..." << endl;
-                  cout << "( " << up_chs.GetLeftPoint().GetX()
-                       << ", "
-                       << up_chs.GetLeftPoint().GetY()
-                       << "; "
-                       << up_chs.GetRightPoint().GetX()
-                       << ", "
-                       << up_chs.GetRightPoint().GetY()
-                       << " )" << endl;
-                  cout << "intersects ( "
-                       << ln_chs.GetLeftPoint().GetX()
-                       << ", "
-                       << ln_chs.GetLeftPoint().GetY()
-                       << "; "
-                       << ln_chs.GetRightPoint().GetX()
-                       << ", "
-                       << ln_chs.GetRightPoint().GetY()
-                       << " ) at " << j << endl;
-                }
-                Point inter_p;
-                HalfSegment inter_chs;
-                if( up_chs.Intersection( ln_chs, inter_chs ) )
-                {
-                  if(0)
-                  {
-                    cout << "Intersection is a line!!" << endl
-                         << "2inter_chs: ( "
-                         << inter_chs.GetLeftPoint().GetX()
-                         << ", "
-                         << inter_chs.GetLeftPoint().GetY()
-                         << "; "
-                         << inter_chs.GetRightPoint().GetX()
-                         << ", "
-                         << inter_chs.GetRightPoint().GetY()
-                         << " )" << endl;
-                  }
-                  UPoint trash1(true);
-                  UPoint trash2(true);
-                  bool tmpunitlc = true;
-                  if ( (AlmostEqual(ln_chs.GetLeftPoint(), unitin.p0) ||
-                        AlmostEqual(ln_chs.GetRightPoint(), unitin.p0))
-                        && !unitin.timeInterval.lc )
-                  {
-                    tmpunitlc = false;
-                    unitincopy.timeInterval.lc = true;
-                  }
-                  bool tmpunitrc = true;
-                  if ( (AlmostEqual(ln_chs.GetRightPoint(), unitin.p1) ||
-                        AlmostEqual(ln_chs.GetLeftPoint(), unitin.p1))
-                        && !unitin.timeInterval.rc )
-                  {
-                    tmpunitrc = false;
-                    unitincopy.timeInterval.rc = true;
-                  }
-                  unitincopy.At( inter_chs.GetLeftPoint(), trash1 );
-                  unitincopy.At( inter_chs.GetRightPoint(), trash2 );
-                  bool inv_def = true, ls = true, rs = true;
-
-                  if(!trash1.timeInterval.lc && !trash1.timeInterval.rc)
-                    inv_def = false;
-
-                  if(!trash2.timeInterval.rc && trash2.timeInterval.lc)
-                    inv_def = false;
-
-                  if(inv_def && trash1.timeInterval.lc &&
-                     trash2.timeInterval.rc)
-                  {
-
-                    if(!trash1.timeInterval.lc)
-                      ls = false;
-
-                    if(!trash2.timeInterval.rc)
-                      rs = false;
-
-                    Interval<Instant>* ii =
-                    new Interval<Instant>(
-                      trash1.timeInterval.start > trash2.timeInterval.start
-                      ? trash2.timeInterval.start
-                      : trash1.timeInterval.start,
-                      trash1.timeInterval.start > trash2.timeInterval.start
-                      ? trash1.timeInterval.start
-                      : trash2.timeInterval.start,
-                      tmpunitlc, tmpunitrc);
-
-                    UPoint* res = new UPoint(
-                      *ii,
-                      unitin.p0 > unitin.p1
-                      ? inter_chs.GetRightPoint()
-                      : inter_chs.GetLeftPoint(),
-                      unitin.p0 > unitin.p1
-                      ? inter_chs.GetLeftPoint()
-                      : inter_chs.GetRightPoint()
-                    );
-                    if(0)
-                    {
-                      cout << "UPoint created!" << endl
-                           << "P0.X: " << res->p0.GetX() << endl
-                           << "P0.Y: " << res->p0.GetY() << endl
-                           << "P1.X: " << res->p1.GetX() << endl
-                           << "P1.Y: " << res->p1.GetY() << endl;
-                      cout << "( "
-                           << res->timeInterval.start.ToString()
-                           << " "
-                           << res->timeInterval.end.ToString()
-                           << " )" << res->timeInterval.lc << " "
-                                   << res->timeInterval.rc << endl;
-                    }
-                    if ( i == 0 )
-                    {
-                      result.MergeAdd( *res );
-                      lastunit = *res;
-                    }
-                    else
-                    {
-                      if ( checkunits(lastunit, *res) )
-                      {
-                        if ( (lastunit.timeInterval.end ==
-                              res->timeInterval.start) &&
-                             (res->timeInterval.start < res->timeInterval.end)
-                              && lastunit.timeInterval.rc &&
-                              res->timeInterval.lc )
-                        {
-                          res->timeInterval.lc = false;
-                        }
-                        lastunit = *res;
-                        result.MergeAdd( *res );
-                      }
-                    }
-                  }
-                }
-                else
-                {
-/*
-Looks for intersections in a point
-
-*/
-                  if( up_chs.Intersection( ln_chs, inter_p ) )
-                  {
-                    if(0)
-                    {
-                      cout << "Intersection is a point!! " << inter_p << endl;
-                    }
-                    UPoint res(true);
-                    if ( (AlmostEqual(unitin.p0, inter_p) &&
-                          unitin.timeInterval.lc) ||
-                         (AlmostEqual(unitin.p1, inter_p) &&
-                          unitin.timeInterval.rc) ||
-                         ((inter_p > unitin.p0) && (inter_p < unitin.p1)) ||
-                         ((inter_p < unitin.p0) && (inter_p > unitin.p1)) )
-                    {
-                      unitin.At( inter_p, res );
-                      if ( i == 0 )
-                      {
-                        result.MergeAdd( res );
-                        lastunit = res;
-                      }
-                      else
-                      {
-                        if ( checkunits(lastunit, res) )
-                        {
-                          if ( (lastunit.timeInterval.end ==
-                                res.timeInterval.start) &&
-                                (res.timeInterval.start <
-                                res.timeInterval.end) &&
-                                lastunit.timeInterval.rc &&
-                                res.timeInterval.lc )
-                          {
-                            res.timeInterval.lc = false;
-                          }
-                          lastunit = res;
-                          result.MergeAdd( res );
-                        }
-                      }
-                    }
-                  }
-                }
-              }
             }
           }
         }
       }
-      clock4 = clock();
-      clock_ges = clock_ges + (clock4 - clock3);
     }
-      clock2 = clock();
-      time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
-      time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
-      if ( 0 )
-      {
-        cout << "Average computing time per unit: "
-             << time2 << " ms/unit" << endl;
-        cout << "Total computing time : " << time1 << " ms" << endl;
-      }
-      result.EndBulkLoad( false );
+    clock4 = clock();
+    clock_ges = clock_ges + (clock4 - clock3);
+  }
+  clock2 = clock();
+  time2 = ((double)(clock_ges / GetNoComponents())/CLOCKS_PER_SEC) * 1000.;
+  time1 = ((double)(clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+  if ( 0 ){
+    cout << "Average computing time per unit: "
+        << time2 << " ms/unit" << endl;
+    cout << "Total computing time : " << time1 << " ms" << endl;
+  } // end debug
+  result.EndBulkLoad( false );
 }
 
 /*
@@ -1848,7 +1767,6 @@ void MRegion::AtPeriods(const Periods* per, MRegion* mregparam)
     USegments usegtemp;
     const DbArray<MSegmentData>* oldsgms;
     unsigned int starting_segments_pos;
-    URegionEmb* out_ureg;
 
     for(int i=0;i<mregparam->GetNoComponents();i++)
     {
@@ -1963,14 +1881,12 @@ void MRegion::AtPeriods(const Periods* per, MRegion* mregparam)
     StartBulkLoad();
     for(unsigned int i=0;i<tempsgms.size();i++)
     {
-        out_ureg = new URegionEmb(
-            tempsgms[i].unit_interval,
-            starting_segments_pos
-        );
+        URegionEmb out_ureg( tempsgms[i].unit_interval,
+                             starting_segments_pos);
         for(unsigned int j=0;j<(tempsgms[i].sgms).size();j++)
         {
             MSegmentData dms = (tempsgms[i].sgms)[j];
-            Rectangle<3> bbox = (Rectangle<3>)out_ureg->BoundingBox();
+            Rectangle<3> bbox = (Rectangle<3>)out_ureg.BoundingBox();
             if (bbox.IsDefined())
             {
                 double min[3] = { bbox.MinD(0), bbox.MinD(1), bbox.MinD(2) };
@@ -2009,12 +1925,12 @@ void MRegion::AtPeriods(const Periods* per, MRegion* mregparam)
                     ? dms.GetInitialStartX() : dms.GetFinalStartX(),
                     dms.GetInitialStartY() < dms.GetFinalStartY()
                     ? dms.GetInitialStartY() : dms.GetFinalStartY(),
-                    out_ureg->timeInterval.start.ToDouble() };
+                    out_ureg.timeInterval.start.ToDouble() };
                 double max[3] = { dms.GetInitialStartX() > dms.GetFinalStartX()
                     ? dms.GetInitialStartX() : dms.GetFinalStartX(),
                     dms.GetInitialStartY() > dms.GetFinalStartY()
                     ? dms.GetInitialStartY() : dms.GetFinalStartY(),
-                    out_ureg->timeInterval.end.ToDouble() };
+                    out_ureg.timeInterval.end.ToDouble() };
                 bbox.Set(true, min, max);
                 if(0)
                 {
@@ -2027,26 +1943,26 @@ void MRegion::AtPeriods(const Periods* per, MRegion* mregparam)
                     cout << "bbox.MaxD2 : " << max[2] << endl;
                 }
             }
-            out_ureg->PutSegment(
+            out_ureg.PutSegment(
                 &msegmentdata,
                 j,
                 dms,
                 true
             );
-            out_ureg->SetBBox(bbox);
+            out_ureg.SetBBox(bbox);
             starting_segments_pos++;
         }
         if(0)
         {
             cout << endl << "GetSegmentsNum(): "
-                << out_ureg->GetSegmentsNum()
+                << out_ureg.GetSegmentsNum()
                 << endl;
             cout << "GetStartPos(): "
-                << out_ureg->GetStartPos()
+                << out_ureg.GetStartPos()
                 << endl << endl;
         }
 
-        Add(*out_ureg);
+        Add(out_ureg);
     }
     EndBulkLoad( false );
 
@@ -4271,249 +4187,227 @@ int RangeRangevaluesBoolExt( Word* args, Word& result, int message,
 int RangeRangevaluesIntExt( Word* args, Word& result, int message,
                             Word& local, Supplier s )
 {
-    result = qp->ResultStorage( s );
+  result = qp->ResultStorage( s );
 
-    MInt* m = ((MInt*)args[0].addr);
-    RInt* pResult = ((RInt*)result.addr);
+  MInt* m = ((MInt*)args[0].addr);
+  RInt* pResult = ((RInt*)result.addr);
 
-    UInt utemp;
-    int temp;
-    set<int> BTree;
-    clock_t clock1, clock2, clock3, clock4;
-    double time1, time2;
+  UInt utemp;
+  int temp;
+  set<int> BTree;
+//     clock_t clock1, clock2, clock3, clock4;
+//     double time1, time2;
 
-    clock1 = clock();
-    for(int i=0;i<m->GetNoComponents();i++)
-    {
-        m->Get(i, utemp);
-        temp = utemp.constValue.GetIntval();
-        BTree.insert(temp);
-    }
-    clock2 = clock();
-    time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
-    cout << endl << "Time to insert values: "
-          << time1 << " milliseconds" << endl;
+//     clock1 = clock();
+  for(int i=0;i<m->GetNoComponents();i++) {
+    m->Get(i, utemp);
+    temp = utemp.constValue.GetIntval();
+    BTree.insert(temp);
+  }
+//     clock2 = clock();
+//     time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+//     cout << endl << "Time to insert values: "
+//           << time1 << " milliseconds" << endl;
 
-    set<int>::iterator iter;
-    CcInt mincc, maxcc;
-    int min=0, max=0;
-    bool start=true;
-    Interval<CcInt> inter;
+  set<int>::iterator iter;
+  CcInt mincc, maxcc;
+  int min=0, max=0;
+  bool start=true;
+  Interval<CcInt> inter;
 
-    clock3 = clock();
-    pResult->Clear();
-    pResult->StartBulkLoad();
-    for(iter=BTree.begin(); iter!=BTree.end(); ++iter)
-    {
-        if(start)
-        {
-          min = *iter;
-          max = min;
-          start = false;
-        }
-        else
-        {
-          if(*iter-max != 1)
-          {
-            mincc.Set(true, min);
-            maxcc.Set(true, max);
-            inter.start = mincc;
-            inter.end = maxcc;
-            inter.lc = true;
-            inter.rc = true;
-            pResult->Add(inter);
-            min = *iter;
-            max = min;
-          }
-          else
-          {
-            max = *iter;
-          }
-        }
-    }
-    mincc.Set(true, min);
-    maxcc.Set(true, max);
-    inter.start = mincc;
-    inter.end = maxcc;
-    inter.lc = true;
-    inter.rc = true;
-    pResult->Add(inter);
-    clock4 = clock();
-    time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
-    cout << "Time to scan and build intervals: "
-          << time2 << " milliseconds" << endl;
-    pResult->EndBulkLoad( false );
-
-    return 0;
-}
-
-int RangeRangevaluesStringExt( Word* args, Word& result, int message,
-                               Word& local, Supplier s )
-{
-    result = qp->ResultStorage( s );
-
-    MString* m = ((MString*)args[0].addr);
-    RString* pResult = ((RString*)result.addr);
-
-    UString utemp;
-    set<string> BTree;
-    string temp;
-    clock_t clock1, clock2, clock3, clock4;
-    double time1, time2;
-
-    clock1 = clock();
-    for(int i=0;i<m->GetNoComponents();i++)
-    {
-        m->Get(i, utemp);
-        temp = utemp.constValue.GetValue();
-        BTree.insert(temp);
-    }
-    clock2 = clock();
-    time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
-    cout << endl << "Time to insert values: "
-          << time1 << " milliseconds" << endl;
-
-    set<string>::iterator iter;
-    CcString minmaxcc;
-    STRING_T minmax;
-    Interval<CcString> inter;
-
-    clock3 = clock();
-    pResult->Clear();
-    pResult->StartBulkLoad();
-    for(iter=BTree.begin(); iter!=BTree.end(); ++iter)
-    {
-      temp = *iter;
-      cout << "temp.size: " << temp.size() << endl;
-      for(size_t i=0;i<temp.size();++i)
-        minmax[i] = temp[i];
-      minmax[temp.size()] = '\0';
-      minmaxcc.Set(true, &minmax);
-      inter.start = minmaxcc;
-      inter.end = minmaxcc;
-      inter.lc = true;
-      inter.rc = true;
-      pResult->Add(inter);
-    }
-    clock4 = clock();
-    time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
-    cout << "Time to scan and build intervals: "
-          << time2 << " milliseconds" << endl;
-    BTree.clear();
-    pResult->EndBulkLoad( false );
-
-    return 0;
-}
-
-
-int RangeRangevaluesRealExt( Word* args, Word& result, int message,
-                             Word& local, Supplier s )
-{
-    result = qp->ResultStorage( s );
-
-    MReal* m = ((MReal*)args[0].addr);
-    RReal* pResult = ((RReal*)result.addr);
-
-    clock_t clock1, clock2, clock3, clock4;
-    double time1, time2;
-
-    UReal utemp;
-    double min=0.,max=0.;
-    CcReal mincc, maxcc;
-    Interval<CcReal> inter;
-    multimap< double,const Interval<CcReal> > intermap;
-
-    clock1 = clock();
-    vector<UReal> resvector;
-    for(int i=0;i<m->GetNoComponents();i++)
-    {
-        m->Get(i, utemp);
-        //MinMaxValueFunction(utemp, min, max);
-        //yields wrong min and max values
-
-        size_t size = utemp.AtMin(resvector);
-        assert(size>0);
-        min = resvector[0].c;
-        utemp.AtMax(resvector);
-        max = resvector[0].c;
-
+//     clock3 = clock();
+  pResult->Clear();
+  pResult->StartBulkLoad();
+  for(iter=BTree.begin(); iter!=BTree.end(); ++iter) {
+    if(start) {
+      min = *iter;
+      max = min;
+      start = false;
+    } else {
+      if(*iter-max != 1) {
         mincc.Set(true, min);
         maxcc.Set(true, max);
         inter.start = mincc;
         inter.end = maxcc;
         inter.lc = true;
         inter.rc = true;
-        intermap.insert(pair< double,const Interval<CcReal> >(max, inter));
-    }
-    clock2 = clock();
-    time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
-    //cout << endl << "Time to insert values: "
-          //<< time1 << " milliseconds" << endl;
-
-    multimap< double,const Interval<CcReal> >::iterator iter = intermap.end();
-    pResult->Clear();
-    pResult->StartBulkLoad();
-    --iter;
-    bool start=true;
-    clock3 = clock();
-    inter = (*iter).second;
-    while(iter != intermap.begin())
-    {
-        if(start)
-        {
-            start = false;
-        }
-        else
-        {
-            if(0)
-            {
-                cout << "[" << (((*iter).second).start).GetValue();
-                cout << "," << (((*iter).second).end).GetValue() << "]";
-                cout << " intersects ";
-                cout << "[" << (inter.start).GetValue();
-                cout << "," << (inter.end).GetValue() << "]?" << endl;
-            }
-            if(inter.Intersects((*iter).second))
-            {
-                //cout << "Yes" << endl;
-                if(inter.start.GetValue() > ((*iter).second).start.GetValue())
-                {
-                    inter.start = ((*iter).second).start;
-                    if(0)
-                    {
-                        cout << endl << "... expanding interval" << endl;
-                    }
-                }
-            }
-            else
-            {
-                pResult->Add(inter);
-                inter = (*iter).second;
-                if(0)
-                {
-                    cout << endl << "... creating new interval" << endl;
-                }
-            }
-        }
-        --iter;
-    }
-    if ( inter.IsValid() && (*iter).second.IsValid() )
-    {
-      if(inter.Intersects((*iter).second))
-      {
-          if(inter.start.GetValue() > ((*iter).second).start.GetValue())
-              inter.start = ((*iter).second).start;
+        pResult->Add(inter);
+        min = *iter;
+        max = min;
+      } else {
+        max = *iter;
       }
     }
+  }
+  mincc.Set(true, min);
+  maxcc.Set(true, max);
+  inter.start = mincc;
+  inter.end = maxcc;
+  inter.lc = true;
+  inter.rc = true;
+  pResult->Add(inter);
+//     clock4 = clock();
+//     time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
+//     cout << "Time to scan and build intervals: "
+//           << time2 << " milliseconds" << endl;
+  pResult->EndBulkLoad( false );
+
+  return 0;
+}
+
+int RangeRangevaluesStringExt( Word* args, Word& result, int message,
+                               Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MString* m = ((MString*)args[0].addr);
+  RString* pResult = ((RString*)result.addr);
+
+  UString utemp;
+  set<string> BTree;
+  string temp;
+//     clock_t clock1, clock2, clock3, clock4;
+//     double time1, time2;
+
+//     clock1 = clock();
+  for(int i=0;i<m->GetNoComponents();i++) {
+    m->Get(i, utemp);
+    temp = utemp.constValue.GetValue();
+    BTree.insert(temp);
+  }
+//     clock2 = clock();
+//     time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+//     cout << endl << "Time to insert values: "
+//           << time1 << " milliseconds" << endl;
+
+  set<string>::iterator iter;
+  CcString minmaxcc;
+  STRING_T minmax;
+  Interval<CcString> inter;
+
+//     clock3 = clock();
+  pResult->Clear();
+  pResult->StartBulkLoad();
+  for(iter=BTree.begin(); iter!=BTree.end(); ++iter) {
+    temp = *iter;
+//     cout << "temp.size: " << temp.size() << endl;
+    for(size_t i=0;i<temp.size();++i){
+      minmax[i] = temp[i];
+    }
+    minmax[temp.size()] = '\0';
+    minmaxcc.Set(true, &minmax);
+    inter.start = minmaxcc;
+    inter.end = minmaxcc;
+    inter.lc = true;
+    inter.rc = true;
     pResult->Add(inter);
-    clock4 = clock();
-    time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
-    //cout << "Time to scan and build intervals: "
-          //<< time2 << " milliseconds" << endl;
+  }
+//     clock4 = clock();
+//     time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
+//     cout << "Time to scan and build intervals: "
+//           << time2 << " milliseconds" << endl;
+  BTree.clear();
+  pResult->EndBulkLoad( false );
 
-    pResult->EndBulkLoad( true );
+  return 0;
+}
 
-    return 0;
+
+int RangeRangevaluesRealExt( Word* args, Word& result, int message,
+                             Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+
+  MReal* m = ((MReal*)args[0].addr);
+  RReal* pResult = ((RReal*)result.addr);
+
+//     clock_t clock1, clock2, clock3, clock4;
+//     double time1, time2;
+
+  UReal utemp;
+  double min=0.,max=0.;
+  CcReal mincc, maxcc;
+  Interval<CcReal> inter;
+  multimap< double,const Interval<CcReal> > intermap;
+
+//     clock1 = clock();
+  vector<UReal> resvector;
+  for(int i=0;i<m->GetNoComponents();i++) {
+    m->Get(i, utemp);
+        //MinMaxValueFunction(utemp, min, max);
+        //yields wrong min and max values
+
+    size_t size = utemp.AtMin(resvector);
+    assert(size>0);
+    min = resvector[0].c;
+    utemp.AtMax(resvector);
+    max = resvector[0].c;
+
+    mincc.Set(true, min);
+    maxcc.Set(true, max);
+    inter.start = mincc;
+    inter.end = maxcc;
+    inter.lc = true;
+    inter.rc = true;
+    intermap.insert(pair< double,const Interval<CcReal> >(max, inter));
+  }
+//     clock2 = clock();
+//     time1 = ((clock2-clock1)/CLOCKS_PER_SEC) * 1000.;
+//     cout << endl << "Time to insert values: "
+//          << time1 << " milliseconds" << endl;
+
+  multimap< double,const Interval<CcReal> >::iterator iter = intermap.end();
+  pResult->Clear();
+  pResult->StartBulkLoad();
+  --iter;
+  bool start=true;
+//   clock3 = clock();
+  inter = (*iter).second;
+  while(iter != intermap.begin()) {
+    if(start) {
+      start = false;
+    } else {
+      if(0) {
+        cout << "[" << (((*iter).second).start).GetValue();
+        cout << "," << (((*iter).second).end).GetValue() << "]";
+        cout << " intersects ";
+        cout << "[" << (inter.start).GetValue();
+        cout << "," << (inter.end).GetValue() << "]?" << endl;
+      }
+      if(inter.Intersects((*iter).second)) {
+                //cout << "Yes" << endl;
+        if(inter.start.GetValue() > ((*iter).second).start.GetValue()) {
+          inter.start = ((*iter).second).start;
+          if(0) {
+            cout << endl << "... expanding interval" << endl;
+          }
+        }
+      } else {
+        pResult->Add(inter);
+        inter = (*iter).second;
+        if(0) {
+          cout << endl << "... creating new interval" << endl;
+        }
+      }
+    }
+    --iter;
+  }
+  if ( inter.IsValid() && (*iter).second.IsValid() ) {
+    if(inter.Intersects((*iter).second)) {
+      if(inter.start.GetValue() > ((*iter).second).start.GetValue()) {
+        inter.start = ((*iter).second).start;
+      }
+    }
+  }
+  pResult->Add(inter);
+//     clock4 = clock();
+//     time2 = ((clock4-clock3)/CLOCKS_PER_SEC) * 1000.;
+//     cout << "Time to scan and build intervals: "
+//          << time2 << " milliseconds" << endl;
+
+  pResult->EndBulkLoad( true );
+
+  return 0;
 }
 
 /*
@@ -4530,18 +4424,17 @@ int MovingSometimesExt( Word* args, Word& result, int message,
     UBool utemp;
     bool temp=false;
 
-    for(int i=0;i<m->GetNoComponents();i++)
-    {
+    for(int i=0;i<m->GetNoComponents();i++){
         m->Get(i, utemp);
         temp = utemp.constValue.GetBoolval();
         if(temp) break;
     }
 
-    if(!m->IsDefined())
+    if(!m->IsDefined()){
         ((CcBool *)result.addr)->Set( false, false );
-    else
+    } else {
         ((CcBool *)result.addr)->Set( true, temp );
-
+    }
     return 0;
 }
 
@@ -4559,18 +4452,17 @@ int MovingAlwaysExt( Word* args, Word& result, int message,
     UBool utemp;
     bool temp=true;
 
-    for(int i=0;i<m->GetNoComponents();i++)
-    {
+    for(int i=0;i<m->GetNoComponents();i++) {
         m->Get(i, utemp);
         temp = utemp.constValue.GetBoolval();
         if(!temp) break;
     }
 
-    if(!m->IsDefined())
+    if(!m->IsDefined()){
         ((CcBool *)result.addr)->Set( false, false );
-    else
+    } else {
         ((CcBool *)result.addr)->Set( true, temp );
-
+    }
     return 0;
 }
 
@@ -4588,18 +4480,17 @@ int MovingNeverExt( Word* args, Word& result, int message,
     UBool utemp;
     bool temp=true;
 
-    for(int i=0;i<m->GetNoComponents();i++)
-    {
+    for(int i=0;i<m->GetNoComponents();i++) {
         m->Get(i, utemp);
         temp = utemp.constValue.GetBoolval();
         if(temp) break;
     }
 
-    if(!m->IsDefined())
+    if(!m->IsDefined()){
         ((CcBool *)result.addr)->Set( false, false );
-    else
+    } else {
         ((CcBool *)result.addr)->Set( true, !temp );
-
+    }
     return 0;
 }
 
@@ -4619,8 +4510,7 @@ int MovingVelocityExt( Word* args, Word& result, int message,
 
     pResult->Clear();
     pResult->StartBulkLoad();
-    for(int i=0;i<m->GetNoComponents();i++)
-    {
+    for(int i=0;i<m->GetNoComponents();i++) {
         m->Get(i, unitin);
         dx = unitin.p1.GetX()-unitin.p0.GetX();
         dy = unitin.p1.GetY()-unitin.p0.GetY();
@@ -4648,17 +4538,13 @@ int GlobalUnitOfTimeExt( Word* args, Word& result, int message,
     result = qp->ResultStorage( s );
     CcReal* f = ((CcReal*)args[0].addr);
 
-    if(f->GetRealval() > 0.)
-    {
+    if(f->GetRealval() > 0.) {
         FactorForUnitOfTime = f->GetRealval();
         ((CcReal *)result.addr)->Set( FactorForUnitOfTime );
         ((CcReal *)result.addr)->SetDefined( true );
-    }
-    else
-    {
+    } else {
         ((CcReal *)result.addr)->SetDefined( false );
     }
-
     return 0;
 }
 
@@ -4672,17 +4558,13 @@ int GlobalUnitOfDistanceExt( Word* args, Word& result, int message,
     result = qp->ResultStorage( s );
     CcReal* f = ((CcReal*)args[0].addr);
 
-    if(f->GetRealval() > 0.)
-    {
+    if(f->GetRealval() > 0.0) {
         FactorForUnitOfDistance = f->GetRealval();
         ((CcReal *)result.addr)->Set( FactorForUnitOfDistance );
         ((CcReal *)result.addr)->SetDefined( true );
-    }
-    else
-    {
+    } else {
         ((CcReal *)result.addr)->SetDefined( false );
     }
-
     return 0;
 }
 
@@ -4702,7 +4584,6 @@ int MovingMDirectionExt( Word* args, Word& result, int message,
     MReal* pResult = ((MReal*)result.addr);
 
     m->MDirection( pResult );
-
     return 0;
 }
 
@@ -4719,7 +4600,6 @@ int MovingLocationsExt( Word* args, Word& result, int message,
     Points* pResult = ((Points*)result.addr);
 
     m->Locations( pResult );
-
     return 0;
 }
 
@@ -4738,7 +4618,6 @@ int MappingAtminExt( Word* args, Word& result, int message,
     MappingExt<Unit, Alpha>* m = ((MappingExt<Unit, Alpha>*)args[0].addr);
     Mapping* pResult = ((Mapping*)result.addr);
     m->AtMin( *pResult );
-
     return 0;
 }
 
@@ -4752,7 +4631,6 @@ int MappingAtmaxExt( Word* args, Word& result, int message,
     Mapping* pResult = ((Mapping*)result.addr);
     //pResult->Clear();
     m->AtMax( *pResult );
-
     return 0;
 }
 

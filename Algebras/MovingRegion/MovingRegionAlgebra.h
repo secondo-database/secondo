@@ -695,7 +695,7 @@ Use it carefully to avoid inconsistencies.
     bool EqualValue( const URegionEmb& i )
     {
       return false;
-    }
+    };
 
 /*
 This method is not implemented since it is not required by the current
