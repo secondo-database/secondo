@@ -3794,7 +3794,7 @@ DFVisit_Rtree(R_Tree<dim,LeafInfo>* rtree_in,R_TreeNode<dim,LeafInfo>* node)
   }
 }
 /*
-Copy an R-Tree, Using BulkLoad
+Copy an R-Tree, 1) Using BulkLoad 2) DF Traversal
 
 */
 
@@ -3812,8 +3812,7 @@ void R_Tree<dim, LeafInfo>::Clone(R_Tree<dim,LeafInfo>* rtree_in)
     }
   assert(FinalizeBulkLoad());*/
 
-/////////////////////////////////////////////////////////////////////////
-  ////////////////////// root /////////////////////////////
+ ////////////////////// root /////////////////////////////
   SmiRecordId root_id = rtree_in->RootRecordId();
 
   R_TreeNode<dim,LeafInfo>* rootnode = rtree_in->GetMyNode(
@@ -3826,9 +3825,6 @@ void R_Tree<dim, LeafInfo>::Clone(R_Tree<dim,LeafInfo>* rtree_in)
   header.height = rtree_in->Height();
   header.rootRecordId = root_id;
   delete rootnode;
-
-//////////////////////////////////////////////////////////////////////
-
 }
 
 
