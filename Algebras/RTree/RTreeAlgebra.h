@@ -695,6 +695,10 @@ Converts a leaf node to an internal one. The node must be empty.
 
 */
 
+//////////////////////////////////////////////////
+    void SetModified(){modified = true;}
+//////////////////////////////////////////////////////
+
 
   private:
     bool leaf;
@@ -1475,8 +1479,10 @@ template<unsigned dim, class LeafInfo>
 void R_TreeNode<dim, LeafInfo>::Write( SmiRecordFile *file,
                                        const SmiRecordId pointer )
 {
+
   if( modified )
   {
+
     SmiRecord record;
     int RecordSelected = file->SelectRecord( pointer, record, SmiFile::Update );
     assert( RecordSelected );
@@ -1581,6 +1587,7 @@ The first constructor. Creates an empty R-tree.
     void MergeRtree(R_Tree<dim,LeafInfo>*);
 ////////////////////////////////////////////////////////////////////////////
     void Clone(R_Tree<dim,LeafInfo>*);
+    SmiRecordId DFVisit_Rtree(R_Tree<dim,LeafInfo>*,R_TreeNode<dim,LeafInfo>*);
 /*
 Opens an existing R-tree.
 
@@ -2228,6 +2235,7 @@ nodeIdCounter( 0 )
           header.minInternalEntries > 0 );
 
   currLevel = 0;
+
 
   nodePtr = GetNode( RootRecordId(),
                      currLevel == Height(),
@@ -3736,13 +3744,64 @@ void R_Tree<dim, LeafInfo>::MergeRtree(R_Tree<dim,LeafInfo>* rtree_in)
 }
 
 /*
-Copy an R-Tree
+DF traverse R-Tree, get new RecordId
+
+Recursively calling
+
+1) write the leaf node into file
+2) when all entries of a node have been written to the file,
+the node is written into the file (a record)
+3) repeat this process unitl root node
 
 */
+
+template <unsigned dim, class LeafInfo>
+SmiRecordId R_Tree<dim, LeafInfo>::
+DFVisit_Rtree(R_Tree<dim,LeafInfo>* rtree_in,R_TreeNode<dim,LeafInfo>* node)
+{
+  if(node->IsLeaf()){
+    SmiRecordId recordid;
+    SmiRecord record;
+    int AppendRecord =
+      file->AppendRecord(recordid,record);
+    assert(AppendRecord);
+    node->SetModified();
+    node->Write(record);
+    return recordid;
+  }else{
+    R_TreeNode<dim,LeafInfo>* new_n =
+      new R_TreeNode<dim,LeafInfo>(node->IsLeaf(),MinEntries(0),MaxEntries(0));
+
+    for(int i = 0;i < node->EntryCount();i++){
+      R_TreeInternalEntry<dim> e =
+          (R_TreeInternalEntry<dim>&)(*node)[i];
+      R_TreeNode<dim,LeafInfo>* n = rtree_in->GetMyNode(
+        e.pointer,false,rtree_in->MinEntries(0),rtree_in->MaxEntries(0));
+      SmiRecordId recid;
+      recid = DFVisit_Rtree(rtree_in,n);
+      new_n->Insert(R_TreeInternalEntry<dim>(e.box,recid));
+      delete n;
+    }
+    SmiRecordId recordid;
+    SmiRecord record;
+    int AppendRecord =
+      file->AppendRecord(recordid,record);
+    assert(AppendRecord);
+    new_n->SetModified();
+    new_n->Write(record);
+    delete new_n;
+    return recordid;
+  }
+}
+/*
+Copy an R-Tree, Using BulkLoad
+
+*/
+
 template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::Clone(R_Tree<dim,LeafInfo>* rtree_in)
 {
-  assert(InitializeBulkLoad());
+/*  assert(InitializeBulkLoad());
     BBox<dim> searchbox(rtree_in->BoundingBox());
     R_TreeLeafEntry<dim,LeafInfo> e;
     if(rtree_in->First(searchbox,e)){
@@ -3751,7 +3810,25 @@ void R_Tree<dim, LeafInfo>::Clone(R_Tree<dim,LeafInfo>* rtree_in)
         InsertBulkLoad(e);
       }
     }
-  assert(FinalizeBulkLoad());
+  assert(FinalizeBulkLoad());*/
+
+/////////////////////////////////////////////////////////////////////////
+  ////////////////////// root /////////////////////////////
+  SmiRecordId root_id = rtree_in->RootRecordId();
+
+  R_TreeNode<dim,LeafInfo>* rootnode = rtree_in->GetMyNode(
+        root_id,false,rtree_in->MinEntries(0),rtree_in->MaxEntries(0));
+
+  root_id = DFVisit_Rtree(rtree_in,rootnode);
+
+  header.nodeCount = rtree_in->NodeCount();
+  header.entryCount = rtree_in->EntryCount();
+  header.height = rtree_in->Height();
+  header.rootRecordId = root_id;
+  delete rootnode;
+
+//////////////////////////////////////////////////////////////////////
+
 }
 
 
