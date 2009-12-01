@@ -1,7 +1,7 @@
 Database: berlintest
 Restore: NO
 
-Operator : # alias NOTEQUAL 
+Operator : # alias NOTEQUAL
 Number   : 1
 Signature: int x mint -> mbool
 Example  : query 2 # noAtCenter
@@ -123,7 +123,7 @@ Operator : # alias NOTEQUAL
 Number   : 18
 Signature: mregion x region -> mbool
 Example  : query mrain # val(mrain atinstant eight)
-Result   : file 
+Result   : file
 
 
 Operator : + alias PLUS
@@ -150,7 +150,7 @@ Result   : file
 Operator : <= alias LOWEREQUAL
 Number   : 3
 Signature: string x mstring -> mbool
-Example  : query "Kudamm-Karree" <= train7upsights 
+Example  : query "Kudamm-Karree" <= train7upsights
 Result   : file
 
 
@@ -206,7 +206,7 @@ Result   : file
 Operator : <= alias LOWEREQUAL
 Number   : 11
 Signature: mstring x string -> mbool
-Example  : query train7upsights <= "Kudamm-Karree" 
+Example  : query train7upsights <= "Kudamm-Karree"
 Result   : file
 
 
@@ -399,7 +399,7 @@ Result   : file
 Operator : = alias EQUAL
 Number   : 15
 Signature: mstring x string -> mbool
-Example  : query train7upsights = "Zitadelle" 
+Example  : query train7upsights = "Zitadelle"
 Result   : file
 
 
@@ -441,7 +441,7 @@ Result   : file
 Operator : > alias GREATER
 Number   : 3
 Signature: string x mstring -> mbool
-Example  : query train7upsights > "Kudamm-Karree" 
+Example  : query train7upsights > "Kudamm-Karree"
 Result   : file
 
 
@@ -496,7 +496,7 @@ Result   : file
 Operator : > alias GREATER
 Number   : 11
 Signature: mstring x string -> mbool
-Example  : query train7upsights > "Kudamm-Karree" 
+Example  : query train7upsights > "Kudamm-Karree"
 Result   : file
 
 
@@ -579,7 +579,7 @@ Result   : file
 Operator : >= alias GREATEREQUAL
 Number   : 11
 Signature: mstring x string -> mbool
-Example  : query train7upsights >= "Kudamm-Karree" 
+Example  : query train7upsights >= "Kudamm-Karree"
 Result   : file
 
 
@@ -593,7 +593,7 @@ Result   : file
 Operator : abs
 Number   : 1
 Signature: mreal -> mreal
-Example  : query abs([const mreal value((("2003-11-1" "2003-11-5" TRUE TRUE)(0.0 0.0 -5000.0 FALSE)))]) 
+Example  : query abs([const mreal value((("2003-11-1" "2003-11-5" TRUE TRUE)(0.0 0.0 -5000.0 FALSE)))])
 Result   : file
 
 
@@ -622,7 +622,7 @@ Operator : area
 Number   : 1
 Signature: mregion -> mreal
 Example  : query area(move(train1, Sehenswuerdreg feed extract[geoData]))
-Result   : (platform (linux file) (win32 file) (linux64 bug) (mac_osx bug))
+Result   : (platform (linux file) (win32 file) (linux64 file) (mac_osx bug))
 Remark   : On linux64 the result has more untis, hence there is probably a bug in the area operator. On mac osx also have the same problem here.
 
 Operator : concat
@@ -706,7 +706,7 @@ Result   : file
 Operator : intersection
 Number   : 3
 Signature: string x mstring -> mstring
-Example  : query intersection("Kudamm-Karree", train7upsights) 
+Example  : query intersection("Kudamm-Karree", train7upsights)
 Result   : file
 
 
@@ -720,7 +720,7 @@ Result   : file
 Operator : intersection
 Number   : 5
 Signature: mint x mint -> mint
-Example  : query intersection(noAtCenter, noAtTiergarten) 
+Example  : query intersection(noAtCenter, noAtTiergarten)
 Result   : file
 
 Operator : intersection
@@ -733,10 +733,10 @@ Result   : file
 Operator : intersection
 Number   : 7
 Signature: mstring x mstring -> mstring
-Example  : query intersection(train7upsights, train7downsights) 
+Example  : query intersection(train7upsights, train7downsights)
 Result   : file
 
- 
+
 Operator : intersection
 Number   : 8
 Signature: mreal x mreal -> mreal
@@ -761,7 +761,7 @@ Result   : file
 Operator : intersection
 Number   : 11
 Signature: mstring x string -> mstring
-Example  : query intersection(train7upsights, "Kudamm-Karree") 
+Example  : query intersection(train7upsights, "Kudamm-Karree")
 Result   : file
 
 
@@ -775,7 +775,7 @@ Result   : file
 Operator : intersection
 Number   : 13
 Signature: mpoint x mpoint -> mpoint
-Example  : query intersection(train7, train7down)  
+Example  : query intersection(train7, train7down)
 Result   : file
 
 
@@ -784,7 +784,7 @@ Number   : 1
 Signature: mbool -> mbool
 Example  : query isempty(train1 inside mrain)
 Result   : file
- 
+
 
 Operator : isempty
 Number   : 2
@@ -829,7 +829,7 @@ Result   : file
 
 
 Operator : minus
-Number   : 2 
+Number   : 2
 Signature: bool x mbool -> mbool
 Example  : query TRUE minus (train7 inside mrain2)
 Result   : file
@@ -864,7 +864,7 @@ Result   : file
 
 
 Operator : minus
-Number   : 7 
+Number   : 7
 Signature: mbool x bool -> mbool
 Example  : query (train7 inside mrain2) minus TRUE
 Result   : file
@@ -901,7 +901,7 @@ Result   : file
 
 
 Operator : minus
-Number   : 12 
+Number   : 12
 Signature: mbool x mbool -> mbool
 Example  : query (train7 inside mrain2) minus (train7down inside mrain2)
 Result   : file
@@ -918,7 +918,7 @@ Operator : minus
 Number   : 14
 Signature: mreal x mreal -> mreal
 Example  : query (distance(train1, mehringdamm)) minus (distance(train7, mehringdamm))
-Result   : (platform (linux file) (win32 file) (linux64 bug) (mac_osx bug))
+Result   : (platform (linux file) (win32 file) (linux64 file) (mac_osx bug))
 Remark   : On linux 64 bit this query produces an unexpected result
 Tolerance: %0.0001
 
@@ -937,7 +937,7 @@ Result   : file
 
 
 Operator : minus
-Number   : 17 
+Number   : 17
 Signature: mregion x point -> mregion
 Example  : query mrain2 minus (val(train7down atinstant six30))
 Result   : file
@@ -1009,7 +1009,7 @@ Result   : file
 Operator : periods2mint
 Number   : 1
 Signature: periods -> mint
-Example  : query periods2mint(deftime(train7 at thecenter)) 
+Example  : query periods2mint(deftime(train7 at thecenter))
 Result   : file
 
 
@@ -1035,7 +1035,7 @@ Result   : file
 
 
 Operator : union
-Number   : 3 
+Number   : 3
 Signature: point x mregion -> mregion
 Example  : query mehringdamm union mrain2
 Result   : file
@@ -1047,9 +1047,9 @@ Signature: -> mint
 Example  : query zero()
 Result   : file
 
-Operator : eplus 
+Operator : eplus
 Number   : 1
 Signature: mint x mint -> mint
-Example  : query zero() eplus zero() 
-Result   : bug 
+Example  : query zero() eplus zero()
+Result   : bug
 Remark   : alpha state

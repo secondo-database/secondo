@@ -2842,7 +2842,7 @@ int MPointVelocity(Word* args, Word& result, int message,
   MPoint *input = (MPoint*)args[0].addr;
 
   res->Clear();
-  if ( input->IsDefined() && (input->GetNoComponents() > 0) ){
+  if ( input->IsDefined() ){
       res->SetDefined(true);
       // call member function:
       input->MVelocity( *res );
@@ -2879,7 +2879,7 @@ TemporalSpecVelocity=
 "<text>velocity ( _ ) </text--->"
 "<text>describes the vector of the speed "
 "of the given temporal spatial object (i.e. the "
-"componentwise speed in unit/s). An undefined or empty argument yields an "
+"componentwise speed in unit/s). An undefined argument yields an "
 "undefined result value</text--->"
 "<text>velocity (mpoint)</text---> ) )";
 
