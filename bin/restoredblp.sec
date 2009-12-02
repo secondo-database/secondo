@@ -1,14 +1,14 @@
-#create database dblp
+create database dblp
 
 open database dblp
 
-#restore Author from Author
+restore Author from Author
 
-#restore Keyword from Keyword
+restore Keyword from Keyword
 
-#restore Authordoc from Authordoc
+restore Authordoc from Authordoc
 
-#restore Document from Document
+restore Document from Document
 
 let Document_Docid_btree = Document createbtree[Docid]
 
@@ -19,4 +19,6 @@ let Authordoc_Docid_btree = Authordoc createbtree[Docid]
 let Keyword_Word_btree = Keyword createbtree[Word]
 
 let Keyword_Docid_btree = Keyword createbtree[Docid]
+
+close database
 
