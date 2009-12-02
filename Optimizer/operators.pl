@@ -57,7 +57,7 @@ renameTC(0.1).
 windowintersectsTC(0.1).
 spatialjoinTC(20.0, 0.7).
 distancescanTC(0.25).
-ksmallestTC(0.04, 0.26).
+ksmallestTC(0.05, 0.23).
 createbtreeTC(0.12).
 
 % sorttidTC and rdupTC are estimated without experiment
@@ -2364,57 +2364,57 @@ opSignature(updatertree, updaterelation, [[stream,[tuple,R]],
 
 */
 opSignature(distancescan, nearestneighbor, [[rtree,[tuple,X], _, _],
-     [rel,[tuple,X]], T, int], [stream,[tuple,X]], []) :-
+	   [rel,[tuple,X]], T, int], [stream,[tuple,X]], []) :-
   memberchk(T,[point,points,line,sline,region,rect]), !.
 
 opSignature(distancescan2, nearestneighbor, [[rtree,[tuple,X], _, _],
-     [rel,[tuple,X]], T, int], [stream,[tuple,X]], []) :-
+	   [rel,[tuple,X]], T, int], [stream,[tuple,X]], []) :-
   memberchk(T,[point,points,line,sline,region,rect]), !.
 
 opSignature(distancescan3, nearestneighbor, [[rtree,[tuple,X], _, _],
-     [rel,[tuple,X]], T, int], [stream,[tuple,X]], []) :-
+	   [rel,[tuple,X]], T, int], [stream,[tuple,X]], []) :-
   memberchk(T,[point,points,line,sline,region,rect]), !.
 
 opSignature(distancescan4, nearestneighbor, [[rtree3,[tuple,X], _, _],
-     [rel,[tuple,X]], point, instant, int], [stream,[tuple,X]], []) :-
+	   [rel,[tuple,X]], point, instant, int], [stream,[tuple,X]], []) :-
   !.
 
 opSignature(knearest, nearestneighbor, [[stream,[tuple,AttrList]], Key,
-          mpoint, int],
-     [stream,[tuple,AttrList]], []) :-
+					mpoint, int],
+	   [stream,[tuple,AttrList]], []) :-
   memberchk([Key, _],AttrList), !.
 
 opSignature(knearestvector, nearestneighbor, [[stream,[tuple,AttrList]], Key,
-          mpoint, int],
-     [stream,[tuple,AttrList]], []) :-
+					mpoint, int],
+	   [stream,[tuple,AttrList]], []) :-
   memberchk([Key, _],AttrList), !.
 
 opSignature(oldknearestfilter, nearestneighbor, [[rtree,[tuple,X], _, _],
-             [rel,[tuple,X]],
-             mpoint, int],
-     [stream,[tuple,X]], []) :-
+						 [rel,[tuple,X]],
+						 mpoint, int],
+	   [stream,[tuple,X]], []) :-
   !.
 
 opSignature(rect2periods, nearestneighbor, [rect3], periods, []) :-
   !.
 
 opSignature(bboxes, nearestneighbor, [[stream, periods], mpoint],
-      [stream, rect], []) :-
+	    [stream, rect], []) :-
   !.
 
 opSignature(coverage, nearestneighbor, [[rtree3,_, _, _]],
-      [stream, [tuple, [[_, int], [_, uint]]]], []) :-
+	    [stream, [tuple, [[_, int], [_, uint]]]], []) :-
   !.
 
 opSignature(coverage2, nearestneighbor, [[rtree3,_, _, _]],
-      [stream, [tuple, [[_, int], [_, int],
-            [_, mint]]]], []) :-
+	    [stream, [tuple, [[_, int], [_, int],
+			      [_, mint]]]], []) :-
   !.
 
 opSignature(knearestfilter, nearestneighbor,[[rtree,[tuple,X1], _, _],
-     [rel,[tuple,X1]], [btree,[tuple,X2], _, _], [rel,[tuple,X2]],
-              mpoint, int],
-      [stream, [tuple, _]], []) :-
+	   [rel,[tuple,X1]], [btree,[tuple,X2], _, _], [rel,[tuple,X2]],
+					    mpoint, int],
+	    [stream, [tuple, _]], []) :-
   !.
 
 /*

@@ -334,21 +334,6 @@ overall index join cost.
 
 */
 
-/*
-
-special handling for distancescanqueries which have to create an
-temporary index
-
-*/
-cost(exactmatch(dbobject(tmpindex(rel(Rel, _), _)), rel(Rel, _), _), Sel,
-     Pred, ResAttrList, ResTupleSize, ResCard, Cost) :-
-  !,
-  cost(exactmatch(1, rel(Rel, _), _), Sel, Pred, ResAttrList, ResTupleSize,
-      ResCard, CostX),
-  createbtreeTC(C),
-  card(Rel, RelSize),
-  Cost is C * RelSize + CostX.
-
 cost(exactmatchfun(_, Rel, _), Sel, Pred,
                                ResAttrList, ResTupleSize, ResCard, Cost) :-
   cost(Rel, 1, Pred, ResAttrList, ResTupleSize, ResCard1, _),
@@ -883,6 +868,7 @@ cost(gettuples2(X, Rel, attrname(TidAttr)), Sel, Pred,
 cost functions for distancescan queries
 
 */
+
 % get the Result properties from the POG's high node
 cost(pogstream, _, _, ResAttrList, ResTupleSize, ResCard, 0) :-
   highNode(Node),
@@ -904,9 +890,30 @@ cost(ksmallest(X, K), Sel, Pred,
   ksmallestTC(A, B),
   S is min(ResCard, K),
   C is CostX +
-    A * ResCard * log(ResCard + 1) +
-    B * S * log(ResCard + 1).
+    A * ResCard +
+    B * S * log(S + 1).
 
+cost(createtmpbtree(rel(Rel, _), _), _, _, ResAttrList, ResTupleSize, ResCard,
+     Cost) :-
+  dcName2internalName(RelDC,Rel),
+  ( Rel = RelDC
+    -> true
+    ;  (
+         write('ERROR:\tcost/8 failed due to non-dc relation name.'), nl,
+         write('---> THIS SHOULD BE CORRECTED!'), nl,
+         throw(error_Internal(optimizer_cost(createtmpbtree(Rel, _), _, _,
+                               ResAttrList, ResTupleSize, ResCard, 0)
+              :malformedExpression)),
+         fail
+       )
+  ),
+  ( (ground(ResAttrList), ResAttrList = ignore)
+    -> true ; getRelAttrList(RelDC, ResAttrList, _/*ResTupleSize*/)
+  ),
+  tupleSizeSplit(RelDC,ResTupleSize),
+  card(Rel, ResCard),
+  createbtreeTC(C),
+  Cost is C * ResCard * log(ResCard).
 
 % predinfo inflicts no cost, it only annotates estimated selectivity and PET
 % for progress estimation by the Secondo kernel
