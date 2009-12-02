@@ -329,18 +329,16 @@ Operators redefinition.
 
 */
     double Direction( const Point& p ) const;
+
+
 /*
-4.3.14 Operation ~translate~
+4.3.15 Operation ~translate~
 
-*Precondition:* ~u.IsDefined()~
-
-*Semantics:*  ~(u.x + x, u.y + y)~
-
-*Complexity:* $O(1)$
+This function moves the position of this Point object instance.
 
 */
-    inline Point Translate( const Coord& x, const Coord& y ) const;
 
+    inline void Translate(const Coord& x, const Coord& y);
 
 /*
 4.3.15 Operation ~rotate~
@@ -3937,13 +3935,6 @@ inline void Point::Set( const Coord& x, const Coord& y )
   this->y = y;
 }
 
-inline Point Point::Translate( const Coord& x, const Coord& y ) const
-{
-  assert( IsDefined() );
-  return Point( true, this->x + x, this->y + y );
-}
-
-
 inline Point Point::Add( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
@@ -4033,6 +4024,13 @@ inline Point Point::operator*( const double d ) const
 inline size_t Point::Sizeof() const
 {
   return sizeof( *this );
+}
+
+inline void Point::Translate(const Coord& x, const Coord& y){
+  if( IsDefined() ){
+    this->x += x;
+    this->y += y;
+  }
 }
 
 /*

@@ -1986,7 +1986,8 @@ void Points::Translate( const Coord& x, const Coord& y, Points& result ) const
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    result += (p.Translate( x, y ));
+    p.Translate( x, y );
+    result += p;
   }
   result.EndBulkLoad( false, false );
 }
@@ -2247,7 +2248,7 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
       correct=true;
       return SetWord( Address(points) );
   }
-  
+
   if(nl->AtomType(instance)!=NoAtom){
     delete points;
     correct = false;
@@ -2271,7 +2272,7 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
     }
     else
     {
-      if(p){ 
+      if(p){
         delete p;
       }
       delete points;
@@ -2441,8 +2442,8 @@ A ~halfsegment~ value is a pair of points, with a boolean flag indicating the do
 */
 void HalfSegment::Translate( const Coord& x, const Coord& y )
 {
-   lp = lp.Translate( x, y );
-   rp = rp.Translate( x, y );
+   lp.Translate( x, y );
+   rp.Translate( x, y );
 }
 
 
@@ -3365,7 +3366,7 @@ double HalfSegment::Distance(const Rectangle<2>& rect) const{
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
- 
+
   if(AlmostEqual(p2,p3)){
     dist = MIN(dist, this->Distance(p2));
   } else {
@@ -3800,8 +3801,8 @@ Line& Line::operator+=(const Line& l){
    } else {
       bbox = bbox.Union(l.bbox);
    }
-   
-   line.Append(l.line);   
+
+   line.Append(l.line);
    return *this;
 }
 
@@ -11666,7 +11667,7 @@ void SetOp(const Region& reg1,
             if(!current.isPoint()){
               sss.insert(current);
               insertEvents(current,false,true,q1,q2);
-            } 
+            }
           }
        } else {  // nextHs.IsRightDomPoint
           if(member && member->exactEqualsTo(current)){
@@ -11753,7 +11754,7 @@ void SetOp(const Region& reg1,
        } // right endpoint
   }
   result.EndBulkLoad();
-  
+
 } // setOP region x region -> region
 
 Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op){
@@ -12915,7 +12916,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
   }
 
   cr->StartBulkLoad();
-  
+
 
   ListExpr RegionNL = instance;
   ListExpr FaceNL, CycleNL;
@@ -16815,7 +16816,7 @@ class SimplePoint{
        this->x = p->GetX();
        this->y = p->GetY();
      }
-     
+
      SimplePoint(Point& p){
        this->x = p.GetX();
        this->y = p.GetY();
@@ -17143,7 +17144,7 @@ SpatialTranslate_p( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
+  Point *res = static_cast<Point*>(result.addr);
   const Point *p= (Point*)args[0].addr;
 
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
@@ -17155,15 +17156,12 @@ SpatialTranslate_p( Word* args, Word& result, int message,
   qp->Request( son, t );
   const CcReal *ty = ((CcReal *)t.addr);
 
-  if( p->IsDefined())
-    if( tx->IsDefined() && ty->IsDefined() )
-      *((Point*)result.addr) = p->Translate( tx->GetRealval(),
-                                             ty->GetRealval() );
-    else
-      *((Point*)result.addr) = *p;
-  else
-    ((Point*)result.addr)->SetDefined( false );
-
+  if( p->IsDefined() &&tx->IsDefined() && ty->IsDefined()){
+     *res = *p;
+     res->Translate( tx->GetRealval(),  ty->GetRealval() );
+  } else {
+     res->SetDefined( false );
+  }
   return 0;
 }
 
@@ -17649,7 +17647,7 @@ SpatialComponents_ps( Word* args, Word& result, int message,
       result.addr = new Point( p );
       localInfo->SelectNext();
       return YIELD;
-    } 
+    }
     case CLOSE: {
       if(local.addr)
       {
@@ -18703,7 +18701,7 @@ void append(Line& l1, const Line& l2){
   HalfSegment hs;
   for(int i = 0; i < size; i++){
     l2.Get( i, hs );
-    l1 += hs; 
+    l1 += hs;
   }
 }
 
@@ -18712,7 +18710,7 @@ void append(SimpleLine& l1, const SimpleLine& l2){
   HalfSegment hs;
   for(int i = 0; i < size; i++){
     l2.Get( i, hs );
-    l1 += hs; 
+    l1 += hs;
   }
 }
 
@@ -18721,7 +18719,7 @@ void append(Line& l1, const SimpleLine& l2){
   HalfSegment hs;
   for(int i = 0; i < size; i++){
     l2.Get( i, hs );
-    l1 += hs; 
+    l1 += hs;
   }
 }
 
