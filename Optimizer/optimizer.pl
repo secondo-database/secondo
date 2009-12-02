@@ -792,8 +792,8 @@ newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
   Result is Arg1No + Arg2No + PNo,
   upperBound(R2, Node, UpperBound),
   Edge = edge(Source, Target, sortedjoin(Arg1, Arg2, pr(P, R1, R2), Arg1,
-					 UpperBound),
-	      Result, Node, PNo).
+      UpperBound),
+       Result, Node, PNo).
 
 newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
   distanceRel(R3, _, _, _),
@@ -805,8 +805,8 @@ newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
   Result is Arg1No + Arg2No + PNo,
   upperBound(R1, Node, UpperBound),
   Edge = edge(Source, Target, sortedjoin(Arg1, Arg2, pr(P, R1, R2), Arg2,
-					 UpperBound),
-	      Result, Node, PNo).
+      UpperBound),
+       Result, Node, PNo).
 
 newEdge(pr(P, R1, R2), PNo, Node, Edge) :-
   findRels(R1, R2, Node, Source, Arg1, Arg2),
@@ -1101,7 +1101,7 @@ In the target language, we use the following operators:
                                 where Tuple3 = Tuple1 o Tuple2
 
         symmjoin:       stream(Tuple1) x stream(Tuple2) x
-				(Tuple 1 x Tuple 2 -> bool) -> stream(Tuple3)
+    (Tuple 1 x Tuple 2 -> bool) -> stream(Tuple3)
 
                                 where Tuple3 = Tuple1 o Tuple2
 
@@ -1322,23 +1322,23 @@ The stpattern predicate
 
 */
 plan_to_atom( pattern(NPredList, ConstraintList) , Result):-
-	namedPredList_to_atom(NPredList, NPredList2),
-	((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
+ namedPredList_to_atom(NPredList, NPredList2),
+ ((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
         (plan_to_atom(ConstraintList, ConstraintList2))),
-	concat_atom(['. stpattern[', NPredList2, '; ', ConstraintList2, ']'],'',  Result),
-	!.
+ concat_atom(['. stpattern[', NPredList2, '; ', ConstraintList2, ']'],'',  Result),
+ !.
 
 /*
 The stpatternex predicate
 
 */
 plan_to_atom( patternex(NPredList, ConstraintList, Filter) , Result):-
-	namedPredList_to_atom(NPredList, NPredList2),
-	((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
+ namedPredList_to_atom(NPredList, NPredList2),
+ ((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
         (plan_to_atom(ConstraintList, ConstraintList2))),
         plan_to_atom(Filter, Filter2),
-	concat_atom(['. stpatternex[', NPredList2, '; ', ConstraintList2, '; ', Filter2, ']'],'',  Result),
-	!.
+ concat_atom(['. stpatternex[', NPredList2, '; ', ConstraintList2, '; ', Filter2, ']'],'',  Result),
+ !.
 % Section:End:plan_to_atom_2_b
 /*
 The iskNN faked operator
@@ -1610,7 +1610,7 @@ Using the switch ``removeHiddenAttributes'', ~reduce~ can either be left in the 
 
 */
 plan_to_atom(reduce(Stream, Pred, Factor), Result) :-
-  not(removeHiddenAttributes), !,		% is used in plan
+  not(removeHiddenAttributes), !,  % is used in plan
   plan_to_atom(Stream, StreamAtom),
   plan_to_atom(Pred, PredAtom),
   plan_to_atom(Factor, FactorAtom),
@@ -1619,7 +1619,7 @@ plan_to_atom(reduce(Stream, Pred, Factor), Result) :-
   !.
 
 plan_to_atom(reduce(Stream, _, _), StreamAtom) :-
-  removeHiddenAttributes,			% is removed from plan
+  removeHiddenAttributes,   % is removed from plan
   plan_to_atom(Stream, StreamAtom),
   !.
 
@@ -1634,7 +1634,7 @@ they are removed from a projection list. Currently used for the entropy optimize
 :- dynamic(removeHiddenAttributes/0).
 
 plan_to_atom(project(Stream, Fields), Result) :-
-  not(removeHiddenAttributes), !,		% standard behaviour
+  not(removeHiddenAttributes), !,  % standard behaviour
   plan_to_atom(Stream, SAtom),
   plan_to_atom(Fields, FAtom),
   concat_atom([SAtom, 'project[', FAtom, '] '], '', Result),
@@ -1643,13 +1643,13 @@ plan_to_atom(project(Stream, Fields), Result) :-
 plan_to_atom(project(Stream, Fields), Result) :-
   removeHiddenAttributes,
   plan_to_atom(Stream, SAtom),
-  removeHidden(Fields, Fields2),	% defined after plan_to_atom
+  removeHidden(Fields, Fields2), % defined after plan_to_atom
   plan_to_atom(Fields2, FAtom),
   concat_atom([SAtom, 'project[', FAtom, '] '], '', Result),
   !.
 
 plan_to_atom(feedproject(Stream, Fields), Result) :-
-  not(removeHiddenAttributes), !,		% standard behaviour
+  not(removeHiddenAttributes), !,  % standard behaviour
   plan_to_atom(Stream, SAtom),
   plan_to_atom(Fields, FAtom),
   concat_atom([SAtom, 'feedproject[', FAtom, '] '], '', Result),
@@ -1658,7 +1658,7 @@ plan_to_atom(feedproject(Stream, Fields), Result) :-
 plan_to_atom(feedproject(Stream, Fields), Result) :-
   removeHiddenAttributes,
   plan_to_atom(Stream, SAtom),
-  removeHidden(Fields, Fields2),	% defined after plan_to_atom
+  removeHidden(Fields, Fields2), % defined after plan_to_atom
   plan_to_atom(Fields2, FAtom),
   concat_atom([SAtom, 'feedproject[', FAtom, '] '], '', Result),
   !.
@@ -1884,70 +1884,70 @@ plan_to_atom(updatedirect(Rel, Transformations, UpdateQuery),Result) :-
   list_to_atom(Transformations, Transformations2),
   plan_to_atom(Rel, Rel2),
   concat_atom([UpdateQuery2, ' ', Rel2, ' updatedirect [',
-	       Transformations2, ']'], Result),
+        Transformations2, ']'], Result),
   !.
 
 plan_to_atom(insertbtree(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
   concat_atom([InsertQuery2, ' ', IndexName, ' insertbtree [', Column2, ']'],
-	      Result),
+       Result),
   !.
 
 plan_to_atom(deletebtree(DeleteQuery, IndexName, Column),Result) :-
   plan_to_atom(DeleteQuery, DeleteQuery2),
   plan_to_atom(attrname(Column), Column2),
   concat_atom([DeleteQuery2, ' ', IndexName, ' deletebtree [', Column2, ']'],
-	      Result),
+       Result),
   !.
 
 plan_to_atom(updatebtree(UpdateQuery, IndexName, Column),Result) :-
   plan_to_atom(UpdateQuery, UpdateQuery2),
   plan_to_atom(attrname(Column), Column2),
   concat_atom([UpdateQuery2, ' ', IndexName, ' updatebtree [', Column2, ']'],
-	      Result),
+       Result),
   !.
 
 plan_to_atom(insertrtree(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
   concat_atom([InsertQuery2, ' ', IndexName, ' insertrtree [', Column2, ']'],
-	      Result),
+       Result),
   !.
 
 plan_to_atom(deletertree(DeleteQuery, IndexName, Column),Result) :-
   plan_to_atom(DeleteQuery, DeleteQuery2),
   plan_to_atom(attrname(Column), Column2),
   concat_atom([DeleteQuery2, ' ', IndexName, ' deletertree [', Column2, ']'],
-	      Result),
+       Result),
   !.
 
 plan_to_atom(updatertree(UpdateQuery, IndexName, Column),Result) :-
   plan_to_atom(UpdateQuery, UpdateQuery2),
   plan_to_atom(attrname(Column), Column2),
   concat_atom([UpdateQuery2, ' ', IndexName, ' updatertree [', Column2, ']'],
-	      Result),
+       Result),
   !.
 
 plan_to_atom(inserthash(InsertQuery, IndexName, Column),Result) :-
   plan_to_atom(InsertQuery, InsertQuery2),
   plan_to_atom(attrname(Column), Column2),
   concat_atom([InsertQuery2, ' ', IndexName, ' inserthash [', Column2, ']'],
-	      Result),
+       Result),
   !.
 
 plan_to_atom(deletehash(DeleteQuery, IndexName, Column),Result) :-
   plan_to_atom(DeleteQuery, DeleteQuery2),
   plan_to_atom(attrname(Column), Column2),
   concat_atom([DeleteQuery2, ' ', IndexName, ' deletehash [', Column2, ']'],
-	      Result),
+       Result),
   !.
 
 plan_to_atom(updatehash(UpdateQuery, IndexName, Column),Result) :-
   plan_to_atom(UpdateQuery, UpdateQuery2),
   plan_to_atom(attrname(Column), Column2),
   concat_atom([UpdateQuery2, ' ', IndexName, ' updatehash [', Column2, ']'],
-	      Result),
+       Result),
   !.
 
 /*
@@ -1959,7 +1959,7 @@ plan_to_atom(let(VarName, Type),Result) :-
   plan_to_atom(a(VarName, *, u), VarName2),
   plan_to_atom(Type, Type2),
   concat_atom(['let ', VarName2, ' = [const ', Type2, ' value ()]'],
-	      Result),
+       Result),
   !.
 
 plan_to_atom(delete(Identifier),Result) :-
@@ -1987,7 +1987,7 @@ plan_to_atom(createIndex(Rel, Columns, LogIndexType), Result) :-
   rel_to_atom(Rel, Rel2),
   plan_to_atom(attrname(Columns), Columns2),
   getCreateIndexExpression(Rel2, Columns2, LogIndexType, no, IndexName,
-			   Query),
+      Query),
   concat_atom(['derive ', IndexName, ' = ', Query], Result), !.
 
 /*
@@ -2004,19 +2004,19 @@ plan_to_atom(distancescan(DCIndex, Rel, X, HeadCount), Result) :-
   plan_to_atom(X, X2),
   rel_to_atom(Rel, Rel2),
   concat_atom([DCIndex, ' ', Rel2, ' distancescan[', X2, ', ', HeadCount,']' ],
-	      Result), !.
-  
+       Result), !.
+
 plan_to_atom(varfuncquery(Stream, Var, Expr), Result) :-
   plan_to_atom(Stream, Stream2),
   plan_to_atom(Expr, Expr2),
-  concat_atom([Expr2, ' within[fun(', Var, ':ANY) ', Stream2, ']'], 
-	      Result).
+  concat_atom([Expr2, ' within[fun(', Var, ':ANY) ', Stream2, ']'],
+       Result).
 
 plan_to_atom(createtmpbtree(Rel, Attr), Result) :-
   rel_to_atom(Rel, Rel2),
   plan_to_atom(attrname(Attr), Attr2),
   concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result).
-  
+
 % Section:Start:plan_to_atom_2_m
 % Section:End:plan_to_atom_2_m
 
@@ -2300,7 +2300,7 @@ arg(N) => project(distancescan(IndexName, rel(Name, *), Attr, 0), AttrNames) :-
 
 % special handling for distancescan queries
 arg(N) => rename(project(distancescan(IndexName, rel(Name, Var), Attr, 0),
-			 AttrNames), Var) :-
+    AttrNames), Var) :-
   argument(N, rel(Name, Var)),
   distanceRel(rel(Name, Var), IndexName, Attr, _), !,
   usedAttrList(rel(Name, Var), AttrNames).
@@ -2797,7 +2797,7 @@ used for sortedjoin
 
 */
 sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) => loopjoin(Arg1S,
-							     MatchExpr) :-
+            MatchExpr) :-
   isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
   isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
   argument(N, RelDescription),
@@ -2807,7 +2807,7 @@ sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, _) => loopjoin(Arg1S,
   exactmatch(IndexName, arg(N), Expr1) => MatchExpr.
 
 sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, _) => loopjoin(Arg2S,
-							     MatchExpr) :-
+            MatchExpr) :-
   isOfFirst(Attr1, X, Y),
   isNotOfFirst(Expr2, X, Y),
   argument(N, RelDescription),
@@ -2822,8 +2822,8 @@ try to create a temporary one
 
 */
 
-sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, UpperBound) => 
-	loopjoin(Arg1S, MatchExpr) :-
+sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, UpperBound) =>
+ loopjoin(Arg1S, MatchExpr) :-
   isOfSecond(Attr2, X, Y),    % get the attrib from the 2nd relation in Attr2
   isNotOfSecond(Expr1, X, Y), % get the other argument in Expr1
   argument(N, RelDescription),
@@ -2836,7 +2836,7 @@ sortedjoin(Arg1, arg(N), pr(X=Y, _, _), Arg1, UpperBound) =>
   exactmatch(tmpindex(RelDescription, Attr2), arg(N), Expr1) => MatchExpr.
 
 sortedjoin(arg(N), Arg2, pr(X=Y, _, _), Arg2, UpperBound) =>
-	loopjoin(Arg2S, MatchExpr) :-
+ loopjoin(Arg2S, MatchExpr) :-
   isOfFirst(Attr1, X, Y),
   isNotOfFirst(Expr2, X, Y),
   argument(N, RelDescription),
@@ -3346,7 +3346,7 @@ sortedjoin00(Arg1S, Arg2S, pr(X = Y, _, _), Arg2S, UpperBound) =>
   UpperBound < 99997,
   isOfFirst(Attr1, X, Y),
   isOfSecond(Attr2, X, Y).
-  
+
 /*
 The following two rules are used for the ~adaptiveJoin~ extension. If used, the
 previous two rules must be deactivated, inserting fail, as shown below.
@@ -4116,10 +4116,10 @@ getSizes(L, Format) :-
   pathInfo(Src, Tgt, C1, C2, Sel, SelErr, SelReal, SzEst, SzReal, SizeErr), L),
   Format = [ ['Edge', 'l'],
              ['Arg1', 'l'],
-	     ['Arg2', 'l'],
-	     ['Sel-Est', 'l'],
-	     ['Sel-Real', 'l'],
-	     ['E1', 'l'],
+      ['Arg2', 'l'],
+      ['Sel-Est', 'l'],
+      ['Sel-Real', 'l'],
+      ['E1', 'l'],
              ['Sz-Est', 'l'],
              ['Sz-Real', 'l'],
              ['E2', 'l']
@@ -4136,7 +4136,7 @@ checkSizes :-
 
 
 computeNodeSizes :-
-	pathInfo(_,_,_,_,_,_,_,_,_,_).
+ pathInfo(_,_,_,_,_,_,_,_,_,_).
 
 computeNodeSizes :-
   optimizerOption(useCounters),
@@ -4167,7 +4167,7 @@ computeObservedNodeSizes :-
 getPredOrder(L, Format) :-
   findall([Src-Tgt, Op, Pred], edgePredicate(Src, Tgt, Pred, Op), L),
   Format = [ ['Edge',    'l'],
-	     ['Operator   ', 'l'],
+      ['Operator   ', 'l'],
              ['Predicate',   'l']
              ].
 
@@ -4347,7 +4347,7 @@ cost(filter(X, _), Sel, P, S, C) :-
 %  Size is RelCard * Sel,!.
 % Section:End:cost_5_m
 
-cost(filter(X, _), Sel, P, S, C) :- 	% 'normal' filter
+cost(filter(X, _), Sel, P, S, C) :-  % 'normal' filter
   cost(X, 1, P, SizeX, CostX),
   getPET(P, _, ExpPET),            % fetch stored predicate evaluation time
   filterTC(A),
@@ -5133,7 +5133,7 @@ traversePath(Path) :-
   !, fail.
 
 /*
-----	markupProgress(Term+, Sel+, BBoxSel+, ExpPET+, Term2-) :-
+---- markupProgress(Term+, Sel+, BBoxSel+, ExpPET+, Term2-) :-
 ----
 
 Attach progress information to the right operators in a term.
@@ -5164,7 +5164,7 @@ markupProgress(rename(Stream, Var), Sel, BBoxSel, ExpPET,
 markupProgress(filter(Stream, Pred), Sel, BBoxSel, ExpPET,
     predinfo(filter(Stream2, Pred), Sel2, ExpPET)) :-
   BBoxSel \= noBBox,
-  Sel2 is (Sel / BBoxSel) * 0.999,			%must be real
+  Sel2 is (Sel / BBoxSel) * 0.999,   %must be real
   markupProgressBBoxIndex(Stream, BBoxSel, Stream2),
   !.
 
@@ -5193,7 +5193,7 @@ markupProgress(Stream, Sel, _, ExpPET, predinfo(Stream, Sel2, ExpPET)) :-
 
 
 /*
-----	markupProgressBBoxIndex(Stream+, Sel+, Stream2-)
+---- markupProgressBBoxIndex(Stream+, Sel+, Stream2-)
 ----
 
 Marks up a bbox index access operator (like windowintersects) with ~Sel~. Succeeds if such an operator exists in the term ~Stream~.
@@ -5717,7 +5717,7 @@ lookup(insert into Rel select Attrs from QueryRest,
 lookup(delete from Rel where Condition,
         delete from Rel2List where Condition2) :-
   lookup(select * from Rel where Condition,
-	 _ from Rel2List where Condition2),
+  _ from Rel2List where Condition2),
   !.
 
 lookup(delete from Rel,
@@ -5748,7 +5748,7 @@ lookup(create table Tablename columns Columns,
 lookup(create index on Rel columns Attrs indextype IndexType,
        create index on Rel2List columns Attrs2List indextype IndexType) :-
   lookup(create index on Rel columns Attrs,
-	 create index on Rel2List columns Attrs2List), !.
+  create index on Rel2List columns Attrs2List), !.
 
 
 lookup(create index on Rel columns Attrs,
@@ -5767,7 +5767,7 @@ lookup(drop table Rel,
 lookup(drop index on Rel columns Attrs indextype IndexType,
        drop index on Rel2List columns Attrs2List indextype IndexType) :-
   lookup(drop index on Rel columns Attrs,
-	 drop index on Rel2List columns Attrs2List), !.
+  drop index on Rel2List columns Attrs2List), !.
 
 lookup(drop index on Rel columns Attrs,
        drop index on Rel2List columns Attrs2List) :-
@@ -5905,7 +5905,7 @@ lookupRel(X,Y) :- !,
   write_list(['\nERROR:\t',ErrMsg]), nl,
   throw(error_SQL(optimizer_lookupRel(X,Y):unknownRelation#ErrMsg)),
   fail.
-  
+
 
 /*
 ----    lookupRelNoDblCheck(+Rel, -Rel2) :-
@@ -7316,7 +7316,7 @@ translateType(Type, Type) :- !.
 
 /*
 ----    translateDistanceQuery(+Query, +DistAttr1, +DistAttr2,
-			       +HeadCount, -Stream, -Select, -Update, -Cost)
+          +HeadCount, -Stream, -Select, -Update, -Cost)
 ----
 
 Translates a query which is ordered by the distance between ~DistAttr1~
@@ -7327,7 +7327,7 @@ R-Tree-Index.
 */
 
 translateDistanceQuery(Select from Rel, X, Y, HeadCount,
-		       StreamOut, SelectOut, Update, Cost) :-
+         StreamOut, SelectOut, Update, Cost) :-
   Rel = rel(_, _),
   assertDistanceRel([Rel], X, Y, HeadCount), !,
   translate1(Select from [Rel], StreamOut, SelectOut, Update, Cost),
@@ -7340,19 +7340,19 @@ is calculated twice: One version using the index and one version not
 using the index. The costs of these two solutions are compared in
 ~chooseFasterSolution~ and the faster one is returned
 
-  
+
 */
 
 translateDistanceQuery(Select from Rels where Condition, X, Y,
-		       HeadCount, StreamOut, SelectOut, Update, Cost) :-
+         HeadCount, StreamOut, SelectOut, Update, Cost) :-
   assertDistanceRel(Rels, X, Y, 0),
   translate1(Select from Rels where Condition, StreamRTree, SelectOut1,
-	     Update1, CostRTree),
+      Update1, CostRTree),
   finishDistanceSortRTree(StreamRTree, CostRTree, HeadCount, StreamOut1,
-			  Cost1), !,
+     Cost1), !,
   retractall(distanceRel(_, _, _, _)),
   translate1(Select from Rels where Condition, StreamTmp, SelectOut2,
-	     Update2, CostTmp),
+      Update2, CostTmp),
   finishDistanceSort(StreamTmp, CostTmp, X, Y, HeadCount, StreamOut2, Cost2),
   write('Best Solution using distancescan: '), nl,
   write(StreamOut1),nl,
@@ -7361,37 +7361,37 @@ translateDistanceQuery(Select from Rels where Condition, X, Y,
   write(StreamOut2),nl,
   write('cost: '), write(Cost2), nl, nl,
   chooseFasterSolution(StreamOut1, SelectOut1, Update1, Cost1, StreamOut2,
-		       SelectOut2, Update2, Cost2, StreamOut, SelectOut,
-		       Update, Cost),
+         SelectOut2, Update2, Cost2, StreamOut, SelectOut,
+         Update, Cost),
   (StreamOut1 = StreamOut; retractall(planvariable(_, _))).
 
 /*
 
 If the query can't use an R-Tree-Index, use ~sortby~ or ~ksmallest~
 (dependent on the value of ~HeadCount~)
-  
+
 */
 
 translateDistanceQuery(Query, X, Y, 0, StreamOut,
-		       Select, Update, Cost) :-
+         Select, Update, Cost) :-
   retractall(distanceRel(_, _, _, _)),
   translate1(Query, Stream, Select, Update, Cost),
   newVariable(ExprAttrName),
   ExprAttr = attr(ExprAttrName, *, l),
   StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, distance(X, Y))]),
-			    attrname(ExprAttr)),
-		     attrname(ExprAttr)).
+       attrname(ExprAttr)),
+       attrname(ExprAttr)).
 
 translateDistanceQuery(Query, X, Y, HeadCount, StreamOut,
-		       Select, Update, Cost) :-
+         Select, Update, Cost) :-
   retractall(distanceRel(_, _, _, _)),
   translate1(Query, Stream, Select, Update, Cost),
   newVariable(ExprAttrName),
   ExprAttr = attr(ExprAttrName, *, l),
   StreamOut = remove(ksmallest(extend(Stream,
-				      [field(ExprAttr, distance(X, Y))]),
-			       HeadCount, attrname(ExprAttr)),
-		     attrname(ExprAttr)).
+          [field(ExprAttr, distance(X, Y))]),
+          HeadCount, attrname(ExprAttr)),
+       attrname(ExprAttr)).
 
 
 /*
@@ -7412,7 +7412,7 @@ without a groupby clause.
 
 % case: create table query
 queryToPlan(create table TableName columns Columns,
-	    let(TableName, rel(Columns2)), 0) :-
+     let(TableName, rel(Columns2)), 0) :-
   translateColumns(Columns, Columns2),
   !.
 
@@ -7422,22 +7422,22 @@ queryToPlan(drop table [TableName], Result, 0) :-
 
 % case: create index query
 queryToPlan(create index on [Rel] columns ColumnList indextype IndexType,
-	    createIndex(Rel, ColumnList2, IndexType), 0) :-
+     createIndex(Rel, ColumnList2, IndexType), 0) :-
   dissolveList(ColumnList, ColumnList2), !.
 
 % case: create index query
 queryToPlan(create index on [Rel] columns ColumnList,
-	    Result, Cost) :-
+     Result, Cost) :-
   dissolveList(ColumnList, ColumnList2),
   convertToLfName(ColumnList2, LfColumnList),
   convertToLfName(Rel, LfRel),
   keyAttributeTypeMatchesIndexType(LfRel, LfColumnList, LogIndexType),
   queryToPlan(create index on [Rel] columns ColumnList indextype LogIndexType,
-	      Result, Cost), !.
+       Result, Cost), !.
 
 % case: drop index query
 queryToPlan(drop index on [Rel] columns ColumnList indextype IndexType,
-	    Result, Cost) :-
+     Result, Cost) :-
   dissolveList(ColumnList, ColumnList2),
   findall(DCIndex, hasIndex(Rel, ColumnList2, DCIndex, IndexType), IndexList),
   queryToPlan(drop index IndexList, Result, Cost), !.
@@ -7445,7 +7445,7 @@ queryToPlan(drop index on [Rel] columns ColumnList indextype IndexType,
 % case: drop index query
 queryToPlan(drop index on [Rel] columns ColumnList, Result, Cost) :-
   queryToPlan(drop index on [Rel] columns ColumnList indextype _, Result,
-	      Cost), !.
+       Cost), !.
 
 % case: drop index query
 queryToPlan(drop index [], [], 0) :-
@@ -7461,7 +7461,7 @@ queryToPlan(drop index IndexList, [], 0) :-
   writeList(['\nError:\tToo many indexes found: ', IndexList]),
   nl,
   throw(error_SQL(optimizer_queryToPlan(drop index IndexList, [], 0)
-		  :multipleIndexes)),
+    :multipleIndexes)),
   fail.
 
 % case: count query
@@ -7713,7 +7713,7 @@ finish(Stream, Select, Sort, Stream2) :-
   finish2(Stream, Extend, Project, Rdup, Sort, Stream2).
 
 /*
-----	selectClause(+Select, -Extend, -Project, -Rdup) :-
+---- selectClause(+Select, -Extend, -Project, -Rdup) :-
 ----
 
 The ~Select~ clause contains attribute lists ~Extend~ for extension, ~Project~ for projection, and possibly a ~distinct~ keyword indicating duplicate removal returned in ~Rdup~.
@@ -7776,7 +7776,7 @@ selectClause(select Attrs, Extend, Project, duplicates) :-
   extendProject(Attrs2, Extend, Project), !.
 
 /*
-----	finish2(+Stream, +Extend, +Project, +Rdup, +Sort, -Stream5) :-
+---- finish2(+Stream, +Extend, +Project, +Rdup, +Sort, -Stream5) :-
 ----
 
 Apply extension, projection, duplicate removal and sorting as specified to ~Stream~ to obtain ~Stream5~.
@@ -7832,7 +7832,7 @@ fSort(Stream, SortAttrs, StreamOut) :-
 
 
 /*
-----	extendProject(+Attrs, -ExtendAttrs, -ProjectAttrs) :-
+---- extendProject(+Attrs, -ExtendAttrs, -ProjectAttrs) :-
 ----
 
 Construct the extension and projection attribute lists from ~Attrs~.
@@ -8259,7 +8259,7 @@ sqlExample( 400,
 % Example: distance query, selection predicate (database berlintest)
 sqlExample( 401,
   select *
-  from ubahnhof 
+  from ubahnhof
   where typ = "Zone A"
   orderby distance(geodata, alexanderplatz) first 5
   ).
@@ -8267,22 +8267,22 @@ sqlExample( 401,
 % Example: distance query, rtree, no predicate (database berlintest)
 sqlExample( 402,
   select *
-  from strassen 
+  from strassen
   orderby distance(geodata, mehringdamm) first 5
   ).
 
 % Example: distance query, rtree, selection predicate (database berlintest)
 sqlExample( 403,
   select *
-  from strassen 
-  where typ = "Hauptstraße"
+  from strassen
+  where typ = "Hauptstraï¿½e"
   orderby distance(geodata, alexanderplatz) first 5
   ).
 
 % Example: distance query, rtree, join predicate (database berlintest)
 sqlExample( 404,
   select *
-  from [strassen as s, sbahnhof as b] 
+  from [strassen as s, sbahnhof as b]
   where s:name = b:name
   orderby distance(s:geodata, mehringdamm) first 5
   ).
@@ -8644,19 +8644,19 @@ spatiotemporal pattern predicate.
 
 */
 composeNPredList( [P | PredListRest], [A | AliasListRest], [P as A| NPredListRest]):-
-	composeNPredList(PredListRest, AliasListRest, NPredListRest).
+ composeNPredList(PredListRest, AliasListRest, NPredListRest).
 composeNPredList( [], [], []).
 
 
 lookupPatternPreds([Pred| PRest], [Pred2| PRest2], RelsBefore, RelsAfterPreds):-
-	lookupPred1(Pred, Pred2, RelsBefore, RelsAfterMe),
-	lookupPatternPreds(PRest, PRest2, RelsAfterMe, RelsAfterPreds).
+ lookupPred1(Pred, Pred2, RelsBefore, RelsAfterMe),
+ lookupPatternPreds(PRest, PRest2, RelsAfterMe, RelsAfterPreds).
 lookupPatternPreds([], [], RelsBefore, RelsBefore).
 
 lookupPattern( NPredList , NPredList2, RelsBefore, RelsAfter) :-
-  	removeAliases(NPredList, PredList, AliasList),
-	lookupPatternPreds(PredList, PredList2, RelsBefore, RelsAfter),
-	composeNPredList(PredList2, AliasList, NPredList2).
+   removeAliases(NPredList, PredList, AliasList),
+ lookupPatternPreds(PredList, PredList2, RelsBefore, RelsAfter),
+ composeNPredList(PredList2, AliasList, NPredList2).
 
 /*
 Used within spatiotemporal pattern predicates
@@ -8664,34 +8664,34 @@ Used within spatiotemporal pattern predicates
 */
 
 namedPred_to_atom(NP,NP1):-
-	NP=..[as,P,A],
-	flatten([A],A1),
-	flatten([P],P1),
-	A1=[A3], P1=[P2],
-	plan_to_atom(P2,P3),
-	concat_atom([A3, ' : ', P3],'', NP1),!.
+ NP=..[as,P,A],
+ flatten([A],A1),
+ flatten([P],P1),
+ A1=[A3], P1=[P2],
+ plan_to_atom(P2,P3),
+ concat_atom([A3, ' : ', P3],'', NP1),!.
 
 namedPredList_to_atom([NP], NP1):-
-	namedPred_to_atom(NP,NP1),!.
+ namedPred_to_atom(NP,NP1),!.
 namedPredList_to_atom([ NP | NPListRest], Result):-
-	namedPred_to_atom(NP, NP1),
-	namedPredList_to_atom( NPListRest, SubResult),
-	concat_atom([NP1, ',', SubResult], ' ', Result),!.
+ namedPred_to_atom(NP, NP1),
+ namedPredList_to_atom( NPListRest, SubResult),
+ concat_atom([NP1, ',', SubResult], ' ', Result),!.
 
 isStringList(string).
 isStringList([string]).
 isStringList([string|StrListRest]):-
-	isStringList(StrListRest).
+ isStringList(StrListRest).
 
 isBoolList(bool).
 isBoolList([bool]).
 isBoolList([bool|BoolListRest]):-
-	isBoolList(BoolListRest).
+ isBoolList(BoolListRest).
 
 isNamedPredList(namedPred).
 isNamedPredList([namedPred]).
 isNamedPredList([namedPred|PredListRest]):-
-	isNamedPredList(PredListRest).
+ isNamedPredList(PredListRest).
 
 %evalIskNN(K, QueryObj, RelName, AttrName, TupleIDs).
 isLiftedSpatialRangePred(Op, [T1,T2]):-
@@ -8889,7 +8889,7 @@ of ~Rel~ on the Attribute ~Attr~
 
 updateAttrIndex(Operation, Rel, Attr, StreamIn, StreamOut) :-
   findall((DCindex, LogicalIndexType),
-	  hasIndex(Rel, Attr, DCindex, LogicalIndexType), List),
+   hasIndex(Rel, Attr, DCindex, LogicalIndexType), List),
   updateAttrIndex(Operation, Rel, Attr, List, StreamIn, StreamOut),
   !.
 
@@ -8905,11 +8905,11 @@ of ~Rel~ on the Attribute ~Attr~
 updateAttrIndex(_, _, _, [], StreamIn, StreamIn) :- !.
 
 updateAttrIndex(Operation, Rel, Attr, [(DCindex, LogicalIndexType)|Rest],
-		StreamIn, StreamOut) :-
+  StreamIn, StreamOut) :-
   dcName2externalName(DCindex,IndexName),
   logicalIndexType(_, LogicalIndexType, PhysicalIndexType, _, _, _, _, _),
   updateTypedIndex(Operation, Attr, IndexName, PhysicalIndexType,
-		   StreamIn, Stream2),
+     StreamIn, Stream2),
   updateAttrIndex(Operation, Rel, Attr, Rest, Stream2, StreamOut),
   !.
 
@@ -8924,45 +8924,45 @@ Extends ~Stream~ by the commands which are necessary to update the index
 */
 
 updateTypedIndex(insert, Attr, IndexName, btree, StreamIn,
-		 insertbtree(StreamIn, IndexName, Attr)) :-
+   insertbtree(StreamIn, IndexName, Attr)) :-
   !.
 
 updateTypedIndex(insert, Attr, IndexName, IndexType, StreamIn,
-		 insertrtree(StreamIn, IndexName, Attr)) :-
+   insertrtree(StreamIn, IndexName, Attr)) :-
   memberchk(IndexType,[rtree,rtree3,rtree4,rtree8]),!.
 
 updateTypedIndex(insert, Attr, IndexName, hash, StreamIn,
-		 inserthash(StreamIn, IndexName, Attr)) :-
+   inserthash(StreamIn, IndexName, Attr)) :-
   !.
 
 
 updateTypedIndex(delete, Attr, IndexName, btree, StreamIn,
-		 deletebtree(StreamIn, IndexName, Attr)) :-
+   deletebtree(StreamIn, IndexName, Attr)) :-
   !.
 
 updateTypedIndex(delete, Attr, IndexName, IndexType, StreamIn,
-		 deletertree(StreamIn, IndexName, Attr)) :-
+   deletertree(StreamIn, IndexName, Attr)) :-
   memberchk(IndexType,[rtree,rtree3,rtree4,rtree8]),!.
 
 updateTypedIndex(delete, Attr, IndexName, hash, StreamIn,
-		 deletehash(StreamIn, IndexName, Attr)) :-
+   deletehash(StreamIn, IndexName, Attr)) :-
   !.
 
 
 updateTypedIndex(update, Attr, IndexName, btree, StreamIn,
-		 updatebtree(StreamIn, IndexName, Attr)) :-
+   updatebtree(StreamIn, IndexName, Attr)) :-
   !.
 
 updateTypedIndex(update, Attr, IndexName, IndexType, StreamIn,
-		 updatertree(StreamIn, IndexName, Attr)) :-
+   updatertree(StreamIn, IndexName, Attr)) :-
   memberchk(IndexType,[rtree,rtree3,rtree4,rtree8]),!.
 
 updateTypedIndex(update, Attr, IndexName, hash, StreamIn,
-		 updatehash(StreamIn, IndexName, Attr)) :-
+   updatehash(StreamIn, IndexName, Attr)) :-
   !.
 
 updateTypedIndex(drop, _, IndexName, _, StreamIn,
-		 deleteIndex(IndexName, StreamIn)) :-
+   deleteIndex(IndexName, StreamIn)) :-
   !.
 
 
@@ -8980,7 +8980,7 @@ splitSelect(select SelectClause, select SelectClause, []) :-
   !.
 
 splitSelect(UpdateClause select SelectClause, select SelectClause,
-	    UpdateClause) :-
+     UpdateClause) :-
   !.
 
 
@@ -9008,7 +9008,7 @@ finishUpdate(delete from Rel, Stream2, Stream3) :-
 
 finishUpdate(update Rel set Transformations, Stream2, Stream3) :-
   updateIndex(update, Rel, updatedirect(Rel, Transformations, Stream2),
-	      Stream3),
+       Stream3),
   !.
 
 finishUpdate(drop table Rel, Stream2, Stream3) :-
@@ -9089,10 +9089,10 @@ This is used for distance-queries using temporary indices
 
 addPlanVariables(Result, [], Result) :- !.
 
-addPlanVariables(ResultIn, [[Var, Expr]|Rest], 
-		 varfuncquery(ResultTmp, Var, Expr)) :-
+addPlanVariables(ResultIn, [[Var, Expr]|Rest],
+   varfuncquery(ResultTmp, Var, Expr)) :-
   addPlanVariables(ResultIn, Rest, ResultTmp).
-  
+
 
 /*
 ----    assertDistanceRel(+Rels, +DistAttr1, +DistAttr2, +HeadCount)
@@ -9136,8 +9136,8 @@ finishDistanceSort(Stream, Cost, X, Y, 0, StreamOut, Cost2) :-
   !, newVariable(ExprAttrName),
   ExprAttr = attr(ExprAttrName, *, l),
   StreamOut = remove(sortby(extend(Stream, [field(ExprAttr, distance(X, Y))]),
-			    attrname(ExprAttr)),
-		     attrname(ExprAttr)),
+       attrname(ExprAttr)),
+       attrname(ExprAttr)),
   ( (optimizerOption(nawracost) ; optimizerOption(improvedcosts) )
     -> (  highNode(Source),
           Target is Source + 1,
@@ -9154,9 +9154,9 @@ finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
   !, newVariable(ExprAttrName),
   ExprAttr = attr(ExprAttrName, *, l),
   StreamOut = remove(ksmallest(extend(Stream,
-				      [field(ExprAttr, distance(X, Y))]),
-			       HeadCount, attrname(ExprAttr)),
-		     attrname(ExprAttr)),
+          [field(ExprAttr, distance(X, Y))]),
+          HeadCount, attrname(ExprAttr)),
+       attrname(ExprAttr)),
   ( (optimizerOption(nawracost) ; optimizerOption(improvedcosts) )
     -> (  highNode(Source),
           Target is Source + 1,
@@ -9175,18 +9175,18 @@ finishDistanceSort(Stream, Cost, X, Y, HeadCount, StreamOut, Cost2) :-
 ----
 
 Adds the commands for a distancescanquery which are not set by the POG and
-corrects the cost estimation according to ~HeadCount~ and the costs for 
+corrects the cost estimation according to ~HeadCount~ and the costs for
 temporary indices
 
 */
 
-finishDistanceSortRTree(StreamIn, CostIn, 0, 
-			StreamOut, CostOut) :-
+finishDistanceSortRTree(StreamIn, CostIn, 0,
+   StreamOut, CostOut) :-
   findTmpIndex(StreamIn, StreamOut, CostTmpIndex),
   CostOut is CostIn + CostTmpIndex.
 
-finishDistanceSortRTree(StreamIn, CostIn, HeadCount, 
-			StreamOut, CostOut) :-
+finishDistanceSortRTree(StreamIn, CostIn, HeadCount,
+   StreamOut, CostOut) :-
   findTmpIndex(head(StreamIn, HeadCount), StreamOut, CostTmpIndex),
   highNode(Node),
   resultSize(Node, Size),
@@ -9223,7 +9223,7 @@ findTmpIndex(P, P2, Cost) :-
 ----    addTmpVariables(+Stream, -Stream2)
 ----
 
-Adds the planvariables for the temporary indices to the beginning of 
+Adds the planvariables for the temporary indices to the beginning of
 the stream
 
 */
@@ -9246,11 +9246,11 @@ one
 */
 
 chooseFasterSolution(StreamOut1, SelectOut1, Update1, Cost1, _, _, _, Cost2,
-		     StreamOut1, SelectOut1,Update1, Cost1) :-
+       StreamOut1, SelectOut1,Update1, Cost1) :-
   Cost1 < Cost2, !.
 
 chooseFasterSolution(_, _, _, _, StreamOut2, SelectOut2, Update2, Cost2,
-		     StreamOut2, SelectOut2, Update2, Cost2).
+       StreamOut2, SelectOut2, Update2, Cost2).
 
 /*
 
@@ -9259,7 +9259,7 @@ chooseFasterSolution(_, _, _, _, StreamOut2, SelectOut2, Update2, Cost2,
 ----
 
 Transform the distance operator in the orderby-clause. ~NewAttrs~
-returns the temporary attributes, which were added to contain the 
+returns the temporary attributes, which were added to contain the
 distance. These attributes have to be removed later.
 
 */
@@ -9267,13 +9267,13 @@ distance. These attributes have to be removed later.
 rewriteForDistanceSort(Stream, [], Stream, [], []).
 
 rewriteForDistanceSort(Stream, distance(X, Y), StreamOut, ExprAttr,
-		       attrname(ExprAttr)) :-
+         attrname(ExprAttr)) :-
   !, newVariable(ExprAttrName),
   ExprAttr = attr(ExprAttrName, *, l),
   StreamOut = extend(Stream, [field(ExprAttr, distance(X, Y))]).
 
 rewriteForDistanceSort(Stream, [Attr | Attrs], StreamOut, [Attr2 | Attrs2],
-		      NewAttrsOut) :-
+        NewAttrsOut) :-
   rewriteForDistanceSort(Stream, Attr, Stream2, Attr2, NewAttr),
   rewriteForDistanceSort(Stream2, Attrs, StreamOut, Attrs2, NewAttrs),
   concatNonEmpty(NewAttr, NewAttrs, NewAttrsOut).
