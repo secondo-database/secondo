@@ -6291,7 +6291,7 @@ struct mgp2mgpsecunitsInfo : OperatorInfo {
 /*
 5.0.1 ~mgp2mgpsecunit2~
 
-The operation ~mgp2mgpsecunit~ gets a maximum section
+The operation ~mgp2mgpsecunit2~ gets a maximum section
 length and a ~mgpoint~. With this values it computes the mgpsecunits of
 the mgpoint.
 
@@ -6404,6 +6404,166 @@ struct mgp2mgpsecunits2Info : OperatorInfo {
   }
 };
 
+/*
+5.0.2 ~mgp2mgpsecunit3~
+
+The operation ~mgp2mgpsecunit3~ gets a maximum section
+length and a ~stream~ of ~mgpoint~. With this values it computes a
+~stream~ of ~mgpsecunit~s for this mgpoints.
+
+TypeMapping:
+
+*/
+
+ListExpr OpMgp2mgpsecunits3TypeMap(ListExpr in_xArgs)
+{
+  NList type(in_xArgs);
+  if (type.length() == 2)
+  {
+    NList stream = type.first();
+    NList mgp("mgpoint");
+    NList partlength = type.second();
+    if (stream.length() == 2 && stream.checkStream(mgp) &&
+        partlength.isEqual("real"))
+      return nl->TwoElemList(nl->SymbolAtom("stream"),
+                             nl->SymbolAtom("mgpsecunit"));
+  }
+  return NList::typeError( "Expected ((stream mgpoint) real).");
+}
+
+/*
+Auxilliary Functions
+
+*/
+
+struct OpMgp2mgpsec3LocalInfo
+{
+  OpMgp2mgpsec3LocalInfo()
+  {
+    vmgpsecunit.clear();
+    pos = 0;
+    maxLength = 0.0;
+    pNetwork = 0;
+  }
+
+  vector<MGPSecUnit> vmgpsecunit; // vector mit mgpsecunits
+  size_t pos; //position im Vector
+  double maxLength; //maxLength of section part
+  Network* pNetwork; //network the mgpoint belong to
+};
+
+/*
+Value Mapping
+
+*/
+
+int OpMgp2mgpsecunits3ValueMap(Word* args, Word& result, int message,
+                               Word& local, Supplier s)
+{
+  OpMgp2mgpsec3LocalInfo* li = 0;
+  switch( message )
+  {
+    case OPEN:
+    {
+      li = new OpMgp2mgpsec3LocalInfo();
+      li->maxLength = ((CcReal*) args[1].addr)->GetRealval();
+      Word curAddr;
+      qp->Open(args[0].addr);
+      qp->Request(args[0].addr,curAddr);
+      if (qp->Received(args[0].addr))
+      {
+        MGPoint *m = (MGPoint*) curAddr.addr;
+        li->pNetwork = NetworkManager::GetNetworkNew(m->GetNetworkId(),
+            netList);
+        li->vmgpsecunit.clear();
+        m->GetMGPSecUnits(li->vmgpsecunit, li->maxLength, li->pNetwork);
+        li->pos = 0;
+        local.addr = li;
+        delete m;
+        return 0;
+      }
+      else
+      {
+        qp->Close(args[0].addr);
+        delete li;
+        li = 0;
+        return CANCEL;
+      }
+    }
+
+    case REQUEST:
+    {
+      result = qp->ResultStorage(s);
+      if (local.addr)
+        li = (OpMgp2mgpsec3LocalInfo*) local.addr;
+      else return CANCEL;
+      if (!li->vmgpsecunit.empty() && li->pos < li->vmgpsecunit.size())
+      {
+        result = SetWord(new MGPSecUnit(li->vmgpsecunit[li->pos++]));
+        return YIELD;
+      }
+      else
+      {
+        Word curAddr;
+        qp->Request(args[0].addr, curAddr);
+        if (qp->Received(args[0].addr))
+        {
+          MGPoint *m = (MGPoint*) curAddr.addr;
+          li->vmgpsecunit.clear();
+          m->GetMGPSecUnits(li->vmgpsecunit, li->maxLength, li->pNetwork);
+          li->pos = 0;
+          delete m;
+          result = SetWord (new MGPSecUnit(li->vmgpsecunit[li->pos++]));
+          return YIELD;
+        }
+        else
+        {
+          qp->Close(args[0].addr);
+          NetworkManager::CloseNetwork(li->pNetwork);
+          li->pNetwork = 0;
+          li->vmgpsecunit.clear();
+          delete li;
+          li = 0;
+          local.addr = 0;
+          return CANCEL;
+        }
+      }
+    }
+
+    case CLOSE:
+    {
+      qp->Close(args[0].addr);
+      if (local.addr)
+      {
+        li = (OpMgp2mgpsec3LocalInfo*) local.addr;
+        NetworkManager::CloseNetwork(li->pNetwork);
+        li->pNetwork = 0;
+        li->vmgpsecunit.clear();
+        delete li;
+        li = 0;
+        local.addr = 0;
+      }
+      return 0;
+    }
+    default:
+    {
+      // should not happen
+      return -1;
+    }
+  }
+}
+
+
+struct mgp2mgpsecunits3Info : OperatorInfo {
+
+  mgp2mgpsecunits3Info()
+  {
+    name      = "mgp2mgpsecunits3";
+    signature = "stream(mgpoint) x real -> stream(mgpsecunit)";
+    syntax    = "_ mgp2mgpsecunits3 ( _ ) ";
+    meaning   = "Builds a stream of mgpsecunits from a stream of mgpoint.";
+  }
+};
 /*
 
 
@@ -8838,6 +8998,8 @@ class TemporalNetAlgebra : public Algebra
                 OpMgp2mgpsecunitsTypeMap);
     AddOperator(mgp2mgpsecunits2Info(), OpMgp2mgpsecunits2ValueMap,
                 OpMgp2mgpsecunits2TypeMap);
+    AddOperator(mgp2mgpsecunits3Info(), OpMgp2mgpsecunits3ValueMap,
+                OpMgp2mgpsecunits3TypeMap);
   }
 
 

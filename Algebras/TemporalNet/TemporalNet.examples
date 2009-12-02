@@ -365,3 +365,8 @@ Signature: mgpoint x real -> stream(mgpsecunit)
 Example  : query trains  feed addid projectextendstream[TID; MGPSec: mgp2mgpsecunits2(.trip, 20000.0)] consume;
 Result   : file
 
+Operator : mgp2mgpsecunits3
+Number   : 1
+Signature: stream(mgpoint) -> stream(mgpsecunit)
+Example  : query trains feed projecttransformstream [trip] mgp2mgpsecunits3 [20000.0] transformstream consume;
+Result   : file
