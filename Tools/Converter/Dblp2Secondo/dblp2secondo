@@ -128,7 +128,7 @@ fi
 echo ""
 ANSWER="overwrite"
 if [ "$EXIST" = "true" ]; then
-  echo "One of the files author, authordoc and/or document exists"
+  echo "One of the files Author, Authordoc and/or Document exists"
   echo "What want you to do ?"
   select ANSWER in "overwrite" "abort" "use"; do
      break;
@@ -161,6 +161,6 @@ fi
 
 echo "Convert keyword_tmp to a Keywordrelation"
 # call the Java program to build the Files
-COMMAND="java -Xmx180M KeyWordCreator keyword_tmp Exclusions keyword - 3"
+COMMAND="java -Xmx180M KeyWordCreator keyword_tmp Exclusions Keyword - 3"
 
 $COMMAND
