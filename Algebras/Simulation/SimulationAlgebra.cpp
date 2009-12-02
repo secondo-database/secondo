@@ -139,18 +139,15 @@ template<int N>
   std::ostringstream oss;
   oss << N;
   cout << "sim_realN2bool_TM<" << N << "> called." << endl;
-  if ( nl->ListLength( args ) == N )
-  {
+  if ( nl->ListLength( args ) == N ){
     args2 = args;
-    for(int i=0; i<N; i++)
-    {
+    for(int i=0; i<N; i++){
       cout << "\targs[" << i << "] " << endl;
       arg1 = nl->First( args2 );
       args2 = nl->Rest( args );
       if ( !(nl->AtomType( arg1 ) == SymbolType) ||
              !(nl->SymbolValue( arg1 ) == "real")
-         )
-      {
+         ){
         ErrorReporter::ReportError("SimulationAlgebra::sim_realN2bool_TM "
             "expects (real)^" + oss.str() + "." );
         return (nl->SymbolAtom( "typeerror" ));
@@ -194,16 +191,13 @@ Initialize the RNG with the passed type and random seed
 ListExpr sim_set_rng_TM ( ListExpr args )
 {
   ListExpr arg1, arg2;
-  if ( nl->ListLength( args ) == 2 )
-  {
+  if ( nl->ListLength( args ) == 2 ){
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     if ( nl->AtomType( arg1 ) == SymbolType &&
          nl->SymbolValue( arg1 ) == "int"  &&
          nl->AtomType( arg2 ) == SymbolType &&
-         nl->SymbolValue( arg2 ) == "int" )
-
-    {
+         nl->SymbolValue( arg2 ) == "int" ) {
       return (nl->SymbolAtom( "bool" ));
     }
   }
@@ -219,21 +213,19 @@ int sim_set_rng_VM ( Word* args, Word& result,
   CcBool *res = ((CcBool*)result.addr);
   CcInt *arg1 = ((CcInt*)args[0].addr);
   CcInt *arg2 = ((CcInt*)args[1].addr);
-  if ( arg1->IsDefined() && arg2->IsDefined() )
-  {
+  if ( arg1->IsDefined() && arg2->IsDefined() ) {
     // overflow save implementation
     long  type = arg1->GetIntval();
     unsigned long seed = arg2->GetIntval();
-    if( type >= 0 && type < GslRandomgen::rngType_getNoOfGenerators() )
-    {
+    if( type >= 0 && type < GslRandomgen::rngType_getNoOfGenerators() ) {
       simRNG = GslRandomgen(type, seed);
       res->Set(true, true);
-    }
-    else
+    } else {
       res->Set(true, false);
-  }
-  else
+    }
+  } else {
     res->Set(true, false);
+  }
   return (0);
 }
 
@@ -267,19 +259,16 @@ int sim_set_dest_params_VM ( Word* args, Word& result,
   CcBool *res = ((CcBool*)result.addr);
   CcReal* cArgs[14];
   double dArgs[14];
-  for(int i=0; i<14; i++)
-  {
+  for(int i=0; i<14; i++) {
     cArgs[i] = (CcReal*) args[i].addr;
-    if ( !cArgs[i]->IsDefined() )
-    {
+    if ( !cArgs[i]->IsDefined() ) {
       res->Set(true, false);
       ErrorReporter::ReportError("SimulationAlgebra::sim_set_dest_params "
           "expected defined param.");
       return 0;
     }
     dArgs[i] = cArgs[i]->GetRealval();
-    if ( i>0 && (dArgs[i] < 0.0 || ( i<10 && dArgs[i] > 1.0 ) ) )
-    {
+    if ( i>0 && (dArgs[i] < 0.0 || ( i<10 && dArgs[i] > 1.0 ) ) ) {
       res->Set(true, false);
       ErrorReporter::ReportError("SimulationAlgebra::sim_set_dest_params: "
           "Probability out of bounds");
@@ -346,33 +335,28 @@ int sim_set_event_params_VM ( Word* args, Word& result,
   CcBool *res = ((CcBool*)result.addr);
   CcReal* cArgs[4];
   double dArgs[4];
-  for(int i=0; i<4; i++)
-  {
+  for(int i=0; i<4; i++) {
     cArgs[i] = (CcReal*) args[i].addr;
-    if ( !cArgs[i]->IsDefined() )
-    {
+    if ( !cArgs[i]->IsDefined() ) {
       res->Set(true, false);
       ErrorReporter::ReportError("SimulationAlgebra::sim_set_event_params "
           "expected defined param.");
       return 0;
     }
     dArgs[i] = cArgs[i]->GetRealval();
-    if ( (i==0 || i==4) && dArgs[i] <= 0.0 )
-    {
+    if ( (i==0 || i==4) && dArgs[i] <= 0.0 ) {
       res->Set(true, false);
       ErrorReporter::ReportError("SimulationAlgebra::sim_set_event_params: "
           "1st parameter 'Length' must be positive!");
       return 0;
     }
-    if ( i==1 && dArgs[i] < 0.0 )
-    {
+    if ( i==1 && dArgs[i] < 0.0 ) {
       res->Set(true, false);
       ErrorReporter::ReportError("SimulationAlgebra::sim_set_event_params: "
           "2nd parameter 'Proportionality constant' must be <= 0.0!");
       return 0;
     }
-    if ( i==2 && (dArgs[i] < 0.0 || dArgs[i] > 1.0 ) )
-    {
+    if ( i==2 && (dArgs[i] < 0.0 || dArgs[i] > 1.0 ) ) {
       res->Set(true, false);
       ErrorReporter::ReportError("SimulationAlgebra::sim_set_event_params: "
           "3rd parameter 'Probability' out of bounds!");
@@ -420,8 +404,7 @@ Create a moving point from a stream of lines and a startung instant.
 ListExpr sim_create_trip_TM ( ListExpr args )
 {
   int len = nl->ListLength(args);
-  if(len != 5 && len != 6 )
-  {
+  if(len != 5 && len != 6 ) {
     ErrorReporter::ReportError("five or six arguments expected");
     return nl->SymbolAtom("typeerror");
   }
@@ -429,13 +412,11 @@ ListExpr sim_create_trip_TM ( ListExpr args )
   ListExpr a1list = nl->Second(args);
   ListExpr a2list = nl->Third(args);
 
-  if(nl->AtomType(a1list)!=SymbolType)
-  {
+  if(nl->AtomType(a1list)!=SymbolType) {
     ErrorReporter::ReportError("the second argument has to be a symbol");
     return nl->SymbolAtom("typeerror");
   }
-  if(nl->AtomType(a2list)!=SymbolType)
-  {
+  if(nl->AtomType(a2list)!=SymbolType) {
     ErrorReporter::ReportError("the third argument has to be a symbol");
     return nl->SymbolAtom("typeerror");
   }
@@ -447,16 +428,14 @@ ListExpr sim_create_trip_TM ( ListExpr args )
   int a2index = -1;
 
   ListExpr stype = nl->First(args);
-  if(nl->AtomType(stype)!=NoAtom)
-  {
+  if(nl->AtomType(stype)!=NoAtom) {
     ErrorReporter::ReportError("stream(tuple(...))"
         " expected as the first argument");
     return nl->SymbolAtom("typeerror");
   }
 
   if((nl->ListLength(stype)!=2) ||
-      (!nl->IsEqual(nl->First(stype),"stream" )))
-  {
+      (!nl->IsEqual(nl->First(stype),"stream" ))) {
     ErrorReporter::ReportError("stream(tuple(...))"
         " expected as the first argument");
     return nl->SymbolAtom("typeerror");
@@ -465,48 +444,40 @@ ListExpr sim_create_trip_TM ( ListExpr args )
   ListExpr ttype = nl->Second(stype);
 
   if((nl->ListLength(ttype)!=2) ||
-      (!nl->IsEqual(nl->First(ttype),"tuple" )))
-  {
+      (!nl->IsEqual(nl->First(ttype),"tuple" ))) {
     ErrorReporter::ReportError("stream(tuple(...))"
         " expected as the first argument");
     return nl->SymbolAtom("typeerror");
   }
 
   ListExpr attributes = nl->Second(ttype);
-  if(nl->AtomType(attributes)!=NoAtom)
-  {
+  if(nl->AtomType(attributes)!=NoAtom) {
     ErrorReporter::ReportError("invalid tuple type");
     return nl->SymbolAtom("typeerror");
   }
   int pos = 0;
-  while(!nl->IsEmpty(attributes))
-  {
+  while(!nl->IsEmpty(attributes)) {
     ListExpr attr = nl->First(attributes);
     if( (nl->AtomType(attr)!=NoAtom) ||
-         (nl->ListLength(attr)!=2))
-    {
+         (nl->ListLength(attr)!=2)) {
       ErrorReporter::ReportError("invalid tuple type");
       return nl->SymbolAtom("typeerror");
     }
     ListExpr anl = nl->First(attr);
     ListExpr atl = nl->Second(attr);
     if( (nl->AtomType(anl)!=SymbolType) ||
-         (nl->AtomType(atl)!=SymbolType))
-    {
+         (nl->AtomType(atl)!=SymbolType)) {
       ErrorReporter::ReportError("invalid tuple type");
       return nl->SymbolAtom("typeerror");
     }
 
     string aname = nl->SymbolValue(anl);
-    if(aname==a1)
-    {
-      if(a1index>=0)
-      {
+    if(aname==a1) {
+      if(a1index>=0) {
         ErrorReporter::ReportError("attr name occurs twice");
         return nl->SymbolAtom("typeerror");
       }
-      if(!nl->IsEqual(atl,"line"))
-      {
+      if(!nl->IsEqual(atl,"line")) {
         ErrorReporter::
             ReportError("first attr (Trajectory) has to be of type 'line'");
         return nl->SymbolAtom("typeerror");
@@ -514,20 +485,15 @@ ListExpr sim_create_trip_TM ( ListExpr args )
       a1index = pos;
     }
 
-    if(aname==a2)
-    {
-      if(a2index >= 0)
-      {
+    if(aname==a2) {
+      if(a2index >= 0) {
         ErrorReporter::ReportError("attr name occurs twice");
         return nl->SymbolAtom("typeerror");
       }
       string a2type = nl->SymbolValue(atl);
-      if(a2type=="real")
-      {
+      if(a2type=="real") {
         restype = "mpoint";
-      }
-      else
-      {
+      } else {
         ErrorReporter::
             ReportError("seocond attr (maximimum velocity) has to be of"
             " type 'real'");
@@ -539,15 +505,13 @@ ListExpr sim_create_trip_TM ( ListExpr args )
     attributes = nl->Rest(attributes);
   }
 
-  if(a1index<0)
-  {
+  if(a1index<0) {
     ErrorReporter::ReportError("first attr name does"
         " not occur in the typle");
     return nl->SymbolAtom("typeerror");
   }
 
-  if(a2index<0)
-  {
+  if(a2index<0) {
     ErrorReporter::ReportError("second attr name does"
         " not occur in the typle");
     return nl->SymbolAtom("typeerror");
@@ -556,8 +520,7 @@ ListExpr sim_create_trip_TM ( ListExpr args )
   ListExpr arg5 = nl->Fifth(args);
   if ( !(nl->AtomType( arg5 ) == SymbolType) ||
          !(nl->SymbolValue( arg5 ) == "point")
-     )
-  {
+     ) {
     ErrorReporter::ReportError("fifth argument must be of type 'point'" );
     return (nl->SymbolAtom( "typeerror" ));
   }
@@ -565,22 +528,18 @@ ListExpr sim_create_trip_TM ( ListExpr args )
 
   ListExpr ind;
 
-  if (len == 6 )
-  {// explicit starting velocity
+  if (len == 6 ) {// explicit starting velocity
     ListExpr arg6 = nl->Sixth(args);
     if ( !(nl->AtomType( arg6 ) == SymbolType) ||
            !(nl->SymbolValue( arg6 ) == "real")
-       )
-    {
+       ) {
       ErrorReporter::
           ReportError("optional sixth argument must be of type 'real'" );
       return (nl->SymbolAtom( "typeerror" ));
     }
     ind = nl->TwoElemList(nl->IntAtom(a1index),
                           nl->IntAtom(a2index));
-  }
-  else
-  {// all is correct, starting velocity == 0.0
+  } else {// all is correct, starting velocity == 0.0
     ind = nl->ThreeElemList(nl->RealAtom(0.0),
                             nl->IntAtom(a1index),
                             nl->IntAtom(a2index));
@@ -630,8 +589,7 @@ int sim_create_trip_VM ( Word* args, Word& result,
 
   if( instStart->IsDefined() && pointStart->IsDefined() &&
       cVstart->IsDefined() &&
-      cLineIndex->IsDefined() && cVmaxIndex->IsDefined() )
-  {
+      cLineIndex->IsDefined() && cVmaxIndex->IsDefined() ){
     vector<Subsegment> subsegments(0);
     int          lineIndex = cLineIndex->GetIntval();
     int          VmaxIndex = cVmaxIndex->GetIntval();
@@ -652,14 +610,13 @@ int sim_create_trip_VM ( Word* args, Word& result,
     Word      wActualTuple;
     qp->Open(args[0].addr);
     qp->Request(args[0].addr, wActualTuple);
-    while (qp->Received(args[0].addr))
-    {
+    while (qp->Received(args[0].addr)) {
       tuplesReceived++;
       // speed == 0.0 signals to wait for a random duration before the
       // movement may be continued!
       Tuple* tuple         = (Tuple*) (wActualTuple.addr);
       currentLineC         = (Line*)  (tuple->GetAttribute(lineIndex));
-      currentLine.fromLine(*currentLineC);  
+      currentLine.fromLine(*currentLineC);
       CcReal *CcurrentVmax = (CcReal*)(tuple->GetAttribute(VmaxIndex));
 
       // search for the first segment (starts with point currentPosition)
@@ -668,14 +625,13 @@ int sim_create_trip_VM ( Word* args, Word& result,
           CcurrentVmax->IsDefined() &&
           !currentLine.IsEmpty()   &&
           currentLine.SelectInitialSegment(currentPosition,
-                                            sim_startpoint_tolerance) )
-      {// all args defined and current position found in currentLine
+                                            sim_startpoint_tolerance) ) {
+        // all args defined and current position found in currentLine
         tuplesAccepted++;
         currentVmax = CcurrentVmax->GetRealval();
         startPoint = currentPosition;
         endPoint = currentPosition;
-        while( currentLine.getWaypoint(endPoint) )
-        { // for each line segment:
+        while( currentLine.getWaypoint(endPoint) ) { // for each line segment:
           assert( endPoint.IsDefined() );
           Subsegment s;
           double l =  startPoint.Distance(endPoint);
@@ -683,16 +639,15 @@ int sim_create_trip_VM ( Word* args, Word& result,
                 * (endPoint.GetX() - startPoint.GetX()) / l;
           double incrY = sim_event_param_subsegmentlength
                 * (endPoint.GetY() - startPoint.GetY()) / l;
-          if(AlmostEqual(incrX, 0.0) && AlmostEqual(incrY, 0.0))
-          {
+          if(AlmostEqual(incrX, 0.0) && AlmostEqual(incrY, 0.0)) {
             cout << "  X- and Y-Increment == 0.0! -> BREAK" << endl;
             break;
           }
           Point interimStart = startPoint;
           Point interimEnd   = startPoint;
           while( interimEnd.Distance(endPoint) >=
-                 sim_event_param_subsegmentlength )
-          { // divide the remaining segment into subsegments
+                 sim_event_param_subsegmentlength ) {
+            // divide the remaining segment into subsegments
             interimEnd.Translate(incrX,incrY);
             s.start    = interimStart;
             s.end      = interimEnd;
@@ -708,71 +663,74 @@ int sim_create_trip_VM ( Word* args, Word& result,
           currentLine.SelectSubsequentSegment();
         }
         // iterate vector to determine the speed at the end of each subsegment:
-        for(unsigned int i=0 ; i<subsegments.size(); i++)
-        {
+        for(unsigned int i=0 ; i<subsegments.size(); i++) {
           localVmax = currentVmax; // base for further calculations
-          if ( lastMaxSpeed >= 0.0 )
-          { // Special Case:
+          if ( lastMaxSpeed >= 0.0 ) {
+            // Special Case:
             // Handle last subsegment of preceeding line:
             localVmax = lastMaxSpeed; // recall lastMaxSpeed for
                                       // reenqueued subsegment
             // check whether to stop at the crossing
             double pWait = 0.0;
-            if ( AlmostEqual(lastMaxSpeed,sim_vmax_sidestreet) )
-            {
-              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
-              { pWait = sim_dest_param_ss; }
-              else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-              { pWait = sim_dest_param_sm; }
-              else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-              { pWait = sim_dest_param_sf; }
-              else
-              { cout << " S->??? "; pWait = 0.0;}
+            if ( AlmostEqual(lastMaxSpeed,sim_vmax_sidestreet) ) {
+              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) ) {
+                pWait = sim_dest_param_ss;
+              }
+              else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) ) {
+                pWait = sim_dest_param_sm;
+              }
+              else if ( AlmostEqual(currentVmax,sim_vmax_freeway) ) {
+                pWait = sim_dest_param_sf;
+              }
+              else {
+                cout << " S->??? "; pWait = 0.0;
+              }
             }
-            else if ( AlmostEqual(lastMaxSpeed,sim_vmax_mainstreet) )
-            {
-              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
-              {
+            else if ( AlmostEqual(lastMaxSpeed,sim_vmax_mainstreet) ) {
+              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) ) {
                 pWait = sim_dest_param_ms;}
-                else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-                { pWait = sim_dest_param_mm;}
-                else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-                { pWait = sim_dest_param_mf;}
-                else
-                { cout << " M->? "; pWait = 0.0;}
+                else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) ) {
+                  pWait = sim_dest_param_mm;
+                }
+                else if ( AlmostEqual(currentVmax,sim_vmax_freeway) ) {
+                  pWait = sim_dest_param_mf;
+                }
+                else {
+                  cout << " M->? "; pWait = 0.0;
+                }
             }
-            else if ( AlmostEqual(lastMaxSpeed,sim_vmax_freeway) )
-            {
-              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) )
-              { pWait = sim_dest_param_fs;}
-              else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) )
-              { pWait = sim_dest_param_fm;}
-              else if ( AlmostEqual(currentVmax,sim_vmax_freeway) )
-              { pWait = sim_dest_param_ff;}
-              else
-              { cout << " F->? "; pWait = 0.0; }
-            }
-            else
-            {
+            else if ( AlmostEqual(lastMaxSpeed,sim_vmax_freeway) ) {
+              if ( AlmostEqual(currentVmax,sim_vmax_sidestreet) ) {
+                pWait = sim_dest_param_fs;
+              }
+              else if ( AlmostEqual(currentVmax,sim_vmax_mainstreet) ) {
+                pWait = sim_dest_param_fm;
+              }
+              else if ( AlmostEqual(currentVmax,sim_vmax_freeway) ) {
+                pWait = sim_dest_param_ff;
+              }
+              else {
+                cout << " F->? "; pWait = 0.0;
+              }
+            } else {
               cout << " ?->? ";
               pWait = 0.0;
             }
-            if(simRNG.NextReal() <= pWait)
-            { // Force waiting at the crossing...
+            if(simRNG.NextReal() <= pWait) {
+              // Force waiting at the crossing...
               stopAfterThis = true;
             }
             lastMaxSpeed = -1.0; // avoid double waits
           }
-          if ( AlmostEqual(currentSpeed, 0.0) )
-          { // speed == 0.0 indicates, that we have to wait,
+          if ( AlmostEqual(currentSpeed, 0.0) ) {
+            // speed == 0.0 indicates, that we have to wait,
             // before we may continue the voyage:
             // Determine waiting duration using exponential distribution:
             double waittime =
                   gsl_ran_exponential(simRNG.GetGenerator(),
                                       sim_dest_param_mu/86400000.0);
             dummyDuration.ReadFrom(waittime);
-            if( dummyDuration > DateTime(0,0,durationtype) )
-            {
+            if( dummyDuration > DateTime(0,0,durationtype) ) {
               const Interval<Instant>
                   interval( currentInst,
                             currentInst + dummyDuration,
@@ -780,28 +738,24 @@ int sim_create_trip_VM ( Word* args, Word& result,
                             false );
               UPoint up( interval,
                          subsegments[i].start, subsegments[i].start);
-              if( up.IsValid() )
-              {
+              if( up.IsValid() ) {
                 res->MergeAdd(up);
                 currentInst += dummyDuration;
-              }
-              else
-              {
+              } else {
                 invalidUnitsCreated++;
-//                 cout << "Invalid unit up = "; up.Print(cout); cout << endl;
+                cout << "Invalid unit up = "; up.Print(cout); cout << endl;
               }
             }
           }
-          if (i<subsegments.size()-1)
-          { // This is not the last subsegment for this line
-            if( simRNG.NextReal() <= (sim_event_param_propconst/currentVmax) )
-            {// An event occurrs
-              if( simRNG.NextReal() <= (sim_event_param_probstop) )
-              { // forced stop after this sub-segment
+          if (i<subsegments.size()-1) {
+            // This is not the last subsegment for this line
+            if( simRNG.NextReal() <= (sim_event_param_propconst/currentVmax) ) {
+              // An event occurrs
+              if( simRNG.NextReal() <= (sim_event_param_probstop) ) {
+                // forced stop after this sub-segment
                 stopAfterThis = true;
-              }
-              else
-              { // forced deceleration. Use binomial distrib.
+              } else {
+                // forced deceleration. Use binomial distrib.
                 // to determine amount of speed loss
                 localVmax =
                     localVmax * gsl_ran_binomial(simRNG.GetGenerator(),
@@ -810,9 +764,8 @@ int sim_create_trip_VM ( Word* args, Word& result,
                     /20.0;
                 localVmax = MAX(localVmax, 1.0);
               }
-            }
-            else
-            { // no event: accelerate up to localVmax
+            } else {
+              // no event: accelerate up to localVmax
               localVmax =
                   MIN(currentSpeed+sim_event_param_acceleration, currentVmax);
             }
@@ -827,9 +780,8 @@ int sim_create_trip_VM ( Word* args, Word& result,
             localVmax = MIN( localVmax, curveMax );
             lastAlpha = alpha;
             currentSpeed = localVmax;
-          }
-          else if (i == subsegments.size()-1 )
-          { // This is the last subsegment. Delete all subsegments,
+          } else if (i == subsegments.size()-1 ) {
+            // This is the last subsegment. Delete all subsegments,
             // but the last one
             Subsegment lastSubSeg = subsegments[i];
             subsegments.clear();
@@ -850,27 +802,22 @@ int sim_create_trip_VM ( Word* args, Word& result,
                         true,
                         false );
           UPoint up( interval, subsegments[i].start, subsegments[i].end);
-          if( up.IsValid() )
-          {
+          if( up.IsValid() ) {
             res->MergeAdd(up);
             currentInst += dummyDuration;
-          }
-          else
-          {
+          } else {
             invalidUnitsCreated++;
 //             cout << "Invalid unit up = "; up.Print(cout); cout << endl;
           }
           currentPosition = subsegments[i].end;
-          if (stopAfterThis)
-          {
+          if (stopAfterThis) {
             currentSpeed = 0.0;
             stopAfterThis = false;
           }
         } // endfor(unsigned int i=0 ; i<subsegments.size(); i++)
         assert( currentPosition.IsDefined() );
       } // endif( currentLine->SelectInitialSegment(currentPosition) )
-      else
-      { // undef/empty/complex/cyclic line or undef vmax or cuppentPos
+      else { // undef/empty/complex/cyclic line or undef vmax or cuppentPos
         //            not found: do nothing
         cout << "current position (= " ;
         currentPosition.Print(cout);
@@ -880,8 +827,8 @@ int sim_create_trip_VM ( Word* args, Word& result,
       qp->Request(args[0].addr, wActualTuple);
     }
     // create and append the final unit
-    if( subsegments.size() == 1 )
-    { // there is a subsegment left. Nothing happens here.
+    if( subsegments.size() == 1 ) {
+      // there is a subsegment left. Nothing happens here.
       currentSpeed = MAX(currentSpeed, 5.0);
       double dist = subsegments[0].start.Distance(subsegments[0].end);
       dummyDuration.ReadFrom(dist/currentSpeed/24000); // time used to travel
@@ -892,22 +839,19 @@ int sim_create_trip_VM ( Word* args, Word& result,
                     true,
                     false );
       UPoint up( interval, subsegments[0].start, subsegments[0].end);
-      if( up.IsValid() )
-      {
+      if( up.IsValid() ) {
         res->MergeAdd(up);
         currentInst += dummyDuration;
-      }
-      else
-      {
+      } else {
         invalidUnitsCreated++;
-//         cout << "Invalid unit up = "; up.Print(cout); cout << endl;
+        cout << "Invalid unit up = "; up.Print(cout); cout << endl;
       }
       currentPosition = subsegments.back().end; // set currentPosition to
     } // endwhile (qp->Received(args[0].addr))
-    else
-    { // ( subsegments.size() != 1 )
-//       cout << "sim_create_trip_VM: Something's wrong: subsegments.size() = "
-//           << subsegments.size() << "." << endl;
+    else {
+      // ( subsegments.size() != 1 )
+      cout << "sim_create_trip_VM: Something's wrong: subsegments.size() = "
+           << subsegments.size() << "." << endl;
     }
     qp->Close(args[0].addr);
   }
@@ -966,8 +910,7 @@ Prints the parameter settings to the console.
 
 ListExpr sim_empty2bool_TM ( ListExpr args )
 {
-  if ( nl->ListLength( args ) == 0 )
-  {
+  if ( nl->ListLength( args ) == 0 ) {
     return (nl->SymbolAtom( "bool" ));
   }
   ErrorReporter::ReportError("SimulationAlgebra::sim_empty2bool_TM "
@@ -1052,8 +995,7 @@ immedeately before/after the ``dark periods''.
 ListExpr sim_fillup_mpoint_TM ( ListExpr args )
 {
   ListExpr arg1, arg2, arg3, arg4, arg5, arg6;
-  if ( nl->ListLength( args ) == 6 )
-  {
+  if ( nl->ListLength( args ) == 6 ) {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     arg3 = nl->Third( args );
@@ -1072,8 +1014,7 @@ ListExpr sim_fillup_mpoint_TM ( ListExpr args )
          nl->AtomType( arg5 ) == SymbolType &&
          nl->SymbolValue( arg5 ) == "bool" &&
          nl->AtomType( arg6 ) == SymbolType &&
-         nl->SymbolValue( arg6 ) == "bool" )
-    {
+         nl->SymbolValue( arg6 ) == "bool" ) {
       return (nl->SymbolAtom( "mpoint" ));
     }
   }
@@ -1103,20 +1044,19 @@ int sim_fillup_mpoint_VM ( Word* args, Word& result,
       *Start > *End ||
       ( *Start == *End && (!LC->GetBoolval() || !RC->GetBoolval())) ||
       !CONN->IsDefined()
-    )
-  { // undefined arguments: return undefined and empty result
+    ) {
+    // undefined arguments: return undefined and empty result
     res->SetDefined(false);
     return 0;
   }
   int size = Input->GetNoComponents();
-  if( size == 0 )
-  { // empty input: return defined and empty result
+  if( size == 0 ) {
+    // empty input: return defined and empty result
     res->SetDefined(true);
     return 0;
   }
 
-  const UPoint *u1;
-  UPoint u2(true), resunit(true);
+  UPoint u1(true), u2(true), resunit(true);
   Interval<DateTime> gap(*Start,*Start,true,true);
   res->SetDefined(true);
 
@@ -1124,93 +1064,86 @@ int sim_fillup_mpoint_VM ( Word* args, Word& result,
   int pos = 0;
   //test whether to insert a prequel unit
   Input->Get(pos, u1);
-//   cout << "First Unit = "; u1->Print(cout);
-  if ( *Start < u1->timeInterval.start )
-  { // Start before first unit
-    gap = Interval<DateTime>( *Start, u1->timeInterval.start,
-                              LC->GetBoolval(), !u1->timeInterval.lc );
-    resunit = UPoint(gap, u1->p0, u1->p0);
+//   cout << "First Unit = "; u1.Print(cout);
+  if ( *Start < u1.timeInterval.start ) {
+    // Start before first unit
+    gap = Interval<DateTime>( *Start, u1.timeInterval.start,
+                              LC->GetBoolval(), !u1.timeInterval.lc );
+    resunit = UPoint(gap, u1.p0, u1.p0);
 //     cout << "  Inserting prequel unit: "; resunit.Print(cout);
     res->MergeAdd( resunit );
-    u2 = *u1;
+    u2 = u1;
     pos++;
-  }
-  else if ( *Start == u1->timeInterval.start &&
+  } else if ( *Start == u1.timeInterval.start &&
             LC->GetBoolval() &&
-            !u1->timeInterval.lc
-          )
-  { // extend first unit by changing lc to true
-    resunit = UPoint(Interval<DateTime>(u1->timeInterval.start,
-                                        u1->timeInterval.end,
+            !u1.timeInterval.lc
+          ) {
+    // extend first unit by changing lc to true
+    resunit = UPoint(Interval<DateTime>(u1.timeInterval.start,
+                                        u1.timeInterval.end,
                                         true,
-                                        u1->timeInterval.rc),
-                      u1->p0, u1->p0);
+                                        u1.timeInterval.rc),
+                      u1.p0, u1.p0);
     u2 = resunit;
 //     cout << "  >>Extended first unit: "; resunit.Print(cout);
     pos++;
-  }
-  else
-  { // just prepare insertion of first unit
-    u2 = *u1;
+  } else {
+    // just prepare insertion of first unit
+    u2 = u1;
     pos++;
 //     cout << "  >>Nothing to do" << endl;
   }
-  while(pos < size)
-  {
+  while(pos < size) {
     Input->Get(pos, u1);
 //     cout << "pos/size = " << pos << "/" << size << endl;
 //     cout << "   u2 = "; u2.Print(cout);
-//     cout << "   u1 = "; u1->Print(cout);
-    if ( u2.timeInterval.end == u1->timeInterval.start )
-    { // Case 1): u2.end == u1.start
-      if ( !u2.timeInterval.rc && !u1->timeInterval.lc )
-      { // 1a) minimum gap between open intervals
+//     cout << "   u1 = "; u1.Print(cout);
+    if ( u2.timeInterval.end == u1.timeInterval.start ) {
+      // Case 1): u2.end == u1.start
+      if ( !u2.timeInterval.rc && !u1.timeInterval.lc ) {
+        // 1a) minimum gap between open intervals
         // --> make u2 rightclosed and append it.
         u2.timeInterval.rc = true;
 //         cout << "   Case 1a): Adding: "; u2.Print(cout);
         res->MergeAdd( u2 );
-        u2 = *u1;
+        u2 = u1;
         pos++;
-      }
-      else
-      { // 1b) u2.rc != u1->lc: No gap
+      } else {
+        // 1b) u2.rc != u1.lc: No gap
         // --> just add the original unit u2
 //         cout << "   Case 1b): Adding: "; u2.Print(cout);
         res->MergeAdd( u2 );
-        u2 = *u1;
+        u2 = u1;
         pos++;
       }
-    }
-    else if( u2.timeInterval.end < u1->timeInterval.start )
-    { // Case 2) simple case: start and ending instant are not equal
+    } else if( u2.timeInterval.end < u1.timeInterval.start ) {
+      // Case 2) simple case: start and ending instant are not equal
       // (large gap of at least nearly 1 tick/ms)
       // --> append u2 and a unit for the gap
 //       cout << "   Case 2) : Adding: "; u2.Print(cout);
       res->MergeAdd( u2 );
       resunit = UPoint( Interval<DateTime>( u2.timeInterval.end,
-                                            u1->timeInterval.start,
+                                            u1.timeInterval.start,
                                             !u2.timeInterval.rc,
-                                            !u1->timeInterval.lc),
-                        (connect ? u1->p0 : u2.p1), u2.p1);
+                                            !u1.timeInterval.lc),
+                        (connect ? u1.p0 : u2.p1), u2.p1);
 //       cout << "             Adding: "; resunit.Print(cout);
       res->MergeAdd( resunit );
-      u2 = *u1;
+      u2 = u1;
       pos++;
-    }
-    else
-    { // u2-timeInterval.end > u1->timeInterval.start
+    } else {
+      // u2-timeInterval.end > u1.timeInterval.start
       // --> Error!
       cerr << "sim_fillup_mpoint_VM: Error calculating gap unit:" << endl;
       cerr << "\tu2 = "; u2.Print(cerr);
-      cerr << "\tu1 = "; u1->Print(cerr); cerr << endl;
+      cerr << "\tu1 = "; u1.Print(cerr); cerr << endl;
       res->Clear();
       res->SetDefined( false );
       return 0;
     }
   }
   // test whether to insert a sequel unit
-  if ( u2.timeInterval.end < *End )
-  {
+  if ( u2.timeInterval.end < *End ) {
 //     cout << "Adding last unit: "; u2.Print(cout);
     res->MergeAdd( u2 );
     resunit = UPoint( Interval<DateTime>( u2.timeInterval.end,
@@ -1220,12 +1153,11 @@ int sim_fillup_mpoint_VM ( Word* args, Word& result,
                       u2.p1, u2.p1);
 //     cout << "Adding Sequel unit: "; resunit.Print(cout); cout << endl;
     res->MergeAdd( resunit );
-  }
-  else if ( u2.timeInterval.end == *End &&
+  } else if ( u2.timeInterval.end == *End &&
             !u2.timeInterval.rc &&
             RC->GetBoolval()
-          )
-  { // extend the last unit by right-closing the timeInterval
+          ) {
+    // extend the last unit by right-closing the timeInterval
     resunit = UPoint( Interval<DateTime>( u2.timeInterval.start,
                                           u2.timeInterval.end,
                                           u2.timeInterval.lc,
@@ -1233,9 +1165,8 @@ int sim_fillup_mpoint_VM ( Word* args, Word& result,
                       u2.p0, u2.p1);
     res->MergeAdd( resunit );
 //     cout << "Adding modified last unit: "; resunit.Print(cout); cout << endl;
-  }
-  else
-  { // just append u2
+  } else {
+    // just append u2
 //     cout << "Adding last unit: "; u2.Print(cout); cout << endl;
     res->MergeAdd( u2 );
   }
@@ -1301,22 +1232,19 @@ m/h. It has a default value of 1.0 m/d (=0.04167 m/h = 0.6944 mm/min = 0.01157 m
 ListExpr sim_trips_TM ( ListExpr args )
 {
   ListExpr arg1, arg2, arg3;
-  if ( nl->ListLength( args ) == 2 )
-  {
+  if ( nl->ListLength( args ) == 2 ) {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     if ( nl->AtomType( arg1 ) == SymbolType &&
          nl->SymbolValue( arg1 ) == "mpoint"  &&
          nl->AtomType( arg2 ) == SymbolType &&
-         nl->SymbolValue( arg2 ) == "duration")
-    {
+         nl->SymbolValue( arg2 ) == "duration") {
       return nl->TwoElemList(nl->SymbolAtom("stream"),
                              nl->SymbolAtom("mpoint"));
     }
   }
 
-  if ( nl->ListLength( args ) == 3 )
-  {
+  if ( nl->ListLength( args ) == 3 ) {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
     arg3 = nl->Third( args );
@@ -1325,8 +1253,7 @@ ListExpr sim_trips_TM ( ListExpr args )
          nl->AtomType( arg2 ) == SymbolType &&
          nl->SymbolValue( arg2 ) == "duration" &&
          nl->AtomType( arg3 ) == SymbolType &&
-         nl->SymbolValue( arg3 ) == "real")
-    {
+         nl->SymbolValue( arg3 ) == "real") {
       return nl->TwoElemList(nl->SymbolAtom("stream"),
                              nl->SymbolAtom("mpoint"));
     }
@@ -1482,9 +1409,8 @@ int sim_trips_VM ( Word* args, Word& result,
       while( sli->pos < sli->size && !newtrip)
       {
 //         cout << "pos/size = " << sli->pos << "/" << sli->size << endl;
-        const UPoint *cu2;
-        mpoint->Get(sli->pos++, cu2);
-        UPoint u2 = *cu2;
+        UPoint u2(true);
+        mpoint->Get(sli->pos++, u2);
 //         cout << endl;
 //         cout << " u1 = "; sli->u1.Print(cout);  cout << endl;
 //         cout << " u2 = "; u2.Print(cout); cout << endl;

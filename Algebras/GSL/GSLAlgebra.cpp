@@ -74,7 +74,7 @@ and --- of cause --- the GSL.
 #include "GSLAlgebra.h"
 
 /*
-3. C++ Data Types 
+3. C++ Data Types
 
 3.1 Type ~randomgen~
 
@@ -90,7 +90,7 @@ was included to this goal.
 GslRandomgen::GslRandomgen()
 {} // the simple constructor. Never use this one!
 
-GslRandomgen::GslRandomgen( const bool def ) 
+GslRandomgen::GslRandomgen( const bool def )
   : defined( def )
 { // the simple constructor
   if( !initialized )
@@ -111,7 +111,7 @@ GslRandomgen::GslRandomgen( const bool def )
   }
 }
 
-GslRandomgen::GslRandomgen( const int typeNo, const unsigned long seed ) 
+GslRandomgen::GslRandomgen( const int typeNo, const unsigned long seed )
   : defined( true )
 { // the fully parameterized constructor
   if( !initialized )
@@ -168,7 +168,7 @@ GslRandomgen& GslRandomgen::operator= ( const GslRandomgen& other )
 GslRandomgen::~GslRandomgen()
 { // the destructor
   if( me != NULL )
-  { 
+  {
     gsl_rng_free(me);
     me = NULL;
   }
@@ -222,7 +222,7 @@ inline int GslRandomgen::GetType()
   return myType;
 }
 
-inline unsigned long int GslRandomgen::NextInt() 
+inline unsigned long int GslRandomgen::NextInt()
 { // return next random int number from generator
   // uniformly distributed [MinRand, MaxRand]
   assert( defined && me != NULL );
@@ -242,20 +242,20 @@ inline unsigned long int GslRandomgen::MaxRand() const
 }
 
 double GslRandomgen::NextReal()
-{ // returns a double precision floating point number 
+{ // returns a double precision floating point number
       // uniformly distributed in the range [0,1)
   assert( defined && me != NULL );
   return gsl_rng_uniform(me);
 }
 
 inline double GslRandomgen::NextRealPos()
-{ // returns a double precision floating point number 
+{ // returns a double precision floating point number
       // uniformly distributed in the range (0,1)
   assert( defined && me != NULL );
   return gsl_rng_uniform_pos(me);
 }
 
-inline unsigned long int GslRandomgen::NextIntN(const unsigned long int n) 
+inline unsigned long int GslRandomgen::NextIntN(const unsigned long int n)
 { // returns a random integer from 0 to n-1
   assert( defined && me != NULL && n >= 1 );
   return gsl_rng_uniform_int (me, n);
@@ -267,14 +267,14 @@ void GslRandomgen::InitializeTables()
   {
     gsl_rng_env_setup(); // get default values
     // get rng types
-    GslRandomgen::gslalg_randomgeneratorTable = gsl_rng_types_setup(); 
+    GslRandomgen::gslalg_randomgeneratorTable = gsl_rng_types_setup();
     GslRandomgen::gslalg_randomgeneratorTableSize = 0;
     GslRandomgen::gsl_rng_defaultIndex = 0;
     while(GslRandomgen::gslalg_randomgeneratorTable[
           GslRandomgen::gslalg_randomgeneratorTableSize] != NULL)
     {
       if( GslRandomgen::gslalg_randomgeneratorTable[
-          GslRandomgen::gslalg_randomgeneratorTableSize]->set 
+          GslRandomgen::gslalg_randomgeneratorTableSize]->set
           == gsl_rng_default->set )
       {
         GslRandomgen::gsl_rng_defaultIndex =
@@ -388,12 +388,12 @@ ListExpr gslalg_intint2bool_TM ( ListExpr args )
 // () -> int
 ListExpr gslalg_empty2int_TM ( ListExpr args )
 {
-  if ( !nl->IsEmpty( args ) ) 
+  if ( !nl->IsEmpty( args ) )
   {
     ErrorReporter::ReportError("GSLAlgebra: Expected empty list.");
     return (nl->SymbolAtom( "typeerror" ));
-  } 
-  else 
+  }
+  else
   {
     return (nl->SymbolAtom( "int" ));
   }
@@ -402,12 +402,12 @@ ListExpr gslalg_empty2int_TM ( ListExpr args )
 // () -> real
 ListExpr gslalg_empty2real_TM ( ListExpr args )
 {
-  if ( !nl->IsEmpty( args ) ) 
+  if ( !nl->IsEmpty( args ) )
   {
     ErrorReporter::ReportError("GSLAlgebra: Expected empty list.");
     return (nl->SymbolAtom( "typeerror" ));
-  } 
-  else 
+  }
+  else
   {
     return (nl->SymbolAtom( "real" ));
   }
@@ -501,7 +501,7 @@ ListExpr gslalg_realreal2real_TM ( ListExpr args )
   {
     arg1 = nl->First( args );
     arg2 = nl->Second( args );
-    if ( gslTypeOfSymbol( arg1 ) 
+    if ( gslTypeOfSymbol( arg1 )
          == ccreal && gslTypeOfSymbol( arg2 ) == ccreal )
     {
       return (nl->SymbolAtom( "real" ));
@@ -553,7 +553,7 @@ Always returns `TRUE'.
 
 ----
     rng_init: int x int --> bool
-    
+
 ----
 
 */
@@ -562,7 +562,7 @@ Always returns `TRUE'.
 // the static generator instance - initialize with defaults
 static GslRandomgen the_gsl_randomgenerator( true );
 
-int gslalg_rng_init_VM ( Word* args, Word& result, int message, 
+int gslalg_rng_init_VM ( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -596,7 +596,7 @@ const string gslalg_rng_init_Spec  =
     "<text>query rng_init(0, 0)</text--->"
     ") )";
 
-Operator gslalg_rng_init( 
+Operator gslalg_rng_init(
     "rng_init",
     gslalg_rng_init_Spec,
     gslalg_rng_init_VM,
@@ -611,7 +611,7 @@ Get the next int random number
 
 */
 
-int gslalg_rng_int_VM ( Word* args, Word& result, 
+int gslalg_rng_int_VM ( Word* args, Word& result,
                         int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -631,7 +631,7 @@ const string gslalg_rng_int_Spec  =
     "<text>query randint()</text--->"
     ") )";
 
-Operator gslalg_rng_int( 
+Operator gslalg_rng_int(
     "rng_int",
     gslalg_rng_int_Spec,
     gslalg_rng_int_VM,
@@ -646,7 +646,7 @@ Get the next int random number
 
 */
 
-int gslalg_rng_intN_VM ( Word* args, Word& result, 
+int gslalg_rng_intN_VM ( Word* args, Word& result,
                         int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -674,7 +674,7 @@ const string gslalg_rng_intN_Spec  =
     "<text>query rng_intN(6)+1</text--->"
     ") )";
 
-Operator gslalg_rng_intN( 
+Operator gslalg_rng_intN(
     "rng_intN",
     gslalg_rng_intN_Spec,
     gslalg_rng_intN_VM,
@@ -685,11 +685,11 @@ Operator gslalg_rng_intN(
 /*
 5.3 Operator ~rng\_real~
 
-Get the next real random number 
+Get the next real random number
 
 */
 
-int gslalg_rng_real_VM ( Word* args, Word& result, 
+int gslalg_rng_real_VM ( Word* args, Word& result,
                          int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -708,7 +708,7 @@ const string gslalg_rng_real_Spec  =
     "<text>query floor((rng_real()*6))+1</text--->"
     ") )";
 
-Operator gslalg_rng_real( 
+Operator gslalg_rng_real(
     "rng_real",
     gslalg_rng_real_Spec,
     gslalg_rng_real_VM,
@@ -718,11 +718,11 @@ Operator gslalg_rng_real(
 /*
 5.4 Operator ~rng\_realpos~
 
-Get the next positive real random number 
+Get the next positive real random number
 
 */
 
-int gslalg_rng_realpos_VM ( Word* args, Word& result, 
+int gslalg_rng_realpos_VM ( Word* args, Word& result,
                          int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -741,7 +741,7 @@ const string gslalg_rng_realpos_Spec  =
     "<text>query floor((rng_realpos()*6))+1</text--->"
     ") )";
 
-Operator gslalg_rng_realpos( 
+Operator gslalg_rng_realpos(
     "rng_realpos",
     gslalg_rng_realpos_Spec,
     gslalg_rng_realpos_VM,
@@ -755,7 +755,7 @@ Get the minimum random number
 
 */
 
-int gslalg_rng_getMin_VM ( Word* args, Word& result, 
+int gslalg_rng_getMin_VM ( Word* args, Word& result,
                         int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -774,7 +774,7 @@ const string gslalg_rng_getMin_Spec  =
     "<text>query rng_getMin()</text--->"
     ") )";
 
-Operator gslalg_rng_getMin( 
+Operator gslalg_rng_getMin(
     "rng_getMin",
     gslalg_rng_getMin_Spec,
     gslalg_rng_getMin_VM,
@@ -787,7 +787,7 @@ Operator gslalg_rng_getMin(
 Get the maximum random number
 
 */
-int gslalg_rng_getMax_VM ( Word* args, Word& result, 
+int gslalg_rng_getMax_VM ( Word* args, Word& result,
                            int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -806,7 +806,7 @@ const string gslalg_rng_getMax_Spec  =
     "<text>query rng_getMax()</text--->"
     ") )";
 
-Operator gslalg_rng_getMax( 
+Operator gslalg_rng_getMax(
     "rng_getMax",
     gslalg_rng_getMax_Spec,
     gslalg_rng_getMax_VM,
@@ -820,7 +820,7 @@ Set a new seed for the specified random number generator and reinitialize it.
 
 */
 
-int gslalg_rng_setSeed_VM ( Word* args, Word& result, 
+int gslalg_rng_setSeed_VM ( Word* args, Word& result,
                          int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -845,7 +845,7 @@ const string gslalg_rng_setSeed_Spec  =
     "<text>query rng_setSeed(6)</text--->"
     ") )";
 
-Operator gslalg_rng_setSeed( 
+Operator gslalg_rng_setSeed(
     "rng_setSeed",
     gslalg_rng_setSeed_Spec,
     gslalg_rng_setSeed_VM,
@@ -860,7 +860,7 @@ get the seed value for the random number generator.
 
 */
 
-int gslalg_rng_getSeed_VM ( Word* args, Word& result, 
+int gslalg_rng_getSeed_VM ( Word* args, Word& result,
                             int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -879,7 +879,7 @@ const string gslalg_rng_getSeed_Spec  =
     ") )";
 
 
-Operator gslalg_rng_getSeed( 
+Operator gslalg_rng_getSeed(
     "rng_getSeed",
     gslalg_rng_getSeed_Spec,
     gslalg_rng_getSeed_VM,
@@ -894,7 +894,7 @@ Get a flat (uniform) distributed variate from randomgen
 
 */
 
-int gslalg_rng_flat_VM ( Word* args, Word& result, 
+int gslalg_rng_flat_VM ( Word* args, Word& result,
                          int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -930,7 +930,7 @@ const string gslalg_rng_flat_Spec  =
     "<text>query rng_flat( -5.5, 14.7 )</text--->"
     ") )";
 
-Operator gslalg_rng_flat( 
+Operator gslalg_rng_flat(
     "rng_flat",
     gslalg_rng_flat_Spec,
     gslalg_rng_flat_VM,
@@ -947,7 +947,7 @@ Get a binomial distributed variate from randomgen
 
 //Operator gslalg_rng_binomial;
 
-int gslalg_rng_binomial_VM ( Word* args, Word& result, 
+int gslalg_rng_binomial_VM ( Word* args, Word& result,
                          int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -984,7 +984,7 @@ const string gslalg_rng_binomial_Spec  =
     "<text>query rng_binomial( 10, 0.4 )</text--->"
     ") )";
 
-Operator gslalg_rng_binomial( 
+Operator gslalg_rng_binomial(
     "rng_binomial",
     gslalg_rng_binomial_Spec,
     gslalg_rng_binomial_VM,
@@ -1000,7 +1000,7 @@ Get a gaussian distributed variate from randomgen
 
 */
 
-int gslalg_rng_gaussian_VM ( Word* args, Word& result, 
+int gslalg_rng_gaussian_VM ( Word* args, Word& result,
                          int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1029,7 +1029,7 @@ const string gslalg_rng_gaussian_Spec  =
     ") )";
 
 
-Operator gslalg_rng_gaussian( 
+Operator gslalg_rng_gaussian(
     "rng_gaussian",
     gslalg_rng_gaussian_Spec,
     gslalg_rng_gaussian_VM,
@@ -1043,7 +1043,7 @@ Get a gaussian distributed variate from randomgen
 
 */
 
-int gslalg_rng_exponential_VM ( Word* args, Word& result, 
+int gslalg_rng_exponential_VM ( Word* args, Word& result,
                              int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1052,7 +1052,7 @@ int gslalg_rng_exponential_VM ( Word* args, Word& result,
   if( cMu->IsDefined() )
   {
     double Mu = cMu->GetRealval();
-    double resD = gsl_ran_exponential(the_gsl_randomgenerator.GetGenerator(), 
+    double resD = gsl_ran_exponential(the_gsl_randomgenerator.GetGenerator(),
                                       Mu);
     res->Set(true, resD);
   }
@@ -1071,7 +1071,7 @@ const string gslalg_rng_exponential_Spec  =
     ") )";
 
 
-Operator gslalg_rng_exponential( 
+Operator gslalg_rng_exponential(
     "rng_exponential",
     gslalg_rng_exponential_Spec,
     gslalg_rng_exponential_VM,
@@ -1086,7 +1086,7 @@ get the random generator' type index
 
 */
 
-int gslalg_rng_getType_VM ( Word* args, Word& result, 
+int gslalg_rng_getType_VM ( Word* args, Word& result,
                             int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1106,7 +1106,7 @@ const string gslalg_rng_getType_Spec  =
     ") )";
 
 
-Operator gslalg_rng_getType( 
+Operator gslalg_rng_getType(
     "rng_getType",
     gslalg_rng_getType_Spec,
     gslalg_rng_getType_VM,
@@ -1121,7 +1121,7 @@ return the number of available GSL random number generator types.
 
 */
 
-int gslalg_rng_NoGenerators_VM ( Word* args, Word& result, 
+int gslalg_rng_NoGenerators_VM ( Word* args, Word& result,
                             int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1140,7 +1140,7 @@ const string gslalg_rng_NoGenerators_Spec  =
     "<text>query rng_NoGenerators()</text--->"
     ") )";
 
-Operator gslalg_rng_NoGenerators( 
+Operator gslalg_rng_NoGenerators(
     "rng_NoGenerators",
     gslalg_rng_NoGenerators_Spec,
     gslalg_rng_NoGenerators_VM,
@@ -1155,7 +1155,7 @@ return the number of available GSL random number generator types.
 
 */
 
-int gslalg_rng_GeneratorName_VM ( Word* args, Word& result, 
+int gslalg_rng_GeneratorName_VM ( Word* args, Word& result,
                                  int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1185,7 +1185,7 @@ const string gslalg_rng_GeneratorName_Spec  =
     "<text>query rng_GeneratorName( 1 )</text--->"
     ") )";
 
-Operator gslalg_rng_GeneratorName( 
+Operator gslalg_rng_GeneratorName(
     "rng_GeneratorName",
     gslalg_rng_GeneratorName_Spec,
     gslalg_rng_GeneratorName_VM,
@@ -1196,12 +1196,12 @@ Operator gslalg_rng_GeneratorName(
 /*
 5.15 Operator ~rng\_GeneratorMinRand~
 
-Return the minimum number generated by the specified GSL random number 
+Return the minimum number generated by the specified GSL random number
 generator type.
 
 */
 
-int gslalg_rng_GeneratorMinRand_VM ( Word* args, Word& result, 
+int gslalg_rng_GeneratorMinRand_VM ( Word* args, Word& result,
                                   int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1231,7 +1231,7 @@ const string gslalg_rng_GeneratorMinRand_Spec  =
     "<text>query rng_GeneratorMinRand( 1 )</text--->"
     ") )";
 
-Operator gslalg_rng_GeneratorMinRand( 
+Operator gslalg_rng_GeneratorMinRand(
     "rng_GeneratorMinRand",
     gslalg_rng_GeneratorMinRand_Spec,
     gslalg_rng_GeneratorMinRand_VM,
@@ -1241,12 +1241,12 @@ Operator gslalg_rng_GeneratorMinRand(
 /*
 5.16 Operator ~rng\_GeneratorMaxRand~
 
-Return the maximum number generated by the specified GSL random number 
+Return the maximum number generated by the specified GSL random number
 generator type.
 
 */
 
-int gslalg_rng_GeneratorMaxRand_VM ( Word* args, Word& result, 
+int gslalg_rng_GeneratorMaxRand_VM ( Word* args, Word& result,
                                   int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1276,7 +1276,7 @@ const string gslalg_rng_GeneratorMaxRand_Spec  =
     "<text>query rng_GeneratorMaxRand( 1 )</text--->"
     ") )";
 
-Operator gslalg_rng_GeneratorMaxRand( 
+Operator gslalg_rng_GeneratorMaxRand(
     "rng_GeneratorMaxRand",
     gslalg_rng_GeneratorMaxRand_Spec,
     gslalg_rng_GeneratorMaxRand_VM,
@@ -1291,7 +1291,7 @@ tuple format is tuple((Index int)(MinInt int)(MaxInt int)(Name string)).
 
 */
 
-int rng_TypeDescriptors_VM ( Word* args, Word& result, 
+int rng_TypeDescriptors_VM ( Word* args, Word& result,
                             int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1311,7 +1311,7 @@ const string rng_TypeDescriptors_Spec  =
     "<text>query rng_TypeDescriptors( ) consume</text--->"
     ") )";
 
-Operator rng_TypeDescriptors( 
+Operator rng_TypeDescriptors(
     "rng_TypeDescriptors",
     gslalg_rng_getType_Spec,
     gslalg_rng_getType_VM,
@@ -1326,7 +1326,7 @@ Get a poisson distributed int variate from randomgen
 
 */
 
-int gslalg_rng_poisson_VM ( Word* args, Word& result, 
+int gslalg_rng_poisson_VM ( Word* args, Word& result,
                          int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1353,7 +1353,7 @@ const string gslalg_rng_poisson_Spec  =
     "<text>query rng_poisson( )</text--->"
     ") )";
 
-Operator gslalg_rng_poisson( 
+Operator gslalg_rng_poisson(
     "rng_poisson",
     gslalg_rng_poisson_Spec,
     gslalg_rng_poisson_VM,
@@ -1368,7 +1368,7 @@ Get a geometric distributed int variate from randomgen
 
 */
 
-int gslalg_rng_geometric_VM ( Word* args, Word& result, 
+int gslalg_rng_geometric_VM ( Word* args, Word& result,
                          int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
@@ -1403,7 +1403,7 @@ const string gslalg_rng_geometric_Spec  =
     "<text>query rng_geometric( 0.75 )</text--->"
     ") )";
 
-Operator gslalg_rng_geometric( 
+Operator gslalg_rng_geometric(
     "rng_geometric",
     gslalg_rng_geometric_Spec,
     gslalg_rng_geometric_VM,
@@ -1444,7 +1444,7 @@ class GSLAlgebra : public Algebra
     AddOperator( &gslalg_rng_realpos );
     AddOperator( &gslalg_rng_setSeed );
     AddOperator( &gslalg_rng_getSeed );
-    AddOperator( &gslalg_rng_getType ); 
+    AddOperator( &gslalg_rng_getType );
     AddOperator( &gslalg_rng_flat );
     AddOperator( &gslalg_rng_gaussian );
     AddOperator( &gslalg_rng_binomial );
@@ -1465,7 +1465,7 @@ class GSLAlgebra : public Algebra
 //     int gslalg_randomgeneratorTableSize;
 //     int gsl_rng_defaultIndex;
 
-    
+
 };
 
 /*
