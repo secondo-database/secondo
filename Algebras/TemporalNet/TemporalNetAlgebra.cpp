@@ -5499,7 +5499,8 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
       tEnd = unit.TimeAtPos(actEndPos);
       double speed = (actEndPos - startPos)/
             ((tEnd - tStart).ToDouble()/0.00001157);
-      res.push_back(MGPSecUnit(secId, partNo, Up, speed,
+      if (tStart != tEnd)
+        res.push_back(MGPSecUnit(true, secId, partNo, Up, speed,
                     Interval<Instant> (tStart, tEnd, true, false)));
       tStart = tEnd;
       startPos = actEndPos;
@@ -5511,7 +5512,8 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
       tEnd = unit.TimeAtPos(sectMeas2);
       double speed = (sectMeas2 - startPos)/
           ((tEnd-tStart).ToDouble()/0.00001157);
-      res.push_back(MGPSecUnit(secId, partNo, Up, speed,
+      if (tStart != tEnd)
+        res.push_back(MGPSecUnit(true, secId, partNo, Up, speed,
                     Interval<Instant> (tStart, tEnd, true, false)));
       tStart = tEnd;
       startPos = sectMeas2;
@@ -5520,7 +5522,8 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
     {
       double speed = (unit.p1.GetPosition()-startPos)/
              ((unit.timeInterval.end - tStart).ToDouble()/0.00001157);
-      res.push_back(MGPSecUnit(secId, partNo, Up, speed,
+      if (tStart != unit.timeInterval.end)
+        res.push_back(MGPSecUnit(true, secId, partNo, Up, speed,
                     Interval<Instant> (tStart,
                                        unit.timeInterval.end,
                                        true, false)));
@@ -5537,7 +5540,8 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
       tEnd = unit.TimeAtPos(actEndPos);
       double speed = (startPos-actEndPos)/
             ((tEnd - tStart).ToDouble()/0.00001157);
-      res.push_back(MGPSecUnit(secId, partNo, Down, speed,
+      if (tStart != tEnd)
+        res.push_back(MGPSecUnit(true, secId, partNo, Down, speed,
                     Interval<Instant> (tStart, tEnd, true, false)));
       tStart = tEnd;
       startPos = actEndPos;
@@ -5548,11 +5552,11 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
     if (unit.p1.GetPosition() < sectMeas1)
     {
       tEnd = unit.TimeAtPos(sectMeas1);
-      if (!(tStart == tEnd))
+      if (tStart != tEnd)
       {
         double speed = (startPos - sectMeas1)/
             ((tEnd-tStart).ToDouble()/0.00001157);
-        res.push_back(MGPSecUnit(secId, partNo, Down, speed,
+        res.push_back(MGPSecUnit(true, secId, partNo, Down, speed,
                       Interval<Instant> (tStart, tEnd, true, false)));
       }
       tStart = tEnd;
@@ -5562,7 +5566,8 @@ void UGPoint::Distance (const UGPoint &ugp, UReal &ur) const {
     {
       double speed = (startPos - unit.p1.GetPosition())/
             ((unit.timeInterval.end - tStart).ToDouble()/0.00001157);
-      res.push_back(MGPSecUnit(secId, partNo, Down, speed,
+      if(tStart != unit.timeInterval.end)
+        res.push_back(MGPSecUnit(true, secId, partNo, Down, speed,
                       Interval<Instant> (tStart,
                                         unit.timeInterval.end,
                                         true, false)));
@@ -5584,7 +5589,8 @@ void NotPartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
       tEnd = unit.TimeAtPos(sectMeas2);
       double speed = (sectMeas2 - startPos)/
             ((tEnd - tStart).ToDouble()/0.00001157);
-      res.push_back(MGPSecUnit(secId, partNo, Up, speed,
+      if (tStart != tEnd)
+       res.push_back(MGPSecUnit(true, secId, partNo, Up, speed,
                     Interval<Instant> (tStart, tEnd, true, false)));
       tStart = tEnd;
       startPos = sectMeas2;
@@ -5593,7 +5599,8 @@ void NotPartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
     {
       double speed = (unit.p1.GetPosition()-startPos)/
                       ((unit.timeInterval.end - tStart).ToDouble()/0.00001157);
-      res.push_back(MGPSecUnit(secId, partNo, Up, speed,
+      if (tStart != unit.timeInterval.end)
+        res.push_back(MGPSecUnit(true, secId, partNo, Up, speed,
                               Interval<Instant> (tStart,
                                                 unit.timeInterval.end,
                                                 true, false)));
@@ -5608,7 +5615,8 @@ void NotPartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
       tEnd = unit.TimeAtPos(sectMeas1);
       double speed = (startPos - sectMeas1)/
             ((tEnd - tStart).ToDouble()/0.00001157);
-      res.push_back(MGPSecUnit(secId, partNo, Down, speed,
+      if (tStart != tEnd)
+        res.push_back(MGPSecUnit(true, secId, partNo, Down, speed,
                   Interval<Instant> (tStart, tEnd, true, false)));
       tStart = tEnd;
       startPos = sectMeas1;
@@ -5617,7 +5625,8 @@ void NotPartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
     {
       double speed = (startPos - unit.p1.GetPosition())/
             ((unit.timeInterval.end - tStart).ToDouble()/0.00001157);
-      res.push_back(MGPSecUnit(secId, partNo, Down, speed,
+      if (tStart != unit.timeInterval.end)
+        res.push_back(MGPSecUnit(true, secId, partNo, Down, speed,
                     Interval<Instant> (tStart,
                                        unit.timeInterval.end,
                                        true, false)));
@@ -5662,8 +5671,8 @@ void NotPartedSection(UGPoint unit, double sectMeas1, double sectMeas2,
          (p1.GetPosition() >= sectMeas1 + (partNo-1) * maxSectLength &&
           p1.GetPosition() <= sectMeas1 + partNo * maxSectLength)))
    { //whole unit one mgpsecunit
-     res.push_back(MGPSecUnit(actSectId, partNo, MovingDirection(), Speed(),
-                             GetUnitTimeInterval()));
+     res.push_back(MGPSecUnit(true,actSectId, partNo, MovingDirection(),
+                              Speed(), GetUnitTimeInterval()));
    }
    else
    {
@@ -5791,27 +5800,33 @@ MGPSecUnit::MGPSecUnit():Attribute()
 {
 }
 
-MGPSecUnit::MGPSecUnit(int secId, int part, Side direct, double sp,
-                       Interval<Instant> timeInterval):
+MGPSecUnit::MGPSecUnit(bool defined, int secId, int part, Side direct,
+                       double sp, Interval<Instant> timeInterval):
     m_secId(secId),
-            m_part(part),
-                   m_direct(direct),
-                            m_speed(sp),
-                                    m_time(timeInterval)
+    m_part(part),
+    m_direct(direct),
+    m_speed(sp),
+    m_time(timeInterval)
 {
   del.refs=1;
   del.isDelete=true;
+  SetDefined(defined);
 }
 
-MGPSecUnit::MGPSecUnit( const MGPSecUnit& in_xOther):
-    m_secId(in_xOther.GetSecId()),
-            m_part(in_xOther.GetPart()),
-                   m_direct(in_xOther.GetDirect()),
-                            m_speed(in_xOther.GetSpeed()),
-                                    m_time(in_xOther.GetTimeInterval())
+MGPSecUnit::MGPSecUnit( const MGPSecUnit& in_xOther)
 {
-  del.refs=1;
-  del.isDelete=true;
+  if (in_xOther.IsDefined())
+  {
+    del.refs=1;
+    del.isDelete=true;
+    SetDefined(in_xOther.IsDefined());
+    m_secId = in_xOther.GetSecId();
+    m_part = in_xOther.GetPart();
+    m_direct = in_xOther.GetDirect();
+    m_speed = in_xOther.GetSpeed();
+    m_time = in_xOther.GetTimeInterval();
+  }
+  else SetDefined(false);
 }
 
 MGPSecUnit::~MGPSecUnit() {}
@@ -5879,6 +5894,7 @@ void MGPSecUnit::SetTimeInterval(Interval<Instant> time)
   m_direct = in_xOther.GetDirect();
   m_speed = in_xOther.GetSpeed();
   m_time = in_xOther.GetTimeInterval();
+  SetDefined(in_xOther.IsDefined());
   return *this;
 }
 
@@ -5931,6 +5947,32 @@ int MGPSecUnit::Compare( const Attribute* arg ) const
   else
     if (m_speed > p->GetSpeed()) return 1;
   else return 0;
+}
+
+bool MGPSecUnit::operator<(const MGPSecUnit arg) const
+{
+  return Compare(&arg) < 0;
+}
+
+bool MGPSecUnit::operator>(const MGPSecUnit arg) const
+{
+  return Compare(&arg) > 0;
+}
+
+bool MGPSecUnit::operator==(const MGPSecUnit arg)const{
+  return Compare(&arg)==0;
+}
+
+bool MGPSecUnit::operator!=(const MGPSecUnit arg)const{
+  return Compare(&arg)!=0;
+}
+
+bool MGPSecUnit::operator<=(const MGPSecUnit arg)const{
+  return Compare(&arg)<=0;
+}
+
+bool MGPSecUnit::operator>=(const MGPSecUnit arg)const{
+  return Compare(&arg)>=0;
 }
 
 bool MGPSecUnit::Adjacent( const Attribute *arg ) const
@@ -6010,12 +6052,14 @@ Word MGPSecUnit::In(const ListExpr typeInfo, const ListExpr instance,
                                            correct).addr;
             if (correct)
             {
-              Word w = new MGPSecUnit(seclist.intval(), partlist.intval(),
+              Word w = new MGPSecUnit(true,
+                                      seclist.intval(),
+                                      partlist.intval(),
                                       (Side) dirlist.intval(),
                                        nl->RealValue(speedlist.listExpr()),
-                                           Interval<Instant> (*start, *end,
-                                               lclist.boolval(),
-                                                   rclist.boolval()));
+                                       Interval<Instant> (*start, *end,
+                                                          lclist.boolval(),
+                                                          rclist.boolval()));
               return w;
             }
           }
@@ -6187,7 +6231,7 @@ int OpMgp2mgpsecunitsValueMap(Word* args, Word& result, int message,
       {
         li->vmgpsecunit.clear();
         Tuple *actTuple = li->iterRel->GetNextTuple() ;
-        if (actTuple != 0)
+        while (actTuple != 0)
         {
           MGPoint *m = (MGPoint*) actTuple->GetAttribute(li->attrIndex);
           if (m != 0)
@@ -6202,9 +6246,10 @@ int OpMgp2mgpsecunitsValueMap(Word* args, Word& result, int message,
             }
           }
           actTuple->DeleteIfAllowed();
+          actTuple = li->iterRel->GetNextTuple();
         }
+        return CANCEL;
       }
-      return CANCEL;
     }
 
     case CLOSE:

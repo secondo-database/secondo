@@ -38,12 +38,14 @@ October 2009- Simone Jandt
 #include "DateTime.h"
 #include "NestedList.h"
 
+/*
+Enumeration of the coloums of the resulting relation of trafficflow operation.
+
+*/
+
 enum TrafficFlowRelation{TRAFFICFLOW_SECID = 0,
                          TRAFFICFLOW_PARTNO,
                          TRAFFICFLOW_DIR,
                          TRAFFICFLOW_FLOW};
-
-
-
 
 #endif // __TRAFFIC_ALGEBRA_H__

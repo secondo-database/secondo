@@ -3,6 +3,12 @@ Restore : no
 
 Operator : trafficflow
 Number   : 1
-Signature: rel(tuple((ai xi))) x ai x network x real -> stream(mgpsecunit)
-Example  : query trains mgp2mgpsecunits [trip, B_NETWORK, 20000.0] trafficflow;
-Result   : crashes
+Signature: rel(tuple(mgpsecunit)) -> rel(tuple(int,int,int,mint))
+Example  : query trains mgp2mgpsecunits[trip,B_NETWORK,2000.0] transformstream project[elem] sortby [elem asc] trafficflow;
+Result   : file
+
+Operator : trafficflow2
+Number   : 1
+Signature: stream(mgpsecunit)->rel(tuple(int,int,int,mint))
+Example  : query trains mgp2mgpsecunits[trip,B_NETWORK,2000.0] trafficflow2;
+Result   : file

@@ -80,7 +80,7 @@ class MGPSecUnit : public Attribute
 
     MGPSecUnit();
 
-    MGPSecUnit(int secId,  int part, Side direct, double sp,
+    MGPSecUnit(bool defined, int secId,  int part, Side direct, double sp,
                Interval<Instant> timeInterval);
 
     MGPSecUnit( const MGPSecUnit& in_xOther );
@@ -131,6 +131,13 @@ Functions for Secondo integration.
     void CopyFrom( const Attribute* right );
 
     int Compare( const Attribute* arg ) const;
+
+    bool operator<(const MGPSecUnit arg) const;
+    bool operator>(const MGPSecUnit arg) const;
+    bool operator==(const MGPSecUnit arg)const;
+    bool operator!=(const MGPSecUnit arg)const;
+    bool operator<=(const MGPSecUnit arg)const;
+    bool operator>=(const MGPSecUnit arg)const;
 
     bool Adjacent( const Attribute *arg ) const;
 
