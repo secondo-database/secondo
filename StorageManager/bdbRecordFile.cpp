@@ -44,6 +44,7 @@ using namespace std;
 #include <string>
 
 #include <db_cxx.h>
+#include "DbVersion.h"
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
 #include "SmiCodes.h"
@@ -108,7 +109,7 @@ SmiRecordFile::SelectRecord( const SmiRecordId recno,
   }
 
 // VTA - 15.11.2005 - to compile with the new version of Berkeley DB
-#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 3)
+#if (DB_VERSION_REQUIRED(4, 3))
   if ( rc == DB_BUFFER_SMALL || rc == 0 )
 #else
   if ( rc == ENOMEM || rc == 0 )

@@ -58,6 +58,7 @@ using namespace std;
 #include "LogMsg.h"
 
 #include <db_cxx.h>
+#include "DbVersion.h"
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
 #include "SmiCodes.h"
@@ -941,7 +942,7 @@ SmiStatResultType
       DB_QUEUE_STAT *sRS = 0;
       // set flags according to ~mode~
       // call bdb stats method
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+#if DB_VERSION_REQUIRED(4,3) 
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
@@ -992,7 +993,7 @@ SmiStatResultType
       DB_BTREE_STAT *sRS = 0;
       // set flags according to ~mode~
       // call bdb stats method
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+#if DB_VERSION_REQUIRED(4, 3)
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
@@ -1055,7 +1056,7 @@ SmiStatResultType
       DB_HASH_STAT *sRS = 0;
       SmiStatResultType result;
       // call bdb stats method
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+#if DB_VERSION_REQUIRED(4, 3)
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
@@ -1111,7 +1112,7 @@ SmiStatResultType
       DB_BTREE_STAT *sRS = 0;
       // set flags according to ~mode~
       // call bdb stats method
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+#if DB_VERSION_REQUIRED(4, 3)
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
@@ -1330,7 +1331,7 @@ SmiFileIterator::Next( SmiRecord& record )
 
     // --- Initialize record handle if record is available
 // VTA - 15.11.2005 - to compile with the new version of Berkeley DB
-#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 3)
+#if (DB_VERSION_REQUIRED(4, 3))
     if ( rc == DB_BUFFER_SMALL )
 #else
     if ( rc == ENOMEM )
@@ -1470,7 +1471,7 @@ bool PrefetchingIteratorImpl::NewPrefetch()
   if(errorCode != 0)
   {
 // VTA - 15.11.2005 - to compile with the new version of Berkeley DB
-#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 3)
+#if (DB_VERSION_REQUIRED(4, 3))
     if ( errorCode == DB_BUFFER_SMALL )
 #else
     if ( errorCode == ENOMEM )
