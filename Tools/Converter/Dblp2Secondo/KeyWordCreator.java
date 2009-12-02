@@ -113,7 +113,7 @@ private static void createTwoRelations(TreeSet Exclusions,String SourceFile,
  try{
     Writer out = new OutputStreamWriter(new FileOutputStream(WordTarget));
     out.write("( OBJECT "+WordTarget+" ()\n"); // open object
-    out.write("   (rel (tuple ( (id int)(word string))))\n"); // type
+    out.write("   (rel (tuple ( (Id int)(Word string))))\n"); // type
     out.write("   (\n"); // open value
     Iterator it = Words.iterator();
     int i=0;
@@ -134,7 +134,7 @@ private static void createTwoRelations(TreeSet Exclusions,String SourceFile,
  try{
     Writer out = new OutputStreamWriter(new FileOutputStream(RelTarget));
     out.write("( OBJECT "+RelTarget+" ()\n"); // open object
-    out.write("   (rel (tuple ( (docid int)(wordid int))))\n"); // type
+    out.write("   (rel (tuple ( (Docid int)(Wordid int))))\n"); // type
     out.write("   (\n"); // open value
     Iterator it = LineWordRel.iterator();
     int i=0;
@@ -162,7 +162,7 @@ private static void createSingleRelation(TreeSet Exclusions,String SourceFile,
     BufferedReader BR = new BufferedReader(new FileReader(SourceFile));
     Writer out = new OutputStreamWriter(new FileOutputStream(TargetFile));
     out.write("( OBJECT "+TargetFile+" ()\n"); // open object
-    out.write("   (rel (tuple ( (docid int)(word string))))\n"); // type
+    out.write("   (rel (tuple ( (Docid int)(Word string))))\n"); // type
     out.write("   (\n"); // open value
     while(BR.ready()){
        Line = BR.readLine();

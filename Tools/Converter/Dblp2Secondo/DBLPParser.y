@@ -490,9 +490,9 @@ char** argv;
     memset(&key, 0, sizeof(key));
     memset(&data, 0, sizeof(data));
     
-    authorsfile = fopen("author", "w");
-    authordocfile = fopen("authordoc", "w");
-    docsfile = fopen("document", "w");
+    authorsfile = fopen("Author", "w");
+    authordocfile = fopen("Authordoc", "w");
+    docsfile = fopen("Document", "w");
     tmpkwfile = fopen("keyword_tmp","w");
     
     if(argc > 1 && (argv[1]=="--oldstyle")){
@@ -512,33 +512,33 @@ char** argv;
        yyin = ifile;
     }   
 
-    fprintf(docsfile,"%s","(OBJECT document\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
-    fprintf(docsfile,"%s","\t\t\t(type string)\n");
-    fprintf(docsfile,"%s","\t\t\t(docid int)\n");
-    fprintf(docsfile,"%s","\t\t\t(authors text)\n");
-    fprintf(docsfile,"%s","\t\t\t(title text)\n");
-    fprintf(docsfile,"%s","\t\t\t(booktitle text)\n");
-    fprintf(docsfile,"%s","\t\t\t(pages string)\n");
-    fprintf(docsfile,"%s","\t\t\t(year string)\n");
-    fprintf(docsfile,"%s","\t\t\t(journal text)\n");
-    fprintf(docsfile,"%s","\t\t\t(volume string)\n");
-    fprintf(docsfile,"%s","\t\t\t(number string)\n");
-    fprintf(docsfile,"%s","\t\t\t(month string)\n");
-    fprintf(docsfile,"%s","\t\t\t(url text)\n");
-    fprintf(docsfile,"%s","\t\t\t(school text)\n");
-    fprintf(docsfile,"%s","\t\t\t(publisher text)\n");
-    fprintf(docsfile,"%s","\t\t\t(isbn string))))\n(\n");
+    fprintf(docsfile,"%s","(OBJECT Document\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
+    fprintf(docsfile,"%s","\t\t\t(Type string)\n");
+    fprintf(docsfile,"%s","\t\t\t(Docid int)\n");
+    fprintf(docsfile,"%s","\t\t\t(Authors text)\n");
+    fprintf(docsfile,"%s","\t\t\t(Title text)\n");
+    fprintf(docsfile,"%s","\t\t\t(Booktitle text)\n");
+    fprintf(docsfile,"%s","\t\t\t(Pages string)\n");
+    fprintf(docsfile,"%s","\t\t\t(Year string)\n");
+    fprintf(docsfile,"%s","\t\t\t(Journal text)\n");
+    fprintf(docsfile,"%s","\t\t\t(Volume string)\n");
+    fprintf(docsfile,"%s","\t\t\t(Number string)\n");
+    fprintf(docsfile,"%s","\t\t\t(Month string)\n");
+    fprintf(docsfile,"%s","\t\t\t(Url text)\n");
+    fprintf(docsfile,"%s","\t\t\t(School text)\n");
+    fprintf(docsfile,"%s","\t\t\t(Publisher text)\n");
+    fprintf(docsfile,"%s","\t\t\t(Isbn string))))\n(\n");
 
-    fprintf(authordocfile,"%s","(OBJECT authordoc\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
-    fprintf(authordocfile,"%s","\t\t\t(name string)\n");
-    fprintf(authordocfile,"%s","\t\t\t(lclastname string)\n");
-    fprintf(authordocfile,"%s","\t\t\t(authorid int)\n");
-    fprintf(authordocfile,"%s","\t\t\t(docid int))))\n(\n");
+    fprintf(authordocfile,"%s","(OBJECT Authordoc\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
+    fprintf(authordocfile,"%s","\t\t\t(Name string)\n");
+    fprintf(authordocfile,"%s","\t\t\t(Lclastname string)\n");
+    fprintf(authordocfile,"%s","\t\t\t(Authorid int)\n");
+    fprintf(authordocfile,"%s","\t\t\t(Docid int))))\n(\n");
 
-    fprintf(authorsfile,"%s","(OBJECT author\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
-    fprintf(authorsfile,"%s","\t\t\t(name string)\n");
-    fprintf(authorsfile,"%s","\t\t\t(lclastname string)\n");
-    fprintf(authorsfile,"%s","\t\t\t(authorid int))))\n(\n");
+    fprintf(authorsfile,"%s","(OBJECT Author\n\t()\n\t(rel\n\t\t(tuple\n\t\t\t(\n");
+    fprintf(authorsfile,"%s","\t\t\t(Name string)\n");
+    fprintf(authorsfile,"%s","\t\t\t(Lclastname string)\n");
+    fprintf(authorsfile,"%s","\t\t\t(Authorid int))))\n(\n");
 
     yyparse();
     if(oldstyle){
