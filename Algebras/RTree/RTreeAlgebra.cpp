@@ -4060,7 +4060,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreebbox );
     AddOperator( &rtreeentries);
     AddOperator( &getfileinfortree);
-    AddOperator( &updatebulkloadrtree);
+//    AddOperator( &updatebulkloadrtree);
 
 #else
 
@@ -4079,7 +4079,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreebbox );
     AddOperator( &rtreeentries);
     AddOperator(&getfileinfortree);
-    AddOperator( &updatebulkloadrtree);
+//    AddOperator( &updatebulkloadrtree);
 #endif
 
 
