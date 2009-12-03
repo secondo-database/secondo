@@ -47,7 +47,7 @@ cstring param1, param2, paramname, paramtype, paramtype2;
 int paramno;
 stack<string> paramstack;
 
-extern void yyerror( char* s );
+extern void yyerror( const char* s );
 
 void emptystack(){
    while(!paramstack.empty())
@@ -55,7 +55,7 @@ void emptystack(){
 }
 
 
-void PRINTF (char *s)
+void PRINTF (const char *s)
 {
   (*yacc_outtext).append( s );
 }

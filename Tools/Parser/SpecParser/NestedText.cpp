@@ -50,7 +50,7 @@ Possible errors: The text buffer or storage space for nodes may overflow.
 ***************************************/
 
 Cardinal
-NestedText::Atom( char* str, int length )
+NestedText::Atom( const char* str, int length )
 {
   int i;
 
@@ -92,7 +92,7 @@ in particular for string constants written directly into the function call.
 ******************************************/
 
 Cardinal
-NestedText::AtomC( char* str )
+NestedText::AtomC( const char* str )
 {
   return (Atom( str, strlen( str ) ));
 }

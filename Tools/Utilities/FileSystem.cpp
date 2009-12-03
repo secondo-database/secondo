@@ -330,8 +330,6 @@ FileSystem::Get_FileAttributes( const string& fileName )
 bool
 FileSystem::Set_FileAttributes( const string& fileName, FileAttributes attribs )
 {
-  assert( &fileName );
-  assert( &attribs );
 #ifdef SECONDO_WIN32
   return (::SetFileAttributes( fileName.c_str(), attribs ) != 0);
 #else

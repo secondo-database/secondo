@@ -103,7 +103,7 @@ The function writes an error message as well as the line number
 which has caused the error to the standard error output.
 
 */
-void yyerror( char* s )
+void yyerror( const char* s )
 {
   cerr << endl << s << endl << endl;
   cerr << "error at line " << yylineno << endl;
@@ -754,7 +754,7 @@ void printtranslation(){
 %}
 
 %union{
-  char* text;
+  const char* text;
   int   len;
 }
 
