@@ -139,6 +139,8 @@ using namespace std;
 #include "CharTransform.h"
 #include "version.h"
 
+#include "DbVersion.h"
+
 extern bool USE_AUTO_BUFFER;
 
 /*
@@ -235,6 +237,13 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
 			 << SECONDO_VERSION_REVISION << endl;
 
   cout << version.str() << endl;
+
+  stringstream dbversion;
+  dbversion  << "Berkeley DB version: " 
+             << DB_VERSION_MAJOR 
+             << "." 
+             << DB_VERSION_MINOR;
+  cout << dbversion.str() << endl  << endl;
 
   // initialize runtime flags
   InitRTFlags(parmFile);
