@@ -334,14 +334,14 @@ Restricts the DBArray to the interval set of indices passed as argument.
 */
 virtual void Restrict( const vector< pair<int, int> >& intervals ) {
   // compute the result size
-  int newSize = 0;
+  unsigned int newSize = 0;
   for( vector< pair<int, int> >::const_iterator it= intervals.begin();
            it < intervals.end();
            it++ ) {
       assert( it->first <= it->second );
       newSize += ( ( it->second - it->first ) + 1 ) * sizeof( DbArrayElement );
   }
-  assert( newSize <= nElements );
+  assert( newSize <= Flob::getSize() );
   if( newSize == 0 ){
     clean();
   } else {
