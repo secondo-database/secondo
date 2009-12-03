@@ -10,6 +10,7 @@ of that class.
 */
 
 #include "SecondoSMI.h"
+#include <stdlib.h>
 #include "Flob.h"
 #include "LRU.h"
 #include "assert.h"
