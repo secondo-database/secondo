@@ -139,6 +139,7 @@ All other implementation classes provide only data members.
 #include <map>
 #include <vector>
 #include <assert.h>
+#include <string.h>
 
 #include <db_cxx.h>
 
