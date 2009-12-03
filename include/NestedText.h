@@ -140,8 +140,8 @@ struct TextNode
 class NestedText
 {
  public:
-  static Cardinal Atom( char* str, int length );
-  static Cardinal AtomC( char* str );
+  static Cardinal Atom( const char* str, int length );
+  static Cardinal AtomC( const char* str );
   static bool     IsAtom( Cardinal list );
   static Cardinal Concat( Cardinal list1, Cardinal list2 );
   static void     Print( Cardinal list );
