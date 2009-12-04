@@ -10050,6 +10050,117 @@ Operator cellpartition(
          Operator::SimpleSelect,
          CellPartitionTypeMap
 );
+const string CovMergertreeSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" \"Comment\" ) "
+  "(<text>(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x \n"
+  "(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x "
+  "(rel1 (tuple ((x1 t1)...(xn tn)))) x (rel2 (tuple ((x1 t1)...(xn tn))))"
+  " -> bool</text--->"
+  "<text>covmergertree (_, _ ,_,_)</text--->"
+  "<text>Merge Two RTrees and Coverage Numbers</text--->"
+  "<text>query covmergertree(rtree_1,rtree_2,numbers1,numbers2)</text--->"
+  "<text></text--->"
+  ") )";
+/*
+TypeMap fun for operator mergertree and coverage
+
+*/
+ListExpr CovMergeRTreeTypeMap(ListExpr args)
+{
+
+// check number of parameters
+  if( nl->IsEmpty(args) || nl->ListLength(args) != 5){
+    return listutils::typeError("Expecting exactly 4 arguments.");
+  }
+
+/////////////////////////////////////////////////////////
+  ListExpr firstpara = nl->First(args);
+  if(nl->ListLength(firstpara) != 4){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(!listutils::isRTreeDescription(firstpara)){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+
+  if(!(nl->IsEqual(nl->First(firstpara),"rtree") ||
+     nl->IsEqual(nl->First(firstpara),"rtree3") ||
+     nl->IsEqual(nl->First(firstpara),"rtree4") ||
+     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+///////////////////////////////////////////////////////////
+
+  ListExpr secondpara = nl->Second(args);
+  if(nl->ListLength(secondpara) != 4){
+    string err = "rtree(tuple(...) rect BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+  if(!listutils::isRTreeDescription(secondpara)){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(!(nl->IsEqual(nl->First(firstpara),"rtree2") ||
+     nl->IsEqual(nl->First(firstpara),"rtree3") ||
+     nl->IsEqual(nl->First(firstpara),"rtree4") ||
+     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+    string err = "rtree(tuple(...) rect BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  ListExpr third = nl->Third(args);
+  ListExpr fourth = nl->Fourth(args);
+  string err = "rtree1 x rtree2 x rel1 x rel2 expected";
+  if(!listutils::isRelDescription(third)||
+      !listutils::isRelDescription(fourth))
+      return listutils::typeError(err);
+  ListExpr five = nl->Fifth(args);
+  if(!listutils::isBTreeDescription(five))
+      return listutils::typeError(err);
+
+    return nl->First(args);
+}
+
+
+int CovMergeRTreeFun(Word* args, Word& result, int message,Word& local,
+Supplier s)
+{
+  R_Tree<3,TupleId>* rtree_in1 = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
+  R_Tree<3,TupleId>* rtree_in2 = static_cast<R_Tree<3,TupleId>*>(args[1].addr);
+
+  R_Tree<3,TupleId>* rtree_temp = (R_Tree<3,TupleId>*)qp->ResultStorage(s).addr;
+  rtree_temp->CloseFile();
+
+  result = qp->ResultStorage(s);
+
+  R_Tree<3, TupleId> *rtree = new R_Tree<3,TupleId>(rtree_in1->FileId(),true);
+  rtree->MergeRtree(rtree_in1,rtree_in2);
+
+  result.setAddr(rtree);
+
+  return 0;
+}
+
+Operator covmergertree(
+        "covmergertree",
+        CovMergertreeSpec,
+        CovMergeRTreeFun,
+        Operator::SimpleSelect,
+        CovMergeRTreeTypeMap
+);
+
 
 /*
 4 Implementation of the Algebra Class
@@ -10087,6 +10198,7 @@ class NearestNeighborAlgebra : public Algebra
 //    AddOperator( &kclosestpair);
 //    AddOperator( &cellpartition);
     AddOperator( &isknn);
+    AddOperator( &covmergertree);
   }
   ~NearestNeighborAlgebra() {};
 };

@@ -119,3 +119,10 @@ Number   : 1
 Signature: v in {int | string} x string x string x string x string -> mbool
 Example  : query trainsnn feedproject[Tripid]  filter[sometimes(isknn(.Tripid,"trainsnnTriptrain75NN" , "trainsnnTriptrain75NN_Tripid_btree" , "MBoolRes" , "Tripid"))] project[Tripid]  count
 Result   : 0
+
+
+Operator : covmergertree
+Number  : 1
+Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) (rel1 (tuple ((x1 t1)...(xn tn)))) (rel2 (tuple ((x1 t1)...(xn tn)))) (btree (tuple ((x1 t1)...(xn tn))) ti) -> bool
+Example  : query covmergertree(UTOrdered_2,UTOrdered1,numbers1,numbers2,btree1);
+Result   : FALSE
