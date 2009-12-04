@@ -95,6 +95,20 @@ public class CommandPanel extends JScrollPane {
     Secondointerface.addMessageListener(ml);
   }
 
+  /** Reopends the currently opened database.
+   **/
+  private boolean reopenDatabase(){
+    if(OpenedDatabase.length()==0){
+      return false;
+    }
+    String db = OpenedDatabase;
+    if(!execUserCommand("close database")){
+        return false;
+    }
+    return execUserCommand("open database " + db);
+  }
+
+
 
   /** sets the connection properties for the optimizer server
     * the changes holds for the next connection with a optimizer
@@ -585,6 +599,7 @@ public class CommandPanel extends JScrollPane {
    // look for insert into, delete from and update rename 
    boolean isOptUpdateCommand = false;
    boolean isSelect = true;
+   boolean catChanged = false;
 
    if(command.startsWith("sql ")){
       isOptUpdateCommand = true;
@@ -597,12 +612,15 @@ public class CommandPanel extends JScrollPane {
    } else if(command.matches("create +table .*")){
       isOptUpdateCommand = true;
       isSelect = false;
+      catChanged = true;
    } else if(command.matches("create +index .*")){
       isOptUpdateCommand = true;
       isSelect = false;
+      catChanged = true;
    } else if(command.startsWith("drop ")){
       isOptUpdateCommand = true;
       isSelect = false;
+      catChanged = true;
    } else if(command.startsWith("select ")){
       isOptUpdateCommand = true;
    } 
@@ -626,7 +644,19 @@ public class CommandPanel extends JScrollPane {
         appendText(opt.substring(9)+"\n");
         showPrompt();
         return "";
+      } else if(catChanged){
+        boolean ok = reopenDatabase();
+        appendText("Hotfix : reopen database ");
+        if(ok){
+           appendText("successful \n");
+        } else {
+           appendText("failed \n");
+        }
+        showPrompt();
+        return "";
       } else {
+        
+
         if(isSelect){
           return "query " + opt;
         } else {
