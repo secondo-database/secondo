@@ -9460,81 +9460,6 @@ Operator gnuplotnode(
          GnuplotNodeTypeMap
 );
 
-const string KclosestpairSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>rtree(tuple ((x1 t1)...(xn tn))"
-      " ti) x rel(tuple ((x1 t1)...(xn tn)))"
-      " x attribute x querywindo x k ->"
-      " a stream of tuple (<(u1 upoint) (u2 upoint)>)"
-      "</text--->"
-      "<text> _ _ kclosestpair [_, _,_]</text--->"
-       "it outputs the data of bounding box from a certain level into "
-       "a file read by gnuplot"
-      "<text>query UnitTrains_UTrip UnitTrains kclosestpair[UTrip,qw,2] count;"
-       "</text--->"
-      "))";
-/*
-The function rknearestFilterTypeMap is the type map for the
-operator knearestfilter
-
-*/
-ListExpr KclosestpairTypeMap( ListExpr args )
-{
-
-  string errmsg = "rtree x relation x utrip x box x int expected";
-
-  if(nl->ListLength(args)!=5){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-  ListExpr tbtreeDescription = nl->First(args);
-  ListExpr relDescription = nl->Second(args);
-  ListExpr attrName = nl->Third(args);
-  ListExpr rectangle = nl->Fourth(args);
-  ListExpr quantity = nl->Fifth(args);
-
-  // the third element has to be of type mpoint
-  if(!nl->IsEqual(rectangle,"rect3")){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-
-  // the third element has to be of type mpoint
-  if(!nl->IsEqual(quantity,"int")){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-
-  ListExpr rtreeSymbol = nl->First(tbtreeDescription);
-
-  if(!nl->IsEqual(rtreeSymbol, "rtree3")){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-
-  if(!IsRelDescription(relDescription)){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-
-  ListExpr attrType;
-  int j = FindAttribute(nl->Second(nl->Second(relDescription)),
-      nl->SymbolValue(attrName),attrType);
-  if(j==0 || !listutils::isSymbol(attrType,"upoint")){
-    return listutils::typeError("upoint expected");
-  }
-
-
-  ListExpr res = nl->TwoElemList(
-      nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("tuple"),
-                      nl->TwoElemList(
-              nl->TwoElemList(nl->SymbolAtom("p1"),nl->SymbolAtom("upoint")),
-              nl->TwoElemList(nl->SymbolAtom("p2"),nl->SymbolAtom("upoint")))));
-
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-          nl->OneElemList(nl->IntAtom(j)),res);
-}
 
 struct PairElem{
   myureal movdist;
@@ -9559,76 +9484,7 @@ struct PairList{
   :mind(pl.mind),maxd(pl.maxd),head(pl.head),stime(pl.stime),etime(pl.etime){}
 };
 
-struct KClosestPair{
-  R_Tree<3,TupleId>* rtree;
-  Relation* relation;
-  BBox<3>* qw;
-  unsigned int k;
-  vector<PairList> pairlist;
-  CIC<double>* detect_time1;
-  CoverInterval<double>* detect_time2;
-  KClosestPair(R_Tree<3,TupleId>* index,Relation* rel,BBox<3>* box,
-              unsigned int nn)
-  :rtree(index),relation(rel),qw(box),k(nn){}
-  void KClosestPairProcess();
-  double prunedist;//the maximum distance in list [k]
-};
-/*
-Main function of operator kclosestpair
 
-*/
-void KClosestPair::KClosestPairProcess()
-{
-  //SearchCandidate();
-
-}
-/*
-operator kclosestpair.
-Give a relation on upoint, a 3D R-tree, a query window qw(x,y,t), and an integer
-number k, it returns the continuous k closest pair of moving objects restricted
-to query window qw.
-args[0] = a relation storing upoints
-args[1] = a 3D R-tree
-args[2] = attribute upoint
-args[3] = query window
-args[4] = integer number k
-
-*/
-int kclosestpairFun (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-//  BBox<3>* qw = (Rectangle<3>*)args[3].addr;
-  KClosestPair* localInfo;
-  switch(message){
-     case OPEN: {
-       localInfo = new KClosestPair((R_Tree<3,TupleId>*)args[0].addr,
-            (Relation*)args[1].addr,(BBox<3>*)args[3].addr,
-            ((CcInt*)args[4].addr)->GetIntval());
-       localInfo->qw->Print(cout);
-       localInfo->KClosestPairProcess();
-       return 0;
-   }
-   case REQUEST: {
-        localInfo = (KClosestPair*)local.addr;
-        return CANCEL;
-   }
-   case CLOSE : {
-      localInfo = (KClosestPair*)local.addr;
-      delete localInfo;
-      return 0;
-   }
- }
- return 0;
-}
-
-
-Operator kclosestpair(
-        "kclosestpair",
-         KclosestpairSpec,
-         kclosestpairFun,
-         Operator::SimpleSelect,
-         KclosestpairTypeMap
-);
 
 const string CellPartitionSpec  =
       "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
@@ -10144,12 +10000,14 @@ Supplier s)
   rtree_temp->CloseFile();
 
   result = qp->ResultStorage(s);
-
   R_Tree<3, TupleId> *rtree = new R_Tree<3,TupleId>(rtree_in1->FileId(),true);
   rtree->MergeRtree(rtree_in1,rtree_in2);
 
-  result.setAddr(rtree);
+  Relation* cov1 = (Relation*)args[2].addr;
+  Relation* cov2 = (Relation*)args[3].addr;
 
+
+  result.setAddr(rtree);
   return 0;
 }
 
@@ -10195,7 +10053,6 @@ class NearestNeighborAlgebra : public Algebra
 //    AddOperator( &covleafnode);
     AddOperator( &cellindex);
 //    AddOperator( &gnuplotnode);
-//    AddOperator( &kclosestpair);
 //    AddOperator( &cellpartition);
     AddOperator( &isknn);
     AddOperator( &covmergertree);
