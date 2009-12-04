@@ -2016,7 +2016,7 @@ plan_to_atom(createtmpbtree(Rel, Attr), Result) :-
   rel_to_atom(Rel, Rel2),
   plan_to_atom(attrname(Attr), Attr2),
   concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result).
-
+  
 % Section:Start:plan_to_atom_2_m
 % Section:End:plan_to_atom_2_m
 
@@ -5905,7 +5905,7 @@ lookupRel(X,Y) :- !,
   write_list(['\nERROR:\t',ErrMsg]), nl,
   throw(error_SQL(optimizer_lookupRel(X,Y):unknownRelation#ErrMsg)),
   fail.
-
+  
 
 /*
 ----    lookupRelNoDblCheck(+Rel, -Rel2) :-
@@ -7949,6 +7949,12 @@ sqlToPlan2(QueryText, Plan) :-
   term_to_atom(Query, AtomText),
   optimize(Query, Plan, _).
 
+% special treatment for create and drop queries
+sqlToPlan2(QueryText, 'done') :-
+  term_to_atom(sql Query, QueryText),
+  ( Query =.. [create| _]; Query =.. [drop| _]), !,
+  sql Query.
+
 sqlToPlan2(QueryText, Plan) :-
   term_to_atom(sql Query, QueryText),
   optimize(Query, Plan, _).
@@ -7961,6 +7967,12 @@ Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
 ~QueryText~ starts not with sql in this version.
 
 */
+
+% special treatment for create and drop queries
+sqlToPlan2(QueryText, 'done') :-
+  term_to_atom(Query, QueryText),
+  ( Query =.. [create| _]; Query =.. [drop| _]), !,
+  sql Query.
 
 sqlToPlan2(QueryText, Plan) :-
   term_to_atom(Query, QueryText),
@@ -8259,7 +8271,7 @@ sqlExample( 400,
 % Example: distance query, selection predicate (database berlintest)
 sqlExample( 401,
   select *
-  from ubahnhof
+  from ubahnhof 
   where typ = "Zone A"
   orderby distance(geodata, alexanderplatz) first 5
   ).
