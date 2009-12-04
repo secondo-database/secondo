@@ -1568,30 +1568,32 @@ template <unsigned dim, class LeafInfo>
 class R_Tree
 {
   public:
-
-    R_Tree( const int pageSize );
-    R_Tree( SmiRecordFile *file );
 /*
 The first constructor. Creates an empty R-tree.
 
 */
-
-    R_Tree( const SmiFileId fileId );
-    R_Tree( SmiRecordFile *file,
-            const SmiRecordId headerRecordId );
-/////////////////////////////////////////////////////////////////////////////
-    R_Tree( const SmiFileId fileId,const int);
-    void UpdateBulk(const SmiFileId fileId,const int);
-    void OpenFile(const SmiFileId fileid){file->Open(fileid);}
-    void CloseFile(){file->Close();}
-    void MergeRtree(R_Tree<dim,LeafInfo>*);
-////////////////////////////////////////////////////////////////////////////
-    void Clone(R_Tree<dim,LeafInfo>*);
-    SmiRecordId DFVisit_Rtree(R_Tree<dim,LeafInfo>*,R_TreeNode<dim,LeafInfo>*);
+    R_Tree( const int pageSize );
 /*
 Opens an existing R-tree.
 
 */
+    R_Tree( SmiRecordFile *file );
+
+
+    R_Tree( const SmiFileId fileId );
+    R_Tree( SmiRecordFile *file,
+            const SmiRecordId headerRecordId );
+    R_Tree( const SmiFileId fileId,bool update );
+/////////////////////////////////////////////////////////////////////////////
+    R_Tree( const SmiFileId fileid,const int);
+    void OpenFile(const SmiFileId fileid){file->Open(fileid);}
+    void CloseFile(){file->Close();}
+    void MergeRtree(R_Tree<dim,LeafInfo>*,R_Tree<dim,LeafInfo>*);
+    void SwitchHeader(R_Tree<dim,LeafInfo>*);
+////////////////////////////////////////////////////////////////////////////
+    void Clone(R_Tree<dim,LeafInfo>*);
+    SmiRecordId DFVisit_Rtree(R_Tree<dim,LeafInfo>*,R_TreeNode<dim,LeafInfo>*);
+
 
     ~R_Tree();
 /*
@@ -1844,6 +1846,9 @@ The record file of the R-Tree.
       int nodeCount;              // number of nodes in this tree.
       int entryCount;             // number of entries in this tree.
       int height;                 // height of the tree.
+
+      //new record
+      SmiRecordId second_head_id;    //two rtrees on the same file
 
       Header() :
         headerRecordId( 0 ), rootRecordId( 0 ),
@@ -2282,70 +2287,15 @@ nodeIdCounter( 0 )
   path[ 0 ] = header.rootRecordId;
 }
 
-template <unsigned dim, class LeafInfo>
-void R_Tree<dim, LeafInfo>::
-UpdateBulk( const SmiFileId fileid,const int pageSize )
-{
-  file->Close();
-  file = new SmiRecordFile( true );
+/*
+Open an existing R-Tree file and create a new R-Tree on it
 
-  file->Open( fileid );
-
-  // Calculating maxEntries e minEntries
-  int nodeEmptySize = R_TreeNode<dim, LeafInfo>::SizeOfEmptyNode();
-  int leafEntrySize = sizeof( R_TreeLeafEntry<dim, LeafInfo> ),
-      internalEntrySize = sizeof( R_TreeInternalEntry<dim> );
-
-  int maxLeaf = ( pageSize - nodeEmptySize ) / leafEntrySize,
-      maxInternal = ( pageSize - nodeEmptySize ) / internalEntrySize;
-
-  header.maxLeafEntries = maxLeaf;
-  header.minLeafEntries = (int)(maxLeaf * 0.4);
-
-  header.maxInternalEntries = maxInternal;
-  header.minInternalEntries = (int)(maxInternal * 0.4);
-
-  assert( header.maxLeafEntries >= 2*header.minLeafEntries &&
-          header.minLeafEntries > 0 );
-  assert( header.maxInternalEntries >= 2*header.minInternalEntries &&
-          header.minInternalEntries > 0 );
-
-  // initialize overflowflag array
-  for( int i = 0; i < MAX_PATH_SIZE; i++ )
-  {
-    overflowFlag[ i ] = 0;
-    nodeId[ i ] = 0;
-  }
-
-  nodePtr = new R_TreeNode<dim, LeafInfo>( true,
-                                           MinEntries( 0 ),
-                                           MaxEntries( 0 ) );
-
-  // Creating a new page for the R-Tree header.
-  SmiRecord headerRecord;
-  int AppendedRecord = file->AppendRecord( header.headerRecordId,
-                                           headerRecord );
-  assert( AppendedRecord );
-
-  // Creating the root node.
-  SmiRecordId rootRecno;
-  SmiRecord rootRecord;
-  AppendedRecord = file->AppendRecord( rootRecno, rootRecord );
-  assert( AppendedRecord );
-  header.rootRecordId = path[ 0 ] = rootRecno;
-  header.nodeCount = 1;
-  nodePtr->Write( rootRecord );
-
-  currLevel = 0;
-
-}
-
-
+*/
 
 template <unsigned dim, class LeafInfo>
 R_Tree<dim, LeafInfo>::R_Tree( const SmiFileId fileid,const int pageSize ) :
 fileOwner( true ),
-file( new SmiRecordFile( true ) ),
+file( new SmiRecordFile( true )  ),
 header(),
 nodePtr( NULL ),
 currLevel( -1 ),
@@ -2358,9 +2308,7 @@ bulkMode(false),
 bli(NULL),
 nodeIdCounter( 0 )
 {
-
-  file->Open( fileid );
-
+  file->Open(fileid);
   // Calculating maxEntries e minEntries
   int nodeEmptySize = R_TreeNode<dim, LeafInfo>::SizeOfEmptyNode();
   int leafEntrySize = sizeof( R_TreeLeafEntry<dim, LeafInfo> ),
@@ -2410,6 +2358,47 @@ nodeIdCounter( 0 )
 
 }
 
+
+template <unsigned dim, class LeafInfo>
+R_Tree<dim, LeafInfo>::R_Tree( const SmiFileId fileid, bool update ) :
+fileOwner( true ),
+file( new SmiRecordFile( true ) ),
+header(1),
+nodePtr( NULL ),
+currLevel( -1 ),
+currEntry( -1 ),
+reportLevel( -1 ),
+searchBox( false ),
+searchBoxSet(),
+searchType( NoSearch ),
+bulkMode(false),
+bli(NULL),
+nodeIdCounter( 0 )
+{
+  cout<<"here "<<endl;
+  file->Open( fileid );
+// initialize overflowflag array
+  for( int i = 0; i < MAX_PATH_SIZE; i++ )
+  {
+    overflowFlag[ i ] = 0;
+    nodeId[ i ] = 0;
+  }
+
+  ReadHeader();
+  assert( header.maxLeafEntries >= 2*header.minLeafEntries &&
+          header.minLeafEntries > 0 );
+  assert( header.maxInternalEntries >= 2*header.minInternalEntries &&
+          header.minInternalEntries > 0 );
+
+  currLevel = 0;
+
+  nodePtr = GetNode( RootRecordId(),
+                     currLevel == Height(),
+                     MinEntries( currLevel ),
+                     MaxEntries( currLevel ) );
+  path[ 0 ] = header.rootRecordId;
+
+}
 
 /*
 5.2 The destructor
@@ -3688,60 +3677,191 @@ void R_Tree<dim, LeafInfo>::MyInsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
 }
 
 template <unsigned dim, class LeafInfo>
-void R_Tree<dim, LeafInfo>::MergeRtree(R_Tree<dim,LeafInfo>* rtree_in)
+void R_Tree<dim, LeafInfo>::MergeRtree(R_Tree<dim,LeafInfo>* rtree_in1,
+R_Tree<dim,LeafInfo>* rtree_in2)
 {
-
-  R_TreeInternalEntry<dim> entry(rtree_in->BoundingBox(),
-  //                      rtree_in->HeaderRecordId());
-                      rtree_in->RootRecordId());
-
-  if(file->IsOpen() == false)
-    file->Open(FileId());
-
-//  LocateBestNode(entry,Height());
-//  InsertEntry(entry);
-//  header.entryCount++;
-
-
-  SmiRecordId adr = RootRecordId();
-  R_TreeNode<dim,TupleId>* cur_rn = GetMyNode(adr,false,
+  //get root node of the second rtree
+  SmiRecordId adr2 = rtree_in2->RootRecordId();
+  R_TreeNode<dim,TupleId>* root2 = rtree_in2->GetMyNode(adr2,false,
                         MinEntries(0),MaxEntries(0));
+  R_TreeInternalEntry<dim> e2(root2->BoundingBox(),adr2);
+  delete root2;
 
-//  int height = rtree_in->Height();
-//  int curheight = Height();
+  //get root node of the first rtree
+  SmiRecord record1;
+  int RecordSelected =
+    file->SelectRecord(header.second_head_id,record1,SmiFile::ReadOnly);
+  assert(RecordSelected);
+  Header temp_head;
+  int RecordRead = record1.Read(&temp_head,sizeof(Header),0) == sizeof(Header);
+  assert(RecordRead);
 
-  int i = cur_rn->EntryCount();
-  if(i < cur_rn->MaxEntries()){
-    cur_rn->Insert(entry);
-    UpdateBox();
-    PutNode(adr,&cur_rn);
-    header.entryCount++;
-    header.entryCount += rtree_in->EntryCount();
-    header.nodeCount += rtree_in->NodeCount();
-    WriteHeader();
+  SmiRecordId root1_id = temp_head.rootRecordId;
+  int tree1_node_count = temp_head.nodeCount;
+  int tree1_entry_count = temp_head.entryCount;
+
+  R_TreeNode<dim,TupleId>* insert_node;
+  //create an entry on the second root node
+
+  //first assume, the height of first rtree is higher than the second
+  cout<<" height1 "<<temp_head.height<<" height2 "<<header.height<<endl;
+  if(temp_head.height > header.height){
+      int cur_height = temp_head.height;
+      vector<SmiRecordId> path;
+      SmiRecordId path_record_id = root1_id;
+      while(cur_height > header.height){
+        path.push_back(path_record_id);
+        insert_node = GetMyNode(path_record_id,false,
+                        MinEntries(0),MaxEntries(0));
+        assert(insert_node->IsLeaf() == false);
+        int i = insert_node->EntryCount();
+        R_TreeInternalEntry<dim> e =
+                (R_TreeInternalEntry<dim>&)(*insert_node)[i];
+        path_record_id = e.pointer;
+        delete insert_node;
+      }
+      //new height
+      header.height = temp_head.height;
+
+      assert(path.size() > 0);
+      int index = path.size()-1;
+      // find where to insert  and insert
+      for(; index >= 0;index--){
+        R_TreeNode<dim,TupleId>* node = GetMyNode(path[index],false,
+                        MinEntries(0),MaxEntries(0));
+        int i = node->EntryCount();
+        if(i < node->MaxEntries()){ //find the place to insert
+          cout<<"before "<<node->BoundingBox()<<endl;
+          node->Insert(e2);
+          node->UpdateBox(e2.box,e2.pointer);
+          PutNode(path[index],&node);
+          header.entryCount++;
+       //////////// replace entry for update parent node///////////
+          e2.box = node->BoundingBox();
+          e2.pointer = path[index];
+      ///////////////////////////////////////////////////////////
+          cout<<"after "<<node->BoundingBox()<<endl;
+          delete node;
+          break;
+        }else{ //node is full
+          delete node;
+          node = new
+                R_TreeNode<dim,LeafInfo>(false,MinEntries(0),MaxEntries(0));
+          SmiRecordId new_node_rec_id;
+          SmiRecord new_node_rec;
+          int AppendRecord = file->AppendRecord(new_node_rec_id,new_node_rec);
+          assert(AppendRecord);
+          e2.pointer = new_node_rec_id;
+          node->Insert(e2);
+          node->UpdateBox(e2.box,e2.pointer);
+          node->Write(new_node_rec);
+          header.nodeCount++;
+          delete node;
+        }
+      }
+      //update parent node
+      index--;
+      while(index >= 0){
+        R_TreeNode<dim,TupleId>* node = GetMyNode(path[index],false,
+                        MinEntries(0),MaxEntries(0));
+        node->UpdateBox(e2.box,e2.pointer);
+        PutNode(path[index],&node);
+        e2.box = node->BoundingBox();
+        e2.pointer = path[index];
+        delete node;
+      }
+      //update header
+      header.entryCount += tree1_entry_count;
+      header.nodeCount += tree1_node_count;
+      header.rootRecordId = root1_id;
+      WriteHeader();
+
+  }else if(temp_head.height == header.height){
+        R_TreeNode<dim,TupleId>* node = new
+              R_TreeNode<dim,LeafInfo>(false,MinEntries(0),MaxEntries(0));
+        SmiRecordId new_node_rec_id;
+        SmiRecord new_node_rec;
+        int AppendRecord = file->AppendRecord(new_node_rec_id,new_node_rec);
+        assert(AppendRecord);
+
+        R_TreeNode<dim,TupleId>* root1 = rtree_in1->GetMyNode(root1_id,false,
+                        MinEntries(0),MaxEntries(0));
+        R_TreeInternalEntry<dim> e1(root1->BoundingBox(),root1_id);
+        delete root1;
+        //update new node
+        node->Insert(e1);
+        node->UpdateBox(e1.box,e1.pointer);
+        node->Insert(e2);
+        node->UpdateBox(e2.box,e2.pointer);
+        node->Write(new_node_rec);
+        delete node;
+        //update header
+        cout<<"node count "<<header.nodeCount<<
+           " entry count "<< header.entryCount<<endl;
+        header.nodeCount++;
+        header.entryCount += 2;
+        header.entryCount += tree1_entry_count;
+        header.nodeCount += tree1_node_count;
+        header.rootRecordId = new_node_rec_id;
+        header.height++;
+        cout<<"header recid "<<header.headerRecordId<<endl;
+//        WriteHeader();
+        SmiRecord head_record;
+        int RecordSelected =
+         file->SelectRecord(header.headerRecordId,head_record,SmiFile::Update);
+        assert(RecordSelected);
+        int RecordWritten =
+            head_record.Write(&header,sizeof(Header),0) == sizeof(Header);
+        assert(RecordWritten);
+
+        cout<<"node count "<<header.nodeCount<<
+           " entry count "<<header.entryCount<<endl;
+
+  }else{
+
   }
 
-/*  for(unsigned int i = 0;i < cur_rn->EntryCount();i++){
-    cout<<i<<endl;
-    if(cur_rn->IsLeaf()){
-      R_TreeLeafEntry<dim,TupleId> e =
-            (R_TreeLeafEntry<dim,TupleId>&)(*cur_rn)[i];
-      double t1((double)e.box.MinD(2));
-      double t2((double)e.box.MaxD(2));
-      printf("leaf %.8f, %.8f\n",t1,t2);
-
-    }else{
-      R_TreeInternalEntry<dim> e =
-                (R_TreeInternalEntry<dim>&)(*cur_rn)[i];
-      double t1((double)e.box.MinD(2));
-      double t2((double)e.box.MaxD(2));
-      printf("non-leaf %.8f, %.8f\n",t1,t2);
-    }
-  }*/
-
-  delete cur_rn;
-
 }
+
+/*
+Switch the header content of the first and second R-tree
+afterwards, query R-tree will open the second rtree
+but there is a record in the header of the first rtree pointing to the second
+rtree, so that reverse operator is still valid
+
+*/
+template <unsigned dim, class LeafInfo>
+void R_Tree<dim, LeafInfo>::SwitchHeader(R_Tree<dim,LeafInfo>* rtree_in)
+{
+  SmiRecord record1;
+  int RecordSelected =
+    file->SelectRecord(rtree_in->HeaderRecordId(),record1,SmiFile::ReadOnly);
+  assert(RecordSelected);
+  Header temp_head;
+  int RecordRead = record1.Read(&temp_head,sizeof(Header),0) == sizeof(Header);
+  assert(RecordRead);
+
+  file->SelectRecord(rtree_in->HeaderRecordId(),record1,SmiFile::Update);
+  assert(RecordSelected);
+
+  //write second head into the file (recno-1)
+  SmiRecordId sec_head_id = HeaderRecordId();
+  header.second_head_id = sec_head_id;
+  header.headerRecordId = 1;
+  int RecordWrite = record1.Write(&header,sizeof(Header),0) == sizeof(Header);
+  assert(RecordWrite);
+
+  //write first head into the file
+  SmiRecord record2;
+  RecordSelected =
+    file->SelectRecord(header.second_head_id,record2,SmiFile::Update);
+  assert(RecordSelected);
+  temp_head.headerRecordId = sec_head_id;
+  temp_head.second_head_id = 1;
+  RecordWrite = record2.Write(&temp_head,sizeof(Header),0) == sizeof(Header);
+  assert(RecordWrite);
+}
+
 
 /*
 DF traverse R-Tree, get new RecordId
@@ -3750,7 +3870,7 @@ Recursively calling
 
 1) write the leaf node into file
 2) when all entries of a node have been written to the file,
-the node is written into the file (a record)
+the (parent) node is written into the file (a record)
 3) repeat this process unitl root node
 
 */

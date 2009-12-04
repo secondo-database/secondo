@@ -3764,18 +3764,19 @@ const string UpdatebulkloadrtreeSpec  =
   "(id tid)(low int)(high int))) xi)"
   " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti true)</text--->"
   "<text>_ _ updatebulkloadrtree [ _ ]</text--->"
-  "<text>Creates an rtree<D> applying bulk loading. This means, "
-  "the operator expects the input stream of tuples to be ordered "
+  "<text>Creates an rtree<D> applying bulk loading on an existing file."
+  "This means, the operator expects the input stream of tuples to be ordered "
   "in some meaningful way in order to reduce overlapping of "
   "bounding boxes (e.g. a Z-ordering on the bounding boxes). "
   "The R-Tree is created bottom up by gouping as many entries as "
   "possible into the leaf nodes and then creating the higher levels. "
   "The key type ti must be of kind SPATIAL2D, SPATIAL3D, SPATIAL4D "
   "or Spatial8D, or of type rect, rect2, rect3, rect4 or rect8.</text--->"
-  "<text>let myrtree = Kreis feed projectextend[ ; TID: tupleid(.), "
-  "MBR: bbox(.Gebiet)] sortby[MBR asc] bulkloadrtree[MBR]</text--->"
+  "<text>let UTOrdered_2 = UTOrdered_1 UTOrdered feed addid sortby[UTrip asc] "
+  "filter[tid2int(.TID) > 30000] updatebulkloadrtree[UTrip]</text--->"
   "<text></text--->"
   ") )";
+
 
 /*
 UpdateBulkLoad for r-tree
@@ -3802,7 +3803,10 @@ ListExpr UpdateBulkLoadTypeMap(ListExpr args)
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-  if(!nl->IsEqual(nl->First(firstpara),"rtree3")){
+  if(!(nl->IsEqual(nl->First(firstpara),"rtree") ||
+     nl->IsEqual(nl->First(firstpara),"rtree3") ||
+     nl->IsEqual(nl->First(firstpara),"rtree4") ||
+     nl->IsEqual(nl->First(firstpara),"rtree8"))){
     string err = "rtree(tuple(...) rect3 BOOL) expected";
     ErrorReporter::ReportError(err);
     return nl->TypeError();
@@ -3927,6 +3931,8 @@ and high parameters these two last integer numbers.
 
 }
 
+
+
 /*
 Bulkload an R-tree with an input R-tree so that they map to the same file
 
@@ -3937,22 +3943,11 @@ Supplier s)
   const int dim = 3;
   Word wTuple;
   R_Tree<3,TupleId>* rtree_in1 = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
-
-  cout<<"headid "<<rtree_in1->HeaderRecordId()<<
-      "rootid "<<rtree_in1->RootRecordId()<<endl;
-
-
   R_Tree<3,TupleId>* rtree_temp = (R_Tree<3,TupleId>*)qp->ResultStorage(s).addr;
   rtree_temp->CloseFile();
 
-  rtree_in1->CloseFile();
-
-  R_Tree<dim, TupleId> *rtree = new R_Tree<3,TupleId>(rtree_in1->FileId(),4000);
-
-//  result.setAddr( rtree );
-
-  cout<<"headid "<<rtree->HeaderRecordId()<<
-      "rootid "<<rtree->RootRecordId()<<endl;
+  R_Tree<dim, TupleId> *rtree =
+                new R_Tree<3,TupleId>(rtree_in1->FileId(),4000);
 
   int attrIndex = ((CcInt*)args[3].addr)->GetIntval() - 1,
   tidIndex = ((CcInt*)args[4].addr)->GetIntval() - 1;
@@ -4007,20 +4002,14 @@ Supplier s)
       // the registered handlers. Normally the client applications
       // will register them.
   msg->Send(msgList);
-
-  cout<<"headid "<<rtree->HeaderRecordId()<<
-      "rootid "<<rtree->RootRecordId()<<endl;
-
-///////////////////////////////
-//  rtree_in1->OpenFile(rtree_in1->FileId());
-  rtree_in1->MergeRtree(rtree);
-//  rtree_in1->CloseFile();
-//  rtree->CloseFile();
-//////////////////////////////////
-
+  rtree->SwitchHeader(rtree_in1);
   result.setAddr(rtree);
   return 0;
 }
+/*
+Build RTree on new coming units and store it into an existing RTree file
+
+*/
 
 Operator updatebulkloadrtree(
         "updatebulkloadrtree",
@@ -4029,6 +4018,8 @@ Operator updatebulkloadrtree(
         Operator::SimpleSelect,
         UpdateBulkLoadTypeMap
 );
+
+
 
 /*
 6 Definition and initialization of RTree Algebra
@@ -4060,7 +4051,8 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreebbox );
     AddOperator( &rtreeentries);
     AddOperator( &getfileinfortree);
-//    AddOperator( &updatebulkloadrtree);
+    AddOperator( &updatebulkloadrtree);
+
 
 #else
 
@@ -4079,7 +4071,8 @@ class RTreeAlgebra : public Algebra
     AddOperator( &rtreebbox );
     AddOperator( &rtreeentries);
     AddOperator(&getfileinfortree);
-//    AddOperator( &updatebulkloadrtree);
+    AddOperator( &updatebulkloadrtree);
+
 #endif
 
 
