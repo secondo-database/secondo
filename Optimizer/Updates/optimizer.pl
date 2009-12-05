@@ -1963,8 +1963,19 @@ plan_to_atom(let(VarName, Type),Result) :-
   !.
 
 plan_to_atom(delete(Identifier),Result) :-
+  atomic(Identifier), !,
+  concat_atom(['delete ', Identifier], Result),
+  !.
+
+plan_to_atom(delete(Identifier),Result) :-
   plan_to_atom(Identifier, Identifier2),
   concat_atom(['delete ', Identifier2], Result),
+  !.
+
+plan_to_atom(deleteIndex(Identifier, QueryRest),[Result|QueryRest2]) :-
+  atomic(Identifier), !,
+  plan_to_atom(QueryRest, QueryRest2),
+  concat_atom(['delete ', Identifier], Result),
   !.
 
 plan_to_atom(deleteIndex(Identifier, QueryRest),[Result|QueryRest2]) :-
@@ -7950,7 +7961,7 @@ sqlToPlan2(QueryText, Plan) :-
   optimize(Query, Plan, _).
 
 % special treatment for create and drop queries
-sqlToPlan2(QueryText, '') :-
+sqlToPlan2(QueryText, 'done') :-
   term_to_atom(sql Query, QueryText),
   ( Query =.. [create| _]; Query =.. [drop| _]), !,
   sql Query.
@@ -7969,7 +7980,7 @@ Transform an SQL ~QueryText~ into a ~Plan~. The query is given as a text atom.
 */
 
 % special treatment for create and drop queries
-sqlToPlan2(QueryText, '') :-
+sqlToPlan2(QueryText, 'done') :-
   term_to_atom(Query, QueryText),
   ( Query =.. [create| _]; Query =.. [drop| _]), !,
   sql Query.
