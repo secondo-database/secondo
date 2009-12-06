@@ -73,7 +73,8 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "RectangleAlgebra.h"
 #include "StandardTypes.h"
-
+#include "BTreeAlgebra.h"
+#include "TemporalAlgebra.h"
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -1588,8 +1589,9 @@ Opens an existing R-tree.
     R_Tree( const SmiFileId fileid,const int);
     void OpenFile(const SmiFileId fileid){file->Open(fileid);}
     void CloseFile(){file->Close();}
-    void MergeRtree(R_Tree<dim,LeafInfo>*,R_Tree<dim,LeafInfo>*);
     void SwitchHeader(R_Tree<dim,LeafInfo>*);
+    void MergeRtree(R_Tree<dim,LeafInfo>*,R_Tree<dim,LeafInfo>*);
+    SmiRecordId Record_Path_Id(){return header.path_rec_id;}
 ////////////////////////////////////////////////////////////////////////////
     void Clone(R_Tree<dim,LeafInfo>*);
     SmiRecordId DFVisit_Rtree(R_Tree<dim,LeafInfo>*,R_TreeNode<dim,LeafInfo>*);
@@ -1849,6 +1851,7 @@ The record file of the R-Tree.
 
       //new record
       SmiRecordId second_head_id;    //two rtrees on the same file
+      SmiRecordId path_rec_id;  //record update path for new coverage
 
       Header() :
         headerRecordId( 0 ), rootRecordId( 0 ),
@@ -2375,7 +2378,6 @@ bulkMode(false),
 bli(NULL),
 nodeIdCounter( 0 )
 {
-  cout<<"here "<<endl;
   file->Open( fileid );
 // initialize overflowflag array
   for( int i = 0; i < MAX_PATH_SIZE; i++ )
@@ -3676,6 +3678,13 @@ void R_Tree<dim, LeafInfo>::MyInsertBulkLoad(R_TreeNode<dim, LeafInfo> *node,
   assert(false);
 }
 
+/*
+Merge two rtrees which are stored in the same file
+1) height1 > height2 insert second r-tree to the first
+2) height1 = height2 create a new node and insert the two into it
+3) height1 < height2 insert first r-tree to the second
+
+*/
 template <unsigned dim, class LeafInfo>
 void R_Tree<dim, LeafInfo>::MergeRtree(R_Tree<dim,LeafInfo>* rtree_in1,
 R_Tree<dim,LeafInfo>* rtree_in2)
@@ -3706,7 +3715,7 @@ R_Tree<dim,LeafInfo>* rtree_in2)
   //first assume, the height of first rtree is higher than the second
   cout<<" height1 "<<temp_head.height<<" height2 "<<header.height<<endl;
   if(temp_head.height > header.height){
-      int cur_height = temp_head.height;
+      int cur_height = temp_head.height;//height of first r-tree
       vector<SmiRecordId> path;
       SmiRecordId path_record_id = root1_id;
       while(cur_height > header.height){
@@ -3716,31 +3725,38 @@ R_Tree<dim,LeafInfo>* rtree_in2)
         assert(insert_node->IsLeaf() == false);
         int i = insert_node->EntryCount();
         R_TreeInternalEntry<dim> e =
-                (R_TreeInternalEntry<dim>&)(*insert_node)[i];
+                (R_TreeInternalEntry<dim>&)(*insert_node)[i-1];
         path_record_id = e.pointer;
         delete insert_node;
+        cur_height--;
       }
       //new height
       header.height = temp_head.height;
 
       assert(path.size() > 0);
       int index = path.size()-1;
-      // find where to insert  and insert
+///////////////////////////////////////////////////////////////////
+        R_TreeNode<dim,TupleId>*  update_path = new
+              R_TreeNode<dim,LeafInfo>(false,MinEntries(0),MaxEntries(0));
+        /*the entries have to recalculate coverage number*/
+//////////////////////////////////////////////////////////////////
+      // find where to insert and insert the root of second rtree
       for(; index >= 0;index--){
         R_TreeNode<dim,TupleId>* node = GetMyNode(path[index],false,
                         MinEntries(0),MaxEntries(0));
         int i = node->EntryCount();
         if(i < node->MaxEntries()){ //find the place to insert
-          cout<<"before "<<node->BoundingBox()<<endl;
-          node->Insert(e2);
+//          cout<<"before "<<node->BoundingBox()<<endl;
+          assert(node->Insert(e2));
           node->UpdateBox(e2.box,e2.pointer);
-          PutNode(path[index],&node);
           header.entryCount++;
+//          cout<<"after "<<node->BoundingBox()<<endl;
        //////////// replace entry for update parent node///////////
           e2.box = node->BoundingBox();
           e2.pointer = path[index];
+          update_path->Insert(e2);  /*recored new coverage id*/
       ///////////////////////////////////////////////////////////
-          cout<<"after "<<node->BoundingBox()<<endl;
+          PutNode(path[index],&node);
           delete node;
           break;
         }else{ //node is full
@@ -3756,6 +3772,7 @@ R_Tree<dim,LeafInfo>* rtree_in2)
           node->UpdateBox(e2.box,e2.pointer);
           node->Write(new_node_rec);
           header.nodeCount++;
+          update_path->Insert(e2);  /*recored new coverage id*/
           delete node;
         }
       }
@@ -3768,15 +3785,25 @@ R_Tree<dim,LeafInfo>* rtree_in2)
         PutNode(path[index],&node);
         e2.box = node->BoundingBox();
         e2.pointer = path[index];
+        update_path->Insert(e2);  /*recored new coverage id*/
         delete node;
       }
+
+   ///////////////////////////////////////////////////////
+      SmiRecordId path_rec_id;
+      SmiRecord path_rec;
+      int append = file->AppendRecord(path_rec_id,path_rec);
+      assert(append);
+      update_path->Write(path_rec);
+      delete update_path;
       //update header
       header.entryCount += tree1_entry_count;
       header.nodeCount += tree1_node_count;
       header.rootRecordId = root1_id;
+      header.path_rec_id = path_rec_id;
       WriteHeader();
-
   }else if(temp_head.height == header.height){
+        /// create a new node and insert the two root nodes as entries//////
         R_TreeNode<dim,TupleId>* node = new
               R_TreeNode<dim,LeafInfo>(false,MinEntries(0),MaxEntries(0));
         SmiRecordId new_node_rec_id;
@@ -3794,33 +3821,135 @@ R_Tree<dim,LeafInfo>* rtree_in2)
         node->Insert(e2);
         node->UpdateBox(e2.box,e2.pointer);
         node->Write(new_node_rec);
+        BBox<3> bbox = node->BoundingBox();
         delete node;
-        //update header
-        cout<<"node count "<<header.nodeCount<<
-           " entry count "<< header.entryCount<<endl;
+        //////////// record update path ///////////////
+        R_TreeNode<dim,TupleId>*  update_path = new
+              R_TreeNode<dim,LeafInfo>(false,MinEntries(0),MaxEntries(0));
+        R_TreeInternalEntry<dim> e3(bbox,new_node_rec_id);
+        update_path->Insert(e3);
+        SmiRecordId path_rec_id;
+        SmiRecord path_rec;
+        AppendRecord = file->AppendRecord(path_rec_id,path_rec);
+        assert(AppendRecord);
+        update_path->Write(path_rec);
+        delete update_path;
+
+        ///////////update header///////////////////////
+//        cout<<"node count "<<header.nodeCount<<
+//           " entry count "<< header.entryCount<<endl;
         header.nodeCount++;
         header.entryCount += 2;
         header.entryCount += tree1_entry_count;
         header.nodeCount += tree1_node_count;
         header.rootRecordId = new_node_rec_id;
         header.height++;
-        cout<<"header recid "<<header.headerRecordId<<endl;
-//        WriteHeader();
-        SmiRecord head_record;
-        int RecordSelected =
-         file->SelectRecord(header.headerRecordId,head_record,SmiFile::Update);
-        assert(RecordSelected);
-        int RecordWritten =
-            head_record.Write(&header,sizeof(Header),0) == sizeof(Header);
-        assert(RecordWritten);
+                ////////////
+        header.path_rec_id = path_rec_id;
+               ////////////
+        WriteHeader();
+  }else{ //height1 < height
 
-        cout<<"node count "<<header.nodeCount<<
-           " entry count "<<header.entryCount<<endl;
+    ///////// insert the first r-tree to the second r-tree  /////////////
+      int cur_height = header.height;//height of first r-tree
+      vector<SmiRecordId> path;
+      SmiRecordId path_record_id = adr2;
+      while(cur_height > temp_head.height){
+        path.push_back(path_record_id);
+        insert_node = GetMyNode(path_record_id,false,
+                        MinEntries(0),MaxEntries(0));
+        assert(insert_node->IsLeaf() == false);
+        R_TreeInternalEntry<dim> e =
+                (R_TreeInternalEntry<dim>&)(*insert_node)[0];
+        path_record_id = e.pointer;
+        delete insert_node;
+        cur_height--;
+      }
+      assert(path.size() > 0);
 
-  }else{
+    ///////////////////////////////////////////////////////////////////
+        R_TreeNode<dim,TupleId>*  update_path = new
+              R_TreeNode<dim,LeafInfo>(false,MinEntries(0),MaxEntries(0));
+        /*the entries have to recalculate coverage number*/
+    ///////////////////////////////////////////////////////////////////
 
+      int index = path.size()-1;
+      // find where to insert and insert the root of second rtree
+      for(; index >= 0;index--){
+        R_TreeNode<dim,TupleId>* node = GetMyNode(path[index],false,
+                        MinEntries(0),MaxEntries(0));
+        int i = node->EntryCount();
+        if(i < node->MaxEntries()){ //find the place to insert
+
+          R_TreeNode<dim,TupleId>*  node_copy = new
+              R_TreeNode<dim,LeafInfo>(false,MinEntries(0),MaxEntries(0));
+
+//          cout<<"before "<<node_copy->BoundingBox()<<endl;
+          ////// insert the first r-tree ahead //
+          assert(node_copy->Insert(e2));
+          node_copy->UpdateBox(e2.box,e2.pointer);
+          header.entryCount++;
+          ///////////copy the original entry ////
+          for(int j = 0;j < i;j++){
+            R_TreeInternalEntry<dim> e =
+                (R_TreeInternalEntry<dim>&)(*node)[j];
+            assert(node_copy->Insert(e));
+            node_copy->UpdateBox(e.box,e.pointer);
+          }
+//          cout<<"after "<<node_copy->BoundingBox()<<endl;
+          delete node;
+       //////////// replace entry for update parent node///////////
+          e2.box = node_copy->BoundingBox();
+          e2.pointer = path[index];
+          update_path->Insert(e2);  /*recored new coverage id*/
+      ///////////////////////////////////////////////////////////
+          PutNode(path[index],&node_copy);
+          delete node_copy;
+          break;
+        }else{ //node is full
+          delete node;
+          node = new
+                R_TreeNode<dim,LeafInfo>(false,MinEntries(0),MaxEntries(0));
+          SmiRecordId new_node_rec_id;
+          SmiRecord new_node_rec;
+          int AppendRecord = file->AppendRecord(new_node_rec_id,new_node_rec);
+          assert(AppendRecord);
+          e2.pointer = new_node_rec_id;
+          node->Insert(e2);
+          node->UpdateBox(e2.box,e2.pointer);
+          node->Write(new_node_rec);
+          header.nodeCount++;
+          update_path->Insert(e2); /*recored new coverage id*/
+          delete node;
+        }
+      }
+      //update parent node
+      index--;
+      while(index >= 0){
+        R_TreeNode<dim,TupleId>* node = GetMyNode(path[index],false,
+                        MinEntries(0),MaxEntries(0));
+        node->UpdateBox(e2.box,e2.pointer);
+        PutNode(path[index],&node);
+        e2.box = node->BoundingBox();
+        e2.pointer = path[index];
+        update_path->Insert(e2); /*recored new coverage id*/
+        delete node;
+      }
+
+    /////////////////////////////////////////////////////////
+      SmiRecordId path_rec_id;
+      SmiRecord path_rec;
+      int append = file->AppendRecord(path_rec_id,path_rec);
+      assert(append);
+      update_path->Write(path_rec);
+      delete update_path;
+      //update header
+      header.entryCount += tree1_entry_count;
+      header.nodeCount += tree1_node_count;
+      header.rootRecordId = adr2;
+      header.path_rec_id = path_rec_id;
+      WriteHeader();
   }
-
 }
 
 /*
@@ -3915,6 +4044,8 @@ DFVisit_Rtree(R_Tree<dim,LeafInfo>* rtree_in,R_TreeNode<dim,LeafInfo>* node)
 }
 /*
 Copy an R-Tree, 1) Using BulkLoad 2) DF Traversal
+The key issue is for different files, the recordId is different and can't be
+controled (which is returned by berkeleydb library function)
 
 */
 
