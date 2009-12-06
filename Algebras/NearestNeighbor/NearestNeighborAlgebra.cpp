@@ -9978,7 +9978,217 @@ struct Cov{
   void CalCov()
   {
     cov3 = new Relation(tupletype,true);
-    rtree->MergeCov(cov1,cov2,cov3,btree1,btree2);
+//    rtree->MergeCov(cov1,cov2,cov3,btree1,btree2);
+    const int dim = 3;
+    SmiRecordId header_path_rec_id = rtree->Record_Path_Id();
+    R_TreeNode<dim,TupleId>* node = rtree->GetMyNode(header_path_rec_id,
+                    false, rtree->MinEntries(0),rtree->MaxEntries(0));
+
+    for(int i = 0;i < node->EntryCount();i++){
+      R_TreeInternalEntry<dim> e =
+            (R_TreeInternalEntry<dim>&)(*node)[i];
+      cout<<"rec_id "<<e.pointer<<endl;
+      CcInt* id = new CcInt(true,e.pointer);
+      BTreeIterator* iter1 = btree1->ExactMatch(id);
+      BTreeIterator* iter2 = btree2->ExactMatch(id);
+      bool flag1 = false;
+      bool flag2 = false;
+      //get coverage from the first relation
+      //delete them from the relation and create new ones into it
+      int NodeId1;
+
+      while(iter1->Next()){
+        flag1 = true;
+        Tuple* tuple1 = cov1->GetTuple(iter1->GetId());
+        NodeId1 = ((CcInt*)tuple1->GetAttribute(0))->GetIntval();
+//        assert(cov1->DeleteTuple(tuple1));
+        tuple1->DeleteIfAllowed();
+      }
+
+      //calculate the new coverage tuple and insert back to the relation
+      if(flag1){
+        R_TreeNode<dim,TupleId>* n = rtree->GetMyNode(e.pointer,false,
+                        rtree->MinEntries(0),rtree->MaxEntries(0));
+        MInt tmp(0);
+        for(int j = 0;j < n->EntryCount();j++){
+            R_TreeInternalEntry<dim> entry =
+              (R_TreeInternalEntry<dim>&)(*n)[j];
+            CcInt* cur_id = new CcInt(true,entry.pointer);
+            BTreeIterator* iter1_1 = btree1->ExactMatch(cur_id);
+            MInt tmp1(0);
+            while(iter1_1->Next()){
+                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
+                UInt* ui = (UInt*)tuple1->GetAttribute(2);
+                tmp1.Add(*ui);
+                tuple1->DeleteIfAllowed();
+            }
+            delete iter1_1;
+            BTreeIterator* iter2_2 = btree2->ExactMatch(cur_id);
+            MInt tmp2(0);
+            while(iter2_2->Next()){
+                Tuple* tuple2 = cov2->GetTuple(iter2_2->GetId());
+                UInt* ui = (UInt*)tuple2->GetAttribute(2);
+                tmp2.Add(*ui);
+                tuple2->DeleteIfAllowed();
+            }
+            delete iter2_2;
+            delete cur_id;
+//            tmp1.Print(cout);
+//            tmp2.Print(cout);
+            MInt temp(0);
+            tmp.PlusExtend(&tmp1,temp);
+            tmp.CopyFrom(&temp);
+            tmp.PlusExtend(&tmp2,temp);
+            tmp.CopyFrom(&temp);
+        }
+//        tmp.Print(cout);
+        MInt result(0);
+        tmp.Hat(result);
+//        result.Print(cout);
+        for(int i = 0;i < result.GetNoComponents();i++){
+          const UInt* ui;
+          result.Get(i,ui);
+          Tuple* resTuple = new Tuple(cov3->GetTupleType());
+          CcInt* ni = new CcInt(true,NodeId1);
+          resTuple->PutAttribute(0,ni);
+          CcInt* ri = new CcInt(true,e.pointer);
+          resTuple->PutAttribute(1,ri);
+          resTuple->PutAttribute(2,new UInt(*ui));
+          cov3->AppendTuple(resTuple);
+//          cout<<*resTuple<<endl;
+          resTuple->DeleteIfAllowed();
+        }
+        delete n;
+      }
+
+
+      int NodeId2;
+      //get coverage from the second relation
+      while(iter2->Next()){
+        flag2 = true;
+        Tuple* tuple2 = cov2->GetTuple(iter2->GetId());
+        NodeId2 = ((CcInt*)tuple2->GetAttribute(0))->GetIntval();
+//        assert(cov2->DeleteTuple(tuple2));
+        tuple2->DeleteIfAllowed();
+      }
+
+      //calculate the new coverage tuple and insert back to the relation
+      if(flag2){
+          R_TreeNode<dim,TupleId>* n = rtree->GetMyNode(e.pointer,false,
+                        rtree->MinEntries(0),rtree->MaxEntries(0));
+          MInt tmp(0);
+          for(int j = 0;j < n->EntryCount();j++){
+              R_TreeInternalEntry<dim> entry =
+                (R_TreeInternalEntry<dim>&)(*n)[j];
+              CcInt* cur_id = new CcInt(true,entry.pointer);
+              BTreeIterator* iter1_1 = btree1->ExactMatch(cur_id);
+              MInt tmp1(0);
+              while(iter1_1->Next()){
+                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
+                UInt* ui = (UInt*)tuple1->GetAttribute(2);
+                tmp1.Add(*ui);
+                tuple1->DeleteIfAllowed();
+              }
+              delete iter1_1;
+              BTreeIterator* iter2_2 = btree2->ExactMatch(cur_id);
+              MInt tmp2(0);
+              while(iter2_2->Next()){
+                Tuple* tuple2 = cov2->GetTuple(iter2_2->GetId());
+                UInt* ui = (UInt*)tuple2->GetAttribute(2);
+                tmp2.Add(*ui);
+                tuple2->DeleteIfAllowed();
+              }
+              delete iter2_2;
+              delete cur_id;
+              MInt temp(0);
+              tmp.PlusExtend(&tmp1,temp);
+              tmp.CopyFrom(&temp);
+              tmp.PlusExtend(&tmp2,temp);
+              tmp.CopyFrom(&temp);
+          }
+
+          MInt result(0);
+          tmp.Hat(result);
+          for(int i = 0;i < result.GetNoComponents();i++){
+            const UInt* ui;
+            result.Get(i,ui);
+            Tuple* resTuple = new Tuple(cov3->GetTupleType());
+            CcInt* ni = new CcInt(true,NodeId1);
+            resTuple->PutAttribute(0,ni);
+            CcInt* ri = new CcInt(true,e.pointer);
+            resTuple->PutAttribute(1,ri);
+            resTuple->PutAttribute(2,new UInt(*ui));
+            cov3->AppendTuple(resTuple);
+            resTuple->DeleteIfAllowed();
+          }
+          delete n;
+      }
+
+      //a new node, get its sons from both coverage relation
+      if(flag1 == false && flag2 == false){
+        R_TreeNode<dim,TupleId>* n = rtree->GetMyNode(e.pointer,false,
+                        rtree->MinEntries(0),rtree->MaxEntries(0));
+        MInt tmp(0);
+        assert(n->EntryCount() == 2);
+        for(int j = 0;j < n->EntryCount();j++){
+            R_TreeInternalEntry<dim> entry =
+              (R_TreeInternalEntry<dim>&)(*n)[j];
+            CcInt* cur_id = new CcInt(true,entry.pointer);
+            BTreeIterator* iter1_1 = btree1->ExactMatch(cur_id);
+            MInt tmp1(0);
+            while(iter1_1->Next()){
+                Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
+                UInt* ui = (UInt*)tuple1->GetAttribute(2);
+                tmp1.Add(*ui);
+                tuple1->DeleteIfAllowed();
+            }
+            delete iter1_1;
+            BTreeIterator* iter2_2 = btree2->ExactMatch(cur_id);
+            MInt tmp2(0);
+            while(iter2_2->Next()){
+                Tuple* tuple2 = cov2->GetTuple(iter2_2->GetId());
+                UInt* ui = (UInt*)tuple2->GetAttribute(2);
+                tmp2.Add(*ui);
+                tuple2->DeleteIfAllowed();
+            }
+            delete iter2_2;
+            delete cur_id;
+//            tmp1.Print(cout);
+//            tmp2.Print(cout);
+            MInt temp(0);
+            tmp.PlusExtend(&tmp1,temp);
+            tmp.CopyFrom(&temp);
+            tmp.PlusExtend(&tmp2,temp);
+            tmp.CopyFrom(&temp);
+        }
+//        tmp.Print(cout);
+        MInt result(0);
+        tmp.Hat(result);
+        result.Print(cout);
+        for(int i = 0;i < result.GetNoComponents();i++){
+          const UInt* ui;
+          result.Get(i,ui);
+          Tuple* resTuple = new Tuple(cov3->GetTupleType());
+          CcInt* ni = new CcInt(true,e.pointer);
+          resTuple->PutAttribute(0,ni);
+          CcInt* ri = new CcInt(true,e.pointer);
+          resTuple->PutAttribute(1,ri);
+          resTuple->PutAttribute(2,new UInt(*ui));
+          cov3->AppendTuple(resTuple);
+          cout<<*resTuple<<endl;
+          resTuple->DeleteIfAllowed();
+        }
+        delete n;
+      }
+
+      delete iter1;
+      delete iter2;
+      delete id;
+      assert(flag1 == false || flag2 == false);
+  }
+
+  delete node;
+
     cout<<"cov3 no_of_tuples "<<cov3->GetNoTuples()<<endl;
     if(cov3->GetNoTuples() > 0)
       third = true;
