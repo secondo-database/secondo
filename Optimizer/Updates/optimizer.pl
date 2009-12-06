@@ -9021,7 +9021,8 @@ operation.
 finishUpdate([], Stream2, Stream2) :-
   !.
 
-finishUpdate(insert into Rel, Stream2, Stream3) :-
+finishUpdate(insert into Rel, Stream, Stream3) :-
+  updateAttrNamesForInsert(Stream, Rel, Stream2),
   updateIndex(insert, Rel, insert(Rel, Stream2), Stream3),
   !.
 
@@ -9037,6 +9038,100 @@ finishUpdate(update Rel set Transformations, Stream2, Stream3) :-
 finishUpdate(drop table Rel, Stream2, Stream3) :-
   updateIndex(drop, Rel, Stream2, Stream3),
   !.
+
+
+/*
+19.4 Rename the attributes of the select operation for the insert
+operation
+
+----    updateAttrNamesForInsert(+Stream, +RelList, -Stream2)
+----
+
+Renames the attributes of the select operation to make them fit to
+the structure of the relation in ~RelList~
+
+*/
+
+updateAttrNamesForInsert(Stream, [rel(Rel, Var)], Stream2) :-
+  collectQueryAttrs(rel(Rel, Var), AttrsSrc),
+  relation(Rel, AttrsDest),
+  lookupAttrs(AttrsDest, AttrsDest2),
+  calcExtendList(AttrsSrc, AttrsDest2, AttrsExtend),
+  extendStream(Stream, AttrsExtend, AttrsDest2, Stream2).
+
+
+/*
+----    collectQueryAttrs(+InsertRel, -Attrs)
+----
+
+Selects the attributes of the query-relation execpt for ~InsertRel~ as
+this relation is used for the insert-command
+
+*/
+
+collectQueryAttrs(InsertRel, Attrs) :-
+  findall(Rel, queryRel(_, Rel), Rels),
+  delete(Rels, InsertRel, Rels2),
+  collectQueryAttrs2(Rels2, Attrs).
+
+/*
+----    collectQueryAttrs2(+RelList, -Attrs)
+----
+
+Selects the attributes from ~RelList~ which are used in the query
+
+*/
+
+
+collectQueryAttrs2([], []).
+
+collectQueryAttrs2([rel(Rel, _)|Rels], AttrsOut) :-
+  isStarQuery, !,
+  relation(Rel, Attrs),
+  lookupAttrs(Attrs, Attrs2),
+  collectQueryAttrs2(Rels, Attrs3),
+  concatNonEmpty(Attrs2, Attrs3, AttrsOut).
+
+collectQueryAttrs2([Rel|Rels], AttrsOut) :-
+  setof(X, usedAttr(Rel, X),Attrs),
+  collectQueryAttrs2(Rels, Attrs2),
+  concatNonEmpty(Attrs, Attrs2, AttrsOut).
+
+/*
+----    calcExtendList(+Attrs1, +Attrs2, -AttrsOut)
+----
+
+Compares if the elements of ~Attrs1~ and ~Attrs2~ are equal and returns
+a list with the differences for the extend command
+
+*/
+
+calcExtendList([], _, []).
+
+calcExtendList(_, [], []).
+
+calcExtendList([Attr|Rest1], [Attr|Rest2], AttrsOut) :-
+   calcExtendList(Rest1, Rest2, AttrsOut).
+
+calcExtendList([Attr1|Rest1], [Attr2|Rest2], AttrsOut) :-
+   calcExtendList(Rest1, Rest2, AttrsRest),
+   concatNonEmpty(newattr(attrname(Attr2), Attr1), AttrsRest, AttrsOut).
+
+
+/*
+---- extendStream(+Stream, +ExtendList, +ProjectList, -StreamOut)
+----
+
+Extends ~Stream~ by the extend and project command using ~ExtendList~
+and ~ProjectList~
+
+*/
+
+extendStream(Stream, [], _, Stream).
+
+extendStream(Stream, ExtendList, ProjectList, project(extend(Stream, ExtendList), ProjectList2)) :-
+  attrnames(ProjectList, ProjectList2).
+
 
 
 /*
@@ -9321,7 +9416,12 @@ Adds ~Elem~ to the front of ~List~ if ~Elem~ is not empty
 
 concatNonEmpty([], List, List).
 
+concatNonEmpty([Attr|Rest], List, ListOut) :-
+  concatNonEmpty(Rest, List, List2),
+  concatNonEmpty(Attr, List2, ListOut).
+
 concatNonEmpty(Attr, List, [Attr | List]).
+
 
 /*
 
