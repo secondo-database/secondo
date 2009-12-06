@@ -9485,72 +9485,6 @@ struct PairList{
 };
 
 
-
-const string CellPartitionSpec  =
-      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-      "( <text>a stream of tuple x 3D box x  upoint"
-      " x cellno1 x cellno2 x cellno3 ->"
-      " a stream of tuple (<(cellid int) (u upoint)>)"
-      "</text--->"
-      "<text> _ cellpartition [ _,_,_,_,_]</text--->"
-       "it outputs the cellid and all the upoints inside "
-      "<text>query UnitTrains feed cellpartition[Box,UTrip,10,10,10] count;"
-       "</text--->"
-      "))";
-
-/*
-The function CellPartitionTypeMap is the type map for the
-operator cellpartition
-
-*/
-ListExpr CellPartitionTypeMap( ListExpr args )
-{
-
-  string errmsg = "stream x 3d box x upoint x int1 x int2 x int3 expected";
-
-  if(nl->ListLength(args)!=6){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-  ListExpr stream = nl->First(args);
-  ListExpr threedbox = nl->Second(args);
-  ListExpr attrName = nl->Third(args);
-  ListExpr cellno1 = nl->Fourth(args);
-  ListExpr cellno2 = nl->Fifth(args);
-  ListExpr cellno3 = nl->Sixth(args);
-
-  if(!IsStreamDescription(stream)){
-    ErrorReporter::ReportError(errmsg);
-    return nl->TypeError();
-  }
-
-  if( !listutils::isSymbol(threedbox,"rect3") ||
-      !listutils::isSymbol(attrName) ||
-      !listutils::isSymbol(cellno1,"int") ||
-      !listutils::isSymbol(cellno2,"int") ||
-      !listutils::isSymbol(cellno3, "int")){
-    return listutils::typeError(errmsg);
-  }
-
-  ListExpr attrType;
-  int j = FindAttribute(nl->Second(nl->Second(stream)),
-      nl->SymbolValue(attrName),attrType);
-  if(j==0 || !listutils::isSymbol(attrType,"upoint")){
-    return listutils::typeError("upoint expected");
-  }
-
-
-  ListExpr res = nl->TwoElemList(
-      nl->SymbolAtom("stream"),
-      nl->TwoElemList(nl->SymbolAtom("tuple"),
-                      nl->ThreeElemList(
-           nl->TwoElemList(nl->SymbolAtom("cellid"),nl->SymbolAtom("int")),
-           nl->TwoElemList(nl->SymbolAtom("cellbox"),nl->SymbolAtom("rect3")),
-           nl->TwoElemList(nl->SymbolAtom("utrip"),nl->SymbolAtom("upoint")))));
-
-  return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
-          nl->OneElemList(nl->IntAtom(j)),res);
-}
 /*
 It partitions the space into a list of cubes, and for each cube it records all
 upoints inside. If the upoint intersect more than one cube, interpolates the
@@ -9826,108 +9760,44 @@ void CellPart::AssignUPinCell()
   }*/
 
 }
-int CellPartitionFun (Word* args, Word& result, int message,
-             Word& local, Supplier s)
-{
-  CellPart* localInfo;
-  Word elem(Address(0));
-  switch(message){
-     case OPEN: {
-       localInfo = new CellPart((Rectangle<3>*)args[1].addr,
-              ((CcInt*)args[3].addr)->GetIntval(),
-              ((CcInt*)args[4].addr)->GetIntval(),
-              ((CcInt*)args[5].addr)->GetIntval());
-       localInfo->resulttype = new TupleType(nl->Second(GetTupleResultType(s)));
-       localInfo->attrpos = ((CcInt*)args[6].addr)->GetIntval()-1;
-       local.setAddr(localInfo);
-       qp->Open(args[0].addr);
-       qp->Request(args[0].addr,elem);
-       if(qp->Received(args[0].addr) == false)
-        return 0;
-       localInfo->lasttuple = (Tuple*)elem.addr;
-       localInfo->AssignUPinCell();
-       return 0;
-   }
-   case REQUEST: {
-        localInfo = (CellPart*)local.addr;
-        if(localInfo->count < localInfo->ups.size()){
 
-          Tuple* t = new Tuple(localInfo->resulttype);
-          t->PutAttribute(0,new CcInt(true,localInfo->id));
-//          UPoint* up =
-//          (UPoint*)(localInfo->lasttuple->GetAttribute(localInfo->attrpos));
-//          t->PutAttribute(1,new UPoint(*up));
-          t->PutAttribute(1,
-                      new Rectangle<3>(localInfo->cellbox[localInfo->count]));
-          t->PutAttribute(2,new UPoint(localInfo->ups[localInfo->count]));
-          localInfo->id++;
-          localInfo->count++;
-          result.setAddr(t);
-          return YIELD;
-        }else{
-           qp->Request(args[0].addr,elem);
-           if(qp->Received(args[0].addr) == false)
-             return CANCEL;
-           localInfo->lasttuple->DeleteIfAllowed();
-           localInfo->lasttuple = (Tuple*)elem.addr;
-           localInfo->count = 0;
-
-           localInfo->AssignUPinCell();
-           Tuple* t = new Tuple(localInfo->resulttype);
-           t->PutAttribute(0,new CcInt(true,localInfo->id));
-//          UPoint* up =
-//          (UPoint*)(localInfo->lasttuple->GetAttribute(localInfo->attrpos));
-//          t->PutAttribute(1,new UPoint(*up));
-            t->PutAttribute(1,
-                      new Rectangle<3>(localInfo->cellbox[localInfo->count]));
-            t->PutAttribute(2,new UPoint(localInfo->ups[localInfo->count]));
-            localInfo->id++;
-            localInfo->count++;
-            result.setAddr(t);
-            return YIELD;
-        }
-   }
-   case CLOSE : {
-      qp->Close(args[0].addr);
-      CellPart* localInfo = (CellPart*)local.addr;
-      if(localInfo){
-        delete localInfo;
-        local.setAddr(NULL);
-      }
-      return 0;
-   }
- }
- return 0;
-}
-Operator cellpartition(
-        "cellpartition",
-         CellPartitionSpec,
-         CellPartitionFun,
-         Operator::SimpleSelect,
-         CellPartitionTypeMap
-);
-const string CovMergertreeSpec  =
+const string MergertreeSpec  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" "
   "\"Example\" \"Comment\" ) "
   "(<text>(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x \n"
-  "(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x "
-  "(rel1 (tuple ((x1 t1)...(xn tn)))) x (rel2 (tuple ((x1 t1)...(xn tn))))"
-  " -> bool</text--->"
-  "<text>covmergertree (_, _ ,_,_)</text--->"
-  "<text>Merge Two RTrees and Coverage Numbers</text--->"
-  "<text>query covmergertree(rtree_1,rtree_2,numbers1,numbers2)</text--->"
+  "(rtree2<d> (tuple ((x1 t1)...(xn tn))) ti) x "
+  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti)</text--->"
+  "<text>mergertree (_, _ )</text--->"
+  "<text>Merge Two RTrees (stored in the same file) </text--->"
+  "<text>query mergertree(rtree_1,rtree_2)</text--->"
   "<text></text--->"
   ") )";
+
+const string MergeCovSpec  =
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" \"Comment\" ) "
+  "(<text>(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x \n"
+  "(rtree2<d> (tuple ((x1 t1)...(xn tn))) ti) x "
+  "(rel1 (tuple ((x1 t1)...(xn tn)))) (rel2 (tuple ((x1 t1)...(xn tn)))) x"
+  "(btree (tuple ((x1 t1)...(xn tn))) ti)"
+  " -> (rel3 (tuple ((x1 t1)...(xn tn)))) </text--->"
+  "<text>mergecov (_, _,_,_,_ )</text--->"
+  "<text>Merge Two Coverage Numbers </text--->"
+  "<text>query mergecov(rtree_1,rtree_2,num1,num2,bnum1) count</text--->"
+  "<text></text--->"
+  ") )";
+
+
 /*
-TypeMap fun for operator mergertree and coverage
+TypeMap fun for operator mergertree
 
 */
-ListExpr CovMergeRTreeTypeMap(ListExpr args)
+ListExpr MergeRTreeTypeMap(ListExpr args)
 {
 
 // check number of parameters
-  if( nl->IsEmpty(args) || nl->ListLength(args) != 5){
-    return listutils::typeError("Expecting exactly 4 arguments.");
+  if( nl->IsEmpty(args) || nl->ListLength(args) != 2){
+    return listutils::typeError("Expecting exactly 2 arguments.");
   }
 
 /////////////////////////////////////////////////////////
@@ -9975,22 +9845,85 @@ ListExpr CovMergeRTreeTypeMap(ListExpr args)
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-
-  ListExpr third = nl->Third(args);
-  ListExpr fourth = nl->Fourth(args);
-  string err = "rtree1 x rtree2 x rel1 x rel2 expected";
-  if(!listutils::isRelDescription(third)||
-      !listutils::isRelDescription(fourth))
-      return listutils::typeError(err);
-  ListExpr five = nl->Fifth(args);
-  if(!listutils::isBTreeDescription(five))
-      return listutils::typeError(err);
-
     return nl->First(args);
 }
 
+/*
+TypeMap fun for operator mergertree
 
-int CovMergeRTreeFun(Word* args, Word& result, int message,Word& local,
+*/
+ListExpr MergeCovTypeMap(ListExpr args)
+{
+
+// check number of parameters
+  if( nl->IsEmpty(args) || nl->ListLength(args) != 5){
+    return listutils::typeError("Expecting exactly 2 arguments.");
+  }
+
+/////////////////////////////////////////////////////////
+  ListExpr firstpara = nl->First(args);
+  if(nl->ListLength(firstpara) != 4){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+  if(!listutils::isRTreeDescription(firstpara)){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+
+
+  if(!(nl->IsEqual(nl->First(firstpara),"rtree") ||
+     nl->IsEqual(nl->First(firstpara),"rtree3") ||
+     nl->IsEqual(nl->First(firstpara),"rtree4") ||
+     nl->IsEqual(nl->First(firstpara),"rtree8"))){
+    string err = "rtree(tuple(...) rect3 BOOL) expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+///////////////////////////////////////////////////////////
+
+  ListExpr second = nl->Second(args);
+  ListExpr third = nl->Third(args);
+  ListExpr fourth = nl->Fourth(args);
+  ListExpr fifth = nl->Fifth(args);
+  if(!listutils::isRelDescription(second) ||
+     !listutils::isRelDescription(third) ||
+     !listutils::isBTreeDescription(fourth) ||
+     !listutils::isBTreeDescription(fifth)){
+    string err = "rtree x rel1 x rel2 x btree1 x btree2 expected";
+    ErrorReporter::ReportError(err);
+    return nl->TypeError();
+  }
+   ListExpr res = nl->TwoElemList(nl->SymbolAtom("stream"),
+           nl->Second(nl->Third(args)));
+   return res;
+
+/*   return nl->TwoElemList(
+            nl->SymbolAtom("stream"),
+            nl->TwoElemList(
+                nl->SymbolAtom("tuple"),
+                nl->ThreeElemList(
+                    nl->TwoElemList(
+                        nl->SymbolAtom("NodeId"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("RecId"),
+                        nl->SymbolAtom("int")
+                    ),
+                    nl->TwoElemList(
+                        nl->SymbolAtom("Coverage"),
+                        nl->SymbolAtom("uint")
+                    ))));*/
+}
+/*
+Merge two input r-trees into one r-tree and record in the same file
+
+*/
+int MergeRTreeFun(Word* args, Word& result, int message,Word& local,
 Supplier s)
 {
   R_Tree<3,TupleId>* rtree_in1 = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
@@ -10002,23 +9935,150 @@ Supplier s)
   result = qp->ResultStorage(s);
   R_Tree<3, TupleId> *rtree = new R_Tree<3,TupleId>(rtree_in1->FileId(),true);
   rtree->MergeRtree(rtree_in1,rtree_in2);
-
-  Relation* cov1 = (Relation*)args[2].addr;
-  Relation* cov2 = (Relation*)args[3].addr;
-
-
   result.setAddr(rtree);
   return 0;
 }
 
-Operator covmergertree(
-        "covmergertree",
-        CovMergertreeSpec,
-        CovMergeRTreeFun,
+/*
+Merge two input coverage numbers
+
+*/
+struct Cov{
+  R_Tree<3,TupleId>* rtree;
+  Relation* cov1;
+  Relation* cov2;
+  BTree* btree1;
+  BTree* btree2;
+  TupleType* tupletype;
+  int index1;
+  int index2;
+  int index3;
+  bool first;
+  bool second;
+  bool third;
+  Relation* cov3;
+  Cov( R_Tree<3,TupleId>* rt, Relation* r1,Relation* r2,
+      BTree* bt1,BTree* bt2,ListExpr tt)
+      :rtree(rt),cov1(r1),cov2(r2),btree1(bt1),btree2(bt2)
+  {
+    index1 = index2 = index3 = 1;
+    first = true;
+    second = true;
+    third = false;
+    tupletype = new TupleType(tt);
+    cov3 = NULL;
+  }
+  ~Cov()
+  {
+    tupletype->DeleteIfAllowed();
+    tupletype = NULL;
+    if(cov3 != NULL)
+      delete cov3;
+  }
+  void CalCov()
+  {
+    cov3 = new Relation(tupletype,true);
+    rtree->MergeCov(cov1,cov2,cov3,btree1,btree2);
+    cout<<"cov3 no_of_tuples "<<cov3->GetNoTuples()<<endl;
+    if(cov3->GetNoTuples() > 0)
+      third = true;
+
+  }
+};
+
+/*
+Merge two input coverage numbers
+
+*/
+
+int MergeCovFun(Word* args, Word& result, int message,Word& local,
+Supplier s)
+{
+  switch(message){
+    case OPEN:{
+//      cout<<"Open"<<endl;
+      if(local.addr)
+        delete static_cast<Cov*>(local.addr);
+      ListExpr resultType =
+    SecondoSystem::GetCatalog()->NumericType(qp->GetType(s));
+
+   R_Tree<3,TupleId>* rtree_in = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
+
+      Relation* cov1 = (Relation*)args[1].addr;
+      Relation* cov2 = (Relation*)args[2].addr;
+      BTree* btree1 = (BTree*)args[3].addr;
+      BTree* btree2 = (BTree*)args[4].addr;
+      local.addr =
+        new Cov(rtree_in,cov1,cov2,btree1,btree2,nl->Second(resultType));
+      Cov* cov = static_cast<Cov*>(local.addr);
+      cov->CalCov();
+      return 0;
+
+//  R_Tree<3, TupleId> *rtree = new R_Tree<3,TupleId>(rtree_in1->FileId(),true);
+//  rtree->MergeRtree(rtree_in1,rtree_in2);
+
+    }
+    case REQUEST:{
+//      cout<<"request"<<endl;
+      Cov* cov = static_cast<Cov*>(local.addr);
+      if(cov->first){ //copy the first coverage number rel
+          assert(cov->index1 <= cov->cov1->GetNoTuples());
+          Tuple* tuple = cov->cov1->GetTuple(cov->index1);
+          result.addr = tuple;
+          cov->index1++;
+          if(cov->index1 > cov->cov1->GetNoTuples())
+             cov->first = false;
+          return YIELD;
+      }
+      if(cov->second){
+          assert(cov->index2 <= cov->cov2->GetNoTuples());
+          Tuple* tuple = cov->cov2->GetTuple(cov->index2);
+          result.addr = tuple;
+          cov->index2++;
+          if(cov->index2 > cov->cov2->GetNoTuples())
+             cov->second = false;
+          return YIELD;
+      }
+      if(cov->third){
+          assert(cov->index3 <= cov->cov3->GetNoTuples());
+          Tuple* tuple = cov->cov3->GetTuple(cov->index3);
+          result.addr = tuple;
+          cov->index3++;
+          if(cov->index3 > cov->cov3->GetNoTuples())
+             cov->third = false;
+          return YIELD;
+      }
+
+      return CANCEL;
+    }
+    case CLOSE:{
+      Cov* cov = static_cast<Cov*>(local.addr);
+      if(cov){
+        delete cov;
+        local.setAddr(NULL);
+      }
+      return 0;
+    }
+    default: assert(false);
+  }
+}
+
+Operator mergertree(
+        "mergertree",
+        MergertreeSpec,
+        MergeRTreeFun,
         Operator::SimpleSelect,
-        CovMergeRTreeTypeMap
+        MergeRTreeTypeMap
 );
 
+
+Operator mergecov(
+        "mergecov",
+        MergeCovSpec,
+        MergeCovFun,
+        Operator::SimpleSelect,
+        MergeCovTypeMap
+);
 
 /*
 4 Implementation of the Algebra Class
@@ -10053,9 +10113,9 @@ class NearestNeighborAlgebra : public Algebra
 //    AddOperator( &covleafnode);
     AddOperator( &cellindex);
 //    AddOperator( &gnuplotnode);
-//    AddOperator( &cellpartition);
     AddOperator( &isknn);
-    AddOperator( &covmergertree);
+    AddOperator( &mergertree);
+    AddOperator( &mergecov);
   }
   ~NearestNeighborAlgebra() {};
 };
