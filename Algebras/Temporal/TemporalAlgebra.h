@@ -4894,7 +4894,13 @@ bool Mapping<Unit, Alpha>::IsEmpty() const
 template <class Unit, class Alpha>
 void Mapping<Unit, Alpha>::Get( const int i, Unit &unit ) const
 {
-  units.Get( i, &unit );
+  assert(i>=0);
+  assert(i<units.Size());
+  bool ok = units.Get( i, unit );
+  if(!ok){
+    cout << "Problem in getting data from " << units << endl;
+    assert(false);
+  }
   if ( !unit.IsValid() )
   {
     cout << __FILE__ << "," << __LINE__ << ":" << __PRETTY_FUNCTION__
@@ -5091,7 +5097,7 @@ template <class Unit, class Alpha>
 inline void
 Mapping<Unit, Alpha>::Restrict( const vector< pair<int, int> >& intervals )
 {
-  units.Restrict( intervals );
+  units.Restrict( intervals, units );
 }
 
 template <class Unit, class Alpha>
@@ -5454,8 +5460,8 @@ void Mapping<Unit, Alpha>::Final( Intime<Alpha>& result ) const
   else
   {
     Unit unit;
-    units.Get( GetNoComponents()-1, &unit );
-
+    bool ok = units.Get( GetNoComponents()-1, unit );
+    assert(ok);
     result.SetDefined( true );
     unit.TemporalFunction( unit.timeInterval.end, result.value, true );
     result.instant.CopyFrom( &unit.timeInterval.end );

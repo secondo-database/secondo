@@ -3430,7 +3430,7 @@ void MPoint::Add( const UPoint& unit )
 
 void MPoint::Restrict( const vector< pair<int, int> >& intervals )
 {
-  units.Restrict( intervals ); // call super
+  units.Restrict( intervals, units ); // call super
   bbox.SetDefined(false);      // invalidate bbox
   RestoreBoundingBox();        // recalculate it
 }
