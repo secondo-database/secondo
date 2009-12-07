@@ -2862,7 +2862,7 @@ Returns whether the ~region~ value is empty.
 Returns the number of half segments in the ~region~ value.
 
 */
-    inline void Get( const int i, HalfSegment& chs ) const
+    inline bool Get( const int i, HalfSegment& chs ) const
     {
       return region.Get( i, &chs );
     }
@@ -2870,9 +2870,9 @@ Returns the number of half segments in the ~region~ value.
 Reads the ith half segment from the ~region~ value.
 
 */
-    inline void Put( const int i, const HalfSegment& hs )
+    inline bool Put( const int i, const HalfSegment& hs )
     {
-      region.Put( i, hs );
+      return region.Put( i, hs );
     }
 /*
 Writes a halfsegment ~chs~ into position ~i~.
