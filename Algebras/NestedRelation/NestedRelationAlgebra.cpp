@@ -677,7 +677,7 @@ NestedRelation::NestedRelation( ListExpr typeInfo, Relation* ptr,
                                 Second(typeInfo));
    primaryTypeInfo = primaryInfo;
    setTupleTypeInfo(typeInfo);
-}	
+}
 
 /*
 4.2 Auxiliary functions
