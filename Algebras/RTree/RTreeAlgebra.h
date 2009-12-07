@@ -484,6 +484,8 @@ class IntrospectResult
     int maxEntries;
     int countEntries;
     R_TreeEntry<dim>** entries;//
+
+
     IntrospectResult():
       level( -1 ),
       nodeId( -1 ),
@@ -524,8 +526,51 @@ class IntrospectResult
       entries[i] = NULL;
   }
 
+  
+   IntrospectResult<dim>& operator=(const IntrospectResult<dim>& src){
+      // delete old entries
+      for(int i=0;i<=maxEntries;i++){
+        if(entries[i]){
+          delete entries[i];
+          entries[i] = 0;
+        }
+      }
+      if(maxEntries != src.maxEntries){ // different number of entries
+        if(entries){
+          delete [] entries;
+        }
+        entries = new R_TreeEntry<dim>*[src.maxEntries+1];
+      }
+      // copy values
+      level = src.level;
+      nodeId = src.nodeId;
+      MBR = src.MBR;
+      fatherId = src.fatherId;
+      isLeaf = src.isLeaf;
+      minEntries = src.minEntries;
+      maxEntries = src.maxEntries;
+      countEntries = src.countEntries;
+      for(int i=0;i<=maxEntries;i++){
+        entries[i] = src.entries[i];
+      }
+      return *this;
+   }
+
+
+
     virtual ~IntrospectResult()
-    {}
+    {
+       if(entries){
+          for(int i=0;i<=maxEntries;i++){
+            if(entries[i]){
+              delete entries[i];
+              entries[i] = 0;
+            }
+          }
+          delete[] entries;
+          entries = 0;
+       }  
+    }
 };
 
 /*
@@ -622,10 +667,12 @@ Returns the bounding box of this node.
 
     void Clear()
     {
-      for( int i = 0; i < maxEntries; i++ )
+      for( int i = 0; i <= maxEntries; i++ )
       {
-        delete entries[ i ];
-        entries[ i ] = 0;
+        if(entries[i]){
+          delete entries[ i ];
+          entries[ i ] = 0;
+        }
       }
       count = 0;
       modified = true;
@@ -849,7 +896,7 @@ R_TreeNode<dim, LeafInfo>& R_TreeNode<dim, LeafInfo>::operator=
 {
 
   // delete old entries
-  for(int i=0;i<this->EntryCount(); i++){
+  for(int i=0;i<=count; i++){
      delete entries[i];
      entries[i] = 0;
   }
@@ -866,7 +913,6 @@ R_TreeNode<dim, LeafInfo>& R_TreeNode<dim, LeafInfo>::operator=
         entries[i] = 0;
      }
   }
-
 
   for( int i = 0; i < node.count; i++ ) {
     if( leaf ){
@@ -1330,17 +1376,21 @@ void R_TreeNode<dim, LeafInfo>::Split( R_TreeNode<dim,
       {
         if( n1.EntryCount() + notAssigned == n1.MinEntries() )
         { // Insert all remaining entries in n1
-          for( i = 0; i < EntryCount() ; i++, notAssigned-- )
+          for( i = 0; i < EntryCount() ; i++, notAssigned-- ){
             n1.Insert( *entries[ i ] );
-
+            delete entries[i];
+            entries[i] = 0;
+          }
           count = 0;
           assert( notAssigned == 0 );
         }
         else if( n2.EntryCount() + notAssigned == n2.MinEntries() )
         { // Insert all remaining entries in n2
-          for( i = 0; i < EntryCount(); ++i, notAssigned-- )
+          for( i = 0; i < EntryCount(); ++i, notAssigned-- ){
             n2.Insert( *entries[ i ] );
-
+            delete entries[i];
+            entries[i] = 0;
+          }
           count = 0;
           assert( notAssigned == 0 );
         }
@@ -1598,6 +1648,10 @@ Open and Save are used by NetworkAlgebra to save and open the rtree of network.
 
     inline void DeleteFile()
     {
+      if(nodePtr){
+        delete nodePtr;
+        nodePtr=0;
+      }
       file->Close();
       file->Drop();
     }
@@ -2262,7 +2316,7 @@ R_Tree<dim, LeafInfo>::~R_Tree()
 
     if( fileOwner )
       file->Close();
-  }
+  } 
   if( fileOwner )
     delete file;
 }
@@ -2549,9 +2603,9 @@ void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
 {
   assert( file->IsOpen() );
 
-  if( nodePtr->Insert( entry ) )
+  if( nodePtr->Insert( entry ) ){
     UpdateBox();
-  else
+  } else {
     if( !do_forced_reinsertion || currLevel == 0 ||
         overflowFlag[ Height() - currLevel ] )
     { // Node splitting is necessary
@@ -2573,38 +2627,34 @@ void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
 
         BBox<dim> n1Box( n1->BoundingBox() );
         SmiRecordId node1recno;
-        SmiRecord *node1record = new SmiRecord();
-        int RecordAppended = file->AppendRecord( node1recno, *node1record );
+        SmiRecord node1record;
+        int RecordAppended = file->AppendRecord( node1recno, node1record );
         assert( RecordAppended );
-        PutNode( *node1record, &n1 );
+        PutNode( node1record, &n1 ); // deletes n1
         int EntryInserted =
             nodePtr->Insert( R_TreeInternalEntry<dim>(n1Box,node1recno));
         assert(EntryInserted);
-        delete node1record;
 
         BBox<dim> n2Box( n2->BoundingBox() );
         SmiRecordId node2recno;
-        SmiRecord *node2record = new SmiRecord();
-        RecordAppended = file->AppendRecord( node2recno, *node2record );
+        SmiRecord node2record;
+        RecordAppended = file->AppendRecord( node2recno, node2record );
         assert( RecordAppended );
-        PutNode( *node2record, &n2 );
+        PutNode( node2record, &n2 ); // deletes n2
         EntryInserted =
             nodePtr->Insert(R_TreeInternalEntry<dim>(n2Box,node2recno));
         assert(EntryInserted);
-        delete node2record;
-
         header.height += 1;
         header.nodeCount += 2;
       }
       else
       { // splitting non-root node
         SmiRecordId newNoderecno;
-        SmiRecord *newNoderecord = new SmiRecord();
-        int RecordAppended = file->AppendRecord( newNoderecno, *newNoderecord );
+        SmiRecord newNoderecord;
+        int RecordAppended = file->AppendRecord( newNoderecno, newNoderecord );
         assert( RecordAppended );
         R_TreeInternalEntry<dim> newEntry( n2->BoundingBox(), newNoderecno );
-        PutNode( *newNoderecord, &n2 );
-        delete newNoderecord;
+        PutNode( newNoderecord, &n2 ); // deletes n2
 
         header.nodeCount++;
 
@@ -2716,6 +2766,7 @@ void R_Tree<dim, LeafInfo>::InsertEntry( const R_TreeEntry<dim>& entry )
         delete [] keepFlag;
       }
     }
+  }
 }
 
 /*
@@ -3406,10 +3457,10 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
       assert( i <= bli->currentHeight );
       assert(file->IsOpen());
       SmiRecordId recId;
-      SmiRecord *rec = new SmiRecord();
-      int RecordAppended = file->AppendRecord(recId, *rec);
+      SmiRecord rec;
+      int RecordAppended = file->AppendRecord(recId, rec);
       assert(RecordAppended);
-      bli->node[i]->Write(*rec);
+      bli->node[i]->Write(rec);
       rootId = recId;
 
       if( i < bli->currentHeight )
@@ -3488,6 +3539,7 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
   assert( header.maxInternalEntries >= 2*header.minInternalEntries &&
           header.minInternalEntries > 0 );
   currLevel = 0;
+  //assert(nodePtr==0);
   nodePtr = GetNode( RootRecordId(),
                      currLevel == Height(),
                      MinEntries( currLevel ),

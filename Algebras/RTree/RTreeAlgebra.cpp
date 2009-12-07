@@ -634,9 +634,9 @@ int CreateRTreeRelSpatial(Word* args, Word& result, int message,
   GenericRelationIterator* iter;
   Tuple* tuple;
 
-  R_Tree<dim, TupleId> *rtree =
-    (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
-  result.setAddr( rtree );
+  result = qp->ResultStorage(s);
+
+  R_Tree<dim, TupleId>*rtree = static_cast<R_Tree<dim, TupleId>*>(result.addr);
 
   relation = (Relation*)args[0].addr;
   attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
