@@ -1,5 +1,5 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
 Copyright (C) 2004, University in Hagen, Department of Computer Science,
@@ -11,7 +11,7 @@ the Free Software Foundation; either version 2 of the License, or
 (at your option) any later version.
 
 SECONDO is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
+but WITHOUT ANY WARRANTY; without even the implied warranty ofn
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
@@ -64,6 +64,11 @@ AttributeRelation::AttributeRelation( ListExpr typeInfo, bool nrel,
    if (!(nl->IsEmpty( typeInfo )))
       {
       if ((nl->ListLength( typeInfo ) == 3))
+/*
+In this case nrel has added the SmiFileId of the corresponding relation
+
+*/
+                                              
       {
          relId = nl->IntValue (nl -> Third( typeInfo )); 
          rel = Relation::GetRelation( relId );
@@ -219,9 +224,9 @@ int AttributeRelation::Compare(const Attribute* attr) const
   Tuple *t1, *t2;
   const TupleId* tid1, *tid2;
   int i = 0;  
-  while (i < (&tupleIds)->Size() && i < arelTids->Size())
+  while (i < tupleIds.Size() && i < arelTids->Size())
   {
-    (&tupleIds)->Get(i, tid1);
+    tupleIds.Get(i, tid1);
     arelTids->Get(i, tid2);
     t2 = rel2->GetTuple(*tid2);
     t1 = rel1->GetTuple(*tid1);
@@ -244,7 +249,7 @@ int AttributeRelation::Compare(const Attribute* attr) const
     t2->DeleteIfAllowed();
   }
   
-  if (i < (&tupleIds)->Size())
+  if (i < tupleIds.Size())
     return 1;
   if (i < arelTids->Size())
     return -1;    
@@ -274,15 +279,11 @@ bool AttributeRelation::IsDefined() const
   return true;
 }
 
-void AttributeRelation::SetDefined( bool defined )
-{
-}
-
 size_t AttributeRelation::Sizeof() const
 {
   return sizeof( *this );
 }
-
+ 
 size_t AttributeRelation::HashValue() const
 {
   size_t value = 0;
@@ -293,10 +294,9 @@ size_t AttributeRelation::HashValue() const
   tt->IncReference();
   Tuple *t1;
   const TupleId* tid1;
-  int i = 0;  
-  while (i < (&tupleIds)->Size())
+  if (tupleIds.Size() > 0)
   {
-    (&tupleIds)->Get(i, tid1);
+    tupleIds.Get(0, tid1);
     t1 = rel1->GetTuple(*tid1);
     for (int j = 0; j < tt->GetNoAttributes(); j++)
     {
@@ -304,15 +304,13 @@ size_t AttributeRelation::HashValue() const
       atype = tt->GetAttributeType(j);
       value = a1->HashValue();
     }
-  i++;
   t1->DeleteIfAllowed();
   }  
-  
   tt->DeleteIfAllowed();    
+  cout << "value: " << value;
   return value; 
 }
   
-
 void AttributeRelation::CopyFrom(const Attribute* right)
 {
   AttributeRelation* arel = (AttributeRelation*) right;
@@ -386,9 +384,17 @@ Word AttributeRelation::In(const ListExpr typeInfo, const ListExpr
       return result;
    }
    else
-   { // increase tupleno
+   { 
+      first = nl->First(tuplelist);
+      if (nl->IsAtom(first))
+         tuplelist = nl->Rest(tuplelist); 
       while (!nl->IsEmpty(tuplelist))
       {
+/*
+Disregard a possibly existing Int-Atom which indicates whether to 
+show tupleIds or tuple-values. 
+
+*/
          first = nl->First(tuplelist);
          tuplelist = nl->Rest(tuplelist);
          tupleno++;
@@ -1056,7 +1062,7 @@ NestedRelation::In( const ListExpr typeInfo, const ListExpr value,
       return result;
    }
    else
-   { // increase tupleno
+   { 
       while (!nl->IsEmpty(tuplelist))
       {
          first = nl->First(tuplelist);
@@ -1110,7 +1116,6 @@ NestedRelation::Out( ListExpr typeInfo, Word value )
   
   GenericRelationIterator* rit = nrel->primary->MakeScan();
 
-  //cerr << "OutRel " << endl;
   while ( (t = rit->GetNextTuple()) != 0 )
   {
     tupleTypeInfo = nrel->tupleTypeInfo;
@@ -1827,6 +1832,7 @@ struct aConsumeInfo : OperatorInfo {
   }
 };
 
+Operator aconsume (aConsumeInfo(), aConsume, aConsumeTypeMap);
 
 /*
 5.5 Operator ~nest~
@@ -1895,9 +1901,11 @@ ListExpr nestTypeMap( ListExpr args )
    CHECK_COND((nl->ListLength(second.listExpr()) > 0), 
    "Operator nest: Second argument list may not be empty" );
   
-   //check that all attributes named in second argument appear in
-   //the first argument, collect attributes of second 
-   //argument in primary 
+/*
+check that all attributes named in second argument appear in the first 
+argument, collect attributes of second argument in primary.
+
+*/ 
    int j;
    rest = second;
    set<string> attrNames;
@@ -1952,8 +1960,11 @@ ListExpr nestTypeMap( ListExpr args )
    CHECK_COND (!(primary.length() == first.second().second().length()),
      "Operator nest: there must be at least one attribute that should be "
      "nested in a subrelation.");    
-   //check, if attributes in first argument exist in primary.
-   //if not append to subrel
+
+/*
+check, if attributes in first argument exist in primary. If not append to subrel.
+
+*/
    rest = first.second().second();
    int i = 1;
    while (!(rest.isEmpty()))
@@ -2024,7 +2035,7 @@ nestValueMap(Word* args, Word& result, int message,
    switch (message)
    {
      case OPEN :
-     {//(stream (tuple ((xi1 ti1)...(xij tij) (xo arel(tuple((xik tik)
+     {
        info = (NestInfo*)local.addr;
        if (!info) 
        {
@@ -2230,6 +2241,7 @@ struct nestInfo : OperatorInfo {
   }
 };
 
+Operator nest (nestInfo(), nestValueMap, nestTypeMap);
 
 /*
 5.6 Operator ~unnest~
@@ -2916,18 +2928,15 @@ class NestedRelationAlgebra : public Algebra
       AddOperator (feedInfo(), feed, feedTypeMap);
       AddOperator (consumeInfo(), consume, consumeTypeMap);
       AddOperator (aFeedInfo(), aFeed, aFeedTypeMap);
-      Operator* aconsume = new Operator(aConsumeInfo(), 
-		                        aConsume, aConsumeTypeMap);
-      AddOperator (aconsume);
-      Operator* nest = new Operator(nestInfo(), nestValueMap, nestTypeMap);
-      AddOperator (nest);
+      AddOperator (&aconsume);
+      AddOperator (&nest);
       AddOperator (unnestOperatorInfo(), unnestValueMap, unnestTypeMap);
       AddOperator (nestedRenameInfo(), nestedRename, nestedRenameTypeMap);
       AddOperator (extractInfo(), extractValueMap, extractTypeMap); 
       attributeRelationTC.AssociateKind( "DATA" );
 #ifdef USE_PROGRESS
-      nest->EnableProgress();
-      aconsume->EnableProgress();
+      nest.EnableProgress();
+      aconsume.EnableProgress();
 #endif      
     }
     ~NestedRelationAlgebra() {};
