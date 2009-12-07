@@ -123,10 +123,9 @@ Changes the capacity of an DbArray.
 
 */
 
-virtual void resize( const int newSize ){
+virtual bool resize( const int newSize ){
    if(newSize==0){
-    clean();
-    return;
+    return clean();
    }
 
    if( newSize < nElements ){ // reduce size
@@ -134,43 +133,48 @@ virtual void resize( const int newSize ){
    }
 
    maxElements = newSize;
-   Flob::resize( newSize * sizeof( DbArrayElement ) );
+   return Flob::resize( newSize * sizeof( DbArrayElement ) );
 }
 
-virtual void clean() {
+virtual bool clean() {
   nElements = 0;
   maxElements = 0;
-  Flob::clean();
+  return Flob::clean();
 }
 
-inline void Destroy() {
+inline bool Destroy() {
   nElements = 0;
   maxElements = 0;
-  Flob::destroy();
+  return Flob::destroy();
 }
 
 
 
 
-inline void Append( const DbArrayElement& elem ) {
-  Put( nElements, elem );
+inline bool Append( const DbArrayElement& elem ) {
+  return Put( nElements, elem );
 }
 
-inline void Append(const DbArray<DbArrayElement>& a){
+inline bool Append(const DbArray<DbArrayElement>& a){
   if( a.nElements == 0){ // nothing to do
-    return;
+    return true;
   }
   if(nElements + a.nElements > maxElements){
     // resize of the underlying Flob required
-    resize((nElements + a.nElements)*2);
+    if(!resize((nElements + a.nElements)*2)){
+       return false;
+    }
   }
   // copy the FlobData
   size_t size = a.nElements * sizeof(DbArrayElement);
   char* buffer = new char[size];
-  a.Flob::read(buffer, size, 0);
-  Flob::write(buffer, size, (nElements)*sizeof(DbArrayElement));
+  if(!a.Flob::read(buffer, size, 0)){
+     return false;
+  }
+  bool ok = Flob::write(buffer, size, (nElements)*sizeof(DbArrayElement));
   delete [] buffer;
   nElements += a.nElements;
+  return ok;
 }
 
 
@@ -182,7 +186,7 @@ Puts elem to the given position in the array. If the array is not
 large enough, the array is growed automatically.
 
 */
-void Put( int index, const DbArrayElement& elem ) {
+bool Put( int index, const DbArrayElement& elem ) {
   if(index >= nElements){ // put a new element
     nElements = index + 1;
     if(index >= maxElements){  // underlying flob is too small
@@ -192,10 +196,12 @@ void Put( int index, const DbArrayElement& elem ) {
        } else {
           maxElements = maxElements * 2;
        }
-       Flob::resize( maxElements * sizeof( DbArrayElement ) );
+       if(!Flob::resize( maxElements * sizeof( DbArrayElement ) )){
+         return false;
+       }
    }
   }
-  Flob::write((char*)&elem,                   // buffer
+  return Flob::write((char*)&elem,                   // buffer
               sizeof(DbArrayElement),  // size
               index * sizeof(DbArrayElement)); // offset
  }
@@ -210,17 +216,20 @@ Returns the element stored at position __index__
 within the array. 
 
 */
- inline void Get( int index, DbArrayElement* elem ) const{
+ inline bool Get( int index, DbArrayElement* elem ) const{
    assert( index >= 0 );
    assert( index < nElements );
 
-   Flob::read((char*)elem, sizeof(DbArrayElement),
-              index*sizeof(DbArrayElement));
+   if(!Flob::read((char*)elem, sizeof(DbArrayElement),
+              index*sizeof(DbArrayElement))){
+     return false;
+   }
    elem = (new ((void*)elem) DbArrayElement);
+   return true;
  }
 
- inline void Get( int index, DbArrayElement& elem ) const{
-   Get(index, &elem);
+ inline bool Get( int index, DbArrayElement& elem ) const{
+   return Get(index, &elem);
  }
 
 /*
@@ -241,15 +250,17 @@ Reduces a DbArray to the capacity to store exacly all stored elements.
 
 */
 
-void TrimToSize() {
+bool TrimToSize() {
+   bool ok = true;
    if (maxElements > nElements) {
      if (nElements == 0) {
-         Flob::clean();
+         ok = Flob::clean();
      } else {
-        Flob::resize(nElements * sizeof(DbArrayElement));
+        ok = Flob::resize(nElements * sizeof(DbArrayElement));
      }
    }
    maxElements = nElements;
+   return ok;
 }
 
 
@@ -262,15 +273,17 @@ hold in main memory.
 
 */
 
-void Sort( int (*cmp)( const void *a, const void *b) ) {
+bool Sort( int (*cmp)( const void *a, const void *b) ) {
    if( nElements <= 1 ){
-      return;
+      return true;
    }
    uint32_t size = nElements * sizeof(DbArrayElement);
    char buffer[size];
-   Flob::read(buffer, size, 0);
+   if(!Flob::read(buffer, size, 0)){
+     return false;
+   }
    qsort( buffer, nElements, sizeof( DbArrayElement ), cmp );
-   Flob::write(buffer, size, 0);
+   return Flob::write(buffer, size, 0);
 }
 
 
@@ -332,7 +345,8 @@ bool Find( const void *key,
 Restricts the DBArray to the interval set of indices passed as argument.
 
 */
-virtual void Restrict( const vector< pair<int, int> >& intervals ) {
+virtual bool Restrict( const vector< pair<int, int> >& intervals, 
+                       DbArray<DbArrayElement>& result ) const{
   // compute the result size
   unsigned int newSize = 0;
   for( vector< pair<int, int> >::const_iterator it= intervals.begin();
@@ -342,8 +356,10 @@ virtual void Restrict( const vector< pair<int, int> >& intervals ) {
       newSize += ( ( it->second - it->first ) + 1 ) * sizeof( DbArrayElement );
   }
   assert( newSize <= Flob::getSize() );
+  DbArray<DbArrayElement> res(newSize/sizeof(DbArrayElement));  
   if( newSize == 0 ){
-    clean();
+    result = res;
+    return true;
   } else {
     char *buffer = (char*)malloc( newSize );
     size_t offset = 0;
@@ -353,16 +369,24 @@ virtual void Restrict( const vector< pair<int, int> >& intervals ) {
          it < intervals.end();
          it++ ) {    
       for( int j = it->first; j <= it->second; j++ ) {
-         Get( j, &e );
+         if(!Get( j, &e )){
+            return false;
+         }
          memcpy( buffer + offset, &e, sizeof( DbArrayElement ) );
          offset += sizeof( DbArrayElement );
       }  
     }
-    nElements = newSize / sizeof( DbArrayElement );
-    maxElements = nElements;
-    resize(nElements);
-    Flob::write(buffer, newSize, 0);
+    res.nElements = newSize / sizeof( DbArrayElement );
+    res.maxElements = nElements;
+    if(!res.resize(nElements)){
+      free(buffer);
+      result = res;
+      return false;
+    }
+    bool bres = res.Flob::write(buffer, newSize, 0);
+    result = res;
     free(buffer);
+    return bres;
   }
 }
     
@@ -433,28 +457,30 @@ virtual void restoreHeader(char* buffer,
 }
 
 
-   void copyFrom(const DbArray<DbArrayElement>& src){
-      Flob::copyFrom(src);
+   bool copyFrom(const DbArray<DbArrayElement>& src){
+      bool res = Flob::copyFrom(src);
       nElements = src.nElements;
       maxElements = src.maxElements;
+      return res;
    }
 
-   void copyTo(DbArray<DbArrayElement>& dest){
-      Flob::copyTo(dest);
+   bool copyTo(DbArray<DbArrayElement>& dest){
+      bool res = Flob::copyTo(dest);
       dest.nElements = nElements;
       dest.maxElements = maxElements;
+      return res;
    } 
 
-   void copyFrom(const Flob& src){
+   bool copyFrom(const Flob& src){
      DbArray<DbArrayElement> const* dbsrc = 
                 static_cast<DbArray<DbArrayElement> const* >(&src);
-     copyFrom(*dbsrc);
+     return copyFrom(*dbsrc);
    }
 
-   void copyTo(Flob& dest) const{
+   bool copyTo(Flob& dest) const{
      DbArray<DbArrayElement>* dbdest = 
                       static_cast<DbArray<DbArrayElement>* >(&dest);
-     copyTo(*dbdest);
+     return copyTo(*dbdest);
    }
 
   private:
