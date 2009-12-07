@@ -513,6 +513,7 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize){
        return true;
     } 
     cout << "Resize failed" << endl;
+    
     return false;
    
  }
@@ -556,10 +557,22 @@ bool FlobManager::getData(
   }
 
   SmiSize recOffset = floboffset + offset;
+  if(record.Size() < recOffset){
+     cerr << " try to read at an offset outside the flob size" << endl;
+     return false;
+  }
   SmiSize mySize = min(size, record.Size()-recOffset); // restrict read to the
                                                        // end of the record
   SmiSize read = record.Read(dest,mySize, recOffset);
   if(read!=mySize){
+
+    cout << "Error in reding data from flob" << endl;
+    cout << "read = " << read << endl;
+    cout << "mySize = " << mySize << endl;
+    cout << "record.Size = " << record.Size() << endl;
+    cout << "floboffset = " << floboffset << endl;
+    cout << "offset = " << offset << endl;
+    assert(false);
     __TRACE_LEAVE__
     return false;
   } 
@@ -575,7 +588,7 @@ Frees all resources occupied by the Flob. After destroying a flob. No data can b
 accessed.
 
 */
-void FlobManager::destroy(Flob& victim) {
+bool FlobManager::destroy(Flob& victim) {
 
  __TRACE_ENTER__
    FlobId id = victim.id;
@@ -593,7 +606,7 @@ void FlobManager::destroy(Flob& victim) {
    bool ok = file->SelectRecord(recordId, record, SmiFile::Update);  
    if(!ok){ // record not found in file
      __TRACE_LEAVE__
-     return; 
+     return false; 
    }
    // check whether the flob occupies the whole record
    SmiSize recordSize = record.Size();
@@ -602,6 +615,7 @@ void FlobManager::destroy(Flob& victim) {
       if( offset + size != recordSize){
          std::cout << "cannot destroy flob, because after the flob data are"
                       " available" << std::endl;
+         return false;
         
       } else { // truncate record
          record.Truncate(offset);
@@ -611,11 +625,13 @@ void FlobManager::destroy(Flob& victim) {
      if(recordSize != size && (id.fileId != nativeFlobs) ){
        std::cout << "cannot destroy flob, because after the flob data are"
                     " available" << std::endl;
+       return false;
      } else {
         // record stores only the flob
         file->DeleteRecord(recordId); 
      }
    }
+   return true;
   __TRACE_LEAVE__
 }
 
@@ -683,6 +699,7 @@ bool FlobManager::saveTo(const Flob& src,   // Flob to save
    SmiSize wsize = record.Write(buffer, src.size, offset);
    record.Finish();
    if(wsize!=src.size){
+     assert(false);
      __TRACE_LEAVE__
      return false;
    }

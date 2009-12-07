@@ -179,8 +179,8 @@ Returns the current size of this Flob.
 Changes the size of a flob to the given one.
 
 */
-    virtual void resize(const SmiSize& newsize) { 
-       FlobManager::getInstance().resize(*this,newsize);
+    virtual bool resize(const SmiSize& newsize) { 
+       return FlobManager::getInstance().resize(*this,newsize);
      }
 
 
@@ -190,7 +190,7 @@ Changes the size of a flob to the given one.
 Cleans the flob. actually only the size is set to be zero.
 
 */
-    virtual void clean(){ resize(0); }
+    virtual bool clean(){ return resize(0); }
 
 /*
 ~read~
@@ -199,10 +199,10 @@ Reads a part of the data from this Flob. The ~buffer~ must be provided and dispo
 by the caller of the funtion.
 
 */
-    inline void read(char* buffer,
+    inline bool read(char* buffer,
                      const SmiSize length,
                      const SmiSize offset=0) const {
-       FlobManager::getInstance().getData(*this, buffer, offset, length);
+       return FlobManager::getInstance().getData(*this, buffer, offset, length);
     };
 
 /*
@@ -211,13 +211,15 @@ by the caller of the funtion.
 Puts data providen in ~buffer~ into the Flob at the specified position.
 
 */
-    inline void write(const char* buffer,
+    inline bool write(const char* buffer,
                       const SmiSize length,
                       const SmiSize offset=0){
       if(offset+length > size) {
-        FlobManager::getInstance().resize(*this, offset+length);
+        if(!FlobManager::getInstance().resize(*this, offset+length)){
+          return false;
+        }
       }
-      FlobManager::getInstance().putData(*this, buffer, offset, length);
+      return FlobManager::getInstance().putData(*this, buffer, offset, length);
     }
 /*
 ~copyFrom~
@@ -225,9 +227,11 @@ Puts data providen in ~buffer~ into the Flob at the specified position.
 Copies the content of src to this flob.
 
 */
-    virtual void copyFrom(const Flob& src){
-      FlobManager::getInstance().copyData(src,*this);
-      FlobManager::getInstance().resize(*this, src.size);
+    virtual bool copyFrom(const Flob& src){
+      if(!FlobManager::getInstance().resize(*this, src.size)){
+       return false;
+      }
+      return FlobManager::getInstance().copyData(src,*this);
     };
 
 /*
@@ -236,9 +240,11 @@ Copies the content of src to this flob.
 Copies the content of this flob to ~dest~.
 
 */
-    virtual void copyTo(Flob& dest) const {
-       FlobManager::getInstance().copyData(*this,dest);
-       FlobManager::getInstance().resize(dest, size);
+    virtual bool copyTo(Flob& dest) const {
+       if(!FlobManager::getInstance().resize(dest, size)){
+         return false;
+       }
+       return FlobManager::getInstance().copyData(*this,dest);
     };
 
 /*
@@ -334,8 +340,8 @@ small Flob data within the tuple itself.
 Destroys this;
 
 */
-  void destroy(){
-     FlobManager::getInstance().destroy(*this);
+  bool destroy(){
+     return FlobManager::getInstance().destroy(*this);
   }
 
 

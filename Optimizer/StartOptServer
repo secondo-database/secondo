@@ -52,7 +52,7 @@ fi
 
 
 if [ "$SECONDO_PLATFORM" != win32 ]; then
-  unset SWI_HOME_DIR
+   echo""  #  unset SWI_HOME_DIR
 fi
 
 if [ "$SECONDO_JAVA" != "" ]; then

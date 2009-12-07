@@ -66,7 +66,7 @@ Frees all resources occupied by the Flob. After destroying a flob. No data can b
 accessed.
 
 */
-      void destroy(Flob& victim);
+      bool destroy(Flob& victim);
 
 
 /*
