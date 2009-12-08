@@ -10165,7 +10165,7 @@ struct Cov{
 //        tmp.Print(cout);
         MInt result(0);
         tmp.Hat(result);
-        result.Print(cout);
+//        result.Print(cout);
         for(int i = 0;i < result.GetNoComponents();i++){
           const UInt* ui;
           result.Get(i,ui);
