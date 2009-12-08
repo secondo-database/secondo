@@ -9987,7 +9987,7 @@ struct Cov{
     for(int i = 0;i < node->EntryCount();i++){
       R_TreeInternalEntry<dim> e =
             (R_TreeInternalEntry<dim>&)(*node)[i];
-      cout<<"rec_id "<<e.pointer<<endl;
+//      cout<<"rec_id "<<e.pointer<<endl;
       CcInt* id = new CcInt(true,e.pointer);
       BTreeIterator* iter1 = btree1->ExactMatch(id);
       BTreeIterator* iter2 = btree2->ExactMatch(id);
@@ -10060,7 +10060,7 @@ struct Cov{
         }
         delete n;
       }
-
+      delete iter1;
 
       int NodeId2;
       //get coverage from the second relation
@@ -10123,6 +10123,7 @@ struct Cov{
           }
           delete n;
       }
+      delete iter2;
 
       //a new node, get its sons from both coverage relation
       if(flag1 == false && flag2 == false){
@@ -10175,21 +10176,19 @@ struct Cov{
           resTuple->PutAttribute(1,ri);
           resTuple->PutAttribute(2,new UInt(*ui));
           cov3->AppendTuple(resTuple);
-          cout<<*resTuple<<endl;
+//          cout<<*resTuple<<endl;
           resTuple->DeleteIfAllowed();
         }
         delete n;
       }
 
-      delete iter1;
-      delete iter2;
       delete id;
       assert(flag1 == false || flag2 == false);
   }
 
   delete node;
 
-    cout<<"cov3 no_of_tuples "<<cov3->GetNoTuples()<<endl;
+//    cout<<"cov3 no_of_tuples "<<cov3->GetNoTuples()<<endl;
     if(cov3->GetNoTuples() > 0)
       third = true;
 
