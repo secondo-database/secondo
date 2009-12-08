@@ -3713,7 +3713,7 @@ R_Tree<dim,LeafInfo>* rtree_in2)
   //create an entry on the second root node
 
   //first assume, the height of first rtree is higher than the second
-  cout<<" height1 "<<temp_head.height<<" height2 "<<header.height<<endl;
+//  cout<<" height1 "<<temp_head.height<<" height2 "<<header.height<<endl;
   if(temp_head.height > header.height){
       int cur_height = temp_head.height;//height of first r-tree
       vector<SmiRecordId> path;
@@ -4105,6 +4105,8 @@ bool R_Tree<dim, LeafInfo>::FinalizeBulkLoad()
       assert(RecordAppended);
       bli->node[i]->Write(*rec);
       rootId = recId;
+
+      delete rec;  //for memory leak
 
       if( i < bli->currentHeight )
       { // insert node into father
