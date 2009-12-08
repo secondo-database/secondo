@@ -243,14 +243,6 @@ assignSmallSelectivity(Source, Target, Result, join(Arg1, Arg2, _), Value) :-
   compute_sel( Value, Card, Sel ),!,
   assert(small_cond_sel(Source, Target, Result, Sel)).
 
-assignSmallSelectivity(Source, Target, Result,
-           sortedjoin(Arg1, Arg2, _, _, _), Value) :-
-  newResSize(Arg1, Card1),
-  newResSize(Arg2, Card2),
-  Card is Card1 * Card2,
-  compute_sel( Value, Card, Sel ),!,
-  assert(small_cond_sel(Source, Target, Result, Sel)).
-
 createSmallSelectivity :-
   deleteSmallSelectivity, !,
   not(createSmallSelectivity2).
@@ -768,13 +760,6 @@ assignEntropySize(Source, Target, join(Arg1, Arg2, _), Result) :-
   setNodeSize(Result, Size),
   assert(edgeSelectivity(Source, Target, Sel)).
 
-assignEntropySize(Source, Target, sortedjoin(Arg1, Arg2, _, _, _), Result) :-
-  resSize(Arg1, Card1),
-  resSize(Arg2, Card2),
-  entropySel(Source, Target, Sel),
-  Size is Card1 * Card2 * Sel,
-  setNodeSize(Result, Size),
-  assert(edgeSelectivity(Source, Target, Sel)).
 
 createEntropyNode( [] ).
 createEntropyNode( [[N,E]|L] ) :-
@@ -838,7 +823,3 @@ deleteSmallResults :-
 
 
 
-/*
-End of file ~entropy\_opt.pl~
-
-*/

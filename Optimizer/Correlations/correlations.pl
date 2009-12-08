@@ -303,6 +303,13 @@ get_predicate_contents(Predicate, PredExpr, Relation):-
   Relation = [ Relation1, Relation2 ],
   debug_writeln(get_predicate_contents/3, 62, [ 'join predicate evaluated ', Predicate, ' => ', [PredExpr, Relation]]).
 
+% sortedjoin predicates
+get_predicate_contents(Predicate, PredExpr, Relation):-
+	Predicate = sortedjoin( _, _, PredExpr, _, _),
+	PredExpr = pr( _ , Relation1, Relation2 ),
+	Relation = [ Relation1, Relation2 ],
+	debug_writeln(get_predicate_contents/3, 62, [ 'join predicate evaluated ', Predicate, ' => ', [PredExpr, Relation]]).
+
 % other unsupported type of predicate
 get_predicate_contents(Predicate, _, _):-
 	info_continue(get_predicate_contents/3, [ 'unsupported type of predicate ', Predicate, ' - ignore it']),
