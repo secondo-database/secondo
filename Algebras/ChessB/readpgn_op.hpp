@@ -252,7 +252,7 @@ public:
             try
             {
                 PlyT result = validate_move()( pos, moves[ply_number] );
-                apply_ply_op()( pos, result );
+                delete apply_ply_op()( pos, result );
                 g.moves.Append( result );
             }
             catch ( const exception& e )

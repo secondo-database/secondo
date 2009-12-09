@@ -27,15 +27,13 @@ public:
 
     Position() {}
     Position( undef_t def )
-        : position_t(EMPTY_POSITION), defined_(def == DEFINED){}
-    Position( const position_t& pos ) : position_t(pos), defined_(true){}
+        : position_t(EMPTY_POSITION), Attribute(def) { }
+    Position( const position_t& pos ) : position_t(pos), Attribute(true){}
 
     // pure virtual functions of class Attribute
     virtual bool Adjacent( const Attribute* ) const { return 0; }
     virtual int Compare( const Attribute* other ) const { return 0; }
     virtual Attribute* Clone() const { return new Position( *this ); }
-    virtual bool IsDefined() const { return defined_; }
-    virtual void SetDefined( bool def ) { defined_ = def; }
     virtual size_t Sizeof() const { return sizeof( *this ); }
 
     virtual size_t HashValue() const
@@ -83,8 +81,15 @@ public:
 
     virtual void CopyFrom( const Attribute* other )
     {
-        *this = Position( *static_cast< const Position* >( other ) );
+        *this =  *static_cast< const Position* >( other );
     }
+
+    virtual Position& operator=(const Position& src){
+       position_t::operator=(src);
+       Attribute::operator=(src);
+       return *this;
+    }
+
 
     static Position In( ListExpr instance )
     {
@@ -116,6 +121,9 @@ public:
 
     static ListExpr Out( const Position& pos )
     {
+        if(!pos.IsDefined()){
+           return nl->SymbolAtom("undef");
+        }
         list_ostream ls;
         ls << pos.move_number();
         list_ostream fields;
@@ -156,8 +164,6 @@ public:
         return sum;
     }
 
-protected:
-    bool defined_;
 };
 
 #endif // SECONDO_ALGEBRAS_CHESS_POSITION_HPP

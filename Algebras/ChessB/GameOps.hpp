@@ -80,7 +80,7 @@ struct getposition_op : binary_function< Game, CcInt, Position* >
         for( int i = 0; i < n; ++i )
         {
             const Ply& p = g.get_move( i );
-            apply_ply_op()( *pos, p );
+            delete apply_ply_op()( *pos, p );
         }
         return pos;
     }
@@ -129,7 +129,7 @@ struct positions_op : unary_function< Game, pair<bool, Position*> >
     {
         if ( ++current_ < g.moves.Size() )
         {
-            apply_ply_op()( pos_, g.get_move( current_ ) );
+            delete apply_ply_op()( pos_, g.get_move( current_ ) );
             return make_pair( true, new Position( pos_ ) );
         }
         return make_pair( false, new Position(UNDEF) );
@@ -151,15 +151,20 @@ struct history_op : unary_function< Game, pair<bool, Tuple*> >
         if ( current_ < g.moves.Size() )
         {
             const Ply& ply = g.get_move( current_++ );
-            apply_ply_op()( pos_, ply );
+            delete apply_ply_op()( pos_, ply );
 
-            Tuple* result = new Tuple( new TupleType(type_) );
+            TupleType* tt = new TupleType(type_);
+            Tuple* result = new Tuple( tt );
+            tt->DeleteIfAllowed();
             result->PutAttribute( 0, new CcInt(true, current_) );
             result->PutAttribute( 1, new Position(pos_) );
             result->PutAttribute( 2, new Ply(ply) );
             return make_pair( true, result );
         }
-        return make_pair( false, new Tuple( new TupleType(type_) ) );
+        TupleType* tt = new TupleType(type_);
+        pair<bool,Tuple*> res = make_pair( false, new Tuple( tt ) );
+        tt->DeleteIfAllowed(); // free the local reference
+        return res;
     }
 
     static list_ostream type( ListExpr )
