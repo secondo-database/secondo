@@ -31,15 +31,8 @@ October 2009- Simone Jandt
 #ifndef __TRAFFIC_ALGEBRA_H__
 #define __TRAFFIC_ALGEBRA_H__
 
-#include "Attribute.h"
-#include "TemporalAlgebra.h"
-#include "NetworkAlgebra.h"
-#include "TemporalNetAlgebra.h"
-#include "DateTime.h"
-#include "NestedList.h"
-
 /*
-Enumeration of the coloums of the resulting relation of trafficflow operation.
+Enumeration of the coloums of the resulting relation of trafficflow operations.
 
 */
 
@@ -47,5 +40,12 @@ enum TrafficFlowRelation{TRAFFICFLOW_SECID = 0,
                          TRAFFICFLOW_PARTNO,
                          TRAFFICFLOW_DIR,
                          TRAFFICFLOW_FLOW};
+
+enum TrafficJamRelation{TRAFFICJAM_SECID = 0,
+                        TRAFFICJAM_PARTNO,
+                        TRAFFICJAM_DIR,
+                        TRAFFICJAM_SPEED,
+                        TRAFFICJAM_FLOW};
+
 
 #endif // __TRAFFIC_ALGEBRA_H__

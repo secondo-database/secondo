@@ -58,7 +58,12 @@ extern NestedList* nl;
 extern QueryProcessor* qp;
 
 /*
-Auxiliary Functions
+3 Auxiliary Functions and structs
+
+3.1 ~Write Tuple~
+
+Writes extends relation ~rel~ by a tuple for the traffic flow value within a
+section.
 
 */
 void WriteTuple(GenericRelation* rel, ListExpr relNumType, int actSectId,
@@ -75,17 +80,104 @@ void WriteTuple(GenericRelation* rel, ListExpr relNumType, int actSectId,
   actTuple->DeleteIfAllowed();
 };
 
+void WriteTupleSpeed(GenericRelation* rel, ListExpr relNumType, int actSectId,
+                     int actPartNo, int actDir, MReal* avgSpeed, MInt* flow)
+{
+  Tuple *actTuple = new Tuple(nl->Second(relNumType));
+  actTuple->PutAttribute(TRAFFICJAM_SECID,
+                         new CcInt(true,actSectId));
+  actTuple->PutAttribute(TRAFFICJAM_PARTNO,
+                         new CcInt(true,actPartNo));
+  actTuple->PutAttribute(TRAFFICJAM_DIR, new CcInt(true,actDir));
+  actTuple->PutAttribute(TRAFFICJAM_SPEED, avgSpeed);
+  actTuple->PutAttribute(TRAFFICJAM_FLOW, flow);
+  rel->AppendTuple(actTuple);
+  actTuple->DeleteIfAllowed();
+};
 /*
-3 Operators
+3.2 struct ~speed Instant~
 
-3.1 ~trafficflow~
+Helper struct for average speed computing in traffic jam estimation.
 
-The operation ~trafficflow~ expects to get a ascending sorted stream of
-~mgpsecunits~ and returns a relation containing for every section part and
-direction in the stream a tuple with the sectionid(~int~),
-the part number(~int), the direction(~int) and a flow value (~mint~)
-telling the number of cars on this section part at every time interval of the
-observation time.
+*/
+
+class speedInstant
+{
+  public:
+  speedInstant(){};
+
+  speedInstant(const double s, const Instant& i):
+      inst(i)
+  {
+    speed = s;
+  };
+
+  speedInstant(const speedInstant& sI):
+      inst(sI.inst)
+  {
+    speed = sI.speed;
+  };
+
+  ~speedInstant(){};
+
+  speedInstant& operator=(const speedInstant sI)
+  {
+    speed = sI.speed;
+    inst = sI.inst;
+    return *this;
+  };
+
+  int Compare (const speedInstant *sI) const
+  {
+    return inst.Compare(&sI->inst);
+  };
+
+  bool operator<(const speedInstant sI) const
+  {
+    return Compare(&sI) < 0;
+  };
+
+  bool operator>(const speedInstant sI) const
+  {
+    return Compare(&sI) > 0;
+  };
+
+  bool operator==(const speedInstant sI)const
+  {
+    return Compare(&sI)==0;
+  };
+
+  bool operator!=(const speedInstant sI)const
+  {
+    return Compare(&sI)!=0;
+  };
+
+  bool operator<=(const speedInstant sI)const
+  {
+    return Compare(&sI)<=0;
+  };
+
+  bool operator>=(const speedInstant sI)const
+  {
+    return Compare(&sI)>=0;
+  };
+
+  double speed;
+  Instant inst;
+};
+
+
+/*
+4 Operators
+
+4.1 Traffic Flow estimation
+
+4.1.1 ~trafficflow~
+
+The operation gets a sorted stream of ~mgpsecunit~s and computes a corresponding
+relation of each tuple containing a section number (~int~), a part number of the
+section (~int), a direction (~int) and the flow value (number of cars per
+time interval) for this before defined network part (~mint~).
 
 TypeMapping:
 
@@ -377,7 +469,14 @@ struct trafficflowInfo : OperatorInfo {
 };
 
 /*
-3.2 trafficflow2
+4.1.2 trafficflow2
+
+The operation gets a stream of ~mgpsecunit~s and computes a corresponding
+relation of each tuple containing a section number (~int~), a part number of the
+section (~int), a direction (~int) and the flow value (number of cars per time
+interval) for this before defined network part (~mint~).
+
+Type Mapping
 
 */
 
@@ -669,8 +768,484 @@ struct trafficflow2Info : OperatorInfo {
     meaning   = "Relation trafficflow from input stream.";
   }
 };
+
 /*
-4 Creating the ~TrafficAlgebra~
+4.2 Traffic Jam
+
+Type Mapping
+
+*/
+
+static string trafficRelationTypeInfo =
+    "(rel (tuple ((secid int) (part int) (dir int) (speed mreal) "
+                 "(flow mint))))";
+
+ListExpr OpTrafficTypeMap(ListExpr in_xArgs)
+{
+  NList type(in_xArgs);
+  if (type.length()==1)
+  {
+    NList st = type.first();
+    NList attr("mgpsecunit");
+    if (st.checkStream(attr))
+    {
+      ListExpr retList;
+      nl->ReadFromString(trafficRelationTypeInfo, retList);
+      return retList;
+    }
+  }
+  return NList::typeError("Expected a stream of mgpsecunits.");
+}
+
+/*
+Value Mapping
+
+*/
+
+int OpTrafficValueMap(Word* args, Word& result, int message,
+                           Word& local, Supplier s)
+{
+  Word actual;
+  GenericRelation* rel = (Relation*)((qp->ResultStorage(s)).addr);
+  result.setAddr(rel);
+  ListExpr relInfo;
+  nl->ReadFromString(trafficRelationTypeInfo, relInfo);
+  ListExpr relNumType = SecondoSystem::GetCatalog()->NumericType(relInfo);
+  int actSectId = -1;
+  int actPartNo = 0;
+  int actDir = None;
+  int actFlow = 0;
+  double actSpeed = 0.0;
+  double speed = 0.0;
+  Instant actTStart(instanttype);
+  Instant actTEnd(instanttype);
+  MReal *avgSpeed = new MReal(0);
+  MInt *flow = new MInt(0);
+  priority_queue<MGPSecUnit, deque<MGPSecUnit>,
+  greater<MGPSecUnit> > mgpsecUnits;
+  priority_queue<speedInstant, deque<speedInstant>,
+  greater<speedInstant> > endInstants;
+  if(rel->GetNoTuples() > 0) rel->Clear();
+  MGPSecUnit *actMGPSU = 0;
+  qp->Open(args[0].addr);
+  qp->Request(args[0].addr, actual);
+  while (qp->Received(args[0].addr))
+  {
+    actMGPSU = (MGPSecUnit*)actual.addr;
+    mgpsecUnits.push(*actMGPSU);
+    qp->Request(args[0].addr, actual);
+    delete actMGPSU;
+  }
+  qp->Close(args[0].addr);
+  bool first = true;
+  flow->StartBulkLoad();
+  avgSpeed->StartBulkLoad();
+  MGPSecUnit curMGPSec;
+  while(!mgpsecUnits.empty())
+  {
+    curMGPSec = mgpsecUnits.top();
+    mgpsecUnits.pop();
+    if(first && curMGPSec.IsDefined() && curMGPSec.GetDirect() != None)
+    {
+      actTStart = curMGPSec.GetTimeInterval().start;
+      while (!endInstants.empty()) endInstants.pop();
+      endInstants.push(speedInstant(curMGPSec.GetSpeed(),
+                                    curMGPSec.GetTimeInterval().end));
+      actSectId = curMGPSec.GetSecId();
+      actPartNo = curMGPSec.GetPart();
+      actDir = curMGPSec.GetDirect();
+      first = false;
+      actFlow = 1;
+      actSpeed = curMGPSec.GetSpeed();
+    }
+    else
+    {
+      if (curMGPSec.IsDefined() && curMGPSec.GetDirect() != None)
+      {
+        if (actSectId == curMGPSec.GetSecId() &&
+            actPartNo == curMGPSec.GetPart() &&
+            actDir == curMGPSec.GetDirect())
+        {
+          endInstants.push(speedInstant(curMGPSec.GetSpeed(),
+                                        curMGPSec.GetTimeInterval().end));
+          if (curMGPSec.GetTimeInterval().start > actTStart)
+          {
+            while (!endInstants.empty() &&
+                    curMGPSec.GetTimeInterval().start > endInstants.top().inst)
+            {
+              if (actTStart != endInstants.top().inst)
+              {
+                flow->Add(UInt(Interval<Instant>(actTStart,
+                                                 endInstants.top().inst,
+                                                 true, false),
+                              CcInt(true, actFlow)));
+                avgSpeed->Add(UReal(Interval<Instant> (actTStart,
+                                                       endInstants.top().inst,
+                                                       true, false),
+                                  actSpeed,
+                                  actSpeed));
+              }
+              actTStart = endInstants.top().inst;
+              if ((actFlow - 1) > 0)
+                actSpeed = (actSpeed * actFlow - endInstants.top().speed)/
+                           (actFlow - 1);
+              else
+                actSpeed = 0.0;
+              endInstants.pop();
+              actFlow--;
+            }
+            if (!endInstants.empty() &&
+                 curMGPSec.GetTimeInterval().start == endInstants.top().inst)
+            {
+              if (actTStart != endInstants.top().inst)
+              {
+                avgSpeed->Add(UReal(Interval<Instant> (actTStart,
+                                                       endInstants.top().inst,
+                                                       true, false),
+                                    actSpeed,
+                                    actSpeed));
+                flow->Add(UInt(Interval<Instant>(actTStart,
+                                                 endInstants.top().inst,
+                                                 true, false),
+                               CcInt(true, actFlow)));
+              }
+              if (actFlow > 0)
+                actSpeed = (actSpeed * actFlow - endInstants.top().speed)/
+                            actFlow;
+              else
+                actSpeed = 0.0;
+              actTStart = endInstants.top().inst;
+              endInstants.pop();
+              while(!endInstants.empty() &&
+                    curMGPSec.GetTimeInterval().start == endInstants.top().inst)
+              {
+                if ((actFlow - 1) > 0)
+                  actSpeed = (actSpeed * actFlow - endInstants.top().speed)/
+                             (actFlow - 1);
+                else
+                  actSpeed = 0.0;
+                actFlow--;
+                endInstants.pop();
+              }
+            }
+            else
+            {
+              if (!endInstants.empty() &&
+                   curMGPSec.GetTimeInterval().start < endInstants.top().inst)
+              {
+                if (actTStart != curMGPSec.GetTimeInterval().start)
+                {
+                  flow->Add(UInt(Interval<Instant> (actTStart,
+                                              curMGPSec.GetTimeInterval().start,
+                                                    true,false),
+                                CcInt(true, actFlow)));
+                  avgSpeed->Add(UReal(Interval<Instant> (actTStart,
+                                              curMGPSec.GetTimeInterval().start,
+                                              true,false),
+                               actSpeed,
+                               actSpeed));
+                  actTStart = curMGPSec.GetTimeInterval().start;
+                  actSpeed = (actSpeed * actFlow + curMGPSec.GetSpeed()) /
+                             (actFlow + 1);
+                  actFlow++;
+                }
+                else
+                {
+                  actSpeed = (actSpeed * actFlow + curMGPSec.GetSpeed()) /
+                             (actFlow + 1);
+                  actFlow++;
+                }
+              }
+            }
+          }
+          else
+          {
+            if (curMGPSec.GetTimeInterval().start == actTStart)
+            {
+              actSpeed = (actSpeed * actFlow + curMGPSec.GetSpeed())/
+                                    (actFlow + 1);
+              actFlow++;
+            }
+            else // shoult not happen stream not well sorted.
+            {
+              cerr << "Traffic stopped computation."
+                  << " Stream is not sorted." << endl;
+              flow->EndBulkLoad();
+              avgSpeed->EndBulkLoad();
+              WriteTupleSpeed(rel, relNumType, actSectId, actPartNo, actDir,
+                              avgSpeed, flow);
+              delete flow;
+              delete avgSpeed;
+              while (!endInstants.empty()) endInstants.pop();
+              while (!mgpsecUnits.empty()) mgpsecUnits.pop();
+              return -1;
+            }
+          }
+        }
+        else //section, partition, or direction changed
+        {
+          if (!endInstants.empty())
+          {
+            actTEnd = endInstants.top().inst;
+            speed = endInstants.top().speed;
+            endInstants.pop();
+          }
+          else
+          {
+            actTEnd == actTStart;
+          }
+          if (actTStart != actTEnd)
+          {
+            flow->Add(UInt(Interval<Instant>(actTStart, actTEnd, true, false),
+                           CcInt(true, actFlow)));
+            avgSpeed->Add(UReal(Interval<Instant>(actTStart, actTEnd,
+                                                  true, false),
+                               actSpeed,
+                               actSpeed));
+          }
+          actTStart = actTEnd;
+          if (actFlow - 1 > 0)
+          {
+            actSpeed = (actSpeed * actFlow - speed)/
+                       (actFlow - 1);
+          }
+          else
+            actSpeed = 0.0;
+          actFlow--;
+          if (!endInstants.empty())
+          {
+            actTEnd = endInstants.top().inst;
+            speed = endInstants.top().speed;
+            endInstants.pop();
+          }
+          while (!endInstants.empty())
+          {
+            if (actTEnd < endInstants.top().inst)
+            {
+              if (actTStart != actTEnd)
+              {
+                flow->Add(UInt(Interval<Instant>(actTStart, actTEnd,
+                                                 true, false),
+                              CcInt(true, actFlow)));
+                avgSpeed->Add(UReal(Interval<Instant>(actTStart, actTEnd,
+                                                      true, false),
+                                   actSpeed,
+                                   actSpeed));
+              }
+              if (actFlow - 1 > 0)
+              {
+                actSpeed = (actSpeed * actFlow - speed)/
+                           (actFlow - 1);
+              }
+              else
+                actSpeed = 0.0;
+              actFlow--;
+              actTStart = actTEnd;
+              actTEnd = endInstants.top().inst;
+              speed = endInstants.top().speed;
+              endInstants.pop();
+            }
+            else
+            {
+              if(actTEnd == endInstants.top().inst)
+              {
+                if (actFlow - 1 > 0)
+                {
+                  actSpeed = (actSpeed * actFlow - speed)/
+                      (actFlow - 1);
+                }
+                else
+                  actSpeed = 0.0;
+                actFlow--;
+                speed = endInstants.top().speed;
+                endInstants.pop();
+              }
+              else //should never happen
+              {
+                cerr << "Traffic stopped computation."
+                    << " Failure in endInstants queue." << endl;
+                flow->EndBulkLoad();
+                avgSpeed->EndBulkLoad();
+                WriteTupleSpeed (rel, relNumType, actSectId, actPartNo, actDir,
+                                 avgSpeed, flow);
+                delete avgSpeed;
+                delete flow;
+                while (!endInstants.empty()) endInstants.pop();
+                while (!mgpsecUnits.empty()) mgpsecUnits.pop();
+                return -1;
+              }
+            }
+          }
+          if (actTStart != actTEnd)
+          {
+            flow->Add(UInt(Interval<Instant> (actTStart, actTEnd, true, false),
+                           CcInt(true, actFlow)));
+            avgSpeed->Add(UReal(Interval<Instant>(actTStart, actTEnd,
+                                                  true, false),
+                               actSpeed,
+                               actSpeed));
+          }
+          flow->EndBulkLoad();
+          avgSpeed->EndBulkLoad();
+          WriteTupleSpeed(rel, relNumType, actSectId, actPartNo, actDir,
+                          avgSpeed, flow);
+          actTStart = curMGPSec.GetTimeInterval().start;
+          while (!endInstants.empty()) endInstants.pop();
+          endInstants.push(speedInstant(curMGPSec.GetSpeed(),
+                                        curMGPSec.GetTimeInterval().end));
+          actSectId = curMGPSec.GetSecId();
+          actPartNo = curMGPSec.GetPart();
+          actDir = curMGPSec.GetDirect();
+          actFlow = 1;
+          actSpeed = curMGPSec.GetSpeed();
+          first = false;
+          flow = new MInt(0);
+          avgSpeed = new MReal(0);
+          flow->StartBulkLoad();
+          avgSpeed->StartBulkLoad();
+        }
+      }
+    }
+  }
+  if (!endInstants.empty())
+  {
+    actTEnd = endInstants.top().inst;
+    speed = endInstants.top().speed;
+    endInstants.pop();
+  }
+  if (actTStart != actTEnd)
+  {
+    flow->Add(UInt(Interval<Instant>(actTStart, actTEnd, true, false),
+              CcInt(true, actFlow)));
+    avgSpeed->Add(UReal(Interval<Instant>(actTStart, actTEnd, true, false),
+                       actSpeed,
+                       actSpeed));
+  }
+  actTStart = actTEnd;
+  if (actFlow - 1 > 0)
+  {
+    actSpeed = (actSpeed * actFlow - speed)/
+        (actFlow - 1);
+  }
+  else
+    actSpeed = 0.0;
+  actFlow--;
+  if (!endInstants.empty())
+  {
+    actTEnd = endInstants.top().inst;
+    speed = endInstants.top().speed;
+    endInstants.pop();
+  }
+  if (endInstants.empty() && actTStart != actTEnd)
+  {
+    flow->Add(UInt(Interval<Instant> (actTStart, actTEnd, true, false),
+              CcInt(true,actFlow)));
+    avgSpeed->Add(UReal(Interval<Instant> (actTStart, actTEnd, true, false),
+                        actSpeed, actSpeed));
+  }
+  else
+  {
+    while (!endInstants.empty())
+    {
+      if (actTEnd < endInstants.top().inst)
+      {
+        if (actTStart != actTEnd)
+        {
+          flow->Add(UInt(Interval<Instant>(actTStart, actTEnd,
+                                           true, false),
+                         CcInt(true, actFlow)));
+          avgSpeed->Add(UReal(Interval<Instant> (actTStart, actTEnd,
+                                                 true, false),
+                              actSpeed, actSpeed));
+        }
+        if (actFlow - 1 > 0)
+        {
+          actSpeed = (actSpeed * actFlow - speed)/
+              (actFlow - 1);
+        }
+        else
+          actSpeed = 0.0;
+        actFlow--;
+        actTStart = actTEnd;
+        actTEnd = endInstants.top().inst;
+        speed = endInstants.top().speed;
+        endInstants.pop();
+      }
+      else
+      {
+        if(actTEnd == endInstants.top().inst)
+        {
+          if (actFlow - 1 > 0)
+          {
+            actSpeed = (actSpeed * actFlow - speed)/
+                (actFlow - 1);
+          }
+          else
+            actSpeed = 0.0;
+          actFlow--;
+          speed = endInstants.top().speed;
+          endInstants.pop();
+          if (endInstants.empty() && actTStart != actTEnd)
+          {
+            flow->Add(UInt(Interval<Instant>(actTStart, actTEnd,
+                                             true, false),
+                           CcInt(true, actFlow)));
+            avgSpeed->Add(UReal(Interval<Instant> (actTStart, actTEnd,
+                          true, false),
+                          actSpeed, actSpeed));
+          }
+        }
+        else //should never happen
+        {
+          cerr << "Traffic stopped computation."
+              << " Failure in endInstants queue." << endl;
+          flow->EndBulkLoad();
+          avgSpeed->EndBulkLoad();
+          WriteTupleSpeed(rel, relNumType, actSectId, actPartNo, actDir,
+                          avgSpeed, flow);
+          delete flow;
+          delete avgSpeed;
+          while (!endInstants.empty()) endInstants.pop();
+          while (!mgpsecUnits.empty()) mgpsecUnits.pop();
+          return -1;
+        }
+      }
+    }
+  }
+  if (actTStart != actTEnd)
+  {
+    flow->Add(UInt(Interval<Instant> (actTStart, actTEnd, true, false),
+                   CcInt(true, actFlow)));
+    avgSpeed->Add(UReal(Interval<Instant> (actTStart, actTEnd,
+                                           true, false),
+                        actSpeed, actSpeed));
+  }
+  flow->EndBulkLoad();
+  avgSpeed->EndBulkLoad();
+  WriteTupleSpeed(rel, relNumType, actSectId, actPartNo, actDir, avgSpeed,
+                  flow);
+  return 0;
+}
+
+/*
+Operator Information for the user:
+
+*/
+
+struct trafficInfo : OperatorInfo {
+
+  trafficInfo()
+  {
+    name      = "traffic";
+    signature = "stream(mgpsecunit)->rel(int,int,int,mreal,mint)";
+    syntax    = "_ traffic";
+    meaning   = "Relation traffic from input stream.";
+  }
+};
+
+
+/*
+5 Creating the ~TrafficAlgebra~
 
 */
 
@@ -682,12 +1257,14 @@ class TrafficAlgebra : public Algebra
     AddOperator(trafficflowInfo(), OpTrafficFlowValueMap, OpTrafficFlowTypeMap);
     AddOperator(trafficflow2Info(), OpTrafficFlow2ValueMap,
                 OpTrafficFlow2TypeMap);
+    AddOperator(trafficInfo(), OpTrafficValueMap,
+                OpTrafficTypeMap);
   }
   ~TrafficAlgebra() {};
 };
 
 /*
-5 Initialization
+6 Initialization
 
 */
 
