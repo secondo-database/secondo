@@ -406,8 +406,13 @@ char* Tuple::WriteToBlock( size_t coreSize,
   char* ext  = data + recordSizeLen + coreSize;
 
           SHOW(recordSizeLen)
+//#undef SHOW
+//#define SHOW(a) {cerr << "  " << #a << " = " << a << endl;} 
+
           SHOW(coreSize)
           SHOW(extensionSize)
+//#define SHOW(a) 
+
           SHOW(dataSize)
           SHOW(blockSize)
 
@@ -545,39 +550,49 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
                                   vector<double>& attrExtSize,
                                   vector<double>& attrSize )
 {
+/*
+The size values represent aggregate values for a complete relation!!!
+This is confusing. Aggregation should take place in the member functions of
+the relation class.
+
+The core size has already be added in the calling function!
+
+----
+  extSize += extensionSize (small Flobs)
+  size = += extensionSize + (big Flobs) = extSize + (big Flobs)
+----
+
+*/
+
   TRACE_ENTER
+  int numOfAttr = tupleType->GetNoAttributes();
   assert( attrExtSize.size() == attrSize.size() );
-  assert( (size_t)tupleType->GetNoAttributes() >= attrSize.size() );
+  assert( (size_t)numOfAttr >= attrSize.size() );
 
   coreSize = tupleType->GetCoreSize();
   uint32_t extensionSize = 0;
-
+  double   lobSize = 0.0;
 
   // Calculate the size of the small FLOB data which will be
   // saved together with the tuple attributes and save the LOBs
   // in the lobFile.
-  for( int i = 0; i < tupleType->GetNoAttributes(); i++)
+  for( int i = 0; i < numOfAttr; i++)
   {
     Attribute::StorageType st =  attributes[i]->GetStorageType();
 
     uint16_t currentSize = 0;
+    size_t currentExtSize = 0;
 
     // check storage type
     if (st == Attribute::Default) {
-      currentSize = tupleType->GetAttributeType(i).size;
+      currentSize = tupleType->GetAttributeType(i).coreSize;
     }
     else if (st == Attribute::Core) {
       currentSize = attributes[i]->SerializedSize();
     }
     else if ( st == Attribute::Extension ) {
       currentSize = sizeof(uint32_t);
-      size_t ss = attributes[i]->SerializedSize();
-
-      extensionSize += ss;
-      attrExtSize[i] += ss;
-      extSize += ss;
-      size += ss;
-      attrSize[i] += ss;
+      currentExtSize = attributes[i]->SerializedSize();
     }
     else {
       cerr << "ERROR: unknown storage type for attribute No "
@@ -585,13 +600,16 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
       assert(false);
     }
 
-    attrExtSize[i] += currentSize;
-    attrSize[i] += currentSize;
+    extensionSize  += currentExtSize;
+    attrExtSize[i] += (currentSize + currentExtSize);
+    attrSize[i]    += (currentSize + currentExtSize);
 
-    SHOW(currentSize)
-    SHOW(extensionSize)     
+         SHOW(currentSize)
+         SHOW(currentExtSize)
+         SHOW(extensionSize)     
 
     // handle Flobs
+    double attrLobSize = 0.0;
     for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
     {
       Flob* tmpFlob = attributes[i]->GetFLOB(j);
@@ -600,14 +618,22 @@ size_t Tuple::CalculateBlockSize( size_t& coreSize,
       const SmiSize tmpFlobSize = tmpFlob->getSize();
       SHOW(tmpFlobSize)
 
-      attrSize[i] += tmpFlobSize;
-      size += tmpFlobSize;
 
       if (tmpFlobSize < extensionLimit) {
+	// small Flobs      
         extensionSize += tmpFlobSize;
+        attrExtSize[i] += tmpFlobSize;
+      }	else {
+        // big Flobs
+	attrLobSize += tmpFlobSize;
       }	
+      attrSize[i] += tmpFlobSize;
     }
+    lobSize += attrLobSize;
   }
+
+  extSize += extensionSize;
+  size += (extensionSize + lobSize);
 
   TRACE_LEAVE
   return extensionSize;
@@ -693,6 +719,7 @@ bool Tuple::Open(TupleFileIterator *iter)
   return false;
 }
 
+#define FATAL_ERROR cerr << __FILE__ << "@" << __LINE__ << " - ERROR: "
 
 char* Tuple::GetSMIBufferData(SmiRecord& record, uint16_t& rootSize)
 {
@@ -702,7 +729,7 @@ char* Tuple::GetSMIBufferData(SmiRecord& record, uint16_t& rootSize)
   if( record.Read(&rootSize, rootSizeLen, 0) != rootSizeLen )
   {
     record.Finish();
-    cerr << "ERROR: record.Read(...) failed!" << endl;
+    FATAL_ERROR << "record.Read(...) failed!" << endl;
     return 0;
   }
 
@@ -717,7 +744,7 @@ char* Tuple::GetSMIBufferData(SmiRecord& record, uint16_t& rootSize)
   if( record.Read( ptr, rootSize, rootSizeLen) != rootSize )
   {
     record.Finish();
-    cerr << "ERROR: record.Read(...) failed!" << endl;
+    FATAL_ERROR << "record.Read(...) failed!" << endl;
     return 0;
   }
 
@@ -732,24 +759,29 @@ char* Tuple::GetSMIBufferData(PrefetchingIterator* iter, uint16_t& rootSize)
 
   if( (size_t)iter->ReadCurrentData(&rootSize, rootSizeLen, 0) != rootSizeLen )
   {
-    cerr << "ERROR: iter->ReadCurrentData(...) failed!" << endl;
+    FATAL_ERROR << "iter->ReadCurrentData(...) failed!" << endl;
     return 0;
   }
 
+//#undef SHOW
+//#define SHOW(a) {cerr << "  " << #a << " = " << a << endl;} 
   SHOW(rootSizeLen)
   SHOW(rootSize)
+//#define SHOW(a)
 
   // read all attributes
   assert(rootSize < MAX_TUPLESIZE);
   char* data = (char*) malloc ( sizeof(rootSize) + rootSize );
   char* ptr = data + sizeof(rootSize);
 
-
-  if( (uint16_t)iter->ReadCurrentData( ptr,
+  uint16_t k = (uint16_t)iter->ReadCurrentData( ptr,
                                        rootSize,
-                                       rootSizeLen) != rootSize )
+                                       rootSizeLen);
+
+  if( k != rootSize )
   {
-    cerr << "ERROR: iter->ReadCurrentData(...) failed!" << endl;
+    FATAL_ERROR << "iter->ReadCurrentData(...) failed!" << endl;
+    cerr << " k of " << rootSize << " bytes read." << endl;
     return 0;
   }
 

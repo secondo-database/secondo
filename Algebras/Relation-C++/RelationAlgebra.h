@@ -145,6 +145,7 @@ Attribute.h), ~AttributeType~, and ~RelationDescriptor~.
 #include <list>
 
 //define macro TRACE_ON if trace outputs are needed
+//#define TRACE_ON
 #undef TRACE_ON
 
 #include "Trace.h"
@@ -758,12 +759,16 @@ part, i.e. the small FLOBs.
     inline int GetExtSize( int i ) const
     {
       int attrExtSize = GetRootSize( i );
+      //cout << "GetExtSize(i).GetRootSize(i)" << attrExtSize << endl; 
+      //cout << "size = " << tupleType->GetAttributeType(i).size;
+      //cout << "coreSize = " << tupleType->GetAttributeType(i).coreSize;
       for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++)
       {
         Flob *tmpFlob = attributes[i]->GetFLOB(j);
 
-        if( tmpFlob->getSize() < extensionLimit )
+        if( tmpFlob->getSize() < extensionLimit ) {
           attrExtSize += tmpFlob->getSize();
+	}  
       }
 
       if (tupleType->GetAttributeType(i).extStorage) {
