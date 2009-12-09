@@ -1,0 +1,171 @@
+Database: berlintest
+Restore : No
+
+Operator : album
+Number   : 1
+Signature: (id3) -> string
+Example  : query id3 album
+Result   :
+
+
+Operator : author
+Number   : 1
+Signature: (id3) -> string
+Example  : query id3 author
+Result   :
+
+
+Operator : bitrate
+Number   : 1
+Signature: (mp3) -> int
+Example  : query song bitrate
+Result   :
+
+
+Operator : comment
+Number   : 1
+Signature: (mp3) -> bool
+Example  : query id3 comment
+Result   :
+
+
+Operator : concatmp3
+Number   : 1
+Signature: (mp3 , mp3) -> mp3
+Example  : query song1 song2 concatmp3
+Result   :
+
+
+Operator : framecount
+Number   : 1
+Signature: (mp3) -> int
+Example  : query song framecount
+Result   :
+
+
+Operator : frequency
+Number   : 1
+Signature: (mp3) -> int
+Example  : query song frequency
+Result   :
+
+
+Operator : genre
+Number   : 1
+Signature: (id3) -> string
+Example  : query id3 genre
+Result   :
+
+
+Operator : getid3
+Number   : 1
+Signature: (mp3) -> id3
+Example  : query song getid3
+Result   :
+
+
+Operator : getlyrics
+Number   : 1
+Signature: (mp3) -> bool
+Example  : query song getlyrics
+Result   :
+
+
+Operator : loadmp3from
+Number   : 1
+Signature: string -> mp3
+Example  : query loadmp3from("bach-concerto.mp3") framecount
+Result   :
+
+
+Operator : loadmp3from
+Number   : 2
+Signature: text -> mp3
+Example  : query loadmp3from('bach-concerto.mp3') framecount
+Result   :
+
+
+Operator : lyricswords
+Number   : 1
+Signature: (lyrics int) -> string
+Example  : query songlyrics 10 lyricswords
+Result   :
+
+
+Operator : putid3
+Number   : 1
+Signature: (mp3 id3) -> mp3
+Example  : query song id3 putid3
+Result   :
+
+
+Operator : putlyrics
+Number   : 1
+Signature: (mp3 lyrics) -> bool
+Example  : query song lyrics putlyrics
+Result   :
+
+
+Operator : removeid3
+Number   : 1
+Signature: (mp3) -> mp3
+Example  : query song removeid3
+Result   :
+
+
+Operator : removelyrics
+Number   : 1
+Signature: (mp3) -> mp3
+Example  : query song removelyrics
+Result   :
+
+
+Operator : savemp3to
+Number   : 1
+Signature: (mp3 string) -> bool
+Example  : query song savemp3to "song.mp3"
+Result   :
+
+
+Operator : songlength
+Number   : 1
+Signature: (mp3) -> int
+Example  : query song songlength
+Result   :
+
+
+Operator : songyear
+Number   : 1
+Signature: (id3) -> int
+Example  : query id3 songyear
+Result   :
+
+
+Operator : submp3
+Number   : 1
+Signature: (mp3 int int) -> mp3
+Example  : query song 12 100 submp3
+Result   :
+
+
+Operator : titleof
+Number   : 1
+Signature: id3 -> string
+Example  : query id3 titleof
+Result   :
+
+
+Operator : track
+Number   : 1
+Signature: (id3) -> int
+Example  : query id3 track
+Result   :
+
+
+Operator : version
+Number   : 1
+Signature: (mp3) -> int
+Example  : query song version
+Result   :
+
+

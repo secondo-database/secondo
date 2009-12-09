@@ -1,8 +1,8 @@
 /*
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -33,7 +33,7 @@ December 2005, Victor Almeida deleted the deprecated algebra levels
 level remains. Models are also removed from type constructors.
 
 This algebra provides operators which deals with MP3, ID3 and Lyrics data.
-Although an MP3 file contains ID3 and Lyrics this algebra provides three 
+Although an MP3 file contains ID3 and Lyrics this algebra provides three
 type constructors to be able to handle these informations seperated from
 mp3s.
 
@@ -97,17 +97,20 @@ xxii) ~removelyrics~ - remove a lyrics into an MP3.
 
 using namespace std;
 
+#include <string.h>
+#include <stdio.h>
+#include <fstream>
+
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
+#include "../FText/FTextAlgebra.h"
 #include "Attribute.h"
-#include "FLOB.h"
-#include "DBArray.h"
+#include "FileSystem.h"
+#include "../../Tools/Flob/Flob.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "Base64.h"
-#include <string.h>
-#include <stdio.h>
-
 extern NestedList* nl;
 extern QueryProcessor *qp;
 
@@ -128,11 +131,7 @@ class MP3 : public Attribute {
     ~MP3();
     /* This object can be deleted by the Secondo system. */
     void Destroy();
-    /* Returns whether this object is defined or not. */
-    bool IsDefined() const;
-    /* Sets this object as defined or undefined. */
-    void SetDefined( bool Defined);
-    /* Calcules a hash value for an MP3. */
+    /* Returns the object's hash value. */
     size_t HashValue() const;
     /* Copy the data of another MP3 object into this object. */
     void CopyFrom(const Attribute* right);
@@ -147,10 +146,10 @@ class MP3 : public Attribute {
     /* returns the number of FLOBs. Always 1. */
     int NumOfFLOBs() const;
     /* Get the FLOB (DBArray) */
-    FLOB *GetFLOB(const int i);
+    Flob *GetFLOB(const int i);
     /* Returns the size of a class instance */
     size_t Sizeof() const;
-    /* Returns a new MP3 object which contains the frames with indices 
+    /* Returns a new MP3 object which contains the frames with indices
        between begin and begin + size */
     MP3* SubMP3(int begin, int size) const;
     /* Returns the concatination of this MP3 and the other MP3 object. */
@@ -160,11 +159,13 @@ class MP3 : public Attribute {
        the caller. */
     void Encode( string& textBytes ) const;
     /* Gets the Base64 string and reconstruct the nessesary
-       DBArray for our MP3 song. Afterwards some attributes 
+       DBArray for our MP3 song. Afterwards some attributes
        of the MP3 song will be recalculated. */
     void Decode( const string& textBytes );
     /* Saves this MP3 song into the file with name filename. */
     bool SaveMP3ToFile( const char *fileName ) const;
+    /* Restores the MP3 song from the file with name filename. */
+    bool LoadMP3FromFile( const string fileName );
     /* Returns whether this MP3 has an ID3 tag. */
     bool ExistsID() const;
     /* Removes the ID3 tag from this MP3 if exists. */
@@ -177,7 +178,7 @@ class MP3 : public Attribute {
     /* Returns the beginning of the first frame of the MP3
        which is in the buffer. */
     int FindFirstHeader(const char *buffer,int size) const;
-    /* Returns the beginning of the next frame of the MP3 
+    /* Returns the beginning of the next frame of the MP3
        which is in the buffer. The beginning of the previous
        frame has to be provided in prevHeader. */
     int FindNextHeader(int prevHeader, const char *buffer, int size) const;
@@ -195,14 +196,15 @@ class MP3 : public Attribute {
     int CalcFrequency(int Header, const char *buffer) const;
     /* Stores the ID3 dump (128 bytes) into buffer.
        The buffer has to be provided by the caller. */
-    void GetID3Dump (const char **buffer) const;
+    void GetID3Dump (char *buffer) const;
     /* Stores the Lyrics dump into a buffer. The size
        of the lyrics is unknown before and is returned
        in the output argument ~lyricssize~. */
-    void GetLyricsDump (const char **buffer, int &size) const;
+    char* GetLyricsDump (int &lyricssize) const;
+    // OLD signature: void GetLyricsDump (const char **buffer, int &size) const;
     /* Removes the lyrics from this object if Lyrics exists. */
     void RemoveLyrics();
-    /* Stores the given lyrics into this MP3 object. 
+    /* Stores the given lyrics into this MP3 object.
        If this object has already lyrics this lycris will be
        overwritten. */
     void PutLyrics(char *lyricsdump, int size);
@@ -218,95 +220,72 @@ class MP3 : public Attribute {
     int GetLength() const;
 
   private:
-    FLOB mp3Data;
+    Flob mp3Data;
     int version;
     int bitrate;
     bool canDelete;
     int length;
     int framecount;
     int frequency;
-    bool defined;
 };
 
-/* 
-2.1.1 Constructor. 
+/*
+2.1.1 Constructor.
 
-Initalizes the DBArray mp3Data. 
+Initalizes the DBArray mp3Data.
 
 */
 MP3::MP3(const int size) : mp3Data(size), canDelete(false) {
     // empty.
 }
 
-/* 
-2.1.2 Destructor. 
+/*
+2.1.2 Destructor.
 
-Destroys the DBArray. 
+Destroys the DBArray.
 
 */
 MP3::~MP3() {
     if( canDelete ) {
-        mp3Data.Destroy();
+        mp3Data.destroy();
     }
 }
 
-/* 
+/*
 2.1.3 Destroy
 
-This object can be deleted by the Secondo system. 
+This object can be deleted by the Secondo system.
 
 */
 void MP3::Destroy() {
     canDelete = true;
 }
 
-/* 
-2.1.4 IsDefined
 
-Returns whether this object is defined or not. 
-
-*/
-bool MP3::IsDefined() const {
-    return defined;
-}
-
-/* 
-2.1.5 SetDefined
-
-Sets this object as defined or undefined. 
-
-*/
-void MP3::SetDefined( bool def) {
-    defined = def;
-}
-
-/* 
+/*
 2.1.7 HashValue
 
-Calcules a hash value for an MP3. 
+Calcules a hash value for an MP3.
 
 */
 size_t MP3::HashValue() const {
-    if (!defined)
+    if (!IsDefined())
         return 0;
     else
-        return mp3Data.Size();
+        return mp3Data.getSize();
 }
 
-/* 
+/*
 2.1.8 CopyFrom
 
-Copy the data of another MP3 object into this object. 
+Copy the data of another MP3 object into this object.
 
 */
 void MP3::CopyFrom(const Attribute* right) {
     const MP3 *r = (const MP3 *)right;
 
-    if (r->mp3Data.Size() > 0){
-        mp3Data.Resize( r->mp3Data.Size() );
-        const char *bin;
-        r->mp3Data.Get( 0, &bin );
-        mp3Data.Put( 0, r->mp3Data.Size(), bin );
+    if (r->mp3Data.getSize() > 0){
+      mp3Data.copyFrom(r->mp3Data);
     }
 
     version = r->version;
@@ -315,33 +294,33 @@ void MP3::CopyFrom(const Attribute* right) {
     length = r->length;
     framecount = r->framecount;
     frequency = r->frequency;
-    defined = r->defined;
+    SetDefined(r->IsDefined());
 }
 
-/* 
+/*
 2.1.9 Compare
 
-Compare this MP3 with another MP3 object. 
+Compare this MP3 with another MP3 object.
 
 */
 int MP3::Compare(const Attribute * arg) const {
     return 0;
 }
 
-/* 
+/*
 2.1.10 Adjacent
 
-Adjacent is not useful for MP3 
+Adjacent is not useful for MP3
 
 */
 bool MP3::Adjacent(const Attribute * arg) const {
     return false;
 }
 
-/* 
+/*
 2.1.11 Clone
 
-Clones this MP3 object. 
+Clones this MP3 object.
 
 */
 MP3* MP3::Clone() const {
@@ -350,33 +329,33 @@ MP3* MP3::Clone() const {
     return newMP3;
 }
 
-/* 
+/*
 2.1.12 Print
 
-prints a textual representation of an MP3 file. 
+prints a textual representation of an MP3 file.
 
 */
 ostream& MP3::Print( ostream &os ) const {
     return os << "MP3 Algebra" << endl;
 }
 
-/* 
+/*
 2.1.13 NumOfFLOBs
 
-returns the number of FLOBs. Always 1. 
+returns the number of FLOBs. Always 1.
 
 */
 int MP3::NumOfFLOBs() const {
     return 1;
 }
 
-/* 
+/*
 2.1.14 GetFLOB
 
-Get the FLOB (DBArray) 
+Get the FLOB (DBArray)
 
 */
-FLOB *MP3::GetFLOB(const int i) {
+Flob* MP3::GetFLOB(const int i) {
     assert( i >= 0 && i < NumOfFLOBs() );
     return &mp3Data;
 }
@@ -395,7 +374,7 @@ size_t MP3::Sizeof() const {
 2.1.15 SubMP3
 
 Returns a new MP3 object which contains the frames with indices
-between begin and begin + size. 
+between begin and begin + size.
 
 */
 MP3* MP3::SubMP3(int beginframe, int size) const {
@@ -410,7 +389,7 @@ MP3* MP3::SubMP3(int beginframe, int size) const {
     }
 
     if (beginframe >= this->GetFrameCount()){
-        // the beginning is behind the end, an undefined mp3 
+        // the beginning is behind the end, an undefined mp3
         // can be returnend
         newmp3 = new MP3(0);
         newmp3->SetDefined (false);
@@ -418,7 +397,7 @@ MP3* MP3::SubMP3(int beginframe, int size) const {
     }
 
     if (beginframe < 0){
-        // beginframe was in front of the beginning of a song, 
+        // beginframe was in front of the beginning of a song,
         // the parameters have to be adjusted
         size = size + beginframe;
         beginframe = 0;
@@ -436,58 +415,60 @@ MP3* MP3::SubMP3(int beginframe, int size) const {
     }
 
     newmp3 = new MP3(0);
-    
-    int sizeofoldflob = mp3Data.Size();
-    const char *bin;
-    
-    mp3Data.Get(0, &bin);
-    
-    int beginheaderpos = FindFirstHeader (bin,sizeofoldflob);
+
+    int sizeofoldflob = mp3Data.getSize();
+    char bin[sizeofoldflob];
+
+    mp3Data.read(bin, sizeof(char), 0);
+
+    int beginheaderpos = FindFirstHeader(bin,sizeofoldflob);
     int sizeofid3v2 = beginheaderpos;
     int counter=0;
 
     /* We have to determine the first cut position. */
-    while ((beginheaderpos >= 0) 
-            && (beginheaderpos < (sizeofoldflob-4)) 
+    while ((beginheaderpos >= 0)
+            && (beginheaderpos < (sizeofoldflob-4))
             && (counter < beginframe ) ) {
         /* 4 = size of the header */
         beginheaderpos = FindNextHeader(beginheaderpos,bin,sizeofoldflob);
         counter++;
     }
-    
+
     counter=0;
     int endheaderpos=beginheaderpos;
     /* We have to determine the second cut position */
     while ((endheaderpos < (sizeofoldflob - 4)) && (counter < size)) {
         /* 4 = size of the header */
-        endheaderpos=FindNextHeader (endheaderpos,bin,sizeofoldflob);         
+        endheaderpos=FindNextHeader (endheaderpos,bin,sizeofoldflob);
         counter++;
     }
-    
-    int newsize= endheaderpos - beginheaderpos 
+
+    int newsize= endheaderpos - beginheaderpos
         + sizeofid3v2 + FrameLength (endheaderpos,bin);
     if (ExistsID()) {
         newsize= newsize + 128;
     }
-    
-    newmp3->mp3Data.Resize (newsize);
-    
+
+    newmp3->mp3Data.resize(newsize);
+
     /* copy the bytes of ID3 V2-Tag */
-    newmp3->mp3Data.Put (0,sizeofid3v2,bin);
-    
+    newmp3->mp3Data.write(bin,sizeofid3v2,0);
+
     /* copy the mp3-frames */
-    newmp3->mp3Data.Put (sizeofid3v2,
-                         endheaderpos - beginheaderpos 
-                         + FrameLength(endheaderpos,bin),
-                         bin+beginheaderpos);
-    
+    newmp3->mp3Data.write( bin+beginheaderpos,
+                           endheaderpos - beginheaderpos
+                                + FrameLength(endheaderpos,bin),
+                           sizeofid3v2
+                         );
+
     /* copy the ID3 V1-Tag */
     if (ExistsID()) {
-        newmp3->mp3Data.Put (newsize - 128,
-                             128,
-                             bin + sizeofoldflob -128);
+        newmp3->mp3Data.write( bin + sizeofoldflob -128,
+                               128,
+                               newsize - 128
+                             );
     }
-        
+
     /* recalculate the attributes of our new mp3. */
     newmp3->version = this->version;
     newmp3->bitrate = this->bitrate;
@@ -495,28 +476,28 @@ MP3* MP3::SubMP3(int beginframe, int size) const {
     newmp3->length = (int) (size * 1152.0 / ((float) this->frequency));
     newmp3->framecount = size;
     newmp3->frequency = this->frequency;
-    
+
     newmp3->SetDefined (true);
     return newmp3;
 }
 
-/* 
+/*
 2.1.16 Concat
 
-Returns the concatination of this MP3 and the other MP3 object. 
+Returns the concatination of this MP3 and the other MP3 object.
 
 */
 MP3* MP3::Concat (const MP3* other) const {
-    MP3* newmp3 = new MP3 (0);
-    
-    /* if the other mp3 is undefined we can just clone 
+    MP3* newmp3 = new MP3(0);
+
+    /* if the other mp3 is undefined we can just clone
        this object and return the result */
     if ( !other->IsDefined()){
         newmp3 = this->Clone();
         return newmp3;
     }
-        
-    /* if this object is not defined we can just return 
+
+    /* if this object is not defined we can just return
        the clone of the other object*/
     if ( !this->IsDefined()){
         newmp3 = other->Clone();
@@ -524,49 +505,49 @@ MP3* MP3::Concat (const MP3* other) const {
     }
 
     /* First we copy both MP3s into the memory. */
-    int sizeofthisflob = mp3Data.Size(),
-        sizeofotherflob = other->mp3Data.Size();
-    const char *thisbin, *otherbin;
-    mp3Data.Get( 0, &thisbin );
-    other->mp3Data.Get( 0, &otherbin );
-    
-    /* We have to check weather the first MP3 has an ID3 tag. This 
+    int sizeofthisflob = mp3Data.getSize(),
+        sizeofotherflob = other->mp3Data.getSize();
+    char thisbin[sizeofthisflob], otherbin[sizeofotherflob];
+    mp3Data.read( thisbin, sizeofthisflob, 0 );
+    other->mp3Data.read( otherbin, sizeofotherflob, 0 );
+
+    /* We have to check weather the first MP3 has an ID3 tag. This
        ID3 tag will be the one of the result. */
-    int sizeofid3v2 = FindFirstHeader (thisbin,sizeofthisflob);
+    int sizeofid3v2 = FindFirstHeader(thisbin,sizeofthisflob);
 
     /* The second MP3 might also contain an ID3v2 tag. Therefore
        we have to find the first frame header. */
-    int beginotherheaderpos = FindFirstHeader (otherbin,sizeofotherflob);
-    
+    int beginotherheaderpos = FindFirstHeader(otherbin,sizeofotherflob);
+
     int iterator = sizeofid3v2;
     int endofthisflob;
     /* After this while loop has terminated endofthisflob contains the
        address of the last header in the first MP3. */
     while ((iterator >= 0) && (iterator < (sizeofthisflob-4) ) ) {
         endofthisflob = iterator;
-        iterator = FindNextHeader (iterator, thisbin, sizeofthisflob);
+        iterator = FindNextHeader(iterator, thisbin, sizeofthisflob);
     }
-    
-    int newsize 
-        = endofthisflob 
+
+    int newsize
+        = endofthisflob
         // All frames except of the last one plus header
-        + FrameLength(endofthisflob, thisbin) 
+        + FrameLength(endofthisflob, thisbin)
         // The length of the last frame
-        + sizeofotherflob 
+        + sizeofotherflob
         // Just the size of the whole MP3 song
         - beginotherheaderpos;
     // except the size of the second header.
-    
-    newmp3->mp3Data.Resize(newsize);
+
+    newmp3->mp3Data.resize(newsize);
     /* Copy the first MP3 into the result MP3. */
-    newmp3->mp3Data.Put(0,
-                        endofthisflob + FrameLength(endofthisflob, thisbin),
-                        thisbin);
+    newmp3->mp3Data.write( thisbin,
+                           endofthisflob + FrameLength(endofthisflob, thisbin),
+                           0);
     /* Copy the second MP3 into the result MP3. */
-    newmp3->mp3Data.Put(endofthisflob + FrameLength(endofthisflob, thisbin),
-                        sizeofotherflob - beginotherheaderpos,
-                        otherbin + beginotherheaderpos);
-    
+    newmp3->mp3Data.write( (otherbin + beginotherheaderpos),
+                         (sizeofotherflob - beginotherheaderpos),
+                         (endofthisflob + FrameLength(endofthisflob, thisbin)));
+
     /* recalculate the attributes of our new mp3. */
     newmp3->version = this->version;
     newmp3->bitrate = this->bitrate;
@@ -574,38 +555,38 @@ MP3* MP3::Concat (const MP3* other) const {
     newmp3->length = this->length + other->length;
     newmp3->framecount = this->framecount + other->framecount;
     newmp3->frequency = this->frequency;
-    
+
     newmp3->SetDefined (true);
     return newmp3;
 }
 
 
-/* 
-2.1.17 Encode 
+/*
+2.1.17 Encode
 
 This methods writes the Base64 string of this MP3 Object into
 the string textBytes. This string textBytes must be provided by
-the caller. 
+the caller.
 
 */
 void MP3::Encode(string& textBytes) const {
     Base64 b;
-    /* allocate as many bytes as the size of the FLOB has 
+    /* allocate as many bytes as the size of the FLOB has
        for the data of the DBArray. */
-    const char *bytes;
+    char bytes[mp3Data.getSize()];
     /* load the contents of the DBArray mp3Data into above
        byte array. */
-    mp3Data.Get( 0, &bytes );
+    mp3Data.read( bytes, mp3Data.getSize(), 0);
     /* Write the encoded string into textBytes */
-    b.encode( bytes, mp3Data.Size(), textBytes );
+    b.encode( bytes, mp3Data.getSize(), textBytes );
 }
 
-/* 
+/*
 2.1.18 Decode
 
 Gets the Base64 string and reconstruct the nessesary
-DBArray for our MP3 song. Afterwards some attributes 
-of the MP3 song will be recalculated. 
+DBArray for our MP3 song. Afterwards some attributes
+of the MP3 song will be recalculated.
 
 */
 void MP3::Decode( const string& textBytes ) {
@@ -613,17 +594,17 @@ void MP3::Decode( const string& textBytes ) {
     int previousheaderpos;
     int sizeDecoded = b.sizeDecoded( textBytes.size() );
     char *bytes = (char *)malloc( sizeDecoded );
-    
+
     int result = b.decode( textBytes, bytes );
-    
+
     assert( result <= sizeDecoded );
-    
+
     int headerpos = FindFirstHeader (bytes,result);
-    
+
     bitrate = CalcBitrate(headerpos, bytes);
     frequency = CalcFrequency(headerpos, bytes);
     version = CalcMP3Version(headerpos, bytes);
-    
+
     framecount = 1;
     /* We have to scan through the MP3 file in order to
        calculate some general value like length, number
@@ -636,117 +617,110 @@ void MP3::Decode( const string& textBytes ) {
         }
     }
     length = (int)(framecount * 1152.0 / ((float) frequency));
-        
-    mp3Data.Resize( result );
-    mp3Data.Put( 0, result, bytes );
-        
+
+    mp3Data.resize( result );
+    mp3Data.write(bytes, result, 0);
+
     free( bytes );
 }
 
-/* 
+/*
 2.1.19 GetID3Dump
 
 Stores the ID3 dump (128 bytes) into buffer.
-The buffer has to be provided by the caller. 
+The buffer has to be provided by the caller.
 
 */
-void MP3::GetID3Dump (const char **buffer) const {
-    mp3Data.Get(mp3Data.Size() - 128, buffer);
+void MP3::GetID3Dump (char *buffer) const {
+    mp3Data.read(buffer, 128 , mp3Data.getSize() - 128);
 }
 
-/* 
+/*
 2.1.20 ExistsID
 
-Returns whether this MP3 has an ID3 tag. 
+Returns whether this MP3 has an ID3 tag.
 
 */
 bool MP3::ExistsID() const {
-    const char *idbytes;
-    mp3Data.Get (mp3Data.Size()-128,&idbytes);
-    char tag [4] = "TAG";
-    if (strncmp (idbytes,tag,3) == 0) {
-        return true;
-    }
-    else {
-        return false;
-    }  
+    char idbytes[128];
+    mp3Data.read(idbytes, 128, mp3Data.getSize()-128);
+    char tag[4] = "TAG";
+    return (strncmp (idbytes,tag,3) == 0);
 }
 
-/* 
+/*
 2.1.21 GetLyricsDump
 
-Stores the Lyrics dump into a buffer. The size 
+Stores the Lyrics dump into a buffer. The size
 of the lyrics is unknown before and is returned
-in the output argument ~lyricssize~. 
+in the output argument ~lyricssize~.
+
+Allocates a buffer and returns a pointer to it.
+The buffer must be deallocated with ~delete[]~ by the caller!
 
 */
-void MP3::GetLyricsDump (const char **buffer, int &lyricssize) const {
-    /* The last 9 bytes of a Lyrics tag have to be 
+char* MP3::GetLyricsDump (int &lyricssize) const {
+    /* The last 9 bytes of a Lyrics tag have to be
        "LYRICS200" (= 9 bytes). The preceding six bytes
        before contain the size of the whole lyrics tag
        as a char array of decimals. */
-    const char *auxlyricssize_;
+    char auxlyricssize_[15];
     bool idexists=ExistsID();
-    /* The position of the lyrics tag depends on the existence 
+    /* The position of the lyrics tag depends on the existence
        of the ID3 tag. */
     if (idexists) {
         /* length of ID3 = 128 */
         /* length("LYRICS200") + length(lyricssize_) = 15 */
-        mp3Data.Get (mp3Data.Size() - 128 - 15, &auxlyricssize_);
-    }
-    else {
-        mp3Data.Get (mp3Data.Size() - 15, &auxlyricssize_);
+        mp3Data.read(auxlyricssize_, 15,mp3Data.getSize() - 128 - 15);
+    } else {
+        mp3Data.read(auxlyricssize_, 15, mp3Data.getSize() - 15);
     }
 
-    char lyricssize_[7]; 
+    char lyricssize_[7];
     memcpy( lyricssize_, auxlyricssize_, 6 );
     lyricssize_[6] = 0;
     lyricssize = atoi(lyricssize_);
 
-    /* Now we can copy the content of the lyrics into buffer. 
+    /* Now we can copy the content of the lyrics into buffer.
        Again this operation depends on the existence of an ID3 tag. */
+    char* result = new char[lyricssize];
     if (idexists) {
         /* length of ID3 = 128 */
         /* length("LYRICS200") + length(lyricssize_) = 15 */
-        mp3Data.Get (mp3Data.Size() - 128 - 15 - lyricssize, buffer);
+        mp3Data.read(result, lyricssize, mp3Data.getSize()-128-15-lyricssize);
+    } else {
+        mp3Data.read(result, lyricssize, mp3Data.getSize()-15-lyricssize);
     }
-    else {
-        mp3Data.Get (mp3Data.Size() - 15 - lyricssize, buffer);
-    }
+    return result;
 }
 
-/* 
+/*
 2.1.22 ExistsLyrics
 
-Returns whether this MP3 has lyrics. 
+Returns whether this MP3 has lyrics.
 
 */
 bool MP3::ExistsLyrics() const {
     /* The last nine bytes of the lyrics always contain "LYRICS200". */
-    const char *bytes;
+    char bytes[10];
+    bytes[9] = 0;
 
     /* The position of the lyrics depends on the existence of an ID3 tag. */
     if (ExistsID() ) {
-        /* length of ID3 = 128 */
-        mp3Data.Get (mp3Data.Size()-128-9,&bytes);
-    }
-    else {
-        /* length of ID3 = 128 */
-        mp3Data.Get (mp3Data.Size()-9,&bytes); 
+      /* length of ID3 = 128 */
+      mp3Data.read(bytes, 9, mp3Data.getSize()-128-9);
+    } else {
+      /* length of ID3 = 128 */
+      mp3Data.read(bytes, 9, mp3Data.getSize()-9);
     }
 
-    if (strncmp (bytes,"LYRICS200",9) == 0 ) {
-        return true;
-    }
-    else {
-        return false;
-    }
+    return (strncmp (bytes,"LYRICS200",9) == 0 );
 }
 
-/* 
+/*
 2.1.23 RemoveLyrics
 
-Removes the lyrics from this object if Lyrics exists. 
+Removes the lyrics from this object if Lyrics exists.
 
 */
 void MP3::RemoveLyrics() {
@@ -754,55 +728,53 @@ void MP3::RemoveLyrics() {
         return;
     }
 
-    int oldmp3size=mp3Data.Size();
-    const char *bytes;
-    mp3Data.Get (0,&bytes);
+    int oldmp3size = mp3Data.getSize();
+    char bytes[oldmp3size];
+    mp3Data.read(bytes, oldmp3size, 0);
 
-    /* The last 9 bytes of a Lyrics tag have to be 
+    /* The last 9 bytes of a Lyrics tag have to be
        "LYRICS200" (= 9 bytes). The preceding six bytes
        before contain the size of the whole lyrics tag
        as a char array of decimals. */
 
-    bool idexists=ExistsID();
+    bool idexists = ExistsID();
 
-    /* The position of the lyrics tag depends on the existence 
+    /* The position of the lyrics tag depends on the existence
        of the ID3 tag. */
-    const char *auxlyricssize_;
+    char auxlyricssize_[15];
     if (idexists) {
         /* length of ID3 = 128 */
         /* length("LYRICS200") + length(lyricssize_) = 15 */
-        mp3Data.Get (oldmp3size-128-15, &auxlyricssize_);
-    }
-    else {
-        mp3Data.Get (oldmp3size-15, &auxlyricssize_);
+        mp3Data.read(auxlyricssize_, 15, oldmp3size-128-15);
+    } else {
+        mp3Data.read(auxlyricssize_, 15, oldmp3size-15);
     }
     char lyricssize_[7];
-    strncpy( lyricssize_, auxlyricssize_, 6 ); 
-    lyricssize_[6]=0;
+    strncpy( lyricssize_, auxlyricssize_, 6 );
+    lyricssize_[6] = 0;
     int lyricssize = atoi (lyricssize_) + 15;
-
 
     int newsize=oldmp3size-lyricssize;
 
-    mp3Data.Resize (newsize);
+    mp3Data.resize (newsize);
     if (idexists) {
         /* The ID3 tag exists. Therefor we have to copy
-           the proper MP3 data and the ID3 data into the 
+           the proper MP3 data and the ID3 data into the
            new MP3 object. */
-        mp3Data.Put (0,newsize-128,bytes); /* proper music data */
-        mp3Data.Put (newsize-128,128,bytes+oldmp3size-128); /* ID3 */
+        mp3Data.write(bytes, newsize-128, 0); /* proper music data */
+        mp3Data.write(bytes+oldmp3size-128, 128, newsize-128); /* ID3 */
     }
     else {
-        mp3Data.Put (0,newsize,bytes); /* proper music data */
+        mp3Data.write(bytes, newsize, 0); /* proper music data */
     }
 }
 
-/* 
+/*
 2.1.24 PutLyrics
 
-Stores the given lyrics into this MP3 object. 
+Stores the given lyrics into this MP3 object.
 If this object has already lyrics this lycris will be
-overwritten. 
+overwritten.
 
 */
 void MP3::PutLyrics(char *lyricsdump, int size) {
@@ -811,38 +783,37 @@ void MP3::PutLyrics(char *lyricsdump, int size) {
         RemoveLyrics();
     }
 
-    int oldmp3size = mp3Data.Size();
+    int oldmp3size = mp3Data.getSize();
     bool existsid = ExistsID();
-    const char *bytes;
+    char bytes[oldmp3size];
 
-    mp3Data.Get(0,&bytes);
+    mp3Data.read(bytes, oldmp3size, 0);
 
-    mp3Data.Resize (oldmp3size+size);
-    
+    mp3Data.resize(oldmp3size+size);
+
     if (existsid) {
         /* Store the music data into mp3Data without ID3 and lyrics
            tag. The lyrics was deleted before! */
         /* length of ID3 = 128 */
-        mp3Data.Put (0, oldmp3size-128,bytes);
+        mp3Data.write(bytes, oldmp3size-128, 0);
         /* Store the (new) lyrics into mp3Data. */
-        mp3Data.Put (oldmp3size-128, size, lyricsdump);
+        mp3Data.write(lyricsdump, size, oldmp3size-128);
         /* Store the ID3 tag. */
-        mp3Data.Put (oldmp3size-128+size, 128, bytes+oldmp3size-128);
-    }
-    else {
+        mp3Data.write(bytes+oldmp3size-128, 128, oldmp3size-128+size);
+    } else {
         /* Store the music data into mp3Data without ID3 and lyrics
            tag. The lyrics was deleted before! */
-        mp3Data.Put (0,oldmp3size,bytes);
+        mp3Data.write(bytes, oldmp3size, 0);
         /* Store the (new) lyrics into mp3Data. */
-        mp3Data.Put (oldmp3size, size, lyricsdump);
+        mp3Data.write(lyricsdump, size, oldmp3size);
         /* no ID3 information available. */
     }
 }
 
-/* 
+/*
 2.1.25 RemoveID
 
-Removes the ID3 tag from this MP3 if exists. 
+Removes the ID3 tag from this MP3 if exists.
 
 */
 void MP3::RemoveID () {
@@ -850,61 +821,129 @@ void MP3::RemoveID () {
         return;
     }
     /* copy mp3Data into bytes */
-    const char *bytes;
-    mp3Data.Get( 0, &bytes );
+    int oldmp3size = mp3Data.getSize();
+    char bytes[oldmp3size];
+    mp3Data.read(bytes, oldmp3size, 0 );
 
     /* length of ID3 = 128 */
-    int newsize = mp3Data.Size()-128;
-    mp3Data.Resize (newsize);
+    int newsize = oldmp3size-128;
+    mp3Data.resize (newsize);
 
     /* Write the music data into mp3Data. */
-    mp3Data.Put (0,newsize,bytes);
+    mp3Data.write(bytes,newsize,0);
     return;
 }
 
-/* 
+/*
 2.1.26 PutID
 
 Stores a new ID3 tag into this mp3. An older version will be
-replaced. 
+replaced.
 
 */
 void MP3::PutID (char *iddump) {
-    if ( !ExistsID()) {    
+    if ( !ExistsID()) {
         /* length of ID3 = 128 */
-        mp3Data.Resize (mp3Data.Size()+128);
+        mp3Data.resize (mp3Data.getSize()+128);
     }
-    mp3Data.Put(mp3Data.Size()-128,128,iddump);   
+    mp3Data.write(iddump, 128, mp3Data.getSize()-128);
 }
 
-/* 
+/*
 2.1.27 SaveMP3ToFile
 
-Saves this MP3 song into the file with name filename. 
+Saves this MP3 song into the file with name filename.
 
 */
 bool MP3::SaveMP3ToFile( const char *fileName ) const {
     FILE *f = fopen( fileName, "wb" );
-    
+
     if( f == NULL )
         return false;
-    
-    const char *bytes;
-    mp3Data.Get( 0, &bytes );
-    
-    if( fwrite( bytes, 1, mp3Data.Size(), f ) != mp3Data.Size() )
+
+    char bytes[mp3Data.getSize()];
+    mp3Data.read( bytes, mp3Data.getSize(), 0);
+
+    if( fwrite( bytes, 1, mp3Data.getSize(), f ) != mp3Data.getSize() )
         return false;
-    
+
     fclose( f );
     return true;
 }
 
+/*
+2.1.28 LoadMP3FromFile
 
-/* 
+Restores the MP3 song from the file with name filename.
+
+*/
+bool MP3::LoadMP3FromFile( const string fileName ) {
+  // check for valid fileName
+  if(   fileName == ""
+        || !FileSystem::FileOrFolderExists(fileName)
+        || FileSystem::IsDirectory(fileName) ){
+    cerr << "loadmp3: Cannot open file '" << fileName << "'!" << endl;
+    SetDefined( false );
+    return false;
+  }
+
+  // get file size
+  int32_t filesize = FileSystem::GetFileSize(fileName);
+  if( filesize<0 ){
+    cerr << "loadmp3: Filesize to small for '" << fileName << "'!" << endl;
+    SetDefined( false );
+    return false;
+  }
+
+  // open file
+  ifstream file;
+  file.open(fileName.c_str(),ios::binary);
+  if(!file.good()){
+    cerr << "loadmp3: Error opening file '" << fileName << "'!" << endl;
+    SetDefined( false );
+    return false;
+  }
+
+  // read the file
+  char bytes[ filesize ];
+  file.seekg(0,ios::end);
+  streampos fileend = file.tellg();
+  file.seekg(0,ios::beg);
+  file.read(bytes,filesize);
+  file.close();
+
+  int headerpos = FindFirstHeader (bytes,filesize);
+
+  bitrate = CalcBitrate(headerpos, bytes);
+  frequency = CalcFrequency(headerpos, bytes);
+  version = CalcMP3Version(headerpos, bytes);
+
+  framecount = 1;
+    /* We have to scan through the MP3 file in order to
+  calculate some general value like length, number
+  of frames, etc. */
+  int previousheaderpos = 0;
+  while ((headerpos >= 0) && (headerpos < (filesize - 4))) {
+    previousheaderpos = headerpos;
+    headerpos=FindNextHeader(headerpos, bytes, filesize);
+    if (headerpos >= 0) {
+      framecount++;
+    }
+  }
+  length = (int)(framecount * 1152.0 / ((float) frequency));
+
+  mp3Data.resize( filesize );
+  mp3Data.write(bytes, filesize, 0);
+  SetDefined( true );
+  return true;
+}
+
+
+/*
 2.1.28 FindFirstHeader
 
 Returns the beginning of the first frame of the MP3
-which is in the buffer. 
+which is in the buffer.
 
 */
 int MP3::FindFirstHeader(const char *buffer, int size) const {
@@ -915,8 +954,8 @@ int MP3::FindFirstHeader(const char *buffer, int size) const {
        nibble is also F. To ensure that we catched a real
        beginning of a frame we assume that this is correct
        and calculate the beginning of the next header.
-       Only if this potential next header begins again with 
-       FF this header is accepted. Otherwise we continue the 
+       Only if this potential next header begins again with
+       FF this header is accepted. Otherwise we continue the
        search. */
 
     for (int i = 0; i < size - 3; i++) {
@@ -931,26 +970,26 @@ int MP3::FindFirstHeader(const char *buffer, int size) const {
     return -1;
 }
 
-/* 
+/*
 2.1.29 FrameLength
 
 Returns the length of the frame which begins at position
-prevHeader in bytes. 
+prevHeader in bytes.
 
 */
 int MP3::FrameLength (int prevHeader, const char *buffer) const {
     int bitrate = CalcBitrate (prevHeader, buffer)*1000;
     int frequ = CalcFrequency (prevHeader, buffer);
-    int padding = (buffer[prevHeader + 2] & 0x02) >> 1;  
+    int padding = (buffer[prevHeader + 2] & 0x02) >> 1;
     return (144* bitrate / frequ + padding);
 }
 
-/* 
+/*
 2.1.30 FindNextHeader
 
-Returns the beginning of the next frame of the MP3 
+Returns the beginning of the next frame of the MP3
 which is in the buffer. The beginning of the previous
-frame has to be provided in prevHeader. 
+frame has to be provided in prevHeader.
 
 */
 int MP3::FindNextHeader(int prevHeader, const char *buffer, int size) const {
@@ -966,11 +1005,11 @@ int MP3::FindNextHeader(int prevHeader, const char *buffer, int size) const {
     return prevHeader+length;
 }
 
-/* 
+/*
 2.1.31 CalcMP3Version
 
 Calculates the MP3 version of the song which is in
-the buffer. 
+the buffer.
 
 */
 int MP3::CalcMP3Version(int Header, const char *buffer) const {
@@ -978,11 +1017,11 @@ int MP3::CalcMP3Version(int Header, const char *buffer) const {
     return (versionCode == 8) ? 1 : 2;
 }
 
-/* 
+/*
 2.1.32 CalcBitrate
 
 Calculates the bitrate of the song which is in
-the buffer. 
+the buffer.
 
 */
 int MP3::CalcBitrate(int Header, const char *buffer) const {
@@ -1009,15 +1048,15 @@ int MP3::CalcBitrate(int Header, const char *buffer) const {
     }
 }
 
-/* 
+/*
 2.1.33 CalcFrequency
 
 Calculates the frequency of the song which is in
-the buffer. 
+the buffer.
 
 */
 int MP3::CalcFrequency(int Header, const char *buffer) const {
-    int frequencyCode = buffer[Header + 2] & 0x0C; 
+    int frequencyCode = buffer[Header + 2] & 0x0C;
 
     switch(frequencyCode) {
         case 0: return 44100;
@@ -1028,50 +1067,50 @@ int MP3::CalcFrequency(int Header, const char *buffer) const {
     }
 }
 
-/* 
+/*
 2.1.34 GetBitrate
 
-Returns the bitrate of this MP3. 
+Returns the bitrate of this MP3.
 
 */
 int MP3::GetBitrate() const {
     return bitrate;
 }
 
-/* 
+/*
 2.1.35 GetMP3Version
 
-Returns the MP3 version of this object. (MPEG1 or MPEG2) 
+Returns the MP3 version of this object. (MPEG1 or MPEG2)
 
 */
 int MP3::GetMP3Version() const {
     return version;
 }
 
-/* 
+/*
 2.1.36 GetFrequency
 
-Returns the frequency of this MP3. 
+Returns the frequency of this MP3.
 
 */
 int MP3::GetFrequency() const {
     return frequency;
 }
 
-/* 
+/*
 2.1.37 GetFrameCount
 
-Returns the number of frames of this MP3. 
+Returns the number of frames of this MP3.
 
 */
 int MP3::GetFrameCount() const{
     return framecount;
 }
 
-/* 
+/*
 2.1.38 GetLength
 
-Returns the length of this MP3 in seconds. 
+Returns the length of this MP3 in seconds.
 
 */
 int MP3::GetLength() const {
@@ -1101,18 +1140,18 @@ Secondo parser.
 */
 ListExpr OutMP3( ListExpr typeInfo, Word value ) {
     ListExpr result = nl->TextAtom();
-    
+
     MP3 *mp3 = (MP3 *)value.addr;
     string encoded;
 
     if (!mp3->IsDefined()){
-        /* the mp3 is not defined, so we have to return a nested list 
+        /* the mp3 is not defined, so we have to return a nested list
            with the symbol atom "undef"*/
          return (nl->SymbolAtom("undef"));
     }
-        
+
     mp3->Encode( encoded );
-    nl->AppendText( result, encoded );    
+    nl->AppendText( result, encoded );
     return result;
 }
 
@@ -1123,42 +1162,43 @@ ListExpr OutMP3( ListExpr typeInfo, Word value ) {
 Word InMP3(const ListExpr typeInfo, const ListExpr instance,
            const int errorPos, ListExpr& errorInfo, bool& correct) {
     MP3 *mp3 = new MP3( 0 );
-    
-    
-    /* we have to check whether the nested list contains 
+
+
+    /* we have to check whether the nested list contains
        a valid mp3 object or the symbol atom "undef"*/
-    if (nl->IsAtom( instance ) 
-        && nl->AtomType( instance ) == SymbolType 
+    if (nl->IsAtom( instance )
+        && nl->AtomType( instance ) == SymbolType
         && nl->SymbolValue( instance ) == "undef" )
     {
         correct = true;
         mp3->SetDefined (false);
         return SetWord (mp3);
-    }    
+    }
 
     if (nl->IsAtom( instance ) &&
         nl->AtomType( instance ) == TextType ) {
         string encoded;
         nl->Text2String( instance, encoded );
-        
+
         /* encoded contains now the Base64 Data of this MP3 object. */
-        
+
         mp3->Decode( encoded );
-        
+
         mp3->SetDefined (true);
         correct = true;
         return SetWord( mp3 );
     }
     correct = false;
+    delete mp3;
     return SetWord( Address(0) );
 }
 
 /*
 2.5 The ~Property~-function
-  
+
 */
 ListExpr MP3Property() {
-    return 
+    return
         (nl->TwoElemList(
             nl->FiveElemList(nl->StringAtom("Signature"),
                              nl->StringAtom("Example Type List"),
@@ -1226,11 +1266,11 @@ void* CastMP3( void* addr ) {
 
 /*
 2.12 Kind Checking Function
-  
-This function checks whether 
-the type constructor 
+
+This function checks whether
+the type constructor
 is applied correctly. Since
-type constructor ~mp3~ does not 
+type constructor ~mp3~ does not
 have arguments, this is trivial.
 
 */
@@ -1240,7 +1280,7 @@ bool CheckMP3( ListExpr type, ListExpr& errorInfo ) {
 
 /*
 2.13 Creation of the Type Constructor Instance
-  
+
 */
 TypeConstructor mp3(
     // name
@@ -1258,23 +1298,23 @@ TypeConstructor mp3(
     // Object creation
     CreateMP3,
     // Object deletion
-    DeleteMP3,        
+    DeleteMP3,
     // object open
-    0, 
+    0,
     // object save
-    0, 
+    0,
     // object close
     CloseMP3,
     // object clone
     CloneMP3,
     // cast function
-    CastMP3, 
+    CastMP3,
     // sizeof function
-    SizeOfMP3, 
+    SizeOfMP3,
     // kind checking function
     CheckMP3 );
 
-/* 
+/*
 3 Type Constructor ~ID3~
 
 3.1 Class ~ID3~
@@ -1284,16 +1324,12 @@ part of an MP3 file this algebra provides a seperate storage of
 such ID3 tags.
 
 */
-class ID3 : Attribute {
+class ID3 : public Attribute {
 public:
     /* Standard constructor. */
     ID3();
     /* This object can be deleted by the Secondo system. */
     void Destroy();
-    /* Returns whether this object is defined or not. */
-    bool IsDefined() const;
-    /* Sets this object as defined or undefined. */
-    void SetDefined( bool Defined);
     /* Calcules a hash value for an ID3. */
     size_t HashValue() const;
     /* Copy the data of another ID3 object into this object. */
@@ -1309,26 +1345,26 @@ public:
     /* Returns the size of a class instance */
     size_t Sizeof() const;
     /* Creates an ID3 dump (128 bytes) from this object
-       and stores it into iddump. The memory has to be 
+       and stores it into iddump. The memory has to be
        provided by the caller. */
     void MakeID3Dump (char *iddump);
-    /* Returns the author. The memory has to be 
+    /* Returns the author. The memory has to be
        provided by the caller. */
     void GetAuthor (char *authorname);
-    /* Returns the title. The memory has to be 
+    /* Returns the title. The memory has to be
        provided by the caller. */
     void GetTitle (char *titlename);
-    /* Returns the album name The memory has to be 
+    /* Returns the album name The memory has to be
        provided by the caller.*/
     void GetAlbum(char *albumname);
-    /* Returns the comment. The memory has to be 
+    /* Returns the comment. The memory has to be
        provided by the caller.*/
     void GetComment(char *commentname);
     /* Returns the track number. */
     int GetTrack ();
     /* Returns the year. */
     int GetYear ();
-    /* Retuns the genre. The memory has to be 
+    /* Retuns the genre. The memory has to be
        provided by the caller. */
     void GetGenre(char *genrename);
     /* Extracts the genre name from the genre code. */
@@ -1342,12 +1378,11 @@ public:
     int track;
     char genre [21];
     int version;
-    
+
     bool canDelete;
-    bool defined;
 };
 
-/* 
+/*
 3.1.1 Constructor
 
 Standard constructor.
@@ -1363,51 +1398,31 @@ ID3::ID3() : canDelete(false) {
     //genre[0] = 0;
     //version = 0;
     //canDelete = false;
-    //defined = false;
 }
 
-/* 
+/*
 3.1.2 Destroy
 
-This object can be deleted by the Secondo system. 
+This object can be deleted by the Secondo system.
 
 */
 void ID3::Destroy() {
     canDelete = true;
 }
 
-/* 
-3.1.3 IsDefined
 
-Returns whether this object is defined or not. 
-
-*/
-bool ID3::IsDefined() const {
-    return defined;
-}
-
-/* 
-3.1.4 SetDefined
-
-Sets this object as defined or undefined. 
-
-*/
-void ID3::SetDefined (bool Defined) {
-    defined = Defined;
-}
-
-/* 
+/*
 3.1.5 HashValue
 
 Calcules a hash value for an ID3.
 
 */
-size_t ID3::HashValue () const { 
-    if (!defined)
+size_t ID3::HashValue () const {
+    if (!IsDefined()){
         return 0;
-    else {
+    } else {
         size_t result = 0;
-        
+
         for (int i = 0; i < 31; i++) result = result + (size_t)songname[i];
         for (int i = 0; i < 31; i++) result = result + (size_t)author[i];
         for (int i = 0; i < 31; i++) result = result + (size_t)album[i];
@@ -1416,10 +1431,10 @@ size_t ID3::HashValue () const {
     }
 }
 
-/* 
+/*
 3.1.6 CopyFrom
 
-Copy the data of another ID3 object into this object. 
+Copy the data of another ID3 object into this object.
 
 */
 void ID3::CopyFrom(const Attribute* right) {
@@ -1427,30 +1442,30 @@ void ID3::CopyFrom(const Attribute* right) {
     *this = *id;
 }
 
-/* 
+/*
 3.1.7 Compare
 
-Compare this ID3 with another ID3 object. 
+Compare this ID3 with another ID3 object.
 
 */
 int ID3::Compare (const Attribute * arg) const {
     return 0;
 }
 
-/* 
+/*
 3.1.8 Adjacent
 
-Adjacent is not useful for ID3 
+Adjacent is not useful for ID3
 
 */
 bool ID3::Adjacent (const Attribute * arg) const {
     return 0;
 }
 
-/* 
+/*
 3.1.9 Clone
 
-Clones this ID3 object. 
+Clones this ID3 object.
 
 */
 ID3* ID3::Clone() const {
@@ -1459,10 +1474,10 @@ ID3* ID3::Clone() const {
     return newID3;
 }
 
-/* 
+/*
 3.1.10 Print
 
-Prints a textual representation of an ID3 file. 
+Prints a textual representation of an ID3 file.
 
 */
 ostream& ID3::Print( ostream &os ) const {
@@ -1481,17 +1496,17 @@ size_t ID3::Sizeof() const {
 }
 
 
-/* 
+/*
 3.1.11 MakeID3Dump
 
 Creates an ID3 dump (128 bytes) from this object
-and stores it into iddump. The memory has to be 
-provided by the caller. 
+and stores it into iddump. The memory has to be
+provided by the caller.
 
 */
 void ID3::MakeID3Dump (char *iddump) {
     char tag[4] ="TAG";
-    
+
     strncpy (iddump,tag,3);
     strncpy (iddump + 3, songname,30);
     strncpy (iddump + 33, author,30);
@@ -1504,7 +1519,7 @@ void ID3::MakeID3Dump (char *iddump) {
         *(iddump+125) = (byte) 0x00;
         *(iddump+126) = (byte) track;
     }
-        
+
     char year_ [6];
     sprintf (year_, "%d",year);
     strncpy (iddump + 93, year_, 4);
@@ -1524,32 +1539,32 @@ void ID3::MakeID3Dump (char *iddump) {
     *(iddump + 127) = (byte) genrenumber;
 }
 
-/* 
+/*
 3.1.12 GetAuthor
 
-Returns the author. The memory has to be 
-provided by the caller. 
+Returns the author. The memory has to be
+provided by the caller.
 
 */
 void ID3::GetAuthor(char *authorname) {
     strncpy (authorname,author,31);
 }
 
-/* 
+/*
 3.1.13 GetTitle
 
-Returns the title. The memory has to be 
-provided by the caller. 
+Returns the title. The memory has to be
+provided by the caller.
 
 */
 void ID3::GetTitle(char *titlename) {
     strncpy (titlename,songname,31);
 }
 
-/* 
+/*
 3.1.14 GetAlbum
 
-Returns the album name. The memory has to be 
+Returns the album name. The memory has to be
 provided by the caller.
 
 */
@@ -1557,11 +1572,11 @@ void ID3::GetAlbum(char *albumname) {
     strncpy (albumname,album,31);
 }
 
-/* 
+/*
 3.1.15 GetComment
 
-Returns the comment. The memory has to be 
-provided by the caller. 
+Returns the comment. The memory has to be
+provided by the caller.
 
 */
 void ID3::GetComment(char *commentname) {
@@ -1572,41 +1587,41 @@ void ID3::GetComment(char *commentname) {
         strncpy (commentname,comment,29);
 }
 
-/* 
+/*
 3.1.16 GetGenre
 
-Returns the genre. The memory has to be 
-provided by the caller. 
+Returns the genre. The memory has to be
+provided by the caller.
 
 */
 void ID3::GetGenre(char *genrename) {
     strncpy (genrename,genre,21);
 }
 
-/* 
+/*
 3.1.17 GetTrack
 
-Returns the track number. 
+Returns the track number.
 
 */
 int ID3::GetTrack() {
-    return track; 
+    return track;
 }
 
-/* 
+/*
 3.1.18 GetYear
 
-Returns the year. 
+Returns the year.
 
 */
-int ID3::GetYear() { 
+int ID3::GetYear() {
     return this->year;
 }
 
 /*
 3.1.19 GetGenreName
 
-Extracts the genre name from the genre code. 
+Extracts the genre name from the genre code.
 
 */
 char *ID3::GetGenreName(byte nr) {
@@ -1749,8 +1764,8 @@ or
 */
 
 ListExpr OutID3( ListExpr typeInfo, Word value ) {
-    ID3 *id3 = (ID3 *)(value.addr);
-    
+    ID3 *id3 = static_cast<ID3*>(value.addr);
+
     ListExpr result;
     string songName(id3->songname);
     string authorName(id3->author);
@@ -1760,13 +1775,13 @@ ListExpr OutID3( ListExpr typeInfo, Word value ) {
 
 
     if (!id3->IsDefined())    {
-        /* the ID3 tag is not defined, so we have to return 
+        /* the ID3 tag is not defined, so we have to return
            a nested list with the symbol atom "undef"*/
          return (nl->SymbolAtom("undef"));
     }
 
     /* If ID3 tag version is 1.0 the ID3 information is coded into
-       six elements. The ID3 tag version 1.1 has one field more namely 
+       six elements. The ID3 tag version 1.1 has one field more namely
        one for the track number. */
     else if (id3->version == 0) {
         result = nl->SixElemList(
@@ -1795,26 +1810,26 @@ ListExpr OutID3( ListExpr typeInfo, Word value ) {
 
 */
 Word InID3( const ListExpr typeInfo, const ListExpr instance,
-            const int errorPos, ListExpr& errorInfo, bool& correct ){  
+            const int errorPos, ListExpr& errorInfo, bool& correct ){
     ID3 *id3 = new ID3 ();
 
 
-    /* we have to check whether the nested list contains a valid 
+    /* we have to check whether the nested list contains a valid
        id3 tag or the symbol atom "undef"*/
-    if (nl->IsAtom( instance ) 
-        && nl->AtomType( instance ) == SymbolType 
+    if (nl->IsAtom( instance )
+        && nl->AtomType( instance ) == SymbolType
         && nl->SymbolValue( instance ) == "undef" ) {
         correct = true;
         id3->SetDefined (false);
         return SetWord (id3);
-    }    
+    }
 
     /* If ID3 tag version is 1.0 the ID3 information is coded into
-       six elements. The ID3 tag version 1.1 has one field more namely 
+       six elements. The ID3 tag version 1.1 has one field more namely
        one for the track number. */
     else if (nl->ListLength (instance) == 6
         && nl->IsAtom (nl->First( instance ))
-        && nl->AtomType (nl->First( instance )) == StringType 
+        && nl->AtomType (nl->First( instance )) == StringType
         && nl->IsAtom (nl->Second( instance ))
         && nl->AtomType (nl->Second( instance )) == StringType
         && nl->IsAtom (nl->Third( instance ))
@@ -1840,14 +1855,14 @@ Word InID3( const ListExpr typeInfo, const ListExpr instance,
         dummy = (char*) albumName.c_str();
         strncpy (id3->album,dummy,30);
         *(id3->album+30) = (byte) 0x00;
-        
+
         id3->year = nl->IntValue(nl->Fourth(instance));
-        
+
         string commentName = nl->StringValue(nl->Fifth(instance));
         dummy = (char*) commentName.c_str();
         strncpy (id3->comment,dummy,30);
         *(id3->comment+30) = (byte) 0x00;
-        
+
         string genreName = nl->StringValue(nl->Sixth(instance));
         dummy = (char*) genreName.c_str();
         strncpy (id3->genre,dummy,20);
@@ -1858,20 +1873,20 @@ Word InID3( const ListExpr typeInfo, const ListExpr instance,
         correct = true;
         return SetWord (id3);
     } else if (nl->ListLength (instance) == 7
-               && nl->IsAtom (nl->First( instance )) 
+               && nl->IsAtom (nl->First( instance ))
                && nl->AtomType (nl->First( instance )) == StringType
-               && nl->IsAtom (nl->Second( instance )) 
+               && nl->IsAtom (nl->Second( instance ))
                && nl->AtomType (nl->Second( instance )) == StringType
-               && nl->IsAtom (nl->Third( instance )) 
+               && nl->IsAtom (nl->Third( instance ))
                && nl->AtomType (nl->Third( instance )) == StringType
-               && nl->IsAtom (nl->Fourth( instance )) 
+               && nl->IsAtom (nl->Fourth( instance ))
                && nl->AtomType (nl->Fourth( instance )) == IntType
-               && nl->IsAtom (nl->Fifth( instance )) 
+               && nl->IsAtom (nl->Fifth( instance ))
                && nl->AtomType (nl->Fifth( instance )) == StringType
-               && nl->IsAtom (nl->Sixth( instance )) 
+               && nl->IsAtom (nl->Sixth( instance ))
                && nl->AtomType (nl->Sixth( instance )) == IntType
-               && nl->IsAtom (nl->Sixth (nl->Rest (instance)) ) 
-               && nl->AtomType (nl->Sixth( nl->Rest (instance) )) 
+               && nl->IsAtom (nl->Sixth (nl->Rest (instance)) )
+               && nl->AtomType (nl->Sixth( nl->Rest (instance) ))
                == StringType) {
 
                id3->version = 1;
@@ -1887,29 +1902,30 @@ Word InID3( const ListExpr typeInfo, const ListExpr instance,
         dummy = (char*) albumName.c_str();
         strncpy (id3->album,dummy,30);
         *(id3->album+30) = (byte) 0x00;
-        
+
         id3->year = nl->IntValue(nl->Fourth(instance));
-        
+
         string commentName = nl->StringValue(nl->Fifth(instance));
         dummy = (char*) commentName.c_str();
         strncpy (id3->comment,dummy,28);
         *(id3->comment+28) = (byte) 0x00;
-        
+
         id3->track = nl->IntValue(nl->Sixth(instance));
-        
+
         string genreName = nl->StringValue(nl->Sixth(nl->Rest (instance)));
-        
+
         dummy = (char*) genreName.c_str();
         strncpy (id3->genre,dummy,20);
         *(id3->genre+20) = (byte) 0x00;
 
         id3->SetDefined(true);
-        
+
         correct = true;
         return SetWord (id3);
     } else {
         /* other versions of ID3 tags are not supported. */
         correct = false;
+        delete id3;
         return SetWord( Address(0));
     }
 }
@@ -2012,17 +2028,17 @@ TypeConstructor id3(
     // Out function
     OutID3,
     // In function
-    InID3,      
+    InID3,
     // SaveToList
-    0,                
+    0,
     // RestoreFromList
     0,
     // object creation
-    CreateID3,          
+    CreateID3,
     // object deletion
     DeleteID3,
     // object open
-    0, 
+    0,
     // object save
     0,
     // object close
@@ -2042,7 +2058,7 @@ TypeConstructor id3(
 
 4.1 struct Line
 
-This class encapsulates a single line of song lyrics. 
+This class encapsulates a single line of song lyrics.
 
 */
 struct Line {
@@ -2055,7 +2071,7 @@ struct Line {
 
     size_t HashValue() const {
         size_t result = 0;
-        for (int i = 0; i < 255; i++) result = result + textline[i];
+        for (int i = 0; i < 255; i++) { result = result + textline[i]; }
         return result;
     }
 };
@@ -2071,7 +2087,7 @@ part of an MP3 file this algebra provides a seperate storage of
 such lyrics lines.
 
 */
-class Lyrics : Attribute {
+class Lyrics : public Attribute {
   public:
     /* Constructor */
     Lyrics() {};
@@ -2081,10 +2097,6 @@ class Lyrics : Attribute {
     ~Lyrics();
     /* Clones this Lyrics object. */
     Lyrics *Clone() const;
-    /* Returns whether this object is defined or not. */ 
-    bool IsDefined() const;
-    /* Sets this object as defined or undefined. */
-    void SetDefined( bool Defined);
     /* Calcules a hash value for an Lyrics. */
     size_t HashValue() const;
     /* Copy the data of another Lyrics object into this object. */
@@ -2092,7 +2104,7 @@ class Lyrics : Attribute {
     /* Returns the number of FLOBs : 1 */
     int NumOfFLOBs() const;
     /* Returns the line array. */
-    FLOB *GetFLOB(const int i);
+    Flob *GetFLOB(const int i);
     /* Compare this Lyrics with another Lyrics object. */
     int Compare(const Attribute * arg) const;
     /* Adjacent is not useful for Lyrics */
@@ -2109,8 +2121,7 @@ class Lyrics : Attribute {
     Line GetLine( int i ) const;
 
   private:
-    bool defined;
-    DBArray<Line> linearray;
+    DbArray<Line> linearray;
     bool canDelete;
 };
 
@@ -2121,9 +2132,7 @@ class Lyrics : Attribute {
 Constructor
 
 */
-Lyrics::Lyrics(const int size) : linearray (size), canDelete (false) {
-    //canDelete = false;
-    //defined = false;
+Lyrics::Lyrics(const int size) : linearray(size), canDelete(false) {
 }
 
 /*
@@ -2151,54 +2160,34 @@ Lyrics *Lyrics::Clone() const {
 
 
 /*
-4.2.4 IsDefined
-
-Returns whether this object is defined or not. 
-
-*/
-bool Lyrics::IsDefined() const {
-    return defined;
-}
-
-/*
-4.2.5 SetDefined 
-
-Sets this object as defined or undefined.
-
-*/
-void Lyrics::SetDefined (bool Defined) {
-    defined = Defined;
-}
-
-/* 
 4.2.6 HashValue
 
-Calcules a hash value for an Lyrics. 
+Calcules a hash value for an Lyrics.
 
 */
-size_t Lyrics::HashValue () const {  
+size_t Lyrics::HashValue () const {
     size_t result = 0;
+    Line aLine;
     for (int i = 0; i < linearray.Size(); i++) {
-        const Line *aLine;
         linearray.Get(i, aLine);
-        result = result + aLine->HashValue();
+        result += aLine.HashValue();
     }
     return 0;
 }
 
-/* 
+/*
 4.2.7 CopyFrom
 
-Copy the data of another Lyrics object into this object. 
+Copy the data of another Lyrics object into this object.
 
 */
 void Lyrics::CopyFrom(const Attribute* right) {
     const Lyrics* lyrics = (const Lyrics*) right;
-    
+
     for(int i = 0; i < lyrics->NoLines(); i++ ) {
         Append(lyrics->GetLine(i));
     }
-    defined = lyrics->defined;
+    SetDefined( lyrics->IsDefined() );
     canDelete = lyrics->canDelete;
 }
 
@@ -2218,23 +2207,23 @@ int Lyrics::NumOfFLOBs() const {
 Returns the line array.
 
 */
-FLOB *Lyrics::GetFLOB(const int i) {
+Flob *Lyrics::GetFLOB(const int i) {
     return &linearray;
 }
 
 
-/* 
+/*
 4.2.10 Compare
 
-Compare this Lyrics with another Lyrics object. 
+Compare this Lyrics with another Lyrics object.
 
 */
 int Lyrics::Compare (const Attribute * arg) const {
     return 0;
 }
 
-/* 
-4.2.11 Adjacent 
+/*
+4.2.11 Adjacent
 
 Adjacent is not useful for Lyrics
 
@@ -2260,7 +2249,7 @@ Appends a new line to the lines array.
 
 */
 void Lyrics::Append(Line oneline ) {
-    linearray.Append (oneline );
+    linearray.Append(oneline );
 }
 
 /*
@@ -2291,9 +2280,9 @@ Returns a Line indexed by ~i~.
 
 */
 Line Lyrics::GetLine( int i ) const {
-    const Line *l;
-    linearray.Get( i, l );
-    return *l;
+    Line l;
+    linearray.Get( i, &l );
+    return l;
 }
 
 
@@ -2310,22 +2299,22 @@ The list representation of a ~lyrics~ are
 */
 ListExpr OutLyrics( ListExpr typeInfo, Word value ) {
     Lyrics *lyrics = (Lyrics *)(value.addr);
-    
+
     ListExpr result=nl->TheEmptyList();
 
     if (!lyrics->IsDefined())    {
-        /* the lyrics tag is not defined, so we have to return 
+        /* the lyrics tag is not defined, so we have to return
            a nested list with the symbol atom "undef"*/
          return (nl->SymbolAtom("undef"));
     }
 
-    /* The nested list is build up beginning from the end. 
-       This is done because the append operator does not seem 
+    /* The nested list is build up beginning from the end.
+       This is done because the append operator does not seem
        to be very reliable. */
     for (int i = lyrics->NoLines() - 1; i >= 0; i--) {
         int sec = lyrics->GetLine(i).seconds;
         string tline = lyrics->GetLine(i).textline;
-        
+
         result = nl->Cons(nl-> StringAtom (tline ), result);
         result = nl->Cons(nl-> IntAtom (sec ), result);
     }
@@ -2337,22 +2326,22 @@ ListExpr OutLyrics( ListExpr typeInfo, Word value ) {
 
 */
 Word InLyrics( const ListExpr typeInfo, const ListExpr instance,
-            const int errorPos, ListExpr& errorInfo, bool& correct ){  
+            const int errorPos, ListExpr& errorInfo, bool& correct ){
     Lyrics *lyrics = new Lyrics(0);
-    
 
-    /* we have to check whether the nested list contains 
+
+    /* we have to check whether the nested list contains
        valid lyrics or the symbol atom "undef"*/
-    if (nl->IsAtom(instance) 
-        && nl->AtomType(instance) == SymbolType 
+    if (nl->IsAtom(instance)
+        && nl->AtomType(instance) == SymbolType
         && nl->SymbolValue(instance) == "undef") {
         correct = true;
         lyrics->SetDefined (false);
         return SetWord (lyrics);
-    }    
+    }
 
 
-    /* The nested list of a lyrics object consists of alternating 
+    /* The nested list of a lyrics object consists of alternating
        elements for the time stamps and the text. Therefore the number
        of elements must be even. */
     int nolines = nl->ListLength (instance) / 2;
@@ -2361,6 +2350,7 @@ Word InLyrics( const ListExpr typeInfo, const ListExpr instance,
         /* The number of elements is odd. Create an incorrect
            lyrics object. */
         correct = false;
+        delete lyrics;
         return SetWord( Address(0));
     }
 
@@ -2370,17 +2360,17 @@ Word InLyrics( const ListExpr typeInfo, const ListExpr instance,
     ListExpr iter=instance;
     for (int i = 1; i <= nolines ; i++) {
         if ( nl->IsAtom (nl->First(iter))
-             && nl->AtomType (nl->First(iter)) == IntType 
+             && nl->AtomType (nl->First(iter)) == IntType
              && nl->IsAtom (nl->Second(iter))
-             && nl->AtomType (nl->Second(iter)) == StringType) {       
+             && nl->AtomType (nl->Second(iter)) == StringType) {
             // empty.
         }
-        else { 
+        else {
             typeOk=false;
         }
        iter = nl->Rest(nl->Rest(iter));
     }
-    
+
     /* Now we can copy each element of the nested list into the
        lyrics object. */
     iter = instance;
@@ -2388,15 +2378,15 @@ Word InLyrics( const ListExpr typeInfo, const ListExpr instance,
         for (int i = 1; i <= nolines; i++) {
             int timer = nl->IntValue (nl->First (iter));
             string text = nl->StringValue (nl->Second (iter));
-            
+
             Line oneline;
             oneline.seconds = timer;
             char *dummy = (char*) text.c_str();
-            
+
             strncpy (oneline.textline,dummy,255);
 
             lyrics->Append (oneline);
-            
+
             iter = nl->Rest(nl->Rest(iter));
         }
         correct = true;
@@ -2405,6 +2395,7 @@ Word InLyrics( const ListExpr typeInfo, const ListExpr instance,
     }
     else {
         correct = false;
+        delete lyrics;
         return SetWord( Address(0));
     }
 }
@@ -2504,11 +2495,11 @@ TypeConstructor lyrics(
     // Out function
     OutLyrics,
     // In function
-    InLyrics,      
+    InLyrics,
     // SaveToList function
     0,
     // RestoreFromList function
-    0,      
+    0,
     // object creation
     CreateLyrics,
     // object deletion
@@ -2518,7 +2509,7 @@ TypeConstructor lyrics(
     // object save
     0,
     // object close
-    CloseLyrics, 
+    CloseLyrics,
     // object clone
     CloneLyrics,
     // cast function
@@ -2564,26 +2555,26 @@ ListExpr SaveMP3ToTypeMap( ListExpr args ) {
 5.1.2 Value mapping functions of operator ~savemp3to~
 
 */
-int SaveMP3ToFun(Word* args, Word& result, int message, 
+int SaveMP3ToFun(Word* args, Word& result, int message,
                  Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
     CcString *fileName = (CcString*)args[1].addr;
-    
+
     if( mp3->SaveMP3ToFile( *(fileName->GetStringval()) ) )
         ((CcBool *)result.addr)->Set( true, true );
     else
         ((CcBool *)result.addr)->Set( true, false );
-    
+
     return 0;
 }
 
 /*
-  
+
 5.1.3 Specification of operator ~savemp3to~
 
 */
-const string SaveMP3ToSpec  = 
+const string SaveMP3ToSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3 string) -> bool"
@@ -2640,7 +2631,7 @@ ListExpr RemoveLyricsTypeMap( ListExpr args ) {
 5.2.2 Value mapping functions of operator ~removelyrics~
 
 */
-int RemoveLyricsFun(Word* args, Word& result, int message, 
+int RemoveLyricsFun(Word* args, Word& result, int message,
                     Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
@@ -2651,11 +2642,11 @@ int RemoveLyricsFun(Word* args, Word& result, int message,
 }
 
 /*
-  
+
 5.2.3 Specification of operator ~removelyrics~
 
 */
-const string RemoveLyricsSpec  = 
+const string RemoveLyricsSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3) -> mp3"
@@ -2667,7 +2658,7 @@ const string RemoveLyricsSpec  =
 ") )";
 
 /*
-  
+
 5.2.4 Definition of operator ~removelyrics~
 
 */
@@ -2712,24 +2703,24 @@ ListExpr RemoveID3TypeMap( ListExpr args ) {
 5.3.2 Value mapping functions of operator ~removeid3~
 
 */
-int RemoveID3Fun(Word* args, Word& result, int message, 
+int RemoveID3Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
     MP3 *newmp3 = mp3->Clone();
     newmp3->RemoveID();
-    
+
     result.addr = newmp3;
-    
+
     return 0;
 }
 
 /*
-  
+
 5.3.3 Specification of operator ~removeid3~
 
 */
-const string RemoveID3Spec = 
+const string RemoveID3Spec =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3) -> mp3"
@@ -2741,7 +2732,7 @@ const string RemoveID3Spec =
 ") )";
 
 /*
-  
+
 5.3.4 Definition of operator ~removeid3~
 
 */
@@ -2765,9 +2756,9 @@ Operator removeid3 (
 5.4 Operator ~submp3~
 
 Extracts frames from an MP3 file object and generate a new MP3
-file object which contains specific parts of the song. 
+file object which contains specific parts of the song.
 The first integer parameter specifies the start frame and the
-second integer parameter specifies the length of the fragment. 
+second integer parameter specifies the length of the fragment.
 
 5.4.1 Type mapping function of operator ~submp3~
 
@@ -2795,16 +2786,16 @@ ListExpr SubMP3TypeMap( ListExpr args ) {
 5.4.2 Value mapping functions of operator ~submp3~
 
 */
-int SubMP3Fun(Word* args, Word& result, int message, 
+int SubMP3Fun(Word* args, Word& result, int message,
               Word& local, Supplier s) {
     result = qp->ResultStorage( s );
 
     int beginframe = ((CcInt*)args[1].addr)->GetIntval();
     int size = ((CcInt*)args[2].addr)->GetIntval();
-    
+
     MP3 *newmp3 = ((MP3*)args[0].addr)->SubMP3 (beginframe, size);
     result.addr = newmp3;
-    
+
     return 0;
 }
 
@@ -2813,7 +2804,7 @@ int SubMP3Fun(Word* args, Word& result, int message,
 5.4.3 Specification of operator ~submp3~
 
 */
-const string SubMP3Spec  = 
+const string SubMP3Spec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3 int int) -> mp3"
@@ -2869,29 +2860,29 @@ ListExpr ConcatMP3TypeMap(ListExpr args) {
 }
 
 /*
-  
+
 5.5.2 Value mapping functions of operator ~concatmp3~
 
 */
-int ConcatMP3Fun(Word* args, Word& result, int message, 
+int ConcatMP3Fun(Word* args, Word& result, int message,
                  Word& local, Supplier s) {
     result = qp->ResultStorage( s );
-    
+
     MP3 *firstmp3 = (MP3*)args[0].addr;
     MP3 *secondmp3 = (MP3*)args[1].addr;
-    
+
     MP3 *newmp3 = firstmp3->Concat (secondmp3);
     result.addr = newmp3;
-    
+
     return 0;
 }
 
 /*
-  
+
 5.5.3 Specification of operator ~concatmp3~
 
 */
-const string ConcatMP3Spec  = 
+const string ConcatMP3Spec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3 , mp3) -> mp3"
@@ -2910,7 +2901,7 @@ const string ConcatMP3Spec  =
 Operator concatmp3 (
     // name
     "concatmp3",
-    // Specification 
+    // Specification
     ConcatMP3Spec,
     // value mapping
     ConcatMP3Fun,
@@ -2949,7 +2940,7 @@ ListExpr BitrateTypeMap(ListExpr args) {
 5.6.2 Value mapping functions of operator ~bitrate~
 
 */
-int BitrateFun(Word* args, Word& result, int message, 
+int BitrateFun(Word* args, Word& result, int message,
                Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
@@ -2962,7 +2953,7 @@ int BitrateFun(Word* args, Word& result, int message,
 5.6.3 Specification of operator ~bitrate~
 
 */
-const string BitrateSpec  = 
+const string BitrateSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3) -> int"
@@ -3019,13 +3010,13 @@ ListExpr VersionTypeMap( ListExpr args ) {
 5.7.2 Value mapping functions of operator ~version~
 
 */
-int VersionFun(Word* args, Word& result, int message, 
+int VersionFun(Word* args, Word& result, int message,
                Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
-    
+
     ((CcInt *)result.addr)->Set(mp3->IsDefined(), mp3->GetMP3Version());
-    
+
     return 0;
 }
 
@@ -3034,7 +3025,7 @@ int VersionFun(Word* args, Word& result, int message,
 5.7.3 Specification of operator ~version~
 
 */
-const string VersionSpec  = 
+const string VersionSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3) -> int"
@@ -3091,11 +3082,11 @@ ListExpr FrequencyTypeMap(ListExpr args) {
 5.8.2 Value mapping functions of operator ~frequency~
 
 */
-int FrequencyFun(Word* args, Word& result, int message, 
+int FrequencyFun(Word* args, Word& result, int message,
                  Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
-    
+
     ((CcInt *)result.addr)->Set(mp3->IsDefined(), mp3->GetFrequency());
 
     return 0;
@@ -3106,7 +3097,7 @@ int FrequencyFun(Word* args, Word& result, int message,
 5.8.3 Specification of operator ~frequency~
 
 */
-const string FrequencySpec  = 
+const string FrequencySpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3) -> int"
@@ -3118,7 +3109,7 @@ const string FrequencySpec  =
 ") )";
 
 /*
-  
+
 5.8.4 Definition of operator ~frequency~
 
 */
@@ -3164,22 +3155,22 @@ ListExpr FrameCountTypeMap(ListExpr args) {
 5.9.2 Value mapping functions of operator ~framecount~
 
 */
-int FrameCountFun(Word* args, Word& result, int message, 
+int FrameCountFun(Word* args, Word& result, int message,
                   Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
-    
+
     ((CcInt *)result.addr)->Set(mp3->IsDefined(), mp3->GetFrameCount());
-    
+
     return 0;
 }
 
 /*
-  
+
 5.9.3 Specification of operator ~framecount~
 
 */
-const string FrameCountSpec  = 
+const string FrameCountSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3) -> int"
@@ -3240,9 +3231,9 @@ ListExpr LengthTypeMap(ListExpr args) {
 int LengthFun(Word* args, Word& result, int message, Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
-    
+
     ((CcInt *)result.addr)->Set(mp3->IsDefined(), mp3->GetLength());
-    
+
     return 0;
 }
 
@@ -3251,7 +3242,7 @@ int LengthFun(Word* args, Word& result, int message, Word& local, Supplier s) {
 5.10.3 Specification of operator ~length~
 
 */
-const string LengthSpec  = 
+const string LengthSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3) -> int"
@@ -3321,20 +3312,20 @@ int GetID3Fun(Word* args, Word& result, int message, Word& local, Supplier s) {
         result.addr=id3;
         return 0;
     }
-    
-    const char *bytes;
+
+    char bytes[128];
     char tag [4] = "TAG";
-    mp3->GetID3Dump (&bytes);
-        
+    mp3->GetID3Dump(bytes);
+
     if (!(strncmp (bytes,tag,3) == 0)) {
-        /* The first three characters were not "TAG". 
+        /* The first three characters were not "TAG".
            This means there was no ID3 tag in the MP3 song.
            An undefined object is created. */
         id3->SetDefined (false);
         result.addr=id3;
         return 0;
     }
-        
+
     /* copy the songname into the new id3 object. */
     strncpy (id3->songname,bytes+3,30);
     *(id3->songname + 30) = (byte) 0x00;
@@ -3359,7 +3350,7 @@ int GetID3Fun(Word* args, Word& result, int message, Word& local, Supplier s) {
         // copy the comment
         strncpy (id3->comment,bytes+97,28);
         *(id3->comment + 28) = (byte) 0x00;
-        /* copy the track number into the new id3 object. 
+        /* copy the track number into the new id3 object.
            The track number is encoded as word. (two bytes). */
         id3->track = (byte) (*(bytes+126));
     }
@@ -3375,11 +3366,11 @@ int GetID3Fun(Word* args, Word& result, int message, Word& local, Supplier s) {
     /* copy the genre name into the new id3 object. */
     strncpy (id3->genre,id3->GetGenreName((byte) (*(bytes+127)) ),20);
     *(id3->genre + 21) = (byte) 0x00;
-    
+
     id3->SetDefined(true);
 
     result.addr=id3;
-    
+
     return 0;
 }
 
@@ -3388,7 +3379,7 @@ int GetID3Fun(Word* args, Word& result, int message, Word& local, Supplier s) {
 5.11.3 Specification of operator ~getid3~
 
 */
-const string GetID3Spec  = 
+const string GetID3Spec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3) -> id3"
@@ -3452,15 +3443,15 @@ int PutID3Fun(Word* args, Word& result, int message, Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     MP3 *mp3 = (MP3*)args[0].addr;
     ID3 *id3 = (ID3*)args[1].addr;
-    
+
     MP3 *newmp3 = mp3->Clone();
-    
+
     if (id3->IsDefined()){
         char idbytes [128];
-        id3->MakeID3Dump (idbytes);  
+        id3->MakeID3Dump (idbytes);
         newmp3->PutID(idbytes);
     }
-    
+
     result.addr = newmp3;
     return 0;
 }
@@ -3470,7 +3461,7 @@ int PutID3Fun(Word* args, Word& result, int message, Word& local, Supplier s) {
 5.12.3 Specification of operator ~putid3~
 
 */
-const string PutID3Spec  = 
+const string PutID3Spec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3 id3) -> mp3"
@@ -3549,7 +3540,7 @@ int AuthorFun(Word* args, Word& result, int message, Word& local, Supplier s) {
 5.13.3 Specification of operator ~author~
 
 */
-const string AuthorSpec  = 
+const string AuthorSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(id3) -> string"
@@ -3566,7 +3557,7 @@ const string AuthorSpec  =
 
 */
 Operator author (
-    // name 
+    // name
     "author",
     // specification
     AuthorSpec,
@@ -3611,13 +3602,13 @@ int TitleFun(Word* args, Word& result, int message, Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     ID3 *id3 = (ID3*)args[0].addr;
 
-    if (id3->IsDefined()){    
+    if (id3->IsDefined()){
         char newStr[256];
         id3->GetTitle (newStr);
-    
+
         ((CcString *)result.addr)->Set( true, (STRING_T*) &newStr );
         return 0;
-    }  
+    }
     else {
         ((CcString *)result.addr)->Set( false, (STRING_T*) "");
         return 0;
@@ -3629,7 +3620,7 @@ int TitleFun(Word* args, Word& result, int message, Word& local, Supplier s) {
 5.14.3 Specification of operator ~title~
 
 */
-const string TitleSpec  = 
+const string TitleSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>id3 -> string"
@@ -3694,7 +3685,7 @@ int AlbumFun(Word* args, Word& result, int message, Word& local, Supplier s) {
     if (id3->IsDefined()){
         char newStr[256];
         id3->GetAlbum (newStr);
-    
+
         ((CcString *)result.addr)->Set( true, (STRING_T*) &newStr );
         return 0;
     }
@@ -3709,7 +3700,7 @@ int AlbumFun(Word* args, Word& result, int message, Word& local, Supplier s) {
 5.15.3 Specification of operator ~album~
 
 */
-const string AlbumSpec  = 
+const string AlbumSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(id3) -> string"
@@ -3767,7 +3758,7 @@ ListExpr CommentTypeMap( ListExpr args ) {
 5.16.2 Value mapping functions of operator ~comment~
 
 */
-int CommentFun(Word* args, Word& result, int message, 
+int CommentFun(Word* args, Word& result, int message,
                Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     ID3 *id3 = (ID3*)args[0].addr;
@@ -3775,7 +3766,7 @@ int CommentFun(Word* args, Word& result, int message,
     if (id3->IsDefined()){
         char newStr[256];
         id3->GetComment (newStr);
-        
+
         ((CcString *)result.addr)->Set( true, (STRING_T*) &newStr );
         return 0;
     }
@@ -3783,7 +3774,7 @@ int CommentFun(Word* args, Word& result, int message,
         ((CcString *)result.addr)->Set( false, (STRING_T*) "");
         return 0;
     }
-    
+
 }
 
 /*
@@ -3791,7 +3782,7 @@ int CommentFun(Word* args, Word& result, int message,
 5.16.3 Specification of operator ~comment~
 
 */
-const string CommentSpec  = 
+const string CommentSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3) -> bool"
@@ -3852,11 +3843,11 @@ ListExpr GenreTypeMap( ListExpr args ) {
 int GenreFun(Word* args, Word& result, int message, Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     ID3 *id3 = (ID3*)args[0].addr;
- 
+
     if (id3->IsDefined()){
         char newStr[256];
         id3->GetGenre (newStr);
-    
+
         ((CcString *)result.addr)->Set( true, (STRING_T*) &newStr );
         return 0;
     }
@@ -3871,7 +3862,7 @@ int GenreFun(Word* args, Word& result, int message, Word& local, Supplier s) {
 5.17.3 Specification of operator ~genre~
 
 */
-const string GenreSpec  = 
+const string GenreSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(id3) -> string"
@@ -3936,16 +3927,16 @@ int TrackFun(Word* args, Word& result, int message, Word& local, Supplier s) {
     if (id3->IsDefined())
         ((CcInt *)result.addr)->Set( true, id3->GetTrack() );
     else
-        ((CcInt *)result.addr)->Set( false, 0 );        
+        ((CcInt *)result.addr)->Set( false, 0 );
     return 0;
 }
 
 /*
-  
+
 5.18.3 Specification of operator ~track~
 
 */
-const string TrackSpec  = 
+const string TrackSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(id3) -> int"
@@ -4005,7 +3996,7 @@ ListExpr YearTypeMap( ListExpr args ) {
 int YearFun(Word* args, Word& result, int message, Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     ID3 *id3 = (ID3*)args[0].addr;
-    
+
     if (id3->IsDefined())
         ((CcInt *)result.addr)->Set( true, id3->GetYear() );
     else
@@ -4018,7 +4009,7 @@ int YearFun(Word* args, Word& result, int message, Word& local, Supplier s) {
 5.19.3 Specification of operator ~songyear~
 
 */
-const string YearSpec  = 
+const string YearSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(id3) -> int"
@@ -4051,7 +4042,7 @@ Operator songyear (
 
 5.20 Operator ~lyricswords~
 
-Gets the corresponding text line to the provided point of time. 
+Gets the corresponding text line to the provided point of time.
 
 5.20.1 Type mapping function of operator ~lyricswords~
 
@@ -4088,11 +4079,11 @@ int WordsFun(Word* args, Word& result, int message, Word& local, Supplier s) {
 
     /* First we have to check whether the lyrics are defined*/
     if (!lyrics->IsDefined() ){
-        ((CcString *)result.addr)->Set( false, (STRING_T*) "" );        
+        ((CcString *)result.addr)->Set( false, (STRING_T*) "" );
         return 0;
     }
 
-    /* We have to check whether the point of time is in the intervall 
+    /* We have to check whether the point of time is in the intervall
        from the beginning of one line to the beginning of the next
        line. */
     bool found=false;
@@ -4103,7 +4094,7 @@ int WordsFun(Word* args, Word& result, int message, Word& local, Supplier s) {
         /* time when ith line ends. This is equal to the time
            whean the (i+1)th line begins. */
         int endsecs   = lyrics->GetLine (i+1).seconds;
-        
+
         if ((secs >= beginsecs) && (secs < endsecs) && (!found)) {
             /* we have found the correct interval. So the string
              has to be copied to newStr. */
@@ -4112,8 +4103,8 @@ int WordsFun(Word* args, Word& result, int message, Word& local, Supplier s) {
         }
     }
 
-    /* Now we have to check whether the given time stamp is inside the 
-       last intervall. Because the length of an intervall (specially 
+    /* Now we have to check whether the given time stamp is inside the
+       last intervall. Because the length of an intervall (specially
        the last interval) is not available we offer the last line even
        if the time stamp is "behind" the song. */
     if ((!found) && (secs >= lyrics->GetLine(lyrics->NoLines()-1).seconds)) {
@@ -4136,7 +4127,7 @@ int WordsFun(Word* args, Word& result, int message, Word& local, Supplier s) {
 5.20.3 Specification of operator ~lyricswords~
 
 */
-const string WordsSpec  = 
+const string WordsSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(lyrics int) -> string"
@@ -4196,13 +4187,13 @@ Returns a lyrics object from an MP3 object with lyrics. If the
 given MP3 object has no lyrics an undefined lyrics object is returned.
 
 */
-int GetLyricsFun(Word* args, Word& result, int message, 
+int GetLyricsFun(Word* args, Word& result, int message,
                  Word& local, Supplier s) {
     result = qp->ResultStorage(s);
     MP3 *mp3 = (MP3*)args[0].addr;
-    
+
     Lyrics* newlyrics = new Lyrics(0);
-    
+
     if  (!mp3->IsDefined()) {
         newlyrics->SetDefined (false);
         result.addr = newlyrics;
@@ -4215,32 +4206,33 @@ int GetLyricsFun(Word* args, Word& result, int message,
         return 0;
     }
 
-    /* buffer for the lyrics */
-    const char* buffer;
     /* size of the lyrics dump */
     int size;
+
+    /* buffer for the lyrics */
+    char* buffer = mp3->GetLyricsDump (size);
+
     /* iterator for scanning the lyrics text lines. */
-    char* iter; 
-    
+    char* iter;
+
     /* get the lyrics dump from the MP3 object. */
-    mp3->GetLyricsDump (&buffer,size);
 
-    /* The proper lyrics text data begin after the "LYR" tag. 
-     So we have to look for the first occurance of "LYR" 
+    /* The proper lyrics text data begin after the "LYR" tag.
+     So we have to look for the first occurance of "LYR"
      in the dump. */
-    char *lyrptr = strstr(buffer+1,"LYR"); 
+    char *lyrptr = strstr(buffer+1,"LYR");
 
-    /* The text length is encoded in 
+    /* The text length is encoded in
        a 5-byte-char-array behind the "LYR". */
-    char textsize_ [6]; 
+    char textsize_ [6];
     strncpy (textsize_, lyrptr + 3, 5);
     textsize_[5] = 0;
     int textsize = atoi(textsize_);
 
     Line oneline;
-    
-    /* mulitiline is a pointer to the fist multiline item 
-       (multiline = [time stamp] + text) 
+
+    /* mulitiline is a pointer to the fist multiline item
+       (multiline = [time stamp] + text)
        Example: [00:02]first text line */
     char *multiline = lyrptr + 8;
     iter = multiline;
@@ -4258,7 +4250,7 @@ int GetLyricsFun(Word* args, Word& result, int message,
             /* A multiline was found. */
 
             /* digitbuffer is used to convert a string representation
-               of a number to int. 
+               of a number to int.
                Read the minute information. */
             char digitbuffer[3];
             strncpy (digitbuffer,iter + 1, 2);
@@ -4273,7 +4265,7 @@ int GetLyricsFun(Word* args, Word& result, int message,
             /* calculate the time stamp for the current line. */
             oneline.seconds = min * 60 + sec;
 
-            /* extract the text line excl. time information and 
+            /* extract the text line excl. time information and
                store it into oneline. */
             char * endofchars = strstr(iter + 7, "[");
             int linelength = endofchars-(iter + 7);
@@ -4289,6 +4281,7 @@ int GetLyricsFun(Word* args, Word& result, int message,
     }
     newlyrics->SetDefined (true);
     result.addr = newlyrics;
+    delete[] buffer;
     return 0;
 }
 
@@ -4297,7 +4290,7 @@ int GetLyricsFun(Word* args, Word& result, int message,
 5.21.3 Specification of operator ~getlyrics~
 
 */
-const string GetLyricsSpec  = 
+const string GetLyricsSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
 "( <text>(mp3) -> bool"
@@ -4359,26 +4352,26 @@ This function creates and returns a new MP3 objects that contains
 the same song and same ID3 tag but with given lyrics.
 
 */
-int PutLyricsFun(Word* args, Word& result, int message, 
+int PutLyricsFun(Word* args, Word& result, int message,
                  Word& local, Supplier s) {
     result = qp->ResultStorage( s );
     /* old MP3 */
-    MP3 *mp3 = (MP3*)args[0].addr; 
+    MP3 *mp3 = (MP3*)args[0].addr;
     /* new lyrics */
-    Lyrics *lyrics = (Lyrics*)args[1].addr; 
+    Lyrics *lyrics = (Lyrics*)args[1].addr;
     /* clone the MP3 song to put the lyrics later in. */
-    MP3 *newmp3 = mp3->Clone(); // 
+    MP3 *newmp3 = mp3->Clone(); //
 
 
-    /* First we have to check whether lyrics are defined, if not we can 
+    /* First we have to check whether lyrics are defined, if not we can
        just return the clone of the old mp3*/
     if (!lyrics->IsDefined()){
         result.addr = newmp3;
         return 0;
     }
 
-    /* Calculate the length of the lyrics multiline text. 
-     This length has to be provided at the top of the 
+    /* Calculate the length of the lyrics multiline text.
+     This length has to be provided at the top of the
      multiline part. */
     int textlength=0;
     for (int i = 0; i <lyrics->NoLines(); i++) {
@@ -4390,29 +4383,29 @@ int PutLyricsFun(Word* args, Word& result, int message,
      29 is the length of a minimalized header. */
     int endlength=textlength + 29;
 
-    /* this is the real length of the whole Lyrics tag in bytes. 
-     At the end of the lyrics data "LYRICS200" (9 bytes) has to 
+    /* this is the real length of the whole Lyrics tag in bytes.
+     At the end of the lyrics data "LYRICS200" (9 bytes) has to
      be added. Furthermore above length has to be provided in a
      textual representation (= 6 bytes). */
     int blocklength = endlength + 9 + 6;
-    
+
     /* Allocate memory for the dump of the lyrics */
     char* lyricbytes = (char*) malloc (blocklength);
 
-    
+
     char dummy[255];
 
     /* Copy a temporary lyrics header into lyricsbytes. The text length
        is inserted later. */
     memcpy (lyricbytes,"LYRICSBEGININD0000211LYR00000",29);
 
-    /* write the text length to the end of the lyrics header. 
+    /* write the text length to the end of the lyrics header.
        Now the header is finished. */
     sprintf (dummy, "%d",textlength);
     /* 24 = position of the 00000 */
     /* 5 = sizeof("00000") */
     memcpy (lyricbytes + 24 + 5 - strlen(dummy), dummy, strlen(dummy));
-    
+
     /* Now we can write the multilines into lyricsbytes. */
     char* position= lyricbytes + 29;
     for (int i = 0; i < lyrics->NoLines(); i++) {
@@ -4433,9 +4426,9 @@ int PutLyricsFun(Word* args, Word& result, int message,
         memcpy (position, textlinepointer, strlen (textlinepointer));
         position = position + strlen (textlinepointer);
         //printf ("%d  : %d !\n",min,secs);
-        
+
     }
-    /* Add the length of the whole lyrics (multilines + header but 
+    /* Add the length of the whole lyrics (multilines + header but
        without "LYRICS200" at the end) in bytes. */
     memcpy (position, "000000",6);
     sprintf (dummy, "%d", endlength);
@@ -4447,7 +4440,7 @@ int PutLyricsFun(Word* args, Word& result, int message,
     newmp3->PutLyrics(lyricbytes, blocklength);
 
     free (lyricbytes);
-    
+
     result.addr = newmp3;
     return 0;
 }
@@ -4457,10 +4450,10 @@ int PutLyricsFun(Word* args, Word& result, int message,
 5.22.3 Specification of operator ~putlyrics~
 
 */
-const string PutLyricsSpec  = 
+const string PutLyricsSpec  =
 "( ( \"Signature\" \"Syntax\" \"Meaning\" "
 "\"Example\" ) "
-"( <text>(mp3) -> bool"
+"( <text>(mp3 lyrics) -> bool"
 "</text--->"
 "<text>_ _ putlyrics </text--->"
 "<text>put the lyrics into an MP3 "
@@ -4488,6 +4481,68 @@ Operator putlyrics (
 
 
 /*
+5.23 Operator ~loadmp3from~
+
+The operator tries to restore a mp3 from a file, whose name is passed as a text
+or string argument. If the import fails, the result object is undefined.
+
+*/
+
+ListExpr LoadMP3fromTypeMap( ListExpr args ) {
+  if ( nl->ListLength(args) == 1 ) {
+    ListExpr arg1 = nl->First(args);
+    if (nl->IsEqual(arg1, "text") || nl->IsEqual(arg1, "string")) {
+      return nl->SymbolAtom("mp3");
+    }
+  }
+  return nl->SymbolAtom("typeerror");
+}
+
+int LoadMP3fromSelect( ListExpr args ) {
+  ListExpr arg1 = nl->First(args);
+  if (nl->IsEqual(arg1,   "text") ) { return 0; }
+  if (nl->IsEqual(arg1, "string") ) { return 1; }
+  return -1;
+}
+
+template<class StringType>
+int LoadMP3fromFun(Word* args, Word& result,
+                   int message, Word& local, Supplier s){
+  result = qp->ResultStorage( s );
+  MP3 *res = static_cast<MP3*>(result.addr);
+  StringType *filename = static_cast<StringType*>(args[0].addr);
+
+  if( filename->IsDefined() ){
+    res->LoadMP3FromFile( filename->GetValue() );
+  } else {
+    res->SetDefined( false );
+  }
+  return 0;
+}
+
+ValueMapping LoadMP3fromValueMap[] = {
+  LoadMP3fromFun<FText>,
+  LoadMP3fromFun<CcString>
+};
+
+static const string LoadMP3fromSpec  =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text> {text|string} -> mp3"
+    "</text--->"
+    "<text>loadmp3( filename ) </text--->"
+    "<text>Creates a mp3 instance from a file.</text--->"
+    "<text>query loadmp3('test.mp3')</text--->"
+    ") )";
+
+static Operator loadmp3from("loadmp3from",
+                        LoadMP3fromSpec,
+                        2,
+                        LoadMP3fromValueMap,
+                        LoadMP3fromSelect,
+                        LoadMP3fromTypeMap);
+
+/*
 
 6 Creating the Algebra
 
@@ -4499,7 +4554,7 @@ public:
         AddTypeConstructor( &mp3 );
         AddTypeConstructor( &id3 );
         AddTypeConstructor( &lyrics);
-        
+
         mp3.AssociateKind("DATA");
         mp3.AssociateKind("FILE");
         id3.AssociateKind("DATA");
@@ -4508,6 +4563,7 @@ public:
         lyrics.AssociateKind("FILE");
 
         AddOperator(&savemp3to);
+        AddOperator(&loadmp3from);
         AddOperator(&version);
         AddOperator(&frequency);
         AddOperator(&framecount);
@@ -4529,7 +4585,6 @@ public:
         AddOperator(&getlyrics);
         AddOperator(&removelyrics);
         AddOperator(&putlyrics);
-
   }
   ~MP3Algebra() {};
 };
