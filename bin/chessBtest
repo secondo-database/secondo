@@ -1,5 +1,5 @@
 
-(DATABASE CHESSTEST 
+(DATABASE CHESSBTEST 
     (TYPES) 
     (OBJECTS 
         (OBJECT Bishop 
@@ -26,7 +26,18 @@
             () 
             piece 
             "Rook") 
-         
+        (OBJECT SEC_DERIVED_OBJ 
+            () 
+            (rel 
+                (tuple 
+                    (
+                        (name string) 
+                        (value text) 
+                        (usedObjs text)))) 
+            (
+                ("wjc" 
+                    <text>(consume (extend (transformstream (readpgn 'wjc.pgn')) ((No (fun (tuple1 TUPLE) (seqnext))))))</text---> 
+                    <text>()</text--->))) 
         (OBJECT a1 
             () 
             field 
