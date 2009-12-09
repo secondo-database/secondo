@@ -1830,9 +1830,9 @@ struct aConsumeInfo : OperatorInfo {
     example =   "query papers feed extend [authors_new: .authors afeed "
                 "aconsume] consume";
   }
-};
+} aconsumeInfo;
 
-Operator aconsume (aConsumeInfo(), aConsume, aConsumeTypeMap);
+Operator aconsume (aconsumeInfo, aConsume, aConsumeTypeMap);
 
 /*
 5.5 Operator ~nest~
@@ -2239,9 +2239,9 @@ struct nestInfo : OperatorInfo {
     example =   "query documents feed sortby [publisher] nest[publisher; "
                 "publications]";
   }
-};
+} nestinfo;
 
-Operator nest (nestInfo(), nestValueMap, nestTypeMap);
+Operator nest (nestinfo, nestValueMap, nestTypeMap);
 
 /*
 5.6 Operator ~unnest~
