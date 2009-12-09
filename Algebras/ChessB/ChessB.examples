@@ -110,7 +110,8 @@ Operator : attackedby
 Number   : 1
 Signature: position x piece x piece -> bool
 Example  : query wjc feed filter[.No = 1] extract[elem] getposition[28] piece("queen") attackedby[piece("Queen")]
-Result   : TRUE
+Result   : crashes
+Remark   : Bord iterator will used outside the board
 
 
 Operator : attackedby
