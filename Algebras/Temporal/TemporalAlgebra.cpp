@@ -245,7 +245,7 @@ bool UReal::At( const CcReal& val, TemporalUnit<CcReal>& result ) const
 void UReal::AtInterval( const Interval<Instant>& i,
  TemporalUnit<CcReal>& result ) const
 {
-  
+
   TemporalUnit<CcReal>::AtInterval( i, result );
 
   UReal *pResult = (UReal*)&result;
@@ -2721,6 +2721,18 @@ int MInt::minimum() const{
    return min;
 }
 
+int MInt::Min(bool &correct) const
+{
+  correct = IsDefined();
+  return minimum();
+}
+
+int MInt::Max(bool &correct) const
+{
+  correct = IsDefined();
+  return  maximum();
+}
+
 /*
 3.1 Class ~MReal~
 
@@ -3460,7 +3472,7 @@ bool MPoint::operator==( const MPoint& r ) const
   assert( IsOrdered() && r.IsOrdered() );
   if(!IsDefined()){
      return !r.IsDefined();
-  } 
+  }
   if(!r.IsDefined()){
      return false;
   }
@@ -4250,7 +4262,7 @@ double qdist(const Point& p1, const Point& p2){
 /*
 ~qdist~
 
-This function returns teh square of the distance of the points defined by 
+This function returns teh square of the distance of the points defined by
 (~x1~, ~y1~) and (~x2~, ~y2~).
 
 */
@@ -5446,8 +5458,8 @@ void MPoint::gk(MPoint& result) const{
 /*
 Private helper function for the delay operator
 
-*/ 
-double* MPoint::MergePartitions(double* first, int firstSize, double* second, 
+*/
+double* MPoint::MergePartitions(double* first, int firstSize, double* second,
 		int secondSize, int& count )
 {
 	double* res= new double[firstSize + secondSize ];
@@ -5481,16 +5493,16 @@ double* MPoint::MergePartitions(double* first, int firstSize, double* second,
 /*
 Private helper function for the delay operator
 
-*/ 
+*/
 
-int MPoint::IntervalRelation(Interval<Instant> &int_a_b, 
+int MPoint::IntervalRelation(Interval<Instant> &int_a_b,
 		Interval<Instant> &int_c_d  ) const
 {
 	double a= int_a_b.start.ToDouble();
 	double b= int_a_b.end.ToDouble();
 	double c= int_c_d.start.ToDouble();
 	double d= int_c_d.end.ToDouble();
-	assert(a < b && c < d );  
+	assert(a < b && c < d );
 /*
 The assertion will fail in case of numerical instability (i.e: rounding error)
 
@@ -5527,8 +5539,8 @@ The assertion will fail in case of numerical instability (i.e: rounding error)
 /*
 Helper function for the delay operator
 
-*/ 
-int AtValue(const UReal* unit, double val, Instant& inst, 
+*/
+int AtValue(const UReal* unit, double val, Instant& inst,
 		Interval<Instant>& intr,bool ignorelimits)
 {
 	if(AlmostEqual(unit->b,0))
@@ -5548,8 +5560,8 @@ int AtValue(const UReal* unit, double val, Instant& inst,
 	Instant at(durationtype);
 	at.ReadFrom(fraction);
 	inst+= at;
-	if( !ignorelimits && ((inst == unit->timeInterval.start && 
-       !unit->timeInterval.lc)  || (inst == unit->timeInterval.end && 
+	if( !ignorelimits && ((inst == unit->timeInterval.start &&
+       !unit->timeInterval.lc)  || (inst == unit->timeInterval.end &&
 					!unit->timeInterval.rc)))
 		return 0;
 	if(inst < unit->timeInterval.start  || inst > unit->timeInterval.end)
@@ -5557,13 +5569,13 @@ int AtValue(const UReal* unit, double val, Instant& inst,
 	return 1; // result is a certain time instant within the unit interval
 }
 /*
-The following macros help make the code of the ~MPoint::DelayOperator~ more 
+The following macros help make the code of the ~MPoint::DelayOperator~ more
 readable. They are common code snippets that appear several times within the
-operator. The ~\_startunit~ macro does the necessary variable settings for 
-starting a new delay unit. The ~\_endunit~ macro does the necessary variable 
-settings for closing a new delay unit. The ~\_createunit~ macro uses the 
-local variables to generate a delay unit and appends it to the result. The 
-~\_createunitpar~ macro, creates a delay unit from the parameters and appends 
+operator. The ~\_startunit~ macro does the necessary variable settings for
+starting a new delay unit. The ~\_endunit~ macro does the necessary variable
+settings for closing a new delay unit. The ~\_createunit~ macro uses the
+local variables to generate a delay unit and appends it to the result. The
+~\_createunitpar~ macro, creates a delay unit from the parameters and appends
 it to the result.
 
 */
@@ -5599,7 +5611,7 @@ it to the result.
 MReal* MPoint::DelayOperator(const MPoint* actual)
 {
 	bool debugme=false;
-	if(this->GetNoComponents()<1 || actual->GetNoComponents()<1) 
+	if(this->GetNoComponents()<1 || actual->GetNoComponents()<1)
 		return new MReal(0);
 	if( !this->IsDefined() || !actual->IsDefined())
       { MReal* res= new MReal(0);  res->SetDefined(false); return res;}
@@ -5610,12 +5622,12 @@ MReal* MPoint::DelayOperator(const MPoint* actual)
 	MReal* DTSchedule= this->DistanceTraversed(partitionSchedule);
 	if(!DTActual->IsDefined() || !DTSchedule->IsDefined())
       { MReal* res= new MReal(0);  res->SetDefined(false); return res;}
-	
+
 	int DTActualSize= DTActual->GetNoComponents();
 	int DTScheduleSize= DTSchedule->GetNoComponents();
 	int partitionSize;
-	double* partition= 
-        MergePartitions(partitionActual,DTActualSize+1,partitionSchedule, 
+	double* partition=
+        MergePartitions(partitionActual,DTActualSize+1,partitionSchedule,
 				DTScheduleSize+1,partitionSize);
 
 	if(debugme)
@@ -5656,15 +5668,15 @@ MReal* MPoint::DelayOperator(const MPoint* actual)
 	{
 		distVal=partition[i];
 /*
-The coming steps assumes that DistanceTraversed return an 
+The coming steps assumes that DistanceTraversed return an
 MReal satisfying the minimal presentation condition
 
 */
 		if(scheduleScanIndex < DTScheduleSize -1)
-          test = AtValue(scheduleScanUnit, distVal, scheduledTime, 
+          test = AtValue(scheduleScanUnit, distVal, scheduledTime,
 					scheduledInterval,false);
 		else
-          test = AtValue(scheduleScanUnit, distVal, scheduledTime, 
+          test = AtValue(scheduleScanUnit, distVal, scheduledTime,
 					scheduledInterval,true);
 		while( test==0 )
 		{
@@ -5672,19 +5684,19 @@ MReal satisfying the minimal presentation condition
             assert(scheduleScanIndex < DTSchedule->GetNoComponents());
 			DTSchedule->Get(scheduleScanIndex,scheduleScanUnit);
 			if(scheduleScanIndex < DTScheduleSize -1)
-              test = AtValue(scheduleScanUnit, distVal, scheduledTime, 
+              test = AtValue(scheduleScanUnit, distVal, scheduledTime,
 						scheduledInterval,false);
 			else
-              test = AtValue(scheduleScanUnit, distVal, scheduledTime, 
+              test = AtValue(scheduleScanUnit, distVal, scheduledTime,
 						scheduledInterval,true);
 
 		}
 		isInstantSchedule = (test==1)? true : false;
 		if(actualScanIndex < DTActualSize -1)
-			test = AtValue(actualScanUnit, distVal, actualTime, 
+			test = AtValue(actualScanUnit, distVal, actualTime,
 					actualInterval,false);
 		else
-			test = AtValue(actualScanUnit, distVal, actualTime, 
+			test = AtValue(actualScanUnit, distVal, actualTime,
 					actualInterval,true);
 		while( test==0 )
 		{
@@ -5692,10 +5704,10 @@ MReal satisfying the minimal presentation condition
 			assert(actualScanIndex < DTActual->GetNoComponents());
 			DTActual->Get(actualScanIndex,actualScanUnit);
 			if(actualScanIndex < DTActualSize -1)
-               test = AtValue(actualScanUnit, distVal, actualTime, 
+               test = AtValue(actualScanUnit, distVal, actualTime,
 						actualInterval,false);
 			else
-               test = AtValue(actualScanUnit, distVal, actualTime, 
+               test = AtValue(actualScanUnit, distVal, actualTime,
 						actualInterval,true);
 
 		}
@@ -5706,19 +5718,19 @@ MReal satisfying the minimal presentation condition
 			cout<<endl;
             cout<<"At iteration: "<<i<<" traversed distance: "<< distVal;
 			cout<<"\n\tActual traversed this distance at: ";
-			if(isInstantActual) actualTime.Print(cout); 
+			if(isInstantActual) actualTime.Print(cout);
 			else actualInterval.Print(cout);
 			cout<<"\n\tSchedule traversed this distance at: ";
-			if(isInstantSchedule) scheduledTime.Print(cout); 
+			if(isInstantSchedule) scheduledTime.Print(cout);
 			else scheduledInterval.Print(cout);
 			cout<<endl<<"\tActions taken:";
 		}
-		
+
 		if(isInstantActual && isInstantSchedule)
 		{
 			if(atUnitStart)
 			{
-               _startunit( (actualTime - scheduledTime).ToDouble(), 
+               _startunit( (actualTime - scheduledTime).ToDouble(),
 						actualTime );
 			}
 			else
@@ -5730,28 +5742,28 @@ MReal satisfying the minimal presentation condition
 		}
 		else if (isInstantActual && !isInstantSchedule)
 		{
-			if(atUnitStart) 
+			if(atUnitStart)
 /*
 Can happen only if the schedule started with immobile units (distVal==0)
 
 */
 			{
 				assert(distVal==0);
-                _startunit( (actualTime - scheduledInterval.end).ToDouble() , 
+                _startunit( (actualTime - scheduledInterval.end).ToDouble() ,
 						actualTime);
 			}
 			else
 			{
-               _endunit((actualTime - scheduledInterval.start).ToDouble() , 
+               _endunit((actualTime - scheduledInterval.start).ToDouble() ,
 						actualTime);
 				_createunit;
-               _startunit( (actualTime - scheduledInterval.end).ToDouble() , 
+               _startunit( (actualTime - scheduledInterval.end).ToDouble() ,
 						actualTime);
 			}
 		}
 		else if (!isInstantActual && isInstantSchedule)
 		{
-			if(atUnitStart) 
+			if(atUnitStart)
 /*
 Can happen only if the actual started with immobile units
 
@@ -5759,7 +5771,7 @@ Can happen only if the actual started with immobile units
 			{
 				assert(distVal==0);
                 //add a delay unit corresponding to the immobile unit
-				_createunitpar( 
+				_createunitpar(
                         (actualInterval.start - scheduledTime).ToDouble(),
 						actualInterval.start,
                         (actualInterval.end - scheduledTime).ToDouble(),
@@ -5775,7 +5787,7 @@ Can happen only if the actual started with immobile units
 						actualInterval.start);
 				_createunit;
                 //add a delay unit corresponding to the immobile unit
-				_createunitpar( 
+				_createunitpar(
                         (actualInterval.start - scheduledTime).ToDouble(),
 						actualInterval.start,
                         (actualInterval.end - scheduledTime).ToDouble(),
@@ -5787,7 +5799,7 @@ Can happen only if the actual started with immobile units
 		}
 		else if(!isInstantActual && !isInstantSchedule)
 		{
-			int intervalRelation= IntervalRelation(actualInterval, 
+			int intervalRelation= IntervalRelation(actualInterval,
 					scheduledInterval);
 			Instant a(actualInterval.start), b(actualInterval.end);
             Instant c(scheduledInterval.start), d(scheduledInterval.end);
@@ -5914,7 +5926,7 @@ MReal* MPoint::DistanceTraversed(double* partition ) const
 The movement must be continuous in time (i.e. without intervals of undefined),
 otherwise, the result is undefined
 
-*/ 
+*/
 	Periods defTime( 0 );
 	DefTime( defTime );
 	if(defTime.GetNoComponents()>1 )
@@ -5923,14 +5935,14 @@ otherwise, the result is undefined
 		notdef->SetDefined(false);
 		return notdef;
 	}
-	
+
 	try
 	{
 		Get( 0, uPoint );
 		dist1=0;
 		dist2= uPoint->p0.Distance(uPoint->p1);
 		last= uPoint->p1;
-		lastslope= (dist2-dist1)/((uPoint->timeInterval.end - 
+		lastslope= (dist2-dist1)/((uPoint->timeInterval.end -
 				uPoint->timeInterval.start).ToDouble()* 8640);
 		unitstart = dist1;
 		unitend= dist2;
@@ -5947,7 +5959,7 @@ otherwise, the result is undefined
 
 
 			//Assure minimal representation
-			curslope= (dist2-dist1)/((uPoint->timeInterval.end - 
+			curslope= (dist2-dist1)/((uPoint->timeInterval.end -
                 uPoint->timeInterval.start).ToDouble()* 8640);
 			if(debugme)
 			{
@@ -8145,16 +8157,16 @@ ListExpr MovingTypeMapgk(ListExpr args){
 ListExpr DelayOperatorTypeMapping( ListExpr typeList )
 {
 	if(nl->ListLength(typeList) == 2 &&
-			nl->IsAtom(nl->First(typeList)) && 
+			nl->IsAtom(nl->First(typeList)) &&
 			  (nl->SymbolValue(nl->First(typeList))== "mpoint") &&
-			nl->IsAtom(nl->Second(typeList)) && 
+			nl->IsAtom(nl->Second(typeList)) &&
 			  (nl->SymbolValue(nl->Second(typeList))== "mpoint"))
 		return (nl->SymbolAtom("mreal"));
 
 /*
-Not implemented: 
+Not implemented:
 1- Check that the two moving points have the same trajectory.
-2- Check the the trajectory is continuos on the spatial space 
+2- Check the the trajectory is continuos on the spatial space
       (necessary to compute the distance traversed)
 
 */
@@ -8163,7 +8175,7 @@ Not implemented:
 	cmsg.typeError("delay operator expects a list with structure "
 			"(mpoint mpoint), but got " + argstr);
 	return nl->GetErrorList();
-	
+
 }
 
 /*
@@ -8217,6 +8229,10 @@ ListExpr TypeMapMinMax(ListExpr args){
    if(nl->IsEqual(arg,"ureal") ||
       nl->IsEqual(arg,"mreal")){
       return nl->SymbolAtom("real");
+   }
+   else
+   {
+     if (nl->IsEqual(arg,"mint")) return nl->SymbolAtom("int");
    }
    ErrorReporter::ReportError("ureal or mreal expected");
    return nl->SymbolAtom("typeerror");
@@ -8397,7 +8413,7 @@ ListExpr TypeMapApproximate(ListExpr args){
 /*
 16.1.13 Type mapping function ~IntSetTypeMapPeriods~
 
-It is used for the operators ~theyear~, ~themonth~, ~theday~, ~thehour~, 
+It is used for the operators ~theyear~, ~themonth~, ~theday~, ~thehour~,
 ~theminute~,~thesecond~
 
 */
@@ -9176,13 +9192,13 @@ signatures:
 ListExpr DistanceTraversedOperatorTypeMapping( ListExpr typeList )
 {
 	if(nl->ListLength(typeList) == 1 &&
-			nl->IsAtom(nl->First(typeList)) && 
+			nl->IsAtom(nl->First(typeList)) &&
 			(nl->SymbolValue(nl->First(typeList))== "mpoint") )
 		return (nl->SymbolAtom("mreal"));
 
 /*
-Not implemented: 
-1- Check the the trajectory is continuos on the spatial space 
+Not implemented:
+1- Check the the trajectory is continuos on the spatial space
       (necessary to compute the distance traversed)
 
 */
@@ -9814,6 +9830,9 @@ int MinMaxSelect(ListExpr args){
    }
    if(nl->IsEqual(arg,"mreal")){
        return 1;
+   }
+   if(nl->IsEqual(arg,"mint")){
+     return 2;
    }
    return -1; // should never occur
 }
@@ -10614,15 +10633,14 @@ int ApproximateMPoint(Word* args, Word& result,
 16.2.28 Value Mapping function for the operator min
 
 */
-template <class mtype>
+template <class mtype, class rtype>
 int VM_Min(Word* args, Word& result,
               int message, Word& local,
               Supplier s){
    result = qp->ResultStorage(s);
    mtype* arg = (mtype*) args[0].addr;
    bool correct;
-   double res = arg->Min(correct);
-   ((CcReal*)result.addr)->Set(correct,res);
+   ((rtype*)result.addr)->Set(correct,arg->Min(correct));
    return 0;
 }
 
@@ -10630,15 +10648,14 @@ int VM_Min(Word* args, Word& result,
 16.2.28 Value Mapping function for the operator min
 
 */
-template <class mtype>
+template <class mtype, class rtype>
 int VM_Max(Word* args, Word& result,
               int message, Word& local,
               Supplier s){
    result = qp->ResultStorage(s);
    mtype* arg = (mtype*) args[0].addr;
    bool correct;
-   double res = arg->Max(correct);
-   ((CcReal*)result.addr)->Set(correct,res);
+   ((rtype*)result.addr)->Set(correct,arg->Max(correct));
    return 0;
 }
 
@@ -12439,9 +12456,13 @@ ValueMapping integratemap[] = { Integrate<UReal>, Integrate<MReal> };
 
 ValueMapping approximatemap[] = { ApproximateMPoint, ApproximateMReal };
 
-ValueMapping minmap[] = { VM_Min<UReal>, VM_Min<MReal> };
+ValueMapping minmap[] = { VM_Min<UReal, CcReal>,
+                          VM_Min<MReal, CcReal>,
+                          VM_Min<MInt, CcInt> };
 
-ValueMapping maxmap[] = { VM_Max<UReal>, VM_Max<MReal> };
+ValueMapping maxmap[] = { VM_Max<UReal, CcReal>,
+                          VM_Max<MReal, CcReal>,
+                          VM_Max<MInt, CcInt> };
 
 ValueMapping samplempointmap[] = { SampleMPointVM<false,false>,
                                    SampleMPointVM<true,false>,
@@ -12776,7 +12797,7 @@ const string TemporalSpecLinearize2 =
 
 const string TemporalSpecMin =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>{ureal , mreal} -> real</text--->"
+  "( <text>{ureal,mreal}->real, mint->int</text--->"
   "<text>minimum( _ ) </text--->"
   "<text>computes the minimum value of the argument</text--->"
   "<text>minimum(mreal5000)</text--->"
@@ -12784,7 +12805,7 @@ const string TemporalSpecMin =
 
 const string TemporalSpecMax =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>{ureal , mreal} -> real</text--->"
+  "( <text>{ureal,mreal}->real, mint->int</text--->"
   "<text>maximum( _ ) </text--->"
   "<text>computes the maximum value of the argument</text--->"
   "<text>maximum(mreal5000)</text--->"
@@ -13448,14 +13469,14 @@ Operator temporalapproximate( "approximate",
 
 Operator temporalminimum( "minimum",
                            TemporalSpecMin,
-                           2,
+                           3,
                            minmap,
                            MinMaxSelect,
                            TypeMapMinMax );
 
 Operator temporalmaximum( "maximum",
                            TemporalSpecMax,
-                           2,
+                           3,
                            maxmap,
                            MinMaxSelect,
                            TypeMapMinMax );
