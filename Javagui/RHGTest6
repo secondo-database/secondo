@@ -43,7 +43,9 @@ create table plzneu columns [plza: int, ort: string]
 
 insert into plzneu select [plz as plza, ort] from plz
 
-insert into plzneu select [plz as plza, ort] from plz where ort > "M"
+**** fails
+
+insert into plzneu select * from plz where ort > "M"
 
 select count(*) from plzneu
 
@@ -60,6 +62,14 @@ delete from plzneu where ort = "Bochum"
 create table plzneu3 columns [plz: int, ort: string]
 
 insert into plzneu3 select [plz as plz, ort] from plz where plz > 50000
+
+********** fails
+
+insert into plzneu3 select * from plz where plz > 50000
+
+********* fails
+
+
 
 
 
