@@ -3742,8 +3742,8 @@ analyseTupleInfoQueryResultList(DB,DCrel, ExtAttrList, ResList) :-
     -> ( % undef tuplesize due to empty relation
               StoreLOBsize = nAn
             )
-	; StoreLOBsize is max(0,TupleSizeLOB) % avoid rounding errors
-	),
+    ; StoreLOBsize is max(0,TupleSizeLOB) % avoid rounding errors
+  ),
   assert(storedTupleSize(DB, DCrel, TupleMemSize, StoreCoreSize, StoreLOBsize)),
   !.
 
@@ -3827,26 +3827,35 @@ tuplesize(DCrel, TupleSizeScalar) :-
   dm(dbhandling,['\nTry: tuplesize(',DCrel,',',TupleSizeScalar,').']),
   tupleSize2(DCrel, sizeTerm(_, CoreSize, LOBSize)),
   ( ( CoreSize = nAn )
-    -> ( write_list(['\nWARNING:\tCoreTupleSize is not a number (nAn). ',
+    -> ( write_list(['\nWARNING:\tCoreTupleSize is not a number (nAn).',
                      '\n--->\tTherefore, CoreTupleSize is set to 1.']),
          nl,
-         TupleSizeScalar is 1
+         UsedCoreSize is 1
        )
-    ;  ( (CoreSize =:= 0, LOBSize =:= 0)
-         -> ( write_list(['\nWARNING:\tTuplesize is 0. ',
-                     '\n--->\tTherefore, tuplesize is set to 1.']),
+    ;  ( ( CoreSize =:= 0 )
+         -> ( write_list(['\nWARNING:\tCoreTupleSize is 0.',
+                     '\n--->\tTherefore, CoreTupleSize is set to 1.']),
               nl,
-              TupleSizeScalar is 1
+              UsedCoreSize is 1
             )
-         ;  TupleSizeScalar is CoreSize + LOBSize
+         ;  UsedCoreSize is CoreSize
        )
   ),
+  ( ( LOBSize = nAn )
+    -> ( write_list(['\nWARNING:\tLOBSize is not a number (nAn).',
+                     '\n--->\tTherefore, LOBSize is set to 1.']),
+         nl,
+         UsedLOBSize is 1
+       )
+    ; UsedCoreSize is CoreSize
+  ),
+  TupleSizeScalar is UsedCoreSize + UsedLOBSize,
   !.
 
 tuplesize(X, Y) :-
   concat_atom(['Cannot retrieve tuplesize for relation \'',X,'\''],'',ErrMsg),
   write_list(['ERROR:\t',ErrMsg]),
-  write('\'.'),nl,                                                      %'
+  write('.'),nl,
   throw(error_Internal(database_tuplesize(X, Y)#ErrMsg));
   !, fail.
 
