@@ -95,6 +95,13 @@ struct AttrDelete
   AttrDelete(bool defined): refs(1), isDelete(true), isDefined(defined)
   { }
 
+  AttrDelete& operator=(const AttrDelete& d){
+    isDefined =  d.isDefined;
+    // do not change Construction properties
+    return *this;
+  } 
+  
+
   uint16_t refs;
   bool isDelete;
   bool isDefined;
@@ -122,6 +129,9 @@ The simple constructor.
 */
 
     Attribute(bool defined) : del(defined) {}
+
+
+    Attribute(const Attribute& a) : del(a.del.isDefined) {}
  
 
     inline virtual ~Attribute()
@@ -146,6 +156,11 @@ Sets the ~defined~ flag of the attribute.
 Returns the ~sizeof~ of the attribute class.
 
 */
+
+   Attribute& operator=(const Attribute& a){
+     del = a.del;
+     return *this;
+   }
 
 
     virtual int Compare( const Attribute *rhs ) const = 0;
@@ -584,7 +599,6 @@ Stores the way this attribute is deleted.
 
 */
 
-  private:
      inline void InitRefs(){
           del.refs=1;
      }
