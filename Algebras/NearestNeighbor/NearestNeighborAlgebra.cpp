@@ -1832,27 +1832,27 @@ typedef NNTree< ActiveElem >::iter IT;
 GetPosition calculates the position of a upoint at a specific time
 
 */
-bool GetPosition( const UPoint* up, Instant t, Coord& x, Coord& y)
+bool GetPosition( const UPoint& up, Instant t, Coord& x, Coord& y)
 {
   //calculates the pos. at time t. x and y is the result
-  Instant t0 = up->timeInterval.start;
-  Instant t1 = up->timeInterval.end;
+  Instant t0 = up.timeInterval.start;
+  Instant t1 = up.timeInterval.end;
   if( t == t0 )
   {
-    x = up->p0.GetX();
-    y = up->p0.GetY();
+    x = up.p0.GetX();
+    y = up.p0.GetY();
     return true;
   }
   if( t == t1 )
   {
-    x = up->p1.GetX();
-    y = up->p1.GetY();
+    x = up.p1.GetX();
+    y = up.p1.GetY();
     return true;
   }
   if( t < t0 || t > t1 ){ return false;}
   double factor = (t - t0) / (t1 - t0);
-  x = up->p0.GetX() + factor * (up->p1.GetX() - up->p0.GetX());
-  y = up->p0.GetY() + factor * (up->p1.GetY() - up->p0.GetY());
+  x = up.p0.GetX() + factor * (up.p1.GetX() - up.p0.GetX());
+  y = up.p0.GetY() + factor * (up.p1.GetY() - up.p0.GetY());
   return true;
 }
 
@@ -1872,39 +1872,39 @@ void GetDistance( const MPoint* mp, const UPoint* up,
   Instant time2 = up->timeInterval.end;
 
   int noCo = mp->GetNoComponents();
-  const UPoint *upn;
+  UPoint upn;
 
   for (int ii=mpos; ii < noCo; ii++)
   {
     mp->Get( ii, upn);  // get the current Unit
-    if(time2 < upn->timeInterval.start ||
-      time1 > upn->timeInterval.end ||
-      (time2 == upn->timeInterval.start && up->timeInterval.rc == false))
+    if(time2 < upn.timeInterval.start ||
+      time1 > upn.timeInterval.end ||
+      (time2 == upn.timeInterval.start && up->timeInterval.rc == false))
       continue;
 
-    if( time1 < upn->timeInterval.end ||
-        (time1 == upn->timeInterval.end && upn->timeInterval.rc))
+    if( time1 < upn.timeInterval.end ||
+        (time1 == upn.timeInterval.end && upn.timeInterval.rc))
     { // interval of mp intersects the interval of up
       mpos = ii;
       UReal firstu(true);
 
       // take the bigger starting point
-      Instant start = up->timeInterval.start < upn->timeInterval.start
-        ? upn->timeInterval.start : up->timeInterval.start;
+      Instant start = up->timeInterval.start < upn.timeInterval.start
+        ? upn.timeInterval.start : up->timeInterval.start;
 
       // take the smaller end
-      Instant end = up->timeInterval.end < upn->timeInterval.end
-        ? up->timeInterval.end : upn->timeInterval.end;
+      Instant end = up->timeInterval.end < upn.timeInterval.end
+        ? up->timeInterval.end : upn.timeInterval.end;
 
       bool lc = up->timeInterval.lc;
       if( lc && (start > up->timeInterval.start || (up->timeInterval.start
-        == upn->timeInterval.start && !up->timeInterval.lc)))
+        == upn.timeInterval.start && !up->timeInterval.lc)))
       {
         lc = false;
       }
       bool rc = up->timeInterval.rc;
       if( rc && (end < up->timeInterval.end || (up->timeInterval.end
-        == upn->timeInterval.end && !upn->timeInterval.rc)))
+        == upn.timeInterval.end && !upn.timeInterval.rc)))
       {
         rc = false;
       }
@@ -1913,8 +1913,8 @@ void GetDistance( const MPoint* mp, const UPoint* up,
 
 
       Coord x1, y1, x2, y2;
-      GetPosition( up, start, x1, y1);
-      GetPosition( up, end, x2, y2);
+      GetPosition( *up, start, x1, y1);
+      GetPosition( *up, end, x2, y2);
       UPoint up1(iv, x1, y1, x2, y2);
       GetPosition( upn, start, x1, y1);
       GetPosition( upn, end, x2, y2);
@@ -1940,18 +1940,18 @@ void GetDistance( const MPoint* mp, const UPoint* up,
         UReal nextu(true);
         start = end;
         lc = true;
-        end = up->timeInterval.end < upn->timeInterval.end
-        ? up->timeInterval.end : upn->timeInterval.end;
+        end = up->timeInterval.end < upn.timeInterval.end
+        ? up->timeInterval.end : upn.timeInterval.end;
         rc = up->timeInterval.rc;
         if( rc && (end < up->timeInterval.end || (up->timeInterval.end
-          == upn->timeInterval.end && !upn->timeInterval.rc)))
+          == upn.timeInterval.end && !upn.timeInterval.rc)))
         {
           rc = false;
         }
         Interval<Instant> iv(start, end, lc, rc);
         Coord x1, y1, x2, y2;
-        GetPosition( up, start, x1, y1);
-        GetPosition( up, end, x2, y2);
+        GetPosition( *up, start, x1, y1);
+        GetPosition( *up, end, x2, y2);
         UPoint up1(iv, x1, y1, x2, y2);
         GetPosition( upn, start, x1, y1);
         GetPosition( upn, end, x2, y2);
@@ -1984,25 +1984,25 @@ is also calculated
 double CalcDistance( const MReal *mr, Instant t, double &slope)
 {
   int noCo = mr->GetNoComponents();
-  const UReal *ur;
+  UReal ur;
   for (int ii=0; ii < noCo; ++ii)
   {
     mr->Get( ii, ur);
-    if( t < ur->timeInterval.end
-      || (t == ur->timeInterval.end && ur->timeInterval.rc)
-      || (t == ur->timeInterval.end && ii+1 == noCo))
+    if( t < ur.timeInterval.end
+      || (t == ur.timeInterval.end && ur.timeInterval.rc)
+      || (t == ur.timeInterval.end && ii+1 == noCo))
     {
-      double time = (t - ur->timeInterval.start).ToDouble();
-      double erg = ur->a * time * time + ur->b * time + ur->c;
-      if( ur->r && erg < 0) erg = 0;
-      erg = ( ur->r) ? sqrt(erg) : erg;
+      double time = (t - ur.timeInterval.start).ToDouble();
+      double erg = ur.a * time * time + ur.b * time + ur.c;
+      if( ur.r && erg < 0) erg = 0;
+      erg = ( ur.r) ? sqrt(erg) : erg;
       //the slope is if not r: 2a * time + b
       // else 2a * time + b / 2 * erg
-      slope = 2 * ur->a * time + ur->b;
-      if( ur->r && erg){ slope /= 2 * erg; }
-      if( ur->r && !erg && ur->b == 0 && ur->c == 0 && ur->a > 0)
+      slope = 2 * ur.a * time + ur.b;
+      if( ur.r && erg){ slope /= 2 * erg; }
+      if( ur.r && !erg && ur.b == 0 && ur.c == 0 && ur.a > 0)
       {
-        slope = sqrt(ur->a);
+        slope = sqrt(ur.a);
       }
       return erg;
     }
@@ -2010,23 +2010,23 @@ double CalcDistance( const MReal *mr, Instant t, double &slope)
   return -1;
 }
 
-double CalcSlope( const UReal *ur, Instant t)
+double CalcSlope( const UReal& ur, Instant t)
 {
-  if( t >= ur->timeInterval.start && t <= ur->timeInterval.end )
+  if( t >= ur.timeInterval.start && t <= ur.timeInterval.end )
   {
-    double time = (t - ur->timeInterval.start).ToDouble();
+    double time = (t - ur.timeInterval.start).ToDouble();
     //the slope is if not r: 2a * time + b
     // else 2a * time + b / div
-    double erg = 2 * ur->a * time + ur->b;
-    if( ur->r)
+    double erg = 2 * ur.a * time + ur.b;
+    if( ur.r)
     {
-      double div = ur->a * time * time + ur->b * time + ur->c;
+      double div = ur.a * time * time + ur.b * time + ur.c;
       if( div > 0){
         erg /= 2 * sqrt(div);
       }
-      else if(ur->b == 0 && ur->c == 0 && ur->a > 0)
+      else if(ur.b == 0 && ur.c == 0 && ur.a > 0)
       {
-        erg = sqrt(ur->a);
+        erg = sqrt(ur.a);
       }
       else erg = 0;
     }
@@ -2046,21 +2046,21 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
   //Only intersections after the time start are calculated
   int noCo1 = m1->GetNoComponents();
   int ii = 0;
-  const UReal* u1;
+  UReal u1;
   if( !noCo1 ){ return false; }
   m1->Get( ii, u1);
-  while( (start > u1->timeInterval.end || (start == u1->timeInterval.end
-    && !u1->timeInterval.rc)) && ++ii < noCo1 )
+  while( (start > u1.timeInterval.end || (start == u1.timeInterval.end
+    && !u1.timeInterval.rc)) && ++ii < noCo1 )
   {
     m1->Get( ii, u1);
   }
   int noCo2 = m2->GetNoComponents();
-  const UReal* u2;
+  UReal u2;
   if( !noCo2 ){ return false; }
   int jj = 0;
   m2->Get( jj, u2);
-  while( (start > u2->timeInterval.end || (start == u2->timeInterval.end
-    && !u2->timeInterval.rc)) && ++jj < noCo2 )
+  while( (start > u2.timeInterval.end || (start == u2.timeInterval.end
+    && !u2.timeInterval.rc)) && ++jj < noCo2 )
   {
     m2->Get( jj, u2);
   }
@@ -2078,21 +2078,21 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
   double laterTime;
   while( !hasResult && ii < noCo1 && jj < noCo2)
   {
-    if( u1->timeInterval.start <= u2->timeInterval.start )
+    if( u1.timeInterval.start <= u2.timeInterval.start )
     {
-      laterTime = u2->timeInterval.start.ToDouble();;
-      x = (u2->timeInterval.start - u1->timeInterval.start).ToDouble();
-      a = u1->a - u2->a;
-      b = u1->b - u2->b + 2 * u1->a * x;
-      c = u1->a * x * x + u1->b * x + u1->c - u2->c;
+      laterTime = u2.timeInterval.start.ToDouble();;
+      x = (u2.timeInterval.start - u1.timeInterval.start).ToDouble();
+      a = u1.a - u2.a;
+      b = u1.b - u2.b + 2 * u1.a * x;
+      c = u1.a * x * x + u1.b * x + u1.c - u2.c;
     }
     else
     {
-      laterTime = u1->timeInterval.start.ToDouble();;
-      x = (u1->timeInterval.start - u2->timeInterval.start).ToDouble();
-      a = u2->a - u1->a;
-      b = u2->b - u1->b + 2 * u2->a * x;
-      c = u2->a * x * x + u2->b * x + u2->c - u1->c;
+      laterTime = u1.timeInterval.start.ToDouble();;
+      x = (u1.timeInterval.start - u2.timeInterval.start).ToDouble();
+      a = u2.a - u1.a;
+      b = u2.b - u1.b + 2 * u2.a * x;
+      c = u2.a * x * x + u2.b * x + u2.c - u1.c;
     }
     d = b * b - 4 * a * c;
     if( abs(a) <= QUADDIFF || d >= 0)
@@ -2112,7 +2112,7 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
       }
       if( r1 > r2 ){ swap( r1, r2 );}
       if( abs(r1 - r2) < 0.000000001
-        && (u1->a==0 && u2->a!=0 || u2->a==0 && u1->a!=0))
+        && (u1.a==0 && u2.a!=0 || u2.a==0 && u1.a!=0))
       {
         //straight line intersects curve in one point, only boundary point
         r1 = -1;
@@ -2122,7 +2122,7 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
       {
         result.ReadFrom(r1 + laterTime);
         if( (result > start || (result == start && !isInsert))
-          && result <= u1->timeInterval.end && result <= u2->timeInterval.end)
+          && result <= u1.timeInterval.end && result <= u2.timeInterval.end)
         {
           //now calculate the slope
           double slope1, slope2;
@@ -2138,7 +2138,7 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
       {
         result.ReadFrom(r2 + laterTime);
         if( (result > start || (result == start && !isInsert))
-          && result <= u1->timeInterval.end && result <= u2->timeInterval.end)
+          && result <= u1.timeInterval.end && result <= u2.timeInterval.end)
         {
           double slope1, slope2;
           slope1 = CalcSlope( u1,result);
@@ -2152,11 +2152,11 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
     }
     if( !hasResult )
     {
-      if( u1->timeInterval.end < u2->timeInterval.end )
+      if( u1.timeInterval.end < u2.timeInterval.end )
       {
         ++ii;
       }
-      else if( u2->timeInterval.end < u1->timeInterval.end )
+      else if( u2.timeInterval.end < u1.timeInterval.end )
       {
         ++jj;
       }
@@ -2177,7 +2177,7 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
   {
     //if the intersection exact at the end of m1 or m2, do not take it
     m1->Get( m1->GetNoComponents()-1, u1);
-    if( result == u1->timeInterval.end )
+    if( result == u1.timeInterval.end )
     {
       hasResult = false;
     }
@@ -2186,7 +2186,7 @@ bool intersects( MReal* m1, MReal* m2, Instant &start, Instant& result,
   {
     //if the intersection exact at the end of m1 or m2, do not take it
     m2->Get( m2->GetNoComponents()-1, u1);
-    if( result == u1->timeInterval.end )
+    if( result == u1.timeInterval.end )
     {
       hasResult = false;
     }
@@ -2257,8 +2257,8 @@ Tuple* changeTupleUnit( Tuple *tuple, int attrNr, Instant start,
       const UPoint* upointAttr
           = (const UPoint*)tuple->GetAttribute(attrNr);
       Coord x1, y1, x2, y2;
-      GetPosition( upointAttr, start, x1, y1);
-      GetPosition( upointAttr, end, x2, y2);
+      GetPosition( *upointAttr, start, x1, y1);
+      GetPosition( *upointAttr, end, x2, y2);
       Interval<Instant> iv( start, end, lc, rc);
       UPoint* up = new UPoint( iv, x1, y1, x2, y2);
       res->PutAttribute( ii, up);
@@ -2567,13 +2567,13 @@ public:
        lastTuple = 0;
        return;
      }
-     const UPoint* tmp;
+     UPoint tmp;
      mpoint->Get(0,tmp);
-     Instant tmpstart = tmp->timeInterval.start;
-     bool lc = tmp->timeInterval.lc;
+     Instant tmpstart = tmp.timeInterval.start;
+     bool lc = tmp.timeInterval.lc;
      mpoint->Get(mpoint->GetNoComponents()-1, tmp);
-     Instant tmpend = tmp->timeInterval.end;
-     bool rc = tmp->timeInterval.rc;
+     Instant tmpend = tmp.timeInterval.end;
+     bool rc = tmp.timeInterval.rc;
 
      iv = Interval<Instant>(tmpstart, tmpend,lc,rc);
 
@@ -2606,8 +2606,8 @@ public:
          }
      }
      if(lastTuple){
-       tmp = static_cast<UPoint*>(lastTuple->GetAttribute(pos));
-       tupleStart = tmp->timeInterval.start;
+       tmp = *static_cast<UPoint*>(lastTuple->GetAttribute(pos));
+       tupleStart = tmp.timeInterval.start;
      }
  }
 
@@ -2924,11 +2924,11 @@ int knearestFun (Word* args, Word& result, int message,
          KnearestLocalInfo* localInfo =
                 new KnearestLocalInfo(args[0], attrPos, mp,
                                       k->GetIntval(), true);
-         const UPoint *up1, *up2;
+         UPoint up1, up2;
          mp->Get( 0, up1);
          mp->Get( mp->GetNoComponents() - 1, up2);
-         localInfo->startTime = up1->timeInterval.start;
-         localInfo->endTime = up2->timeInterval.end;
+         localInfo->startTime = up1.timeInterval.start;
+         localInfo->endTime = up2.timeInterval.end;
          local = SetWord(localInfo);
       }
       return 0;
@@ -3258,11 +3258,11 @@ int newknearestFun (Word* args, Word& result, int message,
          KnearestLocalInfo* localInfo =
                 new KnearestLocalInfo(args[0], attrPos, mp,
                                       k->GetIntval(), true);
-         const UPoint *up1, *up2;
+         UPoint up1, up2;
          mp->Get( 0, up1);
          mp->Get( mp->GetNoComponents() - 1, up2);
-         localInfo->startTime = up1->timeInterval.start;
-         localInfo->endTime = up2->timeInterval.end;
+         localInfo->startTime = up1.timeInterval.start;
+         localInfo->endTime = up2.timeInterval.end;
          local = SetWord(localInfo);
       }
       return 0;
@@ -3710,11 +3710,11 @@ int knearestFunVector (Word* args, Word& result, int message,
       localInfo = new KnearestLocalInfoVector(stream, attrPos, mp, k, true);
       localInfo->activeLine.reserve(100);
       local = SetWord(localInfo);
-      const UPoint *up1, *up2;
+      UPoint up1, up2;
       mp->Get( 0, up1);
       mp->Get( mp->GetNoComponents() - 1, up2);
-      localInfo->startTime = up1->timeInterval.start;
-      localInfo->endTime = up2->timeInterval.end;
+      localInfo->startTime = up1.timeInterval.start;
+      localInfo->endTime = up2.timeInterval.end;
       return 0;
     }
 
@@ -4164,13 +4164,13 @@ int oldknearestFilterFun (Word* args, Word& result, int message,
     case OPEN :
     {
       const MPoint *mp = (MPoint*)args[2].addr;
-      const UPoint *up1, *up2;
+      UPoint up1, up2;
       mp->Get( 0, up1);
       mp->Get( mp->GetNoComponents() - 1, up2);
       BBTree<timeType>* t = new BBTree<timeType>(*mp);
 
       localInfo = new KnearestFilterLocalInfo<timeType>(
-        up1->timeInterval.start.ToDouble(), up2->timeInterval.end.ToDouble());
+        up1.timeInterval.start.ToDouble(), up2.timeInterval.end.ToDouble());
       localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
       localInfo->k = (unsigned)((CcInt*)args[3].addr)->GetIntval();
@@ -4540,7 +4540,7 @@ If the tree is exhausted, NULL is returned.
          return 0;
       }
       // get the next result
-      const UInt* res;
+      UInt res;
       currentResult->Get(currentPos,res);
       currentPos++;
       Tuple* resTuple = new Tuple(tupleType);
@@ -4548,7 +4548,7 @@ If the tree is exhausted, NULL is returned.
       resTuple->PutAttribute(0,ni);
       CcInt* ri = new CcInt(true,currentRecId);
       resTuple->PutAttribute(1,ri);
-      resTuple->PutAttribute(2,new UInt(*res));
+      resTuple->PutAttribute(2,new UInt(res));
       return resTuple;
    }
 
@@ -5351,12 +5351,12 @@ int knearestFilterFun (Word* args, Word& result, int message,
     case OPEN :
     {
       const MPoint *mp = (MPoint*)args[5].addr;//5 th parameter
-      const UPoint *up1, *up2;
+      UPoint up1, up2;
       mp->Get( 0, up1);
       mp->Get( mp->GetNoComponents() - 1, up2);
       BBTree<timeType>* t = new BBTree<timeType>(*mp);
       localInfo = new KnearestFilterLocalInfo<timeType>(
-        up1->timeInterval.start.ToDouble(), up2->timeInterval.end.ToDouble());
+        up1.timeInterval.start.ToDouble(), up2.timeInterval.end.ToDouble());
       localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
       localInfo->relation = (Relation*)args[1].addr;
       localInfo->btreehats = (BTree*)args[2].addr;
@@ -5569,24 +5569,24 @@ int knearestFilterFun (Word* args, Word& result, int message,
           Tuple *tuple = localInfo->relation->GetTuple(tid);
 //split units
           const MPoint *mp = (MPoint*)args[5].addr;//5 th parameter
-          const UPoint *up1, *up2;
+          UPoint up1, up2;
           mp->Get( 0, up1);
           mp->Get( mp->GetNoComponents() - 1, up2);
           int attrpos = ((CcInt*)args[7].addr)->GetIntval() - 1;
           UPoint* up = (UPoint*)tuple->GetAttribute(attrpos);
           Point p0;
-          if(up->timeInterval.Contains(up1->timeInterval.start)){
-            up->TemporalFunction(up1->timeInterval.start,p0,true);
+          if(up->timeInterval.Contains(up1.timeInterval.start)){
+            up->TemporalFunction(up1.timeInterval.start,p0,true);
             if(p0.IsDefined()){
-              up->timeInterval.start = up1->timeInterval.start;
+              up->timeInterval.start = up1.timeInterval.start;
               up->p0 = p0;
             }
           }
           Point p1;
-          if(up->timeInterval.Contains(up2->timeInterval.end)){
-            up->TemporalFunction(up2->timeInterval.end,p1,true);
+          if(up->timeInterval.Contains(up2.timeInterval.end)){
+            up->TemporalFunction(up2.timeInterval.end,p1,true);
             if(p1.IsDefined()){
-              up->timeInterval.end = up2->timeInterval.end;
+              up->timeInterval.end = up2.timeInterval.end;
               up->p1 = p1;
             }
           }
@@ -8108,27 +8108,27 @@ void TBKnearestLocalInfo::ChinaknnFun(MPoint* mp)
               double t2((double)entry->getBox().MaxD(2));
               if(!(t1 >= endTime || t2 <= startTime)){
                   //for each unit in mp
-                const UPoint* up;
+                UPoint up;
                 TupleId tid = entry->getInfo().getTupleId();
                 Tuple* tuple = this->relation->GetTuple(tid);
                 UPoint* data = (UPoint*)tuple->GetAttribute(attrpos);
 
                 for(int j = 0;j < mp->GetNoComponents();j++){
                     mp->Get(j,up);
-                    double tt1 = (double)(up->timeInterval.start.ToDouble());
-                    double tt2 = (double)(up->timeInterval.end.ToDouble());
+                    double tt1 = (double)(up.timeInterval.start.ToDouble());
+                    double tt2 = (double)(up.timeInterval.end.ToDouble());
                     if(tt1 > t2) //mq's time interval is larger than entry
                       break;
                     if(!(t1 >= tt2 || t2 <= tt1)){
                       Point p0(true,0,0);
                       Point p1(true,0,0);
-                      UPoint* ne = new UPoint(up->timeInterval,p0,p1);
-                      UPoint* nqe = new UPoint(up->timeInterval,p0,p1);
+                      UPoint* ne = new UPoint(up.timeInterval,p0,p1);
+                      UPoint* nqe = new UPoint(up.timeInterval,p0,p1);
 
                       //interpolation restrict to the same time interval
 
-                      CreateUPoint_ne(up,ne,data);
-                      CreateUPoint_nqe(up,nqe,data);
+                      CreateUPoint_ne(&up,ne,data);
+                      CreateUPoint_nqe(&up,nqe,data);
 
                       double nodets = ne->timeInterval.start.ToDouble();
                       double nodete = ne->timeInterval.end.ToDouble();
@@ -8292,27 +8292,27 @@ void TBKnearestLocalInfo::GreeceknnFunBF(MPoint* mp,int level,hpelem& elem)
 
               if(!(t1 >= endTime || t2 <= startTime)){
                   //for each unit in mp
-                const UPoint* up;
+                UPoint up;
                 TupleId tid = entry.info;
                 Tuple* tuple = this->relation->GetTuple(tid);
                 UPoint* data = (UPoint*)tuple->GetAttribute(attrpos);
 
                 for(int j = 0;j < mp->GetNoComponents();j++){
                     mp->Get(j,up);
-                    double tt1 = (double)(up->timeInterval.start.ToDouble());
-                    double tt2 = (double)(up->timeInterval.end.ToDouble());
+                    double tt1 = (double)(up.timeInterval.start.ToDouble());
+                    double tt2 = (double)(up.timeInterval.end.ToDouble());
                     if(tt1 > t2) //mq's time interval is larger than entry
                       break;
                     if(!(t1 >= tt2 || t2 <= tt1)){
                       Point p0(true,0,0);
                       Point p1(true,0,0);
-                      UPoint* ne = new UPoint(up->timeInterval,p0,p1);
-                      UPoint* nqe = new UPoint(up->timeInterval,p0,p1);
+                      UPoint* ne = new UPoint(up.timeInterval,p0,p1);
+                      UPoint* nqe = new UPoint(up.timeInterval,p0,p1);
 
                       //interpolation restrict to the same time interval
 
-                      CreateUPoint_ne(up,ne,data);
-                      CreateUPoint_nqe(up,nqe,data);
+                      CreateUPoint_ne(&up,ne,data);
+                      CreateUPoint_nqe(&up,nqe,data);
 
                       double nodets = ne->timeInterval.start.ToDouble();
                       double nodete = ne->timeInterval.end.ToDouble();
@@ -8440,27 +8440,27 @@ void TBKnearestLocalInfo::GreeceknnFunDF(MPoint* mp,int level,hpelem& elem)
 
         if(!(t1 >= endTime || t2 <= startTime)){
             //for each unit in mp
-            const UPoint* up;
+            UPoint up;
             TupleId tid = e.info;
             Tuple* tuple = relation->GetTuple(tid);
             UPoint* data = (UPoint*)tuple->GetAttribute(attrpos);
 
             for(int j = 0;j < mp->GetNoComponents();j++){
               mp->Get(j,up);
-              double tt1 = (double)(up->timeInterval.start.ToDouble());
-              double tt2 = (double)(up->timeInterval.end.ToDouble());
+              double tt1 = (double)(up.timeInterval.start.ToDouble());
+              double tt2 = (double)(up.timeInterval.end.ToDouble());
 
               if(tt1 > t2) //mq's time interval is larger than entry
                   break;
               if(!(t1 >= tt2 || t2 <= tt1)){
                     Point p0(true,0,0);
                     Point p1(true,0,0);
-                    UPoint* ne = new UPoint(up->timeInterval,p0,p1);
-                    UPoint* nqe = new UPoint(up->timeInterval,p0,p1);
+                    UPoint* ne = new UPoint(up.timeInterval,p0,p1);
+                    UPoint* nqe = new UPoint(up.timeInterval,p0,p1);
                   //interpolation restrict to the same time interval
 
-                  CreateUPoint_ne(up,ne,data);
-                  CreateUPoint_nqe(up,nqe,data);
+                  CreateUPoint_ne(&up,ne,data);
+                  CreateUPoint_nqe(&up,nqe,data);
 
                   double nodets = ne->timeInterval.start.ToDouble();
                   double nodete = ne->timeInterval.end.ToDouble();
@@ -8577,8 +8577,8 @@ int Greeceknearest(Word* args, Word& result, int message,
       MPoint* mp = (MPoint*)args[3].addr;
       if(mp->IsEmpty())
         return 0;
-      const UPoint* up1;
-      const UPoint* up2;
+      UPoint up1;
+      UPoint up2;
       mp->Get(0,up1);
       mp->Get(mp->GetNoComponents()-1,up2);
       const unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
@@ -8586,8 +8586,8 @@ int Greeceknearest(Word* args, Word& result, int message,
       localInfo = new TBKnearestLocalInfo(k);
       local = SetWord(localInfo);
       localInfo->attrpos = attrpos;
-      localInfo->startTime = up1->timeInterval.start.ToDouble();
-      localInfo->endTime = up2->timeInterval.end.ToDouble();
+      localInfo->startTime = up1.timeInterval.start.ToDouble();
+      localInfo->endTime = up2.timeInterval.end.ToDouble();
       localInfo->ci =
         new CIC<double>(localInfo->startTime,localInfo->endTime);
 
@@ -8704,8 +8704,8 @@ int ChinaknearestFun (Word* args, Word& result, int message,
       MPoint* mp = (MPoint*)args[3].addr;
       if(mp->IsEmpty())
         return 0;
-      const UPoint* up1;
-      const UPoint* up2;
+      UPoint up1;
+      UPoint up2;
       mp->Get(0,up1);
       mp->Get(mp->GetNoComponents()-1,up2);
       const unsigned int k = (unsigned int)((CcInt*)args[4].addr)->GetIntval();
@@ -8713,8 +8713,8 @@ int ChinaknearestFun (Word* args, Word& result, int message,
       localInfo = new TBKnearestLocalInfo(k);
       local = SetWord(localInfo);
       localInfo->attrpos = attrpos;
-      localInfo->startTime = up1->timeInterval.start.ToDouble();
-      localInfo->endTime = up2->timeInterval.end.ToDouble();
+      localInfo->startTime = up1.timeInterval.start.ToDouble();
+      localInfo->endTime = up2.timeInterval.end.ToDouble();
 
       localInfo->ci =
         new CIC<double>(localInfo->startTime,localInfo->endTime);

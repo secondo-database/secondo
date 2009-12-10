@@ -516,9 +516,9 @@ void BBTree<timeType>::createFromMPoint(const MPoint& p){
    stack<pair<int, BBTreeNode<timeType>*> > astack;
 
    for(int i=0; i< size; i++){
-      const UPoint* unit;
+      UPoint unit;
       p.Get(i,unit);
-      BBTreeNode<timeType>* newNode = new BBTreeNode<timeType>(*unit);
+      BBTreeNode<timeType>* newNode = new BBTreeNode<timeType>(unit);
       pair<int, BBTreeNode<timeType>*> entry(0, newNode);
       if(astack.size()==0){ // first entry
          astack.push(entry);
