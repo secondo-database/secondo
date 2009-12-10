@@ -26,7 +26,7 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 Mai-Oktober 2007 Martin Scheppokat
 
-February 2008 - June 2008 Simone Jandt
+February 2008 -  Simone Jandt
 
 1.2 Defines, includes, and constants
 
@@ -692,6 +692,14 @@ Returns the network id the ~mgpoint~ belongs to.
 
 */
    int GetNetworkId() const;
+
+/*
+Returns a pointer to the network object the ~mgpoint~ belongs to.
+
+*/
+
+   Network* GetNetwork() const;
+
 /*
 Computes the Euclidean Distance between two mgpoint with help of mpoint
 distance function.

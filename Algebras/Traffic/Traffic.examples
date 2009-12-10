@@ -18,3 +18,9 @@ Number   : 1
 Signature: stream(mgpsecunit)->rel(tuple(int,int,int,mreal,mint))
 Example  : query trains mgp2mgpsecunits[trip,B_NETWORK,2000.0] traffic;
 Result   : file
+
+Operator : traffic2
+Number   : 1
+Signature: stream(mgpoint)->rel(tuple(int,int,int,mreal,mint))
+Example  : query trains feed projecttransformstream[trip] traffic2 [2000.0];
+Result   : file

@@ -1641,6 +1641,10 @@ int MGPoint::GetNetworkId() const{
    else return numeric_limits<int>::min();
 }
 
+Network* MGPoint::GetNetwork() const
+{
+  return NetworkManager::GetNetworkNew(GetNetworkId(),netList);
+}
 
 double MGPoint::GetLength() const{
   return m_length;
@@ -1808,8 +1812,7 @@ void MGPoint::Distance(MGPoint *&mgp, MReal *&result){
 
 void MGPoint::DistanceE(MGPoint* mgp, MReal* result){
   //Network* pNetwork = NetworkManager::GetNetwork(mgp->GetNetworkId());
-  Network* pNetwork = NetworkManager::GetNetworkNew(mgp->GetNetworkId(),
-                                                    netList);
+  Network* pNetwork = GetNetwork();
   UReal uReal(true);
   result->StartBulkLoad();
   const UGPoint* ugp1;
@@ -2762,8 +2765,7 @@ void MGPoint::DivideUGPoint(Network* pNetwork)
 void MGPoint::DistanceN(MGPoint* mgp, MReal* result){
 
   //Network* pNetwork = NetworkManager::GetNetwork(mgp->GetNetworkId());
-  Network* pNetwork = NetworkManager::GetNetworkNew(mgp->GetNetworkId(),
-                                                    netList);
+  Network* pNetwork = GetNetwork();
   DivideUGPoint(pNetwork);  //partition ugpoints
   mgp->DivideUGPoint(pNetwork);
 
@@ -2939,7 +2941,7 @@ Translation from network ~mgpoint~ to spatial ~mpoint~
 void MGPoint::Mgpoint2mpoint(MPoint *&mp) {
   if (IsDefined() && !IsEmpty()){
   //Network* pNetwork = NetworkManager::GetNetwork(GetNetworkId());
-  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
+  Network* pNetwork = GetNetwork();
   const UGPoint *pCurrUnit;
   UGPoint CurrUnit;
   int iAktRouteId = 1;
@@ -3181,8 +3183,7 @@ void MGPoint::Intersection(MGPoint *&mgp, MGPoint *&res){
     Get(0, pCurr1);
     mgp->Get(0, pCurr2);
     //Network *pNetwork = NetworkManager::GetNetwork(pCurr1->p0.GetNetworkId());
-    Network* pNetwork =
-        NetworkManager::GetNetworkNew(pCurr1->p0.GetNetworkId(), netList);
+    Network* pNetwork = GetNetwork();
     if (!pNetwork->IsDefined() || pNetwork == NULL) {
       cerr << "Network does not exist."<< endl;
       res->SetDefined(false);
@@ -4496,8 +4497,7 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
           Get(0,unit);
           /*Network *pNetwork =
               NetworkManager::GetNetwork(unit->p0.GetNetworkId());*/
-          Network* pNetwork =
-              NetworkManager::GetNetworkNew(unit->p0.GetNetworkId(), netList);
+          Network* pNetwork = GetNetwork();
           double x5 = unit->timeInterval.start.ToDouble();
           Get(GetNoComponents()-1,unit);
           double x6 = unit->timeInterval.end.ToDouble();
@@ -4545,8 +4545,7 @@ void MGPoint::Add(const UGPoint& u/*, bool setbbox =true*/){
         Get(0,unit);
         /*Network *pNetwork =
           NetworkManager::GetNetwork(unit->p0.GetNetworkId());*/
-        Network* pNetwork =
-            NetworkManager::GetNetworkNew(unit->p0.GetNetworkId(), netList);
+        Network* pNetwork = GetNetwork();
         double x5 = unit->timeInterval.start.ToDouble();
         Get(GetNoComponents()-1,unit);
         double x6 = unit->timeInterval.end.ToDouble();
@@ -6347,8 +6346,7 @@ int OpMgp2mgpsecunits2ValueMap(Word* args, Word& result, int message,
     {
       li = new OpMgp2mgpsec2LocalInfo();
       MGPoint *m = (MGPoint*) args[0].addr;
-      Network *pNetwork = NetworkManager::GetNetworkNew(m->GetNetworkId(),
-                                                        netList);
+      Network *pNetwork = m->GetNetwork();
       double maxSectLength = ((CcReal*) args[1].addr)->GetRealval();
       li->vmgpsecunit.clear();
       m->GetMGPSecUnits(li->vmgpsecunit, maxSectLength, pNetwork);
@@ -6473,8 +6471,7 @@ int OpMgp2mgpsecunits3ValueMap(Word* args, Word& result, int message,
       if (qp->Received(args[0].addr))
       {
         MGPoint *m = (MGPoint*) curAddr.addr;
-        li->pNetwork = NetworkManager::GetNetworkNew(m->GetNetworkId(),
-            netList);
+        li->pNetwork = m->GetNetwork();
         li->vmgpsecunit.clear();
         m->GetMGPSecUnits(li->vmgpsecunit, li->maxLength, li->pNetwork);
         li->pos = 0;
