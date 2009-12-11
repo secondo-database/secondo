@@ -370,3 +370,9 @@ Number   : 1
 Signature: stream(mgpoint) -> stream(mgpsecunit)
 Example  : query trains feed projecttransformstream [trip] mgp2mgpsecunits3 [20000.0] transformstream consume;
 Result   : file
+
+Operator : mgpsu2tuple
+Number   : 1
+Signature: stream(mgpsecunit) -> stream(tuple((secid int)(partNo int)(dir int)(speed real)(starttime instant)(endtime instant)(leftclosed bool)(rightclosed bool)))
+Example  : query trains feed projecttransformstream [trip] mgp2mgpsecunits3[20000.0] mgpsu2tuple consume;
+Result   : file

@@ -8934,6 +8934,110 @@ Operator tempnetugpoint2mgpoint("ugpoint2mgpoint",
                             OpUgpoint2mgpointTypeMap);
 
 /*
+5.35 ~mgpsu2tuple~
+
+The operation ~mgpsu2tuple~ gets a ~stream~ of ~mgpsecunits~ and translates
+them into a stream of tuples with the mgpsecunit values as attributes.
+
+TypeMapping:
+
+*/
+static string mgpSecTypeInfo =
+    "(stream (tuple ((secid int) (part int) (dir int) (speed real)"
+                    "(starttime instant)(endtime instant)"
+                    "(leftclosed bool)(rightclosed bool))))";
+
+
+ListExpr OpMgpsu2tupleTypeMap(ListExpr in_xArgs)
+{
+  NList type(in_xArgs);
+  if (type.length() == 1)
+  {
+    NList stream = type.first();
+    NList mgp("mgpsecunit");
+    if (stream.length() == 2 && stream.checkStream(mgp))
+    {
+      ListExpr retList;
+      nl->ReadFromString(mgpSecTypeInfo, retList);
+      return retList;
+    }
+  }
+  return NList::typeError( "Expected a stream of mgpsecunit.");
+}
+
+/*
+Value Mapping
+
+*/
+
+int OpMgpsu2tupleValueMap(Word* args, Word& result, int message,
+                               Word& local, Supplier s)
+{
+  TupleType *resultTupleType;
+  ListExpr resultType;
+  Word curAddr;
+  switch( message )
+  {
+    case OPEN:
+    {
+      qp->Open(args[0].addr);
+      resultType = GetTupleResultType( s );
+      resultTupleType = new TupleType( nl->Second( resultType ) );
+      local.setAddr( resultTupleType );
+      return 0;
+    }
+
+    case REQUEST:
+    {
+      resultTupleType = (TupleType *)local.addr;
+      qp->Request(args[0].addr, curAddr);
+      if (qp->Received(args[0].addr))
+      {
+        MGPSecUnit *m = (MGPSecUnit*) curAddr.addr;
+        Tuple *newTuple = new Tuple( resultTupleType );
+        newTuple->PutAttribute(0, new CcInt(true, m->GetSecId()));
+        newTuple->PutAttribute(1, new CcInt(true, m->GetPart()));
+        newTuple->PutAttribute(2, new CcInt(true, m->GetDirect()));
+        newTuple->PutAttribute(3, new CcReal(true, m->GetSpeed()));
+        newTuple->PutAttribute(4, new Instant(m->GetTimeInterval().start));
+        newTuple->PutAttribute(5, new Instant(m->GetTimeInterval().end));
+        newTuple->PutAttribute(6, new CcBool(true,m->GetTimeInterval().lc));
+        newTuple->PutAttribute(7, new CcBool(true,m->GetTimeInterval().rc));
+        result.setAddr(newTuple);
+        delete m;
+        return YIELD;
+      }
+      else return CANCEL;
+    }
+
+    case CLOSE:
+    {
+      qp->Close(args[0].addr);
+      if (local.addr) ((TupleType*) local.addr)->DeleteIfAllowed();
+      local.setAddr(0);
+      return 0;
+    }
+    default:
+    {
+      // should not happen
+      return -1;
+    }
+  }
+}
+
+
+struct mgpsu2tupleInfo : OperatorInfo {
+
+  mgpsu2tupleInfo()
+  {
+    name      = "mgpsu2tuple";
+    signature = "stream(mgpsecunit)-> stream(tuple((secid)..(flow))";
+    syntax    = "_ mgp2mgpsecunits3 ( _ ) ";
+    meaning   = "Builds a stream of mgpsecunits from a stream of mgpoint.";
+  }
+};
+
+/*
 6 Creating the Algebra
 
 */
@@ -8997,6 +9101,7 @@ class TemporalNetAlgebra : public Algebra
                 OpMgp2mgpsecunits2TypeMap);
     AddOperator(mgp2mgpsecunits3Info(), OpMgp2mgpsecunits3ValueMap,
                 OpMgp2mgpsecunits3TypeMap);
+    AddOperator(mgpsu2tupleInfo(), OpMgpsu2tupleValueMap, OpMgpsu2tupleTypeMap);
   }
 
 
