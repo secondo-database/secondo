@@ -120,7 +120,9 @@ class OrderedRelation;
 
 class OrderedRelationIterator : public GenericRelationIterator {
   public:
-    OrderedRelationIterator(const OrderedRelation* orel, TupleType* newType=0);
+    OrderedRelationIterator(const OrderedRelation* orel, TupleType* newType=0,
+                            const SmiKey& from = SmiKey(),
+                            const SmiKey& to = SmiKey());
     
     ~OrderedRelationIterator();
     
@@ -129,13 +131,20 @@ class OrderedRelationIterator : public GenericRelationIterator {
     
     TupleId GetTupleId() const;
     
+    SmiKey GetKey() const;
+    
   private:
-    SmiKeyedFileIterator it;
+    bool Advance();
+    
+    PrefetchingIterator* it;
+    bool endOfScan;
     TupleType* tupleType;
     TupleType* outtype;
     SmiBtreeFile* tupleFile;
     SmiFileId lobFileId;
-    
+    SmiKey key;
+    SmiKey fromKey;
+    SmiKey toKey;
 };
 
 /*
@@ -209,6 +218,7 @@ class OrderedRelation : public GenericRelation {
     virtual void Clear();
     
     virtual void AppendTuple(Tuple* t);
+    virtual void AppendTuple(Tuple* t, SmiKey& k);
     
     virtual Tuple* GetTuple(const TupleId& id) const;
     
@@ -220,6 +230,15 @@ class OrderedRelation : public GenericRelation {
     
     virtual GenericRelationIterator* MakeScan(TupleType* tt) const;
     
+    virtual GenericRelationIterator* MakeRangeScan( const SmiKey& from=SmiKey(),
+                                                    const SmiKey& to=SmiKey())
+                                                    const;
+    
+    virtual GenericRelationIterator* MakeRangeScan( TupleType* tt,
+                                                    const SmiKey& from=SmiKey(),
+                                                    const SmiKey& to=SmiKey())
+                                                    const;
+    
     virtual bool GetTupleFileStats(SmiStatResultType&);
     
     virtual bool GetLOBFileStats(SmiStatResultType&);
@@ -230,12 +249,16 @@ class OrderedRelation : public GenericRelation {
                        const vector<int>& keyElement,
                        const vector<SmiKey::KeyDataType>& keyElemType);
     
+    SmiKey GetUpperRangeKey(Word& arg, int length);
+    SmiKey GetLowerRangeKey(Word& arg, int length);
+    SmiKey GetRangeKey(Word& arg, int length, bool lower=true);
     //should work
     static bool GetKeytype (ListExpr typeInfo, SmiKey::KeyDataType& keyType,
                             vector<int>& keyElement,
                             vector<SmiKey::KeyDataType>& keyElemType);
     
-    static bool ValidKeyElements(ListExpr tupleInfo, ListExpr keyInfo);
+    static bool ValidKeyElements(ListExpr tupleInfo, ListExpr keyInfo,
+                                  vector<string>* types=0);
 
   private:
     OrderedRelation();

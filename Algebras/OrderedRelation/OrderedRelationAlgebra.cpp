@@ -41,9 +41,13 @@ For more information see the OrderedRelation.h header file.
 */
 #include "OrderedRelationAlgebra.h"
 #include "StandardTypes.h"
+#include "ListUtils.h"
 
-//#define DEBUG_OREL
-//#define DEBUG_OREL2
+#define DEBUG_OREL
+
+#ifdef DEBUG_OREL
+#define DEBUG_OREL2
+#endif
 
 /*
 3 Implementation
@@ -51,24 +55,42 @@ For more information see the OrderedRelation.h header file.
 
 */
 OrderedRelationIterator::OrderedRelationIterator(const OrderedRelation* orel,
-                                                TupleType* newType /*=0*/):
+                                                TupleType* newType /*=0*/,
+                                                const SmiKey& from/*=SmiKey()*/,
+                                                const SmiKey& to /*=SmiKey()*/):
               tupleType(orel->tupleType), outtype(newType),
-              tupleFile(orel->tupleFile), lobFileId(orel->lobFileId) {
+              tupleFile(orel->tupleFile), lobFileId(orel->lobFileId),
+              fromKey(from), toKey(to) {
 #ifdef DEBUG_OREL
 cout << "Konstruktor_OrelIter" << endl;
 #endif
   tupleType->IncReference();
   if(outtype!=0) outtype->IncReference();
-  bool ok = orel->tupleFile->SelectAll(it, SmiFile::ReadOnly, true);
-  
-#ifdef DEBUG_OREL2
-cout << ok << endl;
-#endif
+  SmiKey::KeyDataType t1 = fromKey.GetType();
+  SmiKey::KeyDataType t2 = toKey.GetType();
+  endOfScan = true;
+  if(t1 != SmiKey::Unknown || t2 != SmiKey::Unknown) {
+    if(t1!=SmiKey::Unknown) {
+      if(t2!=SmiKey::Unknown) {
+        it = orel->tupleFile->SelectRangePrefetched(fromKey, toKey);
+      } else {
+        it = orel->tupleFile->SelectRightRangePrefetched(fromKey);
+      }
+    } else {
+      it = orel->tupleFile->SelectLeftRangePrefetched(toKey);
+    }
+  } else {
+    it = orel->tupleFile->SelectAllPrefetched();
+  }
+  if (it!=0) {
+    endOfScan = false;
+  }
 }
 
 OrderedRelationIterator::~OrderedRelationIterator() {
   tupleType->DeleteIfAllowed();
   if(outtype!=0) outtype->DeleteIfAllowed();
+  if(it!=0) delete it;
   return;
 }
 
@@ -76,12 +98,11 @@ Tuple* OrderedRelationIterator::GetNextTuple() {
 #ifdef DEBUG_OREL
 cout << "GetNextTuple_OrelIter" << endl;
 #endif
-  SmiRecord record;
-  if(!it.Next(record)) {
+  if(!Advance()) {
     return 0;
   }
   Tuple* t = new Tuple(tupleType);
-  if(t->Open(0, lobFileId, record)) {
+  if(t->OpenNoId(0, lobFileId, it)) {
     return t;
   } else {
     delete t;
@@ -90,13 +111,11 @@ cout << "GetNextTuple_OrelIter" << endl;
 }
 
 Tuple* OrderedRelationIterator::GetNextTuple(const list<int>& attrList) {
-  SmiRecord record;
-  if(!it.Next(record)) {
+  if(!Advance()) {
     return 0;
   }
   Tuple* t = new Tuple(tupleType);
-  if(t->OpenPartial(outtype, attrList, 0, lobFileId,
-                    record)) {
+  if(t->OpenPartialNoId(outtype, attrList, 0, lobFileId, it)) {
     return t;
   } else {
     delete t;
@@ -110,6 +129,24 @@ cout << "GetTupleId_OrelIter" << endl;
 #endif
 assert(false);
   return -1;
+}
+
+SmiKey OrderedRelationIterator::GetKey() const {
+#ifdef DEBUG_OREL
+cout << "GetKey" << endl;
+#endif
+  return key;
+}
+
+bool OrderedRelationIterator::Advance() {
+  if(endOfScan) return false;
+  if(!it->Next()) {
+    key = SmiKey();
+    endOfScan = true;
+    return false;
+  }
+  it->CurrentKey(key);
+  return true;
 }
 
 /*
@@ -360,10 +397,24 @@ cout << "Clone_Orel" << endl;
   OrderedRelation* clone = new OrderedRelation(typeInfo);
   OrderedRelation* orel = static_cast<OrderedRelation*>(value.addr);
   Tuple* t;
-  GenericRelationIterator* iter = orel->MakeScan();
+  OrderedRelationIterator* iter = (OrderedRelationIterator*)orel->MakeScan();
   while((t = iter->GetNextTuple()) != 0) {
-    clone->AppendTuple(t);
+#ifdef DEBUG_OREL2
+cout << "GotNextTuple" << endl;
+#endif
+    iter->GetKey();
+    SmiKey k = iter->GetKey();
+#ifdef DEBUG_OREL2
+cout << "GotKey" << endl;
+#endif
+    clone->AppendTuple(t, k);
+#ifdef DEBUG_OREL2
+cout << "Appended" << endl;
+#endif
     t->DeleteIfAllowed();
+#ifdef DEBUG_OREL2
+cout << "nextTuple" << endl;
+#endif
   }
   delete iter;
   return SetWord(clone);
@@ -490,17 +541,21 @@ cout << "AppendTuple_Orel" << endl;
 #endif
   SmiKey k;
   GetKey(t, k, keyType, keyElement, keyElemType);
+  return AppendTuple(t,k);
+#ifdef DEBUG_OREL2
+cout << "EndAppendTuple_Orel" << endl;
+#endif
+}
+
+
+void OrderedRelation::AppendTuple(Tuple* t, SmiKey& k) {
   SmiRecord record;
   bool rc = tupleFile->InsertRecord(k, record);
   assert(rc==true);
   SmiFileId lobId = 0;//lobFile->GetFileId();
-  t->Save(&record, lobId,totalExtSize,
-                  totalSize,attrExtSize,attrSize,false);
+  t->Save(&record, lobId,totalExtSize, totalSize,attrExtSize,attrSize,false);
   record.Finish();
   noTuples++;
-#ifdef DEBUG_OREL2
-cout << "EndAppendTuple_Orel" << endl;
-#endif
 }
 
 
@@ -517,7 +572,6 @@ Tuple* OrderedRelation::GetTuple(const TupleId& id, const int attrIndex,
   return GetTuple(id);
 }
 
-
 GenericRelationIterator* OrderedRelation::MakeScan() const {
 #ifdef DEBUG_OREL
 cout << "MakeScan_Orel" << endl;
@@ -525,12 +579,29 @@ cout << "MakeScan_Orel" << endl;
   return new OrderedRelationIterator(this);
 }
 
-
 GenericRelationIterator* OrderedRelation::MakeScan(TupleType* tt) const {
 #ifdef DEBUG_OREL
 cout << "MakeScan(tt)_Orel" << endl;
 #endif
   return new OrderedRelationIterator(this, tt);
+}
+
+GenericRelationIterator* OrderedRelation::MakeRangeScan(const SmiKey& from,
+                                                      const SmiKey& to) const {
+#ifdef DEBUG_OREL
+cout << "MakeRangeScan_Orel" << endl;
+#endif
+  return new OrderedRelationIterator(this, 0, from, to);
+}
+
+
+GenericRelationIterator* OrderedRelation::MakeRangeScan(TupleType* tt,
+                                                        const SmiKey& from,
+                                                        const SmiKey& to) const{
+#ifdef DEBUG_OREL
+cout << "MakeRangeScan(tt)_Orel" << endl;
+#endif
+  return new OrderedRelationIterator(this, tt, from, to);
 }
 
 
@@ -559,39 +630,28 @@ cout << "GetKey_Orel" << endl;
 #endif
   switch (keyType) {
     case SmiKey::Integer:
-#ifdef DEBUG_OREL2
-cout << "int" << endl;
-#endif
       key = SmiKey((long int)
       (static_cast<CcInt*>(t->GetAttribute(keyElement[0]))->GetValue()));
-      break;
+      return;
     case SmiKey::String:
-#ifdef DEBUG_OREL2
-cout << "string" << endl;
-#endif
       key = SmiKey((string)
       (static_cast<CcString*>(t->GetAttribute(keyElement[0]))->GetValue()));
-      break;
+      return;
     case SmiKey::Float:
-#ifdef DEBUG_OREL2
-cout << "float" << endl;
-#endif
       key = SmiKey((double)
       (static_cast<CcReal*>(t->GetAttribute(keyElement[0]))->GetValue()));
-      break;
+      return;
     default:
-#ifdef DEBUG_OREL2
-cout << "composite" << endl;
-#endif
       size_t maxSize = SMI_MAX_KEYLEN;
       char data[maxSize];
       size_t offset = 0;
+      long lValue;
+      double fValue;
+      string sValue;
+      IndexableAttribute* attr;
+      size_t tmpSize = 0;
+      void* tmpData = 0;
       for(size_t i=0;i<keyElement.size() && offset < maxSize;i++) {
-        size_t tmpSize = 0;
-        void* tmpData = 0;
-        long lValue;
-        double fValue;
-        string sValue;
         switch (keyElemType[i]) {
           case SmiKey::Integer:
             lValue = (long int)
@@ -617,7 +677,7 @@ cout << "composite" << endl;
             ((char*)tmpData)[sValue.length()] = 0;
             break;
           default:
-            IndexableAttribute* attr = 
+            attr = 
               static_cast<IndexableAttribute*>(t->GetAttribute(keyElement[i]));
             tmpSize = attr->SizeOfChars();
             tmpData = malloc(tmpSize);
@@ -630,11 +690,98 @@ cout << "composite" << endl;
         free(tmpData);
         offset += tmpSize;
       }
-      CompositeKey* comp = new CompositeKey(data,offset);
-      key = SmiKey(comp);
+      CompositeKey comp(data,offset);
+      key = SmiKey(&comp);
   }
 }
 
+SmiKey OrderedRelation::GetRangeKey(Word& arg, int length, bool lower) {
+  Word val;
+  Supplier son = qp->GetSupplier(arg.addr, 0);
+  qp->Request(son, val);
+  switch(keyType) {
+    case SmiKey::Integer:
+      return SmiKey((long int)
+        (static_cast<CcInt*>(val.addr)->GetValue()));
+    case SmiKey::String:
+      return SmiKey((string)
+        (static_cast<CcString*>(val.addr)->GetValue()));
+    case SmiKey::Float:
+      return SmiKey((double)
+        (static_cast<CcReal*>(val.addr)->GetValue()));
+    default:
+      size_t maxSize = SMI_MAX_KEYLEN;
+      char data[maxSize];
+      size_t offset = 0;
+      size_t tmpSize = 0;
+      void* tmpData = 0;
+      long lValue;
+      double fValue;
+      string sValue;
+      IndexableAttribute* attr;
+      for(size_t i = 0; (i < length) && (offset < maxSize); i++) {
+        if(i>0) {
+          son = qp->GetSupplier(arg.addr, i);
+          qp->Request(son, val);
+        }
+        switch (keyElemType[i]) {
+          case SmiKey::Integer:
+            lValue = (long int)
+              (static_cast<CcInt*>(val.addr)->GetValue());
+            tmpSize = sizeof(lValue);
+            tmpData = malloc(tmpSize);
+            SmiKey::Map(lValue, tmpData);
+            break;
+          case SmiKey::Float:
+            fValue = (double)
+              (static_cast<CcReal*>(val.addr)->GetValue());
+            tmpSize = sizeof(fValue);
+            tmpData = malloc(tmpSize);
+            SmiKey::Map(fValue, tmpData);
+            break;
+          case SmiKey::String:
+            sValue = (string)
+              (static_cast<CcString*>(val.addr)->GetValue());
+            tmpSize = sValue.length() + 1;
+            tmpData = malloc(tmpSize);
+            sValue.copy((char*)tmpData, sValue.length());
+            ((char*)tmpData)[sValue.length()] = 0;
+            break;
+          default:
+            attr = static_cast<IndexableAttribute*>(val.addr);
+            tmpSize = attr->SizeOfChars();
+            tmpData = malloc(tmpSize);
+            attr->WriteTo((char*)tmpData);
+        }
+        if(offset+tmpSize>maxSize){
+          tmpSize = maxSize-offset;
+        }
+        memcpy(data+offset, tmpData, tmpSize);
+        free(tmpData);
+        offset += tmpSize;
+      }
+      if(offset<maxSize && !lower) {
+        data[offset] = 255;
+        offset += 1;
+      }
+      CompositeKey comp(data,offset);
+      return SmiKey(&comp);
+  }
+}
+
+SmiKey OrderedRelation::GetLowerRangeKey(Word& arg, int length) {
+#ifdef DEBUG_OREL
+cout << "GetLowerRangeKey" << endl;
+#endif
+  return GetRangeKey(arg, length, true);
+}
+
+SmiKey OrderedRelation::GetUpperRangeKey(Word& arg, int length) {
+#ifdef DEBUG_OREL
+cout << "GetUpperRangeKey" << endl;
+#endif
+  return GetRangeKey(arg, length, false);
+}
 
 bool OrderedRelation::GetKeytype(ListExpr typeInfo,
                                  SmiKey::KeyDataType& keyType,
@@ -647,6 +794,8 @@ cout << nl->ToString(typeInfo) << endl;
 
   if(nl->ListLength(typeInfo)!=3 || nl->IsAtom(nl->Second(typeInfo))
       || nl->ListLength(nl->Second(typeInfo))!=2) return false;
+  //(orel(tuple((a1 t1)...(an tn)) (ai1 ai2 ai3))) or
+  //(orel(tuple((a1 t1)...(an tn)) ai)) expected
   
   ListExpr tupleInfo = nl->Second(nl->Second(typeInfo));
   ListExpr keyInfo = nl->Third(typeInfo);
@@ -711,7 +860,7 @@ cout << nl->ToString(current) << endl;
   }
   if(keyCount > 1) {
 #ifdef DEBUG_OREL2
-cout << "more than one";
+cout << "more than one" << endl;
 #endif
     keyType = SmiKey::Composite;
   } else {
@@ -725,7 +874,61 @@ cout << "keyType:\t" << keyType << endl;
 
 
 bool OrderedRelation::ValidKeyElements(const ListExpr tupleInfo,
-                                  const ListExpr keyElements) {
+                                        const ListExpr keyInfo,
+                                        vector<string>* types) {
+#ifdef DEBUG_OREL
+cout << "ValidKeyElements" << endl;
+#endif
+  int keyCount = 0;
+  if(nl->IsAtom(keyInfo)) {
+    keyCount = 1;
+  } else {
+    keyCount = nl->ListLength(keyInfo);
+  }
+  if(types!=0) {
+    types->resize(keyCount);
+  }
+  ListExpr restInfo = keyInfo;
+  for(int count=0; count<keyCount; count++) {
+#ifdef DEBUG_OREL2
+cout << nl->IsAtom(restInfo) << endl;
+cout << nl->ToString(restInfo) << endl;
+if(nl->IsAtom(restInfo)) {
+  cout << nl->SymbolValue(restInfo) << endl;
+} else {
+  cout << nl->SymbolValue(nl->First(restInfo)) << endl;
+}
+#endif
+    string id;
+    if(nl->IsAtom(restInfo)) {
+      id = nl->SymbolValue(restInfo);
+    } else {
+      id = nl->SymbolValue(nl->First(restInfo));
+      restInfo = nl->Rest(restInfo);
+    }
+    ListExpr tempInfo = nl->Second(tupleInfo);
+    ListExpr attrType;
+    int attrIndex = listutils::findAttribute(tempInfo, id, attrType);
+#ifdef DEBUG_OREL2
+cout << count << '\t' << id << '\t' << attrIndex << endl;
+#endif
+    if(attrIndex==0){
+      return false;
+    }
+#ifdef DEBUG_OREL2
+cout << nl->ToString(attrType) << endl;
+#endif
+
+    if(!listutils::isSymbol(attrType,"string") &&
+      !listutils::isSymbol(attrType,"int") &&
+      !listutils::isSymbol(attrType,"real") &&
+      !listutils::isKind(attrType,"INDEXABLE")){
+      return false;
+    }
+    if(types!=0) {
+      (*types)[count] = nl->SymbolValue(attrType);
+    }
+  }
   return true;
 }
 
@@ -738,7 +941,210 @@ cout << "Konstruktor_Orel" << endl;
   noTuples=0;
 }
 
+enum RangeKind {
+  LeftRange,
+  RightRange,
+  Range
+};
+template<RangeKind rk> ListExpr ORangeTypeMap(ListExpr args) {
+// #ifdef DEBUG_OREL
+cout << "RangeTypeMap" << endl;
+// #endif
+// #ifdef DEBUG_OREL2
+cout << nl->ToString(args) << endl;
+// #endif
+  string op =rk==LeftRange?"oleftrange":(rk==RightRange?"orightrange":"orange");
+  int length = rk==Range?3:2;
+  string typelist = "(orel (tuple (a1:t1...an:tn)) (ai1...ain)) x (ti1...tik)";
+  if(rk==Range) typelist += " x (ti1...til)";
+  if(nl->ListLength(args) != length) {
+    ErrorReporter::ReportError("Operator " + op + " expects a list of type "
+                                + typelist);
+    return nl->TypeError();
+  }
+  ListExpr errorInfo = nl->OneElemList(nl->TheEmptyList());
+  ListExpr orelInfo = nl->First(args);
+  if(!OrderedRelation::CheckKind(orelInfo, errorInfo)) {
+    ErrorReporter::ReportError("Operator " + op + " expects " + OREL + 
+                                " as first argument");
+    return nl->TypeError();
+  }
+  vector<string> types;
+  OrderedRelation::ValidKeyElements(nl->Second(orelInfo),nl->Third(orelInfo),
+                                    &types);
+  bool ok = true;
+  int t_size = types.size();
+  int l1 = 0;
+  int l2 = 0;
+  ListExpr keyInfo = nl->Second(args);
+  if(nl->IsAtom(keyInfo)) {
+    return nl->TypeError();
+    ok = ok && (types[0]==nl->SymbolValue(keyInfo));
+  } else {
+    if((nl->ListLength(keyInfo)==0) || (nl->ListLength(keyInfo) > t_size)) {
+      ErrorReporter::ReportError("Zero length or too long key list!");
+      return nl->TypeError();
+    }
+    length = nl->ListLength(keyInfo);
+    for (int i=0;ok && i<length;i++) {
+      ListExpr current = nl->First(keyInfo);
+      keyInfo = nl->Rest(keyInfo);
+      ok = ok && (types[i] == nl->SymbolValue(current));
+    }
+  }
+  if(!ok) {
+    string tmpStr = rk==Range?"first ":"";
+    ErrorReporter::ReportError("The " + tmpStr +
+                                "range has to follow the typeorder of the " +
+                                OREL + " key");
+    return nl->TypeError();
+  }
+  if(rk==Range) {
+    keyInfo = nl->Third(args);
+    if(nl->IsAtom(keyInfo)) {
+      return nl->TypeError();
+      ok = ok && (types[0]==nl->SymbolValue(keyInfo));
+    } else {
+      if((nl->ListLength(keyInfo)==0) || (nl->ListLength(keyInfo) > t_size)) {
+        ErrorReporter::ReportError("Zero length or too long key list!");
+        return nl->TypeError();
+      }
+      length = nl->ListLength(keyInfo);
+      for (int i=0;ok && i<length;i++) {
+        ListExpr current = nl->First(keyInfo);
+        keyInfo = nl->Rest(keyInfo);
+        ok = ok && (types[i] == nl->SymbolValue(current));
+      }
+    }
+    if(!ok) {
+      ErrorReporter::ReportError("The second range has to follow the "
+                                  "typeorder of the " + OREL + " key");
+      return nl->TypeError();
+    }
+  }
+  ListExpr appList;
+  if(rk==Range) {
+    appList = nl->TwoElemList(nl->IntAtom(nl->ListLength(nl->Second(args))),
+                              nl->IntAtom(nl->ListLength(nl->Third(args))));
+  } else {
+    appList = nl->OneElemList(nl->IntAtom(nl->ListLength(nl->Second(args))));
+  }
+  return nl->ThreeElemList(nl->SymbolAtom("APPEND"), appList,
+        nl->TwoElemList(nl->SymbolAtom("stream"),nl->Second(nl->First(args))));
+}
 
+template<RangeKind rk> int ORangeValueMap(Word* args, Word& result, int message,
+                                          Word& local, Supplier s) {
+  GenericRelationIterator* rit;
+  OrderedRelation* r;
+  switch(message) {
+    case OPEN: {
+      SmiKey fromKey;
+      SmiKey toKey;
+      int l1 = 0;
+      int l2 = 0;
+      if(rk==Range) {
+        l1 = ((CcInt*)args[3].addr)->GetIntval();
+        l2 = ((CcInt*)args[4].addr)->GetIntval();
+      } else {
+        l1 = ((CcInt*)args[2].addr)->GetIntval();
+      }
+cout << "ValueMap\t" << l1 << "\t" << l2 << endl;
+      r = (OrderedRelation*)args[0].addr;
+      if(rk==LeftRange) {
+        toKey = r->GetUpperRangeKey(args[1],l1);
+      } else if(rk==RightRange) {
+        fromKey = r->GetLowerRangeKey(args[1],l1);
+      } else if(rk==Range) {
+        fromKey = r->GetLowerRangeKey(args[1],l1);
+        toKey = r->GetUpperRangeKey(args[2],l2);
+      }
+      rit = r->MakeRangeScan(fromKey,toKey);
+      local.addr = rit;
+      return 0;
+    }
+    case REQUEST:
+      rit = (GenericRelationIterator*)local.addr;
+      Tuple* t;
+      if((t = rit->GetNextTuple())) {
+        result.setAddr(t);
+        return YIELD;
+      }
+      return CANCEL;
+      break;
+    case CLOSE:
+      if(local.addr) {
+        rit = (GenericRelationIterator*)local.addr;
+        delete rit;
+      }
+      return 0;
+  }
+  return 0;
+}
+
+const string OLeftRangeSpec = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(orel (tuple(a1:t1 ... an:tn)) (ai1 ai2 ... ain)) x (ti1 ti2) -> "
+  "(stream (tuple(a1:t1 ... an:tn)))</text--->"
+  "<text>_ oleftrange [key]</text--->"
+  "<text>Returns a stream of tuples where each tuple's key is smaller than or "
+  "equal as the given key.</text--->"
+  "<text>query cities feed oconsume [BevT,Name] oleftrange[100] count</text--->"
+  ") )";
+
+const string ORightRangeSpec = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(orel (tuple(a1:t1 ... an:tn)) (ai1 ai2 ... ain)) x (ti1 ti2) -> "
+  "(stream (tuple(a1:t1 ... an:tn)))</text--->"
+  "<text>_ orightrange [key]</text--->"
+  "<text>Returns a stream of tuples where each tuple's key is greater than or "
+  "equal as the given key.</text--->"
+  "<text>query cities feed oconsume [BevT,Name] orightrange[1000] count"
+  "</text--->) )";
+
+const string ORangeSpec = 
+  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text>(orel (tuple(a1:t1 ... an:tn)) (ai1 ai2 ... ain)) x (ti1 ti2) x "
+  "(ti1 ti2 ti3) -> (stream (tuple(a1:t1 ... an:tn)))</text--->"
+  "<text>_ orange [leftkey, rightkey]</text--->"
+  "<text>Returns a stream of tuples where each tuple's key is between the two "
+  "given keys.</text--->"
+  "<text>query cities feed oconsume [BevT,Name] orange[500,800] count</text--->"
+  ") )";      
+  
+Operator oleftrange (
+                      "oleftrange",              // name
+                      OLeftRangeSpec,            // specification
+                      ORangeValueMap<LeftRange>, // value mapping
+                      Operator::SimpleSelect,    // trivial selection function
+                      ORangeTypeMap<LeftRange>   // type mapping
+                      );
+
+
+Operator orightrange (
+                      "orightrange",              // name
+                      ORightRangeSpec,            // specification
+                      ORangeValueMap<RightRange>, // value mapping
+                      Operator::SimpleSelect,     // trivial selection function
+                      ORangeTypeMap<RightRange>   // type mapping
+                      );
+
+
+Operator orange (
+                "orange",               // name
+                ORangeSpec,             // specification
+                ORangeValueMap<Range>,  // value mapping
+                Operator::SimpleSelect, // trivial selection function
+                ORangeTypeMap<Range>    // type mapping
+                );
+                        
+                        
+                        
+                          
+                          
 ListExpr ORelProperty() {
   ListExpr examplelist = nl->TextAtom();
   nl->AppendText(examplelist,"((\"Hagen\" 193)(\"Solingen\" 163))");
@@ -779,6 +1185,9 @@ class OrderedRelationAlgebra : public Algebra {
       AddTypeConstructor(&cpporel);
       
       cpporel.AssociateKind("REL");
+      AddOperator(&oleftrange);
+      AddOperator(&orightrange);
+      AddOperator(&orange);
     };
     
     ~OrderedRelationAlgebra() {};

@@ -56,26 +56,136 @@ void Tuple::Save(SmiRecord* record, SmiFileId& lobFileId, double& extSize,
   free(data);
 }
 
-bool Tuple::Open(SmiRecordFile* tuplefile,
-                 SmiFileId lobfileId,
-                 SmiRecord& record) {
+#ifdef USE_SERIALIZATION
+
+bool Tuple::OpenNoId( SmiRecordFile *tuplefile,
+                  SmiFileId lobfileId,
+                  PrefetchingIterator *iter )
+{
+  TRACE_ENTER
+  DEBUG(this, "Open::Prefetch")
+  
   this->tupleFile = tuplefile;
   this->lobFileId = lobfileId;
-  return ReadFrom(record);
+  
+  uint16_t rootSize = 0;
+  char* data = GetSMIBufferData(iter, rootSize);
+  
+  if (data) {
+    InitializeAttributes(data, rootSize);
+    free ( data );
+    return true;
+  }
+  else {
+    return false;
+  }
+  
+  TRACE_LEAVE
 }
 
-bool Tuple::OpenPartial( TupleType* newtype, const list<int>& attrIdList,
+#else
+
+bool Tuple::OpenNoId( SmiRecordFile *tuplefile,
+                  SmiFileId lobfileId,
+                  PrefetchingIterator *iter )
+{
+  iter->ReadCurrentRecordNumber( tupleId );
+  this->tupleFile = tuplefile;
+  this->lobFileId = lobfileId;
+  
+  
+  /* In case of the prefetching iterator, we don't need
+  *  to read the data first into a single block.
+  *  Indeed, we can read each attribute by a single call.
+  **/
+  
+  size_t offset = 0;
+  
+  for( int i = 0; i < noAttributes; i++ )
+  {
+    int algId = tupleType->GetAttributeType(i).algId;
+    int typeId = tupleType->GetAttributeType(i).typeId;
+    int size = tupleType->GetAttributeType(i).size;
+    
+    attributes[i] = (Attribute*)malloc(size);
+    if( (int)iter->ReadCurrentData(attributes[i],
+      size, offset)!=size){
+      // problem in reading, delete all attributes allocated
+      // before
+      for(int k=0;k<=i;k++){
+        free(attributes[k]);
+      }
+      return false;
+    }
+    offset += size;
+    // all fine, cast the attribute
+    attributes[i] = (Attribute*)(*(am->Cast(algId, typeId)))(attributes[i]);
+    attributes[i]->SetFreeAttr();
+    
+  }
+  
+  // Read the small FLOBs. The read of LOBs is postponed to its
+  // usage.
+  
+  for(int i=0; i< noAttributes; i++){
+    for( int j = 0; j < attributes[i]->NumOfFLOBs(); j++ )
+    {
+      FLOB *tmpFLOB = attributes[i]->GetFLOB( j );
+      if( !tmpFLOB->IsLob()){
+        void* ptr = tmpFLOB->Malloc();
+        if(ptr){
+          int size = tmpFLOB->Size();
+          if((int)iter->ReadCurrentData( ptr,
+            size,
+                                         offset)!=size){
+            // error in getting the data
+            // free all mallocs
+            for(int k=0;k<noAttributes;k++){
+              for(int m=0;m<attributes[i]->NumOfFLOBs();m++){
+                FLOB* victim = attributes[k]->GetFLOB(m);
+                if(k<=i || m<=j){ // FLOB buffer already allocated
+                  delete victim;
+                }
+              }
+              free(attributes[k]);
+            }
+            return false;
+          }
+          offset += size;
+        }
+      } else{
+        //tmpFLOB->SetLobFileId( lobFileId );
+      }
+    }
+  }
+  // Call the Initialize function for every attribute
+  // and initialize the reference counter
+  for( int i = 0; i < noAttributes; i++ ){
+    attributes[i]->Initialize();
+    attributes[i]->InitRefs();
+  }
+
+  return true;
+
+}
+
+#endif
+
+
+bool Tuple::OpenPartialNoId( TupleType* newtype, const list<int>& attrIdList,
                          SmiRecordFile *tuplefile,
                          SmiFileId lobfileId,
-                         SmiRecord& record) {
+                         PrefetchingIterator *iter )
+{
   TRACE_ENTER
   DEBUG(this, "OpenPartial using PrefetchingIterator")
 
+  iter->ReadCurrentRecordNumber( tupleId );
   this->tupleFile = tuplefile;
   this->lobFileId = lobfileId;
 
   uint16_t rootSize = 0;
-  char* data = GetSMIBufferData(record, rootSize);
+  char* data = GetSMIBufferData(iter, rootSize);
 
   if (data) {
    InitializeSomeAttributes(attrIdList, data, rootSize);
