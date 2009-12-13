@@ -5674,6 +5674,7 @@ newQuery :-
   clearQueryRelations,
   clearQueryAttributes,
   clearUsedAttributes,
+  clearResultAttributes,
   clearIsStarQuery,
   clearSelectivityQuery.
 
@@ -5681,6 +5682,7 @@ clearVariables       :- retractall(variable(_, _)).
 clearQueryRelations  :- retractall(queryRel(_, _)).
 clearQueryAttributes :- retractall(queryAttr(_)).
 clearUsedAttributes  :- retractall(usedAttr(_, _)).
+clearResultAttributes :- retractall(resultAttr(_)).
 clearIsStarQuery     :- retractall(isStarQuery).
 clearSelectivityQuery :- retractall(selectivityQuery(_)).
 
@@ -5723,7 +5725,9 @@ lookup(insert into Rel select Attrs from QueryRest,
         insert into Rel2List select Attrs2 from QueryRest2) :-
   lookup(select Attrs from QueryRest, select Attrs2 from QueryRest2),
   lookupRelNoDblCheck(Rel, Rel2),
-  makeList(Rel2, Rel2List), !.
+  makeList(Rel2, Rel2List),
+  assertResultAttrs(Attrs2), 
+  !.
 
 lookup(delete from Rel where Condition,
         delete from Rel2List where Condition2) :-
@@ -5867,6 +5871,7 @@ Translate and store a single relation definition.
   queryAttr/1,
   isStarQuery/0,
   usedAttr/2,
+  resultAttr/1,
   distanceRel/4,
   planvariable/2.
 
@@ -9055,7 +9060,7 @@ the structure of the relation in ~RelList~
 updateAttrNamesForInsert(Stream, [rel(Rel, Var)], Stream2) :-
   collectQueryAttrs(rel(Rel, Var), AttrsSrc),
   relation(Rel, AttrsDest),
-  lookupAttrs(AttrsDest, AttrsDest2),
+  collectAllAttrs(Rel, AttrsDest, AttrsDest2),
   calcExtendList(AttrsSrc, AttrsDest2, AttrsExtend),
   extendStream(Stream, AttrsExtend, AttrsDest2, Stream2).
 
@@ -9088,14 +9093,42 @@ collectQueryAttrs2([], []).
 collectQueryAttrs2([rel(Rel, _)|Rels], AttrsOut) :-
   isStarQuery, !,
   relation(Rel, Attrs),
-  lookupAttrs(Attrs, Attrs2),
+  collectAllAttrs(Rel, Attrs, Attrs2),
   collectQueryAttrs2(Rels, Attrs3),
   concatNonEmpty(Attrs2, Attrs3, AttrsOut).
 
-collectQueryAttrs2([Rel|Rels], AttrsOut) :-
-  setof(X, usedAttr(Rel, X),Attrs),
-  collectQueryAttrs2(Rels, Attrs2),
-  concatNonEmpty(Attrs, Attrs2, AttrsOut).
+collectQueryAttrs2(_, AttrsOut) :-
+  findall(X, resultAttr(X),AttrsOut).
+
+
+assertResultAttrs([]).
+
+assertResultAttrs(_) :- 
+  isStarQuery.
+
+assertResultAttrs([_ as Attr|Attrs]) :-
+  assert(resultAttr(Attr)),
+  assertResultAttrs(Attrs).
+
+assertResultAttrs([Attr|Attrs]) :-
+  assert(resultAttr(Attr)),
+  assertResultAttrs(Attrs).
+
+
+/*
+----    collectAllAttrs(+Rel, +Attrs, - Attrs2)
+----
+
+translates the attributes ~Attrs~ from ~Rel~.
+
+*/
+
+collectAllAttrs(_, [], []).
+
+collectAllAttrs(Rel, [Attr|Attrs], [Attr2|Attrs2]) :-
+  spelled(Rel:Attr, Attr2),
+  collectAllAttrs(Rel, Attrs, Attrs2).
+
 
 /*
 ----    calcExtendList(+Attrs1, +Attrs2, -AttrsOut)
