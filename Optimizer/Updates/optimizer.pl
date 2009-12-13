@@ -9101,7 +9101,20 @@ collectQueryAttrs2(_, AttrsOut) :-
   findall(X, resultAttr(X),AttrsOut).
 
 
+/*
+----    assertResultAttrs(+Attrs)
+----
+
+Saves the attributes of the select query's result for an insert-select
+command in the dynamic predicate ~resultAttr~.
+
+*/
+
 assertResultAttrs([]).
+
+assertResultAttrs(distinct Attrs) :- 
+  assertResultAttrs(Attrs).
+
 
 assertResultAttrs(_) :- 
   isStarQuery.
