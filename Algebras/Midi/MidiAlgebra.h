@@ -53,7 +53,7 @@ This header file essentially contains the definition of the classes ~Midi~, ~Eve
 #define __MIDI_ALGEBRA_H__
 
 #include "Attribute.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include <string>
 #include <vector>
 
@@ -321,7 +321,7 @@ There are totally 10 functions which are defined as virtual functions. They need
     Midi*    Clone() const;
     ostream& Print( ostream &os ) const;
     int      NumOfFLOBs() const;
-    FLOB*    GetFLOB(const int);
+    Flob*    GetFLOB(const int);
     size_t   Sizeof() const;
 
   private:
@@ -334,17 +334,17 @@ There are totally 10 functions which are defined as virtual functions. They need
 A flag that tells if the Midi is defined or not.
 
 */
-    DBArray<TrackEntry> listOfTracks;
+    DbArray<TrackEntry> listOfTracks;
 /*
 Data structure for saving all tracks of a Midi object.
 
 */
-    DBArray<EventEntry> listOfEvents;
+    DbArray<EventEntry> listOfEvents;
 /*
 Stores the EventEntry objects.
 
 */
-    DBArray<unsigned char> eventData;
+    DbArray<unsigned char> eventData;
 /*
 Stores the data of the events.
 
