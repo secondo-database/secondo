@@ -3643,6 +3643,7 @@ getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery):-
       'tuple_CoreSize: (',ExtRel,' exttuplesize), ',
       'tuple_LOBSize: ((',ExtRel,' tuplesize) - (',ExtRel,' exttuplesize)), ',
       ExtensionList,' ] tconsume'], '', TupleInfoQuery),
+  write_list(['\n\nRES: ',getTupleInfoQuery(ExtRel,ExtAttrList,DCAttrList,TupleInfoQuery),'\n\n']),
   !.
 
 % getTupleInfoQuery2(+ExtRel,+ExtAttrList,-DCattrList,-Extension)
@@ -3847,7 +3848,7 @@ tuplesize(DCrel, TupleSizeScalar) :-
          nl,
          UsedLOBSize is 1
        )
-    ; UsedCoreSize is CoreSize
+    ; UsedLOBSize is CoreSize
   ),
   TupleSizeScalar is UsedCoreSize + UsedLOBSize,
   !.
