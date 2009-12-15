@@ -219,7 +219,7 @@ void InitializeValues(Instant &actTStart,
 
 */
 
-void WriteUnits(MInt* flow, MReal* avgSpeed, Instant actTStart,
+void WriteUnits(MInt* flow, MReal* avgSpeed, Instant& actTStart,
            Instant actTEnd, bool lc, bool rc,
            int actFlow, double actSpeed)
 {
@@ -227,6 +227,7 @@ void WriteUnits(MInt* flow, MReal* avgSpeed, Instant actTStart,
                  CcInt(true, actFlow)));
   avgSpeed->Add(UReal(Interval<Instant> (actTStart, actTEnd, lc, rc),
                       actSpeed, actSpeed));
+  actTStart = actTEnd;
 };
 
 /*
@@ -407,7 +408,6 @@ int WriteTrafficRelation(GenericRelation *rel,
               if (actTStart != endInstants.top().inst)
                 WriteUnits(flow, avgSpeed, actTStart, endInstants.top().inst,
                           true, false, actFlow, actSpeed);
-              actTStart = endInstants.top().inst;
               ReduceSpeedFlowAndWeight(actFlow, actSpeed, actWeight,
                                        endInstants.top());
               endInstants.pop();
@@ -422,7 +422,6 @@ int WriteTrafficRelation(GenericRelation *rel,
                             curMGPSec.GetSpeed()) /
                           (actWeight - endInstants.top().weight +
                             CompWeight(curMGPSec));
-              actTStart = endInstants.top().inst;
               actWeight = actWeight - endInstants.top().weight +
                           CompWeight(curMGPSec);
               endInstants.pop();
@@ -444,7 +443,6 @@ int WriteTrafficRelation(GenericRelation *rel,
                   WriteUnits(flow, avgSpeed, actTStart,
                              curMGPSec.GetTimeInterval().start,
                              true, false, actFlow, actSpeed);
-                  actTStart = curMGPSec.GetTimeInterval().start;
                   IncreasSpeedFlowAndWeight(actFlow, actSpeed, actWeight,
                                            curMGPSec);
                 }
@@ -476,7 +474,6 @@ int WriteTrafficRelation(GenericRelation *rel,
           if (actTStart != actTEnd)
             WriteUnits(flow, avgSpeed, actTStart, actTEnd, true, false,
                        actFlow, actSpeed);
-          actTStart = actTEnd;
           ReduceSpeedFlowAndWeight(actFlow, actSpeed, actWeight,
                                    speed, weight);
           if (!endInstants.empty())
@@ -490,7 +487,6 @@ int WriteTrafficRelation(GenericRelation *rel,
                            actFlow, actSpeed);
               ReduceSpeedFlowAndWeight(actFlow, actSpeed, actWeight,
                                        speed, weight);
-              actTStart = actTEnd;
               GetTopValues(endInstants, actTEnd, speed, weight);
             }
             else
@@ -530,7 +526,6 @@ int WriteTrafficRelation(GenericRelation *rel,
   if (actTStart != actTEnd)
     WriteUnits(flow, avgSpeed, actTStart, actTEnd, true, false,
                    actFlow, actSpeed);
-  actTStart = actTEnd;
   ReduceSpeedFlowAndWeight(actFlow, actSpeed, actWeight, speed, weight);
   if (!endInstants.empty()) GetTopValues(endInstants, actTEnd, speed, weight);
   if (endInstants.empty() && actTStart != actTEnd)
@@ -546,7 +541,6 @@ int WriteTrafficRelation(GenericRelation *rel,
           WriteUnits(flow, avgSpeed, actTStart, actTEnd, true, false,
                      actFlow, actSpeed);
         ReduceSpeedFlowAndWeight(actFlow, actSpeed, actWeight, speed, weight);
-        actTStart = actTEnd;
         GetTopValues(endInstants, actTEnd, speed, weight);
       }
       else
@@ -731,6 +725,7 @@ int WriteTrafficFlowRelation(GenericRelation *rel,
           if (actTStart != actTEnd)
             flow->Add(UInt(Interval<Instant> (actTStart, actTEnd, true, false),
                       CcInt(true, actFlow)));
+          actTStart = actTEnd;
           flow->EndBulkLoad();
           WriteTuple(rel, relNumType, actSectId, actPartNo, actDir, flow);
           InitializeValues(actTStart, endInstants, actSectId, actPartNo,
@@ -757,9 +752,13 @@ int WriteTrafficFlowRelation(GenericRelation *rel,
     endInstants.pop();
   }
   if (endInstants.empty() && actTStart != actTEnd)
+  {
     flow->Add(UInt(Interval<Instant> (actTStart, actTEnd, true, false),
               CcInt(true,actFlow)));
-  else {
+    actTStart = actTEnd;
+  }
+  else
+  {
     while (!endInstants.empty())
     {
       if (actTEnd < endInstants.top())
@@ -780,9 +779,12 @@ int WriteTrafficFlowRelation(GenericRelation *rel,
           actFlow--;
           endInstants.pop();
           if (endInstants.empty() && actTStart != actTEnd)
+          {
             flow->Add(UInt(Interval<Instant>(actTStart, actTEnd,
                       true, false),
                       CcInt(true, actFlow)));
+            actTStart = actTEnd;
+          }
         }
         else //should never happen
         {
@@ -1004,6 +1006,7 @@ int OpTrafficFlowValueMap(Word* args, Word& result, int message,
           if (actTStart != actTEnd)
             flow->Add(UInt(Interval<Instant> (actTStart, actTEnd, true, false),
                     CcInt(true, actFlow)));
+          actTStart = actTEnd;
           flow->EndBulkLoad();
           WriteTuple(rel, relNumType, actSectId, actPartNo, actDir, flow);
           InitializeValues(actTStart, endInstants, actSectId, actPartNo,
@@ -1032,9 +1035,13 @@ int OpTrafficFlowValueMap(Word* args, Word& result, int message,
     endInstants.pop();
   }
   if (endInstants.empty() && actTStart != actTEnd)
+  {
     flow->Add(UInt(Interval<Instant> (actTStart, actTEnd, true, false),
               CcInt(true,actFlow)));
-  else {
+    actTStart = actTEnd;
+  }
+  else
+  {
     while (!endInstants.empty())
     {
       if (actTEnd < endInstants.top())
@@ -1058,6 +1065,7 @@ int OpTrafficFlowValueMap(Word* args, Word& result, int message,
             flow->Add(UInt(Interval<Instant>(actTStart, actTEnd,
                       true, false),
                       CcInt(true, actFlow)));
+          actTStart = actTEnd;
         }
         else //should never happen
         {
@@ -1077,6 +1085,7 @@ int OpTrafficFlowValueMap(Word* args, Word& result, int message,
   if (actTStart != actTEnd)
     flow->Add(UInt(Interval<Instant> (actTStart, actTEnd, true, false),
               CcInt(true, actFlow)));
+  actTStart = actTEnd;
   flow->EndBulkLoad();
   WriteTuple(rel, relNumType, actSectId, actPartNo, actDir, flow);
   qp->Close(args[0].addr);
@@ -1343,6 +1352,137 @@ struct traffic2Info : OperatorInfo {
 };
 
 /*
+4.3 Jam Selection
+
+The following operator selects the section parts and times of traffic jams from
+traffic relation.
+
+Type Mapping
+
+*/
+
+static string jamRelTypeInfo = "(rel(tuple((secid int)(part int)(dir int)"
+                                 "(jamspeed mreal)(jamcars mint))))";
+
+ListExpr OpHeavyTrafficTypeMap(ListExpr in_xArgs)
+{
+  NList type(in_xArgs);
+  if (type.length() == 3)
+  {
+    ListExpr rel = type.first().listExpr();
+    NList speed = type.second();
+    NList cars = type.third();
+    if (speed.isEqual("real") && cars.isEqual("int") && IsRelDescription(rel))
+    {
+      ListExpr inRelDescr;
+      nl->ReadFromString(trafficRelationTypeInfo,inRelDescr);
+      if (CompareSchemas(rel, inRelDescr))
+      {
+        ListExpr retList;
+        nl->ReadFromString(jamRelTypeInfo, retList);
+        return retList;
+      }
+    }
+  }
+  return NList::typeError( "Expected input: (" +
+                              trafficRelationTypeInfo + " real  int)");
+}
+
+/*
+Value Mapping
+
+*/
+
+int OpHeavyTrafficValueMap(Word* args, Word& result, int message,
+                       Word& local, Supplier s)
+{
+/*
+If we only use speed to detect heavy traffic or traffic jams. We get also
+areas with only parked cars. Therefore we set a parameter for the minimum
+number of cars resulting in a traffic jam. Additional to the average speed
+limit. We give same in a first version as parameters of the operator to
+make experimental evaluation of this values more easy.
+
+*/
+  //static const int MINCARS = 10; //minimum number of cars in jamed area
+  //static const double MAXSPEED = 8.33333; //meter per second is 30 km per hour
+  //static const double MAXSPEED = 2.7777; //neter per second is 10 km per hour
+  int MINCARS = ((CcInt*)args[2].addr)->GetIntval();
+  double MAXSPEED = ((CcReal*)args[1].addr)->GetRealval();
+  Word actual;
+  GenericRelation* outRel = (Relation*)((qp->ResultStorage(s)).addr);
+  result.setAddr(outRel);
+  ListExpr relInfo;
+  nl->ReadFromString(jamRelTypeInfo, relInfo);
+  ListExpr resultType = SecondoSystem::GetCatalog()->NumericType(relInfo);
+  TupleType* resultTupleType = new TupleType( nl->Second(resultType));
+  GenericRelation* inRel = (Relation*)args[0].addr;
+  GenericRelationIterator* iterInRel = inRel->MakeScan();
+  Tuple *inTuple = 0;
+  bool dummy = true;
+  while ((inTuple = iterInRel->GetNextTuple()) != 0)
+  {
+    MReal *oldSpeed = (MReal*)inTuple->GetAttribute(3);
+    MInt *oldFlow = (MInt*)inTuple->GetAttribute(4);
+    MInt *flow = new MInt(0);
+    MReal *avgSpeed = new MReal(0);
+    flow->StartBulkLoad();
+    avgSpeed->StartBulkLoad();
+    for (int i = 0; i < oldFlow->GetNoComponents();i++)
+    {
+      const UInt *oldNumCars;
+      const UReal *oldAvgSpeed;
+      oldFlow->Get(i,oldNumCars);
+      oldSpeed->Get(i,oldAvgSpeed);
+      if ((oldNumCars->constValue).GetIntval() >= MINCARS &&
+          oldAvgSpeed->Min(dummy) <= MAXSPEED)
+      {
+        flow->Add(*oldNumCars);
+        avgSpeed->Add(*oldAvgSpeed);
+      }
+    }
+    flow->EndBulkLoad();
+    avgSpeed->EndBulkLoad();
+    if (flow->GetNoComponents()>0)
+    {
+      Tuple *newTuple = new Tuple(resultTupleType);
+      newTuple->CopyAttribute(0, inTuple, 0);
+      newTuple->CopyAttribute(1, inTuple, 1);
+      newTuple->CopyAttribute(2, inTuple, 2);
+      newTuple->PutAttribute(3,avgSpeed);
+      newTuple->PutAttribute(4,flow);
+      outRel->AppendTuple(newTuple);
+      newTuple->DeleteIfAllowed();
+    }
+    else
+    {
+      delete flow;
+      delete avgSpeed;
+    }
+    inTuple->DeleteIfAllowed();
+  }
+  delete resultTupleType;
+  delete iterInRel;
+  return 1;
+}
+
+/*
+Operator Information for the user:
+
+*/
+
+struct heavyTrafficInfo : OperatorInfo {
+
+  heavyTrafficInfo()
+  {
+    name      = "heavytraffic";
+    signature = "rel(T)xrealxint->rel(T) T=(int,int,int,mreal,mint)";
+    syntax    = "<trafficrel> heavytraffic(<speed>,<noofcars>)";
+    meaning   = "Returns the heavy traffic section parts.";
+  }
+};
+
+/*
 5 Creating the ~TrafficAlgebra~
 
 */
@@ -1358,6 +1498,9 @@ class TrafficAlgebra : public Algebra
     AddOperator(trafficInfo(), OpTrafficValueMap,
                 OpTrafficTypeMap);
     AddOperator(traffic2Info(), OpTraffic2ValueMap, OpTraffic2TypeMap);
+    AddOperator(heavyTrafficInfo(), OpHeavyTrafficValueMap,
+                OpHeavyTrafficTypeMap);
+
   }
   ~TrafficAlgebra() {};
 };

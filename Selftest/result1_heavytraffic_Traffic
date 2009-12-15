@@ -1,0 +1,21 @@
+
+(OBJECT ht 
+    () 
+    (rel 
+        (tuple 
+            (
+                (secid int) 
+                (part int) 
+                (dir int) 
+                (jamspeed mreal) 
+                (jamcars mint)))) 
+    (
+        (5 1 1 
+            (
+                (
+                    ("2007-01-01" "2007-01-02" TRUE FALSE) 
+                    (0.0 0.0 0.00030082 FALSE))) 
+            (
+                (
+                    ("2007-01-01" "2007-01-02" TRUE FALSE) 
+                    2)))))

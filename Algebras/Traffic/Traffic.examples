@@ -24,3 +24,9 @@ Number   : 1
 Signature: stream(mgpoint)->rel(tuple(int,int,int,mreal,mint))
 Example  : query trains feed projecttransformstream[trip] traffic2 [2000.0];
 Result   : file
+
+Operator : heavytraffic
+Number   : 1
+Signature: rel(tuple(int,int,int,mreal,mint))xrealxint->rel(tuple(int,int,int,mreal,mint))
+Example  : query trains feed projecttransformstream[trip] traffic2 [2000.0] heavytraffic[20.0,2];
+Result   : file
