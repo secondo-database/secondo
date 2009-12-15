@@ -884,11 +884,7 @@ bool NestedRelation::saveString( string& s, SmiRecord& valueRecord,
    ok = ok && valueRecord.Write( &size, sizeof( int ), offset);
    offset += sizeof( int );
    for (int i = 0; i < size; i++)
-   {struct AconInfo 
-{
-  Relation* rel;
-  bool set;
-};
+   {
       ok = ok && valueRecord.Write( &s.at(i), sizeof( char ), offset);
       offset += sizeof( char );
    }
