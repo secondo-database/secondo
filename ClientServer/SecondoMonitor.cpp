@@ -224,9 +224,7 @@ SecondoMonitor::ExecShow()
   else if ( cmdword == "DATABASES" ) cmd = "SHOWDATABASES";
   else if ( cmdword == "LOCKS"     ) cmd = "SHOWLOCKS";
  
-  string regName = SmiProfile::GetParameter( "Environment", 
-                                             "RegistrarName", 
-                                             "SECONDO_REGISTRAR", parmFile );
+  string regName = SmiProfile::GetUniqueSocketName( parmFile );
 
   Socket* msgClient = Socket::Connect( regName, "", Socket::SockLocalDomain );
   if ( msgClient && msgClient->IsOk() )

@@ -37,7 +37,6 @@ C++ code re-implemented. Bug fix for command UNREGISTER.
 #include "CharTransform.h"
 #include "LogMsg.h"
 #include "Trace.h"
-#include "WinUnix.h"
 
 using namespace std;
 
@@ -403,14 +402,8 @@ SecondoRegistrar::Execute()
     parmFile = "SecondoConfig.ini";
   }
   trace.show( VAL(parmFile) );
-  string msgQueue = SmiProfile::GetParameter( "Environment", 
-		                              "RegistrarSocketNamePrefix", 
-                                              "SECONDO_REGISTRAR", parmFile   );
+  string msgQueue = SmiProfile::GetUniqueSocketName( parmFile );
 
-  stringstream suffix;
-  suffix << "_" << WinUnix::getpid();
-
-  msgQueue += suffix.str();
   trace.show( VAL(msgQueue) );
   msgSocket = Socket::CreateLocal( msgQueue );
   trace.out("local socket created!");

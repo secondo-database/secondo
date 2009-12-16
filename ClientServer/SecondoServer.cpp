@@ -432,8 +432,7 @@ SecondoServer::Execute()
 {
   int rc = 0;
   parmFile = (GetArgCount() > 1) ? GetArgValues()[1] : "SecondoConfig.ini";
-  registrar = SmiProfile::GetParameter( "Environment", "RegistrarName", 
-                                        "SECONDO_REGISTRAR", parmFile );
+  registrar = SmiProfile::GetUniqueSocketName( parmFile );
   si = new SecondoInterface(true);
   cout << "Initialize the secondo interface " << endl;
 
