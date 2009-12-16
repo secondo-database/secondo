@@ -1491,8 +1491,7 @@ SmiEnvironment::EraseDatabase( const string& dbname )
       }
     }
     else {
-     SetError( E_SMI_DB_NOTFOUND );
-     ok = false;
+     // database does not exist. Nothing to erase!
     } 
   }
   else
