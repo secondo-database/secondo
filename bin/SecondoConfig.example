@@ -37,10 +37,12 @@ SecondoHome=/home/databases1
 # Algebralevel after startup (Executable|Descriptive|Hybrid).
 AlgebraLevel=Executable
 
-# Name of the local socket of the Secondo registrar
-RegistrarName=SECREGIS
+# Name prefix of the local socket used by the registar process. The
+# process id will be appended in order to generate a unique name. 
+# On linux each socket is represented as a file in the /tmp directory.
+RegistrarSocketNamePrefix=SECREGIS
 
-# Name of the executable of the Secondo registrar program
+# Name of the executable of the Secondo registrar programm
 RegistrarProgram=SecondoRegistrar
 
 # Name of the executable of the Secondo listener program
