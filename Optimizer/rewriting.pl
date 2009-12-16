@@ -122,7 +122,7 @@ extractMacros(with(X), Y) :-
   write_list(['\nERROR:\t',ErrMsg]),
   !,
   throw(error_SQL(rewriting_extractMacros(with(X), Y)
-                                :malformedExpression#ErrMsg)),
+                                ::malformedExpression::ErrMsg)),
   fail.
 
 extractMacros(Query, Query).
@@ -141,7 +141,7 @@ extractMacros1(Macro as Mnemo) :-
   write_list(['\nERROR:\t',ErrMsg]),
   !,
   throw(error_SQL(rewriting_extractMacros1(Macro as Mnemo)
-            :malformedExpression#ErrMsg)),
+            ::malformedExpression::ErrMsg)),
   fail.
 
 extractMacros1(X as Mnemo) :-
@@ -151,7 +151,7 @@ extractMacros1(X as Mnemo) :-
   write_list(['\nERROR:\t',ErrMsg]),
   !,
   throw(error_SQL(rewriting_extractMacros1(X as Mnemo)
-                                :malformedExpression#ErrMsg)),
+                                ::malformedExpression::ErrMsg)),
   fail.
 
 extractMacros1(Macro as Mnemo) :-
@@ -1372,7 +1372,8 @@ rewritePlanforCSE(PlanIn, PlanOut, SelectIn, SelectOut) :-
                   '\n   Rewritten Select:',SelectOut,'.\n']),
   dm(rewriteCSE,['rewritePlanforCSE: Attrs needed in Select clause: ',
                   SelectAttrs,'.\n']),
-  dm(rewriteCSE,['rewritePlanforCSE: ExtensionSequence', ExtensionSequence, '\n']),
+  dm(rewriteCSE,['rewritePlanforCSE: ExtensionSequence',
+                  ExtensionSequence, '\n']),
   removeUnusedAttrs(Plan2,Plan3,SelectAttrs),
   removeDublets(ExtensionSequence,AvailAttrs,ExtensionSequence2),
   dm(rewriteCSE,['rewritePlanforCSE: Extend with virt attrs ',
@@ -1719,7 +1720,8 @@ insertExtend(windowintersects(Index, Rel, X),
              AttrsIn,
              AttrsOut) :-
   insertExtend(feed(Rel),_,AttrsIn,AttrsOut),
-  dm(insertExtend,['insertExtend - avail attrs: windowintersects = ',AttrsOut,'\n']),
+  dm(insertExtend,['insertExtend - avail attrs: windowintersects = ',
+            AttrsOut,'\n']),
   !.
 
 insertExtend(windowintersectsS(Index, X),
@@ -1727,7 +1729,8 @@ insertExtend(windowintersectsS(Index, X),
              _AttrsIn,
              AttrsOut) :-
   AttrsOut = [id], % produces a stream of tuple identifiers (attr name = 'id')
-  dm(insertExtend,['insertExtend - avail attrs: windowintersectsS = ',AttrsOut,'\n']),
+  dm(insertExtend,['insertExtend - avail attrs: windowintersectsS = ',
+                   AttrsOut,'\n']),
   !.
 
 insertExtend(gettuples(X, Rel),
@@ -2035,7 +2038,7 @@ splitVirtualAttributes([A|Rest],AVRest,[A|NormRest]) :-
   \+ virt_attr(A, _, _, _, _),
   splitVirtualAttributes(Rest,AVRest,NormRest), !.
 splitVirtualAttributes(A,B,C) :-
-  throw(error_Internal(rewriting_splitVirtualAttributes(A,B,C)):unknown),
+  throw(error_Internal(rewriting_splitVirtualAttributes(A,B,C))::unknown),
   fail, !.
 
 
@@ -2053,7 +2056,7 @@ createAttrNameList([A|ARest],[attrname(attr(A,1,u))|ANRest]) :-
   virt_attr(A, _, _, _, _),
   createAttrNameList(ARest,ANRest), !.
 createAttrNameList(A,B) :-
-  throw(error_Internal(rewriting_createAttrNameList(A,B) ):unknown),
+  throw(error_Internal(rewriting_createAttrNameList(A,B) )::unknown),
   fail, !.
 
 

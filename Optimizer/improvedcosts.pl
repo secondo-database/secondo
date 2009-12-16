@@ -104,7 +104,7 @@ cost(rel(Rel, X1_), Sel, Pred, ResAttrList, ResTupleSize, ResCard, 0) :-
          write('---> THIS SHOULD BE CORRECTED!'), nl,
          throw(error_Internal(optimizer_cost(rel(Rel, X1_), Sel, Pred,
                                ResAttrList, ResTupleSize, ResCard, 0)
-              :malformedExpression)),
+              ::malformedExpression)),
          fail
        )
   ),
@@ -242,7 +242,7 @@ cost(filter(gettuples(rdup(sort(windowintersectsS(dbobject(IndexName), BBox))),
                       windowintersectsS(dbobject(IndexName), BBox))),
                       rel(RelName, _)), FilterPred), Sel, Pred,
                                ResAttrList, ResTupleSize, ResCard, Cost)
-              :malformedExpression)),
+              ::malformedExpression)),
          fail
        )
   ),
@@ -903,7 +903,7 @@ cost(createtmpbtree(rel(Rel, _), _), _, _, ResAttrList, ResTupleSize, ResCard,
          write('---> THIS SHOULD BE CORRECTED!'), nl,
          throw(error_Internal(optimizer_cost(createtmpbtree(Rel, _), _, _,
                                ResAttrList, ResTupleSize, ResCard, 0)
-              :malformedExpression)),
+              ::malformedExpression)),
          fail
        )
   ),
@@ -926,7 +926,7 @@ cost(T, S, P, A, TS, RC, Cost) :-
   concat_atom(['Calculation of cost failed.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(improvedcosts_cost(T, S, P, A, TS, RC, Cost)
-                   :unknownError#ErrMsg)),
+                   ::unknownError::ErrMsg)),
   !, fail.
 
 
@@ -999,7 +999,7 @@ setNodeResAttrList(N, A) :-
   concat_atom(['Error in setNodeResAttrList: Unbound variable.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(improvedcosts_setNodeResAttrList(N,A)
-                   :malformedExpression#ErrMsg)),
+                   ::malformedExpression::ErrMsg)),
   !, fail.
 
 /*
@@ -1041,7 +1041,7 @@ getSignature([Op,Args,_], Op, ArgTypeList) :-
 getSignature([Op,_,_],Op,typeerror).
 getSignature(A,B,C) :-
   throw(error_Internal(improvedcosts_getSignature(A,B,C)
-                   :wrongInstantiationPattern)),
+                   ::wrongInstantiationPattern)),
   !, fail.
 
 
@@ -1072,7 +1072,7 @@ costterm(Term, Source, Target, Result, Sel, Pred, Card, Cost) :-
       )
    ;  throw(error_Internal(improvedcosts_costterm(Term, Source, Target, Result,
               Sel, Pred, Card,
-              Cost):should_not_be_called_without_option_improvedcosts))
+              Cost)::should_not_be_called_without_option_improvedcosts))
   ),
   !.
 

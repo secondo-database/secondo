@@ -926,7 +926,7 @@ cost(T, S, P, A, TS, RC, Cost) :-
   concat_atom(['Calculation of cost failed.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(improvedcosts_cost(T, S, P, A, TS, RC, Cost)
-                   :unknownError#ErrMsg)),
+                   ::unknownError::ErrMsg)),
   !, fail.
 
 
@@ -999,7 +999,7 @@ setNodeResAttrList(N, A) :-
   concat_atom(['Error in setNodeResAttrList: Unbound variable.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(improvedcosts_setNodeResAttrList(N,A)
-                   :malformedExpression#ErrMsg)),
+                   ::malformedExpression::ErrMsg)),
   !, fail.
 
 /*

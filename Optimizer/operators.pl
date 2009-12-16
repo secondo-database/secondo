@@ -2553,7 +2553,7 @@ checkOpProperty(Op,ArgsTypeList,Flag) :-
     ; not(ground(ArgsTypeList))
   ),
   throw(error_Internal(operators_checkOpProperty(Op,ArgsTypeList,Flag)
-                    :wrongInstantiationPattern)),
+                    ::wrongInstantiationPattern)),
   fail, !.
 
 checkOpProperty(Op,ArgsTypeList,_Flag) :-

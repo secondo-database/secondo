@@ -834,7 +834,7 @@ createCostEdges([planEdge(Source, Target, Plan, Result)|PlanEdgeList]) :-
          -> ( % nawracosts excludes immediatepath!
               throw(error_Internal(immediateplan_createCostEdges(
                 [planEdge(Source, Target, Plan, Result)|PlanEdgeList])
-                :incompatible_option_nawracosts))
+                ::incompatible_option_nawracosts))
             )
          ;  cost(Plan, Sel, Pred, Size, Cost) % use standard cost functions
        )

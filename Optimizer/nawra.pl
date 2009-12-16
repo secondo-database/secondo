@@ -70,7 +70,7 @@ costterm(Term, Sel, Source, Result, Size, CostTotal) :-
          costtotal(Cost, CostTotal)
        )
     ;  throw(error_Internal(nawra_costterm(Term, Sel, Source, Result, Size,
-                    CostTotal):should_not_be_called_without_option_nawracosts))
+                    CostTotal)::should_not_be_called_without_option_nawracosts))
   ).
 
 /*
@@ -868,7 +868,7 @@ attrlistRemove(attrname(attr(Attr, _, _)), AttrSize) :-
 
 
 attrlistRemove(X, Y) :-
-  throw(error_Internal(nawra_attrlistRemove(X, Y):unspecifiedError)),
+  throw(error_Internal(nawra_attrlistRemove(X, Y)::unspecifiedError)),
   fail, !.
 
 
@@ -900,7 +900,7 @@ attrlistSize([X|Xs], SizeTerm) :-
   addSizeTerms([SizeTerm1, SizeTerm2], SizeTerm), !.
 
 attrlistSize(X, Y) :-
-  throw(error_Internal(nawra_attrlistSize(X, Y):unspecifiedError)),
+  throw(error_Internal(nawra_attrlistSize(X, Y)::unspecifiedError)),
   fail, !.
 
 attrlistSize2(X, AttrSize) :-

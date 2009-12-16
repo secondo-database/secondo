@@ -44,6 +44,11 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //[Figure pog2] [Figure~\ref{fig:pog2.eps}]
 //[newpage] [\newpage]
 
+*/
+
+:- op(994, xfy,  ::).    % acts as separator within exceptions
+
+/*
 [10] A Query Optimizer for Secondo
 
 Ralf Hartmut G[ue]ting, November - December 2002
@@ -1337,7 +1342,8 @@ plan_to_atom( patternex(NPredList, ConstraintList, Filter) , Result):-
  ((is_list(ConstraintList), list_to_atom(ConstraintList, ConstraintList2));
         (plan_to_atom(ConstraintList, ConstraintList2))),
         plan_to_atom(Filter, Filter2),
- concat_atom(['. stpatternex[', NPredList2, '; ', ConstraintList2, '; ', Filter2, ']'],'',  Result),
+ concat_atom(['. stpatternex[', NPredList2, '; ', ConstraintList2,
+              '; ', Filter2, ']'],'',  Result),
  !.
 % Section:End:plan_to_atom_2_b
 /*
@@ -1345,12 +1351,14 @@ The iskNN faked operator
 
 */
 
-plan_to_atom(isknn(TID, K, dbobject(QueryObj), Rel1, MPointAttr1, IDAttr1, RebuildIndexes), Result):- !,
+plan_to_atom(isknn(TID, K, dbobject(QueryObj), Rel1, MPointAttr1, IDAttr1,
+                                    RebuildIndexes), Result):- !,
   plan_to_atom(TID, ExtTID),
   atom_chars(Rel, Rel1),
   atom_chars(MPointAttr, MPointAttr1),
   atom_chars(IDAttr, IDAttr1),
-  validate_isknn_input(K, dbobject(QueryObj), Rel, MPointAttr, IDAttr, RebuildIndexes),
+  validate_isknn_input(K, dbobject(QueryObj), Rel, MPointAttr, IDAttr,
+                       RebuildIndexes),
 
   getknnDCNames(K, QueryObj, Rel, MPointAttr, IDAttr,
     DCQueryObj, DCRel, DCMPointAttr, DCIDAttr, _, _, _, _, _),
@@ -1359,7 +1367,8 @@ plan_to_atom(isknn(TID, K, dbobject(QueryObj), Rel1, MPointAttr1, IDAttr1, Rebui
   getknnExtNames(K, DCQueryObj, DCRel, DCMPointAttr, DCIDAttr,
     _, _, _, ExtIDAttr, _, _, ExtResultRel, ExtMBoolAttr, ExtBtree),
 
-  concat_atom(['isknn(', ExtTID, ',"', ExtResultRel, '" , "', ExtBtree, '" , "', ExtMBoolAttr, '" , "', ExtIDAttr, '")'] , '', Result)
+  concat_atom(['isknn(', ExtTID, ',"', ExtResultRel, '" , "', ExtBtree, '" , "',
+               ExtMBoolAttr, '" , "', ExtIDAttr, '")'] , '', Result)
   .
 
 
@@ -1377,7 +1386,7 @@ plan_to_atom(dbobject(Name),ExtName) :-
     -> true
     ; ( write_list(['\nERROR:\tCannot translate \'',dbobject(DCname),'\'.']),
         throw(error_Internal(optimizer_plan_to_atom(dbobject(DCname),
-                                                  ExtName):missingData)),
+                                                  ExtName)::missingData)),
         fail
       )
   ),
@@ -2027,7 +2036,7 @@ plan_to_atom(createtmpbtree(Rel, Attr), Result) :-
   rel_to_atom(Rel, Rel2),
   plan_to_atom(attrname(Attr), Attr2),
   concat_atom([Rel2, ' createbtree[', Attr2, ']'], Result).
-  
+
 % Section:Start:plan_to_atom_2_m
 % Section:End:plan_to_atom_2_m
 
@@ -2179,9 +2188,11 @@ plan_to_atom(X, Result) :-
 /* Error case */
 plan_to_atom(X, _) :-
   term_to_atom(X,XA),
-  concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],'',ErrMsg),
+  concat_atom(['Error in plan_to_atom: No rule for handling term ',XA],
+               '',ErrMsg),
   write(ErrMsg), nl,
-  throw(error_Internal(optimizer_plan_to_atom(X,undef):malformedExpression#ErrMsg)),
+  throw(error_Internal(optimizer_plan_to_atom(X,undef)
+        ::malformedExpression:ErrMsg)),
   !, fail.
 
 /* auxiliary predicates */
@@ -3958,7 +3969,7 @@ resTupleSize(X, Y) :-
   concat_atom(['Cannot find tuplesize for \'',XA,'\'.'],
               '',ErrMsg),
   write_list(['ERROR in optimizer: ',ErrMsg]), nl,
-  throw(error_Internal(optimizer_resTupleSize(X,Y):missingData#ErrMsg)),
+  throw(error_Internal(optimizer_resTupleSize(X,Y)::missingData::ErrMsg)),
   fail, !.
 
 
@@ -3987,7 +3998,8 @@ getPredNoPET(Index, CalcPET, ExpPET) :-
 
 getPredNoPET(Index, X, Y) :-
   concat_atom(['Cannot find annotated PET.'],'',ErrMsg),
-  throw(error_Internal(optimizer_getPredNoPET(Index, X, Y):missingData#ErrMsg)),
+  throw(error_Internal(optimizer_getPredNoPET(Index, X, Y)
+        ::missingData::ErrMsg)),
   fail, !.
 
 /*
@@ -4263,7 +4275,7 @@ cost(rel(Rel, X1_), X2_, Pred_, Size, 0) :-
          write('ERROR:\tcost/4 failed due to non-dc relation name.'), nl,
          write('---> THIS SHOULD BE CORRECTED!'), nl,
          throw(error_Internal(optimizer_cost(rel(Rel, X1_, X2_, Pred_, Size, 0)
-              :malformedExpression))),
+              ::malformedExpression))),
          fail
        )
   ),
@@ -4537,7 +4549,8 @@ cost(symmjoin(X, Y, _), Sel, P, S, C) :-
   symmjoinTC(A, B),                     % fetch relative costs
   S is SizeX * SizeY * Sel,             % calculate size of result
   C is CostX + CostY +                  % cost to produce the arguments
-    (A + ExpPET) * (SizeX * SizeY) +      % cost to handle buffers and collision
+    (A + ExpPET) * (SizeX * SizeY) +    % cost to handle buffers, collisions
+                                        %         and evaluate the predicate
     B * S.                              % cost to produce result tuples
 
 cost(spatialjoin(X, Y, _, _), Sel, P, S, C) :-
@@ -5108,7 +5121,7 @@ plan(Path, Plan) :-
   concat_atom(['Cannot create plan.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(optimizer_plan(Path, Plan)
-                   :unspecifiedError#ErrMsg)),
+                   ::unspecifiedError:ErrMsg)),
   !, fail.
 
 
@@ -5140,7 +5153,7 @@ traversePath(Path) :-
   concat_atom(['Cannot traverse Path.'],'',ErrMsg),
   write(ErrMsg), nl,
   throw(error_Internal(optimizer_traversePath(Path)
-                   :unspecifiedError#ErrMsg)),
+                   ::unspecifiedError::ErrMsg)),
   !, fail.
 
 /*
@@ -5601,6 +5614,7 @@ We introduce ~select~, ~from~, ~where~, ~as~, etc. as PROLOG operators:
 :- op(800,  fx,  union).
 :- op(800,  xfx, union).
 :- op(800,  fx,  intersection).
+
 % Section:Start:opPrologSyntax_3_e
 % Section:End:opPrologSyntax_3_e
 
@@ -5880,7 +5894,7 @@ lookupRel(Rel as Var, Y) :-
     -> ( concat_atom(['Doubly defined variable \'',Var,'\'.'],'',ErrMsg),
          write_list(['\nERROR:\t',ErrMsg]), nl,
          throw(error_SQL(optimizer_lookupRel(Rel as Var,Y)
-                                       :malformedExpression#ErrMsg)),
+                                       ::malformedExpression:ErrMsg)),
          fail
        )
     ;  Y = rel(RelDC, Var)
@@ -5914,9 +5928,9 @@ lookupRel(X,Y) :- !,
   term_to_atom(X,XA),
   concat_atom(['Unknown relation: \'',XA,'\'.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]), nl,
-  throw(error_SQL(optimizer_lookupRel(X,Y):unknownRelation#ErrMsg)),
+  throw(error_SQL(optimizer_lookupRel(X,Y)::unknownRelation::ErrMsg)),
   fail.
-  
+
 
 /*
 ----    lookupRelNoDblCheck(+Rel, -Rel2) :-
@@ -5968,7 +5982,7 @@ duplicateAttrs(Rel) :-
   concat_atom(['Duplicate attribute alias names in relations ',
               Rel2A, ' and ',RelA,'.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
-  throw(error_SQL(optimizer_duplicateAttrs(Rel):malformedExpression#ErrMsg)),
+  throw(error_SQL(optimizer_duplicateAttrs(Rel)::malformedExpression::ErrMsg)),
   nl.
 
 /*
@@ -6085,7 +6099,7 @@ lookupAttr(Expr as Name, Y) :-
               ' within query.'],'',ErrMsg),
   write_list(['\nERROR: ',ErrMsg]), nl,
   throw(error_SQL(optimizer_lookupAttr(Expr as Name,Y)
-                                :malformedExpression#ErrMsg)),
+                                ::malformedExpression:ErrMsg)),
   fail.
 
 /*
@@ -6156,7 +6170,7 @@ lookupAttr(Term, Term) :-
   atom(Term),
   concat_atom(['Unknown symbol: \'',Term,'\' is not recognized!'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]),
-  throw(error_SQL(optimizer_lookupAttr(Term, Term):unknownIdentifier#ErrMsg)),
+  throw(error_SQL(optimizer_lookupAttr(Term, Term)::unknownIdentifier::ErrMsg)),
   fail.
 
 % Fallback clause
@@ -6243,7 +6257,7 @@ lookupPred(Pred, X) :-
       )
   ),
   write_list(['\nERROR:\t',ErrMsg]),nl,
-  throw(error_SQL(optimizer_lookupPred(Pred, X):malformedExpression#ErrMsg)),
+  throw(error_SQL(optimizer_lookupPred(Pred, X)::malformedExpression::ErrMsg)),
   fail, !.
 
 /*
@@ -6287,7 +6301,7 @@ composed back with the looked up lifted predicates by the
 lookupPattern predicate.
 
 */
-lookupPred1(patternex(Preds,C, F), patternex(Res,C1, F1), RelsBefore, RelsAfter) :-
+lookupPred1(patternex(Preds,C, F),patternex(Res,C1, F1),RelsBefore,RelsAfter) :-
   lookupPattern(Preds, Res, RelsBefore, RelsAfterMe),
   lookupPred1(F, F1, RelsAfterMe, RelsAfterMee),
   ((is_list(C), lookupPred2(C, C1, RelsAfterMee, RelsAfter));
@@ -6410,7 +6424,7 @@ lookupPred1(Term, Term, Rels, Rels) :-
             '\' not recognized. It is neither an attribute, nor a Secondo ',
             'object.\n'],'',ErrMsg),
  write_list(['\nERROR:\t',ErrMsg]),
- throw(error_SQL(optimizer_lookupPred1(Term, Term):unknownIdentifier#ErrMsg)).
+ throw(error_SQL(optimizer_lookupPred1(Term, Term)::unknownIdentifier::ErrMsg)).
 
 % fallback clause for non-atoms
 lookupPred1(Term, Term, RelsBefore, RelsBefore).
@@ -7079,7 +7093,7 @@ translateFields([Term | Select], GroupAttrs, Fields, Select2,
   throw(error_SQL(optimizer_translateFields([Term | Select], GroupAttrs,
                                             Fields, Select2, ExtendAttrs,
                                             ProjectAttrs)
-                                           :malformedExpression#ErrMsg)),
+                                           ::malformedExpression::ErrMsg)),
   !.
 
 /*
@@ -7226,7 +7240,7 @@ translateFields([Term | Select], GroupAttrs, Fields, Select2,
   throw(error_SQL(optimizer_translateFields([Term | Select], GroupAttrs,
                                             Fields, Select2,
                                             ExtendAttrs, ProjectAttr)
-                                           :malformedExpression#ErrMsg)),
+                                           ::malformedExpression::ErrMsg)),
   !.
 
 % case: ERROR (general error case)
@@ -7243,7 +7257,7 @@ translateFields([Attr | Select], GroupAttrs, Fields, Select2,
   throw(error_SQL(optimizer_translateFields([Attr | Select], GroupAttrs,
                                             Fields, Select2,
                                             ExtendAttrs, ProjectAttr)
-                                           :malformedExpression#ErrMsg)),
+                                           ::malformedExpression::ErrMsg)),
   !.
 
 % case: ERROR (fallback error case)
@@ -7253,7 +7267,7 @@ translateFields(X, GroupAttrs, Fields, Select2, ExtendAttrs, ProjectAttr) :-
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_translateFields(X, GroupAttrs, Fields, Select2,
                                             ExtendAttrs, ProjectAttr)
-                                           :malformedExpression#ErrMsg)),
+                                           ::malformedExpression::ErrMsg)),
   !.
 
 /* End Code modified by Goehr */
@@ -7461,7 +7475,7 @@ queryToPlan(drop index on [Rel] columns ColumnList, Result, Cost) :-
 % case: drop index query
 queryToPlan(drop index [], [], 0) :-
   write('\nError:\tNo index found'), nl,
-  throw(error_SQL(optimizer_queryToPlan(drop index [], [], 0):noIndex)),
+  throw(error_SQL(optimizer_queryToPlan(drop index [], [], 0)::noIndex)),
   fail.
 
 % case: drop index query
@@ -7472,7 +7486,7 @@ queryToPlan(drop index IndexList, [], 0) :-
   writeList(['\nError:\tToo many indexes found: ', IndexList]),
   nl,
   throw(error_SQL(optimizer_queryToPlan(drop index IndexList, [], 0)
-    :multipleIndexes)),
+    ::multipleIndexes)),
   fail.
 
 % case: count query
@@ -7560,7 +7574,7 @@ aggrQuery(Query groupby G, _, _, _) :-
               '',ErrMsg),
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_aggrQuery(Query groupby G, undef, undef)
-                                           :malformedExpression#ErrMsg)),
+                                           ::malformedExpression::ErrMsg)),
   fail.
 aggrQuery(Query orderby Order, AggrOp, Query1 orderby Order, AggrExpr) :-
   aggrQuery(Query, AggrOp, Query1, AggrExpr), !.
@@ -7624,7 +7638,7 @@ userDefAggrQuery(Query groupby G, _, _, _, _) :-
   write_list(['ERROR: ',ErrMsg]),
   throw(error_SQL(optimizer_userDefAggrQuery(Query groupby G,
                              undef, undef, undef, undef)
-                                    :malformedExpression#ErrMsg)),
+                                    ::malformedExpression::ErrMsg)),
   fail.
 userDefAggrQuery(Query orderby Order,
                  Query1 orderby Order, AggrExpr, Fun, Default) :-
@@ -7946,7 +7960,7 @@ message that can be handled by the Secondo Javagui.
 
 If the exception has Format
 
----- <prolog-file>_<Predicate>(<Arguments>):<error-explanation>.
+---- <prolog-file>_<Predicate>(<Arguments>)::<error-explanation>.
 ----
 
 Only ~error-explanation~ will be returned as the message content.
@@ -7994,11 +8008,13 @@ sqlToPlan(QueryText, ResultText) :-
          Exc, % catch all exceptions!
          ( write('\nsqlToPlan: Exception \''),write(Exc),write('\' caught.'),nl,
            ( ( Exc = error_SQL(ErrorTerm),
-               ( ErrorTerm = _:ErrorCode#Message ; ErrorTerm = _:Message )
+               ( ErrorTerm = (_::ErrorCode:Message) ; ErrorTerm = (_::Message) )
              ) %% Problems with the SQL query itself:
              -> concat_atom(['SQL ERROR: ',Message],'',MessageToSend)
              ;  ( ( Exc = error_Internal(ErrorTerm),
-                    ( _:ErrorCode#Message ; ErrorTerm = _:Message )
+                    (   ErrorTerm = (_::ErrorCode::Message)
+                      ; ErrorTerm = (_::Message)
+                    )
                   )
                   -> concat_atom(['Internal ERROR: ',Message],'',MessageToSend)
                   %% all other exceptions:
@@ -8009,6 +8025,10 @@ sqlToPlan(QueryText, ResultText) :-
            atom_concat('::ERROR::',ResultTMP,ResultText)
          )
        ),
+  ( var(ResultText)
+    -> ResultText = '::ERROR::Something\'s wrong!' %'
+    ;  true
+  ),
   true.
 
 
@@ -8046,6 +8066,12 @@ example(Nr) :- showExample(Nr, Query), optimize(Query).
 example(Nr, Query, Cost) :- showExample(Nr, Example),
                             optimize(Example, Query, Cost).
 
+exampleToPlan(Nr) :-
+  sqlExample(Nr, QueryTerm),
+  write_list(['\n\nExampleNr: ',Nr,'\nSQL: ',QueryTerm,'\n']),
+  term_to_atom(sql QueryTerm,QueryAtom),
+  sqlToPlan(QueryAtom,Plan),
+  write_list(['Plan: ', Plan, '\n']).
 
 /*
 Examples 14 - 22:
@@ -8282,7 +8308,7 @@ sqlExample( 400,
 % Example: distance query, selection predicate (database berlintest)
 sqlExample( 401,
   select *
-  from ubahnhof 
+  from ubahnhof
   where typ = "Zone A"
   orderby distance(geodata, alexanderplatz) first 5
   ).
@@ -8393,12 +8419,12 @@ concern the SQL query, but have been occured dur to internal optimizer problems
 
 In all cases, ~X~ is a term that represents the error-message respecting format
 
-----    <prolog-file>_<Predicate>(<Arguments>):<error-code>
+----    <prolog-file>_<Predicate>(<Arguments>)::<error-code>
 ----
 
 or
 
-----    <prolog-file>_<Predicate>(<Arguments>):<error-code>#<error-message>.
+----    <prolog-file>_<Predicate>(<Arguments>)::<error-code>::<error-message>.
 ----
 
 ~error-message~ should be a informative, free-form text message that can be
@@ -8491,7 +8517,7 @@ deleteHistory :-
   clearRel('SqlHistory').
 
 :-assert(helpLine(storeHistory,0,[],
-  'Store the query history into relation \'SqlHistory\' within the current DB.')).
+'Store the query history into relation \'SqlHistory\' within the current DB.')).
 storeHistory :-
   saveRel('SqlHistory').
 
@@ -8666,7 +8692,8 @@ Looks up the aliased lifted predicate list within the
 spatiotemporal pattern predicate.
 
 */
-composeNPredList( [P | PredListRest], [A | AliasListRest], [P as A| NPredListRest]):-
+composeNPredList( [P | PredListRest], [A | AliasListRest],
+                                                  [P as A| NPredListRest]):-
  composeNPredList(PredListRest, AliasListRest, NPredListRest).
 composeNPredList( [], [], []).
 
@@ -9129,7 +9156,8 @@ and ~ProjectList~
 
 extendStream(Stream, [], _, Stream).
 
-extendStream(Stream, ExtendList, ProjectList, project(extend(Stream, ExtendList), ProjectList2)) :-
+extendStream(Stream, ExtendList, ProjectList,
+                          project(extend(Stream, ExtendList), ProjectList2)) :-
   attrnames(ProjectList, ProjectList2).
 
 

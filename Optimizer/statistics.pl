@@ -172,7 +172,7 @@ simplePred(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
     ;  throw(error_Internal(statistics_simplePred(
             pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
             fakePred(Sel,BboxSel,CalcPET,ExpPET))
-            :fakePred_requires_ground_arguments))
+            ::fakePred_requires_ground_arguments))
   ),
   !.
 
@@ -194,7 +194,8 @@ simplePred(X, Y) :-
   not(optimizerOption(determinePredSig)),
   term_to_atom(X,Xt),
   concat_atom(['Malformed expression: \'', Xt, '\'.'],'',ErrorMsg),
-  throw(error_SQL(statistics_simplePred(X, Y):malformedExpression#ErrorMsg)),!.
+  throw(error_SQL(statistics_simplePred(X, Y)
+        ::malformedExpression::ErrorMsg)),!.
 
 
 % with option ~determinePredSig~ a specialized version is called:
@@ -205,7 +206,7 @@ simplePred(Pred,Simple) :-
      ;  ( Pred = pr(P,A)
           -> RelList = [(1,A)]
           ;  ( throw(error_Internal(statistics_simplePred(Pred, Simple)
-                  :simplificationFailed)),
+                  ::simplificationFailed)),
                fail %% error!
              )
         )
@@ -215,7 +216,7 @@ simplePred(Pred,Simple) :-
 % prompt an error, if simplification failed:
 simplePred(Pred,Simple) :-
   throw(error_Internal(statistics_simplePred(Pred, Simple)
-                  :simplificationFailed)),
+                  ::simplificationFailed)),
   !, fail.
 
 /*
@@ -496,7 +497,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
            write_list(['\nERROR:\t',ErrorMsg,' ']), nl,
            throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel,
                QueryTime, BBoxResCard, FilterResCard)
-               :selectivityQueryFailed#ErrorMsg)),
+               ::selectivityQueryFailed::ErrorMsg)),
            fail
          )
     )
@@ -511,7 +512,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
                      ResultList, '\'.']), nl,
          throw(error_Internal(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, BBoxResCard,FilterResCard)
-                         :unexpectedListType)),
+                         ::unexpectedListType)),
          fail
        )
   ),
@@ -525,7 +526,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, BBoxResCard,
                      ResultList2, '\'.']), nl,
          throw(error_Internal(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, BBoxResCard,FilterResCard)
-                         :unexpectedListType)),
+                         ::unexpectedListType)),
          fail
        )
   ),
@@ -565,7 +566,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
                        'function! '],'',ErrMsg),
            write_list(['\nERROR:\t',ErrMsg]), nl,
            throw(error_SQL(statistics_selectivityQuerySelection(Pred, Rel,
-                QueryTime, noBBox, ResCard):selectivityQueryFailed#ErrMsg)),
+                QueryTime, noBBox, ResCard)::selectivityQueryFailed::ErrMsg)),
            fail
          )
     )
@@ -580,7 +581,7 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
                      ResultList, '\'.']), nl,
          throw(error_Internal(statistics_selectivityQuerySelection(
                          Pred, Rel, QueryTime, noBBox, ResCard)
-                         :unexpectedListType)),
+                         ::unexpectedListType)),
          fail
        )
   ),
@@ -589,10 +590,10 @@ selectivityQuerySelection(Pred, Rel, QueryTime, noBBox, ResCard) :-
 selectivityQuerySelection(Pred, Rel, QueryTime, BBox, ResCard) :-
   write_list(['\nERROR:\tSelectivity query failed for unknown reason.']), nl,
   throw(error_Internal(statistics_selectivityQuerySelection(Pred, Rel,QueryTime,
-        BBox, ResCard):selectivityQueryFailed)),  fail.
+        BBox, ResCard)::selectivityQueryFailed)),  fail.
 
 % spatial predicate with bbox-checking
-selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, BBoxResCard1, FilterResCard1) :-
+selectivityQueryJoin(Pred,Rel1,Rel2,QueryTime1, BBoxResCard1, FilterResCard1) :-
   Pred =.. [OP, Arg01, Arg02],
   ( optimizerOption(determinePredSig)
     -> ( getTypeTree(Pred,[(1,Rel1),(2,Rel2)],[OP,ArgsTrees,bool]),
@@ -646,7 +647,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, BBoxResCard1, FilterResCard1)
                        'function! ']), nl,
            throw(error_Internal(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
-                         :selectivityQueryFailed)),
+                         ::selectivityQueryFailed)),
            fail
          )
     )
@@ -662,7 +663,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, BBoxResCard1, FilterResCard1)
                      ResultList, '\'.']), nl,
          throw(error_Internal(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
-                         :unexpectedListType)),
+                         ::unexpectedListType)),
          fail
        )
   ),
@@ -676,7 +677,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, BBoxResCard1, FilterResCard1)
                      ResultList2, '\'.']), nl,
          throw(error_Internal(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, BBoxResCard,FilterResCard)
-                         :unexpectedListType)),
+                         ::unexpectedListType)),
          fail
        )
   ),
@@ -685,7 +686,9 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, BBoxResCard1, FilterResCard1)
          QueryTime1 is QueryTime * JoinSize / S,
          BBoxResCard1 is BBoxResCard * JoinSize / S,
          retractall(realJoinSize(Pred, _)) )
-     ; ( FilterResCard1 = FilterResCard, QueryTime1 = QueryTime, BBoxResCard1 = BBoxResCard ) ),
+     ; ( FilterResCard1 = FilterResCard,
+         QueryTime1 = QueryTime,
+         BBoxResCard1 = BBoxResCard ) ),
   !.
 
 % normal predicate
@@ -736,7 +739,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox, ResCard1) :-
                        'whether predicate \'', Pred, '\' is a boolean ',
                        'function! ']), nl,
            throw(error_Internal(statistics_selectivityQueryJoin(Pred, Rel1,Rel2,
-                         QueryTime, noBBox, ResCard):selectivityQueryFailed)),
+                         QueryTime, noBBox, ResCard)::selectivityQueryFailed)),
            fail
          )
     )
@@ -752,7 +755,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime1, noBBox, ResCard1) :-
                      ResultList, '\'.']), nl,
          throw(error_Internal(statistics_selectivityQueryJoin(
                          Pred, Rel1, Rel2, QueryTime, noBBox, ResCard)
-                         :unexpectedListType)),
+                         ::unexpectedListType)),
          fail
        )
   ),
@@ -769,7 +772,7 @@ selectivityQueryJoin(Pred, Rel1, Rel2, QueryTime, BBox, ResCard) :-
                '\'. Unknown reason.'],'',ErrMsg),
   write_list(['\nERROR:\t',ErrMsg]), nl,
   throw(error_Internal(statistics_selectivityQueryJoin(Pred, Rel1, Rel2,
-        QueryTime, BBox, ResCard):selectivityQueryFailed)), fail.
+        QueryTime, BBox, ResCard)::selectivityQueryFailed)), fail.
 
 /*
 
@@ -867,7 +870,7 @@ sels(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET), Sel, ClacPET, ExpPET)) :-
   ( (ground(Sel), ground(BboxSel), ground(CalcPET), ground(ExpPET))
     -> true
     ; throw(error_Internal(statistics_sels(pr(fakePred(Sel,BboxSel,CalcPET,
-            ExpPET)),Sel,ClacPET,ExpPET):fakePred_requires_ground_arguments))
+            ExpPET)),Sel,ClacPET,ExpPET)::fakePred_requires_ground_arguments))
   ),
   !.
 
@@ -890,7 +893,7 @@ selectivity(P, X) :-
   write('Error in optimizer: cannot find selectivity for '),
   simplePred(P, PSimple), write(PSimple), nl,
   write('Call: selectivity('), write(P), write(',Sel)\n'),
-  throw(error_Internal(statistics_selectivity(P, X):selectivityQueryFailed)),
+  throw(error_Internal(statistics_selectivity(P, X)::selectivityQueryFailed)),
   fail, !.
 
 
@@ -905,7 +908,7 @@ selectivity(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
     ; throw(error_Internal(statistics_selectivity(
             pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
             Sel, BBoxSel, CalcPET, ExpPET)
-            :fakePred_requires_ground_arguments))
+            ::fakePred_requires_ground_arguments))
   ),
   !.
 
@@ -929,7 +932,7 @@ selectivity(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)), Sel, CalcPET, ExpPET) :-
     -> true
     ; throw(error_Internal(statistics_selectivity(
         pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)), Sel, CalcPET, ExpPET)
-        :fakePred_requires_ground_arguments))
+        ::fakePred_requires_ground_arguments))
   ),
   !.
 
@@ -1134,7 +1137,7 @@ selectivity(P, X, Y, Z) :-
   write('Error in optimizer: '), write(ErrMsg),
   write('Call: selectivity('), write(P), write(', _, _, _)\n'),
   throw(error_Internal(statistics_selectivity(P, X, Y, Z)
-                                   :selectivityQueryFailed#ErrMsg)),
+                                   ::selectivityQueryFailed#ErrMsg)),
   fail, !.
 
 
@@ -1145,7 +1148,7 @@ getPET(pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)), CalcPET, ExpPET) :-
     ;  throw(error_Internal(statistics_simplePred(
             pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
             fakePred(Sel,BboxSel,CalcPET,ExpPET))
-            :fakePred_requires_ground_arguments))
+            ::fakePred_requires_ground_arguments))
   ),
   !.
 
@@ -1162,7 +1165,7 @@ getPET(P, X, Y) :-
   concat_atom(['Cannot find PETs for \'', PSimpleT, '\'.'],'',ErrMsg),
   write('Error in optimizer: '), write(ErrMsg), nl,
   write('Call: getPET('), write(P), write(', _, _)\n'),
-  throw(error_Internal(statistics_getPET(P, X, Y):missingData#ErrMsg)),
+  throw(error_Internal(statistics_getPET(P, X, Y)::missingData#ErrMsg)),
   fail, !.
 
 
@@ -1171,7 +1174,7 @@ getBBoxSel(pr(fakePred(Sel,BBoxSel,CalcPET,ExpPET), BBoxSel)) :-
     -> true
     ; throw(error_Internal(statistics_getBBoxSel(
               pr(fakePred(Sel,BboxSel,CalcPET,ExpPET)),
-              BBoxSel):fakePred_requires_ground_arguments))
+              BBoxSel)::fakePred_requires_ground_arguments))
   ),
   !.
 
@@ -2205,7 +2208,7 @@ getTypeTree(Expr,Rels,[Op,ArgsTypes,TypeDC]) :-
 getTypeTree(A,B,C) :-
     term_to_atom(A,A1),
     concat_atom(['Cannot resolve typetree for expression \'',A1,'\'.'],'',MSG),
-    throw(error_Internal(statistics_getTypeTree(A,B,C):typeMapError#MSG)),
+    throw(error_Internal(statistics_getTypeTree(A,B,C)::typeMapError::MSG)),
     !, fail.
 
 /*

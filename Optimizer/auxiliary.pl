@@ -507,14 +507,14 @@ secondo(X) :-
 secondo(X) :-
   concat_atom([restore, _, from, _], ' ', X),
   ( isDatabaseOpen
-    ->   write('\nERROR:\tCannot restore object, because no database is open.\n')
-    ;    ( secondo(X, Y)
+    ->  write('\nERROR:\tCannot restore object, because no database is open.\n')
+    ;   ( secondo(X, Y)
            *-> ( promptSecondoResultSucceeded(Y)
                )
            ;   ( promptSecondoResultFailed,
                  fail
                )
-         )
+        )
   ),
   updateCatalog,
   updateCatalog,
