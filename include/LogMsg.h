@@ -123,6 +123,7 @@ with the ~send~ method.
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <stdexcept>
 
 using namespace std;
 
@@ -246,15 +247,24 @@ this class.
 
 */
 
-class SecondoException {
+
+class SecondoException : public exception {
 
   public:
-  string msgStr;
-
   SecondoException() : msgStr("Unknown Error") {}
-  SecondoException(const string& Msg) : msgStr(Msg) {}
+  SecondoException(const string& Msg) : exception(), msgStr(Msg) {}
+  SecondoException(const SecondoException& rhs) : 
+    exception(), msgStr(rhs.msgStr) {}
+  virtual ~SecondoException() throw() {}
+
+  virtual const char* what() const throw()
+  {
+    return ("Secondo-Exception: " + msgStr).c_str();
+  }
   const string msg() { return msgStr; }
   
+  protected:
+    string msgStr;
 };
 
 
