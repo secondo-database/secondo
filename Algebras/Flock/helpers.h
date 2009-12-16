@@ -35,6 +35,7 @@ June, 2009 Mahmoud Sakr
 #ifndef HELPER_SOURCE
 #define HELPER_SOURCE
 
+
 // GENERAL HELPER FUNCTIONS
 
 bool

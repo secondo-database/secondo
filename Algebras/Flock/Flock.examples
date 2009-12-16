@@ -16,7 +16,7 @@ Result   : 10
 Operator : reportflocks
 Number   : 2
 Signature: instant x int -> mflock
-Example  : let flocks= reportflocks("trains_flocks_10_30sec.dat", 15.0, 16.0, 9, now(), create_duration(0,30000), 5, "exact") transformstream consume 
+Example  : let flocks = reportflocks("trains_flocks_10_30sec.dat", 15.0, 16.0, 9, now(), create_duration(0,30000), 5, "exact") transformstream consume 
 Result   : 10
 
 

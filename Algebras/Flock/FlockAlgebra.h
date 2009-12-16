@@ -53,6 +53,7 @@ paper "Spatiotemporal Pattern Queries"
 
 */
 
+
 #ifndef FLOCKALGEBRA_H_
 #define FLOCKALGEBRA_H_
 #include "Algebra.h"

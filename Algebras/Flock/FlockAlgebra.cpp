@@ -39,7 +39,6 @@ evaluating the spatiotemporal pattern predicates (STP).
 */
 #include "FlockAlgebra.h"
 
-
 namespace FLOCK{
 
 bool 

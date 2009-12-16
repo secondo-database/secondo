@@ -35,7 +35,6 @@ June, 2009 Mahmoud Sakr
 #ifndef OCTREE_ELEMENTS_HEADER
 #define OCTREE_ELEMENTS_HEADER
 
-
 #include <map>
 #include <vector>
 #include <gmpxx.h>
