@@ -4537,7 +4537,7 @@ cost(symmjoin(X, Y, _), Sel, P, S, C) :-
   symmjoinTC(A, B),                     % fetch relative costs
   S is SizeX * SizeY * Sel,             % calculate size of result
   C is CostX + CostY +                  % cost to produce the arguments
-    A * ExpPET * (SizeX * SizeY) +      % cost to handle buffers and collision
+    (A + ExpPET) * (SizeX * SizeY) +      % cost to handle buffers and collision
     B * S.                              % cost to produce result tuples
 
 cost(spatialjoin(X, Y, _, _), Sel, P, S, C) :-
