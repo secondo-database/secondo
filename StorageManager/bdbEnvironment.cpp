@@ -1054,6 +1054,25 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   // --- Set locking configuration
 
+    u_int32_t timeout_value;
+    timeout_value = SmiProfile::GetParameter( "BerkeleyDB",
+                                         "Timeout_LCK",
+                                          0, parmFile.c_str() );
+
+    db_timeout_t microSeconds = timeout_value;
+    rc = dbenv->set_timeout(microSeconds, DB_SET_LOCK_TIMEOUT);
+    cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
+
+    timeout_value = SmiProfile::GetParameter( "BerkeleyDB",
+                                              "Timeout_TXN",
+                                              0, parmFile.c_str() );
+
+    microSeconds = timeout_value;
+    rc = dbenv->set_timeout(microSeconds, DB_SET_TXN_TIMEOUT);
+    cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
+
+
+
     u_int32_t lockValue;
     lockValue = SmiProfile::GetParameter( "BerkeleyDB",
                                           "MaxLockers",
@@ -1198,10 +1217,10 @@ Transactions, logging and locking are enabled.
   if (useTransactions) {
     db_timeout_t microSeconds = 0;
     rc = dbenv->get_timeout(&microSeconds, DB_SET_LOCK_TIMEOUT);
-    cout << "Lock timeout: " << microSeconds << " (10e-6 s)" << endl;
+    cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
 
     rc = dbenv->get_timeout(&microSeconds, DB_SET_TXN_TIMEOUT);
-    cout << "TXN timeout: " << microSeconds << " (10e-6 s)" << endl;
+    cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
   }  
 
   // --- Create temporary Berkeley DB environment
@@ -1430,8 +1449,7 @@ SmiEnvironment::CloseDatabase()
 bool
 SmiEnvironment::EraseDatabase( const string& dbname )
 {
-  bool ok = false;
-
+  bool ok = true;
   if ( !dbOpened )
   {
     SetDatabaseName( dbname );
@@ -1440,52 +1458,47 @@ SmiEnvironment::EraseDatabase( const string& dbname )
       if ( LockDatabase( database ) )
       {
         DbEnv* dbenv = instance.impl->bdbEnv;
-        int ret1 = 0, ret2 = 0;
-//        ret1 = dbenv->txn_checkpoint( 0, 0, DB_FORCE );
-//        ret2 = dbenv->txn_checkpoint( 0, 0, DB_FORCE );
-        ok = (ret1 == 0 && ret2 == 0);
-        if ( ok )
-        {
-          SmiEnvironment::Implementation::DeleteDatabase( database );
-          string oldHome = FileSystem::GetCurrentFolder();
-          FileSystem::SetCurrentFolder( instance.impl->bdbHome );
-          FilenameList fnl;
-          if ( FileSystem::FileSearch( database, fnl, 0, 3 ) )
-          {
-            vector<string>::const_iterator iter = fnl.begin();
-            while ( iter != fnl.end() )
-            {
-              Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-              int ret;
-              ret = dbp->remove( (*iter).c_str(), 0, 0 );
-              SetBDBError( ret );
-              delete dbp;
-              iter++;
-            }
-          }
-          ok = FileSystem::EraseFolder( database );
-/*
-Since the Berkeley DB is not able to recreate folders on recovery, the
-folder is not erased. When making backups of the Secondo database empty
-folders should be removed.
-
-*/
+	SmiEnvironment::Implementation::DeleteDatabase( database );
+	string oldHome = FileSystem::GetCurrentFolder();
+	FileSystem::SetCurrentFolder( instance.impl->bdbHome );
+	FilenameList fnl;
+	if ( FileSystem::FileSearch( database, fnl, 0, 3 ) )
+	{
+	  vector<string>::const_iterator iter = fnl.begin();
+	  while ( iter != fnl.end() )
+	  {
+	    Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
+	    string fileName(*iter);
+	    cout << "Removing " << fileName << endl;
+	    int rc = dbp->remove( fileName.c_str(), 0, 0 );
+	    ok = ok && (rc == 0);
+	    SetBDBError( rc );
+	    delete dbp;
+	    iter++;
+	}
+	ok = ok && FileSystem::EraseFolder( database );
         FileSystem::SetCurrentFolder( oldHome );
         }
-        UnlockDatabase( database );
-        if ( !ok )
+        ok = ok && UnlockDatabase( database );
+        if ( !ok ) {
           SetError( E_SMI_DB_ERASE );
+	}  
       }
       else
       {
         SetError( E_SMI_DB_NOTLOCKED );
+	ok = false;
       }
     }
-    // else database does not exist!
+    else {
+     SetError( E_SMI_DB_NOTFOUND );
+     ok = false;
+    } 
   }
   else
   {
     SetError( E_SMI_DB_NOTCLOSED );
+    ok = false;
   }
   return (ok);
 }
