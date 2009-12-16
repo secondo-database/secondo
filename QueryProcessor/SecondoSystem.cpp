@@ -92,6 +92,7 @@ using namespace std;
 #include "NestedList.h"
 #include "NList.h"
 
+#include "../Tools/Flob/Flob.h"
 
 SecondoSystem* SecondoSystem::instance = 0;
 
@@ -257,6 +258,7 @@ Precondition: dbState = dbOpen.
     assert( false );
   }
   catalog->Close();
+  Flob::dropFiles();
 
   return (SmiEnvironment::CloseDatabase());
 }
