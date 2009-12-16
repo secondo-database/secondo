@@ -89,8 +89,11 @@ stored in a text file:
 #ifndef SMI_PROFILES_H
 #define SMI_PROFILES_H
 
-#include "SecondoConfig.h"
 #include <string>
+#include <sstream>
+
+#include "SecondoConfig.h"
+#include "WinUnix.h"
 
 using namespace std;
 
@@ -100,7 +103,7 @@ class SMI_EXPORT SmiProfile
   static string GetParameter( const string& sectionName,
                               const string& keyName,
                               const string& defaultValue,
-                              const string& fileName );
+			      const string& fileName );
 /*
 Searches the profile ~fileName~ for the key ~keyName~ under the section heading
 ~sectionName~. If found, the associated string is returned, else the
@@ -110,6 +113,28 @@ If ~sectionName~ is the empty string, it will be ignored. i.e. ALL sections are
 searched.
 
 */
+
+
+  static string GetUniqueSocketName(const string& fileName)
+  {
+    stringstream sname;
+    sname << GetParameter("Environment", "RegistrarSocketNamePrefix", 
+			  "SECREGIS", fileName); 
+    sname << "_port";
+    sname << GetParameter("Environment", "SecondoPort",
+		          "SECREGIS", fileName);
+    return sname.str();
+  }	  
+/*
+If many Secondo installations are placed on the same server, the name of the socket used to
+communicate with the SecondoRegistrar process needs to be unique. Since the port 
+number for client server communication needs also to be unique we use it as
+identifier in the socket name. During runtime, a file like tmp/SECREGIS\_port1234
+may represent such a socket.
+
+*/
+
+
 
   static long   GetParameter( const string& sectionName,
                               const string& keyName,
