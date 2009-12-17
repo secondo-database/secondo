@@ -976,9 +976,7 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   // --- Set the name of the registrar for registering and locking databases
 
-  registrar = SmiProfile::GetParameter( "Environment",
-                                        "RegistrarName",
-                                        "SECONDO_REGISTRAR", parmFile );
+  registrar = SmiProfile::GetUniqueSocketName( parmFile );
 
   // --- Set output stream for error messages from Berkeley DB
   //     and the prefix string for these messages
