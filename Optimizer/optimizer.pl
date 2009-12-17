@@ -7960,11 +7960,18 @@ message that can be handled by the Secondo Javagui.
 
 If the exception has Format
 
----- <prolog-file>_<Predicate>(<Arguments>)::<error-explanation>.
+---- <prolog-file>_<Predicate>(<Arguments>)::<error-code>.
 ----
 
-Only ~error-explanation~ will be returned as the message content.
-Otherwise, ``Exception during optimization'' is returned as the message content.
+or
+
+---- <prolog-file>_<Predicate>(<Arguments>)::<error-code>::<error-message>.
+----
+
+a error message is created and unified with ~Plan~. The Error message contains
+the ErrorCode and/or the problem description.
+All other exceptions are caught and `Exception during optimization'' is
+returned as the message content.
 
 */
 
@@ -8004,21 +8011,23 @@ sqlToPlan2(QueryText, Plan) :-
   optimize(Query, Plan, _).
 
 sqlToPlan(QueryText, ResultText) :-
+  asserta(errorHandlingRethrow), % force rethrowing of exceptions to handle them
+                                 % here finally
   catch( sqlToPlan2(QueryText, ResultText),
          Exc, % catch all exceptions!
          ( write('\nsqlToPlan: Exception \''),write(Exc),write('\' caught.'),nl,
            ( ( Exc = error_SQL(ErrorTerm),
-               ( ErrorTerm = (_::ErrorCode:Message) ; ErrorTerm = (_::Message) )
+               ( ErrorTerm = (_::ErrorCode::Message) ; ErrorTerm = (_::Message) )
              ) %% Problems with the SQL query itself:
-             -> concat_atom(['SQL ERROR: ',Message],'',MessageToSend)
+             -> concat_atom(['SQL ERROR (usually a user error):\n',Message],'',MessageToSend)
              ;  ( ( Exc = error_Internal(ErrorTerm),
                     (   ErrorTerm = (_::ErrorCode::Message)
                       ; ErrorTerm = (_::Message)
                     )
                   )
-                  -> concat_atom(['Internal ERROR: ',Message],'',MessageToSend)
+                  -> concat_atom(['Internal ERROR (usually a problem with the knowledge base):\n',Message],'',MessageToSend)
                   %% all other exceptions:
-                  ;  concat_atom(['Unclassified ERROR: ',Exc],'',MessageToSend)
+                  ;  concat_atom(['Unclassified ERROR (usually a bug):\n',Exc],'',MessageToSend)
                 )
            ),
            term_to_atom(MessageToSend,ResultTMP),
@@ -8029,6 +8038,8 @@ sqlToPlan(QueryText, ResultText) :-
     -> ResultText = '::ERROR::Something\'s wrong!' %'
     ;  true
   ),
+  retract(errorHandlingRethrow), % re-establish the original state for the
+                                 % general exception handler
   true.
 
 
@@ -8066,6 +8077,8 @@ example(Nr) :- showExample(Nr, Query), optimize(Query).
 example(Nr, Query, Cost) :- showExample(Nr, Example),
                             optimize(Example, Query, Cost).
 
+% The following predicate will minic the behaviour of the OptimizerServer.
+% It will catch exceptions and create error messages to be sent to the JavaGUI:
 exampleToPlan(Nr) :-
   sqlExample(Nr, QueryTerm),
   write_list(['\n\nExampleNr: ',Nr,'\nSQL: ',QueryTerm,'\n']),
@@ -8491,19 +8504,44 @@ exception-format described above, that is thrown within goal ~G~.
      [+,'SECrest','The executable Secondo-style end of the query.']],
     'Create a DB object, using a combined SQL and Secondo executable query.')).
 
+
+:- dynamic(errorHandlingRethrow/0),   % standard behaviour is to handle
+   retractall(errorHandlingRethrow).  % errors quitely.
+
 defaultExceptionHandler(G) :-
   catch( G,
          Exception,
          ( (Exception = error_SQL(X) ; Exception = error_Internal(X))
            % only handle these kinds of exceptions
-           -> ( write('\nException \''), write(X), write('\' caught.'),
-                write('\nAn ERROR occured, please inspect the output above.'),
-                fail
+           -> ( write_list(['\n\nThe following SQL Error was caught: \'', X,
+                       '\'.\n','This usually a problem within the query.\n\n'])
               )
-           ; throw(Exception) % other exceptions
+           ;  ( Exception = error_Internal(X)
+                -> ( write_list(['\n\nThe following Internal Error was ',
+                          'caught: \'', X, '\'.\n','This is usually due to a ',
+                          'problem with optimizer\'s knowledge base, the ',%'
+                          'meta data within the database, or a problem within ',
+                          'the internal optimization routines.\n\n'])
+                   )
+                ;  ( Exception = error(_Formal, _Context)
+                     -> ( write_list(['\n\nThe following Runtime Error was ',
+                            'caught: \'', X, '\'.\n','This is usually a ',
+                            'problem with the optimizer knowledge base or a ',
+                            'program bug within the optimizer.\n\n'])
+                        )
+                     ;  ( write_list(['\n\nThe following Unclassified Error ',
+                            'was caught: \'', X, '\'.\n','The reason is ',
+                            'unknown. Please carefully check the error message',
+                            ' to trace the problem.\n\n'])
+                        )
+                   )
+              )
+         ),
+         ( errorHandlingRethrow  % retract errorHandlingRethrow to quit quitely
+           -> throw(Exception)   % assert errorHandlingRethrow to re-throw
+           ;  fail               % all exceptions!
          )
-       ),
-       true.
+       ).
 
 
 :-assert(helpLine(history,0,[],
