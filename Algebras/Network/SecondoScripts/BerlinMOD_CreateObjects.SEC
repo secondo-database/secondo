@@ -1,0 +1,102 @@
+open database berlinmod;
+query "Starting  CreateCR " + tostring(now());
+##########################################
+#   Create the Compact Representation    #
+#     From the benchmark data            #
+##########################################
+
+##############################################################
+#               OBA & Compact Representation                 #
+##############################################################
+# dataSCcar: rel{Licence: string, Type: string,
+#                Model: string, Journey: mpoint}
+
+query "Starting dataSCcar " + tostring(now());
+let dataSCcar = dataScar feed projectextend[Licence, Type, Model; Journey: .Trip] consume;
+
+query "Starting dataSCcar_Licence_btree " + tostring(now());
+let dataSCcar_Licence_btree = dataSCcar createbtree[Licence];
+
+query "Starting dataSCcar_Journey_sptuni " + tostring(now());
+let dataSCcar_Journey_sptuni =
+  dataSCcar feed
+  projectextend[Journey ; TID: tupleid(.)]
+  projectextendstream[TID; MBR: units(.Journey)
+    use[fun(U: upoint) bbox2d(U) ]]
+  sortby[MBR asc]
+  bulkloadrtree[MBR];
+
+query "Starting dataSCcar_Journey_tmpuni " + tostring(now());
+let dataSCcar_Journey_tmpuni =
+  dataSCcar feed
+  projectextend[Journey ; TID: tupleid(.)]
+  projectextendstream[TID; MBR: units(.Journey)
+    use[fun(U: upoint) point2d(deftime(U)) ]]
+  sortby[MBR asc]
+  bulkloadrtree[MBR];
+
+query "Starting dataSCcar_Journey_sptmpuni " + tostring(now());
+let dataSCcar_Journey_sptmpuni =
+  dataSCcar feed
+  projectextend[Journey ; TID: tupleid(.)]
+  projectextendstream[TID; MBR: units(.Journey)
+    use[fun(U: upoint) bbox(U) ]]
+  sortby[MBR asc]
+  bulkloadrtree[MBR];
+
+##############################################################
+#               TBA & Compact Representation                 #
+##############################################################
+# dataMCcar:  rel{Moid: int, Licence: string, Type: string, Model: string}
+# dataMCtrip: rel{Moid: int, Trip: mpoint}
+
+query "Starting dataMCcar " + tostring(now());
+let dataMCcar  = dataMcar;
+
+query "Starting dataMCtrip " + tostring(now());
+query seqinit(1);
+let dataMCtrip =
+  dataMtrip feed
+  project[ Moid, Trip ]
+  consume;
+
+query "Starting dataMCcar_Licence_btree " + tostring(now());
+let dataMCcar_Licence_btree = dataMCcar createbtree[Licence];
+
+query "Starting dataMCcar_Moid_btree_btree " + tostring(now());
+let dataMCcar_Moid_btree = dataMCcar createbtree[Moid];
+
+query "Starting dataMCtrip_Moid_btree " + tostring(now());
+let dataMCtrip_Moid_btree = dataMCtrip createbtree[Moid];
+
+query "Starting dataMCtrip_Trip_sptuni " + tostring(now());
+let dataMCtrip_Trip_sptuni =
+  dataMCtrip feed
+  projectextend[Trip ; TID: tupleid(.)]
+  projectextendstream[TID; MBR: units(.Trip)
+    use[fun(U: upoint) bbox2d(U) ]]
+  sortby[MBR asc]
+  bulkloadrtree[MBR];
+
+query "Starting dataMCtrip_Trip_tmpuni " + tostring(now());
+let dataMCtrip_Trip_tmpuni =
+  dataMCtrip feed
+  projectextend[Trip ; TID: tupleid(.)]
+  projectextendstream[TID; MBR: units(.Trip)
+    use[fun(U: upoint) point2d(deftime(U)) ]]
+  sortby[MBR asc]
+  bulkloadrtree[MBR];
+
+query "Starting dataMCtrip_Trip_sptmpuni " + tostring(now());
+let dataMCtrip_Trip_sptmpuni =
+  dataMCtrip feed
+  projectextend[Trip ; TID: tupleid(.)]
+  projectextendstream[TID; MBR: units(.Trip)
+    use[fun(U: upoint) bbox(U) ]]
+  sortby[MBR asc]
+  bulkloadrtree[MBR];
+
+##############################################################
+##############################################################
+query "Finished CreateCR  " + tostring(now());
+close database;
