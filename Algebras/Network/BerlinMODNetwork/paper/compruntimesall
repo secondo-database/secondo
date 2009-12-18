@@ -1,0 +1,46 @@
+set terminal postscript default
+set terminal postscript eps color size 10,7
+set output 'compruntimesall.eps'
+reset
+set bar 1.000000
+set border 3 front linetype -1 linewidth 1.000
+set boxwidth 0.95 absolute
+set style fill solid 1.00 border -1
+set style rectangle back fc lt -3 fillstyle solid 1.00 border -1
+set multiplot layout 1,3
+set grid
+set key autotitles columnhead right nobox
+set style histogram rowstacked title  offset character 0, 0, 0
+set datafile missing '-'
+set style data histograms
+set xtics border in scale 1,0.5 nomirror rotate by -45  offset character 0, 0, 0
+set rrange [ * : * ] noreverse nowriteback  # (currently [0.00000:10.0000] )
+set trange [ * : * ] noreverse nowriteback  # (currently [-5.00000:5.00000] )
+set urange [ * : * ] noreverse nowriteback  # (currently [-5.00000:5.00000] )
+set vrange [ * : * ] noreverse nowriteback  # (currently [-5.00000:5.00000] )
+set ylabel  offset character 0, 0, 0 font "" textcolor lt -1 rotate by 90
+set y2label  offset character 0, 0, 0 font "" textcolor lt -1 rotate by 90
+set cblabel  offset character 0, 0, 0 font "" textcolor lt -1 rotate by 90
+set locale "C"
+#  Plot sf005 Run Times
+set key on
+set title "Scalefactor 0.05"
+set ylabel "Run Times in Seconds" 
+set yrange [ 0.00000 : 1000.0 ] noreverse nowriteback
+plot 'sf005RunTimes.DAT' using 2:xtic(1), '' using 3, '' using 4, '' using 5, '' using 6, '' using 7, '' using 8, '' using 9, '' using 10, '' using 11, '' using 12, '' using 13, '' using 14, '' using 15, '' using 16, '' using 17, '' using 18
+
+#  Plot sf020 runtimes
+set key off
+set title "Scalefactor 0.2"
+set ylabel "Run Times in Seconds" 
+set yrange [ 0.00000 : 6000.0 ] noreverse nowriteback
+plot 'sf020RunTimes.DAT' using 2:xtic(1), '' using 3, '' using 4, '' using 5, '' using 6, '' using 7, '' using 8, '' using 9, '' using 10, '' using 11, '' using 12, '' using 13, '' using 14, '' using 15, '' using 16, '' using 17, '' using 18
+
+#  Plot sf100 runtimes
+set key off
+set ylabel "Run Times in Seconds"
+set title "Scalefactor 1.0"
+set yrange [ 0.00000 : 360000.0 ] noreverse nowriteback
+plot 'sf100RunTimes.DAT' using 2:xtic(1), '' using 3, '' using 4, '' using 5, '' using 6, '' using 7, '' using 8, '' using 9, '' using 10, '' using 11, '' using 12, '' using 13, '' using 14, '' using 15, '' using 16, '' using 17, '' using 18
+
+unset multiplot
