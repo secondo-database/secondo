@@ -216,7 +216,8 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 
 */
 
-using namespace std;
+#define TRACE_ON
+#include "Trace.h"
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -246,6 +247,7 @@ extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
+
 /*
 4.1 Type investigation auxiliaries
 
@@ -261,6 +263,8 @@ file "TypeMapUtils.h" which defines a namespace mappings.
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 
+
+using namespace std;
 using namespace symbols;
 using namespace mappings;
 
@@ -830,7 +834,9 @@ InCcString( ListExpr typeInfo, ListExpr value,
   {
     correct = true;
     string s = nl->StringValue( value );
-    return (SetWord( new CcString( true, (STRING_T*)s.c_str() ) ));
+    CcString* cs = new CcString( true, (STRING_T*)s.c_str() );
+    //cs->ShowMem(); 
+    return SetWord( cs );
   }
   else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
         && nl->SymbolValue( value ) == "undef" )
