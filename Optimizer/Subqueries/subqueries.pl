@@ -759,17 +759,19 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, Pred2) :-
    ; SubAttr = CanAttr
   ),
   restrict(Attrs, Rels, Attrs2),
-  makeList(Rels, RelsList),
-  makeList(CanRels, CanRelsList),
-  append(RelsList, CanRelsList, Rels2),
-  subqueryToJoinOp(Op, NewOp),
-  JoinPredicate =.. [NewOp, Attr, CanAttr],
-  makeList(CanPreds, CanPredsList),
-  append([JoinPredicate], CanPredsList, PredList),
+	makeList(Rels, RelsList),
+	makeList(CanRels, CanRelsList),
+	retainSetSemantics(RelsList, Attr, Op, CanAttr, 
+			CanRelsList, CanPreds, CanRels2, PredList),
+  append(RelsList, CanRels2, Rels2),
+%  subqueryToJoinOp(Op, NewOp),
+%  JoinPredicate =.. [NewOp, Attr, CanAttr],
+%  makeList(CanPreds, CanPredsList),
+%  append([JoinPredicate], CanPredsList, PredList),
   flatten(PredList, Pred2).
 
 % case subquery without predicates
-transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, [JoinPredicate]) :-
+transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, JoinPredicate) :-
   Pred =.. [Op, Attr, Subquery],
   transform(Subquery, CanSubquery),
   CanSubquery =.. [from, Select, CanRels],
@@ -783,9 +785,11 @@ transformNestedPredicate(Attrs, Attrs2, Rels, Rels2, Pred, [JoinPredicate]) :-
   restrict(Attrs, Rels, Attrs2),
   makeList(Rels, RelsList),
   makeList(CanRels, CanRelsList),
-  append(RelsList, CanRelsList, Rels2),
-  subqueryToJoinOp(Op, NewOp),
-  JoinPredicate =.. [NewOp, Attr, CanAttr].
+	retainSetSemantics(RelsList, Attr, Op, 
+                     CanAttr, CanRelsList, [], CanRels2, JoinPredicate),
+  append(RelsList, CanRels2, Rels2).
+%  subqueryToJoinOp(Op, NewOp),
+%  JoinPredicate =.. [NewOp, Attr, CanAttr].
 
 /*
 
@@ -903,6 +907,61 @@ aliasInternal(ExternalAttr, InternalAttr) :-
 
 aliasInternal(Attr, Attr).
 
+/*
+
+Retain set semantics for operator ~IN~, otherwise duplicates may appear
+in the unnested result. To achieve this, we need to create a temporary
+relation, which is a projection and restriction of the inner relations,
+containing no duplicates.
+
+*/
+
+% remove duplicates of inner relations, only for operator ~IN~
+retainSetSemantics(OuterRels, Attr, in, SelectAttr, 
+                   InnerRels, InnerPreds, [TempRel], PredList) :-
+  joinPred(InnerRels, OuterRels, InnerPreds, JoinPreds, 
+            SimpleInnerPreds, _, OuterAttrs),
+  write('\nJoinPreds: '), write(JoinPreds), nl,
+	( ( findall(Alias, 
+	  ( member(A, OuterAttrs), A =.. [:, Alias, _] ), AliasList),
+		setof(A, member(A, AliasList), AL2) )
+		; AL2 = [] ),	
+% convert aliased attributes to internal ~_~ syntax for all 
+% inner attributes in JoinPreds
+  ( ( findall(Pred2, ( 
+		member(Pred, JoinPreds), member(Al, AL2),
+		aliasExternal(Pred, Pred2, dummy as Al), 
+% only consider aliases which are used in JoinPreds		
+		aliasExternal(Pred, TPred2, dummy as $$), Pred2 \= TPred2 ),
+		JoinPreds2 ), setof(JP, member(JP, JoinPreds2), JPList) ) 
+		; JPList = JoinPreds ),
+	write('JoinPreds2: '), write(JPList), nl,
+	append(InnerRels, OuterRels, Rels),
+	( flatten(JoinPreds, [])
+		-> callLookup(select * from Rels, _)
+		; callLookup(select * from Rels where JoinPreds, _)
+	),
+	setof(Attrs, outerAttrs(InnerRels, Attrs), L),
+	flatten(L, L2),
+	( member(SelectAttr, L2) 
+		-> AttrList = L2
+		;	append([SelectAttr], L2, AttrList)
+	),
+% convert aliased attribute in the new join predicate also	
+	aliasInternal(CanAttr2, SelectAttr),
+  JoinPredicate =.. [=, Attr, CanAttr2],
+  append([JoinPredicate], JPList, PredList),	
+	flatten(SimpleInnerPreds, SIPreds),
+%	write('\nSimpleInnerPreds: '), write(SIPreds), nl,
+	tempRel1(AttrList, SIPreds, InnerRels, TempRel).
+%	write('\nTempRel: '), write(TempRel), nl.
+	
+	
+
+									 
+% all other operators
+retainSetSemantics(_, _, _, _,
+                   Rels, Preds, Rels, Preds).
 
 /*
 
@@ -946,7 +1005,17 @@ joinPred(_, OuterRels, Pred, [], [], OuterPreds, []) :-
   Pred =.. [_ | Args],
   areAttributesOf(Args, OuterRels),
   makeList(Pred, OuterPreds).
-
+	
+joinPred(InnerRels, OuterRels, Pred, [], [Pred], [], []) :-
+  makeList(InnerRels, IRelsList),
+  append(IRelsList, OuterRels, Rels),
+  dm(subqueryDebug,
+    ['\njoinPred:\n\t select * from ', Rels,
+    ' where ', Pred]),
+  callLookup(select * from Rels where Pred, _),
+  setof(Attrs, outerAttrs(OuterRels, Attrs), L),
+	flatten(L, []).
+	
 joinPred(InnerRels, OuterRels, Pred, [Pred], [], [], OuterAttrs) :-
   makeList(InnerRels, IRelsList),
   append(IRelsList, OuterRels, Rels),
@@ -954,7 +1023,8 @@ joinPred(InnerRels, OuterRels, Pred, [Pred], [], [], OuterAttrs) :-
     ['\njoinPred:\n\t select * from ', Rels,
     ' where ', Pred]),
   callLookup(select * from Rels where Pred, _),
-  outerAttrs(OuterRels, OuterAttrs),
+  setof(Attrs, outerAttrs(OuterRels, Attrs), L),
+	flatten(L, OuterAttrs),
   dm(subqueryDebug, ['\nOuterAttrs: ', OuterAttrs]).
 
 /*
