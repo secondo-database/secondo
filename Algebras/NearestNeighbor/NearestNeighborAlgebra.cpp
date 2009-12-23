@@ -10024,8 +10024,6 @@ struct Cov{
         MInt tmp(0);
         vector<UInt> uintarray;
 
-        MInt tmpold(0);
-
         for(int j = 0;j < n->EntryCount();j++){
             R_TreeInternalEntry<dim> entry =
               (R_TreeInternalEntry<dim>&)(*n)[j];
@@ -10050,11 +10048,13 @@ struct Cov{
             delete iter2_2;
             delete cur_id;
 
-            MInt temp1(0);
-            tmp.PlusExtend(&tmp1,temp1);
-            tmp.CopyFrom(&temp1);
-            tmp.PlusExtend(&tmp2,temp1);
-            tmp.CopyFrom(&temp1);
+              MInt temp1(0);
+              tmp.PlusExtend(&tmp1,temp1);
+              tmp.CopyFrom(&temp1);
+              MInt temp2(0);
+              tmp.PlusExtend(&tmp2,temp2);
+              tmp.CopyFrom(&temp2);
+
 
 /*            for(int j = 0;j < tmp1.GetNoComponents();j++){
                   const UInt* ui;
@@ -10069,23 +10069,22 @@ struct Cov{
             sort(uintarray.begin(),uintarray.end(),uintcom);
             MInt temp2(0);
             for(unsigned int i = 0;i < uintarray.size();i++){
-              temp2.Add(uintarray[i]);
+              temp2.MergeAdd(uintarray[i]);
             }
             MInt tmpresult(0);
+            temp2.SortbyUnitTime();
             tmp.PlusExtend(&temp2,tmpresult);
             tmp.CopyFrom(&tmpresult);
+            tmp.SortbyUnitTime();
             uintarray.clear();*/
 
         }
 
 
+
+
         MInt result(0);
         tmp.Hat(result);
-
-//        MInt resultold(0);
-//        tmpold.Hat(resultold);
-
-//        resultold.Print(cout);
 //        result.Print(cout);
 
 
@@ -10216,12 +10215,15 @@ struct Cov{
               delete iter2_2;
               delete cur_id;
 
-              MInt temp(0);
-              tmp.PlusExtend(&tmp1,temp);
-              tmp.CopyFrom(&temp);
-              tmp.PlusExtend(&tmp2,temp);
-              tmp.CopyFrom(&temp);
-/*for(int j = 0;j < tmp1.GetNoComponents();j++){
+              MInt temp1(0);
+              tmp.PlusExtend(&tmp1,temp1);
+              tmp.CopyFrom(&temp1);
+              MInt temp2(0);
+              tmp2.Print(cout);
+              tmp.PlusExtend(&tmp2,temp2);
+              tmp.CopyFrom(&temp2);
+
+/*            for(int j = 0;j < tmp1.GetNoComponents();j++){
                   const UInt* ui;
                   tmp1.Get(j,ui);
                   uintarray.push_back(*ui);
@@ -10234,11 +10236,13 @@ struct Cov{
             sort(uintarray.begin(),uintarray.end(),uintcom);
             MInt temp2(0);
             for(unsigned int i = 0;i < uintarray.size();i++){
-              temp2.Add(uintarray[i]);
+              temp2.MergeAdd(uintarray[i]);
             }
             MInt tmpresult(0);
+            temp2.SortbyUnitTime();
             tmp.PlusExtend(&temp2,tmpresult);
             tmp.CopyFrom(&tmpresult);
+            tmp.SortbyUnitTime();
             uintarray.clear();*/
 
           }
@@ -10377,13 +10381,14 @@ struct Cov{
             delete iter2_2;
             delete cur_id;
 
-            MInt temp(0);
-            tmp.PlusExtend(&tmp1,temp);
-            tmp.CopyFrom(&temp);
-            tmp.PlusExtend(&tmp2,temp);
-            tmp.CopyFrom(&temp);
+              MInt temp1(0);
+              tmp.PlusExtend(&tmp1,temp1);
+              tmp.CopyFrom(&temp1);
+              MInt temp2(0);
+              tmp.PlusExtend(&tmp2,temp2);
+              tmp.CopyFrom(&temp2);
 
-/*            for(int j = 0;j < tmp1.GetNoComponents();j++){
+/*           for(int j = 0;j < tmp1.GetNoComponents();j++){
                   const UInt* ui;
                   tmp1.Get(j,ui);
                   uintarray.push_back(*ui);
@@ -10393,17 +10398,22 @@ struct Cov{
                 tmp2.Get(j,ui);
                 uintarray.push_back(*ui);
             }
+
             sort(uintarray.begin(),uintarray.end(),uintcom);
             MInt temp2(0);
             for(unsigned int i = 0;i < uintarray.size();i++){
-              temp2.Add(uintarray[i]);
+              temp2.MergeAdd(uintarray[i]);
             }
             MInt tmpresult(0);
+            temp2.SortbyUnitTime();
             tmp.PlusExtend(&temp2,tmpresult);
             tmp.CopyFrom(&tmpresult);
+            tmp.SortbyUnitTime();
             uintarray.clear();*/
 
         }
+
+
 
         MInt result(0);
         tmp.Hat(result);
@@ -10460,7 +10470,7 @@ Supplier s)
       Relation* cov2 = (Relation*)args[2].addr;
       BTree* btree1 = (BTree*)args[3].addr;
       BTree* btree2 = (BTree*)args[4].addr;
-      if(cov1->GetNoTuples() < cov2->GetNoTuples()){
+/*      if(cov1->GetNoTuples() < cov2->GetNoTuples()){
         Relation* temp;
         temp = cov1;
         cov1 = cov2;
@@ -10469,7 +10479,7 @@ Supplier s)
         btree = btree1;
         btree1 = btree2;
         btree2 = btree;
-      }
+      }*/
 
       local.addr =
         new Cov(rtree_in,cov1,cov2,btree1,btree2,nl->Second(resultType));
