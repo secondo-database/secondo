@@ -3750,11 +3750,12 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
 
       assert(path.size() > 0);
       int index = path.size()-1;
-      int temp_index = index;
+
+/*      int temp_index = index;
       while(temp_index >= 0){
           cout<<"path[temp_index] "<<path[temp_index]<<endl;
           temp_index--;
-      }
+      }*/
 
 ///////////////////////////////////////////////////////////////////
         R_TreeNode<dim,TupleId>*  update_path = new
