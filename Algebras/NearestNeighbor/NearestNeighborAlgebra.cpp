@@ -9936,8 +9936,11 @@ Supplier s)
 //  R_Tree<3, TupleId> *rtree = new R_Tree<3,TupleId>(rtree_in1->FileId(),true);
 //  rtree->MergeRtree(rtree_in1,rtree_in2);
 //  result.setAddr(rtree);
-  result.setAddr(rtree_in1);
-  rtree_in1->MergeRtree();
+
+    result.setAddr(rtree_in1);
+    rtree_in1->MergeRtree();
+
+
   rtree_in1->PrintHeader();
   rtree_in2->PrintHeader();
   return 0;
@@ -10080,13 +10083,9 @@ struct Cov{
 
         }
 
-
-
-
         MInt result(0);
         tmp.Hat(result);
 //        result.Print(cout);
-
 
         int i = 0;
         BTreeIterator* iter_temp = btree1->ExactMatch(id);
@@ -10219,7 +10218,7 @@ struct Cov{
               tmp.PlusExtend(&tmp1,temp1);
               tmp.CopyFrom(&temp1);
               MInt temp2(0);
-              tmp2.Print(cout);
+//              tmp2.Print(cout);
               tmp.PlusExtend(&tmp2,temp2);
               tmp.CopyFrom(&temp2);
 
@@ -10412,8 +10411,6 @@ struct Cov{
             uintarray.clear();*/
 
         }
-
-
 
         MInt result(0);
         tmp.Hat(result);
