@@ -1422,15 +1422,16 @@ void R_TreeNode<dim, LeafInfo>::UpdateBox( BBox<dim>& b, SmiRecordId pointer )
 {
   assert( !leaf );
   modified = true;
-
-  for( int i = 0; i < count; i++ )
+//  cout<<"SmiRecordId pointer "<<pointer<<endl;
+  for( int i = 0; i < count; i++ ){
+//    cout<<((R_TreeInternalEntry<dim>*)entries[ i ])->pointer<<endl;
     if( ((R_TreeInternalEntry<dim>*)entries[ i ])->pointer == pointer )
     {
       entries[ i ]->box = b;
 
       return;
     }
-
+  }
   // Should never reach this point
   assert( 0 );
 }
@@ -3749,6 +3750,12 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
 
       assert(path.size() > 0);
       int index = path.size()-1;
+      int temp_index = index;
+      while(temp_index >= 0){
+          cout<<"path[temp_index] "<<path[temp_index]<<endl;
+          temp_index--;
+      }
+
 ///////////////////////////////////////////////////////////////////
         R_TreeNode<dim,TupleId>*  update_path = new
               R_TreeNode<dim,LeafInfo>(false,MinEntries(0),MaxEntries(0));
@@ -3768,7 +3775,7 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
        //////////// replace entry for update parent node///////////
           e2.box = node->BoundingBox();
           e2.pointer = path[index];
-          update_path->Insert(e2);  //recored new coverage id
+          update_path->Insert(e2);  //record new coverage id
       ///////////////////////////////////////////////////////////
           PutNode(path[index],&node);
           delete node;
@@ -3786,21 +3793,28 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
           node->UpdateBox(e2.box,e2.pointer);
           node->Write(new_node_rec);
           header.nodeCount++;
-          update_path->Insert(e2);  //recored new coverage id
+          update_path->Insert(e2);  //record new coverage id
           delete node;
         }
       }
       //update parent node
       index--;
+
       while(index >= 0){
+//        cout<<"index "<<path[index]<<" e2 "<<e2.pointer<<endl;
+//        cout<<"path[index] "<<path[index]<<endl;
         R_TreeNode<dim,TupleId>* node = GetMyNode(path[index],false,
                         MinEntries(0),MaxEntries(0));
+
         node->UpdateBox(e2.box,e2.pointer);
-        PutNode(path[index],&node);
+
+//        cout<<node->BoundingBox()<<endl;
         e2.box = node->BoundingBox();
         e2.pointer = path[index];
-        update_path->Insert(e2);  //recored new coverage id
+        update_path->Insert(e2);  //record new coverage id
+        PutNode(path[index],&node);
         delete node;
+        index--;
       }
 
    ///////////////////////////////////////////////////////
@@ -3944,11 +3958,12 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
         R_TreeNode<dim,TupleId>* node = GetMyNode(path[index],false,
                         MinEntries(0),MaxEntries(0));
         node->UpdateBox(e2.box,e2.pointer);
-        PutNode(path[index],&node);
         e2.box = node->BoundingBox();
         e2.pointer = path[index];
         update_path->Insert(e2); //record new coverage id
+        PutNode(path[index],&node);
         delete node;
+        index--;
       }
 
     /////////////////////////////////////////////////////////
