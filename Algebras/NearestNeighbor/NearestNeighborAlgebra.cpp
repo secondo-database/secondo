@@ -5575,6 +5575,9 @@ int knearestFilterFun (Word* args, Word& result, int message,
           int attrpos = ((CcInt*)args[7].addr)->GetIntval() - 1;
           UPoint* up = (UPoint*)tuple->GetAttribute(attrpos);
           Point p0;
+//          cout<<"up1 "<<up1->timeInterval<<endl;
+//          cout<<"up2 "<<up2->timeInterval<<endl;
+//          cout<<up->timeInterval<<endl;
           if(up->timeInterval.Contains(up1->timeInterval.start)){
             up->TemporalFunction(up1->timeInterval.start,p0,true);
             if(p0.IsDefined()){
@@ -5590,7 +5593,36 @@ int knearestFilterFun (Word* args, Word& result, int message,
               up->p1 = p1;
             }
           }
-//
+
+//         cout<<tup->timeInterval<<endl;
+          while(up->timeInterval.IsValid() == false){
+
+              ++localInfo->mapit;
+              if(localInfo->mapit == localInfo->resultMap.end()) return CANCEL;
+
+              TupleId tid = localInfo->mapit->second;
+              Tuple *tuple = localInfo->relation->GetTuple(tid);
+
+              UPoint* up = (UPoint*)tuple->GetAttribute(attrpos);
+              Point p0;
+
+              if(up->timeInterval.Contains(up1->timeInterval.start)){
+                up->TemporalFunction(up1->timeInterval.start,p0,true);
+                if(p0.IsDefined()){
+                  up->timeInterval.start = up1->timeInterval.start;
+                  up->p0 = p0;
+                }
+              }
+              Point p1;
+              if(up->timeInterval.Contains(up2->timeInterval.end)){
+                up->TemporalFunction(up2->timeInterval.end,p1,true);
+                if(p1.IsDefined()){
+                  up->timeInterval.end = up2->timeInterval.end;
+                  up->p1 = p1;
+                }
+              }
+          }
+
           result = SetWord(tuple);
           ++localInfo->mapit;
           return YIELD;
