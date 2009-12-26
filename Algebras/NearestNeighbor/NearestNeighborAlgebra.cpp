@@ -4118,6 +4118,23 @@ bool checkInsert( NNSegTree<timeType> &timeTree, SegEntry<timeType> &s,
 Some elements are needed to save between the knearestfilter calls.
 
 */
+struct NN_Ext{
+  TupleId  tid;
+  double t1,t2;
+  NN_Ext(TupleId t,double a,double b):tid(t),t1(a),t2(b){}
+  bool operator<(const NN_Ext nne) const
+  {
+    if(AlmostEqual(t1,nne.t1)){
+        if(t2 < nne.t2)
+          return true;
+        return false;
+    }
+    if(t1 < nne.t1)
+      return true;
+    return false;
+  }
+};
+
 template<class timeType>
 struct KnearestFilterLocalInfo
 {
@@ -4136,9 +4153,15 @@ struct KnearestFilterLocalInfo
   map<SegEntry<timeType>, TupleId> resultMap;
   typedef typename map<SegEntry<timeType>, TupleId>::const_iterator CIMAP;
   CIMAP mapit;
+
+  vector<NN_Ext > result;
+  typedef typename vector<NN_Ext >::iterator RESULTITER;
+  RESULTITER resultiter;
+
   KnearestFilterLocalInfo( const timeType &s, const timeType &e) :
     startTime(s), endTime(e), timeTree( s, e )
     {}
+
 };
 
 /*
@@ -5332,13 +5355,27 @@ template<class timeType>
 bool CmpFiledEntry(const FieldEntry<timeType>& fe1,
 const FieldEntry<timeType>& fe2)
 {
-  if(fe1.start != fe2.start)
+/*  if(fe1.start != fe2.start)
     return fe1.start < fe2.start;
   if(fe1.end != fe2.start)
     return fe1.end < fe2.end;
-  return fe1.nodeid < fe2.nodeid;
+  return fe1.nodeid < fe2.nodeid;*/
+
+  if(!AlmostEqual(fe1.start, fe2.start)){
+      if(fe1.start < fe2.start)
+        return true;
+      return false;
+  }else{
+    if(!AlmostEqual(fe1.end,fe2.end)){
+      if(fe2.end < fe2.end)
+        return true;
+      return false;
+    }else
+      return fe1.nodeid < fe2.nodeid;
+  }
 
 }
+
 template<class timeType>
 int knearestFilterFun (Word* args, Word& result, int message,
              Word& local, Supplier s)
@@ -5413,11 +5450,21 @@ int knearestFilterFun (Word* args, Word& result, int message,
       while( !localInfo->vectorA.empty() )
       {
         unsigned int vpos;
+
+/*        for( vpos = 0; vpos < localInfo->vectorA.size(); ++vpos){
+          FieldEntry<timeType> &f = localInfo->vectorA[ vpos ];
+          printf("before vpos %d %.8f %.8f\n",vpos, f.start,f.end);
+        }*/
+
         stable_sort(localInfo->vectorA.begin(),localInfo->vectorA.end(),
         CmpFiledEntry<timeType>); //order by time
+
         for( vpos = 0; vpos < localInfo->vectorA.size(); ++vpos)
         {
           FieldEntry<timeType> &f = localInfo->vectorA[ vpos ];
+
+//          printf("after vpos %d %.8f %.8f\n",vpos, f.start,f.end);
+
           SmiRecordId adr = f.nodeid;
           // check if this entry is not deleted
           if( localInfo->timeTree.erase( f.start, f.end, f.nodeid,
@@ -5486,13 +5533,6 @@ int knearestFilterFun (Word* args, Word& result, int message,
                     const BBox<2> mBox(t->getBox(d));
                     if(interv.size() == 3){ //exit hat
                       int cov = 0;
-
-//                      for(unsigned int j = 0;j < interv.size();j++){
-//                        if(interv[j].Contains(t2)){
-//                          cov = covs[j];
-//                          break;
-//                        }
-//                      }
                       for(unsigned int j = 0;j < interv.size();j++){
                         if(interv[j].Contains(t2) && interv[j].Contains(t1)){
                           cov = covs[j];
@@ -5532,6 +5572,43 @@ int knearestFilterFun (Word* args, Word& result, int message,
                           e.pointer, se.maxdist, t1, t2, f.level + 1));
                       }
                     }
+
+/*                    int cov1 = -1,cov2 = -1;
+                    int cov = 0;
+                    for(unsigned int j = 0;j < interv.size();j++){
+                        if(interv[j].Contains(t1))
+                          cov1 = covs[j];
+
+                        if(interv[j].Contains(t2))
+                          cov2 = covs[j];
+                        if(cov1 != -1 && cov2 != -1)
+                          cov = cov1 < cov2? cov1:cov2;
+                      }
+                    if(cov != 0){
+                      SegEntry<timeType> se(xyBox,t1, t2,
+                          xyBox.Distance( mBox),
+                          maxDistance( xyBox, mBox), cov,
+                          e.pointer, -1);
+                      double reachedCoverage =
+                        localInfo->timeTree.calcCoverage( t1, t2, se.mindist );
+                      if(reachedCoverage < localInfo->k){
+                        localInfo->timeTree.insert( se, localInfo->k);
+                        localInfo->vectorB.push_back(FieldEntry<timeType>(
+                            se.nodeid, se.maxdist, se.start, se.end,
+                            f.level+1));
+                      }
+                    }else{
+                        SegEntry<timeType> se(xyBox,t1, t2,
+                        xyBox.Distance( mBox),
+                        maxDistance( xyBox, mBox), 0,
+                        e.pointer, -1);
+                        if( checkInsert( localInfo->timeTree, se,
+                          mBox, localInfo->k, localInfo->rtree, f.level+1)){
+                          localInfo->vectorB.push_back( FieldEntry<timeType>(
+                          e.pointer, se.maxdist, t1, t2, f.level + 1));
+                        }
+                    }*/
+
                 }
             }
           }//else
@@ -5546,6 +5623,21 @@ int knearestFilterFun (Word* args, Word& result, int message,
       localInfo->timeTree.fillMap( localInfo->resultMap );
       localInfo->mapit = localInfo->resultMap.begin();
 
+      ////////
+      int attrpos = ((CcInt*)args[7].addr)->GetIntval() - 1;
+      while(localInfo->mapit != localInfo->resultMap.end()){
+        TupleId tid = localInfo->mapit->second;
+        Tuple *tuple = localInfo->relation->GetTuple(tid);
+        UPoint* up = (UPoint*)tuple->GetAttribute(attrpos);
+        double t1 = up->timeInterval.start.ToDouble();
+        double t2 = up->timeInterval.end.ToDouble();
+        localInfo->result.push_back(NN_Ext(tid,t1,t2));
+        tuple->DeleteIfAllowed();
+        localInfo->mapit++;
+      }
+      sort(localInfo->result.begin(),localInfo->result.end());
+      localInfo->resultiter = localInfo->result.begin();
+      ////////////
       return 0;
     }
 
@@ -5563,10 +5655,38 @@ int knearestFilterFun (Word* args, Word& result, int message,
       }
 
       /* give out alle elements of the resultmap */
-      if ( localInfo->mapit != localInfo->resultMap.end() )
+/*      if ( localInfo->mapit != localInfo->resultMap.end() )
       {
           TupleId tid = localInfo->mapit->second;
           Tuple *tuple = localInfo->relation->GetTuple(tid);
+//split units
+          const MPoint *mp = (MPoint*)args[5].addr;//5 th parameter
+          const UPoint *up1, *up2;
+          mp->Get( 0, up1);
+          mp->Get( mp->GetNoComponents() - 1, up2);
+          int attrpos = ((CcInt*)args[7].addr)->GetIntval() - 1;
+          UPoint* up = (UPoint*)tuple->GetAttribute(attrpos);
+          Point p0;
+          if(up->timeInterval.Contains(up1->timeInterval.start)){
+            up->TemporalFunction(up1->timeInterval.start,p0,true);
+            if(p0.IsDefined()){
+              up->timeInterval.start = up1->timeInterval.start;
+              up->p0 = p0;
+            }
+          }
+          Point p1;
+          if(up->timeInterval.Contains(up2->timeInterval.end)){
+            up->TemporalFunction(up2->timeInterval.end,p1,true);
+            if(p1.IsDefined()){
+              up->timeInterval.end = up2->timeInterval.end;
+              up->p1 = p1;
+            }
+          }*/
+
+          if(localInfo->resultiter != localInfo->result.end()){
+
+            TupleId tid = localInfo->resultiter->tid;
+            Tuple *tuple = localInfo->relation->GetTuple(tid);
 //split units
           const MPoint *mp = (MPoint*)args[5].addr;//5 th parameter
           const UPoint *up1, *up2;
@@ -5594,37 +5714,9 @@ int knearestFilterFun (Word* args, Word& result, int message,
             }
           }
 
-//         cout<<tup->timeInterval<<endl;
-          while(up->timeInterval.IsValid() == false){
-
-              ++localInfo->mapit;
-              if(localInfo->mapit == localInfo->resultMap.end()) return CANCEL;
-
-              TupleId tid = localInfo->mapit->second;
-              Tuple *tuple = localInfo->relation->GetTuple(tid);
-
-              UPoint* up = (UPoint*)tuple->GetAttribute(attrpos);
-              Point p0;
-
-              if(up->timeInterval.Contains(up1->timeInterval.start)){
-                up->TemporalFunction(up1->timeInterval.start,p0,true);
-                if(p0.IsDefined()){
-                  up->timeInterval.start = up1->timeInterval.start;
-                  up->p0 = p0;
-                }
-              }
-              Point p1;
-              if(up->timeInterval.Contains(up2->timeInterval.end)){
-                up->TemporalFunction(up2->timeInterval.end,p1,true);
-                if(p1.IsDefined()){
-                  up->timeInterval.end = up2->timeInterval.end;
-                  up->p1 = p1;
-                }
-              }
-          }
-
           result = SetWord(tuple);
-          ++localInfo->mapit;
+//          ++localInfo->mapit;
+          ++localInfo->resultiter;
           return YIELD;
       }
       else
@@ -9877,7 +9969,18 @@ ListExpr MergeRTreeTypeMap(ListExpr args)
     ErrorReporter::ReportError(err);
     return nl->TypeError();
   }
-    return nl->First(args);
+//    return nl->First(args);
+    ListExpr reslist = nl->TwoElemList(
+        nl->SymbolAtom("stream"),
+        nl->TwoElemList(
+          nl->SymbolAtom("tuple"),
+          nl->TwoElemList(
+            nl->TwoElemList(nl->SymbolAtom("nodeId"),nl->SymbolAtom("int")),
+            nl->TwoElemList(nl->SymbolAtom("level"),nl->SymbolAtom("int"))
+          )
+        )
+      );
+    return reslist;
 }
 
 /*
@@ -9955,27 +10058,57 @@ ListExpr MergeCovTypeMap(ListExpr args)
 Merge two input r-trees into one r-tree and record in the same file
 
 */
+
 int MergeRTreeFun(Word* args, Word& result, int message,Word& local,
 Supplier s)
 {
-  R_Tree<3,TupleId>* rtree_in1 = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
-  R_Tree<3,TupleId>* rtree_in2 = static_cast<R_Tree<3,TupleId>*>(args[1].addr);
+  static int flag = 0;
+  switch(message){
+    case OPEN:
+      return 0;
+    case REQUEST:
+      if(flag == 0){
+        R_Tree<3,TupleId>* rtree_in1 =
+                      static_cast<R_Tree<3,TupleId>*>(args[0].addr);
+        rtree_in1->MergeRtree();
+        Tuple* t = new Tuple(nl->Second(GetTupleResultType(s)));
+        t->PutAttribute(0,new CcInt(true,rtree_in1->RootRecordId()));
+        t->PutAttribute(1,new CcInt(true,0));
+        result.setAddr(t);
+        flag = 1;
+        return YIELD;
+      }else{
+          flag = 0;
+          return CANCEL;
+      }
+    case CLOSE:
 
-  R_Tree<3,TupleId>* rtree_temp = (R_Tree<3,TupleId>*)qp->ResultStorage(s).addr;
-  rtree_temp->CloseFile();
+        qp->SetModified(qp->GetSon(s,0));
+//        qp->SetModified(qp->GetSon(s,1));
+        local.setAddr(Address(0));
+        return 0;
+  }
+  return 0;
+
+/*  R_Tree<3,TupleId>* rtree_in1 = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
+//  R_Tree<3,TupleId>* rtree_in2 = static_cast<R_Tree<3,TupleId>*>(args[1].addr);
+
+//R_Tree<3,TupleId>* rtree_temp = (R_Tree<3,TupleId>*)qp->ResultStorage(s).addr;
+// rtree_temp->CloseFile();
 
   result = qp->ResultStorage(s);
 //  R_Tree<3, TupleId> *rtree = new R_Tree<3,TupleId>(rtree_in1->FileId(),true);
 //  rtree->MergeRtree(rtree_in1,rtree_in2);
 //  result.setAddr(rtree);
 
-    result.setAddr(rtree_in1);
     rtree_in1->MergeRtree();
+    cout<<"root id "<<rtree_in1->RootRecordId()<<endl;
 
+    result.setAddr(rtree_in1);
 
-  rtree_in1->PrintHeader();
-  rtree_in2->PrintHeader();
-  return 0;
+//  rtree_in1->CloseFile();
+//  rtree_in2->PrintHeader();*/
+    return 0;
 }
 
 /*
@@ -10068,7 +10201,17 @@ struct Cov{
             while(iter1_1->Next()){
                 Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
                 UInt* ui = (UInt*)tuple1->GetAttribute(2);
-                tmp1.Add(*ui);
+                if(tmp1.GetNoComponents() == 0){
+                  tmp1.Add(*ui);
+                  tuple1->DeleteIfAllowed();
+                  continue;
+                }
+////////////////////////////////////////////////
+                const UInt* temp_ui;
+                tmp1.Get(tmp1.GetNoComponents()-1,temp_ui);
+//////////////////////////////////////////////////
+                if(!(temp_ui->timeInterval == ui->timeInterval))
+                  tmp1.Add(*ui);
                 tuple1->DeleteIfAllowed();
             }
             delete iter1_1;
@@ -10077,7 +10220,17 @@ struct Cov{
             while(iter2_2->Next()){
                 Tuple* tuple2 = cov2->GetTuple(iter2_2->GetId());
                 UInt* ui = (UInt*)tuple2->GetAttribute(2);
-                tmp2.Add(*ui);
+                if(tmp2.GetNoComponents() == 0){
+                  tmp2.Add(*ui);
+                  tuple2->DeleteIfAllowed();
+                  continue;
+                }
+////////////////////////////////////////////////
+                const UInt* temp_ui;
+                tmp2.Get(tmp2.GetNoComponents()-1,temp_ui);
+//////////////////////////////////////////////////
+                if(!(temp_ui->timeInterval == ui->timeInterval))
+                  tmp2.Add(*ui);
                 tuple2->DeleteIfAllowed();
             }
             delete iter2_2;
@@ -10117,22 +10270,39 @@ struct Cov{
 
         MInt result(0);
         tmp.Hat(result);
-//        result.Print(cout);
+        result.Print(cout);
 
+        cout<<"result.GetNoComponents() "<<result.GetNoComponents()<<endl;
         int i = 0;
+
         BTreeIterator* iter_temp = btree1->ExactMatch(id);
         while(iter_temp->Next()){
           Tuple* tuple = cov1->GetTuple(iter_temp->GetId());
           const UInt* ui;
-          assert(i < result.GetNoComponents());
-          result.Get(i,ui);
-          vector<int> indices;
-          vector<Attribute*> attributes;
-          indices.push_back(2);
-          attributes.push_back(new UInt(*ui));
-          cov1->UpdateTuple(tuple,indices,attributes);
-          tuple->DeleteIfAllowed();
+
+          cout<<"i "<<i<<endl;
+//          cout<<*tuple<<endl;
+
+          if(i < result.GetNoComponents()){
+            result.Get(i,ui);
+            vector<int> indices;
+            vector<Attribute*> attributes;
+            indices.push_back(2);
+            attributes.push_back(new UInt(*ui));
+            cov1->UpdateTuple(tuple,indices,attributes);
+            tuple->DeleteIfAllowed();
+          }else{
+            result.Get(i-1,ui);
+            (const_cast<UInt*>(ui))->constValue.Set(0);
+            vector<int> indices;
+            vector<Attribute*> attributes;
+            indices.push_back(2);
+            attributes.push_back(new UInt(*ui));
+            cov1->UpdateTuple(tuple,indices,attributes);
+            tuple->DeleteIfAllowed();
+          }
           i++;
+
         }
         delete iter_temp;
 
@@ -10231,6 +10401,17 @@ struct Cov{
               while(iter1_1->Next()){
                 Tuple* tuple1 = cov1->GetTuple(iter1_1->GetId());
                 UInt* ui = (UInt*)tuple1->GetAttribute(2);
+                if(tmp1.GetNoComponents() == 0){
+                  tmp1.Add(*ui);
+                  tuple1->DeleteIfAllowed();
+                  continue;
+                }
+////////////////////////////////////////////////
+                const UInt* temp_ui;
+                tmp1.Get(tmp1.GetNoComponents()-1,temp_ui);
+//////////////////////////////////////////////////
+                if(!(temp_ui->timeInterval == ui->timeInterval))
+
                 tmp1.Add(*ui);
                 tuple1->DeleteIfAllowed();
               }
@@ -10240,7 +10421,17 @@ struct Cov{
               while(iter2_2->Next()){
                 Tuple* tuple2 = cov2->GetTuple(iter2_2->GetId());
                 UInt* ui = (UInt*)tuple2->GetAttribute(2);
-                tmp2.Add(*ui);
+                if(tmp2.GetNoComponents() == 0){
+                  tmp2.Add(*ui);
+                  tuple2->DeleteIfAllowed();
+                  continue;
+                }
+////////////////////////////////////////////////
+                const UInt* temp_ui;
+                tmp2.Get(tmp2.GetNoComponents()-1,temp_ui);
+//////////////////////////////////////////////////
+                if(!(temp_ui->timeInterval == ui->timeInterval))
+                    tmp2.Add(*ui);
                 tuple2->DeleteIfAllowed();
               }
               delete iter2_2;
@@ -10291,20 +10482,36 @@ struct Cov{
           MInt result(0);
           tmp.Hat(result);
           int i = 0;
+           cout<<"result.GetNoComponents() "<<result.GetNoComponents()<<endl;
 
           BTreeIterator* iter_temp = btree2->ExactMatch(id);
           while(iter_temp->Next()){
             Tuple* tuple = cov2->GetTuple(iter_temp->GetId());
             const UInt* ui;
-            assert(i < result.GetNoComponents());
-            result.Get(i,ui);
-            vector<int> indices;
-            vector<Attribute*> attributes;
-            indices.push_back(2);
-            attributes.push_back(new UInt(*ui));
-            cov2->UpdateTuple(tuple,indices,attributes);
-            tuple->DeleteIfAllowed();
+
+            cout<<"i "<<i<<endl;
+//            cout<<*tuple<<endl;
+
+            if(i < result.GetNoComponents()){
+              result.Get(i,ui);
+              vector<int> indices;
+              vector<Attribute*> attributes;
+              indices.push_back(2);
+              attributes.push_back(new UInt(*ui));
+              cov2->UpdateTuple(tuple,indices,attributes);
+              tuple->DeleteIfAllowed();
+            }else{
+                  result.Get(i-1,ui);
+                  (const_cast<UInt*>(ui))->constValue.Set(0);
+                  vector<int> indices;
+                  vector<Attribute*> attributes;
+                  indices.push_back(2);
+                  attributes.push_back(new UInt(*ui));
+                  cov2->UpdateTuple(tuple,indices,attributes);
+                  tuple->DeleteIfAllowed();
+            }
             i++;
+
           }
           delete iter_temp;
 
