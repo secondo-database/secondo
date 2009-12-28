@@ -36,5 +36,6 @@ operator heapbup2 alias HEAPBUP2 pattern _ op
 operator heapmdr alias HEAPMDR pattern _ op
 operator tuplecomp alias TUPLECOMP pattern _ op
 operator tuplefile alias TUPLEFILE pattern _ op[_]
-operator tuplebuffer alias TUPLEBUFFER pattern _ op[_, _]
+operator tuplebuffer alias TUPLEBUFFER pattern _ op[_]
+operator tuplebuffer2 alias TUPLEBUFFER2 pattern _ op[_, _]
 

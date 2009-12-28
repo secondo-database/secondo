@@ -105,6 +105,12 @@ Result   : 3
 
 Operator : tuplebuffer
 Number   : 1
+Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) int) -> (stream (tuple([a1:d1, ... ,an:dn])))
+Example  : query Staedte feed head[3] tuplebuffer[1024] count
+Result   : 3
+
+Operator : tuplebuffer2
+Number   : 1
 Signature: ((stream (tuple([a1:d1, ... ,an:dn]))) int int) -> (stream (tuple([a1:d1, ... ,an:dn])))
 Example  : query Staedte feed head[3] tuplebuffer[1024,-1] count
 Result   : 3
