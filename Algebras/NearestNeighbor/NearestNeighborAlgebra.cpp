@@ -5367,7 +5367,7 @@ const FieldEntry<timeType>& fe2)
       return false;
   }else{
     if(!AlmostEqual(fe1.end,fe2.end)){
-      if(fe2.end < fe2.end)
+      if(fe1.end < fe2.end)
         return true;
       return false;
     }else
@@ -5531,7 +5531,8 @@ int knearestFilterFun (Word* args, Word& result, int message,
                     const BBox<2> xyBox = makexyBox( e.box );
                     Interval<timeType> d(t1,t2,true,true);
                     const BBox<2> mBox(t->getBox(d));
-                    if(interv.size() == 3){ //exit hat
+
+/*                    if(interv.size() == 3){ //exit hat
                       int cov = 0;
                       for(unsigned int j = 0;j < interv.size();j++){
                         if(interv[j].Contains(t2) && interv[j].Contains(t1)){
@@ -5571,9 +5572,9 @@ int knearestFilterFun (Word* args, Word& result, int message,
                           localInfo->vectorB.push_back( FieldEntry<timeType>(
                           e.pointer, se.maxdist, t1, t2, f.level + 1));
                       }
-                    }
+                    }*/
 
-/*                    int cov1 = -1,cov2 = -1;
+                    int cov1 = -1,cov2 = -1;
                     int cov = 0;
                     for(unsigned int j = 0;j < interv.size();j++){
                         if(interv[j].Contains(t1))
@@ -5607,7 +5608,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
                           localInfo->vectorB.push_back( FieldEntry<timeType>(
                           e.pointer, se.maxdist, t1, t2, f.level + 1));
                         }
-                    }*/
+                    }
 
                 }
             }
