@@ -2264,7 +2264,6 @@ nodeIdCounter( 0 )
 
   currLevel = 0;
 
-  cout<<"R_Tree() root id "<<RootRecordId()<<endl;
   nodePtr = GetNode( RootRecordId(),
                      currLevel == Height(),
                      MinEntries( currLevel ),
@@ -3741,7 +3740,7 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
   //create an entry on the second root node
 
   //first assume, the height of first rtree is higher than the second
-  cout<<" height1 "<<temp_head.height<<" height2 "<<header.height<<endl;
+//  cout<<" height1 "<<temp_head.height<<" height2 "<<header.height<<endl;
   if(temp_head.height > header.height){
       int cur_height = temp_head.height;//height of first r-tree
       vector<SmiRecordId> path;
@@ -3899,7 +3898,7 @@ void R_Tree<dim, LeafInfo>::MergeRtree()
                /////////////
         path[0] = new_node_rec_id;
         WriteHeader();
-    cout<<"header "<<header.headerRecordId<<"root id "<<RootRecordId()<<endl;
+//    cout<<"header "<<header.headerRecordId<<"root id "<<RootRecordId()<<endl;
 /*        ReadHeader();
         nodePtr = GetNode(RootRecordId(),false,MinEntries(0),MaxEntries(0));
         path[0] = header.rootRecordId;*/
