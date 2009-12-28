@@ -39,14 +39,6 @@ create database db_tmp;
 open database db_tmp;
 
 #--------------------------------------------------  
-# Create relations with 50 MB data and 256 Byte tuples
-#--------------------------------------------------  
-
-#testcase create_relation
-#yields success
-restore R50MB_T256B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experiments/R50MB_T256B';
-
-#--------------------------------------------------  
 # Hybrid Hash-Join with 50 MB x 16 MB, extern, 
 # with subpartitioning, no loop-processing
 #--------------------------------------------------  

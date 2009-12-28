@@ -486,7 +486,7 @@ clean_db:
 # Experiments
 # --------------------------------------------
 
-tuplebuffer: clean_db R100MB_T64B R100MB_T256B R100MB_T512B R100MB_T1KB
+tuplebuffer: clean_db R100MB_T64B R100MB_T128B R100MB_T256B R100MB_T512B R100MB_T1KB
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
 	$(call doTest, $@)
@@ -1027,15 +1027,7 @@ hashjoin_progress_estimation: clean_db
 	cp $(SECONDO_BUILD_DIR)/bin/proglogt.csv $(LOGDIR)/$@4_proglogt.csv
 	rm -f -v $@_A* $@_B*
 
-dummy: clean_db 
+dummy: clean_db R100MB_T128B 
 	@echo ""
 	@echo "Running experiment " $@.$(TESTEXT)
-	rm -f -v $@_*x* $@_*x*
-	$(TEXTGENSEL) 64 819200 81920 0.00001 $@_64A50x5 $@_64B50x5
-	$(TEXTGENSEL) 128 409600 40960 0.00001 $@_128A50x5 $@_128B50x5
-	$(TEXTGENSEL) 256 204800 20480 0.00001 $@_256A50x5 $@_256B50x5
-	$(TEXTGENSEL) 512 102400 10240 0.00001 $@_512A50x5 $@_512B50x5
-	$(TEXTGENSEL) 1024 51200 5120 0.00001 $@_1024A50x5 $@_1024B50x5
-	export SECONDO_PARAMMaxMemPerOperator=64; \
 	$(call doTest, $@)
-	rm -f -v $@_*x* $@_*x*
