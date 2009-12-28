@@ -4153,11 +4153,6 @@ struct KnearestFilterLocalInfo
   map<SegEntry<timeType>, TupleId> resultMap;
   typedef typename map<SegEntry<timeType>, TupleId>::const_iterator CIMAP;
   CIMAP mapit;
-
-  vector<NN_Ext > result;
-  typedef typename vector<NN_Ext >::iterator RESULTITER;
-  RESULTITER resultiter;
-
   KnearestFilterLocalInfo( const timeType &s, const timeType &e) :
     startTime(s), endTime(e), timeTree( s, e )
     {}
@@ -5355,13 +5350,13 @@ template<class timeType>
 bool CmpFiledEntry(const FieldEntry<timeType>& fe1,
 const FieldEntry<timeType>& fe2)
 {
-/*  if(fe1.start != fe2.start)
+  if(fe1.start != fe2.start)
     return fe1.start < fe2.start;
   if(fe1.end != fe2.start)
     return fe1.end < fe2.end;
-  return fe1.nodeid < fe2.nodeid;*/
+  return fe1.nodeid < fe2.nodeid;
 
-  if(!AlmostEqual(fe1.start, fe2.start)){
+/*  if(!AlmostEqual(fe1.start, fe2.start)){
       if(fe1.start < fe2.start)
         return true;
       return false;
@@ -5372,7 +5367,7 @@ const FieldEntry<timeType>& fe2)
       return false;
     }else
       return fe1.nodeid < fe2.nodeid;
-  }
+  }*/
 
 }
 
@@ -5532,7 +5527,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
                     Interval<timeType> d(t1,t2,true,true);
                     const BBox<2> mBox(t->getBox(d));
 
-/*                    if(interv.size() == 3){ //exit hat
+                    if(interv.size() == 3){ //exit hat
                       int cov = 0;
                       for(unsigned int j = 0;j < interv.size();j++){
                         if(interv[j].Contains(t2) && interv[j].Contains(t1)){
@@ -5572,9 +5567,9 @@ int knearestFilterFun (Word* args, Word& result, int message,
                           localInfo->vectorB.push_back( FieldEntry<timeType>(
                           e.pointer, se.maxdist, t1, t2, f.level + 1));
                       }
-                    }*/
+                    }
 
-                    int cov1 = -1,cov2 = -1;
+/*                    int cov1 = -1,cov2 = -1;
                     int cov = 0;
                     for(unsigned int j = 0;j < interv.size();j++){
                         if(interv[j].Contains(t1))
@@ -5608,7 +5603,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
                           localInfo->vectorB.push_back( FieldEntry<timeType>(
                           e.pointer, se.maxdist, t1, t2, f.level + 1));
                         }
-                    }
+                    }*/
 
                 }
             }
@@ -5624,21 +5619,6 @@ int knearestFilterFun (Word* args, Word& result, int message,
       localInfo->timeTree.fillMap( localInfo->resultMap );
       localInfo->mapit = localInfo->resultMap.begin();
 
-      ////////
-      int attrpos = ((CcInt*)args[7].addr)->GetIntval() - 1;
-      while(localInfo->mapit != localInfo->resultMap.end()){
-        TupleId tid = localInfo->mapit->second;
-        Tuple *tuple = localInfo->relation->GetTuple(tid);
-        UPoint* up = (UPoint*)tuple->GetAttribute(attrpos);
-        double t1 = up->timeInterval.start.ToDouble();
-        double t2 = up->timeInterval.end.ToDouble();
-        localInfo->result.push_back(NN_Ext(tid,t1,t2));
-        tuple->DeleteIfAllowed();
-        localInfo->mapit++;
-      }
-      sort(localInfo->result.begin(),localInfo->result.end());
-      localInfo->resultiter = localInfo->result.begin();
-      ////////////
       return 0;
     }
 
@@ -5656,7 +5636,7 @@ int knearestFilterFun (Word* args, Word& result, int message,
       }
 
       /* give out alle elements of the resultmap */
-/*      if ( localInfo->mapit != localInfo->resultMap.end() )
+      if ( localInfo->mapit != localInfo->resultMap.end() )
       {
           TupleId tid = localInfo->mapit->second;
           Tuple *tuple = localInfo->relation->GetTuple(tid);
@@ -5682,42 +5662,10 @@ int knearestFilterFun (Word* args, Word& result, int message,
               up->timeInterval.end = up2->timeInterval.end;
               up->p1 = p1;
             }
-          }*/
-
-          if(localInfo->resultiter != localInfo->result.end()){
-
-            TupleId tid = localInfo->resultiter->tid;
-            Tuple *tuple = localInfo->relation->GetTuple(tid);
-//split units
-          const MPoint *mp = (MPoint*)args[5].addr;//5 th parameter
-          const UPoint *up1, *up2;
-          mp->Get( 0, up1);
-          mp->Get( mp->GetNoComponents() - 1, up2);
-          int attrpos = ((CcInt*)args[7].addr)->GetIntval() - 1;
-          UPoint* up = (UPoint*)tuple->GetAttribute(attrpos);
-          Point p0;
-//          cout<<"up1 "<<up1->timeInterval<<endl;
-//          cout<<"up2 "<<up2->timeInterval<<endl;
-//          cout<<up->timeInterval<<endl;
-          if(up->timeInterval.Contains(up1->timeInterval.start)){
-            up->TemporalFunction(up1->timeInterval.start,p0,true);
-            if(p0.IsDefined()){
-              up->timeInterval.start = up1->timeInterval.start;
-              up->p0 = p0;
-            }
-          }
-          Point p1;
-          if(up->timeInterval.Contains(up2->timeInterval.end)){
-            up->TemporalFunction(up2->timeInterval.end,p1,true);
-            if(p1.IsDefined()){
-              up->timeInterval.end = up2->timeInterval.end;
-              up->p1 = p1;
-            }
           }
 
           result = SetWord(tuple);
-//          ++localInfo->mapit;
-          ++localInfo->resultiter;
+          ++localInfo->mapit;
           return YIELD;
       }
       else
