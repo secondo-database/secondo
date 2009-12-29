@@ -10006,6 +10006,7 @@ ListExpr MergeCovTypeMap(ListExpr args)
 }
 /*
 Merge two input r-trees into one r-tree and record in the same file
+returns the root node as a tuple
 
 */
 
