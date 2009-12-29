@@ -124,12 +124,12 @@ Result   : 0
 Operator : mergertree
 Number  : 1
 Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) -> (stream (tuple ((x1 t1)...(xn tn))) ti false)
-Example  : query mergertree(UTOrdered_1,UTOrdered_2) consume;
+Example  : query mergertree(UTOrdered_1, UTOrdered_2) consume;
 Result   : file
 
 
 Operator : mergecov
 Number  : 1
-Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) (rel1 (tuple ((x1 t1)...(xn tn)))) (rel2 (tuple ((x1 t1)...(xn tn)))) (btree1 (tuple ((x1 t1)...(xn tn))) ti) (btree2 (tuple ((x1 t1)...(xn tn))) ti) -> (rel3 (tuple ((x1 t1)...(xn tn))))
-Example  : query mergecov(UTOrdered_12,numbers1,numbers2,bnumbers1,bnumers2);
+Signature: (rtree<d> (tuple ((x1 t1)...(xn tn))) ti false) (rel1 (tuple ((x1 t1)...(xn tn)))) (rel2 (tuple ((x1 t1)...(xn tn)))) (btree1 (tuple ((x1 t1)...(xn tn))) ti) (btree2 (tuple ((x1 t1)...(xn tn))) ti) -> (stream (tuple ((x1 t1)...(xn tn))) ti)
+Example  : query mergecov(UTOrdered_12, numbers1, numbers2, bnumbers1, bnumers2) count;
 Result   : file

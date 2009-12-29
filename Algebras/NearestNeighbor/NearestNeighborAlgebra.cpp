@@ -9853,10 +9853,10 @@ const string MergeCovSpec  =
   "(rtree2<d> (tuple ((x1 t1)...(xn tn))) ti) x "
   "(rel1 (tuple ((x1 t1)...(xn tn)))) (rel2 (tuple ((x1 t1)...(xn tn)))) x"
   "(btree (tuple ((x1 t1)...(xn tn))) ti)"
-  " -> (rel3 (tuple ((x1 t1)...(xn tn)))) </text--->"
-  "<text>mergecov (_, _,_,_,_ )</text--->"
+  " -> (stream (tuple ((x1 t1)...(xn tn))) ti) </text--->"
+  "<text>mergecov (_, _, _, _, _ )</text--->"
   "<text>Merge Two Coverage Numbers </text--->"
-  "<text>query mergecov(rtree_1,rtree_2,num1,num2,bnum1) count</text--->"
+  "<text>query mergecov(rtree, num1, num2, bnum1, bnum2) count</text--->"
   "<text></text--->"
   ") )";
 
