@@ -9841,7 +9841,8 @@ const string MergertreeSpec  =
   "(rtree2<d> (tuple ((x1 t1)...(xn tn))) ti) x "
   " -> (stream (tuple ((x1 t1)...(xn tn))) ti)</text--->"
   "<text>mergertree (_, _ )</text--->"
-  "<text>Merge Two RTrees (stored in the same file) </text--->"
+  "<text>Merge Two RTrees (stored in the same file) and "
+  "outputs the root node tuple</text--->"
   "<text>query mergertree(rtree_1,rtree_2) consume</text--->"
   "<text></text--->"
   ") )";
