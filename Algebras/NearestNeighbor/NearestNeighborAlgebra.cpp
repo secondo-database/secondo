@@ -9839,10 +9839,10 @@ const string MergertreeSpec  =
   "\"Example\" \"Comment\" ) "
   "(<text>(rtree1<d> (tuple ((x1 t1)...(xn tn))) ti) x \n"
   "(rtree2<d> (tuple ((x1 t1)...(xn tn))) ti) x "
-  " -> (rtree<d> (tuple ((x1 t1)...(xn tn))) ti)</text--->"
+  " -> (stream (tuple ((x1 t1)...(xn tn))) ti)</text--->"
   "<text>mergertree (_, _ )</text--->"
   "<text>Merge Two RTrees (stored in the same file) </text--->"
-  "<text>query mergertree(rtree_1,rtree_2)</text--->"
+  "<text>query mergertree(rtree_1,rtree_2) consume</text--->"
   "<text></text--->"
   ") )";
 
@@ -10038,26 +10038,6 @@ Supplier s)
         return 0;
   }
   return 0;
-
-/*  R_Tree<3,TupleId>* rtree_in1 = static_cast<R_Tree<3,TupleId>*>(args[0].addr);
-//  R_Tree<3,TupleId>* rtree_in2 = static_cast<R_Tree<3,TupleId>*>(args[1].addr);
-
-//R_Tree<3,TupleId>* rtree_temp = (R_Tree<3,TupleId>*)qp->ResultStorage(s).addr;
-// rtree_temp->CloseFile();
-
-  result = qp->ResultStorage(s);
-//  R_Tree<3, TupleId> *rtree = new R_Tree<3,TupleId>(rtree_in1->FileId(),true);
-//  rtree->MergeRtree(rtree_in1,rtree_in2);
-//  result.setAddr(rtree);
-
-    rtree_in1->MergeRtree();
-    cout<<"root id "<<rtree_in1->RootRecordId()<<endl;
-
-    result.setAddr(rtree_in1);
-
-//  rtree_in1->CloseFile();
-//  rtree_in2->PrintHeader();*/
-    return 0;
 }
 
 /*
