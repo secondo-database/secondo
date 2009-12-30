@@ -142,10 +142,6 @@ restore R100MB_T128B from '$(SECONDO_BUILD_DIR)/Algebras/ExtRelation-2/experimen
 
 #testcase create_relation
 #yields success
-let ten = R100MB_T128B feed head[10] project [Nr] {a} consume; 
-
-#testcase create_relation
-#yields success
 let R1G_T128B = R100MB_T128B feed ten feed product remove[Nr_a] extend[ran: randint(50000)] sortby2Param[ran asc;512*1024*1024,-1,-1] remove[ran] consume;
 
 #--------------------------------------------------  
@@ -430,11 +426,11 @@ query R1G_T1KB feed head[1] tuplesize;
 
 #testcase tuplebuffer_big_tuplesize_write_1
 #yields success
-query R1G_T1KB feed tuplebuffer[16*1024, 0] head[1] count;
+query R1G_T1KB feed tuplebuffer[16*1024] head[1] count;
 
 #testcase tuplebuffer_big_tuplesize_total_1
 #yields success
-query R1G_T1KB feed tuplebuffer[16*1024, 0] count;
+query R1G_T1KB feed tuplebuffer[16*1024] count;
 
 #--------------------------------------------------  
 
