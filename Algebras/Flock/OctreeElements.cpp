@@ -344,9 +344,9 @@ OctreeCell::covers(OctreeElement* _element){
   double* elementCoords = _element->getCoordinates();
   for(int i = 0; i < this->dimensions; i++){
     if( this->coordinates[i] + this->halfSideLength - 
-        elementCoords[i] + epsilon <= 0 ||
+        elementCoords[i] + __epsilon <= 0 ||
         this->coordinates[i] - this->halfSideLength - 
-        elementCoords[i] >  epsilon){
+        elementCoords[i] >  __epsilon){
 #ifdef SHOW_DEBUG
   printf("does not cover in coordinate %d %4.18f %4.18f %4.18f %4.18f %4.18f\n"
           , i,

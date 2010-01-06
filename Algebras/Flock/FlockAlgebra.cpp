@@ -201,6 +201,36 @@ Flock::IntersectionCount(Flock* arg)
   return last - resVec.begin();
 }
 
+Points* Flock::Flock2Points(Instant& curTime, vector<int>* ids, 
+       vector<MPoint*>*sourceMPoints)
+{
+  bool debugme=true;
+  Points* res= new Points(this->pointsCount);
+  MPoint* curMPoint;
+  Point curPoint(0, 0);
+  Intime<Point> pointIntime(curTime, curPoint);
+  vector<int>::iterator idsIt;
+  unsigned int pos;
+  for(int i=0; i<this->pointsCount; ++i)
+  {
+    for(pos=0; pos<ids->size(); ++pos)
+      if((*ids)[pos] == this->points[i]) break;
+    if(pos == ids->size())
+    {
+      cerr<<"Error! Flock::GetPoints. "
+          "The MPoint with ID= "<< this->points[i] <<" is not found in the "
+          "sourceMPoints.";
+      return 0;
+    }
+    curMPoint= (*sourceMPoints)[pos];
+    curMPoint->AtInstant(curTime, pointIntime);
+    assert(pointIntime.IsDefined());
+    (*res) += pointIntime.value;
+  }
+  return res;
+}
+
+
 ostream& 
 Flock::Print( ostream &os ) const
 {
@@ -1611,6 +1641,312 @@ Operator randommflock (
     RandomMFlockTM          // type mapping
 );
 
+
+ListExpr MFlock2MRegionTM(ListExpr args)
+{
+  string msg= nl->ToString(args);
+  CHECK_COND( nl->ListLength(args) == 3 ,
+      "Operator mflock2mregion expects 3 arguments.\nBut got: " + msg + ".");
+  
+  msg= nl->ToString(nl->First(args));
+  CHECK_COND( listutils::isTupleStream(nl->First(args)) ,
+      "Operator mflock2mregion expects stream(tuple(X)) as first argument."
+      "\nBut got: " + msg + ".");
+
+  msg= nl->ToString(nl->Second(args));
+  CHECK_COND( listutils::isTupleStream(nl->Second(args)) ,
+      "Operator mflock2mregion expects stream(tuple(X)) as second argument."
+      "\nBut got: " + msg + ".");
+  
+  msg= nl->ToString(nl->Third(args));  
+  CHECK_COND( nl->IsAtom(nl->Third(args)) && 
+      nl->SymbolValue(nl->Third(args))== "duration",  
+          "Operator mflock2mregion expects duration as third "
+          "argument.\nBut got: " + msg + ".");
+  
+  ListExpr tuple1 = nl->Second(nl->Second(nl->First(args)));
+  msg= nl->ToString(tuple1);
+  CHECK_COND( nl->ListLength(tuple1) == 2 &&
+    nl->IsAtom     (nl->Second(nl->First (tuple1))) && 
+    nl->SymbolValue(nl->Second(nl->First (tuple1)))== "int" &&
+    nl->IsAtom     (nl->Second(nl->Second(tuple1))) && 
+    nl->SymbolValue(nl->Second(nl->Second(tuple1)))== "mpoint",  
+        "Operator mflock2mregion expects stream(tuple(int mpoint)) as first "
+        "argument.\nBut got: stream(tuple(" + msg + ")).");
+  
+  ListExpr tuple2 = nl->Second(nl->Second(nl->Second(args)));
+  msg= nl->ToString(tuple2);
+  CHECK_COND( nl->ListLength(tuple2) == 1 &&
+    nl->IsAtom     (nl->Second(nl->First(tuple2))) && 
+    nl->SymbolValue(nl->Second(nl->First(tuple2)))== "mflock",  
+        "Operator mflock2mregion expects stream(tuple(mflock)) as second "
+        "argument.\nBut got: stream(tuple(" + msg + ")).");
+  
+  return (nl->TwoElemList(nl->SymbolAtom("stream"), 
+      nl->SymbolAtom("movingregion")));
+}
+
+void test()
+{
+  bool debugme=true;
+  Points* res= new Points(10);
+  Point p(10.0, 10.0);
+  for(int i=0; i<20; ++i)
+  {
+    p.Set(rand()%100 *1.0, rand()%100 *1.0);
+    (*res) += p;
+    if(debugme)
+    {
+      res->Print(cerr)<<endl;
+    }
+  }
+}
+
+MRegion* 
+MFlock::MFlock2MRegion(vector<int>* ids, vector<MPoint*>* sourceMPoints,
+      Instant& samplingDuration)
+{
+  bool debugme=true;
+/*
+Validating the input
+
+*/
+  MRegion* res = new MRegion(0);
+  res->SetDefined(false);
+  if(!this->IsDefined() || sourceMPoints->size()==0) return res;
+  
+/*
+Do the real work. The idea is as follows:
+foreach uflock in this
+  1- Sample uflock according to the samplingDuration (include the start and
+  end instants).
+  2- From every two consecutive samples, create a URegion
+ 
+*/
+  res->SetDefined(true);
+  const UFlock* curUFlock;
+  Flock* curFlock= new Flock(0);
+  Instant curTime(instanttype);
+  Instant finalTime(instanttype);
+  Interval<Instant> unitInterval(curTime, curTime, true, false);
+//  Intime<Flock> intimeFlock(curTime, curFlock);
+  vector<double> weigths(4);
+  weigths[0] = 0.7;            // AreaWeight
+  weigths[1] = 0.7;            // OverlapWeight
+  weigths[2] = 0.5;            // HausdorffWeight
+  weigths[3] = 1.0;            // LinearWeight
+  Points* ps;
+  Region* reg1=new Region(0), *reg2=new Region(0), *regswap;
+  RegionForInterpolation *reginter1, *reginter2, *reginterswap;
+  Match *sm;
+  mLineRep *lines;
+  URegion *resUnit;
+  
+  for(int unitIndex=0; unitIndex < this->GetNoComponents(); ++unitIndex)
+  {
+/*
+Computing the left part of the URegion (i.e. the values at the start instant)
+
+*/
+    this->Get(unitIndex, curUFlock);
+    curTime= curUFlock->timeInterval.start;
+    finalTime= curUFlock->timeInterval.end;
+    finalTime-= samplingDuration ;
+    *curFlock = curUFlock->constValue;
+    unitInterval.start= curTime;
+    unitInterval.lc= curUFlock->timeInterval.lc;
+    ps= curFlock->Flock2Points(curTime, ids, sourceMPoints);
+    GrahamScan::convexHull(ps,reg1);
+    delete ps;
+    reginter1=new RegionInterpol::RegionForInterpolation(reg1);
+   
+    while(curTime <= finalTime)
+    {
+/*
+Computing the right part ofthe URegion 
+      
+*/
+      curTime+= samplingDuration;
+      ps= curFlock->Flock2Points(curTime, ids, sourceMPoints);
+      GrahamScan::convexHull(ps, reg2);
+      unitInterval.end= curTime;
+      reginter2=new RegionInterpol::RegionForInterpolation(reg2);
+      if(debugme)
+      {
+        cerr<<endl<<"RegionForInter1 faces count "<<reginter1->getNrOfFaces();
+        cerr<<endl<<"RegionForInter2 faces count "<<reginter2->getNrOfFaces();
+      }
+      sm=new OptimalMatch(reginter1, reginter2, weigths);
+      lines=new mLineRep(sm);    
+      resUnit= new URegion(lines->getTriangles(), unitInterval);
+      res->Add(*(resUnit->GetEmbedded()));
+/*
+Copying the right part of this URegion to the left part of the next URegion
+
+*/
+      unitInterval.start= unitInterval.end;
+      regswap= reg1;
+      reg1= reg2;
+      reg2= regswap;
+      reginterswap= reginter1;
+      reginter1= reginter2;
+/*
+Garbage collection
+
+*/      
+      delete resUnit;
+      delete lines;
+//      delete sm;
+      //delete regswap;
+      delete reginterswap;
+      delete ps;
+      
+    }
+/*
+Adding the last instant in the unit
+
+*/    
+    curTime= finalTime;
+    ps= curFlock->Flock2Points(curTime, ids, sourceMPoints);
+    GrahamScan::convexHull(ps, reg2);
+    unitInterval.end= curTime;
+    unitInterval.rc= curUFlock->timeInterval.rc;
+    reginter2=new RegionForInterpolation(reg2);
+    sm=new OptimalMatch(reginter1, reginter2, weigths);
+    lines=new mLineRep(sm);    
+    resUnit= new URegion(lines->getTriangles(), unitInterval);
+    res->Add(*(resUnit->GetEmbedded()));
+    
+    delete resUnit;
+    delete lines;
+//    delete sm;
+    delete reg1;
+    delete reg2;
+    delete reginter1;
+    delete reginter2;
+    delete ps;
+  }
+  return res;
+}
+
+int 
+MFlock2MRegionVM(Word* args, Word& result, int message, Word& local, Supplier s)
+{
+  bool debugme=true;
+  result = qp->ResultStorage(s);
+  MRegion* res = static_cast<MRegion*>( result.addr);
+  
+  MFlock* mflock;
+  Tuple * t;
+  switch (message)
+  {
+  case OPEN :{
+    qp->Open(args[1].addr);
+    return 0;
+  }
+  case REQUEST :{
+    int* idsUnit, count, id;
+    std::set<int>* usedIDs=new set<int>();
+    std::vector<MPoint*>* mpoints;
+    std::vector<MPoint*>::iterator mpointsIt;
+    std::vector<int>* ids;
+    const UFlock* uflock;
+    Tuple* tuple;
+    std::vector<Tuple*>* delBuffer= new std::vector<Tuple*>(0);
+    std::vector<Tuple*>::iterator delBufferIt;
+    MPoint* mpoint;
+    MRegion* tmpres=0;
+    Word w;
+    qp->Request(args[1].addr, w);
+    if(qp->Received(args[1].addr))
+    {
+      tuple= static_cast<Tuple*>(w.addr);
+      mflock= static_cast<MFlock*>(tuple->GetAttribute(0));
+      mpoints= new std::vector<MPoint*>();
+      ids= new std::vector<int>();
+      for(int i=0; i< mflock->GetNoComponents(); ++i)
+      {
+        mflock->Get(i, uflock);
+        count= const_cast<UFlock*>(uflock)->constValue.getPoints(idsUnit);
+        usedIDs->insert(idsUnit, idsUnit + count);
+        //uflock->DeleteIfAllowed();
+      }
+      
+      qp->Open(args[0].addr);
+      qp->Request(args[0].addr, w);
+      t= static_cast<Tuple*>(w.addr);
+      while(qp->Received(args[0].addr))
+      {
+        id= dynamic_cast<CcInt*>(t->GetAttribute(0))->GetIntval();
+        if(usedIDs->find(id) != usedIDs->end())
+        {
+          ids->push_back(id);
+          mpoint= dynamic_cast<MPoint*>(t->GetAttribute(1));
+          mpoints->push_back(mpoint);
+          delBuffer->push_back(t); 
+        }
+        else
+          t->DeleteIfAllowed();
+      
+        qp->Request(args[0].addr, w);
+        t= static_cast<Tuple*>(w.addr);
+      }
+      qp->Close(args[0].addr);
+      assert(ids->size()>0);
+      res= mflock->MFlock2MRegion(ids, mpoints, 
+          *static_cast<Instant*>(args[2].addr));
+      mflock->DeleteIfAllowed();
+
+      for(delBufferIt= delBuffer->begin(); delBufferIt != delBuffer->end(); 
+        ++delBufferIt)
+        (*delBufferIt)->DeleteIfAllowed();
+      delBuffer->clear();
+      delete delBuffer;
+      for(mpointsIt= mpoints->begin(); mpointsIt != mpoints->end(); ++mpointsIt)
+        (*mpointsIt)->DeleteIfAllowed();
+      mpoints->clear();
+      ids->clear();
+      delete mpoints;
+      delete ids;
+      res->CopyFrom(tmpres);
+      delete tmpres;
+      tuple->DeleteIfAllowed();
+      return YIELD;
+    }
+    else
+      return CANCEL;
+  }
+  case CLOSE :{
+    qp->Close(args[1].addr);
+    return 0;
+  }
+  default: return CANCEL;
+  }
+  return 0;
+}
+
+const string MFlock2MRegionSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+  "\"Example\" ) "
+  "( <text> stream(tuple(int mpoint)) x stream(tuple(mflock)) x duration -> "
+  "stream(movingregion)</text--->"
+  "<text>Trains feed addcounter[Cnt, 1] project[Cnt, Trip] Flocks feed "
+  "mflocks2mregions[create_duration(0, 10000)]</text--->"
+  "<text>Creates mving region representation for the mflocks. The resulting "
+  "mregions are the interpolation of the convex hull regions taken at time "
+  "intervals of duration at most.</text--->"
+  "<text>query Trains feed addcounter[Cnt, 1] project[Cnt, Trip] Flocks feed "
+  "mflocks2mregions[create_duration(0, 10000)] consume</text--->"
+  ") )";
+
+
+Operator mflock2mregion (
+    "mflock2mregion",               // name
+    MFlock2MRegionSpec,             // specification
+    MFlock2MRegionVM,                 // value mapping
+    Operator::SimpleSelect, // trivial selection function
+    MFlock2MRegionTM          // type mapping
+);
+
 class FlockAlgebra : public Algebra
 {
 public:
@@ -1631,6 +1967,7 @@ public:
 
     AddOperator(&reportflocks);
     AddOperator(&randommflock);
+    AddOperator(&mflock2mregion);
   }
   ~FlockAlgebra() {};
 };

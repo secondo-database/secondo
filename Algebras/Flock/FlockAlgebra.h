@@ -53,27 +53,34 @@ paper "Spatiotemporal Pattern Queries"
 
 */
 
+//let mregs = TrainsFlocks feed  flocks feed 
+//mflock2mregion[create_duration(0, 10000)] transformstream consume
 
 #ifndef FLOCKALGEBRA_H_
 #define FLOCKALGEBRA_H_
+
 #include "Algebra.h"
-
 #include "NestedList.h"
-
 #include "QueryProcessor.h"
-
 #include "StandardTypes.h"
 #include "LogMsg.h"
 #include "NList.h"
 #include "RelationAlgebra.h"
 #include "TemporalAlgebra.h"
-#include "OctreeElements.h"
-#include "OctreeDatParser.h"
-#include "SkipTreeFunctions.h"
+#include "ListUtils.h"
+#include "MovingRegionAlgebra.h"
+#include "SpatialAlgebra.h"
 #include <algorithm>
 #include <vector>
 #include <set>
 
+#include "OctreeElements.h"
+#include "OctreeDatParser.h"
+#include "SkipTreeFunctions.h"
+
+#include "RegionInterpolator.h"
+
+using namespace RegionInterpol;
 using namespace datetime;
 typedef DateTime Instant;
 extern NestedList *nl;
@@ -141,6 +148,8 @@ class Flock: public Attribute {
    double* getCoordinates(){return this->coordinates;};
    void printCoordinates();
    int Intersection(Flock* arg, Flock* res);
+   Points* Flock2Points(Instant& curTime, vector<int>* ids, 
+       vector<MPoint*>*sourceMPoints);
    
    bool defined;
    //Total size of the flock. This is set before the points are
@@ -163,6 +172,8 @@ public:
     Mapping<UFlock, Flock>(n), finalized(true){}
   inline bool CanAdd(Flock* arg);
   void MFlockMergeAdd(UFlock& unit);
+  MRegion* MFlock2MRegion(vector<int>* ids, vector<MPoint*>* sourceMPoints,
+      Instant& samplingDuration);
   static bool KindCheck( ListExpr type, ListExpr& errorInfo );
   static ListExpr Property();
   
@@ -203,6 +214,7 @@ and pruning the pointset by first looking to four timesteps
 ::std::vector<Flock*>*
 findFlocksSkiptreeSquareWithPruning(OctreeDatParser* myParser, 
     double radius, double tolerance, int flocksize);
+
 
 } // namespace FLOCK
 

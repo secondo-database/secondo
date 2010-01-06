@@ -40,7 +40,7 @@ June, 2009 Mahmoud Sakr
 #include <gmpxx.h>
 
 //using namespace leda;
-#define epsilon 0.00000001
+#define __epsilon 0.00000001
 const int OCTREE_POINT   = 0;
 const int OCTREE_CELL    = 1;
 const int OCTREE_ELEMENT = 2;
@@ -60,7 +60,7 @@ public:
   void printCoordinates();
   void setCoordinates(double* coordinates);
   void setParent(OctreeCell* parent);
-  virtual OctreeElement* getSkipTreeCopy(){};
+  virtual OctreeElement* getSkipTreeCopy(){return 0;};
   virtual void unmarkReported(){};
   virtual int boxedRangeQueryCounting(double* boxCoords, 
       double boxHalfSideLength, double halfSideLengthError){return 0;};

@@ -20,3 +20,4 @@
 
 operator randommflock alias RandomMFlock pattern op(_,_)
 operator reportflocks alias ReportFlocks pattern op(_,_,_,_,_,_,_,_)
+operator mflock2mregion alias MFlock2MRegion pattern _ _ op[_]
