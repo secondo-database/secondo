@@ -8017,17 +8017,21 @@ sqlToPlan(QueryText, ResultText) :-
          Exc, % catch all exceptions!
          ( write('\nsqlToPlan: Exception \''),write(Exc),write('\' caught.'),nl,
            ( ( Exc = error_SQL(ErrorTerm),
-               ( ErrorTerm = (_::ErrorCode::Message) ; ErrorTerm = (_::Message) )
+               ( ErrorTerm=(_::ErrorCode::Message) ; ErrorTerm=(_::Message) )
              ) %% Problems with the SQL query itself:
-             -> concat_atom(['SQL ERROR (usually a user error):\n',Message],'',MessageToSend)
+             -> concat_atom(['SQL ERROR (usually a user error):\n',Message],'',
+                             MessageToSend)
              ;  ( ( Exc = error_Internal(ErrorTerm),
                     (   ErrorTerm = (_::ErrorCode::Message)
                       ; ErrorTerm = (_::Message)
                     )
                   )
-                  -> concat_atom(['Internal ERROR (usually a problem with the knowledge base):\n',Message],'',MessageToSend)
+                  -> concat_atom(['Internal ERROR (usually a problem with the ',
+                                  'knowledge base):\n',Message],'',
+                                  MessageToSend)
                   %% all other exceptions:
-                  ;  concat_atom(['Unclassified ERROR (usually a bug):\n',Exc],'',MessageToSend)
+                  ;  concat_atom(['Unclassified ERROR (usually a bug):\n',Exc],
+                                  '',MessageToSend)
                 )
            ),
            term_to_atom(MessageToSend,ResultTMP),
@@ -8511,35 +8515,38 @@ exception-format described above, that is thrown within goal ~G~.
 defaultExceptionHandler(G) :-
   catch( G,
          Exception,
-         ( (Exception = error_SQL(X) ; Exception = error_Internal(X))
-           % only handle these kinds of exceptions
-           -> ( write_list(['\n\nThe following SQL Error was caught: \'', X,
-                       '\'.\n','This usually a problem within the query.\n\n'])
-              )
-           ;  ( Exception = error_Internal(X)
-                -> ( write_list(['\n\nThe following Internal Error was ',
-                          'caught: \'', X, '\'.\n','This is usually due to a ',
-                          'problem with optimizer\'s knowledge base, the ',%'
-                          'meta data within the database, or a problem within ',
-                          'the internal optimization routines.\n\n'])
-                   )
-                ;  ( Exception = error(_Formal, _Context)
-                     -> ( write_list(['\n\nThe following Runtime Error was ',
-                            'caught: \'', X, '\'.\n','This is usually a ',
-                            'problem with the optimizer knowledge base or a ',
-                            'program bug within the optimizer.\n\n'])
-                        )
-                     ;  ( write_list(['\n\nThe following Unclassified Error ',
-                            'was caught: \'', X, '\'.\n','The reason is ',
-                            'unknown. Please carefully check the error message',
-                            ' to trace the problem.\n\n'])
-                        )
-                   )
-              )
-         ),
-         ( errorHandlingRethrow  % retract errorHandlingRethrow to quit quitely
-           -> throw(Exception)   % assert errorHandlingRethrow to re-throw
-           ;  fail               % all exceptions!
+         ( ( (Exception = error_SQL(X) ; Exception = error_Internal(X))
+            % only handle these kinds of exceptions
+            -> ( write_list(['\n\nThe following SQL Error was caught: \'', X,
+                        '\'.\n','This usually a problem within the query.\n\n'])
+                )
+            ;  ( Exception = error_Internal(X)
+                  -> ( write_list(['\n\nThe following Internal Error was ',
+                            'caught: \'', X, '\'.\n','This is usually due to a ',
+                            'problem with optimizer\'s knowledge base, the ',%'
+                            'meta data within the database, or a problem within ',
+                            'the internal optimization routines.\n\n'])
+                    )
+                  ;  ( Exception = error(_Formal, _Context)
+                      -> ( write_list(['\n\nThe following Runtime Error was ',
+                              'caught: \'', X, '\'.\n','This is usually a ',
+                              'problem with the optimizer knowledge base or a ',
+                              'program bug within the optimizer.\n\n'])
+                          )
+                      ;  ( write_list(['\n\nThe following Unclassified Error ',
+                              'was caught: \'', X, '\'.\n','The reason is ',
+                              'unknown. Please carefully check the error message',
+                              ' to trace the problem.\n\n'])
+                          )
+                    )
+                )
+          ),
+          ( errorHandlingRethrow  % retract errorHandlingRethrow to quit quitely
+            -> throw(Exception)   % assert errorHandlingRethrow to re-throw
+            ;  ( print_message(error,Exception), % all exceptions!
+                  fail             % With not(errorHandlingRethrow), the error
+                )                  % message is printed and the predicate fails.
+          )
          )
        ).
 
