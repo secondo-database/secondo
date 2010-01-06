@@ -9,7 +9,72 @@
 #include "MAttia.h"
 #include "FTextAlgebra.h"
 #include "SecondoInterface.h"
-#include "fstream"
+#include <fstream>
+#include "DateTime.h"
+#include "ListUtils.h"
+#include <string>
+
+string ToString( int number )
+{
+  ostringstream o;
+  o << number ; //<< char(0)
+  return o.str();
+}
+
+string ToString( double number )
+{
+  ostringstream o;
+  o << number ; //<< char(0)
+  return o.str();
+}
+
+
+int ExportMPoint(MPoint* arg, Instant* startTime, Instant* timeUnit, 
+    string comma, string& result)
+{
+  bool debugme=false;
+  if(debugme)
+  {
+    timeUnit->Print(cout);
+    startTime->Print(cout);
+  }
+  Periods argDefTime(0);
+  Instant endInstant(instanttype), curInstant(*startTime);
+  result="";
+  Point argPoint(0,0);
+  Intime<Point> argInTime(*startTime, argPoint);
+  int count=0;
+  
+  arg->DefTime(argDefTime);
+  argDefTime.Maximum(endInstant);
+  
+  while(curInstant < endInstant)
+  {
+      if(argDefTime.Contains(curInstant))
+      {
+        arg->AtInstant(curInstant, argInTime);
+        argPoint= static_cast<Point>(argInTime.value);
+        result+= comma + ToString(argPoint.GetX()) + comma +
+                 ToString(argPoint.GetY());
+      }
+      else
+      {
+        result+= comma + "undef"+ comma + "undef";
+      }
+      curInstant.Add(timeUnit);
+      count++;
+      if(debugme)
+      {
+        cout<< endl<< result <<endl;
+        curInstant.Print(cout);
+        cout.flush();
+      }
+  }
+  return count;
+}
+
+
+
 
   void NDefUnit(MBool* arg, CcBool* nval, MBool* res)
   {
@@ -72,13 +137,6 @@ int Randint(int u)//Computes a random integer in the range 0..u-1,
   // below is recommended in the manpage of the rand() function.
   // Using rand() % u will yield poor results.
   return (int) ( (float)u * rand()/(RAND_MAX+1.0) );
-}
-
-string ToString( int number )
-{
-  ostringstream o;
-  o << number ; //<< char(0)
-  return o.str();
 }
 
 string GenerateConnectedRandomConstraints(int numPreds, int numConstraints)
@@ -418,6 +476,40 @@ ListExpr NDefUnitTM(ListExpr args){
   return nl->SymbolAtom( "typeerror" );
 }
 
+ListExpr ExportMPointsTM(ListExpr args){
+  if(nl->ListLength(args)!=5){
+    ErrorReporter::ReportError("Five argument expected");
+    return nl->SymbolAtom( "typeerror" );
+  }
+  ListExpr tmp;
+  int posMP=0, posID=0;
+  if(listutils::isTupleStream(nl->First(args)) &&
+      listutils::isSymbol(nl->Second(args))  &&
+      listutils::isSymbol(nl->Third(args)) &&
+      listutils::isSymbol(nl->Fourth(args), "duration")  &&
+      listutils::isSymbol(nl->Fifth(args), "string"))
+  {
+    posMP= listutils::findAttribute(
+          nl->Second(nl->Second(nl->First(args))), 
+          nl->ToString(nl->Second(args)), tmp);
+    posID= listutils::findAttribute(
+              nl->Second(nl->Second(nl->First(args))), 
+              nl->ToString(nl->Third(args)), tmp);
+    
+    if(posMP != 0 && posID != 0 && nl->IsEqual(tmp, "int") )
+      return   nl->ThreeElemList( nl->SymbolAtom("APPEND"),
+                   nl->TwoElemList( nl->IntAtom(posMP), nl->IntAtom(posID)),
+                   nl->SymbolAtom("int"));
+  }
+    
+  ErrorReporter::ReportError("stream(tuple X) x string x string x duration x "
+      "string expexted\nbut got:" + nl->ToString(args) );
+  return nl->SymbolAtom( "typeerror" );
+}
+
+
+
+
 void CreateRandomMBool(Instant starttime, MBool& result)
 {
   bool debugme=false,bval=false;
@@ -492,6 +584,58 @@ int NDefUnitVM( ArgVector args, Word& result,
   return 0;
 }
 
+/*
+Value mapping function for the operator ~exportmpoints~
+
+*/
+int ExportMPointsVM( ArgVector args, Word& result,
+    int msg, Word& local, Supplier s )
+{
+  bool debugme=true;
+  bool first=true;
+  Word elem;
+  int countMP = 0, countP=0 ;
+  Instant startTime(instanttype), tmpInstant(instanttype);
+  Intime<Point> startInTime(startTime, new Point(0,0));
+  string line="";
+  
+  qp->Open(args[0].addr);
+  Instant* timeUnit= static_cast<Instant*>(args[3].addr);
+  string fileName= static_cast<CcString*>(args[4].addr)->GetValue();
+  int posMP = static_cast<CcInt*>(args[5].addr)->GetIntval();
+  int posID = static_cast<CcInt*>(args[6].addr)->GetIntval();
+  timeUnit->Print(cout);
+  ofstream exportFile;
+  exportFile.open(fileName.c_str() , ios::out);
+  qp->Request(args[0].addr, elem);
+  while ( qp->Received(args[0].addr) )
+  {
+    MPoint* mp= dynamic_cast<MPoint*>
+                  ((static_cast<Tuple*>(elem.addr))->GetAttribute(posMP-1));
+    mp->Initial(startInTime);
+    tmpInstant= startInTime.instant;
+    if(first)
+    {
+      first= false;
+      startTime= tmpInstant;
+    }
+    assert(startTime <= tmpInstant);
+    countP= ExportMPoint(mp, &startTime, timeUnit, ":", line);
+    
+    int ID= dynamic_cast<CcInt*>
+        ((static_cast<Tuple*>(elem.addr))->GetAttribute(posID-1))->GetIntval();
+    exportFile<< "obj:" << ID << ":"<< countP << line << endl;
+    
+    static_cast<Tuple*>(elem.addr)->DeleteIfAllowed();
+    qp->Request(args[0].addr, elem);
+    countMP++;
+  }
+  exportFile.close();
+  result = qp->ResultStorage(s);
+  static_cast<CcInt*>(result.addr)->Set(true, countMP);
+  qp->Close(args[0].addr);
+  return 0;
+}
 
 
 int RunSTPQExperiment1QueriesVM(Word* args, Word& result, 
@@ -625,9 +769,21 @@ OperatorInfo NDefUnitOperatorInfo( "ndefunit",
     "Replaces the undefined periods within a moving constant with a constant "
     "unit having the given value",
 "");
+
+OperatorInfo ExportMPointsOperatorInfo( "exportmpoints",
+    "stream x string x string x duration x string -> int",
+    "Trains addcounter[cnt, 0] feed exportmpoints(.Trip, .cnt, "
+    "create_duration(0, 1000), \"flockFile.dat\")", 
+    "Exports the MPoints in a format suitable for Reporting Flock",
+"");
+
 Operator ndefunit( NDefUnitOperatorInfo,
     NDefUnitVM,
     NDefUnitTM);
+Operator exportmpoints( ExportMPointsOperatorInfo,
+    ExportMPointsVM,
+    ExportMPointsTM);
+
 MAttiaAlgebra::MAttiaAlgebra():Algebra() {
   // TODO Auto-generated constructor stub
 
@@ -648,6 +804,7 @@ MAttiaAlgebra::MAttiaAlgebra():Algebra() {
   AddOperator(&opRunSTPQExperiment1Queries);
   AddOperator(&opRunSTPQExperiment2Queries);
   AddOperator(&ndefunit);
+  AddOperator(&exportmpoints);
 }
 
 MAttiaAlgebra::~MAttiaAlgebra() {
