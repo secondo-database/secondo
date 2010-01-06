@@ -3690,6 +3690,110 @@ Whether the half segments in the region value are sorted.
 
 };
 
+
+/*
+Classes suppoorting the computation of the convex hull of
+an pointset.
+
+
+*/
+//ostream& operator<<(ostream& o,const SimplePoint& p);
+
+class SimplePoint{
+public:
+  SimplePoint(const Point* p);
+
+  SimplePoint();
+
+  SimplePoint(double x, double y);
+
+  SimplePoint(const SimplePoint& p);
+
+  SimplePoint& operator=(const SimplePoint& p);
+
+  ~SimplePoint();
+
+  SimplePoint relTo(const SimplePoint& p) const;
+
+  void makeRelTo(const SimplePoint& p);
+
+  SimplePoint moved(const double x0, const double y0)const;
+
+  SimplePoint reversed()const;
+
+  bool isLower(const SimplePoint& p)const;
+
+  double mdist()const;
+
+  double mdist(const SimplePoint p)const;
+
+  bool isFurther(const SimplePoint& p)const;
+  
+  bool isBetween(const SimplePoint& p0, const SimplePoint p1) const;
+
+  double cross(const SimplePoint& p)const;
+
+  bool isLess(const SimplePoint& p) const;
+
+  bool operator<(const SimplePoint& p) const;
+
+  bool operator==(const SimplePoint& p) const;
+
+  bool operator>(const SimplePoint& p) const;
+
+  double area2(const SimplePoint& p0, const SimplePoint& p1) const;
+
+  bool isConvex(const SimplePoint& p0, const SimplePoint& p1) const;
+
+  Point getPoint()const;
+
+  double getX()const;
+  double getY()const;
+
+
+private:
+  double x;
+  double y;
+
+}; // end of class SimplePoint
+
+/*
+7 Class GrahamScan
+
+This class is used to compute the convexHull.
+
+*/
+class GrahamScan{
+public:
+  static void convexHull(const Points* ps, Region* result);
+private:
+  vector<SimplePoint> p;
+  int n;
+  int h;
+
+
+  GrahamScan(const Points* ps);
+
+  int computeHull();
+  void grahamScan();
+
+  static bool isInsideAbove(const SimplePoint& p1, const SimplePoint& p2);
+
+  void exchange(const int i, const int j);
+
+  void makeRelTo(const SimplePoint& p0);
+
+  int indexOfLowestPoint()const;
+
+  bool isConvex(const int i);
+
+  void sort();
+
+
+}; // end of class GrahamScan
+
+
+
 /*
 8 Function headers
 
@@ -3917,6 +4021,7 @@ class SCycle
       }
     }
 };
+
 
 double Angle(const Point &v, const Point &p1, const Point &p2);
 double VectorSize(const Point &p1, const Point &p2);

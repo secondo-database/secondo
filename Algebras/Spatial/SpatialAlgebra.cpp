@@ -1254,7 +1254,7 @@ Points& Points::operator+=( const Point& p )
       else
         bbox = bbox.Union( p.BoundingBox() );
       Find( p, pos, true ); // find exact insertion position
-      for( int i = points.Size() - 1; i >= pos; i++ )
+      for( int i = points.Size() - 1; i >= pos; --i )
       {
         const Point *auxp;
         points.Get( i, auxp );
@@ -16725,142 +16725,146 @@ SpatialTouchPoints_rr( Word* args, Word& result, int message,
   return 0;
 }
 
-/*
-Classes suppoorting the computation of the convex hull of
-an pointset.
 
 
-*/
-class SimplePoint;
-ostream& operator<<(ostream& o,const SimplePoint& p);
 
-class SimplePoint{
-  public:
-     SimplePoint(const Point* p){
-       this->x = p->GetX();
-       this->y = p->GetY();
-     }
+SimplePoint::SimplePoint(const Point* p){
+  this->x = p->GetX();
+  this->y = p->GetY();
+}
 
-     SimplePoint(){
-        x = 0;
-        y = 0;
-     }
+SimplePoint::SimplePoint(){
+  x = 0;
+  y = 0;
+}
 
-     SimplePoint(double x, double y){
-       this->x = x;
-       this->y = y;
-     }
+SimplePoint::SimplePoint(double x, double y){
+  this->x = x;
+  this->y = y;
+}
 
-     SimplePoint(const SimplePoint& p){
-        this->x = p.x;
-        this->y = p.y;
-     }
+SimplePoint::SimplePoint(const SimplePoint& p){
+  this->x = p.x;
+  this->y = p.y;
+}
 
-     SimplePoint& operator=(const SimplePoint& p){
-       this->x = p.x;
-       this->y = p.y;
-       return *this;
-     }
+SimplePoint& 
+SimplePoint::operator=(const SimplePoint& p){
+  this->x = p.x;
+  this->y = p.y;
+  return *this;
+}
 
-     ~SimplePoint(){}
+SimplePoint::~SimplePoint(){}
 
-     SimplePoint relTo(const SimplePoint& p) const{
-        return SimplePoint(this->x - p.x, this->y-p.y);
-     }
+SimplePoint 
+SimplePoint::relTo(const SimplePoint& p) const{
+  return SimplePoint(this->x - p.x, this->y-p.y);
+}
 
-     void makeRelTo(const SimplePoint& p){
-        this->x -= p.x;
-        this->y -= p.y;
-     }
+void 
+SimplePoint::makeRelTo(const SimplePoint& p){
+  this->x -= p.x;
+  this->y -= p.y;
+}
 
-     SimplePoint moved(const double x0, const double y0)const{
-        return SimplePoint(x+x0, y+y0);
-     }
+SimplePoint 
+SimplePoint::moved(const double x0, const double y0)const{
+  return SimplePoint(x+x0, y+y0);
+}
 
-     SimplePoint reversed()const{
-        return SimplePoint(-x,-y);
-     }
+SimplePoint 
+SimplePoint::reversed()const{
+  return SimplePoint(-x,-y);
+}
 
-     bool isLower(const SimplePoint& p)const{
-        if(!AlmostEqual(y,p.y)){
-           return y < p.y;
-        }
-        if(AlmostEqual(x,p.x)){ // equal points
-           return false;
-        }
-        return x < p.x;
-     }
+bool 
+SimplePoint::isLower(const SimplePoint& p)const{
+  if(!AlmostEqual(y,p.y)){
+    return y < p.y;
+  }
+  if(AlmostEqual(x,p.x)){ // equal points
+    return false;
+  }
+  return x < p.x;
+}
 
-     double mdist()const{ // manhatten distance to (0,0)
-       return abs(x) + abs(y);
-     }
+double 
+SimplePoint::mdist()const{ // manhatten distance to (0,0)
+  return abs(x) + abs(y);
+}
 
-     double mdist(const SimplePoint p)const{
-        return abs(x-p.x) + abs(y-p.y);
-     }
+double 
+SimplePoint::mdist(const SimplePoint p)const{
+  return abs(x-p.x) + abs(y-p.y);
+}
 
-     bool isFurther(const SimplePoint& p)const{
-        return mdist() > p.mdist();
-     }
+bool 
+SimplePoint::isFurther(const SimplePoint& p)const{
+  return mdist() > p.mdist();
+}
 
-     bool isBetween(const SimplePoint& p0, const SimplePoint p1) const{
-        return p0.mdist(p1) >= mdist(p0)+mdist(p1);
-     }
+bool 
+SimplePoint::isBetween(const SimplePoint& p0, const SimplePoint p1) const{
+  return p0.mdist(p1) >= mdist(p0)+mdist(p1);
+}
 
-     double cross(const SimplePoint& p)const{
-        return x*p.y - p.x*y;
-     }
+double 
+SimplePoint::cross(const SimplePoint& p)const{
+  return x*p.y - p.x*y;
+}
 
-     bool isLess(const SimplePoint& p) const{
-        double f = cross(p);
-        bool res;
-        if(AlmostEqual(f,0.0)){
-          res = isFurther(p);
-        } else {
-          res = f>0;
-        }
-        return  res;
-     }
+bool 
+SimplePoint::isLess(const SimplePoint& p) const{
+  double f = cross(p);
+  bool res;
+  if(AlmostEqual(f,0.0)){
+    res = isFurther(p);
+  } else {
+    res = f>0;
+  }
+  return  res;
+}
 
-     bool operator<(const SimplePoint& p) const{
-         return isLess(p);
-     }
+bool 
+SimplePoint::operator<(const SimplePoint& p) const{
+  return isLess(p);
+}
 
-     bool operator==(const SimplePoint& p) const{
-         return AlmostEqual(x,p.x)&& AlmostEqual(y,p.y);
-     }
+bool 
+SimplePoint::operator==(const SimplePoint& p) const{
+  return AlmostEqual(x,p.x)&& AlmostEqual(y,p.y);
+}
 
-    bool operator>(const SimplePoint& p) const{
-         return !(AlmostEqual(x,p.x) && AlmostEqual(y,p.y)) && !isLess(p);
-     }
+bool 
+SimplePoint::operator>(const SimplePoint& p) const{
+  return !(AlmostEqual(x,p.x) && AlmostEqual(y,p.y)) && !isLess(p);
+}
 
-     double area2(const SimplePoint& p0, const SimplePoint& p1) const{
-        return p0.relTo(*this).cross(p1.relTo(*this));
-     }
+double 
+SimplePoint::area2(const SimplePoint& p0, const SimplePoint& p1) const{
+  return p0.relTo(*this).cross(p1.relTo(*this));
+}
 
-     bool isConvex(const SimplePoint& p0, const SimplePoint& p1) const {
-        double f = area2(p0,p1);
-        if(AlmostEqual(f,0.0)){
-           bool between = isBetween(p0,p1);
-           return !between;
-        }
-        return f<0;
-     }
+bool 
+SimplePoint::isConvex(const SimplePoint& p0, const SimplePoint& p1) const {
+  double f = area2(p0,p1);
+  if(AlmostEqual(f,0.0)){
+    bool between = isBetween(p0,p1);
+    return !between;
+  }
+  return f<0;
+}
 
-     Point getPoint()const {
-        return Point(true,x,y);
-     }
+Point 
+SimplePoint::getPoint()const {
+  return Point(true,x,y);
+}
 
-     double getX()const{ return x;}
-     double getY()const{ return y;}
-
-
-  private:
-     double x;
-     double y;
-
-}; // end of class SimplePoint
-
+double 
+SimplePoint::getX()const{ return x;}
+double 
+SimplePoint::getY()const{ return y;}
 
 
 ostream& operator<<(ostream& o,const SimplePoint& p) {
@@ -16868,169 +16872,168 @@ ostream& operator<<(ostream& o,const SimplePoint& p) {
         return o;
 }
 
-
-class GrahamScan{
-public:
-  static void convexHull(const Points* ps, Region* result){
-     result->Clear();
-     if(!ps->IsDefined() ){
-         result->SetDefined(false);
-         return;
-     }
-     if(ps->Size()<3){
-        result->SetDefined(false);
-        return;
-     }
-     GrahamScan scan(ps);
-     int size = scan.computeHull();
-     if(size<3){ // points was on a single line
-        result->SetDefined(false);
-        return;
-     }
-
-
-     result->SetDefined(true);
-     result->StartBulkLoad();
-     for(int i=0;i<size-1; i++){
-        SimplePoint p1(scan.p[i]);
-        SimplePoint p2(scan.p[i+1]);
-        // build the halfsegment
-        HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
-        HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
-        hs1.attr.edgeno = i;
-        hs2.attr.edgeno = i;
-        bool ia = isInsideAbove(p1,p2);
-        hs1.attr.insideAbove = ia;
-        hs2.attr.insideAbove = ia;
-        (*result) += hs1;
-        (*result) += hs2;
-     }
-     // close the polygon
-     SimplePoint p1(scan.p[size-1]);
-     SimplePoint p2(scan.p[0]);
-     // build the halfsegment
-     HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
-     HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
-     hs1.attr.edgeno = size-1;
-     hs2.attr.edgeno = size-1;
-     bool ia = isInsideAbove(p1,p2);
-     hs1.attr.insideAbove = ia;
-     hs2.attr.insideAbove = ia;
-     (*result) += hs1;
-     (*result) += hs2;
-     result->EndBulkLoad();
+void 
+GrahamScan::convexHull(const Points* ps, Region* result){
+  result->Clear();
+  if(!ps->IsDefined() ){
+    result->SetDefined(false);
+    return;
+  }
+  if(ps->Size()<3){
+    result->SetDefined(false);
+    return;
+  }
+  GrahamScan scan(ps);
+  int size = scan.computeHull();
+  if(size<3){ // points was on a single line
+    result->SetDefined(false);
+    return;
   }
 
 
-private:
-   vector<SimplePoint> p;
-   int n;
-   int h;
-
-
-  GrahamScan(const Points* ps){
-     n = ps->Size();
-     const Point* pt;
-     for(int i=0;i<n;i++){
-        ps->Get(i,pt);
-        p.push_back(SimplePoint(pt));
-     }
+  result->SetDefined(true);
+  result->StartBulkLoad();
+  for(int i=0;i<size-1; i++){
+    SimplePoint p1(scan.p[i]);
+    SimplePoint p2(scan.p[i+1]);
+    // build the halfsegment
+    HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
+    HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
+    hs1.attr.edgeno = i;
+    hs2.attr.edgeno = i;
+    bool ia = isInsideAbove(p1,p2);
+    hs1.attr.insideAbove = ia;
+    hs2.attr.insideAbove = ia;
+    (*result) += hs1;
+    (*result) += hs2;
   }
+  // close the polygon
+  SimplePoint p1(scan.p[size-1]);
+  SimplePoint p2(scan.p[0]);
+  // build the halfsegment
+  HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
+  HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
+  hs1.attr.edgeno = size-1;
+  hs2.attr.edgeno = size-1;
+  bool ia = isInsideAbove(p1,p2);
+  hs1.attr.insideAbove = ia;
+  hs2.attr.insideAbove = ia;
+  (*result) += hs1;
+  (*result) += hs2;
+  result->EndBulkLoad();
+}
 
-   int computeHull(){
-    if(n<3){
-      return n;
+GrahamScan::GrahamScan(const Points* ps){
+  n = ps->Size();
+  const Point* pt;
+  for(int i=0;i<n;i++){
+    ps->Get(i,pt);
+    p.push_back(SimplePoint(pt));
+  }
+}
+
+int 
+GrahamScan::computeHull(){
+  if(n<3){
+    return n;
+  }
+  h = 0;
+  grahamScan();
+  return h;
+}
+void 
+GrahamScan::grahamScan(){
+  int min = indexOfLowestPoint();
+
+  exchange(0,min);
+
+
+
+  SimplePoint pl(p[0]);
+  makeRelTo(pl);
+  sort();
+  makeRelTo(pl.reversed());
+
+  int i=3;
+  int k=3;
+  while(k<n){
+    exchange(i,k);
+    while(!isConvex(i-1)){
+      exchange(i-1,i);
+      i--;
     }
-    h = 0;
-    grahamScan();
-    return h;
+    k++;
+    i++;
   }
-   void grahamScan(){
-     int min = indexOfLowestPoint();
+  // remove a possibly last 180 degree angle
+  if(i>=3){
+    if(!p[i-1].isConvex(p[i-2],p[0])){
+      i--;
+    }
+  }
 
-     exchange(0,min);
+  h = i;
+}
 
+bool 
+GrahamScan::isInsideAbove(const SimplePoint& p1, const SimplePoint& p2){
+  double diffx = p2.getX()-p1.getX();
+  double diffy = p2.getY()-p1.getY();
 
+  if(AlmostEqual(diffx,0.0)){
+    return diffy < 0;
+  }
+  if(AlmostEqual(diffy,0.0)){
+    return diffx > 0;
+  }
 
-     SimplePoint pl(p[0]);
-     makeRelTo(pl);
-     sort();
-     makeRelTo(pl.reversed());
-
-     int i=3;
-     int k=3;
-     while(k<n){
-        exchange(i,k);
-        while(!isConvex(i-1)){
-           exchange(i-1,i);
-           i--;
-        }
-        k++;
-        i++;
-     }
-     // remove a possibly last 180 degree angle
-     if(i>=3){
-        if(!p[i-1].isConvex(p[i-2],p[0])){
-            i--;
-        }
-     }
-
-     h = i;
-   }
-
-   static bool isInsideAbove(const SimplePoint& p1, const SimplePoint& p2){
-     double diffx = p2.getX()-p1.getX();
-     double diffy = p2.getY()-p1.getY();
-
-     if(AlmostEqual(diffx,0.0)){
-        return diffy < 0;
-     }
-     if(AlmostEqual(diffy,0.0)){
-        return diffx > 0;
-     }
-
-     bool sx = diffx>0;
-    // bool sy = diffy>0;
-    // return sx == sy;
-    return sx;
-   }
+  bool sx = diffx>0;
+  // bool sy = diffy>0;
+  // return sx == sy;
+  return sx;
+}
 
 
-   void exchange(const int i, const int j){
-      SimplePoint t(p[i]);
-      p[i] = p[j];
-      p[j] = t;
-   }
+void 
+GrahamScan::exchange(const int i, const int j){
+  SimplePoint t(p[i]);
+  p[i] = p[j];
+  p[j] = t;
+}
 
-   void makeRelTo(const SimplePoint& p0){
-       SimplePoint p1(p0);
-       for(int i=0;i<n;i++){
-          p[i].makeRelTo(p1);
-       }
-   }
+void 
+GrahamScan::makeRelTo(const SimplePoint& p0){
+  SimplePoint p1(p0);
+  for(int i=0;i<n;i++){
+    p[i].makeRelTo(p1);
+  }
+}
 
-   int indexOfLowestPoint()const{
-     unsigned min = 0;
-     for(unsigned int i=1; i<p.size(); i++){
-        if(p[i].isLower(p[min])){
-           min = i;
-        }
-     }
-     return min;
-   }
+int 
+GrahamScan::indexOfLowestPoint()const{
+  unsigned min = 0;
+  for(unsigned int i=1; i<p.size(); i++){
+    if(p[i].isLower(p[min])){
+      min = i;
+    }
+  }
+  return min;
+}
 
-   bool isConvex(const int i){
-     return p[i].isConvex(p[i-1],p[i+1]);
-   }
+bool 
+GrahamScan::isConvex(const int i){
+  return p[i].isConvex(p[i-1],p[i+1]);
+}
 
-   void sort(){
-     vector<SimplePoint>::iterator it= p.begin();
-     it++;
-     std::sort(it,p.end()); // without the first point
-   }
+void 
+GrahamScan::sort(){
+  vector<SimplePoint>::iterator it= p.begin();
+  it++;
+  std::sort(it,p.end()); // without the first point
+}
 
 
-}; // end of class GrahamScan
+// end of class GrahamScan
 
 
 
