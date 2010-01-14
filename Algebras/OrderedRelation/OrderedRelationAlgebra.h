@@ -42,77 +42,15 @@ RelationAlgebra.cpp file.
 */
 #ifndef __ORDEREDRELATIONALGEBRA_H__
 #define __ORDEREDRELATIONALGEBRA_H__
-//#include "Algebra.h"
+
 #include "RelationAlgebra.h"
-#include "IndexableAttribute.h"
+#include "CompositeKey.h"
 
 const string OREL = "orel";
 
 /*
 3 Declaration of classes
-3.1 CompositeKey
-CompositeKey is used for transmitting complex keyData to the BtreeFile.
-
-*/
-class CompositeKey : public IndexableAttribute {
-  public:
-    inline CompositeKey(char* src, SmiSize length) {
-      data = (char*)malloc(length);
-      memcpy(data,src,length);
-      charsize = length;
-    }
-    inline void WriteTo(char* dest) const {
-      memcpy(dest, data, charsize);
-    }
-    inline void ReadFrom(const char* src) {
-      free(data);
-      data = (char*)malloc(charsize);
-      memcpy(data,src,charsize);
-    }
-    inline SmiSize SizeOfChars() const {
-      return charsize;
-    };
-    inline size_t Sizeof() const {
-      return sizeof(this);
-    }
-    inline int Compare(const Attribute* attr) const {
-      const CompositeKey* other = static_cast<const CompositeKey*>(attr);
-      if(other->charsize<charsize) {
-        return 1;
-      } else if(other->charsize>charsize) {
-        return -1;
-      } else {
-        return memcmp(data,other->data,charsize);
-      }
-    }
-    inline bool Adjacent(const Attribute* attr) const {
-      return false;
-    }
-    inline CompositeKey* Clone() const {
-      return new CompositeKey(data,charsize);
-    }
-    inline size_t HashValue() const {
-      return charsize;
-    }
-    inline void CopyFrom(const Attribute* attr) {
-      const CompositeKey* other = static_cast<const CompositeKey*>(attr);
-      free(data);
-      charsize = other->charsize;
-      data = (char*)malloc(charsize);
-      memcpy(data,other->data,charsize);
-    }
-    
-    inline ~CompositeKey() {
-      free(data);
-    }
-  
-  private:
-    SmiSize charsize;
-    char* data;
-};
-
-/*
-3.2 Ordered RelationIterator
+3.1 Ordered RelationIterator
 Forward declaration of class OrderedRelation
 
 */
@@ -121,8 +59,8 @@ class OrderedRelation;
 class OrderedRelationIterator : public GenericRelationIterator {
   public:
     OrderedRelationIterator(const OrderedRelation* orel, TupleType* newType=0,
-                            const SmiKey& from = SmiKey(),
-                            const SmiKey& to = SmiKey());
+                            const CompositeKey& from = CompositeKey(),
+                            const CompositeKey& to = CompositeKey());
     
     ~OrderedRelationIterator();
     
@@ -131,7 +69,9 @@ class OrderedRelationIterator : public GenericRelationIterator {
     
     TupleId GetTupleId() const;
     
-    SmiKey GetKey() const;
+    const CompositeKey& GetKey() const;
+    
+    bool EndOfScan() const {return endOfScan;};
     
   private:
     bool Advance();
@@ -142,15 +82,15 @@ class OrderedRelationIterator : public GenericRelationIterator {
     TupleType* outtype;
     SmiBtreeFile* tupleFile;
     SmiFileId lobFileId;
-    SmiKey key;
-    SmiKey fromKey;
-    SmiKey toKey;
+    CompositeKey key;
+    TupleId tupleId;
 };
 
 /*
 3.3 OrderedRelation
 
 */
+
 class OrderedRelation : public GenericRelation {
 
   public:
@@ -159,43 +99,34 @@ class OrderedRelation : public GenericRelation {
 
     ~OrderedRelation();
 
-//OK
     static ListExpr Out(const ListExpr typeInfo, Word value);
 
-//OK
     static Word In(const ListExpr typeInfo, const ListExpr value,
                     const int errorPos, ListExpr& errorInfo, bool& correct);
 
-    //to be deleted? EDIT:Check
     static ListExpr SaveToList(const ListExpr typeInfo, const Word value);
 
-    //to be deleted? EDIT:Check
     static Word RestoreFromList(const ListExpr typeInfo, const ListExpr value,
                    const int errorPos, ListExpr& errorInfo, bool& correct);
 
-//OK
     static Word Create(const ListExpr typeInfo);
 
-//OK
     static void Delete(const ListExpr typeInfo, Word& value);
 
-//OK
     static bool Open(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Word& value);
 
-//OK
     static bool Save(SmiRecord& valueRecord, size_t& offset,
                       const ListExpr typeInfo, Word& value);
 
-//OK
     static void Close(const ListExpr typeInfo, Word& value);
 
-//OK
     static Word Clone(const ListExpr typeInfo, const Word& value);
 
 //??
     static void* Cast(void* addr);
 
+//??
     static inline int SizeOf() { return 0; };
 
     static bool CheckKind(const ListExpr typeInfo, ListExpr& errorInfo);
@@ -203,8 +134,10 @@ class OrderedRelation : public GenericRelation {
 
     virtual int GetNoTuples() const;
     
+    //wrong
     virtual double GetTotalRootSize() const;
     
+    //wrong
     virtual double GetTotalRootSize(int i) const;
     
     virtual double GetTotalExtSize() const;
@@ -218,52 +151,58 @@ class OrderedRelation : public GenericRelation {
     virtual void Clear();
     
     virtual void AppendTuple(Tuple* t);
-    virtual void AppendTuple(Tuple* t, SmiKey& k);
     
     virtual Tuple* GetTuple(const TupleId& id) const;
     
-    virtual Tuple *GetTuple( const TupleId& id,
+    virtual Tuple* GetTuple( const TupleId& id,
                      const int attrIndex,
                      const vector< pair<int, int> >& intervals ) const;
+
+    virtual Tuple* GetTuple(const CompositeKey& key) const;
     
+    virtual Tuple* GetTuple(const CompositeKey& key,
+                            const int attrIndex,
+                            const vector< pair<int, int> >& intervals) const;
+    
+    //not yet complete
+    virtual bool DeleteTuple(Tuple* t);
+    
+    //also not yet complete
+    virtual void UpdateTuple( Tuple *tuple,
+                              const vector<int>& changedIndices,
+                              const vector<Attribute *>& newAttrs );
+
     virtual GenericRelationIterator* MakeScan() const;
     
     virtual GenericRelationIterator* MakeScan(TupleType* tt) const;
     
-    virtual GenericRelationIterator* MakeRangeScan( const SmiKey& from=SmiKey(),
-                                                    const SmiKey& to=SmiKey())
-                                                    const;
+    virtual GenericRelationIterator*
+            MakeRangeScan( const CompositeKey& from=CompositeKey(),
+                           const CompositeKey& to=CompositeKey()) const;
     
-    virtual GenericRelationIterator* MakeRangeScan( TupleType* tt,
-                                                    const SmiKey& from=SmiKey(),
-                                                    const SmiKey& to=SmiKey())
-                                                    const;
+    virtual GenericRelationIterator*
+            MakeRangeScan( TupleType* tt,
+                           const CompositeKey& from=CompositeKey(),
+                           const CompositeKey& to=CompositeKey()) const;
     
     virtual bool GetTupleFileStats(SmiStatResultType&);
     
     virtual bool GetLOBFileStats(SmiStatResultType&);
     
-    //should work
-    static void GetKey(Tuple* tuple, SmiKey& key,
-                       const SmiKey::KeyDataType& keyType,
-                       const vector<int>& keyElement,
-                       const vector<SmiKey::KeyDataType>& keyElemType);
+    CompositeKey GetKey(const Tuple* tuple, const bool appendNumber,
+                        const TupleId appendix);
     
-    SmiKey GetUpperRangeKey(Word& arg, int length);
-    SmiKey GetLowerRangeKey(Word& arg, int length);
-    SmiKey GetRangeKey(Word& arg, int length, bool lower=true);
-    //should work
-    static bool GetKeytype (ListExpr typeInfo, SmiKey::KeyDataType& keyType,
-                            vector<int>& keyElement,
+    CompositeKey GetRangeKey(Word& arg, int length, bool upper=false);
+    CompositeKey GetUpperRangeKey(Word& arg, int length);
+    CompositeKey GetLowerRangeKey(Word& arg, int length);
+
+    static bool GetKeyStructure (ListExpr typeInfo, vector<int>& keyElement,
                             vector<SmiKey::KeyDataType>& keyElemType);
     
-    static bool ValidKeyElements(ListExpr tupleInfo, ListExpr keyInfo,
-                                  vector<string>* types=0);
 
   private:
     OrderedRelation();
     SmiBtreeFile* tupleFile;
-    SmiRecordFile* lobFile;
 
     SmiFileId tupleFileId;
     SmiFileId lobFileId;
@@ -276,11 +215,11 @@ class OrderedRelation : public GenericRelation {
     double totalSize;
     vector<double> attrSize;
 
-    SmiKey::KeyDataType keyType;
     vector<SmiKey::KeyDataType> keyElemType;
     vector<int> keyElement;
-
+    
+    TupleId maxId;
+    
   friend class OrderedRelationIterator;
 };
-
 #endif
