@@ -40,9 +40,11 @@ RelationAlgebra.h.
 */
 #include "RelationAlgebra.h"
 
-void Tuple::Save(SmiRecord* record, SmiFileId& lobFileId, double& extSize,
+void Tuple::SaveOrel(SmiRecord* record, SmiFileId& lobFileId, double& extSize,
                  double& size, vector<double>& attrExtSize,
-                 vector<double>& attrSize, bool ignorePersistentLOBs) {
+                 vector<double>& attrSize, bool ignorePersistentLOBs,
+                 TupleId tupleId) {
+  this->tupleId = tupleId;
   this->lobFileId = lobFileId;
   extSize += tupleType->GetTotalSize();
   size += tupleType->GetTotalSize();
@@ -56,17 +58,26 @@ void Tuple::Save(SmiRecord* record, SmiFileId& lobFileId, double& extSize,
   free(data);
 }
 
+bool Tuple::OpenOrel(SmiFileId lobfileId,
+                      SmiRecord& record, TupleId tupleId )
+{
+  this->tupleId = tupleId;
+  this->tupleFile = 0;
+  this->lobFileId = lobfileId;
+  return ReadFrom( record );
+}
+
 #ifdef USE_SERIALIZATION
 
-bool Tuple::OpenNoId( SmiRecordFile *tuplefile,
-                  SmiFileId lobfileId,
-                  PrefetchingIterator *iter )
+bool Tuple::OpenOrel(SmiFileId lobfileId,
+                  PrefetchingIterator *iter, TupleId tupleId )
 {
   TRACE_ENTER
   DEBUG(this, "Open::Prefetch")
   
-  this->tupleFile = tuplefile;
+  this->tupleFile = 0;
   this->lobFileId = lobfileId;
+  this->tupleId = tupleId;
   
   uint16_t rootSize = 0;
   char* data = GetSMIBufferData(iter, rootSize);
@@ -85,12 +96,11 @@ bool Tuple::OpenNoId( SmiRecordFile *tuplefile,
 
 #else
 
-bool Tuple::OpenNoId( SmiRecordFile *tuplefile,
-                  SmiFileId lobfileId,
-                  PrefetchingIterator *iter )
+bool Tuple::OpenOrel(SmiFileId lobfileId,
+                  PrefetchingIterator *iter, TupleId tupleId )
 {
-  iter->ReadCurrentRecordNumber( tupleId );
-  this->tupleFile = tuplefile;
+  this->tupleId = tupleId;
+  this->tupleFile = 0;
   this->lobFileId = lobfileId;
   
   
@@ -172,16 +182,16 @@ bool Tuple::OpenNoId( SmiRecordFile *tuplefile,
 #endif
 
 
-bool Tuple::OpenPartialNoId( TupleType* newtype, const list<int>& attrIdList,
-                         SmiRecordFile *tuplefile,
+bool Tuple::OpenPartialOrel( TupleType* newtype, const list<int>& attrIdList,
                          SmiFileId lobfileId,
-                         PrefetchingIterator *iter )
+                         PrefetchingIterator *iter,
+                         TupleId tupleId)
 {
   TRACE_ENTER
   DEBUG(this, "OpenPartial using PrefetchingIterator")
 
-  iter->ReadCurrentRecordNumber( tupleId );
-  this->tupleFile = tuplefile;
+  this->tupleId = tupleId;
+  this->tupleFile = 0;
   this->lobFileId = lobfileId;
 
   uint16_t rootSize = 0;
