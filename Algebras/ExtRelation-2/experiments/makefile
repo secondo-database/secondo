@@ -647,6 +647,17 @@ sort_benchmark_64KB: clean_db R1MB_T64KB R10MB_T64KB R50MB_T64KB R100MB_T64KB
 	$(call doTest, $@5)
 	$(call doTest, $@6)
 
+sort_vs_sortby: clean_db R1MB_T256B R10MB_T256B R50MB_T256B R100MB_T256B
+	@echo ""
+	@echo "Running experiment " $@.$(TESTEXT)
+	export SECONDO_PARAMMaxMemPerOperator=16384; \
+	$(call doTest, $@_1)
+	$(call doTest, $@_2)
+	$(call doTest, $@_3)
+	$(call doTest, $@_4)
+	$(call doTest, $@_5)
+	$(call doTest, $@_6)
+
 sort_benchmark: clean_db \
 R1MB_T64B R1MB_T128B R1MB_T256B R1MB_T512B R1MB_T1KB R1MB_T2KB R1MB_T4KB R1MB_T8KB R1MB_T16KB  R1MB_T32KB R1MB_T64KB \
 R10MB_T64B R10MB_T128B R10MB_T256B R10MB_T512B R10MB_T1KB R10MB_T2KB R10MB_T4KB R10MB_T8KB R10MB_T16KB  R10MB_T32KB R10MB_T64KB \
