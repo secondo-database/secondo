@@ -83,7 +83,7 @@ docu:
 	for i in $(DOCU_FILES2); do cp ./docu/$$i $$i; done
 	for i in $(DOCU_FILES2); do pd2pdf $$i; done
 	for i in $(DOCU_FILES3); do a2ps $$i -1 --borders=no --output=$$i.ps; ps2pdf $$i.ps; done
-	gs -q -sPAPERSIZE=a4 -dNOPAUSE -dBATCH \
+	gs -q -sPAPERSIZE=a4 -dNOPAUSE -dBATCH -dPDFSETTINGS=/printer -dMaxSubsetPct=100 -dSubsetFonts=true -dEmbedAllFonts=true \
 	   -sDEVICE=pdfwrite -sOutputFile=ExtRelation2Algebra.pdf $(DOCU_PDF)
 	pdftops ExtRelation2Algebra.pdf tmp.ps    
 	psnup -2 tmp.ps ExtRelation2Algebra.ps
