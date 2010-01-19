@@ -8515,7 +8515,9 @@ exception-format described above, that is thrown within goal ~G~.
 defaultExceptionHandler(G) :-
   catch( G,
          Exception,
-         ( ( (Exception = error_SQL(X) ; Exception = error_Internal(X))
+         (  % write('\ndefaultExceptionHandler/1: Exception \''),
+            % write(Exception),write('\' caught.'),nl,
+            ( (Exception = error_SQL(X) ; Exception = error_Internal(X))
             % only handle these kinds of exceptions
             -> ( write_list(['\n\nThe following SQL Error was caught: \'', X,
                         '\'.\n','This usually a problem within the query.\n\n'])
@@ -8545,7 +8547,7 @@ defaultExceptionHandler(G) :-
             -> throw(Exception)   % assert errorHandlingRethrow to re-throw
             ;  ( print_message(error,Exception), % all exceptions!
                   fail             % With not(errorHandlingRethrow), the error
-                )                  % message is printed and the predicate fails.
+               )                   % message is printed and the predicate fails.
           )
          )
        ).

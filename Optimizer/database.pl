@@ -1503,13 +1503,16 @@ createSampleJ(DCRel) :-
        )
     ;  ( getSampleJsize(DCRel, CardStd, MemStd, CardRec, MemRec),
          write_list(['\nINFO:\tCreating Join-Sample for \'',ExtRel,'\'.']),nl,
-         ( CardStd =< CardRec
-           -> ( % sample size is ok
-                SampleCard is CardRec,
-                SampleSize is MemRec
-              )
-           ;  ( % sample size is too big
-                optimizerOption(autoSamples)
+         secOptConstant(sampleJoinMaxDiskSize, MemMax),
+         secOptConstant(sampleJoinMaxCard, CardMax),
+         secOptConstant(sampleJoinMinCard, CardMin),
+         ( ( \+optimizerOption(autoSamples) ,
+             CardStd >= CardMin , CardStd =< CardMax , MemStd =< MemMax )
+           -> ( SampleCard is CardStd, SampleSize is MemStd )
+          ; true
+         ),
+         ( var(SampleCard) % sample would become to large or to small
+           -> ( optimizerOption(autoSamples)
                 -> ( % automatically set sample size and force creation
                     SampleCard is CardRec,
                     SampleSize is MemRec,
@@ -1535,6 +1538,7 @@ createSampleJ(DCRel) :-
                      fail
                    )
               )
+          ; true
          ),
          createSample(Sample, ExtRel, SampleCard, ActualSampleCard),
          write_list(['\tSample cardinality=',ActualSampleCard]),nl,
@@ -1556,13 +1560,16 @@ createSampleS(DCRel) :-
     ;  ( getSampleSsize(DCRel, CardStd, MemStd, CardRec, MemRec),
          write_list(['\nINFO:\tCreating Selection-Sample for \'',ExtRel,'\'.']),
          nl,
-         ( CardRec =< CardStd
-           -> ( % sample size is ok
-                SampleCard is CardRec,
-                SampleSize is MemRec
-              )
-           ;  ( % sample size is too big
-                optimizerOption(autoSamples)
+         secOptConstant(sampleSelMaxDiskSize, MemMax),
+         secOptConstant(sampleSelMaxCard, CardMax),
+         secOptConstant(sampleSelMinCard, CardMin),
+         ( ( \+optimizerOption(autoSamples) ,
+             CardStd >= CardMin , CardStd =< CardMax , MemStd =< MemMax )
+           -> ( SampleCard is CardStd, SampleSize is MemStd )
+          ; true
+         ),
+         ( var(SampleCard) % sample would become to large or to small
+           -> ( optimizerOption(autoSamples)
                 -> ( % automatically set sample size and force creation
                     SampleCard is CardRec,
                     SampleSize is MemRec,
@@ -1572,7 +1579,7 @@ createSampleS(DCRel) :-
                     write_list(['\tUse \'resizeSamples/3\' to force another ',
                                 'arbitrary sample size.']),nl
                    )
-                ;    ( % leave sample creation to the user
+                ;  ( % leave sample creation to the user
                        concat_atom(['REQUEST FOR USER INTERACTION:\n',
                                     'Selection sample is to large: ',
                                      CardStd,
@@ -1588,8 +1595,9 @@ createSampleS(DCRel) :-
                        throw(error_SQL(database_createSampleS(DCRel)
                                       ::requestUserInteraction::ErrMsg)),
                        fail
-                     )
+                   )
               )
+          ;   true
          ),
          createSample(Sample, ExtRel, SampleCard, ActualSampleCard),
          write_list(['\tSample cardinality=',ActualSampleCard]),nl,
