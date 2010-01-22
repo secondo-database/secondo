@@ -57,7 +57,7 @@ derived attribute class must implement.
 #include "QueryProcessor.h"
 #include "Counter.h"
 //#include "AlgebraManager.h"
-#include "FLOB.h"
+#include "../Tools/Flob/Flob.h"
 #include "WinUnix.h"
 #include "SecondoSMI.h"
 
@@ -92,6 +92,16 @@ struct AttrDelete
   // current state!
   {}
 
+  AttrDelete(bool defined): refs(1), isDelete(true), isDefined(defined)
+  { }
+
+  AttrDelete& operator=(const AttrDelete& d){
+    isDefined =  d.isDefined;
+    // do not change Construction properties
+    return *this;
+  } 
+  
+
   uint16_t refs;
   bool isDelete;
   bool isDefined;
@@ -117,6 +127,13 @@ class Attribute
 The simple constructor.
 
 */
+
+    Attribute(bool defined) : del(defined) {}
+
+
+    Attribute(const Attribute& a) : del(a.del.isDefined) {}
+ 
+
     inline virtual ~Attribute()
     {}
 /*
@@ -139,6 +156,11 @@ Sets the ~defined~ flag of the attribute.
 Returns the ~sizeof~ of the attribute class.
 
 */
+
+   Attribute& operator=(const Attribute& a){
+     del = a.del;
+     return *this;
+   }
 
 
     virtual int Compare( const Attribute *rhs ) const = 0;
@@ -303,7 +325,7 @@ does not contain FLOBs, it is not necessary to implement this
 function.
 
 */
-    inline virtual FLOB* GetFLOB( const int i )
+    inline virtual Flob* GetFLOB( const int i )
     {
       assert( false );
       return 0;
@@ -397,8 +419,8 @@ the default ~Serialize~ function. The size of the object is  ~sz~
       // call the spezialized Rebuild function, if not implemented, the default
       // above will be called.
       for (int i = 0; i < attr->NumOfFLOBs(); i++) {
-        attr->GetFLOB(i)->DeleteFD();
-      }	      
+        //SPM? attr->GetFLOB(i)->DeleteFD();
+      }
       attr->Rebuild(state, sz ,am->Cast(algId, typeId));
 
       // Remark: the returned pointer has been created using the new operator!
@@ -542,7 +564,7 @@ Print the delete reference info to a string (for debugging)
 
 
   inline virtual StorageType GetStorageType() const { return Default; }
-  
+
   virtual size_t HashValue() const = 0;
 /*
   The hash function.
@@ -557,7 +579,17 @@ in the algebras.
 The reference counter if this attribute should not be affected.
 
 */
- 
+
+  virtual void DestroyFlobs();
+/*
+Destroys all Flobs of the Attribute, regardless of the reference counter, and
+cleans them.
+
+Call this prior to deletion of an automatic attribute variable.
+Otherwise, the Flobs belonging to the Attribute are not destroyed and may
+persist without being referenced any more.
+
+*/
 
   protected:
 
@@ -567,7 +599,6 @@ Stores the way this attribute is deleted.
 
 */
 
-  private:
      inline void InitRefs(){
           del.refs=1;
      }

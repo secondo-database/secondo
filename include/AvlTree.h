@@ -1144,10 +1144,14 @@ static AvlNode<contenttype>* remove(AvlNode<contenttype>* root,
         delete root;
         return res;
       }
-      contenttype c(root->content);
-      root->right=deletemin(root->right,c);
+      AvlNode<contenttype>*  minimum(0);
+      root->right=deletemin(root->right,minimum);
+      minimum->left = root->left;
+      minimum->right = root->right;
+      root->cut();
+      delete root;
+      root = minimum;
       root->updateHeight();
-      root->content = c;
       if(abs(root->balance())>1){ // we have to rotate
           int LB = root->left->balance();
           if(LB>=0){
@@ -1267,10 +1271,14 @@ static AvlNode<contenttype>* removeN(AvlNode<contenttype>* root,
       }
       left = &tmp->content;
 
-      contenttype c(root->content);
-      root->right=deletemin(root->right,c);
+      AvlNode<contenttype>* minimum(0);
+      root->right=deletemin(root->right,minimum);
+      minimum->left = root->left;
+      minimum->right = root->right;
+      root->cut();
+      delete root;
+      root = minimum;
       root->updateHeight();
-      root->content = c;
       right = &root->content;
 
       if(abs(root->balance())>1){ // we have to rotate
@@ -1291,21 +1299,22 @@ static AvlNode<contenttype>* removeN(AvlNode<contenttype>* root,
 /* 
 2.1 deleteMin
 
-Deletes the minimum value in root  storing its value in value 
-the result is the root of the tree with the deleted minimum.
+Removes the node containing the minimum of the subtree 
+stored in root. The node itself is not deleted. The minimum
+is returned in the appropriate parameter. The left and right pointer
+of mininum a set to be null. 
 
 **/
 static AvlNode<contenttype>* deletemin(AvlNode<contenttype>* root,
-                                    contenttype& value){
+                                       AvlNode<contenttype>*& minimum){
    __AVL_TRACE__
    if(root->left==NULL){ // this node is to remove
-       value = root->content; // save the value
+       minimum = root; // save the value
        AvlNode<contenttype>* res = root->right;
        root->cut();
-       delete root;  
        return res;
    } else{ // try to delete more left
-      root->left=deletemin(root->left,value);
+      root->left=deletemin(root->left,minimum);
       root->updateHeight();
       if(abs(root->balance())>1){ // we have to rotate
           // we know that the height of the left son is smaller than before
