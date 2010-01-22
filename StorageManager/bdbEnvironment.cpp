@@ -51,7 +51,6 @@ now be more compatible.
 
 */
 
-using namespace std;
 
 #include <string>
 #include <string.h>
@@ -62,31 +61,37 @@ using namespace std;
 #include <map>
 #include <sstream>
 #include <iomanip>
+#include <iostream>
 #include <cassert>
 #include <cstring>
-
 #include <db_cxx.h>
+
+#undef TRACE_ON
+#include "Trace.h"
+
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
 #include "SmiCodes.h"
+#include "../Tools/Flob/Flob.h"
 #include "Profiles.h"
 #include "FileSystem.h"
 #include "LogMsg.h"
 #include "StopWatch.h"
 #include "CacheInfo.h"
 #include "WinUnix.h"
+
 #ifndef SECONDO_WIN32
 #include <libgen.h>
 #include <unistd.h>
 #endif
 
 /* For sending messages */
-#include<iostream>
 #include "NestedList.h"
 #include "Messages.h"
 
+using namespace std;
 
-static MessageCenter* smi_msg = MessageCenter::GetInstance();
+//static MessageCenter* smi_msg = MessageCenter::GetInstance();
 
 /* --- Prototypes of internal functions --- */
 
@@ -273,6 +278,10 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
   if ( isTemporary )
   {
     newFileId = ++instance.impl->tmpId;
+    //SPM: This implementation will  be sufficient for
+    //a multi user mode since the file name will also
+    //contain the process id
+ 
     if ( RTFlag::isActive("SMI:LogFileCreation") )
     {
 //       // build a two elem list (simple count)
@@ -299,11 +308,7 @@ SmiEnvironment::Implementation::GetFileId( const bool isTemporary )
   DbEnv*    dbenv = instance.impl->bdbEnv;
   Db*       dbseq = instance.impl->bdbSeq;
 
-  if ( isTemporary )
-  {
-    newFileId = ++instance.impl->tmpId;
-  }
-  else if ( dbseq )
+  if ( dbseq )
   {
     DbTxn* tid = 0;
     db_recno_t seqno = SMI_SEQUENCE_FILEID;
@@ -450,20 +455,30 @@ SmiEnvironment::Implementation::LookUpCatalog( Dbt& key,
   return (rc == 0);
 }
 
-
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const string& fileName,
                                                SmiCatalogEntry& entry )
 {
+  cout << "Lookup: key = <" << fileName << ">" << endl;
   Dbt key( (void*) fileName.c_str(), fileName.length() );
-  return LookUpCatalog(key, entry);
+  bool rc = LookUpCatalog(key, entry);
+  cout << "rc = " << rc << endl;
+  cout << "fileId = " << entry.fileId << endl;
+  return rc;
 }
 
+// SPM: The function below will always fail, since the fileId cannot be used
+// to lookup the index of file names. Here some discussion is needed whether
+// anonymous files need to be inserted into the file catalog, since its
+// file name is determined by the file id. The other way round named files
+// are unique by their names, thus its not necessary to map them to an id
+// as long as they are only used for system purposes. Thus the overall question
+// is: Do we really need a file catalog?
 bool
 SmiEnvironment::Implementation::LookUpCatalog( const SmiFileId fileId,
                                                SmiCatalogEntry& entry )
-{
-  Dbt key( (void*) &fileId, sizeof( fileId ) );
+{	
+  Dbt key( (void*) &fileId, sizeof(SmiFileId) );
   return LookUpCatalog(key, entry);
 }
 
@@ -476,6 +491,8 @@ SmiEnvironment::Implementation::InsertIntoCatalog(
     SetError( E_SMI_DB_NOTOPEN );
     return (false);
   }
+  cout << "Insert: fileId = " << entry.fileId << endl; 
+  cout << "Insert: fileName = <" << entry.fileName << ">" << endl; 
 
   int    rc = 0;
   Db*    dbctl = instance.impl->bdbCatalog;
@@ -512,8 +529,8 @@ SmiEnvironment::Implementation::InsertIntoCatalog(
 }
 
 bool
-SmiEnvironment::Implementation::DeleteFromCatalog( const string& fileName,
-                                                   DbTxn* tid )
+SmiEnvironment::
+Implementation::DeleteFromCatalog( const SmiCatalogEntry& entry, DbTxn* tid )
 {
   if ( !dbOpened )
   {
@@ -526,7 +543,7 @@ SmiEnvironment::Implementation::DeleteFromCatalog( const string& fileName,
 
   if ( dbidx )
   {
-    Dbt key( (void*) fileName.c_str(), fileName.length() );
+    Dbt key( (void*) &entry.fileId, sizeof( entry.fileId ) );
 
     rc = dbidx->del( tid, &key, 0 );
     if ( rc != 0 && rc != DB_NOTFOUND )
@@ -572,14 +589,16 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
     {
       if ( it->second.updateOnCommit )
       {
-        ok = InsertIntoCatalog( it->second.entry, tid );
+        ok = InsertIntoCatalog( it->second.entry, tid );	
       }
       else
       {
-        ok = DeleteFromCatalog( it->first.c_str(), tid );
+        cerr << "SMI: Deleting " 
+	     << it->first.c_str() << " from file Catalog" << endl;     
+        ok = DeleteFromCatalog( it->second.entry, tid );
       }
     }
-    instance.impl->bdbFilesToCatalog.clear();
+    //instance.impl->bdbFilesToCatalog.clear();
     if ( useTransactions )
     {
       if ( ok )
@@ -593,6 +612,32 @@ SmiEnvironment::Implementation::UpdateCatalog( bool onCommit )
         SetBDBError( rc );
       }
     }
+
+    /*
+    it = instance.impl->bdbFilesToCatalog.begin();
+    ok = true;
+    for ( ; ok && it != instance.impl->bdbFilesToCatalog.end(); ++it )
+    {
+      if ( it->second.updateOnCommit )
+      {
+          SmiCatalogEntry x;
+          const string n(it->second.entry.fileName);
+	  LookUpCatalog(n, x);
+          cout << "Lookup string " << endl;	  
+          cout << "x.fileId = " << x.fileId << endl;	  
+          cout << "x.fileName = <" << x.fileName << ">" << endl;
+
+          SmiCatalogEntry y;		
+	  LookUpCatalog(it->second.entry.fileId, y);
+          cout << "Lookup fileId " << endl;	  
+          cout << "x.fileId = " << x.fileId << endl;	  
+          cout << "y.fileId = " << y.fileId << endl;	  
+          cout << "y.fileName = <" << y.fileName << ">" << endl;
+        		
+      }
+    } */
+    instance.impl->bdbFilesToCatalog.clear();
+
   }
   else
   {
@@ -629,15 +674,14 @@ SmiEnvironment::Implementation::EraseFiles( bool onCommit )
 
     if ( removed.find(entry.fileId) == removed.end() ) {
 
-      if ( ( onCommit &&  entry.dropOnCommit) ||
-	   (!onCommit && !entry.dropOnCommit) )
+      if ( onCommit && entry.dropOnCommit )
       {
 	Db* dbp = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
 	
 	string file = ConstructFileName( entry.fileId );
-	//cerr << "Erasing file " << file << endl;
-	//cerr << "onCommit:" << onCommit << endl;
-	//cerr << "entry:" << entry.dropOnCommit << endl;
+	cerr << "Erasing file " << file << endl;
+	cerr << "onCommit:" << onCommit << endl;
+	cerr << "entry:" << entry.dropOnCommit << endl;
 	rc = dbp->remove( file.c_str(), 0, 0 );
 	SetBDBError(rc);
 	removed[entry.fileId] = true;
@@ -703,7 +747,7 @@ SmiEnvironment::Implementation::ConstructFileName( SmiFileId fileId,
   }
   else
   {
-    os << "t" << fileId << ".sdb";
+    os << "t." << WinUnix::getpid() << "."<< fileId << ".sdb";
   }
   if ( RTFlag::isActive("SMI:LogFileCreation") )
   {
@@ -1008,6 +1052,25 @@ SmiEnvironment::StartUp( const RunMode mode, const string& parmFile,
 
   // --- Set locking configuration
 
+    u_int32_t timeout_value;
+    timeout_value = SmiProfile::GetParameter( "BerkeleyDB",
+                                         "Timeout_LCK",
+                                          0, parmFile.c_str() );
+
+    db_timeout_t microSeconds = timeout_value;
+    rc = dbenv->set_timeout(microSeconds, DB_SET_LOCK_TIMEOUT);
+    cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
+
+    timeout_value = SmiProfile::GetParameter( "BerkeleyDB",
+                                              "Timeout_TXN",
+                                              0, parmFile.c_str() );
+
+    microSeconds = timeout_value;
+    rc = dbenv->set_timeout(microSeconds, DB_SET_TXN_TIMEOUT);
+    cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
+
+
+
     u_int32_t lockValue;
     lockValue = SmiProfile::GetParameter( "BerkeleyDB",
                                           "MaxLockers",
@@ -1152,10 +1215,10 @@ Transactions, logging and locking are enabled.
   if (useTransactions) {
     db_timeout_t microSeconds = 0;
     rc = dbenv->get_timeout(&microSeconds, DB_SET_LOCK_TIMEOUT);
-    cout << "Lock timeout: " << microSeconds << " (10e-6 s)" << endl;
+    cout << "Lock timeout: " << microSeconds << " microseconds" << endl;
 
     rc = dbenv->get_timeout(&microSeconds, DB_SET_TXN_TIMEOUT);
-    cout << "TXN timeout: " << microSeconds << " (10e-6 s)" << endl;
+    cout << "TXN  timeout: " << microSeconds << " microseconds" << endl;
   }  
 
   // --- Create temporary Berkeley DB environment
@@ -1191,6 +1254,9 @@ SmiEnvironment::ShutDown()
 
   // --- Current database should be already closed
   assert(!dbOpened);
+
+  // destroy files which have been allocated by the FlobManager 
+  Flob::destroyManager();
 
   DeleteTmpEnvironment();
 
@@ -1381,8 +1447,7 @@ SmiEnvironment::CloseDatabase()
 bool
 SmiEnvironment::EraseDatabase( const string& dbname )
 {
-  bool ok = false;
-
+  bool ok = true;
   if ( !dbOpened )
   {
     SetDatabaseName( dbname );
@@ -1391,52 +1456,46 @@ SmiEnvironment::EraseDatabase( const string& dbname )
       if ( LockDatabase( database ) )
       {
         DbEnv* dbenv = instance.impl->bdbEnv;
-        int ret1 = 0, ret2 = 0;
-//        ret1 = dbenv->txn_checkpoint( 0, 0, DB_FORCE );
-//        ret2 = dbenv->txn_checkpoint( 0, 0, DB_FORCE );
-        ok = (ret1 == 0 && ret2 == 0);
-        if ( ok )
-        {
-          SmiEnvironment::Implementation::DeleteDatabase( database );
-          string oldHome = FileSystem::GetCurrentFolder();
-          FileSystem::SetCurrentFolder( instance.impl->bdbHome );
-          FilenameList fnl;
-          if ( FileSystem::FileSearch( database, fnl, 0, 3 ) )
-          {
-            vector<string>::const_iterator iter = fnl.begin();
-            while ( iter != fnl.end() )
-            {
-              Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
-              int ret;
-              ret = dbp->remove( (*iter).c_str(), 0, 0 );
-              SetBDBError( ret );
-              delete dbp;
-              iter++;
-            }
-          }
-          ok = FileSystem::EraseFolder( database );
-/*
-Since the Berkeley DB is not able to recreate folders on recovery, the
-folder is not erased. When making backups of the Secondo database empty
-folders should be removed.
-
-*/
+	SmiEnvironment::Implementation::DeleteDatabase( database );
+	string oldHome = FileSystem::GetCurrentFolder();
+	FileSystem::SetCurrentFolder( instance.impl->bdbHome );
+	FilenameList fnl;
+	if ( FileSystem::FileSearch( database, fnl, 0, 3 ) )
+	{
+	  vector<string>::const_iterator iter = fnl.begin();
+	  while ( iter != fnl.end() )
+	  {
+	    Db*    dbp   = new Db( dbenv, DB_CXX_NO_EXCEPTIONS );
+	    string fileName(*iter);
+	    cout << "Removing " << fileName << endl;
+	    int rc = dbp->remove( fileName.c_str(), 0, 0 );
+	    ok = ok && (rc == 0);
+	    SetBDBError( rc );
+	    delete dbp;
+	    iter++;
+	}
+	ok = ok && FileSystem::EraseFolder( database );
         FileSystem::SetCurrentFolder( oldHome );
         }
-        UnlockDatabase( database );
-        if ( !ok )
+        ok = ok && UnlockDatabase( database );
+        if ( !ok ) {
           SetError( E_SMI_DB_ERASE );
+	}  
       }
       else
       {
         SetError( E_SMI_DB_NOTLOCKED );
+	ok = false;
       }
     }
-    // else database does not exist!
+    else {
+     // database does not exist. Nothing to erase!
+    } 
   }
   else
   {
     SetError( E_SMI_DB_NOTCLOSED );
+    ok = false;
   }
   return (ok);
 }

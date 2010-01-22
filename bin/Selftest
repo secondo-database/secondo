@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # SelfTest Startup Script
 #
@@ -13,11 +13,11 @@ export MALLOC_CHECK_=2
 
 if [ "$1" == "--valgrind" ]; then
   shift
-  runner="valgrind --num-callers=25  $(which SecondoBDB) -test -e"
+  runner="valgrind --num-callers=25 --suppressions=vgs.txt  $(which SecondoBDB) -test -e"
 else 
 if [ "$1" == "--valgrindlc" ]; then
   shift
-  runner="valgrind --num-callers=25 --leak-check=full $(which SecondoBDB) -test -e"
+  runner="valgrind --num-callers=25 --leak-check=full --suppressions=vgs.txt $(which SecondoBDB) -test -e"
 else  
   runner="$(which SecondoBDB) -test -e"
 fi

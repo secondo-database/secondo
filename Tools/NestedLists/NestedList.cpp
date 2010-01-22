@@ -1086,7 +1086,7 @@ NestedList::WriteToString( string& nlChars, const ListExpr list ) const
   bool ok =false;
   ostringstream nlos;
 
-  if ( ok=WriteToStringLocal( nlos, list  )) {
+  if ( (ok=WriteToStringLocal( nlos, list  ))) {
     nlChars = nlos.str();
   } else {
     nlChars = "";

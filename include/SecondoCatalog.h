@@ -598,6 +598,10 @@ The function below test if a name is reserved for system use.
     return (GetSystemTable(s) != 0);
   }
 
+  SmiRecordFile* GetFlobFile() {
+    return &flobFile;
+  }	  
+
  protected:
   bool TypeUsedByObject( const string& typeName );
  private:
@@ -673,6 +677,7 @@ The function below test if a name is reserved for system use.
   ObjectsCatalog objects;
   SmiBtreeFile   objCatalogFile;
   SmiRecordFile  objValueFile;
+  SmiRecordFile  flobFile;
 
   bool testMode;
 /*

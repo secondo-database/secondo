@@ -26,7 +26,6 @@ operator get_duration alias GET_DURATION pattern op ( _ )
 operator makemvalue alias MAKEMVALUE pattern _ op [ _ ]
 operator the_mvalue alias THE_MVALUE pattern _ op
 operator circle alias CIRCLE pattern op ( _ , _ , _ )
-operator makepoint alias MAKEPOINT pattern op ( _ )
 operator velocity alias VELOCITY pattern op ( _ )
 operator derivable alias DERIVABLE pattern op ( _ )
 operator derivative alias DERIVATIVE pattern op ( _ )

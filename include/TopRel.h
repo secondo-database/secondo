@@ -77,7 +77,8 @@ topological predicates.
 #include "SecondoSystem.h"
 #include "Attribute.h"
 #include "StandardTypes.h"
-#include "DBArray.h"
+#include "../Tools/Flob/DbArray.h"
+#include "../Tools/Flob/Flob.h"
 #include "RectangleAlgebra.h"
 #include "GenericTC.h"
 
@@ -589,12 +590,11 @@ This standard constructor should only be used in the cast function.
       Cluster(){} 
 
 
-      Cluster(int dummy){
+      Cluster(int dummy) : Attribute(true){
         memcpy(BitVector,emptyBlock,64);
         memcpy(BitVectorT,emptyBlock,64);
-        strcpy(name,"complete");
+        memset(name,'\0',MAX_STRINGSIZE + 1);
         strcpy(name,"empty");
-        defined = true;
         updateBoxChecks();
       }
       
@@ -606,9 +606,10 @@ making this constructor different to the standard constructor and is
 ignored.
 
 */
-      Cluster(const bool all, const bool updateBC = true){
+      Cluster(const bool all, const bool updateBC = true) : Attribute(true){
           //for(int i=0;i<64;i++)
           //    BitVector[i]=0;
+          memset(name,'\0',MAX_STRINGSIZE + 1 );
           if(all){
              memcpy(BitVector,fullBlock,64);
              memcpy(BitVectorT,fullBlock,64);
@@ -618,11 +619,12 @@ ignored.
              memcpy(BitVectorT,emptyBlock,64);
              strcpy(name,"complete");
           }
-          defined = true;
           if(updateBC){
               updateBoxChecks();
           } else {
               boxchecksok = false;
+              boxchecks=false;
+              boxchecksT = false;
           }
       }
 
@@ -630,11 +632,11 @@ ignored.
 2.2.3 Copy Constructor 
 
 */
-    Cluster(const Cluster& source){
+    Cluster(const Cluster& source) : Attribute(true){
        Equalize(source);
     }
 
-    Cluster(const Cluster* source){
+    Cluster(const Cluster* source): Attribute(true){
        Equalize(source);
     }
 
@@ -652,7 +654,7 @@ This function sets a new name for this cluster.
 
 */
       void SetName(const STRING_T* newname){
-           strcpy(name,*newname);
+           strcpy(name,(char*)newname);
       }
 
       void SetName(const string newname){
@@ -957,10 +959,6 @@ cluster acts as an attribute type within relations.
       }
       /* returns false in each case */
       bool Adjacent(const Attribute*) const;
-      /* returns the defined state of this cluster */
-      bool IsDefined() const;
-      /* sets the defined state of this cluster */
-      void SetDefined( bool defined );
       /* computes a hashvalue for this cluster */
       size_t HashValue() const;
       /* reads the value of this cluster from arg */
@@ -995,7 +993,9 @@ the given value.
 This function returns the name of this cluster.
 
 */
-      const STRING_T* GetName() const { return &name; } 
+      void GetName(STRING_T& res) const { 
+           strcpy(res, name);
+      } 
 
 
 /*
@@ -1111,7 +1111,6 @@ clusters.
    private:
       unsigned char BitVector[64];  // the set of matrices
       unsigned char BitVectorT[64]; // set of transposed matrices
-      bool defined;
       STRING_T name;
 
       int boxchecks;  // coded information about this cluster
@@ -1265,7 +1264,7 @@ predicate cluster will be the same like this one of the argument.
        return 1;
     }
 
-    FLOB *GetFLOB(const int i){
+    virtual Flob* GetFLOB( const int i ){
        assert(i==0);
        return &theClusters;
     }
@@ -1349,7 +1348,7 @@ cluster will contain all 512 possible matrices.
 */
     void MakeEmpty(){ 
         unSpecified.MakeFull();
-        theClusters.Clear();
+        theClusters.clean();
         defined=true;
         sorted=true;
     }
@@ -1389,16 +1388,19 @@ Note that this function creates a new STRING object. The caller of this
 function has to destroy this object to avoid memory holes.
 
 */
-   const STRING_T* GetNameOf(Int9M* Matrix) {
+   void GetNameOf(Int9M* Matrix, STRING_T& res) {
        if(unSpecified.Contains(*Matrix)){
-          return unSpecified.GetName();
+          unSpecified.GetName(res);
+          return;
        }
        int s = theClusters.Size();
-       const Cluster *C;
+       Cluster C;
        for(int i=0;i<s;i++){
            theClusters.Get(i,C);
-           if(C->Contains(*Matrix))
-               return C->GetName();
+           if(C.Contains(*Matrix)){
+                C.GetName(res);
+                return;
+           }
        }
        assert(false); // should never be reached
     }
@@ -1420,11 +1422,11 @@ by this function.
        if(unSpecified.Contains(Matrix))
           return &unSpecified;
        int s = theClusters.Size();
-       const Cluster *C;
+       Cluster C;
        for(int i=0;i<s;i++){
            theClusters.Get(i,C);
-           if(C->Contains(Matrix)){
-               return new Cluster(*C);
+           if(C.Contains(Matrix)){
+               return new Cluster(C);
            }
        }
        assert(false); // should never be reached
@@ -1471,7 +1473,7 @@ void SetToDefault();
    }
 
 private:
-   mutable DBArray<Cluster> theClusters;
+   mutable DbArray<Cluster> theClusters;
    bool defined;
    bool canDelete;
    mutable bool sorted;

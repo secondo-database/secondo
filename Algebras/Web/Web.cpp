@@ -49,10 +49,10 @@ November 2006
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"  //needed because we return a CcBool in an op.
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "DateTime.h"
-#include "FLOB.h"
+#include "../../Tools/Flob/Flob.h"
 #include "../FText/FTextAlgebra.h"
 #include "../Relation-C++/RelationAlgebra.h"
 #include "web.h"
@@ -494,16 +494,16 @@ class URL : public IndexableAttribute
   void destroy(void);
   static bool urlFromString(const string& url,URL& myurl);
    inline virtual int NumOfFLOBs() const {__TRACE__ return 2;}
-  FLOB *GetFLOB(const int);
+  Flob *GetFLOB(const int);
   void WriteTo (char*)const;
   void ReadFrom(const char*);
   SmiSize SizeOfChars(void) const;
   size_t HashValue(void) const;
   void CopyFrom(const Attribute *arg);
  private:
-   STRING_T protocol;
-  FLOB host;
-  FLOB path;
+  STRING_T protocol;
+  Flob host;
+  Flob path;
   bool defined;
   static bool isValidURL(const string&);
   static bool isValidURL(const string&, string&, string&, string&);
@@ -626,11 +626,11 @@ string URL::getHost() const
   if (!defined)
     return "";
 
-  const char* s = 0;
-  host.Get(0, &s);
+  char s[host.getSize()];
+  host.read(s, host.getSize());
 
   //cout << "getHost " << s << endl;
-  return s;
+  return string(s);
 }
 
 void URL::setHost(string h)
@@ -639,8 +639,8 @@ void URL::setHost(string h)
   if (!defined)
     return;
   //cout << "setHost " << h << endl;
-  host.Resize (h.length() +1);
-  host.Put (0,h.length() + 1, h.c_str());
+  host.resize (h.length() +1);
+  host.write(h.c_str(),h.length() + 1);
 }
 
 string URL::getPath() const
@@ -648,9 +648,9 @@ string URL::getPath() const
 //  __TRACE__
   if (!defined)
     return "";
-  const char* s = 0;
-  path.Get(0, &s);
-  return s;
+  char s[path.getSize()];
+  path.read(s, path.getSize());
+  return string(s);
 }
 
 void URL::setPath(string p)
@@ -665,8 +665,8 @@ void URL::setPath(string p)
     p= "/";
   if (p.at(0) != '/')
     p= "/" + p;
-  path.Resize (p.length() +1);
-  path.Put (0,p.length() + 1, p.c_str());
+  path.resize (p.length() +1);
+  path.write(p.c_str(), p.length() +1);
 }
 
 ostream& operator<<(ostream& s, URL u)
@@ -746,17 +746,17 @@ void URL::Set( bool d, URL& u)
 
 
   strcpy(protocol, s.c_str());
-  host.Resize( h.length() + 1 );
-  host.Put( 0, h.length() + 1, h.c_str() );
-  path.Resize( p.length() + 1 );
-  path.Put( 0, p.length() + 1, p.c_str() );
+  host.resize( h.length() + 1 );
+  host.write(h.c_str(), h.length() + 1 );
+  path.resize( p.length() + 1 );
+  path.write( p.c_str(), p.length() + 1 );
 }
 
 
 void URL::destroy(){
   __TRACE__
-  host.Destroy();
-  path.Destroy();
+  host.destroy();
+  path.destroy();
 }
 
 bool URL::urlFromString (const string& url,URL& myurl){
@@ -831,7 +831,7 @@ bool URL::isValidURL(const string& url){
   return isValidURL(url, x,y,z);
 }
 
-FLOB *URL::GetFLOB(const int i){
+Flob *URL::GetFLOB(const int i){
 //  __TRACE__
 
 
@@ -852,7 +852,7 @@ void URL::WriteTo ( char* dest ) const {
 
 SmiSize URL::SizeOfChars()const {
   __TRACE__
-    return (strlen (protocol) + host.Size() + path.Size());
+    return (strlen (protocol) + host.getSize() + path.getSize());
 }
 
 void URL::ReadFrom ( const char *src){
@@ -949,15 +949,15 @@ class HTML : public Attribute
   bool IsDefined() const;
   void SetDefined(bool d) ;
   void Set(const HTML &h);
-  FLOB *GetFLOB(const int i);
+  Flob* GetFLOB(const int i);
   int NumOfFLOBs() const;
   size_t Sizeof() const;
   int Compare(const Attribute*) const;
   bool Adjacent (const Attribute*)const;
-  const DBArray<FlobIndex>* getURLS()const;
-  const DBArray<FlobIndex>* getMetainfoKeys()const;
-  const DBArray<FlobIndex>* getMetainfoContents()const;
-  const DBArray<FlobIndex>* getEmbededURLS() const;
+  const DbArray<FlobIndex>* getURLS()const;
+  const DbArray<FlobIndex>* getMetainfoKeys()const;
+  const DbArray<FlobIndex>* getMetainfoContents()const;
+  const DbArray<FlobIndex>* getEmbededURLS() const;
 
   bool IsValid() const;
   void CopyFrom(const Attribute *arg);
@@ -968,11 +968,11 @@ class HTML : public Attribute
 
  private:
   DateTime lastChange;
-  FLOB source;
-  DBArray<flobindex> urls;
-  DBArray<flobindex> emburls;
-  DBArray<flobindex> metainfoKeys;
-  DBArray<flobindex> metainfoContents;
+  Flob source;
+  DbArray<flobindex> urls;
+  DbArray<flobindex> emburls;
+  DbArray<flobindex> metainfoKeys;
+  DbArray<flobindex> metainfoContents;
   URL sourceURL;
 
   bool defined;
@@ -1003,7 +1003,8 @@ tiefe(0), valid(true)
   __TRACE__
   //cout << "V1" << endl;
   defined = true;
-  source.Put(0,s.length()+1,s.c_str());
+  source.resize(s.length()+1);
+  source.write(s.c_str(),s.length()+1);
   //tiefe=0;
 
 
@@ -1029,7 +1030,8 @@ tiefe(0),valid(true)
 {
   __TRACE__
   //cout << "V2" << endl;
-  source.Put(0,s.length()+1,s.c_str());
+  source.resize(s.length()+1);
+  source.write(s.c_str(), s.length() + 1);
 
   //jps: Only Debug must be removed!!!!!!!!!!!
   //cout << d.ToString() << " , " << u << endl;
@@ -1057,33 +1059,33 @@ defined(h.IsDefined()),tiefe(0),valid(h.IsValid())
   __TRACE__
 
   //cout << "V3" << endl;
-  const FlobIndex *tmp=0;
-  const DBArray<FlobIndex> *tmpArray=0;
+  FlobIndex tmp;
+  const DbArray<FlobIndex> *tmpArray=0;
 
   int i=0;
 //__TRACE__
   string c = h.getContent();
-  source.Resize (c.length() +1 );
-  source.Put(0,c.length()+1,c.c_str());
+  source.resize (c.length() +1 );
+  source.write(c.c_str(), c.length()+1);
 
 //  __TRACE__
   tmpArray=h.getURLS();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
-    urls.Put(i,  *tmp);
+    urls.Put(i,  tmp);
   }
 
 //__TRACE__
   tmpArray=h.getMetainfoKeys();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
-    metainfoKeys.Put( i, *tmp);
+    metainfoKeys.Put( i, tmp);
   }
 //__TRACE__
   tmpArray=h.getMetainfoContents();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
-    metainfoContents.Put( i, *tmp);
+    metainfoContents.Put( i, tmp);
   }
 //  __TRACE__
  /*
@@ -1129,9 +1131,9 @@ string HTML::getContent() const
   if (!defined)
     return "";
 
-  const char* s = 0;
-  source.Get(0, &s);
-  return s;
+  char s[source.getSize()];
+  source.read(s, source.getSize());
+  return string(s);
 }
 
 /*
@@ -1287,17 +1289,15 @@ int HTML::getNumberOfUrls() const
 URL HTML::getUrl( int i)
 {
   __TRACE__
-  const flobindex* ind=0;
+  flobindex ind;
   string content;
   URL url("");
   if (i < urls.Size()){
-    const char* s = 0;
-    source.Get(0, &s);
+    char s[source.getSize()];
+    source.read(s, source.getSize());
     urls.Get(i, ind);
-    string tmp (s+ind->offset, ind->len);
+    string tmp (s+ind.offset, ind.len);
     content= tmp;
-
-
     if (checkURI( content, url))
       return URL(url);
   }
@@ -1313,17 +1313,15 @@ int HTML::getNumberOfEmbUrls() const{
 URL HTML::getEmbUrl( int i)
 {
   __TRACE__
-  const flobindex* ind=0;
+  flobindex ind;
   string content;
   URL url("");
   if (i < emburls.Size()){
-    const char* s = 0;
-    source.Get(0, &s);
+    char s[source.getSize()];
+    source.read(s, source.getSize());
     emburls.Get(i, ind);
-    string tmp (s+ind->offset, ind->len);
+    string tmp (s+ind.offset, ind.len);
     content= tmp;
-
-
     if (checkURI( content, url))
       return URL(url);
   }
@@ -1612,17 +1610,17 @@ string HTML::getMetainfo( int i, string& pContent) const
   //returns the key of metainfo number ii
   //fills pContent with the content of the metainfo number ii
 
-  const flobindex *ind=0;
-  const char* content;
+  flobindex ind;
+  char content[source.getSize()];
 
-  source.Get(0, &content);
+  source.read(content, source.getSize());
 
   if (i < metainfoKeys.Size()){
     metainfoContents.Get (i, ind);
-    string tmp (content+ind->offset, ind->len);
+    string tmp (content+ind.offset, ind.len);
     pContent= tmp;
     metainfoKeys.Get( i, ind);
-    return string (content+ind->offset, ind->len);
+    return string (content+ind.offset, ind.len);
   }
   return "";
 }
@@ -2040,8 +2038,8 @@ double HTML::similar(HTML *html, int maxdepth, bool respectOrder){
 
 void HTML::Set(const HTML &h)
 {
-    const FlobIndex *tmp=0;
-  const DBArray<FlobIndex> *tmpArray=0;
+  FlobIndex tmp;
+  const DbArray<FlobIndex> *tmpArray=0;
 
   int i=0;
 
@@ -2060,35 +2058,32 @@ void HTML::Set(const HTML &h)
   URL u(h.getSource());
   sourceURL.Set(true,u);
   string s = h.getContent();
-  source.Resize( s.length() + 1 );
-  source.Put( 0, s.length() + 1, s.c_str() );
+  source.resize( s.length() + 1 );
+  source.write(s.c_str(), s.length() + 1);
 
 
   string c = h.getContent();
-  source.Resize (c.length() +1 );
-  source.Put(0,c.length()+1,c.c_str());
+  source.resize (c.length() +1 );
+  source.write(c.c_str(),c.length()+1);
 
 
   tmpArray=h.getURLS();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
-    urls.Put(i,  *tmp);
+    urls.Put(i,  tmp);
   }
 
   tmpArray=h.getMetainfoKeys();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
-    metainfoKeys.Put( i, *tmp);
+    metainfoKeys.Put( i, tmp);
   }
 
   tmpArray=h.getMetainfoContents();
   for (i=0; i < tmpArray->Size();i++){
     tmpArray->Get(i,tmp);
-    metainfoContents.Put( i, *tmp);
+    metainfoContents.Put( i, tmp);
   }
-
-
-
 }
 
 
@@ -2097,7 +2092,7 @@ int HTML::NumOfFLOBs() const{
     return 7;
 }
 
-FLOB *HTML::GetFLOB(const int i){
+Flob *HTML::GetFLOB(const int i){
 //  __TRACE__
   //assert (i < NumOfFLOBs());
 
@@ -2141,16 +2136,16 @@ void HTML::SetDefined(bool d) {
   defined=d;
 }
 
-const DBArray<FlobIndex>* HTML::getURLS() const{
+const DbArray<FlobIndex>* HTML::getURLS() const{
   return &urls;
 
 }
 
-const DBArray<FlobIndex>* HTML::getMetainfoKeys()const{
+const DbArray<FlobIndex>* HTML::getMetainfoKeys()const{
   return &metainfoKeys;
 }
 
-const DBArray<FlobIndex>* HTML::getMetainfoContents() const{
+const DbArray<FlobIndex>* HTML::getMetainfoContents() const{
   return &metainfoContents;
 }
 
@@ -2163,19 +2158,20 @@ void HTML::CopyFrom(const Attribute* right)
   __TRACE__
   const HTML *r = (const HTML *)right;
   lastChange = r->getLastModified();
-  source.Resize( r->source.Size() );
-  const char *bin;
-  r->source.Get( 0, &bin );
-  source.Put( 0, r->source.Size(), bin );
+  source.resize( r->source.getSize() );
+  char bin[r->source.getSize()];
+  r->source.read(bin, r->source.getSize() );
+  source.write( bin, r->source.getSize());
+
   sourceURL.setProtocol( r->getSource().getProtocol());
   sourceURL.setHost( r->getSource().getHost());
   sourceURL.setPath( r->getSource().getPath());
   defined = r->IsDefined();
   valid=true;
   tiefe=0;
-  urls.Clear();
-  metainfoKeys.Clear();
-  metainfoContents.Clear();
+  urls.clean();
+  metainfoKeys.clean();
+  metainfoContents.clean();
   getMetaInfos(bin);
   getUrls(bin);
 }
@@ -2186,7 +2182,7 @@ size_t HTML::HashValue(void) const
 }
 
 
-const DBArray<FlobIndex>* HTML::getEmbededURLS() const{
+const DbArray<FlobIndex>* HTML::getEmbededURLS() const{
   return &emburls;
 }
 
@@ -2223,7 +2219,7 @@ class Page : public HTML
 
     bool IsDefined() const;
     void SetDefined(bool d) ;
-    FLOB *GetFLOB(const int i);
+    Flob *GetFLOB(const int i);
     int NumOfFLOBs() const;
     size_t SizeOf() const;
     int Compare(const Attribute*) const;
@@ -2289,15 +2285,15 @@ class Page : public HTML
       int len;
     };
     int numOfEmbeddedObjects;
-    DBArray<FLOBIndex> embUrlIds;
-    FLOB embUrls;
-    DBArray<FLOBIndex> binIDs;
-    FLOB binFiles;
-    DBArray<FLOBIndex> mimeIDs;
-    FLOB mimeTypes;
+    DbArray<FLOBIndex> embUrlIds;
+    Flob embUrls;
+    DbArray<FLOBIndex> binIDs;
+    Flob binFiles;
+    DbArray<FLOBIndex> mimeIDs;
+    Flob mimeTypes;
 
     bool allocateOneElem(int BytesOfData, int BytesOfURL, int BytesOfMime);
-    bool allocateSpaceInArray(DBArray<FLOBIndex> *dba, int numOfBytes);
+    bool allocateSpaceInArray(DbArray<FLOBIndex> *dba, int numOfBytes);
     URL getURLFromString(string &s) const;
     bool checkEmbUrl(URL &u);
     static const int MAXBUFFERSIZE = 1000000;
@@ -2315,7 +2311,7 @@ void Page::SetDefined(bool d)
   HTML::SetDefined(d);
 }
 
-FLOB* Page::GetFLOB(const int i)
+Flob* Page::GetFLOB(const int i)
 {
   #ifdef _DEBUG_JPS
     cout << "FLOB* Page::GetFLOB(const int i):"  << i << endl;
@@ -2509,14 +2505,14 @@ URL Page::getUrl(int i) const
   if(i < numOfEmbeddedObjects)
   {
     //Get the right url flobindex..
-    const FLOBIndex *getThisUrl;
+    FLOBIndex getThisUrl;
     embUrlIds.Get(i, getThisUrl);
     #ifdef _DEBUG_JPS
     //cout << "getUrl: " << (*getThisUrl).offset << endl;
     #endif
     //..and get the url..
-    const char* c;
-    embUrls.Get((*getThisUrl).offset, &c);
+    char c[getThisUrl.len];
+    embUrls.read(c, getThisUrl.len, getThisUrl.offset);
     string result(c);
     #ifdef _DEBUG_JPS_3
     //cout <<"getUrl: >1ind:" << i << " >2url: " << result <<
@@ -2536,12 +2532,12 @@ string Page::getText( int i) const
   if(i < numOfEmbeddedObjects)
   {
     //Get the right bin index..
-    const FLOBIndex *getThisBin;
+    FLOBIndex getThisBin;
     binIDs.Get(i, getThisBin);
 
     //..and get the bin data..
-    const char* c;
-    binFiles.Get((*getThisBin).offset, &c);
+    char c[getThisBin.len];
+    binFiles.read(c, getThisBin.len, getThisBin.offset); 
     string result(c);
     #ifdef _DEBUG_JPS_3
     //cout <<"getMime: >1ind:" << i << " >2mime: " <<
@@ -2560,12 +2556,12 @@ string Page::getMime( int i) const
   if(i < numOfEmbeddedObjects)
   {
     //Get the right bin index..
-    const FLOBIndex *getThisMime;
+    FLOBIndex getThisMime;
     mimeIDs.Get(i, getThisMime);
 
     //..and get the bin data..
-    const char* c;
-    mimeTypes.Get((*getThisMime).offset, &c);
+    char c[getThisMime.len];
+    mimeTypes.read(c, getThisMime.len, getThisMime.offset); 
     string result(c);
     #ifdef _DEBUG_JPS_3
     //cout <<"getMime: >1ind:" << i << " >2mime: " << result <<
@@ -2592,22 +2588,25 @@ void Page::addEmbObject(const URL &u, const string &mime, const string &s)
     if (allocateOneElem(s.size() +1, s_url.size()+1, mime.size()+1))
     {
       /******************URL**********************/
-      const FLOBIndex *insertUrlHere;
+      FLOBIndex insertUrlHere;
       embUrlIds.Get(numOfEmbeddedObjects - 1, insertUrlHere);
-      embUrls.Put((*insertUrlHere).offset,
-                  (*insertUrlHere).len + 1, s_url.c_str());
+      embUrls.write(s_url.c_str(), 
+                    insertUrlHere.len + 1, 
+                    insertUrlHere.offset);
 
       /******************MIME**********************/
-      const FLOBIndex *insertMimeHere;
+      FLOBIndex insertMimeHere;
       mimeIDs.Get(numOfEmbeddedObjects - 1, insertMimeHere);
-      mimeTypes.Put((*insertMimeHere).offset,
-                    (*insertMimeHere).len + 1, mime.c_str());
+      mimeTypes.write(mime.c_str(), 
+                      insertMimeHere.len + 1, 
+                      insertMimeHere.offset);
 
       /******************BINARY**********************/
-      const FLOBIndex *insertBinHere;
+      FLOBIndex insertBinHere;
       binIDs.Get(numOfEmbeddedObjects - 1, insertBinHere);
-      binFiles.Put((*insertBinHere).offset,
-                   (*insertBinHere).len + 1, s.c_str());
+      binFiles.write(s.c_str(),
+                     insertBinHere.len + 1,
+                     insertBinHere.offset);
     }
   }
 }
@@ -2625,17 +2624,17 @@ bool Page::allocateOneElem(int BytesOfData, int BytesOfURL, int BytesOfMime)
     && allocateSpaceInArray(&mimeIDs, BytesOfMime))
   {
     //.. and allocate the right amount of memory in the flobs!
-    const FLOBIndex *resizeUrlIndex;
+    FLOBIndex resizeUrlIndex;
     embUrlIds.Get(numOfEmbeddedObjects - 1, resizeUrlIndex);
-    embUrls.Resize(embUrls.Size() + (*resizeUrlIndex).len + 1);
+    embUrls.resize(embUrls.getSize() + resizeUrlIndex.len + 1);
 
-    const FLOBIndex *resizeBinIndex;
+    FLOBIndex resizeBinIndex;
     binIDs.Get(numOfEmbeddedObjects - 1, resizeBinIndex);
-    binFiles.Resize(binFiles.Size() + (*resizeBinIndex).len + 1);
+    binFiles.resize(binFiles.getSize() + resizeBinIndex.len + 1);
 
-    const FLOBIndex *resizeMimeIndex;
+    FLOBIndex resizeMimeIndex;
     mimeIDs.Get(numOfEmbeddedObjects - 1, resizeMimeIndex);
-    mimeTypes.Resize(mimeTypes.Size() + (*resizeMimeIndex).len + 1);
+    mimeTypes.resize(mimeTypes.getSize() + resizeMimeIndex.len + 1);
 
     return true;
   }
@@ -2646,7 +2645,7 @@ bool Page::allocateOneElem(int BytesOfData, int BytesOfURL, int BytesOfMime)
 }
 
 
-bool Page::allocateSpaceInArray(DBArray<FLOBIndex> *dba, int numOfBytes)
+bool Page::allocateSpaceInArray(DbArray<FLOBIndex> *dba, int numOfBytes)
 {
   //Get the index and offset of the previous element..
   __TRACE__
@@ -2654,10 +2653,10 @@ bool Page::allocateSpaceInArray(DBArray<FLOBIndex> *dba, int numOfBytes)
   if (numOfEmbeddedObjects > 1)
   {
   __TRACE__
-    const FLOBIndex *prevIndex;
+    FLOBIndex prevIndex;
     dba->Get(numOfEmbeddedObjects - 2, prevIndex);
-    pIndex.offset = (*prevIndex).offset;
-    pIndex.len = (*prevIndex).len;
+    pIndex.offset = prevIndex.offset;
+    pIndex.len = prevIndex.len;
   }
 
   //..or set index and length to 0 if the element is the first!

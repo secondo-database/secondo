@@ -1,5 +1,5 @@
 
-(DATABASE CHESSTEST 
+(DATABASE CHESSBTEST 
     (TYPES) 
     (OBJECTS 
         (OBJECT Bishop 

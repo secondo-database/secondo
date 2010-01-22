@@ -33,6 +33,7 @@ makedirs: makedirsnormal makedirsjni
 
 .PHONY: makedirsnormal
 makedirsnormal:
+	$(MAKE) -C Flob 
 	$(MAKE) -C NestedLists
 	$(MAKE) -C Parser
 	$(MAKE) -C Utilities

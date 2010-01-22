@@ -307,7 +307,7 @@ DisplayTTY::DisplayDescriptionLines( ListExpr value, int  maxNameLen)
   {
     cout << "Error: Length of the label list does not "
         << "equal the length of the entries list." << endl;
-    cout << errMsg << endl;
+cout << errMsg << endl;
     return;
   }
 
@@ -2550,7 +2550,111 @@ struct DisplayMaterial : DisplayFunction {
 };
 
 
+/*
+DisplayVector
 
+*/
+struct DisplayVector : DisplayFunction {
+  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  {
+    if(nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
+       && nl->SymbolValue( value ) == "undef") {
+      cout << "Undefined vector";
+    }
+    else{
+      ListExpr AType = nl->Second(type);
+      ListExpr ANumType = nl->Second(numType);
+       // find the idpair
+      ListExpr idpair = ANumType;
+      while(nl->AtomType(nl->First(idpair))!=IntType)
+        idpair = nl->First(idpair);
+
+      int No = 0;
+      cout << "*************** BEGIN VECTOR ***************" << endl;
+      while( !nl->IsEmpty(value)){
+        cout << "--------------- Elem No: ";
+        cout << No++ << " ---------------" << endl;
+        CallDisplayFunction( idpair, AType,
+                             ANumType, nl->First(value) );
+        cout << endl;
+        value = nl->Rest(value);
+      }
+      cout << "***************  END VECTOR  ***************";
+    }
+  }
+};
+
+/*
+DisplaySet
+
+*/
+struct DisplaySet : DisplayFunction {
+        
+  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  {
+
+    if(nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
+       && nl->SymbolValue( value ) == "undef") {
+      cout << "Undefined set";
+       }
+       else{
+         ListExpr AType = nl->Second(type);
+         ListExpr ANumType = nl->Second(numType);
+       // find the idpair
+         ListExpr idpair = ANumType;
+         while(nl->AtomType(nl->First(idpair))!=IntType)
+           idpair = nl->First(idpair);
+
+         cout << "*************** BEGIN SET ***************" << endl;
+         while( !nl->IsEmpty(value)){
+           CallDisplayFunction( idpair, AType,
+                                ANumType, nl->First(value) );
+           cout << endl;
+           value = nl->Rest(value);
+         }
+         cout << "***************  END SET  ***************";
+
+       }
+  }
+};
+
+/*
+DisplaySet
+
+*/
+struct DisplayMultiset : DisplayFunction {
+        
+  virtual void Display( ListExpr type,  ListExpr numType, ListExpr value)
+  {
+
+    if(nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
+       && nl->SymbolValue( value ) == "undef") {
+      cout << "Undefined multiset";
+       }
+       else{
+         ListExpr AType = nl->Second(type);
+         ListExpr ANumType = nl->Second(numType);
+       // find the idpair
+         ListExpr idpair = ANumType;
+         while(nl->AtomType(nl->First(idpair))!=IntType)
+           idpair = nl->First(idpair);
+
+         cout << "*************** BEGIN MULTISET ***************" << endl;
+         ListExpr elemList;
+         int times;
+         while( !nl->IsEmpty(value)){
+           elemList = nl->First(nl->First(value));
+           times = nl->IntValue(nl->Second(nl->First(value)));
+           CallDisplayFunction( idpair, AType,
+                                ANumType, elemList );
+           cout << " (contained " << times << " times)."<< endl;
+           value = nl->Rest(value);
+         }
+         cout << "***************  END MULTISET  ***************";
+
+       }
+  }
+};
 
 /*
 4 Initialization
@@ -2620,7 +2724,11 @@ DisplayTTY::Initialize()
   d.Insert( "field",     new DisplayField() );
 #endif
 
- }
+  // CollectionAlgebra
+  d.Insert( "vector",    new DisplayVector() );
+  d.Insert( "set",       new DisplaySet() );
+  d.Insert( "multiset",  new DisplayMultiset() );
+}
 
 /*
 Removes the existing instance 

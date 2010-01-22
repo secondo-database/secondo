@@ -139,6 +139,7 @@ All other implementation classes provide only data members.
 #include <map>
 #include <vector>
 #include <assert.h>
+#include <string.h>
 
 #include <db_cxx.h>
 
@@ -297,6 +298,10 @@ struct SmiCatalogEntry
   char      fileName[2*SMI_MAX_NAMELEN+2];
   bool      isKeyed;
   bool      isFixed;
+  SmiCatalogEntry() : fileId(0), isKeyed(false), isFixed(false)
+  {
+    memset(fileName, 0, 2*SMI_MAX_NAMELEN+2);	  
+  }	  
 };
 /*
 Defines the structure of the entries in the file catalog.
@@ -326,6 +331,7 @@ struct SmiCatalogFilesEntry
 {
   SmiCatalogEntry entry;
   bool            updateOnCommit;
+  SmiCatalogFilesEntry() : entry(), updateOnCommit(false) {}
 };
 /*
 Defines the structure of the elements in the map for file catalog requests.
@@ -374,7 +380,7 @@ the file like the file name.
 Inserts the catalog entry ~entry~ into the file catalog.
 
 */
-  static bool DeleteFromCatalog( const string& fileName,
+  static bool DeleteFromCatalog( const SmiCatalogEntry& entry, 
                                  DbTxn* tid );
 /*
 Deletes the catalog entry ~entry~ from the file catalog.

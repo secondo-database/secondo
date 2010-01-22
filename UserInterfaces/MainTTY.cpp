@@ -45,6 +45,8 @@ TestRunnerCS
   
 */   
 
+#include <stdexcept>
+
 #include "License.h"
 #include "TTYParameter.h"
 #include "LogMsg.h"
@@ -64,6 +66,8 @@ extern int SecondoServerMode( const int, const char**);
 int
 main( const int argc, char* argv[] )
 {
+  try {  
+
   TTYParameter tp(argc,argv);
 
 #ifndef SEC_TTYCS
@@ -98,4 +102,8 @@ main( const int argc, char* argv[] )
     return SecondoTestRunner(tp);
   
   return SecondoTTYMode(tp);
+
+  } catch (exception e) {
+    cerr << e.what() << endl;
+  }	  
 }

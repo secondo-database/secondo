@@ -53,11 +53,12 @@ using namespace std;
 #include <cassert>
 #include <limits.h>
 
-//#define TRACE_ON 1
 #undef TRACE_ON
+#include "Trace.h"
 #include "LogMsg.h"
 
 #include <db_cxx.h>
+#include "DbVersion.h"
 #include "SecondoSMI.h"
 #include "SmiBDB.h"
 #include "SmiCodes.h"
@@ -68,7 +69,7 @@ using namespace std;
 
 static int  BdbCompareInteger( Db* dbp, const Dbt* key1, const Dbt* key2 );
 static int  BdbCompareFloat( Db* dbp, const Dbt* key1, const Dbt* key2 );
-static void BdbInitCatalogEntry( SmiCatalogEntry& entry );
+//static void BdbInitCatalogEntry( SmiCatalogEntry& entry );
 
 
 /* --- Implementation of class SmiFile --- */
@@ -238,8 +239,12 @@ SmiFile::CheckName( const string& name )
   return (ok);
 }
 
+
+
+
 bool
-SmiFile::Create( const string& context /* = "Default" */, 
+SmiFile::Create( const string& name,
+		 const string& context /* = "Default" */, 
 		 const uint16_t ps /* = 0 */ )
 {
   static long& ctrCreate = Counter::getRef("SmiFile::Create");
@@ -253,10 +258,12 @@ SmiFile::Create( const string& context /* = "Default" */,
                                                     impl->isTemporaryFile );
     if ( fileId != 0 )
     {
-      string bdbName =
-        SmiEnvironment::Implementation::ConstructFileName(
-                                                      fileId,
-                                                      impl->isTemporaryFile );
+      string bdbName = name;
+      if (name=="") {
+        bdbName = SmiEnvironment::
+	             Implementation::ConstructFileName( fileId,
+                                                        impl->isTemporaryFile );
+      }	
 
       impl->bdbName = bdbName;
       fileName = bdbName;
@@ -367,14 +374,36 @@ SmiFile::Create( const string& context /* = "Default" */,
 
   return (rc == 0);
 }
+
+bool
+SmiFile::CreateWithName( const string& name, 
+		         const string& context /* = "Default" */, 
+		         const uint16_t ps /* = 0 */ )
+{
+  return Create(name, context, ps);
+}
+
+bool
+SmiFile::Create( const string& context /* = "Default" */, 
+		 const uint16_t ps /* = 0 */ )
+{
+  return Create("", context, ps);
+}
+
+
+
+
 /*
-Opens a file by name.
+Opens a file by name. This should be used only by catalog files!
 
 */
 bool
 SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 {
-  assert ( !opened );
+  if(opened){
+    cerr << "try to open an open  file: " << (*this) << endl;
+    return true; 
+  }  
   static long& ctr = Counter::getRef("SmiFile::Open");
   int rc = 0;
   bool existing = false;
@@ -389,8 +418,9 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
   {
     SmiCatalogEntry entry;
     string newName = context + '.' + name;
+
     if ( SmiEnvironment::Implementation::LookUpCatalog( newName, entry ) )
-    {
+    {	    
       // --- File found in permanent file catalog
       fileId = entry.fileId;
       existing = true;
@@ -518,7 +548,7 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
           SmiDropFilesEntry dropEntry(fileId, false);
           SmiEnvironment::instance.impl->bdbFilesToDrop.push( dropEntry );
           SmiCatalogFilesEntry catalogEntry;
-          BdbInitCatalogEntry( catalogEntry.entry );
+          //BdbInitCatalogEntry( catalogEntry.entry );
           catalogEntry.entry.fileId = fileId;
           newName.copy( catalogEntry.entry.fileName, 2*SMI_MAX_NAMELEN+1 );
           catalogEntry.entry.isKeyed = fileType == KeyedBtree ||
@@ -557,7 +587,10 @@ SmiFile::Open( const string& name, const string& context /* = "Default" */ )
 bool
 SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 {
-  assert ( !opened );
+  if(opened){
+    cerr << "try to open an open file" << (*this) << endl;
+    return true;
+  }
 
   static long& ctr = Counter::getRef("SmiFile::Open");
   TRACE("SmiFile::Open")
@@ -574,6 +607,8 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     }
     else if ( SmiEnvironment::Implementation::LookUpCatalog( fileid, entry ) )
     {
+      // SPM: should never work!	    
+      assert(false);	    
       // --- File found in permanent file catalog
       char* point = strchr( entry.fileName, '.' );
       *point = '\0';
@@ -582,6 +617,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     }
     else
     {
+      //cerr << "INFO: fileId not found in fileCatalog" << endl; 
       fileContext = context;
       fileName    = "";
     }
@@ -609,9 +645,10 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
           SmiEnvironment::Implementation::FindOpen(bdbName,flags);
       if(alreadyExist>=0){
 
-         if (trace)
+         if (trace) {
            cerr << "File id =" << fileid << "already exists." << endl;
-         
+          }
+
 	 DbHandleIndex old = impl->bdbHandle;
          if(!impl->noHandle){
              SmiEnvironment::Implementation::SetUnUsed(old);
@@ -685,14 +722,16 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
 
       rc = impl->bdbFile->open( tid, bdbName.c_str(), 0, bdbType, flags, 0 );
       fileId = fileid;
-      if (trace)
+      if (trace) {
         cerr << "opening by id =" << fileid << ", "<< *this << endl;
+      }	
       SmiEnvironment::SetBDBError( rc );
       if ( rc == 0 )
       {
         opened = true;
         impl->isSystemCatalogFile = (fileContext == "SecondoCatalog");
       }
+
     }
     else
     {
@@ -812,7 +851,10 @@ SmiFile::Remove()
     rc = impl->bdbFile->remove( impl->bdbName.c_str(), 0, 0 );
     SmiEnvironment::SetBDBError(rc);
     if ( rc == 0 ) {
-      impl->bdbFile = 0;
+      if(impl->bdbFile){
+         delete impl->bdbFile;
+         impl->bdbFile = 0;
+      }
     }
   }
   //cerr << endl << "End removing " <<  impl->bdbName << endl;
@@ -900,7 +942,7 @@ SmiStatResultType
       DB_QUEUE_STAT *sRS = 0;
       // set flags according to ~mode~
       // call bdb stats method
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+#if DB_VERSION_REQUIRED(4,3) 
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
@@ -951,7 +993,7 @@ SmiStatResultType
       DB_BTREE_STAT *sRS = 0;
       // set flags according to ~mode~
       // call bdb stats method
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+#if DB_VERSION_REQUIRED(4, 3)
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
@@ -1014,7 +1056,7 @@ SmiStatResultType
       DB_HASH_STAT *sRS = 0;
       SmiStatResultType result;
       // call bdb stats method
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+#if DB_VERSION_REQUIRED(4, 3)
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
@@ -1070,7 +1112,7 @@ SmiStatResultType
       DB_BTREE_STAT *sRS = 0;
       // set flags according to ~mode~
       // call bdb stats method
-#if DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 3
+#if DB_VERSION_REQUIRED(4, 3)
       DbTxn* tid = !impl->isTemporaryFile ?
                     SmiEnvironment::instance.impl->usrTxn : 0;
       getStatReturnValue = impl->bdbFile->stat(tid, &sRS, flags);
@@ -1193,10 +1235,12 @@ static int BdbCompareFloat( Db* dbp, const Dbt* key1, const Dbt* key2 )
 
 // --- Initialize Catalog Entry ---
 
+ /*
 static void BdbInitCatalogEntry( SmiCatalogEntry& entry )
 {
   memset( entry.fileName, 0 , (2*SMI_MAX_NAMELEN+2) );
 }
+  */
 
 // --- Implementation of class SmiFileIterator ---
 
@@ -1287,7 +1331,7 @@ SmiFileIterator::Next( SmiRecord& record )
 
     // --- Initialize record handle if record is available
 // VTA - 15.11.2005 - to compile with the new version of Berkeley DB
-#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 3)
+#if (DB_VERSION_REQUIRED(4, 3))
     if ( rc == DB_BUFFER_SMALL )
 #else
     if ( rc == ENOMEM )
@@ -1427,7 +1471,7 @@ bool PrefetchingIteratorImpl::NewPrefetch()
   if(errorCode != 0)
   {
 // VTA - 15.11.2005 - to compile with the new version of Berkeley DB
-#if (DB_VERSION_MAJOR == 4) && (DB_VERSION_MINOR == 3)
+#if (DB_VERSION_REQUIRED(4, 3))
     if ( errorCode == DB_BUFFER_SMALL )
 #else
     if ( errorCode == ENOMEM )

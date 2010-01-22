@@ -15,6 +15,7 @@ record.
 #define FLOBID_H
 
 #include <stdint.h>
+#include <ostream>
 #include "SecondoSMI.h"
 
 
@@ -26,6 +27,9 @@ class FlobManager;
 
 class FlobId{
  friend class FlobManager;
+ friend class FlobCache;
+ friend class NativeFlobCache;
+ friend class CacheEntry;
  public: 
    FlobId(){} // makes nothing to support cast function
    ~FlobId(){}
@@ -38,6 +42,36 @@ class FlobId{
      offset = src.offset;
      return *this;
    }
+
+   ostream& print(ostream& os) const {
+     os << "id(file = "<< fileId << ", "
+        << "rec = " << recordId << ", "
+        << "offset = " << offset << ")";
+     return os;
+   }    
+
+   inline bool operator==(const FlobId& fid) const{
+     return fileId == fid.fileId &&
+            recordId == fid.recordId &&
+            offset   == fid.offset;
+   } 
+   inline bool operator>(const FlobId& fid) const{
+      if( fileId > fid.fileId) return true;
+      if( fileId < fid.fileId) return false;
+      if( recordId > fid.recordId) return true;
+      if(recordId < fid.recordId) return false;
+      if(offset > fid.offset) return true;
+      return false;
+   } 
+   inline bool operator<(const FlobId& fid) const{
+      if( fileId < fid.fileId) return true;
+      if( fileId > fid.fileId) return false;
+      if( recordId < fid.recordId) return true;
+      if(recordId > fid.recordId) return false;
+      if(offset < fid.offset) return true;
+      return false;
+   } 
+
  private:
    SmiFileId fileId;  
    SmiRecordId recordId;
@@ -53,5 +87,6 @@ class FlobId{
  
 };
 
+ostream& operator<<(ostream& os, const FlobId& fid);
 #endif
 

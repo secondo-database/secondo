@@ -216,7 +216,8 @@ definitions of our four classes: ~CcInt~, ~CcReal~, ~CcBool~, ~CcString~.
 
 */
 
-using namespace std;
+#undef TRACE_ON
+#include "Trace.h"
 
 #include "Algebra.h"
 #include "NestedList.h"
@@ -246,6 +247,7 @@ extern NestedList* nl;
 extern QueryProcessor *qp;
 extern AlgebraManager *am;
 
+
 /*
 4.1 Type investigation auxiliaries
 
@@ -261,6 +263,8 @@ file "TypeMapUtils.h" which defines a namespace mappings.
 #include "TypeMapUtils.h"
 #include "Symbols.h"
 
+
+using namespace std;
 using namespace symbols;
 using namespace mappings;
 
@@ -830,7 +834,9 @@ InCcString( ListExpr typeInfo, ListExpr value,
   {
     correct = true;
     string s = nl->StringValue( value );
-    return (SetWord( new CcString( true, (STRING_T*)s.c_str() ) ));
+    CcString* cs = new CcString( true, (STRING_T*)s.c_str() );
+    //cs->ShowMem(); 
+    return SetWord( cs );
   }
   else if ( nl->IsAtom( value ) && nl->AtomType( value ) == SymbolType
         && nl->SymbolValue( value ) == "undef" )
@@ -1497,6 +1503,10 @@ ListExpr DATAbool( ListExpr args )
   }
   return NList(BOOL).listExpr();
 }
+
+
+
+
 
 
 /*
@@ -3655,6 +3665,23 @@ int CCisdefinedValueMap( Word* args, Word& result, int message,
 }
 
 /*
+4.25 Operator ~assert~
+
+*/
+int CCassertValueMap( Word* args, Word& result, int message,
+                         Word& local, Supplier s )
+{
+  result = qp->ResultStorage( s );
+  CcBool* arg = (CcBool*)(args[0].addr);
+  assert(arg->IsDefined());
+  assert(arg->GetValue());
+  CcBool* res = (CcBool*)(result.addr);
+  res->CopyFrom(arg);
+  return 0;
+}
+
+
+/*
 4.25 Operator ~cccomparevaluemap~
 
 */
@@ -4295,6 +4322,18 @@ const string CCisdefinedSpec =
     "<text>query isdefined(987)</text--->"
     ") )";
 
+
+const string CCassertSpec =
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
+    "( <text>bool -> bool</text--->"
+    "<text>assert( v )</text--->"
+    "<text>Invokes a assertion if the argument is not defined or false "
+    "This operator is for debugging only !!! "
+    "</text--->"
+    "<text>query assert(987 = 987)</text--->"
+    ") )";
+
+
 const string CCcompareSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
     "( <text>T x T -> int, T in DATA</text--->"
@@ -4497,6 +4536,9 @@ Operator ccchar( "char", CCcharSpec, 1, cccharvaluemap,
 Operator ccisdefined( "isdefined", CCisdefinedSpec, CCisdefinedValueMap,
                       Operator::SimpleSelect, DATAbool);
 
+Operator ccassert( "assert", CCassertSpec, CCassertValueMap,
+                    Operator::SimpleSelect, CcMathTypeMapBool1);
+
 Operator cccompare( "compare", CCcompareSpec, CCcomparevaluemap,
                       Operator::SimpleSelect, CcTypeMapTinDATA_TinDATAint);
 
@@ -4611,6 +4653,7 @@ class CcAlgebra1 : public Algebra
     AddOperator( &ccchar );
     AddOperator( &ccnum2string );
     AddOperator( &ccisdefined );
+    AddOperator( &ccassert );
     AddOperator( &cccompare );
     AddOperator( &ccgetminval );
     AddOperator( &ccgetmaxval );

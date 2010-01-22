@@ -420,8 +420,8 @@ bool GetInt9M(Points* ps1, Points*  ps2,
 
    // bounding box check failed, perform an parallel scan
 
-   const Point* p1;
-   const Point* p2;
+   Point p1;
+   Point p2;
 
    int i1=0; 
    int i2=0;
@@ -430,9 +430,7 @@ bool GetInt9M(Points* ps1, Points*  ps2,
    do{ 
        ps1->Get(i1,p1);
        ps2->Get(i2,p2);
-       int cmp = p1->Compare(p2);
-       p1 = NULL;
-       p2 = NULL;
+       int cmp = p1.Compare(&p2);
        if(cmp==0){ //p1==p2
          SetII(res,useCluster,cluster,done); 
          i1++;
@@ -679,11 +677,11 @@ bool GetInt9M(Line const* const line,
    avlseg::AVLSegment tmpL,tmpR;  
 
    while(!done &&  
-         ((owner=selectNext(line,q,posline,point,
+         ((owner=selectNext(*line,q,posline,*point,
            posPoint,resHs,resPoi))!=avlseg::none)){
 
       if(owner==avlseg::second){ // event comes from the point(s) value
-         avlseg::AVLSegment current(&resPoi,avlseg::second);
+         avlseg::AVLSegment current(resPoi,avlseg::second);
 
          const avlseg::AVLSegment* leftN=0;
          const avlseg::AVLSegment* rightN=0;
@@ -748,7 +746,7 @@ bool GetInt9M(Line const* const line,
 
         // only check for dompoints if the segment is a new one (left)
         // or its actually stored in the tree 
-        avlseg::AVLSegment current(&resHs, avlseg::first);
+        avlseg::AVLSegment current(resHs, avlseg::first);
         const avlseg::AVLSegment* leftN=0;
         const avlseg::AVLSegment* rightN=0;
         const avlseg::AVLSegment* member= sss.getMember(current,leftN,rightN);
@@ -910,14 +908,14 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
    int size = reg->Size();
    double x = p->GetX();
   
-   const HalfSegment* hs;
+   HalfSegment hs;
 
    int number = 0;
 
    for(int i=0;i<size;i++){
      reg->Get(i,hs);
-     if(hs->IsLeftDomPoint()){
-        if(hs->Contains(*p)){
+     if(hs.IsLeftDomPoint()){
+        if(hs.Contains(*p)){
            res.SetBI(true); //point on boundary
            if(useCluster){
              return cluster.Contains(res);
@@ -925,12 +923,12 @@ bool GetInt9M(Region const* const reg, Point const* const p, Int9M& res,
               return true;
            }
         }
-        if(!hs->IsVertical()){
-            if(pointAbove(hs,p)){
-               if((AlmostEqual(hs->GetRightPoint().GetX(),x)) ||
-                  ( !AlmostEqual(hs->GetLeftPoint().GetX(),x) &&
-                    hs->GetLeftPoint().GetX()<x &&
-                    hs->GetRightPoint().GetX()>=x)){
+        if(!hs.IsVertical()){
+            if(pointAbove(&hs,p)){
+               if((AlmostEqual(hs.GetRightPoint().GetX(),x)) ||
+                  ( !AlmostEqual(hs.GetLeftPoint().GetX(),x) &&
+                    hs.GetLeftPoint().GetX()<x &&
+                    hs.GetRightPoint().GetX()>=x)){
                    number++;
                }
             }
@@ -990,22 +988,26 @@ avlseg::ownertype selectNext(const Region*  reg,
   int sizereg = reg->Size();
   int sizepoint = p->Size();
 
-  const HalfSegment* rhs = 0;
+  const HalfSegment* rhs=0;
   const HalfSegment* qhs = 0;
   HalfSegment qhsc;
   const HalfSegment* minhs=0;
-  const Point* cp = 0;
+  const Point* cp=0;
 
+  HalfSegment rhs1;
   if(pos1<sizereg){
-     reg->Get(pos1,rhs);
+     reg->Get(pos1,rhs1);
+     rhs = &rhs1;
   } 
   if(!q1.empty()){
      qhsc = q1.top();
      qhs = &qhsc;
   }
   
+  Point cp1;
   if(pos2<sizepoint){
-     p->Get(pos2,cp); 
+     p->Get(pos2,cp1); 
+     cp = &cp1;
   }
 
   int src = 0;  // none
@@ -1155,7 +1157,7 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
   while (!done && 
          ( (owner= selectNext(reg,q1,pos1, ps,pos2,CH,CP))!=avlseg::none)){
     if(owner==avlseg::second){ // the point
-       avlseg::AVLSegment current(&CP,avlseg::second);
+       avlseg::AVLSegment current(CP,avlseg::second);
        const avlseg::AVLSegment* left=0;
        const avlseg::AVLSegment* right=0;
        const avlseg::AVLSegment* member = sss.getMember(current, left, right);
@@ -1180,7 +1182,7 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
        }
        done = done || res.GetII() && res.GetBI() && res.GetEI();
     } else {  // the next element comes from the region
-      avlseg::AVLSegment current(&CH,avlseg::first);
+      avlseg::AVLSegment current(CH,avlseg::first);
 
       const avlseg::AVLSegment* leftN = 0;
       const avlseg::AVLSegment* rightN = 0;
@@ -1194,6 +1196,15 @@ bool GetInt9M(Region const* const reg, Points const* const ps, Int9M& res,
          rightN = &tmpR;
       }
       if(CH.IsLeftDomPoint()){ // left Event
+      // debug::start
+         if(member){
+            cout << "found overlapping segments"
+                    " within a single region"  << endl;
+            cout << "Segment1 " << current << endl;
+            cout << "Segment2 " << (*member) << endl;
+            cout << "Region = " << *reg << endl;
+         }
+      // debug::end
          assert(!member); // a single region can't contain overlapping segments
          splitByNeighbour(sss,current,leftN,q1,q1);
          splitByNeighbour(sss,current,rightN,q1,q1);
@@ -1349,11 +1360,13 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
   bool empty1 = false;
   bool empty2 = false;
 
-  while(((owner=selectNext(reg1,pos1, reg2,
-                           pos2, q1,q2,nextSeg,src))!=avlseg::none) &&
+  while(((owner=selectNext(*reg1, pos1,
+                           *reg2, pos2, 
+                           q1,q2,
+                           nextSeg,src))!=avlseg::none) &&
           !done){
 
-    avlseg::AVLSegment current(&nextSeg,owner);
+    avlseg::AVLSegment current(nextSeg,owner);
 
     member = sss.getMember(current,leftN,rightN);
     if(leftN){
@@ -1694,7 +1707,7 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
          res.SetBE(true);
          res.SetIE(true);
          if(!res.GetBB()){
-             owner=selectNext(reg1,pos1, reg2,pos2, q1,q2,nextSeg,src);
+             owner=selectNext(*reg1,pos1, *reg2,pos2, q1,q2,nextSeg,src);
              if(owner==avlseg::second && lastDomPoint.owner!=avlseg::second){
                 Point dP = nextSeg.GetDomPoint();
                 if(AlmostEqual(dP,lastDomPoint.p)){
@@ -1707,7 +1720,7 @@ bool GetInt9M(Region const* const reg1, Region const* const reg2, Int9M& res,
          res.SetEB(true);
          res.SetEI(true);
          if(!res.GetBB()){
-             owner=selectNext(reg1,pos1, reg2,pos2, q1,q2,nextSeg,src);
+             owner=selectNext(*reg1,pos1, *reg2,pos2, q1,q2,nextSeg,src);
              if(owner==avlseg::first && lastDomPoint.owner!=avlseg::first){
                 Point dP = nextSeg.GetDomPoint();
                 if(AlmostEqual(dP,lastDomPoint.p)){
@@ -1911,10 +1924,10 @@ bool GetInt9M(Line const* const line1,
 
 
  while(!done && 
-       ((owner=selectNext(line1,pos1,line2,
+       ((owner=selectNext(*line1,pos1,*line2,
                           pos2,q1,q2,nextHs,src))!=avlseg::none) ){
 
-   avlseg::AVLSegment current(&nextHs,owner);
+   avlseg::AVLSegment current(nextHs,owner);
 
 // debug::start
    // cout << "process segment " << current << "  "
@@ -2267,9 +2280,9 @@ bool GetInt9M(Line   const* const line,
 
  // plane sweep
  while(!done && 
-       ((owner=selectNext(line,pos1,region,
+       ((owner=selectNext(*line,pos1,*region,
                           pos2,q1,q2,nextHs,src))!=avlseg::none)){
-     avlseg::AVLSegment current(&nextHs,owner);
+     avlseg::AVLSegment current(nextHs,owner);
 
      member = sss.getMember(current,leftN,rightN);
      if(leftN){

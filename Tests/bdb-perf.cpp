@@ -12,7 +12,7 @@ does call the same bulk-retrieval APIs as in this code.
 
 */
 
-
+#include "DbVersion.h"
 #include <sys/types.h>
 #include <stdio.h>
 #include <errno.h>
@@ -160,7 +160,7 @@ main( int argc, char** argv )
     
     cout << "Bulk retrieval of " << DATABASE << "..." << endl;
 
-#if (DB_VERSION_MAJOR >= 4 && DB_VERSION_MINOR >= 2)
+#if (DB_VERSION_REQUIRED(4, 2))
     int rc=0;    
     for ( dit=dbHandles.begin(); dit != dbHandles.end(); dit++ ) {
 

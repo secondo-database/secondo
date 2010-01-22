@@ -49,13 +49,15 @@ level remains. Models are also removed from type constructors.
 #include "QueryProcessor.h"
 #include "SecondoSystem.h"
 #include "Attribute.h"
-#include "Attribute.h"
 #include "StandardTypes.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "LogMsg.h"
 
 #include "FTextAlgebra.h"
 #include "GenericTC.h"
+
+
+
 
 extern "C"{
 #include "Tree.h"
@@ -547,7 +549,7 @@ contained 9 intersection matrices.
 
 */
 ListExpr Cluster::ToListExpr(const ListExpr TypeInfo)const{
-    if(!defined)
+    if(!IsDefined())
       return nl->SymbolAtom("undefined");
     // check for contained values
 
@@ -661,7 +663,7 @@ bool Cluster::ReadFrom(const ListExpr LE,const ListExpr typeInfo){
    memcpy(BitVector,TMP,64);
    strcpy(name,TMPname);
    Transpose(BitVector,BitVectorT);
-   defined = true;
+   SetDefined(true);
    updateBoxChecks();
    return true;
 }
@@ -695,10 +697,11 @@ void Cluster::Equalize(const Cluster& value){
 }
 
 void Cluster::Equalize(const Cluster* value){
-     strcpy(name, value->name);
+     memset(name,'\0',MAX_STRINGSIZE);
+     strcpy(name, (char*)value->name);
      memcpy(BitVector,value->BitVector,64);
      memcpy(BitVectorT,value->BitVectorT,64);
-     defined = value->defined;
+     SetDefined(value->IsDefined());
      boxchecks = value->boxchecks;
      boxchecksT = value->boxchecksT;
      boxchecksok = value->boxchecksok;
@@ -711,13 +714,13 @@ The Compare function compares two clusters. Needed for to be an attribute of a t
 
 */
 int Cluster::CompareTo(const Cluster* C)const{
-   if(!defined && !C->defined){
+   if(!IsDefined() && !C->IsDefined()){
      return 0;
    }
-   if(!defined){
+   if(!IsDefined()){
       return -1;
    }
-   if(!C->defined){
+   if(!C->IsDefined()){
       return 1;
    }
    for(int i=0;i<64;i++){
@@ -907,21 +910,6 @@ int Cluster::checkBoxes(const Rectangle<2> box1, const bool empty1,
 }
 
 
-
-/*
-2.2.8 Functions for the defined state
-
-With these functions we can query and set the value of the
-defined flag of this cluster.
-
-*/
-bool Cluster::IsDefined() const{
-   return defined;
-}
-
-void Cluster::SetDefined( bool defined ){
-   this->defined = defined;
-}
 
 /*
 2.2.9 The HashValue function
@@ -1158,15 +1146,15 @@ is taken from the argument of this function.
 
 */
 void PredicateGroup::Equalize(const PredicateGroup* PG){
-    const Cluster *tmp;
+    Cluster tmp;
     defined  = PG->defined;
     sorted = PG->sorted;
     canDelete = PG->canDelete;
     int size = PG->theClusters.Size();
-    theClusters.Resize(size);
+    theClusters.resize(size);
     for(int i=0;i<size;i++){
         PG->theClusters.Get(i,tmp);
-        theClusters.Put(i,*tmp);
+        theClusters.Put(i,tmp);
     }
     unSpecified.Equalize(PG->unSpecified);
 }
@@ -1202,7 +1190,7 @@ int PredicateGroup::Compare(const Attribute* right) const{
    if(size2<size1)
       return 1;
    // size1 == size2
-   const Cluster *tmp1, *tmp2;
+   Cluster tmp1, tmp2;
 
    if(!sorted){
        theClusters.Sort(toprel::ClusterCompare);
@@ -1216,7 +1204,7 @@ int PredicateGroup::Compare(const Attribute* right) const{
    for(int i=0;i<size1;i++){
        theClusters.Get(i,tmp1);
        PG->theClusters.Get(i,tmp2);
-       cmp = tmp1->Compare(tmp2);
+       cmp = tmp1.Compare(&tmp2);
        if(cmp != 0)
           return cmp;
    }
@@ -1228,7 +1216,7 @@ int PredicateGroup::Compare(const Attribute* right) const{
 
 */
 string PredicateGroup::ToString() const{
-   const Cluster* cc;
+   Cluster cc;
    int size = theClusters.Size();
    stringstream o;
    o << "group {";
@@ -1237,7 +1225,7 @@ string PredicateGroup::ToString() const{
      if(i>0) {
         o << ", ";
      }
-     o << "[" << (*cc) << "]";
+     o << "[" << (cc) << "]";
    }
    o << "}";
    return o.str();
@@ -1256,16 +1244,16 @@ ListExpr PredicateGroup::ToListExpr(const ListExpr typeInfo){
   // we have at least one element in the this predicategroup
   if(!defined)
       return nl->SymbolAtom("undefined");
-  const Cluster *C;
+  Cluster C;
   if(theClusters.Size()==0)
      return nl->TheEmptyList();
 
   theClusters.Get(0,C);
-  ListExpr res = nl->OneElemList(C->ToListExpr(nl->TheEmptyList()));
+  ListExpr res = nl->OneElemList(C.ToListExpr(nl->TheEmptyList()));
   ListExpr Last = res;
   for(int i=1;i<theClusters.Size();i++){
        theClusters.Get(i,C);
-       Last = nl->Append(Last,C->ToListExpr(nl->TheEmptyList()));
+       Last = nl->Append(Last,C.ToListExpr(nl->TheEmptyList()));
   }
   return res;
 }
@@ -1312,14 +1300,18 @@ bool PredicateGroup::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
          return  false;
       }
       // check whether name already used
-      const STRING_T* name = CurrentCluster.GetName();
-      for(int i=0;i<pos;i++)
-         if(strcmp(*(AllClusters[i].GetName()),*name)==0){
+      STRING_T name;
+      CurrentCluster.GetName(name);
+      for(int i=0;i<pos;i++){
+         STRING_T name2;
+         AllClusters[i].GetName(name2);
+         if(strcmp(name2,name)==0){
               ErrorReporter::ReportError("non disjoint names found");
               return false;
          }
+      }
           
-      if(strcmp(*name,UNSPECIFIED)==0){ // forbidden name
+      if(strcmp(name,UNSPECIFIED)==0){ // forbidden name
           ErrorReporter::ReportError(" non valid name for cluster");
           return false;
       }
@@ -1330,7 +1322,7 @@ bool PredicateGroup::ReadFrom(const ListExpr instance, const ListExpr typeInfo){
    }
    // if this state is reached, the list representation is correct
    defined = true;
-   theClusters.Resize(length);
+   theClusters.resize(length);
    for(int i=0;i<length;i++)
        theClusters.Put(i,(AllClusters[i]));
    theClusters.Sort(toprel::ClusterCompare);
@@ -1353,19 +1345,22 @@ DBArray. Remember to reorder the clusters after calling this function.
 bool PredicateGroup::Add(Cluster* C){
    if(C->IsEmpty())
      return false;
-   const STRING_T* name = C->GetName();
+   STRING_T name;
+   C->GetName(name);
 
-   if(strcmp(*name,UNSPECIFIED)==0){
+   if(strcmp(name,UNSPECIFIED)==0){
       return false;
    }
    if(!unSpecified.Contains(C)){ // overlap with existing clusters
       return false;
    }
    // check for name conflicts with existing clusters
-   const Cluster *tmp;
+   Cluster tmp;
    for(int i=0;i<theClusters.Size();i++){
         theClusters.Get(i,tmp);
-        if(strcmp(*(tmp->GetName()),*name)==0){
+        STRING_T name2;
+        tmp.GetName(name2);
+        if(strcmp(name2,name)==0){
             return false;
         }
    }
@@ -1395,20 +1390,26 @@ bool PredicateGroup::AddWithPriority(const Cluster *C){
    if(C->IsEmpty()){
        return false;
    }
-   const STRING_T* name = C->GetName();
-   if(strcmp(*name,UNSPECIFIED)==0){ // name conflict
+
+   STRING_T name;
+   C->GetName(name);
+   if(strcmp(name,UNSPECIFIED)==0){ // name conflict
       return false;
    }
    // check for name conflicts with existing clusters
-   const Cluster *tmp;
+   Cluster tmp;
    for(int i=0;i<theClusters.Size();i++){
         theClusters.Get(i,tmp);
-        if(strcmp(*(tmp->GetName()),*name)==0){
+        STRING_T name2;
+        tmp.GetName(name2);
+        if(strcmp(name2,name)==0){
             return false;
         }
    }
-   Cluster aux(false);
-   aux.Equalize(C);
+
+
+ 
+   Cluster aux(*C);
    aux.Intersection(&unSpecified); // remove overlapping clusters
    if(aux.IsEmpty())
      return false;
@@ -1434,14 +1435,14 @@ Cluster* PredicateGroup::GetClusterOf(const STRING_T* name)const{
      return res;
    }
    int size = theClusters.Size();
-   const Cluster* tmp;
+   Cluster tmp;
    for(int i=0;i<size;i++){
       theClusters.Get(i,tmp);
-      const STRING_T* n;
-      n  = tmp->GetName();
-      if(strcmp(*n,*name)==0){
+      STRING_T n;
+      tmp.GetName(n);
+      if(strcmp(n,*name)==0){
          Cluster* res = new Cluster();
-         res->Equalize(tmp);
+         res->Equalize(&tmp);
          return res;
       }
    }
@@ -1493,7 +1494,9 @@ void PredicateGroup::SetToDefault(){
                     );
      bool ok; 
      Cluster clEqual(false);
+
      ok = clEqual.ReadFrom(nlEqual,nl->TheEmptyList());
+
      assert(ok);
      Cluster clInside(false);
      ok = clInside.ReadFrom(nlInside,nl->TheEmptyList());
@@ -1516,7 +1519,7 @@ void PredicateGroup::SetToDefault(){
      Cluster clCovers(clCoveredBy);
      clCovers.Transpose();
      clCovers.SetName("covers");
-     
+    
      ok = AddWithPriority(&clEqual);
      if(!ok) {cerr  << "Equal not included" << endl; }
      ok = AddWithPriority(&clInside);
@@ -2088,7 +2091,9 @@ int NameOf_Fun(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   Cluster* a = (Cluster*) args[0].addr;
   CcString* res = (CcString*) result.addr;
-  res->Set(true,a->GetName());
+  STRING_T name;
+  a->GetName(name);
+  res->Set(true,name);
   return 0;
 }
 
@@ -2185,7 +2190,7 @@ int Restrict_Cluster_Text_Fun(Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     Cluster* cluster = (Cluster*) args[0].addr;
     FText* cond = (FText*) args[1].addr;
-    string cond_s( (cond->Get()));
+    string cond_s = cond->GetValue();
     Cluster* res = (Cluster*) result.addr;
     res->Equalize(cluster);
     res->Restrict(cond_s);
@@ -2209,7 +2214,7 @@ int Relax_Cluster_Text_Fun(Word* args, Word& result, int message,
     result = qp->ResultStorage(s);
     Cluster* cluster = (Cluster*) args[0].addr;
     FText* cond = (FText*) args[1].addr;
-    string cond_s(cond->Get());
+    string cond_s = (cond->GetValue());
     Cluster* res = (Cluster*) result.addr;
     res->Equalize(cluster);
     res->Relax(cond_s);
@@ -2289,7 +2294,9 @@ int ClusterNameOf_Fun(Word* args, Word& result, int message,
     PredicateGroup* PG = (PredicateGroup*) args[0].addr;
     Int9M* IM = (Int9M*) args[1].addr;
     CcString* res = (CcString*) result.addr;
-    res->Set(true,PG->GetNameOf(IM));
+    STRING_T name;
+    PG->GetNameOf(IM, name);
+    res->Set(true, name);
     return 0;
 }
 
@@ -2381,9 +2388,9 @@ int CreateCluster_text_Fun(Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    CcString* arg1 = (CcString*) args[0].addr;
    FText*  arg2 = (FText*) args[1].addr;
-   const char* cond = arg2->Get();
+   string cond = arg2->GetValue();
    struct tree* t=0;
-   if(!parseString(cond,&t)){
+   if(!parseString(cond.c_str(),&t)){
       ErrorReporter::ReportError("Error in parsing condition\n");
       char* Emsg = GetLastMessage();
       ErrorReporter::ReportError(string(Emsg)+"\n");

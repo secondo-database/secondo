@@ -78,6 +78,7 @@ operator char alias CHAR pattern op ( _ )
 operator abs alias ABS pattern op ( _ )
 operator ++ alias PLUSPLUS pattern _ op
 operator isdefined alias ISDEFINED pattern op ( _ )
+operator assert alias ASSERT pattern op ( _ )
 operator compare alias COMPARE pattern op ( _, _ )
 
 operator getMinVal alias GETMINVAL pattern op ( _ )

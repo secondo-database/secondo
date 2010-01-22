@@ -92,7 +92,7 @@ int xxlex()
   return (lexPtr->yylex());
 }
 
-void xxerror( char* s )
+void xxerror( const char* s )
 {
   cmsg.error() << "SECONDO Parser: " << s 
                << " in line " 

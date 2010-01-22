@@ -476,3 +476,9 @@ Signature: string -> int
 Example  : query length("Secondo")
 Result   : 7
 
+Operator : assert 
+Number   : 1
+Signature: bool -> bool 
+Example  : query assert( 8 = 8)
+Result   : TRUE
+

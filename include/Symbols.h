@@ -205,6 +205,7 @@ namespace symbols {
 #undef LT
 #undef LE
 #undef GE
+#undef NE
 #undef ISDEF
 Sym ISDEF("is_defined");
 Sym EQ("=");
@@ -212,6 +213,7 @@ Sym GT(">");
 Sym LT("<");
 Sym GE(">=");
 Sym LE("<=");
+Sym NE("#");
 Sym SIZE("size");
 Sym VECTOR("vector");
 Sym SET("set");

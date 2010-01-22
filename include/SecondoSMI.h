@@ -211,7 +211,7 @@ The class ~SmiRecord~ provides the following methods:
         [--------]
         SmiRecord        & Read        & Size \\
         [tilde]SmiRecord & Write       &      \\
-        Finish           & Truncate    &      \\
+        Finish           & Truncate    & Resize \\
 
 The classes ~SmiRecordFileIterator~ and ~SmiKeyedFileIterator~ provide the
 following methods:
@@ -487,7 +487,17 @@ the contents or the size of a record are not permitted.
   * *Update* -- Records are selected for read and/or write access.
 
 */
-  bool Create( const string& context = "Default", uint16_t pageSize = 0 );
+  bool Create( const string& name,
+	       const string& context = "Default", 
+	       uint16_t pageSize = 0 );
+
+  bool Create( const string& context = "Default", 
+	       uint16_t pageSize = 0 );
+
+  bool CreateWithName( const string& name, 
+		       const string& context = "Default", 
+		       uint16_t pageSize = 0 );
+
 /*
 Creates a new anonymous ~SmiFile~.
 Optionally a ~context~ can be specified. If pageSize equals 0, the size
@@ -503,7 +513,7 @@ Optionally a ~context~ can be specified.
 
 */
   bool Open( const string& name,
-             const string& context = "Default" );
+             const string& context = "Default" );	     
 /*
 Opens an existing named ~SmiFile~ or creates a new named ~SmiFile~ if it does not
 exist. Optionally a ~context~ can be specified.
@@ -861,7 +871,7 @@ Allows to set an SmiError code and a system error code or an error message.
 
   static void UpdateCatalog();
 
-
+ 
  private:
 
   SmiEnvironment();
@@ -1058,6 +1068,16 @@ The function returns "false"[4] if newSize is greater than the current record's
 length.
 
 */
+
+  bool Resize(const SmiSize newSize);
+/*
+ Resizes this Record. In constrast to the Truncate function also enlargements
+ od of the records are possible.
+
+*/
+
+
+
   void Finish();
 /*
 Finishes the operation on the associated record. The record handle may be

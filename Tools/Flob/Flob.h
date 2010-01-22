@@ -2,7 +2,7 @@
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2009, University in Hagen, Department of Computer Science, 
+Copyright (C) 2009, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -45,7 +45,7 @@ the subclass ~DBArray~ might be used. Since the persistent storage of data is
 organized by the class FlobManager (for tuples on behalf of the RelationAlgebra)
 we do not need to deal with it here.
 
-A Flob provides the user a segment of memory to store any kind of data. Instead 
+A Flob provides the user a segment of memory to store any kind of data. Instead
 of pointers, addresses relative to the start address of the segment (offsets)
 must be used to dynamic data structures within a Flob data segement.
 
@@ -75,79 +75,193 @@ buffer's content.
 #ifndef FLOB_H
 #define FLOB_H
 
+#include <ostream>
+
 #include "FlobId.h"
 #include "FlobManager.h"
 #include "SecondoSMI.h"
+#include "Serialize.h"
 
 class Flob{
   friend class FlobManager;
+  friend class FlobCache;
+  friend class NativeFlobCache;
+  friend class CacheEntry;
   public:
-    // native FLOB with size=0
+
+/*
+~Standard Constructor~
+
+This constructor should only be used within Cast functions.
+
+*/
     inline Flob() {}
 
-    // copy constructor, copies FLOB, not the data
-    inline Flob(const Flob& other) : id(other.id), size( other.size ) {};
+/*
+~Copy Constructor~
 
-    // construct a native Flob having a given size
+Creates a flat copy of the argument. The underlying data are not
+duplicated.
+
+*/
+  inline Flob(const Flob& other) : id(other.id), size( other.size ) {};
+
+/*
+~Constructor~
+
+This construcvtor create a native flob having a given size.
+
+*/
     inline Flob (SmiSize size_): id(), size( size_ ){
-      FlobManager::getInstance().create(size, *this);
+      FlobManager::getInstance().create(size_, *this);
     };
 
-    // restore a Flob from a file/record/offset
+
+/*
+~Constructor~
+
+Constructs a Flob from a given position.
+
+*/
     inline Flob(const SmiFileId fileId,
                 const SmiRecordId recordId,
                 const SmiSize offset) : id(), size( 0 ){
-         FlobManager::getInstance().create(fileId, recordId, 
+         FlobManager::getInstance().create(fileId, recordId,
                                            offset, size, *this);
     };
 
-    // assign another Flob to this Flob
+/*
+~Assignment Operator~
+
+Makes only a flat copy of the source flob.
+
+*/
     inline Flob& operator=(const Flob& src){
       size = src.size;
       id   = src.id;
       return *this;
     };
 
-    // Destructor. Does not delete the Flob data.
-    inline ~Flob() {};
+/*
+~Comparison~
 
-    // return the Flob's current size   
+*/
+   inline bool operator==(const Flob& f) const{
+     return (id == f.id);
+   }
+
+   inline bool operator>(const Flob& f) const{
+     return id > f.id;
+   }
+
+   inline bool operator<(const Flob& f) const{
+     return id < f.id;
+   }
+
+
+/*
+~Destructor~
+
+Does not destroy the underlying data. Use destroy for it.
+
+*/
+    virtual ~Flob() {};
+
+/*
+~getSize~
+
+Returns the current size of this Flob.
+
+*/
     inline SmiSize getSize() const { return size; }; // Size of the FLOB
 
-    // just reset size
-    inline void resize(const SmiSize& newsize) { size = newsize; }
+/*
+~resize~
 
-    // copy data from a Flob to a provided buffer
-    inline void read(char* buffer,
+Changes the size of a flob to the given one.
+
+*/
+    virtual bool resize(const SmiSize& newsize) { 
+       return FlobManager::getInstance().resize(*this,newsize);
+     }
+
+
+/*
+~clean~
+
+Cleans the flob. actually only the size is set to be zero.
+
+*/
+    virtual bool clean(){ return resize(0); }
+
+/*
+~read~
+
+Reads a part of the data from this Flob. The ~buffer~ must be provided and disposed
+by the caller of the funtion.
+
+*/
+    inline bool read(char* buffer,
                      const SmiSize length,
-                     const SmiSize offset) const {
-       FlobManager::getInstance().getData(*this, buffer, offset, length);
+                     const SmiSize offset=0) const {
+       return FlobManager::getInstance().getData(*this, buffer, offset, length);
     };
 
-    // write data from a provided buffer to the Flob
-    inline void write(const char* buffer,
+/*
+~write~
+
+Puts data providen in ~buffer~ into the Flob at the specified position.
+
+*/
+    inline bool write(const char* buffer,
                       const SmiSize length,
-                      const SmiSize offset){
-      FlobManager::getInstance().putData(*this, buffer, offset, length);
+                      const SmiSize offset=0){
+      if(offset+length > size) {
+        if(!FlobManager::getInstance().resize(*this, offset+length)){
+          return false;
+        }
+      }
+      return FlobManager::getInstance().putData(*this, buffer, offset, length);
     }
+/*
+~copyFrom~
 
-    // copy Flob from another Flob
-    inline void copyFrom(const Flob& src){
-      FlobManager::getInstance().copyData(src,*this);
+Copies the content of src to this flob.
+
+*/
+    virtual bool copyFrom(const Flob& src){
+      if(!FlobManager::getInstance().resize(*this, src.size)){
+       return false;
+      }
+      return FlobManager::getInstance().copyData(src,*this);
     };
 
-    // copy Flob to another Flob
-    inline void copyTo(Flob& dest) const {
-       FlobManager::getInstance().copyData(*this,dest);
+/*
+~copyTo~
+
+Copies the content of this flob to ~dest~.
+
+*/
+    virtual bool copyTo(Flob& dest) const {
+       if(!FlobManager::getInstance().resize(dest, size)){
+         return false;
+       }
+       return FlobManager::getInstance().copyData(*this,dest);
     };
 
-    // Save Flob data to a specified file/record/offset.
-    // Returns a Flob having a FlobId encoding the file/record/offset
-    // of the persistent Flob data
-    // Can e.g. be used to copy the flob data from the (temporary) native LOB
-    // file to some persistent LOB file, like a relation LOB file or the
-    // database LOB file. It can also be used to write the LOB data into a
-    // tuple file. In this case, we speak of a FAKED LOB (or FLOB).
+/*
+
+~saveToFile~
+
+Save Flob data to a specified file/record/offset.
+Returns a Flob having a FlobId encoding the file/record/offset
+of the persistent Flob data
+Can e.g. be used to copy the flob data from the (temporary) native LOB
+file to some persistent LOB file, like a relation LOB file or the
+database LOB file. It can also be used to write the LOB data into a
+tuple file. In this case, we speak of a FAKED LOB (or FLOB).
+
+*/
     inline bool saveToFile(const SmiFileId fid,
                           const SmiRecordId rid,
                           const SmiSize offset,
@@ -155,9 +269,173 @@ class Flob{
       return FlobManager::getInstance().saveTo(*this, fid, rid, offset, result);
     };
 
+/*
+
+~saveToFile~
+
+Save Flob data to a specified file/record/offset.
+Returns a Flob having a FlobId encoding the file/record/offset
+of the persistent Flob data
+Can e.g. be used to copy the flob data from the (temporary) native LOB
+file to some persistent LOB file, like a relation LOB file or the
+database LOB file. It can also be used to write the LOB data into a
+tuple file. In this case, we speak of a FAKED LOB (or FLOB).
+
+*/
+    inline bool saveToFile(SmiRecordFile* file,
+                          const SmiRecordId rid,
+                          const SmiSize offset,
+                          Flob& result) const{
+      return FlobManager::getInstance().saveTo(*this, file, rid, 
+                                               offset, result);
+    };
+
+/*
+~saveToFile~
+
+Saves this Flob to the given file id and returns the new created Flob
+in parameter ~result~. The data is stored in a new record with offset zero.
+
+*/
+    inline bool saveToFile(const SmiFileId fid,
+                          Flob& result) const{
+      return FlobManager::getInstance().saveTo(*this, fid, result);
+    };
+
+
+/*
+~saveToFile~
+
+Saves this Flob to the given file and returns the new created Flob
+in parameter ~result~. The data is stored in a new record with offset zero.
+
+*/
+    inline bool saveToFile(SmiRecordFile* file,
+                          Flob& result) const{
+      return FlobManager::getInstance().saveTo(*this, file, result);
+    };
+
+
+/*
+~createFrom~
+
+Creates a Flob referencing a given (FileId/RecordId/Offset). The data is
+expected to be already at the specified location.
+
+For example class tuple uses this to correct the FlobId when persistently storing
+small Flob data within the tuple itself.
+
+*/
+
+    inline static Flob createFrom( const SmiFileId& fid,
+                                   const SmiRecordId& rid,
+                                   const SmiSize& offset,
+                                   const SmiSize& size    ) {
+      return  FlobManager::getInstance().createFrom(fid, rid, offset, size);
+    };
+
+
+
+/*
+~destroy~
+
+Destroys this;
+
+*/
+  bool destroy(){
+     return FlobManager::getInstance().destroy(*this);
+  }
+
+
+/*
+~destroyIfNonPersistent~
+
+Destroys a the flob if the flob is a native one.
+
+*/
+   bool destroyIfNonPersistent(){
+     return FlobManager::getInstance().destroyIfNonPersistent(*this);
+   }
+
+
+
+/*
+~saveHeader~
+
+This function saves the header information of this Flob into a record.
+
+*/
+  virtual size_t serializeHeader(char* buffer,
+                                 SmiSize& offset) const{
+     WriteVar<SmiSize>(size, buffer, offset);
+     WriteVar<FlobId>(id, buffer, offset);
+     return headerSize();
+  }
+
+/*
+~restoreHeader~
+
+Restores header information.
+
+*/
+  virtual void restoreHeader(char* buffer,
+                             SmiSize& offset) {
+    ReadVar<SmiSize>(size, buffer, offset);
+    ReadVar<FlobId>(id, buffer, offset);
+  }
+
+/*
+~headerSize~
+
+Returns the amount of data required to save header information.
+
+*/
+
+  inline static const size_t headerSize() {
+     return sizeof(FlobId) + sizeof(SmiSize);;
+  }
+
+/*
+~destroyManager~
+
+This function destroys the FlobManager. It should (and must) only called
+at the end of a secondo session. After calling that function Flob access
+is not longer possible.
+
+*/
+
+  inline static bool destroyManager(){
+     return FlobManager::destroyInstance();
+  }
+
+/*
+~dropFile~
+
+Gives up the control of the FlobManager over the specific file.
+
+*/
+  inline static bool dropFile(const SmiFileId& id){
+    return FlobManager::getInstance().dropFile(id);
+  }
+
+  inline static bool dropFiles(){
+    return FlobManager::getInstance().dropFiles();
+  }
+
+
+  ostream& print(ostream& os) const {
+    return os << "[" << id << ", size = " << size << "]";
+  }
+
   private:
     FlobId id;       // encodes fileid, recordid, offset
     SmiSize size;    // size of the Flob data segment in Bytes
+
+
+    Flob(const FlobId& _id, const SmiSize& _size): id(_id), size(_size){}
+
 };
+
+ostream& operator<<(ostream& os, const Flob& f);
 
 #endif

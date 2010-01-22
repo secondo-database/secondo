@@ -192,27 +192,6 @@ void UReal::TemporalFunction( const Instant& t,
       }
       result.Set( true, res );
     }
-
-
-/*
-2006-Sep-22, CD:
-
-The following implemention is the original implementation following the
-papers published, but suffers from rounding errors.
-
-----
-
-    {
-      double res = a * pow( t.ToDouble(), 2 ) +
-                   b *      t.ToDouble()      +
-                   c;
-      if( r ) res = sqrt( res );
-      result.Set( true, res );
-    }
-
-----
-
-*/
 }
 
 bool UReal::Passes( const CcReal& val ) const
@@ -223,10 +202,10 @@ bool UReal::Passes( const CcReal& val ) const
   int no_res = PeriodsAtVal( val.GetRealval(), times);
   for(int i=0; i<no_res; i++)
   {
-    const Interval<DateTime>* iv;
+    Interval<DateTime> iv;
     times.Get(i, iv);
     // only return true, iff the value is *REALLY* reached!
-    if( iv->Inside(timeInterval) )
+    if( iv.Inside(timeInterval) )
       return true;
   }
   return false;
@@ -235,25 +214,29 @@ bool UReal::Passes( const CcReal& val ) const
 bool UReal::At( const CcReal& val, TemporalUnit<CcReal>& result ) const
   // CD - Implementation causes problem, as the result could be a set of
   // 0-2 Units!
-  // Use UReal::PeriodaAtValue() or UReal::AtValue() instead!
+  // Use UReal::PeriodAtValue() or UReal::AtValue() instead!
 {
   cerr << "UReal::At() is not implementable! Use UReal::AtValue() instead!"
        << endl;
+  assert( false );
   return false;
 }
 
 void UReal::AtInterval( const Interval<Instant>& i,
  TemporalUnit<CcReal>& result ) const
 {
-
-  TemporalUnit<CcReal>::AtInterval( i, result );
-
   UReal *pResult = (UReal*)&result;
+
+  if( !IsDefined() || !timeInterval.Intersects(i) ){
+    pResult->SetDefined( false );
+    return;
+  }
+  pResult->SetDefined(true);
+  TemporalUnit<CcReal>::AtInterval( i, result );
   pResult->a = a;
   pResult->b = b;
   pResult->c = c;
   pResult->r = r;
-  pResult->SetDefined(true);
 
   // Now, we need to translate the result to the starting instant
   DateTime tmp = pResult->timeInterval.start;
@@ -335,8 +318,6 @@ double AntiderivativeSQRTpoly2(const double a, const double b,
      anti2 = 0;
   }
   double result = t1 + t2;
-
-
 
   /* Unfortunately , small rounding errors in the anti2 computation
      are often multiplied with very large numbers for (f) in many
@@ -630,8 +611,10 @@ int UReal::PeriodsAtVal( const double& value, Periods& times) const
   if( !IsDefined() )
   {
 //      cout << "UReal::PeriodsAtVal(): Undefined UReal -> 0 results." << endl;
-     return 0;
+    times.SetDefined( false );
+    return 0;
   }
+  times.SetDefined( true );
 
   if( a==0.0 && b==0.0 )
     // special case: constant ureal
@@ -715,8 +698,10 @@ double UReal::PeriodsAtMin(bool& correct, Periods& times) const
   if( !IsDefined() )
   {
      correct = false;
+     times.SetDefined( false );
      return numeric_limits<double>::infinity();
   }
+  times.SetDefined( true );
 
   double t = (timeInterval.end - timeInterval.start).ToDouble();
   double ts = 0.0;
@@ -799,8 +784,10 @@ double UReal::PeriodsAtMax(bool& correct, Periods& times) const
   if( !IsDefined() )
   {
      correct = false;
+     times.SetDefined( false );
      return -numeric_limits<double>::infinity();
   }
+  times.SetDefined( true );
 
   double t = (timeInterval.end - timeInterval.start).ToDouble();
   double ts = 0.0;
@@ -898,23 +885,23 @@ int UReal::AtMin(vector<UReal>& result) const
 //  cout << "UReal::AtMin(): minVal=" << minVal << endl;
   for(int i=0; i<minTimesPeriods.GetNoComponents(); i++)
   {
-    const Interval<DateTime>* iv;
+    Interval<DateTime> iv;
     minTimesPeriods.Get(i, iv);
     UReal unit = UReal( *this );
     correct = false;
-    if( iv->Inside(timeInterval) )
+    if( iv.Inside(timeInterval) )
     {
-      AtInterval( *iv, unit );
+      AtInterval( iv, unit );
       correct = true;
     }
     else
     { // solve problem with min at open interval start/end!
-      if( (iv->start == timeInterval.start) || (iv->end == timeInterval.end) )
+      if( (iv.start == timeInterval.start) || (iv.end == timeInterval.end) )
       {
         UReal unit2(
           Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
           a, b, c, r );
-        unit2.AtInterval( *iv, unit );
+        unit2.AtInterval( iv, unit );
         correct = true;
       }
     }
@@ -959,23 +946,23 @@ int UReal::AtMax( vector<UReal>& result) const
 //       << timeInterval.lc << " " << timeInterval.rc << ")" << endl;*/*/
   for(int i=0; i<maxTimesPeriods.GetNoComponents(); i++)
   {
-    const Interval<DateTime>* iv;
+    Interval<DateTime> iv;
     maxTimesPeriods.Get(i, iv);
 //     cout << "iv = (" << iv->start.ToString() << " " << iv->end.ToString()
 //          << " " << iv->lc << " " << iv->rc << ")" << endl;*/
     UReal unit = UReal( *this );
     correct = false;
-    if( iv->Inside(timeInterval) )
+    if( iv.Inside(timeInterval) )
     {
-       AtInterval( *iv, unit );
+       AtInterval( iv, unit );
        correct = true;
     }
-    else if( (iv->start==timeInterval.start) || (iv->end==timeInterval.end) )
+    else if( (iv.start==timeInterval.start) || (iv.end==timeInterval.end) )
     { // solve problem with max at open interval start/end!
       UReal unit2(
         Interval<DateTime>(timeInterval.start, timeInterval.end, true, true),
         a, b, c, r );
-      unit2.AtInterval( *iv, unit );
+      unit2.AtInterval( iv, unit );
       correct = true;
     }
     if( correct )
@@ -1011,14 +998,14 @@ int UReal::AtValue(CcReal value, vector<UReal>& result) const
   no_res = PeriodsAtVal( theVal, valTimesPeriods );
   for(int i=0; i<no_res; i++)
   {
-    const Interval<DateTime>* iv;
+    Interval<DateTime> iv;
     valTimesPeriods.Get(i, iv);
-//     cout << (iv->lc ? "UReal::AtValue: iv=[ " : "iv=[ ")
-//          << iv->start.ToString() << " "
-//          << iv->end.ToString()
-//          << (iv->rc ? " ]" : " [") << endl;
+//     cout << (iv.lc ? "UReal::AtValue: iv=[ " : "iv=[ ")
+//          << iv.start.ToString() << " "
+//          << iv.end.ToString()
+//          << (iv.rc ? " ]" : " [") << endl;
     UReal unit(true);
-    unit = UReal(*iv, 0.0, 0.0, theVal, false); // making things easier...
+    unit = UReal(iv, 0.0, 0.0, theVal, false); // making things easier...
 //     cout << "  Unit = ";
 //     unit.Print(cout); cout << endl;
     result.push_back(unit);
@@ -1032,6 +1019,15 @@ same value. Returns the number of results (0-2).
 */
 int UReal::PeriodsAtEqual( const UReal& other, Periods& times) const
 {
+  assert( IsDefined() );
+  assert( other.IsDefined() );
+
+  times.Clear();
+  if( !IsDefined() || !other.IsDefined() ){
+    times.SetDefined( false );
+    return 0;
+  }
+  times.SetDefined( true );
   int no_res = 0;
   double inst_d[4];
   DateTime t0(durationtype), t1(instanttype);
@@ -1039,7 +1035,6 @@ int UReal::PeriodsAtEqual( const UReal& other, Periods& times) const
   Interval<Instant> commonIv;
 
   UReal u1(true), u2(true), udiff(true);
-  times.Clear();
   if( !IsDefined()       ||
       !other.IsDefined() ||
       !timeInterval.Intersects(other.timeInterval) )
@@ -1152,7 +1147,7 @@ int UReal::Abs(vector<UReal>& result) const
   Interval<Instant>
       iv(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false),
       ivnew(DateTime(0,0,instanttype), DateTime(0,0,instanttype), false, false);
-  const Interval<Instant> *actIntv;
+  Interval<Instant> actIntv;
   Instant
       start(instanttype),
       end(instanttype),
@@ -1188,7 +1183,7 @@ int UReal::Abs(vector<UReal>& result) const
     {
       rc = false;
       eqPeriods->Get(i, actIntv);
-      end = actIntv->start;
+      end = actIntv.start;
       if(start == timeInterval.start)
       { // truncate at beginning
         lc = timeInterval.lc;
@@ -1316,7 +1311,7 @@ int UReal::Distance(const UReal& other, vector<UReal>& result) const
     return ;
   }
   Periods *eqPeriods = new Periods(4);
-  const Interval<Instant> *actIntv;
+  Interval<Instant> actIntv;
   Instant start(instanttype), end(instanttype), testInst(instanttype);
   int i, numEq, cmpres;
   CcReal fccr1(true, 0.0), fccr2(true,0.0);
@@ -1346,7 +1341,7 @@ int UReal::Distance(const UReal& other, vector<UReal>& result) const
   i = 0;              // counter for instants of equality
   eqPeriods->Get(i, actIntv);
   // handle special case: first equality in first instant
-  if (start == actIntv->start)
+  if (start == actIntv.start)
   {
     if (iv.lc)
     {
@@ -1369,7 +1364,7 @@ int UReal::Distance(const UReal& other, vector<UReal>& result) const
   while ( i < numEq )
   {
     eqPeriods->Get(i, actIntv);
-    end = actIntv->start;
+    end = actIntv.start;
     ivnew = Interval<Instant>(start, end, lc, false);
     testInst = start + ((end - start) / 2);
     un1.TemporalFunction(testInst, fccr1, false);
@@ -1410,6 +1405,7 @@ int UReal::Distance(const UReal& other, vector<UReal>& result) const
     newunit = UBool(ivnew, CcBool(true, compresult));
     res.push_back(newunit);
   }
+  eqPeriods->Destroy();
   delete eqPeriods;
   return ;
 }
@@ -1504,6 +1500,9 @@ would then be very hard to return a true for this function.
 
 bool UPoint::Passes( const Region& r ) const
 {
+  assert( IsDefined() );
+  assert( r.IsDefined() );
+
   if( AlmostEqual( p0, p1 ) )
     return r.Contains( p0 );
 
@@ -1514,6 +1513,9 @@ bool UPoint::Passes( const Region& r ) const
 
 bool UPoint::Passes( const Rectangle<2> &rect  ) const
 {
+  assert( IsDefined() );
+  assert( rect.IsDefined() );
+
   if( AlmostEqual( p0, p1 ) )
     return p0.Inside(rect);
   HalfSegment uHs( true, p0, p1 );
@@ -1635,13 +1637,12 @@ VTA - In the same way as ~Passes~, I could use the Spatial Algebra here.
 
 void UPoint::At(const Rectangle<2>& rect, UPoint& result) const{
 
-
   // both arguments have to be defined
   if(!IsDefined() || !rect.IsDefined()){
      result.SetDefined(false);
      return;
   }
-
+  result.SetDefined( true );
 
   double minX = rect.MinD(0);
   double minY = rect.MinD(1);
@@ -1794,9 +1795,11 @@ void UPoint::AtInterval( const Interval<Instant>& i,
   assert( IsDefined() );
   assert( i.IsValid() );
 
-
   TemporalUnit<Point>::AtInterval( i, result );
   UPoint *pResult = (UPoint*)&result;
+  pResult->SetDefined( IsDefined() );
+  if( !IsDefined() )
+    return;
 
   if( timeInterval.start == result.timeInterval.start )
     {
@@ -1815,8 +1818,6 @@ void UPoint::AtInterval( const Interval<Instant>& i,
     }
   else
     TemporalFunction( result.timeInterval.end, pResult->p1 );
-
-  pResult->SetDefined ( true );
 }
 
 void UPoint::Distance( const Point& p, UReal& result ) const
@@ -1857,10 +1858,10 @@ void UPoint::Distance( const Point& p, UReal& result ) const
 }
 
 double UPoint::Distance(const Rectangle<3>& rect) const{
-  if(!IsDefined()){
-     return -1;
-  }
   cerr << "UPoint::Distance(const Rectangle<3>&) not implemented yet" << endl;
+  if( !IsDefined() || !rect.IsDefined() ){
+    return -1;
+  }
   return BoundingBox().Distance(rect);
 }
 
@@ -1869,6 +1870,13 @@ void UPoint::Distance( const UPoint& up, UReal& result ) const
   assert( IsDefined() && up.IsDefined() );
   assert( timeInterval.Intersects(up.timeInterval) );
 
+  if(     !IsDefined()
+       || !up.IsDefined()
+       || !timeInterval.Intersects(up.timeInterval) ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
   Interval<Instant>iv;
   DateTime DT(durationtype);
   Point rp10, rp11, rp20, rp21;
@@ -1933,7 +1941,6 @@ void UPoint::Distance( const UPoint& up, UReal& result ) const
 
 void UPoint::USpeed( UReal& result ) const
 {
-
   double x0, y0, x1, y1;
   double duration;
 
@@ -1976,7 +1983,6 @@ void UPoint::USpeed( UReal& result ) const
 
 void UPoint::UVelocity( UPoint& result ) const
 {
-
   double x0, y0, x1, y1;
   double duration;
 
@@ -2014,10 +2020,15 @@ void UPoint::UVelocity( UPoint& result ) const
 
 void UPoint::UTrajectory( Line& line ) const
 {
+  line.Clear();
+  if( !IsDefined() ){
+    line.SetDefined( false );
+    return;
+  }
+  line.SetDefined( true );
   HalfSegment hs;
   int edgeno = 0;
 
-  line.Clear();
   line.StartBulkLoad();
   if( !AlmostEqual( p0, p1 ) )
         {
@@ -2046,6 +2057,16 @@ void UPoint::Length( CcReal& result ) const
 // be passed a result, though it is not inside iv!
 void UPoint::Intersection(const UPoint &other, UPoint &result) const
 {
+      if ( !IsDefined() ||
+           !other.IsDefined() ||
+           !timeInterval.Intersects( other.timeInterval ) )
+      {
+          result.SetDefined( false );
+          if (TA_DEBUG)
+            cerr << "No intersection (0): deftimes do not overlap" << endl;
+          assert ( !result.IsDefined() || result.IsValid() );
+          return; // nothing to do
+      }
       Interval<Instant> iv;
       Instant t;
       Point p_intersect, d1, d2, p1;
@@ -2059,16 +2080,6 @@ void UPoint::Intersection(const UPoint &other, UPoint &result) const
       result.timeInterval.end.SetDefined(true);
       result.SetDefined(false);
 
-      if ( !IsDefined() ||
-           !other.IsDefined() ||
-           !timeInterval.Intersects( other.timeInterval ) )
-        {
-          result.SetDefined( false );
-          if (TA_DEBUG)
-            cerr << "No intersection (0): deftimes do not overlap" << endl;
-          assert ( !result.IsDefined() || result.IsValid() );
-          return; // nothing to do
-        }
       if (timeInterval == other.timeInterval)
       { // identical timeIntervals
         p1norm = *this;
@@ -2201,12 +2212,15 @@ where $t = t_x = t_y$. If $t_x \neq t_y$, then there is no intersection!
 }
 
 void UPoint::Translate(const double xdiff, const double ydiff,
-                       const DateTime& timediff){
+                       const DateTime& timediff)
+{
+  assert( IsDefined() );
+  assert( timediff.IsDefined() );
 
-   p0.Set(p0.GetX()+xdiff,p0.GetY()+ydiff);
-   p1.Set(p1.GetX()+xdiff, p1.GetY()+ydiff);
-   timeInterval.start = timeInterval.start + timediff;
-   timeInterval.end = timeInterval.end + timediff;
+  p0.Set(p0.GetX()+xdiff,p0.GetY()+ydiff);
+  p1.Set(p1.GetX()+xdiff, p1.GetY()+ydiff);
+  timeInterval.start = timeInterval.start + timediff;
+  timeInterval.end = timeInterval.end + timediff;
 }
 
 
@@ -2228,15 +2242,15 @@ void MInt::ReadFrom(const MBool& arg){
   if(size>0){
      Resize(size);
   }
-  const UBool* ubool;
+  UBool ubool;
   StartBulkLoad();
   CcInt currentValue;
   for(int i=0;i<size;i++){
     arg.Get(i,ubool);
     bool v;
-    v = ubool->constValue.GetBoolval();
+    v = ubool.constValue.GetBoolval();
     currentValue.Set(true,v?1:0);
-    UInt unit(ubool->timeInterval,currentValue);
+    UInt unit(ubool.timeInterval,currentValue);
     Add(unit);
   }
   EndBulkLoad(false);
@@ -2253,38 +2267,31 @@ void MInt::WriteTo(MBool& arg){
   if(size>0){
      arg.Resize(size);
   }
-  const UInt* uint;
+  UInt uint;
   //arg.StartBulkLoad();
   CcBool currentValue;
   for(int i=0;i<size;i++){
     Get(i,uint);
     int v;
-    v = uint->constValue.GetIntval();
+    v = uint.constValue.GetIntval();
     currentValue.Set(true,(v==0)?false:true);
-    UBool unit(uint->timeInterval,currentValue);
+    UBool unit(uint.timeInterval,currentValue);
     arg.Add(unit);
   }
   //EndBulkLoad(false);
 }
 bool compareuint(const UInt& u1,const UInt& u2)
 {
+  if( !u1.IsDefined() && u1.IsDefined() )
+    return true;
+  if( !u1.IsDefined() || !u1.IsDefined() )
+    return false;
   if(u1.timeInterval.start < u2.timeInterval.start)
     return true;
   if(u1.timeInterval.start == u2.timeInterval.start)
     if(u1.timeInterval.end <= u2.timeInterval.end)
       return true;
   return false;
-}
-int myunitcompare(const void* a,const void* b)
-{
-  const UInt* u1 = (const UInt*)a;
-  const UInt* u2 = (const UInt*)b;
-  if(u1->timeInterval.start < u2->timeInterval.start)
-    return -1;
-  if(u1->timeInterval.start == u2->timeInterval.start)
-    if(u1->timeInterval.end <= u2->timeInterval.end)
-      return -1;
-  return 1;
 }
 
 void MInt::SortbyUnitTime()
@@ -2294,10 +2301,14 @@ void MInt::SortbyUnitTime()
 
 void MInt::Hat(MInt& mint)
 {
-
    mint.Clear();
+   if( !IsDefined() ){
+     mint.SetDefined( false );
+     return;
+   }
+   mint.SetDefined( true );
    stack<UInt> uintstack;
-   const UInt* upi;
+   UInt upi;
    UInt last,curuint;
    CcInt cur,top;
    last.SetDefined(true);
@@ -2305,9 +2316,9 @@ void MInt::Hat(MInt& mint)
 
    float lastarea = 0.0;
    Get(0,upi);
-   string starttime = upi->timeInterval.start.ToString();
+   string starttime = upi.timeInterval.start.ToString();
    Get(GetNoComponents() - 1,upi);
-   string endtime = upi->timeInterval.end.ToString();
+   string endtime = upi.timeInterval.end.ToString();
    int nocomponents;
    int i;
    bool defstart;
@@ -2325,14 +2336,14 @@ void MInt::Hat(MInt& mint)
    for(;i < nocomponents;i++){
       Get(i,upi);
       if(!uintstack.empty()){
-        cur.Set(upi->constValue.GetValue());
+        cur.Set(upi.constValue.GetValue());
         top.Set(uintstack.top().constValue.GetValue());
         if(cur.GetIntval() >= top.GetIntval()){
-            uintstack.push(*upi);
+            uintstack.push(upi);
         }
         else{
-          Instant end = upi->timeInterval.start;
-          Instant start = upi->timeInterval.start;
+          Instant end = upi.timeInterval.start;
+          Instant start = upi.timeInterval.start;
           int lastvalue = 0;
           while(!uintstack.empty() && cur.GetIntval() < top.GetIntval()){
             UInt topelem = uintstack.top();
@@ -2366,16 +2377,16 @@ void MInt::Hat(MInt& mint)
               }
             }
           }
-          UInt* tempuint = new UInt(*upi);
+          UInt* tempuint = new UInt(upi);
 //          (const_cast<UInt*>(upi))->timeInterval.start = start;
           tempuint->timeInterval.start = start;
           uintstack.push(*tempuint);
           delete tempuint;
 
-//          uintstack.push(*upi);
+//          uintstack.push(upi);
         }
       }else
-        uintstack.push(*upi);
+        uintstack.push(upi);
     }
 //    curuint.Print(cout);
 //    cout<<endl;
@@ -2389,23 +2400,23 @@ void MInt::Hat(MInt& mint)
        begin.SetDefined(true);
        if(defstart){//define "begin of time"
         Get(0,upi);
-        begin = *upi;
+        begin = upi;
         mint.Add(begin);
         Get(1,upi);
        }else
         Get(0,upi);
-       begin.timeInterval.start = upi->timeInterval.start;
+       begin.timeInterval.start = upi.timeInterval.start;
        begin.timeInterval.lc = true;
        begin.timeInterval.end = curuint.timeInterval.start;
        begin.timeInterval.rc = false;
-       int value = upi->constValue.GetValue();
+       int value = upi.constValue.GetValue();
        int i;
        for(i = 1;i < nocomponents;i++){
         Get(i,upi);
-        if(upi->timeInterval.start >= curuint.timeInterval.start)
+        if(upi.timeInterval.start >= curuint.timeInterval.start)
           break;
-        if(upi->constValue.GetValue() < value)
-          value = upi->constValue.GetValue();//the minimum value before hat
+        if(upi.constValue.GetValue() < value)
+          value = upi.constValue.GetValue();//the minimum value before hat
        }
        begin.constValue.Set(value);
 //       assert(begin.timeInterval.start != begin.timeInterval.end);
@@ -2420,36 +2431,36 @@ void MInt::Hat(MInt& mint)
           Get(GetNoComponents() - 2,upi);
           end.timeInterval.start = curuint.timeInterval.end;
           end.timeInterval.lc = true;
-          end.timeInterval.end = upi->timeInterval.end;
+          end.timeInterval.end = upi.timeInterval.end;
           end.timeInterval.rc = false;
           value = curuint.constValue.GetValue();
           for(;i < nocomponents;i++){
             Get(i,upi);
-            if(upi->timeInterval.start < curuint.timeInterval.end)
+            if(upi.timeInterval.start < curuint.timeInterval.end)
               continue;
-            if(upi->constValue.GetValue() < value)
-            value = upi->constValue.GetValue();
+            if(upi.constValue.GetValue() < value)
+            value = upi.constValue.GetValue();
           }
           end.constValue.Set(value);
 //          assert(end.timeInterval.start != end.timeInterval.end);
           if(end.timeInterval.IsValid())
             mint.Add(end);
           Get(GetNoComponents() - 1,upi);
-          end = *upi;
+          end = upi;
           mint.Add(end);
        }else{
           Get(GetNoComponents() - 1,upi);
           end.timeInterval.start = curuint.timeInterval.end;
           end.timeInterval.lc = true;
-          end.timeInterval.end = upi->timeInterval.end;
+          end.timeInterval.end = upi.timeInterval.end;
           end.timeInterval.rc = false;
           value = curuint.constValue.GetValue();
           for(;i < GetNoComponents();i++){
             Get(i,upi);
-            if(upi->timeInterval.start < curuint.timeInterval.end)
+            if(upi.timeInterval.start < curuint.timeInterval.end)
               continue;
-            if(upi->constValue.GetValue() < value)
-            value = upi->constValue.GetValue();
+            if(upi.constValue.GetValue() < value)
+            value = upi.constValue.GetValue();
           }
           end.constValue.Set(value); //the same as hat threshold
 //          assert(end.timeInterval.start != end.timeInterval.end);
@@ -2459,47 +2470,47 @@ void MInt::Hat(MInt& mint)
     }
     else{ //hat does not exist,return the first and last
        UInt begin,end;
-       const UInt* upi1;
-       const UInt* upi2;
+       UInt upi1;
+       UInt upi2;
        begin.SetDefined(true);
        end.SetDefined(true);
        if(defstart){
         Get(0,upi1);
-        begin = *upi1;
+        begin = upi1;
         mint.Add(begin);
         Get(1,upi1);
        }else
         Get(0,upi1);
-       int firstvalue = upi->constValue.GetValue();
+       int firstvalue = upi.constValue.GetValue();
        if(defstart)
         Get(GetNoComponents() - 2,upi2);
        else
         Get(GetNoComponents() - 1,upi2);
-        int lastvalue = upi2->constValue.GetValue();
+        int lastvalue = upi2.constValue.GetValue();
        if(firstvalue != lastvalue){
-          begin = *upi1;
+          begin = upi1;
           mint.Add(begin);
-          end = *upi2;
+          end = upi2;
           mint.Add(end);
           if(defstart){
             Get(GetNoComponents() - 1,upi2);
-            end = *upi2;
+            end = upi2;
             mint.Add(end);
           }
        }else{
          if(defstart){
             begin.constValue.Set(firstvalue);
-            begin.timeInterval.start = upi1->timeInterval.start;
-            begin.timeInterval.end = upi2->timeInterval.end;
+            begin.timeInterval.start = upi1.timeInterval.start;
+            begin.timeInterval.end = upi2.timeInterval.end;
             begin.timeInterval.lc = true;
             begin.timeInterval.rc = false;
             mint.Add(begin);
             Get(GetNoComponents() - 1,upi2);
-            end = *upi2;
+            end = upi2;
             mint.Add(end);
           }else{
-            begin = *upi1;
-            begin.timeInterval.end = upi2->timeInterval.end;
+            begin = upi1;
+            begin.timeInterval.end = upi2.timeInterval.end;
             mint.Add(begin);
           }
         }
@@ -2524,19 +2535,19 @@ void MInt::Restrict(MInt& result,
   result.Resize(size);
   int last = size-1;
   for(int i=0;i<size;i++){
-     const UInt* unit;
+     UInt unit;
      Get(i,unit);
      if(i==0 || i==last){
-       if(unit->timeInterval.start.IsMinimum() ||
-          unit->timeInterval.end.IsMaximum()){
-          if(useValue && unit->constValue.GetIntval()!=value){
-             result.Add(*unit);
+       if(unit.timeInterval.start.IsMinimum() ||
+          unit.timeInterval.end.IsMaximum()){
+          if(useValue && unit.constValue.GetIntval()!=value){
+             result.Add(unit);
           }
        } else {
-         result.Add(*unit);
+         result.Add(unit);
        }
      } else {
-       result.Add(*unit);
+       result.Add(unit);
      }
   }
 
@@ -2564,27 +2575,27 @@ void  MInt::PlusExtend(const MInt* arg2, MInt& result) const
 
   RefinementPartition<MInt, MInt, UInt, UInt> rp(*this, *arg2);
   result.StartBulkLoad();
-  Interval<Instant>* iv;
+  Interval<Instant> iv;
   int u1Pos;
   int u2Pos;
-  const UInt *u1;
-  const UInt *u2;
+  UInt u1;
+  UInt u2;
 
   for(unsigned int i = 0; i < rp.Size(); i++){
     rp.Get(i, iv, u1Pos, u2Pos);
     if(u1Pos!=-1 || u2Pos!=-1){
-      uInt.timeInterval = *iv;
+      uInt.timeInterval = iv;
       if(u1Pos == -1 ){
          arg2->Get(u2Pos,u2);
-         uInt.constValue.Set(true, u2->constValue.GetIntval());
+         uInt.constValue.Set(true, u2.constValue.GetIntval());
       } else if(u2Pos == -1){
         this->Get(u1Pos,u1);
-        uInt.constValue.Set(true, u1->constValue.GetIntval());
+        uInt.constValue.Set(true, u1.constValue.GetIntval());
       } else {
         this->Get(u1Pos, u1);
         arg2->Get(u2Pos, u2);
         uInt.constValue.Set(true,
-           u1->constValue.GetIntval() + u2->constValue.GetIntval());
+           u1.constValue.GetIntval() + u2.constValue.GetIntval());
       }
       result.MergeAdd(uInt);
     }
@@ -2593,21 +2604,27 @@ void  MInt::PlusExtend(const MInt* arg2, MInt& result) const
 }
 
 void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
+  assert(IsDefined());
   assert(unit.IsDefined());
+  if(!this->IsDefined() || !unit.IsDefined()){
+    Clear();
+    SetDefined(false);
+    return;
+  }
   int size = units.Size();
   if(size==0){
     units.Append(unit);
   } else {
-    const UInt* lastUnitp;
-    units.Get(size-1, lastUnitp);
-    UInt lastUnit = *lastUnitp;
+    UInt lastUnitp;
+    units.Get(size-1, &lastUnitp);
+    UInt lastUnit(lastUnitp);
     int lastValue = lastUnit.constValue.GetIntval();
     int newValue  = unit.constValue.GetIntval();
     if(lastUnit.timeInterval.end == unit.timeInterval.start){
        if(lastValue == newValue){
           lastUnit.timeInterval.end = unit.timeInterval.end;
           lastUnit.timeInterval.rc = unit.timeInterval.rc;
-          units.Put(size-1,lastUnit);
+          units.Put(size-1,&lastUnit);
        } else {
           // don't allow overlapping intervals
           assert(!(lastUnit.timeInterval.rc && unit.timeInterval.lc));
@@ -2617,8 +2634,8 @@ void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
           } else { // gap in time
              if(lastValue==fillValue){
                 lastUnit.timeInterval.rc = true;
-                units.Put(size-1, lastUnit);
-                units.Append(unit);
+                units.Put(size-1, &lastUnit);
+                units.Append(&unit);
              } else if(newValue==fillValue){
                 UInt copy(unit);
                 copy.timeInterval.lc = true;
@@ -2636,16 +2653,16 @@ void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
        }
 
     } else { // a "real" gap in time
-      assert(lastUnitp->timeInterval.end < unit.timeInterval.start);
+      assert(lastUnitp.timeInterval.end < unit.timeInterval.start);
       if(lastValue==fillValue){
         if(fillValue==newValue){ // merge three units
           lastUnit.timeInterval.end = unit.timeInterval.end;
           lastUnit.timeInterval.rc =  unit.timeInterval.rc;
-          units.Put(size-1,lastUnit);
+          units.Put(size-1,&lastUnit);
         } else {
           lastUnit.timeInterval.end = unit.timeInterval.start;
           lastUnit.timeInterval.rc = !unit.timeInterval.lc;
-          units.Put(size-1, lastUnit);
+          units.Put(size-1, &lastUnit);
           units.Append(unit);
         }
       }  else { // lastUnit and fillUnit cannot be merged
@@ -2664,10 +2681,7 @@ void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
            units.Append(fill);
            units.Append(unit);
         }
-
       }
-
-
     }
   }
 }
@@ -2675,14 +2689,15 @@ void MInt::MergeAddFillUp(const UInt& unit, const int fillValue){
 void MInt::fillUp(int value, MInt& result) const{
    result.Clear();
    if(!IsDefined()){
+     result.Clear();
      result.SetDefined(false);
      return;
    }
    int size = units.Size();
-   const UInt* unit;
+   UInt unit;
    for(int i=0;i<size;i++){
-     units.Get(i,unit);
-     result.MergeAddFillUp(*unit, value);
+     units.Get(i,&unit);
+     result.MergeAddFillUp(unit, value);
    }
 }
 
@@ -2692,11 +2707,11 @@ int MInt::maximum() const{
    if(!IsDefined()){
       return max;
    }
-   const UInt* unit;
+   UInt unit;
    int v;
    for(int i=0;i<units.Size();i++){
-      units.Get(i,unit);
-      v = unit->constValue.GetIntval();
+      units.Get(i,&unit);
+      v = unit.constValue.GetIntval();
       if(v>max){
         max = v;
       }
@@ -2705,15 +2720,15 @@ int MInt::maximum() const{
 }
 
 int MInt::minimum() const{
-   int min = numeric_limits<int>::max();
+  int min = numeric_limits<int>::max();
    if(!IsDefined()){
       return min;
    }
-   const UInt* unit;
+   UInt unit;
    int v;
    for(int i=0;i<units.Size();i++){
-      units.Get(i,unit);
-      v = unit->constValue.GetIntval();
+      units.Get(i,&unit);
+      v = unit.constValue.GetIntval();
       if(v<min){
         min = v;
       }
@@ -2754,7 +2769,7 @@ struct ISC{
 
 The integrate function sums all integrate value for the single units.
 To avoid adding big and small integer values, we compute the sum
- balanced similar to the aggregateB operator of teh ExtRelationAlgebra.
+balanced similar to the aggregateB operator of teh ExtRelationAlgebra.
 
 */
 
@@ -2763,14 +2778,13 @@ double MReal::Integrate(){
       return 0;
    }
    int size = GetNoComponents();
-   const UReal* unit;
+   UReal unit;
    stack<ISC> theStack;
-
 
    for(int i=0;i < size;i++){
       Get(i,unit);
       ISC isc;
-      isc.value = unit->Integrate();
+      isc.value = unit.Integrate();
       //if(isnan(isc.value)) cout << " value = " << isc.value << endl;
       isc.level = 0;
       while(!theStack.empty() && (theStack.top().level == isc.level)){
@@ -2803,13 +2817,13 @@ double MReal::Max(bool& correct) const{
    }
 
    correct = true;
-   const UReal* unit;
+   UReal unit;
    Get(0,unit);
    bool dummy;
-   double max = unit->Max(dummy);
+   double max = unit.Max(dummy);
    for(int i=1;i<size;i++){
        Get(i,unit);
-       double umax = unit->Max(dummy);
+       double umax = unit.Max(dummy);
        if(umax>max){
           max = umax;
        }
@@ -2832,13 +2846,13 @@ double MReal::Min(bool& correct) const{
    }
 
    correct = true;
-   const UReal* unit;
+   UReal unit;
    Get(0,unit);
    bool dummy;
-   double min = unit->Min(dummy);
+   double min = unit.Min(dummy);
    for(int i=1;i<size;i++){
        Get(i,unit);
-       double umin = unit->Min(dummy);
+       double umin = unit.Min(dummy);
        if(umin<min){
           min = umin;
        }
@@ -2846,18 +2860,23 @@ double MReal::Min(bool& correct) const{
    return min;
 }
 
-// restrict to periods with maximum value
+// restrict to periods with minimum value
 void MReal::AtMin( MReal& result ) const
 {
+  result.Clear();
+  if(!IsDefined()){
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
   double globalMin = numeric_limits<double>::infinity();
   double localMin  = 0.0;
   int noLocalMin = 0;
   bool correct = true;
-  const UReal *actual_ur = 0;
-  const UReal *last_ur = 0;
+  UReal actual_ur(false);
+  UReal last_ur(false);
   UReal last_candidate(true);
   bool firstCall = true;
-  result.Clear();
   result.StartBulkLoad();
   for(int i=0; i<GetNoComponents(); i++)
   {
@@ -2865,7 +2884,7 @@ void MReal::AtMin( MReal& result ) const
 //          << i << "..." << endl;
     last_ur = actual_ur;
     Get( i, actual_ur );
-    localMin = actual_ur->Min(correct);
+    localMin = actual_ur.Min(correct);
     if(!correct)
     {
       cerr << "MReal::AtMin(): Cannot compute minimum value for unit "
@@ -2878,13 +2897,13 @@ void MReal::AtMin( MReal& result ) const
       result.Clear();
       result.StartBulkLoad(); // we have to repeat this alter Clear()
       firstCall = true;
-      last_ur = 0;
+      last_ur.SetDefined(false);
 //       cerr << "MReal::AtMin(): New globalMin=" << globalMin << endl;
     }
     if( localMin <= globalMin )
     { // this ureal contains global minima
       vector<UReal> localMinimaVec;
-      noLocalMin = actual_ur->AtMin( localMinimaVec );
+      noLocalMin = actual_ur.AtMin( localMinimaVec );
 //       cerr << "MReal::AtMin(): Unit " << i << " has "
 //            << noLocalMin << " minima" << endl;
       for(int j=0; j< noLocalMin; j++)
@@ -2894,8 +2913,8 @@ void MReal::AtMin( MReal& result ) const
         if( j==0 &&               // check only unit's first local min!
             !firstCall &&         // don't check if there is no last_candidate
             last_candidate.Intersects(candidate) &&
-            ( !last_ur->Intersects(last_candidate) ||
-              !actual_ur->Intersects(candidate)
+            ( !last_ur.Intersects(last_candidate) ||
+              !actual_ur.Intersects(candidate)
             )
           )
         {
@@ -2952,15 +2971,20 @@ void MReal::AtMin( MReal& result ) const
 // restrict to periods with maximum value
 void MReal::AtMax( MReal& result ) const
 {
+  result.Clear();
+  if(!IsDefined()){
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
   double globalMax = -numeric_limits<double>::infinity();
   double localMax  = 0.0;
   int noLocalMax = 0;
   bool correct = true;
-  const UReal *actual_ur = 0;
-  const UReal *last_ur = 0;
+  UReal actual_ur(false);
+  UReal last_ur(false);
   UReal last_candidate(true);
   bool firstCall = true;
-  result.Clear();
   result.StartBulkLoad();
   for(int i=0; i<GetNoComponents(); i++)
   {
@@ -2968,7 +2992,7 @@ void MReal::AtMax( MReal& result ) const
 //          << i << "..." << endl;
     last_ur = actual_ur;
     Get( i, actual_ur );
-    localMax = actual_ur->Max(correct);
+    localMax = actual_ur.Max(correct);
     if(!correct)
     {
       cerr << "MReal::AtMax(): Cannot compute maximum value for unit "
@@ -2981,13 +3005,13 @@ void MReal::AtMax( MReal& result ) const
       result.Clear();
       result.StartBulkLoad(); // we have to repeat this alter Clear()
       firstCall = true;
-      last_ur = 0;
+      last_ur.SetDefined(false);
 //       cerr << "MReal::AtMax(): New globalMax=" << globalMax << endl;
     }
     if( localMax >= globalMax )
     { // this ureal contains global maxima
       vector<UReal> localMaximaVec;
-      noLocalMax = actual_ur->AtMax( localMaximaVec );
+      noLocalMax = actual_ur.AtMax( localMaximaVec );
 //       cerr << "MReal::AtMax(): Unit " << i << " has "
 //            << noLocalMax << " maxima" << endl;
       for(int j=0; j< noLocalMax; j++)
@@ -2997,8 +3021,8 @@ void MReal::AtMax( MReal& result ) const
         if( j==0 &&               // check only unit's first local max!
             !firstCall &&         // don't check if there is no last_candidate
             last_candidate.Intersects(candidate) &&
-            ( !last_ur->Intersects(last_candidate) ||
-              !actual_ur->Intersects(candidate)
+            ( !last_ur.Intersects(last_candidate) ||
+              !actual_ur.Intersects(candidate)
             )
           )
         {
@@ -3055,65 +3079,75 @@ void MReal::AtMax( MReal& result ) const
 // restrict to periods with certain value
 void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
 {
-  assert( ccvalue.IsDefined() );
+  result.Clear();
+  if(!IsDefined() || !ccvalue.IsDefined()){
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
 
   int noLocalResults = 0;
-  const UReal *actual_ur = 0;
-  const UReal *last_ur = 0;
-  UReal last_candidate(true);
+  UReal actual_ur(false);
+  UReal last_ur(false);
+  UReal last_candidate(false);
   bool firstCall = true;
-  result.Clear();
   result.StartBulkLoad();
   for(int i=0; i<GetNoComponents(); i++)
   {
 //     cerr << "MReal::AtValue(): Processing unit "
 //          << i << "..." << endl;
     last_ur = actual_ur;
+//    cout << __PRETTY_FUNCTION__ << ": last_ur ="; last_ur.Print(cout);
+//    cout << endl;
     Get( i, actual_ur );
+//    cout << __PRETTY_FUNCTION__ << ": actual_ur ="; actual_ur.Print(cout);
+//    cout << endl;
+    assert( actual_ur.IsDefined() );
     vector<UReal> localResultVec;
-    noLocalResults = actual_ur->AtValue( ccvalue, localResultVec );
-//       cerr << "MReal::AtValue(): Unit " << i << " has "
-//            << noLocalResults << " results" << endl;
+    noLocalResults = actual_ur.AtValue( ccvalue, localResultVec );
+//    cerr << "MReal::AtValue(): Unit " << i << " has "
+//         << noLocalResults << " results" << endl;
     for(int j=0; j< noLocalResults; j++)
     {
       UReal candidate = localResultVec[j];
+//      cout << "\t" << __PRETTY_FUNCTION__ << ": candidate=";
+//      candidate.Print(cout); cout << endl;
       // test, whether candidate overlaps last_inserted one
       if( j==0 &&               // check only unit's first local max!
           !firstCall &&         // don't check if there is no last_candidate
           last_candidate.Intersects(candidate) &&
-          ( !last_ur->Intersects(last_candidate) ||
-            !actual_ur->Intersects(candidate)
+          ( !last_ur.Intersects(last_candidate) ||
+            !actual_ur.Intersects(candidate)
           )
         )
       {
-//           cerr << "MReal::AtValue(): unit overlaps last one." << endl;
+//         cerr << "MReal::AtValue(): unit overlaps last one." << endl;
         if( last_candidate.timeInterval.start
             == last_candidate.timeInterval.end )
         { // case 1: drop last_candidate (which is an instant-unit)
-//             cerr << "MReal::AtValue(): drop last unit." << endl;
+//           cerr << "MReal::AtValue(): drop last unit." << endl;
           last_candidate = candidate;
           continue;
         }
         else if( candidate.timeInterval.start
                   == candidate.timeInterval.end )
         { // case 2: drop candidate
-//             cerr << "MReal::AtValue(): drop actual unit." << endl;
+//           cerr << "MReal::AtValue(): drop actual unit." << endl;
           continue;
         }
-        else
-          cerr << "MReal::AtValue(): This should not happen!" << endl;
+        else {
+          cerr << __PRETTY_FUNCTION__ << ": This should not happen!" << endl;
+        }
       }
       else
       { // All is fine. Just insert last_candidate.
-//      cerr << "MReal::AtValue(): unit does not overlap with last." << endl;
-        if(firstCall)
-        {
-//        cerr << "MReal::AtValue(): Skipping insertion of last unit." << endl;
+//         cerr << "MReal::AtValue(): unit does not overlap with last." << endl;
+        if(firstCall) {
+//           cerr << "MReal::AtValue(): Skipping insertion of last unit."
+//                << endl;
           firstCall = false;
-        }
-        else
-        {
-//             cerr << "MReal::AtValue(): Added last unit" << endl;
+        } else {
+//           cerr << "MReal::AtValue(): Adding last unit" << endl;
           result.MergeAdd(last_candidate);
         }
         last_candidate = candidate;
@@ -3125,16 +3159,22 @@ void MReal::AtValue( const CcReal& ccvalue, MReal& result ) const
 //            << " does never take the value." << endl;
 //     }
   }
-  if(!firstCall)
-  {
+  if(!firstCall){
     result.MergeAdd(last_candidate);
 //     cerr << "MReal::AtValue(): Added final unit" << endl;
   }
-//   else
+//   else{
 //     cerr << "MReal::AtValue(): Skipping insertion of final unit." << endl;
+//   }
   result.EndBulkLoad();
+//cout << __PRETTY_FUNCTION__ << "result = "; Print(cout); cout << endl << endl;
 }
 
+/*
+This function replaces all units by linear approximations between their
+start and end value.
+
+*/
 void MReal::Linearize(MReal& result) const{
   result.Clear();
   if(!IsDefined()){
@@ -3147,18 +3187,23 @@ void MReal::Linearize(MReal& result) const{
      return;
   }
   result.Resize(size);
-  const UReal* unitptr;
+  UReal unitptr;
   UReal unit;
   result.StartBulkLoad();
   for(int i=0;i<size;i++){
       Get(i,unitptr);
-      unitptr->Linearize(unit);
+      unitptr.Linearize(unit);
       result.Add(unit);
   }
   result.EndBulkLoad(false);
 
 }
 
+/*
+This function replaces all units by linear approximations between their
+start and end value and possible the extremum.
+
+*/
 void MReal::Linearize2(MReal& result) const{
   result.Clear();
   if(!IsDefined()){
@@ -3171,13 +3216,13 @@ void MReal::Linearize2(MReal& result) const{
      return;
   }
   result.Resize(size);
-  const UReal* unitptr;
+  UReal unitptr;
   UReal unit1;
   UReal unit2;
   result.StartBulkLoad();
   for(int i=0;i<size;i++){
       Get(i,unitptr);
-      unitptr->Linearize(unit1,unit2);
+      unitptr.Linearize(unit1,unit2);
       result.Add(unit1);
       if(unit2.IsDefined()){
          result.Add(unit2);
@@ -3231,15 +3276,18 @@ bool connected(const UReal* ur1, const UReal* ur2){
    return true;
 }
 
+/*
+Simplifies the connected linear approximated parts of this moving real.
 
+*/
 void MReal::Simplify(const double epsilon, MReal& result) const{
   result.Clear();
   if(!IsDefined()){
      result.SetDefined(false);
      return;
   }
-  unsigned int size = GetNoComponents();
   result.SetDefined(true);
+  unsigned int size = GetNoComponents();
   if(epsilon < 0 || size<2){
      result.CopyFrom(this);
      return;
@@ -3253,25 +3301,25 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
 
   unsigned int first = 0;
   unsigned int last = 1;
-  const UReal* ur1;
-  const UReal* ur2;
+  UReal ur1;
+  UReal ur2;
   while(last < size){
     Get(last-1,ur1);
     Get(last, ur2);
-    if(keep(ur1)){
+    if(keep(&ur1)){
          if(last-1 > first){
             Simplify(first,last-2,useleft,useright,epsilon);
          }
          Simplify(last-1, last-1, useleft, useright, epsilon);
          first = last;
          last++;
-    } else if( keep(ur2)){
+    } else if( keep(&ur2)){
          Simplify(first,last-1,useleft,useright,epsilon);
          last++;
          Simplify(last-1, last-1,useleft,useright,epsilon);
          first = last;
          last++;
-    } else if(connected(ur1,ur2)){ // enlarge the sequence
+    } else if(connected(&ur1,&ur2)){ // enlarge the sequence
          last++;
     } else {
           Simplify(first,last-1,useleft, useright, epsilon);
@@ -3291,10 +3339,10 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
    result.Resize(count); // prepare enough memory
 
    // scan the units
-   const UReal* unit;
+   UReal unit;
    Instant start(instanttype);
    Instant end(instanttype);
-   bool lc,rc;
+   bool lc = false, rc = false;
    CcReal startValue(true,0);
    CcReal endValue(true,0);
    bool leftDefined = false;
@@ -3302,24 +3350,24 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
    for(unsigned int i=0;i<size;i++){
       Get(i,unit);
       if(useleft[i] && useright[i]){ // copy this unit
-         result.Add(*unit);
+         result.Add(unit);
       } else {
          if(useleft[i]){
              if(leftDefined){ // debug
                 cout << "Overwrite left part of a ureal " << endl;
              }
-             start = unit->timeInterval.start;
-             lc = unit->timeInterval.lc;
-             unit->TemporalFunction(start,startValue,true);
+             start = unit.timeInterval.start;
+             lc = unit.timeInterval.lc;
+             unit.TemporalFunction(start,startValue,true);
              leftDefined = true;
          }
          if(useright[i]){
              if(!leftDefined){ // debug
                  cout << "Close ural without left definition " << endl;
              } else{
-               end = unit->timeInterval.end;
-               rc = unit->timeInterval.rc;
-               unit->TemporalFunction(end,endValue,true);
+               end = unit.timeInterval.end;
+               rc = unit.timeInterval.rc;
+               unit.TemporalFunction(end,endValue,true);
                UReal newUnit(Interval<Instant>(start,end,lc,rc),
                              startValue.GetRealval(),
                              endValue.GetRealval());
@@ -3330,13 +3378,13 @@ void MReal::Simplify(const double epsilon, MReal& result) const{
          }
       }
    }
-   result.EndBulkLoad();
+   result.EndBulkLoad(true,true);
 }
 
+// A private auxiliary function:
 void MReal::Simplify(const int min, const int max,
                      bool* useleft, bool* useright,
                      const double epsilon) const{
-
   // the endpoints are used in each case
   useleft[min] = true;
   useright[max] = true;
@@ -3345,25 +3393,23 @@ void MReal::Simplify(const int min, const int max,
      return;
   }
 
-  const UReal* u1;
-  const UReal* u2;
-  // build a UPoint from the endpoints
+  UReal u1;
+  UReal u2;
+  // build a UReal from the endpoints
   Get(min,u1);
   Get(max,u2);
   CcReal cr1(true,0.0);
   CcReal cr2(true,0.0);
 
-  u1->TemporalFunction(u1->timeInterval.start,cr1,true);
-  u2->TemporalFunction(u2->timeInterval.end,cr2,true);
+  u1.TemporalFunction(u1.timeInterval.start,cr1,true);
+  u2.TemporalFunction(u2.timeInterval.end,cr2,true);
 
   double r1 = cr1.GetRealval();
   double r2 = cr2.GetRealval();
 
   // build the approximating unit
-
-
-  UReal ureal(Interval<Instant>(u1->timeInterval.start,
-                u2->timeInterval.end,true,true),
+  UReal ureal(Interval<Instant>(u1.timeInterval.start,
+                u2.timeInterval.end,true,true),
                 r1,
                 r2);
 
@@ -3372,12 +3418,12 @@ void MReal::Simplify(const int min, const int max,
   int maxIndex=0;
   CcReal r_orig(true,0);
   CcReal r_simple(true,0);
-  const UReal* u;
+  UReal u;
   double distance;
   for(int i=min+1;i<=max;i++){
      Get(i,u);
-     ureal.TemporalFunction(u->timeInterval.start,r_simple, true);
-     u->TemporalFunction(u->timeInterval.start,r_orig,true);
+     ureal.TemporalFunction(u.timeInterval.start,r_simple, true);
+     u.TemporalFunction(u.timeInterval.start,r_orig,true);
      distance  = abs(r_simple.GetRealval()- r_orig.GetRealval());
      if(distance>maxDist){ // new maximum found
         maxDist = distance;
@@ -3416,8 +3462,12 @@ void MPoint::Clear()
 void MPoint::Add( const UPoint& unit )
 {
 //   cout << "CALLED: MPoint::Add" << endl;
-  assert( unit.IsValid() );
   assert( unit.IsDefined() );
+  assert( unit.IsValid() );
+  if(!IsDefined() || !unit.IsDefined()){
+    SetDefined( false );
+    return;
+  }
   units.Append( unit );
   if(units.Size() == 1)
   {
@@ -3436,7 +3486,13 @@ void MPoint::Add( const UPoint& unit )
 
 void MPoint::Restrict( const vector< pair<int, int> >& intervals )
 {
-  units.Restrict( intervals ); // call super
+  if(!IsDefined()){
+    Clear();
+    bbox.SetDefined(false);
+    SetDefined( false );
+    return;
+  }
+  units.Restrict( intervals, units ); // call super
   bbox.SetDefined(false);      // invalidate bbox
   RestoreBoundingBox();        // recalculate it
 }
@@ -3452,30 +3508,30 @@ ostream& MPoint::Print( ostream &os ) const
   os << ", contains " << GetNoComponents() << " units: ";
   for(int i=0; i<GetNoComponents(); i++)
   {
-    const UPoint *unit;
+    UPoint unit;
     Get( i , unit );
     os << "\n\t";
-    unit->Print(os);
+    unit.Print(os);
   }
   os << "\n)" << endl;
   return os;
 }
 
-void MPoint::EndBulkLoad(const bool sort)
+void MPoint::EndBulkLoad(const bool sort, const bool checkvalid)
 {
-  Mapping<UPoint, Point>::EndBulkLoad( sort ); // call super
+  Mapping<UPoint, Point>::EndBulkLoad( sort, checkvalid ); // call super
   RestoreBoundingBox();                        // recalculate, if necessary
 }
 
 bool MPoint::operator==( const MPoint& r ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
   if(!IsDefined()){
      return !r.IsDefined();
   }
   if(!r.IsDefined()){
      return false;
   }
+  assert( IsOrdered() && r.IsOrdered() );
   if(IsEmpty()){
     return r.IsEmpty();
   }
@@ -3491,8 +3547,8 @@ bool MPoint::operator==( const MPoint& r ) const
 bool MPoint::Present( const Instant& t ) const
 {
   assert( IsDefined() );
-  assert( t.IsDefined() );
   assert( IsOrdered() );
+  assert( t.IsDefined() );
 
   if(bbox.IsDefined())
   { // do MBR-check
@@ -3554,8 +3610,6 @@ bool MPoint::Present( const Periods& t ) const
 
 void MPoint::AtInstant( const Instant& t, Intime<Point>& result ) const
 {
-  assert( IsOrdered() );
-  assert( t.IsDefined() );
   if( IsDefined() && t.IsDefined() )
   {
     if( !bbox.IsDefined() )
@@ -3582,15 +3636,16 @@ void MPoint::AtInstant( const Instant& t, Intime<Point>& result ) const
         result.SetDefined(false);
       } else
       {
+        assert( IsOrdered() );
         int pos = Position( t );
         if( pos == -1 )  // not contained in any unit
           result.SetDefined( false );
         else
         {
-          const UPoint *posUnit;
-          units.Get( pos, posUnit );
+          UPoint posUnit;
+          units.Get( pos, &posUnit );
           result.SetDefined( true );
-          posUnit->TemporalFunction( t, result.value );
+          posUnit.TemporalFunction( t, result.value );
           result.instant.CopyFrom( &t );
         }
       }
@@ -3603,9 +3658,6 @@ void MPoint::AtInstant( const Instant& t, Intime<Point>& result ) const
 
 void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
 {
-  assert( IsOrdered() );
-  assert( p.IsOrdered() );
-
   result.Clear();
   result.SetDefined(true);
   if( IsDefined() && p.IsDefined() )
@@ -3618,6 +3670,8 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
       result.SetDefined(true);
     } else
     { // compute result
+      assert( IsOrdered() );
+      assert( p.IsOrdered() );
       Instant perMinInst; p.Minimum(perMinInst);
       Instant perMaxInst; p.Maximum(perMaxInst);
       double permind = perMinInst.ToDouble();
@@ -3640,21 +3694,21 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
       } else
       {
         result.StartBulkLoad();
-        const UPoint *unit;
-        const Interval<Instant> *interval;
+        UPoint unit;
+        Interval<Instant> interval;
         int i = 0, j = 0;
         Get( i, unit );
         p.Get( j, interval );
 
         while( 1 )
         {
-          if( unit->timeInterval.Before( *interval ) )
+          if( unit.timeInterval.Before( interval ) )
           {
             if( ++i == GetNoComponents() )
               break;
             Get( i, unit );
           }
-          else if( interval->Before( unit->timeInterval ) )
+          else if( interval.Before( unit.timeInterval ) )
           {
             if( ++j == p.GetNoComponents() )
               break;
@@ -3663,17 +3717,17 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
           else
           { // we have overlapping intervals, now
             UPoint r(1);
-            unit->AtInterval( *interval, r );
+            unit.AtInterval( interval, r );
             assert( r.IsDefined() );
             assert( r.IsValid()   );
             result.Add( r );
-//          cout << "\n\tunit = "; unit->Print(cout); cout << endl;
-//          cout << "\tinterval =       "; interval->Print(cout); cout << endl;
+//          cout << "\n\tunit = "; unit.Print(cout); cout << endl;
+//          cout << "\tinterval =       "; interval.Print(cout); cout << endl;
 //          cout << "\tr    = "; r.Print(cout); cout << endl;
 
-            if( interval->end == unit->timeInterval.end )
+            if( interval.end == unit.timeInterval.end )
             { // same ending instant
-              if( interval->rc == unit->timeInterval.rc )
+              if( interval.rc == unit.timeInterval.rc )
               { // same ending instant and rightclosedness: Advance both
                 if( ++i == GetNoComponents() )
                   break;
@@ -3682,7 +3736,7 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
                   break;
                 p.Get( j, interval );
               }
-              else if( interval->rc == true )
+              else if( interval.rc == true )
               { // Advanve in mapping
                 if( ++i == GetNoComponents() )
                   break;
@@ -3690,13 +3744,13 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
               }
               else
               { // Advance in periods
-                assert( unit->timeInterval.rc == true );
+                assert( unit.timeInterval.rc == true );
                 if( ++j == p.GetNoComponents() )
                   break;
                 p.Get( j, interval );
               }
             }
-            else if( interval->end > unit->timeInterval.end )
+            else if( interval.end > unit.timeInterval.end )
             { // Advance in mpoint
               if( ++i == GetNoComponents() )
                 break;
@@ -3704,7 +3758,7 @@ void MPoint::AtPeriods( const Periods& p, MPoint& result ) const
             }
             else
             { // Advance in periods
-              assert( interval->end < unit->timeInterval.end );
+              assert( interval.end < unit.timeInterval.end );
               if( ++j == p.GetNoComponents() )
                 break;
               p.Get( j, interval );
@@ -3735,19 +3789,13 @@ void MPoint::RestoreBoundingBox(const bool force)
   }
   else if(force || !bbox.IsDefined())
   { // construct bbox
-    const UPoint *unit;
+    UPoint unit;
     int size = GetNoComponents();
-    for( int i = 0; i < size; i++ )
-    {
+    Get( 0, unit ); // safe, since (this) contains at least 1 unit
+    bbox = unit.BoundingBox();
+    for( int i = 1; i < size; i++ ){
       Get( i, unit );
-      if (i == 0)
-      {
-        bbox = unit->BoundingBox();
-      }
-      else
-      {
-        bbox = bbox.Union(unit->BoundingBox());
-      }
+      bbox = bbox.Union(unit.BoundingBox());
     }
   } // else: bbox unchanged and still correct
 }
@@ -3761,10 +3809,15 @@ Rectangle<3u> MPoint::BoundingBox() const
 void MPoint::Trajectory( Line& line ) const
 {
   line.Clear();
+  if(!IsDefined()){
+    line.SetDefined( false );
+    return;
+  }
+  line.SetDefined( true );
   line.StartBulkLoad();
 
   HalfSegment hs;
-  const UPoint *unit;
+  UPoint unit;
   int edgeno = 0;
 
   int size = GetNoComponents();
@@ -3775,42 +3828,40 @@ void MPoint::Trajectory( Line& line ) const
   Point p1(false);      // end point of the first unit
   Point p_last(false);  // last point of the connected segment
 
-  for( int i = 0; i < size; i++ )
-  {
+  for( int i = 0; i < size; i++ ) {
     Get( i, unit );
 
-    if( !AlmostEqual( unit->p0, unit->p1 ) )
-    {
+    if( !AlmostEqual( unit.p0, unit.p1 ) )    {
       if(!p0.IsDefined()){ // first unit
-        p0 = unit->p0;
-        p1 = unit->p1;
-        p_last = unit->p1;
+        p0 = unit.p0;
+        p1 = unit.p1;
+        p_last = unit.p1;
       } else { // segment already exists
-        if(p_last!=unit->p0){ // spatial jump
+        if(p_last!=unit.p0){ // spatial jump
            hs.Set(true,p0,p_last);
            hs.attr.edgeno = ++edgeno;
            line += hs;
            hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
            line += hs;
-           p0 = unit->p0;
-           p1 = unit->p1;
-           p_last = unit->p1;
+           p0 = unit.p0;
+           p1 = unit.p1;
+           p_last = unit.p1;
         } else { // an extension, check direction
-           if(!AlmostEqual(p0,unit->p1)){
-             HalfSegment tmp(true,p0,unit->p1);
+           if(!AlmostEqual(p0,unit.p1)){
+             HalfSegment tmp(true,p0,unit.p1);
              double dist = tmp.Distance(p1);
              double dist2 = tmp.Distance(p_last);
              if(AlmostEqual(dist,0.0) && AlmostEqual(dist2,0.0)){
-               p_last = unit->p1;
+               p_last = unit.p1;
              } else {
                hs.Set(true,p0,p_last);
                hs.attr.edgeno = ++edgeno;
                line += hs;
                hs.SetLeftDomPoint(!hs.IsLeftDomPoint());
                line += hs;
-               p0 = unit->p0;
-               p1 = unit->p1;
-               p_last = unit->p1;
+               p0 = unit.p0;
+               p1 = unit.p1;
+               p_last = unit.p1;
              }
           }
         }
@@ -3829,25 +3880,26 @@ void MPoint::Trajectory( Line& line ) const
 
 void MPoint::Distance( const Point& p, MReal& result ) const
 {
-  const UPoint *uPoint;
-  UReal uReal(true);
   result.Clear();
+  if( !IsDefined() || !p.IsDefined() ){
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  UPoint uPoint;
+  UReal uReal(true);
   result.Resize(GetNoComponents());
   result.StartBulkLoad();
-  for( int i = 0; i < GetNoComponents(); i++ )
-  {
+  for( int i = 0; i < GetNoComponents(); i++ ){
     Get( i, uPoint );
-    uPoint->Distance( p, uReal );
+    uPoint.Distance( p, uReal );
     if ( uReal.IsDefined() )
       result.MergeAdd( uReal );
   }
-  result.EndBulkLoad( false );
+  result.EndBulkLoad( false, false );
 }
 
-
-
-
-/*   */
+// Output an interval
 string iv2string(Interval<Instant> iv){
 
    string res ="";
@@ -3860,39 +3912,39 @@ string iv2string(Interval<Instant> iv){
 }
 
 void MPoint::MergeAdd(const UPoint& unit){
-  assert( unit.IsValid() );
+  assert( IsDefined() );
   assert( unit.IsDefined() );
+  assert( unit.IsValid() );
 
   int size = GetNoComponents();
   if(size==0){ // the first unit
-    Add(unit); // also adopts bbox
+    Add(unit); // Add() unit as first unit to empty mapping; bbox is updated.
     return;
   }
-  const UPoint* last;
+  UPoint last;
   Get(size-1,last);
 
-  assert(last->timeInterval.end <= unit.timeInterval.start);
+  assert(last.timeInterval.end <= unit.timeInterval.start);
 
-
-  if(last->timeInterval.end!=unit.timeInterval.start ||
-     !( (last->timeInterval.rc )  ^ (unit.timeInterval.lc))){
+  if(last.timeInterval.end!=unit.timeInterval.start ||
+     !( (last.timeInterval.rc )  ^ (unit.timeInterval.lc))){
      // intervals are not connected
     Add(unit); // also adopts bbox
     return;
   }
-  if(!AlmostEqual(last->p1, unit.p0)){
+  if(!AlmostEqual(last.p1, unit.p0)){
     // jump in spatial dimension
     Add(unit);  // also adopts bbox
     return;
   }
-  Interval<Instant> complete(last->timeInterval.start,
+  Interval<Instant> complete(last.timeInterval.start,
                              unit.timeInterval.end,
-                             last->timeInterval.lc,
+                             last.timeInterval.lc,
                              unit.timeInterval.rc);
-  UPoint upoint(complete,last->p0, unit.p1);
+  UPoint upoint(complete,last.p0, unit.p1);
   Point p;
-  upoint.TemporalFunction(last->timeInterval.end, p, true);
-  if(!AlmostEqual(p,last->p0)){
+  upoint.TemporalFunction(last.timeInterval.end, p, true);
+  if(!AlmostEqual(p,last.p0)){
     Add(unit); // also adopts bbox
     return;
   }
@@ -3920,9 +3972,6 @@ static bool connected(const UPoint* u1, const UPoint* u2){
    return true;
 }
 
-
-
-
 static bool IsBreakPoint(const UPoint* u,const DateTime& duration){
    if(u->p0 != u->p1){ // equal points required
      return false;
@@ -3936,7 +3985,7 @@ static bool IsBreakPoint(const UPoint* u,const DateTime& duration){
 /**
 ~Simplify~
 
-This function removed some sampling points from a moving point
+This function removes some sampling points from a moving point
 to get simpler data. It's implemented using an algorithm based
 on the Douglas Peucker algorithm for line simplification.
 
@@ -3948,7 +3997,7 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    result.Clear();
 
    // check for defined state
-   if(!IsDefined()){
+   if( !IsDefined() || !dur.IsDefined() ){
      result.SetDefined(false);
      return;
    }
@@ -3974,27 +4023,27 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
 
    unsigned int first=0;
    unsigned int last=1;
-   const UPoint* u1;
-   const UPoint* u2;
+   UPoint u1(false);
+   UPoint u2(false);
    while(last<size){
       // check whether last and last -1 are connected
       Get(last-1,u1);
       Get(last,u2);
 
-      if( checkBreakPoints && IsBreakPoint(u1,dur)){
+      if( checkBreakPoints && IsBreakPoint(&u1,dur)){
          if(last-1 > first){
             Simplify(first,last-2,useleft,useright,epsilon);
          }
          Simplify(last-1, last-1, useleft, useright, epsilon);
          first = last;
          last++;
-      } else if( checkBreakPoints && IsBreakPoint(u2,dur)){
+      } else if( checkBreakPoints && IsBreakPoint(&u2,dur)){
          Simplify(first,last-1,useleft,useright,epsilon);
          last++;
          Simplify(last-1, last-1,useleft,useright,epsilon);
          first = last;
          last++;
-      } else if(connected(u1,u2)){ // enlarge the sequence
+      } else if(connected(&u1,&u2)){ // enlarge the sequence
          last++;
       } else {
           Simplify(first,last-1,useleft, useright, epsilon);
@@ -4019,10 +4068,10 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
    result.StartBulkLoad();
    Instant start;
    Point p0;
-   bool closeLeft;
+   bool closeLeft = false;
    bool leftDefined = false;
    for(unsigned int i=0; i< size; i++){
-     const UPoint* upoint;
+     UPoint upoint(false);
 
      Get(i,upoint);
      if(useleft[i]){
@@ -4032,9 +4081,9 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
                 << " overwrite an existing leftPoint "  << endl;
         }
         // end of debug
-        p0 = upoint->p0;
-        closeLeft = upoint->timeInterval.lc;
-        start = upoint->timeInterval.start;
+        p0 = upoint.p0;
+        closeLeft = upoint.timeInterval.lc;
+        start = upoint.timeInterval.start;
         leftDefined=true;
      }
      if(useright[i]){
@@ -4044,15 +4093,15 @@ void MPoint::Simplify(const double epsilon, MPoint& result,
                 << " rightdefined before leftdefined "  << endl;
 
         }
-        Interval<Instant> interval(start,upoint->timeInterval.end,closeLeft,
-                                   upoint->timeInterval.rc);
+        Interval<Instant> interval(start,upoint.timeInterval.end,closeLeft,
+                                   upoint.timeInterval.rc);
 
-        UPoint newUnit(interval,p0,upoint->p1);
+        UPoint newUnit(interval,p0,upoint.p1);
         result.Add(newUnit);
         leftDefined=false;
      }
    }
-   result.EndBulkLoad(false);
+   result.EndBulkLoad(false,false);
 }
 
 
@@ -4077,28 +4126,28 @@ void MPoint::Simplify(const int min,
      return;
   }
 
-  const UPoint* u1;
-  const UPoint* u2;
+  UPoint u1;
+  UPoint u2;
   // build a UPoint from the endpoints
   Get(min,u1);
   Get(max,u2);
 
-  UPoint upoint(Interval<Instant>(u1->timeInterval.start,
-                u2->timeInterval.end,true,true),
-                u1->p0,
-                u2->p1);
+  UPoint upoint(Interval<Instant>(u1.timeInterval.start,
+                u2.timeInterval.end,true,true),
+                u1.p0,
+                u2.p1);
 
   // search for the point with the highest distance to its simplified position
   double maxDist = 0;
   int maxIndex=0;
   Point p_orig;
   Point p_simple;
-  const UPoint* u;
+  UPoint u;
   double distance;
   for(int i=min+1;i<=max;i++){
      Get(i,u);
-     upoint.TemporalFunction(u->timeInterval.start,p_simple, true);
-     distance  = p_simple.Distance(u->p0);
+     upoint.TemporalFunction(u.timeInterval.start,p_simple, true);
+     distance  = p_simple.Distance(u.p0);
      if(distance>maxDist){ // new maximum found
         maxDist = distance;
         maxIndex = i;
@@ -4121,34 +4170,31 @@ void MPoint::Simplify(const int min,
 
 void MPoint::BreakPoints(Points& result, const DateTime& dur) const{
     result.Clear();
-    if(!IsDefined()){
+    if( !IsDefined() || !dur.IsDefined() ){
       result.SetDefined(false);
       return;
     }
     result.SetDefined(true);
     int size = GetNoComponents();
     result.StartBulkLoad();
-    const UPoint* unit;
+    UPoint unit;
     for(int i=0;i<size;i++){
         Get(i,unit);
-        if(IsBreakPoint(unit,dur)){
-           result += (unit->p0);
+        if(IsBreakPoint(&unit,dur)){
+           result += (unit.p0);
         }
     }
     result.EndBulkLoad();
 }
 
-void MPoint::TranslateAppend(MPoint& mp, const DateTime& dur){
-   if(!mp.IsDefined()){
+void MPoint::TranslateAppend(const MPoint& mp, const DateTime& dur){
+   if( !IsDefined() || !mp.IsDefined() || !dur.IsDefined() ){
        Clear();
        SetDefined(false);
        return;
    }
-   if(mp.GetNoComponents()==0){ // nothing to do
+   if(mp.GetNoComponents()==0){ // nothing to do (already defined)
        return;
-   }
-   if(!IsDefined()){
-      return;
    }
    if(GetNoComponents()==0){
        this->CopyFrom(&mp);
@@ -4157,36 +4203,36 @@ void MPoint::TranslateAppend(MPoint& mp, const DateTime& dur){
 
    int newSize = GetNoComponents()+mp.GetNoComponents();
    Resize(newSize);
-   const UPoint* lastUnit;
+   UPoint lastUnit;
 
    StartBulkLoad();
 
-   const UPoint* firstUnit;
+   UPoint firstUnit;
    mp.Get(0,firstUnit);
 
    // add a staying unit
    if(!dur.IsZero() && !dur.LessThanZero()){
      Get(GetNoComponents()-1,lastUnit);
-     Interval<Instant> interval = lastUnit->timeInterval;
-     Point lastPoint = lastUnit->p1;
+     Interval<Instant> interval = lastUnit.timeInterval;
+     Point lastPoint = lastUnit.p1;
      // append a unit of staying
      Interval<Instant> gapInterval(interval.end,interval.end +dur,
-                                   !interval.rc,!firstUnit->timeInterval.lc);
+                                   !interval.rc,!firstUnit.timeInterval.lc);
      UPoint gap(gapInterval,lastPoint,lastPoint);
      Add(gap);
    }
 
    Get(GetNoComponents()-1,lastUnit);
-   Instant end = lastUnit->timeInterval.end;
-   DateTime timediff = end - firstUnit->timeInterval.start;
-   double xdiff  = lastUnit->p1.GetX() - firstUnit->p0.GetX();
-   double ydiff  = lastUnit->p1.GetY() - firstUnit->p0.GetY();
+   Instant end = lastUnit.timeInterval.end;
+   DateTime timediff = end - firstUnit.timeInterval.start;
+   double xdiff  = lastUnit.p1.GetX() - firstUnit.p0.GetX();
+   double ydiff  = lastUnit.p1.GetY() - firstUnit.p0.GetY();
 
-   const UPoint* Punit;
+   UPoint Punit;
    mp.Get(0,Punit);
-   UPoint unit = *Punit;
+   UPoint unit = Punit;
    unit.Translate(xdiff,ydiff,timediff);
-   if(!(lastUnit->timeInterval.rc)){
+   if(!(lastUnit.timeInterval.rc)){
        unit.timeInterval.lc = true;
    } else {
        unit.timeInterval.lc = false;
@@ -4195,7 +4241,7 @@ void MPoint::TranslateAppend(MPoint& mp, const DateTime& dur){
 
    for(int i=1; i< mp.GetNoComponents(); i++){
       mp.Get(i,Punit);
-      unit = *Punit;
+      unit = Punit;
       unit.Translate(xdiff,ydiff,timediff);
       Add(unit);
    }
@@ -4209,27 +4255,28 @@ void MPoint::Reverse(MPoint& result){
        result.SetDefined(false);
        return;
     }
+    result.SetDefined(true);
     int size = GetNoComponents();
     if(size==0){
        return;
     }
 
-    const UPoint* unit;
+    UPoint unit;
     Get(size-1,unit);
-    Instant end = unit->timeInterval.end;
+    Instant end = unit.timeInterval.end;
     Get(0,unit);
-    Instant start = unit->timeInterval.start;
+    Instant start = unit.timeInterval.start;
 
     result.StartBulkLoad();
 
     for(int i=size-1; i>=0; i--){
        Get(i,unit);
-       Instant newEnd = (end - unit->timeInterval.start) + start;
-       Instant newStart = (end - unit->timeInterval.end) + start;
-      Interval<Instant> interval(newStart,newEnd,
-                                  unit->timeInterval.rc,
-                                  unit->timeInterval.lc);
-       UPoint newUnit(interval,unit->p1,unit->p0);
+       Instant newEnd = (end - unit.timeInterval.start) + start;
+       Instant newStart = (end - unit.timeInterval.end) + start;
+       Interval<Instant> interval(newStart,newEnd,
+                                  unit.timeInterval.rc,
+                                  unit.timeInterval.lc);
+       UPoint newUnit(interval,unit.p1,unit.p0);
 
        result.Add(newUnit);
     }
@@ -4239,11 +4286,6 @@ void MPoint::Reverse(MPoint& result){
 
 
 /*
-1.2 ~EqualizeUnits~
-
-This function tries to equalize the units contained within this mpoint,
-
-
 ~qdist~
 
 This funtion returns the square of the distance between ~p1~ and ~p2~.
@@ -4262,7 +4304,7 @@ double qdist(const Point& p1, const Point& p2){
 /*
 ~qdist~
 
-This function returns teh square of the distance of the points defined by
+This function returns the square of the distance of the points defined by
 (~x1~, ~y1~) and (~x2~, ~y2~).
 
 */
@@ -4302,9 +4344,9 @@ struct intset{
 A cluster is defined by the contained points (stored in ~member~),
 the center (defined by (~cx~, ~cy~) ) and a flag ~forbidden~ indicating
 whether it's allowed to change the content of this cluster.
-To save memory, instead points only indexes of the points to an externally
+To save memory, instead of points only indexes of the points within an external
 point vector or similar are stored.
-Members are always copyied by reference.
+Members are always copied by reference.
 
 */
 struct cluster{
@@ -4653,7 +4695,7 @@ void recomputeCenters(vector<cluster>& clusters,
 
 /*
 This class is only needed, because the Point class of Secondo
-does no initialisation stuff in the Standard costructor which is
+does no initialisation within in the standard constructor which is
 required to use a class within an STL set instance.
 
 */
@@ -4779,7 +4821,7 @@ class DoublePoint{
 Determines such points within ~cands~ whose distance to the
 trajectory (a segment) of the unit is smaller than ~eps~ div 2. If so, the
 foot of the point to the segment is determined. If the foot is located
-on the segment, the unit is split at those positions and the parts are
+on the segment, the unit is split at that position and the parts are
 inserted into result. If no such point is found, the complete unit is inserted
 into the result.
 
@@ -4916,7 +4958,7 @@ void split(const UPoint unit,
 void eqTimes(MPoint& mpoint,
              vector<int>& indexes,
              MPoint& changed,
-             DBArray<bool>& used,
+             DbArray<bool>& used,
              DateTime& eps) {
 
    // first collect the different durations within a set
@@ -4937,50 +4979,53 @@ This function tries to equalize the durations of units covering the
 same space. The maximum deviation is given by ~eps~.
 
 */
-void changeTimes(MPoint& mpoint,
-                 const DateTime& eps){
-
+void changeTimes(MPoint& mpoint, const DateTime& eps){
+   assert( mpoint.IsDefined() );
+   assert( eps.IsDefined() );
+   if( !mpoint.IsDefined() || !eps.IsDefined() ){
+    mpoint.Clear();
+    mpoint.SetDefined( false );
+    return;
+   }
 
    // step 1: collect the rectangles of all units into an rtree
    mmrtree::Rtree<2> tree(3,7);
-   const UPoint* unit=0;
+   UPoint unit=0;
    for(int i=0;i<mpoint.GetNoComponents();i++){
        mpoint.Get(i,unit);
-       tree.insert(unit->BoundingBoxSpatial(),i);
+       tree.insert(unit.BoundingBoxSpatial(),i);
    }
 
    cout << " There are " << tree.noObjects() << " stored in the tree " << endl;
 
  /*
-   DBArray<bool> used(mpoint.GetNoComponents);
+   DbArray<bool> used(mpoint.GetNoComponents);
    MPoint changed(mpoint);
-
-
 
    for(int i=0;i<mpoint.GetNoComponents()){
      used.Append(false);
    }
 
-   const bool* u;
-   const UPoint* unit;
+   bool u;
+   UPoint unit;
 
    for(int i=0;i<mpoint.NoComponents();i++){
       used.Get(i,u);
-      if(!*u){ // not used unit
+      if(!u){ // not used unit
          mpoint.Get(i,unit);
-         Rectangle2D box(unit->GetSpatialBoundingBox());
+         Rectangle2D box(unit.GetSpatialBoundingBox());
          vector<long> c;
          tree.findAllExact(box,c);
          vector<long>::iterator it;
          vector<int> indexes;
-         const bool* u2;
-         const UPoint* unit2;
+         bool u2;
+         UPoint unit2;
          for(it i=c.begin();i!=c.end();it++){
            used.Get(*it,u2);
            if(!u2){
               mpoint.Get(*it,unit2);
-              if(AlmostEqual(unit->p0,unit2.p0) &&
-                 AlmostEqual(unit->p1,unit2.p1)){
+              if(AlmostEqual(unit.p0,unit2.p0) &&
+                 AlmostEqual(unit.p1,unit2.p1)){
                  indexes.push_back(*it);
               }
            }
@@ -5006,23 +5051,27 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
                                   MPoint& result,
                                   bool skipSplit/* = false*/) const{
    result.Clear();
+   if(!IsDefined()){
+    result.SetDefined( false );
+    return;
+   }
+   result.SetDefined( true );
 
    int size = GetNoComponents();
    if(size<2){ // no or a single unit
       return;
    }
 
-   // step 1: collect all unit-endpoints within a set
+   // step 1: collect all start and endpoints of units within a set
    set<Point> endPoints1;
-   const UPoint* unit;
+   UPoint unit;
    for(int i=0;i< GetNoComponents(); i++){
        Get(i,unit);
-       Point p0(unit->p0);
+       Point p0(unit.p0);
        endPoints1.insert(p0);
-       Point p1(unit->p1);
+       Point p1(unit.p1);
        endPoints1.insert(p1);
    }
-
 
    // copy points from the set to a vector
    vector<Point>  endPoints;
@@ -5042,26 +5091,25 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
     //result.StartBulkLoad();
     for(int i=0;i<GetNoComponents(); i++){
       Get(i,unit);
-      resUnit = *unit;
-      Point p = unit->p0;
+      resUnit = unit;
+      Point p = unit.p0;
       resUnit.p0 = (*clusters)[p].GetPoint();
-      resUnit.p1 = (*clusters)[unit->p1].GetPoint();
+      resUnit.p1 = (*clusters)[unit.p1].GetPoint();
       result.MergeAdd(resUnit);
     }
     //result.EndBulkLoad();
     delete clusters;
   }
 
-
    MPoint tmp(GetNoComponents());
    UPoint resUnit(0);
    tmp.StartBulkLoad();
    for(int i=0;i<GetNoComponents(); i++){
       Get(i,unit);
-      resUnit = *unit;
-      Point p = unit->p0;
+      resUnit = unit;
+      Point p = unit.p0;
       resUnit.p0 = (*clusters)[p].GetPoint();
-      resUnit.p1 = (*clusters)[unit->p1].GetPoint();
+      resUnit.p1 = (*clusters)[unit.p1].GetPoint();
       tmp.MergeAdd(resUnit);
    }
    tmp.EndBulkLoad();
@@ -5075,20 +5123,18 @@ void MPoint::EqualizeUnitsSpatial(const double epsilon,
    set<long> cands;
    for(int i=0;i<tmp.GetNoComponents();i++){
        tmp.Get(i,unit);
-       if(AlmostEqual(unit->p0,unit->p1)){
-          result.Add(*unit);
+       if(AlmostEqual(unit.p0,unit.p1)){
+          result.Add(unit);
        } else {
-          HalfSegment hs(true,unit->p0,unit->p1);
+          HalfSegment hs(true,unit.p0,unit.p1);
           Rectangle<2> box = hs.BoundingBox();
           tree.findAll(box.Extend(epsilon),cands);
-          split(*unit,cands,centers,result,epsilon);
+          split(unit,cands,centers,result,epsilon);
        }
    }
    changeTimes(result, DateTime(0,2000,durationtype));
    delete clusters;
 }
-
-
 
 
 /*
@@ -5104,6 +5150,8 @@ iff
 */
 
 bool isCut(const UPoint* u1, const UPoint* u2){
+   assert( u1->IsDefined() );
+   assert( u2->IsDefined() );
    DateTime end = u1->timeInterval.end;
    DateTime start = u2->timeInterval.start;
    if(end!=start){ // gap in definition time
@@ -5136,7 +5184,6 @@ void MPoint::Sample(const DateTime& duration,
                     const bool KeepEndPoint, /*=false*/
                     const bool exactPath /*=false*/    ) const{
 
-
   result.Clear();
   // special case: undefined parameter
   if(!IsDefined() || !duration.IsDefined()){
@@ -5157,20 +5204,20 @@ void MPoint::Sample(const DateTime& duration,
   Point lastPoint;
   Point point;
 
-  const UPoint* unit; // the unit corresponding to the currentUnit
-  bool lc;
+  UPoint unit; // the unit corresponding to the currentUnit
+  bool lc = false;
   while(currentUnit < size ){ // there are remaining units
      bool cut = false;
      if(isFirst){ // set the start values
          Get(currentUnit,unit);
-         currentTime = unit->timeInterval.start;
-         lastPoint = unit->p0;
+         currentTime = unit.timeInterval.start;
+         lastPoint = unit.p0;
          isFirst=false;
-         lc = unit->timeInterval.lc;
+         lc = unit.timeInterval.lc;
      } else {
          lc = true;
      }
-     Interval<Instant> interval(unit->timeInterval);
+     Interval<Instant> interval(unit.timeInterval);
      lastTime = currentTime;
      currentTime += duration; // the next sampling instant
 
@@ -5182,24 +5229,24 @@ void MPoint::Sample(const DateTime& duration,
         if(currentUnit<size){
            Get(currentUnit,unit);
            if(exactPath && (currentUnit>0)){
-              const UPoint* lastUnit;
+              UPoint lastUnit;
               Get(currentUnit-1,lastUnit);
-              cut = isCut(lastUnit,unit);
+              cut = isCut(&lastUnit,&unit);
               if(!cut){
-                interval = unit->timeInterval;
+                interval = unit.timeInterval;
               }
            }else{
-              interval = unit->timeInterval;
+              interval = unit.timeInterval;
            }
         }
      }
 
      if(cut){ // cut detected
-       const UPoint* lastUnit;
+       UPoint lastUnit;
        Get(currentUnit-1,lastUnit);
-       currentTime = lastUnit->timeInterval.end;
+       currentTime = lastUnit.timeInterval.end;
        Interval<Instant> newint(lastTime,currentTime,lc,false);
-       UPoint nextUnit(newint,lastPoint,lastUnit->p1);
+       UPoint nextUnit(newint,lastPoint,lastUnit.p1);
        if(nextUnit.IsValid()){
           result.MergeAdd(nextUnit);
        }
@@ -5208,7 +5255,7 @@ void MPoint::Sample(const DateTime& duration,
         if(interval.start>currentTime){ // gap detected
             isFirst=true;
         } else {
-            unit->TemporalFunction(currentTime, point, true);
+            unit.TemporalFunction(currentTime, point, true);
             Interval<Instant> newint(lastTime,currentTime,lc,false);
             UPoint nextUnit(newint,lastPoint,point);
             if(nextUnit.IsValid()){
@@ -5222,11 +5269,11 @@ void MPoint::Sample(const DateTime& duration,
 
   if(KeepEndPoint || exactPath){
      Get(size-1,unit);
-     if(lastTime < unit->timeInterval.end){ // gap between end of the unit
+     if(lastTime < unit.timeInterval.end){ // gap between end of the unit
                                               // and last sample point
-        Interval<Instant> newint(lastTime,unit->timeInterval.end,
-                                 lc,unit->timeInterval.rc);
-        UPoint nextUnit(newint,lastPoint,unit->p1);
+        Interval<Instant> newint(lastTime,unit.timeInterval.end,
+                                 lc,unit.timeInterval.rc);
+        UPoint nextUnit(newint,lastPoint,unit.p1);
         result.MergeAdd(nextUnit);
      }
   }
@@ -5237,53 +5284,57 @@ void MPoint::Sample(const DateTime& duration,
 
 void MPoint::MVelocity( MPoint& result ) const
 {
-  const UPoint *uPoint;
+  result.Clear();
+  if( !IsDefined() ){
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  UPoint uPoint(false);
   UPoint p(true);
   //  int counter = 0;
-
-  result.Clear();
   result.StartBulkLoad();
-  for( int i = 0; i < GetNoComponents(); i++ )
-        {
-          Get( i, uPoint );
-          /*
-            Definition of a new point unit p. The velocity is constant
-            at all times of the interval of the unit. This is exactly
-            the same as within operator ~speed~. The result is a vector
-            and can be represented as a upoint.
+  for( int i = 0; i < GetNoComponents(); i++ ){
+    Get( i, uPoint );
+/*
+Definition of a new point unit p. The velocity is constant
+at all times of the interval of the unit. This is exactly
+the same as within operator ~speed~. The result is a vector
+and can be represented as a upoint.
 
-          */
+*/
 
-          uPoint->UVelocity( p );
-          if( p.IsDefined() )
-            {
-              result.Add( p );
-              //              counter++;
-            }
-        }
+    uPoint.UVelocity( p );
+    if( p.IsDefined() ){
+      result.Add( p );
+//    counter++;
+    }
+  }
   result.EndBulkLoad( true );
 }
 
 void MPoint::MSpeed( MReal& result ) const
 {
-  const UPoint *uPoint;
+  result.Clear();
+  if( !IsDefined() ){
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+
+  UPoint uPoint(false);
   UReal uReal(true);
   //  int counter = 0;
-
-  result.Clear();
   result.StartBulkLoad();
 
-  for( int i = 0; i < GetNoComponents(); i++ )
-        {
-          Get( i, uPoint );
-
-          uPoint->USpeed( uReal );
-          if( uReal.IsDefined() )
-            {
-              result.Add( uReal ); // append ureal to mreal
+  for( int i = 0; i < GetNoComponents(); i++ ){
+    Get( i, uPoint );
+    uPoint.USpeed( uReal );
+    if( uReal.IsDefined() ){
+      result.Add( uReal ); // append ureal to mreal
               //              counter++;
-            }
-        }
+    }
+  }
   result.EndBulkLoad( true );
 }
 
@@ -5301,31 +5352,31 @@ bool MPoint::Append(const MPoint& p, const bool autoresize /*=true*/){
   int size2 = p.GetNoComponents();
   if(size1>0 && size2>0){
     // check whether p starts after the end of this
-    const UPoint* u1;
-    const UPoint* u2;
+    UPoint u1;
+    UPoint u2;
     this->Get(size1-1,u1);
     p.Get(0,u2);
-    if((u1->timeInterval.end > u2->timeInterval.start) ||
-       ( (u1->timeInterval.end == u2->timeInterval.start) &&
-         (u1->timeInterval.rc  && u2->timeInterval.lc))){
+    if((u1.timeInterval.end > u2.timeInterval.start) ||
+       ( (u1.timeInterval.end == u2.timeInterval.start) &&
+         (u1.timeInterval.rc  && u2.timeInterval.lc))){
       this->Clear();
       this->SetDefined(false);
       return false;
     }
   }
-  const UPoint* up;
+  UPoint up;
   UPoint u;
   if(size2>0){ // process the first unit of p
      if(autoresize){
-        units.Resize(size1+size2);
+        units.resize(size1+size2);
      }
      p.Get(0,up);
-     this->MergeAdd(*up);
+     this->MergeAdd(up);
   }
   StartBulkLoad();
   for(int i=1; i<size2; i++){
      p.Get(i,up);
-     this->Add(*up);
+     this->Add(up);
   }
   EndBulkLoad(false);
   return true;
@@ -5335,12 +5386,13 @@ void MPoint::Disturb(MPoint& result,
                      const double maxDerivation,
                      double maxDerivationPerStep){
 
-   assert(IsOrdered());
    result.Clear();
    if(!IsDefined()){
         result.SetDefined(false);
         return;
    }
+   result.SetDefined( true );
+   assert(IsOrdered());
    int size = GetNoComponents();
    if(size>0){
       result.Resize(size);
@@ -5353,18 +5405,16 @@ void MPoint::Disturb(MPoint& result,
       return;
    }
 
-    double errx = 2*maxDerivation * (double)rand()/(double)RAND_MAX  -
-                  maxDerivation;
-    double erry = 2*maxDerivation * (double)rand()/(double)RAND_MAX  -
-                  maxDerivation;
+  double errx = 2*maxDerivation * (double)rand()/(double)RAND_MAX  -
+                maxDerivation;
+  double erry = 2*maxDerivation * (double)rand()/(double)RAND_MAX  -
+                maxDerivation;
 
-
-
-   const UPoint* unit1;
+   UPoint unit1;
    Point lastPoint;
    for(int i=0;i<size;i++){
       Get(i,unit1);
-      Point p0(true,unit1->p0.GetX()+errx,unit1->p0.GetY()+erry);
+      Point p0(true,unit1.p0.GetX()+errx,unit1.p0.GetY()+erry);
 
       double dx = 2*maxDerivationPerStep * (double)rand()/(double)RAND_MAX  -
                   maxDerivationPerStep;
@@ -5386,46 +5436,47 @@ void MPoint::Disturb(MPoint& result,
         erry = -maxDerivation;
       }
 
-      Point p1(true,unit1->p1.GetX()+errx,unit1->p1.GetY()+erry);
-      UPoint unit(unit1->timeInterval, p0,p1);
+      Point p1(true,unit1.p1.GetX()+errx,unit1.p1.GetY()+erry);
+      UPoint unit(unit1.timeInterval, p0,p1);
       result.MergeAdd(unit);
    }
 }
 
 double MPoint::Length() const{
+  assert( IsDefined() );
   if(!IsDefined()){
     return -1;
   }
   double res = 0;
-  const UPoint* unit;
+  UPoint unit;
   int size = GetNoComponents();
   for(int i=0;i<size;i++){
      Get(i,unit);
-     res += unit->p0.Distance(unit->p1);
+     res += unit.p0.Distance(unit.p1);
   }
   return res;
 }
 
+void MPoint::Vertices(Points& result) const{
+  result.Clear();
+  if(!IsDefined()){
+    result.SetDefined(false);
+    return;
+  }
+  result.SetDefined( true );
 
-   void MPoint::Vertices(Points& result) const{
-     result.Clear();
-     if(!IsDefined()){
-        result.SetDefined(false);
-        return;
-     }
-
-     result.StartBulkLoad();
-     const UPoint* unit;
-     int size = units.Size();
-     for(int i=0;i<size;i++){
-        units.Get(i,unit);
-        Point p0(unit->p0);
-        Point p1(unit->p1);
-        result += p0;
-        result += p1;
-     }
-     result.EndBulkLoad();
-   }
+  result.StartBulkLoad();
+  UPoint unit;
+  int size = units.Size();
+  for(int i=0;i<size;i++){
+    units.Get(i,&unit);
+    Point p0(unit.p0);
+    Point p1(unit.p1);
+    result += p0;
+    result += p1;
+  }
+  result.EndBulkLoad();
+}
 
 void MPoint::gk(MPoint& result) const{
   result.Clear();
@@ -5433,17 +5484,18 @@ void MPoint::gk(MPoint& result) const{
      result.SetDefined(false);
      return;
   }
+  result.SetDefined( true );
 
   result.StartBulkLoad();
-  const UPoint* unit;
+  UPoint unit;
   WGSGK gk;
 
   int size = units.Size();
   for(int i=0;i<size;i++){
-     units.Get(i,unit);
-     UPoint u(*unit);
-     if(!gk.project(unit->p0, u.p0) ||
-        !gk.project(unit->p1, u.p1)){
+     units.Get(i,&unit);
+     UPoint u(unit);
+     if(!gk.project(unit.p0, u.p0) ||
+        !gk.project(unit.p1, u.p1)){
        // error detected
        result.EndBulkLoad();
        result.Clear();
@@ -5455,39 +5507,39 @@ void MPoint::gk(MPoint& result) const{
   }
   result.EndBulkLoad();
 }
+
 /*
 Private helper function for the delay operator
 
 */
 double* MPoint::MergePartitions(double* first, int firstSize, double* second,
-		int secondSize, int& count )
+                                int secondSize, int& count )
 {
-	double* res= new double[firstSize + secondSize ];
-	count=0;
-	int index1=0, index2=0;
-	double candidate,last=-1;
-	while(index1 < firstSize && index2< secondSize)
-	{
-		if (first[index1] < second[index2])
-			candidate= first[index1++];
-		else if(first[index1] > second[index2])
-			candidate= second[index2++];
-		else
-		{
-			candidate= second[index2++];
-			index1++;
-		}
-		if(!AlmostEqual(candidate , last))
-			last= res[count++]= candidate;
-
-	}
-	while(index1< firstSize)
-		if( !AlmostEqual((candidate = first[index1++]) , last))
-			last=res[count++]=candidate;
-	while(index2<secondSize)
-		if( !AlmostEqual((candidate = second[index2++]) , last))
-			last=res[count++]=candidate;
-	return res;
+  double* res= new double[firstSize + secondSize ];
+  count=0;
+  int index1=0, index2=0;
+  double candidate,last=-1;
+  while(index1 < firstSize && index2< secondSize){
+    if (first[index1] < second[index2])
+      candidate= first[index1++];
+    else if(first[index1] > second[index2])
+      candidate= second[index2++];
+    else {
+      candidate= second[index2++];
+      index1++;
+    }
+    if(!AlmostEqual(candidate , last))
+      last= res[count++]= candidate;
+  }
+  while(index1< firstSize){
+    if( !AlmostEqual((candidate = first[index1++]) , last))
+      last=res[count++]=candidate;
+  }
+  while(index2<secondSize){
+    if( !AlmostEqual((candidate = second[index2++]) , last))
+      last=res[count++]=candidate;
+  }
+  return res;
 }
 
 /*
@@ -5496,77 +5548,82 @@ Private helper function for the delay operator
 */
 
 int MPoint::IntervalRelation(Interval<Instant> &int_a_b,
-		Interval<Instant> &int_c_d  ) const
+                             Interval<Instant> &int_c_d  ) const
 {
-	double a= int_a_b.start.ToDouble();
-	double b= int_a_b.end.ToDouble();
-	double c= int_c_d.start.ToDouble();
-	double d= int_c_d.end.ToDouble();
-	assert(a < b && c < d );
+  double a= int_a_b.start.ToDouble();
+  double b= int_a_b.end.ToDouble();
+  double c= int_c_d.start.ToDouble();
+  double d= int_c_d.end.ToDouble();
+  assert(a < b && c < d );
 /*
-The assertion will fail in case of numerical instability (i.e: rounding error)
+  The assertion will fail in case of numerical instability (i.e: rounding error)
 
 */
-	if(b < c)  // a----b----c----d
-		return 1;
-	if(a > d)  // c----d----a----b
-		return 2;
-	if(b == c) // a----bc----d
-		return 3;
-	if(d == a) // c----da----b
-		return 4;
-	if(a < c && c < b && b < d) //a----c----b----d
-		return 5;
-	if(c < a && a < d && d < b) //c----a----d----b
-		return 6;
-	if(a==c && b==d) //ac----bd
-		return 7;
-	if(a==c && b< d) //ac----b----d
-		return 8;
-	if(a==c && d< b) //ac----d----b
-		return 9;
-	if(c< a && b==d) //c----a----bd
-		return 10;
-	if(a <c && b==d) //a----c----bd
-		return 11;
-	if(c <a && b <d) //c----a----b----d
-		return 12;
-	if(a <c && d <b) //a----c----d----b
-		return 13;
-	assert(false); //can not be other value
+  if(b < c)  // a----b----c----d
+    return 1;
+  if(a > d)  // c----d----a----b
+    return 2;
+  if(b == c) // a----bc----d
+    return 3;
+  if(d == a) // c----da----b
+    return 4;
+  if(a < c && c < b && b < d) //a----c----b----d
+    return 5;
+  if(c < a && a < d && d < b) //c----a----d----b
+    return 6;
+  if(a==c && b==d) //ac----bd
+    return 7;
+  if(a==c && b< d) //ac----b----d
+    return 8;
+  if(a==c && d< b) //ac----d----b
+    return 9;
+  if(c< a && b==d) //c----a----bd
+    return 10;
+  if(a <c && b==d) //a----c----bd
+    return 11;
+  if(c <a && b <d) //c----a----b----d
+    return 12;
+  if(a <c && d <b) //a----c----d----b
+    return 13;
+  assert(false); //can not be other value
 }
 
 /*
 Helper function for the delay operator
 
+Only for use with linear units (a==0, r==false)!
+
 */
 int AtValue(const UReal* unit, double val, Instant& inst,
-		Interval<Instant>& intr,bool ignorelimits)
+            Interval<Instant>& intr,bool ignorelimits)
 {
-	if(AlmostEqual(unit->b,0))
-	{
-		if(AlmostEqual(unit->c, val))
-		{
-			intr= unit->timeInterval;
-			return 2; //result is the whole unit interval
-		}
-		else
-		{
-			return 0; //result is outside the unit interval
-		}
-	}
-	inst= unit->timeInterval.start;
-	double fraction=  (val - unit->c)/unit->b;
-	Instant at(durationtype);
-	at.ReadFrom(fraction);
-	inst+= at;
-	if( !ignorelimits && ((inst == unit->timeInterval.start &&
+  assert( unit->IsDefined() );
+  assert( AlmostEqual(unit->a,0) );
+  assert( !unit->r );
+  if(AlmostEqual(unit->b,0))
+  {
+    if(AlmostEqual(unit->c, val))
+    {
+      intr= unit->timeInterval;
+      return 2; //result is the whole unit interval
+    }
+    else
+    {
+      return 0; //result is outside the unit interval
+    }
+  }
+  inst= unit->timeInterval.start;
+  double fraction=  (val - unit->c)/unit->b;
+  Instant at(durationtype);
+  at.ReadFrom(fraction);
+  inst+= at;
+  if( !ignorelimits && ((inst == unit->timeInterval.start &&
        !unit->timeInterval.lc)  || (inst == unit->timeInterval.end &&
-					!unit->timeInterval.rc)))
-		return 0;
-	if(inst < unit->timeInterval.start  || inst > unit->timeInterval.end)
-		return 0; //result is outside the unit interval
-	return 1; // result is a certain time instant within the unit interval
+       !unit->timeInterval.rc)))
+    return 0;
+  if(inst < unit->timeInterval.start  || inst > unit->timeInterval.end)
+    return 0; //result is outside the unit interval
+  return 1; // result is a certain time instant within the unit interval
 }
 /*
 The following macros help make the code of the ~MPoint::DelayOperator~ more
@@ -5581,438 +5638,443 @@ it to the result.
 */
 
 #define _startunit(val , t) \
-	delayValueAtUnitStartTime = val; \
-	delayUnitStartTime = t; \
-	atUnitStart = false; \
-	if(debugme) cout<<"\n\t\tStartUnit ("<<val<<" @ "<< t.Print(cout)<<" )";
+  delayValueAtUnitStartTime = val; \
+  delayUnitStartTime = t; \
+  atUnitStart = false; \
+  if(debugme) cout<<"\n\t\tStartUnit ("<<val<<" @ "<< t.Print(cout)<<" )";
 
 #define _endunit(val, t) \
-	delayValueAtUnitEndTime=val; \
-	delayUnitEndTime=t; \
-	atUnitStart = true; \
-	if(debugme) cout<<"\n\t\tEndUnit ("<<val<<" @ "<< t.Print(cout)<<" )";
+  delayValueAtUnitEndTime=val; \
+  delayUnitEndTime=t; \
+  atUnitStart = true; \
+  if(debugme) cout<<"\n\t\tEndUnit ("<<val<<" @ "<< t.Print(cout)<<" )";
 
 #define _createunitpar(val1, t1, val2, t2) \
-	intr.start=t1; intr.end=t2; \
-	runit= new UReal(intr, val1 * 86400, val2 * 86400); \
-	delayRes->Add(*runit); \
-	delete runit; \
-	if(debugme) cout<<"\n\t\tCreateUnit" ;
+  intr.start=t1; intr.end=t2; \
+  runit= new UReal(intr, val1 * 86400, val2 * 86400); \
+  delayRes->Add(*runit); \
+  delete runit; \
+  if(debugme) cout<<"\n\t\tCreateUnit" ;
 
 #define _createunit \
-	intr.start= delayUnitStartTime; intr.end=delayUnitEndTime; \
-	runit= new UReal(intr, delayValueAtUnitStartTime * 86400, \
-			delayValueAtUnitEndTime * 86400); \
-	delayRes->Add(*runit); \
-	if(debugme) cout<<"\n\t\tCreateIntermediateUnit (" \
-			<< runit->Print(cout)<<" )"; \
-	delete runit;
+  intr.start= delayUnitStartTime; intr.end=delayUnitEndTime; \
+  runit= new UReal(intr, delayValueAtUnitStartTime * 86400, \
+      delayValueAtUnitEndTime * 86400); \
+  delayRes->Add(*runit); \
+  if(debugme) cout<<"\n\t\tCreateIntermediateUnit (" \
+      << runit->Print(cout)<<" )"; \
+  delete runit;
 
 MReal* MPoint::DelayOperator(const MPoint* actual)
 {
-	bool debugme=false;
-	if(this->GetNoComponents()<1 || actual->GetNoComponents()<1)
-		return new MReal(0);
-	if( !this->IsDefined() || !actual->IsDefined())
-      { MReal* res= new MReal(0);  res->SetDefined(false); return res;}
+  bool debugme=false;
+  if( !this->IsDefined() || !actual->IsDefined())
+    { MReal* res= new MReal(0);  res->SetDefined(false); return res;}
+  if(this->GetNoComponents()<1 || actual->GetNoComponents()<1)
+    return new MReal(0);
 
-	double* partitionActual=new double[actual->GetNoComponents()+1];
-	double* partitionSchedule=new double[this->GetNoComponents()+1];
-	MReal* DTActual= actual->DistanceTraversed(partitionActual);
-	MReal* DTSchedule= this->DistanceTraversed(partitionSchedule);
-	if(!DTActual->IsDefined() || !DTSchedule->IsDefined())
-      { MReal* res= new MReal(0);  res->SetDefined(false); return res;}
+  double* partitionActual=new double[actual->GetNoComponents()+1];
+  double* partitionSchedule=new double[this->GetNoComponents()+1];
+  MReal* DTActual= actual->DistanceTraversed(partitionActual);
+  MReal* DTSchedule= this->DistanceTraversed(partitionSchedule);
+  if(!DTActual->IsDefined() || !DTSchedule->IsDefined())
+  { MReal* res= new MReal(0);  res->SetDefined(false); return res;}
 
-	int DTActualSize= DTActual->GetNoComponents();
-	int DTScheduleSize= DTSchedule->GetNoComponents();
-	int partitionSize;
-	double* partition=
+  int DTActualSize= DTActual->GetNoComponents();
+  int DTScheduleSize= DTSchedule->GetNoComponents();
+  int partitionSize;
+  double* partition=
         MergePartitions(partitionActual,DTActualSize+1,partitionSchedule,
-				DTScheduleSize+1,partitionSize);
+                        DTScheduleSize+1,partitionSize);
 
-	if(debugme)
-	{
-		cout.flush();
-		cout<<"\n ActualPartition: ";
-		for(int i=0; i<= DTActualSize; i++)
-			cout<<partitionActual[i]<<"  ";
-		cout<<"\n SchedulePartition: ";
-		for(int i=0; i<= DTScheduleSize; i++)
-			cout<<partitionSchedule[i]<<"  ";
-		cout<<"\n MergedPartition: ";
-		for(int i=0; i< partitionSize; i++)
-			cout<<partition[i]<<"  ";
-		cout.flush();
-	}
+  if(debugme)
+  {
+    cout.flush();
+    cout<<"\n ActualPartition: ";
+    for(int i=0; i<= DTActualSize; i++)
+      cout<<partitionActual[i]<<"  ";
+    cout<<"\n SchedulePartition: ";
+    for(int i=0; i<= DTScheduleSize; i++)
+      cout<<partitionSchedule[i]<<"  ";
+    cout<<"\n MergedPartition: ";
+    for(int i=0; i< partitionSize; i++)
+      cout<<partition[i]<<"  ";
+    cout.flush();
+  }
 
-	const UReal* actualScanUnit, *scheduleScanUnit;
-	UReal* runit;
-	int actualScanIndex=0, scheduleScanIndex=0;
-	DTActual->Get(actualScanIndex, actualScanUnit);
-	DTSchedule->Get(scheduleScanIndex,scheduleScanUnit);
+  UReal actualScanUnit, scheduleScanUnit;
+  UReal* runit;
+  int actualScanIndex=0, scheduleScanIndex=0;
+  DTActual->Get(actualScanIndex, actualScanUnit);
+  DTSchedule->Get(scheduleScanIndex,scheduleScanUnit);
 
-	MReal* delayRes= new MReal(partitionSize);
-	Intime<CcReal> temp;
-	DTActual->Initial(temp);
-	Instant delayUnitStartTime(temp.instant);
-	Instant delayUnitEndTime(instanttype);
-	Instant scheduledTime(instanttype),actualTime(instanttype);
-	Interval<Instant> scheduledInterval, actualInterval, intr;
-	double delayValueAtUnitStartTime, delayValueAtUnitEndTime;
-	bool atUnitStart=true, isInstantActual=true, isInstantSchedule=true;
-	double distVal;
-	int test;
-	intr.lc=true;
-	intr.rc=false;
-	for(int i=0; i<partitionSize; i++)
-	{
-		distVal=partition[i];
+  MReal* delayRes= new MReal(partitionSize);
+  Intime<CcReal> temp;
+  DTActual->Initial(temp);
+  Instant delayUnitStartTime(temp.instant);
+  Instant delayUnitEndTime(instanttype);
+  Instant scheduledTime(instanttype),actualTime(instanttype);
+  Interval<Instant> scheduledInterval, actualInterval, intr;
+  double delayValueAtUnitStartTime = 0.0, delayValueAtUnitEndTime = 0.0;
+  bool atUnitStart=true, isInstantActual=true, isInstantSchedule=true;
+  double distVal = 0.0;
+  int test = 0;
+  intr.lc=true;
+  intr.rc=false;
+  for(int i=0; i<partitionSize; i++)
+  {
+    distVal=partition[i];
 /*
 The coming steps assumes that DistanceTraversed return an
 MReal satisfying the minimal presentation condition
 
 */
-		if(scheduleScanIndex < DTScheduleSize -1)
-          test = AtValue(scheduleScanUnit, distVal, scheduledTime,
-					scheduledInterval,false);
-		else
-          test = AtValue(scheduleScanUnit, distVal, scheduledTime,
-					scheduledInterval,true);
-		while( test==0 )
-		{
-			scheduleScanIndex++;
-            assert(scheduleScanIndex < DTSchedule->GetNoComponents());
-			DTSchedule->Get(scheduleScanIndex,scheduleScanUnit);
-			if(scheduleScanIndex < DTScheduleSize -1)
-              test = AtValue(scheduleScanUnit, distVal, scheduledTime,
-						scheduledInterval,false);
-			else
-              test = AtValue(scheduleScanUnit, distVal, scheduledTime,
-						scheduledInterval,true);
+    if(scheduleScanIndex < DTScheduleSize -1)
+      test = AtValue(&scheduleScanUnit, distVal, scheduledTime,
+                      scheduledInterval,false);
+    else
+      test = AtValue(&scheduleScanUnit, distVal, scheduledTime,
+                      scheduledInterval,true);
+    while( test==0 )
+    {
+      scheduleScanIndex++;
+      assert(scheduleScanIndex < DTSchedule->GetNoComponents());
+      DTSchedule->Get(scheduleScanIndex,scheduleScanUnit);
+      if(scheduleScanIndex < DTScheduleSize -1)
+        test = AtValue(&scheduleScanUnit, distVal, scheduledTime,
+                        scheduledInterval,false);
+      else
+        test = AtValue(&scheduleScanUnit, distVal, scheduledTime,
+                        scheduledInterval,true);
 
-		}
-		isInstantSchedule = (test==1)? true : false;
-		if(actualScanIndex < DTActualSize -1)
-			test = AtValue(actualScanUnit, distVal, actualTime,
-					actualInterval,false);
-		else
-			test = AtValue(actualScanUnit, distVal, actualTime,
-					actualInterval,true);
-		while( test==0 )
-		{
-			actualScanIndex++;
-			assert(actualScanIndex < DTActual->GetNoComponents());
-			DTActual->Get(actualScanIndex,actualScanUnit);
-			if(actualScanIndex < DTActualSize -1)
-               test = AtValue(actualScanUnit, distVal, actualTime,
-						actualInterval,false);
-			else
-               test = AtValue(actualScanUnit, distVal, actualTime,
-						actualInterval,true);
+    }
+    isInstantSchedule = (test==1)? true : false;
+    if(actualScanIndex < DTActualSize -1)
+      test = AtValue(&actualScanUnit, distVal, actualTime,
+                      actualInterval,false);
+    else
+      test = AtValue(&actualScanUnit, distVal, actualTime,
+                      actualInterval,true);
+    while( test==0 )
+    {
+      actualScanIndex++;
+      assert(actualScanIndex < DTActual->GetNoComponents());
+      DTActual->Get(actualScanIndex,actualScanUnit);
+      if(actualScanIndex < DTActualSize -1)
+        test = AtValue(&actualScanUnit, distVal, actualTime,
+                        actualInterval,false);
+      else
+        test = AtValue(&actualScanUnit, distVal, actualTime,
+                        actualInterval,true);
 
-		}
-		isInstantActual = (test==1)? true : false;
+    }
+    isInstantActual = (test==1)? true : false;
 
-		if(debugme)
-		{
-			cout<<endl;
-            cout<<"At iteration: "<<i<<" traversed distance: "<< distVal;
-			cout<<"\n\tActual traversed this distance at: ";
-			if(isInstantActual) actualTime.Print(cout);
-			else actualInterval.Print(cout);
-			cout<<"\n\tSchedule traversed this distance at: ";
-			if(isInstantSchedule) scheduledTime.Print(cout);
-			else scheduledInterval.Print(cout);
-			cout<<endl<<"\tActions taken:";
-		}
+    if(debugme)
+    {
+      cout<<endl;
+      cout<<"At iteration: "<<i<<" traversed distance: "<< distVal;
+      cout<<"\n\tActual traversed this distance at: ";
+      if(isInstantActual) actualTime.Print(cout);
+      else actualInterval.Print(cout);
+      cout<<"\n\tSchedule traversed this distance at: ";
+      if(isInstantSchedule) scheduledTime.Print(cout);
+      else scheduledInterval.Print(cout);
+      cout<<endl<<"\tActions taken:";
+    }
 
-		if(isInstantActual && isInstantSchedule)
-		{
-			if(atUnitStart)
-			{
-               _startunit( (actualTime - scheduledTime).ToDouble(),
-						actualTime );
-			}
-			else
-			{
-               _endunit( (actualTime - scheduledTime).ToDouble(), actualTime );
-				_createunit;
-               _startunit(delayValueAtUnitEndTime, delayUnitEndTime);
-			}
-		}
-		else if (isInstantActual && !isInstantSchedule)
-		{
-			if(atUnitStart)
+    if(isInstantActual && isInstantSchedule)
+    {
+      if(atUnitStart)
+      {
+        _startunit( (actualTime - scheduledTime).ToDouble(),
+                     actualTime );
+      }
+      else
+      {
+        _endunit( (actualTime - scheduledTime).ToDouble(), actualTime );
+        _createunit;
+        _startunit(delayValueAtUnitEndTime, delayUnitEndTime);
+      }
+    }
+    else if (isInstantActual && !isInstantSchedule)
+    {
+      if(atUnitStart)
 /*
 Can happen only if the schedule started with immobile units (distVal==0)
 
 */
-			{
-				assert(distVal==0);
-                _startunit( (actualTime - scheduledInterval.end).ToDouble() ,
-						actualTime);
-			}
-			else
-			{
-               _endunit((actualTime - scheduledInterval.start).ToDouble() ,
-						actualTime);
-				_createunit;
-               _startunit( (actualTime - scheduledInterval.end).ToDouble() ,
-						actualTime);
-			}
-		}
-		else if (!isInstantActual && isInstantSchedule)
-		{
-			if(atUnitStart)
+      {
+        assert(distVal==0);
+        _startunit( (actualTime - scheduledInterval.end).ToDouble() ,
+                     actualTime);
+      }
+      else
+      {
+        _endunit((actualTime - scheduledInterval.start).ToDouble() ,
+                  actualTime);
+        _createunit;
+        _startunit( (actualTime - scheduledInterval.end).ToDouble() ,
+                     actualTime);
+      }
+    }
+    else if (!isInstantActual && isInstantSchedule)
+    {
+      if(atUnitStart)
 /*
 Can happen only if the actual started with immobile units
 
 */
-			{
-				assert(distVal==0);
+      {
+        assert(distVal==0);
                 //add a delay unit corresponding to the immobile unit
-				_createunitpar(
-                        (actualInterval.start - scheduledTime).ToDouble(),
-						actualInterval.start,
-                        (actualInterval.end - scheduledTime).ToDouble(),
-						actualInterval.end);
-				//start the next unit
-                _startunit((actualInterval.end - scheduledTime).ToDouble(),
-						actualInterval.end);
-			}
-			else
-			{
-				//close the current unit
-                _endunit((actualInterval.start - scheduledTime).ToDouble(),
-						actualInterval.start);
-				_createunit;
+        _createunitpar(
+            (actualInterval.start - scheduledTime).ToDouble(),
+        actualInterval.start,
+        (actualInterval.end - scheduledTime).ToDouble(),
+        actualInterval.end);
+        //start the next unit
+        _startunit((actualInterval.end - scheduledTime).ToDouble(),
+                    actualInterval.end);
+      }
+      else
+      {
+        //close the current unit
+        _endunit((actualInterval.start - scheduledTime).ToDouble(),
+                  actualInterval.start);
+        _createunit;
                 //add a delay unit corresponding to the immobile unit
-				_createunitpar(
-                        (actualInterval.start - scheduledTime).ToDouble(),
-						actualInterval.start,
-                        (actualInterval.end - scheduledTime).ToDouble(),
-						actualInterval.end);
-				//start the next unit
-                _startunit((actualInterval.end - scheduledTime).ToDouble(),
-						actualInterval.end);
-			}
-		}
-		else if(!isInstantActual && !isInstantSchedule)
-		{
-			int intervalRelation= IntervalRelation(actualInterval,
-					scheduledInterval);
-			Instant a(actualInterval.start), b(actualInterval.end);
-            Instant c(scheduledInterval.start), d(scheduledInterval.end);
-			switch(intervalRelation)
-			{
-			case 1:
-			case 3:
-			{
-                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
-                _createunitpar((a-c).ToDouble(),a,(b-c).ToDouble(),b);
-				_startunit((b-d).ToDouble(),b);
-				break;
-			}
-			case 2:
-			case 4:
-			{
-                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
-                _createunitpar((a-d).ToDouble(),a,(b-d).ToDouble(),b);
-				_startunit((b-d).ToDouble(),b);
-				break;
-			}
-			case 5:
-			{
-                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
-                _createunitpar((a-c).ToDouble(), a, 0, c);
-				_createunitpar(0, c, 0, b);
-				_startunit((b-d).ToDouble(),b);
-				break;
-			}
-			case 6:
-			{
-                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
-				_createunitpar(0, a, 0, d);
-                _createunitpar(0, d, (b-d).ToDouble(), b);
-				_startunit((b-d).ToDouble(),b);
-				break;
-			}
-			case 7:
-			{
-                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
-                _createunitpar((a-c).ToDouble(),a,(b-d).ToDouble(),b);
-				_startunit((b-d).ToDouble(),b);
-				break;
-			}
-			case 8:
-			{
-                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
-                _createunitpar((a-c).ToDouble(), a, 0, b);
-				_startunit((b-d).ToDouble(),b);
-				break;
-			}
-			case 9:
-			{
-                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
-                _createunitpar((a-c).ToDouble(), a, 0, d);
-				_createunitpar(0, d, (b-d).ToDouble(), b);
-				_startunit((b-d).ToDouble(),b);
-				break;
-			}
-			case 10:
-			{
-                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
-				_createunitpar(0, a, (b-d).ToDouble(),b);
-				_startunit((b-d).ToDouble(),b);
-				break;
-			}
-			case 11:
-			{
-                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
-				_createunitpar((a-c).ToDouble(), a, 0, c);
-				_createunitpar(0, c, (b-d).ToDouble(), b);
-				_startunit((b-d).ToDouble(),b);
-				break;
-			}
-			case 12:
-			{
-                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
-				_createunitpar(0, a, 0 ,b);
-				_startunit((b-d).ToDouble(),b);
-				break;
-			}
-			case 13:
-			{
-                if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
-				_createunitpar((a-c).ToDouble(), a, 0, c);
-				_createunitpar(0, c, 0, d);
-				_createunitpar(0, d, (b-d).ToDouble(), b);
-				_startunit((b-d).ToDouble(),b);
-				break;
-			}
-			default:
-				assert(false);
-			}
-		}
-
-	}
-	delete[] partitionActual;
-	delete[] partitionSchedule;
-	delete DTActual;
-	delete DTSchedule;
-	delete[] partition;
-  	return delayRes;
+        _createunitpar(
+            (actualInterval.start - scheduledTime).ToDouble(),
+        actualInterval.start,
+        (actualInterval.end - scheduledTime).ToDouble(),
+        actualInterval.end);
+        //start the next unit
+        _startunit((actualInterval.end - scheduledTime).ToDouble(),
+                    actualInterval.end);
+      }
+    }
+    else if(!isInstantActual && !isInstantSchedule)
+    {
+      int intervalRelation= IntervalRelation(actualInterval,
+                                             scheduledInterval);
+      Instant a(actualInterval.start), b(actualInterval.end);
+      Instant c(scheduledInterval.start), d(scheduledInterval.end);
+      switch(intervalRelation)
+      {
+        case 1:
+        case 3:
+        {
+          if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+          _createunitpar((a-c).ToDouble(),a,(b-c).ToDouble(),b);
+          _startunit((b-d).ToDouble(),b);
+          break;
+        }
+        case 2:
+        case 4:
+        {
+          if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+          _createunitpar((a-d).ToDouble(),a,(b-d).ToDouble(),b);
+          _startunit((b-d).ToDouble(),b);
+          break;
+        }
+        case 5:
+        {
+          if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+          _createunitpar((a-c).ToDouble(), a, 0, c);
+          _createunitpar(0, c, 0, b);
+          _startunit((b-d).ToDouble(),b);
+          break;
+        }
+        case 6:
+        {
+          if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+          _createunitpar(0, a, 0, d);
+          _createunitpar(0, d, (b-d).ToDouble(), b);
+          _startunit((b-d).ToDouble(),b);
+          break;
+        }
+        case 7:
+        {
+          if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+          _createunitpar((a-c).ToDouble(),a,(b-d).ToDouble(),b);
+          _startunit((b-d).ToDouble(),b);
+          break;
+        }
+        case 8:
+        {
+          if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+          _createunitpar((a-c).ToDouble(), a, 0, b);
+          _startunit((b-d).ToDouble(),b);
+          break;
+        }
+        case 9:
+        {
+          if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+          _createunitpar((a-c).ToDouble(), a, 0, d);
+          _createunitpar(0, d, (b-d).ToDouble(), b);
+          _startunit((b-d).ToDouble(),b);
+          break;
+        }
+        case 10:
+        {
+          if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+          _createunitpar(0, a, (b-d).ToDouble(),b);
+          _startunit((b-d).ToDouble(),b);
+          break;
+        }
+        case 11:
+        {
+          if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+          _createunitpar((a-c).ToDouble(), a, 0, c);
+          _createunitpar(0, c, (b-d).ToDouble(), b);
+          _startunit((b-d).ToDouble(),b);
+          break;
+        }
+        case 12:
+        {
+          if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+          _createunitpar(0, a, 0 ,b);
+          _startunit((b-d).ToDouble(),b);
+          break;
+        }
+        case 13:
+        {
+          if(!atUnitStart) {_endunit((a-c).ToDouble() ,a); _createunit;}
+          _createunitpar((a-c).ToDouble(), a, 0, c);
+          _createunitpar(0, c, 0, d);
+          _createunitpar(0, d, (b-d).ToDouble(), b);
+          _startunit((b-d).ToDouble(),b);
+          break;
+        }
+        default:
+          assert(false);
+      }
+    }
+  }
+  delete[] partitionActual;
+  delete[] partitionSchedule;
+  delete DTActual;
+  delete DTSchedule;
+  delete[] partition;
+  return delayRes;
 }
+
 MReal* MPoint::DistanceTraversed( ) const
 {
-	double * p= new double[GetNoComponents()+1];
-	MReal* res= DistanceTraversed(p);
-	delete[] p;
-	return res;
+  if( !IsDefined() ) {
+    MReal* res = new MReal(0);
+    res->SetDefined( false );
+    return res;
+  }
+  double * p= new double[GetNoComponents()+1];
+  MReal* res= DistanceTraversed(p);
+  delete[] p;
+  return res;
 }
 
 MReal* MPoint::DistanceTraversed(double* partition ) const
 {
-	bool debugme= false;
-	const UPoint *uPoint;
-	Point last;
-	MReal* dist= new MReal(GetNoComponents());
-	double dist1=0, dist2=0, unitstart=0, unitend=0,lastslope=0,curslope=0;
-	Interval<Instant> interval;
-	UReal* unit=0;
-	int partitionIndex=0;
+  bool debugme= false;
+  UPoint uPoint;
+  Point last;
+  MReal* dist= new MReal(GetNoComponents());
+  double dist1=0, dist2=0, unitstart=0, unitend=0,lastslope=0,curslope=0;
+  Interval<Instant> interval;
+  UReal* unit=0;
+  int partitionIndex=0;
 
 /*
 The movement must be continuous in time (i.e. without intervals of undefined),
 otherwise, the result is undefined
 
 */
-	Periods defTime( 0 );
-	DefTime( defTime );
-	if(defTime.GetNoComponents()>1 )
-	{
-		MReal* notdef= new MReal(0);
-		notdef->SetDefined(false);
-		return notdef;
-	}
+  Periods defTime( 0 );
+  DefTime( defTime );
+  if(defTime.GetNoComponents()>1 )
+  {
+    MReal* notdef= new MReal(0);
+    notdef->SetDefined(false);
+    return notdef;
+  }
 
-	try
-	{
-		Get( 0, uPoint );
-		dist1=0;
-		dist2= uPoint->p0.Distance(uPoint->p1);
-		last= uPoint->p1;
-		lastslope= (dist2-dist1)/((uPoint->timeInterval.end -
-				uPoint->timeInterval.start).ToDouble()* 8640);
-		unitstart = dist1;
-		unitend= dist2;
-		interval=uPoint->timeInterval;
+  try
+  {
+    Get( 0, uPoint );
+    dist1=0;
+    dist2= uPoint.p0.Distance(uPoint.p1);
+    last= uPoint.p1;
+    lastslope= (dist2-dist1)/((uPoint.timeInterval.end -
+        uPoint.timeInterval.start).ToDouble()* 8640);
+    unitstart = dist1;
+    unitend= dist2;
+    interval=uPoint.timeInterval;
 
-		for( int i = 1; i < GetNoComponents(); i++ )
-		{
-			Get( i, uPoint );
-			if(last != uPoint->p0)
-				throw(1); // The trajectory is not continuous
-			dist1= dist2;
-			dist2= dist1 + uPoint->p0.Distance(uPoint->p1);
-			last= uPoint->p1;
+    for( int i = 1; i < GetNoComponents(); i++ )
+    {
+      Get( i, uPoint );
+      if(last != uPoint.p0)
+        throw(1); // The trajectory is not continuous
+      dist1= dist2;
+      dist2= dist1 + uPoint.p0.Distance(uPoint.p1);
+      last= uPoint.p1;
 
 
-			//Assure minimal representation
-			curslope= (dist2-dist1)/((uPoint->timeInterval.end -
-                uPoint->timeInterval.start).ToDouble()* 8640);
-			if(debugme)
-			{
-				cout.flush();
-                cout<<"\nlastSlope: " <<lastslope << "    curSlope:"<<curslope;
-				cout.flush();
-			}
-			if(curslope != lastslope)
-			{
-				unit = new UReal(interval, unitstart, unitend);
-				if(debugme)
-				{
-					cout.flush();
-					cout<<"\nAdding new UReal";
-//					cout<<"\n\tAt time "<<
+      //Assure minimal representation
+      curslope= (dist2-dist1)/((uPoint.timeInterval.end -
+          uPoint.timeInterval.start).ToDouble()* 8640);
+      if(debugme)
+      {
+        cout.flush();
+        cout<<"\nlastSlope: " <<lastslope << "    curSlope:"<<curslope;
+        cout.flush();
+      }
+      if(curslope != lastslope)
+      {
+        unit = new UReal(interval, unitstart, unitend);
+        if(debugme)
+        {
+          cout.flush();
+          cout<<"\nAdding new UReal";
+//          cout<<"\n\tAt time "<<
 //                    unit->timeInterval.start.GetAllMilliSeconds();
 //                  cout<<" the distance traversed is "<< unit->Min(dummy);
-//					cout<<"\n\tAt time "<<
+//          cout<<"\n\tAt time "<<
 //                    unit->timeInterval.end.GetAllMilliSeconds();
 //                  cout<<" the distance traversed is "<< unit->Max(dummy);
-					cout.flush();
-				}
-				dist->Add(*unit);
-				delete unit;
-				partition[partitionIndex]= unitstart;
-				partitionIndex++;
-				unitstart = dist1;
-				unitend= dist2;
-				interval=uPoint->timeInterval;
-				lastslope= curslope;
-			}
-			else
-			{
-				interval.end= uPoint->timeInterval.end;
-				unitend= dist2;
-			}
-		}
-		unit = new UReal(interval, unitstart, unitend);
-		dist->Add(*unit);
-		delete unit;
+          cout.flush();
+        }
+        dist->Add(*unit);
+        delete unit;
+        partition[partitionIndex]= unitstart;
+        partitionIndex++;
+        unitstart = dist1;
+        unitend= dist2;
+        interval=uPoint.timeInterval;
+        lastslope= curslope;
+      }
+      else
+      {
+        interval.end= uPoint.timeInterval.end;
+        unitend= dist2;
+      }
+    }
+    unit = new UReal(interval, unitstart, unitend);
+    dist->Add(*unit);
+    delete unit;
 
-		partition[partitionIndex]= unitstart;
-		partitionIndex++;
-		partition[partitionIndex]= unitend;
-		dist->TrimToSize();
-		return dist;
-	}
-	catch(int i)
-	{
-		dist->TrimToSize();
-		dist->SetDefined(false);
-		return dist;
-	}
+    partition[partitionIndex]= unitstart;
+    partitionIndex++;
+    partition[partitionIndex]= unitend;
+    dist->TrimToSize();
+    return dist;
+  }
+  catch(int i)
+  {
+    dist->TrimToSize();
+    dist->SetDefined(false);
+    return dist;
+  }
 }
 /*
 4 Type Constructors
@@ -6719,9 +6781,9 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
       Instant *start = (Instant *)InInstant( nl->TheEmptyList(),
        nl->First( first ),
         errorPos, errorInfo, correct ).addr;
-      if( !correct )
+      if( !correct || !start->IsDefined() )
       {
-        errmsg = "InUReal(): Error in first instant.";
+        errmsg = "InUReal(): Error in first instant (Must be defined!).";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         return SetWord( Address(0) );
@@ -6730,9 +6792,9 @@ Word InUReal( const ListExpr typeInfo, const ListExpr instance,
       Instant *end = (Instant *)InInstant( nl->TheEmptyList(),
        nl->Second( first ),
                                            errorPos, errorInfo, correct ).addr;
-      if( !correct )
+      if( !correct || !end->IsDefined() )
       {
-        errmsg = "InUReal(): Error in second instant.";
+        errmsg = "InUReal(): Error in second instant (Must be defined!).";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         delete end;
@@ -6972,9 +7034,9 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
        nl->First( first ),
         errorPos, errorInfo, correct ).addr;
 
-      if( !correct )
+      if( !correct || !start->IsDefined() )
       {
-        errmsg = "InUPoint(): Error in first instant.";
+        errmsg = "InUPoint(): Error in first instant (Must be defined!).";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         return SetWord( Address(0) );
@@ -6984,9 +7046,9 @@ Word InUPoint( const ListExpr typeInfo, const ListExpr instance,
        nl->Second( first ),
                                            errorPos, errorInfo, correct ).addr;
 
-      if( !correct )
+      if( !correct  || !end->IsDefined() )
       {
-        errmsg = "InUPoint(): Error in second instant.";
+        errmsg = "InUPoint(): Error in second instant (Must be defined!).";
         errorInfo = nl->Append(errorInfo, nl->StringAtom(errmsg));
         delete start;
         delete end;
@@ -8900,7 +8962,7 @@ ListExpr SampleMPointTypeMap(ListExpr args){
 /*
 ~GPSTypeMap~
 
-The GPS operatzor works very similar to the SampleMPoint operator.
+The GPS operator works very similar to the SampleMPoint operator.
 The main differnce is the type of the result. The GPS operator
 produces a stream of tuples consisting of the attributes Time
 of type instant and Position of the point. Thus the gps operator can be
@@ -9900,10 +9962,7 @@ int InstantIsEmpty( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( !((Instant*)args[0].addr)->IsDefined() )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  ((CcBool*)result.addr)->Set( true, !((Instant*)args[0].addr)->IsDefined() );
   return 0;
 }
 
@@ -9912,10 +9971,7 @@ int RangeIsEmpty( Word* args, Word& result, int message, Word&
                   local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((Range*)args[0].addr)->IsEmpty() )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  ((CcBool*)result.addr)->Set( true, ((Range*)args[0].addr)->IsEmpty() );
   return 0;
 }
 
@@ -9924,10 +9980,8 @@ int IntimeIsEmpty( Word* args, Word& result, int message, Word&
                    local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((Intime<ValueType> *)args[0].addr)->IsDefined() )
-    ((CcBool*)result.addr)->Set( true, false );
-  else
-    ((CcBool *)result.addr)->Set( true, true );
+  ((CcBool*)result.addr)->
+      Set( true, !((Intime<ValueType> *)args[0].addr)->IsDefined() );
   return 0;
 }
 
@@ -9956,40 +10010,34 @@ int IntimeComparePredicates( Word* args, Word& result, int message, Word&
   Intime<ValueType>* arg0 = (Intime<ValueType> *)args[0].addr;
   Intime<ValueType>* arg1 = (Intime<ValueType> *)args[1].addr;
   bool boolres = false;
-  int comparevalue = arg0->Compare((Attribute*) arg1);
-  switch (OPType)
-  {
-    case 0: // is_equal
-      boolres = (comparevalue == 0);
+  if( arg0->IsDefined() && arg1->IsDefined() ){
+    int comparevalue = arg0->Compare((Attribute*) arg1);
+    switch (OPType){
+      case 0: // is_equal
+        boolres = (comparevalue == 0);
+        break;
+      case 1: // is_not_equal
+        boolres = (comparevalue != 0);
+        break;
+      case 2: // less_than
+        boolres = (comparevalue > 0);
+        break;
+      case 3: // bigger_than
+        boolres = (comparevalue < 0);
+        break;
+      case 4: // less_or_equal
+        boolres = (comparevalue >= 0);
       break;
-
-    case 1: // is_not_equal
-      boolres = (comparevalue != 0);
-      break;
-
-    case 2: // less_than
-      boolres = (comparevalue > 0);
-      break;
-
-    case 3: // bigger_than
-      boolres = (comparevalue < 0);
-      break;
-
-    case 4: // less_or_equal
-      boolres = (comparevalue >= 0);
-    break;
-
-    case 5: // bigger_or_equal
-      boolres = (comparevalue <= 0);
-      break;
-
-    default:
-      assert( false );
+      case 5: // bigger_or_equal
+        boolres = (comparevalue <= 0);
+        break;
+      default:
+        assert( false );
+    }
+    ((CcBool*)result.addr)->Set( true, boolres );
+  } else {
+    ((CcBool *)result.addr)->Set( false, false );
   }
-  if( boolres )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
   return 0;
 }
 
@@ -10005,23 +10053,25 @@ InstantEqual( Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage( s );
   Instant* I1 = (Instant*) args[0].addr;
   Instant* I2 = (Instant*) args[1].addr;
-  if(I1->IsDefined() && I2->IsDefined()){
-      ((CcBool *)result.addr)->Set( true, (I1->CompareTo(I2)==0)) ;
+  if( !I1->IsDefined() || !I2->IsDefined() ){
+    ((CcBool *)result.addr)->Set( false, false ) ;
   } else {
-      ((CcBool *)result.addr)->Set( false,false) ;
+    ((CcBool *)result.addr)->Set( true, (I1->CompareTo(I2)==0));
   }
   return 0;
 }
 
 template <class Range>
-int RangeEqual( Word* args, Word& result, int message, Word&
- local, Supplier s )
+int RangeEqual( Word* args, Word& result, int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( *((Range*)args[0].addr) == *((Range*)args[1].addr) )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  if(    ((Range*)(args[0].addr))->IsDefined()
+      && ((Range*)(args[1].addr))->IsDefined() ){
+    ((CcBool*)result.addr)->
+        Set( true, *((Range*)args[0].addr) == *((Range*)args[1].addr) );
+  } else {
+    ((CcBool*)result.addr)->Set( false, false );
+  }
   return 0;
 }
 
@@ -10037,10 +10087,10 @@ InstantNotEqual( Word* args, Word& result, int message, Word&
   result = qp->ResultStorage( s );
   Instant* I1 = (Instant*) args[0].addr;
   Instant* I2 = (Instant*) args[1].addr;
-  if(I1->IsDefined() && I2->IsDefined()){
-      ((CcBool *)result.addr)->Set( true, (I1->CompareTo(I2)!=0)) ;
+  if( I1->IsDefined() && I2->IsDefined() ){
+    ((CcBool *)result.addr)->Set( true, (I1->CompareTo(I2)!=0)) ;
   } else {
-      ((CcBool *)result.addr)->Set( false,false) ;
+    ((CcBool *)result.addr)->Set( false, false) ;
   }
   return 0;
 }
@@ -10050,10 +10100,13 @@ int RangeNotEqual( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( *((Range*)args[0].addr) != *((Range*)args[1].addr) )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  if(      ((Range*)args[0].addr)->IsDefined()
+        && ((Range*)args[1].addr)->IsDefined() ) {
+    ((CcBool*)result.addr)->
+        Set( true, *((Range*)args[0].addr) != *((Range*)args[1].addr) );
+  } else {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
   return 0;
 }
 
@@ -10142,10 +10195,13 @@ int RangeIntersects( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((Range*)args[0].addr)->Intersects( *((Range*)args[1].addr) ) )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  if(    ((Range*)args[0].addr)->IsDefined()
+      && ((Range*)args[1].addr)->IsDefined() ) {
+    ((CcBool*)result.addr)->
+        Set(true,((Range*)args[0].addr)->Intersects(*((Range*)args[1].addr)));
+  } else {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
   return 0;
 }
 
@@ -10158,10 +10214,13 @@ int RangeInside_rr( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((Range*)args[0].addr)->Inside( *((Range*)args[1].addr) ) )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  if(    ((Range*)args[0].addr)->IsDefined()
+      && ((Range*)args[1].addr)->IsDefined() ) {
+    ((CcBool*)result.addr)->
+      Set( true, ((Range*)args[0].addr)->Inside( *((Range*)args[1].addr) ) );
+  } else {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
   return 0;
 }
 
@@ -10173,18 +10232,12 @@ int RangeInside_ar( Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage( s );
 
   if ( ((Alpha*)args[0].addr)->IsDefined() &&
-       ((Range*)args[1].addr)->IsDefined() )
-  {
-
-    if( ((Range*)args[1].addr)->Contains( *((Alpha*)args[0].addr) ) )
-      ((CcBool*)result.addr)->Set( true, true );
-    else
-      ((CcBool *)result.addr)->Set( true, false );
-  }
-
-  else
+       ((Range*)args[1].addr)->IsDefined() ){
+    ((CcBool*)result.addr)->
+        Set( true, ((Range*)args[1].addr)->Contains(*((Alpha*)args[0].addr)) );
+  } else {
     ((CcBool *)result.addr)->Set( false, false );
-
+  }
   return 0;
 }
 
@@ -10197,10 +10250,13 @@ int RangeBefore_rr( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((Range*)args[0].addr)->Before( *((Range*)args[1].addr) ) )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  if(    ((Range*)args[0].addr)->IsDefined()
+      && ((Range*)args[1].addr)->IsDefined() ) {
+    ((CcBool*)result.addr)->
+        Set( true, ((Range*)args[0].addr)->Before( *((Range*)args[1].addr) ) );
+  } else {
+    ((CcBool*)result.addr)->Set( false, false );
+  }
   return 0;
 }
 
@@ -10209,10 +10265,13 @@ int RangeBefore_ar( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((Range*)args[1].addr)->After( *((Alpha*)args[0].addr) ) )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  if(    ((Range*)args[1].addr)->IsDefined()
+      && ((Alpha*)args[0].addr)->IsDefined() ) {
+    ((CcBool*)result.addr)->
+        Set( true, ((Range*)args[1].addr)->After( *((Alpha*)args[0].addr) ) );
+  } else {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
   return 0;
 }
 
@@ -10221,10 +10280,13 @@ int RangeBefore_ra( Word* args, Word& result, int message, Word&
  local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( ((Range*)args[0].addr)->Before( *((Alpha*)args[1].addr) ) )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  if(    ((Range*)args[0].addr)->IsDefined()
+      && ((Alpha*)args[1].addr)->IsDefined() ) {
+    ((CcBool*)result.addr)->
+        Set( true, ((Range*)args[0].addr)->Before( *((Alpha*)args[1].addr) ) );
+  } else {
+    ((CcBool *)result.addr)->Set( false, false );
+  }
   return 0;
 }
 
@@ -10313,8 +10375,11 @@ int RangeNoComponents( Word* args, Word& result, int message,
  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcInt *)result.addr)->Set( true,
-   ((Range*)args[0].addr)->GetNoComponents() );
+  if( ((Range*)args[0].addr)->IsDefined() )
+    ((CcInt *)result.addr)->
+        Set( true, ((Range*)args[0].addr)->GetNoComponents() );
+  else
+    ((CcInt *)result.addr)->Set( false, 0 );
   return 0;
 }
 
@@ -10412,11 +10477,10 @@ int Integrate(Word* args, Word& result,
    result = qp->ResultStorage(s);
    mtype* arg = (mtype*) args[0].addr;
    if(!arg->IsDefined()){
-      ((CcReal*)result.addr)->Set(false,0);
-      return 0;
+    ((CcReal*)result.addr)->Set(false,0);
+   } else {
+    ((CcReal*)result.addr)->Set(true, arg->Integrate());
    }
-   double res = arg->Integrate();
-   ((CcReal*)result.addr)->Set(true,res);
    return 0;
 }
 
@@ -10463,7 +10527,6 @@ int Linearize2_ureal(Word* args, Word& result,
     switch( message )
     {
       case OPEN:
-
         arg = (UReal*) args[0].addr;
         localinfo = new(Linearize2_ureal_LocalInfo);
         local.setAddr(localinfo);
@@ -10494,7 +10557,6 @@ int Linearize2_ureal(Word* args, Word& result,
         return 0;
 
       case REQUEST:
-
         if(local.addr == 0)
           return CANCEL;
         localinfo = (Linearize2_ureal_LocalInfo*) local.addr;
@@ -10510,7 +10572,6 @@ int Linearize2_ureal(Word* args, Word& result,
         return YIELD;
 
       case CLOSE:
-
         if(local.addr)
         {
           localinfo = (Linearize2_ureal_LocalInfo*) local.addr;
@@ -10733,8 +10794,6 @@ int DistanceTraversedOperatorValueMapping( ArgVector args, Word& result,
 {
 	bool debugme=false;
 	MPoint *p = static_cast<MPoint*>( args[0].addr );
-
-
 	MReal* dist= (MReal*) qp->ResultStorage(s).addr;
 
 	MReal* tmp= p->DistanceTraversed();
@@ -10821,7 +10880,7 @@ int MPointBBoxOld(Word* args, Word& result, int message, Word& local,
   result = qp->ResultStorage( s );
   Rectangle<3>* res = (Rectangle<3>*) result.addr;
   MPoint*       arg = (MPoint*)       args[0].addr;
-  const UPoint *uPoint;
+  UPoint uPoint;
   double min[3], max[3];
   Rectangle<3> accubbox;
 
@@ -10832,14 +10891,14 @@ int MPointBBoxOld(Word* args, Word& result, int message, Word& local,
   else
   {
     arg->Get( 0, uPoint );
-    accubbox = uPoint->BoundingBox();
-    min[2] = uPoint->timeInterval.start.ToDouble(); // mintime
+    accubbox = uPoint.BoundingBox();
+    min[2] = uPoint.timeInterval.start.ToDouble(); // mintime
     for( int i = 1; i < arg->GetNoComponents(); i++ )
     { // calculate spatial bbox
       arg->Get( i, uPoint );
-      accubbox = accubbox.Union( uPoint->BoundingBox() );
+      accubbox = accubbox.Union( uPoint.BoundingBox() );
     }
-    max[2] = uPoint->timeInterval.end.ToDouble(); // maxtime
+    max[2] = uPoint.timeInterval.end.ToDouble(); // maxtime
     min[0] = accubbox.MinD(0); // minX
     max[0] = accubbox.MaxD(0); // maxX
     min[1] = accubbox.MinD(1); // minY
@@ -11014,7 +11073,7 @@ MPointTranslate( Word* args, Word& result, int message, Word&
   Word t;
   double dx,dy;
   DateTime* dd;
-  const UPoint *uPoint;
+  UPoint uPoint;
   MPoint* mp, *mpResult;
   CcReal *DX, *DY;
 
@@ -11022,6 +11081,7 @@ MPointTranslate( Word* args, Word& result, int message, Word&
 
   mp= (MPoint*)args[0].addr,
   mpResult = (MPoint*)result.addr;
+  mpResult->Clear();
 
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
   qp->Request( son, t );
@@ -11043,12 +11103,11 @@ MPointTranslate( Word* args, Word& result, int message, Word&
     dx = DX->GetRealval();
     dy = DY->GetRealval();
     mpResult->SetDefined( true );
-    mpResult->Clear();
     mpResult->StartBulkLoad();
     for( int i = 0; i < mp->GetNoComponents(); i++ )
     {
       mp->Get( i, uPoint );
-      UPoint aux( *uPoint );
+      UPoint aux( uPoint );
       aux.p0.Set( aux.p0.GetX() + dx, aux.p0.GetY() + dy );
       aux.p1.Set( aux.p1.GetX() + dx, aux.p1.GetY() + dy );
       aux.timeInterval.start.Add(dd);
@@ -11074,7 +11133,13 @@ int TheYear( Word* args, Word& result, int message, Word& local,
 { // int --> periods (=range(instant))
   result = qp->ResultStorage( s );
   Periods* pResult = (Periods*)result.addr;
+  pResult->Clear();
 
+  if( !((CcInt*)args[0].addr)->IsDefined() ) {
+    pResult->SetDefined( false );
+    return 0;
+  }
+  pResult->SetDefined( true );
   int intyear = ((CcInt*)args[0].addr)->GetIntval();
 
   Instant inst1, inst2;
@@ -11086,7 +11151,6 @@ int TheYear( Word* args, Word& result, int message, Word& local,
 
   Interval<Instant> timeInterval(inst1, inst2, true, false);
 
-  pResult->Clear();
   pResult->StartBulkLoad();
   pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
@@ -11103,6 +11167,14 @@ int TheMonth( Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
+  pResult->Clear();
+
+  if(    !((CcInt*)args[0].addr)->IsDefined()
+      || !((CcInt*)args[1].addr)->IsDefined() ) {
+    pResult->SetDefined( false );
+    return 0;
+  }
+  pResult->SetDefined( true );
 
   int intyear = ((CcInt*)args[0].addr)->GetIntval(),
       intmonth = ((CcInt*)args[1].addr)->GetIntval();
@@ -11120,7 +11192,6 @@ int TheMonth( Word* args, Word& result, int message, Word& local,
 
   Interval<Instant> timeInterval( inst1, inst2, true, false );
 
-  pResult->Clear();
   pResult->StartBulkLoad();
   pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
@@ -11137,6 +11208,15 @@ int TheDay( Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
+  pResult->Clear();
+
+  if(    !((CcInt*)args[0].addr)->IsDefined()
+      || !((CcInt*)args[1].addr)->IsDefined()
+      || !((CcInt*)args[2].addr)->IsDefined() ) {
+    pResult->SetDefined( false );
+    return 0;
+  }
+  pResult->SetDefined( true );
 
   int intyear = ((CcInt*)args[0].addr)->GetIntval(),
       intmonth = ((CcInt*)args[1].addr)->GetIntval(),
@@ -11153,7 +11233,6 @@ int TheDay( Word* args, Word& result, int message, Word& local,
 
   Interval<Instant> timeInterval( inst1, inst2, true, false );
 
-  pResult->Clear();
   pResult->StartBulkLoad();
   pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
@@ -11170,6 +11249,16 @@ int TheHour( Word* args, Word& result, int message, Word& local,
 {
   result = qp->ResultStorage( s );
   Periods* pResult = (Periods*)result.addr;
+  pResult->Clear();
+
+  if(    !((CcInt*)args[0].addr)->IsDefined()
+      || !((CcInt*)args[1].addr)->IsDefined()
+      || !((CcInt*)args[2].addr)->IsDefined()
+      || !((CcInt*)args[3].addr)->IsDefined() ) {
+    pResult->SetDefined( false );
+    return 0;
+  }
+  pResult->SetDefined( true );
 
   int intyear = ((CcInt*)args[0].addr)->GetIntval(),
       intmonth = ((CcInt*)args[1].addr)->GetIntval(),
@@ -11187,7 +11276,6 @@ int TheHour( Word* args, Word& result, int message, Word& local,
 
   Interval<Instant> timeInterval( inst1, inst2, true, false );
 
-  pResult->Clear();
   pResult->StartBulkLoad();
   pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
@@ -11204,6 +11292,17 @@ int TheMinute( Word* args, Word& result, int message, Word&
 {
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
+  pResult->Clear();
+
+  if(    !((CcInt*)args[0].addr)->IsDefined()
+            || !((CcInt*)args[1].addr)->IsDefined()
+            || !((CcInt*)args[2].addr)->IsDefined()
+            || !((CcInt*)args[3].addr)->IsDefined()
+            || !((CcInt*)args[4].addr)->IsDefined() ) {
+    pResult->SetDefined( false );
+    return 0;
+    }
+  pResult->SetDefined( true );
 
   int intyear = ((CcInt*)args[0].addr)->GetIntval(),
       intmonth = ((CcInt*)args[1].addr)->GetIntval(),
@@ -11222,7 +11321,6 @@ int TheMinute( Word* args, Word& result, int message, Word&
 
   Interval<Instant> timeInterval( inst1, inst2, true, false );
 
-  pResult->Clear();
   pResult->StartBulkLoad();
   pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
@@ -11239,6 +11337,18 @@ int TheSecond( Word* args, Word& result, int message, Word&
 {
   result = qp->ResultStorage( s );
   Periods *pResult = (Periods*)result.addr;
+  pResult->Clear();
+
+  if(    !((CcInt*)args[0].addr)->IsDefined()
+            || !((CcInt*)args[1].addr)->IsDefined()
+            || !((CcInt*)args[2].addr)->IsDefined()
+            || !((CcInt*)args[3].addr)->IsDefined()
+            || !((CcInt*)args[4].addr)->IsDefined()
+            || !((CcInt*)args[5].addr)->IsDefined() ) {
+    pResult->SetDefined( false );
+    return 0;
+  }
+  pResult->SetDefined( true );
 
   int intyear = ((CcInt*)args[0].addr)->GetIntval(),
       intmonth = ((CcInt*)args[1].addr)->GetIntval(),
@@ -11258,7 +11368,6 @@ int TheSecond( Word* args, Word& result, int message, Word&
 
   Interval<Instant> timeInterval( inst1, inst2, true, false );
 
-  pResult->Clear();
   pResult->StartBulkLoad();
   pResult->Add( timeInterval );
   pResult->EndBulkLoad( false );
@@ -11279,10 +11388,13 @@ int ThePeriod( Word* args, Word& result, int message, Word&
           *range2 = ((Periods*)args[1].addr);
 
   pResult->Clear();
-
+  if( !range1->IsDefined() || !range2->IsDefined() ){
+    pResult->SetDefined( false );
+  }
+  pResult->SetDefined( true );
   if( !range1->IsEmpty() || !range2->IsEmpty() )
   {
-    const Interval<Instant> *intv1, *intv2;
+    Interval<Instant> intv1, intv2;
     if( range1->IsEmpty() )
     {
       range2->Get( 0, intv1 );
@@ -11299,12 +11411,12 @@ int ThePeriod( Word* args, Word& result, int message, Word&
       range2->Get( range2->GetNoComponents()-1, intv2 );
     }
 
-    Interval<Instant> timeInterval( intv1->start, intv2->end,
-     intv1->lc, intv2->rc );
+    Interval<Instant> timeInterval( intv1.start, intv2.end,
+     intv1.lc, intv2.rc );
 
     pResult->StartBulkLoad();
     pResult->Add( timeInterval );
-    pResult->EndBulkLoad( false );
+    pResult->EndBulkLoad( false, true );
   }
   return 0;
 }
@@ -11396,7 +11508,7 @@ int Box3d_periods( Word* args, Word& result, int message, Word&
    result = qp->ResultStorage(s);
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Periods*      per = (Periods*)      args[0].addr;
-   if( !per->IsDefined() )
+   if( per->IsEmpty() ) // includes undefined per
    {
      res->SetDefined(false);
    }
@@ -11426,7 +11538,7 @@ int Box3d_rect_periods( Word* args, Word& result, int message,
    Rectangle<3>* res = (Rectangle<3>*) result.addr;
    Rectangle<2>* arg1 = (Rectangle<2>*) args[0].addr;
    Periods*      arg2 = (Periods*)      args[1].addr;
-   if( !arg1->IsDefined() || !arg2->IsDefined() )
+   if( !arg1->IsDefined() || arg2->IsEmpty() ) // includes undefined arg2
    {
      res->SetDefined(false);
    }
@@ -11511,15 +11623,8 @@ int MappingAt_MReal_CcReal( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   result = qp->ResultStorage(s);
-  MReal* res = (MReal*) result.addr;
-  res->Clear();
-
-  MReal* mr = (MReal*) args[0].addr;
-  CcReal* r = (CcReal*) args[1].addr;
-
-  if( !mr->IsDefined() || !r->IsDefined() )
-    return 0; // return with empty MReal
-  mr->AtValue( *r, *res );
+  ((MReal*) args[0].addr)->
+      AtValue( *((CcReal*) args[1].addr), *((MReal*) result.addr) );
   return 0;
 }
 
@@ -11549,6 +11654,7 @@ int TemporalTheRangeTM( Word* args, Word& result, int message, Word&
   }
   else
   {
+    pResult->SetDefined(true);
     Interval<T> interval;
     int cmp = t1->Compare( t2 );
     bool bb1 = b1->GetBoolval(),
@@ -11583,7 +11689,6 @@ int TemporalTheRangeTM( Word* args, Word& result, int message, Word&
     pResult->StartBulkLoad();
     pResult->Add( interval );
     pResult->EndBulkLoad( false );
-    pResult->SetDefined( true );
   }
   return 0;
 }
@@ -11663,6 +11768,7 @@ int SampleMPointVM( Word* args, Word& result, int message,
 
    result = qp->ResultStorage(s);
    MPoint* res = (MPoint*) result.addr;
+   res->Clear();
    DateTime* duration = (DateTime*) args[1].addr;
    bool ke = false; // keep end point
    bool ep = false; // exact path
@@ -11718,9 +11824,9 @@ class GPSLI{
             this->unit = 0;
             this->tupleType = new TupleType(nl->Second(tupleType));
             if(size>0){
-               const UPoint* up;
+               UPoint up;
                mp->Get(0,up);
-               instant = up->timeInterval.start;
+               instant = up.timeInterval.start;
             }
          }
       }
@@ -11744,11 +11850,11 @@ class GPSLI{
       Tuple* NextTuple(){
         // search the unit containing instant
        bool done = false;
-       const UPoint* up;
+       UPoint up;
        while(unit<size  && !done){
          theMPoint->Get(unit,up);
-         if((instant< up->timeInterval.end) ||
-            (instant==up->timeInterval.end && up->timeInterval.rc) ){
+         if((instant< up.timeInterval.end) ||
+            (instant==up.timeInterval.end && up.timeInterval.rc) ){
              done = true;
          } else {
              unit++;
@@ -11757,11 +11863,11 @@ class GPSLI{
        if(!done){
           return 0;
        }
-       if(instant<up->timeInterval.start){ // gap
-          instant = up->timeInterval.start;
+       if(instant<up.timeInterval.start){ // gap
+          instant = up.timeInterval.start;
        }
        Point p;
-       up->TemporalFunction(instant,p,true);
+       up.TemporalFunction(instant,p,true);
        // construct the result from instant,p
        Tuple* res = new Tuple(tupleType);
        res->PutAttribute(0,instant.Clone());
@@ -11793,7 +11899,10 @@ int GPSVM( Word* args, Word& result, int message,
                                        GetTupleResultType(s)));
              return 0;
        case REQUEST:
-             li = (GPSLI*) local.addr;
+              if(!local.addr){
+                return CANCEL;
+              }
+              li = (GPSLI*) local.addr;
               t = li->NextTuple();
               result.setAddr(t);
               if(t){
@@ -11818,20 +11927,18 @@ int GPSVM( Word* args, Word& result, int message,
 16.3.47 ~Disturb~
 
 */
-int DisturbVM(Word* args, Word& result, int message,
-              Word& local, Supplier s){
-
+int DisturbVM(Word* args, Word& result, int message, Word& local, Supplier s){
    result = qp->ResultStorage(s);
-   MPoint* mp = (MPoint*) args[0].addr;
-   CcReal* md = (CcReal*) args[1].addr;
-   CcReal* mdps = (CcReal*) args[2].addr;
-   if(!mp->IsDefined() ||
-      !md->IsDefined() ||
-      !mdps->IsDefined()){
-      ((MPoint*)result.addr)->SetDefined(false);
-      return 0;
+   MPoint* res  = static_cast<MPoint*>(result.addr);
+   MPoint* mp   = static_cast<MPoint*>(args[0].addr);
+   CcReal* md   = static_cast<CcReal*>(args[1].addr);
+   CcReal* mdps = static_cast<CcReal*>(args[2].addr);
+   res->Clear();
+   if( !mp->IsDefined() || !md->IsDefined() || !mdps->IsDefined() ){
+     res->SetDefined(false);
+   } else {
+    mp->Disturb(*res, md->GetRealval(), mdps->GetRealval());
    }
-   mp->Disturb(*((MPoint*)result.addr),md->GetRealval(), mdps->GetRealval());
    return 0;
 }
 
@@ -11846,7 +11953,7 @@ int LengthVM(Word* args, Word& result, int message,
    CcReal* res = (CcReal*)result.addr;
    MPoint* mp = (MPoint*) args[0].addr;
    if(!mp->IsDefined()){
-      res->SetDefined(false);
+      res->Set(false, 0.0);
   } else {
       res->Set(true, mp->Length());
   }
@@ -11866,10 +11973,13 @@ int MPointNotEqual( Word* args, Word& result,
                     int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( *((MPoint*)args[0].addr) != *((MPoint*)args[1].addr) )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  if(    ((MPoint*)args[0].addr)->IsDefined()
+      && ((MPoint*)args[1].addr)->IsDefined() ) {
+    ((CcBool*)result.addr)->
+        Set( true, *((MPoint*)args[0].addr) != *((MPoint*)args[1].addr) );
+   } else {
+     ((CcBool*)result.addr)->Set( false, false );
+   }
   return 0;
 }
 
@@ -11879,10 +11989,13 @@ int MPointEqual( Word* args, Word& result,
                  int message, Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  if( *((MPoint*)args[0].addr) == *((MPoint*)args[1].addr) )
-    ((CcBool*)result.addr)->Set( true, true );
-  else
-    ((CcBool *)result.addr)->Set( true, false );
+  if(    ((MPoint*)args[0].addr)->IsDefined()
+      && ((MPoint*)args[1].addr)->IsDefined() ) {
+    ((CcBool*)result.addr)->
+        Set( true, *((MPoint*)args[0].addr) == *((MPoint*)args[1].addr) );
+  } else {
+    ((CcBool*)result.addr)->Set( false, false );
+  }
   return 0;
 }
 
@@ -11898,11 +12011,8 @@ int MPointPresent_i( Word* args, Word& result,
 
   if( !inst->IsDefined() || !m->IsDefined())
     ((CcBool *)result.addr)->Set( false, false );
-  else if( m->Present( *inst ) )
-    ((CcBool *)result.addr)->Set( true, true );
   else
-    ((CcBool *)result.addr)->Set( true, false );
-
+    ((CcBool *)result.addr)->Set( true, m->Present( *inst ) );
   return 0;
 }
 
@@ -11918,11 +12028,8 @@ int MPointPresent_p( Word* args, Word& result,
 
   if( periods->IsEmpty() )
     ((CcBool *)result.addr)->Set( false, false );
-  else if( m->Present( *periods ) )
-    ((CcBool *)result.addr)->Set( true, true );
   else
-    ((CcBool *)result.addr)->Set( true, false );
-
+    ((CcBool *)result.addr)->Set( true, m->Present( *periods ) );
   return 0;
 }
 
@@ -11956,6 +12063,7 @@ int MPointEqualize( Word* args, Word& result, int message,
 
    result = qp->ResultStorage(s);
    MPoint* res = static_cast<MPoint*>(result.addr);
+   res->Clear();
    MPoint* p = static_cast<MPoint*>(args[0].addr);
    CcReal* eps = static_cast<CcReal*>(args[1].addr);
    CcBool skipUnits(true,false);
@@ -12009,8 +12117,8 @@ int SpeedUpVM( Word* args, Word& result, int message,
    MPoint* res = static_cast<MPoint*>(result.addr);
    MPoint* arg1 = static_cast<MPoint*>(args[0].addr);
    CcReal* arg2 = static_cast<CcReal*>(args[1].addr);
-   if(!arg1->IsDefined()){
-     res->Clear();
+   res->Clear();
+   if(!arg1->IsDefined() || !arg2->IsDefined() ){
      res->SetDefined(false);
      return 0;
    }
@@ -12018,28 +12126,28 @@ int SpeedUpVM( Word* args, Word& result, int message,
       *res = *arg1;
       return 0;
    }
+   res->SetDefined( true );
 
-   const UPoint* up;
+   UPoint up;
    UPoint last;
    UPoint* cur;
-   res->Clear();
    res->StartBulkLoad();
 
    double factor = 1.0/arg2->GetRealval();
    for(int i = 0;i < arg1->GetNoComponents();i++){
     arg1->Get(i,up);
     if(i == 0){
-      last = *up;
+      last = up;
       last.timeInterval.end =
             (last.timeInterval.end-last.timeInterval.start)*factor+
             last.timeInterval.start;
       res->MergeAdd(last);
 
     }else{
-      cur = new UPoint(*up);
+      cur = new UPoint(up);
       cur->timeInterval.start = last.timeInterval.end;
       cur->timeInterval.end = cur->timeInterval.start +
-        (up->timeInterval.end-up->timeInterval.start)*factor;
+        (up.timeInterval.end - up.timeInterval.start)*factor;
       res->MergeAdd(*cur);
       last = *cur;
       delete cur;
@@ -12055,17 +12163,17 @@ int AveSpeedVM( Word* args, Word& result, int message,
    CcReal* res = static_cast<CcReal*>(result.addr);
    MPoint* arg1 = static_cast<MPoint*>(args[0].addr);
    if(!arg1->IsDefined()){
-     res->SetDefined(false);
+     res->Set(false, 0.0);
      return 0;
    }
    double length = 0;
    double time = 0;
-   const UPoint* up;
+   UPoint up;
    for(int i = 0;i < arg1->GetNoComponents();i++){
     arg1->Get(i,up);
-    Instant inter = up->timeInterval.end-up->timeInterval.start;
+    Instant inter = up.timeInterval.end - up.timeInterval.start;
     time += inter.GetDay()*24*60*60+inter.GetAllMilliSeconds()/1000.0;
-    length += up->p0.Distance(up->p1);
+    length += up.p0.Distance(up.p1);
    }
    res->Set(true,length/time);
    return 0;
@@ -12076,36 +12184,37 @@ int SubMoveVM( Word* args, Word& result, int message,
    MPoint* res = static_cast<MPoint*>(result.addr);
    MPoint* arg1 = static_cast<MPoint*>(args[0].addr);
    CcReal* arg2 = static_cast<CcReal*>(args[1].addr);
+   res->Clear();
    if(!arg1->IsDefined() || arg2->GetRealval() <= 0.0 ||
      arg1->GetNoComponents() == 0){
-     res->Clear();
-     res->SetDefined(false);
+     res->SetDefined( false );
      return 0;
    }
+   res->SetDefined( true );
    if(arg2->GetRealval() >= 1.0){
       res->StartBulkLoad();
-      const UPoint* up;
+      UPoint up;
       for(int i = 0;i < arg1->GetNoComponents();i++){
         arg1->Get(i,up);
-        res->Add(*up);
+        res->Add(up);
       }
-      res->EndBulkLoad();
+      res->EndBulkLoad( true, true );
       return 0;
    }
-   const UPoint* up1;
-   const UPoint* up2;
+   UPoint up1;
+   UPoint up2;
    UPoint* cur;
    res->StartBulkLoad();
    double factor = arg2->GetRealval();
    arg1->Get(0,up1);
    arg1->Get(arg1->GetNoComponents()-1,up2);
-   Instant dt = (up2->timeInterval.end - up1->timeInterval.start)*factor;
+   Instant dt = (up2.timeInterval.end - up1.timeInterval.start)*factor;
    srand(time(0));
    int pos = rand() % arg1->GetNoComponents();
    assert(pos < arg1->GetNoComponents());
    arg1->Get(pos,up1);
-   Instant enddt = up1->timeInterval.start + dt;
-   cur = new UPoint(*up1);
+   Instant enddt = up1.timeInterval.start + dt;
+   cur = new UPoint(up1);
    if(enddt <= cur->timeInterval.end){
     Point p1;
     cur->TemporalFunction(enddt,p1,true);
@@ -12118,10 +12227,10 @@ int SubMoveVM( Word* args, Word& result, int message,
     UPoint* up;
     for(pos++;pos < arg1->GetNoComponents();pos++){
       arg1->Get(pos,up1);
-      if(up1->timeInterval.end < enddt){
-        res->Add(*up1);
+      if(up1.timeInterval.end < enddt){
+        res->Add(up1);
       }else{
-        up = new UPoint(*up1);
+        up = new UPoint(up1);
         Point p1;
         up->TemporalFunction(enddt,p1,true);
         assert(p1.IsDefined());
@@ -12134,8 +12243,8 @@ int SubMoveVM( Word* args, Word& result, int message,
     }
   }
   delete cur;
-   res->EndBulkLoad();
-   return 0;
+  res->EndBulkLoad(true,true);
+  return 0;
 }
 
 int Mp2OneMpVM( Word* args, Word& result, int message,
@@ -12146,54 +12255,38 @@ int Mp2OneMpVM( Word* args, Word& result, int message,
    MPoint* arg = static_cast<MPoint*>(args[0].addr);
    Instant* start = (Instant*)args[1].addr;
    Instant* end = (Instant*)args[2].addr;
-
-
-   if(!arg->IsDefined() || arg->GetNoComponents() == 0){
-     res->Clear();
+   res->Clear();
+   if(    !arg->IsDefined()   || arg->GetNoComponents() == 0
+       || !start->IsDefined() || !end->IsDefined() || (*end < *start) ){
      res->SetDefined(false);
      return 0;
    }
-   res->Clear();
+   res->SetDefined(true);
    res->StartBulkLoad();
-   const UPoint* up;
-   Line* line = new Line(0);
-   arg->Trajectory(*line);
+
    srand(time(0)+counter);
-
-
    int pos = rand() % arg->GetNoComponents();
-   assert(0<= pos && pos < arg->GetNoComponents());
+   assert( 0<= pos );
+   assert( pos < arg->GetNoComponents() );
+
+   UPoint up;
    arg->Get(pos,up);
-   UPoint* cur = new UPoint(*up);
-///
-//   Rectangle<3> xyBox = arg->BoundingBox();
-//   double maxx = xyBox.MaxD(0);
-//   double maxy = xyBox.MaxD(1);
-//   double x = (xyBox.MinD(0)+xyBox.MaxD(0))/2;
-//   double y = (xyBox.MinD(1)+xyBox.MaxD(1))/2;
-//
-//    cout<<pos<<endl;
+   UPoint cur(up);
 
-   double x = (cur->p0.GetX() + counter);
-   double y = (cur->p0.GetY() + counter);
-//   if(x > maxx)
-//      x = (int)(x) % (int)maxx;
-//   if(y > maxy)
-//      x = (int)(x) % (int)maxy;
-//   cout<<x<<" "<<y<<endl;
+   double x = (cur.p0.GetX() + counter); // XRIS: NONSENSE here!
+   double y = (cur.p0.GetY() + counter); // XRIS: NONSENSE here!
 
-   Point* p = new Point(true,x,y);
-   cur->p0 = *p;
-   cur->p1 = *p;
-   cur->timeInterval.start = *start;
-   cur->timeInterval.end = *end;
-   cur->p0 = *p;
-   cur->p1 = *p;
-   res->Add(*cur);
-   delete p;
-   delete cur;
+   cerr << "WARNING: " << __PRETTY_FUNCTION__
+        << " called. This functions does nonsense! Please correct!" << endl;
+
+   Point p(true,x,y);
+   cur.timeInterval.start = *start;
+   cur.timeInterval.end = *end;
+   cur.p0 = p;
+   cur.p1 = p;
+   res->Add(cur);
    counter++;
-   res->EndBulkLoad(true);
+   res->EndBulkLoad(true, true);
    return 0;
 }
 
@@ -12202,16 +12295,21 @@ int P2MpVM( Word* args, Word& result, int message,
 
    result = qp->ResultStorage(s);
    MPoint* res = static_cast<MPoint*>(result.addr);
+   res->Clear();
    Point* arg = static_cast<Point*>(args[0].addr);
    Instant* startt = (Instant*)args[1].addr;
    Instant* endt = (Instant*)args[2].addr;
-   unsigned int no = ((CcInt*)args[3].addr)->GetIntval();
-   if(!arg->IsDefined() || no <= 0){
-     res->Clear();
+   if(    !arg->IsDefined() || !startt->IsDefined() || !endt->IsDefined()
+       || !((CcInt*)args[3].addr)->IsDefined() ) {
      res->SetDefined(false);
      return 0;
    }
-   res->Clear();
+   unsigned int no = ((CcInt*)args[3].addr)->GetIntval();
+   if( no<= 0 ) {
+     res->SetDefined(false);
+    return 0;
+   }
+   res->SetDefined( true );
    res->StartBulkLoad();
    double delta = (*endt - *startt).ToDouble()/no;
    Instant tempstart = *startt;
@@ -12232,7 +12330,7 @@ int P2MpVM( Word* args, Word& result, int message,
 //      cout<<*up<<endl;
       delete up;
    }
-   res->EndBulkLoad(true);
+   res->EndBulkLoad(true,true);
    return 0;
 }
 
@@ -12492,8 +12590,8 @@ const string TemporalSpecIsEmpty  =
   "iT -> bool, \n"
   "For T in {bool,int,real,point}</text--->"
   "<text>isempty ( _ )</text--->"
-  "<text>Returns whether the instant/range/unit type value is "
-  "empty or not.</text--->"
+  "<text>Returns TRUE iff the instant/range/unit type value is "
+  "undefined or empty.</text--->"
   "<text>query isempty( mpoint1 )</text--->"
   ") )";
 
@@ -12503,7 +12601,8 @@ const string TemporalSpecEQ  =
   "(rT rT) -> bool, \n"
   "(iT iT) -> bool</text--->"
   "<text>_ = _</text--->"
-  "<text>Is-Equal predicate for instant and range type values.</text--->"
+  "<text>Is-Equal predicate for instant and range type values.\n"
+  "Returns UNDEFINED, iff at least one argument is UNDEFINED.</text--->"
   "<text>query i1 = i2</text--->"
   ") )";
 
@@ -12511,7 +12610,8 @@ const string TemporalSpecEQ2  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(moving(x) moving(x)) -> bool</text--->"
   "<text>_ equal _</text--->"
-  "<text>Equal.</text--->"
+  "<text>Equal. Returns UNDEFINED, iff at least one argument is "
+  "UNDEFINED.</text--->"
   "<text>query mi equal mi2</text--->"
   ") )";
 
@@ -12521,7 +12621,8 @@ const string TemporalSpecNE  =
   "(rT rT)) -> bool, \n"
   "(iT iT) -> bool </text--->"
   "<text>_ # _</text--->"
-  "<text>Not-Equal predicate for instant and rage type values.</text--->"
+    "<text>Not-Equal predicate for instant and range type values. Returns "
+  "UNDEFINED, iff at least one argument is UNDEFINED.</text--->"
   "<text>query i1 # i2</text--->"
   ") )";
 
@@ -12529,7 +12630,8 @@ const string TemporalSpecNE2  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(mT mT) -> bool</text--->"
   "<text>_ nonequal _</text--->"
-  "<text>Not-Equal predicate for moving objects.</text--->"
+  "<text>Not-Equal predicate for moving objects. Returns UNDEFINED, iff at "
+  "least one argument is UNDEFINED.</text--->"
   "<text>query mi1 nonequal mi2</text--->"
   ") )";
 
@@ -12537,7 +12639,8 @@ const string TemporalSpecLT  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool</text--->"
   "<text>_ < _</text--->"
-  "<text>Less than.</text--->"
+  "<text>Less than. Returns UNDEFINED, iff at least one argument is "
+  "UNDEFINED.</text--->"
   "<text>query i1 < i2</text--->"
   ") )";
 
@@ -12545,7 +12648,8 @@ const string TemporalSpecLE  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool</text--->"
   "<text>_ <= _</text--->"
-  "<text>Less or equal than.</text--->"
+  "<text>Less or equal than. Returns UNDEFINED, iff at least one argument "
+  "is UNDEFINED.</text--->"
   "<text>query i1 <= i2</text--->"
   ") )";
 
@@ -12553,7 +12657,8 @@ const string TemporalSpecGT  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool</text--->"
   "<text>_ > _</text--->"
-  "<text>Greater than.</text--->"
+  "<text>Greater than. Returns UNDEFINED, iff at least one argument is "
+  "UNDEFINED.</text--->"
   "<text>query i1 > i2</text--->"
   ") )";
 
@@ -12561,7 +12666,8 @@ const string TemporalSpecGE  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(instant instant) -> bool</text--->"
   "<text>_ >= _</text--->"
-  "<text>Greater or equal than.</text--->"
+  "<text>Greater or equal than. Returns UNDEFINED, iff at least one argument "
+  "is UNDEFINED.</text--->"
   "<text>query i1 >= i2</text--->"
   ") )";
 
@@ -12637,7 +12743,8 @@ const string TemporalSpecNoComponents =
   "mT -> int</text--->"
   "<text>no_components ( _ )</text--->"
   "<text>Number of components within a range type value."
-  "Number of units inside a moving object value.</text--->"
+  "Number of units inside a moving object value. UNDEFINED argument yields "
+  "an UNDEFINED result.</text--->"
   "<text>no_components ( mpoint1 )</text--->"
   ") )";
 
@@ -12658,7 +12765,7 @@ const string TemporalSpecVal  =
   ") )";
 const string TemporalSpecUVal  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>iT x position -> x</text--->"
+  "( <text>uint -> int</text--->"
   "<text>uval ( _ )</text--->"
   "<text>Return an uint's value.</text--->"
   "<text>uval ( ui1 )</text--->"
@@ -12668,8 +12775,8 @@ const string TemporalSpecAtInstant =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mT instant) -> iT</text--->"
   "<text>_ atinstant _ </text--->"
-  "<text>From a moving object Get the intime value "
-  "corresponding to the instant.</text--->"
+  "<text>From a moving object get the intime value "
+  "corresponding to the temporal value at the given instant.</text--->"
   "<text>mpoint1 atinstant instant1</text--->"
   ") )";
 
@@ -12685,7 +12792,7 @@ const string TemporalSpecDefTime  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>moving(x) -> periods</text--->"
   "<text>deftime( _ )</text--->"
-  "<text>get the defined time of the corresponding moving data "
+  "<text>Get the defined time of the corresponding moving data "
   "objects.</text--->"
   "<text>deftime( mp1 )</text--->"
   ") )";
@@ -12694,7 +12801,7 @@ const string TemporalSpecTrajectory =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint -> line</text--->"
   "<text> trajectory( _ )</text--->"
-  "<text>get the trajectory of the corresponding moving point object.</text--->"
+  "<text>Get the trajectory of the corresponding moving point object.</text--->"
   "<text>trajectory( mp1 )</text--->"
   ") )";
 
@@ -12703,7 +12810,7 @@ const string TemporalSpecPresent  =
   "( <text>(mT instant) -> bool,\n"
   "(mT periods) -> bool</text--->"
   "<text>_ present _ </text--->"
-  "<text>whether the moving object is present at the given "
+  "<text>Check, whether the moving object is present at the given "
   "instant or period.</text--->"
   "<text>mpoint1 present instant1</text--->"
   ") )";
@@ -12713,7 +12820,7 @@ const string TemporalSpecPasses =
   "( <text>(mT T) -> bool; T in {Region, Rectangle2}"
   "</text--->"
   "<text>_ passes _ </text--->"
-  "<text>whether the moving object passes the given value.</text--->"
+  "<text>Check, whether the moving object passes the given value.</text--->"
   "<text>mpoint1 passes point1</text--->"
                                 ") )";
 
@@ -12721,7 +12828,7 @@ const string TemporalSpecInitial  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mT -> iT</text--->"
   "<text>initial( _ )</text--->"
-  "<text>get the intime value corresponding to the initial instant.</text--->"
+  "<text>Get the intime value corresponding to the initial instant.</text--->"
   "<text>initial( mpoint1 )</text--->"
   ") )";
 
@@ -12747,7 +12854,7 @@ const string TemporalSpecDistance =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(mpoint point) -> mreal</text--->"
   "<text>distance( _, _ ) </text--->"
-  "<text>returns the moving distance</text--->"
+  "<text>Returns the moving distance.</text--->"
   "<text>distance( mpoint1, point1 )</text--->"
   ") )";
 
@@ -12755,8 +12862,10 @@ const string TemporalSpecSimplify =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x real [ x duration ] -> mpoint |"
   " mreal x real -> mreal</text--->"
-  "<text>simplify( _, _ [, _]) </text--->"
-  "<text>simplifys the argument with a maximum difference of epsilon</text--->"
+  "<text>simplify( o, eVal [, eTime]) </text--->"
+  "<text>Simplifys the argument o allowing a maximum imprecision of eVal on "
+  "the value scale, and a maximum difference of eT on the temporal scale."
+  "</text--->"
   "<text>simplify( train7, 50.0, [const duration value (0, 10000)] )</text--->"
   ") )";
 
@@ -12764,7 +12873,7 @@ const string TemporalSpecIntegrate =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>{ureal , mreal} -> real</text--->"
   "<text>integrate( _ ) </text--->"
-  "<text>computes the determined inegtral of the argument</text--->"
+  "<text>Computes the determined integral of the argument.</text--->"
   "<text>integrate(mreal5000)</text--->"
   ") )";
 
@@ -12772,7 +12881,7 @@ const string TemporalSpecLinearize =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text> t  -> t, where t in {mreal, ureal}</text--->"
   "<text>linearize( _ ) </text--->"
-  "<text>computes a linear approximation of the argument</text--->"
+  "<text>Approximates the argument by a piecewise linear function.</text--->"
   "<text>linearize(distance(train7, train6))</text--->"
   ") )";
 
@@ -12780,9 +12889,10 @@ const string TemporalSpecApproximate =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>stream(tuple(a1: t1) (...(an,tn) x ai x aj  -> mtj ,"
            " (ti = instant, tj in {real,point)</text--->"
-  "<text>_ approximate [ _ _ ] </text--->"
-  "<text>computes a linear approximation betweeni"
-       " the sampling points</text--->"
+  "<text>_ approximate [ i, j ] </text--->"
+  "<text>Computes a piecewise linear approximation from the time/value pairs"
+  " of the stream argument. i/j indicate the attribute names for the "
+  "time/value data within the stream tuples.</text--->"
   "<text>  </text--->"
   ") )";
 
@@ -12791,7 +12901,7 @@ const string TemporalSpecLinearize2 =
   "( <text> mreal -> mreal | \n"
   "   ureal -> (stream ureal)</text--->"
   "<text>linearize2( _ ) </text--->"
-  "<text>computes a linear approximation of the argument</text--->"
+  "<text>Computes a piecewise linear approximation of the argument.</text--->"
   "<text>linearize2(distance(train7, train6))</text--->"
   ") )";
 
@@ -12799,7 +12909,7 @@ const string TemporalSpecMin =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>{ureal,mreal}->real, mint->int</text--->"
   "<text>minimum( _ ) </text--->"
-  "<text>computes the minimum value of the argument</text--->"
+  "<text>Computes the minimum value of the argument.</text--->"
   "<text>minimum(mreal5000)</text--->"
   ") )";
 
@@ -12807,17 +12917,16 @@ const string TemporalSpecMax =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>{ureal,mreal}->real, mint->int</text--->"
   "<text>maximum( _ ) </text--->"
-  "<text>computes the maximum value of the argument</text--->"
+  "<text>Computes the maximum value of the argument.</text--->"
   "<text>maximum(mreal5000)</text--->"
   ") )";
-
 
 const string TemporalSpecBreakPoints =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x duration -> points</text--->"
-  "<text>breakpoints( _, _ ) </text--->"
-  "<text>computes all points where the mpoints stops longer"
-  " than the given duration</text--->"
+  "<text>breakpoints( m, d ) </text--->"
+  "<text>Computes all points where the mpoint 'm' stops longer"
+  " than the given duration 'd'</text--->"
   "<text>breakpoints( train7, [const duration value (0 1000)] )</text--->"
   ") )";
 
@@ -12825,8 +12934,7 @@ const string TemporalSpecgk =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint -> mpoint</text--->"
   "<text>gk( _ ) </text--->"
-  "<text>performs a Gauss Krueger projectzion to the"
-  " argument</text--->"
+  "<text>Applies the Gauss Krueger projection to the argument.</text--->"
   "<text> gk( trip )</text--->"
   ") )";
 
@@ -12834,8 +12942,8 @@ const string TemporalSpecVertices =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint -> points</text--->"
   "<text> vertices( _ ) </text--->"
-  "<text> stores the end points of all contained units"
-  " into a points value</text--->"
+  "<text>Stores the end points of all contained units within a points "
+  "value.</text--->"
   "<text> vertices( train7 )</text--->"
   ") )";
 
@@ -12844,7 +12952,7 @@ const string TemporalSpecUnits  =
   "( <text>For T in {bool, int, real, point}:\n"
   "   mT -> (stream uT)</text--->"
   "<text> units( _ )</text--->"
-  "<text>get the stream of units of the moving value.</text--->"
+  "<text>Covert a moving type object to a stream of units.</text--->"
   "<text>units( mpoint1 )</text--->"
   ") )";
 
@@ -12890,7 +12998,7 @@ const string TemporalSpecBBox2d  =
     "mpoint -> rect,\n"
     "ipoint -> rect"
     "</text--->"
-    "<text>bbox2d ( _ )</text--->"
+    "<text>bbox2d( _ )</text--->"
     "<text>Returns the 2d bounding box of the spatio-temporal object."
     "</text--->"
     "<text>query bbox2d( upoint1 )</text--->"
@@ -12899,40 +13007,41 @@ const string TemporalSpecBBox2d  =
 const string MPointSpecTranslate  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x duration x real x real -> mpoint</text--->"
-  "<text>_ translate[list]</text--->"
-  "<text>Moves the object parallely for distance and time.</text--->"
+  "<text>_ translate[ ot, ox, oy ]</text--->"
+  "<text>Moves the object by a given temporal (ot) and spatial (ox/oy) offset."
+  "</text--->"
   "<text>query mp1 translate[[const duration value (5 10)],5.0,8.0]</text--->"
   ") )";
 
 const string TemporalSpecTheYear  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>int -> periods</text--->"
-  "<text> theyear( _ )</text--->"
-  "<text>get the periods value of the year.</text--->"
+  "<text> theyear( y )</text--->"
+  "<text>Create a periods value for the given year 'y'.</text--->"
   "<text>theyear(2002)</text--->"
                                 ") )";
 
 const string TemporalSpecTheMonth  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>int x int -> periods</text--->"
-  "<text> themonth( _, _ )</text--->"
-  "<text>get the periods value of the month.</text--->"
+  "<text> themonth( y, m )</text--->"
+  "<text>Create a periods value for the given of the year/month.</text--->"
   "<text>themonth(2002, 3)</text--->"
                                 ") )";
 
 const string TemporalSpecTheDay  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>int x int x int -> periods</text--->"
-  "<text>theday( _, _, _ )</text--->"
-  "<text>get the periods value of the day.</text--->"
+  "<text>theday( y, m, d )</text--->"
+  "<text>Create a periods value for the given year/month/day.</text--->"
   "<text>theday(2002, 6,3)</text--->"
   ") )";
 
 const string TemporalSpecTheHour  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>int x int x int x int -> periods</text--->"
-  "<text>thehour( _, _, _ , _)</text--->"
-  "<text>get the periods value of the hour.</text--->"
+  "<text>thehour( y, m, d , h)</text--->"
+  "<text>Create a periods value for the given year/month/day/hour.</text--->"
   "<text>thehour(2002, 2, 28, 8)</text--->"
   ") )";
 
@@ -12940,16 +13049,18 @@ const string TemporalSpecTheMinute =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( "
   "<text>int x int x int x int x int -> periods</text--->"
-  "<text>theminute( _ )</text--->"
-  "<text>get the periods value of the minute.</text--->"
+  "<text>theminute( y, m, d , h, min )</text--->"
+  "<text>Create a periods value for the given year/month/day/hour/minute."
+  "</text--->"
   "<text>theminute(2002, 3, 28, 8, 59)</text--->"
   ") )";
 
 const string TemporalSpecTheSecond =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>int x int x int x int x int x int -> periods</text--->"
-  "<text>thesecond( _ )</text--->"
-  "<text>get the periods value of the second.</text--->"
+  "<text>thesecond( y, m, d , h, min, sec )</text--->"
+  "<text>Create a periods value for the given year/month/day/hour/minute/"
+  "second.</text--->"
   "<text>thesecond(2002, 12, 31, 23, 59, 59)</text--->"
   ") )";
 
@@ -12957,7 +13068,7 @@ const string TemporalSpecThePeriod =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(periods periods) -> periods</text--->"
   "<text> theperiod( _, _ )</text--->"
-  "<text>Create a period that spans the starting instant of the first,"
+  "<text>Create a period that spans from the starting instant of the first,"
   "to the ending instance of the second periods argument.</text--->"
   "<text>theperiod(theyear(2002), theyear(2004))</text--->"
   ") )";
@@ -12979,7 +13090,7 @@ const string TemporalBox2dSpec =
   "( <text>{rect|rect3|rect4|rect8} -> rect</text--->"
   "<text>box2d( _ )</text--->"
   "<text>Restricts a rect<d> to its 1st and 2nd dimension. Can be used to "
-  "eliminate the temporal dimension of a 3d bounding box.</text--->"
+  "eliminate the temporal dimension of a 3D bounding box.</text--->"
   "<text>box2d(r3)</text--->"
   ") )";
 
@@ -12987,7 +13098,7 @@ const string TemporalMBool2MIntSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mbool -> mint </text--->"
   "<text>mbool2mint( _ ) </text--->"
-  "<text>converts the mbool value into a mint value"
+  "<text>Converts a mbool value into a mint value: FALSE -> 0, TRUE -> 1."
   "</text--->"
   "<text>mbool2mint(mb1)</text--->"
   ") )";
@@ -12996,18 +13107,17 @@ const string TemporalMInt2MBoolSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mint -> mbool </text--->"
   "<text>mint2mbool( _ ) </text--->"
-  "<text>Converts the mint value into a mbool value. Zero units converts into "
-  "False units, otherwise, True units."
-  "</text--->"
+  "<text>Converts the mint value into a mbool value. Zero (0) units are "
+  "converted into FALSE units, all others into TRUE units.</text--->"
   "<text>mint2mbool(zero())</text--->"
   ") )";
 
 const string TemporalExtDeftimeSpec =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mT x uT -> mT with T in {bool, int}  </text--->"
-  "<text>extenddeftime( _ _) </text--->"
-  "<text>extends the moving object's deftime by that of the unit's"
-  " filling all gaps with the value taken from the unit.</text--->"
+  "<text>extenddeftime( m, u) </text--->"
+  "<text>Extends the moving object m's deftime by that of the unit u's deftime,"
+  " filling all definition gaps of 'm' with the value taken from 'u'.</text--->"
   "<text>query extdeftime(mb ub)</text--->"
   ") )";
 
@@ -13027,7 +13137,7 @@ const string TranslateAppendSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x mpoint x duration -> mpoint</text--->"
     "<text> mp1 translateappend [ mp2 dur ]</text--->"
-    "<text>appends the second argument to the first one \n"
+    "<text>Appends the second argument to the first one, \n"
     " waiting for a duration given by the third argument at the\n"
     " last position of the first argument</text--->"
     "<text>query mp1 translateappend[mp2 "
@@ -13040,8 +13150,8 @@ const string TranslateAppendSSpec =
     " -> mpoint, where ti = mpoint</text--->"
     "<text> _ translateappendS[ _ _ ]</text--->"
     "<text>Builds a single moving point from all mpoints in the stream \n"
-    " translating the mpoints in such way that a connected movement\n"
-    " is created (except 'jumps' are in the sources) </text--->"
+    " translating the mpoints in such a way that a connected movement\n"
+    " is created. 'Jumps' within stream elements are not removed.</text--->"
     "<text>query Trains feed translateappendS[Trip [const"
     " duration value(0 10000)]]</text--->"
     ") )";
@@ -13050,7 +13160,7 @@ const string ReverseSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint -> mpoint</text--->"
     "<text> reverse( _ )</text--->"
-    "<text>computes the reverse movement of the argument</text--->"
+    "<text>Computes the reverse movement of the argument</text--->"
     "<text>query reverse(Train6) </text--->"
     ") )";
 
@@ -13084,30 +13194,32 @@ const string DisturbSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x real x real  -> mpoint </text---> "
     "<text> P disturb [ MD , SD ]</text--->"
-    "<text>disturbs an existing mpoint 'P', using a total maximum deviation of "
-    "'M' and a maximun deviation of 'S' per step</text--->"
+    "<text>Disturbs an existing mpoint 'P', using a total maximum deviation of "
+    "'M' and a maximun deviation of 'S' per step.</text--->"
     "<text>query train 6 disturb [200.0 , 10.0] </text--->"
     ") )";
-
 
 const string LengthSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint -> real </text---> "
     "<text> length(_) </text--->"
-    "<text>computes the length of the movement </text--->"
+    "<text>Computes the travelled length of the movement (like an odometer)."
+    "</text--->"
     "<text>query length(train6) </text--->"
     ") )";
-
 
 const string EqualizeUSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x real [ x bool] -> mpoint </text---> "
-    "<text> _ equalizeU[ _, _] </text--->"
-    "<text>changes units to have the same spatial properties, "
-    " the optional boolean value determines whether units"
-    " should be split </text--->"
+    "<text> MP equalizeU[ Dist, Split ] </text--->"
+    "<text>Tries to identify similar waypoints within moving point MP using "
+    "distance-based clustering (where Dist is the maximum allowed spatial "
+    "distance). Then the mpoint's support points are replaced by the clustre's "
+    "centroids as far as possible. Flag 'Split' signalizes, whether units may "
+    "be split to allow for a better matching.</text--->"
     "<text>query train6 equalizeU[20.0]  </text--->"
     ") )";
+
 const string MintHatSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mint -> mint </text---> "
@@ -13115,7 +13227,7 @@ const string MintHatSpec =
     "<text>"
     " Summarizes a moving integer into another moving integer"
     " consisting of at most 3 units."
-    " Summarization is done in  such a way that the area"
+    " Summarization is done in such a way that the area"
     " computed from the length of the time interval of the middle piece"
     " and the minimum number reached within that interval is maximal."
     "</text--->"
@@ -13126,42 +13238,48 @@ const string MintHatSpec =
 const string restrictSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mint [x int] -> mint </text---> "
-    "<text> restrict(_ [, _]) </text--->"
-    "<text> removes infinity units at the ends of the moving int"
-    "if the optional int is given, the units are only removed if "
-    "the value store within the units is equals to the given value "
+    "<text> restrict( MI [, Val]) </text--->"
+    "<text>Removes infinity units at the ends of the moving int 'MI'. "
+    "If the optional int argument Val is given, the units are only removed if "
+    "the value store within that units is equal to the given value 'Val'."
+    "</text--->"
     "<text>query restrict(noAtCenter)</text--->"
     ") )";
 
 const string speedupSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x real -> mpoint </text---> "
-    "<text> _ speedup [_] </text--->"
-    "<text> change the speed of the moving point by a given factor "
-    "query train1 speedup[2.0]</text--->"
+    "<text> MP speedup [ F ] </text--->"
+    "<text>Transform 'MP' to a moving point that moves 'F' times as fast "
+    "as 'MP', but starts at the same instant and moves the same way."
+    "</text--->"
+    "<text>query train1 speedup[2.0]</text--->"
     ") )";
 
 const string avespeedSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint -> real </text---> "
     "<text> avespeed (_) </text--->"
-    "<text> query the average speed of a moving point,unit/s "
+    "<text>Query the average speed of a moving point in unit/s "
     "query avespeed(train1)</text--->"
     ") )";
 
 const string submoveSpec =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>mpoint x real-> mpoint </text---> "
-    "<text> submove (_) </text--->"
-    "<text> get part of a moving point according to the given factor "
-    "query submove(train1)</text--->"
+    "<text> MP submove [ F ] </text--->"
+    "<text>Restricts a moving point 'MP' to a random interval with relative "
+    "size according to the given factor 0.0<'F'<1.0.</text--->"
+    "<text>query submove(train1)</text--->"
     ") )";
 
 const string TemporalSpecMp2Onemp  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>mpont x starttime x endtime -> x</text--->"
-  "<text>mp2onemp ( _,_,_ )</text--->"
-  "<text>Return an moving point but spatial doesn't change.</text--->"
+  "( <text>mpoint x starttime x endtime -> x</text--->"
+  "<text>mp2onemp ( mp, i1, i2 )</text--->"
+  "<text>WARNING! The implementation does not match this description:\nl"
+  "Return a static moving point with a location from mp, starting at i1, "
+  "and ending at t2.</text--->"
   "<text> query mp2onemp (train1 ,minimum(deftime(train1)),"
   "maximum(deftime(train1)))</text--->"
   ") )";
@@ -13169,7 +13287,7 @@ const string TemporalSpecP2Mp  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>mpoint x starttime x endtime -> x</text--->"
   "<text>p2mp ( _,_,_,_ )</text--->"
-  "<text>create an moving point from a point and the time interval.</text--->"
+  "<text>Create an moving point from a point and the time interval.</text--->"
   "<text>query p2mp ( point(2 3) ,theInstant(2003,11,20,6)"
   "theInstant(2003,11,20,7),100)</text--->"
   ") )";
@@ -13177,7 +13295,7 @@ const string TemporalSpecP2Mp  =
 OperatorInfo DelayOperatorInfo( "delay",
   "mpoint x mpoint -> mreal",
   "delay(actual, schedule movement)",
-  "at every time instance the result will reflect"
+  "At every time instance the result will reflect"
   " how many seconds is the actual movement delayed"
   " from the scheduled movement",
   "");

@@ -673,7 +673,7 @@ bool expandVarRef(string& s)
   {
     // evaluate environment variable
     string var = s.substr(pos1+2, (pos2-pos1-1)-1);
-    char* val = getenv( var.c_str() );
+    const char* val = getenv( var.c_str() );
     if ( !val )
       val = "";
 

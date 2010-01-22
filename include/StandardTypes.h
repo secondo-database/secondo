@@ -65,8 +65,14 @@ by the ~StandardAlgebra~:
 #ifndef STANDARDTYPES_H
 #define STANDARDTYPES_H
 
+
+
 #include <string>
 #include <sstream>
+
+#undef TRACE_ON
+#include "Trace.h"
+
 #include "Attribute.h"
 #include "NestedList.h"
 #include "Counter.h"
@@ -942,23 +948,34 @@ class CcString : public Attribute
     stringsCreated++; 
   }
 
-  inline CcString( bool d, const STRING_T* v ) 
+  void ShowMem() {
+
+    cout << Var2HexStr(del);
+    cout << Var2HexStr(stringval);
+    cout << Var2HexStr(size);
+  }	  
+  
+  inline CcString( bool d, const STRING_T* v ) : Attribute(d)
   { 
     Set(d, v);
+    //cout << "Cc1" << endl;
     stringsCreated++; 
   }
 
-  inline CcString( const bool d, const string& v )
+  inline CcString( const bool d, const string& v ) : Attribute(d)
   {
     Set(d, v);
+    //cout << "Cc2" << endl;
     stringsCreated++;
   }
 
   inline CcString( const string& v)
   {
     Set(true, v);
+    //cout << "Cc3" << endl;
     stringsCreated++;
   }
+
 
   inline ~CcString() 
   { 
@@ -997,6 +1014,7 @@ class CcString : public Attribute
   inline void Set( bool d, const STRING_T* v ) 
   { 
     SetDefined( d );
+    memset ( stringval, '\0',     MAX_STRINGSIZE+1);
     strcpy( stringval, *v);
 #ifdef USE_SERIALIZATION
     for( size = 0; (*v)[size] != '\0'; size++ );

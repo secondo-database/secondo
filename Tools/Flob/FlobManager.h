@@ -8,17 +8,21 @@ all functions are declared as private and Flob is declared to be a friend
 of that class.
 
 */
+#ifndef SEC_FLOBMGR_H
+#define SEC_FLOBMGR_H
 
-#include <map>
+
 #include "SecondoSMI.h"
 
 
-// forward declaration of the FLOB class
-class Flob;
+class Flob; 
+
 
 class FlobManager{
-   friend class Flob;	
-   private:	
+   friend class Flob;
+   friend class FlobCache;
+   friend class NativeFlobCache;
+   private:
 /*
  
 The FlobManager is realized to be a singleton. So, not the contructor
@@ -27,8 +31,18 @@ FlobManager instance.
 
 */    
 
-      static FlobManager& getInstance() ;	
+      static FlobManager& getInstance() ;
 
+/*
+~destroyInstance~
+
+Destroys the only instance of the FlobManager. This function must be called
+before Secondo exits to be sure that the nativ Flob file is closed correctly.
+After calling that function all nativ flobs (flobs not explicitely stored into
+file) are not longer available.
+
+*/
+      static bool destroyInstance();
 
 /*
 ~getData~
@@ -38,11 +52,12 @@ The __dest__ buffer must be provided by the caller. The requested content is cop
 to that buffer. 
 
 */
-	
+
       bool getData(const Flob& flob,            // Flob containing the data
                    char* dest,                  // destination buffer
                    const SmiSize&  offset,     // offset within the Flob 
-                   const SmiSize&  size) ;  // requested data size
+                   const SmiSize&  size,
+                   const bool ignoreCache = false) ;  // requested data size
 
 
 /*
@@ -52,7 +67,17 @@ Frees all resources occupied by the Flob. After destroying a flob. No data can b
 accessed.
 
 */
-      void destroy(Flob& victim);
+      bool destroy(Flob& victim);
+
+
+/*
+~destroyIfNonPersistent~
+
+Detroys the content of the flob if the flob is a native one.
+
+*/
+      bool destroyIfNonPersistent(Flob& victim);
+
 
 
 /*
@@ -71,6 +96,12 @@ function.
                   Flob& result);    // offset within the record  
 
 
+      bool saveTo(const Flob& src,   // Flob tp save
+                  SmiRecordFile* file,  // target file id
+                  const SmiRecordId& recordId, // target record id
+                  const SmiSize& offset,
+                  Flob& result);    // offset within the record  
+
 /*
 ~saveTo~
 
@@ -84,6 +115,10 @@ is the result of this function.
                   const SmiFileId fileId,
                   Flob& result);  // target file id
 
+      
+     bool saveTo(const Flob& src,             // flob to save
+                 SmiRecordFile* file,  // target file
+                 Flob& result);  // the new flob position
 
 /*
 ~putData~
@@ -95,7 +130,8 @@ Puts data into a flob.
       bool putData(const Flob& dest,         // destination flob
                          const char* buffer, // source buffer
                          const SmiSize& targetoffset,  // offset within the Flob
-                         const SmiSize& length);  // data size
+                         const SmiSize& length,
+                         const bool ignoreCache = false);  // data size
 
 /*
 ~create~
@@ -120,7 +156,30 @@ Creates a new flob with given file and position.
                   const SmiSize& size,
                   Flob& result);       // initial size of the Flob
 
+/*
+~createFrom~
+
+return a Flob with persistent storage allocated and defined elsewhere
+
+*/      
+
+      static Flob createFrom( const SmiFileId& fid,
+                              const SmiRecordId& rid,
+                              const SmiSize& offset, 
+                              const SmiSize& size); 
+
+
       bool copyData(const Flob& src, Flob& dest);
+
+/*
+~resize~
+
+Changes the size of a given Flob to the specified size.
+
+*/
+     bool resize(Flob& flob, const SmiSize& newSize);
+
+
 
 /*
 ~constructor~
@@ -131,6 +190,40 @@ by the FlobManager class itself.
 */
 
       FlobManager();
+
+/*
+~dropfile~
+
+If Flob data is stored into a file, the flobmanager will
+create a new File from the file id and keep the open file.
+If the file should be deleted or manipulated by other code,
+the flobmanger has to giv up the control over that file.
+This can be realized by calling the ~dropFile~ function.
+
+*/
+     bool dropFile(const SmiFileId& id);
+
+/*
+~dropFiles~
+
+Will drop all files except the native flob file.
+
+*/
+     bool dropFiles();
+
+
+
+/*
+~Destructor~
+
+The destructor should never be called from outside. Instead the destroyInstance
+function should be called. By calling the destructor, all open files are closed
+and the nativFlobFile is deleted.
+
+
+*/
+     ~FlobManager();
+
 
 /*
 ~instance~
@@ -156,6 +249,15 @@ File id for freshly created Flobs. Only to use by the Flobmanager class itself.
     map<SmiFileId, SmiRecordFile*> openFiles;
 
 /*
+~changed~
+
+Flag determining whether the openFiles was changed - for debugging only. 
+
+*/
+    bool changed;
+
+
+/*
 ~getFile~
 
 Return the file to a fileid;
@@ -164,9 +266,8 @@ Return the file to a fileid;
    SmiRecordFile* getFile(const SmiFileId& fileId);
 
 
-
 };
 
 
-FlobManager* FlobManager::instance = 0;
 
+#endif
