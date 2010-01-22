@@ -24,6 +24,59 @@ Tuple* result_value( Tuple* t ) { return t; }
 template< typename T > Attribute* result_value( T attr )
     { return static_cast<Attribute*>( attr ); }
 
+
+
+void setResultValue(void* resAddr, const bool b){
+  (static_cast<CcBool*>(resAddr))->Set(true, b); 
+} 
+void setResultValue(void* resAddr, const string& s){
+  (static_cast<CcString*>(resAddr))->Set(true,s);
+}
+void setResultValue(void* resAddr, const int i){
+  (static_cast<CcInt*>(resAddr))->Set(true, i); 
+} 
+void setResultValue(void* resAddr, const double d){
+  (static_cast<CcReal*>(resAddr))->Set(true, d); 
+}
+
+void setResultValue(void* resAddr, const Attribute* a){
+   (static_cast<Attribute*>(resAddr))->CopyFrom(a);
+}
+
+void setResultValue(void*& resAddr, Tuple* t){
+  resAddr = t;
+} 
+
+template<typename T> void setResultValue(void* resAddr, T attr){
+  (static_cast<T>(resAddr))->CopyFrom(attr);
+}
+
+
+void delPointer(int i) { }
+void delPointer(string s){}
+void delPointer(double d){ }
+void delPointer(bool b){ }
+
+void delPointer(Attribute*& a){
+   a->DeleteIfAllowed(); 
+   a=0;
+}
+
+void delPointer(Tuple*& t){
+   t->DeleteIfAllowed();
+   t=0;
+}
+
+template<typename T>
+void delPointer(T*& p){ 
+   p->DeleteIfAllowed(); 
+   p = 0;
+}
+
+
+
+
+
 void* on_open_arg( void* arg, void* ){ return arg; }
 void* on_request_arg( void* arg, void* ){ return arg; }
 
@@ -38,6 +91,7 @@ template< typename T > T& on_open_arg( void* arg, T* ){
 template< typename T > T& on_request_arg( void* arg, T* ){
     return *static_cast<T*>( arg );
 }
+
 template< typename T > void on_close_arg( void* arg, T* ){}
 
 
@@ -107,8 +161,11 @@ int unary_value_map( Word* args, Word& result, int msg, Word&, Supplier s )
 //    {
         try
         {
-            result.addr = result_value( O()
-                ( on_request_arg( args[0].addr, (A*)0 ) ) );
+            // result.addr = result_value( O()
+            //    ( on_request_arg( args[0].addr, (A*)0 ) ) );
+            R res = O()(on_request_arg(args[0].addr, (A*)0));
+            setResultValue(result.addr, res);
+            delPointer(res);
             return 0;
         }
         catch( const exception& e ) {
@@ -135,9 +192,14 @@ int binary_value_map( Word* args, Word& result, int, Word&, Supplier s )
 //    {
         try
         {
-            result.addr = result_value( O()
-                ( on_request_arg( args[0].addr, (A1*)0 ),
-                  on_request_arg( args[1].addr, (A2*)0 ) ) );
+           R res = O()(on_request_arg(args[0].addr, (A1*)0) ,
+                       on_request_arg(args[1].addr, (A2*)0));
+           setResultValue(result.addr, res);
+           delPointer(res);
+  
+//            result.addr = result_value( O()
+//                ( on_request_arg( args[0].addr, (A1*)0 ),
+//                  on_request_arg( args[1].addr, (A2*)0 ) ) );
             return 0;
         }
         catch( const exception& e ) {
@@ -168,10 +230,12 @@ int ternary_value_map( Word* args, Word& result, int, Word&, Supplier s )
 //    {
         try
         {
-            result.addr = result_value( O()
+            R res  =  O()
                 ( on_request_arg( args[0].addr, (A1*)0 ),
                   on_request_arg( args[1].addr, (A2*)0 ),
-                  on_request_arg( args[2].addr, (A3*)0 ) ) );
+                  on_request_arg( args[2].addr, (A3*)0 ) );
+            setResultValue(result.addr, res);
+            delPointer(res);
             return 0;
         }
         catch( const exception& e ) {
@@ -227,6 +291,8 @@ int unary_stream_value_map( Word* args, Word& result,
                     result = qp->ResultStorage( s );
                     result.addr = result_value( r.second );
                     return YIELD;
+                } else {
+                  delPointer(r.second);
                 }
             }
             catch( const exception& e ){

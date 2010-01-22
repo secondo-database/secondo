@@ -32,6 +32,7 @@ using namespace std;
 #include "NestedList.h"
 #include "JPEGPicture.h"
 #include "PictureAlgebra.h"
+#include "Attribute.h"
 
 extern NestedList* nl;
 extern QueryProcessor *qp;
@@ -78,29 +79,29 @@ of this module.
 */
 
 int PictureHeightValueMap(Word* args,
-			  Word& result,
-			  int message,
-			  Word& local,
-			  Supplier s) {
+                    Word& result,
+                    int message,
+                    Word& local,
+                    Supplier s) {
     if (PA_DEBUG) cerr << "PictureHeightValueMap() called" << endl;
 
-    Picture* p = ((Picture*) args[0].addr);
+    Picture* p = static_cast<Picture*>( args[0].addr);
 
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
-	((CcInt*) result.addr)->Set(true, (int) p->GetHeight());
+       ((CcInt*) result.addr)->Set(true, (int) p->GetHeight());
     else
-	((CcInt*) result.addr)->Set(false, 0);
+       ((CcInt*) result.addr)->Set(false, 0);
 
     return 0;
 }
 
 int PictureWidthValueMap(Word* args,
-			 Word& result,
-			 int message,
-			 Word& local,
-			 Supplier s) {
+                   Word& result,
+                   int message,
+                   Word& local,
+                   Supplier s) {
     if (PA_DEBUG) cerr << "PictureWidthValueMap() called" << endl;
 
     Picture* p = ((Picture*) args[0].addr);
@@ -108,18 +109,18 @@ int PictureWidthValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
-	((CcInt*) result.addr)->Set(true, (int) p->GetWidth());
+      ((CcInt*) result.addr)->Set(true, (int) p->GetWidth());
     else
-	((CcInt*) result.addr)->Set(false, 0);
+      ((CcInt*) result.addr)->Set(false, 0);
 
     return 0;
 }
 
 int PictureIsGrayscaleValueMap(Word* args,
-			       Word& result,
-			       int message,
-			       Word& local,
-			       Supplier s) {
+                         Word& result,
+                         int message,
+                         Word& local,
+                         Supplier s) {
     if (PA_DEBUG) cerr << "PictureIsGrayscaleValueMap() called" << endl;
 
     Picture* p = ((Picture*) args[0].addr);
@@ -127,9 +128,9 @@ int PictureIsGrayscaleValueMap(Word* args,
     result = qp->ResultStorage(s);
 
     if (p->IsDefined())
-	((CcBool*) result.addr)->Set(true, (bool) p->IsGrayScale());
+      ((CcBool*) result.addr)->Set(true, (bool) p->IsGrayScale());
     else
-	((CcBool*) result.addr)->Set(false, 0);
+      ((CcBool*) result.addr)->Set(false, 0);
 
     return 0;
 }

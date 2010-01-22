@@ -18,9 +18,4 @@ Number    : 1
 Signature : mbool x bool -> mbool
 Example   : query ndefunit(mdirection(train7) > 90.0, TRUE)
 Result    : file
-
-Operator  : exportmpoints
-Number    : 1
-Signature : stream x string x string x duration x string -> mbool
-Example   : query Trains feed addcounter[Cnt, 0] sortby[Trip] exportmpoints[Trip, Cnt, create_duration(0, 120000), "Trains_2min.dat"]
-Result    : file
+ 

@@ -232,6 +232,7 @@ Necessary to difference between an empty and an undefined collection.
 //#define DEBUG
 //#define DEBUGHEAD
 
+
 #include "Algebra.h"
 #include "NestedList.h"
 #include "NList.h"
@@ -239,8 +240,10 @@ Necessary to difference between an empty and an undefined collection.
 #include "QueryProcessor.h"
 #include "ConstructorTemplates.h"
 #include "StandardTypes.h"
-#include "DBArray.h"
 #include "Attribute.h"
+#include "../../Tools/Flob/Flob.h"
+#include "../../Tools/Flob/DbArray.h"
+
 
 extern NestedList* nl;
 extern QueryProcessor* qp;
@@ -251,6 +254,7 @@ extern QueryProcessor* qp;
 using namespace symbols;
 using namespace mappings;
 
+#include <vector>
 #include <string>
 using namespace std;
 
@@ -300,7 +304,7 @@ namespace collection {
 
     int NumOfFLOBs() const;
 
-    FLOB* GetFLOB(const int i);
+    Flob* GetFLOB(const int i);
 
     static bool Open(SmiRecord& valueRecord, size_t& offset,
                      const ListExpr typeInfo, Word& value);
@@ -320,17 +324,11 @@ namespace collection {
 
     Collection* Clone() const;
 
-    bool IsDefined() const;
-
-    void SetDefined(const bool defined);
-
     void Finish();
 
     ostream& Print( ostream& os ) const;
 
     static void* Cast(void* addr);
-
-
 
     void Insert(Attribute* elem, const int count);
 /*
@@ -416,6 +414,14 @@ GetComponent(pos) or GetComponentCount(pos).
 
     Collection* Delete(const Attribute* elem) const;
 
+    void Clear();
+
+/*
+Resets the Collection to well-defined settings.
+Does NOT change the ~defined~ flag!
+
+*/
+
 
     private:
     Collection() {}
@@ -451,7 +457,6 @@ If elem is not saved yet, -1 is returned.
 
     void AddHashValue(const int value, const int count);
 
-    bool defined;
     int elemAlgId, elemTypeId;
     int size;
 /*
@@ -470,21 +475,21 @@ See firstElemHashValue and nextElemHashValue.
     size_t hashValue;
     CollectionType collType;
 
-    DBArray<size_t> elemFLOBDataOffset;
+    DbArray<size_t> elemFLOBDataOffset;
 /*
 We use this DBArray to save the offsets at which the FLOB contents of the
 elements are saved in elementData;
 
 */
 
-    DBArray<int> elemCount;
+    DbArray<int> elemCount;
 /*
 This DBArray is used only, if our collection is a multiset, to save the count
 of every element.
 
 */
 
-    DBArray<int> elemArrayIndex;
+    DbArray<int> elemArrayIndex;
 /*
 Returns the index for every element, where index[*]sizeOfObj is the
 offset of the desired elem in the elements FLOB.
@@ -502,8 +507,8 @@ elemCount(index) (if the collection is a multiset).
 
 */
 
-    DBArray<int> firstElemHashValue;
-    DBArray<int> nextElemHashValue;
+    DbArray<int> firstElemHashValue;
+    DbArray<int> nextElemHashValue;
 /*
 To allow a fast search of an element, we save the index of the first element
 with (hashvalue mod numOfBuckets) in this array at (hashvalue mod
@@ -518,8 +523,8 @@ fast.
 
 */
 
-    FLOB elements;
-    FLOB elementData;
+    Flob elements;
+    Flob elementData;
 /*
 In this FLOB we save the data of our elements.
 
@@ -540,7 +545,7 @@ Create a Collection of type (vector, set, multiset or undef) with typeInfo.
 */
   Collection::Collection(const CollectionType type, const ListExpr typeInfo,
                                 const int buckets /* = 10 */):
-    defined(false), size(0), hashValue(0), collType(type),
+    size(0), hashValue(0), collType(type),
     elemFLOBDataOffset(0), elemCount(0), elemArrayIndex(0),
     firstElemHashValue(0), nextElemHashValue(0),
     elements(0), elementData(0)
@@ -548,6 +553,7 @@ Create a Collection of type (vector, set, multiset or undef) with typeInfo.
 #ifdef DEBUGHEAD
 cout << "Collection(1)" << endl;
 #endif
+    SetDefined(false);
     GetIds(elemAlgId, elemTypeId, typeInfo);
     numOfBuckets = buckets;
     if(buckets < 10) {
@@ -568,7 +574,7 @@ Create a Collection by copying all data from coll.
     firstElemHashValue(0), nextElemHashValue(0), elements(0), elementData(0)
   {
 #ifdef DEBUGHEAD
-cout << "Collection(2)" << endl;
+    cout << "Collection(2)" << endl;
 #endif
     size = 0;
     elemAlgId = coll.elemAlgId;
@@ -582,53 +588,19 @@ cout << "Collection(2)" << endl;
         firstElemHashValue.Append(-1);
       }
     } else {
-      SetDefined(coll.IsDefined());
-      hashValue = coll.hashValue;
-      numOfBuckets = coll.numOfBuckets;
-
-      for(int i=0;i<coll.elemFLOBDataOffset.Size();i++) {
-        const size_t* offset;
-        coll.elemFLOBDataOffset.Get(i, offset);
-        elemFLOBDataOffset.Append(*offset);
-      }
-
-      for(int i=0;i<coll.elemCount.Size();i++) {
-        const int* count;
-        coll.elemCount.Get(i, count);
-        elemCount.Append(*count);
-      }
-
-      for(int i=0;i<coll.elemArrayIndex.Size();i++) {
-        const int* index;
-        coll.elemArrayIndex.Get(i, index);
-        elemArrayIndex.Append(*index);
-      }
-
-      for(int i=0;i<coll.firstElemHashValue.Size();i++) {
-        const int* elem;
-        coll.firstElemHashValue.Get(i, elem);
-        firstElemHashValue.Append(*elem);
-      }
-
-      for(int i=0;i<coll.nextElemHashValue.Size();i++) {
-        const int* elem;
-        coll.nextElemHashValue.Get(i, elem);
-        nextElemHashValue.Append(*elem);
-      }
-
-      const char* data;
-      if(coll.elements.Size()>0) {
-        coll.elements.Get(0, &data, false);
-        elements.Resize(coll.elements.Size());
-        elements.Put(0, coll.elements.Size(), data);
-      }
-      if(coll.elementData.Size()>0) {
-        coll.elementData.Get(0, &data, false);
-        elementData.Resize(coll.elementData.Size());
-        elementData.Put(0, coll.elementData.Size(), data);
-      }
+        SetDefined( coll.IsDefined() );
+        hashValue = coll.hashValue;
+        numOfBuckets = coll.numOfBuckets;
+        elemFLOBDataOffset.copyFrom(coll.elemFLOBDataOffset);
+        elemCount.copyFrom(coll.elemCount);
+        elemArrayIndex.copyFrom(coll.elemArrayIndex);
+        firstElemHashValue.copyFrom(coll.firstElemHashValue);
+        nextElemHashValue.copyFrom(coll.nextElemHashValue);
+        elements.copyFrom(coll.elements);
+        elementData.copyFrom(coll.elementData);
     }
   }
+
 
 
 /*
@@ -639,7 +611,7 @@ of our subtype there.
 
 */
   Collection::Collection(CollectionType type):
-    defined(false), elemAlgId(0), elemTypeId(0), size(0), numOfBuckets(0),
+    elemAlgId(0), elemTypeId(0), size(0), numOfBuckets(0),
     hashValue(0), collType(type), elemFLOBDataOffset(0),
     elemCount(0), elemArrayIndex(0), firstElemHashValue(0),
     nextElemHashValue(0), elements(0), elementData(0)
@@ -647,11 +619,11 @@ of our subtype there.
 #ifdef DEBUGHEAD
 cout << "Collection(3)" << endl;
 #endif
+    SetDefined(false);
   }
 
 
   Collection::~Collection() {}
-
 
   Word Collection::In(const ListExpr typeInfo, const ListExpr instance,
                       const int errorPos, ListExpr& errorInfo, bool& correct) {
@@ -659,18 +631,33 @@ cout << "Collection(3)" << endl;
 cout << "In" << endl << "    TypeInfo: " << nl->ToString(typeInfo) << endl;
 #endif
     Word w = SetWord(Address(0));
+    bool defined = true;
+    correct = true;
     if(nl->IsAtom(typeInfo) || nl->ListLength(typeInfo)!=2) {
       correct = false;
       return w;
     }
     CollectionType collType = GetCollType(nl->First(typeInfo));
-    if((collType == undef) || nl->IsAtom(instance)) {
+    if( collType == undef ) {
+        correct = false;
+      return w;
+    }
+
+    if ( nl->IsAtom( instance ) && nl->AtomType( instance ) == SymbolType
+         && nl->SymbolValue( instance ) == "undef" ){
+      defined = false;
+    } else if( nl->IsAtom(instance) ){
       correct = false;
       return w;
     }
 
     Collection* coll = new Collection(collType, typeInfo,
                                         nl->ListLength(instance));
+    coll->SetDefined( defined );
+    if(!defined){
+      w.addr = coll;
+      return w;
+    }
 
     ListExpr first = nl->TheEmptyList();
     ListExpr rest = instance;
@@ -685,7 +672,7 @@ cout << "In" << endl << "    TypeInfo: " << nl->ToString(typeInfo) << endl;
       first = nl->First(rest);
       rest = nl->Rest(rest);
       if(collType==multiset) {
-        if(nl->ListLength(first)!=2) {
+        if(nl->IsAtom(first) || nl->ListLength(first)!=2) {
           correct = false;
         } else {
           elemList = nl->First(first);
@@ -701,11 +688,16 @@ cout << "In" << endl << "    TypeInfo: " << nl->ToString(typeInfo) << endl;
       }
       if(correct) {
         coll->Insert(static_cast<Attribute*>(elemWord.addr), count);
+        (static_cast<Attribute*>(elemWord.addr))->DestroyFlobs();
+        (static_cast<Attribute*>(elemWord.addr))->DeleteIfAllowed();
       }
     }
     if(correct) {
       coll->Finish();
       w.addr = coll;
+    } else {
+      coll->DestroyFlobs();
+      coll->DeleteIfAllowed();
     }
     return w;
   }
@@ -725,7 +717,7 @@ cout << "Out" << endl
 #endif
     Collection* coll = static_cast<Collection*>(value.addr);
     if(!coll->IsDefined()) {
-      return nl->OneElemList(nl->StringAtom("Element ist nicht definiert!"));
+      return nl->SymbolAtom("undef");
     }
     int size = coll->GetNoUniqueComponents();
     if(size == 0) {
@@ -746,6 +738,8 @@ cout << "Out" << endl
     }
     ListExpr last = ret;
     for(int i=1;i<size;i++) {
+      elem->DestroyFlobs();
+      elem->DeleteIfAllowed(); elem = 0;
       elem = coll->GetComponent(i);
       elemExpr = (am->OutObj(coll->elemAlgId, coll->elemTypeId))
                               (subtypeInfo, SetWord(elem));
@@ -758,6 +752,10 @@ cout << "Out" << endl
         app = elemExpr;
       }
       last = nl->Append(last, app);
+    }
+    if(elem){
+      elem->DestroyFlobs();
+      elem->DeleteIfAllowed();
     }
     return ret;
   }
@@ -879,7 +877,7 @@ cout << "NumOfFLOBs" << endl;
   }
 
 
-  FLOB* Collection::GetFLOB(const int i) {
+  Flob* Collection::GetFLOB(const int i) {
 #ifdef DEBUGHEAD
 cout << "GetFLOB: " << i << endl;
 #endif
@@ -927,8 +925,6 @@ cout << "Save: " << nl->ToString(typeInfo) << endl;
 
 /*NOCH ZU MACHEN:
 
-ostream& Print( ostream& os ) const;
-
 Collection* Delete(Attribute* elem) const;
 
 Collection* Union(Collection* coll) const;
@@ -948,42 +944,47 @@ arg.
 
   int Collection::Compare(const Attribute* arg) const {
 #ifdef DEBUGHEAD
-cout << "Compare" << endl;
+    cout << "Compare" << endl;
 #endif
-  Collection* collToCompare = (Collection*)arg;
+    Collection* collToCompare = (Collection*)arg;
 
-  if(!IsDefined() && !collToCompare->IsDefined()){
-    return 0;
-  }else if(!IsDefined()){
-    return -1;
-  }else if(!collToCompare->IsDefined()){
-    return 1;
-  }
+    assert(collType == collToCompare->collType);
 
-  if(collToCompare->GetNoComponents() != GetNoComponents()){
-    return   collToCompare->GetNoComponents() > GetNoComponents()
-                ? -1 : 1;
-  }else{
-    int countCompareElem = 0;
-    int countOwnElem = 0;
-    int compareResult;
-
-    for(int eCnt = 0; eCnt < GetNoUniqueComponents(); eCnt++){
-        countCompareElem = collToCompare->GetComponentCount(eCnt);
-        countOwnElem = GetComponentCount(eCnt);
-
-
-        if((compareResult = GetComponent(eCnt)->Compare(
-                        collToCompare->GetComponent(eCnt))) != 0){
-            return compareResult;
-        }
-
-        if(countCompareElem != countOwnElem){
-            return countCompareElem > countOwnElem ? 1 : -1;
-        }
+    if(!IsDefined() && !collToCompare->IsDefined()){
+      return 0;
+    }else if(!IsDefined()){
+      return -1;
+    }else if(!collToCompare->IsDefined()){
+      return 1;
     }
-  }
 
+    if(collToCompare->GetNoComponents() != GetNoComponents()){
+      return   collToCompare->GetNoComponents() > GetNoComponents()
+                  ? -1 : 1;
+    }else if(collToCompare->GetNoUniqueComponents() != GetNoUniqueComponents()){
+      return   collToCompare->GetNoComponents() > GetNoComponents() ? -1 : 1;
+    }else{
+      int countCompareElem = 0;
+      int countOwnElem = 0;
+      int compareResult;
+
+      for(int eCnt = 0; eCnt < GetNoUniqueComponents(); eCnt++){
+          countCompareElem = collToCompare->GetComponentCount(eCnt);
+          countOwnElem = GetComponentCount(eCnt);
+
+          Attribute* elem1 = GetComponent(eCnt);
+          Attribute* elem2 = collToCompare->GetComponent(eCnt);
+          compareResult = elem1->Compare(elem2);
+          elem1->DestroyFlobs(); elem1->DeleteIfAllowed();
+          elem2->DestroyFlobs(); elem2->DeleteIfAllowed();
+          if(compareResult != 0){
+              return compareResult;
+          }
+          if(countCompareElem != countOwnElem){
+              return countCompareElem > countOwnElem ? 1 : -1;
+          }
+      }
+    }
     return 0;
   }
 
@@ -1009,79 +1010,23 @@ cout << "Sort" << endl;
 cout << "CopyFrom" << endl;
 #endif
     const Collection* coll = static_cast<const Collection*>(right);
-    this->defined = coll->defined;
+    this->collType = coll->collType;
     this->elemAlgId = coll->elemAlgId;
     this->elemTypeId = coll->elemTypeId;
-    this->size = coll->size;
-    this->numOfBuckets = coll->numOfBuckets;
-    this->hashValue = coll->hashValue;
-    this->collType = coll->collType;
-
-    if(coll->elemFLOBDataOffset.Size()>0) {
-      this->elemFLOBDataOffset.Resize(coll->elemFLOBDataOffset.Size());
-      for(int i=0;i<coll->elemFLOBDataOffset.Size();i++) {
-        const size_t* fData;
-        coll->elemFLOBDataOffset.Get(i, fData);
-        this->elemFLOBDataOffset.Put(i, *fData);
-      }
+    this->SetDefined( coll->IsDefined() );
+    if( !coll->IsDefined() ){
+      this->Clear();
     } else {
-      this->elemFLOBDataOffset.Clear();
-    }
-    if(coll->elemCount.Size()>0) {
-      this->elemCount.Resize(coll->elemCount.Size());
-      for(int i=0;i<coll->elemCount.Size();i++) {
-        const int* count;
-        coll->elemCount.Get(i, count);
-        this->elemCount.Put(i, *count);
-      }
-    } else {
-      this->elemCount.Clear();
-    }
-    if(coll->elemArrayIndex.Size()>0) {
-      this->elemArrayIndex.Resize(coll->elemArrayIndex.Size());
-      for(int i=0;i<coll->elemArrayIndex.Size();i++) {
-        const int* index;
-        coll->elemArrayIndex.Get(i, index);
-        this->elemArrayIndex.Put(i, *index);
-      }
-    } else {
-      this->elemArrayIndex.Clear();
-    }
-    if(coll->firstElemHashValue.Size()>0) {
-      this->firstElemHashValue.Resize(coll->firstElemHashValue.Size());
-      for(int i=0;i<coll->firstElemHashValue.Size();i++) {
-        const int* fValue;
-        coll->firstElemHashValue.Get(i, fValue);
-        this->firstElemHashValue.Put(i, *fValue);
-      }
-    } else {
-      this->firstElemHashValue.Clear();
-    }
-    if(coll->nextElemHashValue.Size()>0) {
-      this->nextElemHashValue.Resize(coll->nextElemHashValue.Size());
-      for(int i=0;i<coll->nextElemHashValue.Size();i++) {
-        const int* nValue;
-        coll->nextElemHashValue.Get(i, nValue);
-        this->nextElemHashValue.Put(i, *nValue);
-      }
-    } else {
-      this->nextElemHashValue.Clear();
-    }
-
-    const char* data;
-    if(coll->elements.Size()>0) {
-      coll->elements.Get(0, &data, false);
-      this->elements.Resize(coll->elements.Size());
-      this->elements.Put(0, coll->elements.Size(), data);
-    } else {
-      this->elements.Clean();
-    }
-    if(coll->elementData.Size()>0) {
-      coll->elementData.Get(0, &data, false);
-      this->elementData.Resize(coll->elementData.Size());
-      this->elementData.Put(0, coll->elementData.Size(), data);
-    } else {
-      this->elementData.Clean();
+      this->size = coll->size;
+      this->numOfBuckets = coll->numOfBuckets;
+      this->hashValue = coll->hashValue;
+      this->elemFLOBDataOffset.copyFrom(coll->elemFLOBDataOffset);
+      this->elemCount.copyFrom(coll->elemCount);
+      this->elemArrayIndex.copyFrom(coll->elemArrayIndex);
+      this->firstElemHashValue.copyFrom(coll->firstElemHashValue);
+      this->nextElemHashValue.copyFrom(coll->nextElemHashValue);
+      this->elements.copyFrom(coll->elements);
+      this->elementData.copyFrom(coll->elementData);
     }
   }
 
@@ -1102,22 +1047,6 @@ cout << "Clone" << endl;
   }
 
 
-  bool Collection::IsDefined() const {
-#ifdef DEBUGHEAD
-cout << "IsDefined" << endl;
-#endif
-    return defined;
-  }
-
-
-  void Collection::SetDefined(const bool defined) {
-#ifdef DEBUGHEAD
-cout << "SetDefined" << endl;
-#endif
-    this->defined = defined;
-  }
-
-
   void Collection::Finish() {
 #ifdef DEBUGHEAD
 cout << "Finish" << endl;
@@ -1132,6 +1061,56 @@ cout << "Finish" << endl;
   ostream& Collection::Print( ostream& os ) const {
 #ifdef DEBUGHEAD
 cout << "Print" << endl;
+#endif
+    os << "Collection: ";
+    switch(collType){
+      case vector:
+        os << "vector";
+        break;
+      case set:
+        os << "set";
+        break;
+      case multiset:
+        os << "multiset";
+        break;
+      case undef:
+        os << "undef";
+        break;
+      default:
+        os << "ERROR" << endl;
+        return (os);
+    }
+    os << "(" << elemAlgId << "," << elemTypeId << "): ";
+    os << "\t" << (IsDefined() ? "defined." : "UNDEFINED." ) << endl;
+    os << "Number of contained Elements: " << GetNoComponents() << " ("
+       << GetNoUniqueComponents() << " unique)." << endl;
+    os << "--- Elements: begin ---" << endl;
+    Attribute* elem;
+    int times;
+    for(int i=0; i<GetNoUniqueComponents(); i++){
+      elem = GetComponent(i);
+      os << i << ":\t";
+      elem->Print(os);
+      if(collType == multiset){
+        times = GetComponentCount(i);
+        os << "(contained " << times << " times).";
+      }
+      os << endl;
+      elem->DestroyFlobs();
+      elem->DeleteIfAllowed();
+    }
+    os << "--- Elements: end ---" << endl;
+#ifdef DEBUG
+    os << "\tContains size = " << size << " elements." << endl;
+    os << "\tUses numOfBuckets = " << numOfBuckets << " buckets." << endl;
+    os << "\thashValue = " << hashValue << endl;
+    os << "\t\telemCount.Size() = " << elemCount.Size() << endl;
+    os << "\t\telemArrayIndex.Size() = " << elemArrayIndex.Size() << endl;
+    os << "\t\tfirstElemHashValue.Size() = " << firstElemHashValue.Size()<<endl;
+    os << "\t\tnextElemHashValue.Size() = " << nextElemHashValue.Size() << endl;
+    os << "\t\telemFLOBDataOffset.Size() = " <<elemFLOBDataOffset.Size()<< endl;
+    os << "\t\telements.getSize() = " << elements.getSize() << endl;
+    os << "\t\telementData.getSize() = " << elementData.getSize() << endl;
 #endif
     return (os);
   }
@@ -1155,12 +1134,11 @@ cout << "Insert" << endl;
         for(int i=0;i<count;i++) {
           elemArrayIndex.Append(index);
         }
-        AddHashValue((static_cast<Attribute*>(elem))->HashValue(),
-                              count);
+        AddHashValue((static_cast<Attribute*>(elem))->HashValue(),count);
       } else if (collType==multiset) {
-        const int* cnt;
-        elemCount.Get(index, cnt);
-        elemCount.Put(index, (*cnt+count));
+        int cnt;
+        elemCount.Get(index, &cnt);
+        elemCount.Put(index, (cnt+count));
         size += count;
         AddHashValue((static_cast<Attribute*>(elem))->HashValue(),
                               count);
@@ -1188,9 +1166,9 @@ cout << "Contains" << endl;
     int index = GetIndex(elem);
     if(index > -1) {
       if(collType == multiset) {
-        const int* count;
-        elemCount.Get(index, count);
-        return *count;
+        int count;
+        elemCount.Get(index, &count);
+        return count;
       } else {
         return 1;
       }
@@ -1205,9 +1183,9 @@ cout << "GetComponent" << endl;
 #endif
     assert(0<=pos);
     assert(pos<elemArrayIndex.Size());
-    const int* index;
-    elemArrayIndex.Get(pos, index);
-    return RestoreComponent(*index);
+    int index;
+    elemArrayIndex.Get(pos, &index);
+    return RestoreComponent(index);
   }
 
 
@@ -1220,11 +1198,11 @@ cout << "GetComponentCount" << endl;
     if(collType!=multiset) {
       return 1;
     }
-    const int* index;
-    elemArrayIndex.Get(pos, index);
-    const int* count;
-    elemCount.Get(*index, count);
-    return *count;
+    int index;
+    elemArrayIndex.Get(pos, &index);
+    int count;
+    elemCount.Get(index, &count);
+    return count;
   }
 
 
@@ -1343,7 +1321,7 @@ cout << "SortMerge" << endl;
     int pointer1 = start;
     int pointer2 = middle+1;
     int* help = new int[((end-start)+1)];
-    const int* index;
+    int index;
     int pointer3 = 0;
     Attribute* elem1 = GetComponent(pointer1);
     Attribute* elem2 = GetComponent(pointer2);
@@ -1351,34 +1329,38 @@ cout << "SortMerge" << endl;
     while(!finished) {
       int compare = elem1->Compare(elem2);
       if(compare>0) {
-        elemArrayIndex.Get(pointer2, index);
+        elemArrayIndex.Get(pointer2, &index);
         pointer2++;
         if(pointer2<=end) {
+          elem2->DestroyFlobs();
+          elem2->DeleteIfAllowed();
           elem2 = GetComponent(pointer2);
         } else {
           finished = true;
         }
       } else {
-        elemArrayIndex.Get(pointer1, index);
+        elemArrayIndex.Get(pointer1, &index);
         pointer1++;
         if(pointer1<=middle) {
+          elem1->DestroyFlobs();
+          elem1->DeleteIfAllowed();
           elem1 = GetComponent(pointer1);
         } else {
           finished = true;
         }
       }
-      help[pointer3] = *index;
+      help[pointer3] = index;
       pointer3++;
     }
     while(pointer1 <= middle) {
-      elemArrayIndex.Get(pointer1, index);
-      help[pointer3] = *index;
+      elemArrayIndex.Get(pointer1, &index);
+      help[pointer3] = index;
       pointer1++;
       pointer3++;
     }
     while(pointer2 <= end) {
-      elemArrayIndex.Get(pointer2, index);
-      help[pointer3] = *index;
+      elemArrayIndex.Get(pointer2, &index);
+      help[pointer3] = index;
       pointer2++;
       pointer3++;
     }
@@ -1390,6 +1372,8 @@ cout << "SortMerge" << endl;
       pointer3++;
     }
     delete[] help;
+    if(elem1){ elem1->DestroyFlobs(); elem1->DeleteIfAllowed(); }
+    if(elem2){ elem2->DestroyFlobs(); elem2->DeleteIfAllowed(); }
   }
 
   CollectionType Collection::GetCollType(const ListExpr collTypeInfo) {
@@ -1426,24 +1410,24 @@ cout << "SaveComponent" << endl;
     size_t index = elemFLOBDataOffset.Size();
     size_t size = (size_t)(am->SizeOfObj(elemAlgId, elemTypeId))();
     size_t offset = index*size;
-    if(elements.Size()<(offset+size)) {
-      if(elements.Size()<(8*size)) {
-        elements.Resize(8*size);
+    if(elements.getSize()<(offset+size)) {
+      if(elements.getSize()<(8*size)) {
+        elements.resize(8*size);
       } else {
-        elements.Resize(elements.Size()*2);
+        elements.resize(elements.getSize()*2);
       }
     }
-    elements.Put(offset, size, elem);
+    elements.write( (char*)(elem), size, offset );
 
-    offset = elementData.Size();
+    offset = elementData.getSize();
     elemFLOBDataOffset.Append(offset);
     for(int i=0;i<elem->NumOfFLOBs();i++) {
-      FLOB* tempFLOB = elem->GetFLOB(i);
-      size = tempFLOB->Size();
-      elementData.Resize(offset+size);
-      const char* data;
-      tempFLOB->Get(0, &data, false);
-      elementData.Put(offset, size, data);
+      Flob* tempFLOB = elem->GetFLOB(i);
+      size = tempFLOB->getSize();
+      elementData.resize(offset+size);
+      char data[size];
+      tempFLOB->read(data, size, 0);
+      elementData.write(data, size, offset);
       offset += size;
     }
 
@@ -1477,27 +1461,47 @@ cout << "RestoreComponent" << endl;
 
     ListExpr typeInfo = nl->TwoElemList(nl->IntAtom(elemAlgId),
                                         nl->IntAtom(elemTypeId));
-    Attribute* elem = (Attribute*)(am->CreateObj(elemAlgId, elemTypeId))
-                                    (typeInfo).addr;
+    Attribute* elem = static_cast<Attribute*>
+          ((am->CreateObj(elemAlgId, elemTypeId))(typeInfo).addr);
+
+
+    /*
+    size_t n1 = elem->Sizeof();
+    size_t n2 = am->SizeOfObj(elemAlgId, elemTypeId)();
+    cout << "n1 = " << n1 << " n2 =" << n2 << endl;
+    assert( n1 == n2);
+    */
+
+    std::vector<Flob> ff; /* freshflobs */
+    for(int i=0;i<elem->NumOfFLOBs();i++) {
+      ff.push_back( *elem->GetFLOB(i) );   
+    }	    
 
     size_t offset = (size_t)(pos*(am->SizeOfObj(elemAlgId, elemTypeId))());
-    elements.Get(offset, (const char**)&elem, false);
-    elem = (Attribute*)(am->Cast(elemAlgId, elemTypeId))(elem);
+    elements.read((char*)(elem), elem->Sizeof(), offset);
+    elem = static_cast<Attribute*>((am->Cast(elemAlgId, elemTypeId))(elem));
 
-    const size_t* temp;
-    elemFLOBDataOffset.Get(pos, temp);
-    offset = *temp;
     for(int i=0;i<elem->NumOfFLOBs();i++) {
-      FLOB* tempFLOB = elem->GetFLOB(i);
-      size_t size = tempFLOB->Size();
-#ifdef DEBUG
+      SmiSize fs = elem->GetFLOB(i)->getSize();
+      *elem->GetFLOB(i) = ff[i];
+      elem->GetFLOB(i)->resize(fs);   
+    }
+    size_t temp = 0;
+    elemFLOBDataOffset.Get(pos, &temp);
+    offset = temp;
+    for(int i=0;i<elem->NumOfFLOBs();i++) {
+      Flob* tempFLOB = elem->GetFLOB(i);
+      size_t size = tempFLOB->getSize();
+
+//#define X1_DEBUG      
+#ifdef X1_DEBUG
+cout << "  offset: " << offset << endl;
 cout << "  size(" << i << "): " << size << endl;
 #endif
-      const char* tempData;
-      elementData.Get(offset, &tempData, false);
-      size_t bytes = tempFLOB->ReadFrom((char*)tempData);
-      assert(size==bytes);
-      offset += bytes;
+      char tempData[size];
+      elementData.read(tempData, size, offset);
+      tempFLOB->write(tempData, size, 0);
+      offset += size;
     }
 
     return elem;
@@ -1514,9 +1518,8 @@ cout << "GetIndex" << endl;
     if(hashsum<0) {
       hashsum += numOfBuckets;
     }
-    const int* indexPointer;
-    firstElemHashValue.Get(hashsum, indexPointer);
-    int index = *indexPointer;
+    int index = -1;
+    firstElemHashValue.Get(hashsum, &index);
 #ifdef DEBUG
 cout << "  Statusbericht GetIndex-Funktion:" << endl
      << "    Hashsum: " << hashsum << endl
@@ -1525,11 +1528,12 @@ cout << "  Statusbericht GetIndex-Funktion:" << endl
     while(index>-1) {
       Attribute* elem2 = RestoreComponent(index);
       int comp = elem->Compare(elem2);
+      elem2->DestroyFlobs();
+      elem2->DeleteIfAllowed();
       if(comp==0) {
         return index;
       }
-      nextElemHashValue.Get(index, indexPointer);
-      index = *indexPointer;
+      nextElemHashValue.Get(index, &index);
 #ifdef DEBUG
 cout << "  Statusbericht GetIndex-Funktion:" << endl
      << "    Index: " << index << endl;
@@ -1549,10 +1553,8 @@ cout << "InsertIndex" << endl;
     if(hashsum<0) {
       hashsum += numOfBuckets;
     }
-    const int* indexPointer;
-    int index2;
-    firstElemHashValue.Get(hashsum, indexPointer);
-    index2 = *indexPointer;
+    int index2 = -1;
+    firstElemHashValue.Get(hashsum, &index2);
 #ifdef DEBUG
 cout << "  Statusbericht InsertIndex-Funktion" << endl
      << "    Hashsum: " << hashsum << endl
@@ -1561,15 +1563,14 @@ cout << "  Statusbericht InsertIndex-Funktion" << endl
     if(index2<0) {
       firstElemHashValue.Put(hashsum, index);
     } else {
-      int indexOld;
+      int indexOld(0);
       while(index2>-1) {
 #ifdef DEBUG
 cout << "  Statusbericht InsertIndex-Funktion" << endl
      << "    Index: " << index2 << endl;
 #endif
-        nextElemHashValue.Get(index2, indexPointer);
         indexOld = index2;
-        index2 = *indexPointer;
+        nextElemHashValue.Get(indexOld, &index2);
       }
       nextElemHashValue.Put(indexOld, index);
     }
@@ -1581,6 +1582,22 @@ cout << "  Statusbericht InsertIndex-Funktion" << endl
     hashValue += count*value;
   }
 
+  void Collection::Clear() {
+    elemFLOBDataOffset.clean();
+    elemCount.clean();
+    elemArrayIndex.clean();
+    firstElemHashValue.clean();
+    nextElemHashValue.clean();
+    elements.clean();
+    elementData.clean();
+    size = 0;
+    hashValue = 0;
+    numOfBuckets = 10;
+    firstElemHashValue.resize(numOfBuckets);
+    for(int i=0;i<numOfBuckets;i++) {
+        firstElemHashValue.Append(-1);
+    }
+  }
 
 /*
 3.3 Implementation of Property functions and TypeConstructors
@@ -1724,23 +1741,27 @@ cout << "ContainsTypeMapping:" << nl->ToString(args) << endl;
 #ifdef DEBUGHEAD
 cout << "ContainsInValueMap" << endl;
 #endif
+    result = qp->ResultStorage(s);
     Collection* coll;
     Attribute* elem;
     if(contains) {
       coll = static_cast<Collection*>(args[0].addr);
       elem = static_cast<Attribute*>(args[1].addr);
     } else {
-      coll = static_cast<Collection*>(args[1].addr);
       elem = static_cast<Attribute*>(args[0].addr);
+      coll = static_cast<Collection*>(args[1].addr);
     }
-    result = qp->ResultStorage(s);
+
+    if(!coll->IsDefined()){
+      (static_cast<Attribute*>(result.addr))->SetDefined(false);
+      return 0;
+    }
+
     int contained = coll->Contains(elem);
-    CcInt* count = new CcInt(true, contained);
-    CcBool* b = new CcBool(true, (contained==1));
     if(coll->GetMyCollType()==multiset) {
-      result.addr = count;
+      (static_cast<CcInt*>(result.addr))->Set(true, contained);
     } else {
-      result.addr = b;
+      (static_cast<CcBool*>(result.addr))->Set(true, (contained==1));
     }
     return 0;
   }
@@ -1827,10 +1848,12 @@ cout << "InsertValueMap" << endl;
 #endif
     Collection* coll = static_cast<Collection*>(args[0].addr);
     Attribute* elem = static_cast<Attribute*>(args[1].addr);
-    Collection* resColl = new Collection(*coll);
-    resColl->Insert(elem, 1);
+
     result = qp->ResultStorage(s);
-    result.addr = resColl;
+    Collection* resColl = static_cast<Collection*>(result.addr);
+
+    resColl->CopyFrom(static_cast<Attribute*>(coll));
+    resColl->Insert(elem, 1);
     return 0;
   }
 
@@ -1922,9 +1945,10 @@ cout << "  Statusbericht CreateTypeMap:" << endl
 cout << "CreateValueMap" << endl;
 #endif
     result = qp->ResultStorage(s);
+    Collection* resultColl = static_cast<Collection*>(result.addr);
     int sons = qp->GetNoSons(s);
-    Collection* coll = static_cast<Collection*>(result.addr);
-    Collection* resultColl = new Collection(*coll, true);
+    resultColl->Clear();
+    resultColl->SetDefined(true);
     int i = 0;
     while(i < sons) {
       Attribute* elem = static_cast<Attribute*>(args[i].addr);
@@ -1932,7 +1956,6 @@ cout << "CreateValueMap" << endl;
       i++;
     }
     resultColl->Finish();
-    result.addr = resultColl;
     return 0;
   }
 
@@ -2033,8 +2056,9 @@ cout << "CollectTypeMap: " << nl->ToString(args) << endl;
 cout << "CollectValueMap" << endl;
 #endif
     result = qp->ResultStorage(s);
-    Collection* coll = static_cast<Collection*>(result.addr);
-    Collection* resColl = new Collection(*coll, true);
+    Collection* resColl = static_cast<Collection*>(result.addr);
+    resColl->Clear();
+    resColl->SetDefined(true);
     Attribute* elemToInsert;
     Word elem = SetWord(Address(0));
 
@@ -2043,14 +2067,12 @@ cout << "CollectValueMap" << endl;
 
     while ( qp->Received(args[0].addr) )
     {
-        elemToInsert = (Attribute*) elem.addr;
+        elemToInsert = static_cast<Attribute*>(elem.addr);
         resColl->Insert(elemToInsert, 1);
         elemToInsert->DeleteIfAllowed();
         qp->Request(args[0].addr, elem);
     }
     resColl->Finish();
-    result.addr = resColl;
-
     qp->Close(args[0].addr);
 
     return 0;
@@ -2161,22 +2183,24 @@ cout << "ComponentsValueMap" << endl;
           local = SetWord(linfo);
           return 0;
         case REQUEST:
-          if ( local.addr == 0 )
+          if ( local.addr == 0 ){
+            result.addr = 0;
             return CANCEL;
+          }
 
           linfo = (ComponentsLocalInfo*)local.addr;
           if (linfo->componentCount <= 0){
             if(linfo->componentIndex + 1 >= coll->GetNoUniqueComponents()){
-                return CANCEL;
+              result.addr = 0;
+              return CANCEL;
             }else{
-                linfo->componentIndex++;
-                linfo->componentCount =
+              linfo->componentIndex++;
+              linfo->componentCount =
                             coll->GetComponentCount(linfo->componentIndex);
             }
           }
 
-          result = SetWord((coll->GetComponent(
-                                    linfo->componentIndex))->Clone());
+          result = SetWord(coll->GetComponent(linfo->componentIndex));
           linfo->componentCount--;
           return YIELD;
 
@@ -2261,14 +2285,16 @@ cout << "GetValueMap" << endl;
     CcInt* index = static_cast<CcInt*>( args[1].addr );
     int indexVal = index->GetIntval();
 
-    Attribute* resAttribute;
     result = qp->ResultStorage(s);
+    Attribute* resAttribute = static_cast<Attribute*>(result.addr);
 
     if(sourceColl->GetNoComponents() <= indexVal || indexVal < 0){
         ((Attribute*)result.addr)->SetDefined(false);
     }else{
-        resAttribute = sourceColl->GetComponent(indexVal);
-        result.addr = resAttribute;
+      Attribute* elem = sourceColl->GetComponent(indexVal);
+      resAttribute->CopyFrom(elem);
+      elem->DestroyFlobs();
+      elem->DeleteIfAllowed();
     }
 
     return 0;
@@ -2332,29 +2358,31 @@ cout << "DeleteTypeMap" << endl;
                        int message, Word& local, Supplier s) {
 
 #ifdef DEBUGHEAD
-cout << "DeleteValueMap" << endl;
+  cout << "DeleteValueMap" << endl;
 #endif
     Collection* sourceColl = static_cast<Collection*>(args[0].addr);
     Attribute* elemToDelete = static_cast<Attribute*>( args[1].addr );
 
-    result = qp->ResultStorage(s);
-    Collection* coll = static_cast<Collection*>(result.addr);
-    Collection* resColl = new Collection(*coll, true);
+    result = qp->ResultStorage( s );
+    Collection* resColl = static_cast<Collection*>(result.addr);
+    resColl->Clear();
 
-    for(int eCnt = 0; eCnt < sourceColl->GetNoUniqueComponents(); eCnt++){
-        int componentCount = sourceColl->GetComponentCount(eCnt);
-
-        if(sourceColl->GetComponent(eCnt)->Compare(elemToDelete) == 0){
-            componentCount--;
+    if(!sourceColl->IsDefined()){
+      resColl->SetDefined(false);
+    }else{
+      for(int i = 0; i < sourceColl->GetNoUniqueComponents(); i++){
+        int componentCount = sourceColl->GetComponentCount(i);
+        Attribute* elem = sourceColl->GetComponent(i);
+        if(elem->Compare(elemToDelete) == 0){
+          componentCount--;
         }
-
         if(componentCount > 0){
-            resColl->Insert(sourceColl->GetComponent(eCnt), componentCount);
+          resColl->Insert(elem, componentCount);
         }
+        if(elem) { elem->DestroyFlobs(); elem->DeleteIfAllowed(); }
+      }
+      resColl->Finish();
     }
-    resColl->Finish();
-    result.addr = resColl;
-
     return 0;
   }
 
@@ -2422,15 +2450,16 @@ cout << "ConcatValueMap" << endl;
     Collection* vector1 = static_cast<Collection*>(args[0].addr);
     Collection* vector2 = static_cast<Collection*>(args[1].addr);
 
-    Collection* resVector = new Collection(*vector1);
+    result = qp->ResultStorage( s );
+    Collection *resVector = static_cast<Collection*>(result.addr);
+    resVector->CopyFrom(static_cast<Attribute*>(vector1));
 
     for(int eCnt = 0; eCnt < vector2->GetNoUniqueComponents(); eCnt++){
-        resVector->Insert(vector2->GetComponent(eCnt), 1);
+        Attribute* elem = vector2->GetComponent(eCnt);
+        resVector->Insert(elem, 1);
+        elem->DestroyFlobs(); elem->DeleteIfAllowed();
     }
     resVector->Finish();
-    result = qp->ResultStorage(s);
-    result.addr = resVector;
-
     return 0;
   }
 
@@ -2512,14 +2541,19 @@ cout << "MathSetTypeMap" << endl;
   int MathSetOperationValueMap( Word* args, Word& result,
                       int message, Word& local, Supplier s) {
 #ifdef DEBUGHEAD
-cout << "MathSetValueMap" << endl;
+    cout << "MathSetValueMap" << endl;
 #endif
     Collection* coll1 = static_cast<Collection*>(args[0].addr);
     Collection* coll2 = static_cast<Collection*>(args[1].addr);
 
-    result = qp->ResultStorage(s);
-    Collection* coll = static_cast<Collection*>(result.addr);
-    Collection* resColl = new Collection(*coll, true);
+    result = qp->ResultStorage( s );
+    Collection* resColl = static_cast<Collection*>(result.addr);
+    resColl->Clear();
+
+    if( !coll1->IsDefined() || !coll2->IsDefined() ){
+      resColl->SetDefined( false );
+      return 0;
+    }
 
     int insertCnt;
 
@@ -2529,102 +2563,129 @@ cout << "MathSetValueMap" << endl;
     int elementIdx1 = 0;
     int elementIdx2 = 0;
 
-    bool coll1Ended = noColl1Components <= elementIdx1;
-    bool coll2Ended = noColl2Components <= elementIdx2;
+    bool coll1Ended = (noColl1Components <= elementIdx1);
+    bool coll2Ended = (noColl2Components <= elementIdx2);
 
+    bool restore1 = !coll1Ended;
+    bool restore2 = !coll2Ended;
+
+    Attribute* elem1 = 0;
+    Attribute* elem2 = 0;
     while(!coll1Ended && !coll2Ended){
-      int compareRes = coll1->GetComponent(elementIdx1)->Compare(
-                                coll2->GetComponent(elementIdx2));
-
-      switch(compareRes){
-      case -1:
-        switch(opType){
-        case unionOp:
-          resColl->Insert(coll1->GetComponent(elementIdx1),
-                          coll1->GetComponentCount(elementIdx1));
-          break;
-        case differenceOp:
-          resColl->Insert(coll1->GetComponent(elementIdx1),
-                          coll1->GetComponentCount(elementIdx1));
-          break;
-        default:
-          break;
-        }
-        elementIdx1++;
-        break;
-      case 0:
-        switch(opType){
-        case unionOp:
-          resColl->Insert(coll1->GetComponent(elementIdx1),
-                            coll1->GetComponentCount(elementIdx1)
-                            + coll2->GetComponentCount(elementIdx2));
-          break;
-        case intersectionOp:
-          insertCnt =
-                 coll1->GetComponentCount(elementIdx1) >
-                          coll2->GetComponentCount(elementIdx2) ?
-                          coll2->GetComponentCount(elementIdx2) :
-                          coll1->GetComponentCount(elementIdx1);
-          resColl->Insert(coll1->GetComponent(elementIdx1), insertCnt);
-          break;
-        case differenceOp:
-          insertCnt = coll1->GetComponentCount(elementIdx1) -
-                    coll2->GetComponentCount(elementIdx2);
-          if(insertCnt > 0){
-            resColl->Insert(coll1->GetComponent(elementIdx1), insertCnt);
-          }
-          break;
-        default:
-          break;
-        }
-        elementIdx1++;
-        elementIdx2++;
-        break;
-      case 1:
-        switch(opType){
-        case unionOp:
-          resColl->Insert(coll2->GetComponent(elementIdx2),
-                          coll2->GetComponentCount(elementIdx2));
-        default:
-          break;
-        }
-        elementIdx2++;
-        break;
-      default:
-        break;
+      if(restore1) {
+        elem1 = coll1->GetComponent(elementIdx1);
+        restore1 = false;
+      }
+      if(restore2) {
+        elem2 = coll2->GetComponent(elementIdx2);
+        restore2 = false;
       }
 
-      coll1Ended = noColl1Components <= elementIdx1;
-      coll2Ended = noColl2Components <= elementIdx2;
-    }
+      int compareRes = elem1->Compare(elem2);
 
+      switch(compareRes){
+        case -1:
+          switch(opType){
+            case unionOp:
+              resColl->Insert(elem1,coll1->GetComponentCount(elementIdx1));
+              elem1->Print(cout) << endl;
+              break;
+            case differenceOp:
+              resColl->Insert(elem1,coll1->GetComponentCount(elementIdx1));
+              break;
+            default:
+              break;
+          }
+          elementIdx1++; restore1 = true;
+          break;
+        case 0:
+          switch(opType){
+            case unionOp:
+              resColl->Insert(elem1,  coll1->GetComponentCount(elementIdx1)
+                                    + coll2->GetComponentCount(elementIdx2));
+              elem1->Print(cout) << endl;
+              break;
+            case intersectionOp:
+              insertCnt =
+                    coll1->GetComponentCount(elementIdx1) >
+                              coll2->GetComponentCount(elementIdx2) ?
+                              coll2->GetComponentCount(elementIdx2) :
+                              coll1->GetComponentCount(elementIdx1);
+              resColl->Insert(elem1, insertCnt);
+              break;
+            case differenceOp:
+              insertCnt = coll1->GetComponentCount(elementIdx1) -
+                        coll2->GetComponentCount(elementIdx2);
+              if(insertCnt > 0){
+                resColl->Insert(elem1, insertCnt);
+              }
+              break;
+            default:
+              break;
+          }
+          elementIdx1++; restore1 = true;
+          elementIdx2++; restore2 = true;
+          break;
+        case 1:
+          switch(opType){
+          case unionOp:
+            resColl->Insert(elem2, coll2->GetComponentCount(elementIdx2));
+            elem2->Print(cout) << endl;
+            break;
+          default:
+            break;
+          }
+          elementIdx2++;
+          restore2 = true;
+          break;
+        default:
+          break;
+      }
+      coll1Ended = (noColl1Components <= elementIdx1);
+      coll2Ended = (noColl2Components <= elementIdx2);
+      if(elem1 && restore1) {
+        elem1->DestroyFlobs();
+        elem1->DeleteIfAllowed();
+        elem1 = 0;
+      }
+      if(elem2 && restore2) {
+        elem2->DestroyFlobs();
+        elem2->DeleteIfAllowed();
+        elem2 = 0;
+      }
+    }
+    if(elem1) { elem1->DestroyFlobs(); elem1->DeleteIfAllowed(); }
+    if(elem2) { elem2->DestroyFlobs(); elem2->DeleteIfAllowed(); }
     for(int iCnt1 = elementIdx1;
                             iCnt1 < coll1->GetNoUniqueComponents(); iCnt1++){
-       switch(opType){
+      elem1 = coll1->GetComponent(iCnt1);
+      switch(opType){
         case unionOp:
         case differenceOp:
-          resColl->Insert(coll1->GetComponent(iCnt1),
-                          coll1->GetComponentCount(iCnt1));
+          resColl->Insert(elem1, coll1->GetComponentCount(iCnt1));
+          elem1->Print(cout) << endl;
           break;
         default:
           break;
-        }
+      }
+      elem1->DestroyFlobs();
+      elem1->DeleteIfAllowed();
     }
-
     for(int iCnt2 = elementIdx2;
                             iCnt2 < coll2->GetNoUniqueComponents(); iCnt2++){
-       switch(opType){
+      elem2 = coll2->GetComponent(iCnt2);
+      switch(opType){
         case unionOp:
-          resColl->Insert(coll2->GetComponent(iCnt2),
-                          coll2->GetComponentCount(iCnt2));
+          resColl->Insert(elem2, coll2->GetComponentCount(iCnt2));
+          elem2->Print(cout) << endl;
           break;
         default:
           break;
         }
+        elem2->DestroyFlobs();
+        elem2->DeleteIfAllowed();
     }
     resColl->Finish();
-    result.addr = resColl;
-
     return 0;
   }
 
@@ -2676,27 +2737,12 @@ cout << "MathSetValueMap" << endl;
 4.10 Implementation of operation size
 
 */
-int sizeFun_PR(Word* args, Word& result, int message, Word& local, Supplier s){
-Collection* co = (Collection*)args[0].addr;
-result = qp->ResultStorage(s);
-((CcInt*)result.addr)->Set(true, co->GetNoComponents());
+int sizeFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  Collection* co = (Collection*)args[0].addr;
+  result = qp->ResultStorage(s);
+  ((CcInt*)result.addr)->Set(co->IsDefined(), co->GetNoComponents());
 return 0;
 }
-
-int sizeFun_RR(Word* args, Word& result, int message, Word& local, Supplier s){
-Collection* co = (Collection*)args[0].addr;
-result = qp->ResultStorage(s);
-((CcInt*)result.addr)->Set(true, co->GetNoComponents());
-return 0;
-}
-
-int sizeFun_SR(Word* args, Word& result, int message, Word& local, Supplier s){
-Collection* co = (Collection*)args[0].addr;
-result = qp->ResultStorage(s);
-((CcInt*)result.addr)->Set(true, co->GetNoComponents());
-return 0;
-}
-
 
 ListExpr sizeTypeMap(ListExpr args){
 if (!nl->ListLength(args) == 0)
@@ -2715,17 +2761,6 @@ if (!nl->ListLength(args) == 0)
 }
 
 
-int sizeSelect(ListExpr args){
-  NList list(args);
-  if(list.first().isSymbol(SET))
-    return 2;
-  else if(list.first().isSymbol(MULTISET))
-    return 1;
-  else
-    return 0;
-}
-
-
 struct sizeInfo : OperatorInfo {
 
   sizeInfo() : OperatorInfo()
@@ -2735,7 +2770,7 @@ struct sizeInfo : OperatorInfo {
     appendSignature(MULTISET + " -> " + INT);
     appendSignature(VECTOR + " -> " + INT);
     syntax    = SIZE + "( _ )";
-    meaning   = "Size of Object";
+    meaning   = "Number of contained objects";
   }
 
 };
@@ -2744,66 +2779,40 @@ struct sizeInfo : OperatorInfo {
 4.11 Implementation of operators <, <=, >, >= and =
 
 */
-int ltFun_PR(Word* args, Word& result, int message, Word& local, Supplier s){
-bool r = true;
-int tmp;
-Collection* co = (Collection*)args[0].addr;
-Collection* cl = (Collection*)args[1].addr;
-result = qp->ResultStorage(s);
-tmp = co->Compare(cl);
-if(tmp == 0){
-  r = false;
-}
-else if(tmp == 1)
-  r = false;
-else
-  r = true;
-((CcBool*)result.addr)->Set(true, r);
-return 0;
-}
-
-int ltFun_RR(Word* args, Word& result, int message, Word& local, Supplier s){
-bool r = true;
-int tmp;
-Collection* co = (Collection*)args[0].addr;
-Collection* cl = (Collection*)args[1].addr;
-result = qp->ResultStorage(s);
-tmp = co->Compare(cl);
-if(tmp == 0){
-  r = false;
-}
-else if(tmp == 1)
-  r = false;
-else
-  r = true;
-((CcBool*)result.addr)->Set(true, r);
-return 0;
-}
-
-ListExpr ltTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
-  {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-
-    if (!nl->IsAtom(arg1) &&
-      ((nl->IsEqual(nl->First(arg1), "set") ||
-      (nl->IsEqual(nl->First(arg1), "multiset")) &&
-      nl->Equal(arg1, arg2)))) {
-      return nl->SymbolAtom("bool");
-    }
+int ltFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  bool r = true;
+  int tmp;
+  Collection* co = (Collection*)args[0].addr;
+  Collection* cl = (Collection*)args[1].addr;
+  result = qp->ResultStorage(s);
+  tmp = co->Compare(cl);
+  if(tmp == 0){
+    r = false;
   }
-
-  return nl->SymbolAtom("typeerror");
-
+  else if(tmp == 1)
+    r = false;
+  else
+    r = true;
+  ((CcBool*)result.addr)->Set(true, r);
+  return 0;
 }
 
-int ltSelect(ListExpr args){
-  NList list(args);
-  if(list.first().isSymbol(SET))
-    return 1;
-  else
-    return 0;
+ListExpr compareTypeMap(ListExpr args){
+  if (nl->IsAtom(args) || nl->ListLength(args) != 2){
+    return nl->SymbolAtom("typeerror");
+  }
+  ListExpr arg1 = nl->First(args);
+  ListExpr arg2 = nl->Second(args);
+  if (    !nl->IsAtom(arg1)
+       && (    nl->IsEqual(nl->First(arg1), "set")
+            || nl->IsEqual(nl->First(arg1), "multiset")
+            || nl->IsEqual(nl->First(arg1), "vector")
+          )
+       && nl->Equal(arg1, arg2)
+     ) {
+    return nl->SymbolAtom("bool");
+  }
+  return nl->SymbolAtom("typeerror");
 }
 
 struct ltInfo : OperatorInfo {
@@ -2813,72 +2822,29 @@ struct ltInfo : OperatorInfo {
     name      = LT;
     signature = SET + " x " + SET + " -> " + BOOL;
     appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
     syntax    = " _ " + LT + " _ ";
     meaning   = "Object 1 Smaller Than Object 2";
   }
 
 };
 
-int eqFun_PR(Word* args, Word& result, int message, Word& local, Supplier s){
-bool r = true;
-int tmp;
-Collection* co = (Collection*)args[0].addr;
-Collection* cl = (Collection*)args[1].addr;
-result = qp->ResultStorage(s);
-tmp = co->Compare(cl);
-if(tmp == 0){
-  r = true;
-}
-else if(tmp == 1)
-  r = false;
-else
-  r = false;
-((CcBool*)result.addr)->Set(true, r);
-return 0;
-}
-
-int eqFun_RR(Word* args, Word& result, int message, Word& local, Supplier s){
-bool r = true;
-int tmp;
-Collection* co = (Collection*)args[0].addr;
-Collection* cl = (Collection*)args[1].addr;
-result = qp->ResultStorage(s);
-tmp = co->Compare(cl);
-if(tmp == 0){
-  r = true;
-}
-else if(tmp == 1)
-  r = false;
-else
-  r = false;
-((CcBool*)result.addr)->Set(true, r);
-return 0;
-}
-
-ListExpr eqTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
-  {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-
-    if (!nl->IsAtom(arg1) &&
-      ((nl->IsEqual(nl->First(arg1), "set") ||
-      (nl->IsEqual(nl->First(arg1), "multiset")) &&
-      nl->Equal(arg1, arg2)))) {
-      return nl->SymbolAtom("bool");
-    }
+int eqFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  bool r = true;
+  int tmp;
+  Collection* co = (Collection*)args[0].addr;
+  Collection* cl = (Collection*)args[1].addr;
+  result = qp->ResultStorage(s);
+  tmp = co->Compare(cl);
+  if(tmp == 0){
+    r = true;
   }
-
-  return nl->SymbolAtom("typeerror");
-
-}
-
-int eqSelect(ListExpr args){
-  NList list(args);
-  if(list.first().isSymbol(SET))
-    return 1;
+  else if(tmp == 1)
+    r = false;
   else
-    return 0;
+    r = false;
+  ((CcBool*)result.addr)->Set(true, r);
+  return 0;
 }
 
 struct eqInfo : OperatorInfo {
@@ -2888,72 +2854,59 @@ struct eqInfo : OperatorInfo {
     name      = EQ;
     signature = SET + " x " + SET + " -> " + BOOL;
     appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
     syntax    = " _ " + EQ + " _ ";
     meaning   = "Object 1 equals Object 2";
   }
 
 };
 
-int gtFun_PR(Word* args, Word& result, int message, Word& local, Supplier s){
-bool r = true;
-int tmp;
-Collection* co = (Collection*)args[0].addr;
-Collection* cl = (Collection*)args[1].addr;
-result = qp->ResultStorage(s);
-tmp = co->Compare(cl);
-if(tmp == 0){
-  r = false;
-}
-else if(tmp == 1)
-  r = true;
-else
-  r = false;
-((CcBool*)result.addr)->Set(true, r);
-return 0;
+int neFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  bool r = true;
+  int tmp;
+  Collection* co = (Collection*)args[0].addr;
+  Collection* cl = (Collection*)args[1].addr;
+  result = qp->ResultStorage(s);
+  tmp = co->Compare(cl);
+  if(tmp == 0){
+    r = false;
+  }
+  else
+    r = true;
+  ((CcBool*)result.addr)->Set(true, r);
+  return 0;
 }
 
-int gtFun_RR(Word* args, Word& result, int message, Word& local, Supplier s){
-bool r = true;
-int tmp;
-Collection* co = (Collection*)args[0].addr;
-Collection* cl = (Collection*)args[1].addr;
-result = qp->ResultStorage(s);
-tmp = co->Compare(cl);
-if(tmp == 0){
-  r = false;
-}
-else if(tmp == 1)
-  r = true;
-else
-  r = false;
-((CcBool*)result.addr)->Set(true, r);
-return 0;
-}
+struct neInfo : OperatorInfo {
 
-ListExpr gtTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
+  neInfo() : OperatorInfo()
   {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-
-    if (!nl->IsAtom(arg1) &&
-      ((nl->IsEqual(nl->First(arg1), "set") ||
-      (nl->IsEqual(nl->First(arg1), "multiset")) &&
-      nl->Equal(arg1, arg2)))) {
-      return nl->SymbolAtom("bool");
-    }
+    name      = NE;
+    signature = SET + " x " + SET + " -> " + BOOL;
+    appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
+    syntax    = " _ " + NE + " _ ";
+    meaning   = "Object 1 does not equal Object 2";
   }
 
-  return nl->SymbolAtom("typeerror");
+};
 
-}
-
-int gtSelect(ListExpr args){
-  NList list(args);
-  if(list.first().isSymbol(SET))
-    return 1;
+int gtFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  bool r = true;
+  int tmp;
+  Collection* co = (Collection*)args[0].addr;
+  Collection* cl = (Collection*)args[1].addr;
+  result = qp->ResultStorage(s);
+  tmp = co->Compare(cl);
+  if(tmp == 0){
+    r = false;
+  }
+  else if(tmp == 1)
+    r = true;
   else
-    return 0;
+    r = false;
+  ((CcBool*)result.addr)->Set(true, r);
+  return 0;
 }
 
 struct gtInfo : OperatorInfo {
@@ -2963,72 +2916,29 @@ struct gtInfo : OperatorInfo {
     name      = GT;
     signature = SET + " x " + SET + " -> " + BOOL;
     appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
     syntax    = " _ " + GT + " _ ";
     meaning   = "Object 1 Greater Than Object 2";
   }
 
 };
 
-int leFun_PR(Word* args, Word& result, int message, Word& local, Supplier s){
-bool r = true;
-int tmp;
-Collection* co = (Collection*)args[0].addr;
-Collection* cl = (Collection*)args[1].addr;
-result = qp->ResultStorage(s);
-tmp = co->Compare(cl);
-if(tmp == 0){
-  r = true;
-}
-else if(tmp == 1)
-  r = false;
-else
-  r = true;
-((CcBool*)result.addr)->Set(true, r);
-return 0;
-}
-
-int leFun_RR(Word* args, Word& result, int message, Word& local, Supplier s){
-bool r = true;
-int tmp;
-Collection* co = (Collection*)args[0].addr;
-Collection* cl = (Collection*)args[1].addr;
-result = qp->ResultStorage(s);
-tmp = co->Compare(cl);
-if(tmp == 0){
-  r = true;
-}
-else if(tmp == 1)
-  r = false;
-else
-  r = true;
-((CcBool*)result.addr)->Set(true, r);
-return 0;
-}
-
-ListExpr leTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
-  {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-
-    if (!nl->IsAtom(arg1) &&
-      ((nl->IsEqual(nl->First(arg1), "set") ||
-      (nl->IsEqual(nl->First(arg1), "multiset")) &&
-      nl->Equal(arg1, arg2)))) {
-      return nl->SymbolAtom("bool");
-    }
+int leFun(Word* args, Word& result, int message, Word& local, Supplier s){
+  bool r = true;
+  int tmp;
+  Collection* co = (Collection*)args[0].addr;
+  Collection* cl = (Collection*)args[1].addr;
+  result = qp->ResultStorage(s);
+  tmp = co->Compare(cl);
+  if(tmp == 0){
+    r = true;
   }
-
-  return nl->SymbolAtom("typeerror");
-
-}
-
-int leSelect(ListExpr args){
-  NList list(args);
-  if(list.first().isSymbol(SET))
-    return 1;
+  else if(tmp == 1)
+    r = false;
   else
-    return 0;
+    r = true;
+  ((CcBool*)result.addr)->Set(true, r);
+  return 0;
 }
 
 struct leInfo : OperatorInfo {
@@ -3038,74 +2948,30 @@ struct leInfo : OperatorInfo {
     name      = LE;
     signature = SET + " x " + SET + " -> " + BOOL;
     appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
     syntax    = " _ " + LE + " _ ";
     meaning   = "Object 1 Smaller equal Object 2";
   }
 
 };
 
-int geFun_PR(Word* args, Word& result, int message, Word& local, Supplier s){
+int geFun(Word* args, Word& result, int message, Word& local, Supplier s){
 //cout << "Wir sind in der ge Funktion 0" << endl;
-bool r = true;
-int tmp;
-Collection* co = (Collection*)args[0].addr;
-Collection* cl = (Collection*)args[1].addr;
-result = qp->ResultStorage(s);
-tmp = co->Compare(cl);
-if(tmp == 0){
-  r = true;
-}
-else if(tmp == 1)
-  r = true;
-else
-  r = false;
-((CcBool*)result.addr)->Set(true, r);
-return 0;
-}
-
-int geFun_RR(Word* args, Word& result, int message, Word& local, Supplier s){
-bool r = true;
-int tmp;
-Collection* co = (Collection*)args[0].addr;
-Collection* cl = (Collection*)args[1].addr;
-result = qp->ResultStorage(s);
-tmp = co->Compare(cl);
-if(tmp == 0){
-  r = true;
-}
-else if(tmp == 1)
-  r = true;
-else
-  r = false;
-((CcBool*)result.addr)->Set(true, r);
-return 0;
-}
-
-ListExpr geTypeMap(ListExpr args){
-if (!nl->ListLength(args) == 0)
-  {
-    ListExpr arg1 = nl->First(args);
-    ListExpr arg2 = nl->Second(args);
-
-    if (!nl->IsAtom(arg1) &&
-      ((nl->IsEqual(nl->First(arg1), "set") ||
-      (nl->IsEqual(nl->First(arg1), "multiset")) &&
-      nl->Equal(arg1, arg2)))) {
-      return nl->SymbolAtom("bool");
-    }
+  bool r = true;
+  int tmp;
+  Collection* co = (Collection*)args[0].addr;
+  Collection* cl = (Collection*)args[1].addr;
+  result = qp->ResultStorage(s);
+  tmp = co->Compare(cl);
+  if(tmp == 0){
+    r = true;
   }
-
-  return nl->SymbolAtom("typeerror");
-
-}
-
-
-int geSelect(ListExpr args){
-  NList list(args);
-  if(list.first().isSymbol(SET))
-    return 1;
+  else if(tmp == 1)
+    r = true;
   else
-    return 0;
+    r = false;
+  ((CcBool*)result.addr)->Set(true, r);
+  return 0;
 }
 
 struct geInfo : OperatorInfo {
@@ -3115,6 +2981,7 @@ struct geInfo : OperatorInfo {
     name      = GE;
     signature = SET + " x " + SET + " -> " + BOOL;
     appendSignature(MULTISET + " x " + MULTISET + " -> " + BOOL);
+    appendSignature(VECTOR + " x " + VECTOR + " -> " + BOOL);
     syntax    = " _ " + GE + " _ ";
     meaning   = "Object 1 Greater equal Object 2";
   }
@@ -3126,13 +2993,13 @@ struct geInfo : OperatorInfo {
 
 */
 int isdefFun(Word* args, Word& result, int message, Word& local, Supplier s){
-bool r = false;
-Collection* co = (Collection*)args[0].addr;
-result = qp->ResultStorage(s);
-if(co->IsDefined())
-  r = true;
-((CcBool*)result.addr)->Set(true, r);
-return 0;
+  bool r = false;
+  Collection* co = (Collection*)args[0].addr;
+  result = qp->ResultStorage(s);
+  if(co->IsDefined())
+    r = true;
+  ((CcBool*)result.addr)->Set(true, r);
+  return 0;
 }
 
 ListExpr isdefTypeMap(ListExpr args){
@@ -3217,18 +3084,13 @@ and operators
                   MathSetOperationTypeMap<intersectionOp>);
       AddOperator(differenceInfo(), MathSetOperationValueMap<differenceOp>,
                   MathSetOperationTypeMap<differenceOp>);
-      ValueMapping sizeFuns[] = { sizeFun_PR, sizeFun_RR, sizeFun_SR, 0 };
-      AddOperator( sizeInfo(), sizeFuns, sizeSelect, sizeTypeMap );
-      ValueMapping eqFuns[] = { eqFun_PR, eqFun_RR, 0 };
-      AddOperator( eqInfo(), eqFuns, eqSelect, eqTypeMap );
-      ValueMapping gtFuns[] = { gtFun_PR, gtFun_RR, 0 };
-      AddOperator( gtInfo(), gtFuns, gtSelect, gtTypeMap );
-      ValueMapping ltFuns[] = { ltFun_PR, ltFun_RR, 0 };
-      AddOperator( ltInfo(), ltFuns, ltSelect, ltTypeMap );
-      ValueMapping geFuns[] = { geFun_PR, geFun_RR, 0 };
-      AddOperator( geInfo(), geFuns, geSelect, geTypeMap );
-      ValueMapping leFuns[] = { leFun_PR, leFun_RR, 0 };
-      AddOperator( leInfo(), leFuns, leSelect, leTypeMap );
+      AddOperator( sizeInfo(), sizeFun, sizeTypeMap );
+      AddOperator( eqInfo(), eqFun, compareTypeMap );
+      AddOperator( gtInfo(), gtFun, compareTypeMap );
+      AddOperator( ltInfo(), ltFun, compareTypeMap );
+      AddOperator( geInfo(), geFun, compareTypeMap );
+      AddOperator( leInfo(), leFun, compareTypeMap );
+      AddOperator( neInfo(), neFun, compareTypeMap );
       AddOperator( isdefInfo(), isdefFun, isdefTypeMap);
 
     }

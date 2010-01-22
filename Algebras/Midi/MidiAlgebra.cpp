@@ -152,26 +152,9 @@ eventData    ( 0 )
   format         = midi.format;
   isDeletable    = midi.isDeletable;
 
-  for (int i = 0; i < midi.listOfTracks.Size(); i++)
-  {
-    const TrackEntry *trackEntry;
-    midi.listOfTracks.Get(i, trackEntry);
-    listOfTracks.Append(*trackEntry);
-  }
-
-  for (int i = 0; i < midi.listOfEvents.Size(); i++)
-  {
-    const EventEntry *eventEntry;
-    midi.listOfEvents.Get(i, eventEntry);
-    listOfEvents.Append(*eventEntry);
-  }
-
-  for (int i = 0; i < midi.eventData.Size(); i++)
-  {
-    const unsigned char *data;
-    midi.eventData.Get(i, data);
-    eventData.Append(*data);
-  }
+  listOfTracks.copyFrom(midi.listOfTracks);
+  listOfEvents.copyFrom(midi.listOfEvents);
+  eventData.copyFrom(midi.eventData);
 }
 
 /*
@@ -182,9 +165,9 @@ Midi::~Midi()
 {
   if (isDeletable)
   {
-    listOfTracks.Destroy();
-    listOfEvents.Destroy();
-    eventData.Destroy();
+    listOfTracks.destroy();
+    listOfEvents.destroy();
+    eventData.destroy();
   }
 }
 
@@ -208,54 +191,9 @@ Midi& Midi::operator=(const Midi& midi)
   format         = midi.format;
   isDeletable    = midi.isDeletable;
 
-  if (midi.listOfTracks.Size() == 0)
-  {
-    listOfTracks.Clear();
-  }
-  else
-  {
-    listOfTracks.Resize(midi.listOfTracks.Size());
-  }
-
-  for (int i = 0; i < midi.listOfTracks.Size(); i++)
-  {
-    const TrackEntry *trackEntry;
-    midi.listOfTracks.Get(i, trackEntry);
-    listOfTracks.Append(*trackEntry);
-  }
-
-  if (midi.listOfEvents.Size() == 0)
-  {
-    listOfEvents.Clear();
-  }
-  else
-  {
-    listOfEvents.Resize(midi.listOfEvents.Size());
-  }
-
-  for (int i = 0; i < midi.listOfEvents.Size(); i++)
-  {
-    const EventEntry *eventEntry;
-    midi.listOfEvents.Get(i, eventEntry);
-    listOfEvents.Append(*eventEntry);
-  }
-
-  if (midi.eventData.Size() == 0)
-  {
-    eventData.Clear();
-  }
-  else
-  {
-    eventData.Resize(midi.eventData.Size());
-  }
-
-  for (int i = 0; i < midi.eventData.Size(); i++)
-  {
-    const unsigned char *data;
-    midi.eventData.Get(i, data);
-    eventData.Append(*data);
-  }
-
+  listOfTracks.copyFrom(midi.listOfTracks);
+  listOfEvents.copyFrom(midi.listOfEvents);
+  eventData.copyFrom(midi.eventData);
   return *this;
 }
 
@@ -269,25 +207,25 @@ Track* Midi::GetTrack(int index) const
 {
   assert( listOfTracks.Size() && index < MAX_TRACKS_MIDI );
   Track* track = new Track();
-  const TrackEntry *trackEntry;
+  TrackEntry trackEntry;
   listOfTracks.Get(index, trackEntry);
-  int eventPtr = trackEntry->eventPtr;
+  int eventPtr = trackEntry.eventPtr;
 
-  for (int i = 0; i < trackEntry->noOfEvents; i++)
+  for (int i = 0; i < trackEntry.noOfEvents; i++)
   {
-    const EventEntry *auxEventEntry;
+    EventEntry auxEventEntry;
     listOfEvents.Get(eventPtr++, auxEventEntry);
-    EventEntry eventEntry( *auxEventEntry );
+    EventEntry eventEntry( auxEventEntry );
     int dataPtr = eventEntry.dataPtr;
     vector<unsigned char> deltaTimeBytes;
-    const unsigned char *currentByte;
+    unsigned char currentByte;
 
     do
     {
       eventData.Get(dataPtr++, currentByte);
-      deltaTimeBytes.push_back(*currentByte);
+      deltaTimeBytes.push_back(currentByte);
       eventEntry.size--;
-    } while ((*currentByte & 0x80));
+    } while ((currentByte & 0x80));
 
     unsigned int deltaTime = Event::ComputeBytesToInt(&deltaTimeBytes);
 
@@ -299,9 +237,9 @@ Track* Midi::GetTrack(int index) const
       if (eventEntry.type == shortmessageEntry)
       {
         event->SetShortMessageRunningStatus(false);
-        const unsigned char *c;
+        unsigned char c;
         eventData.Get(dataPtr++, c);
-        event->SetShortMessageType(*c);
+        event->SetShortMessageType(c);
         eventEntry.size--;
       }
       else
@@ -312,9 +250,9 @@ Track* Midi::GetTrack(int index) const
       event->SetShortMessageDataLength(eventEntry.size);
       for (int j = 0; j < eventEntry.size; j++)
       {
-        const unsigned char *c;
+        unsigned char c;
         eventData.Get(dataPtr++, c);
-        event->SetShortMessageData(j, *c);
+        event->SetShortMessageData(j, c);
       }
       track->Append(event);
     }
@@ -334,9 +272,9 @@ Track* Midi::GetTrack(int index) const
       vector<unsigned char> messageData;
       for (int j = 0; j < eventEntry.size; j++)
       {
-        const unsigned char *c;
+        unsigned char c;
         eventData.Get(dataPtr++, c);
-        messageData.push_back(*c);
+        messageData.push_back(c);
       }
 
       event->SetMetaData(&messageData);
@@ -520,12 +458,12 @@ size_t Midi::HashValue() const
   {
     double long h;
     int val = eventData.Size() / 10;
-    const unsigned char *ch;
+    unsigned char ch;
 
     for (int k = 1; k < 10; k++)
     {
       eventData.Get((val* k),ch);
-      double z = *ch *pow((double)2,(double) k-1);
+      double z = ch *pow((double)2,(double) k-1);
       h += z;
     }
     return size_t(h);
@@ -631,7 +569,7 @@ int Midi::NumOfFLOBs() const
 Returns the address of the required DBArray. Calling this method for the address of tracks you need to put in a 0, a 1 for events`s address and a 2 for eventData`s address.
 
 */
-FLOB* Midi::GetFLOB(const int i)
+Flob* Midi::GetFLOB(const int i)
 {
   assert(i >= 0 && i < NumOfFLOBs());
   switch (i)

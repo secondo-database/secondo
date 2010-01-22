@@ -1635,7 +1635,7 @@ no progress information will be collected.
 
 */
 
-    static const bool traceMode = false;
+    static const bool traceMode = true;
 /*
 Flag to enable trace mode.
 

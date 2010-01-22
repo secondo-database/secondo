@@ -846,7 +846,7 @@ Current number of processed tuples during intermediate merge phases
 };
 
 /*
-9 Class ~SortByLocalInfo2~
+9 Class ~SortAlgorithm~
 
 This class implements an algorithm for external sorting for operators
 ~sort2~, ~sortby2~, ~sort2Param~ and ~sortby2Param~. The constructor
@@ -884,16 +884,16 @@ created and no costs for merging tuples will occur. Unfortunateley this solution
 needs more comparisons than sorting.
 
 */
-class SortByLocalInfo2
+class SortAlgorithm
 {
   public:
 
-  SortByLocalInfo2( Word stream,
-                     const SortOrderSpecification& spec,
-                     SortProgressLocalInfo* p,
-                     size_t maxFanIn = UINT_MAX,
-                     size_t maxMemSize = UINT_MAX,
-                     size_t ioBufferSize = UINT_MAX );
+    SortAlgorithm( Word stream,
+                   const SortOrderSpecification& spec,
+                   SortProgressLocalInfo* p,
+                   size_t maxFanIn = UINT_MAX,
+                   size_t maxMemSize = UINT_MAX,
+                   size_t ioBufferSize = UINT_MAX );
 /*
 The constructor. Consumes all tuples of the tuple stream ~stream~ immediately
 into sorted runs of approximately two times the size of the operators main
@@ -914,7 +914,7 @@ value.
 
 */
 
-    ~SortByLocalInfo2();
+    ~SortAlgorithm();
 /*
 The destructor. Frees all resources of the algorithm.
 
@@ -1143,7 +1143,7 @@ An instance of this class is used in the value mapping function of all
 sort operators to save the state of the sort algorithm between multiple
 message calls. This class simplifies access to the progress information.
 A pointer to this instance of type ~SortProgressLocalInfo~ will be passed
-to the ~SortByLocalInfo2~ object ~ptr~.
+to the ~SortAlgorithm~ object ~ptr~.
 
 */
 class SortLocalInfo: public SortProgressLocalInfo
@@ -1165,7 +1165,7 @@ The destructor. Frees the sort algorithm object.
 
 */
 
-    SortByLocalInfo2 * ptr;
+    SortAlgorithm * ptr;
 /*
 Pointer to sort algorithm
 

@@ -79,7 +79,7 @@ natural language (like each second monday of the month) can't be modelled.
 #include "DateTime.h"
 #include "SpatialAlgebra.h"
 #include "TopRel.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "RepTree.h"
 #include "GenericTC.h"
 
@@ -145,7 +145,7 @@ class PBBox: public Attribute {
     virtual ~PBBox();
     PBBox& operator=(const PBBox& source);
     int NumOfFLOBs() const;
-    FLOB* GetFLOB(int i);
+    Flob* GetFLOB(int i);
     int Compare(const Attribute* arg)const;
     bool Adjacent(const Attribute*) const;
     size_t Sizeof() const;
@@ -305,7 +305,7 @@ an algebra.
 */
     void Destroy();
     int NumOfFLOBs() const;
-    FLOB* GetFLOB(const int i);
+    Flob* GetFLOB(const int i);
 
 /*
 ~CompareTo~
@@ -535,7 +535,7 @@ class PInterval : public Attribute{
     PInterval* Clone() const;
     void Destroy();
     int NumOfFLOBs() const;
-    FLOB* GetFLOB(const int i);
+    Flob* GetFLOB(const int i);
     int CompareTo(const PInterval* D2)const;
     int Compare(const Attribute* arg) const;
     bool Adjacent(const Attribute*) const{return false;}
@@ -1196,12 +1196,12 @@ class LinearPointsMove{
    LinearPointsMove(const LinearPointsMove& source);
    ~LinearPointsMove();
    LinearPointsMove& operator=(const LinearPointsMove& source);
-   ListExpr ToListExpr(const DBArray<TwoPoints> &Points) const;
+   ListExpr ToListExpr(const DbArray<TwoPoints> &Points) const;
    bool ReadFrom(const ListExpr value, 
-                 DBArray<TwoPoints> &Points, 
+                 DbArray<TwoPoints> &Points, 
      int &Index);
    void At(const DateTime* duration, 
-           const DBArray<TwoPoints> &Pts,
+           const DbArray<TwoPoints> &Pts,
            Points& res         ) const;
    bool IsDefinedAt(const DateTime* duration) const;
    bool ProhablyIntersects(const PBBox* window) const;
@@ -1209,11 +1209,11 @@ class LinearPointsMove{
    bool IsStatic() const;
    void SetUndefined();
    bool CanBeExtendedBy(const LinearPointsMove* P2,
-                        DBArray<TwoPoints> &MyPoints,
-                        DBArray<TwoPoints> &PointsOfP2) const;
+                        DbArray<TwoPoints> &MyPoints,
+                        DbArray<TwoPoints> &PointsOfP2) const;
    bool ExtendWith(const LinearPointsMove* P2,
-                   DBArray<TwoPoints> &MyPoints,
-                   DBArray<TwoPoints> &PointsOfP2);
+                   DbArray<TwoPoints> &MyPoints,
+                   DbArray<TwoPoints> &PointsOfP2);
    void Equalize(const LinearPointsMove* P2);
    unsigned int GetStartIndex()const;
    unsigned int GetEndIndex()const; 
@@ -1270,7 +1270,7 @@ class PMSimple : public Attribute {
 
      int NumOfFLOBs()const;
 
-     FLOB* GetFLOB(const int i);
+     Flob* GetFLOB(const int i);
      int Compare(const Attribute* arg) const;
      
      bool Adjacent(const Attribute*)const;
@@ -1317,36 +1317,36 @@ class PMSimple : public Attribute {
                          const bool maxIncluded,
                          PMSimple<T,Unit>* res);
 
-      void CopyValuesFrom( DBArray<Unit>& linearMoves,
-                      DBArray<CompositeMove>& compositeMoves,
-                      DBArray<SubMove>& compositeSubMoves,
-                      DBArray<PeriodicMove>& periodicMoves,
+      void CopyValuesFrom( DbArray<Unit>& linearMoves,
+                      DbArray<CompositeMove>& compositeMoves,
+                      DbArray<SubMove>& compositeSubMoves,
+                      DbArray<PeriodicMove>& periodicMoves,
                       bool defined,
                       RelInterval interval,
                       DateTime startTime,
                       SubMove submove);
 
-      void TakeValuesFrom( DBArray<Unit>& linearMoves,
-                      DBArray<CompositeMove>& compositeMoves,
-                      DBArray<SubMove>& compositeSubMoves,
-                      DBArray<PeriodicMove>& periodicMoves,
+      void TakeValuesFrom( DbArray<Unit>& linearMoves,
+                      DbArray<CompositeMove>& compositeMoves,
+                      DbArray<SubMove>& compositeSubMoves,
+                      DbArray<PeriodicMove>& periodicMoves,
                       bool defined,
                       RelInterval interval,
                       DateTime startTime,
                       SubMove submove);
       void SetStartTime(DateTime newStart);
 
-      DBArray<Unit>* GetLinearMoves();
-      DBArray<CompositeMove>* GetCompositeMoves();
-      DBArray<CSubMove>* GetCompositeSubMoves();
-      DBArray<PeriodicMove>* GetPeriodicMoves();
+      DbArray<Unit>* GetLinearMoves();
+      DbArray<CompositeMove>* GetCompositeMoves();
+      DbArray<CSubMove>* GetCompositeSubMoves();
+      DbArray<PeriodicMove>* GetPeriodicMoves();
       RelInterval* GetInterval();
       SubMove* GetSubmove();
   protected:
-     DBArray<Unit> linearMoves;
-     DBArray<CompositeMove> compositeMoves;
-     DBArray<CSubMove> compositeSubMoves;
-     DBArray<PeriodicMove> periodicMoves;
+     DbArray<Unit> linearMoves;
+     DbArray<CompositeMove> compositeMoves;
+     DbArray<CSubMove> compositeSubMoves;
+     DbArray<PeriodicMove> periodicMoves;
      bool defined;
      bool canDelete;
      RelInterval interval;
@@ -1387,10 +1387,10 @@ class PMSimple : public Attribute {
     bool MinimizationRequired();
 
     SubMove MinimizeRec(SubMove SM, 
-                    DBArray<Unit>&                   newLinearMoves,
-                    DBArray<CompositeMove>&          newCompositeMoves,
-                    DBArray<CSubMove>&                newCompositeSubMoves,
-                    DBArray<PeriodicMove>&           newPeriodicMoves,
+                    DbArray<Unit>&                   newLinearMoves,
+                    DbArray<CompositeMove>&          newCompositeMoves,
+                    DbArray<CSubMove>&                newCompositeSubMoves,
+                    DbArray<PeriodicMove>&           newPeriodicMoves,
                     Unit&                            Summarization,
                     bool&                            CompleteSummarized);
 
@@ -1465,14 +1465,14 @@ class PMReal: public  PMSimple<double,MovingRealUnit> {
     if(!defined){
        return;
     }
-    const MovingRealUnit* unit;
+    MovingRealUnit unit;
     for(int i=0;i<linearMoves.Size();i++){
        linearMoves.Get(i,unit);
-       if(unit->IsDefined()){
+       if(unit.IsDefined()){
           if(!result.IsDefined()){
-            result.Set(true,unit->min());
+            result.Set(true,unit.min());
           } else {
-            result.Set(true,::min(result.GetRealval(), unit->min()));
+            result.Set(true,::min(result.GetRealval(), unit.min()));
           }
        }
     }
@@ -1483,14 +1483,14 @@ class PMReal: public  PMSimple<double,MovingRealUnit> {
     if(!defined){
        return;
     }
-    const MovingRealUnit* unit;
+    MovingRealUnit unit;
     for(int i=0;i<linearMoves.Size();i++){
        linearMoves.Get(i,unit);
-       if(unit->IsDefined()){
+       if(unit.IsDefined()){
           if(!result.IsDefined()){
-            result.Set(true,unit->max());
+            result.Set(true,unit.max());
           } else {
-            result.Set(true,::max(result.GetRealval(), unit->max()));
+            result.Set(true,::max(result.GetRealval(), unit.max()));
           }
        }
     }
@@ -1527,12 +1527,12 @@ public:
   PMInt9M();
   PMInt9M(int dummy);
   void Transpose();
-  bool CreateFrom( const DBArray<LinearInt9MMove>& linearMoves, 
+  bool CreateFrom( const DbArray<LinearInt9MMove>& linearMoves, 
                   const ArrayRange*                     level,
                  const int                             levelsize,
-                 const DBArray<CompositeMove>&          compositeMoves,
-                 const DBArray<CSubMove>&                compositeSubMoves,
-                 const DBArray<PeriodicMove>&           periodicMoves,
+                 const DbArray<CompositeMove>&          compositeMoves,
+                 const DbArray<CSubMove>&                compositeSubMoves,
+                 const DbArray<PeriodicMove>&           periodicMoves,
                  const DateTime                        startTime,
                  const SubMove                         submove);
   static bool CheckKind(ListExpr type, ListExpr& errorInfo){
@@ -1568,7 +1568,7 @@ class PMPoint : public Attribute {
      void Destroy();
      void Equalize(const PMPoint* P2);
      int NumOfFLOBs() const;
-     FLOB *GetFLOB(const int i);
+     Flob *GetFLOB(const int i);
      int Compare(const Attribute* arg) const;
      bool Adjacent(const Attribute*)const;
      PMPoint* Clone() const;
@@ -1644,10 +1644,10 @@ class PMPoint : public Attribute {
        periodicMoves.TrimToSize();
      }
   private:
-     DBArray<LinearPointMove> linearMoves;
-     DBArray<SpatialCompositeMove> compositeMoves;
-     DBArray<CSubMove> compositeSubMoves;
-     DBArray<SpatialPeriodicMove> periodicMoves;
+     DbArray<LinearPointMove> linearMoves;
+     DbArray<SpatialCompositeMove> compositeMoves;
+     DbArray<CSubMove> compositeSubMoves;
+     DbArray<SpatialPeriodicMove> periodicMoves;
      bool defined;
      bool canDelete;
      RelInterval interval;
@@ -1714,7 +1714,7 @@ class PMPoints : public Attribute {
      void Destroy();
      void Equalize(const  PMPoints* P2);
      int NumOfFLOBs() const;
-     FLOB *GetFLOB(const int i);
+     Flob *GetFLOB(const int i);
      int Compare(const Attribute* arg) const;
      bool Adjacent(const Attribute*)const;
      PMPoints* Clone() const;
@@ -1755,11 +1755,11 @@ class PMPoints : public Attribute {
                                  "see the documentation");
       }
  private:
-     DBArray<LinearPointsMove> linearMoves;
-     DBArray<TwoPoints> thePoints;
-     DBArray<SpatialCompositeMove> compositeMoves;
-     DBArray<CSubMove> compositeSubMoves;
-     DBArray<SpatialPeriodicMove> periodicMoves;
+     DbArray<LinearPointsMove> linearMoves;
+     DbArray<TwoPoints> thePoints;
+     DbArray<SpatialCompositeMove> compositeMoves;
+     DbArray<CSubMove> compositeSubMoves;
+     DbArray<SpatialPeriodicMove> periodicMoves;
      bool defined;
      bool canDelete;
      RelInterval interval;

@@ -93,10 +93,10 @@ float Path::GetCost() const
     if (!IsDefined() || (myPath.Size() == 0)) 
         return -1.0f; 
 
-    const pathStruct* s; 
+    pathStruct s; 
     
     myPath.Get(myPath.Size()-1,s); 
-    return cost-s->cost; 
+    return cost-s.cost; 
 };
 
 
@@ -105,7 +105,7 @@ Path* Path::Clone() const
     Path* p = new Path(IsDefined());
     for (int i = 0; i < GetNoPathStructs(); ++i)
     {
-        p->Append(*GetPathStruct(i));
+        p->Append(GetPathStruct(i));
     }
     p->cost = cost;
     return p;
@@ -136,12 +136,12 @@ void Path::EqualWay(const Path* p, CcBool& result) const{
      result.Set(true,false);
      return;
   }
-  const pathStruct* mps = 0;
-  const pathStruct* pps = 0;
+  pathStruct mps;
+  pathStruct pps;
   for(int i=0; i<mysize;i++){
      this->myPath.Get(i,mps);
      p->myPath.Get(i,pps);
-     if(mps->key != pps->key){
+     if(mps.key != pps.key){
         result.Set(true,false);
         return;
      }  
@@ -175,23 +175,23 @@ int Path::Compare(const Attribute* arg) const
     // both paths have the same length
     // and the same costs
     // scan both path in parallel
-    const pathStruct* mps=0;
-    const pathStruct* pps=0;
+    pathStruct mps;
+    pathStruct pps;
     for(int i=0;i<mlength;i++){
        myPath.Get(i,mps);
        p->myPath.Get(i,pps);
-       if(mps->key < pps->key){
+       if(mps.key < pps.key){
           return -1;
        }
-       if(mps->key > pps->key){
+       if(mps.key > pps.key){
           return 1;
        }
-       int cmp = mps->pos.Compare(&(pps->pos));
+       int cmp = mps.pos.Compare(&(pps.pos));
        if(cmp!=0){
           return cmp;
        }
-       if(!AlmostEqual(mps->cost,pps->cost)){
-          if(mps->cost < pps->cost){
+       if(!AlmostEqual(mps.cost,pps.cost)){
+          if(mps.cost < pps.cost){
              return -1;
           } else {
              return 1;
@@ -215,9 +215,9 @@ size_t Path::HashValue() const
         int nCount = GetNoPathStructs();
         for (int i = 0; i < nCount; ++i)
         {
-            pathStruct const * p = GetPathStruct(i);
-            nRet += p->key;
-            nRet += *(reinterpret_cast<size_t const *>(&p->cost));
+            pathStruct p = GetPathStruct(i);
+            nRet += p.key;
+            nRet += *(reinterpret_cast<size_t const *>(&p.cost));
         }
     }
     return 0;
@@ -226,11 +226,11 @@ size_t Path::HashValue() const
 void Path::CopyFrom(const Attribute* arg)
 {
     Path const * pArg = dynamic_cast<Path const *>(arg);
-    myPath.Clear();
+    myPath.clean();
     int nCount = pArg->GetNoPathStructs();
     for (int i = 0; i < nCount; ++i)
     {
-        Append(*pArg->GetPathStruct(i));
+        Append(pArg->GetPathStruct(i));
     }
         cost = pArg->cost;
         SetDefined(pArg->IsDefined()); 
@@ -242,14 +242,14 @@ int Path::NumOfFLOBs() const
     return 1;    
 }
 
-FLOB* Path::GetFLOB(const int i)
+Flob* Path::GetFLOB(const int i)
 {
     return i == 0 ? &myPath : NULL;
 }
 
-pathStruct const * Path::GetPathStruct(int nIndex) const
+pathStruct Path::GetPathStruct(int nIndex) const
 {
-    pathStruct const * pRet = NULL;
+    pathStruct pRet;
     if (nIndex >= 0 && nIndex < GetNoPathStructs())
     {
         myPath.Get(nIndex, pRet);
@@ -265,7 +265,7 @@ pathStruct const * Path::GetPathStruct(int nIndex) const
 vector<Edge>* Path::GetEdges() const
 {
     vector<Edge>* vEdges = new vector<Edge>(0);
-    pathStruct const * pStruct = NULL;
+    pathStruct pStruct;
     int source;
     int target;
     float cost;
@@ -273,14 +273,14 @@ vector<Edge>* Path::GetEdges() const
     if (myPath.Size() < 2)
         return vEdges; 
     pStruct = GetPathStruct(0);
-    source = pStruct->key;
-    cost = pStruct->cost;
+    source = pStruct.key;
+    cost = pStruct.cost;
     for (int i = 1; i < myPath.Size(); i++) {
         pStruct = GetPathStruct(i);
-        target = pStruct->key;
+        target = pStruct.key;
         vEdges->push_back(Edge(source,target,cost));
         source = target;
-        cost = pStruct->cost;
+        cost = pStruct.cost;
     }
 
     return vEdges;
@@ -296,11 +296,11 @@ vector<Vertex>* Path::GetVertices() const
 {
 
     vector<Vertex>* vVertices = new vector<Vertex>(0);
-    pathStruct const * pStruct = NULL;
+    pathStruct pStruct;
 
     for (int i = 0; i < myPath.Size(); i++) {
         pStruct = GetPathStruct(i);
-        vVertices->push_back(Vertex(pStruct->key, pStruct->pos));
+        vVertices->push_back(Vertex(pStruct.key, pStruct.pos));
     }
 
     return vVertices;
@@ -331,37 +331,37 @@ ListExpr OutPath( ListExpr typeInfo, Word value )
         else
         {
             
-            pathStruct const * pStruct = pPath->GetPathStruct(0);
+            pathStruct pStruct = pPath->GetPathStruct(0);
             ListExpr result;
-            if (pStruct->pos.IsDefined())
+            if (pStruct.pos.IsDefined())
             {
                 result = nl->OneElemList(nl->TwoElemList(
-                    nl->IntAtom(pStruct->key), nl->TwoElemList(
-                    nl->RealAtom(pStruct->pos.GetX()), 
-                    nl->RealAtom(pStruct->pos.GetY()))));
+                    nl->IntAtom(pStruct.key), nl->TwoElemList(
+                    nl->RealAtom(pStruct.pos.GetX()), 
+                    nl->RealAtom(pStruct.pos.GetY()))));
             }
             else
             {
                 result = nl->OneElemList(nl->TwoElemList(
-                    nl->IntAtom(pStruct->key), nl->SymbolAtom("undef")));
+                    nl->IntAtom(pStruct.key), nl->SymbolAtom("undef")));
             }
             
             ListExpr last = result;
             for (int i = 1; i < nCount; ++i)
             {
-                last = nl->Append(last, nl->RealAtom(pStruct->cost));
+                last = nl->Append(last, nl->RealAtom(pStruct.cost));
                 pStruct = pPath->GetPathStruct(i);
-                if (pStruct->pos.IsDefined())
+                if (pStruct.pos.IsDefined())
                 {
                     last = nl->Append(last, nl->TwoElemList(
-                        nl->IntAtom(pStruct->key), nl->TwoElemList(
-                        nl->RealAtom(pStruct->pos.GetX()), 
-                        nl->RealAtom(pStruct->pos.GetY()))));
+                        nl->IntAtom(pStruct.key), nl->TwoElemList(
+                        nl->RealAtom(pStruct.pos.GetX()), 
+                        nl->RealAtom(pStruct.pos.GetY()))));
                 }
                 else
                 {
                     last = nl->Append(last, nl->TwoElemList(
-                        nl->IntAtom(pStruct->key), nl->SymbolAtom("undef")));
+                        nl->IntAtom(pStruct.key), nl->SymbolAtom("undef")));
                 }
             }
             

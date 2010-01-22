@@ -230,10 +230,10 @@ Maximum amount of user defined memory for the operator.
 
     // members needed for sorting the input streams
     SortProgressLocalInfo* liA;
-    SortByLocalInfo2* sliA;
+    SortAlgorithm* sliA;
 
     SortProgressLocalInfo* liB;
-    SortByLocalInfo2* sliB;
+    SortAlgorithm* sliB;
 
     Word streamA;
     Word streamB;

@@ -20,8 +20,8 @@ public:
     }
 
     Ply() {}
-    Ply( const PlyT& p ) : PlyT(p), defined_(true) {}
-    Ply( undef_t undef ) : PlyT(0), defined_(false) {}
+    Ply( const PlyT& p ) : PlyT(p), Attribute(true) {}
+    Ply( undef_t undef ) : PlyT(0), Attribute(false) {}
 
     // pure virtual functions of class Attribute
     virtual bool Adjacent( const Attribute* ) const { return 0; }
@@ -56,12 +56,16 @@ public:
 
     virtual void CopyFrom( const Attribute* other )
     {
-        *this = Ply( *static_cast< const Ply* >( other ) );
+        *this = *static_cast< const Ply* >( other ) ;
+    }
+
+    Ply& operator=(const Ply& src){
+       PlyT::operator=(src);
+       Attribute::operator=(src);
+       return *this;
     }
 
     virtual Attribute* Clone() const { return new Ply( *this ); }
-    virtual bool IsDefined() const { return defined_; }
-    virtual void SetDefined( bool def ) { defined_ = def; }
     virtual size_t Sizeof() const { return sizeof( *this ); }
     virtual size_t HashValue() const { return value_; }
 
@@ -167,8 +171,6 @@ public:
         { return value_ < other.value_; }
     bool operator > ( const Ply& other ) const
         { return value_ > other.value_; }
-protected:
-    bool defined_;
 };
 
 #endif // SECONDO_ALGEBRAS_CHESS_PLY_HPP

@@ -37,13 +37,13 @@ The Nested Relation Algebra implements two type constructors,
 namely ~nrel~ and ~arel~. nrel implements a nested relation, i.e.
 a relation that can have subrelations as attributes. arel implements
 an attribute relation, i.e. a relation that can be the attribute
-of a nested relation. arel can have attributes of type arel again, so 
-that the Nested Relation Algebra allows for several levels of nesting. 
+of a nested relation. arel can have attributes of type arel again, so
+that the Nested Relation Algebra allows for several levels of nesting.
 
-Both nrel and arel rely heavily on the types and functions implemented 
+Both nrel and arel rely heavily on the types and functions implemented
 by the Relation Algebra module.
 
-As an example, a nested relation ~publisher~ with two levels of 
+As an example, a nested relation ~publisher~ with two levels of
 nesting could be described as
 
 \begin{displaymath}
@@ -51,40 +51,40 @@ nesting could be described as
   ({\underline{\smash{\mathit{tuple}}}}
     (
       (\textrm{publisher}, {\underline{\smash{\mathit{string}}}}),
-      (\textrm{publications}, {\underline{\smash{\mathit{arel}}}} 
+      (\textrm{publications}, {\underline{\smash{\mathit{arel}}}}
       ({\underline{\smash{\mathit{tuple}}}}
         (
           (\textrm{title}, {\underline{\smash{\mathit{string}}}}),
 \end{displaymath}
 \begin{displaymath}
-          (\textrm{authors}, {\underline{\smash{\mathit{arel}}}} 
+          (\textrm{authors}, {\underline{\smash{\mathit{arel}}}}
           ({\underline{\smash{\mathit{tuple}}}}
             (
               (\textrm{name}, {\underline{\smash{\mathit{string}}}})
             )
           ))
         )
-      ))      
+      ))
     )
   )
 \end{displaymath}
 
-This file will contain an interface of classes for these two type 
+This file will contain an interface of classes for these two type
 constructors, namely ~AttributeRelation~ and ~NestedRelation~.
 
 2 Defines, includes, and constants
 
 */
-
 #include "Algebra.h"
 #include "NestedList.h"
-#include "NList.h" 
+#include "NList.h"
 #include "QueryProcessor.h"
 #include "SecondoSystem.h"
-#include "ConstructorTemplates.h" 
+#include "ConstructorTemplates.h"
 #include "StandardTypes.h"
 #include "QueryProcessor.h"
-#include "DBArray.h"
+// #include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"
 #include "RelationAlgebra.h"
 
@@ -105,6 +105,7 @@ that can be used as an attribute within a nested relation.
 */
 
 class NestedRelation;
+
 /*
 Forward declaration of class NestedRelation.
 
@@ -113,96 +114,95 @@ Forward declaration of class NestedRelation.
 class AttributeRelation : public Attribute
 {
    public:
-        AttributeRelation( const ListExpr typeInfo, bool nrel, int n = 0 );
+        AttributeRelation( const ListExpr typeInfo, bool nrel );
 /*
-The first constructor. Constructs an empty AttributeRelation from the 
-metadata passed in typeInfo. The DBArray tupleIds is initialized with size n.
-        
+The first constructor. Constructs an empty AttributeRelation from the
+metadata passed in typeInfo.
+
 */
-        
-        AttributeRelation( const SmiFileId id, const ListExpr typeInfo, 
-                                                            int n = 0 );
+
+        AttributeRelation( const SmiFileId fileId, const ListExpr typeInfo );
 /*
-The second constructor. Sets pointer to the relation used for storing tuples 
-to the relation with tupleFileId fileId. The DBArray tupleIds is initialized 
-with size n.
-        
+The second constructor. Sets pointer to the relation used for storing tuples
+to the relation with tupleFileId fileId.
+
 */
-        
+
         ~AttributeRelation();
 /*
 The destructor
-        
+
 */
-        
+
         ListExpr getArelType();
 /*
 Returns the type information of this arel-type
-        
+
 */
-        
+
         void setPartOfNrel(bool b);
 /*
-Sets the value of partOfNrel to b. True means that this arel-instance was 
+Sets the value of partOfNrel to b. True means that this arel-instance was
 created as an attribute of an nrel-instance. False means
 that this arel-instance was created independently of nrel.
-        
+
 */
-       
+
         bool isPartOfNrel();
 /*
 Returns the value of partOfNrel.
-        
+
 */
-        
+
         const bool isEmpty() const;
 /*
-Returns true if DBArray tupleIds is empty, false otherwise.
-        
+Returns true if DbArray tupleIds is empty, false otherwise.
+
 */
-                
+
         void Append(const TupleId& tupleId);
 /*
-Appends a tupleId to the DBArray tupleIds.
-        
+Appends a tupleId to the DbArray tupleIds.
+
 */
-        
+
         void setRelId(SmiFileId id);
 /*
-Sets tupleFile to if and rel to the relation with this SmiFileId, if such a 
+Sets tupleFile to if and rel to the relation with this SmiFileId, if such a
 relation is currently open.
-        
+
 */
-        
+
         SmiFileId getRelId() const;
 /*
 Returns the value of tupleFile.
-        
-*/   
-        
-         DBArray<TupleId>* getTupleIds(); 
-/*
-Returns a pointer to DBArray fileIds.
-        
+
 */
-        
+
+         DbArray<TupleId>* getTupleIds();
+/*
+Returns a pointer to DbArray fileIds.
+
+*/
+
         Relation* getRel();
 /*
 Returns a pointer to rel.
-        
+
 */
-        
+
         void setRel(Relation* r);
 /*
 Sets rel to r.
-        
+
 */
-        
+
         void Destroy();
 /*
-Destroys the DBArray tupleIds
-        
+Destroys the DbArray tupleIds
+
 */
+
 
         void CopyTuplesToRel(Relation* r);
 /*
@@ -216,108 +216,110 @@ Precondition is that the tuples are not nested.
 Appends the tuples, the Ids of which are saved in tupleIds, to nrel.
 
 */
-        
+
         int NumOfFLOBs() const;
-        
-        FLOB *GetFLOB(const int i);
-        
-        int Compare(const Attribute* attr) const;
-        
-        bool Adjacent(const Attribute* attr) const;
-        
+
+        Flob *GetFLOB(const int i);
+
+        int Compare(const Attribute*) const;
+
+        bool Adjacent(const Attribute*) const;
+
         AttributeRelation *Clone() const;
-        
+
         bool IsDefined() const;
-        
+
+        void SetDefined( bool defined );
+
         size_t Sizeof() const;
-        
+
         size_t HashValue() const;
-  
+
         void CopyFrom(const Attribute* right);
-        
+
         static Word     In( const ListExpr typeInfo, const ListExpr value,
-                        const int errorPos, ListExpr& errorInfo, 
+                        const int errorPos, ListExpr& errorInfo,
                         bool& correct );
-        
+
         static ListExpr Out( ListExpr typeInfo, Word value );
-        
+
         static Word     Create( const ListExpr typeInfo );
-        
+
         static void     Delete( const ListExpr typeInfo, Word& w );
-        
+
         static void     Close( const ListExpr typeInfo, Word& w );
-        
+
         static bool     Open( SmiRecord& valueRecord, size_t& offset,
                           const ListExpr typeInfo, Word& value    );
-        
+
         static bool     Save( SmiRecord& valueRecord, size_t& offset,
                           const ListExpr typeInfo, Word& value    );
-        
+
         static Word     Clone( const ListExpr typeInfo, const Word& w );
-        
+
         static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
-        
-        static int      SizeOfObj();  
-        
+
+        static int      SizeOfObj();
+
         static void* Cast(void* addr);
-        
-       
-   private:        
-        friend class ConstructorFunctions<AttributeRelation>; 
-       
-        DBArray<TupleId> tupleIds;              
+
+
+   private:
+        friend class ConstructorFunctions<AttributeRelation>;
+        DbArray<TupleId> tupleIds;
 /*
 Saves the TupleIds of the tuples pertaining to this instance
 of AttributeRelation
-        
+
 */
-      
+
+        Relation* rel;
+/*
+Pointer to the relation which is used to save the tuples pertaining to
+an instance of AttributeRelation.
+
+*/
+
         ListExpr arelType;
 /*
 The type information for AttributeRelation.
-        
+
 */
-    
+
         bool partOfNrel;
 /*
 True means that the arel-instance was created within the context of an nrel-
 instance. False means that the arel-instance was created independently of
 an nrel-instance.
-        
+
 */
 
         bool relDelete;
 /*
 True means that the relation used for saving tuples should be deleted when
-closing or deleting the arel instance. This is the case, if the relation for 
-saving tuples was created by arel and not by the corresponding nrel. False 
-means, that the relation should not be deleted, as it was created by a 
-corresponding nrel instance. 
+closing or deleting the arel instance. This is the case, if the relation for
+saving tuples was created by arel and not by the corresponding nrel. False
+means, that the relation should not be deleted, as it was created by a
+corresponding nrel instance.
 
 */
-        
-        Relation* rel;
-/*
-Pointer to the relation which is used to save the tuples pertaining to
-an instance of AttributeRelation.
-        
-*/
-      
-        SmiFileId relId; 
+
+        SmiFileId relId;
 /*
 The SmiFileId of the relation which is used to save tuples. relId is used
 by arel to identify its relation among all open relations.
-        
+
 */
 
-	AttributeRelation(){}
+        inline AttributeRelation(){};
 /*
-The empty constructor.
+The empty contructor.
 
-*/	
+*/
 };
 
 /*
+
 3.2 struct SubRelation
 
 This struct contains information about any subrelations contained in
@@ -326,29 +328,30 @@ an nrel-type.
 */
 struct SubRelation
 {
-       
-       SubRelation(Relation* ptr, const string n, SmiFileId id, 
+
+       SubRelation(Relation* ptr, const string n, SmiFileId id,
                                 ListExpr tI):
                              name(n),
                              typeInfo(tI),
                              rel(ptr),
                              fileId(id)
                              {}
-                             
+
        ~SubRelation()
-       {     
+       {
        }
-              
+
        string name;
-       
+
        ListExpr typeInfo;
-           
+
        Relation* rel;
-       
+
        SmiFileId fileId;
 };
 
 /*
+
 3.3 Class NestedRelation
 
 This class implements the representation of the type
@@ -363,131 +366,142 @@ class NestedRelation
 /*
 The first constructor. Creates an instance of NestedRelation
 from the meta-data passed in typeInfo
-          
-*/
 
-          NestedRelation( ListExpr typeInfo, Relation* ptr, 
+*/
+          NestedRelation( ListExpr typeInfo, Relation* ptr,
                           vector<SubRelation*>& sR );
 /*
 The second constructor, used in the Open-function.
-          
-*/
 
+*/
            NestedRelation(){}
 /*
 The empty constructor.
 
 */
-          
-          ~NestedRelation(){}
+
+          ~NestedRelation() {}
 /*
-The destructor. 
-          
+The destructor
+
 */
-   
+
           void insertSubRelations(const ListExpr typeInfo);
 /*
-Reads typeInfo, creates a SubRelation for every arel type in typeInfo and 
+Reads typeInfo, creates a SubRelation for every arel type in typeInfo and
 appends it to vector subRels.
-          
+
 */
-          
-          Relation* getPrimary();              
+
+          Relation* getPrimary();
 /*
 Returns a point to the primary relation of the nested relation.
-          
+
 */
-          
+
           void append (SubRelation* srel);
 /*
 Appends srel to vector subRels
-          
+
 */
-      
+
           void setTupleTypeInfo( ListExpr typeInfo );
 /*
 appends the SmiFileId of the respective relation to all arel-types .
-          
+
 */
-          
-          ListExpr getSubRelationInfo( ListExpr typeInfo );        
+
+          ListExpr getSubRelationInfo( ListExpr typeInfo );
 /*
-typeInfo is expected to be the description of an 
+typeInfo is expected to be the description of an
 arel-attribute. The returned list expression contains the description
-of the arel-attribute and, appended to it, the SmiFileId of the 
+of the arel-attribute and, appended to it, the SmiFileId of the
 relation which is to be used for saving tuples.
-          
+
 */
-          
+
           SubRelation* getSubRel(string name);
 /*
 returns a pointer to the Subrelation with Name name, if such a Relation exists,
 nil otherwise.
-          
+
 */
-          
+
+          int getSubRelIndex(string name);
+/*
+returns a the index of the Subrelation with Name name, if such a Relation
+exists, -1 otherwise.
+
+*/
+
+          ListExpr getTupleType();
+/*
+returns a pointer to tupleTypeInfo
+
+*/
+
           static int getTypeId(int algId, string typeName);
 /*
 returns the typeId of the type with name typeName from algebra with
 id algId
-          
+
 */
-      
+
           static bool namesUnique(ListExpr type, string& s);
 /*
 Returns true, if all attribute names in the type are unique, false
 otherwise.
-          
+
 */
-          
+
           static ListExpr unnestedList(ListExpr typeInfo);
 /*
-creates an unnested list from typeInfo. Is needed to check that all 
+creates an unnested list from typeInfo. Is needed to check that all
 attribute names are unique.
-          
+
 */
-            
-          static bool saveString (string& s, SmiRecord& valueRecord, 
+
+          static bool saveString (string& s, SmiRecord& valueRecord,
                                  size_t& offset);
 /*
 Auxiliary function for saving an instance of NestedRelation.
-          
+
 */
-      
-          static bool readString (string& s, SmiRecord& valueRecord, 
+
+          static bool readString (string& s, SmiRecord& valueRecord,
                                  size_t& offset);
 /*
 Auxiliary function for opening an instance of NestedRelation.
-          
+
 */
- 
-            void     Delete ();
+
+          void     Delete ();
 /*
 Used to delete the primary relation and all subrelations.
-         
-*/         
-          
+
+*/
+
           NestedRelation* Clone(ListExpr typeInfo);
 /*
 Used to clone a nested relation
-          
+
 */
-          
+
           vector<SubRelation*>* getSubRels();
 /*
 Returns a pointer to subrels.
-          
+
 */
-        
+
           AttributeRelation* storeSubRel(AttributeRelation* a, int& i);
 /*
-Auxiliary function for AppendTuples. It receives as first argument an 
-AttributeRelation ~a~, the tuples of which are to be copied to a new 
-AttributeRelation-instance ~arel~. The second argument is an integer ~i~, 
-which denotes the index of the SubRelation in vector ~subRels~, that 
-corresponds to the newly created AttributeRelation ~arel~. The function 
-retrieves the tuples, the ids of which are saved in the DBArray of ~a~. Those 
-tuplesare then appended to the SubRelation pointed to by ~i~, and the tupleIds 
+Auxiliary function for AppendTuples. It receives as first argument an
+AttributeRelation ~a~, the tuples of which are to be copied to a new
+AttributeRelation-instance ~arel~. The second argument is an integer ~i~,
+which denotes the index of the SubRelation in vector ~subRels~, that
+corresponds to the newly created AttributeRelation ~arel~. The function
+retrieves the tuples, the ids of which are saved in the DbArray of ~a~. Those
+tuplesare then appended to the SubRelation pointed to by ~i~, and the tupleIds
 are appended to ~arel~. The function returns the new AttributeRelation ~arel~.
 
 */
@@ -499,31 +513,31 @@ primary, the subtuples in the corresponding subrelation. Precondition is that
 the type of tuple corresponds to the type of the primary relation.
 
 */
-          
-            
+
+
           static Word     In( const ListExpr typeInfo, const ListExpr instance,
-                          const int errorPos, ListExpr& errorInfo, 
+                          const int errorPos, ListExpr& errorInfo,
                           bool& correct );
-    
+
           static ListExpr Out( ListExpr typeInfo, Word value );
-    
+
           static Word     Create( const ListExpr typeInfo );
-    
+
           static void     Delete( const ListExpr typeInfo, Word& w );
-              
+
           static void     Close( const ListExpr typeInfo, Word& w );
-                  
+
           static Word     Clone( const ListExpr typeInfo, const Word& w );
-    
-          static bool     Open( SmiRecord& valueRecord, 
-                            size_t& offset, const ListExpr typeInfo, 
+
+          static bool     Open( SmiRecord& valueRecord,
+                            size_t& offset, const ListExpr typeInfo,
                             Word& value );
-    
-          static bool     Save( SmiRecord& valueRecord, size_t& offset, 
+
+          static bool     Save( SmiRecord& valueRecord, size_t& offset,
                             const ListExpr typeInfo, Word& value );
-                            
-          static bool     KindCheck( ListExpr type, ListExpr& errorInfo ); 
-          
+
+          static bool     KindCheck( ListExpr type, ListExpr& errorInfo );
+
    private:
         Relation* primary;
         vector<SubRelation*> subRels;

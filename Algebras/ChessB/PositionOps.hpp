@@ -132,11 +132,11 @@ private:
     void add_move( const PlyT& p )
     {
         Ply ply(p);
-        apply_ply_op()( pos_, ply );
+        delete apply_ply_op()( pos_, ply );
         Field king_pos = find_king( !pos_.turn() );
         if ( attackcount_op()( pos_, king_pos ) == 0 )
             moves_.push_back( p );
-        revert_ply_op()( pos_, ply );
+        delete revert_ply_op()( pos_, ply );
     }
 
     void generate_piece_moves( const Position& pos_,
@@ -365,6 +365,13 @@ struct attacked_by_p_op : ternary_function< Position, Piece, Piece, bool >
                 }
                 else
                 {
+
+                 /*
+                  Warning, sometimes the following code produces a memory
+                  error, i.e. the it will point after the valid data.
+
+                 */
+
                     position_t::board_t::moves_t dirs = pos.moves( p2.type() );
                     position_t::const_iterator it1 = pos.iter( f );
                     for( int d = 0; d < dirs.count; ++d )
@@ -553,7 +560,7 @@ struct apply_move_op : ternary_function< Position, Field, Field, Position* >
             pos[f2] = pos[f1];
             pos[f1] = NONE;
         }
-        return &pos; // TODO
+        return new Position(pos); // TODO
     }
 };
 

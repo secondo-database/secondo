@@ -22,4 +22,3 @@ operator passmbool alias PassMBool pattern op(_)
 operator stpqexpr1 alias STPQexpr1 pattern op(_,_,_)
 operator runstpqexpr1 alias runSTPQexpr1 pattern op(_)
 operator ndefunit alias NDefUnit pattern op(_, _)
-operator exportmpoints alias ExportMPoints pattern _ op[_ , _ , _ , _]

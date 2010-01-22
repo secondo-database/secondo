@@ -59,7 +59,9 @@ operator intersection2 alias INTERSECTION2 pattern _ infixop _
 operator difference2 alias DIFFERENCE2  pattern _ infixop _
 operator commonborder2 alias COMMONBORDER2  pattern _ infixop _
 operator collect_line alias COLLECTLINE pattern _ op
-operator collect_sline alias COLLECTLINE pattern _ op
+operator collect_sline alias COLLECTSLINE pattern _ op
+operator collect_points alias COLLECTPOINTS pattern _ op [ _ ]
+operator makepoint alias MAKEPOINT pattern op ( _  )
 
 
 

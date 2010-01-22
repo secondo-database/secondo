@@ -355,15 +355,15 @@ SortProgressLocalInfo::SortProgressLocalInfo()
 }
 
 /*
-7 Implementation of class ~SortByLocalInfo2~
+7 Implementation of class ~SortAlgorithm~
 
 */
-SortByLocalInfo2::SortByLocalInfo2( Word stream,
-                                     const SortOrderSpecification& spec,
-                                     SortProgressLocalInfo* p,
-                                     size_t maxFanIn,
-                                     size_t maxMemSize,
-                                     size_t ioBufferSize )
+SortAlgorithm::SortAlgorithm( Word stream,
+                              const SortOrderSpecification& spec,
+                              SortProgressLocalInfo* p,
+                              size_t maxFanIn,
+                              size_t maxMemSize,
+                              size_t ioBufferSize )
 : F0(0)
 , W(0)
 , nextRunNumber(1)
@@ -505,7 +505,7 @@ In this case we need to delete also all tuples stored in memory.
 
 */
 
-SortByLocalInfo2::~SortByLocalInfo2()
+SortAlgorithm::~SortAlgorithm()
 {
   if ( traceMode )
   {
@@ -543,7 +543,7 @@ SortByLocalInfo2::~SortByLocalInfo2()
   }
 }
 
-void SortByLocalInfo2::setMemory(size_t maxMemory)
+void SortAlgorithm::setMemory(size_t maxMemory)
 {
   if ( maxMemory == UINT_MAX )
   {
@@ -563,7 +563,7 @@ void SortByLocalInfo2::setMemory(size_t maxMemory)
   }
 }
 
-void SortByLocalInfo2::setIoBuffer(size_t size)
+void SortAlgorithm::setIoBuffer(size_t size)
 {
   if ( size == UINT_MAX && size > 16384 )
   {
@@ -575,7 +575,7 @@ void SortByLocalInfo2::setIoBuffer(size_t size)
   }
 }
 
-void SortByLocalInfo2::setMaxFanIn(size_t f)
+void SortAlgorithm::setMaxFanIn(size_t f)
 {
   if ( f == UINT_MAX )
   {
@@ -595,7 +595,7 @@ void SortByLocalInfo2::setMaxFanIn(size_t f)
   }
 }
 
-bool SortByLocalInfo2::updateIntermediateMergeCost()
+bool SortAlgorithm::updateIntermediateMergeCost()
 {
   int N = (int)runs.size();
 
@@ -623,7 +623,7 @@ bool SortByLocalInfo2::updateIntermediateMergeCost()
   return false;
 }
 
-int SortByLocalInfo2::calcIntermediateMergeCost()
+int SortAlgorithm::calcIntermediateMergeCost()
 {
   if ( this->F0 > 0 )
   {
@@ -652,7 +652,7 @@ int SortByLocalInfo2::calcIntermediateMergeCost()
   return 0;
 }
 
-int SortByLocalInfo2::simulateIntermediateMerge(vector<int>& arr, int f)
+int SortAlgorithm::simulateIntermediateMerge(vector<int>& arr, int f)
 {
   int cost = 0;
 
@@ -674,7 +674,7 @@ int SortByLocalInfo2::simulateIntermediateMerge(vector<int>& arr, int f)
 }
 
 // sum the last n elements of an integer array up
-int SortByLocalInfo2::sumLastN(vector<int>& arr, int n)
+int SortAlgorithm::sumLastN(vector<int>& arr, int n)
 {
   int result = 0;
 
@@ -688,7 +688,7 @@ int SortByLocalInfo2::sumLastN(vector<int>& arr, int n)
   return result;
 }
 
-void SortByLocalInfo2::mergeInit()
+void SortAlgorithm::mergeInit()
 {
   if ( F0 > 0 )
   {
@@ -730,7 +730,7 @@ void SortByLocalInfo2::mergeInit()
   }
 }
 
-void SortByLocalInfo2::mergeNShortest(int n)
+void SortAlgorithm::mergeNShortest(int n)
 {
   assert(n>1);
   assert((int)runs.size() > 1);
@@ -824,12 +824,12 @@ void SortByLocalInfo2::mergeNShortest(int n)
   return;
 }
 
-Tuple* SortByLocalInfo2::NextResultTuple()
+Tuple* SortAlgorithm::NextResultTuple()
 {
   return nextResultTuple(runs);
 }
 
-Tuple* SortByLocalInfo2::nextResultTuple(vector<SortedRun*>& arr)
+Tuple* SortAlgorithm::nextResultTuple(vector<SortedRun*>& arr)
 {
   if( mergeQueue->Empty() ) // stream finished
   {
@@ -970,15 +970,15 @@ int SortValueMap(Word* args, Word& result, int message, Word& local, Supplier s)
           size_t mem = maxMemSize < 0 ? UINT_MAX : (size_t)maxMemSize;
           size_t buf = ioBufferSize < 0 ? UINT_MAX : (size_t)ioBufferSize;
 
-          li->ptr = new SortByLocalInfo2(args[0], spec, li, fan, mem, buf);
+          li->ptr = new SortAlgorithm(args[0], spec, li, fan, mem, buf);
         }
         else
         {
-          li->ptr = new SortByLocalInfo2(args[0], spec, li);
+          li->ptr = new SortAlgorithm(args[0], spec, li);
         }
       }
 
-      SortByLocalInfo2* sa = li->ptr;
+      SortAlgorithm* sa = li->ptr;
 
       result.setAddr( sa->NextResultTuple() );
       li->returned++;

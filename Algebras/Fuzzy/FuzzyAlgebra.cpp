@@ -61,7 +61,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include "Attribute.h"
-#include "FLOB.h"
+#include "../../Tools/Flob/Flob.h"
 #include "Attribute.h"
 #include <jni.h>
 #include <JVMInit.h>
@@ -116,7 +116,7 @@ public:
    int Compare(const Attribute *arg) const;
    bool Adjacent(const Attribute * arg) const;
    int NumOfFLOBs() const;
-   FLOB *GetFLOB(const int i);
+   Flob *GetFLOB(const int i);
    size_t Sizeof() const;
    void Initialize();
    jobject GetObject() const;
@@ -148,7 +148,7 @@ private:
   jclass cls;  // pointer to the corresponding java class Point.
   jobject obj; // pointer to the corresponding instance
   bool defined;
-  FLOB objectData;
+  Flob objectData;
   bool canDelete;
   void RestoreFLOBFromJavaObject();
 };
@@ -173,7 +173,7 @@ class CcFLine : public Attribute{
      int Compare(const Attribute *arg) const;
      bool Adjacent(const Attribute * arg) const;
      int NumOfFLOBs() const;
-     FLOB *GetFLOB(const int i);
+     Flob *GetFLOB(const int i);
      size_t Sizeof() const;
      void Initialize();
      jobject GetObject() const;
@@ -209,7 +209,7 @@ class CcFLine : public Attribute{
      jclass cls;
      jobject obj;
      bool defined;
-     FLOB objectData;
+     Flob objectData;
      bool canDelete;
      void RestoreFLOBFromJavaObject();
 };
@@ -233,7 +233,7 @@ public:
    int Compare(const Attribute *arg) const;
    bool Adjacent(const Attribute* arg) const;
    int NumOfFLOBs() const;
-   FLOB *GetFLOB(const int i);
+   Flob *GetFLOB(const int i);
    size_t Sizeof() const;
    void Initialize();
    jobject GetObject() const;
@@ -276,7 +276,7 @@ private:
   jclass cls;  // pointer to the corresponding java class FRegion.
   jobject obj; // pointer to the corresponding instance
   bool defined;
-  FLOB objectData;
+  Flob objectData;
   bool canDelete;
   void RestoreFLOBFromJavaObject();
  };
@@ -323,8 +323,8 @@ void CcFPoint::RestoreFLOBFromJavaObject(){
   }
   int size = env->GetArrayLength(jbytes);
   char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
-  objectData.Resize(size);
-  objectData.Put(0,size,bytes);
+  objectData.resize(size);
+  objectData.write(bytes,size,0);
   env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
   defined=true;
  }
@@ -346,9 +346,9 @@ void CcFPoint::RestoreJavaObjectFromFLOB(){
        defined=false;
        return;
    }
-   int size = objectData.Size();
-   const char *bytes;
-   objectData.Get(0,&bytes);
+   int size = objectData.getSize();
+   char bytes[size];
+   objectData.read(bytes,size,0);
    // copy the data into a java-array
   jbyteArray jbytes = env->NewByteArray(size);
   env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
@@ -399,7 +399,7 @@ Destructor of a CcFPoint. Deletes the corresponding java object.
 CcFPoint::~CcFPoint(){
   if(canDelete){
      env->DeleteLocalRef(obj);
-     objectData.Destroy();
+     objectData.destroy();
   }
 }
 
@@ -450,10 +450,7 @@ void CcFPoint::CopyFrom(const Attribute* right){
     const CcFPoint *P = (const CcFPoint *)right;
    cls = env->FindClass("fuzzyobjects/composite/FPoint");
    defined = P->defined;
-   objectData.Resize(P->objectData.Size());
-   const char *data;
-   P->objectData.Get(0,&data);
-   objectData.Put(0,P->objectData.Size(),data);
+   objectData.copyFrom(P->objectData);
    RestoreJavaObjectFromFLOB();
 }
 
@@ -491,7 +488,7 @@ int CcFPoint::NumOfFLOBs() const {
 ~GetFLOB~
 
 */
-FLOB *CcFPoint::GetFLOB(const int i){
+Flob *CcFPoint::GetFLOB(const int i){
    assert(i==0);
       return &objectData;
 }
@@ -780,8 +777,8 @@ void CcFLine::RestoreFLOBFromJavaObject(){
    if(jbytes == 0) error(__LINE__);
    int size = env->GetArrayLength(jbytes);
    char *bytes = (char*) env->GetByteArrayElements(jbytes,0);
-   objectData.Resize(size);
-   objectData.Put(0,size,bytes);
+   objectData.resize(size);
+   objectData.write(bytes,size,0);
    env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
    defined=true;
 }
@@ -797,9 +794,9 @@ void CcFLine::RestoreJavaObjectFromFLOB(){
    cls = env->FindClass("fuzzyobjects/composite/FLine");
    if(cls == 0) error(__LINE__);
    if(&objectData == 0) error(__LINE__);
-   int size = objectData.Size();
-   const char* bytes;
-   objectData.Get(0,&bytes);
+   int size = objectData.getSize();
+   char bytes[size];
+   objectData.read(bytes,size,0);
    jbyteArray jbytes = env->NewByteArray(size);
    env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
    jmethodID mid;
@@ -837,7 +834,7 @@ CcFLine::CcFLine(const jobject jobj):objectData(1){
 CcFLine::~CcFLine(){
   if(canDelete){
      env->DeleteLocalRef(obj);
-     objectData.Destroy();
+     objectData.destroy();
   }
 }
 
@@ -855,11 +852,7 @@ void CcFLine::CopyFrom(const Attribute* right){
   const CcFLine *L = (const CcFLine *) right;
   cls =  env->FindClass("fuzzyobjects/composite/FLine");
   defined = L->defined;
-  int size = L->objectData.Size();
-  objectData.Resize(size);
-  const char* data;
-  L->objectData.Get(0,&data);
-  objectData.Put(0,size,data);
+  objectData.copyFrom(L->objectData);
   RestoreJavaObjectFromFLOB();
 }
 
@@ -880,7 +873,7 @@ int CcFLine::NumOfFLOBs() const{
    return 1;
 }
 
-FLOB* CcFLine::GetFLOB(const int i){
+Flob* CcFLine::GetFLOB(const int i){
     assert(i==0);
     return &objectData;
 }
@@ -1382,8 +1375,8 @@ void CcFRegion::RestoreFLOBFromJavaObject(){
    if(jbytes==0) error(__LINE__);
    int size = env->GetArrayLength(jbytes);
    char* bytes = (char*) env->GetByteArrayElements(jbytes,0);
-   objectData.Resize(size);
-   objectData.Put(0,size,bytes);
+   objectData.resize(size);
+   objectData.write(bytes,size,0);
    env->ReleaseByteArrayElements(jbytes,(jbyte*)bytes,0);
    defined=true;
  }
@@ -1395,9 +1388,9 @@ void CcFRegion::RestoreFLOBFromJavaObject(){
          defined=false;
          return;
      }
-     int size=objectData.Size();
-     const char* bytes;
-     objectData.Get(0,&bytes);
+     int size=objectData.getSize();
+     char bytes[size];
+     objectData.read(bytes,size,0);
      jbyteArray jbytes = env->NewByteArray(size);
      env->SetByteArrayRegion(jbytes,0,size,(jbyte*)bytes);
      jmethodID mid;
@@ -1432,7 +1425,7 @@ CcFRegion::CcFRegion(const jobject jobj):objectData(1){
 CcFRegion::~CcFRegion(){
   if(canDelete){
     env->DeleteLocalRef(obj);
-    objectData.Destroy();
+    objectData.destroy();
   }
 }
 
@@ -1452,11 +1445,7 @@ void CcFRegion::CopyFrom(const Attribute* right){
    cls = env->FindClass("fuzzyobjects/composite/FRegion");
    if(cls==0) error(__LINE__);
    defined = R->defined;
-   int size = R->objectData.Size();
-   objectData.Resize(size);
-   const char* data;
-   R->objectData.Get(0,&data);
-   objectData.Put(0,size,data);
+   objectData.copyFrom(R->objectData);
    RestoreJavaObjectFromFLOB();
 }
 
@@ -1477,7 +1466,7 @@ int CcFRegion::NumOfFLOBs() const {
    return 1;
 }
 
-FLOB* CcFRegion::GetFLOB(const int i){
+Flob* CcFRegion::GetFLOB(const int i){
    assert(i==0);
    return &objectData;
 }

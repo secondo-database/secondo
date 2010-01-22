@@ -1,5 +1,5 @@
-Database:	OPT
-Restore:	NO
+Database: opt	
+Restore: NO
 
 Operator : set_histogram1d
 Number   : 1

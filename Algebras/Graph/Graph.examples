@@ -75,7 +75,7 @@ Result   : file
 Operator : edges
 Number   : 2
 Signature: graph -> stream(edge)
-Example  : query edges(shortestpath(sightsgraph1,24,16)) consume
+Example  : query edges(shortestpath(sightsgraph1,24,16))  consume
 Result   : file
 
 

@@ -1,0 +1,50 @@
+# This is a generated file, composed of the following suppression rules:
+#
+#      xfree-3.supp xfree-4.supp glibc-2.5.supp 
+#
+
+
+##----------------------------------------------------------------------##
+
+# Errors to suppress by default with XFree86 3.3.6)
+
+# Format of this file is:
+# {
+#     name_of_suppression
+#     tool_name:supp_kind
+#     (optional extra info for some suppression types)
+#     caller0 name, or /name/of/so/file.so
+#     caller1 name, or ditto
+#     (optionally: caller2 name)
+#     (optionally: caller3 name)
+#  }
+#
+# For Memcheck, the supp_kinds are:
+#
+#     Param Value1 Value2 Value4 Value8 Value16
+#     Free Addr1 Addr2 Addr4 Addr8 Addr16
+#     Cond (previously known as Value0)
+#
+# and the optional extra info is:
+#     if Param: name of system call param
+#     if Free: name of free-ing fn)
+
+##----------------------------------------------------------------------##
+{
+   BDB-PWrite64
+   Memcheck:Param
+   pwrite64(buf)
+   fun:do_pwrite64
+   fun:__os_io
+   fun:__memp_pgwrite
+   fun:__memp_bhwrite
+   fun:__memp_sync_int
+   fun:__memp_fsync
+   fun:__db_sync
+   fun:__db_refresh
+   fun:__db_close
+   fun:__db_close_pp
+   fun:_ZN2Db5closeEj
+}
+
+

@@ -437,7 +437,6 @@ Algorithm.
        actualNodeNo ( 0 ),
        innerRelPart ( 0 ),
        innerRelInfo ( 0 )
-
        {}
    } hdr;
 
@@ -622,35 +621,57 @@ The destructor
       hdr.rtree = 0;
 
       // delete the partitions and Infos
-      if (hdr.firstPartitionInfo)
+      if (hdr.firstPartitionInfo){
         delete hdr.firstPartitionInfo;
+        hdr.firstPartitionInfo=0;
+      }
 
-      if (hdr.outerRelPart)
+      if (hdr.outerRelPart){
         delete hdr.outerRelPart;
+        hdr.outerRelPart=0;
+      }
 
-      if(hdr.outerRelInfo)
+      if(hdr.outerRelInfo){
         delete hdr.outerRelInfo;
+        hdr.outerRelInfo=0;
+      }
 
-      if (hdr.actualMaps)
+      if (hdr.actualMaps){
+        if(hdr.actualMaps->innerInfo){
+          hdr.actualMaps->innerInfo->clear();
+          delete hdr.actualMaps->innerInfo;
+        }
+        if(hdr.actualMaps->outerInfo){
+          hdr.actualMaps->outerInfo->clear();
+          delete hdr.actualMaps->outerInfo;
+        }
         delete hdr.actualMaps;
+        hdr.actualMaps=0;
+      }
 
-      if (hdr.innerRelPart)
+      if (hdr.innerRelPart){
         delete hdr.innerRelPart;
+        hdr.innerRelPart=0;
+      }
 
-      if (hdr.innerRelInfo)
+      if (hdr.innerRelInfo){
         delete hdr.innerRelInfo;
+        hdr.innerRelInfo=0;
+      }
 
       //delete the TupleBuffers
       if ( hdr.innerRelation )
       {
         hdr.innerRelation->Clear();
         delete hdr.innerRelation;
+        hdr.innerRelation = 0;
       }
 
       if ( hdr.outerRelation )
       {
         hdr.outerRelation->Clear();
         delete hdr.outerRelation;
+        hdr.outerRelation=0;
       }
     };
 
@@ -873,7 +894,7 @@ No further tuple in outer relation.
 
           FlushBufferToFile ( hdr.outerRelPart, hdr.outerRelInfo );
 
-          if ( (*hdr.outerRelInfo).empty() )
+          if ( hdr.outerRelInfo->empty() )
           {
             //no overflow in initial R-Tree.
 
@@ -1082,11 +1103,13 @@ Algorithm from the stack.
       if ( Parts.empty() )
       {
         // no further result tuples
+        hdr.actualMaps->innerInfo->clear();
         delete (hdr.actualMaps)->innerInfo;
-        (hdr.actualMaps)->innerInfo = 0;
+        hdr.actualMaps->innerInfo = 0;
 
+        hdr.actualMaps->outerInfo->clear();
         delete (hdr.actualMaps)->outerInfo;
-        (hdr.actualMaps)->outerInfo = 0;
+        hdr.actualMaps->outerInfo = 0;
 
         return 0;
         break;
@@ -1109,17 +1132,26 @@ the informations needed for building the R-Trees of this instance one by one.
         cout << "=========================================================="
              << "======" << endl;
 #endif
+        if(hdr.actualMaps){ // delete old stuff
+           if(hdr.actualMaps->innerInfo){
+              delete hdr.actualMaps->innerInfo;
+           }
+           if(hdr.actualMaps->outerInfo){
+              delete hdr.actualMaps->outerInfo;
+           }
+           delete hdr.actualMaps;
+        }
 
-        hdr.actualMaps = new PartitionsInfo;
+        hdr.actualMaps = new PartitionsInfo();
         (hdr.actualMaps)->innerInfo = Parts.top().innerInfo;
         (hdr.actualMaps)->outerInfo = Parts.top().outerInfo;
         Parts.pop();
 
 #ifdef PLUGJOIN_VERY_VERBOSE_MODE
       cout << "Number partitions of outer relation: "
-           << ((*hdr.actualMaps).outerInfo)->size() << endl;
+           << hdr.actualMaps->outerInfo->size() << endl;
       cout << "Number partitions of inner relation: "
-           << ((*hdr.actualMaps).innerInfo)->size() << endl;
+           << hdr.actualMaps->innerInfo->size() << endl;
       cout << "************************************************************"
            << "*************************" << endl;
 #endif
@@ -1131,14 +1163,14 @@ the informations needed for building the R-Trees of this instance one by one.
       cout << "(LeafNumber NumberOfNotInsertedEntries SmiRecordIDFirst "
            << "SmiRecordIdNext)" << endl;
       typedef typename  PartitionInfo::const_iterator CI;
-      for (CI p=((*hdr.actualMaps).innerInfo)->begin();
-              p!=((*hdr.actualMaps).innerInfo)->end(); ++p)
+      for (CI p=hdr.actualMaps->innerInfo->begin();
+              p!=hdr.actualMaps->innerInfo->end(); ++p)
       {
         cout << p->first << "   " << p->second.counter << "    ";
         cout <<p->second.firstRId << "   " << p->second.actualRId << endl;
       }
       cout << "Number of Leaves with insertOverflow:"
-           << ((*hdr.actualMaps).innerInfo)->size() << endl;
+           << hdr.actualMaps->innerInfo->size() << endl;
       cout << "============================================================="
            << "===" << endl << endl;
 
@@ -1148,21 +1180,21 @@ the informations needed for building the R-Trees of this instance one by one.
       cout << "(LeafNumber NumberOfQueries SmiRecordIDFirst SmiRecordIdNext)"
            << endl;
       typedef typename  PartitionInfo::const_iterator CI;
-      for (CI p=((*hdr.actualMaps).outerInfo)->begin();
-              p!=((*hdr.actualMaps).outerInfo)->end(); ++p)
+      for (CI p=hdr.actualMaps->outerInfo->begin();
+              p!=hdr.actualMapsi->outerInfo->end(); ++p)
       {
         cout << p->first << "   " << p->second.counter << "    ";
         cout <<p->second.firstRId << "   " << p->second.actualRId << endl;
       }
       cout << "Number of Leaves with touching queries:"
-           << ((*hdr.actualMaps).outerInfo)->size() << endl;
+           << hdr.actualMaps->outerInfo->size() << endl;
       cout << "================================================================"
            << endl << endl;
 #endif
         //Caution: actualMapsIter iterates the queries
         //innerPartitons without queries need not to
         //be considered
-        hdr.actualMapsIter = ((*hdr.actualMaps).outerInfo)->end();
+        hdr.actualMapsIter = hdr.actualMaps->outerInfo->end();
 
 
         hdr.newPartitionsFromStack = false;
@@ -1182,7 +1214,7 @@ are inserted in the Tree.
       hdr.actualMapsIter--;    //the algorithm guarantees at least one partition
       hdr.actualNodeNo = hdr.actualMapsIter->first;
 
-      if (  hdr.actualMapsIter == ((*hdr.actualMaps).outerInfo)->begin() )
+      if (  hdr.actualMapsIter == hdr.actualMaps->outerInfo->begin() )
         hdr.lastPartition = true;
       else
         hdr.lastPartition = false;
@@ -1200,7 +1232,7 @@ are inserted in the Tree.
       //number of nodes to use in next R-Tree
       noEntriesOuterRelation = hdr.actualMapsIter->second.counter;
 
-      NodeInfo innerInfo = ((*(*hdr.actualMaps).innerInfo) [hdr.actualNodeNo]);
+      NodeInfo innerInfo = ((*hdr.actualMaps->innerInfo) [hdr.actualNodeNo]);
       noEntriesInnerRelation = innerInfo.counter;
 
       nodesToUse = UseNodesInTree (noEntriesOuterRelation,
@@ -1227,7 +1259,7 @@ are inserted in the Tree.
       hdr.GetNextEntry_readFirst = true;
       hdr.GetNextEntry_read = true;
 
-      while ( (entry = GetNextEntry ( ((*hdr.actualMaps).innerInfo),
+      while ( (entry = GetNextEntry ( hdr.actualMaps->innerInfo,
                                       hdr.actualNodeNo)) != 0 )
       {
         if ( !hdr.rtree->Insert (*entry, nodeNoOverflow) )
@@ -1258,7 +1290,7 @@ Getting the queries and build resultTuples for stream-REQUEST.
 
       R_TreeEntryPnJ<dim>* outerEntry;
       if ( (outerEntry =
-           GetNextEntry (((*hdr.actualMaps).outerInfo), hdr.actualNodeNo)) == 0)
+           GetNextEntry (hdr.actualMaps->outerInfo, hdr.actualNodeNo)) == 0)
       {
         //all queries of partition computed
 
@@ -1391,12 +1423,12 @@ void SpatialJoinLocalInfo<dim>::BufferInsert
                                 map< ArrayIndex,NodeInfo >* m,
                                 ArrayIndex& nodeNo, R_TreeEntryPnJ<dim>& entry)
 {
-  (*mm).insert(make_pair(nodeNo, entry));
+  mm->insert(make_pair(nodeNo, entry));
 
   typename map< ArrayIndex,NodeInfo >::iterator p;
-  p = (*m).find(nodeNo);
+  p = m->find(nodeNo);
 
-  if ( p != (*m).end() )   //nodeNo found in map
+  if ( p != m->end() )   //nodeNo found in map
   {
     p->second.counter = p->second.counter + 1;
 
@@ -1426,7 +1458,7 @@ void SpatialJoinLocalInfo<dim>::BufferInsert
 
     delete firstRecord;
 
-    (*m).insert ( make_pair (nodeNo, NodeInfo(1, firstRecno, firstRecno) ) );
+    m->insert ( make_pair (nodeNo, NodeInfo(1, firstRecno, firstRecno) ) );
 
   };
 
@@ -1801,15 +1833,18 @@ must be used.
   return max (min (nodesToUse, max_leaves_of_rtree), min_leaves_of_rtree);
 }
 
+
+
 /*
 3.5 Value mapping function of operator ~spatialjoin~
 
 */
+template<int D>
 int
-spatialjoin2ValueMapping(Word* args, Word& result, int message,
+spatialjoinValueMapping(Word* args, Word& result, int message,
                          Word& local, Supplier s)
 {
-  SpatialJoinLocalInfo<2> *localInfo;
+  SpatialJoinLocalInfo<D> *localInfo;
   switch (message)
   {
     case OPEN:
@@ -1824,7 +1859,7 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
       leftAttrIndexWord = args[4];  //APPENDED - Value no 1
       rightAttrIndexWord = args[5]; //APPENDED - Value no 2
 
-      localInfo = new SpatialJoinLocalInfo<2>(rightStreamWord,
+      localInfo = new SpatialJoinLocalInfo<D>(rightStreamWord,
                                               rightAttrIndexWord,
                                               leftStreamWord,
                                               leftAttrIndexWord);
@@ -1839,7 +1874,7 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
 
     case REQUEST:
     {
-      localInfo = (SpatialJoinLocalInfo<2>*)local.addr;
+      localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
       result.setAddr(localInfo->NextResultTuple());
       return result.addr != 0 ? YIELD : CANCEL;
     }
@@ -1848,7 +1883,7 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
     {
       if(local.addr)
       {
-        localInfo = (SpatialJoinLocalInfo<2>*)local.addr;
+        localInfo = (SpatialJoinLocalInfo<D>*)local.addr;
         //the TupleBuffers are deleted in the destructor of localInfo
         localInfo->resultTupleType->DeleteIfAllowed();
         delete localInfo;
@@ -1857,127 +1892,6 @@ spatialjoin2ValueMapping(Word* args, Word& result, int message,
       return 0;
     }
 
-  }
-
-  return 0;
-
-};
-
-int
-spatialjoin3ValueMapping(Word* args, Word& result, int message,
-                         Word& local, Supplier s)
-{
-  SpatialJoinLocalInfo<3> *localInfo;
-
-  switch (message)
-  {
-    case OPEN:
-    {
-      Word leftStreamWord,
-           rightStreamWord,
-           leftAttrIndexWord,
-           rightAttrIndexWord;
-
-      leftStreamWord = args[0];
-      rightStreamWord = args[1];
-      leftAttrIndexWord = args[4];  //APPENDED - Value no 1
-      rightAttrIndexWord = args[5]; //APPENDED - Value no 2
-
-
-      localInfo = new SpatialJoinLocalInfo<3>(rightStreamWord,
-                                              rightAttrIndexWord,
-                                              leftStreamWord,
-                                              leftAttrIndexWord);
-
-      ListExpr resultType = GetTupleResultType( s );
-      localInfo->resultTupleType = new TupleType( nl->Second( resultType ) );
-
-      local.setAddr(localInfo);
-
-      return 0;
-    }
-
-    case REQUEST:
-    {
-      //cout << endl << "REQUEST" << endl;
-      localInfo = (SpatialJoinLocalInfo<3>*)local.addr;
-      result.setAddr(localInfo->NextResultTuple());
-      return result.addr != 0 ? YIELD : CANCEL;
-    }
-
-    case CLOSE:
-    {
-      if(local.addr)
-      {
-        localInfo = (SpatialJoinLocalInfo<3>*)local.addr;
-        //the TupleBuffers are deleted in the destructor of localInfo
-        localInfo->resultTupleType->DeleteIfAllowed();
-        delete localInfo;
-        local.setAddr(0);
-      }
-      return 0;
-    }
-
-  }
-
-  return 0;
-
-};
-
-int
-spatialjoin4ValueMapping(Word* args, Word& result, int message,
-                         Word& local, Supplier s)
-{
-  SpatialJoinLocalInfo<4> *localInfo;
-
-  switch (message)
-  {
-    case OPEN:
-    {
-      Word leftStreamWord,
-           rightStreamWord,
-           leftAttrIndexWord,
-           rightAttrIndexWord;
-
-      leftStreamWord = args[0];
-      rightStreamWord = args[1];
-      leftAttrIndexWord = args[4];  //APPENDED - Value no 1
-      rightAttrIndexWord = args[5]; //APPENDED - Value no 2
-
-
-      localInfo = new SpatialJoinLocalInfo<4>(rightStreamWord,
-                                              rightAttrIndexWord,
-                                              leftStreamWord,
-                                              leftAttrIndexWord);
-
-      ListExpr resultType = GetTupleResultType( s );
-      localInfo->resultTupleType = new TupleType( nl->Second( resultType ) );
-
-      local.setAddr(localInfo);
-
-      return 0;
-    }
-
-    case REQUEST:
-    {
-      //cout << endl << "REQUEST" << endl;
-      localInfo = (SpatialJoinLocalInfo<4>*)local.addr;
-      result.setAddr(localInfo->NextResultTuple());
-      return result.addr != 0 ? YIELD : CANCEL;
-    }
-
-    case CLOSE:
-    {
-      if(local.addr)
-      {
-        localInfo = (SpatialJoinLocalInfo<4>*)local.addr;
-        //the TupleBuffers are deleted in the destructor of localInfo
-        localInfo->resultTupleType->DeleteIfAllowed();
-        delete localInfo;
-        local.setAddr(0);
-      }
-      return 0;
-    }
   }
   return 0;
 };
@@ -1986,9 +1900,9 @@ spatialjoin4ValueMapping(Word* args, Word& result, int message,
 3.7 Definition of value mapping vectors
 
 */
-ValueMapping spatialjoinMap [] = {spatialjoin2ValueMapping,
-                                  spatialjoin3ValueMapping,
-                                  spatialjoin4ValueMapping };
+ValueMapping spatialjoinMap [] = {spatialjoinValueMapping<2>,
+                                  spatialjoinValueMapping<3>,
+                                  spatialjoinValueMapping<4> };
 
 /*
 3.8 Specification of operator ~spatialjoin~

@@ -46,7 +46,7 @@ using namespace std;
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
 #include <string>
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "SecondoSystem.h"
 #include "Attribute.h"
 #include "../Spatial/SpatialAlgebra.h"
@@ -91,7 +91,7 @@ This constructor should not be used.
    ~PointSequence();
 
    int NumOfFLOBs() const;
-   FLOB *GetFLOB(const int i);
+   Flob *GetFLOB(const int i);
    int Compare(const Attribute*) const;
    bool Adjacent(const Attribute*) const;
    bool IsDefined() const;
@@ -100,18 +100,20 @@ This constructor should not be used.
    ostream& Print( ostream& os ) const;
     
    int GetNoPSPoints() const;
-   const PSPoint& GetPSPoint( int i ) const;
+   PSPoint GetPSPoint( int i ) const;
    const bool IsEmpty() const;
    void Append( const PSPoint& p);
    size_t HashValue() const;
    void CopyFrom(const Attribute* right);
    PointSequence *Clone() const;
 
+   void BBox(Rectangle<2>* result);
+
    friend ostream& operator <<( ostream& os, const PointSequence& ps );
  
  private:
  
-   DBArray<PSPoint> pspoints;
+   DbArray<PSPoint> pspoints;
   
 };
 /*
@@ -178,7 +180,7 @@ int PointSequence::NumOfFLOBs() const
 Not yet implemented. Needed to be a tuple attribute.
 
 */
-FLOB *PointSequence::GetFLOB(const int i)
+Flob *PointSequence::GetFLOB(const int i)
 {
   assert( i >= 0 && i < NumOfFLOBs() );
   return &pspoints;
@@ -260,12 +262,12 @@ Returns a PSPoint indexed by ~i~.
 *Precondition* ~0 [<]= i [<] noPSPoints~.
 
 */
-const PSPoint& PointSequence::GetPSPoint( int i ) const
+PSPoint PointSequence::GetPSPoint( int i ) const
 {
   assert( 0 <= i && i < GetNoPSPoints() );
-  const PSPoint *p;
+  PSPoint p;
   pspoints.Get( i, p );
-  return *p;
+  return p;
 }
 
 /*
@@ -305,9 +307,45 @@ PointSequence *PointSequence::Clone() const
   return ps;
 }
 
+void PointSequence::BBox(Rectangle<2>* result){
+  if(!IsDefined()){
+    result->SetDefined(false);
+    return;
+  }
+  result->SetDefined(true);
+  if(pspoints.Size()<2){
+    result->SetDefined(false);
+    return;
+  }
+  PSPoint p;
+  pspoints.Get(0,p);
+  double x1 = p.x;
+  double y1 = p.y;
+  double x2 = x1;
+  double y2 = y1;
+  for(int i=1;i<pspoints.Size();i++){
+     pspoints.Get(i,p);
+     x1 = min(x1,p.x);
+     y1 = min(y1,p.y);
+     x2 = max(x2, p.x);
+     y2 = max(y2,p.y);
+  }
+  if( (x1>=x2) || (y1>=y2)){
+    result->SetDefined(false);
+    return;
+  }
+  double mind[2];
+  double maxd[2];
+  mind[0] = x1;
+  mind[1] = y1;
+  maxd[0] = x2;
+  maxd[1] = y2;
+  result->Set(true,mind,maxd);
+}
+
 void PointSequence::CopyFrom(const Attribute* right){
     PointSequence* ps = (PointSequence*)right;
-    pspoints.Clear();
+    pspoints.clean();
     for( int i = 0; i < ps->GetNoPSPoints(); i++ )
       this->Append( ps->GetPSPoint( i ) );
 
@@ -362,13 +400,27 @@ Word
 InPointSequence( const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  //cout << "InPointSequence" << endl;
   PointSequence* ps;
 
   ps = new PointSequence( 0 );
 
+  if(nl->AtomType(instance)!=NoAtom){
+    if(nl->IsEqual(instance,"undef")){
+      correct = true;
+      ps->SetDefined(false);
+      return SetWord(ps);
+    } else {
+      correct=false;
+      delete ps;
+      return SetWord(Address(0));
+    }
+  }
+
+
   ListExpr first;
   ListExpr rest = instance;
+
+
   while( !nl->IsEmpty( rest ) )
   {
     first = nl->First( rest );
@@ -386,7 +438,9 @@ InPointSequence( const ListExpr typeInfo, const ListExpr instance,
     }
     else
     {
+      cout << "Error detected" << endl;
       correct = false;
+      delete ps;
       return SetWord( Address(0) );
     }
   }
@@ -729,8 +783,14 @@ Converts ~pointsequence~ to ~region~.
   instance = nl->OneElemList(nl->OneElemList(instance));
   Region* reg = (Region*)InRegion( nl->TheEmptyList(), 
                                  instance, 0, errorInfo, correct ).addr;
-  if ( correct ) ((Region*)result.addr)->CopyFrom(reg);  
-  else ((Region*)result.addr)->SetDefined(false);
+  if ( correct ){
+    ((Region*)result.addr)->CopyFrom(reg);  
+  } else {
+     ((Region*)result.addr)->SetDefined(false);
+  }
+  if(reg){
+    delete reg; 
+  }
   return 0;
 }
 
@@ -741,35 +801,10 @@ Converts ~pointsequence~ to ~rectangle~.
 
 */
 { 
-  const unsigned dim = 2;
-  double min[dim], max[dim];
-  double x0, y0, x1, y1, x2, y2, x3, y3;
-  
-  PointSequence *ps = ((PointSequence*)args[0].addr);
-  result = qp->ResultStorage(s);   //query processor has provided
-                                     //a Rectangle instance to take the result
-  x0 = ps->GetPSPoint(0).x;
-  y0 = ps->GetPSPoint(0).y;
-  x1 = ps->GetPSPoint(1).x;
-  y1 = ps->GetPSPoint(1).y;
-  x2 = ps->GetPSPoint(2).x;
-  y2 = ps->GetPSPoint(2).y;
-  x3 = ps->GetPSPoint(3).x;
-  y3 = ps->GetPSPoint(3).y;
-
-  if ( ( ps->GetNoPSPoints() == 4 )
-       && ( x0 == x1 ) && ( x2 == x3 ) && ( y0 == y3 ) && ( y1 == y2 )
-       && ( x0 < x2 ) && ( y0 < y2 ) )
-  {
-    min[0] = ps->GetPSPoint(0).x;
-    min[1] = ps->GetPSPoint(0).y;
-    max[0] = ps->GetPSPoint(2).x;
-    max[1] = ps->GetPSPoint(2).y;
-    Rectangle<dim>* rect = new Rectangle<dim>(true, min, max);
-    ((Rectangle<dim>*)result.addr)->CopyFrom(rect);
-    delete rect;
-  }
-  else ((Rectangle<dim>*)result.addr)->SetDefined(false);
+  result = qp->ResultStorage(s);
+  PointSequence* arg = (PointSequence*)args[0].addr;
+  Rectangle<2>* res = (Rectangle<2>*)result.addr;
+  arg->BBox(res);
   return 0;
 }  
 

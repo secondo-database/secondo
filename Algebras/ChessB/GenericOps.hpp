@@ -27,7 +27,9 @@ struct Ntuples_op : unary_function< StreamIterator<Tuple>, pair<bool, Tuple*> >
     {
         StreamIterator<Tuple> s( stream );
         TupleType type( type_ );
-        Tuple* result = new Tuple( new TupleType(type_) );
+        TupleType* tt = new TupleType(type_);
+        Tuple* result = new Tuple( tt );
+        tt->DeleteIfAllowed();
         bool result_valid = false;
 
         if ( s.valid() )

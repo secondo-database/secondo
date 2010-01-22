@@ -99,44 +99,12 @@ This function takes the value for this PMSimple from another instance __B__.
 template <class T, class Unit>
 void PMSimple<T, Unit>::Equalize(const PMSimple<T,Unit>* B2){
     __TRACE__
-  // equalize the linear moves
-  const Unit* LM=NULL;;
-  linearMoves.Clear();
-  if(B2->linearMoves.Size()>0) linearMoves.Resize(B2->linearMoves.Size());
-  for(int i=0;i<B2->linearMoves.Size();i++){
-     B2->linearMoves.Get(i,LM);
-     linearMoves.Append(*LM);
-  }
-  // equalize the composite moves
-  const CompositeMove* CM=NULL;
-  compositeMoves.Clear();
-  if(compositeMoves.Size()>0)
-     compositeMoves.Resize(B2->compositeMoves.Size());
-  for(int i=0;i<B2->compositeMoves.Size();i++){
-     B2->compositeMoves.Get(i,CM);
-     compositeMoves.Append(*CM);
-  }
+  linearMoves.copyFrom(B2->linearMoves);
+  compositeMoves.copyFrom(B2->compositeMoves);
+  compositeSubMoves.copyFrom(B2->compositeSubMoves);
+  periodicMoves.copyFrom(B2->periodicMoves);
 
-  // equalize the composite submoves
-  const CSubMove* SM=NULL;
-  compositeSubMoves.Clear();
-  if(compositeSubMoves.Size()>0)
-     compositeSubMoves.Resize(B2->compositeSubMoves.Size());
-  for(int i=0;i<B2->compositeSubMoves.Size();i++){
-     B2->compositeSubMoves.Get(i,SM);
-     compositeSubMoves.Append(*SM);
-  }
-
-  // equalize the periodic moves
-  const PeriodicMove* PM = NULL;
-  periodicMoves.Clear();
-  if(periodicMoves.Size()>0)periodicMoves.Resize(B2->periodicMoves.Size());
-  for(int i=0;i<B2->periodicMoves.Size();i++){
-     B2->periodicMoves.Get(i,PM);
-     periodicMoves.Append(*PM);
-  }
-
-  defined = B2->defined;
+  SetDefined(B2->IsDefined());
   interval.Equalize(&(B2->interval));
   startTime.Equalize(&(B2->startTime));
   submove.Equalize(&(B2->submove));
@@ -146,7 +114,7 @@ void PMSimple<T, Unit>::Equalize(const PMSimple<T,Unit>* B2){
 /*
 ~NumOfFLOBs~
 
-Returns four because four DBArrays are managed.
+Returns four because four DbArrays are managed.
 
 [3] O(1)
 
@@ -176,7 +144,7 @@ is out of range, the system will going down. The flobs are:
 
 */
 template <class T, class Unit>
-FLOB* PMSimple<T,Unit>::GetFLOB(const int i){
+Flob* PMSimple<T,Unit>::GetFLOB(const int i){
   __TRACE__
   assert(i>=0 && i<NumOfFLOBs());
  if(i==0) return &linearMoves;
@@ -407,9 +375,9 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
      }
      defined=true;
 
-     const Unit* LM;
+     Unit LM;
      linearMoves.Get(0,LM);
-     interval.Equalize(&(LM->interval));
+     interval.Equalize(&(LM.interval));
      CorrectDurationSums();
      return true;
   }
@@ -425,9 +393,9 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
         return false;
      }
      defined = true;
-     const CompositeMove* CM;
+     CompositeMove CM;
      compositeMoves.Get(0,CM);
-     interval.Equalize(&(CM->interval));
+     interval.Equalize(&(CM.interval));
      CorrectDurationSums();
      return true;
   }
@@ -442,9 +410,9 @@ bool PMSimple<T, Unit>::ReadFrom(const ListExpr value,
         return false;
      }
      defined = true;
-     const PeriodicMove* PM;
+     PeriodicMove PM;
      periodicMoves.Get(0,PM);
-     interval.Equalize(&(PM->interval));
+     interval.Equalize(&(PM.interval));
      CorrectDurationSums();
      return true;
   }
@@ -487,29 +455,29 @@ void PMSimple<T, Unit>::At(const DateTime* instant,T& res)const{
  if(interval.Contains(duration)){
  // in the other case, we have nothing to do
  // because the result is initialized with "undefined"
- const SubMove* sm = &submove;
- const CompositeMove* CM;
- const PeriodicMove* PM;
+ SubMove sm(submove);
+ CompositeMove CM;
+ PeriodicMove PM;
  RelInterval RI;
- while(sm->arrayNumber!=LINEAR){
-    if(sm->arrayNumber==COMPOSITE){
+ while(sm.arrayNumber!=LINEAR){
+    if(sm.arrayNumber==COMPOSITE){
        // in this stage of implementation a linear search is
        // executed. i have to make it better in the future
-       int i = sm->arrayIndex;
+       int i = sm.arrayIndex;
        compositeMoves.Get(i,CM);
-       int cur = CM->minIndex;
-       int max = CM->maxIndex;
+       int cur = CM.minIndex;
+       int max = CM.maxIndex;
        bool found=false;
        while( (cur<=max) && ! found){
-           const CSubMove* csm;
+           CSubMove csm;
            compositeSubMoves.Get(cur,csm); // get the submove
-           if(csm->arrayNumber==LINEAR){
-              const Unit* LM;
-              linearMoves.Get(csm->arrayIndex,LM);
-              RI = LM->interval;
-            } else if(csm->arrayNumber==PERIOD){
-              periodicMoves.Get(csm->arrayIndex,PM);
-              RI = PM->interval;
+           if(csm.arrayNumber==LINEAR){
+              Unit LM;
+              linearMoves.Get(csm.arrayIndex,LM);
+              RI = LM.interval;
+            } else if(csm.arrayNumber==PERIOD){
+              periodicMoves.Get(csm.arrayIndex,PM);
+              RI = PM.interval;
             } else { //another submoves are not allowed
               assert(false);
             }
@@ -524,20 +492,20 @@ void PMSimple<T, Unit>::At(const DateTime* instant,T& res)const{
             }
        }
        assert(found); //otherwise we have an error in computation
-    } else if(sm->arrayNumber==PERIOD){
-       int index = sm->arrayIndex;
+    } else if(sm.arrayNumber==PERIOD){
+       int index = sm.arrayIndex;
        periodicMoves.Get(index,PM);
        // this is a very slow implementation
        // i have to speed up it in the future
-       sm = &PM->submove;
+       sm = PM.submove;
        RelInterval RI;
-       if(sm->arrayNumber==LINEAR){
-           const Unit* LM;
-           linearMoves.Get(sm->arrayIndex,LM);
-           RI = LM->interval;
-        } else if(sm->arrayNumber==COMPOSITE){
-           compositeMoves.Get(sm->arrayIndex,CM);
-           RI = CM->interval;
+       if(sm.arrayNumber==LINEAR){
+           Unit LM;
+           linearMoves.Get(sm.arrayIndex,LM);
+           RI = LM.interval;
+        } else if(sm.arrayNumber==COMPOSITE){
+           compositeMoves.Get(sm.arrayIndex,CM);
+           RI = CM.interval;
         } else { //another submoves are not allowed
            assert(false);
         }
@@ -552,10 +520,10 @@ void PMSimple<T, Unit>::At(const DateTime* instant,T& res)const{
            assert(false);
         }
      }
-     const Unit* LM;
-     linearMoves.Get(sm->arrayIndex,LM);
-     if(LM->IsDefinedAt(duration)){
-        LM->At(duration,res);
+     Unit LM;
+     linearMoves.Get(sm.arrayIndex,LM);
+     if(LM.IsDefinedAt(duration)){
+        LM.At(duration,res);
      }
   }
   delete duration;
@@ -574,9 +542,9 @@ bool PMSimple<T, Unit>::Initial(T& result) const{
   if(!defined || IsEmpty()){
     return false;
   }
-  const Unit* lm;
+  Unit lm;
   linearMoves.Get(0,lm);
-  return lm->Initial(result); 
+  return lm.Initial(result); 
 }
 
 
@@ -629,10 +597,10 @@ summarized into single units.
 template <class T, class Unit>
 void PMSimple<T, Unit>::Minimize(){
    if(MinimizationRequired()){
-     DBArray<Unit> newLinearMoves(1);
-     DBArray<CompositeMove>          newCompositeMoves(1);
-     DBArray<CSubMove>                newCompositeSubMoves(1);
-     DBArray<PeriodicMove>           newPeriodicMoves(1);
+     DbArray<Unit> newLinearMoves(1);
+     DbArray<CompositeMove>          newCompositeMoves(1);
+     DbArray<CSubMove>                newCompositeSubMoves(1);
+     DbArray<PeriodicMove>           newPeriodicMoves(1);
      Unit                            Summarization;
      bool                            CompleteSummarized;
      SubMove SM3 = MinimizeRec(submove,newLinearMoves,newCompositeMoves,
@@ -640,10 +608,10 @@ void PMSimple<T, Unit>::Minimize(){
                        newPeriodicMoves,Summarization,CompleteSummarized);
      if(CompleteSummarized){
         // the whole movement can be represented in a single linear move
-        compositeMoves.Clear();
-        compositeSubMoves.Clear();   
-        periodicMoves.Clear();
-        linearMoves.Clear();
+        compositeMoves.clean();
+        compositeSubMoves.clean();   
+        periodicMoves.clean();
+        linearMoves.clean();
         linearMoves.Append(Summarization);
         submove.arrayNumber = LINEAR;
         submove.arrayIndex = 0;
@@ -651,48 +619,10 @@ void PMSimple<T, Unit>::Minimize(){
        submove = SM3;
        
      // copy the new created objects into the local dbarrays
-       int size;
-       
-       linearMoves.Clear();
-       const Unit* LM;
-       size = newLinearMoves.Size();
-       if(size>0)
-           linearMoves.Resize(size);
-       for(int i=0;i<size;i++){
-          newLinearMoves.Get(i,LM);
-          linearMoves.Put(i,*LM);
-       }
- 
-       compositeMoves.Clear();
-       const CompositeMove* CM;
-       size = newCompositeMoves.Size();
-       if(size>0)
-           compositeMoves.Resize(size);
-       for(int i=0;i<size;i++){
-          newCompositeMoves.Get(i,CM);
-          compositeMoves.Put(i,*CM);
-       }
-
-       compositeSubMoves.Clear();
-       const CSubMove* SM;
-       size = newCompositeSubMoves.Size();
-       if(size>0)
-           compositeSubMoves.Resize(size);
-       for(int i=0;i<size;i++){
-          newCompositeSubMoves.Get(i,SM);
-          compositeSubMoves.Put(i,*SM);
-       }
-       
-       periodicMoves.Clear();
-       const PeriodicMove* PM;
-       size = newPeriodicMoves.Size();
-       if(size>0)
-           periodicMoves.Resize(size);
-       for(int i=0;i<size;i++){
-          newPeriodicMoves.Get(i,PM);
-          periodicMoves.Put(i,*PM);
-       }
-
+       linearMoves.copyFrom(newLinearMoves);      
+       compositeMoves.copyFrom(newCompositeMoves);
+       compositeSubMoves.copyFrom(newCompositeSubMoves);
+       periodicMoves.copyFrom(newPeriodicMoves);      
      } 
    }
    CorrectDurationSums();
@@ -792,10 +722,8 @@ void PMSimple<T, Unit>::splitRec(const DateTime instant, const bool toLeft,
   if(submove.arrayNumber==LINEAR){
     // here we process a single unit. this case is easy to handle because a
     // unit have to provide a split function
-    const Unit* LMLtmp=NULL;
     Unit LML;
-    linearMoves.Get(submove.arrayIndex,LMLtmp);
-    LML=(*LMLtmp);
+    linearMoves.Get(submove.arrayIndex,LML);
     Unit LMR;
     DateTime Dur = instant - startTime;
     startTime = startTime + (*LML.interval.GetLength()); 
@@ -830,16 +758,14 @@ void PMSimple<T, Unit>::splitRec(const DateTime instant, const bool toLeft,
   if(submove.arrayNumber==COMPOSITE){
      // we store the submoves of this composite moves into an vector 
      // to ensure a single block representing this submove
-     const CompositeMove* CM=NULL;
+     CompositeMove CM;
      compositeMoves.Get(submove.arrayIndex,CM);
-     vector<CSubMove> submovesLeft(CM->maxIndex-CM->minIndex+1);
-     vector<CSubMove> submovesRight(CM->maxIndex-CM->minIndex+1);
+     vector<CSubMove> submovesLeft(CM.maxIndex-CM.minIndex+1);
+     vector<CSubMove> submovesRight(CM.maxIndex-CM.minIndex+1);
      
-     const CSubMove* SMtmp;
-     SubMove SM;
-     for(int i=CM->minIndex;i<=CM->maxIndex;i++){
-        compositeSubMoves.Get(i,SMtmp); // get the submove
-        SM = (*SMtmp);
+     CSubMove SM;
+     for(int i=CM.minIndex;i<=CM.maxIndex;i++){
+        compositeSubMoves.Get(i,SM); // get the submove
         // call recursive
         splitRec(instant,toLeft,leftPart,rightPart,SM,startTime,SMLeft,SMRight);
         // collect valid submoves
@@ -889,27 +815,18 @@ void PMSimple<T, Unit>::splitRec(const DateTime instant, const bool toLeft,
   }
   if(submove.arrayNumber==PERIOD){
      // first, we check whether the split instant is outside the interval
-     const PeriodicMove*  PMtmp=NULL;
-     periodicMoves.Get(submove.arrayIndex,PMtmp);
-     PeriodicMove PM = (*PMtmp);
+     PeriodicMove PM;
+     periodicMoves.Get(submove.arrayIndex,PM);
      RelInterval sminterval;
      GetInterval(PM.submove,sminterval);
      DateTime smlength(durationtype);
      sminterval.StoreLength(smlength);
      DateTime ZeroTime(instanttype);
-
-
      sminterval.StoreLength(smlength);
-     
      // find out how many repeatations left on both sides
      // first compute the duration which should be transferred 
      //into the left part
      DateTime LeftDuration = instant - startTime;
-     
-     
-
-
-
      return; // periodic moves processed
   }
   assert(false); // unknown submove
@@ -952,9 +869,8 @@ First, we handle the a single unit.
    if(submove.arrayNumber==LINEAR){
         if(startTime > instant) // is right of the instant
             return false;
-        const Unit* utmp;
-        linearMoves.Get(submove.arrayIndex,utmp);
-        Unit u = (*utmp);
+        Unit u;
+        linearMoves.Get(submove.arrayIndex,u);
         RelInterval interval;
         interval.Equalize(&u.interval);
         DateTime dur = instant-startTime;
@@ -976,19 +892,16 @@ Second, handling of composite moves
 
 */
    if(submove.arrayNumber == COMPOSITE){
-      const CompositeMove* CMtmp=NULL;
-      compositeMoves.Get(submove.arrayIndex,CMtmp);
-      CompositeMove CM = *CMtmp;
+      CompositeMove CM;
+      compositeMoves.Get(submove.arrayIndex,CM);
       DateTime dur = instant-startTime;
       if(!CM.interval.Contains(&dur))
           return false;        
       CSubMove SM;
-      const CSubMove* SMtmp;
       vector<SubMove> mySubmoves(CM.maxIndex-CM.minIndex);
       bool done = false;
       for(int i =CM.minIndex;i<=CM.maxIndex && !done;i++){
-           compositeSubMoves.Get(i,SMtmp);
-           SM = (*SMtmp);
+           compositeSubMoves.Get(i,SM);
            if(SplitLeftRec(instant,toLeft,result,SM,startTime,lastSubmove)){
                 mySubmoves.push_back(lastSubmove);
            } else { // after this move can't follow any further moves
@@ -1025,7 +938,7 @@ Second, handling of composite moves
    }
 
    if(submove.arrayIndex==PERIOD){
-       const PeriodicMove* PM;
+       PeriodicMove PM;
        periodicMoves.Get(submove.arrayIndex,PM);
        DateTime dur = instant-startTime;
        
@@ -1071,54 +984,20 @@ moving object.
 
 */
 template <class T, class Unit>
-void PMSimple<T, Unit>::CopyValuesFrom( DBArray<Unit>& linearMoves,
-                      DBArray<CompositeMove>& compositeMoves,
-                      DBArray<SubMove>& compositeSubMoves,
-                      DBArray<PeriodicMove>& periodicMoves,
+void PMSimple<T, Unit>::CopyValuesFrom( DbArray<Unit>& linearMoves,
+                      DbArray<CompositeMove>& compositeMoves,
+                      DbArray<SubMove>& compositeSubMoves,
+                      DbArray<PeriodicMove>& periodicMoves,
                       bool defined,
                       RelInterval interval,
                       DateTime startTime,
                       SubMove submove){
 
-  // first, clear all contained arrays
-  this->linearMoves.Clear();
-  this->compositeMoves->Clear();
-  this->compositeSubMoves.Clear();
-  this->periodicMoves.Clear();
-  // resize the array and copy contents
-  int size;
-  if((size=linearMoves.Size())>0){
-       this->linearMoves.Resize(size);
-       Unit U;
-       for(int i=0;i<size;i++){
-          linearMoves.Get(i,U);
-          this->linearMoves.Put(i,U);
-       } 
-  }
-  if((size=compositeMoves.Size())>0){
-      this->compositeMoves.Resize(size);
-      const CompositeMove *CM;
-      for(int i=0;i<size;i++){
-         compositeMoves.Get(i,CM);
-         this->compositeMoves.Put(i,*CM);
-      } 
-  }
-  if((size=compositeSubMoves.Size())>0){
-     this->compositeSubMoves.Resize(size);
-     const SubMove *SM;
-     for(int i=0;i<size;i++){
-        compositeSubMoves.Get(i,SM);
-        this->compositeSubMoves.Put(i,*SM);
-     } 
-  }
-  if((size=periodicMoves.Size())>0){
-      this->periodicMoves.Resize(size);
-      const PeriodicMove *PM;
-      for(int i=0;i<size;i++){
-         periodicMoves.Get(i,PM);
-         this->periodicMoves.Put(*PM);
-      }
-  }
+  // first, clear all contained arraysa
+  this->linearMoves.copyFrom(linearMoves);
+  this->compositeMoves.copyFrom(compositeMoves);
+  this->compositeSubMoves.copyFrom(compositeSubMoves);
+  this->periodicMoves.copyFrom(periodicMoves);
   this.defined=defined;
   this.canDelete=false;
   this->interval.Equalize(&interval);
@@ -1137,10 +1016,10 @@ variables. These variables are cleaned before.
 
 */
 template <class T, class Unit>
-void PMSimple<T, Unit>::TakeValuesFrom( DBArray<Unit>& linearMoves,
-                      DBArray<CompositeMove>& compositeMoves,
-                      DBArray<SubMove>& compositeSubMoves,
-                      DBArray<PeriodicMove>& periodicMoves,
+void PMSimple<T, Unit>::TakeValuesFrom( DbArray<Unit>& linearMoves,
+                      DbArray<CompositeMove>& compositeMoves,
+                      DbArray<SubMove>& compositeSubMoves,
+                      DbArray<PeriodicMove>& periodicMoves,
                       bool defined,
                       RelInterval interval,
                       DateTime startTime,
@@ -1193,22 +1072,22 @@ tree structure of another periodic moving object.
 
 */
 template <class T, class Unit>
-DBArray<Unit>* PMSimple<T, Unit>::GetLinearMoves(){
+DbArray<Unit>* PMSimple<T, Unit>::GetLinearMoves(){
    return &linearMoves;
 }
 
 template <class T, class Unit>
-DBArray<CompositeMove>* PMSimple<T,Unit>::GetCompositeMoves(){
+DbArray<CompositeMove>* PMSimple<T,Unit>::GetCompositeMoves(){
   return &compositeMoves;
 }
 
 template <class T, class Unit>
-DBArray<CSubMove>* PMSimple<T, Unit>::GetCompositeSubMoves(){
+DbArray<CSubMove>* PMSimple<T, Unit>::GetCompositeSubMoves(){
    return &compositeSubMoves;
 }
 
 template <class T, class Unit>
-DBArray<PeriodicMove>* PMSimple<T, Unit>::GetPeriodicMoves(){
+DbArray<PeriodicMove>* PMSimple<T, Unit>::GetPeriodicMoves(){
    return &periodicMoves;
 }
 
@@ -1233,20 +1112,20 @@ submove.
 template <class T, class Unit>
 void PMSimple<T, Unit>::GetLength(SubMove sm, DateTime& result){
     switch(sm.arrayNumber){
-      case LINEAR: { const Unit* U;
+      case LINEAR: { Unit U;
                      linearMoves.Get(sm.arrayIndex,U);
-                      U->interval.StoreLength(result);
+                      U.interval.StoreLength(result);
                    } break;
       case COMPOSITE: {
-                       const CompositeMove* CM;
+                       CompositeMove CM;
                        compositeMoves.Get(sm.arrayIndex,CM); 
-                       CM->interval.StoreLength(result); 
+                       CM.interval.StoreLength(result); 
                       }break;
 
      case PERIOD: {
-                   const PeriodicMove* PM;
+                   PeriodicMove PM;
                    periodicMoves.Get(sm.arrayIndex,PM);
-                   PM->interval.StoreLength(result);
+                   PM.interval.StoreLength(result);
                   } break;
      default: assert(false); // unknown move type
 
@@ -1325,18 +1204,20 @@ of the type of the submove.
 template <class T, class Unit>
 void PMSimple<T, Unit>::GetInterval(SubMove sm,RelInterval& interval){
     switch(sm.arrayNumber){
-      case LINEAR: { const Unit* U;
+      case LINEAR: { Unit U;
                      linearMoves.Get(sm.arrayIndex,U);
-                     interval.Equalize(&U->interval);
+                     interval.Equalize(&U.interval);
                    } break;
       case COMPOSITE: {
-                       const CompositeMove* CM; 
-                       interval.Equalize(&CM->interval); 
+                       CompositeMove CM;
+                       compositeMoves.Get(sm.arrayIndex,CM); 
+                       interval.Equalize(&CM.interval); 
                       }break;
 
      case PERIOD: {
-                   const PeriodicMove* PM;
-                   interval.Equalize(&PM->interval);
+                   PeriodicMove PM;
+                   periodicMoves.Get(sm.arrayIndex,PM);
+                   interval.Equalize(&PM.interval);
                   }break;
      default: assert(false); // unknown move type
     }
@@ -1383,9 +1264,9 @@ returns its nested list representation.
 template <class T, class Unit>
 ListExpr PMSimple<T, Unit>::GetLinearMoveList(const int index)const{
     __TRACE__
-   const Unit* LM=NULL;
+   Unit LM;
    linearMoves.Get(index,LM);
-   return LM->ToListExpr();
+   return LM.ToListExpr();
 }
 
 
@@ -1400,11 +1281,11 @@ Creates a nested list for the periodic move at the specified index.
 template <class T, class Unit>
 ListExpr PMSimple<T, Unit>::GetPeriodicMoveList(const int index)const{
     __TRACE__
-  const PeriodicMove* PM=NULL;
+  PeriodicMove PM;
   periodicMoves.Get(index,PM);
   ListExpr periodtype = ::nl->SymbolAtom("period");
-  ListExpr RepList = ::nl->IntAtom(PM->repeatations);
-  ListExpr SML = GetSubMoveList(PM->submove);
+  ListExpr RepList = ::nl->IntAtom(PM.repeatations);
+  ListExpr SML = GetSubMoveList(PM.submove);
   ListExpr RC = ::nl->BoolAtom(interval.IsRightClosed());
   ListExpr LC = ::nl->BoolAtom(interval.IsLeftClosed());
   return  ::nl->TwoElemList(periodtype,::nl->FourElemList(RepList,LC,RC,SML));
@@ -1423,11 +1304,11 @@ representation.
 template <class T, class Unit>
 ListExpr PMSimple<T, Unit>::GetCompositeMoveList(const int index)const{
    __TRACE__
-  const CompositeMove* CM=NULL;
+  CompositeMove CM;
   compositeMoves.Get(index,CM);
   ListExpr CType = ::nl->SymbolAtom("composite");
-  int minIndex = CM-> minIndex;
-  int maxIndex = CM->maxIndex;
+  int minIndex = CM.minIndex;
+  int maxIndex = CM.maxIndex;
   ListExpr SubMovesList;
   if(maxIndex<minIndex){
     cerr << __POS__ << "empty composite move" << endl;
@@ -1435,13 +1316,13 @@ ListExpr PMSimple<T, Unit>::GetCompositeMoveList(const int index)const{
   }
   else{
    // construct the List of submoves
-    const CSubMove* SM=NULL;
+    CSubMove SM;
     compositeSubMoves.Get(minIndex,SM);
-    SubMovesList = ::nl->OneElemList(GetSubMoveList(*SM));
+    SubMovesList = ::nl->OneElemList(GetSubMoveList(SM));
     ListExpr Last = SubMovesList;
     for(int i=minIndex+1;i<=maxIndex;i++){
       compositeSubMoves.Get(i,SM);
-      Last = ::nl->Append(Last,GetSubMoveList(*SM));
+      Last = ::nl->Append(Last,GetSubMoveList(SM));
     }
   }
   return ::nl->TwoElemList(CType,SubMovesList);
@@ -1467,10 +1348,10 @@ template <class T, class Unit>
 bool PMSimple<T, Unit>::ResizeArrays(const ListExpr value){
     __TRACE__
    // first all entries in the arrays are removed
-   linearMoves.Clear();
-   compositeMoves.Clear();
-   compositeSubMoves.Clear();
-   periodicMoves.Clear();
+   linearMoves.clean();
+   compositeMoves.clean();
+   compositeSubMoves.clean();
+   periodicMoves.clean();
    int LMSize = 0;
    int CMSize = 0;
    int SMSize = 0;
@@ -1478,10 +1359,10 @@ bool PMSimple<T, Unit>::ResizeArrays(const ListExpr value){
    if(!AddSubMovesSize(::nl->Second(value),LMSize,CMSize,SMSize,PMSize))
       return false;
    // set the arrays to the needed size
-   if(LMSize>0) linearMoves.Resize(LMSize);
-   if(CMSize>0) compositeMoves.Resize(CMSize);
-   if(SMSize>0) compositeSubMoves.Resize(SMSize);
-   if(PMSize>0) periodicMoves.Resize(PMSize);
+   if(LMSize>0) linearMoves.resize(LMSize);
+   if(CMSize>0) compositeMoves.resize(CMSize);
+   if(SMSize>0) compositeSubMoves.resize(SMSize);
+   if(PMSize>0) periodicMoves.resize(PMSize);
    return true;
 }
 
@@ -1633,20 +1514,20 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
             }
             return false;
          }
-         const Unit* LM=NULL;
+         Unit LM;
          linearMoves.Get(LMPos,LM);
          // Append the interval of LM to CM
          if(isFirst){
             isFirst=false;
-            CM.interval.Equalize(&(LM->interval));
+            CM.interval.Equalize(&(LM.interval));
          }else{
-            if(!CM.interval.Append(&(LM->interval))){
+            if(!CM.interval.Append(&(LM.interval))){
                if(DEBUG_MODE){
                    cerr << __POS__ << " can't append interval " << endl;
                    cerr << "The original interval is";
                    cerr << CM.interval.ToString() << endl;
                    cerr << "The interval to append is";
-                   cerr << LM->interval.ToString() << endl;
+                   cerr << LM.interval.ToString() << endl;
                }
                return false;
             }
@@ -1666,13 +1547,13 @@ bool PMSimple<T, Unit>::AddCompositeMove(const ListExpr value,
             }
             return  false;
         }
-        const PeriodicMove* PM=NULL;
+        PeriodicMove PM;
         periodicMoves.Get(PMPos,PM);
         if(isFirst){
            isFirst=false;
-           CM.interval.Equalize(&(PM->interval));
+           CM.interval.Equalize(&(PM.interval));
         }else{
-           if(!CM.interval.Append(&(PM->interval))){
+           if(!CM.interval.Append(&(PM.interval))){
               if(DEBUG_MODE){
                  cerr << __POS__  << " can't append interval" << endl;
               }
@@ -1764,9 +1645,9 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
      }
      PM.submove.arrayNumber = LINEAR;
      PM.submove.arrayIndex = LMPos;
-     const Unit* LM=NULL;
+     Unit LM;
      linearMoves.Get(LMPos,LM);
-     RelInterval SMI = LM->interval;
+     RelInterval SMI = LM.interval;
      PM.interval.Equalize(&SMI);
      PM.interval.Mul(rep);
      if(len==4){
@@ -1791,9 +1672,9 @@ bool PMSimple<T, Unit>::AddPeriodMove(const ListExpr value,
      }
      PM.submove.arrayNumber = COMPOSITE;
      PM.submove.arrayIndex = CMPos;
-     const CompositeMove* CM=NULL;
+     CompositeMove CM;
      compositeMoves.Get(CMPos,CM);
-     RelInterval SMI = CM->interval;
+     RelInterval SMI = CM.interval;
      PM.interval.Equalize(&SMI);
      PM.interval.Mul(rep);
      if(len==4){
@@ -1823,25 +1704,25 @@ Unit PMSimple<T, Unit>::GetLastUnit()const{
     const SubMove* s = &submove;
     while(s->arrayNumber!=LINEAR){
         if(s->arrayNumber==PERIOD){
-           const PeriodicMove* PM=NULL;
+           PeriodicMove PM;
            periodicMoves.Get(s->arrayIndex,PM);
-           s = &PM->submove;
+           s = &PM.submove;
         } else if(s->arrayNumber==COMPOSITE){
-           const CompositeMove* CSM=NULL;
+           CompositeMove CSM;
            compositeMoves.Get(s->arrayIndex,CSM);
-           const CSubMove* csm;
-           compositeSubMoves.Get(CSM->maxIndex,csm);  
+           CSubMove csm;
+           compositeSubMoves.Get(CSM.maxIndex,csm);  
            SubMove sm; 
-           sm.arrayNumber = csm->arrayNumber;
-           sm.arrayIndex = csm->arrayIndex;
+           sm.arrayNumber = csm.arrayNumber;
+           sm.arrayIndex = csm.arrayIndex;
            s = &sm;
         } else{
           assert(false); // unknown arraynumber
         }
     }
-    const Unit* res=NULL;
+    Unit res;
     linearMoves.Get(s->arrayIndex,res);
-    return *res;
+    return res;
 }
   
 /*
@@ -1855,35 +1736,35 @@ be summarized to a single one.
 template <class T, class Unit>
 bool PMSimple<T, Unit>::MinimizationRequired(){
   __TRACE__
-  const Unit* LM=NULL;
-  const Unit* LM2=NULL;
-  const CompositeMove* CM=NULL;
-  const PeriodicMove*  PM=NULL;
-  const SubMove* SM=NULL;
+  Unit LM;
+  Unit LM2;
+  CompositeMove CM;
+  PeriodicMove  PM;
+  const SubMove* SM=0;
   // check periodic moves
   int size = periodicMoves.Size();
   for(int i=0;i<size;i++){
       periodicMoves.Get(i,PM);
-      SM = &PM->submove;
+      SM = &PM.submove;
       if(SM->arrayIndex==LINEAR){
          linearMoves.Get(SM->arrayIndex,LM);
-         if(LM->interval.CanAppended(&LM->interval))
+         if(LM.interval.CanAppended(&LM.interval))
              return true;
       }  
   }
-  const CSubMove* CSM;
-  const CSubMove* CSM2;
+  CSubMove CSM;
+  CSubMove CSM2;
   // check composite moves
   size = compositeMoves.Size();
   for(int i=0;i<size;i++){
      compositeMoves.Get(i,CM);
-     for(int k=CM->minIndex;k< CM->maxIndex;k++){
+     for(int k=CM.minIndex;k< CM.maxIndex;k++){
         compositeSubMoves.Get(k,CSM);
         compositeSubMoves.Get(k+1,CSM2);
-        if( (CSM->arrayNumber==LINEAR) && (CSM2->arrayNumber==LINEAR)){
-            linearMoves.Get(CSM->arrayIndex,LM);
-            linearMoves.Get(CSM2->arrayIndex,LM2);
-            if( LM->CanSummarized(LM2))
+        if( (CSM.arrayNumber==LINEAR) && (CSM2.arrayNumber==LINEAR)){
+            linearMoves.Get(CSM.arrayIndex,LM);
+            linearMoves.Get(CSM2.arrayIndex,LM2);
+            if( LM.CanSummarized(&LM2))
                 return true;
         }
      } 
@@ -1905,24 +1786,21 @@ the corresponding dbarray.
 */
 template <class T, class Unit>
 SubMove PMSimple<T, Unit>::MinimizeRec(SubMove SM, 
-                    DBArray<Unit>&                   newLinearMoves,
-                    DBArray<CompositeMove>&          newCompositeMoves,
-                    DBArray<CSubMove>&                newCompositeSubMoves,
-                    DBArray<PeriodicMove>&           newPeriodicMoves,
+                    DbArray<Unit>&                   newLinearMoves,
+                    DbArray<CompositeMove>&          newCompositeMoves,
+                    DbArray<CSubMove>&                newCompositeSubMoves,
+                    DbArray<PeriodicMove>&           newPeriodicMoves,
                     Unit&                            Summarization,
                     bool&                            CompleteSummarized){
 
    if(SM.arrayNumber==LINEAR){
-       const Unit* Sum1;
-       linearMoves.Get(SM.arrayIndex,Sum1);
-       Summarization = (*Sum1);
+       linearMoves.Get(SM.arrayIndex,Summarization);
        CompleteSummarized=true;
        return SM;   
    }
    if(SM.arrayNumber==PERIOD){
-       const PeriodicMove* PM=NULL;
-       periodicMoves.Get(SM.arrayIndex,PM);
-       PeriodicMove PM2 = (*PM);
+       PeriodicMove PM2;
+       periodicMoves.Get(SM.arrayIndex,PM2);
        SubMove SM2 = MinimizeRec(PM2.submove, 
                                  newLinearMoves,newCompositeMoves,
                                  newCompositeSubMoves,newPeriodicMoves,
@@ -1956,16 +1834,15 @@ SubMove PMSimple<T, Unit>::MinimizeRec(SubMove SM,
        }
    }
    if(SM.arrayNumber==COMPOSITE){
-        const CompositeMove* CMtmp;
-        compositeMoves.Get(SM.arrayIndex,CMtmp);
-        CompositeMove CM = *CMtmp;
+        CompositeMove CM;
+        compositeMoves.Get(SM.arrayIndex,CM);
         Unit LM(0);
         bool LMdefined = false;
         vector<CSubMove> MySubMoves;
         for(int i=CM.minIndex;i<=CM.maxIndex;i++){
-           const CSubMove* Current;
+           CSubMove Current;
            compositeSubMoves.Get(i,Current);
-           SubMove SM2 = MinimizeRec(*Current,
+           SubMove SM2 = MinimizeRec(Current,
                                      newLinearMoves,newCompositeMoves,
                                      newCompositeSubMoves,newPeriodicMoves,
                                      Summarization, CompleteSummarized);
@@ -2060,16 +1937,16 @@ void PMSimple<T, Unit>::CorrectDurationSums(){
    RelInterval currentInterval;
    DateTime currentLength(durationtype);
    DateTime duration(durationtype);
-   const CompositeMove* CM;
+   CompositeMove CM;
    // process all compositeMoves.
    for(int i=0;i<cmsize;i++){
       compositeMoves.Get(i,CM);
       duration.SetToZero();
-      for(int j=CM->minIndex;j<=CM->maxIndex;j++){
-         const CSubMove* csm1;
+      for(int j=CM.minIndex;j<=CM.maxIndex;j++){
+         CSubMove csm1;
          compositeSubMoves.Get(j,csm1);
          CSubMove csm;
-         csm.Equalize(csm1);
+         csm.Equalize(&csm1);
          csm.duration.Equalize(&duration);
          compositeSubMoves.Put(j,csm);
          GetLength(csm,currentLength);

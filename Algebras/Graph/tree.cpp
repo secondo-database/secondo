@@ -55,7 +55,7 @@ ostream& operator <<( ostream& o, const AVLNode<T>& n ) {
 
 
 template<class T>
-inline string Print(DBArray<AVLNode<T> >& tree) {
+inline string Print(DbArray<AVLNode<T> >& tree) {
 
    string s;
    const AVLNode<T>* node;
@@ -109,7 +109,7 @@ AVLNode<T> AVLTree<T>::NewNode (const AVLNode<T>* n) {
 
 
 template<class T>
-inline int AVLTree<T>::BalancedTree(DBArray<AVLNode<T> >& tree, 
+inline int AVLTree<T>::BalancedTree(DbArray<AVLNode<T> >& tree, 
                              const AVLNode<T>& node, const int root) {
 
    assert((0 <= root) && (root < tree.Size()));
@@ -119,14 +119,14 @@ inline int AVLTree<T>::BalancedTree(DBArray<AVLNode<T> >& tree,
 
 
 template<class T>
-inline int AVLTree<T>::NumNodes(const DBArray<AVLNode<T> >& tree) {
+inline int AVLTree<T>::NumNodes(const DbArray<AVLNode<T> >& tree) {
 
    return tree.Size();
 }
 
 
 template<class T>
-bool AVLTree<T>::DeleteNode(DBArray<AVLNode<T> >& tree, 
+bool AVLTree<T>::DeleteNode(DbArray<AVLNode<T> >& tree, 
                       const int index, const AVLNode<T>* n) {
    
    assert((index >= 0) && (index < tree.Size()));
@@ -135,9 +135,9 @@ bool AVLTree<T>::DeleteNode(DBArray<AVLNode<T> >& tree,
    
    // no node parameter?
    if (n==0) {
-     const AVLNode<T>* node;
+     AVLNode<T> node;
      tree.Get(index,node);
-     root = AVLTree<T>::NewNode(node);
+     root = AVLTree<T>::NewNode(&node);
    }
    else
      root = AVLTree<T>::NewNode(n);
@@ -154,22 +154,22 @@ bool AVLTree<T>::DeleteNode(DBArray<AVLNode<T> >& tree,
 
 
 template<class T>
-void AVLTree<T>::UpdateNode(DBArray<AVLNode<T> >& tree, 
+void AVLTree<T>::UpdateNode(DbArray<AVLNode<T> >& tree, 
                                 const int index, const T& elem) {
   
    assert((index >= 0) && (index < tree.Size()));
    
-   const AVLNode<T>* node;
+   AVLNode<T> node;
    tree.Get(index,node);
    
-   AVLNode<T> root = AVLTree<T>::NewNode(node);
+   AVLNode<T> root = AVLTree<T>::NewNode(&node);
    root.elem = elem;
    tree.Put(index,root);
 }
 
 
 template<class T>
-bool AVLTree<T>::HasKey(const DBArray<AVLNode<T> >& tree, 
+bool AVLTree<T>::HasKey(const DbArray<AVLNode<T> >& tree, 
                                const int key, const int index) {
    
    assert((index >= -1) && (index < tree.Size()));
@@ -178,25 +178,25 @@ bool AVLTree<T>::HasKey(const DBArray<AVLNode<T> >& tree,
    if (index == -1)
      return false;
      
-   const AVLNode<T>* node;
+   AVLNode<T> node;
    tree.Get(index,node);
    
    // key found?
-   if (key == node->key)
+   if (key == node.key)
      return true;
    
    // key in left tree?
-   if (key < node->key)
+   if (key < node.key)
      // continue search in left tree
-     return AVLTree<T>::HasKey(tree,key,node->left);
+     return AVLTree<T>::HasKey(tree,key,node.left);
    
    // continue search in right tree
-   return AVLTree<T>::HasKey(tree,key,node->right);
+   return AVLTree<T>::HasKey(tree,key,node.right);
 }
 
 
 template<class T>
-bool AVLTree<T>::UpdateKey(DBArray<AVLNode<T> >& tree, const int key, 
+bool AVLTree<T>::UpdateKey(DbArray<AVLNode<T> >& tree, const int key, 
                                             const T elem, const int index) {
 
    assert((index >= -1) && (index < tree.Size()));
@@ -230,38 +230,38 @@ bool AVLTree<T>::UpdateKey(DBArray<AVLNode<T> >& tree, const int key,
 
 
 template<class T>
-int AVLTree<T>::Rebalance(DBArray<AVLNode<T> >& tree, const int index) {
+int AVLTree<T>::Rebalance(DbArray<AVLNode<T> >& tree, const int index) {
    
    assert((index >= 0) && (index < tree.Size()));
    
-   const AVLNode<T>* bNode;
-   const AVLNode<T>* son1;
-   const AVLNode<T>* son2;
+   AVLNode<T> bNode;
+   AVLNode<T> son1;
+   AVLNode<T> son2;
    
    tree.Get(index,bNode);
-   AVLNode<T> rootNode = AVLTree<T>::NewNode(bNode);
+   AVLNode<T> rootNode = AVLTree<T>::NewNode(&bNode);
    
    // node really unbalanced ?
-   assert(abs(bNode->Balance())==2);
+   assert(abs(bNode.Balance())==2);
    
    int root = index;
    int sonIndex;
    
-   if (bNode->Balance()==2) {
+   if (bNode.Balance()==2) {
      
      // too much nodes on the right hand side
-     sonIndex = bNode->right;
+     sonIndex = bNode.right;
      tree.Get(sonIndex,son1);
-     AVLNode<T> rootSon = AVLTree<T>::NewNode(son1);
+     AVLNode<T> rootSon = AVLTree<T>::NewNode(&son1);
      
      // too much nodes on the right hand side of the son?
-     if (son1->Balance()==1) {
+     if (son1.Balance()==1) {
        
        // start rotation       
-       rootNode.right = son1->left;
-       rootNode.rightDepth = son1->leftDepth;
+       rootNode.right = son1.left;
+       rootNode.rightDepth = son1.leftDepth;
        rootSon.left = index;
-       rootSon.leftDepth = max(bNode->leftDepth,son1->leftDepth)+1;
+       rootSon.leftDepth = max(bNode.leftDepth,son1.leftDepth)+1;
        root = sonIndex;
        
        // update nodes
@@ -271,18 +271,18 @@ int AVLTree<T>::Rebalance(DBArray<AVLNode<T> >& tree, const int index) {
      else {
        
        // start double rotation
-       tree.Get(son1->left,son2);
-       AVLNode<T> newRoot = AVLTree<T>::NewNode(son2);
+       tree.Get(son1.left,son2);
+       AVLNode<T> newRoot = AVLTree<T>::NewNode(&son2);
        
-       root = son1->left;
+       root = son1.left;
        newRoot.left = index;
-       newRoot.leftDepth = max(bNode->leftDepth,son2->leftDepth)+1;
+       newRoot.leftDepth = max(bNode.leftDepth,son2.leftDepth)+1;
        newRoot.right = sonIndex;
-       newRoot.rightDepth = max(son1->rightDepth,son2->rightDepth)+1;
-       rootNode.right = son2->left;
-       rootNode.rightDepth = son2->leftDepth;
-       rootSon.left = son2->right;
-       rootSon.leftDepth = son2->rightDepth;
+       newRoot.rightDepth = max(son1.rightDepth,son2.rightDepth)+1;
+       rootNode.right = son2.left;
+       rootNode.rightDepth = son2.leftDepth;
+       rootSon.left = son2.right;
+       rootSon.leftDepth = son2.rightDepth;
        
        // update nodes
        tree.Put(index,rootNode);
@@ -293,18 +293,18 @@ int AVLTree<T>::Rebalance(DBArray<AVLNode<T> >& tree, const int index) {
    else {
    
      // too much nodes on the left hand side
-     sonIndex = bNode->left;
+     sonIndex = bNode.left;
      tree.Get(sonIndex,son1);
-     AVLNode<T> rootSon = AVLTree<T>::NewNode(son1);
+     AVLNode<T> rootSon = AVLTree<T>::NewNode(&son1);
      
      // too much nodes on the left hand side of the son?
-     if (son1->Balance()==-1) {
+     if (son1.Balance()==-1) {
        
        // start rotation       
-       rootNode.left = son1->right;
-       rootNode.leftDepth = son1->rightDepth;
+       rootNode.left = son1.right;
+       rootNode.leftDepth = son1.rightDepth;
        rootSon.right = index;
-       rootSon.rightDepth = max(bNode->rightDepth,son1->rightDepth)+1;
+       rootSon.rightDepth = max(bNode.rightDepth,son1.rightDepth)+1;
        root = sonIndex;
        
        // update nodes
@@ -314,18 +314,18 @@ int AVLTree<T>::Rebalance(DBArray<AVLNode<T> >& tree, const int index) {
      else {
        
        // start double rotation
-       tree.Get(son1->right,son2);
-       AVLNode<T> newRoot = AVLTree<T>::NewNode(son2);
+       tree.Get(son1.right,son2);
+       AVLNode<T> newRoot = AVLTree<T>::NewNode(&son2);
        
-       root = son1->right;
+       root = son1.right;
        newRoot.right = index;
-       newRoot.rightDepth = max(bNode->rightDepth,son2->rightDepth)+1;
+       newRoot.rightDepth = max(bNode.rightDepth,son2.rightDepth)+1;
        newRoot.left = sonIndex;
-       newRoot.leftDepth = max(son1->leftDepth,son2->leftDepth)+1;
-       rootNode.left = son2->right;
-       rootNode.leftDepth = son2->rightDepth;
-       rootSon.right = son2->left;
-       rootSon.rightDepth = son2->leftDepth;
+       newRoot.leftDepth = max(son1.leftDepth,son2.leftDepth)+1;
+       rootNode.left = son2.right;
+       rootNode.leftDepth = son2.rightDepth;
+       rootSon.right = son2.left;
+       rootSon.rightDepth = son2.leftDepth;
        
        // update nodes
        tree.Put(index,rootNode);
@@ -338,14 +338,14 @@ int AVLTree<T>::Rebalance(DBArray<AVLNode<T> >& tree, const int index) {
 
 
 template<class T>
-int AVLTree<T>::InsertKey(DBArray<AVLNode<T> >& tree, 
+int AVLTree<T>::InsertKey(DbArray<AVLNode<T> >& tree, 
                           const int key, const T elem, 
                           const int index) {
   
    assert((index >= -1) && (index < tree.Size()));
    
-   const AVLNode<T>* node;
-   const AVLNode<T>* son;
+   AVLNode<T> node;
+   AVLNode<T> son;
       
    // tree empty?
    if (index == -1) {
@@ -356,18 +356,18 @@ int AVLTree<T>::InsertKey(DBArray<AVLNode<T> >& tree,
    tree.Get(index,node);
       
    // key already in tree?
-   if (key == node->key)
+   if (key == node.key)
      return -1;
      
-   AVLNode<T> thisNode = AVLTree<T>::NewNode(node);
+   AVLNode<T> thisNode = AVLTree<T>::NewNode(&node);
    int newSon;
    int newDepth;
    
    // continue in left son?
-   if (key < node->key) {
+   if (key < node.key) {
      
      // no left son?
-     if (node->left == -1) {
+     if (node.left == -1) {
        
        // insert key as new left son
        tree.Append(AVLTree<T>::NewNode(key,elem));
@@ -380,7 +380,7 @@ int AVLTree<T>::InsertKey(DBArray<AVLNode<T> >& tree,
      else {
        
        // try to insert key in left tree
-       newSon = AVLTree<T>::InsertKey(tree,key,elem,node->left);
+       newSon = AVLTree<T>::InsertKey(tree,key,elem,node.left);
        
        // insert failed?
        if (newSon == -1)
@@ -388,7 +388,7 @@ int AVLTree<T>::InsertKey(DBArray<AVLNode<T> >& tree,
          
        // check left son
        tree.Get(newSon,son);
-       newDepth = max(son->rightDepth,son->leftDepth)+1;
+       newDepth = max(son.rightDepth,son.leftDepth)+1;
        
        // update required?  
        if ((newSon != thisNode.left) || (newDepth != thisNode.leftDepth)) {
@@ -408,7 +408,7 @@ int AVLTree<T>::InsertKey(DBArray<AVLNode<T> >& tree,
    else {
      
      // no right son?
-     if (node->right == -1) {
+     if (node.right == -1) {
        
        // insert key as new right son
        tree.Append(AVLTree<T>::NewNode(key,elem));
@@ -421,7 +421,7 @@ int AVLTree<T>::InsertKey(DBArray<AVLNode<T> >& tree,
      else {
        
        // try to insert key in right tree
-       newSon = AVLTree<T>::InsertKey(tree,key,elem,node->right);
+       newSon = AVLTree<T>::InsertKey(tree,key,elem,node.right);
        
        // insert failed?
        if (newSon == -1)
@@ -429,7 +429,7 @@ int AVLTree<T>::InsertKey(DBArray<AVLNode<T> >& tree,
          
        // check right son
        tree.Get(newSon,son);
-       newDepth = max(son->rightDepth,son->leftDepth)+1;
+       newDepth = max(son.rightDepth,son.leftDepth)+1;
        
        // update required?  
        if ((newSon != thisNode.right) || (newDepth != thisNode.rightDepth)) {
@@ -450,17 +450,17 @@ int AVLTree<T>::InsertKey(DBArray<AVLNode<T> >& tree,
 
 
 template<class T>
-int AVLTree<T>::DeleteMinKey (DBArray<AVLNode<T> >& tree, 
+int AVLTree<T>::DeleteMinKey (DbArray<AVLNode<T> >& tree, 
                              const int index, AVLNode<T>& minNode) {
    
    assert((index >= 0) && (index < tree.Size()));
    
-   const AVLNode<T>* node;
+   AVLNode<T> node;
    tree.Get(index,node);
-   AVLNode<T> root = AVLTree<T>::NewNode(node);
+   AVLNode<T> root = AVLTree<T>::NewNode(&node);
    
    // minimum in current node?
-   if (node->left == -1) {
+   if (node.left == -1) {
      
      // save and delete the minimum node
      minNode = root;
@@ -470,13 +470,13 @@ int AVLTree<T>::DeleteMinKey (DBArray<AVLNode<T> >& tree,
    } 
    
    // continue in left son
-   root.left = AVLTree<T>::DeleteMinKey(tree,node->left,minNode);
+   root.left = AVLTree<T>::DeleteMinKey(tree,node.left,minNode);
    
    // left son not deleted?
    if (root.left != -1) {
      
      tree.Get(root.left,node);
-     root.leftDepth = max(node->leftDepth,node->rightDepth)+1;
+     root.leftDepth = max(node.leftDepth,node.rightDepth)+1;
    }
    else
      root.leftDepth = 0;
@@ -489,7 +489,7 @@ int AVLTree<T>::DeleteMinKey (DBArray<AVLNode<T> >& tree,
 
 
 template<class T>
-int AVLTree<T>::DeleteKey (DBArray<AVLNode<T> >& tree, 
+int AVLTree<T>::DeleteKey (DbArray<AVLNode<T> >& tree, 
                                      const int key, const int index) {
    
    assert((index >= -1) && (index < tree.Size()));
@@ -498,21 +498,21 @@ int AVLTree<T>::DeleteKey (DBArray<AVLNode<T> >& tree,
    if (index == -1)
      return -2;
    
-   const AVLNode<T>* node;
-   const AVLNode<T>* son;
+   AVLNode<T> node;
+   AVLNode<T> son;
    int newSon;
    int newDepth;
    
    tree.Get(index,node);
-   AVLNode<T> root = AVLTree<T>::NewNode(node);
+   AVLNode<T> root = AVLTree<T>::NewNode(&node);
   
    // key not in current node?
-   if (key != node->key) {
+   if (key != node.key) {
      
      // continue search in left tree?
-     if ((key < node->key) && (node->left != -1)) {
+     if ((key < node.key) && (node.left != -1)) {
        
-       newSon = AVLTree<T>::DeleteKey(tree,key,node->left);
+       newSon = AVLTree<T>::DeleteKey(tree,key,node.left);
        
        // key not found?
        if (newSon == -2)
@@ -521,13 +521,13 @@ int AVLTree<T>::DeleteKey (DBArray<AVLNode<T> >& tree,
        // son not deleted?
        if (newSon != -1) {
          tree.Get(newSon,son);
-         newDepth = max(son->leftDepth,son->rightDepth)+1;
+         newDepth = max(son.leftDepth,son.rightDepth)+1;
        }
        else
          newDepth = 0;
          
        // update required?
-       if ((newDepth != node->leftDepth) || (newSon != node->left)) {
+       if ((newDepth != node.leftDepth) || (newSon != node.left)) {
        
          root.leftDepth = newDepth;
          root.left = newSon;
@@ -542,9 +542,9 @@ int AVLTree<T>::DeleteKey (DBArray<AVLNode<T> >& tree,
      }
      
      // continue search in right tree?
-     if ((key > node->key) && (node->right != -1)) {
+     if ((key > node.key) && (node.right != -1)) {
      
-       newSon = AVLTree<T>::DeleteKey(tree,key,node->right);
+       newSon = AVLTree<T>::DeleteKey(tree,key,node.right);
        
        // key not found?
        if (newSon == -2)
@@ -553,13 +553,13 @@ int AVLTree<T>::DeleteKey (DBArray<AVLNode<T> >& tree,
        // son not deleted?
        if (newSon != -1) {
          tree.Get(newSon,son);
-         newDepth = max(son->rightDepth,son->leftDepth)+1;
+         newDepth = max(son.rightDepth,son.leftDepth)+1;
        }
        else
          newDepth = 0;
          
        // update required?
-       if ((newDepth != node->rightDepth) || (newSon != node->right)) {
+       if ((newDepth != node.rightDepth) || (newSon != node.right)) {
        
          root.rightDepth = newDepth;
          root.right = newSon;
@@ -580,7 +580,7 @@ int AVLTree<T>::DeleteKey (DBArray<AVLNode<T> >& tree,
    // key found in current node
       
    // node is a leaf?
-   if ((node->left == -1) && (node->right == -1)) {
+   if ((node.left == -1) && (node.right == -1)) {
    
       // delete leaf
       AVLTree<T>::DeleteNode(tree,index,&root);
@@ -589,17 +589,17 @@ int AVLTree<T>::DeleteKey (DBArray<AVLNode<T> >& tree,
    }
    
    // node has 2 sons?
-   if ((node->left != -1) && (node->right != -1)) {
+   if ((node.left != -1) && (node.right != -1)) {
    
       AVLNode<T> min;
-      tree.Get(node->right,son);
+      tree.Get(node.right,son);
       
-      root.right = AVLTree<T>::DeleteMinKey(tree,node->right,min);
+      root.right = AVLTree<T>::DeleteMinKey(tree,node.right,min);
       
       // right son not deleted by DeleteMinKey?
       if (root.right != -1) {
         tree.Get(root.right, son);
-        root.rightDepth = max(son->leftDepth,son->rightDepth)+1;
+        root.rightDepth = max(son.leftDepth,son.rightDepth)+1;
       }
       else
         root.rightDepth = 0;
@@ -614,12 +614,12 @@ int AVLTree<T>::DeleteKey (DBArray<AVLNode<T> >& tree,
    // node has only one son
    AVLTree<T>::DeleteNode(tree,index,&root);
    
-   return ((node->left != -1) ? node->left : node->right);
+   return ((node.left != -1) ? node.left : node.right);
 }
 
 
 template<class T>
-void AVLTree<T>::DeleteKeys(DBArray<AVLNode<T> >& tree, const int index) {
+void AVLTree<T>::DeleteKeys(DbArray<AVLNode<T> >& tree, const int index) {
 
    assert((index >= -1) && (index < tree.Size()));   
 
@@ -645,7 +645,7 @@ void AVLTree<T>::DeleteKeys(DBArray<AVLNode<T> >& tree, const int index) {
 
 
 template<class T>
-int AVLTree<T>::ReadKeys (const DBArray<AVLNode<T> >& tree,
+int AVLTree<T>::ReadKeys (const DbArray<AVLNode<T> >& tree,
                           vector<int>* v, const int index) {
 
    
@@ -655,23 +655,23 @@ int AVLTree<T>::ReadKeys (const DBArray<AVLNode<T> >& tree,
    if (index == -1)
      return 0;
      
-   const AVLNode<T>* node;
+   AVLNode<T> node;
    tree.Get(index,node);
    
    int n = 0;
-   if (node->left != -1)
-     n += AVLTree<T>::ReadKeys(tree,v,node->left);
-   v->push_back(node->key);
+   if (node.left != -1)
+     n += AVLTree<T>::ReadKeys(tree,v,node.left);
+   v->push_back(node.key);
    n++;
-   if (node->right != -1)
-     n += AVLTree<T>::ReadKeys(tree,v,node->right);
+   if (node.right != -1)
+     n += AVLTree<T>::ReadKeys(tree,v,node.right);
      
    return n;
 }
 
 
 template<class T>
-void AVLTree<T>::MapKeys (DBArray<AVLNode<T> >& tree, 
+void AVLTree<T>::MapKeys (DbArray<AVLNode<T> >& tree, 
                              int& num, vector<int>& v, 
                              const int index) {
    
@@ -681,26 +681,26 @@ void AVLTree<T>::MapKeys (DBArray<AVLNode<T> >& tree,
    if (index == -1)
      return;
      
-   const AVLNode<T>* node;   
+   AVLNode<T> node;   
    tree.Get(index,node);
    
-   if (node->left != -1)
-     AVLTree<T>::MapKeys(tree,num,v,node->left);
+   if (node.left != -1)
+     AVLTree<T>::MapKeys(tree,num,v,node.left);
    
-   AVLNode<T> n = AVLTree<T>::NewNode(node);
+   AVLNode<T> n = AVLTree<T>::NewNode(&node);
    v.push_back(n.key);
    n.key = num;
    tree.Put(index,n);
    
    num++;
    
-   if (node->right != -1)
-     AVLTree<T>::MapKeys(tree,num,v,node->right);
+   if (node.right != -1)
+     AVLTree<T>::MapKeys(tree,num,v,node.right);
 }
 
 
 template<class T>
-int AVLTree<T>::ReadOptNodes(const DBArray<AVLNode<T> >& tree, 
+int AVLTree<T>::ReadOptNodes(const DbArray<AVLNode<T> >& tree, 
                              vector<AVLNode<T> >& v, const int root) {
 
    assert((root >= -1) && (root < tree.Size()));
@@ -709,7 +709,7 @@ int AVLTree<T>::ReadOptNodes(const DBArray<AVLNode<T> >& tree,
    if (root == -1)
      return 0;
      
-   const AVLNode<T>* node;
+   AVLNode<T> node;
    vector<int> source(0);
    vector<int> target(0);
    
@@ -727,16 +727,16 @@ int AVLTree<T>::ReadOptNodes(const DBArray<AVLNode<T> >& tree,
      for (unsigned int i = 0;i<source.size();i++) {
        
        tree.Get(source[i],node);
-       v.push_back(AVLTree<T>::NewNode(node));
+       v.push_back(AVLTree<T>::NewNode(&node));
        n++;
        
        // left son?
-       if (node->left != -1)
-         target.push_back(node->left);
+       if (node.left != -1)
+         target.push_back(node.left);
        
        // right son?
-       if (node->right != -1)
-         target.push_back(node->right);
+       if (node.right != -1)
+         target.push_back(node.right);
      }
    }
    return n;
@@ -744,7 +744,7 @@ int AVLTree<T>::ReadOptNodes(const DBArray<AVLNode<T> >& tree,
 
 
 template<class T>
-int AVLTree<T>::ReadNodes (const DBArray<AVLNode<T> >& tree, 
+int AVLTree<T>::ReadNodes (const DbArray<AVLNode<T> >& tree, 
                             vector<AVLNode<T> >& v, const int index) {
    
    assert((index >= -1) && (index < tree.Size()));
@@ -753,23 +753,23 @@ int AVLTree<T>::ReadNodes (const DBArray<AVLNode<T> >& tree,
    if (index == -1)
      return 0;
      
-   const AVLNode<T>* node;
+   AVLNode<T> node;
    tree.Get(index,node);
    
    int n = 0;
-   if (node->left != -1)
-     n += AVLTree<T>::ReadNodes(tree,v,node->left);
-   v.push_back(AVLTree<T>::NewNode(node));
+   if (node.left != -1)
+     n += AVLTree<T>::ReadNodes(tree,v,node.left);
+   v.push_back(AVLTree<T>::NewNode(&node));
    n++;
-   if (node->right != -1)
-     n += AVLTree<T>::ReadNodes(tree,v,node->right);
+   if (node.right != -1)
+     n += AVLTree<T>::ReadNodes(tree,v,node.right);
      
    return n;
 }
 
 
 template<class T>
-int AVLTree<T>::ReadNode(const DBArray<AVLNode<T> >& tree, AVLNode<T>& n, 
+int AVLTree<T>::ReadNode(const DbArray<AVLNode<T> >& tree, AVLNode<T>& n, 
                          const int key, const int index) {
 
    assert((index >= -1) && (index < tree.Size()));
@@ -778,29 +778,29 @@ int AVLTree<T>::ReadNode(const DBArray<AVLNode<T> >& tree, AVLNode<T>& n,
    if (index == -1)
      return -1;
    
-   const AVLNode<T>* node;
+   AVLNode<T> node;
    tree.Get(index,node);
    
    // key found?
-   if (key == node->key) {
+   if (key == node.key) {
       
       // copy node and return index
-      n = *node;
+      n = node;
       return index;
    }
    
    // key in left tree?
-   if (key < node->key)
+   if (key < node.key)
      // continue search in left tree
-     return AVLTree<T>::ReadNode(tree,n,key,node->left);
+     return AVLTree<T>::ReadNode(tree,n,key,node.left);
      
    // continue search in right tree
-   return AVLTree<T>::ReadNode(tree,n,key,node->right);
+   return AVLTree<T>::ReadNode(tree,n,key,node.right);
 }
 
 
 template<class T>
-int AVLTree<T>::ReplaceKey(DBArray<AVLNode<T> >& tree, 
+int AVLTree<T>::ReplaceKey(DbArray<AVLNode<T> >& tree, 
                            const int key, const int newKey, const int root) {
 
    assert((root >= -1) && (root < tree.Size()));

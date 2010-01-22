@@ -1,9 +1,9 @@
 /*
 
----- 
+----
 This file is part of SECONDO.
 
-Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+Copyright (C) 2004, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -38,15 +38,15 @@ December 2007, S. H[oe]cher, M. H[oe]ger, A. Belz, B. Poneleit
 
 [TOC]
 
-1 Overview 
+1 Overview
 
-The file "Histogram1d.h" contains declarations of the class and methods 
+The file "Histogram1d.h" contains declarations of the class and methods
 specific to histogram1d objects.
 
 2 Defines and includes
 
-It includes "HistogramBase.h" which contains declarations of functions common 
-to both histogram1d and histogram2d. "HistogramUtils.h" contains further 
+It includes "HistogramBase.h" which contains declarations of functions common
+to both histogram1d and histogram2d. "HistogramUtils.h" contains further
 helper functions that are not attached to specific classes or operators.
 
 */
@@ -60,89 +60,89 @@ helper functions that are not attached to specific classes or operators.
 namespace hgr
 {
 
-/*  
+/*
 3 The class Histogram1d
-  
-The class "Histogram1d" is derived from BaseHistogram, thus inheriting 
+
+The class "Histogram1d" is derived from BaseHistogram, thus inheriting
 important includes and some basic methods common to 1d and 2d histograms.
-  
-*/  
+
+*/
   class Histogram1d : public hgr::BaseHistogram
   {
     public:
-    
+
     Histogram1d(bool _defined, size_t size = 0);
     Histogram1d(const Histogram1d& rhs);
     ~Histogram1d();
-    
+
     Histogram1d& operator = (const Histogram1d& h);
 
 /*
-3.1 Testing and reading   
+3.1 Testing and reading
 
 3.1.1 IsConsistent(bool)
 
-returns TRUE if the histogram1d is empty or 
+returns TRUE if the histogram1d is empty or
    all of the following conditions are true:
-   
+
   * The number of ranges is 2 or more.
 
   * The number of ranges is one more than the number of bins.
-  
+
   * The range array is sorted in ascending order.
-  
+
   * There are no duplicate ranges.
 
 Note: To skip the (expensive) tests 3 and 4, set the parameter to false.
 
-*/ 
+*/
     bool IsConsistent(const bool checkOrder = true) const;
 /*
-3.1.2 IsEmpty() 
+3.1.2 IsEmpty()
 
-returns TRUE if both the numbers of ranges and the 
+returns TRUE if both the numbers of ranges and the
 number of bins are 0.
-    
-*/    
+
+*/
     bool IsEmpty() const;
 
-/*    
+/*
 3.1.3 IsRefinement(BaseHistogram)
 
-returns TRUE if the first (acting) histogram1d is a 
-refinement of the histogram1d handed over as parameter. h1 is a refinement 
-of h2 if 
-    
+returns TRUE if the first (acting) histogram1d is a
+refinement of the histogram1d handed over as parameter. h1 is a refinement
+of h2 if
+
   * both h1 and h2 are defined and
-  
+
   * both h1 and h2 are consistent and
-  
-  * both h1 and h2 are not empty and   
+
+  * both h1 and h2 are not empty and
 
   * the first and last ranges of h1 and h2 are equal and
-  
+
   * every range of h2 does also occur in h1.
-  
-*/    
+
+*/
     bool IsRefinement(const BaseHistogram& h) const;
 
-/*    
+/*
 3.1.4 GetRange(int)
 
 returns a pointer to the value of the range at the specified index.
 
 */
-    const HIST_REAL* GetRange(int i) const;
+    HIST_REAL GetRange(int i) const;
 
-/*    
+/*
 3.1.5 GetNoRange()
 
 returns the number of ranges of the owning histogram.
-     
+
 */
     int GetNoRange() const;
 
-/*    
+/*
 3.1.6 FindBin(real)
 
 returns the index number of the bin the given real value would be assigned to.
@@ -163,40 +163,40 @@ returns undefined if the index is invalid.
 /*
 3.1.8 Compare(BaseHistogram)
 
-compares two histogram1d objects and returns 0, -1 or 1, according to the 
+compares two histogram1d objects and returns 0, -1 or 1, according to the
 result of the comparison:
-       
+
   * 0: this == b: all bin values and all range values are equal
                   or
                   both objects are not defined
                   or
                   both objects are empty.
 
-  * -1: this $<$ b: all range values are equal and 
-                  each bin value of this object is smaller than 
-                  the corresponding bin value of object b 
+  * -1: this $<$ b: all range values are equal and
+                  each bin value of this object is smaller than
+                  the corresponding bin value of object b
                   or
                   this object is undefined while object b is defined.
-        
+
   * 1: this $>$ b:  all other cases.
 
-*/    
+*/
     int Compare(const BaseHistogram& h) const;
-    
-/*    
+
+/*
 3.1.9 CompareAlmost(Histogram)
 
 works exactly like Compare(Histogram) but performs the comparison of values
-by means of the helper function "AlmostEqual(HIST[_]REAL, HIST[_]REAL)", 
-defined in HistogramUtils.h, thus 
+by means of the helper function "AlmostEqual(HIST[_]REAL, HIST[_]REAL)",
+defined in HistogramUtils.h, thus
 allowing to accept slight differences between the real values as "equal".
 
-*/    
+*/
     int CompareAlmost(const BaseHistogram& h) const;
 
-/*    
+/*
 3.1.10 operators == and $<$
-  
+
 The operator == returns true if CompareAlmost returns 0.
 The operator $<$ returns true if CompareAlmost returns -1.
 
@@ -207,7 +207,7 @@ The operator $<$ returns true if CompareAlmost returns -1.
 /*
 3.2.11 Distance(BaseHistogram p)
 
-Compares the similarity of two histograms: Returns the sum of the squared 
+Compares the similarity of two histograms: Returns the sum of the squared
 difference values between the couples of bins with equal number.
 
 Example:
@@ -216,25 +216,25 @@ histogram1: ((0.0 1.0 2.0)(0.5 0.5))
 
 histogram2: ((0.0 1.0 2.0)(0.6 0.7))
 
-return value: (0.1 x 0.1) + (0.2 x 0.2) = 0.001 + 0.004 = 0.005 
+return value: (0.1 x 0.1) + (0.2 x 0.2) = 0.001 + 0.004 = 0.005
 
-*/    
+*/
     HIST_REAL Distance(const BaseHistogram* h);
 
-/*    
+/*
 3.2.12 Mean()
 
 computes the bin-weighted arithmetic mean M of a histogram using the
 recurrence relation
 
         $M(n) = M(n-1) + (x[n] - M(n-1)) (w(n)/(W(n-1) + w(n)))$
-        
+
         $W(n) = W(n-1) + w(n)$
 
-We skip negative values in the bins, since those correspond to negative 
+We skip negative values in the bins, since those correspond to negative
 weights (BJG).
-     
-The implementation is taken from gsl[_]histogram[_]stat.c of the 
+
+The implementation is taken from gsl[_]histogram[_]stat.c of the
 GNU Scientific Library (gsl-1.9), Author: Simone Piccardi, Jan. 2000
 
 */
@@ -246,7 +246,7 @@ GNU Scientific Library (gsl-1.9), Author: Simone Piccardi, Jan. 2000
 computes the variance of the histogram. We skip negative values in the bins,
 since those correspond to negative weights (BJG).
 
-The implementation is taken from gsl[_]histogram[_]stat.c of the 
+The implementation is taken from gsl[_]histogram[_]stat.c of the
 GNU Scientific Library (gsl-1.9), Author: Simone Piccardi, Jan. 2000
 
 */
@@ -257,9 +257,9 @@ GNU Scientific Library (gsl-1.9), Author: Simone Piccardi, Jan. 2000
 
 3.3.1 AppendRange(real)
 
-appends the given real value to the array of ranges. 
-   
-*/     
+appends the given real value to the array of ranges.
+
+*/
     void AppendRange(const HIST_REAL& r);
 
 /*
@@ -267,18 +267,18 @@ appends the given real value to the array of ranges.
 
 sets the initial size of the ranges array to the given integer value.
 
-*/    
+*/
     void ResizeRange(const int newSize);
 
-/*    
+/*
 3.3.3 Clear()
 
 clears the arrays of ranges and bins.
-    
-*/    
+
+*/
     void Clear();
 
-/*    
+/*
 3.3.4 Destroy()
 
 destroys the histogram, i.e. it's ranges and bins arrays.
@@ -286,54 +286,54 @@ destroys the histogram, i.e. it's ranges and bins arrays.
 */
     void Destroy();
 
-/*  
+/*
 3.3.5 Insert(int, real), Insert(real, real)
 
-The first function inserts the given real value into the bin with the given 
-index. The second function adds the real value given as second parameter to 
-the appropriate bin for the first parameter. It returns TRUE if such a bin has 
-been found, and FALSE if not. 
+The first function inserts the given real value into the bin with the given
+index. The second function adds the real value given as second parameter to
+the appropriate bin for the first parameter. It returns TRUE if such a bin has
+been found, and FALSE if not.
 
 */
     void Insert(const int bin, const HIST_REAL& weight = 1.0);
     bool Insert(const HIST_REAL& val, const HIST_REAL& weight = 1.0);
-    
-/*    
+
+/*
 3.3.6 Coarsen(BaseHistogram)
 
-coarsens the owning histogram to the pattern of the histogram given as 
-parameter. The function requires as a precondition that the owning histogram 
+coarsens the owning histogram to the pattern of the histogram given as
+parameter. The function requires as a precondition that the owning histogram
 is a refinement of the parameter histogram.
-     
-*/    
 
-    void Coarsen(const BaseHistogram* h);
+*/
 
-/*    
+    virtual void Coarsen(const BaseHistogram* h);
+
+/*
 3.3.7 CopyRangesFrom(BaseHistogram)
 
-sets the ranges of the owning histogram to the ranges pattern specified by the 
+sets the ranges of the owning histogram to the ranges pattern specified by the
 histogram given as parameter.
-  
-*/    
+
+*/
     void CopyRangesFrom(const BaseHistogram* h);
 
-/*    
-    
-3.4 Mandatory functions    
-    
-*/    
+/*
+
+3.4 Mandatory functions
+
+*/
     static Word In (  const ListExpr typeInfo,
                       const ListExpr instance,
                       const int errorPos,
                       ListExpr& errorInfo,
-                      bool& correct ); 
+                      bool& correct );
 
     static ListExpr Out ( ListExpr typeInfo, Word value );
     static void* Cast(void* addr);
     static Word Create(const ListExpr typeInfo);
     static bool KindCheck(ListExpr type, ListExpr& errorInfo);
-    
+
     int Compare(const Attribute *rhs) const;
     int CompareAlmost(const Attribute *rhs) const;
     bool Adjacent(const Attribute *attrib) const;
@@ -341,29 +341,29 @@ histogram given as parameter.
     size_t HashValue() const;
     void CopyFrom(const Attribute* right);
     int NumOfFLOBs() const;
-    FLOB* GetFLOB( const int i );
+    Flob* GetFLOB( const int i );
     ostream& Print( ostream& os ) const;
-    
+
     size_t Sizeof() const;
 
 private:
-  
-    friend class ConstructorFunctions<Histogram1d>;
-    
-    DBArray<HIST_REAL> range;
-    
-    Histogram1d();
-    
-  }; //class Histogram1d : public StandardAlgebra 
-  
-  ostream& operator << (ostream& os, const Histogram1d& h);
-  
 
-/*  
-  
-4 ConstructorInfo and functions structs   
-  
-*/  
+    friend class ConstructorFunctions<Histogram1d>;
+
+    DbArray<HIST_REAL> range;
+
+    Histogram1d();
+
+  }; //class Histogram1d : public StandardAlgebra
+
+  ostream& operator << (ostream& os, const Histogram1d& h);
+
+
+/*
+
+4 ConstructorInfo and functions structs
+
+*/
   struct histogram1dInfo : ConstructorInfo
   {
     histogram1dInfo();
@@ -373,22 +373,22 @@ private:
   {
     histogram1dFunctions();
   }; // struct histogram1dFunctions : ConstructorFunctions<Histogram1d> {
-    
 
-/*    
-5 Type and value mapping functions of the operators   
+
+/*
+5 Type and value mapping functions of the operators
 
 5.1 SetHistogram1d
-          
-*/        
+
+*/
   ListExpr SetHistogram1dTypeMap(ListExpr args);
   int SetHistogram1dFun(Word* args, Word& result, int message, Word& local,
       Supplier s);
-  
+
 /*
 5.2 NoComponents
 
-*/  
+*/
   ListExpr NoComponentsTypeMap(ListExpr args);
   int NoComponentsFun(Word* args, Word& result, int message, Word& local,
       Supplier s);
@@ -396,13 +396,13 @@ private:
 /*
 5.3 binrange[_]min, binrange[_]max
 
-*/  
+*/
   ListExpr binrange_min_maxTypeMap(ListExpr args);
   int binrange_minFun(Word* args, Word& result, int message, Word& local,
       Supplier s);
   int binrange_maxFun(Word* args, Word& result, int message, Word& local,
       Supplier s);
-  
+
 /*
 5.4 CreateHistogram1d
 
@@ -413,47 +413,47 @@ private:
 
 /*
 5.5 CreateHistogram1dEquicount
-    
-*/  
+
+*/
   int CreateHistogram1dEquicountFun(Word* args, Word& result, int message,
       Word& local, Supplier s);
-  ListExpr CreateHistogram1dEquicountTypeMap(ListExpr args);  
-  
+  ListExpr CreateHistogram1dEquicountTypeMap(ListExpr args);
+
 /*
 5.6 CreateHistogram1dEquiwidth
 
-*/  
+*/
   ListExpr CreateHistogram1dEquiwidthTypeMap(ListExpr args);
   int CreateHistogram1dEquiwidthFun(Word* args, Word& result, int message,
       Word& local, Supplier s);
-    
+
 /*
 5.7 FindBin
-  
+
 */
   int FindBinFun(Word* args, Word& result, int message, Word& local,
       Supplier s);
 
-/*  
+/*
 5.8 FindMinMaxBin
-  
-*/
-  template<bool isMin> 
-  int FindMinMaxBinFun1d(Word* args, Word& result, int message, Word& local,
-        Supplier s);  
 
-/*  
+*/
+  template<bool isMin>
+  int FindMinMaxBinFun1d(Word* args, Word& result, int message, Word& local,
+        Supplier s);
+
+/*
 5.9 Getcount1d
-  
-*/  
+
+*/
   ListExpr Getcount1dTypeMap(ListExpr args);
   int Getcount1dFun(Word* args, Word& result, int message, Word& local,
       Supplier s);
-  
+
 /*
 5.10 Insert1d
 
-*/  
+*/
   template<bool incValSupplied> ListExpr Insert1dTypeMap(ListExpr args);
   template<bool incValSupplied> int Insert1dFun(Word* args, Word& result,
       int message, Word& local, Supplier s);
@@ -463,11 +463,11 @@ private:
 
 */
   int MeanFun(Word* args, Word& result, int message, Word& local, Supplier s);
-  
-/*  
+
+/*
 5.11 Shrink1d
 
-*/  
+*/
   ListExpr Shrink1dTypeMap(ListExpr args);
   template<bool eager> int Shrink1dFun(Word* args, Word& result, int message,
       Word& local, Supplier s);
@@ -476,16 +476,16 @@ private:
 5.12 Variance
 
 */
-  ListExpr Hist1dRealTypeMap(ListExpr args);  
-  int VarianceFun(Word* args, Word& result, int message, Word& local, 
-                  Supplier s);  
-  
+  ListExpr Hist1dRealTypeMap(ListExpr args);
+  int VarianceFun(Word* args, Word& result, int message, Word& local,
+                  Supplier s);
+
 /*
-  
-6 Info structs  
+
+6 Info structs
 
 6.1 SetHistogram1d
-  
+
 */
   struct SetHistogram1dInfo : OperatorInfo
   {
@@ -502,8 +502,8 @@ private:
 
 /*
 6.2 NoComponents
-  
-*/  
+
+*/
   struct NoComponentsInfo : OperatorInfo
   {
     inline NoComponentsInfo() :
@@ -554,14 +554,14 @@ private:
 /*
 6.5 CreateHistogram1d
 
-*/  
+*/
   struct CreateHistogram1dInfo : OperatorInfo
   {
     inline CreateHistogram1dInfo() :
       OperatorInfo()
     {
       name = "create_histogram1d";
-      signature = "stream(tuple(X)) x ai x " + 
+      signature = "stream(tuple(X)) x ai x " +
       symbols::HISTOGRAM1D + " -> " + symbols::HISTOGRAM1D;
       syntax = "_ create_histogram1d [_, _]";
       meaning = "Fills a histogram1d from an ordered stream of tuples";
@@ -585,9 +585,9 @@ private:
         " all categories will have equal height";
       example = "";
     }
-  };  
-  
-/*  
+  };
+
+/*
 6.7 CreateHistogram1dEquiwidth
 
 */
@@ -604,12 +604,12 @@ private:
         "ranges and equal width. ai represents the input-value.";
       example = "";
     }
-  };  
+  };
 
-/*  
+/*
 6.8 FindBin
 
-*/  
+*/
   struct FindBinInfo : OperatorInfo
   {
     inline FindBinInfo() :
@@ -622,10 +622,10 @@ private:
       example = "";
     }
   };
-  
-/*  
+
+/*
 6.9 Getcount1d
-  
+
 */
   struct Getcount1dInfo : OperatorInfo
   {
@@ -633,18 +633,18 @@ private:
       OperatorInfo()
     {
       name = "getcount1d";
-      signature = symbols::HISTOGRAM1D + " x " + symbols::INT + 
+      signature = symbols::HISTOGRAM1D + " x " + symbols::INT +
 	          " -> " + symbols::REAL;
       syntax = "getcount1d(_, _)";
       meaning = "Return the count of the specified bin.";
       example = "";
     }
-  };  
+  };
 
-/*  
-6.10 Insert1d  
-  
-*/  
+/*
+6.10 Insert1d
+
+*/
   struct Insert1dInfo : OperatorInfo
   {
     inline Insert1dInfo() :
@@ -660,26 +660,26 @@ private:
 
 /*
 6.11 Insert1dValue
-  
-*/  
+
+*/
   struct Insert1dValueInfo : OperatorInfo
   {
     inline Insert1dValueInfo() :
       OperatorInfo()
     {
       name = "insert1dvalue";
-      signature = symbols::HISTOGRAM1D + " x real x real -> " + 
+      signature = symbols::HISTOGRAM1D + " x real x real -> " +
 	          symbols::HISTOGRAM1D;
       syntax = "insert1dvalue (_, _, _)";
       meaning = "Increments the bin corresponding to the value by val";
       example = "";
     }
-  };  
-  
+  };
+
 /*
 6.12 Mean
- 
-*/  
+
+*/
   struct MeanInfo : OperatorInfo
   {
 
@@ -693,19 +693,19 @@ private:
       example = "";
     }
 
-  };  
-  
+  };
+
 /*
 6.13 ShrinkEager
-  
-*/  
+
+*/
   struct ShrinkEagerInfo : OperatorInfo
   {
     inline ShrinkEagerInfo() :
       OperatorInfo()
     {
       name = "shrink_eager";
-      signature = symbols::HISTOGRAM1D + " x real x real -> " + 
+      signature = symbols::HISTOGRAM1D + " x real x real -> " +
 	          symbols::HISTOGRAM1D;
       syntax = "shrink_eager(_, _, _)";
       meaning = "constricts the value range to bins "
@@ -714,9 +714,9 @@ private:
     }
   };
 
-/*  
+/*
 6.14 ShrinkLazy
-  
+
 */
   struct ShrinkLazyInfo : OperatorInfo
   {
@@ -724,19 +724,19 @@ private:
       OperatorInfo()
     {
       name = "shrink_lazy";
-      signature = symbols::HISTOGRAM1D + " x real x real -> " + 
+      signature = symbols::HISTOGRAM1D + " x real x real -> " +
 	          symbols::HISTOGRAM1D;
       syntax = "shrink_lazy(_, _, _)";
       meaning = "constricts the value range to bins "
         "so that [lower;upper[ is completely contained";
       example = "";
     }
-  };  
-  
-/*  
+  };
+
+/*
 6.15 Variance
 
-*/  
+*/
   struct VarianceInfo : OperatorInfo
   {
     inline VarianceInfo() :
@@ -748,7 +748,7 @@ private:
       meaning = "Compute the variance.";
       example = "";
     }
-  };  
+  };
 
 } // namespace hgr
 

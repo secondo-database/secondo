@@ -23,7 +23,7 @@
 #include "RepTree.h"
 #include "NodeTypes.h"
 #include "TopRel.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 
 
 using namespace std;
@@ -116,46 +116,11 @@ to be equals to the given parameter.
 */
 void PMPoint::Equalize(const PMPoint* P2){
     __TRACE__
- // equalize the linear moves
-  const LinearPointMove* LM;
-  linearMoves.Clear();
-  if(P2->linearMoves.Size()>0)
-     linearMoves.Resize(P2->linearMoves.Size());
-  for(int i=0;i<P2->linearMoves.Size();i++){
-     P2->linearMoves.Get(i,LM);
-     linearMoves.Append(*LM);
-  }
-
-  // equalize the composite moves
-  const SpatialCompositeMove* CM;
-  compositeMoves.Clear();
-  if(compositeMoves.Size()>0)
-     compositeMoves.Resize(P2->compositeMoves.Size());
-  for(int i=0;i<P2->compositeMoves.Size();i++){
-     P2->compositeMoves.Get(i,CM);
-     compositeMoves.Append(*CM);
-  }
-
-  // equalize the composite submoves
-  const CSubMove* SM;
-  compositeSubMoves.Clear();
-  if(compositeSubMoves.Size()>0)
-     compositeSubMoves.Resize(P2->compositeSubMoves.Size());
-  for(int i=0;i<P2->compositeSubMoves.Size();i++){
-     P2->compositeSubMoves.Get(i,SM);
-     compositeSubMoves.Append(*SM);
-  }
-
-  // equalize the periodic moves
-  const SpatialPeriodicMove* PM;
-  periodicMoves.Clear();
-  if(periodicMoves.Size()>0)
-     periodicMoves.Resize(P2->periodicMoves.Size());
-  for(int i=0;i<P2->periodicMoves.Size();i++){
-     P2->periodicMoves.Get(i,PM);
-     periodicMoves.Append(*PM);
-  }
-
+  // equalize the linear moves
+  linearMoves.copyFrom(P2->linearMoves);
+  compositeMoves.copyFrom(P2->compositeMoves);
+  compositeSubMoves.copyFrom(P2->compositeSubMoves);
+  periodicMoves.copyFrom(P2->periodicMoves);
   defined = P2->defined;
   interval.Equalize(&(P2->interval));
   startTime.Equalize(&(P2->startTime));
@@ -206,37 +171,34 @@ Complexity: O(n) where n is the number of nodes within this tree
 size_t PMPoint::NumberOfFlatNodes(const SubMove sm)const{
    int type = sm.arrayNumber;
    switch(type){
-      case LINEAR:
-             const LinearPointMove* LM;
+      case LINEAR:{
+             LinearPointMove LM;
              linearMoves.Get(sm.arrayIndex,LM);
-             if(LM->IsDefined()){
+             if(LM.IsDefined()){
                return 1;
              }else{
                return 0;
              }
-      case PERIOD:
-             const SpatialPeriodicMove* PM;
+       }
+      case PERIOD:{
+             SpatialPeriodicMove PM;
              periodicMoves.Get(sm.arrayIndex,PM);
              size_t subsize;
-             subsize = NumberOfFlatNodes(PM->submove);
-             return (PM->repeatations)*subsize;
-      case COMPOSITE:
-             const SpatialCompositeMove* CM;
+             subsize = NumberOfFlatNodes(PM.submove);
+             return (PM.repeatations)*subsize;
+       }
+      case COMPOSITE: {
+             SpatialCompositeMove CM;
              size_t res;
              res = 0;
-             const CSubMove* csm;
+             CSubMove csm;
              compositeMoves.Get(sm.arrayIndex,CM);
-             if(!CM){
-                cout << "get NULL " << endl;
-                cout << sm.arrayIndex << endl;
-                cout << compositeMoves.Size() << endl; 
-             }
-             for(int i=CM->minIndex; i<=CM->maxIndex;i++){
+             for(int i=CM.minIndex; i<=CM.maxIndex;i++){
                  compositeSubMoves.Get(i,csm);
-                 SubMove CSM(*csm);
-                 res += NumberOfFlatNodes(CSM);
+                 res += NumberOfFlatNodes(csm);
              }
              return res;
+        }
        default: cerr << "invalid submove found " << endl <<__POS__ <<endl;
                 assert(false);
                
@@ -277,10 +239,10 @@ This function returns the FLOB with index i.
 [3] O(1)
 
 */
-FLOB* PMPoint::GetFLOB(const int i){
+Flob* PMPoint::GetFLOB(const int i){
     __TRACE__
    assert(i>=0 && i<NumOfFLOBs());
-   FLOB* res=0;
+   Flob* res=0;
    switch(i){
       case 0 : res = &linearMoves; break;
       case 1 : res = &compositeMoves;break;
@@ -375,10 +337,10 @@ void PMPoint::SetDefined(const bool defined){
     __TRACE__
  if(defined) return;
   this->defined = false;
-  linearMoves.Clear();
-  compositeMoves.Clear();
-  compositeSubMoves.Clear();
-  periodicMoves.Clear();
+  linearMoves.clean();
+  compositeMoves.clean();
+  compositeSubMoves.clean();
+  periodicMoves.clean();
   bbox.SetUndefined();
 }
 
@@ -490,9 +452,9 @@ linear move at the specified index.
 */
 ListExpr PMPoint::GetLinearMoveList(const int index)const{
     __TRACE__
-   const LinearPointMove* LM;
+   LinearPointMove LM;
    linearMoves.Get(index,LM);
-   return LM->ToListExpr();
+   return LM.ToListExpr();
 }
 
 /*
@@ -506,13 +468,13 @@ to its nested list representation.
 */
 ListExpr PMPoint::GetSpatialPeriodicMoveList(const int index)const{
     __TRACE__
-  const SpatialPeriodicMove* PM;;
+  SpatialPeriodicMove PM;;
   periodicMoves.Get(index,PM);
   ListExpr periodtype = ::nl->SymbolAtom("period");
-  ListExpr RepList = ::nl->IntAtom(PM->repeatations);
-  ListExpr SML = GetSubMoveList(&(PM->submove));
-  ListExpr LC = ::nl->BoolAtom(PM->interval.IsLeftClosed());
-  ListExpr RC = ::nl->BoolAtom(PM->interval.IsRightClosed());
+  ListExpr RepList = ::nl->IntAtom(PM.repeatations);
+  ListExpr SML = GetSubMoveList(&(PM.submove));
+  ListExpr LC = ::nl->BoolAtom(PM.interval.IsLeftClosed());
+  ListExpr RC = ::nl->BoolAtom(PM.interval.IsRightClosed());
   return  ::nl->TwoElemList(periodtype,::nl->FourElemList(RepList,LC,RC,SML));
 }
 
@@ -527,11 +489,11 @@ move at the specified array index.
 */
 ListExpr PMPoint::GetSpatialCompositeMoveList(const int index)const{
     __TRACE__
- const SpatialCompositeMove* CM;
+ SpatialCompositeMove CM;
  compositeMoves.Get(index,CM);
  ListExpr CType = ::nl->SymbolAtom("composite");
- int minIndex = CM->minIndex;
- int maxIndex = CM->maxIndex;
+ int minIndex = CM.minIndex;
+ int maxIndex = CM.maxIndex;
  ListExpr SubMovesList;
  if(maxIndex<minIndex){
     cerr << __POS__ << "empty composite move" << endl;
@@ -539,13 +501,13 @@ ListExpr PMPoint::GetSpatialCompositeMoveList(const int index)const{
  }
  else{
    // construct the List of submoves
-   const CSubMove* SM;
+   CSubMove SM;
    compositeSubMoves.Get(minIndex,SM);
-   SubMovesList = ::nl->OneElemList(GetSubMoveList(SM));
+   SubMovesList = ::nl->OneElemList(GetSubMoveList(&SM));
    ListExpr Last = SubMovesList;
    for(int i=minIndex+1;i<=maxIndex;i++){
      compositeSubMoves.Get(i,SM);
-     Last = ::nl->Append(Last,GetSubMoveList(SM));
+     Last = ::nl->Append(Last,GetSubMoveList(&SM));
    }
  }
  return ::nl->TwoElemList(CType,SubMovesList);
@@ -629,10 +591,10 @@ bool PMPoint::ReadFrom(const ListExpr value, const ListExpr typeInfo){
      defined=true;
      // read out the interval and the bounding box from the 
      // created linear move
-     const LinearPointMove* LM;
+     LinearPointMove LM;
      linearMoves.Get(0,LM);
-     interval.Equalize(&(LM->interval));
-     bbox.Equalize((LM->BoundingBox()));
+     interval.Equalize(&(LM.interval));
+     bbox.Equalize((LM.BoundingBox()));
      CorrectDurationSums();
      return true;
   }
@@ -650,10 +612,10 @@ bool PMPoint::ReadFrom(const ListExpr value, const ListExpr typeInfo){
      }
      defined = true;
      // get interval and bounding box from this move
-     const SpatialCompositeMove* CM;
+     SpatialCompositeMove CM;
      compositeMoves.Get(0,CM);
-     interval.Equalize(&(CM->interval));
-     bbox.Equalize(&(CM->bbox));
+     interval.Equalize(&(CM.interval));
+     bbox.Equalize(&(CM.bbox));
      CorrectDurationSums();
      return true;
   }
@@ -669,10 +631,10 @@ bool PMPoint::ReadFrom(const ListExpr value, const ListExpr typeInfo){
      }
      defined = true;
      // get interval as well as bounding box
-     const SpatialPeriodicMove* PM;
+     SpatialPeriodicMove PM;
      periodicMoves.Get(0,PM);
-     interval.Equalize(&(PM->interval));
-     bbox.Equalize(&(PM->bbox));
+     interval.Equalize(&(PM.interval));
+     bbox.Equalize(&(PM.bbox));
      CorrectDurationSums();
      return true;
   }
@@ -700,10 +662,10 @@ PMPoint* PMPoint::Intersection(const PInterval* interval){
    DateTime* tmpTime = startTime.Clone();
    AddSubMovesSizeForIntersection(tmpTime,submove,interval,
                                   Lcount,Ccount,Scount,Pcount);
-   if(Lcount>0) result->linearMoves.Resize(Lcount);
-   if(Ccount>0) result->compositeMoves.Resize(Ccount);
-   if(Scount>0) result->compositeSubMoves.Resize(Scount);
-   if(Pcount>0) result->compositeSubMoves.Resize(Pcount);
+   if(Lcount>0) result->linearMoves.resize(Lcount);
+   if(Ccount>0) result->compositeMoves.resize(Ccount);
+   if(Scount>0) result->compositeSubMoves.resize(Scount);
+   if(Pcount>0) result->compositeSubMoves.resize(Pcount);
 
 
    // in a first step we count the array-sizes
@@ -725,27 +687,27 @@ void PMPoint::AddSubMovesSizeForIntersection(DateTime* startTime,
     __TRACE__
   int number = submove.arrayNumber;
    if(number==LINEAR){
-      const LinearPointMove* LM;
+      LinearPointMove LM;
       linearMoves.Get(submove.arrayIndex,LM);
-      PInterval i = PInterval((*startTime) , LM->interval);
+      PInterval i = PInterval((*startTime) , LM.interval);
       if(i.Intersects(interval))
            Lcount++;
-      startTime->Add(LM->interval.GetLength());
+      startTime->Add(LM.interval.GetLength());
    }
    if(number==COMPOSITE){
-      const SpatialCompositeMove* CM;
+      SpatialCompositeMove CM;
       compositeMoves.Get(submove.arrayIndex,CM);
-      int start = CM->minIndex;
-      int end = CM->maxIndex;
+      int start = CM.minIndex;
+      int end = CM.maxIndex;
       int sm=0;
       bool stop = false;
       for(int s=start;s<=end && !stop;s++){
          int oldL = Lcount;
          int oldC = Ccount;
          int oldP = Pcount;
-         const CSubMove* SM;
+         CSubMove SM;
          compositeSubMoves.Get(s,SM);
-         AddSubMovesSizeForIntersection(startTime,*SM,interval,Lcount,
+         AddSubMovesSizeForIntersection(startTime,SM,interval,Lcount,
                                         Ccount,Scount,Pcount);
          if( (Lcount!=oldL) || (Ccount != oldC) || (Pcount != oldP))
              sm++;
@@ -758,9 +720,9 @@ void PMPoint::AddSubMovesSizeForIntersection(DateTime* startTime,
       }
    }
    if(number==PERIOD){
-         const SpatialPeriodicMove* PM;
+         SpatialPeriodicMove PM;
          periodicMoves.Get(submove.arrayIndex,PM);
-         SubMove PSM = PM->submove;
+         SubMove PSM = PM.submove;
          cout << __POS__ << "NOT IMPLEMENTED" << endl;
          /* wenn PeriodicMOve-Intervall in geg. Interval enthalten
             erhoehe um alle enthaltenen Submoves
@@ -785,26 +747,26 @@ void PMPoint::PrintArrayContents(){
 
 int size = periodicMoves.Size();
 cout << "PERIDICMOVES" << endl;
-const SpatialPeriodicMove* PM=NULL;
+SpatialPeriodicMove PM;
 for(int i=0;i<size;i++){
    periodicMoves.Get(i,PM);
-   cout << PM->ToString() << endl;
+   cout << PM.ToString() << endl;
 }
 
 cout << "CompositeMOVES" << endl;
 size = compositeMoves.Size();
-const SpatialCompositeMove* CM=NULL;
+SpatialCompositeMove CM;
 for(int i=0;i<size;i++){
    compositeMoves.Get(i,CM);
-   cout << CM->ToString() << endl;
+   cout << CM.ToString() << endl;
 }
 
 cout << "CompositeSubMoves " << endl;
 size = compositeSubMoves.Size();
-const CSubMove* SM  = NULL;
+CSubMove SM;
 for(int i=0;i<size;i++){
    compositeSubMoves.Get(i,SM);
-   cout << SM->ToString() << endl;
+   cout << SM.ToString() << endl;
 }
 
 
@@ -831,7 +793,7 @@ periodic moving point is correct. This means
 */
 bool PMPoint::CheckCorrectness(){
   __TRACE__
-  const CSubMove* SM;
+  CSubMove SM;
   size_t linearSize = linearMoves.Size();
   size_t periodSize = periodicMoves.Size();
   size_t compositeSize = compositeMoves.Size();
@@ -839,8 +801,8 @@ bool PMPoint::CheckCorrectness(){
 
   for(size_t i=0; i<compositeSubSize;i++){
     compositeSubMoves.Get(i,SM);
-    size_t an = SM->arrayNumber;
-    size_t index = SM->arrayIndex;
+    size_t an = SM.arrayNumber;
+    size_t index = SM.arrayIndex;
     switch(an){
       case COMPOSITE:
           if(DEBUG_MODE){
@@ -874,11 +836,11 @@ bool PMPoint::CheckCorrectness(){
   }
 
   // check for direcly nested periodic moves
-  const SpatialPeriodicMove* PM;
+  SpatialPeriodicMove PM;
   for(int i=0; i<periodicMoves.Size();i++){
       periodicMoves.Get(i,PM);
-      int an = PM->submove.arrayNumber;
-      size_t index = PM->submove.arrayIndex;
+      int an = PM.submove.arrayNumber;
+      size_t index = PM.submove.arrayIndex;
       switch(an){
         case COMPOSITE:
             if(index>=compositeSize){
@@ -910,7 +872,7 @@ bool PMPoint::CheckCorrectness(){
              }
             return false;     
       }
-      if(PM->repeatations<2){
+      if(PM.repeatations<2){
          cerr << __POS__ << "invalid number of repetitions detected" << endl;
          PrintArrayContents();
          return false;
@@ -918,10 +880,10 @@ bool PMPoint::CheckCorrectness(){
   }
 
   // check for composite moves with only one submove
-  const SpatialCompositeMove* CM;
+  SpatialCompositeMove CM;
   for(int i=0;i<compositeMoves.Size();i++){
      compositeMoves.Get(i,CM);
-     if(CM->minIndex>=CM->maxIndex){
+     if(CM.minIndex>=CM.maxIndex){
         if(DEBUG_MODE){
            cerr << __POS__ 
                 << "composite move with a single submove detected" 
@@ -929,7 +891,7 @@ bool PMPoint::CheckCorrectness(){
         }
         return false;
      }
-     if(CM->maxIndex>=(int)compositeSubSize){
+     if(CM.maxIndex>=(int)compositeSubSize){
         if(DEBUG_MODE){
            cerr << __POS__ << "invalid submove position detcetd" << endl;
         }
@@ -957,10 +919,10 @@ array can be avoided.
 bool PMPoint::ResizeArrays(const ListExpr value){
     __TRACE__
  // first all entries in the arrays are removed
-   linearMoves.Clear();
-   compositeMoves.Clear();
-   compositeSubMoves.Clear();
-   periodicMoves.Clear();
+   linearMoves.clean();
+   compositeMoves.clean();
+   compositeSubMoves.clean();
+   periodicMoves.clean();
    int LMSize = 0;
    int CMSize = 0;
    int SMSize = 0;
@@ -968,10 +930,10 @@ bool PMPoint::ResizeArrays(const ListExpr value){
    if(!AddSubMovesSize(::nl->Second(value),LMSize,CMSize,SMSize,PMSize))
       return false;
    // set the arrays to the needed size
-   if(LMSize>0) linearMoves.Resize(LMSize);
-   if(CMSize>0) compositeMoves.Resize(CMSize);
-   if(SMSize>0) compositeSubMoves.Resize(SMSize);
-   if(PMSize>0) periodicMoves.Resize(PMSize);
+   if(LMSize>0) linearMoves.resize(LMSize);
+   if(CMSize>0) compositeMoves.resize(CMSize);
+   if(SMSize>0) compositeSubMoves.resize(SMSize);
+   if(PMSize>0) periodicMoves.resize(PMSize);
    return true;
 }
 
@@ -1110,27 +1072,27 @@ bool PMPoint::AddSpatialCompositeMove(const ListExpr value,int &LMIndex,
             }
             return false;
          }
-         const LinearPointMove* LM;
+         LinearPointMove LM;
          linearMoves.Get(LMPos,LM);
          // Append the interval of LM to CM
          if(isFirst){
             isFirst=false;
-            CM.interval.Equalize(&(LM->interval));
+            CM.interval.Equalize(&(LM.interval));
          }else{
-            if(!CM.interval.Append(&(LM->interval))){
+            if(!CM.interval.Append(&(LM.interval))){
                if(DEBUG_MODE){
                    cerr << __POS__ << " can't append interval ";
                    cerr << endl;
                    cerr << "The original interval is";
                    cerr << CM.interval.ToString() << endl;
                    cerr << "The interval to append is";
-                   cerr << LM->interval.ToString() << endl;
+                   cerr << LM.interval.ToString() << endl;
                }
                return false;
             }
          }
          // build the union of the bounding boxes of CM and LM
-         PBBox tmpbox(LM->BoundingBox());
+         PBBox tmpbox(LM.BoundingBox());
          CM.bbox.Union(&tmpbox);
          // put the submove in the array
          CSubMove SM;
@@ -1147,20 +1109,20 @@ bool PMPoint::AddSpatialCompositeMove(const ListExpr value,int &LMIndex,
             }
             return  false;
         }
-        const SpatialPeriodicMove* PM;
+        SpatialPeriodicMove PM;
         periodicMoves.Get(PMPos,PM);
         if(isFirst){
            isFirst=false;
-           CM.interval.Equalize(&(PM->interval));
+           CM.interval.Equalize(&(PM.interval));
         }else{
-           if(!CM.interval.Append(&(PM->interval))){
+           if(!CM.interval.Append(&(PM.interval))){
               if(DEBUG_MODE){
                  cerr << __POS__  << " can't append interval" << endl;
               }
               return false;
            }
         }
-        CM.bbox.Union(&(PM->bbox));
+        CM.bbox.Union(&(PM.bbox));
         CSubMove SM;
         SM.arrayNumber = PERIOD;
         SM.arrayIndex = PMPos;
@@ -1239,10 +1201,10 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
     }
     PM.submove.arrayNumber = LINEAR;
     PM.submove.arrayIndex = LMPos;
-    const LinearPointMove* LM;
+    LinearPointMove LM;
     linearMoves.Get(LMPos,LM);
-    PM.bbox.Equalize((LM->BoundingBox()));
-    RelInterval SMI = LM->interval;
+    PM.bbox.Equalize((LM.BoundingBox()));
+    RelInterval SMI = LM.interval;
     PM.interval.Equalize(&SMI);
     PM.interval.Mul(rep);
     if(len==4){
@@ -1267,10 +1229,10 @@ bool PMPoint::AddPeriodMove(const ListExpr value,int &LMIndex, int &CMIndex,
     }
     PM.submove.arrayNumber = COMPOSITE;
     PM.submove.arrayIndex = CMPos;
-    const SpatialCompositeMove* CM;
+    SpatialCompositeMove CM;
     compositeMoves.Get(CMPos,CM);
-    PM.bbox.Equalize(&(CM->bbox));
-    RelInterval SMI = CM->interval;
+    PM.bbox.Equalize(&(CM.bbox));
+    RelInterval SMI = CM.interval;
     PM.interval.Equalize(&SMI);
     PM.interval.Mul(rep);
     periodicMoves.Put(IncludePos,PM);
@@ -1312,8 +1274,8 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
        res.SetDefined(false);
     } else{
        const SubMove* sm = &submove;
-       const SpatialCompositeMove* CM;
-       const SpatialPeriodicMove* PM;
+       SpatialCompositeMove CM;
+       SpatialPeriodicMove PM;
        RelInterval RI;
        // i have to find the linear move which is "active" at instant
        while(sm->arrayNumber!=LINEAR){
@@ -1322,22 +1284,22 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
              // executed. i have to make it better in the future
              int i = sm->arrayIndex;
              compositeMoves.Get(i,CM);
-             int min = CM->minIndex;
-             int max = CM->maxIndex;
+             int min = CM.minIndex;
+             int max = CM.maxIndex;
              bool found=false;
-             const CSubMove* csm;
+             CSubMove csm;
              // perform binary search
              while(min<max){
                  int mid = (min+max)/2;
-                 const CSubMove* csm; 
+                 CSubMove csm; 
                  compositeSubMoves.Get(mid,csm);
-                 DateTime prev(csm->duration);
+                 DateTime prev(csm.duration);
                  int cmp = duration->CompareTo(&prev);
                  if(cmp < 0){ // duration is before mid
                     max = mid-1;
                  }else if(cmp==0){
                     RelInterval ri;
-                    GetInterval(*csm,ri);
+                    GetInterval(csm,ri);
                     if(ri.IsLeftClosed()){ // begin of the mid interval
                        duration->SetToZero();  
                        min = mid;
@@ -1347,7 +1309,7 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
                        compositeSubMoves.Get(mid,csm);
                        min = mid;
                        max = mid; 
-                       GetInterval(*csm,ri); // set to the end of 
+                       GetInterval(csm,ri); // set to the end of 
                                              // the mid-1 interval
                        DateTime l;
                        ri.GetLength(l);
@@ -1355,7 +1317,7 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
                     }
                  } else{ // cmp>0 duration my be in mid or after it
                       RelInterval ri;
-                      GetInterval(*csm,ri);
+                      GetInterval(csm,ri);
                       DateTime len;
                       ri.GetLength(len);
                       DateTime sum = prev + len;
@@ -1384,8 +1346,8 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
              compositeSubMoves.Get(min,csm);
              found = true;
              SubMove sm1;
-             sm1.arrayNumber = csm->arrayNumber;
-             sm1.arrayIndex = csm->arrayIndex;
+             sm1.arrayNumber = csm.arrayNumber;
+             sm1.arrayIndex = csm.arrayIndex;
              sm = &sm1;
           } else if(sm->arrayNumber==PERIOD){
              int index = sm->arrayIndex;
@@ -1393,14 +1355,14 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
              // this is a very slow implementation
              // i have to speed up it in the future
              RelInterval RI;
-             sm = &(PM->submove);
-             if(PM->submove.arrayNumber==LINEAR){
-                 const LinearPointMove* LM;
-                 linearMoves.Get(PM->submove.arrayIndex,LM);
-                 RI = LM->interval;
-             } else if(PM->submove.arrayNumber==COMPOSITE){
-                 compositeMoves.Get(PM->submove.arrayIndex,CM);
-                 RI = CM->interval;
+             sm = &(PM.submove);
+             if(PM.submove.arrayNumber==LINEAR){
+                 LinearPointMove LM;
+                 linearMoves.Get(PM.submove.arrayIndex,LM);
+                 RI = LM.interval;
+             } else if(PM.submove.arrayNumber==COMPOSITE){
+                 compositeMoves.Get(PM.submove.arrayIndex,CM);
+                 RI = CM.interval;
              } else { //another submoves are not allowed
                  assert(false);
              }
@@ -1415,10 +1377,10 @@ void PMPoint::At(const DateTime* instant,Point& res)const{
              assert(false);
           }
        }
-       const LinearPointMove* LM;
+       LinearPointMove LM;
        linearMoves.Get(sm->arrayIndex,LM);
-       if(LM->IsDefinedAt(duration)){
-          LM->At(duration,res);
+       if(LM.IsDefinedAt(duration)){
+          LM.At(duration,res);
        }
        else{
           res.SetDefined(false);
@@ -1441,10 +1403,10 @@ void PMPoint::Initial(Point& res)const{
     return;
   }
     
-  const LinearPointMove* lm;
+  LinearPointMove lm;
   linearMoves.Get(0,lm);
   res.SetDefined(true);
-  res.Set(lm->startX,lm->startY);
+  res.Set(lm.startX,lm.startY);
 }
 
 /*
@@ -1493,9 +1455,9 @@ LinearPointMove PMPoint::GetLastUnit(){
   // last unit in the array. If the implementation is changed to reuse 
   // a subtree, we have to go the tree downwards to find it.
   int pos = linearMoves.Size()-1;
-  const LinearPointMove* res;
+  LinearPointMove res;
   linearMoves.Get(pos,res);
-  return *res; 
+  return res; 
 }
 
 
@@ -1560,15 +1522,15 @@ void PMPoint::Breakpoints(const DateTime* duration,
   res.SetDefined(true);
   int size = linearMoves.Size();
   res.StartBulkLoad();
-  const LinearPointMove* LM;
+  LinearPointMove LM;
   for(int i=0; i<size; i++){
       linearMoves.Get(i,LM);
-      if(LM->IsDefined() && LM->IsStatic()){
-         DateTime* L = LM->interval.GetLength();
+      if(LM.IsDefined() && LM.IsStatic()){
+         DateTime* L = LM.interval.GetLength();
          int cmp = L->CompareTo(duration);
          delete L;
          if(cmp>0 || (cmp==0 && inclusive)){
-            Point P(true,LM->startX,LM->startY);
+            Point P(true,LM.startX,LM.startY);
             res += P;
          }
       }
@@ -1588,7 +1550,7 @@ This function computes the trajectory of a single periodic moving point.
 */
 void PMPoint::Trajectory(Line& res)const{
     __TRACE__
-  const LinearPointMove* LM;
+  LinearPointMove LM;
   // each linear moves needs 2 halfsegments
   res.Clear();
   int size = linearMoves.Size();
@@ -1601,9 +1563,9 @@ void PMPoint::Trajectory(Line& res)const{
   int edge=0;
   for(int i=0;i<size;i++){
      linearMoves.Get(i,LM);
-     if(LM->IsDefined() && !LM->IsStatic() ){
-        bool hasHS1=LM->GetHalfSegment(true, HS1);
-        bool hasHS2=LM->GetHalfSegment(false, HS2);
+     if(LM.IsDefined() && !LM.IsStatic() ){
+        bool hasHS1=LM.GetHalfSegment(true, HS1);
+        bool hasHS2=LM.GetHalfSegment(false, HS2);
         if(hasHS1 && hasHS2){
           HS1.attr.edgeno = edge;
           HS2.attr.edgeno = edge;
@@ -1703,25 +1665,25 @@ void PMPoint::AppendUnits(MPoint& P, DateTime* Time, const SubMove S)const{
     __TRACE__
    if(S.arrayNumber==LINEAR){
         // first create the Intervall
-        const LinearPointMove* LM;
+        LinearPointMove LM;
         linearMoves.Get(S.arrayIndex,LM);
         DateTime* StartTime = new DateTime((*Time));
-        DateTime* length = LM->interval.GetLength();
+        DateTime* length = LM.interval.GetLength();
         Time->Add(length);
         assert(!length->LessThanZero());
         delete length;
         length = NULL;
         Interval<DateTime> I((*StartTime),(*Time),
-                     LM->interval.IsLeftClosed(),
-                     LM->interval.IsRightClosed());
-        UPoint up(I,LM->startX, LM->startY, LM->endX, LM->endY);
+                     LM.interval.IsLeftClosed(),
+                     LM.interval.IsRightClosed());
+        UPoint up(I,LM.startX, LM.startY, LM.endX, LM.endY);
         int size = P.GetNoComponents();
         if(size > 0){
-          const UPoint* last;
+          UPoint last;
           P.Get(size-1,last);
-          if(last->timeInterval.rc && I.lc && 
-             last->timeInterval.end ==  I.start){
-             if(last->timeInterval.start == last->timeInterval.start){
+          if(last.timeInterval.rc && I.lc && 
+             last.timeInterval.end ==  I.start){
+             if(last.timeInterval.start == last.timeInterval.start){
                 P.Put(size - 1, up);
              } else if(I.start != I.end){
                 up.timeInterval.lc=false;
@@ -1740,21 +1702,21 @@ void PMPoint::AppendUnits(MPoint& P, DateTime* Time, const SubMove S)const{
         return;
     }
     if (S.arrayNumber==COMPOSITE){
-       const SpatialCompositeMove* CM;
+       SpatialCompositeMove CM;
        compositeMoves.Get(S.arrayIndex,CM);
-       const CSubMove* csm;
-       for(int i=CM->minIndex;i<=CM->maxIndex;i++){
+       CSubMove csm;
+       for(int i=CM.minIndex;i<=CM.maxIndex;i++){
             compositeSubMoves.Get(i,csm);
-            AppendUnits(P,Time,*csm);
+            AppendUnits(P,Time,csm);
        }    
        return;
     }
     if(S.arrayNumber==PERIOD){
-       const SpatialPeriodicMove* PM;
+       SpatialPeriodicMove PM;
        periodicMoves.Get(S.arrayIndex,PM);
-       long repeats = PM->repeatations;
+       long repeats = PM.repeatations;
        for(int i=0;i<repeats;i++)
-          AppendUnits(P,Time,PM->submove);
+          AppendUnits(P,Time,PM.submove);
        return;      
     }
     assert(false);
@@ -1789,21 +1751,21 @@ int PMPoint::NumberOfExpandedUnits(const SubMove S)const{
    if(S.arrayNumber==LINEAR)
        return 1;
     if(S.arrayNumber==COMPOSITE){
-       const SpatialCompositeMove* CM;
+       SpatialCompositeMove CM;
        compositeMoves.Get(S.arrayIndex,CM);
        int num = 0;
-       const CSubMove* sm;
-       for(int i=CM->minIndex;i<=CM->maxIndex;i++){
+       CSubMove sm;
+       for(int i=CM.minIndex;i<=CM.maxIndex;i++){
            compositeSubMoves.Get(i,sm);
-           num += NumberOfExpandedUnits(*sm);
+           num += NumberOfExpandedUnits(sm);
        }    
        return num;
     } 
     if(S.arrayNumber==PERIOD){
-       const SpatialPeriodicMove* PM;
+       SpatialPeriodicMove PM;
        periodicMoves.Get(S.arrayIndex,PM);
-       int repeats = PM->repeatations;
-       return repeats*NumberOfExpandedUnits(PM->submove);
+       int repeats = PM.repeatations;
+       return repeats*NumberOfExpandedUnits(PM.submove);
     }
     assert(false); // this should never be reached
 }
@@ -1829,7 +1791,7 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
   // represent non-defined units directly which is not required in
   // the MPoint representation.
   List<LinearPointMove>* L= new List<LinearPointMove>();  
-  const UPoint* UP;
+  UPoint UP;
   bool lc,rc,wlc=false;
   DateTime start,end;
   double x1,y1,x2,y2;
@@ -1839,23 +1801,23 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
   defined = true;
   canDelete = false;
   bbox.SetEmpty();
-  linearMoves.Clear();
-  compositeMoves.Clear();
-  compositeSubMoves.Clear();
-  periodicMoves.Clear();
+  linearMoves.clean();
+  compositeMoves.clean();
+  compositeSubMoves.clean();
+  periodicMoves.clean();
   UPoint LastMove;
   if(noUPoints>0){ // we have any units
      for(int i=0;i<noUPoints;i++){
         P.Get(i,UP);
         // get the values from the unit
-        lc = UP->timeInterval.lc;   
-        rc = UP->timeInterval.rc;
-        start = UP->timeInterval.start;
-        end   = UP->timeInterval.end;
-        x1 = UP->p0.GetX();
-        y1 = UP->p0.GetY();
-        x2 = UP->p1.GetX();
-        y2 = UP->p1.GetY();    
+        lc = UP.timeInterval.lc;   
+        rc = UP.timeInterval.rc;
+        start = UP.timeInterval.start;
+        end   = UP.timeInterval.end;
+        x1 = UP.p0.GetX();
+        y1 = UP.p0.GetY();
+        x2 = UP.p1.GetX();
+        y2 = UP.p1.GetY();    
         DateTime Length = end-start;       
         LinearPointMove theMove(0);
         theMove.defined=true;
@@ -1872,7 +1834,7 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
         if(i==0){
            startTime = start; // sets the starttime
            interval.SetDefined(true);
-           wlc = UP->timeInterval.lc;
+           wlc = UP.timeInterval.lc;
         }else {
            if( ((LastMove.timeInterval.end != start)) ||
                (!LastMove.timeInterval.rc && !lc)){
@@ -1888,10 +1850,10 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
         }
         if(i==noUPoints-1){ // set new interval;
            DateTime Len = end-startTime;
-           interval.Set(&Len,wlc,UP->timeInterval.rc); 
+           interval.Set(&Len,wlc,UP.timeInterval.rc); 
         }
         L->Append(theMove);
-        LastMove = *UP;
+        LastMove = UP;
      }
   }else{ // no units available
     // here we have to initialize some components
@@ -1989,10 +1951,10 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
 
 
 
-  linearMoves.Clear();
-  compositeMoves.Clear();
-  compositeSubMoves.Clear();
-  periodicMoves.Clear();
+  linearMoves.clean();
+  compositeMoves.clean();
+  compositeSubMoves.clean();
+  periodicMoves.clean();
 
   if(listlength==0){
      defined=false;
@@ -2002,16 +1964,16 @@ void PMPoint::ReadFrom(const MPoint& P, const bool twostep/* = true*/){
      canDelete = false;
      // set all array to the required sizes
      if(differentMoves>0)
-        linearMoves.Resize(differentMoves);
+        linearMoves.resize(differentMoves);
      int size = RT.NumberOfNodesWithType(COMPOSITION);
      if(size>0)
-        compositeMoves.Resize(size);
+        compositeMoves.resize(size);
      size = RT.NumberOfNodesWithType(REPETITION);
      if(size>0)
-        periodicMoves.Resize(size);
+        periodicMoves.resize(size);
      size = RT.NumberOfCompositeSons();
      if(size>0)
-        compositeSubMoves.Resize(size);
+        compositeSubMoves.resize(size);
      // in the first step, we copy the linear moves into the
      // appropriate array
      int lastnumber = -1;
@@ -2080,23 +2042,23 @@ bool PMPoint::FillFromRepTree(int& cp,int& csp, int& pp, RepTree TR){
     int sontype = son->GetNodeType();
     if(sontype==SIMPLE){
       // we need the son for receiving some information
-      const LinearPointMove* LPM;
+      LinearPointMove LPM;
       linearMoves.Get(son->Content(),LPM);
       SPM.repeatations = TR.RepCount();
       SPM.submove.arrayNumber=LINEAR;
       SPM.submove.arrayIndex=son->Content();
-      SPM.interval.Equalize(&LPM->interval);
+      SPM.interval.Equalize(&LPM.interval);
       SPM.interval.Mul(SPM.repeatations);
-      SPM.bbox = LPM->BoundingBox();
+      SPM.bbox = LPM.BoundingBox();
     } else if(sontype==COMPOSITE){
-      const SpatialCompositeMove* SCM;
+      SpatialCompositeMove SCM;
       compositeMoves.Get(oldcp,SCM); 
       SPM.repeatations = TR.RepCount();
       SPM.submove.arrayNumber=COMPOSITE;
       SPM.submove.arrayIndex=oldcp;
-      SPM.interval.Equalize(&SCM->interval);
+      SPM.interval.Equalize(&SCM.interval);
       SPM.interval.Mul(SPM.repeatations);
-      SPM.bbox = SCM->bbox;    
+      SPM.bbox = SCM.bbox;    
     } else{
       // we don't allow other types to be a son of a 
       // repetition
@@ -2126,28 +2088,28 @@ bool PMPoint::FillFromRepTree(int& cp,int& csp, int& pp, RepTree TR){
       if(sontype==SIMPLE){
           SM.arrayNumber=LINEAR;
           SM.arrayIndex=CurrentSon->Content();
-          const LinearPointMove* LPM;
+          LinearPointMove LPM;
           linearMoves.Get(CurrentSon->Content(),LPM);
           if(i==0){ // the first submove
-             SCM.interval.Equalize(&LPM->interval);
-             SCM.bbox.Equalize(LPM->BoundingBox());
+             SCM.interval.Equalize(&LPM.interval);
+             SCM.bbox.Equalize(LPM.BoundingBox());
           }else{
-            SCM.interval.Plus(&(LPM->interval));
-            PBBox tmpbox(LPM->BoundingBox());
+            SCM.interval.Plus(&(LPM.interval));
+            PBBox tmpbox(LPM.BoundingBox());
             SCM.bbox.Union(&tmpbox);
           }
        }else if(sontype==REPETITION){
           SM.arrayNumber=PERIOD;
           SM.arrayIndex=currentrep;
           currentrep=pp;
-          const SpatialPeriodicMove* SPM;
+          SpatialPeriodicMove SPM;
           periodicMoves.Get(SM.arrayIndex,SPM);
           if(i==0){
-            SCM.interval.Equalize(&SPM->interval);
-            SCM.bbox.Equalize(&SPM->bbox);
+            SCM.interval.Equalize(&SPM.interval);
+            SCM.bbox.Equalize(&SPM.bbox);
           } else{
-            SCM.interval.Plus(&SPM->interval);
-            SCM.bbox.Union(&SPM->bbox);
+            SCM.interval.Plus(&SPM.interval);
+            SCM.bbox.Union(&SPM.bbox);
           }
 
        } else{
@@ -2199,12 +2161,12 @@ void PMPoint::Toprel(const Point& P, PMInt9M& res)const{
   int rs = linearMoves.Size();
   ArrayRange ranges[rs];
   int lastPos=0;
-  const LinearPointMove* LPM;
-  DBArray<LinearInt9MMove> UnitTopRels(linearMoves.Size()); 
+  LinearPointMove LPM;
+  DbArray<LinearInt9MMove> UnitTopRels(linearMoves.Size()); 
   LinearInt9MMove buffer[3]; 
   for(int i=0;i<linearMoves.Size();i++){
       linearMoves.Get(i,LPM);
-      int count = LPM->Toprel(P,buffer);     
+      int count = LPM.Toprel(P,buffer);     
       for(int j=0;j<count;j++){
          UnitTopRels.Append(buffer[j]);  
       }
@@ -2212,20 +2174,20 @@ void PMPoint::Toprel(const Point& P, PMInt9M& res)const{
       ranges[i].maxIndex=lastPos+count-1;
       lastPos=lastPos+count;
   }
-  DBArray<CompositeMove> CMs(compositeMoves.Size());
-  DBArray<PeriodicMove> PMs(periodicMoves.Size());
-  const SpatialCompositeMove* SCM;
+  DbArray<CompositeMove> CMs(compositeMoves.Size());
+  DbArray<PeriodicMove> PMs(periodicMoves.Size());
+  SpatialCompositeMove SCM;
   CompositeMove CM;
   for(int i=0;i<compositeMoves.Size();i++){
       compositeMoves.Get(i,SCM);
-      CM = SCM->ToCompositeMove();   
+      CM = SCM.ToCompositeMove();   
       CMs.Put(i,CM);
   }
-  const SpatialPeriodicMove* SPM;
+  SpatialPeriodicMove SPM;
   PeriodicMove PM;
   for(int i=0;i<periodicMoves.Size();i++){
      periodicMoves.Get(i,SPM);
-     PM = SPM->ToPeriodicMove();
+     PM = SPM.ToPeriodicMove();
      PMs.Put(i,PM);
   } 
   res.CreateFrom(UnitTopRels,ranges,rs,CMs,compositeSubMoves,
@@ -2247,12 +2209,12 @@ PMInt9M* PMPoint::Toprel(const Points& P)const {
   int rs = linearMoves.Size();
   ArrayRange ranges[rs];
   int lastPos=0;
-  const LinearPointMove* LPM;
-  DBArray<LinearInt9MMove> UnitTopRels(linearMoves.Size()); 
+  LinearPointMove LPM;
+  DbArray<LinearInt9MMove> UnitTopRels(linearMoves.Size()); 
   vector<LinearInt9MMove> MyBuffer; 
   for(int i=0;i<linearMoves.Size();i++){
       linearMoves.Get(i,LPM);
-      LPM->Toprel(P,MyBuffer);
+      LPM.Toprel(P,MyBuffer);
       int count = MyBuffer.size();    
       for(int j=0;j<count;j++){
          UnitTopRels.Append(MyBuffer[j]);  
@@ -2261,20 +2223,20 @@ PMInt9M* PMPoint::Toprel(const Points& P)const {
       ranges[i].maxIndex=lastPos+count-1;
       lastPos=lastPos+count;
   }
-  DBArray<CompositeMove> CMs(compositeMoves.Size());
-  DBArray<PeriodicMove> PMs(periodicMoves.Size());
-  const SpatialCompositeMove* SCM;
+  DbArray<CompositeMove> CMs(compositeMoves.Size());
+  DbArray<PeriodicMove> PMs(periodicMoves.Size());
+  SpatialCompositeMove SCM;
   CompositeMove CM;
   for(int i=0;i<compositeMoves.Size();i++){
       compositeMoves.Get(i,SCM);
-      CM = SCM->ToCompositeMove();   
+      CM = SCM.ToCompositeMove();   
       CMs.Put(i,CM);
   }
-  const SpatialPeriodicMove* SPM;
+  SpatialPeriodicMove SPM;
   PeriodicMove PM;
   for(int i=0;i<periodicMoves.Size();i++){
      periodicMoves.Get(i,SPM);
-     PM = SPM->ToPeriodicMove();
+     PM = SPM.ToPeriodicMove();
      PMs.Put(i,PM);
   } 
   PMInt9M* result = new PMInt9M(1);
@@ -2313,56 +2275,56 @@ bool PMPoint::DistanceTo(const double x, const double y, PMReal& result)const {
    
 
    // copy periodic moves
-   DBArray<PeriodicMove>* resPMs = result.GetPeriodicMoves();   
-   resPMs->Clear();
+   DbArray<PeriodicMove>* resPMs = result.GetPeriodicMoves();   
+   resPMs->clean();
    int size;
    if((size=periodicMoves.Size())>0){
       PeriodicMove PM;
-      const SpatialPeriodicMove* SPM;
-      resPMs->Resize(size);
+      SpatialPeriodicMove SPM;
+      resPMs->resize(size);
       for(int i=0;i<size;i++){
          periodicMoves.Get(i,SPM);
-         SPM->ToPeriodicMove(PM);
+         SPM.ToPeriodicMove(PM);
          resPMs->Put(i,PM);
       }
    }
    // copy composite moves
-   DBArray<CompositeMove>* resCMs = result.GetCompositeMoves();
-   resCMs->Clear();
+   DbArray<CompositeMove>* resCMs = result.GetCompositeMoves();
+   resCMs->clean();
    if((size=compositeMoves.Size())>0){
        CompositeMove CM;
-       const SpatialCompositeMove* SCM;
-       resCMs->Resize(size);
+       SpatialCompositeMove SCM;
+       resCMs->resize(size);
        for(int i=0;i<size;i++){
           compositeMoves.Get(i,SCM);
-          SCM->ToCompositeMove(CM);
+          SCM.ToCompositeMove(CM);
           resCMs->Put(i,CM);    
        }
    }
 
    // copy composite submoves
-   DBArray<CSubMove>* resSMs = result.GetCompositeSubMoves();
-   resSMs->Clear();
+   DbArray<CSubMove>* resSMs = result.GetCompositeSubMoves();
+   resSMs->clean();
    if((size=compositeSubMoves.Size())>0){
-      const CSubMove* SM;
-      resSMs->Resize(size);
+      CSubMove SM;
+      resSMs->resize(size);
       for(int i=0;i<size;i++){
         compositeSubMoves.Get(i,SM);
-        resSMs->Put(i,*SM);
+        resSMs->Put(i,SM);
       }
    }
   
   // now, we build the linear moves for the 
   // periodic moving real
-  DBArray<MovingRealUnit>* resLin = result.GetLinearMoves();
+  DbArray<MovingRealUnit>* resLin = result.GetLinearMoves();
   MovingRealUnit Unit;
-  resLin->Clear();
+  resLin->clean();
   if((size=linearMoves.Size())>0){
-    resLin->Resize(size);
-    const LinearPointMove* LPM;
+    resLin->resize(size);
+    LinearPointMove LPM;
     for(int i=0;i<size;i++){
       linearMoves.Get(i,LPM);
-      LPM->DistanceTo(x,y,Unit);
+      LPM.DistanceTo(x,y,Unit);
       resLin->Put(i,Unit); 
     }
   }
@@ -2394,59 +2356,59 @@ void PMPoint::SpeedAndDirection(bool isSpeed, PMReal& result)const {
    
 
    // copy periodic moves
-   DBArray<PeriodicMove>* resPMs = result.GetPeriodicMoves();   
-   resPMs->Clear();
+   DbArray<PeriodicMove>* resPMs = result.GetPeriodicMoves();   
+   resPMs->clean();
    int size;
    if((size=periodicMoves.Size())>0){
       PeriodicMove PM;
-      const SpatialPeriodicMove* SPM;
-      resPMs->Resize(size);
+      SpatialPeriodicMove SPM;
+      resPMs->resize(size);
       for(int i=0;i<size;i++){
          periodicMoves.Get(i,SPM);
-         SPM->ToPeriodicMove(PM);
+         SPM.ToPeriodicMove(PM);
          resPMs->Put(i,PM);
       }
    }
    // copy composite moves
-   DBArray<CompositeMove>* resCMs = result.GetCompositeMoves();
-   resCMs->Clear();
+   DbArray<CompositeMove>* resCMs = result.GetCompositeMoves();
+   resCMs->clean();
    if((size=compositeMoves.Size())>0){
        CompositeMove CM;
-       const SpatialCompositeMove* SCM;
-       resCMs->Resize(size);
+       SpatialCompositeMove SCM;
+       resCMs->resize(size);
        for(int i=0;i<size;i++){
           compositeMoves.Get(i,SCM);
-          SCM->ToCompositeMove(CM);
+          SCM.ToCompositeMove(CM);
           resCMs->Put(i,CM);    
        }
    }
 
    // copy composite submoves
-   DBArray<CSubMove>* resSMs = result.GetCompositeSubMoves();
-   resSMs->Clear();
+   DbArray<CSubMove>* resSMs = result.GetCompositeSubMoves();
+   resSMs->clean();
    if((size=compositeSubMoves.Size())>0){
-      const CSubMove* SM;
-      resSMs->Resize(size);
+      CSubMove SM;
+      resSMs->resize(size);
       for(int i=0;i<size;i++){
         compositeSubMoves.Get(i,SM);
-        resSMs->Put(i,*SM);
+        resSMs->Put(i,SM);
       }
    }
   
   // now, we build the linear moves for the 
   // periodic moving real
-  DBArray<MovingRealUnit>* resLin = result.GetLinearMoves();
+  DbArray<MovingRealUnit>* resLin = result.GetLinearMoves();
   MovingRealUnit Unit;
-  resLin->Clear();
+  resLin->clean();
   if((size=linearMoves.Size())>0){
-    resLin->Resize(size);
-    const LinearPointMove* LPM;
+    resLin->resize(size);
+    LinearPointMove LPM;
     for(int i=0;i<size;i++){
       linearMoves.Get(i,LPM);
       if(isSpeed){
-         LPM->Speed(Unit);
+         LPM.Speed(Unit);
       } else {
-         LPM->Direction(Unit);
+         LPM.Direction(Unit);
       }
       resLin->Put(i,Unit); 
     }
@@ -2465,16 +2427,16 @@ void PMPoint::CorrectDurationSums(){
    RelInterval currentInterval;
    DateTime currentLength(durationtype);
    DateTime duration(durationtype);
-   const SpatialCompositeMove* CM;
+   SpatialCompositeMove CM;
    // process all compositeMoves.
    for(int i=0;i<cmsize;i++){
       compositeMoves.Get(i,CM);
       duration.SetToZero();
-      for(int j=CM->minIndex;j<=CM->maxIndex;j++){
-         const CSubMove* csm1;
+      for(int j=CM.minIndex;j<=CM.maxIndex;j++){
+         CSubMove csm1;
          compositeSubMoves.Get(j,csm1);
          CSubMove csm;
-         csm.Equalize(csm1);
+         csm.Equalize(&csm1);
          csm.duration.Equalize(&duration);
          compositeSubMoves.Put(j,csm);
          GetLength(csm,currentLength);
@@ -2491,21 +2453,24 @@ Returns the length of the submove specified as the argument.
 */
 void PMPoint::GetLength(SubMove sm, DateTime& result){
    switch(sm.arrayNumber){
-       case LINEAR:
-              const LinearPointMove* lpm;
+       case LINEAR:{
+              LinearPointMove lpm;
               linearMoves.Get(sm.arrayIndex,lpm);
-              lpm->interval.GetLength(result);
+              lpm.interval.GetLength(result);
               break;
-       case COMPOSITE:
-              const SpatialCompositeMove* scm;
+            }
+       case COMPOSITE:{
+              SpatialCompositeMove scm;
               compositeMoves.Get(sm.arrayIndex,scm);
-              scm->interval.GetLength(result);
+              scm.interval.GetLength(result);
               break;
-       case PERIOD:
-              const SpatialPeriodicMove* spm;
+            }
+       case PERIOD:{
+              SpatialPeriodicMove spm;
               periodicMoves.Get(sm.arrayIndex,spm);
-              spm->interval.GetLength(result);
+              spm.interval.GetLength(result);
               break;
+            }
        default: 
               cerr << "unknown submove " << sm << endl;
               assert(false);
@@ -2521,21 +2486,24 @@ Returns the interval covered by the subtree given by the argument.
 
 void PMPoint::GetInterval(SubMove sm, RelInterval& result) const{
    switch(sm.arrayNumber){
-       case LINEAR:
-              const LinearPointMove* lpm;
+       case LINEAR:{
+              LinearPointMove lpm;
               linearMoves.Get(sm.arrayIndex,lpm);
-              result.Equalize(&lpm->interval);
+              result.Equalize(&lpm.interval);
               break;
-       case COMPOSITE:
-              const SpatialCompositeMove* scm;
+            }
+       case COMPOSITE:{
+              SpatialCompositeMove scm;
               compositeMoves.Get(sm.arrayIndex,scm);
-              result.Equalize(&scm->interval);
+              result.Equalize(&scm.interval);
               break;
-       case PERIOD:
-              const SpatialPeriodicMove* spm;
+            }
+       case PERIOD:{
+              SpatialPeriodicMove spm;
               periodicMoves.Get(sm.arrayIndex,spm);
-              result.Equalize(&spm->interval);
+              result.Equalize(&spm.interval);
               break;
+            }
        default: 
               cerr << "unknown submove " << sm << endl;
               assert(false);
@@ -2566,23 +2534,23 @@ void PMPoint::Length(CcReal& res)const{
 double PMPoint::Length(const SubMove& sm) const{
    switch(sm.arrayNumber){
        case LINEAR : {
-         const LinearPointMove* lpm;
+         LinearPointMove lpm;
          linearMoves.Get(sm.arrayIndex,lpm);
-         return lpm->Length();    
+         return lpm.Length();    
      } case COMPOSITE:{
-         const SpatialCompositeMove* scm;
-         const CSubMove* csm;
+         SpatialCompositeMove scm;
+         CSubMove csm;
          compositeMoves.Get(sm.arrayIndex,scm);
          double res = 0.0;
-         for(int i=scm->minIndex; i<= scm->maxIndex; i++){
+         for(int i=scm.minIndex; i<= scm.maxIndex; i++){
            compositeSubMoves.Get(i,csm);
-           res += Length(*csm);
+           res += Length(csm);
          }
          return res;
      } case PERIOD: {
-         const SpatialPeriodicMove* spm;
+         SpatialPeriodicMove spm;
          periodicMoves.Get(sm.arrayIndex,spm);
-         return spm->repeatations * Length(spm->submove);
+         return spm.repeatations * Length(spm.submove);
      }
      default: assert(false);
    }

@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 
 #SECONDO is free software; you can redistribute it and/or modify
@@ -39,6 +39,5 @@ operator removeid3 alias REMOVEID3 pattern _ op
 operator concatmp3 alias CONCATMP3 pattern _ _ op
 operator songyear alias SONGYEAR pattern _ op
 operator submp3 alias SUBMP3 pattern _ _ _ op
-
-
+operator loadmp3from alias LOADMP3 pattern op ( _ )
 

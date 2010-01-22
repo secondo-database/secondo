@@ -16,8 +16,10 @@ repetitions.
 #include <iostream>
 #include <string>
 #include <cassert>
+#include <stdlib.h>
 #include "RepTree.h"
 #include "List2.h"
+
 
 /*
 ~Defining Types of nodes~

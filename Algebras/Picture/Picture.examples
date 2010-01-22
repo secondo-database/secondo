@@ -1,4 +1,4 @@
-Database: berlintest
+Database: pictest
 Restore : No
 
 Operator : category
@@ -116,9 +116,20 @@ Result   : 1066
 Operator : simpleequals
 Number   : 1
 Signature: picture x picture -> bool
-Example  : query pictures feed filter [.pic simpleequals theater] count
-Result   : 1
+Example  : query theater simpleequals theater2 
+Result   : TRUE
 
+Operator : simpleequals
+Number   : 2
+Signature: picture x picture -> bool
+Example  : query theater simpleequals paper 
+Result   : FALSE
+
+Operator : simpleequals
+Number   : 3
+Signature: picture x picture -> bool
+Example  : query theater simpleequals theater 
+Result   : TRUE
 
 Operator : width
 Number   : 1

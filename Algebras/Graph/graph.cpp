@@ -75,8 +75,8 @@ Graph::~Graph() { }
 
 inline void Graph::Clear() {
    
-   vertices.Clear();
-   adjlist.Clear();
+   vertices.clean();
+   adjlist.clean();
    
    verticesRoot = -1;
    numVertices = 0;
@@ -253,12 +253,12 @@ vector<Vertex>* Graph::GetSuccFrom(const int key) const {
    AVLTree<adjStruct>::ReadNodes(adjlist,a,n.elem.succ);
    
    vector<Vertex>* result = new vector<Vertex>(0);
-   const AVLNode<verticesStruct>* node;
+   AVLNode<verticesStruct> node;
    
    // create vertices from keys
    for (unsigned int i=0; i<a.size();i++) {
       vertices.Get(a[i].elem.keyInt,node);
-      result->push_back(Vertex(node->key,node->elem.pos));
+      result->push_back(Vertex(node.key,node.elem.pos));
    }
    
    return result;
@@ -747,13 +747,13 @@ Graph* Graph::GetMappedGraph(vector<int>& map) const {
    Graph* g = new Graph(true);
    
    // copy vertices
-   const AVLNode<verticesStruct>* n;
+   AVLNode<verticesStruct> n;
    int i;
    
    for (i=0;i<vertices.Size();i++) {
     
      vertices.Get(i,n);
-     g->vertices.Append(*n);
+     g->vertices.Append(n);
    }
    g->verticesRoot = verticesRoot;
    g->numVertices = numVertices;
@@ -764,14 +764,14 @@ Graph* Graph::GetMappedGraph(vector<int>& map) const {
    AVLTree<verticesStruct>::MapKeys(g->vertices,num,map,verticesRoot);
    
    // map target keys to new keys
-   const AVLNode<adjStruct>* e;
+   AVLNode<adjStruct> e;
    
    for (i=0;i<adjlist.Size();i++) {
      
      adjlist.Get(i,e);
-     g->vertices.Get(e->elem.keyInt,n);
-     AVLNode<adjStruct> a = AVLTree<adjStruct>::NewNode(e);
-     a.key = n->key;
+     g->vertices.Get(e.elem.keyInt,n);
+     AVLNode<adjStruct> a = AVLTree<adjStruct>::NewNode(&e);
+     a.key = n.key;
      g->adjlist.Append(a);
    }
    
@@ -859,6 +859,7 @@ Graph* Graph::GetCircle(const int startKey, const float maxDist) const {
      GraphCircle(env,env.startKey,0);
      
    delete env.graph;
+   delete env.vertices;
    
    return env.circle; 
    
@@ -1347,21 +1348,9 @@ size_t Graph::HashValue() const {
 void Graph::CopyFrom(const Attribute* arg) {
    
    const Graph* g = (const Graph*)arg;
-   
-   vertices.Clear();
-   const AVLNode<verticesStruct>* v;
-   for (int i=0;i<g->vertices.Size();i++) {
-     g->vertices.Get(i,v);
-     vertices.Append(*v);
-   }
-   
-   adjlist.Clear();
-   const AVLNode<adjStruct>* a;
-   for (int i=0;i<g->adjlist.Size();i++) {
-     g->adjlist.Get(i,a);
-     adjlist.Append(*a);
-   }
-      
+  
+   vertices.copyFrom(g->vertices);
+   adjlist.copyFrom(g->adjlist);
    SetDefined(g->IsDefined());
    numVertices = g->numVertices;
    numEdges = g->numEdges;
@@ -1375,7 +1364,7 @@ int Graph::NumOfFLOBs() const {
 }
 
 
-FLOB* Graph::GetFLOB(const int i) {
+Flob* Graph::GetFLOB(const int i) {
   
    assert( i >= 0 && i < NumOfFLOBs() );
    
@@ -1454,13 +1443,15 @@ ListExpr OutGraph( ListExpr typeInfo, Word value ) {
    }
    else
      verticesList = nl->TheEmptyList();
+   delete v;
+   v = 0;
      
    // create ListExpr for edges
    
    vector<Edge>* e = graph->GetEdges(true);
    ListExpr edgesList;
    
-   if ((*e).size() > 0) {
+   if (e->size() > 0) {
      
      edgesList = 
        nl->OneElemList(
@@ -1484,8 +1475,10 @@ ListExpr OutGraph( ListExpr typeInfo, Word value ) {
          );
      }
    }
-   else
+   else{
      edgesList = nl->TheEmptyList();
+   }
+   delete e;
      
    return (nl->TwoElemList(verticesList,edgesList));
 }

@@ -553,7 +553,7 @@ void PInterval::Destroy(){
 int PInterval::NumOfFLOBs()const{
     return 0;
 }
-FLOB* PInterval::GetFLOB(const int i){ 
+Flob* PInterval::GetFLOB(const int i){ 
      assert(false);
 }
 

@@ -188,7 +188,7 @@ public:
     readpgn_op( const FText& filename, ListExpr type )
         : number_(0), content_(""), next_(content_.end()), end_(content_.end())
     {
-        ifstream pgn( filename.Get(), ios::binary | ios::in );
+        ifstream pgn( filename.GetValue().c_str(), ios::binary | ios::in );
         if ( !pgn )
             throw runtime_error( "PGN-File not found!" );
 
@@ -252,7 +252,7 @@ public:
             try
             {
                 PlyT result = validate_move()( pos, moves[ply_number] );
-                apply_ply_op()( pos, result );
+                delete apply_ply_op()( pos, result );
                 g.moves.Append( result );
             }
             catch ( const exception& e )

@@ -100,11 +100,11 @@ will be zero.
 [3] O(P) where P is the number of contained moving points
 
 */  
-ListExpr LinearPointsMove::ToListExpr(const DBArray<TwoPoints> &Points) const{
+ListExpr LinearPointsMove::ToListExpr(const DbArray<TwoPoints> &Points) const{
    __TRACE__
    if(!defined)
       return ::nl->SymbolAtom("undefined");
-   const TwoPoints* Entry;
+   TwoPoints Entry;
    unsigned int s = Points.Size();
    if(s<endIndex){
       if(DEBUG_MODE){
@@ -126,10 +126,10 @@ ListExpr LinearPointsMove::ToListExpr(const DBArray<TwoPoints> &Points) const{
    ListExpr Ps,Pe,LastStart,LastEnd;
 
    Points.Get(startIndex,Entry);   
-   Ps = ::nl->TwoElemList( ::nl->RealAtom(Entry->startX),
-                         ::nl->RealAtom(Entry->startY));
-   Pe = ::nl->TwoElemList( ::nl->RealAtom(Entry->endX),
-                         ::nl->RealAtom(Entry->endY));
+   Ps = ::nl->TwoElemList( ::nl->RealAtom(Entry.startX),
+                         ::nl->RealAtom(Entry.startY));
+   Pe = ::nl->TwoElemList( ::nl->RealAtom(Entry.endX),
+                         ::nl->RealAtom(Entry.endY));
    starts = ::nl->OneElemList(Ps);
    ends = ::nl->OneElemList(Pe);
    LastStart = starts;
@@ -137,10 +137,10 @@ ListExpr LinearPointsMove::ToListExpr(const DBArray<TwoPoints> &Points) const{
 
    for(unsigned int i=startIndex+1;i<endIndex;i++){
       Points.Get(i,Entry);
-      Ps = ::nl->TwoElemList( ::nl->RealAtom(Entry->startX),
-                            ::nl->RealAtom(Entry->startY));
-      Pe = ::nl->TwoElemList( ::nl->RealAtom(Entry->endX),
-                            ::nl->RealAtom(Entry->endY));
+      Ps = ::nl->TwoElemList( ::nl->RealAtom(Entry.startX),
+                            ::nl->RealAtom(Entry.startY));
+      Pe = ::nl->TwoElemList( ::nl->RealAtom(Entry.endX),
+                            ::nl->RealAtom(Entry.endY));
       LastStart = ::nl->Append(LastStart,Ps);
       LastEnd = ::nl->Append(LastEnd,Pe); 
    }
@@ -165,7 +165,7 @@ If an error is occured this instance will be undefined.
 [3] O(P) where P is the number of contained moving points
 
 */
-bool LinearPointsMove::ReadFrom(const ListExpr value, DBArray<TwoPoints> &Pts,
+bool LinearPointsMove::ReadFrom(const ListExpr value, DbArray<TwoPoints> &Pts,
                                 int &Index){
    __TRACE__
 // value has to be a list
@@ -282,7 +282,7 @@ interval of this LinearPointsMove, NULL is returned.
 
 */
 void LinearPointsMove::At(const DateTime* duration,
-                         const DBArray<TwoPoints> &Pts,
+                         const DbArray<TwoPoints> &Pts,
                          Points& res) const{
    __TRACE__
   if(!interval.Contains(duration)){
@@ -292,14 +292,14 @@ void LinearPointsMove::At(const DateTime* duration,
   res.SetDefined(true);
   double w = interval.Where(duration);   
   res.Resize(Pts.Size());
-  const TwoPoints* Element;
+  TwoPoints Element;
   Point aPoint;
   double x,y;
   res.StartBulkLoad();
   for(unsigned int i=startIndex;i<endIndex;i++){
     Pts.Get(i,Element);
-    x = Element->startX + w * (Element->endX - Element->startX);
-    y = Element->startY + w * (Element->endY - Element->startY); 
+    x = Element.startX + w * (Element.endX - Element.startX);
+    y = Element.startY + w * (Element.endY - Element.startY); 
     aPoint = Point(x,y);
     res += aPoint; 
   }  
@@ -365,8 +365,8 @@ by the one of the arguments to yielding a single LinearPointsMove.
 
 */
 bool LinearPointsMove::CanBeExtendedBy(const LinearPointsMove* P2,
-                                    DBArray<TwoPoints> &MyPoints,
-                                    DBArray<TwoPoints> &PointsOfP2) const{
+                                    DbArray<TwoPoints> &MyPoints,
+                                    DbArray<TwoPoints> &PointsOfP2) const{
    __TRACE__
     if(!interval.CanAppended(&(P2->interval)))
         return false;
@@ -387,18 +387,18 @@ bool LinearPointsMove::CanBeExtendedBy(const LinearPointsMove* P2,
      int size = endIndex-startIndex;
      SimplePoint endPoints[size];
      SimplePoint startPoints[size];
-     const TwoPoints* CurrentPoint;
+     TwoPoints CurrentPoint;
      for(unsigned int i=startIndex;i<endIndex;i++){
         MyPoints.Get(i,CurrentPoint);
-        endPoints[i-startIndex].x=CurrentPoint->endX;
-        endPoints[i-startIndex].y=CurrentPoint->endY;
+        endPoints[i-startIndex].x=CurrentPoint.endX;
+        endPoints[i-startIndex].y=CurrentPoint.endY;
         endPoints[i-startIndex].intinfo=i;
         endPoints[i-startIndex].boolinfo=false;
      }
      for(unsigned int i=P2->startIndex;i<P2->endIndex;i++){
         PointsOfP2.Get(i,CurrentPoint);
-        startPoints[i-P2->startIndex].x=CurrentPoint->startX;
-        startPoints[i-P2->startIndex].y=CurrentPoint->startY;
+        startPoints[i-P2->startIndex].x=CurrentPoint.startX;
+        startPoints[i-P2->startIndex].y=CurrentPoint.startY;
         startPoints[i-P2->startIndex].intinfo=i;
         startPoints[i-P2->startIndex].boolinfo=false;
      }
@@ -413,7 +413,7 @@ bool LinearPointsMove::CanBeExtendedBy(const LinearPointsMove* P2,
      int pos,cpos;
      pos=cpos=0;
      int endIndex,startIndex;
-     const TwoPoints* TestPoint;
+     TwoPoints TestPoint;
      bool morethanone;
      for(int i=0;i<size;i++){
         endIndex=endPoints[i].intinfo;
@@ -432,10 +432,10 @@ bool LinearPointsMove::CanBeExtendedBy(const LinearPointsMove* P2,
                  cpos++;
             else{
                 PointsOfP2.Get(cpos,TestPoint);
-                if(CurrentPoint->IsSpatialExtension(TestPoint)){ 
+                if(CurrentPoint.IsSpatialExtension(&TestPoint)){ 
                    // check for same speed
-                   if(CurrentPoint->Speed(interval)==
-                      TestPoint->Speed(P2->interval)){ //mathc found
+                   if(CurrentPoint.Speed(interval)==
+                      TestPoint.Speed(P2->interval)){ //mathc found
                          startPoints[cpos].boolinfo=true; // mark as used
                          found = true;
                    }
@@ -462,8 +462,8 @@ __false__, this LinearPointsMove is not changed.
 
 */ 
 bool LinearPointsMove::ExtendWith(const LinearPointsMove* P2,
-                                  DBArray<TwoPoints> &MyPoints,
-                                  DBArray<TwoPoints> &PointsOfP2){
+                                  DbArray<TwoPoints> &MyPoints,
+                                  DbArray<TwoPoints> &PointsOfP2){
    __TRACE__
  if(!CanBeExtendedBy(P2,MyPoints,PointsOfP2)) return false;
   interval.Append(&(P2->interval));

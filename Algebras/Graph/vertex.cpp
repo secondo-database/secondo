@@ -47,17 +47,6 @@ Vertex::Vertex()
 {
 }
 
-Vertex::Vertex(int nKey, Point const & pntPos) : 
-    key(nKey),  pos(pntPos)
-{
-  SetDefined(true);
-}
-
-Vertex::Vertex(int nKey, Coord coordX, Coord coordY) : 
-    key(nKey),  pos(true, coordX, coordY)
-{
-  SetDefined(true);
-}
 
 Vertex::~Vertex()
 {

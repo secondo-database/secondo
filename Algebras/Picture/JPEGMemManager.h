@@ -31,16 +31,16 @@ defines the memory source manager
 
 */
 GLOBAL(void) jpeg_mem_src (j_decompress_ptr cinfo, 
-			   unsigned char *JPEGBuffer, 
-			   unsigned long JPEGBufferSize);
+                     unsigned char *JPEGBuffer, 
+                     unsigned long JPEGBufferSize);
 
 /*
 defines the memory destination manager
 
 */
 GLOBAL(void) jpeg_mem_dest (j_compress_ptr cinfo, 
-			    unsigned char **JPEGBuffer, 
-			    unsigned long *JPEGBufferSize);
+                      unsigned char **JPEGBuffer, 
+                      unsigned long *JPEGBufferSize);
 
 /*
 release buffer allocated by the destination manager

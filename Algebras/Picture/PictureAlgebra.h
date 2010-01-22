@@ -73,6 +73,7 @@ JPEG images. We suggest to use the ~display~ program from ImageMagick.
 #include "Attribute.h"
 #include "StandardTypes.h"
 #include "Algebra.h"
+#include "../../Tools/Flob/Flob.h"
 
 const bool PA_DEBUG = false;
 const string PROG_DISPLAY = "/usr/bin/display";
@@ -112,7 +113,7 @@ can be used in relations.
 
 */
 
-class Histogram : Attribute {
+class Histogram : public Attribute {
 
 /*
 
@@ -133,7 +134,6 @@ for details on this attribute.
 
 */
  private:
-    bool isDefined;
     double histogram[256];
     uint32_t histogram_abs[256];
     HistogramChannel channel;
@@ -213,13 +213,6 @@ which the ~Histogram~ object has ben created.
 */
    void SetHistogramMaxValue(double maxValue){ histogramMaxValue = maxValue;};
 
-/*
-
-Return ~true~ if this ~Histogram~ object represents an undefined
-SECONDO ~histogram~ object.
-
-*/
-    bool IsDefined(void) const { return isDefined; };
 
 /*
 
@@ -244,7 +237,6 @@ See the description of ~Attribute~ and the SECONDO Programmer's
 Guide for details.
 
 */
-    void SetDefined(const bool d) { isDefined = d; }
     size_t Sizeof() const { return sizeof(*this); }
     size_t HashValue(void) const;
     void CopyFrom(const Attribute*);
@@ -262,7 +254,7 @@ can be used in relations.
 
 */
 
-class Picture : Attribute {
+class Picture : public Attribute {
 
 /*
 
@@ -305,9 +297,8 @@ only once even if used multiple times.
     STRING_T category;
     STRING_T date;
     bool isPortrait;
-    bool isDefined;
     bool isGrayscale;
-    FLOB jpegData;
+    Flob jpegData;
     Histogram histogram[4];
     uint16_t height;
     uint16_t width;
@@ -332,7 +323,7 @@ no attributes are changed when ~Picture~ objects are copied.
 */
 
  public:
-    Picture(bool) : isDefined(false), jpegData(0) { };
+    Picture(bool) : jpegData(0) { SetDefined(false); };
     Picture(void) { };
 
 /*
@@ -406,7 +397,7 @@ efficient way to implement this method. ~size~ will be set to the total size
 in bytes of the binary data returned.
 
 */
-    const char* GetJPEGData(unsigned long& size) const;
+    char* GetJPEGData(unsigned long& size) const;
 
 /*
 
@@ -420,15 +411,6 @@ attribute.
     string GetCategory(void) { return category; }
     string GetDate(void) { return date; };
     bool IsPortrait(void) { return isPortrait; }
-    bool IsDefined(void) const { return isDefined; }
-
-/*
-
-Sets the ~isDefined~ private attribute to the value of the paramter.
-
-*/
-    void SetDefined(const bool d) { isDefined = d; }
-
 /*
 
 Returns the ~sizeof~ of a ~Picture~ instance.
@@ -550,7 +532,7 @@ Guide for details.
     bool Adjacent(const Attribute* attr) const { return false; }
     Picture* Clone(void) const;
     int NumOfFLOBs() const { return 1; }
-    FLOB *GetFLOB(const int i) { assert( i == 0 ); return &jpegData; }
+    Flob *GetFLOB(const int i) { assert( i == 0 ); return &jpegData; }
 
 /*
 

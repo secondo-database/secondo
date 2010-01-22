@@ -78,7 +78,7 @@ struct apply_ply_op : binary_function< Position, Ply, Position* >
         }
 
         pos.increment_turn();
-        return &pos;
+        return new Position(pos);
     }
 };
 
@@ -112,7 +112,7 @@ struct revert_ply_op : binary_function< Position, Ply, Position* >
             }
         }
         pos.state( ply.old_state() );
-        return &pos;
+        return new Position(pos);
     }
 };
 

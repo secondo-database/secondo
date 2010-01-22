@@ -55,7 +55,7 @@ These six transition functions are implemented in the ~polygon~ algebra by the f
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "SecondoSystem.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "Attribute.h"
 
 /*
@@ -90,6 +90,16 @@ Do not use this constructor.
     x( xcoord ), y( ycoord )
     {}
 
+  Vertex(const Vertex& v) : x(v.x), y(v.y) {}
+
+  Vertex& operator=(const Vertex& v){
+    x = v.x;
+    y = v.y;
+    return *this;
+  }
+  
+  ~Vertex(){}
+
   int x;
   int y;
 };
@@ -105,6 +115,16 @@ class Edge
     Edge( const Vertex& s, const Vertex& e ) :
       start( s ), end( e )
       {}
+
+    Edge(const Edge& src) : start(src.start), end(src.end){}
+
+    Edge& operator=(const Edge& src){
+       start = src.start;
+       end = src.end;
+       return *this;
+    }
+ 
+    ~Edge(){}
 
     Vertex& Start()
       { return start; }
@@ -135,7 +155,7 @@ class Polygon : public Attribute
     Polygon& operator=(const Polygon& src);
 
     int NumOfFLOBs() const;
-    FLOB *GetFLOB(const int i);
+    Flob *GetFLOB(const int i);
     int Compare(const Attribute*) const;
     bool Adjacent(const Attribute*) const;
     Polygon *Clone() const;
@@ -148,8 +168,8 @@ class Polygon : public Attribute
     void Destroy();
     int GetNoEdges() const { return GetNoVertices(); }
     int GetNoVertices() const;
-    Edge& GetEdge( int i ) const;
-    const Vertex *GetVertex( int i ) const;
+    Edge GetEdge( int i ) const;
+    Vertex GetVertex( int i ) const;
     string GetState() const;
     const bool IsEmpty() const;
     void CopyFrom(const Attribute* right);
@@ -188,7 +208,7 @@ class Polygon : public Attribute
 
   private:
     Polygon() {} // this constructor is reserved for the cast function.
-    DBArray<Vertex> vertices;
+    DbArray<Vertex> vertices;
     PolygonState state;
 };
 
@@ -245,11 +265,7 @@ Polygon::Polygon( const int n, const int *X, const int *Y ) :
 Polygon::Polygon(const Polygon& src):
   vertices(src.vertices.Size()),state(src.state){
   this->del.isDefined = src.del.isDefined;
-  const Vertex* v;
-  for(int i=0;i<src.vertices.Size();i++){
-     src.vertices.Get(i,v);
-     vertices.Append(*v);
-  }
+  vertices.copyFrom(src.vertices);
 }
 
 /*
@@ -264,16 +280,7 @@ Polygon::~Polygon()
 Polygon& Polygon::operator=(const Polygon& src){
   this->state = src.state;
   this->del.isDefined = src.del.isDefined;
-  if(src.vertices.Size()>0){
-     this->vertices.Resize(src.vertices.Size());
-  } else {
-     this->vertices.Clear();
-  }
-  const Vertex* v;
-  for(int i=0;i<src.vertices.Size();i++){
-     src.vertices.Get(i,v);
-     vertices.Append(*v);
-  }
+  vertices.copyFrom(src.vertices);
   return *this;
 }
 
@@ -294,7 +301,7 @@ int Polygon::NumOfFLOBs() const
 
 
 */
-FLOB *Polygon::GetFLOB(const int i)
+Flob *Polygon::GetFLOB(const int i)
 {
   assert( i >= 0 && i < NumOfFLOBs() );
   return &vertices;
@@ -343,10 +350,7 @@ copy of ~this~.
 Polygon *Polygon::Clone() const
 {
   assert( state == complete );
-  Polygon *p = new Polygon( 0 );
-  for( int i = 0; i < GetNoVertices(); i++ )
-    p->Append( *this->GetVertex( i ) );
-  p->Complete();
+  Polygon *p = new Polygon( *this );
   return p;
 }
 
@@ -423,7 +427,7 @@ vertices array.
 void Polygon::Destroy()
 {
   assert( state == complete );
-  vertices.Destroy();
+  vertices.destroy();
 }
 
 /*
@@ -447,13 +451,13 @@ Returns a vertex indexed by ~i~.
 *Precondition* ~state == complete \&\& 0 <= i < noVertices~.
 
 */
-const Vertex *Polygon::GetVertex( int i ) const
+Vertex Polygon::GetVertex( int i ) const
 {
   assert( state == complete );
   assert( 0 <= i && i < GetNoVertices() );
 
-  const Vertex *v;
-  vertices.Get( i, v );
+  Vertex v;
+  vertices.Get( i, &v );
   return v;
 }
 
@@ -465,16 +469,16 @@ Returns an edge indexed by ~i~.
 *Precondition* ~state == complete \&\& 0 <= i < noVertices~.
 
 */
-Edge& Polygon::GetEdge( int i ) const
+Edge Polygon::GetEdge( int i ) const
 {
   assert( state == complete );
   assert( 0 <= i && i < GetNoVertices() );
 
-  const Vertex *v, *w;
-  vertices.Get( i, v );
-  vertices.Get( i+1, w );
+  Vertex v, w;
+  vertices.Get( i, &v );
+  vertices.Get( i+1, &w );
 
-  static Edge e( *v, *w );
+  Edge e( v, w );
 
   return e;
 }
@@ -538,16 +542,16 @@ Polygon::Out( ListExpr typeInfo, Word value )
     ListExpr result = 
       nl->OneElemList( 
         nl->TwoElemList( 
-          nl->IntAtom( polygon->GetVertex(0)->x ), 
-          nl->IntAtom( polygon->GetVertex(0)->y ) ) );
+          nl->IntAtom( polygon->GetVertex(0).x ), 
+          nl->IntAtom( polygon->GetVertex(0).y ) ) );
     ListExpr last = result;
 
     for( int i = 1; i < polygon->GetNoVertices(); i++ )
     {
       last = nl->Append( last,
                          nl->TwoElemList( 
-                           nl->IntAtom( polygon->GetVertex(i)->x ), 
-                           nl->IntAtom( polygon->GetVertex(i)->y ) ) );
+                           nl->IntAtom( polygon->GetVertex(i).x ), 
+                           nl->IntAtom( polygon->GetVertex(i).y ) ) );
     }
     return result;
   }

@@ -56,19 +56,20 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 // type information  for secondo user
 
 //-----------------------------------------------------------------------------
-ConstructorInfo field_info( "field", "-> DATA", "field",
+static ConstructorInfo field_info( "field", "-> DATA", "field",
     "<stringvalue>", "\"a4\"", "Field of a chess board." );
-ConstructorInfo piece_info( "piece", "-> DATA", "piece",
+static ConstructorInfo piece_info( "piece", "-> DATA", "piece",
     "<stringvalue>", "King", "Chess piece." );
-ConstructorInfo ply_info( "chessmove", "-> DATA", "chessmove",
+static ConstructorInfo ply_info( "chessmove", "-> DATA", "chessmove",
     "(string x 3 int string int string int x 3)",
     "(\"King\" \"queen\" \"g\" 1 \"g\" 2 \"Kg1xg2\" 0 0 0)", "Chess move." );
-ConstructorInfo material_info( "material", "-> DATA", "material",
+static ConstructorInfo material_info( "material", "-> DATA", "material",
     "(int ... )", "(8 8 2 2 2 2 2 2 1 1 1 1)", "Count of pieces" );
-ConstructorInfo position_info( "position", "-> DATA", "position",
+static ConstructorInfo position_info( "position", "-> DATA", "position",
     "(int (string...)(...)...) int int", "...", "..." );
-ConstructorInfo game_info( "chessgame", "-> DATA", "chessgame",
+static ConstructorInfo game_info( "chessgame", "-> DATA", "chessgame",
     "(((string string) ...)(chessmove ...))", "()", "Chess game." );
+
 TypeConstructor Game::tc( "chessgame", Game::Property, Game::Out,
     Game::In, 0, 0, Game::Create, Game::Delete, 0, 0, Game::Close,
     Game::Clone, Game::cast, Game::SizeOfObj, Game::KindCheck );
@@ -79,12 +80,19 @@ TypeConstructor Game::tc( "chessgame", Game::Property, Game::Out,
 
 */
 
+static Type<Field> t1(field_info);
+static Type<Piece> t2(piece_info);
+static Type<Ply>   t3(ply_info);
+static Type<Material> t4( material_info );
+static Type<Position> t5(position_info);
 
 struct ChessAlgebra : Algebra
 {
     ChessAlgebra()
     {
-        AddTypeConstructor( new Type< Field >( field_info ) );
+
+        AddTypeConstructor( &t1 );
+
         AddUnaryOperator< field_ctor_op >( field_ctor_info );
         AddUnaryOperator< iswhite_field_op >( iswhite_field_info );
         AddBinaryOperator< equal_to<Field> >( equals_field_info );
@@ -109,7 +117,7 @@ struct ChessAlgebra : Algebra
         AddBinaryOperator< is_neighbor_op >( is_neighbor_info );
         AddUnaryStreamOperator< neighbors_op >( neighbors_info );
 
-        AddTypeConstructor( new Type < Piece >( piece_info ) );
+        AddTypeConstructor(&t2);
         AddUnaryOperator< piece_ctor_op >( piece_ctor_info );
         AddUnaryOperator< iswhite_piece_op >( iswhite_piece_info );
         AddBinaryOperator< is_op >( is_info );
@@ -117,7 +125,7 @@ struct ChessAlgebra : Algebra
         AddBinaryOperator< samecolor_op >( samecolor_info );
         AddUnaryOperator< piecevalue_op >( piecevalue_info );
 
-        AddTypeConstructor( new Type < Ply >( ply_info ) );
+        AddTypeConstructor( &t3 );
         AddBinaryOperator< equal_to<Ply> >( equals_ply_info );
         AddUnaryOperator< startfield_op >( startfield_info );
         AddUnaryOperator< endfield_op >( endfield_info );
@@ -131,14 +139,14 @@ struct ChessAlgebra : Algebra
         AddUnaryOperator< is_enpassant_op >( is_enpassant_info );
         AddUnaryOperator< enpassant_field_op >( enpassant_field_info );
 
-        AddTypeConstructor( new Type< Material >( material_info ) );
+        AddTypeConstructor( &t4 );
         AddBinaryOperator< piececount_material_op >(piececount_material_info);
         AddBinaryOperator< equal_to<Material> >( equals_material_info );
         AddBinaryOperator< less<Material> >( less_material_info );
         AddBinaryOperator< greater<Material> >( greater_material_info );
         AddBinaryOperator< approx_material_op >( approx_material_info );
 
-        AddTypeConstructor( new Type< Position >( position_info ) );
+        AddTypeConstructor( &t5 );
         // unary position operators
         AddUnaryOperator< pieces_op >( pieces_info );
         AddUnaryOperator< moveNo_op >( moveNo_info );
@@ -250,5 +258,5 @@ struct ChessAlgebra : Algebra
 
 extern "C" Algebra* InitializeChessBAlgebra( NestedList*, QueryProcessor* )
 {
-    return new ChessAlgebra;
+    return new ChessAlgebra();
 }

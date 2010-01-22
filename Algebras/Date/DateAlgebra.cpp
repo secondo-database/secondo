@@ -805,7 +805,6 @@ dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
   dd = (CcInt *)args[0].addr;
   mm = (CcInt *)args[1].addr;
   yy = (CcInt *)args[2].addr;
-  Date *delem;
 
   result = qp->ResultStorage(s);
 
@@ -814,18 +813,13 @@ dateFun (Word* args, Word& result, int message, Word& local, Supplier s)
   int Year=yy->GetIntval();
   //bool leapyear;
   //int daysinmonth;
-
-  if (isdate(Day, Month, Year))
-   {
-      delem=new Date (true, Day, Month, Year);
-      result.addr=delem;
-   }
-  else
-   {
+  Date* res = (Date*) result.addr;
+  if (isdate(Day, Month, Year)) {
+      res->Set(true, Day, Month, Year);
+  } else {
        cout <<"   >>>invalid date, replaced by UNDEFINED!<<<" << endl;
-       delem=new Date (false, 0, 0, 0);
-       result.addr=delem;
-    }
+       res->Set(false, 0, 0, 0);
+  }
   return 0;
 }
 

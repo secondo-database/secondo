@@ -70,7 +70,6 @@ using namespace std;
 
 #include "SpatialAlgebra.h"
 #include "RelationAlgebra.h"
-#include "TemporalAlgebra.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "QueryProcessor.h"
@@ -635,9 +634,9 @@ int CreateRTreeRelSpatial(Word* args, Word& result, int message,
   GenericRelationIterator* iter;
   Tuple* tuple;
 
-  R_Tree<dim, TupleId> *rtree =
-    (R_Tree<dim, TupleId>*)qp->ResultStorage(s).addr;
-  result.setAddr( rtree );
+  result = qp->ResultStorage(s);
+
+  R_Tree<dim, TupleId>*rtree = static_cast<R_Tree<dim, TupleId>*>(result.addr);
 
   relation = (Relation*)args[0].addr;
   attrIndex = ((CcInt*)args[2].addr)->GetIntval() - 1;
@@ -2609,17 +2608,17 @@ int CreateRTreeBulkLoadStreamSpatial( Word* args, Word& result, int message,
               GetAttribute(attrIndex))->BoundingBox();
 /////only for Greece knn algorithm////
 
-/*        if(dim == 3){
-            double min[3];
-            double max[3];
-            for(int i = 0;i < 3;i++){
-              min[i] = box.MinD(i);
-              max[i] = box.MaxD(i);
-            }
-            min[2] = min[2]*864000;
-            max[2] = max[2]*864000;
-            box.Set(true,min,max);
-        }*/
+//        if(dim == 3){
+//            double min[3];
+//            double max[3];
+//            for(int i = 0;i < 3;i++){
+//              min[i] = box.MinD(i);
+//              max[i] = box.MaxD(i);
+//            }
+//            min[2] = min[2]*864000;
+//            max[2] = max[2]*864000;
+//            box.Set(true,min,max);
+//        }
 
 //////////
         R_TreeLeafEntry<dim, TupleId>

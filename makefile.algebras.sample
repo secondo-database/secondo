@@ -35,7 +35,7 @@ endif
 
 # Master switch to compile the minimal set
 # of interdependet algebras.
-#SECONDO_MIN_ALGEBRA_SET := true
+SECONDO_MIN_ALGEBRA_SET := true
 
 # never change this
 ALGEBRA_DIRS := Standard-C++
@@ -49,24 +49,24 @@ ALGEBRAS     += FTextAlgebra
 ALGEBRA_DIRS += Relation-C++
 ALGEBRAS     += RelationAlgebra
 
-ALGEBRA_DIRS += ExtRelation-C++
-ALGEBRAS     += ExtRelationAlgebra
+#ALGEBRA_DIRS += ExtRelation-C++
+#ALGEBRAS     += ExtRelationAlgebra
 
-ALGEBRA_DIRS += BTree
-ALGEBRAS     += BTreeAlgebra
+#ALGEBRA_DIRS += BTree
+#ALGEBRAS     += BTreeAlgebra
 
 ALGEBRA_DIRS += TupleIdentifier
 ALGEBRAS     += TupleIdentifierAlgebra
 
-ALGEBRA_DIRS += Stream
-ALGEBRAS     += StreamAlgebra
+#ALGEBRA_DIRS += Stream
+#ALGEBRAS     += StreamAlgebra
 
 ALGEBRA_DIRS += Function-C++
 ALGEBRAS     += FunctionAlgebra
 
 # required by outerjoin operators in the ExtRelationAlgebra:
-ALGEBRA_DIRS += Hash
-ALGEBRAS     += HashAlgebra
+#ALGEBRA_DIRS += Hash
+#ALGEBRAS     += HashAlgebra
 
 # comment out or add new algebras in this file.
 # You have to define an algebra name and a directory

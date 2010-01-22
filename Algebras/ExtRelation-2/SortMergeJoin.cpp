@@ -76,11 +76,11 @@ SortMergeJoinLocalInfo::SortMergeJoinLocalInfo( Word streamA,
 
   liA = new SortProgressLocalInfo();
   progress->firstLocalInfo = liA;
-  sliA = new SortByLocalInfo2(streamA, specA, liA);
+  sliA = new SortAlgorithm(streamA, specA, liA);
 
   liB = new SortProgressLocalInfo();
   progress->secondLocalInfo = liB;
-  sliB = new SortByLocalInfo2(streamB, specB, liB);
+  sliB = new SortAlgorithm(streamB, specB, liB);
 
   ListExpr resultType =
               SecondoSystem::GetCatalog()->NumericType( qp->GetType( s ) );

@@ -336,7 +336,7 @@ The ~value~ attribute is properly initialized with an empty region, though,
 to assure that its ~DBArray~ is properly initialized.
 
 */
-    IRegion(bool dummy);
+    IRegion(const bool dummy);
 
 /*
 Create a new ~IRegion~ instance and initialize it with the value of ~ir~.
@@ -357,7 +357,7 @@ Clone this ~IRegion~ instance and return a pointer to the new instance.
 
 */
     int NumOfFLOBs(void) const;
-    FLOB* GetFLOB(const int i);
+    Flob* GetFLOB(const int i);
 };
 
 /*
@@ -418,7 +418,7 @@ during the interval.
 
 */
     unsigned int Plumbline(
-        const DBArray<MSegmentData>* segments,
+        const DbArray<MSegmentData>* segments,
         const UPoint& up,
         const Interval<Instant>& iv) const;
 
@@ -516,7 +516,7 @@ to vector ~vtsi~.
 
 */
     void RestrictedIntersectionFind(
-        const DBArray<MSegmentData>* segments,
+        const DbArray<MSegmentData>* segments,
         const UPoint& up,
         const Interval<Instant>& iv,
         vector<TrapeziumSegmentIntersection>& vtsi) const;
@@ -560,7 +560,7 @@ starting at ~pos~ in ~segments~.
 
 */
     URegionEmb(
-        DBArray<MSegmentData>* segments,
+        DbArray<MSegmentData>* segments,
         const Interval<Instant>& iv,
         const Region& region,
         unsigned int pos);
@@ -580,11 +580,11 @@ get specified segment, write specified segment.
     void SetStartPos(int i);
 
     void GetSegment(
-        const DBArray<MSegmentData>* segments,
+        const DbArray<MSegmentData>* segments,
         int pos,
-        const MSegmentData*& dms) const;
+        MSegmentData& dms) const;
     void PutSegment(
-        DBArray<MSegmentData>* segments,
+        DbArray<MSegmentData>* segments,
         int pos,
         const MSegmentData& dms,
         const bool isNew = false);
@@ -617,7 +617,7 @@ description below for details.
 
 */
     bool AddSegment(
-        DBArray<MSegmentData>* segments,
+        DbArray<MSegmentData>* segments,
         Region& cr,
         Region& rDir,
         unsigned int faceno,
@@ -634,7 +634,7 @@ the value ~insideAbove~. This is required by function ~InURegionEmb()~.
 
 */
     void SetSegmentInsideAbove(
-        DBArray<MSegmentData>* segments,
+        DbArray<MSegmentData>* segments,
         int pos,
         bool insideAbove);
 
@@ -648,7 +648,7 @@ units but only if ~merge~ is ~true~.
 
 */
     void RestrictedIntersection(
-        const DBArray<MSegmentData>* segments,
+        const DbArray<MSegmentData>* segments,
         const UPoint& up,
         const Interval<Instant>& iv,
         MPoint& res,
@@ -661,7 +661,7 @@ in ~result~.
 
 */
     void TemporalFunction(
-        const DBArray<MSegmentData>* segments,
+        const DbArray<MSegmentData>* segments,
         const Instant& t,
         Region& result,
         bool ignoreLimits = false) const;
@@ -692,10 +692,10 @@ Use it carefully to avoid inconsistencies.
     bool operator==(const URegionEmb& ur) const;
     bool Before(const URegionEmb& ur) const;
 
-    bool EqualValue( URegionEmb& i )
+    bool EqualValue( const URegionEmb& i )
     {
       return false;
-    }
+    };
 
 /*
 This method is not implemented since it is not required by the current
@@ -718,6 +718,27 @@ The assignment operator
       return os;
     };
 
+    size_t HashValue() const;
+
+/*
+SetDefined is used within Mappings. Since Mappings may only contain defined
+units and URegionEmb is only used within URegion and MRegion objects, we give a
+dummy implementation:
+
+*/
+    void SetDefined( const bool def ){
+      return;
+    }
+
+/*
+IsDefined is used within Mappings. Since Mappings may only contain defined
+units and URegionEmb is only used within URegion and MRegion objects, we give a
+dummy implementation:
+
+*/
+    bool IsDefined() const {
+      return true;
+    }
 };
 
 
@@ -734,7 +755,7 @@ private:
 
   friend class MRegion; // neede due to the cruel design of this classes...
 /*
- 
+
 1.1 Private Methods
 
 This function returns the index of the MSegment with the smallest initial-x value,
@@ -747,40 +768,40 @@ So it is the index of the "leftest lowest" MSegment in the given list.
 	int getLeftLower(const vector<MSegmentData> &linelist);
 /*
 
-return the index of the MSegment in the given list $linelist$ that matches $dms$.  
- 
-*/	
+return the index of the MSegment in the given list $linelist$ that matches $dms$.
+
+*/
     int findNext(const vector<MSegmentData> &linelist,const MSegmentData dms);
 /*
 
-return the index of the MSegment in the given list $linelist$ that matches the right Points of $dms$.  
- 
-*/	
+return the index of the MSegment in the given list $linelist$ that matches the right Points of $dms$.
+
+*/
 	int findNextToRight(const vector<MSegmentData> &linelist,
 	    const MSegmentData dms);
 /*
 
-returns TRUE, if the end Points of $dms1$ are equal to the initial or the end Points of $dms1$ 
+returns TRUE, if the end Points of $dms1$ are equal to the initial or the end Points of $dms1$
 
-*/	
+*/
 	bool matchesToRight(const MSegmentData &dms1,const MSegmentData &dms2);
 /*
 
-returns TRUE, if the initial Points of $dms2$ are equal to the initial or the end Points of $dms2$ 
+returns TRUE, if the initial Points of $dms2$ are equal to the initial or the end Points of $dms2$
 
 */
 	bool matchesLeft(const MSegmentData &dms1,const MSegmentData &dms2);
 /*
 
-returns TRUE, if the end Points of $dms2$ are equal to the initial or the end Points of $dms2$ 
+returns TRUE, if the end Points of $dms2$ are equal to the initial or the end Points of $dms2$
 
-*/	
+*/
 	bool matchesRight(const MSegmentData &dms1,const MSegmentData &dms2);
 /*
 
 returns TRUE, if $dms1$ and $dms2$ matches left or right.
- 
-*/	
+
+*/
 	bool matches(const MSegmentData &dms1,const MSegmentData &dms2);
 
 /*
@@ -794,8 +815,8 @@ returns TRUE, if $dms1$ and $dms2$ matches left or right.
      methods.
 
 */
-	
-    DBArray<MSegmentData> segments;
+
+    DbArray<MSegmentData> segments;
     URegionEmb uremb;
 
 public:
@@ -806,13 +827,13 @@ The default constructor does nothing.
 
 */
     URegion() { }
-    
+
 /*
 
 This constructor creates a URegion by a given list of MSegments. The MSegments are ordered, so that matchings Segments are together.
 
- 
-*/    
+
+*/
     URegion(vector<MSegmentData> linelist,const Interval<Instant> &tiv);
 
 /*
@@ -820,7 +841,7 @@ This constructor creates a URegion by a given list of MSegments. The MSegments a
 
 */
 
-	
+
 
     URegion(bool is_defined){ SetDefined(is_defined); }
 
@@ -861,26 +882,26 @@ in ~result~.
                                   Region& result,
 				  bool ignoreLimits = false) const;
 /*
- 
+
 Adds the MovingSegment ~newSeg~ to the Union and cares for the BoundingBox
- 
+
 */
 	void AddSegment(MSegmentData newSeg);
-	
+
 /*
 
-This Method checks, if the Time periods of the $newRegion$ are equal to the URegion, 
+This Method checks, if the Time periods of the $newRegion$ are equal to the URegion,
 and copies the MSegments from thenew one to the old one.
 
 */
-	void AddURegion(URegion *newRegion);	
+	void AddURegion(URegion *newRegion);
 
 /*
 ~At()~ and ~Passes()~ are not yet implemented. Stubs
 required to make this class non-abstract.
 
 */
-	
+
     virtual bool At(const Region& val,
                     TemporalUnit<Region>& result) const;
     virtual bool Passes(const Region& val) const;
@@ -888,7 +909,7 @@ required to make this class non-abstract.
 Return the internal array containing the moving segments for read-only access.
 
 */
-   const DBArray<MSegmentData>* GetMSegmentData(){
+   const DbArray<MSegmentData>* GetMSegmentData(){
        return &segments;
    }
 /*
@@ -906,7 +927,7 @@ storage only, and will run into failed assertions for other instances.
 
 */
     int NumOfFLOBs(void) const;
-    FLOB *GetFLOB(const int i);
+    Flob *GetFLOB(const int i);
 
 /*
 Returns the ~sizeof~ of a ~URegion~ instance.
@@ -917,6 +938,9 @@ Returns the ~sizeof~ of a ~URegion~ instance.
     virtual void SetDefined( bool Defined )
     {
       this->del.isDefined = Defined;
+      if( !Defined ){
+        segments.clean();
+      }
     }
 
 /*
@@ -957,7 +981,7 @@ Print method, primarly used for debugging purposes
         return os;
       }
     else
-      return os << "ConstUnit: (undef)" << endl;
+      return os << "URegion: (undef)" << endl;
   }
 
 /*
@@ -973,13 +997,14 @@ The assignment operator
 
 */
    double Distance(const Rectangle<3>& rect) const{
-     cerr << "Warning URegion::Distance(rect) not implemented";
+     cerr << "Warning URegion::Distance(rect) not implemented. "
+          << "Using Rectangle<3>::Distance(Rectangle<3>) instead!" << endl;
      if(!IsDefined()){
         return -1;
      } else {
        return BoundingBox().Distance(rect);
      }
-  
+
    }
 
    virtual bool IsEmpty() const{
@@ -1006,7 +1031,7 @@ private:
   * The array with the segments.
 
 */
-    DBArray<MSegmentData> msegmentdata;
+    DbArray<MSegmentData> msegmentdata;
 
 /*
 1.1 Private methods
@@ -1017,7 +1042,7 @@ is ~true~, the resulting ~URegion~ instances are merged, if possible.
 
 */
     void IntersectionRP(
-        MPoint& mp,
+        const MPoint& mp,
         MPoint& res,
         RefinementPartition<MRegion,
                                 MPoint,
@@ -1064,25 +1089,31 @@ set each unit to the constant value of ~r~.
 
 */
 //    MRegion(MPoint& mp, Region& r);
-// original signature replaced with 
-// 'call by copy' for 2nd arg due to problems when reading r 
+// original signature replaced with
+// 'call by copy' for 2nd arg due to problems when reading r
 // directly from disk ( raised assert( type == InMemory ) ):
-    MRegion(MPoint& mp, Region r);
+    MRegion(const MPoint& mp, const Region& r);
 
 /*
-Constructs a continuesly moving region from the parameters. ~dummy~ is not
+Constructs a continuously moving region from the parameters. ~dummy~ is not
 used.
 
 */
-    MRegion(MPoint& mp, Region& r,int dummy);
+    MRegion(const MPoint& mp, const Region& r, const int dummy);
 
+
+    inline void Clear() {
+      msegmentdata.clean();
+      units.clean();
+      SetDefined( true );
+    };
 /*
 1.1 Attribute access methods
 
 Get ~URegionEmb~ unit ~i~ from this ~MRegion~ instance and return it in ~ur~.
 
 */
-    void Get(const int i, const URegionEmb*& ur) const;
+    void Get(const int i, URegionEmb& ur) const;
 
 /*
 Add a idependent ~URegion~ object to the moving region. The URegions moving segment is copied to the DBArrays for ~msegmentdata~ and ~units~.
@@ -1095,7 +1126,7 @@ Add a idependent ~URegion~ object to the moving region. The URegions moving segm
 Allow read-only access to ~msegmentdata~.
 
 */
-    const DBArray<MSegmentData>* GetMSegmentData(void);
+    const DbArray<MSegmentData>* GetMSegmentData(void);
 
 /*
 1.1 Methods for database operators
@@ -1111,7 +1142,7 @@ Check when ~mp~ is inside this ~MRegion~ instance and create ~res~
 accordingly.
 
 */
-    void Inside(MPoint& mp, MBool& res);
+    void Inside(const MPoint& mp, MBool& res);
 
 
 /*
@@ -1120,7 +1151,7 @@ Reduces this Moving Region to the time given by the periods value.
 Note: The implementation is done in the TemporalExtAlgebra.
 
 */
-    void AtPeriods(Periods* per, MRegion* mregparam );
+    void AtPeriods(const Periods* per, MRegion* mregparam );
 
 
 /*
@@ -1135,7 +1166,7 @@ Calculate region traversed by ~MRegion~ instant in ~res~.
 Get ~Region~ value ~result~ at instant ~t~.
 
 */
-    void AtInstant(Instant& t, Intime<Region>& result);
+    void AtInstant(const Instant& t, Intime<Region>& result);
 
 /*
 Get ~Region~ value ~result~ at initial and final instants.
@@ -1151,7 +1182,7 @@ Get ~Region~ value ~result~ at initial and final instants.
 
 */
     int NumOfFLOBs(void) const;
-    FLOB *GetFLOB(const int i);
+    Flob *GetFLOB(const int i);
 
 /*
 Clone ~MRegion~ instance.

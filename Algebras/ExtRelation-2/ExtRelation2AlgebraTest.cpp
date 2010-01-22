@@ -281,8 +281,8 @@ public:
     }
   }
 
-  TupleBuffer* buffer;
-  GenericRelationIterator* iter;
+  extrel2::TupleBuffer2* buffer;
+  extrel2::TupleBuffer2Iterator* iter;
 };
 
 /*
@@ -315,6 +315,11 @@ int TupleBufferValueMap( Word* args, Word& result,
       // Read buffer size in KBytes from second argument
       size_t bufferSize = StdTypes::GetInt( args[1] );
 
+      // Set I/O buffer size in bytes
+      int args2 = StdTypes::GetInt( args[2] );
+      size_t pageSize = WinUnix::getPageSize();
+      size_t ioBufferSize = ( args2 == -1 ) ? pageSize : (size_t)args2;
+
       while( qp->Received(args[0].addr) )
       {
         Tuple* t = static_cast<Tuple*>( wTuple.addr );
@@ -322,7 +327,7 @@ int TupleBufferValueMap( Word* args, Word& result,
         // create tuple file
         if ( li->buffer == 0 )
         {
-          li->buffer = new TupleBuffer(bufferSize*1024);
+          li->buffer = new extrel2::TupleBuffer2(bufferSize*1024, ioBufferSize);
         }
 
         // append tuple to buffer
@@ -331,6 +336,9 @@ int TupleBufferValueMap( Word* args, Word& result,
 
         qp->Request(args[0].addr, wTuple);
       }
+
+      // close tuple file
+      li->buffer->CloseDiskBuffer();
 
       // store pointer to local info
       local.addr = li;
@@ -377,140 +385,9 @@ int TupleBufferValueMap( Word* args, Word& result,
 }
 
 /*
-9 Operator ~tuplebuffer2~
+9 Operator ~tuplecomp~
 
-9.1 LocalInfo class for operator ~tuplebuffer2~
-
-*/
-
-class TupleBuffer2TestLocalInfo
-{
-public:
-  TupleBuffer2TestLocalInfo()
-  : buffer(0)
-  , iter(0)
-  {}
-
-  ~TupleBuffer2TestLocalInfo()
-  {
-    if ( iter )
-    {
-      delete iter;
-    }
-
-    if ( buffer )
-    {
-      delete buffer;
-    }
-  }
-
-  extrel2::TupleBuffer2* buffer;
-  extrel2::TupleBuffer2Iterator* iter;
-};
-
-/*
-
-9.2 Value mapping function of operator ~tuplebuffer2~
-
-The argument vector ~args~ contains in the first slot ~args[0]~
-the stream. The value mapping function creates a tuple buffer of
-16 MB size when the OPEN message is received and consumes
-all tuples into this buffer. With the first REQUEST message
-a sequential buffer scan is started. The operator is finished
-when all tuples from the buffer have been read.
-
-*/
-
-int TupleBuffer2ValueMap( Word* args, Word& result,
-                            int message, Word& local, Supplier s )
-{
-  switch(message)
-  {
-    case OPEN:
-    {
-      Word wTuple(Address(0));
-      TupleBuffer2TestLocalInfo* li = new TupleBuffer2TestLocalInfo();
-
-      // open stream and request first tuple
-      qp->Open(args[0].addr);
-      qp->Request(args[0].addr, wTuple);
-
-      // Read buffer size in KBytes from second argument
-      size_t bufferSize = StdTypes::GetInt( args[1] );
-
-      // Set I/O buffer size in bytes
-      int args2 = StdTypes::GetInt( args[2] );
-      size_t pageSize = WinUnix::getPageSize();
-      size_t ioBufferSize = ( args2 == -1 ) ? pageSize : (size_t)args2;
-
-      while( qp->Received(args[0].addr) )
-      {
-        Tuple* t = static_cast<Tuple*>( wTuple.addr );
-
-        // create tuple file
-        if ( li->buffer == 0 )
-        {
-          li->buffer = new extrel2::TupleBuffer2(bufferSize*1024, ioBufferSize);
-        }
-
-        // append tuple to buffer
-        li->buffer->AppendTuple(t);
-        t->DeleteIfAllowed();
-
-        qp->Request(args[0].addr, wTuple);
-      }
-
-      // close tuple file
-      li->buffer->CloseDiskBuffer();
-
-      // store pointer to local info
-      local.addr = li;
-
-      return 0;
-    }
-    case REQUEST:
-    {
-      TupleBuffer2TestLocalInfo* li =
-        static_cast<TupleBuffer2TestLocalInfo*>( local.addr );
-
-      // create iterator if not yet done
-      if ( li->iter == 0 )
-      {
-        li->iter = li->buffer->MakeScan();
-      }
-
-      // get next tuple from disk
-      Tuple* t = li->iter->GetNextTuple();
-
-      // store tuple address in result
-      result.setAddr(t);
-
-      return result.addr != 0 ? YIELD : CANCEL;
-    }
-
-    case CLOSE:
-    {
-      if( local.addr )
-      {
-        // close stream
-        qp->Close(args[0].addr);
-
-        TupleBuffer2TestLocalInfo* li =
-          static_cast<TupleBuffer2TestLocalInfo*>( local.addr );
-
-        delete li;
-        local.addr = 0;
-      }
-      return 0;
-    }
-  }
-  return 0;
-}
-
-/*
-10 Operator ~tuplecomp~
-
-10.1 Value mapping function of operator ~tuplecomp~
+9.1 Value mapping function of operator ~tuplecomp~
 
 The argument vector ~args~ contains in the first slot ~args[0]~
 the stream. The value mapping function consumes all tuples
@@ -588,9 +465,9 @@ int TupleCompValueMap( Word* args, Word& result,
 }
 
 /*
-11 Operator ~heapstl~
+10 Operator ~heapstl~
 
-11.1 Value mapping function of operator ~heapstl~
+10.1 Value mapping function of operator ~heapstl~
 
 */
 
@@ -688,9 +565,9 @@ int HeapStlValueMap( Word* args, Word& result,
 }
 
 /*
-12 Operator ~heapstd~
+11 Operator ~heapstd~
 
-12.1 Value mapping function of operator ~heapstd~
+11.1 Value mapping function of operator ~heapstd~
 
 */
 
@@ -783,9 +660,9 @@ int HeapStdValueMap( Word* args, Word& result,
 }
 
 /*
-13 Operator ~heapbup~
+12 Operator ~heapbup~
 
-13.1 Value mapping function of operator ~heapbup~
+12.1 Value mapping function of operator ~heapbup~
 
 */
 
@@ -876,9 +753,9 @@ int HeapBupValueMap( Word* args, Word& result,
 }
 
 /*
-14 Operator ~heapbup2~
+13 Operator ~heapbup2~
 
-14.1 Value mapping function of operator ~heapbup2~
+13.1 Value mapping function of operator ~heapbup2~
 
 */
 
@@ -972,9 +849,9 @@ int HeapBup2ValueMap( Word* args, Word& result,
 }
 
 /*
-15 Operator ~heapmdr~
+14 Operator ~heapmdr~
 
-15.1 Value mapping function of operator ~heapmdr~
+14.1 Value mapping function of operator ~heapmdr~
 
 */
 

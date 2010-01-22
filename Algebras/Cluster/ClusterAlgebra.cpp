@@ -53,10 +53,8 @@ in the Eps-range to one of the points in the cluster, this point
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "StandardTypes.h"
-#include "../Spatial/SpatialAlgebra.h"
-#include "../Temporal/TemporalAlgebra.h"
+#include "SpatialAlgebra.h"
 #include "LogMsg.h"
-#include "RelationAlgebra.h"
 
 #include "MMRTree.h"
 
@@ -224,15 +222,18 @@ for(a=0; a < nrows; a++){
 
 // copy x/y from input into cluster array 'cpoints'
 ps->StartBulkLoad();  // relax ordering
-if(ps->IsEmpty())
-  {((Points*)result.addr)->SetDefined(false);
-  return 1; }
+if(ps->IsEmpty()) {
+  ((Points*)result.addr)->SetDefined(false);
+  free(rcpoints);
+  free(cpoints);
+  return 1; 
+}
 
 for(int a = 0; a < ps->Size();a++) // transfer x/y-values
-{ const Point *p;                  // to cluster array
+{ Point p;                  // to cluster array
   ps->Get(a, p);
-  cpoints[a][0] = p->GetX();
-  cpoints[a][1] = p->GetY();} // end for
+  cpoints[a][0] = p.GetX();
+  cpoints[a][1] = p.GetY();} // end for
 
   ps->EndBulkLoad(true, false);
 
@@ -268,7 +269,7 @@ result 'points' memory location.
 
 */
 cluster.CopyToResult(args,result, message, local, s, cpoints);
-
+free(rcpoints);
 return 0;
 }
 /*
@@ -322,15 +323,18 @@ if ( RTFlag::isActive("ClusterText:B") ) {
 
 // copy x/y from input into cluster array 'cpoints'
 ps->StartBulkLoad();  // relax ordering
-if(ps->IsEmpty())
-  {((Points*)result.addr)->SetDefined(false);
-  return 1;}
+if(ps->IsEmpty()) {
+  ((Points*)result.addr)->SetDefined(false);
+  free(rcpoints);
+  free(cpoints);
+  return 1;
+}
 
 for(int a = 0; a < ps->Size();a++) // transfer x/y-values
-{ const Point *p;                  // to cluster array
+{ Point p;                  // to cluster array
   ps->Get(a, p);
-  cpoints[a][0] = p->GetX();
-  cpoints[a][1] = p->GetY();} // end for
+  cpoints[a][0] = p.GetX();
+  cpoints[a][1] = p.GetY();} // end for
 
   ps->EndBulkLoad(true, false);
 
@@ -374,7 +378,7 @@ if ( RTFlag::isActive("ClusterText:Trace") ) {cmsg.file() <<
        cmsg.send();}
 
 cluster.CopyToResult(args, result, message, local, s, cpoints);
-
+free(rcpoints);
 return 0;
 }
 
@@ -489,15 +493,15 @@ contained in pts;
 */
   void computeEnv(){
      mmrtree::Rtree<2> tree(10,30);
-     const Point* p;
+     Point p;
      double min1[2];
      double max1[2];
 
      /* insert all contained points into an R- tree */
      for(int i=0;i<pts->Size();i++){
         pts->Get(i,p);
-        double x = p->GetX();
-        double y = p->GetY();
+        double x = p.GetX();
+        double y = p.GetY();
         min1[0] = x - FACTOR;
         min1[1] = y - FACTOR;
         max1[0] = x + FACTOR;
@@ -511,8 +515,8 @@ contained in pts;
      for(int i=0;i<pts->Size();i++){
         pts->Get(i,p);
         set<long> cands;
-        double x = p->GetX();
-        double y = p->GetY();
+        double x = p.GetX();
+        double y = p.GetY();
         min1[0] = x-eps;
         min1[1] = y-eps;
         max1[0] = x+eps;
@@ -521,7 +525,7 @@ contained in pts;
         tree.findAll(searchbox,cands);
         set<long>::iterator it;
         for(it = cands.begin(); it!=cands.end(); it++){
-          const Point* p2;
+          Point p2;
           int cand = static_cast<int>(*it);
           pts->Get(cand,p2);
           if(qdist(p,p2)<eps2){
@@ -540,11 +544,11 @@ This function computes the square of the distance between two point value.
 
 
 */
-double qdist(const Point* p1, const Point* p2){
-  double x1 = p1->GetX();
-  double x2 = p2->GetX();
-  double y1 = p1->GetY();
-  double y2 = p2->GetY();
+double qdist(Point& p1, Point& p2){
+  double x1 = p1.GetX();
+  double x2 = p2.GetX();
+  double y1 = p1.GetY();
+  double y2 = p2.GetY();
   double dx = x1-x2;
   double dy = y1-y2;
   return dx*dx + dy*dy;
@@ -564,9 +568,9 @@ Points* expand(int pos){
 
   set<int> seeds = *env1[pos];
   no[pos] = clusterId;
-  const Point* p;
+  Point p;
   pts->Get(pos,p);
-  (*result) += (*p);
+  (*result) += (p);
   seeds.erase(pos);
 
   while(!seeds.empty()){
@@ -574,7 +578,7 @@ Points* expand(int pos){
     if(no[cpos]<0){ // not classified by another cluster
        no[cpos] = clusterId;
        pts->Get(cpos,p);
-       (*result) += (*p);
+       (*result) += (p);
        set<int>::iterator it;
        for(it = env1[cpos]->begin();it!=env1[cpos]->end(); it++){
           if(no[*it]<0){
@@ -583,7 +587,7 @@ Points* expand(int pos){
              } else { // border point
                 no[*it] = clusterId;
                 pts->Get(*it,p);
-                (*result) += *p;
+                (*result) += p;
              }
           }
        }
@@ -731,15 +735,15 @@ private:
 
   void createTree(){
      tree = new mmrtree::Rtree<2>(10,30);
-     const Point* p;
+     Point p;
      double min1[2];
      double max1[2];
 
      /* insert all contained points into an R- tree */
      for(int i=0;i<pts->Size();i++){
         pts->Get(i,p);
-        double x = p->GetX();
-        double y = p->GetY();
+        double x = p.GetX();
+        double y = p.GetY();
         min1[0] = x - FACTOR;
         min1[1] = y - FACTOR;
         max1[0] = x + FACTOR;
@@ -751,11 +755,11 @@ private:
 
   set<int>* getEnv(int pos){  
      set<int>* res = new set<int>();
-     const Point* p;
+     Point p;
      pts->Get(pos,p);
      set<long> cands;
-     double x = p->GetX();
-     double y = p->GetY();
+     double x = p.GetX();
+     double y = p.GetY();
      double min1[2];
      double max1[2];
      min1[0] = x-eps;
@@ -766,7 +770,7 @@ private:
      tree->findAll(searchbox,cands);
      set<long>::iterator it;
      for(it = cands.begin(); it!=cands.end(); it++){
-        const Point* p2;
+        Point p2;
         int cand = static_cast<int>(*it);
         pts->Get(cand,p2);
         if(qdist(p,p2)<eps2){
@@ -779,13 +783,13 @@ private:
 
   unsigned int getEnvSize(int pos){  
      int res = 0;
-     const Point* p;
+     Point p;
      double min1[2];
      double max1[2];
      pts->Get(pos,p);
      set<long> cands;
-     double x = p->GetX();
-     double y = p->GetY();
+     double x = p.GetX();
+     double y = p.GetY();
      min1[0] = x-eps;
      min1[1] = y-eps;
      max1[0] = x+eps;
@@ -794,7 +798,7 @@ private:
      tree->findAll(searchbox,cands);
      set<long>::iterator it;
      for(it = cands.begin(); it!=cands.end(); it++){
-        const Point* p2;
+        Point p2;
         int cand = static_cast<int>(*it);
         pts->Get(cand,p2);
         if(qdist(p,p2)<eps2){
@@ -811,11 +815,11 @@ This function computes the square of the distance between two point value.
 
 
 */
-double qdist(const Point* p1, const Point* p2){
-  double x1 = p1->GetX();
-  double x2 = p2->GetX();
-  double y1 = p1->GetY();
-  double y2 = p2->GetY();
+double qdist(Point& p1, Point& p2){
+  double x1 = p1.GetX();
+  double x2 = p2.GetX();
+  double y1 = p1.GetY();
+  double y2 = p2.GetY();
   double dx = x1-x2;
   double dy = y1-y2;
   return dx*dx + dy*dy;
@@ -837,17 +841,17 @@ Points* expand(int pos){
 
   set<int>* seeds = getEnv(pos);
   no[pos] = clusterId;
-  const Point* p;
+  Point p;
   pts->Get(pos,p);
-  (*result) += (*p);
+  (*result) += (p);
   seeds->erase(pos);
   while(!seeds->empty()){
     int cpos = *(seeds->begin());
     if(no[cpos]<0){ // not classified by another cluster
        no[cpos] = clusterId;
        pts->Get(cpos,p);
-       (*result) += (*p);
-       tree->erase(p->BoundingBox(),cpos);
+       (*result) += (p);
+       tree->erase(p.BoundingBox(),cpos);
        set<int>::iterator it;
        set<int>* env = getEnv(cpos);
        for(it = env->begin();it!=env->end(); it++){
@@ -857,8 +861,8 @@ Points* expand(int pos){
              } else { // border point
                 no[*it] = clusterId;
                 pts->Get(*it,p);
-                (*result) += *p;
-                tree->erase(p->BoundingBox(),*it);
+                (*result) += p;
+                tree->erase(p.BoundingBox(),*it);
              }
           }
        }
@@ -1189,15 +1193,15 @@ contained in pts;
      env = new set<int>*[size];
 
      mmrtree::Rtree<2> tree(10,30);
-     const Point* p;
+     Point p;
      double min1[2];
      double max1[2];
 
      /* insert all contained points into an R- tree */
      for(int i=0;i<pts->Size();i++){
         pts->Get(i,p);
-        double x = p->GetX();
-        double y = p->GetY();
+        double x = p.GetX();
+        double y = p.GetY();
         min1[0] = x - FACTOR;
         min1[1] = y - FACTOR;
         max1[0] = x + FACTOR;
@@ -1212,8 +1216,8 @@ contained in pts;
         env[i] = new set<int>();
         pts->Get(i,p);
         set<long> cands;
-        double x = p->GetX();
-        double y = p->GetY();
+        double x = p.GetX();
+        double y = p.GetY();
         min1[0] = x-eps;
         min1[1] = y-eps;
         max1[0] = x+eps;
@@ -1222,7 +1226,7 @@ contained in pts;
         tree.findAll(searchbox,cands);
         set<long>::iterator it;
         for(it = cands.begin(); it!=cands.end(); it++){
-          const Point* p2;
+          Point p2;
           int cand = static_cast<int>(*it);
           pts->Get(cand,p2);
           if(qdist(p,p2)<eps2){
@@ -1237,11 +1241,11 @@ contained in pts;
 ~qdist~  computes the square of the distance between two points 
 
 */
-  double qdist(const Point* p1, const Point* p2){
-    double x1 = p1->GetX();
-    double x2 = p2->GetX();
-    double y1 = p1->GetY();
-    double y2 = p2->GetY();
+  double qdist(const Point& p1, const Point& p2){
+    double x1 = p1.GetX();
+    double x2 = p2.GetX();
+    double y1 = p1.GetY();
+    double y2 = p2.GetY();
     double dx = x1-x2;
     double dy = y1-y2;
     return dx*dx + dy*dy;
@@ -1313,8 +1317,8 @@ first number is set to cnum. Cnum is increased automatically.
 
     // store all edges into an vector and
     // build a single cluster for each point
-    const Point* p_i;
-    const Point* p_j;
+    Point p_i;
+    Point p_j;
 
     vector<Edge> edges;
     
@@ -1356,10 +1360,10 @@ first number is set to cnum. Cnum is increased automatically.
        pos++;
        set<int>* e = env[*it1];
        set<int>::iterator it2;
-       const Point* p1;
+       Point p1;
        pts->Get(*it1,p1);
        for(it2=e->begin();it2!=e->end();it2++){
-          const Point* p2;
+          Point p2;
           pts->Get(*it2,p2);
           double dist = qdist(p1,p2);
           int src = rev[*it1];
@@ -1424,10 +1428,10 @@ Another method for dividing a group into several subgroups.
 */
 void insertPoint(vector<cCluster>& clusters, int pos){
 
-  const Point* p;
+  Point p;
   pts->Get(pos,p);
-  double x = p->GetX();
-  double y = p->GetY();
+  double x = p.GetX();
+  double y = p.GetY();
 
   // first cluster
   if(clusters.empty()){
@@ -1482,12 +1486,12 @@ void insertPoint(vector<cCluster>& clusters, int pos){
 
   set<int> removed;
   set<int>::iterator it;
-  const Point* p2;
+  Point p2;
   for(it = clusters[index].begin();
       it != clusters[index].end();
       it++){
       pts->Get(*it,p2);
-      if(qdist(&pc,p2) > eps2){
+      if(qdist(pc,p2) > eps2){
          removed.insert(*it);
       }
   } 
@@ -1496,10 +1500,10 @@ void insertPoint(vector<cCluster>& clusters, int pos){
   double sx = 0.0;
   double sy = 0.0;
   for(it = removed.begin(); it!=removed.end();it++){
-     const Point* p3;
+     Point p3;
      pts->Get(*it,p3);
-     sx += p3->GetX();
-     sy += p3->GetY();
+     sx += p3.GetX();
+     sy += p3.GetY();
      clusters[index].erase(*it);
   }
 
@@ -1530,10 +1534,10 @@ void insertPoint(vector<cCluster>& clusters, int pos){
 
 void insertPointSimple(vector<cCluster>& clusters, int pos){
 
-  const Point* p;
+  Point p;
   pts->Get(pos,p);
-  double x = p->GetX();
-  double y = p->GetY();
+  double x = p.GetX();
+  double y = p.GetY();
 
   // clusters has to be non-empty 
 
@@ -1650,7 +1654,7 @@ Returns the next cluster
     set<int> cs = (*currentFinalPos).second;
     Points* res = new Points(cs.size());
     res->StartBulkLoad();
-    const Point* p;
+    Point p;
     set<int>::iterator it;
     for(it = cs.begin();it!=cs.end();it++){
         switch(method){
@@ -1658,7 +1662,7 @@ Returns the next cluster
           case 1 : pts->Get(*it,p); break;
           default : assert(false);
         }
-        (*res) += *p;
+        (*res) += p;
     }
     res->EndBulkLoad();   
     currentFinalPos++;
@@ -1772,11 +1776,11 @@ This function returns the next cluster as a points value.
        Points* res = new Points((*cluster)[pos].size());
        res->StartBulkLoad();
        set<int>::iterator it;
-       const Point* p;
+       Point p;
        for(it = (*cluster)[pos].begin(); 
            it != (*cluster)[pos].end(); it++){
          pts->Get(*it,p);
-         (*res) += *p;
+         (*res) += p;
        }
        res->EndBulkLoad();
        pos++;
@@ -1862,9 +1866,9 @@ the center is not moved.
 
 */
 void insertPointSimple(const mmrtree::Rtree<2>& tree, const int pos){
-   const Point* p;
+   Point p;
    pts->Get(pos,p);
-   int index = indexOfNearestCluster(tree,*p);
+   int index = indexOfNearestCluster(tree,p);
     assert(index >= 0);
     (*cluster)[index].insert(pos);
 }
@@ -1880,13 +1884,13 @@ reinserted recursively but the source cluster is locked.
 
 */
 void insertPoint(mmrtree::Rtree<2>& tree, const int pos){
-  const Point* p;
+  Point p;
   pts->Get(pos,p);
-  int index = indexOfNearestCluster(tree,*p);
+  int index = indexOfNearestCluster(tree,p);
   double min[2];
   double max[2];
-  double x = p->GetX();
-  double y = p->GetY();
+  double x = p.GetX();
+  double y = p.GetY();
   if(index <0){ // no appropriate cluster found, build a new one
      cCluster c;
      c.cx = x;
@@ -1940,11 +1944,11 @@ void repairClusterAt(const int index, mmrtree::Rtree<2>& tree){
   double cy = (*cluster)[index].cy;
   set<int> wrong;
   set<int>::iterator it;
-  const Point * p;
+  Point  p;
   for(it = (*cluster)[index].begin(); 
       it!= (*cluster)[index].end(); it++){
       pts->Get(*it,p);
-      double d = qdist(cx,cy, p->GetX(),p->GetY());
+      double d = qdist(cx,cy, p.GetX(),p.GetY());
       if(d>eps2){
         wrong.insert(*it);
       }  
