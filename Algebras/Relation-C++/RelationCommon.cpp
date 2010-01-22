@@ -87,6 +87,8 @@ long Tuple::tuplesDeleted = 0;
 long Tuple::maximumTuples = 0;
 long Tuple::tuplesInMemory = 0;
 
+SmiSize Tuple::extensionLimit = 128;
+
 /*
 These variables are used for tuple statistics.
 
@@ -129,7 +131,7 @@ TupleType::TupleType( const ListExpr typeInfo )
       ListExpr b = nl->Second( list );
       rest = nl->Rest( rest );
 
-      int algId=0, typeId=0, size=0;
+      int algId=0, typeId=0, clsSize=0;
       if( nl->IsAtom(b) ){
         throw SecondoException(errMsg + int2Str(__LINE__));
       }
@@ -143,7 +145,7 @@ TupleType::TupleType( const ListExpr typeInfo )
         //b = (algid typeid ...)
         algId = nl->IntValue( nl->First( b ) ),
         typeId = nl->IntValue( nl->Second( b ) ),
-        size = (am->SizeOfObj(algId, typeId))();
+        clsSize = (am->SizeOfObj(algId, typeId))();
 
       }
       else
@@ -154,7 +156,7 @@ TupleType::TupleType( const ListExpr typeInfo )
         //b1 = ((algid typeid ...) ...)
         algId = nl->IntValue( nl->First(b1) );
         typeId = nl->IntValue( nl->Second(b1) );
-        size = (am->SizeOfObj(algId, typeId))();
+        clsSize = (am->SizeOfObj(algId, typeId))();
       }
       
       int currentCoreSize = 0;
@@ -165,21 +167,22 @@ TupleType::TupleType( const ListExpr typeInfo )
       if ( tc->GetStorageType() == Attribute::Extension ) 
       {
         currentCoreSize = sizeof(uint32_t);
-	extStorage = true;
-      }	
+        extStorage = true;
+      } 
       else if ( tc->GetStorageType() == Attribute::Default )
       { 
-	currentCoreSize = ( size + (sizeof(uint32_t) * numOfFlobs) );      
-      }	
+        currentCoreSize = clsSize;      
+      } 
       else 
       {
         currentCoreSize = tc->SerializedFixSize();
       }
       
-      totalSize += size;
+      //totalSize += clsSize;
+      totalSize += currentCoreSize;
       attrTypeArray[i++] = AttributeType( algId, typeId, numOfFlobs, 
-		                          size, currentCoreSize, 
-					  extStorage, offset      );
+                                          clsSize, currentCoreSize, 
+                                          extStorage, offset      );
       coreSize += currentCoreSize; 
       offset += currentCoreSize;
     }
@@ -524,6 +527,7 @@ ListExpr Relation::Out( ListExpr typeInfo, GenericRelationIterator* rit )
       nl->Second(typeInfo),
       nl->IntAtom(nl->ListLength(nl->Second(nl->Second(typeInfo)))));
     tlist = t->Out(tupleTypeInfo);
+    //cout << "REL:" << nl->ToString(tlist) << endl;
     t->DeleteIfAllowed();
     if (l == nl->TheEmptyList())
     {

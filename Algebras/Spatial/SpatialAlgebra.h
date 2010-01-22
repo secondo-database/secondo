@@ -57,7 +57,7 @@ shows examples of these spatial data types.
 #include <vector>
 #include <queue>
 #include "Attribute.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "RectangleAlgebra.h"
 #include "WinUnix.h"
 #include "AvlTree.h"
@@ -329,19 +329,16 @@ Operators redefinition.
 
 */
     double Direction( const Point& p ) const;
+
+
 /*
-4.3.14 Operation ~translate~
+4.3.15 Operation ~translate~
 
-*Precondition:* ~u.IsDefined()~
-
-*Semantics:*  ~(u.x + x, u.y + y)~
-
-*Complexity:* $O(1)$
+This function moves the position of this Point object instance.
 
 */
-    inline Point Translate( const Coord& x, const Coord& y ) const;
-    inline void Translate( const Coord& x, const Coord& y );
 
+    inline void Translate(const Coord& x, const Coord& y);
 
 /*
 4.3.15 Operation ~rotate~
@@ -401,7 +398,7 @@ as an attribute.
       const Point* p = (const Point*)arg;
       if( !IsDefined() && !p->IsDefined() )
         return 0;
-      if( !IsDefined() && p->IsDefined() )
+      if( !IsDefined() )
         return -1;
       if( !p->IsDefined() )
         return 1;
@@ -417,7 +414,7 @@ as an attribute.
       const Point* p = (const Point*)arg;
       if( !IsDefined() && !p->IsDefined() )
         return 0;
-      if( !IsDefined() && p->IsDefined() )
+      if( !IsDefined() )
         return -1;
       if( !p->IsDefined() )
         return 1;
@@ -557,7 +554,7 @@ set which is a copy of ~ps~.
 */
     inline void Destroy()
     {
-      points.Destroy();
+      points.destroy();
     }
 /*
 This function should be called before the destructor if one wants to destroy the
@@ -592,7 +589,7 @@ Marks the begin of a bulk load of points relaxing the condition that the points 
 ordered.
 
 */
-    void EndBulkLoad( bool sort = true, bool remDup = true );
+    void EndBulkLoad( bool sort = true, bool remDup = true, bool trim = true );
 /*
 Marks the end of a bulk load and sorts the point set if the argument ~sort~ is set to true.
 
@@ -638,7 +635,7 @@ Sets the new capacity of the points array to the amount really required.
 
 */
 
-    inline void Get( const int i, Point const*& p ) const;
+    inline bool Get( const int i, Point& p ) const;
 /*
 Retrieves the point ~p~ at position ~i~ in the point set.
 
@@ -995,7 +992,7 @@ Decides whether ~pos~ is -1, which indicates that no more points in the ~points~
 need to be processed.
 
 */
-    inline bool GetPt( const Point*& p ) const;
+    inline bool GetPt( Point& p ) const;
 /*
 Gets the current point from the ~points~ value according to the ~pos~ pointer.
 
@@ -1007,7 +1004,7 @@ as an attribute.
 
 */
     inline int NumOfFLOBs() const;
-    inline FLOB *GetFLOB( const int i );
+    inline Flob* GetFLOB( const int i );
     inline size_t Sizeof() const;
     size_t HashValue() const;
     void CopyFrom( const Attribute* right );
@@ -1066,11 +1063,11 @@ as an attribute.
          WinUnix::writeLittle64(o,maxY);
          // number of points
          WinUnix::writeLittleEndian(o,size);
-         const Point* p;
+         Point p(0,0);
          for(uint32_t i=0;i<size;i++){
-            points.Get(i,p);
-            double x = p->GetX();
-            double y = p->GetY();
+            points.Get(i,&p);
+            double x = p.GetX();
+            double y = p.GetY();
             WinUnix::writeLittle64(o,x);
             WinUnix::writeLittle64(o,y);
          }
@@ -1111,7 +1108,7 @@ are contained.
 5.8 Atrtibutes
 
 */
-    DBArray<Point> points;
+    DbArray<Point> points;
 /*
 The persistent array of points.
 
@@ -1648,7 +1645,7 @@ Returns the number of half segments in the line value.
 Checks whether the point ~p~ is contained in the line
 
 */
-    inline void Get( const int i, const HalfSegment*& hs ) const;
+    inline void Get( const int i, HalfSegment& hs ) const;
 /*
 Reads the ith half segment from the line value.
 
@@ -1709,6 +1706,17 @@ Assignement operator redefinition.
 
 */
     Line& operator+=( const HalfSegment& hs );
+
+
+/*
+6.4.4 Oeration ~plus~
+
+Appends all halfsegments from l to that line.
+This instance must must be in bulkload mode.
+
+*/
+   Line& operator+=(const Line& l);
+
 /*
 6.4.4 Operation ~minus~
 
@@ -1809,6 +1817,18 @@ is the ~points~ result size.
 
 */
     void Crossings( const Line& l, Points& result ) const;
+
+
+/*
+6.4.5 Operation ~Crossings~
+
+This operation returns all internal crossing nodes, i.e. all
+points where more than 2 segments have a common endpoint. 
+
+*/
+
+   void Crossings(Points& result) const;
+
 /*
 6.4.5 Operation ~distance~ (with ~point~)
 
@@ -1985,7 +2005,7 @@ Decides whether ~pos~ is -1, which indicates that no more half segments in the ~
 value need to be processed.
 
 */
-    inline bool GetHs( const HalfSegment*& hs ) const;
+    inline bool GetHs( HalfSegment& hs ) const;
 /*
 Gets the current half segment from the ~line~ value according to the ~pos~ pointer.
 
@@ -2027,7 +2047,7 @@ as an attribute.
       return 1;
     }
 
-    inline FLOB *GetFLOB( const int i )
+    inline Flob *GetFLOB( const int i )
     {
         return &line;
     }
@@ -2110,14 +2130,14 @@ as an attribute.
             WinUnix::writeLittleEndian(o,i*2);
          }
          // points
-         const HalfSegment* hs;
+         HalfSegment hs;
          for(int i=0;i<line.Size();i++){
-           line.Get(i,hs);
-           if(hs->IsLeftDomPoint()){
-              Point p = hs->GetLeftPoint();
+           line.Get(i,&hs);
+           if(hs.IsLeftDomPoint()){
+              Point p = hs.GetLeftPoint();
               WinUnix::writeLittle64(o,p.GetX());
               WinUnix::writeLittle64(o,p.GetY());
-              p = hs->GetRightPoint();
+              p = hs.GetRightPoint();
               WinUnix::writeLittle64(o,p.GetX());
               WinUnix::writeLittle64(o,p.GetY());
            }
@@ -2178,18 +2198,18 @@ to the left one.
 */
     bool
     GetNextSegment( const int poshs, const HalfSegment& hs,
-                    int& posnexths, const HalfSegment*& nexths );
+                    int& posnexths, HalfSegment& nexths );
     bool
     GetNextSegments( const int poshs,
                      const HalfSegment& hs,
                      vector<bool>& visited,
                      int& posnexths,
-                     const HalfSegment*& nexths,
-                     stack< pair<int, const HalfSegment*> >& nexthss );
+                     HalfSegment& nexths,
+                     stack< pair<int, HalfSegment> >& nexthss );
     void computeComponents();
 
-    void collectFace(int faceno, int startPos, DBArray<bool>& used);
-    int getUnusedExtension(int startPos, const DBArray<bool>& used) const;
+    void collectFace(int faceno, int startPos, DbArray<bool>& used);
+    int getUnusedExtension(int startPos, const DbArray<bool>& used) const;
 
 /*
 Calculates and sets the number of components for the line. For every half segment, the following
@@ -2202,7 +2222,7 @@ The method ~VisitHalfSegments~ is a recursive function that does the job for
 6.11 Attributes
 
 */
-    DBArray<HalfSegment> line;
+    DbArray<HalfSegment> line;
 /*
 The persisten array of half segments.
 
@@ -2443,12 +2463,12 @@ geometry.
      if(!AlmostEqual(length,sl.length)){
        return false;
      }
-     const HalfSegment* hs1;
-     const HalfSegment* hs2;
+     HalfSegment hs1;
+     HalfSegment hs2;
      for(int i=0;i<segments.Size();i++){
-       segments.Get(i,hs1);
-       sl.segments.Get(i,hs2);
-       if(!AlmostEqual(*hs1,*hs2)){
+       segments.Get(i,&hs1);
+       sl.segments.Get(i,&hs2);
+       if(!AlmostEqual(hs1, hs2)){
          return false;
        }
      }
@@ -2522,7 +2542,7 @@ The following functions are needed to act as an attribute type.
     return 2;
   }
 
-  inline FLOB* GetFLOB(const int i){
+  inline Flob* GetFLOB(const int i){
     if(i==0)
        return &segments;
     return &lrsArray;
@@ -2554,8 +2574,8 @@ The following functions are needed to act as an attribute type.
   ostream& Print(ostream& os) const;
 
   void Clear(){
-     segments.Clear();
-     lrsArray.Clear();
+     segments.clean();
+     lrsArray.clean();
      SetDefined( true );
      bbox.SetDefined(false);
      length=0.0;
@@ -2586,8 +2606,8 @@ The following functions are needed to act as an attribute type.
     return new (addr) SimpleLine();
   }
 
-  inline void Get( const int i, const HalfSegment*& hs ) const{
-    segments.Get(i,hs);
+  inline void Get( const int i, HalfSegment& hs ) const{
+    segments.Get(i,&hs);
   }
 
   bool Get(LRS &lrs, int &i){
@@ -2599,8 +2619,8 @@ The following functions are needed to act as an attribute type.
   }
 
 
-  inline void Get( const int i, const LRS*& lrs ) const{
-    lrsArray.Get(i,lrs);
+  inline void Get( const int i,  LRS& lrs ) const{
+    lrsArray.Get(i,&lrs);
   }
 
   inline void Put(const int i, const LRS& lrs){
@@ -2609,7 +2629,7 @@ The following functions are needed to act as an attribute type.
 
   inline void Resize(const int newSize){
     if(newSize>segments.Size()){
-        segments.Resize(newSize);
+        segments.resize(newSize);
     }
   }
 
@@ -2618,8 +2638,8 @@ The following functions are needed to act as an attribute type.
   }
 
   private:
-    DBArray<HalfSegment> segments;
-    DBArray<LRS> lrsArray;
+    DbArray<HalfSegment> segments;
+    DbArray<LRS> lrsArray;
     bool startSmaller;
     bool isCycle;
     bool isOrdered;
@@ -2628,28 +2648,9 @@ The following functions are needed to act as an attribute type.
     int currentHS;
 
     void Equalize(const SimpleLine& src){
-        const HalfSegment* seg;
-        segments.Clear();
-        lrsArray.Clear();
-
-        int size = src.segments.Size();
-        if(size>0){
-          segments.Resize(size);
-        }
-        for(int i=0;i<size;i++){
-           src.segments.Get(i,seg);
-           segments.Append(*seg);
-        }
-
-        size = src.lrsArray.Size();
-        if(size>0){
-          lrsArray.Resize(size);
-        }
-        const LRS* lrs;
-        for(int i=0;i<size;i++){
-           src.lrsArray.Get(i,lrs);
-           lrsArray.Append(*lrs);
-        }
+        HalfSegment seg;
+        segments.copyFrom(src.segments);
+        lrsArray.copyFrom(src.lrsArray);
         this->SetDefined( src.IsDefined() );
         this->startSmaller = src.startSmaller;
         this->isCycle = src.isCycle;
@@ -2873,17 +2874,17 @@ Returns whether the ~region~ value is empty.
 Returns the number of half segments in the ~region~ value.
 
 */
-    inline void Get( const int i, const HalfSegment*& chs ) const
+    inline bool Get( const int i, HalfSegment& chs ) const
     {
-      return region.Get( i, chs );
+      return region.Get( i, &chs );
     }
 /*
 Reads the ith half segment from the ~region~ value.
 
 */
-    inline void Put( const int i, const HalfSegment& hs )
+    inline bool Put( const int i, const HalfSegment& hs )
     {
-      region.Put( i, hs );
+      return region.Put( i, hs );
     }
 /*
 Writes a halfsegment ~chs~ into position ~i~.
@@ -3212,7 +3213,7 @@ Decides whether ~pos~ is -1, which indicates that no more half segments in the ~
 value need to be processed.
 
 */
-    inline bool GetHs( const HalfSegment*& hs ) const;
+    inline bool GetHs(HalfSegment& hs ) const;
 /*
 Gets the current half segment from the ~region~ value according to the ~pos~ pointer.
 
@@ -3287,7 +3288,7 @@ as an attribute.
       return 1;
     }
 
-    inline FLOB *GetFLOB( const int i )
+    inline Flob *GetFLOB( const int i )
     {
       return &region;
     }
@@ -3323,9 +3324,6 @@ as an attribute.
     void SetEmpty();
 
 /*
-
-VTA - Move this to the operators section
-
 ~Translate~
 
 Moves the region according x and y and stores the result in result.
@@ -3339,9 +3337,6 @@ Moves the region according x and y and stores the result in result.
                 Region& result) const;
 
 /*
-
-VTA - Move this to the operators section
-
 ~Translate~
 
 Moves this region.
@@ -3354,13 +3349,12 @@ Moves this region.
        t[1] = y;
        bbox = bbox.Translate(t);
        int size = Size();
-       const HalfSegment* hs;
+       HalfSegment hs;
        for(int i=0;i<size;i++)
        {
            Get(i,hs);
-           HalfSegment ths(*hs);
-           ths.Translate(x,y);
-           region.Put(i,ths);
+           hs.Translate(x,y);
+           region.Put(i,hs);
        }
     }
 
@@ -3555,7 +3549,7 @@ also if this point is a critical one.
 */
   bool GetAdjacentHS( const HalfSegment &hs, int hsPosition,
                       int &position, int partnerno,
-                      int partnernoP, HalfSegment const*& adjacentCHS,
+                      int partnernoP, HalfSegment& adjacentCHS,
                       const Point &adjacentPoint, Point &newAdjacentPoint,
                       bool *cycle, int step) const;
 /*
@@ -3615,7 +3609,7 @@ The region must be defined!
      return 5;
    }
 
-  const DBArray<HalfSegment>& GetHalfSegments(){
+  const DbArray<HalfSegment>& GetHalfSegments(){
       return region;
   }
 
@@ -3662,7 +3656,7 @@ Saves the region in shape format to o.
 7.18 Atrtibutes
 
 */
-    DBArray<HalfSegment> region;
+    DbArray<HalfSegment> region;
 /*
 The database array of segments.
 
@@ -3690,110 +3684,6 @@ Whether the half segments in the region value are sorted.
 
 };
 
-
-/*
-Classes suppoorting the computation of the convex hull of
-an pointset.
-
-
-*/
-//ostream& operator<<(ostream& o,const SimplePoint& p);
-
-class SimplePoint{
-public:
-  SimplePoint(const Point* p);
-
-  SimplePoint();
-
-  SimplePoint(double x, double y);
-
-  SimplePoint(const SimplePoint& p);
-
-  SimplePoint& operator=(const SimplePoint& p);
-
-  ~SimplePoint();
-
-  SimplePoint relTo(const SimplePoint& p) const;
-
-  void makeRelTo(const SimplePoint& p);
-
-  SimplePoint moved(const double x0, const double y0)const;
-
-  SimplePoint reversed()const;
-
-  bool isLower(const SimplePoint& p)const;
-
-  double mdist()const;
-
-  double mdist(const SimplePoint p)const;
-
-  bool isFurther(const SimplePoint& p)const;
-  
-  bool isBetween(const SimplePoint& p0, const SimplePoint p1) const;
-
-  double cross(const SimplePoint& p)const;
-
-  bool isLess(const SimplePoint& p) const;
-
-  bool operator<(const SimplePoint& p) const;
-
-  bool operator==(const SimplePoint& p) const;
-
-  bool operator>(const SimplePoint& p) const;
-
-  double area2(const SimplePoint& p0, const SimplePoint& p1) const;
-
-  bool isConvex(const SimplePoint& p0, const SimplePoint& p1) const;
-
-  Point getPoint()const;
-
-  double getX()const;
-  double getY()const;
-
-
-private:
-  double x;
-  double y;
-
-}; // end of class SimplePoint
-
-/*
-7 Class GrahamScan
-
-This class is used to compute the convexHull.
-
-*/
-class GrahamScan{
-public:
-  static void convexHull(const Points* ps, Region* result);
-private:
-  vector<SimplePoint> p;
-  int n;
-  int h;
-
-
-  GrahamScan(const Points* ps);
-
-  int computeHull();
-  void grahamScan();
-
-  static bool isInsideAbove(const SimplePoint& p1, const SimplePoint& p2);
-
-  void exchange(const int i, const int j);
-
-  void makeRelTo(const SimplePoint& p0);
-
-  int indexOfLowestPoint()const;
-
-  bool isConvex(const int i);
-
-  void sort();
-
-
-}; // end of class GrahamScan
-
-
-
 /*
 8 Function headers
 
@@ -3803,26 +3693,18 @@ ostream& operator<<( ostream& o, const Region& cr );
 Word InPoint( const ListExpr typeInfo, const ListExpr instance,
               const int errorPos, ListExpr& errorInfo, bool& correct );
 ListExpr OutPoint( ListExpr typeInfo, Word value );
-ListExpr
-OutPoint( ListExpr typeInfo, Word value );
 
-Word
-InLine( const ListExpr typeInfo, const ListExpr instance,
+Word InLine( const ListExpr typeInfo, const ListExpr instance,
+              const int errorPos, ListExpr& errorInfo, bool& correct ) ;
+ListExpr OutLine( ListExpr typeInfo, Word value );
+
+Word InRegion( const ListExpr typeInfo, const ListExpr instance,
+               const int errorPos, ListExpr& errorInfo, bool& correct );
+ListExpr OutRegion( ListExpr typeInfo, Word value );
+
+Word InSimpleLine( const ListExpr typeInfo, const ListExpr instance,
         const int errorPos, ListExpr& errorInfo, bool& correct ) ;
-ListExpr
-OutLine( ListExpr typeInfo, Word value );
-
-Word
-InRegion( const ListExpr typeInfo, const ListExpr instance,
-          const int errorPos, ListExpr& errorInfo, bool& correct );
-ListExpr
-OutRegion( ListExpr typeInfo, Word value );
-
-Word
-InSimpleLine( const ListExpr typeInfo, const ListExpr instance,
-        const int errorPos, ListExpr& errorInfo, bool& correct ) ;
-ListExpr
-OutSimpleLine( ListExpr typeInfo, Word value );
+ListExpr OutSimpleLine( ListExpr typeInfo, Word value );
 
 /*
 10 Auxiliary classes used by window clipping functions
@@ -4022,7 +3904,6 @@ class SCycle
     }
 };
 
-
 double Angle(const Point &v, const Point &p1, const Point &p2);
 double VectorSize(const Point &p1, const Point &p2);
 
@@ -4041,14 +3922,10 @@ inline Point::Point( const bool d, const Coord& x, const Coord& y ) :
   del.isDelete=true;
 }
 
-inline Point::Point( const Point& p )
+inline Point::Point( const Point& p ) :
+    x( p.x ), y( p.y )
 {
   SetDefined( p.IsDefined() );
-  if( IsDefined() )
-  {
-    x = p.x;
-    y = p.y;
-  }
   del.refs=1;
   del.isDelete=true;
 }
@@ -4070,22 +3947,6 @@ inline void Point::Set( const Coord& x, const Coord& y )
   this->y = y;
 }
 
-inline Point Point::Translate( const Coord& x, const Coord& y ) const
-{
-  assert( IsDefined() );
-  return Point( true, this->x + x, this->y + y );
-}
-
-
-inline void Point::Translate( const Coord& x, const Coord& y )
-{
-  if( IsDefined() )
-  {
-    this->x += x;
-    this->y += y;
-  }
-}
-
 inline Point Point::Add( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
@@ -4100,8 +3961,6 @@ inline Point& Point::operator=( const Point& p )
     x = p.x;
     y = p.y;
   }
-  del.refs=1;
-  del.isDelete=true;
   return *this;
 }
 
@@ -4177,6 +4036,13 @@ inline size_t Point::Sizeof() const
   return sizeof( *this );
 }
 
+inline void Point::Translate(const Coord& x, const Coord& y){
+  if( IsDefined() ){
+    this->x += x;
+    this->y += y;
+  }
+}
+
 /*
 11.2 Class ~Points~
 
@@ -4196,13 +4062,7 @@ bbox( ps.BoundingBox() ),
 ordered( true )
 {
   assert( ps.IsOrdered() );
-
-  for( int i = 0; i < ps.Size(); i++ )
-  {
-    const Point *p;
-    ps.Get( i, p );
-    points.Put( i, *p );
-  }
+  points.copyFrom(ps.points);
   del.refs=1;
   del.isDelete=true;
   del.isDefined = ps.del.isDefined;
@@ -4213,9 +4073,9 @@ inline const Rectangle<2> Points::BoundingBox() const
   return bbox;
 }
 
-inline void Points::Get( const int i, const Point*& p ) const
+inline bool Points::Get( const int i, Point& p ) const
 {
-  points.Get( i, p );
+  return points.Get( i, &p );
 }
 
 inline int Points::Size() const
@@ -4238,7 +4098,7 @@ inline int Points::NumOfFLOBs() const
   return 1;
 }
 
-inline FLOB *Points::GetFLOB(const int i)
+inline Flob *Points::GetFLOB(const int i)
 {
   assert( i >= 0 && i < NumOfFLOBs() );
   return &points;
@@ -4269,11 +4129,11 @@ inline bool Points::EndOfPt() const
   return pos == -1;
 }
 
-inline bool Points::GetPt( const Point*& p ) const
+inline bool Points::GetPt(Point& p ) const
 {
   if( pos >= 0 && pos <= Size()-1 )
   {
-    points.Get( pos, p );
+    points.Get( pos, &p );
     return true;
   }
   return false;
@@ -4281,7 +4141,7 @@ inline bool Points::GetPt( const Point*& p ) const
 
 inline void Points::Resize(const int newSize){
   if(newSize>Size()){
-    points.Resize(newSize);
+    points.resize(newSize);
   }
 }
 
@@ -4468,13 +4328,7 @@ length( cl.length ),
 currentHS ( cl.currentHS)
 {
   assert( cl.IsOrdered());
-
-  const HalfSegment *hs;
-  for( int i = 0; i < cl.Size(); i++ )
-  {
-    cl.Get( i, hs );
-    line.Put( i, *hs );
-  }
+  line.copyFrom(cl.line);
   del.refs=1;
   del.isDelete=true;
   del.isDefined = cl.IsDefined();
@@ -4537,16 +4391,16 @@ inline int Line::Size() const
   return line.Size();
 }
 
-inline void Line::Get( const int i, const HalfSegment*& hs ) const
+inline void Line::Get( const int i, HalfSegment& hs ) const
 {
   assert(i>=0);
   assert(i<line.Size());
-  line.Get( i, hs );
+  line.Get( i, &hs );
 }
 
 inline void Line::Resize(const int newSize){
    if(newSize>Size()){
-      line.Resize(newSize);
+      line.resize(newSize);
    }
 }
 
@@ -4578,11 +4432,11 @@ inline bool Line::EndOfHs() const
   return pos == -1;
 }
 
-inline bool Line::GetHs( const HalfSegment*& hs ) const
+inline bool Line::GetHs(  HalfSegment& hs ) const
 {
   if( pos >= 0 && pos <= Size()-1 )
   {
-    line.Get( pos, hs );
+    line.Get( pos, &hs );
     return true;
   }
   return false;
@@ -4605,7 +4459,7 @@ ordered( true )
 
 inline void Region::Destroy()
 {
-  region.Destroy();
+  region.destroy();
 }
 
 inline const Rectangle<2> Region::BoundingBox() const
@@ -4621,20 +4475,19 @@ inline bool Region::IsOrdered() const
 inline const AttrType& Region::GetAttr( int position ) const
 {
   assert(( position>=0) && (position<=Size()-1));
-  const HalfSegment *hs;
-  region.Get( position, hs);
-  return hs->GetAttr();
+  HalfSegment hs;
+  region.Get( position, &hs);
+  return hs.GetAttr();
 }
 
 inline void Region::UpdateAttr( AttrType& attr )
 {
   if (( pos>=0) && (pos<=Size()-1))
   {
-    const HalfSegment *hs;
-    region.Get( pos, hs);
-    HalfSegment auxhs( *hs );
-    auxhs.SetAttr( attr );
-    region.Put( pos, auxhs );
+    HalfSegment hs;
+    region.Get( pos, &hs);
+    hs.SetAttr( attr );
+    region.Put( pos, hs );
   }
 }
 
@@ -4642,11 +4495,10 @@ inline void Region::UpdateAttr( int position, AttrType& attr )
 {
   if (( position>=0) && (position<=Size()-1))
   {
-    const HalfSegment *hs;
-    region.Get( position, hs );
-    HalfSegment auxhs( *hs );
-    auxhs.SetAttr( attr );
-    region.Put( position, auxhs );
+    HalfSegment hs;
+    region.Get( position, &hs );
+    hs.SetAttr( attr );
+    region.Put( position, hs );
   }
 }
 
@@ -4669,11 +4521,11 @@ inline bool Region::EndOfHs() const
   return (pos==-1);
 }
 
-inline bool Region::GetHs( const HalfSegment*& hs ) const
+inline bool Region::GetHs(HalfSegment& hs ) const
 {
   if( pos >= 0 && pos <= Size()-1 )
   {
-    region.Get( pos, hs );
+    region.Get( pos, &hs );
     return true;
   }
   return false;
@@ -4681,7 +4533,7 @@ inline bool Region::GetHs( const HalfSegment*& hs ) const
 
 inline void Region::Resize(const int newSize){
   if(newSize>Size()){
-    region.Resize(newSize);
+    region.resize(newSize);
   }
 }
 
@@ -4856,7 +4708,7 @@ As owner only __first__ and __second__ are the allowed values.
 
 */
 
-  AVLSegment(const HalfSegment* hs, ownertype owner);
+  AVLSegment(const HalfSegment& hs, ownertype owner);
 
 
 /*
@@ -4866,7 +4718,7 @@ Create a Segment only consisting of a single point.
 
 */
 
-  AVLSegment(const Point* p, ownertype owner);
+  AVLSegment(const Point& p, ownertype owner);
 
 
 /*
@@ -5341,7 +5193,7 @@ if halfsegments overlap, only one of the segments left. If halfsegments are cros
 or touching at their interior, their are split.
 
 */
-DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments);
+DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments);
 
 /*
 ~Split~
@@ -5350,7 +5202,7 @@ This function is similar to Realminize. In contrast to that function, segments c
 same space left instead to replace by a single segment.
 
 */
-DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments);
+DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments);
 
 /*
 ~hasOverlaps~
@@ -5358,7 +5210,7 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments);
 This function checks whether in ~segments~ at least two segments overlap.
 
 */
-bool hasOverlaps(const DBArray<HalfSegment>& segments,
+bool hasOverlaps(const DbArray<HalfSegment>& segments,
                  const bool ignoreEqual=false);
 
 
@@ -5370,9 +5222,9 @@ line, region.
 
 */
 bool IsSpatialType(ListExpr type);
-avlseg::ownertype selectNext(Region const* const reg1,
+avlseg::ownertype selectNext(const Region& reg1,
                      int& pos1,
-                     Region const* const reg2,
+                     const Region& reg2,
                      int& pos2,
                      priority_queue<HalfSegment,
                                     vector<HalfSegment>,
@@ -5398,9 +5250,9 @@ of the smallest halfSegment.
 
 
 */
-avlseg::ownertype selectNext(Line const* const line1,
+avlseg::ownertype selectNext(const Line& line1,
                      int& pos1,
-                     Line const* const line2,
+                     const Line& line2,
                      int& pos2,
                      priority_queue<HalfSegment,
                                     vector<HalfSegment>,
@@ -5412,9 +5264,9 @@ avlseg::ownertype selectNext(Line const* const line1,
                      int& src
                     );
 
-avlseg::ownertype selectNext(Line const* const line,
+avlseg::ownertype selectNext(const Line& line,
                      int& pos1,
-                     Region const* const region,
+                     const Region& region,
                      int& pos2,
                      priority_queue<HalfSegment,
                                     vector<HalfSegment>,
@@ -5426,22 +5278,22 @@ avlseg::ownertype selectNext(Line const* const line,
                      int& src
                     );
 
-avlseg::ownertype selectNext( Line const* const line,
+avlseg::ownertype selectNext( const Line&  line,
                       priority_queue<HalfSegment,
                                      vector<HalfSegment>,
                                      greater<HalfSegment> >& q,
                       int& posLine,
-                      Points const* const point,
+                      const Points&  point,
                       int& posPoint,
                       HalfSegment& resHs,
                       Point& resPoint);
 
-avlseg::ownertype selectNext( Line const* const line,
+avlseg::ownertype selectNext( const Line& line,
                       priority_queue<HalfSegment,
                                      vector<HalfSegment>,
                                      greater<HalfSegment> >& q,
                       int& posLine,
-                      Point const* const point,
+                      const Point& point,
                       int& posPoint, // >0: point already used
                       HalfSegment& resHs,
                       Point& resPoint);

@@ -47,13 +47,14 @@ For more detailed information see SpatialAlgebra.h.
 
 */
 
-
+#undef __TRACE__
 //#define __TRACE__ cout <<  __FILE__ << "::" << __LINE__;
-// don't print out traces
 #define __TRACE__
 
 using namespace std;
 
+#include "../../Tools/Flob/Flob.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "Algebra.h"
 #include "NestedList.h"
 #include "ListUtils.h"
@@ -63,6 +64,7 @@ using namespace std;
 #include "SpatialAlgebra.h"
 #include "SecondoConfig.h"
 #include "AvlTree.h"
+
 #include <vector>
 #include <queue>
 #include <stdexcept>
@@ -137,7 +139,7 @@ void SelectFirst_pp( const Points& P1, const Points& P2,
   P1.SelectFirst();
   P2.SelectFirst();
 
-  const Point *p1, *p2;
+  Point p1, p2;
   bool gotP1 = P1.GetPt( p1 ),
        gotP2 = P2.GetPt( p2 );
 
@@ -159,9 +161,9 @@ void SelectFirst_pp( const Points& P1, const Points& P2,
   else //both defined
   {
     stat = endnone;
-    if( *p1 < *p2 )
+    if( p1 < p2 )
       obj = first;
-    else if( *p1 > *p2 )
+    else if( p1 > p2 )
       obj = second;
     else
       obj = both;
@@ -172,7 +174,7 @@ void SelectNext_pp( const Points& P1, const Points& P2,
                     object& obj, status& stat )
 {
   // 1. get the current elements
-  const Point *p1, *p2;
+  Point p1, p2;
   bool gotP1 = P1.GetPt( p1 ),
        gotP2 = P2.GetPt( p2 );
 
@@ -193,12 +195,12 @@ void SelectNext_pp( const Points& P1, const Points& P2,
   }
   else //both currently defined
   {
-    if( *p1 < *p2 ) //then hs1 is the last output
+    if( p1 < p2 ) //then hs1 is the last output
     {
       P1.SelectNext();
       gotP1 = P1.GetPt( p1 );
     }
-    else if( *p1 > *p2 )
+    else if( p1 > p2 )
     {
       P2.SelectNext();
       gotP2 = P2.GetPt( p2 );
@@ -231,9 +233,9 @@ void SelectNext_pp( const Points& P1, const Points& P2,
   else //both defined
   {
     stat = endnone;
-    if( *p1 < *p2 )
+    if( p1 < p2 )
       obj = first;
-    else if( *p1 > *p2 )
+    else if( p1 > p2 )
       obj = second;
     else
       obj = both;
@@ -246,15 +248,15 @@ void SelectFirst_pl( const Points& P, const Line& L,
   P.SelectFirst();
   L.SelectFirst();
 
-  const Point *p1;
+  Point p1;
   Point p2;
-  const HalfSegment *hs;
+  HalfSegment hs;
 
   bool gotPt = P.GetPt( p1 ),
        gotHs = L.GetHs( hs );
 
   if( gotHs )
-    p2 = hs->GetDomPoint();
+    p2 = hs.GetDomPoint();
 
   if( !gotPt && !gotHs )
   {
@@ -274,9 +276,9 @@ void SelectFirst_pl( const Points& P, const Line& L,
   else //both defined
   {
     stat = endnone;
-    if( *p1 < p2 )
+    if( p1 < p2 )
       obj = first;
-    else if( *p1 > p2 )
+    else if( p1 > p2 )
       obj = second;
     else
       obj=both;
@@ -287,15 +289,15 @@ void SelectNext_pl( const Points& P, const Line& L,
                     object& obj, status& stat )
 {
   // 1. get the current elements
-  const Point *p1;
+  Point p1;
   Point p2;
-  const HalfSegment *hs;
+  HalfSegment hs;
 
   bool gotPt = P.GetPt( p1 ),
        gotHs = L.GetHs( hs );
 
   if( gotHs )
-    p2 = hs->GetDomPoint();
+    p2 = hs.GetDomPoint();
 
   //2. move the pointers
   if( !gotPt && !gotHs )
@@ -307,7 +309,7 @@ void SelectNext_pl( const Points& P, const Line& L,
     L.SelectNext();
     gotHs = L.GetHs( hs );
     if( gotHs )
-      p2 = hs->GetDomPoint();
+      p2 = hs.GetDomPoint();
   }
   else if( !gotHs )
   {
@@ -316,17 +318,17 @@ void SelectNext_pl( const Points& P, const Line& L,
   }
   else //both currently defined
   {
-    if( *p1 < p2 ) //then hs1 is the last output
+    if( p1 < p2 ) //then hs1 is the last output
     {
       P.SelectNext();
       gotPt = P.GetPt( p1 );
     }
-    else if( *p1 > p2 )
+    else if( p1 > p2 )
     {
       L.SelectNext();
       gotHs = L.GetHs( hs );
       if( gotHs )
-        p2 = hs->GetDomPoint();
+        p2 = hs.GetDomPoint();
     }
     else
     {
@@ -335,7 +337,7 @@ void SelectNext_pl( const Points& P, const Line& L,
       L.SelectNext();
       gotHs = L.GetHs( hs );
       if( gotHs )
-        p2 = hs->GetDomPoint();
+        p2 = hs.GetDomPoint();
     }
   }
 
@@ -358,9 +360,9 @@ void SelectNext_pl( const Points& P, const Line& L,
   else //both defined
   {
     stat=endnone;
-    if( *p1 < p2 )
+    if( p1 < p2 )
       obj = first;
-    else if( *p1 > p2 )
+    else if( p1 > p2 )
       obj = second;
     else
       obj = both;
@@ -373,14 +375,14 @@ void SelectFirst_pr( const Points& P, const Region& R,
   P.SelectFirst();
   R.SelectFirst();
 
-  const Point *p1;
+  Point p1;
   Point p2;
-  const HalfSegment *hs;
+  HalfSegment hs;
 
   bool gotPt = P.GetPt( p1 ),
        gotHs = R.GetHs( hs );
   if( gotHs )
-    p2 = hs->GetDomPoint();
+    p2 = hs.GetDomPoint();
 
   if( !gotPt && !gotHs )
   {
@@ -400,9 +402,9 @@ void SelectFirst_pr( const Points& P, const Region& R,
   else //both defined
   {
     stat = endnone;
-    if( *p1 < p2 )
+    if( p1 < p2 )
       obj = first;
-    else if( *p1 > p2 )
+    else if( p1 > p2 )
       obj = second;
     else
       obj=both;
@@ -413,14 +415,14 @@ void SelectNext_pr( const Points& P, const Region& R,
                     object& obj, status& stat )
 {
   // 1. get the current elements
-  const Point *p1;
+  Point p1;
   Point p2;
-  const HalfSegment *hs;
+  HalfSegment hs;
 
   bool gotPt = P.GetPt( p1 ),
        gotHs = R.GetHs( hs );
   if( gotHs )
-    p2 = hs->GetDomPoint();
+    p2 = hs.GetDomPoint();
 
   //2. move the pointers
   if( !gotPt && !gotHs )
@@ -432,7 +434,7 @@ void SelectNext_pr( const Points& P, const Region& R,
     R.SelectNext();
     gotHs = R.GetHs( hs );
     if( gotHs )
-      p2 = hs->GetDomPoint();
+      p2 = hs.GetDomPoint();
   }
   else if( !gotHs )
   {
@@ -441,17 +443,17 @@ void SelectNext_pr( const Points& P, const Region& R,
   }
   else //both currently defined
   {
-    if( *p1 < p2 ) //then hs1 is the last output
+    if( p1 < p2 ) //then hs1 is the last output
     {
       P.SelectNext();
       gotPt = P.GetPt( p1 );
     }
-    else if( *p1 > p2 )
+    else if( p1 > p2 )
     {
       R.SelectNext();
       gotHs = R.GetHs( hs );
       if( gotHs )
-        p2 = hs->GetDomPoint();
+        p2 = hs.GetDomPoint();
     }
     else
     {
@@ -460,7 +462,7 @@ void SelectNext_pr( const Points& P, const Region& R,
       R.SelectNext();
       gotHs = R.GetHs( hs );
       if( gotHs )
-        p2 = hs->GetDomPoint();
+        p2 = hs.GetDomPoint();
     }
   }
 
@@ -483,9 +485,9 @@ void SelectNext_pr( const Points& P, const Region& R,
   else //both defined
   {
     stat = endnone;
-    if( *p1 < p2 )
+    if( p1 < p2 )
       obj = first;
-    else if( *p1 > p2 )
+    else if( p1 > p2 )
       obj = second;
     else
       obj = both;
@@ -498,7 +500,7 @@ void SelectFirst_ll( const Line& L1, const Line& L2,
   L1.SelectFirst();
   L2.SelectFirst();
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   bool gotHs1 = L1.GetHs( hs1 ),
        gotHs2 = L2.GetHs( hs2 );
 
@@ -520,9 +522,9 @@ void SelectFirst_ll( const Line& L1, const Line& L2,
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 )
+    if( hs1 < hs2 )
       obj = first;
-    else if( *hs1 > *hs2 )
+    else if( hs1 > hs2 )
       obj = second;
     else obj = both;
   }
@@ -532,7 +534,7 @@ void SelectNext_ll( const Line& L1, const Line& L2,
                     object& obj, status& stat )
 {
   // 1. get the current elements
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   bool gotHs1 = L1.GetHs( hs1 ),
        gotHs2 = L2.GetHs( hs2 );
 
@@ -553,12 +555,12 @@ void SelectNext_ll( const Line& L1, const Line& L2,
   }
   else //both currently defined
   {
-    if( *hs1 < *hs2 ) //then hs1 is the last output
+    if( hs1 < hs2 ) //then hs1 is the last output
     {
       L1.SelectNext();
       gotHs1 = L1.GetHs( hs1 );
     }
-    else if( *hs1 > *hs2 )
+    else if( hs1 > hs2 )
     {
       L2.SelectNext();
       gotHs2 = L2.GetHs( hs2 );
@@ -591,9 +593,9 @@ void SelectNext_ll( const Line& L1, const Line& L2,
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 )
+    if( hs1 < hs2 )
       obj = first;
-    else if( *hs1 > *hs2 )
+    else if( hs1 > hs2 )
       obj = second;
     else
       obj = both;
@@ -606,7 +608,7 @@ void SelectFirst_lr( const Line& L, const Region& R,
   L.SelectFirst();
   R.SelectFirst();
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   bool gotHs1 = L.GetHs( hs1 ),
        gotHs2 = R.GetHs( hs2 );
 
@@ -628,9 +630,9 @@ void SelectFirst_lr( const Line& L, const Region& R,
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 )
+    if( hs1 < hs2 )
       obj = first;
-    else if( *hs1 > *hs2 )
+    else if( hs1 > hs2 )
       obj = second;
     else
       obj = both;
@@ -641,7 +643,7 @@ void SelectNext_lr( const Line& L, const Region& R,
                     object& obj, status& stat )
 {
   // 1. get the current elements
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   bool gotHs1 = L.GetHs( hs1 ),
        gotHs2 = R.GetHs( hs2 );
 
@@ -662,12 +664,12 @@ void SelectNext_lr( const Line& L, const Region& R,
   }
   else //both currently defined
   {
-    if( *hs1 < *hs2 ) //then hs1 is the last output
+    if( hs1 < hs2 ) //then hs1 is the last output
     {
       L.SelectNext();
       gotHs1 = L.GetHs( hs1 );
     }
-    else if( *hs1 > *hs2 )
+    else if( hs1 > hs2 )
     {
       R.SelectNext();
       gotHs2 = R.GetHs( hs2 );
@@ -700,9 +702,9 @@ void SelectNext_lr( const Line& L, const Region& R,
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 )
+    if( hs1 < hs2 )
       obj = first;
-    else if( *hs1 > *hs2 )
+    else if( hs1 > hs2 )
       obj = second;
     else
       obj=both;
@@ -715,7 +717,7 @@ void SelectFirst_rr( const Region& R1, const Region& R2,
   R1.SelectFirst();
   R2.SelectFirst();
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   bool gotHs1 = R1.GetHs( hs1 ),
        gotHs2 = R2.GetHs( hs2 );
 
@@ -737,9 +739,9 @@ void SelectFirst_rr( const Region& R1, const Region& R2,
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 )
+    if( hs1 < hs2 )
       obj = first;
-    else if( *hs1 > *hs2 )
+    else if( hs1 > hs2 )
       obj = second;
     else
       obj=both;
@@ -750,7 +752,7 @@ void SelectNext_rr( const Region& R1, const Region& R2,
                     object& obj, status& stat )
 {
   // 1. get the current elements
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   bool gotHs1 = R1.GetHs( hs1 ),
        gotHs2 = R2.GetHs( hs2 );
 
@@ -771,12 +773,12 @@ void SelectNext_rr( const Region& R1, const Region& R2,
   }
   else //both currently defined
   {
-    if( *hs1 < *hs2 ) //then hs1 is the last output
+    if( hs1 < hs2 ) //then hs1 is the last output
     {
       R1.SelectNext();
       gotHs1 = R1.GetHs( hs1 );
     }
-    else if( *hs1 > *hs2 )
+    else if( hs1 > hs2 )
     {
       R2.SelectNext();
       gotHs2 = R2.GetHs( hs2 );
@@ -809,9 +811,9 @@ void SelectNext_rr( const Region& R1, const Region& R2,
   else //both defined
   {
     stat = endnone;
-    if( *hs1 < *hs2 )
+    if( hs1 < hs2 )
       obj = first;
-    else if( *hs1 > *hs2 )
+    else if( hs1 > hs2 )
       obj = second;
     else
       obj = both;
@@ -858,6 +860,9 @@ ostream& Point::Print( ostream &os ) const
 bool Point::Inside( const Rectangle<2>& r ) const
 {
   assert( r.IsDefined() );
+  if(!IsDefined()){
+    return false;
+  }
   if( x < r.MinD(0) || x > r.MaxD(0) )
     return false;
   else if( y < r.MinD(1) || y > r.MaxD(1) )
@@ -867,6 +872,7 @@ bool Point::Inside( const Rectangle<2>& r ) const
 
 double Point::Distance( const Point& p ) const
 {
+  assert(IsDefined() && p.IsDefined());
   double dx = p.x - x,
          dy = p.y - y;
 
@@ -892,6 +898,8 @@ double Point::Distance( const Rectangle<2>& r ) const
 
 double Point::Direction( const Point& p ) const
 {
+  assert(IsDefined());
+  assert(p.IsDefined());
   assert( !AlmostEqual( *this, p ) );
 
   Coord x1 = x,
@@ -944,9 +952,8 @@ void Point::Rotate(const Coord& x, const Coord& y,
   double m11 = c;
   double m12 = y - x*s-y*c;
 
-  res.SetDefined(true);
-  res.x = m00*this->x + m01*this->y + m02;
-  res.y = m10*this->x + m11*this->y + m12;
+  res.Set(  m00*this->x + m01*this->y + m02,
+            m10*this->x + m11*this->y + m12);
 
 }
 
@@ -982,50 +989,21 @@ Word
 InPoint( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  if( nl->ListLength( instance ) == 2 )
-  {
-    ListExpr first = nl->First(instance),
-             second = nl->Second(instance);
+  correct = true;
+  if( nl->ListLength( instance ) == 2 ) {
+    ListExpr first = nl->First(instance);
+    ListExpr second = nl->Second(instance);
 
-    Coord x, y;
-
-    //1. processing the first data item
-    correct = true;
-    if( nl->IsAtom(first) )
-    {
-      if( nl->AtomType(first) == IntType )
-        x = nl->IntValue(first);
-      else if( nl->AtomType(first) == RealType )
-        x = nl->RealValue(first);
-      else
-        correct = false;
+    correct = listutils::isNumeric(first) && listutils::isNumeric(second); 
+    if(!correct){
+       return SetWord( Address(0) );
+    } else {
+      return SetWord(new Point(true, listutils::getNumValue(first),
+                                     listutils::getNumValue(second)));
     }
-    else
-      correct = false;
-
-    //2. processing the second data item
-    if( correct && nl->IsAtom(second) )
-    {
-      if( nl->AtomType(second) == IntType )
-        y = nl->IntValue(second);
-      else if( nl->AtomType(second) == RealType )
-        y = nl->RealValue(second);
-      else
-        correct = false;
-    }
-    else
-      correct = false;
-
-    //3. create the class object
-    if( correct )
-      return SetWord( new Point( true, x, y ) );
+  } else if( listutils::isSymbol( instance, "undef" ) ){
+     return SetWord(new Point(false));
   }
-  else if( nl->IsEqual( instance, "undef" ) )
-  {
-    correct = true;
-    return SetWord( new Point( false ) );
-  }
-
   correct = false;
   return SetWord( Address(0) );
 }
@@ -1115,7 +1093,7 @@ type constructor ~point~ does not have arguments, this is trivial.
 bool
 CheckPoint( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "point" ));
+  return (listutils::isSymbol( type, "point" ));
 }
 
 /*
@@ -1124,7 +1102,7 @@ CheckPoint( ListExpr type, ListExpr& errorInfo )
 */
 void* CastPoint(void* addr)
 {
-  return (new (addr) Point);
+  return (new (addr) Point());
 }
 
 /*
@@ -1155,31 +1133,22 @@ A ~points~ value is a finite set of points.
 bool Points::Find( const Point& p, int& pos, const bool& exact ) const
 {
   assert( IsOrdered() );
-  if (exact)
+  assert( IsDefined());
+  if (exact){
     return points.Find( &p, PointCompare, pos );
-  return points.Find( &p, PointCompareAlmost, pos );
+  } else {
+    return points.Find( &p, PointCompareAlmost, pos );
+  }
 }
 
 Points& Points::operator=( const Points& ps )
 {
   assert( ps.IsOrdered() );
-
-  points.Clear();
-
-  if( !ps.IsEmpty() )
-  {
-    points.Resize( ps.Size() );
-    for( int i = 0; i < ps.Size(); i++ )
-    {
-      const Point *p;
-      ps.Get( i, p );
-      points.Put( i, *p );
-    }
-  }
+  points.copyFrom(ps.points);
   bbox = ps.BoundingBox();
   ordered = true;
-  del.refs=1;
   del.isDelete=true;
+  SetDefined(ps.IsDefined());
   return *this;
 }
 
@@ -1188,7 +1157,7 @@ void Points::StartBulkLoad()
   ordered = false;
 }
 
-void Points::EndBulkLoad( bool sort, bool remDup )
+void Points::EndBulkLoad( bool sort, bool remDup, bool trim )
 {
   if( sort ){
     Sort();
@@ -1199,11 +1168,21 @@ void Points::EndBulkLoad( bool sort, bool remDup )
   if( remDup ){
     RemoveDuplicates();
   }
-  points.TrimToSize();
+  if(trim){
+    points.TrimToSize();
+  }
 }
 
 bool Points::operator==( const Points& ps ) const
 {
+
+ if(!IsDefined() && !ps.IsDefined()){
+   return true;
+ }
+ if(!IsDefined() || !ps.IsDefined()){
+   return false;
+ }
+
   assert( IsOrdered() && ps.IsOrdered() );
 
   if( Size() != ps.Size() )
@@ -1236,6 +1215,9 @@ bool Points::operator!=( const Points& ps ) const
 
 Points& Points::operator+=( const Point& p )
 {
+  if(!IsDefined()){
+    return *this;
+  }
   if( !IsOrdered() )
   { // DBArray is unsorted
     if( IsEmpty() )
@@ -1254,11 +1236,11 @@ Points& Points::operator+=( const Point& p )
       else
         bbox = bbox.Union( p.BoundingBox() );
       Find( p, pos, true ); // find exact insertion position
-      for( int i = points.Size() - 1; i >= pos; --i )
+      Point auxp;
+      for( int i = points.Size() - 1; i >= pos; i++ )
       {
-        const Point *auxp;
-        points.Get( i, auxp );
-        points.Put( i+1, *auxp );
+        points.Get( i, &auxp );
+        points.Put( i+1, auxp );
       }
       points.Put( pos, p );
     } // else: do not insert
@@ -1268,6 +1250,15 @@ Points& Points::operator+=( const Point& p )
 
 Points& Points::operator+=( const Points& ps )
 {
+  if(!IsDefined()){
+    return *this;
+  }
+  if(!ps.IsDefined()){
+    SetDefined(false);
+    Clear();
+    return *this;
+  }
+
   if( IsEmpty() )
     bbox = ps.BoundingBox();
   else
@@ -1275,12 +1266,14 @@ Points& Points::operator+=( const Points& ps )
 
   if( !IsOrdered() )
   {
-    points.Resize( Size() + ps.Size() );
+    if((int)points.GetCapacity() < (points.Size() + ps.Size())){
+       points.resize( Size() + ps.Size() );
+    }
+    Point p;
     for( int i = 0; i < ps.Size(); i++ )
     {
-      const Point *p;
       ps.Get( i, p );
-      points.Put( points.Size(), *p );
+      points.Append( p );
     }
   }
   else
@@ -1299,12 +1292,12 @@ Points& Points::operator-=( const Point& p )
   int pos, posLow, posHigh;
   if( Find( p, pos, false ) )
   { // found an AlmostEqual point
-    const Point *auxp;
+    Point auxp;
     posLow = pos;
     while(posLow > 0)
     { // find first pos with AlmostEqual point
-      points.Get( posLow-1, auxp );
-      if( AlmostEqual(p, *auxp) )
+      points.Get( posLow-1, &auxp );
+      if( AlmostEqual(p, auxp) )
       { posLow--; }
       else
       { break; }
@@ -1312,29 +1305,29 @@ Points& Points::operator-=( const Point& p )
     posHigh = pos;
     while(posHigh < Size())
     { // find last pos with AlmostEqual point
-      points.Get( posHigh+1, auxp );
-      if( AlmostEqual(p, *auxp) )
+      points.Get( posHigh+1, &auxp );
+      if( AlmostEqual(p, auxp) )
       { posHigh++; }
       else
       { break; }
     }
     for( int i = 0; i < Size()-posHigh; i++ )
     { // keep smaller and move down bigger points
-      points.Get( posHigh+i, auxp );
-      points.Put( posLow+i, *auxp );
+      points.Get( posHigh+i, &auxp );
+      points.Put( posLow+i, auxp );
     }
-    points.Resize( Size()-(1+posHigh-posLow) );
+    points.resize( Size()-(1+posHigh-posLow) );
 
     // Naive way to redo the bounding box.
     if( IsEmpty() )
       bbox.SetDefined( false );
     int i = 0;
-    points.Get( i++, auxp );
-    bbox = auxp->BoundingBox();
+    points.Get( i++, &auxp );
+    bbox = auxp.BoundingBox();
     for( ; i < Size(); i++ )
     {
-      points.Get( i, auxp );
-      bbox = bbox.Union( auxp->BoundingBox() );
+      points.Get( i, &auxp );
+      bbox = bbox.Union( auxp.BoundingBox() );
     }
   }
   return *this;
@@ -1345,9 +1338,9 @@ ostream& operator<<( ostream& o, const Points& ps )
   o << "<";
   for( int i = 0; i < ps.Size(); i++ )
   {
-    const Point *p;
+    Point p;
     ps.Get( i, p );
-    o << " " << *p;
+    o << " " << p;
   }
   o << ">";
 
@@ -1359,7 +1352,8 @@ int PointCompare( const void *a, const void *b )
 {
   const Point *pa = (const Point*)a,
               *pb = (const Point*)b;
-
+  assert(pa->IsDefined());
+  assert(pb->IsDefined());
   if( *pa == *pb )
     return 0;
 
@@ -1376,6 +1370,8 @@ int PointCompareAlmost( const void *a, const void *b )
   const Point *pa = (const Point*)a,
               *pb = (const Point*)b;
 
+  assert(pa->IsDefined());
+  assert(pb->IsDefined());
   if( AlmostEqual( *pa, *pb ) )
     return 0;
 
@@ -1391,6 +1387,7 @@ int PointHalfSegmentCompare( const void *a, const void *b )
 {
   const Point *pa = (const Point *)a;
   const HalfSegment *hsb = (const HalfSegment *)b;
+  assert(pa->IsDefined());
 
   if( AlmostEqual( *pa, hsb->GetDomPoint() ) )
     return 0;
@@ -1422,6 +1419,7 @@ int PointHalfSegmentCompareAlmost( const void *a, const void *b )
 {
   const Point *pa = (const Point *)a;
   const HalfSegment *hsb = (const HalfSegment *)b;
+  assert(pa->IsDefined());
 
   if( AlmostEqual( *pa, hsb->GetDomPoint() ) )
     return 0;
@@ -1452,46 +1450,46 @@ The search is restricted to the range in array given
 by the indices __min__ and __max__.
 
 */
-bool AlmostContains( const DBArray<Point>& points, const Point& p,
+bool AlmostContains( const DbArray<Point>& points, const Point& p,
                      int min, int max, int size){
 
   if(min>max){
      return false;
   }
-  const Point* pa;
+  Point pa;
   if(min==max){ // search around the position found
      // search left of min
      int pos = min;
      double x = p.GetX();
-     points.Get(pos,pa);
-     while(pos>=0 && AlmostEqual(pa->GetX(),x)){
-        if(AlmostEqual(*pa,p)){
+     points.Get(pos,&pa);
+     while(pos>=0 && AlmostEqual(pa.GetX(),x)){
+        if(AlmostEqual(pa,p)){
            return true;
         }
         pos--;
         if(pos>=0){
-          points.Get(pos,pa);
+          points.Get(pos,&pa);
         }
      }
      // search right of min
      pos=min+1;
      if(pos<size){
-        points.Get(pos,pa);
+        points.Get(pos,&pa);
      }
-     while(pos<size &&AlmostEqual(pa->GetX(),x)){
-        if(AlmostEqual(*pa,p)){
+     while(pos<size &&AlmostEqual(pa.GetX(),x)){
+        if(AlmostEqual(pa,p)){
           return  true;
         }
         pos++;
         if(pos<size){
-           points.Get(pos,pa);
+           points.Get(pos,&pa);
         }
     }
     return false; // no matching point found
   } else {
       int mid = (min+max)/2;
-      points.Get(mid,pa);
-      double x = pa->GetX();
+      points.Get(mid,&pa);
+      double x = pa.GetX();
       double cx = p.GetX();
       if(AlmostEqual(x,cx)){
          return AlmostContains(points,p,mid,mid,size);
@@ -1509,12 +1507,10 @@ void Points::RemoveDuplicates()
 {
  assert(IsOrdered());
  //Point allPoints[points.Size()];
- DBArray<Point> allPoints(points.Size());
- const Point* pp;
+ DbArray<Point> allPoints(points.Size());
  Point p;
  for(int i=0;i<points.Size();i++){
-    points.Get(i,pp);
-    p = *pp;
+    points.Get(i,p);
     bool found = AlmostContains(allPoints,p,0,
                                 allPoints.Size()-1,
                                 allPoints.Size());
@@ -1523,13 +1519,13 @@ void Points::RemoveDuplicates()
     }
  }
  if(allPoints.Size()!=Size()){
-     points.Clear();
+     points.clean();
      for(int i=0;i < allPoints.Size(); i++){
-        allPoints.Get(i,pp);
-        points.Append(*pp);
+        allPoints.Get(i,p);
+        points.Append(p);
      }
  }
- allPoints.Destroy();
+ allPoints.destroy();
 }
 
 bool Points::Contains( const Point& p ) const
@@ -1549,6 +1545,10 @@ bool Points::Contains( const Point& p ) const
 bool Points::Contains( const Points& ps ) const
 {
   assert( IsOrdered() && ps.IsOrdered() );
+
+  if(!IsDefined() || !ps.IsDefined()){
+    return false;
+  }
 
   if( IsEmpty() && ps.IsEmpty() )
     return true;
@@ -1583,20 +1583,20 @@ bool Points::Inside( const Line& l ) const
 {
   assert( IsOrdered() && l.IsOrdered() );
 
-  if( IsEmpty() && l.IsEmpty() )
+  if( IsEmpty() )
     return true;
 
-  if( IsEmpty() || l.IsEmpty() )
+  if( l.IsEmpty() )
     return false;
 
   if( !l.BoundingBox().Contains( bbox ) )
     return false;
 
-  const Point *p;
+  Point p;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( !l.Contains( *p ) )
+    if( !l.Contains( p ) )
       return false;
   }
   return true;
@@ -1606,20 +1606,20 @@ bool Points::Inside( const Region& r ) const
 {
   assert( IsOrdered() && r.IsOrdered() );
 
-  if( IsEmpty() && r.IsEmpty() )
+  if( IsEmpty() )
     return true;
 
-  if( IsEmpty() || r.IsEmpty() )
+  if( r.IsEmpty() )
     return false;
 
   if( !r.BoundingBox().Contains( bbox ) )
     return false;
 
-  const Point *p;
+  Point p;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( !r.Contains( *p ) )
+    if( !r.Contains( p ) )
       return false;
   }
   return true;
@@ -1628,9 +1628,6 @@ bool Points::Inside( const Region& r ) const
 bool Points::Intersects( const Points& ps ) const
 {
   assert( IsOrdered() && ps.IsOrdered() );
-
-  if( IsEmpty() && ps.IsEmpty() )
-    return true;
 
   if( IsEmpty() || ps.IsEmpty() )
     return false;
@@ -1655,20 +1652,17 @@ bool Points::Intersects( const Line& l ) const
 {
   assert( IsOrdered() && l.IsOrdered() );
 
-  if( IsEmpty() && l.IsEmpty() )
-    return true;
-
   if( IsEmpty() || l.IsEmpty() )
     return false;
 
   if( !BoundingBox().Intersects( l.BoundingBox() ) )
     return false;
 
-  const Point *p;
+  Point p;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( l.Contains( *p ) )
+    if( l.Contains( p ) )
       return true;
   }
 
@@ -1679,20 +1673,17 @@ bool Points::Intersects( const Region& r ) const
 {
   assert( IsOrdered() && r.IsOrdered() );
 
-  if( IsEmpty() && r.IsEmpty() )
-    return true;
-
   if( IsEmpty() || r.IsEmpty() )
     return false;
 
   if( !BoundingBox().Intersects( r.BoundingBox() ) )
     return false;
 
-  const Point *p;
+  Point p;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( r.Contains( *p ) )
+    if( r.Contains( p ) )
       return true;
   }
   return false;
@@ -1708,20 +1699,20 @@ bool Points::Adjacent( const Region& r ) const
   if( !BoundingBox().Intersects( r.BoundingBox() ) )
     return false;
 
-  const Point *p;
+  Point p;
   bool found = false;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
 
-    if( !r.Contains( *p ) )
+    if( !r.Contains( p ) )
       continue;
 
     // At least one point is contained in the region
     // If it is not inside the region, then the
     // function will return true.
     found = true;
-    if( r.InnerContains( *p ) )
+    if( r.InnerContains( p ) )
       return false;
   }
   return found;
@@ -1734,7 +1725,7 @@ void Points::Intersection( const Points& ps, Points& result ) const
 
   object obj;
   status stat;
-  const Point *p;
+  Point p;
   SelectFirst_pp( *this, ps, obj, stat );
 
   result.StartBulkLoad();
@@ -1744,7 +1735,7 @@ void Points::Intersection( const Points& ps, Points& result ) const
     {
       int GotPt = ps.GetPt( p );
       assert( GotPt );
-      result += *p;
+      result += p;
     }
     SelectNext_pp( *this, ps, obj, stat );
   }
@@ -1756,16 +1747,21 @@ void Points::Intersection( const Line& l, Points& result ) const
   assert( IsOrdered() && l.IsOrdered() );
   result.Clear();
 
-  if( IsEmpty() || l.IsEmpty() )
+  if( IsEmpty() )
     return;
 
-  const Point *p;
+  if(l.IsEmpty()){
+    result.Clear();
+    return;
+  }
+
+  Point p;
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( l.Contains( *p ) )
-      result += *p;
+    if( l.Contains( p ) )
+      result += p;
   }
   result.EndBulkLoad( false, false );
 }
@@ -1775,16 +1771,21 @@ void Points::Intersection( const Region& r, Points& result ) const
   assert( IsOrdered() && r.IsOrdered() );
   result.Clear();
 
-  if( IsEmpty() || r.IsEmpty() )
+  if( IsEmpty() )
     return;
 
-  const Point *p;
+  if(r.IsEmpty()){
+    result.Clear();
+    return;
+  }
+
+  Point p;
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( r.Contains( *p ) )
-      result += *p;
+    if( r.Contains( p ) )
+      result += p;
   }
   result.EndBulkLoad( false, false );
 }
@@ -1795,13 +1796,12 @@ void Points::Minus( const Point& p, Points& ps ) const
   ps.Clear();
 
   ps.StartBulkLoad();
+  Point pi;
   for( int i = 0; i < Size(); i++ )
   {
-    const Point *pi;
     Get( i, pi );
-
-    if( !AlmostEqual(*pi, p) )
-      ps += *pi;
+    if( !AlmostEqual(pi, p) )
+        ps += pi;
   }
   ps.EndBulkLoad( false, false );
 }
@@ -1815,19 +1815,19 @@ void Points::Minus( const Points& ps, Points& result ) const
   int size1 = this->Size();
   int size2 = ps.Size();
   int pos1 = 0, pos2 = 0;
-  const Point *p1, *p2;
+  Point p1, p2;
 
   while(pos1<size1 && pos2<size2)
   {
     this->Get(pos1, p1);
     ps.Get(pos2, p2);
-    if( AlmostEqual(*p1, *p2) )
+    if( AlmostEqual(p1, p2) )
     {
       pos1++;
     }
-    else if (*p1 < *p2)
+    else if (p1 < p2)
     {
-      result += *p1;
+      result += p1;
       pos1++;
     }
     else
@@ -1838,7 +1838,7 @@ void Points::Minus( const Points& ps, Points& result ) const
   while(pos1<size1)
   {
     this->Get(pos1, p1);
-    result += *p1;
+    result += p1;
     pos1++;
   }
   result.EndBulkLoad( false, false );
@@ -1849,13 +1849,13 @@ void Points::Minus( const Line& l, Points& result ) const
   assert( IsOrdered() && l.IsOrdered() );
   result.Clear();
 
-  const Point *p;
+  Point p;
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( !l.Contains( *p ) )
-      result += *p;
+    if( !l.Contains( p ) )
+      result += p;
   }
   result.EndBulkLoad( false, false );
 }
@@ -1865,13 +1865,13 @@ void Points::Minus( const Region& r, Points& result ) const
   assert( IsOrdered() && r.IsOrdered() );
   result.Clear();
 
-  const Point *p;
+  Point p;
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    if( !r.Contains( *p ) )
-      result += *p;
+    if( !r.Contains( p ) )
+      result += p;
   }
   result.EndBulkLoad( false, false );
 }
@@ -1882,21 +1882,21 @@ void Points::Union( const Point& p, Points& result ) const
   result.Clear();
 
   result.StartBulkLoad();
-  const Point *pi;
+  Point pi;
   bool inserted = false;
   for( int i = 0; i < Size(); i++)
   {
     Get( i, pi );
 
-    if( !inserted && *pi == p )
+    if( !inserted && pi == p )
       inserted = true;
 
-    if( !inserted && *pi > p )
+    if( !inserted && pi > p )
     {
       result += p;
       inserted = true;
     }
-    result += *pi;
+    result += pi;
   }
   if( !inserted )
     result += p;
@@ -1912,7 +1912,7 @@ void Points::Union( const Points& ps, Points& result ) const
   object obj;
   status stat;
   SelectFirst_pp( *this, ps, obj, stat );
-  const Point *p;
+  Point p;
 
   result.StartBulkLoad();
   while( stat != endboth )
@@ -1927,7 +1927,7 @@ void Points::Union( const Points& ps, Points& result ) const
       int GotPt = ps.GetPt( p );
       assert( GotPt );
     }
-    result += *p;
+    result += p;
     SelectNext_pp( *this, ps, obj, stat );
   }
   result.EndBulkLoad( false, true );
@@ -1941,13 +1941,13 @@ double Points::Distance( const Point& p ) const
   double result = numeric_limits<double>::max();
   for( int i = 0; i < Size(); i++ )
   {
-    const Point *pi;
+    Point pi;
     Get( i, pi );
 
-    if( AlmostEqual( p, *pi ) )
+    if( AlmostEqual( p, pi ) )
       return 0.0;
 
-    result = MIN( result, pi->Distance( p ) );
+    result = MIN( result, pi.Distance( p ) );
   }
   return result;
 }
@@ -1957,7 +1957,7 @@ double Points::Distance( const Points& ps ) const
   assert( !IsEmpty() && !ps.IsEmpty() );
 
   double result = numeric_limits<double>::max();
-  const Point *pi, *pj;
+  Point pi, pj;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, pi );
@@ -1966,10 +1966,10 @@ double Points::Distance( const Points& ps ) const
     {
       ps.Get( j, pj );
 
-      if( AlmostEqual( *pi, *pj ) )
+      if( AlmostEqual( pi, pj ) )
         return 0.0;
 
-      result = MIN( result, pi->Distance( *pj ) );
+      result = MIN( result, pi.Distance( pj ) );
     }
   }
   return result;
@@ -1979,11 +1979,11 @@ double Points::Distance( const Rectangle<2>& r ) const
 {
   assert( IsDefined() && !IsEmpty() && r.IsDefined() );
   double result = numeric_limits<double>::max();
-  const Point *pi;
+  Point pi;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, pi );
-    result = MIN( result, pi->Distance( r ) );
+    result = MIN( result, pi.Distance( r ) );
   }
   return result;
 }
@@ -1995,11 +1995,12 @@ void Points::Translate( const Coord& x, const Coord& y, Points& result ) const
   assert( ordered );
 
   result.StartBulkLoad();
-  const Point *p;
+  Point p;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    result += p->Translate( x, y );
+    p.Translate( x, y );
+    result += p;
   }
   result.EndBulkLoad( false, false );
 }
@@ -2029,14 +2030,14 @@ void Points::Rotate( const Coord& x, const Coord& y,
 
 
   result.StartBulkLoad();
-  const Point *p;
+  Point p;
   Point rot(true,0,0);
 
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, p );
-    rot.Set( m00*p->GetX() + m01*p->GetY() + m02,
-             m10*p->GetX() + m11*p->GetY() + m12);
+    rot.Set( m00*p.GetX() + m01*p.GetY() + m02,
+             m10*p.GetX() + m11*p.GetY() + m12);
     result += rot;
   }
   result.EndBulkLoad( true, false );
@@ -2049,13 +2050,13 @@ Point Points::theCenter() const{
      res.SetDefined(false);
    } else {
      int size = Size();
-     const Point* p;
+     Point p;
      double x = 0.0;
      double y = 0.0;
      for(int i=0;i<size;i++){
          Get(i,p);
-         x += p->GetX();
-         y += p->GetY();
+         x += p.GetX();
+         y += p.GetY();
      }
      res.Set(x/size,y/size);
    }
@@ -2071,11 +2072,11 @@ size_t Points::HashValue() const
 
   size_t h = 0;
 
-  const Point *p;
+  Point p;
   for( int i = 0; i < Size() && i < 5; i++ )
   {
     Get( i, p );
-    h = h + (size_t)(5 * p->GetX() + p->GetY());
+    h = h + (size_t)(5 * p.GetX() + p.GetY());
   }
   return h;
 }
@@ -2085,23 +2086,23 @@ bool Points::IsValid() const
   if( IsEmpty() )
     return true;
 
-  const Point *auxp1, *p2;
+  Point auxp1, p2;
   Get( 0, auxp1 );
 
-  Point p1 = *auxp1;
+  Point p1 = auxp1;
   for( int i = 1; i < Size(); i++ )
   {
     Get( i, p2 );
-    if( AlmostEqual( p1, *p2 ) )
+    if( AlmostEqual( p1, p2 ) )
       return false;
-    p1 = *p2;
+    p1 = p2;
   }
   return true;
 }
 
 void Points::Clear()
 {
-  points.Clear();
+  points.clean();
   pos = -1;
   ordered = true;
   bbox.SetDefined( false );
@@ -2121,6 +2122,16 @@ int Points::Compare( const Attribute* arg ) const
   if( !ps )
     return (-2);
 
+  if(!IsDefined() && !ps->IsDefined()){
+    return 0;
+  }
+  if(!IsDefined()){
+    return -1;
+  }
+  if(!ps->IsDefined()){
+    return 1;
+  }
+
   if( IsEmpty() && ps->IsEmpty() )
     return 0;
 
@@ -2136,16 +2147,16 @@ int Points::Compare( const Attribute* arg ) const
   if( Size() < ps->Size() )
     return -1;
 
+  Point p1, p2;
   for( int i = 0; i < Size(); i++ )
   {
-    const Point *p1, *p2;
     Get( i, p1);
     ps->Get( i, p2 );
 
-    if( *p1 > *p2 )
+    if( p1 > p2 )
       return 1;
 
-    if( *p1 < *p2 )
+    if( p1 < p2 )
       return -1;
   }
   return 0;
@@ -2157,6 +2168,17 @@ int Points::CompareAlmost( const Attribute* arg ) const
 
   if( !ps )
     return (-2);
+  
+
+  if(!IsDefined() && !ps->IsDefined()){
+    return 0;
+  }
+  if(!IsDefined()){
+    return -1;
+  }
+  if(!ps->IsDefined()){
+    return 1;
+  }
 
   if( IsEmpty() && ps->IsEmpty() )
     return 0;
@@ -2173,17 +2195,17 @@ int Points::CompareAlmost( const Attribute* arg ) const
   if( Size() < ps->Size() )
     return -1;
 
+  Point p1, p2;
   for( int i = 0; i < Size(); i++ )
   {
-    const Point *p1, *p2;
     Get( i, p1);
     ps->Get( i, p2 );
 
-    if( !AlmostEqual(*p1, *p2) )
+    if( !AlmostEqual(p1, p2) )
     {
-      if( *p1 > *p2 )
+      if( p1 > p2 )
         return 1;
-      if( *p1 < *p2 )
+      if( p1 < p2 )
         return -1;
     }
   }
@@ -2223,20 +2245,24 @@ ListExpr
 OutPoints( ListExpr typeInfo, Word value )
 {
   Points* points = (Points*)(value.addr);
+  if(!points->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
   if( points->IsEmpty() )
     return nl->TheEmptyList();
 
-  const Point *p;
-  points->Get( 0, p );
+  Point p;
+  assert( points->Get( 0, p ) );
   ListExpr result =
-    nl->OneElemList( OutPoint( nl->TheEmptyList(), SetWord( (void*)p ) ) );
+    nl->OneElemList( OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );
   ListExpr last = result;
 
   for( int i = 1; i < points->Size(); i++ )
   {
-    points->Get( i, p );
+    assert( points->Get( i, p ) );
     last = nl->Append( last,
-                       OutPoint( nl->TheEmptyList(), SetWord( (void*)p ) ) );
+                       OutPoint( nl->TheEmptyList(), SetWord( (void*)&p ) ) );
   }
   return result;
 }
@@ -2249,7 +2275,20 @@ Word
 InPoints( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  Points* points = new Points( nl->ListLength( instance ) );
+
+  Points* points = new Points( max(0,nl->ListLength( instance) ) );
+  if(nl->IsEqual(instance,"undef")){
+      points->SetDefined(false);
+      correct=true;
+      return SetWord( Address(points) );
+  }
+
+  if(nl->AtomType(instance)!=NoAtom){
+    delete points;
+    correct = false;
+    return SetWord( Address(points) );
+  }
+
   points->StartBulkLoad();
 
   ListExpr rest = instance;
@@ -2267,9 +2306,13 @@ InPoints( const ListExpr typeInfo, const ListExpr instance,
     }
     else
     {
-      delete p;
+      if(p){
+        delete p;
+      }
+      delete points;
       return SetWord( Address(0) );
     }
+
   }
   points->EndBulkLoad();
 
@@ -2404,7 +2447,7 @@ CheckPoints( ListExpr type, ListExpr& errorInfo )
 */
 void* CastPoints(void* addr)
 {
-  return (new (addr) Points);
+  return (new (addr) Points());
 }
 
 /*
@@ -2433,8 +2476,8 @@ A ~halfsegment~ value is a pair of points, with a boolean flag indicating the do
 */
 void HalfSegment::Translate( const Coord& x, const Coord& y )
 {
-  lp.Translate( x, y );
-  rp.Translate( x, y );
+   lp.Translate( x, y );
+   rp.Translate( x, y );
 }
 
 
@@ -3337,23 +3380,42 @@ double HalfSegment::Distance(const Rectangle<2>& rect) const{
   Point p2(true,x1,y1);
   Point p3(true,x0,y1);
 
-  HalfSegment hs(true,p0,p1);
-  double dist = this->Distance(hs);
+  double dist;
+  HalfSegment hs;
+  if(AlmostEqual(p0,p1)){
+    dist = this->Distance(p0);
+  } else {
+    hs.Set(true,p0,p1);
+    dist = this->Distance(hs);
+  }
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
-  hs.Set(true,p1,p2);
-  dist = MIN( dist, this->Distance(hs));
+  if(AlmostEqual(p1,p2)){
+    dist = MIN( dist, this->Distance(p1));
+  } else {
+    hs.Set(true,p1,p2);
+    dist = MIN( dist, this->Distance(hs));
+  }
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
-  hs.Set(true,p2,p3);
-  dist = MIN( dist, this->Distance(hs));
+
+  if(AlmostEqual(p2,p3)){
+    dist = MIN(dist, this->Distance(p2));
+  } else {
+    hs.Set(true,p2,p3);
+    dist = MIN( dist, this->Distance(hs));
+  }
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
-  hs.Set(true,p3,p0);
-  dist = MIN( dist, this->Distance(hs));
+  if(AlmostEqual(p3,p0)){
+    dist = MIN(dist, this->Distance(p3));
+  } else {
+    hs.Set(true,p3,p0);
+    dist = MIN( dist, this->Distance(hs));
+  }
   if(AlmostEqual(dist,0)){
     return 0.0;
   }
@@ -3672,14 +3734,9 @@ void Line::EndBulkLoad( bool sort /* = true */,
   }
   if(Size()>0){
      if(realminize){
-       DBArray<HalfSegment>* line2 = ::Realminize(line);
-       const HalfSegment* hs;
+       DbArray<HalfSegment>* line2 = ::Realminize(line);
        line2->Sort(HalfSegmentCompare);
-       line.Clear();
-       for(int i=0;i<line2->Size();i++){
-         line2->Get(i,hs);
-         line.Append(*hs);
-       }
+       line.copyFrom(*line2);
        line2->Destroy();
        delete line2;
      }
@@ -3692,18 +3749,7 @@ void Line::EndBulkLoad( bool sort /* = true */,
 Line& Line::operator=( const Line& l )
 {
   assert( l.ordered );
-  line.Clear();
-  if( !l.IsEmpty() )
-  {
-    line.Resize( l.Size() );
-    const HalfSegment *hs;
-    for( int i = 0; i < l.Size(); i++ )
-    {
-      l.line.Get( i, hs );
-      line.Append(*hs );
-    }
-  }
-
+  line.copyFrom(l.line);
   bbox = l.bbox;
   length = l.length;
   noComponents = l.noComponents;
@@ -3720,6 +3766,14 @@ bool Line::operator==( const Line& l ) const
 
   if( Size() != l.Size() )
     return false;
+
+  if(!IsDefined() && !l.IsDefined()){
+    return true;
+  }
+
+  if(!IsDefined() || !l.IsDefined()){
+    return false;
+  }
 
   if( IsEmpty() && l.IsEmpty() )
     return true;
@@ -3748,6 +3802,10 @@ bool Line::operator!=( const Line& l ) const
 
 Line& Line::operator+=( const HalfSegment& hs )
 {
+  if(!IsDefined()){
+    return *this;
+  }
+
   if( IsEmpty() )
     bbox = hs.BoundingBox();
   else
@@ -3760,11 +3818,11 @@ Line& Line::operator+=( const HalfSegment& hs )
     int pos;
     if( !Find( hs, pos ) )
     {
+      HalfSegment auxhs;
       for( int i = line.Size() - 1; i >= pos; i++ )
       {
-        const HalfSegment *auxhs;
         line.Get( i, auxhs );
-        line.Put( i+1, *auxhs );
+        line.Put( i+1, auxhs );
       }
       line.Put( pos, hs );
     }
@@ -3772,18 +3830,43 @@ Line& Line::operator+=( const HalfSegment& hs )
   return *this;
 }
 
+Line& Line::operator+=(const Line& l){
+   if(!IsDefined() || !l.IsDefined()){
+     return *this;
+   }
+
+   if(l.line.Size()==0){
+     return *this;
+   }
+
+   assert(!IsOrdered());
+
+   if(IsEmpty()){
+      bbox = l.bbox;
+   } else {
+      bbox = bbox.Union(l.bbox);
+   }
+
+   line.Append(l.line);
+   return *this;
+}
+
+
 Line& Line::operator-=( const HalfSegment& hs )
 {
   assert( IsOrdered() );
+  if(!IsDefined()){
+    return *this;
+  }
 
   int pos;
-  const HalfSegment *auxhs;
+  HalfSegment auxhs;
   if( Find( hs, pos ) )
   {
     for( int i = pos; i < Size(); i++ )
     {
       line.Get( i+1, auxhs );
-      line.Put( i, *auxhs );
+      line.Put( i, auxhs );
     }
   }
 
@@ -3792,11 +3875,11 @@ Line& Line::operator-=( const HalfSegment& hs )
     bbox.SetDefined( false );
   int i = 0;
   line.Get( i++, auxhs );
-  bbox = auxhs->BoundingBox();
+  bbox = auxhs.BoundingBox();
   for( ; i < Size(); i++ )
   {
     line.Get( i, auxhs );
-    bbox = bbox.Union( auxhs->BoundingBox() );
+    bbox = bbox.Union( auxhs.BoundingBox() );
   }
 
   return *this;
@@ -3804,6 +3887,10 @@ Line& Line::operator-=( const HalfSegment& hs )
 
 bool Line::Contains( const Point& p ) const
 {
+  if(!p.IsDefined()){
+    return false;
+  }
+
   if( IsEmpty() )
     return false;
 
@@ -3814,13 +3901,13 @@ bool Line::Contains( const Point& p ) const
   if( pos >= Size() )
     return false;
 
-  const HalfSegment *hs;
+  HalfSegment hs;
   for( ; pos >= 0; pos-- )
   {
     Get( pos, hs );
-    if( hs->IsLeftDomPoint() )
+    if( hs.IsLeftDomPoint() )
     {
-      if( hs->Contains( p ) )
+      if( hs.Contains( p ) )
         return true;
     }
   }
@@ -3831,27 +3918,24 @@ bool Line::Intersects( const Line& l ) const
 {
   assert( IsOrdered() && l.IsOrdered() );
 
-  if( IsEmpty() && l.IsEmpty() )
-    return true;
-
   if( IsEmpty() || l.IsEmpty() )
     return false;
 
   if( !BoundingBox().Intersects( l.BoundingBox() ) )
     return false;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < l.Size(); j++ )
       {
         l.Get( j, hs2 );
-        if (hs2->IsLeftDomPoint())
+        if (hs2.IsLeftDomPoint())
         {
-          if( hs1->Intersects( *hs2 ) )
+          if( hs1.Intersects( hs2 ) )
             return true;
         }
       }
@@ -3864,33 +3948,30 @@ bool Line::Intersects( const Region& r ) const
 {
   assert( IsOrdered() && r.IsOrdered() );
 
-  if( IsEmpty() && r.IsEmpty() )
-    return true;
-
   if( IsEmpty() || r.IsEmpty() )
     return false;
 
   if( !BoundingBox().Intersects( r.BoundingBox() ) )
     return false;
 
-  const HalfSegment *hsl, *hsr;
+  HalfSegment hsl, hsr;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hsl );
-    if( hsl->IsLeftDomPoint() )
+    if( hsl.IsLeftDomPoint() )
     {
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hsr );
-        if( hsr->IsLeftDomPoint() )
+        if( hsr.IsLeftDomPoint() )
         {
-          if( hsl->Intersects( *hsr ) )
+          if( hsl.Intersects( hsr ) )
             return true;
         }
       }
 
-      if( r.Contains( hsl->GetLeftPoint() ) ||
-          r.Contains( hsl->GetRightPoint() ) )
+      if( r.Contains( hsl.GetLeftPoint() ) ||
+          r.Contains( hsl.GetRightPoint() ) )
         return true;
     }
   }
@@ -3899,28 +3980,32 @@ bool Line::Intersects( const Region& r ) const
 
 bool Line::Inside( const Line& l ) const
 {
+  if(!IsDefined() || !l.IsDefined()){
+    return false;
+  }
+
   assert( IsOrdered() && l.IsOrdered() );
 
-  if( IsEmpty() && l.IsEmpty() )
+  if( IsEmpty() )
     return true;
 
-  if( IsEmpty() || l.IsEmpty() )
+  if( l.IsEmpty() )
     return false;
 
   if( !l.BoundingBox().Contains( bbox ) )
     return false;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       bool found = false;
       for( int j = 0; j < l.Size() && !found; j++ )
       {
         l.Get( j, hs2 );
-        if( hs2->IsLeftDomPoint() && hs1->Inside( *hs2 ) )
+        if( hs2.IsLeftDomPoint() && hs1.Inside( hs2 ) )
           found = true;
       }
       if( !found )
@@ -3932,24 +4017,28 @@ bool Line::Inside( const Line& l ) const
 
 bool Line::Inside( const Region& r ) const
 {
+  if(!IsDefined() || !r.IsDefined()){
+    return false;
+  }
+
   assert( IsOrdered() && r.IsOrdered() );
 
-  if( IsEmpty() && r.IsEmpty() )
+  if( IsEmpty() )
     return true;
 
-  if( IsEmpty() || r.IsEmpty() )
+  if( r.IsEmpty() )
     return false;
 
   if( !r.BoundingBox().Contains( bbox ) )
     return false;
 
-  const HalfSegment *hsl;
+  HalfSegment hsl;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hsl );
-    if( hsl->IsLeftDomPoint() )
+    if( hsl.IsLeftDomPoint() )
     {
-      if( !r.Contains( *hsl ) )
+      if( !r.Contains( hsl ) )
         return false;
     }
   }
@@ -3966,28 +4055,28 @@ bool Line::Adjacent( const Region& r ) const
   if( !BoundingBox().Intersects( r.BoundingBox() ) )
     return false;
 
-  const HalfSegment *hsl, *hsr;
+  HalfSegment hsl, hsr;
   bool found = false;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hsl );
-    if( hsl->IsLeftDomPoint() )
+    if( hsl.IsLeftDomPoint() )
     {
-      if( r.InnerContains( hsl->GetLeftPoint() ) ||
-          r.InnerContains( hsl->GetRightPoint() ) )
+      if( r.InnerContains( hsl.GetLeftPoint() ) ||
+          r.InnerContains( hsl.GetRightPoint() ) )
         return false;
 
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hsr );
-        if( hsr->IsLeftDomPoint() )
+        if( hsr.IsLeftDomPoint() )
         {
-          if( !hsr->Intersects( *hsl ) )
+          if( !hsr.Intersects( hsl ) )
             continue;
 
           found = true;
 
-          if( hsr->Crosses( *hsl ) )
+          if( hsr.Crosses( hsl ) )
             return false;
         }
       }
@@ -4004,20 +4093,20 @@ void Line::Intersection( const Line& l, Line& result ) const
   if( IsEmpty() || l.IsEmpty() )
     return;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   HalfSegment hs;
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
 
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < l.Size(); j++ )
       {
         l.Get( j, hs2 );
 
-        if( hs2->IsLeftDomPoint() && hs1->Intersection( *hs2, hs ) )
+        if( hs2.IsLeftDomPoint() && hs1.Intersection( hs2, hs ) )
         {
           result += hs;
           hs.SetLeftDomPoint( !hs.IsLeftDomPoint() );
@@ -4037,7 +4126,7 @@ void Line::Crossings( const Line& l, Points& result ) const
   if( IsEmpty() || l.IsEmpty() )
     return;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   Point p;
 
   result.StartBulkLoad();
@@ -4045,15 +4134,15 @@ void Line::Crossings( const Line& l, Points& result ) const
   {
     Get( i, hs1 );
 
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < l.Size(); j++ )
       {
         l.Get( j, hs2 );
 
-        if( hs2->IsLeftDomPoint() )
+        if( hs2.IsLeftDomPoint() )
         {
-          if( hs1->Intersection( *hs2, p ) )
+          if( hs1.Intersection( hs2, p ) )
             result += p;
         }
       }
@@ -4062,24 +4151,64 @@ void Line::Crossings( const Line& l, Points& result ) const
   result.EndBulkLoad(true, true); // sort and remove duplicates
 }
 
+void Line::Crossings(Points& result) const{
+ 
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.SetDefined(true);
+  result.Clear();
+  int i = 0;
+  int size = Size();
+  Point lastPoint(false);
+  HalfSegment hs;
+  Point p;
+  int count = 0;
+  result.StartBulkLoad();
+  while(i<size){
+     Get(i,hs);
+     p = hs.GetDomPoint();
+     i++;
+     if(!lastPoint.IsDefined()){ // first point
+        lastPoint = p;
+        count = 0;
+     } else if(AlmostEqual(lastPoint,p)){
+       count++;
+     } else {
+       if(count>2){ // crossing found
+         result += p;
+       }
+       lastPoint = p;
+       count = 1;
+     }
+  }
+  if(lastPoint.IsDefined() && count>2){
+     result += lastPoint; 
+  }
+  result.EndBulkLoad();
+}
+
+
+
 double Line::Distance( const Point& p ) const
 {
 
   assert( IsOrdered() && !IsEmpty() && p.IsDefined() );
 
-  const HalfSegment *hs;
+  HalfSegment hs;
   double result = numeric_limits<double>::max();
 
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
 
-    if( hs->IsLeftDomPoint() )
+    if( hs.IsLeftDomPoint() )
     {
-      if( hs->Contains( p ) )
+      if( hs.Contains( p ) )
         return 0.0;
 
-      result = MIN( result, hs->Distance( p ) );
+      result = MIN( result, hs.Distance( p ) );
     }
   }
   return result;
@@ -4089,16 +4218,16 @@ double Line::MaxDistance( const Point& p ) const
 
   assert( IsOrdered() && !IsEmpty() && p.IsDefined() );
 
-  const HalfSegment *hs;
+  HalfSegment hs;
   double result = 0;
 
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
 
-    if( hs->IsLeftDomPoint() )
+    if( hs.IsLeftDomPoint() )
     {
-      result = MAX( result, hs->Distance( p ) );
+      result = MAX( result, hs.Distance( p ) );
     }
   }
   return result;
@@ -4108,22 +4237,22 @@ double Line::Distance( const Points& ps ) const
   assert( IsOrdered() && !IsEmpty() &&
           ps.IsOrdered() && !ps.IsEmpty() );
 
-  const HalfSegment *hs;
-  const Point *p;
+  HalfSegment hs;
+  Point p;
   double result = numeric_limits<double>::max();
 
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
 
-    if( hs->IsLeftDomPoint() )
+    if( hs.IsLeftDomPoint() )
     {
       for( int j = 0; j < ps.Size(); j++ )
       {
         ps.Get( j, p );
-        if( hs->Contains( *p ) )
+        if( hs.Contains( p ) )
           return 0;
-        result = MIN( result, hs->Distance( *p ) );
+        result = MIN( result, hs.Distance( p ) );
       }
     }
   }
@@ -4135,23 +4264,23 @@ double Line::Distance( const Line& l ) const
   assert( IsOrdered() && !IsEmpty() &&
           l.IsOrdered() && !l.IsEmpty() );
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   double result = numeric_limits<double>::max();
 
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
 
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < l.Size(); j++ )
       {
         l.Get( j, hs2 );
 
-        if( hs1->Intersects( *hs2 ) )
+        if( hs1.Intersects( hs2 ) )
           return 0.0;
 
-        result = MIN( result, hs1->Distance( *hs2 ) );
+        result = MIN( result, hs1.Distance( hs2 ) );
       }
     }
   }
@@ -4162,12 +4291,12 @@ double Line::Distance( const Rectangle<2>& r ) const {
   if(!IsDefined() || IsEmpty() || !r.IsDefined()){
     return -1;
   }
-  const HalfSegment* hs;
+  HalfSegment hs;
   double dist = numeric_limits<double>::max();
   for(int i=0; i < line.Size() && dist>0; i++){
      line.Get(i,hs);
-     if(hs->IsLeftDomPoint()){
-       double d = hs->Distance(r);
+     if(hs.IsLeftDomPoint()){
+       double d = hs.Distance(r);
        if(d<dist){
           dist = d;
        }
@@ -4180,12 +4309,12 @@ double Line::MaxDistance( const Rectangle<2>& r ) const
   if(!IsDefined() || IsEmpty() || !r.IsDefined()){
     return -1;
   }
-  const HalfSegment* hs;
+  HalfSegment hs;
   double dist = 0;
   for(int i=0; i < line.Size(); i++){
      line.Get(i,hs);
-     if(hs->IsLeftDomPoint()){
-       double d = hs->MaxDistance(r);
+     if(hs.IsLeftDomPoint()){
+       double d = hs.MaxDistance(r);
        if(d > dist){
           dist = d;
        }
@@ -4201,18 +4330,22 @@ int Line::NoComponents() const
 
 void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
 {
+
   assert( IsOrdered() );
-
-  result = *this;
-
-  const HalfSegment *hs;
+  result.Clear();
+  if(!IsDefined()){
+     result.SetDefined(false);
+     return;
+  }
+  result.SetDefined(true);
+  result.Resize(this->Size());
+  result.bbox = this->bbox;
+  HalfSegment hs;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
-
-    HalfSegment auxhs( *hs );
-    auxhs.Translate( x, y );
-    result.Put(i,auxhs);
+    hs.Translate( x, y );
+    result.line.Put(i,hs);
   }
 }
 
@@ -4240,24 +4373,24 @@ void Line::Rotate( const Coord& x, const Coord& y,
 
 
   result.StartBulkLoad();
-  const HalfSegment *hso;
+  HalfSegment hso;
   Point p1;
   Point p2;
 
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hso );
-    p1.Set( m00*hso->GetLeftPoint().GetX()
-            + m01*hso->GetLeftPoint().GetY() + m02,
-            m10*hso->GetLeftPoint().GetX()
-           + m11*hso->GetLeftPoint().GetY() + m12);
-    p2.Set( m00*hso->GetRightPoint().GetX()
-             + m01*hso->GetRightPoint().GetY() + m02,
-             m10*hso->GetRightPoint().GetX()
-             + m11*hso->GetRightPoint().GetY() + m12);
+    p1.Set( m00*hso.GetLeftPoint().GetX()
+            + m01*hso.GetLeftPoint().GetY() + m02,
+            m10*hso.GetLeftPoint().GetX()
+           + m11*hso.GetLeftPoint().GetY() + m12);
+    p2.Set( m00*hso.GetRightPoint().GetX()
+             + m01*hso.GetRightPoint().GetY() + m02,
+             m10*hso.GetRightPoint().GetX()
+             + m11*hso.GetRightPoint().GetY() + m12);
 
-    HalfSegment hsr(*hso); // ensure to copy attr;
-    hsr.Set(hso->IsLeftDomPoint(),p1,p2);
+    HalfSegment hsr(hso); // ensure to copy attr;
+    hsr.Set(hso.IsLeftDomPoint(),p1,p2);
     result += hsr;
   }
   result.EndBulkLoad(); // reordering may be required
@@ -4268,17 +4401,14 @@ void Line::Transform( Region& result ) const
 {
   assert( IsOrdered() );
 
-  const HalfSegment *hs;
+  HalfSegment hs;
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
-
-    HalfSegment auxhs( *hs );
-    result += auxhs;
+    result += hs;
   }
   result.SetNoComponents( NoComponents() );
-  //result.EndBulkLoad( false, false, false, false );
   result.EndBulkLoad();
   result.SetDefined(IsDefined());
 }
@@ -4407,7 +4537,7 @@ void Line::Simplify(Line& result, const double epsilon,
    vector<Point> backward;
    vector<Point> complete;
 
-   const HalfSegment* hs; // current halfsegment
+   HalfSegment hs; // current halfsegment
 
    result.StartBulkLoad();
    int pos = 0;
@@ -4429,25 +4559,25 @@ void Line::Simplify(Line& result, const double epsilon,
        while(!done){
           used[next]= true;
           Get(next,hs);
-          forward.push_back(hs->GetDomPoint());
-          int partner = hs->attr.partnerno;
+          forward.push_back(hs.GetDomPoint());
+          int partner = hs.attr.partnerno;
           used[partner] = true;
           Get(partner,hs);
-          Point p = hs->GetDomPoint();
+          Point p = hs.GetDomPoint();
           if(importantPoints.Contains(p)){
             done = true;
           }else {
              int s = max(0,partner-2);
              int e = min(partner+3,Size());
              int count =0;
-             const HalfSegment* tmp;
+             HalfSegment tmp;
 
              // search around partner for segments with an
              // equal dominating point.
             for(int k=s; (k<e) && (count < 2); k++){
                if(k!=partner){
                   Get(k,tmp);
-                  Point p2 = tmp->GetDomPoint();
+                  Point p2 = tmp.GetDomPoint();
                   if(AlmostEqual(p,p2)){
                      count++;
                      next = k;
@@ -4457,19 +4587,19 @@ void Line::Simplify(Line& result, const double epsilon,
              done = (count != 1) || used[next];
           }
        }
-       forward.push_back(hs->GetDomPoint());
+       forward.push_back(hs.GetDomPoint());
 
        // check possible enlargement into the other direction
        next = pos; // start again at pos
        done = false;
        do{
           Get(next,hs);
-          Point p = hs->GetDomPoint();
+          Point p = hs.GetDomPoint();
           // check whether next has an unique connected segment
           int s = max(0, next-2);
           int e = min(next+3,Size());
           int count = 0;
-          const HalfSegment* tmp;
+          HalfSegment tmp;
           int partner = 0;
           // search around next
           if(importantPoints.Contains(p)){
@@ -4478,7 +4608,7 @@ void Line::Simplify(Line& result, const double epsilon,
              for(int k=s; (k<e) && (count <2); k++){
                 if(k!=next){
                    Get(k,tmp);
-                   Point p2 = tmp->GetDomPoint();
+                   Point p2 = tmp.GetDomPoint();
                    if(AlmostEqual(p,p2)){
                      count++;
                      partner = k;
@@ -4489,10 +4619,10 @@ void Line::Simplify(Line& result, const double epsilon,
              if(!done){ // extension found
                  used[partner] = true;
                  Get(partner,hs);
-                 next = hs->attr.partnerno;
+                 next = hs.attr.partnerno;
                  used[next] = true;
                  Get(next,hs);
-                 backward.push_back(hs->GetDomPoint());
+                 backward.push_back(hs.GetDomPoint());
              }
          }
        } while(!done);
@@ -4533,7 +4663,7 @@ void Line::Simplify(Line& result, const double epsilon,
 void Line::Realminize(){
    // special case: empty line
   if(!IsDefined()){
-    line.Clear();
+    line.clean();
      return;
   }
 
@@ -4556,11 +4686,12 @@ void Line::Vertices( Points* result ) const
     return;
   }
 
-  const HalfSegment* hs;
+  HalfSegment hs;
+  result->StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
-    *result += hs->GetDomPoint();
+    *result += hs.GetDomPoint();
   }
   result->EndBulkLoad( false, true );
 }
@@ -4577,24 +4708,24 @@ void Line::Boundary(Points* result) const{
   if(IsEmpty()){
     return;
   }
-  const HalfSegment* hs;
-  const HalfSegment* hs_n; // neighbooring halfsegment
+  HalfSegment hs;
+  HalfSegment hs_n; // neighbooring halfsegment
   Point p;
   int size = Size();
   result->StartBulkLoad();
   for(int i=0;i<size;i++){
      bool common = false;
      Get(i,hs);
-     p=hs->GetDomPoint();
+     p=hs.GetDomPoint();
      if(i>0){
        Get(i-1,hs_n);
-       if(p==hs_n->GetDomPoint()){
+       if(p==hs_n.GetDomPoint()){
           common=true;
        }
      }
      if(i<size-1){
        Get(i+1,hs_n);
-       if(p==hs_n->GetDomPoint()){
+       if(p==hs_n.GetDomPoint()){
           common=true;
        }
      }
@@ -4627,26 +4758,26 @@ void Line::SetPartnerNo() {
  if(line.Size()==0){
    return;
  }
- DBArray<int> TMP((line.Size()+1)/2);
+ DbArray<int> TMP((line.Size()+1)/2);
 
- const HalfSegment* hs1;
- const HalfSegment* hs2;
+ HalfSegment hs1;
+ HalfSegment hs2;
  for(int i=0; i<line.Size(); i++){
     line.Get(i,hs1);
-    if(hs1->IsLeftDomPoint()){
-      TMP.Put(hs1->attr.edgeno, i);
+    if(hs1.IsLeftDomPoint()){
+      TMP.Put(hs1.attr.edgeno, i);
     } else {
-      const int* lpp;
-      TMP.Get(hs1->attr.edgeno,lpp);
-      int leftpos = *lpp;
-      HalfSegment right = *hs1;
+      int lpp;
+      TMP.Get(hs1.attr.edgeno,lpp);
+      int leftpos = lpp;
+      HalfSegment right = hs1;
       right.attr.partnerno = leftpos;
       right.attr.insideAbove = false;
       right.attr.coverageno = 0;
       right.attr.cycleno = 0;
       right.attr.faceno = 0;
       line.Get(leftpos,hs2);
-      HalfSegment left = *hs2;
+      HalfSegment left = hs2;
       left.attr.partnerno = i;
       left.attr.insideAbove = false;
       left.attr.coverageno = 0;
@@ -4660,19 +4791,19 @@ void Line::SetPartnerNo() {
 }
 
 bool Line::GetNextSegment( const int poshs, const HalfSegment& hs,
-                           int& posnexths, const HalfSegment*& nexths )
+                           int& posnexths, HalfSegment& nexths )
 {
   if( poshs > 0 )
   {
     Get( posnexths = poshs - 1, nexths );
-    if( hs.GetDomPoint() == nexths->GetDomPoint() )
+    if( hs.GetDomPoint() == nexths.GetDomPoint() )
       return true;
   }
 
   if( poshs < Size() - 1 )
   {
     Get( posnexths = poshs + 1, nexths );
-    if( hs.GetDomPoint() == nexths->GetDomPoint() )
+    if( hs.GetDomPoint() == nexths.GetDomPoint() )
       return true;
   }
 
@@ -4681,11 +4812,11 @@ bool Line::GetNextSegment( const int poshs, const HalfSegment& hs,
 
 bool Line::GetNextSegments( const int poshs, const HalfSegment& hs,
                             vector<bool>& visited,
-                            int& posnexths, const HalfSegment*& nexths,
-                            stack< pair<int, const HalfSegment*> >& nexthss )
+                            int& posnexths, HalfSegment& nexths,
+                            stack< pair<int,  HalfSegment> >& nexthss )
 {
   bool first = true;
-  const HalfSegment *aux;
+  HalfSegment aux;
 
   int auxposhs = poshs;
   while( auxposhs > 0 )
@@ -4694,7 +4825,7 @@ bool Line::GetNextSegments( const int poshs, const HalfSegment& hs,
     if( !visited[auxposhs] )
     {
       Get( auxposhs, aux );
-      if( hs.GetDomPoint() == aux->GetDomPoint() )
+      if( hs.GetDomPoint() == aux.GetDomPoint() )
       {
         if( first )
         {
@@ -4717,7 +4848,7 @@ bool Line::GetNextSegments( const int poshs, const HalfSegment& hs,
     if( !visited[auxposhs] )
     {
       Get( auxposhs, aux );
-      if( hs.GetDomPoint() == aux->GetDomPoint() )
+      if( hs.GetDomPoint() == aux.GetDomPoint() )
       {
         if( first )
         {
@@ -4745,22 +4876,22 @@ Sets length,noComponents, and bbox of the line.
 
 */
 
-int Line::getUnusedExtension(int startPos,const DBArray<bool>& used)const{
-  const HalfSegment* hs;
+int Line::getUnusedExtension(int startPos,const DbArray<bool>& used)const{
+  HalfSegment hs;
   line.Get(startPos,hs);
-  Point p = hs->GetDomPoint();
+  Point p = hs.GetDomPoint();
   int pos = startPos-1;
   bool done = false;
-  const bool* u;
+  bool u;
   // search on the left side
   while(pos>=0 && !done){
      line.Get(pos,hs);
-     Point p2 = hs->GetDomPoint();
+     Point p2 = hs.GetDomPoint();
      if(!AlmostEqual(p,p2)){
        done = true;
      }else {
        used.Get(pos,u);
-       if(!*u){
+       if(!u){
          return pos;
        } else {
          pos--;
@@ -4773,12 +4904,12 @@ int Line::getUnusedExtension(int startPos,const DBArray<bool>& used)const{
   int size = line.Size();
   while(!done && pos<size){
      line.Get(pos,hs);
-     Point p2 = hs->GetDomPoint();
+     Point p2 = hs.GetDomPoint();
      if(!AlmostEqual(p,p2)){
        done = true;
      } else {
        used.Get(pos,u);
-       if(!*u){
+       if(!u){
          return pos;
        } else {
         pos++;
@@ -4788,16 +4919,16 @@ int Line::getUnusedExtension(int startPos,const DBArray<bool>& used)const{
   return -1;
 }
 
-void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
+void Line::collectFace(int faceno, int startPos, DbArray<bool>& used){
   set<int> extensionPos;
 
   used.Put(startPos,true);
-  const HalfSegment* hs1;
-  const HalfSegment* hs2;
+  HalfSegment hs1;
+  HalfSegment hs2;
 
   int pos = startPos;
   line.Get(startPos,hs1);
-  HalfSegment Hs1 = *hs1;
+  HalfSegment Hs1 = hs1;
   int edgeno = 0;
   Hs1.attr.insideAbove=false;
   Hs1.attr.coverageno = 0;
@@ -4810,7 +4941,7 @@ void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
   // get and Set the Partner
   int partner = Hs1.attr.partnerno;
   line.Get(partner,hs2);
-  HalfSegment Hs2 = *hs2;
+  HalfSegment Hs2 = hs2;
   Hs2.attr.insideAbove=false;
   Hs2.attr.coverageno = 0;
   Hs2.attr.cycleno=0;
@@ -4820,11 +4951,11 @@ void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
   line.Put(partner,Hs2);
 
   if(!bbox.IsDefined()){
-    bbox = hs1->BoundingBox();
+    bbox = hs1.BoundingBox();
   } else {
-    bbox = bbox.Union(hs1->BoundingBox());
+    bbox = bbox.Union(hs1.BoundingBox());
   }
-  length += hs1->Length();
+  length += hs1.Length();
 
   if(getUnusedExtension(pos,used)>=0){
      extensionPos.insert(pos);
@@ -4842,7 +4973,7 @@ void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
       extensionPos.erase(spos);
     } else { // extension found at position pos
       line.Get(pos,hs1);
-      Hs1 = (*hs1);
+      Hs1 = (hs1);
       Hs1.attr.insideAbove=false;
       Hs1.attr.coverageno = 0;
       Hs1.attr.cycleno=0;
@@ -4853,7 +4984,7 @@ void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
 
       partner = Hs1.attr.partnerno;
       line.Get(partner,hs2);
-      Hs2 = (*hs2);
+      Hs2 = (hs2);
       Hs2.attr.insideAbove=false;
       Hs2.attr.coverageno = 0;
       Hs2.attr.cycleno=0;
@@ -4864,8 +4995,8 @@ void Line::collectFace(int faceno, int startPos, DBArray<bool>& used){
       if(getUnusedExtension(partner,used)>=0){
         extensionPos.insert(partner);
       }
-      length += hs1->Length();
-      bbox = bbox.Union(hs1->BoundingBox());
+      length += hs1.Length();
+      bbox = bbox.Union(hs1.BoundingBox());
       edgeno++;
     }
   }
@@ -4891,7 +5022,7 @@ void Line::computeComponents() {
     return;
   }
 
-  DBArray<bool> used(line.Size());
+  DbArray<bool> used(line.Size());
 
   for(int i=0;i<line.Size();i++){
     used.Append(false);
@@ -4899,10 +5030,10 @@ void Line::computeComponents() {
 
   int faceno = 0;
 
+  bool u;
   for(int i=0;i<line.Size();i++){
-    const bool* u;
     used.Get(i,u);
-    if(!(*u)){ // an unused halfsegment
+    if(!(u)){ // an unused halfsegment
       collectFace(faceno,i,used);
       faceno++;
     }
@@ -4934,10 +5065,10 @@ void Line::RemoveDuplicates()
 
   HalfSegment tmp;
   HalfSegment last;
-  const HalfSegment* ptmp;
+  HalfSegment ptmp;
   int pos = 0;
   line.Get( 0, ptmp );
-  last = *ptmp;
+  last = ptmp;
 
   newEdgeNumbers[last.attr.edgeno] = newedge;
   last.attr.edgeno = newedge;
@@ -4947,7 +5078,7 @@ void Line::RemoveDuplicates()
   for( int i = 1; i < size; i++ )
   {
     line.Get( i, ptmp );
-    tmp = *ptmp;
+    tmp = ptmp;
     int edge = tmp.attr.edgeno;
     if( last != tmp )
       // new segment found
@@ -4968,7 +5099,7 @@ void Line::RemoveDuplicates()
   }
   if( pos + 1 != size ){
     // duplicates found
-    line.Resize( pos + 1 );
+    line.resize( pos + 1 );
   }
 }
 
@@ -4980,16 +5111,16 @@ void Line::WindowClippingIn( const Rectangle<2> &window,
   clippedLine.StartBulkLoad();
   for (int i=0; i < Size();i++)
   {
-    const HalfSegment *hs;
+    HalfSegment hs;
     HalfSegment hsInside;
     bool insidehs = false,
          isIntersectionPoint = false;
     Get( i, hs );
 
-    if( hs->IsLeftDomPoint() )
+    if( hs.IsLeftDomPoint() )
     {
       Point intersectionPoint;
-      hs->WindowClippingIn( window, hsInside, insidehs,
+      hs.WindowClippingIn( window, hsInside, insidehs,
                             isIntersectionPoint,
                             intersectionPoint );
       if( insidehs && !isIntersectionPoint )
@@ -5012,40 +5143,40 @@ void Line::WindowClippingOut( const Rectangle<2> &window,
   clippedLine.StartBulkLoad();
   for (int i=0; i < Size();i++)
   {
-    const HalfSegment *hs;
+    HalfSegment hs;
     HalfSegment hsInside;
     bool outsidehs = false,
          isIntersectionPoint = false;
     Get( i, hs );
 
-    if( hs->IsLeftDomPoint() )
+    if( hs.IsLeftDomPoint() )
     {
       Point intersectionPoint;
-      hs->WindowClippingIn( window, hsInside, outsidehs,
+      hs.WindowClippingIn( window, hsInside, outsidehs,
                             isIntersectionPoint,
                             intersectionPoint );
       if( outsidehs && !isIntersectionPoint )
       {
-        if( hs->GetLeftPoint() != hsInside.GetLeftPoint() )
+        if( hs.GetLeftPoint() != hsInside.GetLeftPoint() )
         {//Add the part of the half segment composed by the left
          // point of hs and the left point of hsInside.
           HalfSegment hsLeft( true,
-                              hs->GetLeftPoint(),
+                              hs.GetLeftPoint(),
                               hsInside.GetLeftPoint() );
-          AttrType attr = hs->GetAttr();
+          AttrType attr = hs.GetAttr();
           hsLeft.SetAttr(attr);
           clippedLine += hsLeft;
           hsLeft.SetLeftDomPoint( !hsLeft.IsLeftDomPoint() );
           clippedLine += hsLeft;
           outside = true;
         }
-        if( hs->GetRightPoint() != hsInside.GetRightPoint() )
+        if( hs.GetRightPoint() != hsInside.GetRightPoint() )
         {//Add the part of the half segment composed by the left
          // point of hs and the left point of hsInside.
           HalfSegment hsRight( true,
-                               hs->GetRightPoint(),
+                               hs.GetRightPoint(),
                                hsInside.GetRightPoint() );
-          AttrType attr=hs->GetAttr();
+          AttrType attr=hs.GetAttr();
           hsRight.SetAttr(attr);
           clippedLine += hsRight;
           hsRight.SetLeftDomPoint( !hsRight.IsLeftDomPoint() );
@@ -5055,7 +5186,7 @@ void Line::WindowClippingOut( const Rectangle<2> &window,
       }
       else
       {
-        HalfSegment auxhs = *hs;
+        HalfSegment auxhs = hs;
         clippedLine += auxhs;
         auxhs.SetLeftDomPoint( !auxhs.IsLeftDomPoint() );
         clippedLine += auxhs;
@@ -5070,11 +5201,11 @@ void Line::WindowClippingOut( const Rectangle<2> &window,
 ostream& operator<<( ostream& os, const Line& cl )
 {
   os << "<";
+  HalfSegment hs;
   for( int i = 0; i < cl.Size(); i++ )
   {
-    const HalfSegment *hs;
     cl.Get( i, hs );
-    os << " " << *hs << endl;
+    os << " " << hs << endl;
   }
   os << ">";
   return os;
@@ -5087,16 +5218,16 @@ size_t Line::HashValue() const
 
   size_t h = 0;
 
-  const HalfSegment *hs;
+  HalfSegment hs;
   Coord x1, y1, x2, y2;
 
   for( int i = 0; i < Size() && i < 5; i++ )
   {
     Get( i, hs );
-    x1 = hs->GetLeftPoint().GetX();
-    y1 = hs->GetLeftPoint().GetY();
-    x2 = hs->GetRightPoint().GetX();
-    y2 = hs->GetRightPoint().GetY();
+    x1 = hs.GetLeftPoint().GetX();
+    y1 = hs.GetLeftPoint().GetY();
+    x2 = hs.GetRightPoint().GetX();
+    y2 = hs.GetRightPoint().GetY();
 
     h += (size_t)( (5 * x1 + y1) + (5 * x2 + y2) );
   }
@@ -5105,7 +5236,7 @@ size_t Line::HashValue() const
 
 void Line::Clear()
 {
-  line.Clear();
+  line.clean();
   pos = -1;
   ordered = true;
   bbox.SetDefined( false );
@@ -5114,18 +5245,33 @@ void Line::Clear()
 
 void Line::CopyFrom( const Attribute* right )
 {
-  Clear();
   *this = *((const Line *)right);
 }
 
 int Line::Compare( const Attribute *arg ) const
 {
+
   const Line &l = *((const Line*)arg);
+
+  if(!IsDefined() && !l.IsDefined()){
+   return 0;
+  }
+  if(!IsDefined()){
+   return -1;
+  }
+  if(!l.IsDefined()){
+   return 1;
+  }
+
 
   if( Size() > l.Size() )
     return 1;
   if( Size() < l.Size() )
     return -1;
+
+  if(Size()==0){
+    return 0;
+  }
 
   object obj;
   status stat;
@@ -5174,9 +5320,14 @@ ListExpr
 OutLine( ListExpr typeInfo, Word value )
 {
   ListExpr result, last;
-  const HalfSegment *hs;
+  HalfSegment hs;
   ListExpr halfseg, halfpoints, flatseg;
   Line* l = (Line*)(value.addr);
+
+  if(!l->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
 
   if( l->IsEmpty() )
     return nl->TheEmptyList();
@@ -5188,9 +5339,9 @@ OutLine( ListExpr typeInfo, Word value )
   for( int i = 0; i < l->Size(); i++ )
   {
     l->Get( i, hs );
-    if( hs->IsLeftDomPoint() == true )
+    if( hs.IsLeftDomPoint() == true )
     {
-      halfseg = OutHalfSegment( nl->TheEmptyList(), SetWord( (void*)hs ) );
+      halfseg = OutHalfSegment( nl->TheEmptyList(), SetWord( (void*)&hs ) );
       halfpoints = nl->Second( halfseg );
       flatseg = nl->FourElemList(
                   nl->First( nl->First( halfpoints ) ),
@@ -5219,6 +5370,13 @@ InLine( const ListExpr typeInfo, const ListExpr instance,
         const int errorPos, ListExpr& errorInfo, bool& correct )
 {
   Line* l = new Line( 0 );
+
+  if(nl->IsEqual(instance,"undef")){
+    l->SetDefined(false);
+    correct=true;
+    return SetWord(Address(l));
+  }
+
   HalfSegment * hs;
   l->StartBulkLoad();
   ListExpr first, halfseg, halfpoint;
@@ -5453,35 +5611,30 @@ bool SimpleLine::EndBulkLoad(){
   // Sort the segments
   Sort();
   // Realminize the segments
-  DBArray<HalfSegment>* tmp;
+  DbArray<HalfSegment>* tmp;
   tmp = Realminize(segments);
-  segments.Clear();
-  //segments = *tmp; // does not work correctly
-  const HalfSegment* hs;
-  for(int i=0;i<tmp->Size();i++){
-     tmp->Get(i,hs);
-     segments.Append(*hs);
-  }
-  //tmp->Destroy();
+  segments.clean();
+  segments.copyFrom(*tmp);
+  tmp->Destroy();
   delete tmp;
   SetPartnerNo();
 
   // recompute Bounding box;
   if(segments.Size()>0){
-    const HalfSegment* hs;
+    HalfSegment hs;
     segments.Get(0,hs);
-    bbox = hs->BoundingBox();
+    bbox = hs.BoundingBox();
     for(int i=1; i< segments.Size();i++){
       segments.Get(i,hs);
-      bbox = bbox.Union(hs->BoundingBox());
+      bbox = bbox.Union(hs.BoundingBox());
     }
   }else{
     bbox.SetDefined(false);
   }
 
   if(!computePolyline()){
-     segments.Clear();
-     lrsArray.Clear();
+     segments.clean();
+     lrsArray.clean();
      SetDefined(false);
      return false;
   } else {
@@ -5515,15 +5668,15 @@ Point SimpleLine::StartPoint( bool startsSmaller ) const {
    }
 
    // Read entry from linear referencing system.
-   const LRS *lrs;
+   LRS lrs;
    lrsArray.Get( pos, lrs );
    // Get half-segment
-   const HalfSegment* hs;
-   segments.Get( lrs->hsPos, hs );
+   HalfSegment hs;
+   segments.Get( lrs.hsPos, &hs );
 
    // Return one end of the half-segment depending
    // on the start.
-   return startPointSmaller ?  hs->GetDomPoint() : hs->GetSecPoint();
+   return startPointSmaller ?  hs.GetDomPoint() : hs.GetSecPoint();
 }
 
 /*
@@ -5549,11 +5702,11 @@ bool SimpleLine::Contains( const Point& p ) const {
  if( pos >= Size() ){
     return false;
  }
- const HalfSegment *hs;
+ HalfSegment hs;
  for( ; pos >= 0; pos-- ){
-   segments.Get( pos, hs );
-   if( hs->IsLeftDomPoint() ) {
-     if( hs->Contains( p ) ){
+   segments.Get( pos, &hs );
+   if( hs.IsLeftDomPoint() ) {
+     if( hs.Contains( p ) ){
        return true;
      }
    }
@@ -5562,15 +5715,15 @@ bool SimpleLine::Contains( const Point& p ) const {
 }
 
 double SimpleLine::Distance(const Point& p)const {
-  const HalfSegment *hs;
+  HalfSegment hs;
   double result = numeric_limits<double>::max();
   for( int i = 0; i < Size(); i++ ) {
     Get( i, hs );
-    if( hs->IsLeftDomPoint() ) {
-      if( hs->Contains( p ) ){
+    if( hs.IsLeftDomPoint() ) {
+      if( hs.Contains( p ) ){
         return 0.0;
       }
-      result = MIN( result, hs->Distance( p ) );
+      result = MIN( result, hs.Distance( p ) );
     }
   }
   return result;
@@ -5578,20 +5731,20 @@ double SimpleLine::Distance(const Point& p)const {
 
 
 double SimpleLine::Distance(const Points& ps)const{
-  const HalfSegment *hs;
-  const Point *p;
+  HalfSegment hs;
+  Point p;
   double result = numeric_limits<double>::max();
 
   for( int i = 0; i < Size(); i++ ) {
     Get( i, hs );
 
-    if( hs->IsLeftDomPoint() ) {
+    if( hs.IsLeftDomPoint() ) {
       for( int j = 0; j < ps.Size(); j++ ) {
         ps.Get( j, p );
-        if( hs->Contains( *p ) ){
+        if( hs.Contains( p ) ){
           return 0;
         }
-        result = MIN( result, hs->Distance( *p ) );
+        result = MIN( result, hs.Distance( p ) );
       }
     }
   }
@@ -5599,20 +5752,20 @@ double SimpleLine::Distance(const Points& ps)const{
 }
 
 double SimpleLine::Distance(const SimpleLine& sl)const{
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   double result = numeric_limits<double>::max();
 
   for( int i = 0; i < Size(); i++ ) {
     Get( i, hs1 );
 
-    if( hs1->IsLeftDomPoint() ) {
+    if( hs1.IsLeftDomPoint() ) {
       for( int j = 0; j < sl.Size(); j++ ) {
         sl.Get( j, hs2 );
 
-        if( hs1->Intersects( *hs2 ) ){
+        if( hs1.Intersects( hs2 ) ){
           return 0.0;
         }
-        result = MIN( result, hs1->Distance( *hs2 ) );
+        result = MIN( result, hs1.Distance( hs2 ) );
       }
     }
   }
@@ -5638,12 +5791,12 @@ bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
     return false;
  }
 
- const LRS *lrs2;
+ LRS lrs2;
  lrsArray.Get( lrsPos, lrs2 );
 
- const HalfSegment *hs;
- segments.Get( lrs2->hsPos, hs );
- p = hs->AtPosition( pos - lrs2->lrsPos );
+ HalfSegment hs;
+ segments.Get( lrs2.hsPos, &hs );
+ p = hs.AtPosition( pos - lrs2.lrsPos );
  return true;
 }
 
@@ -5659,15 +5812,15 @@ bool SimpleLine::AtPoint( const Point& p,
  }
 
  bool found = false;
- const HalfSegment *hs;
+ HalfSegment hs;
  int pos;
  if( Find( p, pos ) ) {
    found = true;
-   segments.Get( pos, hs );
+   segments.Get( pos, &hs );
   } else if( pos < Size() ) {
    for( ; pos >= 0; pos-- ) {
      segments.Get( pos, hs );
-     if( hs->IsLeftDomPoint() && hs->Contains( p ) ) {
+     if( hs.IsLeftDomPoint() && hs.Contains( p ) ) {
        found = true;
        break;
      }
@@ -5675,10 +5828,10 @@ bool SimpleLine::AtPoint( const Point& p,
   }
 
   if( found ){
-    const LRS *lrs;
-    lrsArray.Get( hs->attr.edgeno, lrs );
-    segments.Get( lrs->hsPos, hs );
-    result = lrs->lrsPos + p.Distance( hs->GetDomPoint() );
+    LRS lrs;
+    lrsArray.Get( hs.attr.edgeno, lrs );
+    segments.Get( lrs.hsPos, &hs );
+    result = lrs.lrsPos + p.Distance( hs.GetDomPoint() );
 
     if( startsSmaller != this->startSmaller ){
       result = length - result;
@@ -5730,18 +5883,18 @@ void SimpleLine::SubLine( double pos1, double pos2,
   int lrsPos;
   Find( lrs, lrsPos );
 
-  const LRS *lrs2;
+  LRS lrs2;
   lrsArray.Get( lrsPos, lrs2 );
 
-  const HalfSegment *hs;
-  segments.Get( lrs2->hsPos, hs );
+  HalfSegment hs;
+  segments.Get( lrs2.hsPos, hs );
 
   l.Clear();
   l.StartBulkLoad();
   int edgeno = 0;
 
   HalfSegment auxHs;
-  if( hs->SubHalfSegment( pos1 - lrs2->lrsPos, pos2 - lrs2->lrsPos, auxHs ) ) {
+  if( hs.SubHalfSegment( pos1 - lrs2.lrsPos, pos2 - lrs2.lrsPos, auxHs ) ) {
      auxHs.attr.edgeno = ++edgeno;
      l += auxHs;
      auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
@@ -5749,13 +5902,13 @@ void SimpleLine::SubLine( double pos1, double pos2,
    }
 
    while( lrsPos < lrsArray.Size() - 1 &&
-          ( lrs2->lrsPos + hs->Length() < pos2 ||
-            AlmostEqual( lrs2->lrsPos + hs->Length(), pos2 ) ) ) {
+          ( lrs2.lrsPos + hs.Length() < pos2 ||
+            AlmostEqual( lrs2.lrsPos + hs.Length(), pos2 ) ) ) {
      // Get the next half segment in the sequence
      lrsArray.Get( ++lrsPos, lrs2 );
-     segments.Get( lrs2->hsPos, hs );
+     segments.Get( lrs2.hsPos, hs );
 
-     if( hs->SubHalfSegment( pos1 - lrs2->lrsPos, pos2 - lrs2->lrsPos, auxHs)){
+     if( hs.SubHalfSegment( pos1 - lrs2.lrsPos, pos2 - lrs2.lrsPos, auxHs)){
        auxHs.attr.edgeno = ++edgeno;
        l += auxHs;
        auxHs.SetLeftDomPoint( !auxHs.IsLeftDomPoint() );
@@ -5775,7 +5928,7 @@ void SimpleLine::Crossings( const SimpleLine& l, Points& result ) const
   if( IsEmpty() || l.IsEmpty() )
     return;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   Point p;
 
   result.StartBulkLoad();
@@ -5783,15 +5936,15 @@ void SimpleLine::Crossings( const SimpleLine& l, Points& result ) const
   {
     Get( i, hs1 );
 
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < l.Size(); j++ )
       {
         l.Get( j, hs2 );
 
-        if( hs2->IsLeftDomPoint() )
+        if( hs2.IsLeftDomPoint() )
         {
-          if( hs1->Intersection( *hs2, p ) )
+          if( hs1.Intersection( hs2, p ) )
             result += p;
         }
       }
@@ -5812,18 +5965,18 @@ bool SimpleLine::Intersects(const SimpleLine& l) const{
       return false;
    }
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < l.Size(); j++ )
       {
         l.Get( j, hs2 );
-        if (hs2->IsLeftDomPoint())
+        if (hs2.IsLeftDomPoint())
         {
-          if( hs1->Intersects( *hs2 ) )
+          if( hs1.Intersects( hs2 ) )
             return true;
         }
       }
@@ -5853,9 +6006,9 @@ bool SimpleLine::SelectInitialSegment( const Point &startPoint,
          // scan all dominating point, save the index of the HalfSegment with
          // the currently smallest distance to startPoint to currentHS and the
          // current minimum distance to minDist
-         const HalfSegment* hs;
+         HalfSegment hs;
          segments.Get( pos, hs );
-         distance = hs->GetDomPoint().Distance(startPoint);
+         distance = hs.GetDomPoint().Distance(startPoint);
          if (distance <= minDist) {
            minDist   = distance;
            currentHS = pos;
@@ -5873,20 +6026,20 @@ bool SimpleLine::SelectInitialSegment( const Point &startPoint,
 bool SimpleLine::SelectSubsequentSegment() {
   assert( IsDefined() );
 
-  const HalfSegment* hs;
+  HalfSegment hs;
 
   if( isCycle || currentHS < 0 ){
      return false;
   }
   segments.Get(currentHS, hs);
-  int partner = hs->attr.partnerno;
-  const HalfSegment* nexths;
+  int partner = hs.attr.partnerno;
+  HalfSegment nexths;
 
   // look at position before currentHS's partner
   if( partner>0 ) {
     currentHS = partner - 1;
     segments.Get(currentHS, nexths);
-    if ( AlmostEqual(nexths->GetDomPoint(), hs->GetSecPoint()) ) {
+    if ( AlmostEqual(nexths.GetDomPoint(), hs.GetSecPoint()) ) {
        return true;
     }
   }
@@ -5894,7 +6047,7 @@ bool SimpleLine::SelectSubsequentSegment() {
   if( partner < Size()-1 ) {
      currentHS = partner + 1;
      segments.Get(currentHS, nexths);
-     if ( AlmostEqual(nexths->GetDomPoint(), hs->GetSecPoint()) ) {
+     if ( AlmostEqual(nexths.GetDomPoint(), hs.GetSecPoint()) ) {
        return true;
      }
    }
@@ -5910,9 +6063,9 @@ bool SimpleLine::getWaypoint( Point &destination ) const{
      destination.SetDefined( false );
      return false;
    }
-   const HalfSegment* hs;
+   HalfSegment hs;
    segments.Get(currentHS, hs);
-   destination = hs->GetSecPoint();
+   destination = hs.GetSecPoint();
    destination.SetDefined( true );
    return true;
 }
@@ -5929,16 +6082,15 @@ void SimpleLine::fromLine(const Line& src){
   }
   StartBulkLoad();
   int edgeno = 0;
-  const HalfSegment* hs;
+  HalfSegment hs;
   for(int i=0;i<src.Size();i++){
     src.Get(i,hs);
-    if(hs->IsLeftDomPoint()){
-       HalfSegment hs2 = *hs;
-       hs2.attr.edgeno = edgeno;
+    if(hs.IsLeftDomPoint()){
+       hs.attr.edgeno = edgeno;
        edgeno++;
-       (*this) += hs2;
-       hs2.SetLeftDomPoint(false);
-       (*this) += hs2;
+       (*this) += hs;
+       hs.SetLeftDomPoint(false);
+       (*this) += hs;
     }
   }
   EndBulkLoad();
@@ -5952,11 +6104,11 @@ void SimpleLine::toLine(Line& result)const{
     return;
   }
   result.SetDefined(true);
-  const HalfSegment* hs;
+  HalfSegment hs;
   result.StartBulkLoad();
   for(int i=0;i<segments.Size();i++){
     segments.Get(i,hs);
-    result +=  *hs;
+    result +=  hs;
   }
   result.EndBulkLoad();
 }
@@ -5966,26 +6118,26 @@ void SimpleLine::SetPartnerNo(){
   if(segments.Size()==0){
     return;
   }
-  DBArray<int> TMP((segments.Size()+1)/2);
+  DbArray<int> TMP((segments.Size()+1)/2);
 
-  const HalfSegment* hs1;
-  const HalfSegment* hs2;
+  HalfSegment hs1;
+  HalfSegment hs2;
   for(int i=0; i<segments.Size(); i++){
      segments.Get(i,hs1);
-     if(hs1->IsLeftDomPoint()){
-        TMP.Put(hs1->attr.edgeno, i);
+     if(hs1.IsLeftDomPoint()){
+        TMP.Put(hs1.attr.edgeno, i);
       } else {
-        const int* lpp;
-        TMP.Get(hs1->attr.edgeno,lpp);
-        int leftpos = *lpp;
-        HalfSegment right = *hs1;
+        int lpp;
+        TMP.Get(hs1.attr.edgeno,lpp);
+        int leftpos = lpp;
+        HalfSegment right = hs1;
         right.attr.partnerno = leftpos;
         right.attr.insideAbove = false;
         right.attr.coverageno = 0;
         right.attr.cycleno = 0;
         right.attr.faceno = 0;
         segments.Get(leftpos,hs2);
-        HalfSegment left = *hs2;
+        HalfSegment left = hs2;
         left.attr.partnerno = i;
         left.attr.insideAbove = false;
         left.attr.coverageno = 0;
@@ -5999,7 +6151,7 @@ void SimpleLine::SetPartnerNo(){
  }
 
  bool SimpleLine::computePolyline(){
-  lrsArray.Clear();
+  lrsArray.clean();
   isCycle = false;
   length = 0;
   if(segments.Size()==0){ // an empty line
@@ -6015,17 +6167,17 @@ void SimpleLine::SetPartnerNo(){
   int end = -1;
   int count = 0;
   int pos = 0;
-  const HalfSegment* hs;
+  HalfSegment hs;
   Point p1;
   Point p2;
   while(pos<size){
     count = 1;
     segments.Get(pos,hs);
-    p1 = hs->GetDomPoint();
+    p1 = hs.GetDomPoint();
     pos++;
     if(pos<size){
       segments.Get(pos,hs);
-      p2 = hs->GetDomPoint();
+      p2 = hs.GetDomPoint();
     }
     while(pos<size && AlmostEqual(p1,p2)){
       count++;
@@ -6036,7 +6188,7 @@ void SimpleLine::SetPartnerNo(){
         p1 = p2;
         if(pos<size){
            segments.Get(pos,hs);
-           p2 = hs->GetDomPoint();
+           p2 = hs.GetDomPoint();
         }
       }
     }
@@ -6066,9 +6218,9 @@ void SimpleLine::SetPartnerNo(){
   // the line has two or zero endpoints, may be several components
   vector<bool> used(size,false);
   int noUnused = size;
-  const HalfSegment* hs1;
-  const HalfSegment* hs2;
-  lrsArray.Resize(segments.Size()/2 + 1);
+  HalfSegment hs1;
+  HalfSegment hs2;
+  lrsArray.resize(segments.Size()/2 + 1);
   double lrsPos = 0.0;
   int hsPos = pos;
   int edge = 0;
@@ -6076,13 +6228,13 @@ void SimpleLine::SetPartnerNo(){
     segments.Get(hsPos,hs1);
     used[hsPos]=true; // segment is used
     noUnused--;
-    int partnerpos = hs1->attr.partnerno;
+    int partnerpos = hs1.attr.partnerno;
     segments.Get(partnerpos,hs2);
     used[partnerpos] = true; // partner is used
     noUnused--;
     // store edgenumber
-    HalfSegment HS1 = *hs1;
-    HalfSegment HS2 = *hs2;
+    HalfSegment HS1 = hs1;
+    HalfSegment HS2 = hs2;
     HS1.attr.edgeno = edge;
     HS2.attr.edgeno = edge;
     edge++;
@@ -6090,13 +6242,13 @@ void SimpleLine::SetPartnerNo(){
     segments.Put(partnerpos,HS2);
 
     lrsArray.Append(LRS(lrsPos,hsPos));
-    lrsPos += hs1->Length();
-    Point p1 = hs2->GetDomPoint();
+    lrsPos += hs1.Length();
+    Point p1 = hs2.GetDomPoint();
     if(noUnused > 0){
        bool found = false;
        if(partnerpos > 0 && !used[partnerpos-1]){ // check left side
          segments.Get(partnerpos-1,hs2);
-         Point p2 = hs2->GetDomPoint();
+         Point p2 = hs2.GetDomPoint();
          if(AlmostEqual(p1,p2)){ // extension found
            found = true;
            hsPos = partnerpos-1;
@@ -6104,7 +6256,7 @@ void SimpleLine::SetPartnerNo(){
        }
        if(!found  && (partnerpos < (size-1) && !used[partnerpos+1])){
            segments.Get(partnerpos+1,hs2);
-           Point p2 = hs2->GetDomPoint();
+           Point p2 = hs2.GetDomPoint();
            if(AlmostEqual(p1,p2)){
               found = true;
               hsPos = partnerpos+1;
@@ -6139,12 +6291,12 @@ int SimpleLine::Compare(const Attribute* arg)const{
     return 1;
   }
   int cmp;
-  const HalfSegment* hs1;
-  const HalfSegment* hs2;
+  HalfSegment hs1;
+  HalfSegment hs2;
   for(int i=0;i<segments.Size();i++){
      segments.Get(i,hs1);
      line->segments.Get(i,hs2);
-     if( (cmp = hs1->Compare(*hs2)) !=0){
+     if( (cmp = hs1.Compare(hs2)) !=0){
        return cmp;
      }
   }
@@ -6215,7 +6367,7 @@ Word
 
  ListExpr OutSimpleLine( ListExpr typeInfo, Word value ) {
    ListExpr result, last;
-   const HalfSegment *hs;
+   HalfSegment hs;
    ListExpr halfseg, halfpoints, flatseg;
    SimpleLine* l = static_cast<SimpleLine*>(value.addr);
 
@@ -6229,8 +6381,8 @@ Word
 
    for( int i = 0; i < l->Size(); i++ ) {
       l->Get( i, hs );
-      if( hs->IsLeftDomPoint() ){
-        halfseg = OutHalfSegment( nl->TheEmptyList(), SetWord( (void*)hs ) );
+      if( hs.IsLeftDomPoint() ){
+        halfseg = OutHalfSegment( nl->TheEmptyList(), SetWord( (void*)&hs ) );
         halfpoints = nl->Second( halfseg );
         flatseg = nl->FourElemList(
                     nl->First( nl->First( halfpoints ) ),
@@ -6328,30 +6480,26 @@ noComponents( cr.noComponents ),
 ordered( true )
 {
   assert( cr.IsOrdered() );
-  StartBulkLoad();
-  const HalfSegment *hs;
+  HalfSegment hs;
   if( !onlyLeft )
   {
-    for( int i = 0; i < cr.Size(); i++ )
-    {
-      cr.Get( i, hs );
-      region.Put( i, *hs );
-    }
+    region.copyFrom(cr.region);
   }
   else
   {
+    StartBulkLoad();
     int j=0;
     for( int i = 0; i < cr.Size(); i++ )
     {
       cr.Get( i, hs );
-      if (hs->IsLeftDomPoint())
+      if (hs.IsLeftDomPoint())
       {
-        region.Put( j, *hs );
+        region.Put( j, hs );
         j++;
       }
     }
+    EndBulkLoad( false, false, false, false );
   }
-  EndBulkLoad( false, false, false, false );
   del.refs=1;
   del.isDelete=true;
   del.isDefined = cr.del.isDefined;
@@ -6377,10 +6525,12 @@ Region::Region( const Rectangle<2>& r ):region(8)
           AlmostEqual(v3, v4) ||
           AlmostEqual(v4, v1) )
       { // one interval is (almost) empty, so will be the region
+        Clear();
         SetDefined( true );
         return;
       }
 
+      SetDefined( true );
       StartBulkLoad();
 
       hs.Set(true, v1, v2);
@@ -6424,10 +6574,10 @@ Region::Region( const Rectangle<2>& r ):region(8)
       *this += hs;
 
       EndBulkLoad();
-      SetDefined( true );
     }
-    else
+    else {
       SetDefined( false );
+    }
 }
 
 void Region::StartBulkLoad()
@@ -6443,22 +6593,21 @@ void Region::EndBulkLoad( bool sort, bool setCoverageNo,
 
   if( setCoverageNo )
   {
-    const HalfSegment *hs;
+    HalfSegment hs;
     int currCoverageNo = 0;
 
     for( int i = 0; i < this->Size(); i++ )
     {
       Get( i, hs );
 
-      if( hs->IsLeftDomPoint() )
+      if( hs.IsLeftDomPoint() )
         currCoverageNo++;
       else
         currCoverageNo--;
 
-      HalfSegment auxhs( *hs );
-      auxhs.attr.coverageno = currCoverageNo;
+      hs.attr.coverageno = currCoverageNo;
 
-      region.Put( i, auxhs );
+      region.Put( i, hs );
     }
   }
 
@@ -6483,7 +6632,7 @@ bool Region::Contains( const Point& p ) const
     return false;
 
   map<int, int> faceISN;
-  const HalfSegment *hs;
+  HalfSegment hs;
 
   int coverno=0;
   int startpos=0;
@@ -6503,17 +6652,17 @@ bool Region::Contains( const Point& p ) const
   //2. deal with equal-x hs's
   region.Get( i, hs );
   while( i > 0 &&
-         hs->GetDomPoint().GetX() == p.GetX() )
+         hs.GetDomPoint().GetX() == p.GetX() )
   {
-    if( hs->Contains(p) )
+    if( hs.Contains(p) )
       return true;
 
-    if( hs->IsLeftDomPoint() && hs->RayAbove( p, y0 ) )
+    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) )
     {
-      if( faceISN.find( hs->attr.faceno ) != faceISN.end() )
-        faceISN[ hs->attr.faceno ]++;
+      if( faceISN.find( hs.attr.faceno ) != faceISN.end() )
+        faceISN[ hs.attr.faceno ]++;
       else
-        faceISN[ hs->attr.faceno ] = 1;
+        faceISN[ hs.attr.faceno ] = 1;
     }
     region.Get( --i, hs );
   }
@@ -6521,7 +6670,7 @@ bool Region::Contains( const Point& p ) const
   // at this point, i is pointing to the last hs whose dp.x != p.x
 
   //3. get the coverage value
-  coverno = hs->attr.coverageno;
+  coverno = hs.attr.coverageno;
 
   //4. search the region value for coverageno steps
   int touchedNo = 0;
@@ -6529,20 +6678,20 @@ bool Region::Contains( const Point& p ) const
   {
     this->Get(i, hs);
 
-    if( hs->Contains(p) )
+    if( hs.Contains(p) )
       return true;
 
-    if( hs->IsLeftDomPoint() &&
-        hs->GetLeftPoint().GetX() <= p.GetX() &&
-        p.GetX() <= hs->GetRightPoint().GetX() )
+    if( hs.IsLeftDomPoint() &&
+        hs.GetLeftPoint().GetX() <= p.GetX() &&
+        p.GetX() <= hs.GetRightPoint().GetX() )
       touchedNo++;
 
-    if( hs->IsLeftDomPoint() && hs->RayAbove( p, y0 ) )
+    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) )
     {
-      if( faceISN.find( hs->attr.faceno ) != faceISN.end() )
-        faceISN[ hs->attr.faceno ]++;
+      if( faceISN.find( hs.attr.faceno ) != faceISN.end() )
+        faceISN[ hs.attr.faceno ]++;
       else
-        faceISN[ hs->attr.faceno ] = 1;
+        faceISN[ hs.attr.faceno ] = 1;
     }
 
     i--;  //the iterator
@@ -6569,7 +6718,7 @@ bool Region::InnerContains( const Point& p ) const
     return false;
 
   map<int, int> faceISN;
-  const HalfSegment *hs;
+  HalfSegment hs;
 
   int coverno = 0,
       startpos = 0;
@@ -6589,17 +6738,17 @@ bool Region::InnerContains( const Point& p ) const
   //2. deal with equal-x hs's
   region.Get( i, hs );
   while( i > 0 &&
-         hs->GetDomPoint().GetX() == p.GetX() )
+         hs.GetDomPoint().GetX() == p.GetX() )
   {
-    if( hs->Contains(p) )
+    if( hs.Contains(p) )
       return false;
 
-    if( hs->IsLeftDomPoint() && hs->RayAbove( p, y0 ) )
+    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) )
     {
-      if( faceISN.find( hs->attr.faceno ) != faceISN.end() )
-        faceISN[ hs->attr.faceno ]++;
+      if( faceISN.find( hs.attr.faceno ) != faceISN.end() )
+        faceISN[ hs.attr.faceno ]++;
       else
-        faceISN[ hs->attr.faceno ] = 1;
+        faceISN[ hs.attr.faceno ] = 1;
     }
     region.Get( --i, hs );
   }
@@ -6607,7 +6756,7 @@ bool Region::InnerContains( const Point& p ) const
   // at this point, i is pointing to the last hs whose dp.x != p.x
 
   //3. get the coverage value
-  coverno = hs->attr.coverageno;
+  coverno = hs.attr.coverageno;
 
   //4. search the region value for coverageno steps
   int touchedNo = 0;
@@ -6615,20 +6764,20 @@ bool Region::InnerContains( const Point& p ) const
   {
     this->Get(i, hs);
 
-    if( hs->Contains(p) )
+    if( hs.Contains(p) )
       return false;
 
-    if( hs->IsLeftDomPoint() &&
-        hs->GetLeftPoint().GetX() <= p.GetX() &&
-        p.GetX() <= hs->GetRightPoint().GetX() )
+    if( hs.IsLeftDomPoint() &&
+        hs.GetLeftPoint().GetX() <= p.GetX() &&
+        p.GetX() <= hs.GetRightPoint().GetX() )
       touchedNo++;
 
-    if( hs->IsLeftDomPoint() && hs->RayAbove( p, y0 ) )
+    if( hs.IsLeftDomPoint() && hs.RayAbove( p, y0 ) )
     {
-      if( faceISN.find( hs->attr.faceno ) != faceISN.end() )
-        faceISN[ hs->attr.faceno ]++;
+      if( faceISN.find( hs.attr.faceno ) != faceISN.end() )
+        faceISN[ hs.attr.faceno ]++;
       else
-        faceISN[ hs->attr.faceno ] = 1;
+        faceISN[ hs.attr.faceno ] = 1;
     }
 
     i--;  //the iterator
@@ -6652,11 +6801,11 @@ bool Region::Intersects( const HalfSegment& inHs ) const
         Contains( inHs.GetRightPoint() ) )
       return true;
 
-    const HalfSegment *hs;
+    HalfSegment hs;
     for( int i = 0; i < Size(); i++ )
     {
       Get( i, hs );
-      if( hs->Intersects( inHs ) )
+      if( hs.Intersects( inHs ) )
         return true;
     }
   }
@@ -6676,23 +6825,23 @@ bool Region::Contains( const HalfSegment& hs ) const
       !Contains(hs.GetRightPoint()) )
     return false;
 
-  const HalfSegment *auxhs;
+  HalfSegment auxhs;
   bool checkMidPoint = false;
 
   //now we know that both endpoints of hs is inside region
   for( int i = 0; i < Size(); i++ )
   {
     Get(i, auxhs);
-    if( auxhs->IsLeftDomPoint() )
+    if( auxhs.IsLeftDomPoint() )
     {
-      if( hs.Crosses(*auxhs) )
+      if( hs.Crosses(auxhs) )
         return false;
-      else if( hs.Inside(*auxhs) )
+      else if( hs.Inside(auxhs) )
        //hs is part of the border
         return true;
-      else if( hs.Intersects(*auxhs) &&
-               ( auxhs->Contains(hs.GetLeftPoint()) ||
-                 auxhs->Contains(hs.GetRightPoint()) ) );
+      else if( hs.Intersects(auxhs) &&
+               ( auxhs.Contains(hs.GetLeftPoint()) ||
+                 auxhs.Contains(hs.GetRightPoint()) ) );
         checkMidPoint = true;
     }
   }
@@ -6721,15 +6870,15 @@ bool Region::InnerContains( const HalfSegment& hs ) const
       !InnerContains(hs.GetRightPoint()) )
     return false;
 
-  const HalfSegment *auxhs;
+  HalfSegment auxhs;
 
   //now we know that both endpoints of hs are completely inside the region
   for( int i = 0; i < Size(); i++ )
   {
     Get(i, auxhs);
-    if( auxhs->IsLeftDomPoint() )
+    if( auxhs.IsLeftDomPoint() )
     {
-      if( hs.Intersects( *auxhs ) )
+      if( hs.Intersects( auxhs ) )
         return false;
     }
   }
@@ -6739,13 +6888,13 @@ bool Region::InnerContains( const HalfSegment& hs ) const
 
 bool Region::HoleEdgeContain( const HalfSegment& hs ) const
 {
-  const HalfSegment *auxhs;
+  HalfSegment auxhs;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, auxhs );
-    if( auxhs->IsLeftDomPoint() &&
-        auxhs->attr.cycleno > 0 &&
-        hs.Inside( *auxhs ) )
+    if( auxhs.IsLeftDomPoint() &&
+        auxhs.attr.cycleno > 0 &&
+        hs.Inside( auxhs ) )
       return true;
   }
   return false;
@@ -6759,9 +6908,6 @@ bool Region::Intersects( const Region &r ) const
 {
   assert( IsOrdered() && r.IsOrdered() );
 
-  if( IsEmpty() && r.IsEmpty() )
-    return true;
-
   if( IsEmpty() || r.IsEmpty() )
     return false;
 
@@ -6771,17 +6917,17 @@ bool Region::Intersects( const Region &r ) const
   if( Inside( r ) || r.Inside( *this ) )
     return true;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hs2 );
-        if( hs2->IsLeftDomPoint() &&
-            hs1->Intersects( *hs2 ) )
+        if( hs2.IsLeftDomPoint() &&
+            hs1.Intersects( hs2 ) )
           return true;
       }
     }
@@ -6794,23 +6940,29 @@ bool Region::Inside( const Region& r ) const
 {
   assert( IsOrdered() && r.IsOrdered() );
 
-  if( IsEmpty() && r.IsEmpty() )
+  if(!IsDefined() || !r.IsDefined()){
+    return false;
+  }
+  
+
+  if( IsEmpty() )
     return true;
 
-  if( IsEmpty() || r.IsEmpty() )
+  if(r.IsEmpty()){
     return false;
+  }
 
   if( !r.BoundingBox().Contains( bbox ) )
     return false;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
 
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
-      if( !r.Contains( *hs1 ) )
+      if( !r.Contains( hs1 ) )
         return false;
     }
   }
@@ -6822,14 +6974,14 @@ bool Region::Inside( const Region& r ) const
   {
     r.Get( j, hs2 );
 
-    if( hs2->IsLeftDomPoint() &&
-        hs2->attr.cycleno > 0 )
+    if( hs2.IsLeftDomPoint() &&
+        hs2.attr.cycleno > 0 )
     //&& (hs2 is not masked by another face of region2)
     {
-      if( !HoleEdgeContain( *hs2 ) )
+      if( !HoleEdgeContain( hs2 ) )
       {
         existhole=true;
-        if( !Contains( *hs2 ) )
+        if( !Contains( hs2 ) )
           allholeedgeinside=false;
       }
     }
@@ -6854,19 +7006,19 @@ bool Region::Adjacent( const Region& r ) const
   if( Inside( r ) || r.Inside( *this ) )
     return false;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   bool found = false;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hs2 );
-        if( hs2->IsLeftDomPoint() && hs1->Intersects( *hs2 ) )
+        if( hs2.IsLeftDomPoint() && hs1.Intersects( hs2 ) )
         {
-          if( hs1->Crosses( *hs2 ) )
+          if( hs1.Crosses( hs2 ) )
             return false;
           found = true;
         }
@@ -6889,18 +7041,18 @@ bool Region::Overlaps( const Region& r ) const
   if( Inside( r ) || r.Inside( *this ) )
     return true;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hs2 );
-        if( hs2->IsLeftDomPoint() )
+        if( hs2.IsLeftDomPoint() )
         {
-          if( hs2->Crosses( *hs1 ) )
+          if( hs2.Crosses( hs1 ) )
             return true;
         }
       }
@@ -6911,6 +7063,10 @@ bool Region::Overlaps( const Region& r ) const
 
 bool Region::OnBorder( const Point& p ) const
 {
+  if(IsEmpty() || !p.IsDefined()){
+    return false;
+  }
+
   int pos;
   if( Find( p, pos ) )
     // the point is found on one half segment
@@ -6922,13 +7078,13 @@ bool Region::OnBorder( const Point& p ) const
     // segments
     return false;
 
-  const HalfSegment *hs;
+  HalfSegment hs;
   pos--;
   while( pos >= 0 )
   {
     Get( pos--, hs );
-    if( hs->IsLeftDomPoint() &&
-        hs->Contains( p ) )
+    if( hs.IsLeftDomPoint() &&
+        hs.Contains( p ) )
       return true;
   }
   return false;
@@ -6946,15 +7102,15 @@ double Region::Distance( const Point& p ) const
   if( Contains( p ) )
     return 0.0;
 
-  const HalfSegment *hs;
+  HalfSegment hs;
   double result = numeric_limits<double>::max();
 
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
 
-    if( hs->IsLeftDomPoint() )
-      result = MIN( result, hs->Distance( p ) );
+    if( hs.IsLeftDomPoint() )
+      result = MIN( result, hs.Distance( p ) );
   }
   return result;
 }
@@ -6972,12 +7128,12 @@ double Region::Distance( const Rectangle<2>& r ) const
   if(Contains(p3)) return 0.0;
   if(Contains(p4)) return 0.0;
 
-  const HalfSegment* hs;
+  HalfSegment hs;
   double mindist = numeric_limits<double>::max();
   for(int i=0;i<region.Size(); i++){
      Get(i,hs);
-     if(hs->IsLeftDomPoint()){
-       double d = hs->Distance(r);
+     if(hs.IsLeftDomPoint()){
+       double d = hs.Distance(r);
        if(d<mindist){
           mindist = d;
           if(AlmostEqual(mindist,0)){
@@ -7001,17 +7157,17 @@ double Region::Area() const
   // get minimum with respect to Y-dimension
   double minY = MIN(BoundingBox().MinD(1), +0.0);
 
+  HalfSegment hs;
   for(int i=0; i<n; i++)
   {
-    const HalfSegment *hs;
     Get( i, hs );
-    if( hs->IsLeftDomPoint() )
+    if( hs.IsLeftDomPoint() )
     { // use only one halfsegment
-      x0 = hs->GetLeftPoint().GetX();
-      x1 = hs->GetRightPoint().GetX();
+      x0 = hs.GetLeftPoint().GetX();
+      x1 = hs.GetRightPoint().GetX();
       // y0, y1 must be >= 0, so we correct them
-      y0 = hs->GetLeftPoint().GetY() - minY;
-      y1 = hs->GetRightPoint().GetY() - minY;
+      y0 = hs.GetLeftPoint().GetY() - minY;
+      y1 = hs.GetRightPoint().GetY() - minY;
 //       cout << "HSegment #" << i
 //           << ": ( (" << x0 << "," << y0
 //           << ") (" << x1 << "," << y1 << ") )"
@@ -7019,7 +7175,7 @@ double Region::Area() const
 //       double dx = (x1-x0);
 //       double ay = (y1+y0) * 0.5;
       double a = (x1-x0) * ((y1+y0) * 0.5);
-      if ( hs->attr.insideAbove )
+      if ( hs.attr.insideAbove )
 //    if ( (hs->attr.insideAbove && (hs->attr.cycleno == 0 )) ||
 //          (!hs->attr.insideAbove && (hs->attr.cycleno > 0 ))   )
         a = -a;
@@ -7037,23 +7193,23 @@ double Region::Distance( const Points& ps ) const
           ps.IsOrdered() && !ps.IsEmpty() );
 
   double result = numeric_limits<double>::max();
-  const Point *p;
+  Point p;
 
   for( int i = 0; i < ps.Size(); i++ )
   {
     ps.Get( i, p );
 
-    if( Contains( *p ) )
+    if( Contains( p ) )
       return 0.0;
 
-    const HalfSegment *hs;
+    HalfSegment hs;
 
     for( int j = 0; j < Size(); j++ )
     {
       Get( j, hs );
 
-      if( hs->IsLeftDomPoint() )
-        result = MIN( result, hs->Distance( *p ) );
+      if( hs.IsLeftDomPoint() )
+        result = MIN( result, hs.Distance( p ) );
     }
   }
   return result;
@@ -7068,22 +7224,22 @@ double Region::Distance( const Region &r ) const
     return 0.0;
 
   double result = numeric_limits<double>::max();
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
 
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hs2 );
-        if( hs2->IsLeftDomPoint() )
+        if( hs2.IsLeftDomPoint() )
         {
-          if( hs1->Intersects( *hs2 ) )
+          if( hs1.Intersects( hs2 ) )
             return 0.0;
 
-          result = MIN( result, hs1->Distance( *hs2 ) );
+          result = MIN( result, hs1.Distance( hs2 ) );
         }
       }
     }
@@ -7101,15 +7257,15 @@ double Region::Distance( const Line &l ) const
   }
 
   double result = numeric_limits<double>::max();
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
 
   for(int i=0; i<l.Size();i++){
      l.Get(i,hs2);
-     if(hs2->IsLeftDomPoint()){
-       if(Contains(hs2->GetDomPoint())){
+     if(hs2.IsLeftDomPoint()){
+       if(Contains(hs2.GetDomPoint())){
          return 0.0;
        }
-       if(Contains(hs2->GetSecPoint())){
+       if(Contains(hs2.GetSecPoint())){
          return 0.0;
        }
      }
@@ -7118,17 +7274,17 @@ double Region::Distance( const Line &l ) const
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs1 );
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < l.Size(); j++ )
       {
         l.Get( j, hs2 );
-        if( hs2->IsLeftDomPoint() )
+        if( hs2.IsLeftDomPoint() )
         {
-          if( hs1->Intersects( *hs2 ) )
+          if( hs1.Intersects( hs2 ) )
             return 0.0;
 
-          result = MIN( result, hs1->Distance( *hs2 ) );
+          result = MIN( result, hs1.Distance( hs2 ) );
         }
       }
     }
@@ -7141,48 +7297,48 @@ double Region::Distance( const Line &l ) const
 
 void Region::Components( vector<Region*>& components )
 {
-  Region *copy = new Region( *this );
+  Region* copy = new Region( *this );
   copy->LogicSort();
 
   map<int,int> edgeno,
                cycleno,
                faceno;
 
+  HalfSegment hs;
   for( int i = 0; i < Size(); i++ )
   {
-    const HalfSegment *hs;
     copy->Get( i, hs );
     Region *r;
-    HalfSegment aux( *hs );
-    if( faceno.find( hs->attr.faceno ) == faceno.end() )
+    HalfSegment aux( hs );
+    if( faceno.find( hs.attr.faceno ) == faceno.end() )
     {
       r = new Region( 1 );
       r->StartBulkLoad();
       components.push_back( r );
       aux.attr.faceno = faceno.size();
-      faceno.insert( make_pair( hs->attr.faceno, aux.attr.faceno ) );
+      faceno.insert( make_pair( hs.attr.faceno, aux.attr.faceno ) );
     }
     else
     {
-      aux.attr.faceno = faceno[ hs->attr.faceno ];
+      aux.attr.faceno = faceno[ hs.attr.faceno ];
       r = components[ aux.attr.faceno ];
     }
 
-    if( cycleno.find( hs->attr.cycleno ) == cycleno.end() )
+    if( cycleno.find( hs.attr.cycleno ) == cycleno.end() )
     {
       aux.attr.cycleno = cycleno.size();
-      cycleno.insert( make_pair( hs->attr.cycleno, aux.attr.cycleno ) );
+      cycleno.insert( make_pair( hs.attr.cycleno, aux.attr.cycleno ) );
     }
     else
-      aux.attr.cycleno = cycleno[ hs->attr.cycleno ];
+      aux.attr.cycleno = cycleno[ hs.attr.cycleno ];
 
-    if( edgeno.find( hs->attr.edgeno ) == edgeno.end() )
+    if( edgeno.find( hs.attr.edgeno ) == edgeno.end() )
     {
       aux.attr.edgeno = edgeno.size();
-      edgeno.insert( make_pair( hs->attr.edgeno, aux.attr.edgeno ) );
+      edgeno.insert( make_pair( hs.attr.edgeno, aux.attr.edgeno ) );
     }
     else
-      aux.attr.edgeno = edgeno[ hs->attr.edgeno ];
+      aux.attr.edgeno = edgeno[ hs.attr.edgeno ];
 
     *r += aux;
   }
@@ -7197,15 +7353,14 @@ void Region::Translate( const Coord& x, const Coord& y, Region& result ) const
 {
   assert( IsOrdered() );
 
-  const HalfSegment *hs;
+  HalfSegment hs;
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
 
-    HalfSegment auxhs( *hs );
-    auxhs.Translate( x, y );
-    result += auxhs;
+    hs.Translate( x, y );
+    result += hs;
   }
   result.SetNoComponents( NoComponents() );
   result.EndBulkLoad( false, false, false, false );
@@ -7234,7 +7389,7 @@ void Region::Rotate( const Coord& x, const Coord& y,
   double m12 = y - x*s-y*c;
 
   result.StartBulkLoad();
-  const HalfSegment *hso;
+  HalfSegment hso;
   Point p1;
   Point p2;
   Point p1o;
@@ -7243,8 +7398,8 @@ void Region::Rotate( const Coord& x, const Coord& y,
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hso );
-    p1o = hso->GetLeftPoint();
-    p2o = hso->GetRightPoint();
+    p1o = hso.GetLeftPoint();
+    p2o = hso.GetRightPoint();
     p1.Set( m00*p1o.GetX()
             + m01*p1o.GetY() + m02,
             m10*p1o.GetX()
@@ -7254,9 +7409,9 @@ void Region::Rotate( const Coord& x, const Coord& y,
              m10*p2o.GetX()
              + m11*p2o.GetY() + m12);
 
-    HalfSegment hsr(*hso); // ensure to copy attr;
-    hsr.Set(hso->IsLeftDomPoint(),p1,p2);
-    bool above = hso->attr.insideAbove;
+    HalfSegment hsr(hso); // ensure to copy attr;
+    hsr.Set(hso.IsLeftDomPoint(),p1,p2);
+    bool above = hso.attr.insideAbove;
 
     if(p1>p2)  {
        above = !above;
@@ -7277,7 +7432,7 @@ void Region::TouchPoints( const Line& l, Points& result ) const
   if( IsEmpty() || l.IsEmpty() )
     return;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   Point p;
 
   result.StartBulkLoad();
@@ -7285,15 +7440,15 @@ void Region::TouchPoints( const Line& l, Points& result ) const
   {
     Get( i, hs1 );
 
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < l.Size(); j++ )
       {
         l.Get( j, hs2 );
 
-        if( hs2->IsLeftDomPoint() )
+        if( hs2.IsLeftDomPoint() )
         {
-          if( hs1->Intersection( *hs2, p ) )
+          if( hs1.Intersection( hs2, p ) )
             result += p;
         }
       }
@@ -7310,7 +7465,7 @@ void Region::TouchPoints( const Region& r, Points& result ) const
   if( IsEmpty() || r.IsEmpty() )
     return;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   Point p;
 
   result.StartBulkLoad();
@@ -7318,15 +7473,15 @@ void Region::TouchPoints( const Region& r, Points& result ) const
   {
     Get( i, hs1 );
 
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hs2 );
 
-        if( hs2->IsLeftDomPoint() )
+        if( hs2.IsLeftDomPoint() )
         {
-          if( hs1->Intersection( *hs2, p ) )
+          if( hs1.Intersection( hs2, p ) )
             result += p;
         }
       }
@@ -7343,7 +7498,7 @@ void Region::CommonBorder( const Region& r, Line& result ) const
   if( IsEmpty() || r.IsEmpty() )
     return;
 
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   HalfSegment reshs;
   int edgeno = 0;
   Point p;
@@ -7353,15 +7508,15 @@ void Region::CommonBorder( const Region& r, Line& result ) const
   {
     Get( i, hs1 );
 
-    if( hs1->IsLeftDomPoint() )
+    if( hs1.IsLeftDomPoint() )
     {
       for( int j = 0; j < r.Size(); j++ )
       {
         r.Get( j, hs2 );
 
-        if( hs2->IsLeftDomPoint() )
+        if( hs2.IsLeftDomPoint() )
         {
-          if( hs1->Intersection( *hs2, reshs ) )
+          if( hs1.Intersection( hs2, reshs ) )
           {
             reshs.attr.edgeno = edgeno++;
             result += reshs;
@@ -7382,25 +7537,25 @@ int Region::NoComponents() const
 
 void Region::Vertices( Points* result ) const
 {
-  assert( IsOrdered() );
-
-  result->Clear();
   if(!IsDefined()){
-      result->SetDefined(false);
-      return;
+    result->SetDefined(false);
+    return;
   }
+
+  assert( IsOrdered() );
+  result->Clear();
   result->SetDefined(true);
 
   if( IsEmpty() ){
     return;
   }
 
-  const HalfSegment* hs;
+  HalfSegment hs;
   int size = Size();
   for( int i = 0; i < size; i++ )
   {
     Get( i, hs );
-    Point p = hs->GetDomPoint();
+    Point p = hs.GetDomPoint();
     *result += p;
   }
   result->EndBulkLoad( false, true );
@@ -7409,29 +7564,29 @@ void Region::Vertices( Points* result ) const
 
 void Region::Boundary( Line* result ) const
 {
-  assert( IsOrdered() );
 
   result->Clear();
   if(!IsDefined()){
       result->SetDefined(false);
       return;
   }
+  assert( IsOrdered() );
+  result->SetDefined(true);
 
   if( IsEmpty() ){
     return;
   }
-  const HalfSegment* hs;
+  HalfSegment hs;
   result->StartBulkLoad();
   int size = Size();
   for( int i = 0; i < size; i++ )
   {
     Get( i, hs );
-    if(hs->IsLeftDomPoint()){
-       HalfSegment h = *hs;
-       h.attr.edgeno = i;
-       *result += h;
-       h.SetLeftDomPoint(false);
-       *result += h;
+    if(hs.IsLeftDomPoint()){
+       hs.attr.edgeno = i;
+       *result += hs;
+       hs.SetLeftDomPoint(false);
+       *result += hs;
     }
   }
   result->EndBulkLoad();
@@ -7441,20 +7596,15 @@ void Region::Boundary( Line* result ) const
 
 Region& Region::operator=( const Region& r )
 {
-  assert( r.IsOrdered() );
-
-  region.Clear();
-  if( !r.IsEmpty() )
-  {
-    region.Resize( r.Size() );
-    for( int i = 0; i < r.Size(); i++ )
-    {
-      const HalfSegment *hs;
-      r.Get( i, hs );
-      region.Put( i, *hs );
-    }
+  if(!r.IsDefined()){
+     Clear();
+     SetDefined(false);
+     return *this;
   }
 
+  assert( r.IsOrdered() );
+
+  region.copyFrom(r.region);
   bbox = r.bbox;
   noComponents = r.noComponents;
   del.refs=1;
@@ -7466,6 +7616,14 @@ Region& Region::operator=( const Region& r )
 bool Region::operator==( const Region& r ) const
 {
   assert( ordered && r.ordered );
+
+  if(!IsDefined() && !r.IsDefined()){
+    return true;
+  }
+
+  if(!IsDefined() || !r.IsDefined()){
+    return false;
+  }
 
   if( Size() != r.Size() )
     return false;
@@ -7497,6 +7655,8 @@ bool Region::operator!=( const Region &cr) const
 
 Region& Region::operator+=( const HalfSegment& hs )
 {
+  assert(IsDefined());
+
   if( IsEmpty() )
     bbox = hs.BoundingBox();
   else
@@ -7504,18 +7664,18 @@ Region& Region::operator+=( const HalfSegment& hs )
 
   if( !IsOrdered() )
   {
-    region.Put( region.Size(), hs);
+    region.Append(hs);
   }
   else
   {
     int pos;
     if( !Find( hs, pos ) )
     {
+      HalfSegment auxhs;
       for( int i = region.Size() - 1; i >= pos; i++ )
       {
-        const HalfSegment *auxhs;
         region.Get( i, auxhs );
-        region.Put( i+1, *auxhs );
+        region.Put( i+1, auxhs );
       }
       region.Put( pos, hs );
     }
@@ -7525,16 +7685,17 @@ Region& Region::operator+=( const HalfSegment& hs )
 
 Region& Region::operator-=( const HalfSegment& hs )
 {
+  assert(IsDefined());
   assert( IsOrdered() );
 
   int pos;
   if( Find( hs, pos ) )
   {
+    HalfSegment auxhs;
     for( int i = pos; i < Size(); i++ )
     {
-      const HalfSegment *auxhs;
       region.Get( i+1, auxhs );
-      region.Put( i, *auxhs );
+      region.Put( i, auxhs );
     }
   }
 
@@ -7542,13 +7703,13 @@ Region& Region::operator-=( const HalfSegment& hs )
   if( IsEmpty() )
     bbox.SetDefined( false );
   int i = 0;
-  const HalfSegment *auxhs;
+  HalfSegment auxhs;
   region.Get( i++, auxhs );
-  bbox = auxhs->BoundingBox();
+  bbox = auxhs.BoundingBox();
   for( ; i < Size(); i++ )
   {
     region.Get( i, auxhs );
-    bbox = bbox.Union( auxhs->BoundingBox() );
+    bbox = bbox.Union( auxhs.BoundingBox() );
   }
 
   return *this;
@@ -7557,17 +7718,22 @@ Region& Region::operator-=( const HalfSegment& hs )
 bool Region::Find( const HalfSegment& hs, int& pos ) const
 {
   assert( IsOrdered() );
+  assert(IsDefined());
   return region.Find( &hs, HalfSegmentCompare, pos );
 }
 
 bool Region::Find( const Point& p, int& pos ) const
 {
   assert( IsOrdered() );
+  assert( IsDefined());
   return region.Find( &p, PointHalfSegmentCompare, pos );
 }
 
 void Region::Sort()
 {
+  if(!IsDefined()){
+    return;
+  }
   assert( !IsOrdered() );
 
   region.Sort( HalfSegmentCompare );
@@ -7577,6 +7743,10 @@ void Region::Sort()
 
 void Region::LogicSort()
 {
+
+  if(!IsDefined()){
+   return;
+  }
   region.Sort( HalfSegmentLogicCompare );
 
   ordered = true;
@@ -7585,11 +7755,11 @@ void Region::LogicSort()
 ostream& operator<<( ostream& os, const Region& cr )
 {
   os << "<"<<endl;
+  HalfSegment hs;
   for( int i = 0; i < cr.Size(); i++ )
   {
-    const HalfSegment *hs;
     cr.Get( i, hs );
-    os << " " << *hs << endl;
+    os << " " << hs << endl;
   }
   os << ">";
   return os;
@@ -7599,22 +7769,22 @@ void Region::SetPartnerNo()
 {
   int size = Size();
   int tmp[size/2];
-  const HalfSegment* hs;
+  HalfSegment hs;
   for( int i = 0; i < size; i++ )
   {
     Get( i, hs );
-    if( hs->IsLeftDomPoint() )
+    if( hs.IsLeftDomPoint() )
     {
-      tmp[hs->attr.edgeno] = i;
+      tmp[hs.attr.edgeno] = i;
     }
     else
     {
-      int p = tmp[hs->attr.edgeno];
-      HalfSegment hs1( *hs );
+      int p = tmp[hs.attr.edgeno];
+      HalfSegment hs1( hs );
       hs1.attr.partnerno = p;
       Put( i, hs1 );
       Get( p, hs );
-      hs1 = *hs;
+      hs1 = hs;
       hs1.attr.partnerno = i;
       Put( p, hs1 );
     }
@@ -8214,37 +8384,38 @@ always the right point of the last segment.
 
 */
   Point pA, pP, pB;
-  const HalfSegment *hs1, *hs2;
+  HalfSegment hs1, hs2;
   this->Get(0,hs1);
   this->Get(1,hs2);
-  assert( hs1->GetLeftPoint()==hs2->GetLeftPoint() );
-  pP = hs1->GetLeftPoint();
+
+  assert( hs1.GetLeftPoint()==hs2.GetLeftPoint() );
+  pP = hs1.GetLeftPoint();
   // If we have the last half segment connected to the first half
   // segment, the difference //between their partner numbers is
   // more than one.
-  if (abs(hs1->attr.edgeno - hs2->attr.edgeno)>1)
+  if (abs(hs1.attr.edgeno - hs2.attr.edgeno)>1)
   {
-    if (hs1->attr.edgeno > hs2->attr.edgeno)
+    if (hs1.attr.edgeno > hs2.attr.edgeno)
     {
-      pA = hs1->GetRightPoint();
-      pB = hs2->GetRightPoint();
+      pA = hs1.GetRightPoint();
+      pB = hs2.GetRightPoint();
     }
     else
     {
-      pA = hs2->GetRightPoint();
-      pB = hs1->GetRightPoint();
+      pA = hs2.GetRightPoint();
+      pB = hs1.GetRightPoint();
     }
   }
   else
-    if (hs1->attr.edgeno < hs2->attr.edgeno)
+    if (hs1.attr.edgeno < hs2.attr.edgeno)
     {
-      pA = hs1->GetRightPoint();
-      pB = hs2->GetRightPoint();
+      pA = hs1.GetRightPoint();
+      pB = hs2.GetRightPoint();
     }
     else
     {
-      pA = hs2->GetRightPoint();
-      pB = hs1->GetRightPoint();
+      pA = hs2.GetRightPoint();
+      pB = hs1.GetRightPoint();
     }
   return GetCycleDirection(pA,pP,pB);
 }
@@ -8263,7 +8434,7 @@ void Region::GetClippedHSIn(const Rectangle<2> &window,
                             vector<EdgePoint> pointsOnEdge[4],
                             int &partnerno) const
 {
-  const HalfSegment *hs;
+  HalfSegment hs;
   HalfSegment hsInside;
   bool inside, isIntersectionPoint;
 
@@ -8271,13 +8442,13 @@ void Region::GetClippedHSIn(const Rectangle<2> &window,
   for(int i=0; i < Size(); i++)
   {
     GetHs( hs );
-    if (hs->IsLeftDomPoint())
+    if (hs.IsLeftDomPoint())
     {
       Point intersectionPoint;
-      hs->WindowClippingIn(window, hsInside, inside,
+      hs.WindowClippingIn(window, hsInside, inside,
                            isIntersectionPoint,intersectionPoint);
       if (isIntersectionPoint)
-         AddPointToEdgeArray(intersectionPoint,*hs,window, pointsOnEdge);
+         AddPointToEdgeArray(intersectionPoint,hs,window, pointsOnEdge);
       else
         if ( inside )
         {
@@ -8299,8 +8470,8 @@ void Region::GetClippedHSIn(const Rectangle<2> &window,
 
             //If the point lies on one edge it must be added to the
             //corresponding vector.
-            AddPointToEdgeArray(lp,*hs,window, pointsOnEdge);
-            AddPointToEdgeArray(rp, *hs,window, pointsOnEdge);
+            AddPointToEdgeArray(lp,hs,window, pointsOnEdge);
+            AddPointToEdgeArray(rp, hs,window, pointsOnEdge);
           }
         }
     }
@@ -8329,27 +8500,27 @@ void Region::GetClippedHSOut(const Rectangle<2> &window,
 {
   for (int i=0; i < Size();i++)
   {
-    const HalfSegment *hs;
+    HalfSegment hs;
     HalfSegment hsInside;
     bool inside=false,isIntersectionPoint=false;
     Get(i,hs);
 
-    if (hs->IsLeftDomPoint())
+    if (hs.IsLeftDomPoint())
     {
       Point intersectionPoint;
-      hs->WindowClippingIn(window,hsInside, inside,
+      hs.WindowClippingIn(window,hsInside, inside,
                            isIntersectionPoint,intersectionPoint);
       if (inside)
       {
         bool hsOnEdge=false;
         if (isIntersectionPoint)
         {
-          HalfSegment aux( *hs );
-          if (hs->GetLeftPoint()!=intersectionPoint)
+          HalfSegment aux( hs );
+          if (hs.GetLeftPoint()!=intersectionPoint)
             clippedRegion.AddClippedHS(aux.GetLeftPoint(),
                                        intersectionPoint,
                                        aux.attr,partnerno) ;
-          if (hs->GetRightPoint()!=intersectionPoint)
+          if (hs.GetRightPoint()!=intersectionPoint)
             clippedRegion.AddClippedHS(intersectionPoint,
                                        aux.GetRightPoint(),
                                        aux.attr,partnerno);
@@ -8362,8 +8533,8 @@ void Region::GetClippedHSOut(const Rectangle<2> &window,
                                      false, pointsOnEdge);
           if (!hsOnEdge)
           {
-            HalfSegment aux( *hs );
-            if (hs->GetLeftPoint()!=hsInside.GetLeftPoint())
+            HalfSegment aux( hs );
+            if (hs.GetLeftPoint()!=hsInside.GetLeftPoint())
              //Add the part of the half segment composed by the left
              //point of hs and the left point of hsInside.
               clippedRegion.AddClippedHS(aux.GetLeftPoint(),
@@ -8371,7 +8542,7 @@ void Region::GetClippedHSOut(const Rectangle<2> &window,
                                          aux.attr,partnerno) ;
             AddPointToEdgeArray(hsInside.GetLeftPoint(),aux,
                                 window, pointsOnEdge);
-            if (hs->GetRightPoint()!=hsInside.GetRightPoint())
+            if (hs.GetRightPoint()!=hsInside.GetRightPoint())
              //Add the part of the half segment composed by the right
              //point of hs and the right point of hsInside.
               clippedRegion.AddClippedHS(hsInside.GetRightPoint(),
@@ -8385,7 +8556,7 @@ void Region::GetClippedHSOut(const Rectangle<2> &window,
       }
       else
       {
-        HalfSegment aux( *hs );
+        HalfSegment aux( hs );
         clippedRegion.AddClippedHS(aux.GetLeftPoint(),
                                    aux.GetRightPoint(),
                                    aux.attr,partnerno);
@@ -8443,21 +8614,21 @@ bool Region::IsCriticalPoint( const Point &adjacentPoint,
       step = 1;
   do
   {
-    const HalfSegment *adjCHS;
+    HalfSegment adjCHS;
     adjPosition+=step;
     if ( adjPosition<0 || adjPosition>=this->Size())
       break;
     Get(adjPosition,adjCHS);
-    if (!adjCHS->IsLeftDomPoint())
+    if (!adjCHS.IsLeftDomPoint())
       continue;
-    AttrType attr = adjCHS->GetAttr();
+    AttrType attr = adjCHS.GetAttr();
     //When looking for critical points, the partner of
     //the adjacent half segment found
     //cannot be consired.
     if (attr.partnerno == hsPosition)
       continue;
-    if ( ( adjacentPoint==adjCHS->GetLeftPoint() ) ||
-         ( adjacentPoint==adjCHS->GetRightPoint() ) )
+    if ( ( adjacentPoint==adjCHS.GetLeftPoint() ) ||
+         ( adjacentPoint==adjCHS.GetRightPoint() ) )
       adjacencyNo++;
     else
     {
@@ -8477,7 +8648,7 @@ bool Region::GetAdjacentHS( const HalfSegment &hs,
                             int &position,
                             const int partnerno,
                             const int partnernoP,
-                            HalfSegment const*& adjacentCHS,
+                            HalfSegment& adjacentCHS,
                             const Point &adjacentPoint,
                             Point &newAdjacentPoint,
                             bool *cycle,
@@ -8493,20 +8664,20 @@ bool Region::GetAdjacentHS( const HalfSegment &hs,
     Get(position,adjacentCHS);
     if (partnernoP == position)
       continue;
-    if ( adjacentPoint==adjacentCHS->GetLeftPoint() )
+    if ( adjacentPoint==adjacentCHS.GetLeftPoint() )
     {
       if (!cycle[position])
       {
-        newAdjacentPoint = adjacentCHS->GetRightPoint();
+        newAdjacentPoint = adjacentCHS.GetRightPoint();
         adjacencyFound = true;
       }
     }
     else
-      if  ( adjacentPoint==adjacentCHS->GetRightPoint() )
+      if  ( adjacentPoint==adjacentCHS.GetRightPoint() )
       {
          if (!cycle[position])
         {
-          newAdjacentPoint = adjacentCHS->GetLeftPoint();
+          newAdjacentPoint = adjacentCHS.GetLeftPoint();
           adjacencyFound = true;
         }
       }
@@ -8532,7 +8703,7 @@ void Region::ComputeCycle( HalfSegment &hs,
             lastPoint = hs.GetRightPoint(),
             previousPoint, *currentCriticalPoint=NULL;
   AttrType attr, attrP;
-  const HalfSegment *hsP;
+  HalfSegment hsP;
   vector<SCycle> sCycleVector;
   SCycle *s=NULL;
 
@@ -8544,7 +8715,7 @@ void Region::ComputeCycle( HalfSegment &hs,
        attr = hs.GetAttr();
 
        Get(attr.partnerno,hsP);
-       attrP = hsP->GetAttr();
+       attrP = hsP.GetAttr();
 
        attr.faceno=faceno;
        attr.cycleno=cycleno;
@@ -8565,10 +8736,10 @@ void Region::ComputeCycle( HalfSegment &hs,
        if (this->IsCriticalPoint(nextPoint,attrP.partnerno))
          currentCriticalPoint = new Point(nextPoint);
 
-       s = new SCycle(hs,attr.partnerno,*hsP,attrP.partnerno,
+       s = new SCycle(hs,attr.partnerno,hsP,attrP.partnerno,
                       currentCriticalPoint,nextPoint);
      }
-     const HalfSegment *adjacentCHS;
+     HalfSegment adjacentCHS;
      Point adjacentPoint;
      bool adjacentPointFound=false;
      previousPoint = nextPoint;
@@ -8632,10 +8803,10 @@ void Region::ComputeCycle( HalfSegment &hs,
          cerr << "Problem in rebuilding cycle in a region " << endl;
          cerr << "no adjacent point found" << endl;
          cerr << "Halfsegments : ---------------     " << endl;
-         const HalfSegment* hs;
+         HalfSegment hs;
          for(int i=0;i<Size();i++){
             Get(i,hs);
-            cerr << i << " : " << (*hs) << endl;
+            cerr << i << " : " << (hs) << endl;
          }
          assert(adjacentPointFound); // assert(false)
      }
@@ -8689,10 +8860,10 @@ void Region::ComputeCycle( HalfSegment &hs,
      if ( nextPoint==lastPoint )
      {
        //Update attributes
-       attr = adjacentCHS->GetAttr();
+       attr = adjacentCHS.GetAttr();
 
        Get(attr.partnerno,hsP);
-       attrP = hsP->GetAttr();
+       attrP = hsP.GetAttr();
 
        attr.faceno=faceno;
        attr.cycleno=cycleno;
@@ -8712,7 +8883,7 @@ void Region::ComputeCycle( HalfSegment &hs,
 
        break;
      }
-     hs = *adjacentCHS;
+     hs = adjacentCHS;
      delete s;
      s=NULL;
   }
@@ -8747,7 +8918,7 @@ int Region::GetNewFaceNo(HalfSegment &hsS, bool *cycle)
 
   //search the region value for coverageno steps
   int touchedNo=0;
-  const HalfSegment *hs;
+  HalfSegment hs;
   const Point& p = hsS.GetLeftPoint();
 
   int i=startpos;
@@ -8756,13 +8927,13 @@ int Region::GetNewFaceNo(HalfSegment &hsS, bool *cycle)
     this->Get(i, hs);
     hsVisiteds++;
 
-    if ( (cycle[i]) && (hs->IsLeftDomPoint()) &&
-         ( (hs->GetLeftPoint().GetX() <= p.GetX()) &&
-         (p.GetX() <= hs->GetRightPoint().GetX()) ))
+    if ( (cycle[i]) && (hs.IsLeftDomPoint()) &&
+         ( (hs.GetLeftPoint().GetX() <= p.GetX()) &&
+         (p.GetX() <= hs.GetRightPoint().GetX()) ))
     {
       touchedNo++;
-      if (!hs->RayAbove(p, y0))
-        v.push_back(*hs);
+      if (!hs.RayAbove(p, y0))
+        v.push_back(hs);
     }
     i--;  //the iterator
   }
@@ -8801,8 +8972,9 @@ int Region::GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const {
 
     double y0;
     double maxY0;
-    const HalfSegment *hs = 0;
-    const HalfSegment *maxHS = 0;
+    HalfSegment hs;
+    HalfSegment maxHS;
+    bool hasMax = false;
     const Point& p = hsIn.GetLeftPoint();
     const int coverno = hsIn.GetAttr().coverageno;
     int touchedNo = 0;
@@ -8813,24 +8985,24 @@ int Region::GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const {
 
         Get(i, hs);
 
-        if (!hs->IsLeftDomPoint()) {
+        if (!hs.IsLeftDomPoint()) {
 
             i--;
             continue;
         }
 
-        if (hs->GetLeftPoint().GetX() <= p.GetX() &&
-            p.GetX() <= hs->GetRightPoint().GetX()) {
+        if (hs.GetLeftPoint().GetX() <= p.GetX() &&
+            p.GetX() <= hs.GetRightPoint().GetX()) {
 
             touchedNo++;
         }
 
-        if (!AlmostEqual(hs->GetRightPoint().GetX(), p.GetX()) &&
-            hs->RayDown(p, y0)) {
+        if (!AlmostEqual(hs.GetRightPoint().GetX(), p.GetX()) &&
+            hs.RayDown(p, y0)) {
 
             if (first ||
                 y0 > maxY0 ||
-                (AlmostEqual(y0, maxY0) && *hs > *maxHS)) {
+                (AlmostEqual(y0, maxY0) && hs > maxHS)) {
 
                 // To find the first halfsegment 'under' hsIn
                 // we compare them as follows:
@@ -8841,31 +9013,32 @@ int Region::GetNewFaceNo(const HalfSegment& hsIn, const int startpos) const {
                 maxY0 = y0;
                 maxHS = hs;
                 first = false;
+                hasMax = true;
             }
         }
 
         i--;
     }
 
-    if (maxHS == 0) {
+    if (!hasMax) {
 
         cerr << "Problem in rebuilding cycle in a region " << endl;
         cerr << "No outer cycle found" << endl;
         cerr << "hsIn: " << hsIn << endl;
         cerr << "Halfsegments : ---------------     " << endl;
-        const HalfSegment* hs;
+        HalfSegment hs;
 
         for(int i=0;i<Size();i++) {
 
             Get(i,hs);
-            cerr << i << " : " << (*hs) << endl;
+            cerr << i << " : " << (hs) << endl;
         }
 
         assert(false);
     }
 
     //the new cycle is a holecycle of the face ~maxHS.attr.faceno~
-    return maxHS->GetAttr().faceno;
+    return maxHS.GetAttr().faceno;
 }
 
 bool HalfSegment::RayDown( const Point& p, double &yIntersection ) const
@@ -8917,7 +9090,7 @@ void Region::ComputeRegion()
       cycleno = 0,
       edgeno = 0;
   bool isFirstCHS=true;
-  const HalfSegment *hs;
+  HalfSegment hs;
 
   if (Size()==0)
     return;
@@ -8936,7 +9109,7 @@ void Region::ComputeRegion()
   for ( int i=0; i<Size(); i++)
   {
     Get(i,hs);
-    HalfSegment aux(*hs);
+    HalfSegment aux(hs);
     if ( aux.IsLeftDomPoint() && !cycle[i])
     {
       if(!isFirstCHS)
@@ -9018,18 +9191,18 @@ size_t   Region::HashValue() const
     return 0;
 
   unsigned long h=0;
-  const HalfSegment *hs;
+  HalfSegment hs;
   Coord x1, y1;
   Coord x2, y2;
 
   for( int i = 0; ((i < Size())&&(i<5)); i++ )
   {
     Get( i, hs );
-    x1=hs->GetLeftPoint().GetX();
-    y1=hs->GetLeftPoint().GetY();
+    x1=hs.GetLeftPoint().GetX();
+    y1=hs.GetLeftPoint().GetY();
 
-    x2=hs->GetRightPoint().GetX();
-    y2=hs->GetRightPoint().GetY();
+    x2=hs.GetRightPoint().GetX();
+    y2=hs.GetRightPoint().GetY();
     h=h+(unsigned long)((5*x1 + y1)+ (5*x2 + y2));
   }
   return size_t(h);
@@ -9037,7 +9210,7 @@ size_t   Region::HashValue() const
 
 void Region::Clear()
 {
-  region.Clear();
+  region.clean();
   pos = -1;
   ordered = true;
   bbox.SetDefined(false);
@@ -9045,7 +9218,7 @@ void Region::Clear()
 
 void Region::SetEmpty()
 {
-  region.SetEmpty();
+  region.clean();
   pos = -1;
   ordered = true;
   bbox.SetDefined(false);
@@ -9060,64 +9233,55 @@ void Region::CopyFrom( const Attribute* right )
 
 int Region::Compare( const Attribute* arg ) const
 {
-  int res=0;
   Region* cr = (Region* )(arg);
   if ( !cr )
     return -2;
 
-  if (IsEmpty() && (cr->IsEmpty()))
-    res=0;
-  else if (IsEmpty())
-    res=-1;
-  else  if ((cr->IsEmpty()))
-    res=1;
-  else
-  {
-    if (Size() > cr->Size())
-      res=1;
-    else if (Size() < cr->Size())
-      res=-1;
-    else  //their sizes are equal
-    {
-      int bboxCmp = bbox.Compare( &cr->bbox );
-      if( bboxCmp == 0 )
-      {
-        bool decided = false;
-        for( int i = 0; ((i < Size())&&(!decided)); i++ )
-        {
-          const HalfSegment *hs1, *hs2;
-          Get( i, hs1);
-          cr->Get( i, hs2 );
-
-          if (*hs1 >*hs2)
-          {
-            res=1;
-            decided=true;
-          }
-          else if (*hs1 < *hs2)
-          {
-            res=-1;
-            decided=true;
-          }
-        }
-        if (!decided)
-          res=0;
-      }
-      else
-        res = bboxCmp;
-    }
+  if (!IsDefined() && (!cr->IsDefined())){
+    return 0;
   }
-  return res;
+
+  if(!IsDefined()){
+    return -1;
+  }
+  if(!cr->IsDefined()){
+    return 1;
+  }
+  if(Size()<cr->Size()){
+    return -1;
+  }
+  if(Size()>cr->Size()){
+    return 1;
+  }
+  if(Size()==0){ // two empty regions
+    return 0;
+  }
+
+  int bboxCmp = bbox.Compare( &cr->bbox );
+  if(bboxCmp!=0){
+   return bboxCmp;
+  }
+
+  HalfSegment hs1, hs2;
+  for( int i = 0; i < Size(); i++ ) {
+     Get( i, hs1);
+     cr->Get( i, hs2 );
+     int hsCmp = hs1.Compare(hs2);
+     if(hsCmp!=0){
+       return hsCmp;
+     }
+  }
+  return 0;
 }
 
 ostream& Region::Print( ostream &os ) const
 {
   os << "<";
+  HalfSegment hs;
   for( int i = 0; i < Size(); i++ )
   {
-    const HalfSegment *hs;
     Get( i, hs );
-    os << " " << *hs;
+    os << " " << hs;
   }
   os << ">";
   return os;
@@ -9130,7 +9294,7 @@ Region *Region::Clone() const
 
 bool Region::InsertOk( const HalfSegment& hs ) const
 {
-  const HalfSegment *auxhs;
+  HalfSegment auxhs;
   double dummyy0;
 
   return true;
@@ -9146,26 +9310,26 @@ bool Region::InsertOk( const HalfSegment& hs ) const
   {
     region.Get( i, auxhs );
 
-    if (auxhs->IsLeftDomPoint())
+    if (auxhs.IsLeftDomPoint())
     {
-      if (hs.Intersects(*auxhs))
+      if (hs.Intersects(auxhs))
       {
-        if ((hs.attr.faceno!=auxhs->attr.faceno)||
-            (hs.attr.cycleno!=auxhs->attr.cycleno))
+        if ((hs.attr.faceno!=auxhs.attr.faceno)||
+            (hs.attr.cycleno!=auxhs.attr.cycleno))
         {
           cout<<"two cycles intersect with the ";
           cout<<"following edges:";
-          cout<<*auxhs<<" :: "<<hs<<endl;
+          cout<<auxhs<<" :: "<<hs<<endl;
           return false;
         }
         else
         {
-          if ((auxhs->GetLeftPoint()!=hs.GetLeftPoint()) &&
-              (auxhs->GetLeftPoint()!=hs.GetRightPoint()) &&
-              (auxhs->GetRightPoint()!=hs.GetLeftPoint()) &&
-              (auxhs->GetRightPoint()!=hs.GetRightPoint()))
+          if ((auxhs.GetLeftPoint()!=hs.GetLeftPoint()) &&
+              (auxhs.GetLeftPoint()!=hs.GetRightPoint()) &&
+              (auxhs.GetRightPoint()!=hs.GetLeftPoint()) &&
+              (auxhs.GetRightPoint()!=hs.GetRightPoint()))
           {
-            cout<<"two edges: " <<*auxhs<<" :: "<< hs
+            cout<<"two edges: " <<auxhs<<" :: "<< hs
                 <<" of the same cycle intersect in middle!"
                 <<endl;
             return false;
@@ -9175,14 +9339,14 @@ bool Region::InsertOk( const HalfSegment& hs ) const
       else
       {
         if ((hs.attr.cycleno>0) &&
-            (auxhs->attr.faceno==hs.attr.faceno) &&
-            (auxhs->attr.cycleno!=hs.attr.cycleno))
+            (auxhs.attr.faceno==hs.attr.faceno) &&
+            (auxhs.attr.cycleno!=hs.attr.cycleno))
         {
-          if (auxhs->RayAbove(hs.GetLeftPoint(), dummyy0))
+          if (auxhs.RayAbove(hs.GetLeftPoint(), dummyy0))
           {
-            prevcycleMeet[auxhs->attr.cycleno]++;
-            if (prevcyclenum < auxhs->attr.cycleno)
-              prevcyclenum=auxhs->attr.cycleno;
+            prevcycleMeet[auxhs.attr.cycleno]++;
+            if (prevcyclenum < auxhs.attr.cycleno)
+              prevcyclenum=auxhs.attr.cycleno;
           }
         }
       }
@@ -9214,24 +9378,24 @@ face is not clear. In the following we do this kind of check.
 
   if (((hs.attr.faceno>0) || (hs.attr.cycleno>2)))
   {
-    const HalfSegment *hsHoleNEnd, *hsHoleNStart;
+    HalfSegment hsHoleNEnd, hsHoleNStart;
 
     if (region.Size() ==0) return true;
 
     int holeNEnd=region.Size()-1;
     region.Get(holeNEnd, hsHoleNEnd );
 
-    if  ((hsHoleNEnd->attr.cycleno>1) &&
-         ((hs.attr.faceno!=hsHoleNEnd->attr.faceno)||
-         (hs.attr.cycleno!=hsHoleNEnd->attr.cycleno)))
+    if  ((hsHoleNEnd.attr.cycleno>1) &&
+         ((hs.attr.faceno!=hsHoleNEnd.attr.faceno)||
+         (hs.attr.cycleno!=hsHoleNEnd.attr.cycleno)))
     {
-      if (hsHoleNEnd->attr.cycleno>1)
+      if (hsHoleNEnd.attr.cycleno>1)
       {
         int holeNStart=holeNEnd - 1;
         region.Get(holeNStart, hsHoleNStart );
 
-        while ((hsHoleNStart->attr.faceno==hsHoleNEnd->attr.faceno) &&
-               (hsHoleNStart->attr.cycleno==hsHoleNEnd->attr.cycleno)&&
+        while ((hsHoleNStart.attr.faceno==hsHoleNEnd.attr.faceno) &&
+               (hsHoleNStart.attr.cycleno==hsHoleNEnd.attr.cycleno)&&
                (holeNStart>0))
         {
           holeNStart--;
@@ -9240,7 +9404,7 @@ face is not clear. In the following we do this kind of check.
         holeNStart++;
 
         int prevHolePnt=holeNStart-1;
-        const HalfSegment *hsPrevHole, *hsLastHole;
+        HalfSegment hsPrevHole, hsLastHole;
 
         bool stillPrevHole = true;
         while ((stillPrevHole) && (prevHolePnt>=0))
@@ -9248,21 +9412,21 @@ face is not clear. In the following we do this kind of check.
           region.Get(prevHolePnt, hsPrevHole );
           prevHolePnt--;
 
-          if ((hsPrevHole->attr.faceno!= hsHoleNEnd->attr.faceno)||
-              (hsPrevHole->attr.cycleno<=0))
+          if ((hsPrevHole.attr.faceno!= hsHoleNEnd.attr.faceno)||
+              (hsPrevHole.attr.cycleno<=0))
           {
             stillPrevHole=false;
           }
 
-          if (hsPrevHole->IsLeftDomPoint())
+          if (hsPrevHole.IsLeftDomPoint())
           {
             int holeNMeent=0;
             for (int i=holeNStart; i<=holeNEnd; i++)
             {
               region.Get(i, hsLastHole );
-              if ((hsLastHole->IsLeftDomPoint())&&
-                  (hsLastHole->RayAbove
-                  (hsPrevHole->GetLeftPoint(), dummyy0)))
+              if ((hsLastHole.IsLeftDomPoint())&&
+                  (hsLastHole.RayAbove
+                  (hsPrevHole.GetLeftPoint(), dummyy0)))
                 holeNMeent++;
             }
             if  (holeNMeent % 2 !=0)
@@ -9329,11 +9493,11 @@ As owner only __first__ and __second__ are the allowed values.
 
 */
 
-  avlseg::AVLSegment::AVLSegment(const HalfSegment* hs, ownertype owner){
-     x1 = hs->GetLeftPoint().GetX();
-     y1 = hs->GetLeftPoint().GetY();
-     x2 = hs->GetRightPoint().GetX();
-     y2 = hs->GetRightPoint().GetY();
+  avlseg::AVLSegment::AVLSegment(const HalfSegment& hs, ownertype owner){
+     x1 = hs.GetLeftPoint().GetX();
+     y1 = hs.GetLeftPoint().GetY();
+     x2 = hs.GetRightPoint().GetX();
+     y2 = hs.GetRightPoint().GetY();
      if( (AlmostEqual(x1,x2) && (y2<y2) ) || (x2<x2) ){// swap the entries
         double tmp = x1;
         x1 = x2;
@@ -9345,11 +9509,11 @@ As owner only __first__ and __second__ are the allowed values.
      this->owner = owner;
      switch(owner){
         case first: {
-             insideAbove_first = hs->GetAttr().insideAbove;
+             insideAbove_first = hs.GetAttr().insideAbove;
              insideAbove_second = false;
              break;
         } case second: {
-             insideAbove_second = hs->GetAttr().insideAbove;
+             insideAbove_second = hs.GetAttr().insideAbove;
              insideAbove_first = false;
              break;
         } default: {
@@ -9367,10 +9531,10 @@ Create a Segment only consisting of a single point.
 
 */
 
-  avlseg::AVLSegment::AVLSegment(const Point* p, ownertype owner){
-      x1 = p->GetX();
+  avlseg::AVLSegment::AVLSegment(const Point& p, ownertype owner){
+      x1 = p.GetX();
       x2 = x1;
-      y1 = p->GetY();
+      y1 = p.GetY();
       y2 = y1;
       this->owner = owner;
       insideAbove_first = false;
@@ -10108,7 +10272,9 @@ HalfSegment avlseg::AVLSegment::convertToHs(bool lpd,
       insideAbove = owner==first?insideAbove_first
                                   :insideAbove_second;
    }
-   HalfSegment hs(lpd, Point(true,x1,y1), Point(true,x2,y2));
+   Point p1(true,x1,y1);
+   Point p2(true,x2,y2);
+   HalfSegment hs(lpd, p1, p2);
    hs.attr.insideAbove = insideAbove;
    return hs;
 }
@@ -10486,8 +10652,8 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
     } else { // forgotten case or overlapping segments (rounding errors)
        if(leftN->overlaps(*rightN)){
          cerr << "Overlapping neighbours found" << endl;
-         cout << "leftN = " << *leftN << endl;
-         cout << "rightN = " << *rightN << endl;
+         cerr << "leftN = " << *leftN << endl;
+         cerr << "rightN = " << *rightN << endl;
          avlseg::AVLSegment left;
          avlseg::AVLSegment common;
          avlseg::AVLSegment right;
@@ -10496,21 +10662,21 @@ void splitNeighbours(avltree::AVLTree<avlseg::AVLSegment>& sss,
          sss.remove(*rightN);
          if(parts & avlseg::LEFT){
            if(!left.isPoint()){
-             cout << "insert left part" << left << endl;
+             cerr << "insert left part" << left << endl;
              leftN = sss.insert2(left);
              insertEvents(left,false,true,q1,q2);
            }
          }
          if(parts & avlseg::COMMON){
            if(!common.isPoint()){
-             cout << "insert common part" << common << endl;
+             cerr << "insert common part" << common << endl;
              rightN = sss.insert2(common);
              insertEvents(common,false,true,q1,q2);
            }
          }
          if(parts & avlseg::RIGHT){
            if(!right.isPoint()){
-             cout << "insert events for the right part" << right << endl;;
+             cerr << "insert events for the right part" << right << endl;;
              insertEvents(right,true,true,q1,q2);
            }
          }
@@ -10539,9 +10705,9 @@ The template parameter can be instantiated with ~Region~ or ~Line~
 
 */
 template<class T1, class T2>
-avlseg::ownertype selectNext(T1 const* const v1,
+avlseg::ownertype selectNext(const T1& v1,
                      int& pos1,
-                     T2 const* const v2,
+                     const T2& v2,
                      int& pos2,
                      priority_queue<HalfSegment,
                                     vector<HalfSegment>,
@@ -10555,13 +10721,15 @@ avlseg::ownertype selectNext(T1 const* const v1,
 
 
   const HalfSegment* values[4];
+  HalfSegment hs0, hs1, hs2, hs3;
   int number = 0; // number of available values
   // read the available elements
-  if(pos1<v1->Size()){
-     v1->Get(pos1,values[0]);
+  if(pos1<v1.Size()){
+     v1.Get(pos1,hs0);
+     values[0] = &hs0;
      number++;
   }  else {
-     values[0] = 0;
+     values[0]=0;
   }
   if(q1.empty()){
     values[1] = 0;
@@ -10569,14 +10737,15 @@ avlseg::ownertype selectNext(T1 const* const v1,
     values[1] = &q1.top();
     number++;
   }
-  if(pos2<v2->Size()){
-     v2->Get(pos2,values[2]);
+  if(pos2<v2.Size()){
+     v2.Get(pos2,hs2);
+     values[2] = &hs2;
      number++;
   }  else {
      values[2] = 0;
   }
   if(q2.empty()){
-    values[3] = 0;
+    values[3]=0;
   } else {
     values[3] = &q2.top();
     number++;
@@ -10612,9 +10781,9 @@ Instantiation of the ~selectNext~ Function.
 
 */
 
-avlseg::ownertype selectNext(Region const* const reg1,
+avlseg::ownertype selectNext(const Region& reg1,
                      int& pos1,
-                     Region const* const reg2,
+                     const Region& reg2,
                      int& pos2,
                      priority_queue<HalfSegment,
                                     vector<HalfSegment>,
@@ -10635,9 +10804,9 @@ avlseg::ownertype selectNext(Region const* const reg1,
 Instantiation of the ~selectNext~ function.
 
 */
-avlseg::ownertype selectNext(Line const* const line1,
+avlseg::ownertype selectNext(const Line& line1,
                      int& pos1,
-                     Line const* const line2,
+                     const Line& line2,
                      int& pos2,
                      priority_queue<HalfSegment,
                                     vector<HalfSegment>,
@@ -10662,9 +10831,9 @@ Instantiation of the ~selectNext~ function for ~line~ [x] ~region~.
 
 */
 
-avlseg::ownertype selectNext(Line const* const line,
+avlseg::ownertype selectNext(const Line& line,
                      int& pos1,
-                     Region const* const region,
+                     const Region& region,
                      int& pos2,
                      priority_queue<HalfSegment,
                                     vector<HalfSegment>,
@@ -10693,47 +10862,55 @@ this event.
 The positions are increased automatically by this function.
 
 */
-avlseg::ownertype selectNext( Line const* const line,
+avlseg::ownertype selectNext( const Line& line,
                       priority_queue<HalfSegment,
                                      vector<HalfSegment>,
                                      greater<HalfSegment> >& q,
                       int& posLine,
-                      Point const* const point,
+                      const Point&  point,
                       int& posPoint, // >0: point already used
                       HalfSegment& resHs,
                       Point& resPoint){
 
 
-   int size = line->Size();
-   const HalfSegment* hsl = 0;
-   const HalfSegment* hsq = 0;
-   const HalfSegment* hsmin = 0;
+   int size = line.Size();
+   HalfSegment hsl;
+   bool hs1exists = false;
+   HalfSegment hsq;
+   bool hsqexists = false;
+   HalfSegment hsmin;
+   bool hsminexists = false;
    HalfSegment hstmp;
+
    int src = 0;
    if(posLine < size){
-      line->Get(posLine,hsl);
+      line.Get(posLine,hsl);
+      hs1exists = true;
    }
    if(!q.empty()){
        hstmp = q.top();
-       hsq = &hstmp;
+       hsq = hstmp;
+       hsqexists = true;
    }
-   if(hsl){
+   if(hs1exists){
       src = 1;
       hsmin = hsl;
+      hsminexists = true;
    }
-   if(hsq){
-     if(!hsl || (*hsq < *hsl)){
+   if(hsqexists){
+     if(!hs1exists || (hsq < hsl)){
        src = 2;
        hsmin = hsq;
+       hsminexists = true;
      }
    }
 
    if(posPoint==0){  // point not already used
-     if(!hsmin){
+     if(!hsminexists){
        src = 3;
      } else {
-       Point p = hsmin->GetDomPoint();
-       if(*point < p){
+       Point p = hsmin.GetDomPoint();
+       if(point < p){
             src = 3;
         }
      }
@@ -10742,12 +10919,12 @@ avlseg::ownertype selectNext( Line const* const line,
    switch(src){
     case 0: return avlseg::none;
     case 1: posLine++;
-            resHs = *hsmin;
+            resHs = hsmin;
             return avlseg::first;
     case 2: q.pop();
-            resHs = *hsmin;
+            resHs = hsmin;
             return avlseg::first;
-    case 3: resPoint = *point;
+    case 3: resPoint = point;
             posPoint++;
             return avlseg::second;
     default: assert(false);
@@ -10764,51 +10941,58 @@ points value is used.
 */
 
 
-avlseg::ownertype selectNext( Line const* const line,
+avlseg::ownertype selectNext(const Line& line,
                       priority_queue<HalfSegment,
                                      vector<HalfSegment>,
                                      greater<HalfSegment> >& q,
                       int& posLine,
-                      Points const* const point,
+                      const Points& point,
                       int& posPoint,
                       HalfSegment& resHs,
                       Point& resPoint){
 
-   int sizeP = point->Size();
-   int sizeL = line->Size();
+   int sizeP = point.Size();
+   int sizeL = line.Size();
 
 
-   const HalfSegment* hsl = 0;
-   const HalfSegment* hsq = 0;
-   const HalfSegment* hsmin = 0;
+   HalfSegment hsl;
+   bool hslexists = false;
+   HalfSegment hsq;
+   bool hsqexists = false;
+   HalfSegment hsmin;
+   bool hsminexists = false;
    HalfSegment hstmp;
    int src = 0;
    if(posLine < sizeL){
-      line->Get(posLine,hsl);
+      line.Get(posLine,hsl);
+      hslexists = true;
    }
    if(!q.empty()){
        hstmp = q.top();
-       hsq = &hstmp;
+       hsq = hstmp;
+       hsqexists = true;
    }
-   if(hsl){
+   if(hslexists){
       src = 1;
       hsmin = hsl;
+      hsminexists = true;
    }
-   if(hsq){
-     if(!hsl || (*hsq < *hsl)){
+   if(hsqexists){
+     if(!hslexists || (hsq < hsl)){
        src = 2;
        hsmin = hsq;
+       hsminexists = true;
      }
    }
 
-   const Point * cp;
+   Point  cp;
    if(posPoint<sizeP){  // point not already used
-     point->Get(posPoint,cp);
-     if(!hsmin){
+     point.Get(posPoint,cp);
+     if(!hsminexists){
        src = 3;
      } else {
-       Point p = hsmin->GetDomPoint();
-       if(*cp < p){
+       Point p = hsmin.GetDomPoint();
+       if(cp < p){
             src = 3;
         }
      }
@@ -10817,12 +11001,12 @@ avlseg::ownertype selectNext( Line const* const line,
    switch(src){
     case 0: return avlseg::none;
     case 1: posLine++;
-            resHs = *hsmin;
+            resHs = hsmin;
             return avlseg::first;
     case 2: q.pop();
-            resHs = *hsmin;
+            resHs = hsmin;
             return avlseg::first;
-    case 3: resPoint = *cp;
+    case 3: resPoint = cp;
             posPoint++;
             return avlseg::second;
     default: assert(false);
@@ -10864,21 +11048,21 @@ avlseg::ownertype selectNext(const Line& src, int& pos,
       return avlseg::first;
     }
  } else {
-   const HalfSegment* hs;
+   HalfSegment hs;
    src.Get(pos,hs);
    if(q.empty()){
-      result = *hs;
+      result = hs;
       pos++;
       return avlseg::first;
    } else{
       HalfSegment hsq = q.top();
-      if(hsq<*hs){
+      if(hsq<hs){
          result = hsq;
          q.pop();
          return avlseg::first;
       } else {
          pos++;
-         result = *hs;
+         result = hs;
          return avlseg::first;
       }
    }
@@ -10916,7 +11100,7 @@ void Realminize2(const Line& src, Line& result){
 
 
   while(selectNext(src,pos,q,nextHS)!=avlseg::none) {
-      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      avlseg::AVLSegment current(nextHS,avlseg::first);
       member = sss.getMember(current,leftN,rightN);
       if(leftN){
          tmpL = *leftN;
@@ -10961,7 +11145,7 @@ void Realminize2(const Line& src, Line& result){
 } // Realminize2
 
 
-avlseg::ownertype selectNext(const DBArray<HalfSegment>& src, int& pos,
+avlseg::ownertype selectNext(const DbArray<HalfSegment>& src, int& pos,
                      priority_queue<HalfSegment,
                      vector<HalfSegment>,
                      greater<HalfSegment> >& q,
@@ -10977,21 +11161,21 @@ avlseg::ownertype selectNext(const DBArray<HalfSegment>& src, int& pos,
       return avlseg::first;
     }
  } else {
-   const HalfSegment* hs;
+   HalfSegment hs;
    src.Get(pos,hs);
    if(q.empty()){
-      result = *hs;
+      result = hs;
       pos++;
       return avlseg::first;
    } else{
       HalfSegment hsq = q.top();
-      if(hsq<*hs){
+      if(hsq<hs){
          result = hsq;
          q.pop();
          return avlseg::first;
       } else {
          pos++;
-         result = *hs;
+         result = hs;
          return avlseg::first;
       }
    }
@@ -11002,9 +11186,9 @@ avlseg::ownertype selectNext(const DBArray<HalfSegment>& src, int& pos,
 
 
 
-DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
+DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
 
-  DBArray<HalfSegment>* res = new DBArray<HalfSegment>(0);
+  DbArray<HalfSegment>* res = new DbArray<HalfSegment>(segments.Size());
 
   if(segments.Size()==0){ // no halfsegments, nothing to realminize
     res->TrimToSize();
@@ -11027,7 +11211,7 @@ DBArray<HalfSegment>* Realminize(const DBArray<HalfSegment>& segments){
   int edgeno = 0;
   avlseg::AVLSegment tmpL,tmpR,tmpM;
   while(selectNext(segments,pos,q1,nextHS)!=avlseg::none) {
-      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      avlseg::AVLSegment current(nextHS,avlseg::first);
       member = sss.getMember(current,leftN,rightN);
       if(leftN){
          tmpL = *leftN;
@@ -11094,9 +11278,9 @@ that overlapping parts of segments are keept, instead to remove them.
 But at all crossing points and so on, the segments will be split.
 
 */
-DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
+DbArray<HalfSegment>* Split(const DbArray<HalfSegment>& segments){
 
-  DBArray<HalfSegment>* res = new DBArray<HalfSegment>(0);
+  DbArray<HalfSegment>* res = new DbArray<HalfSegment>(0);
 
   if(segments.Size()==0){ // no halfsegments, nothing to split
     res->TrimToSize();
@@ -11119,7 +11303,7 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
   avlseg::AVLSegment tmpL,tmpR;
 
   while(selectNext(segments,pos,q,nextHS)!=avlseg::none) {
-      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      avlseg::AVLSegment current(nextHS,avlseg::first);
       member = sss.getMember(current,leftN,rightN);
       if(leftN){
          tmpL = *leftN;
@@ -11188,7 +11372,7 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
   res->TrimToSize();
   // work around because problems with overlapping segments
   if(hasOverlaps(*res,true)){
-    DBArray<HalfSegment>* tmp = Split(*res);
+    DbArray<HalfSegment>* tmp = Split(*res);
     delete res;
     res = tmp;
   }
@@ -11196,7 +11380,7 @@ DBArray<HalfSegment>* Split(const DBArray<HalfSegment>& segments){
   return res;
 }
 
-bool hasOverlaps(const DBArray<HalfSegment>& segments,
+bool hasOverlaps(const DbArray<HalfSegment>& segments,
                  const bool ignoreEqual){
   if(segments.Size()<2){ // no overlaps possible
     return false;
@@ -11217,7 +11401,7 @@ bool hasOverlaps(const DBArray<HalfSegment>& segments,
   avlseg::AVLSegment tmpL,tmpR;
 
   while(selectNext(segments,pos,q,nextHS)!=avlseg::none) {
-      avlseg::AVLSegment current(&nextHS,avlseg::first);
+      avlseg::AVLSegment current(nextHS,avlseg::first);
       member = sss.getMember(current,leftN,rightN);
       if(leftN){
          tmpL = *leftN;
@@ -11321,10 +11505,10 @@ void SetOp(const Line& line1,
   avlseg::AVLSegment tmpL,tmpR;
 
   result.StartBulkLoad();
-  while( (owner=selectNext(&line1,pos1,
-                           &line2,pos2,
+  while( (owner=selectNext(line1,pos1,
+                           line2,pos2,
                            q1,q2,nextHs,src))!=avlseg::none){
-       avlseg::AVLSegment current(&nextHs,owner);
+       avlseg::AVLSegment current(nextHs,owner);
        member = sss.getMember(current,leftN,rightN);
        if(leftN){
          tmpL = *leftN;
@@ -11468,11 +11652,11 @@ void SetOp(const Region& reg1,
           result.StartBulkLoad();
           int edgeno=0;
           int s = reg1.Size();
-          const HalfSegment* hs;
+          HalfSegment hs;
           for(int i=0;i<s;i++){
               reg1.Get(i,hs);
-              if(hs->IsLeftDomPoint()){
-                 HalfSegment HS(*hs);
+              if(hs.IsLeftDomPoint()){
+                 HalfSegment HS(hs);
                  HS.attr.edgeno = edgeno;
                  result += HS;
                  HS.SetLeftDomPoint(false);
@@ -11483,8 +11667,8 @@ void SetOp(const Region& reg1,
           s = reg2.Size();
           for(int i=0;i<s;i++){
               reg2.Get(i,hs);
-              if(hs->IsLeftDomPoint()){
-                 HalfSegment HS(*hs);
+              if(hs.IsLeftDomPoint()){
+                 HalfSegment HS(hs);
                  HS.attr.edgeno = edgeno;
                  result += HS;
                  HS.SetLeftDomPoint(false);
@@ -11512,8 +11696,8 @@ void SetOp(const Region& reg1,
   HalfSegment nextHs;
   int src = 0;
 
-  const avlseg::AVLSegment* member=0;
-  const avlseg::AVLSegment* leftN = 0;
+  const avlseg::AVLSegment* member = 0;
+  const avlseg::AVLSegment* leftN  = 0;
   const avlseg::AVLSegment* rightN = 0;
 
   avlseg::AVLSegment left1,right1,common1,
@@ -11523,10 +11707,12 @@ void SetOp(const Region& reg1,
   avlseg::AVLSegment tmpL,tmpR;
 
   result.StartBulkLoad();
-  while( (owner=selectNext(&reg1,pos1,
-                           &reg2,pos2,
+
+  while( (owner=selectNext(reg1,pos1,
+                           reg2,pos2,
                            q1,q2,nextHs,src))!=avlseg::none){
-       avlseg::AVLSegment current(&nextHs,owner);
+
+       avlseg::AVLSegment current(nextHs,owner);
        member = sss.getMember(current,leftN,rightN);
        if(leftN){
           tmpL = *leftN;
@@ -11550,8 +11736,8 @@ void SetOp(const Region& reg1,
                cerr << "current = " << current << endl;
                avlseg::AVLSegment tmp_left, tmp_common, tmp_right;
                member->split(current,tmp_left, tmp_common, tmp_right, false);
-               cout << "The common part is " << tmp_common << endl;
-               cout << "The lenth = " << tmp_common.length() << endl;
+               cerr << "The common part is " << tmp_common << endl;
+               cerr << "The lenth = " << tmp_common.length() << endl;
                assert(false);
             }
             int parts = member->split(current,left1,common1,right1);
@@ -11580,7 +11766,6 @@ void SetOp(const Region& reg1,
             // try to split segments if required
             splitByNeighbour(sss,current,leftN,q1,q2);
             splitByNeighbour(sss,current,rightN,q1,q2);
-
 
             // update coverage numbers
             bool iac = current.getOwner()==avlseg::first
@@ -11699,6 +11884,7 @@ void SetOp(const Region& reg1,
        } // right endpoint
   }
   result.EndBulkLoad();
+
 } // setOP region x region -> region
 
 Region* SetOp(const Region& reg1, const Region& reg2, avlseg::SetOperation op){
@@ -11793,11 +11979,11 @@ void SetOp(const Line& line,
 
   result.StartBulkLoad();
   // perform a planesweeo
-  while( ((owner=selectNext(&line,pos1,
-                            &region,pos2,
+  while( ((owner=selectNext(line,pos1,
+                            region,pos2,
                             q1,q2,nextHs,src))!=avlseg::none)
          && ! done){
-     avlseg::AVLSegment current(&nextHs,owner);
+     avlseg::AVLSegment current(nextHs,owner);
      member = sss.getMember(current,leftN,rightN);
      if(leftN){
         tmpL = *leftN;
@@ -11973,11 +12159,11 @@ void CommonBorder(
   int size1 = reg1.Size();
   int size2 = reg2.Size();
 
-  while( ((owner=selectNext(&reg1,pos1,
-                            &reg2,pos2,
+  while( ((owner=selectNext(reg1,pos1,
+                            reg2,pos2,
                             q1,q2,nextHs,src))!=avlseg::none)
          && !done  ){
-       avlseg::AVLSegment current(&nextHs,owner);
+       avlseg::AVLSegment current(nextHs,owner);
        member = sss.getMember(current,leftN,rightN);
        if(leftN){
           tmpL = *leftN;
@@ -12205,13 +12391,13 @@ static vector< vector <Point> > getCycles(const Region& reg){
 
       map< pair<int, int> , vector<HalfSegment> > m;
 
-      const HalfSegment* hs;
+      HalfSegment hs;
       for(int i=0;i<reg.Size(); i++){
          reg.Get(i,hs);
-         if(hs->IsLeftDomPoint()){
-            int faceno = hs->attr.faceno;
-            int cycleno = hs->attr.cycleno;
-            m[make_pair(faceno, cycleno)].push_back(*hs);
+         if(hs.IsLeftDomPoint()){
+            int faceno = hs.attr.faceno;
+            int cycleno = hs.attr.cycleno;
+            m[make_pair(faceno, cycleno)].push_back(hs);
          }
       }
 
@@ -12603,6 +12789,10 @@ ListExpr
 OutRegion( ListExpr typeInfo, Word value )
 {
   Region* cr = (Region*)(value.addr);
+  if(!cr->IsDefined()){
+    return nl->SymbolAtom("undef");
+  }
+
   if( cr->IsEmpty() )
   {
     return (nl->TheEmptyList());
@@ -12613,7 +12803,7 @@ OutRegion( ListExpr typeInfo, Word value )
 
     RCopy->LogicSort();
 
-    const HalfSegment *hs, *hsnext;
+    HalfSegment hs, hsnext;
 
     ListExpr regionNL = nl->TheEmptyList();
     ListExpr regionNLLast = regionNL;
@@ -12634,25 +12824,25 @@ OutRegion( ListExpr typeInfo, Word value )
       RCopy->Get( i, hs );
       if (i==0)
       {
-        currFace = hs->attr.faceno;
-        currCycle = hs->attr.cycleno;
+        currFace = hs.attr.faceno;
+        currCycle = hs.attr.cycleno;
         RCopy->Get( i+1, hsnext );
 
-        if ((hs->GetLeftPoint() == hsnext->GetLeftPoint()) ||
-            ((hs->GetLeftPoint() == hsnext->GetRightPoint())))
+        if ((hs.GetLeftPoint() == hsnext.GetLeftPoint()) ||
+            ((hs.GetLeftPoint() == hsnext.GetRightPoint())))
         {
-          outputP = hs->GetRightPoint();
-          leftoverP = hs->GetLeftPoint();
+          outputP = hs.GetRightPoint();
+          leftoverP = hs.GetLeftPoint();
         }
-        else if ((hs->GetRightPoint() == hsnext->GetLeftPoint()) ||
-                 ((hs->GetRightPoint() == hsnext->GetRightPoint())))
+        else if ((hs.GetRightPoint() == hsnext.GetLeftPoint()) ||
+                 ((hs.GetRightPoint() == hsnext.GetRightPoint())))
         {
-          outputP = hs->GetLeftPoint();
-          leftoverP = hs->GetRightPoint();
+          outputP = hs.GetLeftPoint();
+          leftoverP = hs.GetRightPoint();
         }
         else
         {
-          cout<<"wrong data format!"<<endl;
+          cerr << "wrong data format!"<<endl;
           return nl->TheEmptyList();
         }
 
@@ -12669,21 +12859,21 @@ OutRegion( ListExpr typeInfo, Word value )
       }
       else
       {
-        if (hs->attr.faceno == currFace)
+        if (hs.attr.faceno == currFace)
         {
-          if (hs->attr.cycleno == currCycle)
+          if (hs.attr.cycleno == currCycle)
           {
             outputP=leftoverP;
 
-            if (hs->GetLeftPoint() == leftoverP)
-              leftoverP = hs->GetRightPoint();
-            else if (hs->GetRightPoint() == leftoverP)
+            if (hs.GetLeftPoint() == leftoverP)
+              leftoverP = hs.GetRightPoint();
+            else if (hs.GetRightPoint() == leftoverP)
             {
-              leftoverP = hs->GetLeftPoint();
+              leftoverP = hs.GetLeftPoint();
             }
             else
             {
-              cout<<"wrong data format!"<<endl;
+              cerr <<"wrong data format!"<<endl;
               return nl->TheEmptyList();
             }
 
@@ -12711,25 +12901,25 @@ OutRegion( ListExpr typeInfo, Word value )
               faceNLLast = nl->Append(faceNLLast, cycleNL);
             }
             cycleNL = nl->TheEmptyList();
-            currCycle = hs->attr.cycleno;
+            currCycle = hs.attr.cycleno;
 
 
             RCopy->Get( i+1, hsnext );
-            if ((hs->GetLeftPoint() == hsnext->GetLeftPoint()) ||
-                ((hs->GetLeftPoint() == hsnext->GetRightPoint())))
+            if ((hs.GetLeftPoint() == hsnext.GetLeftPoint()) ||
+                ((hs.GetLeftPoint() == hsnext.GetRightPoint())))
             {
-              outputP = hs->GetRightPoint();
-              leftoverP = hs->GetLeftPoint();
+              outputP = hs.GetRightPoint();
+              leftoverP = hs.GetLeftPoint();
             }
-            else if ((hs->GetRightPoint() == hsnext->GetLeftPoint()) ||
-                     ((hs->GetRightPoint() == hsnext->GetRightPoint())))
+            else if ((hs.GetRightPoint() == hsnext.GetLeftPoint()) ||
+                     ((hs.GetRightPoint() == hsnext.GetRightPoint())))
             {
-              outputP = hs->GetLeftPoint();
-              leftoverP = hs->GetRightPoint();
+              outputP = hs.GetLeftPoint();
+              leftoverP = hs.GetRightPoint();
             }
             else
             {
-              cout<<"wrong data format!"<<endl;
+              cerr <<"wrong data format!"<<endl;
               return nl->TheEmptyList();
             }
 
@@ -12771,26 +12961,26 @@ OutRegion( ListExpr typeInfo, Word value )
           }
           faceNL = nl->TheEmptyList();
 
-          currFace = hs->attr.faceno;
-          currCycle = hs->attr.cycleno;
+          currFace = hs.attr.faceno;
+          currCycle = hs.attr.cycleno;
 
 
           RCopy->Get( i+1, hsnext );
-          if ((hs->GetLeftPoint() == hsnext->GetLeftPoint()) ||
-             ((hs->GetLeftPoint() == hsnext->GetRightPoint())))
+          if ((hs.GetLeftPoint() == hsnext.GetLeftPoint()) ||
+             ((hs.GetLeftPoint() == hsnext.GetRightPoint())))
           {
-            outputP = hs->GetRightPoint();
-            leftoverP = hs->GetLeftPoint();
+            outputP = hs.GetRightPoint();
+            leftoverP = hs.GetLeftPoint();
           }
-          else if ((hs->GetRightPoint() == hsnext->GetLeftPoint()) ||
-                  ((hs->GetRightPoint() == hsnext->GetRightPoint())))
+          else if ((hs.GetRightPoint() == hsnext.GetLeftPoint()) ||
+                  ((hs.GetRightPoint() == hsnext.GetRightPoint())))
           {
-            outputP = hs->GetLeftPoint();
-            leftoverP = hs->GetRightPoint();
+            outputP = hs.GetLeftPoint();
+            leftoverP = hs.GetRightPoint();
           }
           else
           {
-            cout<<"wrong data format!"<<endl;
+            cerr<<"wrong data format!"<<endl;
             return nl->TheEmptyList();
           }
 
@@ -12840,13 +13030,23 @@ OutRegion( ListExpr typeInfo, Word value )
 8.4 ~In~-function
 
 */
+
+
 Word
 InRegion( const ListExpr typeInfo, const ListExpr instance,
           const int errorPos, ListExpr& errorInfo, bool& correct )
 {
+
   Region* cr = new Region( 0 );
 
+  if(nl->IsEqual(instance,"undef")){
+    cr->SetDefined(0);
+    correct=true;
+    return SetWord(Address(cr));
+  }
+
   cr->StartBulkLoad();
+
 
   ListExpr RegionNL = instance;
   ListExpr FaceNL, CycleNL;
@@ -12893,7 +13093,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
 
         if (nl->ListLength( CycleNL) <3)
         {
-          cout<<"a cycle must have at least 3 edges!"<<endl;
+          cerr<<"a cycle must have at least 3 edges!"<<endl;
           correct=false;
           return SetWord( Address(0) );
         }
@@ -12906,7 +13106,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
 
           //Starting to compute a new cycle
 
-          Points *cyclepoints= new Points( 0 ); // in memory
+          Points *cyclepoints= new Points( 8 ); // in memory
 
           Point *currvertex,p1,p2,firstP;
 
@@ -12915,13 +13115,17 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
           //is terminated the region rDir will be used to compute the
           //insideAbove
           //attribute of the half segments of this cycle.
-          Region *rDir = new Region(0);
+          Region *rDir = new Region(32);
           rDir->StartBulkLoad();
 
 
           currvertex = (Point*) InPoint ( nl->TheEmptyList(),
               firstPoint, 0, errorInfo, correct ).addr;
-          if (!correct) return SetWord( Address(0) );
+          if (!correct) {
+             // todo: delete temp objects
+             return SetWord( Address(0) );
+          }
+
           cyclepoints->StartBulkLoad();
           (*cyclepoints) += (*currvertex);
           p1 = *currvertex;
@@ -12941,7 +13145,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
 
             if (cyclepoints->Contains(*currvertex))
             {
-              cout<<"the same vertex: "<<(*currvertex)
+              cerr<<"the same vertex: "<<(*currvertex)
               <<" repeated in the cycle!"<<endl;
               correct=false;
               return SetWord( Address(0) );
@@ -12950,8 +13154,8 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
             {
               p2 = *currvertex;
               cyclepoints->StartBulkLoad();
-              (*cyclepoints) += (*currvertex);
-              cyclepoints->EndBulkLoad();
+              (*cyclepoints) += (*currvertex); 
+              cyclepoints->EndBulkLoad(true,false,false);
             }
             delete currvertex;
 
@@ -13031,6 +13235,8 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
             (*cr) += (*hs);
             delete hs;
             rDir->EndBulkLoad(true, false, false, false);
+
+
             //To calculate the inside above attribute
             bool direction = rDir->GetCycleDirection();
             int h = cr->Size() - ( rDir->Size() * 2 );
@@ -13038,7 +13244,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
             {
               //after each left half segment of the region is its
               //correspondig right half segment
-              const HalfSegment *hsIA;
+              HalfSegment hsIA;
               bool insideAbove;
               cr->Get(h,hsIA);
               /*
@@ -13058,18 +13264,18 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
                   true;
 
               */
-              if (direction == hsIA->attr.insideAbove)
+              if (direction == hsIA.attr.insideAbove)
                 insideAbove = false;
               else
                 insideAbove = true;
               if (!isCycle)
                 insideAbove = !insideAbove;
-              HalfSegment auxhsIA( *hsIA );
+              HalfSegment auxhsIA( hsIA );
               auxhsIA.attr.insideAbove = insideAbove;
               cr->UpdateAttr(h,auxhsIA.attr);
               //Get right half segment
               cr->Get(h+1,hsIA);
-              auxhsIA = *hsIA;
+              auxhsIA = hsIA;
               auxhsIA.attr.insideAbove = insideAbove;
               cr->UpdateAttr(h+1,auxhsIA.attr);
               h+=2;
@@ -13813,6 +14019,12 @@ SpatialCrossingsTM( ListExpr args )
     if ( SpatialTypeOfSymbol( arg1 ) == stsline &&
          SpatialTypeOfSymbol( arg2 ) == stsline )
       return (nl->SymbolAtom( "points" ));
+  }
+  if(nl->ListLength(args==1)){ // internal crossings of a single line
+    arg1 = nl->First( args );
+    if ( SpatialTypeOfSymbol( arg1 ) == stline){ 
+        return (nl->SymbolAtom( "points" ));
+    }
   }
   return (nl->SymbolAtom( "typeerror" ));
 }
@@ -15021,6 +15233,33 @@ ListExpr SpatialCollectSLineTypeMap(ListExpr args){
 }
 
 
+ListExpr SpatialCollectPointsTM(ListExpr args){
+  string err = " {stream(point), stream(points)} x bool expected";
+  if(nl->ListLength(args) != 2){
+    return listutils::typeError(err);
+  }
+
+  ListExpr arg1 = nl->First(args);
+  if(nl->ListLength(arg1) != 2){
+    return listutils::typeError(err);
+  }
+  ListExpr s = nl->First(arg1);
+  ListExpr p = nl->Second(arg1);
+  if(!listutils::isSymbol(s,"stream")){
+    return listutils::typeError(err);
+  }
+  if(!listutils::isSymbol(p,"point") &&
+     !listutils::isSymbol(p,"points")){
+    return listutils::typeError(err);
+  }
+  ListExpr arg2 = nl->Second(args);
+  if(!listutils::isSymbol(arg2,"bool")){
+    return listutils::typeError(err);
+  }
+  return nl->SymbolAtom("points");
+}
+
+
 /*
 10.3 Selection functions
 
@@ -15781,11 +16020,15 @@ static int SpatialSelectSize(ListExpr args){
 
 static int SpatialSelectCrossings(ListExpr args){
    SpatialType st = SpatialTypeOfSymbol(nl->First(args));
-   if(st==stline){
-     return 0;
-   }
-   if(st==stsline){
-     return 1;
+   if(nl->ListLength(args)==2){
+      if(st==stline){
+        return 0;
+      }
+      if(st==stsline){
+        return 1;
+      }
+   } else { // one singe argument = line
+      return 2;  
    }
    return -1;
 }
@@ -15814,6 +16057,13 @@ static int SpatialCollectLineSelect(ListExpr args){
   if(listutils::isSymbol(T, symbols::SLINE)) return 1;
   if(listutils::isSymbol(T, symbols::LINE)) return 2;
   return -1;
+}
+
+static int SpatialCollectPointsSelect(ListExpr args){
+   ListExpr T = nl->Second(nl->First(args));
+   if(listutils::isSymbol(T,"point")) return 0;
+   if(listutils::isSymbol(T,"points")) return 1;
+   return -1; 
 }
 
 
@@ -16524,6 +16774,17 @@ SpatialCrossings( Word* args, Word& result, int message,
   return 0;
 }
 
+
+int
+SpatialCrossings_single( Word* args, Word& result, int message,
+                         Word& local, Supplier s ){
+  result = qp->ResultStorage( s );
+  Line*  cl=((Line*)args[0].addr);
+  cl->Crossings( *(Points*)result.addr );
+  return 0;
+}
+
+
 /*
 10.4.19 Value mapping functions of operator ~single~
 
@@ -16536,11 +16797,11 @@ SpatialSingle_ps( Word* args, Word& result, int message,
 
   Points *ps = ((Points*)args[0].addr);
 
-  const Point *p;
+  Point p;
   if( ps->Size() == 1 )
   {
     ps->Get( 0, p );
-    *(Point*)result.addr = *p;
+    *(Point*)result.addr = p;
   }
   else
     ((Point *)result.addr)->SetDefined( false );
@@ -16725,146 +16986,147 @@ SpatialTouchPoints_rr( Word* args, Word& result, int message,
   return 0;
 }
 
+/*
+Classes suppoorting the computation of the convex hull of
+an pointset.
 
 
+*/
+class SimplePoint;
+ostream& operator<<(ostream& o,const SimplePoint& p);
 
-SimplePoint::SimplePoint(const Point* p){
-  this->x = p->GetX();
-  this->y = p->GetY();
-}
+class SimplePoint{
+  public:
+     SimplePoint(const Point* p){
+       this->x = p->GetX();
+       this->y = p->GetY();
+     }
 
-SimplePoint::SimplePoint(){
-  x = 0;
-  y = 0;
-}
+     SimplePoint(Point& p){
+       this->x = p.GetX();
+       this->y = p.GetY();
+     }
 
-SimplePoint::SimplePoint(double x, double y){
-  this->x = x;
-  this->y = y;
-}
+     SimplePoint(){
+        x = 0;
+        y = 0;
+     }
 
-SimplePoint::SimplePoint(const SimplePoint& p){
-  this->x = p.x;
-  this->y = p.y;
-}
+     SimplePoint(double x, double y){
+       this->x = x;
+       this->y = y;
+     }
 
-SimplePoint& 
-SimplePoint::operator=(const SimplePoint& p){
-  this->x = p.x;
-  this->y = p.y;
-  return *this;
-}
+     SimplePoint(const SimplePoint& p){
+        this->x = p.x;
+        this->y = p.y;
+     }
 
-SimplePoint::~SimplePoint(){}
+     SimplePoint& operator=(const SimplePoint& p){
+       this->x = p.x;
+       this->y = p.y;
+       return *this;
+     }
 
-SimplePoint 
-SimplePoint::relTo(const SimplePoint& p) const{
-  return SimplePoint(this->x - p.x, this->y-p.y);
-}
+     ~SimplePoint(){}
 
-void 
-SimplePoint::makeRelTo(const SimplePoint& p){
-  this->x -= p.x;
-  this->y -= p.y;
-}
+     SimplePoint relTo(const SimplePoint& p) const{
+        return SimplePoint(this->x - p.x, this->y-p.y);
+     }
 
-SimplePoint 
-SimplePoint::moved(const double x0, const double y0)const{
-  return SimplePoint(x+x0, y+y0);
-}
+     void makeRelTo(const SimplePoint& p){
+        this->x -= p.x;
+        this->y -= p.y;
+     }
 
-SimplePoint 
-SimplePoint::reversed()const{
-  return SimplePoint(-x,-y);
-}
+     SimplePoint moved(const double x0, const double y0)const{
+        return SimplePoint(x+x0, y+y0);
+     }
 
-bool 
-SimplePoint::isLower(const SimplePoint& p)const{
-  if(!AlmostEqual(y,p.y)){
-    return y < p.y;
-  }
-  if(AlmostEqual(x,p.x)){ // equal points
-    return false;
-  }
-  return x < p.x;
-}
+     SimplePoint reversed()const{
+        return SimplePoint(-x,-y);
+     }
 
-double 
-SimplePoint::mdist()const{ // manhatten distance to (0,0)
-  return abs(x) + abs(y);
-}
+     bool isLower(const SimplePoint& p)const{
+        if(!AlmostEqual(y,p.y)){
+           return y < p.y;
+        }
+        if(AlmostEqual(x,p.x)){ // equal points
+           return false;
+        }
+        return x < p.x;
+     }
 
-double 
-SimplePoint::mdist(const SimplePoint p)const{
-  return abs(x-p.x) + abs(y-p.y);
-}
+     double mdist()const{ // manhatten distance to (0,0)
+       return abs(x) + abs(y);
+     }
 
-bool 
-SimplePoint::isFurther(const SimplePoint& p)const{
-  return mdist() > p.mdist();
-}
+     double mdist(const SimplePoint p)const{
+        return abs(x-p.x) + abs(y-p.y);
+     }
 
-bool 
-SimplePoint::isBetween(const SimplePoint& p0, const SimplePoint p1) const{
-  return p0.mdist(p1) >= mdist(p0)+mdist(p1);
-}
+     bool isFurther(const SimplePoint& p)const{
+        return mdist() > p.mdist();
+     }
 
-double 
-SimplePoint::cross(const SimplePoint& p)const{
-  return x*p.y - p.x*y;
-}
+     bool isBetween(const SimplePoint& p0, const SimplePoint p1) const{
+        return p0.mdist(p1) >= mdist(p0)+mdist(p1);
+     }
 
-bool 
-SimplePoint::isLess(const SimplePoint& p) const{
-  double f = cross(p);
-  bool res;
-  if(AlmostEqual(f,0.0)){
-    res = isFurther(p);
-  } else {
-    res = f>0;
-  }
-  return  res;
-}
+     double cross(const SimplePoint& p)const{
+        return x*p.y - p.x*y;
+     }
 
-bool 
-SimplePoint::operator<(const SimplePoint& p) const{
-  return isLess(p);
-}
+     bool isLess(const SimplePoint& p) const{
+        double f = cross(p);
+        bool res;
+        if(AlmostEqual(f,0.0)){
+          res = isFurther(p);
+        } else {
+          res = f>0;
+        }
+        return  res;
+     }
 
-bool 
-SimplePoint::operator==(const SimplePoint& p) const{
-  return AlmostEqual(x,p.x)&& AlmostEqual(y,p.y);
-}
+     bool operator<(const SimplePoint& p) const{
+         return isLess(p);
+     }
 
-bool 
-SimplePoint::operator>(const SimplePoint& p) const{
-  return !(AlmostEqual(x,p.x) && AlmostEqual(y,p.y)) && !isLess(p);
-}
+     bool operator==(const SimplePoint& p) const{
+         return AlmostEqual(x,p.x)&& AlmostEqual(y,p.y);
+     }
 
-double 
-SimplePoint::area2(const SimplePoint& p0, const SimplePoint& p1) const{
-  return p0.relTo(*this).cross(p1.relTo(*this));
-}
+    bool operator>(const SimplePoint& p) const{
+         return !(AlmostEqual(x,p.x) && AlmostEqual(y,p.y)) && !isLess(p);
+     }
 
-bool 
-SimplePoint::isConvex(const SimplePoint& p0, const SimplePoint& p1) const {
-  double f = area2(p0,p1);
-  if(AlmostEqual(f,0.0)){
-    bool between = isBetween(p0,p1);
-    return !between;
-  }
-  return f<0;
-}
+     double area2(const SimplePoint& p0, const SimplePoint& p1) const{
+        return p0.relTo(*this).cross(p1.relTo(*this));
+     }
 
-Point 
-SimplePoint::getPoint()const {
-  return Point(true,x,y);
-}
+     bool isConvex(const SimplePoint& p0, const SimplePoint& p1) const {
+        double f = area2(p0,p1);
+        if(AlmostEqual(f,0.0)){
+           bool between = isBetween(p0,p1);
+           return !between;
+        }
+        return f<0;
+     }
 
-double 
-SimplePoint::getX()const{ return x;}
-double 
-SimplePoint::getY()const{ return y;}
+     Point getPoint()const {
+        return Point(true,x,y);
+     }
+
+     double getX()const{ return x;}
+     double getY()const{ return y;}
+
+
+  private:
+     double x;
+     double y;
+
+}; // end of class SimplePoint
+
 
 
 ostream& operator<<(ostream& o,const SimplePoint& p) {
@@ -16872,168 +17134,169 @@ ostream& operator<<(ostream& o,const SimplePoint& p) {
         return o;
 }
 
-void 
-GrahamScan::convexHull(const Points* ps, Region* result){
-  result->Clear();
-  if(!ps->IsDefined() ){
-    result->SetDefined(false);
-    return;
+
+class GrahamScan{
+public:
+  static void convexHull(const Points* ps, Region* result){
+     result->Clear();
+     if(!ps->IsDefined() ){
+         result->SetDefined(false);
+         return;
+     }
+     if(ps->Size()<3){
+        result->SetDefined(false);
+        return;
+     }
+     GrahamScan scan(ps);
+     int size = scan.computeHull();
+     if(size<3){ // points was on a single line
+        result->SetDefined(false);
+        return;
+     }
+
+
+     result->SetDefined(true);
+     result->StartBulkLoad();
+     for(int i=0;i<size-1; i++){
+        SimplePoint p1(scan.p[i]);
+        SimplePoint p2(scan.p[i+1]);
+        // build the halfsegment
+        HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
+        HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
+        hs1.attr.edgeno = i;
+        hs2.attr.edgeno = i;
+        bool ia = isInsideAbove(p1,p2);
+        hs1.attr.insideAbove = ia;
+        hs2.attr.insideAbove = ia;
+        (*result) += hs1;
+        (*result) += hs2;
+     }
+     // close the polygon
+     SimplePoint p1(scan.p[size-1]);
+     SimplePoint p2(scan.p[0]);
+     // build the halfsegment
+     HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
+     HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
+     hs1.attr.edgeno = size-1;
+     hs2.attr.edgeno = size-1;
+     bool ia = isInsideAbove(p1,p2);
+     hs1.attr.insideAbove = ia;
+     hs2.attr.insideAbove = ia;
+     (*result) += hs1;
+     (*result) += hs2;
+     result->EndBulkLoad();
   }
-  if(ps->Size()<3){
-    result->SetDefined(false);
-    return;
+
+
+private:
+   vector<SimplePoint> p;
+   int n;
+   int h;
+
+
+  GrahamScan(const Points* ps){
+     n = ps->Size();
+     Point pt;
+     for(int i=0;i<n;i++){
+        ps->Get(i,pt);
+        p.push_back(SimplePoint(pt));
+     }
   }
-  GrahamScan scan(ps);
-  int size = scan.computeHull();
-  if(size<3){ // points was on a single line
-    result->SetDefined(false);
-    return;
-  }
 
-
-  result->SetDefined(true);
-  result->StartBulkLoad();
-  for(int i=0;i<size-1; i++){
-    SimplePoint p1(scan.p[i]);
-    SimplePoint p2(scan.p[i+1]);
-    // build the halfsegment
-    HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
-    HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
-    hs1.attr.edgeno = i;
-    hs2.attr.edgeno = i;
-    bool ia = isInsideAbove(p1,p2);
-    hs1.attr.insideAbove = ia;
-    hs2.attr.insideAbove = ia;
-    (*result) += hs1;
-    (*result) += hs2;
-  }
-  // close the polygon
-  SimplePoint p1(scan.p[size-1]);
-  SimplePoint p2(scan.p[0]);
-  // build the halfsegment
-  HalfSegment hs1(true,p1.getPoint(),p2.getPoint());
-  HalfSegment hs2(false,p1.getPoint(),p2.getPoint());
-  hs1.attr.edgeno = size-1;
-  hs2.attr.edgeno = size-1;
-  bool ia = isInsideAbove(p1,p2);
-  hs1.attr.insideAbove = ia;
-  hs2.attr.insideAbove = ia;
-  (*result) += hs1;
-  (*result) += hs2;
-  result->EndBulkLoad();
-}
-
-GrahamScan::GrahamScan(const Points* ps){
-  n = ps->Size();
-  const Point* pt;
-  for(int i=0;i<n;i++){
-    ps->Get(i,pt);
-    p.push_back(SimplePoint(pt));
-  }
-}
-
-int 
-GrahamScan::computeHull(){
-  if(n<3){
-    return n;
-  }
-  h = 0;
-  grahamScan();
-  return h;
-}
-void 
-GrahamScan::grahamScan(){
-  int min = indexOfLowestPoint();
-
-  exchange(0,min);
-
-
-
-  SimplePoint pl(p[0]);
-  makeRelTo(pl);
-  sort();
-  makeRelTo(pl.reversed());
-
-  int i=3;
-  int k=3;
-  while(k<n){
-    exchange(i,k);
-    while(!isConvex(i-1)){
-      exchange(i-1,i);
-      i--;
+   int computeHull(){
+    if(n<3){
+      return n;
     }
-    k++;
-    i++;
+    h = 0;
+    grahamScan();
+    return h;
   }
-  // remove a possibly last 180 degree angle
-  if(i>=3){
-    if(!p[i-1].isConvex(p[i-2],p[0])){
-      i--;
-    }
-  }
+   void grahamScan(){
+     int min = indexOfLowestPoint();
 
-  h = i;
-}
-
-bool 
-GrahamScan::isInsideAbove(const SimplePoint& p1, const SimplePoint& p2){
-  double diffx = p2.getX()-p1.getX();
-  double diffy = p2.getY()-p1.getY();
-
-  if(AlmostEqual(diffx,0.0)){
-    return diffy < 0;
-  }
-  if(AlmostEqual(diffy,0.0)){
-    return diffx > 0;
-  }
-
-  bool sx = diffx>0;
-  // bool sy = diffy>0;
-  // return sx == sy;
-  return sx;
-}
+     exchange(0,min);
 
 
-void 
-GrahamScan::exchange(const int i, const int j){
-  SimplePoint t(p[i]);
-  p[i] = p[j];
-  p[j] = t;
-}
 
-void 
-GrahamScan::makeRelTo(const SimplePoint& p0){
-  SimplePoint p1(p0);
-  for(int i=0;i<n;i++){
-    p[i].makeRelTo(p1);
-  }
-}
+     SimplePoint pl(p[0]);
+     makeRelTo(pl);
+     sort();
+     makeRelTo(pl.reversed());
 
-int 
-GrahamScan::indexOfLowestPoint()const{
-  unsigned min = 0;
-  for(unsigned int i=1; i<p.size(); i++){
-    if(p[i].isLower(p[min])){
-      min = i;
-    }
-  }
-  return min;
-}
+     int i=3;
+     int k=3;
+     while(k<n){
+        exchange(i,k);
+        while(!isConvex(i-1)){
+           exchange(i-1,i);
+           i--;
+        }
+        k++;
+        i++;
+     }
+     // remove a possibly last 180 degree angle
+     if(i>=3){
+        if(!p[i-1].isConvex(p[i-2],p[0])){
+            i--;
+        }
+     }
 
-bool 
-GrahamScan::isConvex(const int i){
-  return p[i].isConvex(p[i-1],p[i+1]);
-}
+     h = i;
+   }
 
-void 
-GrahamScan::sort(){
-  vector<SimplePoint>::iterator it= p.begin();
-  it++;
-  std::sort(it,p.end()); // without the first point
-}
+   static bool isInsideAbove(const SimplePoint& p1, const SimplePoint& p2){
+     double diffx = p2.getX()-p1.getX();
+     double diffy = p2.getY()-p1.getY();
+
+     if(AlmostEqual(diffx,0.0)){
+        return diffy < 0;
+     }
+     if(AlmostEqual(diffy,0.0)){
+        return diffx > 0;
+     }
+
+     bool sx = diffx>0;
+    // bool sy = diffy>0;
+    // return sx == sy;
+    return sx;
+   }
 
 
-// end of class GrahamScan
+   void exchange(const int i, const int j){
+      SimplePoint t(p[i]);
+      p[i] = p[j];
+      p[j] = t;
+   }
+
+   void makeRelTo(const SimplePoint& p0){
+       SimplePoint p1(p0);
+       for(int i=0;i<n;i++){
+          p[i].makeRelTo(p1);
+       }
+   }
+
+   int indexOfLowestPoint()const{
+     unsigned min = 0;
+     for(unsigned int i=1; i<p.size(); i++){
+        if(p[i].isLower(p[min])){
+           min = i;
+        }
+     }
+     return min;
+   }
+
+   bool isConvex(const int i){
+     return p[i].isConvex(p[i-1],p[i+1]);
+   }
+
+   void sort(){
+     vector<SimplePoint>::iterator it= p.begin();
+     it++;
+     std::sort(it,p.end()); // without the first point
+   }
+
+
+}; // end of class GrahamScan
 
 
 
@@ -17066,7 +17329,7 @@ SpatialTranslate_p( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
+  Point *res = static_cast<Point*>(result.addr);
   const Point *p= (Point*)args[0].addr;
 
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
@@ -17078,15 +17341,12 @@ SpatialTranslate_p( Word* args, Word& result, int message,
   qp->Request( son, t );
   const CcReal *ty = ((CcReal *)t.addr);
 
-  if( p->IsDefined())
-    if( tx->IsDefined() && ty->IsDefined() )
-      *((Point*)result.addr) = p->Translate( tx->GetRealval(),
-                                             ty->GetRealval() );
-    else
-      *((Point*)result.addr) = *p;
-  else
-    ((Point*)result.addr)->SetDefined( false );
-
+  if( p->IsDefined() &&tx->IsDefined() && ty->IsDefined()){
+     *res = *p;
+     res->Translate( tx->GetRealval(),  ty->GetRealval() );
+  } else {
+     res->SetDefined( false );
+  }
   return 0;
 }
 
@@ -17226,8 +17486,9 @@ int SpatialRect2Region( Word* args, Word& result, int message,
   Region *res = (Region *)result.addr;
   res->SetDefined(true);
   res->Clear();
-  if(  rect->IsDefined() )
-  *res = Region( *rect );
+  if(  rect->IsDefined() ){
+     *res = Region( *rect );
+  }
   return 0;
 }
 
@@ -17406,10 +17667,10 @@ int SpatialScale_ps( Word* args, Word& result, int message,
     if(!p->IsEmpty()){
        res->StartBulkLoad();
        int size = p->Size();
-       const Point *PTemp;
+       Point PTemp;
        for(int i=0;i<size;i++){
            p->Get(i,PTemp);
-           Point aux( *PTemp );
+           Point aux( PTemp );
            aux.Scale(f);
            (*res) += aux;
         }
@@ -17441,10 +17702,10 @@ int SpatialScale_l( Word* args, Word& result, int message,
     if(!L->IsEmpty()){
        res->StartBulkLoad();
        int size = L->Size();
-       const HalfSegment *hs;
+       HalfSegment hs;
        for(int i=0;i<size;i++){
          L->Get(i,hs);
-         HalfSegment aux( *hs );
+         HalfSegment aux( hs );
          aux.Scale(f);
          (*res) += aux;
        }
@@ -17476,12 +17737,11 @@ int SpatialScale_r( Word* args, Word& result, int message,
     if(!R->IsEmpty()){
        res->StartBulkLoad();
        int size = R->Size();
-       const HalfSegment *hs;
+       HalfSegment hs;
        for(int i=0;i<size;i++){
          R->Get(i,hs);
-         HalfSegment aux( *hs );
-         aux.Scale(f);
-         (*res) += aux;
+         hs.Scale(f);
+         (*res) += hs;
        }
       res->EndBulkLoad();
     }
@@ -17547,27 +17807,33 @@ SpatialComponents_ps( Word* args, Word& result, int message,
 
   switch( message )
   {
-    case OPEN:
-      localInfo = new Points(*((Points*)args[0].addr));
-      localInfo->SelectFirst();
-      local.setAddr(localInfo);
+    case OPEN:{
+      Points* arg = static_cast<Points*>(args[0].addr);
+      if(arg->IsDefined() && arg->Size()>0){
+         localInfo = new Points(*arg);
+         localInfo->SelectFirst();
+         local.setAddr(localInfo);
+      } else {
+         local.setAddr(0);
+      }
       return 0;
-
-    case REQUEST:
-    {
+    }
+    case REQUEST: {
+      if(!local.addr){
+        return CANCEL;
+      }
       localInfo = (Points*)local.addr;
       if(localInfo->EndOfPt() ){
-        return CANCEL;}
+        return CANCEL;
+      }
 
-      const Point *p;
+      Point p;
       localInfo->GetPt( p );
-      result.addr = new Point( *p );
+      result.addr = new Point( p );
       localInfo->SelectNext();
-      local.setAddr(localInfo);
       return YIELD;
     }
-
-    case CLOSE:
+    case CLOSE: {
       if(local.addr)
       {
         localInfo = (Points*)local.addr;
@@ -17575,6 +17841,7 @@ SpatialComponents_ps( Word* args, Word& result, int message,
         local.setAddr(0);
       }
       return 0;
+    }
   }
   return 0;
 }
@@ -17612,18 +17879,18 @@ public:
      // pos points to an unused segments
      stack<int> criticalPoints;
      bool done=false;
-     const HalfSegment* hs=0;
+     HalfSegment hs;
      int hspos = pos;
-     const HalfSegment* hsp=0;
+     HalfSegment hsp;
      int hsppos = -1;
      criticalPoints.push(pos); // mark to search an extension here
      while(!done){
         theLine->Get(hspos,hs);
-        hsppos = hs->attr.partnerno;
+        hsppos = hs.attr.partnerno;
         theLine->Get(hsppos,hsp);
         used[hspos]=true;
         used[hsppos]=true;
-        HalfSegment hs1 = *hs;
+        HalfSegment hs1 = hs;
         hs1.attr.edgeno = edgeno;
         hs1.SetLeftDomPoint(false);
         (*result) += hs1;
@@ -17631,16 +17898,16 @@ public:
         (*result) += hs1;
         edgeno++;
         // search an extension of result
-        Point p = hsp->GetDomPoint();
+        Point p = hsp.GetDomPoint();
         criticalPoints.push(hsppos);
 
         // search within the stack
         bool found = false;
         while(!criticalPoints.empty() && !found){
           int k = criticalPoints.top();
-          const HalfSegment* tmp;
+          HalfSegment tmp;
           theLine->Get(k,tmp);
-          Point p = tmp->GetDomPoint();
+          Point p = tmp.GetDomPoint();
           // search left of k
           int m = k-1;
           while(m>0 && isDomPoint(p,m) && !found){
@@ -17673,9 +17940,9 @@ public:
 
 private:
    bool isDomPoint(const Point& p,int pos){
-     const HalfSegment* hs;
+     HalfSegment hs;
      theLine->Get(pos,hs);
-     return AlmostEqual(p,hs->GetDomPoint());
+     return AlmostEqual(p,hs.GetDomPoint());
    }
 
 
@@ -17964,26 +18231,26 @@ deletion of this object.
       bool done = false;
       result->Clear();
       result->StartBulkLoad();
-      const HalfSegment* hs1;
-      const HalfSegment* hs2; // partner of hs1
+      HalfSegment hs1;
+      HalfSegment hs2; // partner of hs1
       int edgeno = 0;
       bool seconddir = false;
       theLine->Get(pos,hs1);
-      Point firstPoint = hs1->GetDomPoint();
+      Point firstPoint = hs1.GetDomPoint();
       bool isCycle = false;
 
 
       while(!done){ // extension possible
         theLine->Get(pos,hs1);
-        int partnerpos = hs1->GetAttr().partnerno;
+        int partnerpos = hs1.GetAttr().partnerno;
         theLine->Get(partnerpos, hs2);
-        Point p1 = hs1->GetDomPoint();
+        Point p1 = hs1.GetDomPoint();
         pointset.insert(p1);
-        Point p = hs2->GetDomPoint();
+        Point p = hs2.GetDomPoint();
         pointset.insert(p);
         // add the halfsegments to the result
-        HalfSegment Hs1 = *hs1;
-        HalfSegment Hs2 = *hs2;
+        HalfSegment Hs1 = hs1;
+        HalfSegment Hs2 = hs2;
         AttrType attr1 = Hs1.GetAttr();
         attr1.edgeno = edgeno;
         Hs1.SetAttr(attr1);
@@ -18007,12 +18274,12 @@ deletion of this object.
 
              // search for extension of the polyline
              // search left of partnerpos for an extension
+             HalfSegment hs3;
              while(sp>0 && !found){
-               const HalfSegment* hs3;
                if(!used[sp]){
                  theLine->Get(sp,hs3);
-                 if(AlmostEqual(p,hs3->GetDomPoint())){
-                   Point p3 = hs3->GetSecPoint(); // cycles?
+                 if(AlmostEqual(p,hs3.GetDomPoint())){
+                   Point p3 = hs3.GetSecPoint(); // cycles?
                    if(pointset.find(p3)==pointset.end() ||
                      (allowCycles && AlmostEqual(p3,firstPoint))){
                      if(AlmostEqual(p3,firstPoint)){
@@ -18034,10 +18301,10 @@ deletion of this object.
                 sp = partnerpos + 1;
                 while(sp<size && !found){
                   if(!used[sp]){
-                    const HalfSegment* hs3;
+                    HalfSegment hs3;
                     theLine->Get(sp,hs3);
-                    if(AlmostEqual(p,hs3->GetDomPoint())){
-                      Point p3 = hs3->GetSecPoint(); // avoid cycles
+                    if(AlmostEqual(p,hs3.GetDomPoint())){
+                      Point p3 = hs3.GetSecPoint(); // avoid cycles
                       if(pointset.find(p3)==pointset.end() ||
                          (allowCycles && AlmostEqual(p3,firstPoint))){
                         if(AlmostEqual(p3,firstPoint)){
@@ -18075,17 +18342,17 @@ deletion of this object.
            // but is is possible the extend the line by going into the
            // reverse direction
            seconddir = true;
-           const HalfSegment* hs;
+           HalfSegment hs;
            theLine->Get(lastPos,hs);
-           Point p = hs->GetDomPoint();
+           Point p = hs.GetDomPoint();
            while(lastPos<size && used[lastPos]){
              lastPos ++;
            }
            if(lastPos <size){
              theLine->Get(lastPos,hs);
-             Point p2 = hs->GetDomPoint();
+             Point p2 = hs.GetDomPoint();
              if(AlmostEqual(p,p2)){
-               if(pointset.find(hs->GetSecPoint())==pointset.end()){
+               if(pointset.find(hs.GetSecPoint())==pointset.end()){
                  if(ignoreCriticalPoints || !isCriticalPoint(lastPos)){
                    pos = lastPos;
                    done = false;
@@ -18110,14 +18377,14 @@ line.
 */
    bool isCriticalPoint(int index){
       // check for critical point
-      const HalfSegment* hs;
+      HalfSegment hs;
       theLine->Get(index,hs);
-      Point  cpoint = hs->GetDomPoint();
+      Point  cpoint = hs.GetDomPoint();
       int count = 0;
-      for(int i=index-2; i<= index+2 ; i++){
+      for(int i=max(0,index-2); i<= min(theLine->Size(),index+2) ; i++){
            if(i>=0 && i<size){
               theLine->Get(i,hs);
-              if(AlmostEqual(cpoint, hs->GetDomPoint())){
+              if(AlmostEqual(cpoint, hs.GetDomPoint())){
                   count++;
               }
            }
@@ -18208,12 +18475,12 @@ class SegmentsInfo{
       }
     }
     Line* NextSegment(){
-       const HalfSegment* hs;
+       HalfSegment hs;
        // search for a segment with left dominating point
        bool found = false;
        while((position<size) && !found){
              theLine->Get(position,hs);
-             if(hs->IsLeftDomPoint()){
+             if(hs.IsLeftDomPoint()){
                 found=true;
              } else {
                 position++;
@@ -18224,7 +18491,7 @@ class SegmentsInfo{
           return 0;
        } else {
           Line* res = new Line(2);
-          HalfSegment hs1 = *hs;
+          HalfSegment hs1 = hs;
           res->StartBulkLoad();
           hs1.attr.edgeno = 0;
           (*res) += hs1;
@@ -18321,9 +18588,9 @@ int SpatialGet(Word* args, Word& result, int message,
       return 0;
    }
 
-   const Point* p;
+   Point p;
    ps->Get(i,p);
-   ((Point*)result.addr)->CopyFrom(p);
+   ((Point*)result.addr)->CopyFrom(&p);
    return 0;
 }
 
@@ -18475,11 +18742,11 @@ int utmVM_ps(Word* args, Word& result, int message,
    res->Clear();
    res->Resize(p->Size());
    res->StartBulkLoad();
-   const Point* p1;
+   Point p1;
    for(int i=0;i<p->Size();i++){
       p->Get(i,p1);
       Point p2;
-      if(! utm(*p1,p2)){
+      if(! utm(p1,p2)){
         res->EndBulkLoad();
         res->Clear();
         res->SetDefined(false);
@@ -18510,11 +18777,11 @@ int gkVM_ps(Word* args, Word& result, int message,
    res->Clear();
    res->Resize(p->Size());
    res->StartBulkLoad();
-   const Point* p1;
+   Point p1;
    for(int i=0;i<p->Size();i++){
       p->Get(i,p1);
       Point p2;
-      if(! gk.project(*p1,p2)){
+      if(! gk.project(p1,p2)){
         res->EndBulkLoad();
         res->Clear();
         res->SetDefined(false);
@@ -18536,13 +18803,12 @@ int gkVM_x(Word* args, Word& result, int message,
    res->Clear();
    res->Resize(a->Size());
    res->StartBulkLoad();
-   const HalfSegment* hs;
+   HalfSegment hs;
    HalfSegment hs2;
    for(int i=0;i<a->Size();i++){
       a->Get(i,hs);
-      if(! gk.project(*hs,hs2)){
+      if(! gk.project(hs,hs2)){
         res->Clear();
-        res->EndBulkLoad();
         res->SetDefined(false);
         return 0;
       }
@@ -18566,6 +18832,7 @@ int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
 
   qp->Request(args[0].addr, elem);
   if(!qp->Received(args[0].addr)){
+    qp->Close(args[0].addr);
     return 0;
   }
   P0 = static_cast<Point*>(elem.addr);
@@ -18573,7 +18840,8 @@ int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
   if(!P0->IsDefined()){ // found undefined Elem
     qp->Close(args[0].addr);
     L->SetDefined(false);
-    if(P0){ P0->DeleteIfAllowed(); }
+    P0->DeleteIfAllowed();
+    qp->Close(args[0].addr);
     return 0;
   }
 
@@ -18588,25 +18856,56 @@ int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
         L->SetDefined(false);
         if(P0){ P0->DeleteIfAllowed(); P0 = 0; }
         if(P1){ P1->DeleteIfAllowed(); P1 = 0; }
+        qp->Close(args[0].addr);
         return 0;
       }
       if(AlmostEqual(*P0,*P1)){
         qp->Request(args[0].addr, elem);
-        continue;
-      }
-      HalfSegment hs(true, *P0, *P1); // create halfsegment
-      (*L) += (hs);
-      hs.SetLeftDomPoint( !hs.IsLeftDomPoint() ); // create counter-halfsegment
-      (*L) += (hs);
-      P0->DeleteIfAllowed();
-      P0 = P1; P1 = 0;
-      qp->Request(args[0].addr, elem); // get next Point
+        P1->DeleteIfAllowed();
+        P1 = 0;
+      } else {
+        HalfSegment hs(true, *P0, *P1); // create halfsegment
+        (*L) += (hs);
+        hs.SetLeftDomPoint( !hs.IsLeftDomPoint() ); //createcounter-halfsegment
+        (*L) += (hs);
+        P0->DeleteIfAllowed();
+        P0 = P1; P1 = 0;
+        qp->Request(args[0].addr, elem); // get next Point
+     }
   }
   L->EndBulkLoad(); // sort and realminize
 
   qp->Close(args[0].addr);
   if(P0){ P0->DeleteIfAllowed(); P0 = 0; }
   return 0;
+}
+
+void append(Line& l1, const Line& l2){
+  // l1 += l2; // runs not correctly
+  int size = l2.Size();
+  HalfSegment hs;
+  for(int i = 0; i < size; i++){
+    l2.Get( i, hs );
+    l1 += hs;
+  }
+}
+
+void append(SimpleLine& l1, const SimpleLine& l2){
+  int size = l2.Size();
+  HalfSegment hs;
+  for(int i = 0; i < size; i++){
+    l2.Get( i, hs );
+    l1 += hs;
+  }
+}
+
+void append(Line& l1, const SimpleLine& l2){
+  int size = l2.Size();
+  HalfSegment hs;
+  for(int i = 0; i < size; i++){
+    l2.Get( i, hs );
+    l1 += hs;
+  }
 }
 
 template <class StreamLineType, class ResLineType>
@@ -18632,14 +18931,7 @@ int SpatialCollect_lineVMLinestream(Word* args, Word& result, int message,
       if(line){ line->DeleteIfAllowed(); }
       return 0;
     }
-    // copy all halfsegments from line to L
-    L->Resize(L->Size()+line->Size()); // reserve slots for new half segments
-    int size = line->Size();
-    for(int i = 0; i < size; i++){
-      const HalfSegment* hs = 0;
-      line->Get( i, hs );
-      (*L)+=(*hs);
-    }
+    append(*L, *line);
     line->DeleteIfAllowed(); line = 0;
     qp->Request(args[0].addr, elem); // get next line
   }
@@ -18649,6 +18941,44 @@ int SpatialCollect_lineVMLinestream(Word* args, Word& result, int message,
   return 0;
 }
 
+template<class StreamPointType>
+int SpatialCollect_PointsVM(Word* args, Word& result, int message,
+                                Word& local, Supplier s){
+
+   CcBool* ignoreUndefined = static_cast<CcBool*>(args[1].addr);
+   result = qp->ResultStorage(s);
+   Points* res = static_cast<Points*>(result.addr);
+   res->Clear();
+   if(!ignoreUndefined->IsDefined()){
+     res->SetDefined(false);
+     return 0;
+   }
+   res->SetDefined(true);
+   bool ignore = ignoreUndefined->GetValue();
+   Word elem;
+   res->StartBulkLoad();
+
+   qp->Open(args[0].addr);
+   qp->Request(args[0].addr,elem);
+   
+   while(qp->Received(args[0].addr)){
+     StreamPointType* p = static_cast<StreamPointType*>(elem.addr);
+     if(p->IsDefined()){
+        (*res) += *p;
+     } else if(!ignore){
+        res->EndBulkLoad(false,false,false);
+        res->Clear();
+        res->SetDefined(false);
+        qp->Close(args[0].addr);
+        return 0;
+     }
+     qp->Request(args[0].addr,elem);
+   }
+   qp->Close(args[0].addr);
+   res->EndBulkLoad();
+   return 0;
+
+}
 
 /*
 10.5 Definition of operators
@@ -18882,7 +19212,8 @@ ValueMapping Difference2Map[] = {
 
 ValueMapping SpatialCrossingsMap[] = {
           SpatialCrossings<Line>,
-          SpatialCrossings<SimpleLine>
+          SpatialCrossings<SimpleLine>,
+          SpatialCrossings_single
       };
 
 
@@ -18909,6 +19240,12 @@ ValueMapping spatialCollectSLineMap[] = {
   SpatialCollect_lineVMLinestream<SimpleLine,SimpleLine>,
   SpatialCollect_lineVMLinestream<Line,SimpleLine>
 };
+
+ValueMapping spatialCollectPointsMap[] = {
+  SpatialCollect_PointsVM<Point>,
+  SpatialCollect_PointsVM<Points>
+};
+
 
 /*
 10.5.2 Definition of specification strings
@@ -19023,9 +19360,10 @@ const string SpatialSpecUnion  =
 
 const string SpatialSpecCrossings  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>(line x line) -> points || sline x sline -> points</text--->"
+  "( <text>(line x line) -> points || "
+  "sline x sline -> points || line -> points</text--->"
   "<text>crossings(_,_)</text--->"
-  "<text>crossing points of two lines.</text--->"
+  "<text>crossing points of two (or one) line(s).</text--->"
   "<text>query crossings(line1, line2)</text--->"
   ") )";
 
@@ -19439,6 +19777,17 @@ const string SpatialSpecCollectSLine  =
    "<text>query [const line value ()] feed collect_sline)</text--->"
    ") )";
 
+const string SpatialSpecCollectPoints  =
+   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+   "( <text>stream(T) x bool  -> points, T in {point, points} </text--->"
+   "<text> _ collect_points[ _ ] </text--->"
+   "<text>Collects a stream of point or points values into a single points "
+   "value. If the bool parameter is set to true, undefined points within the "
+   " stream are ignored. Otherwise the result is set to be undefined if an "
+   " undefined value is inside the stream. </text--->"
+   "<text>query [const points value ()] feed collect_points[true])</text--->"
+   ") )";
+
 /*
 10.5.3 Definition of the operators
 
@@ -19539,7 +19888,7 @@ Operator spatialunion (
 Operator spatialcrossings (
   "crossings",
   SpatialSpecCrossings,
-  2,
+  3,
   SpatialCrossingsMap,
   SpatialSelectCrossings,
   SpatialCrossingsTM );
@@ -19912,6 +20261,114 @@ Operator spatialcollect_sline (
   SpatialCollectLineSelect,
   SpatialCollectSLineTypeMap);
 
+Operator spatialcollect_points (
+  "collect_points",
+  SpatialSpecCollectPoints,
+  2,
+  spatialCollectPointsMap,
+  SpatialCollectPointsSelect,
+  SpatialCollectPointsTM);
+
+/*
+5.15 Operator ~makepoint~
+
+5.15.1 Type Mapping for ~makepoint~
+
+*/
+ListExpr
+TypeMapMakepoint( ListExpr args )
+{
+  ListExpr arg1, arg2;
+  if( nl->ListLength( args ) == 2 )
+  {
+    arg1 = nl->First( args );
+    arg2 = nl->Second( args );
+
+    if( nl->IsEqual( arg1, "int" ) && nl->IsEqual( arg2, "int" ) )
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+               nl->OneElemList(nl->IntAtom(0)), nl->SymbolAtom("point") );
+
+    if( nl->IsEqual( arg1, "real" ) && nl->IsEqual( arg2, "real" ) )
+      return nl->ThreeElemList(nl->SymbolAtom("APPEND"),
+               nl->OneElemList(nl->IntAtom(1)), nl->SymbolAtom("point") );
+  }
+  return nl->SymbolAtom( "typeerror" );
+}
+
+/*
+5.15.2 Value Mapping for ~makepoint~
+
+*/
+int MakePoint( Word* args, Word& result, int message, Word& local, Supplier s )
+{
+  CcInt* value1=0, *value2=0;
+  CcReal* value3, *value4;
+  bool paramtype;
+
+  result = qp->ResultStorage( s );
+  if ( ((CcInt*)args[2].addr)->GetIntval() == 0 )
+  {
+    paramtype = false;
+    value1 = (CcInt*)args[0].addr;
+    value2 = (CcInt*)args[1].addr;
+  }
+
+  if ( ((CcInt*)args[2].addr)->GetIntval() == 1 )
+  {
+    paramtype = true;
+    value3 = (CcReal*)args[0].addr;
+    value4 = (CcReal*)args[1].addr;
+  }
+  if (paramtype)
+  {
+   if( !value3->IsDefined() || !value4->IsDefined() )
+    ((Point*)result.addr)->SetDefined( false );
+   else
+     ((Point*)result.addr)->Set(value3->GetRealval(),value4->GetRealval() );
+  }
+  else
+  {
+   if( !value1->IsDefined() || !value2->IsDefined() )
+    ((Point*)result.addr)->SetDefined( false );
+   else
+     ((Point*)result.addr)->Set(value1->GetIntval(),value2->GetIntval() );
+  }
+  return 0;
+}
+
+/*
+5.15.3 Specification for operator ~makepoint~
+
+*/
+const string
+SpatialSpecMakePoint =
+"( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+"( <text>int x int -> point, real x real -> point</text--->"
+"<text>makepoint ( _, _ ) </text--->"
+"<text>create a point from two "
+"given real or integer coordinates.</text--->"
+"<text>makepoint (5.0,5.0)</text---> ) )";
+
+/*
+5.15.4 Selection Function of operator ~makepoint~
+
+Not necessary.
+
+*/
+
+/*
+5.15.5  Definition of operator ~makepoint~
+
+*/
+Operator spatialmakepoint( "makepoint",
+                            SpatialSpecMakePoint,
+                            MakePoint,
+                            Operator::SimpleSelect,
+                            TypeMapMakepoint);
+
+
+
+
 /*
 11 Creating the Algebra
 
@@ -20007,6 +20464,8 @@ class SpatialAlgebra : public Algebra
     AddOperator(&gkOp);
     AddOperator(&spatialcollect_line);
     AddOperator(&spatialcollect_sline);
+    AddOperator(&spatialcollect_points);
+    AddOperator( &spatialmakepoint );
   }
   ~SpatialAlgebra() {};
 };

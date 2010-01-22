@@ -1043,7 +1043,11 @@ class FeedLocalInfo: public ProgressLocalInfo
 {
 public:
   FeedLocalInfo() : rit(0) {}
-  ~FeedLocalInfo() { if (rit) delete rit; }
+  ~FeedLocalInfo() { 
+     if (rit) { 
+        delete rit; rit = 0; 
+     } 
+  }
 
   GenericRelationIterator* rit;
 };
@@ -1292,14 +1296,20 @@ class FeedProjLocalInfo : public FeedLocalInfo
   public:
     double argTupleSize;
 
-    FeedProjLocalInfo(TupleType* ptr) : tt(ptr)
+    FeedProjLocalInfo(TupleType* ptr) : 
+      FeedLocalInfo(), argTupleSize(0), tt(ptr)
     {
        returned = 0;
     }
-    ~FeedProjLocalInfo() { delete tt; tt = 0; }
+    ~FeedProjLocalInfo() 
+    { 
+       if ( tt->DeleteIfAllowed() ) {
+	 tt = 0;
+       }	 
+    }
 
   private:
-    const TupleType* tt;
+    TupleType* tt;
 };
 
 
