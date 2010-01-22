@@ -215,7 +215,7 @@ vector<Tuple*> HashTable::GetTuples(int bucket)
 
   BucketIterator* iter = buckets[bucket]->MakeScan();
 
-  while ( ( t = iter->GetNextTuple2() ) != 0 )
+  while ( ( t = iter->GetNextTuple() ) != 0 )
   {
     t->IncReference();
     arr.push_back(t);

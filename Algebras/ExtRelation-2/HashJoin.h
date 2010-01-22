@@ -409,13 +409,12 @@ The constructor. Starts a sequential scan for bucket ~b~.
 
 */
 
-    inline Tuple* GetNextTuple2()
+    inline Tuple* GetNextTuple()
     {
       if ( iter != bucket.tuples.end() )
       {
         Tuple* t = (*iter).tuple;
         iter++;
-        //t->IncReference();
         return t;
       }
 
@@ -497,12 +496,8 @@ Insert tuple ~t~ into the hash table.
         iter = buckets[h]->MakeScan();
       }
 
-      while ( (nextTuple = iter->GetNextTuple2() ) != 0 )
+      while ( (nextTuple = iter->GetNextTuple() ) != 0 )
       {
-        // GetNextTuple() increments reference counter by one, but
-        // tuple stays in hash table
-        //nextTuple->DeleteIfAllowed();
-
         if ( cmpFunc->Compare(t, nextTuple) == 0 )
         {
           return nextTuple;

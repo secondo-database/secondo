@@ -901,328 +901,13 @@ Operator extrelgracehashjoin(
 These operators were used to test the functionality of single classes
 that are used within the operators of this algebra or for benchmarking.
 
-4.1 Operator ~heapstl~
-
-This operator tests the STL heap implementation.
-
-4.1.1 Type mapping function of Operator ~heapstl~
-
-Type mapping for operator ~heapstl~ is
-
-----  (stream (tuple ((x1 t1)...(xn tn))))  -> int
-----
-
-This function is also the type mapping function for operators ~heapstd~,
-~heapbup~, ~heapbup2~ and ~heapmdr~. The template parameter ~n~ specifies
-the operator.
-
-  * 0 - operator heapstl
-
-  * 0 - operator heapstd
-
-  * 0 - operator heapbup
-
-  * 0 - operator heapbup2
-
-  * 0 - operator heapmdr
-
-  * 0 - operator tuplecomp
-
-*/
-template<int n>
-ListExpr HeapTypeMap(ListExpr args)
-{
-  NList type(args);
-
-  const char* op[] = { "heapstl", "heapstd", "heapbup",
-                       "heapbup2", "heapmdr", "tuplecomp" };
-
-  // check list length
-  if ( !type.hasLength(1) )
-  {
-    return NList::typeError(
-        "Operator " + string(op[n]) +
-        " expects a list of length one.");
-  }
-
-  NList attr;
-  if ( !type.first().checkStreamTuple(attr) )
-  {
-    return NList::typeError(
-        "Operator " + string(op[n]) +
-        ": first argument is not a tuple stream!"
-        "Operator received: " + type.first().convertToString() );
-  }
-
-  // check if there is a valid tuple description
-  if ( !IsTupleDescription(attr.listExpr()) )
-  {
-    return NList::typeError(
-        "Operator " + string(op[n]) +
-        ": first argument does not contain a tuple description!"
-        "Operator received: " + attr.convertToString() );
-  }
-
-  return nl->SymbolAtom("int");
-}
-
-/*
-4.1.2 Value mapping function of operator ~heapstl~
-
-*/
-
-int HeapStlValueMap( Word* args, Word& result,
-                      int message, Word& local, Supplier s);
-
-/*
-4.1.3 Specification of operator ~heapstl~
-
-*/
-
-const string HeapStlSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                            ")))) -> int"
-                            "</text--->"
-                            "<text>_ heapstl</text--->"
-                            "<text>Tests STL heap implementation. All tuples "
-                            "from the stream are consumed and inserted into "
-                            "the heap. The operator returns the total number "
-                            "of tuple comparisons performed.</text--->"
-                            "<text>query cities feed heapstl</text--->"
-                            ") )";
-
-/*
-4.1.4 Definition of operator ~heapstl~
-
-*/
-
-Operator extrelheapstl (
-         "heapstl",               // name
-         HeapStlSpec,             // specification
-         HeapStlValueMap,         // value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         HeapTypeMap<1>   // type mapping
-);
-
-/*
-4.2 Operator ~heapstd~
-
-This operator tests the standard heap implementation.
-
-4.2.1 Value mapping function of operator ~heapstd~
-
-*/
-
-int HeapStdValueMap( Word* args, Word& result,
-                      int message, Word& local, Supplier s);
-
-/*
-4.2.2 Specification of operator ~heapstd~
-
-*/
-const string HeapStdSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                            ")))) -> int"
-                            "</text--->"
-                            "<text>_ heapstd</text--->"
-                            "<text>Tests alternative standard heap "
-                            "implementation. All tuples from the stream "
-                            "are consumed and inserted into the heap. "
-                            "The operator returns the total number "
-                            "of tuple comparisons performed.</text--->"
-                            "<text>query cities feed heapstd</text--->"
-                            ") )";
-
-/*
-4.2.3 Definition of operator ~heapstd~
-
-*/
-Operator extrelheapstd (
-         "heapstd",               // name
-         HeapStdSpec,             // specification
-         HeapStdValueMap,         // value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         HeapTypeMap<2>   // type mapping
-);
-
-/*
-4.3 Operator ~heapbup~
-
-This operator tests the bottom-up heap implementation.
-
-4.3.1 Value mapping function of operator ~heapbup~
-
-*/
-int HeapBupValueMap( Word* args, Word& result,
-                      int message, Word& local, Supplier s );
-
-/*
-4.3.2 Specification of operator ~heapbup~
-
-*/
-const string HeapBupSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                            ")))) -> int"
-                            "</text--->"
-                            "<text>_ heapbup</text--->"
-                            "<text>Tests alternative bottom-up heap "
-                            "implementation. All tuples from the stream "
-                            "are consumed and inserted into the heap. "
-                            "The operator returns the total number "
-                            "of tuple comparisons performed.</text--->"
-                            "<text>query cities feed heapbup</text--->"
-                            ") )";
-
-/*
-4.3.3 Definition of operator ~heapbup~
-
-*/
-Operator extrelheapbup (
-         "heapbup",               // name
-         HeapBupSpec,             // specification
-         HeapBupValueMap,         // value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         HeapTypeMap<3>   // type mapping
-);
-
-/*
-4.4 Operator ~heapbup2~
-
-This operator tests the bottom-up heap implementation.
-
-4.4.1 Value mapping function of operator ~heapbup2~
-
-*/
-int HeapBup2ValueMap( Word* args, Word& result,
-                       int message, Word& local, Supplier s );
-
-/*
-4.4.2 Specification of operator ~heapbup2~
-
-*/
-const string HeapBup2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                            ")))) -> int"
-                            "</text--->"
-                            "<text>_ heapbup2</text--->"
-                            "<text>Tests improved bottom-up heap "
-                            "implementation. All tuples from the stream "
-                            "are consumed and inserted into the heap. "
-                            "The operator returns the total number "
-                            "of tuple comparisons performed.</text--->"
-                            "<text>query cities feed heapbup2</text--->"
-                            ") )";
-
-/*
-4.4.3 Definition of operator ~heapbup2~
-
-*/
-Operator extrelheapbup2 (
-         "heapbup2",              // name
-         HeapBup2Spec,            // specification
-         HeapBup2ValueMap,        // value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         HeapTypeMap<4>  // type mapping
-);
-
-/*
-4.5 Operator ~heapmdr~
-
-This operator tests the bottom-up heap implementation.
-
-4.5.1 Value mapping function of operator ~heapmdr~
-
-*/
-int HeapMdrValueMap( Word* args, Word& result,
-                       int message, Word& local, Supplier s );
-
-/*
-4.5.2 Specification of operator ~heapmdr~
-
-*/
-const string HeapMdrSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                            ")))) -> int"
-                            "</text--->"
-                            "<text>_ heapmdr</text--->"
-                            "<text>Tests alternative MDR heap heap "
-                            "implementation. All tuples from the stream "
-                            "are consumed and inserted into the heap. "
-                            "The operator returns the total number "
-                            "of tuple comparisons performed.</text--->"
-                            "<text>query cities feed heapmdr</text--->"
-                            ") )";
-
-/*
-4.5.3 Definition of operator ~heapmdr~
-
-*/
-Operator extrelheapmdr (
-         "heapmdr",               // name
-         HeapMdrSpec,             // specification
-         HeapMdrValueMap,         // value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         HeapTypeMap<5>   // type mapping
-);
-
-/*
-4.5 Operator ~tuplecomp~
-
-This operator performs tuple comparisons between the first tuple
-of a stream and all following tuples of the stream including itself.
-
-4.5.1 Value mapping function of operator ~tuplecomp~
-
-*/
-int TupleCompValueMap( Word* args, Word& result,
-                         int message, Word& local, Supplier s );
-
-/*
-4.5.2 Specification of operator ~tuplecomp~
-
-*/
-const string TupleCompSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-                            "\"Example\" ) "
-                            "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                            ")))) -> int"
-                            "</text--->"
-                            "<text>_ tuplecomp</text--->"
-                            "<text>Performs a number of tuple comparisons "
-                            "equal to the number of tuples in the stream. "
-                            "The first tuple of the stream is compared with"
-                            "itself and all following tuples in the stream. "
-                            "The total time for this operation may be used "
-                            "to calculate the necessary CPU time for "
-                            "one tupe conmparison.</text--->"
-                            "<text>query cities feed tuplecomp</text--->"
-                            ") )";
-
-/*
-4.5.3 Definition of operator ~tuplecomp~
-
-*/
-Operator extreltuplecomp (
-         "tuplecomp",             // name
-         TupleCompSpec,           // specification
-         TupleCompValueMap,       // value mapping
-         Operator::SimpleSelect,  // trivial selection function
-         HeapTypeMap<6> // type mapping
-);
-
-/*
-4.5 Operator ~tuplefile~
-
+4.2 Operator ~tuplefile~
 
 This operator stores a tuple stream into a temporary tuple file and
 reads the tuples from this file again when requested from the its
 successor.
 
-4.5.1 Type mapping function of Operator ~tuplefile~
+4.2.1 Type mapping function of Operator ~tuplefile~
 
 Type mapping for ~tuplefile~ is
 
@@ -1274,14 +959,14 @@ ListExpr TupleFileTypeMap(ListExpr args)
 }
 
 /*
-4.5.1 Value mapping function of operator ~tuplefile~
+4.2.2 Value mapping function of operator ~tuplefile~
 
 */
 int TupleFileValueMap( Word* args, Word& result,
                         int message, Word& local, Supplier s );
 
 /*
-4.5.2 Specification of operator ~tuplefile~
+4.2.3 Specification of operator ~tuplefile~
 
 */
 const string TupleFileSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
@@ -1289,7 +974,7 @@ const string TupleFileSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
                             ")))) -> ((stream (tuple([a1:d1, ... ,an:dn]))))"
                             "</text--->"
-                            "<text>_ tuplefile</text--->"
+                            "<text>_ tuplefile[_]</text--->"
                             "<text>Stores a stream temporarily in a tuple "
                             "file and restores the tuples from file when "
                             "they are requested by the next operator."
@@ -1298,10 +983,10 @@ const string TupleFileSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "If -1 is specified the default value will be "
                             "used (page size file system)."
                             "</text---><text>query cities feed "
-                            "tuplefile consume</text--->) )";
+                            "tuplefile[-1] consume</text--->) )";
 
 /*
-4.5.3 Definition of operator ~tuplefile~
+4.2.4 Definition of operator ~tuplefile~
 
 */
 Operator tuplefiletest (
@@ -1313,23 +998,21 @@ Operator tuplefiletest (
 );
 
 /*
-4.6 Operator ~tuplebuffer~
+4.3 Operator ~tuplebuffer~
 
-This operator stores a tuple stream into a ~TupleBuffer2~ instance and
+This operator stores a tuple stream into a ~TupleBuffer~ instance and
 reads the tuples from the buffer again when requested from the its
 successor.
 
-4.6.1 Type mapping function of Operator ~tuplebuffer~
+4.3.1 Type mapping function of Operator ~tuplebuffer~
 
 Type mapping for ~tuplebuffer~ is
 
-----  ((stream (tuple ((x1 t1)...(xn tn)))) int int)  ->
+----  ((stream (tuple ((x1 t1)...(xn tn)))) int)  ->
        (stream (tuple ((x1 t1)...(xn tn))))
 ----
 
-The second argument is the buffer size in KBytes. The third argument
-is the size of the I/O buffer. If -1 is specified the default value
-(page size of file system will be used)
+The second argument is the buffer size in KBytes.
 
 */
 ListExpr TupleBufferTypeMap(ListExpr args)
@@ -1337,10 +1020,10 @@ ListExpr TupleBufferTypeMap(ListExpr args)
   NList type(args);
 
   // check list length
-  if ( !type.hasLength(3) )
+  if ( !type.hasLength(2) )
   {
     return NList::typeError(
-        "Operator tuplebuffer expects a list of length three.");
+        "Operator tuplebuffer expects a list of length two.");
   }
 
   NList attr;
@@ -1367,50 +1050,41 @@ ListExpr TupleBufferTypeMap(ListExpr args)
         "Operator received: " + type.second().convertToString() );
   }
 
-  if ( type.third() != INT )
-  {
-    return NList::typeError(
-        "Operator tuplebuffer: third argument must be an integer!"
-        "Operator received: " + type.third().convertToString() );
-  }
-
   return type.first().listExpr();
 }
 
 /*
-4.6.2 Value mapping function of operator ~tuplebuffer~
+4.3.2 Value mapping function of operator ~tuplebuffer~
 
 */
 int TupleBufferValueMap( Word* args, Word& result,
                            int message, Word& local, Supplier s);
 
 /*
-4.6.3 Specification of operator ~tuplebuffer~
+4.3.3 Specification of operator ~tuplebuffer~
 
 */
 const string TupleBufferSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "\"Example\" ) "
                             "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
-                            "))) int int) -> "
+                            "))) int) -> "
                             "(stream (tuple([a1:d1, ... ,an:dn])))"
                             "</text--->"
-                            "<text>_ tuplebuffer[_, _]</text--->"
+                            "<text>_ tuplebuffer[_]</text--->"
                             "<text>Stores a stream temporarily in a tuple "
-                            "buffer and restores the tuples when they are "
+                            "buffer (class TupleBuffer) and restores the "
+                            "tuples when they are "
                             "requested by the next operator. The in-memory "
                             "buffer size is specified in KBytes as an "
-                            "additional argument. The third argument "
-                            "contains the size of the I/O buffer in bytes. "
-                            "If -1 is specified the default value will be "
-                            "used (page size file system)."
+                            "additional argument."
                             "</text---><text>query cities feed "
-                            "tuplebuffer[256,-1] consume</text--->) )";
+                            "tuplebuffer[256] consume</text--->) )";
 
 /*
-4.6.4 Definition of operator ~tuplebuffer~
+4.3.4 Definition of operator ~tuplebuffer~
 
 */
-Operator tuplebuffertest (
+Operator tuplebuffer(
          "tuplebuffer",           // name
          TupleBufferSpec,         // specification
          TupleBufferValueMap,     // value mapping
@@ -1419,7 +1093,114 @@ Operator tuplebuffertest (
 );
 
 /*
-4.7 Operator ~sort2Param~
+4.4 Operator ~tuplebuffer2~
+
+This operator stores a tuple stream into a ~TupleBuffer2~ instance and
+reads the tuples from the buffer again when requested from the its
+successor.
+
+4.4.1 Type mapping function of Operator ~tuplebuffer2~
+
+Type mapping for ~tuplebuffer2~ is
+
+----  ((stream (tuple ((x1 t1)...(xn tn)))) int int)  ->
+       (stream (tuple ((x1 t1)...(xn tn))))
+----
+
+The second argument is the buffer size in KBytes. The third argument
+is the size of the I/O buffer. If -1 is specified the default value
+(page size of file system will be used)
+
+*/
+ListExpr TupleBuffer2TypeMap(ListExpr args)
+{
+  NList type(args);
+
+  // check list length
+  if ( !type.hasLength(3) )
+  {
+    return NList::typeError(
+        "Operator tuplebuffer2 expects a list of length three.");
+  }
+
+  NList attr;
+  if ( !type.first().checkStreamTuple(attr) )
+  {
+    return NList::typeError(
+        "Operator tuplebuffer2: first argument is not a tuple stream!"
+        "Operator received: " + type.first().convertToString() );
+  }
+
+  // check if there is a valid tuple description
+  if ( !IsTupleDescription(attr.listExpr()) )
+  {
+    return NList::typeError(
+        "Operator tuplebuffer2: first argument does not "
+        "contain a tuple description!"
+        "Operator received: " + attr.convertToString() );
+  }
+
+  if ( type.second() != INT )
+  {
+    return NList::typeError(
+        "Operator tuplebuffer2: second argument must be an integer!"
+        "Operator received: " + type.second().convertToString() );
+  }
+
+  if ( type.third() != INT )
+  {
+    return NList::typeError(
+        "Operator tuplebuffer2: third argument must be an integer!"
+        "Operator received: " + type.third().convertToString() );
+  }
+
+  return type.first().listExpr();
+}
+
+/*
+4.4.2 Value mapping function of operator ~tuplebuffer2~
+
+*/
+int TupleBuffer2ValueMap( Word* args, Word& result,
+                            int message, Word& local, Supplier s);
+
+/*
+4.4.3 Specification of operator ~tuplebuffer2~
+
+*/
+const string TupleBuffer2Spec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+                            "\"Example\" ) "
+                            "( <text>((stream (tuple([a1:d1, ... ,an:dn]"
+                            "))) int int) -> "
+                            "(stream (tuple([a1:d1, ... ,an:dn])))"
+                            "</text--->"
+                            "<text>_ tuplebuffer2[_, _]</text--->"
+                            "<text>Stores a stream temporarily in a tuple "
+                            "buffer (class TupleBuffer2) and restores "
+                            "the tuples when they are "
+                            "requested by the next operator. The in-memory "
+                            "buffer size is specified in KBytes as an "
+                            "additional argument. The third argument "
+                            "contains the size of the I/O buffer in bytes. "
+                            "If -1 is specified the default value will be "
+                            "used (page size file system)."
+                            "</text---><text>query cities feed "
+                            "tuplebuffer2[256,-1] consume</text--->) )";
+
+/*
+4.4.4 Definition of operator ~tuplebuffer2~
+
+*/
+Operator tuplebuffer2(
+         "tuplebuffer2",           // name
+         TupleBuffer2Spec,         // specification
+         TupleBuffer2ValueMap,     // value mapping
+         Operator::SimpleSelect,  // trivial selection function
+         TupleBuffer2TypeMap       // type mapping
+);
+
+/*
+4.8 Operator ~sort2Param~
 
 This operator is used to simplify the testing of the new
 ~sort2~ operator implementation. The operator takes three additional
@@ -1429,7 +1210,7 @@ phase respectively the maximum number of temporary open tuple
 files and the fourth argument specifies the size of the
 I/O buffer for read/write operations on disc.
 
-4.7.1 Type mapping function of Operator ~sort2Param~
+4.8.1 Type mapping function of Operator ~sort2Param~
 
 Type mapping for operator ~sort2Param~ is
 
@@ -1518,12 +1299,12 @@ ListExpr Sort2ParamTypeMap(ListExpr args)
 }
 
 /*
-4.7.2 Value mapping function of operator ~sort2Param~
+4.8.2 Value mapping function of operator ~sort2Param~
 
 The value mapping function used is identical to that of operator ~sort2~.
 
 
-4.7.3 Specification of operator ~sort2Param~
+4.8.3 Specification of operator ~sort2Param~
 
 */
 
@@ -1553,7 +1334,7 @@ const string Sort2ParamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             " consume</text--->) )";
 
 /*
-4.7.4 Definition of operator ~sort2Param~
+4.8.4 Definition of operator ~sort2Param~
 
 */
 Operator extrelsort2Param(
@@ -1565,7 +1346,7 @@ Operator extrelsort2Param(
 );
 
 /*
-4.8 Operator ~sortby2Param~
+4.9 Operator ~sortby2Param~
 
 This operator is used to simplify the testing of the new
 ~sortby2~ operator implementation. The operator takes three additional
@@ -1575,7 +1356,7 @@ phase respectively the maximum number of temporary open tuple
 files and the third one specifies the I/O buffer size in bytes
 for read/write operations on disc.
 
-4.8.1 Type mapping function of Operator ~sortby2Param~
+4.9.1 Type mapping function of Operator ~sortby2Param~
 
 Type mapping for ~sortby2Param~ is
 
@@ -1751,7 +1532,7 @@ ListExpr SortBy2ParamTypeMap( ListExpr args )
 }
 
 /*
-4.8.2 Value mapping function of operator ~sortby2Param~
+4.9.2 Value mapping function of operator ~sortby2Param~
 
 */
 
@@ -1759,7 +1540,7 @@ int SortBy2ParamValueMap( Word* args, Word& result,
                            int message, Word& local, Supplier s );
 
 /*
-4.8.3 Specification of operator ~sortby2Param~
+4.9.3 Specification of operator ~sortby2Param~
 
 */
 
@@ -1790,7 +1571,7 @@ const string SortBy2ParamSpec  = "( ( \"Signature\" \"Syntax\" \"Meaning\" "
                             "consume</text--->) )";
 
 /*
-4.8.4 Definition of operator ~sortby2Param~
+4.9.4 Definition of operator ~sortby2Param~
 
 */
 
@@ -1803,7 +1584,7 @@ Operator extrelsortby2Param(
 );
 
 /*
-4.9 Operator ~hybridhashjoinParam~
+4.10 Operator ~hybridhashjoinParam~
 
 This operator computes the equijoin of two stream. This is
 a full parameter-driven version of the ~hybridhashjoin~
@@ -1811,7 +1592,7 @@ operator. In addition to the number of buckets the user
 may specify the number of partitions, the usable main memory
 and the I/O buffer size.
 
-4.9.1 Specification of operator ~hybridhashjoinParam~
+4.10.1 Specification of operator ~hybridhashjoinParam~
 
 */
 const string HybridHashJoinParamSpec  = "( ( \"Signature\" \"Syntax\" "
@@ -1848,7 +1629,7 @@ const string HybridHashJoinParamSpec  = "( ( \"Signature\" \"Syntax\" "
                                    ") )";
 
 /*
-4.9.2 Definition of operator ~hybridhashjoinParam~
+4.10.2 Definition of operator ~hybridhashjoinParam~
 
 */
 Operator extrelhybridhashjoinParam(
@@ -1860,7 +1641,7 @@ Operator extrelhybridhashjoinParam(
 );
 
 /*
-4.9 Operator ~gracehashjoinParam~
+4.11 Operator ~gracehashjoinParam~
 
 This operator computes the equijoin of two stream. This is
 a full parameter-driven version of the ~gracehashjoin~
@@ -1868,7 +1649,7 @@ operator. In addition to the number of buckets the user
 may specify the number of partitions, the usable main memory
 and the I/O buffer size.
 
-4.9.1 Specification of operator ~gracehashjoinParam~
+4.11.1 Specification of operator ~gracehashjoinParam~
 
 */
 const string GraceHashJoinParamSpec  = "( ( \"Signature\" \"Syntax\" "
@@ -1905,7 +1686,7 @@ const string GraceHashJoinParamSpec  = "( ( \"Signature\" \"Syntax\" "
                                    ") )";
 
 /*
-4.9.2 Definition of operator ~gracehashjoinParam~
+4.11.2 Definition of operator ~gracehashjoinParam~
 
 */
 Operator extrelgracehashjoinParam(
@@ -1917,14 +1698,14 @@ Operator extrelgracehashjoinParam(
 );
 
 /*
-4.10 Operator ~sortmergejoin2Param~
+4.12 Operator ~sortmergejoin2Param~
 
 This operator computes the equijoin of two streams. This is
 a parameter-driven version of the ~sortmergejoin2~
 operator. As an additional parameter the main memory size
 for the operator may be specified in bytes.
 
-4.10.1 Specification of operator ~sortmergejoin2Param~
+4.12.1 Specification of operator ~sortmergejoin2Param~
 
 */
 const string SortMergeJoin2ParamSpec  = "( ( \"Signature\" \"Syntax\" "
@@ -1951,7 +1732,7 @@ const string SortMergeJoin2ParamSpec  = "( ( \"Signature\" \"Syntax\" "
                                    ") )";
 
 /*
-4.10.2 Definition of operator ~sortmergejoin2Param~
+4.12.2 Definition of operator ~sortmergejoin2Param~
 
 */
 Operator extrelsortmergejoin2Param (
@@ -2000,13 +1781,8 @@ class ExtRelation2Algebra : public Algebra
     AddOperator(&extrel2::extrelsortmergejoin2Param);
 
     AddOperator(&extrel2::tuplefiletest);
-    AddOperator(&extrel2::tuplebuffertest);
-    AddOperator(&extrel2::extreltuplecomp);
-    AddOperator(&extrel2::extrelheapstl);
-    AddOperator(&extrel2::extrelheapstd);
-    AddOperator(&extrel2::extrelheapbup);
-    AddOperator(&extrel2::extrelheapbup2);
-    AddOperator(&extrel2::extrelheapmdr);
+    AddOperator(&extrel2::tuplebuffer);
+    AddOperator(&extrel2::tuplebuffer2);
 
 #ifdef USE_PROGRESS
 // support for progress queries
