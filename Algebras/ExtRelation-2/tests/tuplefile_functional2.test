@@ -61,7 +61,7 @@ let result1 = Kreis feed consume;
 
 #testcase teststep_1_compare_result
 #yields *result1
-query Kreis feed tuplefile consume;
+query Kreis feed tuplefile[-1] consume;
 
 #testcase teststep_1_delete_result
 #yields success

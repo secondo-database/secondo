@@ -56,21 +56,14 @@ restore database tmp_opt from '$(SECONDO_BUILD_DIR)/bin/opt'
 
 #testcase teststep_1
 #yields success
-query plz feed tuplefile consume;
+query plz feed tuplefile[-1] consume;
 
 #--------------------------------------------------  
 # tuplefile - syntax error
 
 #testcase teststep_3
 #yields error
-query plz feed tuplefile[] consume;
-
-#--------------------------------------------------  
-# tuplebuffer - syntax error
-
-#testcase teststep_4
-#yields error
-query plz feed tuplefile[0] consume;
+query plz feed tuplefile consume;
 
 #--------------------------------------------------  
 # tuplefile - no FLOBs/LOBs
@@ -81,7 +74,7 @@ let result5 = plz feed consume;
 
 #testcase teststep_5_compare_result
 #yields *result5
-query plz feed tuplefile consume;
+query plz feed tuplefile[-1] consume;
 
 #testcase teststep_5_delete_result
 #yields success
