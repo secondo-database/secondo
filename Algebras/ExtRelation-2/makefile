@@ -62,19 +62,16 @@ DOCU_FILES = ExtRelation2Algebra.cpp \
 		
 # non-local files for documentation located in ./docu
 DOCU_FILES2 = FileSystem.h.txt \
-			  FileSystem.cpp.txt \
+		      FileSystem.cpp.txt \
 		      RelationAlgebra.h.txt \
-		      RelationPersistent.cpp.txt
-
-# special local files which cannot be processed by PD-System		   
-DOCU_FILES3 = ExtRelation2Algebra.spec \
-			  ExtRelation2.examples \
-			  makefile
+		      RelationPersistent.cpp.txt \
+		      ExtRelation2Algebra.spec.txt \
+		      ExtRelation2.examples.txt \
+		      makefile.txt
 
 DOCU_PDF1 = $(DOCU_FILES:%=%.pdf)
 DOCU_PDF2 = $(DOCU_FILES2:%=%.pdf)
-DOCU_PDF3 = $(DOCU_FILES3:%=%.pdf)
-DOCU_PDF = $(DOCU_PDF1) $(DOCU_PDF2) $(DOCU_PDF3)
+DOCU_PDF = $(DOCU_PDF1) $(DOCU_PDF2)
 
 # generic rule for creating documentation	
 .PHONY: docu
@@ -82,8 +79,7 @@ docu:
 	for i in $(DOCU_FILES); do pd2pdf $$i; done
 	for i in $(DOCU_FILES2); do cp ./docu/$$i $$i; done
 	for i in $(DOCU_FILES2); do pd2pdf $$i; done
-	for i in $(DOCU_FILES3); do a2ps $$i -1 --borders=no --output=$$i.ps; ps2pdf $$i.ps; done
-	gs -q -sPAPERSIZE=a4 -dNOPAUSE -dBATCH \
+	gs -q -sPAPERSIZE=a4 -dNOPAUSE -dBATCH  \
 	   -sDEVICE=pdfwrite -sOutputFile=ExtRelation2Algebra.pdf $(DOCU_PDF)
 	pdftops ExtRelation2Algebra.pdf tmp.ps    
 	psnup -2 tmp.ps ExtRelation2Algebra.ps
