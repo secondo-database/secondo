@@ -1338,7 +1338,7 @@ SmiFileIterator::Next( SmiRecord& record )
 #endif
     {
       // the size
-      assert( data.get_size() <= SMI_MAX_KEYLEN);
+      assert( key.get_size() <= SMI_MAX_KEYLEN);
 
       if ( record.initialized )
       {
