@@ -256,6 +256,7 @@ The client can close the connection by sending
 #include "Messages.h"
 #include "NList.h"
 #include "SecondoSystem.h"
+#include "TraceMacros.h"
 #include "limits.h"
 
 using namespace std;
