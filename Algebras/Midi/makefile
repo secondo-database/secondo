@@ -22,6 +22,12 @@
 # SECONDO makefile for Midi Algebra
 #
 # $Log$
+# Revision 1.4  2005/08/02 14:08:52  valmeida
+#
+# Merging the work from Matthias Zielke into the main branch of Secondo. His
+# work was done in the branch called RelUpdate-branch, and is mainly related
+# to allow updates in relations and indexes.
+#
 #
 # Revision 1.3  2005/07/21 17:39:46  spieker
 # Some old code corrected, since the algebra was excluded for a long time
@@ -137,7 +143,6 @@ INCFILES=\
 	$(INCLUDEDIR)/NestedList.h \
 	$(INCLUDEDIR)/QueryProcessor.h \
 	$(INCLUDEDIR)/StandardTypes.h \
-  $(INCLUDEDIR)/DBArray.h \
   ../FText/FTextAlgebra.h
 
 REFFILE=\
