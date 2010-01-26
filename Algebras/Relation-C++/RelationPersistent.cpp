@@ -1863,9 +1863,12 @@ Relation::InitFiles( bool open /*= false */) {
   // init LOB File
   if (relDesc.tupleType->NumOfFlobs() > 0 && relDesc.lobFileId == 0)
   {
-    SmiRecordFile* rf =
-       SecondoSystem::GetFLOBCache()->CreateFile(relDesc.isTemp);
-    relDesc.lobFileId = rf->GetFileId();
+    SmiRecordFile rf(false,0, relDesc.isTemp);
+    if(!rf.Create()){
+      assert(false); 
+    }
+    relDesc.lobFileId = rf.GetFileId();
+    rf.Close();
   }
 }
 
@@ -2049,7 +2052,12 @@ void Relation::Delete()
 {
   tupleFile.Close();
   tupleFile.Drop();
-  SecondoSystem::GetFLOBCache()->Drop( relDesc.lobFileId, relDesc.isTemp );
+  if(relDesc.lobFileId){
+    SmiRecordFile rf(false,0, relDesc.isTemp);
+    rf.Open(relDesc.lobFileId);
+    rf.Close();
+    rf.Drop(); 
+  }
   ErasePointer();
 
   delete this;
@@ -2059,10 +2067,11 @@ void Relation::DeleteAndTruncate()
 {
   tupleFile.Remove();
   tupleFile.Drop();
-
-  SmiFileId lobId = relDesc.lobFileId;
-  if (lobId != 0) {
-    SecondoSystem::GetFLOBCache()->Drop( lobId, false );
+  if(relDesc.lobFileId){
+    SmiRecordFile rf(false,0, relDesc.isTemp);
+    rf.Open(relDesc.lobFileId);
+    rf.Close();
+    rf.Drop(); 
   }
 //  else {
 //    cerr << "Relation has no LOB-file!" << endl;
@@ -2122,7 +2131,12 @@ void Relation::Clear()
   relDesc.totalExtSize = 0;
   relDesc.totalSize = 0;
   tupleFile.Truncate();
-  SecondoSystem::GetFLOBCache()->Truncate( relDesc.lobFileId, relDesc.isTemp );
+  if(relDesc.lobFileId){
+    SmiRecordFile rf(false,0, relDesc.isTemp);
+    rf.Open(relDesc.lobFileId);
+    rf.Truncate();
+    rf.Close();
+  }
 }
 
 Tuple *Relation::GetTuple( const TupleId& id ) const

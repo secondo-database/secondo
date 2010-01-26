@@ -736,6 +736,7 @@ SmiFile::Open( const SmiFileId fileid, const string& context /* = "Default" */ )
     else
     {
       rc = (fileid == 0) ? E_SMI_FILE_NOFILEID : E_SMI_FILE_BADCONTEXT;
+  
       SmiEnvironment::SetError( rc );
     }
   }

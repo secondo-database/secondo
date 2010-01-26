@@ -787,13 +787,10 @@ SecondoSystem::SecondoSystem( GetAlgebraEntryFunction getAlgebraEntryFunc )
   catalog        = 0;
   initialized    = false;
   testMode       = false; // Todo: Should be configurable in SecondoConfig.ini
-  flobCache      = 0;
 }
 
 SecondoSystem::~SecondoSystem()
 {
-  delete flobCache;
-  flobCache = 0;
   delete nl;
   nl = 0;
   delete al;
@@ -921,7 +918,6 @@ SecondoSystem::CommitTransaction()
 {
   TRACE_ENTER
   instance->catalog->CleanUp( false );
-  instance->flobCache->Clean();
   TRACE_LEAVE
   return (SmiEnvironment::CommitTransaction());
 }
@@ -933,18 +929,5 @@ SecondoSystem::AbortTransaction()
   instance->catalog->CleanUp( true );
   TRACE_LEAVE
   return (SmiEnvironment::AbortTransaction());
-}
-
-void 
-SecondoSystem::InitializeFLOBCache( size_t size )
-{
-  instance->flobCache = 
-    new FLOBCache( size );
-}
-
-FLOBCache*
-SecondoSystem::GetFLOBCache()
-{
-  return instance->flobCache;
 }
 

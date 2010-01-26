@@ -412,7 +412,7 @@ SecondoInterface::Initialize( const string& user, const string& pswd,
     keyVal =
       SmiProfile::GetParameter("System", "FLOBCacheSize",
                                16*1024, parmFile);
-    SecondoSystem::InitializeFLOBCache( keyVal*1024 );
+    //SecondoSystem::InitializeFLOBCache( keyVal*1024 );
 
     cmsg.info() << "FLOB Cache size "
                 << keyVal << "kb" << endl;

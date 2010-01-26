@@ -220,7 +220,6 @@ to determine selectivities of predicates while processing a query. Furthermore s
 #include "CharTransform.h"
 #include "NList.h"
 #include "Profiles.h"
-#include "FLOBCache.h"
 #include "ProgressView.h"
 #include "Progress.h"
 #include "Operator.h"
@@ -3319,11 +3318,6 @@ Deletes an operator tree object.
       default:
         break;
     } /* case */
-
-    // Close the files in the FLOB cache to avoid
-    // lots of opened files.
-    if( tree->isRoot )
-      SecondoSystem::GetFLOBCache()->Clear();
 
     delete tree;
     tree = 0;

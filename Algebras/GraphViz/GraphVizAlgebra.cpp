@@ -52,7 +52,6 @@ from a stream of tuples which contains string or text attributes.
 #include "NestedList.h"
 #include "QueryProcessor.h"
 #include "GraphViz.h"
-#include "FLOB.h"
 #include "LogMsg.h"
 #include "Symbols.h"
 #include "../FText/FTextAlgebra.h"

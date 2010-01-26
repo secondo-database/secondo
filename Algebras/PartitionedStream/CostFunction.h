@@ -86,6 +86,7 @@ for weighting the three terms. The fraction between buffer memory and the relati
 #include "WinUnix.h"
 
 #include "Counter.h"
+#include "TraceMacros.h"
 
 extern QueryProcessor* qp;
 

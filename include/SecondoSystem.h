@@ -95,7 +95,6 @@ The class ~SecondoSystem~ provides the following methods:
 #include "NestedList.h"
 #include "Messages.h"
 #include "SecondoCatalog.h"
-#include "FLOBCache.h"
 
 /**************************************************************************
 Forward declaration of several classes:
@@ -312,16 +311,6 @@ Commits a transaction.
 Aborts a transaction.
 
 */
-  static void InitializeFLOBCache( size_t size );
-/*
-Initializes the flob cache.
-
-*/
-  static FLOBCache *GetFLOBCache();
-/*
-Returns the FLOB cache.
-
-*/
 
  
  private:
@@ -344,7 +333,6 @@ Are internal methods for restoring a database.
   AlgebraManager* algebraManager;
   QueryProcessor* queryProcessor;
   SecondoCatalog* catalog;
-  FLOBCache*      flobCache;
 
   bool            testMode;
   bool            initialized;
