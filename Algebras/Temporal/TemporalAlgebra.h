@@ -2157,7 +2157,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
       res->del.isDefined = del.isDefined;
     } else {
       res = new UPoint( false );
-      res->timeInterval = Interval<Instant>();
+//       res->timeInterval = Interval<Instant>();
       res->p0 = Point( false, 0.0, 0.0);
       res->p1 = Point( false, 0.0, 0.0);
     }
@@ -2176,7 +2176,7 @@ Returns ~true~ if this temporal unit is different to the temporal unit ~i~ and ~
       }
     else
       {
-        timeInterval = Interval<Instant>();
+//         timeInterval = Interval<Instant>();
         p0 = Point( false, 0.0, 0.0);
         p1 = Point( false, 0.0, 0.0);
       }

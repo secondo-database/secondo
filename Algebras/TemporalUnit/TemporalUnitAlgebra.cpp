@@ -1159,7 +1159,6 @@ int MappingMakemvalue_movingregion(Word* args,Word& result,int message,
                               Word& local,Supplier s)
 {
   MRegion* m;
-  URegion* unit;
   Word currentTupleWord;
 
   assert(args[2].addr != 0); // assert existence of input
@@ -7702,10 +7701,11 @@ int TemporalUnitSometimes_streamubool( Word* args, Word& result, int message,
   while ( !found && qp->Received(args[0].addr) )
     {
       U = (UBool*) elem.addr;
-      if ( U->IsDefined() && U->constValue.GetBoolval() )
+      if ( U->IsDefined() && U->constValue.GetBoolval() ){
         found = true;
-      else
+      } else {
         qp->Request(args[0].addr, elem);
+      }
       U->DeleteIfAllowed();
     }
   qp->Close(args[0].addr); // close the stream
@@ -7739,7 +7739,7 @@ const string  TemporalUnitSometimesSpec =
   "</text--->"
   "<text>sometimes( _ )</text--->"
   "<text>Returns 'true', iff the ubool/stream of ubool is 'true'"
-  "at least once, otherwise 'false'. Never returns 'undef'.</text--->"
+  "at least once, otherwise 'false'. Never returns 'undef' itself.</text--->"
   "<text>query sometimes(ubool1)</text--->"
   ") )";
 
@@ -7838,7 +7838,7 @@ int TemporalUnitNever_ubool( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   CcBool *res = (CcBool*) result.addr;
   UBool *U = (UBool*) args[0].addr;
-  res->Set( true, ( U->IsDefined() && !U->constValue.GetBoolval() ) );
+  res->Set( true, ( !U->IsDefined() || !U->constValue.GetBoolval() ) );
   return 0;
 }
 /*
@@ -7938,7 +7938,7 @@ int TemporalUnitAlways_ubool( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
   CcBool *res = (CcBool*) result.addr;
   UBool *U = (UBool*) args[0].addr;
-  res->Set( true, ( U->IsDefined() && !U->constValue.GetBoolval() ) );
+  res->Set( true, ( U->IsDefined() && U->constValue.GetBoolval() ) );
   return 0;
 }
 /*
@@ -7954,7 +7954,7 @@ const string  TemporalUnitAlwaysSpec =
   "(stream ubool) -> bool"
   "</text--->"
   "<text>always( _ )</text--->"
-  "<text>Returns 'false', iff the ubool/stream takes value 'true' "
+  "<text>Returns 'false', iff the ubool/stream takes value 'false' "
   "at least once, otherwise 'true'. Never returns 'undef'.</text--->"
   "<text>query never(ubool1)</text--->"
   ") )";
