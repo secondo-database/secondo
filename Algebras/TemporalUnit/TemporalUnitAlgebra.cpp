@@ -1092,8 +1092,7 @@ int MappingMakemvalue(Word* args,Word& result,int message,
     {
       Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
       Attribute* currentAttr = (Attribute*)currentTuple->
-        GetAttribute(attributeIndex);
-
+                                              GetAttribute(attributeIndex);
       if(currentAttr == 0)
       {
         cout << endl << "ERROR in " << __PRETTY_FUNCTION__
@@ -1102,8 +1101,11 @@ int MappingMakemvalue(Word* args,Word& result,int message,
       }
       else if(currentAttr->IsDefined())
       {
-        unit = (Unit*) currentAttr;
+        unit = static_cast<Unit*>(currentAttr);
         m->Add( *unit );
+      } else {
+        cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit. "
+             << endl;
       }
       currentTuple->DeleteIfAllowed();
       qp->Request(args[0].addr, currentTupleWord);
@@ -1134,11 +1136,14 @@ int MappingMakemvaluePlain(Word* args,Word& result,int message,
   while ( qp->Received(args[0].addr) ) { // get all tuples
       unit = static_cast<Unit*>(currentUnit.addr);
       if(unit == 0) {
-        cout << endl << "ERROR in MappingMakemvaluePlain: received Nullpointer!"
+        cout << endl << __PRETTY_FUNCTION__ << ": Received Nullpointer!"
              << endl;
         assert( false );
       } else if(unit->IsDefined()) {
         m->Add( *unit );
+      } else {
+        cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef unit "
+             << endl;
       }
       unit->DeleteIfAllowed();
       qp->Request(args[0].addr, currentUnit);
@@ -1175,18 +1180,17 @@ int MappingMakemvalue_movingregion(Word* args,Word& result,int message,
   while ( qp->Received(args[0].addr) ) // get all tuples
     {
       Tuple* currentTuple = (Tuple*)currentTupleWord.addr;
-      Attribute* currentAttr = (Attribute*)currentTuple->
-        GetAttribute(attributeIndex);
+      URegion* currentUnit = static_cast<URegion*>(currentTuple->
+        GetAttribute(attributeIndex));
 
-      if(currentAttr == 0) {
-        cout << endl << "ERROR in MappingMakemvalue: received Nullpointer!"
-             << endl;
+      if(currentUnit == 0) {
+        cout << endl << __PRETTY_FUNCTION__ << ": Received Nullpointer!"<< endl;
         assert( false );
-      } else if(currentAttr->IsDefined()) {
-          unit = (URegion*) currentAttr;
-          cout << "MappingMakemvalue_movingregion: " << endl;
-          unit->Print(cout);
-          m->AddURegion( *unit );
+      } else if(currentUnit->IsDefined()) {
+          m->AddURegion( *currentUnit );
+      } else {
+        cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef URegion "
+             << endl;
       }
       currentTuple->DeleteIfAllowed();
       qp->Request(args[0].addr, currentTupleWord);
@@ -1218,13 +1222,13 @@ int MappingMakemvalue_movingregionPlain(Word* args,Word& result,int message,
     {
       unit = (URegion*) currentUnit.addr;
       if(unit == 0) {
-        cout << endl << "ERROR in MappingMakemvalue_movingregionPlain: "
-            "received Nullpointer!" << endl;
+        cout << endl << __PRETTY_FUNCTION__ << ":received Nullpointer!" << endl;
         assert( false );
       } else if(unit->IsDefined()) {
-          cout << "MappingMakemvalue_movingregion: " << endl;
-          unit->Print(cout);
           m->AddURegion( *unit );
+      } else {
+        cerr << endl << __PRETTY_FUNCTION__ << ": Dropping undef URegion "
+            << endl;
       }
       unit->DeleteIfAllowed();
       qp->Request(args[0].addr, currentUnit);
