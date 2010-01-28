@@ -434,6 +434,10 @@ Gives up the control of the FlobManager over the specific file.
     return FlobManager::getInstance().dropFiles();
   }
 
+  inline static void killAllNativeFlobs(){
+    FlobManager::getInstance().killNativeFlobs();
+  }
+
 
   ostream& print(ostream& os) const {
     return os << "[" << id << ", size = " << size << "]";

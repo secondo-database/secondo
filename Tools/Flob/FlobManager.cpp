@@ -670,6 +670,14 @@ return a Flob with persistent storage allocated and defined elsewhere
       };
 
 
+      void FlobManager::killNativeFlobs(){
+        cout << "killNativeFlobs called" << endl;
+        if(nativeFlobCache){
+           nativeFlobCache->clear();
+        }
+        nativeFlobFile->Truncate();
+      }
+
 
 /*
 ~constructor~

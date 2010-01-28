@@ -213,6 +213,15 @@ Will drop all files except the native flob file.
      bool dropFiles();
 
 
+/*
+~killNativeFlobs~
+
+destroys all native Flobs
+
+*/
+    void killNativeFlobs();
+
+
 
 /*
 ~Destructor~
