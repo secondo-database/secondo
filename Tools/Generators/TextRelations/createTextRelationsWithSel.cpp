@@ -115,18 +115,18 @@ int main(int argc, char* argv[]){
 
  if (argc != 7 ) 
  {
-	cerr << endl 
-		 << "Please specify the tuplesize (bytes), " 
-		 << "the number of tuples in relation A and relation B "
-		 << ", the selectivity in percent (0-1 size (bytes) " 
-		 << ", and the paths of the output files." 
-		 << endl 
-		 << endl
+  cerr << endl
+    << "Please specify the tuplesize (bytes), " 
+    << "the number of tuples in relation A and relation B "
+    << ", the selectivity in percent (0-1 size (bytes) " 
+    << ", and the paths of the output files." 
+    << endl 
+    << endl
          << "  Example: "
          << argv[0] << " 256 100000 10000 0.001 ~/relA ~/relB" 
-		 << endl 
-		 << endl;
-	exit(1);
+    << endl 
+    << endl;
+ exit(1);
  }
 
  const int tupleSize = atoi(argv[1]);
@@ -156,5 +156,5 @@ int main(int argc, char* argv[]){
  // create relation B
  createRelation(path2, "relB", m1, m2, l, constant);
  
-}	
+}
 
