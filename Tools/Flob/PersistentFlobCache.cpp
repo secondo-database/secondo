@@ -89,7 +89,7 @@ a cache entry.
 */
     bool operator==(const CacheEntry& e){
       return flob == e.flob &&
-             slotNo == e.slotNo &&
+             slotNo == e.slotNo;
     }
 
     bool operator!=(const CacheEntry& e){
