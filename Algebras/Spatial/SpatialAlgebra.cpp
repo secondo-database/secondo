@@ -857,10 +857,25 @@ ostream& Point::Print( ostream &os ) const
   return os << *this;
 }
 
+bool Point::Inside( const Region& r ) const
+{
+  return r.Contains(*this);
+}
+
+bool Point::Inside( const Line& l ) const
+{
+  return l.Contains(*this);
+}
+
+bool Point::Inside( const Points& ps ) const
+{
+  return ps.Contains(*this);
+}
+
 bool Point::Inside( const Rectangle<2>& r ) const
 {
   assert( r.IsDefined() );
-  if(!IsDefined()){
+  if( !IsDefined() || !r.IsDefined() ){
     return false;
   }
   if( x < r.MinD(0) || x > r.MaxD(0) )
@@ -872,7 +887,8 @@ bool Point::Inside( const Rectangle<2>& r ) const
 
 double Point::Distance( const Point& p ) const
 {
-  assert(IsDefined() && p.IsDefined());
+  assert( IsDefined() );
+  assert( p.IsDefined() );
   double dx = p.x - x,
          dy = p.y - y;
 
@@ -881,7 +897,8 @@ double Point::Distance( const Point& p ) const
 
 double Point::Distance( const Rectangle<2>& r ) const
 {
-  assert( IsDefined() && r.IsDefined() );
+  assert( IsDefined() );
+  assert( r.IsDefined() );
   double rxmin = r.MinD(0), rxmax = r.MaxD(0),
          rymin = r.MinD(1), rymax = r.MaxD(1);
   double dx =
@@ -994,7 +1011,7 @@ InPoint( const ListExpr typeInfo, const ListExpr instance,
     ListExpr first = nl->First(instance);
     ListExpr second = nl->Second(instance);
 
-    correct = listutils::isNumeric(first) && listutils::isNumeric(second); 
+    correct = listutils::isNumeric(first) && listutils::isNumeric(second);
     if(!correct){
        return SetWord( Address(0) );
     } else {
@@ -1159,6 +1176,11 @@ void Points::StartBulkLoad()
 
 void Points::EndBulkLoad( bool sort, bool remDup, bool trim )
 {
+  if( !IsDefined() ) {
+    Clear();
+    SetDefined( false );
+  }
+
   if( sort ){
     Sort();
   }
@@ -1176,14 +1198,12 @@ void Points::EndBulkLoad( bool sort, bool remDup, bool trim )
 bool Points::operator==( const Points& ps ) const
 {
 
- if(!IsDefined() && !ps.IsDefined()){
-   return true;
- }
- if(!IsDefined() || !ps.IsDefined()){
-   return false;
- }
-
-  assert( IsOrdered() && ps.IsOrdered() );
+  if(!IsDefined() && !ps.IsDefined()){
+    return true;
+  }
+  if(!IsDefined() || !ps.IsDefined()){
+    return false;
+  }
 
   if( Size() != ps.Size() )
     return false;
@@ -1194,6 +1214,7 @@ bool Points::operator==( const Points& ps ) const
   if( bbox != ps.bbox )
     return false;
 
+  assert( IsOrdered() && ps.IsOrdered() );
   object obj;
   status stat;
   SelectFirst_pp( *this, ps, obj, stat );
@@ -1287,8 +1308,17 @@ Points& Points::operator+=( const Points& ps )
 
 Points& Points::operator-=( const Point& p )
 {
+  if( !IsDefined() ) {
+    assert( IsDefined() );
+    return *this;
+  }
+  if( !p.IsDefined() ) {
+    assert( p.IsDefined() );
+    Clear();
+    SetDefined( false );
+    return *this;
+  }
   assert( IsOrdered() );
-
   int pos, posLow, posHigh;
   if( Find( p, pos, false ) )
   { // found an AlmostEqual point
@@ -1336,14 +1366,17 @@ Points& Points::operator-=( const Point& p )
 ostream& operator<<( ostream& o, const Points& ps )
 {
   o << "<";
-  for( int i = 0; i < ps.Size(); i++ )
-  {
-    Point p;
-    ps.Get( i, p );
-    o << " " << p;
+  if( !ps.IsDefined() ) {
+    o << " undef ";
+  } else {
+    for( int i = 0; i < ps.Size(); i++ )
+    {
+      Point p;
+      ps.Get( i, p );
+      o << " " << p;
+    }
   }
   o << ">";
-
   return o;
 }
 
@@ -1530,6 +1563,8 @@ void Points::RemoveDuplicates()
 
 bool Points::Contains( const Point& p ) const
 {
+  assert( IsDefined() );
+  assert( p.IsDefined() );
   assert( IsOrdered() );
 
   if( IsEmpty() )
@@ -1544,7 +1579,10 @@ bool Points::Contains( const Point& p ) const
 
 bool Points::Contains( const Points& ps ) const
 {
-  assert( IsOrdered() && ps.IsOrdered() );
+  assert( IsDefined() );
+  assert( IsOrdered() );
+  assert( ps.IsDefined() );
+  assert( ps.IsOrdered() );
 
   if(!IsDefined() || !ps.IsDefined()){
     return false;
@@ -1575,13 +1613,19 @@ bool Points::Contains( const Points& ps ) const
 
 bool Points::Inside( const Points& ps ) const
 {
-  assert( IsOrdered() && ps.IsOrdered() );
+  assert( IsDefined() );
+  assert( IsOrdered() );
+  assert( ps.IsDefined() );
+  assert( ps.IsOrdered() );
   return ps.Contains( *this );
 }
 
 bool Points::Inside( const Line& l ) const
 {
-  assert( IsOrdered() && l.IsOrdered() );
+  assert( IsDefined() );
+  assert( IsOrdered() );
+  assert( l.IsDefined() );
+  assert( l.IsOrdered() );
 
   if( IsEmpty() )
     return true;
@@ -1604,7 +1648,10 @@ bool Points::Inside( const Line& l ) const
 
 bool Points::Inside( const Region& r ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
+  assert( IsDefined() );
+  assert( IsOrdered() );
+  assert( r.IsDefined() );
+  assert( r.IsOrdered() );
 
   if( IsEmpty() )
     return true;
@@ -1627,7 +1674,10 @@ bool Points::Inside( const Region& r ) const
 
 bool Points::Intersects( const Points& ps ) const
 {
-  assert( IsOrdered() && ps.IsOrdered() );
+  assert( IsDefined() );
+  assert( IsOrdered() );
+  assert( ps.IsDefined() );
+  assert( ps.IsOrdered() );
 
   if( IsEmpty() || ps.IsEmpty() )
     return false;
@@ -1650,7 +1700,10 @@ bool Points::Intersects( const Points& ps ) const
 
 bool Points::Intersects( const Line& l ) const
 {
-  assert( IsOrdered() && l.IsOrdered() );
+  assert( IsDefined() );
+  assert( IsOrdered() );
+  assert( l.IsDefined() );
+  assert( l.IsOrdered() );
 
   if( IsEmpty() || l.IsEmpty() )
     return false;
@@ -1671,7 +1724,10 @@ bool Points::Intersects( const Line& l ) const
 
 bool Points::Intersects( const Region& r ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
+  assert( IsDefined() );
+  assert( IsOrdered() );
+  assert( r.IsDefined() );
+  assert( r.IsOrdered() );
 
   if( IsEmpty() || r.IsEmpty() )
     return false;
@@ -1691,7 +1747,10 @@ bool Points::Intersects( const Region& r ) const
 
 bool Points::Adjacent( const Region& r ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
+  assert( IsDefined() );
+  assert( IsOrdered() );
+  assert( r.IsDefined() );
+  assert( r.IsOrdered() );
 
   if( IsEmpty() || r.IsEmpty() )
     return false;
@@ -1720,8 +1779,18 @@ bool Points::Adjacent( const Region& r ) const
 
 void Points::Intersection( const Points& ps, Points& result ) const
 {
-  assert( ordered && ps.ordered );
   result.Clear();
+  if( !IsDefined() || !ps.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  assert( ordered );
+  assert( ps.ordered );
+
+  if( IsEmpty() || ps.IsEmpty() ){
+    return;
+  }
 
   object obj;
   status stat;
@@ -1744,16 +1813,17 @@ void Points::Intersection( const Points& ps, Points& result ) const
 
 void Points::Intersection( const Line& l, Points& result ) const
 {
-  assert( IsOrdered() && l.IsOrdered() );
   result.Clear();
-
-  if( IsEmpty() )
-    return;
-
-  if(l.IsEmpty()){
-    result.Clear();
+  if( !IsDefined() || !l.IsDefined() ) {
+    result.SetDefined( false );
     return;
   }
+  result.SetDefined( true );
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
+
+  if( IsEmpty() || l.IsEmpty() )
+    return;
 
   Point p;
   result.StartBulkLoad();
@@ -1768,16 +1838,17 @@ void Points::Intersection( const Line& l, Points& result ) const
 
 void Points::Intersection( const Region& r, Points& result ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
   result.Clear();
-
-  if( IsEmpty() )
-    return;
-
-  if(r.IsEmpty()){
-    result.Clear();
+  if( !IsDefined() || !r.IsDefined() ) {
+    result.SetDefined( false );
     return;
   }
+  result.SetDefined( true );
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
+
+  if( IsEmpty() || r.IsEmpty() )
+    return;
 
   Point p;
   result.StartBulkLoad();
@@ -1792,24 +1863,34 @@ void Points::Intersection( const Region& r, Points& result ) const
 
 void Points::Minus( const Point& p, Points& ps ) const
 {
-  assert( p.IsDefined() && ordered );
   ps.Clear();
+  if( !IsDefined() || !p.IsDefined() ) {
+    ps.SetDefined( false );
+    return;
+  }
+  ps.SetDefined( true );
 
+  assert( ordered );
   ps.StartBulkLoad();
   Point pi;
-  for( int i = 0; i < Size(); i++ )
-  {
+  for( int i = 0; i < Size(); i++ ) {
     Get( i, pi );
     if( !AlmostEqual(pi, p) )
-        ps += pi;
+      ps += pi;
   }
   ps.EndBulkLoad( false, false );
 }
 
 void Points::Minus( const Points& ps, Points& result ) const
 {
-  assert( ordered && ps.ordered );
   result.Clear();
+  if( !IsDefined() || !ps.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  assert( ordered );
+  assert( ps.ordered );
 
   result.StartBulkLoad();
   int size1 = this->Size();
@@ -1817,26 +1898,20 @@ void Points::Minus( const Points& ps, Points& result ) const
   int pos1 = 0, pos2 = 0;
   Point p1, p2;
 
-  while(pos1<size1 && pos2<size2)
-  {
+  while(pos1<size1 && pos2<size2) {
     this->Get(pos1, p1);
     ps.Get(pos2, p2);
-    if( AlmostEqual(p1, p2) )
-    {
+    if( AlmostEqual(p1, p2) ) {
       pos1++;
     }
-    else if (p1 < p2)
-    {
+    else if (p1 < p2) {
       result += p1;
       pos1++;
-    }
-    else
-    { // *p1 > *p2
+    } else { // *p1 > *p2
       pos2++;
     }
   }
-  while(pos1<size1)
-  {
+  while(pos1<size1) {
     this->Get(pos1, p1);
     result += p1;
     pos1++;
@@ -1846,8 +1921,14 @@ void Points::Minus( const Points& ps, Points& result ) const
 
 void Points::Minus( const Line& l, Points& result ) const
 {
-  assert( IsOrdered() && l.IsOrdered() );
   result.Clear();
+  if( !IsDefined() || !l.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
 
   Point p;
   result.StartBulkLoad();
@@ -1862,8 +1943,14 @@ void Points::Minus( const Line& l, Points& result ) const
 
 void Points::Minus( const Region& r, Points& result ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
   result.Clear();
+  if( !IsDefined() || !r.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
 
   Point p;
   result.StartBulkLoad();
@@ -1878,8 +1965,13 @@ void Points::Minus( const Region& r, Points& result ) const
 
 void Points::Union( const Point& p, Points& result ) const
 {
-  assert( p.IsDefined() && ordered );
   result.Clear();
+  if( !IsDefined() || !p.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  assert( ordered );
 
   result.StartBulkLoad();
   Point pi;
@@ -1906,8 +1998,14 @@ void Points::Union( const Point& p, Points& result ) const
 
 void Points::Union( const Points& ps, Points& result ) const
 {
-  assert( ordered && ps.ordered );
   result.Clear();
+  if( !IsDefined() || !ps.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
+  assert( ordered );
+  assert( ps.ordered );
 
   object obj;
   status stat;
@@ -1936,7 +2034,8 @@ void Points::Union( const Points& ps, Points& result ) const
 
 double Points::Distance( const Point& p ) const
 {
-  assert( p.IsDefined() && !IsEmpty() );
+  assert( !IsEmpty() );
+  assert( p.IsDefined() );
 
   double result = numeric_limits<double>::max();
   for( int i = 0; i < Size(); i++ )
@@ -1954,7 +2053,8 @@ double Points::Distance( const Point& p ) const
 
 double Points::Distance( const Points& ps ) const
 {
-  assert( !IsEmpty() && !ps.IsEmpty() );
+  assert( !IsEmpty() );
+  assert( !ps.IsEmpty() );
 
   double result = numeric_limits<double>::max();
   Point pi, pj;
@@ -1977,7 +2077,9 @@ double Points::Distance( const Points& ps ) const
 
 double Points::Distance( const Rectangle<2>& r ) const
 {
-  assert( IsDefined() && !IsEmpty() && r.IsDefined() );
+  assert( IsDefined() );
+  assert( !IsEmpty() );
+  assert( r.IsDefined() );
   double result = numeric_limits<double>::max();
   Point pi;
   for( int i = 0; i < Size(); i++ )
@@ -1991,9 +2093,14 @@ double Points::Distance( const Rectangle<2>& r ) const
 
 void Points::Translate( const Coord& x, const Coord& y, Points& result ) const
 {
-  assert( result.IsEmpty() );
-  assert( ordered );
+  result.Clear();
+  if( !IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
 
+  assert( ordered );
   result.StartBulkLoad();
   Point p;
   for( int i = 0; i < Size(); i++ )
@@ -2015,8 +2122,8 @@ void Points::Rotate( const Coord& x, const Coord& y,
      result.SetDefined(false);
      return;
   }
-  result.Resize(Size());
   result.SetDefined(true);
+  result.Resize(Size());
 
   double s = sin(alpha);
   double c = cos(alpha);
@@ -2067,7 +2174,7 @@ Point Points::theCenter() const{
 
 size_t Points::HashValue() const
 {
-  if( IsEmpty() )
+  if( IsEmpty() ) // IsEmpty() includes undef
   return 0;
 
   size_t h = 0;
@@ -2083,18 +2190,30 @@ size_t Points::HashValue() const
 
 bool Points::IsValid() const
 {
-  if( IsEmpty() )
+  if( IsEmpty() ) // IsEmpty() includes undef
     return true;
 
-  Point auxp1, p2;
-  Get( 0, auxp1 );
-
-  Point p1 = auxp1;
+  Point p1, p2;
+  Get( 0, p1 );
+  if( !p1.IsDefined() ){
+    cerr << __PRETTY_FUNCTION__ << ": Undefined Point!" << endl;
+    cerr << "\tp1 = "; p1.Print(cerr); cerr << endl;
+    return false;
+  }
   for( int i = 1; i < Size(); i++ )
   {
     Get( i, p2 );
-    if( AlmostEqual( p1, p2 ) )
+    if( !p2.IsDefined() ){
+      cerr << __PRETTY_FUNCTION__ << ": Undefined Point!" << endl;
+      cerr << "\tp2 = "; p2.Print(cerr); cerr << endl;
       return false;
+    }
+    if( AlmostEqual( p1, p2 ) ){
+      cerr << __PRETTY_FUNCTION__ << ": Almost equal Points!" << endl;
+      cerr << "\tp1 = "; p1.Print(cerr);
+      cerr << "\n\tp2 = "; p2.Print(cerr); cerr << endl;
+      return false;
+    }
     p1 = p2;
   }
   return true;
@@ -2168,7 +2287,7 @@ int Points::CompareAlmost( const Attribute* arg ) const
 
   if( !ps )
     return (-2);
-  
+
 
   if(!IsDefined() && !ps->IsDefined()){
     return 0;
@@ -2275,54 +2394,53 @@ Word
 InPoints( const ListExpr typeInfo, const ListExpr instance,
        const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-
   Points* points = new Points( max(0,nl->ListLength( instance) ) );
-  if(nl->IsEqual(instance,"undef")){
+  points->SetDefined( true );
+  if(nl->IsEqual(instance,"undef")) {
+      points->Clear();
       points->SetDefined(false);
       correct=true;
       return SetWord( Address(points) );
   }
 
-  if(nl->AtomType(instance)!=NoAtom){
+  if(nl->AtomType(instance)!=NoAtom) {
     delete points;
     correct = false;
+    cout << __PRETTY_FUNCTION__ << ": Unexpected Atom!" << endl;
     return SetWord( Address(points) );
   }
 
-  points->StartBulkLoad();
-
   ListExpr rest = instance;
-  while( !nl->IsEmpty( rest ) )
-  {
+  points->StartBulkLoad();
+  while( !nl->IsEmpty( rest ) ) {
     ListExpr first = nl->First( rest );
     rest = nl->Rest( rest );
 
     Point *p = (Point*)InPoint( nl->TheEmptyList(),
                                 first, 0, errorInfo, correct ).addr;
-    if( correct )
-    {
+    if( correct && p->IsDefined() ) {
       (*points) += (*p);
       delete p;
-    }
-    else
-    {
-      if(p){
+    } else {
+      if(p) {
         delete p;
       }
+      cout << __PRETTY_FUNCTION__ << ": Incorrect or undefined point!" << endl;
       delete points;
+      correct = false;
       return SetWord( Address(0) );
     }
 
   }
   points->EndBulkLoad();
 
-  if( points->IsValid() )
-  {
+  if( points->IsValid() ) {
     correct = true;
     return SetWord( points );
   }
   delete points;
   correct = false;
+  cout << __PRETTY_FUNCTION__ << ": Invalid points value!" << endl;
   return SetWord( Address(0) );
 }
 
@@ -2483,6 +2601,8 @@ void HalfSegment::Translate( const Coord& x, const Coord& y )
 
 void HalfSegment::Set( bool ldp, const Point& lp, const Point& rp )
 {
+  assert( lp.IsDefined() );
+  assert( rp.IsDefined() );
   assert( !AlmostEqual( lp, rp ) );
 
   this->ldp = ldp;
@@ -2919,8 +3039,11 @@ bool HalfSegment::Intersection( const HalfSegment& hs, Point& resp ) const
 {
   double k, a, K, A;
 
-  if( !BoundingBox().Intersects( hs.BoundingBox() ) )
+  if( !BoundingBox().Intersects( hs.BoundingBox() ) ){
+    resp.SetDefined( false );
     return false;
+  }
+  resp.SetDefined( true );
 
   Coord xl = lp.GetX(),
         yl = lp.GetY(),
@@ -3246,6 +3369,10 @@ bool HalfSegment::Inside( const HalfSegment& hs ) const
 
 bool HalfSegment::Contains( const Point& p ) const
 {
+  if( !p.IsDefined() ) {
+    assert( p.IsDefined() );
+    return false;
+  }
   if( AlmostEqual( p, lp ) ||
       AlmostEqual( p, rp ) )
     return true;
@@ -3290,6 +3417,7 @@ bool HalfSegment::Contains( const Point& p ) const
 
 double HalfSegment::Distance( const Point& p ) const
 {
+  assert( p.IsDefined() );
   Coord xl = GetLeftPoint().GetX(),
         yl = GetLeftPoint().GetY(),
         xr = GetRightPoint().GetX(),
@@ -3365,6 +3493,7 @@ double HalfSegment::Distance( const HalfSegment& hs ) const
 
 double HalfSegment::Distance(const Rectangle<2>& rect) const{
 
+  assert( rect.IsDefined() );
 
   if(rect.Contains(lp.BoundingBox()) ||
      rect.Contains(rp.BoundingBox()) ){
@@ -3424,6 +3553,8 @@ double HalfSegment::Distance(const Rectangle<2>& rect) const{
 
 double HalfSegment::MaxDistance(const Rectangle<2>& rect) const{
 
+  assert( rect.IsDefined() );
+
   // both endpoints are outside the rectangle
   double x0(rect.MinD(0));
   double y0(rect.MinD(1));
@@ -3450,6 +3581,8 @@ double HalfSegment::MaxDistance(const Rectangle<2>& rect) const{
 
 bool HalfSegment::RayAbove( const Point& p, double &abovey0 ) const
 {
+  assert( p.IsDefined() );
+
   const Coord& x = p.GetX(), y = p.GetY(),
                xl = GetLeftPoint().GetX(),
                yl = GetLeftPoint().GetY(),
@@ -3504,6 +3637,7 @@ void HalfSegment::CohenSutherlandLineClipping( const Rectangle<2> &window,
                                                double &x1, double &y1,
                                                bool &accept ) const
 {
+  assert( window.IsDefined() );
   // Outcodes for P0, P1, and whatever point lies outside the clip rectangle*/
   outcode outcode0, outcode1, outcodeOut;
   double xmin = window.MinD(0)  , xmax = window.MaxD(0),
@@ -3585,6 +3719,11 @@ void HalfSegment::WindowClippingIn( const Rectangle<2> &window,
                                     bool &isIntersectionPoint,
                                     Point &intersectionPoint) const
 {
+  if( !window.IsDefined() ) {
+    intersectionPoint.SetDefined( false );
+    assert( window.IsDefined() );
+  }
+
   double x0 = GetLeftPoint().GetX(),
          y0 = GetLeftPoint().GetY(),
          x1 = GetRightPoint().GetX(),
@@ -3592,15 +3731,15 @@ void HalfSegment::WindowClippingIn( const Rectangle<2> &window,
 
   CohenSutherlandLineClipping(window, x0, y0, x1, y1, inside);
   isIntersectionPoint=false;
+  intersectionPoint.SetDefined( false );
 
   if (inside)
   {
-    Point lp, rp;
-    lp.Set( x0, y0 );
-    rp.Set( x1, y1 );
+    Point lp( true, x0, y0 ), rp(true, x1, y1 );
 
     if (lp==rp)
     {
+      intersectionPoint.SetDefined( true );
       isIntersectionPoint = true;
       intersectionPoint=lp;
     }
@@ -3729,6 +3868,11 @@ produce a system crash within some operators.
 void Line::EndBulkLoad( bool sort /* = true */,
                         bool realminize /* = true */
                       ){
+  if( !IsDefined() ) {
+    Clear();
+    SetDefined( false );
+  }
+
   if(sort){
     Sort();
   }
@@ -3762,37 +3906,31 @@ Line& Line::operator=( const Line& l )
 
 bool Line::operator==( const Line& l ) const
 {
-  assert( ordered && l.ordered );
-
-  if( Size() != l.Size() )
-    return false;
-
   if(!IsDefined() && !l.IsDefined()){
     return true;
   }
-
   if(!IsDefined() || !l.IsDefined()){
     return false;
   }
-
-  if( IsEmpty() && l.IsEmpty() )
+  if( IsEmpty() && l.IsEmpty() ) {
     return true;
-
-  if( bbox != l.bbox )
-    return false;
-
-  object obj;
-  status stat;
-  SelectFirst_ll( *this, l, obj, stat );
-
-  while( obj == both || obj == none )
-  {
-    if( stat == endboth )
-      return true;
-
-    SelectNext_ll( *this, l, obj, stat );
   }
-  return false;
+  if( Size() != l.Size() ){
+    return false;
+  }
+  if( bbox != l.bbox ){
+    return false;
+  }
+  assert( ordered && l.ordered );
+  HalfSegment hs, lhs;
+  for(int i=0;i<Size();i++){
+    line.Get(i, hs);
+    l.line.Get(i, lhs);
+    if( hs != lhs ){
+      return false;
+    }
+  }
+  return true;
 }
 
 bool Line::operator!=( const Line& l ) const
@@ -3803,6 +3941,7 @@ bool Line::operator!=( const Line& l ) const
 Line& Line::operator+=( const HalfSegment& hs )
 {
   if(!IsDefined()){
+    assert( IsDefined() );
     return *this;
   }
 
@@ -3832,6 +3971,7 @@ Line& Line::operator+=( const HalfSegment& hs )
 
 Line& Line::operator+=(const Line& l){
    if(!IsDefined() || !l.IsDefined()){
+     SetDefined( false );
      return *this;
    }
 
@@ -3854,11 +3994,11 @@ Line& Line::operator+=(const Line& l){
 
 Line& Line::operator-=( const HalfSegment& hs )
 {
-  assert( IsOrdered() );
   if(!IsDefined()){
     return *this;
   }
 
+  assert( IsOrdered() );
   int pos;
   HalfSegment auxhs;
   if( Find( hs, pos ) )
@@ -3887,10 +4027,8 @@ Line& Line::operator-=( const HalfSegment& hs )
 
 bool Line::Contains( const Point& p ) const
 {
-  if(!p.IsDefined()){
-    return false;
-  }
-
+  assert( IsDefined() );
+  assert( p.IsDefined() );
   if( IsEmpty() )
     return false;
 
@@ -3916,11 +4054,13 @@ bool Line::Contains( const Point& p ) const
 
 bool Line::Intersects( const Line& l ) const
 {
-  assert( IsOrdered() && l.IsOrdered() );
-
+  assert( IsDefined() );
+  assert( l.IsDefined() );
   if( IsEmpty() || l.IsEmpty() )
     return false;
 
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
   if( !BoundingBox().Intersects( l.BoundingBox() ) )
     return false;
 
@@ -3946,14 +4086,16 @@ bool Line::Intersects( const Line& l ) const
 
 bool Line::Intersects( const Region& r ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
-
+  assert( IsDefined() );
+  assert( r.IsDefined() );
   if( IsEmpty() || r.IsEmpty() )
     return false;
 
   if( !BoundingBox().Intersects( r.BoundingBox() ) )
     return false;
 
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
   HalfSegment hsl, hsr;
   for( int i = 0; i < Size(); i++ )
   {
@@ -3980,11 +4122,11 @@ bool Line::Intersects( const Region& r ) const
 
 bool Line::Inside( const Line& l ) const
 {
+  assert( IsDefined() );
+  assert( l.IsDefined() );
   if(!IsDefined() || !l.IsDefined()){
     return false;
   }
-
-  assert( IsOrdered() && l.IsOrdered() );
 
   if( IsEmpty() )
     return true;
@@ -3995,6 +4137,8 @@ bool Line::Inside( const Line& l ) const
   if( !l.BoundingBox().Contains( bbox ) )
     return false;
 
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
   HalfSegment hs1, hs2;
   for( int i = 0; i < Size(); i++ )
   {
@@ -4017,11 +4161,11 @@ bool Line::Inside( const Line& l ) const
 
 bool Line::Inside( const Region& r ) const
 {
+  assert( IsDefined() );
+  assert( r.IsDefined() );
   if(!IsDefined() || !r.IsDefined()){
     return false;
   }
-
-  assert( IsOrdered() && r.IsOrdered() );
 
   if( IsEmpty() )
     return true;
@@ -4032,6 +4176,8 @@ bool Line::Inside( const Region& r ) const
   if( !r.BoundingBox().Contains( bbox ) )
     return false;
 
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
   HalfSegment hsl;
   for( int i = 0; i < Size(); i++ )
   {
@@ -4047,14 +4193,16 @@ bool Line::Inside( const Region& r ) const
 
 bool Line::Adjacent( const Region& r ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
-
+  assert( IsDefined() );
+  assert( r.IsDefined() );
   if( IsEmpty() || r.IsEmpty() )
     return false;
 
   if( !BoundingBox().Intersects( r.BoundingBox() ) )
     return false;
 
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
   HalfSegment hsl, hsr;
   bool found = false;
   for( int i = 0; i < Size(); i++ )
@@ -4087,12 +4235,17 @@ bool Line::Adjacent( const Region& r ) const
 
 void Line::Intersection( const Line& l, Line& result ) const
 {
-  assert( IsOrdered() && l.IsOrdered() );
   result.Clear();
-
+  if( !IsDefined() || !l.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
   if( IsEmpty() || l.IsEmpty() )
     return;
 
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
   HalfSegment hs1, hs2;
   HalfSegment hs;
   result.StartBulkLoad();
@@ -4120,15 +4273,20 @@ void Line::Intersection( const Line& l, Line& result ) const
 
 void Line::Crossings( const Line& l, Points& result ) const
 {
-  assert( IsOrdered() && l.IsOrdered() );
   result.Clear();
+  if( !IsDefined() || !l.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
 
   if( IsEmpty() || l.IsEmpty() )
     return;
 
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
   HalfSegment hs1, hs2;
   Point p;
-
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
@@ -4152,13 +4310,13 @@ void Line::Crossings( const Line& l, Points& result ) const
 }
 
 void Line::Crossings(Points& result) const{
- 
+
+  result.Clear();
   if(!IsDefined()){
      result.SetDefined(false);
      return;
   }
   result.SetDefined(true);
-  result.Clear();
   int i = 0;
   int size = Size();
   Point lastPoint(false);
@@ -4184,7 +4342,7 @@ void Line::Crossings(Points& result) const{
      }
   }
   if(lastPoint.IsDefined() && count>2){
-     result += lastPoint; 
+     result += lastPoint;
   }
   result.EndBulkLoad();
 }
@@ -4193,9 +4351,13 @@ void Line::Crossings(Points& result) const{
 
 double Line::Distance( const Point& p ) const
 {
+  assert( !IsEmpty() );
+  assert( p.IsDefined() );
+  if( IsEmpty() || !p.IsDefined()){
+    return -1;
+  }
 
-  assert( IsOrdered() && !IsEmpty() && p.IsDefined() );
-
+  assert( IsOrdered() );
   HalfSegment hs;
   double result = numeric_limits<double>::max();
 
@@ -4215,9 +4377,13 @@ double Line::Distance( const Point& p ) const
 }
 double Line::MaxDistance( const Point& p ) const
 {
+  assert( !IsEmpty() );
+  assert( p.IsDefined() );
+  if( IsEmpty() || !p.IsDefined()){
+    return -1;
+  }
 
-  assert( IsOrdered() && !IsEmpty() && p.IsDefined() );
-
+  assert( IsOrdered() );
   HalfSegment hs;
   double result = 0;
 
@@ -4234,9 +4400,14 @@ double Line::MaxDistance( const Point& p ) const
 }
 double Line::Distance( const Points& ps ) const
 {
-  assert( IsOrdered() && !IsEmpty() &&
-          ps.IsOrdered() && !ps.IsEmpty() );
+  assert( !IsEmpty() ); // includes !undef
+  assert( !ps.IsEmpty() ); // includes !undef
+  if( IsEmpty() || ps.IsEmpty()){
+    return -1;
+  }
 
+  assert( IsOrdered() );
+  assert( ps.IsOrdered() );
   HalfSegment hs;
   Point p;
   double result = numeric_limits<double>::max();
@@ -4261,9 +4432,14 @@ double Line::Distance( const Points& ps ) const
 
 double Line::Distance( const Line& l ) const
 {
-  assert( IsOrdered() && !IsEmpty() &&
-          l.IsOrdered() && !l.IsEmpty() );
+  assert( !IsEmpty() );   // includes !undef
+  assert( !l.IsEmpty() ); // includes !undef
+  if( IsEmpty() || l.IsEmpty()){
+    return -1;
+  }
 
+  assert( IsOrdered() );
+  assert( l.IsOrdered() );
   HalfSegment hs1, hs2;
   double result = numeric_limits<double>::max();
 
@@ -4288,9 +4464,14 @@ double Line::Distance( const Line& l ) const
 }
 
 double Line::Distance( const Rectangle<2>& r ) const {
-  if(!IsDefined() || IsEmpty() || !r.IsDefined()){
+  assert( !IsEmpty() ); // includes !undef
+  assert( IsOrdered() );
+  assert( r.IsDefined() );
+
+  if( IsEmpty() || !r.IsDefined()){
     return -1;
   }
+  assert( IsOrdered() );
   HalfSegment hs;
   double dist = numeric_limits<double>::max();
   for(int i=0; i < line.Size() && dist>0; i++){
@@ -4306,9 +4487,13 @@ double Line::Distance( const Rectangle<2>& r ) const {
 }
 double Line::MaxDistance( const Rectangle<2>& r ) const
 {
-  if(!IsDefined() || IsEmpty() || !r.IsDefined()){
+  assert( !IsEmpty() ); // includes !undef
+  assert( r.IsDefined() );
+
+  if( IsEmpty() || !r.IsDefined()){
     return -1;
   }
+  assert( IsOrdered() );
   HalfSegment hs;
   double dist = 0;
   for(int i=0; i < line.Size(); i++){
@@ -4330,14 +4515,14 @@ int Line::NoComponents() const
 
 void Line::Translate( const Coord& x, const Coord& y, Line& result ) const
 {
-
-  assert( IsOrdered() );
   result.Clear();
   if(!IsDefined()){
-     result.SetDefined(false);
-     return;
+    result.SetDefined(false);
+    return;
   }
   result.SetDefined(true);
+
+  assert( IsOrdered() );
   result.Resize(this->Size());
   result.bbox = this->bbox;
   HalfSegment hs;
@@ -4399,18 +4584,24 @@ void Line::Rotate( const Coord& x, const Coord& y,
 
 void Line::Transform( Region& result ) const
 {
-  assert( IsOrdered() );
-
-  HalfSegment hs;
-  result.StartBulkLoad();
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hs );
-    result += hs;
+  result.Clear();
+  if( !IsDefined() ){
+    result.SetDefined( false );
+    return;
   }
-  result.SetNoComponents( NoComponents() );
-  result.EndBulkLoad();
-  result.SetDefined(IsDefined());
+  result.SetDefined( true );
+  if( !IsEmpty() ) {
+    assert( IsOrdered() );
+    HalfSegment hs;
+    result.StartBulkLoad();
+    for( int i = 0; i < Size(); i++ )
+    {
+      Get( i, hs );
+      result += hs;
+    }
+    result.SetNoComponents( NoComponents() );
+    result.EndBulkLoad();
+  }
 }
 
 
@@ -4664,7 +4855,7 @@ void Line::Realminize(){
    // special case: empty line
   if(!IsDefined()){
     line.clean();
-     return;
+    return;
   }
 
   Line tmp(0);
@@ -4674,9 +4865,7 @@ void Line::Realminize(){
 
 void Line::Vertices( Points* result ) const
 {
-  assert( IsOrdered() );
   result->Clear();
-
   if(!IsDefined()){
     result->SetDefined(false);
     return;
@@ -4686,6 +4875,7 @@ void Line::Vertices( Points* result ) const
     return;
   }
 
+  assert( IsOrdered() );
   HalfSegment hs;
   result->StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
@@ -4740,6 +4930,7 @@ void Line::Boundary(Points* result) const{
 
 bool Line::Find( const HalfSegment& hs, int& pos, const bool& exact ) const
 {
+  assert( IsDefined() );
   assert( IsOrdered() );
   if( exact )
     return line.Find( &hs, HalfSegmentCompare, pos );
@@ -4748,6 +4939,8 @@ bool Line::Find( const HalfSegment& hs, int& pos, const bool& exact ) const
 
 bool Line::Find( const Point& p, int& pos, const bool& exact ) const
 {
+  assert( IsDefined() );
+  assert( p.IsDefined() );
   assert( IsOrdered() );
   if( exact )
     return line.Find( &p, PointHalfSegmentCompare, pos );
@@ -4755,7 +4948,7 @@ bool Line::Find( const Point& p, int& pos, const bool& exact ) const
 }
 
 void Line::SetPartnerNo() {
- if(line.Size()==0){
+ if(!IsDefined() || line.Size()==0){
    return;
  }
  DbArray<int> TMP((line.Size()+1)/2);
@@ -5018,7 +5211,7 @@ void Line::computeComponents() {
   noComponents = 0;
   bbox.SetDefined(false);
 
-  if(Size()==0){
+  if(!IsDefined() || Size()==0){
     return;
   }
 
@@ -5107,6 +5300,12 @@ void Line::WindowClippingIn( const Rectangle<2> &window,
                              Line &clippedLine,
                              bool &inside ) const
 {
+  clippedLine.Clear();
+  if( !IsDefined() || !window.IsDefined() ) {
+    clippedLine.SetDefined( false );
+    return;
+  }
+  clippedLine.SetDefined( true );
   inside = false;
   clippedLine.StartBulkLoad();
   for (int i=0; i < Size();i++)
@@ -5139,6 +5338,12 @@ void Line::WindowClippingOut( const Rectangle<2> &window,
                               Line &clippedLine,
                               bool &outside ) const
 {
+  clippedLine.Clear();
+  if( !IsDefined() || !window.IsDefined() ) {
+    clippedLine.SetDefined( false );
+    return;
+  }
+  clippedLine.SetDefined( true );
   outside = false;
   clippedLine.StartBulkLoad();
   for (int i=0; i < Size();i++)
@@ -5201,11 +5406,15 @@ void Line::WindowClippingOut( const Rectangle<2> &window,
 ostream& operator<<( ostream& os, const Line& cl )
 {
   os << "<";
-  HalfSegment hs;
-  for( int i = 0; i < cl.Size(); i++ )
-  {
-    cl.Get( i, hs );
-    os << " " << hs << endl;
+  if( !cl.IsDefined() ) {
+    os << " undefined ";
+  } else {
+    HalfSegment hs;
+    for( int i = 0; i < cl.Size(); i++ )
+    {
+      cl.Get( i, hs );
+      os << " " << hs << endl;
+    }
   }
   os << ">";
   return os;
@@ -5213,7 +5422,7 @@ ostream& operator<<( ostream& os, const Line& cl )
 
 size_t Line::HashValue() const
 {
-  if( IsEmpty() )
+  if( IsEmpty() ) // subsumes undef
     return 0;
 
   size_t h = 0;
@@ -5263,7 +5472,6 @@ int Line::Compare( const Attribute *arg ) const
    return 1;
   }
 
-
   if( Size() > l.Size() )
     return 1;
   if( Size() < l.Size() )
@@ -5311,6 +5519,11 @@ ostream& Line::Print( ostream &os ) const
 The list representation of a line is
 
 ----  ((x1 y1 x2 y2) (x1 y1 x2 y2) ....)
+----
+
+or
+
+---- undef
 ----
 
 7.3 ~Out~-function
@@ -5608,6 +5821,10 @@ SimpleLine& SimpleLine::operator+=(const HalfSegment& hs){
 }
 
 bool SimpleLine::EndBulkLoad(){
+  if( !IsDefined() ) {
+    Clear();
+    SetDefined( false );
+  }
   // Sort the segments
   Sort();
   // Realminize the segments
@@ -5691,7 +5908,9 @@ Point SimpleLine::EndPoint( bool startsSmaller ) const {
 }
 
 bool SimpleLine::Contains( const Point& p ) const {
- if( IsEmpty()  || !IsDefined() ){
+ assert( IsDefined() );
+ assert( p.IsDefined() );
+ if( IsEmpty()  || !p.IsDefined() ){
    return false;
  }
  int pos;
@@ -5715,6 +5934,8 @@ bool SimpleLine::Contains( const Point& p ) const {
 }
 
 double SimpleLine::Distance(const Point& p)const {
+  assert( !IsEmpty() );
+  assert( p.IsDefined() );
   HalfSegment hs;
   double result = numeric_limits<double>::max();
   for( int i = 0; i < Size(); i++ ) {
@@ -5731,6 +5952,8 @@ double SimpleLine::Distance(const Point& p)const {
 
 
 double SimpleLine::Distance(const Points& ps)const{
+  assert( !IsEmpty() );
+  assert( !ps.IsEmpty() );
   HalfSegment hs;
   Point p;
   double result = numeric_limits<double>::max();
@@ -5752,6 +5975,8 @@ double SimpleLine::Distance(const Points& ps)const{
 }
 
 double SimpleLine::Distance(const SimpleLine& sl)const{
+  assert( !IsEmpty() );
+  assert( !sl.IsEmpty() );
   HalfSegment hs1, hs2;
   double result = numeric_limits<double>::max();
 
@@ -5773,13 +5998,16 @@ double SimpleLine::Distance(const SimpleLine& sl)const{
 }
 
 double SimpleLine::Distance(const Rectangle<2>& r)const{
+  assert( !IsEmpty() );
+  assert( r.IsDefined() );
   Line sll(0);
   toLine(sll);
   return sll.Distance( r );
 }
 
 bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
- if(!IsDefined()){
+ if(IsEmpty()){ // subsumes !IsDefined()
+    p.SetDefined( false );
     return false;
  }
  if( startsSmaller != this->startSmaller ){
@@ -5788,7 +6016,8 @@ bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
  LRS lrs( pos, 0 );
  int lrsPos;
  if( !Find( lrs,lrsPos ) ){
-    return false;
+   p.SetDefined( false );
+   return false;
  }
 
  LRS lrs2;
@@ -5797,6 +6026,7 @@ bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
  HalfSegment hs;
  segments.Get( lrs2.hsPos, &hs );
  p = hs.AtPosition( pos - lrs2.lrsPos );
+ p.SetDefined( true );
  return true;
 }
 
@@ -5807,7 +6037,9 @@ bool SimpleLine::AtPosition( double pos, bool startsSmaller, Point& p ) const {
 bool SimpleLine::AtPoint( const Point& p,
                           bool startsSmaller,
                           double& result ) const {
- if( IsEmpty() || !IsDefined() ){
+ assert( !IsEmpty() );
+ assert( p.IsDefined() );
+ if( IsEmpty() || !p.IsDefined() ){
    return false;
  }
 
@@ -5852,9 +6084,12 @@ bool SimpleLine::AtPoint( const Point& p,
 
 void SimpleLine::SubLine( double pos1, double pos2,
                          bool startsSmaller, SimpleLine& l ) const {
-  if( IsEmpty() || !IsDefined() ){
-     return;
+  l.Clear();
+  if( !IsDefined() ){
+    l.SetDefined( false );
+    return;
   }
+  l.SetDefined( true );
 
   if( pos1 < 0 ){
     pos1 = 0;
@@ -5922,12 +6157,17 @@ void SimpleLine::SubLine( double pos1, double pos2,
 
 void SimpleLine::Crossings( const SimpleLine& l, Points& result ) const
 {
-  assert( IsOrdered() && l.IsOrdered() );
   result.Clear();
+  if( !IsDefined() || !l.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
 
   if( IsEmpty() || l.IsEmpty() )
     return;
 
+  assert( IsOrdered() && l.IsOrdered() );
   HalfSegment hs1, hs2;
   Point p;
 
@@ -5954,6 +6194,8 @@ void SimpleLine::Crossings( const SimpleLine& l, Points& result ) const
 }
 
 bool SimpleLine::Intersects(const SimpleLine& l) const{
+  assert( IsDefined() );
+  assert( l.IsDefined() );
    if(!IsDefined() || ! l.IsDefined()){
       return false;
    }
@@ -6115,7 +6357,7 @@ void SimpleLine::toLine(Line& result)const{
 
 
 void SimpleLine::SetPartnerNo(){
-  if(segments.Size()==0){
+  if( !IsDefined() || segments.Size()==0){
     return;
   }
   DbArray<int> TMP((segments.Size()+1)/2);
@@ -6151,10 +6393,13 @@ void SimpleLine::SetPartnerNo(){
  }
 
  bool SimpleLine::computePolyline(){
+  if( !IsDefined() ) {
+    return false;
+  }
   lrsArray.clean();
   isCycle = false;
   length = 0;
-  if(segments.Size()==0){ // an empty line
+  if( segments.Size()==0){ // an empty line
      return true;
   }
 
@@ -6319,6 +6564,12 @@ Word
                const int errorPos, ListExpr& errorInfo, bool& correct ){
 
  correct = true;
+ if(nl->IsEqual(instance,"undef")){
+    SimpleLine* line = new SimpleLine( 0 );
+    line->SetDefined(false);
+    return SetWord(Address(line));
+ }
+
  if(nl->AtomType(instance)!=NoAtom){
     correct=false;
     return SetWord(Address(0));
@@ -6370,6 +6621,10 @@ Word
    HalfSegment hs;
    ListExpr halfseg, halfpoints, flatseg;
    SimpleLine* l = static_cast<SimpleLine*>(value.addr);
+
+   if(!l->IsDefined()){
+     return nl->SymbolAtom("undef");
+   }
 
    if( l->IsEmpty() ){
      return nl->TheEmptyList();
@@ -6479,37 +6734,35 @@ bbox( cr.bbox ),
 noComponents( cr.noComponents ),
 ordered( true )
 {
-  assert( cr.IsOrdered() );
-  HalfSegment hs;
-  if( !onlyLeft )
-  {
-    region.copyFrom(cr.region);
-  }
-  else
-  {
-    StartBulkLoad();
-    int j=0;
-    for( int i = 0; i < cr.Size(); i++ )
-    {
-      cr.Get( i, hs );
-      if (hs.IsLeftDomPoint())
-      {
-        region.Put( j, hs );
-        j++;
-      }
-    }
-    EndBulkLoad( false, false, false, false );
-  }
   del.refs=1;
   del.isDelete=true;
   del.isDefined = cr.del.isDefined;
+  if( del.isDefined && cr.Size() >0 ) {
+    assert( cr.IsOrdered() );
+    if( !onlyLeft ){
+      region.copyFrom(cr.region);
+    } else {
+      StartBulkLoad();
+      HalfSegment hs;
+      int j=0;
+      for( int i = 0; i < cr.Size(); i++ ) {
+        cr.Get( i, hs );
+        if (hs.IsLeftDomPoint()) {
+          region.Put( j, hs );
+          j++;
+        }
+      }
+      EndBulkLoad( false, false, false, false );
+    }
+  }
 }
 
 Region::Region( const Rectangle<2>& r ):region(8)
 {
-    SetDefined( true);
+    Clear();
     if(  r.IsDefined() )
     {
+      SetDefined( true);
       HalfSegment hs;
       int partnerno = 0;
       double min0 = r.MinD(0), max0 = r.MaxD(0),
@@ -6525,7 +6778,6 @@ Region::Region( const Rectangle<2>& r ):region(8)
           AlmostEqual(v3, v4) ||
           AlmostEqual(v4, v1) )
       { // one interval is (almost) empty, so will be the region
-        Clear();
         SetDefined( true );
         return;
       }
@@ -6588,6 +6840,11 @@ void Region::StartBulkLoad()
 void Region::EndBulkLoad( bool sort, bool setCoverageNo,
                           bool setPartnerNo, bool computeRegion )
 {
+  if( !IsDefined() ) {
+    Clear();
+    SetDefined( false );
+  }
+
   if( sort )
     Sort();
 
@@ -6623,14 +6880,17 @@ void Region::EndBulkLoad( bool sort, bool setCoverageNo,
 
 bool Region::Contains( const Point& p ) const
 {
-  assert( IsOrdered() );
 
-  if( IsEmpty() )
+  assert( IsDefined() );
+  assert( p.IsDefined() );
+
+  if( IsEmpty() || !p.IsDefined() )
     return false;
 
   if( !p.Inside(bbox) )
     return false;
 
+  assert( IsOrdered() );
   map<int, int> faceISN;
   HalfSegment hs;
 
@@ -6709,7 +6969,11 @@ bool Region::Contains( const Point& p ) const
 
 bool Region::InnerContains( const Point& p ) const
 {
-  assert( IsOrdered() );
+  assert( IsDefined() );
+  assert( p.IsDefined() );
+
+  if( IsEmpty() || !p.IsDefined() )
+    return false;
 
   if( IsEmpty() )
     return false;
@@ -6717,6 +6981,7 @@ bool Region::InnerContains( const Point& p ) const
   if( !p.Inside(bbox) )
     return false;
 
+  assert( IsOrdered() );
   map<int, int> faceISN;
   HalfSegment hs;
 
@@ -6795,7 +7060,8 @@ bool Region::InnerContains( const Point& p ) const
 
 bool Region::Intersects( const HalfSegment& inHs ) const
 {
-  if( bbox.Intersects( inHs.BoundingBox() ) )
+  assert( IsDefined() );
+  if( !IsEmpty() && bbox.Intersects( inHs.BoundingBox() ) )
   {
     if( Contains( inHs.GetLeftPoint() ) ||
         Contains( inHs.GetRightPoint() ) )
@@ -6814,6 +7080,7 @@ bool Region::Intersects( const HalfSegment& inHs ) const
 
 bool Region::Contains( const HalfSegment& hs ) const
 {
+  assert( IsDefined() );
   if( IsEmpty() )
     return false;
 
@@ -6859,6 +7126,7 @@ bool Region::Contains( const HalfSegment& hs ) const
 
 bool Region::InnerContains( const HalfSegment& hs ) const
 {
+  assert( IsDefined() );
   if( IsEmpty() )
     return false;
 
@@ -6888,6 +7156,10 @@ bool Region::InnerContains( const HalfSegment& hs ) const
 
 bool Region::HoleEdgeContain( const HalfSegment& hs ) const
 {
+  assert( IsDefined() );
+  if( !IsEmpty() ) {
+    return false;
+  }
   HalfSegment auxhs;
   for( int i = 0; i < Size(); i++ )
   {
@@ -6906,14 +7178,16 @@ bool Region::HoleEdgeContain( const HalfSegment& hs ) const
 */
 bool Region::Intersects( const Region &r ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
-
+  assert( IsDefined() );
+  assert( r.IsDefined() );
   if( IsEmpty() || r.IsEmpty() )
     return false;
 
   if( !BoundingBox().Intersects( r.BoundingBox() ) )
     return false;
 
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
   if( Inside( r ) || r.Inside( *this ) )
     return true;
 
@@ -6938,12 +7212,13 @@ bool Region::Intersects( const Region &r ) const
 
 bool Region::Inside( const Region& r ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
+
+  assert( IsDefined() );
+  assert( r.IsDefined() );
 
   if(!IsDefined() || !r.IsDefined()){
     return false;
   }
-  
 
   if( IsEmpty() )
     return true;
@@ -6952,6 +7227,8 @@ bool Region::Inside( const Region& r ) const
     return false;
   }
 
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
   if( !r.BoundingBox().Contains( bbox ) )
     return false;
 
@@ -6995,14 +7272,16 @@ bool Region::Inside( const Region& r ) const
 
 bool Region::Adjacent( const Region& r ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
-
+  assert( IsDefined() );
+  assert( r.IsDefined() );
   if( IsEmpty() || r.IsEmpty() )
     return false;
 
   if( !BoundingBox().Intersects( r.BoundingBox() ) )
     return false;
 
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
   if( Inside( r ) || r.Inside( *this ) )
     return false;
 
@@ -7030,14 +7309,16 @@ bool Region::Adjacent( const Region& r ) const
 
 bool Region::Overlaps( const Region& r ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
-
+  assert( IsDefined() );
+  assert( r.IsDefined() );
   if( IsEmpty() || r.IsEmpty() )
     return false;
 
   if( !BoundingBox().Intersects( r.BoundingBox() ) )
     return false;
 
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
   if( Inside( r ) || r.Inside( *this ) )
     return true;
 
@@ -7063,6 +7344,8 @@ bool Region::Overlaps( const Region& r ) const
 
 bool Region::OnBorder( const Point& p ) const
 {
+  assert( IsDefined() );
+  assert( p.IsDefined() );
   if(IsEmpty() || !p.IsDefined()){
     return false;
   }
@@ -7097,8 +7380,10 @@ bool Region::InInterior( const Point& p ) const
 
 double Region::Distance( const Point& p ) const
 {
-  assert( IsDefined() && p.IsDefined() && IsOrdered() && !IsEmpty() );
+  assert( !IsEmpty() ); // subsumes defined
+  assert( p.IsDefined() );
 
+  assert( IsOrdered() );
   if( Contains( p ) )
     return 0.0;
 
@@ -7117,7 +7402,10 @@ double Region::Distance( const Point& p ) const
 
 double Region::Distance( const Rectangle<2>& r ) const
 {
-  assert( IsDefined() && r.IsDefined() && IsOrdered() && !IsEmpty() );
+  assert( !IsEmpty() ); // subsumes defined
+  assert( r.IsDefined() );
+
+  assert( IsOrdered() );
   Point p1(true,r.MinD(0),r.MinD(1));
   Point p2(true,r.MaxD(0),r.MinD(1));
   Point p3(true,r.MaxD(0),r.MaxD(1));
@@ -7189,8 +7477,10 @@ double Region::Area() const
 
 double Region::Distance( const Points& ps ) const
 {
-  assert( IsOrdered() && !IsEmpty() &&
-          ps.IsOrdered() && !ps.IsEmpty() );
+  assert( !IsEmpty() ); // subsumes IsDefined()
+  assert( !ps.IsEmpty() ); // subsumes IsDefined()
+  assert( IsOrdered() );
+  assert( ps.IsOrdered() );
 
   double result = numeric_limits<double>::max();
   Point p;
@@ -7217,8 +7507,10 @@ double Region::Distance( const Points& ps ) const
 
 double Region::Distance( const Region &r ) const
 {
-  assert( IsOrdered() && r.IsOrdered() &&
-          !IsEmpty() && !r.IsEmpty() );
+  assert( !IsEmpty() ); // subsumes IsDefined()
+  assert( !r.IsEmpty() ); // subsumes IsDefined()
+  assert( IsOrdered() );
+  assert( r.IsOrdered() );
 
   if( Inside( r ) || r.Inside( *this ) )
     return 0.0;
@@ -7251,8 +7543,10 @@ double Region::Distance( const Region &r ) const
 
 double Region::Distance( const Line &l ) const
 {
-  if(!IsDefined() || IsEmpty() ||
-     !l.IsDefined() || l.IsEmpty()){
+  assert( !IsEmpty() ); // subsumes IsDefined()
+  assert( !l.IsEmpty() ); // subsumes IsDefined()
+
+  if( !IsEmpty() || l.IsEmpty() ) {
      return -1;
   }
 
@@ -7297,6 +7591,17 @@ double Region::Distance( const Line &l ) const
 
 void Region::Components( vector<Region*>& components )
 {
+  assert( IsDefined() );
+//   for(vector<Region*>::iterator it=components.begin();
+//       it<components.end();
+//       it++)
+//   {
+//     components[it]->DeleteIfAllowed();
+//   }
+  components.clear();
+  if( IsEmpty() ) { // subsumes IsDefined()
+    return;
+  }
   Region* copy = new Region( *this );
   copy->LogicSort();
 
@@ -7351,14 +7656,18 @@ void Region::Components( vector<Region*>& components )
 
 void Region::Translate( const Coord& x, const Coord& y, Region& result ) const
 {
+  result.Clear();
+  if( !IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
   assert( IsOrdered() );
-
   HalfSegment hs;
   result.StartBulkLoad();
   for( int i = 0; i < Size(); i++ )
   {
     Get( i, hs );
-
     hs.Translate( x, y );
     result += hs;
   }
@@ -7371,12 +7680,12 @@ void Region::Rotate( const Coord& x, const Coord& y,
                    Region& result ) const
 {
   result.Clear();
-  if(!IsDefined()){
-     result.SetDefined(false);
-     return;
+  if( !IsDefined() ) {
+    result.SetDefined( false );
+    return;
   }
   result.Resize(Size());
-  result.SetDefined(true);
+  result.SetDefined( true );
 
   double s = sin(alpha);
   double c = cos(alpha);
@@ -7426,12 +7735,17 @@ void Region::Rotate( const Coord& x, const Coord& y,
 
 void Region::TouchPoints( const Line& l, Points& result ) const
 {
-  assert( IsOrdered() && l.IsOrdered() );
   result.Clear();
+  if( !IsDefined() || !l.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
 
   if( IsEmpty() || l.IsEmpty() )
     return;
 
+  assert( IsOrdered() && l.IsOrdered() );
   HalfSegment hs1, hs2;
   Point p;
 
@@ -7459,12 +7773,17 @@ void Region::TouchPoints( const Line& l, Points& result ) const
 
 void Region::TouchPoints( const Region& r, Points& result ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
   result.Clear();
+  if( !IsDefined() || !r.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
 
   if( IsEmpty() || r.IsEmpty() )
     return;
 
+  assert( IsOrdered() && r.IsOrdered() );
   HalfSegment hs1, hs2;
   Point p;
 
@@ -7492,12 +7811,17 @@ void Region::TouchPoints( const Region& r, Points& result ) const
 
 void Region::CommonBorder( const Region& r, Line& result ) const
 {
-  assert( IsOrdered() && r.IsOrdered() );
   result.Clear();
+  if( !IsDefined() || !r.IsDefined() ) {
+    result.SetDefined( false );
+    return;
+  }
+  result.SetDefined( true );
 
   if( IsEmpty() || r.IsEmpty() )
     return;
 
+  assert( IsOrdered() && r.IsOrdered() );
   HalfSegment hs1, hs2;
   HalfSegment reshs;
   int edgeno = 0;
@@ -7532,24 +7856,23 @@ void Region::CommonBorder( const Region& r, Line& result ) const
 
 int Region::NoComponents() const
 {
+  assert( IsDefined() );
   return noComponents;
 }
 
 void Region::Vertices( Points* result ) const
 {
+  result->Clear();
   if(!IsDefined()){
     result->SetDefined(false);
     return;
   }
-
-  assert( IsOrdered() );
-  result->Clear();
   result->SetDefined(true);
-
   if( IsEmpty() ){
     return;
   }
 
+  assert( IsOrdered() );
   HalfSegment hs;
   int size = Size();
   for( int i = 0; i < size; i++ )
@@ -7564,7 +7887,6 @@ void Region::Vertices( Points* result ) const
 
 void Region::Boundary( Line* result ) const
 {
-
   result->Clear();
   if(!IsDefined()){
       result->SetDefined(false);
@@ -7596,14 +7918,7 @@ void Region::Boundary( Line* result ) const
 
 Region& Region::operator=( const Region& r )
 {
-  if(!r.IsDefined()){
-     Clear();
-     SetDefined(false);
-     return *this;
-  }
-
   assert( r.IsOrdered() );
-
   region.copyFrom(r.region);
   bbox = r.bbox;
   noComponents = r.noComponents;
@@ -7615,8 +7930,6 @@ Region& Region::operator=( const Region& r )
 
 bool Region::operator==( const Region& r ) const
 {
-  assert( ordered && r.ordered );
-
   if(!IsDefined() && !r.IsDefined()){
     return true;
   }
@@ -7634,6 +7947,7 @@ bool Region::operator==( const Region& r ) const
   if( bbox != r.bbox )
     return false;
 
+  assert( ordered && r.ordered );
   object obj;
   status stat;
   SelectFirst_rr( *this, r, obj, stat );
@@ -7755,11 +8069,15 @@ void Region::LogicSort()
 ostream& operator<<( ostream& os, const Region& cr )
 {
   os << "<"<<endl;
-  HalfSegment hs;
-  for( int i = 0; i < cr.Size(); i++ )
-  {
-    cr.Get( i, hs );
-    os << " " << hs << endl;
+  if( !cr.IsDefined() ) {
+    os << " undefined ";
+  } else {
+    HalfSegment hs;
+    for( int i = 0; i < cr.Size(); i++ )
+    {
+      cr.Get( i, hs );
+      os << " " << hs << endl;
+    }
   }
   os << ">";
   return os;
@@ -7767,6 +8085,8 @@ ostream& operator<<( ostream& os, const Region& cr )
 
 void Region::SetPartnerNo()
 {
+  if( !IsDefined() )
+    return;
   int size = Size();
   int tmp[size/2];
   HalfSegment hs;
@@ -7794,6 +8114,8 @@ void Region::SetPartnerNo()
 
 double VectorSize(const Point &p1, const Point &p2)
 {
+  assert( p1.IsDefined() );
+  assert( p2.IsDefined() );
   double size = pow( (p1.GetX() - p2.GetX()),2)
                 + pow( (p1.GetY() - p2.GetY()),2);
   size = sqrt(size);
@@ -7804,6 +8126,9 @@ double VectorSize(const Point &p1, const Point &p2)
 // P1 is the point on the window's edge
 double Angle(const Point &v, const Point &p1,const Point &p2)
 {
+  assert( v.IsDefined() );
+  assert( p1.IsDefined() );
+  assert( p2.IsDefined() );
   double coss;
 
   //If P1P2 is vertical and the window's edge
@@ -8895,7 +9220,7 @@ void Region::ComputeCycle( HalfSegment &hs,
 
 }
 
-//This function returns the value of the atribute inside above of
+//This function returns the value of the attribute inside above of
 //the first half segment under the half segment hsS.
 int Region::GetNewFaceNo(HalfSegment &hsS, bool *cycle)
 {
@@ -9077,6 +9402,8 @@ bool HalfSegment::RayDown( const Point& p, double &yIntersection ) const
 
 void Region::ComputeRegion()
 {
+  if( !IsDefined() )
+    return;
   //array that stores in position i the last cycle number of the face i
   vector<int> face;
   //array that stores in the position ~i~ if the half
@@ -9146,6 +9473,12 @@ void Region::ComputeRegion()
 void Region::WindowClippingIn(const Rectangle<2> &window,
                               Region &clippedRegion) const
 {
+  clippedRegion.Clear();
+  if( !IsDefined() || !window.IsDefined() ) {
+    clippedRegion.SetDefined( false );
+    return;
+  }
+  clippedRegion.SetDefined( true );
   //cout<<endl<<"Original: "<<*this<<endl;
   if (!this->bbox.Intersects(window))
     return;
@@ -9168,6 +9501,12 @@ void Region::WindowClippingIn(const Rectangle<2> &window,
 void Region::WindowClippingOut(const Rectangle<2> &window,
                                Region &clippedRegion) const
 {
+  clippedRegion.Clear();
+  if( !IsDefined() || !window.IsDefined() ) {
+    clippedRegion.SetDefined( false );
+    return;
+  }
+  clippedRegion.SetDefined( true );
   //If the bounding box of the region is inside the window,
   //then the clipped region is empty
   //cout<<"region: "<<*this<<endl;
@@ -9187,7 +9526,7 @@ void Region::WindowClippingOut(const Rectangle<2> &window,
 size_t   Region::HashValue() const
 {
   //cout<<"cregion hashvalue1*******"<<endl;
-  if(IsEmpty())
+  if(IsEmpty()) // subsumes !IsDefined()
     return 0;
 
   unsigned long h=0;
@@ -9277,11 +9616,15 @@ int Region::Compare( const Attribute* arg ) const
 ostream& Region::Print( ostream &os ) const
 {
   os << "<";
-  HalfSegment hs;
-  for( int i = 0; i < Size(); i++ )
-  {
-    Get( i, hs );
-    os << " " << hs;
+  if( !IsDefined() ) {
+    os << " undefined ";
+  } else {
+    HalfSegment hs;
+    for( int i = 0; i < Size(); i++ )
+    {
+      Get( i, hs );
+      os << " " << hs;
+    }
   }
   os << ">";
   return os;
@@ -9297,8 +9640,11 @@ bool Region::InsertOk( const HalfSegment& hs ) const
   HalfSegment auxhs;
   double dummyy0;
 
+  // Uncommenting out the following line will increase performance when
+  // bulk importing correct data:
+  // CD: Problem: Database BerlinTest is currently faulty and cannot be
+  //     restored when checking is enabled
   return true;
-    //the check is closed temporarily to import data.
 
   int prevcycleMeet[50];
 
@@ -11274,7 +11620,7 @@ DbArray<HalfSegment>* Realminize(const DbArray<HalfSegment>& segments){
 ~Split~
 
 This function works similar to the realminize function. The difference is,
-that overlapping parts of segments are keept, instead to remove them.
+that overlapping parts of segments are kept, instead of beeig removed.
 But at all crossing points and so on, the segments will be split.
 
 */
@@ -11483,7 +11829,6 @@ void SetOp(const Line& line1,
          default : assert(false);
       }
    }
-
 
   priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
   priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
@@ -11955,7 +12300,6 @@ void SetOp(const Line& line,
       }
    }
 
-
   priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q1;
   priority_queue<HalfSegment,  vector<HalfSegment>, greater<HalfSegment> > q2;
   avltree::AVLTree<avlseg::AVLSegment> sss;
@@ -12302,7 +12646,7 @@ bool getDir(const vector<Point>& vp){
 
 
 /*
-This function check whether a region value is valid after thr insertion of a new half segment.
+This function check whether a region value is valid after the insertion of a new half segment.
 Whenever a half segment is about to be inserted, the state of the region is checked.
 A valid region must satisfy the following conditions:
 
@@ -12413,7 +12757,8 @@ static vector< vector <Point> > getCycles(const Region& reg){
    }
 
 
-   void Region::saveShape(ostream& o, uint32_t RecNo) const{
+void Region::saveShape(ostream& o, uint32_t RecNo) const
+{
      // first, write the record header
      WinUnix::writeBigEndian(o,RecNo);
      // an empty region
@@ -12477,7 +12822,7 @@ static vector< vector <Point> > getCycles(const Region& reg){
 
 
      }
-  }
+}
 
 /*
 Implementation of the Gauss Krueger Projection
@@ -12775,6 +13120,10 @@ The list representation of a region is
 
   cyclei= (vertex1, vertex2,  .....)
                 where each vertex is a point.
+
+  or
+
+  undef
 ----
 
 
@@ -12816,7 +13165,7 @@ OutRegion( ListExpr typeInfo, Word value )
 
     ListExpr pointNL;
 
-    int currFace, currCycle;
+    int currFace = -999999, currCycle= -999999; // avoid uninitialized use
     Point outputP, leftoverP;
 
     for( int i = 0; i < RCopy->Size(); i++ )
@@ -12842,8 +13191,11 @@ OutRegion( ListExpr typeInfo, Word value )
         }
         else
         {
-          cerr << "wrong data format!"<<endl;
-          return nl->TheEmptyList();
+          cerr << "\n" << __PRETTY_FUNCTION__ << ": Wrong data format --- "
+               << "discontiguous segments!" << endl
+               << "\ths     = " << hs     << endl
+               << "\thsnext = " << hsnext << endl;
+          return nl->SymbolAtom("undef");
         }
 
         pointNL = OutPoint( nl->TheEmptyList(), SetWord(&outputP) );
@@ -12873,8 +13225,11 @@ OutRegion( ListExpr typeInfo, Word value )
             }
             else
             {
-              cerr <<"wrong data format!"<<endl;
-              return nl->TheEmptyList();
+              cerr << "\n" << __PRETTY_FUNCTION__ << ": Wrong data format --- "
+                  << "discontiguous segment in cycle!" << endl
+                  << "\thh        = " << hs << endl
+                  << "\tleftoverP = " << leftoverP << endl;
+              return nl->SymbolAtom("undef");
             }
 
             pointNL=OutPoint( nl->TheEmptyList(),
@@ -12919,8 +13274,11 @@ OutRegion( ListExpr typeInfo, Word value )
             }
             else
             {
-              cerr <<"wrong data format!"<<endl;
-              return nl->TheEmptyList();
+              cerr << "\n" << __PRETTY_FUNCTION__ << ": Wrong data format --- "
+                  << "discontiguous segments in cycle!" << endl
+                  << "\ths     = " << hs     << endl
+                  << "\thsnext = " << hsnext << endl;
+              return nl->SymbolAtom("undef");
             }
 
             pointNL = OutPoint( nl->TheEmptyList(),
@@ -12980,8 +13338,11 @@ OutRegion( ListExpr typeInfo, Word value )
           }
           else
           {
-            cerr<<"wrong data format!"<<endl;
-            return nl->TheEmptyList();
+            cerr << "\n" << __PRETTY_FUNCTION__ << ": Wrong data format --- "
+                << "discontiguous segments in cycle!" << endl
+                << "\ths     = " << hs     << endl
+                << "\thsnext = " << hsnext << endl;
+            return nl->SymbolAtom("undef");
           }
 
           pointNL = OutPoint(nl->TheEmptyList(), SetWord(&outputP));
@@ -13093,7 +13454,8 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
 
         if (nl->ListLength( CycleNL) <3)
         {
-          cerr<<"a cycle must have at least 3 edges!"<<endl;
+          cerr << __PRETTY_FUNCTION__ << ": A cycle must have at least 3 edges!"
+               << endl;
           correct=false;
           return SetWord( Address(0) );
         }
@@ -13145,8 +13507,9 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
 
             if (cyclepoints->Contains(*currvertex))
             {
-              cerr<<"the same vertex: "<<(*currvertex)
-              <<" repeated in the cycle!"<<endl;
+              cerr<< __PRETTY_FUNCTION__ << ": The same vertex: "
+                  <<(*currvertex)
+                  <<" appears repeatedly within the current cycle!"<<endl;
               correct=false;
               return SetWord( Address(0) );
             }
@@ -13154,7 +13517,7 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
             {
               p2 = *currvertex;
               cyclepoints->StartBulkLoad();
-              (*cyclepoints) += (*currvertex); 
+              (*cyclepoints) += (*currvertex);
               cyclepoints->EndBulkLoad(true,false,false);
             }
             delete currvertex;
@@ -13195,6 +13558,12 @@ InRegion( const ListExpr typeInfo, const ListExpr instance,
             }
             else
             {
+              cerr<< __PRETTY_FUNCTION__ << ": Problematic HalfSegment: "
+                  << endl;
+              if(correct)
+                cerr << "\nhs = " << (*hs) << " cannot be inserted." << endl;
+              else
+                cerr << "\nInvalid half segment description." << endl;
               correct=false;
               return SetWord( Address(0) );
             }
@@ -14022,7 +14391,7 @@ SpatialCrossingsTM( ListExpr args )
   }
   if(nl->ListLength(args==1)){ // internal crossings of a single line
     arg1 = nl->First( args );
-    if ( SpatialTypeOfSymbol( arg1 ) == stline){ 
+    if ( SpatialTypeOfSymbol( arg1 ) == stline){
         return (nl->SymbolAtom( "points" ));
     }
   }
@@ -15191,8 +15560,8 @@ Type Mapping for ~collect\_line~ and ~collect\_sline~
 
 */
 ListExpr SpatialCollectLineTypeMap(ListExpr args){
-  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 1){
-    return listutils::typeError("Expects exactly 1 argument.");
+  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 2){
+    return listutils::typeError("Expects exactly 2 arguments.");
   }
   ListExpr stream = nl->First(args);
   if(!listutils::isDATAStream(stream)){
@@ -15207,13 +15576,17 @@ ListExpr SpatialCollectLineTypeMap(ListExpr args){
   if(!listutils::isASymbolIn(T,r)){
     return listutils::typeError("Expects stream element type to be one of "
                                 "{point, sline, line}.");
+  }
+  ListExpr arg2 = nl->Second(args);
+  if(!listutils::isSymbol(arg2,"bool")){
+    return listutils::typeError("Second argument must be bool.");
   }
   return nl->SymbolAtom(symbols::LINE);
 }
 
 ListExpr SpatialCollectSLineTypeMap(ListExpr args){
-  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 1){
-    return listutils::typeError("Expects exactly 1 argument.");
+  if( nl->IsEmpty(args) || nl->IsAtom(args) || !nl->ListLength(args) == 2){
+    return listutils::typeError("Expects exactly 2 arguments.");
   }
   ListExpr stream = nl->First(args);
   if(!listutils::isDATAStream(stream)){
@@ -15228,6 +15601,10 @@ ListExpr SpatialCollectSLineTypeMap(ListExpr args){
   if(!listutils::isASymbolIn(T,r)){
     return listutils::typeError("Expects stream element type to be one of "
                                 "{point, sline, line}.");
+  }
+  ListExpr arg2 = nl->Second(args);
+  if(!listutils::isSymbol(arg2,"bool")){
+    return listutils::typeError("Second argument must be bool.");
   }
   return nl->SymbolAtom(symbols::SLINE);
 }
@@ -16028,7 +16405,7 @@ static int SpatialSelectCrossings(ListExpr args){
         return 1;
       }
    } else { // one singe argument = line
-      return 2;  
+      return 2;
    }
    return -1;
 }
@@ -16063,7 +16440,7 @@ static int SpatialCollectPointsSelect(ListExpr args){
    ListExpr T = nl->Second(nl->First(args));
    if(listutils::isSymbol(T,"point")) return 0;
    if(listutils::isSymbol(T,"points")) return 1;
-   return -1; 
+   return -1;
 }
 
 
@@ -16166,110 +16543,17 @@ int SpatialIntersectsVM( Word* args, Word& result, int message,
 10.4.9 Value mapping functions of operator ~inside~
 
 */
-int
-SpatialInside_pps( Word* args, Word& result, int message,
-                   Word& local, Supplier s )
+template<class First, class Second>
+int SpatialInsideGeneric( Word* args, Word& result, int message,
+                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p = ((Point*)args[0].addr);
-  if ( p->IsDefined() )
-    ((CcBool *)result.addr)->
-      Set( true, ((Points*)args[1].addr)->Contains( *p ) );
-  else
-    ((CcBool *)result.addr)->Set( false, false );
-  return 0;
-}
-
-int
-SpatialInside_pl( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Point *p = ((Point*)args[0].addr);
-  if( p->IsDefined() )
-    ((CcBool *)result.addr)->Set( true, ((Line*)args[1].addr)->Contains( *p ) );
+  First*  arrgh1 = static_cast<First*>(args[0].addr);
+  Second* arrgh2 = static_cast<Second*>(args[1].addr);
+  if( arrgh1->IsDefined() && arrgh2->IsDefined() )
+    ((CcBool *)result.addr)->Set( true, arrgh1->Inside( *arrgh2 ) );
   else
     ((CcBool *)result.addr)->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialInside_pr( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  Point *p = ((Point*)args[0].addr);
-  if( p->IsDefined() )
-    ((CcBool *)result.addr)->
-      Set( true, ((Region*)args[1].addr)->Contains( *p ) );
-  else
-    ((CcBool *)result.addr)->SetDefined( false );
-  return 0;
-}
-
-int
-SpatialInside_psps( Word* args, Word& result, int message,
-                    Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Points*)args[0].addr)->Inside( *((Points*)args[1].addr) ) );
-  return 0;
-}
-
-int
-SpatialInside_psl( Word* args, Word& result, int message,
-                   Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Points*)args[0].addr)->Inside( *((Line*)args[1].addr) ) );
-  return 0;
-}
-
-int
-SpatialInside_psr( Word* args, Word& result, int message,
-                   Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Points*)args[0].addr)->Inside( *((Region*)args[1].addr) ) );
-  return 0;
-}
-
-int
-SpatialInside_ll( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Line*)args[0].addr)->Inside( *((Line*)args[1].addr) ) );
-  return 0;
-}
-
-int
-SpatialInside_lr( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Line*)args[0].addr)->Inside( *((Region*)args[1].addr) ) );
-  return 0;
-}
-
-int
-SpatialInside_rr( Word* args, Word& result, int message,
-                  Word& local, Supplier s )
-{
-  result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Region*)args[0].addr)->Inside( *((Region*)args[1].addr) ) );
   return 0;
 }
 
@@ -16282,9 +16566,12 @@ SpatialAdjacent_psr( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Points*)args[0].addr)->Adjacent( *((Region*)args[1].addr) ) );
+  Points* ps = static_cast<Points*>(args[0].addr);
+  Region* r  = static_cast<Region*>(args[1].addr);
+  if( ps->IsDefined() && r->IsDefined() )
+    ((CcBool *)result.addr)->Set( true, ps->Adjacent( *r ) );
+  else
+    ((CcBool *)result.addr)->SetDefined( false );
   return 0;
 }
 
@@ -16293,9 +16580,12 @@ SpatialAdjacent_rps( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Points*)args[1].addr)->Adjacent( *((Region*)args[0].addr) ) );
+  Region* r  = static_cast<Region*>(args[0].addr);
+  Points* ps = static_cast<Points*>(args[1].addr);
+  if( ps->IsDefined() && r->IsDefined() )
+    ((CcBool *)result.addr)->Set( true, ps->Adjacent( *r ) );
+  else
+    ((CcBool *)result.addr)->SetDefined( false );
   return 0;
 }
 
@@ -16304,9 +16594,12 @@ SpatialAdjacent_lr( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Line*)args[0].addr)->Adjacent( *((Region*)args[1].addr) ) );
+  Line*   l = static_cast<Line*>(args[0].addr);
+  Region* r = static_cast<Region*>(args[1].addr);
+  if( l->IsDefined() && r->IsDefined() )
+    ((CcBool *)result.addr)->Set( true, l->Adjacent( *r ) );
+  else
+    ((CcBool *)result.addr)->SetDefined( false );
   return 0;
 }
 
@@ -16315,9 +16608,12 @@ SpatialAdjacent_rl( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Line*)args[1].addr)->Adjacent( *((Region*)args[0].addr) ) );
+  Region* r = static_cast<Region*>(args[0].addr);
+  Line*   l = static_cast<Line*>(args[1].addr);
+  if( l->IsDefined() && r->IsDefined() )
+    ((CcBool *)result.addr)->Set( true, l->Adjacent( *r ) );
+  else
+    ((CcBool *)result.addr)->SetDefined( false );
   return 0;
 }
 
@@ -16326,9 +16622,12 @@ SpatialAdjacent_rr( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Region*)args[0].addr)->Adjacent( *((Region*)args[1].addr) ) );
+  Region* r1 = static_cast<Region*>(args[0].addr);
+  Region* r2 = static_cast<Region*>(args[1].addr);
+  if( r1->IsDefined() && r2->IsDefined() )
+    ((CcBool *)result.addr)->Set( true, r1->Adjacent( *r2 ) );
+  else
+    ((CcBool *)result.addr)->SetDefined( false );
   return 0;
 }
 
@@ -16341,9 +16640,12 @@ SpatialOverlaps_rr( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcBool *)result.addr)->
-    Set( true,
-         ((Region*)args[0].addr)->Overlaps( *((Region*)args[1].addr) ) );
+  Region* r1 = static_cast<Region*>(args[0].addr);
+  Region* r2 = static_cast<Region*>(args[1].addr);
+  if( r1->IsDefined() && r2->IsDefined() )
+    ((CcBool *)result.addr)->Set( true,r1->Overlaps( *r2 ) );
+  else
+    ((CcBool *)result.addr)->SetDefined( false );
   return 0;
 }
 
@@ -16356,15 +16658,12 @@ SpatialOnBorder_pr( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p = (Point*)args[0].addr;
-
-  if( p->IsDefined() )
-    ((CcBool *)result.addr)->
-      Set( true,
-           ((Region*)args[1].addr)->OnBorder( *((Point*)args[0].addr) ) );
+  Point*  p = static_cast<Point*>(args[0].addr);
+  Region* r = static_cast<Region*>(args[1].addr);
+  if( p->IsDefined() && r->IsDefined() )
+    ((CcBool *)result.addr)->Set( true, r->OnBorder( *p ) );
   else
     ((CcBool *)result.addr)->Set( false, false );
-
   return 0;
 }
 
@@ -16377,15 +16676,13 @@ SpatialInInterior_pr( Word* args, Word& result, int message,
                       Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p = (Point*)args[0].addr;
-
-  if( p->IsDefined() )
+  Point*  p = static_cast<Point*>(args[0].addr);
+  Region* r = static_cast<Region*>(args[1].addr);
+  if( p->IsDefined() && r->IsDefined() )
     ((CcBool *)result.addr)->
-      Set( true,
-           ((Region*)args[1].addr)->InInterior( *((Point*)args[0].addr) ) );
+      Set( true, r->InInterior( *p ) );
   else
     ((CcBool *)result.addr)->Set( false, false );
-
   return 0;
 }
 
@@ -16412,8 +16709,9 @@ SpatialIntersection_pps( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p = (Point*)args[0].addr;
-  if( p->IsDefined() && ((Points*)args[1].addr)->Contains( *p ) )
+  Point  *p  = static_cast<Point*>(args[0].addr);
+  Points *ps = static_cast<Points*>(args[1].addr);
+  if( p->IsDefined() && ps->IsDefined() && ps->Contains( *p ) )
     *((Point *)result.addr) = *p;
   else
     ((Point *)result.addr)->SetDefined( false );
@@ -16425,8 +16723,9 @@ SpatialIntersection_psp( Word* args, Word& result, int message,
                          Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p = (Point*)args[1].addr;
-  if( p->IsDefined() && ((Points*)args[0].addr)->Contains(*p) )
+  Points *ps = static_cast<Points*>(args[0].addr);
+  Point  *p  = static_cast<Point*>(args[1].addr);
+  if( p->IsDefined() && ps->IsDefined() && ps->Contains(*p) )
     *((Point *)result.addr) = *p;
   else
     ((Point *)result.addr)->SetDefined( false );
@@ -16438,8 +16737,9 @@ SpatialIntersection_pl( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p = ((Point*)args[0].addr);
-  if( p->IsDefined() && ((Line*)args[1].addr)->Contains( *p ) )
+  Point  *p  = static_cast<Point*>(args[0].addr);
+  Line   *l  = static_cast<Line*>(args[1].addr);
+  if( p->IsDefined() && l->IsDefined() && l->Contains( *p ) )
     *((Point *)result.addr) = *p;
   else
     ((Point *)result.addr)->SetDefined( false );
@@ -16451,8 +16751,9 @@ SpatialIntersection_lp( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p = ((Point*)args[1].addr);
-  if( p->IsDefined() && ((Line*)args[0].addr)->Contains( *p ) )
+  Line   *l  = static_cast<Line*>(args[0].addr);
+  Point  *p  = static_cast<Point*>(args[1].addr);
+  if( p->IsDefined() && l->IsDefined() && l->Contains( *p ) )
     *((Point *)result.addr) = *p;
   else
     ((Point *)result.addr)->SetDefined( false );
@@ -16464,8 +16765,9 @@ SpatialIntersection_pr( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p=((Point*)args[0].addr);
-  if( p->IsDefined() && ((Region*)args[1].addr)->Contains( *p ) )
+  Point  *p  = static_cast<Point*>(args[0].addr);
+  Region *r  = static_cast<Region*>(args[1].addr);
+  if( p->IsDefined() && r->IsDefined() && r->Contains( *p ) )
     *((Point *)result.addr) = *p;
   else
     ((Point *)result.addr)->SetDefined( false );
@@ -16477,8 +16779,9 @@ SpatialIntersection_rp( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p=((Point*)args[1].addr);
-  if( p->IsDefined() && ((Region*)args[0].addr)->Contains( *p ) )
+  Region *r  = static_cast<Region*>(args[0].addr);
+  Point  *p  = static_cast<Point*>(args[1].addr);
+  if( p->IsDefined() && r->IsDefined() && r->Contains( *p ) )
     *((Point *)result.addr) = *p;
   else
     ((Point *)result.addr)->SetDefined( false );
@@ -16571,8 +16874,9 @@ SpatialMinus_pps( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p = (Point*)args[0].addr;
-  if( p->IsDefined() && ((Points*)args[1].addr)->Contains( *p ) )
+  Point  *p  = static_cast<Point*>(args[0].addr);
+  Points *ps = static_cast<Points*>(args[1].addr);
+  if( p->IsDefined() && ps->IsDefined() && ps->Contains( *p ) )
     *((Point *)result.addr) = *p;
   else
     ((Point *)result.addr)->SetDefined( false );
@@ -16584,8 +16888,9 @@ SpatialMinus_pl( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p = (Point*)args[0].addr;
-  if( p->IsDefined() && ((Line*)args[1].addr)->Contains( *p ) )
+  Point *p = static_cast<Point*>(args[0].addr);
+  Line  *l = static_cast<Line*>(args[1].addr);
+  if( p->IsDefined() && l->IsDefined() && l->Contains( *p ) )
     *((Point *)result.addr) = *p;
   else
     ((Point *)result.addr)->SetDefined( false );
@@ -16597,11 +16902,12 @@ SpatialMinus_pr( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p = (Point*)args[0].addr;
-  if( p->IsDefined() && ((Region*)args[1].addr)->Contains( *p ) )
+  Point  *p = static_cast<Point*>(args[0].addr);
+  Region *r = static_cast<Region*>(args[1].addr);
+  if( p->IsDefined() && r->IsDefined() && r->Contains( *p ) )
     *((Point *)result.addr) = *p;
   else
-    ((Point *)result.addr)->SetDefined( false );
+    ((Point *)(result.addr))->SetDefined( false );
   return 0;
 }
 
@@ -16610,11 +16916,12 @@ SpatialMinus_psp( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  Point *p = (Point*)args[1].addr;
-  if( p->IsDefined() )
-    ((Points*)args[0].addr)->Minus( *p, *((Points *)result.addr) );
+  Points *ps = static_cast<Points*>(args[0].addr);
+  Point  *p  = static_cast<Point*>(args[1].addr);
+  if( ps->IsDefined() && p->IsDefined() )
+    ps->Minus( *p, *((Points *)result.addr) );
   else
-    *((Points *)result.addr) = *((Points*)args[0].addr);
+    ((Points *)(result.addr))->SetDefined( false );
   return 0;
 }
 
@@ -16623,7 +16930,12 @@ SpatialMinus_lp( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  *((Line*)result.addr) = *((Line*)args[0].addr);
+  Line  *l  = static_cast<Line*>(args[0].addr);
+  Point *p  = static_cast<Point*>(args[1].addr);
+  if( l->IsDefined() && p->IsDefined() )
+    *((Line*)result.addr) = *l;
+  else
+    ((Line*)(result.addr))->SetDefined(false);
   return 0;
 }
 
@@ -16632,7 +16944,12 @@ SpatialMinus_rp( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  *(Region*)result.addr = *(Region *)args[0].addr;
+  Region *r  = static_cast<Region*>(args[0].addr);
+  Point  *p  = static_cast<Point*>(args[1].addr);
+  if( r->IsDefined() && p->IsDefined() )
+    *(Region*)result.addr = *r;
+  else
+    ((Region*)(result.addr))->SetDefined( false );
   return 0;
 }
 
@@ -16641,12 +16958,9 @@ SpatialMinus_psps( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Points *ps1 = ((Points*)args[0].addr),
          *ps2=((Points*)args[1].addr);
-
   ps1->Minus( *ps2, *((Points *)result.addr) );
-
   return 0;
 }
 
@@ -16655,12 +16969,9 @@ SpatialMinus_psl( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Points *ps = ((Points*)args[0].addr);
   Line *l = ((Line*)args[1].addr);
-
   ps->Minus( *l, *((Points *)result.addr) );
-
   return 0;
 }
 
@@ -16669,12 +16980,9 @@ SpatialMinus_psr( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Points *ps = ((Points*)args[0].addr);
   Region *r = ((Region*)args[1].addr);
-
   ps->Minus( *r, *((Points *)result.addr) );
-
   return 0;
 }
 
@@ -16683,7 +16991,12 @@ SpatialMinus_lps( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  *(Line*)result.addr = *(Line*)args[0].addr;
+  Line   *l  = ((Line*)args[0].addr);
+  Points *ps = ((Points*)args[1].addr);
+  if( l->IsDefined() && ps->IsDefined() )
+    *(Line*)result.addr = *l;
+  else
+    ((Line*)(result.addr))->SetDefined( false );
   return 0;
 }
 
@@ -16692,16 +17005,26 @@ SpatialMinus_rps( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  *(Region*)result.addr = *(Region *)args[0].addr;
+  Region *r  = ((Region*)args[0].addr);
+  Points *ps = ((Points*)args[1].addr);
+  if( r->IsDefined() && ps->IsDefined() )
+    *(Region*)result.addr = *r;
+  else
+    ((Region*)(result.addr))->SetDefined( false );
   return 0;
 }
 
 int
 SpatialMinus_rl( Word* args, Word& result, int message,
-                 Word& local, Supplier s )
+                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  *(Region*)result.addr = *(Region *)args[0].addr;
+  Region *r  = ((Region*)args[0].addr);
+  Line   *l  = ((Line*)args[1].addr);
+  if( r->IsDefined() && l->IsDefined() )
+    *(Region*)result.addr = *r;
+  else
+    ((Region*)(result.addr))->SetDefined( false );
   return 0;
 }
 
@@ -16714,15 +17037,9 @@ SpatialUnion_pps( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Point *p = ((Point*)args[0].addr);
   Points *ps = ((Points*)args[1].addr);
-
-  if( p->IsDefined() )
-    ps->Union( *p, *((Points *)result.addr) );
-  else
-    *((Points *)result.addr) = *ps;
-
+  ps->Union( *p, *((Points *)result.addr) );
   return 0;
 }
 
@@ -16731,15 +17048,9 @@ SpatialUnion_psp( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Point *p = ((Point*)args[1].addr);
   Points *ps = ((Points*)args[0].addr);
-
-  if( p->IsDefined() )
-    ps->Union( *p, *((Points *)result.addr) );
-  else
-    *((Points *)result.addr) = *ps;
-
+  ps->Union( *p, *((Points *)result.addr) );
   return 0;
 }
 
@@ -16748,12 +17059,9 @@ SpatialUnion_psps( Word* args, Word& result, int message,
                    Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Points *ps1 = ((Points*)args[1].addr),
          *ps2 = ((Points*)args[0].addr);
-
   ps1->Union( *ps2, *((Points *)result.addr) );
-
   return 0;
 }
 
@@ -16767,9 +17075,8 @@ SpatialCrossings( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Ltype *cl1=((Ltype*)args[0].addr),
-       *cl2=((Ltype*)args[1].addr);
+        *cl2=((Ltype*)args[1].addr);
   cl1->Crossings( *cl2, *(Points*)result.addr );
   return 0;
 }
@@ -16794,18 +17101,15 @@ SpatialSingle_ps( Word* args, Word& result, int message,
                   Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Points *ps = ((Points*)args[0].addr);
-
   Point p;
-  if( ps->Size() == 1 )
+  if( ps->IsDefined() && (ps->Size() == 1) )
   {
     ps->Get( 0, p );
     *(Point*)result.addr = p;
   }
   else
     ((Point *)result.addr)->SetDefined( false );
-
   return 0;
 }
 
@@ -16848,15 +17152,12 @@ SpatialDirection_pp( Word* args, Word& result, int message,
                      Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Point *p1 = ((Point*)args[0].addr),
         *p2 = ((Point*)args[1].addr);
-
   if( p1->IsDefined() && p2->IsDefined() && !AlmostEqual( *p1, *p2 ) )
     ((CcReal *)result.addr)->Set( true, p1->Direction( *p2 ) );
   else
     ((CcReal *)result.addr)->SetDefined( false );
-
   return 0;
 }
 
@@ -16870,7 +17171,11 @@ SpatialNoComponents_ps( Word* args, Word& result, int message,
                         Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcInt *)result.addr)->Set( true, ((Points*)args[0].addr)->Size() );
+  Points* ps = static_cast<Points*>(args[0].addr);
+  if( ps->IsDefined() )
+    ((CcInt *)result.addr)->Set( true, ps->Size() );
+  else
+    ((CcInt *)result.addr)->Set( false, 0 );
   return 0;
 }
 
@@ -16879,7 +17184,11 @@ SpatialNoComponents_l( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcInt *)result.addr)->Set( true, ((Line*)args[0].addr)->NoComponents() );
+  Line* l = static_cast<Line*>(args[0].addr);
+  if( l->IsDefined() )
+    ((CcInt *)result.addr)->Set( true, l->NoComponents() );
+  else
+    ((CcInt *)result.addr)->Set( false, 0 );
   return 0;
 }
 
@@ -16888,7 +17197,11 @@ SpatialNoComponents_r( Word* args, Word& result, int message,
                        Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-  ((CcInt *)result.addr)->Set( true, ((Region*)args[0].addr)->NoComponents() );
+  Region* r = static_cast<Region*>(args[0].addr);
+  if( r->IsDefined() )
+    ((CcInt *)result.addr)->Set( true, r->NoComponents() );
+  else
+    ((CcInt *)result.addr)->Set( false, 0 );
   return 0;
 }
 
@@ -16903,8 +17216,12 @@ SpatialNoSegments( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   T *cl=((T*)args[0].addr);
-  assert( cl->Size() % 2 == 0 );
-  ((CcInt *)result.addr)->Set( true, cl->Size() / 2 );
+  if( cl->IsDefined() ) {
+    assert( cl->Size() % 2 == 0 );
+    ((CcInt *)result.addr)->Set( true, cl->Size() / 2 );
+  } else {
+    ((CcInt *)result.addr)->Set( false, 0 );
+  }
   return 0;
 }
 
@@ -17311,10 +17628,8 @@ SpatialCommonBorder_rr( Word* args, Word& result, int message,
 {
   result = qp->ResultStorage( s );
   Line *l = (Line*)result.addr;
-
   Region *cr1 = ((Region*)args[0].addr),
          *cr2 = ((Region*)args[1].addr);
-
   cr1->CommonBorder( *cr2, *l );
 
   return 0;
@@ -17341,7 +17656,7 @@ SpatialTranslate_p( Word* args, Word& result, int message,
   qp->Request( son, t );
   const CcReal *ty = ((CcReal *)t.addr);
 
-  if( p->IsDefined() &&tx->IsDefined() && ty->IsDefined()){
+  if( p->IsDefined() && tx->IsDefined() && ty->IsDefined()){
      *res = *p;
      res->Translate( tx->GetRealval(),  ty->GetRealval() );
   } else {
@@ -17367,13 +17682,10 @@ SpatialTranslate_ps( Word* args, Word& result, int message,
   qp->Request( son, t );
   const CcReal *ty = ((CcReal *)t.addr);
 
-  if( ps->IsDefined() )
-    if( tx->IsDefined() && ty->IsDefined() )
+  if( ps->IsDefined() && tx->IsDefined() && ty->IsDefined() )
       ps->Translate( tx->GetRealval(),
                      ty->GetRealval(),
                      *((Points*)result.addr) );
-    else
-      *((Points*)result.addr) = *ps;
   else
     ((Points*)result.addr)->SetDefined( false );
 
@@ -17398,14 +17710,11 @@ SpatialTranslate_l( Word* args, Word& result, int message,
   qp->Request( son, t );
   const CcReal *ty = ((CcReal *)t.addr);
 
-  if(  !cl->IsEmpty() )
-    if( tx->IsDefined() && ty->IsDefined() ) {
+  if(  cl->IsDefined()&& tx->IsDefined() && ty->IsDefined() ) {
       const Coord txval = (Coord)(tx->GetRealval()),
                   tyval = (Coord)(ty->GetRealval());
       cl->Translate( txval, tyval, *pResult );
-    }
-    else
-      *((Line*)result.addr) = *cl;
+  }
   else
     ((Line*)result.addr)->SetDefined( false );
 
@@ -17427,7 +17736,6 @@ int SpatialRotate( Word* args, Word& result, int message,
       return 0;
   }
   double angle = a->GetRealval() * PI / 180;
-
   st->Rotate(x->GetRealval(),y->GetRealval(),angle,*res);
   return 0;
 }
@@ -17438,7 +17746,6 @@ int SpatialCenter( Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    Points* ps = static_cast<Points*>(args[0].addr);
    Point* res = static_cast<Point*>(result.addr);
-
    *res = ps->theCenter();
    return 0;
 }
@@ -17457,15 +17764,11 @@ SpatialLine2Region( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Line *cl = (Line *)args[0].addr;
   Region *pResult = (Region *)result.addr;
-
   pResult->Clear();
-
-  if(  !cl->IsEmpty() )
+  if(  cl->IsDefined() )
     cl->Transform( *pResult );
-
   else
     ((Region*)result.addr)->SetDefined( false );
 
@@ -17483,12 +17786,8 @@ int SpatialRect2Region( Word* args, Word& result, int message,
   result = qp->ResultStorage( s );
 
   Rectangle<2> *rect = (Rectangle<2> *)args[0].addr;
-  Region *res = (Region *)result.addr;
-  res->SetDefined(true);
-  res->Clear();
-  if(  rect->IsDefined() ){
-     *res = Region( *rect );
-  }
+  Region *res = (Region*)result.addr;
+  *res = Region( *rect );
   return 0;
 }
 
@@ -17496,17 +17795,12 @@ int SpatialArea( Word* args, Word& result, int message,
                  Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Region *reg = (Region *)args[0].addr;
   CcReal *res = (CcReal *)result.addr;
-
   if(  reg->IsDefined() )
-  {
     res->Set( true, reg->Area() );
-  }
   else
     res->Set( false, 0.0 );
-
   return 0;
 }
 
@@ -17515,14 +17809,11 @@ SpatialTranslate_r( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   Region *cr = (Region *)args[0].addr,
           *pResult = (Region *)result.addr;
-
   pResult->Clear();
-
-
   Supplier son = qp->GetSupplier( args[1].addr, 0 );
+
   Word t;
   qp->Request( son, t );
   const CcReal *tx = ((CcReal *)t.addr);
@@ -17531,14 +17822,11 @@ SpatialTranslate_r( Word* args, Word& result, int message,
   qp->Request( son, t );
   const CcReal *ty = ((CcReal *)t.addr);
 
-  if(  !cr->IsEmpty() )
-    if( tx->IsDefined() && ty->IsDefined() ) {
+  if(  cr->IsDefined() && tx->IsDefined() && ty->IsDefined() ) {
       const Coord txval = (Coord)(tx->GetRealval()),
                   tyval = (Coord)(ty->GetRealval());
       cr->Translate( txval, tyval, *pResult );
-    }
-    else
-      *((Region*)result.addr) = *cr;
+  }
   else
     ((Region*)result.addr)->SetDefined( false );
 
@@ -17554,15 +17842,11 @@ SpatialWindowClippingIn_l( Word* args, Word& result, int message,
                            Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  Line *l = ((Line *)args[0].addr);
   Line *clippedLine = (Line*)result.addr;
-  clippedLine->Clear();
-  bool inside;
+  Line *l = ((Line *)args[0].addr);
   Rectangle<2> *window = ((Rectangle<2>*)args[1].addr);
-
+  bool inside;
   l->WindowClippingIn(*window,*clippedLine,inside);
-
   return 0;
 }
 
@@ -17571,15 +17855,10 @@ SpatialWindowClippingIn_r( Word* args, Word& result, int message,
                            Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  Region *r = ((Region *)args[0].addr);
   Region *clippedRegion=(Region*)result.addr;
-  clippedRegion->Clear();
-
+  Region *r = ((Region *)args[0].addr);
   Rectangle<2> *window = ((Rectangle<2>*)args[1].addr);
-
   r->WindowClippingIn(*window,*clippedRegion);
-
   return 0;
 
 }
@@ -17593,13 +17872,10 @@ SpatialWindowClippingOut_l( Word* args, Word& result, int message,
                             Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  Line *l = ((Line *)args[0].addr);
   Line *clippedLine = (Line*)result.addr;
-  clippedLine->Clear();
-  bool outside;
+  Line *l = ((Line *)args[0].addr);
   Rectangle<2> *window = ((Rectangle<2>*)args[1].addr);
-
+  bool outside;
   l->WindowClippingOut(*window,*clippedLine,outside);
   return 0;
 }
@@ -17609,15 +17885,10 @@ SpatialWindowClippingOut_r( Word* args, Word& result, int message,
                             Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
-  Region *r = ((Region *)args[0].addr);
   Region *clippedRegion=(Region*)result.addr;
-  clippedRegion->Clear();
-
+  Region *r = ((Region *)args[0].addr);
   Rectangle<2> *window = ((Rectangle<2>*)args[1].addr);
-
   r->WindowClippingOut(*window,*clippedRegion);
-
   return 0;
 }
 
@@ -17717,23 +17988,19 @@ int SpatialScale_l( Word* args, Word& result, int message,
 
 int SpatialScale_r( Word* args, Word& result, int message,
                     Word& local, Supplier s ){
-  result = qp->ResultStorage(s);
-  Region* R = (Region*) args[0].addr;
-  CcReal* factor = (CcReal*) args[1].addr;
-  Region* res = (Region*) result.addr;
+  result    = qp->ResultStorage(s);
+  Region *R      = (Region*) args[0].addr;
+  CcReal *factor = (CcReal*) args[1].addr;
+  Region *res    = (Region*) result.addr;
   if( !R->IsDefined() || !factor->IsDefined() )
   {
     res->SetDefined(false);
   }
   else
   {
+    res->Clear();
     res->SetDefined(true);
     double f = factor->GetRealval();
-    // delete result if not empty
-    if(!res->IsEmpty()){
-       Region Rempty(0);
-       (*res) = Rempty;
-    }
     if(!R->IsEmpty()){
        res->StartBulkLoad();
        int size = R->Size();
@@ -17768,14 +18035,20 @@ SpatialComponents_r( Word* args, Word& result, int message,
   switch( message )
   {
     case OPEN:
-      localInfo = new ComponentsLocalInfo();
-      ((Region*)args[0].addr)->Components( localInfo->components );
-      localInfo->iter = localInfo->components.begin();
-      local.setAddr( localInfo );
+      if( !((Region*)args[0].addr)->IsEmpty() ){ // IsEmpty() subsumes undef
+        localInfo = new ComponentsLocalInfo();
+        ((Region*)args[0].addr)->Components( localInfo->components );
+        localInfo->iter = localInfo->components.begin();
+        local.setAddr( localInfo );
+      } else {
+        local.setAddr( 0 );
+      }
       return 0;
 
     case REQUEST:
-
+      if( !local.addr ) {
+        return CANCEL;
+      }
       localInfo = (ComponentsLocalInfo*)local.addr;
       if( localInfo->iter == localInfo->components.end() )
         return CANCEL;
@@ -17809,7 +18082,7 @@ SpatialComponents_ps( Word* args, Word& result, int message,
   {
     case OPEN:{
       Points* arg = static_cast<Points*>(args[0].addr);
-      if(arg->IsDefined() && arg->Size()>0){
+      if( !arg->IsEmpty() ){ // subsumes undef
          localInfo = new Points(*arg);
          localInfo->SelectFirst();
          local.setAddr(localInfo);
@@ -17959,11 +18232,17 @@ SpatialComponents_l( Word* args, Word& result, int message,
 
    switch(message){
      case OPEN:{
-       local.addr = new LineComponentsLi((Line*) args[0].addr);
+       if( !((Line*)(args[0].addr))->IsEmpty() ) {
+        local.addr = new LineComponentsLi((Line*) args[0].addr);
+       } else {
+         local.setAddr( 0 );
+       }
        return 0;
      }
 
      case REQUEST:{
+         if( !local.addr )
+           return CANCEL;
          LineComponentsLi* li = (LineComponentsLi*) local.addr;
          Line* res = li->NextLine();
          if(res==0){
@@ -18047,7 +18326,8 @@ SpatialAtPoint( Word* args, Word& result, int message,
   CcBool *startsSmaller = (CcBool*)args[2].addr;
   double res;
 
-  if( p->IsDefined() &&
+  if( !l->IsEmpty() && // subsumes IsDefined()
+      p->IsDefined() &&
       startsSmaller->IsDefined() &&
       l->AtPoint( *p, startsSmaller->GetBoolval(), res ) )
     ((CcReal*)result.addr)->Set( true, res );
@@ -18070,11 +18350,9 @@ SpatialAtPosition( Word* args, Word& result, int message,
   CcBool *startsSmaller = (CcBool*)args[2].addr;
   Point *p = (Point*)result.addr;
 
-  if( !pos->IsDefined() ||
+  if( l->IsEmpty() || !pos->IsDefined() ||
       !startsSmaller->IsDefined() ||
-      !l->AtPosition( pos->GetRealval(),
-                      startsSmaller->GetBoolval(),
-                      *p ) )
+      !l->AtPosition( pos->GetRealval(), startsSmaller->GetBoolval(), *p ) )
     p->SetDefined( false );
 
   return 0;
@@ -18095,8 +18373,6 @@ SpatialSubLine( Word* args, Word& result, int message,
   CcBool *startsSmaller = (CcBool*)args[3].addr;
   SimpleLine *rLine = (SimpleLine*)result.addr;
 
-  rLine->Clear();
-
   if( pos1->IsDefined() &&
       pos2->IsDefined() &&
       startsSmaller->IsDefined() )
@@ -18104,7 +18380,10 @@ SpatialSubLine( Word* args, Word& result, int message,
                 pos2->GetRealval(),
                 startsSmaller->GetBoolval(),
                 *rLine );
-
+  else {
+    rLine->Clear();
+    rLine->SetDefined( false );
+  }
   return 0;
 }
 
@@ -18117,7 +18396,6 @@ SpatialAdd_p( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   const Point *p1= (Point*)args[0].addr;
   const Point *p2= (Point*)args[1].addr;
 
@@ -18138,7 +18416,6 @@ SpatialGetX_p( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   const Point *p = (Point*)args[0].addr;
 
   if( p->IsDefined() )
@@ -18158,7 +18435,6 @@ SpatialGetY_p( Word* args, Word& result, int message,
                     Word& local, Supplier s )
 {
   result = qp->ResultStorage( s );
-
   const Point *p = (Point*)args[0].addr;
 
   if( p->IsDefined() )
@@ -18418,24 +18694,38 @@ template<bool allowCycles>
 int SpatialPolylines(Word* args, Word& result, int message,
                     Word& local, Supplier s){
 
-   LineSplitter* localinfo;
-   Line* res;
+   LineSplitter *localinfo;
+   Line   *l, *res;
+   CcBool *b;
 
    result = qp->ResultStorage(s);
    switch (message){
       case OPEN:
+          l = (Line*)args[0].addr;
+          b = (CcBool*)args[1].addr;
           if(qp->GetNoSons(s)==2){
-             local.setAddr(new LineSplitter((Line*)args[0].addr,
-                                ((CcBool*)args[1].addr)->GetBoolval(),
-                                allowCycles));
-          } else {
-            local.setAddr(new LineSplitter((Line*)args[0].addr,
-                            ((CcBool*)args[1].addr)->GetBoolval(),
+             if( !l->IsEmpty() && b->IsDefined() ) {
+              local.setAddr(new LineSplitter(l,
+                                  b->GetBoolval(),
+                                  allowCycles));
+             } else {
+               local.setAddr( 0 );
+             }
+          } else if(    !l->IsEmpty()
+                     && b->IsDefined()
+                     && ((Points*)args[2].addr)->IsDefined() ){
+            local.setAddr(new LineSplitter(l,
+                            b->GetBoolval(),
                             allowCycles,
                             ((Points*)args[2].addr)));
+          } else {
+            local.setAddr( 0 );
           }
           return 0;
       case REQUEST:
+           if( !local.addr ){
+             return CANCEL;
+           }
            localinfo = (LineSplitter*) local.addr;
            res = localinfo->NextLine();
            if(res==0){
@@ -18445,10 +18735,10 @@ int SpatialPolylines(Word* args, Word& result, int message,
               return YIELD;
            }
       case CLOSE:
-           localinfo = (LineSplitter*) local.addr;
-           if(localinfo!=0){
-              delete localinfo;
-              local.setAddr(0);
+           if(local.addr!=0){
+             localinfo = (LineSplitter*) local.addr;
+             delete localinfo;
+             local.setAddr(0);
            }
            return 0;
    }
@@ -18515,10 +18805,15 @@ int SpatialSegments(Word* args, Word& result, int message,
  Line* res =0;
  switch(message){
     case OPEN:
-      local.addr = new SegmentsInfo((Line*)args[0].addr);
+      if( !((Line*)args[0].addr)->IsEmpty() ) // subsumes undef
+        local.addr = new SegmentsInfo((Line*)args[0].addr);
+      else
+        local.setAddr( 0 );
       return 0;
 
    case REQUEST:
+      if( !local.addr )
+        return CANCEL;
       si = (SegmentsInfo*) local.addr;
       res = si->NextSegment();
       if(res){
@@ -18551,19 +18846,28 @@ int SpatialSegments(Word* args, Word& result, int message,
 int SpatialSimplify_LReal(Word* args, Word& result, int message,
                     Word& local, Supplier s){
    result = qp->ResultStorage(s);
-   Line* line = (Line*) args[0].addr;
-   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
-   line->Simplify(* ((Line*)result.addr),epsilon);
+   Line*   res     = static_cast<Line*>(result.addr);
+   Line*   line    = static_cast<Line*>(args[0].addr);
+   CcReal* epsilon = static_cast<CcReal*>(args[1].addr);
+   if( line->IsDefined() && epsilon->IsDefined() ){
+     line->Simplify( *res, epsilon->GetRealval() );
+   } else {
+      res->SetDefined( false );
+   }
    return 0;
 }
 
 int SpatialSimplify_LRealPs(Word* args, Word& result, int message,
                     Word& local, Supplier s){
    result = qp->ResultStorage(s);
-   Line* line = (Line*) args[0].addr;
-   double epsilon = ((CcReal*)args[1].addr)->GetRealval();
-   Points* ps = (Points*) args[2].addr;
-   line->Simplify(* ((Line*)result.addr),epsilon,*ps);
+   Line*   res     = static_cast<Line*>(result.addr);
+   Line*   line    = static_cast<Line*>(args[0].addr);
+   CcReal* epsilon = static_cast<CcReal*>(args[1].addr);
+   Points* ps      = static_cast<Points*>(args[2].addr);
+   if( line->IsDefined() && epsilon->IsDefined() && ps->IsDefined() )
+     line->Simplify( *res, epsilon->GetRealval(), *ps);
+   else
+     res->SetDefined( false );
    return 0;
 }
 
@@ -18714,17 +19018,21 @@ Value Mapping for ~isCycle~
 
 */
 int isCycleVM(Word* args, Word& result, int message,
-            Word& local, Supplier s){
+            Word& local, Supplier s) {
    result = qp->ResultStorage(s);
    SimpleLine* sline = static_cast<SimpleLine*>(args[0].addr);
    CcBool* res = static_cast<CcBool*>(result.addr);
-   res->Set(true,sline->IsCycle());
+   if( sline->IsDefined() ) {
+    res->Set(true,sline->IsCycle());
+   } else {
+     res->SetDefined( false );
+   }
    return 0;
 }
 
 
 int utmVM_p(Word* args, Word& result, int message,
-          Word& local, Supplier s){
+          Word& local, Supplier s) {
    result = qp->ResultStorage(s);
    Point* p = static_cast<Point*>(args[0].addr);
    Point* res = static_cast<Point*>(result.addr);
@@ -18773,8 +19081,13 @@ int gkVM_ps(Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    Points* p = static_cast<Points*>(args[0].addr);
    Points* res = static_cast<Points*>(result.addr);
-   WGSGK gk;
    res->Clear();
+   if( !p->IsDefined() ){
+     res->SetDefined( false );
+     res->Clear();
+   }
+   WGSGK gk;
+   res->SetDefined( true );
    res->Resize(p->Size());
    res->StartBulkLoad();
    Point p1;
@@ -18799,8 +19112,13 @@ int gkVM_x(Word* args, Word& result, int message,
    result = qp->ResultStorage(s);
    T* a = static_cast<T*>(args[0].addr);
    T* res = static_cast<T*>(result.addr);
-   WGSGK gk;
    res->Clear();
+   if( !a->IsDefined() ){
+     res->SetDefined( false );
+     return 0;
+   }
+   WGSGK gk;
+   res->SetDefined( true );
    res->Resize(a->Size());
    res->StartBulkLoad();
    HalfSegment hs;
@@ -18827,6 +19145,7 @@ int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
   Point* P1 = 0;
   Word elem;
   L->Clear();
+  L->SetDefined( true );
 
   qp->Open(args[0].addr);
 
@@ -18880,6 +19199,7 @@ int SpatialCollect_lineVMPointstream(Word* args, Word& result, int message,
   return 0;
 }
 
+// helper function for SpatialCollect_line
 void append(Line& l1, const Line& l2){
   // l1 += l2; // runs not correctly
   int size = l2.Size();
@@ -18890,6 +19210,7 @@ void append(Line& l1, const Line& l2){
   }
 }
 
+// helper function for SpatialCollect_line
 void append(SimpleLine& l1, const SimpleLine& l2){
   int size = l2.Size();
   HalfSegment hs;
@@ -18899,6 +19220,7 @@ void append(SimpleLine& l1, const SimpleLine& l2){
   }
 }
 
+// helper function for SpatialCollect_line
 void append(Line& l1, const SimpleLine& l2){
   int size = l2.Size();
   HalfSegment hs;
@@ -18914,9 +19236,15 @@ int SpatialCollect_lineVMLinestream(Word* args, Word& result, int message,
   result = qp->ResultStorage(s);
   ResLineType* L = static_cast<ResLineType*>(result.addr);
   StreamLineType* line = 0;
-  Word elem;
   L->Clear();
+  CcBool* ignoreUndefined = static_cast<CcBool*>(args[1].addr);
+  if(!ignoreUndefined->IsDefined()){
+    L->SetDefined(false);
+    return 0;
+  }
+  bool ignore = ignoreUndefined->GetValue();
 
+  Word elem;
   qp->Open(args[0].addr);
 
   L->StartBulkLoad();
@@ -18924,7 +19252,7 @@ int SpatialCollect_lineVMLinestream(Word* args, Word& result, int message,
   while ( qp->Received(args[0].addr) ){
     line = static_cast<StreamLineType*>(elem.addr);
     assert( line != 0 );
-    if(!line->IsDefined()){
+    if(!ignore && !line->IsDefined()){
       qp->Close(args[0].addr);
       L->Clear();
       L->SetDefined(false);
@@ -18960,7 +19288,7 @@ int SpatialCollect_PointsVM(Word* args, Word& result, int message,
 
    qp->Open(args[0].addr);
    qp->Request(args[0].addr,elem);
-   
+
    while(qp->Received(args[0].addr)){
      StreamPointType* p = static_cast<StreamPointType*>(elem.addr);
      if(p->IsDefined()){
@@ -19028,15 +19356,15 @@ ValueMapping spatialintersectsmap[] = {
 };
 
 ValueMapping spatialinsidemap[] = {
-  SpatialInside_pps,
-  SpatialInside_pl,
-  SpatialInside_pr,
-  SpatialInside_psps,
-  SpatialInside_psl,
-  SpatialInside_psr,
-  SpatialInside_ll,
-  SpatialInside_lr,
-  SpatialInside_rr };
+  SpatialInsideGeneric<Point,Points>,
+  SpatialInsideGeneric<Point,Line>,
+  SpatialInsideGeneric<Point,Region>,
+  SpatialInsideGeneric<Points,Points>,
+  SpatialInsideGeneric<Points,Line>,
+  SpatialInsideGeneric<Points,Region>,
+  SpatialInsideGeneric<Line,Line>,
+  SpatialInsideGeneric<Line,Region>,
+  SpatialInsideGeneric<Region,Region> };
 
 ValueMapping spatialadjacentmap[] = {
   SpatialAdjacent_psr,
@@ -19256,7 +19584,8 @@ const string SpatialSpecIsEmpty  =
      "( <text>point -> bool, points -> bool, line -> bool,"
        "region -> bool, sline -> bool</text---> "
        "<text>isempty ( _ )</text--->"
-       "<text>Returns whether the value is defined or not.</text--->"
+       "<text>Returns TRUE if the value is undefined or empty. The result "
+       "is always defined!</text--->"
        "<text>query isempty ( line1 )</text--->"
        ") )";
 
@@ -19266,7 +19595,7 @@ const string SpatialSpecEqual  =
   "(line line) -> bool, (region region) -> bool,"
   " (sline sline) -> bool </text--->"
   "<text>_ = _</text--->"
-  "<text>Equal.</text--->"
+  "<text>TRUE, iff both arguments are equal.</text--->"
   "<text>query point1 = point2</text--->"
   ") )";
 
@@ -19276,7 +19605,7 @@ const string SpatialSpecNotEqual  =
   "(line line) -> bool, (region region) -> bool,"
   "(sline sline) -> bool</text--->"
   "<text>_ # _</text--->"
-  "<text>Not equal.</text--->"
+  "<text>TRUE, iff both arguments are not equal.</text--->"
   "<text>query point1 # point2</text--->"
   ") )";
 
@@ -19285,7 +19614,7 @@ const string SpatialSpecIntersects  =
   "( <text>(points||line||region x points||line||region) -> bool ||"
   " sline x sline -> bool  </text--->"
   "<text>_ intersects _</text--->"
-  "<text>Intersects.</text--->"
+  "<text>TRUE, iff both arguments intersect.</text--->"
   "<text>query region1 intersects region2</text--->"
   ") )";
 
@@ -19294,7 +19623,7 @@ const string SpatialSpecInside  =
   "( <text>(points||line||region x points||line||region) "
   "-> bool</text--->"
   "<text>_ inside _</text--->"
-  "<text>Inside.</text--->"
+  "<text>TRUE iff the first argument is inside the second.</text--->"
   "<text>query point1 inside line1</text--->"
   ") )";
 
@@ -19302,7 +19631,7 @@ const string SpatialSpecAdjacent  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(points||line||region x points||line||region) -> bool</text--->"
   "<text>_ adjacent _</text--->"
-  "<text>two regions are adjacent.</text--->"
+  "<text>TRUE, iff both regions are adjacent.</text--->"
   "<text>query r1 adjacent r2</text--->"
   ") )";
 
@@ -19310,7 +19639,7 @@ const string SpatialSpecOverlaps  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(region x region) -> bool</text--->"
   "<text>_ overlaps _</text--->"
-  "<text>two spatial objects overlap each other.</text--->"
+  "<text>TRUE, iff both objects overlap each other.</text--->"
   "<text>query line overlap region</text--->"
   ") )";
 
@@ -19318,7 +19647,8 @@ const string SpatialSpecOnBorder  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(point x region) -> bool</text--->"
   "<text>_ onborder _</text--->"
-  "<text>on endpoints or on border edges.</text--->"
+  "<text>TRUE, iff the point is an endpoint or on a border edge of the region."
+  "</text--->"
   "<text>query point onborder line</text--->"
   ") )";
 
@@ -19326,7 +19656,8 @@ const string SpatialSpecInInterior  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(point x region) -> bool</text--->"
   "<text>_ ininterior _</text--->"
-  "<text>in interior of a line or region.</text--->"
+  "<text>TRUE, iff the first argument is in the interior of the second."
+  "</text--->"
   "<text>query point ininterior region</text--->"
   ") )";
 
@@ -19353,7 +19684,7 @@ const string SpatialSpecUnion  =
   "( <text>(point x points) -> points\n"
   "(points x point) -> points\n"
   "(points x points) -> points</text--->"
-  "<text>_union_</text--->"
+  "<text>_ union _</text--->"
   "<text>union of two sets. Also see: 'union_new'.</text--->"
   "<text>query points union point</text--->"
   ") )";
@@ -19362,7 +19693,7 @@ const string SpatialSpecCrossings  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(line x line) -> points || "
   "sline x sline -> points || line -> points</text--->"
-  "<text>crossings(_,_)</text--->"
+  "<text>crossings( _, _ )</text--->"
   "<text>crossing points of two (or one) line(s).</text--->"
   "<text>query crossings(line1, line2)</text--->"
   ") )";
@@ -19370,7 +19701,7 @@ const string SpatialSpecCrossings  =
 const string SpatialSpecSingle  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(points) -> point</text--->"
-  "<text> single(_)</text--->"
+  "<text> single( _ )</text--->"
   "<text>transform a single-element points value to point value.</text--->"
   "<text>query single(points)</text--->"
   ") )";
@@ -19379,7 +19710,7 @@ const string SpatialSpecDistance  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(point||points||line||sline||rect x "
   "point||points||line||sline||rect) -> real</text--->"
-  "<text>distance(_, _)</text--->"
+  "<text>distance( _, _ )</text--->"
   "<text>compute distance between two spatial objects.</text--->"
   "<text>query distance(point, line)</text--->"
   ") )";
@@ -19387,7 +19718,7 @@ const string SpatialSpecDistance  =
 const string SpatialSpecDirection  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(point x point) -> real</text--->"
-  "<text>direction(_, _)</text--->"
+  "<text>direction( _, _ )</text--->"
   "<text>compute the direction (0 - 360 degree) from one point to "
   "another point.</text--->"
   "<text>query direction(p1, p2)</text--->"
@@ -19397,7 +19728,8 @@ const string SpatialSpecNocomponents  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(points||line||region) -> int</text--->"
   "<text> no_components( _ )</text--->"
-  "<text>return the number of components of a spatial object.</text--->"
+  "<text>return the number of components (points: points, line: segments, "
+  "region: faces) of a spatial object.</text--->"
   "<text>query no_components(region)</text--->"
   ") )";
 
@@ -19421,14 +19753,15 @@ const string SpatialSpecSize  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(line, region, sline) -> real</text--->"
   "<text> size( _ )</text--->"
-  "<text> return the size (length, area) of a spatial object.</text--->"
+  "<text> return the size (line, sline: length, region: area) of a spatial "
+  "object.</text--->"
   "<text> query size(line)</text--->"
   ") )";
 
 const string SpatialSpecTouchpoints  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(line||region x region) -> points</text--->"
-  "<text> touchpoints(_, _) </text--->"
+  "<text> touchpoints( _, _ ) </text--->"
   "<text> return the touch points of a region and another "
   "region or line.</text--->"
   "<text> query touchpoints(line, region)</text--->"
@@ -19437,7 +19770,7 @@ const string SpatialSpecTouchpoints  =
 const string SpatialSpecCommonborder  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(region x region) -> line</text--->"
-  "<text> commonborder(_, _ )</text--->"
+  "<text> commonborder( _, _ )</text--->"
   "<text> return the common border of two regions.</text--->"
   "<text> query commonborder(region1, region2)</text--->"
   ") )";
@@ -19446,7 +19779,7 @@ const string SpatialSpecTranslate  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(point||points||line||region x real x real) -> "
   "point||points||line||region</text--->"
-  "<text> _ translate[list]</text--->"
+  "<text> _ translate[ dx, dy ]</text--->"
   "<text> move the object parallely for some distance.</text--->"
   "<text> query region1 translate[3.5, 15.1]</text--->"
   ") )";
@@ -19455,15 +19788,15 @@ const string SpatialSpecRotate  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>(point||points||line||region x real x real x real) -> "
   "point||points||line||region</text--->"
-  "<text> _ translate[ x y theta]</text--->"
-  "<text> rotates the spatial object around (x,y) theta degree</text--->"
+  "<text> _ translate[ x, y, theta ]</text--->"
+  "<text> rotates the spatial object by 'theta' degrees around (x,y) </text--->"
   "<text> query region1 rotate[3.5, 15.1, 10.0]</text--->"
   ") )";
 
 const string SpatialSpecCenter  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text> points -> point </text--->"
-  "<text> center(_) </text--->"
+  "<text> center( _ ) </text--->"
   "<text> computes the center of the points value</text--->"
   "<text> query center(vertices(tiergarten))</text--->"
   ") )";
@@ -19471,7 +19804,7 @@ const string SpatialSpecCenter  =
 const string SpatialSpecConvexhull  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text> points -> region </text--->"
-  "<text> convexhull(_) </text--->"
+  "<text> convexhull( _ ) </text--->"
   "<text> computes the convex hull of the points value</text--->"
   "<text> query convexhull(vertices(tiergarten))</text--->"
   ") )";
@@ -19480,7 +19813,7 @@ const string SpatialSpecAdd  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
   "( <text>point x point -> point</text--->"
   "<text> _ + _</text--->"
-  "<text> Returns the vector addition for two points.</text--->"
+  "<text> Returns the vector sum of two points.</text--->"
   "<text> query [const point value (0.0 -1.2)] + "
   "[const point value (-5.0 1.2)] </text--->"
   ") )";
@@ -19512,11 +19845,11 @@ const string SpatialSpecScale  =
 
 const string SpatialSpecComponents  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
-  "( <text>points -> stream(point), region -> "
-  "stream(region), line -> stream(line)</text--->"
+  "( <text>points -> stream(point), region -> stream(region), "
+  "line -> stream(line)</text--->"
   "<text>components( _ )</text--->"
-  "<text>Returns the components of a points or region "
-  "object.</text--->"
+  "<text>Returns the components of a points or region object as a strem."
+  "Both, empty and undefined objects result in empty stream.</text--->"
   "<text>query components(r1) count;</text--->"
   ") )";
 
@@ -19524,7 +19857,8 @@ const string SpatialSpecVertices  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>(region -> points) or (line -> points)</text--->"
   "<text>vertices(_)</text--->"
-  "<text>Returns the vertices of a region or line.</text--->"
+  "<text>Returns the vertices of a region or line as a stream."
+  "Both, empty and undefined objects result in empty stream.</text--->"
   "<text>query vertices(r1)</text--->"
   ") )";
 
@@ -19540,7 +19874,7 @@ const string SpatialSpecAtPoint  =
   "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" )"
   "( <text>sline x point x bool -> real</text--->"
   "<text>atpoint(_, _, _)</text--->"
-  "<text>Returns the relative position of the point in the line."
+  "<text>Returns the relative position of the point on the line."
   "The boolean flag indicates where the positions start, i.e. "
   "from the smaller point (TRUE) or from the bigger one (FALSE)."
   "</text---><text>query atpoint(l, p, TRUE)</text--->"
@@ -19611,7 +19945,7 @@ const string SpatialSpecPolylines  =
     "( <text>line  x bool [ x points] -> stream( line ) </text--->"
     "<text> _  polylines [ _ , _ ] </text--->"
     "<text>Returns a stream of simple line objects "
-    " whose union is the original line. The boolean parameter"
+    "whose union is the original line. The boolean parameter"
     "indicates to ignore critical points as splitpoints.</text--->"
     "<text> query trajectory(train1) polylines [TRUE]  count</text--->"
     ") )";
@@ -19630,9 +19964,9 @@ const string SpatialSpecPolylinesC  =
 const string SpatialSpecSimplify  =
     "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
     "( <text>line  x real [x points] -> line </text--->"
-    "<text> simplify(_,_) </text--->"
-    "<text>Simplifies a line value, the points value marks"
-    " important points </text--->"
+    "<text> simplify( line, epsilon, [, ips ] ) </text--->"
+    "<text>Simplifies a line value, using a maximum error of 'epsilon'. The "
+    "points value 'ips' marks important points, that must be kept. </text--->"
     "<text> query simplify(trajectory(train1),10.0) count</text--->"
     ") )";
 
@@ -19706,7 +20040,8 @@ const string SpatialSpecRealminize  =
      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
      "( <text>line -> line </text--->"
      "<text> realminize( _ )  </text--->"
-     "<text>Returns the realminized argument.</text--->"
+     "<text>Returns the realminized argument: segments are split at each inner "
+     "crosspoint.</text--->"
      "<text>query realminize(train7sections)</text--->"
      ") )";
 
@@ -19737,15 +20072,15 @@ const string SpatialSpecIsCycle  =
 const string utmSpec  =
      "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
      "( <text>t -> t, t in {point, points} </text--->"
-     "<text> utm(_)  </text--->"
-     "<text>projects the arghuments using the utm projection</text--->"
+     "<text> utm( _ )  </text--->"
+     "<text>projects the arguments using the utm projection</text--->"
      "<text>query utm([const point value ( 0 0)])</text--->"
      ") )";
 
 const string gkSpec  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
    "( <text>t -> t, t in {point, points, line, region} </text--->"
-   "<text> gk(_)  </text--->"
+   "<text> gk( _ )  </text--->"
    "<text>projects the arguments using the Gauss Krueger projection</text--->"
    "<text>query gk([const point value ( 0 0)])</text--->"
    ") )";
@@ -19753,38 +20088,39 @@ const string gkSpec  =
 const string SpatialSpecCollectLine  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
    "( <text>stream(T) -> line, T in {point, line, sline} </text--->"
-   "<text> _ collect_line</text--->"
+   "<text> _ collect_line [ IgnoreUndef ]</text--->"
    "<text>Collects a stream of 'line' or 'sline' values into a single 'line' "
    "value. Creates a 'line' value by consecutively connecting subsequent "
    "'point' values from the stream by segments. If the stream provides 0 or 1"
    "Element, the result is defined, but empty.\n"
-   "If any of the stream elemnts is undefined, so is the resulting 'line' "
-   "value.</text--->"
-   "<text>query [const line value ()] feed collect_line)</text--->"
+   "If any of the stream elements is undefined and 'ignoreUndef' is set to "
+   "FALSE, so is the resulting 'line' value.</text--->"
+   "<text>query [const line value ()] feed collect_line [TRUE] )</text--->"
    ") )";
 
 const string SpatialSpecCollectSLine  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
    "( <text>stream(T) -> sline, T in {point, line, sline} </text--->"
-   "<text> _ collect_sline</text--->"
+   "<text> _ collect_sline [ IgnoreUndef ]</text--->"
    "<text>Collects a stream of 'line' or 'sline' values into a single 'line' "
    "value. Creates a 'line' value by consecutively connecting subsequent "
    "'point' values from the stream by segments. If the stream provides 0 or 1"
    "Element, the result is defined, but empty.\n"
-   "If any of the stream elemnts is undefined, so is the resulting 'line' "
-   "value. If any segements cross each other or the segments do not form a "
-   "single curve, the result is undefined.</text--->"
-   "<text>query [const line value ()] feed collect_sline)</text--->"
+   "If any of the stream elemnts is undefined and parameter 'IgnoreUndef' is "
+   "set to FALSE, the resulting 'sline' value is undef. If any segements cross "
+   "each other or the segments do not form a single curve, the result is "
+   "undefined.</text--->"
+   "<text>query [const line value ()] feed collect_sline[TRUE])</text--->"
    ") )";
 
 const string SpatialSpecCollectPoints  =
    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
    "( <text>stream(T) x bool  -> points, T in {point, points} </text--->"
-   "<text> _ collect_points[ _ ] </text--->"
+   "<text> _ collect_points[ IgnoreUndef ] </text--->"
    "<text>Collects a stream of point or points values into a single points "
-   "value. If the bool parameter is set to true, undefined points within the "
-   " stream are ignored. Otherwise the result is set to be undefined if an "
-   " undefined value is inside the stream. </text--->"
+   "value. If the bool parameter 'IgnoreUndef' is set to TRUE, undefined "
+   "points within the  stream are ignored. Otherwise the result is set to be "
+   "undefined if an undefined value is inside the stream. </text--->"
    "<text>query [const points value ()] feed collect_points[true])</text--->"
    ") )";
 
@@ -20496,7 +20832,3 @@ InitializeSpatialAlgebra( NestedList* nlRef, QueryProcessor* qpRef )
   qp = qpRef;
   return (new SpatialAlgebra());
 }
-
-
-
-

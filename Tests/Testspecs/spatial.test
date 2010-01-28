@@ -1,6 +1,6 @@
 #This file is part of SECONDO.
 #
-#Copyright (C) 2004, University in Hagen, Department of Computer Science, 
+#Copyright (C) 2004, University in Hagen, Department of Computer Science,
 #Database Systems for New Applications.
 #
 #SECONDO is free software; you can redistribute it and/or modify
@@ -114,66 +114,66 @@ create regionrel: rel(tuple([no: int, r: region]));
 update regionrel := [const rel(tuple([no: int, r: region])) value
 (
   (1 ())
-  (2 ((((0.44530005310674453 0.9218761854184053) 
+  (2 ((((0.44530005310674453 0.9218761854184053)
         (0.25 0.80)
         (0.25 0.75)
-        (0.4203683332068887 0.7586867460738942) 
+        (0.4203683332068887 0.7586867460738942)
         (0.37277141339807296 0.7020237463014946)
-        (0.45889917305212047 0.624962066611031) 
+        (0.45889917305212047 0.624962066611031)
         (0.6538198922691754 0.7224224262195584)
-        (0.5948903725058797 0.8674797056369016) 
+        (0.5948903725058797 0.8674797056369016)
         (0.6764850921781352 0.9672065852363251)
         (0.4974300128973522 0.8697462256277976)))))
-  (3 ((((0.04081632653061224 0.1683673469387755) 
+  (3 ((((0.04081632653061224 0.1683673469387755)
         (0.10204081632653061 0.42857142857142855)
-        (0.3469387755102041 0.34183673469387754) 
+        (0.3469387755102041 0.34183673469387754)
         (0.20408163265306123 0.24489795918367346)
-        (0.30612244897959184 0.15816326530612246) 
+        (0.30612244897959184 0.15816326530612246)
         (0.1377551020408163 0.05612244897959184)))))
-  (4 ((((0.6224489795918368 0.5051020408163265) 
+  (4 ((((0.6224489795918368 0.5051020408163265)
         (0.6887755102040817 0.6530612244897959)
-        (0.923469387755102 0.6071428571428571) 
+        (0.923469387755102 0.6071428571428571)
         (0.9540816326530612 0.39285714285714285)
-        (0.8316326530612245 0.3163265306122449) 
+        (0.8316326530612245 0.3163265306122449)
         (0.9387755102040817 0.14285714285714285)
-        (0.8010204081632653 0.07653061224489796)   
+        (0.8010204081632653 0.07653061224489796)
         (0.5561224489795918 0.17857142857142858)
-        (0.6938775510204082 0.3010204081632653) 
+        (0.6938775510204082 0.3010204081632653)
         (0.5663265306122449 0.42346938775510207)
         (0.5357142857142857 0.5867346938775511)))))
-  (5 ((((0.10204081632653061 0.6428571428571429) 
+  (5 ((((0.10204081632653061 0.6428571428571429)
         (0.19387755102040816 0.9081632653061225)
-        (0.5255102040816326 0.8316326530612245) 
+        (0.5255102040816326 0.8316326530612245)
         (0.826530612244898 0.8520408163265306)
-        (0.7142857142857143 0.7040816326530612) 
+        (0.7142857142857143 0.7040816326530612)
         (0.9387755102040817 0.6377551020408163)
-        (0.8010204081632653 0.4744897959183674) 
+        (0.8010204081632653 0.4744897959183674)
         (0.9336734693877551 0.2755102040816326)
-        (0.6479591836734694 0.061224489795918366) 
+        (0.6479591836734694 0.061224489795918366)
         (0.6173469387755102 0.3010204081632653)
-        (0.3877551020408163 0.12244897959183673) 
+        (0.3877551020408163 0.12244897959183673)
         (0.3112244897959184 0.23469387755102042)
-        (0.2193877551020408 0.061224489795918366) 
+        (0.2193877551020408 0.061224489795918366)
         (0.0 0.11734693877551021)
-        (0.15306122448979592 0.17346938775510204) 
+        (0.15306122448979592 0.17346938775510204)
         (0.04591836734693878 0.34183673469387754)
-        (0.3163265306122449 0.37244897959183676) 
+        (0.3163265306122449 0.37244897959183676)
         (0.2857142857142857 0.5561224489795918)
         (0.1326530612244898 0.39285714285714285)))))
   (6 ((((0.061224489795918366 0.7959183673469388)
-        (0.413265306122449 0.9438775510204082) 
+        (0.413265306122449 0.9438775510204082)
         (0.3979591836734694 0.6224489795918368)
-        (0.9591836734693877 0.7295918367346939) 
+        (0.9591836734693877 0.7295918367346939)
         (0.7602040816326531 0.32653061224489793)
-        (0.9744897959183674 0.45918367346938777) 
+        (0.9744897959183674 0.45918367346938777)
         (0.7755102040816326 0.05612244897959184)
-        (0.413265306122449 0.061224489795918366) 
+        (0.413265306122449 0.061224489795918366)
         (0.6632653061224489 0.20918367346938777)
-        (0.6326530612244898 0.4744897959183674) 
+        (0.6326530612244898 0.4744897959183674)
         (0.3469387755102041 0.08673469387755102)
-        (0.04081632653061224 0.25510204081632654) 
+        (0.04081632653061224 0.25510204081632654)
         (0.336734693877551 0.3469387755102041)
-        (0.04081632653061224 0.5969387755102041) 
+        (0.04081632653061224 0.5969387755102041)
         (0.20408163265306123 0.673469387755102)))))
   (7 ((((0.10204081632653061 0.42857142857142855)
         (0.3469387755102041 0.34183673469387754)
@@ -211,84 +211,84 @@ query regionrel feed filter[isempty(.r)] count;
 
 #testcase equal_pp
 #yields (bool TRUE)
-query pointrel feed {a} pointrel feed {b} symmjoin[.p_a = ..p_b] count = 
+query pointrel feed {a} pointrel feed {b} symmjoin[.p_a = ..p_b] count =
       pointrel count - 1;
 
 #testcase equal_psps
 #yields (bool TRUE)
-query pointsrel feed {a} pointsrel feed {b} symmjoin[.ps_a = ..ps_b] count = 
+query pointsrel feed {a} pointsrel feed {b} symmjoin[.ps_a = ..ps_b] count =
       pointsrel count;
 
 #testcase equal_ll
 #yields (bool TRUE)
-query linerel feed {a} linerel feed {b} symmjoin[.l_a = ..l_b] count = 
+query linerel feed {a} linerel feed {b} symmjoin[.l_a = ..l_b] count =
       linerel count;
 
 #testcase equal_rr
 #yields (bool TRUE)
-query regionrel feed {a} regionrel feed {b} symmjoin[.r_a = ..r_b] count = 
+query regionrel feed {a} regionrel feed {b} symmjoin[.r_a = ..r_b] count =
       regionrel count;
 
 
 #testcase notequal_pp
 #yields (bool TRUE)
-query pointrel feed {a} pointrel feed {b} symmjoin[.p_a # ..p_b] count = 
-      pointrel feed {a} pointrel feed {b} product filter[(not (isempty(.p_a))) and (not (isempty(.p_b)))] count - 
+query pointrel feed {a} pointrel feed {b} symmjoin[.p_a # ..p_b] count =
+      pointrel feed {a} pointrel feed {b} product filter[(not (isempty(.p_a))) and (not (isempty(.p_b)))] count -
       pointrel feed {a} pointrel feed {b} symmjoin[.p_a = ..p_b] count;
 
 #testcase notequal_psps
 #yields (bool TRUE)
-query pointsrel feed {a} pointsrel feed {b} symmjoin[.ps_a # ..ps_b] count = 
-      pointsrel feed {a} pointsrel feed {b} product count - 
+query pointsrel feed {a} pointsrel feed {b} symmjoin[.ps_a # ..ps_b] count =
+      pointsrel feed {a} pointsrel feed {b} product count -
       pointsrel feed {a} pointsrel feed {b} symmjoin[.ps_a = ..ps_b] count;
 
 #testcase notequal_ll
 #yields (bool TRUE)
-query linerel feed {a} linerel feed {b} symmjoin[.l_a # ..l_b] count = 
-      linerel feed {a} linerel feed {b} product count - 
+query linerel feed {a} linerel feed {b} symmjoin[.l_a # ..l_b] count =
+      linerel feed {a} linerel feed {b} product count -
       linerel feed {a} linerel feed {b} symmjoin[.l_a = ..l_b] count;
 
 #testcase notequal_rr
 #yields (bool TRUE)
-query regionrel feed {a} regionrel feed {b} symmjoin[.r_a # ..r_b] count = 
-      regionrel feed {a} regionrel feed {b} product count - 
+query regionrel feed {a} regionrel feed {b} symmjoin[.r_a # ..r_b] count =
+      regionrel feed {a} regionrel feed {b} product count -
       regionrel feed {a} regionrel feed {b} symmjoin[.r_a = ..r_b] count;
 
 
 #testcase intersects_psps
-#yields (int 20)
+#yields (int 19)
 query pointsrel feed {a} pointsrel feed {b} symmjoin[.ps_a intersects ..ps_b] count;
 
 #testcase intersects_psl
-#yields (int 30)
+#yields (int 29)
 query pointsrel feed {a} linerel feed {b} symmjoin[.ps_a intersects ..l_b] count;
 
 #testcase intersects_lps
-#yields (int 30)
+#yields (int 29)
 query linerel feed {a} pointsrel feed {b} symmjoin[.l_a intersects ..ps_b] count;
 
 #testcase intersects_psr
-#yields (int 17)
+#yields (int 16)
 query pointsrel feed {a} regionrel feed {b} symmjoin[.ps_a intersects ..r_b] count;
 
 #testcase intersects_rps
-#yields (int 17)
+#yields (int 16)
 query regionrel feed {a} pointsrel feed {b} symmjoin[.r_a intersects ..ps_b] count;
 
 #testcase intersects_ll
-#yields (int 29)
+#yields (int 28)
 query linerel feed {a} linerel feed {b} symmjoin[.l_a intersects ..l_b] count;
 
 #testcase intersects_lr
-#yields (int 35)
+#yields (int 34)
 query linerel feed {a} regionrel feed {b} symmjoin[.l_a intersects ..r_b] count;
 
 #testcase intersects_rl
-#yields (int 35)
+#yields (int 34)
 query regionrel feed {a} linerel feed {b} symmjoin[.r_a intersects ..l_b] count;
 
 #testcase intersects_rr
-#yields (int 44)
+#yields (int 43)
 query regionrel feed {a} regionrel feed {b} symmjoin[.r_a intersects ..r_b] count;
 
 #testcase inside_pps
@@ -308,7 +308,7 @@ query pointrel feed {a} regionrel feed {b} symmjoin[.p_a inside ..r_b] count;
 query pointsrel feed {a} pointsrel feed {b} symmjoin[.ps_a inside ..ps_b] count;
 
 #testcase inside_psl
-#yields (int 8)
+#yields (int 14)
 query pointsrel feed {a} linerel feed {b} symmjoin[.ps_a inside ..l_b] count;
 
 #testcase inside_lps
@@ -316,7 +316,7 @@ query pointsrel feed {a} linerel feed {b} symmjoin[.ps_a inside ..l_b] count;
 query linerel feed {a} pointsrel feed {b} symmjoin[.l_a inside ..ps_b] count;
 
 #testcase inside_psr
-#yields (int 12)
+#yields (int 19)
 query pointsrel feed {a} regionrel feed {b} symmjoin[.ps_a inside ..r_b] count;
 
 #testcase inside_rps
@@ -324,11 +324,11 @@ query pointsrel feed {a} regionrel feed {b} symmjoin[.ps_a inside ..r_b] count;
 query regionrel feed {a} pointsrel feed {b} symmjoin[.r_a inside ..ps_b] count;
 
 #testcase inside_ll
-#yields (int 10)
+#yields (int 16)
 query linerel feed {a} linerel feed {b} symmjoin[.l_a inside ..l_b] count;
 
 #testcase inside_lr
-#yields (int 7)
+#yields (int 14)
 query linerel feed {a} regionrel feed {b} symmjoin[.l_a inside ..r_b] count;
 
 #testcase inside_rl
@@ -336,7 +336,7 @@ query linerel feed {a} regionrel feed {b} symmjoin[.l_a inside ..r_b] count;
 query regionrel feed {a} linerel feed {b} symmjoin[.r_a inside ..l_b] count;
 
 #testcase inside_rr
-#yields (int 14)
+#yields (int 21)
 query regionrel feed {a} regionrel feed {b} symmjoin[.r_a inside ..r_b] count;
 
 #testcase adjacent_psr
@@ -367,7 +367,7 @@ query regionrel feed {a} regionrel feed {b} symmjoin[.r_a overlaps ..r_b] count;
 #yields (bool TRUE)
 query regionrel feed {a} regionrel feed {b} symmjoin[.r_a overlaps ..r_b] count =
       ((regionrel feed {a} regionrel feed {b} symmjoin[.r_a intersects ..r_b] count -
-      regionrel feed {a} regionrel feed {b} symmjoin[.r_a adjacent ..r_b] count) - 1);
+      regionrel feed {a} regionrel feed {b} symmjoin[.r_a adjacent ..r_b] count) );
 
 #testcase onborder_pr
 #yields (int 17)
@@ -380,7 +380,7 @@ query pointrel feed {a} regionrel feed {b} symmjoin[.p_a ininterior ..r_b] count
 #testcase onborder_ininterior_pr
 #yields (bool TRUE)
 query pointrel feed {a} regionrel feed {b} symmjoin[.p_a inside ..r_b] count =
-      (pointrel feed {a} regionrel feed {b} symmjoin[.p_a onborder ..r_b] count + 
+      (pointrel feed {a} regionrel feed {b} symmjoin[.p_a onborder ..r_b] count +
        pointrel feed {a} regionrel feed {b} symmjoin[.p_a ininterior ..r_b] count);
 
 #testcase intersection_pp
@@ -470,8 +470,8 @@ query (pointrel feed {a} regionrel feed {b} symmjoin[ (.p_a minus ..r_b) = .p_a 
       pointrel feed {a} regionrel feed {b} symmjoin[ TRUE ] count;
 
 #testcase minus_psp
-#yields (int 379)
-query pointsrel feed {a} pointrel feed {b} product extend[n: no_components(.ps_a minus .p_b)] sum[n];
+#yields (int 8)
+query pointsrel feed {a} pointrel feed {b} product extend[na: no_components(.ps_a), n1: no_components(.ps_a) - ifthenelse(isempty(intersection(.p_b,.ps_a)) and (not(isdefined(intersection(.p_b,.ps_a)))),0,1), n2: no_components(.ps_a minus .p_b)] filter[.n1 # .n2] count
 
 #testcase minus_psps
 #yields (int 89)
@@ -487,38 +487,36 @@ query pointsrel feed {a} regionrel feed {b} product extend[n: no_components(.ps_
 
 #testcase minus_lp
 #yields (bool TRUE)
-query linerel feed {a} pointrel feed {b} symmjoin[ (.l_a minus ..p_b) = .l_a ] count = 
-      (linerel count) * (pointrel count);
+query linerel feed {a} pointrel feed {b} symmjoin[ (.l_a minus ..p_b) = .l_a ] count =
+      (((linerel count) * (pointrel count)) - 7);
 
 #testcase minus_lps
 #yields (bool TRUE)
-query linerel feed {a} pointsrel feed {b} symmjoin[ (.l_a minus ..ps_b) = .l_a ] count = 
+query linerel feed {a} pointsrel feed {b} symmjoin[ (.l_a minus ..ps_b) = .l_a ] count =
       (linerel count) * (pointsrel count);
 
 #testcase minus_rp
 #yields (bool TRUE)
-query regionrel feed {a} pointrel feed {b} symmjoin[ (.r_a minus ..p_b) = .r_a ] count = 
-      (regionrel count) * (pointrel count);
+query regionrel feed {a} pointrel feed {b} symmjoin[ (.r_a minus ..p_b) = .r_a ] count =
+      (((regionrel count) * (pointrel count)) - 8);
 
 #testcase minus_rps
 #yields (bool TRUE)
-query regionrel feed {a} pointsrel feed {b} symmjoin[ (.r_a minus ..ps_b) = .r_a ] count = 
+query regionrel feed {a} pointsrel feed {b} symmjoin[ (.r_a minus ..ps_b) = .r_a ] count =
       (regionrel count) * (pointsrel count);
 
 #testcase minus_rl
 #yields (bool TRUE)
-query regionrel feed {a} linerel feed {b} symmjoin[ (.r_a minus ..l_b) = .r_a ] count = 
+query regionrel feed {a} linerel feed {b} symmjoin[ (.r_a minus ..l_b) = .r_a ] count =
       (regionrel count) * (linerel count);
 
 #testcase union_pps
 #yields (int 29)
-query no_components(pointrel feed {a} pointsrel feed {b} product extend[ps: .p_a union .ps_b] 
-                    aggregate[ps; fun(ps1: points, ps2: points) ps1 union ps2; [const points value ()]]); 
+query no_components(pointrel feed {a} pointsrel feed {b} product extend[ps: .p_a union .ps_b] filter[isdefined(.ps)] aggregate[ps; fun(ps1: points, ps2: points) ps1 union ps2; [const points value ()]]);
 
 #testcase union_psp
 #yields (int 29)
-query no_components(pointsrel feed {a} pointrel feed {b} product extend[ps: .ps_a union .p_b] 
-                    aggregateB[ps; fun(ps1: points, ps2: points) ps1 union ps2; [const points value ()]]); 
+query no_components(pointsrel feed {a} pointrel feed {b} product extend[ps: .ps_a union .p_b] filter[isdefined(.ps)] aggregateB[ps; fun(ps1: points, ps2: points) ps1 union ps2; [const points value ()]]);
 
 #testcase union_psps
 #yields (int 9)
@@ -530,19 +528,19 @@ query no_components(pointsrel feed aggregateB[ps; fun(ps1: points, ps2: points) 
 
 #testcase setoperators_psps
 #yields (bool TRUE)
-query pointsrel feed {a} pointsrel feed {b} 
+query pointsrel feed {a} pointsrel feed {b}
   symmjoin[ no_components((.ps_a minus ..ps_b) union intersection(.ps_a, ..ps_b)) = no_components(.ps_a) ] count =
       ( (pointsrel count) * (pointsrel count) );
 
 #testcase setoperators_psl
 #yields (bool TRUE)
-query pointsrel feed {a} linerel feed {b} 
+query pointsrel feed {a} linerel feed {b}
   symmjoin[ no_components((.ps_a minus ..l_b) union intersection(.ps_a, ..l_b)) = no_components(.ps_a) ] count =
       ( (pointsrel count) * (linerel count) );
 
 #testcase setoperators_psr
 #yields (bool TRUE)
-query pointsrel feed {a} regionrel feed {b} 
+query pointsrel feed {a} regionrel feed {b}
   symmjoin[ no_components((.ps_a minus ..r_b) union intersection(.ps_a, ..r_b)) = no_components(.ps_a) ] count =
       ( (pointsrel count) * (regionrel count) );
 
@@ -554,7 +552,7 @@ query pointsrel feed {a} regionrel feed {b}
 #yields (bool TRUE)
 query regionrel feed {a} regionrel feed {b} symmjoin[.no_a # ..no_b] extend[l: commonborder(.r_a, .r_b)]
   filter[ (isempty(.l)) or ((.l adjacent .r_a) and (.l adjacent .r_b)) ]
-  count = (regionrel count) * ((regionrel count) - 1); 
+  count = (regionrel count) * ((regionrel count) - 1);
 
 #testcase single_ps
 #yields (int 2)
@@ -568,7 +566,7 @@ query pointsrel feed {a} pointrel feed {b} symmjoin[single(.ps_a) = ..p_b] count
 query pointrel feed {a} pointrel feed {b} symmjoin[.no_a # ..no_b] extend[d: distance(.p_a, .p_b)] min[d];
 
 #testcase distance_pp
-#yields (real 1.41421) 
+#yields (real 1.41421)
 query pointrel feed {a} pointrel feed {b} symmjoin[.no_a # ..no_b] extend[d: distance(.p_a, .p_b)] max[d];
 
 #testcase distance_pps
@@ -576,7 +574,7 @@ query pointrel feed {a} pointrel feed {b} symmjoin[.no_a # ..no_b] extend[d: dis
 query pointrel feed {a} pointsrel feed {b} symmjoin[not(.p_a inside ..ps_b)] extend[d: distance(.p_a, .ps_b)] min[d];
 
 #testcase distance_pps
-#yields (real 1.41421) 
+#yields (real 1.41421)
 query pointrel feed {a} pointsrel feed {b} symmjoin[.no_a # ..no_b] extend[d: distance(.p_a, .ps_b)] max[d];
 
 #testcase distance_psp
@@ -584,7 +582,7 @@ query pointrel feed {a} pointsrel feed {b} symmjoin[.no_a # ..no_b] extend[d: di
 query pointsrel feed {a} pointrel feed {b} symmjoin[not(..p_b inside .ps_a)] extend[d: distance(.ps_a, .p_b)] min[d];
 
 #testcase distance_psp
-#yields (real 1.41421) 
+#yields (real 1.41421)
 query pointsrel feed {a} pointrel feed {b} symmjoin[.no_a # ..no_b] extend[d: distance(.ps_a, .p_b)] max[d];
 
 #testcase distance_pl
@@ -624,7 +622,7 @@ query pointrel feed {a} regionrel feed {b} symmjoin[not(.p_a inside ..r_b)] exte
 query pointsrel feed {a} pointsrel feed {b} symmjoin[not(.ps_a intersects ..ps_b)] extend[d: distance(.ps_a, .ps_b)] min[d];
 
 #testcase distance_psps
-#yields (real 1.41421) 
+#yields (real 1.41421)
 query pointsrel feed {a} pointsrel feed {b} symmjoin[not(.ps_a intersects ..ps_b)] extend[d: distance(.ps_a, .ps_b)] max[d];
 
 #testcase distance_psl
@@ -716,27 +714,27 @@ query linerel feed extend[p: atposition(fromline(.l), 0.0, FALSE)] project[p] co
 query linerel feed extend[p: atposition(fromline(.l), size(.l), TRUE)] project[p] consume;
 
 #testcase atposition_l
-#yields ((rel (tuple ((p point)))) ((undef) ((0.5732233 0.3232233)) ((0.4309017 0.207295)) ((0.0 0.75)) ((0.75 0.625)) (undef) (undef))) 
+#yields ((rel (tuple ((p point)))) ((undef) ((0.5732233 0.3232233)) ((0.4309017 0.207295)) ((0.0 0.75)) ((0.75 0.625)) (undef) (undef)))
 query linerel feed extend[p: atposition(fromline(.l), (size(.l)/2), TRUE)] project[p] consume;
 
 #testcase atposition_l
-#yields ((rel (tuple ((p point)))) ((undef) ((0.5732233 0.3232233)) ((0.4309017 0.207295)) ((0.0 0.75)) ((0.75 0.625)) (undef) (undef))) 
+#yields ((rel (tuple ((p point)))) ((undef) ((0.5732233 0.3232233)) ((0.4309017 0.207295)) ((0.0 0.75)) ((0.75 0.625)) (undef) (undef)))
 query linerel feed extend[p: atposition(fromline(.l), (size(.l)/2), FALSE)] project[p] consume;
 
 #testcase atpoint_l
-#yields ((rel (tuple ((r real)))) ((undef) (0.0) (undef) (undef) (undef) (undef) (undef))) 
+#yields ((rel (tuple ((r real)))) ((undef) (0.0) (undef) (undef) (undef) (undef) (undef)))
 query linerel feed extend[r: atpoint(fromline(.l), [const point value (0.0 0.0)], TRUE)] project[r] consume;
 
 #testcase atpoint_l
-#yields ((rel (tuple ((r real)))) ((undef) (2.32514) (undef) (undef) (undef) (undef) (undef))) 
+#yields ((rel (tuple ((r real)))) ((undef) (2.32514) (undef) (undef) (undef) (undef) (undef)))
 query linerel feed extend[r: atpoint(fromline(.l), [const point value (0.0 0.0)], FALSE)] project[r] consume;
 
 #testcase atpoint_l
-#yields ((rel (tuple ((p point)))) ((undef) ((0.3333333333333333 0.5)) ((0.3333333333333333 0.5)) (undef) (undef) (undef) (undef))) 
+#yields ((rel (tuple ((p point)))) ((undef) ((0.3333333333333333 0.5)) ((0.3333333333333333 0.5)) (undef) (undef) (undef) (undef)))
 query linerel feed extend[p: atposition(fromline(.l), atpoint(fromline(.l), [const point value (0.3333333333333333 0.5)], TRUE), TRUE)] project[p] consume;
 
 #testcase atpoint_l
-#yields ((rel (tuple ((p point)))) ((undef) ((0.3333333333333333 0.5)) ((0.3333333333333333 0.5)) (undef) (undef) (undef) (undef))) 
+#yields ((rel (tuple ((p point)))) ((undef) ((0.3333333333333333 0.5)) ((0.3333333333333333 0.5)) (undef) (undef) (undef) (undef)))
 query linerel feed extend[p: atposition(fromline(.l), atpoint(fromline(.l), [const point value (0.3333333333333333 0.5)], FALSE), FALSE)] project[p] consume;
 
 #teardown

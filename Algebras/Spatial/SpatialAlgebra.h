@@ -603,7 +603,7 @@ Returns the bounding box that spatially contains all points.
 */
     inline bool IsEmpty() const;
 /*
-Returns whether the set is empty of not.
+Returns true iff the set is undefined or empty.
 
 */
     bool IsValid() const;
@@ -1146,7 +1146,16 @@ this attibute is ignored.
 */
 struct AttrType
 {
-  inline AttrType() {}
+  inline AttrType() { }
+
+  inline AttrType( int dummy ) :
+    faceno(-999999),
+    cycleno(-999999),
+    edgeno(-999999),
+    coverageno(-999999),
+    insideAbove(false),
+    partnerno(-999999){ }
+
 /*
 The simple constructor.
 
@@ -1165,9 +1174,12 @@ The copy constructor.
 */
   inline AttrType& operator=( const AttrType& at )
   {
-    faceno = at.faceno; cycleno = at.cycleno;
-    edgeno = at.edgeno; coverageno = at.coverageno;
-    insideAbove = at.insideAbove; partnerno = at.partnerno;
+    faceno = at.faceno;
+    cycleno = at.cycleno;
+    edgeno = at.edgeno;
+    coverageno = at.coverageno;
+    insideAbove = at.insideAbove;
+    partnerno = at.partnerno;
     return *this;
   }
 /*
@@ -1632,7 +1644,7 @@ Sets the bounding box of the line.
 */
     inline bool IsEmpty() const;
 /*
-Returns whether the line value is empty.
+Returns true iff the line is undefined or empty.
 
 */
     inline int Size() const;
@@ -1823,7 +1835,7 @@ is the ~points~ result size.
 6.4.5 Operation ~Crossings~
 
 This operation returns all internal crossing nodes, i.e. all
-points where more than 2 segments have a common endpoint. 
+points where more than 2 segments have a common endpoint.
 
 */
 
@@ -2683,7 +2695,7 @@ bool Find( const Point& p, int& pos, const bool& exact = false ) const {
  bool Find( const LRS& lrs, int& pos ) const {
    assert( IsOrdered() );
 
-   if( IsEmpty()  || ! IsDefined()){
+   if( IsEmpty() ){ // subsumes !IsDefined()
      return false;
    }
 
@@ -3933,11 +3945,19 @@ inline Point::Point( const Point& p ) :
 inline const Rectangle<2> Point::BoundingBox() const
 {
   assert( IsDefined() );
-  return Rectangle<2>( true,
-                       x - ApplyFactor(x),
-                       x + ApplyFactor(x),
-                       y - ApplyFactor(y),
-                       y + ApplyFactor(y) );
+  if( IsDefined() ) {
+    return Rectangle<2>( true,
+                        x - ApplyFactor(x),
+                        x + ApplyFactor(x),
+                        y - ApplyFactor(y),
+                        y + ApplyFactor(y) );
+  } else {
+    return Rectangle<2>( false,
+                         0.0,
+                         0.0,
+                         0.0,
+                         0.0);
+  }
 }
 
 inline void Point::Set( const Coord& x, const Coord& y )
@@ -3950,6 +3970,9 @@ inline void Point::Set( const Coord& x, const Coord& y )
 inline Point Point::Add( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
+  if( !IsDefined() || !p.IsDefined() ) {
+    return Point( false, 0.0, 0.0 );
+  }
   return Point( true, this->x + p.x, this->y + p.y );
 }
 
@@ -3989,10 +4012,13 @@ inline bool Point::operator<=( const Point& p ) const
 inline bool Point::operator<( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
+  if( !IsDefined() )
+    return p.IsDefined();
+  if ( !p.IsDefined() )
+    return false;
   bool eqx = AlmostEqual(x,p.x);
   return (!eqx && (x < p.x) ) ||
          (eqx && !AlmostEqual(y,p.y) && (y < p.y));
-
  //  return x < p.x || (x == p.x && y < p.y); // changed by TB
 }
 
@@ -4004,6 +4030,10 @@ inline bool Point::operator>=( const Point& p ) const
 inline bool Point::operator>( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
+  if( !p.IsDefined() )
+    return IsDefined();
+  if ( !IsDefined() )
+    return false;
   bool eqx = AlmostEqual(x,p.x);
   return (!eqx && (x > p.x)) ||
          (eqx && !AlmostEqual(y,p.y) && (y>p.y));
@@ -4016,19 +4046,19 @@ inline bool Point::operator>( const Point& p ) const
 inline Point Point::operator+( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
-  return Point( true, x + p.x, y + p.y );
+  return Point( (IsDefined() && p.IsDefined()), x + p.x, y + p.y );
 }
 
 inline Point Point::operator-( const Point& p ) const
 {
   assert( IsDefined() && p.IsDefined() );
-  return Point( true, x - p.x, y - p.y );
+  return Point( (IsDefined() && p.IsDefined()), x - p.x, y - p.y );
 }
 
 inline Point Point::operator*( const double d ) const
 {
   assert( IsDefined() );
-  return Point( true, x * d, y * d );
+  return Point( IsDefined(), x * d, y * d );
 }
 
 inline size_t Point::Sizeof() const
@@ -4061,11 +4091,13 @@ points( ps.Size() ),
 bbox( ps.BoundingBox() ),
 ordered( true )
 {
-  assert( ps.IsOrdered() );
-  points.copyFrom(ps.points);
   del.refs=1;
   del.isDelete=true;
   del.isDefined = ps.del.isDefined;
+  if( del.isDefined ) {
+    assert( ps.IsOrdered() );
+    points.copyFrom(ps.points);
+  }
 }
 
 inline const Rectangle<2> Points::BoundingBox() const
@@ -4075,6 +4107,7 @@ inline const Rectangle<2> Points::BoundingBox() const
 
 inline bool Points::Get( const int i, Point& p ) const
 {
+  assert( IsDefined() );
   return points.Get( i, &p );
 }
 
@@ -4159,7 +4192,8 @@ HalfSegment::HalfSegment( bool ldp,
                           const Point& rp ):
 ldp( ldp ),
 lp( lp ),
-rp( rp )
+rp( rp ),
+attr(-99999)
 {
   assert(lp.IsDefined());
   assert(rp.IsDefined());
@@ -4282,6 +4316,7 @@ HalfSegment::AtPosition( double pos ) const
 inline double
 HalfSegment::AtPoint( const Point& p ) const
 {
+  assert( p.IsDefined() );
   assert( Contains( p ) );
   if( AlmostEqual( rp.GetX(), lp.GetX() ) &&
       AlmostEqual( p.GetX(), rp.GetX() ) )
@@ -4316,7 +4351,7 @@ length( 0.0 ),
 currentHS( -1 )
 { del.refs=1;
   del.isDelete=true;
-del.isDefined=true;
+  del.isDefined=true;
 }
 
 inline Line::Line( const Line& cl ) :
@@ -4327,11 +4362,13 @@ noComponents( cl.noComponents ),
 length( cl.length ),
 currentHS ( cl.currentHS)
 {
-  assert( cl.IsOrdered());
-  line.copyFrom(cl.line);
   del.refs=1;
   del.isDelete=true;
   del.isDefined = cl.IsDefined();
+  if(!del.isDefined)
+    return;
+  assert( cl.IsOrdered() );
+  line.copyFrom(cl.line);
 }
 
 inline void Line::Destroy()
@@ -4358,6 +4395,7 @@ inline void Line::SetLength( double length )
 
 inline double Line::Length() const
 {
+  assert( IsDefined() );
   return length;
 }
 
@@ -4393,6 +4431,7 @@ inline int Line::Size() const
 
 inline void Line::Get( const int i, HalfSegment& hs ) const
 {
+  assert( IsDefined() );
   assert(i>=0);
   assert(i<line.Size());
   line.Get( i, &hs );
@@ -4410,6 +4449,7 @@ inline void Line::TrimToSize(){
 
 inline void Line::Put( const int i, const HalfSegment& hs )
 {
+  assert( IsDefined() );
   line.Put( i, hs );
 }
 
@@ -4434,6 +4474,7 @@ inline bool Line::EndOfHs() const
 
 inline bool Line::GetHs(  HalfSegment& hs ) const
 {
+  assert( IsDefined() );
   if( pos >= 0 && pos <= Size()-1 )
   {
     line.Get( pos, &hs );
@@ -4523,6 +4564,7 @@ inline bool Region::EndOfHs() const
 
 inline bool Region::GetHs(HalfSegment& hs ) const
 {
+  assert( IsDefined() );
   if( pos >= 0 && pos <= Size()-1 )
   {
     region.Get( pos, &hs );
@@ -4578,6 +4620,10 @@ public:
   ~UTM(){}
 
   bool operator()(const Point& src, Point& res){
+     if(!src.IsDefined() ){
+       res.SetDefined(false);
+       return false;
+     }
      double bw(src.GetX());
      double lw(src.GetY());
      if(bw<-180 || bw>180 || lw<-90 || lw>90){
