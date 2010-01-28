@@ -164,7 +164,7 @@ query units(zug5) transformstream extend[no: randint(1000)] sortby[no asc] proje
 query deftime(up1)
 
 #testcase deftime_undef
-#yields (periods ( ) )
+#yields (periods undef)
 query deftime(up3)
 
 #testcase atinstant up1
@@ -1324,7 +1324,7 @@ query always(ubool2)
 query always(ubool4)
 
 #testcase always Unit UNDEF
-#yields (bool TRUE)
+#yields (bool FALSE)
 query always(ubool3)
 
 #testcase alwaysStream Unit TRUE
