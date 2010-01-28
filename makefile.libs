@@ -46,7 +46,8 @@ LIB_SDBUTILS_BASENAMES:=\
         Tools/Utilities/blowfish \
         Tools/Utilities/md5 \
         Tools/Utilities/Trace \
-        Tools/Flob/FlobManager
+        Tools/Flob/FlobManager \
+        Tools/Flob/PersistentFlobCache 
 
 # The following libraries have interdependencies to Nested lists
 # and Berkeley-DB thus they are only usable in the framework of 

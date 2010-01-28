@@ -16,6 +16,7 @@ of that class.
 #include "assert.h"
 #include <iostream>
 #include "NativeFlobCache.h"
+#include "PersistentFlobCache.h"
 
 #undef __TRACE_ENTER__
 #undef __TRACE_LEAVE__
@@ -33,10 +34,8 @@ of that class.
   */
 FlobManager* FlobManager::instance = 0;
 
-
-
-
-static NativeFlobCache* flobCache = 0;
+static NativeFlobCache* nativeFlobCache = 0;
+static PersistentFlobCache* persistentFlobCache = 0;
 
 /*
  
@@ -77,9 +76,9 @@ and the nativFlobFile is deleted.
 
 */
      FlobManager::~FlobManager(){
-       if(flobCache){
-         delete flobCache;
-         flobCache = 0;
+       if(nativeFlobCache){
+         delete nativeFlobCache;
+         nativeFlobCache = 0;
        }
        if(!nativeFlobFile->Close()){
          std::cerr << "Problem in closing nativeFlobFile" << std::endl;
@@ -99,7 +98,11 @@ and the nativFlobFile is deleted.
        }
        nativeFlobs = 0;
        openFiles.clear();
-
+       // kill persistent Flob cache
+       if(persistentFlobCache){
+         delete persistentFlobCache;
+         persistentFlobCache = 0;
+       }
      }
 
 
@@ -210,6 +213,10 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize){
       return true;
     }
 
+    if(persistentFlobCache && fileId != nativeFlobs){
+      persistentFlobCache->killLastSlot(flob);
+    }
+
     SmiRecord record;
     SmiRecordFile* file = getFile(fileId);
     bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
@@ -224,8 +231,8 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize){
     if( record.Resize(offset+newSize)){ 
        record.Finish();
        flob.size = newSize;
-       if(fileId == nativeFlobs && flobCache){
-          flobCache->resize(flob);
+       if(fileId == nativeFlobs && nativeFlobCache){
+          nativeFlobCache->resize(flob);
        }
        __TRACE_LEAVE__
   //     cout << "Resize successful" << endl;
@@ -257,10 +264,14 @@ bool FlobManager::getData(
   FlobId id = flob.id;
   SmiFileId   fileId =  id.fileId;
 
-  if(fileId == nativeFlobs && !ignoreCache){
-     if(flobCache->getData(flob, dest, offset, size)){
-        return true;
-     }
+  if(!ignoreCache){
+    if(fileId!=nativeFlobs){
+       return persistentFlobCache->getData(flob,dest,offset,size);
+    } else {
+       if(nativeFlobCache->getData(flob, dest, offset, size)){
+         return true;
+       }
+    }
   }
 
 
@@ -320,8 +331,11 @@ bool FlobManager::destroy(Flob& victim) {
    SmiSize offset = id.offset;
 
    if(id.fileId == nativeFlobs){
-      flobCache->erase(victim);
+      nativeFlobCache->erase(victim);
    }
+
+   // possible kill flob from persistent flob cache 
+   // or wait until cache is removed automatically = current state
 
 
    SmiRecordFile* file = getFile(id.fileId);
@@ -525,14 +539,16 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
   SmiRecordId recordId = id.recordId;
   SmiSize     offset = id.offset;
 
-  if(fileId == nativeFlobs){
-     if(!ignoreCache){
-        if(flobCache->putData(dest, buffer, targetoffset, length)){
-           return true;
-        } 
-     } 
-  }
 
+  if(!ignoreCache){
+    if(fileId!=nativeFlobs){
+      return persistentFlobCache->putData(dest, buffer, targetoffset, length);
+    } else {
+      if(nativeFlobCache->putData(dest, buffer, targetoffset, length)){
+        return true;
+      }
+    }
+  }
 
   SmiRecord record;
   SmiRecordFile* file = getFile(fileId);
@@ -578,7 +594,7 @@ Creates a new Flob with a given size which is assigned to a temporal file.
    result.size = size;
 
 
-   flobCache->create(result);
+   nativeFlobCache->create(result);
 
    __TRACE_LEAVE__
    return true;
@@ -642,9 +658,9 @@ return a Flob with persistent storage allocated and defined elsewhere
 */      
 
       Flob FlobManager::createFrom( const SmiFileId& fid,
-		                    const SmiRecordId& rid,
-		                    const SmiSize& offset, 
-		                    const SmiSize& size) {
+                                    const SmiRecordId& rid,
+                                    const SmiSize& offset, 
+                                    const SmiSize& size) {
 
         Flob flob;
         FlobId flob_id(fid, rid, offset);
@@ -679,9 +695,10 @@ by the FlobManager class itself.
 
 
     size_t maxCache = 64 * 1024 * 1024;
-    flobCache = new NativeFlobCache( maxCache);
-   // flobCache = new FlobCache(nativeFlobs, 0);
- 
+    nativeFlobCache = new NativeFlobCache( maxCache);
+
+    size_t maxPCache = 64 * 1024 * 1024;
+    persistentFlobCache = new PersistentFlobCache(maxPCache, 4096);  
 
     __TRACE_LEAVE__
   }

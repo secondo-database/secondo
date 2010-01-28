@@ -54,7 +54,16 @@ class FlobId{
      return fileId == fid.fileId &&
             recordId == fid.recordId &&
             offset   == fid.offset;
-   } 
+   }
+   
+   inline bool operator!=(const FlobId& fid) const{
+     return fileId != fid.fileId ||
+            recordId != fid.recordId ||
+            offset   != fid.offset;
+   }
+
+   
+ 
    inline bool operator>(const FlobId& fid) const{
       if( fileId > fid.fileId) return true;
       if( fileId < fid.fileId) return false;
@@ -71,6 +80,10 @@ class FlobId{
       if(offset < fid.offset) return true;
       return false;
    } 
+
+   inline size_t hashValue() const{
+      return (size_t)(fileId + recordId + offset); 
+   }
 
  private:
    SmiFileId fileId;  

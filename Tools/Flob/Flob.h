@@ -150,12 +150,24 @@ Makes only a flat copy of the source flob.
      return (id == f.id);
    }
 
+   inline bool operator!=(const Flob& f) const{
+     return id != f.id;
+   }
+
    inline bool operator>(const Flob& f) const{
      return id > f.id;
    }
 
    inline bool operator<(const Flob& f) const{
      return id < f.id;
+   }
+
+/*
+~hashValue~
+
+*/
+   inline size_t hashValue() const{
+     return id.hashValue();
    }
 
 

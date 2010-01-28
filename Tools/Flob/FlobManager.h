@@ -22,6 +22,7 @@ class FlobManager{
    friend class Flob;
    friend class FlobCache;
    friend class NativeFlobCache;
+   friend class PersistentFlobCache;
    private:
 /*
  
