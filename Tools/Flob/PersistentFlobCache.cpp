@@ -160,8 +160,11 @@ PersistentFlobCache::PersistentFlobCache(size_t _maxSize, size_t _slotSize):
 
    assert(slotSize + sizeof(CacheEntry) + sizeof(void*) < maxSize);
    // compute a good tablesize
-    tableSize = max(1u,(maxSize / slotSize) * 2);
-   
+    
+   tableSize = ((maxSize / slotSize) * 2);
+   if(tableSize < 1u){
+      tableSize = 1u;
+   }   
    hashtable = new CacheEntry*[tableSize]; 
    for(unsigned int i=0;i<tableSize; i++){
      hashtable[i] = 0;
