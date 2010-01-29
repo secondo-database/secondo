@@ -640,6 +640,7 @@ separate functions which should be named Command\_<name>.
      //cerr << "aborting command execution ..." << endl;
      //abort command execution
      constructErrMsg(errorCode, errorMessage);
+     Flob::killAllNativeFlobs();
      return;
   }
 
@@ -1439,6 +1440,7 @@ separate functions which should be named Command\_<name>.
   AlgebraManager& am = *SecondoSystem::GetAlgebraManager();
   am.UpdateOperatorUsage(operatorUsageRel);
 
+  Flob::killAllNativeFlobs();
   return;
 }
 

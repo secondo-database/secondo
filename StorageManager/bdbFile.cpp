@@ -245,7 +245,8 @@ SmiFile::CheckName( const string& name )
 bool
 SmiFile::Create( const string& name,
 		 const string& context /* = "Default" */, 
-		 const uint16_t ps /* = 0 */ )
+		 const uint16_t ps /* = 0 */,
+     const bool keepId /*=false*/ )
 {
   static long& ctrCreate = Counter::getRef("SmiFile::Create");
   static long& ctrOpen = Counter::getRef("SmiFile::Open");
@@ -254,8 +255,10 @@ SmiFile::Create( const string& name,
 
   if ( CheckName( context ) )
   {
-    fileId = SmiEnvironment::Implementation::GetFileId(
+    if(!keepId){
+      fileId = SmiEnvironment::Implementation::GetFileId(
                                                     impl->isTemporaryFile );
+    }
     if ( fileId != 0 )
     {
       string bdbName = name;
@@ -314,7 +317,7 @@ SmiFile::Create( const string& name,
 
       u_int32_t pagesize = 0;
       if (ps > 0) {
-	pagesize = ps;
+        pagesize = ps;
       } else {	  
         pagesize = SmiProfile::GetParameter( context, "PageSize", 0,
                                              SmiEnvironment::configFile );
@@ -375,13 +378,6 @@ SmiFile::Create( const string& name,
   return (rc == 0);
 }
 
-bool
-SmiFile::CreateWithName( const string& name, 
-		         const string& context /* = "Default" */, 
-		         const uint16_t ps /* = 0 */ )
-{
-  return Create(name, context, ps);
-}
 
 bool
 SmiFile::Create( const string& context /* = "Default" */, 
@@ -390,7 +386,38 @@ SmiFile::Create( const string& context /* = "Default" */,
   return Create("", context, ps);
 }
 
+bool SmiFile::ReCreate(){
+   assert(impl->isTemporaryFile);
+   uint16_t ps = GetPageSize();
 
+   if(opened){
+     int rc = impl->bdbFile->close(0);
+     if(rc){
+        SmiEnvironment::SetBDBError( rc );
+        return false;
+     }
+     opened = false;
+     // after closing, the old db handle is invalid, create a new one
+     delete impl->bdbFile;
+     impl->bdbFile = new Db(SmiEnvironment::instance.impl->tmpEnv,
+                          DB_CXX_NO_EXCEPTIONS );
+   }
+
+
+
+   int rc = impl->bdbFile->remove(impl->bdbName.c_str(), 0, 0 );
+   if(rc){
+      SmiEnvironment::SetBDBError( rc );
+      return false;
+   }
+
+   // after removing, the old db handle is invalid, create a new one
+   delete impl->bdbFile;
+   impl->bdbFile = new Db(SmiEnvironment::instance.impl->tmpEnv,
+                          DB_CXX_NO_EXCEPTIONS );
+
+   return  Create(fileName,fileContext, ps, true);
+}
 
 
 /*
@@ -847,15 +874,17 @@ SmiFile::Remove()
   //cerr << endl << "removing " <<  impl->bdbName << endl;
 
   int rc = 0;
-  bool ok = Close();
-  if (ok = true) {
-    rc = impl->bdbFile->remove( impl->bdbName.c_str(), 0, 0 );
-    SmiEnvironment::SetBDBError(rc);
-    if ( rc == 0 ) {
-      if(impl->bdbFile){
-         delete impl->bdbFile;
-         impl->bdbFile = 0;
-      }
+  if(opened){
+    if(! Close()){
+      return false;
+    }
+  }
+  rc = impl->bdbFile->remove( impl->bdbName.c_str(), 0, 0 );
+  SmiEnvironment::SetBDBError(rc);
+  if ( rc == 0 ) {
+    if(impl->bdbFile){
+       delete impl->bdbFile;
+       impl->bdbFile = 0;
     }
   }
   //cerr << endl << "End removing " <<  impl->bdbName << endl;

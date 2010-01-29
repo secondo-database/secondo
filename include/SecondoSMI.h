@@ -487,16 +487,25 @@ the contents or the size of a record are not permitted.
   * *Update* -- Records are selected for read and/or write access.
 
 */
+
   bool Create( const string& name,
 	       const string& context = "Default", 
-	       uint16_t pageSize = 0 );
+	       uint16_t pageSize = 0,
+         const bool keepId = false );
+/*
+Creates a new SmiFile with given name. 
+If the name is an empty string, the name is constructed automatically.
+The context string should be one
+of them available in the underlying storage manager. If the pagesize
+is set to 0 (default), the page size of the filesystem is used. 
+If keepId is set to true, the old fileId is reused instead of creating
+a new one for this file.
+
+*/
 
   bool Create( const string& context = "Default", 
 	       uint16_t pageSize = 0 );
 
-  bool CreateWithName( const string& name, 
-		       const string& context = "Default", 
-		       uint16_t pageSize = 0 );
 
 /*
 Creates a new anonymous ~SmiFile~.
@@ -505,6 +514,16 @@ configured in SecondoConfig.ini will be used otherwise a system dependent
 default value is used.
 
 */
+
+ bool ReCreate();
+
+/*
+Removes the underlying file and creates a new one with same name, context, 
+pagesize, and fileId.
+
+*/
+
+
   bool Open( const SmiFileId id,
              const string& context = "Default" );
 /*

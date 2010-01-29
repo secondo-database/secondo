@@ -675,7 +675,8 @@ return a Flob with persistent storage allocated and defined elsewhere
         if(nativeFlobCache){
            nativeFlobCache->clear();
         }
-        nativeFlobFile->Truncate();
+        bool ok = nativeFlobFile->ReCreate();  
+        assert(ok);
       }
 
 
@@ -694,7 +695,8 @@ by the FlobManager class itself.
     // not fixed size, dummy, temporarly
     nativeFlobFile  = new SmiRecordFile(false,0,true); 
 
-    bool created = nativeFlobFile->Create();
+    bool created = nativeFlobFile->Create("NativeFlobFile","Default");
+    // bool created = nativeFlobFile->Create();
 
     assert(created);
 
