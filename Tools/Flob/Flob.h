@@ -438,6 +438,16 @@ Gives up the control of the FlobManager over the specific file.
     FlobManager::getInstance().killNativeFlobs();
   }
 
+/*
+~clearCaches~
+
+Clears both cashes. Its required after closing or opening a database.
+
+*/  
+  inline static void clearCaches(){
+    FlobManager::getInstance().clearCaches();
+  }
+
 
   ostream& print(ostream& os) const {
     return os << "[" << id << ", size = " << size << "]";

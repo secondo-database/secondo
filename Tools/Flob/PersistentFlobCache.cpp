@@ -234,12 +234,14 @@ bool PersistentFlobCache::getData(
     size_t slotNo = offset / slotSize;
     size_t slotOffset = offset % slotSize; 
     size_t bufferOffset(0);
+
     while(bufferOffset < size){
       if(!getDataFromSlot(flob, slotNo, slotOffset, 
                           bufferOffset, size, buffer)){
         cerr << "Warning getData failed" << endl;
         return false;
       }
+       
       slotNo++;
       slotOffset = 0; 
     }
@@ -280,8 +282,10 @@ function is called.
 */
 
 void PersistentFlobCache::killLastSlot(const Flob& flob){
+
   size_t slotNo = flob.getSize() / slotSize;
   size_t index = (flob.hashValue() + slotNo) % tableSize;
+
   if(hashtable[index]==0){
     return;
   } 
@@ -291,6 +295,8 @@ void PersistentFlobCache::killLastSlot(const Flob& flob){
       e = e->tableNext;
     } else { // victim found
       // remove from table
+
+
       if(hashtable[index]==e){
         hashtable[index] = e->tableNext;
         if(e->tableNext){
@@ -346,6 +352,7 @@ bool PersistentFlobCache::getDataFromSlot(const Flob& flob,
                      size_t& bufferOffset,
                      const size_t size,
                      char* buffer) {
+
    unsigned int index = (flob.hashValue() + slotNo) % tableSize;
    if(hashtable[index]==0){
      CacheEntry* newEntry = createEntry(flob, slotNo); 
@@ -363,7 +370,7 @@ bool PersistentFlobCache::getDataFromSlot(const Flob& flob,
      entry = entry->tableNext;
    }
 
-   if(entry->flob != flob || entry->slotNo!=slotNo){ // no hit
+   if(entry->flob != flob || entry->slotNo!=slotNo){ // no hita
      CacheEntry* newEntry = createEntry(flob, slotNo); 
      newEntry->tablePrev = entry;
      entry->tableNext = newEntry;

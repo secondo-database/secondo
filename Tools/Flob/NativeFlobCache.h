@@ -223,7 +223,10 @@ Removes all entries from the cache.
       __TRACE_ENTER__;
    //   assert(check());
 
-      assert(size <= maxSize);
+      if(size > maxSize){
+         cerr << "NativeFlobCache::clear(), size > maxSize detected" << endl;
+         cerr << "size = " << size << "maxSize = " << maxSize << endl;
+      }
       CacheEntry* e = first;
       while(e){
         free(e->mem);
@@ -236,8 +239,11 @@ Removes all entries from the cache.
       if(size!=0){
          cout << "Error in size computation, size =" << size << endl;
       }
-      assert(size==0);
-   //   assert(check());
+      if(size!=0){
+        cerr << "FlobCache::clear() : size computation failed, remaining size:"
+             << size;
+        size = 0;
+      }
     }
 
 

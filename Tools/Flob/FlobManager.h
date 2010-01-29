@@ -222,6 +222,14 @@ destroys all native Flobs
     void killNativeFlobs();
 
 
+/*
+~killCashes~
+
+clears all caches.
+
+*/
+   void clearCaches();
+
 
 /*
 ~Destructor~

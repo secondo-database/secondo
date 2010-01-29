@@ -190,6 +190,15 @@ This can be realized by calling the ~dropFile~ function.
  }
 
 
+ void FlobManager::clearCaches(){
+   if(nativeFlobCache){
+     nativeFlobCache->clear();
+   }
+   if(persistentFlobCache){
+     persistentFlobCache->clear();
+   }
+ }
+
 
      
 /*
