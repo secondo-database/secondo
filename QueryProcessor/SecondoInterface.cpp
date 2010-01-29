@@ -826,6 +826,7 @@ separate functions which should be named Command\_<name>.
           delete derivedObjPtr;
           derivedObjPtr = 0;
         }
+        Flob::clearCaches();
       }
       else if ( nfirst.isEqual("save") &&
                 nlist.hasLength(4) &&
