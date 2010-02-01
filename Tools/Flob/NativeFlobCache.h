@@ -332,15 +332,15 @@ Stores new data of a flob.
 resizes the given flob using the size stored in the argument.
 
 */
- bool resize(const Flob& flob){
+ bool resize(const Flob& flob, SmiSize newSize){
     __TRACE_ENTER__;
    // assert(check());
-    if(flob.size >= maxSize ){
+    if(newSize >= maxSize ){
       eraseFromCache(flob);
    //   assert(check());
       return false;
     }
-    if(flob.size==0){
+    if(newSize==0){
       erase(flob);
    //   assert(check());
       return false;
@@ -353,13 +353,13 @@ resizes the given flob using the size stored in the argument.
     }
     CacheEntry::connect(entry->prev, entry->next, first, last);
     CacheEntry::putAtFront(entry, first, last);
-    if(entry->size == flob.size){ // no change
+    if(entry->size == newSize){ // no change
    //   assert(check());
       return true;
     }
-    entry->mem = (char*)realloc(entry->mem, flob.size);
-    size = size + flob.size - entry->size; 
-    entry->size = flob.size; // store size
+    entry->mem = (char*)realloc(entry->mem, newSize);
+    size = size +  - entry->size + newSize; 
+    entry->size = newSize; // store size
    // assert(check());
     return true;
  } 

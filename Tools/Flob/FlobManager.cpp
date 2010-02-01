@@ -239,10 +239,10 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize){
   //  cout << "Try to resize record to size : " << (offset + newSize) << endl;
     if( record.Resize(offset+newSize)){ 
        record.Finish();
-       flob.size = newSize;
        if(fileId == nativeFlobs && nativeFlobCache){
-          nativeFlobCache->resize(flob);
+          nativeFlobCache->resize(flob, newSize);
        }
+       flob.size = newSize;
        __TRACE_LEAVE__
   //     cout << "Resize successful" << endl;
        return true;
