@@ -339,10 +339,6 @@ bool FlobManager::destroy(Flob& victim) {
    SmiRecordId recordId = id.recordId;
    SmiSize offset = id.offset;
 
-   if(id.fileId == nativeFlobs){
-      nativeFlobCache->erase(victim);
-   }
-
    // possible kill flob from persistent flob cache 
    // or wait until cache is removed automatically = current state
 
@@ -357,6 +353,14 @@ bool FlobManager::destroy(Flob& victim) {
      __TRACE_LEAVE__
      return false; 
    }
+   
+   if(id.fileId == nativeFlobs){
+      // each native flob is exlusive owner of an record
+      nativeFlobCache->erase(victim);
+      file->DeleteRecord(recordId);
+      return true;
+   }
+
    // check whether the flob occupies the whole record
    SmiSize recordSize = record.Size();
    
