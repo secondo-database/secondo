@@ -1351,11 +1351,19 @@ static bool member(AvlNode<contenttype>const* const root,
 static const contenttype* getMember(AvlNode<contenttype>const* const root,
                   const contenttype& content){
    __AVL_TRACE__
-  if(root==NULL) return 0;
-  if(root->content==content) return &root->content;
-  return   content<root->content
-          ? getMember(root->left,content) 
-          : getMember(root->right,content);
+  AvlNode<contenttype>const* current = root;
+  while(current && !(current->content==content)){
+      if(content < current->content){
+        current = current->left;
+      } else {
+        current = current->right;   
+      }
+  }
+  if(!current){ // content not found
+     return 0;
+  } else {
+     return &current->content;
+  }
 }
 
 
