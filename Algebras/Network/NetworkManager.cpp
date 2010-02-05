@@ -35,7 +35,7 @@ Defines, includes, and constants
 #include "TupleIdentifier.h"
 #include "NestedList.h"
 #include "BTreeAlgebra.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include "RelationAlgebra.h"
 #include "SpatialAlgebra.h"
 #include "NetworkAlgebra.h"

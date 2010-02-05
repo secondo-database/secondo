@@ -45,7 +45,8 @@ October 2008 - Jianqiu Xu
 #include "RelationAlgebra.h"
 #include "BTreeAlgebra.h"
 #include "RTreeAlgebra.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
+#include "../../Tools/Flob/Flob.h"
 #include "SpatialAlgebra.h"
 #include "NetworkAlgebra.h"
 #include "RectangleAlgebra.h"
@@ -64,14 +65,14 @@ static map<int,string> *netList;
 Sending a message via the message-center
 
 */
-void sendMessage(string in_strMessage)
+void sendMessage ( string in_strMessage )
 {
   // Get message-center and initialize message-list
   static MessageCenter* xMessageCenter= MessageCenter::GetInstance();
   NList xMessage;
-  xMessage.append(NList("error"));
-  xMessage.append(NList().textAtom(in_strMessage));
-  xMessageCenter->Send(xMessage);
+  xMessage.append ( NList ( "error" ) );
+  xMessage.append ( NList().textAtom ( in_strMessage ) );
+  xMessageCenter->Send ( xMessage );
 }
 
 /*
@@ -79,34 +80,40 @@ Computes a spatial BoundingBox of a RouteInterval
 
 */
 
-Rectangle<2> RouteInterval::BoundingBox(Network* pNetwork) const
+Rectangle<2> RouteInterval::BoundingBox ( Network* pNetwork ) const
 {
-  if (AlmostEqual(m_dStart , m_dEnd)) {
-    Point *p = (GPoint(true, pNetwork->GetId(), m_iRouteId,
-                m_dStart)).ToPoint(pNetwork);
-    Rectangle<2> bbox = Rectangle<2>(true,
-                           p->GetX(), p->GetX(),
-                           p->GetY(), p->GetY());
+  if ( AlmostEqual ( m_dStart , m_dEnd ) )
+  {
+    Point *p = ( GPoint ( true, pNetwork->GetId(), m_iRouteId,
+                          m_dStart ) ).ToPoint ( pNetwork );
+    Rectangle<2> bbox = Rectangle<2> ( true,
+                                       p->GetX(), p->GetX(),
+                                       p->GetY(), p->GetY() );
     delete p;
     return bbox;
-  } else {
-    SimpleLine *line = new SimpleLine(0);
-    pNetwork->GetLineValueOfRouteInterval(this, line);
-    if (!line->IsEmpty()) {
+  }
+  else
+  {
+    SimpleLine *line = new SimpleLine ( 0 );
+    pNetwork->GetLineValueOfRouteInterval ( this, line );
+    if ( !line->IsEmpty() )
+    {
       Rectangle<2> res = line->BoundingBox();
       delete line;
       return res;
-    } else {
+    }
+    else
+    {
       delete line;
-      Point *p1 = (GPoint(true, pNetwork->GetId(), m_iRouteId,
-            m_dStart)).ToPoint(pNetwork);
-      Point *p2 = (GPoint(true, pNetwork->GetId(), m_iRouteId,
-            m_dEnd)).ToPoint(pNetwork);
-      Rectangle<2> bbox = Rectangle<2>(true,
-                           min(p1->GetX(), p2->GetX()),
-                           max(p1->GetX(), p2->GetX()),
-                           min(p1->GetY(), p2->GetY()),
-                           max(p1->GetY(), p2->GetY()));
+      Point *p1 = ( GPoint ( true, pNetwork->GetId(), m_iRouteId,
+                             m_dStart ) ).ToPoint ( pNetwork );
+      Point *p2 = ( GPoint ( true, pNetwork->GetId(), m_iRouteId,
+                             m_dEnd ) ).ToPoint ( pNetwork );
+      Rectangle<2> bbox = Rectangle<2> ( true,
+                                         min ( p1->GetX(), p2->GetX() ),
+                                         max ( p1->GetX(), p2->GetX() ),
+                                         min ( p1->GetY(), p2->GetY() ),
+                                         max ( p1->GetY(), p2->GetY() ) );
       delete p1;
       delete p2;
       return bbox;
@@ -122,32 +129,52 @@ Used for example by operator ~inside~.
 
 */
 
-bool searchRouteInterval(GPoint *pGPoint, GLine *&pGLine, size_t low,
-                         size_t high) {
-  const RouteInterval *rI;
-  if (low <= high) {
-    size_t mid = (high + low) / 2;
+bool searchRouteInterval ( GPoint *pGPoint, GLine *&pGLine, size_t low,
+                           size_t high )
+{
+  RouteInterval rI;
+  if ( low <= high )
+  {
+    size_t mid = ( high + low ) / 2;
     int imid = mid;
-    if ((imid < 0) || (imid >= pGLine->NoOfComponents())) {
+    if ( ( imid < 0 ) || ( imid >= pGLine->NoOfComponents() ) )
+    {
       return false;
-    }else {
-      pGLine->Get(mid, rI);
-      if (rI->GetRouteId() < pGPoint->GetRouteId()) {
-        return searchRouteInterval(pGPoint, pGLine, mid+1, high);
-      } else {
-        if (rI->GetRouteId() > pGPoint->GetRouteId()){
-          return searchRouteInterval(pGPoint, pGLine, low, mid-1);
-        } else {
-          if (fabs(pGPoint->GetPosition() - rI->GetStartPos()) < 0.01 ||
-              fabs(pGPoint->GetPosition() - rI->GetEndPos()) < 0.01) {
+    }
+    else
+    {
+      pGLine->Get ( mid, rI );
+      if ( rI.GetRouteId() < pGPoint->GetRouteId() )
+      {
+        return searchRouteInterval ( pGPoint, pGLine, mid+1, high );
+      }
+      else
+      {
+        if ( rI.GetRouteId() > pGPoint->GetRouteId() )
+        {
+          return searchRouteInterval ( pGPoint, pGLine, low, mid-1 );
+        }
+        else
+        {
+          if ( fabs ( pGPoint->GetPosition() - rI.GetStartPos() ) < 0.01 ||
+                  fabs ( pGPoint->GetPosition() - rI.GetEndPos() ) < 0.01 )
+          {
             return true;
-          } else {
-            if (rI->GetStartPos() > pGPoint->GetPosition()) {
-              return searchRouteInterval(pGPoint, pGLine, low, mid-1);
-            } else {
-              if (rI->GetEndPos() < pGPoint->GetPosition()){
-                return searchRouteInterval(pGPoint, pGLine, mid+1, high);
-              } else {
+          }
+          else
+          {
+            if ( rI.GetStartPos() > pGPoint->GetPosition() )
+            {
+              return searchRouteInterval ( pGPoint, pGLine, low, mid-1 );
+            }
+            else
+            {
+              if ( rI.GetEndPos() < pGPoint->GetPosition() )
+              {
+                return searchRouteInterval ( pGPoint, pGLine, mid+1, high );
+              }
+              else
+              {
                 return true;
               }
             }
@@ -164,31 +191,38 @@ Helper struct to store sections which have been visited before. Used in
 shortest path implementation of Dijkstras Algorithm.
 
 */
-struct SectTree {
+struct SectTree
+{
 
-  SectTree(){};
+  SectTree() {};
 
-  SectTree(SectTreeEntry *nEntry, SectTree *l = 0, SectTree *r = 0) {
+  SectTree ( SectTreeEntry *nEntry, SectTree *l = 0, SectTree *r = 0 )
+  {
     value = *nEntry;
     left = l;
     right = r;
   };
 
-  ~SectTree(){};
+  ~SectTree() {};
 
   /*
   Inserts a section into the tree. If the section is already in the insert is
   ignored.
 
   */
-  void Insert(SectTreeEntry *nEntry){
-    if (nEntry->secttid < value.secttid) {
-      if (right != 0) right->Insert(nEntry);
-      else right = new SectTree(nEntry,0,0);
-    } else {
-      if (nEntry->secttid > value.secttid) {
-        if(left != 0) left->Insert(nEntry);
-        else left = new SectTree(nEntry,0,0);
+  void Insert ( SectTreeEntry *nEntry )
+  {
+    if ( nEntry->secttid < value.secttid )
+    {
+      if ( right != 0 ) right->Insert ( nEntry );
+      else right = new SectTree ( nEntry,0,0 );
+    }
+    else
+    {
+      if ( nEntry->secttid > value.secttid )
+      {
+        if ( left != 0 ) left->Insert ( nEntry );
+        else left = new SectTree ( nEntry,0,0 );
       }
     }
   };
@@ -197,69 +231,88 @@ struct SectTree {
   Returns a pointer to the node with the given id or 0 if not found.
 
   */
-  void Find (TupleId n, SectTree *result, bool &found){
-    if (n < value.secttid) {
-      if (right != 0) right->Find(n, result, found);
-      else {
+  void Find ( TupleId n, SectTree *result, bool &found )
+  {
+    if ( n < value.secttid )
+    {
+      if ( right != 0 ) right->Find ( n, result, found );
+      else
+      {
         found = false;
         result = 0;
       }
-    } else {
-      if (n > value.secttid) {
-        if (left != 0) left->Find(n, result, found);
-        else {
+    }
+    else
+    {
+      if ( n > value.secttid )
+      {
+        if ( left != 0 ) left->Find ( n, result, found );
+        else
+        {
           found = false;
           result = 0;
         }
-      } else {
+      }
+      else
+      {
         found = true;
         result = this;
       }
     }
   };
 
-  void CheckSection(Network *pNetwork, SectTreeEntry n, GPoints &result){
+  void CheckSection ( Network *pNetwork, SectTreeEntry n, GPoints &result )
+  {
     vector<DirectedSection> sectList;
     sectList.clear();
     SectTree *pSectTree = 0;
-    if (n.startbool || n.endbool) {
-      if (n.startbool){
-        pNetwork->GetAdjacentSections(n.secttid, false, sectList);
+    if ( n.startbool || n.endbool )
+    {
+      if ( n.startbool )
+      {
+        pNetwork->GetAdjacentSections ( n.secttid, false, sectList );
         size_t j = 0;
         bool found = true;
-        while (j < sectList.size() && found) {
+        while ( j < sectList.size() && found )
+        {
           DirectedSection actSection = sectList[j];
-          Find(actSection.GetSectionTid(), pSectTree, found);
+          Find ( actSection.GetSectionTid(), pSectTree, found );
         }
-        if (!found)
-          result += GPoint(true, pNetwork->GetId(), n.rid, n.start, None);
+        if ( !found )
+          result += GPoint ( true, pNetwork->GetId(), n.rid, n.start, None );
       }
       sectList.clear();
-      if (n.endbool){
-        pNetwork->GetAdjacentSections(n.secttid, true, sectList);
+      if ( n.endbool )
+      {
+        pNetwork->GetAdjacentSections ( n.secttid, true, sectList );
         size_t j = 0;
         bool found = true;
-        while (j < sectList.size() && found) {
+        while ( j < sectList.size() && found )
+        {
           DirectedSection actSection = sectList[j];
-          Find(actSection.GetSectionTid(), pSectTree, found);
+          Find ( actSection.GetSectionTid(), pSectTree, found );
         }
-        if(!found) result+= GPoint(true, pNetwork->GetId(), n.rid, n.end, None);
+        if ( !found ) result+= GPoint ( true, pNetwork->GetId(), n.rid, n.end,
+None );
       }
       sectList.clear();
-    } else result += GPoint(true, pNetwork->GetId(), n.rid, n.end, None);
+    }
+    else result += GPoint ( true, pNetwork->GetId(), n.rid, n.end, None );
   }
 
-  void WriteResult(Network* pNetwork, GPoints &result, SectTree &secTr){
-    if (left != 0) left->WriteResult(pNetwork, result, secTr);
-    if (right != 0) right ->WriteResult(pNetwork, result, secTr);
-    secTr.CheckSection(pNetwork, value, result);
+  void WriteResult ( Network* pNetwork, GPoints &result, SectTree &secTr )
+  {
+    if ( left != 0 ) left->WriteResult ( pNetwork, result, secTr );
+    if ( right != 0 ) right ->WriteResult ( pNetwork, result, secTr );
+    secTr.CheckSection ( pNetwork, value, result );
     //TODO: Remove duplicate GPoint from Result, which are caused by junction
     //problematic
   };
 
-  void Remove(){
-    if (left != 0) left->Remove();
-    if (right != 0) right->Remove();
+  void Remove()
+  {
+    if ( left != 0 ) left->Remove();
+    if ( right != 0 ) right->Remove();
     delete this;
   };
 
@@ -275,62 +328,81 @@ Used by operator ~point2gpoint~
 
 */
 
-bool chkPoint (SimpleLine *&route, Point point, bool startSmaller, double &pos,
-                 double &difference){
+bool chkPoint ( SimpleLine *&route, Point point, bool startSmaller, double &pos,
+                double &difference )
+{
   bool result = false;
-  const HalfSegment *hs;
+  HalfSegment hs;
   double k1, k2;
   Point left, right;
-  for (int i = 0; i < route->Size()-1; i++) {
-    route->Get(i, hs);
-    left = hs->GetLeftPoint();
-    right = hs->GetRightPoint();
+  for ( int i = 0; i < route->Size()-1; i++ )
+  {
+    route->Get ( i, hs );
+    left = hs.GetLeftPoint();
+    right = hs.GetRightPoint();
     Coord xl = left.GetX(),
-          yl = left.GetY(),
-          xr = right.GetX(),
-          yr = right.GetY(),
-          x = point.GetX(),
-          y = point.GetY();
-    if ((fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01) ||
-       (fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01)){
+               yl = left.GetY(),
+                    xr = right.GetX(),
+                         yr = right.GetY(),
+                              x = point.GetX(),
+                                  y = point.GetY();
+    if ( ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) ||
+            ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) )
+    {
       difference = 0.0;
       result = true;
-    } else {
-      if (xl != xr && xl != x) {
-        k1 = (y - yl) / (x - xl);
-        k2 = (yr - yl) / (xr - xl);
-        if ((fabs(k1-k2) < 0.01) &&
-           ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
-           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
-           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
-           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
-           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
-           (y > yr || fabs(y-yr)<0.01)))) {
-              difference = fabs(k1-k2);
-              result = true;
-        } else {result = false;}
-      } else {
-        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
-           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
-           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
-              difference = 0.0;
-              result = true;
-        } else {result = false;}
+    }
+    else
+    {
+      if ( xl != xr && xl != x )
+      {
+        k1 = ( y - yl ) / ( x - xl );
+        k2 = ( yr - yl ) / ( xr - xl );
+        if ( ( fabs ( k1-k2 ) < 0.01 ) &&
+             ( ( xl < xr && ( x > xl || fabs ( x-xl ) < 0.01 ) &&
+             ( x < xr || fabs ( x-xr ) < 0.01 ) ) ||
+                  ( xl > xr && ( x < xl || fabs ( x-xl ) <0.01 )  &&
+                               ( x > xr || fabs ( x-xr ) ) ) ) &&
+                               ( ( ( yl < yr || fabs ( yl-yr ) <0.01 ) &&
+                                 ( y > yl || fabs ( y-yl ) <0.01 ) &&
+                                 ( y < yr || fabs ( y-yr ) <0.01 ) ) ||
+                            ( yl > yr && ( y < yl || fabs ( y-yl ) <0.01 ) &&
+                            ( y > yr || fabs ( y-yr ) <0.01 ) ) ) )
+        {
+          difference = fabs ( k1-k2 );
+          result = true;
+        }
+        else {result = false;}
+      }
+      else
+      {
+        if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
+                ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) && ( yl < y || fabs (
+yl-y ) <0.01 ) &&
+                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) || ( yl > yr && ( yl > y
+||
+                                                            fabs ( yl-y ) <0.01
+) && ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
+        {
+          difference = 0.0;
+          result = true;
+        }
+        else {result = false;}
       }
     }
-    if (result) {
-        const LRS *lrs;
-        route->Get( hs->attr.edgeno, lrs );
-        route->Get( lrs->hsPos, hs );
-        pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
-        if( startSmaller != route->GetStartSmaller())
-          pos = route->Length() - pos;
-        if( fabs(pos-0.0) < 0.01)
-          pos = 0.0;
-        else if (fabs(pos-route->Length())<0.01)
-              pos = route->Length();
-        return result;
+    if ( result )
+    {
+      LRS lrs;
+      route->Get ( hs.attr.edgeno, lrs );
+      route->Get ( lrs.hsPos, hs );
+      pos = lrs.lrsPos + point.Distance ( hs.GetDomPoint() );
+      if ( startSmaller != route->GetStartSmaller() )
+        pos = route->Length() - pos;
+      if ( fabs ( pos-0.0 ) < 0.01 )
+        pos = 0.0;
+      else if ( fabs ( pos-route->Length() ) <0.01 )
+        pos = route->Length();
+      return result;
     }
   }
   return result;
@@ -344,122 +416,164 @@ Used by operator ~point2gpoint~
 
 */
 
-bool chkPoint03 (SimpleLine *&route, Point point, bool startSmaller,
-                 double &pos, double &difference){
+bool chkPoint03 ( SimpleLine *&route, Point point, bool startSmaller,
+                  double &pos, double &difference )
+{
   bool result = false;
-  const HalfSegment *hs;
+  HalfSegment hs;
   double k1, k2;
   Point left, right;
-  for (int i = 0; i < route->Size()-1; i++) {
-    route->Get(i, hs);
-    left = hs->GetLeftPoint();
-    right = hs->GetRightPoint();
+  for ( int i = 0; i < route->Size()-1; i++ )
+  {
+    route->Get ( i, hs );
+    left = hs.GetLeftPoint();
+    right = hs.GetRightPoint();
     Coord xl = left.GetX(),
-          yl = left.GetY(),
-          xr = right.GetX(),
-          yr = right.GetY(),
-          x = point.GetX(),
-          y = point.GetY();
-    if ((fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01) ||
-        (fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01)) {
+               yl = left.GetY(),
+                    xr = right.GetX(),
+                         yr = right.GetY(),
+                              x = point.GetX(),
+                                  y = point.GetY();
+    if ( ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) ||
+            ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) )
+    {
       difference = 0.0;
       result = true;
-    } else {
-      if (xl != xr && xl != x) {
-        k1 = (y - yl) / (x - xl);
-        k2 = (yr - yl) / (xr - xl);
-        if ((fabs(k1-k2) < 1.2) &&
-           ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
-           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
-           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
-           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
-           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
-           (y > yr || fabs(y-yr)<0.01)))) {
-              difference = fabs(k1-k2);
-              result = true;
-        } else {result = false;}
-      } else {
-        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
-           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
-           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
-              difference = 0.0;
-              result = true;
-        } else {result = false;}
+    }
+    else
+    {
+      if ( xl != xr && xl != x )
+      {
+        k1 = ( y - yl ) / ( x - xl );
+        k2 = ( yr - yl ) / ( xr - xl );
+        if ( ( fabs ( k1-k2 ) < 1.2 ) &&
+                ( ( xl < xr && ( x > xl || fabs ( x-xl ) < 0.01 ) &&
+                    ( x < xr || fabs ( x-xr ) < 0.01 ) ) || ( xl > xr && ( x <
+xl ||
+                            fabs ( x-xl ) <0.01 )  && ( x > xr || fabs ( x-xr )
+) ) ) && ( ( ( yl < yr ||
+                                    fabs ( yl-yr ) <0.01 ) && ( y > yl || fabs (
+y-yl ) <0.01 ) && ( y < yr ||
+                                            fabs ( y-yr ) <0.01 ) ) || ( yl > yr
+&& ( y < yl || fabs ( y-yl ) <0.01 ) &&
+                                                                         ( y >
+yr || fabs ( y-yr ) <0.01 ) ) ) )
+        {
+          difference = fabs ( k1-k2 );
+          result = true;
+        }
+        else {result = false;}
+      }
+      else
+      {
+        if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
+                ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) && ( yl < y || fabs (
+yl-y ) <0.01 ) &&
+                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) || ( yl > yr && ( yl > y
+||
+                                                            fabs ( yl-y ) <0.01
+) && ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
+        {
+          difference = 0.0;
+          result = true;
+        }
+        else {result = false;}
       }
     }
-    if (result) {
-        const LRS *lrs;
-        route->Get( hs->attr.edgeno, lrs );
-        route->Get( lrs->hsPos, hs );
-        pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
-        if( startSmaller != route->GetStartSmaller())
-          pos = route->Length() - pos;
-        if( fabs(pos-0.0) < 0.01)
-          pos = 0.0;
-        else if (fabs(pos-route->Length())<0.01)
-              pos = route->Length();
-        return result;
+    if ( result )
+    {
+      LRS lrs;
+      route->Get ( hs.attr.edgeno, lrs );
+      route->Get ( lrs.hsPos, hs );
+      pos = lrs.lrsPos + point.Distance ( hs.GetDomPoint() );
+      if ( startSmaller != route->GetStartSmaller() )
+        pos = route->Length() - pos;
+      if ( fabs ( pos-0.0 ) < 0.01 )
+        pos = 0.0;
+      else if ( fabs ( pos-route->Length() ) <0.01 )
+        pos = route->Length();
+      return result;
     }
   }
   return result;
 }
 
-bool lastchkPoint03 (SimpleLine *&route, Point point, bool startSmaller,
-                   double &pos, double &difference){
+bool lastchkPoint03 ( SimpleLine *&route, Point point, bool startSmaller,
+                      double &pos, double &difference )
+{
   bool result = false;
-  const HalfSegment *hs;
+  HalfSegment hs;
   double k1, k2;
   Point left, right;
-  for (int i = 0; i < route->Size()-1; i++) {
-    route->Get(i, hs);
-    left = hs->GetLeftPoint();
-    right = hs->GetRightPoint();
+  for ( int i = 0; i < route->Size()-1; i++ )
+  {
+    route->Get ( i, hs );
+    left = hs.GetLeftPoint();
+    right = hs.GetRightPoint();
     Coord xl = left.GetX(),
-          yl = left.GetY(),
-          xr = right.GetX(),
-          yr = right.GetY(),
-          x = point.GetX(),
-          y = point.GetY();
-    if ((fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01) ||
-        (fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01)) {
+               yl = left.GetY(),
+                    xr = right.GetX(),
+                         yr = right.GetY(),
+                              x = point.GetX(),
+                                  y = point.GetY();
+    if ( ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) ||
+            ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) )
+    {
       difference = 0.0;
       result = true;
-    } else {
-      if (xl != xr && xl != x) {
-        k1 = (y - yl) / (x - xl);
-        k2 = (yr - yl) / (xr - xl);
-        if (((xl < xr && (x > xl || fabs(x-xl) < 0.1) &&
-           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
-           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
-           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
-           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
-           (y > yr || fabs(y-yr)<0.01)))) {
-              difference = fabs(k1-k2);
-              result = true;
-        } else {result = false;}
-      } else {
-        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
-           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
-           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
-              difference = 0.0;
-              result = true;
-        } else {result = false;}
+    }
+    else
+    {
+      if ( xl != xr && xl != x )
+      {
+        k1 = ( y - yl ) / ( x - xl );
+        k2 = ( yr - yl ) / ( xr - xl );
+        if ( ( ( xl < xr && ( x > xl || fabs ( x-xl ) < 0.1 ) &&
+                 ( x < xr || fabs ( x-xr ) < 0.01 ) ) || ( xl > xr && ( x < xl
+||
+                         fabs ( x-xl ) <0.01 )  && ( x > xr || fabs ( x-xr ) ) )
+) && ( ( ( yl < yr ||
+                                 fabs ( yl-yr ) <0.01 ) && ( y > yl || fabs (
+y-yl ) <0.01 ) && ( y < yr ||
+                                         fabs ( y-yr ) <0.01 ) ) || ( yl > yr &&
+( y < yl || fabs ( y-yl ) <0.01 ) &&
+                                                                      ( y > yr
+|| fabs ( y-yr ) <0.01 ) ) ) )
+        {
+          difference = fabs ( k1-k2 );
+          result = true;
+        }
+        else {result = false;}
+      }
+      else
+      {
+        if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
+                ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) && ( yl < y || fabs (
+yl-y ) <0.01 ) &&
+                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) || ( yl > yr && ( yl > y
+||
+                                                            fabs ( yl-y ) <0.01
+) && ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
+        {
+          difference = 0.0;
+          result = true;
+        }
+        else {result = false;}
       }
     }
-    if (result) {
-       const LRS *lrs;
-        route->Get( hs->attr.edgeno, lrs );
-        route->Get( lrs->hsPos, hs );
-        pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
-        if( startSmaller != route->GetStartSmaller())
-          pos = route->Length() - pos;
-        if( pos < 0.0 || fabs(pos - 0.0) < 0.01)
-          pos = 0.0;
-        else if (pos > route->Length() || fabs(pos - route->Length()) < 0.01)
-              pos = route->Length();
-        return result;
+    if ( result )
+    {
+      LRS lrs;
+      route->Get ( hs.attr.edgeno, lrs );
+      route->Get ( lrs.hsPos, hs );
+      pos = lrs.lrsPos + point.Distance ( hs.GetDomPoint() );
+      if ( startSmaller != route->GetStartSmaller() )
+        pos = route->Length() - pos;
+      if ( pos < 0.0 || fabs ( pos - 0.0 ) < 0.01 )
+        pos = 0.0;
+      else if ( pos > route->Length() || fabs ( pos - route->Length() ) < 0.01 )
+        pos = route->Length();
+      return result;
     }
   }
   return result;
@@ -471,59 +585,80 @@ is part of the sline his distance from the start is computed also. Used by
 operator ~line2gline~.
 
 */
-bool checkPoint (SimpleLine *&route, Point point, bool startSmaller,
-                 double &pos){
+bool checkPoint ( SimpleLine *&route, Point point, bool startSmaller,
+                  double &pos )
+{
   bool result = false;
-  const HalfSegment *hs;
+  HalfSegment hs;
   double k1, k2;
   Point left, right;
-  for (int i = 0; i < route->Size()-1; i++) {
-    route->Get(i, hs);
-    left = hs->GetLeftPoint();
-    right = hs->GetRightPoint();
+  for ( int i = 0; i < route->Size()-1; i++ )
+  {
+    route->Get ( i, hs );
+    left = hs.GetLeftPoint();
+    right = hs.GetRightPoint();
     Coord xl = left.GetX(),
-          yl = left.GetY(),
-          xr = right.GetX(),
-          yr = right.GetY(),
-          x = point.GetX(),
-          y = point.GetY();
-    if ((fabs(x-xr) < 0.01 && fabs (y-yr) < 0.01) ||
-       (fabs(x-xl) < 0.01 && fabs (y-yl) < 0.01)){
+               yl = left.GetY(),
+                    xr = right.GetX(),
+                         yr = right.GetY(),
+                              x = point.GetX(),
+                                  y = point.GetY();
+    if ( ( fabs ( x-xr ) < 0.01 && fabs ( y-yr ) < 0.01 ) ||
+            ( fabs ( x-xl ) < 0.01 && fabs ( y-yl ) < 0.01 ) )
+    {
       result = true;
-    } else {
-      if (xl != xr && xl != x) {
-        k1 = (y - yl) / (x - xl);
-        k2 = (yr - yl) / (xr - xl);
-        if ((fabs(k1-k2) < 0.01) &&
-           ((xl < xr && (x > xl || fabs(x-xl) < 0.01) &&
-           (x < xr || fabs(x-xr) < 0.01)) || (xl > xr &&  (x < xl ||
-           fabs(x-xl)<0.01)  && ( x > xr || fabs(x-xr)))) && (((yl < yr ||
-           fabs(yl-yr)<0.01) && (y > yl || fabs(y-yl)<0.01 )&& (y < yr ||
-           fabs(y-yr)<0.01)) || (yl > yr && (y < yl || fabs(y-yl) <0.01) &&
-           (y > yr || fabs(y-yr)<0.01)))) {
-              result = true;
-        } else {result = false;}
-      } else {
-        if (( fabs(xl - xr) < 0.01 && fabs(xl -x) < 0.01) &&
-           (((yl < yr|| fabs(yl-yr)<0.01) && (yl < y || fabs(yl-y) <0.01)&&
-           (y < yr ||fabs(y-yr)<0.01))|| (yl > yr && (yl > y ||
-           fabs(yl-y)<0.01)&& (y > yr ||fabs(y-yr)<0.01)))) {
-              result = true;
-        } else {result = false;}
+    }
+    else
+    {
+      if ( xl != xr && xl != x )
+      {
+        k1 = ( y - yl ) / ( x - xl );
+        k2 = ( yr - yl ) / ( xr - xl );
+        if ( ( fabs ( k1-k2 ) < 0.01 ) &&
+                ( ( xl < xr && ( x > xl || fabs ( x-xl ) < 0.01 ) &&
+                    ( x < xr || fabs ( x-xr ) < 0.01 ) ) || ( xl > xr && ( x <
+xl ||
+                            fabs ( x-xl ) <0.01 )  && ( x > xr || fabs ( x-xr )
+) ) ) && ( ( ( yl < yr ||
+                                    fabs ( yl-yr ) <0.01 ) && ( y > yl || fabs (
+y-yl ) <0.01 ) && ( y < yr ||
+                                            fabs ( y-yr ) <0.01 ) ) || ( yl > yr
+&& ( y < yl || fabs ( y-yl ) <0.01 ) &&
+                                                                         ( y >
+yr || fabs ( y-yr ) <0.01 ) ) ) )
+        {
+          result = true;
+        }
+        else {result = false;}
+      }
+      else
+      {
+        if ( ( fabs ( xl - xr ) < 0.01 && fabs ( xl -x ) < 0.01 ) &&
+                ( ( ( yl < yr|| fabs ( yl-yr ) <0.01 ) && ( yl < y || fabs (
+yl-y ) <0.01 ) &&
+                    ( y < yr ||fabs ( y-yr ) <0.01 ) ) || ( yl > yr && ( yl > y
+||
+                                                            fabs ( yl-y ) <0.01
+) && ( y > yr ||fabs ( y-yr ) <0.01 ) ) ) )
+        {
+          result = true;
+        }
+        else {result = false;}
       }
     }
-    if (result) {
-        const LRS *lrs;
-        route->Get( hs->attr.edgeno, lrs );
-        route->Get( lrs->hsPos, hs );
-        pos = lrs->lrsPos + point.Distance( hs->GetDomPoint() );
-        if( startSmaller != route->GetStartSmaller())
-          pos = route->Length() - pos;
-        if( fabs(pos-0.0) < 0.01)
-          pos = 0.0;
-        else if (fabs(pos-route->Length())<0.01)
-              pos = route->Length();
-        return result;
+    if ( result )
+    {
+      LRS lrs;
+      route->Get ( hs.attr.edgeno, lrs );
+      route->Get ( lrs.hsPos, hs );
+      pos = lrs.lrsPos + point.Distance ( hs.GetDomPoint() );
+      if ( startSmaller != route->GetStartSmaller() )
+        pos = route->Length() - pos;
+      if ( fabs ( pos-0.0 ) < 0.01 )
+        pos = 0.0;
+      else if ( fabs ( pos-route->Length() ) <0.01 )
+        pos = route->Length();
+      return result;
 
     }
   }
@@ -540,36 +675,55 @@ Used by operator ~intersects~
 
 */
 
-bool searchUnit(GLine *pGLine, size_t low, size_t high,
-                const RouteInterval *pRi) {
-  assert(pGLine->IsSorted());
-  const RouteInterval *rI;
-  if (low <= high) {
-    size_t mid = (high + low) / 2;
+bool searchUnit ( GLine *pGLine, size_t low, size_t high,
+                  RouteInterval pRi )
+{
+  assert ( pGLine->IsSorted() );
+  RouteInterval rI;
+  if ( low <= high )
+  {
+    size_t mid = ( high + low ) / 2;
     int imid = mid;
-    if ((mid < 0) || (imid >= pGLine->NoOfComponents())) {
+    if ( ( mid < 0 ) || ( imid >= pGLine->NoOfComponents() ) )
+    {
       return false;
-    }else {
-      pGLine->Get(mid, rI);
-      if (rI->GetRouteId() < pRi->GetRouteId()) {
-        return searchUnit(pGLine, mid+1, high, pRi);
-      } else {
-        if (rI->GetRouteId() > pRi->GetRouteId()){
-          return searchUnit(pGLine, low, mid-1, pRi);
-        } else {
-          if (rI->GetStartPos() > pRi->GetEndPos()) {
-            return searchUnit(pGLine, low, mid-1, pRi);
-          } else {
-            if (rI->GetEndPos() < pRi->GetStartPos()){
-              return searchUnit(pGLine, mid+1, high, pRi);
-            } else {
+    }
+    else
+    {
+      pGLine->Get ( mid, rI );
+      if ( rI.GetRouteId() < pRi.GetRouteId() )
+      {
+        return searchUnit ( pGLine, mid+1, high, pRi );
+      }
+      else
+      {
+        if ( rI.GetRouteId() > pRi.GetRouteId() )
+        {
+          return searchUnit ( pGLine, low, mid-1, pRi );
+        }
+        else
+        {
+          if ( rI.GetStartPos() > pRi.GetEndPos() )
+          {
+            return searchUnit ( pGLine, low, mid-1, pRi );
+          }
+          else
+          {
+            if ( rI.GetEndPos() < pRi.GetStartPos() )
+            {
+              return searchUnit ( pGLine, mid+1, high, pRi );
+            }
+            else
+            {
               return true;
             }
           }
         }
       }
     }
-  } else {
+  }
+  else
+  {
     return false;
   }
   return false;
@@ -584,84 +738,99 @@ for the resulting ~stream~ of ~GPoint~.
 
 */
 
-class GPointList{
-public:
-/*
-The constructor creates a GPointList from a given gpoint.
+class GPointList
+{
+  public:
+    /*
+    The constructor creates a GPointList from a given gpoint.
 
-*/
-   GPointList(GPoint *gp, Network *pNetwork):
-    aliasGP(0) {
-    lastPos = 0;
-    aliasGP.Clear();
-    aliasGP.Append(*gp);
-    vector<JunctionSortEntry> xJunctions;
-    xJunctions.clear();
-    if (pNetwork != 0) {
-      CcInt iRouteId(true, gp->GetRouteId());
-      pNetwork->GetJunctionsOnRoute(&iRouteId, xJunctions);
-      bool found = false;
-      JunctionSortEntry pCurrJunction;
-      size_t i = 0;
-      while (!found && i < xJunctions.size()){
-        pCurrJunction = xJunctions[i];
-        if (fabs (pCurrJunction.GetRouteMeas() - gp->GetPosition()) < 0.01) {
-          found = true;
-          GPoint test(true, gp->GetNetworkId(),
-                      pCurrJunction.GetOtherRouteId(),
-                      pCurrJunction.GetOtherRouteMeas(),
-                      None);
-          aliasGP.Append(test);
-        }
-        i++;
-      }
-      while (found && i < xJunctions.size()) {
-        pCurrJunction = xJunctions[i];
-        if (fabs(pCurrJunction.GetRouteMeas() - gp->GetPosition()) <0.01) {
-          GPoint test(true, gp->GetNetworkId(),
-                      pCurrJunction.GetOtherRouteId(),
-                      pCurrJunction.GetOtherRouteMeas(),
-                      None);
-          aliasGP.Append(test);
-        } else {
-          found = false;
-        }
-        i++;
-      }
-      for(unsigned int i=0;i<xJunctions.size();i++){
-        xJunctions[i].m_pJunction->DeleteIfAllowed();
-      }
+    */
+    GPointList ( GPoint *gp, Network *pNetwork ) :
+        aliasGP ( 0 )
+    {
+      lastPos = 0;
+      aliasGP.clean();
+      aliasGP.Append ( *gp );
+      vector<JunctionSortEntry> xJunctions;
       xJunctions.clear();
-    }
-  }
-
-   ~GPointList(){}
-
-/*
-~NextGPoint~
-
-This function returns the next GPoint from the GPointList.
-If there is no more GPoint in the  List the result will be
-0. This function creates a new GPoint instance via the new
-operator. The caller of this function has to ensure the
-deletion of this object.
-
-*/
-   const GPoint* NextGPoint(){
-      if(lastPos >= aliasGP.Size() || lastPos < 0){
-         return 0;
-      } else {
-        const GPoint *pAktGPoint;
-        aliasGP.Get(lastPos, pAktGPoint);
-        lastPos++;
-        return pAktGPoint;
+      if ( pNetwork != 0 )
+      {
+        CcInt iRouteId ( true, gp->GetRouteId() );
+        pNetwork->GetJunctionsOnRoute ( &iRouteId, xJunctions );
+        bool found = false;
+        JunctionSortEntry pCurrJunction;
+        size_t i = 0;
+        while ( !found && i < xJunctions.size() )
+        {
+          pCurrJunction = xJunctions[i];
+          if ( fabs ( pCurrJunction.GetRouteMeas() - gp->GetPosition() ) < 0.01
+)
+          {
+            found = true;
+            GPoint test ( true, gp->GetNetworkId(),
+                          pCurrJunction.GetOtherRouteId(),
+                          pCurrJunction.GetOtherRouteMeas(),
+                          None );
+            aliasGP.Append ( test );
+          }
+          i++;
+        }
+        while ( found && i < xJunctions.size() )
+        {
+          pCurrJunction = xJunctions[i];
+          if ( fabs ( pCurrJunction.GetRouteMeas() - gp->GetPosition() ) <0.01 )
+          {
+            GPoint test ( true, gp->GetNetworkId(),
+                          pCurrJunction.GetOtherRouteId(),
+                          pCurrJunction.GetOtherRouteMeas(),
+                          None );
+            aliasGP.Append ( test );
+          }
+          else
+          {
+            found = false;
+          }
+          i++;
+        }
+        for ( unsigned int i=0;i<xJunctions.size();i++ )
+        {
+          xJunctions[i].m_pJunction->DeleteIfAllowed();
+        }
+        xJunctions.clear();
       }
     }
 
-private:
+    ~GPointList() {}
 
-   DBArray<GPoint> aliasGP;
-   int lastPos;
+    /*
+    ~NextGPoint~
+
+    This function returns the next GPoint from the GPointList.
+    If there is no more GPoint in the  List the result will be
+    0. This function creates a new GPoint instance via the new
+    operator. The caller of this function has to ensure the
+    deletion of this object.
+
+    */
+    const GPoint NextGPoint()
+    {
+      GPoint pAktGPoint;
+      if ( lastPos >= aliasGP.Size() || lastPos < 0 )
+      {
+        pAktGPoint.SetDefined ( false );
+      }
+      else
+      {
+        aliasGP.Get ( lastPos, pAktGPoint );
+        lastPos++;
+      }
+      return pAktGPoint;
+    }
+
+  private:
+
+    DbArray<GPoint> aliasGP;
+    int lastPos;
 
 };
 
@@ -674,60 +843,67 @@ of ~rectangles~.
 
 */
 
-class RectangleList{
+class RectangleList
+{
 
-public:
+  public:
 
-/*
-~Constructor~
+    /*
+    ~Constructor~
 
-Creates a RectangleList from a given gline.
+    Creates a RectangleList from a given gline.
 
-*/
+    */
 
-   RectangleList(GLine *gl):
-    aliasRectangleList(0) {
-    const RouteInterval *ri;
-    lastPos = 0;
-    aliasRectangleList.Clear();
-    for (int i = 0 ; i < gl->NoOfComponents(); i++) {
-      gl->Get(i, ri);
-      Rectangle<2> elem(true,
-                              (double) ri->GetRouteId(),
-                              (double) ri->GetRouteId(),
-                              min(ri->GetStartPos(),ri->GetEndPos()),
-                              max(ri->GetStartPos(), ri->GetEndPos()));
-      aliasRectangleList.Append(elem);
-    }
-  }
-
-   ~RectangleList(){}
-
-/*
-~NextRectangle~
-
-This function returns the next rectangle from the RectangleList.
-If there is no more route interval in the  List the result will be
-0. This function creates a new Rectangle instance via the new
-operator. The caller of this function has to ensure the
-deletion of this object.
-
-*/
-   const Rectangle<2>* NextRectangle(){
-      if(lastPos >= aliasRectangleList.Size() || lastPos < 0){
-         return 0;
-      } else {
-        const Rectangle<2> *pAktRectangle;
-        aliasRectangleList.Get(lastPos, pAktRectangle);
-        lastPos++;
-        return pAktRectangle;
+    RectangleList ( GLine *gl ) :
+        aliasRectangleList ( 0 )
+    {
+      RouteInterval ri;
+      lastPos = 0;
+      aliasRectangleList.clean();
+      for ( int i = 0 ; i < gl->NoOfComponents(); i++ )
+      {
+        gl->Get ( i, ri );
+        Rectangle<2> elem ( true,
+                            ( double ) ri.GetRouteId(),
+                            ( double ) ri.GetRouteId(),
+                            min ( ri.GetStartPos(),ri.GetEndPos() ),
+                            max ( ri.GetStartPos(), ri.GetEndPos() ) );
+        aliasRectangleList.Append ( elem );
       }
     }
 
-private:
+    ~RectangleList() {}
 
-   DBArray<Rectangle<2> > aliasRectangleList;
-   int lastPos;
+    /*
+    ~NextRectangle~
+
+    This function returns the next rectangle from the RectangleList.
+    If there is no more route interval in the  List the result will be
+    0. This function creates a new Rectangle instance via the new
+    operator. The caller of this function has to ensure the
+    deletion of this object.
+
+    */
+    const Rectangle<2> NextRectangle()
+    {
+      Rectangle<2> pAktRectangle;
+      if ( lastPos >= aliasRectangleList.Size() || lastPos < 0 )
+      {
+        pAktRectangle.SetDefined ( false );
+      }
+      else
+      {
+        aliasRectangleList.Get ( lastPos, pAktRectangle );
+        lastPos++;
+      }
+      return pAktRectangle;
+    }
+
+  private:
+
+    DbArray<Rectangle<2> > aliasRectangleList;
+    int lastPos;
 
 };
 
@@ -745,46 +921,55 @@ possible if the shortest path follows the same route for more than one section.
 
 */
 
-struct RIStack {
+struct RIStack
+{
 
-  RIStack(){};
+  RIStack() {};
 
-  RIStack( int ri,double pos1, double pos2, RIStack* next = 0){
+  RIStack ( int ri,double pos1, double pos2, RIStack* next = 0 )
+  {
     m_iRouteId = ri;
     m_dStart = pos1;
     m_dEnd = pos2;
     m_next = next;
   };
 
-  ~RIStack(){};
+  ~RIStack() {};
 
-  void Push (int rid, double pos1, double pos2, RIStack *&first) {
-    RIStack *actElem = new RIStack(rid, pos1, pos2, this);
+  void Push ( int rid, double pos1, double pos2, RIStack *&first )
+  {
+    RIStack *actElem = new RIStack ( rid, pos1, pos2, this );
     first = actElem;
   };
 
-  void StackToGLine (GLine *gline) {
+  void StackToGLine ( GLine *gline )
+  {
     int actRId = m_iRouteId;
     double actStartPos = m_dStart;
     double actEndPos = m_dEnd;
     RIStack *actElem = this->m_next;
-    while (actElem != 0){
-      if (actRId == actElem->m_iRouteId &&
-          AlmostEqual(actEndPos,actElem->m_dStart)){
+    while ( actElem != 0 )
+    {
+      if ( actRId == actElem->m_iRouteId &&
+              AlmostEqual ( actEndPos,actElem->m_dStart ) )
+      {
         actEndPos = actElem->m_dEnd;
-      } else {
-        gline->AddRouteInterval(actRId, actStartPos, actEndPos);
+      }
+      else
+      {
+        gline->AddRouteInterval ( actRId, actStartPos, actEndPos );
         actRId = actElem->m_iRouteId;
         actStartPos = actElem->m_dStart;
         actEndPos = actElem->m_dEnd;
       }
       actElem = actElem->m_next;
     }
-    gline->AddRouteInterval(actRId, actStartPos, actEndPos);
+    gline->AddRouteInterval ( actRId, actStartPos, actEndPos );
   };
 
-  void RemoveStack(){
-    if (m_next != 0) m_next->RemoveStack();
+  void RemoveStack()
+  {
+    if ( m_next != 0 ) m_next->RemoveStack();
     delete this;
   };
 
@@ -799,37 +984,41 @@ computing between two gpoint.
 
 */
 
-class PQEntry {
+class PQEntry
+{
   public:
-  PQEntry() {}
+    PQEntry() {}
 
-  PQEntry(TupleId aktID, double distance, bool upDown,
-          TupleId beforeID) {
-    sectID = aktID;
-    distFromStart = distance;
-    upDownFlag = upDown;
-    beforeSectID = beforeID;
-  }
+    PQEntry ( TupleId aktID, double distance, bool upDown,
+              TupleId beforeID )
+    {
+      sectID = aktID;
+      distFromStart = distance;
+      upDownFlag = upDown;
+      beforeSectID = beforeID;
+    }
 
-  PQEntry(PQEntry &e) {
-    sectID = e.sectID;
-    distFromStart = e.distFromStart;
-    upDownFlag = e.upDownFlag;
-    beforeSectID = e.beforeSectID;
-  }
-  PQEntry(const PQEntry &e) {
-    sectID = e.sectID;
-    distFromStart = e.distFromStart;
-    upDownFlag = e.upDownFlag;
-    beforeSectID = e.beforeSectID;
-  }
+    PQEntry ( PQEntry &e )
+    {
+      sectID = e.sectID;
+      distFromStart = e.distFromStart;
+      upDownFlag = e.upDownFlag;
+      beforeSectID = e.beforeSectID;
+    }
+    PQEntry ( const PQEntry &e )
+    {
+      sectID = e.sectID;
+      distFromStart = e.distFromStart;
+      upDownFlag = e.upDownFlag;
+      beforeSectID = e.beforeSectID;
+    }
 
-  ~PQEntry(){}
+    ~PQEntry() {}
 
-  TupleId sectID;
-  double distFromStart;
-  bool upDownFlag;
-  TupleId beforeSectID;
+    TupleId sectID;
+    double distFromStart;
+    bool upDownFlag;
+    TupleId beforeSectID;
 };
 
 /*
@@ -839,12 +1028,14 @@ An arrayIndex from max integer means not longer in PrioQ and already visited.
 
 */
 
-struct SectIDTree {
-  SectIDTree(){};
+struct SectIDTree
+{
+  SectIDTree() {};
 
-  SectIDTree(TupleId sectIdent, TupleId beforeSectIdent, bool upDown,
-             int arrayIndex,
-             SectIDTree *l = 0,SectIDTree *r = 0) {
+  SectIDTree ( TupleId sectIdent, TupleId beforeSectIdent, bool upDown,
+               int arrayIndex,
+               SectIDTree *l = 0,SectIDTree *r = 0 )
+  {
     sectID = sectIdent;
     beforeSectId = beforeSectIdent;
     upDownFlag = upDown;
@@ -856,72 +1047,97 @@ struct SectIDTree {
 
   ~SectIDTree() {};
 
-  SectIDTree* Find(TupleId sectIdent){
-    if (sectID > sectIdent) {
-      if (left != 0) return left->Find(sectIdent);
-      else {
+  SectIDTree* Find ( TupleId sectIdent )
+  {
+    if ( sectID > sectIdent )
+    {
+      if ( left != 0 ) return left->Find ( sectIdent );
+      else
+      {
         return this;
       }
-    } else {
-      if (sectID < sectIdent) {
-        if (right != 0) return right->Find(sectIdent);
-        else {
+    }
+    else
+    {
+      if ( sectID < sectIdent )
+      {
+        if ( right != 0 ) return right->Find ( sectIdent );
+        else
+        {
           return this;
         }
-      } else {
+      }
+      else
+      {
         return this;
       }
     }
   };
 
-  void Remove(){
-    if (left != 0) left->Remove();
-    if (right != 0) right->Remove();
+  void Remove()
+  {
+    if ( left != 0 ) left->Remove();
+    if ( right != 0 ) right->Remove();
     delete this;
   };
 
-  bool Insert(TupleId sectIdent, TupleId beforeSectIdent, bool upDownFlag,
-              int arrayIndex,SectIDTree *&pointer){
-    pointer = Find(sectIdent);
-    if (pointer->sectID != sectIdent) {
-      if (pointer->sectID > sectIdent) {
-        pointer->left = new SectIDTree(sectIdent, beforeSectIdent, upDownFlag,
-                                       arrayIndex);
+  bool Insert ( TupleId sectIdent, TupleId beforeSectIdent, bool upDownFlag,
+                int arrayIndex,SectIDTree *&pointer )
+  {
+    pointer = Find ( sectIdent );
+    if ( pointer->sectID != sectIdent )
+    {
+      if ( pointer->sectID > sectIdent )
+      {
+        pointer->left = new SectIDTree ( sectIdent, beforeSectIdent, upDownFlag,
+                                         arrayIndex );
         pointer = pointer->left;
         return true;
-      } else {
-        if (pointer->sectID < sectIdent) {
-          pointer->right = new SectIDTree(sectIdent, beforeSectIdent,
-                                          upDownFlag, arrayIndex);
+      }
+      else
+      {
+        if ( pointer->sectID < sectIdent )
+        {
+          pointer->right = new SectIDTree ( sectIdent, beforeSectIdent,
+                                            upDownFlag, arrayIndex );
           pointer = pointer->right;
           return true;
-        } else {
+        }
+        else
+        {
           //should never be reached
           return false;
         }
       }
-    } else {
+    }
+    else
+    {
       return false;
     }
   };
 
-  void SetIndex(TupleId sectIdent, int arrayIndex){
-    Find(sectIdent)->index = arrayIndex;
+  void SetIndex ( TupleId sectIdent, int arrayIndex )
+  {
+    Find ( sectIdent )->index = arrayIndex;
   };
 
-  void SetIndex(int arrayIndex) {
+  void SetIndex ( int arrayIndex )
+  {
     index = arrayIndex;
   };
 
-  int GetIndex(TupleId sectIdent){
-    return Find(sectIdent)->index;
+  int GetIndex ( TupleId sectIdent )
+  {
+    return Find ( sectIdent )->index;
   };
 
-  void SetBeforeSectId (TupleId sectIdent, TupleId before) {
-    Find(sectIdent)->beforeSectId = before;
+  void SetBeforeSectId ( TupleId sectIdent, TupleId before )
+  {
+    Find ( sectIdent )->beforeSectId = before;
   };
 
-  void SetBeforeSectId (TupleId before) {
+  void SetBeforeSectId ( TupleId before )
+  {
     beforeSectId = before;
   };
 
@@ -938,13 +1154,14 @@ two gpoint.
 
 */
 
-struct PrioQueue {
+struct PrioQueue
+{
 
   PrioQueue() {};
 
-  PrioQueue(int n): prioQ(0) {firstFree = 0;};
+  PrioQueue ( int n ) : prioQ ( 0 ) {firstFree = 0;};
 
-  ~PrioQueue(){};
+  ~PrioQueue() {};
 
   /*
   If a point is reached second time and the distance of the second way is
@@ -952,135 +1169,171 @@ struct PrioQueue {
   position in the  priority queue must be corrected.
 
   */
-  void CorrectPosition(int checkX, const PQEntry nElem, SectIDTree *pSection,
-                       SectIDTree *sectTree){
+  void CorrectPosition ( int checkX, const PQEntry nElem, SectIDTree *pSection,
+                         SectIDTree *sectTree )
+  {
     int act = checkX;
-    const PQEntry* test;
+    PQEntry test;
     bool found = false;
-    while (checkX >= 0 && !found) {
-      if ((act % 2) == 0) checkX = (act-2) / 2;
-      else checkX = (act -1) / 2;
-      if (checkX >= 0) {
-        prioQ.Get(checkX, test);
-        if (test->distFromStart > nElem.distFromStart) {
-            PQEntry help = *(const_cast<PQEntry*> (test));
-            prioQ.Put(checkX, nElem);
-            pSection->SetIndex(checkX);
-            prioQ.Put(act, help);
-            SectIDTree *thelp = sectTree->Find(help.sectID);
-            thelp->SetIndex(act);
-            act = checkX;
-        } else {
+    while ( checkX >= 0 && !found )
+    {
+      if ( ( act % 2 ) == 0 ) checkX = ( act-2 ) / 2;
+      else checkX = ( act -1 ) / 2;
+      if ( checkX >= 0 )
+      {
+        prioQ.Get ( checkX, test );
+        if ( test.distFromStart > nElem.distFromStart )
+        {
+          PQEntry help = test;
+          prioQ.Put ( checkX, nElem );
+          pSection->SetIndex ( checkX );
+          prioQ.Put ( act, help );
+          SectIDTree *thelp = sectTree->Find ( help.sectID );
+          thelp->SetIndex ( act );
+          act = checkX;
+        }
+        else
+        {
           found = true;
         }
-      } else {
+      }
+      else
+      {
         found = true;
       }
     }
   };
 
-  void Insert(PQEntry nElem, SectIDTree *sectTree){
-    SectIDTree *pSection = sectTree->Find(nElem.sectID);
-    const PQEntry *old;
-    if (pSection->sectID == nElem.sectID) {
-      if (pSection->index != numeric_limits<int>::max()) {
-        prioQ.Get(pSection->index, old);
-        if (nElem.distFromStart < old->distFromStart) {
-          prioQ.Put(pSection->index, nElem);
-          pSection->SetBeforeSectId(nElem.beforeSectID);
-          CorrectPosition(pSection->index, nElem, pSection, sectTree);
+  void Insert ( PQEntry nElem, SectIDTree *sectTree )
+  {
+    SectIDTree *pSection = sectTree->Find ( nElem.sectID );
+    PQEntry old;
+    if ( pSection->sectID == nElem.sectID )
+    {
+      if ( pSection->index != numeric_limits<int>::max() )
+      {
+        prioQ.Get ( pSection->index, old );
+        if ( nElem.distFromStart < old.distFromStart )
+        {
+          prioQ.Put ( pSection->index, nElem );
+          pSection->SetBeforeSectId ( nElem.beforeSectID );
+          CorrectPosition ( pSection->index, nElem, pSection, sectTree );
         }
       }
-    } else {
-      prioQ.Put(firstFree, nElem);
-      sectTree->Insert(nElem.sectID, nElem.beforeSectID, nElem.upDownFlag,
-                                     firstFree, pSection);
-      CorrectPosition(firstFree, nElem, pSection ,sectTree);
+    }
+    else
+    {
+      prioQ.Put ( firstFree, nElem );
+      sectTree->Insert ( nElem.sectID, nElem.beforeSectID, nElem.upDownFlag,
+                         firstFree, pSection );
+      CorrectPosition ( firstFree, nElem, pSection ,sectTree );
       firstFree++;
     }
   }
 
-  PQEntry* GetAndDeleteMin (SectIDTree *sectTree){
-    if (firstFree > 0) {
-      const PQEntry *result, *last, *test1, *test2;
-      prioQ.Get(0,result);
-      PQEntry *retValue = new PQEntry(result->sectID, result->distFromStart,
-                                      result->upDownFlag, result->beforeSectID);
-      SectIDTree *tRet = sectTree->Find(result->sectID);
-      tRet->SetIndex(numeric_limits<int>::max());
-      prioQ.Get(firstFree-1, last);
-      prioQ.Put(0, *last);
+  PQEntry* GetAndDeleteMin ( SectIDTree *sectTree )
+  {
+    if ( firstFree > 0 )
+    {
+      PQEntry result, last, test1, test2;
+      prioQ.Get ( 0,result );
+      PQEntry *retValue = new PQEntry ( result.sectID, result.distFromStart,
+                                        result.upDownFlag, result.beforeSectID
+);
+      SectIDTree *tRet = sectTree->Find ( result.sectID );
+      tRet->SetIndex ( numeric_limits<int>::max() );
+      prioQ.Get ( firstFree-1, last );
+      prioQ.Put ( 0, last );
       firstFree = firstFree--;
-      SectIDTree *pSection = sectTree->Find(last->sectID);
-      pSection->SetIndex(0);
+      SectIDTree *pSection = sectTree->Find ( last.sectID );
+      pSection->SetIndex ( 0 );
       int act = 0;
       int checkX = 0;
       bool found = false;
-      while (checkX < firstFree && !found){
+      while ( checkX < firstFree && !found )
+      {
         checkX = 2*act + 1;
-        if (checkX < firstFree-1) {
-          prioQ.Get(checkX, test1);
-          prioQ.Get(checkX+1, test2);
-          if (test1->distFromStart < last->distFromStart ||
-             test2->distFromStart < last->distFromStart){
-            if (test1->distFromStart <= test2->distFromStart) {
-              PQEntry help = *(const_cast<PQEntry*> (test1));
-              prioQ.Put(checkX, *last);
-              pSection->SetIndex(checkX);
-              prioQ.Put(act, help);
-              SectIDTree *thelp = sectTree->Find(help.sectID);
-              thelp->SetIndex(act);
+        if ( checkX < firstFree-1 )
+        {
+          prioQ.Get ( checkX, test1 );
+          prioQ.Get ( checkX+1, test2 );
+          if ( test1.distFromStart < last.distFromStart ||
+                  test2.distFromStart < last.distFromStart )
+          {
+            if ( test1.distFromStart <= test2.distFromStart )
+            {
+              PQEntry help = test1;
+              prioQ.Put ( checkX, last );
+              pSection->SetIndex ( checkX );
+              prioQ.Put ( act, help );
+              SectIDTree *thelp = sectTree->Find ( help.sectID );
+              thelp->SetIndex ( act );
               act = checkX;
-            } else {
-              PQEntry help = *(const_cast<PQEntry*> (test2));
-              prioQ.Put(checkX+1, *last);
-              pSection->SetIndex(checkX+1);
-              prioQ.Put(act, help);
-              SectIDTree *thelp = sectTree->Find(help.sectID);
-              thelp->SetIndex(act);
+            }
+            else
+            {
+              PQEntry help = test2;
+              prioQ.Put ( checkX+1, last );
+              pSection->SetIndex ( checkX+1 );
+              prioQ.Put ( act, help );
+              SectIDTree *thelp = sectTree->Find ( help.sectID );
+              thelp->SetIndex ( act );
               act = checkX+1;
             }
-          } else {
+          }
+          else
+          {
             found = true;
           }
-        } else {
-          if (checkX != 0 && checkX == firstFree-1){
-            prioQ.Get(checkX, test1);
-            if (test1->distFromStart < last->distFromStart) {
-              PQEntry help = *(const_cast<PQEntry*> (test1));
-              prioQ.Put(checkX, *last);
-              pSection->SetIndex(checkX);
-              prioQ.Put(act, help);
-              SectIDTree *thelp = sectTree->Find(help.sectID);
-              thelp->SetIndex(act);
+        }
+        else
+        {
+          if ( checkX != 0 && checkX == firstFree-1 )
+          {
+            prioQ.Get ( checkX, test1 );
+            if ( test1.distFromStart < last.distFromStart )
+            {
+              PQEntry help = test1;
+              prioQ.Put ( checkX, last );
+              pSection->SetIndex ( checkX );
+              prioQ.Put ( act, help );
+              SectIDTree *thelp = sectTree->Find ( help.sectID );
+              thelp->SetIndex ( act );
               act = checkX;
-            } else {
+            }
+            else
+            {
               found = true;
             }
           }
         }
       }
       return retValue;
-    } else {
+    }
+    else
+    {
       return 0;
     }
   }
 
-  void Clear(){
-    prioQ.Clear();
+  void Clear()
+  {
+    prioQ.clean();
     firstFree = 0;
   }
 
-  bool IsEmpty() {
-    if (firstFree == 0) return true;
+  bool IsEmpty()
+  {
+    if ( firstFree == 0 ) return true;
     else return false;
   }
 
-  void Destroy(){
+  void Destroy()
+  {
     prioQ.Destroy();
   }
 
-  DBArray<PQEntry> prioQ;
+  DbArray<PQEntry> prioQ;
   int firstFree;
 
 };
@@ -1094,100 +1347,100 @@ struct PrioQueue {
 
 */
 string Network::routesTypeInfo =
-      "(rel (tuple ((id int) (length real) (curve sline) "
-      "(dual bool) (startsSmaller bool))))";
+    "(rel (tuple ((id int) (length real) (curve sline) "
+    "(dual bool) (startsSmaller bool))))";
 string Network::routesBTreeTypeInfo =
-      "(btree (tuple ((id int) (length real) (curve sline) "
-      "(dual bool) (startsSmaller bool))) int)";
+    "(btree (tuple ((id int) (length real) (curve sline) "
+    "(dual bool) (startsSmaller bool))) int)";
 
 string Network::routesRTreeTypeInfo =
-      "(rtree (tuple((id int)(length real)(curve sline)(dual bool)"
-      "(startsSmaller bool))) sline FALSE)";
+    "(rtree (tuple((id int)(length real)(curve sline)(dual bool)"
+    "(startsSmaller bool))) sline FALSE)";
 
 string Network::junctionsTypeInfo =
-      "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
-      "(meas2 real) (cc int))))";
+    "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
+    "(meas2 real) (cc int))))";
 string Network::junctionsInternalTypeInfo =
-      "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
-      "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
-      "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))))";
+    "(rel (tuple ((r1id int) (meas1 real) (r2id int) "
+    "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
+    "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))))";
 string Network::junctionsBTreeTypeInfo =
-      "(btree (tuple ((r1id int) (meas1 real) (r2id int) "
-      "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
-      "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))) int)";
+    "(btree (tuple ((r1id int) (meas1 real) (r2id int) "
+    "(meas2 real) (cc int) (pos point) (r1rc tid) (r2rc tid) "
+    "(sauprc tid) (sadownrc tid)(sbuprc tid) (sbdownrc tid))) int)";
 string Network::sectionsInternalTypeInfo =
-      "(rel (tuple ((rid int) (meas1 real) (meas2 real) (dual bool)"
-      "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int))))";
+    "(rel (tuple ((rid int) (meas1 real) (meas2 real) (dual bool)"
+    "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int))))";
 string Network::sectionsBTreeTypeInfo =
-      "(btree (tuple ((rid int) (meas1 real) (meas2 real) (dual bool)"
-      "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int))) int)";
+    "(btree (tuple ((rid int) (meas1 real) (meas2 real) (dual bool)"
+    "(curve sline)(curveStartsSmaller bool) (rrc tid) (sid int))) int)";
 string Network::distancestorageTypeInfo =
-      "(rel (tuple((j1 tid)(j2 tid)(dist real)(sp gline))))";
+    "(rel (tuple((j1 tid)(j2 tid)(dist real)(sp gline))))";
 
 /*
 2.1.3 Constructors and destructors class ~Network~
 
 */
 
-Network::Network():
-m_iId(0),
-m_bDefined(false),
-m_pRoutes(0),
-m_pJunctions(0),
-m_pSections(0),
-m_pBTreeRoutes(0),
-m_pRTreeRoutes(0),
-m_pBTreeJunctionsByRoute1(0),
-m_pBTreeJunctionsByRoute2(0),
-m_xAdjacencyList(0),
-m_xSubAdjacencyList(0),
-m_pBTreeSectionsByRoute(0)
-/*alldistance(0)*/  //only for experimental use with network distances
+Network::Network() :
+    m_iId ( 0 ),
+    m_bDefined ( false ),
+    m_pRoutes ( 0 ),
+    m_pJunctions ( 0 ),
+    m_pSections ( 0 ),
+    m_pBTreeRoutes ( 0 ),
+    m_pRTreeRoutes ( 0 ),
+    m_pBTreeJunctionsByRoute1 ( 0 ),
+    m_pBTreeJunctionsByRoute2 ( 0 ),
+    m_xAdjacencyList ( 0 ),
+    m_xSubAdjacencyList ( 0 ),
+    m_pBTreeSectionsByRoute ( 0 )
+    /*alldistance(0)*/  //only for experimental use with network distances
 {
 }
 
-Network::Network(SmiRecord& in_xValueRecord,
-                 size_t& inout_iOffset,
-                 const ListExpr in_xTypeInfo):
+Network::Network ( SmiRecord& in_xValueRecord,
+                   size_t& inout_iOffset,
+                   const ListExpr in_xTypeInfo )/*:
 m_xAdjacencyList(0),
-m_xSubAdjacencyList(0)
+m_xSubAdjacencyList(0)*/
 {
 
   // Read network id
-  in_xValueRecord.Read( &m_iId, sizeof( int ), inout_iOffset );
-  inout_iOffset += sizeof( int );
+  in_xValueRecord.Read ( &m_iId, sizeof ( int ), inout_iOffset );
+  inout_iOffset += sizeof ( int );
 
   // Open routes
   ListExpr xType;
-  nl->ReadFromString(routesTypeInfo, xType);
-  ListExpr xNumericType = SecondoSystem::GetCatalog()->NumericType(xType);
-  m_pRoutes = Relation::Open(in_xValueRecord,
-                             inout_iOffset,
-                             xNumericType);
-  if(!m_pRoutes)
+  nl->ReadFromString ( routesTypeInfo, xType );
+  ListExpr xNumericType = SecondoSystem::GetCatalog()->NumericType ( xType );
+  m_pRoutes = Relation::Open ( in_xValueRecord,
+                               inout_iOffset,
+                               xNumericType );
+  if ( !m_pRoutes )
   {
     return;
   }
 
   // Open junctions
-  nl->ReadFromString(junctionsInternalTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  m_pJunctions = Relation::Open(in_xValueRecord,
-                                inout_iOffset,
-                                xNumericType);
-  if(!m_pJunctions)
+  nl->ReadFromString ( junctionsInternalTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  m_pJunctions = Relation::Open ( in_xValueRecord,
+                                  inout_iOffset,
+                                  xNumericType );
+  if ( !m_pJunctions )
   {
     m_pRoutes->Delete();
     return;
   }
 
   // Open sections
-  nl->ReadFromString(sectionsInternalTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  m_pSections = Relation::Open(in_xValueRecord,
-                               inout_iOffset,
-                               xNumericType);
-  if(!m_pSections)
+  nl->ReadFromString ( sectionsInternalTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  m_pSections = Relation::Open ( in_xValueRecord,
+                                 inout_iOffset,
+                                 xNumericType );
+  if ( !m_pSections )
   {
     m_pRoutes->Delete();
     m_pJunctions->Delete();
@@ -1195,13 +1448,13 @@ m_xSubAdjacencyList(0)
   }
 
   // Open btree for routes
-  nl->ReadFromString(routesBTreeTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  m_pBTreeRoutes = BTree::Open(in_xValueRecord,
-                               inout_iOffset,
-                               xNumericType);
+  nl->ReadFromString ( routesBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  m_pBTreeRoutes = BTree::Open ( in_xValueRecord,
+                                 inout_iOffset,
+                                 xNumericType );
 
-  if(!m_pBTreeRoutes)
+  if ( !m_pBTreeRoutes )
   {
     m_pRoutes->Delete();
     m_pJunctions->Delete();
@@ -1211,10 +1464,10 @@ m_xSubAdjacencyList(0)
   //Open  rtree for routes
   Word xValue;
 
-  if (!(m_pRTreeRoutes->Open(in_xValueRecord,
-                            inout_iOffset,
-                            routesRTreeTypeInfo,
-                            xValue)))
+  if ( ! ( m_pRTreeRoutes->Open ( in_xValueRecord,
+                                  inout_iOffset,
+                                  routesRTreeTypeInfo,
+                                  xValue ) ) )
   {
     m_pRoutes->Delete();
     m_pJunctions->Delete();
@@ -1223,15 +1476,15 @@ m_xSubAdjacencyList(0)
     return;
   }
 
-  m_pRTreeRoutes = (R_Tree<2,TupleId>*) xValue.addr;
+  m_pRTreeRoutes = ( R_Tree<2,TupleId>* ) xValue.addr;
 
   // Open first btree for junctions
-  nl->ReadFromString(junctionsBTreeTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  m_pBTreeJunctionsByRoute1 = BTree::Open(in_xValueRecord,
-                                          inout_iOffset,
-                                          xNumericType);
-  if(!m_pBTreeJunctionsByRoute1)
+  nl->ReadFromString ( junctionsBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  m_pBTreeJunctionsByRoute1 = BTree::Open ( in_xValueRecord,
+                              inout_iOffset,
+                              xNumericType );
+  if ( !m_pBTreeJunctionsByRoute1 )
   {
     m_pRoutes->Delete();
     m_pJunctions->Delete();
@@ -1242,12 +1495,12 @@ m_xSubAdjacencyList(0)
   }
 
   // Open second btree for junctions
-  nl->ReadFromString(junctionsBTreeTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  m_pBTreeJunctionsByRoute2 = BTree::Open(in_xValueRecord,
-                                          inout_iOffset,
-                                          xNumericType);
-  if(!m_pBTreeJunctionsByRoute2)
+  nl->ReadFromString ( junctionsBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  m_pBTreeJunctionsByRoute2 = BTree::Open ( in_xValueRecord,
+                              inout_iOffset,
+                              xNumericType );
+  if ( !m_pBTreeJunctionsByRoute2 )
   {
     m_pRoutes->Delete();
     m_pJunctions->Delete();
@@ -1258,16 +1511,29 @@ m_xSubAdjacencyList(0)
     return;
   }
 
-  m_xAdjacencyList.OpenFromRecord(in_xValueRecord, inout_iOffset);
-  m_xSubAdjacencyList.OpenFromRecord(in_xValueRecord, inout_iOffset);
+// m_xAdjacencyList.OpenFromRecord(in_xValueRecord, inout_iOffset);
+// m_xSubAdjacencyList.OpenFromRecord(in_xValueRecord,inout_iOffset);
+   size_t bufsize = sizeof(FlobId) + sizeof(SmiSize) + 2*sizeof(int);
+   SmiSize offset = 0;
+   char* buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   m_xAdjacencyList.restoreHeader(buf,offset);
+   free(buf);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   in_xValueRecord.Read(buf, bufsize, inout_iOffset);
+   m_xSubAdjacencyList.restoreHeader(buf,offset);
+   inout_iOffset += bufsize;
+   free(buf);
 
   // Open btree for sections
-  nl->ReadFromString(sectionsBTreeTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  m_pBTreeSectionsByRoute = BTree::Open(in_xValueRecord,
+  nl->ReadFromString ( sectionsBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  m_pBTreeSectionsByRoute = BTree::Open ( in_xValueRecord,
                                           inout_iOffset,
-                                          xNumericType);
-  if(!m_pBTreeSectionsByRoute)
+                                          xNumericType );
+  if ( !m_pBTreeSectionsByRoute )
   {
     m_pRoutes->Delete();
     m_pJunctions->Delete();
@@ -1299,187 +1565,190 @@ m_xSubAdjacencyList(0)
   m_bDefined = true;
 }
 
-Network::Network(ListExpr in_xValue,
-                 int in_iErrorPos,
-                 ListExpr& inout_xErrorInfo,
-                 bool& inout_bCorrect):
-m_iId(0),
-m_bDefined(false),
-m_pRoutes(0),
-m_pJunctions(0),
-m_pSections(0),
-m_pBTreeRoutes(0),
-m_pRTreeRoutes(0),
-m_pBTreeJunctionsByRoute1(0),
-m_pBTreeJunctionsByRoute2(0),
-m_xAdjacencyList(0),
-m_xSubAdjacencyList(0),
-m_pBTreeSectionsByRoute(0)
-/*alldistance(0)*/
+Network::Network ( ListExpr in_xValue,
+                   int in_iErrorPos,
+                   ListExpr& inout_xErrorInfo,
+                   bool& inout_bCorrect ) :
+    m_iId ( 0 ),
+    m_bDefined ( false ),
+    m_pRoutes ( 0 ),
+    m_pJunctions ( 0 ),
+    m_pSections ( 0 ),
+    m_pBTreeRoutes ( 0 ),
+    m_pRTreeRoutes ( 0 ),
+    m_pBTreeJunctionsByRoute1 ( 0 ),
+    m_pBTreeJunctionsByRoute2 ( 0 ),
+    m_xAdjacencyList ( 0 ),
+    m_xSubAdjacencyList ( 0 ),
+    m_pBTreeSectionsByRoute ( 0 )
+    /*alldistance(0)*/
 {
 
   // Check the list
-  if(!(nl->ListLength(in_xValue) == 3))
+  if ( ! ( nl->ListLength ( in_xValue ) == 3 ) )
   {
     string strErrorMessage = "Network(): List length must be 3.";
     inout_xErrorInfo =
-    nl->Append(inout_xErrorInfo, nl->StringAtom(strErrorMessage));
+        nl->Append ( inout_xErrorInfo, nl->StringAtom ( strErrorMessage ) );
     inout_bCorrect = false;
     return;
   }
 
   // Get type-info for temporary table
   ListExpr xType;
-  nl->ReadFromString(routesTypeInfo, xType);
-  ListExpr xRoutesNumType = SecondoSystem::GetCatalog()->NumericType(xType);
-  nl->ReadFromString(junctionsTypeInfo, xType);
-  ListExpr xJunctionsNumType = SecondoSystem::GetCatalog()->NumericType(xType);
+  nl->ReadFromString ( routesTypeInfo, xType );
+  ListExpr xRoutesNumType = SecondoSystem::GetCatalog()->NumericType ( xType );
+  nl->ReadFromString ( junctionsTypeInfo, xType );
+  ListExpr xJunctionsNumType = SecondoSystem::GetCatalog()->NumericType ( xType
+);
 
   // Split into the three parts
-  ListExpr xIdList = nl->First(in_xValue);
-  ListExpr xRouteList = nl->Second(in_xValue);
-  ListExpr xJunctionList = nl->Third(in_xValue);
+  ListExpr xIdList = nl->First ( in_xValue );
+  ListExpr xRouteList = nl->Second ( in_xValue );
+  ListExpr xJunctionList = nl->Third ( in_xValue );
   // Sections will be calculated in the load-method
 
   // Read Id
-  if(!nl->IsAtom(xIdList) ||
-     nl->AtomType(xIdList) != IntType)
+  if ( !nl->IsAtom ( xIdList ) ||
+          nl->AtomType ( xIdList ) != IntType )
   {
     string strErrorMessage = "Network(): Id is missing.";
-    inout_xErrorInfo = nl->Append(inout_xErrorInfo,
-                                  nl->StringAtom(strErrorMessage));
+    inout_xErrorInfo = nl->Append ( inout_xErrorInfo,
+                                    nl->StringAtom ( strErrorMessage ) );
     inout_bCorrect = false;
     return;
   }
-  m_iId = nl->IntValue(xIdList);
+  m_iId = nl->IntValue ( xIdList );
 
   // Create new temporary relations.
-  Relation* pRoutes = new Relation(xRoutesNumType, true);
-  Relation* pJunctions = new Relation(xJunctionsNumType, true);
+  Relation* pRoutes = new Relation ( xRoutesNumType, false );
+  Relation* pJunctions = new Relation ( xJunctionsNumType, false );
 
   // Iterate over all routes
-  while(!nl->IsEmpty(xRouteList))
+  while ( !nl->IsEmpty ( xRouteList ) )
   {
-    ListExpr xCurrentRoute = nl->First(xRouteList);
-    xRouteList = nl->Rest(xRouteList);
+    ListExpr xCurrentRoute = nl->First ( xRouteList );
+    xRouteList = nl->Rest ( xRouteList );
 
     // Create tuple for internal table
-    Tuple* pNewRoute = new Tuple(nl->Second(xRoutesNumType));
+    Tuple* pNewRoute = new Tuple ( nl->Second ( xRoutesNumType ) );
 
     // Check this part of the list
-    if(nl->ListLength(xCurrentRoute) != 5 ||
-      (!nl->IsAtom(nl->First(xCurrentRoute))) ||
-      nl->AtomType(nl->First(xCurrentRoute)) != IntType ||
-      (!nl->IsAtom(nl->Second(xCurrentRoute))) ||
-      nl->AtomType(nl->Second(xCurrentRoute)) != RealType ||
-      (nl->IsAtom(nl->Third(xCurrentRoute))) ||
-      (!nl->IsAtom(nl->Fourth(xCurrentRoute))) ||
-      nl->AtomType(nl->Fourth(xCurrentRoute)) != BoolType ||
-      (!nl->IsAtom(nl->Fifth(xCurrentRoute))) ||
-      nl->AtomType(nl->Fifth(xCurrentRoute)) != BoolType)
+    if ( nl->ListLength ( xCurrentRoute ) != 5 ||
+            ( !nl->IsAtom ( nl->First ( xCurrentRoute ) ) ) ||
+            nl->AtomType ( nl->First ( xCurrentRoute ) ) != IntType ||
+            ( !nl->IsAtom ( nl->Second ( xCurrentRoute ) ) ) ||
+            nl->AtomType ( nl->Second ( xCurrentRoute ) ) != RealType ||
+            ( nl->IsAtom ( nl->Third ( xCurrentRoute ) ) ) ||
+            ( !nl->IsAtom ( nl->Fourth ( xCurrentRoute ) ) ) ||
+            nl->AtomType ( nl->Fourth ( xCurrentRoute ) ) != BoolType ||
+            ( !nl->IsAtom ( nl->Fifth ( xCurrentRoute ) ) ) ||
+            nl->AtomType ( nl->Fifth ( xCurrentRoute ) ) != BoolType )
     {
       delete pRoutes;
       delete pRoutes;
 
       string strErrorMessage = "Network(): Error while reading out routes.";
-      inout_xErrorInfo = nl->Append(inout_xErrorInfo,
-                                    nl->StringAtom(strErrorMessage));
+      inout_xErrorInfo = nl->Append ( inout_xErrorInfo,
+                                      nl->StringAtom ( strErrorMessage ) );
       inout_bCorrect = false;
       return;
     }
 
     // Read attributes from list
     // Read values from table
-    int iRouteId = nl->IntValue(nl->First(xCurrentRoute));
-    double dLength  = nl->RealValue(nl->Second(xCurrentRoute));
-    Word xLineWord = InSimpleLine(nl->TheEmptyList(),
-                            nl->Third(xCurrentRoute),
-                            in_iErrorPos,
-                            inout_xErrorInfo,
-                            inout_bCorrect);
-    SimpleLine* pLine = (SimpleLine*)(xLineWord.addr);
-    bool bDual= nl->BoolValue(nl->Fourth(xCurrentRoute));
-    bool bStartsSmaller  = nl->BoolValue(nl->Fifth(xCurrentRoute));
+    int iRouteId = nl->IntValue ( nl->First ( xCurrentRoute ) );
+    double dLength  = nl->RealValue ( nl->Second ( xCurrentRoute ) );
+    Word xLineWord = InSimpleLine ( nl->TheEmptyList(),
+                                    nl->Third ( xCurrentRoute ),
+                                    in_iErrorPos,
+                                    inout_xErrorInfo,
+                                    inout_bCorrect );
+    SimpleLine* pLine = ( SimpleLine* ) ( xLineWord.addr );
+    bool bDual= nl->BoolValue ( nl->Fourth ( xCurrentRoute ) );
+    bool bStartsSmaller  = nl->BoolValue ( nl->Fifth ( xCurrentRoute ) );
 
     // Set all necessary attributes
-    pNewRoute->PutAttribute(ROUTE_ID, new CcInt(true, iRouteId));
-    pNewRoute->PutAttribute(ROUTE_LENGTH, new CcReal(true, dLength));
-    pNewRoute->PutAttribute(ROUTE_CURVE, pLine);
-    pNewRoute->PutAttribute(ROUTE_DUAL, new CcBool(true, bDual));
-    pNewRoute->PutAttribute(ROUTE_STARTSSMALLER, new CcBool(true,
-                                                              bStartsSmaller));
+    pNewRoute->PutAttribute ( ROUTE_ID, new CcInt ( true, iRouteId ) );
+    pNewRoute->PutAttribute ( ROUTE_LENGTH, new CcReal ( true, dLength ) );
+    pNewRoute->PutAttribute ( ROUTE_CURVE, pLine );
+    pNewRoute->PutAttribute ( ROUTE_DUAL, new CcBool ( true, bDual ) );
+    pNewRoute->PutAttribute ( ROUTE_STARTSSMALLER, new CcBool ( true,
+                              bStartsSmaller ) );
 
     // Append new junction
-    pRoutes->AppendTuple(pNewRoute);
-    if(pNewRoute){
+    pRoutes->AppendTuple ( pNewRoute );
+    if ( pNewRoute )
+    {
       pNewRoute->DeleteIfAllowed();
       pNewRoute=0;
     }
   }
 
-   // Iterate over all junctions
-  while(!nl->IsEmpty(xJunctionList))
+  // Iterate over all junctions
+  while ( !nl->IsEmpty ( xJunctionList ) )
   {
-    ListExpr xCurrentJunction = nl->First(xJunctionList);
-    xJunctionList = nl->Rest(xJunctionList);
+    ListExpr xCurrentJunction = nl->First ( xJunctionList );
+    xJunctionList = nl->Rest ( xJunctionList );
 
     // Create tuple for internal table
-    Tuple* pNewJunction = new Tuple(nl->Second(xJunctionsNumType));
+    Tuple* pNewJunction = new Tuple ( nl->Second ( xJunctionsNumType ) );
 
     // Check this part of the list
-    if(nl->ListLength(xCurrentJunction) != 6 ||
-      (!nl->IsAtom(nl->First(xCurrentJunction))) ||
-      nl->AtomType(nl->First(xCurrentJunction)) != IntType ||
-      (!nl->IsAtom(nl->Second(xCurrentJunction))) ||
-      nl->AtomType(nl->Second(xCurrentJunction)) != RealType ||
-      (!nl->IsAtom(nl->Third(xCurrentJunction))) ||
-      nl->AtomType(nl->Third(xCurrentJunction)) != IntType ||
-      (!nl->IsAtom(nl->Fourth(xCurrentJunction))) ||
-      nl->AtomType(nl->Fourth(xCurrentJunction)) != RealType ||
-      (!nl->IsAtom(nl->Fifth(xCurrentJunction))) ||
-      nl->AtomType(nl->Fifth(xCurrentJunction)) != IntType)
+    if ( nl->ListLength ( xCurrentJunction ) != 6 ||
+            ( !nl->IsAtom ( nl->First ( xCurrentJunction ) ) ) ||
+            nl->AtomType ( nl->First ( xCurrentJunction ) ) != IntType ||
+            ( !nl->IsAtom ( nl->Second ( xCurrentJunction ) ) ) ||
+            nl->AtomType ( nl->Second ( xCurrentJunction ) ) != RealType ||
+            ( !nl->IsAtom ( nl->Third ( xCurrentJunction ) ) ) ||
+            nl->AtomType ( nl->Third ( xCurrentJunction ) ) != IntType ||
+            ( !nl->IsAtom ( nl->Fourth ( xCurrentJunction ) ) ) ||
+            nl->AtomType ( nl->Fourth ( xCurrentJunction ) ) != RealType ||
+            ( !nl->IsAtom ( nl->Fifth ( xCurrentJunction ) ) ) ||
+            nl->AtomType ( nl->Fifth ( xCurrentJunction ) ) != IntType )
     {
       delete pRoutes;
       delete pJunctions;
 
       string strErrorMessage = "Network(): Error while reading out junctions.";
-      inout_xErrorInfo = nl->Append(inout_xErrorInfo,
-                         nl->StringAtom(strErrorMessage));
+      inout_xErrorInfo = nl->Append ( inout_xErrorInfo,
+                                      nl->StringAtom ( strErrorMessage ) );
       inout_bCorrect = false;
       return;
     }
 
     // Read attributes from list
-    int iRoute1Id = nl->IntValue(nl->First(xCurrentJunction));
-    double dMeas1 = nl->RealValue(nl->Second(xCurrentJunction));
-    int iRoute2Id = nl->IntValue(nl->Third(xCurrentJunction));
-    double dMeas2 = nl->RealValue(nl->Fourth(xCurrentJunction));
-    int iConnectivityCode= nl->IntValue(nl->Fifth(xCurrentJunction));
+    int iRoute1Id = nl->IntValue ( nl->First ( xCurrentJunction ) );
+    double dMeas1 = nl->RealValue ( nl->Second ( xCurrentJunction ) );
+    int iRoute2Id = nl->IntValue ( nl->Third ( xCurrentJunction ) );
+    double dMeas2 = nl->RealValue ( nl->Fourth ( xCurrentJunction ) );
+    int iConnectivityCode= nl->IntValue ( nl->Fifth ( xCurrentJunction ) );
     // The location of the junction "Point" is calculated in the load-method
 
     // Set all necessary attributes
-    pNewJunction->PutAttribute(JUNCTION_ROUTE1_ID,
-                                new CcInt(true, iRoute1Id));
-    pNewJunction->PutAttribute(JUNCTION_ROUTE1_MEAS,
-                                new CcReal(true, dMeas1));
-    pNewJunction->PutAttribute(JUNCTION_ROUTE2_ID,
-                                new CcInt(true, iRoute2Id));
-    pNewJunction->PutAttribute(JUNCTION_ROUTE2_MEAS,
-                                new CcReal(true, dMeas2));
-    pNewJunction->PutAttribute(JUNCTION_CC,
-                                new CcInt(true, iConnectivityCode));
+    pNewJunction->PutAttribute ( JUNCTION_ROUTE1_ID,
+                                 new CcInt ( true, iRoute1Id ) );
+    pNewJunction->PutAttribute ( JUNCTION_ROUTE1_MEAS,
+                                 new CcReal ( true, dMeas1 ) );
+    pNewJunction->PutAttribute ( JUNCTION_ROUTE2_ID,
+                                 new CcInt ( true, iRoute2Id ) );
+    pNewJunction->PutAttribute ( JUNCTION_ROUTE2_MEAS,
+                                 new CcReal ( true, dMeas2 ) );
+    pNewJunction->PutAttribute ( JUNCTION_CC,
+                                 new CcInt ( true, iConnectivityCode ) );
 
     // Append new junction
-    pJunctions->AppendTuple(pNewJunction);
-    if(pNewJunction){
+    pJunctions->AppendTuple ( pNewJunction );
+    if ( pNewJunction )
+    {
       pNewJunction->DeleteIfAllowed();
       pNewJunction=0;
     }
   }
 
-  Load(m_iId,
-       pRoutes,
-       pJunctions);
+  Load ( m_iId,
+         pRoutes,
+         pJunctions );
 
   delete pRoutes;
   delete pJunctions;
@@ -1510,10 +1779,6 @@ Network::~Network()
 
   delete m_pBTreeSectionsByRoute;
 
-
-  m_xSubAdjacencyList.Clear();
-
-
 //  delete alldistance;
 }
 
@@ -1525,20 +1790,20 @@ Destroy -- Removing a network from the database
 */
 void Network::Destroy()
 {
-  assert(m_pRoutes != 0);
+  assert ( m_pRoutes != 0 );
   m_pRoutes->Delete(); m_pRoutes = 0;
 
-  assert(m_pJunctions != 0);
+  assert ( m_pJunctions != 0 );
   m_pJunctions->Delete(); m_pJunctions = 0;
 
-  assert(m_pSections != 0);
+  assert ( m_pSections != 0 );
   m_pSections->Delete(); m_pSections = 0;
 
-  assert(m_pBTreeRoutes != 0);
+  assert ( m_pBTreeRoutes != 0 );
   m_pBTreeRoutes->DeleteFile();
   delete m_pBTreeRoutes; m_pBTreeRoutes = 0;
 
-  assert(m_pRTreeRoutes != 0);
+  assert ( m_pRTreeRoutes != 0 );
   //m_pRTreeRoutes->DeleteFile();
   delete m_pRTreeRoutes; m_pRTreeRoutes = 0;
 
@@ -1550,7 +1815,7 @@ void Network::Destroy()
 
 //  m_xAdjacencyList.Destroy();
 //  m_xSubAdjacencyList.Destroy();
-  assert(m_pBTreeSectionsByRoute != 0);
+  assert ( m_pBTreeSectionsByRoute != 0 );
   m_pBTreeSectionsByRoute->DeleteFile();
   delete m_pBTreeSectionsByRoute;
   m_pBTreeSectionsByRoute = 0;
@@ -1565,13 +1830,13 @@ Load -- Create a network from two external relations
 
 */
 
-void Network::Load(int in_iId,
-                   const Relation* in_pRoutes,
-                   const Relation* in_pJunctions)
+void Network::Load ( int in_iId,
+                     const Relation* in_pRoutes,
+                     const Relation* in_pJunctions )
 {
   m_iId = in_iId;
-  FillRoutes(in_pRoutes);
-  FillJunctions(in_pJunctions);
+  FillRoutes ( in_pRoutes );
+  FillJunctions ( in_pJunctions );
   FillSections();
   FillAdjacencyLists();
 //FillDistanceStorage();//store distance
@@ -1582,36 +1847,36 @@ void Network::Load(int in_iId,
 Fill routes relation of network
 
 */
-void Network::FillRoutes(const Relation *routes)
+void Network::FillRoutes ( const Relation *routes )
 {
   ostringstream xRoutesPtrStream;
-  xRoutesPtrStream << (long)routes;
+  xRoutesPtrStream << ( long ) routes;
 
   string strQuery = "(consume (sort (feed (" + routesTypeInfo +
-                       " (ptr " + xRoutesPtrStream.str() + ")))))";
+                    " (ptr " + xRoutesPtrStream.str() + ")))))";
 
   Word xResult;
-  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-  assert(QueryExecuted);
-  m_pRoutes = (Relation *)xResult.addr;
+  int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted );
+  m_pRoutes = ( Relation * ) xResult.addr;
   // Create B-Tree for the routes
   ostringstream xThisRoutesPtrStream;
-  xThisRoutesPtrStream << (long)m_pRoutes;
+  xThisRoutesPtrStream << ( long ) m_pRoutes;
   strQuery = "(createbtree (" + routesTypeInfo +
-                " (ptr " + xThisRoutesPtrStream.str() + "))" + " id)";
+             " (ptr " + xThisRoutesPtrStream.str() + "))" + " id)";
 
-  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-  assert(QueryExecuted); // no query with side effects, please!
-  m_pBTreeRoutes = (BTree*)xResult.addr;
+  QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted ); // no query with side effects, please!
+  m_pBTreeRoutes = ( BTree* ) xResult.addr;
   //Create R-Tree for the routes
   ostringstream xNetRoutes;
-  xNetRoutes << (long) m_pRoutes;
+  xNetRoutes << ( long ) m_pRoutes;
 
   strQuery = "(bulkloadrtree(sortby(addid(feed (" + routesTypeInfo +
-      " (ptr " + xThisRoutesPtrStream.str() + "))))((curve asc))) curve)";
-  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-  assert(QueryExecuted);
-  m_pRTreeRoutes = (R_Tree<2,TupleId>*)xResult.addr;
+         " (ptr " + xThisRoutesPtrStream.str() + "))))((curve asc))) curve)";
+  QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted );
+  m_pRTreeRoutes = ( R_Tree<2,TupleId>* ) xResult.addr;
 
 }
 
@@ -1620,16 +1885,16 @@ void Network::FillRoutes(const Relation *routes)
 Fill junctions relation of network
 
 */
-void Network::FillJunctions(const Relation *in_pJunctions)
+void Network::FillJunctions ( const Relation *in_pJunctions )
 {
   /////////////////////////////////////////////////////////////////////
   //
   // Create new table for the junctions
   //
   ListExpr xTypeInfo;
-  nl->ReadFromString(junctionsInternalTypeInfo, xTypeInfo);
-  ListExpr xNumType = SecondoSystem::GetCatalog()->NumericType(xTypeInfo);
-  Relation *pIntJunctions = new Relation(xNumType, true);
+  nl->ReadFromString ( junctionsInternalTypeInfo, xTypeInfo );
+  ListExpr xNumType = SecondoSystem::GetCatalog()->NumericType ( xTypeInfo );
+  Relation *pIntJunctions = new Relation ( xNumType, true );
 
   /////////////////////////////////////////////////////////////////////
   //
@@ -1637,16 +1902,16 @@ void Network::FillJunctions(const Relation *in_pJunctions)
   //
   GenericRelationIterator* pJunctionsIter = in_pJunctions->MakeScan();
   Tuple* pCurrentJunction;
-  while((pCurrentJunction = pJunctionsIter->GetNextTuple()) != 0)
+  while ( ( pCurrentJunction = pJunctionsIter->GetNextTuple() ) != 0 )
   {
     /////////////////////////////////////////////////////////////////////
     //
     // Create tuple for internal table and copy all attributes from input
     //
-    Tuple* pNewJunction = new Tuple(nl->Second(xNumType));
-    for(int i = 0; i < pCurrentJunction->GetNoAttributes(); i++)
+    Tuple* pNewJunction = new Tuple ( nl->Second ( xNumType ) );
+    for ( int i = 0; i < pCurrentJunction->GetNoAttributes(); i++ )
     {
-      pNewJunction->CopyAttribute(i, pCurrentJunction, i);
+      pNewJunction->CopyAttribute ( i, pCurrentJunction, i );
     }
 
 
@@ -1656,50 +1921,53 @@ void Network::FillJunctions(const Relation *in_pJunctions)
     //
 
     // Store Pointer to the first route in the new relation.
-    CcInt* pR1Id = (CcInt*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE1_ID);
-    BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pR1Id);
+    CcInt* pR1Id = ( CcInt* ) pCurrentJunction->GetAttribute (
+JUNCTION_ROUTE1_ID );
+    BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch ( pR1Id );
     int NextIter = pRoutesIter->Next();
-    assert(NextIter);
-    TupleIdentifier *pR1RC = new TupleIdentifier(true, pRoutesIter->GetId());
-    pNewJunction->PutAttribute(JUNCTION_ROUTE1_RC, pR1RC);
+    assert ( NextIter );
+    TupleIdentifier *pR1RC = new TupleIdentifier ( true, pRoutesIter->GetId() );
+    pNewJunction->PutAttribute ( JUNCTION_ROUTE1_RC, pR1RC );
 
     // Calculate and store the exakt location of the junction.
-    Tuple* pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
-    assert(pRoute != 0);
-    SimpleLine* pLine = (SimpleLine*)pRoute->GetAttribute(ROUTE_CURVE);
-    assert(pLine != 0);
-    CcReal* pMeas = (CcReal*)pNewJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
-    Point* pPoint = new Point(false);
-    pLine->AtPosition(pMeas->GetRealval(), true, *pPoint);
-    pNewJunction->PutAttribute(JUNCTION_POS, pPoint);
+    Tuple* pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId() );
+    assert ( pRoute != 0 );
+    SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+    assert ( pLine != 0 );
+    CcReal* pMeas = ( CcReal* ) pNewJunction->GetAttribute (
+JUNCTION_ROUTE1_MEAS );
+    Point* pPoint = new Point ( false );
+    pLine->AtPosition ( pMeas->GetRealval(), true, *pPoint );
+    pNewJunction->PutAttribute ( JUNCTION_POS, pPoint );
 
     pRoute->DeleteIfAllowed();
     delete pRoutesIter;
 
     // Store Pointer to the second route in the new relation.
-    CcInt* pR2Id = (CcInt*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE2_ID);
-    pRoutesIter = m_pBTreeRoutes->ExactMatch(pR2Id);
+    CcInt* pR2Id = ( CcInt* ) pCurrentJunction->GetAttribute (
+JUNCTION_ROUTE2_ID );
+    pRoutesIter = m_pBTreeRoutes->ExactMatch ( pR2Id );
     NextIter = pRoutesIter->Next();
-    assert(NextIter); // no query with side effects, please!
-    TupleIdentifier *pR2RC = new TupleIdentifier(true, pRoutesIter->GetId());
-    pNewJunction->PutAttribute(JUNCTION_ROUTE2_RC, pR2RC);
+    assert ( NextIter ); // no query with side effects, please!
+    TupleIdentifier *pR2RC = new TupleIdentifier ( true, pRoutesIter->GetId() );
+    pNewJunction->PutAttribute ( JUNCTION_ROUTE2_RC, pR2RC );
     delete pRoutesIter;
 
     // Pointers to sections are filled in FillSections
-    pNewJunction->PutAttribute(JUNCTION_SECTION_AUP_RC,
-                                   new TupleIdentifier(false));
-    pNewJunction->PutAttribute(JUNCTION_SECTION_ADOWN_RC,
-                                   new TupleIdentifier(false));
-    pNewJunction->PutAttribute(JUNCTION_SECTION_BUP_RC,
-                                   new TupleIdentifier(false));
-    pNewJunction->PutAttribute(JUNCTION_SECTION_BDOWN_RC,
-                                   new TupleIdentifier(false));
+    pNewJunction->PutAttribute ( JUNCTION_SECTION_AUP_RC,
+                                 new TupleIdentifier ( false ) );
+    pNewJunction->PutAttribute ( JUNCTION_SECTION_ADOWN_RC,
+                                 new TupleIdentifier ( false ) );
+    pNewJunction->PutAttribute ( JUNCTION_SECTION_BUP_RC,
+                                 new TupleIdentifier ( false ) );
+    pNewJunction->PutAttribute ( JUNCTION_SECTION_BDOWN_RC,
+                                 new TupleIdentifier ( false ) );
 
     /////////////////////////////////////////////////////////////////////
     //
     // Append new junction
     //
-    pIntJunctions->AppendTuple(pNewJunction);
+    pIntJunctions->AppendTuple ( pNewJunction );
 
     pCurrentJunction->DeleteIfAllowed();
     pNewJunction->DeleteIfAllowed();
@@ -1711,16 +1979,16 @@ void Network::FillJunctions(const Relation *in_pJunctions)
   // Sort the table which is now containing all junctions
   //
   ostringstream xJunctionsStream;
-  xJunctionsStream << (long)pIntJunctions;
+  xJunctionsStream << ( long ) pIntJunctions;
   string strQuery = "(consume (sortby (feed (" + junctionsInternalTypeInfo +
                     " (ptr " + xJunctionsStream.str() +
                     "))) ((r1id asc)(meas1 asc))))";
 
 
   Word xResult;
-  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-  assert(QueryExecuted);
-  m_pJunctions = (Relation *)xResult.addr;
+  int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted );
+  m_pJunctions = ( Relation * ) xResult.addr;
 
   // Delete internal table
   pIntJunctions->Delete();
@@ -1730,20 +1998,20 @@ void Network::FillJunctions(const Relation *in_pJunctions)
   // Create two b-trees for the junctions sorted by first and second id
   //
   ostringstream xThisJunctionsPtrStream;
-  xThisJunctionsPtrStream << (long)m_pJunctions;
+  xThisJunctionsPtrStream << ( long ) m_pJunctions;
   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
-                " (ptr " + xThisJunctionsPtrStream.str() + "))" + " r1id)";
-  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-  assert(QueryExecuted); // no query with side effects, please!
-  m_pBTreeJunctionsByRoute1 = (BTree*)xResult.addr;
+             " (ptr " + xThisJunctionsPtrStream.str() + "))" + " r1id)";
+  QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted ); // no query with side effects, please!
+  m_pBTreeJunctionsByRoute1 = ( BTree* ) xResult.addr;
 
   ostringstream xThisJunctionsPtrStream2;
-  xThisJunctionsPtrStream2 << (long)m_pJunctions;
+  xThisJunctionsPtrStream2 << ( long ) m_pJunctions;
   strQuery = "(createbtree (" + junctionsInternalTypeInfo +
-                " (ptr " + xThisJunctionsPtrStream2.str() + "))" + " r2id)";
-  QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-  assert(QueryExecuted); // no query with side effects, please!
-  m_pBTreeJunctionsByRoute2 = (BTree*)xResult.addr;
+             " (ptr " + xThisJunctionsPtrStream2.str() + "))" + " r2id)";
+  QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted ); // no query with side effects, please!
+  m_pBTreeJunctionsByRoute2 = ( BTree* ) xResult.addr;
 }
 
 /*
@@ -1757,31 +2025,33 @@ void Network::FillSections()
 
   // Create relation for sections
   ListExpr xType;
-  nl->ReadFromString(sectionsInternalTypeInfo, xType);
-  ListExpr xNumType = SecondoSystem::GetCatalog()->NumericType(xType);
-  m_pSections = new Relation(xNumType);
+  nl->ReadFromString ( sectionsInternalTypeInfo, xType );
+  ListExpr xNumType = SecondoSystem::GetCatalog()->NumericType ( xType );
+  m_pSections = new Relation ( xNumType );
   /////////////////////////////////////////////////////////////////////
   //
   // Iterate over all Routes
   //
   Tuple* pRoute;
   TupleId iSectionTid = 0;
-  while((pRoute = pRoutesIt->GetNextTuple()) != 0)
+  while ( ( pRoute = pRoutesIt->GetNextTuple() ) != 0 )
   {
     // Current position on route - starting at the beginning of the route
     double dCurrentPosOnRoute = 0;
-    SimpleLine* pRouteCurve = (SimpleLine*)pRoute->GetAttribute(ROUTE_CURVE);
+    SimpleLine* pRouteCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE
+);
     TupleId iTupleId = pRoute->GetTupleId();
-    CcInt* xRouteId = (CcInt*)pRoute->GetAttribute(ROUTE_ID);
+    CcInt* xRouteId = ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID );
     int iRouteId = xRouteId->GetIntval();
-    bool bDual = ((CcBool*)pRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
+    bool bDual = ( ( CcBool* ) pRoute->GetAttribute ( ROUTE_DUAL )
+)->GetBoolval();
     /////////////////////////////////////////////////////////////////////
     //
     // We need to find all junctions belonging to this route
     //
     vector<JunctionSortEntry> xJunctions;
-    GetJunctionsOnRoute(xRouteId,
-                        xJunctions);
+    GetJunctionsOnRoute ( xRouteId,
+                          xJunctions );
 
     /////////////////////////////////////////////////////////////////////
     //
@@ -1790,7 +2060,7 @@ void Network::FillSections()
     JunctionSortEntry xCurrentEntry;
     xCurrentEntry.m_pJunction = 0;
     xCurrentEntry.m_bFirstRoute = false;
-    for(size_t i = 0; i < xJunctions.size(); i++)
+    for ( size_t i = 0; i < xJunctions.size(); i++ )
     {
       // Get next junction
       xCurrentEntry = xJunctions[i];
@@ -1801,23 +2071,23 @@ void Network::FillSections()
 
       // If the first junction is at the very start of the route, no
       // section will be added
-      if(xCurrentEntry.GetRouteMeas() == 0)
+      if ( xCurrentEntry.GetRouteMeas() == 0 )
       {
         vector<int> xIndices;
         vector<Attribute*> xAttrs;
-        if(xCurrentEntry.m_bFirstRoute)
+        if ( xCurrentEntry.m_bFirstRoute )
         {
-          xIndices.push_back(JUNCTION_SECTION_ADOWN_RC);
-          xAttrs.push_back(new TupleIdentifier(true, 0));
+          xIndices.push_back ( JUNCTION_SECTION_ADOWN_RC );
+          xAttrs.push_back ( new TupleIdentifier ( true, 0 ) );
         }
         else
         {
-          xIndices.push_back(JUNCTION_SECTION_BDOWN_RC);
-          xAttrs.push_back(new TupleIdentifier(true, 0));
+          xIndices.push_back ( JUNCTION_SECTION_BDOWN_RC );
+          xAttrs.push_back ( new TupleIdentifier ( true, 0 ) );
         }
-        m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
-                                  xIndices,
-                                  xAttrs);
+        m_pJunctions->UpdateTuple ( xCurrentEntry.m_pJunction,
+                                    xIndices,
+                                    xAttrs );
         continue;
       }
 
@@ -1827,33 +2097,33 @@ void Network::FillSections()
       //
       // Section will only be created if the length is > 0. Otherwise the
       // one before remains valid.
-      if(dEndPos - dStartPos > 0.01)
+      if ( dEndPos - dStartPos > 0.01 )
       {
         // A sline for the section
-        SimpleLine* pLine = new SimpleLine(0);
+        SimpleLine* pLine = new SimpleLine ( 0 );
 
         // Take start from the route
-        bool bStartSmaller = ((CcBool*)pRoute->GetAttribute(
-                                  ROUTE_STARTSSMALLER))->GetBoolval();
+        bool bStartSmaller = ( ( CcBool* ) pRoute->GetAttribute (
+                                   ROUTE_STARTSSMALLER ) )->GetBoolval();
 
-        pRouteCurve->SubLine(dStartPos,
-                             dEndPos,
-                             bStartSmaller,
-                             *pLine);
+        pRouteCurve->SubLine ( dStartPos,
+                               dEndPos,
+                               bStartSmaller,
+                               *pLine );
 
         // Find out, if the orientation of the subline differs from the position
         // of the line. If so, the direction has to be changed.
         bool bLineStartsSmaller;
-        Point pStartPoint(false);
-        pRouteCurve->AtPosition(dStartPos, bStartSmaller, pStartPoint);
-        Point pEndPoint(false);
-        pRouteCurve->AtPosition(dEndPos, bStartSmaller, pEndPoint);
-        if(pStartPoint.GetX() < pEndPoint.GetX() ||
-           (
-             pStartPoint.GetX() == pEndPoint.GetX() &&
-             pStartPoint.GetY() < pEndPoint.GetY()
+        Point pStartPoint ( false );
+        pRouteCurve->AtPosition ( dStartPos, bStartSmaller, pStartPoint );
+        Point pEndPoint ( false );
+        pRouteCurve->AtPosition ( dEndPos, bStartSmaller, pEndPoint );
+        if ( pStartPoint.GetX() < pEndPoint.GetX() ||
+                (
+                    pStartPoint.GetX() == pEndPoint.GetX() &&
+                    pStartPoint.GetY() < pEndPoint.GetY()
+                )
            )
-          )
         {
           // Normal orientation
           bLineStartsSmaller = true;
@@ -1865,19 +2135,22 @@ void Network::FillSections()
         }
 
         // The new section
-        Tuple* pNewSection = new Tuple(nl->Second(xNumType));
-        pNewSection->PutAttribute(SECTION_RID, new CcInt(true, iRouteId));
-        pNewSection->PutAttribute(SECTION_DUAL, new CcBool(true, bDual));
-        pNewSection->PutAttribute(SECTION_MEAS1, new CcReal(true, dStartPos));
-        pNewSection->PutAttribute(SECTION_MEAS2, new CcReal(true, dEndPos));
-        pNewSection->PutAttribute(SECTION_RRC, new TupleIdentifier(true,
-                                  iTupleId));
-        pNewSection->PutAttribute(SECTION_CURVE, pLine);
-        pNewSection->PutAttribute(SECTION_CURVE_STARTS_SMALLER,
-                                  new CcBool(true, bLineStartsSmaller));
-        pNewSection->PutAttribute(SECTION_SID,
-                                new CcInt(true, m_pSections->GetNoTuples()+1));
-        m_pSections->AppendTuple(pNewSection);
+        Tuple* pNewSection = new Tuple ( nl->Second ( xNumType ) );
+        pNewSection->PutAttribute ( SECTION_RID, new CcInt ( true, iRouteId ) );
+        pNewSection->PutAttribute ( SECTION_DUAL, new CcBool ( true, bDual ) );
+        pNewSection->PutAttribute ( SECTION_MEAS1, new CcReal ( true, dStartPos
+) );
+        pNewSection->PutAttribute ( SECTION_MEAS2, new CcReal ( true, dEndPos )
+);
+        pNewSection->PutAttribute ( SECTION_RRC, new TupleIdentifier ( true,
+                                    iTupleId ) );
+        pNewSection->PutAttribute ( SECTION_CURVE, pLine );
+        pNewSection->PutAttribute ( SECTION_CURVE_STARTS_SMALLER,
+                                    new CcBool ( true, bLineStartsSmaller ) );
+        pNewSection->PutAttribute ( SECTION_SID,
+                                    new CcInt ( true, m_pSections->GetNoTuples()
++1 ) );
+        m_pSections->AppendTuple ( pNewSection );
         iSectionTid++;
         pNewSection->DeleteIfAllowed();
         // Update position for next loop
@@ -1890,35 +2163,36 @@ void Network::FillSections()
       //
       vector<int> xIndices;
       vector<Attribute*> xAttrs;
-      if(xCurrentEntry.m_bFirstRoute)
+      if ( xCurrentEntry.m_bFirstRoute )
       {
-        xIndices.push_back(JUNCTION_SECTION_ADOWN_RC);
-        xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
+        xIndices.push_back ( JUNCTION_SECTION_ADOWN_RC );
+        xAttrs.push_back ( new TupleIdentifier ( true, iSectionTid ) );
       }
       else
       {
-        xIndices.push_back(JUNCTION_SECTION_BDOWN_RC);
-        xAttrs.push_back(new TupleIdentifier(true, iSectionTid));
+        xIndices.push_back ( JUNCTION_SECTION_BDOWN_RC );
+        xAttrs.push_back ( new TupleIdentifier ( true, iSectionTid ) );
       }
-      m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
-                                xIndices,
-                                xAttrs);
-      if (pRouteCurve->Length() - xCurrentEntry.GetRouteMeas() < 0.01) {
+      m_pJunctions->UpdateTuple ( xCurrentEntry.m_pJunction,
+                                  xIndices,
+                                  xAttrs );
+      if ( pRouteCurve->Length() - xCurrentEntry.GetRouteMeas() < 0.01 )
+      {
         vector<int> xIndices;
         vector<Attribute*> xAttrs;
-        if(xCurrentEntry.m_bFirstRoute)
+        if ( xCurrentEntry.m_bFirstRoute )
         {
-          xIndices.push_back(JUNCTION_SECTION_AUP_RC);
-          xAttrs.push_back(new TupleIdentifier(true, 0));
+          xIndices.push_back ( JUNCTION_SECTION_AUP_RC );
+          xAttrs.push_back ( new TupleIdentifier ( true, 0 ) );
         }
         else
         {
-          xIndices.push_back(JUNCTION_SECTION_BUP_RC);
-          xAttrs.push_back(new TupleIdentifier(true, 0));
+          xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
+          xAttrs.push_back ( new TupleIdentifier ( true, 0 ) );
         }
-        m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
-                                  xIndices,
-                                  xAttrs);
+        m_pJunctions->UpdateTuple ( xCurrentEntry.m_pJunction,
+                                    xIndices,
+                                    xAttrs );
       }
 
     } // End junctions-loop
@@ -1930,38 +2204,40 @@ void Network::FillSections()
     // The last section of the route is still missing, if the last
     // junction is not at the end of the route.
     //
-    if(pRouteCurve->Length() - dCurrentPosOnRoute > 0.01 ||
-       dCurrentPosOnRoute == 0.0)
+    if ( pRouteCurve->Length() - dCurrentPosOnRoute > 0.01 ||
+            dCurrentPosOnRoute == 0.0 )
     {
       // Find values for the new section
-      int iRouteId = ((CcInt*)pRoute->GetAttribute(ROUTE_ID))->GetIntval();
-      bool bDual = ((CcBool*)pRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
+      int iRouteId = ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID )
+)->GetIntval();
+      bool bDual = ( ( CcBool* ) pRoute->GetAttribute ( ROUTE_DUAL )
+)->GetBoolval();
       double dStartPos = dCurrentPosOnRoute;
       double dEndPos = pRouteCurve->Length();
       TupleId iTupleId = pRoute->GetTupleId();
 
       // Calculate line
-      SimpleLine* pLine = new SimpleLine(0);
-      bool bStartSmaller = ((CcBool*)pRoute->GetAttribute(
-                                ROUTE_STARTSSMALLER))->GetBoolval();
-      pRouteCurve->SubLine(dStartPos,
-                           dEndPos,
-                           bStartSmaller,
-                           *pLine);
+      SimpleLine* pLine = new SimpleLine ( 0 );
+      bool bStartSmaller = ( ( CcBool* ) pRoute->GetAttribute (
+                                 ROUTE_STARTSSMALLER ) )->GetBoolval();
+      pRouteCurve->SubLine ( dStartPos,
+                             dEndPos,
+                             bStartSmaller,
+                             *pLine );
 
       // Find out, if the orientation of the subline differs from the position
       // of the sline. If so, the direction has to be changed.
       bool bLineStartsSmaller;
-      Point pStartPoint(false);
-      pRouteCurve->AtPosition(dStartPos, bStartSmaller, pStartPoint);
-      Point pEndPoint(false);
-      pRouteCurve->AtPosition(dEndPos, bStartSmaller, pEndPoint);
-      if(pStartPoint.GetX() < pEndPoint.GetX() ||
-         (
-           pStartPoint.GetX() == pEndPoint.GetX() &&
-           pStartPoint.GetY() < pEndPoint.GetY()
+      Point pStartPoint ( false );
+      pRouteCurve->AtPosition ( dStartPos, bStartSmaller, pStartPoint );
+      Point pEndPoint ( false );
+      pRouteCurve->AtPosition ( dEndPos, bStartSmaller, pEndPoint );
+      if ( pStartPoint.GetX() < pEndPoint.GetX() ||
+              (
+                  pStartPoint.GetX() == pEndPoint.GetX() &&
+                  pStartPoint.GetY() < pEndPoint.GetY()
+              )
          )
-        )
       {
         // Normal orientation
         bLineStartsSmaller = true;
@@ -1973,41 +2249,43 @@ void Network::FillSections()
       }
 
       // Create a new Section
-      Tuple* pNewSection = new Tuple(nl->Second(xNumType));
-      pNewSection->PutAttribute(SECTION_RID, new CcInt(true, iRouteId));
-      pNewSection->PutAttribute(SECTION_DUAL, new CcBool(true, bDual));
-      pNewSection->PutAttribute(SECTION_MEAS1, new CcReal(true, dStartPos));
-      pNewSection->PutAttribute(SECTION_MEAS2, new CcReal(true, dEndPos));
-      pNewSection->PutAttribute(SECTION_RRC,
-                                new TupleIdentifier(true, iTupleId));
-      pNewSection->PutAttribute(SECTION_CURVE, pLine);
-      pNewSection->PutAttribute(SECTION_CURVE_STARTS_SMALLER,
-                                new CcBool(true, bLineStartsSmaller));
-      pNewSection->PutAttribute(SECTION_SID,
-                                new CcInt(true, m_pSections->GetNoTuples()+1));
-      m_pSections->AppendTuple(pNewSection);
+      Tuple* pNewSection = new Tuple ( nl->Second ( xNumType ) );
+      pNewSection->PutAttribute ( SECTION_RID, new CcInt ( true, iRouteId ) );
+      pNewSection->PutAttribute ( SECTION_DUAL, new CcBool ( true, bDual ) );
+      pNewSection->PutAttribute ( SECTION_MEAS1, new CcReal ( true, dStartPos )
+);
+      pNewSection->PutAttribute ( SECTION_MEAS2, new CcReal ( true, dEndPos ) );
+      pNewSection->PutAttribute ( SECTION_RRC,
+                                  new TupleIdentifier ( true, iTupleId ) );
+      pNewSection->PutAttribute ( SECTION_CURVE, pLine );
+      pNewSection->PutAttribute ( SECTION_CURVE_STARTS_SMALLER,
+                                  new CcBool ( true, bLineStartsSmaller ) );
+      pNewSection->PutAttribute ( SECTION_SID,
+                                  new CcInt ( true, m_pSections->GetNoTuples()
++1 ) );
+      m_pSections->AppendTuple ( pNewSection );
       iSectionTid++;
       pNewSection->DeleteIfAllowed();
       // Store ID of new section in Junction
-      if(xCurrentEntry.m_pJunction != 0)
+      if ( xCurrentEntry.m_pJunction != 0 )
       {
         vector<int> xIndicesLast;
         vector<Attribute*> xAttrsLast;
-        if(xCurrentEntry.m_bFirstRoute)
+        if ( xCurrentEntry.m_bFirstRoute )
         {
-          xIndicesLast.push_back(JUNCTION_SECTION_AUP_RC);
-          xAttrsLast.push_back(new TupleIdentifier(true,
-                                                   iSectionTid));
+          xIndicesLast.push_back ( JUNCTION_SECTION_AUP_RC );
+          xAttrsLast.push_back ( new TupleIdentifier ( true,
+                                 iSectionTid ) );
         }
         else
         {
-          xIndicesLast.push_back(JUNCTION_SECTION_BUP_RC);
-          xAttrsLast.push_back(new TupleIdentifier(true,
-                                                   iSectionTid));
+          xIndicesLast.push_back ( JUNCTION_SECTION_BUP_RC );
+          xAttrsLast.push_back ( new TupleIdentifier ( true,
+                                 iSectionTid ) );
         }
-        m_pJunctions->UpdateTuple(xCurrentEntry.m_pJunction,
-                                  xIndicesLast,
-                                  xAttrsLast);
+        m_pJunctions->UpdateTuple ( xCurrentEntry.m_pJunction,
+                                    xIndicesLast,
+                                    xAttrsLast );
       }
     } // end if
     ////////////////////////////////////////////////////////////////////
@@ -2015,113 +2293,128 @@ void Network::FillSections()
     // Fill Up-Pointers of all sections but the last
     //
     vector<JunctionSortEntry> yJunctions;
-    GetJunctionsOnRoute(xRouteId,
-                        yJunctions);
-    if (yJunctions.size() > 2) {
-      for(int i = yJunctions.size()-2; i >= 0; i--)
+    GetJunctionsOnRoute ( xRouteId,
+                          yJunctions );
+    if ( yJunctions.size() > 2 )
+    {
+      for ( int i = yJunctions.size()-2; i >= 0; i-- )
       {
         // Get next junction
         JunctionSortEntry xEntry = yJunctions[i];
         JunctionSortEntry xEntryBehind = yJunctions[i + 1];
 
         vector<int> xIndices;
-        if(xEntry.m_bFirstRoute)
+        if ( xEntry.m_bFirstRoute )
         {
-          xIndices.push_back(JUNCTION_SECTION_AUP_RC);
+          xIndices.push_back ( JUNCTION_SECTION_AUP_RC );
         }
         else
         {
-          xIndices.push_back(JUNCTION_SECTION_BUP_RC);
+          xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
         }
         vector<Attribute*> xAttrs;
-        if(xEntryBehind.GetRouteMeas() - xEntry.GetRouteMeas() < 0.01 )
+        if ( xEntryBehind.GetRouteMeas() - xEntry.GetRouteMeas() < 0.01 )
         {
           // Two junctions at the same place. In this case they do have
           // the same up-pointers
-          if(xEntryBehind.m_bFirstRoute)
+          if ( xEntryBehind.m_bFirstRoute )
           {
             TupleId iTid = xEntryBehind.GetUpSectionId();
-            xAttrs.push_back(new TupleIdentifier(true, iTid));
+            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
           }
           else
           {
             TupleId iTid = xEntryBehind.GetUpSectionId();
-            xAttrs.push_back(new TupleIdentifier(true, iTid));
+            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
           }
         }
         else
         {
           // Junctions not on the same place. The down-pointer of the second is
           // the up-pointer of the first.
-          if(xEntryBehind.m_bFirstRoute)
+          if ( xEntryBehind.m_bFirstRoute )
           {
             TupleId iTid = xEntryBehind.GetDownSectionId();
-            xAttrs.push_back(new TupleIdentifier(true, iTid));
+            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
           }
           else
           {
             TupleId iTid = xEntryBehind.GetDownSectionId();
-            xAttrs.push_back(new TupleIdentifier(true, iTid));
+            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
           }
         }
-        m_pJunctions->UpdateTuple(xEntry.m_pJunction,
-                                  xIndices,
-                                  xAttrs);
+        m_pJunctions->UpdateTuple ( xEntry.m_pJunction,
+                                    xIndices,
+                                    xAttrs );
       }
-    } else {
-      if (yJunctions.size() == 2) {
+    }
+    else
+    {
+      if ( yJunctions.size() == 2 )
+      {
         JunctionSortEntry xEntry = yJunctions[0];
         JunctionSortEntry xEntryBehind = yJunctions[1];
         vector<int> xIndices;
-        if(xEntry.m_bFirstRoute)
+        if ( xEntry.m_bFirstRoute )
         {
-          xIndices.push_back(JUNCTION_SECTION_AUP_RC);
+          xIndices.push_back ( JUNCTION_SECTION_AUP_RC );
         }
         else
         {
-          xIndices.push_back(JUNCTION_SECTION_BUP_RC);
+          xIndices.push_back ( JUNCTION_SECTION_BUP_RC );
         }
         vector<Attribute*> xAttrs;
-        if (fabs(xEntry.GetRouteMeas() - xEntryBehind.GetRouteMeas()) < 0.01) {
-          if(xEntryBehind.m_bFirstRoute) {
+        if ( fabs ( xEntry.GetRouteMeas() - xEntryBehind.GetRouteMeas() ) < 0.01
+)
+        {
+          if ( xEntryBehind.m_bFirstRoute )
+          {
             TupleId iTid = xEntryBehind.GetUpSectionId();
-            xAttrs.push_back(new TupleIdentifier(true, iTid));
-          } else {
-            TupleId iTid = xEntryBehind.GetUpSectionId();
-            xAttrs.push_back(new TupleIdentifier(true, iTid));
+            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
           }
-          m_pJunctions->UpdateTuple(xEntry.m_pJunction,
+          else
+          {
+            TupleId iTid = xEntryBehind.GetUpSectionId();
+            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
+          }
+          m_pJunctions->UpdateTuple ( xEntry.m_pJunction,
                                       xIndices,
-                                      xAttrs);
-        } else {
-          if(xEntryBehind.m_bFirstRoute)
-            {
-              TupleId iTid = xEntryBehind.GetDownSectionId();
-              xAttrs.push_back(new TupleIdentifier(true, iTid));
-            }
-            else
-            {
-              TupleId iTid = xEntryBehind.GetDownSectionId();
-              xAttrs.push_back(new TupleIdentifier(true, iTid));
-            }
-            m_pJunctions->UpdateTuple(xEntry.m_pJunction,
+                                      xAttrs );
+        }
+        else
+        {
+          if ( xEntryBehind.m_bFirstRoute )
+          {
+            TupleId iTid = xEntryBehind.GetDownSectionId();
+            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
+          }
+          else
+          {
+            TupleId iTid = xEntryBehind.GetDownSectionId();
+            xAttrs.push_back ( new TupleIdentifier ( true, iTid ) );
+          }
+          m_pJunctions->UpdateTuple ( xEntry.m_pJunction,
                                       xIndices,
-                                      xAttrs);
+                                      xAttrs );
         }
       }
     }
     pRoute->DeleteIfAllowed();
 
     // delete Tuples from xJunctions
-    for(unsigned int i=0;i<xJunctions.size();i++){
-      if(xJunctions[i].m_pJunction){
+    for ( unsigned int i=0;i<xJunctions.size();i++ )
+    {
+      if ( xJunctions[i].m_pJunction )
+      {
         xJunctions[i].m_pJunction->DeleteIfAllowed();
       }
     }
     xJunctions.clear();
     // delete Tuples from yJunctions
-    for(unsigned int i=0;i<yJunctions.size();i++){
-      if(yJunctions[i].m_pJunction){
+    for ( unsigned int i=0;i<yJunctions.size();i++ )
+    {
+      if ( yJunctions[i].m_pJunction )
+      {
         yJunctions[i].m_pJunction->DeleteIfAllowed();
       }
     }
@@ -2136,12 +2429,12 @@ void Network::FillSections()
   // Create B-Tree for the sections
   Word xResult;
   ostringstream xThisSectionsPtrStream;
-  xThisSectionsPtrStream << (long)m_pSections;
+  xThisSectionsPtrStream << ( long ) m_pSections;
   string strQuery = "(createbtree (" + sectionsInternalTypeInfo +
-                " (ptr " + xThisSectionsPtrStream.str() + "))" + " rid)";
-  int QueryExecuted = QueryProcessor::ExecuteQuery(strQuery, xResult);
-  assert(QueryExecuted); // no query with side effects, please!
-  m_pBTreeSectionsByRoute = (BTree*)xResult.addr;
+                    " (ptr " + xThisSectionsPtrStream.str() + "))" + " rid)";
+  int QueryExecuted = QueryProcessor::ExecuteQuery ( strQuery, xResult );
+  assert ( QueryExecuted ); // no query with side effects, please!
+  m_pBTreeSectionsByRoute = ( BTree* ) xResult.addr;
 }
 
 /*
@@ -2152,10 +2445,10 @@ void Network::FillAdjacencyLists()
 {
   // Adjust the adjacenzy list to the correct size. From each
   // section four directions are possible - including u-turns
-  m_xAdjacencyList.Resize(m_pSections->GetNoTuples() * 2);
-  for(int i = 0; i < m_pSections->GetNoTuples() * 2; i++)
+  m_xAdjacencyList.resize ( m_pSections->GetNoTuples() * 2 );
+  for ( int i = 0; i < m_pSections->GetNoTuples() * 2; i++ )
   {
-    m_xAdjacencyList.Put(i, AdjacencyListEntry(-1, -1));
+    m_xAdjacencyList.Put ( i, AdjacencyListEntry ( -1, -1 ) );
   }
 
   GenericRelationIterator* pJunctionsIt = m_pJunctions->MakeScan();
@@ -2166,15 +2459,16 @@ void Network::FillAdjacencyLists()
   // In a first step all pairs of adjacent sections will be collected
   //
   vector<DirectedSectionPair> xList;
-  while((pCurrentJunction = pJunctionsIt->GetNextTuple()) != 0)
+  while ( ( pCurrentJunction = pJunctionsIt->GetNextTuple() ) != 0 )
   {
     //////////////////////////////////
     //
     // Retrieve the connectivity code
     //
     int iCc =
-        ((CcInt*)pCurrentJunction->GetAttribute(JUNCTION_CC))->GetIntval();
-    ConnectivityCode xCc(iCc);
+        ( ( CcInt* ) pCurrentJunction->GetAttribute ( JUNCTION_CC )
+)->GetIntval();
+    ConnectivityCode xCc ( iCc );
 
     //////////////////////////////////
     //
@@ -2189,14 +2483,18 @@ void Network::FillAdjacencyLists()
     Tuple* pBDown = 0;*/
     TupleId tidpAUp, tidpADown, tidpBUp, tidpBDown;
 
-    tidpAUp = ((TupleIdentifier*)
-      pCurrentJunction->GetAttribute(JUNCTION_SECTION_AUP_RC))->GetTid();
-    tidpADown = ((TupleIdentifier*)
-        pCurrentJunction->GetAttribute(JUNCTION_SECTION_ADOWN_RC))->GetTid();
-    tidpBUp = ((TupleIdentifier*)
-        pCurrentJunction->GetAttribute(JUNCTION_SECTION_BUP_RC))->GetTid();
-    tidpBDown = ((TupleIdentifier*)
-        pCurrentJunction->GetAttribute(JUNCTION_SECTION_BDOWN_RC))->GetTid();
+    tidpAUp = ( ( TupleIdentifier* )
+                pCurrentJunction->GetAttribute ( JUNCTION_SECTION_AUP_RC )
+)->GetTid();
+    tidpADown = ( ( TupleIdentifier* )
+                  pCurrentJunction->GetAttribute ( JUNCTION_SECTION_ADOWN_RC )
+)->GetTid();
+    tidpBUp = ( ( TupleIdentifier* )
+                pCurrentJunction->GetAttribute ( JUNCTION_SECTION_BUP_RC )
+)->GetTid();
+    tidpBDown = ( ( TupleIdentifier* )
+                  pCurrentJunction->GetAttribute ( JUNCTION_SECTION_BDOWN_RC )
+)->GetTid();
 
     /*
     // First section
@@ -2230,31 +2528,39 @@ void Network::FillAdjacencyLists()
     {
       pBDown = m_pSections->GetTuple(pTid->GetTid());
     }
-   */
+    */
     //////////////////////////////////
     //
     // If a section is existing and the transition is possible
     // it will be added to the list.
     //
-    FillAdjacencyPair(tidpAUp, false, tidpAUp, true, xCc, AUP_AUP, xList);
-    FillAdjacencyPair(tidpAUp, false, tidpADown, false, xCc, AUP_ADOWN, xList);
-    FillAdjacencyPair(tidpAUp, false, tidpBUp, true, xCc, AUP_BUP, xList);
-    FillAdjacencyPair(tidpAUp, false, tidpBDown, false, xCc, AUP_BDOWN, xList);
+    FillAdjacencyPair ( tidpAUp, false, tidpAUp, true, xCc, AUP_AUP, xList );
+    FillAdjacencyPair ( tidpAUp, false, tidpADown, false, xCc, AUP_ADOWN, xList
+);
+    FillAdjacencyPair ( tidpAUp, false, tidpBUp, true, xCc, AUP_BUP, xList );
+    FillAdjacencyPair ( tidpAUp, false, tidpBDown, false, xCc, AUP_BDOWN, xList
+);
 
-    FillAdjacencyPair(tidpADown, true, tidpAUp, true, xCc, ADOWN_AUP, xList);
-    FillAdjacencyPair(tidpADown, true, tidpADown, false, xCc,ADOWN_ADOWN,xList);
-    FillAdjacencyPair(tidpADown, true, tidpBUp, true, xCc, ADOWN_BUP, xList);
-    FillAdjacencyPair(tidpADown, true, tidpBDown, false, xCc,ADOWN_BDOWN,xList);
+    FillAdjacencyPair ( tidpADown, true, tidpAUp, true, xCc, ADOWN_AUP, xList );
+    FillAdjacencyPair ( tidpADown, true, tidpADown, false, xCc,ADOWN_ADOWN,xList
+);
+    FillAdjacencyPair ( tidpADown, true, tidpBUp, true, xCc, ADOWN_BUP, xList );
+    FillAdjacencyPair ( tidpADown, true, tidpBDown, false, xCc,ADOWN_BDOWN,xList
+);
 
-    FillAdjacencyPair(tidpBUp, false, tidpAUp, true, xCc, BUP_AUP, xList);
-    FillAdjacencyPair(tidpBUp, false, tidpADown, false, xCc, BUP_ADOWN, xList);
-    FillAdjacencyPair(tidpBUp, false, tidpBUp, true, xCc, BUP_BUP, xList);
-    FillAdjacencyPair(tidpBUp, false, tidpBDown, false, xCc, BUP_BDOWN, xList);
+    FillAdjacencyPair ( tidpBUp, false, tidpAUp, true, xCc, BUP_AUP, xList );
+    FillAdjacencyPair ( tidpBUp, false, tidpADown, false, xCc, BUP_ADOWN, xList
+);
+    FillAdjacencyPair ( tidpBUp, false, tidpBUp, true, xCc, BUP_BUP, xList );
+    FillAdjacencyPair ( tidpBUp, false, tidpBDown, false, xCc, BUP_BDOWN, xList
+);
 
-    FillAdjacencyPair(tidpBDown, true, tidpAUp, true, xCc, BDOWN_AUP, xList);
-    FillAdjacencyPair(tidpBDown, true, tidpADown, false, xCc,BDOWN_ADOWN,xList);
-    FillAdjacencyPair(tidpBDown, true, tidpBUp, true, xCc,BDOWN_BUP, xList);
-    FillAdjacencyPair(tidpBDown, true, tidpBDown, false, xCc,BDOWN_BDOWN,xList);
+    FillAdjacencyPair ( tidpBDown, true, tidpAUp, true, xCc, BDOWN_AUP, xList );
+    FillAdjacencyPair ( tidpBDown, true, tidpADown, false, xCc,BDOWN_ADOWN,xList
+);
+    FillAdjacencyPair ( tidpBDown, true, tidpBUp, true, xCc,BDOWN_BUP, xList );
+    FillAdjacencyPair ( tidpBDown, true, tidpBDown, false, xCc,BDOWN_BDOWN,xList
+);
     /*
     // First section
     FillAdjacencyPair(pAUp, false, pAUp, true, xCc, AUP_AUP, xList);
@@ -2290,55 +2596,57 @@ void Network::FillAdjacencyLists()
   // Now - as the second step the adjacency lists are filled.
   //
   // Sort the list by the first directed section
-  sort(xList.begin(),
-       xList.end());
+  sort ( xList.begin(),
+         xList.end() );
 
   DirectedSectionPair xLastPair;
   int iLow = 0;
-  for(size_t i = 0; i < xList.size(); i++)
+  for ( size_t i = 0; i < xList.size(); i++ )
   {
     // Get next
     DirectedSectionPair xPair = xList[i];
-    if (i == 0){
+    if ( i == 0 )
+    {
       // Append new entry to sub-list
-      m_xSubAdjacencyList.Append(DirectedSection(xPair.m_iSecondSectionTid,
-                                                 xPair.m_bSecondUpDown));
+      m_xSubAdjacencyList.Append ( DirectedSection ( xPair.m_iSecondSectionTid,
+                                   xPair.m_bSecondUpDown ) );
       xLastPair = xPair;
     }
     // Entry in adjacency list if all sections adjacent to one section have
     // been found. This is the case every time the first section changes. Never
     // at the first entry and always at the last.
-    if(i == xList.size() -1 ||
-       (
-        i != 0 &&
-        (
-         xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
-         xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown
-        )
+    if ( i == xList.size() -1 ||
+            (
+                i != 0 &&
+                (
+                    xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
+                    xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown
+                )
+            )
        )
-      )
     {
       int iHigh = m_xSubAdjacencyList.Size()-1;
-      Tuple *pSect = m_pSections->GetTuple(xLastPair.m_iFirstSectionTid);
-      int iSectId = ((CcInt*) pSect->GetAttribute(SECTION_SID))->GetIntval();
+      Tuple *pSect = m_pSections->GetTuple ( xLastPair.m_iFirstSectionTid );
+      int iSectId =
+        ( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
       pSect->DeleteIfAllowed();
-      int iIndex = 2 * (iSectId-1);
+      int iIndex = 2 * ( iSectId-1 );
       iIndex += xLastPair.m_bFirstUpDown ? 1 : 0;
-      m_xAdjacencyList.Put(iIndex, AdjacencyListEntry(iLow, iHigh));
+      m_xAdjacencyList.Put ( iIndex, AdjacencyListEntry ( iLow, iHigh ) );
       iLow = iHigh + 1;
     }
 
     // Check if entry allready exists in list. As the list is sorted it
     // has to be the entry before.
-    if(i == 0 ||
-       xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
-       xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown ||
-       xLastPair.m_iSecondSectionTid != xPair.m_iSecondSectionTid ||
-       xLastPair.m_bSecondUpDown != xPair.m_bSecondUpDown)
+    if ( i == 0 ||
+            xLastPair.m_iFirstSectionTid != xPair.m_iFirstSectionTid ||
+            xLastPair.m_bFirstUpDown != xPair.m_bFirstUpDown ||
+            xLastPair.m_iSecondSectionTid != xPair.m_iSecondSectionTid ||
+            xLastPair.m_bSecondUpDown != xPair.m_bSecondUpDown )
     {
       // Append new entry to sub-list
-      m_xSubAdjacencyList.Append(DirectedSection(xPair.m_iSecondSectionTid,
-                                                 xPair.m_bSecondUpDown));
+      m_xSubAdjacencyList.Append ( DirectedSection ( xPair.m_iSecondSectionTid,
+                                   xPair.m_bSecondUpDown ) );
     }
     xLastPair = xPair;
   }
@@ -2346,114 +2654,112 @@ void Network::FillAdjacencyLists()
   m_xSubAdjacencyList.TrimToSize();
 }
 
-  /*
-  void Network::FillAdjacencyPair(Tuple* in_pFirstSection,
-                                    bool in_bFirstUp,
-                                    Tuple* in_pSecondSection,
-                                    bool in_bSecondUp,
-                                    ConnectivityCode in_xCc,
-                                    Transition in_xTransition,
-                                    vector<DirectedSectionPair> &inout_xPairs)
-
-  */
-
 /*
 Build vector of directed section pairs.
 
 */
 
-  void Network::FillAdjacencyPair(TupleId in_pFirstSection,
+void Network::FillAdjacencyPair ( TupleId in_pFirstSection,
                                   bool in_bFirstUp,
                                   TupleId in_pSecondSection,
                                   bool in_bSecondUp,
                                   ConnectivityCode in_xCc,
                                   Transition in_xTransition,
-                                  vector<DirectedSectionPair> &inout_xPairs)
+                                  vector<DirectedSectionPair> &inout_xPairs )
 {
-  if(in_pFirstSection != 0 &&
-     in_pSecondSection != 0 &&
-     in_xCc.IsPossible(in_xTransition))
-    {
-      inout_xPairs.push_back(DirectedSectionPair(in_pFirstSection,
-                                                in_bFirstUp,
-                                                in_pSecondSection,
-                                                in_bSecondUp));
-    }
+  if ( in_pFirstSection != 0 &&
+          in_pSecondSection != 0 &&
+          in_xCc.IsPossible ( in_xTransition ) )
+  {
+    inout_xPairs.push_back ( DirectedSectionPair ( in_pFirstSection,
+                             in_bFirstUp,
+                             in_pSecondSection,
+                             in_bSecondUp ) );
+  }
 }
 
 /*
 .
 
 */
-bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
+bool Network::InShortestPath ( GPoint*start,GPoint *to, GLine *result )
 {
-  GPoint* end = new GPoint(*to);//copy the gpoint
+  GPoint* end = new GPoint ( *to );//copy the gpoint
   result->Clear();
-  if (start == 0 || end == 0 || !start->IsDefined() ||
-      !end->IsDefined()) {
-     sendMessage("Both gpoints must exist and be defined.");
-     result->SetDefined(false);
+  if ( start == 0 || end == 0 || !start->IsDefined() ||
+          !end->IsDefined() )
+  {
+    sendMessage ( "Both gpoints must exist and be defined." );
+    result->SetDefined ( false );
 
-     return false;
+    return false;
   }
   // Check wether both points belong to the same network
-  if(start->GetNetworkId() != end->GetNetworkId())
+  if ( start->GetNetworkId() != end->GetNetworkId() )
   {
-    sendMessage("Both gpoints belong to different networks.");
-    result->SetDefined(false);
+    sendMessage ( "Both gpoints belong to different networks." );
+    result->SetDefined ( false );
 
     return false;
   }
 
-  result->SetNetworkId(GetId());
+  result->SetNetworkId ( GetId() );
 
   // Get sections where the path should start or end
-  Tuple* startSection = GetSectionOnRoute(start);
-  if (startSection == 0) {
-    sendMessage("Starting GPoint not found in network.");
-    result->SetDefined(false);
+  Tuple* startSection = GetSectionOnRoute ( start );
+  if ( startSection == 0 )
+  {
+    sendMessage ( "Starting GPoint not found in network." );
+    result->SetDefined ( false );
 
     return false;
   }
-  Tuple* endSection = GetSectionOnRoute(end);
-  if (endSection == 0) {
-    sendMessage("End GPoint not found in network.");
+  Tuple* endSection = GetSectionOnRoute ( end );
+  if ( endSection == 0 )
+  {
+    sendMessage ( "End GPoint not found in network." );
     startSection->DeleteIfAllowed();
-    result->SetDefined(false);
+    result->SetDefined ( false );
 
     return false;
   }
 ////////////////////////////////////////////////////
   bool junctionpoint = false;
   Point* endp = new Point();
-  GetPointOnRoute(end,endp); //end point
+  GetPointOnRoute ( end,endp ); //end point
   vector<JunctionSortEntry> juns;
-  CcInt* routeid = new CcInt(true,end->GetRouteId());
-  GetJunctionsOnRoute(routeid,juns);
-  for(unsigned int i = 0;i < juns.size();i++){
+  CcInt* routeid = new CcInt ( true,end->GetRouteId() );
+  GetJunctionsOnRoute ( routeid,juns );
+  for ( unsigned int i = 0;i < juns.size();i++ )
+  {
     Tuple* t = juns[i].m_pJunction;
-    if(((CcInt*)t->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval() ==
-        end->GetRouteId() &&
-      fabs(((CcReal*)t->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval()-
-      end->GetPosition()) < 0.1)
+    if ( ( ( CcInt* ) t->GetAttribute ( JUNCTION_ROUTE1_ID ) )->GetIntval() ==
+            end->GetRouteId() &&
+            fabs ( ( ( CcReal* ) t->GetAttribute ( JUNCTION_ROUTE1_MEAS )
+)->GetRealval()-
+                   end->GetPosition() ) < 0.1 )
       junctionpoint = true;
-    if(((CcInt*)t->GetAttribute(JUNCTION_ROUTE2_ID))->GetIntval() ==
-        end->GetRouteId() &&
-      fabs(((CcReal*)t->GetAttribute(JUNCTION_ROUTE2_MEAS))->GetRealval()-
-      end->GetPosition()) < 0.1)
+    if ( ( ( CcInt* ) t->GetAttribute ( JUNCTION_ROUTE2_ID ) )->GetIntval() ==
+            end->GetRouteId() &&
+            fabs ( ( ( CcReal* ) t->GetAttribute ( JUNCTION_ROUTE2_MEAS )
+)->GetRealval()-
+                   end->GetPosition() ) < 0.1 )
       junctionpoint = true;
   }
   vector<TupleId> secjunid;
-  if(junctionpoint){//it is a junction point
+  if ( junctionpoint )  //it is a junction point
+  {
     vector<DirectedSection> sectionlist;
-    if(fabs(end->GetPosition()-
-      ((CcReal*)endSection->GetAttribute(SECTION_MEAS1))->GetRealval())< 0.1)
-      GetAdjacentSections(endSection->GetTupleId(),false,sectionlist);
+    if ( fabs ( end->GetPosition()-
+                ( ( CcReal* ) endSection->GetAttribute ( SECTION_MEAS1 )
+)->GetRealval() ) < 0.1 )
+      GetAdjacentSections ( endSection->GetTupleId(),false,sectionlist );
     else
-      GetAdjacentSections(endSection->GetTupleId(),true,sectionlist);
-    for(unsigned int i = 0;i < sectionlist.size();i++){
-      if(sectionlist[i].GetSectionTid() != endSection->GetTupleId())
-        secjunid.push_back(sectionlist[i].GetSectionTid());
+      GetAdjacentSections ( endSection->GetTupleId(),true,sectionlist );
+    for ( unsigned int i = 0;i < sectionlist.size();i++ )
+    {
+      if ( sectionlist[i].GetSectionTid() != endSection->GetTupleId() )
+        secjunid.push_back ( sectionlist[i].GetSectionTid() );
     }
   }
   delete endp;
@@ -2466,101 +2772,122 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
   int startSectTID = startSection->GetTupleId();
   int lastSectTID = endSection->GetTupleId();
 
-  if (startSectTID == lastSectTID) {
-    result->AddRouteInterval(start->GetRouteId(), start->GetPosition(),
-                            end->GetPosition());
-  } else {
+  if ( startSectTID == lastSectTID )
+  {
+    result->AddRouteInterval ( start->GetRouteId(), start->GetPosition(),
+                               end->GetPosition() );
+  }
+  else
+  {
 
 //Initialize PriorityQueue
 
-    PrioQueue *prioQ = new PrioQueue (0);
+    PrioQueue *prioQ = new PrioQueue ( 0 );
     SectIDTree *visitedSect = 0;
     double sectMeas1 =
-        ((CcReal*) startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+        ( ( CcReal* ) startSection->GetAttribute ( SECTION_MEAS1 )
+)->GetRealval();
     double sectMeas2 =
-        ((CcReal*) startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+        ( ( CcReal* ) startSection->GetAttribute ( SECTION_MEAS2 )
+)->GetRealval();
     double dist = 0.0;
     vector<DirectedSection> adjSectionList;
     adjSectionList.clear();
-    if (start->GetSide() == 0) {
+    if ( start->GetSide() == 0 )
+    {
       dist = start->GetPosition() - sectMeas1;
-      GetAdjacentSections(startSectTID, false, adjSectionList);
-      SectIDTree *startTree = new SectIDTree(startSectTID,
-                                        (TupleId) numeric_limits<long>::max(),
-                                        false,
-                                        numeric_limits<int>::max());
+      GetAdjacentSections ( startSectTID, false, adjSectionList );
+      SectIDTree *startTree = new SectIDTree ( startSectTID,
+              ( TupleId ) numeric_limits<long>::max(),
+              false,
+              numeric_limits<int>::max() );
       visitedSect = startTree;
-      for(size_t i = 0;  i < adjSectionList.size(); i++) {
+      for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+      {
         DirectedSection actNextSect = adjSectionList[i];
-        if (actNextSect.GetSectionTid() != startSectTID) {
-          PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
-                               actNextSect.GetUpDownFlag(),
-                               startSectTID);
-          prioQ->Insert(*actEntry, visitedSect) ;
+        if ( actNextSect.GetSectionTid() != startSectTID )
+        {
+          PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
+                                            actNextSect.GetUpDownFlag(),
+                                            startSectTID );
+          prioQ->Insert ( *actEntry, visitedSect ) ;
           delete actEntry;
         }
       }
       adjSectionList.clear();
-    } else {
-      if (start->GetSide() == 1) {
+    }
+    else
+    {
+      if ( start->GetSide() == 1 )
+      {
         dist = sectMeas2 - start->GetPosition();
-        SectIDTree *startTree = new SectIDTree(startSectTID,
-                                          (TupleId) numeric_limits<long>::max(),
-                                          true,
-                                             numeric_limits<int>::max());
+        SectIDTree *startTree = new SectIDTree ( startSectTID,
+                ( TupleId ) numeric_limits<long>::max(),
+                true,
+                numeric_limits<int>::max() );
         visitedSect = startTree;
-        GetAdjacentSections(startSectTID, true, adjSectionList);
-        for(size_t i = 0;  i < adjSectionList.size(); i++) {
+        GetAdjacentSections ( startSectTID, true, adjSectionList );
+        for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+        {
           DirectedSection actNextSect = adjSectionList[i];
-          if (actNextSect.GetSectionTid() != startSectTID) {
-            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
-                                  actNextSect.GetUpDownFlag(),
-                                  startSectTID);
-            prioQ->Insert(*actEntry, visitedSect);
+          if ( actNextSect.GetSectionTid() != startSectTID )
+          {
+            PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
+                                              actNextSect.GetUpDownFlag(),
+                                              startSectTID );
+            prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
           }
         }
         adjSectionList.clear();
-      } else {
+      }
+      else
+      {
         dist = start->GetPosition() - sectMeas1;
-        GetAdjacentSections(startSectTID, false, adjSectionList);
+        GetAdjacentSections ( startSectTID, false, adjSectionList );
         bool first = true;
-        for(size_t i = 0;  i < adjSectionList.size(); i++) {
+        for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+        {
           DirectedSection actNextSect = adjSectionList[i];
-          if (actNextSect.GetSectionTid() != startSectTID) {
-            if (first) {
+          if ( actNextSect.GetSectionTid() != startSectTID )
+          {
+            if ( first )
+            {
               first = false;
-              SectIDTree *startTree = new SectIDTree(startSectTID,
-                                          (TupleId) numeric_limits<long>::max(),
-                                          false,
-                                             numeric_limits<int>::max());
+              SectIDTree *startTree = new SectIDTree ( startSectTID,
+                      ( TupleId ) numeric_limits<long>::max(),
+                      false,
+                      numeric_limits<int>::max() );
               visitedSect = startTree;
             }
-            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
-                                 actNextSect.GetUpDownFlag(),
-                                 startSectTID);
-            prioQ->Insert(*actEntry, visitedSect);
+            PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
+                                              actNextSect.GetUpDownFlag(),
+                                              startSectTID );
+            prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
           }
         }
         adjSectionList.clear();
         dist = sectMeas2 -start->GetPosition();
-        GetAdjacentSections(startSectTID, true, adjSectionList);
-        for(size_t i = 0;  i < adjSectionList.size(); i++) {
+        GetAdjacentSections ( startSectTID, true, adjSectionList );
+        for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+        {
           DirectedSection actNextSect = adjSectionList[i];
-          if (actNextSect.GetSectionTid() != startSectTID) {
-            if (first) {
+          if ( actNextSect.GetSectionTid() != startSectTID )
+          {
+            if ( first )
+            {
               first = false;
-              SectIDTree *startTree = new SectIDTree(startSectTID,
-                                        (TupleId) numeric_limits<long>::max(),
-                                        true,
-                                             numeric_limits<int>::max());
+              SectIDTree *startTree = new SectIDTree ( startSectTID,
+                      ( TupleId ) numeric_limits<long>::max(),
+                      true,
+                      numeric_limits<int>::max() );
               visitedSect = startTree;
             }
-            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
-                                        actNextSect.GetUpDownFlag(),
-                                        startSectTID);
-            prioQ->Insert(*actEntry, visitedSect);
+            PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
+                                              actNextSect.GetUpDownFlag(),
+                                              startSectTID );
+            prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
           }
         }
@@ -2571,33 +2898,44 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
 
     PQEntry *actPQEntry;
     bool found = false;
-    while (!prioQ->IsEmpty() && !found){
-      actPQEntry = prioQ->GetAndDeleteMin(visitedSect);
-      Tuple *actSection = GetSection(actPQEntry->sectID);
+    while ( !prioQ->IsEmpty() && !found )
+    {
+      actPQEntry = prioQ->GetAndDeleteMin ( visitedSect );
+      Tuple *actSection = GetSection ( actPQEntry->sectID );
       sectMeas1 =
-        ((CcReal*) actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+          ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS1 )
+)->GetRealval();
       sectMeas2 =
-        ((CcReal*) actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
-      dist = actPQEntry->distFromStart + fabs(sectMeas2 - sectMeas1);
+          ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS2 )
+)->GetRealval();
+      dist = actPQEntry->distFromStart + fabs ( sectMeas2 - sectMeas1 );
 
 //////////////////////////////////////
-      if(junctionpoint){ //end point is a junction point
-        for(unsigned int i = 0;i < secjunid.size();i++){
-          if(secjunid[i] == actPQEntry->sectID){
+      if ( junctionpoint )   //end point is a junction point
+      {
+        for ( unsigned int i = 0;i < secjunid.size();i++ )
+        {
+          if ( secjunid[i] == actPQEntry->sectID )
+          {
             lastSectTID = actPQEntry->sectID;
-            Tuple* sect = GetSection(lastSectTID);
+            Tuple* sect = GetSection ( lastSectTID );
             double m1 =
-                  ((CcReal*)sect->GetAttribute(SECTION_MEAS1))->GetRealval();
+                ( ( CcReal* ) sect->GetAttribute ( SECTION_MEAS1 )
+)->GetRealval();
             double m2 =
-                  ((CcReal*)sect->GetAttribute(SECTION_MEAS2))->GetRealval();
-            if(actPQEntry->upDownFlag){
-              GPoint* temp = new GPoint(true,end->GetNetworkId(),
-                        end->GetRouteId(),m2,None);
+                ( ( CcReal* ) sect->GetAttribute ( SECTION_MEAS2 )
+)->GetRealval();
+            if ( actPQEntry->upDownFlag )
+            {
+              GPoint* temp = new GPoint ( true,end->GetNetworkId(),
+                                          end->GetRouteId(),m2,None );
               *end = *temp;
               delete temp;
-            }else{
-              GPoint* temp = new GPoint(true,end->GetNetworkId(),
-                        end->GetRouteId(),m1,None);
+            }
+            else
+            {
+              GPoint* temp = new GPoint ( true,end->GetNetworkId(),
+                                          end->GetRouteId(),m1,None );
               *end = *temp;
               delete temp;
             }
@@ -2608,28 +2946,33 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
       }
 ////////////////////////////////////
 
-      if (actPQEntry->sectID != lastSectTID) {
+      if ( actPQEntry->sectID != lastSectTID )
+      {
 //Search further in the network unitl reached last section.
 //Get adjacent sections and insert into priority Queue.
 
         adjSectionList.clear();
-        GetAdjacentSections(actPQEntry->sectID,
-                                      actPQEntry->upDownFlag,
-                                      adjSectionList);
-        for (size_t i = 0; i <adjSectionList.size();i++){
+        GetAdjacentSections ( actPQEntry->sectID,
+                              actPQEntry->upDownFlag,
+                              adjSectionList );
+        for ( size_t i = 0; i <adjSectionList.size();i++ )
+        {
           DirectedSection actNextSect = adjSectionList[i];
-          if (actNextSect.GetSectionTid() != actPQEntry->sectID) {
-            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(),
-                                        dist,
-                                        actNextSect.GetUpDownFlag(),
-                                        actPQEntry->sectID);
-            prioQ->Insert(*actEntry, visitedSect);
+          if ( actNextSect.GetSectionTid() != actPQEntry->sectID )
+          {
+            PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(),
+                                              dist,
+                                              actNextSect.GetUpDownFlag(),
+                                              actPQEntry->sectID );
+            prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
           }
         }
         delete actPQEntry;
         actSection->DeleteIfAllowed();
-      } else {
+      }
+      else
+      {
 
 // Shortest Path found.
 // Compute last route interval and resulting gline.
@@ -2637,11 +2980,15 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
         found = true;
         double startRI, endRI;
         int actRouteId =
-            ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
-        if (actPQEntry->upDownFlag == true) {
+            ( ( CcInt* ) actSection->GetAttribute ( SECTION_RID )
+)->GetIntval();
+        if ( actPQEntry->upDownFlag == true )
+        {
           startRI = sectMeas1;
           endRI = end->GetPosition();
-        } else {
+        }
+        else
+        {
           startRI = sectMeas2;
           endRI = end->GetPosition();
         }
@@ -2653,62 +3000,76 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
 //the sections from end to start we first have to put the result sections on a
 //stack to turn in right order.
 
-        RIStack *riStack = new RIStack(actRouteId, startRI, endRI);
+        RIStack *riStack = new RIStack ( actRouteId, startRI, endRI );
         int lastSectId = actPQEntry->sectID;
-        SectIDTree *pElem = visitedSect->Find(actPQEntry->beforeSectID);
+        SectIDTree *pElem = visitedSect->Find ( actPQEntry->beforeSectID );
         bool end = false;
         bool upDown;
-     //   if (startRI >= endRI) upDown = false;
-        if(startRI > endRI || fabs(startRI-endRI) < 0.1) upDown = false;
+        //   if (startRI >= endRI) upDown = false;
+        if ( startRI > endRI || fabs ( startRI-endRI ) < 0.1 ) upDown = false;
         else upDown = true;
-        while (!end) {
+        while ( !end )
+        {
           //GetSection
-          actSection = GetSection(pElem->sectID);
+          actSection = GetSection ( pElem->sectID );
           actRouteId =
-              ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+              ( ( CcInt* ) actSection->GetAttribute ( SECTION_RID )
+)->GetIntval();
           sectMeas1 =
-            ((CcReal*) actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+              ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS1 )
+)->GetRealval();
           sectMeas2 =
-            ((CcReal*) actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+              ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS2 )
+)->GetRealval();
           upDown = pElem->upDownFlag;
-          if (pElem->sectID != startSectTID){
-            if (upDown)
-              riStack->Push(actRouteId, sectMeas1, sectMeas2, riStack);
+          if ( pElem->sectID != startSectTID )
+          {
+            if ( upDown )
+              riStack->Push ( actRouteId, sectMeas1, sectMeas2, riStack );
             else
-              riStack->Push(actRouteId, sectMeas2, sectMeas1, riStack);
+              riStack->Push ( actRouteId, sectMeas2, sectMeas1, riStack );
             lastSectId = pElem->sectID;
-            pElem = visitedSect->Find(pElem->beforeSectId);
-          } else {
+            pElem = visitedSect->Find ( pElem->beforeSectId );
+          }
+          else
+          {
             end = true;
-            GetAdjacentSections(startSectTID, true, adjSectionList);
+            GetAdjacentSections ( startSectTID, true, adjSectionList );
             size_t i = 0;
             bool stsectfound = false;
-            while (i < adjSectionList.size() && !stsectfound) {
+            while ( i < adjSectionList.size() && !stsectfound )
+            {
               DirectedSection adjSection = adjSectionList[i];
-              if (adjSection.GetSectionTid() == lastSectId){
-                  if(fabs(start->GetPosition()-sectMeas2) > 0.1){
-                    stsectfound = true;
-                    riStack->Push(actRouteId, start->GetPosition(), sectMeas2,
-                              riStack);
-                    end = true;
-                  }
+              if ( adjSection.GetSectionTid() == lastSectId )
+              {
+                if ( fabs ( start->GetPosition()-sectMeas2 ) > 0.1 )
+                {
+                  stsectfound = true;
+                  riStack->Push ( actRouteId, start->GetPosition(), sectMeas2,
+                                  riStack );
+                  end = true;
+                }
               }
               i++;
             }
             adjSectionList.clear();
-            if (!stsectfound) {
-              GetAdjacentSections(startSectTID, false,
-                                            adjSectionList);
+            if ( !stsectfound )
+            {
+              GetAdjacentSections ( startSectTID, false,
+                                    adjSectionList );
               i = 0;
-              while (i < adjSectionList.size() && !stsectfound) {
+              while ( i < adjSectionList.size() && !stsectfound )
+              {
                 DirectedSection adjSection = adjSectionList[i];
-                if (adjSection.GetSectionTid() == lastSectId){
-                    if(fabs(start->GetPosition() - sectMeas1) > 0.1){
-                      stsectfound = true;
-                      riStack->Push(actRouteId, start->GetPosition(), sectMeas1,
-                                riStack);
-                      end = true;
-                    }
+                if ( adjSection.GetSectionTid() == lastSectId )
+                {
+                  if ( fabs ( start->GetPosition() - sectMeas1 ) > 0.1 )
+                  {
+                    stsectfound = true;
+                    riStack->Push ( actRouteId, start->GetPosition(), sectMeas1,
+                                    riStack );
+                    end = true;
+                  }
                 }
                 i++;
               }
@@ -2717,7 +3078,7 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
           }
         }
         // Cleanup and return result
-        riStack->StackToGLine(result);
+        riStack->StackToGLine ( result );
         riStack->RemoveStack();
         delete actPQEntry;
       }
@@ -2728,8 +3089,8 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
   }
   startSection->DeleteIfAllowed();
   endSection->DeleteIfAllowed();
-  result->SetSorted(false);
-  result->SetDefined(true);
+  result->SetSorted ( false );
+  result->SetDefined ( true );
   result->TrimToSize();
   delete end;
   return true;
@@ -2739,17 +3100,19 @@ bool Network::InShortestPath(GPoint*start,GPoint *to, GLine *result)
 .
 
 */
-void Network::FindSP(TupleId j1,TupleId j2,double& length,GLine* res)
+void Network::FindSP ( TupleId j1,TupleId j2,double& length,GLine* res )
 {
-  res->SetNetworkId(GetId());
-  for(int i = 1; i <= alldistance->GetNoTuples();i++){
-    Tuple* tuple = alldistance->GetTuple(i);
-    TupleId jun1 = ((CcInt*)tuple->GetAttribute(0))->GetIntval();
-    TupleId jun2 = ((CcInt*)tuple->GetAttribute(1))->GetIntval();
-    if((jun1 == j1 && jun2 == j2) ||
-       (jun1 ==j2 && jun2 == j1)){
-      length = ((CcReal*)tuple->GetAttribute(2))->GetRealval();
-      GLine* gline = (GLine*)tuple->GetAttribute(3);
+  res->SetNetworkId ( GetId() );
+  for ( int i = 1; i <= alldistance->GetNoTuples();i++ )
+  {
+    Tuple* tuple = alldistance->GetTuple ( i );
+    TupleId jun1 = ( ( CcInt* ) tuple->GetAttribute ( 0 ) )->GetIntval();
+    TupleId jun2 = ( ( CcInt* ) tuple->GetAttribute ( 1 ) )->GetIntval();
+    if ( ( jun1 == j1 && jun2 == j2 ) ||
+            ( jun1 ==j2 && jun2 == j1 ) )
+    {
+      length = ( ( CcReal* ) tuple->GetAttribute ( 2 ) )->GetRealval();
+      GLine* gline = ( GLine* ) tuple->GetAttribute ( 3 );
       *res = *gline;
       tuple->DeleteIfAllowed();
       break;
@@ -2767,46 +3130,52 @@ void Network::FindSP(TupleId j1,TupleId j2,double& length,GLine* res)
 void Network::FillDistanceStorage()
 {
   ListExpr xType;
-  nl->ReadFromString(distancestorageTypeInfo,xType);
-  ListExpr xNumType = SecondoSystem::GetCatalog()->NumericType(xType);
-  alldistance = new Relation(xNumType);
+  nl->ReadFromString ( distancestorageTypeInfo,xType );
+  ListExpr xNumType = SecondoSystem::GetCatalog()->NumericType ( xType );
+  alldistance = new Relation ( xNumType );
   //store the distance between each two junction points
 
-  for(int i = 1;i <= m_pJunctions->GetNoTuples();i++){
-    for(int j = i+1; j <= m_pJunctions->GetNoTuples();j++){
-      Tuple* jun1 = m_pJunctions->GetTuple(i);
-      Tuple* jun2 = m_pJunctions->GetTuple(j);
-      int rid1 = ((CcInt*)jun1->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval();
-      int rid2 = ((CcInt*)jun2->GetAttribute(JUNCTION_ROUTE1_ID))->GetIntval();
+  for ( int i = 1;i <= m_pJunctions->GetNoTuples();i++ )
+  {
+    for ( int j = i+1; j <= m_pJunctions->GetNoTuples();j++ )
+    {
+      Tuple* jun1 = m_pJunctions->GetTuple ( i );
+      Tuple* jun2 = m_pJunctions->GetTuple ( j );
+      int rid1 = ( ( CcInt* ) jun1->GetAttribute ( JUNCTION_ROUTE1_ID )
+)->GetIntval();
+      int rid2 = ( ( CcInt* ) jun2->GetAttribute ( JUNCTION_ROUTE1_ID )
+)->GetIntval();
       float pos1 =
-              ((CcReal*)jun1->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval();
+          ( ( CcReal* ) jun1->GetAttribute ( JUNCTION_ROUTE1_MEAS )
+)->GetRealval();
       float pos2 =
-              ((CcReal*)jun2->GetAttribute(JUNCTION_ROUTE1_MEAS))->GetRealval();
+          ( ( CcReal* ) jun2->GetAttribute ( JUNCTION_ROUTE1_MEAS )
+)->GetRealval();
       Side side = None;
-      Point* p1 = (Point*)jun1->GetAttribute(JUNCTION_POS);
-      Point* p2 = (Point*)jun2->GetAttribute(JUNCTION_POS);
-      if(fabs(p1->GetX()-p2->GetX()) < 0.1 &&
-         fabs(p1->GetY()-p2->GetY()) < 0.1) //different junction point
+      Point* p1 = ( Point* ) jun1->GetAttribute ( JUNCTION_POS );
+      Point* p2 = ( Point* ) jun2->GetAttribute ( JUNCTION_POS );
+      if ( fabs ( p1->GetX()-p2->GetX() ) < 0.1 &&
+              fabs ( p1->GetY()-p2->GetY() ) < 0.1 ) //different junction point
         continue;
-      GPoint* gp1 = new GPoint(true,GetId(),rid1,pos1,side);
-      GPoint* gp2 = new GPoint(true,GetId(),rid2,pos2,side);
-      Tuple* tuple = new Tuple(nl->Second(xNumType));
-      tuple->PutAttribute(0,new TupleIdentifier(true,i));
-      tuple->PutAttribute(1,new TupleIdentifier(true,j));
-      GLine* gline = new GLine(0);
-      assert(InShortestPath(gp1,gp2,gline));
-      tuple->PutAttribute(2,new CcReal(true,gline->GetLength()));
-      GLine* temp = new GLine(0);
-      temp->SetNetworkId(gline->GetNetworkId());
-      const RouteInterval* ri;
-      gline->Get(0,ri);
-      temp->AddRouteInterval(const_cast<RouteInterval*>(ri));//head
-      gline->Get(gline->Size()-1,ri);
-      temp->AddRouteInterval(const_cast<RouteInterval*>(ri));//tail
-      tuple->PutAttribute(3,new GLine(temp));
+      GPoint* gp1 = new GPoint ( true,GetId(),rid1,pos1,side );
+      GPoint* gp2 = new GPoint ( true,GetId(),rid2,pos2,side );
+      Tuple* tuple = new Tuple ( nl->Second ( xNumType ) );
+      tuple->PutAttribute ( 0,new TupleIdentifier ( true,i ) );
+      tuple->PutAttribute ( 1,new TupleIdentifier ( true,j ) );
+      GLine* gline = new GLine ( 0 );
+      assert ( InShortestPath ( gp1,gp2,gline ) );
+      tuple->PutAttribute ( 2,new CcReal ( true,gline->GetLength() ) );
+      GLine* temp = new GLine ( 0 );
+      temp->SetNetworkId ( gline->GetNetworkId() );
+      RouteInterval ri;
+      gline->Get ( 0,ri );
+      temp->AddRouteInterval ( ri );//head
+      gline->Get ( gline->Size()-1,ri );
+      temp->AddRouteInterval ( ri );//tail
+      tuple->PutAttribute ( 3,new GLine ( temp ) );
       delete temp;
       delete gline;
-      alldistance->AppendTuple(tuple);
+      alldistance->AppendTuple ( tuple );
       tuple->DeleteIfAllowed();
       delete gp1;
       delete gp2;
@@ -2833,92 +3202,107 @@ Relation *Network::GetRoutes()
 Relation *Network::GetJunctions()
 {
   ostringstream strJunctionsPtr;
-  strJunctionsPtr << (long)m_pJunctions;
+  strJunctionsPtr << ( long ) m_pJunctions;
 
   string querystring = "(consume (feed (" + junctionsInternalTypeInfo +
                        " (ptr " + strJunctionsPtr.str() + "))))";
 
   Word resultWord;
-  int QueryExecuted = QueryProcessor::ExecuteQuery(querystring, resultWord);
-  assert(QueryExecuted); // no ASSERT with side effects, please
-  return (Relation *)resultWord.addr;
+  int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
+  assert ( QueryExecuted ); // no ASSERT with side effects, please
+  return ( Relation * ) resultWord.addr;
 }
 
 
-void Network::GetJunctionsOnRoute(CcInt* in_pRouteId,
-                                  vector<JunctionSortEntry> &inout_xJunctions)
+void Network::GetJunctionsOnRoute ( CcInt* in_pRouteId,
+                                    vector<JunctionSortEntry> &inout_xJunctions
+)
 {
   BTreeIterator* pJunctionsIt;
-  pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch(in_pRouteId);
-  while(pJunctionsIt->Next())
+  pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch ( in_pRouteId );
+  while ( pJunctionsIt->Next() )
   {
     // Get next junction
-    Tuple* pCurrentJunction = m_pJunctions->GetTuple(pJunctionsIt->GetId());
-    inout_xJunctions.push_back(JunctionSortEntry(true, pCurrentJunction));
+    Tuple* pCurrentJunction = m_pJunctions->GetTuple ( pJunctionsIt->GetId() );
+    inout_xJunctions.push_back ( JunctionSortEntry ( true, pCurrentJunction ) );
   }
   delete pJunctionsIt;
 
   // Now we look up the second b-tree
-  pJunctionsIt = m_pBTreeJunctionsByRoute2->ExactMatch(in_pRouteId);
-  while(pJunctionsIt->Next())
+  pJunctionsIt = m_pBTreeJunctionsByRoute2->ExactMatch ( in_pRouteId );
+  while ( pJunctionsIt->Next() )
   {
-    Tuple* pCurrentJunction = m_pJunctions->GetTuple(pJunctionsIt->GetId());
-    inout_xJunctions.push_back(JunctionSortEntry(false, pCurrentJunction));
+    Tuple* pCurrentJunction = m_pJunctions->GetTuple ( pJunctionsIt->GetId() );
+    inout_xJunctions.push_back ( JunctionSortEntry ( false, pCurrentJunction )
+);
   }
   delete pJunctionsIt;
 
   // The junctions will be sorted by their mesure on the relevant route.
-  sort(inout_xJunctions.begin(),
-       inout_xJunctions.end());
+  sort ( inout_xJunctions.begin(),
+         inout_xJunctions.end() );
 }
 
-Tuple* Network::GetSection(TupleId n) {
-  return m_pSections->GetTuple(n);
+Tuple* Network::GetSection ( TupleId n )
+{
+  return m_pSections->GetTuple ( n );
 }
 
 
-TupleId Network::GetTupleIdSectionOnRoute(GPoint* in_xGPoint) {
-  CcInt *ciRouteId = new CcInt(true, in_xGPoint->GetRouteId());
+TupleId Network::GetTupleIdSectionOnRoute ( GPoint* in_xGPoint )
+{
+  CcInt *ciRouteId = new CcInt ( true, in_xGPoint->GetRouteId() );
   BTreeIterator* pSectionIter =
-      m_pBTreeSectionsByRoute->ExactMatch(ciRouteId);
+      m_pBTreeSectionsByRoute->ExactMatch ( ciRouteId );
   delete ciRouteId;
   Tuple *actSect = 0;
   TupleId result;
-  while (pSectionIter->Next()){
+  while ( pSectionIter->Next() )
+  {
     result = pSectionIter->GetId();
     actSect =
-        m_pSections->GetTuple(pSectionIter->GetId());
-    if(actSect != 0){
+        m_pSections->GetTuple ( pSectionIter->GetId() );
+    if ( actSect != 0 )
+    {
       double start =
-            ((CcReal*)actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+          ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS1 ) )->GetRealval();
       double end =
-            ((CcReal*) actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
-      if (in_xGPoint->GetPosition() >= start&&in_xGPoint->GetPosition() <= end)
+          ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS2 ) )->GetRealval();
+      if ( in_xGPoint->GetPosition() >= start&&in_xGPoint->GetPosition() <= end
+)
       {
         delete pSectionIter;
         actSect->DeleteIfAllowed();
         return result;
       }
-      else {
-        if (fabs(in_xGPoint->GetPosition() - start) <= 0.01) {
+      else
+      {
+        if ( fabs ( in_xGPoint->GetPosition() - start ) <= 0.01 )
+        {
           delete pSectionIter;
           actSect->DeleteIfAllowed();
           return result;
         }
-        else {
-          if (fabs(in_xGPoint->GetPosition() - end) <= 0.01) {
-            Tuple *pRoute = GetRoute(((TupleIdentifier*)
-                actSect->GetAttribute(SECTION_RRC))->GetTid());
-            if (fabs(((CcReal*)
-                pRoute->GetAttribute(ROUTE_LENGTH))->GetRealval()
-                - end) <= 0.01){
+        else
+        {
+          if ( fabs ( in_xGPoint->GetPosition() - end ) <= 0.01 )
+          {
+            Tuple *pRoute = GetRoute ( ( ( TupleIdentifier* )
+                                         actSect->GetAttribute ( SECTION_RRC )
+)->GetTid() );
+            if ( fabs ( ( ( CcReal* )
+                          pRoute->GetAttribute ( ROUTE_LENGTH ) )->GetRealval()
+                        - end ) <= 0.01 )
+            {
               pRoute->DeleteIfAllowed();
               delete pSectionIter;
               actSect->DeleteIfAllowed();
               return result;
-                } else {
-                  pRoute->DeleteIfAllowed();
-                }
+            }
+            else
+            {
+              pRoute->DeleteIfAllowed();
+            }
           }
         }
       }
@@ -2929,11 +3313,11 @@ TupleId Network::GetTupleIdSectionOnRoute(GPoint* in_xGPoint) {
   return 0;
 }
 
-Tuple* Network::GetSectionOnRoute(GPoint* in_xGPoint)
+Tuple* Network::GetSectionOnRoute ( GPoint* in_xGPoint )
 {
-  return GetSection(GetTupleIdSectionOnRoute(in_xGPoint));
+  return GetSection ( GetTupleIdSectionOnRoute ( in_xGPoint ) );
   /*
-New implementation using sectionsBTree
+  New implementation using sectionsBTree
 
 
 
@@ -3025,61 +3409,69 @@ Returns the tuple from routes relation for the given route id.
 
 */
 
-Tuple* Network::GetRoute(int in_RouteId){
-  CcInt* pRouteId = new CcInt(true, in_RouteId);
-  BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
+Tuple* Network::GetRoute ( int in_RouteId )
+{
+  CcInt* pRouteId = new CcInt ( true, in_RouteId );
+  BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch ( pRouteId );
   delete pRouteId;
   Tuple *pRoute = 0;
-  if (pRoutesIter->Next())
-    pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
-  assert(pRoute != 0);
+  if ( pRoutesIter->Next() )
+    pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId() );
+  assert ( pRoute != 0 );
   delete pRoutesIter;
   return pRoute;
 
 }
 
-Tuple* Network::GetRoute(TupleId in_routeTID)
+Tuple* Network::GetRoute ( TupleId in_routeTID )
 {
-  return m_pRoutes->GetTuple(in_routeTID);
+  return m_pRoutes->GetTuple ( in_routeTID );
 }
 
-void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
-                                DBArray<SectTreeEntry> *io_SectionIds){
-  double ristart = min(ri->GetStartPos(), ri->GetEndPos());
-  double riend = max(ri->GetStartPos(), ri->GetEndPos());
-  CcInt* ciRouteId = new CcInt(true, ri->GetRouteId());
+void Network::GetSectionsOfRouteInterval ( const RouteInterval *ri,
+        DbArray<SectTreeEntry> *io_SectionIds )
+{
+  double ristart = min ( ri->GetStartPos(), ri->GetEndPos() );
+  double riend = max ( ri->GetStartPos(), ri->GetEndPos() );
+  CcInt* ciRouteId = new CcInt ( true, ri->GetRouteId() );
   BTreeIterator* pSectionIter =
-      m_pBTreeSectionsByRoute->ExactMatch(ciRouteId);
+      m_pBTreeSectionsByRoute->ExactMatch ( ciRouteId );
   delete ciRouteId;
   Tuple *actSect;
   TupleId actSectTID;
   bool bsectstart = true;
   bool bsectend = true;
-  while (pSectionIter->Next()) {
+  while ( pSectionIter->Next() )
+  {
     actSectTID = pSectionIter->GetId();
-    actSect = m_pSections->GetTuple(actSectTID);
-    assert(actSect != 0);
+    actSect = m_pSections->GetTuple ( actSectTID );
+    assert ( actSect != 0 );
     double start =
-      ((CcReal*) actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+        ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS1 ) )->GetRealval();
     double end =
-      ((CcReal*) actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
-    if ((ristart <= start && riend >= end) ||
-        (start <= ristart && end >= ristart) ||
-        (start <= riend && end >= riend)){
-      if (start <= ristart) {
+        ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS2 ) )->GetRealval();
+    if ( ( ristart <= start && riend >= end ) ||
+            ( start <= ristart && end >= ristart ) ||
+            ( start <= riend && end >= riend ) )
+    {
+      if ( start <= ristart )
+      {
         start = ristart;
         bsectstart = false;
       }
-      if (riend <= end) {
+      if ( riend <= end )
+      {
         end = riend;
         bsectend = false;
       }
       SectTreeEntry *sect =
-          new SectTreeEntry(actSect->GetTupleId(), ri->GetRouteId(), start, end,
-                            bsectstart, bsectend);
-      io_SectionIds->Append(*sect);
+          new SectTreeEntry ( actSect->GetTupleId(), ri->GetRouteId(), start,
+end,
+                              bsectstart, bsectend );
+      io_SectionIds->Append ( *sect );
       delete sect;
-      if (riend <= end) {
+      if ( riend <= end )
+      {
         actSect->DeleteIfAllowed();
         break;
       }
@@ -3090,42 +3482,45 @@ void Network::GetSectionsOfRouteInterval(const RouteInterval *ri,
   delete pSectionIter;
 };
 
-void Network::GetSectionsOfRoutInterval(const RouteInterval *ri,
-                               vector<TupleId> &res)
+void Network::GetSectionsOfRoutInterval ( const RouteInterval *ri,
+        vector<TupleId> &res )
 {
   res.clear();
-  double ristart = min(ri->GetStartPos(), ri->GetEndPos());
-  double riend = max(ri->GetStartPos(), ri->GetEndPos());
-  CcInt* ciRouteId = new CcInt(true, ri->GetRouteId());
+  double ristart = min ( ri->GetStartPos(), ri->GetEndPos() );
+  double riend = max ( ri->GetStartPos(), ri->GetEndPos() );
+  CcInt* ciRouteId = new CcInt ( true, ri->GetRouteId() );
   BTreeIterator* pSectionIter =
-      m_pBTreeSectionsByRoute->ExactMatch(ciRouteId);
+      m_pBTreeSectionsByRoute->ExactMatch ( ciRouteId );
   delete ciRouteId;
   Tuple *actSect;
   TupleId actSectTID;
   //bool bsectstart = true;
   //bool bsectend = true;
-  while (pSectionIter->Next()) {
+  while ( pSectionIter->Next() )
+  {
     actSectTID = pSectionIter->GetId();
-    actSect = m_pSections->GetTuple(actSectTID);
-    assert(actSect != 0);
+    actSect = m_pSections->GetTuple ( actSectTID );
+    assert ( actSect != 0 );
     double start =
-          ((CcReal*) actSect->GetAttribute(SECTION_MEAS1))->GetRealval();
+        ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS1 ) )->GetRealval();
     double end =
-          ((CcReal*) actSect->GetAttribute(SECTION_MEAS2))->GetRealval();
-    if (fabs(ristart - riend) <= 0.01 &&
-        (fabs(ristart - start) <= 0.01 || fabs(ristart - end) <= 0.01 ))
+        ( ( CcReal* ) actSect->GetAttribute ( SECTION_MEAS2 ) )->GetRealval();
+    if ( fabs ( ristart - riend ) <= 0.01 &&
+            ( fabs ( ristart - start ) <= 0.01 || fabs ( ristart - end ) <= 0.01
+) )
     {
-      res.push_back(actSectTID);
+      res.push_back ( actSectTID );
       actSect->DeleteIfAllowed();
       break;
     }
     else
     {
-      if (((ristart <= start && end <= riend) ||
-           (start <= ristart && end > ristart) ||
-           (start < riend && riend <= end)) &&
-          (!(fabs(ristart - end) <= 0.01 || fabs(start - riend) <= 0.01 )))
-        res.push_back(actSectTID);
+      if ( ( ( ristart <= start && end <= riend ) ||
+              ( start <= ristart && end > ristart ) ||
+              ( start < riend && riend <= end ) ) &&
+              ( ! ( fabs ( ristart - end ) <= 0.01 || fabs ( start - riend ) <=
+0.01 ) ) )
+        res.push_back ( actSectTID );
     }
     actSect->DeleteIfAllowed();
   }
@@ -3136,18 +3531,19 @@ void Network::GetSectionsOfRoutInterval(const RouteInterval *ri,
 Returns the spatial position of the gpoint.
 
 */
-void Network::GetPointOnRoute(const GPoint* in_pGPoint, Point*& res){
+void Network::GetPointOnRoute ( const GPoint* in_pGPoint, Point*& res )
+{
   /*Point *res = new Point(false);*/
-  CcInt* pRouteId = new CcInt(true, in_pGPoint->GetRouteId());
-  BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
+  CcInt* pRouteId = new CcInt ( true, in_pGPoint->GetRouteId() );
+  BTreeIterator* pRoutesIter = m_pBTreeRoutes->ExactMatch ( pRouteId );
   delete pRouteId;
   Tuple *pRoute = 0;
-  if (pRoutesIter->Next())
-    pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
-  assert(pRoute != 0);
-  SimpleLine* pLine = (SimpleLine*)pRoute->GetAttribute(ROUTE_CURVE);
-  assert(pLine != 0);
-  pLine->AtPosition(in_pGPoint->GetPosition(),true, *res);
+  if ( pRoutesIter->Next() )
+    pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId() );
+  assert ( pRoute != 0 );
+  SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+  assert ( pLine != 0 );
+  pLine->AtPosition ( in_pGPoint->GetPosition(),true, *res );
   pRoute->DeleteIfAllowed();
   delete pRoutesIter;
   /*return res;*/
@@ -3161,43 +3557,50 @@ Relation* Network::GetSectionsInternal()
 Relation* Network::GetSections()
 {
   ostringstream strSectionsPtr;
-  strSectionsPtr << (long)m_pSections;
+  strSectionsPtr << ( long ) m_pSections;
 
   string querystring = "(consume (feed (" + sectionsInternalTypeInfo +
                        " (ptr " + strSectionsPtr.str() + "))))";
 
   Word resultWord;
-  int QueryExecuted = QueryProcessor::ExecuteQuery(querystring, resultWord);
-  assert(QueryExecuted); // No ASSERT with side effect, please!
-  return (Relation *)resultWord.addr;
+  int QueryExecuted = QueryProcessor::ExecuteQuery ( querystring, resultWord );
+  assert ( QueryExecuted ); // No ASSERT with side effect, please!
+  return ( Relation * ) resultWord.addr;
 }
 
-void Network::GetAdjacentSections(TupleId in_iSectionTId,
-                                  bool in_bUpDown,
-                                  vector<DirectedSection> &inout_xSections)
-{
-  Tuple *pSect = GetSection(in_iSectionTId);
-  if (pSect != 0)
+void Network::GetAdjacentSections ( TupleId in_iSectionTId,
+                                    bool in_bUpDown,
+                                    vector<DirectedSection> &inout_xSections )
+{/*
+cout << "Network::GetAdjacentsections" << endl;
+cout << "adjList: " << m_xAdjacencyList.print(cout) << endl;
+cout << "subAdjList: " << m_xSubAdjacencyList.print(cout) << endl;
+cout << "in_iSectionTID: " << in_iSectionTId << endl;*/
+  inout_xSections.clear();
+  Tuple *pSect = GetSection ( in_iSectionTId );
+  if ( pSect != 0 )
   {
-    int iSectionId = ((CcInt*)pSect->GetAttribute(SECTION_SID))->GetIntval();
+    //cout << "found section" << endl;
+    int iSectionId =
+      ( ( CcInt* ) pSect->GetAttribute ( SECTION_SID ) )->GetIntval();
     pSect->DeleteIfAllowed();
-    int iIndex = 2 * (iSectionId-1)  + (in_bUpDown ? 1 : 0);
-    const AdjacencyListEntry* xEntry = 0;
-    m_xAdjacencyList.Get(iIndex, xEntry);
-    if(xEntry->m_iHigh != -1)
+    int iIndex = 2 * ( iSectionId-1 )  + ( in_bUpDown ? 1 : 0 );
+    AdjacencyListEntry xEntry;
+    m_xAdjacencyList.Get ( iIndex, xEntry );
+    if ( xEntry.m_iHigh != -1 )
     {
-      int iLow = xEntry->m_iLow;
-      int iHigh = xEntry->m_iHigh;
+      int iLow = xEntry.m_iLow;
+      int iHigh = xEntry.m_iHigh;
 
-      for (int i = iLow; i <= iHigh; i++)
+      for ( int i = iLow; i <= iHigh; i++ )
       {
-        const DirectedSection* xSection;
-        m_xSubAdjacencyList.Get(i, xSection);
+        DirectedSection xSection;
+        m_xSubAdjacencyList.Get ( i, xSection );
 
-        bool bUpDownFlag = ((DirectedSection*)xSection)->GetUpDownFlag();
-        TupleId iSectionTid = ((DirectedSection*)xSection)->GetSectionTid();
-        inout_xSections.push_back(DirectedSection(iSectionTid,
-        bUpDownFlag));
+        bool bUpDownFlag = xSection.GetUpDownFlag();
+        TupleId iSectionTid = xSection.GetSectionTid();
+        inout_xSections.push_back ( DirectedSection ( iSectionTid,
+                                    bUpDownFlag ) );
 
       }
     }
@@ -3209,51 +3612,62 @@ Returns the route Interval between the two points
 
 */
 
-void chkStartEndA(double &StartPos, double &EndPos){
+void chkStartEndA ( double &StartPos, double &EndPos )
+{
   double help;
-  if (StartPos > EndPos) {
+  if ( StartPos > EndPos )
+  {
     help = StartPos;
     StartPos = EndPos;
     EndPos = help;
   }
 };
 
-bool Network::ShorterConnection(Tuple *route, double &start,
-                   double &end, double &dpos, double &dpos2, int &rid,
-                   int &ridt, Point p1, Point p2 ){
-  if (AlmostEqual(p1.Distance(p2), fabs(end-start))) return false;
+bool Network::ShorterConnection ( Tuple *route, double &start,
+                                  double &end, double &dpos, double &dpos2, int
+&rid,
+                                  int &ridt, Point p1, Point p2 )
+{
+  if ( AlmostEqual ( p1.Distance ( p2 ), fabs ( end-start ) ) ) return false;
   double difference;
-  GPoint *gp = new GPoint(true, GetId(), route->GetTupleId(), end - 0.01 );
-  TupleId pSection1 = GetTupleIdSectionOnRoute(gp);
+  GPoint *gp = new GPoint ( true, GetId(), route->GetTupleId(), end - 0.01 );
+  TupleId pSection1 = GetTupleIdSectionOnRoute ( gp );
   delete gp;
   vector<DirectedSection> pAdjSect1;
   vector<DirectedSection> pAdjSect2;
   pAdjSect1.clear();
   pAdjSect2.clear();
-  GetAdjacentSections(pSection1,true, pAdjSect1);
-  GetAdjacentSections(pSection1,false, pAdjSect2);
-  if (pAdjSect1.size() == 0 || pAdjSect2.size() == 0) {
+  GetAdjacentSections ( pSection1,true, pAdjSect1 );
+  GetAdjacentSections ( pSection1,false, pAdjSect2 );
+  if ( pAdjSect1.size() == 0 || pAdjSect2.size() == 0 )
+  {
     pAdjSect1.clear();
     pAdjSect2.clear();
     return false;
-  } else {
+  }
+  else
+  {
     size_t j = 0;
-    while (j < pAdjSect1.size()) {
+    while ( j < pAdjSect1.size() )
+    {
       DirectedSection actSection = pAdjSect1[j];
-      Tuple *pCurrSect = m_pSections->GetTuple(actSection.GetSectionTid());
-      ridt = ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
+)->GetIntval();
       pCurrSect->DeleteIfAllowed();
-      if (ridt != rid) {
-        Tuple *pRoute = GetRoute(ridt);
+      if ( ridt != rid )
+      {
+        Tuple *pRoute = GetRoute ( ridt );
         SimpleLine *pCurve =
-          (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-        if ((chkPoint(pCurve, p1, true, dpos, difference)) &&
-            (chkPoint(pCurve, p2, true, dpos2, difference))){
+            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+        {
           pAdjSect1.clear();
           pAdjSect2.clear();
-          chkStartEndA(dpos, dpos2);
+          chkStartEndA ( dpos, dpos2 );
           pRoute->DeleteIfAllowed();
-          if (fabs(dpos2 - dpos) < fabs(end - start)) return  true;
+          if ( fabs ( dpos2 - dpos ) < fabs ( end - start ) ) return  true;
           else return false;
         }
         pRoute->DeleteIfAllowed();
@@ -3262,21 +3676,25 @@ bool Network::ShorterConnection(Tuple *route, double &start,
     }
     pAdjSect1.clear();
     j = 0;
-    while (j < pAdjSect2.size()) {
+    while ( j < pAdjSect2.size() )
+    {
       DirectedSection actSection = pAdjSect2[j];
-      Tuple *pCurrSect = m_pSections->GetTuple(actSection.GetSectionTid());
-      ridt = ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
+)->GetIntval();
       pCurrSect->DeleteIfAllowed();
-      if (ridt != rid) {
-        Tuple *pRoute = GetRoute(ridt);
+      if ( ridt != rid )
+      {
+        Tuple *pRoute = GetRoute ( ridt );
         SimpleLine *pCurve =
-          (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-        if ((chkPoint(pCurve, p1, true, dpos, difference)) &&
-            (chkPoint(pCurve, p2, true, dpos2, difference))){
+            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+        {
           pAdjSect2.clear();
-          chkStartEndA(dpos, dpos2);
+          chkStartEndA ( dpos, dpos2 );
           pRoute->DeleteIfAllowed();
-          if (fabs(dpos2-dpos) < fabs(end - start)) return true;
+          if ( fabs ( dpos2-dpos ) < fabs ( end - start ) ) return true;
           else return false;
         }
         pRoute->DeleteIfAllowed();
@@ -3287,47 +3705,56 @@ bool Network::ShorterConnection(Tuple *route, double &start,
   }
 }
 
-bool Network::ShorterConnection2(Tuple *route, double &start,
-                   double &end, double &dpos, double &dpos2, int &rid,
-                   int &ridt, Point p1, Point p2 ){
-  if (AlmostEqual(p1.Distance(p2), fabs(end-start))) return false;
+bool Network::ShorterConnection2 ( Tuple *route, double &start,
+                                   double &end, double &dpos, double &dpos2, int
+&rid,
+                                   int &ridt, Point p1, Point p2 )
+{
+  if ( AlmostEqual ( p1.Distance ( p2 ), fabs ( end-start ) ) ) return false;
   double difference = 0.0;
-  if (start < end && end > 0.01) difference = end - 0.01;
+  if ( start < end && end > 0.01 ) difference = end - 0.01;
   else
-    if (start < end && end <= 0.01) difference = 0.01;
+    if ( start < end && end <= 0.01 ) difference = 0.01;
     else
-      if (start > end) difference = end + 0.01;
+      if ( start > end ) difference = end + 0.01;
       else difference = end; //start == end
-  GPoint *gp = new GPoint(true, GetId(), route->GetTupleId(), difference);
-  TupleId pSection1 = GetTupleIdSectionOnRoute(gp);
+  GPoint *gp = new GPoint ( true, GetId(), route->GetTupleId(), difference );
+  TupleId pSection1 = GetTupleIdSectionOnRoute ( gp );
   delete gp;
   vector<DirectedSection> pAdjSect1;
   vector<DirectedSection> pAdjSect2;
   pAdjSect1.clear();
   pAdjSect2.clear();
-  GetAdjacentSections(pSection1,true, pAdjSect1);
-  GetAdjacentSections(pSection1,false, pAdjSect2);
-  if (pAdjSect1.size() == 0 || pAdjSect2.size() == 0) {
+  GetAdjacentSections ( pSection1,true, pAdjSect1 );
+  GetAdjacentSections ( pSection1,false, pAdjSect2 );
+  if ( pAdjSect1.size() == 0 || pAdjSect2.size() == 0 )
+  {
     pAdjSect1.clear();
     pAdjSect2.clear();
     return false;
-  } else {
+  }
+  else
+  {
     size_t j = 0;
-    while (j < pAdjSect1.size()) {
+    while ( j < pAdjSect1.size() )
+    {
       DirectedSection actSection = pAdjSect1[j];
-      Tuple *pCurrSect = m_pSections->GetTuple(actSection.GetSectionTid());
-      ridt = ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
+)->GetIntval();
       pCurrSect->DeleteIfAllowed();
-      if (ridt != rid) {
-        Tuple *pRoute = GetRoute(ridt);
+      if ( ridt != rid )
+      {
+        Tuple *pRoute = GetRoute ( ridt );
         SimpleLine *pCurve =
-          (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-        if ((chkPoint(pCurve, p1, true, dpos, difference)) &&
-            (chkPoint(pCurve, p2, true, dpos2, difference))){
+            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+        {
           pAdjSect1.clear();
           pAdjSect2.clear();
           pRoute->DeleteIfAllowed();
-          if (fabs(dpos2 - dpos) < fabs(end - start)) return  true;
+          if ( fabs ( dpos2 - dpos ) < fabs ( end - start ) ) return  true;
           else return false;
         }
         pRoute->DeleteIfAllowed();
@@ -3336,20 +3763,24 @@ bool Network::ShorterConnection2(Tuple *route, double &start,
     }
     pAdjSect1.clear();
     j = 0;
-    while (j < pAdjSect2.size()) {
+    while ( j < pAdjSect2.size() )
+    {
       DirectedSection actSection = pAdjSect2[j];
-      Tuple *pCurrSect = m_pSections->GetTuple(actSection.GetSectionTid());
-      ridt = ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+      Tuple *pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      ridt = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID )
+)->GetIntval();
       pCurrSect->DeleteIfAllowed();
-      if (ridt != rid) {
-        Tuple *pRoute = GetRoute(ridt);
+      if ( ridt != rid )
+      {
+        Tuple *pRoute = GetRoute ( ridt );
         SimpleLine *pCurve =
-          (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-        if ((chkPoint(pCurve, p1, true, dpos, difference)) &&
-            (chkPoint(pCurve, p2, true, dpos2, difference))){
+            ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+        if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+                ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+        {
           pAdjSect2.clear();
           pRoute->DeleteIfAllowed();
-          if (fabs(dpos2-dpos) < fabs(end - start)) return true;
+          if ( fabs ( dpos2-dpos ) < fabs ( end - start ) ) return true;
           else return false;
         }
         pRoute->DeleteIfAllowed();
@@ -3366,13 +3797,13 @@ Returns the route curve for the given route id.
 
 */
 
-  SimpleLine Network::GetRouteCurve(int in_iRouteId)
- {
-   Tuple *pRoute = GetRoute(in_iRouteId);
-   SimpleLine sl = *((SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE));
-   delete pRoute;
-   return sl;
- }
+SimpleLine Network::GetRouteCurve ( int in_iRouteId )
+{
+  Tuple *pRoute = GetRoute ( in_iRouteId );
+  SimpleLine sl = * ( ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE ) );
+  delete pRoute;
+  return sl;
+}
 
 /*
   GetDual
@@ -3381,120 +3812,143 @@ Returns the route curve for the given route id.
 
 */
 
-  bool Network::GetDual(int in_iRouteId)
-  {
-    Tuple *pRoute = GetRoute(in_iRouteId);
-    bool dual = ((CcBool*) pRoute->GetAttribute(ROUTE_DUAL))->GetBoolval();
-    delete pRoute;
-    return dual;
-  }
+bool Network::GetDual ( int in_iRouteId )
+{
+  Tuple *pRoute = GetRoute ( in_iRouteId );
+  bool dual = ( ( CcBool* ) pRoute->GetAttribute ( ROUTE_DUAL ) )->GetBoolval();
+  delete pRoute;
+  return dual;
+}
 
 /*
 Searches the route interval between the two given point values.
 
 */
 
-RouteInterval* Network::Find(Point p1, Point p2){
-  GPoint *gpp1 = GetNetworkPosOfPoint(p1);
-  GPoint *gpp2 = GetNetworkPosOfPoint(p2);
-  assert (gpp1->IsDefined() && gpp2->IsDefined());
+RouteInterval* Network::Find ( Point p1, Point p2 )
+{
+  GPoint *gpp1 = GetNetworkPosOfPoint ( p1 );
+  GPoint *gpp2 = GetNetworkPosOfPoint ( p2 );
+  assert ( gpp1->IsDefined() && gpp2->IsDefined() );
   int rid, ridt;
   double start, end, dpos, dpos2, difference;
-  if (gpp1->GetRouteId() == gpp2->GetRouteId()){
+  if ( gpp1->GetRouteId() == gpp2->GetRouteId() )
+  {
     rid = gpp1->GetRouteId();
     start = gpp1->GetPosition();
     end = gpp2->GetPosition();
-    chkStartEndA(start,end);
-    Tuple *pRoute = GetRoute(rid);
-    if (ShorterConnection(pRoute, start, end, dpos, dpos2, rid, ridt, p1, p2)) {
+    chkStartEndA ( start,end );
+    Tuple *pRoute = GetRoute ( rid );
+    if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1, p2
+) )
+    {
       delete gpp1;
       delete gpp2;
       pRoute->DeleteIfAllowed();
-      return new RouteInterval(ridt, dpos, dpos2);
-    } else {
-      delete gpp1;
-      delete gpp2;
-      pRoute->DeleteIfAllowed();
-      return new RouteInterval(rid, start, end);
+      return new RouteInterval ( ridt, dpos, dpos2 );
     }
-  } else { // different RouteIds
-    Tuple *pRoute = GetRoute(gpp1->GetRouteId());
+    else
+    {
+      delete gpp1;
+      delete gpp2;
+      pRoute->DeleteIfAllowed();
+      return new RouteInterval ( rid, start, end );
+    }
+  }
+  else   // different RouteIds
+  {
+    Tuple *pRoute = GetRoute ( gpp1->GetRouteId() );
     SimpleLine *pCurve =
-        (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-    if(chkPoint(pCurve, p2, true, dpos, difference)){
+        ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+    if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
+    {
       rid =
-        ((CcInt*)pRoute->GetAttribute(ROUTE_ID))->GetIntval();
+          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
       start = gpp1->GetPosition();
       end = dpos;
-      chkStartEndA(start, end);
-      if(ShorterConnection(pRoute, start, end, dpos, dpos2, rid, ridt, p1, p2)){
+      chkStartEndA ( start, end );
+      if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1,
+                               p2 ) )
+      {
         delete gpp1;
         delete gpp2;
         pRoute->DeleteIfAllowed();
-        return new RouteInterval(ridt, dpos, dpos2);
-      } else {
+        return new RouteInterval ( ridt, dpos, dpos2 );
+      }
+      else
+      {
         delete gpp1;
         delete gpp2;
         pRoute->DeleteIfAllowed();
-        return new RouteInterval(rid, start, end);
+        return new RouteInterval ( rid, start, end );
       }
     }
     pRoute->DeleteIfAllowed();
-    pRoute = GetRoute(gpp2->GetRouteId());
-    pCurve = (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-    if(chkPoint(pCurve, p1, true, dpos, difference)){
+    pRoute = GetRoute ( gpp2->GetRouteId() );
+    pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+    if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
+    {
       rid =
-        ((CcInt*)pRoute->GetAttribute(ROUTE_ID))->GetIntval();
+          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
       start = gpp2->GetPosition();
       end = dpos;
-      chkStartEndA(start, end);
-      if(ShorterConnection(pRoute, start, end, dpos, dpos2, rid, ridt, p1, p2)){
+      chkStartEndA ( start, end );
+      if ( ShorterConnection ( pRoute, start, end, dpos, dpos2, rid, ridt, p1,
+                               p2 ) )
+      {
         delete gpp1;
         delete gpp2;
         pRoute->DeleteIfAllowed();
-        return new RouteInterval(ridt, dpos, dpos2);
-      } else {
+        return new RouteInterval ( ridt, dpos, dpos2 );
+      }
+      else
+      {
         delete gpp1;
         delete gpp2;
         pRoute->DeleteIfAllowed();
-        return new RouteInterval(rid, start, end);
+        return new RouteInterval ( rid, start, end );
       }
     }
     pRoute->DeleteIfAllowed();
-    TupleId pSection = GetTupleIdSectionOnRoute(gpp1);
+    TupleId pSection = GetTupleIdSectionOnRoute ( gpp1 );
     vector<DirectedSection> pAdjSect1;
     vector<DirectedSection> pAdjSect2;
     pAdjSect1.clear();
     pAdjSect2.clear();
-    GetAdjacentSections(pSection,true, pAdjSect1);
-    GetAdjacentSections(pSection,false, pAdjSect2);
+    GetAdjacentSections ( pSection,true, pAdjSect1 );
+    GetAdjacentSections ( pSection,false, pAdjSect2 );
     size_t j = 0;
     Tuple *pCurrSect;
-    while (j < pAdjSect1.size()) {
+    while ( j < pAdjSect1.size() )
+    {
       DirectedSection actSection = pAdjSect1[j];
-      pCurrSect = m_pSections->GetTuple(actSection.GetSectionTid());
-      rid = ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
       pCurrSect->DeleteIfAllowed();
-      pRoute = GetRoute(rid);
-      pCurve = (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-      if ((chkPoint(pCurve, p1, true, dpos, difference)) &&
-          (chkPoint(pCurve, p2, true, dpos2, difference))){
+      pRoute = GetRoute ( rid );
+      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      {
         start = dpos;
         end = dpos2;
-        chkStartEndA(start, end);
+        chkStartEndA ( start, end );
         pAdjSect1.clear();
         pAdjSect2.clear();
-        if(ShorterConnection(pRoute, start, end, dpos, dpos2,
-                             rid, ridt, p1, p2)) {
+        if ( ShorterConnection ( pRoute, start, end, dpos, dpos2,
+                                 rid, ridt, p1, p2 ) )
+        {
           delete gpp1;
           delete gpp2;
           pRoute->DeleteIfAllowed();
-          return new RouteInterval(ridt, dpos, dpos2);
-        } else {
+          return new RouteInterval ( ridt, dpos, dpos2 );
+        }
+        else
+        {
           delete gpp1;
           delete gpp2;
           pRoute->DeleteIfAllowed();
-          return new RouteInterval(rid, start, end);
+          return new RouteInterval ( rid, start, end );
         }
       }
       j++;
@@ -3502,30 +3956,35 @@ RouteInterval* Network::Find(Point p1, Point p2){
     }
     j = 0;
     pAdjSect1.clear();
-    while (j < pAdjSect2.size()) {
+    while ( j < pAdjSect2.size() )
+    {
       DirectedSection actSection = pAdjSect2[j];
-      pCurrSect = m_pSections->GetTuple(actSection.GetSectionTid());
-      rid = ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
       pCurrSect->DeleteIfAllowed();
-      pRoute = GetRoute(rid);
-      pCurve = (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-      if ((chkPoint(pCurve, p1, true, dpos, difference)) &&
-          (chkPoint(pCurve, p2, true, dpos2, difference))){
+      pRoute = GetRoute ( rid );
+      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      {
         start = dpos;
         end = dpos2;
-        chkStartEndA(start, end);
+        chkStartEndA ( start, end );
         pAdjSect2.clear();
-        if(ShorterConnection(pRoute, start, end, dpos, dpos2,
-                             rid, ridt, p1, p2)) {
+        if ( ShorterConnection ( pRoute, start, end, dpos, dpos2,
+                                 rid, ridt, p1, p2 ) )
+        {
           delete gpp1;
           delete gpp2;
           pRoute->DeleteIfAllowed();
-          return new RouteInterval(ridt, dpos, dpos2);
-        } else {
+          return new RouteInterval ( ridt, dpos, dpos2 );
+        }
+        else
+        {
           delete gpp1;
           delete gpp2;
           pRoute->DeleteIfAllowed();
-          return new RouteInterval(rid, start, end);
+          return new RouteInterval ( rid, start, end );
         }
       }
       j++;
@@ -3544,105 +4003,126 @@ Returns the route interval for the connection from p1 to p2
 
 */
 
-RouteInterval* Network::FindInterval(Point p1, Point p2){
-  GPoint *gpp1 = GetNetworkPosOfPoint(p1);
-  GPoint *gpp2 = GetNetworkPosOfPoint(p2);
-  assert (gpp1->IsDefined() && gpp2->IsDefined());
+RouteInterval* Network::FindInterval ( Point p1, Point p2 )
+{
+  GPoint *gpp1 = GetNetworkPosOfPoint ( p1 );
+  GPoint *gpp2 = GetNetworkPosOfPoint ( p2 );
+  assert ( gpp1->IsDefined() && gpp2->IsDefined() );
   int rid, ridt;
   double start, end, dpos, dpos2, difference;
-  if (gpp1->GetRouteId() == gpp2->GetRouteId()){
+  if ( gpp1->GetRouteId() == gpp2->GetRouteId() )
+  {
     rid = gpp1->GetRouteId();
     start = gpp1->GetPosition();
     end = gpp2->GetPosition();
-    Tuple *pRoute = GetRoute(rid);
-    if(ShorterConnection2(pRoute, start, end, dpos, dpos2, rid, ridt, p1, p2)){
+    Tuple *pRoute = GetRoute ( rid );
+    if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2, rid, ridt, p1, p2
+) )
+    {
       delete gpp1;
       delete gpp2;
       pRoute->DeleteIfAllowed();
-      return new RouteInterval(ridt, dpos, dpos2);
-    } else {
-      delete gpp1;
-      delete gpp2;
-      pRoute->DeleteIfAllowed();
-      return new RouteInterval(rid, start, end);
+      return new RouteInterval ( ridt, dpos, dpos2 );
     }
-  } else {
-    Tuple *pRoute = GetRoute(gpp1->GetRouteId());
+    else
+    {
+      delete gpp1;
+      delete gpp2;
+      pRoute->DeleteIfAllowed();
+      return new RouteInterval ( rid, start, end );
+    }
+  }
+  else
+  {
+    Tuple *pRoute = GetRoute ( gpp1->GetRouteId() );
     SimpleLine *pCurve =
-        (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-    if(chkPoint(pCurve, p2, true, dpos, difference)){
+        ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+    if ( chkPoint ( pCurve, p2, true, dpos, difference ) )
+    {
       rid =
-        ((CcInt*)pRoute->GetAttribute(ROUTE_ID))->GetIntval();
+          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
       start = gpp1->GetPosition();
       end = dpos;
-      if (ShorterConnection2(pRoute, start, end, dpos, dpos2,
-                             rid, ridt, p1, p2)) {
+      if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
+                                rid, ridt, p1, p2 ) )
+      {
         delete gpp1;
         delete gpp2;
         pRoute->DeleteIfAllowed();
-        return new RouteInterval(ridt, dpos, dpos2);
-      } else {
+        return new RouteInterval ( ridt, dpos, dpos2 );
+      }
+      else
+      {
         delete gpp1;
         delete gpp2;
         pRoute->DeleteIfAllowed();
-        return new RouteInterval(rid, start, end);
+        return new RouteInterval ( rid, start, end );
       }
     }
     pRoute->DeleteIfAllowed();
-    pRoute = GetRoute(gpp2->GetRouteId());
-    pCurve = (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-    if(chkPoint(pCurve, p1, true, dpos, difference)){
+    pRoute = GetRoute ( gpp2->GetRouteId() );
+    pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+    if ( chkPoint ( pCurve, p1, true, dpos, difference ) )
+    {
       rid =
-        ((CcInt*)pRoute->GetAttribute(ROUTE_ID))->GetIntval();
+          ( ( CcInt* ) pRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
       start = dpos;
       end = gpp2->GetPosition();
-      if (ShorterConnection2(pRoute, start, end, dpos, dpos2,
-                             rid, ridt, p1, p2)) {
+      if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
+                                rid, ridt, p1, p2 ) )
+      {
         delete gpp1;
         delete gpp2;
         pRoute->DeleteIfAllowed();
-        return new RouteInterval(ridt, dpos, dpos2);
-      } else {
+        return new RouteInterval ( ridt, dpos, dpos2 );
+      }
+      else
+      {
         delete gpp1;
         delete gpp2;
         pRoute->DeleteIfAllowed();
-        return new RouteInterval(rid, start, end);
+        return new RouteInterval ( rid, start, end );
       }
     }
     pRoute->DeleteIfAllowed();
-    TupleId pSection = GetTupleIdSectionOnRoute(gpp1);
+    TupleId pSection = GetTupleIdSectionOnRoute ( gpp1 );
     vector<DirectedSection> pAdjSect1;
     vector<DirectedSection> pAdjSect2;
     pAdjSect1.clear();
     pAdjSect2.clear();
-    GetAdjacentSections(pSection,true, pAdjSect1);
-    GetAdjacentSections(pSection,false, pAdjSect2);
+    GetAdjacentSections ( pSection,true, pAdjSect1 );
+    GetAdjacentSections ( pSection,false, pAdjSect2 );
     size_t j = 0;
     Tuple *pCurrSect;
-    while (j < pAdjSect1.size()) {
+    while ( j < pAdjSect1.size() )
+    {
       DirectedSection actSection = pAdjSect1[j];
-      pCurrSect = m_pSections->GetTuple(actSection.GetSectionTid());
-      rid = ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
       pCurrSect->DeleteIfAllowed();
-      pRoute = GetRoute(rid);
-      pCurve = (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-      if ((chkPoint(pCurve, p1, true, dpos, difference)) &&
-          (chkPoint(pCurve, p2, true, dpos2, difference))){
+      pRoute = GetRoute ( rid );
+      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      {
         start = dpos;
         end = dpos2;
         pAdjSect1.clear();
         pAdjSect2.clear();
-        if (ShorterConnection2(pRoute, start, end, dpos, dpos2,
-                               rid, ridt, p1, p2)) {
+        if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
+                                  rid, ridt, p1, p2 ) )
+        {
           delete gpp1;
           delete gpp2;
           pRoute->DeleteIfAllowed();
-          return new RouteInterval(ridt, dpos, dpos2);
-        } else {
+          return new RouteInterval ( ridt, dpos, dpos2 );
+        }
+        else
+        {
           delete gpp1;
           delete gpp2;
           pRoute->DeleteIfAllowed();
-          return new RouteInterval(rid, start, end);
+          return new RouteInterval ( rid, start, end );
         }
       }
       j++;
@@ -3650,29 +4130,34 @@ RouteInterval* Network::FindInterval(Point p1, Point p2){
     }
     j = 0;
     pAdjSect1.clear();
-    while (j < pAdjSect2.size()) {
+    while ( j < pAdjSect2.size() )
+    {
       DirectedSection actSection = pAdjSect2[j];
-      pCurrSect = m_pSections->GetTuple( actSection.GetSectionTid());
-      rid = ((CcInt*)pCurrSect->GetAttribute(SECTION_RID))->GetIntval();
+      pCurrSect = m_pSections->GetTuple ( actSection.GetSectionTid() );
+      rid = ( ( CcInt* ) pCurrSect->GetAttribute ( SECTION_RID ) )->GetIntval();
       pCurrSect->DeleteIfAllowed();
-      pRoute = GetRoute(rid);
-      pCurve = (SimpleLine*) pRoute->GetAttribute(ROUTE_CURVE);
-      if ((chkPoint(pCurve, p1, true, dpos, difference)) &&
-          (chkPoint(pCurve, p2, true, dpos2, difference))){
+      pRoute = GetRoute ( rid );
+      pCurve = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+      if ( ( chkPoint ( pCurve, p1, true, dpos, difference ) ) &&
+              ( chkPoint ( pCurve, p2, true, dpos2, difference ) ) )
+      {
         start = dpos;
         end = dpos2;
         pAdjSect2.clear();
-        if (ShorterConnection2(pRoute, start, end, dpos, dpos2,
-                               rid, ridt, p1, p2)) {
+        if ( ShorterConnection2 ( pRoute, start, end, dpos, dpos2,
+                                  rid, ridt, p1, p2 ) )
+        {
           delete gpp1;
           delete gpp2;
           pRoute->DeleteIfAllowed();
-          return new RouteInterval(ridt, dpos, dpos2);
-        } else {
+          return new RouteInterval ( ridt, dpos, dpos2 );
+        }
+        else
+        {
           delete gpp1;
           delete gpp2;
           pRoute->DeleteIfAllowed();
-          return new RouteInterval(rid, start, end);
+          return new RouteInterval ( rid, start, end );
         }
       }
       j++;
@@ -3689,9 +4174,9 @@ RouteInterval* Network::FindInterval(Point p1, Point p2){
 ~Out~-function of type constructor ~network~
 
 */
-ListExpr Network::Out(ListExpr typeInfo)
+ListExpr Network::Out ( ListExpr typeInfo )
 {
-
+//cout << "NetworkOut" << endl;
   ///////////////////////
   // Output of all routes
   GenericRelationIterator *pRoutesIter = m_pRoutes->MakeScan();
@@ -3701,39 +4186,41 @@ ListExpr Network::Out(ListExpr typeInfo)
   ListExpr xRoutes = nl->TheEmptyList();
   bool bFirst = true;
 
-  while((pCurrentRoute = pRoutesIter->GetNextTuple()) != 0)
+  while ( ( pCurrentRoute = pRoutesIter->GetNextTuple() ) != 0 )
   {
     // Read values from table
-    CcInt* pRouteId = (CcInt*)pCurrentRoute->GetAttribute(ROUTE_ID);
+    CcInt* pRouteId = ( CcInt* ) pCurrentRoute->GetAttribute ( ROUTE_ID );
     int iRouteId = pRouteId->GetIntval();
-    CcReal* pLength = (CcReal*)pCurrentRoute->GetAttribute(ROUTE_LENGTH);
+    CcReal* pLength = ( CcReal* ) pCurrentRoute->GetAttribute ( ROUTE_LENGTH );
     double dLength  = pLength->GetRealval();
-    SimpleLine *pCurve = (SimpleLine*)pCurrentRoute->GetAttribute(ROUTE_CURVE);
+    SimpleLine *pCurve = ( SimpleLine* ) pCurrentRoute->GetAttribute (
+ROUTE_CURVE );
     // The list for the curve contains all segments of the curve.
-    ListExpr xCurve = OutSimpleLine(nl->TheEmptyList(), SetWord(pCurve));
-    CcBool* pDual = (CcBool*)pCurrentRoute->GetAttribute(ROUTE_DUAL);
+    ListExpr xCurve = OutSimpleLine ( nl->TheEmptyList(), SetWord ( pCurve ) );
+    CcBool* pDual = ( CcBool* ) pCurrentRoute->GetAttribute ( ROUTE_DUAL );
     bool bDual= pDual->GetBoolval();
     CcBool* pStartsSmaller;
-    pStartsSmaller = (CcBool*)pCurrentRoute->GetAttribute(ROUTE_STARTSSMALLER);
+    pStartsSmaller = ( CcBool* ) pCurrentRoute->GetAttribute (
+ROUTE_STARTSSMALLER );
     bool bStartsSmaller = pStartsSmaller->GetBoolval();
 
     // Build list
-    xNext = nl->FiveElemList(nl->IntAtom(iRouteId),
-                             nl->RealAtom(dLength),
-                             xCurve,
-                             nl->BoolAtom(bDual),
-                             nl->BoolAtom(bStartsSmaller));
+    xNext = nl->FiveElemList ( nl->IntAtom ( iRouteId ),
+                               nl->RealAtom ( dLength ),
+                               xCurve,
+                               nl->BoolAtom ( bDual ),
+                               nl->BoolAtom ( bStartsSmaller ) );
 
     // Create new list or append element to existing list
-    if(bFirst)
+    if ( bFirst )
     {
-      xRoutes = nl->OneElemList(xNext);
+      xRoutes = nl->OneElemList ( xNext );
       xLast = xRoutes;
       bFirst = false;
     }
     else
     {
-      xLast = nl->Append(xLast, xNext);
+      xLast = nl->Append ( xLast, xNext );
     }
     pCurrentRoute->DeleteIfAllowed();
   }
@@ -3746,54 +4233,59 @@ ListExpr Network::Out(ListExpr typeInfo)
   ListExpr xJunctions = nl->TheEmptyList();
   bFirst = true;
 
-  while((pCurrentJunction = pJunctionsIter->GetNextTuple()) != 0)
+  while ( ( pCurrentJunction = pJunctionsIter->GetNextTuple() ) != 0 )
   {
     // Read values from table
     CcInt* pRoute1Id;
-    pRoute1Id = (CcInt*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE1_ID);
+    pRoute1Id = ( CcInt* ) pCurrentJunction->GetAttribute ( JUNCTION_ROUTE1_ID
+);
     int iRoute1Id = pRoute1Id->GetIntval();
     CcReal* pMeas1;
-    pMeas1 = (CcReal*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE1_MEAS);
+    pMeas1 = ( CcReal* ) pCurrentJunction->GetAttribute ( JUNCTION_ROUTE1_MEAS
+);
     double dMeas1 = pMeas1->GetRealval();
     CcInt* pRoute2Id;
-    pRoute2Id = (CcInt*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE2_ID);
+    pRoute2Id = ( CcInt* ) pCurrentJunction->GetAttribute ( JUNCTION_ROUTE2_ID
+);
     int iRoute2Id = pRoute2Id->GetIntval();
     CcReal* pMeas2;
-    pMeas2 = (CcReal*)pCurrentJunction->GetAttribute(JUNCTION_ROUTE2_MEAS);
+    pMeas2 = ( CcReal* ) pCurrentJunction->GetAttribute ( JUNCTION_ROUTE2_MEAS
+);
     double dMeas2 = pMeas2->GetRealval();
     CcInt* pConnectivityCode;
-    pConnectivityCode = (CcInt*)pCurrentJunction->GetAttribute(JUNCTION_CC);
+    pConnectivityCode = ( CcInt* ) pCurrentJunction->GetAttribute ( JUNCTION_CC
+);
     int iConnectivityCode= pConnectivityCode->GetIntval();
-    Point* pPoint = (Point*)pCurrentJunction->GetAttribute(JUNCTION_POS);
-    ListExpr xPoint = OutPoint(nl->TheEmptyList(), SetWord(pPoint));
+    Point* pPoint = ( Point* ) pCurrentJunction->GetAttribute ( JUNCTION_POS );
+    ListExpr xPoint = OutPoint ( nl->TheEmptyList(), SetWord ( pPoint ) );
 
     // Build list
-    xNext = nl->SixElemList(nl->IntAtom(iRoute1Id),
-                            nl->RealAtom(dMeas1),
-                            nl->IntAtom(iRoute2Id),
-                            nl->RealAtom(dMeas2),
-                            nl->IntAtom(iConnectivityCode),
-                            xPoint);
+    xNext = nl->SixElemList ( nl->IntAtom ( iRoute1Id ),
+                              nl->RealAtom ( dMeas1 ),
+                              nl->IntAtom ( iRoute2Id ),
+                              nl->RealAtom ( dMeas2 ),
+                              nl->IntAtom ( iConnectivityCode ),
+                              xPoint );
 
     // Create new list or append element to existing list
-    if(bFirst)
+    if ( bFirst )
     {
-      xJunctions= nl->OneElemList(xNext);
+      xJunctions= nl->OneElemList ( xNext );
       xLast = xJunctions;
       bFirst = false;
     }
     else
     {
-      xLast = nl->Append(xLast, xNext);
+      xLast = nl->Append ( xLast, xNext );
     }
     pCurrentJunction->DeleteIfAllowed();
   }
 
   delete pJunctionsIter;
 
-  return nl->ThreeElemList(nl->IntAtom(m_iId),
-                           xRoutes,
-                           xJunctions);
+  return nl->ThreeElemList ( nl->IntAtom ( m_iId ),
+                             xRoutes,
+                             xJunctions );
 }
 
 
@@ -3802,89 +4294,125 @@ ListExpr Network::Out(ListExpr typeInfo)
 ~Save~-function of type constructor ~network~
 
 */
-ListExpr Network::Save(SmiRecord& in_xValueRecord,
-                       size_t& inout_iOffset,
-                       const ListExpr in_xTypeInfo)
+ListExpr Network::Save ( SmiRecord& in_xValueRecord,
+                         size_t& inout_iOffset,
+                         const ListExpr in_xTypeInfo )
 {
   // Save id of the network
   int iId = m_iId;
-  in_xValueRecord.Write(&iId,
-                        sizeof(int),
-                        inout_iOffset);
-  inout_iOffset += sizeof(int);
+  in_xValueRecord.Write ( &iId,
+                          sizeof ( int ),
+                          inout_iOffset );
+  inout_iOffset += sizeof ( int );
 
   // Save routes
   ListExpr xType;
-  nl->ReadFromString(routesTypeInfo, xType);
-  ListExpr xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  if(!m_pRoutes->Save(in_xValueRecord,
-                      inout_iOffset,
-                      xNumericType))
+  nl->ReadFromString ( routesTypeInfo, xType );
+  ListExpr xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  if ( !m_pRoutes->Save ( in_xValueRecord,
+                          inout_iOffset,
+                          xNumericType ) )
   {
     return false;
   }
   // Save junctions
-  nl->ReadFromString(junctionsInternalTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  if(!m_pJunctions->Save(in_xValueRecord,
-                         inout_iOffset,
-                         xNumericType))
+  nl->ReadFromString ( junctionsInternalTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  if ( !m_pJunctions->Save ( in_xValueRecord,
+                             inout_iOffset,
+                             xNumericType ) )
   {
     return false;
   }
   // Save sections
-  nl->ReadFromString(sectionsInternalTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  if(!m_pSections->Save(in_xValueRecord,
-                        inout_iOffset,
-                        xNumericType))
+  nl->ReadFromString ( sectionsInternalTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  if ( !m_pSections->Save ( in_xValueRecord,
+                            inout_iOffset,
+                            xNumericType ) )
   {
     return false;
   }
   // Save btree for routes
-  nl->ReadFromString(routesBTreeTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  if(!m_pBTreeRoutes->Save(in_xValueRecord,
-                           inout_iOffset,
-                           xNumericType))
+  nl->ReadFromString ( routesBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  if ( !m_pBTreeRoutes->Save ( in_xValueRecord,
+                               inout_iOffset,
+                               xNumericType ) )
   {
     return false;
   }
   // Save rtree for routes
 
-  if (!m_pRTreeRoutes->Save(in_xValueRecord,
-                            inout_iOffset))
+  if ( !m_pRTreeRoutes->Save ( in_xValueRecord,
+                               inout_iOffset ) )
   {
     return false;
   }
   // Save first btree for junctions
-  nl->ReadFromString(junctionsBTreeTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  if(!m_pBTreeJunctionsByRoute1->Save(in_xValueRecord,
-                                      inout_iOffset,
-                                      xNumericType))
+  nl->ReadFromString ( junctionsBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  if ( !m_pBTreeJunctionsByRoute1->Save ( in_xValueRecord,
+                                          inout_iOffset,
+                                          xNumericType ) )
   {
     return false;
   }
   // Save second btree for junctions
-  nl->ReadFromString(junctionsBTreeTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  if(!m_pBTreeJunctionsByRoute2->Save(in_xValueRecord,
-                                      inout_iOffset,
-                                      xNumericType))
+  nl->ReadFromString ( junctionsBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  if ( !m_pBTreeJunctionsByRoute2->Save ( in_xValueRecord,
+                                          inout_iOffset,
+                                          xNumericType ) )
   {
     return false;
   }
-  SmiFileId fileId = 0;
-  m_xAdjacencyList.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
-  m_xSubAdjacencyList.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
+
+   //SmiFileId fileId = 0;
+  //m_xAdjacencyList.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
+  //m_xSubAdjacencyList.SaveToRecord(in_xValueRecord, inout_iOffset, fileId);
+    //save m_xAdjacencyLlist
+   //Flob *tmpAdjList = &m_xAdjacencyList;
+
+ /*  cout << "before storing:" << endl;
+   cout << "adjList" << ((Flob)m_xAdjacencyList) << endl;
+   cout << "adjList" << ((Flob)m_xSubAdjacencyList) << endl;
+  cout << "----" << endl;*/
+
+   SecondoCatalog *ctlg = SecondoSystem::GetCatalog();
+   SmiRecordFile *rf = ctlg->GetFlobFile();
+   m_xAdjacencyList.saveToFile(rf, m_xAdjacencyList);
+   SmiSize offset = 0;
+   size_t bufsize = m_xAdjacencyList.headerSize()+ 2*sizeof(int);
+   char* buf = (char*) malloc(bufsize);
+   m_xAdjacencyList.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf, bufsize, inout_iOffset);
+   inout_iOffset += bufsize;
+   free(buf);
+    //save m_xSubAdjacencyList
+   //Flob *tmpSubAdjList = &m_xSubAdjacencyList;
+   // SmiRecordFile *rf1 = ctlg->GetFlobFile();
+   m_xSubAdjacencyList.saveToFile(rf, m_xSubAdjacencyList);
+   offset = 0;
+   buf = (char*) malloc(bufsize);
+   m_xSubAdjacencyList.serializeHeader(buf,offset);
+   assert(offset==bufsize);
+   in_xValueRecord.Write(buf,bufsize, inout_iOffset);
+   free(buf);
+   inout_iOffset += bufsize;
+
+
   // Save btree for sections
-  nl->ReadFromString(sectionsBTreeTypeInfo, xType);
-  xNumericType =SecondoSystem::GetCatalog()->NumericType(xType);
-  if(!m_pBTreeSectionsByRoute->Save(in_xValueRecord,
-                                      inout_iOffset,
-                                      xNumericType))
+  nl->ReadFromString ( sectionsBTreeTypeInfo, xType );
+  xNumericType =SecondoSystem::GetCatalog()->NumericType ( xType );
+  if ( !m_pBTreeSectionsByRoute->Save ( in_xValueRecord,
+                                        inout_iOffset,
+                                        xNumericType ) )
   {
+
+    //cout << "cannot store BTree_sections" << endl;
+
     return false;
   }
 
@@ -3908,67 +4436,69 @@ ListExpr Network::Save(SmiRecord& in_xValueRecord,
 ~Open~-function of type constructor ~network~
 
 */
-Network *Network::Open(SmiRecord& in_xValueRecord,
-                       size_t& inout_iOffset,
-                       const ListExpr in_xTypeInfo)
+Network *Network::Open ( SmiRecord& in_xValueRecord,
+                         size_t& inout_iOffset,
+                         const ListExpr in_xTypeInfo )
 {
+//cout << "NetworkOpen" << endl;
   // Create network
-  return new Network(in_xValueRecord,
-                     inout_iOffset,
-                     in_xTypeInfo);
+  return new Network ( in_xValueRecord,
+                       inout_iOffset,
+                       in_xTypeInfo );
 }
 
 
 ListExpr Network::NetworkProp()
 {
   ListExpr examplelist = nl->TextAtom();
-  nl->AppendText(examplelist,
-                 "thenetwork(<id>,<routes-relation>, <junctions-relation>)");
+  nl->AppendText ( examplelist,
+                   "thenetwork(<id>,<routes-relation>, <junctions-relation>)" );
 
-  return (nl->TwoElemList(
-            nl->TwoElemList(nl->StringAtom("Creation"),
-                            nl->StringAtom("Example Creation")),
-            nl->TwoElemList(examplelist,
-                            nl->StringAtom("(let n = thenetwork(id, r, j))"))));
+  return ( nl->TwoElemList (
+               nl->TwoElemList ( nl->StringAtom ( "Creation" ),
+                                 nl->StringAtom ( "Example Creation" ) ),
+               nl->TwoElemList ( examplelist,
+                      nl->StringAtom ( "(let n = thenetwork(id, r,j))" ) ) ));
 }
 
-ListExpr Network::OutNetwork(ListExpr typeInfo, Word value)
+ListExpr Network::OutNetwork ( ListExpr typeInfo, Word value )
 {
-  Network *n = (Network*)value.addr;
-  return n->Out(typeInfo);
+  Network *n = ( Network* ) value.addr;
+  return n->Out ( typeInfo );
 }
 
-Word Network::InNetwork(ListExpr in_xTypeInfo,
-                        ListExpr in_xValue,
-                        int in_iErrorPos,
-                        ListExpr& inout_xErrorInfo,
-                        bool& inout_bCorrect)
+Word Network::InNetwork ( ListExpr in_xTypeInfo,
+                          ListExpr in_xValue,
+                          int in_iErrorPos,
+                          ListExpr& inout_xErrorInfo,
+                          bool& inout_bCorrect )
 {
-  Network* pNetwork = new Network(in_xValue,
-                                  in_iErrorPos,
-                                  inout_xErrorInfo,
-                                  inout_bCorrect);
+//cout << "inNetwork" << endl;
+  Network* pNetwork = new Network ( in_xValue,
+                                    in_iErrorPos,
+                                    inout_xErrorInfo,
+                                    inout_bCorrect );
 
-  if(inout_bCorrect)
+  if ( inout_bCorrect )
   {
-    return SetWord(pNetwork);
+    return SetWord ( pNetwork );
   }
   else
   {
     delete pNetwork;
-    return SetWord(Address(0));
+    return SetWord ( Address ( 0 ) );
   }
 }
 
-Word Network::CreateNetwork(const ListExpr typeInfo)
+Word Network::CreateNetwork ( const ListExpr typeInfo )
 {
-  return SetWord(new Network());
+  return SetWord ( new Network() );
 }
 
-void Network::CloseNetwork(const ListExpr typeInfo, Word& w)
+void Network::CloseNetwork ( const ListExpr typeInfo, Word& w )
 {
-   delete static_cast<Network*> (w.addr);
-   w.addr = 0;
+  delete static_cast<Network*> ( w.addr );
+  w.addr = 0;
 
 }
 
@@ -3978,43 +4508,44 @@ void Network::CloseNetwork(const ListExpr typeInfo, Word& w)
 Not implemented yet.
 
 */
-Word Network::CloneNetwork(const ListExpr typeInfo, const Word& w)
+Word Network::CloneNetwork ( const ListExpr typeInfo, const Word& w )
 {
-  return SetWord(Address(0));
+  return SetWord ( Address ( 0 ) );
 }
 
-void Network::DeleteNetwork(const ListExpr typeInfo, Word& w)
+void Network::DeleteNetwork ( const ListExpr typeInfo, Word& w )
 {
-  Network* n = (Network*)w.addr;
+  Network* n = ( Network* ) w.addr;
   //n->Destroy();
   delete n;
 }
 
-bool Network::CheckNetwork(ListExpr type, ListExpr& errorInfo)
+bool Network::CheckNetwork ( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual(type, "network"));
+  return ( nl->IsEqual ( type, "network" ) );
 }
 
-void* Network::CastNetwork(void* addr)
+void* Network::CastNetwork ( void* addr )
 {
-  return (0);
+  return ( 0 );
 }
 
-bool Network::SaveNetwork(SmiRecord& valueRecord,
-                          size_t& offset,
-                          const ListExpr typeInfo,
-                          Word& value)
+bool Network::SaveNetwork ( SmiRecord& valueRecord,
+                            size_t& offset,
+                            const ListExpr typeInfo,
+                            Word& value )
 {
-  Network *n = (Network*)value.addr;
-  return n->Save(valueRecord, offset, typeInfo);
+// cout << "Save Network" << endl;
+  Network *n = ( Network* ) value.addr;
+  return n->Save ( valueRecord, offset, typeInfo );
 }
 
-bool Network::OpenNetwork(SmiRecord& valueRecord,
-                           size_t& offset,
-                           const ListExpr typeInfo,
-                           Word& value)
+bool Network::OpenNetwork ( SmiRecord& valueRecord,
+                            size_t& offset,
+                            const ListExpr typeInfo,
+                            Word& value )
 {
-  value.addr = Network::Open(valueRecord, offset, typeInfo);
+  value.addr = Network::Open ( valueRecord, offset, typeInfo );
   return value.addr != 0;
 }
 
@@ -4023,75 +4554,94 @@ int Network::SizeOfNetwork()
   return 0;
 }
 
-int Network::IsDefined() {
+int Network::IsDefined()
+{
   return m_bDefined;
 }
 
-GPoint* Network::GetNetworkPosOfPoint(Point p){
+GPoint* Network::GetNetworkPosOfPoint ( Point p )
+{
   const Rectangle<2> orig = p.BoundingBox();
-  const Rectangle<2> bbox = Rectangle<2>(true,
-                                         orig.MinD(0) - 1.0,
-                                         orig.MaxD(0) + 1.0,
-                                         orig.MinD(1) - 1.0,
-                                         orig.MaxD(1) + 1.0);
+  const Rectangle<2> bbox = Rectangle<2> ( true,
+                            orig.MinD ( 0 ) - 1.0,
+                            orig.MaxD ( 0 ) + 1.0,
+                            orig.MinD ( 1 ) - 1.0,
+                            orig.MaxD ( 1 ) + 1.0 );
   R_TreeLeafEntry<2,TupleId> res;
   Tuple *pCurrRoute = 0;
-  if (m_pRTreeRoutes->First(bbox, res)){
-    pCurrRoute = m_pRoutes->GetTuple(res.info);
+  if ( m_pRTreeRoutes->First ( bbox, res ) )
+  {
+    pCurrRoute = m_pRoutes->GetTuple ( res.info );
     // pCurrRoute->PutAttribute(0, new TupleIdentifier(true, res.info));
-  } else {
-    GPoint *result = new GPoint(false);
+  }
+  else
+  {
+    GPoint *result = new GPoint ( false );
     pCurrRoute->DeleteIfAllowed();
     return result;
   }
   double dpos, difference;
-  SimpleLine* pRouteCurve = (SimpleLine*) pCurrRoute->GetAttribute(ROUTE_CURVE);
-  if (chkPoint(pRouteCurve, p, true, dpos, difference)){
-    int rid = ((CcInt*) pCurrRoute->GetAttribute(ROUTE_ID))->GetIntval();
-    GPoint *result = new GPoint(true, GetId(), rid, dpos, None);
+  SimpleLine* pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute (
+ROUTE_CURVE );
+  if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )
+  {
+    int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID ) )->GetIntval();
+    GPoint *result = new GPoint ( true, GetId(), rid, dpos, None );
     pCurrRoute->DeleteIfAllowed();
     return result;
-  } else {
+  }
+  else
+  {
     pCurrRoute->DeleteIfAllowed();
-    while (m_pRTreeRoutes->Next(res)){
-      pCurrRoute = m_pRoutes->GetTuple(res.info);
-      pRouteCurve = (SimpleLine*) pCurrRoute->GetAttribute(ROUTE_CURVE);
-      if (chkPoint(pRouteCurve, p, true, dpos, difference)){
-        int rid = ((CcInt*) pCurrRoute->GetAttribute(ROUTE_ID))->GetIntval();
-        GPoint *result = new GPoint(true, GetId(),
-                                rid,
-                                dpos, None);
+    while ( m_pRTreeRoutes->Next ( res ) )
+    {
+      pCurrRoute = m_pRoutes->GetTuple ( res.info );
+      pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
+      if ( chkPoint ( pRouteCurve, p, true, dpos, difference ) )
+      {
+        int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
+)->GetIntval();
+        GPoint *result = new GPoint ( true, GetId(),
+                                      rid,
+                                      dpos, None );
         pCurrRoute->DeleteIfAllowed();
         return result;
       }
       pCurrRoute->DeleteIfAllowed();
     }
-/*
-If the point exact hits a route the route should be found here. If the point
-value is not exact on the route curve we try to map it in the next step with
-bigger tolerance for the hit of the route curve.
+    /*
+    If the point exact hits a route the route should be found here. If the point
+    value is not exact on the route curve we try to map it in the next step with
+    bigger tolerance for the hit of the route curve.
 
-*/
-    if (m_pRTreeRoutes->First(bbox, res))
-      pCurrRoute = m_pRoutes->GetTuple(res.info);
-    pRouteCurve = (SimpleLine*) pCurrRoute->GetAttribute(ROUTE_CURVE);
-    if (chkPoint03(pRouteCurve, p, true, dpos, difference)){
-      int rid = ((CcInt*) pCurrRoute->GetAttribute(ROUTE_ID))->GetIntval();
-      GPoint *result = new GPoint(true, GetId(),
-                                rid,
-                                dpos, None);
+    */
+    if ( m_pRTreeRoutes->First ( bbox, res ) )
+      pCurrRoute = m_pRoutes->GetTuple ( res.info );
+    pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
+    if ( chkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
+    {
+      int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
+)->GetIntval();
+      GPoint *result = new GPoint ( true, GetId(),
+                                    rid,
+                                    dpos, None );
       pCurrRoute->DeleteIfAllowed();
       return result;
-    } else {
+    }
+    else
+    {
       pCurrRoute->DeleteIfAllowed();
-      while (m_pRTreeRoutes->Next(res)){
-        pCurrRoute = m_pRoutes->GetTuple(res.info);
-        pRouteCurve = (SimpleLine*) pCurrRoute->GetAttribute(ROUTE_CURVE);
-        if (chkPoint03(pRouteCurve, p, true, dpos, difference)){
-          int rid = ((CcInt*) pCurrRoute->GetAttribute(ROUTE_ID))->GetIntval();
-          GPoint *result = new GPoint(true, GetId(),
-                                rid,
-                                dpos, None);
+      while ( m_pRTreeRoutes->Next ( res ) )
+      {
+        pCurrRoute = m_pRoutes->GetTuple ( res.info );
+        pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
+        if ( chkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
+        {
+          int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
+)->GetIntval();
+          GPoint *result = new GPoint ( true, GetId(),
+                                        rid,
+                                        dpos, None );
           pCurrRoute->DeleteIfAllowed();
           return result;
         }
@@ -4099,33 +4649,40 @@ bigger tolerance for the hit of the route curve.
       }
     }
 
-    if (m_pRTreeRoutes->First(bbox, res))
-      pCurrRoute = m_pRoutes->GetTuple(res.info);
-    pRouteCurve = (SimpleLine*) pCurrRoute->GetAttribute(ROUTE_CURVE);
-    if (lastchkPoint03(pRouteCurve, p, true, dpos, difference)){
-      int rid = ((CcInt*) pCurrRoute->GetAttribute(ROUTE_ID))->GetIntval();
-      GPoint *result = new GPoint(true, GetId(),
-                                rid,
-                                dpos, None);
+    if ( m_pRTreeRoutes->First ( bbox, res ) )
+      pCurrRoute = m_pRoutes->GetTuple ( res.info );
+    pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
+    if ( lastchkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
+    {
+      int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
+)->GetIntval();
+      GPoint *result = new GPoint ( true, GetId(),
+                                    rid,
+                                    dpos, None );
       pCurrRoute->DeleteIfAllowed();
       return result;
-    } else {
+    }
+    else
+    {
       pCurrRoute->DeleteIfAllowed();
-      while (m_pRTreeRoutes->Next(res)){
-        pCurrRoute = m_pRoutes->GetTuple(res.info);
-        pRouteCurve = (SimpleLine*) pCurrRoute->GetAttribute(ROUTE_CURVE);
-        if (lastchkPoint03(pRouteCurve, p, true, dpos, difference)){
-          int rid = ((CcInt*) pCurrRoute->GetAttribute(ROUTE_ID))->GetIntval();
-          GPoint *result = new GPoint(true, GetId(),
-                                rid,
-                                dpos, None);
+      while ( m_pRTreeRoutes->Next ( res ) )
+      {
+        pCurrRoute = m_pRoutes->GetTuple ( res.info );
+        pRouteCurve = ( SimpleLine* ) pCurrRoute->GetAttribute ( ROUTE_CURVE );
+        if ( lastchkPoint03 ( pRouteCurve, p, true, dpos, difference ) )
+        {
+          int rid = ( ( CcInt* ) pCurrRoute->GetAttribute ( ROUTE_ID )
+)->GetIntval();
+          GPoint *result = new GPoint ( true, GetId(),
+                                        rid,
+                                        dpos, None );
           pCurrRoute->DeleteIfAllowed();
           return result;
         }
         pCurrRoute->DeleteIfAllowed();
       }
     } // should not be reached
-    GPoint *result = new GPoint(false);
+    GPoint *result = new GPoint ( false );
     pCurrRoute->DeleteIfAllowed();
     return result;
   }
@@ -4139,49 +4696,65 @@ Returns the position of a junction on both routes building the junction.
 
 */
 
-void Network::GetJunctionMeasForRoutes(CcInt *pRoute1Id, CcInt *pRoute2Id,
-                              double &rid1meas, double &rid2meas){
+void Network::GetJunctionMeasForRoutes ( CcInt *pRoute1Id, CcInt *pRoute2Id,
+        double &rid1meas, double &rid2meas )
+{
   CcInt *pCurrJuncR2id, *pCurrJuncR1id;
   int iCurrJuncTupleR2id, iCurrJuncR1id, iRoute1Id, iRoute2Id;
   CcReal *pRid1Meas, *pRid2Meas;
   bool r1smallerr2, found;
   BTreeIterator *pJunctionsIt;
-  if (pRoute1Id->GetIntval() <= pRoute2Id->GetIntval()) {
-    pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch(pRoute1Id);
+  if ( pRoute1Id->GetIntval() <= pRoute2Id->GetIntval() )
+  {
+    pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch ( pRoute1Id );
     iRoute1Id = pRoute1Id->GetIntval();
     iRoute2Id = pRoute2Id->GetIntval();
     r1smallerr2 = true;
-  } else {
-    pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch(pRoute2Id);
+  }
+  else
+  {
+    pJunctionsIt = m_pBTreeJunctionsByRoute1->ExactMatch ( pRoute2Id );
     iRoute1Id = pRoute2Id->GetIntval();
     iRoute2Id = pRoute1Id->GetIntval();
     r1smallerr2 = false;
   }
   found = false;
-  while (!found && pJunctionsIt->Next()){
-    Tuple *pCurrJuncTuple = m_pJunctions->GetTuple(pJunctionsIt->GetId());
-    pCurrJuncR2id = (CcInt*) pCurrJuncTuple->GetAttribute(JUNCTION_ROUTE2_ID);
+  while ( !found && pJunctionsIt->Next() )
+  {
+    Tuple *pCurrJuncTuple = m_pJunctions->GetTuple ( pJunctionsIt->GetId() );
+    pCurrJuncR2id = ( CcInt* ) pCurrJuncTuple->GetAttribute ( JUNCTION_ROUTE2_ID
+);
     iCurrJuncTupleR2id = pCurrJuncR2id->GetIntval();
-    pCurrJuncR1id = (CcInt*) pCurrJuncTuple->GetAttribute(JUNCTION_ROUTE1_ID);
+    pCurrJuncR1id = ( CcInt* ) pCurrJuncTuple->GetAttribute ( JUNCTION_ROUTE1_ID
+);
     iCurrJuncR1id = pCurrJuncR1id->GetIntval();
-    if (iCurrJuncTupleR2id == iRoute2Id && iCurrJuncR1id == iRoute1Id) {
+    if ( iCurrJuncTupleR2id == iRoute2Id && iCurrJuncR1id == iRoute1Id )
+    {
       found = true;
-      if (r1smallerr2) {
-        pRid1Meas = (CcReal*)pCurrJuncTuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
+      if ( r1smallerr2 )
+      {
+        pRid1Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
+JUNCTION_ROUTE1_MEAS );
         rid1meas = pRid1Meas->GetRealval();
-        pRid2Meas = (CcReal*)pCurrJuncTuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
+        pRid2Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
+JUNCTION_ROUTE2_MEAS );
         rid2meas = pRid2Meas->GetRealval();
-      }else{
-        pRid1Meas = (CcReal*)pCurrJuncTuple->GetAttribute(JUNCTION_ROUTE2_MEAS);
+      }
+      else
+      {
+        pRid1Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
+JUNCTION_ROUTE2_MEAS );
         rid1meas = pRid1Meas->GetRealval();
-        pRid2Meas = (CcReal*)pCurrJuncTuple->GetAttribute(JUNCTION_ROUTE1_MEAS);
+        pRid2Meas = ( CcReal* ) pCurrJuncTuple->GetAttribute (
+JUNCTION_ROUTE1_MEAS );
         rid2meas = pRid2Meas->GetRealval();
       }
     }
     pCurrJuncTuple->DeleteIfAllowed();
   }
   delete pJunctionsIt;
-  if (!found) {
+  if ( !found )
+  {
     rid1meas = numeric_limits<double>::max();
     rid2meas = numeric_limits<double>::max();
   }
@@ -4192,21 +4765,23 @@ Return sLine Value from RouteId
 
 */
 
-void Network::GetLineValueOfRouteInterval (const RouteInterval *in_ri,
-                                           SimpleLine *out_Line){
-  CcInt* pRouteId = new CcInt(true, in_ri->GetRouteId());
-  BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch(pRouteId);
+void Network::GetLineValueOfRouteInterval ( const RouteInterval *in_ri,
+        SimpleLine *out_Line )
+{
+  CcInt* pRouteId = new CcInt ( true, in_ri->GetRouteId() );
+  BTreeIterator *pRoutesIter = m_pBTreeRoutes->ExactMatch ( pRouteId );
   delete pRouteId;
   Tuple *pRoute = 0;
-  if(pRoutesIter->Next()) pRoute = m_pRoutes->GetTuple(pRoutesIter->GetId());
-  assert(pRoute != 0);
-  SimpleLine* pLine = (SimpleLine*)pRoute->GetAttribute(ROUTE_CURVE);
-  assert(pLine != 0);
-  CcBool* pStSm = (CcBool*) pRoute->GetAttribute(ROUTE_STARTSSMALLER);
+  if ( pRoutesIter->Next() ) pRoute = m_pRoutes->GetTuple ( pRoutesIter->GetId()
+);
+  assert ( pRoute != 0 );
+  SimpleLine* pLine = ( SimpleLine* ) pRoute->GetAttribute ( ROUTE_CURVE );
+  assert ( pLine != 0 );
+  CcBool* pStSm = ( CcBool* ) pRoute->GetAttribute ( ROUTE_STARTSSMALLER );
   bool startSmaller = pStSm->GetBoolval();
-  pLine->SubLine(min(in_ri->GetStartPos(), in_ri->GetEndPos()),
-                 max(in_ri->GetStartPos(), in_ri->GetEndPos()),
-                 startSmaller, *out_Line);
+  pLine->SubLine ( min ( in_ri->GetStartPos(), in_ri->GetEndPos() ),
+                   max ( in_ri->GetStartPos(), in_ri->GetEndPos() ),
+                   startSmaller, *out_Line );
   pRoute->DeleteIfAllowed();
   delete pRoutesIter;
 }
@@ -4216,14 +4791,14 @@ Secondo TypeConstructor for class ~Network~
 
 */
 
-TypeConstructor network( "network",          Network::NetworkProp,
-                         Network::OutNetwork,           Network::InNetwork,
-                         0,                    0,
-                         Network::CreateNetwork,        Network::DeleteNetwork,
-                         Network::OpenNetwork,          Network::SaveNetwork,
-                         Network::CloseNetwork,         Network::CloneNetwork,
-                         Network::CastNetwork,          Network::SizeOfNetwork,
-                         Network::CheckNetwork );
+TypeConstructor network ( "network",          Network::NetworkProp,
+                          Network::OutNetwork,           Network::InNetwork,
+                          0,                    0,
+                          Network::CreateNetwork,        Network::DeleteNetwork,
+                          Network::OpenNetwork,          Network::SaveNetwork,
+                          Network::CloseNetwork,         Network::CloneNetwork,
+                          Network::CastNetwork,          Network::SizeOfNetwork,
+                          Network::CheckNetwork );
 
 
 /*
@@ -4234,59 +4809,59 @@ TypeConstructor network( "network",          Network::NetworkProp,
 The simple constructor. Should not be used.
 
 */
-  GLine::GLine()
-  {
-    del.refs=1;
-    del.isDelete=true;
-  }
+GLine::GLine()
+{
+  del.refs=1;
+  del.isDelete=true;
+}
 
-  GLine::GLine(int in_iSize):
-    m_xRouteIntervals(in_iSize)
-  {
-    m_bDefined = false;
-    m_bSorted = false;
-    m_dLength = 0.0;
-    del.refs=1;
-    del.isDelete=true;
-  }
+GLine::GLine ( int in_iSize ) :
+    m_xRouteIntervals ( in_iSize )
+{
+  m_bDefined = false;
+  m_bSorted = false;
+  m_dLength = 0.0;
+  del.refs=1;
+  del.isDelete=true;
+}
 
-  GLine::GLine(const GLine* in_xOther):
-  m_xRouteIntervals(0)
+GLine::GLine ( const GLine* in_xOther ) :
+    m_xRouteIntervals ( 0 )
+{
+  m_bDefined = in_xOther->m_bDefined;
+  m_bSorted = in_xOther->m_bSorted;
+  m_iNetworkId = in_xOther->m_iNetworkId;
+  m_dLength = 0.0;
+  // Iterate over all RouteIntervalls
+  for ( int i = 0; i < in_xOther->m_xRouteIntervals.Size(); i++ )
   {
-    m_bDefined = in_xOther->m_bDefined;
-    m_bSorted = in_xOther->m_bSorted;
-    m_iNetworkId = in_xOther->m_iNetworkId;
-    m_dLength = 0.0;
-    // Iterate over all RouteIntervalls
-    for (int i = 0; i < in_xOther->m_xRouteIntervals.Size(); i++)
-    {
-      // Get next Interval
-      const RouteInterval* pCurrentInterval;
-      in_xOther->m_xRouteIntervals.Get(i, pCurrentInterval);
+    // Get next Interval
+    RouteInterval pCurrentInterval;
+    in_xOther->m_xRouteIntervals.Get ( i, pCurrentInterval );
 
-      int iRouteId = pCurrentInterval->GetRouteId();
-      double dStart = pCurrentInterval->GetStartPos();
-      double dEnd = pCurrentInterval->GetEndPos();
-      AddRouteInterval(iRouteId,
+    int iRouteId = pCurrentInterval.GetRouteId();
+    double dStart = pCurrentInterval.GetStartPos();
+    double dEnd = pCurrentInterval.GetEndPos();
+    AddRouteInterval ( iRouteId,
                        dStart,
-                       dEnd);
-    }
-    del.refs=1;
-    del.isDelete=true;
-    TrimToSize();
+                       dEnd );
   }
+  del.refs=1;
+  del.isDelete=true;
+  TrimToSize();
+}
 
-  GLine::GLine( ListExpr in_xValue,
-                int in_iErrorPos,
-                ListExpr& inout_xErrorInfo,
-                bool& inout_bCorrect)
-  {
+GLine::GLine ( ListExpr in_xValue,
+               int in_iErrorPos,
+               ListExpr& inout_xErrorInfo,
+               bool& inout_bCorrect )
+{
   // Check the list
-  if(!(nl->ListLength( in_xValue ) == 2))
+  if ( ! ( nl->ListLength ( in_xValue ) == 2 ) )
   {
     string strErrorMessage = "GLine(): List length must be 2.";
-    inout_xErrorInfo = nl->Append(inout_xErrorInfo,
-                                  nl->StringAtom(strErrorMessage));
+    inout_xErrorInfo = nl->Append ( inout_xErrorInfo,
+                                    nl->StringAtom ( strErrorMessage ) );
     inout_bCorrect = false;
     m_bDefined = false;
     m_bSorted = false;
@@ -4294,43 +4869,45 @@ The simple constructor. Should not be used.
   }
 
   // Split into the two parts
-  ListExpr xNetworkIdList = nl->First(in_xValue);
-  ListExpr xRouteIntervalList = nl->Second(in_xValue);
+  ListExpr xNetworkIdList = nl->First ( in_xValue );
+  ListExpr xRouteIntervalList = nl->Second ( in_xValue );
 
   // Check the parts
-  if(!nl->IsAtom(xNetworkIdList) ||
-      nl->AtomType(xNetworkIdList) != IntType)
+  if ( !nl->IsAtom ( xNetworkIdList ) ||
+          nl->AtomType ( xNetworkIdList ) != IntType )
   {
     string strErrorMessage = "GLine(): Error while reading network-id.";
-        inout_xErrorInfo = nl->Append(inout_xErrorInfo,
-                                      nl->StringAtom(strErrorMessage));
+    inout_xErrorInfo = nl->Append ( inout_xErrorInfo,
+                                    nl->StringAtom ( strErrorMessage ) );
     m_bDefined = false;
     m_bSorted = false;
     inout_bCorrect = false;
     return;
   }
 
-  m_iNetworkId = nl->IntValue(xNetworkIdList);
+  m_iNetworkId = nl->IntValue ( xNetworkIdList );
   m_dLength = 0.0;
-  if (!nl->IsEmpty(xRouteIntervalList)){
+  if ( !nl->IsEmpty ( xRouteIntervalList ) )
+  {
     // Iterate over all routes
 
-    while( !nl->IsEmpty( xRouteIntervalList) )
+    while ( !nl->IsEmpty ( xRouteIntervalList ) )
     {
-      ListExpr xCurrentRouteInterval = nl->First( xRouteIntervalList );
-      xRouteIntervalList = nl->Rest( xRouteIntervalList );
+      ListExpr xCurrentRouteInterval = nl->First ( xRouteIntervalList );
+      xRouteIntervalList = nl->Rest ( xRouteIntervalList );
 
-      if( nl->ListLength( xCurrentRouteInterval ) != 3 ||
-        (!nl->IsAtom( nl->First(xCurrentRouteInterval))) ||
-        nl->AtomType( nl->First(xCurrentRouteInterval)) != IntType ||
-        (!nl->IsAtom( nl->Second(xCurrentRouteInterval))) ||
-        nl->AtomType( nl->Second(xCurrentRouteInterval)) != RealType ||
-        (!nl->IsAtom( nl->Third(xCurrentRouteInterval))) ||
-        nl->AtomType( nl->Third(xCurrentRouteInterval)) != RealType)
+      if ( nl->ListLength ( xCurrentRouteInterval ) != 3 ||
+              ( !nl->IsAtom ( nl->First ( xCurrentRouteInterval ) ) ) ||
+              nl->AtomType ( nl->First ( xCurrentRouteInterval ) ) != IntType ||
+              ( !nl->IsAtom ( nl->Second ( xCurrentRouteInterval ) ) ) ||
+              nl->AtomType ( nl->Second ( xCurrentRouteInterval ) ) != RealType
+||
+              ( !nl->IsAtom ( nl->Third ( xCurrentRouteInterval ) ) ) ||
+              nl->AtomType ( nl->Third ( xCurrentRouteInterval ) ) != RealType )
       {
         string strErrorMessage = "GLine(): Error while reading route-interval.";
-            inout_xErrorInfo = nl->Append(inout_xErrorInfo,
-                                          nl->StringAtom(strErrorMessage));
+        inout_xErrorInfo = nl->Append ( inout_xErrorInfo,
+                                        nl->StringAtom ( strErrorMessage ) );
         inout_bCorrect = false;
         m_bDefined = false;
         m_bSorted = false;
@@ -4339,19 +4916,21 @@ The simple constructor. Should not be used.
 
       // Read attributes from list
       // Read values from table
-      int iRouteId = nl->IntValue( nl->First(xCurrentRouteInterval) );
-      double dStart = nl->RealValue( nl->Second(xCurrentRouteInterval) );
-      double dEnd  = nl->RealValue( nl->Third(xCurrentRouteInterval) );
+      int iRouteId = nl->IntValue ( nl->First ( xCurrentRouteInterval ) );
+      double dStart = nl->RealValue ( nl->Second ( xCurrentRouteInterval ) );
+      double dEnd  = nl->RealValue ( nl->Third ( xCurrentRouteInterval ) );
 
-      AddRouteInterval(iRouteId,
-                      dStart,
-                      dEnd);
+      AddRouteInterval ( iRouteId,
+                         dStart,
+                         dEnd );
 
     }
     inout_bCorrect = true;
     m_bDefined = true;
     m_bSorted = false;
-  } else {
+  }
+  else
+  {
     m_bDefined = false;
     m_bSorted = false;
     inout_bCorrect = true;
@@ -4366,25 +4945,26 @@ The simple constructor. Should not be used.
 3.2 Methods of class ~GLine~
 
 */
-void GLine::SetNetworkId(int in_iNetworkId)
+void GLine::SetNetworkId ( int in_iNetworkId )
 {
   m_iNetworkId = in_iNetworkId;
   m_bDefined = true;
 }
 
-void GLine::AddRouteInterval(RouteInterval *ri) {
-  m_xRouteIntervals.Append(*ri);
-  m_dLength = m_dLength + fabs (ri->GetEndPos() - ri->GetStartPos());
+void GLine::AddRouteInterval ( RouteInterval ri )
+{
+  m_xRouteIntervals.Append ( ri );
+  m_dLength = m_dLength + fabs ( ri.GetEndPos() - ri.GetStartPos() );
 }
 
-void GLine::AddRouteInterval(int in_iRouteId,
-                             double in_dStart,
-                             double in_dEnd)
+void GLine::AddRouteInterval ( int in_iRouteId,
+                               double in_dStart,
+                               double in_dEnd )
 {
-  RouteInterval *ri = new RouteInterval(in_iRouteId,
-                                         in_dStart,
-                                         in_dEnd);
-  AddRouteInterval(ri);
+  RouteInterval *ri = new RouteInterval ( in_iRouteId,
+                                          in_dStart,
+                                          in_dEnd );
+  AddRouteInterval ( *ri );
   delete ri;
 }
 
@@ -4393,16 +4973,18 @@ bool GLine::IsDefined() const
   return m_bDefined;
 }
 
-void GLine::SetDefined( bool in_bDefined )
+void GLine::SetDefined ( bool in_bDefined )
 {
   m_bDefined = in_bDefined;
 }
 
-bool GLine::IsSorted() {
+bool GLine::IsSorted()
+{
   return m_bSorted;
 }
 
-void GLine::SetSorted(bool in_bSorted) {
+void GLine::SetSorted ( bool in_bSorted )
+{
   m_bSorted = in_bSorted;
 }
 
@@ -4410,166 +4992,177 @@ void GLine::SetSorted(bool in_bSorted) {
 Secondo Integration
 
 */
-Word GLine::In(const ListExpr typeInfo, const ListExpr instance,
-               const int errorPos, ListExpr& errorInfo, bool& correct)
+Word GLine::In ( const ListExpr typeInfo, const ListExpr instance,
+                 const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  GLine* pGline = new GLine(0);
-  if (nl->ListLength(instance) == 0) {
+  GLine* pGline = new GLine ( 0 );
+  if ( nl->ListLength ( instance ) == 0 )
+  {
     correct = true;
-    pGline->SetDefined(false);
-    return SetWord(pGline);
+    pGline->SetDefined ( false );
+    return SetWord ( pGline );
   }
-  if (nl->ListLength(instance) != 2) {
+  if ( nl->ListLength ( instance ) != 2 )
+  {
     correct = false;
     delete pGline;
-    cmsg.inFunError("Expecting (networkid (list of routeintervals))");
-    return SetWord(Address(0));
+    cmsg.inFunError ( "Expecting (networkid (list of routeintervals))" );
+    return SetWord ( Address ( 0 ) );
   }
-  ListExpr FirstElem = nl->First(instance);
-  ListExpr SecondElem = nl->Second(instance);
-  if (!nl->IsAtom(FirstElem) || !nl->AtomType(FirstElem)== IntType) {
+  ListExpr FirstElem = nl->First ( instance );
+  ListExpr SecondElem = nl->Second ( instance );
+  if ( !nl->IsAtom ( FirstElem ) || !nl->AtomType ( FirstElem ) == IntType )
+  {
     correct = false;
     delete pGline;
-    cmsg.inFunError("Networkadress is not evaluable");
-    return SetWord(Address(0));
+    cmsg.inFunError ( "Networkadress is not evaluable" );
+    return SetWord ( Address ( 0 ) );
   }
-  pGline->SetNetworkId(nl->IntValue(FirstElem));
-  if (nl->IsEmpty(SecondElem)) {
+  pGline->SetNetworkId ( nl->IntValue ( FirstElem ) );
+  if ( nl->IsEmpty ( SecondElem ) )
+  {
     correct = false;
     delete pGline;
-    return SetWord(Address(0));
+    return SetWord ( Address ( 0 ) );
   }
-  while (!nl->IsEmpty(SecondElem)) {
-    ListExpr start = nl->First(SecondElem);
-    SecondElem = nl->Rest(SecondElem);
-    if (nl->ListLength(start) != 3) {
+  while ( !nl->IsEmpty ( SecondElem ) )
+  {
+    ListExpr start = nl->First ( SecondElem );
+    SecondElem = nl->Rest ( SecondElem );
+    if ( nl->ListLength ( start ) != 3 )
+    {
       correct = false;
       delete pGline;
-      cmsg.inFunError("Routeinterval incorrect.Expected list of 3 Elements.");
-      return SetWord(Address(0));
+      cmsg.inFunError ( "Routeinterval incorrect.Expected list of 3 Elements."
+);
+      return SetWord ( Address ( 0 ) );
     }
-    ListExpr lrid = nl->First(start);
-    ListExpr lpos1 = nl->Second(start);
-    ListExpr lpos2 = nl->Third(start);
-    if (!nl->IsAtom(lrid) || !nl->AtomType(lrid) == IntType ||
-        !nl->IsAtom(lpos1) || !nl->AtomType(lpos1) == RealType ||
-        !nl->IsAtom(lpos2) || !nl->AtomType(lpos2) == RealType) {
+    ListExpr lrid = nl->First ( start );
+    ListExpr lpos1 = nl->Second ( start );
+    ListExpr lpos2 = nl->Third ( start );
+    if ( !nl->IsAtom ( lrid ) || !nl->AtomType ( lrid ) == IntType ||
+            !nl->IsAtom ( lpos1 ) || !nl->AtomType ( lpos1 ) == RealType ||
+            !nl->IsAtom ( lpos2 ) || !nl->AtomType ( lpos2 ) == RealType )
+    {
       correct = false;
       delete pGline;
-      cmsg.inFunError("Routeinterval should be list int, real, real.");
-      return SetWord(Address(0));
+      cmsg.inFunError ( "Routeinterval should be list int, real, real." );
+      return SetWord ( Address ( 0 ) );
     }
-    pGline->AddRouteInterval(nl->IntValue(lrid),
-                            nl->RealValue(lpos1),
-                            nl->RealValue(lpos2));
+    pGline->AddRouteInterval ( nl->IntValue ( lrid ),
+                               nl->RealValue ( lpos1 ),
+                               nl->RealValue ( lpos2 ) );
   }
   correct = true;
   pGline->TrimToSize();
-  return SetWord(pGline);
+  return SetWord ( pGline );
 }
 
-ListExpr GLine::Out(ListExpr in_xTypeInfo,
-                    Word in_xValue)
+ListExpr GLine::Out ( ListExpr in_xTypeInfo,
+                      Word in_xValue )
 {
-  GLine *pGline = (GLine*)in_xValue.addr;
+  GLine *pGline = ( GLine* ) in_xValue.addr;
 
-  if(pGline == 0 || !pGline->IsDefined())
+  if ( pGline == 0 || !pGline->IsDefined() )
   {
-    return nl->SymbolAtom( "undef" );
+    return nl->SymbolAtom ( "undef" );
   }
 
   ListExpr xLast = nl->TheEmptyList();
   ListExpr xNext = nl->TheEmptyList();
   bool bFirst = true;
-  ListExpr xNetworkId = nl->IntAtom(pGline->m_iNetworkId);
+  ListExpr xNetworkId = nl->IntAtom ( pGline->m_iNetworkId );
   ListExpr xRouteIntervals = nl->TheEmptyList();
   // Iterate over all RouteIntervalls
-  for (int i = 0; i < pGline->m_xRouteIntervals.Size(); ++i)
+  for ( int i = 0; i < pGline->m_xRouteIntervals.Size(); ++i )
   {
     // Get next Interval
-    const RouteInterval* pCurrentInterval;
-    pGline->m_xRouteIntervals.Get(i, pCurrentInterval);
+    RouteInterval pCurrentInterval;
+    pGline->m_xRouteIntervals.Get ( i, pCurrentInterval );
 
-    int iRouteId = pCurrentInterval->GetRouteId();
-    double dStart = pCurrentInterval->GetStartPos();
-    double dEnd = pCurrentInterval->GetEndPos();
+    int iRouteId = pCurrentInterval.GetRouteId();
+    double dStart = pCurrentInterval.GetStartPos();
+    double dEnd = pCurrentInterval.GetEndPos();
     // Build list
-    xNext = nl->ThreeElemList(nl->IntAtom(iRouteId),
-                              nl->RealAtom(dStart),
-                              nl->RealAtom(dEnd));
+    xNext = nl->ThreeElemList ( nl->IntAtom ( iRouteId ),
+                                nl->RealAtom ( dStart ),
+                                nl->RealAtom ( dEnd ) );
 
     // Create new list or append element to existing list
-    if(bFirst)
+    if ( bFirst )
     {
-      xRouteIntervals = nl->OneElemList(xNext);
+      xRouteIntervals = nl->OneElemList ( xNext );
       xLast = xRouteIntervals;
       bFirst = false;
     }
     else
     {
-      xLast = nl->Append(xLast, xNext);
+      xLast = nl->Append ( xLast, xNext );
     }
   }
-  if(pGline->m_xRouteIntervals.Size() == 0)
+  if ( pGline->m_xRouteIntervals.Size() == 0 )
   {
     xRouteIntervals = nl->TheEmptyList();
   }
-  return nl->TwoElemList(xNetworkId,
-                         xRouteIntervals);
+  return nl->TwoElemList ( xNetworkId,
+                           xRouteIntervals );
 }
 
-Word GLine::Create(const ListExpr typeInfo)
+Word GLine::Create ( const ListExpr typeInfo )
 {
-  return SetWord( new GLine(0) );
+  return SetWord ( new GLine ( 0 ) );
 }
 
-void GLine::Clear() {
-  m_xRouteIntervals.Clear();
-  SetSorted(false);
+void GLine::Clear()
+{
+  m_xRouteIntervals.clean();
+  SetSorted ( false );
   m_dLength = 0.0;
 }
 
-void GLine::Delete(const ListExpr typeInfo,
-                   Word& w )
+void GLine::Delete ( const ListExpr typeInfo,
+                     Word& w )
 {
-  GLine *l = (GLine*)w.addr;
+  GLine *l = ( GLine* ) w.addr;
   //if (l->del.refs == 1) l->m_xRouteIntervals.Destroy();
   l->DeleteIfAllowed();
   w.addr = 0;
 }
 
-void GLine::Close(const ListExpr typeInfo,
-                  Word& w )
+void GLine::Close ( const ListExpr typeInfo,
+                    Word& w )
 {
-    ((GLine*)w.addr)->DeleteIfAllowed();
-    w.addr = 0;
+  ( ( GLine* ) w.addr )->DeleteIfAllowed();
+  w.addr = 0;
 }
 
-Word GLine::CloneGLine(const ListExpr typeInfo,
-                  const Word& w )
+Word GLine::CloneGLine ( const ListExpr typeInfo,
+                         const Word& w )
 {
-  return SetWord(((GLine*)w.addr)->Clone());
+  return SetWord ( ( ( GLine* ) w.addr )->Clone() );
 }
 
-GLine* GLine::Clone() const{
-  GLine *xOther = new GLine(Size());
-  xOther->SetDefined(m_bDefined);
-  xOther->SetSorted(m_bSorted);
-  xOther->SetNetworkId(m_iNetworkId);
-  const RouteInterval *ri;
-  for (int i = 0; i < Size(); i++){
-    Get(i, ri);
-    int rid = ri->GetRouteId();
-    double start = ri->GetStartPos();
-    double end = ri->GetEndPos();
-    xOther->AddRouteInterval(rid, start, end);
+GLine* GLine::Clone() const
+{
+  GLine *xOther = new GLine ( Size() );
+  xOther->SetDefined ( m_bDefined );
+  xOther->SetSorted ( m_bSorted );
+  xOther->SetNetworkId ( m_iNetworkId );
+  RouteInterval ri;
+  for ( int i = 0; i < Size(); i++ )
+  {
+    Get ( i, ri );
+    int rid = ri.GetRouteId();
+    double start = ri.GetStartPos();
+    double end = ri.GetEndPos();
+    xOther->AddRouteInterval ( rid, start, end );
   }
   return xOther;
 }
 
-void* GLine::Cast(void* addr)
+void* GLine::Cast ( void* addr )
 {
-  return new (addr) GLine;
+  return new ( addr ) GLine;
 }
 
 int GLine::Size() const
@@ -4579,29 +5172,30 @@ int GLine::Size() const
 
 int GLine::SizeOf()
 {
-  return sizeof(GLine);
+  return sizeof ( GLine );
 }
 
 size_t GLine::Sizeof() const
 {
-  return sizeof(*this);
+  return sizeof ( *this );
 }
 
-ostream& GLine::Print( ostream& os ) const
+ostream& GLine::Print ( ostream& os ) const
 {
-    os << "GLine: NetworkId: " << m_iNetworkId << endl;
-    for (int i = 0; i < m_xRouteIntervals.Size() ; i++) {
-      const RouteInterval *ri;
-      Get(i, ri);
-      os << "RouteInterval: " << i << " rid: " << ri->GetRouteId();
-      os << " from: " << ri->GetStartPos() << " to: " << ri->GetEndPos();
-      os << endl;
-    }
-    os << " end gline";
-    return os;
+  os << "GLine: NetworkId: " << m_iNetworkId << endl;
+  for ( int i = 0; i < m_xRouteIntervals.Size() ; i++ )
+  {
+    RouteInterval ri;
+    Get ( i, ri );
+    os << "RouteInterval: " << i << " rid: " << ri.GetRouteId();
+    os << " from: " << ri.GetStartPos() << " to: " << ri.GetEndPos();
+    os << endl;
+  }
+  os << " end gline";
+  return os;
 };
 
-bool GLine::Adjacent( const Attribute* arg ) const
+bool GLine::Adjacent ( const Attribute* arg ) const
 {
   return false;
 }
@@ -4610,61 +5204,65 @@ bool GLine::Adjacent( const Attribute* arg ) const
 Compare
 
 */
-int GLine::Compare( const Attribute* arg ) const
+int GLine::Compare ( const Attribute* arg ) const
 {
- GLine *gl2 = (GLine*) arg;
-  if (IsDefined() && !gl2->IsDefined()) return 1;
+  GLine *gl2 = ( GLine* ) arg;
+  if ( IsDefined() && !gl2->IsDefined() ) return 1;
   else
-    if (!IsDefined() && gl2->IsDefined()) return -1;
+    if ( !IsDefined() && gl2->IsDefined() ) return -1;
     else
-      if (!IsDefined() && !gl2->IsDefined()) return 0;
+      if ( !IsDefined() && !gl2->IsDefined() ) return 0;
       else
-        if (m_dLength < gl2->m_dLength) return -1;
+        if ( m_dLength < gl2->m_dLength ) return -1;
         else
-          if (m_dLength > gl2->m_dLength) return 1;
+          if ( m_dLength > gl2->m_dLength ) return 1;
           else
-            if (m_xRouteIntervals.Size() < gl2->m_xRouteIntervals.Size())
+            if ( m_xRouteIntervals.Size() < gl2->m_xRouteIntervals.Size() )
               return -1;
             else
-              if (m_xRouteIntervals.Size() > gl2->m_xRouteIntervals.Size())
+              if ( m_xRouteIntervals.Size() > gl2->m_xRouteIntervals.Size() )
                 return 1;
               else
-                if (*this == *gl2) return 0;
-                else{
-                  const RouteInterval *ri1, *ri2;
+                if ( *this == *gl2 ) return 0;
+                else
+                {
+                  RouteInterval ri1, ri2;
                   int i = 0;
-                  while(i < m_xRouteIntervals.Size()) {
-                    Get(i,ri1);
-                    gl2->Get(i,ri2);
-                    if (ri1->GetRouteId() < ri2->GetRouteId()) return -1;
+                  while ( i < m_xRouteIntervals.Size() )
+                  {
+                    Get ( i,ri1 );
+                    gl2->Get ( i,ri2 );
+                    if ( ri1.GetRouteId() < ri2.GetRouteId() ) return -1;
                     else
-                      if (ri1->GetRouteId() > ri2->GetRouteId()) return 1;
+                      if ( ri1.GetRouteId() > ri2.GetRouteId() ) return 1;
                       else
-                        if (ri1->GetStartPos() < ri2->GetStartPos()) return -1;
+                        if ( ri1.GetStartPos() < ri2.GetStartPos() ) return -1;
                         else
-                          if (ri1->GetStartPos() > ri2->GetStartPos()) return 1;
+                          if ( ri1.GetStartPos() > ri2.GetStartPos() ) return 1;
                           else
-                            if (ri1->GetEndPos() < ri2->GetEndPos()) return -1;
+                            if ( ri1.GetEndPos() < ri2.GetEndPos() ) return -1;
                             else
-                              if (ri1->GetEndPos() > ri2->GetEndPos()) return 1;
+                              if ( ri1.GetEndPos() > ri2.GetEndPos() ) return 1;
                     i++;
                   }
                 }
- return 0;
+  return 0;
 }
 
-GLine& GLine::operator=( const GLine& l )
+GLine& GLine::operator= ( const GLine& l )
 {
-  m_xRouteIntervals.Clear();
-  if( l.m_xRouteIntervals.Size() > 0 ){
-    m_xRouteIntervals.Resize( l.m_xRouteIntervals.Size() );
-    const RouteInterval *ri;
-    for( int i = 0; i < l.m_xRouteIntervals.Size(); i++ ) {
-      l.m_xRouteIntervals.Get( i, ri );
-      int rid = ri->GetRouteId();
-      double start = ri->GetStartPos();
-      double end = ri->GetEndPos();
-      AddRouteInterval(rid, start, end);
+  m_xRouteIntervals.clean();
+  if ( l.m_xRouteIntervals.Size() > 0 )
+  {
+    m_xRouteIntervals.resize ( l.m_xRouteIntervals.Size() );
+    RouteInterval ri;
+    for ( int i = 0; i < l.m_xRouteIntervals.Size(); i++ )
+    {
+      l.m_xRouteIntervals.Get ( i, ri );
+      int rid = ri.GetRouteId();
+      double start = ri.GetStartPos();
+      double end = ri.GetEndPos();
+      AddRouteInterval ( rid, start, end );
     }
   }
   m_bSorted = l.m_bSorted;
@@ -4674,35 +5272,47 @@ GLine& GLine::operator=( const GLine& l )
   return *this;
 }
 
-bool GLine::operator== (const GLine& l) const{
-  if (!m_bDefined || !l.m_bDefined) {
+bool GLine::operator== ( const GLine& l ) const
+{
+  if ( !m_bDefined || !l.m_bDefined )
+  {
     return false;
-  } else {
-    const RouteInterval *rIt, *rIl;
-    if (m_xRouteIntervals.Size() == l.m_xRouteIntervals.Size() &&
-        AlmostEqual(m_dLength, l.m_dLength)) {
-      if (m_bSorted && l.m_bSorted) {
-        for (int i=0; i < m_xRouteIntervals.Size(); i++) {
-          Get(i,rIt);
-          l.Get(i,rIl);
-          if (!(rIt->GetRouteId() == rIl->GetRouteId() &&
-                rIt->GetStartPos() == rIl->GetStartPos() &&
-                rIt->GetEndPos() == rIl->GetEndPos())) return false;
+  }
+  else
+  {
+    RouteInterval rIt, rIl;
+    if ( m_xRouteIntervals.Size() == l.m_xRouteIntervals.Size() &&
+            AlmostEqual ( m_dLength, l.m_dLength ) )
+    {
+      if ( m_bSorted && l.m_bSorted )
+      {
+        for ( int i=0; i < m_xRouteIntervals.Size(); i++ )
+        {
+          Get ( i,rIt );
+          l.Get ( i,rIl );
+          if ( ! ( rIt.GetRouteId() == rIl.GetRouteId() &&
+                   rIt.GetStartPos() == rIl.GetStartPos() &&
+                   rIt.GetEndPos() == rIl.GetEndPos() ) ) return false;
         }
         return true;
-      } else {
-        for (int i=0; i < m_xRouteIntervals.Size(); i++) {
-          Get(i,rIt);
-          for (int j = 0; j < m_xRouteIntervals.Size(); j++) {
-            l.Get(i,rIl);
-            if (!(rIt->GetRouteId() == rIl->GetRouteId() &&
-                  rIt->GetStartPos() == rIl->GetStartPos() &&
-                  rIt->GetEndPos() == rIl->GetEndPos())) return false;
+      }
+      else
+      {
+        for ( int i=0; i < m_xRouteIntervals.Size(); i++ )
+        {
+          Get ( i,rIt );
+          for ( int j = 0; j < m_xRouteIntervals.Size(); j++ )
+          {
+            l.Get ( i,rIl );
+            if ( ! ( rIt.GetRouteId() == rIl.GetRouteId() &&
+                     rIt.GetStartPos() == rIl.GetStartPos() &&
+                     rIt.GetEndPos() == rIl.GetEndPos() ) ) return false;
           }
         }
         return true;
       }
-    } else return false;
+    }
+    else return false;
   }
 }
 
@@ -4711,17 +5321,17 @@ size_t GLine::HashValue() const
   size_t xHash = m_iNetworkId;
 
   // Iterate over all RouteIntervalls
-  for (int i = 0; i < m_xRouteIntervals.Size(); ++i)
+  for ( int i = 0; i < m_xRouteIntervals.Size(); ++i )
   {
     // Get next Interval
-    const RouteInterval* pCurrentInterval;
-    m_xRouteIntervals.Get(i, pCurrentInterval);
+    RouteInterval pCurrentInterval;
+    m_xRouteIntervals.Get ( i, pCurrentInterval );
 
     // Add something for each entry
-    int iRouteId = pCurrentInterval->GetRouteId();
-    double dStart = pCurrentInterval->GetStartPos();
-    double dEnd = pCurrentInterval->GetEndPos();
-    xHash += iRouteId + (size_t)dStart + (size_t)dEnd;
+    int iRouteId = pCurrentInterval.GetRouteId();
+    double dStart = pCurrentInterval.GetStartPos();
+    double dEnd = pCurrentInterval.GetEndPos();
+    xHash += iRouteId + ( size_t ) dStart + ( size_t ) dEnd;
   }
   return xHash;
 }
@@ -4731,20 +5341,21 @@ int GLine::NumOfFLOBs() const
   return 1;
 }
 
-FLOB* GLine::GetFLOB(const int i)
+Flob* GLine::GetFLOB ( const int i )
 {
-  if (i == 0) return &m_xRouteIntervals;
+  if ( i == 0 ) return &m_xRouteIntervals;
   return 0;
 }
 
-DBArray<RouteInterval>* GLine::GetRouteIntervals(){
-  if (IsDefined()) return &m_xRouteIntervals;
+DbArray<RouteInterval>* GLine::GetRouteIntervals()
+{
+  if ( IsDefined() ) return &m_xRouteIntervals;
   else return 0;
 };
 
-void GLine::CopyFrom(const Attribute* right)
+void GLine::CopyFrom ( const Attribute* right )
 {
-  *this = *((const GLine*) right);
+  *this = * ( ( const GLine* ) right );
   //Clear();
   /*
   GLine *src = (GLine*) right;
@@ -4753,52 +5364,57 @@ void GLine::CopyFrom(const Attribute* right)
   const RouteInterval* ri;
   for (int i = 0; i < src->Size(); i++) {
     src->Get(i,ri);
-    int rid = ri->GetRouteId();
-    double start = ri->GetStartPos();
-    double end = ri->GetEndPos();
+    int rid = ri.GetRouteId();
+    double start = ri.GetStartPos();
+    double end = ri.GetEndPos();
     AddRouteInterval(rid, start, end);
   }
   */
 }
 
-double GLine::GetLength(){
+double GLine::GetLength()
+{
   return m_dLength;
 }
 
- int GLine::GetNetworkId() {
+int GLine::GetNetworkId()
+{
   return  m_iNetworkId;
- };
+};
 
 /*
-~Get~ returns the route interval at position i in the route intervals ~DBArray~.
+~Get~ returns the route interval at position i in the route intervals ~DbArray~.
 
 */
 
-void GLine::Get(const int i, const RouteInterval* &ri) const{
-  m_xRouteIntervals.Get(i, ri);
+void GLine::Get ( const int i, RouteInterval &ri ) const
+{
+  m_xRouteIntervals.Get ( i, ri );
 };
 
-int GLine::NoOfComponents(){
+int GLine::NoOfComponents()
+{
   return m_xRouteIntervals.Size();
 };
 
 
 ListExpr GLine::Property()
 {
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("gline"),
-                    nl->StringAtom("(<nid> ((<rid> <startpos> <endpos>)...))"),
-                             nl->StringAtom("(1 ((1 1.5 2.5)(2 1.5 2.0)))"))));
+  return ( nl->TwoElemList (
+               nl->FourElemList ( nl->StringAtom ( "Signature" ),
+                                  nl->StringAtom ( "Example Type List" ),
+                                  nl->StringAtom ( "List Rep" ),
+                                  nl->StringAtom ( "Example List" ) ),
+               nl->FourElemList (
+                  nl->StringAtom ( "-> DATA" ),
+                  nl->StringAtom ( "gline" ),
+                  nl->StringAtom ( "(<nid> ((<rid> <startpos><endpos>)...))"),
+                  nl->StringAtom ( "(1 ((1 1.5 2.5)(2 1.5 2.0)))" ) ) ) );
 }
 
-bool GLine::Check( ListExpr type, ListExpr& errorInfo )
+bool GLine::Check ( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "gline" ));
+  return ( nl->IsEqual ( type, "gline" ) );
 }
 
 /*
@@ -4807,34 +5423,41 @@ network distance method of ~GPoint~.
 
 */
 
-double GLine::Netdistance (GLine* pgl2){
+double GLine::Netdistance ( GLine* pgl2 )
+{
   //GLine* pgl1 = (GLine*) this;
   double minDist = numeric_limits<double>::max();
   double aktDist = numeric_limits<double>::max();
-  if (GetNetworkId() != pgl2->GetNetworkId()) {
-    cmsg.inFunError("Both glines must belong to the network.");
+  if ( GetNetworkId() != pgl2->GetNetworkId() )
+  {
+    cmsg.inFunError ( "Both glines must belong to the network." );
     return minDist;
   }
   GPoints *bGPgl1 = GetBGP();
   GPoints *bGPgl2 = pgl2->GetBGP();
-  const GPoint *gp1, *gp2;
-  for (int i = 0; i < bGPgl1->Size(); i++) {
-    bGPgl1->Get(i,gp1);
-    if (const_cast<GPoint*>(gp1)->Inside(pgl2)) {
+  GPoint gp1, gp2;
+  for ( int i = 0; i < bGPgl1->Size(); i++ )
+  {
+    bGPgl1->Get ( i,gp1 );
+    if ( gp1.Inside ( pgl2 ) )
+    {
       delete bGPgl1;
       delete bGPgl2;
       return 0.0;
     }
-    for (int j = 0; j < bGPgl2->Size(); j++) {
-      bGPgl2->Get(j, gp2);
-      if (const_cast<GPoint*>(gp2)->Inside(this)) {
+    for ( int j = 0; j < bGPgl2->Size(); j++ )
+    {
+      bGPgl2->Get ( j, gp2 );
+      if ( gp2.Inside ( this ) )
+      {
         delete bGPgl1;
         delete bGPgl2;
         return 0.0;
       }
-      aktDist = const_cast<GPoint*>(gp1)->Netdistance(const_cast<GPoint*>(gp2));
-      if (aktDist < minDist) minDist = aktDist;
-      if (minDist <= 0.0) {
+      aktDist = gp1.Netdistance ( &gp2 );
+      if ( aktDist < minDist ) minDist = aktDist;
+      if ( minDist <= 0.0 )
+      {
         delete bGPgl1;
         delete bGPgl2;
         return 0.0;
@@ -4852,181 +5475,242 @@ distance method of ~GPoint~.
 
 */
 
-double GLine::Distance (GLine* pgl2){
-  Line *l1 = new Line(0);
-  Line *l2 = new Line(0);
-  Gline2line(l1);
-  pgl2->Gline2line(l2);
-  if (l1->IsDefined() && l2->IsDefined()) {
-    double res = l1->Distance(*l2);
+double GLine::Distance ( GLine* pgl2 )
+{
+  Line *l1 = new Line ( 0 );
+  Line *l2 = new Line ( 0 );
+  Gline2line ( l1 );
+  pgl2->Gline2line ( l2 );
+  if ( l1->IsDefined() && l2->IsDefined() )
+  {
+    double res = l1->Distance ( *l2 );
     delete l1;
     delete l2;
     return res;
-  } else return numeric_limits<double>::max();
+  }
+  else return numeric_limits<double>::max();
 }
 
 
-void GLine::Uniongl(GLine *pgl2, GLine *res){
-  const RouteInterval *pRi1, *pRi2;
-  if (!IsDefined() || NoOfComponents() == 0) {
-    if (pgl2->IsDefined() && pgl2->NoOfComponents() > 0){
-      if (pgl2->IsSorted()) {
-        for (int j = 0; j < pgl2->NoOfComponents(); j++) {
-          pgl2->Get(j,pRi2);
-          res->AddRouteInterval(pRi2->GetRouteId(),
-                            pRi2->GetStartPos(),
-                            pRi2->GetEndPos());
+void GLine::Uniongl ( GLine *pgl2, GLine *res )
+{
+  RouteInterval pRi1, pRi2;
+  if ( !IsDefined() || NoOfComponents() == 0 )
+  {
+    if ( pgl2->IsDefined() && pgl2->NoOfComponents() > 0 )
+    {
+      if ( pgl2->IsSorted() )
+      {
+        for ( int j = 0; j < pgl2->NoOfComponents(); j++ )
+        {
+          pgl2->Get ( j,pRi2 );
+          res->AddRouteInterval ( pRi2.GetRouteId(),
+                                  pRi2.GetStartPos(),
+                                  pRi2.GetEndPos() );
         }
-      } else {
-        pgl2->Get(0,pRi2);
-        RITree *ritree = new RITree(pRi2->GetRouteId(),
-                          pRi2->GetStartPos(), pRi2->GetEndPos(),0,0);
-        for (int j = 1; j < pgl2->NoOfComponents(); j++) {
-          pgl2->Get(j,pRi2);
-          ritree->Insert(pRi2->GetRouteId(), pRi2->GetStartPos(),
-                         pRi2->GetEndPos());
+      }
+      else
+      {
+        pgl2->Get ( 0,pRi2 );
+        RITree *ritree = new RITree ( pRi2.GetRouteId(),
+                                      pRi2.GetStartPos(), pRi2.GetEndPos(),0,0
+);
+        for ( int j = 1; j < pgl2->NoOfComponents(); j++ )
+        {
+          pgl2->Get ( j,pRi2 );
+          ritree->Insert ( pRi2.GetRouteId(), pRi2.GetStartPos(),
+                           pRi2.GetEndPos() );
         }
-        ritree->TreeToGLine(res);
+        ritree->TreeToGLine ( res );
         ritree->RemoveTree();
       }
-      res->SetDefined(true);
-      res->SetSorted(true);
-      res->SetNetworkId(pgl2->GetNetworkId());
-    } else {
-      res->SetDefined(false);
-      res->SetSorted(false);
+      res->SetDefined ( true );
+      res->SetSorted ( true );
+      res->SetNetworkId ( pgl2->GetNetworkId() );
     }
-  } else {
-    if (!pgl2->IsDefined() || pgl2->NoOfComponents() == 0) {
-      if (IsDefined() && NoOfComponents() >0) {
-        if (IsSorted()) {
-          for (int i = 0; i < NoOfComponents(); i++) {
-            Get(i,pRi1);
-            res->AddRouteInterval(pRi1->GetRouteId(),
-                                pRi1->GetStartPos(),
-                                pRi1->GetEndPos());
+    else
+    {
+      res->SetDefined ( false );
+      res->SetSorted ( false );
+    }
+  }
+  else
+  {
+    if ( !pgl2->IsDefined() || pgl2->NoOfComponents() == 0 )
+    {
+      if ( IsDefined() && NoOfComponents() >0 )
+      {
+        if ( IsSorted() )
+        {
+          for ( int i = 0; i < NoOfComponents(); i++ )
+          {
+            Get ( i,pRi1 );
+            res->AddRouteInterval ( pRi1.GetRouteId(),
+                                    pRi1.GetStartPos(),
+                                    pRi1.GetEndPos() );
           }
-        } else {
-          Get(0,pRi1);
-          RITree *ritree = new RITree(pRi1->GetRouteId(),
-                            pRi1->GetStartPos(), pRi1->GetEndPos(),0,0);
-          for (int i = 1; i < NoOfComponents(); i++) {
-            Get(i,pRi1);
-            ritree->Insert(pRi1->GetRouteId(), pRi1->GetStartPos(),
-                           pRi1->GetEndPos());
+        }
+        else
+        {
+          Get ( 0,pRi1 );
+          RITree *ritree = new RITree ( pRi1.GetRouteId(),
+                                        pRi1.GetStartPos(), pRi1.GetEndPos(),0,0
+);
+          for ( int i = 1; i < NoOfComponents(); i++ )
+          {
+            Get ( i,pRi1 );
+            ritree->Insert ( pRi1.GetRouteId(), pRi1.GetStartPos(),
+                             pRi1.GetEndPos() );
           }
-          ritree->TreeToGLine(res);
+          ritree->TreeToGLine ( res );
           ritree->RemoveTree();
         }
-        res->SetDefined(true);
-        res->SetSorted(true);
-        res->SetNetworkId(GetNetworkId());
-      } else {
-        res->SetDefined(false);
-        res->SetSorted(false);
+        res->SetDefined ( true );
+        res->SetSorted ( true );
+        res->SetNetworkId ( GetNetworkId() );
       }
-    } else {
-      if (GetNetworkId() != pgl2->GetNetworkId()){
-        res->SetDefined(false);
-        res->SetSorted(false);
-      } else {
-        res->SetNetworkId(GetNetworkId());
-        if (IsSorted() && pgl2->IsSorted()) {
+      else
+      {
+        res->SetDefined ( false );
+        res->SetSorted ( false );
+      }
+    }
+    else
+    {
+      if ( GetNetworkId() != pgl2->GetNetworkId() )
+      {
+        res->SetDefined ( false );
+        res->SetSorted ( false );
+      }
+      else
+      {
+        res->SetNetworkId ( GetNetworkId() );
+        if ( IsSorted() && pgl2->IsSorted() )
+        {
           int i=0;
           int j=0;
           bool newroute = false;
           int iRouteId;
           double start, end;
-          while (i < NoOfComponents() && j < pgl2->NoOfComponents()) {
-            Get(i, pRi1);
-            pgl2->Get(j, pRi2);
-            if (pRi1->GetRouteId() < pRi2->GetRouteId()){
-              res->AddRouteInterval(pRi1->GetRouteId(),
-                                    pRi1->GetStartPos(),
-                                    pRi1->GetEndPos());
+          while ( i < NoOfComponents() && j < pgl2->NoOfComponents() )
+          {
+            Get ( i, pRi1 );
+            pgl2->Get ( j, pRi2 );
+            if ( pRi1.GetRouteId() < pRi2.GetRouteId() )
+            {
+              res->AddRouteInterval ( pRi1.GetRouteId(),
+                                      pRi1.GetStartPos(),
+                                      pRi1.GetEndPos() );
               i++;
-            } else {
-              if (pRi1->GetRouteId() > pRi2->GetRouteId()) {
-                res->AddRouteInterval(pRi2->GetRouteId(), pRi2->GetStartPos(),
-                                      pRi2->GetEndPos());
+            }
+            else
+            {
+              if ( pRi1.GetRouteId() > pRi2.GetRouteId() )
+              {
+                res->AddRouteInterval ( pRi2.GetRouteId(), pRi2.GetStartPos(),
+                                        pRi2.GetEndPos() );
                 j++;
-              } else {
-                if (pRi1->GetEndPos() < pRi2->GetStartPos()) {
-                  res->AddRouteInterval(pRi1->GetRouteId(), pRi1->GetStartPos(),
-                                        pRi1->GetEndPos());
+              }
+              else
+              {
+                if ( pRi1.GetEndPos() < pRi2.GetStartPos() )
+                {
+                  res->AddRouteInterval ( pRi1.GetRouteId(), pRi1.GetStartPos(),
+                                          pRi1.GetEndPos() );
                   i++;
-                } else {
-                  if (pRi2->GetEndPos() < pRi1->GetStartPos()) {
-                    res->AddRouteInterval(pRi2->GetRouteId(),
-                                          pRi2->GetStartPos(),
-                                          pRi2->GetEndPos());
+                }
+                else
+                {
+                  if ( pRi2.GetEndPos() < pRi1.GetStartPos() )
+                  {
+                    res->AddRouteInterval ( pRi2.GetRouteId(),
+                                            pRi2.GetStartPos(),
+                                            pRi2.GetEndPos() );
                     j++;
-                  } else {
-                    iRouteId = pRi1->GetRouteId();
-                    start = min(pRi1->GetStartPos(), pRi2->GetStartPos()),
-                    end = max(pRi1->GetEndPos(), pRi2->GetEndPos());
+                  }
+                  else
+                  {
+                    iRouteId = pRi1.GetRouteId();
+                    start = min ( pRi1.GetStartPos(), pRi2.GetStartPos() ),
+                            end = max ( pRi1.GetEndPos(), pRi2.GetEndPos() );
                     i++;
                     j++;
                     newroute = false;
-                    while (i < NoOfComponents() && !newroute){
-                      Get(i,pRi1);
-                      if (pRi1->GetRouteId() == iRouteId) {
-                        if (pRi1->GetStartPos() <= end) {
-                          end = max (pRi1->GetEndPos(), end);
+                    while ( i < NoOfComponents() && !newroute )
+                    {
+                      Get ( i,pRi1 );
+                      if ( pRi1.GetRouteId() == iRouteId )
+                      {
+                        if ( pRi1.GetStartPos() <= end )
+                        {
+                          end = max ( pRi1.GetEndPos(), end );
                           i++;
-                        } else newroute = true;
-                      } else newroute = true;
+                        }
+                        else newroute = true;
+                      }
+                      else newroute = true;
                     }
                     newroute = false;
-                    while (j < pgl2->NoOfComponents() && !newroute){
-                      pgl2->Get(j,pRi2);
-                      if (pRi2->GetRouteId() == iRouteId) {
-                        if (pRi2->GetStartPos() <= end) {
-                          end = max (pRi2->GetEndPos(), end);
+                    while ( j < pgl2->NoOfComponents() && !newroute )
+                    {
+                      pgl2->Get ( j,pRi2 );
+                      if ( pRi2.GetRouteId() == iRouteId )
+                      {
+                        if ( pRi2.GetStartPos() <= end )
+                        {
+                          end = max ( pRi2.GetEndPos(), end );
                           j++;
-                        } else newroute = true;
-                      } else newroute = true;
+                        }
+                        else newroute = true;
+                      }
+                      else newroute = true;
                     }
-                    res->AddRouteInterval(iRouteId, start, end);
+                    res->AddRouteInterval ( iRouteId, start, end );
                   }
                 }
               }
             }
           }
-          while (i < NoOfComponents()) {
-            Get(i,pRi1);
-            res->AddRouteInterval(pRi1->GetRouteId(),
-                                  pRi1->GetStartPos(),
-                                  pRi1->GetEndPos());
+          while ( i < NoOfComponents() )
+          {
+            Get ( i,pRi1 );
+            res->AddRouteInterval ( pRi1.GetRouteId(),
+                                    pRi1.GetStartPos(),
+                                    pRi1.GetEndPos() );
             i++;
           }
-          while (j < pgl2->NoOfComponents()) {
-            pgl2->Get(j,pRi2);
-            res->AddRouteInterval(pRi2->GetRouteId(), pRi2->GetStartPos(),
-                                  pRi2->GetEndPos());
+          while ( j < pgl2->NoOfComponents() )
+          {
+            pgl2->Get ( j,pRi2 );
+            res->AddRouteInterval ( pRi2.GetRouteId(), pRi2.GetStartPos(),
+                                    pRi2.GetEndPos() );
             j++;
           }
-          res->SetDefined(true);
-          res->SetSorted(true);
-        } else {
+          res->SetDefined ( true );
+          res->SetSorted ( true );
+        }
+        else
+        {
           RITree *ritree;
-          Get(0,pRi1);
-          ritree = new RITree(pRi1->GetRouteId(),
-                              pRi1->GetStartPos(), pRi1->GetEndPos(),0,0);
-          for (int i = 1; i < NoOfComponents(); i++) {
-            Get(i,pRi1);
-            ritree->Insert(pRi1->GetRouteId(), pRi1->GetStartPos(),
-                           pRi1->GetEndPos());
+          Get ( 0,pRi1 );
+          ritree = new RITree ( pRi1.GetRouteId(),
+                                pRi1.GetStartPos(), pRi1.GetEndPos(),0,0 );
+          for ( int i = 1; i < NoOfComponents(); i++ )
+          {
+            Get ( i,pRi1 );
+            ritree->Insert ( pRi1.GetRouteId(), pRi1.GetStartPos(),
+                             pRi1.GetEndPos() );
           }
-          for (int j = 0; j < pgl2->NoOfComponents(); j++) {
-            pgl2->Get(j,pRi2);
-            ritree->Insert(pRi2->GetRouteId(), pRi2->GetStartPos(),
-                           pRi2->GetEndPos());
+          for ( int j = 0; j < pgl2->NoOfComponents(); j++ )
+          {
+            pgl2->Get ( j,pRi2 );
+            ritree->Insert ( pRi2.GetRouteId(), pRi2.GetStartPos(),
+                             pRi2.GetEndPos() );
           }
-          ritree->TreeToGLine(res);
+          ritree->TreeToGLine ( res );
           ritree->RemoveTree();
-          res->SetDefined(true);
-          res->SetSorted(true);
+          res->SetDefined ( true );
+          res->SetSorted ( true );
         }
       }
     }
@@ -5034,23 +5718,28 @@ void GLine::Uniongl(GLine *pgl2, GLine *res){
   res->TrimToSize();
 }
 
-void GLine::Gline2line(Line* res){
+void GLine::Gline2line ( Line* res )
+{
   res->Clear();
-  if (IsDefined() && NoOfComponents() > 0) {
+  if ( IsDefined() && NoOfComponents() > 0 )
+  {
     //Network* pNetwork = NetworkManager::GetNetwork(GetNetworkId());
-    Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
-    const RouteInterval *rI;
-    Line *l = new Line(0);
+    Network* pNetwork = NetworkManager::GetNetworkNew ( GetNetworkId(), netList
+);
+    RouteInterval rI;
+    Line *l = new Line ( 0 );
     Line *x = l;
-    for (int i=0; i < this->NoOfComponents(); i++) {
-      this->Get(i,rI);
-      SimpleLine *pSubline = new SimpleLine(0);
-      pNetwork->GetLineValueOfRouteInterval(rI, pSubline);
-      if (pSubline->IsDefined()) {
-        Line *partLine = new Line(0);
-        pSubline->toLine(*partLine);
+    for ( int i=0; i < this->NoOfComponents(); i++ )
+    {
+      this->Get ( i,rI );
+      SimpleLine *pSubline = new SimpleLine ( 0 );
+      pNetwork->GetLineValueOfRouteInterval ( &rI, pSubline );
+      if ( pSubline->IsDefined() )
+      {
+        Line *partLine = new Line ( 0 );
+        pSubline->toLine ( *partLine );
         delete pSubline;
-        x = SetOp(*l, *partLine, avlseg::union_op);
+        x = SetOp ( *l, *partLine, avlseg::union_op );
         delete partLine;
         delete l;
         l = x;
@@ -5058,61 +5747,82 @@ void GLine::Gline2line(Line* res){
     }
     l = 0;
     delete l;
-    NetworkManager::CloseNetwork(pNetwork);
-    (*res) = *x;
+    NetworkManager::CloseNetwork ( pNetwork );
+    ( *res ) = *x;
     delete x;
-    res->SetDefined(true);
-  } else {
-    if (IsDefined() && NoOfComponents() == 0) {
-      res->SetDefined(true);
-    } else {
-      res->SetDefined(false);
+    res->SetDefined ( true );
+  }
+  else
+  {
+    if ( IsDefined() && NoOfComponents() == 0 )
+    {
+      res->SetDefined ( true );
+    }
+    else
+    {
+      res->SetDefined ( false );
     }
   }
   res->TrimToSize();
 }
 
-bool GLine::Intersects(GLine *pgl){
-  const RouteInterval *pRi1, *pRi2;
-  if (!IsSorted()) {
-    for (int i = 0; i < NoOfComponents(); i++){
-      Get(i, pRi1);
-      if (pgl->IsSorted()){
-        if (searchUnit(pgl, 0, pgl->NoOfComponents()-1, pRi1)){
+bool GLine::Intersects ( GLine *pgl )
+{
+  RouteInterval pRi1, pRi2;
+  if ( !IsSorted() )
+  {
+    for ( int i = 0; i < NoOfComponents(); i++ )
+    {
+      Get ( i, pRi1 );
+      if ( pgl->IsSorted() )
+      {
+        if ( searchUnit ( pgl, 0, pgl->NoOfComponents()-1, pRi1 ) )
+        {
           return true;
         };
-      } else {
-        for (int j = 0 ; j < pgl->NoOfComponents(); j ++){
-          pgl->Get(j,pRi2);
-          if (pRi1->GetRouteId() == pRi2->GetRouteId() &&
-              (!(pRi1->GetEndPos() < pRi2->GetStartPos() ||
-              pRi2->GetStartPos() > pRi1->GetEndPos()))){
+      }
+      else
+      {
+        for ( int j = 0 ; j < pgl->NoOfComponents(); j ++ )
+        {
+          pgl->Get ( j,pRi2 );
+          if ( pRi1.GetRouteId() == pRi2.GetRouteId() &&
+                  ( ! ( pRi1.GetEndPos() < pRi2.GetStartPos() ||
+                        pRi2.GetStartPos() > pRi1.GetEndPos() ) ) )
+          {
             return true;
           }
         }
       }
     }
-  } else {
-    if (pgl->IsSorted()) {
+  }
+  else
+  {
+    if ( pgl->IsSorted() )
+    {
       int i = 0;
       int j = 0;
-      while (i<NoOfComponents() && j < pgl->NoOfComponents()) {
-        Get(i,pRi1);
-        pgl->Get(j,pRi2);
-        if (pRi1->GetRouteId() < pRi2->GetRouteId()) i++;
+      while ( i<NoOfComponents() && j < pgl->NoOfComponents() )
+      {
+        Get ( i,pRi1 );
+        pgl->Get ( j,pRi2 );
+        if ( pRi1.GetRouteId() < pRi2.GetRouteId() ) i++;
         else
-          if (pRi1->GetRouteId() > pRi2->GetRouteId()) j++;
+          if ( pRi1.GetRouteId() > pRi2.GetRouteId() ) j++;
           else
-            if (pRi1->GetStartPos() > pRi2->GetEndPos()) j++;
+            if ( pRi1.GetStartPos() > pRi2.GetEndPos() ) j++;
             else
-              if (pRi1->GetEndPos() < pRi2->GetStartPos()) i++;
+              if ( pRi1.GetEndPos() < pRi2.GetStartPos() ) i++;
               else return true;
       }
-    } else {
-        for (int i = 0; i < pgl->NoOfComponents(); i++){
-          pgl->Get(i, pRi2);
-          if (searchUnit(this, 0, NoOfComponents()-1, pRi2)) return true;
-        }
+    }
+    else
+    {
+      for ( int i = 0; i < pgl->NoOfComponents(); i++ )
+      {
+        pgl->Get ( i, pRi2 );
+        if ( searchUnit ( this, 0, NoOfComponents()-1, pRi2 ) ) return true;
+      }
     }
   }
   return false;
@@ -5123,18 +5833,18 @@ bool GLine::Intersects(GLine *pgl){
 Secondo Type Constructor for class ~GLine~
 
 */
-TypeConstructor gline(
-        "gline",                       //name
-        GLine::Property,               //property function
-        GLine::Out, GLine::In,         //Out and In functions
-        0, 0,                          //SaveToList and
-                                       //RestoreFromList functions
-        GLine::Create, GLine::Delete,  //object creation and deletion
-        OpenAttribute<GLine>, SaveAttribute<GLine>,  //open and save functions
-        GLine::Close, GLine::CloneGLine,    //object close, and clone
-        GLine::Cast,                   //cast function
-        GLine::SizeOf,                 //sizeof function
-        GLine::Check);                 //kind checking function
+TypeConstructor gline (
+    "gline",                       //name
+    GLine::Property,               //property function
+    GLine::Out, GLine::In,         //Out and In functions
+    0, 0,                          //SaveToList and
+    //RestoreFromList functions
+    GLine::Create, GLine::Delete,  //object creation and deletion
+    OpenAttribute<GLine>, SaveAttribute<GLine>,  //open and save functions
+    GLine::Close, GLine::CloneGLine,    //object close, and clone
+    GLine::Cast,                   //cast function
+    GLine::SizeOf,                 //sizeof function
+    GLine::Check );                //kind checking function
 
 
 /*
@@ -5147,102 +5857,102 @@ See ~network.h~ class definition of ~GPoint~
 4.2 Methods of class ~GPoint~
 
 */
-Word GPoint::InGPoint( const ListExpr typeInfo,
-                       const ListExpr instance,
-                       const int errorPos,
-                       ListExpr& errorInfo,
-                       bool& correct )
+Word GPoint::InGPoint ( const ListExpr typeInfo,
+                        const ListExpr instance,
+                        const int errorPos,
+                        ListExpr& errorInfo,
+                        bool& correct )
 {
-  if( nl->ListLength( instance ) == 4 )
+  if ( nl->ListLength ( instance ) == 4 )
   {
-    if( nl->IsAtom( nl->First(instance) ) &&
-        nl->AtomType( nl->First(instance) ) == IntType &&
-        nl->IsAtom( nl->Second(instance) ) &&
-        nl->AtomType( nl->Second(instance) ) == IntType &&
-        nl->IsAtom( nl->Third(instance) ) &&
-        nl->AtomType( nl->Third(instance) ) == RealType &&
-        nl->IsAtom( nl->Fourth(instance) ) &&
-        nl->AtomType( nl->Fourth(instance) ) == IntType )
+    if ( nl->IsAtom ( nl->First ( instance ) ) &&
+            nl->AtomType ( nl->First ( instance ) ) == IntType &&
+            nl->IsAtom ( nl->Second ( instance ) ) &&
+            nl->AtomType ( nl->Second ( instance ) ) == IntType &&
+            nl->IsAtom ( nl->Third ( instance ) ) &&
+            nl->AtomType ( nl->Third ( instance ) ) == RealType &&
+            nl->IsAtom ( nl->Fourth ( instance ) ) &&
+            nl->AtomType ( nl->Fourth ( instance ) ) == IntType )
     {
-      GPoint *gp = new GPoint(
-        true,
-        nl->IntValue( nl->First(instance) ),
-        nl->IntValue( nl->Second(instance) ),
-        nl->RealValue( nl->Third(instance) ),
-        (Side)nl->IntValue( nl->Fourth(instance) ) );
+      GPoint *gp = new GPoint (
+          true,
+          nl->IntValue ( nl->First ( instance ) ),
+          nl->IntValue ( nl->Second ( instance ) ),
+          nl->RealValue ( nl->Third ( instance ) ),
+          ( Side ) nl->IntValue ( nl->Fourth ( instance ) ) );
       correct = true;
-      return SetWord( gp );
+      return SetWord ( gp );
     }
   }
 
   correct = false;
-  return SetWord( Address(0) );
+  return SetWord ( Address ( 0 ) );
 }
 
-ListExpr GPoint::OutGPoint( ListExpr typeInfo, Word value )
+ListExpr GPoint::OutGPoint ( ListExpr typeInfo, Word value )
 {
-  GPoint *gp = (GPoint*)value.addr;
+  GPoint *gp = ( GPoint* ) value.addr;
 
-  if( gp->IsDefined() )
+  if ( gp->IsDefined() )
   {
-    return nl->FourElemList(
-      nl->IntAtom(gp->GetNetworkId()),
-      nl->IntAtom(gp->GetRouteId()),
-      nl->RealAtom(gp->GetPosition()),
-      nl->IntAtom(gp->GetSide()));
+    return nl->FourElemList (
+               nl->IntAtom ( gp->GetNetworkId() ),
+               nl->IntAtom ( gp->GetRouteId() ),
+               nl->RealAtom ( gp->GetPosition() ),
+               nl->IntAtom ( gp->GetSide() ) );
   }
-  return nl->SymbolAtom("undef");
+  return nl->SymbolAtom ( "undef" );
 }
 
-Word GPoint::CreateGPoint( const ListExpr typeInfo )
+Word GPoint::CreateGPoint ( const ListExpr typeInfo )
 {
-  return SetWord( new GPoint( false ) );
+  return SetWord ( new GPoint ( false ) );
 }
 
-void GPoint::DeleteGPoint( const ListExpr typeInfo, Word& w )
+void GPoint::DeleteGPoint ( const ListExpr typeInfo, Word& w )
 {
-  delete (GPoint*)w.addr;
+  delete ( GPoint* ) w.addr;
   w.addr = 0;
 }
 
-void GPoint::CloseGPoint( const ListExpr typeInfo, Word& w )
+void GPoint::CloseGPoint ( const ListExpr typeInfo, Word& w )
 {
-  delete (GPoint*)w.addr;
+  delete ( GPoint* ) w.addr;
   w.addr = 0;
 }
 
-Word GPoint::CloneGPoint( const ListExpr typeInfo, const Word& w )
+Word GPoint::CloneGPoint ( const ListExpr typeInfo, const Word& w )
 {
-  return SetWord( ((GPoint*)w.addr)->Clone() );
+  return SetWord ( ( ( GPoint* ) w.addr )->Clone() );
 }
 
-void* GPoint::CastGPoint( void* addr )
+void* GPoint::CastGPoint ( void* addr )
 {
-  return new (addr) GPoint;
+  return new ( addr ) GPoint;
 }
 
 int GPoint::SizeOfGPoint()
 {
-  return sizeof(GPoint);
+  return sizeof ( GPoint );
 }
 
 ListExpr GPoint::GPointProperty()
 {
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("gpoint"),
-                             nl->StringAtom("(<network_id> <route_id> "
-                                            "<position> <side>)"),
-                             nl->StringAtom("(1 1 0.0 0)"))));
+  return ( nl->TwoElemList (
+               nl->FourElemList ( nl->StringAtom ( "Signature" ),
+                                  nl->StringAtom ( "Example Type List" ),
+                                  nl->StringAtom ( "List Rep" ),
+                                  nl->StringAtom ( "Example List" ) ),
+               nl->FourElemList ( nl->StringAtom ( "-> DATA" ),
+                                  nl->StringAtom ( "gpoint" ),
+                                  nl->StringAtom ( "(<network_id> <route_id> "
+                                                   "<position> <side>)" ),
+                                  nl->StringAtom ( "(1 1 0.0 0)" ) ) ) );
 }
 
-bool GPoint::CheckGPoint( ListExpr type, ListExpr& errorInfo )
+bool GPoint::CheckGPoint ( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "gpoint" ));
+  return ( nl->IsEqual ( type, "gpoint" ) );
 }
 
 /*
@@ -5251,32 +5961,39 @@ Using Dijkstras-Algorithm for shortest path computing
 
 */
 
-double GPoint::Netdistance (GPoint* pToGPoint){
-  GLine* pGLine = new GLine(0);
+double GPoint::Netdistance ( GPoint* pToGPoint )
+{
+  GLine* pGLine = new GLine ( 0 );
   double res;
-  if (ShortestPath(pToGPoint, pGLine)) {
+  if ( ShortestPath ( pToGPoint, pGLine ) )
+  {
     res = pGLine->GetLength();
     delete pGLine;
     return res;
-  } else {
+  }
+  else
+  {
     delete pGLine;
     return 0;
   }
 }
-double GPoint::NewNetdistance(GPoint* pToGPoint,GLine* gline)
+double GPoint::NewNetdistance ( GPoint* pToGPoint,GLine* gline )
 {
-  GPoint* gp1 = new GPoint(true,GetNetworkId(),GetRouteId(),GetPosition());
-  GPoint* gp2 = new GPoint(true,pToGPoint->GetNetworkId(),
-                pToGPoint->GetRouteId(),pToGPoint->GetPosition());
+  GPoint* gp1 = new GPoint ( true,GetNetworkId(),GetRouteId(),GetPosition() );
+  GPoint* gp2 = new GPoint ( true,pToGPoint->GetNetworkId(),
+                             pToGPoint->GetRouteId(),pToGPoint->GetPosition() );
 
   double res;
-  if (gp1->ShortestPath(gp2, gline)) {
+  if ( gp1->ShortestPath ( gp2, gline ) )
+  {
     res = gline->GetLength();
 
     delete gp1;
     delete gp2;
     return res;
-  } else {
+  }
+  else
+  {
 
     delete gp1;
     delete gp2;
@@ -5290,50 +6007,57 @@ Distance function computes the Euclidean Distance between two ~GPoint~s.
 
 */
 
-double GPoint::Distance (GPoint* pToGPoint){
+double GPoint::Distance ( GPoint* pToGPoint )
+{
   map<int,string>::iterator it = netList->begin();
-  if (IsDefined() && pToGPoint->IsDefined() &&
-      GetNetworkId() == pToGPoint->GetNetworkId()) {
+  if ( IsDefined() && pToGPoint->IsDefined() &&
+          GetNetworkId() == pToGPoint->GetNetworkId() )
+  {
     //Network* pNetwork=NetworkManager::GetNetwork(GetNetworkId());
-    Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(),
-                                                      netList);
-    Point *from = new Point(false);
-    pNetwork->GetPointOnRoute(this, from);
-    Point *to = new Point(false);
-    pNetwork->GetPointOnRoute(pToGPoint,to);
-    double res = from->Distance(*to);
+    Network* pNetwork = NetworkManager::GetNetworkNew ( GetNetworkId(),
+                        netList );
+    Point *from = new Point ( false );
+    pNetwork->GetPointOnRoute ( this, from );
+    Point *to = new Point ( false );
+    pNetwork->GetPointOnRoute ( pToGPoint,to );
+    double res = from->Distance ( *to );
     delete from;
     delete to;
-    NetworkManager::CloseNetwork(pNetwork);
+    NetworkManager::CloseNetwork ( pNetwork );
     return res;
-  } else return numeric_limits<double>::max();
+  }
+  else return numeric_limits<double>::max();
 }
 
 /*
 Returns true if the gpoint is inside the gline false elsewhere.
 
 */
-bool GPoint::Inside(GLine *gl){
-  if (!(gl->IsDefined()) || !IsDefined() ||
-        gl->NoOfComponents() < 1) return false;
-  if (GetNetworkId() != gl->GetNetworkId()) return false;
-  const RouteInterval *pCurrRInter;
-  if (gl->IsSorted())
-    return (searchRouteInterval(this, gl, 0, gl->NoOfComponents()-1));
-  else {
+bool GPoint::Inside ( GLine *gl )
+{
+  if ( ! ( gl->IsDefined() ) || !IsDefined() ||
+          gl->NoOfComponents() < 1 ) return false;
+  if ( GetNetworkId() != gl->GetNetworkId() ) return false;
+  RouteInterval pCurrRInter;
+  if ( gl->IsSorted() )
+    return ( searchRouteInterval ( this, gl, 0, gl->NoOfComponents()-1 ) );
+  else
+  {
     int i = 0;
-    while (i < gl->NoOfComponents()) {
-      gl->Get(i, pCurrRInter);
-      if (pCurrRInter->GetRouteId() == GetRouteId()){
-        if(pCurrRInter->GetStartPos() < GetPosition() &&
-           GetPosition() < pCurrRInter->GetEndPos())
+    while ( i < gl->NoOfComponents() )
+    {
+      gl->Get ( i, pCurrRInter );
+      if ( pCurrRInter.GetRouteId() == GetRouteId() )
+      {
+        if ( pCurrRInter.GetStartPos() < GetPosition() &&
+                GetPosition() < pCurrRInter.GetEndPos() )
           return true;
-        if(pCurrRInter->GetStartPos() > GetPosition() &&
-           GetPosition() > pCurrRInter->GetEndPos())
+        if ( pCurrRInter.GetStartPos() > GetPosition() &&
+                GetPosition() > pCurrRInter.GetEndPos() )
           return true;
-        if(fabs(pCurrRInter->GetStartPos() - GetPosition()) < 0.1)
+        if ( fabs ( pCurrRInter.GetStartPos() - GetPosition() ) < 0.1 )
           return true;
-        if(fabs(pCurrRInter->GetEndPos() - GetPosition()) < 0.1)
+        if ( fabs ( pCurrRInter.GetEndPos() - GetPosition() ) < 0.1 )
           return true;
       }
       i++;
@@ -5343,21 +6067,27 @@ bool GPoint::Inside(GLine *gl){
   return false;
 }
 
-bool GPoint::operator== (const GPoint& p) const{
-  if (!m_bDefined || !p.IsDefined()) return false;
-  else {
-    if (m_iNetworkId == p.GetNetworkId() &&
-      m_xRouteLocation.rid == p.GetRouteId() &&
-      m_xRouteLocation.d == p.GetPosition() &&
-      (m_xRouteLocation.side == p.GetSide() || m_xRouteLocation.side == 2 ||
-       p.GetSide() == 2)) {
+bool GPoint::operator== ( const GPoint& p ) const
+{
+  if ( !m_bDefined || !p.IsDefined() ) return false;
+  else
+  {
+    if ( m_iNetworkId == p.GetNetworkId() &&
+            m_xRouteLocation.rid == p.GetRouteId() &&
+            m_xRouteLocation.d == p.GetPosition() &&
+            ( m_xRouteLocation.side == p.GetSide() || m_xRouteLocation.side == 2
+||
+              p.GetSide() == 2 ) )
+    {
       return true;
-    } else return false;
+    }
+    else return false;
   }
 }
 
-bool GPoint::operator!= (const GPoint& p) const{
-  return !(*this == p);
+bool GPoint::operator!= ( const GPoint& p ) const
+{
+  return ! ( *this == p );
 }
 
 /*
@@ -5366,62 +6096,66 @@ Dijkstras Algorithm. The path is returned as gline value.
 
 */
 
-bool GPoint::ShortestPath(GPoint *to, GLine *result){
+bool GPoint::ShortestPath ( GPoint *to, GLine *result )
+{
 
-  GPoint* start = new GPoint(true,GetNetworkId(),GetRouteId(),GetPosition());
-  GPoint* end = new GPoint(true,to->GetNetworkId(),to->GetRouteId(),
-                        to->GetPosition());//copy the gpoint
+  GPoint* start = new GPoint ( true,GetNetworkId(),GetRouteId(),GetPosition() );
+  GPoint* end = new GPoint ( true,to->GetNetworkId(),to->GetRouteId(),
+                             to->GetPosition() );//copy the gpoint
   result->Clear();
-  if (start == 0 || end == 0 || !start->IsDefined() ||
-      !end->IsDefined()) {
-     sendMessage("Both gpoints must exist and be defined.");
-     result->SetDefined(false);
-      delete start;
-      delete end;
-     return false;
-  }
-  // Check wether both points belong to the same network
-  if(start->GetNetworkId() != end->GetNetworkId())
+  if ( start == 0 || end == 0 || !start->IsDefined() ||
+          !end->IsDefined() )
   {
-    sendMessage("Both gpoints belong to different networks.");
-    result->SetDefined(false);
-      delete start;
-      delete end;
+    sendMessage ( "Both gpoints must exist and be defined." );
+    result->SetDefined ( false );
+    delete start;
+    delete end;
     return false;
   }
-  result->SetNetworkId(start->GetNetworkId());
+  // Check wether both points belong to the same network
+  if ( start->GetNetworkId() != end->GetNetworkId() )
+  {
+    sendMessage ( "Both gpoints belong to different networks." );
+    result->SetDefined ( false );
+    delete start;
+    delete end;
+    return false;
+  }
+  result->SetNetworkId ( start->GetNetworkId() );
   // Load the network
   //Network* pNetwork = NetworkManager::GetNetwork(start->GetNetworkId());
-  Network* pNetwork = NetworkManager::GetNetworkNew(start->GetNetworkId(),
-                                                    netList);
-  if(pNetwork == 0)
+  Network* pNetwork = NetworkManager::GetNetworkNew ( start->GetNetworkId(),
+                      netList );
+  if ( pNetwork == 0 )
   {
-    sendMessage("Network not found.");
-    result->SetDefined(false);
-      delete start;
-      delete end;
+    sendMessage ( "Network not found." );
+    result->SetDefined ( false );
+    delete start;
+    delete end;
     return false;
   }
   // Get sections where the path should start or end
-  TupleId startSectTID = pNetwork->GetTupleIdSectionOnRoute(start);
-  Tuple* startSection = pNetwork->GetSection(startSectTID);
-  if (startSection == 0) {
-    sendMessage("Starting GPoint not found in network.");
-    NetworkManager::CloseNetwork(pNetwork);
-    result->SetDefined(false);
-     delete start;
-     delete end;
+  TupleId startSectTID = pNetwork->GetTupleIdSectionOnRoute ( start );
+  Tuple* startSection = pNetwork->GetSection ( startSectTID );
+  if ( startSection == 0 )
+  {
+    sendMessage ( "Starting GPoint not found in network." );
+    NetworkManager::CloseNetwork ( pNetwork );
+    result->SetDefined ( false );
+    delete start;
+    delete end;
     return false;
   }
-  TupleId lastSectTID = pNetwork->GetTupleIdSectionOnRoute(end);
-  Tuple* endSection = pNetwork->GetSection(lastSectTID);
-  if (endSection == 0) {
-    sendMessage("End GPoint not found in network.");
+  TupleId lastSectTID = pNetwork->GetTupleIdSectionOnRoute ( end );
+  Tuple* endSection = pNetwork->GetSection ( lastSectTID );
+  if ( endSection == 0 )
+  {
+    sendMessage ( "End GPoint not found in network." );
     startSection->DeleteIfAllowed();
-    NetworkManager::CloseNetwork(pNetwork);
-    result->SetDefined(false);
-      delete start;
-      delete end;
+    NetworkManager::CloseNetwork ( pNetwork );
+    result->SetDefined ( false );
+    delete start;
+    delete end;
     return false;
   }
 ////////////////////////////////////////////////////
@@ -5474,134 +6208,158 @@ bool GPoint::ShortestPath(GPoint *to, GLine *result){
   delete endp;
   delete routeid;*/
 /////////////////////////////////////////////////////
-/*
-Calculate the shortest path using dijkstras algorithm.
+  /*
+  Calculate the shortest path using dijkstras algorithm.
 
-*/
+  */
 
-  if (startSectTID == lastSectTID  ||
-      GetRouteId() == to->GetRouteId()) {
-    result->AddRouteInterval(start->GetRouteId(), start->GetPosition(),
-                            end->GetPosition());
-  } else {
-/*
-Initialize PriorityQueue
+  if ( startSectTID == lastSectTID  ||
+          GetRouteId() == to->GetRouteId() )
+  {
+    result->AddRouteInterval ( start->GetRouteId(), start->GetPosition(),
+                               end->GetPosition() );
+  }
+  else
+  {
+    /*
+    Initialize PriorityQueue
 
-*/
-    PrioQueue *prioQ = new PrioQueue (0);
+    */
+    PrioQueue *prioQ = new PrioQueue ( 0 );
     SectIDTree *visitedSect = 0;
     double sectMeas1 =
-        ((CcReal*) startSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+        ( ( CcReal* ) startSection->GetAttribute ( SECTION_MEAS1 )
+)->GetRealval();
     double sectMeas2 =
-        ((CcReal*) startSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+        ( ( CcReal* ) startSection->GetAttribute ( SECTION_MEAS2 )
+)->GetRealval();
 
     double dist = 0.0;
     vector<DirectedSection> adjSectionList;
     adjSectionList.clear();
-    if (start->GetSide() == 0) {
+    if ( start->GetSide() == 0 )
+    {
       dist = start->GetPosition() - sectMeas1;
-      pNetwork->GetAdjacentSections(startSectTID, false, adjSectionList);
-      SectIDTree *startTree = new SectIDTree(startSectTID,
-                                        (TupleId) numeric_limits<long>::max(),
-                                             false,
-                                             numeric_limits<int>::max());
+      pNetwork->GetAdjacentSections ( startSectTID, false, adjSectionList );
+      SectIDTree *startTree = new SectIDTree ( startSectTID,
+              ( TupleId ) numeric_limits<long>::max(),
+              false,
+              numeric_limits<int>::max() );
       visitedSect = startTree;
-      for(size_t i = 0;  i < adjSectionList.size(); i++) {
+      for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+      {
         DirectedSection actNextSect = adjSectionList[i];
-        if (actNextSect.GetSectionTid() != startSectTID) {
-          PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
-                               actNextSect.GetUpDownFlag(),
-                               startSectTID);
-          prioQ->Insert(*actEntry, visitedSect) ;
+        if ( actNextSect.GetSectionTid() != startSectTID )
+        {
+          PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
+                                            actNextSect.GetUpDownFlag(),
+                                            startSectTID );
+          prioQ->Insert ( *actEntry, visitedSect ) ;
           delete actEntry;
         }
       }
       adjSectionList.clear();
-    } else {
-      if (start->GetSide() == 1) {
+    }
+    else
+    {
+      if ( start->GetSide() == 1 )
+      {
         dist = sectMeas2 - start->GetPosition();
-        SectIDTree *startTree = new SectIDTree(startSectTID,
-                                        (TupleId) numeric_limits<long>::max(),
-                                             true,
-                                             numeric_limits<int>::max());
+        SectIDTree *startTree = new SectIDTree ( startSectTID,
+                ( TupleId ) numeric_limits<long>::max(),
+                true,
+                numeric_limits<int>::max() );
         visitedSect = startTree;
-        pNetwork->GetAdjacentSections(startSectTID, true, adjSectionList);
-        for(size_t i = 0;  i < adjSectionList.size(); i++) {
+        pNetwork->GetAdjacentSections ( startSectTID, true, adjSectionList );
+        for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+        {
           DirectedSection actNextSect = adjSectionList[i];
-          if (actNextSect.GetSectionTid() != startSectTID) {
-            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
-                                  actNextSect.GetUpDownFlag(),
-                                  startSectTID);
-            prioQ->Insert(*actEntry, visitedSect);
+          if ( actNextSect.GetSectionTid() != startSectTID )
+          {
+            PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
+                                              actNextSect.GetUpDownFlag(),
+                                              startSectTID );
+            prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
           }
         }
         adjSectionList.clear();
-      } else {
+      }
+      else
+      {
 
         dist = start->GetPosition() - sectMeas1;
-        pNetwork->GetAdjacentSections(startSectTID, false, adjSectionList);
+        pNetwork->GetAdjacentSections ( startSectTID, false, adjSectionList );
         bool first = true;
-        for(size_t i = 0;  i < adjSectionList.size(); i++) {
+        for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+        {
           DirectedSection actNextSect = adjSectionList[i];
-          if (actNextSect.GetSectionTid() != startSectTID) {
-            if (first) {
+          if ( actNextSect.GetSectionTid() != startSectTID )
+          {
+            if ( first )
+            {
               first = false;
-              SectIDTree *startTree = new SectIDTree(startSectTID,
-                                          (TupleId) numeric_limits<long>::max(),
-                                             false,
-                                             numeric_limits<int>::max());
+              SectIDTree *startTree = new SectIDTree ( startSectTID,
+                      ( TupleId ) numeric_limits<long>::max(),
+                      false,
+                      numeric_limits<int>::max() );
               visitedSect = startTree;
             }
-            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
-                                 actNextSect.GetUpDownFlag(),
-                                 startSectTID);
+            PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
+                                              actNextSect.GetUpDownFlag(),
+                                              startSectTID );
 
-            prioQ->Insert(*actEntry, visitedSect);
+            prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
           }
         }
         adjSectionList.clear();
         dist = sectMeas2 -start->GetPosition();
-        pNetwork->GetAdjacentSections(startSectTID, true, adjSectionList);
-        for(size_t i = 0;  i < adjSectionList.size(); i++) {
+        pNetwork->GetAdjacentSections ( startSectTID, true, adjSectionList );
+        for ( size_t i = 0;  i < adjSectionList.size(); i++ )
+        {
           DirectedSection actNextSect = adjSectionList[i];
-          if (actNextSect.GetSectionTid() != startSectTID) {
-            if (first) {
+          if ( actNextSect.GetSectionTid() != startSectTID )
+          {
+            if ( first )
+            {
               first = false;
-              SectIDTree *startTree = new SectIDTree(startSectTID,
-                                          (TupleId)numeric_limits<long>::max(),
-                                          true,
-                                          numeric_limits<int>::max());
+              SectIDTree *startTree = new SectIDTree ( startSectTID,
+                      ( TupleId ) numeric_limits<long>::max(),
+                      true,
+                      numeric_limits<int>::max() );
               visitedSect = startTree;
             }
-            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(), dist,
-                                        actNextSect.GetUpDownFlag(),
-                                        startSectTID);
+            PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(), dist,
+                                              actNextSect.GetUpDownFlag(),
+                                              startSectTID );
 
-            prioQ->Insert(*actEntry, visitedSect);
+            prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
           }
         }
         adjSectionList.clear();
       }
     }
-/*
-Use priorityQueue to find shortestPath.
+    /*
+    Use priorityQueue to find shortestPath.
 
-*/
+    */
 
     PQEntry *actPQEntry;
     bool found = false;
     vector<PQEntry> candidate;
-    while (!prioQ->IsEmpty() && !found){
-      actPQEntry = prioQ->GetAndDeleteMin(visitedSect);
-      Tuple *actSection = pNetwork->GetSection(actPQEntry->sectID);
+    while ( !prioQ->IsEmpty() && !found )
+    {
+      actPQEntry = prioQ->GetAndDeleteMin ( visitedSect );
+      Tuple *actSection = pNetwork->GetSection ( actPQEntry->sectID );
       sectMeas1 =
-        ((CcReal*) actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+          ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS1 )
+)->GetRealval();
       sectMeas2 =
-        ((CcReal*) actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
-      dist = actPQEntry->distFromStart + fabs(sectMeas2 - sectMeas1);
+          ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS2 )
+)->GetRealval();
+      dist = actPQEntry->distFromStart + fabs ( sectMeas2 - sectMeas1 );
 
 
 //////////////////////////////////////
@@ -5633,24 +6391,27 @@ Use priorityQueue to find shortestPath.
       }*/
 ////////////////////////////////////
 
-      if (actPQEntry->sectID != lastSectTID) {
-/*
-Search further in the network unitl reached last section.
-Get adjacent sections and insert into priority Queue.
+      if ( actPQEntry->sectID != lastSectTID )
+      {
+        /*
+        Search further in the network unitl reached last section.
+        Get adjacent sections and insert into priority Queue.
 
-*/
+        */
         adjSectionList.clear();
-        pNetwork->GetAdjacentSections(actPQEntry->sectID,
-                                      actPQEntry->upDownFlag,
-                                      adjSectionList);
-        for (size_t i = 0; i <adjSectionList.size();i++){
+        pNetwork->GetAdjacentSections ( actPQEntry->sectID,
+                                        actPQEntry->upDownFlag,
+                                        adjSectionList );
+        for ( size_t i = 0; i <adjSectionList.size();i++ )
+        {
           DirectedSection actNextSect = adjSectionList[i];
-          if (actNextSect.GetSectionTid() != actPQEntry->sectID) {
-            PQEntry *actEntry = new PQEntry(actNextSect.GetSectionTid(),
-                                        dist,
-                                        actNextSect.GetUpDownFlag(),
-                                        actPQEntry->sectID);
-            prioQ->Insert(*actEntry, visitedSect);
+          if ( actNextSect.GetSectionTid() != actPQEntry->sectID )
+          {
+            PQEntry *actEntry = new PQEntry ( actNextSect.GetSectionTid(),
+                                              dist,
+                                              actNextSect.GetUpDownFlag(),
+                                              actPQEntry->sectID );
+            prioQ->Insert ( *actEntry, visitedSect );
             delete actEntry;
           }
         }
@@ -5658,31 +6419,33 @@ Get adjacent sections and insert into priority Queue.
         actPQEntry=0;
         actSection->DeleteIfAllowed();
         actSection = 0;
-      } else {
-/*
-Shortest Path found.
+      }
+      else
+      {
+        /*
+        Shortest Path found.
 
-Compute last route interval and resulting gline.
+        Compute last route interval and resulting gline.
 
-*/
+        */
 //actually not really found
         /*candidate.push_back(*actPQEntry);
 
         while(!prioQ->IsEmpty()){
           PQEntry* temp = prioQ->GetAndDeleteMin(visitedSect);
         Tuple *act = pNetwork->GetSection(temp->sectID);
-     //double m1 =
-      //  ((CcReal*) act->GetAttribute(SECTION_MEAS1))->GetRealval();
-      //double m2 =
-      //  ((CcReal*) act->GetAttribute(SECTION_MEAS2))->GetRealval();
+        //double m1 =
+        //  ((CcReal*) act->GetAttribute(SECTION_MEAS1))->GetRealval();
+        //double m2 =
+        //  ((CcReal*) act->GetAttribute(SECTION_MEAS2))->GetRealval();
 
-      act->DeleteIfAllowed();
+        act->DeleteIfAllowed();
           if(temp->distFromStart >=
             (actPQEntry->distFromStart+fabs(sectMeas2-sectMeas1))){
             delete temp;
             break;
           }
-    if(junctionpoint){ //end point is a junction point
+        if(junctionpoint){ //end point is a junction point
         for(unsigned int i = 0;i < secjunid.size();i++){
           if(secjunid[i] == temp->sectID){
 
@@ -5712,7 +6475,7 @@ Compute last route interval and resulting gline.
             break;
           }
         }
-      }
+        }
 
           if(temp->sectID == lastSectTID){
             candidate.push_back(*temp);
@@ -5771,7 +6534,7 @@ Compute last route interval and resulting gline.
             sec->DeleteIfAllowed();
         }
 
-       actSection = pNetwork->GetSection(actPQEntry->sectID);
+        actSection = pNetwork->GetSection(actPQEntry->sectID);
         sectMeas1 =
         ((CcReal*) actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
         sectMeas2 =
@@ -5781,113 +6544,137 @@ Compute last route interval and resulting gline.
         found = true;
         double startRI, endRI;
         int actRouteId =
-            ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
-        if (actPQEntry->upDownFlag == true) {
+            ( ( CcInt* ) actSection->GetAttribute ( SECTION_RID )
+)->GetIntval();
+        if ( actPQEntry->upDownFlag == true )
+        {
           startRI = sectMeas1;
           endRI = end->GetPosition();
-        } else {
+        }
+        else
+        {
           startRI = sectMeas2;
           endRI = end->GetPosition();
         }
 
         actSection->DeleteIfAllowed();
         actSection = 0;
-/*
-Get the sections used for shortest path and write them in right
-order (from start to end gpoint) in the resulting gline. Because dijkstra gives
-the sections from end to start we first have to put the result sections on a
-stack to turn in right order.
+        /*
+        Get the sections used for shortest path and write them in right
+        order (from start to end gpoint) in the resulting gline. Because
+dijkstra gives
+        the sections from end to start we first have to put the result sections
+on a
+        stack to turn in right order.
 
-*/
-        RIStack *riStack = new RIStack(actRouteId, startRI, endRI);
+        */
+        RIStack *riStack = new RIStack ( actRouteId, startRI, endRI );
         int lastSectId = actPQEntry->sectID;
-        SectIDTree *pElem = visitedSect->Find(actPQEntry->beforeSectID);
+        SectIDTree *pElem = visitedSect->Find ( actPQEntry->beforeSectID );
         bool end = false;
         bool upDown;
-     //   if (startRI >= endRI) upDown = false;
-        if(startRI > endRI || fabs(startRI-endRI) < 0.1) upDown = false;
+        //   if (startRI >= endRI) upDown = false;
+        if ( startRI > endRI || fabs ( startRI-endRI ) < 0.1 ) upDown = false;
         else upDown = true;
-        while (!end) {
+        while ( !end )
+        {
           //GetSection
-          actSection = pNetwork->GetSection(pElem->sectID);
+          actSection = pNetwork->GetSection ( pElem->sectID );
           actRouteId =
-              ((CcInt*)actSection->GetAttribute(SECTION_RID))->GetIntval();
+              ( ( CcInt* ) actSection->GetAttribute ( SECTION_RID )
+)->GetIntval();
           sectMeas1 =
-            ((CcReal*) actSection->GetAttribute(SECTION_MEAS1))->GetRealval();
+              ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS1 )
+)->GetRealval();
           sectMeas2 =
-            ((CcReal*) actSection->GetAttribute(SECTION_MEAS2))->GetRealval();
+              ( ( CcReal* ) actSection->GetAttribute ( SECTION_MEAS2 )
+)->GetRealval();
           upDown = pElem->upDownFlag;
-          if (pElem->sectID != startSectTID){
-            if (upDown)
-              riStack->Push(actRouteId, sectMeas1, sectMeas2, riStack);
+          if ( pElem->sectID != startSectTID )
+          {
+            if ( upDown )
+              riStack->Push ( actRouteId, sectMeas1, sectMeas2, riStack );
             else
-              riStack->Push(actRouteId, sectMeas2, sectMeas1, riStack);
+              riStack->Push ( actRouteId, sectMeas2, sectMeas1, riStack );
             lastSectId = pElem->sectID;
-            pElem = visitedSect->Find(pElem->beforeSectId);
-          } else {
+            pElem = visitedSect->Find ( pElem->beforeSectId );
+          }
+          else
+          {
             end = true;
-            pNetwork->GetAdjacentSections(startSectTID, true, adjSectionList);
+            pNetwork->GetAdjacentSections ( startSectTID, true, adjSectionList
+);
             size_t i = 0;
             bool stsectfound = false;
-            while (i < adjSectionList.size() && !stsectfound) {
+            while ( i < adjSectionList.size() && !stsectfound )
+            {
               DirectedSection adjSection = adjSectionList[i];
-              if (adjSection.GetSectionTid() == lastSectId){
-                  if(fabs(start->GetPosition()-sectMeas2) > 0.1){
-                    stsectfound = true;
-                    riStack->Push(actRouteId, start->GetPosition(), sectMeas2,
-                              riStack);
-                    end = true;
-                  }
+              if ( adjSection.GetSectionTid() == lastSectId )
+              {
+                if ( fabs ( start->GetPosition()-sectMeas2 ) > 0.1 )
+                {
+                  stsectfound = true;
+                  riStack->Push ( actRouteId, start->GetPosition(), sectMeas2,
+                                  riStack );
+                  end = true;
+                }
               }
               i++;
             }
             adjSectionList.clear();
-            if (!stsectfound) {
-              pNetwork->GetAdjacentSections(startSectTID, false,
-                                            adjSectionList);
+            if ( !stsectfound )
+            {
+              pNetwork->GetAdjacentSections ( startSectTID, false,
+                                              adjSectionList );
               i = 0;
-              while (i < adjSectionList.size() && !stsectfound) {
+              while ( i < adjSectionList.size() && !stsectfound )
+              {
                 DirectedSection adjSection = adjSectionList[i];
-                if (adjSection.GetSectionTid() == lastSectId ){
-                    if(fabs(start->GetPosition()-sectMeas1) > 0.1){
-                      stsectfound = true;
-                      riStack->Push(actRouteId, start->GetPosition(), sectMeas1,
-                                riStack);
-                      end = true;
-                    }
+                if ( adjSection.GetSectionTid() == lastSectId )
+                {
+                  if ( fabs ( start->GetPosition()-sectMeas1 ) > 0.1 )
+                  {
+                    stsectfound = true;
+                    riStack->Push ( actRouteId, start->GetPosition(), sectMeas1,
+                                    riStack );
+                    end = true;
+                  }
                 }
                 i++;
               }
               adjSectionList.clear();
             }
           }
-          if(actSection){
+          if ( actSection )
+          {
             actSection->DeleteIfAllowed();
             actSection = 0;
           }
         }
         // Cleanup and return result
-        riStack->StackToGLine(result);
+        riStack->StackToGLine ( result );
         riStack->RemoveStack();
       }
-      if(actPQEntry){
+      if ( actPQEntry )
+      {
         delete actPQEntry;
         actPQEntry = 0;
       }
-      if(actSection){
+      if ( actSection )
+      {
         actSection->DeleteIfAllowed();
         actSection = 0;
       }
     }
-    if (visitedSect != 0) visitedSect->Remove();
+    if ( visitedSect != 0 ) visitedSect->Remove();
     prioQ->Destroy();
     delete prioQ;
   }
   startSection->DeleteIfAllowed();
   endSection->DeleteIfAllowed();
-  NetworkManager::CloseNetwork(pNetwork);
-  result->SetSorted(false);
-  result->SetDefined(true);
+  NetworkManager::CloseNetwork ( pNetwork );
+  result->SetSorted ( false );
+  result->SetDefined ( true );
   result->TrimToSize();
   delete start;
   delete end;
@@ -5899,29 +6686,35 @@ Returns the x,y point represented by gpoint.
 
 */
 
-void GPoint::ToPoint(Point *&res) {
+void GPoint::ToPoint ( Point *&res )
+{
   //Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
-  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
-  if (pNetwork != 0) {
-    pNetwork->GetPointOnRoute(this, res);
-  } else {
-    res->SetDefined(false);
+  Network* pNetwork = NetworkManager::GetNetworkNew ( GetNetworkId(), netList );
+  if ( pNetwork != 0 )
+  {
+    pNetwork->GetPointOnRoute ( this, res );
   }
-  NetworkManager::CloseNetwork(pNetwork);
+  else
+  {
+    res->SetDefined ( false );
+  }
+  NetworkManager::CloseNetwork ( pNetwork );
 };
 
-Point* GPoint::ToPoint() const{
-  Point *res = new Point(false);
+Point* GPoint::ToPoint() const
+{
+  Point *res = new Point ( false );
   //Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
-  Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
-  if (pNetwork != 0) pNetwork->GetPointOnRoute(this, res);
-  NetworkManager::CloseNetwork(pNetwork);
+  Network* pNetwork = NetworkManager::GetNetworkNew ( GetNetworkId(), netList );
+  if ( pNetwork != 0 ) pNetwork->GetPointOnRoute ( this, res );
+  NetworkManager::CloseNetwork ( pNetwork );
   return res;
 };
 
-Point* GPoint::ToPoint(Network*& pNetwork) const{
-  Point *res = new Point(false);
-  if (pNetwork != 0) pNetwork->GetPointOnRoute(this, res);
+Point* GPoint::ToPoint ( Network*& pNetwork ) const
+{
+  Point *res = new Point ( false );
+  if ( pNetwork != 0 ) pNetwork->GetPointOnRoute ( this, res );
   return res;
 };
 
@@ -5930,35 +6723,43 @@ Returns the bounding GPoints of the given GLine.
 
 */
 
-GPoints* GLine::GetBGP (){
-  GPoints *result = new GPoints(0);
-  if (!IsDefined() || NoOfComponents() == 0) return result;
-  else {
+GPoints* GLine::GetBGP ()
+{
+  GPoints *result = new GPoints ( 0 );
+  if ( !IsDefined() || NoOfComponents() == 0 ) return result;
+  else
+  {
     SectTree *sectionTree = 0;
-    const RouteInterval *ri;
-    DBArray<SectTreeEntry> *actSections = new DBArray<SectTreeEntry> (0);
+    RouteInterval ri;
+    DbArray<SectTreeEntry> *actSections = new DbArray<SectTreeEntry> ( 0 );
     //Network *pNetwork = NetworkManager::GetNetwork(GetNetworkId());
-    Network* pNetwork = NetworkManager::GetNetworkNew(GetNetworkId(), netList);
+    Network* pNetwork = NetworkManager::GetNetworkNew ( GetNetworkId(), netList
+);
     bool first = true;
-    const SectTreeEntry *nEntry;
-    for (int i = 0; i < Size(); i++) {
-      Get(i,ri);
-      pNetwork->GetSectionsOfRouteInterval(ri, actSections);
-      for (int j = 0; j < actSections->Size(); j++) {
-        actSections->Get(j, nEntry);
-        if (first) {
+    SectTreeEntry nEntry;
+    for ( int i = 0; i < Size(); i++ )
+    {
+      Get ( i,ri );
+      pNetwork->GetSectionsOfRouteInterval ( &ri, actSections );
+      for ( int j = 0; j < actSections->Size(); j++ )
+      {
+        actSections->Get ( j, nEntry );
+        if ( first )
+        {
           first = false;
-          sectionTree = new SectTree(const_cast<SectTreeEntry*> (nEntry));
-        } else {
-          sectionTree->Insert(const_cast<SectTreeEntry*> (nEntry));
+          sectionTree = new SectTree ( &nEntry );
+        }
+        else
+        {
+          sectionTree->Insert ( &nEntry );
         }
       }
-      actSections->Clear();
+      actSections->clean();
     }
     delete actSections;
-    sectionTree->WriteResult(pNetwork, *result, *sectionTree);
+    sectionTree->WriteResult ( pNetwork, *result, *sectionTree );
     sectionTree->Remove();
-    NetworkManager::CloseNetwork(pNetwork);
+    NetworkManager::CloseNetwork ( pNetwork );
     result->TrimToSize();
     return result;
   }
@@ -5969,18 +6770,18 @@ Secondo Type Constructor for class ~GPoint~
 
 */
 
-TypeConstructor gpoint(
-        "gpoint",                                   //name
-        GPoint::GPointProperty,                     //property function
-        GPoint::OutGPoint, GPoint::InGPoint,        //Out and In functions
-        0,                   0,                     //SaveToList and
-                                                    //RestoreFromList functions
-        GPoint::CreateGPoint, GPoint::DeleteGPoint, //object creation/deletion
-        OpenAttribute<GPoint>,SaveAttribute<GPoint>,//open and save functions
-        GPoint::CloseGPoint, GPoint::CloneGPoint,   //object close, and clone
-        GPoint::CastGPoint,                         //cast function
-        GPoint::SizeOfGPoint,                       //sizeof function
-        GPoint::CheckGPoint );                      //kind checking function
+TypeConstructor gpoint (
+    "gpoint",                                   //name
+    GPoint::GPointProperty,                     //property function
+    GPoint::OutGPoint, GPoint::InGPoint,        //Out and In functions
+    0,                   0,                     //SaveToList and
+    //RestoreFromList functions
+    GPoint::CreateGPoint, GPoint::DeleteGPoint, //object creation/deletion
+    OpenAttribute<GPoint>,SaveAttribute<GPoint>,//open and save functions
+    GPoint::CloseGPoint, GPoint::CloneGPoint,   //object close, and clone
+    GPoint::CastGPoint,                         //cast function
+    GPoint::SizeOfGPoint,                       //sizeof function
+    GPoint::CheckGPoint );                      //kind checking function
 
 /*
 5 Class GPoints implemented by Jianqiu Xu
@@ -5995,260 +6796,278 @@ GPoints::GPoints()
   del.refs = 1;
   del.isDelete = true;
 }
-GPoints::GPoints(int in_iSize):m_xGPoints(in_iSize)
+GPoints::GPoints ( int in_iSize ) :m_xGPoints ( in_iSize )
 {
   del.refs = 1;
   del.isDelete = true;
 }
-GPoints::GPoints(GPoints* in_xOther):m_xGPoints(0)
+GPoints::GPoints ( GPoints* in_xOther ) :m_xGPoints ( 0 )
 {
-  const GPoint* pCurrentInterval;
-    for (int i = 0; i < in_xOther->m_xGPoints.Size(); i++)
-    {
-      // Get next Interval
-      in_xOther->m_xGPoints.Get(i, pCurrentInterval);
-    m_xGPoints.Append(*pCurrentInterval);
-    }
-    del.refs=1;
-    del.isDelete=true;
-    TrimToSize();
+  GPoint pCurrentInterval;
+  for ( int i = 0; i < in_xOther->m_xGPoints.Size(); i++ )
+  {
+    // Get next Interval
+    in_xOther->m_xGPoints.Get ( i, pCurrentInterval );
+    m_xGPoints.Append ( pCurrentInterval );
+  }
+  del.refs=1;
+  del.isDelete=true;
+  TrimToSize();
 }
-bool GPoints::IsEmpty()const
+
+bool GPoints::IsEmpty() const
 {
   return m_xGPoints.Size() == 0;
 }
-ostream& GPoints::Print(ostream& os)const
+ostream& GPoints::Print ( ostream& os ) const
 {
-  for(int i = 0;i < m_xGPoints.Size();i++){
-    const GPoint* pGP;
-    m_xGPoints.Get(i,pGP);
-    os<<"GPoint:"<<i<<" rid "<<pGP->GetRouteId();
-    os<<" Position "<<pGP->GetPosition();
-    os<<" Side "<<(int)pGP->GetSide()<<endl;
+  for ( int i = 0;i < m_xGPoints.Size();i++ )
+  {
+    GPoint pGP;
+    m_xGPoints.Get ( i,pGP );
+    os<<"GPoint:"<<i<<" rid "<<pGP.GetRouteId();
+    os<<" Position "<<pGP.GetPosition();
+    os<<" Side "<< ( int ) pGP.GetSide() <<endl;
   }
   return os;
 }
-GPoints& GPoints::operator=(const GPoints& gps)
+GPoints& GPoints::operator= ( const GPoints& gps )
 {
-  m_xGPoints.Clear();
-  const GPoint* gp;
-  for(int i = 0 ; i < gps.Size();i++){
-    gps.Get(i,gp);
-    m_xGPoints.Append(*gp);
+  m_xGPoints.clean();
+  GPoint gp;
+  for ( int i = 0 ; i < gps.Size();i++ )
+  {
+    gps.Get ( i,gp );
+    m_xGPoints.Append ( gp );
   }
   TrimToSize();
   return *this;
 }
-int GPoints::NumOfFLOBs()const
+
+int GPoints::NumOfFLOBs() const
 {
   return 1;
 }
-FLOB* GPoints::GetFLOB(const int i)
+
+Flob* GPoints::GetFLOB ( const int i )
 {
-  assert(i >= 0 && i < NumOfFLOBs());
+  assert ( i >= 0 && i < NumOfFLOBs() );
   return &m_xGPoints;
 }
 
-size_t GPoints::Sizeof()const
+size_t GPoints::Sizeof() const
 {
-  return sizeof(*this);
+  return sizeof ( *this );
 }
 
 int GPoints::SizeOf()
 {
-  return sizeof(GPoints);
+  return sizeof ( GPoints );
 }
-int GPoints::Size()const
+int GPoints::Size() const
 {
   return m_xGPoints.Size();
 }
-GPoints& GPoints::operator+=(const GPoint& gp)
+GPoints& GPoints::operator+= ( const GPoint& gp )
 {
-  m_xGPoints.Append(gp);
+  m_xGPoints.Append ( gp );
   TrimToSize();
   return *this;
 }
 
-GPoints& GPoints::operator-=(const GPoint& gp)
+GPoints& GPoints::operator-= ( const GPoint& gp )
 {
-  GPoints *nGPs = new GPoints(0);
-  const GPoint *actGP;
-  for (int i = 0; i < m_xGPoints.Size(); i++) {
-    m_xGPoints.Get(i, actGP);
-    if (gp != *actGP) nGPs->m_xGPoints.Append(actGP);
+  GPoints *nGPs = new GPoints ( 0 );
+  GPoint actGP;
+  for ( int i = 0; i < m_xGPoints.Size(); i++ )
+  {
+    m_xGPoints.Get ( i, actGP );
+    if ( gp != actGP ) nGPs->m_xGPoints.Append ( actGP );
   }
   nGPs->TrimToSize();
   return *nGPs;
 }
 
-void GPoints::Get(int i,const GPoint*& pgp)const
+void GPoints::Get ( int i, GPoint& pgp ) const
 {
-  assert(i >= 0 && i < m_xGPoints.Size());
-  m_xGPoints.Get(i,pgp);
+  assert ( i >= 0 && i < m_xGPoints.Size() );
+  m_xGPoints.Get ( i,pgp );
 }
 ListExpr GPoints:: Property()
 {
-  return (nl->TwoElemList(
-            nl->FourElemList(nl->StringAtom("Signature"),
-                             nl->StringAtom("Example Type List"),
-                             nl->StringAtom("List Rep"),
-                             nl->StringAtom("Example List")),
-            nl->FourElemList(nl->StringAtom("-> DATA"),
-                             nl->StringAtom("gpoints"),
-                    nl->StringAtom("(<gpoint1><gpoint2>...<gpointN>))"),
-                             nl->StringAtom("((1 2.0 0)(2 3.0 0))"))));
+  return ( nl->TwoElemList (
+               nl->FourElemList ( nl->StringAtom ( "Signature" ),
+                                  nl->StringAtom ( "Example Type List" ),
+                                  nl->StringAtom ( "List Rep" ),
+                                  nl->StringAtom ( "Example List" ) ),
+               nl->FourElemList ( nl->StringAtom ( "-> DATA" ),
+                                  nl->StringAtom ( "gpoints" ),
+                                  nl->StringAtom (
+"(<gpoint1><gpoint2>...<gpointN>))" ),
+                                  nl->StringAtom ( "((1 2.0 0)(2 3.0 0))" ) ) )
+);
 
 }
 
-ListExpr GPoints::Out(ListExpr in_xTypeInfo,
-                    Word in_xValue)
+ListExpr GPoints::Out ( ListExpr in_xTypeInfo,
+                        Word in_xValue )
 {
-  GPoints *pGPS = (GPoints*)in_xValue.addr;
+  GPoints *pGPS = ( GPoints* ) in_xValue.addr;
 
-  if(pGPS->IsEmpty())
+  if ( pGPS->IsEmpty() )
   {
     return nl->TheEmptyList();
   }
-  const GPoint* pgp;
-  pGPS->Get(0,pgp);
-   ListExpr result =
-    nl->OneElemList(GPoint::OutGPoint(nl->TheEmptyList(),SetWord((void*)pgp)));
+  GPoint pgp;
+  pGPS->Get ( 0,pgp );
+  ListExpr result =
+      nl->OneElemList ( GPoint::OutGPoint ( nl->TheEmptyList(),SetWord ( ( void*
+) &pgp ) ) );
   ListExpr last = result;
-  for(int i = 1; i < pGPS->Size();i++){
-    pGPS->Get(i,pgp);
+  for ( int i = 1; i < pGPS->Size();i++ )
+  {
+    pGPS->Get ( i,pgp );
     last =
-    nl->Append(last,GPoint::OutGPoint(nl->TheEmptyList(),SetWord((void *)pgp)));
+        nl->Append ( last,GPoint::OutGPoint ( nl->TheEmptyList(),
+                                              SetWord ( ( void* ) &pgp ) ) );
   }
   return result;
 }
-Word GPoints::In(const ListExpr typeInfo, const ListExpr instance,
-               const int errorPos, ListExpr& errorInfo, bool& correct)
+Word GPoints::In ( const ListExpr typeInfo, const ListExpr instance,
+                   const int errorPos, ListExpr& errorInfo, bool& correct )
 {
-    if (nl->ListLength(instance) == 0) {
+  if ( nl->ListLength ( instance ) == 0 )
+  {
     correct = false;
-    cmsg.inFunError("Empty List");
-    return SetWord(Address(0));
-    }
-  GPoints* pGPS = new GPoints(nl->ListLength(instance));
-  ListExpr rest = instance;
-   while (!nl->IsEmpty(rest)) {
-    ListExpr first = nl->First(rest);
-    rest = nl->Rest(rest);
-    if (nl->ListLength(first) != 4) {
-      correct = false;
-      cmsg.inFunError("GPoint incorrect.Expected list of 4 Elements.");
-      return SetWord(Address(0));
-    }
-  GPoint* pgp =
-   (GPoint*)GPoint::InGPoint(nl->TheEmptyList(),first,0,errorInfo,correct).addr;
-  if(correct){
-    (*pGPS) += (*pgp);
-    delete pgp;
-  }else{
-    delete pgp;
-    return SetWord(Address(0));
+    cmsg.inFunError ( "Empty List" );
+    return SetWord ( Address ( 0 ) );
   }
+  GPoints* pGPS = new GPoints ( nl->ListLength ( instance ) );
+  ListExpr rest = instance;
+  while ( !nl->IsEmpty ( rest ) )
+  {
+    ListExpr first = nl->First ( rest );
+    rest = nl->Rest ( rest );
+    if ( nl->ListLength ( first ) != 4 )
+    {
+      correct = false;
+      cmsg.inFunError ( "GPoint incorrect.Expected list of 4 Elements." );
+      return SetWord ( Address ( 0 ) );
+    }
+    GPoint* pgp =
+        ( GPoint* ) GPoint::InGPoint (
+nl->TheEmptyList(),first,0,errorInfo,correct ).addr;
+    if ( correct )
+    {
+      ( *pGPS ) += ( *pgp );
+      delete pgp;
+    }
+    else
+    {
+      delete pgp;
+      return SetWord ( Address ( 0 ) );
+    }
   }
   correct = true;
-  pGPS->SetDefined(true);
+  pGPS->SetDefined ( true );
   pGPS->TrimToSize();
-  return SetWord(pGPS);
+  return SetWord ( pGPS );
 }
-bool GPoints::OpenGPoints(SmiRecord& valueRecord,size_t& offset,
-                          const ListExpr typeInfo, Word& value)
+bool GPoints::OpenGPoints ( SmiRecord& valueRecord,size_t& offset,
+                            const ListExpr typeInfo, Word& value )
 {
-  GPoints* pGPS = (GPoints*)Attribute::Open(valueRecord,offset,typeInfo);
-  value = SetWord(pGPS);
+  GPoints* pGPS = ( GPoints* ) Attribute::Open ( valueRecord,offset,typeInfo );
+  value = SetWord ( pGPS );
   pGPS->TrimToSize();
   return true;
 }
-bool GPoints::SaveGPoints(SmiRecord& valueRecord,size_t& offset,
-                          const ListExpr typeInfo, Word& value)
+bool GPoints::SaveGPoints ( SmiRecord& valueRecord,size_t& offset,
+                            const ListExpr typeInfo, Word& value )
 {
-  GPoints* pGPS = (GPoints*)value.addr;
-  Attribute::Save(valueRecord,offset,typeInfo,pGPS);
+  GPoints* pGPS = ( GPoints* ) value.addr;
+  Attribute::Save ( valueRecord,offset,typeInfo,pGPS );
   return true;
 }
-Word GPoints::Create(const ListExpr typeInfo)
+Word GPoints::Create ( const ListExpr typeInfo )
 {
-  return SetWord(new GPoints(0));
+  return SetWord ( new GPoints ( 0 ) );
 }
-void GPoints::Delete(const ListExpr typeInfo,
-                   Word& w )
+void GPoints::Delete ( const ListExpr typeInfo,
+                       Word& w )
 {
-  GPoints *gp = (GPoints *)w.addr;
+  GPoints *gp = ( GPoints * ) w.addr;
   // if (l->del.refs == 1) { l->m_xRouteIntervals.Destroy();}
-  if(gp->DeleteIfAllowed() == true)
+  if ( gp->DeleteIfAllowed() == true )
     w.addr = 0;
 }
-void GPoints::Close(const ListExpr typeInfo,
-                  Word& w )
+void GPoints::Close ( const ListExpr typeInfo,
+                      Word& w )
 {
-    if(((GPoints*)w.addr)->DeleteIfAllowed() == true)
+  if ( ( ( GPoints* ) w.addr )->DeleteIfAllowed() == true )
     w.addr = 0;
 }
-Word GPoints::CloneGPoints(const ListExpr typeInfo,
-                  const Word& w )
+Word GPoints::CloneGPoints ( const ListExpr typeInfo,
+                             const Word& w )
 {
-  return SetWord(new GPoints(*((GPoints*)w.addr)));
+  return SetWord ( new GPoints ( * ( ( GPoints* ) w.addr ) ) );
 }
-void* GPoints::Cast(void* addr)
+void* GPoints::Cast ( void* addr )
 {
-  return new (addr) GPoints();
+  return new ( addr ) GPoints();
 }
-bool GPoints::Check( ListExpr type, ListExpr& errorInfo )
+bool GPoints::Check ( ListExpr type, ListExpr& errorInfo )
 {
-  return (nl->IsEqual( type, "gpoints" ));
+  return ( nl->IsEqual ( type, "gpoints" ) );
 }
 
-int GPoints::Compare(const Attribute*)const
+int GPoints::Compare ( const Attribute* ) const
 {
   return false;
 
 }
-bool GPoints::Adjacent(const Attribute*)const
+bool GPoints::Adjacent ( const Attribute* ) const
 {
-   return false;
+  return false;
 }
 
-GPoints* GPoints::Clone()const
+GPoints* GPoints::Clone() const
 {
-  GPoints* res = new GPoints(*this);
+  GPoints* res = new GPoints ( *this );
   return res;
 }
-size_t GPoints::HashValue()const
+size_t GPoints::HashValue() const
 {
   size_t xHash = 0;
   // Iterate over all GPoint objects
-  for (int i = 0; i < m_xGPoints.Size(); ++i)
+  for ( int i = 0; i < m_xGPoints.Size(); ++i )
   {
     // Get next Interval
-    const GPoint* pCurrentInterval;
-    m_xGPoints.Get(i, pCurrentInterval);
+    GPoint pCurrentInterval;
+    m_xGPoints.Get ( i, pCurrentInterval );
 
     // Add something for each entry
-  int iNetworkId = pCurrentInterval->GetNetworkId();
-    int iRouteId = pCurrentInterval->GetRouteId();
-    double iPosition = pCurrentInterval->GetPosition();
-    int iSide = (int)pCurrentInterval->GetSide();
-    xHash += iNetworkId + iRouteId + (size_t)iPosition + iSide;
+    int iNetworkId = pCurrentInterval.GetNetworkId();
+    int iRouteId = pCurrentInterval.GetRouteId();
+    double iPosition = pCurrentInterval.GetPosition();
+    int iSide = ( int ) pCurrentInterval.GetSide();
+    xHash += iNetworkId + iRouteId + ( size_t ) iPosition + iSide;
   }
   return xHash;
 }
-void GPoints::CopyFrom(const Attribute* right)
+void GPoints::CopyFrom ( const Attribute* right )
 {
-  *this = *((const GPoints *)right);
+  *this = * ( ( const GPoints * ) right );
 }
 
-TypeConstructor gpoints( "gpoints",
-                         GPoints::Property,
-                         GPoints::Out, GPoints::In,
-                         0, 0,
-                         GPoints::Create, GPoints::Delete,
-                         GPoints::OpenGPoints, GPoints::SaveGPoints,
-                         GPoints::Close, GPoints::CloneGPoints,
-                         GPoints::Cast, GPoints::SizeOf,
-                         GPoints::Check);
+TypeConstructor gpoints ( "gpoints",
+                          GPoints::Property,
+                          GPoints::Out, GPoints::In,
+                          0, 0,
+                          GPoints::Create, GPoints::Delete,
+                          GPoints::OpenGPoints, GPoints::SaveGPoints,
+                          GPoints::Close, GPoints::CloneGPoints,
+                          GPoints::Cast, GPoints::SizeOf,
+                          GPoints::Check );
 
 
 
@@ -6262,90 +7081,99 @@ Dijkstras Algorithm for computation of the shortest paths.
 
 */
 
-ListExpr OpNetNetdistanceTypeMap(ListExpr args){
-  if (nl->ListLength(args) != 2) {
-    return (nl->SymbolAtom("typeerror"));
+ListExpr OpNetNetdistanceTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  ListExpr param1 = nl->First(args);
-  ListExpr param2 = nl->Second(args);
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
   //ListExpr param3 = nl->Third(args);
 
-  if ((nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
-     nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType &&
-     ((nl->SymbolValue(param1) == "gpoint" &&
-     nl->SymbolValue(param2) == "gpoint") ||
-     (nl->SymbolValue(param1) == "gline" &&
-     nl->SymbolValue(param2) == "gline")))) {
-    return nl->SymbolAtom("real");
+  if ( ( nl->IsAtom ( param1 ) && nl->AtomType ( param1 ) == SymbolType &&
+          nl->IsAtom ( param2 ) && nl->AtomType ( param2 ) == SymbolType &&
+          ( ( nl->SymbolValue ( param1 ) == "gpoint" &&
+              nl->SymbolValue ( param2 ) == "gpoint" ) ||
+            ( nl->SymbolValue ( param1 ) == "gline" &&
+              nl->SymbolValue ( param2 ) == "gline" ) ) ) )
+  {
+    return nl->SymbolAtom ( "real" );
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom ( "typeerror" );
 }
 
-int OpNetNetdistance_gpgp (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier){
-  GPoint* pFromGPoint = (GPoint*) args[0].addr;
-  GPoint* pToGPoint = (GPoint*) args[1].addr;
-  result = qp->ResultStorage(in_pSupplier);
-  CcReal* pResult = (CcReal*) result.addr;
-  if (!(pFromGPoint->IsDefined()) || !(pToGPoint->IsDefined())) {
-    cmsg.inFunError("Both gpoint must be defined!");
+int OpNetNetdistance_gpgp ( Word* args, Word& result, int message,
+                            Word& local, Supplier in_pSupplier )
+{
+  GPoint* pFromGPoint = ( GPoint* ) args[0].addr;
+  GPoint* pToGPoint = ( GPoint* ) args[1].addr;
+  result = qp->ResultStorage ( in_pSupplier );
+  CcReal* pResult = ( CcReal* ) result.addr;
+  if ( ! ( pFromGPoint->IsDefined() ) || ! ( pToGPoint->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both gpoint must be defined!" );
     return 0;
   };
-  double dist =  pFromGPoint->Netdistance(pToGPoint);
-  if (dist != numeric_limits<double>::max()) pResult->Set(true,dist);
-  else pResult->Set(false, dist);
+  double dist =  pFromGPoint->Netdistance ( pToGPoint );
+  if ( dist != numeric_limits<double>::max() ) pResult->Set ( true,dist );
+  else pResult->Set ( false, dist );
   return 1;
 };
 
-int OpNetNetdistance_glgl (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier){
-  GLine* pGLine1 = (GLine*) args[0].addr;
-  GLine* pGLine2 = (GLine*) args[1].addr;
-  CcReal* pResult = (CcReal*) qp->ResultStorage(in_pSupplier).addr;
-  result = SetWord(pResult);
-  if (!(pGLine1->IsDefined()) || !(pGLine2->IsDefined())) {
-    cmsg.inFunError("Both gpoint must be defined!");
+int OpNetNetdistance_glgl ( Word* args, Word& result, int message,
+                            Word& local, Supplier in_pSupplier )
+{
+  GLine* pGLine1 = ( GLine* ) args[0].addr;
+  GLine* pGLine2 = ( GLine* ) args[1].addr;
+  CcReal* pResult = ( CcReal* ) qp->ResultStorage ( in_pSupplier ).addr;
+  result = SetWord ( pResult );
+  if ( ! ( pGLine1->IsDefined() ) || ! ( pGLine2->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both gpoint must be defined!" );
     return 0;
   };
-  double dist = pGLine1->Netdistance(pGLine2);
-  if (dist != numeric_limits<double>::max()) pResult->Set(true, dist);
-  else pResult->Set(false, dist);
+  double dist = pGLine1->Netdistance ( pGLine2 );
+  if ( dist != numeric_limits<double>::max() ) pResult->Set ( true, dist );
+  else pResult->Set ( false, dist );
   return 1;
 };
 
-ValueMapping OpNetNetdistancemap[] = {
+ValueMapping OpNetNetdistancemap[] =
+{
   OpNetNetdistance_gpgp,
   OpNetNetdistance_glgl
 };
 
-int OpNetNetdistanceselect (ListExpr args){
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-  if ( nl->SymbolValue(arg1) == "gpoint" &&
-       nl->SymbolValue(arg2) == "gpoint")
+int OpNetNetdistanceselect ( ListExpr args )
+{
+  ListExpr arg1 = nl->First ( args );
+  ListExpr arg2 = nl->Second ( args );
+  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
     return 0;
-  if ( nl->SymbolValue(arg1) == "gline" &&
-       nl->SymbolValue(arg2) == "gline")
+  if ( nl->SymbolValue ( arg1 ) == "gline" &&
+          nl->SymbolValue ( arg2 ) == "gline" )
     return 1;
   return -1; // This point should never be reached
 };
 
 const string OpNetNetdistanceSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>A x A x network-> real with A = gpoint or gline" "</text--->"
-  "<text>netdistance(GPOINT1,GPOINT2, NETWORK)</text--->"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>A x A x network-> real with A = gpoint or gline" "</text--->"
+    "<text>netdistance(GPOINT1,GPOINT2, NETWORK)</text--->"
   "<text>Calculates the network distance of two gpoints resp. glines.</text--->"
-  "<text>query netdistance(gp1,gp2, B_NETWORK)</text--->"
-  ") )";
+    "<text>query netdistance(gp1,gp2, B_NETWORK)</text--->"
+     ") )";
 
 Operator networknetdistance (
-          "netdistance",               // name
-          OpNetNetdistanceSpec,          // specification
-          2,
-          OpNetNetdistancemap,  // value mapping
-          OpNetNetdistanceselect,        // selection function
-          OpNetNetdistanceTypeMap        // type mapping
+    "netdistance",               // name
+    OpNetNetdistanceSpec,          // specification
+    2,
+    OpNetNetdistancemap,  // value mapping
+    OpNetNetdistanceselect,        // selection function
+    OpNetNetdistanceTypeMap        // type mapping
 );
 
 /*
@@ -6355,56 +7183,60 @@ Returns a rectangle degenerated to a point with coordinates rid, rid, pos, pos.
 
 */
 
-ListExpr OpGPoint2RectTypeMap(ListExpr in_xArgs)
+ListExpr OpGPoint2RectTypeMap ( ListExpr in_xArgs )
 {
-  if( nl->ListLength(in_xArgs) != 1 ){
-    sendMessage("Expects a list of length 1.");
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  ListExpr xsource = nl->First(in_xArgs);
-
-  if( (!nl->IsAtom(xsource)) ||
-      !nl->IsEqual(xsource, "gpoint"))
+  if ( nl->ListLength ( in_xArgs ) != 1 )
   {
-    sendMessage("Element must be of type gpoint.");
-    return (nl->SymbolAtom("typeerror"));
+    sendMessage ( "Expects a list of length 1." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return (nl->SymbolAtom("rect"));
+
+  ListExpr xsource = nl->First ( in_xArgs );
+
+  if ( ( !nl->IsAtom ( xsource ) ) ||
+          !nl->IsEqual ( xsource, "gpoint" ) )
+  {
+    sendMessage ( "Element must be of type gpoint." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  return ( nl->SymbolAtom ( "rect" ) );
 }
 
-int OpGPoint2RectValueMapping(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
+int OpGPoint2RectValueMapping ( Word* args,
+                                Word& result,
+                                int message,
+                                Word& local,
+                                Supplier in_xSupplier )
 {
-  result = qp->ResultStorage( in_xSupplier );
-  Rectangle<2>* box = static_cast<Rectangle<2>* >(result.addr);
-  GPoint* arg = static_cast<GPoint*>(args[0].addr);
-  if(!arg->IsDefined()){
-    box->SetDefined(false);
-  } else {
-    (*box) = arg->NetBoundingBox();
+  result = qp->ResultStorage ( in_xSupplier );
+  Rectangle<2>* box = static_cast<Rectangle<2>* > ( result.addr );
+  GPoint* arg = static_cast<GPoint*> ( args[0].addr );
+  if ( !arg->IsDefined() )
+  {
+    box->SetDefined ( false );
+  }
+  else
+  {
+    ( *box ) = arg->NetBoundingBox();
   }
   return 0;
 } //end ValueMapping
 
 const string OpGPoint2RectSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>gpoint -> rect" "</text--->"
-  "<text>gpoint2rect(GPOINT)</text--->"
-  "<text>Returns a rectangle representing the gpoint.</text--->"
-  "<text> gpoint2rect (gpoint) </text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gpoint -> rect" "</text--->"
+    "<text>gpoint2rect(GPOINT)</text--->"
+    "<text>Returns a rectangle representing the gpoint.</text--->"
+    "<text> gpoint2rect (gpoint) </text--->"
+    ") )";
 
 Operator networkgpoint2rect (
-          "gpoint2rect",               // name
-          OpGPoint2RectSpec,          // specification
-          OpGPoint2RectValueMapping,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpGPoint2RectTypeMap        // type mapping
+    "gpoint2rect",               // name
+    OpGPoint2RectSpec,          // specification
+    OpGPoint2RectValueMapping,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpGPoint2RectTypeMap        // type mapping
 );
 
 /*
@@ -6413,49 +7245,55 @@ Operator networkgpoint2rect (
 Returns true if ths ~GPoint~ is inside the ~GLine~ false elsewhere.
 
 */
-ListExpr OpInsideTypeMap(ListExpr args){
-  if (nl->ListLength(args) != 2) {
-    return (nl->SymbolAtom("typeerror"));
+ListExpr OpInsideTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  ListExpr gpoint = nl->First(args);
-  ListExpr gline = nl->Second(args);
-  if (!nl->IsAtom(gpoint) || nl->AtomType(gpoint) != SymbolType ||
-       nl->SymbolValue(gpoint) != "gpoint" || !nl->IsAtom(gline) ||
-      nl->AtomType(gline) != SymbolType || nl->SymbolValue(gline) != "gline"){
-    return (nl->SymbolAtom("typeerror"));
+  ListExpr gpoint = nl->First ( args );
+  ListExpr gline = nl->Second ( args );
+  if ( !nl->IsAtom ( gpoint ) || nl->AtomType ( gpoint ) != SymbolType ||
+          nl->SymbolValue ( gpoint ) != "gpoint" || !nl->IsAtom ( gline ) ||
+          nl->AtomType ( gline ) != SymbolType || nl->SymbolValue ( gline ) !=
+"gline" )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->SymbolAtom("bool");
+  return nl->SymbolAtom ( "bool" );
 }
 
-int OpInsideValueMap (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier) {
-  GPoint* pGPoint = (GPoint*) args[0].addr;
-  GLine* pGLine = (GLine*) args[1].addr;
-  result = qp->ResultStorage(in_pSupplier);
-  CcBool* pResult = (CcBool*) result.addr;
-  if (pGPoint->GetNetworkId() != pGLine->GetNetworkId() ||
-     !pGLine->IsDefined() || !pGPoint->IsDefined()) {
-    pResult->Set(false, false);
+int OpInsideValueMap ( Word* args, Word& result, int message,
+                       Word& local, Supplier in_pSupplier )
+{
+  GPoint* pGPoint = ( GPoint* ) args[0].addr;
+  GLine* pGLine = ( GLine* ) args[1].addr;
+  result = qp->ResultStorage ( in_pSupplier );
+  CcBool* pResult = ( CcBool* ) result.addr;
+  if ( pGPoint->GetNetworkId() != pGLine->GetNetworkId() ||
+          !pGLine->IsDefined() || !pGPoint->IsDefined() )
+  {
+    pResult->Set ( false, false );
   }
-  pResult->Set(true, pGPoint->Inside(pGLine));
+  pResult->Set ( true, pGPoint->Inside ( pGLine ) );
   return 0;
 }
 
 const string OpInsideSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>gpoint x gline -> bool" "</text--->"
-  "<text> _ inside _</text--->"
-  "<text>Returns true if gpoint is inside gline false elsewhere.</text--->"
-  "<text>GPOINT inside GLINE</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gpoint x gline -> bool" "</text--->"
+    "<text> _ inside _</text--->"
+    "<text>Returns true if gpoint is inside gline false elsewhere.</text--->"
+    "<text>GPOINT inside GLINE</text--->"
+    ") )";
 
 Operator networkinside (
-          "inside",               // name
-          OpInsideSpec,          // specification
-          OpInsideValueMap,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpInsideTypeMap        // type mapping
+    "inside",               // name
+    OpInsideSpec,          // specification
+    OpInsideValueMap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpInsideTypeMap        // type mapping
 );
 
 /*
@@ -6464,46 +7302,51 @@ Operator networkinside (
 Returns the length of a ~GLine~.
 
 */
-ListExpr OpLengthTypeMap(ListExpr args){
-  if (nl->ListLength(args) != 1) {
-    return (nl->SymbolAtom("typeerror"));
+ListExpr OpLengthTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  ListExpr gline = nl->First(args);
-  if (!nl->IsAtom(gline) || nl->AtomType(gline) != SymbolType ||
-       nl->SymbolValue(gline) != "gline"){
-    return (nl->SymbolAtom("typeerror"));
+  ListExpr gline = nl->First ( args );
+  if ( !nl->IsAtom ( gline ) || nl->AtomType ( gline ) != SymbolType ||
+          nl->SymbolValue ( gline ) != "gline" )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->SymbolAtom("real");
+  return nl->SymbolAtom ( "real" );
 }
 
-int OpLengthValueMap (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier){
-  GLine* pGline = (GLine*) args[0].addr;
-  result = qp->ResultStorage(in_pSupplier);
-  CcReal* pResult = (CcReal*) result.addr;
-  if (!(pGline->IsDefined())) {
-    cmsg.inFunError("gline is not defined!");
+int OpLengthValueMap ( Word* args, Word& result, int message,
+                       Word& local, Supplier in_pSupplier )
+{
+  GLine* pGline = ( GLine* ) args[0].addr;
+  result = qp->ResultStorage ( in_pSupplier );
+  CcReal* pResult = ( CcReal* ) result.addr;
+  if ( ! ( pGline->IsDefined() ) )
+  {
+    cmsg.inFunError ( "gline is not defined!" );
     return 0;
   };
-  pResult-> Set(true, pGline->GetLength());
+  pResult-> Set ( true, pGline->GetLength() );
   return 1;
 }
 
 const string OpLengthSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>gline -> real" "</text--->"
-  "<text>length(_)</text--->"
-  "<text>Calculates the length of the gline.</text--->"
-  "<text>query length(gline)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gline -> real" "</text--->"
+    "<text>length(_)</text--->"
+    "<text>Calculates the length of the gline.</text--->"
+    "<text>query length(gline)</text--->"
+    ") )";
 
 Operator networklength (
-          "length",               // name
-          OpLengthSpec,          // specification
-          OpLengthValueMap,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpLengthTypeMap        // type mapping
+    "length",               // name
+    OpLengthSpec,          // specification
+    OpLengthValueMap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpLengthTypeMap        // type mapping
 );
 
 /*
@@ -6513,121 +7356,130 @@ Translates a spatial ~line~ value into a network ~GLine~ value if possible.
 
 */
 
-ListExpr OpLine2GLineTypeMap(ListExpr in_xArgs)
+ListExpr OpLine2GLineTypeMap ( ListExpr in_xArgs )
 {
-  if( nl->ListLength(in_xArgs) != 2 ){
-    sendMessage("Expects a list of length 2.");
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  ListExpr xNetworkIdDesc = nl->First(in_xArgs);
-  ListExpr xLineDesc = nl->Second(in_xArgs);
-
-  if( (!nl->IsAtom(xNetworkIdDesc)) ||
-      !nl->IsEqual(xNetworkIdDesc, "network"))
+  if ( nl->ListLength ( in_xArgs ) != 2 )
   {
-    sendMessage("First element must be of type network.");
-    return (nl->SymbolAtom("typeerror"));
+    sendMessage ( "Expects a list of length 2." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  if( (!nl->IsAtom( xLineDesc )) ||
-      nl->AtomType( xLineDesc ) != SymbolType ||
-      nl->SymbolValue( xLineDesc ) != "line" )
+  ListExpr xNetworkIdDesc = nl->First ( in_xArgs );
+  ListExpr xLineDesc = nl->Second ( in_xArgs );
+
+  if ( ( !nl->IsAtom ( xNetworkIdDesc ) ) ||
+          !nl->IsEqual ( xNetworkIdDesc, "network" ) )
   {
-    sendMessage("Second element must be of type sline.");
-    return (nl->SymbolAtom( "typeerror" ));
+    sendMessage ( "First element must be of type network." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  return nl->SymbolAtom( "gline" );
+  if ( ( !nl->IsAtom ( xLineDesc ) ) ||
+          nl->AtomType ( xLineDesc ) != SymbolType ||
+          nl->SymbolValue ( xLineDesc ) != "line" )
+  {
+    sendMessage ( "Second element must be of type sline." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  return nl->SymbolAtom ( "gline" );
 }
 
-int OpLine2GLineValueMapping(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
+int OpLine2GLineValueMapping ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
 {
   //Initialize return value
-  GLine* pGLine = (GLine*)qp->ResultStorage(in_xSupplier).addr;
-  result = SetWord( pGLine );
+  GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGLine );
   // Get and check input values.
-  Network* pNetwork = (Network*)args[0].addr;
-  GLine *res = new GLine(0);
-  if (pNetwork == 0 || !pNetwork->IsDefined()) {
+  Network* pNetwork = ( Network* ) args[0].addr;
+  GLine *res = new GLine ( 0 );
+  if ( pNetwork == 0 || !pNetwork->IsDefined() )
+  {
     string strMessage = "Network is not defined.";
     cerr << strMessage << endl;
-    sendMessage(strMessage);
-    res->SetDefined(false);
-    pGLine->CopyFrom(res);
+    sendMessage ( strMessage );
+    res->SetDefined ( false );
+    pGLine->CopyFrom ( res );
     delete res;
     return 0;
   }
-  res->SetNetworkId(pNetwork->GetId());
-  Line* pLine = (Line*)args[1].addr;
-  if(pLine == NULL || !pLine->IsDefined()) {
+  res->SetNetworkId ( pNetwork->GetId() );
+  Line* pLine = ( Line* ) args[1].addr;
+  if ( pLine == NULL || !pLine->IsDefined() )
+  {
     string strMessage = "line does not exist.";
     cerr << strMessage << endl;
-    sendMessage(strMessage);
-    res->SetDefined(false);
-    pGLine->CopyFrom(res);
+    sendMessage ( strMessage );
+    res->SetDefined ( false );
+    pGLine->CopyFrom ( res );
     delete res;
     return 0;
   }
-  if (pLine->Size() <= 0) {
+  if ( pLine->Size() <= 0 )
+  {
     string strMessage = "line is empty";
     cerr <<strMessage << endl;
-    sendMessage(strMessage);
-    res->SetDefined(true);
-    pGLine->CopyFrom(res);
+    sendMessage ( strMessage );
+    res->SetDefined ( true );
+    pGLine->CopyFrom ( res );
     delete res;
     return 0;
   }
 
-  const HalfSegment *hs;
-  pLine->Get(0,hs);
+  HalfSegment hs;
+  pLine->Get ( 0,hs );
   RouteInterval *ri =
-      pNetwork->Find(hs->GetLeftPoint(), hs->GetRightPoint());
-  if (ri!= 0) {
-    RITree *riTree = new RITree(ri->GetRouteId(), ri->GetStartPos(),
-                                ri->GetEndPos());
+      pNetwork->Find ( hs.GetLeftPoint(), hs.GetRightPoint() );
+  if ( ri!= 0 )
+  {
+    RITree *riTree = new RITree ( ri->GetRouteId(), ri->GetStartPos(),
+                                  ri->GetEndPos() );
     delete ri;
-    for (int i = 1; i < pLine->Size();i++) {
-      pLine->Get(i,hs);
-      ri = pNetwork->Find(hs->GetLeftPoint(), hs->GetRightPoint());
-      if (ri!=0){
-        riTree->Insert(ri->GetRouteId(), ri->GetStartPos(), ri->GetEndPos());
+    for ( int i = 1; i < pLine->Size();i++ )
+    {
+      pLine->Get ( i,hs );
+      ri = pNetwork->Find ( hs.GetLeftPoint(), hs.GetRightPoint() );
+      if ( ri!=0 )
+      {
+        riTree->Insert ( ri->GetRouteId(), ri->GetStartPos(), ri->GetEndPos() );
         delete ri;
       }
     }
-    riTree->TreeToGLine(res);
+    riTree->TreeToGLine ( res );
     riTree->RemoveTree();
-    res->SetDefined(true);
-    res->SetSorted(true);
-    pGLine->CopyFrom(res);
+    res->SetDefined ( true );
+    res->SetSorted ( true );
+    pGLine->CopyFrom ( res );
     delete res;
-  } else {
-    res->SetDefined(false);
-    pGLine->CopyFrom(res);
+  }
+  else
+  {
+    res->SetDefined ( false );
+    pGLine->CopyFrom ( res );
     delete res;
   }
   return 0;
 } //end ValueMapping
 
 const string OpLine2GLineSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>network x line -> gline" "</text--->"
-  "<text>sline2gline(_,_)</text--->"
-  "<text>Translates a line to a gline value.</text--->"
-  "<text>line2gline(B_NETWORK, sline)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x line -> gline" "</text--->"
+    "<text>sline2gline(_,_)</text--->"
+    "<text>Translates a line to a gline value.</text--->"
+    "<text>line2gline(B_NETWORK, sline)</text--->"
+    ") )";
 
 Operator sline2gline (
-          "line2gline",               // name
-          OpLine2GLineSpec,          // specification
-          OpLine2GLineValueMapping,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpLine2GLineTypeMap        // type mapping
+    "line2gline",               // name
+    OpLine2GLineSpec,          // specification
+    OpLine2GLineValueMapping,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpLine2GLineTypeMap        // type mapping
 );
 
 
@@ -6639,87 +7491,96 @@ elsewhere.
 
 */
 
-ListExpr OpNetEqualTypeMap(ListExpr args){
-  if (nl->ListLength(args) != 2) {
-    return (nl->SymbolAtom("typeerror"));
+ListExpr OpNetEqualTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  ListExpr first = nl->First(args);
-  ListExpr second = nl->Second(args);
-  if ((nl->IsAtom(first) && nl->AtomType(first) == SymbolType &&
-       nl->IsAtom(second) && nl->AtomType(second) == SymbolType)&&
-    (( nl->SymbolValue(first) == "gpoint" &&
-       nl->SymbolValue(second) == "gpoint") ||
-    (nl->SymbolValue(first) == "gline" &&
-       nl->SymbolValue(second) == "gline"))){
-    return nl->SymbolAtom("bool");
+  ListExpr first = nl->First ( args );
+  ListExpr second = nl->Second ( args );
+  if ( ( nl->IsAtom ( first ) && nl->AtomType ( first ) == SymbolType &&
+          nl->IsAtom ( second ) && nl->AtomType ( second ) == SymbolType ) &&
+          ( ( nl->SymbolValue ( first ) == "gpoint" &&
+              nl->SymbolValue ( second ) == "gpoint" ) ||
+            ( nl->SymbolValue ( first ) == "gline" &&
+              nl->SymbolValue ( second ) == "gline" ) ) )
+  {
+    return nl->SymbolAtom ( "bool" );
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom ( "typeerror" );
 }
 
-int OpNetEqual_gpgp (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier){
-  GPoint* p1 = (GPoint*) args[0].addr;
-  GPoint* p2 = (GPoint*) args[1].addr;
-  result = qp->ResultStorage(in_pSupplier);
-  CcBool* pResult = (CcBool*) result.addr;
-  if (!(p1->IsDefined()) || !p2->IsDefined()) {
-    cmsg.inFunError("Both gpoints must be defined!");
-    pResult->Set(false, false);
+int OpNetEqual_gpgp ( Word* args, Word& result, int message,
+                      Word& local, Supplier in_pSupplier )
+{
+  GPoint* p1 = ( GPoint* ) args[0].addr;
+  GPoint* p2 = ( GPoint* ) args[1].addr;
+  result = qp->ResultStorage ( in_pSupplier );
+  CcBool* pResult = ( CcBool* ) result.addr;
+  if ( ! ( p1->IsDefined() ) || !p2->IsDefined() )
+  {
+    cmsg.inFunError ( "Both gpoints must be defined!" );
+    pResult->Set ( false, false );
     return 0;
   };
-  pResult-> Set(true, *p1 == *p2);
+  pResult-> Set ( true, *p1 == *p2 );
   return 1;
 }
 
 
-int OpNetEqual_glgl (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier){
-  GLine* l1 = (GLine*) args[0].addr;
-  GLine* l2 = (GLine*) args[1].addr;
-  result = qp->ResultStorage(in_pSupplier);
-  CcBool* pResult = (CcBool*) result.addr;
-  if (!(l1->IsDefined()) || !l2->IsDefined()) {
-    cmsg.inFunError("Both glines must be defined!");
-    pResult->Set(false, false);
+int OpNetEqual_glgl ( Word* args, Word& result, int message,
+                      Word& local, Supplier in_pSupplier )
+{
+  GLine* l1 = ( GLine* ) args[0].addr;
+  GLine* l2 = ( GLine* ) args[1].addr;
+  result = qp->ResultStorage ( in_pSupplier );
+  CcBool* pResult = ( CcBool* ) result.addr;
+  if ( ! ( l1->IsDefined() ) || !l2->IsDefined() )
+  {
+    cmsg.inFunError ( "Both glines must be defined!" );
+    pResult->Set ( false, false );
     return 0;
   };
-  pResult-> Set(true, *l1 == *l2);
+  pResult-> Set ( true, *l1 == *l2 );
   return 1;
 }
 
-ValueMapping OpNetEqualmap[] = {
+ValueMapping OpNetEqualmap[] =
+{
   OpNetEqual_gpgp,
   OpNetEqual_glgl
 };
 
-int OpNetEqualselect (ListExpr args){
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-  if ( nl->SymbolValue(arg1) == "gpoint" &&
-       nl->SymbolValue(arg2) == "gpoint")
+int OpNetEqualselect ( ListExpr args )
+{
+  ListExpr arg1 = nl->First ( args );
+  ListExpr arg2 = nl->Second ( args );
+  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
     return 0;
-  if ( nl->SymbolValue(arg1) == "gline" &&
-       nl->SymbolValue(arg2) == "gline")
+  if ( nl->SymbolValue ( arg1 ) == "gline" &&
+          nl->SymbolValue ( arg2 ) == "gline" )
     return 1;
   return -1; // This point should never be reached
 };
 
 const string OpNetEqualSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>A x A -> bool for GPoint and GLine" "</text--->"
-  "<text> _ = _</text--->"
-  "<text>Returns if two gpoints are equal.</text--->"
-  "<text>query gpoint1 = gpoint2</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>A x A -> bool for GPoint and GLine" "</text--->"
+    "<text> _ = _</text--->"
+    "<text>Returns if two gpoints are equal.</text--->"
+    "<text>query gpoint1 = gpoint2</text--->"
+    ") )";
 
 Operator netgpequal (
-          "=",               // name
-          OpNetEqualSpec,          // specification
-          2,
-          OpNetEqualmap,  // value mapping
-          OpNetEqualselect,        // selection function
-          OpNetEqualTypeMap        // type mapping
+    "=",               // name
+    OpNetEqualSpec,          // specification
+    2,
+    OpNetEqualmap,  // value mapping
+    OpNetEqualselect,        // selection function
+    OpNetEqualTypeMap        // type mapping
 );
 
 
@@ -6730,69 +7591,74 @@ Returns true if two ~Gline~ intersect false elsewhere.
 
 */
 
-ListExpr OpNetIntersectsTypeMap(ListExpr in_xArgs)
+ListExpr OpNetIntersectsTypeMap ( ListExpr in_xArgs )
 {
   ListExpr arg1, arg2;
-  if( nl->ListLength(in_xArgs) == 2 ){
-    arg1 = nl->First(in_xArgs);
-    arg2 = nl->Second(in_xArgs);
-    if (nl->IsAtom(arg1) && nl->AtomType(arg1) == SymbolType &&
-        nl->SymbolValue(arg1) == "gline" && nl->IsAtom(arg2) &&
-        nl->AtomType(arg2) == SymbolType &&
-        nl->SymbolValue(arg2) == "gline"){
-        return (nl->SymbolAtom("bool"));
+  if ( nl->ListLength ( in_xArgs ) == 2 )
+  {
+    arg1 = nl->First ( in_xArgs );
+    arg2 = nl->Second ( in_xArgs );
+    if ( nl->IsAtom ( arg1 ) && nl->AtomType ( arg1 ) == SymbolType &&
+            nl->SymbolValue ( arg1 ) == "gline" && nl->IsAtom ( arg2 ) &&
+            nl->AtomType ( arg2 ) == SymbolType &&
+            nl->SymbolValue ( arg2 ) == "gline" )
+    {
+      return ( nl->SymbolAtom ( "bool" ) );
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return ( nl->SymbolAtom ( "typeerror" ) );
 }
 
-int OpNetIntersectsValueMapping(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
+int OpNetIntersectsValueMapping ( Word* args,
+                                  Word& result,
+                                  int message,
+                                  Word& local,
+                                  Supplier in_xSupplier )
 {
   // Get (empty) return value
-  CcBool* pResult = (CcBool*)qp->ResultStorage(in_xSupplier).addr;
-  result = SetWord( pResult);
-  pResult->Set(false, false);
+  CcBool* pResult = ( CcBool* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pResult );
+  pResult->Set ( false, false );
   // Get input values
-  GLine* pGLine1 = (GLine*)args[0].addr;
-  if(pGLine1 == NULL || !pGLine1->IsDefined()) {
+  GLine* pGLine1 = ( GLine* ) args[0].addr;
+  if ( pGLine1 == NULL || !pGLine1->IsDefined() )
+  {
     cerr << "First gline does not exist." << endl;
-    pResult->Set(false, false);
+    pResult->Set ( false, false );
     return 0;
   }
-  GLine* pGLine2 = (GLine*)args[1].addr;
-  if(pGLine2 == NULL || !pGLine2->IsDefined()) {
+  GLine* pGLine2 = ( GLine* ) args[1].addr;
+  if ( pGLine2 == NULL || !pGLine2->IsDefined() )
+  {
     cerr << "Second gline does not exist." << endl;
-    pResult->Set(false, false);
+    pResult->Set ( false, false );
     return 0;
   }
 //  const RouteInterval *pRi1, *pRi2;
-  if (pGLine1->GetNetworkId() != pGLine2->GetNetworkId()) {
+  if ( pGLine1->GetNetworkId() != pGLine2->GetNetworkId() )
+  {
     cerr << "glines belong to different networks." << endl;
-    pResult->Set(true, false);
+    pResult->Set ( true, false );
     return 0;
   }
-  pResult->Set(true, pGLine1->Intersects(pGLine2));
+  pResult->Set ( true, pGLine1->Intersects ( pGLine2 ) );
   return 0;
 }
 
 const string OpNetIntersectsSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
-  "( <text>gline x gline -> bool" "</text--->"
-  "<text>intersects(gline, gline)</text--->"
-  "<text>Returns true if the both glines intersects false elsewhere.</text--->"
-  "<text>intersects(gline, gline)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" \"Example\" ) "
+    "( <text>gline x gline -> bool" "</text--->"
+    "<text>intersects(gline, gline)</text--->"
+ "<text>Returns true if the both glines intersects false elsewhere.</text--->"
+    "<text>intersects(gline, gline)</text--->"
+    ") )";
 
 Operator networkintersects (
-          "intersects",               // name
-          OpNetIntersectsSpec,          // specification
-          OpNetIntersectsValueMapping,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpNetIntersectsTypeMap        // type mapping
+    "intersects",               // name
+    OpNetIntersectsSpec,          // specification
+    OpNetIntersectsValueMapping,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpNetIntersectsTypeMap        // type mapping
 );
 
 
@@ -6802,52 +7668,52 @@ Operator networkintersects (
 Returns the junctions relation of the network.
 
 */
-ListExpr OpNetworkJunctionsTypeMap(ListExpr args)
+ListExpr OpNetworkJunctionsTypeMap ( ListExpr args )
 {
   ListExpr arg1;
-  if( nl->ListLength( args ) == 1 )
+  if ( nl->ListLength ( args ) == 1 )
   {
-    arg1 = nl->First( args );
-    if( nl->IsAtom( arg1 ) &&
-        nl->AtomType( arg1 ) == SymbolType &&
-        nl->SymbolValue( arg1 ) == "network" )
+    arg1 = nl->First ( args );
+    if ( nl->IsAtom ( arg1 ) &&
+            nl->AtomType ( arg1 ) == SymbolType &&
+            nl->SymbolValue ( arg1 ) == "network" )
     {
       ListExpr xType;
-      nl->ReadFromString(Network::junctionsInternalTypeInfo, xType);
+      nl->ReadFromString ( Network::junctionsInternalTypeInfo, xType );
       return xType;
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return ( nl->SymbolAtom ( "typeerror" ) );
 }
 
-int OpNetworkJunctionsValueMapping( Word* args, Word& result, int message,
-                              Word& local, Supplier s )
+int OpNetworkJunctionsValueMapping ( Word* args, Word& result, int message,
+                                     Word& local, Supplier s )
 {
-  Network *network = (Network*)args[0].addr;
-  result = SetWord( network->GetJunctions() );
+  Network *network = ( Network* ) args[0].addr;
+  result = SetWord ( network->GetJunctions() );
 
-  Relation *resultSt = (Relation*)qp->ResultStorage(s).addr;
+  Relation *resultSt = ( Relation* ) qp->ResultStorage ( s ).addr;
   resultSt->Close();
-  qp->ChangeResultStorage(s, result);
+  qp->ChangeResultStorage ( s, result );
 
   return 0;
 }
 
 const string OpNetworkJunctionsSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>network -> rel" "</text--->"
-  "<text>junctions(_)</text--->"
-  "<text>Return the junctions of a network.</text--->"
-  "<text>query junctions(network)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network -> rel" "</text--->"
+    "<text>junctions(_)</text--->"
+    "<text>Return the junctions of a network.</text--->"
+    "<text>query junctions(network)</text--->"
+    ") )";
 
 Operator networkjunctions (
-          "junctions",                // name
-          OpNetworkJunctionsSpec,          // specification
-          OpNetworkJunctionsValueMapping,  // value mapping
-          Operator::SimpleSelect,            // trivial selection function
-          OpNetworkJunctionsTypeMap        // type mapping
+    "junctions",                // name
+    OpNetworkJunctionsSpec,          // specification
+    OpNetworkJunctionsValueMapping,  // value mapping
+    Operator::SimpleSelect,            // trivial selection function
+    OpNetworkJunctionsTypeMap        // type mapping
 );
 
 
@@ -6857,52 +7723,52 @@ Operator networkjunctions (
 Returns the routes relation of the network.
 
 */
-ListExpr OpNetworkRoutesTypeMap(ListExpr args)
+ListExpr OpNetworkRoutesTypeMap ( ListExpr args )
 {
   ListExpr arg1;
-  if( nl->ListLength( args ) == 1 )
+  if ( nl->ListLength ( args ) == 1 )
   {
-    arg1 = nl->First( args );
-    if( nl->IsAtom( arg1 ) &&
-        nl->AtomType( arg1 ) == SymbolType &&
-        nl->SymbolValue( arg1 ) == "network" )
+    arg1 = nl->First ( args );
+    if ( nl->IsAtom ( arg1 ) &&
+            nl->AtomType ( arg1 ) == SymbolType &&
+            nl->SymbolValue ( arg1 ) == "network" )
     {
       ListExpr xType;
-      nl->ReadFromString(Network::routesTypeInfo, xType);
+      nl->ReadFromString ( Network::routesTypeInfo, xType );
       return xType;
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return ( nl->SymbolAtom ( "typeerror" ) );
 }
 
-int OpNetworkRoutesValueMapping( Word* args, Word& result, int message,
-                           Word& local, Supplier s )
+int OpNetworkRoutesValueMapping ( Word* args, Word& result, int message,
+                                  Word& local, Supplier s )
 {
-  Network *network = (Network*)args[0].addr;
+  Network *network = ( Network* ) args[0].addr;
   Relation* pRoute = network->GetRoutes();
-  result =  SetWord( pRoute->Clone());
-  Relation *resultSt = (Relation*)qp->ResultStorage(s).addr;
+  result =  SetWord ( pRoute->Clone() );
+  Relation *resultSt = ( Relation* ) qp->ResultStorage ( s ).addr;
   resultSt->Close();
-  qp->ChangeResultStorage(s, result);
+  qp->ChangeResultStorage ( s, result );
 
   return 0;
 }
 
 const string OpNetworkRoutesSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>network -> rel" "</text--->"
-  "<text>routes(_)</text--->"
-  "<text>Return the routes of a network.</text--->"
-  "<text>query routes(network)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network -> rel" "</text--->"
+    "<text>routes(_)</text--->"
+    "<text>Return the routes of a network.</text--->"
+    "<text>query routes(network)</text--->"
+    ") )";
 
 Operator networkroutes (
-          "routes",                // name
-          OpNetworkRoutesSpec,              // specification
-          OpNetworkRoutesValueMapping,      // value mapping
-          Operator::SimpleSelect,               // trivial selection function
-          OpNetworkRoutesTypeMap            // type mapping
+    "routes",                // name
+    OpNetworkRoutesSpec,              // specification
+    OpNetworkRoutesValueMapping,      // value mapping
+    Operator::SimpleSelect,               // trivial selection function
+    OpNetworkRoutesTypeMap            // type mapping
 );
 
 /*
@@ -6912,52 +7778,52 @@ Returns the sections relation of the network.
 
 */
 
-ListExpr OpNetworkSectionsTypeMap(ListExpr args)
+ListExpr OpNetworkSectionsTypeMap ( ListExpr args )
 {
   ListExpr arg1;
-  if( nl->ListLength( args ) == 1 )
+  if ( nl->ListLength ( args ) == 1 )
   {
-    arg1 = nl->First( args );
-    if( nl->IsAtom( arg1 ) &&
-        nl->AtomType( arg1 ) == SymbolType &&
-        nl->SymbolValue( arg1 ) == "network" )
+    arg1 = nl->First ( args );
+    if ( nl->IsAtom ( arg1 ) &&
+            nl->AtomType ( arg1 ) == SymbolType &&
+            nl->SymbolValue ( arg1 ) == "network" )
     {
       ListExpr xType;
-      nl->ReadFromString(Network::sectionsInternalTypeInfo, xType);
+      nl->ReadFromString ( Network::sectionsInternalTypeInfo, xType );
       return xType;
     }
   }
-  return (nl->SymbolAtom( "typeerror" ));
+  return ( nl->SymbolAtom ( "typeerror" ) );
 }
 
-int OpNetworkSectionsValueMapping( Word* args, Word& result, int message,
-                             Word& local, Supplier s )
+int OpNetworkSectionsValueMapping ( Word* args, Word& result, int message,
+                                    Word& local, Supplier s )
 {
-  Network *network = (Network*)args[0].addr;
-  result = SetWord( network->GetSections() );
+  Network *network = ( Network* ) args[0].addr;
+  result = SetWord ( network->GetSections() );
 
-  Relation *resultSt = (Relation*)qp->ResultStorage(s).addr;
+  Relation *resultSt = ( Relation* ) qp->ResultStorage ( s ).addr;
   resultSt->Close();
-  qp->ChangeResultStorage(s, result);
+  qp->ChangeResultStorage ( s, result );
 
   return 0;
 }
 
 const string OpNetworkSectionsSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>network -> rel" "</text--->"
-  "<text>sections(_)</text--->"
-  "<text>Return the sections of a network.</text--->"
-  "<text>query sections(network)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network -> rel" "</text--->"
+    "<text>sections(_)</text--->"
+    "<text>Return the sections of a network.</text--->"
+    "<text>query sections(network)</text--->"
+    ") )";
 
 Operator networksections (
-          "sections",                       // name
-          OpNetworkSectionsSpec,          // specification
-          OpNetworkSectionsValueMapping,  // value mapping
-          Operator::SimpleSelect,           // trivial selection function
-          OpNetworkSectionsTypeMap        // type mapping
+    "sections",                       // name
+    OpNetworkSectionsSpec,          // specification
+    OpNetworkSectionsValueMapping,  // value mapping
+    Operator::SimpleSelect,           // trivial selection function
+    OpNetworkSectionsTypeMap        // type mapping
 );
 
 
@@ -6968,83 +7834,84 @@ Creates a network with the given id, from the given routes and junctions
 relations.
 
 */
-ListExpr OpNetworkTheNetworkTypeMap(ListExpr in_xArgs)
+ListExpr OpNetworkTheNetworkTypeMap ( ListExpr in_xArgs )
 {
-  if(nl->ListLength(in_xArgs) != 3)
-    return (nl->SymbolAtom("typeerror"));
+  if ( nl->ListLength ( in_xArgs ) != 3 )
+    return ( nl->SymbolAtom ( "typeerror" ) );
 
-  ListExpr xIdDesc = nl->First(in_xArgs);
-  ListExpr xRoutesRelDesc = nl->Second(in_xArgs);
-  ListExpr xJunctionsRelDesc = nl->Third(in_xArgs);
+  ListExpr xIdDesc = nl->First ( in_xArgs );
+  ListExpr xRoutesRelDesc = nl->Second ( in_xArgs );
+  ListExpr xJunctionsRelDesc = nl->Third ( in_xArgs );
 
-  if(!nl->IsEqual(xIdDesc, "int"))
+  if ( !nl->IsEqual ( xIdDesc, "int" ) )
   {
-    return (nl->SymbolAtom("typeerror"));
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  if(!IsRelDescription(xRoutesRelDesc) ||
-     !IsRelDescription(xJunctionsRelDesc))
+  if ( !IsRelDescription ( xRoutesRelDesc ) ||
+          !IsRelDescription ( xJunctionsRelDesc ) )
   {
-    return (nl->SymbolAtom("typeerror"));
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
   ListExpr xType;
-  nl->ReadFromString(Network::routesTypeInfo, xType);
-  if(!CompareSchemas(xRoutesRelDesc, xType))
+  nl->ReadFromString ( Network::routesTypeInfo, xType );
+  if ( !CompareSchemas ( xRoutesRelDesc, xType ) )
   {
-    return (nl->SymbolAtom("typeerror"));
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  nl->ReadFromString(Network::junctionsTypeInfo, xType);
-  if(!CompareSchemas(xJunctionsRelDesc, xType))
+  nl->ReadFromString ( Network::junctionsTypeInfo, xType );
+  if ( !CompareSchemas ( xJunctionsRelDesc, xType ) )
   {
-    return (nl->SymbolAtom("typeerror"));
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  return nl->SymbolAtom("network");
+  return nl->SymbolAtom ( "network" );
 }
 
-int OpNetworkTheNetworkValueMapping(Word* args, Word& result,
-                               int message, Word& local, Supplier s)
+int OpNetworkTheNetworkValueMapping ( Word* args, Word& result,
+                                      int message, Word& local, Supplier s )
 {
-  Network* pNetwork = (Network*)qp->ResultStorage(s).addr;
-  CcInt* pId = (CcInt*)args[0].addr;
+  Network* pNetwork = ( Network* ) qp->ResultStorage ( s ).addr;
+  CcInt* pId = ( CcInt* ) args[0].addr;
   int iId = pId->GetIntval();
-  map<int,string>::iterator it = netList->find(iId);
-  if (it != netList->end()) {
-    cout << "NetworkId used before" << iId << endl;
-    while (it != netList->end())
+  map<int,string>::iterator it = netList->find ( iId );
+  if ( it != netList->end() )
+  {
+    cerr << "NetworkId used before" << iId << endl;
+    while ( it != netList->end() )
     {
-      it = netList->find(++iId);
+      it = netList->find ( ++iId );
     }
-    cout << "NetworkId changed to: " << iId << endl;
+    cerr << "NetworkId changed to: " << iId << endl;
   }
-  netList->insert(pair<int,string> (iId, ""));
-  Relation* pRoutes = (Relation*)args[1].addr;
-  Relation* pJunctions = (Relation*)args[2].addr;
-  pNetwork->Load(iId,
-                 pRoutes,
-                 pJunctions);
-  result = SetWord(pNetwork);
+  netList->insert ( pair<int,string> ( iId, "" ) );
+  Relation* pRoutes = ( Relation* ) args[1].addr;
+  Relation* pJunctions = ( Relation* ) args[2].addr;
+  pNetwork->Load ( iId,
+                   pRoutes,
+                   pJunctions );
+  result = SetWord ( pNetwork );
 
   return 0;
 }
 
 const string OpNetworkTheNetworkSpec  =
-  "((\"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\") "
-  "(<text>int x rel x rel -> network" "</text--->"
-  "<text>thenetwork(_, _, _)</text--->"
-  "<text>Creates network with id or next free id.</text--->"
-  "<text>let n = thenetwork(int, routes, junctions)</text--->"
-  "))";
+    "((\"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\") "
+    "(<text>int x rel x rel -> network" "</text--->"
+    "<text>thenetwork(_, _, _)</text--->"
+    "<text>Creates network with id or next free id.</text--->"
+    "<text>let n = thenetwork(int, routes, junctions)</text--->"
+    "))";
 
 Operator networkthenetwork (
-          "thenetwork",                // name
-          OpNetworkTheNetworkSpec,              // specification
-          OpNetworkTheNetworkValueMapping,      // value mapping
-          Operator::SimpleSelect,               // trivial selection function
-          OpNetworkTheNetworkTypeMap            // type mapping
+    "thenetwork",                // name
+    OpNetworkTheNetworkSpec,              // specification
+    OpNetworkTheNetworkValueMapping,      // value mapping
+    Operator::SimpleSelect,               // trivial selection function
+    OpNetworkTheNetworkTypeMap            // type mapping
 );
 
 /*
@@ -7054,46 +7921,51 @@ Returns the number of ~RouteIntervals~ of the ~GLine~.
 
 */
 
-ListExpr OpNoComponentsTypeMap(ListExpr args){
-  if (nl->ListLength(args) != 1) {
-    return (nl->SymbolAtom("typeerror"));
+ListExpr OpNoComponentsTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  ListExpr gline = nl->First(args);
-  if (!nl->IsAtom(gline) || nl->AtomType(gline) != SymbolType ||
-       nl->SymbolValue(gline) != "gline"){
-    return (nl->SymbolAtom("typeerror"));
+  ListExpr gline = nl->First ( args );
+  if ( !nl->IsAtom ( gline ) || nl->AtomType ( gline ) != SymbolType ||
+          nl->SymbolValue ( gline ) != "gline" )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->SymbolAtom("int");
+  return nl->SymbolAtom ( "int" );
 }
 
-int OpNoComponentsValueMapping (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier){
-  GLine* pGline = (GLine*) args[0].addr;
-  result = qp->ResultStorage(in_pSupplier);
-  CcInt* pResult = (CcInt*) result.addr;
-  if (!(pGline->IsDefined())) {
-    pResult->Set(false, 0);
+int OpNoComponentsValueMapping ( Word* args, Word& result, int message,
+                                 Word& local, Supplier in_pSupplier )
+{
+  GLine* pGline = ( GLine* ) args[0].addr;
+  result = qp->ResultStorage ( in_pSupplier );
+  CcInt* pResult = ( CcInt* ) result.addr;
+  if ( ! ( pGline->IsDefined() ) )
+  {
+    pResult->Set ( false, 0 );
     return 0;
   };
-  pResult-> Set(true, pGline->NoOfComponents());
+  pResult-> Set ( true, pGline->NoOfComponents() );
   return 1;
 }
 
 const string OpNoComponentsSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>gline -> int" "</text--->"
-  "<text>no_components(_)</text--->"
-  "<text>Returns the number of route intervals.</text--->"
-  "<text>query no_components(gline)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gline -> int" "</text--->"
+    "<text>no_components(_)</text--->"
+    "<text>Returns the number of route intervals.</text--->"
+    "<text>query no_components(gline)</text--->"
+    ") )";
 
 Operator networknocomponents (
-          "no_components",               // name
-          OpNoComponentsSpec,          // specification
-          OpNoComponentsValueMapping,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpNoComponentsTypeMap        // type mapping
+    "no_components",               // name
+    OpNoComponentsSpec,          // specification
+    OpNoComponentsValueMapping,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpNoComponentsTypeMap        // type mapping
 );
 
 
@@ -7103,61 +7975,64 @@ Operator networknocomponents (
 Translates a spatial ~Point~ value into a network ~GPoint~ value if possible.
 
 */
-ListExpr OpPoint2GPointTypeMap(ListExpr in_xArgs)
+ListExpr OpPoint2GPointTypeMap ( ListExpr in_xArgs )
 {
-  if( nl->ListLength(in_xArgs) != 2 ){
-    sendMessage("Expects a list of length 2.");
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  ListExpr xNetworkIdDesc = nl->First(in_xArgs);
-  ListExpr xMPointDesc = nl->Second(in_xArgs);
-
-  if( (!nl->IsAtom(xNetworkIdDesc)) ||
-      !nl->IsEqual(xNetworkIdDesc, "network"))
+  if ( nl->ListLength ( in_xArgs ) != 2 )
   {
-    sendMessage("First element must be of type network.");
-    return (nl->SymbolAtom("typeerror"));
+    sendMessage ( "Expects a list of length 2." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  if( (!nl->IsAtom( xMPointDesc )) ||
-      nl->AtomType( xMPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMPointDesc ) != "point" )
+  ListExpr xNetworkIdDesc = nl->First ( in_xArgs );
+  ListExpr xMPointDesc = nl->Second ( in_xArgs );
+
+  if ( ( !nl->IsAtom ( xNetworkIdDesc ) ) ||
+          !nl->IsEqual ( xNetworkIdDesc, "network" ) )
   {
-    sendMessage("Second element must be of type point.");
-    return (nl->SymbolAtom( "typeerror" ));
+    sendMessage ( "First element must be of type network." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  return nl->SymbolAtom( "gpoint" );
+  if ( ( !nl->IsAtom ( xMPointDesc ) ) ||
+          nl->AtomType ( xMPointDesc ) != SymbolType ||
+          nl->SymbolValue ( xMPointDesc ) != "point" )
+  {
+    sendMessage ( "Second element must be of type point." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  return nl->SymbolAtom ( "gpoint" );
 }
 
-int OpPoint2GPointValueMapping(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
+int OpPoint2GPointValueMapping ( Word* args,
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier in_xSupplier )
 {
-  GPoint* pGPoint = (GPoint*)qp->ResultStorage(in_xSupplier).addr;
-  result = SetWord( pGPoint );
-  Network* pNetwork = (Network*)args[0].addr;
-  if (pNetwork == 0 || !pNetwork->IsDefined()) {
+  GPoint* pGPoint = ( GPoint* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGPoint );
+  Network* pNetwork = ( Network* ) args[0].addr;
+  if ( pNetwork == 0 || !pNetwork->IsDefined() )
+  {
     string strMessage = "Network is not defined.";
     cerr << strMessage << endl;
-    sendMessage(strMessage);
-    pGPoint->SetDefined(false);
+    sendMessage ( strMessage );
+    pGPoint->SetDefined ( false );
     return 0;
   }
 
-  Point* pPoint = (Point*)args[1].addr;
-  if(pPoint == NULL || !pPoint->IsDefined()) {
+  Point* pPoint = ( Point* ) args[1].addr;
+  if ( pPoint == NULL || !pPoint->IsDefined() )
+  {
     string strMessage = "Point does not exist.";
     cerr << strMessage << endl;
-    sendMessage(strMessage);
-    pGPoint->SetDefined(false);
+    sendMessage ( strMessage );
+    pGPoint->SetDefined ( false );
     return 0;
   }
-  GPoint *res = pNetwork->GetNetworkPosOfPoint(*pPoint);
-  pGPoint->CopyFrom(res);
+  GPoint *res = pNetwork->GetNetworkPosOfPoint ( *pPoint );
+  pGPoint->CopyFrom ( res );
   delete res;
   /*GPoint *res = pNetwork->GetNetworkPosOfPoint(*pPoint);
   qp->ChangeResultStorage(in_xSupplier, res);*/
@@ -7165,20 +8040,20 @@ int OpPoint2GPointValueMapping(Word* args,
 } //end ValueMapping
 
 const string OpPoint2GPointSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>network x point -> gpoint" "</text--->"
-  "<text>point2gpoint(networkobject, point)</text--->"
-  "<text>Translates a point to a gpoint.</text--->"
-  "<text>point2gpoint(b_network, point)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>network x point -> gpoint" "</text--->"
+    "<text>point2gpoint(networkobject, point)</text--->"
+    "<text>Translates a point to a gpoint.</text--->"
+    "<text>point2gpoint(b_network, point)</text--->"
+    ") )";
 
 Operator point2gpoint (
-          "point2gpoint",               // name
-          OpPoint2GPointSpec,          // specification
-          OpPoint2GPointValueMapping,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpPoint2GPointTypeMap        // type mapping
+    "point2gpoint",               // name
+    OpPoint2GPointSpec,          // specification
+    OpPoint2GPointValueMapping,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpPoint2GPointTypeMap        // type mapping
 );
 
 /*
@@ -7188,61 +8063,63 @@ Translates a ~gpoint~ into a spatial ~Point~ value.
 
 */
 
-ListExpr OpGPoint2PointTypeMap(ListExpr in_xArgs)
+ListExpr OpGPoint2PointTypeMap ( ListExpr in_xArgs )
 {
-  if( nl->ListLength(in_xArgs) != 1 ){
-    sendMessage("Expects a list of length 1.");
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  ListExpr xMPointDesc = nl->First(in_xArgs);
-
-  if( (!nl->IsAtom( xMPointDesc )) ||
-      nl->AtomType( xMPointDesc ) != SymbolType ||
-      nl->SymbolValue( xMPointDesc ) != "gpoint" )
+  if ( nl->ListLength ( in_xArgs ) != 1 )
   {
-    sendMessage("Element must be of type gpoint.");
-    return (nl->SymbolAtom( "typeerror" ));
+    sendMessage ( "Expects a list of length 1." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  return nl->SymbolAtom( "point" );
+  ListExpr xMPointDesc = nl->First ( in_xArgs );
+
+  if ( ( !nl->IsAtom ( xMPointDesc ) ) ||
+          nl->AtomType ( xMPointDesc ) != SymbolType ||
+          nl->SymbolValue ( xMPointDesc ) != "gpoint" )
+  {
+    sendMessage ( "Element must be of type gpoint." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  return nl->SymbolAtom ( "point" );
 }
 
-int OpGPoint2PointValueMapping(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
+int OpGPoint2PointValueMapping ( Word* args,
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier in_xSupplier )
 {
-  Point* pPoint = (Point*)qp->ResultStorage(in_xSupplier).addr;
-  result = SetWord( pPoint );
-  GPoint* pGPoint = (GPoint*)args[0].addr;
-  if(pGPoint == NULL || !pGPoint->IsDefined()) {
+  Point* pPoint = ( Point* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pPoint );
+  GPoint* pGPoint = ( GPoint* ) args[0].addr;
+  if ( pGPoint == NULL || !pGPoint->IsDefined() )
+  {
     string strMessage = "Point does not exist.";
     cerr << strMessage << endl;
-    sendMessage(strMessage);
-    pPoint->SetDefined(false);
+    sendMessage ( strMessage );
+    pPoint->SetDefined ( false );
     return 0;
   }
-  pGPoint->ToPoint(pPoint);
+  pGPoint->ToPoint ( pPoint );
   return 0;
 } //end ValueMapping
 
 const string OpGPoint2PointSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>gpoint -> point" "</text--->"
-  "<text>gpoint2point(gpoint)</text--->"
-  "<text>Translates a gpoint to a point.</text--->"
-  "<text>gpoint2point(gpoint)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gpoint -> point" "</text--->"
+    "<text>gpoint2point(gpoint)</text--->"
+    "<text>Translates a gpoint to a point.</text--->"
+    "<text>gpoint2point(gpoint)</text--->"
+    ") )";
 
 Operator gpoint2point (
-          "gpoint2point",               // name
-          OpGPoint2PointSpec,          // specification
-          OpGPoint2PointValueMapping,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpGPoint2PointTypeMap        // type mapping
+    "gpoint2point",               // name
+    OpGPoint2PointSpec,          // specification
+    OpGPoint2PointValueMapping,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpGPoint2PointTypeMap        // type mapping
 );
 
 
@@ -7254,83 +8131,89 @@ as the given ~GPoint~. Including the given  ~GPoint~.
 
 */
 
-ListExpr OpPolyGPointTypeMap(ListExpr in_xArgs)
+ListExpr OpPolyGPointTypeMap ( ListExpr in_xArgs )
 {
-  if( nl->ListLength(in_xArgs) != 2 ){
-    sendMessage("Expects a list of length 1.");
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  ListExpr xsource = nl->First(in_xArgs);
-  ListExpr xnetwork = nl->Second(in_xArgs);
-
-  if( (!nl->IsAtom(xsource)) ||
-      !nl->IsEqual(xsource, "gpoint"))
+  if ( nl->ListLength ( in_xArgs ) != 2 )
   {
-    sendMessage("First Element must be of type gpoint.");
-    return (nl->SymbolAtom("typeerror"));
-  }
-  if( (!nl->IsAtom(xnetwork)) ||
-      !nl->IsEqual(xnetwork, "network"))
-  {
-    sendMessage("Second Element must be of type network.");
-    return (nl->SymbolAtom("typeerror"));
+    sendMessage ( "Expects a list of length 1." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  return nl->TwoElemList(nl->SymbolAtom("stream"),
-                         nl->SymbolAtom("gpoint"));
+  ListExpr xsource = nl->First ( in_xArgs );
+  ListExpr xnetwork = nl->Second ( in_xArgs );
+
+  if ( ( !nl->IsAtom ( xsource ) ) ||
+          !nl->IsEqual ( xsource, "gpoint" ) )
+  {
+    sendMessage ( "First Element must be of type gpoint." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  if ( ( !nl->IsAtom ( xnetwork ) ) ||
+          !nl->IsEqual ( xnetwork, "network" ) )
+  {
+    sendMessage ( "Second Element must be of type network." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+
+  return nl->TwoElemList ( nl->SymbolAtom ( "stream" ),
+                           nl->SymbolAtom ( "gpoint" ) );
 }
 
-int OpPolyGPointValueMapping(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
+int OpPolyGPointValueMapping ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
 {
-   GPointList* localinfo;
-   const GPoint* res;
-   result = qp->ResultStorage(in_xSupplier);
-   switch (message){
-      case OPEN:
-          local = SetWord(new GPointList((GPoint*)args[0].addr,
-                                         (Network*)args[1].addr));
-          return 0;
-      case REQUEST:
-           localinfo = (GPointList*) local.addr;
-           res = localinfo->NextGPoint();
-           if(res==0){
-              return CANCEL;
-           } else {
-              result = SetWord(new GPoint(*res));
-              return YIELD;
-           }
-      case CLOSE:
-           if (local.addr != 0) {
-             delete (GPointList*) local.addr;
-             local = SetWord(Address(0));
-           }
-           return 0;
-   }
-   return 0; // ignore unknown message
+  GPointList* localinfo;
+  GPoint res;
+  result = qp->ResultStorage ( in_xSupplier );
+  switch ( message )
+  {
+    case OPEN:
+      local = SetWord ( new GPointList ( ( GPoint* ) args[0].addr,
+                                         ( Network* ) args[1].addr ) );
+      return 0;
+    case REQUEST:
+      localinfo = ( GPointList* ) local.addr;
+      res = localinfo->NextGPoint();
+      if ( !res.IsDefined() )
+      {
+        return CANCEL;
+      }
+      else
+      {
+        result = SetWord ( new GPoint ( res ) );
+        return YIELD;
+      }
+    case CLOSE:
+      if ( local.addr != 0 )
+      {
+        delete ( GPointList* ) local.addr;
+        local = SetWord ( Address ( 0 ) );
+      }
+      return 0;
+  }
+  return 0; // ignore unknown message
 } //end ValueMapping
 
 
 const string OpPolyGPointSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>gpoint x network -> stream(gpoint)" "</text--->"
-  "<text>gpoint polygpoint</text--->"
-  "<text>Returns the gpoint and gpoints with the same network position"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gpoint x network -> stream(gpoint)" "</text--->"
+    "<text>gpoint polygpoint</text--->"
+    "<text>Returns the gpoint and gpoints with the same network position"
     " if the gpoint is a junction.</text--->"
-  "<text> polygpoints (gpoint, network) </text--->"
-  ") )";
+    "<text> polygpoints (gpoint, network) </text--->"
+    ") )";
 
 Operator polygpoints (
-          "polygpoints",               // name
-          OpPolyGPointSpec,          // specification
-          OpPolyGPointValueMapping,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpPolyGPointTypeMap        // type mapping
+    "polygpoints",               // name
+    OpPolyGPointSpec,          // specification
+    OpPolyGPointValueMapping,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpPolyGPointTypeMap        // type mapping
 );
 
 
@@ -7341,72 +8224,76 @@ Returns a stream of rectangles representing the ~RouteIntervals~ of the ~GLine~.
 
 */
 
-ListExpr OpRouteIntervalsTypeMap(ListExpr in_xArgs)
+ListExpr OpRouteIntervalsTypeMap ( ListExpr in_xArgs )
 {
-  if( nl->ListLength(in_xArgs) != 1 ){
-    sendMessage("Expects a list of length 1.");
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  ListExpr xsource = nl->First(in_xArgs);
-
-  if( (!nl->IsAtom(xsource)) ||
-      !nl->IsEqual(xsource, "gline"))
+  if ( nl->ListLength ( in_xArgs ) != 1 )
   {
-    sendMessage("First Element must be of type gline.");
-    return (nl->SymbolAtom("typeerror"));
+    sendMessage ( "Expects a list of length 1." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->TwoElemList(nl->SymbolAtom("stream"),
-                         nl->SymbolAtom("rect"));
+
+  ListExpr xsource = nl->First ( in_xArgs );
+
+  if ( ( !nl->IsAtom ( xsource ) ) ||
+          !nl->IsEqual ( xsource, "gline" ) )
+  {
+    sendMessage ( "First Element must be of type gline." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  return nl->TwoElemList ( nl->SymbolAtom ( "stream" ),
+                           nl->SymbolAtom ( "rect" ) );
 }
 
-int OpRouteIntervalsValueMapping(Word* args,
+int OpRouteIntervalsValueMapping ( Word* args,
                                    Word& result,
                                    int message,
                                    Word& local,
-                                   Supplier in_xSupplier)
+                                   Supplier in_xSupplier )
 {
-   RectangleList* localinfo;
-   const Rectangle<2>* res;
-   result = qp->ResultStorage(in_xSupplier);
-   switch (message){
-      case OPEN:
-          local = SetWord(new RectangleList((GLine*)args[0].addr));
-          return 0;
-      case REQUEST:
-           localinfo = (RectangleList*) local.addr;
-           res = localinfo->NextRectangle();
-           if(res==0) return CANCEL;
-           else {
-              result = SetWord(new Rectangle<2>(*res));
-              return YIELD;
-           }
-      case CLOSE:
-           if (local.addr != 0) {
-             delete (RectangleList*) local.addr;
-             local = SetWord(Address(0));
-           }
-           return 0;
-   }
-   return 0; // ignore unknown message
+  RectangleList* localinfo;
+  Rectangle<2> res;
+  result = qp->ResultStorage ( in_xSupplier );
+  switch ( message )
+  {
+    case OPEN:
+      local = SetWord ( new RectangleList ( ( GLine* ) args[0].addr ) );
+      return 0;
+    case REQUEST:
+      localinfo = ( RectangleList* ) local.addr;
+      res = localinfo->NextRectangle();
+      if ( !res.IsDefined() ) return CANCEL;
+      else
+      {
+        result = SetWord ( new Rectangle<2> ( res ) );
+        return YIELD;
+      }
+    case CLOSE:
+      if ( local.addr != 0 )
+      {
+        delete ( RectangleList* ) local.addr;
+        local = SetWord ( Address ( 0 ) );
+      }
+      return 0;
+  }
+  return 0; // ignore unknown message
 } //end ValueMapping
 
 const string OpRouteIntervalsSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>gline -> stream(rect)" "</text--->"
-  "<text>routeintervals(GLINE)</text--->"
-  "<text>Returns a stream of rectangles representing the route intervals of the"
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gline -> stream(rect)" "</text--->"
+    "<text>routeintervals(GLINE)</text--->"
+ "<text>Returns a stream of rectangles representing the route intervals of the"
     " gline.</text--->"
-  "<text> routeintervals (gline) </text--->"
-  ") )";
+    "<text> routeintervals (gline) </text--->"
+    ") )";
 
 Operator networkrouteintervals (
-          "routeintervals",               // name
-          OpRouteIntervalsSpec,          // specification
-          OpRouteIntervalsValueMapping,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpRouteIntervalsTypeMap        // type mapping
+    "routeintervals",               // name
+    OpRouteIntervalsSpec,          // specification
+    OpRouteIntervalsValueMapping,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpRouteIntervalsTypeMap        // type mapping
 );
 
 
@@ -7418,67 +8305,67 @@ Algorithm to compute the shortest path.
 
 */
 
-ListExpr OpShortestPathTypeMap(ListExpr in_xArgs)
+ListExpr OpShortestPathTypeMap ( ListExpr in_xArgs )
 {
-  if( nl->ListLength(in_xArgs) != 2 )
-    return (nl->SymbolAtom( "typeerror" ));
+  if ( nl->ListLength ( in_xArgs ) != 2 )
+    return ( nl->SymbolAtom ( "typeerror" ) );
 
-  ListExpr xGPoint1Desc = nl->First(in_xArgs);
-  ListExpr xGPoint2Desc = nl->Second(in_xArgs);
- // ListExpr xGPoint3Desc = nl->Third(in_xArgs);
+  ListExpr xGPoint1Desc = nl->First ( in_xArgs );
+  ListExpr xGPoint2Desc = nl->Second ( in_xArgs );
+// ListExpr xGPoint3Desc = nl->Third(in_xArgs);
 
-  if( (!nl->IsAtom( xGPoint1Desc )) ||
-      nl->AtomType( xGPoint1Desc ) != SymbolType ||
-      nl->SymbolValue( xGPoint1Desc ) != "gpoint" )
+  if ( ( !nl->IsAtom ( xGPoint1Desc ) ) ||
+          nl->AtomType ( xGPoint1Desc ) != SymbolType ||
+          nl->SymbolValue ( xGPoint1Desc ) != "gpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  if( (!nl->IsAtom( xGPoint2Desc )) ||
-      nl->AtomType( xGPoint2Desc ) != SymbolType ||
-      nl->SymbolValue( xGPoint2Desc ) != "gpoint" )
+  if ( ( !nl->IsAtom ( xGPoint2Desc ) ) ||
+          nl->AtomType ( xGPoint2Desc ) != SymbolType ||
+          nl->SymbolValue ( xGPoint2Desc ) != "gpoint" )
   {
-    return (nl->SymbolAtom( "typeerror" ));
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
   //if((!nl->IsAtom(xGPoint3Desc))|| (!nl->IsEqual(xGPoint3Desc,"network"))) {
   //  return (nl->SymbolAtom("typeerror"));
   //}
 
-  return nl->SymbolAtom( "gline" );
+  return nl->SymbolAtom ( "gline" );
 }
 
-int OpShortestPathValueMapping( Word* args,
-                                  Word& result,
-                                  int message,
-                                  Word& local,
-                                  Supplier in_xSupplier )
+int OpShortestPathValueMapping ( Word* args,
+                                 Word& result,
+                                 int message,
+                                 Word& local,
+                                 Supplier in_xSupplier )
 {
 
-  GPoint *pFromGPoint = (GPoint*) args[0].addr;
-  GPoint *pToGPoint = (GPoint*) args[1].addr;
-  GLine* pGLine = (GLine*) qp->ResultStorage(in_xSupplier).addr;
-  result = SetWord(pGLine);
+  GPoint *pFromGPoint = ( GPoint* ) args[0].addr;
+  GPoint *pToGPoint = ( GPoint* ) args[1].addr;
+  GLine* pGLine = ( GLine* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pGLine );
 
-  pGLine->SetSorted(false);
-  pGLine->SetDefined(pFromGPoint->ShortestPath(pToGPoint, pGLine));
+  pGLine->SetSorted ( false );
+  pGLine->SetDefined ( pFromGPoint->ShortestPath ( pToGPoint, pGLine ) );
   return 0;
 }
 
 const string OpShortestPathSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>gpoint x gpoint -> gline" "</text--->"
-  "<text>shortest_path( _ , _)</text--->"
-  "<text>Calculates the shortest path between two gpoints.</text--->"
-  "<text>query shortest_path(x, y)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gpoint x gpoint -> gline" "</text--->"
+    "<text>shortest_path( _ , _)</text--->"
+    "<text>Calculates the shortest path between two gpoints.</text--->"
+    "<text>query shortest_path(x, y)</text--->"
+    ") )";
 
 Operator shortest_path (
-          "shortest_path",               // name
-          OpShortestPathSpec,          // specification
-          OpShortestPathValueMapping,  // value mapping
-          Operator::SimpleSelect,        // trivial selection function
-          OpShortestPathTypeMap        // type mapping
+    "shortest_path",               // name
+    OpShortestPathSpec,          // specification
+    OpShortestPathValueMapping,  // value mapping
+    Operator::SimpleSelect,        // trivial selection function
+    OpShortestPathTypeMap        // type mapping
 );
 
 /*
@@ -7488,57 +8375,59 @@ Returns the ~line~ value of the given ~GLine~.
 
 */
 
-ListExpr OpGLine2LineTypeMap(ListExpr in_xArgs)
+ListExpr OpGLine2LineTypeMap ( ListExpr in_xArgs )
 {
-  if( nl->ListLength(in_xArgs) != 1 ){
-    sendMessage("Expects a list of length 1.");
-    return (nl->SymbolAtom( "typeerror" ));
-  }
-
-  ListExpr xsource = nl->First(in_xArgs);
-
-  if( (!nl->IsAtom(xsource)) ||
-      !nl->IsEqual(xsource, "gline"))
+  if ( nl->ListLength ( in_xArgs ) != 1 )
   {
-    sendMessage("Element must be of type gline.");
-    return (nl->SymbolAtom("typeerror"));
+    sendMessage ( "Expects a list of length 1." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->SymbolAtom( "line" );
+
+  ListExpr xsource = nl->First ( in_xArgs );
+
+  if ( ( !nl->IsAtom ( xsource ) ) ||
+          !nl->IsEqual ( xsource, "gline" ) )
+  {
+    sendMessage ( "Element must be of type gline." );
+    return ( nl->SymbolAtom ( "typeerror" ) );
+  }
+  return nl->SymbolAtom ( "line" );
 }
 
-int OpGLine2LineValueMapping(Word* args,
-                                   Word& result,
-                                   int message,
-                                   Word& local,
-                                   Supplier in_xSupplier)
+int OpGLine2LineValueMapping ( Word* args,
+                               Word& result,
+                               int message,
+                               Word& local,
+                               Supplier in_xSupplier )
 {
-  Line* pLine = (Line*) qp->ResultStorage(in_xSupplier).addr;
-  result = SetWord(pLine);
-  GLine* pGLine = (GLine*)args[0].addr;
-  if (pGLine == NULL || !pGLine->IsDefined()) {
-    sendMessage("GLine must be defined!");
-    pLine->SetDefined(false);
+  Line* pLine = ( Line* ) qp->ResultStorage ( in_xSupplier ).addr;
+  result = SetWord ( pLine );
+  GLine* pGLine = ( GLine* ) args[0].addr;
+  if ( pGLine == NULL || !pGLine->IsDefined() )
+  {
+    sendMessage ( "GLine must be defined!" );
+    pLine->SetDefined ( false );
     return 0;
   }
-  pGLine->Gline2line(pLine);
+  pGLine->Gline2line ( pLine );
   return 0;
 }
 
 const string OpGLine2LineSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>gline -> line" "</text--->"
-  "<text>gline2line(GLINE)</text--->"
-  "<text>Returns the line value of the gline.</text--->"
-  "<text> gline2line(gline) </text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gline -> line" "</text--->"
+    "<text>gline2line(GLINE)</text--->"
+    "<text>Returns the line value of the gline.</text--->"
+    "<text> gline2line(gline) </text--->"
+    ") )";
 
 Operator networkgline2line (
-          "gline2line",               // name
-          OpGLine2LineSpec,          // specification
-          OpGLine2LineValueMapping,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpGLine2LineTypeMap        // type mapping
+    "gline2line",               // name
+    OpGLine2LineSpec,          // specification
+    OpGLine2LineValueMapping,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpGLine2LineTypeMap        // type mapping
 );
 
 /*
@@ -7547,47 +8436,54 @@ Operator networkgline2line (
 Returns if the ~GLine~. is empty.
 
 */
-ListExpr OpNetIsEmptyTypeMap(ListExpr args){
-  if (nl->ListLength(args) != 1) {
-    return (nl->SymbolAtom("typeerror"));
+ListExpr OpNetIsEmptyTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 1 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  ListExpr gline = nl->First(args);
-  if (!nl->IsAtom(gline) || nl->AtomType(gline) != SymbolType ||
-       nl->SymbolValue(gline) != "gline"){
-    return (nl->SymbolAtom("typeerror"));
+  ListExpr gline = nl->First ( args );
+  if ( !nl->IsAtom ( gline ) || nl->AtomType ( gline ) != SymbolType ||
+          nl->SymbolValue ( gline ) != "gline" )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->SymbolAtom("bool");
+  return nl->SymbolAtom ( "bool" );
 }
 
-int OpNetIsEmptyValueMap (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier){
-  GLine* pGline = (GLine*) args[0].addr;
-  result = qp->ResultStorage(in_pSupplier);
-  CcBool* pResult = (CcBool*) result.addr;
-  if ((!(pGline->IsDefined())) || pGline->NoOfComponents() == 0) {
-    pResult->Set(true, true);
+int OpNetIsEmptyValueMap ( Word* args, Word& result, int message,
+                           Word& local, Supplier in_pSupplier )
+{
+  GLine* pGline = ( GLine* ) args[0].addr;
+  result = qp->ResultStorage ( in_pSupplier );
+  CcBool* pResult = ( CcBool* ) result.addr;
+  if ( ( ! ( pGline->IsDefined() ) ) || pGline->NoOfComponents() == 0 )
+  {
+    pResult->Set ( true, true );
     return 0;
-  }  else {
-    pResult->Set(true,false);
+  }
+  else
+  {
+    pResult->Set ( true,false );
     return 0;
   }
 }
 
 const string OpNetIsEmptySpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>gline -> bool" "</text--->"
-  "<text>isemtpy(_)</text--->"
-  "<text>Returns true if the gline is empty.</text--->"
-  "<text>query isempty(gline)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gline -> bool" "</text--->"
+    "<text>isemtpy(_)</text--->"
+    "<text>Returns true if the gline is empty.</text--->"
+    "<text>query isempty(gline)</text--->"
+    ") )";
 
 Operator networkisempty (
-          "isempty",               // name
-          OpNetIsEmptySpec,          // specification
-          OpNetIsEmptyValueMap,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpNetIsEmptyTypeMap        // type mapping
+    "isempty",               // name
+    OpNetIsEmptySpec,          // specification
+    OpNetIsEmptyValueMap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpNetIsEmptyTypeMap        // type mapping
 );
 
 /*
@@ -7597,51 +8493,56 @@ Builds the union of the two given glines as sorted gline.
 
 */
 
-ListExpr OpNetUnionTypeMap(ListExpr args){
-  if (nl->ListLength(args) != 2) {
-    return (nl->SymbolAtom("typeerror"));
+ListExpr OpNetUnionTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  ListExpr gline1 = nl->First(args);
-  ListExpr gline2 = nl->Second(args);
+  ListExpr gline1 = nl->First ( args );
+  ListExpr gline2 = nl->Second ( args );
 
-  if (!nl->IsAtom(gline1) || nl->AtomType(gline1) != SymbolType ||
-       nl->SymbolValue(gline1) != "gline"){
-    return (nl->SymbolAtom("typeerror"));
+  if ( !nl->IsAtom ( gline1 ) || nl->AtomType ( gline1 ) != SymbolType ||
+          nl->SymbolValue ( gline1 ) != "gline" )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
 
-  if (!nl->IsAtom(gline2) || nl->AtomType(gline2) != SymbolType ||
-       nl->SymbolValue(gline2) != "gline"){
-    return (nl->SymbolAtom("typeerror"));
+  if ( !nl->IsAtom ( gline2 ) || nl->AtomType ( gline2 ) != SymbolType ||
+          nl->SymbolValue ( gline2 ) != "gline" )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  return nl->SymbolAtom("gline");
+  return nl->SymbolAtom ( "gline" );
 }
 
-int OpNetUnionValueMap (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier){
-  GLine *pGL1 = (GLine*) args[0].addr;
-  GLine *pGL2 = (GLine*) args[1].addr;
-  GLine *pGLine = (GLine*) qp->ResultStorage(in_pSupplier).addr;
-  result = SetWord(pGLine);
-  pGL1->Uniongl(pGL2, pGLine);
+int OpNetUnionValueMap ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  GLine *pGL1 = ( GLine* ) args[0].addr;
+  GLine *pGL2 = ( GLine* ) args[1].addr;
+  GLine *pGLine = ( GLine* ) qp->ResultStorage ( in_pSupplier ).addr;
+  result = SetWord ( pGLine );
+  pGL1->Uniongl ( pGL2, pGLine );
   return 0;
 }
 
 const string OpNetUnionSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>gline x gline -> gline" "</text--->"
-  "<text>_ union _ </text--->"
-  "<text>Returns the sorted gline resulting of the union of both "
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>gline x gline -> gline" "</text--->"
+    "<text>_ union _ </text--->"
+    "<text>Returns the sorted gline resulting of the union of both "
     "gline.</text--->"
-  "<text>query gline1 union gline2</text--->"
-  ") )";
+    "<text>query gline1 union gline2</text--->"
+    ") )";
 
 Operator networkunion (
-          "union",               // name
-          OpNetUnionSpec,          // specification
-          OpNetUnionValueMap,  // value mapping
-          Operator::SimpleSelect,        // selection function
-          OpNetUnionTypeMap        // type mapping
+    "union",               // name
+    OpNetUnionSpec,          // specification
+    OpNetUnionValueMap,  // value mapping
+    Operator::SimpleSelect,        // selection function
+    OpNetUnionTypeMap        // type mapping
 );
 
 /*
@@ -7651,86 +8552,96 @@ Returns the Euclidean Distance between two ~Gpoints~ or two ~GLines~.
 
 */
 
-ListExpr OpNetDistanceTypeMap(ListExpr args){
-  if (nl->ListLength(args) != 2) {
-    return (nl->SymbolAtom("typeerror"));
+ListExpr OpNetDistanceTypeMap ( ListExpr args )
+{
+  if ( nl->ListLength ( args ) != 2 )
+  {
+    return ( nl->SymbolAtom ( "typeerror" ) );
   }
-  ListExpr param1 = nl->First(args);
-  ListExpr param2 = nl->Second(args);
+  ListExpr param1 = nl->First ( args );
+  ListExpr param2 = nl->Second ( args );
 
-  if ((nl->IsAtom(param1) && nl->AtomType(param1) == SymbolType &&
-     nl->IsAtom(param2) && nl->AtomType(param2) == SymbolType &&
-     ((nl->SymbolValue(param1) == "gpoint" &&
-     nl->SymbolValue(param2) == "gpoint") ||
-     (nl->SymbolValue(param1) == "gline" &&
-     nl->SymbolValue(param2) == "gline")))) {
-    return nl->SymbolAtom("real");
+  if ( ( nl->IsAtom ( param1 ) && nl->AtomType ( param1 ) == SymbolType &&
+          nl->IsAtom ( param2 ) && nl->AtomType ( param2 ) == SymbolType &&
+          ( ( nl->SymbolValue ( param1 ) == "gpoint" &&
+              nl->SymbolValue ( param2 ) == "gpoint" ) ||
+            ( nl->SymbolValue ( param1 ) == "gline" &&
+              nl->SymbolValue ( param2 ) == "gline" ) ) ) )
+  {
+    return nl->SymbolAtom ( "real" );
   }
-  return nl->SymbolAtom("typeerror");
+  return nl->SymbolAtom ( "typeerror" );
 }
 
-int OpNetDistance_gpgp (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier){
-  GPoint* pFromGPoint = (GPoint*) args[0].addr;
-  GPoint* pToGPoint = (GPoint*) args[1].addr;
-  result = qp->ResultStorage(in_pSupplier);
-  CcReal* pResult = (CcReal*) result.addr;
-  if (!(pFromGPoint->IsDefined()) || !(pToGPoint->IsDefined())) {
-    cmsg.inFunError("Both gpoint must be defined!");
+int OpNetDistance_gpgp ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  GPoint* pFromGPoint = ( GPoint* ) args[0].addr;
+  GPoint* pToGPoint = ( GPoint* ) args[1].addr;
+  result = qp->ResultStorage ( in_pSupplier );
+  CcReal* pResult = ( CcReal* ) result.addr;
+  if ( ! ( pFromGPoint->IsDefined() ) || ! ( pToGPoint->IsDefined() ) )
+  {
+    cmsg.inFunError ( "Both gpoint must be defined!" );
     return 0;
   };
-  pResult-> Set(true, pFromGPoint->Distance(pToGPoint));
+  pResult-> Set ( true, pFromGPoint->Distance ( pToGPoint ) );
   return 0;
 };
 
-int OpNetDistance_glgl (Word* args, Word& result, int message,
-      Word& local, Supplier in_pSupplier){
-  GLine* pGLine1 = (GLine*) args[0].addr;
-  GLine* pGLine2 = (GLine*) args[1].addr;
-  result = qp->ResultStorage(in_pSupplier);
-  CcReal* pResult = (CcReal*) result.addr;
-  if (!(pGLine1->IsDefined()) || !(pGLine2->IsDefined()) ||
-     pGLine1->NoOfComponents() == 0 || pGLine2->NoOfComponents() == 0) {
-    cmsg.inFunError("Both gline must be defined! And have at least 1 interval");
+int OpNetDistance_glgl ( Word* args, Word& result, int message,
+                         Word& local, Supplier in_pSupplier )
+{
+  GLine* pGLine1 = ( GLine* ) args[0].addr;
+  GLine* pGLine2 = ( GLine* ) args[1].addr;
+  result = qp->ResultStorage ( in_pSupplier );
+  CcReal* pResult = ( CcReal* ) result.addr;
+  if ( ! ( pGLine1->IsDefined() ) || ! ( pGLine2->IsDefined() ) ||
+          pGLine1->NoOfComponents() == 0 || pGLine2->NoOfComponents() == 0 )
+  {
+    cmsg.inFunError ( "Both gline must be defined! And have at least 1 interval"
+);
     return 0;
   };
-  pResult-> Set(true, pGLine1->Distance(pGLine2));
+  pResult-> Set ( true, pGLine1->Distance ( pGLine2 ) );
   return 1;
 };
 
-ValueMapping OpNetDistancemap[] = {
+ValueMapping OpNetDistancemap[] =
+{
   OpNetDistance_gpgp,
   OpNetDistance_glgl
 };
 
-int OpNetDistanceselect (ListExpr args){
-  ListExpr arg1 = nl->First(args);
-  ListExpr arg2 = nl->Second(args);
-  if ( nl->SymbolValue(arg1) == "gpoint" &&
-       nl->SymbolValue(arg2) == "gpoint")
+int OpNetDistanceselect ( ListExpr args )
+{
+  ListExpr arg1 = nl->First ( args );
+  ListExpr arg2 = nl->Second ( args );
+  if ( nl->SymbolValue ( arg1 ) == "gpoint" &&
+          nl->SymbolValue ( arg2 ) == "gpoint" )
     return 0;
-  if ( nl->SymbolValue(arg1) == "gline" &&
-       nl->SymbolValue(arg2) == "gline")
+  if ( nl->SymbolValue ( arg1 ) == "gline" &&
+          nl->SymbolValue ( arg2 ) == "gline" )
     return 1;
   return -1; // This point should never be reached
 };
 
 const string OpNetDistanceSpec  =
-  "( ( \"Signature\" \"Syntax\" \"Meaning\" "
-  "\"Example\" ) "
-  "( <text>A x A -> real with A = gpoint or gline" "</text--->"
-  "<text>distance(GPOINT1,GPOINT2)</text--->"
-  "<text>Calculates the Euclidean Distance of gpoints resp. glines.</text--->"
-  "<text>query distance(gp1,gp2)</text--->"
-  ") )";
+    "( ( \"Signature\" \"Syntax\" \"Meaning\" "
+    "\"Example\" ) "
+    "( <text>A x A -> real with A = gpoint or gline" "</text--->"
+    "<text>distance(GPOINT1,GPOINT2)</text--->"
+    "<text>Calculates the Euclidean Distance of gpoints resp. glines.</text--->"
+    "<text>query distance(gp1,gp2)</text--->"
+    ") )";
 
 Operator networkdistance (
-          "distance",               // name
-          OpNetDistanceSpec,          // specification
-          2,
-          OpNetDistancemap,  // value mapping
-          OpNetDistanceselect,        // selection function
-          OpNetDistanceTypeMap        // type mapping
+    "distance",               // name
+    OpNetDistanceSpec,          // specification
+    2,
+    OpNetDistancemap,  // value mapping
+    OpNetDistanceselect,        // selection function
+    OpNetDistanceTypeMap        // type mapping
 );
 
 
@@ -7741,43 +8652,43 @@ Operator networkdistance (
 
 class NetworkAlgebra : public Algebra
 {
- public:
-  NetworkAlgebra() : Algebra()
-  {
-    AddTypeConstructor( &network );
-    AddTypeConstructor( &gpoint );
-    AddTypeConstructor( &gline );
-    AddTypeConstructor( &gpoints );
+  public:
+    NetworkAlgebra() : Algebra()
+    {
+      AddTypeConstructor ( &network );
+      AddTypeConstructor ( &gpoint );
+      AddTypeConstructor ( &gline );
+      AddTypeConstructor ( &gpoints );
 
-    gpoint.AssociateKind( "DATA" );
-    gline.AssociateKind( "DATA" );
-    network.AssociateKind( "NETWORK" );
-    gpoints.AssociateKind("DATA");
+      gpoint.AssociateKind ( "DATA" );
+      gline.AssociateKind ( "DATA" );
+      network.AssociateKind ( "NETWORK" );
+      gpoints.AssociateKind ( "DATA" );
 
 
-    AddOperator(&networkthenetwork);
-    AddOperator(&networkroutes);
-    AddOperator(&networkjunctions);
-    AddOperator(&networksections);
-    AddOperator(&shortest_path);
-    AddOperator(&networklength);
-    AddOperator(&networknetdistance);
-    AddOperator(&point2gpoint);
-    AddOperator(&gpoint2point);
-    AddOperator(&netgpequal);
-    AddOperator(&sline2gline);
-    AddOperator(&networkinside);
-    AddOperator(&networknocomponents);
-    AddOperator(&polygpoints);
-    AddOperator(&networkrouteintervals);
-    AddOperator(&networkintersects);
-    AddOperator(&networkgpoint2rect);
-    AddOperator(&networkgline2line);
-    AddOperator(&networkisempty);
-    AddOperator(&networkunion);
-    AddOperator(&networkdistance);
-  }
-  ~NetworkAlgebra() {delete netList;};
+      AddOperator ( &networkthenetwork );
+      AddOperator ( &networkroutes );
+      AddOperator ( &networkjunctions );
+      AddOperator ( &networksections );
+      AddOperator ( &shortest_path );
+      AddOperator ( &networklength );
+      AddOperator ( &networknetdistance );
+      AddOperator ( &point2gpoint );
+      AddOperator ( &gpoint2point );
+      AddOperator ( &netgpequal );
+      AddOperator ( &sline2gline );
+      AddOperator ( &networkinside );
+      AddOperator ( &networknocomponents );
+      AddOperator ( &polygpoints );
+      AddOperator ( &networkrouteintervals );
+      AddOperator ( &networkintersects );
+      AddOperator ( &networkgpoint2rect );
+      AddOperator ( &networkgline2line );
+      AddOperator ( &networkisempty );
+      AddOperator ( &networkunion );
+      AddOperator ( &networkdistance );
+    }
+    ~NetworkAlgebra() {delete netList;};
 };
 
 /*
@@ -7798,12 +8709,12 @@ dynamically at runtime.
 */
 
 extern "C"
-Algebra*
-InitializeNetworkAlgebra( NestedList* nlRef,
-                          QueryProcessor* qpRef )
+  Algebra*
+  InitializeNetworkAlgebra ( NestedList* nlRef,
+                             QueryProcessor* qpRef )
 {
   nl = nlRef;
   qp = qpRef;
   netList = new map<int,string>();
-  return (new NetworkAlgebra());
+  return ( new NetworkAlgebra() );
 }

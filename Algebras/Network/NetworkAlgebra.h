@@ -33,7 +33,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 #include "TupleIdentifier.h"
 #include "RelationAlgebra.h"
 #include "BTreeAlgebra.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
+#include "../../Tools/Flob/Flob.h"
 #include "Attribute.h"
 #include "SpatialAlgebra.h"
 #include "RTreeAlgebra.h"
@@ -89,7 +90,7 @@ class GLine;
 /*
 2 GLine
 
-Every ~gline~ consists of a set of ~RouteInterval~s stored in a ~DBArray~.
+Every ~gline~ consists of a set of ~RouteInterval~s stored in a ~DbArray~.
 
 2.1 struct RouteInterval
 Each ~RouteInterval~ consists of a ~rid~, ~startpos~ and ~endpos~. Telling to
@@ -135,7 +136,7 @@ rectangle. Using the subline of the route curve defined by the given ~route-
 interval~.
 
 */
-  
+
   Rectangle<2> BoundingBox(Network* pNetwork) const;
 
 /*
@@ -154,7 +155,7 @@ Get and Set private values.
 The route id.
 
 */
-  
+
   int m_iRouteId;
 
 /*
@@ -305,7 +306,7 @@ class GPoint : public Attribute
 3.4.2 Methods of class ~gpoint~
 
 */
-    
+
     GPoint& operator=( const GPoint& in_xOther )
     {
       m_bDefined = in_xOther.m_bDefined;
@@ -366,7 +367,7 @@ Set Methods of ~gpoint~
     {
       m_xRouteLocation.SetSide(s);
     }
-    
+
     inline void SetDefined( bool in_bDefined )
     {
       m_bDefined = in_bDefined;
@@ -1395,12 +1396,12 @@ downwards bool from the section given by TupleId.
 GetSections on RouteInterval.
 
 Returns a set of sections which are covered by the given ~RouteInterval~
-~inri~ as ~DBArray~ of SectTreeEntries.
+~inri~ as ~DbArray~ of SectTreeEntries.
 
 */
 
     void GetSectionsOfRouteInterval(const RouteInterval *in_ri,
-                                    DBArray<SectTreeEntry> *io_SectionIds);
+                                    DbArray<SectTreeEntry> *io_SectionIds);
 
     void GetSectionsOfRoutInterval(const RouteInterval *in_ri,
                                   vector<TupleId> &res);
@@ -1546,6 +1547,8 @@ the ~id~ attribute and creates the B-Tree in this attribute.
 */
   void FillRoutes( const Relation *in_pRoutes );
 
+  void CreateRoutesIndexes();
+
 /*
 FillJunctions
 
@@ -1585,9 +1588,9 @@ Used for experiments with network distance computation to store precomputed
 distances. Because of the big data overhead and computation time this methods
 and parameters should not be used if not needed. Therefore their calls are
 comment out in the code. Of network constructors.
-  
+
 */
-  
+
   void FillDistanceStorage();
 
 /*
@@ -1676,13 +1679,13 @@ The adjacency lists of sections.
 
 */
 
-  DBArray<AdjacencyListEntry> m_xAdjacencyList;
+  DbArray<AdjacencyListEntry> m_xAdjacencyList;
 
 /*
 The adjacency lists of sections.
 
 */
-  DBArray<DirectedSection> m_xSubAdjacencyList;
+  DbArray<DirectedSection> m_xSubAdjacencyList;
 
 /*
 The BTree of the sections route ids.
@@ -1723,7 +1726,7 @@ The simple constructor. Should not be used.
 
 /*
 ~iniSize~ gives the number of expected ~RouteIntervals~. If it is to small
-the size of the ~DBArray~ is dynamically extended later.
+the size of the ~DbArray~ is dynamically extended later.
 
 */
     GLine(int in_iSize);
@@ -1750,13 +1753,13 @@ the size of the ~DBArray~ is dynamically extended later.
                           double in_dStart,
                           double in_dEnd);
 
-    void AddRouteInterval(RouteInterval *ri);
+    void AddRouteInterval(RouteInterval ri);
 
     double GetLength ();
 
     int GetNetworkId();
 
-    void Get(const int i, const RouteInterval* &ri) const;
+    void Get(const int i, RouteInterval &ri) const;
 
     int NoOfComponents();
 
@@ -1764,7 +1767,7 @@ the size of the ~DBArray~ is dynamically extended later.
 
     void SetSorted(bool);
 
-    DBArray<RouteInterval>* GetRouteIntervals();
+    DbArray<RouteInterval>* GetRouteIntervals();
 
 /*
 Computes the network distance of 2 glines.
@@ -1807,7 +1810,7 @@ Returns true if the glines intersect false elswhere.
 
 /*
 Returns the Bounding GPoints of the GLine.
-    
+
 */
 
     GPoints* GetBGP();
@@ -1844,7 +1847,7 @@ Returns the Bounding GPoints of the GLine.
 
     int NumOfFLOBs() const;
 
-    FLOB *GetFLOB( const int i );
+    Flob *GetFLOB( const int i );
 
     static int SizeOf();
 
@@ -1912,7 +1915,7 @@ The array of route intervals.
 
 */
 
-    DBArray<RouteInterval> m_xRouteIntervals;
+    DbArray<RouteInterval> m_xRouteIntervals;
 
 
 };
@@ -1923,7 +1926,7 @@ The array of route intervals.
 1.2.3 ~struct RITree~
 
 Used to compress and sort ~RouteInterval~s. Because many operators take profit
-from sorted ~RouteInterval~s. We sort and compress resulting ~DBArray~s of
+from sorted ~RouteInterval~s. We sort and compress resulting ~DbArray~s of
 ~RouteInterval~s whenever it is possible.
 
 */
@@ -1941,7 +1944,7 @@ struct RITree {
   };
 
   ~RITree(){};
-  
+
 /*
 Checks if in the ~RITree~ exist son intervals which are covered by the
 previos changed interval of the father.
@@ -2117,17 +2120,17 @@ start positions into ~gline~.
 
 /*
 Stores the ~RouteInterval~s of the ~RITree~ sorted by their route ids and
-start positions into a ~DBArray~. Used to build trajectory of ~mgpoint~.
+start positions into a ~DbArray~. Used to build trajectory of ~mgpoint~.
 
 */
 
-  void TreeToDBArray (DBArray<RouteInterval>* arr) {
+  void TreeToDbArray (DbArray<RouteInterval>* arr) {
     if (this->m_left != 0) {
-      this->m_left->TreeToDBArray (arr);
+      this->m_left->TreeToDbArray (arr);
     }
     arr->Append(RouteInterval(this->m_iRouteId, this->m_dStart, this->m_dEnd));
     if (this->m_right != 0) {
-      this->m_right->TreeToDBArray (arr);
+      this->m_right->TreeToDbArray (arr);
     }
   };
 
@@ -2166,9 +2169,9 @@ public:
   GPoints& operator-=(const GPoint &gp);
   bool IsDefined()const{return m_defined;}
   int NumOfFLOBs()const;
-  FLOB* GetFLOB(const int i);
+  Flob* GetFLOB(const int i);
   void SetDefined( bool in_bDefined ){m_defined = in_bDefined;}
-  void Get(int i,const GPoint*&)const;
+  void Get(int i, GPoint& gp)const;
   inline int Size()const;
   static int SizeOf();
   static ListExpr Out(ListExpr typeInfo,Word value);
@@ -2196,7 +2199,7 @@ public:
 
 private:
   bool m_defined;
-  DBArray<GPoint> m_xGPoints;
+  DbArray<GPoint> m_xGPoints;
 };
 
 
