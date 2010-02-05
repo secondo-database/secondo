@@ -154,7 +154,7 @@ Functions for Secondo integration.
 
     int NumOfFLOBs() const;
 
-    FLOB* GetFLOB(const int i);
+    Flob* GetFLOB(const int i);
 
     static void* Cast(void* addr);
 
@@ -660,10 +660,10 @@ The simple constructor should not be used.
       const MGPoint *src = (const MGPoint*) right;
       Clear();
       StartBulkLoad();
-      const UGPoint *u;
+      UGPoint u;
       for (int i = 0; i < src->GetNoComponents(); i++) {
         src->Get(i,u);
-        Add(*u);
+        Add(u);
       }
       EndBulkLoad(true);
       if (src->m_traj_Defined) SetTrajectory(src->m_trajectory);
@@ -680,7 +680,7 @@ inline int NumOfFLOBs() const
 }
 
 
-inline FLOB* GetFLOB(const int i)
+inline Flob* GetFLOB(const int i)
 {
   if (i == 0) return &units;
   if (i == 1) return &m_trajectory;
@@ -718,22 +718,22 @@ Translates an mgpoint into an mpoint value.
     void Mgpoint2mpoint(MPoint *&mp);
 
 /*
-Returns the trajectory of the mgpoint as sorted gline or as DBArray of
+Returns the trajectory of the mgpoint as sorted gline or as DbArray of
 ~RouteInterval~s
 
 */
 
    void Trajectory(GLine* res);
 
-   DBArray<RouteInterval>& GetTrajectory() ;
+   DbArray<RouteInterval>& GetTrajectory() ;
 
 /*
-Sets the Trajetory of the MGPoint from a GLine or a DBArray of ~RouteInterval~s
+Sets the Trajetory of the MGPoint from a GLine or a DbArray of ~RouteInterval~s
 
 */
    void SetTrajectory(GLine src);
 
-   void SetTrajectory(const DBArray<RouteInterval>& tra);
+   void SetTrajectory(const DbArray<RouteInterval>& tra);
 
    void SetTrajectoryDefined(bool defined);
 
@@ -854,7 +854,7 @@ Restricts a ~mgpoint~ to the given unit intervals.
 
   void SetBoundingBox(Rectangle<3> mbr);
 
-  DBArray<RouteInterval> m_trajectory;
+  DbArray<RouteInterval> m_trajectory;
 
   int Position(const Instant &inst, bool atinst=true);
 

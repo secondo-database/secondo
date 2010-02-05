@@ -49,7 +49,7 @@ NetworkAlgebra respectively in the TemporalNetAlgebra.
 #include "ConstructorTemplates.h"
 #include "Symbols.h"
 #include "ListUtils.h"
-#include "DBArray.h"
+#include "../../Tools/Flob/DbArray.h"
 #include <cmath>
 #include <queue>
 
@@ -1430,15 +1430,15 @@ make experimental evaluation of this values more easy.
     avgSpeed->StartBulkLoad();
     for (int i = 0; i < oldFlow->GetNoComponents();i++)
     {
-      const UInt *oldNumCars;
-      const UReal *oldAvgSpeed;
+      UInt oldNumCars;
+      UReal oldAvgSpeed;
       oldFlow->Get(i,oldNumCars);
       oldSpeed->Get(i,oldAvgSpeed);
-      if ((oldNumCars->constValue).GetIntval() >= MINCARS &&
-          oldAvgSpeed->Min(dummy) <= MAXSPEED)
+      if ((oldNumCars.constValue).GetIntval() >= MINCARS &&
+          oldAvgSpeed.Min(dummy) <= MAXSPEED)
       {
-        flow->Add(*oldNumCars);
-        avgSpeed->Add(*oldAvgSpeed);
+        flow->Add(oldNumCars);
+        avgSpeed->Add(oldAvgSpeed);
       }
     }
     flow->EndBulkLoad();

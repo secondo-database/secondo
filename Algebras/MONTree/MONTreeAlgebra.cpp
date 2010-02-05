@@ -105,9 +105,9 @@ void MON_Tree<BottomR_TreeLeafInfo>::Insert( const MGPoint& mgpoint,
 
   for( int i = 0; i < mgpoint.GetNoComponents(); i++ )
   {
-    const UGPoint *ugpoint;
+    UGPoint ugpoint;
     mgpoint.Get( i, ugpoint );
-    Insert( *ugpoint, info );
+    Insert( ugpoint, info );
   }
 }
 
@@ -178,20 +178,20 @@ void MON_Tree<BottomR_TreeLeafInfo>::
 
     for( int i = 0; i < curve.Size()/2; i++ )
     {
-      const LRS *lrs;
+      LRS lrs;
       curve.Get( i, lrs );
-      const HalfSegment *hs;
-      curve.Get( lrs->hsPos, hs );
+      HalfSegment hs;
+      curve.Get( lrs.hsPos, hs );
 
-      if( box.Intersects( hs->BoundingBox() ) )
+      if( box.Intersects( hs.BoundingBox() ) )
       {
         if( p1 < 0 )
         {
           assert( p2 < 0 );
-          p1 = lrs->lrsPos;
+          p1 = lrs.lrsPos;
           p2 = p1;
         }
-        p2 += hs->Length();
+        p2 += hs.Length();
       }
       else
       {
@@ -796,9 +796,9 @@ int CreateMONTreeRelMGPoint(Word* args, Word& result, int message,
       for( int i = 0; i < mgpoint->GetNoComponents(); i++ )
       {
         BottomR_TreeLeafInfo info(tuple->GetTupleId(), i, i);
-        const UGPoint *ugpoint;
+        UGPoint ugpoint;
         mgpoint->Get( i, ugpoint );
-        montree->Insert( *ugpoint, info );
+        montree->Insert( ugpoint, info );
       }
     }
     tuple->DeleteIfAllowed();
