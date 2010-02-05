@@ -299,7 +299,7 @@ QueryProcessor::QueryProcessor( NestedList* newNestedList,
   AlgebraManager* newAlgebraManager )
   : nl( newNestedList ), algebraManager( newAlgebraManager ),
     testMode( false ), debugMode( false ), traceMode( false ),
-    traceNodes( false )
+    traceNodes( false ), progressView(0)
 {
   values.resize( MAXVALUES );
   argVectors.resize( MAXFUNCTIONS );
@@ -3356,7 +3356,7 @@ QueryProcessor::EvalP( void* node,
                       Word& result,
                       const int message)
 {
-  progressView = new ProgressView();
+  //progressView = new ProgressView();
   allowProgress = true;
   try 
   {
@@ -3370,8 +3370,8 @@ QueryProcessor::EvalP( void* node,
 
   allowProgress = false;
   progressView->FinishProgressView();
-  delete progressView;
-  progressView=0;
+  //delete progressView;
+  //progressView=0;
 }
 
 
@@ -3380,7 +3380,7 @@ QueryProcessor::EvalS( void* node,
                       Word& result,
                       const int message)
 {
-  progressView = 0;
+  //progressView = 0;
   allowProgress = false;
 
   try 

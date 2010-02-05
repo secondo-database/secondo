@@ -141,6 +141,8 @@ using namespace std;
 
 #include "DbVersion.h"
 
+#include "ProgressView.h"
+
 extern bool USE_AUTO_BUFFER;
 
 /*
@@ -687,6 +689,11 @@ separate functions which should be named Command\_<name>.
     SecondoCatalog& ctlg = *SecondoSystem::GetCatalog();
     SecondoSystem& sys = *SecondoSystem::GetInstance();
     AlgebraManager& am = *SecondoSystem::GetAlgebraManager();
+
+    // write textual command to progress protocol file
+    if ( !qp.progressView ) qp.progressView = new ProgressView();
+    qp.progressView->WriteCommandToProtocol( commandText );
+
 
     // --- Transaction handling
 
