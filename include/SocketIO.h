@@ -150,7 +150,7 @@ internally only, the class interface is not described here.
 #include <time.h>
 #include <iostream>
 #include <vector>
-
+#include <cstdio>
 #ifdef SECONDO_WIN32
 #include <winsock2.h>
 #include <ws2tcpip.h>
