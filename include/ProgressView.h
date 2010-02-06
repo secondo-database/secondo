@@ -76,7 +76,6 @@ class ProgressView
     {
       initialized = false;
       fileName    = "proglogt.csv";
-      startClock  = clock();
       if (DETPROT & 2) ofs.open(fileName.c_str(), ios::app);
     }
   }
@@ -94,6 +93,7 @@ class ProgressView
     {
       initialized  = true;
       pointCounter = 0;
+	  startClock  = clock();
       msg = MessageCenter::GetInstance();
 
       msgList = NList(NList("progress"), NList(NList(-1), 
@@ -109,7 +109,7 @@ class ProgressView
     if (PROGTYPEPROG)
     {
       if (DETPROT & 2) {
-        ofs << commandText << endl;
+        ofs << "'" << commandText << "'" << endl;
         ofs << endl;
       }
     }
@@ -141,14 +141,14 @@ class ProgressView
        clocks = (clocks * 1000) / CLOCKS_PER_SEC;
 
 
-       ofs << clocks << "\t" ;
+       ofs << clocks << ";" ;
 
 	sprintf (progstr, "%6.2f", progress.Progress * 100.0);
         progstr [3] = ',';
 
-        ofs << (int) progress.Card << "\t";
-        ofs << (int) progress.Time << "\t";
-	ofs << progstr << "\t" ;
+        ofs << (int) progress.Card << ";";
+        ofs << (int) progress.Time << ";";
+	ofs << progstr << ";" ;
 	ofs << endl;
       }
     }
