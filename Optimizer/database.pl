@@ -3871,7 +3871,7 @@ tuplesize(DCrel, TupleSizeScalar) :-
          nl,
          UsedLOBSize is 1
        )
-    ; UsedLOBSize is CoreSize
+    ; UsedLOBSize is LOBSize
   ),
   TupleSizeScalar is UsedCoreSize + UsedLOBSize,
   !.
