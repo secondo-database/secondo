@@ -1508,7 +1508,10 @@ createSampleJ(DCRel) :-
          secOptConstant(sampleJoinMinCard, CardMin),
          ( ( \+optimizerOption(autoSamples) ,
              CardStd >= CardMin , CardStd =< CardMax , MemStd =< MemMax )
-           -> ( SampleCard is CardStd, SampleSize is MemStd )
+           -> ( SampleCard is CardStd, SampleSize is MemStd,
+                write_list(['\tStandard join sample size of ',
+                            SampleCard,'(',SampleSize,' KB) is used.']),nl
+              )
           ; true
          ),
          ( var(SampleCard) % sample would become to large or to small
@@ -1516,9 +1519,10 @@ createSampleJ(DCRel) :-
                 -> ( % automatically set sample size and force creation
                     SampleCard is CardRec,
                     SampleSize is MemRec,
-                    write_list(['\tJoin sample size was automatically ',
-                                'restricted\n','\tfrom ',(CardStd),'(',MemStd,
-                                ' KB) to ',CardRec,'(',MemRec,' KB).']),nl,
+                    write_list(['\tJoin sample size determined automatically:',
+                                '\n\tStandard size would be ',(CardStd),'(',
+                                MemStd,' KB)\n\tUsing recommended size of ',
+                                CardRec,'(',MemRec,' KB).']),nl,
                     write_list(['\tUse \'resizeSamples/3\' to force another ',
                                 'arbitrary sample size.']),nl
                    )
@@ -1565,7 +1569,10 @@ createSampleS(DCRel) :-
          secOptConstant(sampleSelMinCard, CardMin),
          ( ( \+optimizerOption(autoSamples) ,
              CardStd >= CardMin , CardStd =< CardMax , MemStd =< MemMax )
-           -> ( SampleCard is CardStd, SampleSize is MemStd )
+           -> ( SampleCard is CardStd, SampleSize is MemStd,
+                write_list(['\tStandard selection sample size of ',
+                            SampleCard,' (',SampleSize,' KB) is used.']),nl
+              )
           ; true
          ),
          ( var(SampleCard) % sample would become to large or to small
@@ -1573,9 +1580,11 @@ createSampleS(DCRel) :-
                 -> ( % automatically set sample size and force creation
                     SampleCard is CardRec,
                     SampleSize is MemRec,
-                    write_list(['\tSelection sample size was automatically ',
-                                'restricted\n','\tfrom ',(CardStd),'(',MemStd,
-                                ' KB) to ',CardRec,'(',MemRec,' KB).']),nl,
+                    write_list(['\tSelection sample size determined ',
+                                'automatically:\n\tStandard size is ',
+                                '',(CardStd),'(',MemStd,
+                                ' KB)\n\tUsing recommended size of ',CardRec,
+                                '(',MemRec,' KB).']),nl,
                     write_list(['\tUse \'resizeSamples/3\' to force another ',
                                 'arbitrary sample size.']),nl
                    )
@@ -1603,7 +1612,7 @@ createSampleS(DCRel) :-
          write_list(['\tSample cardinality=',ActualSampleCard]),nl,
          databaseName(DB),
          dcName2externalName(DCSample,Sample),
-         assert(storedCard(DB, DCSample, SampleCard))
+         assert(storedCard(DB, DCSample, ActualSampleCard))
        )
   ), !.
 
