@@ -17,7 +17,7 @@ Choose Option Settings
 :- setOption(determinePredSig).  % use type inference
 :- setOption(rtreeIndexRules).   % utilize rtree indexes
 :- setOption(rewriteCSE).        % hand common subexpressions smartly
-:- setOption(rewriteRemove).     % remove unused attributes as soon as possible
+%:- setOption(rewriteRemove).     % remove unused attributes as soon as possible
 :- setOption(earlyproject).      % remove unused attributes as soon as possible
 :- setOption(subqueryUnnesting). % fully activate subquery processing
 
@@ -45,6 +45,10 @@ Create some materialized views:
    ).
 
 
+:- createSamples(datamctrip, 100, 50).
+:- createSamples(datamtrip, 100, 50).
+:- createSamples(datasccar, 20, 5).
+:- createSamples(datascar, 20, 5).
 
 /*
 Secondo-SQL Query Definitions
@@ -275,11 +279,28 @@ optBMOD(Nr) :-
 runBMOD(Nr) :-
   prepareSqlBerlinMOD_R_query(Nr),
   sqlBerlinMOD_R_query(Nr, SqlQuery),
-  optimize(SqlQuery, ExecutableQuery, EstimCost),
+  writeln('======================================================================================'),
+  write('Query No: '), write(Nr), nl,
+  write(SqlQuery), nl, nl, nl,
+  sql SqlQuery.
+  
+  %optimize(SqlQuery, ExecutableQuery, EstimCost),
 
-  write_list(['\nQuery-Nr:          ', Nr, '\n']),
-  write_list(['Secondo-SQL-Query: ', SqlQuery, '\n']),
-  write_list(['Executable Query:  ', ExecutableQuery, '\n']),
-  write_list(['Estimated Cost:    ', EstimCost, '\n']),
-  write_list(['Execution Cost:    ', ExecCost, '\n']).
-
+  %write_list(['\nQuery-Nr:          ', Nr, '\n']),
+  %write_list(['Secondo-SQL-Query: ', SqlQuery, '\n']),
+  %write_list(['Executable Query:  ', ExecutableQuery, '\n']),
+  %write_list(['Estimated Cost:    ', EstimCost, '\n']),
+  %write_list(['Execution Cost:    ', ExecCost, '\n']).
+  
+  runAll :- runAllBMOD(1).
+  
+  runAllBMOD(N) :- N > 17.
+  
+  runAllBMOD(N) :- N < 1.
+  
+  runAllBMOD(N) :- 
+    N < 18,
+    runBMOD(N),
+    M is N+1, 
+    runAllBMOD(M).
+    
