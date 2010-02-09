@@ -29,7 +29,7 @@ class FlobId{
  friend class FlobManager;
  friend class FlobCache;
  friend class NativeFlobCache;
- friend class CacheEntry;
+ friend class NativeCacheEntry;
  public: 
    FlobId(){} // makes nothing to support cast function
    ~FlobId(){}

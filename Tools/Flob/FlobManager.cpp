@@ -113,31 +113,18 @@ SmiRecordFile* FlobManager::getFile(const SmiFileId& fileId) {
      return nativeFlobFile;
    }
 
-  // debug start+
-  // if(changed){
-  //    cout << "files currently open in FlobManager" << endl;
-  //    map<SmiFileId, SmiRecordFile*>::iterator it2 = openFiles.begin();
-  //    while(it2 != openFiles.end()){
-  //      cout << it2->first << " name = " << it2->second->GetName() << endl;
-  //      it2++;
-  //   }
-  //   changed = false;
-  //}
-
-  // debug end
-     
-  SmiRecordFile* file(0);
-  map<SmiFileId, SmiRecordFile*>::iterator it = openFiles.find(fileId);
-  if(it == openFiles.end()){
+   SmiRecordFile* file(0);
+   map<SmiFileId, SmiRecordFile*>::iterator it = openFiles.find(fileId);
+   if(it == openFiles.end()){
      file = new SmiRecordFile(false);
      openFiles[fileId] = file;
      file->Open(fileId);
      changed = true;
-  } else{
+   } else{
      file = it->second;
-  }
-__TRACE_LEAVE__
-  return file;
+   }
+   __TRACE_LEAVE__
+   return file;
 }
 
 /*
@@ -146,7 +133,7 @@ __TRACE_LEAVE__
 If Flob data is stored into a file, the flobmanager will
 create a new File from the file id and keep the open file.
 If the file should be deleted or manipulated by other code,
-the flobmanger has to giv up the control over that file.
+the flobmanger has to give up the control over that file.
 This can be realized by calling the ~dropFile~ function.
 
 */
@@ -207,25 +194,24 @@ This can be realized by calling the ~dropFile~ function.
 Changes the size of flob.
 
 */
-bool FlobManager::resize(Flob& flob, const SmiSize& newSize){
-
-    
+bool FlobManager::resize(Flob& flob, const SmiSize& newSize, 
+                         const bool ignoreCache/*=false*/){
 
     FlobId id = flob.id;
     SmiFileId   fileId =  id.fileId;
     SmiRecordId recordId = id.recordId;
     SmiSize     offset = id.offset;
-    SmiSize oldSize = flob.size;
 
- 
-    if(oldSize==newSize){
-      return true;
-    }
-
-    if(persistentFlobCache && fileId != nativeFlobs){
+    if(persistentFlobCache && (fileId != nativeFlobs)){
+      // the allocated memory for the slot may be too small now
       persistentFlobCache->killLastSlot(flob);
     }
 
+    if(nativeFlobCache && (fileId == nativeFlobs) && !ignoreCache){
+      return nativeFlobCache->resize(flob, newSize);
+    }
+
+    // resize the record containing the flob
     SmiRecord record;
     SmiRecordFile* file = getFile(fileId);
     bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
@@ -236,18 +222,17 @@ bool FlobManager::resize(Flob& flob, const SmiSize& newSize){
       __TRACE_LEAVE__
       return false;
     }
-  //  cout << "Try to resize record to size : " << (offset + newSize) << endl;
-    if( record.Resize(offset+newSize)){ 
-       record.Finish();
-       if(fileId == nativeFlobs && nativeFlobCache){
-          nativeFlobCache->resize(flob, newSize);
-       }
-       flob.size = newSize;
-       __TRACE_LEAVE__
-  //     cout << "Resize successful" << endl;
+    if(record.Size() != newSize){
+      if( record.Resize(offset+newSize)){ 
+         record.Finish();
+         flob.size = newSize;
+         __TRACE_LEAVE__
+         return true;
+      } 
+    } else {
        return true;
-    } 
-    cout << "Resize failed" << endl;
+    }
+    cerr << "Resize failed" << endl;
     
     return false;
    
@@ -267,23 +252,25 @@ bool FlobManager::getData(
          char* dest,                  // destination buffer
          const SmiSize&  offset,     // offset within the Flob 
          const SmiSize&  size,
-         const bool ignoreCache) {  // requested data size
+         const bool ignoreCache /* = false*/ ) {  // requested data size
   __TRACE_ENTER__
 
   FlobId id = flob.id;
   SmiFileId   fileId =  id.fileId;
 
+
+  assert(offset+size <= flob.size);
+
+
   if(!ignoreCache){
     if(fileId!=nativeFlobs){
        return persistentFlobCache->getData(flob,dest,offset,size);
     } else {
-       if(nativeFlobCache->getData(flob, dest, offset, size)){
-         return true;
-       }
+       return nativeFlobCache->getData(flob, dest, offset, size);
     }
   }
 
-
+  // retrieve data from disk
   SmiRecordId recordId = id.recordId;
   SmiSize     floboffset = id.offset;
   SmiRecord record;
@@ -299,18 +286,30 @@ bool FlobManager::getData(
   }
 
   SmiSize recOffset = floboffset + offset;
-  if(record.Size() < recOffset){
-     cerr << " try to read at an offset outside the flob size" << endl;
-     return false;
-  }
-  SmiSize mySize = min(size, record.Size()-recOffset); // restrict read to the
-                                                       // end of the record
-  SmiSize read = record.Read(dest,mySize, recOffset);
-  if(read!=mySize){
 
+  // assert that the requested data are inside the record
+  if(( recOffset > record.Size() ) && (fileId==nativeFlobs)){
+     return true;
+  }
+
+  assert(recOffset <= record.Size());
+
+
+  SmiSize mySize = size;
+  if(record.Size()< recOffset + size){
+  // cerr << "try   to get data outside a stored record" << endl;
+  // cerr << "Flob = " << flob << endl;
+  // cerr << "offset = " << offset << endl;
+  // cerr << "size = " << size << endl;
+   mySize = record.Size() - recOffset;
+  }
+
+  SmiSize read = record.Read(dest, mySize, recOffset);
+
+  if(read!=mySize){
     cout << "Error in reding data from flob" << endl;
     cout << "read = " << read << endl;
-    cout << "mySize = " << mySize << endl;
+    cout << "size = " << size << endl;
     cout << "record.Size = " << record.Size() << endl;
     cout << "floboffset = " << floboffset << endl;
     cout << "offset = " << offset << endl;
@@ -375,7 +374,7 @@ bool FlobManager::destroy(Flob& victim) {
          record.Finish();
       }
    } else {
-     if(recordSize != size && (id.fileId != nativeFlobs) ){
+     if((recordSize != size) && (id.fileId != nativeFlobs) ){
        std::cout << "cannot destroy flob, because after the flob data are"
                     " available" << std::endl;
        return false;
@@ -552,23 +551,65 @@ bool FlobManager::putData(const Flob& dest,         // destination flob
   SmiRecordId recordId = id.recordId;
   SmiSize     offset = id.offset;
 
+  assert(targetoffset + length <= dest.size);
+
 
   if(!ignoreCache){
     if(fileId!=nativeFlobs){
       return persistentFlobCache->putData(dest, buffer, targetoffset, length);
     } else {
-      if(nativeFlobCache->putData(dest, buffer, targetoffset, length)){
-        return true;
-      }
+      return nativeFlobCache->putData(dest, buffer, targetoffset, length);
     }
   }
 
+  // put data to disk
   SmiRecord record;
   SmiRecordFile* file = getFile(fileId);
   bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
   if(!ok){
       cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
            << "Select Record failed:" << dest << endl;
+      assert(false);
+    __TRACE_LEAVE__
+    return false;
+  }
+  if(fileId==nativeFlobs){ // auto Resize for native Flobs
+    if(dest.size != record.Size()){
+      record.Resize(dest.size);
+    }
+  }
+
+  SmiSize wsize = record.Write(buffer, length, offset + targetoffset);
+  if(wsize!=length){
+    __TRACE_LEAVE__
+    return false;
+  }
+  record.Finish();
+
+  __TRACE_LEAVE__
+  return true;
+}
+
+
+bool FlobManager::putData(const FlobId& id,         // destination flob
+                          const char* buffer, // source buffer
+                          const SmiSize& targetoffset, // offset within the Flob
+                          const SmiSize& length
+                         ) { // data size
+
+ __TRACE_ENTER__
+  SmiFileId   fileId =  id.fileId;
+  SmiRecordId recordId = id.recordId;
+  SmiSize     offset = id.offset;
+
+
+  // put data to disk
+  SmiRecord record;
+  SmiRecordFile* file = getFile(fileId);
+  bool ok = file->SelectRecord(recordId, record, SmiFile::Update);
+  if(!ok){
+      cerr << __PRETTY_FUNCTION__ << "@" << __LINE__ 
+           << "Select Record failed:" << id << endl;
       assert(false);
     __TRACE_LEAVE__
     return false;
@@ -596,7 +637,9 @@ Creates a new Flob with a given size which is assigned to a temporal file.
  __TRACE_ENTER__
    SmiRecord rec;
    SmiRecordId recId;
-   
+  
+
+   // create a record from the flob to get an id 
    if(!(nativeFlobFile->AppendRecord(recId,rec))){
       __TRACE_LEAVE__
       return false;
@@ -606,8 +649,12 @@ Creates a new Flob with a given size which is assigned to a temporal file.
    result.id = fid;
    result.size = size;
 
+   if(!nativeFlobCache->create(result)){
+      if(size>0){
+         resize(result,size,true);
+      }
+   }
 
-   nativeFlobCache->create(result);
 
    __TRACE_LEAVE__
    return true;
@@ -657,7 +704,6 @@ must exists.
       return false;
     }
     delete[] buffer;
-    dest.size = src.size;  
     __TRACE_LEAVE__
     return true;
   }
@@ -684,7 +730,6 @@ return a Flob with persistent storage allocated and defined elsewhere
 
 
       void FlobManager::killNativeFlobs(){
-        cout << "killNativeFlobs called" << endl;
         if(nativeFlobCache){
            nativeFlobCache->clear();
         }
@@ -737,7 +782,7 @@ ostream& operator<<(ostream& os, const Flob& f) {
 }
 
 
-ostream& operator<<(ostream& o, const CacheEntry entry){
+ostream& operator<<(ostream& o, const NativeCacheEntry entry){
    return entry.print(o);
 }
 

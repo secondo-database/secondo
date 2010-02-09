@@ -1,9 +1,8 @@
-
 /*
 ----
 This file is part of SECONDO.
 
-Copyright (C) 2010, University in Hagen, Department of Computer Science,
+Copyright (C) 2009, University in Hagen, Department of Computer Science,
 Database Systems for New Applications.
 
 SECONDO is free software; you can redistribute it and/or modify
@@ -22,21 +21,14 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 ----
 
-//paragraph [10] Title: [{\Large \bf \begin {center}] [\end {center}}]
-//[ae] [\"a]
-//[ue] [\"u]
-//[oe] [\"o]
-
 
 */
 
-#include "AvlTree.h"
-#include "FlobId.h"
 #include "Flob.h"
 #include "FlobManager.h"
-#include <set>
-
-
+#include <assert.h>
+#include <iostream>
+#include <cstdlib>
 
 #undef __TRACE_ENTER__
 #undef __TRACE_LEAVE__
@@ -52,23 +44,930 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   */
 
 
-class CacheEntry{
+ //#undef SLOT_BASED_APPROACH
+
+#define SLOT_BASED_APPROACH
+
+
+#ifdef SLOT_BASED_APPROACH
+
+/*
+1 Class NativeCacheEntry
+
+*/
+
+class NativeCacheEntry{
+  public:
+
+/*
+1.1 Constructor
+
+Creates a new entry for Flob __flob__ and slot number __slotNo__
+with given slot size.
+
+*/
+  NativeCacheEntry(const Flob& _flob, const size_t _slotNo, size_t _slotSize):
+    flobId(_flob.id), slotNo(_slotNo), tableNext(0), tablePrev(0),
+    lruPrev(0), lruNext(0), changed(false) {
+
+    assert(_flob.size>0);
+    size_t offset = _slotNo * _slotSize;
+    assert(offset <=  _flob.getSize());
+
+    size = min(_slotSize, (_flob.getSize() - offset)); 
+    mem = (char*) malloc(size);
+  }
+
+  void resize(const size_t _newFlobSize, const size_t _slotSize){
+    size_t offset = slotNo * _slotSize;
+    assert(offset <= _newFlobSize);
+    size_t mySize = min(_slotSize, (_newFlobSize  - offset)); 
+    if(mySize==size){
+      return;
+    }
+    if(mySize>0){ 
+       mem = (char*) realloc(mem, mySize);
+    } else {
+       free(mem);
+       mem = 0;
+    }
+    size = mySize;
+  }
+
+
+/*
+1.2 Destructor
+
+Detroys an entry of a Flob.
+
+*/
+    virtual ~NativeCacheEntry(){
+      if(mem){
+         free(mem);
+      }
+      mem = 0;
+    }
+
+/*
+1.3 hashValue
+
+Returns a hash value for this entry.
+
+*/
+    size_t hashValue(size_t tableSize){
+      return (flobId.hashValue() + slotNo) % tableSize;
+    }
+
+/*
+1.4 check for equality / inequality
+
+
+The flob as well as the slot number unique identify 
+a cache entry.
+
+*/
+    bool operator==(const NativeCacheEntry& e){
+      return flobId == e.flobId &&
+             slotNo == e.slotNo;
+    }
+
+    bool operator!=(const NativeCacheEntry& e){
+      return !(*this == e);
+    }
+
+    bool matches(const Flob& f, const size_t slotNo) const{
+      return (f.id == flobId) && (this->slotNo == slotNo);
+    }
+
+    bool matches(const FlobId& fid, const size_t slotNo) const{
+      return (fid == flobId) && (this->slotNo == slotNo);
+    }
+
+   ostream& print(ostream& o) const{
+     o << "FlobId = " << flobId << ", slot = " << slotNo << ", size = " << size;
+     return o;
+   }
+
+/*
+1.5 Members
+
+all members are private because only the FlobCache class
+known the NativeCacheEntry class.
+
+*/
+
+   FlobId flobId;     
+   size_t slotNo;
+   NativeCacheEntry* tableNext;
+   NativeCacheEntry* tablePrev;
+   NativeCacheEntry* lruPrev;
+   NativeCacheEntry* lruNext;
+   bool changed;
+   char* mem;
+   size_t size;
+};
+
+
+/*
+1.6 Output operator
+
+for simple output an entry.
+
+*/
+
+ostream& operator<<(ostream& o, const NativeCacheEntry& e){
+   o << "[" << e.flobId << ", " << e.slotNo << "]" ;
+  return o;
+}
+
+
+
+class NativeFlobCache{
+
+ public:
+
+/*
+
+2.1 Constructor
+
+Creates a new cache of maximum size and given slotsize.
+
+*/
+
+
+NativeFlobCache(size_t _maxSize):
+    maxSize(_maxSize), slotSize(_maxSize / 4 ), usedSize(0), first(0), last(0) {
+
+   assert(slotSize + sizeof(NativeCacheEntry) + sizeof(void*) < maxSize);
+   // compute a good tablesize
+   assert(slotSize);
+ 
+   size_t averageSize = 2048;
+   
+   tableSize = ((maxSize / averageSize) * 2);
+   if(tableSize < 1u){
+      tableSize = 1u;
+   }  
+   // initialize hashTable 
+   hashtable = new NativeCacheEntry*[tableSize]; 
+   for(unsigned int i=0;i<tableSize; i++){
+     hashtable[i] = 0;
+   }
+   //assert(check());
+}
+
+/*
+2.2 Destructor
+
+destroys the cache.
+
+*/
+
+
+~NativeFlobCache(){
+   //assert(check());
+   clear();
+   delete[] hashtable;
+   hashtable = 0;
+}
+
+
+/*
+2.3 clear
+
+removes all entries from the cache.
+
+*/
+void clear(){
+  // first, kill entries from hashtable without deleting them from lru
+  //assert(check());
+  for(unsigned int i=0;i<tableSize;i++){
+    hashtable[i] =0;
+  }
+  NativeCacheEntry* entry = first;
+  size_t killed = 0;
+
+  while(entry){
+    NativeCacheEntry* victim = entry;
+    entry = entry->lruNext;
+    killed += victim->size;
+    delete victim;
+  }
+
+
+  first = 0;
+  last = 0;
+  usedSize = 0;
+  //assert(check());
+
+}
+
+
+/*
+2.4 getData
+
+retrieves data from the cahce. If the data are not cached, the
+FlobManager is used to access the data.
+
+*/
+bool getData(
+             const Flob& flob, 
+             char* buffer,
+             const SmiSize offset, 
+             const SmiSize size ){
+
+    if(size==0){  // nothing to do
+      return true;
+    }
+
+    //assert(check());
+
+    size_t slotNo = offset / slotSize;
+    size_t slotOffset = offset % slotSize; 
+    size_t bufferOffset(0);
+
+    while(bufferOffset < size){
+      if(!getDataFromSlot(flob, slotNo, slotOffset, 
+                          bufferOffset, size, buffer)){
+        cerr << "Warning getData failed" << endl;
+        //assert(check());
+        return false;
+      }
+      slotNo++;
+      slotOffset = 0;  // slotoffset only neeeded for the first slot
+    }
+    //assert(check());
+    return true;
+}
+
+/*
+2.5 putData
+
+updates the data in cache and on disk
+
+*/
+bool putData(
+      const Flob& flob,
+      const char* buffer,
+      const SmiSize offset,
+      const SmiSize size) {
+   
+   //assert(check());
+   size_t slotNo = offset / slotSize; 
+   size_t slotOffset = offset % slotSize;
+   size_t bufferOffset(0);
+
+   while(bufferOffset < size){
+     putDataToFlobSlot(flob, slotNo, slotOffset, bufferOffset, size, buffer);
+     slotNo++;
+     slotOffset = 0;
+   }
+   //assert(check());
+   return true;
+}
+
+
+bool saveToDisk(const Flob& flob, NativeCacheEntry* e){
+    if(e==0 || e->size==0){ // nothing to do
+      return true;
+    }
+    return FlobManager::getInstance().putData(flob, e->mem, 
+                                              e->slotNo * slotSize, 
+                                              e->size, true);
+}
+
+
+bool saveToDisk(const FlobId& flobId, NativeCacheEntry* e){
+    if(e==0 || e->size==0){ // nothing to do
+      return true;
+    }
+    return FlobManager::getInstance().putData(flobId, e->mem, 
+                                e->slotNo * slotSize, e->size);
+}
+
+
+
+/*
+2.7 eraseSlot
+
+Removes a slot from the cache. If saveChanges is set to true, 
+the slot is stored to disk if there are changes.
+
+*/
+bool eraseSlot(const Flob& flob, const size_t slotNo, const bool saveChanges){
+  //assert(check());
+
+  size_t index = (flob.id.hashValue() + slotNo) % tableSize;
+  NativeCacheEntry* e = hashtable[index];
+  while(e && !e->matches(flob, slotNo)){
+    e = e->tableNext;
+  }
+  if(e==0){ // slot not chached
+    return true;
+  }
+  if(saveChanges && e->changed){
+    if(!this->saveToDisk(flob,e)){
+      return false;
+    }
+  }
+
+  
+  // remove slot from hashtable
+  if(hashtable[index] == e){ // e is the first entry in the table
+     hashtable[index] = e->tableNext;
+     if(hashtable[index]){
+        hashtable[index]->tablePrev = 0;
+     }
+  } else { // not the top entry
+    e->tablePrev->tableNext = e->tableNext;
+    if(e->tableNext){
+       e->tableNext->tablePrev = e->tablePrev;
+    }
+  }
+  e->tablePrev = 0;
+  e->tableNext = 0;
+  // remove from lru
+  if(e==first){
+    if(e==last){
+       first = 0;
+       last = 0;
+    } else {
+       first = e->lruNext;
+       first->lruPrev = 0;
+       e->lruNext = 0;
+    }
+  } else { // e is not the top lru element
+    if(e==last){
+      last = e->lruPrev;
+      last->lruNext = 0;
+      e->lruPrev = 0;
+    } else {
+      e->lruPrev->lruNext = e->lruNext;
+      e->lruNext->lruPrev = e->lruPrev;
+      e->lruPrev = 0;
+      e->lruNext = 0;
+    }
+  }
+  assert(usedSize >= e->size);
+  usedSize -= e->size;
+  delete e;
+  //assert(check());
+  return true;
+}
+
+
+/*
+removes a slot from cache
+
+*/
+bool erase(Flob& flob, const bool saveChanges=false){
+  //assert(check());
+  size_t numFlobs = flob.getSize() / slotSize;
+  for(unsigned int i = 0 ; i<= numFlobs; i++){
+    if(!eraseSlot(flob, i, saveChanges)){
+      //assert(check());
+      return false;
+    }
+  }
+  //assert(check());
+  return true;
+}
+
+
+/*
+
+
+*/
+bool create(Flob& flob){
+  //assert(check());
+  if(flob.size >0){
+    size_t num = flob.size/slotSize;
+    for(size_t i =0; i<num; i++){
+      NativeCacheEntry* e = new NativeCacheEntry(flob,i, slotSize );
+      if(e->size>0){
+        usedSize += e->size;
+        putAtFront(e);
+        size_t index = e->hashValue(tableSize);
+        if(hashtable[index]){
+           e->tableNext = hashtable[index];
+           hashtable[index]->tablePrev = e;
+        } 
+        hashtable[index] = e; 
+        reduce();
+      } else {
+        delete e;
+      }
+    }
+  }
+  //assert(check());
+  return true;
+}
+
+
+
+/*
+2.7 getDataFromSlot
+
+retrieves the flob data for a specidied flob.
+
+*/
+
+bool getDataFromSlot(const Flob& flob,
+                     const size_t slotNo,
+                     const size_t slotOffset,
+                     size_t& bufferOffset,
+                     const size_t size,
+                     char* buffer) {
+
+   unsigned int index = (flob.hashValue() + slotNo) % tableSize;
+
+
+   if(hashtable[index]==0){
+     NativeCacheEntry* newEntry = createEntry(flob, slotNo,true); 
+     if(newEntry){
+       hashtable[index] = newEntry;
+       usedSize += newEntry->size; 
+       putAtFront(newEntry);
+       reduce(); // remove entries if too much memory is used
+       getData(newEntry, slotOffset, bufferOffset, size, buffer);
+     }
+     return true;
+   }
+ 
+   // hashtable[index] is already used
+   NativeCacheEntry* entry = hashtable[index];
+   while(entry->tableNext && !(entry->matches(flob.id, slotNo))){
+     entry = entry->tableNext;
+   }
+
+   if(!entry->matches(flob.id, slotNo)){ // no hit
+     NativeCacheEntry* newEntry = createEntry(flob, slotNo, true); 
+     if(newEntry){
+       newEntry->tablePrev = entry;
+       entry->tableNext = newEntry;
+       assert(first);
+       putAtFront(newEntry);
+       usedSize += newEntry->size; 
+       reduce(); 
+       getData(newEntry, slotOffset, bufferOffset, size, buffer);
+     }
+     return true;
+   } else { // hit, does not access disk data
+     getData(entry, slotOffset, bufferOffset, size, buffer);
+     bringToFront(entry);
+     return true;
+   }
+}
+
+/*
+2.8 getData
+
+Copies data from a given NativeCacheEntry to a buffer.
+
+*/
+void getData(NativeCacheEntry* entry,  
+                              size_t slotOffset, 
+                              size_t& bufferOffset, 
+                              const size_t size,
+                              char* buffer){
+  size_t mb = size-bufferOffset; // missing bytes
+  size_t ab = entry->size - slotOffset; // bytes available in slot
+  size_t pb = min(mb,ab); // provided bytes
+  memcpy(buffer+bufferOffset, entry->mem + slotOffset, pb);
+  bufferOffset += pb;
+}
+
+/*
+2.9 putData
+
+puts data to a given NativeCacheEntry
+
+*/
+
+void putData(NativeCacheEntry* entry,  
+                              const size_t slotOffset, 
+                              size_t& bufferOffset, 
+                              const size_t size,
+                              const char* buffer){
+  size_t mb = size-bufferOffset; // missing bytes
+  size_t ab = entry->size - slotOffset; // bytes available in slot
+  size_t pb = min(mb,ab); // provided bytes
+  if(pb>0){
+    memcpy(entry->mem + slotOffset, buffer+bufferOffset, pb);
+    bufferOffset += pb;
+    entry->changed=true;
+  }
+}
+
+/*
+2.10 createEntry
+
+produces a new NativeCacheEntry. If readData are set to be __true__ (default), 
+the slot data are load from disk using the FlobManager.
+
+*/
+NativeCacheEntry* createEntry(const Flob& flob, 
+                                const size_t slotNo,
+                                const bool readData=true) const{
+   NativeCacheEntry* res = new NativeCacheEntry(flob, slotNo, slotSize);
+   if(res->size==0){
+      delete res;
+      return 0;
+   }
+   if(readData){
+      FlobManager::getInstance().getData(flob,res->mem, 
+                                         slotNo*slotSize, res->size, true);
+      res->changed = false;
+   }
+   return res;
+}
+
+/*
+2.11 reduce
+
+removes slot from the cache until the size is smaller than the maximum one.
+
+*/
+
+void reduce(){
+   while(last && usedSize > maxSize){
+      NativeCacheEntry* victim = last;
+
+      // remove from lru 
+      last = victim->lruPrev;
+      last->lruNext = 0;
+      victim->lruPrev = 0;
+      assert(victim->lruNext == 0);
+
+      // remove from hashtable
+
+      if(victim->tablePrev){ // not the first entry in table
+        if(victim->tableNext){
+          victim->tablePrev->tableNext = victim->tableNext;
+          victim->tableNext->tablePrev = victim->tablePrev;
+          victim->tablePrev = 0;
+          victim->tableNext = 0;
+        } else { // last entry in table
+          victim->tablePrev->tableNext = 0;
+          victim->tablePrev = 0;
+        }
+      } else {  // first entry in table
+        size_t index = victim->hashValue(tableSize);
+        assert(hashtable[index] == victim);
+        if(victim->tableNext==0){ // the only entry in hashtable
+           hashtable[index] = 0;
+        } else {
+           hashtable[index] = victim->tableNext;
+           victim->tableNext->tablePrev = 0;
+           victim->tableNext = 0;
+        }
+      }
+      assert(usedSize >= victim->size); 
+      usedSize -= victim->size;
+      if(victim->changed){
+        saveToDisk(victim->flobId, victim);
+      }
+      delete victim;
+   }
+   if(!last){
+     first = 0;
+   }
+}
+
+/*
+2.12 putDataToFlobSlot
+
+puts data to a given slot. If the slot is not present in the
+cache, it is created.
+
+
+*/
+bool putDataToFlobSlot(
+        const Flob& flob,
+        const size_t slotNo,
+        const size_t slotOffset,
+        size_t& bufferOffset,
+        const size_t size,
+        const char* buffer){
+
+  //assert(check());
+  size_t index = (flob.hashValue() + slotNo) % tableSize;
+  
+  NativeCacheEntry* entry = hashtable[index];
+  while(entry && !entry->matches(flob.id, slotNo)){
+    entry = entry->tableNext;
+  }
+
+  if(!entry){ // slot not cached
+    entry = createEntry(flob, slotNo);
+    if(entry){
+      putAtFront(entry);
+      entry->tableNext = hashtable[index];
+      if(hashtable[index]){
+         hashtable[index]->tablePrev = entry;
+      }
+      hashtable[index] = entry;
+      usedSize += entry->size;
+      reduce();
+    } else {
+      return true;
+    }
+  }
+  putData(entry, slotOffset, bufferOffset, size,buffer);
+  return true;
+
+}
+
+
+bool resize(Flob& flob, const size_t newSize){
+
+   if(flob.size==0){
+      flob.size= newSize;
+      create(flob);
+      return true;
+   }
+   if(newSize==0){
+      erase(flob,false);
+      flob.size = 0;
+      return true;
+   }
+   if(newSize < flob.size){
+      size_t start = newSize/slotSize + 1;
+      size_t end = flob.size/slotSize + 1;
+      for(size_t i = start; i< end; i++){
+        eraseSlot(flob,i,false);
+      }
+      resizeSlot(flob,start-1,newSize);
+      flob.size=newSize;
+      return true;
+   }
+   // flob is enlarged
+   size_t start = flob.size/slotSize + 1;
+   resizeSlot(flob, start-1, newSize);
+   size_t end = newSize/slotSize +1;
+   flob.size = newSize;
+   for(size_t i=start;i<end;i++){
+      NativeCacheEntry* e = new NativeCacheEntry(flob,i,slotSize);
+      if(e->size>0){
+        usedSize += e->size;
+        putAtFront(e);
+        size_t index = e->hashValue(tableSize);
+        if(hashtable[index]){
+           e->tableNext = hashtable[index];
+           hashtable[index]->tablePrev = e;
+        } 
+        hashtable[index] = e; 
+      } else {
+        delete e;
+      }
+   }
+   reduce();
+   return true;
+}
+
+bool resizeSlot(Flob& flob, size_t slot, size_t newFlobSize){
+   size_t index = (flob.id.hashValue()+slot)%tableSize;
+   NativeCacheEntry* e = hashtable[index];
+   while( e && !e->matches(flob.id, slot)){
+     e = e->tableNext;
+   }
+   if(e){
+     size_t oldSize = e->size;
+     e->resize(newFlobSize, slotSize);
+     if(e->size==0){ // delete entry because size is 0
+       usedSize -= oldSize;
+       // delete from lru
+       if(first==e){
+         first = first->lruNext;
+         if(first){
+            first->lruPrev = 0;
+         } else {
+           last = 0;
+         }
+       } else if(e==last){
+          last = last->lruPrev;
+          last->lruNext = 0;
+       } else {
+           e->lruPrev->lruNext = e->lruNext;
+           e->lruNext->lruPrev = e->lruPrev;
+       }
+       e->lruNext=0;
+       e->lruPrev=0;
+       // delete from hashtbale
+       if(e==hashtable[index]){
+          hashtable[index] = e->tableNext;
+          if(hashtable[index]){
+            hashtable[index]->tablePrev = 0;
+          }
+       } else {
+          e->tablePrev->tableNext = e->tableNext;
+          if(e->tableNext){
+             e->tableNext->tablePrev = e->tablePrev;
+          }
+       }
+       e->tableNext = 0;
+       e->tablePrev = 0;
+       delete e;
+     } else {
+       usedSize = (usedSize + e->size) - oldSize; 
+     }
+   }
+   return true;
+} 
+
+
+/*
+2.13 putAtFront
+
+puts an unused NativeCacheEntry to the front of the LRU list.
+
+*/
+void putAtFront(NativeCacheEntry* newEntry){
+   assert(newEntry->lruPrev==0);
+   assert(newEntry->lruNext==0);
+   if(!first){
+     assert(!last);
+     first = newEntry;
+     last = newEntry;
+   } else {
+     newEntry->lruNext = first;
+     first->lruPrev = newEntry;
+     first = newEntry;
+   }
+}
+
+/*
+2.14 bringToFront
+
+moves an entry already present in the lrulist to the top of that list.
+
+*/
+void bringToFront(NativeCacheEntry* entry){
+  if(first==entry){ // already on front
+     return;
+  }
+  if(last==entry){ // the last element
+    assert(last->lruNext==0);
+    last= last->lruPrev;
+    last->lruNext=0;
+    entry->lruPrev=0;
+    entry->lruNext = first;
+    first->lruPrev = entry;
+    first = entry;
+    return;
+  }
+  // entry in in the middle of the list
+  assert(entry->lruPrev);
+  assert(entry->lruNext);
+  entry->lruPrev->lruNext = entry->lruNext;
+  entry->lruNext->lruPrev = entry->lruPrev;
+  entry->lruPrev = 0;
+  entry->lruNext = first;
+  first->lruPrev = entry;
+  first = entry;
+}
+
+
+/*
+2.14 check
+
+Debugging function.
+
+*/
+bool check(){
+  if(first==0 || last==0){
+    if(first!=last){
+      cerr << "inconsistence in lru list, first = " << (void*) first 
+           << " , last = " << (void*) last << endl;
+      return false;
+    }
+    for(unsigned int i=0;i< tableSize;i++){
+      if(hashtable[i]){
+         cerr << "lru is empty, but hashtable[" << i 
+              << "] contains an element" << endl;
+         return false;
+      }
+    }
+    // empty cache
+    return true;
+  }
+  // lru is not empty, check first and last element
+  if(first->lruPrev){
+    cerr << "lru: first has a predecessor" << endl;
+    return false;
+  }
+  if(last->lruNext){
+    cerr << "lru: last has a successor" << endl;
+    return false;
+  }
+  // check whether ech element in lru is also an element in hashtable
+  NativeCacheEntry* e = first;
+  int lrucount = 0;
+  size_t compSize(0);
+  while(e){
+    if(e->size > slotSize){
+      cerr << "entry found having a size > slotSize" << endl;
+      cerr << " slotSize = " << slotSize << " entry = " << (*e) << endl;
+      return false; 
+    }
+    compSize += e->size ;
+    lrucount++;
+    size_t index = e->hashValue(tableSize); 
+    if(!hashtable[index]){
+      cerr << "element " << (*e) << " stored in lru but hashtable[" 
+           << index << " is null" << endl;
+      return  false;
+    }
+    NativeCacheEntry* e2 = hashtable[index];
+    while(e2 && (*e)!=(*e2)){
+      e2 = e2->tableNext;
+    }  
+    if(!e2){
+      cerr << "element " << (*e) << " stored in lru but not in hashtable[" 
+           << index << "]" << endl;
+      return false;
+    }
+    e = e->lruNext;
+  }
+  if(compSize!=usedSize){
+    cerr << "difference in usedSize and stored size " << endl;
+    cerr << "usedSiez = " << usedSize << ", stored Size = " << compSize << endl;
+    return false;
+  }
+
+  // check hashtable
+  int tablecount = 0;
+  for(unsigned int i=0; i<tableSize;i++){
+    if(hashtable[i]){
+       if(hashtable[i]->tablePrev){
+           cerr << " hashtable[" << i << " has a predecessor" << endl;
+       }
+       e = hashtable[i];
+       while(e){
+         tablecount++;
+         if(e->hashValue(tableSize)!=i){
+           cerr << "element << " << (*e) << " has hashvalue " 
+                << e->hashValue(tableSize) << " but is stored at position " 
+                << i << endl;
+           return false;
+         }
+
+         if(e->tableNext){
+             if(e->tableNext->tablePrev!=e){
+                cerr << "error in tablelist found" << endl;
+                return false;
+             }
+         }
+         e = e->tableNext;
+       }
+    }
+  }
+
+  if(lrucount!=tablecount){
+    cerr << "lrucount = " << lrucount << " #  tablecount = " 
+         << tablecount << endl;
+    return false;
+  }
+
+  return true;
+}
+
+  private:
+    size_t maxSize;         // maximum allocated memory
+    size_t slotSize;        // size of a single slot
+    size_t usedSize;        // currently used memory
+    NativeCacheEntry** hashtable; // open hash table
+    size_t tableSize;       // size of the hashtable
+    NativeCacheEntry* first;      // pointer to the first entry for lru
+    NativeCacheEntry* last;       // pointer to the last entry for lru
+
+};
+
+
+#else   // whole flob based approach
+
+
+#include "AvlTree.h"
+#include <set>
+
+class NativeCacheEntry{
 
  public:
     FlobId  flobId;
     SmiSize size;
     char* mem;
-    CacheEntry* prev;
-    CacheEntry* next;
+    NativeCacheEntry* prev;
+    NativeCacheEntry* next;
     bool changed;
 
 
-    CacheEntry(): flobId(0,0,0), size(0),mem(0),prev(0),next(0),changed(true){}
+    NativeCacheEntry(): flobId(0,0,0), size(0),mem(0),prev(0),
+                        next(0),changed(true){}
 
 
-    static void putAtFront(CacheEntry* e, 
-                           CacheEntry*& first, 
-                           CacheEntry*& last){
+    static void putAtFront(NativeCacheEntry* e, 
+                           NativeCacheEntry*& first, 
+                           NativeCacheEntry*& last){
        if(first==0){  // first element in the list
           assert(last==0);
           first = e;
@@ -84,8 +983,8 @@ class CacheEntry{
        first = e;
     }
 
-    static void connect(CacheEntry* e1, CacheEntry* e2, 
-                        CacheEntry*& first, CacheEntry*& last){
+    static void connect(NativeCacheEntry* e1, NativeCacheEntry* e2, 
+                        NativeCacheEntry*& first, NativeCacheEntry*& last){
       __TRACE_ENTER__;
        if(e1==0 && e2==0){ // connect nothing
           first = 0;
@@ -107,26 +1006,27 @@ class CacheEntry{
        e2->prev = e1;
     }
 
-    CacheEntry(const Flob& flob): flobId(flob.id), 
-                                  size(flob.size),
-                                  mem(0), 
-                                  prev(0), 
-                                  next(0), 
-                                  changed(false) {}
+    NativeCacheEntry(const Flob& flob, const bool alloc = false): 
+       flobId(flob.id), size(flob.size),
+       mem(0), prev(0), next(0), changed(false) {
+       if(alloc){
+          mem = (char*) malloc(size);
+       }
+    }
 
   
 
-    bool operator==(const CacheEntry& e) const{
+    bool operator==(const NativeCacheEntry& e) const{
       __TRACE_ENTER__;
      return flobId == e.flobId;
     }
 
-    bool operator<(const CacheEntry& e) const {
+    bool operator<(const NativeCacheEntry& e) const {
       __TRACE_ENTER__;
       return flobId < e.flobId;
     }
     
-    bool operator>(const CacheEntry& e) const{
+    bool operator>(const NativeCacheEntry& e) const{
       __TRACE_ENTER__;
       return flobId > e.flobId;
     }
@@ -155,7 +1055,7 @@ class CacheEntry{
 
 };
 
-ostream& operator<<(ostream& o, const CacheEntry entry);
+ostream& operator<<(ostream& o, const NativeCacheEntry entry);
 
 
 class NativeFlobCache{
@@ -171,7 +1071,7 @@ Creates an empy cache with a given capacity.
 */
 
     NativeFlobCache(const size_t _maxSize): cache(), 
-                                            maxSize(_maxSize), 
+                                            maxSize(_maxSize),   
                                             size(0),
                                             first(0),
                                             last(0){
@@ -192,17 +1092,15 @@ even the flob cannot be put into the cache, the result is zero.
                  const SmiSize offset,
                  const SmiSize size) {
       __TRACE_ENTER__;
-    //  assert(check());
 
-       CacheEntry* entry =  useFlob(flob); 
-    //  assert(check());
-       if(entry==0){
-         return  false;
-       }
-       assert(offset + size <= entry->size);
-       memcpy(dest, entry->mem + offset, size);
-    //  assert(check());
-       return true;
+      NativeCacheEntry* entry =  useFlob(flob); 
+      if(entry==0){ // entry not in cache and not cachable
+         return  FlobManager::getInstance().getData(flob, dest, 
+                                            offset, size, true);
+      }
+      assert(offset + size <= entry->size);
+      memcpy(dest, entry->mem + offset, size);
+      return true;
     }
 
     ~NativeFlobCache(){
@@ -219,7 +1117,7 @@ even the flob cannot be put into the cache, the result is zero.
 Removes all entries from the cache.
 
 */
-    void clear(){
+    void clear(const bool saveChanges = false ){
       __TRACE_ENTER__;
    //   assert(check());
 
@@ -227,8 +1125,11 @@ Removes all entries from the cache.
          cerr << "NativeFlobCache::clear(), size > maxSize detected" << endl;
          cerr << "size = " << size << "maxSize = " << maxSize << endl;
       }
-      CacheEntry* e = first;
+      NativeCacheEntry* e = first;
       while(e){
+        if(saveChanges){
+           this->saveChanges(e);
+        }
         free(e->mem);
         size -= e->size;
         e = e->next;
@@ -237,11 +1138,8 @@ Removes all entries from the cache.
       first = 0;
       last = 0; 
       if(size!=0){
-         cout << "Error in size computation, size =" << size << endl;
-      }
-      if(size!=0){
         cerr << "FlobCache::clear() : size computation failed, remaining size:"
-             << size;
+             << size << endl;
         size = 0;
       }
     }
@@ -257,22 +1155,19 @@ the result will be false.
 */
  bool erase(const Flob& victim){
       __TRACE_ENTER__;
- //   assert(check());
-    CacheEntry finder(victim);
-    CacheEntry* entry = (CacheEntry*)cache.getMember(finder);
+    NativeCacheEntry finder(victim);
+    NativeCacheEntry* entry = (NativeCacheEntry*)cache.getMember(finder);
     if(entry==0){
-   //   assert(check());
       return false;
     }
     // delete from double linked list
-    CacheEntry::connect(entry->prev, entry->next, first, last);
+    NativeCacheEntry::connect(entry->prev, entry->next, first, last);
     // give up memory
     free(entry->mem);
     entry->mem = 0;
     size -= entry->size;
     // delete from tree
     cache.remove(finder);
-  //  assert(check());
     return true; 
  }
 
@@ -284,8 +1179,17 @@ Allocates memory for the (uncached) flob.
 */
   bool create(const Flob& flob){
      __TRACE_ENTER__;
- //   assert(check());
-    return useFlob(flob)!=0;
+     if((flob.size==0 ) || (flob.size>maxSize)){ // non-cachable sizes
+        return false; 
+     }
+     NativeCacheEntry* entry = (NativeCacheEntry*)
+                                   cache.insert2(NativeCacheEntry(flob,true));
+     NativeCacheEntry::putAtFront(entry,first,last);
+     size += entry->size;
+     if(size>maxSize){
+       reduce();
+     }
+     return true;
   }
 
 
@@ -297,7 +1201,6 @@ Stores chached made only in cache to disk and erases the flob from cache.
 */
   bool eraseFromCache(const Flob& victim){
       __TRACE_ENTER__;
-  //  assert(check());
     return saveChanges(victim) && erase(victim);
   }
   
@@ -313,16 +1216,15 @@ Stores new data of a flob.
                const SmiSize& targetoffset,
                const SmiSize& length){
     __TRACE_ENTER__;
-  //  assert(check());
     assert(targetoffset + length <= dest.size);
-    CacheEntry* entry = useFlob(dest);
+    NativeCacheEntry* entry = useFlob(dest);
     if(entry==0){
-    //  assert(check());
-      return false;
+       return FlobManager::getInstance().putData(dest,buffer, 
+                                   targetoffset, length, true);
     }
+    // put data into memory representation
     memcpy(entry->mem+targetoffset, buffer, length);
     entry->changed = true;
-  //  assert(check());
     return true;
   }
 
@@ -332,49 +1234,51 @@ Stores new data of a flob.
 resizes the given flob using the size stored in the argument.
 
 */
- bool resize(const Flob& flob, SmiSize newSize){
+ bool resize(Flob& flob, SmiSize newSize){
     __TRACE_ENTER__;
-   // assert(check());
-    if(newSize >= maxSize ){
-      eraseFromCache(flob);
-   //   assert(check());
-      return false;
+
+    if(newSize > maxSize ){
+      eraseFromCache(flob); // saveChanges and kill cache
+      return FlobManager::getInstance().resize(flob, newSize,true);
     }
     if(newSize==0){
-      erase(flob);
-   //   assert(check());
-      return false;
+      erase(flob); // kill cache without saving changes
+      flob.size = 0;
+      return true;
     }
-    CacheEntry finder(flob);
-    CacheEntry* entry = (CacheEntry*) cache.getMember(finder);
+
+    NativeCacheEntry finder(flob);
+    NativeCacheEntry* entry = (NativeCacheEntry*) cache.getMember(finder);
     if(entry==0){
-    //  assert(check());
-      return useFlob(flob);
+       if(flob.size==0){
+         flob.size = newSize;
+         return create(flob);
+       }
+       flob.size = newSize;
+       bool ok = useFlob(flob)!=0; // chache flob
+       assert(ok);
+       return true;
     }
-    CacheEntry::connect(entry->prev, entry->next, first, last);
-    CacheEntry::putAtFront(entry, first, last);
+
+    NativeCacheEntry::connect(entry->prev, entry->next, first, last);
+    NativeCacheEntry::putAtFront(entry, first, last);
     if(entry->size == newSize){ // no change
-   //   assert(check());
       return true;
     }
     entry->mem = (char*)realloc(entry->mem, newSize);
     size = size +  - entry->size + newSize; 
     entry->size = newSize; // store size
-   // assert(check());
+    flob.size = newSize;
     return true;
  } 
 
- 
-
-
-
 
   private:
-    avltree::AVLTree<CacheEntry> cache;
+    avltree::AVLTree<NativeCacheEntry> cache;
     size_t maxSize;
     size_t size;
-    CacheEntry* first;
-    CacheEntry* last;
+    NativeCacheEntry* first;
+    NativeCacheEntry* last;
 
 
 /*
@@ -409,10 +1313,10 @@ The size is the sum of all stored sizes.
            cout << "cache is not empty, but last is null" << endl;
            return false;
        }
-       CacheEntry* e = first;
+       NativeCacheEntry* e = first;
        int length = 0;
        int csize = 0;
-       set<CacheEntry> testset;
+       set<NativeCacheEntry> testset;
        while(e){
          length++;
          csize += e->size;
@@ -445,7 +1349,7 @@ The size is the sum of all stored sizes.
           return false;
        }
        
-       set<CacheEntry>::iterator it = testset.begin();
+       set<NativeCacheEntry>::iterator it = testset.begin();
        while(it!=testset.end()){
          if(cache.getMember(*it) == 0){
             cout << "Element " << (*it) 
@@ -459,56 +1363,53 @@ The size is the sum of all stored sizes.
 
 
 
-    CacheEntry* useFlob(const Flob& flob){
+    NativeCacheEntry* useFlob(const Flob& flob){
       __TRACE_ENTER__;
-      CacheEntry finder(flob);
-      CacheEntry* entry1 = (CacheEntry*) cache.getMember(finder);
+      NativeCacheEntry finder(flob);
+      NativeCacheEntry* entry1 = (NativeCacheEntry*) cache.getMember(finder);
+
       if(entry1!=0){
-         assert(entry1->size = flob.size);
-         CacheEntry::connect(entry1->prev, entry1->next, first, last);
-         CacheEntry::putAtFront(entry1, first, last);
-      //   assert(check());
+         // entry cached
+         NativeCacheEntry::connect(entry1->prev, entry1->next, first, last);
+         NativeCacheEntry::putAtFront(entry1, first, last);
          return entry1;
       }
+
       // flob not already stored
       if(flob.size>maxSize || flob.size==0){ // noncachable sizes
-        return false;
+        return 0;
       }
-      CacheEntry entry(flob);
+
+      // bring entry to chache
+      NativeCacheEntry entry(flob);
       entry.changed = false;
       entry.mem = (char*) malloc(flob.size);
       FlobManager::getInstance().getData(flob, entry.mem,0, flob.size, true);
-
-      CacheEntry* stored = (CacheEntry*) cache.insert2(entry);
-      CacheEntry::putAtFront(stored, first, last);
- 
+      NativeCacheEntry* stored = (NativeCacheEntry*) cache.insert2(entry);
+      NativeCacheEntry::putAtFront(stored, first, last);
       size += flob.size;
-      
-    //  assert(check());
       if(size > maxSize){
          reduce();
       }
-    //  assert(check());
       return stored;
-       
     }
 
     bool saveChanges(const Flob& flob){
       __TRACE_ENTER__;
-      CacheEntry finder(flob);
-      CacheEntry* entry = (CacheEntry*) cache.getMember(finder);
+      NativeCacheEntry finder(flob);
+      NativeCacheEntry* entry = (NativeCacheEntry*) cache.getMember(finder);
       if(entry==0){
-         return false;
+         return true;
       }
-      assert(entry->size == flob.size);
       return saveChanges(entry);
     }
 
-    bool saveChanges(CacheEntry* entry){
+    bool saveChanges(NativeCacheEntry* entry){
       if(!entry->changed){
         return true;
       }
       Flob flob(entry->flobId, entry->size);
+      bool res1 = FlobManager::getInstance().resize(flob, entry->size, true);
       bool res = FlobManager::getInstance().putData(flob,
                                                 entry->mem,
                                                 0,
@@ -517,15 +1418,14 @@ The size is the sum of all stored sizes.
       if(res){
          entry->changed=false;
       }
-      return res;
+      return res&&res1;
     }
 
 
     bool reduce(){
        __TRACE_ENTER__;
-   //    assert(check());
        while(!cache.IsEmpty() && size > maxSize){
-          CacheEntry* e = last;
+          NativeCacheEntry* e = last;
           saveChanges(last);
           assert(e!=0);
           // remove from list
@@ -543,12 +1443,17 @@ The size is the sum of all stored sizes.
           bool rm = cache.remove(*e);
           assert(rm);
        }
-   //    assert(check());
        return true;
-       
     }
 
 
 
 };
+
+
+
+#endif
+
+
+
 

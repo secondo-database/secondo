@@ -86,7 +86,7 @@ class Flob{
   friend class FlobManager;
   friend class FlobCache;
   friend class NativeFlobCache;
-  friend class CacheEntry;
+  friend class NativeCacheEntry;
   public:
 
 /*

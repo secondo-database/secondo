@@ -134,6 +134,19 @@ Puts data into a flob.
                          const SmiSize& length,
                          const bool ignoreCache = false);  // data size
 
+
+/*
+~putData~
+
+Puts data into a flob without checking sizes.
+
+
+*/
+      bool putData(const FlobId& id,         // destination flob
+                         const char* buffer, // source buffer
+                         const SmiSize& targetoffset,  // offset within the Flob
+                         const SmiSize& length
+                         );
 /*
 ~create~
 
@@ -178,7 +191,8 @@ return a Flob with persistent storage allocated and defined elsewhere
 Changes the size of a given Flob to the specified size.
 
 */
-     bool resize(Flob& flob, const SmiSize& newSize);
+     bool resize(Flob& flob, const SmiSize& newSize, 
+                 const bool ignoreCache=false);
 
 
 
