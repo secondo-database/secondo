@@ -4508,11 +4508,13 @@ Detroys this object.
          }
       }
       if(currentResult){
+        currentResult->Destroy();
         delete currentResult;
       }
       tupleType->DeleteIfAllowed();
       tupleType = 0;
       if(completeResult){
+         completeResult->Destroy();
          delete completeResult;
          completeResult = 0;
       }
@@ -4528,6 +4530,7 @@ If the tree is exhausted, NULL is returned.
    Tuple* nextTuple(){
       if(currentResult && currentPos>=currentResult->GetNoComponents()){
         // result completly processed
+        currentResult->Destroy();
         delete currentResult;
         currentResult = 0;
         computeNextResult();
@@ -4618,10 +4621,12 @@ This function computes the next result.
      currentPos = 0;
      // delete old currentResult if present
      if(currentResult){
+       currentResult->Destroy();
        delete currentResult;
        currentResult=0;
      }
      if(completeResult){
+       completeResult->Destroy();
        delete completeResult;
        completeResult=0;
      }
@@ -4658,6 +4663,7 @@ This function computes the next result.
           MInt tmp(1);
           coverageEntry.lastResult->PlusExtend(lastResult,tmp);
           coverageEntry.lastResult->CopyFrom(&tmp);
+          lastResult->Destroy();
           delete lastResult;
           lastResult = 0;
           coverageEntry.position++; // this position has been computed
