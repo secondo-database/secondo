@@ -425,6 +425,7 @@ catalog. The function returns "true"[4] if the deletion was successful.
 
 */
 
+
  protected:
   Implementation();
   ~Implementation();
@@ -532,6 +533,8 @@ hiding the implementation from the user of the ~SmiFile~ class.
 class SmiFile::Implementation
 {
   public:
+    bool IsTemp(){return isTemporaryFile;}
+
   protected:
     Implementation();
     Implementation( bool isTemp );

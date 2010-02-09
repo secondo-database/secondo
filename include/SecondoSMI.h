@@ -616,6 +616,8 @@ Different SmiFile types may return different sets of keys as results.
 
 */
 
+  bool IsTemp();
+
 
  protected:
   SmiFile( const bool isTemporary = false);

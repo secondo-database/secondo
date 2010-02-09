@@ -184,6 +184,7 @@ SmiFile::SmiFile( const bool isTemporary /* = false */)
   }
 }
 
+
 SmiFile::SmiFile( const SmiFile& f) 
   : opened( f.opened ), 
     fileContext( f.fileContext ), 
@@ -218,6 +219,11 @@ SmiFile::~SmiFile()
   delete impl;
 }
 
+
+bool
+SmiFile::IsTemp(){
+  return impl->IsTemp();
+}
 
 bool
 SmiFile::CheckName( const string& name )

@@ -2130,7 +2130,11 @@ void Relation::Clear()
   relDesc.noTuples = 0;
   relDesc.totalExtSize = 0;
   relDesc.totalSize = 0;
-  tupleFile.Truncate();
+  if(tupleFile.IsTemp()){
+    tupleFile.ReCreate();
+  } else {
+    tupleFile.Truncate();
+  }
   if(relDesc.lobFileId){
     SmiRecordFile rf(false,0, relDesc.isTemp);
     rf.Open(relDesc.lobFileId);
