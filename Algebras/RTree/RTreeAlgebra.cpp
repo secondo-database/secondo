@@ -1171,6 +1171,8 @@ public:
   R_Tree<dim, TupleId>* rtree;
   BBox<dim> *searchBox;
   bool first;
+  int completeCalls;
+  int completeReturned;
 };
 
 template <unsigned dim>
@@ -1179,17 +1181,28 @@ int WindowIntersects( Word* args, Word& result,
                       Supplier s )
 {
   WindowIntersectsLocalInfo<dim> *localInfo;
+  localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
 
   switch (message)
   {
     case OPEN :
     {
-      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
-      if ( localInfo ) delete localInfo;
+      //local info kept over many calls of OPEN!
+      //useful for loopjoin
 
-      localInfo = new WindowIntersectsLocalInfo<dim>;
-      localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
-      localInfo->relation = (Relation*)args[1].addr;
+      if ( !localInfo )  // first time
+      {
+        localInfo = new WindowIntersectsLocalInfo<dim>;
+        localInfo->completeCalls = 0;
+        localInfo->completeReturned = 0;
+
+        localInfo->sizesInitialized = false;
+        localInfo->sizesChanged = false;
+
+        localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
+        localInfo->relation = (Relation*)args[1].addr;
+      }
+
       localInfo->first = true;
       localInfo->searchBox =
         new BBox<dim> (
@@ -1204,7 +1217,6 @@ int WindowIntersects( Word* args, Word& result,
 
     case REQUEST :
     {
-      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
       R_TreeLeafEntry<dim, TupleId> e;
 
       if ( !localInfo->searchBox->IsDefined() )
@@ -1241,14 +1253,20 @@ int WindowIntersects( Word* args, Word& result,
       }
     }
 
+
     case CLOSE :
     {
       if(local.addr)
       {
-        localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
         delete localInfo->searchBox;
-        delete localInfo;
-        local.setAddr(Address(0));
+        localInfo->completeCalls++;
+        localInfo->completeReturned += localInfo->returned;
+        localInfo->returned = 0;
+
+        //Do not delete localInfo data structure in CLOSE! 
+        //To be kept over several 
+        //calls for correct progress estimation when embedded in a loopjoin. 
+        //Is deleted at the end of the query in CLOSEPROGRESS.
       }
       return 0;
     }
@@ -1258,7 +1276,6 @@ int WindowIntersects( Word* args, Word& result,
     {
       if(local.addr)
       {
-        localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
         delete localInfo;
         local.setAddr(Address(0));
       }
@@ -1270,11 +1287,10 @@ int WindowIntersects( Word* args, Word& result,
     {
       ProgressInfo *pRes;
       pRes = (ProgressInfo*) result.addr;
-      localInfo = (WindowIntersectsLocalInfo<dim>*)local.addr;
 
-      // values taken from feed operator
-      const double uWinIntSec = 0.00194;    //milliseconds per tuple
-      const double vWinIntSec = 0.0000106;  //milliseconds per Byte
+      //Experiments described in file Cost functions
+      const double uSearch = 0.45;    //milliseconds per search
+      const double vResult = 0.092;  //milliseconds per result tuple
 
       if (!localInfo) return CANCEL;
       else
@@ -1308,27 +1324,32 @@ int WindowIntersects( Word* args, Word& result,
 
         pRes->CopySizes(localInfo);
 
-        if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
-          pRes->Card = (double) localInfo->defaultValue;
-        else                                              // annotated
-          pRes->Card = localInfo->total * qp->GetSelectivity(s);
+	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
+        {
+          pRes->Card =
+            (double) localInfo->completeReturned / 
+            (double) localInfo->completeCalls;
+        }
+        else	//single or first call
+        {
+          if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
+            pRes->Card = (double) localInfo->defaultValue;
+          else                                              // annotated
+            pRes->Card = localInfo->total * qp->GetSelectivity(s);
 
-        if ((double) localInfo->returned > pRes->Card) // there are more tuples
+          if ((double) localInfo->returned > pRes->Card) // more tuples
             pRes->Card = (double) localInfo->returned; // than calculated
 
-        if (!localInfo->searchBox)         // rtree has been finished, but
+          if (!localInfo->searchBox)         // rtree has been finished, but
             pRes->Card = pRes->Card * 1.1; // there are some tuples more (10%)
 
-        if (pRes->Card > (double) localInfo->total) // more than all cannot be
+          if (pRes->Card > (double) localInfo->total) // more than all cannot be
             pRes->Card = (double) localInfo->total;
+	}
 
-        pRes->Time = (pRes->Card + 1.0)
-               * (uWinIntSec + localInfo->SizeExt * vWinIntSec)
-               * qp->GetPredCost(s);
-        pRes->Progress = (localInfo->returned + 1)
-               * (uWinIntSec + localInfo->SizeExt * vWinIntSec)
-               * qp->GetPredCost(s)
-               / pRes->Time;
+        pRes->Time = uSearch + pRes->Card * vResult;
+        
+        pRes->Progress = (localInfo->returned + 1) / pRes->Card;
 
         return YIELD;
       }
