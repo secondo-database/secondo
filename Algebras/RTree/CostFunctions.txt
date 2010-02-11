@@ -1,0 +1,110 @@
+Determination of cost function for windowintersects
+===================================================
+
+Database berlintest. Used relations Trains and UnitTrains.
+
+We need to determine constants 
+
+- ms per search
+- ms per result tuple
+
+1. Build a 3D R-tree index on UnitTrains using SecondoTTYNT.
+
+	let UnitTrains_UTrip_sptmpuni = UnitTrains creatertree[UTrip]
+
+2. Query with few results (small query boxes)
+
+	query UnitTrains feed head[562] loopjoin[UnitTrains_UTrip_sptmpuni 
+UnitTrains windowintersects[.UTrip] {second}] count
+
+returns 2078 tuples
+
+time (elapsed): 0.53, 0.52, 0.46 => 0.5 seconds
+
+
+3. Query with many results (large query boxes)
+
+	 query Trains feed loopjoin[UnitTrains_UTrip_sptmpuni UnitTrains 
+windowintersects[bbox(.Trip)] {second}] count
+
+returns 2273496 tuples
+ 
+time (elapsed): 3:29 min (209 seconds),  3:43min (223.217sec), 3:29min 
+(208.692sec) => 210 seconds
+
+
+4. Time per result tuple
+
+The two queries have the same amount of searches (562). The time for the large 
+query can be completely counted towards the result tuples since the time for 
+searches is less than 0.5 seconds.
+
+Time per result tuple: 210 seconds / 2273496 = 0.09237 ms per tuple => 0.092 ms/
+tuple
+
+
+
+5. Empty loopjoin cost
+
+let emptyrel =  ten feed filter[.no > 100] consume
+
+	query UnitTrains feed loopjoin[emptyrel feed] count
+
+returns 0 tuples
+
+elapsed time:  1.1843sec, 1.17287sec, 1.18933sec => 1.18 seconds
+
+
+6. Time for searches
+
+	query UnitTrains feed loopjoin[UnitTrains_UTrip_sptmpuni UnitTrains 
+windowintersects[.UTrip] {second}] count
+
+returns 191678 tuples
+
+elapsed time: 41.93, 42.14, 43.44 => 42 seconds
+
+UnitTrains has 51544 tuples
+
+
+7. Time per search
+
+We subtract the time for the empty loopjoin: 42 - 1.18 = 41 seconds
+
+The time for returning the result tuples is 191678 * 0.092 = 17634 ms
+
+The remaining time for searches is 41 - 17.6 = 23.4 seconds
+
+Hence the time per search is 23400 ms / 51544 = 0.45 ms per search.
+
+
+8. Final result
+
+windowintersects requires
+
+- 0.45 ms per search
+- 0.092 ms per result tuple
+
+These results hold for a 3d R-tree with two levels, 1259 nodes, and 51544 leaf 
+entries. They might be refined building a larger R-tree.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
