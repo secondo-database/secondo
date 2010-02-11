@@ -1535,6 +1535,13 @@ WindowIntersectsSSelection( ListExpr args )
 5.1.3 Value mapping function of operator ~windowintersectsS~
 
 */
+
+
+#ifndef USE_PROGRESS
+
+// standard version
+
+
 template <unsigned dim, class LeafInfo>
 struct WindowIntersectsSLocalInfo
 {
@@ -1712,6 +1719,392 @@ int WindowIntersectsSDoubleLayer( Word* args, Word& result,
   }
   return 0;
 }
+
+# else
+
+// progress version
+
+template <unsigned dim, class LeafInfo>
+struct WindowIntersectsSLocalInfo: public ProgressLocalInfo
+{
+  R_Tree<dim, LeafInfo>* rtree;
+  BBox<dim> *searchBox;
+  TupleType *resultTupleType;
+  bool first;
+  int completeCalls;
+  int completeReturned;
+};
+
+template <unsigned dim>
+int WindowIntersectsSStandard( Word* args, Word& result,
+                               int message, Word& local,
+                               Supplier s )
+{
+  WindowIntersectsSLocalInfo<dim, TupleId> *localInfo;
+  localInfo = (WindowIntersectsSLocalInfo<dim, TupleId>*)local.addr;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      //local info kept over many calls of OPEN!
+      //useful for loopjoin
+
+      if ( !localInfo )  // first time
+      {
+        localInfo = new WindowIntersectsSLocalInfo<dim, TupleId>;
+        localInfo->completeCalls = 0;
+        localInfo->completeReturned = 0;
+
+        localInfo->sizesInitialized = false;
+        localInfo->sizesChanged = false;
+
+        localInfo->rtree = (R_Tree<dim, TupleId>*)args[0].addr;
+        localInfo->resultTupleType =
+          new TupleType(nl->Second(GetTupleResultType(s)));
+      }
+
+      localInfo->first = true;
+      localInfo->searchBox =
+        new BBox<dim> (
+          (((StandardSpatialAttribute<dim> *)args[1].addr)->
+            BoundingBox()) );
+ 
+      local.setAddr(localInfo);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+ 
+      R_TreeLeafEntry<dim, TupleId> e;
+
+      if ( !localInfo->searchBox->IsDefined() )
+      { // search box is undefined -> no result!
+        return CANCEL;
+      }
+      else
+      {
+        if(localInfo->first)
+        {
+          localInfo->first = false;
+          if( localInfo->rtree->First( *localInfo->searchBox, e ) )
+          {
+            Tuple *tuple = new Tuple( localInfo->resultTupleType );
+            tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
+            result.setAddr(tuple);
+            localInfo->returned++;
+            return YIELD;
+          }
+          else
+            return CANCEL;
+        }
+        else
+        {
+          if( localInfo->rtree->Next( e ) )
+          {
+            Tuple *tuple = new Tuple( localInfo->resultTupleType );
+            tuple->PutAttribute(0, new TupleIdentifier(true, e.info));
+            result.setAddr(tuple);
+            localInfo->returned++;
+            return YIELD;
+          }
+          else
+            return CANCEL;
+        }
+      }
+    }
+
+    case CLOSE :
+    {
+      if( localInfo )
+      {
+        localInfo->completeCalls++;
+        localInfo->completeReturned += localInfo->returned;
+        localInfo->returned = 0;
+
+        delete localInfo->searchBox;
+
+        //Do not delete localInfo data structure in CLOSE! 
+        //To be kept over several 
+        //calls for correct progress estimation when embedded in a loopjoin. 
+        //Is deleted at the end of the query in CLOSEPROGRESS.
+
+      }
+      return 0;
+    }
+
+    case CLOSEPROGRESS :
+    {
+      if( localInfo )
+      {
+	localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+        local.setAddr(Address(0));
+      }
+      return 0;
+    }
+
+
+   case REQUESTPROGRESS :
+    {
+      ProgressInfo *pRes;
+      pRes = (ProgressInfo*) result.addr;
+
+      //Experiments described in file Cost functions
+      const double uSearch = 0.45;    //milliseconds per search
+      const double vResult = 0.019;  //milliseconds per result tuple
+
+      if (!localInfo) return CANCEL;
+      else
+      {
+        localInfo->sizesChanged = false;
+
+        if ( !localInfo->sizesInitialized )
+        {
+          localInfo->returned = 0;
+          localInfo->defaultValue = 50;
+          localInfo->Size = 16;
+          localInfo->SizeExt = 16;
+          localInfo->noAttrs = 1;
+          localInfo->attrSize = new double[localInfo->noAttrs];
+          localInfo->attrSizeExt = new double[localInfo->noAttrs];
+	  localInfo->attrSize[0] = 16;
+	  localInfo->attrSizeExt[0] = 16;
+          localInfo->sizesInitialized = true;
+          localInfo->sizesChanged = true;
+        }
+
+        pRes->CopySizes(localInfo);
+
+	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
+        {
+          pRes->Card =
+            (double) localInfo->completeReturned / 
+            (double) localInfo->completeCalls;
+        }
+        else	//single or first call
+        {
+          if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
+            pRes->Card = (double) localInfo->defaultValue;
+          else                                              // annotated
+            pRes->Card = localInfo->total * qp->GetSelectivity(s);
+
+          if ((double) localInfo->returned > pRes->Card) // more tuples
+            pRes->Card = (double) localInfo->returned; // than calculated
+
+          if (!localInfo->searchBox)         // rtree has been finished, but
+            pRes->Card = pRes->Card * 1.1; // there are some tuples more (10%)
+
+          if (pRes->Card > (double) localInfo->total) // more than all cannot be
+            pRes->Card = (double) localInfo->total;
+	}
+
+        pRes->Time = uSearch + pRes->Card * vResult;
+        
+        pRes->Progress = (localInfo->returned + 1) / pRes->Card;
+
+        return YIELD;
+      }
+    }
+  }
+  return 0;
+}
+
+template <unsigned dim>
+int WindowIntersectsSDoubleLayer( Word* args, Word& result,
+                                  int message, Word& local,
+                                  Supplier s )
+{
+  WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo> *localInfo;
+  localInfo = (WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo>*)local.addr;
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      //local info kept over many calls of OPEN!
+      //useful for loopjoin
+
+      if ( !localInfo )  // first time
+      {
+        localInfo = new WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo>;
+        localInfo->completeCalls = 0;
+        localInfo->completeReturned = 0;
+
+        localInfo->sizesInitialized = false;
+        localInfo->sizesChanged = false;
+
+        localInfo->rtree = (R_Tree<dim, TwoLayerLeafInfo>*)args[0].addr;
+        localInfo->resultTupleType =
+          new TupleType(nl->Second(GetTupleResultType(s)));
+      }
+
+      localInfo->first = true;
+      localInfo->searchBox =
+        new BBox<dim> (
+          (((StandardSpatialAttribute<dim> *)args[1].addr)->
+            BoundingBox()) );
+ 
+      local.setAddr(localInfo);
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo> *localInfo =
+        (WindowIntersectsSLocalInfo<dim, TwoLayerLeafInfo>*)
+        local.addr;
+      R_TreeLeafEntry<dim, TwoLayerLeafInfo> e;
+
+      if ( !localInfo->searchBox->IsDefined() )
+      { // search box is undefined -> no result!
+        return CANCEL;
+      }
+      else
+      {
+      if(localInfo->first)
+      {
+        localInfo->first = false;
+        if( localInfo->rtree->First( *localInfo->searchBox, e ) )
+        {
+          Tuple *tuple = new Tuple( localInfo->resultTupleType );
+          tuple->PutAttribute(
+            0, new TupleIdentifier( true, e.info.tupleId ) );
+          tuple->PutAttribute( 1, new CcInt( true, e.info.low ) );
+          tuple->PutAttribute( 2, new CcInt( true, e.info.high ) );
+          result.setAddr(tuple);
+          localInfo->returned++;
+          return YIELD;
+        }
+        else
+          return CANCEL;
+      }
+      else
+      {
+        if( localInfo->rtree->Next( e ) )
+        {
+          Tuple *tuple = new Tuple( localInfo->resultTupleType );
+          tuple->PutAttribute(
+            0, new TupleIdentifier( true, e.info.tupleId ) );
+          tuple->PutAttribute( 1, new CcInt( true, e.info.low ) );
+          tuple->PutAttribute( 2, new CcInt( true, e.info.high ) );
+          result.setAddr(tuple);
+          localInfo->returned++;
+          return YIELD;
+        }
+        else
+          return CANCEL;
+      }
+    }
+}
+
+    case CLOSE :
+    {
+      if( localInfo )
+      {
+        localInfo->completeCalls++;
+        localInfo->completeReturned += localInfo->returned;
+        localInfo->returned = 0;
+
+        delete localInfo->searchBox;
+
+        //Do not delete localInfo data structure in CLOSE! 
+        //To be kept over several 
+        //calls for correct progress estimation when embedded in a loopjoin. 
+        //Is deleted at the end of the query in CLOSEPROGRESS.
+
+      }
+      return 0;
+    }
+
+
+    case CLOSEPROGRESS :
+    {
+      if( localInfo )
+      {
+	localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+        local.setAddr(Address(0));
+      }
+      return 0;
+    }
+
+
+   case REQUESTPROGRESS :
+    {
+      ProgressInfo *pRes;
+      pRes = (ProgressInfo*) result.addr;
+
+      //Experiments described in file Cost functions
+      const double uSearch = 0.45;    //milliseconds per search
+      const double vResult = 0.02;  //milliseconds per result tuple
+		// vResult to be adjusted
+
+      if (!localInfo) return CANCEL;
+      else
+      {
+        localInfo->sizesChanged = false;
+
+        if ( !localInfo->sizesInitialized )
+        {
+          localInfo->returned = 0;
+          localInfo->defaultValue = 50;
+          localInfo->Size = 26;
+          localInfo->SizeExt = 26;
+          localInfo->noAttrs = 3;
+          localInfo->attrSize = new double[localInfo->noAttrs];
+          localInfo->attrSizeExt = new double[localInfo->noAttrs];
+	  localInfo->attrSize[0] = 16;
+	  localInfo->attrSizeExt[0] = 16;
+	  localInfo->attrSize[1] = 5;
+	  localInfo->attrSizeExt[1] = 5;
+	  localInfo->attrSize[2] = 5;
+	  localInfo->attrSizeExt[2] = 5;
+          localInfo->sizesInitialized = true;
+          localInfo->sizesChanged = true;
+        }
+
+        pRes->CopySizes(localInfo);
+
+	if ( localInfo->completeCalls > 0 )     //called in a loopjoin
+        {
+          pRes->Card =
+            (double) localInfo->completeReturned / 
+            (double) localInfo->completeCalls;
+        }
+        else	//single or first call
+        {
+          if (fabs(qp->GetSelectivity(s) - 0.1) < 0.000001) // default
+            pRes->Card = (double) localInfo->defaultValue;
+          else                                              // annotated
+            pRes->Card = localInfo->total * qp->GetSelectivity(s);
+
+          if ((double) localInfo->returned > pRes->Card) // more tuples
+            pRes->Card = (double) localInfo->returned; // than calculated
+
+          if (!localInfo->searchBox)         // rtree has been finished, but
+            pRes->Card = pRes->Card * 1.1; // there are some tuples more (10%)
+
+          if (pRes->Card > (double) localInfo->total) // more than all cannot be
+            pRes->Card = (double) localInfo->total;
+	}
+
+        pRes->Time = uSearch + pRes->Card * vResult;
+        
+        pRes->Progress = (localInfo->returned + 1) / pRes->Card;
+
+        return YIELD;
+      }
+    }
+
+  }
+  return 0;
+}
+
+#endif
+
+
 
 /*
 5.1.4 Definition of value mapping vectors
@@ -4074,7 +4467,6 @@ class RTreeAlgebra : public Algebra
     AddOperator( &getfileinfortree);
     AddOperator( &updatebulkloadrtree);
 
-
 #else
 
     AddOperator( &creatertree );
@@ -4082,6 +4474,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &windowintersects );
         windowintersects.EnableProgress();
     AddOperator( &windowintersectsS );
+        windowintersectsS.EnableProgress();
     AddOperator( &gettuples );
     AddOperator( &gettuplesdbl );
     AddOperator( &gettuples2 );

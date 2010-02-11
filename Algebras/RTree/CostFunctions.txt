@@ -89,6 +89,59 @@ These results hold for a 3d R-tree with two levels, 1259 nodes, and 51544 leaf
 entries. They might be refined building a larger R-tree.
 
 
+Determination of cost function for windowintersectsS
+====================================================
+
+(a) windowintersectsS (Standard)
+
+We repeat the queries from above, modified for windowintersectsS:
+
+1. Query with many results (large query boxes)
+
+	 query Trains feed loopjoin[UnitTrains_UTrip_sptmpuni 
+windowintersectsS[bbox(.Trip)] {second}] count
+
+returns 2273496 tuples (containing tuple identifiers)
+
+elapsed time: 47.88, 42.68, 42.94 seconds => 43 seconds
+
+Hence we have 43000 / 2273496 = 0.01891 ms per result tuple => 0.019 ms/tuple
+
+2. Result
+
+windowintersectsS requires
+
+- 0.019 ms per result tuple
+
+
+
+
+(b) windowintersectsS (DoubleLayer)
+
+1. create an R-tree which uses double indexing using SecondoTTYNT
+
+	let UnitTrains_UTrip_double = Trains feed addid filter[seqinit(0)] 
+projectextendstream[TID; Unit: units(.Trip)] 
+extend[Grp: seqnext()] extend[low: .Grp, high: .Grp] creatertree[Unit]
+
+(name not chosen correctly should better be Trains_Trip_unit_double or similar)
+
+
+2. Query with many results (large boxes)
+
+	query Trains feed loopjoin[UnitTrains_UTrip_double 
+windowintersectsS[bbox(.Trip)] {second}] count
+
+returns 2273496 tuples containing triples (TID, low, high).
+
+elapsed time: 45.42, 43.85, 44.73 => 45 seconds
+
+Hence we have 45000 / 2273496 = 0.0197933051 ms per tuple => 0.020 ms/tuple
+
+3. Result
+
+- 0.02 ms/tuple
+
 
 
 
