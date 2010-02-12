@@ -144,8 +144,85 @@ Hence we have 45000 / 2273496 = 0.0197933051 ms per tuple => 0.020 ms/tuple
 
 
 
+Determination of cost function for gettuples
+============================================
+
+1. Query
+
+	query Trains feed head[300] loopjoin[UnitTrains_UTrip_sptmpuni 
+windowintersectsS[bbox(.Trip)] {second}] count
+
+returns 1224789 tuples
+
+elapsed 23.08, 22.83, 21.80 => 23 seconds
 
 
+2. Extended query
+
+	query Trains feed head[300] loopjoin[UnitTrains_UTrip_sptmpuni 
+windowintersectsS[bbox(.Trip)] UnitTrains gettuples {second}] count
+
+returns 1224789 tuples
+
+elapsed time: 114.9, 111.17, 109.23 => 110 seconds
+
+
+3. To determine the contribution of tuplesize, we create a larger version of 
+UnitTrains
+
+	let UnitTrains2 = UnitTrains feed extend[UTrip2: .UTrip] consume
+
+Original tuples in UnitTrains have tuplesize 131. Attribute UTrip has 
+size 104, so the tuplesize in UnitTrains2 is 235.
+
+We build the same index as for UnitTrains:
+
+	let UnitTrains2_UTrip_sptmpuni = UnitTrains2 creatertree[UTrip]
+
+
+4. We repeat query 1 on this relation and index. Running times should 
+be the same as before.
+
+	query Trains feed head[300] loopjoin[UnitTrains2_UTrip_sptmpuni 
+windowintersectsS[bbox(.Trip)] {second}] count
+
+returns 1224789 tuples
+
+elapsed time: 24.84, 26.04, 24.71 => 25 seconds
+
+
+
+5. We repeat query 2, now with larger tuple sizes in relation UnitTrains2.
+
+	query Trains feed head[300] loopjoin[UnitTrains2_UTrip_sptmpuni 
+windowintersectsS[bbox(.Trip)] UnitTrains2 gettuples {second}] count
+
+returns 1224789 tuples
+
+elapsed time 117.12, 119.16, 117.46 => 118 seconds
+
+
+6. We take the difference of the last query to the one on UnitTrains. 
+
+Time difference is 118 - 110 = 8 seconds.
+
+Hence we have 8000 / (1224789 * 104) = 0.0000628 ms/Byte
+
+- vByte = 0.0000628 ms/Byte
+
+We apply this to the whole size of the tuple of 235 bytes
+
+	0.0000628 * 235 * 1224789 = 18075 ms
+
+Hence the time for query 5 without per Byte cost is 118 - 18.075 =~ 100 seconds.
+
+We subtract the query without gettuples:
+
+	100 - 25 = 75 seconds
+
+Hence the time per tuple is 75000 / 1224789 = 0.0612350372 ms
+
+- uTuple = 0.061 ms/tuple
 
 
 

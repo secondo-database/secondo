@@ -2255,6 +2255,14 @@ the attribute index for the tid is stored within the stream argument's
 tuple type. For ~gettuples~, it is ~2~, for ~gettuples2~, it is ~3~.
 
 */
+
+
+
+#ifndef USE_PROGRESS
+
+// standard version
+
+
 struct GetTuplesLocalInfo
 {
   Relation *relation;
@@ -2344,6 +2352,185 @@ template<int TidIndexPos>
   }
   return 0;
 }
+
+# else
+
+// progress version
+
+
+struct GetTuplesLocalInfo: public ProgressLocalInfo
+{
+  Relation *relation;
+  int tidIndex;
+  TupleType *resultTupleType;
+};
+
+template<int TidIndexPos>
+    int GetTuples( Word* args, Word& result, int message,
+                   Word& local, Supplier s )
+{
+  GetTuplesLocalInfo *localInfo;
+  localInfo = (GetTuplesLocalInfo*)local.addr;
+  static MessageCenter* msg = MessageCenter::GetInstance();
+
+  switch (message)
+  {
+    case OPEN :
+    {
+      assert( TidIndexPos == 2 || TidIndexPos == 3);
+      qp->Open(args[0].addr);
+
+      if ( !localInfo )  // first time
+      { 
+        localInfo = new GetTuplesLocalInfo();
+        localInfo->relation = (Relation*)args[1].addr;
+        localInfo->resultTupleType =
+          new TupleType(nl->Second(GetTupleResultType(s)));
+        localInfo->tidIndex = ((CcInt*)args[TidIndexPos].addr)->GetIntval() - 1;
+ 
+        local.setAddr(localInfo);
+      }
+      return 0;
+    }
+
+    case REQUEST :
+    {
+      Word wTuple;
+      qp->Request(args[0].addr, wTuple);
+      while( qp->Received(args[0].addr) )
+      {
+        localInfo->read++;
+
+        Tuple* sTuple = (Tuple*)wTuple.addr;
+        Tuple* resultTuple = new Tuple( localInfo->resultTupleType );
+        Tuple* relTuple = localInfo->relation->
+            GetTuple(((TupleIdentifier *)sTuple->
+            GetAttribute(localInfo->tidIndex))->GetTid());
+
+        if(!relTuple){
+          NList msg_list(NList("simple") ,
+                    NList("Warning: invalid tuple id"));
+          msg->Send(msg_list);
+          qp->Request(args[0].addr, wTuple);
+        } else {
+          int j = 0;
+
+          // Copy the attributes from the stream tuple
+          for( int i = 0; i < sTuple->GetNoAttributes(); i++ )
+          {
+            if( i != localInfo->tidIndex )
+              resultTuple->CopyAttribute( i, sTuple, j++ );
+          }
+          sTuple->DeleteIfAllowed();
+
+          for( int i = 0; i < relTuple->GetNoAttributes(); i++ )
+          {
+            resultTuple->CopyAttribute( i, relTuple, j++ );
+          }
+          relTuple->DeleteIfAllowed();
+
+          result.setAddr( resultTuple );
+
+          localInfo->returned++;
+          return YIELD;
+        }
+      }
+      return CANCEL;
+    }
+
+    case CLOSE :
+    {
+      qp->Close(args[0].addr);
+      return 0;
+    }
+
+
+    case CLOSEPROGRESS :
+    {
+      if ( localInfo ) 
+      { 
+        localInfo->resultTupleType->DeleteIfAllowed();
+        delete localInfo;
+      }
+      local.setAddr(Address(0));
+      return 0;
+    }
+
+
+    case REQUESTPROGRESS :
+    {
+      ProgressInfo p1;
+      ProgressInfo *pRes;
+      pRes = (ProgressInfo*) result.addr;
+
+      //Experiments described in file Cost functions
+      const double uTuple = 0.061;    //milliseconds per tuple
+      const double vByte = 0.0000628;  //milliseconds per byte
+  
+      if ( !localInfo ) return CANCEL;
+      else
+      {
+        localInfo->sizesChanged = false;
+
+        if ( !localInfo->sizesInitialized )
+        {
+          localInfo->total = localInfo->relation->GetNoTuples();
+          localInfo->Size = 0;
+          localInfo->SizeExt = 0;
+          localInfo->noAttrs =
+            nl->ListLength(nl->Second(nl->Second(qp->GetType(s))));
+          localInfo->attrSize = new double[localInfo->noAttrs];
+          localInfo->attrSizeExt = new double[localInfo->noAttrs];
+          for ( int i = 0;  i < localInfo->noAttrs; i++)
+          {
+            localInfo->attrSize[i] = localInfo->relation->GetTotalSize(i)
+                                  / (localInfo->total + 0.001);
+            localInfo->attrSizeExt[i] = localInfo->relation->GetTotalExtSize(i)
+                                  / (localInfo->total + 0.001);
+
+            localInfo->Size += localInfo->attrSize[i];
+            localInfo->SizeExt += localInfo->attrSizeExt[i];
+          }
+          localInfo->sizesInitialized = true;
+          localInfo->sizesChanged = true;
+        }
+
+        pRes->CopySizes(localInfo);
+
+
+        if ( qp->RequestProgress(args[0].addr, &p1) )
+        {
+          pRes->Card = p1.Card;
+          
+          pRes->Time = p1.Time 
+            + p1.Card * (uTuple + vByte * localInfo->SizeExt);
+
+          if ( p1.BTime < 0.1 && pipelinedProgress )   //non-blocking,
+                                                        //use pipelining
+            pRes->Progress = p1.Progress;
+          else
+          {
+            pRes->Progress = 
+             ((p1.Progress * p1.Time) 
+              + (localInfo->read / p1.Card) 
+                   * (uTuple + vByte * localInfo->SizeExt))
+             / pRes->Time;
+          }
+
+          pRes->CopyBlocking(p1);
+          return YIELD;
+
+        }
+        else return CANCEL;
+      }
+    }
+
+  }
+  return 0;
+}
+
+#endif
+
 
 /*
 5.1.5 Specification of operator ~gettuples~
@@ -2638,6 +2825,8 @@ ListExpr GetTuplesDblTypeMap(ListExpr args)
 5.1.3 Value mapping functions of operator ~gettuplesdbl~
 
 */
+
+
 struct GetTuplesDblLocalInfo
 {
   Relation *relation;
@@ -4476,6 +4665,7 @@ class RTreeAlgebra : public Algebra
     AddOperator( &windowintersectsS );
         windowintersectsS.EnableProgress();
     AddOperator( &gettuples );
+        gettuples.EnableProgress();
     AddOperator( &gettuplesdbl );
     AddOperator( &gettuples2 );
     AddOperator( &rtreenodes );
