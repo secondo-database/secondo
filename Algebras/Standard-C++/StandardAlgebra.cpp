@@ -503,30 +503,16 @@ Word
 InCcReal( ListExpr typeInfo, ListExpr value,
           int errorPos, ListExpr& errorInfo, bool& correct )
 {
-  bool isAtom = nl->IsAtom( value );
-  NodeType nodeType = nl->AtomType( value );
-
-  if ( isAtom && nodeType == RealType )
-  {
-    correct = true;
-    return (SetWord( new CcReal( true, nl->RealValue( value ) )));
+  if(listutils::isSymbol(value,"undef")){ // undefined
+    correct=true;
+    return SetWord(new CcReal(false,0.0));
+  } 
+  if(listutils::isNumeric(value)){
+    correct=true;
+    return SetWord(new CcReal(true, listutils::getNumValue(value)));
   }
-  else if ( isAtom && nodeType == SymbolType
-        && nl->SymbolValue( value ) == "undef" )
-  {
-    correct = true;
-    return (SetWord( new CcReal( false, 0.0) ));
-  }
-  else if ( isAtom && nodeType == IntType  )
-  {
-    return ( SetWord( new CcReal( true, 1.0 * nl->IntValue(value) )));
-    correct = true;
-  }
-  else
-  {
-    correct = false;
-    return (SetWord( Address( 0 ) ));
-  }
+  correct = false;
+  return (SetWord( Address( 0 ) ));
 }
 
 Word
